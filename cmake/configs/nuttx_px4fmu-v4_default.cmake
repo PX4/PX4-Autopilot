@@ -12,7 +12,7 @@ set(config_module_list
 	drivers/distance_sensor
 	drivers/magnetometer
 	drivers/telemetry
-	drivers/imu
+        drivers/imu
 
 	drivers/batt_smbus
 	drivers/blinkm
@@ -31,7 +31,7 @@ set(config_module_list
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
 	drivers/tap_esc
-	drivers/vmount
+        drivers/vmount
 	modules/sensors
 
 	#
@@ -81,7 +81,7 @@ set(config_module_list
 	modules/load_mon
 	modules/mavlink
 	modules/navigator
-	modules/uavcan
+        modules/uavcan
 
 	#
 	# Estimation modules

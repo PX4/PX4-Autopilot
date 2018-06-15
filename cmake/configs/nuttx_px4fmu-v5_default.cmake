@@ -24,6 +24,7 @@ set(config_module_list
 	drivers/mkblctrl
 	drivers/imu/mpu6000
 	drivers/imu/mpu9250
+        drivers/imu/amov_imu
 	drivers/oreoled
 	drivers/pwm_input
 	drivers/pwm_out_sim

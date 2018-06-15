@@ -77,6 +77,9 @@
 #include <drivers/drv_gyro.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
+#ifdef CONFIG_ARCH_CHIP_STM32F7
+#include <stm32_dma.h>
+#endif
                        
 #include "amov_imu.h"
 
@@ -84,7 +87,7 @@
 class AMOV_IMU_UART_DMA : public device::Device
 {
 public:
-    AMOV_IMU_UART_DMA(const char * uart_name, const char * uart_alias, const char * model_name, bool is_dma);
+    AMOV_IMU_UART_DMA(const char * uart_name, const char * uart_alias, bool is_dma);
     ~AMOV_IMU_UART_DMA();
 
     virtual int	init();
@@ -114,36 +117,35 @@ private:
     int                         _uart_fd;
 
     char                        _uart_port[32];
-    char                        _model_name[32];
 
     uint8_t                     _imu_buf_length;
     uint8_t                     _imu_buf_head;
 
     /** saved DMA status */
-    static const unsigned	_dma_status_inactive = 0x80000000;	// low bits overlap DMA_STATUS_* values
-    static const unsigned	_dma_status_waiting  = 0x00000000;
+    static const unsigned       _dma_status_inactive = 0x80000000;	// low bits overlap DMA_STATUS_* values
+    static const unsigned       _dma_status_waiting  = 0x00000000;
     volatile unsigned           _rx_dma_status;
 
     /** client-waiting lock/signal */
-    px4_sem_t			_completion_semaphore;
+    px4_sem_t                   _completion_semaphore;
     bool                        _is_first;
 
     /**
      * DMA completion handler.
      */
     static void                 _dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
-    void			_do_rx_dma_callback(unsigned status);
+    void                        _do_rx_dma_callback(unsigned status);
 
     /**
      * Serial interrupt handler.
      */
     static int                  _interrupt(int vector, void *context, void *args);
-    void			_do_interrupt();
+    void                        _do_interrupt();
 
     /**
      * Cancel any DMA in progress with an error.
      */
-    void			_abort_dma();
+    void                        _abort_dma();
 
     hrt_abstime                 _last_time;
 
@@ -156,12 +158,14 @@ private:
 };
 
 device::Device *
-AMOV_IMU_UART_interface(const char * uart_name, const char * uart_alias, const char * model_name, bool is_dma)
+AMOV_IMU_UART_interface(const char * uart_name, const char * uart_alias, bool is_dma)
 {
-	device::Device *interface = new AMOV_IMU_UART_DMA(uart_name, uart_alias, model_name, is_dma);
+    device::Device *interface = new AMOV_IMU_UART_DMA(uart_name, uart_alias, is_dma);
 	return interface;
 }
 
+
+#ifdef CONFIG_ARCH_CHIP_STM32
 /* serial register accessors */
 #define REG(uart_base, _x)      (*(volatile uint32_t *)(uart_base + _x))
 #define rSR                     REG(_uart_addr, STM32_USART_SR_OFFSET)
@@ -171,17 +175,35 @@ AMOV_IMU_UART_interface(const char * uart_name, const char * uart_alias, const c
 #define rCR2                    REG(_uart_addr, STM32_USART_CR2_OFFSET)
 #define rCR3                    REG(_uart_addr, STM32_USART_CR3_OFFSET)
 #define rGTPR                   REG(_uart_addr, STM32_USART_GTPR_OFFSET)
+#elif defined(CONFIG_ARCH_CHIP_STM32F7)
+/* serial register accessors */
+#include "stm32_uart.h"
+#include "cache.h"
+#define REG(uart_base, _x)		(*(volatile uint32_t *)(uart_base + _x))
+#define rISR		REG(_uart_addr, STM32_USART_ISR_OFFSET)
+#define rISR_ERR_FLAGS_MASK (0x1f)
+#define rICR		REG(_uart_addr, STM32_USART_ICR_OFFSET)
+#define rRDR		REG(_uart_addr, STM32_USART_RDR_OFFSET)
+#define rTDR		REG(_uart_addr, STM32_USART_TDR_OFFSET)
+#define rBRR		REG(_uart_addr, STM32_USART_BRR_OFFSET)
+#define rCR1		REG(_uart_addr, STM32_USART_CR1_OFFSET)
+#define rCR2		REG(_uart_addr, STM32_USART_CR2_OFFSET)
+#define rCR3		REG(_uart_addr, STM32_USART_CR3_OFFSET)
+#define rGTPR		REG(_uart_addr, STM32_USART_GTPR_OFFSET)
+#endif
 
 uint32_t _irq_list[MAX_DEV_NUM] = {0, 0, 0};
 AMOV_IMU_UART_DMA * __uart[MAX_DEV_NUM] = {nullptr, nullptr, nullptr};
 
-AMOV_IMU_UART_DMA::AMOV_IMU_UART_DMA(const char * uart_name, const char * uart_alias, const char * model_name, bool is_dma) :
+AMOV_IMU_UART_DMA::AMOV_IMU_UART_DMA(const char * uart_name, const char * uart_alias, bool is_dma) :
     Device("AMOV_IMU_UART_DMA"),
     _tx_dma(nullptr),
     _rx_dma(nullptr),
     _is_dma(is_dma),
     _current_packet(nullptr),
     _uart_fd(-1),
+    _imu_buf_length(255),
+    _imu_buf_head(0x00),
     _rx_dma_status(_dma_status_inactive),
     _completion_semaphore(SEM_INITIALIZER(0)),
     _is_first(true),
@@ -266,13 +288,6 @@ AMOV_IMU_UART_DMA::AMOV_IMU_UART_DMA(const char * uart_name, const char * uart_a
     }
 
     strcpy(_uart_port, uart_alias);
-    strcpy(_model_name, model_name);
-
-    if(0 == strcmp(_model_name, "AMOV-IMU-1"))
-    {
-        _imu_buf_length = 32;
-        _imu_buf_head = 0xA5;
-    }
 
     int index;
     bool found = false;
@@ -409,6 +424,7 @@ void AMOV_IMU_UART_DMA::setBaud(unsigned baud, int _serial_fd)
 int
 AMOV_IMU_UART_DMA::init()
 {
+
     if(_uart_fd < 0)
         _uart_fd = open(_uart_port, O_RDWR);
     
@@ -419,6 +435,7 @@ AMOV_IMU_UART_DMA::init()
     setBaud(baud, _uart_fd);
 
     ::close(_uart_fd);
+
 
     if(_is_dma)
     {
@@ -447,10 +464,18 @@ AMOV_IMU_UART_DMA::init()
         rCR1 = 0;
         rCR2 = 0;
         rCR3 = 0;
-
+#ifdef CONFIG_ARCH_CHIP_STM32
         /* eat any existing interrupt status */
         (void)rSR;
         (void)rDR;
+#elif defined(CONFIG_ARCH_CHIP_STM32F7)
+        /* clear data that may be in the RDR and clear overrun error: */
+        if (rISR & USART_ISR_RXNE) {
+            (void)rRDR;
+        }
+
+        rICR = rISR & rISR_ERR_FLAGS_MASK;	/* clear the flags */
+#endif
 
         /* attach serial interrupt handler */
         irq_attach(_uart_irq_vector, _interrupt, nullptr);
@@ -468,7 +493,78 @@ AMOV_IMU_UART_DMA::init()
 
         px4_sem_setprotocol(&_completion_semaphore, SEM_PRIO_NONE);
 
-        /* XXX this could try talking to IO */
+        if(_is_first)
+        {
+            int retry = 500;
+            uint8_t last_tmp = 0;
+            while(retry > 0)
+            {
+                int retries = 500;
+#ifdef CONFIG_ARCH_CHIP_STM32
+                while(!(rSR & USART_SR_RXNE) && retries > 0)
+#elif defined(CONFIG_ARCH_CHIP_STM32F7)
+                while(!(rISR & USART_ISR_RXNE) && retries > 0)
+#endif
+                {
+                    --retries;
+                }
+#ifdef CONFIG_ARCH_CHIP_STM32
+                uint8_t tmp = rDR;
+#elif defined(CONFIG_ARCH_CHIP_STM32F7)
+                uint8_t tmp = rRDR;
+#endif
+
+                if(last_tmp == 0xAA)
+                {
+                    switch(tmp){
+                    case AMOV_IMU_MODEL_IMU1_HEAD:
+                        _imu_buf_head = AMOV_IMU_MODEL_IMU1_HEAD;
+                        _imu_buf_length = AMOV_IMU_MODEL_IMU1_LEN;
+                        break;
+                    case AMOV_IMU_MODEL_IMU2_HEAD:
+                        _imu_buf_head = AMOV_IMU_MODEL_IMU2_HEAD;
+                        _imu_buf_length = AMOV_IMU_MODEL_IMU2_LEN;
+                        break;
+                    case AMOV_IMU_MODEL_IMU3_HEAD:
+                        _imu_buf_head = AMOV_IMU_MODEL_IMU3_HEAD;
+                        _imu_buf_length = AMOV_IMU_MODEL_IMU3_LEN;
+                        break;
+                    case AMOV_IMU_MODEL_AHRS1_HEAD:
+                        _imu_buf_head = AMOV_IMU_MODEL_AHRS1_HEAD;
+                        _imu_buf_length = AMOV_IMU_MODEL_AHRS1_LEN;
+                        break;
+                    case AMOV_IMU_MODEL_AHRS2_HEAD:
+                        _imu_buf_head = AMOV_IMU_MODEL_AHRS2_HEAD;
+                        _imu_buf_length = AMOV_IMU_MODEL_AHRS2_LEN;
+                        break;
+                    case AMOV_IMU_MODEL_INSGPS1_HEAD:
+                        _imu_buf_head = AMOV_IMU_MODEL_INSGPS1_HEAD;
+                        _imu_buf_length = AMOV_IMU_MODEL_INSGPS1_LEN;
+                        break;
+                    case AMOV_IMU_MODEL_INSGPS2_HEAD:
+                        _imu_buf_head = AMOV_IMU_MODEL_INSGPS2_HEAD;
+                        _imu_buf_length = AMOV_IMU_MODEL_INSGPS2_LEN;
+                        break;
+                    case AMOV_IMU_MODEL_INSGPS3_HEAD:
+                        _imu_buf_head = AMOV_IMU_MODEL_INSGPS3_HEAD;
+                        _imu_buf_length = AMOV_IMU_MODEL_INSGPS3_LEN;
+                        break;
+                    case AMOV_IMU_MODEL_INSGPS4_HEAD:
+                        _imu_buf_head = AMOV_IMU_MODEL_INSGPS4_HEAD;
+                        _imu_buf_length = AMOV_IMU_MODEL_INSGPS4_LEN;
+                        break;
+                    }
+                    break;
+                }
+                last_tmp = tmp;
+                --retry;
+            }
+
+            if(retry == 0)
+                return -EIO;
+            _is_first = false;
+            warnx("Found AMOV-IMU");
+        }
     }
     else
     {
@@ -488,8 +584,10 @@ AMOV_IMU_UART_DMA::ioctl(unsigned operation, unsigned &arg)
     switch (operation) {
 
     case ACCELIOCGEXTERNAL:
-        return 0;
-
+        return OK;
+    case 99999999:
+        arg = _imu_buf_length;
+        return OK;
     default:
         break;
     }
@@ -507,33 +605,11 @@ AMOV_IMU_UART_DMA::read(unsigned address, void * data, unsigned count)
 
     if(_is_dma)
     {
-
-        if(_is_first)
-        {
-            int retry = 50;
-            while(retry > 0)
-            {
-                int retries = 500;
-                while(!(rSR & USART_SR_RXNE) && retries > 0)
-                {
-                    --retries;
-                }
-                
-                uint8_t tmp = rDR;
-                if(tmp == _imu_buf_head)
-                    break;
-                --retry;
-            }
-
-            if(retry == 0)
-                return -EIO;
-            _is_first = false;
-        }
         IMU3DMPacket *transaction = (IMU3DMPacket *) data;
         result = exchange(transaction);
 
             /* successful transaction? */
-        if (result != OK || !(transaction->buf[0] == _imu_buf_head)) {
+        if (result != OK || transaction->buf[0] != _imu_buf_head) {
             result = -EINVAL;
         }
         else
@@ -570,9 +646,18 @@ AMOV_IMU_UART_DMA::exchange(IMU3DMPacket *_packet)
 {
     _current_packet = _packet;
 
-    /* clear any lingering error status */
-    (void)rSR;
-    (void)rDR;
+#ifdef CONFIG_ARCH_CHIP_STM32
+        /* eat any existing interrupt status */
+        (void)rSR;
+        (void)rDR;
+#elif defined(CONFIG_ARCH_CHIP_STM32F7)
+        /* clear data that may be in the RDR and clear overrun error: */
+        if (rISR & USART_ISR_RXNE) {
+            (void)rRDR;
+        }
+
+        rICR = rISR & rISR_ERR_FLAGS_MASK;	/* clear the flags */
+#endif
 
     /* DMA setup time ~3µs */
     _rx_dma_status = _dma_status_waiting;
@@ -588,7 +673,11 @@ AMOV_IMU_UART_DMA::exchange(IMU3DMPacket *_packet)
      */
     stm32_dmasetup(
         _rx_dma,
+#ifdef CONFIG_ARCH_CHIP_STM32
         _uart_addr + STM32_USART_DR_OFFSET,
+#elif defined(CONFIG_ARCH_CHIP_STM32F7)
+        _uart_addr + STM32_USART_RDR_OFFSET,
+#endif
         reinterpret_cast<uint32_t>(_current_packet),
         _imu_buf_length,
         0		|	/* XXX see note above */
@@ -647,12 +736,20 @@ AMOV_IMU_UART_DMA::_do_rx_dma_callback(unsigned status)
     if (_rx_dma_status == _dma_status_waiting) {
 
         /* check for packet overrun - this will occur after DMA completes */
+#ifdef CONFIG_ARCH_CHIP_STM32
         uint32_t sr = rSR;
-
         if (sr & (USART_SR_ORE | USART_SR_RXNE)) {
             (void)rDR;
             status = DMA_STATUS_TEIF;
         }
+#elif defined(CONFIG_ARCH_CHIP_STM32F7)
+        uint32_t sr = rISR;
+        if (sr & (USART_ISR_ORE | USART_ISR_RXNE)) {
+            (void)rRDR;
+            rICR = sr & (USART_ISR_ORE | USART_ISR_RXNE);
+            status = DMA_STATUS_TEIF;
+        }
+#endif
 
         /* save RX status */
         _rx_dma_status = status;
@@ -686,6 +783,8 @@ AMOV_IMU_UART_DMA::_interrupt(int irq, void *context, void *args)
 void
 AMOV_IMU_UART_DMA::_do_interrupt()
 {
+
+#ifdef CONFIG_ARCH_CHIP_STM32
     uint32_t sr = rSR;	/* get UART status register */
     (void)rDR;		/* read DR to clear status */
 
@@ -734,20 +833,87 @@ AMOV_IMU_UART_DMA::_do_interrupt()
             _do_rx_dma_callback(DMA_STATUS_TCIF);
         }
     }
+#elif defined(CONFIG_ARCH_CHIP_STM32F7)
+    uint32_t sr = rISR;	/* get UART status register */
+    if (sr & USART_ISR_RXNE) {
+        (void)rRDR;	/* read DR to clear RXNE */
+    }
+
+    rICR = sr & rISR_ERR_FLAGS_MASK;	/* clear flags */
+
+    if (sr & (USART_ISR_ORE |	/* overrun error - packet was too big for DMA or DMA was too slow */
+          USART_ISR_NF |		/* noise error - we have lost a byte due to noise */
+          USART_ISR_FE)) {		/* framing error - start/stop bit lost or line break */
+
+        /*
+         * If we are in the process of listening for something, these are all fatal;
+         * abort the DMA with an error.
+         */
+        if (_rx_dma_status == _dma_status_waiting) {
+            _abort_dma();
+            /* complete DMA as though in error */
+            _do_rx_dma_callback(DMA_STATUS_TEIF);
+
+            return;
+        }
+
+        /* XXX we might want to use FE / line break as an out-of-band handshake ... handle it here */
+
+        /* don't attempt to handle IDLE if it's set - things went bad */
+        return;
+    }
+
+    if (sr & USART_ISR_IDLE) {
+
+        /* if there is DMA reception going on, this is a short packet */
+        if (_rx_dma_status == _dma_status_waiting) {
+
+            /* verify that the received packet is complete */
+            size_t length = _imu_buf_length - stm32_dmaresidual(_rx_dma);
+
+            if ((length < 1)) {
+                /* stop the receive DMA */
+                stm32_dmastop(_rx_dma);
+
+                /* complete the short reception */
+                _do_rx_dma_callback(DMA_STATUS_TEIF);
+                return;
+            }
+            /* stop the receive DMA */
+            stm32_dmastop(_rx_dma);
+
+            /* complete the short reception */
+            _do_rx_dma_callback(DMA_STATUS_TCIF);
+        }
+    }
+#endif
+
 }
 
 void
 AMOV_IMU_UART_DMA::_abort_dma()
 {
+#ifdef CONFIG_ARCH_CHIP_STM32
     /* disable UART DMA */
     rCR3 &= ~(USART_CR3_DMAT | USART_CR3_DMAR);
     (void)rSR;
     (void)rDR;
     (void)rDR;
-
+#endif
     /* stop DMA */
     stm32_dmastop(_tx_dma);
     stm32_dmastop(_rx_dma);
+
+#ifdef CONFIG_ARCH_CHIP_STM32F7
+    /* disable UART DMA */
+    rCR3 &= ~(USART_CR3_DMAT | USART_CR3_DMAR);
+    /* clear data that may be in the RDR and clear overrun error: */
+    if (rISR & USART_ISR_RXNE) {
+        (void)rRDR;
+    }
+
+    rICR = rISR & rISR_ERR_FLAGS_MASK;	/* clear the flags */
+#endif
 }
 
 IMU3DMPacket _io_buffer_storage[MAX_DEV_NUM];

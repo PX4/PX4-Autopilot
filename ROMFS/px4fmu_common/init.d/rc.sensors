@@ -79,14 +79,23 @@ then
 
 	# Internal I2C bus
 	hmc5883 -C -T -I -R 4 start
-
+	
 	# Internal SPI bus ICM-20608-G
 	mpu6000 -T 20608 start
 	
+	# External UART DMA bus AMOV-IMU
 	if param compare SYS_COMPANION 1500000
 	then
-		if amov_imu start -X 3 -T 1 -I 2 -A -P 255
+	 	amov_imu start -X 3 -I 2 -A -P 255
+		
+		if param greater SENS_EN_TFMINI 0
 		then
+		else
+			if param greater SENS_EN_LEDDAR1 0
+			then
+			else
+				amov_imu start -X 8 -I 6 -A -P 125
+			fi
 		fi
 	fi
 
@@ -187,6 +196,11 @@ fi
 
 if ver hwcmp PX4FMU_V4
 then
+        if param compare SYS_COMPANION 1500000
+	then
+	 	amov_imu start -X 3 -I 2 -A -P 255
+	fi
+        
 	# External I2C bus
 	hmc5883 -C -T -X start
 	lis3mdl -X start
@@ -317,6 +331,13 @@ then
 
 	# Internal SPI bus ICM-20689
 	mpu6000 -R 8 -z -T 20689 start
+	
+	if param compare SYS_COMPANION 1500000
+	then
+		if amov_imu start -X 3 -I 2 -A -P 255
+		then
+		fi
+	fi
 
 	# Internal SPI bus BMI055 accel
 	bmi055 -A -R 10 start

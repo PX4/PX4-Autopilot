@@ -57,17 +57,44 @@
 
 #define AMOV_IMU_DEVICE_PATH_ACCEL1		"/dev/amov_imu_accel1"
 #define AMOV_IMU_DEVICE_PATH_GYRO1		"/dev/amov_imu_gyro1"
+#define AMOV_IMU_DEVICE_PATH_MAG1		"/dev/amov_imu_mag1"
 #define AMOV_IMU_DEVICE_PATH_ACCEL2		"/dev/amov_imu_accel2"
 #define AMOV_IMU_DEVICE_PATH_GYRO2		"/dev/amov_imu_gyro2"
+#define AMOV_IMU_DEVICE_PATH_MAG2		"/dev/amov_imu_mag2"
 #define AMOV_IMU_DEVICE_PATH_ACCEL3		"/dev/amov_imu_accel3"
 #define AMOV_IMU_DEVICE_PATH_GYRO3		"/dev/amov_imu_gyro3"
+#define AMOV_IMU_DEVICE_PATH_MAG3		"/dev/amov_imu_mag3"
+
+#define AMOV_IMU_MODEL_IMU1_HEAD        0xA5
+#define AMOV_IMU_MODEL_IMU2_HEAD        0xA6
+#define AMOV_IMU_MODEL_IMU3_HEAD        0xA7
+#define AMOV_IMU_MODEL_AHRS1_HEAD       0xA8
+#define AMOV_IMU_MODEL_AHRS2_HEAD       0xA9
+#define AMOV_IMU_MODEL_AHRS3_HEAD       0xA9
+#define AMOV_IMU_MODEL_INSGPS1_HEAD     0xAA
+#define AMOV_IMU_MODEL_INSGPS2_HEAD     0xAB
+#define AMOV_IMU_MODEL_INSGPS3_HEAD     0xAC
+#define AMOV_IMU_MODEL_INSGPS4_HEAD     0xAD
+
+#define AMOV_IMU_MODEL_NUM              10
+
+#define AMOV_IMU_MODEL_IMU1_LEN         32
+#define AMOV_IMU_MODEL_IMU2_LEN         44
+#define AMOV_IMU_MODEL_IMU3_LEN         48
+#define AMOV_IMU_MODEL_AHRS1_LEN        48
+#define AMOV_IMU_MODEL_AHRS2_LEN        60
+#define AMOV_IMU_MODEL_AHRS3_LEN        60
+#define AMOV_IMU_MODEL_INSGPS1_LEN      80
+#define AMOV_IMU_MODEL_INSGPS2_LEN      120
+#define AMOV_IMU_MODEL_INSGPS3_LEN      120
+#define AMOV_IMU_MODEL_INSGPS4_LEN      160
 
 // AMOV IMU registers
-#define AMOV_IMU_REG_WHOAMI			0x27
-#define AMOV_IMU_REG_REG1			0x28
-#define AMOV_IMU_REG_REG2			0x29
-#define AMOV_IMU_REG_DATA			0x2A
-#define AMOV_IMU_REG_RESET			0x2B
+#define AMOV_IMU_REG_WHOAMI             0x27
+#define AMOV_IMU_REG_REG1               0x28
+#define AMOV_IMU_REG_REG2               0x29
+#define AMOV_IMU_REG_DATA               0x2A
+#define AMOV_IMU_REG_RESET              0x2B
 
 #define AMOV_IMU_WHOAMI                         0x72
 
@@ -101,18 +128,38 @@ union fnum {
     uint8_t bytes[4];
 };
 
+union dnum {
+    float d;
+    uint8_t bytes[8];
+};
+
 struct AMOVReport {
-        fnum		gyro_x;
+    fnum		gyro_x;
 	fnum		gyro_y;
 	fnum		gyro_z;
 	fnum		accel_x;
 	fnum		accel_y;
-	fnum		accel_z;
-        int16_t		temp;
+    fnum		accel_z;
+    int16_t		temp;
+    fnum        mag_x;
+    fnum        mag_y;
+    fnum        mag_z;
+    fnum        q0;
+    fnum        q1;
+    fnum        q2;
+    fnum        q3;
+    fnum        baro_alt;
+    fnum        vel_ned_x;
+    fnum        vel_ned_y;
+    fnum        vel_ned_z;
+    dnum        pos_lat;
+    dnum        pos_lon;
+    dnum        pos_alt;
+    uint8_t     sat_num;
 };
 
 struct IMU3DMPacket {
-    uint8_t buf[100];
+    uint8_t buf[256];
 };
 
 #pragma pack(pop)
@@ -219,5 +266,5 @@ inline uint32_t calculate_CRC32(void *pStart, uint32_t uSize)
 
 /* interface factories */
 extern device::Device *AMOV_IMU_SPI_interface(int bus, int device_type, bool external_bus);
-extern device::Device *AMOV_IMU_UART_interface(const char * uart_name, const char * uart_alias, const char * model_name, bool is_dma);
+extern device::Device *AMOV_IMU_UART_interface(const char * uart_name, const char * uart_alias, bool is_dma);
 extern int AMOV_IMU_probe(device::Device *dev, int device_type);

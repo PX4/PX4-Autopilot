@@ -60,6 +60,8 @@
 #include "amov_imu.h"
 #include <board_config.h>
 
+#ifndef CONFIG_ARCH_BOARD_PX4FMU_V4
+
 #define DIR_READ			0x80
 #define DIR_WRITE			0x00
 
@@ -243,3 +245,12 @@ AMOV_IMU_SPI::probe()
         */
 }
 
+#else
+
+device::Device *
+AMOV_IMU_SPI_interface(int bus, int device_type, bool external_bus)
+{
+    return nullptr;
+}
+
+#endif

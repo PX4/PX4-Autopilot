@@ -29,6 +29,7 @@ set(config_module_list
 	drivers/imu/lsm303d
 	drivers/imu/mpu6000
 	drivers/imu/mpu9250
+        drivers/imu/amov_imu
 	drivers/irlock
 	drivers/mkblctrl
 	drivers/oreoled

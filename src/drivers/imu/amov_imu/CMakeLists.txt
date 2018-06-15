@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE drivers__amov_imu
 	MAIN amov_imu
-	STACK_MAIN 1400
+        STACK_MAIN 1700
 	COMPILE_FLAGS
 	SRCS
 		amov_imu.cpp
