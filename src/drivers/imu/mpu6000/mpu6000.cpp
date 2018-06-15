@@ -738,7 +738,7 @@ MPU6000::init()
 
 	/* measurement will have generated a report, publish */
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-                       &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_DEFAULT : ORB_PRIO_MAX);
+					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_DEFAULT : ORB_PRIO_MAX);
 
 	if (_accel_topic == nullptr) {
 		PX4_WARN("ADVERT FAIL");
@@ -749,7 +749,7 @@ MPU6000::init()
 	_gyro_reports->get(&grp);
 
 	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-                 &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_DEFAULT : ORB_PRIO_MAX);
+			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_DEFAULT : ORB_PRIO_MAX);
 
 	if (_gyro->_gyro_topic == nullptr) {
 		PX4_WARN("ADVERT FAIL");
