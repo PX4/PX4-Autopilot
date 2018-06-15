@@ -7,12 +7,13 @@ constexpr uint32_t CameraInterfaceGPIO::_gpios[6];
 
 CameraInterfaceGPIO::CameraInterfaceGPIO():
 	CameraInterface(),
-	_trigger_invert(false)
+	_trigger_invert(false),
+	_triggers{0}
 {
 	_p_polarity = param_find("TRIG_POLARITY");
 
 	// polarity of the trigger (0 = active low, 1 = active high )
-	int polarity;
+	int32_t polarity;
 	param_get(_p_polarity, &polarity);
 	_trigger_invert = (polarity == 0);
 
@@ -26,8 +27,6 @@ CameraInterfaceGPIO::~CameraInterfaceGPIO()
 
 void CameraInterfaceGPIO::setup()
 {
-	memset(_triggers, 0, sizeof(_triggers));
-
 	for (unsigned i = 0, t = 0; i < arraySize(_pins); i++) {
 
 		// Pin range is from 1 to 6, indexes are 0 to 5
