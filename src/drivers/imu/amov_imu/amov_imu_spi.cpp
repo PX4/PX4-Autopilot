@@ -76,7 +76,7 @@ device::Device *AMOV_IMU_SPI_interface(int bus, int device_type, bool external_b
 class AMOV_IMU_SPI : public device::SPI
 {
 public:
-    AMOV_IMU_SPI(int bus, uint32_t device, int device_type);
+	AMOV_IMU_SPI(int bus, uint32_t device, int device_type);
 	virtual ~AMOV_IMU_SPI();
 
 	virtual int	init();
@@ -89,7 +89,7 @@ protected:
 
 private:
 
-    int _device_type;
+	int _device_type;
 	/* Helper to set the desired speed and isolate the register on return */
 
 	void set_bus_frequency(unsigned &reg_speed_reg_out);
@@ -98,14 +98,14 @@ private:
 device::Device *
 AMOV_IMU_SPI_interface(int bus, int device_type, bool external_bus)
 {
-    int cs = SPIDEV_NONE(0);
+	int cs = SPIDEV_NONE(0);
 	device::Device *interface = nullptr;
 
-    cs = PX4_SPIDEV_EXT_AMOV_IMU;
+	cs = PX4_SPIDEV_EXT_AMOV_IMU;
 
-    if (cs != SPIDEV_NONE(0)) {
+	if (cs != SPIDEV_NONE(0)) {
 
-        interface = new AMOV_IMU_SPI(bus, (uint32_t) cs, device_type);
+		interface = new AMOV_IMU_SPI(bus, (uint32_t) cs, device_type);
 	}
 
 	return interface;
@@ -113,7 +113,7 @@ AMOV_IMU_SPI_interface(int bus, int device_type, bool external_bus)
 
 AMOV_IMU_SPI::AMOV_IMU_SPI(int bus, uint32_t device, int device_type) :
 	SPI("AMOV_IMU", nullptr, bus, device, SPIDEV_MODE3, AMOV_IMU_LOW_SPI_BUS_SPEED),
-    _device_type(device_type)
+	_device_type(device_type)
 {
 	_device_id.devid_s.devtype =  DRV_ACC_DEVTYPE_AMOV_IMU;
 }
@@ -145,7 +145,7 @@ AMOV_IMU_SPI::ioctl(unsigned operation, unsigned &arg)
 	switch (operation) {
 
 	case ACCELIOCGEXTERNAL:
-        return 0;
+		return 0;
 
 	case DEVIOCGDEVICEID:
 		return CDev::ioctl(nullptr, operation, arg);
@@ -196,53 +196,53 @@ AMOV_IMU_SPI::write(unsigned reg_speed, void *data, unsigned count)
 int
 AMOV_IMU_SPI::read(unsigned reg_speed, void *data, unsigned count)
 {
-    uint8_t cmd[3] = {0, 0, 0};
+	uint8_t cmd[3] = {0, 0, 0};
 
-    uint8_t *pbuff  =  count < sizeof(AMOVReport) ? cmd : (uint8_t *) data ;
+	uint8_t *pbuff  =  count < sizeof(AMOVReport) ? cmd : (uint8_t *) data ;
 
 
-    if (count < sizeof(AMOVReport))  {
+	if (count < sizeof(AMOVReport))  {
 
-        /* add command */
+		/* add command */
 
-        count++;
-    }
+		count++;
+	}
 
-    set_bus_frequency(reg_speed);
+	set_bus_frequency(reg_speed);
 
-    /* Set command */
+	/* Set command */
 
-    pbuff[0] = reg_speed | DIR_READ ;
+	pbuff[0] = reg_speed | DIR_READ ;
 
-    /* Transfer the command and get the data */
+	/* Transfer the command and get the data */
 
-    int ret = transfer(pbuff, pbuff, count);
+	int ret = transfer(pbuff, pbuff, count);
 
-    if (ret == OK && pbuff == &cmd[0]) {
+	if (ret == OK && pbuff == &cmd[0]) {
 
-        /* Adjust the count back */
+		/* Adjust the count back */
 
-        count--;
+		count--;
 
-        /* Return the data */
+		/* Return the data */
 
-        memcpy(data, &cmd[1], count);
+		memcpy(data, &cmd[1], count);
 
-    }
+	}
 
-    return ret == OK ? count : ret;
+	return ret == OK ? count : ret;
 }
 
 int
 AMOV_IMU_SPI::probe()
 {
-        return OK;
-        /*
-    uint8_t whoami = 0;
-    uint8_t expected = AMOV_IMU_WHOAMI;
+	return OK;
+	/*
+	uint8_t whoami = 0;
+	uint8_t expected = AMOV_IMU_WHOAMI;
 
-    return (read(AMOV_IMU_REG_WHOAMI, &whoami, 1) > 0 && (whoami == expected)) ? 0 : -EIO;
-        */
+	return (read(AMOV_IMU_REG_WHOAMI, &whoami, 1) > 0 && (whoami == expected)) ? 0 : -EIO;
+	*/
 }
 
 #else
@@ -250,7 +250,7 @@ AMOV_IMU_SPI::probe()
 device::Device *
 AMOV_IMU_SPI_interface(int bus, int device_type, bool external_bus)
 {
-    return nullptr;
+	return nullptr;
 }
 
 #endif
