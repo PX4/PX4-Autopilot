@@ -1814,6 +1814,11 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 		input_rc.values[i] = regs[prolog + i];
 	}
 
+	/* zero the remaining fields */
+	for (unsigned i = channel_count; i < (sizeof(input_rc.values) / sizeof(input_rc.values[0])); i++) {
+		input_rc.values[i] = 0;
+	}
+
 	/* get RSSI from input channel */
 	if (_rssi_pwm_chan > 0 && _rssi_pwm_chan <= input_rc_s::RC_INPUT_MAX_CHANNELS && _rssi_pwm_max - _rssi_pwm_min != 0) {
 		int rssi = ((input_rc.values[_rssi_pwm_chan - 1] - _rssi_pwm_min) * 100) /
