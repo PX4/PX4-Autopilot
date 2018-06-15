@@ -39,7 +39,7 @@ private:
 		GPIO_GPIO5_OUTPUT
 	};
 
-	uint32_t _triggers[arraySize(_gpios) + 1];
+	uint32_t _triggers[arraySize(_gpios)];
 };
 
 #endif /* ifdef __PX4_NUTTX */
