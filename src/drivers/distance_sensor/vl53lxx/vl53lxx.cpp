@@ -213,7 +213,8 @@ VL53LXX::VL53LXX(uint8_t rotation, int bus, int address) :
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "vl53lxx_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "vl53lxx_com_err"))
+	_comms_errors(perf_alloc(PC_COUNT, "vl53lxx_com_err")),
+	_stop_variable(0)
 {
 	// up the retries since the device misses the first measure attempts
 	I2C::_retries = 3;
@@ -989,7 +990,7 @@ void	info();
 void
 start(uint8_t rotation)
 {
-	int fd;
+	int fd = -1;
 
 	if (g_dev != nullptr) {
 		errx(1, "already started");
@@ -1021,6 +1022,10 @@ start(uint8_t rotation)
 	exit(0);
 
 fail:
+
+	if (fd >= 0) {
+		close(fd);
+	}
 
 	if (g_dev != nullptr) {
 		delete g_dev;
@@ -1072,6 +1077,8 @@ test()
 	}
 
 	print_message(report);
+
+	close(fd);
 
 	errx(0, "PASS");
 }
