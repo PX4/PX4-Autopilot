@@ -1644,6 +1644,7 @@ start_bus(enum Rotation rotation, int device_type, bool is_dma, ORB_PRIO priorit
 
 
 	AMOV_IMU *_dev = nullptr;
+
 	found = false;
 
 	for (i = 0; i < MAX_DEV_NUM; ++i)
