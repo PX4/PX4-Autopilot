@@ -328,15 +328,15 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2018-03-30'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+              args '-e HOME=$WORKSPACE'
             }
           }
           options {
             skipDefaultCheckout()
           }
           steps {
+            cleanWs()
             sh 'export'
-            sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=standard_vtol'
@@ -347,7 +347,6 @@ pipeline {
               sh 'px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
               archiveArtifacts '.ros/**/*.pdf'
               archiveArtifacts '.ros/**/*.csv'
-              deleteDir()
             }
             failure {
               sh 'ls -a'
@@ -362,15 +361,15 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2018-03-30'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+              args '-e HOME=$WORKSPACE'
             }
           }
           options {
             skipDefaultCheckout()
           }
           steps {
+            cleanWs()
             sh 'export'
-            sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=tailsitter'
@@ -381,7 +380,6 @@ pipeline {
               sh 'px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
               archiveArtifacts '.ros/**/*.pdf'
               archiveArtifacts '.ros/**/*.csv'
-              deleteDir()
             }
             failure {
               sh 'ls -a'
@@ -396,15 +394,15 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2018-03-30'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+              args '-e HOME=$WORKSPACE'
             }
           }
           options {
             skipDefaultCheckout()
           }
           steps {
+            cleanWs()
             sh 'export'
-            sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=tiltrotor'
@@ -415,7 +413,6 @@ pipeline {
               sh 'px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
               archiveArtifacts '.ros/**/*.pdf'
               archiveArtifacts '.ros/**/*.csv'
-              deleteDir()
             }
             failure {
               sh 'ls -a'
@@ -430,15 +427,15 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2018-03-30'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+              args '-e HOME=$WORKSPACE'
             }
           }
           options {
             skipDefaultCheckout()
           }
           steps {
+            cleanWs()
             sh 'export'
-            sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_2 vehicle:=standard_vtol'
@@ -449,7 +446,6 @@ pipeline {
               sh 'px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
               archiveArtifacts '.ros/**/*.pdf'
               archiveArtifacts '.ros/**/*.csv'
-              deleteDir()
             }
             failure {
               sh 'ls -a'
@@ -464,15 +460,15 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2018-03-30'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+              args '-e HOME=$WORKSPACE'
             }
           }
           options {
             skipDefaultCheckout()
           }
           steps {
+            cleanWs()
             sh 'export'
-            sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_1 vehicle:=standard_vtol'
@@ -483,7 +479,6 @@ pipeline {
               sh 'px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
               archiveArtifacts '.ros/**/*.pdf'
               archiveArtifacts '.ros/**/*.csv'
-              deleteDir()
             }
             failure {
               sh 'ls -a'
@@ -498,15 +493,15 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2018-03-30'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+              args '-e HOME=$WORKSPACE'
             }
           }
           options {
             skipDefaultCheckout()
           }
           steps {
+            cleanWs()
             sh 'export'
-            sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_2 vehicle:=standard_vtol'
@@ -517,7 +512,6 @@ pipeline {
               sh 'px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
               archiveArtifacts '.ros/**/*.pdf'
               archiveArtifacts '.ros/**/*.csv'
-              deleteDir()
             }
             failure {
               sh 'ls -a'
@@ -532,15 +526,15 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2018-03-30'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+              args '-e HOME=$WORKSPACE'
             }
           }
           options {
             skipDefaultCheckout()
           }
           steps {
+            cleanWs()
             sh 'export'
-            sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=multirotor_box vehicle:=iris'
@@ -551,7 +545,6 @@ pipeline {
               sh 'px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
               archiveArtifacts '.ros/**/*.pdf'
               archiveArtifacts '.ros/**/*.csv'
-              deleteDir()
             }
             failure {
               sh 'ls -a'
@@ -566,15 +559,15 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2018-03-30'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+              args '-e HOME=$WORKSPACE'
             }
           }
           options {
             skipDefaultCheckout()
           }
           steps {
+            cleanWs()
             sh 'export'
-            sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test'
@@ -585,7 +578,6 @@ pipeline {
               sh 'px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
               archiveArtifacts '.ros/**/*.pdf'
               archiveArtifacts '.ros/**/*.csv'
-              deleteDir()
             }
             failure {
               sh 'ls -a'
@@ -600,12 +592,12 @@ pipeline {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2018-03-30'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+              args '-e HOME=$WORKSPACE'
             }
           }
           steps {
+            cleanWs()
             sh 'export'
-            sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
             unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_tests_offboard_posctl.test'
@@ -616,7 +608,6 @@ pipeline {
               sh 'px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
               archiveArtifacts '.ros/**/*.pdf'
               archiveArtifacts '.ros/**/*.csv'
-              deleteDir()
             }
             failure {
               sh 'ls -a'
