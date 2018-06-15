@@ -31,7 +31,7 @@ set(config_module_list
 	#drivers/mb12xx
 	#drivers/mkblctrl
         drivers/imu/mpu6000
-        drivers/imu/amov_imu
+        #drivers/imu/amov_imu
         drivers/imu/mpu9250
 	#drivers/oreoled
 	#drivers/protocol_splitter
