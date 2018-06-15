@@ -106,7 +106,6 @@ if (GENERATE_RTPS_BRIDGE)
 			-e templates/uorb_microcdr
 			-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/headers_microcdr
 			-q
-		DEPENDS ${msg_files}
 		COMMENT "Generating uORB microcdr topic headers"
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}/msg/
 		VERBATIM
@@ -123,7 +122,6 @@ if (GENERATE_RTPS_BRIDGE)
 			-e templates/uorb_microcdr
 			-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/sources_microcdr
 			-q
-		DEPENDS ${msg_files}
 		COMMENT "Generating uORB microcdr topic sources"
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}/msg/
 		VERBATIM
