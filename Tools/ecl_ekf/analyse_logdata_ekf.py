@@ -1166,7 +1166,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
     }
     # generate test metadata
     # reduction of innovation message data
-    if (innov_early_end_index > (innov_late_start_index + 100)):
+    if (innov_early_end_index > (innov_late_start_index + 50)):
         # Output Observer Tracking Errors
         test_results['output_obs_ang_err_median'][0] = np.median(
             ekf2_innovations['output_tracking_error[0]'][innov_late_start_index:innov_early_end_index + 1])
@@ -1175,7 +1175,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         test_results['output_obs_pos_err_median'][0] = np.median(
             ekf2_innovations['output_tracking_error[2]'][innov_late_start_index:innov_early_end_index + 1])
     # reduction of status message data
-    if (early_end_index > (late_start_index + 100)):
+    if (early_end_index > (late_start_index + 50)):
         # IMU vibration checks
         temp = np.amax(estimator_status['vibe[0]'][late_start_index:early_end_index])
         if (temp > 0.0):
