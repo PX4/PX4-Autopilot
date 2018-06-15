@@ -18,7 +18,7 @@ public:
 	CameraInterfaceGPIO();
 	virtual ~CameraInterfaceGPIO();
 
-	void trigger(bool enable);
+	void trigger(bool trigger_on_true);
 
 	void info();
 
