@@ -1461,8 +1461,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 	 * horizontal limit (with some tolerance)
 	 * The horizontal limit is only applied when we are in front of the wp
 	 */
-	if (((_global_pos.alt < terrain_alt + _landingslope.flare_relative_alt()) &&
-	     (wp_distance_save < _landingslope.flare_length() + 5.0f)) ||
+	if ((_global_pos.alt < terrain_alt + _landingslope.flare_relative_alt()) ||
 	    _land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
 
 		/* land with minimal speed */
@@ -1479,7 +1478,9 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			_att_sp.fw_control_yaw = true;
 		}
 
-		if (_global_pos.alt < terrain_alt + _landingslope.motor_lim_relative_alt() || _land_motor_lim) {
+		if (((_global_pos.alt < terrain_alt + _landingslope.motor_lim_relative_alt()) &&
+		     (wp_distance_save < _landingslope.flare_length() + 5.0f)) || // Only kill throttle when close to WP
+		    _land_motor_lim) {
 			throttle_max = min(throttle_max, _parameters.throttle_land_max);
 
 			if (!_land_motor_lim) {
