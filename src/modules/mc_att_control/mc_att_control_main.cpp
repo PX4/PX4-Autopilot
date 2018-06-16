@@ -52,7 +52,6 @@
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
 
-#define MIN_TAKEOFF_THRUST    0.2f
 #define TPA_RATE_LOWER_LIMIT 0.05f
 
 #define AXIS_INDEX_ROLL 0
@@ -358,6 +357,19 @@ MulticopterAttitudeControl::sensor_bias_poll()
 
 }
 
+void
+MulticopterAttitudeControl::vehicle_land_detected_poll()
+{
+	/* check if there is a new message */
+	bool updated;
+	orb_check(_vehicle_land_detected_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
+	}
+
+}
+
 /**
  * Attitude controller.
  * Input: 'vehicle_attitude_setpoint' topics (depending on mode)
@@ -541,8 +553,8 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	_rates_prev = rates;
 	_rates_prev_filtered = rates_filtered;
 
-	/* update integral only if motors are providing enough thrust to be effective */
-	if (_thrust_sp > MIN_TAKEOFF_THRUST) {
+	/* update integral only if we are not landed */
+	if (!_vehicle_land_detected.maybe_landed && !_vehicle_land_detected.landed) {
 		for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
 			// Check for positive control saturation
 			bool positive_saturation =
@@ -614,6 +626,7 @@ MulticopterAttitudeControl::run()
 
 	_sensor_correction_sub = orb_subscribe(ORB_ID(sensor_correction));
 	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
+	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
 	/* wakeup source: gyro data from sensor selected by the sensor app */
 	px4_pollfd_struct_t poll_fds = {};
@@ -673,6 +686,7 @@ MulticopterAttitudeControl::run()
 			vehicle_attitude_poll();
 			sensor_correction_poll();
 			sensor_bias_poll();
+			vehicle_land_detected_poll();
 
 			/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
 			 * or roll (yaw can rotate 360 in normal att control).  If both are true don't
@@ -846,6 +860,7 @@ MulticopterAttitudeControl::run()
 
 	orb_unsubscribe(_sensor_correction_sub);
 	orb_unsubscribe(_sensor_bias_sub);
+	orb_unsubscribe(_vehicle_land_detected_sub);
 }
 
 int MulticopterAttitudeControl::task_spawn(int argc, char *argv[])
