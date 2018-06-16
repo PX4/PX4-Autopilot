@@ -854,7 +854,7 @@ Navigator::get_acceptance_radius()
 }
 
 float
-Navigator::get_altitude_acceptance_radius()
+Navigator::get_default_altitude_acceptance_radius()
 {
 	if (!get_vstatus()->is_rotary_wing) {
 		return _param_fw_alt_acceptance_radius.get();
@@ -862,6 +862,25 @@ Navigator::get_altitude_acceptance_radius()
 	} else {
 		return _param_mc_alt_acceptance_radius.get();
 	}
+}
+
+float
+Navigator::get_altitude_acceptance_radius()
+{
+	if (!get_vstatus()->is_rotary_wing) {
+		// The fixed-wing altitude acceptance radius default is the respective parameter. However, before a landing
+		// approach it needs to be tighter: Assume a 30% error w.r.t. the remaining descent altitude is OK, but enforce
+		// min/max values (e.g. min=3m to make sure that the waypoint can still be reached in case of wrong user input).
+
+		const position_setpoint_s &next_sp = get_position_setpoint_triplet()->next;
+		const position_setpoint_s &curr_sp = get_position_setpoint_triplet()->current;
+
+		if (next_sp.type == position_setpoint_s::SETPOINT_TYPE_LAND && next_sp.valid) {
+			return math::constrain(0.3f * (curr_sp.alt - next_sp.alt), 3.0f, _param_fw_alt_acceptance_radius.get());
+		}
+	}
+
+	return get_default_altitude_acceptance_radius();
 }
 
 float
