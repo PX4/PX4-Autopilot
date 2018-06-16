@@ -344,6 +344,16 @@ PMW3901::init()
 {
 	int ret = PX4_ERROR;
 
+	/* get sensor rotation in yaw */
+	param_t rot = param_find("SENS_FLOW_ROT");
+
+	if (rot != PARAM_INVALID) {
+		int32_t val = 0;
+		param_get(rot, &val);
+
+		_sensor_rotation = (enum Rotation)val;
+	}
+
 	/* get operational limits of the sensor */
 	param_t hmin = param_find("SENS_FLOW_MINHGT");
 
@@ -614,6 +624,10 @@ PMW3901::collect()
 	// the output of the sensor follows the opposite convention than the one defined in the optical_flow_message
 	report.pixel_flow_x_integral = -static_cast<float>(delta_x);
 	report.pixel_flow_y_integral = -static_cast<float>(delta_y);
+
+	// apply yaw rotation defined by parameter SENS_FLOW_ROT
+	float zeroval = 0.0f;
+	rotate_3f(_sensor_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval);
 
 	report.frame_count_since_last_readout = 4;				//microseconds
 	report.integration_timespan = _flow_dt_sum_usec; 		//microseconds
