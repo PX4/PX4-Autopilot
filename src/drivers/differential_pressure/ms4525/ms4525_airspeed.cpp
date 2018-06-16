@@ -81,7 +81,6 @@
 #define MEAS_DRIVER_FILTER_FREQ 1.2f
 #define CONVERSION_INTERVAL	(1000000 / MEAS_RATE)	/* microseconds */
 
-#define PX4_I2C_ALL 0xFF
 
 class MEASAirspeed : public Airspeed
 {
@@ -403,18 +402,14 @@ int reset();
 int
 start(int i2c_bus)
 {
-	if (i2c_bus == PX4_I2C_ALL) {
-		for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
-			if (start_bus(bus_options[i]) == PX4_OK) {
-				return PX4_OK;
-			}
+	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
+		if (start_bus(bus_options[i]) == PX4_OK) {
+			return PX4_OK;
 		}
-
-		return PX4_ERROR;
-
-	} else {
-		return start_bus(i2c_bus);
 	}
+
+	return PX4_ERROR;
+
 }
 
 bool
@@ -531,6 +526,8 @@ ms4525_airspeed_main(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 
+	bool start_all = false;
+
 	while ((ch = px4_getopt(argc, argv, "ab:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
@@ -538,7 +535,7 @@ ms4525_airspeed_main(int argc, char *argv[])
 			break;
 
 		case 'a':
-			i2c_bus = PX4_I2C_ALL;
+			start_all = true;
 			break;
 
 		default:
@@ -556,7 +553,13 @@ ms4525_airspeed_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		return meas_airspeed::start(i2c_bus);
+		if (start_all) {
+			return meas_airspeed::start(i2c_bus);
+
+		} else {
+			return meas_airspeed::start_bus(i2c_bus);
+		}
+
 	}
 
 	/*
