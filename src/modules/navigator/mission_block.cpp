@@ -251,15 +251,26 @@ MissionBlock::is_mission_item_reached()
 				}
 
 			} else {
+				// Determine altitude acceptance radius. By default, this is taken from the respective parameter.
+				// However, before a landing approach the acceptance radius needs to be tighter: Assume a 30% error
+				// w.r.t. the remaining descent altitude is OK, but enforce min/max values (e.g. min=3m to make
+				// sure that the waypoint can still be reached in case of wrong user input).
+				float alt_accept_rad = _navigator->get_altitude_acceptance_radius();
+				struct position_setpoint_s next_sp = _navigator->get_position_setpoint_triplet()->next;
+
+				if (next_sp.type == position_setpoint_s::SETPOINT_TYPE_LAND && next_sp.valid) {
+					alt_accept_rad = math::constrain(0.3f * (curr_sp->alt - next_sp.alt), 3.0f,
+									 _navigator->get_altitude_acceptance_radius());
+					PX4_INFO("Accept:%5.3f", double(alt_accept_rad));
+				}
+
 				if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f)
-				    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
+				    && dist_z <= alt_accept_rad) {
 
 					_waypoint_position_reached = true;
 
 					// set required yaw from bearing to the next mission item
 					if (_mission_item.force_heading) {
-						struct position_setpoint_s next_sp = _navigator->get_position_setpoint_triplet()->next;
-
 						if (next_sp.valid) {
 							_mission_item.yaw = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
 									    _navigator->get_global_position()->lon,
