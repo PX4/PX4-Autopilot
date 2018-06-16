@@ -76,6 +76,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_heading_hold_horizontal_distance = param_find("FW_LND_HHDIST");
 	_parameter_handles.land_use_terrain_estimate = param_find("FW_LND_USETER");
 	_parameter_handles.land_airspeed_scale = param_find("FW_LND_AIRSPD_SC");
+	_parameter_handles.land_throtTC_scale = param_find("FW_LND_THRTC_SC");
 
 	_parameter_handles.time_const = param_find("FW_T_TIME_CONST");
 	_parameter_handles.time_const_throt = param_find("FW_T_THRO_CONST");
@@ -148,6 +149,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_flare_pitch_max_deg, &(_parameters.land_flare_pitch_max_deg));
 	param_get(_parameter_handles.land_use_terrain_estimate, &(_parameters.land_use_terrain_estimate));
 	param_get(_parameter_handles.land_airspeed_scale, &(_parameters.land_airspeed_scale));
+	param_get(_parameter_handles.land_throtTC_scale, &(_parameters.land_throtTC_scale));
 
 	// VTOL parameter VTOL_TYPE
 	if (_parameter_handles.vtol_type != PARAM_INVALID) {
@@ -195,12 +197,12 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_indicated_airspeed_min(_parameters.airspeed_min);
 	_tecs.set_indicated_airspeed_max(_parameters.airspeed_max);
 
-	if (param_get(_parameter_handles.time_const, &v) == PX4_OK) {
-		_tecs.set_time_const(v);
+	if (param_get(_parameter_handles.time_const_throt, &(_parameters.time_const_throt)) == PX4_OK) {
+		_tecs.set_time_const_throt(_parameters.time_const_throt);
 	}
 
-	if (param_get(_parameter_handles.time_const_throt, &v) == PX4_OK) {
-		_tecs.set_time_const_throt(v);
+	if (param_get(_parameter_handles.time_const, &v) == PX4_OK) {
+		_tecs.set_time_const(v);
 	}
 
 	if (param_get(_parameter_handles.min_sink_rate, &v) == PX4_OK) {
@@ -694,7 +696,7 @@ FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitch_lim
 
 bool
 FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vector2f &ground_speed,
-		const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
+		const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next)
 {
 	float dt = 0.01f;
 
@@ -770,8 +772,9 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 		/* get circle mode */
 		bool was_circle_mode = _l1_control.circle_mode();
 
-		/* restore speed weight, in case changed intermittently (e.g. in landing handling) */
+		/* restore TECS parameters, in case changed intermittently (e.g. in landing handling) */
 		_tecs.set_speed_weight(_parameters.speed_weight);
+		_tecs.set_time_const_throt(_parameters.time_const_throt);
 
 		/* current waypoint (the one currently heading for) */
 		Vector2f curr_wp((float)pos_sp_curr.lat, (float)pos_sp_curr.lon);
@@ -844,6 +847,15 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 
 			float alt_sp = pos_sp_curr.alt;
 
+			if (pos_sp_next.type == position_setpoint_s::SETPOINT_TYPE_LAND && pos_sp_next.valid) {
+				// We're in a loiter directly before a landing WP. Enable our landing configuration (flaps,
+				// landing airspeed and potentially tighter throttle control) already such that we don't
+				// have to do this switch (which can cause significant altitude errors) close to the ground.
+				_tecs.set_time_const_throt(_parameters.land_throtTC_scale * _parameters.time_const_throt);
+				mission_airspeed = _parameters.land_airspeed_scale * _parameters.airspeed_min;
+				_att_sp.apply_flaps = true;
+			}
+
 			if (in_takeoff_situation()) {
 				alt_sp = max(alt_sp, _takeoff_ground_alt + _parameters.climbout_diff);
 				_att_sp.roll_body = constrain(_att_sp.roll_body, radians(-5.0f), radians(5.0f));
@@ -858,6 +870,8 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 					// continue straight until vehicle has sufficient altitude
 					_att_sp.roll_body = 0.0f;
 				}
+
+				_tecs.set_time_const_throt(_parameters.land_throtTC_scale * _parameters.time_const_throt);
 			}
 
 			tecs_update_pitch_throttle(alt_sp,
@@ -1322,6 +1336,9 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 	// if they have been enabled using the corresponding parameter
 	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_LAND;
 
+	// Enable tighter throttle control for landings
+	_tecs.set_time_const_throt(_parameters.land_throtTC_scale * _parameters.time_const_throt);
+
 	// save time at which we started landing and reset abort_landing
 	if (_time_started_landing == 0) {
 		_time_started_landing = hrt_absolute_time();
@@ -1709,7 +1726,7 @@ FixedwingPositionControl::run()
 			 * Attempt to control position, on success (= sensors present and not in manual mode),
 			 * publish setpoint.
 			 */
-			if (control_position(curr_pos, ground_speed, _pos_sp_triplet.previous, _pos_sp_triplet.current)) {
+			if (control_position(curr_pos, ground_speed, _pos_sp_triplet.previous, _pos_sp_triplet.current, _pos_sp_triplet.next)) {
 				_att_sp.timestamp = hrt_absolute_time();
 
 				// add attitude setpoint offsets
