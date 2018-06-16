@@ -847,7 +847,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 
 			float alt_sp = pos_sp_curr.alt;
 
-			if (pos_sp_next.type == position_setpoint_s::SETPOINT_TYPE_LAND && pos_sp_next.valid) {
+			if (pos_sp_next.type == position_setpoint_s::SETPOINT_TYPE_LAND && pos_sp_next.valid && _l1_control.circle_mode()) {
 				// We're in a loiter directly before a landing WP. Enable our landing configuration (flaps,
 				// landing airspeed and potentially tighter throttle control) already such that we don't
 				// have to do this switch (which can cause significant altitude errors) close to the ground.
