@@ -81,6 +81,8 @@
 #define MEAS_DRIVER_FILTER_FREQ 1.2f
 #define CONVERSION_INTERVAL	(1000000 / MEAS_RATE)	/* microseconds */
 
+#define PX4_I2C_ALL 0xFF
+
 class MEASAirspeed : public Airspeed
 {
 public:
@@ -373,7 +375,22 @@ namespace meas_airspeed
 
 MEASAirspeed	*g_dev = nullptr;
 
+int bus_options[] = {
+#ifdef PX4_I2C_BUS_EXPANSION
+	PX4_I2C_BUS_EXPANSION,
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION1
+	PX4_I2C_BUS_EXPANSION1,
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION2
+	PX4_I2C_BUS_EXPANSION2,
+#endif
+};
+
+#define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
+
 int start(int i2c_bus);
+bool start_bus(int i2c_bus);
 int stop();
 int reset();
 
@@ -385,6 +402,23 @@ int reset();
  */
 int
 start(int i2c_bus)
+{
+	if (i2c_bus == PX4_I2C_ALL) {
+		for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
+			if (start_bus(bus_options[i]) == PX4_OK) {
+				return PX4_OK;
+			}
+		}
+
+		return PX4_ERROR;
+
+	} else {
+		return start_bus(i2c_bus);
+	}
+}
+
+bool
+start_bus(int i2c_bus)
 {
 	int fd;
 
@@ -483,6 +517,7 @@ meas_airspeed_usage()
 	PX4_INFO("usage: meas_airspeed command [options]");
 	PX4_INFO("options:");
 	PX4_INFO("\t-b --bus i2cbus (%d)", PX4_I2C_BUS_DEFAULT);
+	PX4_INFO("\t-a --all");
 	PX4_INFO("command:");
 	PX4_INFO("\tstart|stop|reset");
 }
@@ -496,10 +531,14 @@ ms4525_airspeed_main(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "b:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "ab:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			i2c_bus = atoi(myoptarg);
+			break;
+
+		case 'a':
+			i2c_bus = PX4_I2C_ALL;
 			break;
 
 		default:
