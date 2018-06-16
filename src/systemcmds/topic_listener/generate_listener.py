@@ -6,12 +6,9 @@ import sys
 import re
 
 # This script is run from Build/<target>_default.build/$(PX4_BASE)/Firmware/src/systemcmds/topic_listener
+# argv[1] list of message files in absolution path
 
-# argv[1] must be the full path of the top Firmware dir
-# argv[2] list of message files
-
-msg_dir = sys.argv[1]
-raw_messages_arg = sys.argv[2]
+raw_messages_arg = sys.argv[1]
 messages = []
 topics = []
 message_elements = []
@@ -22,7 +19,6 @@ raw_messages = [x for x in raw_messages if not any(exception in x for exception 
 
 for index,m in enumerate(raw_messages):
 	topic_list = []
-	m = msg_dir + "/msg/" + m
 	f = open(m,'r')
 	for line in f.readlines():
 		items = re.split('\s+', line.strip())
