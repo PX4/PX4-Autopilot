@@ -267,6 +267,7 @@ private:
 		float max_climb_rate;
 		float max_sink_rate;
 		float speed_weight;
+		float time_const_throt;
 
 		float airspeed_min;
 		float airspeed_trim;
@@ -294,6 +295,7 @@ private:
 		float land_flare_pitch_max_deg;
 		int32_t land_use_terrain_estimate;
 		float land_airspeed_scale;
+		float land_throtTC_scale;
 
 		// VTOL
 		float airspeed_trans;
@@ -357,6 +359,7 @@ private:
 		param_t land_flare_pitch_max_deg;
 		param_t land_use_terrain_estimate;
 		param_t land_airspeed_scale;
+		param_t land_throtTC_scale;
 
 		param_t vtol_type;
 	} _parameter_handles {};				///< handles for interesting parameters */
@@ -418,7 +421,7 @@ private:
 	bool		update_desired_altitude(float dt);
 
 	bool		control_position(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
-					 const position_setpoint_s &pos_sp_curr);
+					 const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
 	void		control_takeoff(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
 					const position_setpoint_s &pos_sp_curr);
 	void		control_landing(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
