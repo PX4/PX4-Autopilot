@@ -394,11 +394,13 @@ int stop();
 int reset();
 
 /**
- * Start the driver.
- *
- * This function call only returns once the driver is up and running
- * or failed to detect the sensor.
- */
+* Attempt to start driver on all available I2C busses.
+*
+* This function will return as soon as the first sensor
+* is detected on one of the available busses or if no
+* sensors are detected.
+*
+*/
 int
 start()
 {
@@ -412,6 +414,12 @@ start()
 
 }
 
+/**
+ * Start the driver on a specific bus.
+ *
+ * This function call only returns once the driver is up and running
+ * or failed to detect the sensor.
+ */
 int
 start_bus(int i2c_bus)
 {
