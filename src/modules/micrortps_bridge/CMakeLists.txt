@@ -60,7 +60,7 @@ if (FASTRTPSGEN AND (config_rtps_send_topics OR config_rtps_receive_topics))
 endif()
 
 if (GENERATE_RTPS_BRIDGE)
-   get_property(msg_files_abs GLOBAL PROPERTY global_msg_file_list)
+       get_property(msg_files_abs GLOBAL PROPERTY global_msg_file_list)
 	add_subdirectory(micrortps_client)
 
 	###############################################################################

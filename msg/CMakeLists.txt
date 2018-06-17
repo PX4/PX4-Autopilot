@@ -144,7 +144,7 @@ if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 
 		# Add each of the external message files to the global msg_files list
 		foreach(external_msg_file ${config_msg_list_external})
-            list(APPEND msg_files ${EXTERNAL_MODULES_LOCATION}/msg/${external_msg_file})
+                       list(APPEND msg_files ${EXTERNAL_MODULES_LOCATION}/msg/${external_msg_file})
 			list(APPEND gen_msg_files_abs ${EXTERNAL_MODULES_LOCATION}/msg/${external_msg_file})
 		endforeach()
 	endif()
