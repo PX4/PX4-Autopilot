@@ -2216,8 +2216,10 @@ Commander::run()
 		}
 
 		/* RC input check */
-		if (!status_flags.rc_input_blocked && sp_man.timestamp != 0 &&
-		    (hrt_elapsed_time(&sp_man.timestamp) < (rc_loss_timeout * 1_s))) {
+		if (!status_flags.rc_input_blocked
+			&& (sp_man.timestamp > _last_sp_man.timestamp)
+			&& ((sp_man.timestamp - _last_sp_man.timestamp) < (rc_loss_timeout * 1_s))
+			&& (hrt_elapsed_time(&sp_man.timestamp) < (rc_loss_timeout * 1_s))) {
 
 			/* handle the case where RC signal was regained */
 			if (!status_flags.rc_signal_found_once) {
@@ -2352,8 +2354,15 @@ Commander::run()
 				mavlink_log_critical(&mavlink_log_pub, "Switching to this mode is currently not possible");
 			}
 
-			/* check throttle kill switch */
-			if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+			// check throttle kill switch
+			//  require 2 consecutive manual setpoint updates with the switch set
+			const bool kill_switch_on = (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON);
+			const bool kill_switch_off = (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_OFF);
+
+			const bool prev_kill_switch_on = (_last_sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_ON);
+			const bool prev_kill_switch_off = (_last_sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_OFF);
+
+			if (kill_switch_on && prev_kill_switch_on) {
 				/* set lockdown flag */
 				if (!armed.manual_lockdown) {
 					mavlink_log_emergency(&mavlink_log_pub, "MANUAL KILL SWITCH ENGAGED");
@@ -2361,7 +2370,7 @@ Commander::run()
 					armed.manual_lockdown = true;
 				}
 
-			} else if (sp_man.kill_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
+			} else if (kill_switch_off && prev_kill_switch_off) {
 				if (armed.manual_lockdown) {
 					mavlink_log_emergency(&mavlink_log_pub, "MANUAL KILL SWITCH OFF");
 					status_changed = true;
@@ -2369,9 +2378,8 @@ Commander::run()
 				}
 			}
 
-			/* no else case: do not change lockdown flag in unconfigured case */
-
 		} else {
+			/* no else case: do not change lockdown flag in unconfigured case */
 			if (!status_flags.rc_input_blocked && !status.rc_signal_lost) {
 				mavlink_log_critical(&mavlink_log_pub, "MANUAL CONTROL LOST (at t=%llums)", hrt_absolute_time() / 1000);
 				status.rc_signal_lost = true;
