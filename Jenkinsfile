@@ -167,7 +167,7 @@ pipeline {
               allowMissing: false,
               alwaysLinkToLastBuild: true,
               keepAll: true,
-              reportDir: 'build/scan-build/report_latest',
+              reportDir: 'build/scan-build/report_2018-06-19',
               reportFiles: '*',
               reportName: 'Clang Static Analyzer'
             ]
