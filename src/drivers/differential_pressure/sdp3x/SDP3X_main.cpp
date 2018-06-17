@@ -42,15 +42,53 @@ namespace sdp3x_airspeed
 {
 SDP3X *g_dev = nullptr;
 
-int start(uint8_t i2c_bus);
+int bus_options[] = {
+#ifdef PX4_I2C_BUS_EXPANSION
+	PX4_I2C_BUS_EXPANSION,
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION1
+	PX4_I2C_BUS_EXPANSION1,
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION2
+	PX4_I2C_BUS_EXPANSION2,
+#endif
+};
+
+#define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
+
+int start();
+int start_bus(uint8_t i2c_bus);
 int stop();
 int reset();
 
-// Start the driver.
-// This function call only returns once the driver is up and running
-// or failed to detect the sensor.
+/**
+ * Attempt to start driver on all available I2C busses.
+ *
+ * This function will return as soon as the first sensor
+ * is detected on one of the available busses or if no
+ * sensors are detected.
+ *
+ */
 int
-start(uint8_t i2c_bus)
+start()
+{
+	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
+		if (start_bus(bus_options[i]) == PX4_OK) {
+			return PX4_OK;
+		}
+	}
+
+	return PX4_ERROR;
+}
+
+/**
+ * Start the driver on a specific bus.
+ *
+ * This function call only returns once the driver is up and running
+ * or failed to detect the sensor.
+ */
+int
+start_bus(uint8_t i2c_bus)
 {
 	int fd = -1;
 
@@ -156,6 +194,7 @@ sdp3x_airspeed_usage()
 	PX4_WARN("usage: sdp3x_airspeed command [options]");
 	PX4_WARN("options:");
 	PX4_WARN("\t-b --bus i2cbus (%d)", PX4_I2C_BUS_DEFAULT);
+	PX4_INFO("\t-a --all");
 	PX4_WARN("command:");
 	PX4_WARN("\tstart|stop|reset");
 }
@@ -168,11 +207,16 @@ sdp3x_airspeed_main(int argc, char *argv[])
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
+	bool start_all = false;
 
-	while ((ch = px4_getopt(argc, argv, "b:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "ab:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			i2c_bus = atoi(myoptarg);
+			break;
+
+		case 'a':
+			start_all = true;
 			break;
 
 		default:
@@ -191,7 +235,12 @@ sdp3x_airspeed_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		return sdp3x_airspeed::start(i2c_bus);
+		if (start_all) {
+			return sdp3x_airspeed::start();
+
+		} else {
+			return sdp3x_airspeed::start_bus(i2c_bus);
+		}
 	}
 
 	/*
