@@ -144,12 +144,13 @@ if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 
 		# Add each of the external message files to the global msg_files list
 		foreach(external_msg_file ${config_msg_list_external})
+            list(APPEND msg_files ${EXTERNAL_MODULES_LOCATION}/msg/${external_msg_file})
 			list(APPEND gen_msg_files_abs ${EXTERNAL_MODULES_LOCATION}/msg/${external_msg_file})
 		endforeach()
 	endif()
 endif()
 
-set(gen_msg_files_abs ${gen_msg_files_abs} CACHE STRING "msg files list for topic generation")
+set_property(GLOBAL PROPERTY global_msg_file_list ${gen_msg_files_abs})
 
 px4_add_git_submodule(TARGET git_gencpp PATH tools/gencpp)
 px4_add_git_submodule(TARGET git_genmsg PATH tools/genmsg)

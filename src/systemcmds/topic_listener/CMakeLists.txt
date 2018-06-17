@@ -31,8 +31,9 @@
 #
 ############################################################################
 
+get_property(msg_files_abs GLOBAL PROPERTY global_msg_file_list)
 add_custom_command(OUTPUT topic_listener.cpp
-                COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_listener.py ${gen_msg_files_abs} > topic_listener.cpp
+                COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_listener.py ${msg_files_abs} > topic_listener.cpp
                 DEPENDS generate_listener.py uorb_msgs
                 )
 
