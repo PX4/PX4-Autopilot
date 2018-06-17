@@ -635,7 +635,7 @@ void Ekf::controlGpsFusion()
 			_hvelInnovGate = fmaxf(_params.vel_innov_gate, 1.0f);
 		}
 
-	} else if (_control_status.flags.gps && (_time_last_imu - _time_last_gps > (uint64_t)10e6)) {
+	} else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)10e6)) {
 		_control_status.flags.gps = false;
 		ECL_WARN("EKF GPS data stopped");
 	}
