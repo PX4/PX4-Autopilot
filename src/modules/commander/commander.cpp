@@ -86,7 +86,6 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/cpuload.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
@@ -169,7 +168,6 @@ static manual_control_setpoint_s _last_sp_man = {};	///< the manual control setp
 static uint8_t _last_sp_man_arm_switch = 0;
 
 static struct vtol_vehicle_status_s vtol_status = {};
-static struct cpuload_s cpuload = {};
 
 static bool warning_action_on = false;
 static bool last_overload = false;
@@ -204,8 +202,7 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[]);
  */
 void usage(const char *reason);
 
-void control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed,
-			 battery_status_s *battery_local, const cpuload_s *cpuload_local);
+void control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed, battery_status_s *battery_local, const cpuload_s& cpuload);
 
 void get_circuit_breaker_params();
 
@@ -586,11 +583,7 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 }
 
 Commander::Commander() :
-	ModuleParams(nullptr),
-	_mission_result_sub(ORB_ID(mission_result)),
-	_global_position_sub(ORB_ID(vehicle_global_position)),
-	_local_position_sub(ORB_ID(vehicle_local_position)),
-	_iridiumsbd_status_sub(ORB_ID(iridiumsbd_status))
+	ModuleParams(nullptr)
 {
 }
 
@@ -1378,10 +1371,7 @@ Commander::run()
 	bool nav_test_passed = false; // true if the post takeoff navigation test has passed
 	bool nav_test_failed = false; // true if the post takeoff navigation test has failed
 
-	int cpuload_sub = orb_subscribe(ORB_ID(cpuload));
-	memset(&cpuload, 0, sizeof(cpuload));
-
-	control_status_leds(&status, &armed, true, &battery, &cpuload);
+	control_status_leds(&status, &armed, true, &battery, _cpuload_sub.get());
 
 	thread_running = true;
 
@@ -1920,11 +1910,7 @@ Commander::run()
 			warning_action_on = false;
 		}
 
-		orb_check(cpuload_sub, &updated);
-
-		if (updated) {
-			orb_copy(ORB_ID(cpuload), cpuload_sub, &cpuload);
-		}
+		_cpuload_sub.update();
 
 		/* update battery status */
 		orb_check(battery_sub, &updated);
@@ -2734,12 +2720,12 @@ Commander::run()
 			/* blinking LED message, don't touch LEDs */
 			if (blink_state == 2) {
 				/* blinking LED message completed, restore normal state */
-				control_status_leds(&status, &armed, true, &battery, &cpuload);
+				control_status_leds(&status, &armed, true, &battery, _cpuload_sub.get());
 			}
 
 		} else {
 			/* normal state */
-			control_status_leds(&status, &armed, status_changed, &battery, &cpuload);
+			control_status_leds(&status, &armed, status_changed, &battery, _cpuload_sub.get());
 		}
 
 		status_changed = false;
@@ -2822,11 +2808,11 @@ Commander::check_valid(const hrt_abstime &timestamp, const hrt_abstime &timeout,
 
 void
 control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed,
-		    bool changed, battery_status_s *battery_local, const cpuload_s *cpuload_local)
+		    bool changed, battery_status_s *battery_local, const cpuload_s& cpuload)
 {
 	static hrt_abstime overload_start = 0;
 
-	bool overload = (cpuload_local->load > 0.80f) || (cpuload_local->ram_usage > 0.98f);
+	bool overload = (cpuload.load > 0.80f) || (cpuload.ram_usage > 0.98f);
 
 	if (overload_start == 0 && overload) {
 		overload_start = hrt_absolute_time();

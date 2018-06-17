@@ -53,6 +53,7 @@
 
 // subscriptions
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/cpuload.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/safety.h>
@@ -170,10 +171,11 @@ private:
 	} _telemetry[ORB_MULTI_MAX_INSTANCES];
 
 	// Subscriptions
-	Subscription<mission_result_s>			_mission_result_sub;
-	Subscription<vehicle_global_position_s>		_global_position_sub;
-	Subscription<vehicle_local_position_s>		_local_position_sub;
-	Subscription<iridiumsbd_status_s> 		_iridiumsbd_status_sub;
+	Subscription<cpuload_s>			_cpuload_sub{ORB_ID(cpuload)};
+	Subscription<mission_result_s>			_mission_result_sub{ORB_ID(mission_result)};
+	Subscription<vehicle_global_position_s>		_global_position_sub{ORB_ID(vehicle_global_position)};
+	Subscription<vehicle_local_position_s>		_local_position_sub{ORB_ID(vehicle_local_position)};
+	Subscription<iridiumsbd_status_s> 		_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 };
 
 #endif /* COMMANDER_HPP_ */
