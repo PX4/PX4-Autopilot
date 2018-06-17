@@ -1173,7 +1173,6 @@ Commander::run()
 	param_t _param_ef_throttle_thres = param_find("COM_EF_THROT");
 	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
 	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
-	param_t _param_geofence_action = param_find("GF_ACTION");
 	param_t _param_disarm_land = param_find("COM_DISARM_LAND");
 	param_t _param_low_bat_act = param_find("COM_LOW_BAT_ACT");
 	param_t _param_offboard_loss_timeout = param_find("COM_OF_LOSS_T");
@@ -1412,8 +1411,6 @@ Commander::run()
 	int32_t offboard_loss_rc_act = 0;
 	int32_t posctl_nav_loss_act = 0;
 
-	int32_t geofence_action = 0;
-
 	int32_t flight_uuid = 0;
 
 	int32_t takeoff_complete_act = 0;
@@ -1521,7 +1518,6 @@ Commander::run()
 			param_get(_param_ef_throttle_thres, &ef_throttle_thres);
 			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
 			param_get(_param_ef_time_thres, &ef_time_thres);
-			param_get(_param_geofence_action, &geofence_action);
 			param_get(_param_disarm_land, &disarm_when_landed);
 			param_get(_param_flight_uuid, &flight_uuid);
 
@@ -2275,7 +2271,8 @@ Commander::run()
 						print_reject_arm("NOT ARMING: Switch to a manual mode first.");
 
 					} else if (!status_flags.condition_home_position_valid &&
-						   geofence_action == geofence_result_s::GF_ACTION_RTL) {
+						   geofence_result.geofence_action == geofence_result_s::GF_ACTION_RTL) {
+
 						print_reject_arm("NOT ARMING: Geofence RTL requires valid home");
 
 					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
