@@ -1598,9 +1598,10 @@ Commander::run()
 			}
 		}
 
-		orb_check(sp_man_sub, &updated);
+		bool manual_sp_updated = false;
+		orb_check(sp_man_sub, &manual_sp_updated);
 
-		if (updated) {
+		if (manual_sp_updated) {
 			orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
 		}
 
@@ -2219,7 +2220,8 @@ Commander::run()
 		if (!status_flags.rc_input_blocked
 			&& (sp_man.timestamp > _last_sp_man.timestamp)
 			&& ((sp_man.timestamp - _last_sp_man.timestamp) < (rc_loss_timeout * 1_s))
-			&& (hrt_elapsed_time(&sp_man.timestamp) < (rc_loss_timeout * 1_s))) {
+			&& (hrt_elapsed_time(&sp_man.timestamp) < (rc_loss_timeout * 1_s))
+			&& manual_sp_updated) {
 
 			/* handle the case where RC signal was regained */
 			if (!status_flags.rc_signal_found_once) {
@@ -2378,8 +2380,7 @@ Commander::run()
 				}
 			}
 
-		} else {
-			/* no else case: do not change lockdown flag in unconfigured case */
+		} else if (hrt_elapsed_time(&sp_man.timestamp) >= (rc_loss_timeout * 1_s)) {
 			if (!status_flags.rc_input_blocked && !status.rc_signal_lost) {
 				mavlink_log_critical(&mavlink_log_pub, "MANUAL CONTROL LOST (at t=%llums)", hrt_absolute_time() / 1000);
 				status.rc_signal_lost = true;
@@ -2388,6 +2389,8 @@ Commander::run()
 				status_changed = true;
 			}
 		}
+
+		_last_sp_man = sp_man;
 
 		// data link checks which update the status
 		data_link_checks(highlatencydatalink_loss_timeout, highlatencydatalink_regain_timeout, datalink_loss_timeout, datalink_regain_timeout, &status_changed);
@@ -3018,8 +3021,6 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 		/* no timestamp change or no switch change -> nothing changed */
 		return TRANSITION_NOT_CHANGED;
 	}
-
-	_last_sp_man = sp_man;
 
 	// reset the position and velocity validity calculation to give the best change of being able to select
 	// the desired mode
