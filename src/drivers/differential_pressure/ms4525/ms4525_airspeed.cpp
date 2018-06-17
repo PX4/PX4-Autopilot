@@ -389,7 +389,7 @@ int bus_options[] = {
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
 int start(int i2c_bus);
-bool start_bus(int i2c_bus);
+int start_bus(int i2c_bus);
 int stop();
 int reset();
 
@@ -412,7 +412,7 @@ start(int i2c_bus)
 
 }
 
-bool
+int
 start_bus(int i2c_bus)
 {
 	int fd;
