@@ -882,7 +882,10 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 	mocap_odom.eph = sqrtf(fmaxf(mocap.covariance[0], mocap.covariance[6]));
 	mocap_odom.epv = sqrtf(mocap.covariance[11]);
 	mocap_odom.att_std_dev = sqrtf(fmaxf(mocap.covariance[15], fmaxf(mocap.covariance[18], mocap.covariance[20])));
-	mocap_odom.limit_hagl = false;
+	mocap_odom.vxy_max = INFINITY;
+	mocap_odom.vz_max = INFINITY;
+	mocap_odom.hagl_min = INFINITY;
+	mocap_odom.hagl_max = INFINITY;
 
 	int instance_id = 0;
 

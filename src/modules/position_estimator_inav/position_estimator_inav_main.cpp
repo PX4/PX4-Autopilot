@@ -1458,12 +1458,12 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			odom.dist_bottom_valid = dist_bottom_valid;
 			odom.eph = eph;
 			odom.epv = epv;
-			local_pos.evh = 0.0f;
-			local_pos.evv = 0.0f;
-			local_pos.vxy_max = INFINITY;
-			local_pos.vz_max = INFINITY;
-			local_pos.hagl_min = INFINITY;
-			local_pos.hagl_max = INFINITY;
+			odom.evh = 0.0f;
+			odom.evv = 0.0f;
+			odom.vxy_max = INFINITY;
+			odom.vz_max = INFINITY;
+			odom.hagl_min = INFINITY;
+			odom.hagl_max = INFINITY;
 
 			// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
 			odom.z_deriv = z_est[1];
