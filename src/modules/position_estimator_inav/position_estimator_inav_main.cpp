@@ -59,14 +59,15 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/vision_position_estimate.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/vehicle_air_data.h>
 #include <poll.h>
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <drivers/drv_hrt.h>
 #include <platforms/px4_defines.h>
 
@@ -119,7 +120,6 @@ static void usage(const char *reason)
 	}
 
 	PX4_INFO("usage: position_estimator_inav {start|stop|status} [-v]\n");
-	return;
 }
 
 /**
@@ -134,6 +134,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		usage("missing command");
+		return -1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
@@ -153,7 +154,7 @@ int position_estimator_inav_main(int argc, char *argv[])
 		position_estimator_inav_task = px4_task_spawn_cmd("position_estimator_inav",
 					       SCHED_DEFAULT, SCHED_PRIORITY_MAX - 5, 4600,
 					       position_estimator_inav_thread_main,
-					       (argv && argc > 2) ? (char *const *) &argv[2] : (char *const *) NULL);
+					       (argv && argc > 2) ? (char *const *) &argv[2] : (char *const *) nullptr);
 		return 0;
 	}
 
@@ -359,7 +360,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&local_pos, 0, sizeof(local_pos));
 	struct optical_flow_s flow;
 	memset(&flow, 0, sizeof(flow));
-	struct vision_position_estimate_s vision;
+	struct vehicle_local_position_s vision;
 	memset(&vision, 0, sizeof(vision));
 	struct att_pos_mocap_s mocap;
 	memset(&mocap, 0, sizeof(mocap));
@@ -369,6 +370,8 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	memset(&lidar, 0, sizeof(lidar));
 	struct vehicle_rates_setpoint_s rates_setpoint;
 	memset(&rates_setpoint, 0, sizeof(rates_setpoint));
+	struct vehicle_air_data_s airdata;
+	memset(&airdata, 0, sizeof(vehicle_air_data_s));
 
 	/* subscribe */
 	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -378,14 +381,20 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	int vision_position_estimate_sub = orb_subscribe(ORB_ID(vision_position_estimate));
+	int vision_position_sub = orb_subscribe(ORB_ID(vehicle_vision_position));
 	int att_pos_mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
-	int distance_sensor_sub = orb_subscribe(ORB_ID(distance_sensor));
 	int vehicle_rate_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
+	int vehicle_air_data_sub = orb_subscribe(ORB_ID(vehicle_air_data));
+	// because we can have several distance sensor instances with different orientations
+	int distance_sensor_subs[ORB_MULTI_MAX_INSTANCES];
+
+	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		distance_sensor_subs[i] = orb_subscribe_multi(ORB_ID(distance_sensor), i);
+	}
 
 	/* advertise */
 	orb_advert_t vehicle_local_position_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos);
-	orb_advert_t vehicle_global_position_pub = NULL;
+	orb_advert_t vehicle_global_position_pub = nullptr;
 
 	struct position_estimator_inav_params params;
 	memset(&params, 0, sizeof(params));
@@ -426,24 +435,34 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (fds_init[0].revents & POLLIN) {
 				orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor);
 
-				if (wait_baro && sensor.timestamp + sensor.baro_timestamp_relative != baro_timestamp) {
-					baro_timestamp = sensor.timestamp + sensor.baro_timestamp_relative;
-					baro_wait_for_sample_time = hrt_absolute_time();
+				bool baro_updated = false;
+				orb_check(vehicle_air_data_sub, &baro_updated);
 
-					/* mean calculation over several measurements */
-					if (baro_init_cnt < baro_init_num) {
-						if (PX4_ISFINITE(sensor.baro_alt_meter)) {
-							baro_offset += sensor.baro_alt_meter;
-							baro_init_cnt++;
+				if (baro_updated) {
+					orb_copy(ORB_ID(vehicle_air_data), vehicle_air_data_sub, &airdata);
+
+					if (wait_baro && airdata.timestamp != baro_timestamp) {
+
+						baro_timestamp = airdata.timestamp;
+						baro_wait_for_sample_time = hrt_absolute_time();
+
+						/* mean calculation over several measurements */
+						if (baro_init_cnt < baro_init_num) {
+							if (PX4_ISFINITE(airdata.baro_alt_meter)) {
+								baro_offset += airdata.baro_alt_meter;
+								baro_init_cnt++;
+							}
+
+						} else {
+							wait_baro = false;
+							baro_offset /= (float) baro_init_cnt;
+							local_pos.z_valid = true;
+							local_pos.v_z_valid = true;
 						}
-
-					} else {
-						wait_baro = false;
-						baro_offset /= (float) baro_init_cnt;
-						local_pos.z_valid = true;
-						local_pos.v_z_valid = true;
 					}
 				}
+
+
 			}
 
 		} else {
@@ -526,21 +545,32 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					accel_updates++;
 				}
 
-				if (sensor.timestamp + sensor.baro_timestamp_relative != baro_timestamp) {
-					corr_baro = baro_offset - sensor.baro_alt_meter - z_est[0];
-					baro_timestamp = sensor.timestamp + sensor.baro_timestamp_relative;
+				if (airdata.timestamp != baro_timestamp) {
+					corr_baro = baro_offset - airdata.baro_alt_meter - z_est[0];
+					baro_timestamp = airdata.timestamp;
 					baro_updates++;
 				}
 			}
 
 
-			/* lidar alt estimation */
-			orb_check(distance_sensor_sub, &updated);
+			/* lidar alt estimation
+			 * update lidar separately, needed by terrain estimator */
+			for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 
-			/* update lidar separately, needed by terrain estimator */
-			if (updated) {
-				orb_copy(ORB_ID(distance_sensor), distance_sensor_sub, &lidar);
-				lidar.current_distance += params.lidar_calibration_offset;
+				orb_check(distance_sensor_subs[i], &updated);
+
+				if (updated) {
+
+					orb_copy(ORB_ID(distance_sensor), distance_sensor_subs[i], &lidar);
+
+					if (lidar.orientation != distance_sensor_s::ROTATION_DOWNWARD_FACING) {
+						updated = false;
+
+					} else {
+						lidar.current_distance += params.lidar_calibration_offset;
+						break; // only the first valid distance sensor instance is used
+					}
+				}
 			}
 
 			if (updated) { //check if altitude estimation for lidar is enabled and new sensor data
@@ -744,10 +774,10 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			/* check no vision circuit breaker is set */
 			if (params.no_vision != CBRK_NO_VISION_KEY) {
 				/* vehicle vision position */
-				orb_check(vision_position_estimate_sub, &updated);
+				orb_check(vision_position_sub, &updated);
 
 				if (updated) {
-					orb_copy(ORB_ID(vision_position_estimate), vision_position_estimate_sub, &vision);
+					orb_copy(ORB_ID(vehicle_vision_position), vision_position_sub, &vision);
 
 					static float last_vision_x = 0.0f;
 					static float last_vision_y = 0.0f;
@@ -1342,6 +1372,16 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			local_pos.dist_bottom_valid = dist_bottom_valid;
 			local_pos.eph = eph;
 			local_pos.epv = epv;
+			// TODO provide calculated values for these
+			local_pos.evh = 0.0f;
+			local_pos.evv = 0.0f;
+			local_pos.vxy_max = INFINITY;
+			local_pos.vz_max = INFINITY;
+			local_pos.hagl_min = INFINITY;
+			local_pos.hagl_max = INFINITY;
+
+			// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
+			local_pos.z_deriv = z_est[1];
 
 			if (local_pos.dist_bottom_valid) {
 				local_pos.dist_bottom = dist_ground;
@@ -1355,7 +1395,6 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (local_pos.xy_global && local_pos.z_global) {
 				/* publish global position */
 				global_pos.timestamp = t;
-				global_pos.time_utc_usec = gps.time_utc_usec;
 
 				double est_lat, est_lon;
 				map_projection_reproject(&ref, local_pos.x, local_pos.y, &est_lat, &est_lon);
@@ -1381,9 +1420,7 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					global_pos.terrain_alt_valid = false;
 				}
 
-				global_pos.pressure_alt = sensor.baro_alt_meter;
-
-				if (vehicle_global_position_pub == NULL) {
+				if (vehicle_global_position_pub == nullptr) {
 					vehicle_global_position_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
 
 				} else {
@@ -1396,5 +1433,75 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 	warnx("stopped");
 	mavlink_log_info(&mavlink_log_pub, "[inav] stopped");
 	thread_running = false;
+	return 0;
+}
+
+
+int inav_parameters_init(struct position_estimator_inav_param_handles *h)
+{
+	h->w_z_baro = param_find("INAV_W_Z_BARO");
+	h->w_z_gps_p = param_find("INAV_W_Z_GPS_P");
+	h->w_z_gps_v = param_find("INAV_W_Z_GPS_V");
+	h->w_z_vision_p = param_find("INAV_W_Z_VIS_P");
+	h->w_z_lidar = param_find("INAV_W_Z_LIDAR");
+	h->w_xy_gps_p = param_find("INAV_W_XY_GPS_P");
+	h->w_xy_gps_v = param_find("INAV_W_XY_GPS_V");
+	h->w_xy_vision_p = param_find("INAV_W_XY_VIS_P");
+	h->w_xy_vision_v = param_find("INAV_W_XY_VIS_V");
+	h->w_mocap_p = param_find("INAV_W_MOC_P");
+	h->w_xy_flow = param_find("INAV_W_XY_FLOW");
+	h->w_xy_res_v = param_find("INAV_W_XY_RES_V");
+	h->w_gps_flow = param_find("INAV_W_GPS_FLOW");
+	h->w_acc_bias = param_find("INAV_W_ACC_BIAS");
+	h->flow_k = param_find("INAV_FLOW_K");
+	h->flow_q_min = param_find("INAV_FLOW_Q_MIN");
+	h->lidar_err = param_find("INAV_LIDAR_ERR");
+	h->land_t = param_find("INAV_LAND_T");
+	h->land_disp = param_find("INAV_LAND_DISP");
+	h->land_thr = param_find("INAV_LAND_THR");
+	h->no_vision = param_find("CBRK_NO_VISION");
+	h->delay_gps = param_find("INAV_DELAY_GPS");
+	h->flow_module_offset_x = param_find("INAV_FLOW_DIST_X");
+	h->flow_module_offset_y = param_find("INAV_FLOW_DIST_Y");
+	h->disable_mocap = param_find("INAV_DISAB_MOCAP");
+	h->enable_lidar_alt_est = param_find("INAV_LIDAR_EST");
+	h->lidar_calibration_offset = param_find("INAV_LIDAR_OFF");
+	h->att_ext_hdg_m = param_find("ATT_EXT_HDG_M");
+
+	return 0;
+}
+
+int inav_parameters_update(const struct position_estimator_inav_param_handles *h,
+			   struct position_estimator_inav_params *p)
+{
+	param_get(h->w_z_baro, &(p->w_z_baro));
+	param_get(h->w_z_gps_p, &(p->w_z_gps_p));
+	param_get(h->w_z_gps_v, &(p->w_z_gps_v));
+	param_get(h->w_z_vision_p, &(p->w_z_vision_p));
+	param_get(h->w_z_lidar, &(p->w_z_lidar));
+	param_get(h->w_xy_gps_p, &(p->w_xy_gps_p));
+	param_get(h->w_xy_gps_v, &(p->w_xy_gps_v));
+	param_get(h->w_xy_vision_p, &(p->w_xy_vision_p));
+	param_get(h->w_xy_vision_v, &(p->w_xy_vision_v));
+	param_get(h->w_mocap_p, &(p->w_mocap_p));
+	param_get(h->w_xy_flow, &(p->w_xy_flow));
+	param_get(h->w_xy_res_v, &(p->w_xy_res_v));
+	param_get(h->w_gps_flow, &(p->w_gps_flow));
+	param_get(h->w_acc_bias, &(p->w_acc_bias));
+	param_get(h->flow_k, &(p->flow_k));
+	param_get(h->flow_q_min, &(p->flow_q_min));
+	param_get(h->lidar_err, &(p->lidar_err));
+	param_get(h->land_t, &(p->land_t));
+	param_get(h->land_disp, &(p->land_disp));
+	param_get(h->land_thr, &(p->land_thr));
+	param_get(h->no_vision, &(p->no_vision));
+	param_get(h->delay_gps, &(p->delay_gps));
+	param_get(h->flow_module_offset_x, &(p->flow_module_offset_x));
+	param_get(h->flow_module_offset_y, &(p->flow_module_offset_y));
+	param_get(h->disable_mocap, &(p->disable_mocap));
+	param_get(h->enable_lidar_alt_est, &(p->enable_lidar_alt_est));
+	param_get(h->lidar_calibration_offset, &(p->lidar_calibration_offset));
+	param_get(h->att_ext_hdg_m, &(p->att_ext_hdg_m));
+
 	return 0;
 }

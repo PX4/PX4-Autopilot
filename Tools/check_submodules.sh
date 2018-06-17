@@ -3,8 +3,17 @@
 function check_git_submodule {
 
 # The .git exists in a submodule if init and update have been done.
-if [ -f $1"/.git" ] || [ -d $1"/.git" ];
+if [[ -f $1"/.git" || -d $1"/.git" ]];
 then
+
+	if [ "$CI" == "true" ];
+	then
+		git submodule sync --recursive -- $1
+		git submodule update --init --recursive --force -- $1  || true
+		git submodule update --init --recursive --force -- $1
+		exit 0
+	fi
+
 	SUBMODULE_STATUS=$(git submodule summary "$1")
 	STATUSRETVAL=$(echo $SUBMODULE_STATUS | grep -A20 -i "$1")
 	if ! [[ -z "$STATUSRETVAL" ]];
@@ -32,23 +41,21 @@ then
 		if [ "$user_cmd" == "y" ]
 		then
 			echo "Continuing build with manually overridden submodule.."
+		elif [ "$user_cmd" == "u" ]
+		then
+			git submodule sync --recursive -- $1
+			git submodule update --init --recursive -- $1 || true
+			git submodule update --init --recursive --force -- $1
+			echo "Submodule fixed, continuing build.."
 		else
-			if [ "$user_cmd" == "u" ]
-			then
-				git submodule sync --recursive
-				git submodule update --init --recursive
-				echo "Submodule fixed, continuing build.."
-			else
-				echo "Build aborted."
-				exit 1
-			fi
+			echo "Build aborted."
+			exit 1
 		fi
 	fi
 else
-	echo "REINITIALIZING GIT SUBMODULES"
-	echo "no git repo found in $1/.git"
-	git submodule sync --recursive;
-	git submodule update --init --recursive $1;
+	git submodule sync --recursive --quiet -- $1
+	git submodule update --init --recursive -- $1  || true
+	git submodule update --init --recursive -- $1
 fi
 
 }
@@ -56,39 +63,29 @@ fi
 # If called with a path then respect $GIT_SUBMODULES_ARE_EVIL but do normal processing
 if [ "$#" != "0" ];
 then
-# called with a path then process only that path but respect $GIT_SUBMODULES_ARE_EVIL
-
+	# called with a path then process only that path but respect $GIT_SUBMODULES_ARE_EVIL
 	[ -n "$GIT_SUBMODULES_ARE_EVIL" ] && {
 		# GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules updated
 		echo "GIT_SUBMODULES_ARE_EVIL is defined - Skipping submodules $1 update."
-	  exit 0
+		exit 0
 	}
 
-	git submodule update --recursive $1
+	check_git_submodule $1
 
 else
 
 	[ -n "$GIT_SUBMODULES_ARE_EVIL" ] && {
-	  # GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules updated
-	  echo "GIT_SUBMODULES_ARE_EVIL is defined - Skipping All submodule checking!"
-	  exit 0
+		# GIT_SUBMODULES_ARE_EVIL is set, meaning user doesn't want submodules updated
+		echo "GIT_SUBMODULES_ARE_EVIL is defined - Skipping All submodule checking!"
+		exit 0
 	}
 
-	check_git_submodule NuttX
-	check_git_submodule Tools/gencpp
-	check_git_submodule Tools/genmsg
-	check_git_submodule Tools/jMAVSim
-	check_git_submodule Tools/sitl_gazebo
-	check_git_submodule cmake/cmake_hexagon
-	check_git_submodule mavlink/include/mavlink/v1.0
-	check_git_submodule mavlink/include/mavlink/v2.0
-	check_git_submodule src/lib/DriverFramework
-	check_git_submodule src/lib/DriverFramework/cmake/cmake_hexagon
-	check_git_submodule src/lib/DriverFramework/dspal
-	check_git_submodule src/lib/ecl
-	check_git_submodule src/lib/matrix
-	check_git_submodule src/modules/uavcan/libuavcan
-	check_git_submodule unittests/googletest
-	check_git_submodule src/drivers/gps/devices
+	submodules=$(git submodule status | awk '{ print $2 }')
+	for i in $submodules;
+	do
+		check_git_submodule $i
+	done
+
 fi
-	exit 0
+
+exit 0

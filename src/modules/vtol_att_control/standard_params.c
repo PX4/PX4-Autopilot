@@ -39,16 +39,6 @@
  * @author Roman Bapst	<roman@px4.io>
  */
 
-/**
- * Target throttle value for pusher/puller motor during the transition to fw mode
- *
- * @min 0.0
- * @max 1.0
- * @increment 0.01
- * @decimal 3
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_TRANS_THR, 0.6f);
 
 /**
  * Maximum allowed down-pitch the controller is able to demand. This prevents large, negative
@@ -72,3 +62,53 @@ PARAM_DEFINE_FLOAT(VT_DWN_PITCH_MAX, 5.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_FWD_THRUST_SC, 0.0f);
+
+/**
+ * Back transition MC motor ramp up time
+ *
+ * This sets the duration during wich the MC motors ramp up to the commanded thrust during the back transition stage.
+ *
+ * @unit s
+ * @min 0.0
+ * @max 20.0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_TRANS_RAMP, 3.0f);
+
+/**
+ * Output on airbrakes channel during back transition
+ * Used for airbrakes or with ESCs that have reverse thrust enabled on a seperate channel
+ * Airbrakes need to be enables for your selected model/mixer
+ *
+ * @min 0
+ * @max 1
+ * @increment 0.01
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_REV_OUT, 0.0f);
+
+
+/**
+ * Delay in seconds before applying back transition throttle
+ * Set this to a value greater than 0 to give the motor time to spin down.
+ *
+ * unit s
+ * @min 0
+ * @max 10
+ * @increment 1
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_REV_DEL, 0.0f);
+
+/**
+ * Defines the time window during which the pusher throttle will be ramped up linearly to VT_F_TRANS_THR during a transition
+ * to fixed wing mode. Zero or negative values will produce an instant throttle rise to VT_F_TRANS_THR.
+ *
+ * @max 20
+ * @increment 0.01
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_PSHER_RMP_DT, 3.0f);

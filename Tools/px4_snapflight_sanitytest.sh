@@ -27,7 +27,8 @@ set -e
 # Mode of operation
 readonly MODE_DEFAULT=0
 readonly MODE_LEGACY=1
-readonly MODE_MAX=$MODE_LEGACY
+readonly MODE_8x96=2
+readonly MODE_MAX=$MODE_8x96
 
 readonly RESULT_PASS=0
 readonly RESULT_FAIL=3
@@ -48,9 +49,7 @@ declare -a appsproc_strings_absent=(
 
 # List of expected strings from the DSP
 declare -a dsp_strings_present=(
-   "EKF alignment complete"
-   "AdspCoreSvc: Started successfully"
-   "loading BLSP configuration"
+    "EKF aligned"
    )
 
 # List of unexpected strings from the DSP
@@ -71,6 +70,12 @@ workspace=`pwd`/..
 
 
 verifypx4test() {
+
+   #TODO: This needs to be fixed. For now, skip string checks for 8x96 platform.
+   if [ $mode == 2 ]; then
+      echo -e "[WARNING] Skipping string checks for 8x96 platform"
+      return
+   fi
 
    echo -e "Verifying test results..."
    
@@ -95,6 +100,10 @@ verifypx4test() {
          result=$RESULT_FAIL
       fi
    done
+
+   echo -e "Displaying the content of the minidm.log"
+   cat minidm.log
+   echo -e "Analyzing the log for success and failure indications."
 
    # verify the presence of expected stings in the DSP console log
    for lineString in "${dsp_strings_present[@]}"
@@ -136,25 +145,37 @@ installpx4() {
 
    # Reboot the target before beginning the installation
    echo -e "Rebooting the target..."
-   adb shell reboot
-   sleep 45
+   adb reboot
+   adb wait-for-devices
+   # Wait a bit longer after bootup, before copying binaries to the target.
+   sleep 30
+   adb devices
    
    echo -e "Now installing PX4 binaries..."
    # Copy binaries to the target
    if [ $mode == 0 ]; then
       # copy default binaries
-      adb push $workspace/build_qurt_eagle_legacy_driver_default/src/firmware/qurt/libpx4.so /usr/share/data/adsp
-      adb push $workspace/build_qurt_eagle_legacy_driver_default/src/firmware/qurt/libpx4muorb_skel.so /usr/share/data/adsp
-      adb push $workspace/build_posix_eagle_legacy_driver_default/src/firmware/posix/px4 /home/linaro
+      echo -e "Copying the PX4 binaries from the eagle_default build tree..."
+      adb push $workspace/build/qurt_eagle_default/src/firmware/qurt/libpx4.so /usr/share/data/adsp
+      adb push $workspace/build/qurt_eagle_default/src/firmware/qurt/libpx4muorb_skel.so /usr/share/data/adsp
+      adb push $workspace/build/posix_eagle_default/src/firmware/posix/px4 /home/linaro
       adb push $workspace/posix-configs/eagle/flight/px4.config /usr/share/data/adsp
       adb push $workspace/posix-configs/eagle/flight/mainapp.config /home/linaro
-   else
+   elif [ $mode == 1 ]; then
       # copy legacy binaries
-      adb push $workspace/build_qurt_eagle_default/src/firmware/qurt/libpx4.so /usr/share/data/adsp
-      adb push $workspace/build_qurt_eagle_default/src/firmware/qurt/libpx4muorb_skel.so /usr/share/data/adsp
-      adb push $workspace/build_posix_eagle_legacy_driver_default/src/firmware/posix/px4 /home/linaro   
+      echo -e "Copying the PX4 binaries from the eagle_legacy build tree..."
+      adb push $workspace/build/qurt_eagle_legacy/src/firmware/qurt/libpx4.so /usr/share/data/adsp
+      adb push $workspace/build/qurt_eagle_legacy/src/firmware/qurt/libpx4muorb_skel.so /usr/share/data/adsp
+      adb push $workspace/build/posix_eagle_legacy/src/firmware/posix/px4 /home/linaro
       adb push $workspace/posix-configs/eagle/200qx/px4.config /usr/share/data/adsp
       adb push $workspace/posix-configs/eagle/200qx/mainapp.config /home/linaro
+   else
+      echo -e "Copying the PX4 binaries from the excelsior_legacy build tree..."
+      adb push $workspace/build/qurt_excelsior_legacy/src/firmware/qurt/libpx4.so /usr/lib/rfsa/adsp
+      adb push $workspace/build/qurt_excelsior_legacy/src/firmware/qurt/libpx4muorb_skel.so /usr/lib/rfsa/adsp
+      adb push $workspace/build/posix_excelsior_legacy/src/firmware/posix/px4 /home/root
+      adb push $workspace/posix-configs/excelsior/px4.config /usr/lib/rfsa/adsp
+      adb push $workspace/posix-configs/excelsior/mainapp.config /home/root
    fi
 
    echo -e "Installation complete."
@@ -175,6 +196,7 @@ testpx4() {
    rm minidm.log | true
    
    # Start mini-dm
+   echo -e "Starting mini-dm..."
    ${minidmPath}/mini-dm > minidm.log &
    sleep 5
    # Verify that mini-dm is running
@@ -187,7 +209,14 @@ testpx4() {
 
    
    # Start PX4
-   adb shell "/home/linaro/px4 /home/linaro/mainapp.config" > px4.log 2>&1 &
+   echo -e "Starting PX4..."
+   if [ $mode == 2 ]; then
+      # 8x96 platform
+      adb shell "/home/root/px4 /home/root/mainapp.config" > px4.log 2>&1 &
+   else
+      # 8x74 platform
+      adb shell "/home/linaro/px4 /home/linaro/mainapp.config" > px4.log 2>&1 &
+   fi
    sleep 20
    # Verify that PX4 is still running
    checkProc=$(adb shell "ps -aef | grep px4 | grep -v grep")

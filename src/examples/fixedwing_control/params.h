@@ -38,7 +38,7 @@
  * Definition of parameters for fixedwing example
  */
 
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 struct params {
 	float hdng_p;

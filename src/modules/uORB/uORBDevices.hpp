@@ -42,21 +42,12 @@
 #include <stdlib.h>
 #include "ORBMap.hpp"
 
-namespace device
-{
-//type mappings to NuttX
-typedef ::file file_t;
-typedef CDev VDev;
-}
-
 #else
 
 #include <string>
 #include <map>
 
 #endif /* __PX4_NUTTX */
-
-
 
 namespace uORB
 {
@@ -68,7 +59,7 @@ class Manager;
 /**
  * Per-object device instance.
  */
-class uORB::DeviceNode : public device::VDev
+class uORB::DeviceNode : public device::CDev
 {
 public:
 	DeviceNode(const struct orb_metadata *meta, const char *name, const char *path,
@@ -124,6 +115,9 @@ public:
 	static ssize_t    publish(const orb_metadata *meta, orb_advert_t handle, const void *data);
 
 	static int        unadvertise(orb_advert_t handle);
+
+	static int16_t topic_advertised(const orb_metadata *meta, int priority);
+	//static int16_t topic_unadvertised(const orb_metadata *meta, int priority);
 
 	/**
 	 * processes a request for add subscription from remote
@@ -191,6 +185,8 @@ public:
 	unsigned int published_message_count() const { return _generation; }
 	const struct orb_metadata *get_meta() const { return _meta; }
 
+	void set_priority(uint8_t priority) { _priority = priority; }
+
 protected:
 	virtual pollevent_t poll_state(device::file_t *filp);
 	virtual void poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events);
@@ -204,7 +200,7 @@ private:
 #endif
 	};
 	struct SubscriberData {
-		~SubscriberData() { if (update_interval) { delete(update_interval); } }
+		~SubscriberData() { if (update_interval) { delete (update_interval); } }
 
 		unsigned  generation; /**< last generation the subscriber has seen */
 		int   flags; /**< lowest 8 bits: priority of publisher, 9. bit: update_reported bit */
@@ -221,7 +217,7 @@ private:
 	uint8_t     *_data;   /**< allocated object buffer */
 	hrt_abstime   _last_update; /**< time the object was last updated */
 	volatile unsigned   _generation;  /**< object generation count */
-	const uint8_t   _priority;  /**< priority of the topic */
+	uint8_t   _priority;  /**< priority of the topic */
 	bool _published;  /**< has ever data been published */
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
 	int16_t _subscriber_count;
@@ -274,7 +270,7 @@ private:
  * Used primarily to create new objects via the ORBIOCCREATE
  * ioctl.
  */
-class uORB::DeviceMaster : public device::VDev
+class uORB::DeviceMaster : public device::CDev
 {
 public:
 	virtual int   ioctl(device::file_t *filp, int cmd, unsigned long arg);
@@ -302,8 +298,8 @@ public:
 
 private:
 	// Private constructor, uORB::Manager takes care of its creation
-	DeviceMaster(Flavor f);
-	virtual ~DeviceMaster();
+	DeviceMaster();
+	virtual ~DeviceMaster() = default;
 
 	struct DeviceNodeStatisticsData {
 		DeviceNode *node;
@@ -325,8 +321,6 @@ private:
 	 * @return node if exists, nullptr otherwise
 	 */
 	uORB::DeviceNode *getDeviceNodeLocked(const char *node_name);
-
-	const Flavor _flavor;
 
 #ifdef __PX4_NUTTX
 	ORBMap _node_map;

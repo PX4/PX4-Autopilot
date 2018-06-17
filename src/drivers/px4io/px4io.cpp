@@ -39,6 +39,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_tasks.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -66,15 +67,12 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 
-#include <systemlib/mixer/mixer.h>
-#include <systemlib/perf_counter.h>
+#include <lib/mixer/mixer.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
-#include <systemlib/scheduling_priorities.h>
-#include <systemlib/param/param.h>
-#include <systemlib/circuit_breaker.h>
+#include <parameters/param.h>
+#include <circuit_breaker/circuit_breaker.h>
 #include <systemlib/mavlink_log.h>
-#include <systemlib/battery.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -83,7 +81,6 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/rc_channels.h>
-#include <uORB/topics/battery_status.h>
 #include <uORB/topics/servorail_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/multirotor_motor_limits.h>
@@ -184,14 +181,6 @@ public:
 	int      		set_update_rate(int rate);
 
 	/**
-	* Set the battery current scaling and bias
-	*
-	* @param[in] amp_per_volt
-	* @param[in] amp_bias
-	*/
-	void      		set_battery_current_scaling(float amp_per_volt, float amp_bias);
-
-	/**
 	 * Push failsafe values to IO.
 	 *
 	 * @param[in] vals	Failsafe control inputs: in us PPM (900 for zero, 1500 for centered, 2100 for full)
@@ -227,28 +216,6 @@ public:
 	{
 		_test_fmu_fail = is_fail;
 	};
-
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-	/**
-	 * Set the DSM VCC is controlled by relay one flag
-	 *
-	 * @param[in] enable true=DSM satellite VCC is controlled by relay1, false=DSM satellite VCC not controlled
-	 */
-	inline void		set_dsm_vcc_ctl(bool enable)
-	{
-		_dsm_vcc_ctl = enable;
-	};
-
-	/**
-	 * Get the DSM VCC is controlled by relay one flag
-	 *
-	 * @return true=DSM satellite VCC is controlled by relay1, false=DSM satellite VCC not controlled
-	 */
-	inline bool		get_dsm_vcc_ctl()
-	{
-		return _dsm_vcc_ctl;
-	};
-#endif
 
 	inline uint16_t		system_status() const {return _status;}
 
@@ -297,26 +264,17 @@ private:
 	/* advertised topics */
 	orb_advert_t 		_to_input_rc;		///< rc inputs from io
 	orb_advert_t		_to_outputs;		///< mixed servo outputs topic
-	orb_advert_t		_to_battery;		///< battery status / voltage
 	orb_advert_t		_to_servorail;		///< servorail status
 	orb_advert_t		_to_safety;		///< status of safety
 	orb_advert_t 		_to_mixer_status; 	///< mixer status flags
 
-	actuator_outputs_s	_outputs;		///< mixed outputs
-	servorail_status_s	_servorail_status;	///< servorail status
-
 	bool			_primary_pwm_device;	///< true if we are the default PWM output
 	bool			_lockdown_override;	///< allow to override the safety lockdown
 	bool			_armed;			///< wether the system is armed
+	bool			_override_available;	///< true if manual reversion mode is enabled
 
-	float			_battery_amp_per_volt;	///< current sensor amps/volt
-	float			_battery_amp_bias;	///< current sensor bias
-	float			_battery_mamphour_total;///< amp hours consumed so far
-	uint64_t		_battery_last_timestamp;///< last amp hour calculation timestamp
 	bool			_cb_flighttermination;	///< true if the flight termination circuit breaker is enabled
 	bool 			_in_esc_calibration_mode;	///< do not send control outputs to IO (used for esc calibration)
-
-	Battery			_battery;
 
 	int32_t			_rssi_pwm_chan; ///< RSSI PWM input channel
 	int32_t			_rssi_pwm_max; ///< max RSSI input on PWM channel
@@ -325,12 +283,7 @@ private:
 	bool			_analog_rc_rssi_stable; ///< true when analog RSSI input is stable
 	float			_analog_rc_rssi_volt; ///< analog RSSI voltage
 
-	float			_last_throttle; ///< last throttle value for battery calculation
 	bool			_test_fmu_fail; ///< To test what happens if IO looses FMU
-
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-	bool			_dsm_vcc_ctl;		///< true if relay 1 controls DSM satellite RX power
-#endif
 
 	/**
 	 * Trampoline to the worker task
@@ -475,16 +428,6 @@ private:
 	void			dsm_bind_ioctl(int dsmMode);
 
 	/**
-	 * Handle a battery update from IO.
-	 *
-	 * Publish IO battery information if necessary.
-	 *
-	 * @param vbatt		vbatt register
-	 * @param ibatt		ibatt register
-	 */
-	void			io_handle_battery(uint16_t vbatt, uint16_t ibatt);
-
-	/**
 	 * Handle a servorail update from IO.
 	 *
 	 * Publish servo rail information if necessary.
@@ -524,7 +467,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_mavlink_log_pub(nullptr),
 	_perf_update(perf_alloc(PC_ELAPSED, "io update")),
 	_perf_write(perf_alloc(PC_ELAPSED, "io write")),
-	_perf_sample_latency(perf_alloc(PC_ELAPSED, "io latency")),
+	_perf_sample_latency(perf_alloc(PC_ELAPSED, "io control latency")),
 	_status(0),
 	_alarms(0),
 	_last_written_arming_s(0),
@@ -540,40 +483,25 @@ PX4IO::PX4IO(device::Device *interface) :
 	_t_vehicle_command(-1),
 	_to_input_rc(nullptr),
 	_to_outputs(nullptr),
-	_to_battery(nullptr),
 	_to_servorail(nullptr),
 	_to_safety(nullptr),
 	_to_mixer_status(nullptr),
-	_outputs{},
-	_servorail_status{},
 	_primary_pwm_device(false),
 	_lockdown_override(false),
 	_armed(false),
-	_battery_amp_per_volt(90.0f / 5.0f), // this matches the 3DR current sensor
-	_battery_amp_bias(0),
-	_battery_mamphour_total(0),
-	_battery_last_timestamp(0),
+	_override_available(false),
 	_cb_flighttermination(true),
 	_in_esc_calibration_mode(false),
-	_battery{},
 	_rssi_pwm_chan(0),
 	_rssi_pwm_max(0),
 	_rssi_pwm_min(0),
 	_thermal_control(-1),
 	_analog_rc_rssi_stable(false),
 	_analog_rc_rssi_volt(-1.0f),
-	_last_throttle(0.0f),
 	_test_fmu_fail(false)
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-	, _dsm_vcc_ctl(false)
-#endif
-
 {
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
-
-	_debug_enabled = false;
-	_servorail_status.rssi_v = 0;
 }
 
 PX4IO::~PX4IO()
@@ -652,8 +580,6 @@ PX4IO::init()
 	int ret;
 	param_t sys_restart_param;
 	int32_t sys_restart_val = DM_INIT_REASON_VOLATILE;
-
-	ASSERT(_task == -1);
 
 	sys_restart_param = param_find("SYS_RESTART_TYPE");
 
@@ -792,8 +718,6 @@ PX4IO::init()
 
 		} while (true);
 
-		/* send command to arm system via command API */
-		vehicle_command_s cmd;
 		/* send this to itself */
 		param_t sys_id_param = param_find("MAV_SYS_ID");
 		param_t comp_id_param = param_find("MAV_COMP_ID");
@@ -809,22 +733,25 @@ PX4IO::init()
 			errx(1, "PRM CMPID");
 		}
 
-		cmd.target_system = sys_id;
-		cmd.target_component = comp_id;
-		cmd.source_system = sys_id;
-		cmd.source_component = comp_id;
-		/* request arming */
-		cmd.param1 = 1.0f;
-		cmd.param2 = 0;
-		cmd.param3 = 0;
-		cmd.param4 = 0;
-		cmd.param5 = 0;
-		cmd.param6 = 0;
-		cmd.param7 = 0;
-		cmd.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
-
-		/* ask to confirm command */
-		cmd.confirmation =  1;
+		/* send command to arm system via command API */
+		struct vehicle_command_s cmd = {
+			.timestamp = hrt_absolute_time(),
+			.param5 = 0.0f,
+			.param6 = 0.0f,
+			/* request arming */
+			.param1 = 1.0f,
+			.param2 = 0.0f,
+			.param3 = 0.0f,
+			.param4 = 0.0f,
+			.param7 = 0.0f,
+			.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM,
+			.target_system = (uint8_t)sys_id,
+			.target_component = (uint8_t)comp_id,
+			.source_system = (uint8_t)sys_id,
+			.source_component = (uint8_t)comp_id,
+			/* ask to confirm command */
+			.confirmation = 1
+		};
 
 		/* send command once */
 		orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
@@ -922,7 +849,7 @@ PX4IO::init()
 	_task = px4_task_spawn_cmd("px4io",
 				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_ACTUATOR_OUTPUTS,
-				   1400,
+				   1500,
 				   (main_t)&PX4IO::task_main_trampoline,
 				   nullptr);
 
@@ -1056,7 +983,7 @@ PX4IO::task_main()
 			}
 		}
 
-		if (now >= orb_check_last + ORB_CHECK_INTERVAL) {
+		if (!_armed && (now >= orb_check_last + ORB_CHECK_INTERVAL)) {
 			/* run at 5Hz */
 			orb_check_last = now;
 
@@ -1088,36 +1015,9 @@ PX4IO::task_main()
 				parameter_update_s pupdate;
 				orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
 
-				int32_t dsm_bind_val;
-				param_t dsm_bind_param;
-
-				/* see if bind parameter has been set, and reset it to -1 */
-				param_get(dsm_bind_param = param_find("RC_DSM_BIND"), &dsm_bind_val);
-
-				if (dsm_bind_val > -1) {
-					dsm_bind_ioctl(dsm_bind_val);
-					dsm_bind_val = -1;
-					param_set(dsm_bind_param, &dsm_bind_val);
-				}
-
 				if (!_rc_handling_disabled) {
 					/* re-upload RC input config as it may have changed */
 					io_set_rc_config();
-				}
-
-				/* re-set the battery scaling */
-				int32_t voltage_scaling_val = 10000;
-				param_t voltage_scaling_param;
-
-				/* set battery voltage scaling */
-				param_get(voltage_scaling_param = param_find("BAT_V_SCALE_IO"), &voltage_scaling_val);
-
-				/* send scaling voltage to IO */
-				uint16_t scaling = voltage_scaling_val;
-				int pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE, &scaling, 1);
-
-				if (pret != OK) {
-					mavlink_log_critical(&_mavlink_log_pub, "IO vscale upload failed");
 				}
 
 				/* send RC throttle failsafe value to IO */
@@ -1131,7 +1031,7 @@ PX4IO::task_main()
 					if (failsafe_param_val > 0) {
 
 						uint16_t failsafe_thr = failsafe_param_val;
-						pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RC_THR_FAILSAFE_US, &failsafe_thr, 1);
+						int pret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RC_THR_FAILSAFE_US, &failsafe_thr, 1);
 
 						if (pret != OK) {
 							mavlink_log_critical(&_mavlink_log_pub, "failsafe upload failed, FS: %d us", (int)failsafe_thr);
@@ -1311,8 +1211,14 @@ PX4IO::task_main()
 					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_MOTOR_SLEW_MAX, FLOAT_TO_REG(param_val));
 				}
 
-				// Also trigger param update in Battery instance.
-				_battery.updateParams();
+				/* air-mode */
+				parm_handle = param_find("MC_AIRMODE");
+
+				if (parm_handle != PARAM_INVALID) {
+					int32_t param_val_int;
+					param_get(parm_handle, &param_val_int);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_AIRMODE, SIGNED_TO_REG(param_val_int));
+				}
 			}
 
 		}
@@ -1422,11 +1328,6 @@ PX4IO::io_set_control_state(unsigned group)
 		regs[i] = FLOAT_TO_REG(ctrl);
 	}
 
-	// save last throttle for battery calculation
-	if (group == 0) {
-		_last_throttle = controls.control[3];
-	}
-
 	if (!_test_fmu_fail) {
 		/* copy values to registers in IO */
 		return io_reg_set(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT, regs, _max_controls);
@@ -1498,9 +1399,11 @@ PX4IO::io_set_arming_state()
 	if (have_control_mode == OK) {
 		if (control_mode.flag_external_manual_override_ok) {
 			set |= PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;
+			_override_available = true;
 
 		} else {
 			clear |= PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;
+			_override_available = false;
 		}
 	}
 
@@ -1724,15 +1627,10 @@ PX4IO::io_handle_status(uint16_t status)
 	 */
 	struct safety_s safety;
 	safety.timestamp = hrt_absolute_time();
-
-	if (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
-		safety.safety_off = true;
-		safety.safety_switch_available = true;
-
-	} else {
-		safety.safety_off = false;
-		safety.safety_switch_available = true;
-	}
+	safety.safety_switch_available = true;
+	safety.safety_off = (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ? true : false;
+	safety.override_available = _override_available;
+	safety.override_enabled = (status & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? true : false;
 
 	/* lazily publish the safety status */
 	if (_to_safety != nullptr) {
@@ -1777,54 +1675,21 @@ PX4IO::io_handle_alarms(uint16_t alarms)
 }
 
 void
-PX4IO::io_handle_battery(uint16_t vbatt, uint16_t ibatt)
-{
-	/* only publish if battery has a valid minimum voltage */
-	if (vbatt <= 4900) {
-		return;
-	}
-
-	battery_status_s	battery_status;
-
-	const hrt_abstime timestamp = hrt_absolute_time();
-	/* voltage is scaled to mV */
-	const float voltage_v = vbatt / 1000.0f;
-
-	/*
-	  ibatt contains the raw ADC count, as 12 bit ADC
-	  value, with full range being 3.3v
-	*/
-	float current_a = ibatt * (3.3f / 4096.0f) * _battery_amp_per_volt;
-	current_a += _battery_amp_bias;
-
-	_battery.updateBatteryStatus(timestamp, voltage_v, current_a, _last_throttle, _armed, &battery_status);
-
-	/* the announced battery status would conflict with the simulated battery status in HIL */
-	if (!(_pub_blocked)) {
-		/* lazily publish the battery voltage */
-		if (_to_battery != nullptr) {
-			orb_publish(ORB_ID(battery_status), _to_battery, &battery_status);
-
-		} else {
-			_to_battery = orb_advertise(ORB_ID(battery_status), &battery_status);
-		}
-	}
-}
-
-void
 PX4IO::io_handle_vservo(uint16_t vservo, uint16_t vrssi)
 {
-	_servorail_status.timestamp = hrt_absolute_time();
+	servorail_status_s servorail_status = {};
+
+	servorail_status.timestamp = hrt_absolute_time();
 
 	/* voltage is scaled to mV */
-	_servorail_status.voltage_v = vservo * 0.001f;
-	_servorail_status.rssi_v    = vrssi * 0.001f;
+	servorail_status.voltage_v = vservo * 0.001f;
+	servorail_status.rssi_v    = vrssi * 0.001f;
 
 	if (_analog_rc_rssi_volt < 0.0f) {
-		_analog_rc_rssi_volt = _servorail_status.rssi_v;
+		_analog_rc_rssi_volt = servorail_status.rssi_v;
 	}
 
-	_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.99f + _servorail_status.rssi_v * 0.01f;
+	_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.99f + servorail_status.rssi_v * 0.01f;
 
 	if (_analog_rc_rssi_volt > 2.5f) {
 		_analog_rc_rssi_stable = true;
@@ -1832,10 +1697,10 @@ PX4IO::io_handle_vservo(uint16_t vservo, uint16_t vrssi)
 
 	/* lazily publish the servorail voltages */
 	if (_to_servorail != nullptr) {
-		orb_publish(ORB_ID(servorail_status), _to_servorail, &_servorail_status);
+		orb_publish(ORB_ID(servorail_status), _to_servorail, &servorail_status);
 
 	} else {
-		_to_servorail = orb_advertise(ORB_ID(servorail_status), &_servorail_status);
+		_to_servorail = orb_advertise(ORB_ID(servorail_status), &servorail_status);
 	}
 }
 
@@ -1858,13 +1723,7 @@ PX4IO::io_get_status()
 	io_handle_status(regs[0]);
 	io_handle_alarms(regs[1]);
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-	io_handle_battery(regs[2], regs[3]);
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 	io_handle_vservo(regs[4], regs[5]);
-#endif
 
 	return ret;
 }
@@ -1955,6 +1814,11 @@ PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
 		input_rc.values[i] = regs[prolog + i];
 	}
 
+	/* zero the remaining fields */
+	for (unsigned i = channel_count; i < (sizeof(input_rc.values) / sizeof(input_rc.values[0])); i++) {
+		input_rc.values[i] = 0;
+	}
+
 	/* get RSSI from input channel */
 	if (_rssi_pwm_chan > 0 && _rssi_pwm_chan <= input_rc_s::RC_INPUT_MAX_CHANNELS && _rssi_pwm_max - _rssi_pwm_min != 0) {
 		int rssi = ((input_rc.values[_rssi_pwm_chan - 1] - _rssi_pwm_min) * 100) /
@@ -2020,12 +1884,6 @@ PX4IO::io_publish_raw_rc()
 int
 PX4IO::io_publish_pwm_outputs()
 {
-	/* data we are going to fetch */
-	actuator_outputs_s outputs = {};
-	multirotor_motor_limits_s motor_limits;
-
-	outputs.timestamp = hrt_absolute_time();
-
 	/* get servo values from IO */
 	uint16_t ctl[_max_actuators];
 	int ret = io_reg_get(PX4IO_PAGE_SERVOS, 0, ctl, _max_actuators);
@@ -2034,38 +1892,33 @@ PX4IO::io_publish_pwm_outputs()
 		return ret;
 	}
 
+	actuator_outputs_s outputs = {};
+	outputs.timestamp = hrt_absolute_time();
+	outputs.noutputs = _max_actuators;
+
 	/* convert from register format to float */
 	for (unsigned i = 0; i < _max_actuators; i++) {
 		outputs.output[i] = ctl[i];
 	}
 
-	outputs.noutputs = _max_actuators;
-
-	/* lazily advertise on first publication */
-	if (_to_outputs == nullptr) {
-		int instance;
-		_to_outputs = orb_advertise_multi(ORB_ID(actuator_outputs),
-						  &outputs, &instance, ORB_PRIO_MAX);
-
-	} else {
-		orb_publish(ORB_ID(actuator_outputs), _to_outputs, &outputs);
-	}
+	int instance;
+	orb_publish_auto(ORB_ID(actuator_outputs), &_to_outputs, &outputs, &instance, ORB_PRIO_DEFAULT);
 
 	/* get mixer status flags from IO */
-	uint16_t mixer_status;
-	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_MIXER, &mixer_status, sizeof(mixer_status) / sizeof(uint16_t));
-	motor_limits.saturation_status = mixer_status;
+	MultirotorMixer::saturation_status saturation_status;
+	ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_MIXER, &saturation_status.value, 1);
 
 	if (ret != OK) {
 		return ret;
 	}
 
 	/* publish mixer status */
-	if (_to_mixer_status == nullptr) {
-		_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &motor_limits);
+	if (saturation_status.flags.valid) {
+		multirotor_motor_limits_s motor_limits;
+		motor_limits.timestamp = hrt_absolute_time();
+		motor_limits.saturation_status = saturation_status.value;
 
-	} else {
-		orb_publish(ORB_ID(multirotor_motor_limits), _to_mixer_status, &motor_limits);
+		orb_publish_auto(ORB_ID(multirotor_motor_limits), &_to_mixer_status, &motor_limits, &instance, ORB_PRIO_DEFAULT);
 	}
 
 	return OK;
@@ -2358,17 +2211,7 @@ PX4IO::print_status(bool extended_status)
 	/* now clear alarms */
 	io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, 0xFFFF);
 
-	if (_hardware == 1) {
-		printf("vbatt mV %u ibatt mV %u vbatt scale %u\n",
-		       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VBATT),
-		       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_IBATT),
-		       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VBATT_SCALE));
-		printf("amp_per_volt %.3f amp_offset %.3f mAh discharged %.3f\n",
-		       (double)_battery_amp_per_volt,
-		       (double)_battery_amp_bias,
-		       (double)_battery_mamphour_total);
-
-	} else if (_hardware == 2) {
+	if (_hardware == 2) {
 		printf("vservo %u mV vservo scale %u\n",
 		       io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_VSERVO),
 		       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_VSERVO_SCALE));
@@ -2474,20 +2317,11 @@ PX4IO::print_status(bool extended_status)
 	       ((arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE) ? " TERM_FAILSAFE" : ""),
 	       ((arming & PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE) ? " OVERRIDE_IMMEDIATE" : "")
 	      );
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-	printf("rates 0x%04x default %u alt %u relays 0x%04x\n",
-	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES),
-	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_DEFAULTRATE),
-	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE),
-	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS));
-#endif
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 	printf("rates 0x%04x default %u alt %u sbus %u\n",
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES),
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_DEFAULTRATE),
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_ALTRATE),
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SBUS_RATE));
-#endif
 	printf("debuglevel %u\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG));
 
 	for (unsigned group = 0; group < 4; group++) {
@@ -2534,7 +2368,7 @@ PX4IO::print_status(bool extended_status)
 
 	if (heater_level != UINT16_MAX) {
 		if (heater_level == PX4IO_THERMAL_OFF) {
-			printf("\nIMU heater off", heater_level);
+			printf("\nIMU heater off");
 
 		} else {
 			printf("\nIMU heater level %d", heater_level);
@@ -2905,68 +2739,16 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		}
 
 	case GPIO_RESET: {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-			uint32_t bits = (1 << _max_relays) - 1;
-
-			/* don't touch relay1 if it's controlling RX vcc */
-			if (_dsm_vcc_ctl) {
-				bits &= ~PX4IO_P_SETUP_RELAYS_POWER1;
-			}
-
-			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, bits, 0);
-#endif
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 			ret = -EINVAL;
-#endif
 			break;
 		}
 
 	case GPIO_SET:
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-		arg &= ((1 << _max_relays) - 1);
-
-		/* don't touch relay1 if it's controlling RX vcc */
-		if (_dsm_vcc_ctl & (arg & PX4IO_P_SETUP_RELAYS_POWER1)) {
-			ret = -EINVAL;
-			break;
-		}
-
-		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, 0, arg);
-#endif
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 		ret = -EINVAL;
-#endif
 		break;
 
 	case GPIO_CLEAR:
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-		arg &= ((1 << _max_relays) - 1);
-
-		/* don't touch relay1 if it's controlling RX vcc */
-		if (_dsm_vcc_ctl & (arg & PX4IO_P_SETUP_RELAYS_POWER1)) {
-			ret = -EINVAL;
-			break;
-		}
-
-		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS, arg, 0);
-#endif
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
 		ret = -EINVAL;
-#endif
-		break;
-
-	case GPIO_GET:
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-		*(uint32_t *)arg = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_RELAYS);
-
-		if (*(uint32_t *)arg == _io_reg_get_error) {
-			ret = -EIO;
-		}
-
-#endif
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
-		ret = -EINVAL;
-#endif
 		break;
 
 	case MIXERIOCGETOUTPUTCOUNT:
@@ -2980,44 +2762,6 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			ret = mixer_send(buf, strnlen(buf, 2048));
-			break;
-		}
-
-	case RC_INPUT_GET: {
-			uint16_t status;
-			rc_input_values *rc_val = (rc_input_values *)arg;
-
-			ret = io_reg_get(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_FLAGS, &status, 1);
-
-			if (ret != OK) {
-				break;
-			}
-
-			/* if no R/C input, don't try to fetch anything */
-			if (!(status & PX4IO_P_STATUS_FLAGS_RC_OK)) {
-				ret = -ENOTCONN;
-				break;
-			}
-
-			/* sort out the source of the values */
-			if (status & PX4IO_P_STATUS_FLAGS_RC_PPM) {
-				rc_val->input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_PPM;
-
-			} else if (status & PX4IO_P_STATUS_FLAGS_RC_DSM) {
-				rc_val->input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SPEKTRUM;
-
-			} else if (status & PX4IO_P_STATUS_FLAGS_RC_SBUS) {
-				rc_val->input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SBUS;
-
-			} else if (status & PX4IO_P_STATUS_FLAGS_RC_ST24) {
-				rc_val->input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_ST24;
-
-			} else {
-				rc_val->input_source = input_rc_s::RC_INPUT_SOURCE_UNKNOWN;
-			}
-
-			/* read raw R/C input values */
-			ret = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE, &(rc_val->values[0]), _max_rc_input);
 			break;
 		}
 
@@ -3103,45 +2847,6 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 		break;
 
-	case PWM_SERVO_SET_RC_CONFIG: {
-			/* enable setting of RC configuration without relying
-			   on param_get()
-			*/
-			struct pwm_output_rc_config *config = (struct pwm_output_rc_config *)arg;
-
-			if (config->channel >= input_rc_s::RC_INPUT_MAX_CHANNELS) {
-				/* fail with error */
-				return -E2BIG;
-			}
-
-			/* copy values to registers in IO */
-			uint16_t regs[PX4IO_P_RC_CONFIG_STRIDE];
-			uint16_t offset = config->channel * PX4IO_P_RC_CONFIG_STRIDE;
-			regs[PX4IO_P_RC_CONFIG_MIN]        = config->rc_min;
-			regs[PX4IO_P_RC_CONFIG_CENTER]     = config->rc_trim;
-			regs[PX4IO_P_RC_CONFIG_MAX]        = config->rc_max;
-			regs[PX4IO_P_RC_CONFIG_DEADZONE]   = config->rc_dz;
-			regs[PX4IO_P_RC_CONFIG_ASSIGNMENT] = config->rc_assignment;
-			regs[PX4IO_P_RC_CONFIG_OPTIONS]    = PX4IO_P_RC_CONFIG_OPTIONS_ENABLED;
-
-			if (config->rc_reverse) {
-				regs[PX4IO_P_RC_CONFIG_OPTIONS] |= PX4IO_P_RC_CONFIG_OPTIONS_REVERSE;
-			}
-
-			ret = io_reg_set(PX4IO_PAGE_RC_CONFIG, offset, regs, PX4IO_P_RC_CONFIG_STRIDE);
-			break;
-		}
-
-	case PWM_SERVO_SET_OVERRIDE_OK:
-		/* set the 'OVERRIDE OK' bit */
-		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK);
-		break;
-
-	case PWM_SERVO_CLEAR_OVERRIDE_OK:
-		/* clear the 'OVERRIDE OK' bit */
-		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK, 0);
-		break;
-
 	default:
 		/* see if the parent class can make any use of it */
 		ret = CDev::ioctl(filep, cmd, arg);
@@ -3201,13 +2906,6 @@ PX4IO::set_update_rate(int rate)
 	return 0;
 }
 
-void
-PX4IO::set_battery_current_scaling(float amp_per_volt, float amp_bias)
-{
-	_battery_amp_per_volt = amp_per_volt;
-	_battery_amp_bias = amp_bias;
-}
-
 extern "C" __EXPORT int px4io_main(int argc, char *argv[]);
 
 namespace
@@ -3218,20 +2916,8 @@ get_interface()
 {
 	device::Device *interface = nullptr;
 
-#ifndef CONFIG_ARCH_BOARD_PX4FMU_V1
-
 #ifdef PX4IO_SERIAL_BASE
 	interface = PX4IO_serial_interface();
-#endif
-
-	if (interface != nullptr) {
-		goto got;
-	}
-
-#endif
-
-#ifdef PX4_I2C_OBDEV_PX4IO
-	interface = PX4IO_i2c_interface();
 #endif
 
 	if (interface != nullptr) {
@@ -3287,17 +2973,6 @@ start(int argc, char *argv[])
 		errx(1, "driver init failed");
 	}
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-	int dsm_vcc_ctl;
-
-	if (param_get(param_find("RC_RL1_DSM_VCC"), &dsm_vcc_ctl) == OK) {
-		if (dsm_vcc_ctl) {
-			g_dev->set_dsm_vcc_ctl(true);
-			g_dev->ioctl(nullptr, DSM_BIND_POWER_UP, 0);
-		}
-	}
-
-#endif
 	exit(0);
 }
 
@@ -3414,14 +3089,6 @@ bind(int argc, char *argv[])
 		errx(1, "px4io must be started first");
 	}
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-
-	if (!g_dev->get_dsm_vcc_ctl()) {
-		errx(1, "DSM bind feature not enabled");
-	}
-
-#endif
-
 	if (argc < 3) {
 		errx(0, "needs argument, use dsm2, dsmx or dsmx8");
 	}
@@ -3448,9 +3115,6 @@ bind(int argc, char *argv[])
 		errx(1, "system must not be armed");
 	}
 
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V1
-	warnx("This command will only bind DSM if satellite VCC (red wire) is controlled by relay 1.");
-#endif
 	g_dev->ioctl(nullptr, DSM_BIND_START, pulses);
 
 	exit(0);
@@ -3527,6 +3191,8 @@ test(void)
 			}
 		}
 
+		usleep(250);
+
 		/* readback servo values */
 		for (unsigned i = 0; i < servo_count; i++) {
 			servo_position_t value;
@@ -3536,7 +3202,7 @@ test(void)
 			}
 
 			if (value != servos[i]) {
-				errx(1, "servo %u readback error, got %hu expected %hu", i, value, servos[i]);
+				warnx("servo %u readback error, got %hu expected %hu", i, value, servos[i]);
 			}
 		}
 
@@ -3706,29 +3372,15 @@ px4io_main(int argc, char *argv[])
 		}
 
 		PX4IO_Uploader *up;
-		const char *fn[4];
 
-		/* work out what we're uploading... */
+		/* Assume we are using default paths */
+
+		const char *fn[4] = PX4IO_FW_SEARCH_PATHS;
+
+		/* Override defaults if a path is passed on command line */
 		if (argc > 2) {
 			fn[0] = argv[2];
 			fn[1] = nullptr;
-
-		} else {
-#if defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
-			fn[0] = "/etc/extras/px4io-v1.bin";
-			fn[1] =	"/fs/microsd/px4io1.bin";
-			fn[2] =	"/fs/microsd/px4io.bin";
-			fn[3] =	nullptr;
-#elif defined(CONFIG_ARCH_BOARD_PX4FMU_V2) || \
-	  defined(CONFIG_ARCH_BOARD_AUAV_X21) || \
-	  defined(CONFIG_ARCH_BOARD_PX4FMU_V4PRO)
-			fn[0] = "/etc/extras/px4io-v2.bin";
-			fn[1] =	"/fs/microsd/px4io2.bin";
-			fn[2] =	"/fs/microsd/px4io.bin";
-			fn[3] =	nullptr;
-#else
-#error "unknown board"
-#endif
 		}
 
 		up = new PX4IO_Uploader;
@@ -3834,18 +3486,6 @@ px4io_main(int argc, char *argv[])
 
 		} else {
 			errx(1, "missing argument (50 - 500 Hz)");
-			return 1;
-		}
-
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "current")) {
-		if ((argc > 3)) {
-			g_dev->set_battery_current_scaling(atof(argv[2]), atof(argv[3]));
-
-		} else {
-			errx(1, "missing argument (apm_per_volt, amp_offset)");
 			return 1;
 		}
 
@@ -4028,7 +3668,7 @@ px4io_main(int argc, char *argv[])
 
 out:
 	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor', 'debug <level>',\n"
-	     "'recovery', 'limit <rate>', 'current', 'bind', 'checkcrc', 'safety_on', 'safety_off',\n"
+	     "'recovery', 'limit <rate>', 'bind', 'checkcrc', 'safety_on', 'safety_off',\n"
 	     "'forceupdate', 'update', 'sbus1_out', 'sbus2_out', 'rssi_analog' or 'rssi_pwm',\n"
 	     "'test_fmu_fail', 'test_fmu_ok'");
 }

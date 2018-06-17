@@ -48,8 +48,7 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <string.h>
 
 #include <drivers/drv_hrt.h>
@@ -158,6 +157,7 @@ test_mount(int argc, char *argv[])
 		}
 
 		if (it_left_abort == 0) {
+			close(cmd_fd);
 			(void)unlink(cmd_filename);
 			return 0;
 		}
@@ -272,6 +272,7 @@ test_mount(int argc, char *argv[])
 			px4_close(fd);
 
 			if (ret) {
+				close(cmd_fd);
 				PX4_ERR("UNLINKING FILE FAILED");
 				return 1;
 			}
@@ -283,7 +284,7 @@ test_mount(int argc, char *argv[])
 	fsync(fileno(stderr));
 	usleep(20000);
 
-
+	close(cmd_fd);
 
 	/* we always reboot for the next test if we get here */
 	PX4_INFO("Iteration done, rebooting..");

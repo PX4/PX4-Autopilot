@@ -66,7 +66,7 @@ public:
 		_data(msg)
 	{}
 
-	virtual ~PX4Message() {};
+	virtual ~PX4Message() {}
 
 	virtual M &data() {return _data;}
 	virtual const M &data() const {return _data;}

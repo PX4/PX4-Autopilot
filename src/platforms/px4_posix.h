@@ -87,6 +87,8 @@ typedef struct pollfd px4_pollfd_struct_t;
 #define  PX4_F_CREAT  O_CREAT
 #define	 PX4_STACK_OVERHEAD	8192
 
+__BEGIN_DECLS
+
 typedef short pollevent_t;
 
 typedef struct {
@@ -99,8 +101,6 @@ typedef struct {
 	px4_sem_t   *sem;  	/* Pointer to semaphore used to post output event */
 	void   *priv;     	/* For use by drivers */
 } px4_pollfd_struct_t;
-
-__BEGIN_DECLS
 
 __EXPORT int 		px4_open(const char *path, int flags, ...);
 __EXPORT int 		px4_close(int fd);
@@ -146,6 +146,8 @@ __EXPORT const char 	*px4_get_topic_names(unsigned int *handle);
 __EXPORT uint64_t	hrt_system_time(void);
 
 __EXPORT bool		px4_exit_requested(void);
+
+
 #endif
 
 __END_DECLS

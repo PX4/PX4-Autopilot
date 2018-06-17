@@ -40,6 +40,4 @@ px4_add_module(
 		subscriber_example.cpp
 		subscriber_params.c
 	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

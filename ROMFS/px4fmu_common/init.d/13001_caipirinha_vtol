@@ -3,11 +3,12 @@
 # @name Caipiroshka Duo Tailsitter
 #
 # @type VTOL Duo Tailsitter
+# @class VTOL
 #
-# @output MAIN1 motor left
-# @output MAIN2 motor right
-# @output MAIN5 elevon left
-# @output MAIN6 elevon right
+# @output MAIN1 motor right
+# @output MAIN2 motor left
+# @output MAIN5 elevon right
+# @output MAIN6 elevon left
 #
 # @maintainer Roman Bapst <roman@px4.io>
 #
@@ -37,6 +38,7 @@ then
 	param set VT_IDLE_PWM_MC  1080
 	param set VT_TYPE 0
 	param set MAV_TYPE 19
+	param set VT_ELEV_MC_LOCK 0
 fi
 
 set MIXER caipirinha_vtol

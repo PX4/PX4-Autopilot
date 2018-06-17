@@ -1,0 +1,79 @@
+uorb start
+param load
+dataman start
+param set BAT_N_CELLS 3
+param set CAL_ACC0_ID 1376264
+param set CAL_ACC0_XOFF 0.01
+param set CAL_ACC0_XSCALE 1.01
+param set CAL_ACC0_YOFF -0.01
+param set CAL_ACC0_YSCALE 1.01
+param set CAL_ACC0_ZOFF 0.01
+param set CAL_ACC0_ZSCALE 1.01
+param set CAL_ACC1_ID 1310728
+param set CAL_ACC1_XOFF 0.01
+param set CAL_GYRO0_ID 2293768
+param set CAL_GYRO0_XOFF 0.01
+param set CAL_MAG0_ID 196616
+param set CAL_MAG0_XOFF 0.01
+param set COM_RC_IN_MODE 1
+param set GND_L1_DIST 5
+param set GND_SP_CTRL_MODE 0
+param set GND_SPEED_D 3
+param set GND_SPEED_I 0.001
+param set GND_SPEED_IMAX 0.125
+param set GND_SPEED_P 0.25
+param set GND_SPEED_THR_SC 1
+param set GND_THR_CRUISE 0.3
+param set GND_THR_IDLE 0
+param set GND_THR_MAX 1
+param set GND_THR_MIN 0
+param set GND_WR_D 1.2
+param set GND_WR_I 0.9674
+param set GND_WR_IMAX 0.1
+param set GND_WR_P 2
+param set MAV_TYPE 10
+param set MIS_LTRMIN_ALT 0.01
+param set MIS_TAKEOFF_ALT 0.01
+param set NAV_ACC_RAD 0.5
+param set NAV_DLL_ACT 0
+param set NAV_LOITER_RAD 2
+param set SENS_BOARD_ROT 0
+param set SENS_BOARD_X_OFF 0.000001
+param set SENS_DPRES_OFF 0.001
+param set SYS_AUTOSTART 50002
+param set SYS_MC_EST_GROUP 1
+param set SYS_RESTART_TYPE 2
+param set SDLOG_DIRS_MAX 7
+replay tryapplyparams
+simulator start -s
+tone_alarm start
+gyrosim start
+accelsim start
+barosim start
+gpssim start
+measairspeedsim start
+pwm_out_sim start
+sleep 1
+sensors start
+commander start
+land_detector start ugv
+navigator start
+ekf2 start
+gnd_pos_control start
+gnd_att_control start
+mixer load /dev/pwm_output0 ROMFS/sitl/mixers/rover_sitl.main.mix
+mavlink start -x -u 14556 -r 4000000
+mavlink start -x -u 14557 -r 4000000 -m onboard -o 14540
+mavlink stream -r 80 -s POSITION_TARGET_LOCAL_NED -u 14556
+mavlink stream -r 80 -s LOCAL_POSITION_NED -u 14556
+mavlink stream -r 80 -s GLOBAL_POSITION_INT -u 14556
+mavlink stream -r 80 -s ATTITUDE -u 14556
+mavlink stream -r 80 -s ATTITUDE_QUATERNION -u 14556
+mavlink stream -r 80 -s ATTITUDE_TARGET -u 14556
+mavlink stream -r 50 -s SERVO_OUTPUT_RAW_0 -u 14556
+mavlink stream -r 20 -s RC_CHANNELS -u 14556
+mavlink stream -r 250 -s HIGHRES_IMU -u 14556
+mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
+sdlog2 start -r 200 -e -t -a
+mavlink boot_complete
+replay trystart

@@ -47,8 +47,8 @@ static int daemon_task;             /* Handle of deamon task / thread */
 
 //using namespace px4;
 
-extern "C" __EXPORT int vcdevtest_main(int argc, char *argv[]);
-int vcdevtest_main(int argc, char *argv[])
+extern "C" __EXPORT int vcdev_test_main(int argc, char *argv[]);
+int vcdev_test_main(int argc, char *argv[])
 {
 
 	if (argc < 2) {
@@ -69,7 +69,7 @@ int vcdevtest_main(int argc, char *argv[])
 						 SCHED_PRIORITY_MAX - 5,
 						 2000,
 						 PX4_MAIN,
-						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
+						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
 
 		return 0;
 	}

@@ -46,11 +46,11 @@
 
 static int daemon_task;             /* Handle of deamon task / thread */
 
-extern "C" __EXPORT int hrttest_main(int argc, char *argv[]);
-int hrttest_main(int argc, char *argv[])
+extern "C" __EXPORT int hrt_test_main(int argc, char *argv[]);
+int hrt_test_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		PX4_WARN("usage: hrttest_main {start|stop|status}\n");
+		PX4_WARN("usage: hrt_test_main {start|stop|status}\n");
 		return 1;
 	}
 
@@ -67,7 +67,7 @@ int hrttest_main(int argc, char *argv[])
 						 SCHED_PRIORITY_MAX - 5,
 						 2000,
 						 PX4_MAIN,
-						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
+						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
 
 		return 0;
 	}

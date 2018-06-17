@@ -82,6 +82,10 @@ static int reorder(int argc, char **argv, const char *options)
 			tmpidx++;
 
 			if (takesarg) {
+				if (idx + 1 >= argc) { //Error: option takes an argument, but there is no more argument
+					return 1;
+				}
+
 				tmp_argv[tmpidx] = argv[idx + 1];
 				// printf("tmp_argv[%d] = %s\n", tmpidx, tmp_argv[tmpidx]);
 				tmpidx++;

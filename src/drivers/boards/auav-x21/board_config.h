@@ -53,6 +53,7 @@
 /* Configuration ************************************************************************************/
 
 /* PX4IO connection configuration */
+#define BOARD_USES_PX4IO_VERSION       2
 #define PX4IO_SERIAL_DEVICE	"/dev/ttyS4"
 #define PX4IO_SERIAL_TX_GPIO	GPIO_USART6_TX
 #define PX4IO_SERIAL_RX_GPIO	GPIO_USART6_RX
@@ -60,6 +61,8 @@
 #define PX4IO_SERIAL_VECTOR	STM32_IRQ_USART6
 #define PX4IO_SERIAL_TX_DMAMAP	DMAMAP_USART6_TX_2
 #define PX4IO_SERIAL_RX_DMAMAP	DMAMAP_USART6_RX_2
+#define PX4IO_SERIAL_RCC_REG	STM32_RCC_APB2ENR
+#define PX4IO_SERIAL_RCC_EN	RCC_APB2ENR_USART6EN
 #define PX4IO_SERIAL_CLOCK	STM32_PCLK2_FREQUENCY
 #define PX4IO_SERIAL_BITRATE	1500000			/* 1.5Mbps -> max rate for IO */
 
@@ -74,11 +77,11 @@
 
 /* Data ready pins but on board */
 
-#define GPIO_EXTI_ICM_20608_G_DRDY      (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN14)
+#define GPIO_EXTI_ICM_2060X_DRDY      (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN14)
 
 /* Data ready pins off */
 #define GPIO_EXTI_MPU_DRDY_OFF          (GPIO_INPUT|GPIO_PULLDOWN|GPIO_EXTI|GPIO_PORTD|GPIO_PIN15)
-#define GPIO_EXTI_ICM_20608_G_DRDY_OFF  (GPIO_INPUT|GPIO_PULLDOWN|GPIO_EXTI|GPIO_PORTC|GPIO_PIN14)
+#define GPIO_EXTI_ICM_2060X_DRDY_OFF  (GPIO_INPUT|GPIO_PULLDOWN|GPIO_EXTI|GPIO_PORTC|GPIO_PIN14)
 
 /* SPI1 off */
 #define GPIO_SPI1_SCK_OFF   (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTA|GPIO_PIN5)
@@ -86,12 +89,12 @@
 #define GPIO_SPI1_MOSI_OFF  (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTA|GPIO_PIN7)
 
 /* SPI1 chip selects off */
-#define GPIO_SPI_CS_ICM_20608_G_OFF (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz|GPIO_PORTC|GPIO_PIN15)
+#define GPIO_SPI_CS_ICM_2060X_OFF (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz|GPIO_PORTC|GPIO_PIN15)
 #define GPIO_SPI_CS_BARO_OFF        (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz|GPIO_PORTD|GPIO_PIN7)
 #define GPIO_SPI_CS_MPU_OFF		    (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz|GPIO_PORTC|GPIO_PIN2)
 
 /* SPI chip selects */
-#define GPIO_SPI_CS_ICM_20608_G  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN15)
+#define GPIO_SPI_CS_ICM_2060X	 (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN15)
 #define GPIO_SPI_CS_BARO         (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN7)
 #define GPIO_SPI_CS_FRAM         (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
 #define GPIO_SPI_CS_MPU          (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN2)
@@ -100,25 +103,17 @@
 #define PX4_SPI_BUS_RAMTRON	2
 #define PX4_SPI_BUS_BARO	PX4_SPI_BUS_SENSORS
 
-/* Use these in place of the spi_dev_e enumeration to select a specific SPI device on SPI1 */
-#define PX4_SPIDEV_ICM       1
-#define PX4_SPIDEV_BARO      2
-#define PX4_SPIDEV_MPU       3
+/* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
+#define PX4_SPIDEV_ICM_20602 PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
+#define PX4_SPIDEV_ICM_20608 PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2)
+#define PX4_SPIDEV_BARO      PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 3)
+#define PX4_SPIDEV_MPU       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 4)
 
 /* I2C busses */
 
 /* There is no I2C2 so there is not notion of internal / external*/
 #define PX4_I2C_BUS_EXPANSION 1
-#define PX4_I2C_BUS_ONBOARD   1
 #define PX4_I2C_BUS_LED		PX4_I2C_BUS_EXPANSION
-
-/* Devices not on the onboard bus.
- *
- * Note that these are unshifted addresses.
- */
-#define PX4_I2C_OBDEV_LED	0x55
-#define PX4_I2C_OBDEV_HMC5883	0x1e
-#define PX4_I2C_OBDEV_LIS3MDL	0x1e
 
 /*
  * ADC channels
@@ -231,6 +226,23 @@
 		{0,                      GPIO_VDD_3V3_SENSORS_EN, 0}, \
 		{GPIO_VDD_BRICK_VALID,   0,                       0}, \
 		{GPIO_VDD_5V_PERIPH_OC,  0,                       0}, }
+
+/*
+ * GPIO numbers.
+ *
+ * There are no alternate functions on this board.
+ */
+
+#define GPIO_SERVO_1          (1<<0)  /**< servo 1 output */
+#define GPIO_SERVO_2          (1<<1)  /**< servo 2 output */
+#define GPIO_SERVO_3          (1<<2)  /**< servo 3 output */
+#define GPIO_SERVO_4          (1<<3)  /**< servo 4 output */
+#define GPIO_SERVO_5          (1<<4)  /**< servo 5 output */
+#define GPIO_SERVO_6          (1<<5)  /**< servo 6 output */
+
+#define GPIO_3V3_SENSORS_EN   (1<<6)  /**< PE3 - VDD_3V3_SENSORS_EN */
+#define GPIO_BRICK_VALID      (1<<7)  /**< PB5 - !VDD_BRICK_VALID */
+#define GPIO_5V_PERIPH_OC     (1<<8) /**< PE10 - !VDD_5V_PERIPH_OC */
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120

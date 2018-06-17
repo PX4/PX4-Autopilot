@@ -37,12 +37,14 @@ enum class ULogMessageType : uint8_t {
 	FORMAT = 'F',
 	DATA = 'D',
 	INFO = 'I',
+	INFO_MULTIPLE = 'M',
 	PARAMETER = 'P',
 	ADD_LOGGED_MSG = 'A',
 	REMOVE_LOGGED_MSG = 'R',
 	SYNC = 'S',
 	DROPOUT = 'O',
 	LOGGING = 'L',
+	FLAG_BITS = 'B',
 };
 
 
@@ -113,6 +115,15 @@ struct ulog_message_info_header_s {
 	char key[255];
 };
 
+struct ulog_message_info_multiple_header_s {
+	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
+	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::INFO_MULTIPLE);
+
+	uint8_t is_continued; ///< can be used for arrays: set to 1, if this message is part of the previous with the same key
+	uint8_t key_len;
+	char key[255];
+};
+
 struct ulog_message_logging_s {
 	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
 	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::LOGGING);
@@ -129,4 +140,17 @@ struct ulog_message_parameter_header_s {
 	uint8_t key_len;
 	char key[255];
 };
+
+
+#define ULOG_INCOMPAT_FLAG0_DATA_APPENDED_MASK (1<<0)
+
+struct ulog_message_flag_bits_s {
+	uint16_t msg_size;
+	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::FLAG_BITS);
+
+	uint8_t compat_flags[8];
+	uint8_t incompat_flags[8]; ///< @see ULOG_INCOMPAT_FLAG_*
+	uint64_t appended_offsets[3]; ///< file offset(s) for appended data if ULOG_INCOMPAT_FLAG0_DATA_APPENDED_MASK is set
+};
+
 #pragma pack(pop)

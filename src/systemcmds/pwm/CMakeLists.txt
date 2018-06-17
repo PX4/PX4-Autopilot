@@ -35,9 +35,9 @@ px4_add_module(
 	MAIN pwm
 	STACK_MAIN 2500
 	COMPILE_FLAGS
+		-Wno-array-bounds
 	SRCS
-		pwm.c
+		pwm.cpp
 	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

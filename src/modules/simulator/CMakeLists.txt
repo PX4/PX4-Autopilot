@@ -53,16 +53,28 @@ if (NOT ${OS} STREQUAL "qurt")
 		simulator_mavlink.cpp)
 endif()
 
+add_subdirectory(ledsim)
+
 px4_add_module(
 	MODULE modules__simulator
 	MAIN simulator
 	COMPILE_FLAGS
+	INCLUDES
+		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS
 		${SIMULATOR_SRCS}
 	DEPENDS
-		platforms__common
-		git_jmavsim
-		git_gazebo
+		git_mavlink_v2
+		battery
+		conversion
+		drivers__ledsim
+		git_ecl
+		ecl_geo
 	)
+target_include_directories(modules__simulator INTERFACE ${PX4_SOURCE_DIR}/mavlink/include/mavlink)
 
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+add_subdirectory(accelsim)
+add_subdirectory(airspeedsim)
+add_subdirectory(barosim)
+add_subdirectory(gpssim)
+add_subdirectory(gyrosim)

@@ -46,9 +46,9 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
-#include <systemlib/mixer/mixer.h>
-#include <systemlib/mixer/mixer_multirotor.generated.h>
-#include <systemlib/param/param.h>
+#include <lib/mixer/mixer.h>
+#include <lib/mixer/mixer_multirotor_normalized.generated.h>
+#include <parameters/param.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -148,7 +148,7 @@ void parameters_init()
 void parameters_update()
 {
 	PX4_WARN("uart_esc_main parameters_update");
-	int v_int;
+	int32_t v_int;
 
 	if (param_get(_parameter_handles.model, &v_int) == 0) {
 		_parameters.model = v_int;
@@ -336,10 +336,8 @@ void task_main(int argc, char *argv[])
 				_outputs.timestamp = hrt_absolute_time();
 				int16_t motor_rpms[UART_ESC_MAX_MOTORS];
 
-				if (_armed.armed) {
-					_outputs.noutputs = mixer->mix(&_outputs.output[0],
-								       actuator_controls_s::NUM_ACTUATOR_CONTROLS,
-								       NULL);
+				if (_armed.armed && !_armed.lockdown && !_armed.manual_lockdown) {
+					_outputs.noutputs = mixer->mix(&_outputs.output[0], actuator_controls_s::NUM_ACTUATOR_CONTROLS);
 
 					// Make sure we support only up to UART_ESC_MAX_MOTORS motors
 					if (_outputs.noutputs > UART_ESC_MAX_MOTORS) {

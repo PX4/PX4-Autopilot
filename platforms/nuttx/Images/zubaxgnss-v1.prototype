@@ -1,0 +1,13 @@
+{
+    "board_id": 26,
+    "magic": "ZUBAXGNSSFWv1",
+    "description": "Firmware for the ZUBAXGNSS board",
+    "image": "",
+    "build_time": 0,
+    "summary": "ZUBAXGNSSv1",
+    "version": "0.0",
+    "image_size": 0,
+    "image_maxsize": 253952,
+    "git_identity": "",
+    "board_revision": 0
+}

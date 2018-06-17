@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -76,7 +76,36 @@
 #define DRV_ACC_DEVTYPE_MPU6500  0x34
 #define DRV_GYR_DEVTYPE_MPU6050  0x35
 #define DRV_GYR_DEVTYPE_MPU6500  0x36
-
+#define DRV_ACC_DEVTYPE_ICM20602	0x37
+#define DRV_GYR_DEVTYPE_ICM20602	0x38
+#define DRV_ACC_DEVTYPE_ICM20608	0x39
+#define DRV_GYR_DEVTYPE_ICM20608	0x3A
+#define DRV_ACC_DEVTYPE_ICM20689	0x3B
+#define DRV_GYR_DEVTYPE_ICM20689	0x3C
+#define DRV_BARO_DEVTYPE_MS5611		0x3D
+#define DRV_BARO_DEVTYPE_MS5607		0x3E
+#define DRV_BARO_DEVTYPE_BMP280		0x3F
+#define DRV_BARO_DEVTYPE_LPS25H		0x40
+#define DRV_ACC_DEVTYPE_BMI055		0x41
+#define DRV_GYR_DEVTYPE_BMI055		0x42
+#define DRV_MAG_DEVTYPE_BMM150		0x43
+#define DRV_BARO_DEVTYPE_BMP285		0x44
+#define DRV_DIFF_PRESS_DEVTYPE_ETS3	0x45
+#define DRV_DIFF_PRESS_DEVTYPE_MS4525	0x46
+#define DRV_DIFF_PRESS_DEVTYPE_MS5525	0x47
+#define DRV_DIFF_PRESS_DEVTYPE_SDP31	0x48
+#define DRV_DIFF_PRESS_DEVTYPE_SDP32	0x49
+#define DRV_DIFF_PRESS_DEVTYPE_SDP33	0x50
+#define DRV_BARO_DEVTYPE_MPL3115A2	0x51
+#define DRV_ACC_DEVTYPE_FXOS8701C	0x52
+#define DRV_MAG_DEVTYPE_FXOS8701C	0x53
+#define DRV_GYR_DEVTYPE_FXAS2100C	0x54
+#define DRV_ACC_DEVTYPE_ADIS16448	0x55
+#define DRV_MAG_DEVTYPE_ADIS16448	0x56
+#define DRV_GYR_DEVTYPE_ADIS16448	0x57
+#define DRV_BARO_DEVTYPE_LPS22HB	0x58
+#define DRV_ACC_DEVTYPE_ADIS16477	0x59
+#define DRV_GYR_DEVTYPE_ADIS16477	0x60
 
 /*
  * ioctl() definitions
@@ -113,27 +142,9 @@
  */
 #define SENSORIOCSQUEUEDEPTH	_SENSORIOC(2)
 
-/** return the internal queue depth */
-#define SENSORIOCGQUEUEDEPTH	_SENSORIOC(3)
-
 /**
  * Reset the sensor to its default configuration
  */
 #define SENSORIOCRESET		_SENSORIOC(4)
-
-/**
- * Set the sensor orientation
- */
-#define SENSORIOCSROTATION	_SENSORIOC(5)
-
-/**
- * Get the sensor orientation
- */
-#define SENSORIOCGROTATION	_SENSORIOC(6)
-
-/**
- * Test the sensor calibration
- */
-#define SENSORIOCCALTEST	_SENSORIOC(7)
 
 #endif /* _DRV_SENSOR_H */

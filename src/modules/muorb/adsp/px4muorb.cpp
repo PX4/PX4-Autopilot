@@ -42,7 +42,7 @@
 #include "px4_log.h"
 #include "uORB/topics/sensor_combined.h"
 #include "uORB.h"
-#include "systemlib/param/param.h"
+#include <parameters/param.h>
 #include <shmem.h>
 
 __BEGIN_DECLS
@@ -56,6 +56,7 @@ __END_DECLS
 int px4muorb_orb_initialize()
 {
 	HAP_power_request(100, 100, 1000);
+	shmem_info_p = NULL;
 
 	// The uORB Manager needs to be initialized first up, otherwise the instance is nullptr.
 	uORB::Manager::initialize();
@@ -110,11 +111,8 @@ int px4muorb_param_update_to_shmem(uint32_t param, const uint8_t *value,
 	return 0;
 }
 
-int px4muorb_param_update_index_from_shmem(unsigned char *data,
-		int data_len_in_bytes)
+int px4muorb_param_update_index_from_shmem(unsigned char *data, int data_len_in_bytes)
 {
-	unsigned int i;
-
 	if (!shmem_info_p) {
 		return -1;
 	}
@@ -124,7 +122,7 @@ int px4muorb_param_update_index_from_shmem(unsigned char *data,
 		return -1;
 	}
 
-	for (i = 0; i < data_len_in_bytes; i++) {
+	for (int i = 0; i < data_len_in_bytes; i++) {
 		data[i] = shmem_info_p->adsp_changed_index[i];
 	}
 
@@ -158,6 +156,40 @@ int px4muorb_param_update_value_from_shmem(uint32_t param, const uint8_t *value,
 	release_shmem_lock(__FILE__, __LINE__);
 
 	return 0;
+}
+
+int px4muorb_topic_advertised(const char *topic_name)
+{
+	int rc = 0;
+	PX4_INFO("TEST px4muorb_topic_advertised of [%s] on remote side...", topic_name);
+	uORB::FastRpcChannel *channel = uORB::FastRpcChannel::GetInstance();
+	uORBCommunicator::IChannelRxHandler *rxHandler = channel->GetRxHandler();
+
+	if (rxHandler != nullptr) {
+		rc = rxHandler->process_remote_topic(topic_name, 1);
+
+	} else {
+		rc = -1;
+	}
+
+	return rc;
+}
+
+int px4muorb_topic_unadvertised(const char *topic_name)
+{
+	int rc = 0;
+	PX4_INFO("TEST px4muorb_topic_unadvertised of [%s] on remote side...", topic_name);
+	uORB::FastRpcChannel *channel = uORB::FastRpcChannel::GetInstance();
+	uORBCommunicator::IChannelRxHandler *rxHandler = channel->GetRxHandler();
+
+	if (rxHandler != nullptr) {
+		rc = rxHandler->process_remote_topic(topic_name, 0);
+
+	} else {
+		rc = -1;
+	}
+
+	return rc;
 }
 
 int px4muorb_add_subscriber(const char *name)

@@ -59,7 +59,6 @@ public:
 	 */
 	int		start();
 
-
 	/**
 	 * Write to the shell
 	 * @return number of written bytes

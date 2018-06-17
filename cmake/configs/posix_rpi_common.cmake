@@ -1,13 +1,13 @@
 # This file is shared between posix_rpi_native.cmake
 # and posix_rpi_cross.cmake.
 
-include(posix/px4_impl_posix)
 
 # This definition allows to differentiate if this just the usual POSIX build
 # or if it is for the RPi.
 add_definitions(
 	-D__PX4_POSIX_RPI
 	-D__DF_LINUX # For DriverFramework
+	-D__DF_RPI # For DriverFramework
 )
 
 
@@ -15,24 +15,32 @@ set(config_module_list
 	#
 	# Board support modules
 	#
-	drivers/device
+	#drivers/barometer
+	drivers/batt_smbus
+	drivers/differential_pressure
+	drivers/distance_sensor
+	#drivers/telemetry
+
 	modules/sensors
-	platforms/posix/drivers/df_mpu9250_wrapper
-	platforms/posix/drivers/df_lsm9ds1_wrapper
-	platforms/posix/drivers/df_ms5611_wrapper
+
 	platforms/posix/drivers/df_hmc5883_wrapper
-	platforms/posix/drivers/df_trone_wrapper
 	platforms/posix/drivers/df_isl29501_wrapper
+	platforms/posix/drivers/df_lsm9ds1_wrapper
+	platforms/posix/drivers/df_mpu9250_wrapper
+	platforms/posix/drivers/df_ms5611_wrapper
+	platforms/posix/drivers/df_trone_wrapper
 
 	#
 	# System commands
 	#
 	systemcmds/param
+	systemcmds/led_control
 	systemcmds/mixer
 	systemcmds/ver
 	systemcmds/esc_calib
 	systemcmds/reboot
 	systemcmds/topic_listener
+	systemcmds/tune_control
 	systemcmds/perf
 
 	#
@@ -41,15 +49,18 @@ set(config_module_list
 	modules/attitude_estimator_q
 	modules/position_estimator_inav
 	modules/local_position_estimator
+	modules/landing_target_estimator
 	modules/ekf2
 
 	#
 	# Vehicle Control
 	#
-	modules/mc_att_control
-	modules/mc_pos_control
 	modules/fw_att_control
 	modules/fw_pos_control_l1
+	modules/gnd_att_control
+	modules/gnd_pos_control
+	modules/mc_att_control
+	modules/mc_pos_control
 	modules/vtol_att_control
 
 	#
@@ -58,10 +69,6 @@ set(config_module_list
 	modules/sdlog2
 	modules/logger
 	modules/commander
-	modules/param
-	modules/systemlib
-	modules/systemlib/mixer
-	modules/uORB
 	modules/dataman
 	modules/land_detector
 	modules/navigator
@@ -70,36 +77,16 @@ set(config_module_list
 	#
 	# PX4 drivers
 	#
+	drivers/linux_sbus
 	drivers/gps
+	drivers/navio_adc
 	drivers/navio_sysfs_rc_in
-	drivers/navio_sysfs_pwm_out
-	drivers/navio_gpio
+	drivers/linux_gpio
+	drivers/linux_pwm_out
 	drivers/navio_rgbled
+	drivers/pwm_out_sim
+	drivers/rpi_rc_in
 
-	#
-	# Libraries
-	#
-	lib/controllib
-	lib/mathlib
-	lib/mathlib/math/filter
-	lib/geo
-	lib/ecl
-	lib/geo_lookup
-	lib/launchdetection
-	lib/external_lgpl
-	lib/conversion
-	lib/terrain_estimation
-	lib/runway_takeoff
-	lib/tailsitter_recovery
-	lib/version
-	lib/DriverFramework/framework
-
-	#
-	# POSIX
-	#
-	platforms/common
-	platforms/posix/px4_layer
-	platforms/posix/work_queue
 )
 
 #

@@ -13,3 +13,7 @@ uint32 time_since_last_sonar_update	# time since last sonar update in microsecon
 uint16 frame_count_since_last_readout	# number of accumulated frames in timespan
 int16 gyro_temperature	# Temperature * 100 in centi-degrees Celsius
 uint8 quality	# Average of quality of accumulated frames, 0: bad quality, 255: maximum quality
+
+float32 max_flow_rate # Magnitude of maximum angular which the optical flow sensor can measure reliably
+float32 min_ground_distance # Minimum distance from ground at which the optical flow sensor operates reliably
+float32 max_ground_distance # Maximum distance from ground at which the optical flow sensor operates reliably

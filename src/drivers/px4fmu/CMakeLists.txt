@@ -35,10 +35,11 @@ px4_add_module(
 	MAIN fmu
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Weffc++
 	SRCS
 		fmu.cpp
 	DEPENDS
-		platforms__common
+		circuit_breaker
+		mixer
+		rc
+		pwm_limit
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

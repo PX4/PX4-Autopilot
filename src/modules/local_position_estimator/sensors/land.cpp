@@ -7,8 +7,8 @@ extern orb_advert_t mavlink_log_pub;
 // required number of samples for sensor
 // to initialize
 //
-static const uint32_t 		REQ_LAND_INIT_COUNT = 1;
-static const uint32_t 		LAND_TIMEOUT =   1000000; // 1.0 s
+static const uint32_t		REQ_LAND_INIT_COUNT = 1;
+static const uint32_t		LAND_TIMEOUT = 1000000;	// 1.0 s
 
 void BlockLocalPositionEstimator::landInit()
 {
@@ -48,8 +48,8 @@ void BlockLocalPositionEstimator::landCorrect()
 	// y = -(z - tz)
 	C(Y_land_vx, X_vx) = 1;
 	C(Y_land_vy, X_vy) = 1;
-	C(Y_land_agl, X_z) = -1; // measured altitude, negative down dir.
-	C(Y_land_agl, X_tz) = 1; // measured altitude, negative down dir.
+	C(Y_land_agl, X_z) = -1;// measured altitude, negative down dir.
+	C(Y_land_agl, X_tz) = 1;// measured altitude, negative down dir.
 
 	// use parameter covariance
 	SquareMatrix<float, n_y_land> R;
@@ -101,4 +101,3 @@ void BlockLocalPositionEstimator::landCheckTimeout()
 		}
 	}
 }
-

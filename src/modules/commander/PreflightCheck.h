@@ -40,10 +40,12 @@
  */
 
 #include <drivers/drv_hrt.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_status_flags.h>
 
 #pragma once
 
-namespace Commander
+namespace Preflight
 {
 /**
 * Runs a preflight check on all sensors to see if they are properly calibrated and healthy
@@ -67,21 +69,23 @@ namespace Commander
 *   true if the Remote Controller should be checked
 * @param checkGNSS
 *   true if the GNSS receiver should be checked
+* @param checkPower
+*   true if the system power should be checked
 **/
-bool preflightCheck(orb_advert_t *mavlink_log_pub, bool checkMag, bool checkAcc,
-    bool checkGyro, bool checkBaro, bool checkAirspeed, bool checkRC, bool checkGNSS,
-    bool checkDynamic, bool isVTOL, bool reportFailures, bool prearm, hrt_abstime time_since_boot);
+bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
+		    vehicle_status_flags_s &status_flags, bool checkGNSS, bool reportFailures, bool prearm,
+		    const hrt_abstime &time_since_boot);
 
-const unsigned max_mandatory_gyro_count = 1;
-const unsigned max_optional_gyro_count = 3;
+static constexpr unsigned max_mandatory_gyro_count = 1;
+static constexpr unsigned max_optional_gyro_count = 3;
 
-const unsigned max_mandatory_accel_count = 1;
-const unsigned max_optional_accel_count = 3;
+static constexpr unsigned max_mandatory_accel_count = 1;
+static constexpr unsigned max_optional_accel_count = 3;
 
-const unsigned max_mandatory_mag_count = 1;
-const unsigned max_optional_mag_count = 3;
+static constexpr unsigned max_mandatory_mag_count = 1;
+static constexpr unsigned max_optional_mag_count = 4;
 
-const unsigned max_mandatory_baro_count = 1;
-const unsigned max_optional_baro_count = 1;
+static constexpr unsigned max_mandatory_baro_count = 1;
+static constexpr unsigned max_optional_baro_count = 1;
 
 }

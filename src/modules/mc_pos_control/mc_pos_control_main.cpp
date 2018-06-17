@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 - 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 - 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,47 +51,37 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_module_params.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <poll.h>
 #include <drivers/drv_hrt.h>
-#include <arch/board/board.h>
+#include <systemlib/hysteresis/hysteresis.h>
 
+#include <uORB/topics/home_position.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/control_state.h>
-#include <uORB/topics/mc_virtual_attitude_setpoint.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_global_velocity_setpoint.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include <float.h>
-#include <systemlib/mavlink_log.h>
+#include <lib/ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
-#include <lib/geo/geo.h>
-#include <platforms/px4_defines.h>
+#include <systemlib/mavlink_log.h>
 
 #include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
 
-#define TILT_COS_MAX	0.7f
-#define SIGMA			0.000001f
-#define MIN_DIST		0.01f
-#define MANUAL_THROTTLE_MAX_MULTICOPTER	0.9f
-#define ONE_G	9.8066f
+#include <lib/FlightTasks/FlightTasks.hpp>
+#include "PositionControl.hpp"
+#include "Utility/ControlMath.hpp"
 
+#define SIGMA_SINGLE_OP			0.000001f
+#define SIGMA_NORM			0.001f
 /**
  * Multicopter position control app start / stop handling function
  *
@@ -99,7 +89,7 @@
  */
 extern "C" __EXPORT int mc_pos_control_main(int argc, char *argv[]);
 
-class MulticopterPositionControl : public control::SuperBlock
+class MulticopterPositionControl : public control::SuperBlock, public ModuleParams
 {
 public:
 	/**
@@ -119,173 +109,202 @@ public:
 	 */
 	int		start();
 
-	bool		cross_sphere_line(const math::Vector<3> &sphere_c, float sphere_r,
-					  const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3> &res);
+	bool		cross_sphere_line(const matrix::Vector3f &sphere_c, const float sphere_r,
+					  const matrix::Vector3f &line_a, const matrix::Vector3f &line_b, matrix::Vector3f &res);
 
 private:
-	bool		_task_should_exit;		/**< if true, task should exit */
+
+	/** Time in us that direction change condition has to be true for direction change state */
+	static constexpr uint64_t DIRECTION_CHANGE_TRIGGER_TIME_US = 100000;
+
+	bool		_task_should_exit = false;			/**<true if task should exit */
+	bool		_gear_state_initialized = false;		/**<true if the gear state has been initialized */
+	bool 		_reset_pos_sp = true;  				/**<true if position setpoint needs a reset */
+	bool 		_reset_alt_sp = true; 				/**<true if altitude setpoint needs a reset */
+	bool 		_do_reset_alt_pos_flag = true; 		/**< TODO: check if we need this */
+	bool		_mode_auto = false ;  				/**<true if in auot mode */
+	bool 		_pos_hold_engaged = false; 			/**<true if hold positon in xy desired */
+	bool 		_alt_hold_engaged = false; 			/**<true if hold in z desired */
+	bool 		_run_pos_control = true;  			/**< true if position controller should be used */
+	bool 		_run_alt_control = true; 			/**<true if altitude controller should be used */
+	bool 		_reset_int_z = true; 				/**<true if reset integral in z */
+	bool 		_reset_int_xy = true; 				/**<true if reset integral in xy */
+	bool		 _reset_yaw_sp = true; 				/**<true if reset yaw setpoint */
+	bool 		_hold_offboard_xy = false; 			/**<TODO : check if we need this extra hold_offboard flag */
+	bool 		_hold_offboard_z = false;
+	bool 		_in_smooth_takeoff = false; 				/**<true if takeoff ramp is applied */
+	bool 		_in_landing = false;				/**<true if landing descent (only used in auto) */
+	bool 		_lnd_reached_ground = false; 		/**<true if controller assumes the vehicle has reached the ground after landing */
+	bool 		_triplet_lat_lon_finite = true; 		/**<true if triplets current is non-finite */
+	bool		_terrain_follow = false;			/**<true is the position controller is controlling height above ground */
+
 	int		_control_task;			/**< task handle for task */
 	orb_advert_t	_mavlink_log_pub;		/**< mavlink log advert */
 
 	int		_vehicle_status_sub;		/**< vehicle status subscription */
 	int		_vehicle_land_detected_sub;	/**< vehicle land detected subscription */
-	int		_ctrl_state_sub;		/**< control state subscription */
-	int		_att_sp_sub;			/**< vehicle attitude setpoint */
+	int		_vehicle_attitude_sub;		/**< control state subscription */
 	int		_control_mode_sub;		/**< vehicle control mode subscription */
 	int		_params_sub;			/**< notification of parameter updates */
 	int		_manual_sub;			/**< notification of manual control updates */
-	int		_arming_sub;			/**< arming status of outputs */
 	int		_local_pos_sub;			/**< vehicle local position */
 	int		_pos_sp_triplet_sub;		/**< position setpoint triplet */
-	int		_local_pos_sp_sub;		/**< offboard local position setpoint */
-	int		_global_vel_sp_sub;		/**< offboard global velocity setpoint */
+	int		_home_pos_sub; 			/**< home position */
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
-	orb_advert_t	_global_vel_sp_pub;		/**< vehicle global velocity setpoint publication */
 
 	orb_id_t _attitude_setpoint_id;
 
 	struct vehicle_status_s 			_vehicle_status; 	/**< vehicle status */
 	struct vehicle_land_detected_s 			_vehicle_land_detected;	/**< vehicle land detected */
-	struct control_state_s				_ctrl_state;		/**< vehicle attitude */
+	struct vehicle_attitude_s			_att;			/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s		_att_sp;		/**< vehicle attitude setpoint */
 	struct manual_control_setpoint_s		_manual;		/**< r/c channel data */
 	struct vehicle_control_mode_s			_control_mode;		/**< vehicle control mode */
-	struct actuator_armed_s				_arming;		/**< actuator arming status */
 	struct vehicle_local_position_s			_local_pos;		/**< vehicle local position */
 	struct position_setpoint_triplet_s		_pos_sp_triplet;	/**< vehicle global position setpoint triplet */
 	struct vehicle_local_position_setpoint_s	_local_pos_sp;		/**< vehicle local position setpoint */
-	struct vehicle_global_velocity_setpoint_s	_global_vel_sp;		/**< vehicle global velocity setpoint */
+	struct home_position_s				_home_pos; 				/**< home position */
 
-	control::BlockParamFloat _manual_thr_min;
-	control::BlockParamFloat _manual_thr_max;
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::MPC_FLT_TSK>) _test_flight_tasks, /**< temporary flag for the transition to flight tasks */
+		(ParamFloat<px4::params::MPC_MANTHR_MIN>) _manual_thr_min, /**< minimal throttle output when flying in manual mode */
+		(ParamFloat<px4::params::MPC_MANTHR_MAX>) _manual_thr_max, /**< maximal throttle output when flying in manual mode */
+		(ParamFloat<px4::params::MPC_XY_MAN_EXPO>)
+		_xy_vel_man_expo, /**< ratio of exponential curve for stick input in xy direction pos mode */
+		(ParamFloat<px4::params::MPC_Z_MAN_EXPO>)
+		_z_vel_man_expo, /**< ratio of exponential curve for stick input in xy direction pos mode */
+		(ParamFloat<px4::params::MPC_HOLD_DZ>)
+		_hold_dz, /**< deadzone around the center for the sticks when flying in position mode */
+		(ParamFloat<px4::params::MPC_ACC_HOR_MAX>)
+		_acceleration_hor_max, /**<maximum velocity setpoint slewrate for auto & fast manual brake */
+		(ParamFloat<px4::params::MPC_ACC_HOR>)
+		_acceleration_hor, /**<acceleration for auto and maximum for manual in velocity control mode*/
+		(ParamFloat<px4::params::MPC_DEC_HOR_SLOW>)
+		_deceleration_hor_slow, /**< slow velocity setpoint slewrate for manual deceleration*/
+		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _acceleration_z_max_up, /** max acceleration up */
+		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _acceleration_z_max_down, /** max acceleration down */
+		(ParamFloat<px4::params::MPC_CRUISE_90>)
+		_cruise_speed_90, /**<speed when angle is 90 degrees between prev-current/current-next*/
+		(ParamFloat<px4::params::MPC_VEL_MANUAL>)
+		_velocity_hor_manual, /**< target velocity in manual controlled mode at full speed*/
+		(ParamFloat<px4::params::NAV_ACC_RAD>)
+		_nav_rad, /**< radius that is used by navigator that defines when to update triplets */
+		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time contant for smooth takeoff ramp */
+		(ParamFloat<px4::params::MPC_JERK_MAX>)
+		_jerk_hor_max, /**< maximum jerk in manual controlled mode when braking to zero */
+		(ParamFloat<px4::params::MPC_JERK_MIN>)
+		_jerk_hor_min, /**< minimum jerk in manual controlled mode when braking to zero */
+		(ParamFloat<px4::params::MIS_YAW_ERR>)
+		_mis_yaw_error, /**< yaw error threshold that is used in mission as update criteria */
+
+		(ParamFloat<px4::params::MPC_THR_MIN>) _thr_min,
+		(ParamFloat<px4::params::MPC_THR_MAX>) _thr_max,
+		(ParamFloat<px4::params::MPC_THR_HOVER>) _thr_hover,
+		(ParamFloat<px4::params::MPC_Z_P>) _z_p,
+		(ParamFloat<px4::params::MPC_Z_VEL_P>) _z_vel_p,
+		(ParamFloat<px4::params::MPC_Z_VEL_I>) _z_vel_i,
+		(ParamFloat<px4::params::MPC_Z_VEL_D>) _z_vel_d,
+		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _vel_max_up,
+		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _vel_max_down,
+		(ParamFloat<px4::params::MPC_LAND_ALT1>) _slow_land_alt1,
+		(ParamFloat<px4::params::MPC_LAND_ALT2>) _slow_land_alt2,
+		(ParamFloat<px4::params::MPC_XY_P>) _xy_p,
+		(ParamFloat<px4::params::MPC_XY_VEL_P>) _xy_vel_p,
+		(ParamFloat<px4::params::MPC_XY_VEL_I>) _xy_vel_i,
+		(ParamFloat<px4::params::MPC_XY_VEL_D>) _xy_vel_d,
+		(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _vel_max_xy_param,
+		(ParamFloat<px4::params::MPC_XY_CRUISE>) _vel_cruise_xy,
+		(ParamFloat<px4::params::MPC_TILTMAX_AIR>) _tilt_max_air_deg,
+		(ParamFloat<px4::params::MPC_LAND_SPEED>) _land_speed,
+		(ParamFloat<px4::params::MPC_TKO_SPEED>) _tko_speed,
+		(ParamFloat<px4::params::MPC_TILTMAX_LND>) _tilt_max_land_deg,
+		(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _man_tilt_max_deg,
+		(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _man_yaw_max_deg,
+		(ParamFloat<px4::params::MC_YAWRATE_MAX>) _global_yaw_max_deg,
+		(ParamFloat<px4::params::MC_YAW_P>) _mc_att_yaw_p,
+		(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) _hold_max_xy,
+		(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) _hold_max_z,
+		(ParamInt<px4::params::MPC_ALT_MODE>) _alt_mode,
+		(ParamFloat<px4::params::RC_FLT_CUTOFF>) _rc_flt_cutoff,
+		(ParamFloat<px4::params::RC_FLT_SMP_RATE>) _rc_flt_smp_rate,
+		(ParamFloat<px4::params::MPC_ACC_HOR_ESTM>) _acc_max_estimator_xy
+
+	);
+
 
 	control::BlockDerivative _vel_x_deriv;
 	control::BlockDerivative _vel_y_deriv;
 	control::BlockDerivative _vel_z_deriv;
 
-	struct {
-		param_t thr_min;
-		param_t thr_max;
-		param_t thr_hover;
-		param_t alt_ctl_dz;
-		param_t alt_ctl_dy;
-		param_t z_p;
-		param_t z_vel_p;
-		param_t z_vel_i;
-		param_t z_vel_d;
-		param_t z_vel_max_up;
-		param_t z_vel_max_down;
-		param_t z_ff;
-		param_t xy_p;
-		param_t xy_vel_p;
-		param_t xy_vel_i;
-		param_t xy_vel_d;
-		param_t xy_vel_max;
-		param_t xy_vel_cruise;
-		param_t xy_ff;
-		param_t tilt_max_air;
-		param_t land_speed;
-		param_t tko_speed;
-		param_t tilt_max_land;
-		param_t man_roll_max;
-		param_t man_pitch_max;
-		param_t man_yaw_max;
-		param_t global_yaw_max;
-		param_t mc_att_yaw_p;
-		param_t hold_xy_dz;
-		param_t hold_max_xy;
-		param_t hold_max_z;
-		param_t acc_hor_max;
-		param_t alt_mode;
-		param_t opt_recover;
 
-	}		_params_handles;		/**< handles for interesting parameters */
+	FlightTasks _flight_tasks; /**< class handling all ways to generate position controller setpoints */
+	PositionControl _control{}; /**< class handling the core PID position controller */
 
-	struct {
-		float thr_min;
-		float thr_max;
-		float thr_hover;
-		float alt_ctl_dz;
-		float alt_ctl_dy;
-		float tilt_max_air;
-		float land_speed;
-		float tko_speed;
-		float tilt_max_land;
-		float man_roll_max;
-		float man_pitch_max;
-		float man_yaw_max;
-		float global_yaw_max;
-		float mc_att_yaw_p;
-		float hold_xy_dz;
-		float hold_max_xy;
-		float hold_max_z;
-		float acc_hor_max;
-		float vel_max_up;
-		float vel_max_down;
-		uint32_t alt_mode;
+	systemlib::Hysteresis _manual_direction_change_hysteresis;
 
-		int opt_recover;
+	math::LowPassFilter2p _filter_manual_pitch;
+	math::LowPassFilter2p _filter_manual_roll;
 
-		math::Vector<3> pos_p;
-		math::Vector<3> vel_p;
-		math::Vector<3> vel_i;
-		math::Vector<3> vel_d;
-		math::Vector<3> vel_ff;
-		math::Vector<3> vel_max;
-		math::Vector<3> vel_cruise;
-		math::Vector<3> sp_offs_max;
-	}		_params;
+	enum manual_stick_input {
+		brake,
+		direction_change,
+		acceleration,
+		deceleration
+	};
+
+	manual_stick_input _user_intention_xy; /**< defines what the user intends to do derived from the stick input */
+	manual_stick_input
+	_user_intention_z; /**< defines what the user intends to do derived from the stick input in z direciton */
+
+	matrix::Vector3f _pos_p;
+	matrix::Vector3f _vel_p;
+	matrix::Vector3f _vel_i;
+	matrix::Vector3f _vel_d;
+	float _tilt_max_air; /**< maximum tilt angle [rad] */
+	float _tilt_max_land; /**< maximum tilt angle during landing [rad] */
+	float _man_tilt_max;
+	float _man_yaw_max;
+	float _global_yaw_max;
 
 	struct map_projection_reference_s _ref_pos;
 	float _ref_alt;
+	bool _ref_alt_is_global; /** true when the reference altitude is defined in a global reference frame */
 	hrt_abstime _ref_timestamp;
+	hrt_abstime _last_warn;
 
-	bool _reset_pos_sp;
-	bool _reset_alt_sp;
-	bool _do_reset_alt_pos_flag;
-	bool _mode_auto;
-	bool _pos_hold_engaged;
-	bool _alt_hold_engaged;
-	bool _run_pos_control;
-	bool _run_alt_control;
+	matrix::Vector3f _thrust_int;
+	matrix::Vector3f _pos;
+	matrix::Vector3f _pos_sp;
+	matrix::Vector3f _vel;
+	matrix::Vector3f _vel_sp;
+	matrix::Vector3f _vel_prev;			/**< velocity on previous step */
+	matrix::Vector3f _vel_sp_prev;
+	matrix::Vector3f _vel_err_d;		/**< derivative of current velocity */
+	matrix::Vector3f _curr_pos_sp;  /**< current setpoint of the triplets */
+	matrix::Vector3f _prev_pos_sp; /**< previous setpoint of the triples */
+	matrix::Vector2f _stick_input_xy_prev; /**< for manual controlled mode to detect direction change */
 
-	bool _reset_int_z = true;
-	bool _reset_int_xy = true;
-	bool _reset_int_z_manual = false;
-	bool _reset_yaw_sp = true;
-
-	bool _hold_offboard_xy = false;
-	bool _hold_offboard_z = false;
-
-	math::Vector<3> _thrust_int;
-
-	math::Vector<3> _pos;
-	math::Vector<3> _pos_sp;
-	math::Vector<3> _vel;
-	math::Vector<3> _vel_sp;
-	math::Vector<3> _vel_prev;			/**< velocity on previous step */
-	math::Vector<3> _vel_ff;
-	math::Vector<3> _vel_sp_prev;
-	math::Vector<3> _vel_err_d;		/**< derivative of current velocity */
-
-	math::Matrix<3, 3> _R;			/**< rotation matrix from attitude quaternions */
+	matrix::Dcmf _R;			/**< rotation matrix from attitude quaternions */
 	float _yaw;				/**< yaw angle (euler) */
-	bool _in_landing;	/**< the vehicle is in the landing descent */
-	bool _lnd_reached_ground; /**< controller assumes the vehicle has reached the ground after landing */
-	bool _takeoff_jumped;
-	float _vel_z_lp;
-	float _acc_z_lp;
-	float _takeoff_thrust_sp;
-	bool control_vel_enabled_prev;	/**< previous loop was in velocity controlled mode (control_state.flag_control_velocity_enabled) */
+	float _yaw_takeoff;	/**< home yaw angle present when vehicle was taking off (euler) */
+	float _man_yaw_offset; /**< current yaw offset in manual mode */
+
+	float _vel_max_xy;  /**< equal to vel_max except in auto mode when close to target */
+	bool _vel_sp_significant; /** true when the velocity setpoint is over 50% of the _vel_max_xy limit */
+	float _acceleration_state_dependent_xy; /**< acceleration limit applied in manual mode */
+	float _acceleration_state_dependent_z; /**< acceleration limit applied in manual mode in z */
+	float _manual_jerk_limit_xy; /**< jerk limit in manual mode dependent on stick input */
+	float _manual_jerk_limit_z; /**< jerk limit in manual mode in z */
+	float _z_derivative; /**< velocity in z that agrees with position rate */
+
+	float _takeoff_vel_limit; /**< velocity limit value which gets ramped up */
 
 	// counters for reset events on position and velocity states
 	// they are used to identify a reset event
 	uint8_t _z_reset_counter;
 	uint8_t _xy_reset_counter;
-	uint8_t _vz_reset_counter;
-	uint8_t _vxy_reset_counter;
 	uint8_t _heading_reset_counter;
 
 	matrix::Dcmf _R_setpoint;
@@ -296,22 +315,17 @@ private:
 	int		parameters_update(bool force);
 
 	/**
-	 * Update control outputs
-	 */
-	void		control_update();
-
-	/**
 	 * Check for changes in subscribed topics.
 	 */
 	void		poll_subscriptions();
 
-	static float	scale_control(float ctl, float end, float dz, float dy);
-	static float    throttle_curve(float ctl, float ctr);
+	float		throttle_curve(float ctl, float ctr);
 
 	/**
 	 * Update reference for local position projection
 	 */
 	void		update_ref();
+
 	/**
 	 * Reset position setpoint to current position.
 	 *
@@ -332,46 +346,75 @@ private:
 	void		reset_alt_sp();
 
 	/**
-	 * Check if position setpoint is too far from current position and adjust it if needed.
-	 */
-	void		limit_pos_sp_offset();
-
-	/**
 	 * Set position setpoint using manual control
 	 */
-	void		control_manual(float dt);
+	void		control_manual();
 
-	void control_non_manual(float dt);
+	void		control_non_manual();
 
 	/**
 	 * Set position setpoint using offboard control
 	 */
-	void		control_offboard(float dt);
+	void		control_offboard();
 
 	/**
 	 * Set position setpoint for AUTO
 	 */
-	void		control_auto(float dt);
+	void		control_auto();
 
-	void control_position(float dt);
+	void control_position();
+	void calculate_velocity_setpoint();
+	void calculate_thrust_setpoint();
 
-	void limit_acceleration(float dt);
-
-	/**
-	 * Select between barometric and global (AMSL) altitudes
-	 */
-	void		select_alt(bool global);
+	void vel_sp_slewrate();
 
 	void update_velocity_derivative();
 
-	void do_control(float dt);
+	void do_control();
 
-	void generate_attitude_setpoint(float dt);
+	void generate_attitude_setpoint();
+
+	float get_cruising_speed_xy();
+
+	bool in_auto_takeoff();
+
+	float get_vel_close(const matrix::Vector2f &unit_prev_to_current, const matrix::Vector2f &unit_current_to_next);
+
+	void set_manual_acceleration_xy(matrix::Vector2f &stick_input_xy_NED);
+
+	void set_manual_acceleration_z(float &max_acc_z, const float stick_input_z_NED);
+
+
+	/**
+	 * limit altitude based on several conditions
+	 */
+	void limit_altitude();
+
+	void warn_rate_limited(const char *str);
+
+	bool manual_wants_takeoff();
+
+	bool manual_wants_landing();
+
+	void set_takeoff_velocity(float &vel_sp_z);
+
+	void landdetection_thrust_limit(matrix::Vector3f &thrust_sp);
+
+	void set_idle_state();
+
+	/**
+	 * Temporary method for flight control compuation
+	 */
+	void updateConstraints(Controller::Constraints &constrains);
+
+	void publish_attitude();
+
+	void publish_local_pos_sp();
 
 	/**
 	 * Shim for calling task_main from task_create.
 	 */
-	static void	task_main_trampoline(int argc, char *argv[]);
+	static int	task_main_trampoline(int argc, char *argv[]);
 
 	/**
 	 * Main sensor collection task.
@@ -381,144 +424,89 @@ private:
 
 namespace pos_control
 {
-
 MulticopterPositionControl	*g_control;
 }
 
+
 MulticopterPositionControl::MulticopterPositionControl() :
-	SuperBlock(NULL, "MPC"),
-	_task_should_exit(false),
+	SuperBlock(nullptr, "MPC"),
+	ModuleParams(nullptr),
 	_control_task(-1),
 	_mavlink_log_pub(nullptr),
 
 	/* subscriptions */
-	_ctrl_state_sub(-1),
-	_att_sp_sub(-1),
+	_vehicle_attitude_sub(-1),
 	_control_mode_sub(-1),
 	_params_sub(-1),
 	_manual_sub(-1),
-	_arming_sub(-1),
 	_local_pos_sub(-1),
 	_pos_sp_triplet_sub(-1),
-	_global_vel_sp_sub(-1),
+	_home_pos_sub(-1),
 
 	/* publications */
 	_att_sp_pub(nullptr),
 	_local_pos_sp_pub(nullptr),
-	_global_vel_sp_pub(nullptr),
-	_attitude_setpoint_id(0),
+	_attitude_setpoint_id(nullptr),
 	_vehicle_status{},
 	_vehicle_land_detected{},
-	_ctrl_state{},
+	_att{},
 	_att_sp{},
 	_manual{},
 	_control_mode{},
-	_arming{},
 	_local_pos{},
 	_pos_sp_triplet{},
 	_local_pos_sp{},
-	_global_vel_sp{},
-	_manual_thr_min(this, "MANTHR_MIN"),
-	_manual_thr_max(this, "MANTHR_MAX"),
+	_home_pos{},
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
+	_manual_direction_change_hysteresis(false),
+	_filter_manual_pitch(50.0f, 10.0f),
+	_filter_manual_roll(50.0f, 10.0f),
+	_user_intention_xy(brake),
+	_user_intention_z(brake),
 	_ref_alt(0.0f),
+	_ref_alt_is_global(false),
 	_ref_timestamp(0),
-
-	_reset_pos_sp(true),
-	_reset_alt_sp(true),
-	_do_reset_alt_pos_flag(true),
-	_mode_auto(false),
-	_pos_hold_engaged(false),
-	_alt_hold_engaged(false),
-	_run_pos_control(true),
-	_run_alt_control(true),
+	_last_warn(0),
 	_yaw(0.0f),
-	_in_landing(false),
-	_lnd_reached_ground(false),
-	_takeoff_jumped(false),
-	_vel_z_lp(0),
-	_acc_z_lp(0),
-	_takeoff_thrust_sp(0.0f),
-	control_vel_enabled_prev(false),
+	_yaw_takeoff(0.0f),
+	_man_yaw_offset(0.0f),
+	_vel_max_xy(0.0f),
+	_vel_sp_significant(false),
+	_acceleration_state_dependent_xy(0.0f),
+	_acceleration_state_dependent_z(0.0f),
+	_manual_jerk_limit_xy(1.0f),
+	_manual_jerk_limit_z(1.0f),
+	_z_derivative(0.0f),
+	_takeoff_vel_limit(0.0f),
 	_z_reset_counter(0),
 	_xy_reset_counter(0),
-	_vz_reset_counter(0),
-	_vxy_reset_counter(0),
 	_heading_reset_counter(0)
 {
-	// Make the quaternion valid for control state
-	_ctrl_state.q[0] = 1.0f;
+	/* Make the attitude quaternion valid */
+	_att.q[0] = 1.0f;
 
-	memset(&_ref_pos, 0, sizeof(_ref_pos));
+	_ref_pos = {};
 
-	_params.pos_p.zero();
-	_params.vel_p.zero();
-	_params.vel_i.zero();
-	_params.vel_d.zero();
-	_params.vel_max.zero();
-	_params.vel_cruise.zero();
-	_params.vel_ff.zero();
-	_params.sp_offs_max.zero();
+	/* set trigger time for manual direction change detection */
+	_manual_direction_change_hysteresis.set_hysteresis_time_from(false, DIRECTION_CHANGE_TRIGGER_TIME_US);
 
 	_pos.zero();
 	_pos_sp.zero();
 	_vel.zero();
 	_vel_sp.zero();
 	_vel_prev.zero();
-	_vel_ff.zero();
 	_vel_sp_prev.zero();
 	_vel_err_d.zero();
+	_curr_pos_sp.zero();
+	_prev_pos_sp.zero();
+	_stick_input_xy_prev.zero();
 
 	_R.identity();
-
 	_R_setpoint.identity();
 
 	_thrust_int.zero();
-
-	_params_handles.thr_min		= param_find("MPC_THR_MIN");
-	_params_handles.thr_max		= param_find("MPC_THR_MAX");
-	_params_handles.thr_hover	= param_find("MPC_THR_HOVER");
-	_params_handles.alt_ctl_dz	= param_find("MPC_ALTCTL_DZ");
-	_params_handles.alt_ctl_dy	= param_find("MPC_ALTCTL_DY");
-	_params_handles.z_p		= param_find("MPC_Z_P");
-	_params_handles.z_vel_p		= param_find("MPC_Z_VEL_P");
-	_params_handles.z_vel_i		= param_find("MPC_Z_VEL_I");
-	_params_handles.z_vel_d		= param_find("MPC_Z_VEL_D");
-	_params_handles.z_vel_max_up	= param_find("MPC_Z_VEL_MAX_UP");
-	_params_handles.z_vel_max_down	= param_find("MPC_Z_VEL_MAX");
-
-	// transitional support: Copy param values from max to down
-	// param so that max param can be renamed in 1-2 releases
-	// (currently at 1.3.0)
-	float p;
-	param_get(param_find("MPC_Z_VEL_MAX"), &p);
-	param_set(param_find("MPC_Z_VEL_MAX_DN"), &p);
-
-	_params_handles.z_ff		= param_find("MPC_Z_FF");
-	_params_handles.xy_p		= param_find("MPC_XY_P");
-	_params_handles.xy_vel_p	= param_find("MPC_XY_VEL_P");
-	_params_handles.xy_vel_i	= param_find("MPC_XY_VEL_I");
-	_params_handles.xy_vel_d	= param_find("MPC_XY_VEL_D");
-	_params_handles.xy_vel_max	= param_find("MPC_XY_VEL_MAX");
-	_params_handles.xy_vel_cruise	= param_find("MPC_XY_CRUISE");
-	_params_handles.xy_ff		= param_find("MPC_XY_FF");
-	_params_handles.tilt_max_air	= param_find("MPC_TILTMAX_AIR");
-	_params_handles.land_speed	= param_find("MPC_LAND_SPEED");
-	_params_handles.tko_speed	= param_find("MPC_TKO_SPEED");
-	_params_handles.tilt_max_land	= param_find("MPC_TILTMAX_LND");
-	_params_handles.man_roll_max = param_find("MPC_MAN_R_MAX");
-	_params_handles.man_pitch_max = param_find("MPC_MAN_P_MAX");
-	_params_handles.man_yaw_max = param_find("MPC_MAN_Y_MAX");
-	_params_handles.global_yaw_max = param_find("MC_YAWRATE_MAX");
-	_params_handles.mc_att_yaw_p = param_find("MC_YAW_P");
-	_params_handles.hold_xy_dz = param_find("MPC_HOLD_XY_DZ");
-	_params_handles.hold_max_xy = param_find("MPC_HOLD_MAX_XY");
-	_params_handles.hold_max_z = param_find("MPC_HOLD_MAX_Z");
-	_params_handles.acc_hor_max = param_find("MPC_ACC_HOR_MAX");
-	_params_handles.alt_mode = param_find("MPC_ALT_MODE");
-	_params_handles.opt_recover = param_find("VT_OPT_RECOV_EN");
 
 	/* fetch initial parameter values */
 	parameters_update(true);
@@ -548,6 +536,17 @@ MulticopterPositionControl::~MulticopterPositionControl()
 	pos_control::g_control = nullptr;
 }
 
+void
+MulticopterPositionControl::warn_rate_limited(const char *string)
+{
+	hrt_abstime now = hrt_absolute_time();
+
+	if (now - _last_warn > 200000) {
+		PX4_WARN(string);
+		_last_warn = now;
+	}
+}
+
 int
 MulticopterPositionControl::parameters_update(bool force)
 {
@@ -561,105 +560,79 @@ MulticopterPositionControl::parameters_update(bool force)
 	}
 
 	if (updated || force) {
-		/* update C++ param system */
-		updateParams();
+		ModuleParams::updateParams();
+		SuperBlock::updateParams();
 
-		/* update legacy C interface params */
-		param_get(_params_handles.thr_min, &_params.thr_min);
-		param_get(_params_handles.thr_max, &_params.thr_max);
-		param_get(_params_handles.thr_hover, &_params.thr_hover);
-		param_get(_params_handles.alt_ctl_dz, &_params.alt_ctl_dz);
-		param_get(_params_handles.alt_ctl_dy, &_params.alt_ctl_dy);
-		param_get(_params_handles.tilt_max_air, &_params.tilt_max_air);
-		_params.tilt_max_air = math::radians(_params.tilt_max_air);
-		param_get(_params_handles.land_speed, &_params.land_speed);
-		param_get(_params_handles.tko_speed, &_params.tko_speed);
-		param_get(_params_handles.tilt_max_land, &_params.tilt_max_land);
-		_params.tilt_max_land = math::radians(_params.tilt_max_land);
+		_flight_tasks.handleParameterUpdate();
 
-		float v;
-		uint32_t v_i;
-		param_get(_params_handles.xy_p, &v);
-		_params.pos_p(0) = v;
-		_params.pos_p(1) = v;
-		param_get(_params_handles.z_p, &v);
-		_params.pos_p(2) = v;
-		param_get(_params_handles.xy_vel_p, &v);
-		_params.vel_p(0) = v;
-		_params.vel_p(1) = v;
-		param_get(_params_handles.z_vel_p, &v);
-		_params.vel_p(2) = v;
-		param_get(_params_handles.xy_vel_i, &v);
-		_params.vel_i(0) = v;
-		_params.vel_i(1) = v;
-		param_get(_params_handles.z_vel_i, &v);
-		_params.vel_i(2) = v;
-		param_get(_params_handles.xy_vel_d, &v);
-		_params.vel_d(0) = v;
-		_params.vel_d(1) = v;
-		param_get(_params_handles.z_vel_d, &v);
-		_params.vel_d(2) = v;
-		param_get(_params_handles.xy_vel_max, &v);
-		_params.vel_max(0) = v;
-		_params.vel_max(1) = v;
-		param_get(_params_handles.z_vel_max_up, &v);
-		_params.vel_max_up = v;
-		_params.vel_max(2) = v;
-		param_get(_params_handles.z_vel_max_down, &v);
-		_params.vel_max_down = v;
-		param_get(_params_handles.xy_vel_cruise, &v);
-		_params.vel_cruise(0) = v;
-		_params.vel_cruise(1) = v;
-		/* using Z max up for now */
-		param_get(_params_handles.z_vel_max_up, &v);
-		_params.vel_cruise(2) = v;
-		param_get(_params_handles.xy_ff, &v);
-		v = math::constrain(v, 0.0f, 1.0f);
-		_params.vel_ff(0) = v;
-		_params.vel_ff(1) = v;
-		param_get(_params_handles.z_ff, &v);
-		v = math::constrain(v, 0.0f, 1.0f);
-		_params.vel_ff(2) = v;
-		param_get(_params_handles.hold_xy_dz, &v);
-		v = math::constrain(v, 0.0f, 1.0f);
-		_params.hold_xy_dz = v;
-		param_get(_params_handles.hold_max_xy, &v);
-		_params.hold_max_xy = (v < 0.0f ? 0.0f : v);
-		param_get(_params_handles.hold_max_z, &v);
-		_params.hold_max_z = (v < 0.0f ? 0.0f : v);
-		param_get(_params_handles.acc_hor_max, &v);
-		_params.acc_hor_max = v;
-		/*
-		 * increase the maximum horizontal acceleration such that stopping
-		 * within 1 s from full speed is feasible
-		 */
-		_params.acc_hor_max = math::max(_params.vel_cruise(0), _params.acc_hor_max);
-		param_get(_params_handles.alt_mode, &v_i);
-		_params.alt_mode = v_i;
+		/* initialize vectors from params and enforce constraints */
 
-		int i;
-		param_get(_params_handles.opt_recover, &i);
-		_params.opt_recover = i;
+		_pos_p(0) = _xy_p.get();
+		_pos_p(1) = _xy_p.get();
+		_pos_p(2) = _z_p.get();
 
-		_params.sp_offs_max = _params.vel_cruise.edivide(_params.pos_p) * 2.0f;
+		_vel_p(0) = _xy_vel_p.get();
+		_vel_p(1) = _xy_vel_p.get();
+		_vel_p(2) = _z_vel_p.get();
+
+		_vel_i(0) = _xy_vel_i.get();
+		_vel_i(1) = _xy_vel_i.get();
+		_vel_i(2) = _z_vel_i.get();
+
+		_vel_d(0) = _xy_vel_d.get();
+		_vel_d(1) = _xy_vel_d.get();
+		_vel_d(2) = _z_vel_d.get();
+
+		_thr_hover.set(math::constrain(_thr_hover.get(), _thr_min.get(), _thr_max.get()));
+
+		_tilt_max_air = math::radians(_tilt_max_air_deg.get());
+		_tilt_max_land = math::radians(_tilt_max_land_deg.get());
+
+		_hold_max_xy.set(math::max(0.f, _hold_max_xy.get()));
+		_hold_max_z.set(math::max(0.f, _hold_max_z.get()));
+		_rc_flt_smp_rate.set(math::max(1.0f, _rc_flt_smp_rate.get()));
+		/* make sure the filter is in its stable region -> fc < fs/2 */
+		_rc_flt_cutoff.set(math::min(_rc_flt_cutoff.get(), (_rc_flt_smp_rate.get() / 2.0f) - 1.f));
+
+		/* update filters */
+		_filter_manual_pitch.set_cutoff_frequency(_rc_flt_smp_rate.get(), _rc_flt_cutoff.get());
+		_filter_manual_roll.set_cutoff_frequency(_rc_flt_smp_rate.get(), _rc_flt_cutoff.get());
+
+		/* make sure that vel_cruise_xy is always smaller than vel_max */
+		_vel_cruise_xy.set(math::min(_vel_cruise_xy.get(), _vel_max_xy_param.get()));
 
 		/* mc attitude control parameters*/
-		/* manual control scale */
-		param_get(_params_handles.man_roll_max, &_params.man_roll_max);
-		param_get(_params_handles.man_pitch_max, &_params.man_pitch_max);
-		param_get(_params_handles.man_yaw_max, &_params.man_yaw_max);
-		param_get(_params_handles.global_yaw_max, &_params.global_yaw_max);
-		_params.man_roll_max = math::radians(_params.man_roll_max);
-		_params.man_pitch_max = math::radians(_params.man_pitch_max);
-		_params.man_yaw_max = math::radians(_params.man_yaw_max);
-		_params.global_yaw_max = math::radians(_params.global_yaw_max);
+		_slow_land_alt1.set(math::max(_slow_land_alt1.get(), _slow_land_alt2.get()));
 
-		param_get(_params_handles.mc_att_yaw_p, &v);
-		_params.mc_att_yaw_p = v;
+		/* manual control scale */
+		_man_tilt_max = math::radians(_man_tilt_max_deg.get());
+		_man_yaw_max = math::radians(_man_yaw_max_deg.get());
+		_global_yaw_max = math::radians(_global_yaw_max_deg.get());
 
 		/* takeoff and land velocities should not exceed maximum */
-		_params.tko_speed = fminf(_params.tko_speed, _params.vel_max_up);
-		_params.land_speed = fminf(_params.land_speed, _params.vel_max_down);
+		_tko_speed.set(math::min(_tko_speed.get(), _vel_max_up.get()));
+		_land_speed.set(math::min(_land_speed.get(), _vel_max_down.get()));
+
+		/* default limit for acceleration and manual jerk*/
+		_acceleration_state_dependent_xy = _acceleration_hor_max.get();
+		_manual_jerk_limit_xy = _jerk_hor_max.get();
+
+		/* acceleration up must be larger than acceleration down */
+		if (_acceleration_z_max_up.get() < _acceleration_z_max_down.get()) {
+			_acceleration_z_max_up.set(_acceleration_z_max_down.get());
+		}
+
+		/* acceleration horizontal max > deceleration hor */
+		if (_acceleration_hor_max.get() < _deceleration_hor_slow.get()) {
+			_acceleration_hor_max.set(_deceleration_hor_slow.get());
+		}
+
+		/* for z direction we use fixed jerk for now
+		 * TODO: check if other jerk value is required */
+		_acceleration_state_dependent_z = _acceleration_z_max_up.get();
+		/* we only use jerk for braking if jerk_hor_max > jerk_hor_min; otherwise just set jerk very large */
+		_manual_jerk_limit_z = (_jerk_hor_max.get() > _jerk_hor_min.get()) ? _jerk_hor_max.get() : 1000000.f;
+
 	}
 
 	return OK;
@@ -668,7 +641,6 @@ MulticopterPositionControl::parameters_update(bool force)
 void
 MulticopterPositionControl::poll_subscriptions()
 {
-
 	bool updated;
 
 	orb_check(_vehicle_status_sub, &updated);
@@ -693,36 +665,24 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
 	}
 
-	orb_check(_ctrl_state_sub, &updated);
+	orb_check(_vehicle_attitude_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(control_state), _ctrl_state_sub, &_ctrl_state);
+		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_att);
 
 		/* get current rotation matrix and euler angles from control state quaternions */
-		math::Quaternion q_att(_ctrl_state.q[0], _ctrl_state.q[1], _ctrl_state.q[2], _ctrl_state.q[3]);
-		_R = q_att.to_dcm();
-		math::Vector<3> euler_angles;
-		euler_angles = _R.to_euler();
-		_yaw = euler_angles(2);
+		_R = matrix::Quatf(_att.q);
+		_yaw = matrix::Eulerf(_R).psi();
 
 		if (_control_mode.flag_control_manual_enabled) {
-			if (_heading_reset_counter != _ctrl_state.quat_reset_counter) {
-				_heading_reset_counter = _ctrl_state.quat_reset_counter;
-				math::Quaternion delta_q(_ctrl_state.delta_q_reset[0], _ctrl_state.delta_q_reset[1], _ctrl_state.delta_q_reset[2],
-							 _ctrl_state.delta_q_reset[3]);
+			if (_heading_reset_counter != _att.quat_reset_counter) {
+
+				_heading_reset_counter = _att.quat_reset_counter;
 
 				// we only extract the heading change from the delta quaternion
-				math::Vector<3> delta_euler = delta_q.to_euler();
-				_att_sp.yaw_body += delta_euler(2);
+				_att_sp.yaw_body += matrix::Eulerf(matrix::Quatf(_att.delta_q_reset)).psi();
 			}
 		}
-
-	}
-
-	orb_check(_att_sp_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp);
 	}
 
 	orb_check(_control_mode_sub, &updated);
@@ -737,12 +697,6 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
 	}
 
-	orb_check(_arming_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(actuator_armed), _arming_sub, &_arming);
-	}
-
 	orb_check(_local_pos_sub, &updated);
 
 	if (updated) {
@@ -754,32 +708,18 @@ MulticopterPositionControl::poll_subscriptions()
 		// since we want the vehicle to track the original state.
 		if (_control_mode.flag_control_manual_enabled) {
 			if (_z_reset_counter != _local_pos.z_reset_counter) {
-				_pos_sp(2) += _local_pos.delta_z;
+				_pos_sp(2) = _local_pos.z;
 			}
 
 			if (_xy_reset_counter != _local_pos.xy_reset_counter) {
-				_pos_sp(0) += _local_pos.delta_xy[0];
-				_pos_sp(1) += _local_pos.delta_xy[1];
-			}
-
-			if (_vz_reset_counter != _local_pos.vz_reset_counter) {
-				_vel_sp(2) += _local_pos.delta_vz;
-				_vel_sp_prev(2) +=  _local_pos.delta_vz;
-			}
-
-			if (_vxy_reset_counter != _local_pos.vxy_reset_counter) {
-				_vel_sp(0) += _local_pos.delta_vxy[0];
-				_vel_sp(1) += _local_pos.delta_vxy[1];
-				_vel_sp_prev(0) += _local_pos.delta_vxy[0];
-				_vel_sp_prev(1) += _local_pos.delta_vxy[1];
+				_pos_sp(0) = _local_pos.x;
+				_pos_sp(1) = _local_pos.y;
 			}
 		}
 
 		// update the reset counters in any case
 		_z_reset_counter = _local_pos.z_reset_counter;
 		_xy_reset_counter = _local_pos.xy_reset_counter;
-		_vz_reset_counter = _local_pos.vz_reset_counter;
-		_vxy_reset_counter = _local_pos.vxy_reset_counter;
 	}
 
 	orb_check(_pos_sp_triplet_sub, &updated);
@@ -787,26 +727,25 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
 
-		//Make sure that the position setpoint is valid
-		if (!PX4_ISFINITE(_pos_sp_triplet.current.lat) ||
-		    !PX4_ISFINITE(_pos_sp_triplet.current.lon) ||
-		    !PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
+		/* to be a valid current triplet, altitude has to be finite */
+
+		if (!PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
 			_pos_sp_triplet.current.valid = false;
 		}
+
+		/* to be a valid previous triplet, lat/lon/alt has to be finite */
+
+		if (!PX4_ISFINITE(_pos_sp_triplet.previous.lat) ||
+		    !PX4_ISFINITE(_pos_sp_triplet.previous.lon) ||
+		    !PX4_ISFINITE(_pos_sp_triplet.previous.alt)) {
+			_pos_sp_triplet.previous.valid = false;
+		}
 	}
-}
 
-float
-MulticopterPositionControl::scale_control(float ctl, float end, float dz, float dy)
-{
-	if (ctl > dz) {
-		return dy + (ctl - dz) * (1.0f - dy) / (end - dz);
+	orb_check(_home_pos_sub, &updated);
 
-	} else if (ctl < -dz) {
-		return -dy + (ctl + dz) * (1.0f - dy) / (end - dz);
-
-	} else {
-		return ctl * (dy / dz);
+	if (updated) {
+		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
 	}
 }
 
@@ -823,36 +762,53 @@ MulticopterPositionControl::throttle_curve(float ctl, float ctr)
 	}
 }
 
-void
+int
 MulticopterPositionControl::task_main_trampoline(int argc, char *argv[])
 {
 	pos_control::g_control->task_main();
+	return 0;
 }
 
 void
 MulticopterPositionControl::update_ref()
 {
-	if (_local_pos.ref_timestamp != _ref_timestamp) {
+	// The reference point is only allowed to change when the vehicle is in standby state which is the
+	// normal state when the estimator origin is set. Changing reference point in flight causes large controller
+	// setpoint changes. Changing reference point in other arming states is untested and shoud not be performed.
+	if ((_local_pos.ref_timestamp != _ref_timestamp)
+	    && ((_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
+		|| (!_ref_alt_is_global && _local_pos.z_global))) {
 		double lat_sp, lon_sp;
 		float alt_sp = 0.0f;
 
 		if (_ref_timestamp != 0) {
-			/* calculate current position setpoint in global frame */
+			// calculate current position setpoint in global frame
 			map_projection_reproject(&_ref_pos, _pos_sp(0), _pos_sp(1), &lat_sp, &lon_sp);
+
+			// the altitude setpoint is the reference altitude (Z up) plus the (Z down)
+			// NED setpoint, multiplied out to minus
 			alt_sp = _ref_alt - _pos_sp(2);
 		}
 
-		/* update local projection reference */
+		// update local projection reference including altitude
 		map_projection_init(&_ref_pos, _local_pos.ref_lat, _local_pos.ref_lon);
 		_ref_alt = _local_pos.ref_alt;
 
+		if (_local_pos.z_global) {
+			_ref_alt_is_global = true;
+		}
+
 		if (_ref_timestamp != 0) {
-			/* reproject position setpoint to new reference */
-			map_projection_project(&_ref_pos, lat_sp, lon_sp, &_pos_sp.data[0], &_pos_sp.data[1]);
+			// reproject position setpoint to new reference
+			// this effectively adjusts the position setpoint to keep the vehicle
+			// in its current local position. It would only change its
+			// global position on the next setpoint update.
+			map_projection_project(&_ref_pos, lat_sp, lon_sp, &_pos_sp(0), &_pos_sp(1));
 			_pos_sp(2) = -(alt_sp - _ref_alt);
 		}
 
 		_ref_timestamp = _local_pos.ref_timestamp;
+
 	}
 }
 
@@ -884,30 +840,405 @@ MulticopterPositionControl::reset_alt_sp()
 }
 
 void
-MulticopterPositionControl::limit_pos_sp_offset()
+MulticopterPositionControl::limit_altitude()
 {
-	math::Vector<3> pos_sp_offs;
-	pos_sp_offs.zero();
+	// TODO : This limit calculation should be moved to updateConstraints in FlightTask
 
-	if (_control_mode.flag_control_position_enabled) {
-		pos_sp_offs(0) = (_pos_sp(0) - _pos(0)) / _params.sp_offs_max(0);
-		pos_sp_offs(1) = (_pos_sp(1) - _pos(1)) / _params.sp_offs_max(1);
+	// Calculate vertical position limit
+	float poz_z_min_limit;
+
+	if (_terrain_follow) {
+		poz_z_min_limit = fmaxf(-_local_pos.hagl_max, -_vehicle_land_detected.alt_max);
+
+		//printf("terrain follow alt limit : %f\n", altitude_limit);
+
+	} else {
+		poz_z_min_limit = fmaxf(-_local_pos.hagl_max + _pos(2) + _local_pos.dist_bottom,
+					-_vehicle_land_detected.alt_max + _home_pos.z);
+
+		//printf("altitude follow alt limit : %f\n", altitude_limit);
 	}
 
-	if (_control_mode.flag_control_altitude_enabled) {
-		pos_sp_offs(2) = (_pos_sp(2) - _pos(2)) / _params.sp_offs_max(2);
+	// Don't allow the z position setpoint to exceed the limit
+	if (_pos_sp(2) < poz_z_min_limit) {
+		_pos_sp(2) = poz_z_min_limit;
 	}
 
-	float pos_sp_offs_norm = pos_sp_offs.length();
+	// limit the velocity setpoint to not exceed a value that will allow controlled
+	// deceleration to a stop at the height limit
+	float vel_z_sp_altctl = (poz_z_min_limit - _pos(2)) * _pos_p(2);
+	vel_z_sp_altctl = fminf(vel_z_sp_altctl, _vel_max_down.get());
+	_vel_sp(2) = fmaxf(_vel_sp(2), vel_z_sp_altctl);
 
-	if (pos_sp_offs_norm > 1.0f) {
-		pos_sp_offs /= pos_sp_offs_norm;
-		_pos_sp = _pos + pos_sp_offs.emult(_params.sp_offs_max);
+}
+
+bool
+MulticopterPositionControl::in_auto_takeoff()
+{
+	/*
+	 * in auto mode, check if we do a takeoff
+	 */
+	return (_pos_sp_triplet.current.valid &&
+		_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) ||
+	       _control_mode.flag_control_offboard_enabled;
+}
+
+float
+MulticopterPositionControl::get_vel_close(const matrix::Vector2f &unit_prev_to_current,
+		const matrix::Vector2f &unit_current_to_next)
+{
+
+	/* minimum cruise speed when passing waypoint */
+	float min_cruise_speed = 1.0f;
+
+	/* make sure that cruise speed is larger than minimum*/
+	if ((get_cruising_speed_xy() - min_cruise_speed) < SIGMA_NORM) {
+		return get_cruising_speed_xy();
+	}
+
+	/* middle cruise speed is a number between maximum cruising speed and minimum cruising speed and corresponds to speed at angle of 90degrees
+	 * it needs to be always larger than minimum cruise speed */
+	float middle_cruise_speed = _cruise_speed_90.get();
+
+	if ((middle_cruise_speed - min_cruise_speed) < SIGMA_NORM) {
+		middle_cruise_speed = min_cruise_speed + SIGMA_NORM;
+	}
+
+	if ((get_cruising_speed_xy() - middle_cruise_speed) < SIGMA_NORM) {
+		middle_cruise_speed = (get_cruising_speed_xy() + min_cruise_speed) * 0.5f;
+	}
+
+	/* if middle cruise speed is exactly in the middle, then compute
+	 * vel_close linearly
+	 */
+	bool use_linear_approach = false;
+
+	if (((get_cruising_speed_xy() + min_cruise_speed) * 0.5f) - middle_cruise_speed < SIGMA_NORM) {
+		use_linear_approach = true;
+	}
+
+	/* angle = cos(x) + 1.0
+	 * angle goes from 0 to 2 with 0 = large angle, 2 = small angle:   0 = PI ; 2 = PI*0 */
+	float angle = 2.0f;
+
+	if (unit_current_to_next.length() > SIGMA_NORM) {
+		angle = unit_current_to_next * (unit_prev_to_current * -1.0f) + 1.0f;
+	}
+
+	/* compute velocity target close to waypoint */
+	float vel_close;
+
+	if (use_linear_approach) {
+
+		/* velocity close to target adjusted to angle
+		 * vel_close =  m*x+q
+		 */
+		float slope = -(get_cruising_speed_xy() - min_cruise_speed) / 2.0f;
+		vel_close = slope * angle + get_cruising_speed_xy();
+
+	} else {
+
+		/* velocity close to target adjusted to angle
+		 * vel_close = a *b ^x + c; where at angle = 0 -> vel_close = vel_cruise; angle = 1 -> vel_close = middle_cruise_speed (this means that at 90degrees
+		 * the velocity at target is middle_cruise_speed);
+		 * angle = 2 -> vel_close = min_cruising_speed */
+
+		/* from maximum cruise speed, minimum cruise speed and middle cruise speed compute constants a, b and c */
+		float a = -((middle_cruise_speed -  get_cruising_speed_xy()) * (middle_cruise_speed -  get_cruising_speed_xy())) /
+			  (2.0f * middle_cruise_speed - get_cruising_speed_xy() - min_cruise_speed);
+		float c =  get_cruising_speed_xy() - a;
+		float b = (middle_cruise_speed - c) / a;
+		vel_close = a * powf(b, angle) + c;
+	}
+
+	/* vel_close needs to be in between max and min */
+	return math::constrain(vel_close, min_cruise_speed, get_cruising_speed_xy());
+
+}
+
+float
+MulticopterPositionControl::get_cruising_speed_xy()
+{
+	/*
+	 * in mission the user can choose cruising speed different to default
+	 */
+	return ((PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) && !(_pos_sp_triplet.current.cruising_speed < 0.0f)) ?
+		_pos_sp_triplet.current.cruising_speed : _vel_cruise_xy.get());
+}
+
+void
+MulticopterPositionControl::set_manual_acceleration_z(float &max_acceleration, const float stick_z)
+{
+
+
+	/* in manual altitude control apply acceleration limit based on stick input
+	 * we consider two states
+	 * 1.) brake
+	 * 2.) accelerate */
+
+	/* check if zero input stick */
+	const bool is_current_zero = (fabsf(stick_z) <= FLT_EPSILON);
+
+	/* default is acceleration */
+	manual_stick_input intention = acceleration;
+
+	/* check zero input stick */
+	if (is_current_zero) {
+		intention = brake;
+	}
+
+	/* get max and min acceleration where min acceleration is just 1/5 of max acceleration */
+	max_acceleration = (stick_z <= 0.0f) ? _acceleration_z_max_up.get() : _acceleration_z_max_down.get();
+
+	/*
+	 * update user input
+	 */
+	if ((_user_intention_z != brake) && (intention  == brake)) {
+
+		/* we start with lowest acceleration */
+		_acceleration_state_dependent_z = _acceleration_z_max_down.get();
+
+		/* reset slew rate */
+		_vel_sp_prev(2) = _vel(2);
+		_user_intention_z = brake;
+	}
+
+	_user_intention_z = intention;
+
+	/*
+	 * apply acceleration depending on state
+	 */
+	if (_user_intention_z == brake) {
+
+		/* limit jerk when braking to zero */
+		float jerk = (_acceleration_z_max_up.get() - _acceleration_state_dependent_z) / _dt;
+
+		if (jerk > _manual_jerk_limit_z) {
+			_acceleration_state_dependent_z = _manual_jerk_limit_z * _dt + _acceleration_state_dependent_z;
+
+		} else {
+			_acceleration_state_dependent_z = _acceleration_z_max_up.get();
+		}
+	}
+
+	if (_user_intention_z == acceleration) {
+		_acceleration_state_dependent_z = (max_acceleration - _acceleration_z_max_down.get()) * fabsf(
+				stick_z) + _acceleration_z_max_down.get();
 	}
 }
 
 void
-MulticopterPositionControl::control_manual(float dt)
+MulticopterPositionControl::set_manual_acceleration_xy(matrix::Vector2f &stick_xy)
+{
+
+	/*
+	 * In manual mode we consider four states with different acceleration handling:
+	 * 1. user wants to stop
+	 * 2. user wants to quickly change direction
+	 * 3. user wants to accelerate
+	 * 4. user wants to decelerate
+	 */
+
+	/* get normalized stick input vector */
+	matrix::Vector2f stick_xy_norm = (stick_xy.length() > 0.0f) ? stick_xy.normalized() : stick_xy;
+	matrix::Vector2f stick_xy_prev_norm = (_stick_input_xy_prev.length() > 0.0f) ? _stick_input_xy_prev.normalized() :
+					      _stick_input_xy_prev;
+
+	/* check if stick direction and current velocity are within 60angle */
+	const bool is_aligned = (stick_xy_norm * stick_xy_prev_norm) > 0.5f;
+
+	/* check if zero input stick */
+	const bool is_prev_zero = (fabsf(_stick_input_xy_prev.length()) <= FLT_EPSILON);
+	const bool is_current_zero = (fabsf(stick_xy.length()) <= FLT_EPSILON);
+
+	/* check acceleration */
+	const bool do_acceleration = is_prev_zero || (is_aligned &&
+				     ((stick_xy.length() > _stick_input_xy_prev.length()) || (fabsf(stick_xy.length() - 1.0f) < FLT_EPSILON)));
+
+	const bool do_deceleration = (is_aligned && (stick_xy.length() <= _stick_input_xy_prev.length()));
+
+	const bool do_direction_change = !is_aligned;
+
+	manual_stick_input intention;
+
+	if (is_current_zero) {
+		/* we want to stop */
+		intention = brake;
+
+	} else if (do_acceleration) {
+		/* we do manual acceleration */
+		intention = acceleration;
+
+	} else if (do_deceleration) {
+		/* we do manual deceleration */
+		intention = deceleration;
+
+	} else if (do_direction_change) {
+		/* we have a direction change */
+		intention = direction_change;
+
+	} else {
+		/* catchall: acceleration */
+		intention = acceleration;
+	}
+
+
+	/*
+	 * update user intention
+	 */
+
+	/* we always want to break starting with slow deceleration */
+	if ((_user_intention_xy != brake) && (intention  == brake)) {
+
+		if (_jerk_hor_max.get() > _jerk_hor_min.get()) {
+			_manual_jerk_limit_xy = (_jerk_hor_max.get() - _jerk_hor_min.get()) / _velocity_hor_manual.get() *
+						sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1)) + _jerk_hor_min.get();
+
+			/* we start braking with lowest accleration */
+			_acceleration_state_dependent_xy = _deceleration_hor_slow.get();
+
+		} else {
+
+			/* set the jerk limit large since we don't know it better*/
+			_manual_jerk_limit_xy = 1000000.f;
+
+			/* at brake we use max acceleration */
+			_acceleration_state_dependent_xy = _acceleration_hor_max.get();
+
+		}
+
+		/* reset slew rate */
+		_vel_sp_prev(0) = _vel(0);
+		_vel_sp_prev(1) = _vel(1);
+
+	}
+
+	switch (_user_intention_xy) {
+	case brake: {
+			if (intention != brake) {
+				_user_intention_xy = acceleration;
+				/* we initialize with lowest acceleration */
+				_acceleration_state_dependent_xy = _deceleration_hor_slow.get();
+			}
+
+			break;
+		}
+
+	case direction_change: {
+			/* only exit direction change if brake or aligned */
+			matrix::Vector2f vel_xy(_vel(0), _vel(1));
+			matrix::Vector2f vel_xy_norm = (vel_xy.length() > 0.0f) ? vel_xy.normalized() : vel_xy;
+			bool stick_vel_aligned = (vel_xy_norm * stick_xy_norm > 0.0f);
+
+			/* update manual direction change hysteresis */
+			_manual_direction_change_hysteresis.set_state_and_update(!stick_vel_aligned);
+
+
+			/* exit direction change if one of the condition is met */
+			if (intention == brake) {
+				_user_intention_xy = intention;
+
+			} else if (stick_vel_aligned) {
+				_user_intention_xy = acceleration;
+
+			} else if (_manual_direction_change_hysteresis.get_state()) {
+
+				/* TODO: find conditions which are always continuous
+				 * only if stick input is large*/
+				if (stick_xy.length() > 0.6f) {
+					_acceleration_state_dependent_xy = _acceleration_hor_max.get();
+				}
+			}
+
+			break;
+		}
+
+	case acceleration: {
+			_user_intention_xy = intention;
+
+			if (_user_intention_xy == direction_change) {
+				_vel_sp_prev(0) = _vel(0);
+				_vel_sp_prev(1) = _vel(1);
+			}
+
+			break;
+		}
+
+	case deceleration: {
+			_user_intention_xy = intention;
+
+			if (_user_intention_xy == direction_change) {
+				_vel_sp_prev(0) = _vel(0);
+				_vel_sp_prev(1) = _vel(1);
+			}
+
+			break;
+		}
+	}
+
+	/*
+	 * apply acceleration based on state
+	*/
+	switch (_user_intention_xy) {
+	case brake: {
+
+			/* limit jerk when braking to zero */
+			float jerk = (_acceleration_hor_max.get() - _acceleration_state_dependent_xy) / _dt;
+
+			if (jerk > _manual_jerk_limit_xy) {
+				_acceleration_state_dependent_xy = _manual_jerk_limit_xy * _dt + _acceleration_state_dependent_xy;
+
+			} else {
+				_acceleration_state_dependent_xy = _acceleration_hor_max.get();
+			}
+
+			break;
+		}
+
+	case direction_change: {
+
+			/* limit acceleration linearly on stick input*/
+			_acceleration_state_dependent_xy = (_acceleration_hor.get() - _deceleration_hor_slow.get()) * stick_xy.length() +
+							   _deceleration_hor_slow.get();
+			break;
+		}
+
+	case acceleration: {
+			/* limit acceleration linearly on stick input*/
+			float acc_limit  = (_acceleration_hor.get() - _deceleration_hor_slow.get()) * stick_xy.length()
+					   + _deceleration_hor_slow.get();
+
+			if (_acceleration_state_dependent_xy > acc_limit) {
+				acc_limit = _acceleration_state_dependent_xy;
+			}
+
+			_acceleration_state_dependent_xy = acc_limit;
+			break;
+		}
+
+	case deceleration: {
+			_acceleration_state_dependent_xy = _deceleration_hor_slow.get();
+			break;
+		}
+
+	default :
+		warn_rate_limited("User intention not recognized");
+		_acceleration_state_dependent_xy = _acceleration_hor_max.get();
+
+	}
+
+	/* update previous stick input */
+	_stick_input_xy_prev = matrix::Vector2f(_filter_manual_pitch.apply(stick_xy(0)),
+						_filter_manual_roll.apply(stick_xy(1)));
+
+
+	if (_stick_input_xy_prev.length() > 1.0f) {
+		_stick_input_xy_prev = _stick_input_xy_prev.normalized();
+	}
+}
+
+void
+MulticopterPositionControl::control_manual()
 {
 	/* Entering manual control from non-manual control mode, reset alt/pos setpoints */
 	if (_mode_auto) {
@@ -920,146 +1251,154 @@ MulticopterPositionControl::control_manual(float dt)
 		}
 	}
 
-	math::Vector<3> req_vel_sp; // X,Y in local frame and Z in global (D), in [-1,1] normalized range
-	req_vel_sp.zero();
+	/*
+	 * Map from stick input to velocity setpoint
+	 */
+
+	/* velocity setpoint commanded by user stick input */
+	matrix::Vector3f man_vel_sp;
 
 	if (_control_mode.flag_control_altitude_enabled) {
-		/* set vertical velocity setpoint with throttle stick */
-		req_vel_sp(2) = -scale_control(_manual.z - 0.5f, 0.5f, _params.alt_ctl_dz, _params.alt_ctl_dy); // D
-	}
+		/* set vertical velocity setpoint with throttle stick, remapping of manual.z [0,1] to up and down command [-1,1] */
+		man_vel_sp(2) = -math::expo_deadzone((_manual.z - 0.5f) * 2.f, _z_vel_man_expo.get(), _hold_dz.get());
 
-	if (_control_mode.flag_control_position_enabled) {
-		/* set horizontal velocity setpoint with roll/pitch stick */
-		req_vel_sp(0) = _manual.x;
-		req_vel_sp(1) = _manual.y;
-	}
-
-	if (_control_mode.flag_control_altitude_enabled) {
 		/* reset alt setpoint to current altitude if needed */
 		reset_alt_sp();
 	}
 
 	if (_control_mode.flag_control_position_enabled) {
+		/* set horizontal velocity setpoint with roll/pitch stick */
+		man_vel_sp(0) = math::expo_deadzone(_manual.x, _xy_vel_man_expo.get(), _hold_dz.get());
+		man_vel_sp(1) = math::expo_deadzone(_manual.y, _xy_vel_man_expo.get(), _hold_dz.get());
+
+		const float man_vel_hor_length = ((matrix::Vector2f)man_vel_sp.slice<2, 1>(0, 0)).length();
+
+		/* saturate such that magnitude is never larger than 1 */
+		if (man_vel_hor_length > 1.0f) {
+			man_vel_sp(0) /= man_vel_hor_length;
+			man_vel_sp(1) /= man_vel_hor_length;
+		}
+
 		/* reset position setpoint to current position if needed */
 		reset_pos_sp();
+
 	}
 
-	/* limit velocity setpoint */
-	float req_vel_sp_norm = req_vel_sp.length();
+	/* prepare yaw to rotate into NED frame */
+	float yaw_input_frame = _control_mode.flag_control_fixed_hdg_enabled ? _yaw_takeoff : _att_sp.yaw_body;
 
-	if (req_vel_sp_norm > 1.0f) {
-		req_vel_sp /= req_vel_sp_norm;
-	}
+	/* setpoint in NED frame */
+	man_vel_sp = matrix::Dcmf(matrix::Eulerf(0.0f, 0.0f, yaw_input_frame)) * man_vel_sp;
 
-	/* _req_vel_sp scaled to 0..1, scale it to max speed and rotate around yaw */
-	math::Matrix<3, 3> R_yaw_sp;
-	R_yaw_sp.from_euler(0.0f, 0.0f, _att_sp.yaw_body);
-	math::Vector<3> req_vel_sp_scaled = R_yaw_sp * req_vel_sp.emult(
-			_params.vel_cruise); // in NED and scaled to actual velocity
+	/* adjust acceleration based on stick input */
+	matrix::Vector2f stick_xy(man_vel_sp(0), man_vel_sp(1));
+	set_manual_acceleration_xy(stick_xy);
+	float stick_z = man_vel_sp(2);
+	float max_acc_z;
+	set_manual_acceleration_z(max_acc_z, stick_z);
+
+	/* prepare cruise speed (m/s) vector to scale the velocity setpoint */
+	float vel_mag = (_velocity_hor_manual.get() < _vel_max_xy) ? _velocity_hor_manual.get() : _vel_max_xy;
+	matrix::Vector3f vel_cruise_scale(vel_mag, vel_mag, (man_vel_sp(2) > 0.0f) ? _vel_max_down.get() : _vel_max_up.get());
+	/* Setpoint scaled to cruise speed */
+	man_vel_sp = man_vel_sp.emult(vel_cruise_scale);
 
 	/*
-	 * assisted velocity mode: user controls velocity, but if	velocity is small enough, position
+	 * assisted velocity mode: user controls velocity, but if velocity is small enough, position
 	 * hold is activated for the corresponding axis
 	 */
 
-	/* horizontal axes */
-	if (_control_mode.flag_control_position_enabled) {
-		/* check for pos. hold */
-		if (fabsf(req_vel_sp(0)) < _params.hold_xy_dz && fabsf(req_vel_sp(1)) < _params.hold_xy_dz) {
-			if (!_pos_hold_engaged) {
+	/* want to get/stay in altitude hold if user has z stick in the middle (accounted for deadzone already) */
+	const bool alt_hold_desired = _control_mode.flag_control_altitude_enabled && (_user_intention_z == brake);
 
-				float vel_xy_mag = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
+	/* want to get/stay in position hold if user has xy stick in the middle (accounted for deadzone already) */
+	const bool pos_hold_desired = _control_mode.flag_control_position_enabled && (_user_intention_xy ==  brake);
 
-				if (_params.hold_max_xy < FLT_EPSILON || vel_xy_mag < _params.hold_max_xy) {
-					/* reset position setpoint to have smooth transition from velocity control to position control */
-					_pos_hold_engaged = true;
-					_pos_sp(0) = _pos(0);
-					_pos_sp(1) = _pos(1);
+	/* check vertical hold engaged flag */
+	if (_alt_hold_engaged) {
+		_alt_hold_engaged = alt_hold_desired;
 
-				} else {
-					_pos_hold_engaged = false;
-				}
-			}
+	} else {
 
-		} else {
-			_pos_hold_engaged = false;
-		}
+		/* check if we switch to alt_hold_engaged */
+		bool smooth_alt_transition = alt_hold_desired && ((max_acc_z - _acceleration_state_dependent_z) < FLT_EPSILON) &&
+					     (_hold_max_z.get() < FLT_EPSILON || fabsf(_vel(2)) < _hold_max_z.get());
 
-		/* set requested velocity setpoint */
-		if (!_pos_hold_engaged) {
-			_pos_sp(0) = _pos(0);
-			_pos_sp(1) = _pos(1);
-			_run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
-			_vel_sp(0) = req_vel_sp_scaled(0);
-			_vel_sp(1) = req_vel_sp_scaled(1);
+		/* during transition predict setpoint forward */
+		if (smooth_alt_transition) {
+
+			/* time to travel from current velocity to zero velocity */
+			float delta_t = fabsf(_vel(2) / max_acc_z);
+
+			/* set desired position setpoint assuming max acceleration */
+			_pos_sp(2) = _pos(2) + _vel(2) * delta_t + 0.5f * max_acc_z * delta_t *delta_t;
+
+			_alt_hold_engaged = true;
 		}
 	}
 
-	/* vertical axis */
-	if (_control_mode.flag_control_altitude_enabled) {
-		/* check for pos. hold */
-		if (fabsf(req_vel_sp(2)) < FLT_EPSILON) {
-			if (!_alt_hold_engaged) {
-				if (_params.hold_max_z < FLT_EPSILON || fabsf(_vel(2)) < _params.hold_max_z) {
-					/* reset position setpoint to have smooth transition from velocity control to position control */
-					_alt_hold_engaged = true;
-					_pos_sp(2) = _pos(2);
+	/* check horizontal hold engaged flag */
+	if (_pos_hold_engaged) {
 
-				} else {
-					_alt_hold_engaged = false;
-				}
-			}
+		/* check if contition still true */
+		_pos_hold_engaged = pos_hold_desired;
 
-		} else {
-			_alt_hold_engaged = false;
-			_pos_sp(2) = _pos(2);
-		}
-
-		/* set requested velocity setpoint */
-		if (!_alt_hold_engaged) {
-			_run_alt_control = false; /* request velocity setpoint to be used, instead of altitude setpoint */
-			_vel_sp(2) = req_vel_sp_scaled(2);
-		}
-	}
-
-	if (_vehicle_land_detected.landed) {
-		/* don't run controller when landed */
-		_reset_pos_sp = true;
-		_reset_alt_sp = true;
-		_mode_auto = false;
-		_reset_int_z = true;
-		_reset_int_xy = true;
-
-		_R_setpoint.identity();
-
-		_att_sp.roll_body = 0.0f;
-		_att_sp.pitch_body = 0.0f;
-		_att_sp.yaw_body = _yaw;
-		_att_sp.thrust = 0.0f;
-
-		_att_sp.timestamp = hrt_absolute_time();
-
-		/* publish attitude setpoint */
-		if (_att_sp_pub != nullptr) {
-			orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
-
-		} else if (_attitude_setpoint_id) {
-			_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+		/* use max acceleration */
+		if (_pos_hold_engaged) {
+			_acceleration_state_dependent_xy = _acceleration_hor_max.get();
 		}
 
 	} else {
-		control_position(dt);
+
+		/* check if we switch to pos_hold_engaged */
+		float vel_xy_mag = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
+		bool smooth_pos_transition = pos_hold_desired
+					     && (fabsf(_acceleration_hor_max.get() - _acceleration_state_dependent_xy) < FLT_EPSILON) &&
+					     (_hold_max_xy.get() < FLT_EPSILON || vel_xy_mag < _hold_max_xy.get());
+
+		/* during transition predict setpoint forward */
+		if (smooth_pos_transition) {
+
+			/* time to travel from current velocity to zero velocity */
+			float delta_t = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1)) / _acceleration_hor_max.get();
+
+			/* p pos_sp in xy from max acceleration and current velocity */
+			matrix::Vector2f pos(_pos(0), _pos(1));
+			matrix::Vector2f vel(_vel(0), _vel(1));
+			matrix::Vector2f pos_sp = pos + vel * delta_t - vel.normalized() * 0.5f * _acceleration_hor_max.get() * delta_t
+						  * delta_t;
+			_pos_sp(0) = pos_sp(0);
+			_pos_sp(1) = pos_sp(1);
+
+			_pos_hold_engaged = true;
+		}
 	}
 
+	/* set requested velocity setpoints */
+	if (!_alt_hold_engaged) {
+		_pos_sp(2) = _pos(2);
+		_run_alt_control = false; /* request velocity setpoint to be used, instead of altitude setpoint */
+		_vel_sp(2) = man_vel_sp(2);
+	}
+
+	if (!_pos_hold_engaged) {
+		_pos_sp(0) = _pos(0);
+		_pos_sp(1) = _pos(1);
+		_run_pos_control = false; /* request velocity setpoint to be used, instead of position setpoint */
+		_vel_sp(0) = man_vel_sp(0);
+		_vel_sp(1) = man_vel_sp(1);
+	}
+
+	control_position();
 }
 
 void
-MulticopterPositionControl::control_non_manual(float dt)
+MulticopterPositionControl::control_non_manual()
 {
 	/* select control source */
 	if (_control_mode.flag_control_offboard_enabled) {
 		/* offboard control */
-		control_offboard(dt);
+		control_offboard();
 		_mode_auto = false;
 
 	} else {
@@ -1067,31 +1406,20 @@ MulticopterPositionControl::control_non_manual(float dt)
 		_hold_offboard_z = false;
 
 		/* AUTO */
-		control_auto(dt);
-	}
-
-	/* weather-vane mode for vtol: disable yaw control */
-	if (_pos_sp_triplet.current.disable_mc_yaw_control == true) {
-		_att_sp.disable_mc_yaw_control = true;
-
-	} else {
-		/* reset in case of setpoint updates */
-		_att_sp.disable_mc_yaw_control = false;
+		control_auto();
 	}
 
 	// guard against any bad velocity values
-
 	bool velocity_valid = PX4_ISFINITE(_pos_sp_triplet.current.vx) &&
 			      PX4_ISFINITE(_pos_sp_triplet.current.vy) &&
 			      _pos_sp_triplet.current.velocity_valid;
 
 	// do not go slower than the follow target velocity when position tracking is active (set to valid)
-
 	if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET &&
 	    velocity_valid &&
 	    _pos_sp_triplet.current.position_valid) {
 
-		math::Vector<3> ft_vel(_pos_sp_triplet.current.vx, _pos_sp_triplet.current.vy, 0);
+		matrix::Vector3f ft_vel(_pos_sp_triplet.current.vx, _pos_sp_triplet.current.vy, 0.0f);
 
 		float cos_ratio = (ft_vel * _vel_sp) / (ft_vel.length() * _vel_sp.length());
 
@@ -1122,46 +1450,8 @@ MulticopterPositionControl::control_non_manual(float dt)
 	/* use constant descend rate when landing, ignore altitude setpoint */
 	if (_pos_sp_triplet.current.valid
 	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-		_vel_sp(2) = _params.land_speed;
+		_vel_sp(2) = _land_speed.get();
 		_run_alt_control = false;
-	}
-
-	/* special thrust setpoint generation for takeoff from ground */
-	if (_pos_sp_triplet.current.valid
-	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
-	    && _control_mode.flag_armed) {
-
-		// check if we are not already in air.
-		// if yes then we don't need a jumped takeoff anymore
-		if (!_takeoff_jumped && !_vehicle_land_detected.landed && fabsf(_takeoff_thrust_sp) < FLT_EPSILON) {
-			_takeoff_jumped = true;
-		}
-
-		if (!_takeoff_jumped) {
-			// ramp thrust setpoint up
-			if (_vel(2) > -(_params.tko_speed / 2.0f)) {
-				_takeoff_thrust_sp += 0.5f * dt;
-				_vel_sp.zero();
-				_vel_prev.zero();
-
-			} else {
-				// copter has reached our takeoff speed. split the thrust setpoint up
-				// into an integral part and into a P part
-				_thrust_int(2) = _takeoff_thrust_sp - _params.vel_p(2) * fabsf(_vel(2));
-				_thrust_int(2) = -math::constrain(_thrust_int(2), _params.thr_min, _params.thr_max);
-				_vel_sp_prev(2) = -_params.tko_speed;
-				_takeoff_jumped = true;
-				_reset_int_z = false;
-			}
-		}
-
-		if (_takeoff_jumped) {
-			_vel_sp(2) = -_params.tko_speed;
-		}
-
-	} else {
-		_takeoff_jumped = false;
-		_takeoff_thrust_sp = 0.0f;
 	}
 
 	if (_pos_sp_triplet.current.valid
@@ -1169,9 +1459,8 @@ MulticopterPositionControl::control_non_manual(float dt)
 		/* idle state, don't run controller and set zero thrust */
 		_R_setpoint.identity();
 
-
 		matrix::Quatf qd = _R_setpoint;
-		memcpy(&_att_sp.q_d[0], qd.data(), sizeof(_att_sp.q_d));
+		qd.copyTo(_att_sp.q_d);
 		_att_sp.q_d_valid = true;
 
 		_att_sp.roll_body = 0.0f;
@@ -1181,21 +1470,13 @@ MulticopterPositionControl::control_non_manual(float dt)
 
 		_att_sp.timestamp = hrt_absolute_time();
 
-		/* publish attitude setpoint */
-		if (_att_sp_pub != nullptr) {
-			orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
-
-		} else if (_attitude_setpoint_id) {
-			_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
-		}
-
 	} else {
-		control_position(dt);
+		control_position();
 	}
 }
 
 void
-MulticopterPositionControl::control_offboard(float dt)
+MulticopterPositionControl::control_offboard()
 {
 	if (_pos_sp_triplet.current.valid) {
 
@@ -1238,14 +1519,13 @@ MulticopterPositionControl::control_offboard(float dt)
 					_vel_sp(1) = sinf(_yaw) * _pos_sp_triplet.current.vx + cosf(_yaw) * _pos_sp_triplet.current.vy;
 
 				} else {
-					PX4_WARN("Unknown velocity offboard coordinate frame");
+					warn_rate_limited("Unknown velocity offboard coordinate frame");
 				}
 
 				_run_pos_control = false;
 
 				_hold_offboard_xy = false;
 			}
-
 		}
 
 		if (_control_mode.flag_control_altitude_enabled && _pos_sp_triplet.current.alt_valid) {
@@ -1283,7 +1563,18 @@ MulticopterPositionControl::control_offboard(float dt)
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
 
 		} else if (_pos_sp_triplet.current.yawspeed_valid) {
-			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt;
+			float yaw_target = wrap_pi(_att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * _dt);
+			float yaw_offs = wrap_pi(yaw_target - _yaw);
+			const float yaw_rate_max = (_man_yaw_max < _global_yaw_max) ? _man_yaw_max : _global_yaw_max;
+			const float yaw_offset_max = yaw_rate_max / _mc_att_yaw_p.get();
+
+			// If the yaw offset became too big for the system to track stop
+			// shifting it, only allow if it would make the offset smaller again.
+			if (fabsf(yaw_offs) < yaw_offset_max ||
+			    (_pos_sp_triplet.current.yawspeed > 0 && yaw_offs < 0) ||
+			    (_pos_sp_triplet.current.yawspeed < 0 && yaw_offs > 0)) {
+				_att_sp.yaw_body = yaw_target;
+			}
 		}
 
 	} else {
@@ -1295,42 +1586,49 @@ MulticopterPositionControl::control_offboard(float dt)
 }
 
 void
-MulticopterPositionControl::limit_acceleration(float dt)
+MulticopterPositionControl::vel_sp_slewrate()
 {
-	// limit total horizontal acceleration
-	math::Vector<2> acc_hor;
-	acc_hor(0) = (_vel_sp(0) - _vel_sp_prev(0)) / dt;
-	acc_hor(1) = (_vel_sp(1) - _vel_sp_prev(1)) / dt;
+	matrix::Vector2f vel_sp_xy(_vel_sp(0), _vel_sp(1));
+	matrix::Vector2f vel_sp_prev_xy(_vel_sp_prev(0), _vel_sp_prev(1));
+	matrix::Vector2f acc_xy = (vel_sp_xy - vel_sp_prev_xy) / _dt;
 
-	if (acc_hor.length() > _params.acc_hor_max) {
-		acc_hor.normalize();
-		acc_hor *= _params.acc_hor_max;
-		math::Vector<2> vel_sp_hor_prev(_vel_sp_prev(0), _vel_sp_prev(1));
-		math::Vector<2> vel_sp_hor = acc_hor * dt + vel_sp_hor_prev;
-		_vel_sp(0) = vel_sp_hor(0);
-		_vel_sp(1) = vel_sp_hor(1);
+	/* limit total horizontal acceleration */
+	if (acc_xy.length() > _acceleration_state_dependent_xy) {
+		vel_sp_xy = _acceleration_state_dependent_xy * acc_xy.normalized() * _dt + vel_sp_prev_xy;
+		_vel_sp(0) = vel_sp_xy(0);
+		_vel_sp(1) = vel_sp_xy(1);
 	}
 
-	// limit vertical acceleration
-	float acc_v = (_vel_sp(2) - _vel_sp_prev(2)) / dt;
+	/* limit vertical acceleration */
+	float acc_z = (_vel_sp(2) - _vel_sp_prev(2)) / _dt;
+	float max_acc_z;
 
-	// TODO: vertical acceleration is not just 2 * horizontal acceleration
-	if (fabsf(acc_v) > 2 * _params.acc_hor_max) {
-		acc_v /= fabsf(acc_v);
-		_vel_sp(2) = acc_v * 2 * _params.acc_hor_max * dt + _vel_sp_prev(2);
+	if (_control_mode.flag_control_manual_enabled) {
+		max_acc_z = (acc_z < 0.0f) ? -_acceleration_state_dependent_z : _acceleration_state_dependent_z;
+
+	} else {
+		max_acc_z = (acc_z < 0.0f) ? -_acceleration_z_max_up.get() : _acceleration_z_max_down.get();
 	}
 
+	if (fabsf(acc_z) > fabsf(max_acc_z)) {
+		_vel_sp(2) = max_acc_z * _dt + _vel_sp_prev(2);
+	}
 }
 
 bool
-MulticopterPositionControl::cross_sphere_line(const math::Vector<3> &sphere_c, float sphere_r,
-		const math::Vector<3> line_a, const math::Vector<3> line_b, math::Vector<3> &res)
+MulticopterPositionControl::cross_sphere_line(const matrix::Vector3f &sphere_c, const float sphere_r,
+		const matrix::Vector3f &line_a, const matrix::Vector3f &line_b, matrix::Vector3f &res)
 {
 	/* project center of sphere on line */
 	/* normalized AB */
-	math::Vector<3> ab_norm = line_b - line_a;
+	matrix::Vector3f ab_norm = line_b - line_a;
+
+	if (ab_norm.length() < 0.01f) {
+		return true;
+	}
+
 	ab_norm.normalize();
-	math::Vector<3> d = line_a + ab_norm * ((sphere_c - line_a) * ab_norm);
+	matrix::Vector3f d = line_a + ab_norm * ((sphere_c - line_a) * ab_norm);
 	float cd_len = (sphere_c - d).length();
 
 	if (sphere_r > cd_len) {
@@ -1349,6 +1647,7 @@ MulticopterPositionControl::cross_sphere_line(const math::Vector<3> &sphere_c, f
 		return true;
 
 	} else {
+
 		/* have no roots, return D */
 		res = d; /* go directly to line */
 
@@ -1366,12 +1665,14 @@ MulticopterPositionControl::cross_sphere_line(const math::Vector<3> &sphere_c, f
 	}
 }
 
-void MulticopterPositionControl::control_auto(float dt)
+void MulticopterPositionControl::control_auto()
 {
 	/* reset position setpoint on AUTO mode activation or if we are not in MC mode */
 	if (!_mode_auto || !_vehicle_status.is_rotary_wing) {
 		if (!_mode_auto) {
 			_mode_auto = true;
+			//set _triplet_lat_lon_finite true once switch to AUTO(e.g. LAND)
+			_triplet_lat_lon_finite = true;
 		}
 
 		_reset_pos_sp = true;
@@ -1384,148 +1685,511 @@ void MulticopterPositionControl::control_auto(float dt)
 
 	bool current_setpoint_valid = false;
 	bool previous_setpoint_valid = false;
+	bool next_setpoint_valid = false;
+	bool triplet_updated = false;
 
-	math::Vector<3> prev_sp;
-	math::Vector<3> curr_sp;
+	matrix::Vector3f prev_sp;
+	matrix::Vector3f next_sp;
 
 	if (_pos_sp_triplet.current.valid) {
 
-		/* project setpoint to local frame */
-		map_projection_project(&_ref_pos,
-				       _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
-				       &curr_sp.data[0], &curr_sp.data[1]);
-		curr_sp(2) = -(_pos_sp_triplet.current.alt - _ref_alt);
+		matrix::Vector3f curr_pos_sp = _curr_pos_sp;
 
-		if (PX4_ISFINITE(curr_sp(0)) &&
-		    PX4_ISFINITE(curr_sp(1)) &&
-		    PX4_ISFINITE(curr_sp(2))) {
+		//only project setpoints if they are finite, else use current position
+		if (PX4_ISFINITE(_pos_sp_triplet.current.lat) &&
+		    PX4_ISFINITE(_pos_sp_triplet.current.lon)) {
+			/* project setpoint to local frame */
+			map_projection_project(&_ref_pos,
+					       _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon,
+					       &curr_pos_sp(0), &curr_pos_sp(1));
+
+			_triplet_lat_lon_finite = true;
+
+		} else { // use current position if NAN -> e.g. land
+			if (_triplet_lat_lon_finite) {
+				curr_pos_sp(0) = _pos(0);
+				curr_pos_sp(1) = _pos(1);
+				_triplet_lat_lon_finite = false;
+			}
+		}
+
+		// only project setpoints if they are finite, else use current position
+		if (PX4_ISFINITE(_pos_sp_triplet.current.alt)) {
+			curr_pos_sp(2) = -(_pos_sp_triplet.current.alt - _ref_alt);
+
+		}
+
+
+		/* sanity check */
+		if (PX4_ISFINITE(_curr_pos_sp(0)) &&
+		    PX4_ISFINITE(_curr_pos_sp(1)) &&
+		    PX4_ISFINITE(_curr_pos_sp(2))) {
 			current_setpoint_valid = true;
 		}
+
+		/* check if triplets have been updated
+		 * note: we only can look at xy since navigator applies slewrate to z */
+		float  diff;
+
+		if (_triplet_lat_lon_finite) {
+			diff = matrix::Vector2f((_curr_pos_sp(0) - curr_pos_sp(0)), (_curr_pos_sp(1) - curr_pos_sp(1))).length();
+
+		} else {
+			diff = fabsf(_curr_pos_sp(2) - curr_pos_sp(2));
+		}
+
+		if (diff > FLT_EPSILON || !PX4_ISFINITE(diff)) {
+			triplet_updated = true;
+		}
+
+		/* we need to update _curr_pos_sp always since navigator applies slew rate on z */
+		_curr_pos_sp = curr_pos_sp;
 	}
 
 	if (_pos_sp_triplet.previous.valid) {
 		map_projection_project(&_ref_pos,
 				       _pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon,
-				       &prev_sp.data[0], &prev_sp.data[1]);
+				       &prev_sp(0), &prev_sp(1));
 		prev_sp(2) = -(_pos_sp_triplet.previous.alt - _ref_alt);
 
 		if (PX4_ISFINITE(prev_sp(0)) &&
 		    PX4_ISFINITE(prev_sp(1)) &&
 		    PX4_ISFINITE(prev_sp(2))) {
+			_prev_pos_sp = prev_sp;
 			previous_setpoint_valid = true;
 		}
 	}
 
+	/* set previous setpoint to current position if no previous setpoint available */
+	if (!previous_setpoint_valid && triplet_updated) {
+		_prev_pos_sp = _pos;
+		previous_setpoint_valid = true; /* currrently not necessary to set to true since not used*/
+	}
+
+	if (_pos_sp_triplet.next.valid) {
+		map_projection_project(&_ref_pos,
+				       _pos_sp_triplet.next.lat, _pos_sp_triplet.next.lon,
+				       &next_sp(0), &next_sp(1));
+
+		next_sp(2) = -(_pos_sp_triplet.next.alt - _ref_alt);
+
+		if (PX4_ISFINITE(next_sp(0)) &&
+		    PX4_ISFINITE(next_sp(1)) &&
+		    PX4_ISFINITE(next_sp(2))) {
+			next_setpoint_valid = true;
+		}
+	}
+
+	/* Auto logic:
+	 * The vehicle should follow the line previous-current.
+	 * - if there is no next setpoint or the current is a loiter point, then slowly approach the current along the line
+	 * - if there is a next setpoint, then the velocity is adjusted depending on the angle of the corner prev-current-next.
+	 * When following the line, the pos_sp is computed from the orthogonal distance to the closest point on line and the desired cruise speed along the track.
+	 */
+
+	/* create new _pos_sp from triplets */
 	if (current_setpoint_valid &&
 	    (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) {
 
-		/* scaled space: 1 == position error resulting max allowed speed */
-
-		math::Vector<3> cruising_speed = _params.vel_cruise;
-
-		if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
-		    _pos_sp_triplet.current.cruising_speed > 0.1f) {
-			cruising_speed(0) = _pos_sp_triplet.current.cruising_speed;
-			cruising_speed(1) = _pos_sp_triplet.current.cruising_speed;
-		}
-
-		math::Vector<3> scale = _params.pos_p.edivide(cruising_speed);
-
-		/* convert current setpoint to scaled space */
-		math::Vector<3> curr_sp_s = curr_sp.emult(scale);
-
-		/* by default use current setpoint as is */
-		math::Vector<3> pos_sp_s = curr_sp_s;
-
-		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  ||
-		     _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) &&
-		    previous_setpoint_valid) {
-
-			/* follow "previous - current" line */
-
-			if ((curr_sp - prev_sp).length() > MIN_DIST) {
-
-				/* find X - cross point of unit sphere and trajectory */
-				math::Vector<3> pos_s = _pos.emult(scale);
-				math::Vector<3> prev_sp_s = prev_sp.emult(scale);
-				math::Vector<3> prev_curr_s = curr_sp_s - prev_sp_s;
-				math::Vector<3> curr_pos_s = pos_s - curr_sp_s;
-				float curr_pos_s_len = curr_pos_s.length();
-
-				if (curr_pos_s_len < 1.0f) {
-					/* copter is closer to waypoint than unit radius */
-					/* check next waypoint and use it to avoid slowing down when passing via waypoint */
-					if (_pos_sp_triplet.next.valid) {
-						math::Vector<3> next_sp;
-						map_projection_project(&_ref_pos,
-								       _pos_sp_triplet.next.lat, _pos_sp_triplet.next.lon,
-								       &next_sp.data[0], &next_sp.data[1]);
-						next_sp(2) = -(_pos_sp_triplet.next.alt - _ref_alt);
-
-						if ((next_sp - curr_sp).length() > MIN_DIST) {
-							math::Vector<3> next_sp_s = next_sp.emult(scale);
-
-							/* calculate angle prev - curr - next */
-							math::Vector<3> curr_next_s = next_sp_s - curr_sp_s;
-							math::Vector<3> prev_curr_s_norm = prev_curr_s.normalized();
-
-							/* cos(a) * curr_next, a = angle between current and next trajectory segments */
-							float cos_a_curr_next = prev_curr_s_norm * curr_next_s;
-
-							/* cos(b), b = angle pos - curr_sp - prev_sp */
-							float cos_b = -curr_pos_s * prev_curr_s_norm / curr_pos_s_len;
-
-							if (cos_a_curr_next > 0.0f && cos_b > 0.0f) {
-								float curr_next_s_len = curr_next_s.length();
-
-								/* if curr - next distance is larger than unit radius, limit it */
-								if (curr_next_s_len > 1.0f) {
-									cos_a_curr_next /= curr_next_s_len;
-								}
-
-								/* feed forward position setpoint offset */
-								math::Vector<3> pos_ff = prev_curr_s_norm *
-											 cos_a_curr_next * cos_b * cos_b * (1.0f - curr_pos_s_len) *
-											 (1.0f - expf(-curr_pos_s_len * curr_pos_s_len * 20.0f));
-								pos_sp_s += pos_ff;
-							}
-						}
-					}
-
-				} else {
-					bool near = cross_sphere_line(pos_s, 1.0f, prev_sp_s, curr_sp_s, pos_sp_s);
-
-					if (!near) {
-						/* we're far away from trajectory, pos_sp_s is set to the nearest point on the trajectory */
-						pos_sp_s = pos_s + (pos_sp_s - pos_s).normalized();
-					}
-				}
-			}
-		}
-
-		/* move setpoint not faster than max allowed speed */
-		math::Vector<3> pos_sp_old_s = _pos_sp.emult(scale);
-
-		/* difference between current and desired position setpoints, 1 = max speed */
-		math::Vector<3> d_pos_m = (pos_sp_s - pos_sp_old_s).edivide(_params.pos_p);
-		float d_pos_m_len = d_pos_m.length();
-
-		if (d_pos_m_len > dt) {
-			pos_sp_s = pos_sp_old_s + (d_pos_m / d_pos_m_len * dt).emult(_params.pos_p);
-		}
-
-		/* scale result back to normal space */
-		_pos_sp = pos_sp_s.edivide(scale);
-
 		/* update yaw setpoint if needed */
-
 		if (_pos_sp_triplet.current.yawspeed_valid
 		    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) {
-			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * dt;
+			_att_sp.yaw_body = _att_sp.yaw_body + _pos_sp_triplet.current.yawspeed * _dt;
 
 		} else if (PX4_ISFINITE(_pos_sp_triplet.current.yaw)) {
 			_att_sp.yaw_body = _pos_sp_triplet.current.yaw;
 		}
+
+		float yaw_diff = wrap_pi(_att_sp.yaw_body - _yaw);
+
+		/* only follow previous-current-line for specific triplet type */
+		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION  ||
+		    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER ||
+		    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET) {
+
+			/* by default use current setpoint as is */
+			matrix::Vector3f pos_sp = _curr_pos_sp;
+
+			/*
+			 * Z-DIRECTION
+			 */
+
+			/* get various distances */
+			float total_dist_z = fabsf(_curr_pos_sp(2) - _prev_pos_sp(2));
+			float dist_to_prev_z = fabsf(_pos(2) - _prev_pos_sp(2));
+			float dist_to_current_z = fabsf(_curr_pos_sp(2) - _pos(2));
+
+			/* if pos_sp has not reached target setpoint (=curr_pos_sp(2)),
+			 * then compute setpoint depending on vel_max */
+			if ((total_dist_z >  SIGMA_NORM) && (fabsf(_pos_sp(2) - _curr_pos_sp(2)) > SIGMA_NORM)) {
+
+				/* check sign */
+				bool flying_upward = _curr_pos_sp(2) < _pos(2);
+
+				/* final_vel_z is the max velocity which depends on the distance of total_dist_z
+				 * with default params.vel_max_up/down
+				 */
+				float final_vel_z = flying_upward ? _vel_max_up.get() : _vel_max_down.get();
+
+				/* target threshold defines the distance to _curr_pos_sp(2) at which
+				 * the vehicle starts to slow down to approach the target smoothly
+				 */
+				float target_threshold_z = final_vel_z * 1.5f;
+
+				/* if the total distance in z is NOT 2x distance of target_threshold, we
+				 * will need to adjust the final_vel_z
+				 */
+				bool is_2_target_threshold_z = total_dist_z >= 2.0f * target_threshold_z;
+				float slope = (final_vel_z) / (target_threshold_z); /* defines the the acceleration when slowing down */
+				float min_vel_z = 0.2f; // minimum velocity: this is needed since estimation is not perfect
+
+				if (!is_2_target_threshold_z) {
+					/* adjust final_vel_z since we are already very close
+					 * to current and therefore it is not necessary to accelerate
+					 * up to full speed (=final_vel_z)
+					 */
+					target_threshold_z = total_dist_z * 0.5f;
+					/* get the velocity at target_threshold_z */
+					float final_vel_z_tmp = slope * (target_threshold_z) + min_vel_z;
+
+					/* make sure that final_vel_z is never smaller than 0.5 of the default final_vel_z
+					 * this is mainly done because the estimation in z is not perfect and therefore
+					 * it is necessary to have a minimum speed
+					 */
+					final_vel_z = math::constrain(final_vel_z_tmp, final_vel_z * 0.5f, final_vel_z);
+				}
+
+				float vel_sp_z = final_vel_z;
+
+				/* we want to slow down */
+				if (dist_to_current_z < target_threshold_z) {
+
+					vel_sp_z = slope * dist_to_current_z + min_vel_z;
+
+				} else if (dist_to_prev_z < target_threshold_z) {
+					/* we want to accelerate */
+
+					float acc_z = (vel_sp_z - fabsf(_vel_sp(2))) / _dt;
+					float acc_max = (flying_upward) ? (_acceleration_z_max_up.get() * 0.5f) : (_acceleration_z_max_down.get() * 0.5f);
+
+					if (acc_z > acc_max) {
+						vel_sp_z = _acceleration_z_max_up.get() * _dt + fabsf(_vel_sp(2));
+					}
+
+				}
+
+				/* if we already close to current, then just take over the velocity that
+				 * we would have computed if going directly to the current setpoint
+				 */
+				if (vel_sp_z >= (dist_to_current_z * _pos_p(2))) {
+					vel_sp_z = dist_to_current_z * _pos_p(2);
+				}
+
+				/* make sure vel_sp_z is always positive */
+				vel_sp_z = math::constrain(vel_sp_z, 0.0f, final_vel_z);
+				/* get the sign of vel_sp_z */
+				vel_sp_z = (flying_upward) ? -vel_sp_z : vel_sp_z;
+				/* compute pos_sp(2) */
+				pos_sp(2) = _pos(2) + vel_sp_z / _pos_p(2);
+			}
+
+			/*
+			 * XY-DIRECTION
+			 */
+
+			/* line from previous to current and from pos to current */
+			matrix::Vector2f vec_prev_to_current((_curr_pos_sp(0) - _prev_pos_sp(0)), (_curr_pos_sp(1) - _prev_pos_sp(1)));
+			matrix::Vector2f vec_pos_to_current((_curr_pos_sp(0) - _pos(0)), (_curr_pos_sp(1) - _pos(1)));
+
+
+			/* check if we just want to stay at current position */
+			matrix::Vector2f pos_sp_diff((_curr_pos_sp(0) - _pos_sp(0)), (_curr_pos_sp(1) - _pos_sp(1)));
+			bool stay_at_current_pos = (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER
+						    || !next_setpoint_valid)
+						   && ((pos_sp_diff.length()) < SIGMA_NORM);
+
+			/* only follow line if previous to current has a minimum distance */
+			if ((vec_prev_to_current.length()  > _nav_rad.get()) && !stay_at_current_pos) {
+
+				/* normalize prev-current line (always > nav_rad) */
+				matrix::Vector2f unit_prev_to_current = vec_prev_to_current.normalized();
+
+				/* unit vector from current to next */
+				matrix::Vector2f unit_current_to_next(0.0f, 0.0f);
+
+				if (next_setpoint_valid) {
+					unit_current_to_next = matrix::Vector2f((next_sp(0) - pos_sp(0)), (next_sp(1) - pos_sp(1)));
+					unit_current_to_next = (unit_current_to_next.length() > SIGMA_NORM) ? unit_current_to_next.normalized() :
+							       unit_current_to_next;
+				}
+
+				/* point on line closest to pos */
+				matrix::Vector2f closest_point = matrix::Vector2f(_prev_pos_sp(0), _prev_pos_sp(1)) + unit_prev_to_current *
+								 (matrix::Vector2f((_pos(0) - _prev_pos_sp(0)), (_pos(1) - _prev_pos_sp(1))) * unit_prev_to_current);
+
+				matrix::Vector2f vec_closest_to_current((_curr_pos_sp(0) - closest_point(0)), (_curr_pos_sp(1) - closest_point(1)));
+
+				/* compute vector from position-current and previous-position */
+				matrix::Vector2f vec_prev_to_pos((_pos(0) - _prev_pos_sp(0)), (_pos(1) - _prev_pos_sp(1)));
+
+				/* current velocity along track */
+				float vel_sp_along_track_prev = matrix::Vector2f(_vel_sp(0), _vel_sp(1)) * unit_prev_to_current;
+
+				/* distance to target when brake should occur */
+				float target_threshold_xy = 1.5f * get_cruising_speed_xy();
+
+				bool close_to_current = vec_pos_to_current.length() < target_threshold_xy;
+				bool close_to_prev = (vec_prev_to_pos.length() < target_threshold_xy) &&
+						     (vec_prev_to_pos.length() < vec_pos_to_current.length());
+
+				/* indicates if we are at least half the distance from previous to current close to previous */
+				bool is_2_target_threshold = vec_prev_to_current.length() >= 2.0f * target_threshold_xy;
+
+				/* check if the current setpoint is behind */
+				bool current_behind = ((vec_pos_to_current * -1.0f) * unit_prev_to_current) > 0.0f;
+
+				/* check if the previous is in front */
+				bool previous_in_front = (vec_prev_to_pos * unit_prev_to_current) < 0.0f;
+
+				/* default velocity along line prev-current */
+				float vel_sp_along_track = get_cruising_speed_xy();
+
+				/*
+				 * compute velocity setpoint along track
+				 */
+
+				/* only go directly to previous setpoint if more than 5m away and previous in front*/
+				if (previous_in_front && (vec_prev_to_pos.length() > 5.0f)) {
+
+					/* just use the default velocity along track */
+					vel_sp_along_track = vec_prev_to_pos.length() * _pos_p(0);
+
+					if (vel_sp_along_track > get_cruising_speed_xy()) {
+						vel_sp_along_track = get_cruising_speed_xy();
+					}
+
+				} else if (current_behind) {
+					/* go directly to current setpoint */
+					vel_sp_along_track = vec_pos_to_current.length() * _pos_p(0);
+					vel_sp_along_track = (vel_sp_along_track < get_cruising_speed_xy()) ? vel_sp_along_track : get_cruising_speed_xy();
+
+				} else if (close_to_prev) {
+					/* accelerate from previous setpoint towards current setpoint */
+
+					/* we are close to previous and current setpoint
+					 * we first compute the start velocity when close to current septoint and use
+					 * this velocity as final velocity when transition occurs from acceleration to deceleration.
+					 * This ensures smooth transition */
+					float final_cruise_speed = get_cruising_speed_xy();
+
+					if (!is_2_target_threshold) {
+
+						/* set target threshold to half dist pre-current */
+						float target_threshold_tmp = target_threshold_xy;
+						target_threshold_xy = vec_prev_to_current.length() * 0.5f;
+
+						if ((target_threshold_xy - _nav_rad.get()) < SIGMA_NORM) {
+							target_threshold_xy = _nav_rad.get();
+						}
+
+						/* velocity close to current setpoint with default zero if no next setpoint is available */
+						float vel_close = 0.0f;
+						float acceptance_radius = 0.0f;
+
+						/* we want to pass and need to compute the desired velocity close to current setpoint */
+						if (next_setpoint_valid &&  !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+							/* get velocity close to current that depends on angle between prev-current and current-next line */
+							vel_close = get_vel_close(unit_prev_to_current, unit_current_to_next);
+							acceptance_radius = _nav_rad.get();
+						}
+
+						/* compute velocity at transition where vehicle switches from acceleration to deceleration */
+						if ((target_threshold_tmp - acceptance_radius) < SIGMA_NORM) {
+							final_cruise_speed = vel_close;
+
+						} else {
+							float slope = (get_cruising_speed_xy() - vel_close) / (target_threshold_tmp - acceptance_radius);
+							final_cruise_speed = slope  * (target_threshold_xy - acceptance_radius) + vel_close;
+							final_cruise_speed = (final_cruise_speed > vel_close) ? final_cruise_speed : vel_close;
+						}
+					}
+
+					/* make sure final cruise speed is larger than 0*/
+					final_cruise_speed = (final_cruise_speed > SIGMA_NORM) ? final_cruise_speed : SIGMA_NORM;
+					vel_sp_along_track = final_cruise_speed;
+
+					/* we want to accelerate not too fast
+					* TODO: change the name acceleration_hor_man to something that can
+					* be used by auto and manual */
+					float acc_track = (final_cruise_speed - vel_sp_along_track_prev) / _dt;
+
+					/* if yaw offset is large, only accelerate with 0.5m/s^2 */
+					float acc = (fabsf(yaw_diff) >  math::radians(_mis_yaw_error.get())) ? 0.5f : _acceleration_hor.get();
+
+					if (acc_track > acc) {
+						vel_sp_along_track = acc * _dt + vel_sp_along_track_prev;
+					}
+
+					/* enforce minimum cruise speed */
+					vel_sp_along_track  = math::constrain(vel_sp_along_track, SIGMA_NORM, final_cruise_speed);
+
+				} else if (close_to_current) {
+					/* slow down when close to current setpoint */
+
+					/* check if altidue is within acceptance radius */
+					bool reached_altitude = (dist_to_current_z < _nav_rad.get()) ? true : false;
+
+					if (reached_altitude && next_setpoint_valid
+					    && !(_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+						/* since we have a next setpoint use the angle prev-current-next to compute velocity setpoint limit */
+
+						/* get velocity close to current that depends on angle between prev-current and current-next line */
+						float vel_close = get_vel_close(unit_prev_to_current, unit_current_to_next);
+
+						/* compute velocity along line which depends on distance to current setpoint */
+						if (vec_closest_to_current.length() < _nav_rad.get()) {
+							vel_sp_along_track = vel_close;
+
+						} else {
+
+							if (target_threshold_xy - _nav_rad.get() < SIGMA_NORM) {
+								vel_sp_along_track = vel_close;
+
+							} else {
+								float slope = (get_cruising_speed_xy() - vel_close) / (target_threshold_xy - _nav_rad.get()) ;
+								vel_sp_along_track = slope  * (vec_closest_to_current.length() - _nav_rad.get()) + vel_close;
+							}
+						}
+
+						/* since we want to slow down take over previous velocity setpoint along track if it was lower */
+						if ((vel_sp_along_track_prev < vel_sp_along_track) && (vel_sp_along_track * vel_sp_along_track_prev > 0.0f)) {
+							vel_sp_along_track = vel_sp_along_track_prev;
+						}
+
+						/* if we are close to target and the previous velocity setpoints was smaller than
+						 * vel_sp_along_track, then take over the previous one
+						 * this ensures smoothness since we anyway want to slow down
+						 */
+						if ((vel_sp_along_track_prev < vel_sp_along_track) && (vel_sp_along_track * vel_sp_along_track_prev > 0.0f)
+						    && (vel_sp_along_track_prev > vel_close)) {
+							vel_sp_along_track = vel_sp_along_track_prev;
+						}
+
+						/* make sure that vel_sp_along track is at least min */
+						vel_sp_along_track = (vel_sp_along_track < vel_close) ? vel_close : vel_sp_along_track;
+
+
+					} else {
+
+						/* we want to stop at current setpoint */
+						float slope = (get_cruising_speed_xy())  / target_threshold_xy;
+						vel_sp_along_track =  slope * (vec_closest_to_current.length());
+
+						/* since we want to slow down take over previous velocity setpoint along track if it was lower but ensure its not zero */
+						if ((vel_sp_along_track_prev < vel_sp_along_track) && (vel_sp_along_track * vel_sp_along_track_prev > 0.0f)
+						    && (vel_sp_along_track_prev > 0.5f)) {
+							vel_sp_along_track = vel_sp_along_track_prev;
+						}
+					}
+				}
+
+				/* compute velocity orthogonal to prev-current-line to position*/
+				matrix::Vector2f vec_pos_to_closest = closest_point - matrix::Vector2f(_pos(0), _pos(1));
+				float vel_sp_orthogonal = vec_pos_to_closest.length() * _pos_p(0);
+
+				/* compute the cruise speed from velocity along line and orthogonal velocity setpoint */
+				float cruise_sp_mag = sqrtf(vel_sp_orthogonal * vel_sp_orthogonal + vel_sp_along_track * vel_sp_along_track);
+
+				/* sanity check */
+				cruise_sp_mag = (PX4_ISFINITE(cruise_sp_mag)) ? cruise_sp_mag : vel_sp_orthogonal;
+
+				/* orthogonal velocity setpoint is smaller than cruise speed */
+				if (vel_sp_orthogonal < get_cruising_speed_xy() && !current_behind) {
+
+					/* we need to limit vel_sp_along_track such that cruise speed  is never exceeded but still can keep velocity orthogonal to track */
+					if (cruise_sp_mag > get_cruising_speed_xy()) {
+						vel_sp_along_track = sqrtf(get_cruising_speed_xy() * get_cruising_speed_xy() - vel_sp_orthogonal * vel_sp_orthogonal);
+					}
+
+					pos_sp(0) = closest_point(0) + unit_prev_to_current(0) * vel_sp_along_track / _pos_p(0);
+					pos_sp(1) = closest_point(1) + unit_prev_to_current(1) * vel_sp_along_track / _pos_p(1);
+
+				} else if (current_behind) {
+					/* current is behind */
+
+					if (vec_pos_to_current.length()  > 0.01f) {
+						pos_sp(0) = _pos(0) + vec_pos_to_current(0) / vec_pos_to_current.length() * vel_sp_along_track / _pos_p(0);
+						pos_sp(1) = _pos(1) + vec_pos_to_current(1) / vec_pos_to_current.length() * vel_sp_along_track / _pos_p(1);
+
+					} else {
+						pos_sp(0) = _curr_pos_sp(0);
+						pos_sp(1) = _curr_pos_sp(1);
+					}
+
+				} else {
+					/* we are more than cruise_speed away from track */
+
+					/* if previous is in front just go directly to previous point */
+					if (previous_in_front) {
+						vec_pos_to_closest(0) = _prev_pos_sp(0) - _pos(0);
+						vec_pos_to_closest(1) = _prev_pos_sp(1) - _pos(1);
+					}
+
+					/* make sure that we never exceed maximum cruise speed */
+					float cruise_sp = vec_pos_to_closest.length() * _pos_p(0);
+
+					if (cruise_sp > get_cruising_speed_xy()) {
+						cruise_sp = get_cruising_speed_xy();
+					}
+
+					/* sanity check: don't divide by zero */
+					if (vec_pos_to_closest.length() > SIGMA_NORM) {
+						pos_sp(0) = _pos(0) + vec_pos_to_closest(0) / vec_pos_to_closest.length() * cruise_sp / _pos_p(0);
+						pos_sp(1) = _pos(1) + vec_pos_to_closest(1) / vec_pos_to_closest.length() * cruise_sp / _pos_p(1);
+
+					} else {
+						pos_sp(0) = closest_point(0);
+						pos_sp(1) = closest_point(1);
+					}
+				}
+			}
+
+			_pos_sp = pos_sp;
+
+		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_VELOCITY) {
+
+			float vel_xy_mag = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
+
+			if (vel_xy_mag > SIGMA_NORM) {
+				_vel_sp(0) = _vel(0) / vel_xy_mag * get_cruising_speed_xy();
+				_vel_sp(1) = _vel(1) / vel_xy_mag * get_cruising_speed_xy();
+
+			} else {
+				/* TODO: we should go in the direction we are heading
+				 * if current velocity is zero
+				 */
+				_vel_sp(0) = 0.0f;
+				_vel_sp(1) = 0.0f;
+			}
+
+			_run_pos_control = false;
+
+		} else {
+			/* just go to the target point */;
+			_pos_sp = _curr_pos_sp;
+
+			/* set max velocity to cruise */
+			_vel_max_xy = get_cruising_speed_xy();
+		}
+
+		/* sanity check */
+		if (!(PX4_ISFINITE(_pos_sp(0)) && PX4_ISFINITE(_pos_sp(1)) &&
+		      PX4_ISFINITE(_pos_sp(2)))) {
+
+			warn_rate_limited("Auto: Position setpoint not finite");
+			_pos_sp = _curr_pos_sp;
+		}
+
 
 		/*
 		 * if we're already near the current takeoff setpoint don't reset in case we switch back to posctl.
@@ -1538,37 +2202,43 @@ void MulticopterPositionControl::control_auto(float dt)
 		    && (_pos - _pos_sp).length() < _pos_sp_triplet.current.acceptance_radius * 1.2f) {
 			_do_reset_alt_pos_flag = false;
 
-			/* otherwise: in case of interrupted mission don't go to waypoint but stay at current position */
-
 		} else {
+			/* otherwise: in case of interrupted mission don't go to waypoint but stay at current position */
 			_do_reset_alt_pos_flag = true;
 		}
+
+		// Handle the landing gear based on the manual landing alt
+		const bool high_enough_for_landing_gear = (-_pos(2) + _home_pos.z > 2.0f);
 
 		// During a mission or in loiter it's safe to retract the landing gear.
 		if ((_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||
 		     _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) &&
-		    !_vehicle_land_detected.landed) {
-			_att_sp.landing_gear = 1.0f;
+		    !_vehicle_land_detected.landed &&
+		    high_enough_for_landing_gear) {
 
-			// During takeoff and landing, we better put it down again.
+			_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_UP;
 
 		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF ||
-			   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-			_att_sp.landing_gear = -1.0f;
+			   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND ||
+			   !high_enough_for_landing_gear) {
 
-		} else {
+			// During takeoff and landing, we better put it down again.
+			_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
+
 			// For the rest of the setpoint types, just leave it as is.
 		}
 
 	} else {
-		/* no waypoint, do nothing, setpoint was already reset */
+		/* idle or triplet not valid, set velocity setpoint to zero */
+		_vel_sp.zero();
+		_run_pos_control = false;
+		_run_alt_control = false;
 	}
 }
 
 void
 MulticopterPositionControl::update_velocity_derivative()
 {
-
 	/* Update velocity derivative,
 	 * independent of the current flight mode
 	 */
@@ -1577,7 +2247,6 @@ MulticopterPositionControl::update_velocity_derivative()
 	}
 
 	// TODO: this logic should be in the estimator, not the controller!
-
 	if (PX4_ISFINITE(_local_pos.x) &&
 	    PX4_ISFINITE(_local_pos.y) &&
 	    PX4_ISFINITE(_local_pos.z)) {
@@ -1585,11 +2254,22 @@ MulticopterPositionControl::update_velocity_derivative()
 		_pos(0) = _local_pos.x;
 		_pos(1) = _local_pos.y;
 
+		if ((_alt_mode.get() == 1) && _local_pos.dist_bottom_valid) {
+			if (!_terrain_follow) {
+				_terrain_follow = true;
+				_reset_alt_sp = true;
+				reset_alt_sp();
+			}
 
-		if (_params.alt_mode == 1 && _local_pos.dist_bottom_valid) {
 			_pos(2) = -_local_pos.dist_bottom;
 
 		} else {
+			if (_terrain_follow) {
+				_terrain_follow = false;
+				_reset_alt_sp = true;
+				reset_alt_sp();
+			}
+
 			_pos(2) = _local_pos.z;
 		}
 	}
@@ -1601,25 +2281,37 @@ MulticopterPositionControl::update_velocity_derivative()
 		_vel(0) = _local_pos.vx;
 		_vel(1) = _local_pos.vy;
 
-		if (_params.alt_mode == 1 && _local_pos.dist_bottom_valid) {
+		if (_terrain_follow) {
 			_vel(2) = -_local_pos.dist_bottom_rate;
 
 		} else {
 			_vel(2) = _local_pos.vz;
 		}
+
+		if (!_run_alt_control) {
+			/* set velocity to the derivative of position
+			 * because it has less bias but blend it in across the landing speed range*/
+			float weighting = fminf(fabsf(_vel_sp(2)) / _land_speed.get(), 1.0f);
+			_vel(2) = _z_derivative * weighting + _vel(2) * (1.0f - weighting);
+
+		}
+
 	}
 
+	if (PX4_ISFINITE(_local_pos.z_deriv)) {
+		_z_derivative = _local_pos.z_deriv;
+	};
+
 	_vel_err_d(0) = _vel_x_deriv.update(-_vel(0));
+
 	_vel_err_d(1) = _vel_y_deriv.update(-_vel(1));
+
 	_vel_err_d(2) = _vel_z_deriv.update(-_vel(2));
 }
 
 void
-MulticopterPositionControl::do_control(float dt)
+MulticopterPositionControl::do_control()
 {
-
-	_vel_ff.zero();
-
 	/* by default, run position/altitude controller. the control_* functions
 	 * can disable this and run velocity controllers directly in this cycle */
 	_run_pos_control = true;
@@ -1627,48 +2319,74 @@ MulticopterPositionControl::do_control(float dt)
 
 	if (_control_mode.flag_control_manual_enabled) {
 		/* manual control */
-		control_manual(dt);
+		control_manual();
 		_mode_auto = false;
+
+		/* we set triplets to false
+		 * this ensures that when switching to auto, the position
+		 * controller will not use the old triplets but waits until triplets
+		 * have been updated */
+		_pos_sp_triplet.current.valid = false;
+		_pos_sp_triplet.previous.valid = false;
+		_curr_pos_sp = matrix::Vector3f(NAN, NAN, NAN);
 
 		_hold_offboard_xy = false;
 		_hold_offboard_z = false;
 
 	} else {
-		control_non_manual(dt);
+		/* reset acceleration to default */
+		_acceleration_state_dependent_xy = _acceleration_hor_max.get();
+		_acceleration_state_dependent_z = _acceleration_z_max_up.get();
+		control_non_manual();
 	}
-
 }
 
 void
-MulticopterPositionControl::control_position(float dt)
+MulticopterPositionControl::control_position()
+{
+	calculate_velocity_setpoint();
+
+	if (_control_mode.flag_control_climb_rate_enabled || _control_mode.flag_control_velocity_enabled ||
+	    _control_mode.flag_control_acceleration_enabled) {
+		calculate_thrust_setpoint();
+
+	} else {
+		_reset_int_z = true;
+	}
+}
+
+void
+MulticopterPositionControl::calculate_velocity_setpoint()
 {
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 	if (_run_pos_control) {
-		_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _params.pos_p(0);
-		_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _params.pos_p(1);
+
+		// If for any reason, we get a NaN position setpoint, we better just stay where we are.
+		if (PX4_ISFINITE(_pos_sp(0)) && PX4_ISFINITE(_pos_sp(1))) {
+			_vel_sp(0) = (_pos_sp(0) - _pos(0)) * _pos_p(0);
+			_vel_sp(1) = (_pos_sp(1) - _pos(1)) * _pos_p(1);
+
+		} else {
+			_vel_sp(0) = 0.0f;
+			_vel_sp(1) = 0.0f;
+			warn_rate_limited("Caught invalid pos_sp in x and y");
+
+		}
+	}
+
+	/* in auto the setpoint is already limited by the navigator */
+	if (!_control_mode.flag_control_auto_enabled) {
+		limit_altitude();
 	}
 
 	if (_run_alt_control) {
-		_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _params.pos_p(2);
-	}
+		if (PX4_ISFINITE(_pos_sp(2))) {
+			_vel_sp(2) = (_pos_sp(2) - _pos(2)) * _pos_p(2);
 
-	/* make sure velocity setpoint is saturated in xy*/
-	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) +
-				  _vel_sp(1) * _vel_sp(1));
-
-	if (vel_norm_xy > _params.vel_max(0)) {
-		/* note assumes vel_max(0) == vel_max(1) */
-		_vel_sp(0) = _vel_sp(0) * _params.vel_max(0) / vel_norm_xy;
-		_vel_sp(1) = _vel_sp(1) * _params.vel_max(1) / vel_norm_xy;
-	}
-
-	/* make sure velocity setpoint is saturated in z*/
-	if (_vel_sp(2) < -1.0f * _params.vel_max_up) {
-		_vel_sp(2) = -1.0f * _params.vel_max_up;
-	}
-
-	if (_vel_sp(2) >  _params.vel_max_down) {
-		_vel_sp(2) = _params.vel_max_down;
+		} else {
+			_vel_sp(2) = 0.0f;
+			warn_rate_limited("Caught invalid pos_sp in z");
+		}
 	}
 
 	if (!_control_mode.flag_control_position_enabled) {
@@ -1684,406 +2402,373 @@ MulticopterPositionControl::control_position(float dt)
 		_vel_sp_prev(1) = _vel(1);
 		_vel_sp(0) = 0.0f;
 		_vel_sp(1) = 0.0f;
-		control_vel_enabled_prev = false;
 	}
 
 	if (!_control_mode.flag_control_climb_rate_enabled) {
 		_vel_sp(2) = 0.0f;
 	}
 
-	/* TODO: remove this is a pathetic leftover, it's here just to make sure that
-	 * _takeoff_jumped flags are reset */
-	if (_control_mode.flag_control_manual_enabled || !_pos_sp_triplet.current.valid
-	    || _pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF
-	    || !_control_mode.flag_armed) {
+	/* limit vertical upwards speed in auto takeoff and close to ground */
+	float altitude_above_home = -_pos(2) + _home_pos.z;
 
-		_takeoff_jumped = false;
-		_takeoff_thrust_sp = 0.0f;
+	if (_pos_sp_triplet.current.valid
+	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
+	    && !_control_mode.flag_control_manual_enabled) {
+		float vel_limit = math::gradual(altitude_above_home,
+						_slow_land_alt2.get(), _slow_land_alt1.get(),
+						_tko_speed.get(), _vel_max_up.get());
+		_vel_sp(2) = math::max(_vel_sp(2), -vel_limit);
 	}
 
-	limit_acceleration(dt);
+	/* encourage pilot to respect estimator height limitations when in manually controlled modes and not landing */
+	if (PX4_ISFINITE(_local_pos.hagl_min)					// We need height limiting
+	    && _control_mode.flag_control_manual_enabled		// Vehicle is under manual control
+	    && _control_mode.flag_control_altitude_enabled		// Altitude controller is running
+	    && !manual_wants_landing()) {						// Operator is not trying to land
+		if (_local_pos.dist_bottom < _local_pos.hagl_min) {
+			// If distance to ground is less than limit, increment setpoint upwards at up to the landing descent rate
+			float climb_rate_bias = fminf(1.5f * _pos_p(2) * (_local_pos.hagl_min - _local_pos.dist_bottom), _land_speed.get());
+			_vel_sp(2) -= climb_rate_bias;
+			_pos_sp(2) -= climb_rate_bias * _dt;
+
+		}
+	}
+
+	/* limit vertical downwards speed (positive z) close to ground
+	 * for now we use the altitude above home and assume that we want to land at same height as we took off */
+	float vel_limit = math::gradual(altitude_above_home,
+					_slow_land_alt2.get(), _slow_land_alt1.get(),
+					_land_speed.get(), _vel_max_down.get());
+
+	_vel_sp(2) = math::min(_vel_sp(2), vel_limit);
+
+	/* apply slewrate (aka acceleration limit) for smooth flying */
+	if (!_control_mode.flag_control_auto_enabled && !_in_smooth_takeoff) {
+		vel_sp_slewrate();
+	}
+
+	/* special velocity setpoint limitation for smooth takeoff (after slewrate!) */
+	if (_in_smooth_takeoff) {
+		set_takeoff_velocity(_vel_sp(2));
+	}
+
+	/* make sure velocity setpoint is constrained in all directions (xyz) */
+	float vel_norm_xy = sqrtf(_vel_sp(0) * _vel_sp(0) + _vel_sp(1) * _vel_sp(1));
+
+	/* check if the velocity demand is significant */
+	_vel_sp_significant =  vel_norm_xy > 0.5f * _vel_max_xy;
+
+	if (vel_norm_xy > _vel_max_xy) {
+		_vel_sp(0) = _vel_sp(0) * _vel_max_xy / vel_norm_xy;
+		_vel_sp(1) = _vel_sp(1) * _vel_max_xy / vel_norm_xy;
+	}
+
+	_vel_sp(2) = math::constrain(_vel_sp(2), -_vel_max_up.get(), _vel_max_down.get());
 
 	_vel_sp_prev = _vel_sp;
+}
 
-	_global_vel_sp.vx = _vel_sp(0);
-	_global_vel_sp.vy = _vel_sp(1);
-	_global_vel_sp.vz = _vel_sp(2);
-
-	/* publish velocity setpoint */
-	if (_global_vel_sp_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_global_velocity_setpoint), _global_vel_sp_pub, &_global_vel_sp);
+void
+MulticopterPositionControl::calculate_thrust_setpoint()
+{
+	/* reset integrals if needed */
+	if (_control_mode.flag_control_climb_rate_enabled) {
+		if (_reset_int_z) {
+			_reset_int_z = false;
+			_thrust_int(2) = 0.0f;
+		}
 
 	} else {
-		_global_vel_sp_pub = orb_advertise(ORB_ID(vehicle_global_velocity_setpoint), &_global_vel_sp);
+		_reset_int_z = true;
 	}
 
-	if (_control_mode.flag_control_climb_rate_enabled || _control_mode.flag_control_velocity_enabled ||
-	    _control_mode.flag_control_acceleration_enabled) {
-		/* reset integrals if needed */
-		if (_control_mode.flag_control_climb_rate_enabled) {
-			if (_reset_int_z) {
-				_reset_int_z = false;
-				float i = _params.thr_min;
-
-				if (_reset_int_z_manual) {
-					i = math::constrain(_params.thr_hover, _params.thr_min, _params.thr_max);
-				}
-
-				_thrust_int(2) = -i;
-			}
-
-		} else {
-			_reset_int_z = true;
+	if (_control_mode.flag_control_velocity_enabled) {
+		if (_reset_int_xy) {
+			_reset_int_xy = false;
+			_thrust_int(0) = 0.0f;
+			_thrust_int(1) = 0.0f;
 		}
 
-		if (_control_mode.flag_control_velocity_enabled) {
-			if (_reset_int_xy) {
-				_reset_int_xy = false;
-				_thrust_int(0) = 0.0f;
-				_thrust_int(1) = 0.0f;
-			}
+	} else {
+		_reset_int_xy = true;
+	}
 
-		} else {
-			_reset_int_xy = true;
+	/* if any of the velocity setpoint is bogus, it's probably safest to command no velocity at all. */
+	for (int i = 0; i < 3; ++i) {
+		if (!PX4_ISFINITE(_vel_sp(i))) {
+			_vel_sp(i) = 0.0f;
 		}
+	}
 
-		/* velocity error */
-		math::Vector<3> vel_err = _vel_sp - _vel;
+	/* velocity error */
+	matrix::Vector3f vel_err = _vel_sp - _vel;
 
-		// check if we have switched from a non-velocity controlled mode into a velocity controlled mode
-		// if yes, then correct xy velocity setpoint such that the attitude setpoint is continuous
-		if (!control_vel_enabled_prev && _control_mode.flag_control_velocity_enabled) {
+	/* thrust vector in NED frame */
+	matrix::Vector3f thrust_sp;
 
-			matrix::Dcmf Rb = matrix::Quatf(_att_sp.q_d[0], _att_sp.q_d[1], _att_sp.q_d[2], _att_sp.q_d[3]);
+	if (_control_mode.flag_control_acceleration_enabled && _pos_sp_triplet.current.acceleration_valid) {
+		thrust_sp = matrix::Vector3f(_pos_sp_triplet.current.a_x, _pos_sp_triplet.current.a_y, _pos_sp_triplet.current.a_z);
 
-			// choose velocity xyz setpoint such that the resulting thrust setpoint has the direction
-			// given by the last attitude setpoint
-			_vel_sp(0) = _vel(0) + (-Rb(0,
-						    2) * _att_sp.thrust - _thrust_int(0) - _vel_err_d(0) * _params.vel_d(0)) / _params.vel_p(0);
-			_vel_sp(1) = _vel(1) + (-Rb(1,
-						    2) * _att_sp.thrust - _thrust_int(1) - _vel_err_d(1) * _params.vel_d(1)) / _params.vel_p(1);
-			_vel_sp(2) = _vel(2) + (-Rb(2,
-						    2) * _att_sp.thrust - _thrust_int(2) - _vel_err_d(2) * _params.vel_d(2)) / _params.vel_p(2);
-			_vel_sp_prev = _vel_sp;
-			control_vel_enabled_prev = true;
+	} else {
+		thrust_sp = vel_err.emult(_vel_p) + _vel_err_d.emult(_vel_d)
+			    + _thrust_int - matrix::Vector3f(0.0f, 0.0f, _thr_hover.get());
+	}
 
-			// compute updated velocity error
-			vel_err = _vel_sp - _vel;
-		}
+	if (!_control_mode.flag_control_velocity_enabled && !_control_mode.flag_control_acceleration_enabled) {
+		thrust_sp(0) = 0.0f;
+		thrust_sp(1) = 0.0f;
+	}
 
-		/* thrust vector in NED frame */
-		math::Vector<3> thrust_sp;
+	// reduce thrust in early landing detection states to check if the vehicle still moves
+	landdetection_thrust_limit(thrust_sp);
 
-		if (_control_mode.flag_control_acceleration_enabled && _pos_sp_triplet.current.acceleration_valid) {
-			thrust_sp = math::Vector<3>(_pos_sp_triplet.current.a_x, _pos_sp_triplet.current.a_y, _pos_sp_triplet.current.a_z);
+	if (!_control_mode.flag_control_climb_rate_enabled && !_control_mode.flag_control_acceleration_enabled) {
+		thrust_sp(2) = 0.0f;
+	}
 
-		} else {
-			thrust_sp = vel_err.emult(_params.vel_p) + _vel_err_d.emult(_params.vel_d) + _thrust_int;
-		}
+	/* limit thrust vector and check for saturation */
+	bool saturation_xy = false;
+	bool saturation_z = false;
 
-		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF
-		    && !_takeoff_jumped && !_control_mode.flag_control_manual_enabled) {
-			// for jumped takeoffs use special thrust setpoint calculated above
-			thrust_sp.zero();
-			thrust_sp(2) = -_takeoff_thrust_sp;
-		}
+	/* limit min lift */
+	float thr_min = _thr_min.get();
 
-		if (!_control_mode.flag_control_velocity_enabled && !_control_mode.flag_control_acceleration_enabled) {
-			thrust_sp(0) = 0.0f;
-			thrust_sp(1) = 0.0f;
-		}
+	if (!_control_mode.flag_control_velocity_enabled && thr_min < 0.0f) {
+		/* don't allow downside thrust direction in manual attitude mode */
+		thr_min = 0.0f;
+	}
 
-		if (!_control_mode.flag_control_climb_rate_enabled && !_control_mode.flag_control_acceleration_enabled) {
-			thrust_sp(2) = 0.0f;
-		}
+	float tilt_max = _tilt_max_air;
+	float thr_max = _thr_max.get();
 
-		/* limit thrust vector and check for saturation */
-		bool saturation_xy = false;
-		bool saturation_z = false;
+	// We can only run the control if we're already in-air, have a takeoff setpoint,
+	// or if we're in offboard control.
+	// Otherwise, we should just bail out
+	if (_vehicle_land_detected.landed && !in_auto_takeoff() && !manual_wants_takeoff()) {
+		// Keep throttle low while still on ground.
+		thr_max = 0.0f;
 
-		/* limit min lift */
-		float thr_min = _params.thr_min;
+	} else if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
+		   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
-		if (!_control_mode.flag_control_velocity_enabled && thr_min < 0.0f) {
-			/* don't allow downside thrust direction in manual attitude mode */
-			thr_min = 0.0f;
-		}
+		/* adjust limits for landing mode */
+		/* limit max tilt and min lift when landing */
+		tilt_max = _tilt_max_land;
+	}
 
-		float thrust_abs = thrust_sp.length();
-		float tilt_max = _params.tilt_max_air;
-		float thr_max = _params.thr_max;
-		/* filter vel_z over 1/8sec */
-		_vel_z_lp = _vel_z_lp * (1.0f - dt * 8.0f) + dt * 8.0f * _vel(2);
-		/* filter vel_z change over 1/8sec */
-		float vel_z_change = (_vel(2) - _vel_prev(2)) / dt;
-		_acc_z_lp = _acc_z_lp * (1.0f - dt * 8.0f) + dt * 8.0f * vel_z_change;
+	/* limit min lift */
+	if (-thrust_sp(2) < thr_min) {
+		thrust_sp(2) = -thr_min;
+		/* Don't freeze altitude integral if it wants to throttle up */
+		saturation_z = vel_err(2) > 0.0f ? true : saturation_z;
+	}
 
-		// We can only run the control if we're already in-air, have a takeoff setpoint,
-		// or if we're in offboard control.
-		// Otherwise, we should just bail out
-		const bool got_takeoff_setpoint = (_pos_sp_triplet.current.valid &&
-						   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) ||
-						  _control_mode.flag_control_offboard_enabled;
+	if (_control_mode.flag_control_velocity_enabled || _control_mode.flag_control_acceleration_enabled) {
 
-		if (_vehicle_land_detected.landed && !got_takeoff_setpoint) {
-			// Keep throttle low while still on ground.
-			thr_max = 0.0f;
+		/* limit max tilt */
+		if (thr_min >= 0.0f && tilt_max < M_PI_F / 2.0f - 0.05f) {
+			/* absolute horizontal thrust */
+			float thrust_sp_xy_len = matrix::Vector2f(thrust_sp(0), thrust_sp(1)).length();
 
-		} else if (!_control_mode.flag_control_manual_enabled && _pos_sp_triplet.current.valid &&
-			   _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+			if (thrust_sp_xy_len > 0.01f) {
+				/* max horizontal thrust for given vertical thrust*/
+				float thrust_xy_max = -thrust_sp(2) * tanf(tilt_max);
 
-			/* adjust limits for landing mode */
-			/* limit max tilt and min lift when landing */
-			tilt_max = _params.tilt_max_land;
-
-			if (thr_min < 0.0f) {
-				thr_min = 0.0f;
-			}
-
-			/* descend stabilized, we're landing */
-			if (!_in_landing && !_lnd_reached_ground
-			    && (float)fabsf(_acc_z_lp) < 0.1f
-			    && _vel_z_lp > 0.5f * _params.land_speed) {
-				_in_landing = true;
-			}
-
-			/* assume ground, cut thrust */
-			if (_in_landing
-			    && _vel_z_lp < 0.1f) {
-				thr_max = 0.0f;
-				_in_landing = false;
-				_lnd_reached_ground = true;
-			}
-
-			/* once we assumed to have reached the ground always cut the thrust.
-				Only free fall detection below can revoke this
-			*/
-			if (!_in_landing && _lnd_reached_ground) {
-				thr_max = 0.0f;
-			}
-
-			/* if we suddenly fall, reset landing logic and remove thrust limit */
-			if (_lnd_reached_ground
-			    /* XXX: magic value, assuming free fall above 4m/s2 acceleration */
-			    && (_acc_z_lp > 4.0f
-				|| _vel_z_lp > 2.0f * _params.land_speed)) {
-				thr_max = _params.thr_max;
-				_in_landing = true;
-				_lnd_reached_ground = false;
-			}
-
-		} else {
-			_in_landing = false;
-			_lnd_reached_ground = false;
-		}
-
-		/* limit min lift */
-		if (-thrust_sp(2) < thr_min) {
-			thrust_sp(2) = -thr_min;
-			/* Don't freeze altitude integral if it wants to throttle up */
-			saturation_z = vel_err(2) > 0.0f ? true : saturation_z;
-		}
-
-		if (_control_mode.flag_control_velocity_enabled || _control_mode.flag_control_acceleration_enabled) {
-
-			/* limit max tilt */
-			if (thr_min >= 0.0f && tilt_max < M_PI_F / 2 - 0.05f) {
-				/* absolute horizontal thrust */
-				float thrust_sp_xy_len = math::Vector<2>(thrust_sp(0), thrust_sp(1)).length();
-
-				if (thrust_sp_xy_len > 0.01f) {
-					/* max horizontal thrust for given vertical thrust*/
-					float thrust_xy_max = -thrust_sp(2) * tanf(tilt_max);
-
-					if (thrust_sp_xy_len > thrust_xy_max) {
-						float k = thrust_xy_max / thrust_sp_xy_len;
-						thrust_sp(0) *= k;
-						thrust_sp(1) *= k;
-						/* Don't freeze x,y integrals if they both want to throttle down */
-						saturation_xy = ((vel_err(0) * _vel_sp(0) < 0.0f) && (vel_err(1) * _vel_sp(1) < 0.0f)) ? saturation_xy : true;
-					}
-				}
-			}
-		}
-
-		if (_control_mode.flag_control_climb_rate_enabled && !_control_mode.flag_control_velocity_enabled) {
-			/* thrust compensation when vertical velocity but not horizontal velocity is controlled */
-			float att_comp;
-
-			if (_R(2, 2) > TILT_COS_MAX) {
-				att_comp = 1.0f / _R(2, 2);
-
-			} else if (_R(2, 2) > 0.0f) {
-				att_comp = ((1.0f / TILT_COS_MAX - 1.0f) / TILT_COS_MAX) * _R(2, 2) + 1.0f;
-				saturation_z = true;
-
-			} else {
-				att_comp = 1.0f;
-				saturation_z = true;
-			}
-
-			thrust_sp(2) *= att_comp;
-		}
-
-		/* limit max thrust */
-		thrust_abs = thrust_sp.length(); /* recalculate because it might have changed */
-
-		if (thrust_abs > thr_max) {
-			if (thrust_sp(2) < 0.0f) {
-				if (-thrust_sp(2) > thr_max) {
-					/* thrust Z component is too large, limit it */
-					thrust_sp(0) = 0.0f;
-					thrust_sp(1) = 0.0f;
-					thrust_sp(2) = -thr_max;
-					saturation_xy = true;
-					/* Don't freeze altitude integral if it wants to throttle down */
-					saturation_z = vel_err(2) < 0.0f ? true : saturation_z;
-
-				} else {
-					/* preserve thrust Z component and lower XY, keeping altitude is more important than position */
-					float thrust_xy_max = sqrtf(thr_max * thr_max - thrust_sp(2) * thrust_sp(2));
-					float thrust_xy_abs = math::Vector<2>(thrust_sp(0), thrust_sp(1)).length();
-					float k = thrust_xy_max / thrust_xy_abs;
+				if (thrust_sp_xy_len > thrust_xy_max) {
+					float k = thrust_xy_max / thrust_sp_xy_len;
 					thrust_sp(0) *= k;
 					thrust_sp(1) *= k;
 					/* Don't freeze x,y integrals if they both want to throttle down */
 					saturation_xy = ((vel_err(0) * _vel_sp(0) < 0.0f) && (vel_err(1) * _vel_sp(1) < 0.0f)) ? saturation_xy : true;
 				}
-
-			} else {
-				/* Z component is negative, going down, simply limit thrust vector */
-				float k = thr_max / thrust_abs;
-				thrust_sp *= k;
-				saturation_xy = true;
-				saturation_z = true;
-			}
-
-			thrust_abs = thr_max;
-		}
-
-		/* update integrals */
-		if (_control_mode.flag_control_velocity_enabled && !saturation_xy) {
-			_thrust_int(0) += vel_err(0) * _params.vel_i(0) * dt;
-			_thrust_int(1) += vel_err(1) * _params.vel_i(1) * dt;
-		}
-
-		if (_control_mode.flag_control_climb_rate_enabled && !saturation_z) {
-			_thrust_int(2) += vel_err(2) * _params.vel_i(2) * dt;
-
-			/* protection against flipping on ground when landing */
-			if (_thrust_int(2) > 0.0f) {
-				_thrust_int(2) = 0.0f;
 			}
 		}
-
-		/* calculate attitude setpoint from thrust vector */
-		if (_control_mode.flag_control_velocity_enabled || _control_mode.flag_control_acceleration_enabled) {
-			/* desired body_z axis = -normalize(thrust_vector) */
-			math::Vector<3> body_x;
-			math::Vector<3> body_y;
-			math::Vector<3> body_z;
-
-			if (thrust_abs > SIGMA) {
-				body_z = -thrust_sp / thrust_abs;
-
-			} else {
-				/* no thrust, set Z axis to safe value */
-				body_z.zero();
-				body_z(2) = 1.0f;
-			}
-
-			/* vector of desired yaw direction in XY plane, rotated by PI/2 */
-			math::Vector<3> y_C(-sinf(_att_sp.yaw_body), cosf(_att_sp.yaw_body), 0.0f);
-
-			if (fabsf(body_z(2)) > SIGMA) {
-				/* desired body_x axis, orthogonal to body_z */
-				body_x = y_C % body_z;
-
-				/* keep nose to front while inverted upside down */
-				if (body_z(2) < 0.0f) {
-					body_x = -body_x;
-				}
-
-				body_x.normalize();
-
-			} else {
-				/* desired thrust is in XY plane, set X downside to construct correct matrix,
-				 * but yaw component will not be used actually */
-				body_x.zero();
-				body_x(2) = 1.0f;
-			}
-
-			/* desired body_y axis */
-			body_y = body_z % body_x;
-
-			/* fill rotation matrix */
-			for (int i = 0; i < 3; i++) {
-				_R_setpoint(i, 0) = body_x(i);
-				_R_setpoint(i, 1) = body_y(i);
-				_R_setpoint(i, 2) = body_z(i);
-			}
-
-			/* copy quaternion setpoint to attitude setpoint topic */
-			matrix::Quatf q_sp = _R_setpoint;
-			memcpy(&_att_sp.q_d[0], q_sp.data(), sizeof(_att_sp.q_d));
-			_att_sp.q_d_valid = true;
-
-			/* calculate euler angles, for logging only, must not be used for control */
-			matrix::Eulerf euler = _R_setpoint;
-			_att_sp.roll_body = euler(0);
-			_att_sp.pitch_body = euler(1);
-			/* yaw already used to construct rot matrix, but actual rotation matrix can have different yaw near singularity */
-
-		} else if (!_control_mode.flag_control_manual_enabled) {
-			/* autonomous altitude control without position control (failsafe landing),
-			 * force level attitude, don't change yaw */
-			_R_setpoint = matrix::Eulerf(0.0f, 0.0f, _att_sp.yaw_body);
-
-			/* copy quaternion setpoint to attitude setpoint topic */
-			matrix::Quatf q_sp = _R_setpoint;
-			memcpy(&_att_sp.q_d[0], q_sp.data(), sizeof(_att_sp.q_d));
-			_att_sp.q_d_valid = true;
-
-			_att_sp.roll_body = 0.0f;
-			_att_sp.pitch_body = 0.0f;
-		}
-
-		_att_sp.thrust = thrust_abs;
-
-		/* save thrust setpoint for logging */
-		_local_pos_sp.acc_x = thrust_sp(0) * ONE_G;
-		_local_pos_sp.acc_y = thrust_sp(1) * ONE_G;
-		_local_pos_sp.acc_z = thrust_sp(2) * ONE_G;
-
-		_att_sp.timestamp = hrt_absolute_time();
-
-
-	} else {
-		_reset_int_z = true;
 	}
+
+	if (_control_mode.flag_control_climb_rate_enabled && !_control_mode.flag_control_velocity_enabled) {
+		/* thrust compensation when vertical velocity but not horizontal velocity is controlled */
+		float att_comp;
+
+		const float tilt_cos_max = 0.7f;
+
+		if (_R(2, 2) > tilt_cos_max) {
+			att_comp = 1.0f / _R(2, 2);
+
+		} else if (_R(2, 2) > 0.0f) {
+			att_comp = ((1.0f / tilt_cos_max - 1.0f) / tilt_cos_max) * _R(2, 2) + 1.0f;
+			saturation_z = true;
+
+		} else {
+			att_comp = 1.0f;
+			saturation_z = true;
+		}
+
+		thrust_sp(2) *= att_comp;
+	}
+
+	/* Calculate desired total thrust amount in body z direction. */
+	/* To compensate for excess thrust during attitude tracking errors we
+	 * project the desired thrust force vector F onto the real vehicle's thrust axis in NED:
+	 * body thrust axis [0,0,-1]' rotated by R is: R*[0,0,-1]' = -R_z */
+	matrix::Vector3f R_z(_R(0, 2), _R(1, 2), _R(2, 2));
+
+	/* recalculate because it might have changed */
+	float thrust_body_z = thrust_sp.dot(-R_z);
+
+	/* limit max thrust */
+	if (fabsf(thrust_body_z) > thr_max) {
+		if (thrust_sp(2) < 0.0f) {
+			if (-thrust_sp(2) > thr_max) {
+				/* thrust Z component is too large, limit it */
+				thrust_sp(0) = 0.0f;
+				thrust_sp(1) = 0.0f;
+				thrust_sp(2) = -thr_max;
+				saturation_xy = true;
+				/* Don't freeze altitude integral if it wants to throttle down */
+				saturation_z = vel_err(2) < 0.0f ? true : saturation_z;
+
+			} else {
+				/* preserve thrust Z component and lower XY, keeping altitude is more important than position */
+				float thrust_xy_max = sqrtf(thr_max * thr_max - thrust_sp(2) * thrust_sp(2));
+				float thrust_xy_abs = matrix::Vector2f(thrust_sp(0), thrust_sp(1)).length();
+				float k = thrust_xy_max / thrust_xy_abs;
+				thrust_sp(0) *= k;
+				thrust_sp(1) *= k;
+				/* Don't freeze x,y integrals if they both want to throttle down */
+				saturation_xy = ((vel_err(0) * _vel_sp(0) < 0.0f) && (vel_err(1) * _vel_sp(1) < 0.0f)) ? saturation_xy : true;
+			}
+
+		} else {
+			/* Z component is positive, going down (Z is positive down in NED), simply limit thrust vector */
+			float k = thr_max / fabsf(thrust_body_z);
+			thrust_sp *= k;
+			saturation_xy = true;
+			saturation_z = true;
+		}
+
+		thrust_body_z = thr_max;
+	}
+
+	/* if any of the thrust setpoint is bogus, send out a warning */
+	if (!PX4_ISFINITE(thrust_sp(0)) || !PX4_ISFINITE(thrust_sp(1)) || !PX4_ISFINITE(thrust_sp(2))) {
+		warn_rate_limited("Thrust setpoint not finite");
+	}
+
+	_att_sp.thrust = math::max(thrust_body_z, thr_min);
+
+	/* update integrals */
+	if (_control_mode.flag_control_velocity_enabled && !saturation_xy) {
+		_thrust_int(0) += vel_err(0) * _vel_i(0) * _dt;
+		_thrust_int(1) += vel_err(1) * _vel_i(1) * _dt;
+	}
+
+	if (_control_mode.flag_control_climb_rate_enabled && !saturation_z) {
+		_thrust_int(2) += vel_err(2) * _vel_i(2) * _dt;
+	}
+
+	/* calculate attitude setpoint from thrust vector */
+	if (_control_mode.flag_control_velocity_enabled || _control_mode.flag_control_acceleration_enabled) {
+		/* desired body_z axis = -normalize(thrust_vector) */
+		matrix::Vector3f body_x;
+		matrix::Vector3f body_y;
+		matrix::Vector3f body_z;
+
+		if (thrust_sp.length() > SIGMA_NORM) {
+			body_z = -thrust_sp.normalized();
+
+		} else {
+			/* no thrust, set Z axis to safe value */
+			body_z = {0.0f, 0.0f, 1.0f};
+		}
+
+		/* vector of desired yaw direction in XY plane, rotated by PI/2 */
+		matrix::Vector3f y_C(-sinf(_att_sp.yaw_body), cosf(_att_sp.yaw_body), 0.0f);
+
+		if (fabsf(body_z(2)) > SIGMA_SINGLE_OP) {
+			/* desired body_x axis, orthogonal to body_z */
+			body_x = y_C % body_z;
+
+			/* keep nose to front while inverted upside down */
+			if (body_z(2) < 0.0f) {
+				body_x = -body_x;
+			}
+
+			body_x.normalize();
+
+		} else {
+			/* desired thrust is in XY plane, set X downside to construct correct matrix,
+			 * but yaw component will not be used actually */
+			body_x.zero();
+			body_x(2) = 1.0f;
+		}
+
+		/* desired body_y axis */
+		body_y = body_z % body_x;
+
+		/* fill rotation matrix */
+		for (int i = 0; i < 3; i++) {
+			_R_setpoint(i, 0) = body_x(i);
+			_R_setpoint(i, 1) = body_y(i);
+			_R_setpoint(i, 2) = body_z(i);
+		}
+
+		/* copy quaternion setpoint to attitude setpoint topic */
+		matrix::Quatf q_sp = _R_setpoint;
+		q_sp.copyTo(_att_sp.q_d);
+		_att_sp.q_d_valid = true;
+
+		/* calculate euler angles, for logging only, must not be used for control */
+		matrix::Eulerf euler = _R_setpoint;
+		_att_sp.roll_body = euler(0);
+		_att_sp.pitch_body = euler(1);
+		/* yaw already used to construct rot matrix, but actual rotation matrix can have different yaw near singularity */
+
+	} else if (!_control_mode.flag_control_manual_enabled) {
+		/* autonomous altitude control without position control (failsafe landing),
+		 * force level attitude, don't change yaw */
+		_R_setpoint = matrix::Eulerf(0.0f, 0.0f, _att_sp.yaw_body);
+
+		/* copy quaternion setpoint to attitude setpoint topic */
+		matrix::Quatf q_sp = _R_setpoint;
+		q_sp.copyTo(_att_sp.q_d);
+		_att_sp.q_d_valid = true;
+
+		_att_sp.roll_body = 0.0f;
+		_att_sp.pitch_body = 0.0f;
+	}
+
+	/* save thrust setpoint for logging */
+	_local_pos_sp.acc_x = thrust_sp(0) * CONSTANTS_ONE_G;
+	_local_pos_sp.acc_y = thrust_sp(1) * CONSTANTS_ONE_G;
+	_local_pos_sp.acc_z = thrust_sp(2) * CONSTANTS_ONE_G;
+
+	_att_sp.timestamp = hrt_absolute_time();
 }
 
 void
-MulticopterPositionControl::generate_attitude_setpoint(float dt)
+MulticopterPositionControl::generate_attitude_setpoint()
 {
+	// yaw setpoint is integrated over time, but we don't want to integrate the offset's
+	_att_sp.yaw_body -= _man_yaw_offset;
+	_man_yaw_offset = 0.f;
+
 	/* reset yaw setpoint to current position if needed */
 	if (_reset_yaw_sp) {
 		_reset_yaw_sp = false;
 		_att_sp.yaw_body = _yaw;
-	}
 
-	/* do not move yaw while sitting on the ground */
-	else if (!_vehicle_land_detected.landed &&
-		 !(!_control_mode.flag_control_altitude_enabled && _manual.z < 0.1f)) {
+	} else if (!_vehicle_land_detected.landed &&
+		   !(!_control_mode.flag_control_altitude_enabled && _manual.z < 0.1f)) {
+
+		/* do not move yaw while sitting on the ground */
 
 		/* we want to know the real constraint, and global overrides manual */
-		const float yaw_rate_max = (_params.man_yaw_max < _params.global_yaw_max) ? _params.man_yaw_max :
-					   _params.global_yaw_max;
-		const float yaw_offset_max = yaw_rate_max / _params.mc_att_yaw_p;
+		const float yaw_rate_max = (_man_yaw_max < _global_yaw_max) ? _man_yaw_max : _global_yaw_max;
+		const float yaw_offset_max = yaw_rate_max / _mc_att_yaw_p.get();
 
 		_att_sp.yaw_sp_move_rate = _manual.r * yaw_rate_max;
-		float yaw_target = _wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * dt);
-		float yaw_offs = _wrap_pi(yaw_target - _yaw);
+		float yaw_target = wrap_pi(_att_sp.yaw_body + _att_sp.yaw_sp_move_rate * _dt);
+		float yaw_offs = wrap_pi(yaw_target - _yaw);
 
 		// If the yaw offset became too big for the system to track stop
 		// shifting it, only allow if it would make the offset smaller again.
@@ -2096,7 +2781,7 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 
 	/* control throttle directly if no climb rate controller is active */
 	if (!_control_mode.flag_control_climb_rate_enabled) {
-		float thr_val = throttle_curve(_manual.z, _params.thr_hover);
+		float thr_val = throttle_curve(_manual.z, _thr_hover.get());
 		_att_sp.thrust = math::min(thr_val, _manual_thr_max.get());
 
 		/* enforce minimum throttle if not landed */
@@ -2107,34 +2792,82 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 
 	/* control roll and pitch directly if no aiding velocity controller is active */
 	if (!_control_mode.flag_control_velocity_enabled) {
-		_att_sp.roll_body = _manual.y * _params.man_roll_max;
-		_att_sp.pitch_body = -_manual.x * _params.man_pitch_max;
 
-		/* only if optimal recovery is not used, modify roll/pitch */
-		if (_params.opt_recover <= 0) {
+		/*
+		 * Input mapping for roll & pitch setpoints
+		 * ----------------------------------------
+		 * This simplest thing to do is map the y & x inputs directly to roll and pitch, and scale according to the max
+		 * tilt angle.
+		 * But this has several issues:
+		 * - The maximum tilt angle cannot easily be restricted. By limiting the roll and pitch separately,
+		 *   it would be possible to get to a higher tilt angle by combining roll and pitch (the difference is
+		 *   around 15 degrees maximum, so quite noticeable). Limiting this angle is not simple in roll-pitch-space,
+		 *   it requires to limit the tilt angle = acos(cos(roll) * cos(pitch)) in a meaningful way (eg. scaling both
+		 *   roll and pitch).
+		 * - Moving the stick diagonally, such that |x| = |y|, does not move the vehicle towards a 45 degrees angle.
+		 *   The direction angle towards the max tilt in the XY-plane is atan(1/cos(x)). Which means it even depends
+		 *   on the tilt angle (for a tilt angle of 35 degrees, it's off by about 5 degrees).
+		 *
+		 * So instead we control the following 2 angles:
+		 * - tilt angle, given by sqrt(x*x + y*y)
+		 * - the direction of the maximum tilt in the XY-plane, which also defines the direction of the motion
+		 *
+		 * This allows a simple limitation of the tilt angle, the vehicle flies towards the direction that the stick
+		 * points to, and changes of the stick input are linear.
+		 */
+		const float x = _manual.x * _man_tilt_max;
+		const float y = _manual.y * _man_tilt_max;
+
+		// we want to fly towards the direction of (x, y), so we use a perpendicular axis angle vector in the XY-plane
+		matrix::Vector2f v = matrix::Vector2f(y, -x);
+		float v_norm = v.norm(); // the norm of v defines the tilt angle
+
+		if (v_norm > _man_tilt_max) { // limit to the configured maximum tilt angle
+			v *= _man_tilt_max / v_norm;
+		}
+
+		matrix::Quatf q_sp_rpy = matrix::AxisAnglef(v(0), v(1), 0.f);
+		// The axis angle can change the yaw as well (but only at higher tilt angles. Note: we're talking
+		// about the world frame here, in terms of body frame the yaw rate will be unaffected).
+		// This the the formula by how much the yaw changes:
+		//   let a := tilt angle, b := atan(y/x) (direction of maximum tilt)
+		//   yaw = atan(-2 * sin(b) * cos(b) * sin^2(a/2) / (1 - 2 * cos^2(b) * sin^2(a/2))).
+		matrix::Eulerf euler_sp = q_sp_rpy;
+		// Since the yaw setpoint is integrated, we extract the offset here,
+		// so that we can remove it before the next iteration
+		_man_yaw_offset = euler_sp(2);
+
+		// update the setpoints
+		_att_sp.roll_body = euler_sp(0);
+		_att_sp.pitch_body = euler_sp(1);
+		_att_sp.yaw_body += euler_sp(2);
+
+		/* only if we're a VTOL modify roll/pitch */
+		if (_vehicle_status.is_vtol) {
 			// construct attitude setpoint rotation matrix. modify the setpoints for roll
 			// and pitch such that they reflect the user's intention even if a yaw error
 			// (yaw_sp - yaw) is present. In the presence of a yaw error constructing a rotation matrix
 			// from the pure euler angle setpoints will lead to unexpected attitude behaviour from
 			// the user's view as the euler angle sequence uses the  yaw setpoint and not the current
 			// heading of the vehicle.
+			// The effect of that can be seen with:
+			// - roll/pitch into one direction, keep it fixed (at high angle)
+			// - apply a fast yaw rotation
+			// - look at the roll and pitch angles: they should stay pretty much the same as when not yawing
 
 			// calculate our current yaw error
-			float yaw_error = _wrap_pi(_att_sp.yaw_body - _yaw);
+			float yaw_error = wrap_pi(_att_sp.yaw_body - _yaw);
 
 			// compute the vector obtained by rotating a z unit vector by the rotation
 			// given by the roll and pitch commands of the user
-			math::Vector<3> zB = {0, 0, 1};
-			math::Matrix<3, 3> R_sp_roll_pitch;
-			R_sp_roll_pitch.from_euler(_att_sp.roll_body, _att_sp.pitch_body, 0);
-			math::Vector<3> z_roll_pitch_sp = R_sp_roll_pitch * zB;
-
+			matrix::Vector3f zB = {0.0f, 0.0f, 1.0f};
+			matrix::Dcmf R_sp_roll_pitch = matrix::Eulerf(_att_sp.roll_body, _att_sp.pitch_body, 0.0f);
+			matrix::Vector3f z_roll_pitch_sp = R_sp_roll_pitch * zB;
 
 			// transform the vector into a new frame which is rotated around the z axis
 			// by the current yaw error. this vector defines the desired tilt when we look
 			// into the direction of the desired heading
-			math::Matrix<3, 3> R_yaw_correction;
-			R_yaw_correction.from_euler(0.0f, 0.0f, -yaw_error);
+			matrix::Dcmf R_yaw_correction = matrix::Eulerf(0.0f, 0.0f, -yaw_error);
 			z_roll_pitch_sp = R_yaw_correction * z_roll_pitch_sp;
 
 			// use the formula z_roll_pitch_sp = R_tilt * [0;0;1]
@@ -2146,45 +2879,60 @@ MulticopterPositionControl::generate_attitude_setpoint(float dt)
 
 		/* copy quaternion setpoint to attitude setpoint topic */
 		matrix::Quatf q_sp = matrix::Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
-		memcpy(&_att_sp.q_d[0], q_sp.data(), sizeof(_att_sp.q_d));
+		q_sp.copyTo(_att_sp.q_d);
 		_att_sp.q_d_valid = true;
 	}
 
-	if (_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
+	// Only switch the landing gear up if we are not landed and if
+	// the user switched from gear down to gear up.
+	// If the user had the switch in the gear up position and took off ignore it
+	// until he toggles the switch to avoid retracting the gear immediately on takeoff.
+	if (_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON && _gear_state_initialized &&
 	    !_vehicle_land_detected.landed) {
-		_att_sp.landing_gear = 1.0f;
+		_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_UP;
 
 	} else if (_manual.gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
-		_att_sp.landing_gear = -1.0f;
+		_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
+		// Switching the gear off does put it into a safe defined state
+		_gear_state_initialized = true;
 	}
 
 	_att_sp.timestamp = hrt_absolute_time();
 }
 
+bool MulticopterPositionControl::manual_wants_takeoff()
+{
+	const bool has_manual_control_present = _control_mode.flag_control_manual_enabled && _manual.timestamp > 0;
+
+	// Manual takeoff is triggered if the throttle stick is above 65%.
+	return (has_manual_control_present && (_manual.z > 0.65f || !_control_mode.flag_control_climb_rate_enabled));
+}
+
+bool MulticopterPositionControl::manual_wants_landing()
+{
+	const bool has_manual_control_present = _control_mode.flag_control_manual_enabled && _manual.timestamp > 0;
+
+	// Operator is trying to land if the throttle stick is under 15%.
+	return (has_manual_control_present && (_manual.z < 0.15f || !_control_mode.flag_control_climb_rate_enabled));
+}
+
 void
 MulticopterPositionControl::task_main()
 {
-
 	/*
 	 * do subscriptions
 	 */
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-	_ctrl_state_sub = orb_subscribe(ORB_ID(control_state));
-	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
+	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	_arming_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
-	_local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
-	_global_vel_sp_sub = orb_subscribe(ORB_ID(vehicle_global_velocity_setpoint));
+	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 
 	parameters_update(true);
-
-	/* initialize values of critical structs until first regular update */
-	_arming.armed = false;
 
 	/* get an initial update for all sensor and status data */
 	poll_subscriptions();
@@ -2192,13 +2940,12 @@ MulticopterPositionControl::task_main()
 	/* We really need to know from the beginning if we're landed or in-air. */
 	orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
 
-	bool was_armed = false;
+	bool was_landed = true;
 
 	hrt_abstime t_prev = 0;
 
 	// Let's be safe and have the landing gear down by default
-	_att_sp.landing_gear = -1.0f;
-
+	_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
 
 	/* wakeup source */
 	px4_pollfd_struct_t fds[1];
@@ -2226,34 +2973,92 @@ MulticopterPositionControl::task_main()
 		parameters_update(false);
 
 		hrt_abstime t = hrt_absolute_time();
-		float dt = t_prev != 0 ? (t - t_prev) / 1e6f : 0.0f;
+		const float dt = t_prev != 0 ? (t - t_prev) / 1e6f : 0.004f;
 		t_prev = t;
 
-		// set dt for control blocks
+		/* set dt for control blocks */
 		setDt(dt);
 
-		if (_control_mode.flag_armed && !was_armed) {
-			/* reset setpoints and integrals on arming */
+		/* Update velocity limits. Use the minimum of the estimator demanded and vehicle
+		 * limits, and allow a minimum of 0.3 m/s for repositioning */
+		if (PX4_ISFINITE(_local_pos.vxy_max)) {
+			_vel_max_xy = fmaxf(fminf(_vel_max_xy_param.get(), _local_pos.vxy_max), 0.3f);
+
+		} else {
+			/* If the estimator stopped demanding a limit, release the limit gradually */
+			if (_vel_sp_significant) {
+				if (_vel_max_xy < _vel_max_xy_param.get()) {
+					_vel_max_xy += dt * _acc_max_estimator_xy.get();
+
+				} else {
+					_vel_max_xy = _vel_max_xy_param.get();
+				}
+			}
+		}
+
+		/* reset flags when landed */
+		if (_vehicle_land_detected.landed) {
 			_reset_pos_sp = true;
 			_reset_alt_sp = true;
 			_do_reset_alt_pos_flag = true;
-			_vel_sp_prev.zero();
+			_mode_auto = false;
+			_pos_hold_engaged = false;
+			_alt_hold_engaged = false;
+			_run_pos_control = true;
+			_run_alt_control = true;
 			_reset_int_z = true;
 			_reset_int_xy = true;
 			_reset_yaw_sp = true;
+			_hold_offboard_xy = false;
+			_hold_offboard_z = false;
+			_in_landing = false;
+			_lnd_reached_ground = false;
+
+			/* also reset previous setpoints */
+			_yaw_takeoff = _yaw;
+			_vel_sp_prev.zero();
+			_vel_prev.zero();
+
+			/* make sure attitude setpoint output "disables" attitude control
+			 * TODO: we need a defined setpoint to do this properly especially when adjusting the mixer */
+			_att_sp.thrust = 0.0f;
+			_att_sp.timestamp = hrt_absolute_time();
+
+			/* reset velocity limit */
+			_vel_max_xy = _vel_max_xy_param.get();
 		}
 
-		/* reset yaw and altitude setpoint for VTOL which are in fw mode */
+		/* reset setpoints and integrators VTOL in FW mode */
 		if (_vehicle_status.is_vtol && !_vehicle_status.is_rotary_wing) {
-			_reset_yaw_sp = true;
 			_reset_alt_sp = true;
+			_reset_int_xy = true;
+			_reset_int_z = true;
+			_reset_pos_sp = true;
+			_reset_yaw_sp = true;
+			_vel_sp_prev = _vel;
 		}
 
-		//Update previous arming state
-		was_armed = _control_mode.flag_armed;
+		if (!_in_smooth_takeoff && _vehicle_land_detected.landed && _control_mode.flag_armed &&
+		    (in_auto_takeoff() || manual_wants_takeoff())) {
+			_in_smooth_takeoff = true;
+			// This ramp starts negative and goes to positive later because we want to
+			// be as smooth as possible. If we start at 0, we alrady jump to hover throttle.
+			_takeoff_vel_limit = -0.5f;
+		}
+
+		else if (!_control_mode.flag_armed) {
+			// If we're disarmed and for some reason were in a smooth takeoff, we reset that.
+			_in_smooth_takeoff = false;
+		}
+
+		/* set triplets to invalid if we just landed */
+		if (_vehicle_land_detected.landed && !was_landed) {
+			_pos_sp_triplet.current.valid = false;
+		}
+
+		was_landed = _vehicle_land_detected.landed;
 
 		update_ref();
-
 
 		update_velocity_derivative();
 
@@ -2267,81 +3072,180 @@ MulticopterPositionControl::task_main()
 			_alt_hold_engaged = false;
 		}
 
-		if (_control_mode.flag_control_altitude_enabled ||
-		    _control_mode.flag_control_position_enabled ||
-		    _control_mode.flag_control_climb_rate_enabled ||
-		    _control_mode.flag_control_velocity_enabled ||
-		    _control_mode.flag_control_acceleration_enabled) {
+		if (_test_flight_tasks.get()) {
+			switch (_vehicle_status.nav_state) {
+			case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+				_flight_tasks.switchTask(FlightTaskIndex::Altitude);
+				break;
 
-			do_control(dt);
+			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+				_flight_tasks.switchTask(FlightTaskIndex::Position);
+				break;
 
-			/* fill local position, velocity and thrust setpoint */
-			_local_pos_sp.timestamp = hrt_absolute_time();
-			_local_pos_sp.x = _pos_sp(0);
-			_local_pos_sp.y = _pos_sp(1);
-			_local_pos_sp.z = _pos_sp(2);
-			_local_pos_sp.yaw = _att_sp.yaw_body;
-			_local_pos_sp.vx = _vel_sp(0);
-			_local_pos_sp.vy = _vel_sp(1);
-			_local_pos_sp.vz = _vel_sp(2);
+			case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+				_flight_tasks.switchTask(FlightTaskIndex::Stabilized);
+				break;
 
-			/* publish local position setpoint */
-			if (_local_pos_sp_pub != nullptr) {
-				orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &_local_pos_sp);
+			default:
+				/* not supported yet */
+				_flight_tasks.switchTask(FlightTaskIndex::None);
+			}
+
+		} else {
+			/* make sure to disable any task when we are not testing them */
+			_flight_tasks.switchTask(FlightTaskIndex::None);
+		}
+
+		if (_test_flight_tasks.get() && _flight_tasks.isAnyTaskActive()) {
+
+			_flight_tasks.update();
+
+			/* Get Flighttask setpoints */
+			vehicle_local_position_setpoint_s setpoint = _flight_tasks.getPositionSetpoint();
+
+			/* Get _contstraints depending on flight mode
+			 * This logic will be set by FlightTasks */
+			Controller::Constraints constraints;
+			updateConstraints(constraints);
+
+			/* For takeoff we adjust the velocity setpoint in the z-direction */
+			if (_in_smooth_takeoff) {
+				/* Adjust velocity setpoint in z if we are in smooth takeoff */
+				set_takeoff_velocity(setpoint.vz);
+			}
+
+			/* this logic is only temporary.
+			 * Mode switch related things will be handled within
+			 * Flighttask activate method
+			 */
+			if (_vehicle_status.nav_state
+			    == _vehicle_status.NAVIGATION_STATE_MANUAL) {
+				/* we set triplets to false
+				 * this ensures that when switching to auto, the position
+				 * controller will not use the old triplets but waits until triplets
+				 * have been updated */
+				_mode_auto = false;
+				_pos_sp_triplet.current.valid = false;
+				_pos_sp_triplet.previous.valid = false;
+				_hold_offboard_xy = false;
+				_hold_offboard_z = false;
+
+			}
+
+			// We can only run the control if we're already in-air, have a takeoff setpoint,
+			// or if we're in offboard control.
+			// Otherwise, we should just bail out
+			if (_vehicle_land_detected.landed && !in_auto_takeoff() && !manual_wants_takeoff()) {
+				// Keep throttle low while still on ground.
+				set_idle_state();
+
+			} else if (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_MANUAL ||
+				   _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_POSCTL ||
+				   _vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_ALTCTL) {
+
+
+				_control.updateState(_local_pos, matrix::Vector3f(&(_vel_err_d(0))));
+				_control.updateSetpoint(setpoint);
+				_control.updateConstraints(constraints);
+				_control.generateThrustYawSetpoint(_dt);
+
+				/* fill local position, velocity and thrust setpoint */
+				_local_pos_sp.timestamp = hrt_absolute_time();
+				_local_pos_sp.x = _control.getPosSp()(0);
+				_local_pos_sp.y = _control.getPosSp()(1);
+				_local_pos_sp.z = _control.getPosSp()(2);
+				_local_pos_sp.yaw = _control.getYawSetpoint();
+				_local_pos_sp.yawspeed = _control.getYawspeedSetpoint();
+				_local_pos_sp.vx = _control.getVelSp()(0);
+				_local_pos_sp.vy = _control.getVelSp()(1);
+				_local_pos_sp.vz = _control.getVelSp()(2);
+				_control.getThrustSetpoint().copyTo(_local_pos_sp.thrust);
+
+				/* We adjust thrust setpoint based on landdetector */
+				matrix::Vector3f thr_sp = _control.getThrustSetpoint();
+				landdetection_thrust_limit(thr_sp); //TODO: only do that if not in pure manual
+
+				_att_sp = ControlMath::thrustToAttitude(thr_sp, _control.getYawSetpoint());
+				_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
+
+			}
+
+			publish_local_pos_sp();
+			publish_attitude();
+
+		} else {
+			if (_control_mode.flag_control_altitude_enabled ||
+			    _control_mode.flag_control_position_enabled ||
+			    _control_mode.flag_control_climb_rate_enabled ||
+			    _control_mode.flag_control_velocity_enabled ||
+			    _control_mode.flag_control_acceleration_enabled) {
+
+				do_control();
+
+				/* fill local position, velocity and thrust setpoint */
+				_local_pos_sp.timestamp = hrt_absolute_time();
+				_local_pos_sp.x = _pos_sp(0);
+				_local_pos_sp.y = _pos_sp(1);
+				_local_pos_sp.z = _pos_sp(2);
+				_local_pos_sp.yaw = _att_sp.yaw_body;
+				_local_pos_sp.vx = _vel_sp(0);
+				_local_pos_sp.vy = _vel_sp(1);
+				_local_pos_sp.vz = _vel_sp(2);
+
+				/* publish local position setpoint */
+				if (_local_pos_sp_pub != nullptr) {
+					orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &_local_pos_sp);
+
+				} else {
+					_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
+				}
 
 			} else {
-				_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
+				/* position controller disabled, reset setpoints */
+				_reset_pos_sp = true;
+				_reset_alt_sp = true;
+				_do_reset_alt_pos_flag = true;
+				_mode_auto = false;
+				_reset_int_z = true;
+				_reset_int_xy = true;
+
+				/* store last velocity in case a mode switch to position control occurs */
+				_vel_sp_prev = _vel;
 			}
 
-		} else {
-			/* position controller disabled, reset setpoints */
-			_reset_pos_sp = true;
-			_reset_alt_sp = true;
-			_do_reset_alt_pos_flag = true;
-			_mode_auto = false;
-			_reset_int_z = true;
-			_reset_int_xy = true;
-			control_vel_enabled_prev = false;
+			/* generate attitude setpoint from manual controls */
+			if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
 
-			/* store last velocity in case a mode switch to position control occurs */
-			_vel_sp_prev = _vel;
-		}
+				generate_attitude_setpoint();
 
-		/* generate attitude setpoint from manual controls */
-		if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
+			} else {
+				_reset_yaw_sp = true;
+				_att_sp.yaw_sp_move_rate = 0.0f;
+			}
 
-			generate_attitude_setpoint(dt);
+			/* update previous velocity for velocity controller D part */
+			_vel_prev = _vel;
 
-		} else {
-			_reset_yaw_sp = true;
-			_att_sp.yaw_sp_move_rate = 0.0f;
-		}
+			/* publish attitude setpoint
+			 * Do not publish if
+			 * - offboard is enabled but position/velocity/accel control is disabled,
+			 * in this case the attitude setpoint is published by the mavlink app.
+			 * - if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
+			 * attitude setpoints for the transition).
+			 */
+			if (!(_control_mode.flag_control_offboard_enabled &&
+			      !(_control_mode.flag_control_position_enabled ||
+				_control_mode.flag_control_velocity_enabled ||
+				_control_mode.flag_control_acceleration_enabled))) {
 
-		/* update previous velocity for velocity controller D part */
-		_vel_prev = _vel;
+				if (_att_sp_pub != nullptr) {
+					orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
 
-		/* publish attitude setpoint
-		 * Do not publish if offboard is enabled but position/velocity/accel control is disabled,
-		 * in this case the attitude setpoint is published by the mavlink app. Also do not publish
-		 * if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
-		 * attitude setpoints for the transition).
-		 */
-		if (!(_control_mode.flag_control_offboard_enabled &&
-		      !(_control_mode.flag_control_position_enabled ||
-			_control_mode.flag_control_velocity_enabled ||
-			_control_mode.flag_control_acceleration_enabled))) {
-
-			if (_att_sp_pub != nullptr) {
-				orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
-
-			} else if (_attitude_setpoint_id) {
-				_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+				} else if (_attitude_setpoint_id) {
+					_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+				}
 			}
 		}
-
-		/* reset altitude controller integral (hovering throttle) to manual throttle after manual throttle control */
-		_reset_int_z_manual = _control_mode.flag_armed && _control_mode.flag_control_manual_enabled
-				      && !_control_mode.flag_control_climb_rate_enabled;
 	}
 
 	mavlink_log_info(&_mavlink_log_pub, "[mpc] stopped");
@@ -2349,15 +3253,143 @@ MulticopterPositionControl::task_main()
 	_control_task = -1;
 }
 
+void
+MulticopterPositionControl::set_takeoff_velocity(float &vel_sp_z)
+{
+	_in_smooth_takeoff = _takeoff_vel_limit < -vel_sp_z;
+	/* ramp vertical velocity limit up to takeoff speed */
+	_takeoff_vel_limit += -vel_sp_z * _dt / _takeoff_ramp_time.get();
+	/* limit vertical velocity to the current ramp value */
+	vel_sp_z = math::max(vel_sp_z, -_takeoff_vel_limit);
+}
+
+void
+MulticopterPositionControl::publish_attitude()
+{
+	/* publish attitude setpoint
+	 * Do not publish if
+	 * - offboard is enabled but position/velocity/accel control is disabled,
+	 * in this case the attitude setpoint is published by the mavlink app.
+	 * - if the vehicle is a VTOL and it's just doing a transition (the VTOL attitude control module will generate
+	 * attitude setpoints for the transition).
+	 * - if not armed
+	 */
+	if (_control_mode.flag_armed &&
+	    (!(_control_mode.flag_control_offboard_enabled &&
+	       !(_control_mode.flag_control_position_enabled ||
+		 _control_mode.flag_control_velocity_enabled ||
+		 _control_mode.flag_control_acceleration_enabled)))) {
+
+		_att_sp.timestamp = hrt_absolute_time();
+
+		if (_att_sp_pub != nullptr) {
+			orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
+
+		} else if (_attitude_setpoint_id) {
+			_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+		}
+	}
+}
+
+void
+MulticopterPositionControl::publish_local_pos_sp()
+{
+
+	_local_pos_sp.timestamp = hrt_absolute_time();
+
+	/* publish local position setpoint */
+	if (_local_pos_sp_pub != nullptr) {
+		orb_publish(ORB_ID(vehicle_local_position_setpoint),
+			    _local_pos_sp_pub, &_local_pos_sp);
+
+	} else {
+		_local_pos_sp_pub = orb_advertise(
+					    ORB_ID(vehicle_local_position_setpoint),
+					    &_local_pos_sp);
+	}
+}
+
+void
+MulticopterPositionControl::set_idle_state()
+{
+	_local_pos_sp.x = _pos(0);
+	_local_pos_sp.y = _pos(1);
+	_local_pos_sp.z = _pos(2) + 1.0f; //1m into ground when idle
+	_local_pos_sp.vx = 0.0f;
+	_local_pos_sp.vy = 0.0f;
+	_local_pos_sp.vz = 1.0f; //1m/s into ground
+	_local_pos_sp.yaw = _yaw;
+	_local_pos_sp.yawspeed = 0.0f;
+
+	_att_sp.roll_body = 0.0f;
+	_att_sp.pitch_body = 0.0f;
+	_att_sp.yaw_body = _yaw;
+	_att_sp.yaw_sp_move_rate = 0.0f;
+	matrix::Quatf q_sp = matrix::Eulerf(0.0f, 0.0f, _yaw);
+	q_sp.copyTo(_att_sp.q_d);
+	_att_sp.q_d_valid = true; //TODO: check if this flag is used anywhere
+	_att_sp.thrust = 0.0f;
+}
+
+void
+MulticopterPositionControl::updateConstraints(Controller::Constraints &constraints)
+{
+	/* _constraints */
+	constraints.tilt_max = NAN; // Default no maximum tilt
+
+	/* Set maximum tilt  */
+	if (!_control_mode.flag_control_manual_enabled
+	    && _pos_sp_triplet.current.valid
+	    && _pos_sp_triplet.current.type
+	    == position_setpoint_s::SETPOINT_TYPE_LAND) {
+
+		/* Auto landing tilt */
+		constraints.tilt_max = _tilt_max_land;
+
+	} else {
+		/* Velocity/acceleration control tilt */
+		constraints.tilt_max = _tilt_max_air;
+	}
+}
+
+void
+MulticopterPositionControl::landdetection_thrust_limit(matrix::Vector3f &thrust_sp)
+{
+	if (!in_auto_takeoff() && !manual_wants_takeoff()) {
+		if (_vehicle_land_detected.ground_contact) {
+			/* if still or already on ground command zero xy thrust_sp in body
+			 * frame to consider uneven ground */
+
+			/* thrust setpoint in body frame*/
+			matrix::Vector3f thrust_sp_body = _R.transpose() * thrust_sp;
+
+			/* we dont want to make any correction in body x and y*/
+			thrust_sp_body(0) = 0.0f;
+			thrust_sp_body(1) = 0.0f;
+
+			/* make sure z component of thrust_sp_body is larger than 0 (positive thrust is downward) */
+			thrust_sp_body(2) = thrust_sp(2) > 0.0f ? thrust_sp(2) : 0.0f;
+
+			/* convert back to local frame (NED) */
+			thrust_sp = _R * thrust_sp_body;
+		}
+
+		if (_vehicle_land_detected.maybe_landed) {
+			/* we set thrust to zero
+			 * this will help to decide if we are actually landed or not
+			 */
+			thrust_sp.zero();
+		}
+	}
+}
+
 int
 MulticopterPositionControl::start()
 {
-	ASSERT(_control_task == -1);
-
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("mc_pos_control",
 					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_MAX - 5,
+					   SCHED_PRIORITY_POSITION_CONTROL,
 					   1900,
 					   (px4_main_t)&MulticopterPositionControl::task_main_trampoline,
 					   nullptr);

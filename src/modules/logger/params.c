@@ -69,6 +69,58 @@ PARAM_DEFINE_INT32(SDLOG_UTC_OFFSET, 0);
 PARAM_DEFINE_INT32(SDLOG_MODE, 0);
 
 /**
+ * Logging Topic Profile
+ *
+ * This is an integer bitmask controlling the set and rates of logged topics.
+ * The default allows for general log analysis and estimator replay, while
+ * keeping the log file size reasonably small.
+ *
+ * Enabling multiple sets leads to higher bandwidth requirements and larger log
+ * files.
+ *
+ * Set bits in the following positions to enable:
+ * 0 : Set to true to use the default set (used for general log analysis)
+ * 1 : Set to true to enable full rate estimator (EKF2) replay topics
+ * 2 : Set to true to enable topics for thermal calibration (high rate raw IMU and Baro sensor data)
+ * 3 : Set to true to enable topics for system identification (high rate actuator control and IMU data)
+ * 4 : Set to true to enable full rates for analysis of fast maneuvers (RC, attitude, rates and actuators)
+ * 5 : Set to true to enable debugging topics (debug_*.msg topics, for custom code)
+ * 6 : Set to true to enable topics for sensor comparison (low rate raw IMU, Baro and Magnetomer data)
+ *
+ * @min 0
+ * @max 127
+ * @bit 0 default set (log analysis)
+ * @bit 1 estimator replay (EKF2)
+ * @bit 2 thermal calibration
+ * @bit 3 system identification
+ * @bit 4 high rate
+ * @bit 5 debug
+ * @bit 6 sensor comparison
+ * @reboot_required true
+ * @group SD Logging
+ */
+PARAM_DEFINE_INT32(SDLOG_PROFILE, 3);
+
+/**
+ * Maximum number of log directories to keep
+ *
+ * If there are more log directories than this value,
+ * the system will delete the oldest directories during startup.
+ *
+ * In addition, the system will delete old logs if there is not enough free space left.
+ * The minimum amount is 300 MB.
+ *
+ * If this is set to 0, old directories will only be removed if the free space falls below
+ * the minimum.
+ *
+ * @min 0
+ * @max 1000
+ * @reboot_required true
+ * @group SD Logging
+ */
+PARAM_DEFINE_INT32(SDLOG_DIRS_MAX, 0);
+
+/**
  * Log UUID
  *
  * If set to 1, add an ID to the log, which uniquely identifies the vehicle

@@ -70,6 +70,8 @@
 /* PX4: armed state indicator ; Stock FW: Blinking while charging */
 #define GPIO_LED_BLUE_L		(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN2)
 
+#define BOARD_HAS_CONTROL_STATUS_LEDS	1
+
 #define LED_TX 4
 #define LED_RX 5
 
@@ -91,6 +93,42 @@
 
 #define PX4_I2C_BUS_MTD	PX4_I2C_BUS_EXPANSION
 
+#define BOARD_NUMBER_I2C_BUSES  3
+#define BOARD_I2C_BUS_CLOCK_INIT {PX4_I2C_BUS_ONBOARD_HZ, 100000, PX4_I2C_BUS_EXPANSION_HZ}
+
+
+/*
+ *  Define the ability to shut off off the sensor signals
+ *  by changing the signals to inputs
+ */
+
+#define _PIN_OFF(def) (((def) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_2MHz))
+
+
+/*  SPI Busses */
+
+/*  SPI1 Bus */
+#define PX4_SPI_BUS_EXPANSION 						1
+
+/* SPI1 CS */
+#define GPIO_SPI1_CS0_EXT    		/* PC12 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN12)
+#define GPIO_SPI1_CS1_EXT    		/* PB4  */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN4)
+#define GPIO_SPI1_CS2_EXT    		/* PB5  */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN5)
+
+#define PX4_FLOW_BUS_CS_GPIO					{ GPIO_SPI1_CS0_EXT, GPIO_SPI1_CS1_EXT, GPIO_SPI1_CS2_EXT }
+
+/* SPI1 Devices */
+#define PX4_SPIDEV_EXPANSION_1      			PX4_MK_SPI_SEL(PX4_SPI_BUS_EXPANSION, 0)		// SD CARD BREAKOUT
+#define PX4_SPIDEV_EXPANSION_2      			PX4_MK_SPI_SEL(PX4_SPI_BUS_EXPANSION, 1) 		// OPTICAL FLOW BREAKOUT
+#define PX4_SPIDEV_EXPANSION_3      			PX4_MK_SPI_SEL(PX4_SPI_BUS_EXPANSION, 2)
+
+#define PX4_FLOW_BUS_FIRST_CS  					PX4_SPIDEV_EXPANSION_1
+#define PX4_FLOW_BUS_LAST_CS  					PX4_SPIDEV_EXPANSION_3
+
+/* SPI1 off */
+#define GPIO_SPI1_SCK_OFF						_PIN_OFF(GPIO_SPI1_SCK)
+#define GPIO_SPI1_MISO_OFF						_PIN_OFF(GPIO_SPI1_MISO)
+#define GPIO_SPI1_MOSI_OFF						_PIN_OFF(GPIO_SPI1_MOSI)
 
 
 /* Devices on the onboard bus.
@@ -162,7 +200,7 @@
 #define PX4_PWM_ALTERNATE_RANGES
 #define PWM_LOWEST_MIN 0
 #define PWM_MOTOR_OFF	0
-#define PWM_DEFAULT_MIN 0
+#define PWM_DEFAULT_MIN 20
 #define PWM_HIGHEST_MIN 0
 #define PWM_HIGHEST_MAX 255
 #define PWM_DEFAULT_MAX 255
@@ -178,8 +216,6 @@
 
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
-
-#define BOARD_FMU_GPIO_TAB { {0, 0, 0}, }
 
 #define BOARD_NAME "CRAZYFLIE"
 
@@ -200,14 +236,13 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 
 /****************************************************************************************************
- * Name: board_spi_reset board_peripheral_reset
+ * Name: board_peripheral_reset
  *
  * Description:
- *   Called to reset SPI and the perferal bus
+ *   Called to reset the periferal bus
  *
  ****************************************************************************************************/
 
-#define board_spi_reset(ms)
 #define board_peripheral_reset(ms)
 
 /****************************************************************************************************
@@ -229,6 +264,29 @@ extern void stm32_usbinitialize(void);
  ****************************************************************************/
 
 int board_i2c_initialize(void);
+
+/****************************************************************************************************
+ * Name: stm32_spiinitialize
+ *
+ * Description:
+ *   Called to configure SPI chip select GPIO pins for the PX4FMU board.
+ *
+ ****************************************************************************************************/
+
+extern void stm32_spiinitialize(void);
+
+/************************************************************************************
+ * Name: stm32_spi_bus_initialize
+ *
+ * Description:
+ *   Called to configure SPI Buses.
+ *
+ ************************************************************************************/
+
+extern int stm32_spi_bus_initialize(void);
+
+void board_spi_reset(int ms);
+
 
 #include "../common/board_common.h"
 

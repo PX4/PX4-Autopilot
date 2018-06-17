@@ -11,7 +11,6 @@ float32 altitudeSp
 float32 altitude_filtered
 float32 flightPathAngleSp
 float32 flightPathAngle
-float32 flightPathAngleFiltered
 float32 airspeedSp
 float32 airspeed_filtered
 float32 airspeedDerivativeSp

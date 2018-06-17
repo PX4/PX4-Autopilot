@@ -52,18 +52,18 @@
 			<type>10</type>
 			<matcher>
 				<id>org.eclipse.ui.ide.multiFilter</id>
-				<arguments>1.0-name-matches-true-false-build_*</arguments>
+				<arguments>1.0-name-matches-true-false-build*</arguments>
 			</matcher>
 		</filter>
 	</filteredResources>
 	<variableList>
 		<variable>
 			<name>uORB_LOC</name>
-			<value>$%7BPROJECT_LOC%7D/build_posix_sitl_default/src/modules/uORB</value>
+			<value>$%7BPROJECT_LOC%7D/build/posix_sitl_default/uORB</value>
 		</variable>
 		<variable>
 			<name>uORB_SRC</name>
-			<value>$%7BPROJECT_LOC%7D/build_posix_sitl_default/topics_sources</value>
+			<value>$%7BPROJECT_LOC%7D/build/posix_sitl_default/msg/topics_sources</value>
 		</variable>
 	</variableList>
 </projectDescription>

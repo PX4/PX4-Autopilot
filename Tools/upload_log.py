@@ -23,7 +23,7 @@ except:
     raise
 
 
-SERVER = 'http://logs.px4.io'
+SERVER = 'https://logs.px4.io'
 #SERVER = 'http://localhost:5006' # for testing locally
 UPLOAD_URL = SERVER+'/upload'
 

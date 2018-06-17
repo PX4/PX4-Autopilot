@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -37,14 +37,19 @@ px4_add_module(
 	PRIORITY "SCHED_PRIORITY_MAX-5"
 	STACK_MAIN 1300
 	COMPILE_FLAGS
+		-Wno-sign-compare # TODO: fix all sign-compare
 	SRCS
 		voted_sensors_update.cpp
 		rc_update.cpp
 		sensors.cpp
-		sensors_init.cpp
 		parameters.cpp
+		temperature_compensation.cpp
 
 	DEPENDS
-		platforms__common
+		airspeed
+		battery
+		conversion
+		drivers__device
+		git_ecl
+		ecl_validation
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

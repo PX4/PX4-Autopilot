@@ -44,9 +44,9 @@
 class HRTTest
 {
 public:
-	HRTTest() {};
+	HRTTest() {}
 
-	~HRTTest() {};
+	~HRTTest() {}
 
 	int main();
 

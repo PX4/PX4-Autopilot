@@ -38,6 +38,7 @@
 #include <mathlib/mathlib.h>
 #include <px4_log.h>
 #include <px4_posix.h>
+#include <cstring>
 
 namespace px4
 {
@@ -69,6 +70,13 @@ LogWriterMavlink::~LogWriterMavlink()
 
 void LogWriterMavlink::start_log()
 {
+	if (_ulog_stream_pub == nullptr) {
+		memset(&_ulog_stream_data, 0, sizeof(_ulog_stream_data));
+		// advertise before we subscribe: this is a trick to reduce the number of needed file descriptors
+		// (the advertise temporarily opens a file descriptor)
+		_ulog_stream_pub = orb_advertise_queue(ORB_ID(ulog_stream), &_ulog_stream_data, _queue_size);
+	}
+
 	if (_ulog_stream_ack_sub == -1) {
 		_ulog_stream_ack_sub = orb_subscribe(ORB_ID(ulog_stream_ack));
 	}

@@ -17,10 +17,11 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 src_path="$SCRIPT_DIR/.."
 
 rc_script="posix-configs/SITL/init/ekf2/multiple_iris"
-build_path=${src_path}/build_posix_sitl_default
+build_path=${src_path}/build/posix_sitl_default
 
 echo "killing running instances"
-pkill px4
+pkill -x px4 || true
+
 sleep 1
 
 cd $build_path

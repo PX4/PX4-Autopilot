@@ -65,7 +65,7 @@
 #define rTRISE		REG(STM32_I2C_TRISE_OFFSET)
 
 void			i2c_reset(void);
-static int		i2c_interrupt(int irq, void *context);
+static int		i2c_interrupt(int irq, void *context, void *args);
 static void		i2c_rx_setup(void);
 static void		i2c_tx_setup(void);
 static void		i2c_rx_complete(void);
@@ -142,8 +142,8 @@ interface_init(void)
 	rOAR1 = 0x1a << 1;
 
 	/* enable event interrupts */
-	irq_attach(STM32_IRQ_I2C1EV, i2c_interrupt);
-	irq_attach(STM32_IRQ_I2C1ER, i2c_interrupt);
+	irq_attach(STM32_IRQ_I2C1EV, i2c_interrupt, NULL);
+	irq_attach(STM32_IRQ_I2C1ER, i2c_interrupt, NULL);
 	up_enable_irq(STM32_IRQ_I2C1EV);
 	up_enable_irq(STM32_IRQ_I2C1ER);
 
@@ -192,7 +192,7 @@ i2c_reset(void)
 }
 
 static int
-i2c_interrupt(int irq, FAR void *context)
+i2c_interrupt(int irq, FAR void *context, FAR void *args)
 {
 	uint16_t sr1 = rSR1;
 

@@ -3,12 +3,11 @@
 # @name HIL Quadcopter X
 #
 # @type Simulation
+# @class Copter
 #
-# @maintainer Anton Babushkin <anton@px4.io>
+# @maintainer Lorenz Meier <lorenz@px4.io>
 #
 
-sh /etc/init.d/rc.mc_defaults
+sh /etc/init.d/4001_quad_x
 
-set MIXER quad_x
-
-set HIL yes
+param set SYS_HITL 1

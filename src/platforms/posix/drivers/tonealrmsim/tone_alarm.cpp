@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -117,7 +117,7 @@ class ToneAlarm : public VirtDevObj
 {
 public:
 	ToneAlarm();
-	~ToneAlarm();
+	~ToneAlarm() = default;
 
 	virtual int		devIOCTL(unsigned long cmd, unsigned long arg);
 	virtual ssize_t		devWrite(const void *buffer, size_t len);
@@ -218,8 +218,6 @@ ToneAlarm::ToneAlarm() :
 	_next(nullptr),
 	_note_call{}
 {
-	// enable debug() calls
-	//_debug_enabled = true;
 	_default_tunes[TONE_STARTUP_TUNE] = "MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc";		// startup tune
 	_default_tunes[TONE_ERROR_TUNE] = "MBT200a8a8a8PaaaP";						// ERROR tone
 	_default_tunes[TONE_NOTIFY_POSITIVE_TUNE] = "MFT200e8a8a";					// Notify Positive tone
@@ -250,10 +248,6 @@ ToneAlarm::ToneAlarm() :
 	_tune_names[TONE_BARO_WARNING_TUNE] = "baro_warning";			// baro warning
 	_tune_names[TONE_SINGLE_BEEP_TUNE] = "beep";                    // single beep
 	_tune_names[TONE_HOME_SET] = "home_set";
-}
-
-ToneAlarm::~ToneAlarm()
-{
 }
 
 unsigned
@@ -594,7 +588,6 @@ tune_end:
 		_default_tune_number = 0;
 	}
 
-	return;
 }
 
 int
@@ -852,6 +845,7 @@ tone_alarm_main(int argc, char *argv[])
 
 			if (buffer == nullptr) {
 				PX4_WARN("not enough memory memory");
+				fclose(fd);
 				return 1;
 			}
 
@@ -861,6 +855,7 @@ tone_alarm_main(int argc, char *argv[])
 			/* terminate the string */
 			buffer[sz] = 0;
 			ret = play_string(buffer, true);
+			fclose(fd);
 		}
 
 		/* if it looks like a PLAY string... */

@@ -105,7 +105,7 @@ def main():
             args.port = "/dev/tty.usbmodem1"
         else:
             serial_list = mavutil.auto_detect_serial(preferred_list=['*FTDI*',
-                "*Arduino_Mega_2560*", "*3D_Robotics*", "*USB_to_UART*", '*PX4*', '*FMU*'])
+                "*Arduino_Mega_2560*", "*3D_Robotics*", "*USB_to_UART*", '*PX4*', '*FMU*', "*Gumstix*"])
 
             if len(serial_list) == 0:
                 print("Error: no serial connection found")

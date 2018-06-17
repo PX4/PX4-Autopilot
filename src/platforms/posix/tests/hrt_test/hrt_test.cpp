@@ -59,7 +59,7 @@ static void timer_expired(void *arg)
 
 	if (i < 5) {
 		i++;
-		hrt_call_after(&t1, update_interval, timer_expired, (void *)0);
+		hrt_call_after(&t1, update_interval, timer_expired, (void *)nullptr);
 	}
 }
 
@@ -83,7 +83,7 @@ int HRTTest::main()
 
 	PX4_INFO("HRT_CALL %d\n", hrt_called(&t1));
 
-	hrt_call_after(&t1, update_interval, timer_expired, (void *)0);
+	hrt_call_after(&t1, update_interval, timer_expired, (void *)nullptr);
 	sleep(2);
 	PX4_INFO("HRT_CALL - %d\n", hrt_called(&t1));
 	hrt_cancel(&t1);

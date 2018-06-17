@@ -43,21 +43,9 @@
 
 #include <nuttx/config.h>
 #include <nuttx/arch.h>
-#include <board_config.h>
 #include "px4_micro_hal.h"
+#include <board_config.h>
 
 #elif defined (__PX4_POSIX)
-
-#define CONFIG_NFILE_STREAMS 1
-#define CONFIG_SCHED_WORKQUEUE 1
-#define CONFIG_SCHED_HPWORK 1
-#define CONFIG_SCHED_LPWORK 1
-#define CONFIG_ARCH_BOARD_SITL 1
-
-/** time in ms between checks for work in work queues **/
-#define CONFIG_SCHED_WORKPERIOD 50000
-
-#define CONFIG_SCHED_INSTRUMENTATION 1
-#define CONFIG_MAX_TASKS 32
-
+# include <board_config.h>
 #endif

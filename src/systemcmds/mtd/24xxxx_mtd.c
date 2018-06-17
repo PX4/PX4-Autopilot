@@ -66,7 +66,7 @@
 #include <nuttx/i2c/i2c_master.h>
 #include <nuttx/mtd/mtd.h>
 
-#include "systemlib/perf_counter.h"
+#include <perf/perf_counter.h>
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -96,7 +96,23 @@
 
 /* Get the part configuration based on the size configuration */
 
-#if CONFIG_AT24XX_SIZE == 32
+#if CONFIG_AT24XX_SIZE == 2       /* AT24C02: 2Kbits = 256; 16 * 16 =  256 */
+#  define AT24XX_NPAGES     16
+#  define AT24XX_PAGESIZE   16
+#  define AT24XX_ADDRSIZE   1
+#elif CONFIG_AT24XX_SIZE == 4     /* AT24C04: 4Kbits = 512B; 32 * 16 = 512 */
+#  define AT24XX_NPAGES     32
+#  define AT24XX_PAGESIZE   16
+#  define AT24XX_ADDRSIZE   1
+#elif CONFIG_AT24XX_SIZE == 8     /* AT24C08: 8Kbits = 1KiB; 64 * 16 = 1024 */
+#  define AT24XX_NPAGES     64
+#  define AT24XX_PAGESIZE   16
+#  define AT24XX_ADDRSIZE   1
+#elif CONFIG_AT24XX_SIZE == 16    /* AT24C16: 16Kbits = 2KiB; 128 * 16 = 2048 */
+#  define AT24XX_NPAGES     128
+#  define AT24XX_PAGESIZE   16
+#  define AT24XX_ADDRSIZE   1
+#elif CONFIG_AT24XX_SIZE == 32
 #  define AT24XX_NPAGES     128
 #  define AT24XX_PAGESIZE   32
 #elif CONFIG_AT24XX_SIZE == 48
@@ -203,6 +219,8 @@ static int at24c_eraseall(FAR struct at24c_dev_s *priv)
 
 	memset(&buf[2], 0xff, priv->pagesize);
 
+	BOARD_EEPROM_WP_CTRL(false);
+
 	for (startblock = 0; startblock < priv->npages; startblock++) {
 		uint16_t offset = startblock * priv->pagesize;
 		buf[1] = offset & 0xff;
@@ -213,6 +231,8 @@ static int at24c_eraseall(FAR struct at24c_dev_s *priv)
 			usleep(10000);
 		}
 	}
+
+	BOARD_EEPROM_WP_CTRL(true);
 
 	return OK;
 }
@@ -389,6 +409,8 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 
 	finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
 
+	BOARD_EEPROM_WP_CTRL(false);
+
 	while (blocksleft-- > 0) {
 		uint16_t offset = startblock * priv->pagesize;
 		unsigned tries = CONFIG_AT24XX_WRITE_TIMEOUT_MS;
@@ -415,6 +437,7 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 			 */
 			if (--tries == 0) {
 				perf_count(priv->perf_errors);
+				BOARD_EEPROM_WP_CTRL(true);
 				return ERROR;
 			}
 		}
@@ -422,6 +445,8 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 		startblock++;
 		buffer += priv->pagesize;
 	}
+
+	BOARD_EEPROM_WP_CTRL(true);
 
 #if CONFIG_AT24XX_MTD_BLOCKSIZE > AT24XX_PAGESIZE
 	return nblocks / (CONFIG_AT24XX_MTD_BLOCKSIZE / AT24XX_PAGESIZE);
@@ -564,6 +589,8 @@ FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_master_s *dev)
 			.length = sizeof(buf),
 		}
 	};
+
+	BOARD_EEPROM_WP_CTRL(true);
 
 	perf_begin(priv->perf_transfers);
 	int ret = I2C_TRANSFER(priv->dev, &msgv[0], 2);

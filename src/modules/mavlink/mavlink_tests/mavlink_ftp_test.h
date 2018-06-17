@@ -36,7 +36,7 @@
 
 #pragma once
 
-#include <unit_test/unit_test.h>
+#include <unit_test.h>
 #include "../mavlink_bridge_header.h"
 #include "../mavlink_ftp.h"
 

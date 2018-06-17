@@ -44,7 +44,7 @@
 
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <navigator/navigation.h>
 
 #include <uORB/uORB.h>
@@ -54,29 +54,10 @@
 #include "navigator.h"
 #include "datalinkloss.h"
 
-#define DELAY_SIGMA	0.01f
-
-DataLinkLoss::DataLinkLoss(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
-	_param_commsholdwaittime(this, "CH_T"),
-	_param_commsholdlat(this, "CH_LAT"),
-	_param_commsholdlon(this, "CH_LON"),
-	_param_commsholdalt(this, "CH_ALT"),
-	_param_airfieldhomelat(this, "NAV_AH_LAT", false),
-	_param_airfieldhomelon(this, "NAV_AH_LON", false),
-	_param_airfieldhomealt(this, "NAV_AH_ALT", false),
-	_param_airfieldhomewaittime(this, "AH_T"),
-	_param_numberdatalinklosses(this, "N"),
-	_param_skipcommshold(this, "CHSK"),
+DataLinkLoss::DataLinkLoss(Navigator *navigator) :
+	MissionBlock(navigator),
+	ModuleParams(navigator),
 	_dll_state(DLL_STATE_NONE)
-{
-	/* load initial params */
-	updateParams();
-	/* initial reset */
-	on_inactive();
-}
-
-DataLinkLoss::~DataLinkLoss()
 {
 }
 
@@ -93,7 +74,6 @@ void
 DataLinkLoss::on_activation()
 {
 	_dll_state = DLL_STATE_NONE;
-	updateParams();
 	advance_dll();
 	set_dll_item();
 }
@@ -102,7 +82,6 @@ void
 DataLinkLoss::on_active()
 {
 	if (is_mission_item_reached()) {
-		updateParams();
 		advance_dll();
 		set_dll_item();
 	}
@@ -113,7 +92,7 @@ DataLinkLoss::set_dll_item()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	set_previous_pos_setpoint();
+	pos_sp_triplet->previous = pos_sp_triplet->current;
 	_navigator->set_can_loiter_at_sp(false);
 
 	switch (_dll_state) {
@@ -170,7 +149,7 @@ DataLinkLoss::set_dll_item()
 	reset_mission_item_reached();
 
 	/* convert mission item to current position setpoint and make it valid */
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
 
 	_navigator->set_position_setpoint_triplet_updated();

@@ -1,0 +1,23 @@
+#!nsh
+#
+# @name S500
+#
+# @type Quadrotor x
+# @class Copter
+#
+# @maintainer Lorenz Meier <lorenz@px4.io>
+#
+
+sh /etc/init.d/4001_quad_x
+
+if [ $AUTOCNF == yes ]
+then
+	param set MC_ROLL_P 6.5
+	param set MC_ROLLRATE_P 0.18
+	param set MC_ROLLRATE_I 0.15
+	param set MC_ROLLRATE_D 0.003
+	param set MC_PITCH_P 6.5
+	param set MC_PITCHRATE_P 0.18
+	param set MC_PITCHRATE_I 0.15
+	param set MC_PITCHRATE_D 0.003
+fi

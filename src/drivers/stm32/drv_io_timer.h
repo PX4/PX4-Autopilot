@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,7 +45,7 @@
 #pragma once
 __BEGIN_DECLS
 /* configuration limits */
-#define MAX_IO_TIMERS			4
+#define MAX_IO_TIMERS			5
 #define MAX_TIMER_IO_CHANNELS	8
 
 #define MAX_LED_TIMERS			2
@@ -58,12 +58,21 @@ typedef enum io_timer_channel_mode_t {
 	IOTimerChanMode_PWMOut  = 1,
 	IOTimerChanMode_PWMIn   = 2,
 	IOTimerChanMode_Capture = 3,
+	IOTimerChanMode_OneShot = 4,
+	IOTimerChanMode_Trigger = 5,
 	IOTimerChanModeSize
 } io_timer_channel_mode_t;
 
 typedef uint8_t io_timer_channel_allocation_t; /* big enough to hold MAX_TIMER_IO_CHANNELS */
 
-/* array of timers dedicated to PWM in and out and capture use */
+/* array of timers dedicated to PWM in and out and capture use
+ *** Note that the clock_freq is set to the source in the clock tree that
+ *** feeds this specific timer. This can differs by Timer!
+ *** In PWM  mode the timer's prescaler is set to achieve a counter frequency of 1MHz
+ *** In OneShot mode the timer's prescaler is set to achieve a counter frequency of 8MHz
+ *** Other prescaler rates can be achieved by fore instance by setting the clock_freq = 1Mhz
+ *** the resulting PSC will be one and the timer will count at it's clock frequency.
+ */
 typedef struct io_timers_t {
 	uint32_t	base;
 	uint32_t	clock_register;
@@ -88,7 +97,7 @@ typedef struct timer_io_channels_t {
 
 typedef void (*channel_handler_t)(void *context, const io_timers_t *timer, uint32_t chan_index,
 				  const timer_io_channels_t *chan,
-				  hrt_abstime isrs_time , uint16_t isrs_rcnt);
+				  hrt_abstime isrs_time, uint16_t isrs_rcnt);
 
 
 /* supplied by board-specific code */
@@ -99,10 +108,11 @@ __EXPORT extern const io_timers_t led_pwm_timers[MAX_LED_TIMERS];
 __EXPORT extern const timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS];
 
 __EXPORT extern io_timer_channel_allocation_t allocations[IOTimerChanModeSize];
-__EXPORT int io_timer_handler0(int irq, void *context);
-__EXPORT int io_timer_handler1(int irq, void *context);
-__EXPORT int io_timer_handler2(int irq, void *context);
-__EXPORT int io_timer_handler3(int irq, void *context);
+__EXPORT int io_timer_handler0(int irq, void *context, void *arg);
+__EXPORT int io_timer_handler1(int irq, void *context, void *arg);
+__EXPORT int io_timer_handler2(int irq, void *context, void *arg);
+__EXPORT int io_timer_handler3(int irq, void *context, void *arg);
+__EXPORT int io_timer_handler4(int irq, void *context, void *arg);
 
 __EXPORT int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 				   channel_handler_t channel_handler, void *context);
@@ -121,4 +131,6 @@ __EXPORT int io_timer_is_channel_free(unsigned channel);
 __EXPORT int io_timer_free_channel(unsigned channel);
 __EXPORT int io_timer_get_channel_mode(unsigned channel);
 __EXPORT int io_timer_get_mode_channels(io_timer_channel_mode_t mode);
+__EXPORT extern void io_timer_trigger(void);
+
 __END_DECLS

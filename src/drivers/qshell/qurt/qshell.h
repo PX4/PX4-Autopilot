@@ -50,7 +50,7 @@ class QShell
 {
 public:
 	QShell();
-	~QShell() {};
+	~QShell() {}
 
 	int main();
 	int run_cmd(const std::vector<std::string> &appargs);

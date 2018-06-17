@@ -44,7 +44,7 @@
 
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 
 #include <uORB/uORB.h>
 #include <navigator/navigation.h>
@@ -53,20 +53,10 @@
 #include "navigator.h"
 #include "datalinkloss.h"
 
-#define DELAY_SIGMA	0.01f
-
-RCLoss::RCLoss(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
-	_param_loitertime(this, "LT"),
+RCLoss::RCLoss(Navigator *navigator) :
+	MissionBlock(navigator),
+	ModuleParams(navigator),
 	_rcl_state(RCL_STATE_NONE)
-{
-	/* load initial params */
-	updateParams();
-	/* initial reset */
-	on_inactive();
-}
-
-RCLoss::~RCLoss()
 {
 }
 
@@ -83,7 +73,6 @@ void
 RCLoss::on_activation()
 {
 	_rcl_state = RCL_STATE_NONE;
-	updateParams();
 	advance_rcl();
 	set_rcl_item();
 }
@@ -92,7 +81,6 @@ void
 RCLoss::on_active()
 {
 	if (is_mission_item_reached()) {
-		updateParams();
 		advance_rcl();
 		set_rcl_item();
 	}
@@ -103,7 +91,7 @@ RCLoss::set_rcl_item()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	set_previous_pos_setpoint();
+	pos_sp_triplet->previous = pos_sp_triplet->current;
 	_navigator->set_can_loiter_at_sp(false);
 
 	switch (_rcl_state) {
@@ -142,7 +130,8 @@ RCLoss::set_rcl_item()
 	reset_mission_item_reached();
 
 	/* convert mission item to current position setpoint and make it valid */
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+	mission_apply_limitation(_mission_item);
+	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
 
 	_navigator->set_position_setpoint_triplet_updated();

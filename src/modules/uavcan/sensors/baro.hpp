@@ -79,7 +79,6 @@ private:
 
 	ringbuffer::RingBuffer _reports;
 
-	unsigned _msl_pressure = 101325;
 	float last_temperature_kelvin = 0.0f;
 
 };

@@ -50,13 +50,8 @@
 #include <uORB/uORB.h>
 
 MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic, int instance) :
-	next(nullptr),
 	_topic(topic),
-	_fd(-1),
-	_instance(instance),
-	_published(false),
-	_subscribe_from_beginning(false),
-	_last_pub_check(0)
+	_instance(instance)
 {
 }
 
@@ -82,8 +77,6 @@ MavlinkOrbSubscription::get_instance() const
 bool
 MavlinkOrbSubscription::update(uint64_t *time, void *data)
 {
-
-
 	// TODO this is NOT atomic operation, we can get data newer than time
 	// if topic was published between orb_stat and orb_copy calls.
 
@@ -116,12 +109,7 @@ MavlinkOrbSubscription::update(void *data)
 		return false;
 	}
 
-	if (orb_copy(_topic, _fd, data)) {
-		if (data != nullptr) {
-			/* error copying topic data */
-			memset(data, 0, _topic->o_size);
-		}
-
+	if (orb_copy(_topic, _fd, data) != PX4_OK) {
 		return false;
 	}
 
@@ -160,23 +148,15 @@ MavlinkOrbSubscription::is_published()
 		return true;
 	}
 
-	// Telemetry can sustain an initial published check at 10 Hz
 	hrt_abstime now = hrt_absolute_time();
 
-	if (now - _last_pub_check < 100000) {
+	if (now - _last_pub_check < 300000) {
 		return false;
 	}
 
 	// We are checking now
 	_last_pub_check = now;
 
-#if defined(__PX4_QURT) || defined(__PX4_POSIX_EAGLE)
-	// Snapdragon has currently no support for orb_exists, therefore
-	// we're not using it.
-	if (_fd < 0) {
-		_fd = orb_subscribe_multi(_topic, _instance);
-	}
-#else
 	// We don't want to subscribe to anything that does not exist
 	// in order to save memory and file descriptors.
 	// However, for some topics like vehicle_command_ack, we want to subscribe
@@ -188,7 +168,6 @@ MavlinkOrbSubscription::is_published()
 	if (_fd < 0) {
 		_fd = orb_subscribe_multi(_topic, _instance);
 	}
-#endif
 
 	bool updated;
 	orb_check(_fd, &updated);
@@ -199,6 +178,7 @@ MavlinkOrbSubscription::is_published()
 
 	// topic may have been last published before we subscribed
 	uint64_t time_topic = 0;
+
 	if (!_published && orb_stat(_fd, &time_topic) == PX4_OK) {
 		if (time_topic != 0) {
 			_published = true;

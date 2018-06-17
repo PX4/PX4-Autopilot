@@ -93,6 +93,8 @@
  *
  */
 
+#include <strings.h>
+
 #include <px4_config.h>
 
 #include <sys/types.h>
@@ -108,9 +110,8 @@
 
 #include <px4_workqueue.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 
 #include <board_config.h>
 

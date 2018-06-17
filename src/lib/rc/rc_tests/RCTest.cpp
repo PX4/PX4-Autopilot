@@ -1,4 +1,4 @@
-#include <unit_test/unit_test.h>
+#include <unit_test.h>
 
 #include <systemlib/err.h>
 
@@ -24,7 +24,7 @@ extern "C" __EXPORT int rc_tests_main(int argc, char *argv[]);
 class RCTest : public UnitTest
 {
 public:
-	virtual bool run_tests(void);
+	virtual bool run_tests();
 
 private:
 	bool dsmTest(const char *filepath, unsigned expected_chancount, unsigned expected_dropcount, unsigned chan0);
@@ -35,7 +35,7 @@ private:
 	bool sumdTest();
 };
 
-bool RCTest::run_tests(void)
+bool RCTest::run_tests()
 {
 	ut_run_test(dsmTest10Ch);
 	ut_run_test(dsmTest12Ch);
@@ -62,7 +62,7 @@ bool RCTest::dsmTest(const char *filepath, unsigned expected_chancount, unsigned
 	FILE *fp;
 	fp = fopen(filepath, "rt");
 
-	ut_test(fp != nullptr);
+	ut_test(fp);
 	//PX4_INFO("loading data from: %s", filepath);
 
 	float f;
@@ -90,7 +90,10 @@ bool RCTest::dsmTest(const char *filepath, unsigned expected_chancount, unsigned
 
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
 
-		ut_test(ret > 0);
+		if (ret <= 0) {
+			fclose(fp);
+			ut_test(ret > 0);
+		}
 
 		frame[0] = x;
 		unsigned len = 1;
@@ -100,7 +103,7 @@ bool RCTest::dsmTest(const char *filepath, unsigned expected_chancount, unsigned
 					&dsm_11_bit, &dsm_frame_drops, max_channels);
 
 		if (result) {
-			ut_test(num_values == expected_chancount);
+			ut_compare("num_values == expected_chancount", num_values, expected_chancount);
 
 			ut_test(abs((int)chan0 - (int)rc_values[0]) < 30);
 
@@ -119,6 +122,8 @@ bool RCTest::dsmTest(const char *filepath, unsigned expected_chancount, unsigned
 		rate_limiter++;
 	}
 
+	fclose(fp);
+
 	ut_test(ret == EOF);
 	PX4_INFO("drop: %d", (int)last_drop);
 	ut_test(last_drop == expected_dropcount);
@@ -126,14 +131,14 @@ bool RCTest::dsmTest(const char *filepath, unsigned expected_chancount, unsigned
 	return true;
 }
 
-bool RCTest::sbus2Test(void)
+bool RCTest::sbus2Test()
 {
 	const char *filepath = TEST_DATA_PATH "sbus2_r7008SB.txt";
 
 	FILE *fp;
 	fp = fopen(filepath, "rt");
 
-	ut_test(fp != nullptr);
+	ut_test(fp);
 	//warnx("loading data from: %s", filepath);
 
 	// if (argc < 2)
@@ -173,7 +178,10 @@ bool RCTest::sbus2Test(void)
 
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
 
-		ut_test(ret > 0);
+		if (ret <= 0) {
+			fclose(fp);
+			ut_test(ret > 0);
+		}
 
 		frame[0] = x;
 		unsigned len = 1;
@@ -204,7 +212,7 @@ bool RCTest::sbus2Test(void)
 	return true;
 }
 
-bool RCTest::st24Test(void)
+bool RCTest::st24Test()
 {
 	const char *filepath = TEST_DATA_PATH "st24_data.txt";
 
@@ -213,7 +221,7 @@ bool RCTest::st24Test(void)
 	FILE *fp;
 
 	fp = fopen(filepath, "rt");
-	ut_test(fp != nullptr);
+	ut_test(fp);
 
 	float f;
 	unsigned x;
@@ -228,7 +236,11 @@ bool RCTest::st24Test(void)
 	float last_time = 0;
 
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
-		ut_test(ret > 0);
+
+		if (ret <= 0) {
+			fclose(fp);
+			ut_test(ret > 0);
+		}
 
 		if (((f - last_time) * 1000 * 1000) > 3000) {
 			// warnx("FRAME RESET\n\n");
@@ -261,7 +273,7 @@ bool RCTest::st24Test(void)
 	return true;
 }
 
-bool RCTest::sumdTest(void)
+bool RCTest::sumdTest()
 {
 	const char *filepath = TEST_DATA_PATH "sumd_data.txt";
 
@@ -270,7 +282,7 @@ bool RCTest::sumdTest(void)
 	FILE *fp;
 
 	fp = fopen(filepath, "rt");
-	ut_test(fp != nullptr);
+	ut_test(fp);
 
 	float f;
 	unsigned x;
@@ -285,7 +297,11 @@ bool RCTest::sumdTest(void)
 	float last_time = 0;
 
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
-		ut_test(ret > 0);
+
+		if (ret <= 0) {
+			fclose(fp);
+			ut_test(ret > 0);
+		}
 
 		if (((f - last_time) * 1000 * 1000) > 3000) {
 			// warnx("FRAME RESET\n\n");

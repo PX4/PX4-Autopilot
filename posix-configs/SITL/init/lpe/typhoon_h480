@@ -34,7 +34,6 @@ param set MC_PITCHRATE_P 0.2
 param set MC_PITCH_P 6
 param set MC_ROLL_P 6
 param set MPC_HOLD_MAX_Z 2.0
-param set MPC_HOLD_XY_DZ 0.1
 param set MPC_Z_VEL_P 0.6
 param set MPC_Z_VEL_I 0.15
 param set MPC_XY_VEL_P 0.15
@@ -42,17 +41,15 @@ param set MPC_XY_VEL_I 0.2
 param set EKF2_GBIAS_INIT 0.01
 param set EKF2_ANGERR_INIT 0.01
 param set EKF2_MAG_TYPE 1
+param set SDLOG_DIRS_MAX 7
 replay tryapplyparams
 simulator start -s
-rgbledsim start
 tone_alarm start
 gyrosim start
 accelsim start
 barosim start
-adcsim start
 gpssim start
-pwm_out_sim mode_pwm16
-sleep 1
+pwm_out_sim start
 sensors start
 commander start
 land_detector start multicopter
@@ -63,8 +60,8 @@ mc_pos_control start
 mc_att_control start
 mixer load /dev/pwm_output0 ROMFS/px4fmu_common/mixers/hexa_x.main.mix
 mixer append /dev/pwm_output0 ROMFS/px4fmu_common/mixers/mount_legs.aux.mix
-mavlink start -u 14556 -r 4000000
-mavlink start -u 14557 -r 4000000 -m onboard -o 14540
+mavlink start -x -u 14556 -r 4000000
+mavlink start -x -u 14557 -r 4000000 -m onboard -o 14540
 mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u 14556
 mavlink stream -r 50 -s LOCAL_POSITION_NED -u 14556
 mavlink stream -r 50 -s GLOBAL_POSITION_INT -u 14556

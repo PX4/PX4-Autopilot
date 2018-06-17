@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,40 +42,29 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
+#include "params.h"
+
+#include <poll.h>
+
+#include <drivers/drv_hrt.h>
+#include <lib/ecl/geo/geo.h>
+#include <matrix/math.hpp>
 #include <px4_config.h>
 #include <px4_tasks.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <math.h>
-#include <poll.h>
-#include <time.h>
-#include <drivers/drv_hrt.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_global_position.h>
+#include <systemlib/err.h>
+#include <parameters/param.h>
+#include <perf/perf_counter.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/parameter_update.h>
-#include <systemlib/param/param.h>
-#include <systemlib/pid/pid.h>
-#include <geo/geo.h>
-#include <systemlib/perf_counter.h>
-#include <systemlib/systemlib.h>
-#include <systemlib/err.h>
-
-#include <matrix/math.hpp>
-
-/* process-specific header files */
-#include "params.h"
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/uORB.h>
 
 /* Prototypes */
 
@@ -111,6 +100,14 @@ int fixedwing_control_thread_main(int argc, char *argv[]);
  * Print the correct usage.
  */
 static void usage(const char *reason);
+
+int parameters_init(struct param_handles *h);
+
+/**
+ * Update all parameters
+ *
+ */
+int parameters_update(const struct param_handles *h, struct params *p);
 
 /**
  * Control roll and pitch angle.
@@ -226,6 +223,26 @@ void control_heading(const struct vehicle_global_position_s *pos, const struct p
 	att_sp->q_d[3] = qd(3);
 }
 
+int parameters_init(struct param_handles *handles)
+{
+	/* PID parameters */
+	handles->hdng_p 	=	param_find("EXFW_HDNG_P");
+	handles->roll_p 	=	param_find("EXFW_ROLL_P");
+	handles->pitch_p 	=	param_find("EXFW_PITCH_P");
+
+	return 0;
+}
+
+int parameters_update(const struct param_handles *handles, struct params *parameters)
+{
+	param_get(handles->hdng_p, &(parameters->hdng_p));
+	param_get(handles->roll_p, &(parameters->roll_p));
+	param_get(handles->pitch_p, &(parameters->pitch_p));
+
+	return 0;
+}
+
+
 /* Main Thread */
 int fixedwing_control_thread_main(int argc, char *argv[])
 {
@@ -313,9 +330,11 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 
 	/* Setup of loop */
 
-	struct pollfd fds[2] = {{ .fd = param_sub, .events = POLLIN },
-		{ .fd = att_sub, .events = POLLIN }
-	};
+	struct pollfd fds[2] = {};
+	fds[0].fd = param_sub;
+	fds[0].events = POLLIN;
+	fds[1].fd = att_sub;
+	fds[1].events = POLLIN;
 
 	while (!thread_should_exit) {
 
@@ -462,7 +481,7 @@ int ex_fixedwing_control_main(int argc, char *argv[])
 						 SCHED_PRIORITY_MAX - 20,
 						 2048,
 						 fixedwing_control_thread_main,
-						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
+						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
 		thread_running = true;
 		exit(0);
 	}

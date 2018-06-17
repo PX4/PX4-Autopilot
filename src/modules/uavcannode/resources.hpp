@@ -31,7 +31,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <systemlib/visibility.h>
 
 __BEGIN_DECLS
 #if defined(CONFIG_NSH_LIBRARY)

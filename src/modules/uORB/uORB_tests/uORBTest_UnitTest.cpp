@@ -60,7 +60,7 @@ uORBTest::UnitTest &uORBTest::UnitTest::instance()
 	return t;
 }
 
-int uORBTest::UnitTest::pubsublatency_main(void)
+int uORBTest::UnitTest::pubsublatency_main()
 {
 	/* poll on test topic and output latency */
 	float latency_integral = 0.0f;
@@ -89,6 +89,7 @@ int uORBTest::UnitTest::pubsublatency_main(void)
 	const unsigned maxruns = 1000;
 	unsigned timingsgroup = 0;
 
+	// timings has to be on the heap to keep frame size below 2048 bytes
 	unsigned *timings = new unsigned[maxruns];
 
 	for (unsigned i = 0; i < maxruns; i++) {
@@ -127,9 +128,10 @@ int uORBTest::UnitTest::pubsublatency_main(void)
 		sprintf(fname, PX4_ROOTFSDIR"/fs/microsd/timings%u.txt", timingsgroup);
 		FILE *f = fopen(fname, "w");
 
-		if (f == NULL) {
+		if (f == nullptr) {
 			warnx("Error opening file!\n");
-			return uORB::ERROR;
+			delete[] timings;
+			return PX4_ERROR;
 		}
 
 		for (unsigned i = 0; i < maxruns; i++) {
@@ -145,8 +147,8 @@ int uORBTest::UnitTest::pubsublatency_main(void)
 
 	pubsubtest_passed = true;
 
-	if (static_cast<float>(latency_integral / maxruns) > 80.0f) {
-		pubsubtest_res = uORB::ERROR;
+	if (static_cast<float>(latency_integral / maxruns) > 100.0f) {
+		pubsubtest_res = PX4_ERROR;
 
 	} else {
 		pubsubtest_res = PX4_OK;
@@ -315,7 +317,7 @@ int uORBTest::UnitTest::test_multi()
 	/* this routine tests the multi-topic support */
 	test_note("try multi-topic support");
 
-	struct orb_test t, u;
+	struct orb_test t {}, u {};
 	t.val = 0;
 	int instance0;
 	_pfd[0] = orb_advertise_multi(ORB_ID(orb_multitest), &t, &instance0, ORB_PRIO_MAX);
@@ -399,7 +401,7 @@ int uORBTest::UnitTest::test_multi()
 
 
 
-int uORBTest::UnitTest::pub_test_multi2_entry(char *const argv[])
+int uORBTest::UnitTest::pub_test_multi2_entry(int argc, char *argv[])
 {
 	uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
 	return t.pub_test_multi2_main();
@@ -472,7 +474,7 @@ int uORBTest::UnitTest::test_multi2()
 		orb_data_fd[i] = orb_subscribe_multi(ORB_ID(orb_test_medium_multi), i);
 	}
 
-	char *const args[1] = { NULL };
+	char *const args[1] = { nullptr };
 	int pubsub_task = px4_task_spawn_cmd("uorb_test_multi",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_MAX - 5,
@@ -534,7 +536,7 @@ int uORBTest::UnitTest::test_multi_reversed()
 		return test_fail("sub. id2: ret: %d", sfd2);
 	}
 
-	struct orb_test t, u;
+	struct orb_test t {}, u {};
 
 	t.val = 0;
 
@@ -705,7 +707,7 @@ int uORBTest::UnitTest::test_queue()
 }
 
 
-int uORBTest::UnitTest::pub_test_queue_entry(char *const argv[])
+int uORBTest::UnitTest::pub_test_queue_entry(int argc, char *argv[])
 {
 	uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
 	return t.pub_test_queue_main();
@@ -761,7 +763,7 @@ int uORBTest::UnitTest::test_queue_poll_notify()
 
 	_thread_should_exit = false;
 
-	char *const args[1] = { NULL };
+	char *const args[1] = { nullptr };
 	int pubsub_task = px4_task_spawn_cmd("uorb_test_queue",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_MIN + 5,
@@ -823,7 +825,8 @@ int uORBTest::UnitTest::test_fail(const char *fmt, ...)
 	va_end(ap);
 	fprintf(stderr, "\n");
 	fflush(stderr);
-	return uORB::ERROR;
+
+	return PX4_ERROR;
 }
 
 int uORBTest::UnitTest::test_note(const char *fmt, ...)
@@ -839,7 +842,7 @@ int uORBTest::UnitTest::test_note(const char *fmt, ...)
 	return OK;
 }
 
-int uORBTest::UnitTest::pubsubtest_threadEntry(char *const argv[])
+int uORBTest::UnitTest::pubsubtest_threadEntry(int argc, char *argv[])
 {
 	uORBTest::UnitTest &t = uORBTest::UnitTest::instance();
 	return t.pubsublatency_main();

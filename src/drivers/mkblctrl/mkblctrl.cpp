@@ -44,7 +44,7 @@
 #include <px4_config.h>
 #include <px4_tasks.h>
 #include <drivers/device/i2c.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -71,14 +71,14 @@
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_tone_alarm.h>
 
-#include <systemlib/systemlib.h>
 #include <systemlib/err.h>
-#include <systemlib/mixer/mixer.h>
+#include <lib/mixer/mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/tune_control.h>
 
 #include <systemlib/err.h>
 
@@ -161,6 +161,7 @@ private:
 	char					_device[20];
 	orb_advert_t			_t_outputs;
 	orb_advert_t			_t_esc_status;
+	orb_advert_t			_tune_control_sub;
 	unsigned int			_num_outputs;
 	bool					_primary_pwm_device;
 	bool     				_motortest;
@@ -241,7 +242,6 @@ MK::MK(int bus, const char *_device_path) :
 	strncpy(_device, _device_path, sizeof(_device));
 	/* enforce null termination */
 	_device[sizeof(_device) - 1] = '\0';
-	_debug_enabled = true;
 }
 
 MK::~MK()
@@ -448,14 +448,14 @@ MK::scaling(float val, float inMin, float inMax, float outMin, float outMax)
 void
 MK::play_beep(int count)
 {
-	int buzzer = ::open(TONEALARM0_DEVICE_PATH, O_WRONLY);
+	tune_control_s tune = {};
+	tune.tune_id = static_cast<int>(TuneID::SINGLE_BEEP);
 
 	for (int i = 0; i < count; i++) {
-		::ioctl(buzzer, TONE_SET_ALARM, TONE_SINGLE_BEEP_TUNE);
+		orb_publish(ORB_ID(tune_control), _tune_control_sub, &tune);
 		usleep(300000);
 	}
 
-	::close(buzzer);
 }
 
 void
@@ -491,6 +491,11 @@ MK::task_main()
 	memset(&esc, 0, sizeof(esc));
 	_t_esc_status = orb_advertise(ORB_ID(esc_status), &esc);
 
+	/*
+	 * advertise the tune_control.
+	 */
+	tune_control_s tune = {};
+	_tune_control_sub = orb_advertise(ORB_ID(tune_control), &tune);
 
 	pollfd fds[2];
 	fds[0].fd = _t_actuators;
@@ -505,7 +510,7 @@ MK::task_main()
 	/* loop until killed */
 	while (!_task_should_exit) {
 
-		param_get(_param_indicate_esc , &param_mkblctrl_test);
+		param_get(_param_indicate_esc, &param_mkblctrl_test);
 
 		if (param_mkblctrl_test > 0) {
 			_indicate_esc = true;
@@ -539,7 +544,7 @@ MK::task_main()
 				if (_mixers != nullptr) {
 
 					/* do mixing */
-					outputs.noutputs = _mixers->mix(&outputs.output[0], _num_outputs, NULL);
+					outputs.noutputs = _mixers->mix(&outputs.output[0], _num_outputs);
 					outputs.timestamp = hrt_absolute_time();
 
 					/* iterate actuators */
@@ -702,7 +707,7 @@ MK::mk_check_for_blctrl(unsigned int count, bool showOutput, bool initI2C)
 		result[1] = 0;
 		result[2] = 0;
 
-		set_address(BLCTRL_BASE_ADDR + i);
+		set_device_address(BLCTRL_BASE_ADDR + i);
 
 		if (OK == transfer(&msg, 1, &result[0], 3)) {
 			Motor[i].Current = result[0];
@@ -766,7 +771,7 @@ MK::mk_servo_set(unsigned int chan, short val)
 	}
 
 	//if(Motor[chan].State & MOTOR_STATE_PRESENT_MASK) {
-	set_address(BLCTRL_BASE_ADDR + (chan + addrTranslator[chan]));
+	set_device_address(BLCTRL_BASE_ADDR + (chan + addrTranslator[chan]));
 
 	if (Motor[chan].Version == BLCTRL_OLD) {
 		/*
@@ -779,7 +784,7 @@ MK::mk_servo_set(unsigned int chan, short val)
 			if (OK == transfer(&msg[0], 1, &result[0], 2)) {
 				Motor[chan].Current = result[0];
 				Motor[chan].MaxPWM = result[1];
-				Motor[chan].Temperature = 255;;
+				Motor[chan].Temperature = 255;
 
 			} else {
 				if ((Motor[chan].State & MOTOR_STATE_ERROR_MASK) < MOTOR_STATE_ERROR_MASK) { Motor[chan].State++; }	// error
@@ -903,7 +908,7 @@ MK::mk_servo_test(unsigned int chan)
 		msg[1] = Motor[chan].SetPointLowerBits;
 	}
 
-	set_address(BLCTRL_BASE_ADDR + (chan + addrTranslator[chan]));
+	set_device_address(BLCTRL_BASE_ADDR + (chan + addrTranslator[chan]));
 
 	if (Motor[chan].Version == BLCTRL_OLD) {
 		ret = transfer(&msg[0], 1, nullptr, 0);
@@ -929,7 +934,7 @@ MK::mk_servo_locate()
 	if (hrt_absolute_time() - last_timestamp > MOTOR_LOCATE_DELAY) {
 		last_timestamp = hrt_absolute_time();
 
-		set_address(BLCTRL_BASE_ADDR + (chan + addrTranslator[chan]));
+		set_device_address(BLCTRL_BASE_ADDR + (chan + addrTranslator[chan]));
 		chan++;
 
 		if (chan <= _num_outputs) {

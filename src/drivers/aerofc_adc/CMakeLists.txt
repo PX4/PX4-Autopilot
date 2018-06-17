@@ -34,10 +34,7 @@ px4_add_module(
 	MODULE drivers__aerofc_adc
 	MAIN aerofc_adc
 	COMPILE_FLAGS
-		-Os
 	SRCS
 		aerofc_adc.cpp
 	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

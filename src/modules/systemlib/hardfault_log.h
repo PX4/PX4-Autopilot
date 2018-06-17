@@ -35,24 +35,26 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+#include <px4_config.h>
 #include <systemlib/px4_macros.h>
-#include <stm32_bbsram.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-#define FREEZE_STR(s) #s
-#define STRINGIFY(s) FREEZE_STR(s)
-#define HARDFAULT_FILENO 3
-#define HARDFAULT_PATH BBSRAM_PATH""STRINGIFY(HARDFAULT_FILENO)
 #define HARDFAULT_REBOOT_FILENO 0
-#define HARDFAULT_REBOOT_PATH BBSRAM_PATH""STRINGIFY(HARDFAULT_REBOOT_FILENO)
+#define HARDFAULT_REBOOT_PATH BBSRAM_PATH "" STRINGIFY(HARDFAULT_REBOOT_FILENO)
+#define HARDFAULT_ULOG_FILENO 3
+#define HARDFAULT_ULOG_PATH BBSRAM_PATH "" STRINGIFY(HARDFAULT_ULOG_FILENO)
+#define HARDFAULT_FILENO 4
+#define HARDFAULT_PATH BBSRAM_PATH "" STRINGIFY(HARDFAULT_FILENO)
 
+#define HARDFAULT_MAX_ULOG_FILE_LEN 64 /* must be large enough to store the full path to the log file */
 
 #define BBSRAM_SIZE_FN0 (sizeof(int))
 #define BBSRAM_SIZE_FN1 384     /* greater then 2.5 times the size of vehicle_status_s */
 #define BBSRAM_SIZE_FN2 384     /* greater then 2.5 times the size of vehicle_status_s */
-#define BBSRAM_SIZE_FN3 -1
+#define BBSRAM_SIZE_FN3 HARDFAULT_MAX_ULOG_FILE_LEN
+#define BBSRAM_SIZE_FN4 -1
 
 /* The following guides in the amount of the user and interrupt stack
  * data we can save. The amount of storage left will dictate the actual
@@ -60,7 +62,7 @@
  * It will be truncated by the call to stm32_bbsram_savepanic
  */
 #define BBSRAM_HEADER_SIZE 20 /* This is an assumption */
-#define BBSRAM_USED ((4*BBSRAM_HEADER_SIZE)+(BBSRAM_SIZE_FN0+BBSRAM_SIZE_FN1+BBSRAM_SIZE_FN2))
+#define BBSRAM_USED ((5*BBSRAM_HEADER_SIZE)+(BBSRAM_SIZE_FN0+BBSRAM_SIZE_FN1+BBSRAM_SIZE_FN2+BBSRAM_SIZE_FN3))
 #define BBSRAM_REAMINING (PX4_BBSRAM_SIZE-BBSRAM_USED)
 #if CONFIG_ARCH_INTERRUPTSTACK <= 3
 #  define BBSRAM_NUMBER_STACKS 1
@@ -79,8 +81,9 @@
 #define BSRAM_FILE_SIZES { \
 		BBSRAM_SIZE_FN0,   /* For Time stamp only */                  \
 		BBSRAM_SIZE_FN1,   /* For Current Flight Parameters Copy A */ \
-		BBSRAM_SIZE_FN2,   /* For Current Flight Parameters Copy B*/  \
-		BBSRAM_SIZE_FN3,   /* For the Panic Log use rest of space */  \
+		BBSRAM_SIZE_FN2,   /* For Current Flight Parameters Copy B */ \
+		BBSRAM_SIZE_FN3,   /* For the latest ULog file path */        \
+		BBSRAM_SIZE_FN4,   /* For the Panic Log use rest of space */  \
 		0                  /* End of table marker */                  \
 	}
 
@@ -267,19 +270,18 @@ __BEGIN_DECLS
  *      Check the status of the BBSRAM hard fault file which can be in
  *      one of two states Armed, Valid or Broken.
  *
- *      Armed - The file in the armed state is not accessible in the fs
- *              the act of unlinking it is what arms it.
+ *      Armed - The file in the armed state is not accessible in the fs.
+ *              The act of unlinking it is what arms it.
  *
- *      Valid - The file in the armed state is not accessible in the fs
- *              the act of unlinking it is what arms it.
+ *      Valid - The file contains data from a hard fault
  *
  * Inputs:
  *   - caller:  A label to display in syslog output
  *
  *  Returned Value:
- *   -ENOENT    Armed - The file in the armed state
+ *   -ENOENT    Armed - The file is in the armed state
  *    OK        Valid - The file contains data from a fault that has not
- *                      been committed to disk (see write_hardfault).
+ *                      been committed to disk (@see write_hardfault()).
  *   -  Any < 0 Broken - Should not happen
  *
  ****************************************************************************/
@@ -346,7 +348,7 @@ int hardfault_rearm(char *caller) weak_function;
  *
  *  Returned Value:
  *
- *    The current value of the reboot counter (post increment).
+ *    The current value of the reboot counter (after increment/reset) or errno < 0.
  *
  *
  ****************************************************************************/

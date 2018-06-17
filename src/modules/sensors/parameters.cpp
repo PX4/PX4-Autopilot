@@ -42,7 +42,7 @@
 namespace sensors
 {
 
-int initialize_parameter_handles(ParameterHandles &parameter_handles)
+void initialize_parameter_handles(ParameterHandles &parameter_handles)
 {
 	/* basic r/c parameters */
 	for (unsigned i = 0; i < RC_MAX_CHAN_COUNT; i++) {
@@ -93,6 +93,8 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.rc_map_arm_sw = param_find("RC_MAP_ARM_SW");
 	parameter_handles.rc_map_trans_sw = param_find("RC_MAP_TRANS_SW");
 	parameter_handles.rc_map_gear_sw = param_find("RC_MAP_GEAR_SW");
+	parameter_handles.rc_map_stab_sw = param_find("RC_MAP_STAB_SW");
+	parameter_handles.rc_map_man_sw = param_find("RC_MAP_MAN_SW");
 
 	parameter_handles.rc_map_aux1 = param_find("RC_MAP_AUX1");
 	parameter_handles.rc_map_aux2 = param_find("RC_MAP_AUX2");
@@ -124,10 +126,18 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.rc_armswitch_th = param_find("RC_ARMSWITCH_TH");
 	parameter_handles.rc_trans_th = param_find("RC_TRANS_TH");
 	parameter_handles.rc_gear_th = param_find("RC_GEAR_TH");
+	parameter_handles.rc_stab_th = param_find("RC_STAB_TH");
+	parameter_handles.rc_man_th = param_find("RC_MAN_TH");
+
+	/* RC low pass filter configuration */
+	parameter_handles.rc_flt_smp_rate = param_find("RC_FLT_SMP_RATE");
+	parameter_handles.rc_flt_cutoff = param_find("RC_FLT_CUTOFF");
 
 	/* Differential pressure offset */
 	parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	parameter_handles.diff_pres_analog_scale = param_find("SENS_DPRES_ANSC");
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
 	parameter_handles.battery_voltage_scaling = param_find("BAT_CNT_V_VOLT");
 	parameter_handles.battery_current_scaling = param_find("BAT_CNT_V_CURR");
@@ -147,78 +157,37 @@ int initialize_parameter_handles(ParameterHandles &parameter_handles)
 	/* Barometer QNH */
 	parameter_handles.baro_qnh = param_find("SENS_BARO_QNH");
 
-	parameter_handles.vibe_thresh = param_find("ATT_VIBE_THRESH");
+	parameter_handles.air_cmodel = param_find("CAL_AIR_CMODEL");
+	parameter_handles.air_tube_length = param_find("CAL_AIR_TUBELEN");
+	parameter_handles.air_tube_diameter_mm = param_find("CAL_AIR_TUBED_MM");
 
 	// These are parameters for which QGroundControl always expects to be returned in a list request.
 	// We do a param_find here to force them into the list.
 	(void)param_find("RC_CHAN_CNT");
-	(void)param_find("RC_TH_USER");
+
+	(void)param_find("CAL_ACC0_ID");
+	(void)param_find("CAL_GYRO0_ID");
+
 	(void)param_find("CAL_MAG0_ID");
 	(void)param_find("CAL_MAG1_ID");
 	(void)param_find("CAL_MAG2_ID");
+	(void)param_find("CAL_MAG3_ID");
 	(void)param_find("CAL_MAG0_ROT");
 	(void)param_find("CAL_MAG1_ROT");
 	(void)param_find("CAL_MAG2_ROT");
+	(void)param_find("CAL_MAG3_ROT");
 	(void)param_find("CAL_MAG_SIDES");
-
-	(void)param_find("CAL_MAG1_XOFF");
-	(void)param_find("CAL_MAG1_XSCALE");
-	(void)param_find("CAL_MAG1_YOFF");
-	(void)param_find("CAL_MAG1_YSCALE");
-	(void)param_find("CAL_MAG1_ZOFF");
-	(void)param_find("CAL_MAG1_ZSCALE");
-
-	(void)param_find("CAL_MAG2_XOFF");
-	(void)param_find("CAL_MAG2_XSCALE");
-	(void)param_find("CAL_MAG2_YOFF");
-	(void)param_find("CAL_MAG2_YSCALE");
-	(void)param_find("CAL_MAG2_ZOFF");
-	(void)param_find("CAL_MAG2_ZSCALE");
-
-	(void)param_find("CAL_GYRO1_XOFF");
-	(void)param_find("CAL_GYRO1_XSCALE");
-	(void)param_find("CAL_GYRO1_YOFF");
-	(void)param_find("CAL_GYRO1_YSCALE");
-	(void)param_find("CAL_GYRO1_ZOFF");
-	(void)param_find("CAL_GYRO1_ZSCALE");
-
-	(void)param_find("CAL_GYRO2_XOFF");
-	(void)param_find("CAL_GYRO2_XSCALE");
-	(void)param_find("CAL_GYRO2_YOFF");
-	(void)param_find("CAL_GYRO2_YSCALE");
-	(void)param_find("CAL_GYRO2_ZOFF");
-	(void)param_find("CAL_GYRO2_ZSCALE");
-
-	(void)param_find("CAL_ACC1_XOFF");
-	(void)param_find("CAL_ACC1_XSCALE");
-	(void)param_find("CAL_ACC1_YOFF");
-	(void)param_find("CAL_ACC1_YSCALE");
-	(void)param_find("CAL_ACC1_ZOFF");
-	(void)param_find("CAL_ACC1_ZSCALE");
-
-	(void)param_find("CAL_ACC2_XOFF");
-	(void)param_find("CAL_ACC2_XSCALE");
-	(void)param_find("CAL_ACC2_YOFF");
-	(void)param_find("CAL_ACC2_YSCALE");
-	(void)param_find("CAL_ACC2_ZOFF");
-	(void)param_find("CAL_ACC2_ZSCALE");
 
 	(void)param_find("SYS_PARAM_VER");
 	(void)param_find("SYS_AUTOSTART");
 	(void)param_find("SYS_AUTOCONFIG");
-	(void)param_find("PWM_RATE");
-	(void)param_find("PWM_MIN");
-	(void)param_find("PWM_MAX");
-	(void)param_find("PWM_DISARMED");
-	(void)param_find("PWM_AUX_MIN");
-	(void)param_find("PWM_AUX_MAX");
-	(void)param_find("PWM_AUX_DISARMED");
 	(void)param_find("TRIG_MODE");
 	(void)param_find("UAVCAN_ENABLE");
-	(void)param_find("SYS_MC_EST_GROUP");
 
-
-	return 0;
+	// Parameters controlling the on-board sensor thermal calibrator
+	(void)param_find("SYS_CAL_TDEL");
+	(void)param_find("SYS_CAL_TMAX");
+	(void)param_find("SYS_CAL_TMIN");
 }
 
 int update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters)
@@ -331,6 +300,14 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 		PX4_WARN("%s", paramerr);
 	}
 
+	if (param_get(parameter_handles.rc_map_stab_sw, &(parameters.rc_map_stab_sw)) != OK) {
+		PX4_WARN("%s", paramerr);
+	}
+
+	if (param_get(parameter_handles.rc_map_man_sw, &(parameters.rc_map_man_sw)) != OK) {
+		PX4_WARN("%s", paramerr);
+	}
+
 	param_get(parameter_handles.rc_map_aux1, &(parameters.rc_map_aux1));
 	param_get(parameter_handles.rc_map_aux2, &(parameters.rc_map_aux2));
 	param_get(parameter_handles.rc_map_aux3, &(parameters.rc_map_aux3));
@@ -346,44 +323,58 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	param_get(parameter_handles.rc_fails_thr, &(parameters.rc_fails_thr));
 	param_get(parameter_handles.rc_assist_th, &(parameters.rc_assist_th));
 	parameters.rc_assist_inv = (parameters.rc_assist_th < 0);
-	parameters.rc_assist_th = fabs(parameters.rc_assist_th);
+	parameters.rc_assist_th = fabsf(parameters.rc_assist_th);
 	param_get(parameter_handles.rc_auto_th, &(parameters.rc_auto_th));
 	parameters.rc_auto_inv = (parameters.rc_auto_th < 0);
-	parameters.rc_auto_th = fabs(parameters.rc_auto_th);
+	parameters.rc_auto_th = fabsf(parameters.rc_auto_th);
 	param_get(parameter_handles.rc_rattitude_th, &(parameters.rc_rattitude_th));
 	parameters.rc_rattitude_inv = (parameters.rc_rattitude_th < 0);
-	parameters.rc_rattitude_th = fabs(parameters.rc_rattitude_th);
+	parameters.rc_rattitude_th = fabsf(parameters.rc_rattitude_th);
 	param_get(parameter_handles.rc_posctl_th, &(parameters.rc_posctl_th));
 	parameters.rc_posctl_inv = (parameters.rc_posctl_th < 0);
-	parameters.rc_posctl_th = fabs(parameters.rc_posctl_th);
+	parameters.rc_posctl_th = fabsf(parameters.rc_posctl_th);
 	param_get(parameter_handles.rc_return_th, &(parameters.rc_return_th));
 	parameters.rc_return_inv = (parameters.rc_return_th < 0);
-	parameters.rc_return_th = fabs(parameters.rc_return_th);
+	parameters.rc_return_th = fabsf(parameters.rc_return_th);
 	param_get(parameter_handles.rc_loiter_th, &(parameters.rc_loiter_th));
 	parameters.rc_loiter_inv = (parameters.rc_loiter_th < 0);
-	parameters.rc_loiter_th = fabs(parameters.rc_loiter_th);
+	parameters.rc_loiter_th = fabsf(parameters.rc_loiter_th);
 	param_get(parameter_handles.rc_acro_th, &(parameters.rc_acro_th));
 	parameters.rc_acro_inv = (parameters.rc_acro_th < 0);
-	parameters.rc_acro_th = fabs(parameters.rc_acro_th);
+	parameters.rc_acro_th = fabsf(parameters.rc_acro_th);
 	param_get(parameter_handles.rc_offboard_th, &(parameters.rc_offboard_th));
 	parameters.rc_offboard_inv = (parameters.rc_offboard_th < 0);
-	parameters.rc_offboard_th = fabs(parameters.rc_offboard_th);
+	parameters.rc_offboard_th = fabsf(parameters.rc_offboard_th);
 	param_get(parameter_handles.rc_killswitch_th, &(parameters.rc_killswitch_th));
 	parameters.rc_killswitch_inv = (parameters.rc_killswitch_th < 0);
-	parameters.rc_killswitch_th = fabs(parameters.rc_killswitch_th);
+	parameters.rc_killswitch_th = fabsf(parameters.rc_killswitch_th);
 	param_get(parameter_handles.rc_armswitch_th, &(parameters.rc_armswitch_th));
 	parameters.rc_armswitch_inv = (parameters.rc_armswitch_th < 0);
-	parameters.rc_armswitch_th = fabs(parameters.rc_armswitch_th);
+	parameters.rc_armswitch_th = fabsf(parameters.rc_armswitch_th);
 	param_get(parameter_handles.rc_trans_th, &(parameters.rc_trans_th));
 	parameters.rc_trans_inv = (parameters.rc_trans_th < 0);
-	parameters.rc_trans_th = fabs(parameters.rc_trans_th);
+	parameters.rc_trans_th = fabsf(parameters.rc_trans_th);
 	param_get(parameter_handles.rc_gear_th, &(parameters.rc_gear_th));
 	parameters.rc_gear_inv = (parameters.rc_gear_th < 0);
-	parameters.rc_gear_th = fabs(parameters.rc_gear_th);
+	parameters.rc_gear_th = fabsf(parameters.rc_gear_th);
+	param_get(parameter_handles.rc_stab_th, &(parameters.rc_stab_th));
+	parameters.rc_stab_inv = (parameters.rc_stab_th < 0);
+	parameters.rc_stab_th = fabsf(parameters.rc_stab_th);
+	param_get(parameter_handles.rc_man_th, &(parameters.rc_man_th));
+	parameters.rc_man_inv = (parameters.rc_man_th < 0);
+	parameters.rc_man_th = fabsf(parameters.rc_man_th);
+
+	param_get(parameter_handles.rc_flt_smp_rate, &(parameters.rc_flt_smp_rate));
+	parameters.rc_flt_smp_rate = math::max(1.0f, parameters.rc_flt_smp_rate);
+	param_get(parameter_handles.rc_flt_cutoff, &(parameters.rc_flt_cutoff));
+	/* make sure the filter is in its stable region -> fc < fs/2 */
+	parameters.rc_flt_cutoff = math::min(parameters.rc_flt_cutoff, (parameters.rc_flt_smp_rate / 2) - 1.f);
 
 	/* Airspeed offset */
 	param_get(parameter_handles.diff_pres_offset_pa, &(parameters.diff_pres_offset_pa));
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	param_get(parameter_handles.diff_pres_analog_scale, &(parameters.diff_pres_analog_scale));
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(parameter_handles.battery_voltage_scaling, &(parameters.battery_voltage_scaling)) != OK) {
@@ -392,7 +383,7 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	} else if (parameters.battery_voltage_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
 		parameters.battery_voltage_scaling = (3.3f / 4096);
-		param_set(parameter_handles.battery_voltage_scaling, &parameters.battery_voltage_scaling);
+		param_set_no_notification(parameter_handles.battery_voltage_scaling, &parameters.battery_voltage_scaling);
 	}
 
 	/* scaling of ADC ticks to battery current */
@@ -402,7 +393,7 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	} else if (parameters.battery_current_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
 		parameters.battery_current_scaling = (3.3f / 4096);
-		param_set(parameter_handles.battery_current_scaling, &parameters.battery_current_scaling);
+		param_set_no_notification(parameter_handles.battery_current_scaling, &parameters.battery_current_scaling);
 	}
 
 	if (param_get(parameter_handles.battery_current_offset, &(parameters.battery_current_offset)) != OK) {
@@ -416,25 +407,9 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 
 	} else if (parameters.battery_v_div <= 0.0f) {
 		/* apply scaling according to defaults if set to default */
-#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
-		parameters.battery_v_div = 13.653333333f;
-#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || defined ( CONFIG_ARCH_BOARD_MINDPX_V2 )
-		parameters.battery_v_div = 10.177939394f;
-#elif defined (CONFIG_ARCH_BOARD_AEROCORE)
-		parameters.battery_v_div = 7.8196363636f;
-#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
-		parameters.battery_v_div = 5.7013919372f;
-#elif defined (CONFIG_ARCH_BOARD_SITL)
-		parameters.battery_v_div = 10.177939394f;
-#elif defined (CONFIG_ARCH_BOARD_TAP_V1)
-		parameters.battery_v_div = 9.0f;
-#elif defined (CONFIG_ARCH_BOARD_AEROFC_V1)
-		parameters.battery_v_div = 9.0f;
-#else
-		/* ensure a missing default trips a low voltage lockdown */
-		parameters.battery_v_div = 0.0f;
-#endif
-		param_set(parameter_handles.battery_v_div, &parameters.battery_v_div);
+
+		parameters.battery_v_div = BOARD_BATTERY1_V_DIV;
+		param_set_no_notification(parameter_handles.battery_v_div, &parameters.battery_v_div);
 	}
 
 	if (param_get(parameter_handles.battery_a_per_v, &(parameters.battery_a_per_v)) != OK) {
@@ -443,19 +418,9 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 
 	} else if (parameters.battery_a_per_v <= 0.0f) {
 		/* apply scaling according to defaults if set to default */
-#if defined (CONFIG_ARCH_BOARD_PX4FMU_V4)
-		/* current scaling for ACSP4 */
-		parameters.battery_a_per_v = 36.367515152f;
-#elif defined (CONFIG_ARCH_BOARD_PX4FMU_V2) || defined (CONFIG_ARCH_BOARD_MINDPX_V2) || defined (CONFIG_ARCH_BOARD_AEROCORE) || defined (CONFIG_ARCH_BOARD_PX4FMU_V1)
-		/* current scaling for 3DR power brick */
-		parameters.battery_a_per_v = 15.391030303f;
-#elif defined (CONFIG_ARCH_BOARD_SITL)
-		parameters.battery_a_per_v = 15.391030303f;
-#else
-		/* ensure a missing default leads to an unrealistic current value */
-		parameters.battery_a_per_v = 0.0f;
-#endif
-		param_set(parameter_handles.battery_a_per_v, &parameters.battery_a_per_v);
+
+		parameters.battery_a_per_v = BOARD_BATTERY1_A_PER_V;
+		param_set_no_notification(parameter_handles.battery_a_per_v, &parameters.battery_a_per_v);
 	}
 
 	param_get(parameter_handles.battery_source, &(parameters.battery_source));
@@ -468,7 +433,9 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 
 	param_get(parameter_handles.baro_qnh, &(parameters.baro_qnh));
 
-	param_get(parameter_handles.vibe_thresh, &parameters.vibration_warning_threshold);
+	param_get(parameter_handles.air_cmodel, &parameters.air_cmodel);
+	param_get(parameter_handles.air_tube_length, &parameters.air_tube_length);
+	param_get(parameter_handles.air_tube_diameter_mm, &parameters.air_tube_diameter_mm);
 
 	return ret;
 }

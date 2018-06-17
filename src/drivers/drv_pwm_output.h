@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2015, 2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,8 +35,7 @@
  * @file PWM servo output interface.
  *
  * Servo values can be set with the PWM_SERVO_SET ioctl, by writing a
- * pwm_output_values structure to the device, or by publishing to the
- * output_pwm ORB topic.
+ * pwm_output_values structure to the device
  * Writing a value of 0 to a channel suppresses any output for that
  * channel.
  */
@@ -45,10 +44,9 @@
 
 #include <px4_defines.h>
 
-#include "uORB/topics/output_pwm.h"
-
 #include <stdint.h>
 #include <sys/ioctl.h>
+#include <board_config.h>
 
 #include "drv_orb_dev.h"
 
@@ -64,11 +62,12 @@ __BEGIN_DECLS
 #define PWM_OUTPUT_BASE_DEVICE_PATH "/dev/pwm_output"
 #define PWM_OUTPUT0_DEVICE_PATH	"/dev/pwm_output0"
 
-#define pwm_output_values output_pwm_s
+#define PWM_OUTPUT_MAX_CHANNELS 16
 
-#ifndef PWM_OUTPUT_MAX_CHANNELS
-#define PWM_OUTPUT_MAX_CHANNELS output_pwm_s::PWM_OUTPUT_MAX_CHANNELS
-#endif
+struct pwm_output_values {
+	uint32_t channel_count;
+	uint16_t values[16];
+};
 
 /**
  * Maximum number of PWM output channels supported by the device.
@@ -250,15 +249,6 @@ struct pwm_output_rc_config {
 /** force safety switch on (to enable use of safety switch) */
 #define PWM_SERVO_SET_FORCE_SAFETY_ON		_PX4_IOC(_PWM_SERVO_BASE, 28)
 
-/** set RC config for a channel. This takes a pointer to pwm_output_rc_config */
-#define PWM_SERVO_SET_RC_CONFIG			_PX4_IOC(_PWM_SERVO_BASE, 29)
-
-/** set the 'OVERRIDE OK' bit, which allows for RC control on FMU loss */
-#define PWM_SERVO_SET_OVERRIDE_OK		_PX4_IOC(_PWM_SERVO_BASE, 30)
-
-/** clear the 'OVERRIDE OK' bit, which allows for RC control on FMU loss */
-#define PWM_SERVO_CLEAR_OVERRIDE_OK		_PX4_IOC(_PWM_SERVO_BASE, 31)
-
 /** setup OVERRIDE_IMMEDIATE behaviour on FMU fail */
 #define PWM_SERVO_SET_OVERRIDE_IMMEDIATE	_PX4_IOC(_PWM_SERVO_BASE, 32)
 
@@ -266,19 +256,20 @@ struct pwm_output_rc_config {
 #define PWM_SERVO_SET_SBUS_RATE			_PX4_IOC(_PWM_SERVO_BASE, 33)
 
 /** set auxillary output mode. These correspond to enum Mode in px4fmu/fmu.cpp */
-#define PWM_SERVO_MODE_NONE			0
-#define PWM_SERVO_MODE_1PWM			1
-#define PWM_SERVO_MODE_2PWM			2
-#define PWM_SERVO_MODE_2PWM2CAP			3
-#define PWM_SERVO_MODE_3PWM			4
-#define PWM_SERVO_MODE_3PWM1CAP			5
-#define PWM_SERVO_MODE_4PWM			6
-#define PWM_SERVO_MODE_6PWM			7
-#define PWM_SERVO_MODE_8PWM			8
-#define PWM_SERVO_MODE_4CAP			9
-#define PWM_SERVO_MODE_5CAP		       10
-#define PWM_SERVO_MODE_6CAP		       11
-#define PWM_SERVO_SET_MODE			_PX4_IOC(_PWM_SERVO_BASE, 34)
+#define PWM_SERVO_MODE_NONE         0
+#define PWM_SERVO_MODE_1PWM         1
+#define PWM_SERVO_MODE_2PWM         2
+#define PWM_SERVO_MODE_2PWM2CAP     3
+#define PWM_SERVO_MODE_3PWM         4
+#define PWM_SERVO_MODE_3PWM1CAP     5
+#define PWM_SERVO_MODE_4PWM         6
+#define PWM_SERVO_MODE_6PWM         7
+#define PWM_SERVO_MODE_8PWM         8
+#define PWM_SERVO_MODE_14PWM        9
+#define PWM_SERVO_MODE_4CAP        10
+#define PWM_SERVO_MODE_5CAP        11
+#define PWM_SERVO_MODE_6CAP        12
+#define PWM_SERVO_SET_MODE         _PX4_IOC(_PWM_SERVO_BASE, 34)
 
 /*
  *
@@ -359,6 +350,14 @@ __EXPORT extern uint32_t up_pwm_servo_get_rate_group(unsigned group);
  * @return		OK if the group was adjusted, -ERANGE if an unsupported update rate is set.
  */
 __EXPORT extern int	up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate);
+
+/**
+ * Trigger all timer's channels in Oneshot mode to fire
+ * the oneshot with updated values.
+ * Nothing is done if not in oneshot mode.
+ *
+ */
+__EXPORT extern void up_pwm_update(void);
 
 /**
  * Set the current output value for a channel.

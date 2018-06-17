@@ -58,6 +58,9 @@
 #include <nuttx/wqueue.h>
 #include <systemlib/err.h>
 
+#include <uORB/uORB.h>
+#include <uORB/topics/irlock_report.h>
+
 /** Configuration Constants **/
 #define IRLOCK_I2C_BUS			PX4_I2C_BUS_EXPANSION
 #define IRLOCK_I2C_ADDRESS		0x54 /** 7-bit address (non shifted) **/
@@ -124,6 +127,9 @@ private:
 	bool _sensor_ok;
 	work_s _work;
 	uint32_t _read_failures;
+
+	int _orb_class_instance;
+	orb_advert_t _irlock_report_topic;
 };
 
 /** global pointer for single IRLOCK sensor **/
@@ -141,7 +147,9 @@ IRLOCK::IRLOCK(int bus, int address) :
 	I2C("irlock", IRLOCK0_DEVICE_PATH, bus, address, 400000),
 	_reports(nullptr),
 	_sensor_ok(false),
-	_read_failures(0)
+	_read_failures(0),
+	_orb_class_instance(-1),
+	_irlock_report_topic(nullptr)
 {
 	memset(&_work, 0, sizeof(_work));
 }
@@ -362,6 +370,29 @@ int IRLOCK::read_device()
 	}
 
 	_reports->force(&report);
+
+	// publish over uORB
+	if (report.num_targets > 0) {
+		struct irlock_report_s orb_report;
+
+		orb_report.timestamp = report.timestamp;
+		orb_report.signature = report.targets[0].signature;
+		orb_report.pos_x     = report.targets[0].pos_x;
+		orb_report.pos_y     = report.targets[0].pos_y;
+		orb_report.size_x    = report.targets[0].size_x;
+		orb_report.size_y    = report.targets[0].size_y;
+
+		if (_irlock_report_topic != nullptr) {
+			orb_publish(ORB_ID(irlock_report), _irlock_report_topic, &orb_report);
+
+		} else {
+			_irlock_report_topic = orb_advertise_multi(ORB_ID(irlock_report), &orb_report, &_orb_class_instance, ORB_PRIO_LOW);
+
+			if (_irlock_report_topic == nullptr) {
+				DEVICE_LOG("failed to create irlock_report object. Did you start uOrb?");
+			}
+		}
+	}
 
 	return OK;
 }

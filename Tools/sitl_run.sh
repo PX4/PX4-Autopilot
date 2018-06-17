@@ -23,7 +23,6 @@ echo src_path: $src_path
 echo build_path: $build_path
 
 working_dir=`pwd`
-sitl_bin=$build_path/src/firmware/posix/px4
 rootfs=$build_path/tmp/rootfs
 
 if [ "$chroot" == "1" ]
@@ -48,6 +47,20 @@ then
 	model="iris"
 fi
 
+# check replay mode
+if [ "$replay_mode" == "ekf2" ]
+then
+	model="iris_replay"
+	# create the publisher rules
+	mkdir -p $rootfs
+	publisher_rules_file="$rootfs/orb_publisher.rules"
+	cat <<EOF > "$publisher_rules_file"
+restrict_topics: sensor_combined, vehicle_gps_position, vehicle_land_detected
+module: replay
+ignore_others: false
+EOF
+fi
+
 if [ "$#" -lt 7 ]
 then
 	echo usage: sitl_run.sh rc_script rcS_dir debugger program model src_path build_path
@@ -57,8 +70,10 @@ fi
 
 # kill process names that might stil
 # be running from last time
-pgrep gazebo && pkill gazebo
-pgrep px4 && pkill px4
+pkill -x gazebo || true
+pkill -x px4 || true
+pkill -x px4_$model || true
+
 jmavsim_pid=`ps aux | grep java | grep Simulator | cut -d" " -f1`
 if [ -n "$jmavsim_pid" ]
 then
@@ -72,48 +87,38 @@ SIM_PID=0
 
 if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]
 then
-	$src_path/Tools/jmavsim_run.sh &
+	$src_path/Tools/jmavsim_run.sh -r 500 &
 	SIM_PID=`echo $!`
 	cd ../..
 elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]
 then
 	if [ -x "$(command -v gazebo)" ]
 	then
-		# Set the plugin path so Gazebo finds our model and sim
-		source $src_path/Tools/setup_gazebo.bash ${src_path} ${build_path}
+		if  [[ -z "$DONT_RUN" ]]
+		then
+			# Set the plugin path so Gazebo finds our model and sim
+			source $src_path/Tools/setup_gazebo.bash ${src_path} ${build_path}
 
-		gzserver --verbose ${src_path}/Tools/sitl_gazebo/worlds/${model}.world &
-		SIM_PID=`echo $!`
+			gzserver --verbose ${src_path}/Tools/sitl_gazebo/worlds/${model}.world &
+			SIM_PID=`echo $!`
 
-		if [[ -n "$HEADLESS" ]]; then
-			echo "not running gazebo gui"
-		else
-			gzclient --verbose &
-			GUI_PID=`echo $!`
+			if [[ -n "$HEADLESS" ]]; then
+				echo "not running gazebo gui"
+			else
+				# gzserver needs to be running to avoid a race. Since the launch
+				# is putting it into the background we need to avoid it by backing off
+				sleep 3
+				nice -n 20 gzclient --verbose &
+				GUI_PID=`echo $!`
+			fi
 		fi
 	else
 		echo "You need to have gazebo simulator installed!"
 		exit 1
 	fi
-elif [ "$program" == "replay" ] && [ ! -n "$no_sim" ]
-then
-	echo "Replaying logfile: $logfile"
-	# This is not a simulator, but a log file to replay
-
-	# Check if we need to creat a param file to allow user to change parameters
-	if ! [ -f "$rootfs/replay_params.txt" ]
-		then
-		mkdir -p $rootfs
-		touch $rootfs/replay_params.txt
-	fi
 fi
 
 cd $working_dir
-
-if [ "$logfile" != "" ]
-then
-	cp $logfile $rootfs/replay.px4log
-fi
 
 # Do not exit on failure now from here on because we want the complete cleanup
 set +e
@@ -122,8 +127,11 @@ sitl_command="$sudo_enabled $sitl_bin $no_pxh $chroot_enabled $src_path $src_pat
 
 echo SITL COMMAND: $sitl_command
 
+if [[ -n "$DONT_RUN" ]]
+then
+    echo "Not running simulation (\$DONT_RUN is set)."
 # Start Java simulator
-if [ "$debugger" == "lldb" ]
+elif [ "$debugger" == "lldb" ]
 then
 	lldb -- $sitl_command
 elif [ "$debugger" == "gdb" ]
@@ -134,7 +142,10 @@ then
 	ddd --debugger gdb --args $sitl_command
 elif [ "$debugger" == "valgrind" ]
 then
-	valgrind $sitl_command
+	valgrind --track-origins=yes --leak-check=full -v $sitl_command
+elif [ "$debugger" == "callgrind" ]
+then
+	valgrind --tool=callgrind -v $sitl_command
 elif [ "$debugger" == "ide" ]
 then
 	echo "######################################################################"
@@ -148,14 +159,17 @@ else
 	$sitl_command
 fi
 
-if [ "$program" == "jmavsim" ]
+if [[ -z "$DONT_RUN" ]]
 then
-	pkill -9 -P $SIM_PID
-	kill -9 $SIM_PID
-elif [ "$program" == "gazebo" ]
-then
-	kill -9 $SIM_PID
-	if [[ ! -n "$HEADLESS" ]]; then
-		kill -9 $GUI_PID
+	if [ "$program" == "jmavsim" ]
+	then
+		pkill -9 -P $SIM_PID
+		kill -9 $SIM_PID
+	elif [ "$program" == "gazebo" ]
+	then
+		kill -9 $SIM_PID
+		if [[ ! -n "$HEADLESS" ]]; then
+			kill -9 $GUI_PID
+		fi
 	fi
 fi

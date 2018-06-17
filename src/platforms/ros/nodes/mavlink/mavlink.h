@@ -40,13 +40,14 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
 */
 
+#pragma once
+
 #include "ros/ros.h"
 #include <mavconn/interface.h>
 #include <px4/vehicle_attitude.h>
 #include <px4/vehicle_local_position.h>
 #include <px4/vehicle_attitude_setpoint.h>
 #include <px4/position_setpoint_triplet.h>
-#include <px4/vehicle_force_setpoint.h>
 #include <px4/offboard_control_mode.h>
 
 namespace px4

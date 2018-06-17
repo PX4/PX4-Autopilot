@@ -33,11 +33,11 @@
 
 #pragma once
 
-#include <px4.h>
+#include <px4_defines.h>
 #include <stdint.h>
 #include <pthread.h>
 #include <drivers/drv_hrt.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 namespace px4
 {
@@ -113,6 +113,8 @@ public:
 		return _need_reliable_transfer;
 	}
 
+	pthread_t thread_id() const { return _thread; }
+
 private:
 	static void *run_helper(void *);
 
@@ -124,6 +126,14 @@ private:
 	{
 		_count -= n;
 	}
+
+	/**
+	 * permanently store the ulog file name for the hardfault crash handler, so that it can
+	 * append crash logs to the last ulog file.
+	 * @param log_file path to the log file
+	 * @return 0 on success, <0 errno otherwise
+	 */
+	int hardfault_store_filename(const char *log_file);
 
 	/**
 	 * write w/o waiting/blocking

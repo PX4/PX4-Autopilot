@@ -65,7 +65,7 @@ int DemoOffboardAttitudeSetpoints::main()
 
 		/* Publish example offboard attitude setpoint */
 		geometry_msgs::PoseStamped pose;
-		tf::Quaternion q = tf::createQuaternionFromRPY(0.0, 0.1 * (sinf(0.5 * (float)px4::get_time_micros() / 1000000.0f)) ,
+		tf::Quaternion q = tf::createQuaternionFromRPY(0.0, 0.1 * (sinf(0.5 * (float)px4::get_time_micros() / 1000000.0f)),
 				   0.0);
 		quaternionTFToMsg(q, pose.pose.orientation);
 

@@ -79,12 +79,12 @@ public:
 	}
 
 	/**
-	 * Get the DeviceMaster for a given Flavor. If it does not exist,
+	 * Get the DeviceMaster. If it does not exist,
 	 * it will be created and initialized.
 	 * Note: the first call to this is not thread-safe.
 	 * @return nullptr if initialization failed (and errno will be set)
 	 */
-	uORB::DeviceMaster *get_device_master(Flavor flavor);
+	uORB::DeviceMaster *get_device_master();
 
 	// ==== uORB interface methods ====
 	/**
@@ -145,14 +145,14 @@ public:
 	 *      and handle different priorities (@see orb_priority()).
 	 * @param queue_size  Maximum number of buffered elements. If this is 1, no queuing is
 	 *      used.
-	 * @return    ERROR on error, otherwise returns a handle
+	 * @return    PX4_ERROR on error, otherwise returns a handle
 	 *      that can be used to publish to the topic.
 	 *      If the topic in question is not known (due to an
 	 *      ORB_DEFINE with no corresponding ORB_DECLARE)
 	 *      this function will return -1 and set errno to ENOENT.
 	 */
 	orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
-					 int priority, unsigned int queue_size = 1) ;
+					 int priority, unsigned int queue_size = 1);
 
 
 	/**
@@ -174,9 +174,9 @@ public:
 	 *      for the topic.
 	 * @handle    The handle returned from orb_advertise.
 	 * @param data    A pointer to the data to be published.
-	 * @return    OK on success, ERROR otherwise with errno set accordingly.
+	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data) ;
+	int  orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data);
 
 	/**
 	 * Subscribe to a topic.
@@ -200,10 +200,10 @@ public:
 	 *
 	 * @param meta    The uORB metadata (usually from the ORB_ID() macro)
 	 *      for the topic.
-	 * @return    ERROR on error, otherwise returns a handle
+	 * @return    PX4_ERROR on error, otherwise returns a handle
 	 *      that can be used to read and update the topic.
 	 */
-	int  orb_subscribe(const struct orb_metadata *meta) ;
+	int  orb_subscribe(const struct orb_metadata *meta);
 
 	/**
 	 * Subscribe to a multi-instance of a topic.
@@ -232,21 +232,21 @@ public:
 	 * @param instance  The instance of the topic. Instance 0 matches the
 	 *      topic of the orb_subscribe() call, higher indices
 	 *      are for topics created with orb_advertise_multi().
-	 * @return    ERROR on error, otherwise returns a handle
+	 * @return    PX4_ERROR on error, otherwise returns a handle
 	 *      that can be used to read and update the topic.
 	 *      If the topic in question is not known (due to an
 	 *      ORB_DEFINE_OPTIONAL with no corresponding ORB_DECLARE)
 	 *      this function will return -1 and set errno to ENOENT.
 	 */
-	int  orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance) ;
+	int  orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance);
 
 	/**
 	 * Unsubscribe from a topic.
 	 *
 	 * @param handle  A handle returned from orb_subscribe.
-	 * @return    OK on success, ERROR otherwise with errno set accordingly.
+	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_unsubscribe(int handle) ;
+	int  orb_unsubscribe(int handle);
 
 	/**
 	 * Fetch data from a topic.
@@ -262,9 +262,9 @@ public:
 	 * @param buffer  Pointer to the buffer receiving the data, or NULL
 	 *      if the caller wants to clear the updated flag without
 	 *      using the data.
-	 * @return    OK on success, ERROR otherwise with errno set accordingly.
+	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_copy(const struct orb_metadata *meta, int handle, void *buffer) ;
+	int  orb_copy(const struct orb_metadata *meta, int handle, void *buffer);
 
 	/**
 	 * Check whether a topic has been published to since the last orb_copy.
@@ -281,10 +281,10 @@ public:
 	 * @param handle  A handle returned from orb_subscribe.
 	 * @param updated Set to true if the topic has been updated since the
 	 *      last time it was copied using this handle.
-	 * @return    OK if the check was successful, ERROR otherwise with
+	 * @return    OK if the check was successful, PX4_ERROR otherwise with
 	 *      errno set accordingly.
 	 */
-	int  orb_check(int handle, bool *updated) ;
+	int  orb_check(int handle, bool *updated);
 
 	/**
 	 * Return the last time that the topic was updated. If a queue is used, it returns
@@ -293,19 +293,18 @@ public:
 	 * @param handle  A handle returned from orb_subscribe.
 	 * @param time    Returns the absolute time that the topic was updated, or zero if it has
 	 *      never been updated. Time is measured in microseconds.
-	 * @return    OK on success, ERROR otherwise with errno set accordingly.
+	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_stat(int handle, uint64_t *time) ;
+	int  orb_stat(int handle, uint64_t *time);
 
 	/**
-	 * Check if a topic has already been created (a publisher or a subscriber exists with
-	 * the given instance).
+	 * Check if a topic has already been created and published (advertised)
 	 *
 	 * @param meta    ORB topic metadata.
 	 * @param instance  ORB instance
-	 * @return    OK if the topic exists, ERROR otherwise with errno set accordingly.
+	 * @return    OK if the topic exists, PX4_ERROR otherwise.
 	 */
-	int  orb_exists(const struct orb_metadata *meta, int instance) ;
+	int  orb_exists(const struct orb_metadata *meta, int instance);
 
 	/**
 	 * Return the priority of the topic
@@ -315,9 +314,9 @@ public:
 	 *      topics which are published by multiple publishers (e.g. mag0, mag1, etc.)
 	 *      and allows a subscriber to pick the topic with the highest priority,
 	 *      independent of the startup order of the associated publishers.
-	 * @return    OK on success, ERROR otherwise with errno set accordingly.
+	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_priority(int handle, int32_t *priority) ;
+	int  orb_priority(int handle, int32_t *priority);
 
 	/**
 	 * Set the minimum interval between which updates are seen for a subscription.
@@ -335,9 +334,9 @@ public:
 	 *
 	 * @param handle  A handle returned from orb_subscribe.
 	 * @param interval  An interval period in milliseconds.
-	 * @return    OK on success, ERROR otherwise with ERRNO set accordingly.
+	 * @return    OK on success, PX4_ERROR otherwise with ERRNO set accordingly.
 	 */
-	int  orb_set_interval(int handle, unsigned interval) ;
+	int  orb_set_interval(int handle, unsigned interval);
 
 
 	/**
@@ -347,7 +346,7 @@ public:
 	 *
 	 * @param handle  A handle returned from orb_subscribe.
 	 * @param interval  The returned interval period in milliseconds.
-	 * @return    OK on success, ERROR otherwise with ERRNO set accordingly.
+	 * @return    OK on success, PX4_ERROR otherwise with ERRNO set accordingly.
 	 */
 	int	orb_get_interval(int handle, unsigned *interval);
 
@@ -364,7 +363,7 @@ public:
 	/**
 	 * Gets the uORB Communicator instance.
 	 */
-	uORBCommunicator::IChannel *get_uorb_communicator(void);
+	uORBCommunicator::IChannel *get_uorb_communicator();
 
 	/**
 	 * Utility method to check if there is a remote subscriber present
@@ -394,28 +393,36 @@ private: // class methods
 	 * Handles creation of the object and the initial publication for
 	 * advertisers.
 	 */
-	int
-	node_open
-	(
-		Flavor f,
-		const struct orb_metadata *meta,
-		const void *data,
-		bool advertiser,
-		int *instance = nullptr,
-		int priority = ORB_PRIO_DEFAULT
-	);
+	int node_open(const struct orb_metadata *meta, const void *data, bool advertiser, int *instance = nullptr,
+		      int priority = ORB_PRIO_DEFAULT);
 
 private: // data members
 	static Manager *_Instance;
 	// the communicator channel instance.
 	uORBCommunicator::IChannel *_comm_channel;
-	ORBSet _remote_subscriber_topics;
 
-	DeviceMaster *_device_masters[Flavor_count]; ///< Allow at most one DeviceMaster per Flavor
+	ORBSet _remote_subscriber_topics;
+	ORBSet _remote_topics;
+
+	DeviceMaster *_device_master{nullptr};
 
 private: //class methods
 	Manager();
 	~Manager();
+
+	/**
+	 * Interface to process a received topic from remote.
+	 * @param topic_name
+	 * 	This represents the uORB message Name (topic); This message Name should be
+	 * 	globally unique.
+	 * @param isAdvertisement
+	 * 	Represents if the topic has been advertised or is no longer avialable.
+	 * @return
+	 *  0 = success; This means the messages is successfully handled in the
+	 *  	handler.
+	 *  otherwise = failure.
+	 */
+	virtual int16_t process_remote_topic(const char *topic_name, bool isAdvertisement);
 
 	/**
 	   * Interface to process a received AddSubscription from remote.

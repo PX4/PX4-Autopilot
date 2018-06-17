@@ -39,7 +39,7 @@
 
 #include "esc.hpp"
 #include <systemlib/err.h>
-
+#include <drivers/drv_hrt.h>
 
 #define MOTOR_BIT(x) (1<<(x))
 
@@ -109,6 +109,10 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	 */
 	uavcan::equipment::esc::RawCommand msg;
 
+	actuator_outputs_s actuator_outputs = {};
+	actuator_outputs.noutputs = num_outputs;
+	actuator_outputs.timestamp = hrt_absolute_time();
+
 	static const int cmd_max = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max();
 	const float cmd_min = _run_at_idle_throttle_when_armed ? 1.0F : 0.0F;
 
@@ -130,17 +134,49 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 			msg.cmd.push_back(static_cast<int>(scaled));
 
 			_esc_status.esc[i].esc_setpoint_raw = abs(static_cast<int>(scaled));
+			actuator_outputs.output[i] = scaled;
 
 		} else {
 			msg.cmd.push_back(static_cast<unsigned>(0));
+			actuator_outputs.output[i] = 0.0f;
 		}
 	}
+
+	/*
+	 * Remove channels that are always zero.
+	 * The objective of this optimization is to avoid broadcasting multi-frame transfers when a single frame
+	 * transfer would be enough. This is a valid optimization as the UAVCAN specification implies that all
+	 * non-specified ESC setpoints should be considered zero.
+	 * The positive outcome is a (marginally) lower bus traffic and lower CPU load.
+	 *
+	 * From the standpoint of the PX4 architecture, however, this is a hack. It should be investigated why
+	 * the mixer returns more outputs than are actually used.
+	 */
+	for (int index = int(msg.cmd.size()) - 1; index >= _max_number_of_nonzero_outputs; index--) {
+		if (msg.cmd[index] != 0) {
+			_max_number_of_nonzero_outputs = index + 1;
+			break;
+		}
+	}
+
+	msg.cmd.resize(_max_number_of_nonzero_outputs);
 
 	/*
 	 * Publish the command message to the bus
 	 * Note that for a quadrotor it takes one CAN frame
 	 */
 	(void)_uavcan_pub_raw_cmd.broadcast(msg);
+
+	// Publish actuator outputs
+	if (_actuator_outputs_pub != nullptr) {
+		orb_publish(ORB_ID(actuator_outputs), _actuator_outputs_pub, &actuator_outputs);
+
+	} else {
+		int instance;
+		_actuator_outputs_pub = orb_advertise_multi(ORB_ID(actuator_outputs), &actuator_outputs,
+					&instance, ORB_PRIO_DEFAULT);
+	}
+
 }
 
 void UavcanEscController::arm_all_escs(bool arm)

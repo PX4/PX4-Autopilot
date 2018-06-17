@@ -39,16 +39,17 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#ifndef NAVIGATION_H_
-#define NAVIGATION_H_
+#pragma once
 
 #include <stdint.h>
 #include <stdbool.h>
 
 #if defined(MEMORY_CONSTRAINED_SYSTEM)
 #  define NUM_MISSIONS_SUPPORTED 50
+#elif defined(__PX4_POSIX)
+#  define NUM_MISSIONS_SUPPORTED (UINT16_MAX-1) // This is allocated as needed.
 #else
-#  define NUM_MISSIONS_SUPPORTED 256
+#  define NUM_MISSIONS_SUPPORTED 2000 // This allocates a file of around 181 kB on the SD card.
 #endif
 
 #define NAV_EPSILON_POSITION	0.001f	/**< Anything smaller than this is considered zero */
@@ -64,29 +65,57 @@ enum NAV_CMD {
 	NAV_CMD_TAKEOFF = 22,
 	NAV_CMD_LOITER_TO_ALT = 31,
 	NAV_CMD_DO_FOLLOW_REPOSITION = 33,
-	NAV_CMD_ROI = 80,
 	NAV_CMD_VTOL_TAKEOFF = 84,
 	NAV_CMD_VTOL_LAND = 85,
+	NAV_CMD_DELAY = 93,
 	NAV_CMD_DO_JUMP = 177,
 	NAV_CMD_DO_CHANGE_SPEED = 178,
-	NAV_CMD_DO_SET_SERVO=183,
-	NAV_CMD_DO_LAND_START=189,
-	NAV_CMD_DO_SET_ROI=201,
-	NAV_CMD_DO_DIGICAM_CONTROL=203,
-	NAV_CMD_DO_MOUNT_CONFIGURE=204,
-	NAV_CMD_DO_MOUNT_CONTROL=205,
-	NAV_CMD_DO_SET_CAM_TRIGG_DIST=206,
-	NAV_CMD_IMAGE_START_CAPTURE=2000,
-	NAV_CMD_IMAGE_STOP_CAPTURE=2001,
-	NAV_CMD_VIDEO_START_CAPTURE=2500,
-	NAV_CMD_VIDEO_STOP_CAPTURE=2501,
-	NAV_CMD_DO_VTOL_TRANSITION=3000,
-	NAV_CMD_INVALID=UINT16_MAX /* ensure that casting a large number results in a specific error */
+	NAV_CMD_DO_SET_HOME = 179,
+	NAV_CMD_DO_SET_SERVO = 183,
+	NAV_CMD_DO_LAND_START = 189,
+	NAV_CMD_DO_SET_ROI_LOCATION = 195,
+	NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET = 196,
+	NAV_CMD_DO_SET_ROI_NONE = 197,
+	NAV_CMD_DO_SET_ROI = 201,
+	NAV_CMD_DO_DIGICAM_CONTROL = 203,
+	NAV_CMD_DO_MOUNT_CONFIGURE = 204,
+	NAV_CMD_DO_MOUNT_CONTROL = 205,
+	NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL = 214,
+	NAV_CMD_DO_SET_CAM_TRIGG_DIST = 206,
+	NAV_CMD_SET_CAMERA_MODE = 530,
+	NAV_CMD_IMAGE_START_CAPTURE = 2000,
+	NAV_CMD_IMAGE_STOP_CAPTURE = 2001,
+	NAV_CMD_DO_TRIGGER_CONTROL = 2003,
+	NAV_CMD_VIDEO_START_CAPTURE = 2500,
+	NAV_CMD_VIDEO_STOP_CAPTURE = 2501,
+	NAV_CMD_DO_VTOL_TRANSITION = 3000,
+	NAV_CMD_FENCE_RETURN_POINT = 5000,
+	NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION = 5001,
+	NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION = 5002,
+	NAV_CMD_FENCE_CIRCLE_INCLUSION = 5003,
+	NAV_CMD_FENCE_CIRCLE_EXCLUSION = 5004,
+	NAV_CMD_INVALID = UINT16_MAX /* ensure that casting a large number results in a specific error */
 };
 
 enum ORIGIN {
 	ORIGIN_MAVLINK = 0,
 	ORIGIN_ONBOARD
+};
+
+/* compatible to mavlink MAV_FRAME */
+enum NAV_FRAME {
+	NAV_FRAME_GLOBAL = 0,
+	NAV_FRAME_LOCAL_NED = 1,
+	NAV_FRAME_MISSION = 2,
+	NAV_FRAME_GLOBAL_RELATIVE_ALT = 3,
+	NAV_FRAME_LOCAL_ENU = 4,
+	NAV_FRAME_GLOBAL_INT = 5,
+	NAV_FRAME_GLOBAL_RELATIVE_ALT_INT = 6,
+	NAV_FRAME_LOCAL_OFFSET_NED = 7,
+	NAV_FRAME_BODY_NED = 8,
+	NAV_FRAME_BODY_OFFSET_NED = 9,
+	NAV_FRAME_GLOBAL_TERRAIN_ALT = 10,
+	NAV_FRAME_GLOBAL_TERRAIN_ALT_INT = 11
 };
 
 /**
@@ -99,6 +128,8 @@ enum ORIGIN {
  *
  * This is the position the MAV is heading towards. If it of type loiter,
  * the MAV is circling around it with the given loiter radius in meters.
+ *
+ * Corresponds to one of the DM_KEY_WAYPOINTS_OFFBOARD_* dataman items
  */
 #pragma pack(push, 1)
 struct mission_item_s {
@@ -109,6 +140,7 @@ struct mission_item_s {
 			union {
 				float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
 				float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
+				float circle_radius;		/**< geofence circle radius in meters (only used for NAV_CMD_NAV_FENCE_CIRCLE*) */
 			};
 			float acceptance_radius;	/**< default radius in which the mission is accepted as reached in meters */
 			float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
@@ -122,17 +154,58 @@ struct mission_item_s {
 	uint16_t nav_cmd;					/**< navigation command					*/
 	int16_t do_jump_mission_index;		/**< index where the do jump will go to                 */
 	uint16_t do_jump_repeat_count;		/**< how many times do jump needs to be done            */
-	uint16_t do_jump_current_count;		/**< count how many times the jump has been done	*/
+	union {
+		uint16_t do_jump_current_count;		/**< count how many times the jump has been done	*/
+		uint16_t vertex_count;			/**< Polygon vertex count (geofence)	*/
+		uint16_t land_precision;		/**< Defines if landing should be precise: 0 = normal landing, 1 = opportunistic precision landing, 2 = required precision landing (with search)	*/
+	};
 	struct {
-		uint16_t frame : 4,				/**< mission frame ***/
-		origin : 3,						/**< how the mission item was generated */
-		loiter_exit_xtrack : 1,			/**< exit xtrack location: 0 for center of loiter wp, 1 for exit location */
-		force_heading : 1,				/**< heading needs to be reached ***/
-		altitude_is_relative : 1,		/**< true if altitude is relative from start point	*/
-		autocontinue : 1,				/**< true if next waypoint should follow after this one */
-		disable_mc_yaw : 1;				/**< weathervane mode */
+		uint16_t frame : 4,					/**< mission frame */
+			 origin : 3,						/**< how the mission item was generated */
+			 loiter_exit_xtrack : 1,			/**< exit xtrack location: 0 for center of loiter wp, 1 for exit location */
+			 force_heading : 1,				/**< heading needs to be reached */
+			 altitude_is_relative : 1,		/**< true if altitude is relative from start point	*/
+			 autocontinue : 1,				/**< true if next waypoint should follow after this one */
+			 vtol_back_transition : 1;		/**< part of the vtol back transition sequence */
 	};
 };
+
+/**
+ * dataman housekeeping information for a specific item.
+ * Corresponds to the first dataman entry of DM_KEY_FENCE_POINTS and DM_KEY_SAFE_POINTS
+ */
+struct mission_stats_entry_s {
+	uint16_t num_items;			/**< total number of items stored (excluding this one) */
+	uint16_t update_counter;			/**< This counter is increased when (some) items change (this can wrap) */
+};
+
+/**
+ * Geofence vertex point.
+ * Corresponds to the DM_KEY_FENCE_POINTS dataman item
+ */
+struct mission_fence_point_s {
+	double lat;
+	double lon;
+	float alt;
+	uint16_t nav_cmd;				/**< navigation command (one of MAV_CMD_NAV_FENCE_*) */
+	union {
+		uint16_t vertex_count;			/**< number of vertices in this polygon */
+		float circle_radius;			/**< geofence circle radius in meters (only used for NAV_CMD_NAV_FENCE_CIRCLE*) */
+	};
+	uint8_t frame;					/**< MAV_FRAME */
+};
+
+/**
+ * Save Point (Rally Point).
+ * Corresponds to the DM_KEY_SAFE_POINTS dataman item
+ */
+struct mission_save_point_s {
+	double lat;
+	double lon;
+	float alt;
+	uint8_t frame;					/**< MAV_FRAME */
+};
+
 #pragma pack(pop)
 #include <uORB/topics/mission.h>
 
@@ -141,4 +214,3 @@ struct mission_item_s {
  */
 
 
-#endif

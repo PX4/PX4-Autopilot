@@ -1,8 +1,3 @@
-*.d
-!ROMFS/*/*.d
-!ROMFS/*/*/*.d
-!ROMFS/*/*/*/*.d
-*.px4log
 *.dSYM
 *.o
 *.gch
@@ -17,11 +12,10 @@
 .settings
 .swp
 .~lock.*
-Archives/*
-Build/*
 Testing/
-Binaries/*
-Meta/*
+Packages/*
+s3deploy-branch/
+s3deploy-archive/
 build/*
 build_*/
 core
@@ -30,15 +24,6 @@ cscope.in.out
 cscope.po.out
 Firmware.sublime-workspace
 user.sublime*
-Images/*.bin
-Images/*.px4
-mavlink/include/mavlink/v0.9/
-/nuttx-configs/px4io-v2/src/.depend
-/nuttx-configs/px4io-v2/src/Make.dep
-/nuttx-configs/px4io-v2/src/libboard.a
-/nuttx-configs/px4io-v1/src/.depend
-/nuttx-configs/px4io-v1/src/Make.dep
-/nuttx-configs/px4io-v1/src/libboard.a
 /Documentation/doxy.log
 /Documentation/html/
 /Documentation/doxygen*objdb*tmp
@@ -52,7 +37,6 @@ src/modules/uORB/topics/*
 src/platforms/nuttx/px4_messages/*
 src/platforms/ros/px4_messages/*
 Firmware.zip
-unittests/build
 *.generated.h
 .vagrant
 *.pretty
@@ -72,15 +56,18 @@ GTAGS
 *.files
 *.includes
 
-# uavcan firmware
-ROMFS/px4fmu_common/uavcan/
-vectorcontrol/
-
-
 # CLion ignores
 .idea
 cmake-build-*/
 
-# gcov code coverage
-coverage-html/
-coverage.info
+.vscode
+
+posix-configs/SITL/init/test/*_generated
+
+/airframes.md
+/airframes.xml
+/parameters.md
+/parameters.xml
+/modules
+
+*.gcov

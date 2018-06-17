@@ -30,19 +30,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-set(depends
-	msg_gen
-	prebuild_targets
-	git_mavlink
-	git_uavcan
-	git_matrix
-	)
 
-px4_add_module(
-	MODULE platforms__common
-	SRCS
-		px4_getopt.c
-	DEPENDS
-		${depends}
+set(SRCS)
+
+if (NOT "${OS}" MATCHES "qurt")
+	list(APPEND SRCS
+		px4_log.c
+		)
+endif()
+
+px4_add_library(platforms__common
+	module.cpp
+	px4_getopt.c
+	shutdown.cpp
+	${SRCS}
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 
+	
+add_subdirectory(work_queue)

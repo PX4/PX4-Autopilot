@@ -39,9 +39,9 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		position_estimator_inav_main.cpp
-		position_estimator_inav_params.cpp
 		inertial_filter.cpp
 	DEPENDS
-		platforms__common
+		terrain_estimation
+		git_ecl
+		ecl_geo
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

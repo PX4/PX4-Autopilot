@@ -41,31 +41,19 @@ else()
 	set(FC_ADDON $ENV{FC_ADDON})
 endif()
 
-include_directories(
-	${FC_ADDON}/flight_controller/hexagon/inc
-	)
-
-add_library(librc_receiver SHARED IMPORTED GLOBAL)
-set_target_properties(librc_receiver PROPERTIES IMPORTED_LOCATION ${FC_ADDON}/flight_controller/hexagon/libs/librc_receiver.so)
+add_library(rc_receiver SHARED IMPORTED GLOBAL)
+set_target_properties(rc_receiver PROPERTIES IMPORTED_LOCATION ${FC_ADDON}/flight_controller/hexagon/libs/librc_receiver.so)
 
 px4_add_module(
-        MODULE platforms__qurt__fc_addon__rc_receiver
-        MAIN rc_receiver
+	MODULE platforms__qurt__fc_addon__rc_receiver
+	MAIN rc_receiver
 	STACK_MAIN 1200
-        COMPILE_FLAGS
-                -Weffc++
+	INCLUDES
+		${FC_ADDON}/flight_controller/hexagon/inc
         SRCS
                 rc_receiver_main.cpp
 		rc_receiver_params.c
-
         DEPENDS
                 platforms__common
         )
-
-set(module_external_libraries
-	${module_external_libraries}
-	librc_receiver
-	CACHE INTERNAL "module_external_libraries"
-	)
-
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+target_link_libraries(platforms__qurt__fc_addon__rc_receiver PRIVATE rc_receiver)

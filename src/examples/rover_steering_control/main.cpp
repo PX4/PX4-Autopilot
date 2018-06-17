@@ -61,10 +61,9 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/parameter_update.h>
-#include <systemlib/param/param.h>
-#include <systemlib/pid/pid.h>
-#include <geo/geo.h>
-#include <systemlib/perf_counter.h>
+#include <parameters/param.h>
+#include <lib/ecl/geo/geo.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <matrix/math.hpp>
 
@@ -427,7 +426,7 @@ int rover_steering_control_main(int argc, char *argv[])
 						 SCHED_PRIORITY_MAX - 20,
 						 2048,
 						 rover_steering_control_thread_main,
-						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
+						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
 		thread_running = true;
 		exit(0);
 	}

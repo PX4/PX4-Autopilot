@@ -51,8 +51,7 @@
 #include <string.h>
 #include <math.h>
 
-#include <systemlib/systemlib.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 #include <arch/board/board.h>
 #include "md25.hpp"
@@ -177,7 +176,7 @@ int md25_main(int argc, char *argv[])
 		int ret = md25.probe();
 
 		if (ret == OK) {
-			printf("MD25 found on bus %d at address 0x%X\n", bus, md25.get_address());
+			printf("MD25 found on bus %d at address 0x%X\n", bus, md25.get_device_address());
 
 		} else {
 			printf("MD25 not found on bus %d\n", bus);

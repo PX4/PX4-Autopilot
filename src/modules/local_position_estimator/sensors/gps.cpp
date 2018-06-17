@@ -6,8 +6,8 @@ extern orb_advert_t mavlink_log_pub;
 
 // required number of samples for sensor
 // to initialize
-static const uint32_t 		REQ_GPS_INIT_COUNT = 10;
-static const uint32_t 		GPS_TIMEOUT =      1000000; // 1.0 s
+static const uint32_t		REQ_GPS_INIT_COUNT = 10;
+static const uint32_t		GPS_TIMEOUT = 1000000;	// 1.0 s
 
 void BlockLocalPositionEstimator::gpsInit()
 {
@@ -57,7 +57,7 @@ void BlockLocalPositionEstimator::gpsInit()
 			// find lat, lon of current origin by subtracting x and y
 			// if not using vision position since vision will
 			// have it's own origin, not necessarily where vehicle starts
-			if (!(_fusion.get() & FUSE_VIS_POS)) {
+			if (!_map_ref.init_done && !(_fusion.get() & FUSE_VIS_POS)) {
 				double gpsLatOrigin = 0;
 				double gpsLonOrigin = 0;
 				// reproject at current coordinates
@@ -66,11 +66,17 @@ void BlockLocalPositionEstimator::gpsInit()
 				map_projection_reproject(&_map_ref, -_x(X_x), -_x(X_y), &gpsLatOrigin, &gpsLonOrigin);
 				// reinit origin
 				map_projection_init(&_map_ref, gpsLatOrigin, gpsLonOrigin);
+				// set timestamp when origin was set to current time
+				_time_origin = _timeStamp;
 
 				// always override alt origin on first GPS to fix
 				// possible baro offset in global altitude at init
 				_altOrigin = _gpsAltOrigin;
 				_altOriginInitialized = true;
+				_altOriginGlobal = true;
+
+				mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] global origin init (gps) : lat %6.2f lon %6.2f alt %5.1f m",
+							     gpsLatOrigin, gpsLonOrigin, double(_gpsAltOrigin));
 			}
 
 			PX4_INFO("[lpe] gps init "
@@ -107,21 +113,21 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	if (gpsMeasure(y_global) != OK) { return; }
 
 	// gps measurement in local frame
-	double  lat = y_global(0);
-	double  lon = y_global(1);
-	float  alt = y_global(2);
+	double  lat = y_global(Y_gps_x);
+	double  lon = y_global(Y_gps_y);
+	float  alt = y_global(Y_gps_z);
 	float px = 0;
 	float py = 0;
 	float pz = -(alt - _gpsAltOrigin);
 	map_projection_project(&_map_ref, lat, lon, &px, &py);
-	Vector<float, 6> y;
+	Vector<float, n_y_gps> y;
 	y.setZero();
-	y(0) = px;
-	y(1) = py;
-	y(2) = pz;
-	y(3) = y_global(3);
-	y(4) = y_global(4);
-	y(5) = y_global(5);
+	y(Y_gps_x) = px;
+	y(Y_gps_y) = py;
+	y(Y_gps_z) = pz;
+	y(Y_gps_vx) = y_global(Y_gps_vx);
+	y(Y_gps_vy) = y_global(Y_gps_vy);
+	y(Y_gps_vz) = y_global(Y_gps_vz);
 
 	// gps measurement matrix, measures position and velocity
 	Matrix<float, n_y_gps, n_x> C;
@@ -162,7 +168,6 @@ void BlockLocalPositionEstimator::gpsCorrect()
 		var_vz = gps_s_stddev * gps_s_stddev;
 	}
 
-
 	R(0, 0) = var_xy;
 	R(1, 1) = var_xy;
 	R(2, 2) = var_z;
@@ -180,12 +185,17 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	// residual
 	Vector<float, n_y_gps> r = y - C * x0;
 
-	for (int i = 0; i < 6; i ++) {
+	// residual covariance
+	Matrix<float, n_y_gps, n_y_gps> S = C * _P * C.transpose() + R;
+
+	// publish innovations
+	for (int i = 0; i < 6; i++) {
 		_pub_innov.get().vel_pos_innov[i] = r(i);
-		_pub_innov.get().vel_pos_innov_var[i] = R(i, i);
+		_pub_innov.get().vel_pos_innov_var[i] = S(i, i);
 	}
 
-	Matrix<float, n_y_gps, n_y_gps> S_I = inv<float, 6>(C * _P * C.transpose() + R);
+	// residual covariance, (inverse)
+	Matrix<float, n_y_gps, n_y_gps> S_I = inv<float, n_y_gps>(S);
 
 	// fault detection
 	float beta = (r.transpose() * (S_I * r))(0, 0);
@@ -196,8 +206,8 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	if (beta / BETA_TABLE[n_y_gps] > beta_thresh) {
 		if (!(_sensorFault & SENSOR_GPS)) {
 			mavlink_log_critical(&mavlink_log_pub, "[lpe] gps fault %3g %3g %3g %3g %3g %3g",
-					     double(r(0)*r(0) / S_I(0, 0)),  double(r(1)*r(1) / S_I(1, 1)), double(r(2)*r(2) / S_I(2, 2)),
-					     double(r(3)*r(3) / S_I(3, 3)),  double(r(4)*r(4) / S_I(4, 4)), double(r(5)*r(5) / S_I(5, 5)));
+					     double(r(0) * r(0) / S_I(0, 0)),  double(r(1) * r(1) / S_I(1, 1)), double(r(2) * r(2) / S_I(2, 2)),
+					     double(r(3) * r(3) / S_I(3, 3)),  double(r(4) * r(4) / S_I(4, 4)), double(r(5) * r(5) / S_I(5, 5)));
 			_sensorFault |= SENSOR_GPS;
 		}
 

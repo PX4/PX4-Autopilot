@@ -40,10 +40,11 @@
  *
  * @author Beat Kueng <beat-kueng@gmx.net>
  */
-
+#include <px4_config.h>
 #include <drivers/drv_rc_input.h>
 
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
+#include <mathlib/mathlib.h>
 
 #include <uORB/topics/rc_parameter_map.h>
 
@@ -63,41 +64,44 @@ struct Parameters {
 	float scaling_factor[RC_MAX_CHAN_COUNT];
 
 	float diff_pres_offset_pa;
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	float diff_pres_analog_scale;
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
-	int board_rotation;
+	int32_t board_rotation;
 
 	float board_offset[3];
 
-	int rc_map_roll;
-	int rc_map_pitch;
-	int rc_map_yaw;
-	int rc_map_throttle;
-	int rc_map_failsafe;
+	int32_t rc_map_roll;
+	int32_t rc_map_pitch;
+	int32_t rc_map_yaw;
+	int32_t rc_map_throttle;
+	int32_t rc_map_failsafe;
 
-	int rc_map_mode_sw;
-	int rc_map_return_sw;
-	int rc_map_rattitude_sw;
-	int rc_map_posctl_sw;
-	int rc_map_loiter_sw;
-	int rc_map_acro_sw;
-	int rc_map_offboard_sw;
-	int rc_map_kill_sw;
-	int rc_map_arm_sw;
-	int rc_map_trans_sw;
-	int rc_map_gear_sw;
+	int32_t rc_map_mode_sw;
+	int32_t rc_map_return_sw;
+	int32_t rc_map_rattitude_sw;
+	int32_t rc_map_posctl_sw;
+	int32_t rc_map_loiter_sw;
+	int32_t rc_map_acro_sw;
+	int32_t rc_map_offboard_sw;
+	int32_t rc_map_kill_sw;
+	int32_t rc_map_arm_sw;
+	int32_t rc_map_trans_sw;
+	int32_t rc_map_gear_sw;
+	int32_t rc_map_stab_sw;
+	int32_t rc_map_man_sw;
+	int32_t rc_map_flaps;
 
-	int rc_map_flaps;
+	int32_t rc_map_aux1;
+	int32_t rc_map_aux2;
+	int32_t rc_map_aux3;
+	int32_t rc_map_aux4;
+	int32_t rc_map_aux5;
 
-	int rc_map_aux1;
-	int rc_map_aux2;
-	int rc_map_aux3;
-	int rc_map_aux4;
-	int rc_map_aux5;
+	int32_t rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
 
-	int rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
-
-	int rc_map_flightmode;
+	int32_t rc_map_flightmode;
 
 	int32_t rc_fails_thr;
 	float rc_assist_th;
@@ -112,6 +116,9 @@ struct Parameters {
 	float rc_armswitch_th;
 	float rc_trans_th;
 	float rc_gear_th;
+	float rc_stab_th;
+	float rc_man_th;
+
 	bool rc_assist_inv;
 	bool rc_auto_inv;
 	bool rc_rattitude_inv;
@@ -124,6 +131,11 @@ struct Parameters {
 	bool rc_armswitch_inv;
 	bool rc_trans_inv;
 	bool rc_gear_inv;
+	bool rc_stab_inv;
+	bool rc_man_inv;
+
+	float rc_flt_smp_rate;
+	float rc_flt_cutoff;
 
 	float battery_voltage_scaling;
 	float battery_current_scaling;
@@ -134,8 +146,9 @@ struct Parameters {
 
 	float baro_qnh;
 
-	float vibration_warning_threshold;
-
+	int32_t air_cmodel;
+	float air_tube_length;
+	float air_tube_diameter_mm;
 };
 
 struct ParameterHandles {
@@ -146,7 +159,9 @@ struct ParameterHandles {
 	param_t dz[RC_MAX_CHAN_COUNT];
 
 	param_t diff_pres_offset_pa;
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	param_t diff_pres_analog_scale;
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
 	param_t rc_map_roll;
 	param_t rc_map_pitch;
@@ -165,8 +180,9 @@ struct ParameterHandles {
 	param_t rc_map_arm_sw;
 	param_t rc_map_trans_sw;
 	param_t rc_map_gear_sw;
-
 	param_t rc_map_flaps;
+	param_t rc_map_stab_sw;
+	param_t rc_map_man_sw;
 
 	param_t rc_map_aux1;
 	param_t rc_map_aux2;
@@ -195,6 +211,11 @@ struct ParameterHandles {
 	param_t rc_armswitch_th;
 	param_t rc_trans_th;
 	param_t rc_gear_th;
+	param_t rc_stab_th;
+	param_t rc_man_th;
+
+	param_t rc_flt_smp_rate;
+	param_t rc_flt_cutoff;
 
 	param_t battery_voltage_scaling;
 	param_t battery_current_scaling;
@@ -209,20 +230,21 @@ struct ParameterHandles {
 
 	param_t baro_qnh;
 
-	param_t vibe_thresh; /**< vibration threshold */
+	param_t air_cmodel;
+	param_t air_tube_length;
+	param_t air_tube_diameter_mm;
 
 };
 
 /**
  * initialize ParameterHandles struct
- * @return 0 on succes, <0 on error
  */
-int initialize_parameter_handles(ParameterHandles &parameter_handles);
+void initialize_parameter_handles(ParameterHandles &parameter_handles);
 
 
 /**
  * Read out the parameters using the handles into the parameters struct.
- * @return 0 on succes, <0 on error
+ * @return 0 on success, <0 on error
  */
 int update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters);
 

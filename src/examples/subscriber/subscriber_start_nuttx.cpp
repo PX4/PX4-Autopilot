@@ -39,7 +39,6 @@
 #include <string.h>
 #include <cstdlib>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 
 extern bool thread_running;
 int daemon_task;             /**< Handle of deamon task / thread */
@@ -73,7 +72,7 @@ int subscriber_main(int argc, char *argv[])
 						 SCHED_PRIORITY_MAX - 5,
 						 2000,
 						 main,
-						 (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
+						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
 
 		exit(0);
 	}

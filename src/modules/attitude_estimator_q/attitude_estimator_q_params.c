@@ -39,7 +39,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 /**
  * Complimentary filter accelerometer weight
@@ -53,6 +53,8 @@ PARAM_DEFINE_FLOAT(ATT_W_ACC, 0.2f);
 
 /**
  * Complimentary filter magnetometer weight
+ *
+ * Set to 0 to avoid using the magnetometer.
  *
  * @group Attitude Q estimator
  * @min 0
@@ -134,13 +136,3 @@ PARAM_DEFINE_INT32(ATT_ACC_COMP, 1);
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(ATT_BIAS_MAX, 0.05f);
-
-/**
- * Threshold (of RMS) to warn about high vibration levels
- *
- * @group Attitude Q estimator
- * @min 0.01
- * @max 10
- * @decimal 2
- */
-PARAM_DEFINE_FLOAT(ATT_VIBE_THRESH, 0.2f);

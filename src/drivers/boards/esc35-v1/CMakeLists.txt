@@ -31,47 +31,17 @@
 #
 ############################################################################
 
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"DO NOT RUN THIS ON HW")
-message(WARNING-"IT IS NOT PINED OUT TO HW")
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"Configuraton is incomplete")
-message(WARNING-"Configuraton is incomplete")
+message(WARNING "Configuraton is incomplete")
+message(WARNING "DO NOT RUN THIS ON HW")
+message(WARNING "IT IS NOT PINED OUT TO HW")
 
-include_directories(../../bootloaders/include)
-
-set(SRCS)
-list(APPEND SRCS
-    esc35_init.c
-    esc35_led.c
-    esc35_usb.c
-   ../../../drivers/bootloaders/src/common/boot_app_shared.c
-   ../../../drivers/bootloaders/src/util/crc.c
+px4_add_library(drivers_board
+	init.c
+	led.c
+	usb.c
 )
-
-if(${OS} STREQUAL "nuttx")
-	if (NOT ${BOARD} STREQUAL "sim")
-		list(APPEND SRCS
-			../../../drivers/device/device_nuttx.cpp
-			../../../drivers/device/cdev.cpp
-		)
-	endif()
-else()
-	list(APPEND SRCS
-		../../../drivers/device/device_posix.cpp
-		../../../drivers/device/vdev.cpp
-	)
-endif()
-
-px4_add_module(
-	MODULE drivers__boards__esc35-v1
-	COMPILE_FLAGS
-		-Os
-	SRCS ${SRCS}
-	DEPENDS
-		platforms__common
-	)
+target_link_libraries(drivers_board
+	PRIVATE
+		nuttx_apps # up_cxxinitialize
+		parameters # param_init
+)

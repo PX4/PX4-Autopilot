@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,13 +32,11 @@
  ****************************************************************************/
 
 /**
- * @file Publication.h
+ * @file Publication.hpp
  *
  */
 
 #pragma once
-
-#include <assert.h>
 
 #include <uORB/uORB.h>
 #include <containers/List.hpp>
@@ -63,35 +61,27 @@ public:
 	 * @param priority The priority for multi pub/sub, 0-based, -1 means
 	 * 	don't publish as multi
 	 */
-	PublicationBase(const struct orb_metadata *meta,
-			int priority = -1);
+	PublicationBase(const struct orb_metadata *meta, int priority = -1);
+
+	virtual ~PublicationBase();
+
+	// no copy, assignment, move, move assignment
+	PublicationBase(const PublicationBase &) = delete;
+	PublicationBase &operator=(const PublicationBase &) = delete;
+	PublicationBase(PublicationBase &&) = delete;
+	PublicationBase &operator=(PublicationBase &&) = delete;
 
 	/**
 	 * Update the struct
 	 * @param data The uORB message struct we are updating.
 	 */
-	void update(void *data);
+	bool update(void *data);
 
-	/**
-	 * Deconstructor
-	 */
-	virtual ~PublicationBase();
-
-// accessors
-	const struct orb_metadata *getMeta() { return _meta; }
-	orb_advert_t getHandle() { return _handle; }
 protected:
-	// disallow copy
-	PublicationBase(const PublicationBase &other);
-	// disallow assignment
-	PublicationBase &operator=(const PublicationBase &other);
-// accessors
-	void setHandle(orb_advert_t handle) { _handle = handle; }
-// attributes
 	const struct orb_metadata *_meta;
-	int _priority;
-	int _instance;
-	orb_advert_t _handle;
+	const int _priority;
+
+	orb_advert_t _handle{nullptr};
 };
 
 /**
@@ -103,9 +93,7 @@ typedef PublicationBase PublicationTiny;
 /**
  * The publication base class as a list node.
  */
-class __EXPORT PublicationNode :
-	public PublicationBase,
-	public ListNode<PublicationNode *>
+class __EXPORT PublicationNode : public PublicationBase, public ListNode<PublicationNode *>
 {
 public:
 	/**
@@ -117,23 +105,21 @@ public:
 	 * @param list A list interface for adding to
 	 * 	list during construction
 	 */
-	PublicationNode(const struct orb_metadata *meta,
-			int priority = -1,
-			List<PublicationNode *> *list = nullptr);
+	PublicationNode(const struct orb_metadata *meta, int priority = -1, List<PublicationNode *> *list = nullptr);
+	virtual ~PublicationNode() override = default;
 
 	/**
 	 * This function is the callback for list traversal
 	 * updates, a child class must implement it.
 	 */
-	virtual void update() = 0;
+	virtual bool update() = 0;
 };
 
 /**
  * Publication wrapper class
  */
 template<class T>
-class __EXPORT Publication :
-	public PublicationNode
+class __EXPORT Publication final : public PublicationNode
 {
 public:
 	/**
@@ -145,18 +131,19 @@ public:
 	 * @param list A list interface for adding to
 	 * 	list during construction
 	 */
-	Publication(const struct orb_metadata *meta,
-		    int priority = -1,
-		    List<PublicationNode *> *list = nullptr)  :
+	Publication(const struct orb_metadata *meta, int priority = -1, List<PublicationNode *> *list = nullptr)  :
 		PublicationNode(meta, priority, list),
 		_data()
 	{
 	}
 
-	/**
-	 * Deconstructor
-	 **/
-	virtual ~Publication() {};
+	~Publication() override = default;
+
+	// no copy, assignment, move, move assignment
+	Publication(const Publication &) = delete;
+	Publication &operator=(const Publication &) = delete;
+	Publication(Publication &&) = delete;
+	Publication &operator=(Publication &&) = delete;
 
 	/*
 	 * This function gets the T struct
@@ -166,10 +153,11 @@ public:
 	/**
 	 * Create an update function that uses the embedded struct.
 	 */
-	void update()
+	bool update() override
 	{
-		PublicationBase::update((void *)(&_data));
+		return PublicationBase::update((void *)(&_data));
 	}
+
 private:
 	T _data;
 };

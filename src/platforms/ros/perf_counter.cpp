@@ -41,7 +41,7 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 
 
@@ -140,6 +140,16 @@ void		perf_print_counter(perf_counter_t handle)
  * @param handle		The counter to print.
  */
 void		perf_print_counter_fd(int fd, perf_counter_t handle)
+{
+
+}
+
+int		perf_print_counter_buffer(char *buffer, int length, perf_counter_t handle)
+{
+	return 0;
+}
+
+void	perf_iterate_all(perf_callback cb, void *user)
 {
 
 }

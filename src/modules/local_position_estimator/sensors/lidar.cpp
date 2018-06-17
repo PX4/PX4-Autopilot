@@ -7,8 +7,8 @@ extern orb_advert_t mavlink_log_pub;
 // required number of samples for sensor
 // to initialize
 //
-static const uint32_t 		REQ_LIDAR_INIT_COUNT = 10;
-static const uint32_t 		LIDAR_TIMEOUT =   1000000; // 1.0 s
+static const uint32_t		REQ_LIDAR_INIT_COUNT = 10;
+static const uint32_t		LIDAR_TIMEOUT = 1000000;	// 1.0 s
 
 void BlockLocalPositionEstimator::lidarInit()
 {
@@ -34,7 +34,7 @@ int BlockLocalPositionEstimator::lidarMeasure(Vector<float, n_y_lidar> &y)
 {
 	// measure
 	float d = _sub_lidar->get().current_distance;
-	float eps = 0.01f; // 1 cm
+	float eps = 0.01f;	// 1 cm
 	float min_dist = _sub_lidar->get().min_distance + eps;
 	float max_dist = _sub_lidar->get().max_distance - eps;
 
@@ -65,18 +65,13 @@ void BlockLocalPositionEstimator::lidarCorrect()
 
 	if (lidarMeasure(y) != OK) { return; }
 
-	// account for leaning
-	y(0) = y(0) *
-	       cosf(_eul(0)) *
-	       cosf(_eul(1));
-
 	// measurement matrix
 	Matrix<float, n_y_lidar, n_x> C;
 	C.setZero();
 	// y = -(z - tz)
 	// TODO could add trig to make this an EKF correction
-	C(Y_lidar_z, X_z) = -1; // measured altitude, negative down dir.
-	C(Y_lidar_z, X_tz) = 1; // measured altitude, negative down dir.
+	C(Y_lidar_z, X_z) = -1;	// measured altitude, negative down dir.
+	C(Y_lidar_z, X_tz) = 1;	// measured altitude, negative down dir.
 
 	// use parameter covariance unless sensor provides reasonable value
 	SquareMatrix<float, n_y_lidar> R;
@@ -91,10 +86,16 @@ void BlockLocalPositionEstimator::lidarCorrect()
 	}
 
 	// residual
-	Matrix<float, n_y_lidar, n_y_lidar> S_I = inv<float, n_y_lidar>((C * _P * C.transpose()) + R);
 	Vector<float, n_y_lidar> r = y - C * _x;
+	// residual covariance
+	Matrix<float, n_y_lidar, n_y_lidar> S = C * _P * C.transpose() + R;
+
+	// publish innovations
 	_pub_innov.get().hagl_innov = r(0);
-	_pub_innov.get().hagl_innov_var = R(0, 0);
+	_pub_innov.get().hagl_innov_var = S(0, 0);
+
+	// residual covariance, (inverse)
+	Matrix<float, n_y_lidar, n_y_lidar> S_I = inv<float, n_y_lidar>(S);
 
 	// fault detection
 	float beta = (r.transpose() * (S_I * r))(0, 0);

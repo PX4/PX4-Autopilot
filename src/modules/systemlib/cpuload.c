@@ -145,9 +145,10 @@ void sched_note_stop(FAR struct tcb_s *tcb)
 
 void sched_note_suspend(FAR struct tcb_s *tcb)
 {
-	uint64_t new_time = hrt_absolute_time();
 
 	if (system_load.initialized) {
+		uint64_t new_time = hrt_absolute_time();
+
 		for (int i = 0; i < CONFIG_MAX_TASKS; i++) {
 			/* Task ending its current scheduling run */
 			if (system_load.tasks[i].valid && system_load.tasks[i].tcb != 0 && system_load.tasks[i].tcb->pid == tcb->pid) {
@@ -160,12 +161,17 @@ void sched_note_suspend(FAR struct tcb_s *tcb)
 
 void sched_note_resume(FAR struct tcb_s *tcb)
 {
-	uint64_t new_time = hrt_absolute_time();
 
 	if (system_load.initialized) {
+		uint64_t new_time = hrt_absolute_time();
+
 		for (int i = 0; i < CONFIG_MAX_TASKS; i++) {
 			if (system_load.tasks[i].valid && system_load.tasks[i].tcb->pid == tcb->pid) {
+				// curr_start_time is accessed from an IRQ handler (in logger), so we need
+				// to make the update atomic
+				irqstate_t irq_state = px4_enter_critical_section();
 				system_load.tasks[i].curr_start_time = new_time;
+				px4_leave_critical_section(irq_state);
 				break;
 			}
 		}

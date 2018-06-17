@@ -46,9 +46,10 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/mount_orientation.h>
 #include <px4_defines.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <math.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 
 namespace vmount
 {
@@ -67,6 +68,10 @@ OutputBase::~OutputBase()
 
 	if (_vehicle_global_position_sub >= 0) {
 		orb_unsubscribe(_vehicle_global_position_sub);
+	}
+
+	if (_mount_orientation_pub) {
+		orb_unadvertise(_mount_orientation_pub);
 	}
 }
 
@@ -91,6 +96,11 @@ void OutputBase::publish()
 	for (unsigned i = 0; i < 3; ++i) {
 		mount_orientation.attitude_euler_angle[i] = _angle_outputs[i];
 	}
+
+	//PX4_INFO("roll: %.2f, pitch: %.2f, yaw: %.2f",
+	//		(double)_angle_outputs[0],
+	//		(double)_angle_outputs[1],
+	//		(double)_angle_outputs[2]);
 
 	orb_publish_auto(ORB_ID(mount_orientation), &_mount_orientation_pub, &mount_orientation, &instance, ORB_PRIO_DEFAULT);
 }
@@ -178,11 +188,12 @@ void OutputBase::_handle_position_update(bool force_update)
 	}
 
 	float roll = _cur_control_data->type_data.lonlat.roll_angle;
-	float yaw = get_bearing_to_next_waypoint(vehicle_global_position.lat, vehicle_global_position.lon, lat, lon);
+	float yaw = get_bearing_to_next_waypoint(vehicle_global_position.lat, vehicle_global_position.lon, lat, lon)
+		    - vehicle_global_position.yaw;
 
 	_angle_setpoints[0] = roll;
-	_angle_setpoints[1] = pitch;
-	_angle_setpoints[2] = yaw;
+	_angle_setpoints[1] = pitch + _cur_control_data->type_data.lonlat.pitch_angle_offset;
+	_angle_setpoints[2] = yaw + _cur_control_data->type_data.lonlat.yaw_angle_offset;
 }
 
 void OutputBase::_calculate_output_angles(const hrt_abstime &t)

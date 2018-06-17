@@ -98,11 +98,14 @@
 #define PX4_I2C_BUS_SONAR      2
 #define PX4_I2C_BUS_EXPANSION  3
 
-#define PX4_I2C_OBDEV_HMC5883	0x1e
-
 #define PX4_I2C_BUS_ONBOARD_HZ      400000
 #define PX4_I2C_BUS_SONAR_HZ        400000
 #define PX4_I2C_BUS_EXPANSION_HZ    400000
+
+#define BOARD_NUMBER_I2C_BUSES  3
+#define BOARD_I2C_BUS_CLOCK_INIT {PX4_I2C_BUS_ONBOARD_HZ, PX4_I2C_BUS_SONAR_HZ, PX4_I2C_BUS_EXPANSION_HZ}
+
+
 /*
  * Devices on the onboard bus.
  *
@@ -133,8 +136,13 @@
 #define ADC_BATTERY_VOLTAGE_CHANNEL	10
 #define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(-1))
 
+/* Define Battery 1 Voltage Divider
+ * Use Default for A per V
+ */
 
-/* User GPIOs
+#define BOARD_BATTERY1_V_DIV (9.0f)
+
+/* No User GPIOs
  *
  * TIM3_CH1     PA6     LED_R                     JP2-23,24
  * TIM3_CH2     PA7     LED_G                     JP2-25,26
@@ -143,21 +151,7 @@
  *
  * I2C2_SDA     PB11    Sonar Echo/I2C_SDA        JP2-31,32
  * I2C2_SDL     PB10    Sonar Trig/I2C_SCL        JP2-29,30
- *
  */
-#define GPIO_GPIO0_INPUT	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN6)
-#define GPIO_GPIO1_INPUT	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN7)
-#define GPIO_GPIO2_INPUT	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN0)
-#define GPIO_GPIO3_INPUT	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN1)
-#define GPIO_GPIO4_INPUT	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN10)
-#define GPIO_GPIO5_INPUT	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN11)
-
-#define GPIO_GPIO0_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN6)
-#define GPIO_GPIO1_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN7)
-#define GPIO_GPIO2_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN0)
-#define GPIO_GPIO3_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN1)
-#define GPIO_GPIO4_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
-#define GPIO_GPIO5_OUTPUT	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN11)
 
 /*
  * Tone alarm output
@@ -209,7 +203,7 @@
 #define GPIO_OTGFS_VBUS (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTA|GPIO_PIN9)
 
 #define RC_SERIAL_PORT		"/dev/ttyS5"
-#define INVERT_RC_INPUT(_s)		while(0)
+#define INVERT_RC_INPUT(_invert_true)		while(0)
 
 /* High-resolution timer
  */
@@ -230,13 +224,7 @@
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 
-#define BOARD_FMU_GPIO_TAB { \
-		{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0}, \
-		{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0}, \
-		{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,       0}, \
-		{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,       0}, \
-		{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0}, \
-		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0}, }
+#define BOARD_HAS_POWER_CONTROL	1
 
 /* This board provides a DMA pool and APIs */
 
@@ -356,16 +344,6 @@ void board_pwr_init(int stage);
  ****************************************************************************/
 
 bool board_pwr_button_down(void);
-
-/****************************************************************************
- * Name: board_pwr
- *
- * Description:
- *   Called to turn on or off the TAP
- *
- ****************************************************************************/
-
-void board_pwr(bool on_not_off);
 
 #include "../common/board_common.h"
 

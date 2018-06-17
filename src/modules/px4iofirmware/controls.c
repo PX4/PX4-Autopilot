@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +35,8 @@
  * @file controls.c
  *
  * R/C inputs and servo outputs.
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include <px4_config.h>
@@ -42,7 +44,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/ppm_decode.h>
 #include <rc/st24.h>
 #include <rc/sumd.h>
@@ -116,7 +118,7 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 		*rssi = st24_rssi;
 		r_raw_rc_count = st24_channel_count;
 
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_ST24;
+		PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_RC_ST24);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 	}
@@ -141,7 +143,7 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 		/* not setting RSSI since SUMD does not provide one */
 		r_raw_rc_count = sumd_channel_count;
 
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SUMD;
+		PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_RC_SUMD);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 
 		if (sumd_failsafe_state) {
@@ -228,24 +230,6 @@ controls_tick()
 		rssi = 0;
 	}
 
-	perf_begin(c_gather_dsm);
-	bool dsm_updated, st24_updated, sumd_updated;
-	(void)dsm_port_input(&rssi, &dsm_updated, &st24_updated, &sumd_updated);
-
-	if (dsm_updated) {
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_DSM;
-	}
-
-	if (st24_updated) {
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_ST24;
-	}
-
-	if (sumd_updated) {
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SUMD;
-	}
-
-	perf_end(c_gather_dsm);
-
 	perf_begin(c_gather_sbus);
 
 	bool sbus_failsafe, sbus_frame_drop;
@@ -253,7 +237,7 @@ controls_tick()
 				       PX4IO_RC_INPUT_CHANNELS);
 
 	if (sbus_updated) {
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_SBUS;
+		PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_RC_SBUS);
 
 		unsigned sbus_rssi = RC_INPUT_RSSI_MAX;
 
@@ -291,12 +275,34 @@ controls_tick()
 
 	if (ppm_updated) {
 
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_PPM;
+		PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_RC_PPM);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 	}
 
 	perf_end(c_gather_ppm);
+
+	bool dsm_updated = false, st24_updated = false, sumd_updated = false;
+
+	if (!((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS) || (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_PPM))) {
+		perf_begin(c_gather_dsm);
+
+		(void)dsm_port_input(&rssi, &dsm_updated, &st24_updated, &sumd_updated);
+
+		if (dsm_updated) {
+			PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_RC_DSM);
+		}
+
+		if (st24_updated) {
+			PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_RC_ST24);
+		}
+
+		if (sumd_updated) {
+			PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_RC_SUMD);
+		}
+
+		perf_end(c_gather_dsm);
+	}
 
 	/* limit number of channels to allowable data size */
 	if (r_raw_rc_count > PX4IO_RC_INPUT_CHANNELS) {
@@ -424,7 +430,7 @@ controls_tick()
 		}
 
 		/* set RC OK flag, as we got an update */
-		r_status_flags |= PX4IO_P_STATUS_FLAGS_RC_OK;
+		PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_RC_OK);
 		r_raw_rc_flags |= PX4IO_P_RAW_RC_FLAGS_RC_OK;
 
 		/* if we have enough channels (5) to control the vehicle, the mapping is ok */
@@ -445,14 +451,16 @@ controls_tick()
 	 * If we haven't seen any new control data in 200ms, assume we
 	 * have lost input.
 	 */
-	if (hrt_elapsed_time(&system_state.rc_channels_timestamp_received) > 200000) {
+	if (!rc_input_lost && hrt_elapsed_time(&system_state.rc_channels_timestamp_received) > 200000) {
 		rc_input_lost = true;
 
 		/* clear the input-kind flags here */
-		r_status_flags &= ~(
-					  PX4IO_P_STATUS_FLAGS_RC_PPM |
-					  PX4IO_P_STATUS_FLAGS_RC_DSM |
-					  PX4IO_P_STATUS_FLAGS_RC_SBUS);
+		PX4_ATOMIC_MODIFY_CLEAR(r_status_flags, (
+						PX4IO_P_STATUS_FLAGS_RC_PPM |
+						PX4IO_P_STATUS_FLAGS_RC_DSM |
+						PX4IO_P_STATUS_FLAGS_RC_SBUS |
+						PX4IO_P_STATUS_FLAGS_RC_ST24 |
+						PX4IO_P_STATUS_FLAGS_RC_SUMD));
 
 	}
 
@@ -462,15 +470,15 @@ controls_tick()
 
 	/* if we are in failsafe, clear the override flag */
 	if (r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE) {
-		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
+		PX4_ATOMIC_MODIFY_CLEAR(r_status_flags, PX4IO_P_STATUS_FLAGS_OVERRIDE);
 	}
 
 	/* this kicks in if the receiver is gone, but there is not on failsafe (indicated by separate flag) */
 	if (rc_input_lost) {
 		/* Clear the RC input status flag, clear manual override flag */
-		r_status_flags &= ~(
-					  PX4IO_P_STATUS_FLAGS_OVERRIDE |
-					  PX4IO_P_STATUS_FLAGS_RC_OK);
+		PX4_ATOMIC_MODIFY_CLEAR(r_status_flags, (
+						PX4IO_P_STATUS_FLAGS_OVERRIDE |
+						PX4IO_P_STATUS_FLAGS_RC_OK));
 
 		/* flag raw RC as lost */
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_RC_OK);
@@ -482,7 +490,7 @@ controls_tick()
 		r_raw_rc_count = 0;
 
 		/* Set the RC_LOST alarm */
-		r_status_alarms |= PX4IO_P_STATUS_ALARMS_RC_LOST;
+		PX4_ATOMIC_MODIFY_OR(r_status_alarms, PX4IO_P_STATUS_ALARMS_RC_LOST);
 	}
 
 	/*
@@ -490,11 +498,16 @@ controls_tick()
 	 *
 	 * Firstly, manual override must be enabled, RC input available and a mixer loaded.
 	 */
-	if ((r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) &&
-	    (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
-	    !(r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE) &&
-	    !(r_setup_arming & PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED) &&
-	    (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
+	if (/* condition 1: Override is always allowed */
+		(r_setup_arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK) &&
+		/* condition 2: We have valid RC control inputs from the user */
+		(r_status_flags & PX4IO_P_STATUS_FLAGS_RC_OK) &&
+		/* condition 3: The system didn't go already into failsafe mode with fixed outputs */
+		!(r_raw_rc_flags & PX4IO_P_RAW_RC_FLAGS_FAILSAFE) &&
+		/* condition 4: RC handling wasn't generally disabled */
+		!(r_setup_arming & PX4IO_P_SETUP_ARMING_RC_HANDLING_DISABLED) &&
+		/* condition 5: We have a valid mixer to map RC inputs to actuator outputs */
+		(r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)) {
 
 		bool override = false;
 
@@ -525,14 +538,14 @@ controls_tick()
 		}
 
 		if (override) {
-			r_status_flags |= PX4IO_P_STATUS_FLAGS_OVERRIDE;
+			PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_OVERRIDE);
 
 		} else {
-			r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
+			PX4_ATOMIC_MODIFY_CLEAR(r_status_flags, PX4IO_P_STATUS_FLAGS_OVERRIDE);
 		}
 
 	} else {
-		r_status_flags &= ~(PX4IO_P_STATUS_FLAGS_OVERRIDE);
+		PX4_ATOMIC_MODIFY_CLEAR(r_status_flags, PX4IO_P_STATUS_FLAGS_OVERRIDE);
 	}
 }
 

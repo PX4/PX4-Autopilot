@@ -44,7 +44,7 @@
 #define SDLOG2_RINGBUFFER_H_
 
 #include <stdbool.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 struct logbuffer_s {
 	// pointers and size are in bytes

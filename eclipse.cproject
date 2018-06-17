@@ -20,7 +20,7 @@
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="cdt.managedbuild.target.gnu.platform.base.328447809" name="Debug Platform" osList="linux,hpux,aix,qnx" superClass="cdt.managedbuild.target.gnu.platform.base"/>
 							<builder id="cdt.managedbuild.target.gnu.builder.base.977864740" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.base">
 								<outputEntries>
-									<entry excluding="build_*" flags="VALUE_WORKSPACE_PATH" kind="outputPath" name=""/>
+									<entry excluding="build*" flags="VALUE_WORKSPACE_PATH" kind="outputPath" name=""/>
 								</outputEntries>
 							</builder>
 							<tool id="cdt.managedbuild.tool.gnu.archiver.base.1653222719" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
@@ -29,13 +29,13 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/uORB}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib/ecl}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/modules/systemlib}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib/geo}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/platforms}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/modules/uORB}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/uORB/topics}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/build/posix_sitl_default/&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/build/posix_sitl_default/src/modules/systemlib/param&quot;"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.1050909243" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="__PX4_POSIX=1"/>
@@ -49,15 +49,14 @@
 								<option id="gnu.c.compiler.option.include.paths.1309473256" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/uORB}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib/ecl}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib/ecl/attitude_fw}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/modules/systemlib}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib/geo}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/platforms}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/modules/uORB}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/uORB/topics}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/build/posix_sitl_default/&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/build/posix_sitl_default/src/modules/systemlib/param&quot;"/>
 								</option>
 								<option id="gnu.c.compiler.option.preprocessor.def.symbols.734675451" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="__PX4_POSIX=1"/>
@@ -77,16 +76,15 @@
 							<tool id="cdt.managedbuild.tool.gnu.assembler.base.900091175" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.base">
 								<option id="gnu.both.asm.option.include.paths.2025449581" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/uORB}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib/ecl}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib/ecl/attitude_fw}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/modules/systemlib}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib/geo}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/platforms}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/modules/uORB}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/uORB/topics}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/build/posix_sitl_default/&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/build/posix_sitl_default/src/modules/systemlib/param&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.674673703" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -112,13 +110,6 @@
 	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets">
 		<buildTargets>
-			<target name="px4fmu-v1_default" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
-				<buildCommand>make</buildCommand>
-				<buildTarget>px4fmu-v1_default</buildTarget>
-				<stopOnError>true</stopOnError>
-				<useDefaultCommand>true</useDefaultCommand>
-				<runAllBuilders>true</runAllBuilders>
-			</target>
 			<target name="px4fmu-v2_default" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>make</buildCommand>
 				<buildTarget>px4fmu-v2_default</buildTarget>

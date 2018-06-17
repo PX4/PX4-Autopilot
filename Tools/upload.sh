@@ -17,7 +17,12 @@ fi
 
 if [ $SYSTYPE = "Linux" ];
 then
-SERIAL_PORTS="/dev/serial/by-id/*_PX4_*,/dev/serial/by-id/usb-3D_Robotics*,/dev/serial/by-id/usb-The_Autopilot*,/dev/serial/by-id/usb-Bitcraze*,/dev/serial/by-id/pci-Bitcraze*,"
+SERIAL_PORTS="/dev/serial/by-id/*_PX4_*,/dev/serial/by-id/usb-3D_Robotics*,/dev/serial/by-id/usb-The_Autopilot*,/dev/serial/by-id/usb-Bitcraze*,/dev/serial/by-id/pci-Bitcraze*,/dev/serial/by-id/usb-Gumstix*,"
+fi
+
+if [[ $SYSTYPE = *"CYGWIN"* ]];
+then
+SERIAL_PORTS="/dev/ttyS*"
 fi
 
 if [ $SYSTYPE = "" ];

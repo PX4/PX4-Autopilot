@@ -31,36 +31,15 @@
 #
 ############################################################################
 
-include_directories(../../bootloaders/include)
-
-set(SRCS)
-list(APPEND SRCS
-    px4esc_init.c
-    px4esc_led.c
-    px4esc_usb.c
-   ../../../drivers/bootloaders/src/common/boot_app_shared.c
-   ../../../drivers/bootloaders/src/util/crc.c
+px4_add_library(drivers_board
+	init.c
+	led.c
+	usb.c
 )
 
-if(${OS} STREQUAL "nuttx")
-	if (NOT ${BOARD} STREQUAL "sim")
-		list(APPEND SRCS
-			../../../drivers/device/device_nuttx.cpp
-			../../../drivers/device/cdev.cpp
-		)
-	endif()
-else()
-	list(APPEND SRCS
-		../../../drivers/device/device_posix.cpp
-		../../../drivers/device/vdev.cpp
-	)
-endif()
-
-px4_add_module(
-	MODULE drivers__boards__px4esc-v1
-	COMPILE_FLAGS
-		-Os
-	SRCS ${SRCS}
-	DEPENDS
-		platforms__common
+target_link_libraries(drivers_board
+	PRIVATE
+		nuttx_apps # up_cxxinitialize
+		drivers__led # drv_led_start
+		parameters # param_init
 	)

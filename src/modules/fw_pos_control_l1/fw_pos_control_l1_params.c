@@ -88,6 +88,24 @@ PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
 PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.6f);
 
 /**
+ * Scale throttle by pressure change
+ *
+ * Automatically adjust throttle to account for decreased air density at higher altitudes.
+ * Start with a scale factor of 1.0 and adjust for different propulsion systems.
+ *
+ * When flying without airspeed sensor this will help to keep a constant performance over large altitude ranges.
+ *
+ * The default value of 0 will disable scaling.
+ *
+ * @min 0.0
+ * @max 10.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_THR_ALT_SCL, 0.0f);
+
+/**
  * Throttle max slew rate
  *
  * Maximum slew rate for the commanded throttle
@@ -278,7 +296,8 @@ PARAM_DEFINE_FLOAT(FW_LND_FLALT, 8.0f);
 PARAM_DEFINE_FLOAT(FW_LND_TLALT, -1.0f);
 
 /**
- * Landing heading hold horizontal distance
+ * Landing heading hold horizontal distance.
+ * Set to 0 to disable heading hold.
  *
  * @unit m
  * @min 0
@@ -380,6 +399,20 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
+
+/**
+ * Cruise Airspeed
+ *
+ * The fixed wing controller tries to fly at this airspeed.
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 40
+ * @decimal 1
+ * @increment 0.5
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);
 
 /**
  * Maximum climb rate
@@ -615,10 +648,10 @@ PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT, 1.0f);
 PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
 
 /**
- * Height rate P factor
+ * Height rate proportional factor
  *
  * @min 0.0
- * @max 2.0
+ * @max 1.0
  * @decimal 2
  * @increment 0.05
  * @group FW TECS
@@ -626,15 +659,15 @@ PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.0f);
 PARAM_DEFINE_FLOAT(FW_T_HRATE_P, 0.05f);
 
 /**
- * Height rate FF factor
+ * Height rate feed forward
  *
  * @min 0.0
- * @max 2.0
+ * @max 1.0
  * @decimal 2
  * @increment 0.05
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.0f);
+PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.8f);
 
 /**
  * Speed rate P factor

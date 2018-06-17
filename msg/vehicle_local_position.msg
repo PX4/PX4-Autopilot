@@ -12,28 +12,34 @@ float32 z				# Down position (negative altitude) in NED earth-fixed frame, (metr
 
 # Position reset delta
 float32[2] delta_xy
+uint8 xy_reset_counter
+
 float32 delta_z
+uint8 z_reset_counter
 
 # Velocity in NED frame
 float32 vx 				# North velocity in NED earth-fixed frame, (metres/sec)
 float32 vy				# East velocity in NED earth-fixed frame, (metres/sec)
 float32 vz				# Down velocity in NED earth-fixed frame, (metres/sec)
+float32 z_deriv				# Down position time derivative in NED earth-fixed frame, (metres/sec)
 
 # Velocity reset delta
 float32[2] delta_vxy
-float32 delta_vz
-
-uint8 xy_reset_counter
-uint8 z_reset_counter
 uint8 vxy_reset_counter
+
+float32 delta_vz
 uint8 vz_reset_counter
+# Acceleration in NED frame
+float32 ax        # North velocity derivative in NED earth-fixed frame, (metres/sec^2)
+float32 ay        # East velocity derivative in NED earth-fixed frame, (metres/sec^2)
+float32 az        # Down velocity derivative in NED earth-fixed frame, (metres/sec^2)
 
 # Heading
 float32 yaw				# Euler yaw angle transforming the tangent plane relative to NED earth-fixed frame, -PI..+PI,  (radians) 
 
 # Position of reference point (local NED frame origin) in global (GPS / WGS84) frame
-bool xy_global				# true if position (x, y) is valid and has valid global reference (ref_lat, ref_lon)
-bool z_global				# true if z is valid and has valid global reference (ref_alt)
+bool xy_global				# true if position (x, y) has a valid global reference (ref_lat, ref_lon)
+bool z_global				# true if z has a valid global reference (ref_alt)
 uint64 ref_timestamp			# Time when reference position was set since system start, (microseconds)
 float64 ref_lat				# Reference point latitude, (degrees)
 float64 ref_lon				# Reference point longitude, (degrees)
@@ -42,9 +48,17 @@ float32 ref_alt				# Reference altitude AMSL, MUST be set to current (not at ref
 # Distance to surface
 float32 dist_bottom			# Distance from from bottom surface to ground, (metres)
 float32 dist_bottom_rate		# Rate of change of distance from bottom surface to ground, (metres/sec)
-uint64 surface_bottom_timestamp		# Time when new bottom surface found since system start, (microseconds)
 bool dist_bottom_valid			# true if distance to bottom surface is valid
+
 float32 eph				# Standard deviation of horizontal position error, (metres)
 float32 epv				# Standard deviation of vertical position error, (metres)
+float32 evh				# Standard deviation of horizontal velocity error, (metres/sec)
+float32 evv				# Standard deviation of horizontal velocity error, (metres/sec)
 
-# TOPICS vehicle_local_position vehicle_local_position_groundtruth
+# estimator specified vehicle limits
+float32 vxy_max				# maximum horizontal speed - set to 0 when limiting not required (meters/sec)
+float32 vz_max				# maximum vertical speed - set to 0 when limiting not required (meters/sec)
+float32 hagl_min			# minimum height above ground level - set to 0 when limiting not required (meters)
+float32 hagl_max			# maximum height above ground level - set to 0 when limiting not required (meters)
+
+# TOPICS vehicle_local_position vehicle_local_position_groundtruth vehicle_vision_position

@@ -1,27 +1,20 @@
 #!nsh
 #
-# Standard startup script for PX4FMU v1, v2, v3, v4 onboard sensor drivers.
+# Standard startup script for PX4FMU v2, v3, v4 onboard sensor drivers.
 #
 
-if ver hwcmp PX4FMU_V1
+# Configure all I2C buses to 100 KHz as they
+# are all external or slow
+fmu i2c 1 100000
+fmu i2c 2 100000
+
+if ms5611 -s start
 then
-	if ms5611 start
-	then
-	fi
-else
-	# Configure all I2C buses to 100 KHz as they
-	# are all external or slow
-	fmu i2c 1 100000
-	fmu i2c 2 100000
+fi
 
-	if ms5611 -s start
-	then
-	fi
-
-	# Blacksheep telemetry
-	if bst start
-	then
-	fi
+# Blacksheep telemetry
+if bst start
+then
 fi
 
 if adc start
@@ -73,11 +66,6 @@ then
 		if hmc5883 -C -T -S -R 8 start
 		then
 		fi
-
-		if meas_airspeed start -b 2
-		then
-		fi
-
 	else
 		# FMUv2
 		if mpu6000 start
@@ -121,73 +109,57 @@ then
 	fi
 fi
 
-if ver hwcmp PX4FMU_V1
-then
-	# FMUv1
-	if mpu6000 start
-	then
-	fi
-
-	if l3gd20 start
-	then
-	fi
-
-	# MAG selection
-	if param compare SENS_EXT_MAG 2
-	then
-		if hmc5883 -C -I start
-		then
-		fi
-	else
-		# Use only external as primary
-		if param compare SENS_EXT_MAG 1
-		then
-			if hmc5883 -C -X start
-			then
-			fi
-		else
-		# auto-detect the primary, prefer external
-			if hmc5883 start
-			then
-			fi
-		fi
-	fi
-fi
-
 if ver hwcmp MINDPX_V2
 then
-	if mpu6500 start
-	then
-	fi
-
-	if lsm303d start
-	then
-	fi
-
-	if l3gd20 start
-	then
-	fi
-
 	# External I2C bus
 	if hmc5883 -C -T -X start
 	then
 	fi
 
-	if lis3mdl -R 2 start
+	# Internal I2C bus
+	if hmc5883 -C -T -I -R 12 start
+	then
+	fi
+
+	if mpu9250 -s -R 8 start
+	then
+	fi
+
+	if lsm303d -R 10 start
+	then
+	fi
+
+	if l3gd20 -R 14 start
 	then
 	fi
 fi
 
-if meas_airspeed start
+if sdp3x_airspeed start
 then
-else
-	if ets_airspeed start
-	then
-	else
-		if ets_airspeed start -b 1
-		then
-		fi
-	fi
+fi
+
+if ms5525_airspeed start
+then
+fi
+
+if ms5525_airspeed start -b 2
+then
+fi
+
+if ms4525_airspeed start
+then
+fi
+
+if ms4525_airspeed start -b 2
+then
+fi
+
+if ets_airspeed start
+then
+fi
+
+if ets_airspeed start -b 1
+then
 fi
 
 if sf1xx start

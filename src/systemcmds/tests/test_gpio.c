@@ -47,7 +47,6 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <px4_adc.h>
 
 #include "tests_main.h"
 
@@ -91,7 +90,7 @@ int test_gpio(int argc, char *argv[])
 {
 	int		ret = 0;
 
-#ifdef PX4IO_DEVICE_PATH
+#if defined(BOARD_USES_PX4IO)
 
 	int fd = px4_open(PX4IO_DEVICE_PATH, 0);
 

@@ -35,13 +35,7 @@
 #include <stdio.h>
 #include <errno.h>
 
-int uORB::Utils::node_mkpath
-(
-	char *buf,
-	Flavor f,
-	const struct orb_metadata *meta,
-	int *instance
-)
+int uORB::Utils::node_mkpath(char *buf, const struct orb_metadata *meta, int *instance)
 {
 	unsigned len;
 
@@ -51,9 +45,7 @@ int uORB::Utils::node_mkpath
 		index = *instance;
 	}
 
-	len = snprintf(buf, orb_maxpath, "/%s/%s%d",
-		       (f == PUBSUB) ? "obj" : "param",
-		       meta->o_name, index);
+	len = snprintf(buf, orb_maxpath, "/%s/%s%d", "obj", meta->o_name, index);
 
 	if (len >= orb_maxpath) {
 		return -ENAMETOOLONG;
@@ -64,15 +56,13 @@ int uORB::Utils::node_mkpath
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-int uORB::Utils::node_mkpath(char *buf, Flavor f,
-			     const char *orbMsgName)
+int uORB::Utils::node_mkpath(char *buf, const char *orbMsgName)
 {
 	unsigned len;
 
 	unsigned index = 0;
 
-	len = snprintf(buf, orb_maxpath, "/%s/%s%d", (f == PUBSUB) ? "obj" : "param",
-		       orbMsgName, index);
+	len = snprintf(buf, orb_maxpath, "/%s/%s%d", "obj", orbMsgName, index);
 
 	if (len >= orb_maxpath) {
 		return -ENAMETOOLONG;

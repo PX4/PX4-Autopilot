@@ -48,7 +48,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <systemlib/mavlink_log.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/err.h>
 
 int do_trim_calibration(orb_advert_t *mavlink_log_pub)
@@ -96,11 +96,7 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 	p = sp.r * yaw_scale + yaw_trim_active;
 	int p3r = param_set(param_find("TRIM_YAW"), &p);
 
-	/* store to permanent storage */
-	/* auto-save */
-	int save_ret = param_save_default();
-
-	if (save_ret != 0 || p1r != 0 || p2r != 0 || p3r != 0) {
+	if (p1r != 0 || p2r != 0 || p3r != 0) {
 		mavlink_log_critical(mavlink_log_pub, "TRIM: PARAM SET FAIL");
 		px4_close(sub_man);
 		return PX4_ERROR;

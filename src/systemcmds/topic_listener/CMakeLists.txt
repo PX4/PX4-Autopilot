@@ -32,14 +32,16 @@
 ############################################################################
 
 add_custom_command(OUTPUT topic_listener.cpp
-                COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/generate_listener.py ${PX4_SOURCE_DIR} > topic_listener.cpp
-                DEPENDS msg_gen
+                COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_listener.py ${PX4_SOURCE_DIR} ${EXTERNAL_MODULES_LOCATION} > topic_listener.cpp
+                DEPENDS generate_listener.py uorb_msgs
                 )
 
 add_custom_target(generate_topic_listener
 	DEPENDS
 		topic_listener.cpp
-		${PX4_SOURCE_DIR}/Tools/generate_listener.py)
+		generate_listener.py
+		uorb_msgs
+	)
 
 px4_add_module(
 	MODULE systemcmds__topic_listener
@@ -49,7 +51,6 @@ px4_add_module(
 	SRCS
 		topic_listener.cpp
 	DEPENDS
-		platforms__common
 		generate_topic_listener
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+
