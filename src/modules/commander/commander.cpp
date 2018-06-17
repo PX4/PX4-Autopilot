@@ -1588,9 +1588,10 @@ Commander::run()
 			}
 		}
 
-		orb_check(sp_man_sub, &updated);
+		bool manual_sp_updated = false;
+		orb_check(sp_man_sub, &manual_sp_updated);
 
-		if (updated) {
+		if (manual_sp_updated) {
 			orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
 		}
 
@@ -2205,7 +2206,8 @@ Commander::run()
 		if (!status_flags.rc_input_blocked
 			&& (sp_man.timestamp > _last_sp_man.timestamp)
 			&& ((sp_man.timestamp - _last_sp_man.timestamp) < (rc_loss_timeout * 1_s))
-			&& (hrt_elapsed_time(&sp_man.timestamp) < (rc_loss_timeout * 1_s))) {
+			&& (hrt_elapsed_time(&sp_man.timestamp) < (rc_loss_timeout * 1_s))
+			&& manual_sp_updated) {
 
 			/* handle the case where RC signal was regained */
 			if (!status_flags.rc_signal_found_once) {
