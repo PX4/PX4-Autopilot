@@ -104,7 +104,13 @@ private:
 
 		(ParamInt<px4::params::COM_POS_FS_DELAY>) _failsafe_pos_delay,
 		(ParamInt<px4::params::COM_POS_FS_PROB>) _failsafe_pos_probation,
-		(ParamInt<px4::params::COM_POS_FS_GAIN>) _failsafe_pos_gain
+		(ParamInt<px4::params::COM_POS_FS_GAIN>) _failsafe_pos_gain,
+
+		(ParamFloat<px4::params::COM_RC_LOSS_T>) _rc_loss_timeout,
+		(ParamFloat<px4::params::COM_RC_STICK_OV>) _rc_min_stick_change,
+		(ParamInt<px4::params::COM_RC_IN_MODE>) _rc_in_mode,
+		(ParamInt<px4::params::COM_RC_ARM_HYST>) _rc_arm_hyst,
+		(ParamBool<px4::params::COM_RC_OVERRIDE>) _rc_override
 	)
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */

@@ -1168,22 +1168,17 @@ Commander::run()
 	param_t _param_enable_rc_loss = param_find("NAV_RCL_ACT");
 	param_t _param_datalink_loss_timeout = param_find("COM_DL_LOSS_T");
 	param_t _param_highlatencydatalink_loss_timeout = param_find("COM_HLDL_LOSS_T");
-	param_t _param_rc_loss_timeout = param_find("COM_RC_LOSS_T");
 	param_t _param_datalink_regain_timeout = param_find("COM_DL_REG_T");
 	param_t _param_highlatencydatalink_regain_timeout = param_find("COM_HLDL_REG_T");
 	param_t _param_ef_throttle_thres = param_find("COM_EF_THROT");
 	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
 	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
-	param_t _param_rc_in_off = param_find("COM_RC_IN_MODE");
-	param_t _param_rc_arm_hyst = param_find("COM_RC_ARM_HYST");
-	param_t _param_min_stick_change = param_find("COM_RC_STICK_OV");
 	param_t _param_geofence_action = param_find("GF_ACTION");
 	param_t _param_disarm_land = param_find("COM_DISARM_LAND");
 	param_t _param_low_bat_act = param_find("COM_LOW_BAT_ACT");
 	param_t _param_offboard_loss_timeout = param_find("COM_OF_LOSS_T");
 	param_t _param_arm_without_gps = param_find("COM_ARM_WO_GPS");
 	param_t _param_arm_switch_is_button = param_find("COM_ARM_SWISBTN");
-	param_t _param_rc_override = param_find("COM_RC_OVERRIDE");
 	param_t _param_arm_mission_required = param_find("COM_ARM_MIS_REQ");
 	param_t _param_flight_uuid = param_find("COM_FLIGHT_UUID");
 	param_t _param_takeoff_finished_action = param_find("COM_TAKEOFF_ACT");
@@ -1389,11 +1384,6 @@ Commander::run()
 	_last_gpos_fail_time_us = commander_boot_timestamp;
 	_last_lvel_fail_time_us = commander_boot_timestamp;
 
-	// Run preflight check
-	int32_t rc_in_off = 0;
-
-	param_get(_param_rc_in_off, &rc_in_off);
-
 	int32_t arm_switch_is_button = 0;
 	param_get(_param_arm_switch_is_button, &arm_switch_is_button);
 
@@ -1405,12 +1395,10 @@ Commander::run()
 	param_get(_param_arm_mission_required, &arm_mission_required_param);
 	arm_requirements |= (arm_mission_required_param & (ARM_REQ_MISSION_BIT | ARM_REQ_ARM_AUTH_BIT));
 
-	status.rc_input_mode = rc_in_off;
+	status.rc_input_mode = _rc_in_mode.get();
 
 	// user adjustable duration required to assert arm/disarm via throttle/rudder stick
-	int32_t rc_arm_hyst = 100;
-	param_get(_param_rc_arm_hyst, &rc_arm_hyst);
-	rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
+	int32_t rc_arm_hyst = COMMANDER_MONITORING_LOOPSPERMSEC * _rc_arm_hyst.get();
 
 	int32_t datalink_loss_act = 0;
 	int32_t rc_loss_act = 0;
@@ -1427,9 +1415,6 @@ Commander::run()
 	int32_t geofence_action = 0;
 
 	int32_t flight_uuid = 0;
-
-	/* RC override auto modes */
-	int32_t rc_override = 0;
 
 	int32_t takeoff_complete_act = 0;
 
@@ -1523,15 +1508,14 @@ Commander::run()
 			param_get(_param_enable_rc_loss, &rc_loss_act);
 			param_get(_param_datalink_loss_timeout, &datalink_loss_timeout);
 			param_get(_param_highlatencydatalink_loss_timeout, &highlatencydatalink_loss_timeout);
-			param_get(_param_rc_loss_timeout, &rc_loss_timeout);
-			param_get(_param_rc_in_off, &rc_in_off);
-			status.rc_input_mode = rc_in_off;
-			param_get(_param_rc_arm_hyst, &rc_arm_hyst);
-			param_get(_param_min_stick_change, &min_stick_change);
-			param_get(_param_rc_override, &rc_override);
+
+			status.rc_input_mode = _rc_in_mode.get();
+
 			// percentage (* 0.01) needs to be doubled because RC total interval is 2, not 1
-			min_stick_change *= 0.02f;
-			rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
+			min_stick_change = _rc_min_stick_change.get() * 0.02f;
+
+			rc_arm_hyst = _rc_arm_hyst.get() * COMMANDER_MONITORING_LOOPSPERMSEC;
+
 			param_get(_param_datalink_regain_timeout, &datalink_regain_timeout);
 			param_get(_param_highlatencydatalink_regain_timeout, &highlatencydatalink_regain_timeout);
 			param_get(_param_ef_throttle_thres, &ef_throttle_thres);
@@ -2142,7 +2126,7 @@ Commander::run()
 
 		// revert geofence failsafe transition if sticks are moved and we were previously in a manual mode
 		// but only if not in a low battery handling action
-		if (rc_override != 0 && !critical_battery_voltage_actions_done && (warning_action_on &&
+		if (_rc_override.get() && !critical_battery_voltage_actions_done && (warning_action_on &&
 				(main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
 				 main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
 				 main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||
@@ -2165,7 +2149,7 @@ Commander::run()
 
 		// abort landing or auto or loiter if sticks are moved significantly
 		// but only if not in a low battery handling action
-		if (rc_override != 0 && !critical_battery_voltage_actions_done &&
+		if (_rc_override.get() && !critical_battery_voltage_actions_done &&
 		    (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
 		     internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
 		     internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER)) {
