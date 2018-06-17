@@ -50,7 +50,7 @@ public:
 	 * @param siblings initial number of DataValidator's. Must be > 0.
 	 */
 	DataValidatorGroup(unsigned siblings);
-	virtual ~DataValidatorGroup();
+	~DataValidatorGroup();
 
 	/**
 	 * Create a new Validator (with index equal to the number of currently existing validators)
@@ -67,7 +67,7 @@ public:
 	 * @param error_count	The current error count of the sensor
 	 * @param priority	The priority of the sensor
 	 */
-	void			put(unsigned index, uint64_t timestamp, float val[3], uint64_t error_count, int priority);
+	void			put(unsigned index, uint64_t timestamp, const float val[3], uint64_t error_count, int priority);
 
 	/**
 	 * Get the best data triplet of the group
@@ -95,7 +95,7 @@ public:
 	 *
 	 * @return		the number of failovers
 	 */
-	unsigned		failover_count();
+	unsigned		failover_count() const { return _toggle_count; }
 
 	/**
 	 * Get the index of the failed sensor in the group
@@ -133,13 +133,18 @@ public:
 
 
 private:
-	DataValidator *_first;		/**< first node in the group */
-	DataValidator *_last;		/**< last node in the group */
-	uint32_t _timeout_interval_us; /**< currently set timeout */
-	int _curr_best;		/**< currently best index */
-	int _prev_best;		/**< the previous best index */
-	uint64_t _first_failover_time;	/**< timestamp where the first failover occured or zero if none occured */
-	unsigned _toggle_count;		/**< number of back and forth switches between two sensors */
+	DataValidator *_first{nullptr};		/**< first node in the group */
+	DataValidator *_last{nullptr};		/**< last node in the group */
+
+	uint32_t _timeout_interval_us{0}; /**< currently set timeout */
+
+	int _curr_best{-1};		/**< currently best index */
+	int _prev_best{-1};		/**< the previous best index */
+
+	uint64_t _first_failover_time{0};	/**< timestamp where the first failover occured or zero if none occured */
+
+	unsigned _toggle_count{0};		/**< number of back and forth switches between two sensors */
+
 	static constexpr float MIN_REGULAR_CONFIDENCE = 0.9f;
 
 	/* we don't want this class to be copied */
