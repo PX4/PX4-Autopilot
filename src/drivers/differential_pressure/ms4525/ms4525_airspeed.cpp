@@ -388,7 +388,7 @@ int bus_options[] = {
 
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
-int start(int i2c_bus);
+int start();
 int start_bus(int i2c_bus);
 int stop();
 int reset();
@@ -400,7 +400,7 @@ int reset();
  * or failed to detect the sensor.
  */
 int
-start(int i2c_bus)
+start()
 {
 	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
 		if (start_bus(bus_options[i]) == PX4_OK) {
@@ -554,7 +554,7 @@ ms4525_airspeed_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
 		if (start_all) {
-			return meas_airspeed::start(i2c_bus);
+			return meas_airspeed::start();
 
 		} else {
 			return meas_airspeed::start_bus(i2c_bus);
