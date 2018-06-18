@@ -54,7 +54,7 @@ FixedwingLandDetector::FixedwingLandDetector()
 	_paramHandle.maxVelocity = param_find("LNDFW_VEL_XY_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDFW_VEL_Z_MAX");
 	_paramHandle.maxAirSpeed = param_find("LNDFW_AIRSPD_MAX");
-	_paramHandle.maxIntVelocity = param_find("LNDFW_VELI_MAX");
+	_paramHandle.maxXYAccel = param_find("LNDFW_XYACC_MAX");
 
 	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
 	_landed_hysteresis.set_hysteresis_time_from(false, LANDED_TRIGGER_TIME_US);
@@ -81,7 +81,7 @@ void FixedwingLandDetector::_update_params()
 	param_get(_paramHandle.maxVelocity, &_params.maxVelocity);
 	param_get(_paramHandle.maxClimbRate, &_params.maxClimbRate);
 	param_get(_paramHandle.maxAirSpeed, &_params.maxAirSpeed);
-	param_get(_paramHandle.maxIntVelocity, &_params.maxIntVelocity);
+	param_get(_paramHandle.maxXYAccel, &_params.maxXYAccel);
 }
 
 float FixedwingLandDetector::_get_max_altitude()
@@ -130,7 +130,7 @@ bool FixedwingLandDetector::_get_landed_state()
 		landDetected = _velocity_xy_filtered < _params.maxVelocity
 			       && _velocity_z_filtered < _params.maxClimbRate
 			       && _airspeed_filtered < _params.maxAirSpeed
-			       && _accel_horz_lp < _params.maxIntVelocity;
+			       && _accel_horz_lp < _params.maxXYAccel;
 
 	} else {
 		// Control state topic has timed out and we need to assume we're landed.
