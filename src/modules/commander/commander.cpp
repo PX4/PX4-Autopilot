@@ -86,7 +86,6 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -1284,10 +1283,6 @@ Commander::run()
 	int vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
 	vtol_status.vtol_in_rw_mode = true;		//default for vtol is rotary wing
 
-	/* subscribe to estimator status topic */
-	int estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
-	estimator_status_s estimator_status{};
-
 	/* class variables used to check for navigation failure after takeoff */
 	hrt_abstime time_at_takeoff = 0; // last time we were on the ground
 	hrt_abstime time_last_innov_pass = 0; // last time velocity innovations passed
@@ -1634,6 +1629,9 @@ Commander::run()
 
 		_local_position_sub.update();
 		_global_position_sub.update();
+		_estimator_status_sub.update();
+
+		const estimator_status_s& estimator_status = _estimator_status_sub.get();
 
 		// Set the allowable positon uncertainty based on combination of flight and estimator state
 		// When we are in a operator demanded position control mode and are solely reliant on optical flow, do not check position error becasue it will gradually increase throughout flight and the operator will compensate for the drift
@@ -1659,48 +1657,42 @@ Commander::run()
 		 * but rotary wing vehicles cannot so the position and velocity validity needs to be latched
 		 * to false after failure to prevent flyaway crashes */
 		if (run_quality_checks && status.is_rotary_wing) {
-			bool estimator_status_updated = false;
-			orb_check(estimator_status_sub, &estimator_status_updated);
 
-			if (estimator_status_updated) {
-				orb_copy(ORB_ID(estimator_status), estimator_status_sub, &estimator_status);
+			if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+				// reset flags and timer
+				time_at_takeoff = hrt_absolute_time();
+				nav_test_failed = false;
+				nav_test_passed = false;
 
-				if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
-					// reset flags and timer
-					time_at_takeoff = hrt_absolute_time();
-					nav_test_failed = false;
-					nav_test_passed = false;
+			} else if (was_landed) {
+				// record time of takeoff
+				time_at_takeoff = hrt_absolute_time();
 
-				} else if (was_landed) {
-					// record time of takeoff
-					time_at_takeoff = hrt_absolute_time();
+			} else {
+				// if nav status is unconfirmed, confirm yaw angle as passed after 30 seconds or achieving 5 m/s of speed
+				const bool sufficient_time = (hrt_elapsed_time(&time_at_takeoff) > 30_s);
 
-				} else {
-					// if nav status is unconfirmed, confirm yaw angle as passed after 30 seconds or achieving 5 m/s of speed
-					const bool sufficient_time = (hrt_elapsed_time(&time_at_takeoff) > 30_s);
+				const vehicle_local_position_s &lpos = _local_position_sub.get();
+				const bool sufficient_speed = (lpos.vx * lpos.vx + lpos.vy * lpos.vy > 25.0f);
 
-					const vehicle_local_position_s &lpos = _local_position_sub.get();
-					const bool sufficient_speed = (lpos.vx * lpos.vx + lpos.vy * lpos.vy > 25.0f);
+				bool innovation_pass = estimator_status.vel_test_ratio < 1.0f && estimator_status.pos_test_ratio < 1.0f;
 
-					bool innovation_pass = estimator_status.vel_test_ratio < 1.0f && estimator_status.pos_test_ratio < 1.0f;
+				if (!nav_test_failed) {
+					if (!nav_test_passed) {
+						// pass if sufficient time or speed
+						if (sufficient_time || sufficient_speed) {
+							nav_test_passed = true;
+						}
 
-					if (!nav_test_failed) {
-						if (!nav_test_passed) {
-							// pass if sufficient time or speed
-							if (sufficient_time || sufficient_speed) {
-								nav_test_passed = true;
-							}
+						// record the last time the innovation check passed
+						if (innovation_pass) {
+							time_last_innov_pass = hrt_absolute_time();
+						}
 
-							// record the last time the innovation check passed
-							if (innovation_pass) {
-								time_last_innov_pass = hrt_absolute_time();
-							}
-
-							// if the innovation test has failed continuously, declare the nav as failed
-							if (hrt_elapsed_time(&time_last_innov_pass) > 1_s) {
-								nav_test_failed = true;
-								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL NAVIGATION FAILURE - CHECK SENSOR CALIBRATION");
-							}
+						// if the innovation test has failed continuously, declare the nav as failed
+						if (hrt_elapsed_time(&time_last_innov_pass) > 1_s) {
+							nav_test_failed = true;
+							mavlink_log_emergency(&mavlink_log_pub, "CRITICAL NAVIGATION FAILURE - CHECK SENSOR CALIBRATION");
 						}
 					}
 				}
@@ -2667,7 +2659,6 @@ Commander::run()
 	px4_close(subsys_sub);
 	px4_close(param_changed_sub);
 	px4_close(battery_sub);
-	px4_close(estimator_status_sub);
 
 	thread_running = false;
 }

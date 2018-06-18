@@ -54,6 +54,7 @@
 // subscriptions
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/cpuload.h>
+#include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
@@ -185,6 +186,7 @@ private:
 
 	// Subscriptions
 	Subscription<cpuload_s>				_cpuload_sub{ORB_ID(cpuload)};
+	Subscription<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
 	Subscription<iridiumsbd_status_s> 		_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	Subscription<mission_result_s>			_mission_result_sub{ORB_ID(mission_result)};
 	Subscription<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
