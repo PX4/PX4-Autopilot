@@ -1263,7 +1263,6 @@ Commander::run()
 
 	/* Subscribe to subsystem info topic */
 	int subsys_sub = orb_subscribe(ORB_ID(subsystem_info));
-	subsystem_info_s info{};
 
 	/* Subscribe to system power */
 	int system_power_sub = orb_subscribe(ORB_ID(system_power));
@@ -1885,6 +1884,7 @@ Commander::run()
 		do {
 			orb_check(subsys_sub, &updated);
 			if (updated) {
+				subsystem_info_s info{};
 				orb_copy(ORB_ID(subsystem_info), subsys_sub, &info);
 				set_health_flags(info.subsystem_type, info.present, info.enabled, info.ok, status);
 				status_changed = true;
