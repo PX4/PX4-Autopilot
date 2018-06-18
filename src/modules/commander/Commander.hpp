@@ -45,7 +45,6 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
@@ -56,6 +55,7 @@
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
+#include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/safety.h>
@@ -187,6 +187,7 @@ private:
 	// Subscriptions
 	Subscription<cpuload_s>				_cpuload_sub{ORB_ID(cpuload)};
 	Subscription<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
+	Subscription<geofence_result_s>			_geofence_result_sub{ORB_ID(geofence_result)};
 	Subscription<iridiumsbd_status_s> 		_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	Subscription<mission_result_s>			_mission_result_sub{ORB_ID(mission_result)};
 	Subscription<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};

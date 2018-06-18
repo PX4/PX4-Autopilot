@@ -86,12 +86,10 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/mission.h>
-#include <uORB/topics/mission_result.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/power_button_state.h>
 #include <uORB/topics/safety.h>
@@ -100,8 +98,6 @@
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/uORB.h>
@@ -1253,10 +1249,6 @@ Commander::run()
 	/* Subscribe to safety topic */
 	int safety_sub = orb_subscribe(ORB_ID(safety));
 
-	/* Subscribe to geofence result topic */
-	int geofence_result_sub = orb_subscribe(ORB_ID(geofence_result));
-	geofence_result_s geofence_result{};
-
 	/* Subscribe to manual control data */
 	int sp_man_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
@@ -1954,15 +1946,10 @@ Commander::run()
 			}
 		}
 
-		/* start geofence result check */
-		orb_check(geofence_result_sub, &updated);
+		// Geofence results check
+		if (_geofence_result_sub.update() && armed.armed) {
 
-		if (updated) {
-			orb_copy(ORB_ID(geofence_result), geofence_result_sub, &geofence_result);
-		}
-
-		// Geofence actions
-		if (armed.armed && (geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE)) {
+			const geofence_result_s& geofence_result = _geofence_result_sub.get();
 
 			static bool geofence_loiter_on = false;
 			static bool geofence_rtl_on = false;
@@ -2177,7 +2164,7 @@ Commander::run()
 						print_reject_arm("NOT ARMING: Switch to a manual mode first.");
 
 					} else if (!status_flags.condition_home_position_valid &&
-						   geofence_result.geofence_action == geofence_result_s::GF_ACTION_RTL) {
+						   _geofence_result_sub.get().geofence_action == geofence_result_s::GF_ACTION_RTL) {
 
 						print_reject_arm("NOT ARMING: Geofence RTL requires valid home");
 
