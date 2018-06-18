@@ -154,7 +154,6 @@ static struct vehicle_status_s status = {};
 static struct battery_status_s battery = {};
 static struct actuator_armed_s armed = {};
 static struct safety_s safety = {};
-static struct offboard_control_mode_s offboard_control_mode = {};
 static struct home_position_s _home = {};
 static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX];
 static struct commander_state_s internal_state = {};
@@ -1265,9 +1264,6 @@ Commander::run()
 	/* Subscribe to manual control data */
 	int sp_man_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
-	/* Subscribe to offboard control data */
-	int offboard_control_mode_sub = orb_subscribe(ORB_ID(offboard_control_mode));
-
 	/* Subscribe to land detector */
 	int land_detector_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	land_detector.landed = true;
@@ -1501,11 +1497,8 @@ Commander::run()
 			orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
 		}
 
-		orb_check(offboard_control_mode_sub, &updated);
-
-		if (updated) {
-			orb_copy(ORB_ID(offboard_control_mode), offboard_control_mode_sub, &offboard_control_mode);
-		}
+		_offboard_control_mode_sub.update();
+		const offboard_control_mode_s& offboard_control_mode = _offboard_control_mode_sub.get();
 
 		if (offboard_control_mode.timestamp != 0 &&
 		    offboard_control_mode.timestamp + OFFBOARD_TIMEOUT > hrt_absolute_time()) {
@@ -2679,7 +2672,6 @@ Commander::run()
 	led_deinit();
 	buzzer_deinit();
 	px4_close(sp_man_sub);
-	px4_close(offboard_control_mode_sub);
 	px4_close(safety_sub);
 	px4_close(cmd_sub);
 	px4_close(subsys_sub);
