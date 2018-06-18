@@ -1218,7 +1218,6 @@ Commander::run()
 	// We want to accept RC inputs as default
 	status.rc_input_mode = vehicle_status_s::RC_IN_MODE_DEFAULT;
 	internal_state.main_state = commander_state_s::MAIN_STATE_MANUAL;
-	internal_state.timestamp = hrt_absolute_time();
 	status.nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 	status.arming_state = vehicle_status_s::ARMING_STATE_INIT;
 
@@ -1226,8 +1225,6 @@ Commander::run()
 	status.rc_signal_lost = true;
 	status_flags.offboard_control_signal_lost = true;
 	status.data_link_lost = true;
-
-	status.timestamp = hrt_absolute_time();
 
 	status_flags.condition_power_input_valid = true;
 	status_flags.rc_calibration_valid = true;
@@ -2466,9 +2463,6 @@ Commander::run()
 			}
 		}
 
-		/* Get current timestamp */
-		const hrt_abstime now = hrt_absolute_time();
-
 		// automatically set or update home position
 		if (!_home.manual_home) {
 			const vehicle_local_position_s &local_position = _local_position_sub.get();
@@ -2564,13 +2558,11 @@ Commander::run()
 		if (hrt_elapsed_time(&status.timestamp) >= 1_s || status_changed) {
 
 			set_control_mode();
-			control_mode.timestamp = now;
+			control_mode.timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID(vehicle_control_mode), control_mode_pub, &control_mode);
 
-			status.timestamp = now;
+			status.timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID(vehicle_status), status_pub, &status);
-
-			armed.timestamp = now;
 
 			/* set prearmed state if safety is off, or safety is not present and 5 seconds passed */
 			if (safety.safety_switch_available) {
@@ -2586,9 +2578,11 @@ Commander::run()
 				armed.prearmed = (hrt_elapsed_time(&commander_boot_timestamp) > 5_s);
 			}
 
+			armed.timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 
 			/* publish internal state for logging purposes */
+			internal_state.timestamp = hrt_absolute_time();
 			if (commander_state_pub != nullptr) {
 				orb_publish(ORB_ID(commander_state), commander_state_pub, &internal_state);
 
@@ -2676,7 +2670,7 @@ Commander::run()
 			have_taken_off_since_arming = false;
 		}
 
-		arm_auth_update(now, params_updated || param_init_forced);
+		arm_auth_update(params_updated || param_init_forced);
 
 		// Handle shutdown request from emergency battery action
 		if(!armed.armed && dangerous_battery_level_requests_poweroff){

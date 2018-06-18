@@ -179,11 +179,13 @@ uint8_t arm_auth_check()
 	return vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
 }
 
-void arm_auth_update(hrt_abstime now, bool param_update)
+void arm_auth_update(bool param_update)
 {
 	if (param_update) {
 		param_get(param_arm_parameters, (int32_t*)&arm_parameters);
 	}
+
+	const hrt_abstime now = hrt_absolute_time();
 
 	switch (state) {
 	case ARM_AUTH_WAITING_AUTH:
