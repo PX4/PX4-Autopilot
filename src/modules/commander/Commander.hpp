@@ -56,6 +56,7 @@
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -132,6 +133,10 @@ private:
 	float _eph_threshold_adj{INFINITY};	///< maximum allowable horizontal position uncertainty after adjustment for flight condition
 	bool _skip_pos_accuracy_check{false};
 
+	orb_advert_t _control_mode_pub{nullptr};
+
+
+	void publish_control_mode(const offboard_control_mode_s& offboard);
 
 	void get_circuit_breaker_params(vehicle_status_flags_s& status_flags_local);
 

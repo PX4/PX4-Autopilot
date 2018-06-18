@@ -93,7 +93,6 @@
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
-#include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/power_button_state.h>
 #include <uORB/topics/safety.h>
@@ -155,7 +154,6 @@ static struct vehicle_status_s status = {};
 static struct battery_status_s battery = {};
 static struct actuator_armed_s armed = {};
 static struct safety_s safety = {};
-static struct vehicle_control_mode_s control_mode = {};
 static struct offboard_control_mode_s offboard_control_mode = {};
 static struct home_position_s _home = {};
 static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX];
@@ -199,8 +197,6 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[]);
 void usage(const char *reason);
 
 void control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed, battery_status_s *battery_local, const cpuload_s& cpuload);
-
-void set_control_mode();
 
 bool stabilization_required();
 
@@ -1235,7 +1231,6 @@ Commander::run()
 	}
 
 	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
-	orb_advert_t control_mode_pub = orb_advertise(ORB_ID(vehicle_control_mode), &control_mode);
 
 	orb_advert_t home_pub = nullptr;
 	orb_advert_t command_ack_pub = nullptr;
@@ -2538,9 +2533,7 @@ Commander::run()
 		/* publish states (armed, control_mode, vehicle_status, commander_state, vehicle_status_flags) at 1 Hz or immediately when changed */
 		if (hrt_elapsed_time(&status.timestamp) >= 1_s || status_changed) {
 
-			set_control_mode();
-			control_mode.timestamp = hrt_absolute_time();
-			orb_publish(ORB_ID(vehicle_control_mode), control_mode_pub, &control_mode);
+			publish_control_mode(offboard_control_mode);
 
 			status.timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID(vehicle_status), status_pub, &status);
@@ -3326,8 +3319,10 @@ Commander::check_posvel_validity(const bool data_valid, const float data_accurac
 }
 
 void
-set_control_mode()
+Commander::publish_control_mode(const offboard_control_mode_s& offboard)
 {
+	vehicle_control_mode_s control_mode = {};
+
 	/* set vehicle_control_mode according to set_navigation_state */
 	control_mode.flag_armed = armed.armed;
 	control_mode.flag_external_manual_override_ok = (!status.is_rotary_wing && !status.is_vtol);
@@ -3499,39 +3494,48 @@ set_control_mode()
 		 * The control flags depend on what is ignored according to the offboard control mode topic
 		 * Inner loop flags (e.g. attitude) also depend on outer loop ignore flags (e.g. position)
 		 */
-		control_mode.flag_control_rates_enabled = !offboard_control_mode.ignore_bodyrate ||
-				!offboard_control_mode.ignore_attitude ||
-				!offboard_control_mode.ignore_position ||
-				!offboard_control_mode.ignore_velocity ||
-				!offboard_control_mode.ignore_acceleration_force;
+		control_mode.flag_control_rates_enabled = !offboard.ignore_bodyrate ||
+				!offboard.ignore_attitude ||
+				!offboard.ignore_position ||
+				!offboard.ignore_velocity ||
+				!offboard.ignore_acceleration_force;
 
-		control_mode.flag_control_attitude_enabled = !offboard_control_mode.ignore_attitude ||
-				!offboard_control_mode.ignore_position ||
-				!offboard_control_mode.ignore_velocity ||
-				!offboard_control_mode.ignore_acceleration_force;
+		control_mode.flag_control_attitude_enabled = !offboard.ignore_attitude ||
+				!offboard.ignore_position ||
+				!offboard.ignore_velocity ||
+				!offboard.ignore_acceleration_force;
 
 		control_mode.flag_control_rattitude_enabled = false;
 
-		control_mode.flag_control_acceleration_enabled = !offboard_control_mode.ignore_acceleration_force &&
+		control_mode.flag_control_acceleration_enabled = !offboard.ignore_acceleration_force &&
 				!status.in_transition_mode;
 
-		control_mode.flag_control_velocity_enabled = (!offboard_control_mode.ignore_velocity ||
-				!offboard_control_mode.ignore_position) && !status.in_transition_mode &&
+		control_mode.flag_control_velocity_enabled = (!offboard.ignore_velocity ||
+				!offboard.ignore_position) && !status.in_transition_mode &&
 				!control_mode.flag_control_acceleration_enabled;
 
-		control_mode.flag_control_climb_rate_enabled = (!offboard_control_mode.ignore_velocity ||
-				!offboard_control_mode.ignore_position) && !control_mode.flag_control_acceleration_enabled;
+		control_mode.flag_control_climb_rate_enabled = (!offboard.ignore_velocity ||
+				!offboard.ignore_position) && !control_mode.flag_control_acceleration_enabled;
 
-		control_mode.flag_control_position_enabled = !offboard_control_mode.ignore_position && !status.in_transition_mode &&
+		control_mode.flag_control_position_enabled = !offboard.ignore_position && !status.in_transition_mode &&
 				!control_mode.flag_control_acceleration_enabled;
 
-		control_mode.flag_control_altitude_enabled = (!offboard_control_mode.ignore_velocity ||
-				!offboard_control_mode.ignore_position) && !control_mode.flag_control_acceleration_enabled;
+		control_mode.flag_control_altitude_enabled = (!offboard.ignore_velocity ||
+				!offboard.ignore_position) && !control_mode.flag_control_acceleration_enabled;
 
 		break;
 
 	default:
 		break;
+	}
+
+	control_mode.timestamp = hrt_absolute_time();
+
+	if (_control_mode_pub != nullptr) {
+		orb_publish(ORB_ID(vehicle_control_mode), _control_mode_pub, &control_mode);
+
+	} else {
+		_control_mode_pub = orb_advertise(ORB_ID(vehicle_control_mode), &control_mode);
 	}
 }
 
