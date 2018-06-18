@@ -182,9 +182,6 @@ static bool _last_condition_global_position_valid = false;
 
 static struct vehicle_land_detected_s land_detector = {};
 
-static float _eph_threshold_adj = INFINITY;	///< maximum allowable horizontal position uncertainty after adjustment for flight condition
-static bool _skip_pos_accuracy_check = false;
-
 /**
  * The daemon app only briefly exists to start
  * the background job. The stack size assigned in the
@@ -1729,9 +1726,12 @@ Commander::run()
 					    && !(estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS))
 					    && !(estimator_status.control_mode_flags & (1 << estimator_status_s::CS_EV_POS)));
 		bool operator_controlled_position = (internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL);
+
 		_skip_pos_accuracy_check = reliant_on_opt_flow && operator_controlled_position;
+
 		if (_skip_pos_accuracy_check) {
 			_eph_threshold_adj = INFINITY;
+
 		} else {
 			_eph_threshold_adj = _eph_threshold.get();
 		}
