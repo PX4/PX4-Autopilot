@@ -53,6 +53,9 @@ int bus_options[] = {
 #ifdef PX4_I2C_BUS_EXPANSION2
 	PX4_I2C_BUS_EXPANSION2,
 #endif
+#ifdef PX4_I2C_BUS_ONBOARD
+	PX4_I2C_BUS_ONBOARD,
+#endif
 };
 
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
@@ -179,12 +182,12 @@ int reset()
 static void
 ms5525_airspeed_usage()
 {
-	PX4_WARN("usage: ms5525_airspeed command [options]");
-	PX4_WARN("options:");
-	PX4_WARN("\t-b --bus i2cbus (%d)", PX4_I2C_BUS_DEFAULT);
+	PX4_INFO("usage: ms5525_airspeed command [options]");
+	PX4_INFO("options:");
+	PX4_INFO("\t-b --bus i2cbus (%d)", PX4_I2C_BUS_DEFAULT);
 	PX4_INFO("\t-a --all");
-	PX4_WARN("command:");
-	PX4_WARN("\tstart|stop|reset");
+	PX4_INFO("command:");
+	PX4_INFO("\tstart|stop|reset");
 }
 
 int
