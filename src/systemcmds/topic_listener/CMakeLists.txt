@@ -52,7 +52,6 @@ px4_add_module(
 	SRCS
 		topic_listener.cpp
 	DEPENDS
-		platforms__common
 		generate_topic_listener
 	)
 
