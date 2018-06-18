@@ -11,6 +11,7 @@ bool condition_local_position_valid		# set to true by the commander app if the q
 bool condition_local_velocity_valid		# set to true by the commander app if the quality of the local horizontal velocity data is good enough to use for navigation
 bool condition_local_altitude_valid
 bool condition_power_input_valid                # set if input power is valid
+bool condition_warning_action_on		# failsafe warning action activated
 
 bool circuit_breaker_engaged_power_check
 bool circuit_breaker_engaged_airspd_check

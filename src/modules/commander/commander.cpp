@@ -169,7 +169,6 @@ static uint8_t _last_sp_man_arm_switch = 0;
 
 static struct vtol_vehicle_status_s vtol_status = {};
 
-static bool warning_action_on = false;
 static bool last_overload = false;
 
 static struct vehicle_status_flags_s status_flags = {};
@@ -1837,7 +1836,7 @@ Commander::run()
 			arm_disarm(false, &mavlink_log_pub, "auto disarm on land");
 		}
 
-		if (!warning_action_on) {
+		if (!status_flags.condition_warning_action_on) {
 			// store the last good main_state when not in an navigation
 			// hold state
 			main_state_before_rtl = internal_state.main_state;
@@ -1845,8 +1844,9 @@ Commander::run()
 		} else if (internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
 			   && internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LOITER
 			   && internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
+
 			// reset flag again when we switched out of it
-			warning_action_on = false;
+			status_flags.condition_warning_action_on = false;
 		}
 
 		_cpuload_sub.update();
@@ -1888,7 +1888,7 @@ Commander::run()
 						if (low_bat_action == 1 || low_bat_action == 3) {
 							// let us send the critical message even if already in RTL
 							if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, &internal_state)) {
-								warning_action_on = true;
+								status_flags.condition_warning_action_on = true;
 								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, RETURNING TO LAND");
 
 							} else {
@@ -1897,7 +1897,7 @@ Commander::run()
 
 						} else if (low_bat_action == 2) {
 							if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, &internal_state)) {
-								warning_action_on = true;
+								status_flags.condition_warning_action_on = true;
 								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL BATTERY, LANDING AT CURRENT POSITION");
 
 							} else {
@@ -1923,7 +1923,7 @@ Commander::run()
 					} else {
 						if (low_bat_action == 2 || low_bat_action == 3) {
 							if (TRANSITION_CHANGED == main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, &internal_state)) {
-								warning_action_on = true;
+								status_flags.condition_warning_action_on = true;
 								mavlink_log_emergency(&mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING IMMEDIATELY");
 
 							} else {
@@ -2075,12 +2075,12 @@ Commander::run()
 					  && (sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_OFF
 					      || sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_NONE);
 
-			warning_action_on = warning_action_on || (geofence_loiter_on || geofence_rtl_on);
+			status_flags.condition_warning_action_on = status_flags.condition_warning_action_on || (geofence_loiter_on || geofence_rtl_on);
 		}
 
 		// revert geofence failsafe transition if sticks are moved and we were previously in a manual mode
 		// but only if not in a low battery handling action
-		if (_rc_override.get() && !critical_battery_voltage_actions_done && (warning_action_on &&
+		if (_rc_override.get() && !critical_battery_voltage_actions_done && (status_flags.condition_warning_action_on &&
 				(main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
 				 main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
 				 main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||
@@ -2927,7 +2927,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 		// if the system now later enters an autonomous state the pilot can move
 		// the sticks to break out of the autonomous state
 
-		if (!warning_action_on
+		if (!status_flags.condition_warning_action_on
 		    && (internal_state.main_state == commander_state_s::MAIN_STATE_MANUAL ||
 			internal_state.main_state == commander_state_s::MAIN_STATE_ALTCTL ||
 			internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL ||
