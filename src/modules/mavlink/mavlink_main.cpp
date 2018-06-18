@@ -258,7 +258,6 @@ Mavlink::Mavlink() :
 	_protocol(SERIAL),
 	_network_port(14556),
 	_remote_port(DEFAULT_REMOTE_PORT_UDP),
-	_rstatus {},
 	_message_buffer {},
 	_message_buffer_mutex {},
 	_send_mutex {},
