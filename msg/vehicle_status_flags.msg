@@ -3,7 +3,6 @@
 bool condition_calibration_enabled
 bool condition_system_sensors_initialized
 bool condition_system_hotplug_timeout		# true if the hotplug sensor search is over
-bool condition_system_returned_to_home
 bool condition_auto_mission_available
 bool condition_global_position_valid		# set to true by the commander app if the quality of the global position estimate is good enough to use for navigation
 bool condition_home_position_valid			# indicates a valid home position (a valid home position is not always a valid launch)
@@ -11,6 +10,7 @@ bool condition_local_position_valid		# set to true by the commander app if the q
 bool condition_local_velocity_valid		# set to true by the commander app if the quality of the local horizontal velocity data is good enough to use for navigation
 bool condition_local_altitude_valid
 bool condition_power_input_valid                # set if input power is valid
+bool condition_warning_action_on		# failsafe warning action activated
 
 bool circuit_breaker_engaged_power_check
 bool circuit_breaker_engaged_airspd_check

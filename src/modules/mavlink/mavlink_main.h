@@ -593,9 +593,9 @@ private:
 	unsigned short _network_port;
 	unsigned short _remote_port;
 
-	struct telemetry_status_s	_rstatus;			///< receive status
+	struct telemetry_status_s	_rstatus {};			///< receive status
 
-	struct ping_statistics_s	_ping_stats;		///< ping statistics
+	struct ping_statistics_s	_ping_stats {};		///< ping statistics
 
 	struct mavlink_message_buffer {
 		int write_ptr;

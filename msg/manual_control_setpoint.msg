@@ -17,6 +17,8 @@ uint8 SOURCE_MAVLINK_1 = 3		# mavlink instance 1
 uint8 SOURCE_MAVLINK_2 = 4		# mavlink instance 2
 uint8 SOURCE_MAVLINK_3 = 5		# mavlink instance 4
 
+uint64 timestamp_last_signal		# last valid reception time
+
 # Any of the channels may not be available and be set to NaN
 # to indicate that it does not contain valid data.
 # The variable names follow the definition of the

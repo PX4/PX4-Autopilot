@@ -45,7 +45,6 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
@@ -53,11 +52,16 @@
 
 // subscriptions
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/cpuload.h>
+#include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
+#include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 
 using math::constrain;
@@ -103,7 +107,17 @@ private:
 
 		(ParamInt<px4::params::COM_POS_FS_DELAY>) _failsafe_pos_delay,
 		(ParamInt<px4::params::COM_POS_FS_PROB>) _failsafe_pos_probation,
-		(ParamInt<px4::params::COM_POS_FS_GAIN>) _failsafe_pos_gain
+		(ParamInt<px4::params::COM_POS_FS_GAIN>) _failsafe_pos_gain,
+
+		(ParamFloat<px4::params::COM_RC_LOSS_T>) _rc_loss_timeout,
+		(ParamFloat<px4::params::COM_RC_STICK_OV>) _rc_min_stick_change,
+		(ParamInt<px4::params::COM_RC_IN_MODE>) _rc_in_mode,
+		(ParamInt<px4::params::COM_RC_ARM_HYST>) _rc_arm_hyst,
+		(ParamBool<px4::params::COM_RC_OVERRIDE>) _rc_override,
+
+		(ParamInt<px4::params::MAV_TYPE>) _mav_type,
+		(ParamInt<px4::params::MAV_SYS_ID>) _mav_sys_id,
+		(ParamInt<px4::params::MAV_COMP_ID>) _mav_comp_id
 	)
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
@@ -118,6 +132,16 @@ private:
 	hrt_abstime	_lpos_probation_time_us = POSVEL_PROBATION_MIN;
 	hrt_abstime	_lvel_probation_time_us = POSVEL_PROBATION_MIN;
 
+	float _eph_threshold_adj{INFINITY};	///< maximum allowable horizontal position uncertainty after adjustment for flight condition
+	bool _skip_pos_accuracy_check{false};
+
+	orb_advert_t _control_mode_pub{nullptr};
+
+
+	void publish_control_mode(const offboard_control_mode_s& offboard);
+
+	void get_circuit_breaker_params(vehicle_status_flags_s& status_flags_local);
+
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd,
 			    actuator_armed_s *armed, home_position_s *home, orb_advert_t *home_pub, orb_advert_t *command_ack_pub, bool *changed);
 
@@ -125,17 +149,8 @@ private:
 
 	// Set the main system state based on RC and override device inputs
 	transition_result_t set_main_state(const vehicle_status_s &status, bool *changed);
-
-	// Enable override (manual reversion mode) on the system
 	transition_result_t set_main_state_override_on(const vehicle_status_s &status, bool *changed);
-
-	// Set the system main state based on the current RC inputs
 	transition_result_t set_main_state_rc(const vehicle_status_s &status, bool *changed);
-
-	// Set the main system state based on RC and override device inputs
-	transition_result_t set_main_state(vehicle_status_s *status, bool *changed);
-	transition_result_t set_main_state_override_on(vehicle_status_s *status, bool *changed);
-	transition_result_t set_main_state_rc(vehicle_status_s *status, bool *changed);
 
 	void check_valid(const hrt_abstime &timestamp, const hrt_abstime &timeout, const bool valid_in, bool *valid_out, bool *changed);
 
@@ -170,10 +185,15 @@ private:
 	} _telemetry[ORB_MULTI_MAX_INSTANCES];
 
 	// Subscriptions
-	Subscription<mission_result_s>			_mission_result_sub;
-	Subscription<vehicle_global_position_s>		_global_position_sub;
-	Subscription<vehicle_local_position_s>		_local_position_sub;
-	Subscription<iridiumsbd_status_s> 		_iridiumsbd_status_sub;
+	Subscription<cpuload_s>				_cpuload_sub{ORB_ID(cpuload)};
+	Subscription<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
+	Subscription<geofence_result_s>			_geofence_result_sub{ORB_ID(geofence_result)};
+	Subscription<iridiumsbd_status_s> 		_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
+	Subscription<mission_result_s>			_mission_result_sub{ORB_ID(mission_result)};
+	Subscription<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
+	Subscription<vehicle_global_position_s>		_global_position_sub{ORB_ID(vehicle_global_position)};
+	Subscription<vehicle_land_detected_s>		_land_detector_sub{ORB_ID(vehicle_land_detected)};
+	Subscription<vehicle_local_position_s>		_local_position_sub{ORB_ID(vehicle_local_position)};
 };
 
 #endif /* COMMANDER_HPP_ */
