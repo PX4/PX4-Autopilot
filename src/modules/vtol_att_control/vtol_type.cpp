@@ -189,6 +189,7 @@ void VtolType::update_mc_state()
 
 
 	// VTOL weathervane	
+	// TODO: Add check regarding data integrity. To avoid "pitch up"-bug at start.
 	if (_v_control_mode->flag_control_manual_enabled) {
 
 		if (_params->wv_manual && _v_control_mode->flag_control_velocity_enabled) {
