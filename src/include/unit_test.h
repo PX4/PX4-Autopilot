@@ -105,6 +105,7 @@ protected:
 			_tests_passed++;			\
 		}						\
 		_cleanup();					\
+		printf("\n");				\
 	} while (0)
 
 /// @brief Used to assert a value within a unit test.

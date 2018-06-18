@@ -69,6 +69,7 @@ extern int	test_jig_voltages(int argc, char *argv[]);
 extern int	test_led(int argc, char *argv[]);
 extern int	test_mathlib(int argc, char *argv[]);
 extern int	test_matrix(int argc, char *argv[]);
+extern int	test_microbench(int argc, char *argv[]);
 extern int	test_mixer(int argc, char *argv[]);
 extern int	test_mount(int argc, char *argv[]);
 extern int	test_param(int argc, char *argv[]);

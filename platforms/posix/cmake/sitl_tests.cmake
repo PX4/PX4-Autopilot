@@ -21,6 +21,7 @@ set(tests
 	matrix
 	mavlink
 	mc_pos_control
+	microbench
 	mixer
 	param
 	parameters
