@@ -1357,7 +1357,6 @@ Commander::run()
 	int32_t rc_loss_act = 0;
 	int32_t datalink_loss_timeout = 10;
 	int32_t highlatencydatalink_loss_timeout = 120;
-	float rc_loss_timeout = 0.5;
 	int32_t datalink_regain_timeout = 0;
 	int32_t highlatencydatalink_regain_timeout = 0;
 	float offboard_loss_timeout = 0.0f;
@@ -2141,10 +2140,11 @@ Commander::run()
 		}
 
 		/* RC input check */
+		const float rc_loss_timeout = _rc_loss_timeout.get() * 1_s;
 		if (!status_flags.rc_input_blocked
 			&& (sp_man.timestamp > _last_sp_man.timestamp)
-			&& ((sp_man.timestamp - _last_sp_man.timestamp) < (rc_loss_timeout * 1_s))
-			&& (hrt_elapsed_time(&sp_man.timestamp) < (rc_loss_timeout * 1_s))
+			&& ((sp_man.timestamp - _last_sp_man.timestamp) < rc_loss_timeout)
+			&& (hrt_elapsed_time(&sp_man.timestamp) < rc_loss_timeout)
 			&& manual_sp_updated) {
 
 			/* handle the case where RC signal was regained */
