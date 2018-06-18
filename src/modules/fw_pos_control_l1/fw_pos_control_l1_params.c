@@ -225,10 +225,10 @@ PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
 PARAM_DEFINE_FLOAT(FW_THR_IDLE, 0.15f);
 
 /**
- * Throttle limit value before flare
+ * Throttle limit during landing below throttle limit altitude
  *
- * This throttle value will be set as throttle limit at FW_LND_TLALT,
- * before aircraft will flare.
+ * During the flare of the autonomous landing process, this value will be set
+ * as throttle limit when the aircraft altitude is below FW_LND_TLALT.
  *
  * @unit norm
  * @min 0.0
@@ -332,7 +332,7 @@ PARAM_DEFINE_INT32(FW_LND_USETER, 0);
  * Flare, minimum pitch
  *
  * Minimum pitch during flare, a positive sign means nose up
- * Applied once FW_LND_TLALT is reached
+ * Applied once FW_LND_FLALT is reached
  *
  * @unit deg
  * @min 0
@@ -347,7 +347,7 @@ PARAM_DEFINE_FLOAT(FW_LND_FL_PMIN, 2.5f);
  * Flare, maximum pitch
  *
  * Maximum pitch during flare, a positive sign means nose up
- * Applied once FW_LND_TLALT is reached
+ * Applied once FW_LND_FLALT is reached
  *
  * @unit deg
  * @min 0
