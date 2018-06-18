@@ -48,6 +48,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 
 using namespace sensors;
+using namespace time_literals;
 
 RCUpdate::RCUpdate(const Parameters &parameters)
 	: _parameters(parameters),
@@ -360,11 +361,13 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 		if (!signal_lost && rc_input.timestamp_last_signal > 0) {
 
 			/* initialize manual setpoint */
-			struct manual_control_setpoint_s manual = {};
+			manual_control_setpoint_s manual = {};
+
 			/* set mode slot to unassigned */
 			manual.mode_slot = manual_control_setpoint_s::MODE_SLOT_NONE;
+
 			/* set the timestamp to the last signal time */
-			manual.timestamp = rc_input.timestamp_last_signal;
+			manual.timestamp_last_signal = rc_input.timestamp_last_signal;
 			manual.data_source = manual_control_setpoint_s::SOURCE_RC;
 
 			/* limit controls */
@@ -442,13 +445,14 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 					    _parameters.rc_man_th, _parameters.rc_man_inv);
 
 			/* publish manual_control_setpoint topic */
-			orb_publish_auto(ORB_ID(manual_control_setpoint), &_manual_control_pub, &manual, &instance,
-					 ORB_PRIO_HIGH);
+			manual.timestamp = hrt_absolute_time();
+			orb_publish_auto(ORB_ID(manual_control_setpoint), &_manual_control_pub, &manual, &instance, ORB_PRIO_HIGH);
 
 			/* copy from mapped manual control to control group 3 */
-			struct actuator_controls_s actuator_group_3 = {};
+			actuator_controls_s actuator_group_3 = {};
 
-			actuator_group_3.timestamp = rc_input.timestamp_last_signal;
+			actuator_group_3.timestamp = hrt_absolute_time();
+			actuator_group_3.timestamp_sample = rc_input.timestamp_last_signal;
 
 			actuator_group_3.control[0] = manual.y;
 			actuator_group_3.control[1] = manual.x;
@@ -460,11 +464,10 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			actuator_group_3.control[7] = manual.aux3;
 
 			/* publish actuator_controls_3 topic */
-			orb_publish_auto(ORB_ID(actuator_controls_3), &_actuator_group_3_pub, &actuator_group_3, &instance,
-					 ORB_PRIO_DEFAULT);
+			orb_publish_auto(ORB_ID(actuator_controls_3), &_actuator_group_3_pub, &actuator_group_3, &instance, ORB_PRIO_DEFAULT);
 
 			/* Update parameters from RC Channels (tuning with RC) if activated */
-			if (hrt_elapsed_time(&_last_rc_to_param_map_time) > 1e6) {
+			if (hrt_elapsed_time(&_last_rc_to_param_map_time) > 1_s) {
 				set_params_from_rc(parameter_handles);
 				_last_rc_to_param_map_time = hrt_absolute_time();
 			}

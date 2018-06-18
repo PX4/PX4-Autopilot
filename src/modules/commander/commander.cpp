@@ -2142,9 +2142,9 @@ Commander::run()
 		/* RC input check */
 		const float rc_loss_timeout = _rc_loss_timeout.get() * 1_s;
 		if (!status_flags.rc_input_blocked
-			&& (sp_man.timestamp > _last_sp_man.timestamp)
-			&& ((sp_man.timestamp - _last_sp_man.timestamp) < rc_loss_timeout)
-			&& (hrt_elapsed_time(&sp_man.timestamp) < rc_loss_timeout)
+			&& (sp_man.timestamp_last_signal > _last_sp_man.timestamp_last_signal)
+			&& ((sp_man.timestamp_last_signal - _last_sp_man.timestamp_last_signal) < rc_loss_timeout)
+			&& (hrt_elapsed_time(&sp_man.timestamp_last_signal) < rc_loss_timeout)
 			&& manual_sp_updated) {
 
 			/* handle the case where RC signal was regained */
