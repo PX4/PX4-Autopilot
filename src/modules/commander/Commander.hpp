@@ -132,6 +132,9 @@ private:
 	float _eph_threshold_adj{INFINITY};	///< maximum allowable horizontal position uncertainty after adjustment for flight condition
 	bool _skip_pos_accuracy_check{false};
 
+
+	void get_circuit_breaker_params(vehicle_status_flags_s& status_flags_local);
+
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd,
 			    actuator_armed_s *armed, home_position_s *home, orb_advert_t *home_pub, orb_advert_t *command_ack_pub, bool *changed);
 
