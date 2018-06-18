@@ -60,6 +60,7 @@
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 
 using math::constrain;
@@ -188,6 +189,7 @@ private:
 	Subscription<mission_result_s>			_mission_result_sub{ORB_ID(mission_result)};
 	Subscription<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 	Subscription<vehicle_global_position_s>		_global_position_sub{ORB_ID(vehicle_global_position)};
+	Subscription<vehicle_land_detected_s>		_land_detector_sub{ORB_ID(vehicle_land_detected)};
 	Subscription<vehicle_local_position_s>		_local_position_sub{ORB_ID(vehicle_local_position)};
 };
 

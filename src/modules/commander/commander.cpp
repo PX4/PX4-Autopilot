@@ -102,7 +102,6 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/vtol_vehicle_status.h>
@@ -175,8 +174,6 @@ static uint64_t rc_signal_lost_timestamp;		// Time at which the RC reception was
 static uint8_t arm_requirements = ARM_REQ_NONE;
 
 static bool _last_condition_global_position_valid = false;
-
-static struct vehicle_land_detected_s land_detector = {};
 
 /**
  * The daemon app only briefly exists to start
@@ -1264,10 +1261,6 @@ Commander::run()
 	/* Subscribe to manual control data */
 	int sp_man_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
-	/* Subscribe to land detector */
-	int land_detector_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-	land_detector.landed = true;
-
 	/* Subscribe to command topic */
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 
@@ -1678,7 +1671,7 @@ Commander::run()
 					nav_test_failed = false;
 					nav_test_passed = false;
 
-				} else if (land_detector.landed) {
+				} else if (was_landed) {
 					// record time of takeoff
 					time_at_takeoff = hrt_absolute_time();
 
@@ -1745,11 +1738,8 @@ Commander::run()
 		check_valid(_local_position_sub.get().timestamp, _failsafe_pos_delay.get() * 1_s, _local_position_sub.get().z_valid, &(status_flags.condition_local_altitude_valid), &status_changed);
 
 		/* Update land detector */
-		orb_check(land_detector_sub, &updated);
-
-		if (updated) {
-			orb_copy(ORB_ID(vehicle_land_detected), land_detector_sub, &land_detector);
-
+		const vehicle_land_detected_s& land_detector = _land_detector_sub.get();
+		if (_land_detector_sub.update()) {
 			// Only take actions if armed
 			if (armed.armed) {
 				if (was_landed != land_detector.landed) {
@@ -2677,7 +2667,6 @@ Commander::run()
 	px4_close(subsys_sub);
 	px4_close(param_changed_sub);
 	px4_close(battery_sub);
-	px4_close(land_detector_sub);
 	px4_close(estimator_status_sub);
 
 	thread_running = false;
@@ -3264,7 +3253,7 @@ Commander::check_posvel_validity(const bool data_valid, const float data_accurac
 	bool valid = was_valid;
 
 	// constrain probation times
-	if (land_detector.landed) {
+	if (_land_detector_sub.get().landed) {
 		*probation_time_us = POSVEL_PROBATION_MIN;
 	}
 
