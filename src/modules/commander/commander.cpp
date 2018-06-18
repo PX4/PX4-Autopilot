@@ -1154,10 +1154,6 @@ Commander::run()
 	// XXX for now just set sensors as initialized
 	status_flags.condition_system_sensors_initialized = true;
 
-	/* set parameters */
-	param_t _param_sys_type = param_find("MAV_TYPE");
-	param_t _param_system_id = param_find("MAV_SYS_ID");
-	param_t _param_component_id = param_find("MAV_COMP_ID");
 	param_t _param_enable_datalink_loss = param_find("NAV_DLL_ACT");
 	param_t _param_offboard_loss_act = param_find("COM_OBL_ACT");
 	param_t _param_offboard_loss_rc_act = param_find("COM_OBL_RC_ACT");
@@ -1321,9 +1317,7 @@ Commander::run()
 	thread_running = true;
 
 	/* update vehicle status to find out vehicle type (required for preflight checks) */
-	int32_t system_type;
-	param_get(_param_sys_type, &system_type); // get system type
-	status.system_type = (uint8_t)system_type;
+	status.system_type = _mav_type.get();
 	status.is_rotary_wing = is_rotary_wing(&status) || is_vtol(&status);
 	status.is_vtol = is_vtol(&status);
 
@@ -1418,12 +1412,10 @@ Commander::run()
 
 			/* update parameters */
 			if (!armed.armed) {
-				if (param_get(_param_sys_type, &system_type) != OK) {
-					PX4_ERR("failed getting new system type");
-
-				} else {
-					status.system_type = (uint8_t)system_type;
-				}
+				/* check and update system / component ID */
+				status.system_type = _mav_type.get();
+				status.system_id = _mav_sys_id.get();
+				status.component_id = _mav_comp_id.get();
 
 				/* disable manual override for all systems that rely on electronic stabilization */
 				if (is_rotary_wing(&status) || (is_vtol(&status) && vtol_status.vtol_in_rw_mode)) {
@@ -1435,15 +1427,6 @@ Commander::run()
 
 				/* set vehicle_status.is_vtol flag */
 				status.is_vtol = is_vtol(&status);
-
-				/* check and update system / component ID */
-				int32_t sys_id = 0;
-				param_get(_param_system_id, &sys_id);
-				status.system_id = sys_id;
-
-				int32_t comp_id = 0;
-				param_get(_param_component_id, &comp_id);
-				status.component_id = comp_id;
 
 				get_circuit_breaker_params();
 

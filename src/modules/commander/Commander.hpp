@@ -110,7 +110,11 @@ private:
 		(ParamFloat<px4::params::COM_RC_STICK_OV>) _rc_min_stick_change,
 		(ParamInt<px4::params::COM_RC_IN_MODE>) _rc_in_mode,
 		(ParamInt<px4::params::COM_RC_ARM_HYST>) _rc_arm_hyst,
-		(ParamBool<px4::params::COM_RC_OVERRIDE>) _rc_override
+		(ParamBool<px4::params::COM_RC_OVERRIDE>) _rc_override,
+
+		(ParamInt<px4::params::MAV_TYPE>) _mav_type,
+		(ParamInt<px4::params::MAV_SYS_ID>) _mav_sys_id,
+		(ParamInt<px4::params::MAV_COMP_ID>) _mav_comp_id
 	)
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
