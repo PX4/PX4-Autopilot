@@ -78,6 +78,7 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
 
+
 #include "mag.h"
 #include "gyro.h"
 #include "mpu9250.h"
@@ -281,6 +282,10 @@ MPU9250::~MPU9250()
 int
 MPU9250::init()
 {
+	dbg.value=0.0f;
+
+	const char tmpl[10] = "marker";
+	strcpy(dbg.key,tmpl);
 
 #if defined(USE_I2C)
 	unsigned dummy;
@@ -393,7 +398,7 @@ MPU9250::init()
 
 #ifdef USE_I2C
 
-		usleep(100);
+		up_udelay(100);
 		if (!_mag->is_passthrough() && _mag->_interface->init() != PX4_OK) {
 			PX4_ERR("failed to setup ak8963 interface");
 		}
@@ -434,16 +439,16 @@ MPU9250::init()
 	}
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct gyro_report grp;
-	_gyro_reports->get(&grp);
+//	struct gyro_report grp;
+//	_gyro_reports->get(&grp);
 
-	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
-
-	if (_gyro->_gyro_topic == nullptr) {
-		PX4_ERR("ADVERT FAIL");
-		return ret;
-	}
+//	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
+//			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
+//
+//	if (_gyro->_gyro_topic == nullptr) {
+//		PX4_ERR("ADVERT FAIL");
+//		return ret;
+//	}
 
 	return ret;
 }
@@ -498,7 +503,7 @@ int MPU9250::reset_mpu()
 		/*
 		 * ICM20948 needs a bit of time here, else register settings will be garbled.
 		 */
-	    up_udelay(200);
+	    up_udelay(2000);
 
 		write_checked_reg(ICMREG_20948_PWR_MGMT_1, MPU_CLK_SEL_AUTO);
         up_udelay(200);
@@ -570,11 +575,14 @@ int MPU9250::reset_mpu()
 		// Assume all checked values are as expected
 		all_ok = true;
 		uint8_t reg;
+		uint8_t bankcheck;
 
 		for (uint8_t i = 0; i < _num_checked_registers; i++) {
 			if ((reg = read_reg(_checked_registers[i])) != _checked_values[i]) {
+			    _interface->read(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &bankcheck, 1);
+
 				write_reg(_checked_registers[i], _checked_values[i]);
-				PX4_ERR("Reg %d is:%d s/b:%d Tries:%d", _checked_registers[i], reg, _checked_values[i], retries);
+				PX4_ERR("Reg %d is:%d s/b:%d Tries:%d - bank s/b %d, is %d", _checked_registers[i], reg, _checked_values[i], retries, REG_BANK(_checked_registers[i]), bankcheck);
 				all_ok = false;
 			}
 		}
@@ -1456,6 +1464,7 @@ MPU9250::measure_trampoline(void *arg)
 void
 MPU9250::check_registers(void)
 {
+    return;
 	/*
 	  we read the register at full speed, even though it isn't
 	  listed as a high speed register. The low speed requirement
@@ -1565,6 +1574,13 @@ bool MPU9250::check_duplicate(uint8_t *accel_data)
 void
 MPU9250::measure()
 {
+
+    const char tmpl[10] = "marker";
+    strcpy(dbg.key,tmpl);
+    orb_advert_t pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
+    dbg.value+=1;
+    orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
+
 	if (hrt_absolute_time() < _reset_wait) {
 		// we're waiting for a reset to complete
 		return;
@@ -1794,7 +1810,7 @@ MPU9250::measure()
 	if (accel_notify) {
 		poll_notify(POLLIN);
 	}
-//
+
 //	if (gyro_notify) {
 //		_gyro->parent_poll_notify();
 //	}

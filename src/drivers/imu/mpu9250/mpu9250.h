@@ -49,6 +49,9 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
 
+#include <uORB/uORB.h>
+#include <uORB/topics/debug_key_value.h>
+
 #include "mag.h"
 #include "gyro.h"
 
@@ -188,7 +191,7 @@ enum MPU_DEVICE_TYPE {
 #define MPU_WHOAMI_6500             0x70
 #define ICM_WHOAMI_20948            0xEA
 
-#define MPU9250_ACCEL_DEFAULT_RATE	1000
+#define MPU9250_ACCEL_DEFAULT_RATE	50
 #define MPU9250_ACCEL_MAX_OUTPUT_RATE			280
 #define MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ 30
 #define MPU9250_GYRO_DEFAULT_RATE	1000
@@ -404,6 +407,9 @@ public:
 
 	accel_report	last_arb;
 	gyro_report		last_grb;
+
+
+	struct debug_key_value_s dbg;
 
 protected:
 	Device			*_interface;
