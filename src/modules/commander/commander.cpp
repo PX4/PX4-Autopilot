@@ -4055,8 +4055,7 @@ void Commander::poll_telemetry_status()
 			orb_copy(ORB_ID(telemetry_status), _telemetry[i].subscriber, &telemetry);
 
 			/* this is a ground control station */
-			// if (telemetry.remote_type == telemetry_status_s::TELEMETRY_STATUS_REMOTE_TYPE_GCS) {
-			if (true) {
+			if (telemetry.remote_type == telemetry_status_s::TELEMETRY_STATUS_REMOTE_TYPE_GCS) {
 
 				/* perform system checks when new telemetry link connected */
 				if (/* we first connect a link or re-connect a link after loosing it or haven't yet reported anything */
