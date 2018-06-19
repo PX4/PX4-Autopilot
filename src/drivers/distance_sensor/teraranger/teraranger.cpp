@@ -773,7 +773,7 @@ int 	reset();
 int 	info();
 
 /**
- * Start the driver.
+ *
  * Attempt to start driver on all available I2C busses.
  *
  * This function will return as soon as the first sensor
@@ -841,7 +841,7 @@ fail:
 		g_dev = nullptr;
 	}
 
-	PX4_WARN("not started on bus %d", i2c_bus);
+	PX4_ERR("not started on bus %d", i2c_bus);
 	return PX4_ERROR;
 }
 
