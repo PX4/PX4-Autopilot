@@ -56,14 +56,12 @@
 #include <string.h>
 #include <fcntl.h>
 #include <poll.h>
-#include <errno.h>
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
 #include <vector>
 
 #include <perf/perf_counter.h>
-#include <systemlib/err.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
@@ -673,6 +671,11 @@ int 	info();
 int
 start(uint8_t rotation)
 {
+	if (g_dev != nullptr) {
+		PX4_ERR("already started");
+		return PX4_ERROR;
+	}
+
 	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
 		if (start_bus(rotation, bus_options[i]) == PX4_OK) {
 			return PX4_OK;
@@ -692,11 +695,6 @@ int
 start_bus(uint8_t rotation, int i2c_bus)
 {
 	int fd = -1;
-
-	if (g_dev != nullptr) {
-		PX4_ERR("already started");
-		return PX4_ERROR;
-	}
 
 	/* create the driver */
 	g_dev = new SF1XX(rotation, i2c_bus);
