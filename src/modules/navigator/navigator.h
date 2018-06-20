@@ -345,6 +345,8 @@ private:
 		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_acceptance_radius,	/**< acceptance for takeoff */
 		(ParamFloat<px4::params::NAV_FW_ALT_RAD>)
 		_param_fw_alt_acceptance_radius,	/**< acceptance radius for fixedwing altitude */
+		(ParamFloat<px4::params::NAV_FW_ALTL_RAD>)
+		_param_fw_alt_lnd_acceptance_radius,	/**< acceptance radius for fixedwing altitude before landing*/
 		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
 		_param_mc_alt_acceptance_radius,	/**< acceptance radius for multicopter altitude */
 		(ParamInt<px4::params::NAV_FORCE_VT>) _param_force_vtol,	/**< acceptance radius for multicopter altitude */

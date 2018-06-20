@@ -84,6 +84,20 @@ PARAM_DEFINE_FLOAT(NAV_ACC_RAD, 10.0f);
 PARAM_DEFINE_FLOAT(NAV_FW_ALT_RAD, 10.0f);
 
 /**
+ * FW Altitude Acceptance Radius before a landing
+ *
+ * Altitude acceptance used for the last waypoint before a fixed-wing landing. This is usually smaller
+ * than the standard vertical acceptance because close to the ground higher accuracy is required.
+ *
+ * @unit m
+ * @min 0.05
+ * @max 200.0
+ * @decimal 1
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(NAV_FW_ALTL_RAD, 5.0f);
+
+/**
  * MC Altitude Acceptance Radius
  *
  * Acceptance radius for multicopter altitude.
