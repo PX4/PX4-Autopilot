@@ -16,7 +16,7 @@ then
 	param set FW_AIRSPD_MIN 12.5
 	param set FW_AIRSPD_TRIM 16.5
 	param set LNDFW_AIRSPD_MAX 6
-	param set LNDFW_VELI_MAX 4
+	param set LNDFW_XYACC_MAX 4
 	param set LNDFW_VEL_XY_MAX 3
 	param set LNDFW_VEL_Z_MAX 5
 	param set FW_R_TC 0.4
