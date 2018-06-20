@@ -113,8 +113,6 @@ bool VtolType::init()
 
 void VtolType::set_weather_vane_yaw_rate()
 {
-	// TODO: do this only in automatic mode
-
 	// First we set the yaw setpoint to the yaw position in order not to have any other control action influencing yaw
 	// Get euler angles
 	matrix::Dcmf R(matrix::Quatf(_v_att->q));
@@ -134,7 +132,7 @@ void VtolType::set_weather_vane_yaw_rate()
 	_v_att_sp->yaw_body = euler(2);
 
 	// direction of desired body z axis represented in earth frame
-	matrix::Vector3f body_z_sp(R_sp_new(0, 2), R_sp_new(1, 2), R_sp_new(2, 2));
+	matrix::Vector3f body_z_sp(R_sp(0, 2), R_sp(1, 2), R_sp(2, 2));
 
 	// rotate desired body z axis into new frame which is rotated in z by the current
 	// heading of the vehicle. we refer to this as the heading frame.
@@ -144,17 +142,13 @@ void VtolType::set_weather_vane_yaw_rate()
 
 	float roll_sp = -asinf(body_z_sp(1));
 
-
 	float roll_exceeding_treshold = 0;
 
-	if (fabsf(roll_sp) > _params->wv_min_roll) {
-		if (roll_sp > 0) {
-			roll_exceeding_treshold = roll_sp - _params->wv_min_roll;
+	if (roll_sp > _params->wv_min_roll){
+		roll_exceeding_treshold = roll_sp - _params->wv_min_roll;
 
-		} else {
-			roll_exceeding_treshold = roll_sp + _params->wv_min_roll;
-
-		}
+	} else if (roll_sp < -_params->wv_min_roll){
+		roll_exceeding_treshold = roll_sp + _params->wv_min_roll;
 
 	} else {
 		_v_att_sp-> yaw_sp_move_rate = 0;
@@ -164,7 +158,6 @@ void VtolType::set_weather_vane_yaw_rate()
 	_v_att_sp-> yaw_sp_move_rate = math::constrain(roll_exceeding_treshold * _params->wv_gain, -_params->wv_max_yaw_rate,
 				       _params->wv_max_yaw_rate);
 
-	// TODO filter
 }
 
 
@@ -221,10 +214,11 @@ void VtolType::wv_do_strategy()
 	_v_att_sp->disable_mc_yaw_control = false;
 
 	if (_params->wv_strategy) {
-		_v_att_sp->disable_mc_yaw_control = true;
+		set_weather_vane_yaw_rate();
 
 	} else {
-		set_weather_vane_yaw_rate();
+		_v_att_sp->disable_mc_yaw_control = true;
+
 	}
 }
 

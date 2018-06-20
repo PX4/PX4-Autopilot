@@ -291,9 +291,6 @@ private:
 	 * @return     True if motor off channel, False otherwise.
 	 */
 	bool is_motor_off_channel(const int channel);
-
-
-
 };
 
 #endif
