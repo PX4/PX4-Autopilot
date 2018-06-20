@@ -1085,6 +1085,8 @@ L3GD20::print_info()
 				 (unsigned)_checked_values[i]);
 		}
 	}
+
+	print_message(_gyro_scale);
 }
 
 void
