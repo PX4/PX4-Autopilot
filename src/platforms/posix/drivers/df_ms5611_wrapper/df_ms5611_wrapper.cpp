@@ -153,6 +153,8 @@ int DfMS5611Wrapper::_publish(struct baro_sensor_data &data)
 
 	baro_report.pressure = data.pressure_pa / 100.0f; // convert to mbar
 	baro_report.temperature = data.temperature_c;
+	baro_report.error_count = data.error_counter;
+	baro_report.device_id = m_id.dev_id;
 
 	// TODO: when is this ever blocked?
 	if (!(m_pub_blocked)) {
