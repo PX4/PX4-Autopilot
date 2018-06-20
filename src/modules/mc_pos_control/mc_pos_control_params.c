@@ -608,10 +608,7 @@ PARAM_DEFINE_INT32(MPC_FLT_TSK, 0);
  * Flag to enable obstacle avoidance
  * Temporary Parameter to enable interface testing
  *
- * @min 0
- * @max 1
- * @value 0 Obstacle Avoidance Not Enabled
- * @value 1 Obstacle Avoidance Enabled
+ * @boolean
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_OBS_AVOID, 0);
