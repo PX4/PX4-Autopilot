@@ -40,7 +40,7 @@ if not args.overwrite:
 
 # analyse all ulog files
 for ulog_file in ulog_files:
-    print("\n"+"loading "+ulog_file +" for analysis")
+    print("\n"+"loading " + ulog_file + " for analysis")
     if args.no_sensor_safety_margin:
         os.system("python process_logdata_ekf.py {} --no-sensor-safety-margin".format(ulog_file))
     else:
