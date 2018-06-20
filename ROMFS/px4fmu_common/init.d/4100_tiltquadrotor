@@ -1,0 +1,35 @@
+#!nsh
+#
+# @name Tilt-Quadrotor
+#
+# @url http://www.alivaero.com/the-project.html
+#
+# @type Tilt-Quad
+# @class Copter
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+# @output AUX1 Outer servo motor for rotor 2 arm
+# @output AUX2 Outer servo motor for rotor 4 arm
+# @output AUX3 Inner servo motor for rotor 2 arm
+# @output AUX4 Inner servo motor for rotor 4 arm
+#
+# @maintainer Ricardo Marques <marques.ricardo17@gmail.com>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+#Parameters here:
+param set LED_RGB_MAXBRT 8
+
+
+# Configure this as Quadrotor
+# set MAV_TYPE 14
+
+# Set mixer
+set MIXER tilt_quad
+set MIXER_AUX tilt_quad
+
+set PWM_OUT 1234
