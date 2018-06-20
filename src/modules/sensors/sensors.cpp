@@ -351,9 +351,6 @@ Sensors::diff_pres_poll(const vehicle_air_data_s &raw)
 		airspeed.true_airspeed_m_s = calc_true_airspeed_from_indicated(airspeed.indicated_airspeed_m_s, raw.baro_pressure_pa,
 					     air_temperature_celsius);
 
-		airspeed.true_airspeed_unfiltered_m_s = calc_true_airspeed(diff_pres.differential_pressure_raw_pa +
-							raw.baro_pressure_pa, raw.baro_pressure_pa, air_temperature_celsius);
-
 		airspeed.air_temperature_celsius = air_temperature_celsius;
 
 		if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && PX4_ISFINITE(airspeed.true_airspeed_m_s)) {
