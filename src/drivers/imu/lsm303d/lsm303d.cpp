@@ -1640,6 +1640,8 @@ LSM303D::print_info()
 	}
 
 	::printf("temperature: %.2f\n", (double)_last_temperature);
+
+	print_message(_accel_scale);
 }
 
 void
