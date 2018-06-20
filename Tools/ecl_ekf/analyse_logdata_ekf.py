@@ -1311,17 +1311,20 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         test_results['master_status'][0] = 'Warning'
         test_results['imu_sensor_status'][0] = 'Warning'
         test_results['imu_vibration_check'][0] = 'Warning'
+        print('IMU vibration check warning.')
     if ((test_results.get('imu_dang_bias_median')[0] > check_levels.get('imu_dang_bias_median_warn')) or
             (test_results.get('imu_dvel_bias_median')[0] > check_levels.get('imu_dvel_bias_median_warn'))):
         test_results['master_status'][0] = 'Warning'
         test_results['imu_sensor_status'][0] = 'Warning'
         test_results['imu_bias_check'][0] = 'Warning'
+        print('IMU bias check warning.')
     if ((test_results.get('output_obs_ang_err_median')[0] > check_levels.get('obs_ang_err_median_warn')) or
             (test_results.get('output_obs_vel_err_median')[0] > check_levels.get('obs_vel_err_median_warn')) or
             (test_results.get('output_obs_pos_err_median')[0] > check_levels.get('obs_pos_err_median_warn'))):
         test_results['master_status'][0] = 'Warning'
         test_results['imu_sensor_status'][0] = 'Warning'
         test_results['imu_output_predictor_check'][0] = 'Warning'
+        print('IMU output predictor check warning.')
     # check for failures
     if ((test_results.get('magx_fail_percentage')[0] > check_levels.get('mag_fail_pct')) or
             (test_results.get('magy_fail_percentage')[0] > check_levels.get('mag_fail_pct')) or
@@ -1329,33 +1332,41 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
             (test_results.get('mag_percentage_amber')[0] > check_levels.get('mag_amber_fail_pct'))):
         test_results['master_status'][0] = 'Fail'
         test_results['mag_sensor_status'][0] = 'Fail'
+        print('Magnetometer sensor check failure.')
     if (test_results.get('yaw_fail_percentage')[0] > check_levels.get('yaw_fail_pct')):
         test_results['master_status'][0] = 'Fail'
         test_results['yaw_sensor_status'][0] = 'Fail'
+        print('Yaw sensor check failure.')
     if ((test_results.get('vel_fail_percentage')[0] > check_levels.get('vel_fail_pct')) or
             (test_results.get('vel_percentage_amber')[0] > check_levels.get('vel_amber_fail_pct'))):
         test_results['master_status'][0] = 'Fail'
         test_results['vel_sensor_status'][0] = 'Fail'
+        print('Velocity sensor check failure.')
     if ((test_results.get('pos_fail_percentage')[0] > check_levels.get('pos_fail_pct')) or
             (test_results.get('pos_percentage_amber')[0] > check_levels.get('pos_amber_fail_pct'))):
         test_results['master_status'][0] = 'Fail'
         test_results['pos_sensor_status'][0] = 'Fail'
+        print('Position sensor check failure.')
     if ((test_results.get('hgt_fail_percentage')[0] > check_levels.get('hgt_fail_pct')) or
             (test_results.get('hgt_percentage_amber')[0] > check_levels.get('hgt_amber_fail_pct'))):
         test_results['master_status'][0] = 'Fail'
         test_results['hgt_sensor_status'][0] = 'Fail'
+        print('Height sensor check failure.')
     if ((test_results.get('tas_fail_percentage')[0] > check_levels.get('tas_fail_pct')) or
             (test_results.get('tas_percentage_amber')[0] > check_levels.get('tas_amber_fail_pct'))):
         test_results['master_status'][0] = 'Fail'
         test_results['tas_sensor_status'][0] = 'Fail'
+        print('Airspeed sensor check failure.')
     if ((test_results.get('hagl_fail_percentage')[0] > check_levels.get('hagl_fail_pct')) or
             (test_results.get('hagl_percentage_amber')[0] > check_levels.get('hagl_amber_fail_pct'))):
         test_results['master_status'][0] = 'Fail'
         test_results['hagl_sensor_status'][0] = 'Fail'
+        print('Height above ground sensor check failure.')
     if ((test_results.get('ofx_fail_percentage')[0] > check_levels.get('flow_fail_pct')) or
             (test_results.get('ofy_fail_percentage')[0] > check_levels.get('flow_fail_pct'))):
         test_results['master_status'][0] = 'Fail'
         test_results['flow_sensor_status'][0] = 'Fail'
+        print('Optical flow sensor check failure.')
     if (test_results.get('filter_faults_max')[0] > 0):
         test_results['master_status'][0] = 'Fail'
         test_results['filter_fault_status'][0] = 'Fail'
