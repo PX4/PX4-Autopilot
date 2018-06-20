@@ -282,6 +282,8 @@ MPU9250::~MPU9250()
 int
 MPU9250::init()
 {
+    irqstate_t state;
+
 	dbg.value=0.0f;
 
 	const char tmpl[10] = "marker";
@@ -289,7 +291,7 @@ MPU9250::init()
 
 #if defined(USE_I2C)
 	unsigned dummy;
-	use_i2c(_interface->ioctl(MPUIOCGIS_I2C, dummy));
+	use_i2c( (_interface->ioctl(MPUIOCGIS_I2C, dummy)==1) );
 #endif
 
 	/*
@@ -334,6 +336,10 @@ MPU9250::init()
 	if (_gyro_reports == nullptr) {
 		return ret;
 	}
+
+    state = px4_enter_critical_section();
+    _reset_wait = hrt_absolute_time() + 100000;
+    px4_leave_critical_section(state);
 
 	if (reset_mpu() != OK) {
 		PX4_ERR("Exiting! Device failed to take initialization");
@@ -439,16 +445,16 @@ MPU9250::init()
 	}
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-//	struct gyro_report grp;
-//	_gyro_reports->get(&grp);
+	struct gyro_report grp;
+	_gyro_reports->get(&grp);
 
-//	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-//			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
-//
-//	if (_gyro->_gyro_topic == nullptr) {
-//		PX4_ERR("ADVERT FAIL");
-//		return ret;
-//	}
+	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
+			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
+
+	if (_gyro->_gyro_topic == nullptr) {
+		PX4_ERR("ADVERT FAIL");
+		return ret;
+	}
 
 	return ret;
 }
@@ -464,7 +470,7 @@ int MPU9250::reset()
 	 *
 	 */
 
-	usleep(110000);
+	// usleep(110000); // temporarily moved to reset_mpu to apply on every reset for debugging
 
 	// Hold off sampling until done (100 MS will be shortened)
 	state = px4_enter_critical_section();
@@ -501,9 +507,9 @@ int MPU9250::reset_mpu()
 	case MPU_DEVICE_TYPE_ICM20948:
 		write_reg(ICMREG_20948_PWR_MGMT_1, BIT_H_RESET);
 		/*
-		 * ICM20948 needs a bit of time here, else register settings will be garbled.
+		 * ICM20948 needs up to 100ms start-up time here before register read/write (see datasheet)
 		 */
-	    up_udelay(2000);
+        up_udelay(110000);
 
 		write_checked_reg(ICMREG_20948_PWR_MGMT_1, MPU_CLK_SEL_AUTO);
         up_udelay(200);
@@ -1786,7 +1792,7 @@ MPU9250::measure()
 	matrix::Vector3f gval(x_gyro_in_new, y_gyro_in_new, z_gyro_in_new);
 	matrix::Vector3f gval_integrated;
 
-//	bool gyro_notify = _gyro_int.put(arb.timestamp, gval, gval_integrated, grb.integral_dt);
+	bool gyro_notify = _gyro_int.put(arb.timestamp, gval, gval_integrated, grb.integral_dt);
 	grb.x_integral = gval_integrated(0);
 	grb.y_integral = gval_integrated(1);
 	grb.z_integral = gval_integrated(2);
@@ -1801,7 +1807,7 @@ MPU9250::measure()
 	grb.device_id = _gyro->_device_id.devid;
 
 	_accel_reports->force(&arb);
-//	_gyro_reports->force(&grb);
+	_gyro_reports->force(&grb);
 
 	last_grb = grb;
 	last_arb = arb;
@@ -1811,19 +1817,19 @@ MPU9250::measure()
 		poll_notify(POLLIN);
 	}
 
-//	if (gyro_notify) {
-//		_gyro->parent_poll_notify();
-//	}
+	if (gyro_notify) {
+		_gyro->parent_poll_notify();
+	}
 
 	if (accel_notify && !(_pub_blocked)) {
 		/* publish it */
 		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
 	}
 
-//	if (gyro_notify && !(_pub_blocked)) {
-//		/* publish it */
-//		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
-//	}
+	if (gyro_notify && !(_pub_blocked)) {
+		/* publish it */
+		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
+	}
 
 	/* stop measuring */
 	perf_end(_sample_perf);

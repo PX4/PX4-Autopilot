@@ -538,7 +538,7 @@ MPU9250_mag::ak8963_read_adjustments(void)
 	float ak8963_ASA[3];
 
 	write_reg(AK8963REG_CNTL1, AK8963_FUZE_MODE | AK8963_16BIT_ADC);
-	usleep(50);
+	up_udelay(50);
 
 	if (_interface != nullptr) {
 		_interface->read(AK8963REG_ASAX, response, 3);
