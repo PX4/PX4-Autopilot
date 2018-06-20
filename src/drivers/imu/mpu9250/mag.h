@@ -115,12 +115,12 @@ struct ak8963_regs {
 
 #pragma pack(push, 1)
 struct ak09916_regs {
-    uint8_t st1;
-    int16_t x;
-    int16_t y;
-    int16_t z;
-    uint8_t tmps;
-    uint8_t st2;
+	uint8_t st1;
+	int16_t x;
+	int16_t y;
+	int16_t z;
+	uint8_t tmps;
+	uint8_t st2;
 };
 #pragma pack(pop)
 

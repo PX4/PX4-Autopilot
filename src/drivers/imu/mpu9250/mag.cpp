@@ -126,10 +126,13 @@ int
 MPU9250_mag::init()
 {
 	int ret = CDev::init();
+
 	/* if cdev init failed, bail now */
 	if (ret != OK) {
-		if(_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) { DEVICE_DEBUG("MPU9250 mag init failed"); }
+		if (_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) { DEVICE_DEBUG("MPU9250 mag init failed"); }
+
 		else { DEVICE_DEBUG("ICM20948 mag init failed"); }
+
 		return ret;
 	}
 
@@ -175,19 +178,20 @@ MPU9250_mag::measure()
 {
 	uint8_t ret;
 	union raw_data_t {
-	struct ak8963_regs ak8963_data;
-	struct ak09916_regs ak09916_data;
+		struct ak8963_regs ak8963_data;
+		struct ak09916_regs ak09916_data;
 	} raw_data;
 
-	if(_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) {
+	if (_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) {
 		ret = _interface->read(AK8963REG_ST1, &raw_data, sizeof(struct ak8963_regs));
-	}
-	else { // ICM20948 --> AK09916
+
+	} else { // ICM20948 --> AK09916
 		ret = _interface->read(AK09916REG_ST1, &raw_data, sizeof(struct ak09916_regs));
 	}
 
-	if(ret == OK) {
-		if(_parent->_device_type==MPU_DEVICE_TYPE_ICM20948) raw_data.ak8963_data.st2 = raw_data.ak09916_data.st2;
+	if (ret == OK) {
+		if (_parent->_device_type == MPU_DEVICE_TYPE_ICM20948) { raw_data.ak8963_data.st2 = raw_data.ak09916_data.st2; }
+
 		_measure(raw_data.ak8963_data);
 	}
 }
@@ -430,7 +434,8 @@ MPU9250_mag::set_passthrough(uint8_t reg, uint8_t size, uint8_t *out)
 {
 	uint8_t addr;
 
-	_parent->write_reg(AK_MPU_OR_ICM(MPUREG_I2C_SLV0_CTRL, ICMREG_20948_I2C_SLV0_CTRL), 0); // ensure slave r/w is disabled before changing the registers
+	_parent->write_reg(AK_MPU_OR_ICM(MPUREG_I2C_SLV0_CTRL, ICMREG_20948_I2C_SLV0_CTRL),
+			   0); // ensure slave r/w is disabled before changing the registers
 
 	if (out) {
 		_parent->write_reg(AK_MPU_OR_ICM(MPUREG_I2C_SLV0_D0, ICMREG_20948_I2C_SLV0_DO), *out);
@@ -440,8 +445,8 @@ MPU9250_mag::set_passthrough(uint8_t reg, uint8_t size, uint8_t *out)
 		addr = AK8963_I2C_ADDR | BIT_I2C_READ_FLAG;
 	}
 
-	_parent->write_reg(AK_MPU_OR_ICM(MPUREG_I2C_SLV0_ADDR, ICMREG_20948_I2C_SLV0_ADDR) , addr);
-	_parent->write_reg(AK_MPU_OR_ICM(MPUREG_I2C_SLV0_REG, ICMREG_20948_I2C_SLV0_REG) ,  reg);
+	_parent->write_reg(AK_MPU_OR_ICM(MPUREG_I2C_SLV0_ADDR, ICMREG_20948_I2C_SLV0_ADDR), addr);
+	_parent->write_reg(AK_MPU_OR_ICM(MPUREG_I2C_SLV0_REG, ICMREG_20948_I2C_SLV0_REG),  reg);
 	_parent->write_reg(AK_MPU_OR_ICM(MPUREG_I2C_SLV0_CTRL, ICMREG_20948_I2C_SLV0_CTRL), size | BIT_I2C_SLV0_EN);
 }
 
@@ -573,11 +578,11 @@ MPU9250_mag::ak8963_setup_master_i2c(void)
 	 * in master mode (SPI to I2C bridge)
 	 */
 	if (_interface == nullptr) {
-		if(_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) {
+		if (_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) {
 			_parent->modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_EN);
 			_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
-		}
-		else {  // ICM20948 -> AK09916
+
+		} else { // ICM20948 -> AK09916
 			_parent->modify_checked_reg(ICMREG_20948_USER_CTRL, 0, BIT_I2C_MST_EN);
 			// WAIT_FOR_ES does not exist for ICM20948. Not sure how to replace this (or if that is needed)
 			_parent->write_reg(ICMREG_20948_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | ICM_BITS_I2C_MST_CLOCK_400HZ);
@@ -612,7 +617,7 @@ MPU9250_mag::ak8963_setup(void)
 	} while (retries > 0);
 
 	/* No sensitivity adjustments available for AK09916/ICM20948 */
-	if(_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) {
+	if (_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) {
 		if (retries > 0) {
 			retries = 10;
 
@@ -635,10 +640,10 @@ MPU9250_mag::ak8963_setup(void)
 		return -EIO;
 	}
 
-	if(_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) {
+	if (_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) {
 		write_reg(AK8963REG_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
-	}
-	else {  // ICM20948 -> AK09916
+
+	} else { // ICM20948 -> AK09916
 		write_reg(AK09916REG_CNTL2, AK09916_CNTL2_CONTINOUS_MODE_100HZ);
 	}
 
@@ -648,10 +653,10 @@ MPU9250_mag::ak8963_setup(void)
 		/* Configure mpu' I2c Master interface to read ak8963 data
 		 * Into to fifo
 		 */
-		if(_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) {
+		if (_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) {
 			set_passthrough(AK8963REG_ST1, sizeof(struct ak8963_regs));
-		}
-		else {  // ICM20948 -> AK09916
+
+		} else { // ICM20948 -> AK09916
 			set_passthrough(AK09916REG_ST1, sizeof(struct ak09916_regs));
 		}
 

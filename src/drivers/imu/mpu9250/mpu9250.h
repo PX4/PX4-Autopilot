@@ -58,9 +58,9 @@
 
 /* List of supported device types */
 enum MPU_DEVICE_TYPE {
-    MPU_DEVICE_TYPE_MPU9250	= 9250,
-    MPU_DEVICE_TYPE_MPU6500 = 6500,
-    MPU_DEVICE_TYPE_ICM20948 = 20948
+	MPU_DEVICE_TYPE_MPU9250	= 9250,
+	MPU_DEVICE_TYPE_MPU6500 = 6500,
+	MPU_DEVICE_TYPE_ICM20948 = 20948
 };
 
 
@@ -498,7 +498,7 @@ private:
 #define ICM20948_NUM_CHECKED_REGISTERS 15
 	static const uint16_t	_icm20948_checked_registers[ICM20948_NUM_CHECKED_REGISTERS];
 
-	const uint16_t*			_checked_registers;
+	const uint16_t			*_checked_registers;
 
 	uint8_t					_checked_values[MAX(MPU9250_NUM_CHECKED_REGISTERS, ICM20948_NUM_CHECKED_REGISTERS)];
 	uint8_t					_checked_bad[MAX(MPU9250_NUM_CHECKED_REGISTERS, ICM20948_NUM_CHECKED_REGISTERS)];
