@@ -37,6 +37,7 @@
 
 #include "FlightTaskManualStabilized.hpp"
 #include <mathlib/mathlib.h>
+#include <float.h>
 
 using namespace matrix;
 
@@ -52,7 +53,7 @@ void FlightTaskManualStabilized::_scaleSticks()
 {
 	/* Scale sticks to yaw and thrust using
 	 * linear scale for yaw and piecewise linear map for thrust. */
-	_yawspeed_setpoint = _sticks(3) * math::radians(_yaw_rate_scaling.get());
+	_yawspeed_setpoint = _sticks_expo(3) * math::radians(_yaw_rate_scaling.get());
 	_throttle = _throttleCurve();
 }
 
@@ -61,13 +62,15 @@ void FlightTaskManualStabilized::_updateHeadingSetpoints()
 	/* Yaw-lock depends on stick input. If not locked,
 	 * yaw_sp is set to NAN.
 	 * TODO: add yawspeed to get threshold.*/
-	const bool stick_yaw_zero = fabsf(_sticks(3)) <= stickDeadzone();
-
-	if (stick_yaw_zero && !PX4_ISFINITE(_yaw_setpoint)) {
-		_yaw_setpoint = _yaw;
-
-	} else if (!stick_yaw_zero) {
+	if (_yawspeed_setpoint > FLT_EPSILON) {
+		// no fixed heading when rotating around yaw by stick
 		_yaw_setpoint = NAN;
+
+	} else {
+		// hold the current heading when no more rotation commanded
+		if (!PX4_ISFINITE(_yaw_setpoint)) {
+			_yaw_setpoint = _yaw;
+		}
 	}
 }
 
