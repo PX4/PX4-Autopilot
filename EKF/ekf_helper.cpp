@@ -595,6 +595,10 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 			// the angle of the projection onto the horizontal gives the yaw angle
 			euler321(2) = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
 
+		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR && _mag_use_inhibit) {
+			// we are operating without knowing the earth frame yaw angle
+			return true;
+
 		} else {
 			// there is no yaw observation
 			return false;
@@ -648,6 +652,10 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 			Vector3f mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
 			// the angle of the projection onto the horizontal gives the yaw angle
 			euler312(0) = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
+
+		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR && _mag_use_inhibit) {
+			// we are operating without knowing the earth frame yaw angle
+			return true;
 
 		} else {
 			// there is no yaw observation
