@@ -120,10 +120,10 @@ private:
 	hrt_abstime	_lvel_probation_time_us = POSVEL_PROBATION_MIN;
 
 	/* class variables used to check for navigation failure after takeoff */
-	hrt_abstime	_time_at_takeoff{0};	/**< last time we were on the ground */
+	hrt_abstime	_time_at_takeoff{0};		/**< last time we were on the ground */
 	hrt_abstime	_time_last_innov_pass{0};	/**< last time velocity innovations passed */
-	bool _nav_test_passed{false};	/**< true if the post takeoff navigation test has passed */
-	bool _nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
+	bool		_nav_test_passed{false};	/**< true if the post takeoff navigation test has passed */
+	bool		_nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
 
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd,
 			    actuator_armed_s *armed, home_position_s *home, orb_advert_t *home_pub, orb_advert_t *command_ack_pub, bool *changed);
@@ -138,11 +138,6 @@ private:
 
 	// Set the system main state based on the current RC inputs
 	transition_result_t set_main_state_rc(const vehicle_status_s &status, bool *changed);
-
-	// Set the main system state based on RC and override device inputs
-	transition_result_t set_main_state(vehicle_status_s *status, bool *changed);
-	transition_result_t set_main_state_override_on(vehicle_status_s *status, bool *changed);
-	transition_result_t set_main_state_rc(vehicle_status_s *status, bool *changed);
 
 	void check_valid(const hrt_abstime &timestamp, const hrt_abstime &timeout, const bool valid_in, bool *valid_out, bool *changed);
 
@@ -179,11 +174,11 @@ private:
 	void estimator_check(bool *status_changed);
 
 	// Subscriptions
-	Subscription<estimator_status_s>			_estimator_status_sub{ORB_ID(estimator_status)};
-	Subscription<mission_result_s>			_mission_result_sub;
-	Subscription<vehicle_global_position_s>		_global_position_sub;
-	Subscription<vehicle_local_position_s>		_local_position_sub;
-	Subscription<iridiumsbd_status_s> 		_iridiumsbd_status_sub;
+	Subscription<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
+	Subscription<iridiumsbd_status_s> 		_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
+	Subscription<mission_result_s>			_mission_result_sub{ORB_ID(mission_result)};
+	Subscription<vehicle_global_position_s>		_global_position_sub{ORB_ID(vehicle_global_position)};
+	Subscription<vehicle_local_position_s>		_local_position_sub{ORB_ID(vehicle_local_position)};
 };
 
 #endif /* COMMANDER_HPP_ */
