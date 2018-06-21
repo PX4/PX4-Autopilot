@@ -60,7 +60,7 @@ protected:
 					(ParamFloat<px4::params::MPC_VEL_MANUAL>) MPC_VEL_MANUAL,
 					(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) MPC_ACC_HOR_MAX,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) MPC_HOLD_MAX_XY,
-					(ParamFloat<px4::params::MPC_ACC_HOR_FLOW>) MPC_ACC_HOR_FLOW
+					(ParamFloat<px4::params::MPC_ACC_HOR_ESTM>) MPC_ACC_HOR_ESTM
 				       )
 private:
 	float _velocity_scale; //scales the stick input to velocity

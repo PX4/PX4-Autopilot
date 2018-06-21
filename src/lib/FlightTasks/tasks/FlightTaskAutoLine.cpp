@@ -360,7 +360,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 			float yaw_diff = 0.0f;
 
 			if (PX4_ISFINITE(_yaw_setpoint)) {
-				yaw_diff = _wrap_pi(_yaw_setpoint - _yaw);
+				yaw_diff = wrap_pi(_yaw_setpoint - _yaw);
 			}
 
 			// If yaw offset is large, only accelerate with 0.5 m/s^2.

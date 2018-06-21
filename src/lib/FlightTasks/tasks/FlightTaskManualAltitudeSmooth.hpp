@@ -37,6 +37,7 @@
  * Flight task for manual controlled altitude.
  */
 
+#pragma once
 
 #include "FlightTaskManualAltitude.hpp"
 #include "Utility/ManualSmoothingZ.hpp"
