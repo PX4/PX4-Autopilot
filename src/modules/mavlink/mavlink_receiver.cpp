@@ -138,7 +138,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_manual_pub(nullptr),
 	_obstacle_distance_pub(nullptr),
 	_trajectory_waypoint_pub(nullptr),
-	_trajectory_bezier_pub(nullptr),
 	_land_detector_pub(nullptr),
 	_follow_target_pub(nullptr),
 	_landing_target_pose_pub(nullptr),
@@ -1705,28 +1704,6 @@ MavlinkReceiver::handle_message_trajectory(mavlink_message_t *msg)
 
 		} else {
 			orb_publish(ORB_ID(vehicle_trajectory_waypoint), _trajectory_waypoint_pub, &trajectory_waypoint);
-		}
-
-	} else if (trajectory.type == trajectory_bezier_s::MAV_TRAJECTORY_REPRESENTATION_BEZIER) {
-
-		struct trajectory_bezier_s trajectory_bezier = {};
-
-		trajectory_bezier.timestamp = hrt_absolute_time();
-		trajectory_bezier.type = trajectory.type;
-
-		memcpy(trajectory_bezier.point_0, trajectory.point_1, sizeof(trajectory_bezier.point_0));
-		memcpy(trajectory_bezier.point_1, trajectory.point_2, sizeof(trajectory_bezier.point_1));
-		memcpy(trajectory_bezier.point_2, trajectory.point_3, sizeof(trajectory_bezier.point_2));
-		memcpy(trajectory_bezier.point_3, trajectory.point_4, sizeof(trajectory_bezier.point_3));
-		memcpy(trajectory_bezier.point_4, trajectory.point_5, sizeof(trajectory_bezier.point_4));
-
-		memcpy(trajectory_bezier.point_valid, trajectory.point_valid, sizeof(trajectory_bezier.point_valid));
-
-		if (_trajectory_bezier_pub == nullptr) {
-			_trajectory_bezier_pub = orb_advertise(ORB_ID(trajectory_bezier), &trajectory_bezier);
-
-		} else {
-			orb_publish(ORB_ID(trajectory_bezier), _trajectory_bezier_pub, &trajectory_bezier);
 		}
 	}
 }
