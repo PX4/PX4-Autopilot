@@ -53,6 +53,7 @@
 
 // subscriptions
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/safety.h>
@@ -118,6 +119,12 @@ private:
 	hrt_abstime	_lpos_probation_time_us = POSVEL_PROBATION_MIN;
 	hrt_abstime	_lvel_probation_time_us = POSVEL_PROBATION_MIN;
 
+	/* class variables used to check for navigation failure after takeoff */
+	hrt_abstime	_time_at_takeoff{0};	/**< last time we were on the ground */
+	hrt_abstime	_time_last_innov_pass{0};	/**< last time velocity innovations passed */
+	bool _nav_test_passed{false};	/**< true if the post takeoff navigation test has passed */
+	bool _nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
+
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd,
 			    actuator_armed_s *armed, home_position_s *home, orb_advert_t *home_pub, orb_advert_t *command_ack_pub, bool *changed);
 
@@ -169,7 +176,10 @@ private:
 		bool high_latency = false;
 	} _telemetry[ORB_MULTI_MAX_INSTANCES];
 
+	void estimator_check(bool *status_changed);
+
 	// Subscriptions
+	Subscription<estimator_status_s>			_estimator_status_sub{ORB_ID(estimator_status)};
 	Subscription<mission_result_s>			_mission_result_sub;
 	Subscription<vehicle_global_position_s>		_global_position_sub;
 	Subscription<vehicle_local_position_s>		_local_position_sub;
