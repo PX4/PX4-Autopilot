@@ -37,6 +37,7 @@
  * Flight task for smooth manual controlled position.
  */
 
+#pragma once
 
 #include "FlightTaskManualPosition.hpp"
 #include "Utility/ManualSmoothingXY.hpp"
