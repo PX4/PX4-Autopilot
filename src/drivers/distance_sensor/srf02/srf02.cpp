@@ -903,6 +903,7 @@ reset()
 		return PX4_ERROR;
 	}
 
+	close(fd);
 	return PX4_OK;
 }
 
