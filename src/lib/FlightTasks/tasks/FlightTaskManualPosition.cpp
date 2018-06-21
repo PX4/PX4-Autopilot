@@ -99,7 +99,7 @@ void FlightTaskManualPosition::_scaleSticks()
 		// raise the limit at a constant rate up to the user specified value
 
 		if (_velocity_scale < _constraints.speed_xy) {
-			_velocity_scale += _deltatime * MPC_ACC_HOR_FLOW.get();
+			_velocity_scale += _deltatime * MPC_ACC_HOR_ESTM.get();
 
 		} else {
 			_velocity_scale = _constraints.speed_xy;

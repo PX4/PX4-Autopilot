@@ -155,7 +155,8 @@ protected:
 	/* Current vehicle state */
 	matrix::Vector3f _position; /**< current vehicle position */
 	matrix::Vector3f _velocity; /**< current vehicle velocity */
-	float _yaw = 0.f;
+	float _yaw = 0.f; /**< current vehicle yaw heading */
+	float _dist_to_bottom; /**< current height above ground level */
 
 	/**
 	 * Setpoints which the position controller has to execute.
@@ -171,7 +172,6 @@ protected:
 	matrix::Vector3f _thrust_setpoint;
 	float _yaw_setpoint;
 	float _yawspeed_setpoint;
-	float _dist_to_bottom;
 
 	/**
 	 * Vehicle constraints.
