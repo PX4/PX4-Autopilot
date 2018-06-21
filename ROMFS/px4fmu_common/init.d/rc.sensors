@@ -107,8 +107,11 @@ fi
 
 if ver hwcmp NXPHLITE_V3
 then
-	# Internal I2C (baro)
-	mpl3115a2 -I start
+	# External I2C bus
+	hmc5883 -C -X start
+
+	# Onboard I2C (baro) but an external bus on V3 RC15
+	mpl3115a2 -X start
 
 	# Internal SPI (accel + mag)
 	fxos8701cq start -a 8 -R 0
