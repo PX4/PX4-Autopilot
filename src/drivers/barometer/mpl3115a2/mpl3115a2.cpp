@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,10 +33,6 @@
 
 /**
  * @file mpl3115a2.cpp
- *
- * FIXME!: This is stubberd out driver for the NXP MPL3115A2
- * it has bogus code in it and is just being used to verify
- * the i2C buss and WHOAMI
  *
  * Driver for the MPL3115A2 barometric pressure sensor connected via I2C.
  */
