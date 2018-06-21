@@ -67,7 +67,6 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/trajectory_bezier.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/telemetry_status.h>
@@ -236,7 +235,6 @@ private:
 	orb_advert_t _manual_pub;
 	orb_advert_t _obstacle_distance_pub;
 	orb_advert_t _trajectory_waypoint_pub;
-	orb_advert_t _trajectory_bezier_pub;
 	orb_advert_t _land_detector_pub;
 	orb_advert_t _follow_target_pub;
 	orb_advert_t _landing_target_pose_pub;
