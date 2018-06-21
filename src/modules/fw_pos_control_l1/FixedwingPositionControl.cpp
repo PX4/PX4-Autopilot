@@ -75,6 +75,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_thrust_lim_alt_relative = param_find("FW_LND_TLALT");
 	_parameter_handles.land_heading_hold_horizontal_distance = param_find("FW_LND_HHDIST");
 	_parameter_handles.land_use_terrain_estimate = param_find("FW_LND_USETER");
+	_parameter_handles.land_early_config_change = param_find("FW_LND_EARLYCFG");
 	_parameter_handles.land_airspeed_scale = param_find("FW_LND_AIRSPD_SC");
 	_parameter_handles.land_throtTC_scale = param_find("FW_LND_THRTC_SC");
 
@@ -148,6 +149,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_flare_pitch_min_deg, &(_parameters.land_flare_pitch_min_deg));
 	param_get(_parameter_handles.land_flare_pitch_max_deg, &(_parameters.land_flare_pitch_max_deg));
 	param_get(_parameter_handles.land_use_terrain_estimate, &(_parameters.land_use_terrain_estimate));
+	param_get(_parameter_handles.land_early_config_change, &(_parameters.land_early_config_change));
 	param_get(_parameter_handles.land_airspeed_scale, &(_parameters.land_airspeed_scale));
 	param_get(_parameter_handles.land_throtTC_scale, &(_parameters.land_throtTC_scale));
 
@@ -847,7 +849,8 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 
 			float alt_sp = pos_sp_curr.alt;
 
-			if (pos_sp_next.type == position_setpoint_s::SETPOINT_TYPE_LAND && pos_sp_next.valid && _l1_control.circle_mode()) {
+			if (pos_sp_next.type == position_setpoint_s::SETPOINT_TYPE_LAND && pos_sp_next.valid
+			    && _l1_control.circle_mode() && _parameters.land_early_config_change == 1) {
 				// We're in a loiter directly before a landing WP. Enable our landing configuration (flaps,
 				// landing airspeed and potentially tighter throttle control) already such that we don't
 				// have to do this switch (which can cause significant altitude errors) close to the ground.

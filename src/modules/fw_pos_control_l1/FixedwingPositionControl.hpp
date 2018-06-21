@@ -294,6 +294,7 @@ private:
 		float land_flare_pitch_min_deg;
 		float land_flare_pitch_max_deg;
 		int32_t land_use_terrain_estimate;
+		int32_t land_early_config_change;
 		float land_airspeed_scale;
 		float land_throtTC_scale;
 
@@ -358,6 +359,7 @@ private:
 		param_t land_flare_pitch_min_deg;
 		param_t land_flare_pitch_max_deg;
 		param_t land_use_terrain_estimate;
+		param_t land_early_config_change;
 		param_t land_airspeed_scale;
 		param_t land_throtTC_scale;
 
