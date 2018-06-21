@@ -697,13 +697,13 @@ start(int argc, char *argv[])
 
 	/* entry check: */
 	if (start_in_progress) {
-		warnx("start already in progress");
+		PX4_WARN("start already in progress");
 		return 1;
 	}
 
 	if (g_dev != nullptr) {
 		start_in_progress = false;
-		warnx("already started");
+		PX4_WARN("already started");
 		return 1;
 	}
 
@@ -725,7 +725,7 @@ start(int argc, char *argv[])
 			address = strtoul(myoptarg, nullptr, 16);
 
 			if (address < I2C_FLOW_ADDRESS_MIN || address > I2C_FLOW_ADDRESS_MAX) {
-				warnx("invalid i2c address '%s'", myoptarg);
+				PX4_WARN("invalid i2c address '%s'", myoptarg);
 				err_flag = true;
 
 			}
@@ -736,7 +736,7 @@ start(int argc, char *argv[])
 			conversion_interval = strtoul(myoptarg, nullptr, 10);
 
 			if (conversion_interval < PX4FLOW_CONVERSION_INTERVAL_MIN || conversion_interval > PX4FLOW_CONVERSION_INTERVAL_MAX) {
-				warnx("invalid conversion interval '%s'", myoptarg);
+				PX4_WARN("invalid conversion interval '%s'", myoptarg);
 				err_flag = true;
 			}
 
@@ -761,7 +761,7 @@ start(int argc, char *argv[])
 
 	/* starting */
 	start_in_progress = true;
-	warnx("scanning I2C buses for device..");
+	PX4_INFO("scanning I2C buses for device..");
 
 	int retry_nr = 0;
 
@@ -785,7 +785,7 @@ start(int argc, char *argv[])
 
 		while (*cur_bus != -1) {
 			/* create the driver */
-			/* warnx("trying bus %d", *cur_bus); */
+			/* PX4_WARN("trying bus %d", *cur_bus); */
 			g_dev = new PX4FLOW(*cur_bus, address, (enum Rotation)0, conversion_interval, sonar_rotation);
 
 			if (g_dev == nullptr) {
@@ -833,7 +833,7 @@ start(int argc, char *argv[])
 
 		if (retry_nr < START_RETRY_COUNT) {
 			/* lets not be too verbose */
-			// warnx("PX4FLOW not found on I2C busses. Retrying in %d ms. Giving up in %d retries.", START_RETRY_TIMEOUT, START_RETRY_COUNT - retry_nr);
+			// PX4_WARN("PX4FLOW not found on I2C busses. Retrying in %d ms. Giving up in %d retries.", START_RETRY_TIMEOUT, START_RETRY_COUNT - retry_nr);
 			usleep(START_RETRY_TIMEOUT * 1000);
 			retry_nr++;
 
@@ -893,7 +893,7 @@ test()
 	sz = read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		warnx("immediate read failed");
+		PX4_WARN("immediate read failed");
 	}
 
 	print_message(report);
