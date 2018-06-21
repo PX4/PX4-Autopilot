@@ -3623,7 +3623,6 @@ set_control_mode()
 		control_mode.flag_control_attitude_enabled	= !offboard_control_mode.ignore_alt_hold || control_mode.flag_control_attitude_enabled;
 		control_mode.flag_control_rates_enabled		= !offboard_control_mode.ignore_alt_hold || control_mode.flag_control_rates_enabled;
 		control_mode.flag_control_climb_rate_enabled= !offboard_control_mode.ignore_alt_hold || control_mode.flag_control_climb_rate_enabled;
-		control_mode.flag_control_velocity_enabled	= !offboard_control_mode.ignore_alt_hold || control_mode.flag_control_velocity_enabled;
 
 		break;
 

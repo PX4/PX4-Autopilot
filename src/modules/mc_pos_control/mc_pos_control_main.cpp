@@ -3241,8 +3241,9 @@ MulticopterPositionControl::task_main()
 			 * attitude setpoints for the transition).
 			 */
 			if (!(_control_mode.flag_control_offboard_enabled &&
-			      !(_control_mode.flag_control_position_enabled ||
-				_control_mode.flag_control_velocity_enabled ||
+			      !(_control_mode.flag_control_altitude_enabled  ||
+			    _control_mode.flag_control_position_enabled      ||
+				_control_mode.flag_control_velocity_enabled      ||
 				_control_mode.flag_control_acceleration_enabled))) {
 
 				if (_att_sp_pub != nullptr) {
