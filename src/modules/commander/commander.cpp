@@ -87,7 +87,6 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
-#include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -1328,16 +1327,6 @@ Commander::run()
 	memset(&vtol_status, 0, sizeof(vtol_status));
 	vtol_status.vtol_in_rw_mode = true;		//default for vtol is rotary wing
 
-	/* subscribe to estimator status topic */
-	int estimator_status_sub = orb_subscribe(ORB_ID(estimator_status));
-	struct estimator_status_s estimator_status;
-
-	/* class variables used to check for navigation failure after takeoff */
-	hrt_abstime time_at_takeoff = 0; // last time we were on the ground
-	hrt_abstime time_last_innov_pass = 0; // last time velocity innovations passed
-	bool nav_test_passed = false; // true if the post takeoff navigation test has passed
-	bool nav_test_failed = false; // true if the post takeoff navigation test has failed
-
 	int cpuload_sub = orb_subscribe(ORB_ID(cpuload));
 	memset(&cpuload, 0, sizeof(cpuload));
 
@@ -1709,107 +1698,8 @@ Commander::run()
 			}
 		}
 
-		_local_position_sub.update();
-		_global_position_sub.update();
+		estimator_check(&status_changed);
 
-		// Set the allowable positon uncertainty based on combination of flight and estimator state
-		// When we are in a operator demanded position control mode and are solely reliant on optical flow, do not check position error becasue it will gradually increase throughout flight and the operator will compensate for the drift
-		bool reliant_on_opt_flow = ((estimator_status.control_mode_flags & (1 << estimator_status_s::CS_OPT_FLOW))
-					    && !(estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS))
-					    && !(estimator_status.control_mode_flags & (1 << estimator_status_s::CS_EV_POS)));
-		bool operator_controlled_position = (internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL);
-		_skip_pos_accuracy_check = reliant_on_opt_flow && operator_controlled_position;
-		if (_skip_pos_accuracy_check) {
-			_eph_threshold_adj = INFINITY;
-		} else {
-			_eph_threshold_adj = _eph_threshold.get();
-		}
-
-		// Check if quality checking of position accuracy and consistency is to be performed
-		const bool run_quality_checks = !status_flags.circuit_breaker_engaged_posfailure_check;
-
-		/* Check estimator status for signs of bad yaw induced post takeoff navigation failure
-		 * for a short time interval after takeoff. Fixed wing vehicles can recover using GPS heading,
-		 * but rotary wing vehicles cannot so the position and velocity validity needs to be latched
-		 * to false after failure to prevent flyaway crashes */
-		if (run_quality_checks && status.is_rotary_wing) {
-			bool estimator_status_updated = false;
-			orb_check(estimator_status_sub, &estimator_status_updated);
-
-			if (estimator_status_updated) {
-				orb_copy(ORB_ID(estimator_status), estimator_status_sub, &estimator_status);
-
-				if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
-					// reset flags and timer
-					time_at_takeoff = hrt_absolute_time();
-					nav_test_failed = false;
-					nav_test_passed = false;
-
-				} else if (land_detector.landed) {
-					// record time of takeoff
-					time_at_takeoff = hrt_absolute_time();
-
-				} else {
-					// if nav status is unconfirmed, confirm yaw angle as passed after 30 seconds or achieving 5 m/s of speed
-					const bool sufficient_time = (hrt_elapsed_time(&time_at_takeoff) > 30_s);
-
-					const vehicle_local_position_s &lpos = _local_position_sub.get();
-					const bool sufficient_speed = (lpos.vx * lpos.vx + lpos.vy * lpos.vy > 25.0f);
-
-					bool innovation_pass = estimator_status.vel_test_ratio < 1.0f && estimator_status.pos_test_ratio < 1.0f;
-
-					if (!nav_test_failed) {
-						if (!nav_test_passed) {
-							// pass if sufficient time or speed
-							if (sufficient_time || sufficient_speed) {
-								nav_test_passed = true;
-							}
-
-							// record the last time the innovation check passed
-							if (innovation_pass) {
-								time_last_innov_pass = hrt_absolute_time();
-							}
-
-							// if the innovation test has failed continuously, declare the nav as failed
-							if (hrt_elapsed_time(&time_last_innov_pass) > 1_s) {
-								nav_test_failed = true;
-								mavlink_log_emergency(&mavlink_log_pub, "CRITICAL NAVIGATION FAILURE - CHECK SENSOR CALIBRATION");
-							}
-						}
-					}
-				}
-			}
-		}
-
-		/* run global position accuracy checks */
-		// Check if quality checking of position accuracy and consistency is to be performed
-		if (run_quality_checks) {
-			if (nav_test_failed) {
-				status_flags.condition_global_position_valid = false;
-				status_flags.condition_local_position_valid = false;
-				status_flags.condition_local_velocity_valid = false;
-
-			} else {
-				if (!_skip_pos_accuracy_check) {
-					// use global position message to determine validity
-					const vehicle_global_position_s&global_position = _global_position_sub.get();
-					check_posvel_validity(true, global_position.eph, _eph_threshold_adj, global_position.timestamp, &_last_gpos_fail_time_us, &_gpos_probation_time_us, &status_flags.condition_global_position_valid, &status_changed);
-				}
-
-				// use local position message to determine validity
-				const vehicle_local_position_s &local_position = _local_position_sub.get();
-				check_posvel_validity(local_position.xy_valid, local_position.eph, _eph_threshold_adj, local_position.timestamp, &_last_lpos_fail_time_us, &_lpos_probation_time_us, &status_flags.condition_local_position_valid, &status_changed);
-				check_posvel_validity(local_position.v_xy_valid, local_position.evh, _evh_threshold.get(), local_position.timestamp, &_last_lvel_fail_time_us, &_lvel_probation_time_us, &status_flags.condition_local_velocity_valid, &status_changed);
-			}
-		}
-
-		if((_last_condition_global_position_valid != status_flags.condition_global_position_valid) && status_flags.condition_global_position_valid) {
-			// If global position state changed and is now valid, set respective health flags to true. For now also assume GPS is OK if global pos is OK, but not vice versa.
-			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, status);
-			set_health_flags_present_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GPS, true, true, status);
-		}
-
-		check_valid(_local_position_sub.get().timestamp, _failsafe_pos_delay.get() * 1_s, _local_position_sub.get().z_valid, &(status_flags.condition_local_altitude_valid), &status_changed);
 
 		/* Update land detector */
 		orb_check(land_detector_sub, &updated);
@@ -2753,7 +2643,6 @@ Commander::run()
 	px4_close(param_changed_sub);
 	px4_close(battery_sub);
 	px4_close(land_detector_sub);
-	px4_close(estimator_status_sub);
 
 	thread_running = false;
 }
@@ -4227,4 +4116,110 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 			*status_changed = true;
 		}
 	}
+}
+
+void Commander::estimator_check(bool *status_changed)
+{
+	// Check if quality checking of position accuracy and consistency is to be performed
+	const bool run_quality_checks = !status_flags.circuit_breaker_engaged_posfailure_check;
+
+	_local_position_sub.update();
+	_global_position_sub.update();
+
+	const vehicle_local_position_s &lpos = _local_position_sub.get();
+	const vehicle_global_position_s &gpos = _global_position_sub.get();
+
+	if (_estimator_status_sub.update()) {
+		const estimator_status_s& estimator_status = _estimator_status_sub.get();
+
+		// Set the allowable position uncertainty based on combination of flight and estimator state
+		// When we are in a operator demanded position control mode and are solely reliant on optical flow, do not check position error because it will gradually increase throughout flight and the operator will compensate for the drift
+		const bool reliant_on_opt_flow = ((estimator_status.control_mode_flags & (1 << estimator_status_s::CS_OPT_FLOW))
+					    && !(estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS))
+					    && !(estimator_status.control_mode_flags & (1 << estimator_status_s::CS_EV_POS)));
+
+		const bool operator_controlled_position = (internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL);
+
+		_skip_pos_accuracy_check = reliant_on_opt_flow && operator_controlled_position;
+
+		if (_skip_pos_accuracy_check) {
+			_eph_threshold_adj = INFINITY;
+
+		} else {
+			_eph_threshold_adj = _eph_threshold.get();
+		}
+
+		/* Check estimator status for signs of bad yaw induced post takeoff navigation failure
+		 * for a short time interval after takeoff. Fixed wing vehicles can recover using GPS heading,
+		 * but rotary wing vehicles cannot so the position and velocity validity needs to be latched
+		 * to false after failure to prevent flyaway crashes */
+		if (run_quality_checks && status.is_rotary_wing) {
+
+			if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+				// reset flags and timer
+				_time_at_takeoff = hrt_absolute_time();
+				_nav_test_failed = false;
+				_nav_test_passed = false;
+
+			} else if (land_detector.landed) {
+				// record time of takeoff
+				_time_at_takeoff = hrt_absolute_time();
+
+			} else {
+				// if nav status is unconfirmed, confirm yaw angle as passed after 30 seconds or achieving 5 m/s of speed
+				const bool sufficient_time = (hrt_elapsed_time(&_time_at_takeoff) > 30_s);
+				const bool sufficient_speed = (lpos.vx * lpos.vx + lpos.vy * lpos.vy > 25.0f);
+
+				bool innovation_pass = estimator_status.vel_test_ratio < 1.0f && estimator_status.pos_test_ratio < 1.0f;
+
+				if (!_nav_test_failed) {
+					if (!_nav_test_passed) {
+						// pass if sufficient time or speed
+						if (sufficient_time || sufficient_speed) {
+							_nav_test_passed = true;
+						}
+
+						// record the last time the innovation check passed
+						if (innovation_pass) {
+							_time_last_innov_pass = hrt_absolute_time();
+						}
+
+						// if the innovation test has failed continuously, declare the nav as failed
+						if (hrt_elapsed_time(&_time_last_innov_pass) > 1_s) {
+							_nav_test_failed = true;
+							mavlink_log_emergency(&mavlink_log_pub, "CRITICAL NAVIGATION FAILURE - CHECK SENSOR CALIBRATION");
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/* run global position accuracy checks */
+	// Check if quality checking of position accuracy and consistency is to be performed
+	if (run_quality_checks) {
+		if (_nav_test_failed) {
+			status_flags.condition_global_position_valid = false;
+			status_flags.condition_local_position_valid = false;
+			status_flags.condition_local_velocity_valid = false;
+
+		} else {
+			if (!_skip_pos_accuracy_check) {
+				// use global position message to determine validity
+				check_posvel_validity(true, gpos.eph, _eph_threshold_adj, gpos.timestamp, &_last_gpos_fail_time_us, &_gpos_probation_time_us, &status_flags.condition_global_position_valid, status_changed);
+			}
+
+			// use local position message to determine validity
+			check_posvel_validity(lpos.xy_valid, lpos.eph, _eph_threshold_adj, lpos.timestamp, &_last_lpos_fail_time_us, &_lpos_probation_time_us, &status_flags.condition_local_position_valid, status_changed);
+			check_posvel_validity(lpos.v_xy_valid, lpos.evh, _evh_threshold.get(), lpos.timestamp, &_last_lvel_fail_time_us, &_lvel_probation_time_us, &status_flags.condition_local_velocity_valid, status_changed);
+		}
+	}
+
+	if ((_last_condition_global_position_valid != status_flags.condition_global_position_valid) && status_flags.condition_global_position_valid) {
+		// If global position state changed and is now valid, set respective health flags to true. For now also assume GPS is OK if global pos is OK, but not vice versa.
+		set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, status);
+		set_health_flags_present_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GPS, true, true, status);
+	}
+
+	check_valid(lpos.timestamp, _failsafe_pos_delay.get() * 1_s, lpos.z_valid, &(status_flags.condition_local_altitude_valid), status_changed);
 }
