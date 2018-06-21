@@ -92,8 +92,8 @@ C++03 or C++11 compiler, the library development process assumes that the host O
 
 Prerequisites:
 
-* Google test library for C++ - gtest (see [how to install on Debian/Ubuntu](http://stackoverflow.com/questions/13513905/how-to-properly-setup-googletest-on-linux))
-* C++03 *and* C++11 capable compiler with GCC-like interface (e.g. GCC, Clang)
+* Google test library for C++ - gtest (dowloaded as part of the build from [github](https://github.com/google/googletest))
+* C++11 capable compiler with GCC-like interface (e.g. GCC, Clang)
 * CMake 2.8+
 * Optional: static analysis tool for C++ - cppcheck (on Debian/Ubuntu use package `cppcheck`)
 
@@ -106,10 +106,36 @@ make
 ```
 
 Test outputs can be found in the build directory under `libuavcan`.
-Note that unit tests must be executed in real time, otherwise they may produce false warnings;
+
+> Note that unit tests suffixed with "_RealTime" must be executed in real time, otherwise they may produce false warnings;
 this implies that they will likely fail if ran on a virtual machine or on a highly loaded system.
 
 Contributors, please follow the [Zubax C++ Coding Conventions](https://kb.zubax.com/x/84Ah).
+
+### Vagrant
+Vagrant can be used to setup a compatible Ubuntu virtual image. Follow the instructions on [Vagrantup](https://www.vagrantup.com/) to install virtualbox and vagrant then do:
+
+```bash
+vagrant up
+vagrant ssh
+mkdir build
+cd build
+mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DCONTINUOUS_INTEGRATION_BUILD=1
+```
+
+> Note that -DCONTINUOUS_INTEGRATION_BUILD=1 is required for this build as the realtime unit tests will not work on a virt.
+
+You can build using commands like:
+
+```bash
+vagrant ssh -c "cd /vagrant/build && make -j4 && make test"
+```
+
+or to run a single test:
+
+```bash
+vagrant ssh -c "cd /vagrant/build && make libuavcan_test && ./libuavcan/libuavcan_test --gtest_filter=Node.Basic"
+```
 
 ### Developing with Eclipse
 
