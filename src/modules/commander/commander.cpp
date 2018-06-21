@@ -543,11 +543,7 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 }
 
 Commander::Commander() :
-	ModuleParams(nullptr),
-	_mission_result_sub(ORB_ID(mission_result)),
-	_global_position_sub(ORB_ID(vehicle_global_position)),
-	_local_position_sub(ORB_ID(vehicle_local_position)),
-	_iridiumsbd_status_sub(ORB_ID(iridiumsbd_status))
+	ModuleParams(nullptr)
 {
 }
 
@@ -1699,7 +1695,6 @@ Commander::run()
 		}
 
 		estimator_check(&status_changed);
-
 
 		/* Update land detector */
 		orb_check(land_detector_sub, &updated);
