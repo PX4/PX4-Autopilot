@@ -696,6 +696,11 @@ start_bus(uint8_t rotation, int i2c_bus)
 {
 	int fd = -1;
 
+	if (g_dev != nullptr) {
+		PX4_ERR("already started");
+		return PX4_ERROR;
+	}
+
 	/* create the driver */
 	g_dev = new SF1XX(rotation, i2c_bus);
 
