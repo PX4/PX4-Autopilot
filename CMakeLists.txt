@@ -113,7 +113,7 @@ include(common/px4_git)
 
 execute_process(
 	COMMAND git describe --always --tags
-	OUTPUT_VARIABLE git_tag
+	OUTPUT_VARIABLE PX4_GIT_TAG
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	)
@@ -166,7 +166,7 @@ set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebIn
 
 #=============================================================================
 
-message(STATUS "PX4 VERSION: ${git_tag}")
+message(STATUS "PX4 VERSION: ${PX4_GIT_TAG}")
 message(STATUS "CONFIG: ${CONFIG}")
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 
@@ -448,14 +448,14 @@ endif()
 # Important to having packaging at end of cmake file.
 #
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME}-${CONFIG})
-set(CPACK_PACKAGE_VERSION ${git_version})
+set(CPACK_PACKAGE_VERSION ${PX4_GIT_TAG})
 set(CPACK_PACKAGE_CONTACT ${package-contact})
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "The PX4 Pro autopilot.")
-set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CONFIG}-${git_tag}")
-set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${git_version}")
+set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CONFIG}-${PX4_GIT_TAG}")
+set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PX4_GIT_TAG}")
 set(CPACK_SOURCE_GENERATOR "ZIP;TBZ2")
 set(CPACK_PACKAGING_INSTALL_PREFIX "")
 set(CPACK_SET_DESTDIR "OFF")

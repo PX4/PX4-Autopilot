@@ -38,4 +38,5 @@ px4_add_module(
 	SRCS
 		hardfault_log.c
 	DEPENDS
+		version
 	)

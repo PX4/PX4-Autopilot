@@ -66,4 +66,5 @@ px4_add_module(
 		conversion
 		git_ecl
 		ecl_geo
+		version
 	)

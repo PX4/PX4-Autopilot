@@ -1866,6 +1866,12 @@ void Logger::write_version()
 	write_info("sys_toolchain", px4_toolchain_name());
 	write_info("sys_toolchain_ver", px4_toolchain_version());
 
+	const char* ecl_version = px4_ecl_lib_version_string();
+
+	if (ecl_version && ecl_version[0]) {
+		write_info("sys_lib_ecl_ver", ecl_version);
+	}
+
 	char revision = 'U';
 	const char *chip_name = nullptr;
 
