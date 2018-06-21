@@ -259,9 +259,9 @@ __BEGIN_DECLS
 /* I2C busses */
 
 #define PX4_I2C_BUS_EXPANSION               PX4_BUS_NUMBER_TO_PX4(0)
-#define PX4_I2C_BUS_ONBOARD                 PX4_BUS_NUMBER_TO_PX4(1)
-
-#define PX4_I2C_BUS_LED                     PX4_I2C_BUS_EXPANSION
+#define PX4_I2C_BUS_EXPANSION1              PX4_BUS_NUMBER_TO_PX4(1) // V3 RC15 has mpl3115a2 on onboard but this goes to a connector
+// So it is treated as external.
+#define PX4_I2C_BUS_LED                     PX4_I2C_BUS_EXPANSION1
 
 /*
  * ADC channels
