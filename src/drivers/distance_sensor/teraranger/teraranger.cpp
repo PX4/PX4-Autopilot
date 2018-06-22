@@ -825,7 +825,7 @@ start_bus(uint8_t rotation, int i2c_bus)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(TERARANGER_DEVICE_PATH, O_RDONLY);
+	fd = px4_open(TERARANGER_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
@@ -835,13 +835,13 @@ start_bus(uint8_t rotation, int i2c_bus)
 		goto fail;
 	}
 
-	close(fd);
+	px4_close(fd);
 	return PX4_OK;
 
 fail:
 
 	if (fd >= 0) {
-		close(fd);
+		px4_close(fd);
 	}
 
 	if (g_dev != nullptr) {
@@ -883,7 +883,7 @@ test()
 	ssize_t sz;
 	int ret;
 
-	int fd = open(TERARANGER_DEVICE_PATH, O_RDONLY);
+	int fd = px4_open(TERARANGER_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		PX4_ERR("%s open failed (try 'teraranger start' if the driver is not running)", TERARANGER_DEVICE_PATH);
@@ -937,7 +937,7 @@ test()
 		return PX4_ERROR;
 	}
 
-	close(fd);
+	px4_close(fd);
 	PX4_INFO("PASS");
 	return PX4_OK;
 
@@ -949,7 +949,7 @@ test()
 int
 reset()
 {
-	int fd = open(TERARANGER_DEVICE_PATH, O_RDONLY);
+	int fd = px4_open(TERARANGER_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		PX4_ERR("failed");
@@ -966,7 +966,7 @@ reset()
 		return PX4_ERROR;
 	}
 
-	close(fd);
+	px4_close(fd);
 	return PX4_OK;
 }
 
