@@ -1044,7 +1044,7 @@ start_bus(uint8_t rotation, int i2c_bus)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(VL53LXX_DEVICE_PATH, O_RDONLY);
+	fd = px4_open(VL53LXX_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
@@ -1054,13 +1054,13 @@ start_bus(uint8_t rotation, int i2c_bus)
 		goto fail;
 	}
 
-	close(fd);
+	px4_close(fd);
 	return PX4_OK;
 
 fail:
 
 	if (fd >= 0) {
-		close(fd);
+		px4_close(fd);
 	}
 
 	if (g_dev != nullptr) {
@@ -1101,7 +1101,7 @@ test()
 	struct distance_sensor_s report;
 	ssize_t sz;
 
-	int fd = open(VL53LXX_DEVICE_PATH, O_RDONLY);
+	int fd = px4_open(VL53LXX_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		PX4_ERR("%s open failed (try 'vl53lxx start' if the driver is not running)", VL53LXX_DEVICE_PATH);
@@ -1118,7 +1118,7 @@ test()
 
 	print_message(report);
 
-	close(fd);
+	px4_close(fd);
 
 	PX4_INFO("PASS");
 	return PX4_OK;
