@@ -87,7 +87,7 @@ void FlightTaskManualPosition::_scaleSticks()
 	}
 
 	// scale the stick inputs
-	if (_sub_vehicle_local_position->get().vxy_max > 0.001f) {
+	if (PX4_ISFINITE(_sub_vehicle_local_position->get().vxy_max)) {
 		// estimator provides vehicle specific max
 
 		// use the minimum of the estimator and user specified limit
