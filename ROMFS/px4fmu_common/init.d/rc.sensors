@@ -381,25 +381,25 @@ fi
 # lightware serial lidar sensor
 if param greater SENS_EN_SF0X 0
 then
-	sf0x start
+	sf0x start -a
 fi
 
 # lightware i2c lidar sensor
 if param greater SENS_EN_SF1XX 0
 then
-	sf1xx start
+	sf1xx start -a
 fi
 
 # mb12xx sonar sensor
 if param greater SENS_EN_MB12XX 0
 then
-	mb12xx start
+	mb12xx start -a
 fi
 
 # teraranger one tof sensor
 if param greater SENS_EN_TRANGER 0
 then
-	teraranger start
+	teraranger start -a
 fi
 
 # Benewake TFMini
