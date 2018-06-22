@@ -381,7 +381,7 @@ fi
 # lightware serial lidar sensor
 if param greater SENS_EN_SF0X 0
 then
-	sf0x start -a
+	sf0x start
 fi
 
 # lightware i2c lidar sensor
