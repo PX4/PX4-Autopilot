@@ -83,8 +83,8 @@ MavlinkStreamHighLatency2::MavlinkStreamHighLatency2(Mavlink *mavlink) : Mavlink
 	_global_pos_time(0),
 	_gps_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_gps_position))),
 	_gps_time(0),
-	_mission_result_sub(_mavlink->add_orb_subscription(ORB_ID(mission_result))),
-	_mission_result_time(0),
+	_mission_status_sub(_mavlink->add_orb_subscription(ORB_ID(mission_status))),
+	_mission_status_time(0),
 	_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
 	_status_time(0),
 	_status_flags_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status_flags))),
@@ -130,7 +130,7 @@ bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 		updated |= write_fw_ctrl_status(&msg);
 		updated |= write_geofence_result(&msg);
 		updated |= write_global_position(&msg);
-		updated |= write_mission_result(&msg);
+		updated |= write_mission_status(&msg);
 		updated |= write_tecs_status(&msg);
 		updated |= write_vehicle_status(&msg);
 		updated |= write_vehicle_status_flags(&msg);
@@ -339,14 +339,14 @@ bool MavlinkStreamHighLatency2::write_global_position(mavlink_high_latency2_t *m
 	return updated;
 }
 
-bool MavlinkStreamHighLatency2::write_mission_result(mavlink_high_latency2_t *msg)
+bool MavlinkStreamHighLatency2::write_mission_status(mavlink_high_latency2_t *msg)
 {
-	struct mission_result_s mission_result;
+	struct mission_status_s mission_status;
 
-	const bool updated = _mission_result_sub->update(&_mission_result_time, &mission_result);
+	const bool updated = _mission_status_sub->update(&_mission_status_time, &mission_status);
 
-	if (_mission_result_time > 0) {
-		msg->wp_num = mission_result.seq_current;
+	if (_mission_status_time > 0) {
+		msg->wp_num = mission_status.seq_current;
 	}
 
 	return updated;

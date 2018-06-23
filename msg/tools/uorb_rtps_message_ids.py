@@ -43,7 +43,7 @@ msg_id_map = {
     'mavlink_log': 38,
     'mc_att_ctrl_status': 39,
     'mission': 40,
-    'mission_result': 41,
+    'mission_status': 41,
     'mount_orientation': 42,
     'multirotor_motor_limits': 43,
     'offboard_control_mode': 44,

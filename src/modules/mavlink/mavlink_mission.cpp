@@ -51,7 +51,7 @@
 #include <matrix/math.hpp>
 #include <navigator/navigation.h>
 #include <uORB/topics/mission.h>
-#include <uORB/topics/mission_result.h>
+#include <uORB/topics/mission_status.h>
 
 using matrix::wrap_pi;
 
@@ -72,14 +72,14 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) :
 	_mavlink(mavlink)
 {
 	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
-	_mission_result_sub = orb_subscribe(ORB_ID(mission_result));
+	_mission_status_sub = orb_subscribe(ORB_ID(mission_status));
 
 	init_offboard_mission();
 }
 
 MavlinkMissionManager::~MavlinkMissionManager()
 {
-	orb_unsubscribe(_mission_result_sub);
+	orb_unsubscribe(_mission_status_sub);
 	orb_unadvertise(_offboard_mission_pub);
 }
 
@@ -481,24 +481,24 @@ void
 MavlinkMissionManager::send(const hrt_abstime now)
 {
 	bool updated = false;
-	orb_check(_mission_result_sub, &updated);
+	orb_check(_mission_status_sub, &updated);
 
 	if (updated) {
-		mission_result_s mission_result;
-		orb_copy(ORB_ID(mission_result), _mission_result_sub, &mission_result);
+		mission_status_s mission_status;
+		orb_copy(ORB_ID(mission_status), _mission_status_sub, &mission_status);
 
-		if (_current_seq != mission_result.seq_current) {
-			_current_seq = mission_result.seq_current;
+		if (_current_seq != mission_status.seq_current) {
+			_current_seq = mission_status.seq_current;
 
 			PX4_DEBUG("WPM: got mission result, new current_seq: %u", _current_seq);
 		}
 
-		if (_last_reached != mission_result.seq_reached) {
-			_last_reached = mission_result.seq_reached;
+		if (_last_reached != mission_status.seq_reached) {
+			_last_reached = mission_status.seq_reached;
 			_reached_sent_count = 0;
 
 			if (_last_reached >= 0) {
-				send_mission_item_reached((uint16_t)mission_result.seq_reached);
+				send_mission_item_reached((uint16_t)mission_status.seq_reached);
 			}
 
 			PX4_DEBUG("WPM: got mission result, new seq_reached: %d", _last_reached);
@@ -506,10 +506,10 @@ MavlinkMissionManager::send(const hrt_abstime now)
 
 		send_mission_current(_current_seq);
 
-		if (mission_result.item_do_jump_changed) {
+		if (mission_status.item_do_jump_changed) {
 			/* send a mission item again if the remaining DO_JUMPs has changed */
 			send_mission_item(_transfer_partner_sysid, _transfer_partner_compid,
-					  (uint16_t)mission_result.item_changed_index);
+					  (uint16_t)mission_status.item_changed_index);
 		}
 
 	} else {

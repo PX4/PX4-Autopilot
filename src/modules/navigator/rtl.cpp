@@ -258,6 +258,9 @@ RTL::set_rtl_item()
 			} else {
 				_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 				mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loitering");
+
+				_navigator->get_navigator_status()->finished = true;
+				_navigator->set_navigator_status_updated();
 			}
 
 			break;
@@ -283,6 +286,10 @@ RTL::set_rtl_item()
 	case RTL_STATE_LANDED: {
 			set_idle_item(&_mission_item);
 			set_return_alt_min(false);
+
+			_navigator->get_navigator_status()->finished = true;
+			_navigator->set_navigator_status_updated();
+
 			break;
 		}
 

@@ -56,12 +56,13 @@ private:
 	/* Checks for all airframes */
 	bool checkGeofence(const mission_s &mission, float home_alt, bool home_valid);
 
-	bool checkHomePositionAltitude(const mission_s &mission, float home_alt, bool home_alt_valid, bool throw_error);
+	bool checkHomePositionAltitude(const mission_s &mission, float home_alt, bool home_alt_valid, bool throw_error,
+				       bool &warning);
 
 	bool checkMissionItemValidity(const mission_s &mission);
 
-	bool checkDistanceToFirstWaypoint(const mission_s &mission, float max_distance);
-	bool checkDistancesBetweenWaypoints(const mission_s &mission, float max_distance);
+	bool checkDistanceToFirstWaypoint(const mission_s &mission, float max_distance, bool &warning);
+	bool checkDistancesBetweenWaypoints(const mission_s &mission, float max_distance, bool &warning);
 
 	/* Checks specific to fixedwing airframes */
 	bool checkFixedwing(const mission_s &mission, float home_alt, bool home_alt_valid, bool land_start_req);
@@ -83,7 +84,7 @@ public:
 	 */
 	bool checkMissionFeasible(const mission_s &mission,
 				  float max_distance_to_1st_waypoint, float max_distance_between_waypoints,
-				  bool land_start_req);
+				  bool land_start_req, bool &warning);
 
 };
 

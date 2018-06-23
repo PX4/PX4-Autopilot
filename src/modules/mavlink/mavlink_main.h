@@ -65,7 +65,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
-#include <uORB/topics/mission_result.h>
+#include <uORB/topics/mission_status.h>
 #include <uORB/topics/telemetry_status.h>
 
 #include "mavlink_bridge_header.h"

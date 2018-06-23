@@ -62,7 +62,7 @@
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/mission.h>
-#include <uORB/topics/mission_result.h>
+#include <uORB/topics/navigator_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -140,14 +140,14 @@ public:
 	 */
 	void		set_can_loiter_at_sp(bool can_loiter) { _can_loiter_at_sp = can_loiter; }
 	void		set_position_setpoint_triplet_updated() { _pos_sp_triplet_updated = true; }
-	void		set_mission_result_updated() { _mission_result_updated = true; }
+	void		set_navigator_status_updated() { _navigator_status_updated = true; }
 
 	/**
 	 * Getters
 	 */
 	struct fw_pos_ctrl_status_s *get_fw_pos_ctrl_status() { return &_fw_pos_ctrl_status; }
 	struct home_position_s *get_home_position() { return &_home_pos; }
-	struct mission_result_s *get_mission_result() { return &_mission_result; }
+	struct navigator_status_s *get_navigator_status() { return &_navigator_status; }
 	struct position_setpoint_triplet_s *get_position_setpoint_triplet() { return &_pos_sp_triplet; }
 	struct position_setpoint_triplet_s *get_reposition_triplet() { return &_reposition_triplet; }
 	struct position_setpoint_triplet_s *get_takeoff_triplet() { return &_takeoff_triplet; }
@@ -242,9 +242,7 @@ public:
 
 	orb_advert_t	*get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
-	void		increment_mission_instance_count() { _mission_result.instance_count++; }
-
-	void 		set_mission_failure(const char *reason);
+	void 		set_navigator_failure(const char *reason);
 
 	// MISSION
 	bool		is_planned_mission() const { return _navigation_mode == &_mission; }
@@ -285,7 +283,7 @@ private:
 
 	orb_advert_t	_geofence_result_pub{nullptr};
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
-	orb_advert_t	_mission_result_pub{nullptr};
+	orb_advert_t	_navigator_status_pub{nullptr};
 	orb_advert_t	_pos_sp_triplet_pub{nullptr};
 	orb_advert_t	_vehicle_cmd_ack_pub{nullptr};
 	orb_advert_t	_vehicle_cmd_pub{nullptr};
@@ -294,7 +292,7 @@ private:
 	// Subscriptions
 	fw_pos_ctrl_status_s				_fw_pos_ctrl_status{};	/**< fixed wing navigation capabilities */
 	home_position_s					_home_pos{};		/**< home position for RTL */
-	mission_result_s				_mission_result{};
+	navigator_status_s				_navigator_status{};
 	vehicle_global_position_s			_global_pos{};		/**< global vehicle position */
 	vehicle_gps_position_s				_gps_pos{};		/**< gps position */
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
@@ -316,7 +314,7 @@ private:
 	bool		_can_loiter_at_sp{false};			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated{false};		/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
-	bool		_mission_result_updated{false};		/**< flags if mission result has seen an update */
+	bool		_navigator_status_updated{false};		/**< flags if mission result has seen an update */
 
 	NavigatorMode	*_navigation_mode{nullptr};		/**< abstract pointer to current navigation mode class */
 	Mission		_mission;			/**< class that handles the missions */
@@ -377,7 +375,7 @@ private:
 	/**
 	 * Publish the mission result so commander and mavlink know what is going on
 	 */
-	void		publish_mission_result();
+	void		publish_navigator_status();
 
 	void		publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);
 };

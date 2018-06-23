@@ -53,9 +53,10 @@
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
 #include <px4_module_params.h>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
-#include <uORB/topics/mission_result.h>
+#include <uORB/topics/mission_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
@@ -99,14 +100,21 @@ public:
 	bool get_mission_changed() const { return _mission_changed ; }
 	bool get_mission_waypoints_changed() const { return _mission_waypoints_changed ; }
 
+	const mission_status_s &get_mission_status() { return _mission_status_pub.get(); }
+
 	void set_closest_item_as_current();
 
 	/**
 	 * Set a new mission mode and handle the switching between the different modes
 	 *
-	 * For a list of the different modes refer to mission_result.msg
+	 * For a list of the different modes refer to mission_status.msg
 	 */
 	void set_execution_mode(const uint8_t mode);
+
+	void set_execution_mode_normal() { set_execution_mode(mission_status_s::MISSION_EXECUTION_MODE_NORMAL); }
+	void set_execution_mode_reverse() { set_execution_mode(mission_status_s::MISSION_EXECUTION_MODE_REVERSE); }
+	void set_execution_mode_fast_forward() { set_execution_mode(mission_status_s::MISSION_EXECUTION_MODE_FAST_FORWARD); }
+
 private:
 
 	/**
@@ -241,6 +249,10 @@ private:
 	 */
 	int32_t index_closest_mission_item() const;
 
+	mission_status_s &mission_status() { return _mission_status_pub.get(); }
+
+	void mission_status_update() { _mission_status_pub.get().timestamp = hrt_absolute_time(); _mission_status_pub.update(); }
+
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
 
 	DEFINE_PARAMETERS(
@@ -250,6 +262,8 @@ private:
 		(ParamInt<px4::params::MIS_YAWMODE>) _param_yawmode,
 		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mnt_yaw_ctl
 	)
+
+	uORB::Publication<mission_status_s> _mission_status_pub{ORB_ID(mission_status)};
 
 	struct mission_s _offboard_mission {};
 
@@ -288,6 +302,6 @@ private:
 		WORK_ITEM_TYPE_PRECISION_LAND
 	} _work_item_type{WORK_ITEM_TYPE_DEFAULT};	/**< current type of work to do (sub mission item) */
 
-	uint8_t _mission_execution_mode{mission_result_s::MISSION_EXECUTION_MODE_NORMAL};	/**< the current mode of how the mission is executed,look at mission_result.msg for the definition */
+	uint8_t _mission_execution_mode{mission_status_s::MISSION_EXECUTION_MODE_NORMAL};	/**< the current mode of how the mission is executed,look at mission_status.msg for the definition */
 	bool _execution_mode_changed{false};
 };

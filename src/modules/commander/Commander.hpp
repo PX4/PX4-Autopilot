@@ -54,7 +54,8 @@
 // subscriptions
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/geofence_result.h>
-#include <uORB/topics/mission_result.h>
+#include <uORB/topics/mission_status.h>
+#include <uORB/topics/navigator_status.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -170,7 +171,8 @@ private:
 	} _telemetry[ORB_MULTI_MAX_INSTANCES];
 
 	// Subscriptions
-	Subscription<mission_result_s>			_mission_result_sub;
+	Subscription<mission_status_s>			_mission_status_sub{ORB_ID(mission_status)};
+	Subscription<navigator_status_s>		_navigator_status_sub{ORB_ID(navigator_status)};
 	Subscription<vehicle_global_position_s>		_global_position_sub;
 	Subscription<vehicle_local_position_s>		_local_position_sub;
 	Subscription<iridiumsbd_status_s> 		_iridiumsbd_status_sub;

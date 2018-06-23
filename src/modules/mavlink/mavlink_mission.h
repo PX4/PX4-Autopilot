@@ -125,7 +125,7 @@ private:
 	static bool		_transfer_in_progress;			///< Global variable checking for current transmission
 
 	int			_offboard_mission_sub{-1};
-	int			_mission_result_sub{-1};
+	int			_mission_status_sub{-1};
 
 	orb_advert_t		_offboard_mission_pub{nullptr};
 

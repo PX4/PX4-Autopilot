@@ -135,8 +135,8 @@ GpsFailure::set_gpsf_item()
 	switch (_gpsf_state) {
 	case GPSF_STATE_TERMINATE: {
 			/* Request flight termination from commander */
-			_navigator->get_mission_result()->flight_termination = true;
-			_navigator->set_mission_result_updated();
+			_navigator->get_navigator_status()->flight_termination = true;
+			_navigator->set_navigator_status_updated();
 			PX4_WARN("GPS failure: request flight termination");
 		}
 		break;

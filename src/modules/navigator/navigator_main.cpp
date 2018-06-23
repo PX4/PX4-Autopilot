@@ -436,7 +436,7 @@ Navigator::run()
 				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_MISSION_START) {
-				if (_mission_result.valid && PX4_ISFINITE(cmd.param1) && (cmd.param1 >= 0)) {
+				if (_mission.get_mission_status().valid && PX4_ISFINITE(cmd.param1) && (cmd.param1 >= 0)) {
 					if (!_mission.set_current_offboard_mission_index(cmd.param1)) {
 						PX4_WARN("CMD_MISSION_START failed");
 					}
@@ -558,7 +558,7 @@ Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 			_pos_sp_triplet_published_invalid_once = false;
 
-			_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_NORMAL);
+			_mission.set_execution_mode_normal();
 			navigation_mode_new = &_mission;
 
 			break;
@@ -586,7 +586,7 @@ Navigator::run()
 
 					// if RTL is set to use a mission landing and mission has a planned landing, then use MISSION to fly there directly
 					if (on_mission_landing() && !get_land_detected()->landed) {
-						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
+						_mission.set_execution_mode_fast_forward();
 						navigation_mode_new = &_mission;
 
 					} else {
@@ -598,7 +598,7 @@ Navigator::run()
 				case RTL::RTL_MISSION:
 					if (_mission.get_land_start_available() && !get_land_detected()->landed) {
 						// the mission contains a landing spot
-						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
+						_mission.set_execution_mode_fast_forward();
 
 						if (_navigation_mode != &_mission) {
 							if (_navigation_mode == nullptr) {
@@ -621,10 +621,10 @@ Navigator::run()
 
 					} else {
 						// fly the mission in reverse if switching from a non-manual mode
-						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_REVERSE);
+						_mission.set_execution_mode_reverse();
 
 						if ((_navigation_mode != nullptr && (_navigation_mode != &_rtl || _mission.get_mission_changed())) &&
-						    (! _mission.get_mission_finished()) &&
+						    (!_mission.get_mission_finished()) &&
 						    (!get_land_detected()->landed)) {
 							// determine the closest mission item if switching from a non-mission mode, and we are either not already
 							// mission mode or the mission waypoints changed.
@@ -730,10 +730,15 @@ Navigator::run()
 			//
 			// FIXME: a better solution would be to add reset where they are needed and remove
 			//        this general reset here.
-			if (!(_navigation_mode == &_takeoff &&
-			      navigation_mode_new == &_loiter)) {
+			if (!(_navigation_mode == &_takeoff && navigation_mode_new == &_loiter)) {
+
 				reset_triplets();
 			}
+
+			_navigator_status.failure = false;
+			_navigator_status.finished = false;
+
+			_navigator_status_updated = true;
 		}
 
 		_navigation_mode = navigation_mode_new;
@@ -767,9 +772,9 @@ Navigator::run()
 			_pos_sp_triplet_updated = false;
 		}
 
-		if (_mission_result_updated) {
-			publish_mission_result();
-			_mission_result_updated = false;
+		if (_navigator_status_updated) {
+			publish_navigator_status();
+			_navigator_status_updated = false;
 		}
 
 		perf_end(_loop_perf);
@@ -1181,24 +1186,19 @@ int navigator_main(int argc, char *argv[])
 }
 
 void
-Navigator::publish_mission_result()
+Navigator::publish_navigator_status()
 {
-	_mission_result.timestamp = hrt_absolute_time();
+	_navigator_status.timestamp = hrt_absolute_time();
 
 	/* lazily publish the mission result only once available */
-	if (_mission_result_pub != nullptr) {
+	if (_navigator_status_pub != nullptr) {
 		/* publish mission result */
-		orb_publish(ORB_ID(mission_result), _mission_result_pub, &_mission_result);
+		orb_publish(ORB_ID(navigator_status), _navigator_status_pub, &_navigator_status);
 
 	} else {
 		/* advertise and publish */
-		_mission_result_pub = orb_advertise(ORB_ID(mission_result), &_mission_result);
+		_navigator_status_pub = orb_advertise(ORB_ID(navigator_status), &_navigator_status);
 	}
-
-	/* reset some of the flags */
-	_mission_result.item_do_jump_changed = false;
-	_mission_result.item_changed_index = 0;
-	_mission_result.item_do_jump_remaining = 0;
 }
 
 void
@@ -1216,11 +1216,11 @@ Navigator::publish_geofence_result()
 }
 
 void
-Navigator::set_mission_failure(const char *reason)
+Navigator::set_navigator_failure(const char *reason)
 {
-	if (!_mission_result.failure) {
-		_mission_result.failure = true;
-		set_mission_result_updated();
+	if (!_navigator_status.failure) {
+		_navigator_status.failure = true;
+		set_navigator_status_updated();
 		mavlink_log_critical(&_mavlink_log_pub, "%s", reason);
 	}
 }

@@ -132,8 +132,8 @@ DataLinkLoss::set_dll_item()
 
 	case DLL_STATE_TERMINATE: {
 			/* Request flight termination from the commander */
-			_navigator->get_mission_result()->flight_termination = true;
-			_navigator->set_mission_result_updated();
+			_navigator->get_navigator_status()->flight_termination = true;
+			_navigator->set_navigator_status_updated();
 			reset_mission_item_reached();
 			warnx("not switched to manual: request flight termination");
 			pos_sp_triplet->previous.valid = false;
@@ -167,8 +167,8 @@ DataLinkLoss::advance_dll()
 			warnx("%d data link losses, limit is %d, fly to airfield home",
 			      _navigator->get_vstatus()->data_link_lost_counter, _param_numberdatalinklosses.get());
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "too many DL losses, fly to airfield home");
-			_navigator->get_mission_result()->stay_in_failsafe = true;
-			_navigator->set_mission_result_updated();
+			_navigator->get_navigator_status()->stay_in_failsafe = true;
+			_navigator->set_navigator_status_updated();
 			reset_mission_item_reached();
 			_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
 
@@ -192,8 +192,8 @@ DataLinkLoss::advance_dll()
 		warnx("fly to airfield home");
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "fly to airfield home");
 		_dll_state = DLL_STATE_FLYTOAIRFIELDHOMEWP;
-		_navigator->get_mission_result()->stay_in_failsafe = true;
-		_navigator->set_mission_result_updated();
+		_navigator->get_navigator_status()->stay_in_failsafe = true;
+		_navigator->set_navigator_status_updated();
 		reset_mission_item_reached();
 		break;
 
@@ -201,8 +201,8 @@ DataLinkLoss::advance_dll()
 		_dll_state = DLL_STATE_TERMINATE;
 		warnx("time is up, state should have been changed manually by now");
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "no manual control, terminating");
-		_navigator->get_mission_result()->stay_in_failsafe = true;
-		_navigator->set_mission_result_updated();
+		_navigator->get_navigator_status()->stay_in_failsafe = true;
+		_navigator->set_navigator_status_updated();
 		reset_mission_item_reached();
 		break;
 

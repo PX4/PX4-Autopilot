@@ -620,7 +620,8 @@ void Logger::add_default_topics()
 	add_topic("landing_target_pose");
 	add_topic("manual_control_setpoint", 200);
 	add_topic("mission");
-	add_topic("mission_result");
+	add_topic("mission_status");
+	add_topic("navigator_status");
 	add_topic("optical_flow", 50);
 	add_topic("ping");
 	add_topic("position_setpoint_triplet", 200);

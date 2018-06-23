@@ -113,8 +113,8 @@ private:
 	MavlinkOrbSubscription *_gps_sub;
 	uint64_t _gps_time;
 
-	MavlinkOrbSubscription *_mission_result_sub;
-	uint64_t _mission_result_time;
+	MavlinkOrbSubscription *_mission_status_sub;
+	uint64_t _mission_status_time;
 
 	MavlinkOrbSubscription *_status_sub;
 	uint64_t _status_time;
@@ -168,7 +168,7 @@ protected:
 
 	bool write_global_position(mavlink_high_latency2_t *msg);
 
-	bool write_mission_result(mavlink_high_latency2_t *msg);
+	bool write_mission_status(mavlink_high_latency2_t *msg);
 
 	bool write_tecs_status(mavlink_high_latency2_t *msg);
 

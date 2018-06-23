@@ -93,7 +93,6 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/mission.h>
-#include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/power_button_state.h>
@@ -587,7 +586,6 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 
 Commander::Commander() :
 	ModuleParams(nullptr),
-	_mission_result_sub(ORB_ID(mission_result)),
 	_global_position_sub(ORB_ID(vehicle_global_position)),
 	_local_position_sub(ORB_ID(vehicle_local_position)),
 	_iridiumsbd_status_sub(ORB_ID(iridiumsbd_status))
@@ -1005,7 +1003,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 		if (status_flags.condition_auto_mission_available) {
 
 			// requested first mission item valid
-			if (PX4_ISFINITE(cmd.param1) && (cmd.param1 >= -1) && (cmd.param1 < _mission_result_sub.get().seq_total)) {
+			if (PX4_ISFINITE(cmd.param1) && (cmd.param1 >= -1) && (cmd.param1 < _mission_status_sub.get().seq_total)) {
 
 				// switch to AUTO_MISSION and ARM
 				if ((TRANSITION_DENIED != main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, status_flags, &internal_state))
@@ -2041,20 +2039,20 @@ Commander::run()
 		}
 
 		/* start mission result check */
-		const auto prev_mission_instance_count = _mission_result_sub.get().instance_count;
+		const auto prev_mission_instance_count = _mission_status_sub.get().instance_count;
 
-		if (_mission_result_sub.update()) {
-			const mission_result_s &mission_result = _mission_result_sub.get();
+		if (_mission_status_sub.update()) {
+			const mission_status_s &mission_status = _mission_status_sub.get();
 
-			// if mission_result is valid for the current mission
-			const bool mission_result_ok = (mission_result.timestamp > commander_boot_timestamp) && (mission_result.instance_count > 0);
+			// if mission_status is valid for the current mission
+			const bool mission_status_ok = (mission_status.timestamp > commander_boot_timestamp) && (mission_status.instance_count > 0);
 
-			status_flags.condition_auto_mission_available = mission_result_ok && mission_result.valid;
+			status_flags.condition_auto_mission_available = mission_status_ok && mission_status.valid;
 
-			if (mission_result_ok) {
+			if (mission_status_ok) {
 
-				if (status.mission_failure != mission_result.failure) {
-					status.mission_failure = mission_result.failure;
+				if (status.mission_failure != mission_status.failure) {
+					status.mission_failure = mission_status.failure;
 					status_changed = true;
 
 					if (status.mission_failure) {
@@ -2064,13 +2062,13 @@ Commander::run()
 
 				/* Only evaluate mission state if home is set */
 				if (status_flags.condition_home_position_valid &&
-				    (prev_mission_instance_count != mission_result.instance_count)) {
+				    (prev_mission_instance_count != mission_status.instance_count)) {
 
 					if (!status_flags.condition_auto_mission_available) {
 						/* the mission is invalid */
 						tune_mission_fail(true);
 
-					} else if (mission_result.warning) {
+					} else if (mission_status.warning) {
 						/* the mission has a warning */
 						tune_mission_fail(true);
 
@@ -2197,8 +2195,11 @@ Commander::run()
 		}
 
 
-		/* Check for mission flight termination */
-		if (armed.armed && _mission_result_sub.get().flight_termination &&
+		/* Check for navigator flight termination */
+		_navigator_status_sub.update();
+		const navigator_status_s& navigator_status = _navigator_status_sub.get();
+
+		if (armed.armed && navigator_status.flight_termination &&
 		    !status_flags.circuit_breaker_flight_termination_disabled) {
 
 			armed.force_failsafe = true;
@@ -2206,7 +2207,7 @@ Commander::run()
 			static bool flight_termination_printed = false;
 
 			if (!flight_termination_printed) {
-				mavlink_log_critical(&mavlink_log_pub, "Geofence violation: flight termination");
+				mavlink_log_critical(&mavlink_log_pub, "Navigator: flight termination");
 				flight_termination_printed = true;
 			}
 
@@ -2432,15 +2433,12 @@ Commander::run()
 		/* Reset main state to loiter or auto-mission after takeoff is completed.
 		 * Sometimes, the mission result topic is outdated and the mission is still signaled
 		 * as finished even though we only just started with the takeoff. Therefore, we also
-		 * check the timestamp of the mission_result topic. */
+		 * check the timestamp of the navigator_status topic. */
 		if (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
-		    && (_mission_result_sub.get().timestamp > internal_state.timestamp)
-		    && _mission_result_sub.get().finished) {
+		    && (navigator_status.timestamp > internal_state.timestamp)
+		    && navigator_status.finished) {
 
-			const bool mission_available = (_mission_result_sub.get().timestamp > commander_boot_timestamp)
-						       && (_mission_result_sub.get().instance_count > 0) && _mission_result_sub.get().valid;
-
-			if ((takeoff_complete_act == 1) && mission_available) {
+			if ((takeoff_complete_act == 1) && status_flags.condition_auto_mission_available) {
 				main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_MISSION, status_flags, &internal_state);
 
 			} else {
@@ -2597,8 +2595,8 @@ Commander::run()
 						       &internal_state,
 						       &mavlink_log_pub,
 						       (link_loss_actions_t)datalink_loss_act,
-						       _mission_result_sub.get().finished,
-						       _mission_result_sub.get().stay_in_failsafe,
+						       _mission_status_sub.get().finished,
+						       navigator_status.stay_in_failsafe,
 						       status_flags,
 						       land_detector.landed,
 						       (link_loss_actions_t)rc_loss_act,
@@ -4095,10 +4093,10 @@ void Commander::poll_telemetry_status()
 				preflight_check(true);
 
 				// Provide feedback on mission state
-				const mission_result_s &mission_result = _mission_result_sub.get();
+				const mission_status_s &mission_status = _mission_status_sub.get();
 
-				if ((mission_result.timestamp > commander_boot_timestamp) && status_flags.condition_system_hotplug_timeout &&
-				    (mission_result.instance_count > 0) && !mission_result.valid) {
+				if ((mission_status.timestamp > commander_boot_timestamp) && status_flags.condition_system_hotplug_timeout &&
+				    (mission_status.instance_count > 0) && !mission_status.valid) {
 
 					mavlink_log_critical(&mavlink_log_pub, "Planned mission fails check. Please upload again.");
 					//set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MISSION, true, true, false, status); // TODO

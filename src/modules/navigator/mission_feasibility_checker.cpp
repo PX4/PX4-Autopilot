@@ -53,10 +53,13 @@
 bool
 MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 		float max_distance_to_1st_waypoint, float max_distance_between_waypoints,
-		bool land_start_req)
+		bool land_start_req, bool &warning)
 {
 	bool failed = false;
 	bool warned = false;
+
+	// reset previous warnings
+	warning = false;
 
 	// first check if we have a valid position
 	const bool home_valid = _navigator->home_position_valid();
@@ -68,16 +71,16 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Not yet ready for mission, no position lock.");
 
 	} else {
-		failed = failed || !checkDistanceToFirstWaypoint(mission, max_distance_to_1st_waypoint);
+		failed = failed || !checkDistanceToFirstWaypoint(mission, max_distance_to_1st_waypoint, warning);
 	}
 
 	const float home_alt = _navigator->get_home_position()->alt;
 
 	// check if all mission item commands are supported
 	failed = failed || !checkMissionItemValidity(mission);
-	failed = failed || !checkDistancesBetweenWaypoints(mission, max_distance_between_waypoints);
+	failed = failed || !checkDistancesBetweenWaypoints(mission, max_distance_between_waypoints, warning);
 	failed = failed || !checkGeofence(mission, home_alt, home_valid);
-	failed = failed || !checkHomePositionAltitude(mission, home_alt, home_alt_valid, warned);
+	failed = failed || !checkHomePositionAltitude(mission, home_alt, home_alt_valid, warned, warning);
 
 	// VTOL always respects rotary wing feasibility
 	if (_navigator->get_vstatus()->is_rotary_wing || _navigator->get_vstatus()->is_vtol) {
@@ -179,7 +182,7 @@ MissionFeasibilityChecker::checkGeofence(const mission_s &mission, float home_al
 
 bool
 MissionFeasibilityChecker::checkHomePositionAltitude(const mission_s &mission, float home_alt, bool home_alt_valid,
-		bool throw_error)
+		bool throw_error, bool &warning)
 {
 	/* Check if all waypoints are above the home altitude */
 	for (size_t i = 0; i < mission.count; i++) {
@@ -187,7 +190,7 @@ MissionFeasibilityChecker::checkHomePositionAltitude(const mission_s &mission, f
 		const ssize_t len = sizeof(struct mission_item_s);
 
 		if (dm_read((dm_item_t)mission.dataman_id, i, &missionitem, len) != len) {
-			_navigator->get_mission_result()->warning = true;
+			warning = true;
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			return false;
 		}
@@ -195,7 +198,7 @@ MissionFeasibilityChecker::checkHomePositionAltitude(const mission_s &mission, f
 		/* reject relative alt without home set */
 		if (missionitem.altitude_is_relative && !home_alt_valid && MissionBlock::item_contains_position(missionitem)) {
 
-			_navigator->get_mission_result()->warning = true;
+			warning = true;
 
 			if (throw_error) {
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: No home pos, WP %d uses rel alt", i + 1);
@@ -212,7 +215,7 @@ MissionFeasibilityChecker::checkHomePositionAltitude(const mission_s &mission, f
 
 		if ((home_alt > wp_alt) && MissionBlock::item_contains_position(missionitem)) {
 
-			_navigator->get_mission_result()->warning = true;
+			warning = true;
 
 			if (throw_error) {
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Waypoint %d below home", i + 1);
@@ -467,7 +470,7 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 }
 
 bool
-MissionFeasibilityChecker::checkDistanceToFirstWaypoint(const mission_s &mission, float max_distance)
+MissionFeasibilityChecker::checkDistanceToFirstWaypoint(const mission_s &mission, float max_distance, bool &warning)
 {
 	if (max_distance <= 0.0f) {
 		/* param not set, check is ok */
@@ -505,7 +508,7 @@ MissionFeasibilityChecker::checkDistanceToFirstWaypoint(const mission_s &mission
 					     "First waypoint too far away: %d meters, %d max.",
 					     (int)dist_to_1wp, (int)max_distance);
 
-			_navigator->get_mission_result()->warning = true;
+			warning = true;
 			return false;
 		}
 	}
@@ -515,7 +518,7 @@ MissionFeasibilityChecker::checkDistanceToFirstWaypoint(const mission_s &mission
 }
 
 bool
-MissionFeasibilityChecker::checkDistancesBetweenWaypoints(const mission_s &mission, float max_distance)
+MissionFeasibilityChecker::checkDistancesBetweenWaypoints(const mission_s &mission, float max_distance, bool &warning)
 {
 	if (max_distance <= 0.0f) {
 		/* param not set, check is ok */
@@ -555,7 +558,7 @@ MissionFeasibilityChecker::checkDistancesBetweenWaypoints(const mission_s &missi
 						     "Distance between waypoints too far: %d meters, %d max.",
 						     (int)dist_between_waypoints, (int)max_distance);
 
-				_navigator->get_mission_result()->warning = true;
+				warning = true;
 				return false;
 			}
 		}
