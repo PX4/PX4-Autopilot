@@ -1049,13 +1049,16 @@ void Ekf2::run()
 				att.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
 				att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
 
-				// TODO: Propagate attitude covariance matrix
-				// For now, set to uknown
-				att.covariance[0] = NAN;
+				// attitude covariance
+				float covariances[24];
+				_ekf.get_covariances(covariances);
+				matrix::Eulerf att_cov = matrix::Quatf(covariances[0], covariances[1], covariances[2], covariances[3]);
+				att.covariance[0] = att_cov.phi();
+				att.covariance[4] = att_cov.theta();
+				att.covariance[8] = att_cov.psi();
 
-				// for now, set the std_dev for hardcoded values,
-				// so it can be accepted on the commander side
-				att.att_std_dev = math::radians(3);	// 3 degrees
+				// TODO: add a respective get_ekf_att_accuracy to ECL
+				att.att_std_dev = sqrtf(fmaxf(att_cov.phi(), fmaxf(att_cov.theta(), att_cov.psi())));
 				att.att_rate_std_dev = NAN;
 
 				// publish vehicle attitude data
