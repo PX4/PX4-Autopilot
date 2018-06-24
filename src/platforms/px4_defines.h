@@ -150,6 +150,7 @@ inline bool isfinite(T __y)
 namespace std
 {
 using ::isfinite;
+using ::isnan;
 }
 #endif // __cplusplus
 
