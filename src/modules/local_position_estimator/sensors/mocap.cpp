@@ -46,10 +46,8 @@ void BlockLocalPositionEstimator::mocapInit()
 
 int BlockLocalPositionEstimator::mocapMeasure(Vector<float, n_y_mocap> &y)
 {
-	_mocap_xy_valid = (!PX4_ISNAN(_sub_mocap.get().eph)
-			   && _sub_mocap.get().eph > EP_MAX_STD_DEV) ? false : true;
-	_mocap_z_valid = (!PX4_ISNAN(_sub_mocap.get().epv)
-			  && _sub_mocap.get().epv > EP_MAX_STD_DEV) ? false : true;
+	_mocap_xy_valid = !PX4_ISNAN(_sub_mocap.get().eph) && _sub_mocap.get().eph <= EP_MAX_STD_DEV;
+	_mocap_z_valid = !PX4_ISNAN(_sub_mocap.get().epv) && _sub_mocap.get().epv <= EP_MAX_STD_DEV;
 
 	// TODO: use covariance from topic instead
 	if (!_mocap_xy_valid || !_mocap_z_valid) {

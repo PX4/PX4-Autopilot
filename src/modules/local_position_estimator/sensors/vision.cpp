@@ -60,10 +60,8 @@ void BlockLocalPositionEstimator::visionInit()
 
 int BlockLocalPositionEstimator::visionMeasure(Vector<float, n_y_vision> &y)
 {
-	_vision_xy_valid = (!PX4_ISNAN(_sub_visual_odom.get().eph)
-			    && _sub_visual_odom.get().eph > EP_MAX_STD_DEV) ? false : true;
-	_vision_z_valid = (!PX4_ISNAN(_sub_visual_odom.get().epv)
-			   && _sub_visual_odom.get().epv > EP_MAX_STD_DEV) ? false : true;
+	_vision_xy_valid = !PX4_ISNAN(_sub_visual_odom.get().eph) && _sub_visual_odom.get().eph <= EP_MAX_STD_DEV;
+	_vision_z_valid = !PX4_ISNAN(_sub_visual_odom.get().epv) && _sub_visual_odom.get().epv <= EP_MAX_STD_DEV;
 
 	// TODO: use covariance from topic instead
 	if (!_vision_xy_valid || !_vision_z_valid) {
