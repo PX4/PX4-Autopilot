@@ -141,22 +141,28 @@ typedef param_t px4_param_t;
 #ifdef __cplusplus
 #include <cmath>
 #undef isfinite
+#undef isnan
+
 template<typename T>
 inline bool isfinite(T __y)
 {
 	int __cy = fpclassify(__y);
 	return __cy != FP_INFINITE && __cy != FP_NAN;
 }
+
+template<typename T>
+inline bool isnan(T y)
+{
+	return fpclassify(y) == FP_NAN;
+}
+
 namespace std
 {
 using ::isfinite;
 using ::isnan;
 }
+
 #endif // __cplusplus
-
-#undef PX4_ISNAN
-#define PX4_ISNAN(x) isnan(x)
-
 #elif defined(__PX4_POSIX)
 /****************************************************************************
  * POSIX Specific defines
