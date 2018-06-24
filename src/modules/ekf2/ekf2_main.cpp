@@ -1189,7 +1189,7 @@ void Ekf2::run()
 				global_pos.vel_e = lpos.vy; // Ground east velocity, m/s
 				global_pos.vel_d = lpos.vz; // Ground downside velocity, m/s
 
-				global_pos.yaw = matrix::Eulerf(matrix::Quatf(lpos.q)).psi(); // Yaw in radians -PI..+PI.
+				global_pos.yaw = matrix::Eulerf(q).psi(); // Yaw in radians -PI..+PI.
 
 				_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
 
