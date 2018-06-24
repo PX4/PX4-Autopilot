@@ -50,7 +50,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_airdata(ORB_ID(vehicle_air_data), 0, 0, &getSubscriptions()),
 
 	// publications
-	_pub_odom(ORB_ID(vehicle_local_position), -1, &getPublications()),
+	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
 	_pub_gpos(ORB_ID(vehicle_global_position), -1, &getPublications()),
 	_pub_est_status(ORB_ID(estimator_status), -1, &getPublications()),
 	_pub_innov(ORB_ID(ekf2_innovations), -1, &getPublications()),
@@ -560,113 +560,113 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		}
 	}
 
-	// publish odometry
+	// publish local position
 	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) &&
 	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
 	    && PX4_ISFINITE(_x(X_vz))) {
-		_pub_odom.get().timestamp = _timeStamp;
+		_pub_lpos.get().timestamp = _timeStamp;
 
-		_pub_odom.get().xy_valid = _estimatorInitialized & EST_XY;
-		_pub_odom.get().z_valid = _estimatorInitialized & EST_Z;
-		_pub_odom.get().v_xy_valid = _estimatorInitialized & EST_XY;
-		_pub_odom.get().v_z_valid = _estimatorInitialized & EST_Z;
+		_pub_lpos.get().xy_valid = _estimatorInitialized & EST_XY;
+		_pub_lpos.get().z_valid = _estimatorInitialized & EST_Z;
+		_pub_lpos.get().v_xy_valid = _estimatorInitialized & EST_XY;
+		_pub_lpos.get().v_z_valid = _estimatorInitialized & EST_Z;
 
-		_pub_odom.get().x = xLP(X_x);	// north
-		_pub_odom.get().y = xLP(X_y);	// east
+		_pub_lpos.get().x = xLP(X_x);	// north
+		_pub_lpos.get().y = xLP(X_y);	// east
 
 		if (_fusion.get() & FUSE_PUB_AGL_Z) {
-			_pub_odom.get().z = -_aglLowPass.getState();	// agl
+			_pub_lpos.get().z = -_aglLowPass.getState();	// agl
 
 		} else {
-			_pub_odom.get().z = xLP(X_z);	// down
+			_pub_lpos.get().z = xLP(X_z);	// down
 		}
 
-		_q.copyTo(_pub_odom.get().q);
+		_q.copyTo(_pub_lpos.get().q);
 
 		_pub_est_status.get().states[0] = _x(X_x);
 		_pub_est_status.get().states[0] = _x(X_x);
 
-		_pub_odom.get().vx = xLP(X_vx);		// north
-		_pub_odom.get().vy = xLP(X_vy);		// east
-		_pub_odom.get().vz = xLP(X_vz);		// down
+		_pub_lpos.get().vx = xLP(X_vx);		// north
+		_pub_lpos.get().vy = xLP(X_vy);		// east
+		_pub_lpos.get().vz = xLP(X_vz);		// down
 
-		_pub_odom.get().rollspeed = NAN;
-		_pub_odom.get().pitchspeed = NAN;
-		_pub_odom.get().yawspeed = NAN;
+		_pub_lpos.get().rollspeed = NAN;
+		_pub_lpos.get().pitchspeed = NAN;
+		_pub_lpos.get().yawspeed = NAN;
 
 		// this estimator does not provide a separate vertical position time derivative estimate, so use the vertical velocity
-		_pub_odom.get().z_deriv = xLP(X_vz);
+		_pub_lpos.get().z_deriv = xLP(X_vz);
 
-		_pub_odom.get().ax = _u(U_ax);		// north
-		_pub_odom.get().ay = _u(U_ay);		// east
-		_pub_odom.get().az = _u(U_az);		// down
+		_pub_lpos.get().ax = _u(U_ax);		// north
+		_pub_lpos.get().ay = _u(U_ay);		// east
+		_pub_lpos.get().az = _u(U_az);		// down
 
 		// copy covariances to the covariance matrices to be propagated
-		// on the vehicle_odometry message.
+		// on the vehicle_local_position message.
 		for (size_t i = 0; i < 21; i++) {
 			if (i == 0) {
-				_pub_odom.get().pose_covariance[i] = _P(X_x, X_x);
-				_pub_odom.get().velocity_covariance[i] = _P(X_vx, X_vx);
+				_pub_lpos.get().pose_covariance[i] = _P(X_x, X_x);
+				_pub_lpos.get().velocity_covariance[i] = _P(X_vx, X_vx);
 
 			} else if (i == 1) {
-				_pub_odom.get().pose_covariance[i] = _P(X_x, X_y);
-				_pub_odom.get().velocity_covariance[i] = _P(X_vx, X_vy);
+				_pub_lpos.get().pose_covariance[i] = _P(X_x, X_y);
+				_pub_lpos.get().velocity_covariance[i] = _P(X_vx, X_vy);
 
 			} else if (i == 2) {
-				_pub_odom.get().pose_covariance[i] = _P(X_x, X_z);
-				_pub_odom.get().velocity_covariance[i] = _P(X_vx, X_vz);
+				_pub_lpos.get().pose_covariance[i] = _P(X_x, X_z);
+				_pub_lpos.get().velocity_covariance[i] = _P(X_vx, X_vz);
 
 			} else if (i == 6) {
-				_pub_odom.get().pose_covariance[i] = _P(X_y, X_y);
-				_pub_odom.get().velocity_covariance[i] = _P(X_vy, X_vy);
+				_pub_lpos.get().pose_covariance[i] = _P(X_y, X_y);
+				_pub_lpos.get().velocity_covariance[i] = _P(X_vy, X_vy);
 
 			} else if (i == 7) {
-				_pub_odom.get().pose_covariance[i] = _P(X_y, X_z);
-				_pub_odom.get().velocity_covariance[i] = _P(X_vy, X_vz);
+				_pub_lpos.get().pose_covariance[i] = _P(X_y, X_z);
+				_pub_lpos.get().velocity_covariance[i] = _P(X_vy, X_vz);
 
 			} else if (i == 11) {
-				_pub_odom.get().pose_covariance[i] = _P(X_z, X_z);
-				_pub_odom.get().velocity_covariance[i] = _P(X_vz, X_vz);
+				_pub_lpos.get().pose_covariance[i] = _P(X_z, X_z);
+				_pub_lpos.get().velocity_covariance[i] = _P(X_vz, X_vz);
 
 			} else if (i == 15) {
-				_pub_odom.get().pose_covariance[i] = NAN;
-				_pub_odom.get().velocity_covariance[i] = NAN;
+				_pub_lpos.get().pose_covariance[i] = NAN;
+				_pub_lpos.get().velocity_covariance[i] = NAN;
 
 			} else if (i == 18) {
-				_pub_odom.get().pose_covariance[i] = NAN;
-				_pub_odom.get().velocity_covariance[i] = NAN;
+				_pub_lpos.get().pose_covariance[i] = NAN;
+				_pub_lpos.get().velocity_covariance[i] = NAN;
 
 			} else if (i == 20) {
-				_pub_odom.get().pose_covariance[i] = NAN;
-				_pub_odom.get().velocity_covariance[i] = NAN;
+				_pub_lpos.get().pose_covariance[i] = NAN;
+				_pub_lpos.get().velocity_covariance[i] = NAN;
 
 			} else {
-				_pub_odom.get().pose_covariance[i] = 0.0;
+				_pub_lpos.get().pose_covariance[i] = 0.0;
 			}
 		}
 
-		_pub_odom.get().xy_global = _estimatorInitialized & EST_XY;
-		_pub_odom.get().z_global = !(_sensorTimeout & SENSOR_BARO) && _altOriginGlobal;
-		_pub_odom.get().ref_timestamp = _time_origin;
-		_pub_odom.get().ref_lat = _map_ref.lat_rad * 180 / M_PI;
-		_pub_odom.get().ref_lon = _map_ref.lon_rad * 180 / M_PI;
-		_pub_odom.get().ref_alt = _altOrigin;
-		_pub_odom.get().dist_bottom = _aglLowPass.getState();
-		_pub_odom.get().dist_bottom_rate = -xLP(X_vz);
+		_pub_lpos.get().xy_global = _estimatorInitialized & EST_XY;
+		_pub_lpos.get().z_global = !(_sensorTimeout & SENSOR_BARO) && _altOriginGlobal;
+		_pub_lpos.get().ref_timestamp = _time_origin;
+		_pub_lpos.get().ref_lat = _map_ref.lat_rad * 180 / M_PI;
+		_pub_lpos.get().ref_lon = _map_ref.lon_rad * 180 / M_PI;
+		_pub_lpos.get().ref_alt = _altOrigin;
+		_pub_lpos.get().dist_bottom = _aglLowPass.getState();
+		_pub_lpos.get().dist_bottom_rate = -xLP(X_vz);
 		// we estimate agl even when we don't have terrain info
 		// if you are in terrain following mode this is important
 		// so that if terrain estimation fails there isn't a
 		// sudden altitude jump
-		_pub_odom.get().dist_bottom_valid = _estimatorInitialized & EST_Z;
-		_pub_odom.get().eph = eph;
-		_pub_odom.get().epv = epv;
-		_pub_odom.get().evh = evh;
-		_pub_odom.get().evv = evv;
-		_pub_odom.get().vxy_max = INFINITY;
-		_pub_odom.get().vz_max = INFINITY;
-		_pub_odom.get().hagl_min = INFINITY;
-		_pub_odom.get().hagl_max = INFINITY;
-		_pub_odom.update();
+		_pub_lpos.get().dist_bottom_valid = _estimatorInitialized & EST_Z;
+		_pub_lpos.get().eph = eph;
+		_pub_lpos.get().epv = epv;
+		_pub_lpos.get().evh = evh;
+		_pub_lpos.get().evv = evv;
+		_pub_lpos.get().vxy_max = INFINITY;
+		_pub_lpos.get().vz_max = INFINITY;
+		_pub_lpos.get().hagl_min = INFINITY;
+		_pub_lpos.get().hagl_max = INFINITY;
+		_pub_lpos.update();
 	}
 }
 

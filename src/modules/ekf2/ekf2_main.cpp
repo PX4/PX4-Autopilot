@@ -1070,43 +1070,42 @@ void Ekf2::run()
 				}
 			}
 
-			// generate vehicle odometry data
-			vehicle_local_position_s &odom = _vehicle_local_position_pub.get();
-
-			odom.timestamp = now;
+			// generate vehicle position data
+			vehicle_local_position_s &lpos = _vehicle_local_position_pub.get();
+			lpos.timestamp = now;
 
 			// Position of body origin in local NED frame
 			float position[3];
 			_ekf.get_position(position);
-			const float odom_x_prev = odom.x;
-			const float odom_y_prev = odom.y;
-			odom.x = (_ekf.local_position_is_valid()) ? position[0] : 0.0f;
-			odom.y = (_ekf.local_position_is_valid()) ? position[1] : 0.0f;
-			odom.z = position[2];
+			const float lpos_x_prev = lpos.x;
+			const float lpos_y_prev = lpos.y;
+			lpos.x = (_ekf.local_position_is_valid()) ? position[0] : 0.0f;
+			lpos.y = (_ekf.local_position_is_valid()) ? position[1] : 0.0f;
+			lpos.z = position[2];
 
 			// Velocity of body origin in local NED frame (m/s)
 			float velocity[3];
 			_ekf.get_velocity(velocity);
-			odom.vx = velocity[0];
-			odom.vy = velocity[1];
-			odom.vz = velocity[2];
+			lpos.vx = velocity[0];
+			lpos.vy = velocity[1];
+			lpos.vz = velocity[2];
 
 			// vertical position time derivative (m/s)
-			_ekf.get_pos_d_deriv(&odom.z_deriv);
+			_ekf.get_pos_d_deriv(&lpos.z_deriv);
 
 			// Linear acceleration of body origin in local NED frame
 			float vel_deriv[3];
 			_ekf.get_vel_deriv_ned(vel_deriv);
-			odom.ax = vel_deriv[0];
-			odom.ay = vel_deriv[1];
-			odom.az = vel_deriv[2];
+			lpos.ax = vel_deriv[0];
+			lpos.ay = vel_deriv[1];
+			lpos.az = vel_deriv[2];
 
 			// TODO: better status reporting
 			// TODO: add attitude and accel validation reporting
-			odom.xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
-			odom.z_valid = !_preflt_vert_fail;
-			odom.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
-			odom.v_z_valid = !_preflt_vert_fail;
+			lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
+			lpos.z_valid = !_preflt_vert_fail;
+			lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
+			lpos.v_z_valid = !_preflt_vert_fail;
 
 			// TODO: propagate pose and velocity covariance matrices URT
 
@@ -1115,62 +1114,56 @@ void Ekf2::run()
 			uint64_t origin_time;
 
 			// true if position (x,y,z) has a valid WGS-84 global reference (ref_lat, ref_lon, alt)
-			const bool ekf_origin_valid = _ekf.get_ekf_origin(&origin_time, &ekf_origin, &odom.ref_alt);
-			odom.xy_global = ekf_origin_valid;
-			odom.z_global = ekf_origin_valid;
+			const bool ekf_origin_valid = _ekf.get_ekf_origin(&origin_time, &ekf_origin, &lpos.ref_alt);
+			lpos.xy_global = ekf_origin_valid;
+			lpos.z_global = ekf_origin_valid;
 
-			if (ekf_origin_valid && (origin_time > odom.ref_timestamp)) {
-				odom.ref_timestamp = origin_time;
-				odom.ref_lat = ekf_origin.lat_rad * 180.0 / M_PI; // Reference point latitude in degrees
-				odom.ref_lon = ekf_origin.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
+			if (ekf_origin_valid && (origin_time > lpos.ref_timestamp)) {
+				lpos.ref_timestamp = origin_time;
+				lpos.ref_lat = ekf_origin.lat_rad * 180.0 / M_PI; // Reference point latitude in degrees
+				lpos.ref_lon = ekf_origin.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
 			}
 
-			// The rotation of the tangent plane vs. geographical north
-			q.copyTo(odom.q);
-
-			odom.dist_bottom_valid = _ekf.get_terrain_valid();
+			lpos.dist_bottom_valid = _ekf.get_terrain_valid();
 
 			float terrain_vpos;
 			_ekf.get_terrain_vert_pos(&terrain_vpos);
-			odom.dist_bottom = terrain_vpos - odom.z; // Distance to bottom surface (ground) in meters
+			lpos.dist_bottom = terrain_vpos - lpos.z; // Distance to bottom surface (ground) in meters
 
 			// constrain the distance to ground to _rng_gnd_clearance
-			if (odom.dist_bottom < _rng_gnd_clearance.get()) {
-				odom.dist_bottom = _rng_gnd_clearance.get();
+			if (lpos.dist_bottom < _rng_gnd_clearance.get()) {
+				lpos.dist_bottom = _rng_gnd_clearance.get();
 			}
 
-			odom.dist_bottom_rate = -odom.vz; // Distance to bottom surface (ground) change rate
+			lpos.dist_bottom_rate = -lpos.vz; // Distance to bottom surface (ground) change rate
 
-			_ekf.get_ekf_lpos_accuracy(&odom.eph, &odom.epv);
-			_ekf.get_ekf_vel_accuracy(&odom.evh, &odom.evv);
-			// for now, set attitude std dev to NAN
-			odom.att_std_dev = NAN;
-			odom.att_rate_std_dev = NAN;
+			_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
+			_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv);
 
 			// get state reset information of position and velocity
-			_ekf.get_posD_reset(&odom.delta_z, &odom.z_reset_counter);
-			_ekf.get_velD_reset(&odom.delta_vz, &odom.vz_reset_counter);
-			_ekf.get_posNE_reset(&odom.delta_xy[0], &odom.xy_reset_counter);
-			_ekf.get_velNE_reset(&odom.delta_vxy[0], &odom.vxy_reset_counter);
+			_ekf.get_posD_reset(&lpos.delta_z, &lpos.z_reset_counter);
+			_ekf.get_velD_reset(&lpos.delta_vz, &lpos.vz_reset_counter);
+			_ekf.get_posNE_reset(&lpos.delta_xy[0], &lpos.xy_reset_counter);
+			_ekf.get_velNE_reset(&lpos.delta_vxy[0], &lpos.vxy_reset_counter);
 
 			// get control limit information
-			_ekf.get_ekf_ctrl_limits(&odom.vxy_max, &odom.vz_max, &odom.hagl_min, &odom.hagl_max);
+			_ekf.get_ekf_ctrl_limits(&lpos.vxy_max, &lpos.vz_max, &lpos.hagl_min, &lpos.hagl_max);
 
 			// convert NaN to INFINITY
-			if (!PX4_ISFINITE(odom.vxy_max)) {
-				odom.vxy_max = INFINITY;
+			if (!PX4_ISFINITE(lpos.vxy_max)) {
+				lpos.vxy_max = INFINITY;
 			}
 
-			if (!PX4_ISFINITE(odom.vz_max)) {
-				odom.vz_max = INFINITY;
+			if (!PX4_ISFINITE(lpos.vz_max)) {
+				lpos.vz_max = INFINITY;
 			}
 
-			if (!PX4_ISFINITE(odom.hagl_min)) {
-				odom.hagl_min = INFINITY;
+			if (!PX4_ISFINITE(lpos.hagl_min)) {
+				lpos.hagl_min = INFINITY;
 			}
 
-			if (!PX4_ISFINITE(odom.hagl_max)) {
-				odom.hagl_max = INFINITY;
+			if (!PX4_ISFINITE(lpos.hagl_max)) {
+				lpos.hagl_max = INFINITY;
 			}
 
 			// publish vehicle local position data
@@ -1182,31 +1175,31 @@ void Ekf2::run()
 
 				global_pos.timestamp = now;
 
-				if (fabsf(odom_x_prev - odom.x) > FLT_EPSILON || fabsf(odom_y_prev - odom.y) > FLT_EPSILON) {
-					map_projection_reproject(&ekf_origin, odom.x, odom.y, &global_pos.lat, &global_pos.lon);
+				if (fabsf(lpos_x_prev - lpos.x) > FLT_EPSILON || fabsf(lpos_y_prev - lpos.y) > FLT_EPSILON) {
+					map_projection_reproject(&ekf_origin, lpos.x, lpos.y, &global_pos.lat, &global_pos.lon);
 				}
 
-				global_pos.lat_lon_reset_counter = odom.xy_reset_counter;
+				global_pos.lat_lon_reset_counter = lpos.xy_reset_counter;
 
-				global_pos.alt = -odom.z + odom.ref_alt; // Altitude AMSL in meters
+				global_pos.alt = -lpos.z + lpos.ref_alt; // Altitude AMSL in meters
 
 				// global altitude has opposite sign of local down position
-				global_pos.delta_alt = -odom.delta_z;
+				global_pos.delta_alt = -lpos.delta_z;
 
-				global_pos.vel_n = odom.vx; // Ground north velocity, m/s
-				global_pos.vel_e = odom.vy; // Ground east velocity, m/s
-				global_pos.vel_d = odom.vz; // Ground downside velocity, m/s
+				global_pos.vel_n = lpos.vx; // Ground north velocity, m/s
+				global_pos.vel_e = lpos.vy; // Ground east velocity, m/s
+				global_pos.vel_d = lpos.vz; // Ground downside velocity, m/s
 
-				global_pos.yaw = matrix::Eulerf(matrix::Quatf(odom.q)).psi(); // Yaw in radians -PI..+PI.
+				global_pos.yaw = matrix::Eulerf(matrix::Quatf(lpos.q)).psi(); // Yaw in radians -PI..+PI.
 
 				_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
 
 				global_pos.dead_reckoning = _ekf.inertial_dead_reckoning();
 
-				global_pos.terrain_alt_valid = odom.dist_bottom_valid;
+				global_pos.terrain_alt_valid = lpos.dist_bottom_valid;
 
 				if (global_pos.terrain_alt_valid) {
-					global_pos.terrain_alt = odom.ref_alt - terrain_vpos; // Terrain altitude in m, WGS84
+					global_pos.terrain_alt = lpos.ref_alt - terrain_vpos; // Terrain altitude in m, WGS84
 
 				} else {
 					global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84

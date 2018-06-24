@@ -263,7 +263,7 @@ private:
 	uORB::Subscription<vehicle_air_data_s> _sub_airdata;
 
 	// publications
-	uORB::Publication<vehicle_local_position_s> _pub_odom;
+	uORB::Publication<vehicle_local_position_s> _pub_lpos;
 	uORB::Publication<vehicle_global_position_s> _pub_gpos;
 	uORB::Publication<estimator_status_s> _pub_est_status;
 	uORB::Publication<ekf2_innovations_s> _pub_innov;
