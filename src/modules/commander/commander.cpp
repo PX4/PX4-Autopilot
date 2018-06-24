@@ -1111,7 +1111,10 @@ Commander::set_home_position(orb_advert_t &homePub, home_position_s &home, bool 
 		}
 
 		//Ensure that the attitude estimate accuracy is good enough for intializing home
-		if (!PX4_ISNAN(attitude.att_std_dev) && attitude.att_std_dev > _home_eph_threshold.get()) {
+		if (PX4_ISNAN(attitude.att_std_dev)) {
+			return false;
+		}
+		else if (math::degrees(attitude.att_std_dev) > _home_att_stddev_threshold.get()) {
 			return false;
 		}
 
@@ -1758,6 +1761,7 @@ Commander::run()
 
 		_local_position_sub.update();
 		_global_position_sub.update();
+		_attitude_sub.update();
 
 		// Set the allowable positon uncertainty based on combination of flight and estimator state
 		// When we are in a operator demanded position control mode and are solely reliant on optical flow, do not check position error becasue it will gradually increase throughout flight and the operator will compensate for the drift

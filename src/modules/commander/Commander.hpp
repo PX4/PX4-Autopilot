@@ -97,6 +97,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::COM_HOME_H_T>) _home_eph_threshold,
 		(ParamFloat<px4::params::COM_HOME_V_T>) _home_epv_threshold,
+		(ParamFloat<px4::params::COM_HOME_A_T>) _home_att_stddev_threshold,
 
 		(ParamFloat<px4::params::COM_POS_FS_EPH>) _eph_threshold,
 		(ParamFloat<px4::params::COM_POS_FS_EPV>) _epv_threshold,
