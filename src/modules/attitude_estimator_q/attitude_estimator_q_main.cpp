@@ -347,7 +347,9 @@ void AttitudeEstimatorQ::task_main()
 		if (vision_updated) {
 			vehicle_local_position_s vision;
 
-			bool att_valid = (!PX4_ISNAN(vision.att_std_dev) && vision.att_std_dev < _eo_max_std_dev);
+			bool att_valid = false;
+			if (!PX4_ISNAN(vision.att_std_dev))
+				att_valid = vision.att_std_dev < _eo_max_std_dev;
 
 			if (orb_copy(ORB_ID(vehicle_visual_odometry), _visual_odom_sub, &vision) == PX4_OK && att_valid) {
 				Dcmf Rvis = Quatf(vision.q);
@@ -372,7 +374,9 @@ void AttitudeEstimatorQ::task_main()
 		if (mocap_updated) {
 			vehicle_local_position_s mocap;
 
-			bool att_valid = (!PX4_ISNAN(mocap.att_std_dev) && mocap.att_std_dev < _eo_max_std_dev);
+			bool att_valid = false;
+			if (!PX4_ISNAN(mocap.att_std_dev))
+				att_valid = mocap.att_std_dev < _eo_max_std_dev;
 
 			if (orb_copy(ORB_ID(vehicle_groundtruth), _mocap_sub, &mocap) == PX4_OK && att_valid) {
 				Dcmf Rmoc = Quatf(mocap.q);
