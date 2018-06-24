@@ -195,7 +195,7 @@ private:
 	orb_advert_t _ekf2_timestamps_pub{nullptr};
 	orb_advert_t _sensor_bias_pub{nullptr};
 
-	uORB::Publication<vehicle_local_position_s> _vehicle_odometry_pub;
+	uORB::Publication<vehicle_local_position_s> _vehicle_local_position_pub;
 	uORB::Publication<vehicle_global_position_s> _vehicle_global_position_pub;
 
 	Ekf _ekf;
@@ -408,7 +408,7 @@ private:
 
 Ekf2::Ekf2():
 	ModuleParams(nullptr),
-	_vehicle_odometry_pub(ORB_ID(vehicle_local_position)),
+	_vehicle_local_position_pub(ORB_ID(vehicle_local_position)),
 	_vehicle_global_position_pub(ORB_ID(vehicle_global_position)),
 	_params(_ekf.getParamHandle()),
 	_obs_dt_min_ms(_params->sensor_interval_min_ms),
@@ -1068,7 +1068,7 @@ void Ekf2::run()
 			}
 
 			// generate vehicle odometry data
-			vehicle_local_position_s &odom = _vehicle_odometry_pub.get();
+			vehicle_local_position_s &odom = _vehicle_local_position_pub.get();
 
 			odom.timestamp = now;
 
@@ -1171,7 +1171,7 @@ void Ekf2::run()
 			}
 
 			// publish vehicle local position data
-			_vehicle_odometry_pub.update();
+			_vehicle_local_position_pub.update();
 
 			if (_ekf.global_position_is_valid() && !_preflt_fail) {
 				// generate and publish global position data
@@ -1261,8 +1261,8 @@ void Ekf2::run()
 						&status.hgt_test_ratio, &status.tas_test_ratio,
 						&status.hagl_test_ratio, &status.beta_test_ratio);
 
-		status.pos_horiz_accuracy = _vehicle_odometry_pub.get().eph;
-		status.pos_vert_accuracy = _vehicle_odometry_pub.get().epv;
+		status.pos_horiz_accuracy = _vehicle_local_position_pub.get().eph;
+		status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;
 		_ekf.get_ekf_soln_status(&status.solution_status_flags);
 		_ekf.get_imu_vibe_metrics(status.vibe);
 		status.time_slip = _last_time_slip_us / 1e6f;
