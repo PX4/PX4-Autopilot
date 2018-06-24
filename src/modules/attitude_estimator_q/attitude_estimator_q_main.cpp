@@ -348,8 +348,10 @@ void AttitudeEstimatorQ::task_main()
 			vehicle_local_position_s vision;
 
 			bool att_valid = false;
-			if (!PX4_ISNAN(vision.att_std_dev))
+
+			if (!PX4_ISNAN(vision.att_std_dev)) {
 				att_valid = vision.att_std_dev < _eo_max_std_dev;
+			}
 
 			if (orb_copy(ORB_ID(vehicle_visual_odometry), _visual_odom_sub, &vision) == PX4_OK && att_valid) {
 				Dcmf Rvis = Quatf(vision.q);
@@ -375,8 +377,10 @@ void AttitudeEstimatorQ::task_main()
 			vehicle_local_position_s mocap;
 
 			bool att_valid = false;
-			if (!PX4_ISNAN(mocap.att_std_dev))
+
+			if (!PX4_ISNAN(mocap.att_std_dev)) {
 				att_valid = mocap.att_std_dev < _eo_max_std_dev;
+			}
 
 			if (orb_copy(ORB_ID(vehicle_groundtruth), _mocap_sub, &mocap) == PX4_OK && att_valid) {
 				Dcmf Rmoc = Quatf(mocap.q);
@@ -451,6 +455,11 @@ void AttitudeEstimatorQ::task_main()
 
 			// covariances set to unknown
 			att.covariance[0] = NAN;
+
+			// for now, set the std_dev for hardcoded values,
+			// so it can be accepted on the commander side
+			att.att_std_dev = math::radians(3);	// 3 degrees
+			att.att_rate_std_dev = NAN;
 
 			/* the instance count is not used here */
 			int att_inst;

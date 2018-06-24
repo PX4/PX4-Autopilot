@@ -973,7 +973,13 @@ void Ekf2::run()
 			ev_odom.v_z_valid = (!PX4_ISNAN(ev_odom.evv) && ev_odom.evv > ev_max_std_dev) ? false : true;
 
 			// only set data if the pose is valid
-			if (ev_odom.xy_valid && ev_odom.z_valid && (!PX4_ISNAN(ev_odom.att_std_dev) && ev_odom.att_std_dev < eo_max_std_dev)) {
+			bool att_valid = false;
+
+			if (!PX4_ISNAN(ev_odom.att_std_dev)) {
+				att_valid = ev_odom.att_std_dev < eo_max_std_dev;
+			}
+
+			if (ev_odom.xy_valid && ev_odom.z_valid && att_valid) {
 				// use timestamp from external computer, clocks are synchronized when using MAVROS
 				_ekf.setExtVisionData(visual_odometry_updated ? ev_odom.timestamp : ev_odom.timestamp, &ev_data);
 			}
@@ -1047,8 +1053,9 @@ void Ekf2::run()
 				// For now, set to uknown
 				att.covariance[0] = NAN;
 
-				// for now, set attitude std dev to NAN
-				att.att_std_dev = NAN;
+				// for now, set the std_dev for hardcoded values,
+				// so it can be accepted on the commander side
+				att.att_std_dev = math::radians(3);	// 3 degrees
 				att.att_rate_std_dev = NAN;
 
 				// publish vehicle attitude data
