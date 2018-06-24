@@ -875,10 +875,6 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 	mocap_odom.ax = NAN;
 	mocap_odom.ay = NAN;
 	mocap_odom.az = NAN;
-	mocap_odom.rollaccel = NAN;
-	mocap_odom.pitchaccel = NAN;
-	mocap_odom.yawaccel = NAN;
-	mocap_odom.accel_covariance[0] = NAN;
 	mocap_odom.eph = sqrtf(fmaxf(mocap.covariance[0], mocap.covariance[6]));
 	mocap_odom.epv = sqrtf(mocap.covariance[11]);
 	mocap_odom.att_std_dev = sqrtf(fmaxf(mocap.covariance[15], fmaxf(mocap.covariance[18], mocap.covariance[20])));
@@ -1187,10 +1183,6 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	visual_odom.ax = NAN;
 	visual_odom.ay = NAN;
 	visual_odom.az = NAN;
-	visual_odom.rollaccel = NAN;
-	visual_odom.pitchaccel = NAN;
-	visual_odom.yawaccel = NAN;
-	visual_odom.accel_covariance[0] = NAN;
 	visual_odom.eph = sqrtf(fmaxf(ev.covariance[0], ev.covariance[6]));
 	visual_odom.epv = sqrtf(ev.covariance[11]);;
 	visual_odom.att_std_dev = sqrtf(fmaxf(ev.covariance[15], fmaxf(ev.covariance[18], ev.covariance[20])));
@@ -1707,10 +1699,6 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	odometry.ax = NAN;
 	odometry.ay = NAN;
 	odometry.az = NAN;
-	odometry.rollaccel = NAN;
-	odometry.pitchaccel = NAN;
-	odometry.yawaccel = NAN;
-	odometry.accel_covariance[0] = NAN;
 
 	odometry.eph = sqrtf(fmaxf(odom.pose_covariance[0], odom.pose_covariance[6]));
 	odometry.epv = sqrtf(odom.pose_covariance[11]);
@@ -2427,12 +2415,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_odometry.ax = NAN;
 		hil_odometry.ay = NAN;
 		hil_odometry.az = NAN;
-
-		hil_odometry.rollaccel = NAN;
-		hil_odometry.pitchaccel = NAN;
-		hil_odometry.yawaccel = NAN;
-
-		hil_odometry.accel_covariance[0] = NAN;
 
 		hil_odometry.vxy_max = INFINITY;
 		hil_odometry.vz_max = INFINITY;

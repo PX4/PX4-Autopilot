@@ -516,12 +516,6 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			hil_groundtruth.ay = NAN;
 			hil_groundtruth.az = NAN;
 
-			hil_groundtruth.rollaccel = NAN;
-			hil_groundtruth.pitchaccel = NAN;
-			hil_groundtruth.yawaccel = NAN;
-
-			hil_groundtruth.accel_covariance[0] = NAN;
-
 			hil_groundtruth.vxy_max = std::numeric_limits<float>::infinity();
 			hil_groundtruth.vz_max = std::numeric_limits<float>::infinity();
 			hil_groundtruth.hagl_min = std::numeric_limits<float>::infinity();
@@ -1185,13 +1179,6 @@ int Simulator::publish_odometry_topic(T *msg)
 		odom.ax = NAN;
 		odom.ay = NAN;
 		odom.az = NAN;
-		/* The angular acceleration in body-fixed frame - unknown */
-		odom.rollaccel = NAN;
-		odom.pitchaccel = NAN;
-		odom.yawaccel = NAN;
-
-		/* The acceleration covariance URT - unknown */
-		odom.accel_covariance[0] = NAN;
 
 		// TODO : full covariance matrix
 		odom.eph = sqrtf(fmaxf(odom_msg.pose_covariance[0], odom_msg.pose_covariance[6]));
@@ -1236,13 +1223,6 @@ int Simulator::publish_odometry_topic(T *msg)
 		odom.ax = NAN;
 		odom.ay = NAN;
 		odom.az = NAN;
-		/* The angular acceleration in body-fixed frame - unknown */
-		odom.rollaccel = NAN;
-		odom.pitchaccel = NAN;
-		odom.yawaccel = NAN;
-
-		/* The acceleration covariance URT - unknown */
-		odom.accel_covariance[0] = NAN;
 
 		// TODO : full covariance matrix
 		odom.eph = sqrtf(fmaxf(ev.covariance[0], ev.covariance[6]));

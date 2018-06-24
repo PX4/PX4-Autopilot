@@ -38,17 +38,6 @@ float32 ax        		# North velocity derivative
 float32 ay        		# East velocity derivative
 float32 az        		# Down velocity derivative
 
-# Angular Acceleration in body-fixed frame (rad/sec^2). NaN if invalid/unknown
-float32 rollaccel        	# Bias corrected angular velocity derivative about X body axis
-float32 pitchaccel     	# Bias corrected angular velocity derivative about X body axis
-float32 yawaccel        	# Bias corrected angular velocity derivative about X body axis
-
-# Row-major representation of 6x6 accel cross-covariance matrix URT.
-# Linear acceleration in NED earth-fixed frame. Angular acceleration in body-fixed frame.
-# Order: ax, ay, az, rotation accel about X axis, rotation accel about Y axis, rotation accel about Z axis
-# If invalid/unknown, first cell is NaN
-float32[21] accel_covariance
-
 # Reset deltas
 float32[2] delta_xy		# Amount by which X and Y position have changed during last reset
 float32[2] delta_vxy		# Amount by which X and Y velocities have changed during last reset

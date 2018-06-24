@@ -1091,11 +1091,6 @@ void Ekf2::run()
 			odom.ay = vel_deriv[1];
 			odom.az = vel_deriv[2];
 
-			// Angular acceleration of body origin
-			odom.rollaccel = NAN;
-			odom.pitchaccel = NAN;
-			odom.yawaccel = NAN;
-
 			// TODO: better status reporting
 			// TODO: add attitude and accel validation reporting
 			odom.xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;

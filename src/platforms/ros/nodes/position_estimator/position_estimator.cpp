@@ -93,10 +93,6 @@ void PositionEstimator::ModelStatesCallback(const gazebo_msgs::ModelStatesConstP
 	msg_v_odom.ax = NAN;
 	msg_v_odom.ay = NAN;
 	msg_v_odom.az = NAN;
-	msg_v_odom.rollaccel = NAN;
-	msg_v_odom.pitchaccel = NAN;
-	msg_v_odom.yawaccel = NAN;
-	msg_v_odom.accel_covariance[0] = NAN;
 	msg_v_odom.ref_timestamp = _startup_time;
 	msg_v_odom.ref_lat = 47.378301;
 	msg_v_odom.ref_lon = 8.538777;

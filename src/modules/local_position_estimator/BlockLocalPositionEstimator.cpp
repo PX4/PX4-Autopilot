@@ -601,10 +601,6 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_odom.get().ay = _u(U_ay);		// east
 		_pub_odom.get().az = _u(U_az);		// down
 
-		_pub_odom.get().rollaccel = NAN;
-		_pub_odom.get().pitchaccel = NAN;
-		_pub_odom.get().yawaccel = NAN;
-
 		// copy covariances to the covariance matrices to be propagated
 		// on the vehicle_odometry message.
 		for (size_t i = 0; i < 21; i++) {
@@ -648,9 +644,6 @@ void BlockLocalPositionEstimator::publishLocalPos()
 				_pub_odom.get().pose_covariance[i] = 0.0;
 			}
 		}
-
-		// set odometry acceleration covariance to unknown
-		_pub_odom.get().accel_covariance[0] = NAN;
 
 		_pub_odom.get().xy_global = _estimatorInitialized & EST_XY;
 		_pub_odom.get().z_global = !(_sensorTimeout & SENSOR_BARO) && _altOriginGlobal;
