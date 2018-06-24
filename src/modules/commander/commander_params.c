@@ -258,7 +258,7 @@ PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f);
  * @decimal 2
  * @increment 0.5
  */
-PARAM_DEFINE_FLOAT(COM_HOME_A_T, 1.0f);
+PARAM_DEFINE_FLOAT(COM_HOME_A_T, 2.0f);
 
 /**
  * RC control input mode

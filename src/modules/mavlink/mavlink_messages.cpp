@@ -1994,16 +1994,8 @@ protected:
 			msg.pose_covariance[6] = est.covariances[8];
 			msg.pose_covariance[11] = est.covariances[9];
 
-			matrix::Eulerf att_cov = matrix::Quatf(
-							 est.covariances[0],
-							 est.covariances[1],
-							 est.covariances[2],
-							 est.covariances[3]);
-
-			// Attitude covariance
-			msg.pose_covariance[15] = att_cov.phi();
-			msg.pose_covariance[18] = att_cov.theta();
-			msg.pose_covariance[20] = att_cov.psi();
+			// TODO: implement propagation from quaternion covariance to Euler angle covariance
+			// by employing the covariance law
 
 			// Linear velocity covariance
 			// Since the diagonal is kept the same, no need to rotate

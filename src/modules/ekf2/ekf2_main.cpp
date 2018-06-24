@@ -1039,7 +1039,7 @@ void Ekf2::run()
 
 			{
 				// generate vehicle attitude quaternion data
-				vehicle_attitude_s att;
+				vehicle_attitude_s att = {};
 				att.timestamp = now;
 
 				q.copyTo(att.q);
@@ -1052,13 +1052,12 @@ void Ekf2::run()
 				// attitude covariance
 				float covariances[24];
 				_ekf.get_covariances(covariances);
-				matrix::Eulerf att_cov = matrix::Quatf(covariances[0], covariances[1], covariances[2], covariances[3]);
-				att.covariance[0] = att_cov.phi();
-				att.covariance[4] = att_cov.theta();
-				att.covariance[8] = att_cov.psi();
+				// TODO: implement propagation from quaternion covariance to Euler angle covariance
+				// by employing the covariance law
 
 				// TODO: add a respective get_ekf_att_accuracy to ECL
-				att.att_std_dev = sqrtf(fmaxf(att_cov.phi(), fmaxf(att_cov.theta(), att_cov.psi())));
+				// For now, keep it as a straight hardcoded value
+				att.att_std_dev = 8.3333e-3f;	// 1.5 degrees
 				att.att_rate_std_dev = NAN;
 
 				// publish vehicle attitude data
