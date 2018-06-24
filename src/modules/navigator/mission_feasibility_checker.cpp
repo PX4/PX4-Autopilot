@@ -411,8 +411,8 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 							const float slope_alt_req = Landingslope::getLandingSlopeAbsoluteAltitude(wp_distance, missionitem.altitude,
 										    horizontal_slope_displacement, slope_angle_rad);
 
-							if (missionitem_previous.altitude > slope_alt_req) {
-								/* Landing waypoint is above altitude of slope at the given waypoint distance */
+							if (missionitem_previous.altitude > slope_alt_req + 1.0f) {
+								/* Landing waypoint is above altitude of slope at the given waypoint distance (with small tolerance for floating point discrepancies) */
 								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: adjust landing approach.");
 
 								const float wp_distance_req = Landingslope::getLandingSlopeWPDistance(missionitem_previous.altitude,
