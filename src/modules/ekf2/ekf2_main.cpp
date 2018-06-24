@@ -1009,6 +1009,43 @@ void Ekf2::run()
 		// run the EKF update and output
 		const bool updated = _ekf.update();
 
+		// publish estimator status
+		estimator_status_s status;
+		status.timestamp = now;
+
+		_ekf.get_state_delayed(status.states);
+		_ekf.get_covariances(status.covariances);
+		_ekf.get_gps_check_status(&status.gps_check_fail_flags);
+		_ekf.get_control_mode(&status.control_mode_flags);
+		_ekf.get_filter_fault_status(&status.filter_fault_flags);
+		_ekf.get_innovation_test_status(&status.innovation_check_flags, &status.mag_test_ratio,
+						&status.vel_test_ratio, &status.pos_test_ratio,
+						&status.hgt_test_ratio, &status.tas_test_ratio,
+						&status.hagl_test_ratio, &status.beta_test_ratio);
+
+		status.pos_horiz_accuracy = _vehicle_local_position_pub.get().eph;
+		status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;
+		_ekf.get_ekf_soln_status(&status.solution_status_flags);
+		_ekf.get_imu_vibe_metrics(status.vibe);
+		status.time_slip = _last_time_slip_us / 1e6f;
+		status.nan_flags = 0.0f; // unused
+		status.health_flags = 0.0f; // unused
+		status.timeout_flags = 0.0f; // unused
+		status.pre_flt_fail = _preflt_fail;
+
+		if (_estimator_status_pub == nullptr) {
+			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
+
+		} else {
+			orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
+		}
+
+		fault_status_u fault_status;
+		fault_status.value = status.filter_fault_flags;
+
+		ekf_solution_status soln_status;
+		soln_status.value = status.solution_status_flags;
+
 		if (updated) {
 
 			// integrate time to monitor time slippage
@@ -1083,10 +1120,10 @@ void Ekf2::run()
 			lpos.az = vel_deriv[2];
 
 			// TODO: better status reporting
-			lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
-			lpos.z_valid = !_preflt_vert_fail;
-			lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
-			lpos.v_z_valid = !_preflt_vert_fail;
+			lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail && soln_status.flags.pos_horiz_rel;
+			lpos.z_valid = !_preflt_vert_fail && soln_status.flags.pos_horiz_rel;
+			lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail && soln_status.flags.velocity_horiz;
+			lpos.v_z_valid = !_preflt_vert_fail && soln_status.flags.velocity_vert;
 
 			// Position of local NED origin in GPS / WGS84 frame
 			map_projection_reference_s ekf_origin;
@@ -1193,7 +1230,7 @@ void Ekf2::run()
 				_vehicle_global_position_pub.update();
 			}
 
-			{
+			if (!soln_status.flags.accel_error && !fault_status.flags.bad_acc_bias) {
 				// publish all corrected sensor readings and bias estimates after mag calibration is updated above
 				float accel_bias[3];
 				_ekf.get_accel_bias(accel_bias);
@@ -1227,36 +1264,6 @@ void Ekf2::run()
 					orb_publish(ORB_ID(sensor_bias), _sensor_bias_pub, &bias);
 				}
 			}
-		}
-
-		// publish estimator status
-		estimator_status_s status;
-		status.timestamp = now;
-		_ekf.get_state_delayed(status.states);
-		_ekf.get_covariances(status.covariances);
-		_ekf.get_gps_check_status(&status.gps_check_fail_flags);
-		_ekf.get_control_mode(&status.control_mode_flags);
-		_ekf.get_filter_fault_status(&status.filter_fault_flags);
-		_ekf.get_innovation_test_status(&status.innovation_check_flags, &status.mag_test_ratio,
-						&status.vel_test_ratio, &status.pos_test_ratio,
-						&status.hgt_test_ratio, &status.tas_test_ratio,
-						&status.hagl_test_ratio, &status.beta_test_ratio);
-
-		status.pos_horiz_accuracy = _vehicle_local_position_pub.get().eph;
-		status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;
-		_ekf.get_ekf_soln_status(&status.solution_status_flags);
-		_ekf.get_imu_vibe_metrics(status.vibe);
-		status.time_slip = _last_time_slip_us / 1e6f;
-		status.nan_flags = 0.0f; // unused
-		status.health_flags = 0.0f; // unused
-		status.timeout_flags = 0.0f; // unused
-		status.pre_flt_fail = _preflt_fail;
-
-		if (_estimator_status_pub == nullptr) {
-			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
-
-		} else {
-			orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
 		}
 
 		if (updated) {
