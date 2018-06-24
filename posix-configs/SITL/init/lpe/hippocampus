@@ -1,8 +1,8 @@
 uorb start
 param load
-param set CAL_GYRO0_ID 2293768
 param set CAL_ACC0_ID 1376264
 param set CAL_ACC1_ID 1310728
+param set CAL_GYRO0_ID 2293768
 param set CAL_MAG0_ID 196616
 param set COM_DISARM_LAND 0
 param set MAV_TYPE 3

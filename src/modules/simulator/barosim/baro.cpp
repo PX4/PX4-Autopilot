@@ -246,16 +246,8 @@ BAROSIM::collect()
 	/* fake device ID */
 	report.device_id = 478459;
 
-	/* publish it */
-	if (!(m_pub_blocked)) {
-		if (_baro_topic != nullptr) {
-			/* publish it */
-			orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
-
-		} else {
-			PX4_WARN("BAROSIM::collect _baro_topic not initialized");
-		}
-	}
+	int instance;
+	orb_publish_auto(ORB_ID(sensor_baro), &_baro_topic, &report, &instance, ORB_PRIO_DEFAULT);
 
 	_reports->force(&report);
 

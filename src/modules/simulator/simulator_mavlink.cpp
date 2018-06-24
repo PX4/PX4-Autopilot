@@ -287,7 +287,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			bool compensation_enabled = (imu.time_usec > 0);
 
 			// set temperature to a decent value
-			imu.temperature = 32.0f;
+			imu.temperature = 25.0f;
 
 			struct timespec ts;
 			// clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -483,8 +483,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 			// always publish ground truth attitude message
 			int hil_gpos_multi;
-			orb_publish_auto(ORB_ID(vehicle_global_position_groundtruth), &_gpos_pub, &hil_gpos, &hil_gpos_multi,
-					 ORB_PRIO_HIGH);
+			orb_publish_auto(ORB_ID(vehicle_global_position_groundtruth), &_gpos_pub, &hil_gpos, &hil_gpos_multi, ORB_PRIO_HIGH);
 		}
 
 		/* local position */
@@ -533,8 +532,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 			// always publish ground truth attitude message
 			int hil_lpos_multi;
-			orb_publish_auto(ORB_ID(vehicle_local_position_groundtruth), &_lpos_pub, &hil_lpos, &hil_lpos_multi,
-					 ORB_PRIO_HIGH);
+			orb_publish_auto(ORB_ID(vehicle_local_position_groundtruth), &_lpos_pub, &hil_lpos, &hil_lpos_multi, ORB_PRIO_HIGH);
 		}
 
 		break;
