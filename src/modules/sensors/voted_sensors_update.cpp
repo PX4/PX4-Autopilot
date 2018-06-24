@@ -537,7 +537,7 @@ void VotedSensorsUpdate::accel_poll(sensor_combined_s &raw)
 
 			int ret = orb_copy(ORB_ID(sensor_accel), _accel.subscription[uorb_index], &accel_report);
 
-			if (ret != PX4_OK || accel_report.timestamp == 0) {
+			if (ret != PX4_OK || accel_report.timestamp == 0 || accel_report.device_id == 0) {
 				continue; //ignore invalid data
 			}
 
@@ -654,7 +654,7 @@ void VotedSensorsUpdate::gyro_poll(sensor_combined_s &raw)
 
 			int ret = orb_copy(ORB_ID(sensor_gyro), _gyro.subscription[uorb_index], &gyro_report);
 
-			if (ret != PX4_OK || gyro_report.timestamp == 0) {
+			if (ret != PX4_OK || gyro_report.timestamp == 0 || gyro_report.device_id == 0) {
 				continue; //ignore invalid data
 			}
 
@@ -779,7 +779,7 @@ void VotedSensorsUpdate::mag_poll(vehicle_magnetometer_s &magnetometer)
 
 			int ret = orb_copy(ORB_ID(sensor_mag), _mag.subscription[uorb_index], &mag_report);
 
-			if (ret != PX4_OK || mag_report.timestamp == 0) {
+			if (ret != PX4_OK || mag_report.timestamp == 0 || mag_report.device_id == 0) {
 				continue; //ignore invalid data
 			}
 
@@ -831,7 +831,7 @@ void VotedSensorsUpdate::baro_poll(vehicle_air_data_s &airdata)
 
 			int ret = orb_copy(ORB_ID(sensor_baro), _baro.subscription[uorb_index], &baro_report);
 
-			if (ret != PX4_OK || baro_report.timestamp == 0) {
+			if (ret != PX4_OK || baro_report.timestamp == 0 || baro_report.device_id == 0) {
 				continue; //ignore invalid data
 			}
 
