@@ -264,7 +264,7 @@ private:
 	param_t _p_bat_crit_thr;
 	param_t _p_bat_low_thr;
 
-	const size_t URT_SIZE = 21;
+	static const size_t URT_SIZE = 21;
 
 	MavlinkReceiver(const MavlinkReceiver &) = delete;
 	MavlinkReceiver operator=(const MavlinkReceiver &) = delete;
