@@ -57,6 +57,7 @@
 #include <uORB/topics/sensor_correction.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/vehicle_imu.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/subsystem_info.h>
 
@@ -176,7 +177,7 @@ private:
 	 * @param raw			Combined sensor data structure into which
 	 *				data should be returned.
 	 */
-	void		accel_poll(struct sensor_combined_s &raw);
+	void		accel_poll(sensor_combined_s &raw);
 
 	/**
 	 * Poll the gyro for updated data.
@@ -184,7 +185,7 @@ private:
 	 * @param raw			Combined sensor data structure into which
 	 *				data should be returned.
 	 */
-	void		gyro_poll(struct sensor_combined_s &raw);
+	void		gyro_poll(sensor_combined_s &raw);
 
 	/**
 	 * Poll the magnetometer for updated data.
@@ -244,13 +245,15 @@ private:
 	SensorData _mag;
 	SensorData _baro;
 
-	orb_advert_t	_mavlink_log_pub = nullptr;
+	orb_advert_t	_mavlink_log_pub{nullptr};
+	orb_advert_t	_vehicle_imu_pub{nullptr};
 
-	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX]; /**< latest sensor data from all sensors instances */
-	vehicle_air_data_s _last_airdata[SENSOR_COUNT_MAX]; /**< latest sensor data from all sensors instances */
-	vehicle_magnetometer_s _last_magnetometer[SENSOR_COUNT_MAX]; /**< latest sensor data from all sensors instances */
+	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX] {}; /**< latest sensor data from all sensors instances */
+	vehicle_air_data_s _last_airdata[SENSOR_COUNT_MAX] {}; /**< latest sensor data from all sensors instances */
+	vehicle_magnetometer_s _last_magnetometer[SENSOR_COUNT_MAX] {}; /**< latest sensor data from all sensors instances */
+	vehicle_imu_s _last_imu{}; /**< latest IMU data published */
 
-	uint64_t _last_accel_timestamp[ACCEL_COUNT_MAX]; /**< latest full timestamp */
+	uint64_t _last_accel_timestamp[ACCEL_COUNT_MAX] {}; /**< latest full timestamp */
 
 	matrix::Dcmf	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
 	matrix::Dcmf	_mag_rotation[MAG_COUNT_MAX];	/**< rotation matrix for the orientation that the external mag0 is mounted */
@@ -258,29 +261,29 @@ private:
 	const Parameters &_parameters;
 	const bool _hil_enabled; /**< is hardware-in-the-loop mode enabled? */
 
-	float _accel_diff[3][2];	/**< filtered accel differences between IMU units (m/s/s) */
-	float _gyro_diff[3][2];		/**< filtered gyro differences between IMU uinits (rad/s) */
-	float _mag_diff[3][2];		/**< filtered mag differences between sensor instances (Ga) */
+	float _accel_diff[3][2] {};	/**< filtered accel differences between IMU units (m/s/s) */
+	float _gyro_diff[3][2] {};		/**< filtered gyro differences between IMU uinits (rad/s) */
+	float _mag_diff[3][2] {};		/**< filtered mag differences between sensor instances (Ga) */
 
 	/* sensor thermal compensation */
 	TemperatureCompensation _temperature_compensation;
-	struct sensor_correction_s _corrections; /**< struct containing the sensor corrections to be published to the uORB*/
-	orb_advert_t _sensor_correction_pub = nullptr; /**< handle to the sensor correction uORB topic */
-	bool _corrections_changed = false;
+	sensor_correction_s _corrections{}; /**< struct containing the sensor corrections to be published to the uORB*/
+	orb_advert_t _sensor_correction_pub{nullptr}; /**< handle to the sensor correction uORB topic */
+	bool _corrections_changed{false};
 
 	/* sensor selection publication */
-	struct sensor_selection_s _selection = {}; /**< struct containing the sensor selection to be published to the uORB*/
-	orb_advert_t _sensor_selection_pub = nullptr; /**< handle to the sensor selection uORB topic */
-	bool _selection_changed = false; /**< true when a sensor selection has changed and not been published */
+	sensor_selection_s _selection{}; /**< struct containing the sensor selection to be published to the uORB*/
+	orb_advert_t _sensor_selection_pub{nullptr}; /**< handle to the sensor selection uORB topic */
+	bool _selection_changed{false}; /**< true when a sensor selection has changed and not been published */
 
 	/* subsystem info publication */
-	struct subsystem_info_s _info;
-	orb_advert_t _info_pub = nullptr;
+	subsystem_info_s _info{};
+	orb_advert_t _info_pub{nullptr};
 
-	uint32_t _accel_device_id[SENSOR_COUNT_MAX] = {}; /**< accel driver device id for each uorb instance */
-	uint32_t _baro_device_id[SENSOR_COUNT_MAX] = {};
-	uint32_t _gyro_device_id[SENSOR_COUNT_MAX] = {};
-	uint32_t _mag_device_id[SENSOR_COUNT_MAX] = {};
+	uint32_t _accel_device_id[SENSOR_COUNT_MAX] {}; /**< accel driver device id for each uorb instance */
+	uint32_t _baro_device_id[BARO_COUNT_MAX] {};
+	uint32_t _gyro_device_id[GYRO_COUNT_MAX] {};
+	uint32_t _mag_device_id[MAG_COUNT_MAX] {};
 
 };
 

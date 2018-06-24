@@ -314,6 +314,7 @@ private:
 	uint16_t _optical_flow_msg_id = msg_id_invalid;
 	uint16_t _sensor_combined_msg_id = msg_id_invalid;
 	uint16_t _vehicle_air_data_msg_id = msg_id_invalid;
+	uint16_t _vehicle_imu_msg_id = msg_id_invalid;
 	uint16_t _vehicle_magnetometer_msg_id = msg_id_invalid;
 	uint16_t _vehicle_vision_attitude_msg_id = msg_id_invalid;
 	uint16_t _vehicle_vision_position_msg_id = msg_id_invalid;

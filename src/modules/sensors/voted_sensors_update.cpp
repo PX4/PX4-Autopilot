@@ -53,18 +53,6 @@ using namespace DriverFramework;
 VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled)
 	: _parameters(parameters), _hil_enabled(hil_enabled)
 {
-	memset(&_last_sensor_data, 0, sizeof(_last_sensor_data));
-	memset(&_last_magnetometer, 0, sizeof(_last_magnetometer));
-	memset(&_last_airdata, 0, sizeof(_last_airdata));
-	memset(&_last_accel_timestamp, 0, sizeof(_last_accel_timestamp));
-	memset(&_accel_diff, 0, sizeof(_accel_diff));
-	memset(&_gyro_diff, 0, sizeof(_gyro_diff));
-	memset(&_mag_diff, 0, sizeof(_mag_diff));
-
-	// initialise the publication variables
-	memset(&_corrections, 0, sizeof(_corrections));
-	memset(&_info, 0, sizeof(_info));
-
 	for (unsigned i = 0; i < 3; i++) {
 		_corrections.gyro_scale_0[i] = 1.0f;
 		_corrections.accel_scale_0[i] = 1.0f;
@@ -535,7 +523,7 @@ void VotedSensorsUpdate::parameters_update()
 
 }
 
-void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
+void VotedSensorsUpdate::accel_poll(sensor_combined_s &raw)
 {
 	float *offsets[] = {_corrections.accel_offset_0, _corrections.accel_offset_1, _corrections.accel_offset_2 };
 	float *scales[] = {_corrections.accel_scale_0, _corrections.accel_scale_1, _corrections.accel_scale_2 };
@@ -624,15 +612,27 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 
 	// write the best sensor data to the output variables
 	if (best_index >= 0) {
+
+		// fill vehicle_imu delta velocity
+		_last_imu.delta_velocity_dt = _last_sensor_data[best_index].accelerometer_integral_dt;
+
+		const float accel_dt = _last_imu.delta_velocity_dt * 1e-6f;
+		_last_imu.delta_velocity[0] = _last_sensor_data[best_index].accelerometer_m_s2[0] * accel_dt;
+		_last_imu.delta_velocity[1] = _last_sensor_data[best_index].accelerometer_m_s2[1] * accel_dt;
+		_last_imu.delta_velocity[2] = _last_sensor_data[best_index].accelerometer_m_s2[2] * accel_dt;
+
+		// populate sensor_combined (legacy)
 		raw.accelerometer_integral_dt = _last_sensor_data[best_index].accelerometer_integral_dt;
 		memcpy(&raw.accelerometer_m_s2, &_last_sensor_data[best_index].accelerometer_m_s2, sizeof(raw.accelerometer_m_s2));
 
+		// update sensor corrections
 		if (best_index != _accel.last_best_vote) {
 			_accel.last_best_vote = (uint8_t)best_index;
 			_corrections.selected_accel_instance = (uint8_t)best_index;
 			_corrections_changed = true;
 		}
 
+		// update sensor selection
 		if (_selection.accel_device_id != _accel_device_id[best_index]) {
 			_selection_changed = true;
 			_selection.accel_device_id = _accel_device_id[best_index];
@@ -640,7 +640,7 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 	}
 }
 
-void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
+void VotedSensorsUpdate::gyro_poll(sensor_combined_s &raw)
 {
 	float *offsets[] = {_corrections.gyro_offset_0, _corrections.gyro_offset_1, _corrections.gyro_offset_2 };
 	float *scales[] = {_corrections.gyro_scale_0, _corrections.gyro_scale_1, _corrections.gyro_scale_2 };
@@ -729,16 +729,38 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 
 	// write data for the best sensor to output variables
 	if (best_index >= 0) {
+
+		// fill vehicle_imu delta angle and publish immediately (assumes accel polled first)
+		_last_imu.timestamp = _last_sensor_data[best_index].timestamp;
+		_last_imu.delta_angle_dt = _last_sensor_data[best_index].gyro_integral_dt;
+
+		const float gyro_dt = _last_imu.delta_angle_dt * 1e-6f;
+		_last_imu.delta_angle[0] = _last_sensor_data[best_index].gyro_rad[0] * gyro_dt;
+		_last_imu.delta_angle[1] = _last_sensor_data[best_index].gyro_rad[1] * gyro_dt;
+		_last_imu.delta_angle[2] = _last_sensor_data[best_index].gyro_rad[2] * gyro_dt;
+
+		// one last simple IMU validity check before publishing
+		const bool delta_angle_dt_good = (_last_imu.delta_angle_dt > 0 && _last_imu.delta_angle_dt < UINT16_MAX);
+		const bool delta_velocity_dt_good = (_last_imu.delta_velocity_dt > 0 && _last_imu.delta_velocity_dt < UINT16_MAX);
+
+		if (delta_angle_dt_good && delta_velocity_dt_good) {
+			int instance;
+			orb_publish_auto(ORB_ID(vehicle_imu), &_vehicle_imu_pub, &_last_imu, &instance, ORB_PRIO_VERY_HIGH);
+		}
+
+		// populate sensor_combined (legacy)
 		raw.timestamp = _last_sensor_data[best_index].timestamp;
 		raw.gyro_integral_dt = _last_sensor_data[best_index].gyro_integral_dt;
 		memcpy(&raw.gyro_rad, &_last_sensor_data[best_index].gyro_rad, sizeof(raw.gyro_rad));
 
+		// update sensor corrections
 		if (_gyro.last_best_vote != best_index) {
 			_gyro.last_best_vote = (uint8_t)best_index;
 			_corrections.selected_gyro_instance = (uint8_t)best_index;
 			_corrections_changed = true;
 		}
 
+		// update sensor selection
 		if (_selection.gyro_device_id != _gyro_device_id[best_index]) {
 			_selection_changed = true;
 			_selection.gyro_device_id = _gyro_device_id[best_index];

@@ -91,6 +91,7 @@ msg_id_map = {
     'vehicle_land_detected': 86,
     'vehicle_local_position': 87,
     'vehicle_local_position_setpoint': 88,
+    'vehicle_imu': 95,
     'vehicle_rates_setpoint': 89,
     'vehicle_roi': 90,
     'vehicle_status_flags': 91,

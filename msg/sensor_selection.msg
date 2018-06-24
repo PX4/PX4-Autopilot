@@ -1,5 +1,5 @@
 #
-# Sensor ID's for the voted sensors output on the sensor_combined topic.
+# Sensor ID's for the voted sensors output on the vehicle_imu topic.
 # Will be updated on startup of the sensor module and when sensor selection changes
 #
 

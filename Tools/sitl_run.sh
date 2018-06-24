@@ -55,7 +55,7 @@ then
 	mkdir -p $rootfs
 	publisher_rules_file="$rootfs/orb_publisher.rules"
 	cat <<EOF > "$publisher_rules_file"
-restrict_topics: sensor_combined, vehicle_gps_position, vehicle_land_detected
+restrict_topics: vehicle_imu, vehicle_gps_position, vehicle_land_detected
 module: replay
 ignore_others: false
 EOF

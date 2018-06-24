@@ -2,7 +2,7 @@
 # ekf2. It can be used for reproducible replay.
 
 # the timestamp field (auto-generated) is the ekf2 reference time and matches
-# the timestamp of the sensor_combined topic.
+# the timestamp of the vehicle_imu topic.
 
 
 int16 RELATIVE_TIMESTAMP_INVALID = 32767 # (0x7fff) If one of the relative timestamps
@@ -10,7 +10,7 @@ int16 RELATIVE_TIMESTAMP_INVALID = 32767 # (0x7fff) If one of the relative times
 
 # timestamps are relative to the main timestamp and are in 0.1 ms (timestamp +
 # *_timestamp_rel = absolute timestamp). For int16, this allows a maximum
-# difference of +-3.2s to the sensor_combined topic.
+# difference of +-3.2s to the vehicle_imu topic.
 
 int16 airspeed_timestamp_rel
 int16 distance_sensor_timestamp_rel

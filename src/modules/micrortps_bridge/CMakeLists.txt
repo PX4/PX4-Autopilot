@@ -48,6 +48,7 @@ set(config_rtps_send_topics
 	airspeed
 	vehicle_land_detected
 	vehicle_status
+	vehicle_imu
    )
 
 set(config_rtps_receive_topics

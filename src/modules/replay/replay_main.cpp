@@ -70,6 +70,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_imu.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -959,6 +960,9 @@ void ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 	if (sub.orb_meta == ORB_ID(sensor_combined)) {
 		_sensor_combined_msg_id = msg_id;
 
+	} else if (sub.orb_meta == ORB_ID(vehicle_imu)) {
+		_vehicle_imu_msg_id = msg_id;
+
 	} else if (sub.orb_meta == ORB_ID(airspeed)) {
 		_airspeed_msg_id = msg_id;
 
@@ -1028,6 +1032,22 @@ bool ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std
 		}
 	}
 
+	// vehicle_imu: publish last because ekf2 is polling on this
+	if (!findTimestampAndPublish(ekf2_timestamps.timestamp / 100, _vehicle_imu_msg_id, replay_file)) {
+		if (_vehicle_imu_msg_id == msg_id_invalid) {
+			// subscription not found yet or vehicle_imu not contained in log
+			return false;
+
+		} else if (!_subscriptions[_vehicle_imu_msg_id].orb_meta) {
+			return false; // read past end of file
+
+		} else {
+			// we should publish a topic, just publish the same again
+			readTopicDataToBuffer(_subscriptions[_vehicle_imu_msg_id], replay_file);
+			publishTopic(_subscriptions[_vehicle_imu_msg_id], _read_buffer.data());
+		}
+	}
+
 	return true;
 
 }
@@ -1089,6 +1109,7 @@ void ReplayEkf2::onExitMainLoop()
 	print_sensor_statistics(_optical_flow_msg_id, "optical_flow");
 	print_sensor_statistics(_sensor_combined_msg_id, "sensor_combined");
 	print_sensor_statistics(_vehicle_air_data_msg_id, "vehicle_air_data");
+	print_sensor_statistics(_vehicle_imu_msg_id, "vehicle_imu");
 	print_sensor_statistics(_vehicle_magnetometer_msg_id, "vehicle_magnetometer");
 	print_sensor_statistics(_vehicle_vision_attitude_msg_id, "vehicle_vision_attitude");
 	print_sensor_statistics(_vehicle_vision_position_msg_id, "vehicle_vision_position");

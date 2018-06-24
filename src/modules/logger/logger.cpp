@@ -626,16 +626,17 @@ void Logger::add_default_topics()
 	add_topic("position_setpoint_triplet", 200);
 	add_topic("rate_ctrl_status", 30);
 	add_topic("safety");
-	add_topic("sensor_combined", 100);
 	add_topic("sensor_preflight", 200);
 	add_topic("system_power", 500);
 	add_topic("tecs_status", 200);
 	add_topic("telemetry_status");
+	add_topic("timesync_status");
 	add_topic("vehicle_attitude", 30);
 	add_topic("vehicle_attitude_setpoint", 100);
 	add_topic("vehicle_command");
 	add_topic("vehicle_global_position", 200);
 	add_topic("vehicle_gps_position");
+	add_topic("vehicle_imu", 100);
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_local_position", 100);
 	add_topic("vehicle_local_position_setpoint", 100);
@@ -646,7 +647,6 @@ void Logger::add_default_topics()
 	add_topic("vehicle_vision_position");
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("wind_estimate", 200);
-	add_topic("timesync_status");
 
 #ifdef CONFIG_ARCH_BOARD_SITL
 	add_topic("actuator_armed");
@@ -674,9 +674,9 @@ void Logger::add_high_rate_topics()
 	add_topic("actuator_outputs");
 	add_topic("manual_control_setpoint");
 	add_topic("rate_ctrl_status");
-	add_topic("sensor_combined");
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_attitude_setpoint");
+	add_topic("vehicle_imu");
 	add_topic("vehicle_rates_setpoint");
 }
 
@@ -696,10 +696,10 @@ void Logger::add_estimator_replay_topics()
 	add_topic("airspeed");
 	add_topic("distance_sensor");
 	add_topic("optical_flow");
-	add_topic("sensor_combined");
 	add_topic("sensor_selection");
 	add_topic("vehicle_air_data");
 	add_topic("vehicle_gps_position");
+	add_topic("vehicle_imu");
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
@@ -727,7 +727,7 @@ void Logger::add_system_identification_topics()
 	// for system id need to log imu and controls at full rate
 	add_topic("actuator_controls_0");
 	add_topic("actuator_controls_1");
-	add_topic("sensor_combined");
+	add_topic("vehicle_imu");
 }
 
 int Logger::add_topics_from_file(const char *fname)

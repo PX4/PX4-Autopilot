@@ -58,13 +58,13 @@
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_bias.h>
-#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_imu.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/landing_target_pose.h>
@@ -175,7 +175,7 @@ private:
 	int _optical_flow_sub{-1};
 	int _params_sub{-1};
 	int _sensor_selection_sub{-1};
-	int _sensors_sub{-1};
+	int _imu_sub{-1};
 	int _status_sub{-1};
 	int _vehicle_land_detected_sub{-1};
 
@@ -507,7 +507,7 @@ Ekf2::Ekf2():
 	_optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_sensor_selection_sub = orb_subscribe(ORB_ID(sensor_selection));
-	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
+	_imu_sub = orb_subscribe(ORB_ID(vehicle_imu));
 	_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
@@ -531,7 +531,7 @@ Ekf2::~Ekf2()
 	orb_unsubscribe(_optical_flow_sub);
 	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_sensor_selection_sub);
-	orb_unsubscribe(_sensors_sub);
+	orb_unsubscribe(_imu_sub);
 	orb_unsubscribe(_status_sub);
 	orb_unsubscribe(_vehicle_land_detected_sub);
 
@@ -573,13 +573,12 @@ void Ekf2::run()
 	bool imu_bias_reset_request = false;
 
 	px4_pollfd_struct_t fds[1] = {};
-	fds[0].fd = _sensors_sub;
+	fds[0].fd = _imu_sub;
 	fds[0].events = POLLIN;
 
 	// initialize data structures outside of loop
 	// because they will else not always be
 	// properly populated
-	sensor_combined_s sensors = {};
 	vehicle_land_detected_s vehicle_land_detected = {};
 	vehicle_status_s vehicle_status = {};
 	sensor_selection_s sensor_selection = {};
@@ -612,11 +611,12 @@ void Ekf2::run()
 			updateParams();
 		}
 
-		orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors);
+		vehicle_imu_s imu;
+		orb_copy(ORB_ID(vehicle_imu), _imu_sub, &imu);
 
 		// ekf2_timestamps (using 0.1 ms relative timestamps)
 		ekf2_timestamps_s ekf2_timestamps = {};
-		ekf2_timestamps.timestamp = sensors.timestamp;
+		ekf2_timestamps.timestamp = imu.timestamp;
 
 		ekf2_timestamps.airspeed_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 		ekf2_timestamps.distance_sensor_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
@@ -675,26 +675,22 @@ void Ekf2::run()
 		hrt_abstime now = 0;
 
 		if (_replay_mode) {
-			now = sensors.timestamp;
+			now = imu.timestamp;
 
 		} else {
 			now = hrt_absolute_time();
 		}
 
+		imuSample ekf_imu_sample {
+			.delta_ang = Vector3f(imu.delta_angle),
+			.delta_vel = Vector3f(imu.delta_velocity),
+			.delta_ang_dt = imu.delta_angle_dt * 1e-6f, // uS -> S
+			.delta_vel_dt = imu.delta_velocity_dt * 1e-6f,  // uS -> S
+			.time_us = now
+		};
+
 		// push imu data into estimator
-		float gyro_integral[3];
-		float gyro_dt = sensors.gyro_integral_dt / 1.e6f;
-		gyro_integral[0] = sensors.gyro_rad[0] * gyro_dt;
-		gyro_integral[1] = sensors.gyro_rad[1] * gyro_dt;
-		gyro_integral[2] = sensors.gyro_rad[2] * gyro_dt;
-
-		float accel_integral[3];
-		float accel_dt = sensors.accelerometer_integral_dt / 1.e6f;
-		accel_integral[0] = sensors.accelerometer_m_s2[0] * accel_dt;
-		accel_integral[1] = sensors.accelerometer_m_s2[1] * accel_dt;
-		accel_integral[2] = sensors.accelerometer_m_s2[2] * accel_dt;
-
-		_ekf.setIMUData(now, sensors.gyro_integral_dt, sensors.accelerometer_integral_dt, gyro_integral, accel_integral);
+		_ekf.setIMUData(ekf_imu_sample);
 
 		// read mag data
 		bool magnetometer_updated = false;
@@ -1021,7 +1017,7 @@ void Ekf2::run()
 				_last_time_slip_us = 0;
 
 			} else if (_start_time_us > 0) {
-				_integrated_time_us += sensors.gyro_integral_dt;
+				_integrated_time_us += imu.delta_angle_dt;
 				_last_time_slip_us = (now - _start_time_us) - _integrated_time_us;
 			}
 
@@ -1040,9 +1036,11 @@ void Ekf2::run()
 				q.copyTo(att.q);
 				_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);
 
-				att.rollspeed = sensors.gyro_rad[0] - gyro_bias[0];
-				att.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
-				att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
+				const Vector3f rates = (Vector3f{imu.delta_angle} * (1e6 / imu.delta_angle_dt)) - Vector3f(gyro_bias);
+
+				att.rollspeed = rates(0);
+				att.pitchspeed = rates(1);
+				att.yawspeed = rates(2);
 
 				// publish vehicle attitude data
 				if (_att_pub == nullptr) {
@@ -1204,9 +1202,11 @@ void Ekf2::run()
 
 				bias.timestamp = now;
 
-				bias.accel_x = sensors.accelerometer_m_s2[0] - accel_bias[0];
-				bias.accel_y = sensors.accelerometer_m_s2[1] - accel_bias[1];
-				bias.accel_z = sensors.accelerometer_m_s2[2] - accel_bias[2];
+				const Vector3f accel = (Vector3f{imu.delta_velocity} * (1e6f / imu.delta_velocity_dt)) - Vector3f(accel_bias);
+
+				bias.accel_x = accel(0);
+				bias.accel_y = accel(1);
+				bias.accel_z = accel(2);
 
 				bias.gyro_x_bias = gyro_bias[0];
 				bias.gyro_y_bias = gyro_bias[1];
@@ -1358,7 +1358,7 @@ void Ekf2::run()
 				// calculate noise filtered velocity innovations which are used for pre-flight checking
 				if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 					// calculate coefficients for LPF applied to innovation sequences
-					float alpha = constrain(sensors.accelerometer_integral_dt / 1.e6f * _innov_lpf_tau_inv, 0.0f, 1.0f);
+					float alpha = constrain(imu.delta_velocity_dt / 1.e6f * _innov_lpf_tau_inv, 0.0f, 1.0f);
 					float beta = 1.0f - alpha;
 
 					// filter the velocity and innvovations
