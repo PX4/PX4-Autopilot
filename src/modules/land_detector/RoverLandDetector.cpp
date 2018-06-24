@@ -46,35 +46,7 @@
 namespace land_detector
 {
 
-void RoverLandDetector::_initialize_topics()
-{
-}
-
-void RoverLandDetector::_update_topics()
-{
-}
-
-void RoverLandDetector::_update_params()
-{
-}
-
-bool RoverLandDetector::_get_ground_contact_state()
-{
-	return false;
-}
-
-bool RoverLandDetector::_get_maybe_landed_state()
-{
-	return false;
-}
-
-
 bool RoverLandDetector::_get_landed_state()
-{
-	return false;
-}
-
-bool RoverLandDetector::_get_freefall_state()
 {
 	return false;
 }

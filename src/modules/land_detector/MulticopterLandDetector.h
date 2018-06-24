@@ -45,17 +45,14 @@
 #include "LandDetector.h"
 
 #include <parameters/param.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
+
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 
 using namespace time_literals;
 
@@ -123,19 +120,15 @@ private:
 		float landSpeed;
 	} _params{};
 
-	int _vehicleLocalPositionSub{-1};
 	int _vehicleLocalPositionSetpointSub{-1};
 	int _actuatorsSub{-1};
 	int _attitudeSub{-1};
-	int _sensor_bias_sub{-1};
 	int _vehicle_control_mode_sub{-1};
 	int _battery_sub{-1};
 
-	vehicle_local_position_s				_vehicleLocalPosition {};
 	vehicle_local_position_setpoint_s	_vehicleLocalPositionSetpoint {};
 	actuator_controls_s					_actuators {};
 	vehicle_attitude_s					_vehicleAttitude {};
-	sensor_bias_s					_sensors {};
 	vehicle_control_mode_s				_control_mode {};
 	battery_status_s						_battery {};
 

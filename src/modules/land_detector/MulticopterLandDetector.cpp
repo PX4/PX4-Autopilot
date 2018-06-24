@@ -92,24 +92,24 @@ MulticopterLandDetector::MulticopterLandDetector()
 
 void MulticopterLandDetector::_initialize_topics()
 {
+	LandDetector::_initialize_topics();
+
 	// subscribe to position, attitude and velocity changes
-	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_vehicleLocalPositionSetpointSub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	_attitudeSub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_actuatorsSub = orb_subscribe(ORB_ID(actuator_controls_0));
 	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
-	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
 	_vehicle_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_battery_sub = orb_subscribe(ORB_ID(battery_status));
 }
 
 void MulticopterLandDetector::_update_topics()
 {
-	_orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub, &_vehicleLocalPosition);
+	LandDetector::_update_topics();
+
 	_orb_update(ORB_ID(vehicle_local_position_setpoint), _vehicleLocalPositionSetpointSub, &_vehicleLocalPositionSetpoint);
 	_orb_update(ORB_ID(vehicle_attitude), _attitudeSub, &_vehicleAttitude);
 	_orb_update(ORB_ID(actuator_controls_0), _actuatorsSub, &_actuators);
-	_orb_update(ORB_ID(sensor_bias), _sensor_bias_sub, &_sensors);
 	_orb_update(ORB_ID(vehicle_control_mode), _vehicle_control_mode_sub, &_control_mode);
 	_orb_update(ORB_ID(battery_status), _battery_sub, &_battery);
 }
@@ -136,6 +136,7 @@ bool MulticopterLandDetector::_get_freefall_state()
 {
 	if (_params.freefall_acc_threshold < 0.1f
 	    || _params.freefall_acc_threshold > 10.0f) {	//if parameter is set to zero or invalid, disable free-fall detection.
+
 		return false;
 	}
 
@@ -144,56 +145,62 @@ bool MulticopterLandDetector::_get_freefall_state()
 		return false;
 	}
 
-	float acc_norm = _sensors.accel_x * _sensors.accel_x
-			 + _sensors.accel_y * _sensors.accel_y
-			 + _sensors.accel_z * _sensors.accel_z;
-	acc_norm = sqrtf(acc_norm);	//norm of specific force. Should be close to 9.8 m/s^2 when landed.
+	// norm of specific force. Should be close to 9.8 m/s^2 when landed.
+	float acc_norm =  sqrtf(_sensors.accel_x * _sensors.accel_x
+				+ _sensors.accel_y * _sensors.accel_y
+				+ _sensors.accel_z * _sensors.accel_z);
 
 	return (acc_norm < _params.freefall_acc_threshold);	//true if we are currently falling
 }
 
 bool MulticopterLandDetector::_get_ground_contact_state()
 {
-	// only trigger flight conditions if we are armed
-	if (!_arming.armed) {
+	// only trigger flight conditions if we are armed with a valid local position
+	if (!_arming.armed || (_local_pos.timestamp == 0)) {
 		return true;
 	}
-
-	// land speed threshold
-	float land_speed_threshold = 0.9f * math::max(_params.landSpeed, 0.1f);
 
 	// Check if we are moving vertically - this might see a spike after arming due to
 	// throttle-up vibration. If accelerating fast the throttle thresholds will still give
 	// an accurate in-air indication.
-	bool verticalMovement;
+	bool verticalMovement = false;
+	bool horizontalMovement = false;
 
-	if (hrt_elapsed_time(&_landed_time) < LAND_DETECTOR_LAND_PHASE_TIME_US) {
+	bool hit_ground = false;
 
-		// Widen acceptance thresholds for landed state right after arming
-		// so that motor spool-up and other effects do not trigger false negatives.
-		verticalMovement = fabsf(_vehicleLocalPosition.vz) > _params.maxClimbRate  * 2.5f;
+	if (_local_pos.v_z_valid) {
+		// land speed threshold
+		float land_speed_threshold = 0.9f * math::max(_params.landSpeed, 0.1f);
 
-	} else {
+		if (hrt_elapsed_time(&_landed_time) < LAND_DETECTOR_LAND_PHASE_TIME_US) {
 
-		// Adjust maxClimbRate if land_speed is lower than 2x maxClimbrate
-		float maxClimbRate = ((land_speed_threshold * 0.5f) < _params.maxClimbRate) ? (0.5f * land_speed_threshold) :
-				     _params.maxClimbRate;
-		verticalMovement = fabsf(_vehicleLocalPosition.z_deriv) > maxClimbRate;
+			// Widen acceptance thresholds for landed state right after arming
+			// so that motor spool-up and other effects do not trigger false negatives.
+			verticalMovement = fabsf(_local_pos.vz) > _params.maxClimbRate  * 2.5f;
+
+		} else {
+
+			// Adjust maxClimbRate if land_speed is lower than 2x maxClimbrate
+			float maxClimbRate = ((land_speed_threshold * 0.5f) < _params.maxClimbRate) ? (0.5f * land_speed_threshold) :
+					     _params.maxClimbRate;
+
+			verticalMovement = fabsf(_local_pos.z_deriv) > maxClimbRate;
+		}
+
+		// Check if we are moving horizontally.
+		horizontalMovement = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy) > _params.maxVelocity;
+
+		// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,
+		// we then can assume that the vehicle hit ground
+		bool in_descend = _is_climb_rate_enabled() && (_vehicleLocalPositionSetpoint.vz >= land_speed_threshold);
+
+		hit_ground = in_descend && !verticalMovement;
 	}
-
-	// Check if we are moving horizontally.
-	bool horizontalMovement = sqrtf(_vehicleLocalPosition.vx * _vehicleLocalPosition.vx
-					+ _vehicleLocalPosition.vy * _vehicleLocalPosition.vy) > _params.maxVelocity;
-
-	// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,
-	// we then can assume that the vehicle hit ground
-	bool in_descend = _is_climb_rate_enabled()
-			  && (_vehicleLocalPositionSetpoint.vz >= land_speed_threshold);
-	bool hit_ground = in_descend && !verticalMovement;
 
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
 	if ((_has_low_thrust() || hit_ground) && (!horizontalMovement || !_has_position_lock())
 	    && (!verticalMovement || !_has_altitude_lock())) {
+
 		return true;
 	}
 
@@ -206,7 +213,7 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	const hrt_abstime now = hrt_absolute_time();
 
 	// only trigger flight conditions if we are armed
-	if (!_arming.armed) {
+	if (!_arming.armed || (_vehicleAttitude.timestamp == 0)) {
 		return true;
 	}
 
@@ -274,6 +281,10 @@ float MulticopterLandDetector::_get_max_altitude()
 	/* ToDo: add a meaningful altitude */
 	float valid_altitude_max = _params.altitude_max;
 
+	if (valid_altitude_max < 0.0f) {
+		return LandDetector::_get_max_altitude();
+	}
+
 	if (_battery.warning == battery_status_s::BATTERY_WARNING_LOW) {
 		valid_altitude_max = _params.altitude_max * 0.75f;
 	}
@@ -291,22 +302,19 @@ float MulticopterLandDetector::_get_max_altitude()
 
 bool MulticopterLandDetector::_has_altitude_lock()
 {
-	return _vehicleLocalPosition.timestamp != 0 &&
-	       hrt_elapsed_time(&_vehicleLocalPosition.timestamp) < 500_ms &&
-	       _vehicleLocalPosition.z_valid;
+	return hrt_elapsed_time(&_local_pos.timestamp) < 500_ms && _local_pos.z_valid;
 }
 
 bool MulticopterLandDetector::_has_position_lock()
 {
-	return _has_altitude_lock() && _vehicleLocalPosition.xy_valid;
+	return _has_altitude_lock() && _local_pos.xy_valid;
 }
 
 bool MulticopterLandDetector::_is_climb_rate_enabled()
 {
-	bool has_updated = (_vehicleLocalPositionSetpoint.timestamp != 0)
-			   && (hrt_elapsed_time(&_vehicleLocalPositionSetpoint.timestamp) < 500_ms);
+	bool has_updated = (hrt_elapsed_time(&_vehicleLocalPositionSetpoint.timestamp) < 500_ms);
 
-	return (_control_mode.flag_control_climb_rate_enabled && has_updated && PX4_ISFINITE(_vehicleLocalPositionSetpoint.vz));
+	return (_control_mode.flag_control_climb_rate_enabled && has_updated && PX4_ISFINITE(_local_pos.vz));
 }
 
 bool MulticopterLandDetector::_has_low_thrust()

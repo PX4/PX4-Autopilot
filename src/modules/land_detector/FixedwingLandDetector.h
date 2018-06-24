@@ -44,8 +44,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/airspeed.h>
-#include <uORB/topics/sensor_bias.h>
-#include <uORB/topics/vehicle_local_position.h>
 
 #include "LandDetector.h"
 
@@ -65,7 +63,6 @@ protected:
 	void _update_topics() override;
 
 	bool _get_landed_state() override;
-	float _get_max_altitude() override;
 
 private:
 
@@ -88,12 +85,8 @@ private:
 	} _params{};
 
 	int _airspeedSub{-1};
-	int _sensor_bias_sub{-1};
-	int _local_pos_sub{-1};
 
 	airspeed_s _airspeed{};
-	sensor_bias_s _sensors{};
-	vehicle_local_position_s _local_pos{};
 
 	float _velocity_xy_filtered{0.0f};
 	float _velocity_z_filtered{0.0f};

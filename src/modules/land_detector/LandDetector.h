@@ -42,6 +42,8 @@
 
 #pragma once
 
+#include <cfloat>
+
 #include <px4_workqueue.h>
 #include <px4_module.h>
 #include <systemlib/hysteresis/hysteresis.h>
@@ -49,11 +51,12 @@
 #include <perf/perf_counter.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
 
 namespace land_detector
 {
-
 
 class LandDetector : public ModuleBase<LandDetector>
 {
@@ -100,17 +103,17 @@ protected:
 	/**
 	 * Called once to initialize uORB topics.
 	 */
-	virtual void _initialize_topics() = 0;
+	virtual void _initialize_topics();
 
 	/**
 	 * Update uORB topics.
 	 */
-	virtual void _update_topics() = 0;
+	virtual void _update_topics();
 
 	/**
 	 * Update parameters.
 	 */
-	virtual void _update_params() = 0;
+	virtual void _update_params() {};
 
 	/**
 	 * @return true if UAV is in a landed state.
@@ -135,7 +138,7 @@ protected:
 	/**
 	 *  @return maximum altitude that can be reached
 	 */
-	virtual float _get_max_altitude() = 0;
+	virtual float _get_max_altitude() { return INFINITY; }
 
 	/**
 	 * Convenience function for polling uORB subscriptions.
@@ -152,6 +155,8 @@ protected:
 
 	int _parameterSub{-1};
 	int _armingSub{-1};
+	int _sensor_bias_sub{-1};
+	int _local_pos_sub{-1};
 
 	LandDetectionState _state{LandDetectionState::LANDED};
 
@@ -160,7 +165,9 @@ protected:
 	systemlib::Hysteresis _maybe_landed_hysteresis{true};
 	systemlib::Hysteresis _ground_contact_hysteresis{true};
 
-	struct actuator_armed_s	_arming {};
+	actuator_armed_s		_arming{};
+	sensor_bias_s			_sensors{};
+	vehicle_local_position_s	_local_pos{};
 
 private:
 	static void _cycle_trampoline(void *arg);

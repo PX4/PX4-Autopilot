@@ -109,7 +109,7 @@ void LandDetector::_cycle()
 	const bool freefallDetected = (_state == LandDetectionState::FREEFALL);
 	const bool maybe_landedDetected = (_state == LandDetectionState::MAYBE_LANDED);
 	const bool ground_contactDetected = (_state == LandDetectionState::GROUND_CONTACT);
-	const float alt_max = _get_max_altitude() > 0.0f ? _get_max_altitude() : INFINITY;
+	const float alt_max = _get_max_altitude();
 
 	const hrt_abstime now = hrt_absolute_time();
 
@@ -229,6 +229,18 @@ bool LandDetector::_orb_update(const struct orb_metadata *meta, int handle, void
 	}
 
 	return true;
+}
+
+void LandDetector::_initialize_topics()
+{
+	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
+}
+
+void LandDetector::_update_topics()
+{
+	_orb_update(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+	_orb_update(ORB_ID(sensor_bias), _sensor_bias_sub, &_sensors);
 }
 
 
