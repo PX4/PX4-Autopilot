@@ -578,7 +578,6 @@ pipeline {
             unstash 'posix_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=multirotor_box vehicle:=iris est:=lpe'
-            sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
           }
           post {
             always {
