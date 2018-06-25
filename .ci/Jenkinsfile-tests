@@ -6,9 +6,11 @@ pipeline {
 
     stage('Test') {
       parallel {
-        stage('Style Check') {
+        stage('style check') {
           agent {
-            docker { image 'px4io/px4-dev-base:2018-03-30' }
+            docker {
+              image 'px4io/px4-dev-base:2018-03-30'
+            }
           }
           steps {
             sh 'make check_format'
