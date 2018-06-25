@@ -2660,20 +2660,23 @@ Mavlink::display_status()
 		printf("\tno telem status.\n");
 	}
 
-	printf("\tflow control:\t%s\n", (_flow_control_mode) ? "ON" : "OFF");
+	printf("\tflow control: %s\n", _flow_control_mode ? "ON" : "OFF");
 	printf("\trates:\n");
-	printf("\ttx: %.3f kB/s\n", (double)_rate_tx);
-	printf("\ttxerr: %.3f kB/s\n", (double)_rate_txerr);
-	printf("\trx: %.3f kB/s\n", (double)_rate_rx);
-	printf("\trate mult: %.3f\n", (double)_rate_mult);
+	printf("\t  tx: %.3f kB/s\n", (double)_rate_tx);
+	printf("\t  txerr: %.3f kB/s\n", (double)_rate_txerr);
+	printf("\t  tx rate mult: %.3f\n", (double)_rate_mult);
+	printf("\t  tx rate max: %i B/s\n", _datarate);
+	printf("\t  rx: %.3f kB/s\n", (double)_rate_rx);
 
 	if (_mavlink_ulog) {
 		printf("\tULog rate: %.1f%% of max %.1f%%\n", (double)_mavlink_ulog->current_data_rate() * 100.,
 		       (double)_mavlink_ulog->maximum_data_rate() * 100.);
 	}
 
-	printf("\taccepting commands: %s, FTP enabled: %s\n", accepting_commands() ? "YES" : "NO", _ftp_on ? "YES" : "NO");
-	printf("\ttransmitting enabled: %s\n", _transmitting_enabled ? "YES" : "NO");
+	printf("\taccepting commands: %s, FTP enabled: %s, TX enabled: %s\n",
+	       accepting_commands() ? "YES" : "NO",
+	       _ftp_on ? "YES" : "NO",
+	       _transmitting_enabled ? "YES" : "NO");
 	printf("\tmode: %s\n", mavlink_mode_str(_mode));
 	printf("\tMAVLink version: %i\n", _protocol_version);
 
@@ -2681,7 +2684,14 @@ Mavlink::display_status()
 
 	switch (_protocol) {
 	case UDP:
-		printf("UDP (%i)\n", _network_port);
+		printf("UDP (%i, remote port: %i)\n", _network_port, _remote_port);
+#ifdef __PX4_POSIX
+
+		if (get_client_source_initialized()) {
+			printf("\tpartner IP: %s\n", inet_ntoa(get_client_source_address().sin_addr));
+		}
+
+#endif
 		break;
 
 	case TCP:
@@ -2695,11 +2705,11 @@ Mavlink::display_status()
 
 	if (_ping_stats.last_ping_time > 0) {
 		printf("\tping statistics:\n");
-		printf("\t last: %0.2f ms\n", (double)_ping_stats.last_rtt);
-		printf("\t mean: %0.2f ms\n", (double)_ping_stats.mean_rtt);
-		printf("\t max: %0.2f ms\n", (double)_ping_stats.max_rtt);
-		printf("\t min: %0.2f ms\n", (double)_ping_stats.min_rtt);
-		printf("\t dropped packets: %u\n", _ping_stats.dropped_packets);
+		printf("\t  last: %0.2f ms\n", (double)_ping_stats.last_rtt);
+		printf("\t  mean: %0.2f ms\n", (double)_ping_stats.mean_rtt);
+		printf("\t  max: %0.2f ms\n", (double)_ping_stats.max_rtt);
+		printf("\t  min: %0.2f ms\n", (double)_ping_stats.min_rtt);
+		printf("\t  dropped packets: %u\n", _ping_stats.dropped_packets);
 	}
 }
 
