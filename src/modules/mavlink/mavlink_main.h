@@ -109,6 +109,11 @@ public:
 	 */
 	void			display_status();
 
+	/**
+	 * Display the status of all enabled streams.
+	 */
+	void			display_status_streams();
+
 	static int		stream_command(int argc, char *argv[]);
 
 	static int		instance_count();
@@ -136,7 +141,7 @@ public:
 
 	static int		destroy_all_instances();
 
-	static int		get_status_all_instances();
+	static int		get_status_all_instances(bool show_streams_status);
 
 	static bool		instance_exists(const char *device_name, Mavlink *self);
 
