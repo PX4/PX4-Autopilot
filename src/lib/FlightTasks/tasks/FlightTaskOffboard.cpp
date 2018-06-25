@@ -55,6 +55,8 @@ bool FlightTaskOffboard::initializeSubscriptions(SubscriptionArray &subscription
 bool FlightTaskOffboard::updateInitialize()
 {
 	bool ret = FlightTask::updateInitialize();
+	// require a valid triplet
+	ret = ret && _sub_triplet_setpoint->get().current.valid;
 	// require valid position / velocity in xy
 	return ret && PX4_ISFINITE(_position(0))
 	       && PX4_ISFINITE(_position(1))
@@ -245,5 +247,4 @@ bool FlightTaskOffboard::update()
 	}
 
 	return true;
-
 }
