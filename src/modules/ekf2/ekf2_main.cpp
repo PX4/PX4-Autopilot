@@ -1414,6 +1414,7 @@ void Ekf2::run()
 			estimator_status_s status;
 			status.timestamp = now;
 			_ekf.get_state_delayed(status.states);
+			status.n_states = 24;
 			_ekf.get_covariances(status.covariances);
 			_ekf.get_gps_check_status(&status.gps_check_fail_flags);
 			status.control_mode_flags = control_status.value;
