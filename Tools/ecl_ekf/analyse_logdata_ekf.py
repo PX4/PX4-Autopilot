@@ -965,7 +965,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.xlabel('time (sec)')
         plt.grid()
         plt.subplot(3, 1, 2)
-        inclination = rad2deg * np.arcsin(estimator_status['states[18]'] / strength)
+        inclination = rad2deg * np.arcsin(estimator_status['states[18]'] / np.maximum(strength, np.finfo(np.float32).eps) )
         plt.plot(1e-6 * estimator_status['timestamp'], inclination, 'b')
         plt.ylabel('inclination (deg)')
         plt.xlabel('time (sec)')
