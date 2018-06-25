@@ -432,7 +432,7 @@ public:
 
 	const in_addr compute_broadcast_addr(const in_addr &host_addr, const in_addr &netmask_addr);
 
-	struct sockaddr_in 	*get_client_source_address() { return &_src_addr; }
+	struct sockaddr_in 	&get_client_source_address() { return _src_addr; }
 
 	void			set_client_source_initialized() { _src_addr_initialized = true; }
 
