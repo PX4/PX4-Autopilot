@@ -54,7 +54,14 @@ bool FlightTaskManualAltitude::activate()
 	_position_setpoint(2) = _position(2);
 	_velocity_setpoint(2) = 0.0f;
 	_setDefaultConstraints();
-	_constraints.min_distance_to_ground = SENS_FLOW_MINRNG.get();
+
+	if (PX4_ISFINITE(_sub_vehicle_local_position->get().hagl_min)) {
+		_constraints.min_distance_to_ground = _sub_vehicle_local_position->get().hagl_min;
+
+	} else {
+		_constraints.min_distance_to_ground = -INFINITY;
+	}
+
 	return ret;
 }
 
@@ -92,7 +99,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 			// Ensure that minimum altitude is respected if
 			// there is a distance sensor and distance to bottome is below minimum.
-			if (PX4_ISFINITE(_dist_to_bottom) && _dist_to_bottom < SENS_FLOW_MINRNG.get()) {
+			if (PX4_ISFINITE(_dist_to_bottom) && _dist_to_bottom < _constraints.min_distance_to_ground) {
 				_terrain_following(apply_brake, stopped);
 
 			} else {
@@ -116,21 +123,19 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 void FlightTaskManualAltitude::_respectMinAltitude()
 {
-	const bool respectAlt = _sub_vehicle_local_position->get().limit_hagl
-				&& PX4_ISFINITE(_dist_to_bottom)
-				&& _dist_to_bottom < SENS_FLOW_MINRNG.get();
+	const bool respectAlt = PX4_ISFINITE(_dist_to_bottom)
+				&& _dist_to_bottom < _constraints.min_distance_to_ground;
 
 	// Height above ground needs to be limited (flow / range-finder)
 	if (respectAlt) {
 		// increase altitude to minimum flow distance
 		_position_setpoint(2) = _position(2)
-					- (SENS_FLOW_MINRNG.get() - _dist_to_bottom);
+					- (_constraints.min_distance_to_ground - _dist_to_bottom);
 	}
 }
 
 void FlightTaskManualAltitude::_terrain_following(bool apply_brake, bool stopped)
 {
-
 	if (apply_brake && stopped && !PX4_ISFINITE(_dist_to_ground_lock)) {
 		// User wants to break and vehicle reached zero velocity. Lock height to ground.
 
