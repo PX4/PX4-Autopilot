@@ -1046,6 +1046,9 @@ void Ekf2::run()
 		ekf_solution_status soln_status;
 		soln_status.value = status.solution_status_flags;
 
+		filter_control_status_u ekf_control_mask;
+		ekf_control_mask.value = status.control_mode_flags;
+
 		if (updated) {
 
 			// integrate time to monitor time slippage
@@ -1333,7 +1336,9 @@ void Ekf2::run()
 					// reset to prevent data being saved too frequently
 					_total_cal_time_us = 0;
 				}
+			}
 
+			if (ekf_control_mask.flags.wind) {
 				publish_wind_estimate(now);
 			}
 
@@ -1378,9 +1383,7 @@ void Ekf2::run()
 
 					// set the max allowed yaw innovaton depending on whether we are not aiding navigation using
 					// observations in the NE reference frame.
-					filter_control_status_u _ekf_control_mask;
-					_ekf.get_control_mode(&_ekf_control_mask.value);
-					bool doing_ne_aiding = _ekf_control_mask.flags.gps ||  _ekf_control_mask.flags.ev_pos;
+					bool doing_ne_aiding = ekf_control_mask.flags.gps || ekf_control_mask.flags.ev_pos;
 
 					float yaw_test_limit;
 
