@@ -9,7 +9,7 @@ pipeline {
 
           def docker_base = "px4io/px4-dev-base:2018-03-30"
           def docker_nuttx = "px4io/px4-dev-nuttx:2018-03-30"
-          def docker_ros = "px4io/px4-dev-ros:2018-03-30"
+          def docker_ros = "px4io/px4-dev-ros:2018-06-19"
           def docker_rpi = "px4io/px4-dev-raspi:2018-03-30"
           def docker_armhf = "px4io/px4-dev-armhf:2017-12-30"
           def docker_arch = "px4io/px4-dev-base-archlinux:2018-03-30"
@@ -77,9 +77,9 @@ pipeline {
           builds["eagle (qurt)"] = createBuildNodeDockerLogin(docker_snapdragon, 'docker_hub_dagar', 'qurt_eagle_default')
 
           // posix_sitl_default with package
-          builds["sitl"] = {
+          builds["sitl (EKF2)"] = {
             node {
-              stage("Build Test sitl") {
+              stage("Build Test sitl_default") {
                 docker.image(docker_ros).inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE') {
                   stage("sitl") {
                     checkout scm
@@ -90,7 +90,29 @@ pipeline {
                     sh "make posix_sitl_default sitl_gazebo"
                     sh "make posix_sitl_default package"
                     sh "ccache -s"
-                    stash name: "px4_sitl_package", includes: "build/posix_sitl_default/*.bz2"
+                    stash name: "px4_sitl_default_package", includes: "build/posix_sitl_default/*.bz2"
+                    sh "make distclean"
+                  }
+                }
+              }
+            }
+          }
+
+	  // posix_sitl_lpe with package
+          builds["sitl (LPE)"] = {
+            node {
+              stage("Build Test sitl_lpe") {
+                docker.image(docker_ros).inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE') {
+                  stage("sitl") {
+                    checkout scm
+                    sh "export"
+                    sh "make distclean"
+                    sh "ccache -z"
+                    sh "make posix_sitl_lpe"
+                    sh "make posix_sitl_lpe sitl_gazebo"
+                    sh "make posix_sitl_lpe package"
+                    sh "ccache -s"
+                    stash name: "px4_sitl_lpe_package", includes: "build/posix_sitl_lpe/*.bz2"
                     sh "make distclean"
                   }
                 }
@@ -167,7 +189,7 @@ pipeline {
               allowMissing: false,
               alwaysLinkToLastBuild: true,
               keepAll: true,
-              reportDir: 'build/scan-build/report_latest',
+              reportDir: 'build/scan-build/report_2018-06-19',
               reportFiles: '*',
               reportName: 'Clang Static Analyzer'
             ]
@@ -248,7 +270,7 @@ pipeline {
         stage('test mission (code coverage)') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2018-03-30'
+              image 'px4io/px4-dev-ros:2018-06-19'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -287,7 +309,7 @@ pipeline {
         // stage('tests (code coverage)') {
         //   agent {
         //     docker {
-        //       image 'px4io/px4-dev-ros:2018-03-30'
+        //       image 'px4io/px4-dev-ros:2018-06-19'
         //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
         //     }
         //   }
@@ -327,7 +349,7 @@ pipeline {
         stage('ROS vtol standard mission') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2018-03-30'
+              image 'px4io/px4-dev-ros:2018-06-19'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -337,7 +359,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'px4_sitl_package'
+            unstash 'px4_sitl_default_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=standard_vtol'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
@@ -361,7 +383,7 @@ pipeline {
         stage('ROS vtol tailsitter mission') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2018-03-30'
+              image 'px4io/px4-dev-ros:2018-06-19'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -371,7 +393,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'px4_sitl_package'
+            unstash 'px4_sitl_default_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=tailsitter'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
@@ -395,7 +417,7 @@ pipeline {
         stage('ROS vtol tiltrotor mission') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2018-03-30'
+              image 'px4io/px4-dev-ros:2018-06-19'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -405,7 +427,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'px4_sitl_package'
+            unstash 'px4_sitl_default_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=tiltrotor'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
@@ -429,7 +451,7 @@ pipeline {
         stage('ROS vtol mission new 2') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2018-03-30'
+              image 'px4io/px4-dev-ros:2018-06-19'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -439,7 +461,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'px4_sitl_package'
+            unstash 'px4_sitl_default_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_2 vehicle:=standard_vtol'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
@@ -463,7 +485,7 @@ pipeline {
         stage('ROS vtol mission old 1') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2018-03-30'
+              image 'px4io/px4-dev-ros:2018-06-19'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -473,7 +495,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'px4_sitl_package'
+            unstash 'px4_sitl_default_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_1 vehicle:=standard_vtol'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
@@ -497,7 +519,7 @@ pipeline {
         stage('ROS vtol mission old 2') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2018-03-30'
+              image 'px4io/px4-dev-ros:2018-06-19'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -507,7 +529,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'px4_sitl_package'
+            unstash 'px4_sitl_default_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_2 vehicle:=standard_vtol'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
@@ -528,10 +550,10 @@ pipeline {
           }
         }
 
-        stage('ROS MC mission box') {
+        stage('ROS MC mission box (EKF2)') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2018-03-30'
+              image 'px4io/px4-dev-ros:2018-06-19'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -541,7 +563,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'px4_sitl_package'
+            unstash 'px4_sitl_default_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=multirotor_box vehicle:=iris'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
@@ -562,10 +584,44 @@ pipeline {
           }
         }
 
+	stage('ROS MC mission box (LPE)') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ros:2018-06-19'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+            }
+          }
+          options {
+            skipDefaultCheckout()
+          }
+          steps {
+            sh 'export'
+            sh 'rm -rf build; rm -rf px4-posix_sitl_lpe*; rm -rf .ros; rm -rf .gazebo'
+            unstash 'px4_sitl_lpe_package'
+            sh 'tar -xjpvf build/posix_sitl_lpe/px4-posix_sitl_lpe*.bz2'
+            sh 'px4-posix_sitl_lpe*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=multirotor_box vehicle:=iris'
+            sh 'px4-posix_sitl_lpe*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
+          }
+          post {
+            always {
+              sh 'px4-posix_sitl_lpe*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg'
+              archiveArtifacts '.ros/**/*.pdf'
+              archiveArtifacts '.ros/**/*.csv'
+              deleteDir()
+            }
+            failure {
+              sh 'ls -a'
+              archiveArtifacts '.ros/**/*.ulg'
+              archiveArtifacts '.ros/**/rosunit-*.xml'
+              archiveArtifacts '.ros/**/rostest-*.log'
+            }
+          }
+        }
+
         stage('ROS offboard att') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2018-03-30'
+              image 'px4io/px4-dev-ros:2018-06-19'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -575,7 +631,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'px4_sitl_package'
+            unstash 'px4_sitl_default_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
@@ -599,14 +655,14 @@ pipeline {
         stage('ROS offboard pos') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2018-03-30'
+              image 'px4io/px4-dev-ros:2018-06-19'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'px4_sitl_package'
+            unstash 'px4_sitl_default_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_tests_offboard_posctl.test'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
