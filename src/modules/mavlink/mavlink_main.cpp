@@ -859,19 +859,16 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 {
 	int ret = OK;
 
-	/* enable HIL */
-	if (hil_enabled && !_hil_enabled && (_mode != MAVLINK_MODE_IRIDIUM)) {
+	/* enable HIL (only on links with sufficient bandwidth) */
+	if (hil_enabled && !_hil_enabled && _datarate > 5000) {
 		_hil_enabled = true;
-		configure_stream("HIL_ACTUATOR_CONTROLS", 200.0f);
+		ret = configure_stream("HIL_ACTUATOR_CONTROLS", 200.0f);
 	}
 
 	/* disable HIL */
 	if (!hil_enabled && _hil_enabled) {
 		_hil_enabled = false;
-		configure_stream("HIL_ACTUATOR_CONTROLS", 0.0f);
-
-	} else {
-		ret = PX4_ERROR;
+		ret = configure_stream("HIL_ACTUATOR_CONTROLS", 0.0f);
 	}
 
 	return ret;
