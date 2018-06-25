@@ -2871,7 +2871,7 @@ Mavlink::stream_command(int argc, char *argv[])
 		i++;
 	}
 
-	if (!err_flag && rate >= 0.0f && stream_name != nullptr) {
+	if (!err_flag && stream_name != nullptr) {
 
 		Mavlink *inst = nullptr;
 
@@ -2884,6 +2884,10 @@ Mavlink::stream_command(int argc, char *argv[])
 		} else if (provided_device && provided_network_port) {
 			PX4_WARN("please provide either a device name or a network port");
 			return 1;
+		}
+
+		if (rate < 0.f) {
+			rate = -2.f; // use default rate
 		}
 
 		if (inst != nullptr) {
@@ -2904,7 +2908,7 @@ Mavlink::stream_command(int argc, char *argv[])
 		}
 
 	} else {
-		PX4_INFO("usage: mavlink stream [-d device] [-u network_port] -s stream -r rate");
+		usage();
 		return 1;
 	}
 
@@ -2991,7 +2995,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 #endif
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<file:dev>", "Select Mavlink instance via Serial Device", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('s', nullptr, nullptr, "Mavlink stream to configure", false);
-	PRINT_MODULE_USAGE_PARAM_FLOAT('r', 0.f, 0.f, 2000.f, "Rate in Hz (0 = turn off)", false);
+	PRINT_MODULE_USAGE_PARAM_FLOAT('r', -1.f, 0.f, 2000.f, "Rate in Hz (0 = turn off, -1 = set to default)", false);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("boot_complete",
 					 "Enable sending of messages. (Must be) called as last step in startup script.");
