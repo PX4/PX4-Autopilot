@@ -2203,7 +2203,6 @@ protected:
 				msg.covariance[i] = est.covariances[i];
 			}
 
-			msg.covariance[9] = est.nan_flags;
 			msg.covariance[10] = est.health_flags;
 			msg.covariance[11] = est.timeout_flags;
 

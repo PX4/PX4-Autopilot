@@ -622,7 +622,6 @@ void BlockLocalPositionEstimator::publishEstimatorStatus()
 	}
 
 	_pub_est_status.get().n_states = n_x;
-	_pub_est_status.get().nan_flags = 0;
 	_pub_est_status.get().health_flags = _sensorFault;
 	_pub_est_status.get().timeout_flags = _sensorTimeout;
 	_pub_est_status.get().pos_horiz_accuracy = _pub_gpos.get().eph;
