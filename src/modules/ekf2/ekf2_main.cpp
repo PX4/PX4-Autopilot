@@ -71,6 +71,7 @@
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_magnetometer.h>
+#include <uORB/topics/ekf_gps_position.h>
 
 // defines used to specify the mask position for use of different accuracy metrics in the GPS blending algorithm
 #define BLEND_MASK_USE_SPD_ACC      1
@@ -1018,7 +1019,7 @@ void Ekf2::run()
 
 			// log blended solution as a third GPS instance
 			if (_gps_select_index == 2) {
-				vehicle_gps_position_s gps;
+				ekf_gps_position_s gps;
 				gps.timestamp = _gps_output[_gps_select_index].time_usec;
 				gps.lat = _gps_output[_gps_select_index].lat;
 				gps.lon = _gps_output[_gps_select_index].lon;
@@ -1034,8 +1035,8 @@ void Ekf2::run()
 				gps.vel_ned_valid = _gps_output[_gps_select_index].vel_ned_valid;
 				gps.satellites_used = _gps_output[_gps_select_index].nsats;
 
-				// Publish to the GPS multi-topic
-				orb_publish_auto(ORB_ID(vehicle_gps_position), &_blended_gps_pub, &gps, &_gps_orb_instance, ORB_PRIO_LOW);
+				// Publish to the EKF blended GPS topic
+				orb_publish_auto(ORB_ID(ekf_gps_position), &_blended_gps_pub, &gps, &_gps_orb_instance, ORB_PRIO_LOW);
 			}
 		}
 
