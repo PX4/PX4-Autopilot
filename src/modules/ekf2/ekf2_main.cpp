@@ -1428,7 +1428,6 @@ void Ekf2::run()
 			_ekf.get_ekf_soln_status(&status.solution_status_flags);
 			_ekf.get_imu_vibe_metrics(status.vibe);
 			status.time_slip = _last_time_slip_us / 1e6f;
-			status.nan_flags = 0.0f; // unused
 			status.health_flags = 0.0f; // unused
 			status.timeout_flags = 0.0f; // unused
 			status.pre_flt_fail = _preflt_fail;
