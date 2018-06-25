@@ -122,4 +122,5 @@ void FlightTask::_setDefaultConstraints()
 	_constraints.tilt = math::radians(MPC_TILTMAX_AIR.get());
 	_constraints.landing_gear = vehicle_constraints_s::GEAR_KEEP;
 	_constraints.min_distance_to_ground = NAN;
+	_constraints.max_distance_to_ground = NAN;
 }

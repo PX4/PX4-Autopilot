@@ -66,6 +66,8 @@ protected:
 				       )
 private:
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
+	float _max_speed_up = 10.0f;
+	float _min_speed_down = 1.0f;
 
 	/**
 	 * Distance to ground during terrain following.
@@ -82,7 +84,7 @@ private:
 	 * @param apply_brake is true if user wants to break
 	 * @param stopped is true if vehicle has stopped moving in D-direction
 	 */
-	void _terrain_following(bool apply_brake, bool stopped);
+	void _terrainFollowing(bool apply_brake, bool stopped);
 
 	/**
 	 * Minimum Altitude during range sensor operation.
@@ -91,4 +93,6 @@ private:
 	 * altitude is only enforced during altitude lock.
 	 */
 	void _respectMinAltitude();
+
+	void _respectMaxAltitude();
 };
