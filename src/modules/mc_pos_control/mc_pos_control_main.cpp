@@ -519,7 +519,7 @@ MulticopterPositionControl::task_main()
 		setDt(dt);
 
 		if (_control_mode.flag_armed) {
-			// as soon vehicle is armed, start flighttask
+			// as soon vehicle is armed check for flighttask
 			start_flight_task();
 			// arm hysteresis prevents vehicle to takeoff
 			// before propeller reached idle speed.
@@ -646,7 +646,7 @@ MulticopterPositionControl::task_main()
 
 			// publish attitude setpoint
 			// Note: this requires review. The reason for not sending
-			// an attitude setpoint is because for none-flighttask modes
+			// an attitude setpoint is because for non-flighttask modes
 			// the attitude septoint should come from another source, otherwise
 			// they might conflict with each other such as in offboard attitude control.
 			publish_attitude();
@@ -678,7 +678,13 @@ MulticopterPositionControl::start_flight_task()
 	bool task_failure = false;
 
 	// offboard
-	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD
+	    && (_control_mode.flag_control_altitude_enabled ||
+		_control_mode.flag_control_position_enabled ||
+		_control_mode.flag_control_climb_rate_enabled ||
+		_control_mode.flag_control_velocity_enabled ||
+		_control_mode.flag_control_acceleration_enabled)) {
+
 		int error = _flight_tasks.switchTask(FlightTaskIndex::Offboard);
 
 		if (error != 0) {
