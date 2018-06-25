@@ -90,7 +90,7 @@ pipeline {
                     sh "make posix_sitl_default sitl_gazebo"
                     sh "make posix_sitl_default package"
                     sh "ccache -s"
-                    stash name: "posix_sitl_package", includes: "build/posix_sitl_default/*.bz2"
+                    stash name: "px4_sitl_package", includes: "build/posix_sitl_default/*.bz2"
                     sh "make distclean"
                   }
                 }
@@ -337,7 +337,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'posix_sitl_package'
+            unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=standard_vtol'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
@@ -371,7 +371,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'posix_sitl_package'
+            unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=tailsitter'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
@@ -405,7 +405,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'posix_sitl_package'
+            unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=tiltrotor'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
@@ -439,7 +439,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'posix_sitl_package'
+            unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_2 vehicle:=standard_vtol'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
@@ -473,7 +473,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'posix_sitl_package'
+            unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_1 vehicle:=standard_vtol'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
@@ -507,7 +507,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'posix_sitl_package'
+            unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_old_2 vehicle:=standard_vtol'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
@@ -541,7 +541,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'posix_sitl_package'
+            unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=multirotor_box vehicle:=iris'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
@@ -575,7 +575,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'posix_sitl_package'
+            unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=multirotor_box vehicle:=iris est:=lpe'
           }
@@ -606,7 +606,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'posix_sitl_package'
+            unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
@@ -637,7 +637,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'rm -rf build; rm -rf px4-posix_sitl_default*; rm -rf .ros; rm -rf .gazebo'
-            unstash 'posix_sitl_package'
+            unstash 'px4_sitl_package'
             sh 'tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2'
             sh 'px4-posix_sitl_default*/px4/test/rostest_px4_run.sh mavros_posix_tests_offboard_posctl.test'
             sh 'px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py `find . -name *.ulg -print -quit`'
