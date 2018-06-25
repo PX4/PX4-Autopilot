@@ -62,7 +62,6 @@ protected:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualStabilized,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) MPC_HOLD_MAX_Z,
-					(ParamFloat<px4::params::SENS_FLOW_MINRNG>) SENS_FLOW_MINRNG,
 					(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE
 				       )
 private:

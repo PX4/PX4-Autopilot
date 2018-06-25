@@ -96,12 +96,13 @@ bool FlightTask::_evaluateVehicleLocalPosition()
 		// distance to bottom
 		_dist_to_bottom = NAN;
 
-		if (_sub_vehicle_local_position->get().dist_bottom_valid) {
+		if (_sub_vehicle_local_position->get().dist_bottom_valid
+		    && PX4_ISFINITE(_sub_vehicle_local_position->get().dist_bottom)) {
 			_dist_to_bottom =  _sub_vehicle_local_position->get().dist_bottom;
 		}
 
 		// estimator specified vehicle limits
-		
+
 
 		// We don't check here if states are valid or not.
 		// Validity checks are done in the sub-classes.
