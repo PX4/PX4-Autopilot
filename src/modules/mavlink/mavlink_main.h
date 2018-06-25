@@ -559,7 +559,7 @@ private:
 	bool			mavlink_link_termination_allowed;
 
 	char 			*_subscribe_to_stream;
-	float			_subscribe_to_stream_rate;
+	float			_subscribe_to_stream_rate;  ///< rate of stream to subscribe to (0=disable, -1=unlimited, -2=default)
 	bool 			_udp_initialised;
 
 	enum FLOW_CONTROL_MODE	_flow_control_mode;
@@ -637,7 +637,21 @@ private:
 	static constexpr unsigned RADIO_BUFFER_LOW_PERCENTAGE = 35;
 	static constexpr unsigned RADIO_BUFFER_HALF_PERCENTAGE = 50;
 
+	/**
+	 * Configure a single stream.
+	 * @param stream_name
+	 * @param rate streaming rate in Hz, -1 = unlimited rate
+	 * @return 0 on success, <0 on error
+	 */
 	int configure_stream(const char *stream_name, const float rate = -1.0f);
+
+	/**
+	 * Configure default streams according to _mode for either all streams or only a single
+	 * stream.
+	 * @param configure_single_stream: if nullptr, configure all streams, else only a single stream
+	 * @return 0 on success, <0 on error
+	 */
+	int configure_streams_to_default(const char *configure_single_stream = nullptr);
 
 	/**
 	 * Adjust the stream rates based on the current rate
