@@ -37,6 +37,7 @@
 
 #include "FlightTaskManualAltitude.hpp"
 #include <float.h>
+#include <mathlib/mathlib.h>
 
 using namespace matrix;
 
@@ -61,6 +62,16 @@ bool FlightTaskManualAltitude::activate()
 	} else {
 		_constraints.min_distance_to_ground = -INFINITY;
 	}
+
+	if (PX4_ISFINITE(_sub_vehicle_local_position->get().hagl_max)) {
+		_constraints.max_distance_to_ground = _sub_vehicle_local_position->get().hagl_max;
+
+	} else {
+		_constraints.max_distance_to_ground = INFINITY;
+	}
+
+	_max_speed_up = _constraints.speed_up;
+	_min_speed_down = _constraints.speed_down;
 
 	return ret;
 }
@@ -88,7 +99,9 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 	if (MPC_ALT_MODE.get() && PX4_ISFINITE(_dist_to_bottom)) {
 		// terrain following
-		_terrain_following(apply_brake, stopped);
+		_terrainFollowing(apply_brake, stopped);
+		// respect maximum altitude
+		_respectMaxAltitude();
 
 	} else {
 		// normal mode where height is dependent on local frame
@@ -98,9 +111,9 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 			_position_setpoint(2) = _position(2);
 
 			// Ensure that minimum altitude is respected if
-			// there is a distance sensor and distance to bottome is below minimum.
+			// there is a distance sensor and distance to bottom is below minimum.
 			if (PX4_ISFINITE(_dist_to_bottom) && _dist_to_bottom < _constraints.min_distance_to_ground) {
-				_terrain_following(apply_brake, stopped);
+				_terrainFollowing(apply_brake, stopped);
 
 			} else {
 				_dist_to_ground_lock = NAN;
@@ -117,6 +130,8 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 		} else  {
 			// user demands velocity change
 			_position_setpoint(2) = NAN;
+			// ensure that maximum altitude is respected
+			_respectMaxAltitude();
 		}
 	}
 }
@@ -134,7 +149,7 @@ void FlightTaskManualAltitude::_respectMinAltitude()
 	}
 }
 
-void FlightTaskManualAltitude::_terrain_following(bool apply_brake, bool stopped)
+void FlightTaskManualAltitude::_terrainFollowing(bool apply_brake, bool stopped)
 {
 	if (apply_brake && stopped && !PX4_ISFINITE(_dist_to_ground_lock)) {
 		// User wants to break and vehicle reached zero velocity. Lock height to ground.
@@ -159,6 +174,41 @@ void FlightTaskManualAltitude::_terrain_following(bool apply_brake, bool stopped
 		_dist_to_ground_lock = _position_setpoint(2) = NAN;
 	}
 }
+
+void FlightTaskManualAltitude::_respectMaxAltitude()
+{
+	if (PX4_ISFINITE(_dist_to_bottom)) {
+
+		// check if there is a valid minimum distance to ground
+		const float min_distance_to_ground = (PX4_ISFINITE(_constraints.min_distance_to_ground)) ?
+						     _constraints.min_distance_to_ground : 0.0f;
+
+		// if there is a valid maximum distance to ground, gradually decrease speed limit upwards from
+		// minimum distance to maximum distance
+		if (PX4_ISFINITE(_constraints.max_distance_to_ground)) {
+			_constraints.speed_up = math::gradual(_dist_to_bottom, min_distance_to_ground, _constraints.max_distance_to_ground,
+							      _max_speed_up, 0.0f);
+
+		} else {
+			_constraints.speed_up = _max_speed_up;
+		}
+
+		// if distance to bottom exceeded maximum distance, slowly approach maximum distance
+		if (_dist_to_bottom >  _constraints.max_distance_to_ground) {
+			// difference between current distance to ground and maximum distance to ground
+			const float delta_distance_to_max = _dist_to_bottom - _constraints.max_distance_to_ground;
+			// set position setpoint to maximum distance to ground
+			_position_setpoint(2) = _position(2) +  delta_distance_to_max;
+			// limit speed downwards to 0.7m/s
+			_constraints.speed_down = math::min(_min_speed_down, 0.7f);
+
+		} else {
+			_constraints.speed_down = _min_speed_down;
+
+		}
+	}
+}
+
 void FlightTaskManualAltitude::_updateSetpoints()
 {
 	FlightTaskManualStabilized::_updateSetpoints(); // get yaw and thrust setpoints
