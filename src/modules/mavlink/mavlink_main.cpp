@@ -471,7 +471,7 @@ Mavlink::destroy_all_instances()
 }
 
 int
-Mavlink::get_status_all_instances()
+Mavlink::get_status_all_instances(bool show_streams_status)
 {
 	Mavlink *inst = ::_mavlink_instances;
 
@@ -480,7 +480,13 @@ Mavlink::get_status_all_instances()
 	while (inst != nullptr) {
 
 		printf("\ninstance #%u:\n", iterations);
-		inst->display_status();
+
+		if (show_streams_status) {
+			inst->display_status_streams();
+
+		} else {
+			inst->display_status();
+		}
 
 		/* move on */
 		inst = inst->next;
@@ -2765,6 +2771,40 @@ Mavlink::display_status()
 	}
 }
 
+void
+Mavlink::display_status_streams()
+{
+	printf("\t%-20s%-16s %s\n", "Name", "Rate Config (current) [Hz]", "Message Size (if active) [B]");
+
+	const float rate_mult = _rate_mult;
+	MavlinkStream *stream;
+	LL_FOREACH(_streams, stream) {
+		const int interval = stream->get_interval();
+		const unsigned size = stream->get_size();
+		char rate_str[20];
+
+		if (interval < 0) {
+			strcpy(rate_str, "unlimited");
+
+		} else {
+			float rate = 1000000.0f / (float)interval;
+			// Note that the actual current rate can be lower if the associated uORB topic updates at a
+			// lower rate.
+			float rate_current = stream->const_rate() ? rate : rate * rate_mult;
+			snprintf(rate_str, sizeof(rate_str), "%6.2f (%.3f)", (double)rate, (double)rate_current);
+		}
+
+		printf("\t%-30s%-16s", stream->get_name(), rate_str);
+
+		if (size > 0) {
+			printf(" %3i\n", size);
+
+		} else {
+			printf("\n");
+		}
+	}
+}
+
 int
 Mavlink::stream_command(int argc, char *argv[])
 {
@@ -2940,11 +2980,10 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Enable FTP", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('z', "Force flow control always on", true);
 
-	PRINT_MODULE_USAGE_ARG("on|off", "Enable/disable", true);
-
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop-all", "Stop all instances");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print status for all instances");
+	PRINT_MODULE_USAGE_ARG("streams", "Print all enabled streams", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stream", "Configure the sending rate of a stream for a running instance");
 #ifdef __PX4_POSIX
@@ -2978,7 +3017,8 @@ int mavlink_main(int argc, char *argv[])
 		return Mavlink::destroy_all_instances();
 
 	} else if (!strcmp(argv[1], "status")) {
-		return Mavlink::get_status_all_instances();
+		bool show_streams_status = argc > 2 && strcmp(argv[2], "streams") == 0;
+		return Mavlink::get_status_all_instances(show_streams_status);
 
 	} else if (!strcmp(argv[1], "stream")) {
 		return Mavlink::stream_command(argc, argv);
