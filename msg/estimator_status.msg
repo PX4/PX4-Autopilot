@@ -1,5 +1,5 @@
 float32[24] states		# Internal filter states
-float32 n_states		# Number of states effectively used
+uint8 n_states		# Number of states effectively used
 
 float32[3] vibe			# IMU vibration metrics in the following array locations
 # 0 : Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
