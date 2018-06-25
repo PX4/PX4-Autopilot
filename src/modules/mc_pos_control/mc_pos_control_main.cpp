@@ -130,7 +130,8 @@ private:
 		(ParamFloat<px4::params::MPC_LAND_SPEED>) _land_speed,
 		(ParamFloat<px4::params::MPC_TKO_SPEED>) _tko_speed,
 		(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude at which speed limit downwards reached minimum speed
-		(ParamInt<px4::params::MPC_POS_MODE>) MPC_POS_MODE
+		(ParamInt<px4::params::MPC_POS_MODE>) MPC_POS_MODE,
+		(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
@@ -432,7 +433,12 @@ MulticopterPositionControl::check_vehicle_states(const float &vel_sp_z)
 		_vel_y_deriv.update(0.0f);
 	}
 
-	if (PX4_ISFINITE(_local_pos.vz)) {
+	if (MPC_ALT_MODE.get() && _local_pos.dist_bottom_valid && PX4_ISFINITE(_local_pos.dist_bottom_rate)) {
+		// terrain following
+		_states.velocity(2) = -_local_pos.dist_bottom_rate;
+		_states.acceleration(2) = _vel_z_deriv.update(-_states.velocity(2));
+
+	} else if (PX4_ISFINITE(_local_pos.vz)) {
 
 		if (PX4_ISFINITE(vel_sp_z) && fabsf(vel_sp_z) > FLT_EPSILON && PX4_ISFINITE(_local_pos.z_deriv)) {
 			// A change in velocity is demanded. Set velocity to the derivative of position
