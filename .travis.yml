@@ -19,13 +19,7 @@ addons:
     build_command: "make --ignore-errors"
     branch_pattern: coverity_scan
 before_install:
-    - git submodule update --init --recursive
-    - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-    - sudo add-apt-repository ppa:terry.guo/gcc-arm-embedded -y
-    - sudo apt-get update -qq
-    - if [ "$CXX" = "g++" ]; then sudo apt-get install --force-yes -qq g++-4.8; fi
-    - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
-    - sudo apt-get install --force-yes gcc-arm-none-eabi
+    - ./bootstrap.sh
 before_script: "mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DCONTINUOUS_INTEGRATION_BUILD=1"
 script:
     - if [ "${COVERITY_SCAN_BRANCH}" != 1 ] && [ "${TARGET}" == "native" ]; then make ; fi
