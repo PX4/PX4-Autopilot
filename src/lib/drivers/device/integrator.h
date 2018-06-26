@@ -49,7 +49,13 @@ class Integrator
 {
 public:
 	Integrator(uint64_t auto_reset_interval = 4000 /* 250 Hz */, bool coning_compensation = false);
-	virtual ~Integrator();
+	~Integrator() = default;
+
+	// no copy, assignment, move, move assignment
+	Integrator(const Integrator &) = delete;
+	Integrator &operator=(const Integrator &) = delete;
+	Integrator(Integrator &&) = delete;
+	Integrator &operator=(Integrator &&) = delete;
 
 	/**
 	 * Put an item into the integral.
@@ -105,26 +111,22 @@ public:
 	 *
 	 * @param auto_reset_interval	    	New reset time interval for the integrator.
 	 */
-	void set_autoreset_interval(uint64_t auto_reset_interval)
-	{
-		_auto_reset_interval = auto_reset_interval;
-	}
+	void set_autoreset_interval(uint64_t auto_reset_interval) { _auto_reset_interval = auto_reset_interval; }
 
 private:
-	uint64_t _auto_reset_interval;			/**< the interval after which the content will be published
+	uint64_t _auto_reset_interval{0};			/**< the interval after which the content will be published
 							     and the integrator reset, 0 if no auto-reset */
-	uint64_t _last_integration_time;		/**< timestamp of the last integration step */
-	uint64_t _last_reset_time;			/**< last auto-announcement of integral value */
-	matrix::Vector3f _alpha;			/**< integrated value before coning corrections are applied */
-	matrix::Vector3f _last_alpha;			/**< previous value of _alpha */
-	matrix::Vector3f _beta;				/**< accumulated coning corrections */
-	matrix::Vector3f _last_val;			/**< previous input */
-	matrix::Vector3f _last_delta_alpha;		/**< integral from previous previous sampling interval */
-	bool _coning_comp_on;				/**< true to turn on coning corrections */
 
-	/* we don't want this class to be copied */
-	Integrator(const Integrator &);
-	Integrator operator=(const Integrator &);
+	uint64_t _last_integration_time{0};		/**< timestamp of the last integration step */
+	uint64_t _last_reset_time{0};			/**< last auto-announcement of integral value */
+
+	matrix::Vector3f _alpha{0.0f, 0.0f, 0.0f};			/**< integrated value before coning corrections are applied */
+	matrix::Vector3f _last_alpha{0.0f, 0.0f, 0.0f};			/**< previous value of _alpha */
+	matrix::Vector3f _beta{0.0f, 0.0f, 0.0f};				/**< accumulated coning corrections */
+	matrix::Vector3f _last_val{0.0f, 0.0f, 0.0f};	/**< previous input */
+	matrix::Vector3f _last_delta_alpha{0.0f, 0.0f, 0.0f};		/**< integral from previous previous sampling interval */
+
+	bool _coning_comp_on{false};				/**< true to turn on coning corrections */
 
 	/* Do a reset.
 	 *
