@@ -129,7 +129,7 @@ MPU9250_mag::init()
 
 	/* if cdev init failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("MPU9250 mag init failed");
+		PX4_DEBUG("MPU9250 mag init failed");
 		return ret;
 	}
 

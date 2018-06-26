@@ -526,8 +526,6 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 	_last_accel{},
 	_got_duplicate(false)
 {
-	// disable debug() calls
-	_debug_enabled = false;
 
 	// set the device type from the interface
 	_device_id.devid_s.bus_type = _interface->get_device_bus_type();
@@ -641,7 +639,7 @@ MPU6000::init()
 
 	if (ret != OK) {
 
-		DEVICE_DEBUG("CDev init failed");
+		PX4_DEBUG("CDev init failed");
 		return ret;
 	}
 
@@ -651,7 +649,7 @@ MPU6000::init()
 
 	/* if init failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("CDev init failed");
+		PX4_DEBUG("CDev init failed");
 		return ret;
 	}
 
@@ -724,7 +722,7 @@ MPU6000::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("gyro init failed");
+		PX4_DEBUG("gyro init failed");
 		return ret;
 	}
 
@@ -880,7 +878,7 @@ MPU6000::probe()
 	}
 
 	if (whoami != expected) {
-		DEVICE_DEBUG("unexpected WHOAMI 0x%02x", whoami);
+		PX4_DEBUG("unexpected WHOAMI 0x%02x", whoami);
 		return -EIO;
 	}
 
@@ -912,7 +910,7 @@ MPU6000::probe()
 
 	_checked_values[MPU6000_CHECKED_PRODUCT_ID_INDEX] = _product;
 
-	DEVICE_DEBUG("ID 0x%02x", _product);
+	PX4_DEBUG("ID 0x%02x", _product);
 
 	if (unknown_product_id) {
 
@@ -2165,7 +2163,7 @@ MPU6000_gyro::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("gyro init failed");
+		PX4_DEBUG("gyro init failed");
 		return ret;
 	}
 

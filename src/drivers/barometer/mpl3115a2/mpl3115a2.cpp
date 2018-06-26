@@ -253,7 +253,7 @@ MPL3115A2::init()
 	ret = CDev::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("CDev init failed");
+		PX4_DEBUG("CDev init failed");
 		goto out;
 	}
 
@@ -261,7 +261,7 @@ MPL3115A2::init()
 	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_baro_s));
 
 	if (_reports == nullptr) {
-		DEVICE_DEBUG("can't get memory for reports");
+		PX4_DEBUG("can't get memory for reports");
 		ret = -ENOMEM;
 		goto out;
 	}

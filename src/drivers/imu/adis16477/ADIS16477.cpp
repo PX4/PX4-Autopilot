@@ -126,7 +126,7 @@ ADIS16477::init()
 	/* do SPI init (and probe) first */
 	if (SPI::init() != OK) {
 		/* if probe/setup failed, bail now */
-		DEVICE_DEBUG("SPI setup failed");
+		PX4_DEBUG("SPI setup failed");
 		return PX4_ERROR;
 	}
 
@@ -155,7 +155,7 @@ ADIS16477::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("gyro init failed");
+		PX4_DEBUG("gyro init failed");
 		return ret;
 	}
 
@@ -236,7 +236,7 @@ ADIS16477::probe()
 		up_udelay(T_STALL);
 	}
 
-	DEVICE_DEBUG("unexpected ID 0x%02x", _product);
+	PX4_DEBUG("unexpected ID 0x%02x", _product);
 	return -EIO;
 }
 
@@ -256,7 +256,7 @@ ADIS16477::_set_dlpf_filter(uint16_t desired_filter_tap)
 	/* Verify data write on the IMU */
 
 	//if ((read_reg16(ADIS16477_SENS_AVG) & 0x0007) != desired_filter_tap) {
-	//	DEVICE_DEBUG("failed to set IMU filter");
+	//	PX4_DEBUG("failed to set IMU filter");
 	//}
 }
 

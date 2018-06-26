@@ -79,8 +79,6 @@ LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rota
 	_device_id.devid_s.address = _interface->get_device_address();
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LIS3MDL;
 
-	// enable debug() calls
-	_debug_enabled = false;
 
 	// default scaling
 	_scale.x_offset = 0;
@@ -436,7 +434,7 @@ LIS3MDL::collect()
 							 &_orb_class_instance, (sensor_is_onboard) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
 
 			if (_mag_topic == nullptr) {
-				DEVICE_DEBUG("ADVERT FAIL");
+				PX4_DEBUG("ADVERT FAIL");
 			}
 		}
 	}
@@ -465,7 +463,7 @@ LIS3MDL::cycle()
 
 	/* Collect last measurement at the start of every cycle */
 	if (collect() != OK) {
-		DEVICE_DEBUG("collection error");
+		PX4_DEBUG("collection error");
 		/* restart the measurement state machine */
 		start();
 		return;
@@ -473,7 +471,7 @@ LIS3MDL::cycle()
 
 
 	if (measure() != OK) {
-		DEVICE_DEBUG("measure error");
+		PX4_DEBUG("measure error");
 	}
 
 	if (_measure_ticks > 0) {
@@ -502,7 +500,7 @@ LIS3MDL::init()
 	ret = CDev::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("CDev init failed");
+		PX4_DEBUG("CDev init failed");
 		return ret;
 	}
 
@@ -635,7 +633,7 @@ LIS3MDL::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 
 
 	case MAGIOCGEXTERNAL:
-		DEVICE_DEBUG("MAGIOCGEXTERNAL in main driver");
+		PX4_DEBUG("MAGIOCGEXTERNAL in main driver");
 		return _interface->ioctl(cmd, dummy);
 
 	case DEVIOCGDEVICEID:

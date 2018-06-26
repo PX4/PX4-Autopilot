@@ -225,7 +225,7 @@ MPU6000_SPI::init()
 	ret = SPI::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("SPI init failed");
+		PX4_DEBUG("SPI init failed");
 		return -EIO;
 	}
 

@@ -333,7 +333,7 @@ int BMM150::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("I2C setup failed");
+		PX4_DEBUG("I2C setup failed");
 		return ret;
 	}
 

@@ -32,8 +32,6 @@ BMI055_accel::BMI055_accel(int bus, const char *path_accel, uint32_t device, enu
 	_last_temperature(0),
 	_got_duplicate(false)
 {
-	// disable debug() calls
-	_debug_enabled = false;
 
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_BMI055;
 
@@ -79,7 +77,7 @@ BMI055_accel::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("SPI setup failed");
+		PX4_DEBUG("SPI setup failed");
 		return ret;
 	}
 
@@ -179,7 +177,7 @@ BMI055_accel::probe()
 		return OK;
 	}
 
-	DEVICE_DEBUG("unexpected whoami 0x%02x", _whoami);
+	PX4_DEBUG("unexpected whoami 0x%02x", _whoami);
 	return -EIO;
 }
 

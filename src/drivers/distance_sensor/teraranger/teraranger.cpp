@@ -247,8 +247,6 @@ TERARANGER::TERARANGER(uint8_t rotation, int bus, int address) :
 	// up the retries since the device misses the first measure attempts
 	I2C::_retries = 3;
 
-	// enable debug() calls
-	_debug_enabled = false;
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -391,9 +389,9 @@ TERARANGER::probe()
 		}
 	}
 
-	DEVICE_DEBUG("WHO_AM_I byte mismatch 0x%02x should be 0x%02x\n",
-		     (unsigned)who_am_i,
-		     TERARANGER_WHO_AM_I_REG_VAL);
+	PX4_DEBUG("WHO_AM_I byte mismatch 0x%02x should be 0x%02x\n",
+		  (unsigned)who_am_i,
+		  TERARANGER_WHO_AM_I_REG_VAL);
 
 	// not found on any address
 	return -EIO;

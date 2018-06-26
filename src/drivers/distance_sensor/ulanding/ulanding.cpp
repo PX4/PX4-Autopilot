@@ -152,8 +152,6 @@ Radar::Radar(uint8_t rotation, const char *port) :
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
 
-	// disable debug() calls
-	_debug_enabled = false;
 
 	memset(&_buf[0], 0, sizeof(_buf));
 }

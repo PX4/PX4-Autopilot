@@ -79,7 +79,7 @@ LPS22HB::init()
 	int ret = CDev::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("CDev init failed");
+		PX4_DEBUG("CDev init failed");
 		goto out;
 	}
 
@@ -227,7 +227,7 @@ LPS22HB::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			DEVICE_DEBUG("collection error");
+			PX4_DEBUG("collection error");
 			/* restart the measurement state machine */
 			start();
 			return;
@@ -254,7 +254,7 @@ LPS22HB::cycle()
 
 	/* measurement phase */
 	if (OK != measure()) {
-		DEVICE_DEBUG("measure error");
+		PX4_DEBUG("measure error");
 	}
 
 	/* next phase is collection */
@@ -334,7 +334,7 @@ LPS22HB::collect()
 							  (sensor_is_onboard) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
 
 			if (_baro_topic == nullptr) {
-				DEVICE_DEBUG("ADVERT FAIL");
+				PX4_DEBUG("ADVERT FAIL");
 			}
 		}
 	}

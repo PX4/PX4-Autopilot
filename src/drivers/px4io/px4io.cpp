@@ -854,7 +854,7 @@ PX4IO::init()
 				   nullptr);
 
 	if (_task < 0) {
-		DEVICE_DEBUG("task start failed: %d", errno);
+		PX4_DEBUG("task start failed: %d", errno);
 		return -errno;
 	}
 
@@ -1229,7 +1229,7 @@ PX4IO::task_main()
 	unlock();
 
 out:
-	DEVICE_DEBUG("exiting");
+	PX4_DEBUG("exiting");
 
 	/* clean up the alternate device node */
 	if (_primary_pwm_device) {
@@ -1929,14 +1929,14 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned
 {
 	/* range check the transfer */
 	if (num_values > ((_max_transfer) / sizeof(*values))) {
-		DEVICE_DEBUG("io_reg_set: too many registers (%u, max %u)", num_values, _max_transfer / 2);
+		PX4_DEBUG("io_reg_set: too many registers (%u, max %u)", num_values, _max_transfer / 2);
 		return -EINVAL;
 	}
 
 	int ret =  _interface->write((page << 8) | offset, (void *)values, num_values);
 
 	if (ret != (int)num_values) {
-		DEVICE_DEBUG("io_reg_set(%hhu,%hhu,%u): error %d", page, offset, num_values, ret);
+		PX4_DEBUG("io_reg_set(%hhu,%hhu,%u): error %d", page, offset, num_values, ret);
 		return -1;
 	}
 
@@ -1954,14 +1954,14 @@ PX4IO::io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_v
 {
 	/* range check the transfer */
 	if (num_values > ((_max_transfer) / sizeof(*values))) {
-		DEVICE_DEBUG("io_reg_get: too many registers (%u, max %u)", num_values, _max_transfer / 2);
+		PX4_DEBUG("io_reg_get: too many registers (%u, max %u)", num_values, _max_transfer / 2);
 		return -EINVAL;
 	}
 
 	int ret = _interface->read((page << 8) | offset, reinterpret_cast<void *>(values), num_values);
 
 	if (ret != (int)num_values) {
-		DEVICE_DEBUG("io_reg_get(%hhu,%hhu,%u): data error %d", page, offset, num_values, ret);
+		PX4_DEBUG("io_reg_get(%hhu,%hhu,%u): data error %d", page, offset, num_values, ret);
 		return -1;
 	}
 
@@ -2791,7 +2791,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			}
 
 			if (io_crc != arg) {
-				DEVICE_DEBUG("crc mismatch 0x%08x 0x%08lx", io_crc, arg);
+				PX4_DEBUG("crc mismatch 0x%08x 0x%08lx", io_crc, arg);
 				return -EINVAL;
 			}
 

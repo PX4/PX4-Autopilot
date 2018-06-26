@@ -209,8 +209,6 @@ PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation, int conversion_in
 	_conversion_interval(conversion_interval),
 	_sensor_rotation(rotation)
 {
-	// disable debug() calls
-	_debug_enabled = false;
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -495,7 +493,7 @@ PX4FLOW::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		DEVICE_DEBUG("i2c::transfer returned %d", ret);
+		PX4_DEBUG("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -523,7 +521,7 @@ PX4FLOW::collect()
 	}
 
 	if (ret < 0) {
-		DEVICE_DEBUG("error reading from sensor: %d", ret);
+		PX4_DEBUG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
@@ -643,12 +641,12 @@ void
 PX4FLOW::cycle()
 {
 	if (OK != measure()) {
-		DEVICE_DEBUG("measure error");
+		PX4_DEBUG("measure error");
 	}
 
 	/* perform collection */
 	if (OK != collect()) {
-		DEVICE_DEBUG("collection error");
+		PX4_DEBUG("collection error");
 		/* restart the measurement state machine */
 		start();
 		return;

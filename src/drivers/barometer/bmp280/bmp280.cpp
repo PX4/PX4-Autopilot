@@ -199,7 +199,7 @@ BMP280::init()
 	ret = CDev::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("CDev init failed");
+		PX4_DEBUG("CDev init failed");
 		return ret;
 	}
 
@@ -207,7 +207,7 @@ BMP280::init()
 	_reports = new ringbuffer::RingBuffer(2, sizeof(baro_report));
 
 	if (_reports == nullptr) {
-		DEVICE_DEBUG("can't get memory for reports");
+		PX4_DEBUG("can't get memory for reports");
 		ret = -ENOMEM;
 		return ret;
 	}

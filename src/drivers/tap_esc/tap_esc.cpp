@@ -351,12 +351,12 @@ void TAP_ESC::subscribe()
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
-			DEVICE_DEBUG("subscribe to actuator_controls_%d", i);
+			PX4_DEBUG("subscribe to actuator_controls_%d", i);
 			_control_subs[i] = orb_subscribe(_control_topics[i]);
 		}
 
 		if (unsub_groups & (1 << i)) {
-			DEVICE_DEBUG("unsubscribe from actuator_controls_%d", i);
+			PX4_DEBUG("unsubscribe from actuator_controls_%d", i);
 			orb_unsubscribe(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
@@ -414,7 +414,7 @@ void TAP_ESC::cycle()
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 			if (_control_subs[i] >= 0) {
 				orb_set_interval(_control_subs[i], TAP_ESC_CTRL_UORB_UPDATE_INTERVAL);
-				DEVICE_DEBUG("New actuator update interval: %ums", TAP_ESC_CTRL_UORB_UPDATE_INTERVAL);
+				PX4_DEBUG("New actuator update interval: %ums", TAP_ESC_CTRL_UORB_UPDATE_INTERVAL);
 			}
 		}
 	}
@@ -684,7 +684,7 @@ int TAP_ESC::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				ret = _mixers->load_from_buf(buf, buflen);
 
 				if (ret != 0) {
-					DEVICE_DEBUG("mixer load failed with %d", ret);
+					PX4_DEBUG("mixer load failed with %d", ret);
 					delete _mixers;
 					_mixers = nullptr;
 					_groups_required = 0;

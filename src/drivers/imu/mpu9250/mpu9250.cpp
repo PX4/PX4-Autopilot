@@ -163,8 +163,6 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_last_accel_data{},
 	_got_duplicate(false)
 {
-	// disable debug() calls
-	_debug_enabled = false;
 
 	/* Set device parameters and make sure parameters of the bus device are adopted */
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU9250;
@@ -273,7 +271,7 @@ MPU9250::init()
 	int ret = probe();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("MPU9250 probe failed");
+		PX4_DEBUG("MPU9250 probe failed");
 		return ret;
 	}
 
@@ -283,7 +281,7 @@ MPU9250::init()
 
 	/* if init failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("CDev init failed");
+		PX4_DEBUG("CDev init failed");
 		return ret;
 	}
 
@@ -355,7 +353,7 @@ MPU9250::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("gyro init failed");
+		PX4_DEBUG("gyro init failed");
 		return ret;
 	}
 
@@ -374,7 +372,7 @@ MPU9250::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("mag init failed");
+		PX4_DEBUG("mag init failed");
 		return ret;
 	}
 
@@ -384,7 +382,7 @@ MPU9250::init()
 	}
 
 	if (ret != OK) {
-		DEVICE_DEBUG("mag reset failed");
+		PX4_DEBUG("mag reset failed");
 		return ret;
 	}
 
@@ -546,7 +544,7 @@ MPU9250::probe()
 		return OK;
 	}
 
-	DEVICE_DEBUG("unexpected whoami 0x%02x", _whoami);
+	PX4_DEBUG("unexpected whoami 0x%02x", _whoami);
 	return -EIO;
 }
 

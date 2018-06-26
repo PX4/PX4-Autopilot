@@ -127,14 +127,14 @@ LIS3MDL_I2C::probe()
 	_retries = 10;
 
 	if (read(ADDR_WHO_AM_I, &data, 1)) {
-		DEVICE_DEBUG("read_reg fail");
+		PX4_DEBUG("read_reg fail");
 		return -EIO;
 	}
 
 	_retries = 2;
 
 	if (data != ID_WHO_AM_I) {
-		DEVICE_DEBUG("LIS3MDL bad ID: %02x", data);
+		PX4_DEBUG("LIS3MDL bad ID: %02x", data);
 		return -EIO;
 	}
 

@@ -77,7 +77,7 @@ LED::~LED() = default;
 int
 LED::init()
 {
-	DEVICE_DEBUG("LED::init");
+	PX4_DEBUG("LED::init");
 	CDev::init();
 	led_init();
 

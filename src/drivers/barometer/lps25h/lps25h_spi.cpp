@@ -107,7 +107,7 @@ LPS25H_SPI::init()
 	ret = SPI::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("SPI init failed");
+		PX4_DEBUG("SPI init failed");
 		return -EIO;
 	}
 
@@ -115,12 +115,12 @@ LPS25H_SPI::init()
 	uint8_t id;
 
 	if (read(ADDR_ID, &id, 1)) {
-		DEVICE_DEBUG("read_reg fail");
+		PX4_DEBUG("read_reg fail");
 		return -EIO;
 	}
 
 	if (id != ID_WHO_AM_I) {
-		DEVICE_DEBUG("ID byte mismatch (%02x != %02x)", ID_WHO_AM_I, id);
+		PX4_DEBUG("ID byte mismatch (%02x != %02x)", ID_WHO_AM_I, id);
 		return -EIO;
 	}
 

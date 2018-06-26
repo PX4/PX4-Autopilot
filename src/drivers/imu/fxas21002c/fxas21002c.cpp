@@ -450,8 +450,6 @@ FXAS21002C::FXAS21002C(int bus, const char *path, uint32_t device, enum Rotation
 	_checked_values{},
 	_checked_next(0)
 {
-	// enable debug() calls
-	_debug_enabled = false;
 
 	_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_FXAS2100C;
 

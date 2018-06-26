@@ -330,8 +330,8 @@ PCA9685::i2cpwm()
 				 * the control[i] values are on the range -1 ... 1 */
 				uint16_t new_value = PCA9685_PWMCENTER +
 						     (_actuator_controls.control[i] * M_PI_F * PCA9685_SCALE);
-				DEVICE_DEBUG("%d: current: %u, new %u, control %.2f", i, _current_values[i], new_value,
-					     (double)_actuator_controls.control[i]);
+				PX4_DEBUG("%d: current: %u, new %u, control %.2f", i, _current_values[i], new_value,
+					  (double)_actuator_controls.control[i]);
 
 				if (new_value != _current_values[i] &&
 				    isfinite(new_value) &&
