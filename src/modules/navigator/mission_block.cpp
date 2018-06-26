@@ -628,40 +628,58 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude, 
 }
 
 void
-MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_location)
+MissionBlock::set_land_item(struct mission_item_s *item, enum LandState land_state)
 {
 	/* VTOL transition to RW before landing */
 	if (_navigator->force_vtol()) {
-
 		vehicle_command_s vcmd = {};
 		vcmd.command = NAV_CMD_DO_VTOL_TRANSITION;
 		vcmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 		_navigator->publish_vehicle_cmd(&vcmd);
 	}
 
-	/* set the land item */
-	item->nav_cmd = NAV_CMD_LAND;
-
-	/* use current position */
-	if (at_current_location) {
-		item->lat = NAN; //descend at current position
-		item->lon = NAN; //descend at current position
-		item->yaw = _navigator->get_local_position()->yaw;
-
-	} else {
+	switch (land_state) {
+	case LAND_STATE_RETURN_HOME:
+		item->nav_cmd = NAV_CMD_WAYPOINT;
 		/* use home position */
 		item->lat = _navigator->get_home_position()->lat;
 		item->lon = _navigator->get_home_position()->lon;
 		item->yaw = _navigator->get_home_position()->yaw;
+		item->altitude = _navigator->get_global_position()->alt;
+		item->acceptance_radius = _navigator->get_acceptance_radius(0.5);
+		item->time_inside = 1.0f;
+		item->autocontinue = true;
+		item->origin = ORIGIN_ONBOARD;
+		break;
+
+	case LAND_STATE_RETURN:
+		item->nav_cmd = NAV_CMD_WAYPOINT;
+		/* use current position */
+		item->lat = _navigator->get_global_position()->lat;
+		item->lon = _navigator->get_global_position()->lon;
+		item->yaw = _navigator->get_global_position()->yaw;
+		item->altitude = _navigator->get_global_position()->alt;
+		item->acceptance_radius = _navigator->get_acceptance_radius(0.5);
+		item->time_inside = 1.0f;
+		item->autocontinue = true;
+		item->origin = ORIGIN_ONBOARD;
+		break;
+
+	case LAND_STATE_DESCEND:
+		item->nav_cmd = NAV_CMD_LAND;
+		item->altitude = 0;
+		break;
+
+	case LAND_STATE_LANDED:
+		item->nav_cmd = NAV_CMD_IDLE;
+		break;
+
+	default:
+		break;
+
 	}
 
-	item->altitude = 0;
-	item->altitude_is_relative = false;
-	item->loiter_radius = _navigator->get_loiter_radius();
-	item->acceptance_radius = _navigator->get_acceptance_radius();
-	item->time_inside = 0.0f;
-	item->autocontinue = true;
-	item->origin = ORIGIN_ONBOARD;
+	reset_mission_item_reached();
 }
 
 void

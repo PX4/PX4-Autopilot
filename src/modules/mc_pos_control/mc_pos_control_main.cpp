@@ -1450,8 +1450,20 @@ MulticopterPositionControl::control_non_manual()
 	/* use constant descend rate when landing, ignore altitude setpoint */
 	if (_pos_sp_triplet.current.valid
 	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-		_vel_sp(2) = _land_speed.get();
 		_run_alt_control = false;
+
+		/* Set descents speeds depending on altitude */
+		if (abs(_local_pos.z) > _slow_land_alt1.get()) {
+			_vel_sp(2) = _vel_max_down.get();
+
+		} else if (abs(_local_pos.z) > _slow_land_alt2.get()) {
+			float velocity_scaling = (abs(_local_pos.z) - _slow_land_alt2.get()) / (_slow_land_alt1.get() - _slow_land_alt2.get());
+			_vel_sp(2) = _land_speed.get() + velocity_scaling * (_vel_max_down.get() - _land_speed.get());
+
+		} else {
+			_vel_sp(2) = _land_speed.get();
+		}
+
 	}
 
 	if (_pos_sp_triplet.current.valid

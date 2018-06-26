@@ -51,4 +51,6 @@ public:
 
 	void on_activation() override;
 	void on_active() override;
+	void advance_land();
+
 };

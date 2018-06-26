@@ -68,6 +68,16 @@ public:
 	static bool item_contains_position(const mission_item_s &item);
 
 protected:
+
+	enum LandState {
+		LAND_STATE_NONE = 0,
+		LAND_STATE_RETURN_HOME,
+		LAND_STATE_RETURN,
+		LAND_STATE_DESCEND,
+		LAND_STATE_LAND,
+		LAND_STATE_LANDED,
+	} _land_state{LAND_STATE_NONE};
+
 	/**
 	 * Check if mission item has been reached
 	 * @return true if successfully reached
@@ -100,7 +110,7 @@ protected:
 	/**
 	 * Set a land mission item
 	 */
-	void set_land_item(struct mission_item_s *item, bool at_current_location);
+	void set_land_item(struct mission_item_s *item, enum LandState land_state);
 
 	/**
 	 * Set idle mission item
