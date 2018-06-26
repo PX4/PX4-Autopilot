@@ -131,7 +131,7 @@ int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 		return 0;
 	}
 
-	/* subscription failed */
+	// subscription failed
 	if (!_current_task.task->initializeSubscriptions(_subscription_array)) {
 		_current_task.task->~FlightTask();
 		_current_task.task = nullptr;
@@ -141,7 +141,7 @@ int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 
 	_subscription_array.forcedUpdate(); // make sure data is available for all new subscriptions
 
-	/* activation failed */
+	// activation failed
 	if (!_current_task.task->updateInitialize() || !_current_task.task->activate()) {
 		_current_task.task->~FlightTask();
 		_current_task.task = nullptr;
@@ -154,7 +154,7 @@ int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 
 int FlightTasks::switchTask(int new_task_index)
 {
-	/* make sure we are in range of the enumeration before casting */
+	// make sure we are in range of the enumeration before casting
 	if (static_cast<int>(FlightTaskIndex::None) <= new_task_index &&
 	    static_cast<int>(FlightTaskIndex::Count) > new_task_index) {
 		return switchTask(FlightTaskIndex(new_task_index));
