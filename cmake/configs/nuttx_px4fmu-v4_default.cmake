@@ -116,6 +116,11 @@ set(config_module_list
 	modules/dataman
 
 	#
+	# RC Loss Alarm
+	#
+	modules/rc_loss_alarm
+
+	#
 	# OBC challenge
 	#
 	examples/bottle_drop

@@ -8,4 +8,6 @@ uint32 duration      # in us
 uint32 silence	     # in us
 uint8 strength       # value between 0-100 if supported by backend
 
+uint8 STRENGTH_MIN = 0
 uint8 STRENGTH_NORMAL = 40
+uint8 STRENGTH_MAX = 100
