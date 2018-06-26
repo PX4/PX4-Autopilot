@@ -74,7 +74,7 @@ class HMC5883_SPI : public device::SPI
 {
 public:
 	HMC5883_SPI(int bus, uint32_t device);
-	virtual ~HMC5883_SPI();
+	virtual ~HMC5883_SPI() = default;
 
 	virtual int	init();
 	virtual int	read(unsigned address, void *data, unsigned count);
@@ -94,10 +94,6 @@ HMC5883_SPI::HMC5883_SPI(int bus, uint32_t device) :
 	SPI("HMC5883_SPI", nullptr, bus, device, SPIDEV_MODE3, 11 * 1000 * 1000 /* will be rounded to 10.4 MHz */)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
-}
-
-HMC5883_SPI::~HMC5883_SPI()
-{
 }
 
 int

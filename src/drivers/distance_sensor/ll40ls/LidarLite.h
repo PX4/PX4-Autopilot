@@ -58,7 +58,7 @@ class LidarLite
 public:
 	LidarLite();
 
-	virtual ~LidarLite();
+	virtual ~LidarLite() = default;
 
 	virtual int init() = 0;
 

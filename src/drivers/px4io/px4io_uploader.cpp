@@ -70,10 +70,6 @@ PX4IO_Uploader::PX4IO_Uploader() :
 {
 }
 
-PX4IO_Uploader::~PX4IO_Uploader()
-{
-}
-
 int
 PX4IO_Uploader::upload(const char *filenames[])
 {

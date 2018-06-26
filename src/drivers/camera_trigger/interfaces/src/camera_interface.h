@@ -21,7 +21,7 @@ public:
 	/**
 	 * Destructor.
 	 */
-	virtual ~CameraInterface();
+	virtual ~CameraInterface() = default;
 
 	/**
 	 * trigger the camera

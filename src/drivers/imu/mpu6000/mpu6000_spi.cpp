@@ -101,7 +101,7 @@ class MPU6000_SPI : public device::SPI
 {
 public:
 	MPU6000_SPI(int bus, uint32_t device, int device_type);
-	virtual ~MPU6000_SPI();
+	virtual ~MPU6000_SPI() = default;
 
 	virtual int	init();
 	virtual int	read(unsigned address, void *data, unsigned count);
@@ -211,10 +211,6 @@ MPU6000_SPI::MPU6000_SPI(int bus, uint32_t device, int device_type) :
 	_device_type(device_type)
 {
 	_device_id.devid_s.devtype =  DRV_ACC_DEVTYPE_MPU6000;
-}
-
-MPU6000_SPI::~MPU6000_SPI()
-{
 }
 
 int

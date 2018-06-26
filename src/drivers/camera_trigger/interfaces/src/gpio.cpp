@@ -21,10 +21,6 @@ CameraInterfaceGPIO::CameraInterfaceGPIO():
 	setup();
 }
 
-CameraInterfaceGPIO::~CameraInterfaceGPIO()
-{
-}
-
 void CameraInterfaceGPIO::setup()
 {
 	for (unsigned i = 0, t = 0; i < arraySize(_pins); i++) {

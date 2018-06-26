@@ -209,7 +209,7 @@ class ACCELSIM_mag : public VirtDevObj
 {
 public:
 	ACCELSIM_mag(ACCELSIM *parent);
-	~ACCELSIM_mag();
+	~ACCELSIM_mag() = default;
 
 	virtual ssize_t	devRead(void *buffer, size_t buflen);
 	virtual int	devIOCTL(unsigned long cmd, unsigned long arg);
@@ -972,8 +972,6 @@ ACCELSIM_mag::ACCELSIM_mag(ACCELSIM *parent) :
 	m_id.dev_id_s.bus = 1;
 	m_id.dev_id_s.devtype = DRV_ACC_DEVTYPE_ACCELSIM;
 }
-
-ACCELSIM_mag::~ACCELSIM_mag() = default;
 
 ssize_t
 ACCELSIM_mag::devRead(void *buffer, size_t buflen)
