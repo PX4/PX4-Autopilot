@@ -45,6 +45,9 @@
 
 // Init static members
 work_s RC_Loss_Alarm::_work = {};
+bool RC_Loss_Alarm::_was_armed = false;
+orb_advert_t RC_Loss_Alarm::_tune_control_pub = nullptr;
+
 
 RC_Loss_Alarm::RC_Loss_Alarm()
 {
@@ -99,6 +102,14 @@ int RC_Loss_Alarm::task_spawn(int argc, char *argv[])
 /** @see ModuleBase */
 int RC_Loss_Alarm::custom_command(int argc, char *argv[])
 {
+	if (!strcmp(argv[0], "test")) {
+		RC_Loss_Alarm::pub_tune();
+		return PX4_OK;
+
+	} else if (!strcmp(argv[0], "reset")) {
+		return RC_Loss_Alarm::reset_module();
+	}
+
 	return print_usage("unknown command");
 }
 
@@ -123,6 +134,8 @@ rc_loss_alarm start
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop the task");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Display running status of task");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Start alarm tune, can be stopped with 'reset'");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Resets internal state and stops an eventual alarm");
 	return PX4_OK;
 }
 
@@ -139,6 +152,22 @@ void RC_Loss_Alarm::pub_tune()
 	tune_control.strength = tune_control_s::STRENGTH_MAX;
 	tune_control.tune_override = 1;
 	tune_control.timestamp = hrt_absolute_time();
+
+  if (_tune_control_pub == nullptr) {
+    _tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+  }else{
+    orb_publish(ORB_ID(tune_control), _tune_control_pub, &tune_control);
+  }
+}
+
+void RC_Loss_Alarm::stop_tune()
+{
+  struct tune_control_s tune_control = {};
+  tune_control.tune_id = static_cast<int>(TuneID::CUSTOM);
+  tune_control.frequency = 0;
+  tune_control.duration = 0;
+  tune_control.silence = 0;
+  tune_control.tune_override = true;
 
   if (_tune_control_pub == nullptr) {
     _tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
@@ -179,6 +208,12 @@ void RC_Loss_Alarm::cycle()
 			work_queue(LPWORK, &_work, (worker_t)&RC_Loss_Alarm::cycle_trampoline, this,
 				   USEC2TICK(UPDATE_RATE));
 	}
+}
+
+int RC_Loss_Alarm::reset_module(){
+  RC_Loss_Alarm::_was_armed = false;
+  RC_Loss_Alarm::stop_tune();
+  return PX4_OK;
 }
 
 // module 'main' command
