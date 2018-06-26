@@ -71,6 +71,9 @@ private:
 	static void stop_tune();
 	static int reset_module();
 
-	// Do not allow class copies
+	// Hide all but the default constructor
 	RC_Loss_Alarm(const RC_Loss_Alarm &other);
+	RC_Loss_Alarm(const RC_Loss_Alarm &&other);
+	RC_Loss_Alarm &operator= (const RC_Loss_Alarm &other);
+	RC_Loss_Alarm &operator= (const RC_Loss_Alarm &&other);
 };
