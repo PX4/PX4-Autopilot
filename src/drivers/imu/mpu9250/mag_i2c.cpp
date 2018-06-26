@@ -69,9 +69,8 @@ class AK8963_I2C : public device::I2C
 {
 public:
 	AK8963_I2C(int bus);
-	virtual ~AK8963_I2C();
+	virtual ~AK8963_I2C() = default;
 
-	virtual int	init();
 	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
 
@@ -93,17 +92,6 @@ AK8963_I2C::AK8963_I2C(int bus) :
 	I2C("AK8963_I2C", nullptr, bus, AK8963_I2C_ADDR, 400000)
 {
 	_device_id.devid_s.devtype =  DRV_MAG_DEVTYPE_MPU9250;
-}
-
-AK8963_I2C::~AK8963_I2C()
-{
-}
-
-int
-AK8963_I2C::init()
-{
-	/* this will call probe() */
-	return I2C::init();
 }
 
 int

@@ -76,8 +76,6 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	}
 }
 
-VtolType::~VtolType() = default;
-
 bool VtolType::init()
 {
 	const char *dev = PWM_OUTPUT0_DEVICE_PATH;

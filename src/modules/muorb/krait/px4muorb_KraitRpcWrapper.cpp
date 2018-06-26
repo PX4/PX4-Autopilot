@@ -145,14 +145,6 @@ int calc_timer_diff_to_dsp_us(int32_t *time_diff_us)
 	return 0;
 }
 
-px4muorb::KraitRpcWrapper::KraitRpcWrapper()
-{
-}
-
-px4muorb::KraitRpcWrapper::~KraitRpcWrapper()
-{
-}
-
 bool px4muorb::KraitRpcWrapper::Initialize()
 {
 	bool rc = true;

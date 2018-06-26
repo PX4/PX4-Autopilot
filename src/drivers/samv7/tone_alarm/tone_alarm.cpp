@@ -212,7 +212,7 @@ class ToneAlarm : public device::CDev
 {
 public:
 	ToneAlarm();
-	~ToneAlarm();
+	~ToneAlarm() = default;
 
 	virtual int		init();
 
@@ -353,10 +353,6 @@ ToneAlarm::ToneAlarm() :
 	_tune_names[TONE_BARO_WARNING_TUNE] = "baro_warning";			// baro warning
 	_tune_names[TONE_SINGLE_BEEP_TUNE] = "beep";                    // single beep
 	_tune_names[TONE_HOME_SET] = "home_set";
-}
-
-ToneAlarm::~ToneAlarm()
-{
 }
 
 int

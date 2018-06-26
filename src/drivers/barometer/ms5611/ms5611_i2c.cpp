@@ -67,9 +67,8 @@ class MS5611_I2C : public device::I2C
 {
 public:
 	MS5611_I2C(uint8_t bus, ms5611::prom_u &prom_buf);
-	virtual ~MS5611_I2C();
+	virtual ~MS5611_I2C() = default;
 
-	virtual int	init();
 	virtual int	read(unsigned offset, void *data, unsigned count);
 	virtual int	ioctl(unsigned operation, unsigned &arg);
 
@@ -114,17 +113,6 @@ MS5611_I2C::MS5611_I2C(uint8_t bus, ms5611::prom_u &prom) :
 	I2C("MS5611_I2C", nullptr, bus, 0, 400000),
 	_prom(prom)
 {
-}
-
-MS5611_I2C::~MS5611_I2C()
-{
-}
-
-int
-MS5611_I2C::init()
-{
-	/* this will call probe(), and thereby _probe_address */
-	return I2C::init();
 }
 
 int

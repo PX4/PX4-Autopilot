@@ -65,8 +65,6 @@ Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 	_params_handles_tailsitter.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
 }
 
-Tailsitter::~Tailsitter() = default;
-
 void
 Tailsitter::parameters_update()
 {

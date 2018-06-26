@@ -52,7 +52,7 @@ class Tailsitter : public VtolType
 
 public:
 	Tailsitter(VtolAttitudeControl *_att_controller);
-	~Tailsitter();
+	~Tailsitter() = default;
 
 	virtual void update_vtol_state();
 	virtual void update_transition_state();
