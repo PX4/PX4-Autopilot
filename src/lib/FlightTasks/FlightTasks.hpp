@@ -188,8 +188,8 @@ private:
 	 * Check for vehicle commands (received via MAVLink), evaluate and acknowledge them
 	 */
 	void _updateCommand();
+	int _sub_vehicle_command = -1; /**< topic handle on which commands are received */
+	orb_advert_t _pub_vehicle_command_ack = nullptr; /**< topic handle to which commands get acknowledged */
 
 	int _initTask(FlightTaskIndex task_index);
-//	int _sub_vehicle_command = -1; /**< topic handle on which commands are received */
-//	orb_advert_t _pub_vehicle_command_ack = nullptr; /**< topic handle to which commands get acknowledged */
 };
