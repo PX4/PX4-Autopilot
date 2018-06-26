@@ -113,7 +113,7 @@ bool FlightTaskOrbit::update()
 	FlightTaskManualAltitudeSmooth::update();
 
 	// stick input adjusts parameters within a fixed time frame
-	const float r = _r + _sticks_expo(0) * _deltatime * (_radius_max / 8.f);
+	const float r = _r - _sticks_expo(0) * _deltatime * (_radius_max / 8.f);
 	const float v = _v - _sticks_expo(1) * _deltatime * (_velocity_max / 4.f);
 
 	setRadius(r);
@@ -121,7 +121,7 @@ bool FlightTaskOrbit::update()
 
 	// xy velocity to go around in a circle
 	Vector2f center_to_position = Vector2f(_position.data()) - _center;
-	Vector2f velocity_xy = Vector2f(center_to_position(1), -center_to_position(0));
+	Vector2f velocity_xy = Vector2f(-center_to_position(1), center_to_position(0));
 	velocity_xy = velocity_xy.unit_or_zero();
 	velocity_xy *= _v;
 
@@ -134,7 +134,7 @@ bool FlightTaskOrbit::update()
 	// make vehicle front always point towards the center
 	_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
 	// yawspeed feed-forward because we know the necessary angular rate
-	_yawspeed_setpoint = -_v / _r;
+	_yawspeed_setpoint = _v / _r;
 
 	return true;
 }
