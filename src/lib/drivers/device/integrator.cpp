@@ -41,22 +41,14 @@
  */
 
 #include "integrator.h"
+
 #include <drivers/drv_hrt.h>
 
 Integrator::Integrator(uint64_t auto_reset_interval, bool coning_compensation) :
 	_auto_reset_interval(auto_reset_interval),
-	_last_integration_time(0),
-	_last_reset_time(0),
-	_alpha(0.0f, 0.0f, 0.0f),
-	_last_alpha(0.0f, 0.0f, 0.0f),
-	_beta(0.0f, 0.0f, 0.0f),
-	_last_val(0.0f, 0.0f, 0.0f),
-	_last_delta_alpha(0.0f, 0.0f, 0.0f),
 	_coning_comp_on(coning_compensation)
 {
 }
-
-Integrator::~Integrator() = default;
 
 bool
 Integrator::put(uint64_t timestamp, matrix::Vector3f &val, matrix::Vector3f &integral, uint64_t &integral_dt)
