@@ -145,37 +145,6 @@ void RC_Loss_Alarm::cycle_trampoline(void *arg)
 	dev->cycle();
 }
 
-void RC_Loss_Alarm::pub_tune()
-{
-  struct tune_control_s tune_control = {};
-	tune_control.tune_id = static_cast<int>(TuneID::ERROR_TUNE);
-	tune_control.strength = tune_control_s::STRENGTH_MAX;
-	tune_control.tune_override = 1;
-	tune_control.timestamp = hrt_absolute_time();
-
-  if (_tune_control_pub == nullptr) {
-    _tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
-  }else{
-    orb_publish(ORB_ID(tune_control), _tune_control_pub, &tune_control);
-  }
-}
-
-void RC_Loss_Alarm::stop_tune()
-{
-  struct tune_control_s tune_control = {};
-  tune_control.tune_id = static_cast<int>(TuneID::CUSTOM);
-  tune_control.frequency = 0;
-  tune_control.duration = 0;
-  tune_control.silence = 0;
-  tune_control.tune_override = true;
-
-  if (_tune_control_pub == nullptr) {
-    _tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
-  }else{
-    orb_publish(ORB_ID(tune_control), _tune_control_pub, &tune_control);
-  }
-}
-
 void RC_Loss_Alarm::cycle()
 {
   // Subscribe if necessary
@@ -208,6 +177,37 @@ void RC_Loss_Alarm::cycle()
 			work_queue(LPWORK, &_work, (worker_t)&RC_Loss_Alarm::cycle_trampoline, this,
 				   USEC2TICK(UPDATE_RATE));
 	}
+}
+
+void RC_Loss_Alarm::pub_tune()
+{
+  struct tune_control_s tune_control = {};
+	tune_control.tune_id = static_cast<int>(TuneID::ERROR_TUNE);
+	tune_control.strength = tune_control_s::STRENGTH_MAX;
+	tune_control.tune_override = 1;
+	tune_control.timestamp = hrt_absolute_time();
+
+  if (_tune_control_pub == nullptr) {
+    _tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+  }else{
+    orb_publish(ORB_ID(tune_control), _tune_control_pub, &tune_control);
+  }
+}
+
+void RC_Loss_Alarm::stop_tune()
+{
+  struct tune_control_s tune_control = {};
+  tune_control.tune_id = static_cast<int>(TuneID::CUSTOM);
+  tune_control.frequency = 0;
+  tune_control.duration = 0;
+  tune_control.silence = 0;
+  tune_control.tune_override = true;
+
+  if (_tune_control_pub == nullptr) {
+    _tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+  }else{
+    orb_publish(ORB_ID(tune_control), _tune_control_pub, &tune_control);
+  }
 }
 
 int RC_Loss_Alarm::reset_module(){
