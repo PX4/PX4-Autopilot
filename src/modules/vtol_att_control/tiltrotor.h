@@ -50,7 +50,7 @@ class Tiltrotor : public VtolType
 public:
 
 	Tiltrotor(VtolAttitudeControl *_att_controller);
-	~Tiltrotor();
+	~Tiltrotor() = default;
 
 	virtual void update_vtol_state();
 	virtual void update_transition_state();

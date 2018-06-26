@@ -48,7 +48,7 @@
 class MavlinkShell
 {
 public:
-	MavlinkShell();
+	MavlinkShell() = default;
 
 	~MavlinkShell();
 

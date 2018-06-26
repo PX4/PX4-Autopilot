@@ -75,11 +75,13 @@ private:
 	float _psiCmd;
 public:
 	BlockWaypointGuidance(SuperBlock *parent, const char *name);
-	virtual ~BlockWaypointGuidance();
+	virtual ~BlockWaypointGuidance() = default;
+
 	void update(const vehicle_global_position_s &pos,
 		    const vehicle_attitude_s &att,
 		    const position_setpoint_s &missionCmd,
 		    const position_setpoint_s &lastMissionCmd);
+
 	float getPsiCmd() { return _psiCmd; }
 };
 

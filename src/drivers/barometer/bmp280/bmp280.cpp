@@ -194,9 +194,7 @@ BMP280::~BMP280()
 int
 BMP280::init()
 {
-	int ret;
-
-	ret = CDev::init();
+	int ret = CDev::init();
 
 	if (ret != OK) {
 		DEVICE_DEBUG("CDev init failed");

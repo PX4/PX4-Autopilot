@@ -16,7 +16,7 @@ class CameraInterfaceGPIO : public CameraInterface
 {
 public:
 	CameraInterfaceGPIO();
-	virtual ~CameraInterfaceGPIO();
+	virtual ~CameraInterfaceGPIO() = default;
 
 	void trigger(bool trigger_on_true);
 

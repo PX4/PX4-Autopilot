@@ -74,10 +74,8 @@ class PCA8574 : public device::I2C
 {
 public:
 	PCA8574(int bus, int pca8574);
-	virtual ~PCA8574();
+	virtual ~PCA8574() = default;
 
-
-	virtual int		init();
 	virtual int		probe();
 	virtual int		info();
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
@@ -131,23 +129,6 @@ PCA8574::PCA8574(int bus, int pca8574) :
 	_counter(0)
 {
 	memset(&_work, 0, sizeof(_work));
-}
-
-PCA8574::~PCA8574()
-{
-}
-
-int
-PCA8574::init()
-{
-	int ret;
-	ret = I2C::init();
-
-	if (ret != OK) {
-		return ret;
-	}
-
-	return OK;
 }
 
 int

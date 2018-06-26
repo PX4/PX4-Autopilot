@@ -65,8 +65,6 @@ MavlinkFtpTest::MavlinkFtpTest() :
 {
 }
 
-MavlinkFtpTest::~MavlinkFtpTest() = default;
-
 /// @brief Called before every test to initialize the FTP Server.
 void MavlinkFtpTest::_init()
 {
