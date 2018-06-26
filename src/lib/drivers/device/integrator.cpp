@@ -41,25 +41,18 @@
  */
 
 #include "integrator.h"
+
 #include <drivers/drv_hrt.h>
 
 Integrator::Integrator(uint64_t auto_reset_interval, bool coning_compensation) :
 	_auto_reset_interval(auto_reset_interval),
-	_last_integration_time(0),
-	_last_reset_time(0),
-	_alpha(0.0f, 0.0f, 0.0f),
-	_last_alpha(0.0f, 0.0f, 0.0f),
-	_beta(0.0f, 0.0f, 0.0f),
-	_last_val(0.0f, 0.0f, 0.0f),
-	_last_delta_alpha(0.0f, 0.0f, 0.0f),
 	_coning_comp_on(coning_compensation)
 {
 }
 
-Integrator::~Integrator() = default;
-
 bool
-Integrator::put(uint64_t timestamp, matrix::Vector3f &val, matrix::Vector3f &integral, uint64_t &integral_dt)
+Integrator::put(const uint64_t &timestamp, const matrix::Vector3f &val, matrix::Vector3f &integral,
+		uint64_t &integral_dt)
 {
 	if (_last_integration_time == 0) {
 		/* this is the first item in the integrator */
@@ -80,7 +73,7 @@ Integrator::put(uint64_t timestamp, matrix::Vector3f &val, matrix::Vector3f &int
 	}
 
 	// Use trapezoidal integration to calculate the delta integral
-	matrix::Vector3f delta_alpha = (val + _last_val) * dt * 0.5f;
+	matrix::Vector3f delta_alpha{(val + _last_val) *dt * 0.5f};
 	_last_val = val;
 
 	// Calculate coning corrections if required
@@ -90,9 +83,9 @@ Integrator::put(uint64_t timestamp, matrix::Vector3f &val, matrix::Vector3f &int
 		// Tian et al (2010) Three-loop Integration of GPS and Strapdown INS with Coning and Sculling Compensation
 		// Sourced: http://www.sage.unsw.edu.au/snap/publications/tian_etal2010b.pdf
 		// Simulated: https://github.com/priseborough/InertialNav/blob/master/models/imu_error_modelling.m
-		_beta += ((_last_alpha + _last_delta_alpha * (1.0f / 6.0f)) % delta_alpha) * 0.5f;
+		_beta += ((_alpha + _last_delta_alpha * (1.0f / 6.0f)) % delta_alpha) * 0.5f;
+
 		_last_delta_alpha = delta_alpha;
-		_last_alpha = _alpha;
 	}
 
 	// accumulate delta integrals
@@ -112,7 +105,7 @@ Integrator::put(uint64_t timestamp, matrix::Vector3f &val, matrix::Vector3f &int
 		}
 
 		// reset the integrals and coning corrections
-		_reset(integral_dt);
+		integral_dt = _reset();
 
 		return true;
 
@@ -122,7 +115,7 @@ Integrator::put(uint64_t timestamp, matrix::Vector3f &val, matrix::Vector3f &int
 }
 
 bool
-Integrator::put_with_interval(unsigned interval_us, matrix::Vector3f &val, matrix::Vector3f &integral,
+Integrator::put_with_interval(const uint64_t &interval_us, const matrix::Vector3f &val, matrix::Vector3f &integral,
 			      uint64_t &integral_dt)
 {
 	if (_last_integration_time == 0) {
@@ -136,7 +129,7 @@ Integrator::put_with_interval(unsigned interval_us, matrix::Vector3f &val, matri
 	}
 
 	// Create the timestamp artifically.
-	uint64_t timestamp = _last_integration_time + interval_us;
+	const uint64_t timestamp = _last_integration_time + interval_us;
 
 	return put(timestamp, val, integral, integral_dt);
 }
@@ -144,10 +137,10 @@ Integrator::put_with_interval(unsigned interval_us, matrix::Vector3f &val, matri
 matrix::Vector3f
 Integrator::get(bool reset, uint64_t &integral_dt)
 {
-	matrix::Vector3f val = _alpha;
+	matrix::Vector3f val{_alpha};
 
 	if (reset) {
-		_reset(integral_dt);
+		integral_dt = _reset();
 	}
 
 	return val;
@@ -157,29 +150,23 @@ matrix::Vector3f
 Integrator::get_and_filtered(bool reset, uint64_t &integral_dt, matrix::Vector3f &filtered_val)
 {
 	// Do the usual get with reset first but don't return yet.
-	matrix::Vector3f ret_integral = get(reset, integral_dt);
+	matrix::Vector3f ret_integral{get(reset, integral_dt)};
 
 	// Because we need both the integral and the integral_dt.
-	filtered_val(0) = ret_integral(0) * 1000000 / integral_dt;
-	filtered_val(1) = ret_integral(1) * 1000000 / integral_dt;
-	filtered_val(2) = ret_integral(2) * 1000000 / integral_dt;
+	filtered_val = ret_integral * (1000000 / integral_dt);
 
 	return ret_integral;
 }
 
-void
-Integrator::_reset(uint64_t &integral_dt)
+uint64_t
+Integrator::_reset()
 {
-	_alpha(0) = 0.0f;
-	_alpha(1) = 0.0f;
-	_alpha(2) = 0.0f;
-	_last_alpha(0) = 0.0f;
-	_last_alpha(1) = 0.0f;
-	_last_alpha(2) = 0.0f;
-	_beta(0) = 0.0f;
-	_beta(1) = 0.0f;
-	_beta(2) = 0.0f;
+	_alpha.zero();
+	_beta.zero();
 
-	integral_dt = (_last_integration_time - _last_reset_time);
+	const uint64_t integral_dt = (_last_integration_time - _last_reset_time);
+
 	_last_reset_time = _last_integration_time;
+
+	return integral_dt;
 }

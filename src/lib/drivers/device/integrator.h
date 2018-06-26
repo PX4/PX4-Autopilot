@@ -49,7 +49,7 @@ class Integrator
 {
 public:
 	Integrator(uint64_t auto_reset_interval = 4000 /* 250 Hz */, bool coning_compensation = false);
-	virtual ~Integrator();
+	~Integrator() = default;
 
 	/**
 	 * Put an item into the integral.
@@ -58,10 +58,9 @@ public:
 	 * @param val		Item to put.
 	 * @param integral	Current integral in case the integrator did reset, else the value will not be modified
 	 * @param integral_dt	Get the dt in us of the current integration (only if reset).
-	 * @return		true if putting the item triggered an integral reset and the integral should be
-	 *			published.
+	 * @return		true if putting the item triggered an integral reset and the integral should be published.
 	 */
-	bool put(uint64_t timestamp, matrix::Vector3f &val, matrix::Vector3f &integral, uint64_t &integral_dt);
+	bool put(const uint64_t &timestamp, const matrix::Vector3f &val, matrix::Vector3f &integral, uint64_t &integral_dt);
 
 	/**
 	 * Put an item into the integral but provide an interval instead of a timestamp.
@@ -75,7 +74,7 @@ public:
 	 * @return		true if putting the item triggered an integral reset and the integral should be
 	 *			published.
 	 */
-	bool put_with_interval(unsigned interval_us, matrix::Vector3f &val, matrix::Vector3f &integral,
+	bool put_with_interval(const uint64_t &interval_us, const matrix::Vector3f &val, matrix::Vector3f &integral,
 			       uint64_t &integral_dt);
 
 	/**
@@ -105,30 +104,25 @@ public:
 	 *
 	 * @param auto_reset_interval	    	New reset time interval for the integrator.
 	 */
-	void set_autoreset_interval(uint64_t auto_reset_interval)
-	{
-		_auto_reset_interval = auto_reset_interval;
-	}
+	void set_autoreset_interval(uint64_t auto_reset_interval) { _auto_reset_interval = auto_reset_interval; }
 
 private:
-	uint64_t _auto_reset_interval;			/**< the interval after which the content will be published
+	uint64_t _auto_reset_interval{0};			/**< the interval after which the content will be published
 							     and the integrator reset, 0 if no auto-reset */
-	uint64_t _last_integration_time;		/**< timestamp of the last integration step */
-	uint64_t _last_reset_time;			/**< last auto-announcement of integral value */
-	matrix::Vector3f _alpha;			/**< integrated value before coning corrections are applied */
-	matrix::Vector3f _last_alpha;			/**< previous value of _alpha */
-	matrix::Vector3f _beta;				/**< accumulated coning corrections */
-	matrix::Vector3f _last_val;			/**< previous input */
-	matrix::Vector3f _last_delta_alpha;		/**< integral from previous previous sampling interval */
-	bool _coning_comp_on;				/**< true to turn on coning corrections */
 
-	/* we don't want this class to be copied */
-	Integrator(const Integrator &);
-	Integrator operator=(const Integrator &);
+	uint64_t _last_integration_time{0};			/**< timestamp of the last integration step */
+	uint64_t _last_reset_time{0};				/**< last auto-announcement of integral value */
+
+	matrix::Vector3f _alpha{0.0f, 0.0f, 0.0f};		/**< integrated value before coning corrections are applied */
+	matrix::Vector3f _beta{0.0f, 0.0f, 0.0f};		/**< accumulated coning corrections */
+	matrix::Vector3f _last_val{0.0f, 0.0f, 0.0f};		/**< previous input */
+	matrix::Vector3f _last_delta_alpha{0.0f, 0.0f, 0.0f};	/**< integral from previous previous sampling interval */
+
+	const bool _coning_comp_on{false};				/**< true to turn on coning corrections */
 
 	/* Do a reset.
 	 *
 	 * @param integral_dt	Get the dt in us of the current integration.
 	 */
-	void _reset(uint64_t &integral_dt);
+	uint64_t _reset();
 };
