@@ -1,20 +1,20 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *	 Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *		notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
+ *		notice, this list of conditions and the following disclaimer in
+ *		the documentation and/or other materials provided with the
+ *		distribution.
  * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ *		used to endorse or promote products derived from this software
+ *		without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -152,79 +152,79 @@ void RC_Loss_Alarm::cycle_trampoline(void *arg)
 
 void RC_Loss_Alarm::cycle()
 {
-  // Subscribe if necessary
-  if(_vehicle_status_sub == -1){
-    _vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-  }
+	// Subscribe if necessary
+	if(_vehicle_status_sub == -1){
+		_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	}
 
-  // Check armed status
-  bool updated = false;
+	// Check armed status
+	bool updated = false;
 
-  orb_check(_vehicle_status_sub, &updated);
-  if(updated){
-    orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+	orb_check(_vehicle_status_sub, &updated);
+	if(updated){
+		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
 
-    if (!_was_armed &&
-        _vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED){
+		if (!_was_armed &&
+				_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED){
 
-      _was_armed = true;  // Once true, impossible to go back to false
-    }
+			_was_armed = true;	// Once true, impossible to go back to false
+		}
 
-    if (!_had_rc && !_vehicle_status.rc_signal_lost){
+		if (!_had_rc && !_vehicle_status.rc_signal_lost){
 
-      _had_rc = true;
-    }
+			_had_rc = true;
+		}
 
-    if (_was_armed && _had_rc && _vehicle_status.rc_signal_lost &&
-        _vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED){
+		if (_was_armed && _had_rc && _vehicle_status.rc_signal_lost &&
+				_vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED){
 
-      pub_tune();
-    }
-  }
+			pub_tune();
+		}
+	}
 
-  // Schedule next cycle unless module is shutting down
+	// Schedule next cycle unless module is shutting down
 	if (!should_exit()) {
 			work_queue(LPWORK, &_work, (worker_t)&RC_Loss_Alarm::cycle_trampoline, this,
-				   USEC2TICK(UPDATE_RATE));
+					 USEC2TICK(UPDATE_RATE));
 	}
 }
 
 void RC_Loss_Alarm::pub_tune()
 {
-  struct tune_control_s tune_control = {};
+	struct tune_control_s tune_control = {};
 	tune_control.tune_id = static_cast<int>(TuneID::ERROR_TUNE);
 	tune_control.strength = tune_control_s::STRENGTH_MAX;
 	tune_control.tune_override = 1;
 	tune_control.timestamp = hrt_absolute_time();
 
-  if (_tune_control_pub == nullptr) {
-    _tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
-  }else{
-    orb_publish(ORB_ID(tune_control), _tune_control_pub, &tune_control);
-  }
+	if (_tune_control_pub == nullptr) {
+		_tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+	}else{
+		orb_publish(ORB_ID(tune_control), _tune_control_pub, &tune_control);
+	}
 }
 
 void RC_Loss_Alarm::stop_tune()
 {
-  struct tune_control_s tune_control = {};
-  tune_control.tune_id = static_cast<int>(TuneID::CUSTOM);
-  tune_control.frequency = 0;
-  tune_control.duration = 0;
-  tune_control.silence = 0;
-  tune_control.tune_override = true;
+	struct tune_control_s tune_control = {};
+	tune_control.tune_id = static_cast<int>(TuneID::CUSTOM);
+	tune_control.frequency = 0;
+	tune_control.duration = 0;
+	tune_control.silence = 0;
+	tune_control.tune_override = true;
 
-  if (_tune_control_pub == nullptr) {
-    _tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
-  }else{
-    orb_publish(ORB_ID(tune_control), _tune_control_pub, &tune_control);
-  }
+	if (_tune_control_pub == nullptr) {
+		_tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+	}else{
+		orb_publish(ORB_ID(tune_control), _tune_control_pub, &tune_control);
+	}
 }
 
 int RC_Loss_Alarm::reset_module(){
-  RC_Loss_Alarm::_was_armed = false;
-  RC_Loss_Alarm::_had_rc = false;
-  RC_Loss_Alarm::stop_tune();
-  return PX4_OK;
+	RC_Loss_Alarm::_was_armed = false;
+	RC_Loss_Alarm::_had_rc = false;
+	RC_Loss_Alarm::stop_tune();
+	return PX4_OK;
 }
 
 // module 'main' command
