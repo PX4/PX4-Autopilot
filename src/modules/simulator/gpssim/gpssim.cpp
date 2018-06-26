@@ -355,6 +355,14 @@ GPSSIM::task_main()
 		}
 	}
 
+	if (_report_gps_pos_pub) {
+		orb_unadvertise(_report_gps_pos_pub);
+	}
+
+	if (_report_sat_info_pub) {
+		orb_unadvertise(_report_sat_info_pub);
+	}
+
 	PX4_INFO("exiting");
 
 	/* tell the dtor that we are exiting */
