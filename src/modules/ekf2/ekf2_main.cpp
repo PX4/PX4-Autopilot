@@ -233,6 +233,7 @@ private:
 
 	// because we can have multiple GPS instances
 	int _gps_subs[ORB_MULTI_MAX_INSTANCES];
+	int32_t _gps_orb_instance{-1};
 
 	orb_advert_t _att_pub{nullptr};
 	orb_advert_t _wind_pub{nullptr};
@@ -1019,9 +1020,7 @@ void Ekf2::run()
 				gps.satellites_used = _gps_output[_gps_select_index].nsats;
 
 				// Publish to the GPS multi-topic
-				int32_t gps_orb_instance;
-				orb_publish_auto(ORB_ID(vehicle_gps_position), &_blended_gps_pub, &gps, &gps_orb_instance,
-						 ORB_PRIO_HIGH);
+				orb_publish_auto(ORB_ID(vehicle_gps_position), &_blended_gps_pub, &gps, &_gps_orb_instance, ORB_PRIO_LOW);
 			}
 		}
 
