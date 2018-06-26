@@ -64,6 +64,7 @@ private:
 	struct vehicle_status_s	_vehicle_status = {};
 	static orb_advert_t 	_tune_control_pub;
 	static bool 		_was_armed;
+	static bool 		_had_rc;  // Don't trigger alarm for systems without RC
 
 	static void cycle_trampoline(void *arg);
 	void 	    cycle();

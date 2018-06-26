@@ -46,6 +46,7 @@
 // Init static members
 work_s RC_Loss_Alarm::_work = {};
 bool RC_Loss_Alarm::_was_armed = false;
+bool RC_Loss_Alarm::_had_rc = false;
 orb_advert_t RC_Loss_Alarm::_tune_control_pub = nullptr;
 
 
@@ -124,7 +125,11 @@ int RC_Loss_Alarm::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 RC Loss Alarm plays a loud error tune in the event that the drone loses RC
-link after disarming. Ideal for finding a lost drone.
+link after disarming. Ideal for finding a lost drone. The RC Loss Module
+subscribes to the vehicle_status topic and checks the armed state as well as
+the rc_signal_lost flag. The RC Loss alarm will only be triggered if
+rc_signal_lost flag was false at least once at some point (i.e. if an RC is
+connected).
 ### Example
 The module is typically started with:
 rc_loss_alarm start
@@ -165,7 +170,12 @@ void RC_Loss_Alarm::cycle()
       _was_armed = true;  // Once true, impossible to go back to false
     }
 
-    if (_was_armed && _vehicle_status.rc_signal_lost &&
+    if (!_had_rc && !_vehicle_status.rc_signal_lost){
+
+      _had_rc = true;
+    }
+
+    if (_was_armed && _had_rc && _vehicle_status.rc_signal_lost &&
         _vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED){
 
       pub_tune();
@@ -212,6 +222,7 @@ void RC_Loss_Alarm::stop_tune()
 
 int RC_Loss_Alarm::reset_module(){
   RC_Loss_Alarm::_was_armed = false;
+  RC_Loss_Alarm::_had_rc = false;
   RC_Loss_Alarm::stop_tune();
   return PX4_OK;
 }
