@@ -62,10 +62,15 @@ private:
 	static struct work_s	_work;
 	int _vehicle_status_sub = -1;
 	struct vehicle_status_s	_vehicle_status = {};
-	orb_advert_t _tune_control_pub = nullptr;
-	bool _was_armed = false;
+	static orb_advert_t _tune_control_pub;
+	static bool _was_armed;
 
 	static void cycle_trampoline(void *arg);
 	void cycle();
-	void pub_tune();
+	static void pub_tune();
+	static void stop_tune();
+	static int reset_module();
+
+	// Do not allow class copies
+	RC_Loss_Alarm(const RC_Loss_Alarm &other);
 };
