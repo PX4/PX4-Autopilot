@@ -41,7 +41,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 
-#define UPDATE_RATE	(1000000 / 1)	  /* microseconds, 1 Hz */
+#define UPDATE_RATE	(1000000)	  /* microseconds, 1 Hz */
 
 class RC_Loss_Alarm: public ModuleBase<RC_Loss_Alarm>
 {
@@ -60,16 +60,16 @@ public:
 
 private:
 	static struct work_s	_work;
-	int _vehicle_status_sub = -1;
+	int 			_vehicle_status_sub = -1;
 	struct vehicle_status_s	_vehicle_status = {};
-	static orb_advert_t _tune_control_pub;
-	static bool _was_armed;
+	static orb_advert_t 	_tune_control_pub;
+	static bool 		_was_armed;
 
 	static void cycle_trampoline(void *arg);
-	void cycle();
+	void 	    cycle();
 	static void pub_tune();
 	static void stop_tune();
-	static int reset_module();
+	static int  reset_module();
 
 	// Hide all but the default constructor
 	RC_Loss_Alarm(const RC_Loss_Alarm &other);

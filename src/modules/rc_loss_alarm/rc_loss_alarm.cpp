@@ -131,11 +131,11 @@ rc_loss_alarm start
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("rc_loss_alarm", "driver");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop the task");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start",  "Start the task");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop",   "Stop the task");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Display running status of task");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Start alarm tune, can be stopped with 'reset'");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Resets internal state and stops an eventual alarm");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test",   "Start alarm tune, can be stopped with 'reset'");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reset",  "Resets internal state and stops an eventual alarm");
 	return PX4_OK;
 }
 
