@@ -643,7 +643,7 @@ void Ekf2::run()
 {
 	bool imu_bias_reset_request = false;
 
-	// becasue we can have a second GPS used as a truth reference to asisst with tuning and algorithm development using replay
+	// support for dual GPS inputs if available
 	int gps_subs[2];
 
 	for (unsigned i = 0; i < 2; i++) {
@@ -989,7 +989,7 @@ void Ekf2::run()
 				_gps_select_index = 1;
 
 			} else if (_gps_select_index == 2) {
-				// use last recever we received data from
+				// use last receiver we received data from
 				if (gps1_updated) {
 					_gps_select_index = 0;
 
@@ -1789,7 +1789,7 @@ bool Ekf2::calc_gps_blend_weights(void)
 
 		for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 			if (_gps_state[i].fix_type >= 3 && _gps_state[i].sacc >= 0.001f) {
-				spd_blend_weights[i] = speed_accuracy_sum_sq / (_gps_state[i].sacc * _gps_state[i].sacc);
+				spd_blend_weights[i] = 1.0f / (_gps_state[i].sacc * _gps_state[i].sacc);
 				sum_of_spd_weights += spd_blend_weights[i];
 			}
 		}
@@ -1874,16 +1874,16 @@ void Ekf2::update_gps_blend_states(void)
 	_gps_state[GPS_BLENDED_INSTANCE].lon = 0;
 	_gps_state[GPS_BLENDED_INSTANCE].alt = 0;
 	_gps_state[GPS_BLENDED_INSTANCE].fix_type = 0;
-	_gps_state[GPS_BLENDED_INSTANCE].eph = 0.0f;
-	_gps_state[GPS_BLENDED_INSTANCE].epv = 0.0f;
-	_gps_state[GPS_BLENDED_INSTANCE].sacc = 0.0f;
+	_gps_state[GPS_BLENDED_INSTANCE].eph = FLT_MAX;
+	_gps_state[GPS_BLENDED_INSTANCE].epv = FLT_MAX;
+	_gps_state[GPS_BLENDED_INSTANCE].sacc = FLT_MAX;
 	_gps_state[GPS_BLENDED_INSTANCE].vel_m_s = 0.0f;
 	_gps_state[GPS_BLENDED_INSTANCE].vel_ned[0] = 0.0f;
 	_gps_state[GPS_BLENDED_INSTANCE].vel_ned[1] = 0.0f;
 	_gps_state[GPS_BLENDED_INSTANCE].vel_ned[2] = 0.0f;
 	_gps_state[GPS_BLENDED_INSTANCE].vel_ned_valid = true;
 	_gps_state[GPS_BLENDED_INSTANCE].nsats = 0;
-	_gps_state[GPS_BLENDED_INSTANCE].gdop = 0.0f;
+	_gps_state[GPS_BLENDED_INSTANCE].gdop = FLT_MAX;
 
 	_blended_antenna_offset.zero();
 
@@ -1903,35 +1903,40 @@ void Ekf2::update_gps_blend_states(void)
 		_gps_state[GPS_BLENDED_INSTANCE].vel_ned[1] += _gps_state[i].vel_ned[1] * _blend_weights[i];
 		_gps_state[GPS_BLENDED_INSTANCE].vel_ned[2] += _gps_state[i].vel_ned[2] * _blend_weights[i];
 
-		// report the best valid accuracies and DOP metrics
+		// Assume blended error magnitude, DOP and sat count is equal to the best value from contributing receivers
+		// If any receiver contributing has an invalid velocity, then report blended velocity as invalid
+		if (_blend_weights[i] > 0.0f) {
 
-		if (_gps_state[i].eph > 0.0f
-		    && _gps_state[i].eph < _gps_state[GPS_BLENDED_INSTANCE].eph) {
-			_gps_state[GPS_BLENDED_INSTANCE].eph = _gps_state[i].eph;
+			if (_gps_state[i].eph > 0.0f
+			    && _gps_state[i].eph < _gps_state[GPS_BLENDED_INSTANCE].eph) {
+				_gps_state[GPS_BLENDED_INSTANCE].eph = _gps_state[i].eph;
+			}
+
+			if (_gps_state[i].epv > 0.0f
+			    && _gps_state[i].epv < _gps_state[GPS_BLENDED_INSTANCE].epv) {
+				_gps_state[GPS_BLENDED_INSTANCE].epv = _gps_state[i].epv;
+			}
+
+			if (_gps_state[i].sacc > 0.0f
+			    && _gps_state[i].sacc < _gps_state[GPS_BLENDED_INSTANCE].sacc) {
+				_gps_state[GPS_BLENDED_INSTANCE].sacc = _gps_state[i].sacc;
+			}
+
+			if (_gps_state[i].gdop > 0
+			    && _gps_state[i].gdop < _gps_state[GPS_BLENDED_INSTANCE].gdop) {
+				_gps_state[GPS_BLENDED_INSTANCE].gdop = _gps_state[i].gdop;
+			}
+
+			if (_gps_state[i].nsats > 0
+			    && _gps_state[i].nsats > _gps_state[GPS_BLENDED_INSTANCE].nsats) {
+				_gps_state[GPS_BLENDED_INSTANCE].nsats = _gps_state[i].nsats;
+			}
+
+			if (!_gps_state[i].vel_ned_valid) {
+				_gps_state[GPS_BLENDED_INSTANCE].vel_ned_valid = false;
+			}
+
 		}
-
-		if (_gps_state[i].epv > 0.0f
-		    && _gps_state[i].epv < _gps_state[GPS_BLENDED_INSTANCE].epv) {
-			_gps_state[GPS_BLENDED_INSTANCE].epv = _gps_state[i].epv;
-		}
-
-		if (_gps_state[i].sacc > 0.0f
-		    && _gps_state[i].sacc < _gps_state[GPS_BLENDED_INSTANCE].sacc) {
-			_gps_state[GPS_BLENDED_INSTANCE].sacc = _gps_state[i].sacc;
-		}
-
-		if (_gps_state[i].gdop > 0 && _gps_state[i].gdop < _gps_state[GPS_BLENDED_INSTANCE].gdop) {
-			_gps_state[GPS_BLENDED_INSTANCE].gdop = _gps_state[i].gdop;
-		}
-
-		if (_gps_state[i].nsats > 0 && _gps_state[i].nsats > _gps_state[GPS_BLENDED_INSTANCE].nsats) {
-			_gps_state[GPS_BLENDED_INSTANCE].nsats = _gps_state[i].nsats;
-		}
-
-		if (!_gps_state[i].vel_ned_valid) {
-			_gps_state[GPS_BLENDED_INSTANCE].vel_ned_valid = false;
-		}
-
 		// TODO read parameters for individual GPS antenna positions and blend
 		// Vector3f temp_antenna_offset = _antenna_offset[i];
 		// temp_antenna_offset *= _blend_weights[i];
