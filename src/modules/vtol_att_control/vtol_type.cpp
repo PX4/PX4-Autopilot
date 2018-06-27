@@ -108,6 +108,59 @@ bool VtolType::init()
 
 }
 
+
+void VtolType::set_weather_vane_yaw_rate()
+{
+	// First we set the yaw setpoint to the yaw position in order not to have any other control action influencing yaw
+	// Get euler angles
+	matrix::Dcmf R(matrix::Quatf(_v_att->q));
+	matrix::Dcmf R_sp(matrix::Quatf(_v_att_sp->q_d));
+	matrix::Eulerf euler(R);
+	matrix::Eulerf euler_sp(R_sp);
+
+	// compute the yaw error and than rotate the setpoint in a way that yaw is not compensated for
+	float yaw_error = _wrap_pi(euler_sp(2) - euler(2));
+	matrix::Dcmf R_yaw_correction = matrix::Eulerf(0.0f, 0.0f, -yaw_error);
+	matrix::Dcmf R_sp_new = R_sp * R_yaw_correction;
+
+	// save the new modified desired attitude
+	matrix::Quatf(R_sp_new).copyTo(_v_att_sp->q_d);
+
+	// adapt yaw euler angle in uorb message for backward compatibility
+	_v_att_sp->yaw_body = euler(2);
+
+	// direction of desired body z axis represented in earth frame
+	matrix::Vector3f body_z_sp(R_sp(0, 2), R_sp(1, 2), R_sp(2, 2));
+
+	// rotate desired body z axis into new frame which is rotated in z by the current
+	// heading of the vehicle. we refer to this as the heading frame.
+	matrix::Dcmf R_yaw = matrix::Eulerf(0.0f, 0.0f, -euler(2));
+	body_z_sp = R_yaw * body_z_sp;
+	body_z_sp.normalize();
+
+	float roll_sp = -asinf(body_z_sp(1));
+
+	float roll_exceeding_treshold = 0;
+
+	if (roll_sp > _params->wv_min_roll) {
+		roll_exceeding_treshold = roll_sp - _params->wv_min_roll;
+
+	} else if (roll_sp < -_params->wv_min_roll) {
+		roll_exceeding_treshold = roll_sp + _params->wv_min_roll;
+
+	} else {
+		_v_att_sp-> yaw_sp_move_rate = 0;
+		return;
+	}
+
+	_v_att_sp-> yaw_sp_move_rate = math::constrain(roll_exceeding_treshold * _params->wv_gain, -_params->wv_max_yaw_rate,
+				       _params->wv_max_yaw_rate);
+
+}
+
+
+
+
 void VtolType::update_mc_state()
 {
 	if (!flag_idle_mc) {
@@ -125,22 +178,45 @@ void VtolType::update_mc_state()
 	_mc_pitch_weight = 1.0f;
 	_mc_yaw_weight = 1.0f;
 
+
 	// VTOL weathervane
-	_v_att_sp->disable_mc_yaw_control = false;
+	// TODO: Add check regarding data integrity. To avoid "pitch up"-bug at start.
+	if (_v_control_mode->flag_control_manual_enabled) {
 
-	if (_attc->get_pos_sp_triplet()->current.valid &&
-	    !_v_control_mode->flag_control_manual_enabled) {
+		if (_params->wv_manual && _v_control_mode->flag_control_velocity_enabled) {
+			wv_do_strategy();
 
-		if (_params->wv_takeoff && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
-			_v_att_sp->disable_mc_yaw_control = true;
+		}
+
+	} else if (_attc->get_pos_sp_triplet()->current.valid) {
+
+		if (_params->wv_auto) {
+			wv_do_strategy();
+
+		} else if (_params->wv_takeoff
+			   && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+			wv_do_strategy();
 
 		} else if (_params->wv_loiter
 			   && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
-			_v_att_sp->disable_mc_yaw_control = true;
+			wv_do_strategy();
 
 		} else if (_params->wv_land && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-			_v_att_sp->disable_mc_yaw_control = true;
+			wv_do_strategy();
 		}
+	}
+}
+
+void VtolType::wv_do_strategy()
+{
+	_v_att_sp->disable_mc_yaw_control = false;
+
+	if (_params->wv_strategy) {
+		set_weather_vane_yaw_rate();
+
+	} else {
+		_v_att_sp->disable_mc_yaw_control = true;
+
 	}
 }
 
