@@ -233,7 +233,7 @@ private:
 
 	// because we can have multiple GPS instances
 	int _gps_subs[ORB_MULTI_MAX_INSTANCES];
-	int32_t _gps_orb_instance{-1};
+	int _gps_orb_instance{-1};
 
 	orb_advert_t _att_pub{nullptr};
 	orb_advert_t _wind_pub{nullptr};
