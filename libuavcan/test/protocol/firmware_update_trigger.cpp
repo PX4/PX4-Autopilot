@@ -107,7 +107,7 @@ TEST(FirmwareUpdateTrigger, Basic)
     uavcan::FirmwareUpdateTrigger trigger(nodes.a, checker);
     std::cout << "sizeof(uavcan::FirmwareUpdateTrigger): " << sizeof(uavcan::FirmwareUpdateTrigger) << std::endl;
 
-    std::auto_ptr<uavcan::NodeStatusProvider> provider(new uavcan::NodeStatusProvider(nodes.b));    // Other node
+    std::unique_ptr<uavcan::NodeStatusProvider> provider(new uavcan::NodeStatusProvider(nodes.b));    // Other node
 
     /*
      * Initializing
@@ -235,10 +235,10 @@ TEST(FirmwareUpdateTrigger, MultiNode)
     uavcan::FirmwareUpdateTrigger trigger(nodes[0], checker);
 
     // The client nodes
-    std::auto_ptr<uavcan::NodeStatusProvider> provider_a(new uavcan::NodeStatusProvider(nodes[1]));
-    std::auto_ptr<uavcan::NodeStatusProvider> provider_b(new uavcan::NodeStatusProvider(nodes[2]));
-    std::auto_ptr<uavcan::NodeStatusProvider> provider_c(new uavcan::NodeStatusProvider(nodes[3]));
-    std::auto_ptr<uavcan::NodeStatusProvider> provider_d(new uavcan::NodeStatusProvider(nodes[4]));
+    std::unique_ptr<uavcan::NodeStatusProvider> provider_a(new uavcan::NodeStatusProvider(nodes[1]));
+    std::unique_ptr<uavcan::NodeStatusProvider> provider_b(new uavcan::NodeStatusProvider(nodes[2]));
+    std::unique_ptr<uavcan::NodeStatusProvider> provider_c(new uavcan::NodeStatusProvider(nodes[3]));
+    std::unique_ptr<uavcan::NodeStatusProvider> provider_d(new uavcan::NodeStatusProvider(nodes[4]));
 
     uavcan::protocol::HardwareVersion hwver;
 

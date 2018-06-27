@@ -18,7 +18,7 @@ using uavcan::DefaultDataTypeRegistrator;
 using uavcan::MonotonicDuration;
 
 template <typename DataType>
-static bool validateDataTypeInfoResponse(const std::auto_ptr<ServiceCallResultCollector<GetDataTypeInfo>::Result>& resp,
+static bool validateDataTypeInfoResponse(const std::unique_ptr<ServiceCallResultCollector<GetDataTypeInfo>::Result>& resp,
                                          unsigned flags)
 {
     if (!resp.get())

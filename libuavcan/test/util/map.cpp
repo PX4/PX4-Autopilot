@@ -3,8 +3,6 @@
  */
 
 #if __GNUC__
-// We need auto_ptr for compatibility reasons
-# pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 # pragma GCC diagnostic ignored "-Wzero-as-null-pointer-constant"
 #endif
 
@@ -59,7 +57,7 @@ TEST(Map, Basic)
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
 
     typedef Map<std::string, std::string> MapType;
-    std::auto_ptr<MapType> map(new MapType(pool));
+    std::unique_ptr<MapType> map(new MapType(pool));
 
     // Empty
     ASSERT_FALSE(map->access("hi"));
@@ -198,7 +196,7 @@ TEST(Map, PrimitiveKey)
     uavcan::PoolAllocator<uavcan::MemPoolBlockSize * POOL_BLOCKS, uavcan::MemPoolBlockSize> pool;
 
     typedef Map<short, short> MapType;
-    std::auto_ptr<MapType> map(new MapType(pool));
+    std::unique_ptr<MapType> map(new MapType(pool));
 
     // Empty
     ASSERT_FALSE(map->access(1));

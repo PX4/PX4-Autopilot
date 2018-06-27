@@ -56,13 +56,8 @@ include_directories(${DSDLC_OUTPUT})
 #
 if (COMPILER_IS_GCC_COMPATIBLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wundef")
-    if (UAVCAN_USE_CPP03)
-        message(STATUS "Using C++03")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++03 -Wno-variadic-macros -Wno-long-long")
-    else ()
-        message(STATUS "Using C++11 (pass UAVCAN_USE_CPP03=1 to override)")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-    endif ()
+    message(STATUS "Using C++11")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif ()
 
 if (DEBUG_BUILD)
@@ -108,13 +103,13 @@ function(add_libuavcan_test name library flags) # Adds GTest executable and crea
     # If failing tests need to be investigated with debugger, use 'make --ignore-errors'
     if (CONTINUOUS_INTEGRATION_BUILD)
         # Don't redirect test output, and don't run tests suffixed with "RealTime"
-        add_custom_command(TARGET ${name} POST_BUILD
-                           COMMAND ./${name} --gtest_filter=-*RealTime
-                           WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+        add_test(NAME ${name}
+                 COMMAND ${name} --gtest_filter=-*RealTime
+                 WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
     else ()
-        add_custom_command(TARGET ${name} POST_BUILD
-                           COMMAND ./${name} 1>"${name}.log" 2>&1
-                           WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+        add_test(NAME ${name}
+             COMMAND ${name} 1>"${name}.log" 2>&1
+             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
     endif()
 endfunction()
 
@@ -129,8 +124,6 @@ if (DEBUG_BUILD)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wzero-as-null-pointer-constant -Wnon-virtual-dtor")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Woverloaded-virtual -Wsign-promo -Wold-style-cast")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=deprecated-declarations")
-        #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Weffc++ -Wno-error=effc++")  # Produces heaps of useless warnings
-        set(cpp03_flags "-std=c++03 -Wno-variadic-macros -Wno-long-long -Wno-zero-as-null-pointer-constant")
         set(optim_flags "-O3 -DNDEBUG -g0")
     else ()
         message(STATUS "Compiler ID: ${CMAKE_CXX_COMPILER_ID}")
@@ -138,9 +131,6 @@ if (DEBUG_BUILD)
     endif ()
 
     # Additional flavours of the library
-    add_library(uavcan_cpp03 STATIC ${LIBUAVCAN_CXX_FILES})
-    set_target_properties(uavcan_cpp03 PROPERTIES COMPILE_FLAGS ${cpp03_flags})
-    add_dependencies(uavcan_cpp03 libuavcan_dsdlc)
 
     add_library(uavcan_optim STATIC ${LIBUAVCAN_CXX_FILES})
     set_target_properties(uavcan_optim PROPERTIES COMPILE_FLAGS ${optim_flags})
@@ -149,7 +139,6 @@ if (DEBUG_BUILD)
     if (GTEST_FOUND)
         message(STATUS "GTest found, tests will be built and run.")
         add_libuavcan_test(libuavcan_test       uavcan       "")                 # Default
-        add_libuavcan_test(libuavcan_test_cpp03 uavcan_cpp03 "${cpp03_flags}")   # C++03
         add_libuavcan_test(libuavcan_test_optim uavcan_optim "${optim_flags}")   # Max optimization
     else (GTEST_FOUND)
         message(STATUS "GTest was not found, tests will not be built")
