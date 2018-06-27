@@ -1289,7 +1289,7 @@ PARAM_DEFINE_INT32(EKF2_GPS_MASK, 0);
 /**
  * Multi GPS Blending Time Constant
  *
- * Sets the longest time constant that will be applied to the calculation of  GPS position and height offsets used to correct data from multiple GPS data for steady state position differences.
+ * Sets the longest time constant that will be applied to the calculation of GPS position and height offsets used to correct data from multiple GPS data for steady state position differences.
  *
  *
  * @group EKF2
