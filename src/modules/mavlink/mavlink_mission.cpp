@@ -1363,8 +1363,8 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 				mission_item->nav_cmd = NAV_CMD_DO_SET_ROI;
 				mission_item->params[0] = MAV_ROI_LOCATION;
 
-				mission_item->params[4] = mavlink_mission_item->x;
-				mission_item->params[5] = mavlink_mission_item->y;
+				mission_item->params[4] = mission_item->lat;
+				mission_item->params[5] = mission_item->lon;
 				mission_item->params[6] = mavlink_mission_item->z;
 
 			} else if ((int)mavlink_mission_item->param1 == MAV_ROI_NONE) {
@@ -1379,8 +1379,8 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		case MAV_CMD_DO_SET_ROI_LOCATION:
 			mission_item->nav_cmd = NAV_CMD_DO_SET_ROI_LOCATION;
-			mission_item->params[4] = mavlink_mission_item->x;
-			mission_item->params[5] = mavlink_mission_item->y;
+			mission_item->params[4] = mission_item->lat;
+			mission_item->params[5] = mission_item->lon;
 			mission_item->params[6] = mavlink_mission_item->z;
 			break;
 
