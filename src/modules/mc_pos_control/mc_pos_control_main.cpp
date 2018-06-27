@@ -440,6 +440,8 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 
 	} else if (PX4_ISFINITE(_local_pos.vz)) {
 
+		_states.velocity(2) = _local_pos.vz;
+
 		if (PX4_ISFINITE(vel_sp_z) && fabsf(vel_sp_z) > FLT_EPSILON && PX4_ISFINITE(_local_pos.z_deriv)) {
 			// A change in velocity is demanded. Set velocity to the derivative of position
 			// because it has less bias but blend it in across the landing speed range
@@ -447,7 +449,6 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 			_states.velocity(2) = _local_pos.z_deriv * weighting + _local_pos.vz * (1.0f - weighting);
 		}
 
-		_states.velocity(2) = _local_pos.vz;
 		_states.acceleration(2) = _vel_z_deriv.update(-_states.velocity(2));
 
 	} else {
