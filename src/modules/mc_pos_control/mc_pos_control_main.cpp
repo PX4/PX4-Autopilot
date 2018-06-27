@@ -223,6 +223,14 @@ private:
 	void start_flight_task();
 
 	/**
+	 * Failsafe.
+	 * If flighttask fails for whatever reason, then do failsafe. This could
+	 * occur if the commander fails to switch to a mode in case of invalid states or
+	 * setpoints.
+	 */
+	void failsafe(vehicle_local_position_setpoint_s &setpoint, const PositionControlStates &states);
+
+	/**
 	 * Shim for calling task_main from task_create.
 	 */
 	static int	task_main_trampoline(int argc, char *argv[]);
@@ -542,21 +550,7 @@ MulticopterPositionControl::task_main()
 			if (!_flight_tasks.update()) {
 				// FAILSAFE
 				// Task was not able to update correctly. Do Failsafe.
-				setpoint.x = setpoint.y = setpoint.z = NAN;
-				setpoint.vx = setpoint.vy = setpoint.vz = NAN;
-				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = NAN;
-
-				if (PX4_ISFINITE(_states.velocity(2))) {
-					// We have a valid velocity in D-direction.
-					// descend downwards with landspeed.
-					setpoint.vz = _land_speed.get();
-					setpoint.thrust[0] = setpoint.thrust[1] = 0.0f;
-					warn_rate_limited("Failsafe: Descend with land-speed.");
-
-				} else {
-					// Use the failsafe from the PositionController.
-					warn_rate_limited("Failsafe: Descend with just attitude control.");
-				}
+				failsafe(setpoint, _states);
 
 			} else {
 				setpoint = _flight_tasks.getPositionSetpoint();
@@ -863,6 +857,27 @@ MulticopterPositionControl::limit_thrust_during_landing(matrix::Vector3f &thr_sp
 		_control.resetIntegralZ();
 	}
 }
+
+void
+MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint, const PositionControlStates &states)
+{
+	setpoint.x = setpoint.y = setpoint.z = NAN;
+	setpoint.vx = setpoint.vy = setpoint.vz = NAN;
+	setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = NAN;
+
+	if (PX4_ISFINITE(_states.velocity(2))) {
+		// We have a valid velocity in D-direction.
+		// descend downwards with landspeed.
+		setpoint.vz = _land_speed.get();
+		setpoint.thrust[0] = setpoint.thrust[1] = 0.0f;
+		warn_rate_limited("Failsafe: Descend with land-speed.");
+
+	} else {
+		// Use the failsafe from the PositionController.
+		warn_rate_limited("Failsafe: Descend with just attitude control.");
+	}
+}
+
 
 void
 MulticopterPositionControl::publish_attitude()
