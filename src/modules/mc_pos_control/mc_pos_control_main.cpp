@@ -100,7 +100,6 @@ private:
 	bool		_task_should_exit = false;			/**<true if task should exit */
 	bool 		_in_smooth_takeoff = false; 		/**<true if takeoff ramp is applied */
 
-	orb_advert_t	_mavlink_log_pub{nullptr};		/**< mavlink log advert */
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub{nullptr};		/**< vehicle local position setpoint publication */
 	orb_id_t _attitude_setpoint_id{nullptr};
@@ -671,8 +670,6 @@ MulticopterPositionControl::task_main()
 			_att_sp.thrust = 0.0f;
 		}
 	}
-
-	mavlink_log_info(&_mavlink_log_pub, "[mpc] stopped");
 
 	_control_task = -1;
 }
