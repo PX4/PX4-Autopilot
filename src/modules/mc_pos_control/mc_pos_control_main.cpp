@@ -170,7 +170,7 @@ private:
 	 * Check for validity of positon/velocity states.
 	 * @param vel_sp_z velocity setpoint in z-direction
 	 */
-	void check_vehicle_states(const float &vel_sp_z);
+	void set_vehicle_states(const float &vel_sp_z);
 
 	/**
 	 * Limit altitude based on land-detector.
@@ -396,7 +396,7 @@ MulticopterPositionControl::limit_altitude(vehicle_local_position_setpoint_s &se
 }
 
 void
-MulticopterPositionControl::check_vehicle_states(const float &vel_sp_z)
+MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 {
 	if (_local_pos.timestamp == 0) {
 		return;
@@ -565,7 +565,7 @@ MulticopterPositionControl::task_main()
 			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
 
 			// check if all local states are valid and map accordingly
-			check_vehicle_states(setpoint.vz);
+			set_vehicle_states(setpoint.vz);
 
 			// we can only do a smooth takeoff if a valid velocity or position is available and are
 			// armed long enough
@@ -595,7 +595,9 @@ MulticopterPositionControl::task_main()
 			}
 
 			// limit altitude only if local position is valid
-			if (PX4_ISFINITE(_states.position(2))) {limit_altitude(setpoint);}
+			if (PX4_ISFINITE(_states.position(2))) {
+				limit_altitude(setpoint);
+			}
 
 			// Update states, setpoints and constraints.
 			_control.updateConstraints(constraints);
@@ -609,7 +611,9 @@ MulticopterPositionControl::task_main()
 
 			// Adjust thrust setpoint based on landdetector only if the
 			// vehicle is NOT in pure Manual mode and NOT in smooth takeoff
-			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {limit_thrust_during_landing(thr_sp);}
+			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
+				limit_thrust_during_landing(thr_sp);
+			}
 
 			// Fill local position, velocity and thrust setpoint.
 			_local_pos_sp.timestamp = hrt_absolute_time();
