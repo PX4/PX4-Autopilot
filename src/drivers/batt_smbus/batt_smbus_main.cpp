@@ -237,21 +237,12 @@ void usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-GPS driver module that handles the communication with the device and publishes the position via uORB.
-It supports multiple protocols (device vendors) and by default automatically selects the correct one.
-
-The module supports a secondary GPS device, specified via `-e` parameter. The position will be published
-on the second uORB topic instance, but it's currently not used by the rest of the system (however the
-data will be logged, so that it can be used for comparisons).
-
-### Implementation
-There is a thread for each device polling for data. The GPS protocol classes are implemented with callbacks
-so that they can be used in other projects as well (eg. QGroundControl uses them too).
+Smart battery driver for the BQ40Z50 fuel gauge IC.
 
 ### Examples
-For testing it can be useful to fake a GPS signal (it will signal the system that it has a valid position):
-$ gps stop
-$ gps start -f
+To write to flash to set parameters. address, number_of_bytes, byte0, ... , byteN
+$ batt_smbus -X write_flash 19069 2 27 0
+
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("batt_smbus", "driver");
