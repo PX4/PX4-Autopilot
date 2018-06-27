@@ -641,11 +641,21 @@ MissionBlock::set_land_item(struct mission_item_s *item, enum LandState land_sta
 	switch (land_state) {
 	case LAND_STATE_RETURN_HOME:
 		item->nav_cmd = NAV_CMD_WAYPOINT;
+
 		/* use home position */
-		item->lat = _navigator->get_home_position()->lat;
-		item->lon = _navigator->get_home_position()->lon;
-		item->yaw = _navigator->get_home_position()->yaw;
-		item->altitude = _navigator->get_global_position()->alt;
+		if (_navigator->get_vstatus()->failsafe) {
+			item->lat = NAN; //descend at current position
+			item->lon = NAN; //descend at current position
+			item->yaw = _navigator->get_local_position()->yaw;
+			item->altitude = 0;
+
+		} else {
+			item->lat = _navigator->get_home_position()->lat;
+			item->lon = _navigator->get_home_position()->lon;
+			item->yaw = _navigator->get_home_position()->yaw;
+			item->altitude = _navigator->get_global_position()->alt;
+		}
+
 		item->acceptance_radius = _navigator->get_acceptance_radius(0.5);
 		item->time_inside = 1.0f;
 		item->autocontinue = true;
@@ -654,11 +664,21 @@ MissionBlock::set_land_item(struct mission_item_s *item, enum LandState land_sta
 
 	case LAND_STATE_RETURN:
 		item->nav_cmd = NAV_CMD_WAYPOINT;
+
 		/* use current position */
-		item->lat = _navigator->get_global_position()->lat;
-		item->lon = _navigator->get_global_position()->lon;
-		item->yaw = _navigator->get_global_position()->yaw;
-		item->altitude = _navigator->get_global_position()->alt;
+		if (_navigator->get_vstatus()->failsafe) {
+			item->lat = NAN; //descend at current position
+			item->lon = NAN; //descend at current position
+			item->yaw = _navigator->get_local_position()->yaw;
+			item->altitude = 0;
+
+		} else {
+			item->lat = _navigator->get_global_position()->lat;
+			item->lon = _navigator->get_global_position()->lon;
+			item->yaw = _navigator->get_global_position()->yaw;
+			item->altitude = _navigator->get_global_position()->alt;
+		}
+
 		item->acceptance_radius = _navigator->get_acceptance_radius(0.5);
 		item->time_inside = 1.0f;
 		item->autocontinue = true;
