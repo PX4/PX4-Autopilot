@@ -125,28 +125,36 @@ private:
 	const Vector3f get_vel_body_wind();
 
 	/*
-	 * Calculate the weightings used to blend multiple GPS data. These weightings are used by the
-	 * update_gps_blend_states() and calc_gps_blend_outputs() functions.
-	 * Weights are written to the _blend_weights[] class variable.
-	 * Return false if weights cannot be calculated
-	 */
+	 * Update the internal state estimate for a blended GPS solution that is a weighted average of the phsyical receiver solutions
+	 * with weights are calculated in calc_gps_blend_weights(). This internal state cannot be used directly by estimators
+	 * because if physical receivers have significant position differences,  variation in receiver estimated accuracy will
+	 * cause undesirable variation in the position soution.
+	*/
 	bool calc_gps_blend_weights();
 
 	/*
 	 * Calculate internal states used to blend GPS data from multiple receivers using weightings calculated
 	 * by calc_blend_weights()
-	 * States are written to _gps_state class variable
+	 * States are written to _gps_state and _gps_blended_state class variables
 	 */
 	void update_gps_blend_states();
 
 	/*
-	 * Calculate offset corrected GPS outputs for the physical and blended GPS data from multiple receivers using
-	 * weightings calculated by calc_blend_weights() and states calculated by calc_gps_blend_weights().
-	 * These outputs can be switched between and used directly by the estimator because steady state position
-	 * offsets between receivers have been removed.
-	 * Outputs are written to _gps_output class variable
-	 */
-	void calc_gps_blend_outputs();
+	 * The location in _gps_blended_state will move around as the relative accuracy changes.
+	 * To mitigate this effect a low-pass filtered offset from each GPS location to the blended location is
+	 * calculated.
+	*/
+	void update_gps_offsets();
+
+	/*
+	 * Apply the steady state physical receiver offsets calculated by update_gps_offsets().
+	*/
+	void apply_gps_offsets();
+
+	/*
+	 Calculate GPS output that is a blend of the offset corrected physical receiver data
+	*/
+	void calc_gps_blend_output();
 
 	bool 	_replay_mode = false;			///< true when we use replay data from a log
 
@@ -204,7 +212,8 @@ private:
 	const float _hgt_innov_spike_lim = 2.0f * _hgt_innov_test_lim;	///< preflight position innovation spike limit (m)
 
 	// GPS blending and switching
-	struct gps_message _gps_state[GPS_MAX_RECEIVERS + 1]; ///< internal state data for the physical and blended GPS
+	struct gps_message _gps_state[GPS_MAX_RECEIVERS]; ///< internal state data for the physical GPS
+	struct gps_message _gps_blended_state;		///< internal state data for the blended GPS
 	struct gps_message _gps_output[GPS_MAX_RECEIVERS + 1]; ///< output state data for the physical and blended GPS
 	Vector2f _NE_pos_offset_m[GPS_MAX_RECEIVERS] = {}; ///< Filtered North,East position offset from GPS instance to blended solution in _output_state.location (m)
 	float _hgt_offset_mm[GPS_MAX_RECEIVERS] = {};	///< Filtered height offset from GPS instance relative to blended solution in _output_state.location (mm)
@@ -643,13 +652,6 @@ void Ekf2::run()
 {
 	bool imu_bias_reset_request = false;
 
-	// support for dual GPS inputs if available
-	int gps_subs[2];
-
-	for (unsigned i = 0; i < 2; i++) {
-		gps_subs[i] = orb_subscribe_multi(ORB_ID(vehicle_gps_position), i);
-	}
-
 	px4_pollfd_struct_t fds[1] = {};
 	fds[0].fd = _sensors_sub;
 	fds[0].events = POLLIN;
@@ -947,7 +949,7 @@ void Ekf2::run()
 
 		// check for second GPS receiver data
 		bool gps2_updated = false;
-		orb_check(gps_subs[1], &gps2_updated);
+		orb_check(_gps_subs[1], &gps2_updated);
 
 		if (gps2_updated) {
 			vehicle_gps_position_s gps;
@@ -974,28 +976,41 @@ void Ekf2::run()
 
 		// blend dual receivers if available
 		if ((_gps_blend_mask.get() > 0) && (gps1_updated || gps2_updated)) {
+			// calculate blending weights
 			if (calc_gps_blend_weights()) {
-				// We can calculate a blended GPS solution
+				// With updated weights we can calculate a blended GPS solution and
+				// offsets for each physical receiver
 				update_gps_blend_states();
-				calc_gps_blend_outputs();
+				update_gps_offsets();
 				_gps_select_index = 2;
 
-			} else if (_gps_state[0].fix_type > _gps_state[0].fix_type) {
-				// GPS 1 has the best fix status so use that
-				_gps_select_index = 0;
-
-			} else if (_gps_state[1].fix_type > _gps_state[0].fix_type) {
-				// GPS 2 has the best fix status so use that
-				_gps_select_index = 1;
-
-			} else if (_gps_select_index == 2) {
-				// use last receiver we received data from
-				if (gps1_updated) {
+			} else {
+				// handle case where the blended states cannot be updated
+				if (_gps_state[0].fix_type > _gps_state[0].fix_type) {
+					// GPS 1 has the best fix status so use that
 					_gps_select_index = 0;
 
-				} else if (gps2_updated) {
+				} else if (_gps_state[1].fix_type > _gps_state[0].fix_type) {
+					// GPS 2 has the best fix status so use that
 					_gps_select_index = 1;
+
+				} else if (_gps_select_index == 2) {
+					// use last receiver we received data from
+					if (gps1_updated) {
+						_gps_select_index = 0;
+
+					} else if (gps2_updated) {
+						_gps_select_index = 1;
+					}
 				}
+			}
+
+			// correct the physical receiver data for steady state offsets
+			apply_gps_offsets();
+
+			// calculate a blended output from the offset corrected receiver data
+			if (_gps_select_index == 2) {
+				calc_gps_blend_output();
 			}
 
 			// write selected GPS to EKF
@@ -1004,7 +1019,7 @@ void Ekf2::run()
 			// log blended solution as a third GPS instance
 			if (_gps_select_index == 2) {
 				vehicle_gps_position_s gps;
-				gps.timestamp = _gps_state[_gps_select_index].time_usec;
+				gps.timestamp = _gps_output[_gps_select_index].time_usec;
 				gps.lat = _gps_output[_gps_select_index].lat;
 				gps.lon = _gps_output[_gps_select_index].lon;
 				gps.alt = _gps_output[_gps_select_index].alt;
@@ -1714,7 +1729,7 @@ bool Ekf2::calc_gps_blend_weights(void)
 
 	if ((int64_t)(max_us - min_us) < 300000) {
 		// data is not too delayed so use the oldest time_stamp to give a chance for data from that receiver to be updated
-		_gps_state[GPS_BLENDED_INSTANCE].time_usec = min_us;
+		_gps_blended_state.time_usec = min_us;
 
 	} else {
 		// receiver data has timed out so fail out of blending
@@ -1861,79 +1876,79 @@ bool Ekf2::calc_gps_blend_weights(void)
 }
 
 /*
- Update the internal state estimate for a blended GPS solution that is a weighted average of the phsyical receiver solutions
- with weights are calculated in calc_gps_blend_weights(). This internal state cannot be used directly by estimators
- because if physical receivers have significant position differences,  variation in receiver estimated accuracy will
- cause undesirable variation in the position soution. Offsets are handled in the calc_gps_blend_outputs() function.
+ * Update the internal state estimate for a blended GPS solution that is a weighted average of the phsyical receiver solutions
+ * with weights are calculated in calc_gps_blend_weights(). This internal state cannot be used directly by estimators
+ * because if physical receivers have significant position differences,  variation in receiver estimated accuracy will
+ * cause undesirable variation in the position soution.
 */
 void Ekf2::update_gps_blend_states(void)
 {
 	// initialise the blended states so we can accumulate the results using the weightings for each GPS receiver.
-	_gps_state[GPS_BLENDED_INSTANCE].time_usec = 0;
-	_gps_state[GPS_BLENDED_INSTANCE].lat = 0;
-	_gps_state[GPS_BLENDED_INSTANCE].lon = 0;
-	_gps_state[GPS_BLENDED_INSTANCE].alt = 0;
-	_gps_state[GPS_BLENDED_INSTANCE].fix_type = 0;
-	_gps_state[GPS_BLENDED_INSTANCE].eph = FLT_MAX;
-	_gps_state[GPS_BLENDED_INSTANCE].epv = FLT_MAX;
-	_gps_state[GPS_BLENDED_INSTANCE].sacc = FLT_MAX;
-	_gps_state[GPS_BLENDED_INSTANCE].vel_m_s = 0.0f;
-	_gps_state[GPS_BLENDED_INSTANCE].vel_ned[0] = 0.0f;
-	_gps_state[GPS_BLENDED_INSTANCE].vel_ned[1] = 0.0f;
-	_gps_state[GPS_BLENDED_INSTANCE].vel_ned[2] = 0.0f;
-	_gps_state[GPS_BLENDED_INSTANCE].vel_ned_valid = true;
-	_gps_state[GPS_BLENDED_INSTANCE].nsats = 0;
-	_gps_state[GPS_BLENDED_INSTANCE].gdop = FLT_MAX;
+	_gps_blended_state.time_usec = 0;
+	_gps_blended_state.lat = 0;
+	_gps_blended_state.lon = 0;
+	_gps_blended_state.alt = 0;
+	_gps_blended_state.fix_type = 0;
+	_gps_blended_state.eph = FLT_MAX;
+	_gps_blended_state.epv = FLT_MAX;
+	_gps_blended_state.sacc = FLT_MAX;
+	_gps_blended_state.vel_m_s = 0.0f;
+	_gps_blended_state.vel_ned[0] = 0.0f;
+	_gps_blended_state.vel_ned[1] = 0.0f;
+	_gps_blended_state.vel_ned[2] = 0.0f;
+	_gps_blended_state.vel_ned_valid = true;
+	_gps_blended_state.nsats = 0;
+	_gps_blended_state.gdop = FLT_MAX;
 
 	_blended_antenna_offset.zero();
 
 	// combine the the GPS states into a blended solution using the weights calculated in calc_blend_weights()
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		// blend the timing data
-		_gps_state[GPS_BLENDED_INSTANCE].time_usec += (uint64_t)((double)_gps_state[i].time_usec * (double)_blend_weights[i]);
+		_gps_blended_state.time_usec += (uint64_t)((double)_gps_state[i].time_usec * (double)_blend_weights[i]);
 
 		// use the highest status
-		if (_gps_state[i].fix_type > _gps_state[GPS_BLENDED_INSTANCE].fix_type) {
-			_gps_state[GPS_BLENDED_INSTANCE].fix_type = _gps_state[i].fix_type;
+		if (_gps_state[i].fix_type > _gps_blended_state.fix_type) {
+			_gps_blended_state.fix_type = _gps_state[i].fix_type;
 		}
 
 		// calculate a blended average speed and velocity vector
-		_gps_state[GPS_BLENDED_INSTANCE].vel_m_s += _gps_state[i].vel_m_s * _blend_weights[i];
-		_gps_state[GPS_BLENDED_INSTANCE].vel_ned[0] += _gps_state[i].vel_ned[0] * _blend_weights[i];
-		_gps_state[GPS_BLENDED_INSTANCE].vel_ned[1] += _gps_state[i].vel_ned[1] * _blend_weights[i];
-		_gps_state[GPS_BLENDED_INSTANCE].vel_ned[2] += _gps_state[i].vel_ned[2] * _blend_weights[i];
+		_gps_blended_state.vel_m_s += _gps_state[i].vel_m_s * _blend_weights[i];
+		_gps_blended_state.vel_ned[0] += _gps_state[i].vel_ned[0] * _blend_weights[i];
+		_gps_blended_state.vel_ned[1] += _gps_state[i].vel_ned[1] * _blend_weights[i];
+		_gps_blended_state.vel_ned[2] += _gps_state[i].vel_ned[2] * _blend_weights[i];
 
 		// Assume blended error magnitude, DOP and sat count is equal to the best value from contributing receivers
 		// If any receiver contributing has an invalid velocity, then report blended velocity as invalid
 		if (_blend_weights[i] > 0.0f) {
 
 			if (_gps_state[i].eph > 0.0f
-			    && _gps_state[i].eph < _gps_state[GPS_BLENDED_INSTANCE].eph) {
-				_gps_state[GPS_BLENDED_INSTANCE].eph = _gps_state[i].eph;
+			    && _gps_state[i].eph < _gps_blended_state.eph) {
+				_gps_blended_state.eph = _gps_state[i].eph;
 			}
 
 			if (_gps_state[i].epv > 0.0f
-			    && _gps_state[i].epv < _gps_state[GPS_BLENDED_INSTANCE].epv) {
-				_gps_state[GPS_BLENDED_INSTANCE].epv = _gps_state[i].epv;
+			    && _gps_state[i].epv < _gps_blended_state.epv) {
+				_gps_blended_state.epv = _gps_state[i].epv;
 			}
 
 			if (_gps_state[i].sacc > 0.0f
-			    && _gps_state[i].sacc < _gps_state[GPS_BLENDED_INSTANCE].sacc) {
-				_gps_state[GPS_BLENDED_INSTANCE].sacc = _gps_state[i].sacc;
+			    && _gps_state[i].sacc < _gps_blended_state.sacc) {
+				_gps_blended_state.sacc = _gps_state[i].sacc;
 			}
 
 			if (_gps_state[i].gdop > 0
-			    && _gps_state[i].gdop < _gps_state[GPS_BLENDED_INSTANCE].gdop) {
-				_gps_state[GPS_BLENDED_INSTANCE].gdop = _gps_state[i].gdop;
+			    && _gps_state[i].gdop < _gps_blended_state.gdop) {
+				_gps_blended_state.gdop = _gps_state[i].gdop;
 			}
 
 			if (_gps_state[i].nsats > 0
-			    && _gps_state[i].nsats > _gps_state[GPS_BLENDED_INSTANCE].nsats) {
-				_gps_state[GPS_BLENDED_INSTANCE].nsats = _gps_state[i].nsats;
+			    && _gps_state[i].nsats > _gps_blended_state.nsats) {
+				_gps_blended_state.nsats = _gps_state[i].nsats;
 			}
 
 			if (!_gps_state[i].vel_ned_valid) {
-				_gps_state[GPS_BLENDED_INSTANCE].vel_ned_valid = false;
+				_gps_blended_state.vel_ned_valid = false;
 			}
 
 		}
@@ -1956,9 +1971,9 @@ void Ekf2::update_gps_blend_states(void)
 		if (_blend_weights[i] > best_weight) {
 			best_weight = _blend_weights[i];
 			_gps_best_index = i;
-			_gps_state[GPS_BLENDED_INSTANCE].lat = _gps_state[i].lat;
-			_gps_state[GPS_BLENDED_INSTANCE].lon = _gps_state[i].lon;
-			_gps_state[GPS_BLENDED_INSTANCE].alt = _gps_state[i].alt;
+			_gps_blended_state.lat = _gps_state[i].lat;
+			_gps_blended_state.lon = _gps_state[i].lon;
+			_gps_blended_state.alt = _gps_state[i].alt;
 		}
 	}
 
@@ -1973,8 +1988,8 @@ void Ekf2::update_gps_blend_states(void)
 			Vector2f horiz_offset{};
 
 			if (i != _gps_best_index) {
-				get_vector_to_next_waypoint((_gps_state[GPS_BLENDED_INSTANCE].lat / 1.0e7),
-							    (_gps_state[GPS_BLENDED_INSTANCE].lon / 1.0e7), (_gps_state[i].lat / 1.0e7), (_gps_state[i].lon / 1.0e7),
+				get_vector_to_next_waypoint((_gps_blended_state.lat / 1.0e7),
+							    (_gps_blended_state.lon / 1.0e7), (_gps_state[i].lat / 1.0e7), (_gps_state[i].lon / 1.0e7),
 							    &horiz_offset(0), &horiz_offset(1));
 
 			} else {
@@ -1985,7 +2000,7 @@ void Ekf2::update_gps_blend_states(void)
 			blended_NE_offset_m += horiz_offset * _blend_weights[i];
 
 			// calculate vertical offset
-			float vert_offset = (float)(_gps_state[i].alt - _gps_state[GPS_BLENDED_INSTANCE].alt);
+			float vert_offset = (float)(_gps_state[i].alt - _gps_blended_state.alt);
 
 			// sum weighted offsets
 			blended_alt_offset_mm += vert_offset * _blend_weights[i];
@@ -1994,33 +2009,25 @@ void Ekf2::update_gps_blend_states(void)
 
 	// Add the sum of weighted offsets to the reference position to obtain the blended position
 	{
-		double lat_deg_now = (double)_gps_state[GPS_BLENDED_INSTANCE].lat * 1.0e-7;
-		double lon_deg_now = (double)_gps_state[GPS_BLENDED_INSTANCE].lon * 1.0e-7;
+		double lat_deg_now = (double)_gps_blended_state.lat * 1.0e-7;
+		double lon_deg_now = (double)_gps_blended_state.lon * 1.0e-7;
 		double lat_deg_res, lon_deg_res;
 		add_vector_to_global_position(lat_deg_now, lon_deg_now, blended_NE_offset_m(0), blended_NE_offset_m(1), &lat_deg_res,
 					      &lon_deg_res);
-		_gps_state[GPS_BLENDED_INSTANCE].lat = (int32_t)(1.0E7 * lat_deg_res);
-		_gps_state[GPS_BLENDED_INSTANCE].lon = (int32_t)(1.0E7 * lon_deg_res);
-		_gps_state[GPS_BLENDED_INSTANCE].alt += (int32_t)blended_alt_offset_mm;
+		_gps_blended_state.lat = (int32_t)(1.0E7 * lat_deg_res);
+		_gps_blended_state.lon = (int32_t)(1.0E7 * lon_deg_res);
+		_gps_blended_state.alt += (int32_t)blended_alt_offset_mm;
 	}
 
 }
 
 /*
- Calculate GPS outputs representing an offset corrected solution for each physical receiver
- and a virtual receiver that is a blend of the offset corrected physical receivers.
+ * The location in _gps_blended_state will move around as the relative accuracy changes.
+ * To mitigate this effect a low-pass filtered offset from each GPS location to the blended location is
+ * calculated.
 */
-void Ekf2::calc_gps_blend_outputs(void)
+void Ekf2::update_gps_offsets(void)
 {
-	/*
-	 * The location in _gps_state[GPS_BLENDED_INSTANCE] will move around as the relative accuracy changes.
-	 * To mitigate this effect a low-pass filtered offset from each GPS location to the blended location is
-	 * calculated. This is then used to calculate an offset corrected solution for each physical receiver
-	 * and these offset corrected soutions are then used to calculate the final output blended solution
-	 * which is written to _gps_output[]. Switching between the physical and blended/virtual receivers can then
-	 * be perfomred without having to deal with large position  jumps, enabling fallback to single receiver
-	 * operation if required.
-	*/
 
 	// Calculate filter coefficients to be applied to the offsets for each GPS position and height offset
 	// Increase the filter time constant proportional to the inverse of the weighting
@@ -2050,12 +2057,19 @@ void Ekf2::calc_gps_blend_outputs(void)
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		Vector2f offset;
 		get_vector_to_next_waypoint((_gps_state[i].lat / 1.0e7), (_gps_state[i].lon / 1.0e7),
-					    (_gps_state[GPS_BLENDED_INSTANCE].lat / 1.0e7), (_gps_state[GPS_BLENDED_INSTANCE].lon / 1.0e7), &offset(0), &offset(1));
+					    (_gps_blended_state.lat / 1.0e7), (_gps_blended_state.lon / 1.0e7), &offset(0), &offset(1));
 		_NE_pos_offset_m[i] = offset * alpha[i] + _NE_pos_offset_m[i] * (1.0f - alpha[i]);
-		_hgt_offset_mm[i] = (float)(_gps_state[GPS_BLENDED_INSTANCE].alt - _gps_state[i].alt) *  alpha[i] +
+		_hgt_offset_mm[i] = (float)(_gps_blended_state.alt - _gps_state[i].alt) *  alpha[i] +
 				    _hgt_offset_mm[i] * (1.0f - alpha[i]);
 	}
+}
 
+
+/*
+ * Apply the steady state physical receiver offsets calculated by update_gps_offsets().
+*/
+void Ekf2::apply_gps_offsets(void)
+{
 	// calculate offset corrected output for each physical GPS.
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		// Add the sum of weighted offsets to the reference position to obtain the blended position
@@ -2067,8 +2081,28 @@ void Ekf2::calc_gps_blend_outputs(void)
 		_gps_output[i].lat = (int32_t)(1.0E7 * lat_deg_res);
 		_gps_output[i].lon = (int32_t)(1.0E7 * lon_deg_res);
 		_gps_output[i].alt = _gps_state[i].alt + (int32_t)_hgt_offset_mm[i];
-	}
 
+		// other receiver data is used uncorrected
+		_gps_output[i].time_usec	= _gps_state[i].time_usec;
+		_gps_output[i].fix_type		= _gps_state[i].fix_type;
+		_gps_output[i].vel_m_s		= _gps_state[i].vel_m_s;
+		_gps_output[i].vel_ned[0]	= _gps_state[i].vel_ned[0];
+		_gps_output[i].vel_ned[1]	= _gps_state[i].vel_ned[1];
+		_gps_output[i].vel_ned[2]	= _gps_state[i].vel_ned[2];
+		_gps_output[i].eph		= _gps_state[i].eph;
+		_gps_output[i].epv		= _gps_state[i].epv;
+		_gps_output[i].sacc		= _gps_state[i].sacc;
+		_gps_output[i].gdop		= _gps_state[i].gdop;
+		_gps_output[i].nsats		= _gps_state[i].nsats;
+		_gps_output[i].vel_ned_valid	= _gps_state[i].vel_ned_valid;
+	}
+}
+
+/*
+ Calculate GPS output that is a blend of the offset corrected physical receiver data
+*/
+void Ekf2::calc_gps_blend_output(void)
+{
 	// use the offset corrected outputs to calculate blended output
 	Vector2f blended_NE_offset_m;
 	blended_NE_offset_m.zero();
@@ -2112,20 +2146,18 @@ void Ekf2::calc_gps_blend_outputs(void)
 	}
 
 	// Copy remaining data from internal states to output
-	for (uint8_t i = 0; i <= GPS_MAX_RECEIVERS; i++) {
-		_gps_output[i].time_usec	= _gps_state[i].time_usec;
-		_gps_output[i].fix_type		= _gps_state[i].fix_type;
-		_gps_output[i].vel_m_s		= _gps_state[i].vel_m_s;
-		_gps_output[i].vel_ned[0]	= _gps_state[i].vel_ned[0];
-		_gps_output[i].vel_ned[1]	= _gps_state[i].vel_ned[1];
-		_gps_output[i].vel_ned[2]	= _gps_state[i].vel_ned[2];
-		_gps_output[i].eph		= _gps_state[i].eph;
-		_gps_output[i].epv		= _gps_state[i].epv;
-		_gps_output[i].sacc		= _gps_state[i].sacc;
-		_gps_output[i].gdop		= _gps_state[i].gdop;
-		_gps_output[i].nsats		= _gps_state[i].nsats;
-		_gps_output[i].vel_ned_valid	= _gps_state[i].vel_ned_valid;
-	}
+	_gps_output[GPS_BLENDED_INSTANCE].time_usec	= _gps_blended_state.time_usec;
+	_gps_output[GPS_BLENDED_INSTANCE].fix_type	= _gps_blended_state.fix_type;
+	_gps_output[GPS_BLENDED_INSTANCE].vel_m_s	= _gps_blended_state.vel_m_s;
+	_gps_output[GPS_BLENDED_INSTANCE].vel_ned[0]	= _gps_blended_state.vel_ned[0];
+	_gps_output[GPS_BLENDED_INSTANCE].vel_ned[1]	= _gps_blended_state.vel_ned[1];
+	_gps_output[GPS_BLENDED_INSTANCE].vel_ned[2]	= _gps_blended_state.vel_ned[2];
+	_gps_output[GPS_BLENDED_INSTANCE].eph		= _gps_blended_state.eph;
+	_gps_output[GPS_BLENDED_INSTANCE].epv		= _gps_blended_state.epv;
+	_gps_output[GPS_BLENDED_INSTANCE].sacc		= _gps_blended_state.sacc;
+	_gps_output[GPS_BLENDED_INSTANCE].gdop		= _gps_blended_state.gdop;
+	_gps_output[GPS_BLENDED_INSTANCE].nsats		= _gps_blended_state.nsats;
+	_gps_output[GPS_BLENDED_INSTANCE].vel_ned_valid	= _gps_blended_state.vel_ned_valid;
 }
 
 
