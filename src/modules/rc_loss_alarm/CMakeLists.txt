@@ -36,7 +36,6 @@ px4_add_module(
 	MAIN rc_loss_alarm
 	STACK_MAIN 512
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
 	SRCS
 		rc_loss_alarm.cpp
 	DEPENDS

@@ -38,7 +38,6 @@
 #include <px4_defines.h>
 
 #include <drivers/drv_hrt.h>
-#include <errno.h>
 #include <stdint.h>
 
 #include <uORB/topics/tune_control.h>
@@ -49,10 +48,6 @@ bool RC_Loss_Alarm::_was_armed = false;
 bool RC_Loss_Alarm::_had_rc = false;
 orb_advert_t RC_Loss_Alarm::_tune_control_pub = nullptr;
 
-
-RC_Loss_Alarm::RC_Loss_Alarm()
-{
-}
 
 RC_Loss_Alarm::~RC_Loss_Alarm()
 {
@@ -162,6 +157,7 @@ void RC_Loss_Alarm::cycle()
 
 	orb_check(_vehicle_status_sub, &updated);
 	if(updated){
+		struct vehicle_status_s	_vehicle_status = {};
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
 
 		if (!_was_armed &&

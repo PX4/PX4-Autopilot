@@ -46,8 +46,12 @@
 class RC_Loss_Alarm: public ModuleBase<RC_Loss_Alarm>
 {
 public:
-	RC_Loss_Alarm();
+	RC_Loss_Alarm() = default;
 	~RC_Loss_Alarm();
+	RC_Loss_Alarm(const RC_Loss_Alarm &other) = delete;
+	RC_Loss_Alarm(const RC_Loss_Alarm &&other) = delete;
+	RC_Loss_Alarm &operator= (const RC_Loss_Alarm &other) = delete;
+	RC_Loss_Alarm &operator= (const RC_Loss_Alarm &&other) = delete;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -61,7 +65,6 @@ public:
 private:
 	static struct work_s	_work;
 	int 			_vehicle_status_sub = -1;
-	struct vehicle_status_s	_vehicle_status = {};
 	static orb_advert_t 	_tune_control_pub;
 	static bool 		_was_armed;
 	static bool 		_had_rc;  // Don't trigger alarm for systems without RC
@@ -71,10 +74,4 @@ private:
 	static void pub_tune();
 	static void stop_tune();
 	static int  reset_module();
-
-	// Hide all but the default constructor
-	RC_Loss_Alarm(const RC_Loss_Alarm &other);
-	RC_Loss_Alarm(const RC_Loss_Alarm &&other);
-	RC_Loss_Alarm &operator= (const RC_Loss_Alarm &other);
-	RC_Loss_Alarm &operator= (const RC_Loss_Alarm &&other);
 };
