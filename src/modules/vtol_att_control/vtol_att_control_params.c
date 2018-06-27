@@ -327,3 +327,67 @@ PARAM_DEFINE_INT32(VT_WV_LND_EN, 0);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_FW_MOT_OFFID, 0);
+
+/**
+ * Weather-vane mode for manual position control
+ *
+ * @boolean
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(VT_WV_MANUAL_EN, 0);
+
+/**
+ * Weather-vane mode for auto mission (any waypoint in MC mode)
+ *
+ * @boolean
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(VT_WV_AUTO_EN, 0);
+
+/**
+ * Weather-vane strategy
+ *
+ * @value 0 Passive
+ * @value 1 Active
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_WV_STRATEGY, 0);
+
+/**
+ * Weather-vane minimum activation roll
+ *
+ * The desired roll sp from the position control to start weather-vaning.
+ *
+ * @min 0.0
+ * @max 40
+ * @increment 0.5
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_WV_MIN_ROLL, 1.0f);
+
+/**
+ * Weather-vane yaw rate from roll gain.
+ *
+ * The desired gain to convert roll sp into yaw rate sp.
+ *
+ * @min 0.0
+ * @max 3.0
+ * @increment 0.01
+ * @decimal 3
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_WV_GAIN, 1.0f);
+
+/**
+ * Weather-vane maximum yaw rate.
+ *
+ * The maximum yaw rate the VTOL attitude controller can output.
+ *
+ * @min 0.0
+ * @max 60.0
+ * @increment 0.5
+ * @decimal 3
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_WV_MAX_Y_RATE, 30.0f);
