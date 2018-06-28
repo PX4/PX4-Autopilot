@@ -1952,6 +1952,7 @@ void Ekf2::update_gps_blend_states(void)
 			}
 
 		}
+
 		// TODO read parameters for individual GPS antenna positions and blend
 		// Vector3f temp_antenna_offset = _antenna_offset[i];
 		// temp_antenna_offset *= _blend_weights[i];
@@ -2062,6 +2063,31 @@ void Ekf2::update_gps_offsets(void)
 		_hgt_offset_mm[i] = (float)(_gps_blended_state.alt - _gps_state[i].alt) *  alpha[i] +
 				    _hgt_offset_mm[i] * (1.0f - alpha[i]);
 	}
+
+	// calculate offset limits from the largest difference between receivers
+	Vector2f max_ne_offset{};
+	float max_alt_offset = 0;
+
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		for (uint8_t j = i; j < GPS_MAX_RECEIVERS; j++) {
+			if (i != j) {
+				Vector2f offset;
+				get_vector_to_next_waypoint((_gps_state[i].lat / 1.0e7), (_gps_state[i].lon / 1.0e7),
+							    (_gps_state[j].lat / 1.0e7), (_gps_state[j].lon / 1.0e7), &offset(0), &offset(1));
+				max_ne_offset(0) = fmaxf(max_ne_offset(0), fabsf(offset(0)));
+				max_ne_offset(1) = fmaxf(max_ne_offset(1), fabsf(offset(1)));
+				max_alt_offset = fmaxf(max_alt_offset, fabsf((float)(_gps_state[i].alt - _gps_state[j].alt)));
+			}
+		}
+	}
+
+	// apply offset limits
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		_NE_pos_offset_m[i](0) = constrain(_NE_pos_offset_m[i](0), -max_ne_offset(0), max_ne_offset(0));
+		_NE_pos_offset_m[i](1) = constrain(_NE_pos_offset_m[i](1), -max_ne_offset(1), max_ne_offset(1));
+		_hgt_offset_mm[i] = constrain(_hgt_offset_mm[i], -max_alt_offset, max_alt_offset);
+	}
+
 }
 
 
