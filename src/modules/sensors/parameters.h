@@ -47,7 +47,7 @@
 #include <mathlib/mathlib.h>
 
 #include <uORB/topics/rc_parameter_map.h>
-
+#include <uORB/topics/input_rc.h>
 
 namespace sensors
 {
