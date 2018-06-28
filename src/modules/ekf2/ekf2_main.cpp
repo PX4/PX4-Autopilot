@@ -2160,16 +2160,14 @@ void Ekf2::calc_gps_blend_output(void)
 	}
 
 	// Add the sum of weighted offsets to the reference position to obtain the blended output
-	{
-		double lat_deg_now = (double)_gps_output[GPS_BLENDED_INSTANCE].lat * 1.0e-7;
-		double lon_deg_now = (double)_gps_output[GPS_BLENDED_INSTANCE].lon * 1.0e-7;
-		double lat_deg_res, lon_deg_res;
-		add_vector_to_global_position(lat_deg_now, lon_deg_now, blended_NE_offset_m(0), blended_NE_offset_m(1), &lat_deg_res,
-					      &lon_deg_res);
-		_gps_output[GPS_BLENDED_INSTANCE].lat = (int32_t)(1.0E7 * lat_deg_res);
-		_gps_output[GPS_BLENDED_INSTANCE].lon = (int32_t)(1.0E7 * lon_deg_res);
-		_gps_output[GPS_BLENDED_INSTANCE].alt += (int32_t)blended_alt_offset_mm;
-	}
+	double lat_deg_now = (double)_gps_output[GPS_BLENDED_INSTANCE].lat * 1.0e-7;
+	double lon_deg_now = (double)_gps_output[GPS_BLENDED_INSTANCE].lon * 1.0e-7;
+	double lat_deg_res, lon_deg_res;
+	add_vector_to_global_position(lat_deg_now, lon_deg_now, blended_NE_offset_m(0), blended_NE_offset_m(1), &lat_deg_res,
+				      &lon_deg_res);
+	_gps_output[GPS_BLENDED_INSTANCE].lat = (int32_t)(1.0E7 * lat_deg_res);
+	_gps_output[GPS_BLENDED_INSTANCE].lon = (int32_t)(1.0E7 * lon_deg_res);
+	_gps_output[GPS_BLENDED_INSTANCE].alt += (int32_t)blended_alt_offset_mm;
 
 	// Copy remaining data from internal states to output
 	_gps_output[GPS_BLENDED_INSTANCE].time_usec	= _gps_blended_state.time_usec;
