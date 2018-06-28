@@ -185,7 +185,7 @@ void Simulator::send_controls()
 	}
 }
 
-static void fill_rc_input_msg(struct rc_input_values *rc, mavlink_rc_channels_t *rc_channels)
+static void fill_rc_input_msg(input_rc_s *rc, mavlink_rc_channels_t *rc_channels)
 {
 	rc->timestamp = hrt_absolute_time();
 	rc->timestamp_last_signal = rc->timestamp;

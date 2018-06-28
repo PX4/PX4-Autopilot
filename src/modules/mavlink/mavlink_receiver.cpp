@@ -1821,7 +1821,7 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 		return;
 	}
 
-	struct rc_input_values rc = {};
+	struct input_rc_s rc = {};
 
 	rc.timestamp = hrt_absolute_time();
 
@@ -1881,7 +1881,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 
 	if (_mavlink->get_manual_input_mode_generation()) {
 
-		struct rc_input_values rc = {};
+		struct input_rc_s rc = {};
 		rc.timestamp = hrt_absolute_time();
 		rc.timestamp_last_signal = rc.timestamp;
 
