@@ -43,4 +43,5 @@ px4_add_module(
 		git_ecl
 		ecl_EKF
 		ecl_geo
+		perf
 	)

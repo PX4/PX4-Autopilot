@@ -41,8 +41,9 @@
 #include <cfloat>
 
 #include <drivers/drv_hrt.h>
-#include <ecl/EKF/ekf.h>
-#include <mathlib/mathlib.h>
+#include <lib/ecl/EKF/ekf.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_defines.h>
 #include <px4_module.h>
 #include <px4_module_params.h>
@@ -118,6 +119,9 @@ private:
 	uint64_t _integrated_time_us = 0;	///< integral of gyro delta time from start (uSec)
 	uint64_t _start_time_us = 0;		///< system time at EKF start (uSec)
 	int64_t _last_time_slip_us = 0;		///< Last time slip (uSec)
+
+	perf_counter_t _perf_update_data;
+	perf_counter_t _perf_ekf_update;
 
 	// Initialise time stamps used to send sensor data to the EKF and for logging
 	uint8_t _invalid_mag_id_count = 0;	///< number of times an invalid magnetomer device ID has been detected
@@ -403,6 +407,8 @@ private:
 
 Ekf2::Ekf2():
 	ModuleParams(nullptr),
+	_perf_update_data(perf_alloc_once(PC_ELAPSED, "EKF2 data acquisition")),
+	_perf_ekf_update(perf_alloc_once(PC_ELAPSED, "EKF2 update")),
 	_vehicle_local_position_pub(ORB_ID(vehicle_local_position)),
 	_vehicle_global_position_pub(ORB_ID(vehicle_global_position)),
 	_params(_ekf.getParamHandle()),
@@ -521,6 +527,9 @@ Ekf2::Ekf2():
 
 Ekf2::~Ekf2()
 {
+	perf_free(_perf_update_data);
+	perf_free(_perf_ekf_update);
+
 	orb_unsubscribe(_airdata_sub);
 	orb_unsubscribe(_airspeed_sub);
 	orb_unsubscribe(_ev_att_sub);
@@ -543,9 +552,14 @@ Ekf2::~Ekf2()
 
 int Ekf2::print_status()
 {
-	PX4_INFO("local position OK %s", (_ekf.local_position_is_valid()) ? "yes" : "no");
-	PX4_INFO("global position OK %s", (_ekf.global_position_is_valid()) ? "yes" : "no");
+	PX4_INFO("local position: %s", (_ekf.local_position_is_valid()) ? "valid" : "invalid");
+	PX4_INFO("global position: %s", (_ekf.global_position_is_valid()) ? "valid" : "invalid");
+
 	PX4_INFO("time slip: %" PRId64 " us", _last_time_slip_us);
+
+	perf_print_counter(_perf_update_data);
+	perf_print_counter(_perf_ekf_update);
+
 	return 0;
 }
 
@@ -601,6 +615,8 @@ void Ekf2::run()
 			// Poll timeout or no new data, do nothing
 			continue;
 		}
+
+		perf_begin(_perf_update_data);
 
 		bool params_updated = false;
 		orb_check(_params_sub, &params_updated);
@@ -1010,8 +1026,12 @@ void Ekf2::run()
 			}
 		}
 
+		perf_end(_perf_update_data);
+
 		// run the EKF update and output
+		perf_begin(_perf_ekf_update);
 		const bool updated = _ekf.update();
+		perf_end(_perf_ekf_update);
 
 		if (updated) {
 
