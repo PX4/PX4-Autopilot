@@ -32,47 +32,47 @@
  ****************************************************************************/
 
 /**
- * @file dsm.h
+ * @file spektrum_rssi.h
  *
- * RC protocol definition for Spektrum RC
+ * RSSI dBm to percentage conversion for Spektrum telemetry receivers
  *
- * @author Lorenz Meier <lorenz@px4.io>
+ * @author Kurt Kiefer <kekiefer@gmail.com>
  */
 
 #pragma once
 
-#include <stdint.h>
-#include <px4_config.h>
-#include <board_config.h>
-#include <px4_defines.h>
+#include <math.h>
 
-__BEGIN_DECLS
+#define MIN_RSSI_DBM (-92.0f)
+#define MAX_RSSI_DBM (-42.0f)
 
-#define DSM_FRAME_SIZE		16		/**< DSM frame size in bytes */
-#define DSM_FRAME_CHANNELS	7		/**< Max supported DSM channels per frame */
-#define DSM_MAX_CHANNEL_COUNT   18  /**< Max channel count of any DSM RC */
-#define DSM_BUFFER_SIZE		(DSM_FRAME_SIZE + DSM_FRAME_SIZE / 2)
+class SpektrumRssi
+{
+	int8_t lu_dbm_percent[129];
 
-__EXPORT int	dsm_init(const char *device);
-__EXPORT void	dsm_deinit(void);
-__EXPORT void	dsm_proto_init(void);
-__EXPORT int	dsm_config(int dsm_fd);
-__EXPORT bool	dsm_input(int dsm_fd, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, uint8_t *n_bytes,
-			  uint8_t **bytes, int8_t *rssi, unsigned max_values);
+public:
+	SpektrumRssi()
+	{
+		for (int i = 0; i <= 128; i++) {
+			float rssi_dbm = -1.0f * (float)i;
+			float percent;
 
-__EXPORT bool	dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uint16_t *values,
-			  uint16_t *num_values, bool *dsm_11_bit, unsigned *frame_drops, int8_t *rssi_percent, uint16_t max_channels);
+			if (rssi_dbm > MAX_RSSI_DBM) {
+				percent = 100.0f;
 
-#ifdef SPEKTRUM_POWER
-__EXPORT void	dsm_bind(uint16_t cmd, int pulses);
-#endif
+			} else if (rssi_dbm < MIN_RSSI_DBM) {
+				percent = 0.0f;
 
-enum DSM_CMD {							/* DSM bind states */
-	DSM_CMD_BIND_POWER_DOWN = 0,
-	DSM_CMD_BIND_POWER_UP,
-	DSM_CMD_BIND_SET_RX_OUT,
-	DSM_CMD_BIND_SEND_PULSES,
-	DSM_CMD_BIND_REINIT_UART
+			} else {
+				percent = 100.0f * log10f(1 + (rssi_dbm - MIN_RSSI_DBM) * (9.0f / (MAX_RSSI_DBM - MIN_RSSI_DBM)));
+			}
+
+			lu_dbm_percent[i] = (int8_t)roundf(percent);
+		}
+	}
+
+	int8_t dbm_to_percent(int8_t dbm) const
+	{
+		return lu_dbm_percent[abs(dbm)];
+	}
 };
-
-__END_DECLS

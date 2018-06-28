@@ -78,8 +78,9 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 	uint8_t n_bytes = 0;
 	uint8_t *bytes;
 	bool dsm_11_bit;
+	int8_t spektrum_rssi;
 	*dsm_updated = dsm_input(_dsm_fd, r_raw_rc_values, &r_raw_rc_count, &dsm_11_bit, &n_bytes, &bytes,
-				 PX4IO_RC_INPUT_CHANNELS);
+				 &spektrum_rssi, PX4IO_RC_INPUT_CHANNELS);
 
 	if (*dsm_updated) {
 
@@ -93,6 +94,7 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 
+		*rssi = spektrum_rssi;
 	}
 
 	perf_end(c_gather_dsm);

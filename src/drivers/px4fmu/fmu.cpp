@@ -1615,15 +1615,17 @@ PX4FMU::cycle()
 				   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
 				if (newBytes > 0) {
+					int8_t dsm_rssi;
+
 					// parse new data
 					rc_updated = dsm_parse(_cycle_timestamp, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count,
-							       &dsm_11_bit, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
+							       &dsm_11_bit, &frame_drops, &dsm_rssi, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 					if (rc_updated) {
 						// we have a new DSM frame. Publish it.
 						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_DSM;
 						fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
-							   false, false, frame_drops);
+							   false, false, frame_drops, dsm_rssi);
 						_rc_scan_locked = true;
 					}
 				}
