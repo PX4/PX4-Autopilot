@@ -498,7 +498,7 @@ class uploader(object):
             for byte in range(0, 32*6, 4):
                 x = self.__getOTP(byte)
                 self.otp = self.otp + x
-                print(binascii.hexlify(x).decode('Latin-1') + ' ', end='')
+                #print(binascii.hexlify(x).decode('Latin-1') + ' ', end='')
             # see src/modules/systemlib/otp.h in px4 code:
             self.otp_id = self.otp[0:4]
             self.otp_idtype = self.otp[4:5]
@@ -507,11 +507,6 @@ class uploader(object):
             self.otp_coa = self.otp[32:160]
             # show user:
             try:
-                print("type: " + self.otp_id.decode('Latin-1'))
-                print("idtype: " + binascii.b2a_qp(self.otp_idtype).decode('Latin-1'))
-                print("vid: " + binascii.hexlify(self.otp_vid).decode('Latin-1'))
-                print("pid: " + binascii.hexlify(self.otp_pid).decode('Latin-1'))
-                print("coa: " + binascii.b2a_base64(self.otp_coa).decode('Latin-1'))
                 print("sn: ", end='')
                 for byte in range(0, 12, 4):
                     x = self.__getSN(byte)
@@ -520,6 +515,15 @@ class uploader(object):
                     print(binascii.hexlify(x).decode('Latin-1'), end='')  # show user
                 print('')
                 print("chip: %08x" % self.__getCHIP())
+
+                otp_id = self.otp_id.decode('Latin-1')
+                if ("PX4" in otp_id):
+                    print("OTP id: " + otp_id)
+                    print("OTP idtype: " + binascii.b2a_qp(self.otp_idtype).decode('Latin-1'))
+                    print("OTP vid: " + binascii.hexlify(self.otp_vid).decode('Latin-1'))
+                    print("OTP pid: " + binascii.hexlify(self.otp_pid).decode('Latin-1'))
+                    print("OTP coa: " + binascii.b2a_base64(self.otp_coa).decode('Latin-1'))
+
             except Exception:
                 # ignore bad character encodings
                 pass
@@ -530,7 +534,7 @@ class uploader(object):
             if (len(des) == 2):
                 print("family: %s" % des[0])
                 print("revision: %s" % des[1])
-                print("flash %d" % self.fw_maxsize)
+                print("flash: %d bytes" % self.fw_maxsize)
 
                 # Prevent uploads where the maximum image size of the board config is smaller than the flash
                 # of the board. This is a hint the user chose the wrong config and will lack features
@@ -637,7 +641,14 @@ def main():
 
     # Load the firmware file
     fw = firmware(args.firmware)
-    print("Loaded firmware for %x,%x, size: %d bytes, waiting for the bootloader..." % (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size')))
+
+    percent = fw.property('image_size') / fw.property('image_maxsize')
+    binary_size = float(fw.property('image_size'))
+    binary_max_size = float(fw.property('image_maxsize'))
+    percent = (binary_size / binary_max_size) * 100
+
+    print("Loaded firmware for board id: %s,%s size: %d bytes (%.2f%%), waiting for the bootloader..." % (fw.property('board_id'), fw.property('board_revision'), fw.property('image_size'), percent))
+    print()
 
     # tell any GCS that might be connected to the autopilot to give up
     # control of the serial port
@@ -715,7 +726,8 @@ def main():
                         # identify the bootloader
                         up.identify()
                         found_bootloader = True
-                        print("Found board %x,%x bootloader rev %x on %s" % (up.board_type, up.board_rev, up.bl_rev, port))
+                        print()
+                        print("Found board id: %s,%s bootloader version: %s on %s" % (up.board_type, up.board_rev, up.bl_rev, port))
                         break
 
                     except Exception:
