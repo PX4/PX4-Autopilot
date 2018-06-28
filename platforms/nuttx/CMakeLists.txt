@@ -148,6 +148,7 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 	# upload helper
 	if (${BOARD} STREQUAL "aerofc-v1")
 		
+		# TODO: should be set only in aero config
 		add_custom_target(upload
 			COMMAND ${PX4_SOURCE_DIR}/Tools/aero_upload.sh ${fw_file}
 			DEPENDS ${fw_file}
@@ -155,17 +156,34 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 			USES_TERMINAL
 		)
 	else()
+
+		# NuttX CDCACM vendor and product strings
+		set(vendorstr_underscore)
+		set(productstr_underscore)
+		string(REPLACE " " "_" vendorstr_underscore ${CONFIG_CDCACM_VENDORSTR})
+		string(REPLACE " " "_" productstr_underscore ${CONFIG_CDCACM_PRODUCTSTR})
+
 		set(serial_ports)
 		if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
+
+			set(px4_usb_path "${vendorstr_underscore}_${productstr_underscore}")
+
 			list(APPEND serial_ports
-				/dev/serial/by-id/*_PX4_*
-				/dev/serial/by-id/usb-3D_Robotics*
+				# NuttX vendor + product string
+				/dev/serial/by-id/*-${px4_usb_path}*
+
+				# Bootloader
+				/dev/serial/by-id/*PX4_BL* # typical bootloader USB device string
+				/dev/serial/by-id/*BL_FMU*
+
+				# TODO: handle these per board
 				/dev/serial/by-id/usb-The_Autopilot*
 				/dev/serial/by-id/usb-Bitcraze*
-				/dev/serial/by-id/pci-3D_Robotics*
 				/dev/serial/by-id/pci-Bitcraze*
 				/dev/serial/by-id/usb-Gumstix*
+
 				)
+
 		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
 			list(APPEND serial_ports
 				/dev/tty.usbmodemPX*,/dev/tty.usbmodem*
@@ -180,23 +198,25 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 					"COM${port}")
 			endforeach()
 		endif()
+
 		px4_join(OUT serial_ports LIST "${serial_ports}" GLUE ",")
+
 		add_custom_target(upload
-			COMMAND ${PYTHON_EXECUTABLE}
-				${PX4_SOURCE_DIR}/Tools/px_uploader.py --port ${serial_ports} ${fw_file}
+			COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --port ${serial_ports} ${fw_file}
 			DEPENDS ${fw_file}
 			COMMENT "uploading px4"
 			VERBATIM
 			USES_TERMINAL
 			)
+
 		add_custom_target(force-upload
-			COMMAND ${PYTHON_EXECUTABLE}
-				${PX4_SOURCE_DIR}/Tools/px_uploader.py --force --port ${serial_ports} ${fw_file}
+			COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --force --port ${serial_ports} ${fw_file}
 			DEPENDS ${fw_file}
 			COMMENT "uploading px4 with --force"
 			VERBATIM
 			USES_TERMINAL
 			)
+
 	endif()
 endif()
 
