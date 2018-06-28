@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<launch>
+   <arg name="fcu_url" default="udp://:14540@localhost:14557"/>
+    <arg name="gcs_url" default="" />   <!-- GCS link is provided by SITL -->
+    <arg name="tgt_system" default="1" />
+    <arg name="tgt_component" default="1" />
+    <arg name="est" default="ekf2"/>
+    <arg name="vehicle" default="iris"/>
+    <arg name="rcS" default="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle)"/>
+    <arg name="headless" default="false"/>
+    <arg name="gui" default="false"/>
+    <arg name="ns" default="/"/>
+    <arg name="model" default="iris"/>
+
+    <arg name="world_path" default="$(find local_planner)/../sim/worlds/boxes1.world" />
+    
+    <!-- Launch FCU -->
+    <node name="sitl" pkg="px4" type="px4" output="screen"
+        args="$(find px4) $(arg rcS)">
+    </node>
+
+    <!-- Launch MavROS -->
+    <group ns="$(arg ns)">
+        <include file="$(find mavros)/launch/node.launch">
+            <arg name="pluginlists_yaml" value="$(find mavros)/launch/px4_pluginlists.yaml" />
+            <arg name="config_yaml" value="$(find local_planner)/resource/px4_config.yaml" />
+            <arg name="fcu_url" value="$(arg fcu_url)" />
+            <arg name="gcs_url" value="$(arg gcs_url)" />
+            <arg name="tgt_system" value="$(arg tgt_system)" />
+            <arg name="tgt_component" value="$(arg tgt_component)" />
+        </include>
+    </group>
+
+    <!-- Launch Gazebo -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="headless" value="$(arg headless)"/>
+        <arg name="gui" value="$(arg gui)"/>
+        <arg name="world_name" value="$(arg world_path)" />
+    </include>
+
+    <!-- Spawn iris with depth camera -->
+    <node name="spawn_model" pkg="gazebo_ros" type="spawn_model" output="screen"
+          args="-file $(find local_planner)/../sim/models/iris_depth_camera/iris_depth_camera.sdf -sdf -model iris">
+    </node>
+
+    <arg name="mavros_transformation" default="0" />
+    <node pkg="tf" type="static_transform_publisher" name="tf_90_deg"
+          args="0 0 0 $(arg mavros_transformation) 0 0 world local_origin 10"/>
+    <node pkg="tf" type="static_transform_publisher" name="tf_depth_camera"
+          args="0 0 0 -1.57 0 -1.57 fcu camera_link 10"/>
+
+    <!-- Launch Local Planner -->
+    <node name="local_planner_node" pkg="local_planner" type="local_planner_node">
+        <param name="goal_x_param" value="17" />
+        <param name="goal_y_param" value="15"/>
+        <param name="goal_z_param" value="3" />
+    </node>
+
+    <test test-name="avoidance_interface" pkg="px4" type="mission_test.py" time-limit="300.0" args="avoidance.plan"/>
+</launch>
