@@ -2127,12 +2127,8 @@ void Ekf2::apply_gps_offsets(void)
 */
 void Ekf2::calc_gps_blend_output(void)
 {
-	// Use the GPS with the highest weighting as the reference position
-	_gps_output[GPS_BLENDED_INSTANCE].lat = _gps_state[_gps_best_index].lat;
-	_gps_output[GPS_BLENDED_INSTANCE].lon = _gps_state[_gps_best_index].lon;
-	_gps_output[GPS_BLENDED_INSTANCE].alt = _gps_state[_gps_best_index].alt;
-
 	// Convert each GPS position to a local NEU offset relative to the reference position
+	// which is defined as the positon of the blended solution calculated from non offset corrected data
 	Vector2f blended_NE_offset_m;
 	blended_NE_offset_m.zero();
 	float blended_alt_offset_mm = 0.0f;
@@ -2141,24 +2137,18 @@ void Ekf2::calc_gps_blend_output(void)
 		if (_blend_weights[i] > 0.0f) {
 			// calculate the horizontal offset
 			Vector2f horiz_offset{};
-
-			if (i != _gps_best_index) {
-				get_vector_to_next_waypoint((_gps_output[GPS_BLENDED_INSTANCE].lat / 1.0e7),
-							    (_gps_output[GPS_BLENDED_INSTANCE].lon / 1.0e7),
-							    (_gps_output[i].lat / 1.0e7),
-							    (_gps_output[i].lon / 1.0e7),
-							    &horiz_offset(0),
-							    &horiz_offset(1));
-
-			} else {
-				horiz_offset.zero();
-			}
+			get_vector_to_next_waypoint((_gps_blended_state.lat / 1.0e7),
+				(_gps_blended_state.lon / 1.0e7),
+				(_gps_output[i].lat / 1.0e7),
+				(_gps_output[i].lon / 1.0e7),
+				&horiz_offset(0),
+				&horiz_offset(1));
 
 			// sum weighted offsets
 			blended_NE_offset_m += horiz_offset * _blend_weights[i];
 
 			// calculate vertical offset
-			float vert_offset = (float)(_gps_output[i].alt - _gps_output[GPS_BLENDED_INSTANCE].alt);
+			float vert_offset = (float)(_gps_output[i].alt - _gps_blended_state.alt);
 
 			// sum weighted offsets
 			blended_alt_offset_mm += vert_offset * _blend_weights[i];
@@ -2166,14 +2156,14 @@ void Ekf2::calc_gps_blend_output(void)
 	}
 
 	// Add the sum of weighted offsets to the reference position to obtain the blended position
-	double lat_deg_now = (double)_gps_output[GPS_BLENDED_INSTANCE].lat * 1.0e-7;
-	double lon_deg_now = (double)_gps_output[GPS_BLENDED_INSTANCE].lon * 1.0e-7;
+	double lat_deg_now = (double)_gps_blended_state.lat * 1.0e-7;
+	double lon_deg_now = (double)_gps_blended_state.lon * 1.0e-7;
 	double lat_deg_res, lon_deg_res;
 	add_vector_to_global_position(lat_deg_now, lon_deg_now, blended_NE_offset_m(0), blended_NE_offset_m(1), &lat_deg_res,
 				      &lon_deg_res);
 	_gps_output[GPS_BLENDED_INSTANCE].lat = (int32_t)(1.0E7 * lat_deg_res);
 	_gps_output[GPS_BLENDED_INSTANCE].lon = (int32_t)(1.0E7 * lon_deg_res);
-	_gps_output[GPS_BLENDED_INSTANCE].alt += (int32_t)blended_alt_offset_mm;
+	_gps_output[GPS_BLENDED_INSTANCE].alt = _gps_blended_state.alt + (int32_t)blended_alt_offset_mm;
 
 	// Copy remaining data from internal states to output
 	_gps_output[GPS_BLENDED_INSTANCE].time_usec	= _gps_blended_state.time_usec;
