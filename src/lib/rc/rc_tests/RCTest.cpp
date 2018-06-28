@@ -100,7 +100,7 @@ bool RCTest::dsmTest(const char *filepath, unsigned expected_chancount, unsigned
 
 		// Pipe the data into the parser
 		bool result = dsm_parse(f * 1e6f, &frame[0], len, rc_values, &num_values,
-					&dsm_11_bit, &dsm_frame_drops, max_channels);
+					&dsm_11_bit, &dsm_frame_drops, nullptr, max_channels);
 
 		if (result) {
 			ut_compare("num_values == expected_chancount", num_values, expected_chancount);
