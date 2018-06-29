@@ -697,7 +697,7 @@ int frsky_telemetry_main(int argc, char *argv[])
 			warnx(".");
 		}
 		
-		device_name = NULL;
+		*device_name = NULL;
 		warnx("terminated.");
 		exit(0);
 	}
@@ -710,8 +710,8 @@ int frsky_telemetry_main(int argc, char *argv[])
 				PX4_INFO("port: %s\n", device_name);
 				exit(0);
 				break;
- 
-			case SPORT:
+				
+ 			case SPORT:
 				PX4_INFO("running: SPORT");
 				PX4_INFO("port: %s\n", device_name);
 				PX4_INFO("packets sent: %d\n", sentPackets);
