@@ -78,7 +78,7 @@ static frsky_state_t frsky_state = SCANNING;
 
 static unsigned long int sentPackets = 0;
 /* Default values for arguments */
-const char *device_name = "/dev/ttyS6"; /* USART8 */
+const char *device_name = NULL;
 
 /* functions */
 static int sPort_open_uart(const char *uart_name, struct termios *uart_config, struct termios *uart_config_original);
@@ -654,6 +654,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
  */
 int frsky_telemetry_main(int argc, char *argv[])
 {
+	device_name = "/dev/ttyS6"; /* default USART8 */
+
 	if (argc < 2) {
 		warnx("missing command");
 		usage();
@@ -694,7 +696,8 @@ int frsky_telemetry_main(int argc, char *argv[])
 			usleep(1000000);
 			warnx(".");
 		}
-
+		
+		device_name = NULL;
 		warnx("terminated.");
 		exit(0);
 	}
@@ -724,8 +727,8 @@ int frsky_telemetry_main(int argc, char *argv[])
 			}
 
 		} else {
-		    PX4_INFO("not running");
-		    exit(0);
+			PX4_INFO("not running");
+			exit(0);
 		}
 	}
 
