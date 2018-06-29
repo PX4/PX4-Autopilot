@@ -36,8 +36,10 @@
  * @file frsky_telemetry.c
  * @author Stefan Rado <px4@sradonia.net>
  * @author Mark Whitehorn <kd0aij@github.com>
+ * @author Gianni Carbone <gianni.carbone@gmail.com>
  *
  * FrSky D8 mode and SmartPort (D16 mode) telemetry implementation.
+ * Compatibility with hardware flow control serial port.
  *
  * This daemon emulates the FrSky Sensor Hub for D8 mode.
  * For X series receivers (D16 mode) it emulates SmartPort sensors by responding to polling
@@ -73,6 +75,10 @@ static volatile bool thread_running = false;
 static int frsky_task;
 typedef enum { SCANNING, SPORT, DTYPE } frsky_state_t;
 static frsky_state_t frsky_state = SCANNING;
+
+static unsigned long int sentPackets = 0;
+/* Default values for arguments */
+const char *device_name = NULL;
 
 /* functions */
 static int sPort_open_uart(const char *uart_name, struct termios *uart_config, struct termios *uart_config_original);
@@ -147,6 +153,17 @@ static int sPort_open_uart(const char *uart_name, struct termios *uart_config, s
 	/* Disable output post-processing */
 	uart_config->c_oflag &= ~OPOST;
 
+	uart_config->c_cflag |= (CLOCAL | CREAD);    /* ignore modem controls */
+	uart_config->c_cflag &= ~CSIZE;
+	uart_config->c_cflag |= CS8;         /* 8-bit characters */
+	uart_config->c_cflag &= ~PARENB;     /* no parity bit */
+	uart_config->c_cflag &= ~CSTOPB;     /* only need 1 stop bit */
+	uart_config->c_cflag &= ~CRTSCTS;    /* no hardware flowcontrol */
+
+	/* setup for non-canonical mode */
+	uart_config->c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+	uart_config->c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+
 	/* Set baud rate */
 	const speed_t speed = B9600;
 
@@ -199,14 +216,13 @@ static void usage()
  */
 static int frsky_telemetry_thread_main(int argc, char *argv[])
 {
-	/* Default values for arguments */
-	const char *device_name = "/dev/ttyS6"; /* USART8 */
-
 	/* Work around some stupidity in task_create's argv handling */
 	argc -= 2;
 	argv += 2;
 
 	int ch;
+
+	device_name = "/dev/ttyS6"; /* default USART8 */
 
 	while ((ch = getopt(argc, argv, "d:")) != EOF) {
 		switch (ch) {
@@ -228,6 +244,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 	if (uart < 0) {
 		warnx("could not open %s", device_name);
 		err(1, "could not open %s", device_name);
+		device_name = NULL;
 	}
 
 	/* poll descriptor */
@@ -382,7 +399,6 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 			sPort_update_topics();
 
-
 			switch (sbuf[1]) {
 
 			case SMARTPORT_POLL_1:
@@ -392,6 +408,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastBATV_ms = now_ms;
 					/* send battery voltage */
 					sPort_send_BATV(uart);
+					sentPackets++;
 				}
 
 				break;
@@ -404,6 +421,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastCUR_ms = now_ms;
 					/* send battery current */
 					sPort_send_CUR(uart);
+					sentPackets++;
 				}
 
 				break;
@@ -416,6 +434,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastALT_ms = now_ms;
 					/* send altitude */
 					sPort_send_ALT(uart);
+					sentPackets++;
 				}
 
 				break;
@@ -428,6 +447,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastSPD_ms = now_ms;
 					/* send speed */
 					sPort_send_SPD(uart);
+					sentPackets++;
 				}
 
 				break;
@@ -439,6 +459,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastFUEL_ms = now_ms;
 					/* send fuel */
 					sPort_send_FUEL(uart);
+					sentPackets++;
 				}
 
 				break;
@@ -456,6 +477,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastVSPD_ms = now_ms;
 
 					sPort_send_VSPD(uart, speed);
+					sentPackets++;
 				}
 
 				break;
@@ -496,6 +518,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					case 5:
 						sPort_send_GPS_TIME(uart);
 						elementCount = 0;
+						sentPackets += elementCount;
 						break;
 					}
 
@@ -510,6 +533,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastNAV_STATE_ms = now_ms;
 					/* send T1 */
 					sPort_send_NAV_STATE(uart);
+					sentPackets++;
 				}
 
 				/* report satcount and fix as DIY_GPSFIX at 2Hz */
@@ -517,6 +541,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastGPS_FIX_ms = now_ms;
 					/* send T2 */
 					sPort_send_GPS_FIX(uart);
+					sentPackets++;
 				}
 
 				break;
@@ -527,10 +552,12 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					switch (elementCount++ % 2) {
 					case 0:
 						sPort_send_flight_mode(uart);
+						sentPackets++;
 						break;
 
 					default:
 						sPort_send_GPS_info(uart);
+						sentPackets++;
 						break;
 					}
 				}
@@ -589,17 +616,19 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			/* Send frame 1 (every 200ms): acceleration values, altitude (vario), temperatures, current & voltages, RPM */
 			if (iteration % 2 == 0) {
 				frsky_send_frame1(uart);
+				sentPackets++;
 			}
 
 			/* Send frame 2 (every 1000ms): course, latitude, longitude, speed, altitude (GPS), fuel level */
 			if (iteration % 10 == 0) {
 				frsky_send_frame2(uart);
+				sentPackets++;
 			}
 
 			/* Send frame 3 (every 5000ms): date, time */
 			if (iteration % 50 == 0) {
 				frsky_send_frame3(uart);
-
+				sentPackets++;
 				iteration = 0;
 			}
 
@@ -615,9 +644,13 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 	/* Reset the UART flags to original state */
 	tcsetattr(uart, TCSANOW, &uart_config_original);
+
 	close(uart);
 
+	device_name = NULL;
+
 	thread_running = false;
+
 	return 0;
 }
 
@@ -627,6 +660,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
  */
 int frsky_telemetry_main(int argc, char *argv[])
 {
+
+
 	if (argc < 2) {
 		warnx("missing command");
 		usage();
@@ -669,28 +704,38 @@ int frsky_telemetry_main(int argc, char *argv[])
 		}
 
 		warnx("terminated.");
+		device_name = NULL;
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
 			switch (frsky_state) {
+
 			case SCANNING:
-				errx(0, "running: SCANNING");
+				PX4_INFO("running: SCANNING");
+				PX4_INFO("port: %s", device_name);
+				return 0;
 				break;
 
 			case SPORT:
-				errx(0, "running: SPORT");
+				PX4_INFO("running: SPORT");
+				PX4_INFO("port: %s", device_name);
+				PX4_INFO("packets sent: %d", sentPackets);
+				return 0;
 				break;
 
 			case DTYPE:
-				errx(0, "running: DTYPE");
+				PX4_INFO("running: DTYPE");
+				PX4_INFO("port: %s", device_name);
+				PX4_INFO("packets sent: %d", sentPackets);
+				return 0;
 				break;
-
 			}
 
 		} else {
-			errx(1, "not running");
+			PX4_INFO("not running");
+			return 0;
 		}
 	}
 
