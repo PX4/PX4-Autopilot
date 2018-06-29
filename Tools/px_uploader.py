@@ -74,6 +74,7 @@ if sys.version_info[0] < 3:
 else:
     runningPython3 = True
 
+
 class firmware(object):
     '''Loads a firmware file'''
 
@@ -226,7 +227,6 @@ class uploader(object):
                 except serial.SerialException:
                     # if open fails, try again later
                     time.sleep(0.04)
-
             else:
                 break
 
@@ -507,7 +507,7 @@ class uploader(object):
             for byte in range(0, 32*6, 4):
                 x = self.__getOTP(byte)
                 self.otp = self.otp + x
-                #print(binascii.hexlify(x).decode('Latin-1') + ' ', end='')
+                # print(binascii.hexlify(x).decode('Latin-1') + ' ', end='')
             # see src/modules/systemlib/otp.h in px4 code:
             self.otp_id = self.otp[0:4]
             self.otp_idtype = self.otp[4:5]
@@ -555,7 +555,7 @@ class uploader(object):
 
                 if self.fw_maxsize > fw.property('image_maxsize') and not force:
                     raise RuntimeError("Board can accept larger flash images (%u bytes) than board config (%u bytes). Please use the correct board configuration to avoid lacking critical functionality."
-                        % (self.fw_maxsize, fw.property('image_maxsize')))
+                                       % (self.fw_maxsize, fw.property('image_maxsize')))
         else:
             # If we're still on bootloader v4 on a Pixhawk, we don't know if we
             # have the silicon errata and therefore need to flash px4fmu-v2
@@ -620,7 +620,7 @@ class uploader(object):
             self.__send(uploader.NSH_REBOOT)
             self.port.flush()
             self.port.baudrate = self.baudrate_bootloader
-        except:
+        except Exception:
             try:
                 self.port.flush()
                 self.port.baudrate = self.baudrate_bootloader
@@ -783,6 +783,7 @@ def main():
     except KeyboardInterrupt:
         print("\n Upload aborted by user.")
         sys.exit(0)
+
 
 if __name__ == '__main__':
     main()
