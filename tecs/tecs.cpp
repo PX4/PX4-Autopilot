@@ -359,9 +359,11 @@ void TECS::_update_throttle_setpoint(const float throttle_cruise, const matrix::
 		_last_throttle_setpoint = _throttle_setpoint;
 
 		// Calculate throttle integrator state upper and lower limits with allowance for
-		// 10% throttle saturation to accommodate noise on the demand
-		float integ_state_max = (_throttle_setpoint_max - _throttle_setpoint + 0.1f);
-		float integ_state_min = (_throttle_setpoint_min - _throttle_setpoint - 0.1f);
+		// 10% throttle saturation to accommodate noise on the demand. However, if the
+		// integrator gain is zero, also force integrator state to zero, otherwise it could
+		// stay at a large constant value
+		float integ_state_max = _integrator_gain > 0.001f ? (_throttle_setpoint_max - _throttle_setpoint + 0.1f) : 0.0f;
+		float integ_state_min = _integrator_gain > 0.001f ? (_throttle_setpoint_min - _throttle_setpoint - 0.1f) : 0.0f;
 
 		// Calculate a throttle demand from the integrated total energy error
 		// This will be added to the total throttle demand to compensate for steady state errors
@@ -473,8 +475,9 @@ void TECS::_update_pitch_setpoint()
 					max((_pitch_setpoint_min - _pitch_setpoint_unc) * climb_angle_to_SEB_rate / _pitch_time_constant, 0.0f));
 	}
 
-	// Update the pitch integrator state
+	// Update the pitch integrator state. If gain is zero, force state to zero, too, to avoid that it stays at large constant values
 	_pitch_integ_state = _pitch_integ_state + pitch_integ_input * _dt;
+	if(_integrator_gain < 0.001f) _pitch_integ_state = 0.0f;
 
 	// Calculate a specific energy correction that doesn't include the integrator contribution
 	float SEB_correction = _SEB_error + _SEB_rate_error * _pitch_damping_gain + SEB_rate_setpoint * _pitch_time_constant;
