@@ -195,7 +195,6 @@ class uploader(object):
         # On some systems writes can suddenly get stuck without having a
         # write_timeout > 0 set.
         self.port = serial.Serial(portname, baudrate_bootloader, timeout=0.5, write_timeout=0.5)
-        # self.port.write_timeout = 0.5
         self.otp = b''
         self.sn = b''
         self.baudrate_bootloader = baudrate_bootloader
