@@ -42,7 +42,7 @@ if [[ $adb_return == "" ]]; then
     restart_px4=true
 fi
 
-../Tools/adb_upload.sh $@
+$(dirname "$0")/adb_upload.sh $@
 
 # restart the process after uploading
 if [ "$restart_px4" = true ]; then
