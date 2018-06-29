@@ -406,7 +406,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastBATV_ms = now_ms;
 					/* send battery voltage */
 					sPort_send_BATV(uart);
-          sentPackets++;
+					sentPackets++;
 				}
 
 				break;
@@ -419,7 +419,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastCUR_ms = now_ms;
 					/* send battery current */
 					sPort_send_CUR(uart);
-          sentPackets++;
+					sentPackets++;
 				}
 
 				break;
@@ -432,7 +432,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastALT_ms = now_ms;
 					/* send altitude */
 					sPort_send_ALT(uart);
-          sentPackets++;
+					sentPackets++;
 				}
 
 				break;
@@ -445,7 +445,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastSPD_ms = now_ms;
 					/* send speed */
 					sPort_send_SPD(uart);
-          sentPackets++;
+					sentPackets++;
 				}
 
 				break;
@@ -457,7 +457,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastFUEL_ms = now_ms;
 					/* send fuel */
 					sPort_send_FUEL(uart);
-          sentPackets++;
+					sentPackets++;
 				}
 
 				break;
@@ -475,7 +475,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastVSPD_ms = now_ms;
 
 					sPort_send_VSPD(uart, speed);
-          sentPackets++;
+					sentPackets++;
 				}
 
 				break;
@@ -516,7 +516,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					case 5:
 						sPort_send_GPS_TIME(uart);
 						elementCount = 0;
-            sentPackets += elementCount;
+						sentPackets += elementCount;
 						break;
 					}
 
@@ -531,7 +531,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastNAV_STATE_ms = now_ms;
 					/* send T1 */
 					sPort_send_NAV_STATE(uart);
-          sentPackets++;
+					sentPackets++;
 				}
 
 				/* report satcount and fix as DIY_GPSFIX at 2Hz */
@@ -539,7 +539,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					lastGPS_FIX_ms = now_ms;
 					/* send T2 */
 					sPort_send_GPS_FIX(uart);
-          sentPackets++;
+					sentPackets++;
 				}
 
 				break;
@@ -550,12 +550,12 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 					switch (elementCount++ % 2) {
 					case 0:
 						sPort_send_flight_mode(uart);
-            sentPackets++;
+						sentPackets++;
 						break;
 
 					default:
 						sPort_send_GPS_info(uart);
-            sentPackets++;
+						sentPackets++;
 						break;
 					}
 				}
@@ -614,19 +614,19 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			/* Send frame 1 (every 200ms): acceleration values, altitude (vario), temperatures, current & voltages, RPM */
 			if (iteration % 2 == 0) {
 				frsky_send_frame1(uart);
-        sentPackets++;
+				sentPackets++;
 			}
 
 			/* Send frame 2 (every 1000ms): course, latitude, longitude, speed, altitude (GPS), fuel level */
 			if (iteration % 10 == 0) {
 				frsky_send_frame2(uart);
-        sentPackets++;
+				sentPackets++;
 			}
 
 			/* Send frame 3 (every 5000ms): date, time */
 			if (iteration % 50 == 0) {
 				frsky_send_frame3(uart);
-        sentPackets++;
+				sentPackets++;
 				iteration = 0;
 			}
 
@@ -703,30 +703,29 @@ int frsky_telemetry_main(int argc, char *argv[])
 		if (thread_running) {
 			switch (frsky_state) {
 			case SCANNING:
-        PX4_INFO("running: SCANNING");
-        printf("port: %s\n", device_name);
-        exit(0);				
-      break;
+				PX4_INFO("running: SCANNING");
+				PX4_INFO("port: %s\n", device_name);
+				exit(0);
+				break;
  
 			case SPORT:
-        PX4_INFO("running: SPORT");
-        printf("port: %s\n", device_name);
-        printf("packets sent: %d\n", sentPackets);
-        exit(0);			
-      break;
+				PX4_INFO("running: SPORT");
+				PX4_INFO("port: %s\n", device_name);
+				PX4_INFO("packets sent: %d\n", sentPackets);
+				exit(0);
+				break;
 
 			case DTYPE:
-        PX4_INFO("running: DTYPE");
-        printf("port: %s\n", device_name);
-        printf("packets sent: %d\n", sentPackets);
-        exit(0);				
-      break;
-
+				PX4_INFO("running: DTYPE");
+				PX4_INFO("port: %s\n", device_name);
+				PX4_INFO("packets sent: %d\n", sentPackets);
+				exit(0);
+				break;
 			}
 
 		} else {
-      PX4_INFO("not running");
-      exit(0);
+		  PX4_INFO("not running");
+		  exit(0);
 		}
 	}
 
