@@ -588,6 +588,7 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 Commander::Commander() :
 	ModuleParams(nullptr),
 	_mission_result_sub(ORB_ID(mission_result)),
+	_attitude_sub(ORB_ID(vehicle_attitude)),
 	_global_position_sub(ORB_ID(vehicle_global_position)),
 	_local_position_sub(ORB_ID(vehicle_local_position)),
 	_iridiumsbd_status_sub(ORB_ID(iridiumsbd_status))
@@ -1094,6 +1095,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 bool
 Commander::set_home_position(orb_advert_t &homePub, home_position_s &home, bool set_alt_only_to_lpos_ref)
 {
+	const vehicle_attitude_s &attitude = _attitude_sub.get();
 	const vehicle_local_position_s &localPosition = _local_position_sub.get();
 	const vehicle_global_position_s &globalPosition = _global_position_sub.get();
 
@@ -1105,6 +1107,11 @@ Commander::set_home_position(orb_advert_t &homePub, home_position_s &home, bool 
 
 		//Ensure that the GPS accuracy is good enough for intializing home
 		if (globalPosition.eph > _home_eph_threshold.get() || globalPosition.epv > _home_epv_threshold.get()) {
+			return false;
+		}
+
+		//Ensure that the attitude estimate accuracy is good enough for intializing home
+		if (PX4_ISNAN(attitude.att_std_dev) || math::degrees(attitude.att_std_dev) > _home_att_stddev_threshold.get()) {
 			return false;
 		}
 
@@ -1120,7 +1127,7 @@ Commander::set_home_position(orb_advert_t &homePub, home_position_s &home, bool 
 		home.y = localPosition.y;
 		home.z = localPosition.z;
 
-		home.yaw = localPosition.yaw;
+		home.yaw = matrix::Eulerf(matrix::Quatf(attitude.q)).psi();
 
 		//Play tune first time we initialize HOME
 		if (!status_flags.condition_home_position_valid) {
@@ -1752,6 +1759,7 @@ Commander::run()
 
 		_local_position_sub.update();
 		_global_position_sub.update();
+		_attitude_sub.update();
 
 		// Set the allowable positon uncertainty based on combination of flight and estimator state
 		// When we are in a operator demanded position control mode and are solely reliant on optical flow, do not check position error becasue it will gradually increase throughout flight and the operator will compensate for the drift

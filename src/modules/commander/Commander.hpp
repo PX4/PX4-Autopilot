@@ -57,6 +57,7 @@
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 
@@ -96,6 +97,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::COM_HOME_H_T>) _home_eph_threshold,
 		(ParamFloat<px4::params::COM_HOME_V_T>) _home_epv_threshold,
+		(ParamFloat<px4::params::COM_HOME_A_T>) _home_att_stddev_threshold,
 
 		(ParamFloat<px4::params::COM_POS_FS_EPH>) _eph_threshold,
 		(ParamFloat<px4::params::COM_POS_FS_EPV>) _epv_threshold,
@@ -105,6 +107,9 @@ private:
 		(ParamInt<px4::params::COM_POS_FS_PROB>) _failsafe_pos_probation,
 		(ParamInt<px4::params::COM_POS_FS_GAIN>) _failsafe_pos_gain
 	)
+
+	// TODO: should be set by a parameter
+	const float EO_MAX_STD_DEV = 100.0f;		/**< Maximum permissible standard deviation for estimated attitude */
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
 	const int64_t POSVEL_PROBATION_MAX = 100_s;	/**< maximum probation duration (usec) */
@@ -171,6 +176,7 @@ private:
 
 	// Subscriptions
 	Subscription<mission_result_s>			_mission_result_sub;
+	Subscription<vehicle_attitude_s>		_attitude_sub;
 	Subscription<vehicle_global_position_s>		_global_position_sub;
 	Subscription<vehicle_local_position_s>		_local_position_sub;
 	Subscription<iridiumsbd_status_s> 		_iridiumsbd_status_sub;

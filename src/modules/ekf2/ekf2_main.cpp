@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -169,10 +169,15 @@ private:
 	const float _vel_innov_spike_lim = 2.0f * _vel_innov_test_lim;	///< preflight velocity innovation spike limit (m/sec)
 	const float _hgt_innov_spike_lim = 2.0f * _hgt_innov_test_lim;	///< preflight position innovation spike limit (m)
 
+	// set pose/velocity as invalid if standard deviation is bigger than max_std_dev
+	// TODO: the user should be allowed to set these values by a parameter
+	static constexpr float ep_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated position
+	static constexpr float eo_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated orientation
+	static constexpr float ev_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated velocity
+
 	int _airdata_sub{-1};
 	int _airspeed_sub{-1};
-	int _ev_att_sub{-1};
-	int _ev_pos_sub{-1};
+	int _ev_odom_sub{-1};
 	int _gps_sub{-1};
 	int _landing_target_pose_sub{-1};
 	int _magnetometer_sub{-1};
@@ -505,8 +510,7 @@ Ekf2::Ekf2():
 {
 	_airdata_sub = orb_subscribe(ORB_ID(vehicle_air_data));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
-	_ev_att_sub = orb_subscribe(ORB_ID(vehicle_vision_attitude));
-	_ev_pos_sub = orb_subscribe(ORB_ID(vehicle_vision_position));
+	_ev_odom_sub = orb_subscribe(ORB_ID(vehicle_visual_odometry));
 	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	_landing_target_pose_sub = orb_subscribe(ORB_ID(landing_target_pose));
 	_magnetometer_sub = orb_subscribe(ORB_ID(vehicle_magnetometer));
@@ -532,8 +536,7 @@ Ekf2::~Ekf2()
 
 	orb_unsubscribe(_airdata_sub);
 	orb_unsubscribe(_airspeed_sub);
-	orb_unsubscribe(_ev_att_sub);
-	orb_unsubscribe(_ev_pos_sub);
+	orb_unsubscribe(_ev_odom_sub);
 	orb_unsubscribe(_gps_sub);
 	orb_unsubscribe(_landing_target_pose_sub);
 	orb_unsubscribe(_magnetometer_sub);
@@ -640,8 +643,7 @@ void Ekf2::run()
 		ekf2_timestamps.optical_flow_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 		ekf2_timestamps.vehicle_air_data_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 		ekf2_timestamps.vehicle_magnetometer_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
-		ekf2_timestamps.vision_attitude_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
-		ekf2_timestamps.vision_position_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
+		ekf2_timestamps.visual_odometry_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 
 		// update all other topics if they have new data
 
@@ -963,39 +965,42 @@ void Ekf2::run()
 
 		// get external vision data
 		// if error estimates are unavailable, use parameter defined defaults
-		bool vision_position_updated = false;
-		bool vision_attitude_updated = false;
-		orb_check(_ev_pos_sub, &vision_position_updated);
-		orb_check(_ev_att_sub, &vision_attitude_updated);
+		bool visual_odometry_updated = false;
+		orb_check(_ev_odom_sub, &visual_odometry_updated);
 
-		if (vision_position_updated || vision_attitude_updated) {
-			// copy both attitude & position if either updated, we need both to fill a single ext_vision_message
-			vehicle_attitude_s ev_att = {};
-			orb_copy(ORB_ID(vehicle_vision_attitude), _ev_att_sub, &ev_att);
-
-			vehicle_local_position_s ev_pos = {};
-			orb_copy(ORB_ID(vehicle_vision_position), _ev_pos_sub, &ev_pos);
+		if (visual_odometry_updated) {
+			// copy odometry data to fill a single ext_vision_message
+			vehicle_local_position_s ev_odom;
+			orb_copy(ORB_ID(vehicle_visual_odometry), _ev_odom_sub, &ev_odom);
 
 			ext_vision_message ev_data;
-			ev_data.posNED(0) = ev_pos.x;
-			ev_data.posNED(1) = ev_pos.y;
-			ev_data.posNED(2) = ev_pos.z;
-			matrix::Quatf q(ev_att.q);
-			ev_data.quat = q;
+			ev_data.posNED(0) = ev_odom.x;
+			ev_data.posNED(1) = ev_odom.y;
+			ev_data.posNED(2) = ev_odom.z;
+			ev_data.quat = matrix::Quatf(ev_odom.q);
 
 			// position measurement error from parameters. TODO : use covariances from topic
-			ev_data.posErr = fmaxf(_ev_pos_noise.get(), fmaxf(ev_pos.eph, ev_pos.epv));
-			ev_data.angErr = _ev_ang_noise.get();
+			ev_data.posErr = fmaxf(_ev_pos_noise.get(), fmaxf(ev_odom.eph, ev_odom.epv));
+			ev_data.angErr = fmaxf(_ev_pos_noise.get(), ev_odom.att_std_dev);
 
-			// only set data if all positions and velocities are valid
-			if (ev_pos.xy_valid && ev_pos.z_valid && ev_pos.v_xy_valid && ev_pos.v_z_valid) {
-				// use timestamp from external computer, clocks are synchronized when using MAVROS
-				_ekf.setExtVisionData(vision_position_updated ? ev_pos.timestamp : ev_att.timestamp, &ev_data);
+			ev_odom.xy_valid = (!PX4_ISNAN(ev_odom.eph) && ev_odom.eph > ep_max_std_dev) ? false : true;
+			ev_odom.z_valid = (!PX4_ISNAN(ev_odom.epv) && ev_odom.epv > ep_max_std_dev) ? false : true;
+			ev_odom.v_xy_valid = (!PX4_ISNAN(ev_odom.evh) && ev_odom.evh > ev_max_std_dev) ? false : true;
+			ev_odom.v_z_valid = (!PX4_ISNAN(ev_odom.evv) && ev_odom.evv > ev_max_std_dev) ? false : true;
+
+			// only set data if the pose is valid
+			bool att_valid = false;
+
+			if (!PX4_ISNAN(ev_odom.att_std_dev)) {
+				att_valid = ev_odom.att_std_dev < eo_max_std_dev;
 			}
 
-			ekf2_timestamps.vision_position_timestamp_rel = (int16_t)((int64_t)ev_pos.timestamp / 100 -
-					(int64_t)ekf2_timestamps.timestamp / 100);
-			ekf2_timestamps.vision_attitude_timestamp_rel = (int16_t)((int64_t)ev_att.timestamp / 100 -
+			if (ev_odom.xy_valid && ev_odom.z_valid && att_valid) {
+				// use timestamp from external computer, clocks are synchronized when using MAVROS
+				_ekf.setExtVisionData(visual_odometry_updated ? ev_odom.timestamp : ev_odom.timestamp, &ev_data);
+			}
+
+			ekf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)ev_odom.timestamp / 100 -
 					(int64_t)ekf2_timestamps.timestamp / 100);
 		}
 
@@ -1054,7 +1059,7 @@ void Ekf2::run()
 
 			{
 				// generate vehicle attitude quaternion data
-				vehicle_attitude_s att;
+				vehicle_attitude_s att = {};
 				att.timestamp = now;
 
 				q.copyTo(att.q);
@@ -1063,6 +1068,17 @@ void Ekf2::run()
 				att.rollspeed = sensors.gyro_rad[0] - gyro_bias[0];
 				att.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
 				att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
+
+				// attitude covariance
+				float covariances[24];
+				_ekf.get_covariances(covariances);
+				// TODO: implement propagation from quaternion covariance to Euler angle covariance
+				// by employing the covariance law
+
+				// TODO: add a respective get_ekf_att_accuracy to ECL
+				// For now, keep it as a straight hardcoded value
+				att.att_std_dev = 8.3333e-3f;	// 1.5 degrees
+				att.att_rate_std_dev = NAN;
 
 				// publish vehicle attitude data
 				if (_att_pub == nullptr) {
@@ -1073,9 +1089,8 @@ void Ekf2::run()
 				}
 			}
 
-			// generate vehicle local position data
+			// generate vehicle position data
 			vehicle_local_position_s &lpos = _vehicle_local_position_pub.get();
-
 			lpos.timestamp = now;
 
 			// Position of body origin in local NED frame
@@ -1097,7 +1112,7 @@ void Ekf2::run()
 			// vertical position time derivative (m/s)
 			_ekf.get_pos_d_deriv(&lpos.z_deriv);
 
-			// Acceleration of body origin in local NED frame
+			// Linear acceleration of body origin in local NED frame
 			float vel_deriv[3];
 			_ekf.get_vel_deriv_ned(vel_deriv);
 			lpos.ax = vel_deriv[0];
@@ -1105,10 +1120,13 @@ void Ekf2::run()
 			lpos.az = vel_deriv[2];
 
 			// TODO: better status reporting
+			// TODO: add attitude and accel validation reporting
 			lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
 			lpos.z_valid = !_preflt_vert_fail;
 			lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
 			lpos.v_z_valid = !_preflt_vert_fail;
+
+			// TODO: propagate pose and velocity covariance matrices URT
 
 			// Position of local NED origin in GPS / WGS84 frame
 			map_projection_reference_s ekf_origin;
@@ -1124,10 +1142,6 @@ void Ekf2::run()
 				lpos.ref_lat = ekf_origin.lat_rad * 180.0 / M_PI; // Reference point latitude in degrees
 				lpos.ref_lon = ekf_origin.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
 			}
-
-			// The rotation of the tangent plane vs. geographical north
-			matrix::Eulerf euler(q);
-			lpos.yaw = euler.psi();
 
 			lpos.dist_bottom_valid = _ekf.get_terrain_valid();
 
@@ -1195,7 +1209,7 @@ void Ekf2::run()
 				global_pos.vel_e = lpos.vy; // Ground east velocity, m/s
 				global_pos.vel_d = lpos.vz; // Ground downside velocity, m/s
 
-				global_pos.yaw = lpos.yaw; // Yaw in radians -PI..+PI.
+				global_pos.yaw = matrix::Eulerf(q).psi(); // Yaw in radians -PI..+PI.
 
 				_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
 

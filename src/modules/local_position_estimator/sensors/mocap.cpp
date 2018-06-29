@@ -9,6 +9,10 @@ extern orb_advert_t mavlink_log_pub;
 static const uint32_t		REQ_MOCAP_INIT_COUNT = 20;
 static const uint32_t		MOCAP_TIMEOUT = 200000;	// 0.2 s
 
+// set pose/velocity as invalid if standard deviation is bigger than EP_MAX_STD_DEV
+// TODO: the user should be allowed to set these values by a parameter
+static constexpr float 		EP_MAX_STD_DEV = 100.0f;
+
 void BlockLocalPositionEstimator::mocapInit()
 {
 	// measure
@@ -42,13 +46,22 @@ void BlockLocalPositionEstimator::mocapInit()
 
 int BlockLocalPositionEstimator::mocapMeasure(Vector<float, n_y_mocap> &y)
 {
-	y.setZero();
-	y(Y_mocap_x) = _sub_mocap.get().x;
-	y(Y_mocap_y) = _sub_mocap.get().y;
-	y(Y_mocap_z) = _sub_mocap.get().z;
-	_mocapStats.update(y);
-	_time_last_mocap = _sub_mocap.get().timestamp;
-	return OK;
+	_mocap_xy_valid = !PX4_ISNAN(_sub_mocap.get().eph) && _sub_mocap.get().eph <= EP_MAX_STD_DEV;
+	_mocap_z_valid = !PX4_ISNAN(_sub_mocap.get().epv) && _sub_mocap.get().epv <= EP_MAX_STD_DEV;
+
+	// TODO: use covariance from topic instead
+	if (!_mocap_xy_valid || !_mocap_z_valid) {
+		return !OK;
+
+	} else {
+		y.setZero();
+		y(Y_mocap_x) = _sub_mocap.get().x;
+		y(Y_mocap_y) = _sub_mocap.get().y;
+		y(Y_mocap_z) = _sub_mocap.get().z;
+		_mocapStats.update(y);
+		_time_last_mocap = _sub_mocap.get().timestamp;
+		return OK;
+	}
 }
 
 void BlockLocalPositionEstimator::mocapCorrect()

@@ -21,7 +21,6 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/vehicle_air_data.h>
 
@@ -251,8 +250,8 @@ private:
 	uORB::Subscription<sensor_combined_s> _sub_sensor;
 	uORB::Subscription<parameter_update_s> _sub_param_update;
 	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
-	uORB::Subscription<vehicle_local_position_s> _sub_vision_pos;
-	uORB::Subscription<att_pos_mocap_s> _sub_mocap;
+	uORB::Subscription<vehicle_local_position_s> _sub_visual_odom;
+	uORB::Subscription<vehicle_local_position_s> _sub_mocap;
 	uORB::Subscription<distance_sensor_s> _sub_dist0;
 	uORB::Subscription<distance_sensor_s> _sub_dist1;
 	uORB::Subscription<distance_sensor_s> _sub_dist2;
@@ -411,13 +410,19 @@ private:
 	bool _landUpdated;
 	bool _baroUpdated;
 
+	// sensor validation flags
+	bool _vision_xy_valid;
+	bool _vision_z_valid;
+	bool _mocap_xy_valid;
+	bool _mocap_z_valid;
+
 	// state space
 	Vector<float, n_x>  _x;	// state vector
 	Vector<float, n_u>  _u;	// input vector
 	Matrix<float, n_x, n_x>  _P;	// state covariance matrix
 
+	matrix::Quatf _q;
 	matrix::Dcm<float> _R_att;
-	Vector3f _eul;
 
 	Matrix<float, n_x, n_x>  _A;	// dynamics matrix
 	Matrix<float, n_x, n_u>  _B;	// input matrix

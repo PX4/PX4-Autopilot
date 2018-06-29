@@ -247,6 +247,20 @@ PARAM_DEFINE_FLOAT(COM_HOME_H_T, 5.0f);
 PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f);
 
 /**
+ * Home set attitude threshold
+ *
+ * The home position will be set if the estimated attitude accuracy is below the threshold.
+ *
+ * @group Commander
+ * @unit deg
+ * @min 1
+ * @max 10
+ * @decimal 2
+ * @increment 0.5
+ */
+PARAM_DEFINE_FLOAT(COM_HOME_A_T, 2.0f);
+
+/**
  * RC control input mode
  *
  * The default value of 0 requires a valid RC transmitter setup.

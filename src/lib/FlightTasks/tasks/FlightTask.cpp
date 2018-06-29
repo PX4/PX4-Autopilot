@@ -7,7 +7,8 @@ const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NA
 
 bool FlightTask::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
-	if (!subscription_array.get(ORB_ID(vehicle_local_position), _sub_vehicle_local_position)) {
+	if (!subscription_array.get(ORB_ID(vehicle_local_position), _sub_vehicle_local_position) &&
+	    !subscription_array.get(ORB_ID(vehicle_attitude), _sub_vehicle_attitude)) {
 		return false;
 	}
 
@@ -55,10 +56,11 @@ void FlightTask::_resetSetpoints()
 
 bool FlightTask::_evaluateVehiclePosition()
 {
-	if ((_time_stamp_current - _sub_vehicle_local_position->get().timestamp) < _timeout) {
+	if ((_time_stamp_current - _sub_vehicle_local_position->get().timestamp) < _timeout &&
+	    (_time_stamp_current - _sub_vehicle_attitude->get().timestamp) < _timeout) {
 		_position = matrix::Vector3f(&_sub_vehicle_local_position->get().x);
 		_velocity = matrix::Vector3f(&_sub_vehicle_local_position->get().vx);
-		_yaw = _sub_vehicle_local_position->get().yaw;
+		_yaw = matrix::Eulerf(matrix::Quatf(_sub_vehicle_attitude->get().q)).psi();
 		return true;
 
 	} else {

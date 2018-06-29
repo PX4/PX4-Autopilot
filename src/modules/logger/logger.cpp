@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -605,7 +605,6 @@ void Logger::add_default_topics()
 	add_topic("actuator_controls_1", 100);
 	add_topic("actuator_outputs", 100);
 	add_topic("airspeed", 200);
-	add_topic("att_pos_mocap", 50);
 	add_topic("battery_status", 500);
 	add_topic("camera_capture");
 	add_topic("camera_trigger");
@@ -642,8 +641,8 @@ void Logger::add_default_topics()
 	add_topic("vehicle_rates_setpoint", 30);
 	add_topic("vehicle_status", 200);
 	add_topic("vehicle_status_flags");
-	add_topic("vehicle_vision_attitude");
-	add_topic("vehicle_vision_position");
+	add_topic("vehicle_visual_odometry", 50);
+	add_topic("vehicle_groundtruth", 50);
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("wind_estimate", 200);
 	add_topic("timesync_status");
@@ -660,9 +659,8 @@ void Logger::add_default_topics()
 	add_topic("multirotor_motor_limits");
 	add_topic("offboard_control_mode");
 	add_topic("time_offset");
-	add_topic("vehicle_attitude_groundtruth", 10);
-	add_topic("vehicle_global_position_groundtruth", 100);
-	add_topic("vehicle_local_position_groundtruth", 100);
+	add_topic("vehicle_global_groundtruth", 100);
+	add_topic("vehicle_groundtruth", 100);
 	add_topic("vehicle_roi");
 #endif
 }
@@ -703,8 +701,7 @@ void Logger::add_estimator_replay_topics()
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
-	add_topic("vehicle_vision_attitude");
-	add_topic("vehicle_vision_position");
+	add_topic("vehicle_visual_odometry");
 }
 
 void Logger::add_thermal_calibration_topics()

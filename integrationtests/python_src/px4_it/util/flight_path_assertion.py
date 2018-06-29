@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #***************************************************************************
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015,2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -62,7 +62,7 @@ class FlightPathAssertion(threading.Thread):
     #
     def __init__(self, positions, tunnelRadius=1, yaw_offset=0.2):
         threading.Thread.__init__(self)
-        rospy.Subscriber("vehicle_local_position", vehicle_local_position, self.position_callback)
+        rospy.Subscriber("vehicle_local_position", vehicle_local_position, self.odometry_callback)
         self.spawn_model = rospy.ServiceProxy('/gazebo/spawn_sdf_model', SpawnModel)
         self.set_model_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
         self.delete_model = rospy.ServiceProxy('/gazebo/delete_model', DeleteModel)
@@ -75,11 +75,11 @@ class FlightPathAssertion(threading.Thread):
         self.center = positions[0]
         self.end_of_segment = False
         self.failed = False
-        self.local_position = vehicle_local_position
+        self.odometry = odometry
 
-    def position_callback(self, data):
+    def odometry_callback(self, data):
         self.has_pos = True
-        self.local_position = data
+        self.odometry = data
 
     def spawn_indicator(self):
         self.delete_model("indicator")
@@ -138,7 +138,7 @@ class FlightPathAssertion(threading.Thread):
         l = a + x * v
         self.center = l
         return linalg.norm(pos - l)
-    
+
     def stop(self):
         self.should_stop = True
 
@@ -158,9 +158,9 @@ class FlightPathAssertion(threading.Thread):
 
                 self.position_indicator()
 
-                pos = np.array((self.local_position.x,
-                                self.local_position.y,
-                                self.local_position.z))
+                pos = np.array((self.odometry.x,
+                                self.odometry.y,
+                                self.odometry.z))
                 a_pos = np.array((self.positions[current][0],
                                 self.positions[current][1],
                                 self.positions[current][2]))
@@ -174,7 +174,7 @@ class FlightPathAssertion(threading.Thread):
                 rospy.logdebug("distance to line: %f, distance to end: %f" % (dist, b_dist))
 
                 if dist > self.tunnel_radius:
-                    msg = "left tunnel at position (%f, %f, %f)" % (self.local_position.x, self.local_position.y, self.local_position.z)
+                    msg = "left tunnel at position (%f, %f, %f)" % (self.odometry.x, self.odometry.y, self.odometry.z)
                     rospy.logerr(msg)
                     self.failed = True
                     break

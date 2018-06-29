@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -78,7 +78,6 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
-#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
@@ -1166,13 +1165,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct actuator_outputs_s act_outputs;
 		struct actuator_controls_s act_controls;
 		struct actuator_controls_s act_controls1;
-		struct vehicle_local_position_s local_pos;
+		struct vehicle_local_position_s odom;
 		struct vehicle_local_position_setpoint_s local_pos_sp;
 		struct vehicle_global_position_s global_pos;
 		struct position_setpoint_triplet_s triplet;
-		struct att_pos_mocap_s att_pos_mocap;
-		struct vehicle_local_position_s vision_pos;
-		struct vehicle_attitude_s vision_att;
+		struct vehicle_local_position_s mocap;
+		struct vehicle_local_position_s visual_odom;
 		struct optical_flow_s flow;
 		struct rc_channels_s rc;
 		struct differential_pressure_s diff_pres;
@@ -1209,7 +1207,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			struct log_ATSP_s log_ATSP;
 			struct log_IMU_s log_IMU;
 			struct log_SENS_s log_SENS;
-			struct log_LPOS_s log_LPOS;
+			struct log_ODOM_s log_ODOM;
 			struct log_LPSP_s log_LPSP;
 			struct log_GPS_s log_GPS;
 			struct log_ATTC_s log_ATTC;
@@ -1271,15 +1269,14 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int act_outputs_1_sub;
 		int act_controls_sub;
 		int act_controls_1_sub;
-		int local_pos_sub;
+		int odom_sub;
 		int local_pos_sp_sub;
 		int global_pos_sub;
 		int triplet_sub;
 		int gps_pos_sub[2];
 		int sat_info_sub;
-		int att_pos_mocap_sub;
-		int vision_pos_sub;
-		int vision_att_sub;
+		int mocap_sub;
+		int visual_odom_sub;
 		int flow_sub;
 		int rc_sub;
 		int airspeed_sub;
@@ -1316,13 +1313,12 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.act_outputs_1_sub = -1;
 	subs.act_controls_sub = -1;
 	subs.act_controls_1_sub = -1;
-	subs.local_pos_sub = -1;
+	subs.odom_sub = -1;
 	subs.local_pos_sp_sub = -1;
 	subs.global_pos_sub = -1;
 	subs.triplet_sub = -1;
-	subs.att_pos_mocap_sub = -1;
-	subs.vision_pos_sub = -1;
-	subs.vision_att_sub = -1;
+	subs.mocap_sub = -1;
+	subs.visual_odom_sub = -1;
 	subs.flow_sub = -1;
 	subs.rc_sub = -1;
 	subs.airspeed_sub = -1;
@@ -1722,30 +1718,30 @@ int sdlog2_thread_main(int argc, char *argv[])
 				LOGBUFFER_WRITE_AND_COUNT(ATTC);
 			}
 
-			/* --- LOCAL POSITION --- */
-			if (copy_if_updated(ORB_ID(vehicle_local_position), &subs.local_pos_sub, &buf.local_pos)) {
-				log_msg.msg_type = LOG_LPOS_MSG;
-				log_msg.body.log_LPOS.x = buf.local_pos.x;
-				log_msg.body.log_LPOS.y = buf.local_pos.y;
-				log_msg.body.log_LPOS.z = buf.local_pos.z;
-				log_msg.body.log_LPOS.ground_dist = buf.local_pos.dist_bottom;
-				log_msg.body.log_LPOS.ground_dist_rate = buf.local_pos.dist_bottom_rate;
-				log_msg.body.log_LPOS.vx = buf.local_pos.vx;
-				log_msg.body.log_LPOS.vy = buf.local_pos.vy;
-				log_msg.body.log_LPOS.vz = buf.local_pos.vz;
-				log_msg.body.log_LPOS.ref_lat = buf.local_pos.ref_lat * 1e7;
-				log_msg.body.log_LPOS.ref_lon = buf.local_pos.ref_lon * 1e7;
-				log_msg.body.log_LPOS.ref_alt = buf.local_pos.ref_alt;
-				log_msg.body.log_LPOS.pos_flags = (buf.local_pos.xy_valid ? 1 : 0) |
-												  (buf.local_pos.z_valid ? 2 : 0) |
-												  (buf.local_pos.v_xy_valid ? 4 : 0) |
-												  (buf.local_pos.v_z_valid ? 8 : 0) |
-												  (buf.local_pos.xy_global ? 16 : 0) |
-												  (buf.local_pos.z_global ? 32 : 0);
-				log_msg.body.log_LPOS.ground_dist_flags = (buf.local_pos.dist_bottom_valid ? 1 : 0);
-				log_msg.body.log_LPOS.eph = buf.local_pos.eph;
-				log_msg.body.log_LPOS.epv = buf.local_pos.epv;
-				LOGBUFFER_WRITE_AND_COUNT(LPOS);
+			/* --- ODOMETRY --- */
+			if (copy_if_updated(ORB_ID(vehicle_local_position), &subs.odom_sub, &buf.odom)) {
+				log_msg.msg_type = LOG_ODOM_MSG;
+				log_msg.body.log_ODOM.x = buf.odom.x;
+				log_msg.body.log_ODOM.y = buf.odom.y;
+				log_msg.body.log_ODOM.z = buf.odom.z;
+				log_msg.body.log_ODOM.vx = buf.odom.vx;
+				log_msg.body.log_ODOM.vy = buf.odom.vy;
+				log_msg.body.log_ODOM.vz = buf.odom.vz;
+				log_msg.body.log_ODOM.ground_dist = buf.odom.dist_bottom;
+				log_msg.body.log_ODOM.ground_dist_rate = buf.odom.dist_bottom_rate;
+				log_msg.body.log_ODOM.ref_lat = buf.odom.ref_lat * 1e7;
+				log_msg.body.log_ODOM.ref_lon = buf.odom.ref_lon * 1e7;
+				log_msg.body.log_ODOM.ref_alt = buf.odom.ref_alt;
+				log_msg.body.log_ODOM.pos_flags = (buf.odom.xy_valid ? 1 : 0) |
+												  (buf.odom.z_valid ? 2 : 0) |
+												  (buf.odom.v_xy_valid ? 4 : 0) |
+												  (buf.odom.v_z_valid ? 8 : 0) |
+												  (buf.odom.xy_global ? 16 : 0) |
+												  (buf.odom.z_global ? 32 : 0);
+				log_msg.body.log_ODOM.ground_dist_flags = (buf.odom.dist_bottom_valid ? 1 : 0);
+				log_msg.body.log_ODOM.eph = buf.odom.eph;
+				log_msg.body.log_ODOM.epv = buf.odom.epv;
+				LOGBUFFER_WRITE_AND_COUNT(ODOM);
 			}
 
 			/* --- LOCAL POSITION SETPOINT --- */
@@ -1814,33 +1810,50 @@ int sdlog2_thread_main(int argc, char *argv[])
 				}
 			}
 
-			/* --- MOCAP ATTITUDE AND POSITION --- */
-			if (copy_if_updated(ORB_ID(att_pos_mocap), &subs.att_pos_mocap_sub, &buf.att_pos_mocap)) {
+			/* --- MOCAP POSE --- */
+			if (copy_if_updated(ORB_ID(vehicle_groundtruth), &subs.mocap_sub, &buf.mocap)) {
 				log_msg.msg_type = LOG_MOCP_MSG;
-				log_msg.body.log_MOCP.qw = buf.att_pos_mocap.q[0];
-				log_msg.body.log_MOCP.qx = buf.att_pos_mocap.q[1];
-				log_msg.body.log_MOCP.qy = buf.att_pos_mocap.q[2];
-				log_msg.body.log_MOCP.qz = buf.att_pos_mocap.q[3];
-				log_msg.body.log_MOCP.x = buf.att_pos_mocap.x;
-				log_msg.body.log_MOCP.y = buf.att_pos_mocap.y;
-				log_msg.body.log_MOCP.z = buf.att_pos_mocap.z;
+				log_msg.body.log_MOCP.x = buf.mocap.x;
+				log_msg.body.log_MOCP.y = buf.mocap.y;
+				log_msg.body.log_MOCP.z = buf.mocap.z;
+				log_msg.body.log_MOCP.qw = buf.mocap.q[0]; // [w,x,y,z] convention
+				log_msg.body.log_MOCP.qx = buf.mocap.q[1];
+				log_msg.body.log_MOCP.qy = buf.mocap.q[2];
+				log_msg.body.log_MOCP.qz = buf.mocap.q[3];
+				log_msg.body.log_MOCP.pos_flags = (buf.mocap.xy_valid ? 1 : 0) |
+												  (buf.mocap.z_valid ? 2 : 0) |
+												  (buf.mocap.v_xy_valid ? 4 : 0) |
+												  (buf.mocap.v_z_valid ? 8 : 0) |
+												  (buf.mocap.xy_global ? 16 : 0) |
+												  (buf.mocap.z_global ? 32 : 0);
 				LOGBUFFER_WRITE_AND_COUNT(MOCP);
 			}
 
-			/* --- VISION POSITION --- */
-			if (copy_if_updated(ORB_ID(vehicle_vision_position), &subs.vision_pos_sub, &buf.vision_pos) ||
-			    copy_if_updated(ORB_ID(vehicle_vision_attitude), &subs.vision_att_sub, &buf.vision_att)) {
+			/* --- VISUAL ODOMETRY --- */
+			if (copy_if_updated(ORB_ID(vehicle_visual_odometry), &subs.visual_odom_sub, &buf.visual_odom)) {
 				log_msg.msg_type = LOG_VISN_MSG;
-				log_msg.body.log_VISN.x = buf.vision_pos.x;
-				log_msg.body.log_VISN.y = buf.vision_pos.y;
-				log_msg.body.log_VISN.z = buf.vision_pos.z;
-				log_msg.body.log_VISN.vx = buf.vision_pos.vx;
-				log_msg.body.log_VISN.vy = buf.vision_pos.vy;
-				log_msg.body.log_VISN.vz = buf.vision_pos.vz;
-				log_msg.body.log_VISN.qw = buf.vision_att.q[0]; // vision_position_estimate uses [w,x,y,z] convention
-				log_msg.body.log_VISN.qx = buf.vision_att.q[1];
-				log_msg.body.log_VISN.qy = buf.vision_att.q[2];
-				log_msg.body.log_VISN.qz = buf.vision_att.q[3];
+				log_msg.body.log_VISN.x = buf.visual_odom.x;
+				log_msg.body.log_VISN.y = buf.visual_odom.y;
+				log_msg.body.log_VISN.z = buf.visual_odom.z;
+				log_msg.body.log_VISN.vx = buf.visual_odom.vx;
+				log_msg.body.log_VISN.vy = buf.visual_odom.vy;
+				log_msg.body.log_VISN.vz = buf.visual_odom.vz;
+				log_msg.body.log_VISN.qw = buf.visual_odom.q[0]; // [w,x,y,z] convention
+				log_msg.body.log_VISN.qx = buf.visual_odom.q[1];
+				log_msg.body.log_VISN.qy = buf.visual_odom.q[2];
+				log_msg.body.log_VISN.qz = buf.visual_odom.q[3];
+				log_msg.body.log_VISN.rr = buf.visual_odom.rollspeed;
+				log_msg.body.log_VISN.pr = buf.visual_odom.pitchspeed;
+				log_msg.body.log_VISN.yr = buf.visual_odom.yawspeed;
+				log_msg.body.log_VISN.ax = buf.visual_odom.ax;
+				log_msg.body.log_VISN.ay = buf.visual_odom.ay;
+				log_msg.body.log_VISN.az = buf.visual_odom.az;
+				log_msg.body.log_VISN.pos_flags = (buf.visual_odom.xy_valid ? 1 : 0) |
+												  (buf.visual_odom.z_valid ? 2 : 0) |
+												  (buf.visual_odom.v_xy_valid ? 4 : 0) |
+												  (buf.visual_odom.v_z_valid ? 8 : 0) |
+												  (buf.visual_odom.xy_global ? 16 : 0) |
+												  (buf.visual_odom.z_global ? 32 : 0);
 				LOGBUFFER_WRITE_AND_COUNT(VISN);
 			}
 

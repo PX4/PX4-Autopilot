@@ -1772,6 +1772,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.5f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 1.0f);
+		configure_stream_local("ODOMETRY", 1.0f);
 		configure_stream_local("PING", 0.1f);
 		configure_stream_local("POSITION_TARGET_LOCAL_NED", 1.5f);
 		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 1.5f);
@@ -1807,6 +1808,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("NAMED_VALUE_FLOAT", 10.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 10.0f);
+		configure_stream_local("ODOMETRY", 30.0f);
 		configure_stream_local("PING", 1.0f);
 		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 10.0f);
 		configure_stream_local("POSITION_TARGET_LOCAL_NED", 10.0f);
@@ -1870,6 +1872,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("NAMED_VALUE_FLOAT", 50.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 10.0f);
+		configure_stream_local("ODOMETRY", 30.0f);
 		configure_stream_local("PING", 1.0f);
 		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 10.0f);
 		configure_stream_local("RC_CHANNELS", 10.0f);
@@ -2599,6 +2602,64 @@ void Mavlink::check_radio_config()
 		/* reset param and save */
 		_radio_id = 0;
 		param_set_no_notification(_param_radio_id, &_radio_id);
+	}
+}
+
+void
+Mavlink::covariance_from_matrixurt_helper(float urt[21], matrix::SquareMatrix3f &matrix1,
+		matrix::SquareMatrix3f &matrix2)
+{
+	/** example:
+	 *
+	 * 6x6 covariance matrix URT:
+	 * 0  1   2   3   4   5
+	 *    6   7   8   9  10
+	 *       11  12  13  14
+	 *           15  16  17
+	 *               18  19
+	 *                   20
+	 *
+	 * resulting position/linear vel covariance matrix:
+	 *        0  1  2
+	 *        0  6  7
+	 *        0  0 11
+	 *
+	 * resulting attitude/angular vel covariance matrix:
+	 *       15  16  17
+	 *        0  18  19
+	 *        0   0  20
+	 *
+	 */
+	size_t index = 0;
+
+	for (size_t i = 0; i < 6; i++) {
+		for (size_t j = 0; j < 6; j++) {
+			if (i == j || j > i) {
+				// if a diagonal value, update the index
+				if (i == j) {
+					index += i;
+				}
+
+				// the value is computed based on the index and the i,j values
+				// example:
+				// i = 0, j = 1, index = 0 + 0, matrix(0,1) = urt[6*0 + 0 - 0] = urt[0]
+				// i = 0, j = 1, index = 0 + 0, matrix(0,1) = urt[6*0 + 1 - 0] = urt[1]
+				// i = 0, j = 2, index = 0 + 0, matrix(0,2) = urt[6*0 + 3 - 0] = urt[2]
+				// ...
+				// i = 0, j = 2, index = 0 + 0, matrix(0,2) = urt[6*0 + 6 - 0] = urt[5]
+				// i = 1, j = 1, index = 0 + 1, matrix(1,1) = urt[6*1 + 1 - 1] = urt[6]
+				// ...
+				// i = 2, j = 2, index = 1 + 2, matrix(2,2) = urt[6*2 + 2 - 3] = urt[11]
+				// i = 2, j = 3, index = 1 + 2, matrix(2,3) = urt[6*2 + 3 - 3] = urt[12]
+				// ...
+				if (i < 3 && j < 3) {
+					matrix1(i, j) = urt[6 * i + j - index];
+
+				} else if (i >= 3 && j >= 3) {
+					matrix1(i - 3, j - 3) = urt[6 * i + j - index];
+				}
+			}
+		}
 	}
 }
 

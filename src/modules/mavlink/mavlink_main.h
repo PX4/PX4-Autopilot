@@ -58,6 +58,7 @@
 #include <pthread.h>
 #include <systemlib/mavlink_log.h>
 #include <drivers/device/ringbuffer.h>
+#include <matrix/math.hpp>
 
 #ifdef __PX4_POSIX
 #include <net/if.h>
@@ -497,6 +498,14 @@ public:
 	 * Get the ping statistics of this MAVLink link
 	 */
 	struct ping_statistics_s &get_ping_statistics() { return _ping_stats; }
+
+	/**
+	 * Fills two 3D covariance matrixes (3x3 + 3x3) from a 6D cross covariance matrix URT (21 values).
+	 * The first matrix corresponds to the position or the linear velocity covariance,
+	 * while the second corresponds to the attitude or the angular velocity covariance
+	 */
+	void covariance_from_matrixurt_helper(float urt[21], matrix::SquareMatrix3f &matrix1,
+					      matrix::SquareMatrix3f &matrix2);
 
 protected:
 	Mavlink			*next;

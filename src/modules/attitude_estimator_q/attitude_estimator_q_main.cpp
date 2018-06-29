@@ -52,10 +52,10 @@
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
-#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 
@@ -100,16 +100,17 @@ public:
 	void		task_main();
 
 private:
-	const float _dt_min = 0.00001f;
-	const float _dt_max = 0.02f;
+	const float 	_eo_max_std_dev = 100.0f;	/**< Maximum permissible standard deviation for estimated orientation */
+	const float 	_dt_min = 0.00001f;
+	const float 	_dt_max = 0.02f;
 
-	bool		_task_should_exit = false;		/**< if true, task should exit */
-	int		_control_task = -1;			/**< task handle for task */
+	bool		_task_should_exit = false;	/**< if true, task should exit */
+	int		_control_task = -1;		/**< task handle for task */
 
 	int		_params_sub = -1;
 	int		_sensors_sub = -1;
 	int		_global_pos_sub = -1;
-	int		_vision_sub = -1;
+	int		_visual_odom_sub = -1;
 	int		_mocap_sub = -1;
 	int		_magnetometer_sub = -1;
 
@@ -262,8 +263,8 @@ void AttitudeEstimatorQ::task_main()
 #endif
 
 	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
-	_vision_sub = orb_subscribe(ORB_ID(vehicle_vision_attitude));
-	_mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
+	_visual_odom_sub = orb_subscribe(ORB_ID(vehicle_visual_odometry));
+	_mocap_sub = orb_subscribe(ORB_ID(vehicle_groundtruth));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_magnetometer_sub = orb_subscribe(ORB_ID(vehicle_magnetometer));
@@ -341,14 +342,18 @@ void AttitudeEstimatorQ::task_main()
 
 		// Update vision and motion capture heading
 		bool vision_updated = false;
-		orb_check(_vision_sub, &vision_updated);
+		orb_check(_visual_odom_sub, &vision_updated);
 
 		if (vision_updated) {
-			vehicle_attitude_s vision;
+			vehicle_local_position_s vision;
 
-			if (orb_copy(ORB_ID(vehicle_vision_attitude), _vision_sub, &vision) == PX4_OK) {
-				Quatf q(vision.q);
+			bool att_valid = false;
 
+			if (!PX4_ISNAN(vision.att_std_dev)) {
+				att_valid = vision.att_std_dev < _eo_max_std_dev;
+			}
+
+			if (orb_copy(ORB_ID(vehicle_visual_odometry), _visual_odom_sub, &vision) == PX4_OK && att_valid) {
 				Dcmf Rvis = Quatf(vision.q);
 				Vector3f v(1.0f, 0.0f, 0.4f);
 
@@ -369,9 +374,15 @@ void AttitudeEstimatorQ::task_main()
 		orb_check(_mocap_sub, &mocap_updated);
 
 		if (mocap_updated) {
-			att_pos_mocap_s mocap;
+			vehicle_local_position_s mocap;
 
-			if (orb_copy(ORB_ID(att_pos_mocap), _mocap_sub, &mocap) == PX4_OK) {
+			bool att_valid = false;
+
+			if (!PX4_ISNAN(mocap.att_std_dev)) {
+				att_valid = mocap.att_std_dev < _eo_max_std_dev;
+			}
+
+			if (orb_copy(ORB_ID(vehicle_groundtruth), _mocap_sub, &mocap) == PX4_OK && att_valid) {
 				Dcmf Rmoc = Quatf(mocap.q);
 				Vector3f v(1.0f, 0.0f, 0.4f);
 
@@ -429,16 +440,26 @@ void AttitudeEstimatorQ::task_main()
 		last_time = now;
 
 		if (update(dt)) {
-			vehicle_attitude_s att = {
-				.timestamp = sensors.timestamp,
-				.rollspeed = _rates(0),
-				.pitchspeed = _rates(1),
-				.yawspeed = _rates(2),
+			vehicle_attitude_s att = {};
 
-				.q = {_q(0), _q(1), _q(2), _q(3)},
-				.delta_q_reset = {},
-				.quat_reset_counter = 0,
-			};
+			att.timestamp = sensors.timestamp;
+
+			att.rollspeed = _rates(0);
+			att.pitchspeed = _rates(1);
+			att.yawspeed = _rates(2);
+
+			att.q[0] = _q(0);
+			att.q[1] = _q(1);
+			att.q[2] = _q(2);
+			att.q[3] = _q(3);
+
+			// covariances set to unknown
+			att.covariance[0] = NAN;
+
+			// for now, set the std_dev for hardcoded values,
+			// so it can be accepted on the commander side
+			att.att_std_dev = math::radians(3);	// 3 degrees
+			att.att_rate_std_dev = NAN;
 
 			/* the instance count is not used here */
 			int att_inst;
@@ -455,7 +476,7 @@ void AttitudeEstimatorQ::task_main()
 	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_sensors_sub);
 	orb_unsubscribe(_global_pos_sub);
-	orb_unsubscribe(_vision_sub);
+	orb_unsubscribe(_visual_odom_sub);
 	orb_unsubscribe(_mocap_sub);
 	orb_unsubscribe(_magnetometer_sub);
 }

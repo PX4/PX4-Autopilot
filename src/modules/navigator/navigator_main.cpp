@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -397,7 +397,7 @@ Navigator::run()
 					rep->previous.valid = true;
 
 				} else {
-					rep->current.yaw = get_local_position()->yaw;
+					rep->current.yaw = matrix::Eulerf(matrix::Quatf(get_local_position()->q)).psi();
 					rep->previous.valid = false;
 				}
 

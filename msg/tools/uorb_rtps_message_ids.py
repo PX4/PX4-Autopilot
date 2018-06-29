@@ -1,4 +1,3 @@
-
 # Message identification constants
 
 
@@ -9,7 +8,6 @@ msg_id_map = {
     'actuator_outputs': 4,
     'adc_report': 5,
     'airspeed': 6,
-    'att_pos_mocap': 7,
     'battery_status': 8,
     'camera_capture': 9,
     'camera_trigger': 10,
@@ -84,9 +82,9 @@ msg_id_map = {
     'vehicle_command_ack': 79,
     'vehicle_command': 80,
     'vehicle_control_mode': 81,
-
+    'vehicle_groundtruth': 82,
     'vehicle_global_position': 83,
-
+    'vehicle_visual_odometry': 84,
     'vehicle_gps_position': 85,
     'vehicle_land_detected': 86,
     'vehicle_local_position': 87,

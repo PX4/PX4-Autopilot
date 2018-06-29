@@ -2,6 +2,7 @@
  *
  *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
  *   Copyright (c) 2016 Anton Matosov. All rights reserved.
+ *   Copyright (c) 2018 PX4 Pro Dev Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,7 +46,6 @@
 #include <pthread.h>
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
-#include <uORB/topics/vehicle_local_position.h>
 
 #include <limits>
 
@@ -390,10 +390,9 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		publish_flow_topic(&flow);
 		break;
 
+	case MAVLINK_MSG_ID_ODOMETRY:
 	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
-		mavlink_vision_position_estimate_t ev;
-		mavlink_msg_vision_position_estimate_decode(msg, &ev);
-		publish_ev_topic(&ev);
+		publish_odometry_topic(msg);
 		break;
 
 	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
@@ -451,24 +450,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 		uint64_t timestamp = hrt_absolute_time();
 
-		/* attitude */
-		struct vehicle_attitude_s hil_attitude = {};
-		{
-			hil_attitude.timestamp = timestamp;
-
-			matrix::Quatf q(hil_state.attitude_quaternion);
-			q.copyTo(hil_attitude.q);
-
-			hil_attitude.rollspeed = hil_state.rollspeed;
-			hil_attitude.pitchspeed = hil_state.pitchspeed;
-			hil_attitude.yawspeed = hil_state.yawspeed;
-
-			// always publish ground truth attitude message
-			int hilstate_multi;
-			orb_publish_auto(ORB_ID(vehicle_attitude_groundtruth), &_attitude_pub, &hil_attitude, &hilstate_multi, ORB_PRIO_HIGH);
-		}
-
-		/* global position */
+		/* global ground truth */
 		struct vehicle_global_position_s hil_gpos = {};
 		{
 			hil_gpos.timestamp = timestamp;
@@ -481,59 +463,72 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			hil_gpos.vel_e = hil_state.vy / 100.0f;
 			hil_gpos.vel_d = hil_state.vz / 100.0f;
 
-			// always publish ground truth attitude message
+			// always publish ground truth message
 			int hil_gpos_multi;
-			orb_publish_auto(ORB_ID(vehicle_global_position_groundtruth), &_gpos_pub, &hil_gpos, &hil_gpos_multi,
+			orb_publish_auto(ORB_ID(vehicle_global_groundtruth), &_global_groundtruth_pub, &hil_gpos, &hil_gpos_multi,
 					 ORB_PRIO_HIGH);
 		}
 
-		/* local position */
-		struct vehicle_local_position_s hil_lpos = {};
+		/* ground truth */
+		struct vehicle_local_position_s hil_groundtruth = {};
 		{
-			hil_lpos.timestamp = timestamp;
-
 			double lat = hil_state.lat * 1e-7;
 			double lon = hil_state.lon * 1e-7;
 
+			hil_groundtruth.timestamp = timestamp;
+
 			if (!_hil_local_proj_inited) {
 				_hil_local_proj_inited = true;
-				map_projection_init(&_hil_local_proj_ref, lat, lon);
-				_hil_ref_timestamp = timestamp;
-				_hil_ref_lat = lat;
-				_hil_ref_lon = lon;
 				_hil_ref_alt = hil_state.alt / 1000.0f;
+				map_projection_init(&_hil_local_proj_ref, lat, lon);
+				hil_groundtruth.ref_timestamp = timestamp;
+				hil_groundtruth.ref_lat = lat;
+				hil_groundtruth.ref_lon = lon;
+				hil_groundtruth.ref_alt = _hil_ref_alt;
 			}
 
-			float x;
-			float y;
+			float x, y = 0.0f;
 			map_projection_project(&_hil_local_proj_ref, lat, lon, &x, &y);
-			hil_lpos.timestamp = timestamp;
-			hil_lpos.xy_valid = true;
-			hil_lpos.z_valid = true;
-			hil_lpos.v_xy_valid = true;
-			hil_lpos.v_z_valid = true;
-			hil_lpos.x = x;
-			hil_lpos.y = y;
-			hil_lpos.z = _hil_ref_alt - hil_state.alt / 1000.0f;
-			hil_lpos.vx = hil_state.vx / 100.0f;
-			hil_lpos.vy = hil_state.vy / 100.0f;
-			hil_lpos.vz = hil_state.vz / 100.0f;
-			matrix::Eulerf euler = matrix::Quatf(hil_attitude.q);
-			hil_lpos.yaw = euler.psi();
-			hil_lpos.xy_global = true;
-			hil_lpos.z_global = true;
-			hil_lpos.ref_lat = _hil_ref_lat;
-			hil_lpos.ref_lon = _hil_ref_lon;
-			hil_lpos.ref_alt = _hil_ref_alt;
-			hil_lpos.ref_timestamp = _hil_ref_timestamp;
-			hil_lpos.vxy_max = std::numeric_limits<float>::infinity();
-			hil_lpos.vz_max = std::numeric_limits<float>::infinity();
-			hil_lpos.hagl_min = std::numeric_limits<float>::infinity();
-			hil_lpos.hagl_max = std::numeric_limits<float>::infinity();
 
-			// always publish ground truth attitude message
-			int hil_lpos_multi;
-			orb_publish_auto(ORB_ID(vehicle_local_position_groundtruth), &_lpos_pub, &hil_lpos, &hil_lpos_multi,
+			hil_groundtruth.x = x;
+			hil_groundtruth.y = y;
+			hil_groundtruth.z = _hil_ref_alt - hil_state.alt / 1000.0f;
+			hil_groundtruth.dist_bottom = NAN;
+
+			matrix::Quatf q(hil_state.attitude_quaternion);
+			q.copyTo(hil_groundtruth.q);
+
+			hil_groundtruth.pose_covariance[0] = NAN;
+
+			hil_groundtruth.vx = hil_state.vx / 100.0f;
+			hil_groundtruth.vy = hil_state.vy / 100.0f;
+			hil_groundtruth.vz = hil_state.vz / 100.0f;
+			hil_groundtruth.z_deriv = NAN;
+			hil_groundtruth.dist_bottom_rate = NAN;
+
+			hil_groundtruth.rollspeed = hil_state.rollspeed;
+			hil_groundtruth.pitchspeed = hil_state.pitchspeed;
+			hil_groundtruth.yawspeed = hil_state.yawspeed;
+
+			hil_groundtruth.velocity_covariance[0] = NAN;
+
+			hil_groundtruth.ax = NAN;
+			hil_groundtruth.ay = NAN;
+			hil_groundtruth.az = NAN;
+
+			hil_groundtruth.vxy_max = std::numeric_limits<float>::infinity();
+			hil_groundtruth.vz_max = std::numeric_limits<float>::infinity();
+			hil_groundtruth.hagl_min = std::numeric_limits<float>::infinity();
+			hil_groundtruth.hagl_max = std::numeric_limits<float>::infinity();
+			hil_groundtruth.xy_valid = true;
+			hil_groundtruth.z_valid = true;
+			hil_groundtruth.v_xy_valid = true;
+			hil_groundtruth.v_z_valid = true;
+			hil_groundtruth.dist_bottom_valid = false;
+
+			// always publish ground truth message
+			int hil_groundtruth_multi;
+			orb_publish_auto(ORB_ID(vehicle_groundtruth), &_local_groundtruth_pub, &hil_groundtruth, &hil_groundtruth_multi,
 					 ORB_PRIO_HIGH);
 		}
 
@@ -1128,32 +1123,121 @@ int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
 	return OK;
 }
 
-int Simulator::publish_ev_topic(mavlink_vision_position_estimate_t *ev_mavlink)
+template<typename T>
+int Simulator::publish_odometry_topic(T *msg)
 {
 	uint64_t timestamp = hrt_absolute_time();
 
-	struct vehicle_local_position_s vision_position = {};
+	struct vehicle_local_position_s odom = {};
 
-	vision_position.timestamp = timestamp;
-	vision_position.x = ev_mavlink->x;
-	vision_position.y = ev_mavlink->y;
-	vision_position.z = ev_mavlink->z;
+	odom.timestamp = timestamp;
 
-	vision_position.xy_valid = true;
-	vision_position.z_valid = true;
-	vision_position.v_xy_valid = true;
-	vision_position.v_z_valid = true;
+	if (msg->msgid == MAVLINK_MSG_ID_ODOMETRY) {
+		mavlink_odometry_t odom_msg;
+		mavlink_msg_odometry_decode(msg, &odom_msg);
 
-	struct vehicle_attitude_s vision_attitude = {};
+		/* Dcm rotation matrix from body frame to local NED frame */
+		matrix::Dcm<float> Rbl;
 
-	vision_attitude.timestamp = timestamp;
+		/* since odom.child_frame_id == MAV_FRAME_BODY_FRD, WRT to estimated vehicle body-fixed frame */
+		/* get quaternion from the msg quaternion itself and build DCM matrix from it */
+		/* No need to transform the covariance matrices since the non-diagonal values are all zero */
+		Rbl = matrix::Dcm<float>(matrix::Quatf(odom_msg.q)).I();
 
-	matrix::Quatf q(matrix::Eulerf(ev_mavlink->roll, ev_mavlink->pitch, ev_mavlink->yaw));
-	q.copyTo(vision_attitude.q);
+		/* the linear velocities needs to be transformed to the local NED frame */
+		matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom_msg.vx, odom_msg.vy, odom_msg.vz));
 
-	int inst = 0;
-	orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &vision_position, &inst, ORB_PRIO_HIGH);
-	orb_publish_auto(ORB_ID(vehicle_vision_attitude), &_vision_attitude_pub, &vision_attitude, &inst, ORB_PRIO_HIGH);
+		/* The position in the local NED frame */
+		odom.x = odom_msg.x;
+		odom.y = odom_msg.y;
+		odom.z = odom_msg.z;
+		/* The quaternion of the ODOMETRY msg represents a rotation from
+		 * NED earth/local frame to XYZ body frame */
+		matrix::Quatf q(odom_msg.q[0], odom_msg.q[1], odom_msg.q[2], odom_msg.q[3]);
+		q.copyTo(odom.q);
+
+		/* The pose covariance URT */
+		for (size_t i = 0; i < 21; i++) {
+			odom.pose_covariance[i] = odom_msg.pose_covariance[i];
+		}
+
+		/* The velocity in the local NED frame */
+		odom.vx = linvel_local(0);
+		odom.vy = linvel_local(1);
+		odom.vz = linvel_local(2);
+		/* The angular velocity in the body-fixed frame */
+		odom.rollspeed = odom_msg.rollspeed;
+		odom.pitchspeed = odom_msg.pitchspeed;
+		odom.yawspeed = odom_msg.yawspeed;
+
+		/* The velocity covariance URT */
+		for (size_t i = 0; i < 21; i++) {
+			odom.velocity_covariance[i] = odom_msg.twist_covariance[i];
+		}
+
+		/* The acceleration in the local NED frame - unknown */
+		odom.ax = NAN;
+		odom.ay = NAN;
+		odom.az = NAN;
+
+		// TODO : full covariance matrix
+		odom.eph = sqrtf(fmaxf(odom_msg.pose_covariance[0], odom_msg.pose_covariance[6]));
+		odom.epv = sqrtf(odom_msg.pose_covariance[11]);
+		odom.evh = sqrtf(fmaxf(odom_msg.twist_covariance[0], odom_msg.twist_covariance[6]));
+		odom.evv = sqrtf(odom_msg.twist_covariance[11]);
+		odom.att_std_dev = sqrtf(fmaxf(odom_msg.pose_covariance[15],
+					       fmaxf(odom_msg.pose_covariance[18], odom_msg.pose_covariance[20])));
+		odom.att_rate_std_dev = sqrtf(fmaxf(odom_msg.twist_covariance[15],
+						    fmaxf(odom_msg.twist_covariance[18], odom_msg.twist_covariance[20])));
+
+	} else if (msg->msgid == MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE) {
+		mavlink_vision_position_estimate_t ev;
+		mavlink_msg_vision_position_estimate_decode(msg, &ev);
+		/* The position in the local NED frame */
+		odom.x = ev.x;
+		odom.y = ev.y;
+		odom.z = ev.z;
+		/* The euler angles of the VISUAL_POSITION_ESTIMATE msg represent a
+		 * rotation from NED earth/local frame to XYZ body frame */
+		matrix::Quatf q(matrix::Eulerf(ev.roll, ev.pitch, ev.yaw));
+		q.copyTo(odom.q);
+
+		/* The pose covariance URT */
+		for (size_t i = 0; i < 21; i++) {
+			odom.pose_covariance[i] = ev.covariance[i];
+		}
+
+		/* The velocity in the local NED frame - unknown */
+		odom.vx = NAN;
+		odom.vy = NAN;
+		odom.vz = NAN;
+		/* The angular velocity in body-fixed frame - unknown */
+		odom.rollspeed = NAN;
+		odom.pitchspeed = NAN;
+		odom.yawspeed = NAN;
+
+		/* The velocity covariance URT - unknown */
+		odom.velocity_covariance[0] = NAN;
+
+		/* The acceleration in the local NED frame - unknown */
+		odom.ax = NAN;
+		odom.ay = NAN;
+		odom.az = NAN;
+
+		// TODO : full covariance matrix
+		odom.eph = sqrtf(fmaxf(ev.covariance[0], ev.covariance[6]));
+		odom.epv = sqrtf(ev.covariance[11]);
+		odom.evh = NAN;
+		odom.evv = NAN;
+		odom.att_std_dev = sqrtf(fmaxf(ev.covariance[15],
+					       fmaxf(ev.covariance[18], ev.covariance[20])));
+
+	}
+
+	int instance_id = 0;
+
+	/** @note: frame_id == MAV_FRAME_VISION_NED) */
+	orb_publish_auto(ORB_ID(vehicle_visual_odometry), &_visual_odometry_pub, &odom, &instance_id, ORB_PRIO_HIGH);
 
 	return OK;
 }

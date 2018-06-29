@@ -68,6 +68,13 @@
 #define PX4_ISFINITE(x) std::isfinite(x)
 #endif
 
+/* Define a usable PX4_ISNAN. Note that PX4_NAN is ONLY used in C++ files,
+ * therefore, by default, we want to use std::isnan. */
+#ifdef __cplusplus
+#include <cmath>
+#define PX4_ISNAN(x) std::isnan(x)
+#endif
+
 #if defined(__PX4_ROS)
 /****************************************************************************
  * Building for running within the ROS environment.
@@ -134,18 +141,28 @@ typedef param_t px4_param_t;
 #ifdef __cplusplus
 #include <cmath>
 #undef isfinite
+#undef isnan
+
 template<typename T>
 inline bool isfinite(T __y)
 {
 	int __cy = fpclassify(__y);
 	return __cy != FP_INFINITE && __cy != FP_NAN;
 }
+
+template<typename T>
+inline bool isnan(T y)
+{
+	return fpclassify(y) == FP_NAN;
+}
+
 namespace std
 {
 using ::isfinite;
+using ::isnan;
 }
-#endif // __cplusplus
 
+#endif // __cplusplus
 #elif defined(__PX4_POSIX)
 /****************************************************************************
  * POSIX Specific defines
@@ -185,6 +202,10 @@ using ::isfinite;
 // appears to be broken because of undefined symbols (ie, _Dtest (C linkage)).
 #  undef PX4_ISFINITE
 #  define PX4_ISFINITE(x) __builtin_isfinite(x)
+
+// HEXAGON's isnan() has the same problem as isfinite()
+#  undef PX4_ISNAN
+#  define PX4_ISNAN(x) __builtin_isnan(x)
 
 #else // __PX4_QURT
 
