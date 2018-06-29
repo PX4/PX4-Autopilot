@@ -50,21 +50,22 @@ void
 Land::on_activation()
 {
 	/* set current mission item to Land */
-	set_land_item(&_mission_item, true);
+	set_land_item(&_mission_item, LAND_STATE_RETURN);
 	_navigator->get_mission_result()->finished = false;
 	_navigator->set_mission_result_updated();
-	reset_mission_item_reached();
 
 	/* convert mission item to current setpoint */
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	pos_sp_triplet->previous.valid = false;
 	mission_apply_limitation(_mission_item);
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
+	pos_sp_triplet->previous.valid = false;
 	pos_sp_triplet->next.valid = false;
 
 	_navigator->set_can_loiter_at_sp(false);
 
 	_navigator->set_position_setpoint_triplet_updated();
+
+	_land_state = LAND_STATE_RETURN;
 }
 
 void
@@ -79,14 +80,44 @@ Land::on_active()
 		_navigator->set_position_setpoint_triplet_updated();
 	}
 
+	if (_land_state != LAND_STATE_LANDED && is_mission_item_reached()) {
+		advance_land();
+		set_land_item(&_mission_item, _land_state);
 
-	if (is_mission_item_reached() && !_navigator->get_mission_result()->finished) {
-		_navigator->get_mission_result()->finished = true;
-		_navigator->set_mission_result_updated();
-		set_idle_item(&_mission_item);
-
+		/* Update the position setpoint  */
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 		_navigator->set_position_setpoint_triplet_updated();
+	}
+
+	if (_land_state == LAND_STATE_LANDED) {
+		_navigator->get_mission_result()->finished = true;
+		_navigator->set_mission_result_updated();
+		set_idle_item(&_mission_item);
+	}
+}
+
+void
+Land::advance_land()
+{
+	switch (_land_state) {
+	case LAND_STATE_RETURN_HOME:
+		_land_state = LAND_STATE_DESCEND;
+		break;
+
+	case LAND_STATE_RETURN:
+		_land_state = LAND_STATE_DESCEND;
+		break;
+
+	case LAND_STATE_DESCEND:
+		_land_state = LAND_STATE_LAND;
+		break;
+
+	case LAND_STATE_LAND:
+		_land_state = LAND_STATE_LANDED;
+		break;
+
+	default:
+		break;
 	}
 }
