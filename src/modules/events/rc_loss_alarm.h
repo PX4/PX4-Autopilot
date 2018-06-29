@@ -31,47 +31,45 @@
  *
  ****************************************************************************/
 
+/**
+ * @file rc_loss_alarm.h
+ * Tone alarm in the event of RC loss
+ *
+ */
 
+#pragma once
 
-#include <px4_module.h>
-#include <px4_workqueue.h>
-
-#include <tunes/tune_definition.h>
+#include "subscriber_handler.h"
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 
-#define UPDATE_RATE	(1000000)	  /* microseconds, 1 Hz */
-
-class RC_Loss_Alarm: public ModuleBase<RC_Loss_Alarm>
+class RC_Loss_Alarm
 {
 public:
-	RC_Loss_Alarm() = default;
-	~RC_Loss_Alarm();
-	RC_Loss_Alarm(const RC_Loss_Alarm &other) = delete;
-	RC_Loss_Alarm(const RC_Loss_Alarm &&other) = delete;
-	RC_Loss_Alarm &operator= (const RC_Loss_Alarm &other) = delete;
-	RC_Loss_Alarm &operator= (const RC_Loss_Alarm &&other) = delete;
 
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
+	RC_Loss_Alarm(const events::SubscriberHandler &subscriber_handler);
 
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
+	/** regularily called to handle state updates */
+	void process();
 
 private:
-	static struct work_s	_work;
-	int 			_vehicle_status_sub = -1;
-	static orb_advert_t 	_tune_control_pub;
-	static bool 		_was_armed;
-	static bool 		_had_rc;  // Don't trigger alarm for systems without RC
+	/**
+	 * check for topic updates
+	 * @return true if one or more topics got updated
+	 */
+	bool check_for_updates();
 
-	static void cycle_trampoline(void *arg);
-	void 	    cycle();
-	static void pub_tune();
-	static void stop_tune();
-	static int  reset_module();
+	/** Publish tune control to sound alarm */
+	void play_tune();
+
+	/** Publish tune control to stop any ongoing tune, including alarm */
+	void stop_tune();
+
+	int 			_vehicle_status_sub = -1;
+	struct vehicle_status_s	_vehicle_status = {};
+	bool 		_was_armed = false;
+	bool 		_had_rc = false;  // Don't trigger alarm for systems without RC
+	orb_advert_t 	_tune_control_pub = nullptr;
+	const events::SubscriberHandler &_subscriber_handler;
 };

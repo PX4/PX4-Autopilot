@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,70 +32,72 @@
  ****************************************************************************/
 
 /**
- * @file status_display.h
- * Status Display decouples LED and tunes from commander
+ * @file rc_loss_alarm.cpp
  *
- * @author Simone Guscetti <simone@px4.io>
  */
 
-#pragma once
+#include "rc_loss_alarm.h"
 
-#include "subscriber_handler.h"
+#include <px4_defines.h>
 
 #include <drivers/drv_hrt.h>
+#include <stdint.h>
 
-#include <uORB/uORB.h>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/cpuload.h>
-#include <uORB/topics/led_control.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_status_flags.h>
+#include <tunes/tune_definition.h>
 
-namespace status
+#include <uORB/topics/tune_control.h>
+
+RC_Loss_Alarm::RC_Loss_Alarm(const events::SubscriberHandler &subscriber_handler)
+	: _subscriber_handler(subscriber_handler)
 {
+}
 
-class StatusDisplay
+bool RC_Loss_Alarm::check_for_updates()
 {
-public:
+	if (_subscriber_handler.vehicle_status_updated()) {
+		orb_copy(ORB_ID(vehicle_status), _subscriber_handler.get_vehicle_status_sub(), &_vehicle_status);
+		return true;
+	}
 
-	StatusDisplay(const events::SubscriberHandler &subscriber_handler);
+	return false;
+}
 
-	/** regularily called to handle state updates */
-	void process();
+void RC_Loss_Alarm::process()
+{
+	if (!check_for_updates()) {
+		return;
+	}
 
-protected:
-	/**
-	 * check for topic updates
-	 * @return true if one or more topics got updated
-	 */
-	bool check_for_updates();
+	if (!_was_armed &&
+	    _vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 
-	/**
-	 * handle LED logic changes & call publish()
-	 */
-	void set_leds();
+		_was_armed = true;	// Once true, impossible to go back to false
+	}
 
-	/** publish LED control */
-	void publish();
+	if (!_had_rc && !_vehicle_status.rc_signal_lost) {
 
-	// TODO: review if there is a better variant that allocates this in the memory
-	struct battery_status_s _battery_status = {};
-	struct cpuload_s _cpu_load = {};
-	struct vehicle_status_s _vehicle_status = {};
-	struct vehicle_status_flags_s _vehicle_status_flags = {};
-	struct vehicle_attitude_s _vehicle_attitude = {};
+		_had_rc = true;
+	}
 
-	struct led_control_s _led_control = {};
+	if (_was_armed && _had_rc && _vehicle_status.rc_signal_lost &&
+	    _vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
 
-private:
-	bool _old_gps_lock_valid = false;
-	bool _old_home_position_valid = false;
-	bool _low_battery = false;
-	bool _critical_battery = false;
-	int _old_nav_state = -1;
-	int _old_battery_status_warning = -1;
-	orb_advert_t _led_control_pub = nullptr;
-	const events::SubscriberHandler &_subscriber_handler;
-};
+		play_tune();
+	}
+}
 
-} /* status */
+void RC_Loss_Alarm::play_tune()
+{
+	struct tune_control_s tune_control = {};
+
+	if (_tune_control_pub == nullptr) {
+		_tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+
+	} else	{
+		tune_control.tune_id = static_cast<int>(TuneID::ERROR_TUNE);
+		tune_control.strength = tune_control_s::STRENGTH_MAX;
+		tune_control.tune_override = 1;
+		tune_control.timestamp = hrt_absolute_time();
+		orb_publish(ORB_ID(tune_control), _tune_control_pub, &tune_control);
+	}
+}
