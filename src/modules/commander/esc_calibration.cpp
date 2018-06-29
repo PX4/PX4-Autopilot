@@ -196,13 +196,13 @@ Out:
 	}
 	if (fd != -1) {
 		if (px4_ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_ON, 0) != PX4_OK) {
-			calibration_log_info(mavlink_log_pub, CAL_QGC_WARNING_MSG, "Safety switch still off");
+			calibration_log_info(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Safety switch still off");
 		}
 		if (px4_ioctl(fd, PWM_SERVO_DISARM, 0) != PX4_OK) {
-			calibration_log_info(mavlink_log_pub, CAL_QGC_WARNING_MSG, "Servos still armed");
+			calibration_log_info(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Servos still armed");
 		}
 		if (px4_ioctl(fd, PWM_SERVO_CLEAR_ARM_OK, 0) != PX4_OK) {
-			calibration_log_info(mavlink_log_pub, CAL_QGC_WARNING_MSG, "Safety switch still deactivated");
+			calibration_log_info(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Safety switch still deactivated");
 		}
 		px4_close(fd);
 	}
