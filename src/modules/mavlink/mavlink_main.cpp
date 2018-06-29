@@ -2676,7 +2676,12 @@ Mavlink::start(int argc, char *argv[])
 		count++;
 	}
 
-	return OK;
+	if (ic == Mavlink::instance_count()) {
+		return PX4_ERROR;
+
+	} else {
+		return PX4_OK;
+	}
 }
 
 void
