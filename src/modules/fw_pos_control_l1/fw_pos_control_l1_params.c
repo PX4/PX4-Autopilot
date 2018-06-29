@@ -525,7 +525,8 @@ PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.5f);
  * This is the integrator gain on the control loop.
  * Increasing this gain increases the speed at which speed
  * and height offsets are trimmed out, but reduces damping and
- * increases overshoot.
+ * increases overshoot. Set this value to zero to completely
+ * disable all integrator action.
  *
  * @min 0.0
  * @max 2.0
