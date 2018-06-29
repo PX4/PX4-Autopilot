@@ -465,7 +465,7 @@ PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
  * the aircraft.
  *
  * @unit m/s
- * @min 2.0
+ * @min 1.0
  * @max 15.0
  * @decimal 1
  * @increment 0.5
