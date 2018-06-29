@@ -724,8 +724,8 @@ int frsky_telemetry_main(int argc, char *argv[])
 			}
 
 		} else {
-		  PX4_INFO("not running");
-		  exit(0);
+		    PX4_INFO("not running");
+		    exit(0);
 		}
 	}
 
