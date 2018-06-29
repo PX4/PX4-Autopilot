@@ -1470,13 +1470,14 @@ MulticopterPositionControl::control_non_manual()
 		_vel_sp(1) = _pos_sp_triplet.current.vy;
 	}
 
-	/* use constant descend rate when landing, ignore altitude setpoint */
+	/* If vehicle is in LAND, arrest horizontal velocity and then begin descent. */
 	if (_pos_sp_triplet.current.valid
 	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
 		float vel_xy_mag = sqrtf(_vel(0) * _vel(0) + _vel(1) * _vel(1));
 		bool engage_pos_hold = vel_xy_mag < _hold_max_xy.get();
 
+		/* Brakes until velocity is arrested. */
 		if (!engage_pos_hold && !_is_descending_land) {
 			_vel_sp(0) = 0;
 			_vel_sp(1) = 0;
@@ -1488,6 +1489,7 @@ MulticopterPositionControl::control_non_manual()
 			control_position();
 
 		} else {
+			/* Sets the landing flag, and begins descending in place */
 			_reset_pos_sp  = true;
 			reset_pos_sp();
 
