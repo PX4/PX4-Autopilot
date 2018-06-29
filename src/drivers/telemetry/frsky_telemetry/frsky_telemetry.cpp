@@ -697,7 +697,7 @@ int frsky_telemetry_main(int argc, char *argv[])
 			warnx(".");
 		}
 		
-		*device_name = NULL;
+		device_name = NULL;
 		warnx("terminated.");
 		exit(0);
 	}
