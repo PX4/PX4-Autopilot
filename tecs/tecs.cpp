@@ -358,26 +358,28 @@ void TECS::_update_throttle_setpoint(const float throttle_cruise, const matrix::
 
 		_last_throttle_setpoint = _throttle_setpoint;
 
-		// Calculate throttle integrator state upper and lower limits with allowance for
-		// 10% throttle saturation to accommodate noise on the demand. However, if the
-		// integrator gain is zero, also force integrator state to zero, otherwise it could
-		// stay at a large constant value
-		float integ_state_max = _integrator_gain > 0.001f ? (_throttle_setpoint_max - _throttle_setpoint + 0.1f) : 0.0f;
-		float integ_state_min = _integrator_gain > 0.001f ? (_throttle_setpoint_min - _throttle_setpoint - 0.1f) : 0.0f;
+		if (_integrator_gain > 0.0f) {
+			// Calculate throttle integrator state upper and lower limits with allowance for
+			// 10% throttle saturation to accommodate noise on the demand.
+			float integ_state_max = _throttle_setpoint_max - _throttle_setpoint + 0.1f;
+			float integ_state_min = _throttle_setpoint_min - _throttle_setpoint - 0.1f;
 
-		// Calculate a throttle demand from the integrated total energy error
-		// This will be added to the total throttle demand to compensate for steady state errors
-		_throttle_integ_state = _throttle_integ_state + (_STE_error * _integrator_gain) * _dt * STE_to_throttle;
+			// Calculate a throttle demand from the integrated total energy error
+			// This will be added to the total throttle demand to compensate for steady state errors
+			_throttle_integ_state = _throttle_integ_state + (_STE_error * _integrator_gain) * _dt * STE_to_throttle;
 
-		if (_climbout_mode_active) {
-			// During climbout, set the integrator to maximum throttle to prevent transient throttle drop
-			// at end of climbout when we transition to closed loop throttle control
-			_throttle_integ_state = integ_state_max;
+			if (_climbout_mode_active) {
+				// During climbout, set the integrator to maximum throttle to prevent transient throttle drop
+				// at end of climbout when we transition to closed loop throttle control
+				_throttle_integ_state = integ_state_max;
+
+			} else {
+				// Respect integrator limits during closed loop operation.
+				_throttle_integ_state = constrain(_throttle_integ_state, integ_state_min, integ_state_max);
+			}
 
 		} else {
-			// Respect integrator limits during closed loop operation.
-			_throttle_integ_state = constrain(_throttle_integ_state, integ_state_min, integ_state_max);
-
+			_throttle_integ_state = 0.0f;
 		}
 
 		if (airspeed_sensor_enabled()) {
@@ -461,23 +463,27 @@ void TECS::_update_pitch_setpoint()
 	// Calculate derivative from change in climb angle to rate of change of specific energy balance
 	float climb_angle_to_SEB_rate = _tas_state * _pitch_time_constant * CONSTANTS_ONE_G;
 
-	// Calculate pitch integrator input term
-	float pitch_integ_input = _SEB_error * _integrator_gain;
+	if (_integrator_gain > 0.0f) {
+		// Calculate pitch integrator input term
+		float pitch_integ_input = _SEB_error * _integrator_gain;
 
-	// Prevent the integrator changing in a direction that will increase pitch demand saturation
-	// Decay the integrator at the control loop time constant if the pitch demand from the previous time step is saturated
-	if (_pitch_setpoint_unc > _pitch_setpoint_max) {
-		pitch_integ_input = min(pitch_integ_input,
-					min((_pitch_setpoint_max - _pitch_setpoint_unc) * climb_angle_to_SEB_rate / _pitch_time_constant, 0.0f));
+		// Prevent the integrator changing in a direction that will increase pitch demand saturation
+		// Decay the integrator at the control loop time constant if the pitch demand from the previous time step is saturated
+		if (_pitch_setpoint_unc > _pitch_setpoint_max) {
+			pitch_integ_input = min(pitch_integ_input,
+						min((_pitch_setpoint_max - _pitch_setpoint_unc) * climb_angle_to_SEB_rate / _pitch_time_constant, 0.0f));
 
-	} else if (_pitch_setpoint_unc < _pitch_setpoint_min) {
-		pitch_integ_input = max(pitch_integ_input,
-					max((_pitch_setpoint_min - _pitch_setpoint_unc) * climb_angle_to_SEB_rate / _pitch_time_constant, 0.0f));
+		} else if (_pitch_setpoint_unc < _pitch_setpoint_min) {
+			pitch_integ_input = max(pitch_integ_input,
+						max((_pitch_setpoint_min - _pitch_setpoint_unc) * climb_angle_to_SEB_rate / _pitch_time_constant, 0.0f));
+		}
+
+		// Update the pitch integrator state.
+		_pitch_integ_state = _pitch_integ_state + pitch_integ_input * _dt;
+
+	} else {
+		_pitch_integ_state = 0.0f;
 	}
-
-	// Update the pitch integrator state. If gain is zero, force state to zero, too, to avoid that it stays at large constant values
-	_pitch_integ_state = _pitch_integ_state + pitch_integ_input * _dt;
-	if(_integrator_gain < 0.001f) _pitch_integ_state = 0.0f;
 
 	// Calculate a specific energy correction that doesn't include the integrator contribution
 	float SEB_correction = _SEB_error + _SEB_rate_error * _pitch_damping_gain + SEB_rate_setpoint * _pitch_time_constant;
