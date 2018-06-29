@@ -221,9 +221,9 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 	argv += 2;
 
 	int ch;
-	
+
 	device_name = "/dev/ttyS6"; /* default USART8 */
-	
+
 	while ((ch = getopt(argc, argv, "d:")) != EOF) {
 		switch (ch) {
 		case 'd':
@@ -644,13 +644,13 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 	/* Reset the UART flags to original state */
 	tcsetattr(uart, TCSANOW, &uart_config_original);
-	
+
 	close(uart);
-	
+
 	device_name = NULL;
-	
+
 	thread_running = false;
-	
+
 	return 0;
 }
 
@@ -660,7 +660,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
  */
 int frsky_telemetry_main(int argc, char *argv[])
 {
-	
+
 
 	if (argc < 2) {
 		warnx("missing command");
@@ -685,7 +685,7 @@ int frsky_telemetry_main(int argc, char *argv[])
 		while (!thread_running) {
 			usleep(200);
 		}
-		
+
 		exit(0);
 	}
 
@@ -702,7 +702,7 @@ int frsky_telemetry_main(int argc, char *argv[])
 			usleep(1000000);
 			warnx(".");
 		}
-		
+
 		warnx("terminated.");
 		device_name = NULL;
 		exit(0);
@@ -711,31 +711,31 @@ int frsky_telemetry_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
 			switch (frsky_state) {
-				
+
 			case SCANNING:
 				PX4_INFO("running: SCANNING");
-				PX4_INFO("port: %s\n", device_name);
-				exit(0);
+				PX4_INFO("port: %s", device_name);
+				return 0;
 				break;
-			
+
 			case SPORT:
 				PX4_INFO("running: SPORT");
-				PX4_INFO("port: %s\n", device_name);
-				PX4_INFO("packets sent: %d\n", sentPackets);
-				exit(0);
+				PX4_INFO("port: %s", device_name);
+				PX4_INFO("packets sent: %d", sentPackets);
+				return 0;
 				break;
 
 			case DTYPE:
 				PX4_INFO("running: DTYPE");
-				PX4_INFO("port: %s\n", device_name);
-				PX4_INFO("packets sent: %d\n", sentPackets);
-				exit(0);
+				PX4_INFO("port: %s", device_name);
+				PX4_INFO("packets sent: %d", sentPackets);
+				return 0;
 				break;
 			}
 
 		} else {
 			PX4_INFO("not running");
-			exit(0);
+			return 0;
 		}
 	}
 
