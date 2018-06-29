@@ -1984,18 +1984,12 @@ void Ekf2::update_gps_blend_states(void)
 	float blended_alt_offset_mm = 0.0f;
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
-		if (_blend_weights[i] > 0.0f) {
+		if ((_blend_weights[i] > 0.0f) && (i != _gps_best_index)) {
 			// calculate the horizontal offset
 			Vector2f horiz_offset{};
-
-			if (i != _gps_best_index) {
-				get_vector_to_next_waypoint((_gps_blended_state.lat / 1.0e7),
-							    (_gps_blended_state.lon / 1.0e7), (_gps_state[i].lat / 1.0e7), (_gps_state[i].lon / 1.0e7),
-							    &horiz_offset(0), &horiz_offset(1));
-
-			} else {
-				horiz_offset.zero();
-			}
+			get_vector_to_next_waypoint((_gps_blended_state.lat / 1.0e7),
+						    (_gps_blended_state.lon / 1.0e7), (_gps_state[i].lat / 1.0e7), (_gps_state[i].lon / 1.0e7),
+						    &horiz_offset(0), &horiz_offset(1));
 
 			// sum weighted offsets
 			blended_NE_offset_m += horiz_offset * _blend_weights[i];
