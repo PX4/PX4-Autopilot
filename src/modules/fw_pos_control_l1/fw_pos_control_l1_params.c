@@ -278,7 +278,7 @@ PARAM_DEFINE_FLOAT(FW_LND_HVIRT, 10.0f);
  * @increment 0.5
  * @group FW L1 Control
  */
-PARAM_DEFINE_FLOAT(FW_LND_FLALT, 8.0f);
+PARAM_DEFINE_FLOAT(FW_LND_FLALT, 3.0f);
 
 /**
  * Landing throttle limit altitude (relative landing altitude)
