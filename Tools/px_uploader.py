@@ -191,8 +191,11 @@ class uploader(object):
     MAVLINK_REBOOT_ID0 = bytearray(b'\xfe\x21\x45\xff\x00\x4c\x00\x00\x40\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x00\x00\x00\xcc\x37')
 
     def __init__(self, portname, baudrate_bootloader, baudrate_flightstack):
-        # open the port, keep the default timeout short so we can poll quickly
-        self.port = serial.Serial(portname, baudrate_bootloader, timeout=0.5)
+        # Open the port, keep the default timeout short so we can poll quickly.
+        # On some systems writes can suddenly get stuck without having a
+        # write_timeout > 0 set.
+        self.port = serial.Serial(portname, baudrate_bootloader, timeout=0.5, write_timeout=0.5)
+        # self.port.write_timeout = 0.5
         self.otp = b''
         self.sn = b''
         self.baudrate_bootloader = baudrate_bootloader
@@ -230,7 +233,14 @@ class uploader(object):
 
     def __send(self, c):
         # print("send " + binascii.hexlify(c))
-        self.port.write(c)
+        while True:
+            try:
+                self.port.write(c)
+                break
+            except serial.SerialTimeoutException as e:
+                print("Write timeout (%s), trying again" % e)
+                time.sleep(0.04)
+                continue
 
     def __recv(self, count=1):
         c = self.port.read(count)
