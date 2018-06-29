@@ -35,6 +35,7 @@
 
 #include "subscriber_handler.h"
 #include "status_display.h"
+#include "rc_loss_alarm.h"
 
 #include <px4_workqueue.h>
 #include <px4_module.h>
@@ -84,5 +85,6 @@ private:
 	static struct work_s _work;
 	events::SubscriberHandler _subscriber_handler;
 	status::StatusDisplay _status_display;
+	RC_Loss_Alarm _rc_loss_alarm;
 	orb_advert_t _command_ack_pub = nullptr;
 };

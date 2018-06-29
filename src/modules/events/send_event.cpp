@@ -64,7 +64,7 @@ int SendEvent::task_spawn(int argc, char *argv[])
 }
 
 SendEvent::SendEvent()
-	: _status_display(_subscriber_handler)
+	: _status_display(_subscriber_handler), _rc_loss_alarm(_subscriber_handler)
 {
 }
 
@@ -117,6 +117,7 @@ void SendEvent::cycle()
 	process_commands();
 
 	_status_display.process();
+	_rc_loss_alarm.process();
 
 	work_queue(LPWORK, &_work, (worker_t)&SendEvent::cycle_trampoline, this,
 		   USEC2TICK(SEND_EVENT_INTERVAL_US));
@@ -200,7 +201,7 @@ int SendEvent::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 Background process running periodically on the LP work queue to perform housekeeping tasks.
-It is currently only responsible for temperature calibration.
+It is currently only responsible for temperature calibration and tone alarm on RC Loss.
 
 The tasks can be started via CLI or uORB topics (vehicle_command from MAVLink, etc.).
 )DESCR_STR");
