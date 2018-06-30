@@ -501,8 +501,8 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 		double lat_start = lat_now + start_disp_y * cos(lat_now) / 111111.0;
 		double lon_end = lon_now + end_disp_x / 111111.0;
 		double lat_end = lat_now + end_disp_y * cos(lat_now) / 111111.0;
-		double dist_to_start = get_distance_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
-		double dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
+		float dist_to_start = get_distance_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
+		float dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 
 		if (dist_to_start < dist_to_end) {
 			crosstrack_error->distance = dist_to_start;
