@@ -53,7 +53,6 @@ endif()
 # TODO: find a better way to do this
 if (NOT "${CONFIG}" MATCHES "px4io")
 	px4_add_library(systemlib ${SRCS})
-	target_compile_options(systemlib PRIVATE -Wno-sign-compare)
 else()
 	add_library(systemlib ${PX4_SOURCE_DIR}/src/platforms/empty.c)
 	add_dependencies(systemlib prebuild_targets)

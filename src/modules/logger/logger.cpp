@@ -888,7 +888,8 @@ void Logger::run()
 	}
 
 	//all topics added. Get required message buffer size
-	int max_msg_size = 0, ret;
+	int max_msg_size = 0;
+	int ret = 0;
 
 	for (const auto &subscription : _subscriptions) {
 		//use o_size, because that's what orb_copy will use
@@ -899,7 +900,7 @@ void Logger::run()
 
 	max_msg_size += sizeof(ulog_message_data_header_s);
 
-	if (sizeof(ulog_message_logging_s) > max_msg_size) {
+	if (sizeof(ulog_message_logging_s) > (size_t)max_msg_size) {
 		max_msg_size = sizeof(ulog_message_logging_s);
 	}
 
@@ -1161,7 +1162,7 @@ void Logger::run()
 
 			/* subscription update */
 			if (next_subscribe_topic_index != -1) {
-				if (++next_subscribe_topic_index >= _subscriptions.size()) {
+				if (++next_subscribe_topic_index >= (int)_subscriptions.size()) {
 					next_subscribe_topic_index = -1;
 					next_subscribe_check = loop_time + TRY_SUBSCRIBE_INTERVAL;
 				}
@@ -1199,7 +1200,7 @@ void Logger::run()
 						try_to_subscribe_topic(_subscriptions[next_subscribe_topic_index], instance);
 					}
 				}
-				if (++next_subscribe_topic_index >= _subscriptions.size()) {
+				if (++next_subscribe_topic_index >= (int)_subscriptions.size()) {
 					next_subscribe_topic_index = -1;
 					next_subscribe_check = loop_time + TRY_SUBSCRIBE_INTERVAL;
 				}
@@ -1310,7 +1311,7 @@ int Logger::create_log_dir(tm *tt)
 	if (tt) {
 		int n = snprintf(_log_dir, sizeof(_log_dir), "%s/", LOG_ROOT);
 
-		if (n >= sizeof(_log_dir)) {
+		if (n >= (int)sizeof(_log_dir)) {
 			PX4_ERR("log path too long");
 			return -1;
 		}
@@ -1331,7 +1332,7 @@ int Logger::create_log_dir(tm *tt)
 			/* format log dir: e.g. /fs/microsd/sess001 */
 			int n = snprintf(_log_dir, sizeof(_log_dir), "%s/sess%03u", LOG_ROOT, dir_number);
 
-			if (n >= sizeof(_log_dir)) {
+			if (n >= (int)sizeof(_log_dir)) {
 				PX4_ERR("log path too long (%i)", n);
 				return -1;
 			}
@@ -2149,7 +2150,7 @@ int Logger::check_free_space()
 				     day_min);
 		}
 
-		if (n >= sizeof(directory_to_delete)) {
+		if (n >= (int)sizeof(directory_to_delete)) {
 			PX4_ERR("log path too long (%i)", n);
 			break;
 		}

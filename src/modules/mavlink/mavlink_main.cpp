@@ -115,7 +115,7 @@ extern mavlink_system_t mavlink_system;
 
 void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int length)
 {
-	Mavlink *m = Mavlink::get_instance((unsigned)chan);
+	Mavlink *m = Mavlink::get_instance(chan);
 
 	if (m != nullptr) {
 		m->send_bytes(ch, length);
@@ -131,7 +131,7 @@ void mavlink_send_uart_bytes(mavlink_channel_t chan, const uint8_t *ch, int leng
 
 void mavlink_start_uart_send(mavlink_channel_t chan, int length)
 {
-	Mavlink *m = Mavlink::get_instance((unsigned)chan);
+	Mavlink *m = Mavlink::get_instance(chan);
 
 	if (m != nullptr) {
 		(void)m->begin_send();
@@ -143,7 +143,7 @@ void mavlink_start_uart_send(mavlink_channel_t chan, int length)
 
 void mavlink_end_uart_send(mavlink_channel_t chan, int length)
 {
-	Mavlink *m = Mavlink::get_instance((unsigned)chan);
+	Mavlink *m = Mavlink::get_instance(chan);
 
 	if (m != nullptr) {
 		(void)m->send_packet();
@@ -158,7 +158,7 @@ void mavlink_end_uart_send(mavlink_channel_t chan, int length)
  */
 mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
 {
-	Mavlink *m = Mavlink::get_instance((unsigned)channel);
+	Mavlink *m = Mavlink::get_instance(channel);
 
 	if (m != nullptr) {
 		return m->get_status();
@@ -173,7 +173,7 @@ mavlink_status_t *mavlink_get_channel_status(uint8_t channel)
  */
 mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel)
 {
-	Mavlink *m = Mavlink::get_instance((unsigned)channel);
+	Mavlink *m = Mavlink::get_instance(channel);
 
 	if (m != nullptr) {
 		return m->get_buffer();
@@ -386,7 +386,7 @@ Mavlink::instance_count()
 }
 
 Mavlink *
-Mavlink::get_instance(unsigned instance)
+Mavlink::get_instance(int instance)
 {
 	Mavlink *inst;
 	LL_FOREACH(::_mavlink_instances, inst) {
@@ -524,8 +524,8 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 			const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
 
 			// Extract target system and target component if set
-			unsigned target_system_id = (meta->target_system_ofs != 0) ? ((uint8_t *)msg)[meta->target_system_ofs] : 0;
-			unsigned target_component_id = (meta->target_component_ofs != 0) ? ((uint8_t *)msg)[meta->target_component_ofs] : 233;
+			int target_system_id = (meta->target_system_ofs != 0) ? ((uint8_t *)msg)[meta->target_system_ofs] : 0;
+			int target_component_id = (meta->target_component_ofs != 0) ? ((uint8_t *)msg)[meta->target_component_ofs] : 233;
 
 			// Broadcast or addressing this system and not trying to talk
 			// to the autopilot component -> pass on to other components
@@ -1088,7 +1088,7 @@ Mavlink::find_broadcast_address()
 		return;
 	}
 
-	size_t offset = 0;
+	int offset = 0;
 	// Later used to point to next network interface in buffer.
 	struct ifreq *cur_ifreq = (struct ifreq *) & (((uint8_t *)ifconf.ifc_req)[offset]);
 

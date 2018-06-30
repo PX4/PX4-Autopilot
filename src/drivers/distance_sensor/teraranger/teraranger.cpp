@@ -125,7 +125,7 @@ private:
 	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
 	uint8_t				_valid;
-	int					_measure_ticks;
+	int				_measure_ticks;
 	bool				_collect_phase;
 	int				_class_instance;
 	int				_orb_class_instance;

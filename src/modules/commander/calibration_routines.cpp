@@ -238,7 +238,7 @@ int sphere_fit_least_squares(const float x[], const float y[], const float z[],
 }
 
 int ellipsoid_fit_least_squares(const float x[], const float y[], const float z[],
-				unsigned int size, unsigned int max_iterations, float delta, float *offset_x, float *offset_y, float *offset_z,
+				unsigned int size, int max_iterations, float delta, float *offset_x, float *offset_y, float *offset_z,
 				float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y, float *offdiag_z)
 {
 	float _fitness = 1.0e30f, _sphere_lambda = 1.0f, _ellipsoid_lambda = 1.0f;

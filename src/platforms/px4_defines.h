@@ -167,7 +167,7 @@ using ::isfinite;
 /* FIXME - Used to satisfy build */
 #define getreg32(a)    (*(volatile uint32_t *)(a))
 
-#define USEC_PER_TICK (1000000UL/PX4_TICKS_PER_SEC)
+#define USEC_PER_TICK (1000000/PX4_TICKS_PER_SEC)
 #define USEC2TICK(x) (((x)+(USEC_PER_TICK/2))/USEC_PER_TICK)
 
 #define px4_statfs_buf_f_bavail_t unsigned long
