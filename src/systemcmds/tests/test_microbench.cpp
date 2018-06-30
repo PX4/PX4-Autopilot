@@ -9,6 +9,13 @@
 #include <px4_config.h>
 #include <px4_micro_hal.h>
 
+#include <matrix/math.hpp>
+
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_status.h>
+
 #ifdef __PX4_NUTTX
 #include <nuttx/irq.h>
 static irqstate_t flags;
@@ -63,29 +70,41 @@ private:
 
 	bool time_px4_hrt();
 
+	bool time_px4_uorb();
+
+	bool time_px4_matrix();
+
 	void reset();
 
 
-	volatile float f32;
-	volatile float f32_out;
+	float f32;
+	float f32_out;
 
-	volatile double f64;
-	volatile double f64_out;
+	double f64;
+	double f64_out;
 
-	volatile uint8_t i_8;
-	volatile uint8_t i_8_out;
+	uint8_t i_8;
+	uint8_t i_8_out;
 
-	volatile uint16_t i_16;
-	volatile uint16_t i_16_out;
+	uint16_t i_16;
+	uint16_t i_16_out;
 
-	volatile uint32_t i_32;
-	volatile uint32_t i_32_out;
+	uint32_t i_32;
+	uint32_t i_32_out;
 
-	volatile int64_t i_64;
-	volatile int64_t i_64_out;
+	int64_t i_64;
+	int64_t i_64_out;
 
-	volatile uint64_t u_64;
-	volatile uint64_t u_64_out;
+	uint64_t u_64;
+	uint64_t u_64_out;
+
+	vehicle_status_s status;
+	vehicle_local_position_s lpos;
+	sensor_gyro_s gyro;
+
+	matrix::Quatf q;
+	matrix::Eulerf e;
+	matrix::Dcmf d;
 };
 
 bool MicroBench::run_tests()
@@ -99,6 +118,8 @@ bool MicroBench::run_tests()
 	ut_run_test(time_32bit_integers);
 	ut_run_test(time_64bit_integers);
 	ut_run_test(time_px4_hrt);
+	ut_run_test(time_px4_uorb);
+	ut_run_test(time_px4_matrix);
 
 	return (_tests_failed == 0);
 }
@@ -135,6 +156,19 @@ void MicroBench::reset()
 
 	u_64 = rand();
 	u_64_out = rand();
+
+	status.timestamp = rand();
+	status.mission_failure = rand();
+
+	lpos.timestamp = rand();
+	lpos.dist_bottom_valid = rand();
+
+	gyro.timestamp = rand();
+	gyro.temperature_raw = rand();
+
+	q = matrix::Quatf(rand(), rand(), rand(), rand());
+	e = matrix::Eulerf(random(-2.0 * M_PI, 2.0 * M_PI), random(-2.0 * M_PI, 2.0 * M_PI), random(-2.0 * M_PI, 2.0 * M_PI));
+	d = q;
 }
 
 ut_declare_test_c(test_microbench, MicroBench)
@@ -234,6 +268,55 @@ bool MicroBench::time_px4_hrt()
 {
 	PERF("hrt_absolute_time()", u_64_out = hrt_absolute_time(), 1000);
 	PERF("hrt_elapsed_time()", u_64_out = hrt_elapsed_time(&u_64), 1000);
+
+	return true;
+}
+
+bool MicroBench::time_px4_uorb()
+{
+	int fd_status = orb_subscribe(ORB_ID(vehicle_status));
+	int fd_lpos = orb_subscribe(ORB_ID(vehicle_local_position));
+	int fd_gyro = orb_subscribe(ORB_ID(sensor_gyro));
+
+	int ret = 0;
+	bool updated = false;
+	uint64_t time = 0;
+
+	PERF("orb_check vehicle_status", ret = orb_check(fd_status, &updated), 1000);
+	PERF("orb_stat vehicle_status", ret = orb_stat(fd_status, &time), 1000);
+	PERF("orb_copy vehicle_status", ret = orb_copy(ORB_ID(vehicle_status), fd_status, &status), 1000);
+
+	PERF("orb_check vehicle_local_position", ret = orb_check(fd_lpos, &updated), 1000);
+	PERF("orb_stat vehicle_local_position", ret = orb_stat(fd_lpos, &time), 1000);
+	PERF("orb_copy vehicle_local_position", ret = orb_copy(ORB_ID(vehicle_local_position), fd_lpos, &lpos), 1000);
+
+	PERF("orb_check sensor_gyro", ret = orb_check(fd_gyro, &updated), 1000);
+	PERF("orb_stat sensor_gyro", ret = orb_stat(fd_gyro, &time), 1000);
+	PERF("orb_copy sensor_gyro", ret = orb_copy(ORB_ID(sensor_gyro), fd_gyro, &lpos), 1000);
+
+	PERF("orb_exists sensor_accel 0", ret = orb_exists(ORB_ID(sensor_accel), 0), 100);
+	PERF("orb_exists sensor_accel 1", ret = orb_exists(ORB_ID(sensor_accel), 1), 100);
+	PERF("orb_exists sensor_accel 2", ret = orb_exists(ORB_ID(sensor_accel), 2), 100);
+	PERF("orb_exists sensor_accel 3", ret = orb_exists(ORB_ID(sensor_accel), 3), 100);
+	PERF("orb_exists sensor_accel 4", ret = orb_exists(ORB_ID(sensor_accel), 4), 100);
+
+	orb_unsubscribe(fd_status);
+	orb_unsubscribe(fd_lpos);
+	orb_unsubscribe(fd_gyro);
+
+	return true;
+}
+
+bool MicroBench::time_px4_matrix()
+{
+	PERF("matrix Euler from Quaternion", e = q, 1000);
+	PERF("matrix Euler from Dcm", e = d, 1000);
+
+	PERF("matrix Quaternion from Euler", q = e, 1000);
+	PERF("matrix Quaternion from Dcm", q = d, 1000);
+
+	PERF("matrix Dcm from Euler", d = e, 1000);
+	PERF("matrix Dcm from Quaternion", d = q, 1000);
 
 	return true;
 }
