@@ -1,3 +1,35 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
 
 #include <unit_test.h>
 
@@ -9,12 +41,8 @@
 #include <px4_config.h>
 #include <px4_micro_hal.h>
 
-#include <matrix/math.hpp>
-
-#include <uORB/topics/sensor_accel.h>
-#include <uORB/topics/sensor_gyro.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_status.h>
+namespace MicroBenchMath
+{
 
 #ifdef __PX4_NUTTX
 #include <nuttx/irq.h>
@@ -51,31 +79,24 @@ void unlock()
 		perf_free(p); \
 	} while (0)
 
-class MicroBench : public UnitTest
+class MicroBenchMath : public UnitTest
 {
 public:
 	virtual bool run_tests();
 
 private:
-	bool time_single_prevision_float();
-	bool time_single_prevision_float_trig();
+	bool time_single_precision_float();
+	bool time_single_precision_float_trig();
 
-	bool time_double_prevision_float();
-	bool time_double_prevision_float_trig();
+	bool time_double_precision_float();
+	bool time_double_precision_float_trig();
 
 	bool time_8bit_integers();
 	bool time_16bit_integers();
 	bool time_32bit_integers();
 	bool time_64bit_integers();
 
-	bool time_px4_hrt();
-
-	bool time_px4_uorb();
-
-	bool time_px4_matrix();
-
 	void reset();
-
 
 	float f32;
 	float f32_out;
@@ -97,29 +118,18 @@ private:
 
 	uint64_t u_64;
 	uint64_t u_64_out;
-
-	vehicle_status_s status;
-	vehicle_local_position_s lpos;
-	sensor_gyro_s gyro;
-
-	matrix::Quatf q;
-	matrix::Eulerf e;
-	matrix::Dcmf d;
 };
 
-bool MicroBench::run_tests()
+bool MicroBenchMath::run_tests()
 {
-	ut_run_test(time_single_prevision_float);
-	ut_run_test(time_single_prevision_float_trig);
-	ut_run_test(time_double_prevision_float);
-	ut_run_test(time_double_prevision_float_trig);
+	ut_run_test(time_single_precision_float);
+	ut_run_test(time_single_precision_float_trig);
+	ut_run_test(time_double_precision_float);
+	ut_run_test(time_double_precision_float_trig);
 	ut_run_test(time_8bit_integers);
 	ut_run_test(time_16bit_integers);
 	ut_run_test(time_32bit_integers);
 	ut_run_test(time_64bit_integers);
-	ut_run_test(time_px4_hrt);
-	ut_run_test(time_px4_uorb);
-	ut_run_test(time_px4_matrix);
 
 	return (_tests_failed == 0);
 }
@@ -131,7 +141,7 @@ T random(T min, T max)
 	return min + scale * (max - min);      /* [min, max] */
 }
 
-void MicroBench::reset()
+void MicroBenchMath::reset()
 {
 	srand(time(nullptr));
 
@@ -156,24 +166,11 @@ void MicroBench::reset()
 
 	u_64 = rand();
 	u_64_out = rand();
-
-	status.timestamp = rand();
-	status.mission_failure = rand();
-
-	lpos.timestamp = rand();
-	lpos.dist_bottom_valid = rand();
-
-	gyro.timestamp = rand();
-	gyro.temperature_raw = rand();
-
-	q = matrix::Quatf(rand(), rand(), rand(), rand());
-	e = matrix::Eulerf(random(-2.0 * M_PI, 2.0 * M_PI), random(-2.0 * M_PI, 2.0 * M_PI), random(-2.0 * M_PI, 2.0 * M_PI));
-	d = q;
 }
 
-ut_declare_test_c(test_microbench, MicroBench)
+ut_declare_test_c(test_microbench_math, MicroBenchMath)
 
-bool MicroBench::time_single_prevision_float()
+bool MicroBenchMath::time_single_precision_float()
 {
 	PERF("float add", f32_out += f32, 1000);
 	PERF("float sub", f32_out -= f32, 1000);
@@ -184,7 +181,7 @@ bool MicroBench::time_single_prevision_float()
 	return true;
 }
 
-bool MicroBench::time_single_prevision_float_trig()
+bool MicroBenchMath::time_single_precision_float_trig()
 {
 	PERF("sinf()", f32_out = sinf(f32), 1000);
 	PERF("cosf()", f32_out = cosf(f32), 1000);
@@ -197,7 +194,7 @@ bool MicroBench::time_single_prevision_float_trig()
 	return true;
 }
 
-bool MicroBench::time_double_prevision_float()
+bool MicroBenchMath::time_double_precision_float()
 {
 	PERF("double add", f64_out += f64, 1000);
 	PERF("double sub", f64_out -= f64, 1000);
@@ -208,7 +205,7 @@ bool MicroBench::time_double_prevision_float()
 	return true;
 }
 
-bool MicroBench::time_double_prevision_float_trig()
+bool MicroBenchMath::time_double_precision_float_trig()
 {
 	PERF("sin()", f64_out = sin(f64), 1000);
 	PERF("cos()", f64_out = cos(f64), 1000);
@@ -224,7 +221,7 @@ bool MicroBench::time_double_prevision_float_trig()
 }
 
 
-bool MicroBench::time_8bit_integers()
+bool MicroBenchMath::time_8bit_integers()
 {
 	PERF("int8 add", i_8_out += i_8, 1000);
 	PERF("int8 sub", i_8_out -= i_8, 1000);
@@ -234,7 +231,7 @@ bool MicroBench::time_8bit_integers()
 	return true;
 }
 
-bool MicroBench::time_16bit_integers()
+bool MicroBenchMath::time_16bit_integers()
 {
 	PERF("int16 add", i_16_out += i_16, 1000);
 	PERF("int16 sub", i_16_out -= i_16, 1000);
@@ -244,7 +241,7 @@ bool MicroBench::time_16bit_integers()
 	return true;
 }
 
-bool MicroBench::time_32bit_integers()
+bool MicroBenchMath::time_32bit_integers()
 {
 	PERF("int32 add", i_32_out += i_32, 1000);
 	PERF("int32 sub", i_32_out -= i_32, 1000);
@@ -254,7 +251,7 @@ bool MicroBench::time_32bit_integers()
 	return true;
 }
 
-bool MicroBench::time_64bit_integers()
+bool MicroBenchMath::time_64bit_integers()
 {
 	PERF("int64 add", i_64_out += i_64, 1000);
 	PERF("int64 sub", i_64_out -= i_64, 1000);
@@ -264,59 +261,4 @@ bool MicroBench::time_64bit_integers()
 	return true;
 }
 
-bool MicroBench::time_px4_hrt()
-{
-	PERF("hrt_absolute_time()", u_64_out = hrt_absolute_time(), 1000);
-	PERF("hrt_elapsed_time()", u_64_out = hrt_elapsed_time(&u_64), 1000);
-
-	return true;
-}
-
-bool MicroBench::time_px4_uorb()
-{
-	int fd_status = orb_subscribe(ORB_ID(vehicle_status));
-	int fd_lpos = orb_subscribe(ORB_ID(vehicle_local_position));
-	int fd_gyro = orb_subscribe(ORB_ID(sensor_gyro));
-
-	int ret = 0;
-	bool updated = false;
-	uint64_t time = 0;
-
-	PERF("orb_check vehicle_status", ret = orb_check(fd_status, &updated), 1000);
-	PERF("orb_stat vehicle_status", ret = orb_stat(fd_status, &time), 1000);
-	PERF("orb_copy vehicle_status", ret = orb_copy(ORB_ID(vehicle_status), fd_status, &status), 1000);
-
-	PERF("orb_check vehicle_local_position", ret = orb_check(fd_lpos, &updated), 1000);
-	PERF("orb_stat vehicle_local_position", ret = orb_stat(fd_lpos, &time), 1000);
-	PERF("orb_copy vehicle_local_position", ret = orb_copy(ORB_ID(vehicle_local_position), fd_lpos, &lpos), 1000);
-
-	PERF("orb_check sensor_gyro", ret = orb_check(fd_gyro, &updated), 1000);
-	PERF("orb_stat sensor_gyro", ret = orb_stat(fd_gyro, &time), 1000);
-	PERF("orb_copy sensor_gyro", ret = orb_copy(ORB_ID(sensor_gyro), fd_gyro, &lpos), 1000);
-
-	PERF("orb_exists sensor_accel 0", ret = orb_exists(ORB_ID(sensor_accel), 0), 100);
-	PERF("orb_exists sensor_accel 1", ret = orb_exists(ORB_ID(sensor_accel), 1), 100);
-	PERF("orb_exists sensor_accel 2", ret = orb_exists(ORB_ID(sensor_accel), 2), 100);
-	PERF("orb_exists sensor_accel 3", ret = orb_exists(ORB_ID(sensor_accel), 3), 100);
-	PERF("orb_exists sensor_accel 4", ret = orb_exists(ORB_ID(sensor_accel), 4), 100);
-
-	orb_unsubscribe(fd_status);
-	orb_unsubscribe(fd_lpos);
-	orb_unsubscribe(fd_gyro);
-
-	return true;
-}
-
-bool MicroBench::time_px4_matrix()
-{
-	PERF("matrix Euler from Quaternion", e = q, 1000);
-	PERF("matrix Euler from Dcm", e = d, 1000);
-
-	PERF("matrix Quaternion from Euler", q = e, 1000);
-	PERF("matrix Quaternion from Dcm", q = d, 1000);
-
-	PERF("matrix Dcm from Euler", d = e, 1000);
-	PERF("matrix Dcm from Quaternion", d = q, 1000);
-
-	return true;
-}
+} // namespace MicroBenchMath
