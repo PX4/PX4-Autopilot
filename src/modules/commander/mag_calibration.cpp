@@ -609,7 +609,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 				// and match it up with the one from the uORB subscription, because the
 				// instance ordering of uORB and the order of the FDs may not be the same.
 
-				if(report.device_id == device_ids[cur_mag]) {
+				if (report.device_id == (uint32_t)device_ids[cur_mag]) {
 					// Device IDs match, correct ORB instance for this mag
 					found_cur_mag = true;
 				} else {

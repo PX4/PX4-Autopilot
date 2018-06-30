@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__tfmini
 	MAIN tfmini
 	COMPILE_FLAGS
-		-Wno-sign-compare
 	SRCS
 		tfmini.cpp
 		tfmini_parser.cpp

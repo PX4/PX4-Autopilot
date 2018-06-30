@@ -173,7 +173,7 @@ void write_test(int fd, uint8_t *block, int block_size)
 		unsigned int max_write_time = 0;
 		unsigned int fsync_time = 0;
 
-		while (hrt_elapsed_time(&start) < run_duration * 1000) {
+		while ((int64_t)hrt_elapsed_time(&start) < run_duration * 1000) {
 
 			hrt_abstime write_start = hrt_absolute_time();
 			size_t written = write(fd, block, block_size);

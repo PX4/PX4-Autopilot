@@ -488,7 +488,7 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 			// and match it up with the one from the uORB subscription, because the
 			// instance ordering of uORB and the order of the FDs may not be the same.
 
-			if(report.device_id == device_id[cur_accel]) {
+			if (report.device_id == (uint32_t)device_id[cur_accel]) {
 				// Device IDs match, correct ORB instance for this accel
 				found_cur_accel = true;
 				// store initial timestamp - used to infer which sensors are active

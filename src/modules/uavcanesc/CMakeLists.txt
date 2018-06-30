@@ -71,7 +71,6 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-deprecated-declarations
 		-O3
-		-Wno-sign-compare
 	SRCS
 		uavcanesc_main.cpp
 		indication_controller.cpp
