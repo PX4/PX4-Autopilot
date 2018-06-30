@@ -36,7 +36,6 @@ px4_add_module(
 	MAIN send_event
 	STACK_MAIN 2200
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
 	SRCS
 		send_event.cpp
 		temperature_calibration/accel.cpp

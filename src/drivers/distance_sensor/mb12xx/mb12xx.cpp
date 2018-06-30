@@ -118,9 +118,9 @@ private:
 	float				_min_distance;
 	float				_max_distance;
 	work_s				_work;
-	ringbuffer::RingBuffer	*_reports;
+	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
-	int					_measure_ticks;
+	int				_measure_ticks;
 	bool				_collect_phase;
 	int				_class_instance;
 	int				_orb_class_instance;

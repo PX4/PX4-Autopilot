@@ -610,7 +610,7 @@ int uORBTest::UnitTest::test_queue()
 	}
 
 
-	const unsigned int queue_size = 11;
+	const int queue_size = 11;
 	t.val = 0;
 	ptopic = orb_advertise_queue(ORB_ID(orb_test_medium_queue), &t, queue_size);
 
@@ -658,12 +658,12 @@ int uORBTest::UnitTest::test_queue()
 
 	test_note("  Testing to write some elements...");
 
-	for (unsigned int i = 0; i < queue_size - 2; ++i) {
+	for (int i = 0; i < queue_size - 2; ++i) {
 		t.val = i;
 		orb_publish(ORB_ID(orb_test_medium_queue), ptopic, &t);
 	}
 
-	for (unsigned int i = 0; i < queue_size - 2; ++i) {
+	for (int i = 0; i < queue_size - 2; ++i) {
 		CHECK_UPDATED(i);
 		CHECK_COPY(u.val, i);
 	}
@@ -673,12 +673,12 @@ int uORBTest::UnitTest::test_queue()
 	test_note("  Testing overflow...");
 	int overflow_by = 3;
 
-	for (unsigned int i = 0; i < queue_size + overflow_by; ++i) {
+	for (int i = 0; i < queue_size + overflow_by; ++i) {
 		t.val = i;
 		orb_publish(ORB_ID(orb_test_medium_queue), ptopic, &t);
 	}
 
-	for (unsigned int i = 0; i < queue_size; ++i) {
+	for (int i = 0; i < queue_size; ++i) {
 		CHECK_UPDATED(i);
 		CHECK_COPY(u.val, i + overflow_by);
 	}
@@ -687,7 +687,7 @@ int uORBTest::UnitTest::test_queue()
 
 	test_note("  Testing underflow...");
 
-	for (unsigned int i = 0; i < queue_size; ++i) {
+	for (int i = 0; i < queue_size; ++i) {
 		CHECK_NOT_UPDATED(i);
 		CHECK_COPY(u.val, queue_size + overflow_by - 1);
 	}
@@ -717,7 +717,7 @@ int uORBTest::UnitTest::pub_test_queue_main()
 {
 	struct orb_test_medium t;
 	orb_advert_t ptopic;
-	const unsigned int queue_size = 50;
+	const int queue_size = 50;
 	t.val = 0;
 
 	if ((ptopic = orb_advertise_queue(ORB_ID(orb_test_medium_queue_poll), &t, queue_size)) == nullptr) {

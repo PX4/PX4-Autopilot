@@ -120,7 +120,7 @@ public:
 
 	static Mavlink		*new_instance();
 
-	static Mavlink		*get_instance(unsigned instance);
+	static Mavlink		*get_instance(int instance);
 
 	static Mavlink 		*get_instance_for_device(const char *device_name);
 
@@ -510,9 +510,9 @@ private:
 	orb_advert_t		_mavlink_log_pub;
 	bool			_task_running;
 	static bool		_boot_complete;
-	static constexpr unsigned MAVLINK_MAX_INSTANCES = 4;
-	static constexpr unsigned MAVLINK_MIN_INTERVAL = 1500;
-	static constexpr unsigned MAVLINK_MAX_INTERVAL = 10000;
+	static constexpr int MAVLINK_MAX_INSTANCES = 4;
+	static constexpr int MAVLINK_MIN_INTERVAL = 1500;
+	static constexpr int MAVLINK_MAX_INTERVAL = 10000;
 	static constexpr float MAVLINK_MIN_MULTIPLIER = 0.0005f;
 	mavlink_message_t _mavlink_buffer;
 	mavlink_status_t _mavlink_status;

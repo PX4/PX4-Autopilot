@@ -111,19 +111,19 @@ void VotedSensorsUpdate::initialize_sensors()
 
 void VotedSensorsUpdate::deinit()
 {
-	for (unsigned i = 0; i < _gyro.subscription_count; i++) {
+	for (int i = 0; i < _gyro.subscription_count; i++) {
 		orb_unsubscribe(_gyro.subscription[i]);
 	}
 
-	for (unsigned i = 0; i < _accel.subscription_count; i++) {
+	for (int i = 0; i < _accel.subscription_count; i++) {
 		orb_unsubscribe(_accel.subscription[i]);
 	}
 
-	for (unsigned i = 0; i < _mag.subscription_count; i++) {
+	for (int i = 0; i < _mag.subscription_count; i++) {
 		orb_unsubscribe(_mag.subscription[i]);
 	}
 
-	for (unsigned i = 0; i < _baro.subscription_count; i++) {
+	for (int i = 0; i < _baro.subscription_count; i++) {
 		orb_unsubscribe(_baro.subscription[i]);
 	}
 }
@@ -151,7 +151,7 @@ void VotedSensorsUpdate::parameters_update()
 	_temperature_compensation.parameters_update();
 
 	/* gyro */
-	for (unsigned topic_instance = 0; topic_instance < GYRO_COUNT_MAX; ++topic_instance) {
+	for (int topic_instance = 0; topic_instance < GYRO_COUNT_MAX; ++topic_instance) {
 
 		if (topic_instance < _gyro.subscription_count) {
 			// valid subscription, so get the driver id by getting the published sensor data
@@ -175,7 +175,7 @@ void VotedSensorsUpdate::parameters_update()
 
 
 	/* accel */
-	for (unsigned topic_instance = 0; topic_instance < ACCEL_COUNT_MAX; ++topic_instance) {
+	for (int topic_instance = 0; topic_instance < ACCEL_COUNT_MAX; ++topic_instance) {
 
 		if (topic_instance < _accel.subscription_count) {
 			// valid subscription, so get the driver id by getting the published sensor data
@@ -198,7 +198,7 @@ void VotedSensorsUpdate::parameters_update()
 	}
 
 	/* baro */
-	for (unsigned topic_instance = 0; topic_instance < BARO_COUNT_MAX; ++topic_instance) {
+	for (int topic_instance = 0; topic_instance < BARO_COUNT_MAX; ++topic_instance) {
 
 		if (topic_instance < _baro.subscription_count) {
 			// valid subscription, so get the driver id by getting the published sensor data
@@ -250,7 +250,7 @@ void VotedSensorsUpdate::parameters_update()
 			failed = false;
 
 			(void)sprintf(str, "CAL_GYRO%u_ID", i);
-			int32_t device_id;
+			int32_t device_id = 0;
 			failed = failed || (OK != param_get(param_find(str), &device_id));
 
 			(void)sprintf(str, "CAL_GYRO%u_EN", i);
@@ -268,7 +268,7 @@ void VotedSensorsUpdate::parameters_update()
 			}
 
 			/* if the calibration is for this device, apply it */
-			if (device_id == driver_device_id) {
+			if ((uint32_t)device_id == driver_device_id) {
 				struct gyro_calibration_s gscale = {};
 				(void)sprintf(str, "CAL_GYRO%u_XOFF", i);
 				failed = failed || (OK != param_get(param_find(str), &gscale.x_offset));
@@ -338,7 +338,7 @@ void VotedSensorsUpdate::parameters_update()
 			failed = false;
 
 			(void)sprintf(str, "CAL_ACC%u_ID", i);
-			int32_t device_id;
+			int32_t device_id = 0;
 			failed = failed || (OK != param_get(param_find(str), &device_id));
 
 			(void)sprintf(str, "CAL_ACC%u_EN", i);
@@ -356,7 +356,7 @@ void VotedSensorsUpdate::parameters_update()
 			}
 
 			/* if the calibration is for this device, apply it */
-			if (device_id == driver_device_id) {
+			if ((uint32_t)device_id == driver_device_id) {
 				struct accel_calibration_s ascale = {};
 				(void)sprintf(str, "CAL_ACC%u_XOFF", i);
 				failed = failed || (OK != param_get(param_find(str), &ascale.x_offset));
@@ -409,8 +409,8 @@ void VotedSensorsUpdate::parameters_update()
 	 * Because we store the device id in _mag_device_id, we need to get the id via uorb topic since
 	 * the DevHandle method does not work on POSIX.
 	 */
-	for (unsigned topic_instance = 0; topic_instance < MAG_COUNT_MAX && topic_instance < _mag.subscription_count;
-	     ++topic_instance) {
+	for (int topic_instance = 0; topic_instance < MAG_COUNT_MAX
+	     && topic_instance < _mag.subscription_count; ++topic_instance) {
 
 		struct mag_report report;
 
@@ -454,7 +454,7 @@ void VotedSensorsUpdate::parameters_update()
 			failed = false;
 
 			(void)sprintf(str, "CAL_MAG%u_ID", i);
-			int32_t device_id;
+			int32_t device_id = 0;
 			failed = failed || (OK != param_get(param_find(str), &device_id));
 
 			(void)sprintf(str, "CAL_MAG%u_EN", i);
@@ -468,7 +468,7 @@ void VotedSensorsUpdate::parameters_update()
 			}
 
 			/* if the calibration is for this device, apply it */
-			if (device_id == _mag_device_id[topic_instance]) {
+			if ((uint32_t)device_id == _mag_device_id[topic_instance]) {
 				struct mag_calibration_s mscale = {};
 				(void)sprintf(str, "CAL_MAG%u_XOFF", i);
 				failed = failed || (OK != param_get(param_find(str), &mscale.x_offset));
@@ -540,7 +540,7 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 	float *offsets[] = {_corrections.accel_offset_0, _corrections.accel_offset_1, _corrections.accel_offset_2 };
 	float *scales[] = {_corrections.accel_scale_0, _corrections.accel_scale_1, _corrections.accel_scale_2 };
 
-	for (unsigned uorb_index = 0; uorb_index < _accel.subscription_count; uorb_index++) {
+	for (int uorb_index = 0; uorb_index < _accel.subscription_count; uorb_index++) {
 		bool accel_updated;
 		orb_check(_accel.subscription[uorb_index], &accel_updated);
 
@@ -645,7 +645,7 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 	float *offsets[] = {_corrections.gyro_offset_0, _corrections.gyro_offset_1, _corrections.gyro_offset_2 };
 	float *scales[] = {_corrections.gyro_scale_0, _corrections.gyro_scale_1, _corrections.gyro_scale_2 };
 
-	for (unsigned uorb_index = 0; uorb_index < _gyro.subscription_count; uorb_index++) {
+	for (int uorb_index = 0; uorb_index < _gyro.subscription_count; uorb_index++) {
 		bool gyro_updated;
 		orb_check(_gyro.subscription[uorb_index], &gyro_updated);
 
@@ -748,7 +748,7 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 
 void VotedSensorsUpdate::mag_poll(vehicle_magnetometer_s &magnetometer)
 {
-	for (unsigned uorb_index = 0; uorb_index < _mag.subscription_count; uorb_index++) {
+	for (int uorb_index = 0; uorb_index < _mag.subscription_count; uorb_index++) {
 		bool mag_updated;
 		orb_check(_mag.subscription[uorb_index], &mag_updated);
 
@@ -800,7 +800,7 @@ void VotedSensorsUpdate::baro_poll(vehicle_air_data_s &airdata)
 	float *offsets[] = {&_corrections.baro_offset_0, &_corrections.baro_offset_1, &_corrections.baro_offset_2 };
 	float *scales[] = {&_corrections.baro_scale_0, &_corrections.baro_scale_1, &_corrections.baro_scale_2 };
 
-	for (unsigned uorb_index = 0; uorb_index < _baro.subscription_count; uorb_index++) {
+	for (int uorb_index = 0; uorb_index < _baro.subscription_count; uorb_index++) {
 		bool baro_updated;
 		orb_check(_baro.subscription[uorb_index], &baro_updated);
 
@@ -1115,7 +1115,7 @@ VotedSensorsUpdate::calc_accel_inconsistency(sensor_preflight_s &preflt)
 	unsigned check_index = 0; // the number of sensors the primary has been checked against
 
 	// Check each sensor against the primary
-	for (unsigned sensor_index = 0; sensor_index < _accel.subscription_count; sensor_index++) {
+	for (int sensor_index = 0; sensor_index < _accel.subscription_count; sensor_index++) {
 
 		// check that the sensor we are checking against is not the same as the primary
 		if ((_accel.priority[sensor_index] > 0) && (sensor_index != _accel.last_best_vote)) {
@@ -1164,7 +1164,7 @@ void VotedSensorsUpdate::calc_gyro_inconsistency(sensor_preflight_s &preflt)
 	unsigned check_index = 0; // the number of sensors the primary has been checked against
 
 	// Check each sensor against the primary
-	for (unsigned sensor_index = 0; sensor_index < _gyro.subscription_count; sensor_index++) {
+	for (int sensor_index = 0; sensor_index < _gyro.subscription_count; sensor_index++) {
 
 		// check that the sensor we are checking against is not the same as the primary
 		if ((_gyro.priority[sensor_index] > 0) && (sensor_index != _gyro.last_best_vote)) {
@@ -1213,7 +1213,7 @@ void VotedSensorsUpdate::calc_mag_inconsistency(sensor_preflight_s &preflt)
 	unsigned check_index = 0; // the number of sensors the primary has been checked against
 
 	// Check each sensor against the primary
-	for (unsigned sensor_index = 0; sensor_index < _mag.subscription_count; sensor_index++) {
+	for (int sensor_index = 0; sensor_index < _mag.subscription_count; sensor_index++) {
 
 		// check that the sensor we are checking against is not the same as the primary
 		if ((_mag.priority[sensor_index] > 0) && (sensor_index != _mag.last_best_vote)) {

@@ -105,7 +105,7 @@ private:
 	uint8_t _rotation;
 	float				_min_distance;
 	float				_max_distance;
-	int                 _conversion_interval;
+	int         		        _conversion_interval;
 	work_s				_work;
 	ringbuffer::RingBuffer		*_reports;
 	int				_measure_ticks;
@@ -419,7 +419,7 @@ SF0X::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
+					int ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
 					if (ticks < USEC2TICK(_conversion_interval)) {
@@ -564,7 +564,7 @@ SF0X::collect()
 	perf_begin(_sample_perf);
 
 	/* clear buffer if last read was too long ago */
-	uint64_t read_elapsed = hrt_elapsed_time(&_last_read);
+	int64_t read_elapsed = hrt_elapsed_time(&_last_read);
 
 	/* the buffer for read chars is buflen minus null termination */
 	char readbuf[sizeof(_linebuf)];

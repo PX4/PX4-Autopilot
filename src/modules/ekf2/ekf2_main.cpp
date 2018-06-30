@@ -130,8 +130,7 @@ private:
 	float _mag_data_sum[3] = {};			///< summed magnetometer readings (Gauss)
 	uint64_t _mag_time_sum_ms = 0;		///< summed magnetoemter time stamps (mSec)
 	uint8_t _mag_sample_count = 0;		///< number of magnetometer measurements summed during downsampling
-	uint32_t _mag_time_ms_last_used =
-		0;	///< time stamp of the last averaged magnetometer measurement sent to the EKF (mSec)
+	int32_t _mag_time_ms_last_used = 0;	///< time stamp of the last averaged magnetometer measurement sent to the EKF (mSec)
 
 	// Used to down sample barometer data
 	float _balt_data_sum = 0.0f;			///< summed pressure altitude readings (m)
@@ -724,7 +723,7 @@ void Ekf2::run()
 				// Do not reset parmameters when armed to prevent potential time slips casued by parameter set
 				// and notification events
 				// Check if there has been a persistant change in magnetometer ID
-				if (sensor_selection.mag_device_id != 0 && sensor_selection.mag_device_id != _mag_bias_id.get()) {
+				if (sensor_selection.mag_device_id != 0 && sensor_selection.mag_device_id != (uint32_t)_mag_bias_id.get()) {
 					if (_invalid_mag_id_count < 200) {
 						_invalid_mag_id_count++;
 					}
@@ -759,9 +758,9 @@ void Ekf2::run()
 				_mag_data_sum[0] += magnetometer.magnetometer_ga[0];
 				_mag_data_sum[1] += magnetometer.magnetometer_ga[1];
 				_mag_data_sum[2] += magnetometer.magnetometer_ga[2];
-				uint32_t mag_time_ms = _mag_time_sum_ms / _mag_sample_count;
+				int32_t mag_time_ms = _mag_time_sum_ms / _mag_sample_count;
 
-				if (mag_time_ms - _mag_time_ms_last_used > _params->sensor_interval_min_ms) {
+				if ((mag_time_ms - _mag_time_ms_last_used) > _params->sensor_interval_min_ms) {
 					const float mag_sample_count_inv = 1.0f / _mag_sample_count;
 					// calculate mean of measurements and correct for learned bias offsets
 					float mag_data_avg_ga[3] = {_mag_data_sum[0] *mag_sample_count_inv - _mag_bias_x.get(),
@@ -1337,7 +1336,7 @@ void Ekf2::run()
 				// Check and save the last valid calibration when we are disarmed
 				if ((vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
 				    && (status.filter_fault_flags == 0)
-				    && (sensor_selection.mag_device_id == _mag_bias_id.get())) {
+				    && (sensor_selection.mag_device_id == (uint32_t)_mag_bias_id.get())) {
 
 					update_mag_bias(_mag_bias_x, 0);
 					update_mag_bias(_mag_bias_y, 1);

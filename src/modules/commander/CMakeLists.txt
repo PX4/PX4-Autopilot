@@ -36,7 +36,6 @@ px4_add_module(
 	STACK_MAIN 4096
 	STACK_MAX 2450
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
 	SRCS
 		accelerometer_calibration.cpp
 		airspeed_calibration.cpp

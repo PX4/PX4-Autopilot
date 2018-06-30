@@ -808,7 +808,7 @@ static int  _ram_restart(dm_reset_reason reason)
 static int
 _file_restart(dm_reset_reason reason)
 {
-	unsigned offset = 0;
+	int offset = 0;
 	int result = 0;
 	/* We need to scan the entire file and invalidate and data that should not persist after the last reset */
 

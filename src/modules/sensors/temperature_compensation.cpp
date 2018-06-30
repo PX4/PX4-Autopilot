@@ -368,7 +368,7 @@ int TemperatureCompensation::set_sensor_id(uint32_t device_id, int topic_instanc
 		const T *sensor_cal_data, uint8_t sensor_count_max)
 {
 	for (int i = 0; i < sensor_count_max; ++i) {
-		if (device_id == sensor_cal_data[i].ID) {
+		if (device_id == (uint32_t)sensor_cal_data[i].ID) {
 			sensor_data.device_mapping[topic_instance] = i;
 			return i;
 		}
