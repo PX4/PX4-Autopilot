@@ -74,7 +74,7 @@ endforeach()
 
 set(cpu_flags)
 if (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m7")
-	set(cpu_flags "-mcpu=cortex-m7 -mthumb -mfpu=fpv5-sp-d16 -mfloat-abi=hard")
+	set(cpu_flags "-mcpu=cortex-m7 -mthumb -march=armv7e-m -mfpu=fpv5-d16 -mfloat-abi=hard")
 elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m4")
 	set(cpu_flags "-mcpu=cortex-m4 -mthumb -march=armv7e-m -mfpu=fpv4-sp-d16 -mfloat-abi=hard")
 elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m3")
