@@ -49,7 +49,10 @@ set(srcs
 	test_led.c
 	test_mathlib.cpp
 	test_matrix.cpp
-	test_microbench.cpp
+	test_microbench_hrt.cpp
+	test_microbench_math.cpp
+	test_microbench_matrix.cpp
+	test_microbench_uorb.cpp
 	test_mixer.cpp
 	test_mount.c
 	test_param.c
