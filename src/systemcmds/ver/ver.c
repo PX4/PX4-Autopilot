@@ -262,7 +262,7 @@ int ver_main(int argc, char *argv[])
 						printf("\nWARNING   WARNING   WARNING!\n"
 						       "Revision %c has a silicon errata:\n"
 						       "%s"
-						       "\nhttps://pixhawk.org/help/errata\n\n", rev, errata);
+						       "\nhttps://docs.px4.io/en/flight_controller/silicon_errata.html\n\n", rev, errata);
 					}
 				}
 
