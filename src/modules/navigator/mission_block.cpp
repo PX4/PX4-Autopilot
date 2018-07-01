@@ -59,8 +59,8 @@ using matrix::wrap_pi;
 MissionBlock::MissionBlock(Navigator *navigator) :
 	NavigatorMode(navigator)
 {
-	_mission_item.lat = NAN;
-	_mission_item.lon = NAN;
+	_mission_item.lat = (double)NAN;
+	_mission_item.lon = (double)NAN;
 
 	_mission_item.yaw = NAN;
 
