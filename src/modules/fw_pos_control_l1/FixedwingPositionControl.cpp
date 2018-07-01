@@ -975,7 +975,8 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 				/* Do not try to find a solution if the last waypoint is inside the acceptance radius of the current one */
 				if ((distance_current_previous - pos_sp_curr.acceptance_radius) > FLT_EPSILON) {
 					/* Calculate distance to current waypoint */
-					const float d_current = get_distance_to_next_waypoint(pos_sp_curr.lat, pos_sp_curr.lon, curr_pos(0), curr_pos(1));
+					const float d_current = get_distance_to_next_waypoint(pos_sp_curr.lat, pos_sp_curr.lon, (double)curr_pos(0),
+								(double)curr_pos(1));
 
 					/* Save distance to waypoint if it is the smallest ever achieved, however make sure that
 					 * min_current_sp_distance_xy is never larger than the distance between the current and the previous wp */
