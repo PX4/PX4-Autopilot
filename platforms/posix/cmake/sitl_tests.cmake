@@ -67,7 +67,6 @@ endforeach()
 set(test_cmds
 	hello
 	hrt_test
-	muorb_test
 	vcdev_test
 	wqueue_test
 	)

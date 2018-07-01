@@ -116,6 +116,7 @@ public:
 
 	static int        unadvertise(orb_advert_t handle);
 
+#ifdef ORB_COMMUNICATOR
 	static int16_t topic_advertised(const orb_metadata *meta, int priority);
 	//static int16_t topic_unadvertised(const orb_metadata *meta, int priority);
 
@@ -155,13 +156,14 @@ public:
 	 *   the Subscriber to be removed.
 	 */
 	void remove_internal_subscriber();
+#endif /* ORB_COMMUNICATOR */
 
 	/**
 	 * Return true if this topic has been published.
 	 *
 	 * This is used in the case of multi_pub/sub to check if it's valid to advertise
 	 * and publish to this node or if another node should be tried. */
-	bool is_published();
+	bool is_published() const { return _published; }
 
 	/**
 	 * Try to change the size of the queue. This can only be done as long as nobody published yet.
@@ -214,13 +216,13 @@ private:
 	};
 
 	const struct orb_metadata *_meta; /**< object metadata information */
-	uint8_t     *_data;   /**< allocated object buffer */
-	hrt_abstime   _last_update; /**< time the object was last updated */
-	volatile unsigned   _generation;  /**< object generation count */
+	uint8_t     *_data{nullptr};   /**< allocated object buffer */
+	hrt_abstime   _last_update{0}; /**< time the object was last updated */
+	volatile unsigned   _generation{0};  /**< object generation count */
 	uint8_t   _priority;  /**< priority of the topic */
-	bool _published;  /**< has ever data been published */
+	bool _published{false};  /**< has ever data been published */
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
-	int16_t _subscriber_count;
+	int16_t _subscriber_count{0};
 
 	inline static SubscriberData    *filp_to_sd(device::file_t *filp);
 

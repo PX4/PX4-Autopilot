@@ -55,7 +55,6 @@ set(config_module_list
 
 	platforms/posix/tests/hello
 	platforms/posix/tests/hrt_test
-	platforms/posix/tests/muorb
 	platforms/posix/tests/vcdev_test
 
 	#

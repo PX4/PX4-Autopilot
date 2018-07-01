@@ -19,7 +19,7 @@ else()
 endif()
 
 set(CONFIG_SHMEM "1")
-
+add_definitions(-DORB_COMMUNICATOR)
 
 set(config_module_list
 	drivers/blinkm
