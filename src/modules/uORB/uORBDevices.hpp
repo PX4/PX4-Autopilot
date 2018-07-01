@@ -227,10 +227,10 @@ private:
 	inline static SubscriberData    *filp_to_sd(device::file_t *filp);
 
 #ifdef __PX4_NUTTX
-	pid_t     _publisher; /**< if nonzero, current publisher. Only used inside the advertise call.
+	pid_t     _publisher {0}; /**< if nonzero, current publisher. Only used inside the advertise call.
 					We allow one publisher to have an open file descriptor at the same time. */
 #else
-	px4_task_t     _publisher; /**< if nonzero, current publisher. Only used inside the advertise call.
+	px4_task_t     _publisher {0}; /**< if nonzero, current publisher. Only used inside the advertise call.
 					We allow one publisher to have an open file descriptor at the same time. */
 #endif
 
