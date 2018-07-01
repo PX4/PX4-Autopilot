@@ -5,6 +5,7 @@ set(config_module_list
 	#drivers/barometer
 	drivers/differential_pressure
 	drivers/distance_sensor
+	#drivers/magnetometer
 	#drivers/telemetry
 
 	drivers/batt_smbus
