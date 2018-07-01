@@ -94,7 +94,13 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 
-		*rssi = spektrum_rssi;
+		if (spektrum_rssi >= 0 && spektrum_rssi <= 100) {
+
+			/* ensure ADC RSSI is disabled */
+			r_setup_features &= ~(PX4IO_P_SETUP_FEATURES_ADC_RSSI);
+
+			*rssi = spektrum_rssi;
+		}
 	}
 
 	perf_end(c_gather_dsm);
