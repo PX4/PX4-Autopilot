@@ -36,12 +36,13 @@
 #include <stdarg.h>
 #include <fcntl.h>
 #include <errno.h>
+
 #include <px4_config.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
+
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
-#include "px4_config.h"
 #include "uORBDevices.hpp"
 
 
@@ -62,10 +63,7 @@ bool uORB::Manager::initialize()
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 uORB::Manager::Manager()
-	: _comm_channel(nullptr)
 {
-	_device_master = nullptr;
-
 #ifdef ORB_USE_PUBLISHER_RULES
 	const char *file_name = "./rootfs/orb_publisher.rules";
 	int ret = readPublisherRulesFromFile(file_name, _publisher_rule);
@@ -131,9 +129,13 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 #else
 	ret = px4_access(path, F_OK);
 
+#ifdef ORB_COMMUNICATOR
+
 	if (ret == -1 && meta != nullptr && !_remote_topics.empty()) {
 		ret = (_remote_topics.find(meta->o_name) != _remote_topics.end()) ? OK : PX4_ERROR;
 	}
+
+#endif /* ORB_COMMUNICATOR */
 
 #endif
 
@@ -215,8 +217,10 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 		return nullptr;
 	}
 
-	//For remote systems call over and inform them
+#ifdef ORB_COMMUNICATOR
+	// For remote systems call over and inform them
 	uORB::DeviceNode::topic_advertised(meta, priority);
+#endif /* ORB_COMMUNICATOR */
 
 	/* the advertiser must perform an initial publish to initialise the object */
 	result = orb_publish(meta, advertiser, data);
@@ -318,13 +322,7 @@ int uORB::Manager::orb_get_interval(int handle, unsigned *interval)
 	return ret;
 }
 
-
-int uORB::Manager::node_advertise
-(
-	const struct orb_metadata *meta,
-	int *instance,
-	int priority
-)
+int uORB::Manager::node_advertise(const struct orb_metadata *meta, int *instance, int priority)
 {
 	int fd = -1;
 	int ret = PX4_ERROR;
@@ -441,8 +439,7 @@ int uORB::Manager::node_open(const struct orb_metadata *meta, const void *data, 
 	return fd;
 }
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
+#ifdef ORB_COMMUNICATOR
 void uORB::Manager::set_uorb_communicator(uORBCommunicator::IChannel *channel)
 {
 	_comm_channel = channel;
@@ -457,8 +454,6 @@ uORBCommunicator::IChannel *uORB::Manager::get_uorb_communicator()
 	return _comm_channel;
 }
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 int16_t uORB::Manager::process_remote_topic(const char *topic_name, bool isAdvertisement)
 {
 	int16_t rc = 0;
@@ -473,8 +468,6 @@ int16_t uORB::Manager::process_remote_topic(const char *topic_name, bool isAdver
 	return rc;
 }
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 int16_t uORB::Manager::process_add_subscription(const char *messageName, int32_t msgRateInHz)
 {
 	PX4_DEBUG("entering Manager_process_add_subscription: name: %s", messageName);
@@ -503,8 +496,6 @@ int16_t uORB::Manager::process_add_subscription(const char *messageName, int32_t
 	return rc;
 }
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 int16_t uORB::Manager::process_remove_subscription(const char *messageName)
 {
 	int16_t rc = -1;
@@ -531,8 +522,6 @@ int16_t uORB::Manager::process_remove_subscription(const char *messageName)
 	return rc;
 }
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 int16_t uORB::Manager::process_received_message(const char *messageName, int32_t length, uint8_t *data)
 {
 	int16_t rc = -1;
@@ -565,7 +554,7 @@ bool uORB::Manager::is_remote_subscriber_present(const char *messageName)
 	return (_remote_subscriber_topics.find(messageName) != _remote_subscriber_topics.end());
 #endif
 }
-
+#endif /* ORB_COMMUNICATOR */
 
 #ifdef ORB_USE_PUBLISHER_RULES
 

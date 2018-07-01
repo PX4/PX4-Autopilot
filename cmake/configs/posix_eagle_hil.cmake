@@ -17,6 +17,8 @@ else()
 	set(QC_SOC_TARGET "APQ8074")
 endif()
 
+add_definitions(-DORB_COMMUNICATOR)
+
 set(config_module_list
 	drivers/linux_sbus
 
