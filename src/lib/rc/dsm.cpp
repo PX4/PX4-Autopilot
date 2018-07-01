@@ -79,8 +79,6 @@ static unsigned dsm_channel_shift = 0;			/**< Channel resolution, 0=unknown, 1=1
 static unsigned dsm_frame_drops = 0;			/**< Count of incomplete DSM frames */
 static uint16_t dsm_chan_count = 0;         /**< DSM channel count */
 
-static const SpektrumRssi spektrum_rssi;
-
 static bool
 dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, unsigned max_values,
 	   int8_t *rssi_percent);
@@ -429,7 +427,7 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool 
 				*rssi_percent = 0;
 
 			} else {
-				*rssi_percent = spektrum_rssi.dbm_to_percent(dbm);
+				*rssi_percent = spek_dbm_to_percent(dbm);
 			}
 
 		} else {
