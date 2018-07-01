@@ -11,6 +11,7 @@ else()
 endif()
 
 set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
+add_definitions(-DORB_COMMUNICATOR)
 
 # Get $QC_SOC_TARGET from environment if existing.
 if (DEFINED ENV{QC_SOC_TARGET})
