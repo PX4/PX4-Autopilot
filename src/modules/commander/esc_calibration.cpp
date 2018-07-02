@@ -99,7 +99,7 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s* a
 	bool	batt_updated = false;
 	bool	batt_connected = true;	// for safety resons assume battery is connected, will be cleared below if not the case
 
-	hrt_abstime battery_connect_wait_timeout = 3_s;
+	hrt_abstime battery_connect_wait_timeout = 20_s;
 	hrt_abstime pwm_high_timeout = 3_s;
 	hrt_abstime timeout_start = 0;
 
