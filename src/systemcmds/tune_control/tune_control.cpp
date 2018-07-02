@@ -62,18 +62,17 @@ extern "C" {
 static void
 usage()
 {
-	PX4_INFO(
-		"External tune control for testing. Usage:\n"
-		"tune_control play [-t <default tunes>] [-f <frequency>] [-d <duration>] [-s <strength>] [-m < melody>]\n"
-		"\n"
-		"\t-t <defualt tunes>\tPlay the default (1...15) (default=1)\n"
-		"\t-f <frequency>\t\tFrequency from 0-20kHz\n"
-		"\t-d <duration>\t\tDuration of the tone in us\n"
-		"\t-s <strength>\t\tStrength of the tone between 0-100\n"
-		"\t-m <melody>\t\tMelody in a string form ex: \"MFT200e8a8a\"\n"
-		"\n"
-		"tune_control stop \t\tStops playback, useful for repeated tunes\n"
-	);
+
+	PRINT_MODULE_DESCRIPTION("External tune control for testing.");
+	PRINT_MODULE_USAGE_NAME("tune_control", "command");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("play", "Play tune");
+	PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 15, "Play specified default tune (1...15)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('f', 0, 0, 20, "Frequency (0-22kHz)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('d', 0, 0, 4294967295, "Duration of the tone (in us)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('s', 0, 0, 100, "Strength of the tone (0-100)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('m',nullptr,nullptr, "Melody as a string in ANSI Music notation (http://artscene.textfiles.com/ansimusic/information/ansimtech.txt). For example: 'MFT200e8a8a'", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop playback (use for repeated tunes)");
+
 }
 
 static void publish_tune_control(tune_control_s &tune_control)
