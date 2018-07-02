@@ -108,7 +108,7 @@
 class PMW3901 : public device::SPI
 {
 public:
-	PMW3901(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING, int bus = PMW3901_BUS);
+	PMW3901(int bus = PMW3901_BUS);
 
 	virtual ~PMW3901();
 
@@ -127,7 +127,6 @@ protected:
 	virtual int probe();
 
 private:
-	uint8_t _rotation;
 	work_s _work;
 	ringbuffer::RingBuffer *_reports;
 	bool _sensor_ok;
@@ -196,9 +195,8 @@ private:
  */
 extern "C" __EXPORT int pmw3901_main(int argc, char *argv[]);
 
-PMW3901::PMW3901(uint8_t rotation, int bus) :
+PMW3901::PMW3901(int bus) :
 	SPI("PMW3901", PMW3901_DEVICE_PATH, bus, PMW3901_SPIDEV, SPIDEV_MODE0, PMW3901_SPI_BUS_SPEED),
-	_rotation(rotation),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),
@@ -209,7 +207,7 @@ PMW3901::PMW3901(uint8_t rotation, int bus) :
 	_sample_perf(perf_alloc(PC_ELAPSED, "pmw3901_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "pmw3901_com_err")),
 	_previous_collect_timestamp(0),
-	_sensor_rotation((enum Rotation)rotation)
+	_sensor_rotation((enum Rotation)0)
 {
 
 	// enable debug() calls
@@ -769,7 +767,7 @@ namespace pmw3901
 
 PMW3901	*g_dev;
 
-void	start(uint8_t rotation);
+void	start();
 void	stop();
 void	test();
 void	reset();
@@ -780,7 +778,7 @@ void	info();
  * Start the driver.
  */
 void
-start(uint8_t rotation)
+start()
 {
 	int fd;
 
@@ -789,7 +787,7 @@ start(uint8_t rotation)
 	}
 
 	/* create the driver */
-	g_dev = new PMW3901(rotation, PMW3901_BUS);
+	g_dev = new PMW3901(PMW3901_BUS);
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -894,7 +892,6 @@ int
 pmw3901_main(int argc, char *argv[])
 {
 	int myoptind = 1;
-	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
 	if (argc < 2) {
 		goto out;
@@ -904,7 +901,7 @@ pmw3901_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		pmw3901::start(rotation);
+		pmw3901::start();
 	}
 
 	/*
