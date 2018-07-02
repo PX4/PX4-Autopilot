@@ -49,9 +49,9 @@
 
 MEMORY
 {
-	vectflash  (rx)  : ORIGIN = 0x00000000, LENGTH = 1K
-	cfmprotect (rx)  : ORIGIN = 0x00000400, LENGTH = 16
-	progflash  (rx)  : ORIGIN = 0x00000410, LENGTH = 2M - (1K + 16)
+	vectflash  (rx)  : ORIGIN = 0x00006000, LENGTH = 1K
+	cfmprotect (rx)  : ORIGIN = 0x00006400, LENGTH = 16
+	progflash  (rx)  : ORIGIN = 0x00006410, LENGTH = 2M - ((6*4K) + 1K + 16)
 	datasram  (rwx)  : ORIGIN = 0x1fff0000, LENGTH = 256K
 }
 
