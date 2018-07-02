@@ -1018,7 +1018,7 @@ void Ekf2::run()
 			_ekf.setGpsData(_gps_output[_gps_select_index].time_usec, &_gps_output[_gps_select_index]);
 
 			// log blended solution as a third GPS instance
-			if (_gps_select_index == 2) {
+			if (_gps_blend_mask.get() > 0) {
 				ekf_gps_position_s gps;
 				gps.timestamp = _gps_output[_gps_select_index].time_usec;
 				gps.lat = _gps_output[_gps_select_index].lat;
@@ -1034,6 +1034,7 @@ void Ekf2::run()
 				gps.vel_d_m_s = _gps_output[_gps_select_index].vel_ned[2];
 				gps.vel_ned_valid = _gps_output[_gps_select_index].vel_ned_valid;
 				gps.satellites_used = _gps_output[_gps_select_index].nsats;
+				gps.selected = _gps_select_index;
 
 				// Publish to the EKF blended GPS topic
 				orb_publish_auto(ORB_ID(ekf_gps_position), &_blended_gps_pub, &gps, &_gps_orb_instance, ORB_PRIO_LOW);
