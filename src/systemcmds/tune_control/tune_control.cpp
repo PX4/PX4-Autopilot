@@ -40,6 +40,7 @@
 
 #include <px4_getopt.h>
 #include <px4_log.h>
+#include <px4_module.h>
 
 #include <string.h>
 #include <unistd.h>
