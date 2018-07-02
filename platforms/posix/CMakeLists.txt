@@ -120,7 +120,6 @@ elseif ("${BOARD}" STREQUAL "bbblue")
 elseif ("${BOARD}" STREQUAL "bebop")
 
 	add_custom_target(upload
-		# COMMAND ${CMAKE_STRIP} -R .comment -R .gnu.version -o $<TARGET_FILE:px4>.stripped $<TARGET_FILE:px4>
 		COMMAND ${PX4_SOURCE_DIR}/Tools/adb_upload_to_bebop.sh $<TARGET_FILE:px4> /data/ftp/internal_000
 		DEPENDS px4
 		COMMENT "uploading px4"
