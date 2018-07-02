@@ -95,7 +95,6 @@ This repository contains code supporting these boards:
     * [Pixracer](https://docs.px4.io/en/flight_controller/pixracer.html)
     * [Pixhawk 3 Pro](https://docs.px4.io/en/flight_controller/pixhawk3_pro.html)
   * FMUv5.x (ARM Cortex M7, future Pixhawk)
-  * [STM32F4Discovery](http://www.st.com/en/evaluation-tools/stm32f4discovery.html) (basic support) [Tutorial](https://pixhawk.org/modules/stm32f4discovery)
   * [Gumstix AeroCore](https://www.gumstix.com/aerocore-2/) (only v2)
   * [Airmind MindPX V2.8](http://www.mindpx.net/assets/accessories/UserGuide_MindPX.pdf)
   * [Airmind MindRacer V1.2](http://mindpx.net/assets/accessories/mindracer_user_guide_v1.2.pdf)
