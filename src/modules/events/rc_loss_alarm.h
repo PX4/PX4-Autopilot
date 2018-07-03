@@ -68,9 +68,6 @@ private:
 	/** Publish tune control to sound alarm */
 	void play_tune();
 
-	/** Publish tune control to stop any ongoing tune, including alarm */
-	void stop_tune();
-
 	int 			_vehicle_status_sub = -1;
 	struct vehicle_status_s	_vehicle_status = {};
 	bool 		_was_armed = false;
