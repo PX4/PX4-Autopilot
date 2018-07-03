@@ -66,9 +66,26 @@ int SendEvent::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-SendEvent::SendEvent()
-	: _status_display(_subscriber_handler), _rc_loss_alarm(_subscriber_handler)
+SendEvent::SendEvent() : ModuleParams(nullptr)
 {
+	if (_param_status_display.get()) {
+		_status_display = new status::StatusDisplay(_subscriber_handler);
+	}
+
+	if (_param_rc_loss.get()) {
+		_rc_loss_alarm = new rc_loss::RC_Loss_Alarm(_subscriber_handler);
+	}
+}
+
+SendEvent::~SendEvent()
+{
+	if (_status_display != nullptr) {
+		delete _status_display;
+	}
+
+	if (_rc_loss_alarm != nullptr) {
+		delete _rc_loss_alarm;
+	}
 }
 
 int SendEvent::start()
@@ -119,8 +136,13 @@ void SendEvent::cycle()
 
 	process_commands();
 
-	_status_display.process();
-	_rc_loss_alarm.process();
+	if (_status_display != nullptr) {
+		_status_display->process();
+	}
+
+	if (_rc_loss_alarm != nullptr) {
+		_rc_loss_alarm->process();
+	}
 
 	work_queue(LPWORK, &_work, (worker_t)&SendEvent::cycle_trampoline, this,
 		   USEC2TICK(SEND_EVENT_INTERVAL_US));
