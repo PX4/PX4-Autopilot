@@ -237,24 +237,7 @@ ETSAirspeed::cycle()
 namespace ets_airspeed
 {
 
-ETSAirspeed	*g_dev;
-
-int bus_options[] = {
-#ifdef PX4_I2C_BUS_EXPANSION
-	PX4_I2C_BUS_EXPANSION,
-#endif
-#ifdef PX4_I2C_BUS_EXPANSION1
-	PX4_I2C_BUS_EXPANSION1,
-#endif
-#ifdef PX4_I2C_BUS_EXPANSION2
-	PX4_I2C_BUS_EXPANSION2,
-#endif
-#ifdef PX4_I2C_BUS_ONBOARD
-	PX4_I2C_BUS_ONBOARD,
-#endif
-};
-
-#define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
+ETSAirspeed	*g_dev = nullptr;
 
 int start();
 int start_bus(int i2c_bus);
@@ -273,8 +256,8 @@ int info();
 int
 start()
 {
-	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
-		if (start_bus(bus_options[i]) == PX4_OK) {
+	for (unsigned i = 0; i < NUM_I2C_BUS_OPTIONS; i++) {
+		if (start_bus(i2c_bus_options[i]) == PX4_OK) {
 			return PX4_OK;
 		}
 	}
@@ -329,8 +312,6 @@ fail:
 		delete g_dev;
 		g_dev = nullptr;
 	}
-
-	PX4_WARN("not started on bus %d", i2c_bus);
 
 	return PX4_ERROR;
 }
