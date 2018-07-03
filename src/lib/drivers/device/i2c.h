@@ -38,6 +38,8 @@
 #include "posix/I2C.hpp"
 #endif
 
+#include <board_config.h>
+
 
 static const int i2c_bus_options[] = {
 #ifdef PX4_I2C_BUS_EXPANSION
