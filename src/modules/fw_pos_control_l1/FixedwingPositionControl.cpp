@@ -1820,7 +1820,9 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 	_last_tecs_update = hrt_absolute_time();
 
 	// do not run TECS if we are not in air
-	bool run_tecs = !_vehicle_land_detected.landed;
+	bool run_tecs = !_vehicle_land_detected.landed || (_launch_detection_state == LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS
+			&& mode == tecs_status_s::TECS_MODE_TAKEOFF);
+	// handles case of land detected / launch detected interference during take-off
 
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	// (it should also not run during VTOL blending because airspeed is too low still)
@@ -1896,10 +1898,12 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 	}
 
 	/* tell TECS to update its state, but let it know when it cannot actually control the plane */
-	bool in_air_alt_control = (!_vehicle_land_detected.landed &&
-				   (_control_mode.flag_control_auto_enabled ||
-				    _control_mode.flag_control_velocity_enabled ||
-				    _control_mode.flag_control_altitude_enabled));
+	bool in_air_alt_control = ((!_vehicle_land_detected.landed ||
+				    (_launch_detection_state == LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS
+				     && mode == tecs_status_s::TECS_MODE_TAKEOFF))
+				   && (_control_mode.flag_control_auto_enabled
+				       || _control_mode.flag_control_velocity_enabled
+				       || _control_mode.flag_control_altitude_enabled));
 
 	/* update TECS vehicle state estimates */
 	_tecs.update_vehicle_state_estimates(_airspeed, _R_nb,
