@@ -87,7 +87,9 @@ SECTIONS
 		 * use the NuttX get_errno_ptr() function.
 		 */
 		__errno = get_errno_ptr;
-	} > progflash
+		. = ALIGN(8);
+		_eotext = .;
+	} > progflash =0xff
 
 	/*
 	 * Init functions (static constructors and the like)
@@ -132,7 +134,9 @@ SECTIONS
 		_sramfuncs = ABSOLUTE(.);
 		*(.ramfunc  .ramfunc.*)
 		_eramfuncs = ABSOLUTE(.);
-	} > datasram AT > progflash
+		. = ALIGN(8);
+		_eotext = .;
+	} > datasram AT > progflash =0xff
 
 	_framfuncs = LOADADDR(.ramfunc);
 
