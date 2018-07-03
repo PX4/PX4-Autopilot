@@ -68,7 +68,6 @@ private:
 	/** Publish tune control to sound alarm */
 	void play_tune();
 
-	int 			_vehicle_status_sub = -1;
 	struct vehicle_status_s	_vehicle_status = {};
 	bool 		_was_armed = false;
 	bool 		_had_rc = false;  // Don't trigger alarm for systems without RC
