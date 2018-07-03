@@ -47,6 +47,11 @@
 
 #include <uORB/topics/tune_control.h>
 
+namespace events
+{
+namespace rc_loss
+{
+
 RC_Loss_Alarm::RC_Loss_Alarm(const events::SubscriberHandler &subscriber_handler)
 	: _subscriber_handler(subscriber_handler)
 {
@@ -101,3 +106,6 @@ void RC_Loss_Alarm::play_tune()
 		orb_publish(ORB_ID(tune_control), _tune_control_pub, &tune_control);
 	}
 }
+
+} /* namespace rc_loss */
+} /* namespace events */

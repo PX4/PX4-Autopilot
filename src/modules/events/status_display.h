@@ -51,6 +51,8 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
 
+namespace events
+{
 namespace status
 {
 
@@ -98,4 +100,5 @@ private:
 	const events::SubscriberHandler &_subscriber_handler;
 };
 
-} /* status */
+} /* namespace status */
+} /* namespace events */

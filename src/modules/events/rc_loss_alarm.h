@@ -44,6 +44,11 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 
+namespace events
+{
+namespace rc_loss
+{
+
 class RC_Loss_Alarm
 {
 public:
@@ -73,3 +78,6 @@ private:
 	orb_advert_t 	_tune_control_pub = nullptr;
 	const events::SubscriberHandler &_subscriber_handler;
 };
+
+} /* namespace rc_loss */
+} /* namespace events */
