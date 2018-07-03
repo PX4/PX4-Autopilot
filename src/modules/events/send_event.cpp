@@ -38,6 +38,9 @@
 #include <px4_log.h>
 #include <drivers/drv_hrt.h>
 
+namespace events
+{
+
 struct work_s SendEvent::_work = {};
 
 // Run it at 30 Hz.
@@ -283,3 +286,5 @@ int SendEvent::custom_command(int argc, char *argv[])
 
 	return 0;
 }
+
+} /* namespace events */
