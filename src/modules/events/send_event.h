@@ -42,6 +42,9 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
+namespace events
+{
+
 extern "C" __EXPORT int send_event_main(int argc, char *argv[]);
 
 class SendEvent : public ModuleBase<SendEvent>
@@ -83,8 +86,10 @@ private:
 	void answer_command(const vehicle_command_s &cmd, unsigned result);
 
 	static struct work_s _work;
-	events::SubscriberHandler _subscriber_handler;
+	SubscriberHandler _subscriber_handler;
 	status::StatusDisplay _status_display;
-	RC_Loss_Alarm _rc_loss_alarm;
+	rc_loss::RC_Loss_Alarm _rc_loss_alarm;
 	orb_advert_t _command_ack_pub = nullptr;
 };
+
+} /* namespace events */
