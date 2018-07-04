@@ -97,7 +97,44 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 	// check if vehicle has stopped
 	const bool stopped = (MPC_HOLD_MAX_Z.get() < FLT_EPSILON || fabsf(_velocity(2)) < MPC_HOLD_MAX_Z.get());
 
-	if (MPC_ALT_MODE.get() && PX4_ISFINITE(_dist_to_bottom)) {
+	if (MPC_ALT_MODE.get() == 2) {
+		// terrain hold
+		float spd_xy = Vector2f(&_velocity(0)).length();
+		bool stick_input = Vector2f(&_velocity_setpoint(0)).length() > 0.5f * MPC_ALT_MODE_SPD.get();
+
+		if (_terrain_hold) {
+			bool too_fast = spd_xy > MPC_ALT_MODE_SPD.get();
+
+			if (stick_input || too_fast || !PX4_ISFINITE(_dist_to_bottom)) {
+				_terrain_hold = false;
+				_terrain_follow = false;
+
+				// adjust the setpoint to maintain the same height error to reduce control transients
+				if (PX4_ISFINITE(_dist_to_ground_lock) && PX4_ISFINITE(_dist_to_bottom)) {
+					_position_setpoint(2) = _position(2) + (_dist_to_ground_lock - _dist_to_bottom);
+
+				} else {
+					_position_setpoint(2) = _position(2);
+				}
+			}
+
+		} else {
+			bool not_moving = spd_xy < 0.5f * MPC_ALT_MODE_SPD.get();
+
+			if (!stick_input && not_moving && PX4_ISFINITE(_dist_to_bottom)) {
+				_terrain_hold = true;
+				_terrain_follow = true;
+
+				// adjust the setpoint to maintain the same height error to reduce control transients
+				if (PX4_ISFINITE(_position_setpoint(2))) {
+					_dist_to_ground_lock = _dist_to_bottom + (_position_setpoint(2) - _position(2));
+				}
+			}
+		}
+
+	}
+
+	if ((MPC_ALT_MODE.get() == 1 || _terrain_follow) && PX4_ISFINITE(_dist_to_bottom)) {
 		// terrain following
 		_terrainFollowing(apply_brake, stopped);
 		// respect maximum altitude
@@ -179,15 +216,11 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 {
 	if (PX4_ISFINITE(_dist_to_bottom)) {
 
-		// check if there is a valid minimum distance to ground
-		const float min_distance_to_ground = (PX4_ISFINITE(_constraints.min_distance_to_ground)) ?
-						     _constraints.min_distance_to_ground : 0.0f;
-
-		// if there is a valid maximum distance to ground, gradually decrease speed limit upwards from
-		// minimum distance to maximum distance
+		// if there is a valid maximum distance to ground, linearly increase speed limit with distance
+		// below the maximum, preserving control loop vertical position error gain.
 		if (PX4_ISFINITE(_constraints.max_distance_to_ground)) {
-			_constraints.speed_up = math::gradual(_dist_to_bottom, min_distance_to_ground, _constraints.max_distance_to_ground,
-							      _max_speed_up, 0.0f);
+			_constraints.speed_up = math::constrain(MPC_Z_P.get() * (_constraints.max_distance_to_ground - _dist_to_bottom),
+								-_min_speed_down, _max_speed_up);
 
 		} else {
 			_constraints.speed_up = _max_speed_up;
