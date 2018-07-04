@@ -62,12 +62,16 @@ protected:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualStabilized,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) MPC_HOLD_MAX_Z,
-					(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE
+					(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
+					(ParamFloat<px4::params::MPC_ALT_MODE_SPD>) MPC_ALT_MODE_SPD,
+					(ParamFloat<px4::params::MPC_Z_P>) MPC_Z_P
 				       )
 private:
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
 	float _max_speed_up = 10.0f;
 	float _min_speed_down = 1.0f;
+	bool _terrain_follow{false}; /**< true when the vehicle is following the terrain height */
+	bool _terrain_hold{false}; /**< true when vehicle is controlling height above a static ground position */
 
 	/**
 	 * Distance to ground during terrain following.
