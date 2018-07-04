@@ -45,6 +45,7 @@
 namespace estimator
 {
 
+using matrix::AxisAnglef;
 using matrix::Dcmf;
 using matrix::Eulerf;
 using matrix::Matrix3f;

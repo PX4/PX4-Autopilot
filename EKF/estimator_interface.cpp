@@ -62,16 +62,12 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 		_dt_imu_avg = 0.8f * _dt_imu_avg + 0.2f * dt;
 	}
 
-	// copy data
 	imuSample imu_sample_new;
 	imu_sample_new.delta_ang = Vector3f(delta_ang);
 	imu_sample_new.delta_vel = Vector3f(delta_vel);
-
-	// convert time from us to secs
-	imu_sample_new.delta_ang_dt = delta_ang_dt / 1e6f;
-	imu_sample_new.delta_vel_dt = delta_vel_dt / 1e6f;
+	imu_sample_new.delta_ang_dt = delta_ang_dt * 1e-6f;
+	imu_sample_new.delta_vel_dt = delta_vel_dt * 1e-6f;
 	imu_sample_new.time_us = time_usec;
-	_imu_ticks++;
 
 	// calculate a metric which indicates the amount of coning vibration
 	Vector3f temp = cross_product(imu_sample_new.delta_ang, _delta_ang_prev);
@@ -92,26 +88,19 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 		if ((_vibe_metrics[1] * 4.0E4f > _params.is_moving_scaler)
 				|| (_vibe_metrics[2] * 2.1E2f > _params.is_moving_scaler)
 				|| ((imu_sample_new.delta_ang.norm() / dt) > 0.05f * _params.is_moving_scaler)) {
-			_time_last_move_detect_us = _imu_sample_new.time_us;
+
+			_time_last_move_detect_us = imu_sample_new.time_us;
 		}
-		_vehicle_at_rest = ((_imu_sample_new.time_us - _time_last_move_detect_us) > (uint64_t)1E6);
+
+		_vehicle_at_rest = ((imu_sample_new.time_us - _time_last_move_detect_us) > (uint64_t)1E6);
+
 	} else {
-		_time_last_move_detect_us = _imu_sample_new.time_us;
+		_time_last_move_detect_us = imu_sample_new.time_us;
 		_vehicle_at_rest = false;
 	}
 
 	// accumulate and down-sample imu data and push to the buffer when new downsampled data becomes available
 	if (collect_imu(imu_sample_new)) {
-		_imu_buffer.push(imu_sample_new);
-		_imu_ticks = 0;
-		_imu_updated = true;
-
-		// get the oldest data from the buffer
-		_imu_sample_delayed = _imu_buffer.get_oldest();
-
-		// calculate the minimum interval between observations required to guarantee no loss of data
-		// this will occur if data is overwritten before its time stamp falls behind the fusion time horizon
-		_min_obs_interval_us = (_imu_sample_new.time_us - _imu_sample_delayed.time_us) / (_obs_buffer_length - 1);
 
 		// down-sample the drag specific force data by accumulating and calculating the mean when
 		// sufficient samples have been collected
@@ -157,13 +146,8 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 				_drag_down_sampled.accelXY.zero();
 				_drag_down_sampled.time_us = 0;
 				_drag_sample_time_dt = 0.0f;
-
 			}
 		}
-
-	} else {
-		_imu_updated = false;
-
 	}
 }
 
@@ -527,8 +511,6 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	_imu_sample_delayed.delta_ang_dt = 0.0f;
 	_imu_sample_delayed.delta_vel_dt = 0.0f;
 	_imu_sample_delayed.time_us = timestamp;
-
-	_imu_ticks = 0;
 
 	_initialised = false;
 

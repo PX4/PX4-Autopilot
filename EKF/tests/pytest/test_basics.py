@@ -54,7 +54,7 @@ def test_filter_initialized(initialized_ekf):
     """Make sure the EKF updates after a few IMU, Mag and Baro updates
     """
     ekf, _ = initialized_ekf
-    assert ekf.update()
+    assert ekf.attitude_valid()
 
 
 @pytest.mark.benchmark
