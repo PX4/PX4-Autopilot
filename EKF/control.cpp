@@ -58,7 +58,7 @@ void Ekf::controlFusionModes()
 
 		// Once the tilt variances have reduced to equivalent of 3deg uncertainty, re-set the yaw and magnetic field states
 		// and declare the tilt alignment complete
-		if ((angle_err_var_vec(0) + angle_err_var_vec(1)) < sq(0.05235f)) {
+		if ((angle_err_var_vec(0) + angle_err_var_vec(1)) < sq(math::radians(3.0f))) {
 			_control_status.flags.tilt_align = true;
 			_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
 
@@ -346,11 +346,13 @@ void Ekf::controlOpticalFlowFusion()
 	// Check if on ground motion is un-suitable for use of optical flow
 	if (!_control_status.flags.in_air) {
 		// When on ground check if the vehicle is being shaken or moved in a way that could cause a loss of navigation
-		float accel_norm = _accel_vec_filt.norm();
-		bool motion_is_excessive = ((accel_norm > 14.7f) // accel greater than 1.5g
-					    || (accel_norm < 4.9f) // accel less than 0.5g
+		const float accel_norm = _accel_vec_filt.norm();
+
+		const bool motion_is_excessive = ((accel_norm > (CONSTANTS_ONE_G * 1.5f)) // upper g limit
+					    || (accel_norm < (CONSTANTS_ONE_G * 0.5f)) // lower g limit
 					    || (_ang_rate_mag_filt > _flow_max_rate) // angular rate exceeds flow sensor limit
-					    || (_R_to_earth(2,2) < 0.866f)); // tilted more than 30 degrees
+					    || (_R_to_earth(2,2) < cosf(math::radians(30.0f)))); // tilted excessively
+
 		if (motion_is_excessive) {
 			_time_bad_motion_us = _imu_sample_delayed.time_us;
 
@@ -516,8 +518,7 @@ void Ekf::controlGpsFusion()
 					if (_mag_inhibit_yaw_reset_req) {
 						_mag_inhibit_yaw_reset_req = false;
 						// Zero the yaw bias covariance and set the variance to the initial alignment uncertainty
-						float dt = 0.001f * (float)FILTER_UPDATE_PERIOD_MS;
-						setDiag(P, 12, 12, sq(_params.switch_on_gyro_bias * dt));
+						setDiag(P, 12, 12, sq(_params.switch_on_gyro_bias * FILTER_UPDATE_PERIOD_S));
 					}
 				}
 
@@ -1307,7 +1308,7 @@ void Ekf::controlMagFusion()
 			} else if (_mag_bias_observable) {
 				// monitor yaw rotation in 45 deg sections.
 				// a rotation of 45 deg is sufficient to make the mag bias observable
-				if (fabsf(_yaw_delta_ef) > 0.7854f) {
+				if (fabsf(_yaw_delta_ef) > math::radians(45.0f)) {
 					_time_yaw_started = _imu_sample_delayed.time_us;
 					_yaw_delta_ef = 0.0f;
 				}

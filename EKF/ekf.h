@@ -237,7 +237,6 @@ public:
 private:
 
 	static constexpr uint8_t _k_num_states{24};		///< number of EKF states
-	static constexpr float _k_earth_rate{0.000072921f};	///< earth spin rate (rad/sec)
 
 	struct {
 		uint8_t velNE_counter;	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
@@ -252,7 +251,7 @@ private:
 		Quatf quat_change;	///< quaternion delta due to last reset - multiply pre-reset quaternion by this to get post-reset quaternion
 	} _state_reset_status{};	///< reset event monitoring structure containing velocity, position, height and yaw reset information
 
-	float _dt_ekf_avg{0.001f * FILTER_UPDATE_PERIOD_MS}; ///< average update rate of the ekf
+	float _dt_ekf_avg{FILTER_UPDATE_PERIOD_S}; ///< average update rate of the ekf
 	float _dt_update{0.01f}; ///< delta time since last ekf update. This time can be used for filters which run at the same rate as the Ekf::update() function. (sec)
 
 	stateSample _state{};		///< state struct of the ekf running at the delayed time horizon
@@ -548,7 +547,7 @@ private:
 	void fuse(float *K, float innovation);
 
 	// calculate the earth rotation vector from a given latitude
-	void calcEarthRateNED(Vector3f &omega, double lat_rad) const;
+	void calcEarthRateNED(Vector3f &omega, float lat_rad) const;
 
 	// return true id the GPS quality is good enough to set an origin and start aiding
 	bool gps_is_good(struct gps_message *gps);
@@ -602,10 +601,7 @@ private:
 	void checkForStuckRange();
 
 	// return the square of two floating point numbers - used in auto coded sections
-	inline float sq(float var)
-	{
-		return var * var;
-	}
+	static constexpr float sq(float var) { return var * var; }
 
 	// set control flags to use baro height
 	void setControlBaroHeight();

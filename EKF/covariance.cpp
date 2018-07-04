@@ -55,7 +55,7 @@ void Ekf::initialiseCovariance()
 	}
 
 	// calculate average prediction time step in sec
-	float dt = 0.001f * (float)FILTER_UPDATE_PERIOD_MS;
+	float dt = FILTER_UPDATE_PERIOD_S;
 
 	// define the initial angle uncertainty as variances for a rotation vector
 	Vector3f rot_vec_var;
@@ -150,7 +150,7 @@ void Ekf::predictCovariance()
 	float dvy_b = _state.accel_bias(1);
 	float dvz_b = _state.accel_bias(2);
 
-	float dt = math::constrain(_imu_sample_delayed.delta_ang_dt, 0.0005f * FILTER_UPDATE_PERIOD_MS, 0.002f * FILTER_UPDATE_PERIOD_MS);
+	float dt = math::constrain(_imu_sample_delayed.delta_ang_dt, 0.5f * FILTER_UPDATE_PERIOD_S, 2.0f * FILTER_UPDATE_PERIOD_S);
 	float dt_inv = 1.0f / dt;
 
 	// compute noise variance for stationary processes
@@ -907,7 +907,7 @@ void Ekf::resetWindCovariance()
 		// calculate the uncertainty in wind speed and direction using the uncertainty in airspeed and sideslip angle
 		// used to calculate the initial wind speed
 		float R_spd = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) * math::constrain(_airspeed_sample_delayed.eas2tas, 0.9f, 10.0f));
-		float R_yaw = sq(0.1745f);
+		float R_yaw = sq(math::radians(10.0f));
 
 		// calculate the variance and covariance terms for the wind states
 		float cos_yaw = cosf(yaw);

@@ -85,7 +85,7 @@ bool Ekf::init(uint64_t timestamp)
 	_control_status.value = 0;
 	_control_status_prev.value = 0;
 
-	_dt_ekf_avg = 0.001f * (float)(FILTER_UPDATE_PERIOD_MS);
+	_dt_ekf_avg = FILTER_UPDATE_PERIOD_S;
 
 	_fault_status.value = 0;
 	_innov_check_fail_status.value = 0;
@@ -307,7 +307,7 @@ void Ekf::predictState()
 {
 	if (!_earth_rate_initialised) {
 		if (_NED_origin_initialised) {
-			calcEarthRateNED(_earth_rate_NED, _pos_ref.lat_rad);
+			calcEarthRateNED(_earth_rate_NED, (float)_pos_ref.lat_rad);
 			_earth_rate_initialised = true;
 		}
 	}
@@ -359,7 +359,7 @@ void Ekf::predictState()
 	float input = 0.5f * (_imu_sample_delayed.delta_vel_dt + _imu_sample_delayed.delta_ang_dt);
 
 	// filter and limit input between -50% and +100% of nominal value
-	input = math::constrain(input, 0.0005f * (float)(FILTER_UPDATE_PERIOD_MS), 0.002f * (float)(FILTER_UPDATE_PERIOD_MS));
+	input = math::constrain(input, 0.5f * FILTER_UPDATE_PERIOD_S, 2.0f * FILTER_UPDATE_PERIOD_S);
 	_dt_ekf_avg = 0.99f * _dt_ekf_avg + 0.01f * input;
 }
 
@@ -391,7 +391,7 @@ bool Ekf::collect_imu(const imuSample &imu)
 
 	// if the target time delta between filter prediction steps has been exceeded
 	// write the accumulated IMU data to the ring buffer
-	const float target_dt = FILTER_UPDATE_PERIOD_MS / 1000.0f;
+	const float target_dt = FILTER_UPDATE_PERIOD_S;
 
 	if (_imu_down_sampled.delta_ang_dt >= target_dt - _imu_collection_time_adj) {
 

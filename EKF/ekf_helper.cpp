@@ -793,7 +793,7 @@ void Ekf::constrainStates()
 	}
 
 	for (int i = 0; i < 3; i++) {
-		_state.gyro_bias(i) = math::constrain(_state.gyro_bias(i), -0.349066f * _dt_ekf_avg, 0.349066f * _dt_ekf_avg);
+		_state.gyro_bias(i) = math::constrain(_state.gyro_bias(i), -math::radians(20.f) * _dt_ekf_avg, math::radians(20.f) * _dt_ekf_avg);
 	}
 
 	for (int i = 0; i < 3; i++) {
@@ -814,11 +814,11 @@ void Ekf::constrainStates()
 }
 
 // calculate the earth rotation vector
-void Ekf::calcEarthRateNED(Vector3f &omega, double lat_rad) const
+void Ekf::calcEarthRateNED(Vector3f &omega, float lat_rad) const
 {
-	omega(0) = _k_earth_rate * cosf((float)lat_rad);
+	omega(0) = CONSTANTS_EARTH_SPIN_RATE * cosf(lat_rad);
 	omega(1) = 0.0f;
-	omega(2) = -_k_earth_rate * sinf((float)lat_rad);
+	omega(2) = -CONSTANTS_EARTH_SPIN_RATE * sinf(lat_rad);
 }
 
 // gets the innovations of velocity and position measurements
@@ -1116,7 +1116,7 @@ bool Ekf::reset_imu_bias()
 	zeroRows(P, 10, 15);
 
 	// Set the corresponding variances to the values use for initial alignment
-	float dt = 0.001f * (float)FILTER_UPDATE_PERIOD_MS;
+	float dt = FILTER_UPDATE_PERIOD_S;
 	P[12][12] = P[11][11] = P[10][10] = sq(_params.switch_on_gyro_bias * dt);
 	P[15][15] = P[14][14] = P[13][13] = sq(_params.switch_on_accel_bias * dt);
 	_last_imu_bias_cov_reset_us = _imu_sample_delayed.time_us;

@@ -61,6 +61,8 @@ static constexpr float CONSTANTS_ABSOLUTE_NULL_CELSIUS = -273.15f;				// °C
 static constexpr double CONSTANTS_RADIUS_OF_EARTH = 6371000;					// meters (m)
 static constexpr float  CONSTANTS_RADIUS_OF_EARTH_F = CONSTANTS_RADIUS_OF_EARTH;		// meters (m)
 
+static constexpr float CONSTANTS_EARTH_SPIN_RATE = 7.2921150e-5f;				// radians/second (rad/s)
+
 
 // XXX remove
 struct crosstrack_error_s {
