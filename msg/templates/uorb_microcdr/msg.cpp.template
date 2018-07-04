@@ -149,7 +149,7 @@ void serialize_@(topic_name)(MicroBuffer *microCDRWriter, const struct @(uorb_st
 
     serialize_uint64_t(microCDRWriter, input->timestamp);
 @add_code_to_serialize()
-    (*length) = (microCDRWriter->final - microCDRWriter->init);
+    (*length) = micro_buffer_length(microCDRWriter);
 }
 
 void deserialize_@(topic_name)(MicroBuffer *microCDRReader, struct @(uorb_struct) *output, const char *input)
