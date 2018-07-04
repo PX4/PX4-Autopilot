@@ -34,8 +34,8 @@
 /**
  * @file mpu6000.cpp
  *
- * Driver for the Invensense MPU6000, MPU6050, ICM20608, and ICM20602 connected via
- * SPI or I2C.
+ * Driver for the Invensense MPU6000, MPU6050, ICM20608, ICM20602 and ICM20689
+ * connected via SPI or I2C.
  *
  * When the device is on the SPI bus the hrt is used to provide thread of
  * execution to the driver.
@@ -218,6 +218,9 @@ private:
 	math::LowPassFilter2p	_gyro_filter_x;
 	math::LowPassFilter2p	_gyro_filter_y;
 	math::LowPassFilter2p	_gyro_filter_z;
+
+	float 			_acc_dlpf_delay;
+	float 			_gyro_dlpf_delay;
 
 	Integrator		_accel_int;
 	Integrator		_gyro_int;
@@ -517,6 +520,8 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 	_gyro_filter_x(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_y(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_z(MPU6000_GYRO_DEFAULT_RATE, MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
+	_acc_dlpf_delay(0.0f),
+	_gyro_dlpf_delay(0.0f),
 	_accel_int(1000000 / MPU6000_ACCEL_MAX_OUTPUT_RATE),
 	_gyro_int(1000000 / MPU6000_GYRO_MAX_OUTPUT_RATE, true),
 	_rotation(rotation),
@@ -959,33 +964,55 @@ MPU6000::_set_dlpf_filter(uint16_t frequency_hz)
 
 	/*
 	   choose next highest filter frequency available
+
+	   the delay introduced by the filter comes from the MCU6000
+	   register map datasheet. 1ms is added to those values to
+	   take the I2C/SPI transfer into account.
 	 */
 	if (frequency_hz == 0) {
 		filter = MPU_GYRO_DLPF_CFG_2100HZ_NOLPF;
+		_gyro_dlpf_delay = 1.0f;
+		_acc_dlpf_delay = 1.0f;
 
 	} else if (frequency_hz <= 5) {
 		filter = MPU_GYRO_DLPF_CFG_5HZ;
+		_gyro_dlpf_delay = 19.6f;
+		_acc_dlpf_delay = 20.0f;
 
 	} else if (frequency_hz <= 10) {
 		filter = MPU_GYRO_DLPF_CFG_10HZ;
+		_gyro_dlpf_delay = 14.4f;
+		_acc_dlpf_delay = 14.8f;
 
 	} else if (frequency_hz <= 20) {
 		filter = MPU_GYRO_DLPF_CFG_20HZ;
+		_gyro_dlpf_delay = 9.3f;
+		_acc_dlpf_delay = 9.5f;
 
 	} else if (frequency_hz <= 42) {
 		filter = MPU_GYRO_DLPF_CFG_42HZ;
+		_gyro_dlpf_delay = 5.8f;
+		_acc_dlpf_delay = 5.9f;
 
 	} else if (frequency_hz <= 98) {
 		filter = MPU_GYRO_DLPF_CFG_98HZ;
+		_gyro_dlpf_delay = 3.8f;
+		_acc_dlpf_delay = 4.0f;
 
 	} else if (frequency_hz <= 188) {
 		filter = MPU_GYRO_DLPF_CFG_188HZ;
+		_gyro_dlpf_delay = 2.9f;
+		_acc_dlpf_delay = 3.0f;
 
 	} else if (frequency_hz <= 256) {
 		filter = MPU_GYRO_DLPF_CFG_256HZ_NOLPF2;
+		_gyro_dlpf_delay = 1.98f;
+		_acc_dlpf_delay = 1.0f;
 
 	} else {
 		filter = MPU_GYRO_DLPF_CFG_2100HZ_NOLPF;
+		_gyro_dlpf_delay = 1.0f;
+		_acc_dlpf_delay = 1.0f;
 	}
 
 	write_checked_reg(MPUREG_CONFIG, filter);
@@ -998,33 +1025,47 @@ MPU6000::_set_icm_acc_dlpf_filter(uint16_t frequency_hz)
 
 	/*
 	   choose next highest filter frequency available
+
+	   the delay introduced by the filter comes from the MCU6000
+	   register map datasheet (delays are not provided in the datasheet
+	   of the ICMs). 1ms is added to those values to
+	   take the I2C/SPI transfer into account.
 	 */
 	if (frequency_hz == 0) {
 		filter = ICM_ACC_DLPF_CFG_1046HZ_NOLPF;
+		_acc_dlpf_delay = 1.0f;
 
 	} else if (frequency_hz <= 5) {
 		filter = ICM_ACC_DLPF_CFG_5HZ;
+		_acc_dlpf_delay = 20.0f;
 
 	} else if (frequency_hz <= 10) {
 		filter = ICM_ACC_DLPF_CFG_10HZ;
+		_acc_dlpf_delay = 14.8f;
 
 	} else if (frequency_hz <= 21) {
 		filter = ICM_ACC_DLPF_CFG_21HZ;
+		_acc_dlpf_delay = 9.5f;
 
 	} else if (frequency_hz <= 44) {
 		filter = ICM_ACC_DLPF_CFG_44HZ;
+		_acc_dlpf_delay = 5.9f;
 
 	} else if (frequency_hz <= 99) {
 		filter = ICM_ACC_DLPF_CFG_99HZ;
+		_acc_dlpf_delay = 4.0f;
 
 	} else if (frequency_hz <= 218) {
 		filter = ICM_ACC_DLPF_CFG_218HZ;
+		_acc_dlpf_delay = 1.0f;
 
 	} else if (frequency_hz <= 420) {
 		filter = ICM_ACC_DLPF_CFG_420HZ;
+		_acc_dlpf_delay = 1.0f;
 
 	} else {
 		filter = ICM_ACC_DLPF_CFG_1046HZ_NOLPF;
+		_acc_dlpf_delay = 1.0f;
 	}
 
 	write_checked_reg(ICMREG_ACCEL_CONFIG2, filter);
@@ -1954,9 +1995,11 @@ MPU6000::measure()
 	gyro_report		grb;
 
 	/*
-	 * Adjust and scale results to m/s^2.
+	 * Get correct timestamps of the measurements by
+	 * removing the delay introduced by the on-chip dlpf
 	 */
-	grb.timestamp = arb.timestamp = hrt_absolute_time();
+	grb.timestamp = hrt_absolute_time() - uint64_t(_gyro_dlpf_delay * 1000.0f);
+	arb.timestamp = hrt_absolute_time() - uint64_t(_acc_dlpf_delay * 1000.0f);
 
 	// report the error count as the sum of the number of bad
 	// transfers and bad register reads. This allows the higher
