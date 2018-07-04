@@ -44,10 +44,11 @@ param set EKF2_GBIAS_INIT 0.01
 param set EKF2_ANGERR_INIT 0.01
 param set EKF2_MAG_TYPE 1
 param set EKF2_AID_MASK 2
-param set EKF2_HGT_MODE 2
+param set EKF2_HGT_MODE 0
 param set EKF2_EV_DELAY 5
 param set EKF2_EVP_NOISE 0.05
 param set EKF2_EVA_NOISE 0.05
+param set MPC_ALT_MODE 2
 replay tryapplyparams
 simulator start -s
 tone_alarm start
