@@ -1603,20 +1603,8 @@ FixedwingPositionControl::run()
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_sensor_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
 
-	/* rate limit control mode updates to 5Hz */
-	orb_set_interval(_control_mode_sub, 200);
-
-	/* rate limit vehicle status updates to 5Hz */
-	orb_set_interval(_vehicle_status_sub, 200);
-
-	/* rate limit vehicle land detected updates to 5Hz */
-	orb_set_interval(_vehicle_land_detected_sub, 200);
-
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
-
-	/* rate limit barometer updates to 1 Hz */
-	orb_set_interval(_sensor_baro_sub, 1000);
 
 	/* abort on a nonzero return value from the parameter init */
 	if (parameters_update() != PX4_OK) {
