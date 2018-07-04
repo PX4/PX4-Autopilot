@@ -125,7 +125,8 @@ public:
 
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
 	bool collect_gps(uint64_t time_usec, struct gps_message *gps);
-	bool collect_imu(imuSample &imu);
+
+	bool collect_imu(const imuSample &imu);
 
 	// get the ekf WGS-84 origin position and height and the system time it was last set
 	// return true if the origin is valid
@@ -229,6 +230,9 @@ public:
 
 	// return the quaternion defining the rotation from the EKF to the External Vision reference frame
 	void get_ekf2ev_quaternion(float *quat);
+
+	// use the latest IMU data at the current time horizon.
+	Quatf calculate_quaternion() const;
 
 private:
 
