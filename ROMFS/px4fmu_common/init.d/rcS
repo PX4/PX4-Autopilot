@@ -381,6 +381,7 @@ else
 	then
 		set FMU_MODE pwm4
 		set AUX_MODE pwm4
+		camera_capture on
 	fi
 
 	#
