@@ -288,6 +288,7 @@ private:
 	static IridiumSBD *instance;
 	static int task_handle;
 	bool _task_should_exit = false;
+	bool _start_completed = false;
 	int uart_fd = -1;
 
 	int32_t _param_read_interval_s = -1;

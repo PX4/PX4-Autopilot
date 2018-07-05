@@ -79,7 +79,29 @@ int IridiumSBD::start(int argc, char *argv[])
 	IridiumSBD::task_handle = px4_task_spawn_cmd("iridiumsbd", SCHED_DEFAULT,
 				  SCHED_PRIORITY_SLOW_DRIVER, 1350, (main_t)&IridiumSBD::main_loop_helper, argv);
 
-	return OK;
+	int counter = 0;
+	IridiumSBD::instance->_start_completed = false;
+	IridiumSBD::instance->_task_should_exit = false;
+
+	// give the driver 6 seconds to start up
+	while (!IridiumSBD::instance->_start_completed && (IridiumSBD::task_handle != -1) && counter < 60) {
+		counter++;
+		usleep(100000);
+	}
+
+	if (IridiumSBD::instance->_start_completed && (IridiumSBD::task_handle != -1)) {
+		return PX4_OK;
+
+	} else {
+		// the driver failed to start so make sure it is shut down before exiting
+		IridiumSBD::instance->_task_should_exit = true;
+
+		for (int i = 0; (i < 10 + 1) && (IridiumSBD::task_handle != -1); i++) {
+			sleep(1);
+		}
+
+		return PX4_ERROR;
+	}
 }
 
 int IridiumSBD::stop()
@@ -234,25 +256,59 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 		return;
 	}
 
-	if (open_uart(argv[arg_uart_name]) != SATCOM_UART_OK) {
+
+	bool command_executed = false;
+
+	for (int counter = 0; (counter < 20) && !command_executed; counter++) {
+		if (open_uart(argv[arg_uart_name]) == SATCOM_UART_OK) {
+			command_executed = true;
+
+		} else {
+			usleep(100000);
+		}
+	}
+
+	if (!command_executed) {
 		PX4_WARN("failed to open UART port!");
 		_task_should_exit = true;
 		return;
 	}
 
 	// disable flow control
-	write_at("AT&K0");
+	command_executed = false;
 
-	if (read_at_command() != SATCOM_RESULT_OK) {
+	for (int counter = 0; (counter < 20) && !command_executed; counter++) {
+		write_at("AT&K0");
+
+		if (read_at_command() != SATCOM_RESULT_OK) {
+			usleep(100000);
+
+		} else {
+			command_executed = true;
+		}
+	}
+
+	if (!command_executed) {
 		PX4_WARN("modem not responding");
 		_task_should_exit = true;
 		return;
 	}
 
 	// disable command echo
-	write_at("ATE0");
+	command_executed = false;
 
-	if (read_at_command() != SATCOM_RESULT_OK) {
+	for (int counter = 0; (counter < 10) && !command_executed; counter++) {
+		write_at("ATE0");
+
+		if (read_at_command() != SATCOM_RESULT_OK) {
+			usleep(100000);
+
+		} else {
+			command_executed = true;
+		}
+	}
+
+	if (!command_executed) {
 		PX4_WARN("modem not responding");
 		_task_should_exit = true;
 		return;
@@ -281,6 +337,8 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 	VERBOSE_INFO("SBD session timeout: %d s", _param_session_timeout_s);
 	VERBOSE_INFO("SBD stack time: %d ms", _param_stacking_time_ms);
 
+	_start_completed = true;
+
 	while (!_task_should_exit) {
 		switch (_state) {
 		case SATCOM_STATE_STANDBY:
@@ -301,6 +359,7 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 		}
 
 		publish_subsystem_status();
+
 		if (_new_state != _state) {
 			VERBOSE_INFO("SWITCHING STATE FROM %s TO %s", satcom_state_string[_state], satcom_state_string[_new_state]);
 			_state = _new_state;
