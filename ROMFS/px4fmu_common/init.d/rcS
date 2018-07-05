@@ -15,29 +15,70 @@ set +e
 #
 # UART mapping on OMNIBUSF4SD:
 #
-# USART1		/dev/ttyS0		SerialRX
-# USART4		/dev/ttyS1		TELEM1
-# USART6		/dev/ttyS2		GPS
+# USART1                /dev/ttyS0              SerialRX
+# USART4                /dev/ttyS1              TELEM1
+# USART6                /dev/ttyS2              GPS
 #
 # UART mapping on FMUv2/3/4:
 #
-# UART1			/dev/ttyS0		IO debug (except v4, there ttyS0 is the wifi)
-# USART2		/dev/ttyS1		TELEM1 (flow control)
-# USART3		/dev/ttyS2		TELEM2 (flow control)
+# UART1                 /dev/ttyS0              IO debug (except v4, there ttyS0 is the wifi)
+# USART2                /dev/ttyS1              TELEM1 (flow control)
+# USART3                /dev/ttyS2              TELEM2 (flow control)
 # UART4
-# UART7							CONSOLE
-# UART8							SERIAL4
+# UART7                                                 CONSOLE
+# UART8                                                 SERIAL4
 #
 #
 # UART mapping on FMUv5:
 #
-# UART1			/dev/ttyS0		GPS
-# USART2		/dev/ttyS1		TELEM1 (flow control)
-# USART3		/dev/ttyS2		TELEM2 (flow control)
-# UART4			/dev/ttyS3		TELEM4
-# USART6		/dev/ttyS4		TELEM3 (flow control)
-# UART7			/dev/ttyS5		?
-# UART8			/dev/ttyS6		CONSOLE
+# UART1                 /dev/ttyS0              GPS
+# USART2                /dev/ttyS1              TELEM1 (flow control)
+# USART3                /dev/ttyS2              TELEM2 (flow control)
+# UART4                 /dev/ttyS3              TELEM4
+# USART6                /dev/ttyS4              TELEM3 (flow control)
+# UART7                 /dev/ttyS5              ?
+# UART8                 /dev/ttyS6              CONSOLE
+
+#
+# Set default paramter values
+#
+set AUX_MODE                    pwm
+set DATAMAN_OPT                 ""
+set FAILSAFE                    none
+set FAILSAFE_AUX                none
+set FCONFIG                     /fs/microsd/etc/config.txt
+set FEXTRAS                     /fs/microsd/etc/extras.txt
+set FRC                         /fs/microsd/etc/rc.txt
+set FMU_ARGS                    ""
+set FMU_MODE                    pwm
+set IO_FILE                     ""
+set IO_PRESENT                  no
+set LOG_FILE                    /fs/microsd/bootlog.txt
+set LOGGER_BUF                  14
+set MAVLINK_F                   default
+set MAVLINK_COMPANION_DEVICE    /dev/ttyS2
+set MAV_TYPE                    none
+set MIXER                       none
+set MIXER_AUX                   none
+set MK_MODE                     none
+set MKBLCTRL_ARG                ""
+set MODE                        autostart
+set OUTPUT_MODE                 none
+set PARAM_FILE                  /fs/microsd/params
+set PWM_OUT                     none
+set PWM_RATE                    p:PWM_RATE
+set PWM_DISARMED                p:PWM_DISARMED
+set PWM_MIN                     p:PWM_MIN
+set PWM_MAX                     p:PWM_MAX
+set PWM_AUX_OUT                 none
+set PWM_AUX_RATE                none
+set PWM_ACHDIS                  none
+set PWM_AUX_DISARMED            p:PWM_AUX_DISARMED
+set PWM_AUX_MIN                 p:PWM_AUX_MIN
+set PWM_AUX_MAX                 p:PWM_AUX_MAX
+set TUNE_ERR                    "ML<<CP4CP4CP4CP4CP4"
+set USE_IO                      no
+set VEHICLE_TYPE                none
 
 #
 # Mount the procfs.
@@ -51,14 +92,6 @@ sercon
 
 # print full system version
 ver all
-
-#
-# Default to auto-start mode.
-#
-set MODE autostart
-
-set TUNE_ERR "ML<<CP4CP4CP4CP4CP4"
-set LOG_FILE /fs/microsd/bootlog.txt
 
 #
 # Try to mount the microSD card.
@@ -96,17 +129,14 @@ fi
 # Look for an init script on the microSD card.
 # Disable autostart if the script found.
 #
-set FRC /fs/microsd/etc/rc.txt
 if [ -f $FRC ]
 then
 	sh $FRC
 	set MODE custom
 fi
-unset FRC
 
 if [ $MODE == autostart ]
 then
-
 	#
 	# Start the ORB (first app to start)
 	#
@@ -121,7 +151,6 @@ then
 	#
 	# Load parameters
 	#
-	set PARAM_FILE /fs/microsd/params
 	if mtd start
 	then
 		set PARAM_FILE /fs/mtd_params
@@ -172,36 +201,6 @@ then
 			param set BAT_N_CELLS 3
 		fi
 	fi
-
-	#
-	# Set default values
-	#
-	set VEHICLE_TYPE none
-	set MIXER none
-	set MIXER_AUX none
-	set OUTPUT_MODE none
-	set PWM_OUT none
-	set PWM_RATE p:PWM_RATE
-	set PWM_DISARMED p:PWM_DISARMED
-	set PWM_MIN p:PWM_MIN
-	set PWM_MAX p:PWM_MAX
-	set PWM_AUX_OUT none
-	set PWM_AUX_RATE none
-	set PWM_ACHDIS none
-	set PWM_AUX_DISARMED p:PWM_AUX_DISARMED
-	set PWM_AUX_MIN p:PWM_AUX_MIN
-	set PWM_AUX_MAX p:PWM_AUX_MAX
-	set FAILSAFE_AUX none
-	set MK_MODE none
-	set FMU_MODE pwm
-	set AUX_MODE pwm
-	set FMU_ARGS ""
-	set MAVLINK_F default
-	set MAVLINK_COMPANION_DEVICE /dev/ttyS2
-	set MAV_TYPE none
-	set FAILSAFE none
-	set USE_IO no
-	set LOGGER_BUF 14
 
 	if ver hwcmp PX4FMU_V5
 	then
@@ -261,7 +260,6 @@ then
 	else
 		sh /etc/init.d/rc.autostart
 	fi
-	unset MODE
 
 	#
 	# If mount (gimbal) control is enabled and output mode is AUX, set the aux
@@ -279,13 +277,11 @@ then
 	#
 	# Override parameters from user configuration file
 	#
-	set FCONFIG /fs/microsd/etc/config.txt
 	if [ -f $FCONFIG ]
 	then
 		echo "Custom: ${FCONFIG}"
 		sh $FCONFIG
 	fi
-	unset FCONFIG
 
 	#
 	# If autoconfig parameter was set, reset it and save parameters
@@ -317,9 +313,6 @@ then
 
 		param set SYS_AUTOCONFIG 0
 	fi
-	unset AUTOCNF
-
-	set IO_PRESENT no
 
 	#
 	# Check if PX4IO present and update firmware if needed
@@ -365,7 +358,6 @@ then
 			fi
 		fi
 	fi
-	unset IO_FILE
 
 	if [ $USE_IO == yes -a $IO_PRESENT == no ]
 	then
@@ -397,7 +389,6 @@ then
 		set FMU_MODE rcin
 	fi
 
-	set DATAMAN_OPT ""
 	if ver hwcmp AEROFC_V1
 	then
 		set DATAMAN_OPT -i
@@ -406,16 +397,19 @@ then
 	then
 		set DATAMAN_OPT "-f /fs/mtd_dataman"
 	fi
+
+	#
 	# waypoint storage
 	# REBOOTWORK this needs to start in parallel
+	#
 	if dataman start $DATAMAN_OPT
 	then
 	fi
-	unset DATAMAN_OPT
 
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run)
 	# commander Needs to be this early for in-air-restarts
+	#
 	if param compare SYS_HITL 1
 	then
 		set OUTPUT_MODE hil
@@ -431,6 +425,7 @@ then
 		sh /etc/init.d/rc.sensors
 		commander start
 	fi
+
 	send_event start
 	load_mon start
 
@@ -501,7 +496,6 @@ then
 
 		if [ $OUTPUT_MODE == mkblctrl ]
 		then
-			set MKBLCTRL_ARG ""
 			if [ $MKBLCTRL_MODE == x ]
 			then
 				set MKBLCTRL_ARG "-mkmode x"
@@ -516,9 +510,7 @@ then
 			else
 				tune_control play -m ${TUNE_ERR}
 			fi
-			unset MKBLCTRL_ARG
 		fi
-		unset MK_MODE
 
 		if [ $OUTPUT_MODE == hil ]
 		then
@@ -587,7 +579,7 @@ then
 			fi
 			if param greater SENS_EN_LEDDAR1 0
 			then
-				set MAVLINK_F none				
+				set MAVLINK_F none
 			fi
 		fi
 
@@ -596,14 +588,13 @@ then
 			# Avoid using either of the two available serials
 			set MAVLINK_F none
 		fi
-fi
+	fi
 
 	if [ "x$MAVLINK_F" == xnone ]
 	then
 	else
 		mavlink start ${MAVLINK_F}
 	fi
-	unset MAVLINK_F
 
 	#
 	# MAVLink onboard / TELEM2
@@ -635,7 +626,7 @@ fi
 				mavlink start -d /dev/mavlink -b 921600 -m onboard -r 5000 -x
 				micrortps_client start -d /dev/rtps -b 921600 -l -1 -s 2000
 			else
-				 mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -m onboard -r 80000 -x -f
+				mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -m onboard -r 80000 -x -f
 			fi
 		else
 			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -m onboard -r 80000 -x -f
@@ -706,8 +697,6 @@ fi
 	then
 		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 1500000 -m onboard -r 10000 -x -f
 	fi
-
-	unset MAVLINK_COMPANION_DEVICE
 
 	#
 	# Starting stuff according to UAVCAN_ENABLE value
@@ -904,10 +893,6 @@ fi
 		sh /etc/init.d/rc.ugv_apps
 	fi
 
-	unset MIXER
-	unset MAV_TYPE
-	unset OUTPUT_MODE
-
 	#
 	# Start the navigator
 	#
@@ -923,13 +908,11 @@ fi
 	fi
 
 	# Start any custom addons
-	set FEXTRAS /fs/microsd/etc/extras.txt
 	if [ -f $FEXTRAS ]
 	then
 		echo "Addons script: ${FEXTRAS}"
 		sh $FEXTRAS
 	fi
-	unset FEXTRAS
 
 	if ver hwcmp CRAZYFLIE
 	then
@@ -940,7 +923,6 @@ fi
 		then
 			# AEROCORE2 shouldn't have an sd card
 		else
-
 			# Run no SD alarm
 			if [ $LOG_FILE == /dev/null ]
 			then
@@ -953,32 +935,13 @@ fi
 	fi
 
 	#
-	# Check if we should start a thermal calibration
-	# TODO move further up and don't start unnecessary services if we are calibrating
+	# Start a thermal calibration if required.
 	#
-	set TEMP_CALIB_ARGS ""
-	if param compare SYS_CAL_GYRO 1
-	then
-		set TEMP_CALIB_ARGS "${TEMP_CALIB_ARGS} -g"
-		param set SYS_CAL_GYRO 0
-	fi
-	if param compare SYS_CAL_ACCEL 1
-	then
-		set TEMP_CALIB_ARGS "${TEMP_CALIB_ARGS} -a"
-		param set SYS_CAL_ACCEL 0
-	fi
-	if param compare SYS_CAL_BARO 1
-	then
-		set TEMP_CALIB_ARGS "${TEMP_CALIB_ARGS} -b"
-		param set SYS_CAL_BARO 0
-	fi
-	if [ "x$TEMP_CALIB_ARGS" != "x" ]
-	then
-		send_event temperature_calibration ${TEMP_CALIB_ARGS}
-	fi
-	unset TEMP_CALIB_ARGS
+	sh /etc/init.d/rc.thermal_cal
 
+	#
 	# vmount to control mounts such as gimbals, disabled by default.
+	#
 	if param compare MNT_MODE_IN -1
 	then
 	else
@@ -994,7 +957,47 @@ fi
 
 # There is no further script processing, so we can free some RAM
 # XXX potentially unset all script variables.
+unset AUX_MODE
+unset DATAMAN_OPT
+unset FAILSAFE
+unset FAILSAFE_AUX
+unset FCONFIG
+unset FEXTRAS
+unset FRC
+unset FMU_ARGS
+unset FMU_MODE
+unset IO_FILE
+unset IO_PRESENT
+unset LOG_FILE
+unset LOGGER_BUF
+unset MAVLINK_F
+unset MAVLINK_COMPANION_DEVICE
+unset MAV_TYPE
+unset MIXER
+unset MIXER_AUX
+unset MK_MODE
+unset MKBLCTRL_ARG
+unset MODE
+unset OUTPUT_AUX_DEV
+unset OUTPUT_DEV
+unset OUTPUT_MODE
+unset PARAM_FILE
+unset PWM_ACHDIS
+unset PWM_OUT
+unset PWM_RATE
+unset PWM_DISARMED
+unset PWM_MIN
+unset PWM_MAX
+unset PWM_AUX_OUT
+unset PWM_AUX_RATE
+unset PWM_ACHDIS
+unset PWM_AUX_DISARMED
+unset PWM_AUX_MIN
+unset PWM_AUX_MAX
 unset TUNE_ERR
+unset USE_IO
+unset VEHICLE_TYPE
+
 
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete

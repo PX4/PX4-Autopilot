@@ -48,32 +48,32 @@ then
 	param set FW_P_LIM_MAX  45
 	param set FW_P_LIM_MIN -45
 	
-	# Time Constant (def = 0.4s)	
+	# Time Constant (def = 0.4s)
 	param set FW_P_TC 0.4
 
 	# Pitch rate feed forward (def = 0.5 %/rad/sec)
 	param set FW_PR_FF 0.35
-	
+
 	# Pitch rate integrator limit (def = 0.4)
 	param set FW_PR_IMAX 0.4
-	
+
 	# Pitch rate proportional gain (def = 0.08 %/rad/sec)
 	param set FW_PR_P 0.08
-	
+
 	####################################
 	# Roll
 	####################################
 
-	# Basic limits (def = 50 deg)	
+	# Basic limits (def = 50 deg)
 	param set FW_R_LIM 40
-	
+
 	# Roll rate upper limit (def = 70 deg/s)
 	param set FW_R_RMAX 50
 
 	# Roll Time Constant (def = 0.4 s)
-	param set FW_R_TC 0.4	
+	param set FW_R_TC 0.4
 	
-	# Roll rate feed forward (def = 0.5 %/rad/sec)	
+	# Roll rate feed forward (def = 0.5 %/rad/sec)
 	param set FW_RR_FF 0.5
 
 	# Roll rate proportional Gain (def = 0.05 %/rad/sec)

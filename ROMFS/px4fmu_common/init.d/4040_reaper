@@ -19,23 +19,23 @@ sh /etc/init.d/rc.mc_defaults
 
 if [ $AUTOCNF == yes ]
 then
-    param set MC_ROLL_P 6.5
-    param set MC_ROLLRATE_P 0.14
-    param set MC_ROLLRATE_I 0.1
-    param set MC_ROLLRATE_D 0.004
-    param set MC_PITCH_P 6.0
-    param set MC_PITCHRATE_P 0.14
-    param set MC_PITCHRATE_I 0.09
-    param set MC_PITCHRATE_D 0.004
-    param set MC_YAW_P 4
+	param set MC_ROLL_P 6.5
+	param set MC_ROLLRATE_P 0.14
+	param set MC_ROLLRATE_I 0.1
+	param set MC_ROLLRATE_D 0.004
+	param set MC_PITCH_P 6.0
+	param set MC_PITCHRATE_P 0.14
+	param set MC_PITCHRATE_I 0.09
+	param set MC_PITCHRATE_D 0.004
+	param set MC_YAW_P 4
 
-    param set NAV_ACC_RAD 2.0
-    param set RTL_RETURN_ALT 30.0
-    param set RTL_DESCEND_ALT 10.0
+	param set NAV_ACC_RAD 2.0
+	param set RTL_RETURN_ALT 30.0
+	param set RTL_DESCEND_ALT 10.0
 
-    param set PWM_MIN 1100
-    param set PWM_MAX 1900
-    param set PWM_AUX_DISARMED 950
+	param set PWM_MIN 1100
+	param set PWM_MAX 1900
+	param set PWM_AUX_DISARMED 950
 fi
 
 set MIXER quad_h

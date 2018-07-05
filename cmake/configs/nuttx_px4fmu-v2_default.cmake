@@ -62,7 +62,7 @@ set(config_module_list
 	#
 	# System commands
 	#
-	systemcmds/bl_update
+	#systemcmds/bl_update
 	#systemcmds/config
 	#systemcmds/dumpfile
 	#systemcmds/esc_calib
