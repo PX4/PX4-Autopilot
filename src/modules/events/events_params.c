@@ -61,7 +61,7 @@ PARAM_DEFINE_INT32(EV_TSK_STAT_DIS, 0);
  * Enable/disable event task for RC Loss. When enabled, an alarm tune will be
  * played via buzzer or ESCs, if supported. The alarm will sound after a disarm,
  * if the vehicle was previously armed and only if the vehicle had RC signal at
- * some point. Particularly useful for locating crashes drones without a GPS
+ * some point. Particularly useful for locating crashed drones without a GPS
  * sensor.
  *
  * @group Events
