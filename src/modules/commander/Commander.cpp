@@ -4078,7 +4078,7 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 			// to avoid transmitting unnecessary data over that link
 			status.high_latency_data_link_active = false;
 			*status_changed = true;
-			mavlink_log_critical(&mavlink_log_pub, "LOW LATENCY DATA LINKS REGAINED, DEACTIVATING HIGH LATENCY LINK");
+			mavlink_log_critical(&mavlink_log_pub, "LOW LAT LINKS REGAINED, DEACTIVATE HIGH LAT LINK");
 		}
 
 	} else {
@@ -4095,7 +4095,7 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 			}
 
 			if (!status.data_link_lost) {
-				mavlink_log_critical(&mavlink_log_pub, "ALL LOW LATENCY DATA LINKS LOST, ACTIVATING HIGH LATENCY LINK");
+				mavlink_log_critical(&mavlink_log_pub, "ALL LOW LAT LINKS LOST, ACTIVATE HIGH LAT LINK");
 
 			} else {
 				mavlink_log_critical(&mavlink_log_pub, "ACTIVATING AVAILABLE HIGH LATENCY LINK");
