@@ -161,9 +161,7 @@ uORB::DeviceNode::open(device::file_t *filp)
 
 		ret = CDev::open(filp);
 
-#ifdef ORB_COMMUNICATOR
 		add_internal_subscriber();
-#endif /* ORB_COMMUNICATOR */
 
 		if (ret != PX4_OK) {
 			PX4_ERR("CDev::open failed");
@@ -196,9 +194,7 @@ uORB::DeviceNode::close(device::file_t *filp)
 				hrt_cancel(&sd->update_interval->update_call);
 			}
 
-#ifdef ORB_COMMUNICATOR
 			remove_internal_subscriber();
-#endif /* ORB_COMMUNICATOR */
 
 			delete sd;
 			sd = nullptr;
@@ -737,39 +733,46 @@ uORB::DeviceNode::print_statistics(bool reset)
 	return true;
 }
 
-#ifdef ORB_COMMUNICATOR
 void uORB::DeviceNode::add_internal_subscriber()
 {
-	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
-
 	lock();
 	_subscriber_count++;
+
+#ifdef ORB_COMMUNICATOR
+	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
 	if (ch != nullptr && _subscriber_count > 0) {
 		unlock(); //make sure we cannot deadlock if add_subscription calls back into DeviceNode
 		ch->add_subscription(_meta->o_name, 1);
 
-	} else {
+	} else
+#endif /* ORB_COMMUNICATOR */
+
+	{
 		unlock();
 	}
 }
 
 void uORB::DeviceNode::remove_internal_subscriber()
 {
-	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
-
 	lock();
 	_subscriber_count--;
+
+#ifdef ORB_COMMUNICATOR
+	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
 	if (ch != nullptr && _subscriber_count == 0) {
 		unlock(); //make sure we cannot deadlock if remove_subscription calls back into DeviceNode
 		ch->remove_subscription(_meta->o_name);
 
-	} else {
+	} else
+#endif /* ORB_COMMUNICATOR */
+	{
 		unlock();
 	}
 }
 
+#ifdef ORB_COMMUNICATOR
 int16_t uORB::DeviceNode::process_add_subscription(int32_t rateInHz)
 {
 	// if there is already data in the node, send this out to

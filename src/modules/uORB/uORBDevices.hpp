@@ -139,6 +139,7 @@ public:
 	 * processed the received data message from remote.
 	 */
 	int16_t process_received_message(int32_t length, uint8_t *data);
+#endif /* ORB_COMMUNICATOR */
 
 	/**
 	  * Add the subscriber to the node's list of subscriber.  If there is
@@ -156,7 +157,6 @@ public:
 	 *   the Subscriber to be removed.
 	 */
 	void remove_internal_subscriber();
-#endif /* ORB_COMMUNICATOR */
 
 	/**
 	 * Return true if this topic has been published.
@@ -182,7 +182,7 @@ public:
 	bool print_statistics(bool reset);
 
 	unsigned int get_queue_size() const { return _queue_size; }
-	int16_t subscriber_count() const { return _subscriber_count; }
+	int8_t subscriber_count() const { return _subscriber_count; }
 	uint32_t lost_message_count() const { return _lost_messages; }
 	unsigned int published_message_count() const { return _generation; }
 	const struct orb_metadata *get_meta() const { return _meta; }
@@ -222,7 +222,7 @@ private:
 	uint8_t   _priority;  /**< priority of the topic */
 	bool _published{false};  /**< has ever data been published */
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
-	int16_t _subscriber_count{0};
+	int8_t _subscriber_count{0};
 
 	inline static SubscriberData    *filp_to_sd(device::file_t *filp);
 
