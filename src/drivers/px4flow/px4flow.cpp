@@ -102,9 +102,6 @@
 
 #include "i2c_frame.h"
 
-struct i2c_frame f;
-struct i2c_integral_frame f_integral;
-
 class PX4FLOW: public device::I2C
 {
 public:
@@ -148,6 +145,9 @@ private:
 	float 				_sensor_min_range;
 	float 				_sensor_max_range;
 	float 				_sensor_max_flow_rate;
+
+	i2c_frame _frame;
+	i2c_integral_frame _frame_integral;
 
 	/**
 	 * Test whether the device supported by the driver is present at a
@@ -510,7 +510,7 @@ PX4FLOW::collect()
 	int ret = -EIO;
 
 	/* read from the sensor */
-	uint8_t val[I2C_FRAME_SIZE + I2C_INTEGRAL_FRAME_SIZE] = { 0 };
+	uint8_t val[I2C_FRAME_SIZE + I2C_INTEGRAL_FRAME_SIZE] = { };
 
 	perf_begin(_sample_perf);
 
@@ -530,12 +530,12 @@ PX4FLOW::collect()
 	}
 
 	if (PX4FLOW_REG == 0) {
-		memcpy(&f, val, I2C_FRAME_SIZE);
-		memcpy(&f_integral, &(val[I2C_FRAME_SIZE]), I2C_INTEGRAL_FRAME_SIZE);
+		memcpy(&_frame, val, I2C_FRAME_SIZE);
+		memcpy(&_frame_integral, &(val[I2C_FRAME_SIZE]), I2C_INTEGRAL_FRAME_SIZE);
 	}
 
 	if (PX4FLOW_REG == 0x16) {
-		memcpy(&f_integral, val, I2C_INTEGRAL_FRAME_SIZE);
+		memcpy(&_frame_integral, val, I2C_INTEGRAL_FRAME_SIZE);
 	}
 
 
@@ -543,27 +543,27 @@ PX4FLOW::collect()
 
 	report.timestamp = hrt_absolute_time();
 
-	report.pixel_flow_x_integral = static_cast<float>(f_integral.pixel_flow_x_integral) / 10000.0f;//convert to radians
+	report.pixel_flow_x_integral = static_cast<float>(_frame_integral.pixel_flow_x_integral) / 10000.0f;//convert to radians
 
-	report.pixel_flow_y_integral = static_cast<float>(f_integral.pixel_flow_y_integral) / 10000.0f;//convert to radians
+	report.pixel_flow_y_integral = static_cast<float>(_frame_integral.pixel_flow_y_integral) / 10000.0f;//convert to radians
 
-	report.frame_count_since_last_readout = f_integral.frame_count_since_last_readout;
+	report.frame_count_since_last_readout = _frame_integral.frame_count_since_last_readout;
 
-	report.ground_distance_m = static_cast<float>(f_integral.ground_distance) / 1000.0f;//convert to meters
+	report.ground_distance_m = static_cast<float>(_frame_integral.ground_distance) / 1000.0f;//convert to meters
 
-	report.quality = f_integral.qual; //0:bad ; 255 max quality
+	report.quality = _frame_integral.qual; //0:bad ; 255 max quality
 
-	report.gyro_x_rate_integral = static_cast<float>(f_integral.gyro_x_rate_integral) / 10000.0f; //convert to radians
+	report.gyro_x_rate_integral = static_cast<float>(_frame_integral.gyro_x_rate_integral) / 10000.0f; //convert to radians
 
-	report.gyro_y_rate_integral = static_cast<float>(f_integral.gyro_y_rate_integral) / 10000.0f; //convert to radians
+	report.gyro_y_rate_integral = static_cast<float>(_frame_integral.gyro_y_rate_integral) / 10000.0f; //convert to radians
 
-	report.gyro_z_rate_integral = static_cast<float>(f_integral.gyro_z_rate_integral) / 10000.0f; //convert to radians
+	report.gyro_z_rate_integral = static_cast<float>(_frame_integral.gyro_z_rate_integral) / 10000.0f; //convert to radians
 
-	report.integration_timespan = f_integral.integration_timespan; //microseconds
+	report.integration_timespan = _frame_integral.integration_timespan; //microseconds
 
-	report.time_since_last_sonar_update = f_integral.sonar_timestamp;//microseconds
+	report.time_since_last_sonar_update = _frame_integral.sonar_timestamp;//microseconds
 
-	report.gyro_temperature = f_integral.gyro_temperature;//Temperature * 100 in centi-degrees Celsius
+	report.gyro_temperature = _frame_integral.gyro_temperature;//Temperature * 100 in centi-degrees Celsius
 
 	report.sensor_id = 0;
 
