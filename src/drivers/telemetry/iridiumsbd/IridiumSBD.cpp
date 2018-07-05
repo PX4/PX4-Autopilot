@@ -300,6 +300,7 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 			break;
 		}
 
+		publish_subsystem_status();
 		if (_new_state != _state) {
 			VERBOSE_INFO("SWITCHING STATE FROM %s TO %s", satcom_state_string[_state], satcom_state_string[_new_state]);
 			_state = _new_state;
@@ -1060,6 +1061,29 @@ void IridiumSBD::publish_iridium_status()
 	}
 
 }
+
+void IridiumSBD::publish_subsystem_status()
+{
+	const bool present = true;
+	const bool enabled = true;
+	const bool ok = _status.last_heartbeat > 0; // maybe at some point here an additional check should be made
+
+	if ((_info.present != present) || (_info.enabled != enabled) || (_info.ok != ok)) {
+		_info.timestamp = hrt_absolute_time();
+		_info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_SATCOM;
+		_info.present = present;
+		_info.enabled = enabled;
+		_info.ok = ok;
+
+		if (_subsystem_pub == nullptr) {
+			_subsystem_pub = orb_advertise_queue(ORB_ID(subsystem_info), &_info, subsystem_info_s::ORB_QUEUE_LENGTH);
+
+		} else {
+			orb_publish(ORB_ID(subsystem_info), _subsystem_pub, &_info);
+		}
+	}
+}
+
 
 int	IridiumSBD::open_first(struct file *filep)
 {
