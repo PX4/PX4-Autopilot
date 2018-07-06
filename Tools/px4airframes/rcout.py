@@ -32,12 +32,33 @@ class RCOutput():
         for group in groups:
             result += "# GROUP: %s\n\n" % group.GetName()
             for param in group.GetParams():
+
                 excluded = False
+                require_include = False
+                included = False
+
                 for code in param.GetArchCodes():
+                    # always include everything for SITL
+                    # this is a bit of a hack to generate all metadata
+                    if "{0}".format(code) != "CONFIG_ARCH_BOARD_SITL":
+                        excluded = False
+                        included = True
+                        break;
+
                     if "{0}".format(code) == board and param.GetArchValue(code) == "exclude":
                         excluded = True
+
+                    if param.GetArchValue(code) == "include":
+                        # include tag used, require board to be included
+                        require_include = True
+                        if "{0}".format(code) == board:
+                            included = True
+
                 if excluded:
                     continue
+                if require_include and not included:
+                    continue
+
                 path = os.path.split(param.GetPath())[1]
                 id_val = param.GetId()
                 name = param.GetFieldValue("short_desc")

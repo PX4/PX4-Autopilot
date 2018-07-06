@@ -131,9 +131,24 @@ class MarkdownTablesOutput():
 
     def IsExcluded(self, param, board):
         for code in param.GetArchCodes():
+            # always include everything for SITL
+            # this is a bit of a hack to generate all metadata
+            if "CONFIG_ARCH_BOARD_{0}".format(code) == "CONFIG_ARCH_BOARD_SITL":
+                return False;
+
             if "CONFIG_ARCH_BOARD_{0}".format(code) == board and param.GetArchValue(code) == "exclude":
                 return True
-        return False
+
+        require_include = False
+        included = False
+        for code in param.GetArchCodes():
+            if param.GetArchValue(code) == "include":
+                # include tag used, require board to be included
+                require_include = True
+                if "CONFIG_ARCH_BOARD_{0}".format(code) == board:
+                    included = True
+
+        return require_include and not included
 
     def Save(self, filename):
         with codecs.open(filename, 'w', 'utf-8') as f:

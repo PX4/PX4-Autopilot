@@ -34,8 +34,23 @@ class XMLOutput():
 
                 # check if there is an exclude tag for this airframe
                 excluded = False
+                include_required = False
+                included = False
+
                 for code in param.GetArchCodes():
+                    # always include everything for SITL
+                    # this is a bit of a hack to generate all metadata
+                    if "CONFIG_ARCH_BOARD_{0}".format(code) != "CONFIG_ARCH_BOARD_SITL":
+                        break
+
                     if "CONFIG_ARCH_BOARD_{0}".format(code) == board and param.GetArchValue(code) == "exclude":
+                        excluded = True
+
+                    if param.GetArchValue(code) == "include":
+                        include_required = True
+                        if "CONFIG_ARCH_BOARD_{0}".format(code) == board:
+                            included = True
+                    if include_required and not included:
                         excluded = True
 
                 if not excluded:
