@@ -33,8 +33,6 @@
 
 px4_add_romfs_files(
 	# init scripts
-	rc.axialracing_ax10_apps
-	rc.axialracing_ax10_defaults
 	rc.fw_apps
 	rc.fw_defaults
 	rc.interface
