@@ -106,6 +106,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.acro_max_z_rate = param_find("FW_ACRO_Z_MAX");
 
 	_parameter_handles.flaps_scale = param_find("FW_FLAPS_SCL");
+	_parameter_handles.flaps_takeoff_scale = param_find("FW_FLAPS_TO_SCL");
 	_parameter_handles.flaperon_scale = param_find("FW_FLAPERON_SCL");
 
 	_parameter_handles.rattitude_thres = param_find("FW_RATT_TH");
@@ -201,6 +202,7 @@ FixedwingAttitudeControl::parameters_update()
 	_parameters.acro_max_z_rate_rad = math::radians(_parameters.acro_max_z_rate_rad);
 
 	param_get(_parameter_handles.flaps_scale, &_parameters.flaps_scale);
+	param_get(_parameter_handles.flaps_takeoff_scale, &_parameters.flaps_takeoff_scale);
 	param_get(_parameter_handles.flaperon_scale, &_parameters.flaperon_scale);
 
 	param_get(_parameter_handles.rattitude_thres, &_parameters.rattitude_thres);
@@ -875,7 +877,16 @@ void FixedwingAttitudeControl::control_flaps(const float dt)
 
 	} else if (_vcontrol_mode.flag_control_auto_enabled
 		   && fabsf(_parameters.flaps_scale) > 0.01f) {
-		flap_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaps_scale : 0.0f;
+		switch (_att_sp.apply_flaps) {
+		case 0 : flap_control = 0.0f; // no flaps
+			break;
+
+		case 1 : flap_control = 1.0f * _parameters.flaps_scale; // landing flaps
+			break;
+
+		case 2 : flap_control = 1.0f * _parameters.flaps_scale * _parameters.flaps_takeoff_scale; // take-off flaps
+			break;
+		}
 	}
 
 	// move the actual control value continuous with time, full flap travel in 1sec
@@ -896,7 +907,7 @@ void FixedwingAttitudeControl::control_flaps(const float dt)
 
 	} else if (_vcontrol_mode.flag_control_auto_enabled
 		   && fabsf(_parameters.flaperon_scale) > 0.01f) {
-		flaperon_control = _att_sp.apply_flaps ? 1.0f * _parameters.flaperon_scale : 0.0f;
+		flaperon_control = (_att_sp.apply_flaps == 1) ? 1.0f * _parameters.flaperon_scale : 0.0f;
 	}
 
 	// move the actual control value continuous with time, full flap travel in 1sec

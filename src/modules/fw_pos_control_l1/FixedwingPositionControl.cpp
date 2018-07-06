@@ -704,7 +704,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 	bool setpoint = true;
 
 	_att_sp.fw_control_yaw = false;		// by default we don't want yaw to be contoller directly with rudder
-	_att_sp.apply_flaps = false;		// by default we don't use flaps
+	_att_sp.apply_flaps = 0;		// by default we don't use flaps
 
 	calculate_gndspeed_undershoot(curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
 
@@ -1137,6 +1137,10 @@ FixedwingPositionControl::control_takeoff(const Vector2f &curr_pos, const Vector
 		prev_wp(1) = (float)pos_sp_curr.lon;
 	}
 
+	// apply flaps for takeoff according to the corresponding scale factor set
+	// via FW_FLAPS_TO_SCL
+	_att_sp.apply_flaps = 2;
+
 	// continuously reset launch detection and runway takeoff until armed
 	if (!_control_mode.flag_armed) {
 		_launchDetector.reset();
@@ -1305,7 +1309,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 
 	// apply full flaps for landings. this flag will also trigger the use of flaperons
 	// if they have been enabled using the corresponding parameter
-	_att_sp.apply_flaps = true;
+	_att_sp.apply_flaps = 1;
 
 	// save time at which we started landing and reset abort_landing
 	if (_time_started_landing == 0) {
