@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,24 +32,23 @@
  ****************************************************************************/
 
 /**
- * @file drv_gps.h
- *
- * GPS driver interface.
+ * @file px4_cli.h
+ * Helper methods for command-line parameters
  */
 
 #pragma once
 
-#include <stdint.h>
-#include <sys/ioctl.h>
 
-#include "board_config.h"
+/**
+ * Parse a CLI argument to an integer. There are 2 valid formats:
+ * - 'p:<param_name>'
+ *   in this case the parameter is loaded from an integer parameter
+ * - <int>
+ *   an integer value, so just a string to integer conversion is done
+ * @param option CLI argument
+ * @param value returned value
+ * @return 0 on success, -errno otherwise
+ */
+int px4_get_parameter_value(const char *option, int &value);
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
 
-typedef enum {
-	GPS_DRIVER_MODE_NONE = 0,
-	GPS_DRIVER_MODE_UBX,
-	GPS_DRIVER_MODE_MTK,
-	GPS_DRIVER_MODE_ASHTECH
-} gps_driver_mode_t;

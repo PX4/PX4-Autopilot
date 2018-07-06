@@ -42,6 +42,7 @@ endif()
 px4_add_library(platforms__common
 	module.cpp
 	px4_getopt.c
+	px4_cli.cpp
 	shutdown.cpp
 	${SRCS}
 	)

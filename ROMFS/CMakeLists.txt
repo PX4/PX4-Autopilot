@@ -69,19 +69,31 @@ endfunction()
 # get list of all ROMFS files
 add_subdirectory(${romfs_src_dir})
 
+if (NOT DEFINED board_serial_ports)
+	message( FATAL_ERROR "board_serial_ports not defined. You need to set \
+the UART ports in ${CONFIG}.cmake. If the board has no configurable UARTs, add \
+'set(board_serial_ports none)'.")
+elseif("${board_serial_ports}" STREQUAL "none")
+	set(board_serial_ports "")
+endif()
+
 # directory setup
 # copy all romfs files, process airframes, prune comments
-add_custom_command(OUTPUT ${romfs_temp_dir}/init.d/rcS ${romfs_temp_dir}/init.d/rc.autostart
+add_custom_command(OUTPUT ${romfs_temp_dir}/init.d/rcS ${romfs_temp_dir}/init.d/rc.serial ${romfs_temp_dir}/init.d/rc.autostart
 	COMMAND cmake -E copy_directory ${romfs_src_dir} ${romfs_temp_dir}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		-a ${romfs_temp_dir}/init.d
 		-s ${romfs_temp_dir}/init.d/rc.autostart
 		--board ${BOARD}
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
+		--rc-file ${romfs_temp_dir}/init.d/rc.serial
+		--serial-ports ${board_serial_ports} #--verbose
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
 		--folder ${romfs_temp_dir} --board ${BOARD}
 	DEPENDS
 		${config_romfs_files_list}
 		${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
+		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 		${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root}/init.d/rcS
 		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 	)

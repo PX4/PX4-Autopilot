@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,25 +31,54 @@
  *
  ****************************************************************************/
 
-/**
- * @file drv_gps.h
- *
- * GPS driver interface.
- */
+#include <parameters/param.h>
+#include <px4_cli.h>
+#include <px4_log.h>
 
-#pragma once
+#include <cstring>
+#include <errno.h>
+#include <cstdlib>
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+int px4_get_parameter_value(const char *option, int &value)
+{
+	value = 0;
 
-#include "board_config.h"
+	/* check if this is a param name */
+	if (strncmp("p:", option, 2) == 0) {
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
+		const char *param_name = option + 2;
 
-typedef enum {
-	GPS_DRIVER_MODE_NONE = 0,
-	GPS_DRIVER_MODE_UBX,
-	GPS_DRIVER_MODE_MTK,
-	GPS_DRIVER_MODE_ASHTECH
-} gps_driver_mode_t;
+		/* user wants to use a param name */
+		param_t param_handle = param_find(param_name);
+
+		if (param_handle != PARAM_INVALID) {
+
+			if (param_type(param_handle) != PARAM_TYPE_INT32) {
+				return -EINVAL;
+			}
+
+			int32_t pwm_parm;
+			int ret = param_get(param_handle, &pwm_parm);
+
+			if (ret != 0) {
+				return ret;
+			}
+
+			value = pwm_parm;
+
+		} else {
+			PX4_ERR("param name '%s' not found", param_name);
+			return -ENXIO;
+		}
+
+	} else {
+		char *ep;
+		value = strtol(option, &ep, 0);
+
+		if (*ep != '\0') {
+			return -EINVAL;
+		}
+	}
+
+	return 0;
+}
