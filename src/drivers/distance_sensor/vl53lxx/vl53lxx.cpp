@@ -212,8 +212,6 @@ VL53LXX::VL53LXX(uint8_t rotation, int bus, int address) :
 	// up the retries since the device misses the first measure attempts
 	I2C::_retries = 3;
 
-	// enable debug() calls
-	_debug_enabled = false;
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));

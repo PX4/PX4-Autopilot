@@ -27,7 +27,7 @@ BMI160_gyro::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("gyro init failed");
+		PX4_DEBUG("gyro init failed");
 		return ret;
 	}
 

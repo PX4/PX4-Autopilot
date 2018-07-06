@@ -247,7 +247,7 @@ ADC::init()
 	}
 
 
-	DEVICE_DEBUG("init done");
+	PX4_DEBUG("init done");
 
 	/* create the device node */
 	return CDev::init();

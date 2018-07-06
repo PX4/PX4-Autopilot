@@ -443,9 +443,6 @@ PX4FMU::PX4FMU(bool run_as_task) :
 #ifndef GPIO_BTN_SAFETY
 	_safety_off = true;
 #endif
-
-	/* only enable this during development */
-	_debug_enabled = false;
 }
 
 PX4FMU::~PX4FMU()
@@ -659,13 +656,13 @@ PX4FMU::set_mode(Mode mode)
 	case MODE_2PWM2CAP:	// v1 multi-port with flow control lines as PWM
 		up_input_capture_set(2, Rising, 0, NULL, NULL);
 		up_input_capture_set(3, Rising, 0, NULL, NULL);
-		DEVICE_DEBUG("MODE_2PWM2CAP");
+		PX4_DEBUG("MODE_2PWM2CAP");
 #endif
 
 	/* FALLTHROUGH */
 
 	case MODE_2PWM:	// v1 multi-port with flow control lines as PWM
-		DEVICE_DEBUG("MODE_2PWM");
+		PX4_DEBUG("MODE_2PWM");
 
 		/* default output rates */
 		_pwm_default_rate = 50;
@@ -680,14 +677,14 @@ PX4FMU::set_mode(Mode mode)
 #if defined(BOARD_HAS_CAPTURE)
 
 	case MODE_3PWM1CAP:	// v1 multi-port with flow control lines as PWM
-		DEVICE_DEBUG("MODE_3PWM1CAP");
+		PX4_DEBUG("MODE_3PWM1CAP");
 		up_input_capture_set(3, Rising, 0, NULL, NULL);
 #endif
 
 	/* FALLTHROUGH */
 
 	case MODE_3PWM:	// v1 multi-port with flow control lines as PWM
-		DEVICE_DEBUG("MODE_3PWM");
+		PX4_DEBUG("MODE_3PWM");
 
 		/* default output rates */
 		_pwm_default_rate = 50;
@@ -700,7 +697,7 @@ PX4FMU::set_mode(Mode mode)
 		break;
 
 	case MODE_4PWM: // v1 or v2 multi-port as 4 PWM outs
-		DEVICE_DEBUG("MODE_4PWM");
+		PX4_DEBUG("MODE_4PWM");
 
 		/* default output rates */
 		_pwm_default_rate = 50;
@@ -715,7 +712,7 @@ PX4FMU::set_mode(Mode mode)
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 
 	case MODE_6PWM:
-		DEVICE_DEBUG("MODE_6PWM");
+		PX4_DEBUG("MODE_6PWM");
 
 		/* default output rates */
 		_pwm_default_rate = 50;
@@ -731,7 +728,7 @@ PX4FMU::set_mode(Mode mode)
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
 	case MODE_8PWM: // AeroCore PWMs as 8 PWM outs
-		DEVICE_DEBUG("MODE_8PWM");
+		PX4_DEBUG("MODE_8PWM");
 		/* default output rates */
 		_pwm_default_rate = 50;
 		_pwm_alt_rate = 50;
@@ -746,7 +743,7 @@ PX4FMU::set_mode(Mode mode)
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
 
 	case MODE_14PWM:
-		DEVICE_DEBUG("MODE_14PWM");
+		PX4_DEBUG("MODE_14PWM");
 		/* default output rates */
 		_pwm_default_rate = 50;
 		_pwm_alt_rate = 50;
@@ -759,7 +756,7 @@ PX4FMU::set_mode(Mode mode)
 #endif
 
 	case MODE_NONE:
-		DEVICE_DEBUG("MODE_NONE");
+		PX4_DEBUG("MODE_NONE");
 
 		_pwm_default_rate = 10;	/* artificially reduced output rate */
 		_pwm_alt_rate = 10;
@@ -903,12 +900,12 @@ PX4FMU::subscribe()
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
-			DEVICE_DEBUG("subscribe to actuator_controls_%d", i);
+			PX4_DEBUG("subscribe to actuator_controls_%d", i);
 			_control_subs[i] = orb_subscribe(_control_topics[i]);
 		}
 
 		if (unsub_groups & (1 << i)) {
-			DEVICE_DEBUG("unsubscribe from actuator_controls_%d", i);
+			PX4_DEBUG("unsubscribe from actuator_controls_%d", i);
 			orb_unsubscribe(_control_subs[i]);
 			_control_subs[i] = -1;
 		}

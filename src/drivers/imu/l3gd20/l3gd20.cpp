@@ -483,7 +483,7 @@ L3GD20::init()
 					  &_orb_class_instance, (external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
 
 	if (_gyro_topic == nullptr) {
-		DEVICE_DEBUG("failed to create sensor_gyro publication");
+		PX4_DEBUG("failed to create sensor_gyro publication");
 	}
 
 	ret = OK;
@@ -867,7 +867,7 @@ L3GD20::disable_i2c(void)
 		}
 	}
 
-	DEVICE_DEBUG("FAILED TO DISABLE I2C");
+	PX4_DEBUG("FAILED TO DISABLE I2C");
 }
 
 void

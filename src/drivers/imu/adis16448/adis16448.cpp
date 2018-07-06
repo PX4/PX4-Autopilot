@@ -524,8 +524,6 @@ ADIS16448::ADIS16448(int bus, const char *path_accel, const char *path_gyro, con
 	_gyro_int(1000000 / ADIS16448_GYRO_MAX_OUTPUT_RATE, true),
 	_rotation(rotation)
 {
-	// disable debug() calls
-	_debug_enabled = false;
 
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_ADIS16448;
 
@@ -606,7 +604,7 @@ ADIS16448::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("SPI setup failed");
+		PX4_DEBUG("SPI setup failed");
 		return ret;
 	}
 
@@ -660,7 +658,7 @@ ADIS16448::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("gyro init failed");
+		PX4_DEBUG("gyro init failed");
 		return ret;
 	}
 
@@ -669,7 +667,7 @@ ADIS16448::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("mag init failed");
+		PX4_DEBUG("mag init failed");
 		return ret;
 	}
 
@@ -761,12 +759,12 @@ ADIS16448::probe()
 	/* verify product ID */
 	switch (_product) {
 	case ADIS16448_Product:
-		DEVICE_DEBUG("ADIS16448 is detected ID: 0x%02x, Serial: 0x%02x", _product, serial_number);
+		PX4_DEBUG("ADIS16448 is detected ID: 0x%02x, Serial: 0x%02x", _product, serial_number);
 		modify_reg16(ADIS16448_GPIO_CTRL, 0x0200, 0x0002);			/* Turn on ADIS16448 adaptor board led */
 		return OK;
 	}
 
-	DEVICE_DEBUG("unexpected ID 0x%02x", _product);
+	PX4_DEBUG("unexpected ID 0x%02x", _product);
 	return -EIO;
 }
 
@@ -795,7 +793,7 @@ ADIS16448::_set_sample_rate(uint16_t desired_sample_rate_hz)
 	modify_reg16(ADIS16448_SMPL_PRD, 0x1f00, smpl_prd);
 
 	if ((read_reg16(ADIS16448_SMPL_PRD) & 0x1f00) != smpl_prd) {
-		DEVICE_DEBUG("failed to set IMU sample rate");
+		PX4_DEBUG("failed to set IMU sample rate");
 	}
 
 }
@@ -809,7 +807,7 @@ ADIS16448::_set_dlpf_filter(uint16_t desired_filter_tap)
 	/* Verify data write on the IMU */
 
 	if ((read_reg16(ADIS16448_SENS_AVG) & 0x0007) != desired_filter_tap) {
-		DEVICE_DEBUG("failed to set IMU filter");
+		PX4_DEBUG("failed to set IMU filter");
 	}
 
 }
@@ -843,7 +841,7 @@ ADIS16448::_set_gyro_dyn_range(uint16_t desired_gyro_dyn_range)
 	/* Verify data write on the IMU */
 
 	if ((read_reg16(ADIS16448_SENS_AVG) & 0x0700) != gyro_range_selection) {
-		DEVICE_DEBUG("failed to set gyro range");
+		PX4_DEBUG("failed to set gyro range");
 
 	} else {
 		_gyro_range_rad_s  = ((float)(gyro_range_selection >> 8) * 250.0f / 180.0f) * M_PI_F;
@@ -1656,7 +1654,7 @@ ADIS16448_gyro::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("gyro init failed");
+		PX4_DEBUG("gyro init failed");
 		return ret;
 	}
 
@@ -1716,7 +1714,7 @@ ADIS16448_mag::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("mag init failed");
+		PX4_DEBUG("mag init failed");
 		return ret;
 	}
 

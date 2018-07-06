@@ -209,8 +209,6 @@ PMW3901::PMW3901(uint8_t rotation, int bus) :
 	_sensor_rotation((enum Rotation)rotation)
 {
 
-	// enable debug() calls
-	_debug_enabled = false;
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));

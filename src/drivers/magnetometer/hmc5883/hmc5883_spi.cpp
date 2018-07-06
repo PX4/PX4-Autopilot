@@ -104,7 +104,7 @@ HMC5883_SPI::init()
 	ret = SPI::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("SPI init failed");
+		PX4_DEBUG("SPI init failed");
 		return -EIO;
 	}
 
@@ -114,13 +114,13 @@ HMC5883_SPI::init()
 	if (read(ADDR_ID_A, &data[0], 1) ||
 	    read(ADDR_ID_B, &data[1], 1) ||
 	    read(ADDR_ID_C, &data[2], 1)) {
-		DEVICE_DEBUG("read_reg fail");
+		PX4_DEBUG("read_reg fail");
 	}
 
 	if ((data[0] != ID_A_WHO_AM_I) ||
 	    (data[1] != ID_B_WHO_AM_I) ||
 	    (data[2] != ID_C_WHO_AM_I)) {
-		DEVICE_DEBUG("ID byte mismatch (%02x,%02x,%02x)", data[0], data[1], data[2]);
+		PX4_DEBUG("ID byte mismatch (%02x,%02x,%02x)", data[0], data[1], data[2]);
 		return -EIO;
 	}
 

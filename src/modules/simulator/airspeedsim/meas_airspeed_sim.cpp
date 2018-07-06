@@ -256,7 +256,7 @@ MEASAirspeedSim::cycle()
 	ret = measure();
 
 	if (OK != ret) {
-		DEVICE_DEBUG("measure error");
+		PX4_DEBUG("measure error");
 	}
 
 	_sensor_ok = (ret == OK);

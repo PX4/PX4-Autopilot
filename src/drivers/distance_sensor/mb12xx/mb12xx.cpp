@@ -210,8 +210,6 @@ MB12XX::MB12XX(uint8_t rotation, int bus, int address) :
 	_index_counter(0) 	/* initialising temp sonar i2c address to zero */
 
 {
-	/* enable debug() calls */
-	_debug_enabled = false;
 
 	/* work_cancel in the dtor will explode if we don't do this... */
 	memset(&_work, 0, sizeof(_work));
@@ -281,7 +279,7 @@ MB12XX::init()
 
 		if (ret2 == 0) { /* sonar is present -> store address_index in array */
 			addr_ind.push_back(_index_counter);
-			DEVICE_DEBUG("sonar added");
+			PX4_DEBUG("sonar added");
 			_latest_sonar_measurements.push_back(200);
 		}
 	}
@@ -302,7 +300,7 @@ MB12XX::init()
 		DEVICE_LOG("sonar %d with address %d added", (i + 1), addr_ind[i]);
 	}
 
-	DEVICE_DEBUG("Number of sonars connected: %lu", addr_ind.size());
+	PX4_DEBUG("Number of sonars connected: %lu", addr_ind.size());
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
@@ -517,7 +515,7 @@ MB12XX::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		DEVICE_DEBUG("i2c::transfer returned %d", ret);
+		PX4_DEBUG("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -539,7 +537,7 @@ MB12XX::collect()
 	ret = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret < 0) {
-		DEVICE_DEBUG("error reading from sensor: %d", ret);
+		PX4_DEBUG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
@@ -612,7 +610,7 @@ MB12XX::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			DEVICE_DEBUG("collection error");
+			PX4_DEBUG("collection error");
 			/* if error restart the measurement state machine */
 			start();
 			return;
@@ -651,7 +649,7 @@ MB12XX::cycle()
 
 	/* Perform measurement */
 	if (OK != measure()) {
-		DEVICE_DEBUG("measure error sonar adress %d", _index_counter);
+		PX4_DEBUG("measure error sonar adress %d", _index_counter);
 	}
 
 	/* next phase is collection */

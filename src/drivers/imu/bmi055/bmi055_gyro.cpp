@@ -34,8 +34,6 @@ BMI055_gyro::BMI055_gyro(int bus, const char *path_gyro, uint32_t device, enum R
 	_gyro_int(1000000 / BMI055_GYRO_MAX_PUBLISH_RATE, true),
 	_last_temperature(0)
 {
-	// disable debug() calls
-	_debug_enabled = false;
 
 	_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_BMI055;
 
@@ -79,7 +77,7 @@ BMI055_gyro::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("SPI setup failed");
+		PX4_DEBUG("SPI setup failed");
 		return ret;
 	}
 
@@ -105,7 +103,7 @@ BMI055_gyro::init()
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("gyro init failed");
+		PX4_DEBUG("gyro init failed");
 		return ret;
 	}
 
@@ -184,7 +182,7 @@ BMI055_gyro::probe()
 		return OK;
 	}
 
-	DEVICE_DEBUG("unexpected whoami 0x%02x", _whoami);
+	PX4_DEBUG("unexpected whoami 0x%02x", _whoami);
 	return -EIO;
 }
 

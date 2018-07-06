@@ -222,8 +222,6 @@ HC_SR04::HC_SR04(unsigned sonars) :
 	_status(0)
 
 {
-	/* enable debug() calls */
-	_debug_enabled = false;
 
 	/* work_cancel in the dtor will explode if we don't do this... */
 	memset(&_work, 0, sizeof(_work));
@@ -290,7 +288,7 @@ HC_SR04::init()
 	_cycling_rate = SR04_CONVERSION_INTERVAL;
 
 	/* show the connected sonars in terminal */
-	DEVICE_DEBUG("Number of sonars set: %d", _sonars);
+	PX4_DEBUG("Number of sonars set: %d", _sonars);
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
@@ -533,7 +531,7 @@ HC_SR04::collect()
 
 	/* read from the sensor */
 	if (_status != 2) {
-		DEVICE_DEBUG("erro sonar %d ,status=%d", _cycle_counter, _status);
+		PX4_DEBUG("erro sonar %d ,status=%d", _cycle_counter, _status);
 		px4_arch_gpiosetevent(_gpio_tab[_cycle_counter].echo_port, true, true, false, nullptr);
 		perf_end(_sample_perf);
 		return (ret);
@@ -645,7 +643,7 @@ HC_SR04::cycle()
 	/*_circle_count 计录当前sonar　*/
 	/* perform collection */
 	if (OK != collect()) {
-		DEVICE_DEBUG("collection error");
+		PX4_DEBUG("collection error");
 	}
 
 	/* change to next sonar */
@@ -657,7 +655,7 @@ HC_SR04::cycle()
 
 	/* 测量next sonar */
 	if (OK != measure()) {
-		DEVICE_DEBUG("measure error sonar adress %d", _cycle_counter);
+		PX4_DEBUG("measure error sonar adress %d", _cycle_counter);
 	}
 
 

@@ -99,7 +99,7 @@ LIS3MDL_SPI::init()
 	ret = SPI::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("SPI init failed");
+		PX4_DEBUG("SPI init failed");
 		return -EIO;
 	}
 
@@ -107,11 +107,11 @@ LIS3MDL_SPI::init()
 	uint8_t data = 0;
 
 	if (read(ADDR_WHO_AM_I, &data, 1)) {
-		DEVICE_DEBUG("LIS3MDL read_reg fail");
+		PX4_DEBUG("LIS3MDL read_reg fail");
 	}
 
 	if (data != ID_WHO_AM_I) {
-		DEVICE_DEBUG("LIS3MDL bad ID: %02x", data);
+		PX4_DEBUG("LIS3MDL bad ID: %02x", data);
 		return -EIO;
 	}
 

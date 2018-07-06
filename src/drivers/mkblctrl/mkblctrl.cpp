@@ -312,7 +312,7 @@ MK::init(unsigned motors)
 
 
 	if (_task < 0) {
-		DEVICE_DEBUG("task start failed: %d", errno);
+		PX4_DEBUG("task start failed: %d", errno);
 		return -errno;
 	}
 
@@ -1089,7 +1089,7 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				ret = _mixers->load_from_buf(buf, buflen);
 
 				if (ret != 0) {
-					DEVICE_DEBUG("mixer load failed with %d", ret);
+					PX4_DEBUG("mixer load failed with %d", ret);
 					delete _mixers;
 					_mixers = nullptr;
 					ret = -EINVAL;

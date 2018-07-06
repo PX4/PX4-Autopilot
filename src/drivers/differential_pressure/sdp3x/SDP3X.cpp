@@ -177,7 +177,7 @@ SDP3X::cycle()
 
 	if (PX4_OK != ret) {
 		_sensor_ok = false;
-		DEVICE_DEBUG("measure error");
+		PX4_DEBUG("measure error");
 	}
 
 	// schedule a fresh cycle call when the measurement is done

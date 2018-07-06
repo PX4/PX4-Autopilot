@@ -355,7 +355,7 @@ BlinkM::probe()
 	ret = get_firmware_version(version);
 
 	if (ret == OK) {
-		DEVICE_DEBUG("found BlinkM firmware version %c%c", version[1], version[0]);
+		PX4_DEBUG("found BlinkM firmware version %c%c", version[1], version[0]);
 	}
 
 	return ret;

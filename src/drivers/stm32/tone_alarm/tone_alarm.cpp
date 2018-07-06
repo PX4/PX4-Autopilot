@@ -370,8 +370,6 @@ ToneAlarm::ToneAlarm() :
 	_cbrk(CBRK_UNINIT),
 	_tune_control_sub(-1)
 {
-	// enable debug() calls
-	//_debug_enabled = true;
 }
 
 ToneAlarm::~ToneAlarm()
@@ -429,7 +427,7 @@ int ToneAlarm::init()
 	/* make sure the timer is running */
 	rCR1 = GTIM_CR1_CEN;
 
-	DEVICE_DEBUG("ready");
+	PX4_DEBUG("ready");
 
 	_running = true;
 	work_queue(HPWORK, &_work, (worker_t)&ToneAlarm::next_trampoline, this, 0);

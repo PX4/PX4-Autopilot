@@ -83,7 +83,7 @@ LPS22HB_SPI::init()
 	int ret = SPI::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("SPI init failed");
+		PX4_DEBUG("SPI init failed");
 		return -EIO;
 	}
 
@@ -91,12 +91,12 @@ LPS22HB_SPI::init()
 	uint8_t id = 0;
 
 	if (read(WHO_AM_I, &id, 1)) {
-		DEVICE_DEBUG("read_reg fail");
+		PX4_DEBUG("read_reg fail");
 		return -EIO;
 	}
 
 	if (id != LPS22HB_ID_WHO_AM_I) {
-		DEVICE_DEBUG("ID byte mismatch (%02x != %02x)", LPS22HB_ID_WHO_AM_I, id);
+		PX4_DEBUG("ID byte mismatch (%02x != %02x)", LPS22HB_ID_WHO_AM_I, id);
 		return -EIO;
 	}
 

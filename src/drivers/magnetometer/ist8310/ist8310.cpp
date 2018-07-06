@@ -419,8 +419,6 @@ IST8310::IST8310(int bus_number, int address, const char *path, enum Rotation ro
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_IST8310;
 
-	// enable debug() calls
-	_debug_enabled = false;
 
 	// default scaling
 	_scale.x_offset = 0;
@@ -462,7 +460,7 @@ IST8310::init()
 	ret = I2C::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("CDev init failed");
+		PX4_DEBUG("CDev init failed");
 		goto out;
 	}
 
@@ -742,7 +740,7 @@ IST8310::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return check_calibration();
 
 	case MAGIOCGEXTERNAL:
-		DEVICE_DEBUG("MAGIOCGEXTERNAL in main driver");
+		PX4_DEBUG("MAGIOCGEXTERNAL in main driver");
 		return external();
 
 	default:
@@ -801,14 +799,14 @@ IST8310::probe()
 	_retries = 10;
 
 	if (read(ADDR_WAI, &data[0], 1)) {
-		DEVICE_DEBUG("read_reg fail");
+		PX4_DEBUG("read_reg fail");
 		return -EIO;
 	}
 
 	_retries = 2;
 
 	if ((data[0] != WAI_EXPECTED_VALUE)) {
-		DEVICE_DEBUG("ID byte mismatch (%02x) expected %02x", data[0], WAI_EXPECTED_VALUE);
+		PX4_DEBUG("ID byte mismatch (%02x) expected %02x", data[0], WAI_EXPECTED_VALUE);
 		return -EIO;
 	}
 
@@ -823,7 +821,7 @@ IST8310::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			DEVICE_DEBUG("collection error");
+			PX4_DEBUG("collection error");
 			/* restart the measurement state machine */
 			start();
 			return;
@@ -850,7 +848,7 @@ IST8310::cycle()
 
 	/* measurement phase */
 	if (OK != measure()) {
-		DEVICE_DEBUG("measure error");
+		PX4_DEBUG("measure error");
 	}
 
 	/* next phase is collection */
@@ -926,7 +924,7 @@ IST8310::collect()
 
 	if (ret != OK) {
 		perf_count(_comms_errors);
-		DEVICE_DEBUG("I2C read error");
+		PX4_DEBUG("I2C read error");
 		goto out;
 	}
 
@@ -944,7 +942,7 @@ IST8310::collect()
 	    report.y > IST8310_MAX_VAL_XY || report.y < IST8310_MIN_VAL_XY ||
 	    report.z > IST8310_MAX_VAL_Z  || report.z < IST8310_MIN_VAL_Z) {
 		perf_count(_range_errors);
-		DEVICE_DEBUG("data/status read error");
+		PX4_DEBUG("data/status read error");
 		goto out;
 	}
 
@@ -983,7 +981,7 @@ IST8310::collect()
 							 &_orb_class_instance, sensor_is_external ? ORB_PRIO_MAX : ORB_PRIO_HIGH);
 
 			if (_mag_topic == nullptr) {
-				DEVICE_DEBUG("ADVERT FAIL");
+				PX4_DEBUG("ADVERT FAIL");
 			}
 		}
 	}

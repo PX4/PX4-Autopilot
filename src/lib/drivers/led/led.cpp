@@ -75,7 +75,7 @@ LED::LED() : CDev("led", LED0_DEVICE_PATH)
 int
 LED::init()
 {
-	DEVICE_DEBUG("LED::init");
+	PX4_DEBUG("LED::init");
 	CDev::init();
 	led_init();
 
