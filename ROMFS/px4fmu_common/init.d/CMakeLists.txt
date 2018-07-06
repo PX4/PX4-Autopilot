@@ -128,7 +128,7 @@ px4_add_romfs_files(
 	# Helicopter
 	16001_helicopter
 	
-	24001_dodeca_cox
+	24001_dodeca_coax
 	
 	# Ground vehicle
 	50000_generic_ground_vehicle

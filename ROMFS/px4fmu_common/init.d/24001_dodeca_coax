@@ -1,8 +1,8 @@
 #!nsh
 #
-# @name Generic Dodecarotor cox geometry
+# @name Generic Dodecarotor coax
 #
-# @type Dodecarotor cox
+# @type Dodecarotor coax
 # @class Copter
 #
 # @output MAIN1 motor 1
