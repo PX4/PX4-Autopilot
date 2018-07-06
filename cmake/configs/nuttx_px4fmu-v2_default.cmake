@@ -7,7 +7,7 @@ set(config_module_list
 	# Board support modules
 	#
 	#drivers/barometer
-	drivers/differential_pressure
+	#drivers/differential_pressure
 	#drivers/distance_sensor
 	#drivers/magnetometer
 	#drivers/telemetry
@@ -17,6 +17,10 @@ set(config_module_list
 	#drivers/blinkm
 	#drivers/bst
 	drivers/camera_trigger
+	#drivers/differential_pressure/ets
+	drivers/differential_pressure/ms4525
+	drivers/differential_pressure/ms5525
+	drivers/differential_pressure/sdp3x
 	drivers/distance_sensor/ll40ls
 	#drivers/distance_sensor/mb12xx
 	drivers/distance_sensor/sf0x
