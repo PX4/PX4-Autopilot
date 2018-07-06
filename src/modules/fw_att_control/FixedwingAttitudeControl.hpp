@@ -196,6 +196,7 @@ private:
 		float acro_max_z_rate_rad;
 
 		float flaps_scale;				/**< Scale factor for flaps */
+		float flaps_takeoff_scale; /**< Scale factor for flaps on take-off */
 		float flaperon_scale;			/**< Scale factor for flaperons */
 
 		float rattitude_thres;
@@ -264,6 +265,7 @@ private:
 		param_t acro_max_z_rate;
 
 		param_t flaps_scale;
+		param_t flaps_takeoff_scale;
 		param_t flaperon_scale;
 
 		param_t rattitude_thres;
