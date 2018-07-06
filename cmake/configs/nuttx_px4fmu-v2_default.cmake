@@ -26,7 +26,7 @@ set(config_module_list
 	drivers/distance_sensor/sf0x
 	drivers/distance_sensor/sf1xx
 	drivers/distance_sensor/srf02
-	drivers/distance_sensor/teraranger
+	#drivers/distance_sensor/teraranger
 	#drivers/distance_sensor/tfmini
 	#drivers/distance_sensor/ulanding
 	#drivers/frsky_telemetry
