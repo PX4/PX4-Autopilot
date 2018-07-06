@@ -47,13 +47,9 @@ px4_add_romfs_files(
 	rc.vtol_apps
 	rc.vtol_defaults
 
-	# HITL airframes
-	1000_rc_fw_easystar.hil
-	1001_rc_quad_x.hil
-	1002_standard_vtol.hil
-	
 	# Standard planes
 	2100_standard_plane
+	2101_easystar_hitl
 	2105_maja
 	2106_albatross
 	
@@ -71,6 +67,7 @@ px4_add_romfs_files(
 	
 	# Quadrotors
 	4001_quad_x
+	4002_quad_x_hitl
 	4014_s500
 	4030_3dr_solo
 	4051_s250aq
@@ -118,6 +115,7 @@ px4_add_romfs_files(
 	13010_claire
 	13012_convergence
 	13013_deltaquad
+	13102_standard_vtol_hitl
 	13200_generic_vtol_tailsitter
 
 	# Tricopter

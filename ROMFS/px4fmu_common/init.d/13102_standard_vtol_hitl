@@ -1,6 +1,6 @@
 #!nsh
 #
-# @name HIL Standard VTOL QuadPlane
+# @name Simulation QuadPlane (HITL)
 #
 # @type Standard VTOL
 # @class VTOL

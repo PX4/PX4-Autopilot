@@ -1,0 +1,11 @@
+#!nsh
+#
+# @name Simulation Quadcopter X (HITL)
+#
+# @type Quadrotor x
+# @class Copter
+#
+
+sh /etc/init.d/4001_quad_x
+
+param set SYS_HITL 1
