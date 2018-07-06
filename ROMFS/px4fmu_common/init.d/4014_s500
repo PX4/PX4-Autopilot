@@ -1,6 +1,6 @@
 #!nsh
 #
-# @name S500
+# @name S500 Quadcopter
 #
 # @type Quadrotor x
 # @class Copter

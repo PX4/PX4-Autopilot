@@ -1,0 +1,19 @@
+#!nsh
+#
+# @name Generic Quadcopter (210mm)
+#
+# @type Quadrotor x
+# @class Copter
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+if [ $AUTOCNF == yes ]
+then
+	# TODO: add approximate tuning
+	sh /etc/init.d/4250_generic_quad_250
+fi
+
+set MIXER quad_x
+
+set PWM_OUT 1234

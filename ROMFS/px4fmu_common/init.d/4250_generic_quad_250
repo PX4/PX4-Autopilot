@@ -1,0 +1,32 @@
+#!nsh
+#
+# @name Generic Quadcopter (250mm)
+#
+# @type Quadrotor x
+# @class Copter
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+if [ $AUTOCNF == yes ]
+then
+	param set MC_ROLL_P 7.0
+	param set MC_ROLLRATE_P 0.06
+	param set MC_ROLLRATE_I 0.2
+	param set MC_ROLLRATE_D 0.0017
+
+	param set MC_PITCH_P 7.0
+	param set MC_PITCHRATE_P 0.06
+	param set MC_PITCHRATE_I 0.2
+	param set MC_PITCHRATE_D 0.0017
+
+	param set MC_YAW_P 4
+	param set MC_YAWRATE_P 0.3
+	param set MC_YAWRATE_I 0.2
+	param set MC_YAWRATE_D 0.0
+	param set MC_YAW_FF 0.5
+fi
+
+set MIXER quad_x
+
+set PWM_OUT 1234

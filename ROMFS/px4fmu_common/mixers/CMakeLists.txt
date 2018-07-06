@@ -50,7 +50,6 @@ px4_add_romfs_files(
 	dodeca_top_cox.main.mix
 	firefly6.aux.mix
 	firefly6.main.mix
-	FMU_pass.mix
 	fw_generic_wing.main.mix
 	FX79.main.mix
 	hexa_cox.main.mix
@@ -72,7 +71,6 @@ px4_add_romfs_files(
 	quad_s250aq.main.mix
 	quad_+_vtol.main.mix
 	quad_w.main.mix
-	quad_x_can.main.mix
 	quad_x.main.mix
 	quad_x_vtol.main.mix
 	stampede.main.mix
@@ -85,5 +83,4 @@ px4_add_romfs_files(
 	vtol_convergence.main.mix
 	vtol_delta.aux.mix
 	wingwing.main.mix
-	zmr250.main.mix
 )
