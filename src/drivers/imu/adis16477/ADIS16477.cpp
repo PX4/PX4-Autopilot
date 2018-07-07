@@ -68,7 +68,7 @@ static constexpr uint8_t PROD_ID	= 0x72;
 
 #define PROD_ID_ADIS16477	0x405D /* ADIS16477 Identification, device number  */
 
-#define T_STALL				16
+#define T_STALL				200
 
 #define GYROINITIALSENSITIVITY		250
 #define ACCELINITIALSENSITIVITY		(1.0f / 1200.0f)
@@ -81,6 +81,14 @@ ADIS16477::ADIS16477(int bus, const char *path_accel, const char *path_gyro, uin
 	_bad_transfers(perf_alloc(PC_COUNT, "adis16477_bad_transfers")),
 	_rotation(rotation)
 {
+#ifdef GPIO_SPI1_RESET_ADIS16477
+	// ADIS16477 reset pin
+	stm32_configgpio(GPIO_SPI1_RESET_ADIS16477);
+	stm32_gpiowrite(GPIO_SPI1_RESET_ADIS16477, false);
+	up_mdelay(10);
+	stm32_gpiowrite(GPIO_SPI1_RESET_ADIS16477, true);
+#endif /* GPIO_SPI1_RESET_ADIS16477 */
+
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_ADIS16477;
 
 	_gyro->_device_id.devid = _device_id.devid;
@@ -217,7 +225,6 @@ ADIS16477::probe()
 			return PX4_OK;
 		}
 
-		PX4_ERR("PROD_ID attempt %d", i);
 		up_udelay(T_STALL);
 	}
 
