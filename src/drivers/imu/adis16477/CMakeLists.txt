@@ -33,6 +33,8 @@
 px4_add_module(
 	MODULE drivers__imu__adis16477
 	MAIN adis16477
+	STACK_MAIN 1200
+	COMPILE_FLAGS
 	SRCS
 		ADIS16477.cpp
 		ADIS16477_gyro.cpp
