@@ -171,7 +171,6 @@ private:
 	perf_counter_t      _bad_transfers;
 	perf_counter_t      _bad_registers;
 	perf_counter_t      _reset_retries;
-	perf_counter_t      _duplicates;
 
 	ringbuffer::RingBuffer  *_gyro_reports;
 
