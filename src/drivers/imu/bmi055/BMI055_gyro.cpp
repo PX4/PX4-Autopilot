@@ -688,12 +688,9 @@ BMI055_gyro::measure()
 		return;
 	}
 
-	perf_count(_good_transfers);
-
 	if (_register_wait != 0) {
 		// we are waiting for some good transfers before using
-		// the sensor again. We still increment
-		// _good_transfers, but don't return any data yet
+		// the sensor again, but don't return any data yet
 		_register_wait--;
 		return;
 	}
@@ -785,7 +782,6 @@ BMI055_gyro::print_info()
 	perf_print_counter(_gyro_reads);
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_bad_registers);
-	perf_print_counter(_good_transfers);
 	perf_print_counter(_reset_retries);
 	perf_print_counter(_duplicates);
 
