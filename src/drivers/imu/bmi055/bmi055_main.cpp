@@ -40,10 +40,6 @@
 /** driver 'main' command */
 extern "C" { __EXPORT int bmi055_main(int argc, char *argv[]); }
 
-/**
- * Local functions in support of the shell command.
- */
-
 enum sensor_type {
 	BMI055_NONE = 0,
 	BMI055_ACCEL = 1,
@@ -66,7 +62,6 @@ void    info(bool, enum sensor_type);
 void    regdump(bool, enum sensor_type);
 void    testerror(bool, enum sensor_type);
 void    usage();
-
 
 /**
  * Start the driver.
@@ -186,7 +181,6 @@ fail_gyro:
 
 	PX4_WARN("No BMI055 gyro found");
 	exit(PX4_ERROR);
-
 }
 
 void
@@ -356,7 +350,6 @@ reset(bool external_bus, enum sensor_type sensor)
 	exit(0);
 }
 
-
 /**
  * Print a little info about the driver.
  */
@@ -417,7 +410,6 @@ regdump(bool external_bus, enum sensor_type sensor)
 	exit(0);
 }
 
-
 /**
  * deliberately produce an error to test recovery
  */
@@ -455,7 +447,6 @@ usage()
 	warnx("    -R    rotation");
 	warnx("    -A    (Enable Accelerometer)");
 	warnx("    -G    (Enable Gyroscope)");
-
 }
 
 }//namespace ends
@@ -471,7 +462,6 @@ BMI055::BMI055(const char *name, const char *devname, int bus, uint32_t device, 
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmi055_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "bmi055_bad_transfers")),
 	_bad_registers(perf_alloc(PC_COUNT, "bmi055_bad_registers")),
-	_good_transfers(perf_alloc(PC_COUNT, "bmi055_good_transfers")),
 	_reset_retries(perf_alloc(PC_COUNT, "bmi055_reset_retries")),
 	_duplicates(perf_alloc(PC_COUNT, "bmi055_duplicates")),
 	_register_wait(0),
@@ -479,10 +469,7 @@ BMI055::BMI055(const char *name, const char *devname, int bus, uint32_t device, 
 	_rotation(rotation),
 	_checked_next(0)
 {
-
 }
-
-
 
 BMI055::~BMI055()
 {
@@ -490,10 +477,8 @@ BMI055::~BMI055()
 	perf_free(_sample_perf);
 	perf_free(_bad_transfers);
 	perf_free(_bad_registers);
-	perf_free(_good_transfers);
 	perf_free(_reset_retries);
 	perf_free(_duplicates);
-
 }
 
 uint8_t
@@ -504,7 +489,6 @@ BMI055::read_reg(unsigned reg)
 	transfer(cmd, cmd, sizeof(cmd));
 
 	return cmd[1];
-
 }
 
 uint16_t
@@ -517,7 +501,6 @@ BMI055::read_reg16(unsigned reg)
 	return (uint16_t)(cmd[1] << 8) | cmd[2];
 }
 
-
 void
 BMI055::write_reg(unsigned reg, uint8_t value)
 {
@@ -528,8 +511,6 @@ BMI055::write_reg(unsigned reg, uint8_t value)
 
 	transfer(cmd, nullptr, sizeof(cmd));
 }
-
-
 
 int
 bmi055_main(int argc, char *argv[])
@@ -622,4 +603,3 @@ bmi055_main(int argc, char *argv[])
 	bmi055::usage();
 	exit(1);
 }
-
