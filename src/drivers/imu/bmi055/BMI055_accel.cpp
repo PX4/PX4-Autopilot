@@ -49,6 +49,7 @@ const uint8_t BMI055_accel::_checked_registers[BMI055_ACCEL_NUM_CHECKED_REGISTER
 BMI055_accel::BMI055_accel(int bus, const char *path_accel, uint32_t device, enum Rotation rotation) :
 	BMI055("BMI055_ACCEL", path_accel, bus, device, SPIDEV_MODE3, BMI055_BUS_SPEED, rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmi055_accel_read")),
+	_measure_interval(perf_alloc(PC_INTERVAL, "bmi055_accel_measure_interval")),
 	_bad_transfers(perf_alloc(PC_COUNT, "bmi055_accel_bad_transfers")),
 	_bad_registers(perf_alloc(PC_COUNT, "bmi055_accel_bad_registers")),
 	_duplicates(perf_alloc(PC_COUNT, "bmi055_accel_duplicates")),
@@ -96,6 +97,7 @@ BMI055_accel::~BMI055_accel()
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
+	perf_free(_measure_interval);
 	perf_free(_bad_transfers);
 	perf_free(_bad_registers);
 	perf_free(_duplicates);
@@ -637,6 +639,8 @@ BMI055_accel::check_registers(void)
 void
 BMI055_accel::measure()
 {
+	perf_count(_measure_interval);
+
 	uint8_t index = 0, accel_data[7];
 	uint16_t lsb, msb, msblsb;
 	uint8_t status_x, status_y, status_z;
@@ -805,6 +809,7 @@ BMI055_accel::print_info()
 	PX4_INFO("Accel");
 
 	perf_print_counter(_sample_perf);
+	perf_print_counter(_measure_interval);
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_duplicates);
