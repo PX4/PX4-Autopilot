@@ -49,6 +49,12 @@ const uint8_t BMI055_gyro::_checked_registers[BMI055_GYRO_NUM_CHECKED_REGISTERS]
 
 BMI055_gyro::BMI055_gyro(int bus, const char *path_gyro, uint32_t device, enum Rotation rotation) :
 	BMI055("BMI055_GYRO", path_gyro, bus, device, SPIDEV_MODE3, BMI055_BUS_SPEED, rotation),
+	_sample_perf(perf_alloc(PC_ELAPSED, "bmi055_gyro_read")),
+	_bad_transfers(perf_alloc(PC_COUNT, "bmi055_gyro_bad_transfers")),
+	_bad_registers(perf_alloc(PC_COUNT, "bmi055_gyro_bad_registers")),
+	_reset_retries(perf_alloc(PC_COUNT, "bmi055_gyro_reset_retries")),
+	_duplicates(perf_alloc(PC_COUNT, "bmi055_gyro_duplicates")),
+	_gyro_reads(perf_alloc(PC_COUNT, "bmi055_gyro_read")),
 	_gyro_reports(nullptr),
 	_gyro_scale{},
 	_gyro_range_scale(0.0f),
@@ -57,7 +63,6 @@ BMI055_gyro::BMI055_gyro(int bus, const char *path_gyro, uint32_t device, enum R
 	_gyro_orb_class_instance(-1),
 	_gyro_class_instance(-1),
 	_gyro_sample_rate(BMI055_GYRO_DEFAULT_RATE),
-	_gyro_reads(perf_alloc(PC_COUNT, "bmi055_gyro_read")),
 	_gyro_filter_x(BMI055_GYRO_DEFAULT_RATE, BMI055_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_y(BMI055_GYRO_DEFAULT_RATE, BMI055_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
 	_gyro_filter_z(BMI055_GYRO_DEFAULT_RATE, BMI055_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
@@ -92,6 +97,11 @@ BMI055_gyro::~BMI055_gyro()
 	}
 
 	/* delete the perf counter */
+	perf_free(_sample_perf);
+	perf_free(_bad_transfers);
+	perf_free(_bad_registers);
+	perf_free(_reset_retries);
+	perf_free(_duplicates);
 	perf_free(_gyro_reads);
 }
 

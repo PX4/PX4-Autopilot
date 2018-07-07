@@ -175,6 +175,13 @@ protected:
 
 private:
 
+	perf_counter_t      _sample_perf;
+	perf_counter_t      _bad_transfers;
+	perf_counter_t      _bad_registers;
+	perf_counter_t      _reset_retries;
+	perf_counter_t      _duplicates;
+	perf_counter_t      _accel_reads;
+
 	ringbuffer::RingBuffer  *_accel_reports;
 
 	struct accel_calibration_s  _accel_scale;
@@ -186,7 +193,6 @@ private:
 	int         _accel_class_instance;
 
 	float       _accel_sample_rate;
-	perf_counter_t      _accel_reads;
 
 	math::LowPassFilter2p   _accel_filter_x;
 	math::LowPassFilter2p   _accel_filter_y;

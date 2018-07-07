@@ -459,26 +459,11 @@ BMI055::BMI055(const char *name, const char *devname, int bus, uint32_t device, 
 	_call{},
 	_call_interval(0),
 	_dlpf_freq(0),
-	_sample_perf(perf_alloc(PC_ELAPSED, "bmi055_read")),
-	_bad_transfers(perf_alloc(PC_COUNT, "bmi055_bad_transfers")),
-	_bad_registers(perf_alloc(PC_COUNT, "bmi055_bad_registers")),
-	_reset_retries(perf_alloc(PC_COUNT, "bmi055_reset_retries")),
-	_duplicates(perf_alloc(PC_COUNT, "bmi055_duplicates")),
 	_register_wait(0),
 	_reset_wait(0),
 	_rotation(rotation),
 	_checked_next(0)
 {
-}
-
-BMI055::~BMI055()
-{
-	/* delete the perf counter */
-	perf_free(_sample_perf);
-	perf_free(_bad_transfers);
-	perf_free(_bad_registers);
-	perf_free(_reset_retries);
-	perf_free(_duplicates);
 }
 
 uint8_t
