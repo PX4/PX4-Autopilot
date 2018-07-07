@@ -1,4 +1,38 @@
-#include "bmi055.hpp"
+/****************************************************************************
+ *
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+#include "BMI055_accel.hpp"
+
 #include <ecl/geo/geo.h>
 
 /*
@@ -11,8 +45,6 @@ const uint8_t BMI055_accel::_checked_registers[BMI055_ACCEL_NUM_CHECKED_REGISTER
 											  BMI055_ACC_INT_EN_1,
 											  BMI055_ACC_INT_MAP_1,
 										     };
-
-
 
 BMI055_accel::BMI055_accel(int bus, const char *path_accel, uint32_t device, enum Rotation rotation) :
 	BMI055("BMI055_ACCEL", path_accel, bus, device, SPIDEV_MODE3, BMI055_BUS_SPEED, rotation),
@@ -32,9 +64,6 @@ BMI055_accel::BMI055_accel(int bus, const char *path_accel, uint32_t device, enu
 	_last_temperature(0),
 	_got_duplicate(false)
 {
-	// disable debug() calls
-	_debug_enabled = false;
-
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_BMI055;
 
 	// default accel scale factors
@@ -48,7 +77,6 @@ BMI055_accel::BMI055_accel(int bus, const char *path_accel, uint32_t device, enu
 	memset(&_call, 0, sizeof(_call));
 }
 
-
 BMI055_accel::~BMI055_accel()
 {
 	/* make sure we are truly inactive */
@@ -59,7 +87,6 @@ BMI055_accel::~BMI055_accel()
 		delete _accel_reports;
 	}
 
-
 	if (_accel_class_instance != -1) {
 		unregister_class_devname(ACCEL_BASE_DEVICE_PATH, _accel_class_instance);
 	}
@@ -68,14 +95,11 @@ BMI055_accel::~BMI055_accel()
 	perf_free(_accel_reads);
 }
 
-
 int
 BMI055_accel::init()
 {
-	int ret;
-
 	/* do SPI init (and probe) first */
-	ret = SPI::init();
+	int ret = SPI::init();
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
@@ -101,7 +125,6 @@ BMI055_accel::init()
 	_accel_scale.y_scale  = 1.0f;
 	_accel_scale.z_offset = 0;
 	_accel_scale.z_scale  = 1.0f;
-
 
 	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 
@@ -162,7 +185,6 @@ int BMI055_accel::reset()
 	return OK;
 }
 
-
 int
 BMI055_accel::probe()
 {
@@ -183,14 +205,11 @@ BMI055_accel::probe()
 	return -EIO;
 }
 
-
-
 int
 BMI055_accel::accel_set_sample_rate(float frequency)
 {
 	uint8_t setbits = 0;
 	uint8_t clearbits = BMI055_ACCEL_BW_1000;
-
 
 	if (frequency < (3125 / 100)) {
 		setbits |= BMI055_ACCEL_BW_7_81;
@@ -233,8 +252,6 @@ BMI055_accel::accel_set_sample_rate(float frequency)
 
 	return OK;
 }
-
-
 
 ssize_t
 BMI055_accel::read(struct file *filp, char *buffer, size_t buflen)
@@ -322,7 +339,6 @@ BMI055_accel::accel_self_test()
 	return 0;
 }
 
-
 /*
   deliberately trigger an error in the sensor to trigger recovery
  */
@@ -333,7 +349,6 @@ BMI055_accel::test_error()
 	::printf("error triggered\n");
 	print_registers();
 }
-
 
 int
 BMI055_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
@@ -364,8 +379,8 @@ BMI055_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return ioctl(filp, SENSORIOCSPOLLRATE, BMI055_ACCEL_MAX_RATE);
 
 			case SENSOR_POLLRATE_DEFAULT:
-				return ioctl(filp, SENSORIOCSPOLLRATE,
-					     BMI055_ACCEL_DEFAULT_RATE); //Polling at the highest frequency. We may get duplicate values on the sensors
+				// Polling at the highest frequency. We may get duplicate values on the sensors
+				return ioctl(filp, SENSORIOCSPOLLRATE, BMI055_ACCEL_DEFAULT_RATE);
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
@@ -474,11 +489,10 @@ BMI055_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 	}
 }
 
-
 void
 BMI055_accel::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 {
-	uint8_t	val;
+	uint8_t val;
 
 	val = read_reg(reg);
 	val &= ~clearbits;
@@ -542,7 +556,6 @@ BMI055_accel::set_accel_range(unsigned max_g)
 
 	return OK;
 }
-
 
 void
 BMI055_accel::start()
@@ -618,7 +631,6 @@ BMI055_accel::check_registers(void)
 
 	_checked_next = (_checked_next + 1) % BMI055_ACCEL_NUM_CHECKED_REGISTERS;
 }
-
 
 void
 BMI055_accel::measure()
@@ -701,7 +713,6 @@ BMI055_accel::measure()
 		return;
 	}
 
-
 	perf_count(_good_transfers);
 
 	if (_register_wait != 0) {
@@ -715,11 +726,9 @@ BMI055_accel::measure()
 	/*
 	 * Report buffers.
 	 */
-	accel_report        arb;
-
+	accel_report arb;
 
 	arb.timestamp = hrt_absolute_time();
-
 
 	// report the error count as the sum of the number of bad
 	// transfers and bad register reads. This allows the higher
@@ -791,11 +800,11 @@ BMI055_accel::measure()
 	perf_end(_sample_perf);
 }
 
-
 void
 BMI055_accel::print_info()
 {
-	warnx("BMI055 Accel");
+	PX4_INFO("Accel");
+
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_accel_reads);
 	perf_print_counter(_bad_transfers);
@@ -803,6 +812,7 @@ BMI055_accel::print_info()
 	perf_print_counter(_good_transfers);
 	perf_print_counter(_reset_retries);
 	perf_print_counter(_duplicates);
+
 	_accel_reports->print_info("accel queue");
 	::printf("checked_next: %u\n", _checked_next);
 
@@ -827,7 +837,6 @@ BMI055_accel::print_info()
 	::printf("temperature: %.1f\n", (double)_last_temperature);
 	printf("\n");
 }
-
 
 void
 BMI055_accel::print_registers()
@@ -861,5 +870,3 @@ BMI055_accel::print_registers()
 
 	printf("\n");
 }
-
-

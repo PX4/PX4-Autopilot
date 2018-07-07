@@ -1,6 +1,37 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
 
-#include "bmi055.hpp"
-
+#include "BMI055_gyro.hpp"
 
 /*
   list of registers that will be checked in check_registers(). Note
@@ -15,7 +46,6 @@ const uint8_t BMI055_gyro::_checked_registers[BMI055_GYRO_NUM_CHECKED_REGISTERS]
 											BMI055_GYR_INT_EN_1,
 											BMI055_GYR_INT_MAP_1
 										   };
-
 
 BMI055_gyro::BMI055_gyro(int bus, const char *path_gyro, uint32_t device, enum Rotation rotation) :
 	BMI055("BMI055_GYRO", path_gyro, bus, device, SPIDEV_MODE3, BMI055_BUS_SPEED, rotation),
@@ -34,9 +64,6 @@ BMI055_gyro::BMI055_gyro(int bus, const char *path_gyro, uint32_t device, enum R
 	_gyro_int(1000000 / BMI055_GYRO_MAX_PUBLISH_RATE, true),
 	_last_temperature(0)
 {
-	// disable debug() calls
-	_debug_enabled = false;
-
 	_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_BMI055;
 
 	// default gyro scale factors
@@ -49,7 +76,6 @@ BMI055_gyro::BMI055_gyro(int bus, const char *path_gyro, uint32_t device, enum R
 
 	memset(&_call, 0, sizeof(_call));
 }
-
 
 BMI055_gyro::~BMI055_gyro()
 {
@@ -72,10 +98,8 @@ BMI055_gyro::~BMI055_gyro()
 int
 BMI055_gyro::init()
 {
-	int ret;
-
 	/* do SPI init (and probe) first */
-	ret = SPI::init();
+	int ret = SPI::init();
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
@@ -84,7 +108,7 @@ BMI055_gyro::init()
 	}
 
 	/* allocate basic report buffers */
-	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
 
 	if (_gyro_reports == nullptr) {
 		goto out;
@@ -128,7 +152,6 @@ out:
 	return ret;
 }
 
-
 int BMI055_gyro::reset()
 {
 	write_reg(BMI055_GYR_SOFTRESET, BMI055_SOFT_RESET);//Soft-reset
@@ -140,7 +163,6 @@ int BMI055_gyro::reset()
 
 	set_gyro_range(BMI055_GYRO_DEFAULT_RANGE_DPS);// set Gyro range
 	gyro_set_sample_rate(BMI055_GYRO_DEFAULT_RATE);// set Gyro ODR
-
 
 	//Enable Gyroscope in normal mode
 	write_reg(BMI055_GYR_LPM1, BMI055_GYRO_NORMAL);
@@ -188,7 +210,6 @@ BMI055_gyro::probe()
 	return -EIO;
 }
 
-
 int
 BMI055_gyro::gyro_set_sample_rate(float frequency)
 {
@@ -219,7 +240,6 @@ BMI055_gyro::gyro_set_sample_rate(float frequency)
 
 	return OK;
 }
-
 
 int
 BMI055_gyro::self_test()
@@ -338,11 +358,13 @@ BMI055_gyro::read(struct file *filp, char *buffer, size_t buflen)
 	return (transferred * sizeof(gyro_report));
 }
 
-
 int
 BMI055_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
+
+	case SENSORIOCRESET:
+		return reset();
 
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
@@ -380,6 +402,7 @@ BMI055_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 						return -EINVAL;
 					}
 
+					// adjust filters
 					float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
 					float sample_rate = 1.0e6f / ticks;
 					_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
@@ -413,9 +436,6 @@ BMI055_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 		}
 
 		return 1000000 / _call_interval;
-
-	case SENSORIOCRESET:
-		return reset();
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
@@ -466,8 +486,6 @@ BMI055_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 	}
 }
 
-
-
 void
 BMI055_gyro::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 {
@@ -491,7 +509,6 @@ BMI055_gyro::write_checked_reg(unsigned reg, uint8_t value)
 		}
 	}
 }
-
 
 int
 BMI055_gyro::set_gyro_range(unsigned max_dps)
@@ -617,7 +634,6 @@ BMI055_gyro::check_registers(void)
 	_checked_next = (_checked_next + 1) % BMI055_GYRO_NUM_CHECKED_REGISTERS;
 }
 
-
 void
 BMI055_gyro::measure()
 {
@@ -685,10 +701,9 @@ BMI055_gyro::measure()
 	/*
 	 * Report buffers.
 	 */
-	gyro_report     grb;
+	gyro_report grb;
 
-
-	grb.timestamp =  hrt_absolute_time();
+	grb.timestamp = hrt_absolute_time();
 
 	// report the error count as the sum of the number of bad
 	// transfers and bad register reads. This allows the higher
@@ -764,7 +779,8 @@ BMI055_gyro::measure()
 void
 BMI055_gyro::print_info()
 {
-	warnx("BMI055 Gyro");
+	PX4_INFO("Gyro");
+
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_gyro_reads);
 	perf_print_counter(_bad_transfers);
@@ -772,6 +788,7 @@ BMI055_gyro::print_info()
 	perf_print_counter(_good_transfers);
 	perf_print_counter(_reset_retries);
 	perf_print_counter(_duplicates);
+
 	_gyro_reports->print_info("gyro queue");
 	::printf("checked_next: %u\n", _checked_next);
 
@@ -796,7 +813,6 @@ BMI055_gyro::print_info()
 	::printf("temperature: %.1f\n", (double)_last_temperature);
 	printf("\n");
 }
-
 
 void
 BMI055_gyro::print_registers()
@@ -840,7 +856,3 @@ BMI055_gyro::print_registers()
 
 	printf("\n");
 }
-
-
-
-
