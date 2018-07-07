@@ -617,7 +617,7 @@ fi
 		if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2
 		then
 			# This is TELEM4 on Pixhawk 3 Pro
-			frsky_telemetry start -d /dev/ttyS6
+			frsky_telemetry start -d /dev/ttyS6 -t 15
 		fi
 	fi
 
