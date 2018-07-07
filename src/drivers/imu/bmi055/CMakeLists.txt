@@ -36,9 +36,8 @@ px4_add_module(
 	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS		
-		bmi055_accel.cpp
-		bmi055_gyro.cpp
+		BMI055_accel.cpp
+		BMI055_gyro.cpp
 		bmi055_main.cpp
-	DEPENDS
 	)
 
