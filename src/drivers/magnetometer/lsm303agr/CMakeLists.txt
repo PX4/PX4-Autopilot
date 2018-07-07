@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,9 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(bmm150)
-add_subdirectory(hmc5883)
-add_subdirectory(ist8310)
-add_subdirectory(lis3mdl)
-add_subdirectory(lsm303agr)
+px4_add_module(
+	MODULE drivers__magnetometer__lsm303agr
+	MAIN lsm303agr
+	SRCS
+		LSM303AGR.cpp
+	)
