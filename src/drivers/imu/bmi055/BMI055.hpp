@@ -63,12 +63,6 @@ protected:
 
 	unsigned        _dlpf_freq;
 
-	perf_counter_t      _sample_perf;
-	perf_counter_t      _bad_transfers;
-	perf_counter_t      _bad_registers;
-	perf_counter_t      _reset_retries;
-	perf_counter_t      _duplicates;
-
 	uint8_t         _register_wait;
 	uint64_t        _reset_wait;
 
@@ -102,7 +96,7 @@ public:
 	BMI055(const char *name, const char *devname, int bus, uint32_t device, enum spi_mode_e mode, uint32_t frequency,
 	       enum Rotation rotation);
 
-	virtual ~BMI055();
+	virtual ~BMI055() = default;
 
 
 };
