@@ -51,6 +51,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <poll.h>
 #include <fcntl.h>
@@ -69,12 +70,13 @@
 #include "frsky_data.h"
 #include "common.h"
 
+using namespace time_literals;
 
 /* thread state */
 static volatile bool thread_should_exit = false;
 static volatile bool thread_running = false;
 static int frsky_task;
-typedef enum { SCANNING, SPORT, DTYPE } frsky_state_t;
+typedef enum { SCANNING, SPORT, SPORT_SINGLE_WIRE, DTYPE } frsky_state_t;
 static frsky_state_t frsky_state = SCANNING;
 
 static unsigned long int sentPackets = 0;
@@ -198,6 +200,13 @@ static int set_uart_speed(int uart, struct termios *uart_config, speed_t speed)
 	return uart;
 }
 
+static void set_uart_single_wire(int uart, bool single_wire)
+{
+	if (ioctl(uart, TIOCSSINGLEWIRE, single_wire ? SER_SINGLEWIRE_ENABLED : 0) < 0) {
+		PX4_WARN("setting TIOCSSINGLEWIRE failed");
+	}
+}
+
 /**
  * Print command usage information
  */
@@ -262,19 +271,19 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 		/* 2 byte polling frames indicate SmartPort telemetry
 		 * 11 byte packets indicate D type telemetry
 		 */
-		int status = poll(fds, sizeof(fds) / sizeof(fds[0]), 3000);
+		int status = poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
 
 		if (status > 0) {
 			/* traffic on the port, D type is 11 bytes per frame, SmartPort is only 2
 			 * Wait long enough for 11 bytes at 9600 baud
 			 */
-			usleep(12000);
+			usleep(50_ms);
 			int nbytes = read(uart, &sbuf[0], sizeof(sbuf));
 			PX4_DEBUG("frsky input: %d bytes: %x %x, speed: %d", nbytes, sbuf[0], sbuf[1], baudRate);
 
 			// look for valid header byte
-			if (nbytes > 10) {
-				if (baudRate == DTYPE) {
+			if (baudRate == DTYPE) {
+				if (nbytes > 10) {
 					// see if we got a valid D-type hostframe
 					struct adc_linkquality host_frame;
 
@@ -282,8 +291,10 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 						frsky_state = baudRate;
 						break;
 					}
+				}
 
-				} else {
+			} else {
+				if (nbytes > 1) {
 					// check for alternating S.port start bytes
 					int index = 0;
 
@@ -305,29 +316,37 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 				}
 
 			}
-
-			// alternate between S.port and D-type baud rates
-			if (baudRate == SPORT) {
-				PX4_DEBUG("setting baud rate to %d", 9600);
-				set_uart_speed(uart, &uart_config, B9600);
-				baudRate = DTYPE;
-
-			} else {
-				PX4_DEBUG("setting baud rate to %d", 57600);
-				set_uart_speed(uart, &uart_config, B57600);
-				baudRate = SPORT;
-
-			}
-
-			// wait a second
-			usleep(1000000);
-			// flush buffer
-			read(uart, &sbuf[0], sizeof(sbuf));
-
 		}
+
+		// alternate between S.port and D-type baud rates
+		if (baudRate == SPORT) {
+			PX4_DEBUG("setting baud rate to %d (single wire)", 57600);
+			set_uart_speed(uart, &uart_config, B57600);
+			// switch to single-wire (half-duplex) mode, because S.Port uses only a single wire
+			set_uart_single_wire(uart, true);
+			baudRate = SPORT_SINGLE_WIRE;
+
+		} else if (baudRate == SPORT_SINGLE_WIRE) {
+			PX4_DEBUG("setting baud rate to %d", 9600);
+			set_uart_speed(uart, &uart_config, B9600);
+			set_uart_single_wire(uart, false);
+			baudRate = DTYPE;
+
+		} else {
+			PX4_DEBUG("setting baud rate to %d", 57600);
+			set_uart_speed(uart, &uart_config, B57600);
+			// in case S.Port is connected via external inverter (e.g. via Sipex 3232EE), we need to use duplex mode
+			set_uart_single_wire(uart, false);
+			baudRate = SPORT;
+		}
+
+		usleep(100_ms);
+		// flush buffer
+		read(uart, &sbuf[0], sizeof(sbuf));
+
 	}
 
-	if (frsky_state == SPORT) {
+	if (frsky_state == SPORT || frsky_state == SPORT_SINGLE_WIRE) {
 		/* Subscribe to topics */
 		if (!sPort_init()) {
 			PX4_ERR("could not allocate memory");
@@ -721,6 +740,12 @@ int frsky_telemetry_main(int argc, char *argv[])
 
 			case SPORT:
 				PX4_INFO("running: SPORT");
+				PX4_INFO("port: %s", device_name);
+				PX4_INFO("packets sent: %d", sentPackets);
+				break;
+
+			case SPORT_SINGLE_WIRE:
+				PX4_INFO("running: SPORT (single wire)");
 				PX4_INFO("port: %s", device_name);
 				PX4_INFO("packets sent: %d", sentPackets);
 				break;
