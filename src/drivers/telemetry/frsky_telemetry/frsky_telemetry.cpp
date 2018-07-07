@@ -58,6 +58,7 @@
 
 #include <px4_tasks.h>
 #include <px4_module.h>
+#include <px4_getopt.h>
 #include <systemlib/err.h>
 #include <termios.h>
 #include <drivers/drv_hrt.h>
@@ -135,14 +136,15 @@ static int sPort_open_uart(const char *uart_name, struct termios *uart_config, s
 	const int uart = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 	if (uart < 0) {
-		err(1, "Error opening port: %s", uart_name);
+		PX4_ERR("Error opening port: %s (%i)", uart_name, errno);
+		return -1;
 	}
 
 	/* Back up the original UART configuration to restore it after exit */
 	int termios_state;
 
 	if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
-		warnx("ERR: tcgetattr%s: %d\n", uart_name, termios_state);
+		PX4_ERR("tcgetattr %s: %d\n", uart_name, termios_state);
 		close(uart);
 		return -1;
 	}
@@ -168,13 +170,13 @@ static int sPort_open_uart(const char *uart_name, struct termios *uart_config, s
 	const speed_t speed = B9600;
 
 	if (cfsetispeed(uart_config, speed) < 0 || cfsetospeed(uart_config, speed) < 0) {
-		warnx("ERR: %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
+		PX4_ERR("%s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
 		close(uart);
 		return -1;
 	}
 
 	if ((termios_state = tcsetattr(uart, TCSANOW, uart_config)) < 0) {
-		warnx("ERR: %s (tcsetattr)\n", uart_name);
+		PX4_ERR("%s (tcsetattr)\n", uart_name);
 		close(uart);
 		return -1;
 	}
@@ -208,7 +210,6 @@ static void usage()
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS6", "<file:dev>", "Select Serial Device", true);
 	PRINT_MODULE_USAGE_COMMAND("stop");
 	PRINT_MODULE_USAGE_COMMAND("status");
-	exit(1);
 }
 
 /**
@@ -216,22 +217,21 @@ static void usage()
  */
 static int frsky_telemetry_thread_main(int argc, char *argv[])
 {
-	/* Work around some stupidity in task_create's argv handling */
-	argc -= 2;
-	argv += 2;
-
-	int ch;
-
 	device_name = "/dev/ttyS6"; /* default USART8 */
 
-	while ((ch = getopt(argc, argv, "d:")) != EOF) {
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+
+	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
-			device_name = optarg;
+			device_name = myoptarg;
 			break;
 
 		default:
 			usage();
+			return -1;
 			break;
 		}
 	}
@@ -242,9 +242,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 	const int uart = sPort_open_uart(device_name, &uart_config, &uart_config_original);
 
 	if (uart < 0) {
-		warnx("could not open %s", device_name);
-		err(1, "could not open %s", device_name);
 		device_name = NULL;
+		return -1;
 	}
 
 	/* poll descriptor */
@@ -331,7 +330,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 	if (frsky_state == SPORT) {
 		/* Subscribe to topics */
 		if (!sPort_init()) {
-			err(1, "could not allocate memory");
+			PX4_ERR("could not allocate memory");
+			return -1;
 		}
 
 		PX4_INFO("sending FrSky SmartPort telemetry");
@@ -590,7 +590,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 		/* Subscribe to topics */
 		if (!frsky_init()) {
-			err(1, "could not allocate memory");
+			PX4_ERR("could not allocate memory");
+			return -1;
 		}
 
 		struct adc_linkquality host_frame;
@@ -663,15 +664,16 @@ int frsky_telemetry_main(int argc, char *argv[])
 
 
 	if (argc < 2) {
-		warnx("missing command");
+		PX4_ERR("missing command");
 		usage();
+		return -1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
-		/* this is not an error */
 		if (thread_running) {
-			errx(0, "frsky_telemetry already running");
+			PX4_INFO("frsky_telemetry already running");
+			return 0;
 		}
 
 		thread_should_exit = false;
@@ -686,26 +688,26 @@ int frsky_telemetry_main(int argc, char *argv[])
 			usleep(200);
 		}
 
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
 
-		/* this is not an error */
 		if (!thread_running) {
-			errx(0, "frsky_telemetry already stopped");
+			PX4_WARN("frsky_telemetry already stopped");
+			return 0;
 		}
 
 		thread_should_exit = true;
 
 		while (thread_running) {
 			usleep(1000000);
-			warnx(".");
+			PX4_INFO(".");
 		}
 
-		warnx("terminated.");
+		PX4_INFO("terminated.");
 		device_name = NULL;
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
@@ -715,23 +717,22 @@ int frsky_telemetry_main(int argc, char *argv[])
 			case SCANNING:
 				PX4_INFO("running: SCANNING");
 				PX4_INFO("port: %s", device_name);
-				return 0;
 				break;
 
 			case SPORT:
 				PX4_INFO("running: SPORT");
 				PX4_INFO("port: %s", device_name);
 				PX4_INFO("packets sent: %d", sentPackets);
-				return 0;
 				break;
 
 			case DTYPE:
 				PX4_INFO("running: DTYPE");
 				PX4_INFO("port: %s", device_name);
 				PX4_INFO("packets sent: %d", sentPackets);
-				return 0;
 				break;
 			}
+
+			return 0;
 
 		} else {
 			PX4_INFO("not running");
@@ -739,8 +740,7 @@ int frsky_telemetry_main(int argc, char *argv[])
 		}
 	}
 
-	warnx("unrecognized command");
+	PX4_ERR("unrecognized command");
 	usage();
-	/* not getting here */
 	return 0;
 }
