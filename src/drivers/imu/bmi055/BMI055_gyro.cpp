@@ -54,7 +54,6 @@ BMI055_gyro::BMI055_gyro(int bus, const char *path_gyro, uint32_t device, enum R
 	_bad_registers(perf_alloc(PC_COUNT, "bmi055_gyro_bad_registers")),
 	_reset_retries(perf_alloc(PC_COUNT, "bmi055_gyro_reset_retries")),
 	_duplicates(perf_alloc(PC_COUNT, "bmi055_gyro_duplicates")),
-	_gyro_reads(perf_alloc(PC_COUNT, "bmi055_gyro_read")),
 	_gyro_reports(nullptr),
 	_gyro_scale{},
 	_gyro_range_scale(0.0f),
@@ -102,7 +101,6 @@ BMI055_gyro::~BMI055_gyro()
 	perf_free(_bad_registers);
 	perf_free(_reset_retries);
 	perf_free(_duplicates);
-	perf_free(_gyro_reads);
 }
 
 int
@@ -194,8 +192,6 @@ int BMI055_gyro::reset()
 			break;
 		}
 	}
-
-	_gyro_reads = 0;
 
 	return OK;
 }
@@ -348,8 +344,6 @@ BMI055_gyro::read(struct file *filp, char *buffer, size_t buflen)
 	if (_gyro_reports->empty()) {
 		return -EAGAIN;
 	}
-
-	perf_count(_gyro_reads);
 
 	/* copy reports out of our buffer to the caller */
 	gyro_report *grp = reinterpret_cast<gyro_report *>(buffer);
@@ -789,7 +783,6 @@ BMI055_gyro::print_info()
 	PX4_INFO("Gyro");
 
 	perf_print_counter(_sample_perf);
-	perf_print_counter(_gyro_reads);
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_reset_retries);
