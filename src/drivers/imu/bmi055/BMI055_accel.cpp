@@ -48,6 +48,12 @@ const uint8_t BMI055_accel::_checked_registers[BMI055_ACCEL_NUM_CHECKED_REGISTER
 
 BMI055_accel::BMI055_accel(int bus, const char *path_accel, uint32_t device, enum Rotation rotation) :
 	BMI055("BMI055_ACCEL", path_accel, bus, device, SPIDEV_MODE3, BMI055_BUS_SPEED, rotation),
+	_sample_perf(perf_alloc(PC_ELAPSED, "bmi055_accel_read")),
+	_bad_transfers(perf_alloc(PC_COUNT, "bmi055_accel_bad_transfers")),
+	_bad_registers(perf_alloc(PC_COUNT, "bmi055_accel_bad_registers")),
+	_reset_retries(perf_alloc(PC_COUNT, "bmi055_accel_reset_retries")),
+	_duplicates(perf_alloc(PC_COUNT, "bmi055_accel_duplicates")),
+	_accel_reads(perf_alloc(PC_COUNT, "bmi055_accel_read")),
 	_accel_reports(nullptr),
 	_accel_scale{},
 	_accel_range_scale(0.0f),
@@ -56,7 +62,6 @@ BMI055_accel::BMI055_accel(int bus, const char *path_accel, uint32_t device, enu
 	_accel_orb_class_instance(-1),
 	_accel_class_instance(-1),
 	_accel_sample_rate(BMI055_ACCEL_DEFAULT_RATE),
-	_accel_reads(perf_alloc(PC_COUNT, "bmi055_accel_read")),
 	_accel_filter_x(BMI055_ACCEL_DEFAULT_RATE, BMI055_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(BMI055_ACCEL_DEFAULT_RATE, BMI055_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(BMI055_ACCEL_DEFAULT_RATE, BMI055_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -92,6 +97,11 @@ BMI055_accel::~BMI055_accel()
 	}
 
 	/* delete the perf counter */
+	perf_free(_sample_perf);
+	perf_free(_bad_transfers);
+	perf_free(_bad_registers);
+	perf_free(_reset_retries);
+	perf_free(_duplicates);
 	perf_free(_accel_reads);
 }
 

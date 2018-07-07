@@ -167,6 +167,13 @@ protected:
 
 private:
 
+	perf_counter_t      _sample_perf;
+	perf_counter_t      _bad_transfers;
+	perf_counter_t      _bad_registers;
+	perf_counter_t      _reset_retries;
+	perf_counter_t      _duplicates;
+	perf_counter_t      _gyro_reads;
+
 	ringbuffer::RingBuffer  *_gyro_reports;
 
 	struct gyro_calibration_s   _gyro_scale;
@@ -178,7 +185,6 @@ private:
 	int         _gyro_class_instance;
 
 	float       _gyro_sample_rate;
-	perf_counter_t      _gyro_reads;
 
 	math::LowPassFilter2p   _gyro_filter_x;
 	math::LowPassFilter2p   _gyro_filter_y;
