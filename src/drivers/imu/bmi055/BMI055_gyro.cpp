@@ -52,7 +52,6 @@ BMI055_gyro::BMI055_gyro(int bus, const char *path_gyro, uint32_t device, enum R
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmi055_gyro_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "bmi055_gyro_bad_transfers")),
 	_bad_registers(perf_alloc(PC_COUNT, "bmi055_gyro_bad_registers")),
-	_reset_retries(perf_alloc(PC_COUNT, "bmi055_gyro_reset_retries")),
 	_gyro_reports(nullptr),
 	_gyro_scale{},
 	_gyro_range_scale(0.0f),
@@ -98,7 +97,6 @@ BMI055_gyro::~BMI055_gyro()
 	perf_free(_sample_perf);
 	perf_free(_bad_transfers);
 	perf_free(_bad_registers);
-	perf_free(_reset_retries);
 }
 
 int
@@ -783,7 +781,6 @@ BMI055_gyro::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_bad_registers);
-	perf_print_counter(_reset_retries);
 
 	_gyro_reports->print_info("gyro queue");
 	::printf("checked_next: %u\n", _checked_next);

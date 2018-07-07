@@ -51,7 +51,6 @@ BMI055_accel::BMI055_accel(int bus, const char *path_accel, uint32_t device, enu
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmi055_accel_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "bmi055_accel_bad_transfers")),
 	_bad_registers(perf_alloc(PC_COUNT, "bmi055_accel_bad_registers")),
-	_reset_retries(perf_alloc(PC_COUNT, "bmi055_accel_reset_retries")),
 	_duplicates(perf_alloc(PC_COUNT, "bmi055_accel_duplicates")),
 	_accel_reports(nullptr),
 	_accel_scale{},
@@ -99,7 +98,6 @@ BMI055_accel::~BMI055_accel()
 	perf_free(_sample_perf);
 	perf_free(_bad_transfers);
 	perf_free(_bad_registers);
-	perf_free(_reset_retries);
 	perf_free(_duplicates);
 }
 
@@ -809,7 +807,6 @@ BMI055_accel::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_bad_registers);
-	perf_print_counter(_reset_retries);
 	perf_print_counter(_duplicates);
 
 	_accel_reports->print_info("accel queue");
