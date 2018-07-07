@@ -53,7 +53,6 @@ BMI055_accel::BMI055_accel(int bus, const char *path_accel, uint32_t device, enu
 	_bad_registers(perf_alloc(PC_COUNT, "bmi055_accel_bad_registers")),
 	_reset_retries(perf_alloc(PC_COUNT, "bmi055_accel_reset_retries")),
 	_duplicates(perf_alloc(PC_COUNT, "bmi055_accel_duplicates")),
-	_accel_reads(perf_alloc(PC_COUNT, "bmi055_accel_read")),
 	_accel_reports(nullptr),
 	_accel_scale{},
 	_accel_range_scale(0.0f),
@@ -102,7 +101,6 @@ BMI055_accel::~BMI055_accel()
 	perf_free(_bad_registers);
 	perf_free(_reset_retries);
 	perf_free(_duplicates);
-	perf_free(_accel_reads);
 }
 
 int
@@ -189,8 +187,6 @@ int BMI055_accel::reset()
 			break;
 		}
 	}
-
-	_accel_reads = 0;
 
 	return OK;
 }
@@ -283,8 +279,6 @@ BMI055_accel::read(struct file *filp, char *buffer, size_t buflen)
 	if (_accel_reports->empty()) {
 		return -EAGAIN;
 	}
-
-	perf_count(_accel_reads);
 
 	/* copy reports out of our buffer to the caller */
 	accel_report *arp = reinterpret_cast<accel_report *>(buffer);
@@ -813,7 +807,6 @@ BMI055_accel::print_info()
 	PX4_INFO("Accel");
 
 	perf_print_counter(_sample_perf);
-	perf_print_counter(_accel_reads);
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_reset_retries);
