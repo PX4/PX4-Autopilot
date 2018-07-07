@@ -200,12 +200,11 @@ private:
 	float			_gyro_range_rad_s;
 
 	unsigned		_sample_rate;
-	perf_counter_t		_accel_reads;
-	perf_counter_t		_gyro_reads;
+
 	perf_counter_t		_sample_perf;
+	perf_counter_t		_measure_interval;
 	perf_counter_t		_bad_transfers;
 	perf_counter_t		_bad_registers;
-	perf_counter_t		_good_transfers;
 	perf_counter_t		_reset_retries;
 	perf_counter_t		_duplicates;
 
@@ -501,12 +500,10 @@ MPU6000::MPU6000(device::Device *interface, const char *path_accel, const char *
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
 	_sample_rate(1000),
-	_accel_reads(perf_alloc(PC_COUNT, "mpu6k_acc_read")),
-	_gyro_reads(perf_alloc(PC_COUNT, "mpu6k_gyro_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6k_read")),
+	_measure_interval(perf_alloc(PC_INTERVAL, "mpu6k_measure_interval")),
 	_bad_transfers(perf_alloc(PC_COUNT, "mpu6k_bad_trans")),
 	_bad_registers(perf_alloc(PC_COUNT, "mpu6k_bad_reg")),
-	_good_transfers(perf_alloc(PC_COUNT, "mpu6k_good_trans")),
 	_reset_retries(perf_alloc(PC_COUNT, "mpu6k_reset")),
 	_duplicates(perf_alloc(PC_COUNT, "mpu6k_duplicates")),
 	_register_wait(0),
@@ -614,11 +611,9 @@ MPU6000::~MPU6000()
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
-	perf_free(_accel_reads);
-	perf_free(_gyro_reads);
+	perf_free(_measure_interval);
 	perf_free(_bad_transfers);
 	perf_free(_bad_registers);
-	perf_free(_good_transfers);
 	perf_free(_reset_retries);
 	perf_free(_duplicates);
 }
@@ -766,8 +761,6 @@ int MPU6000::reset()
 	// come as zero
 	uint8_t tries = 5;
 	irqstate_t state;
-
-
 
 	while (--tries != 0) {
 		state = px4_enter_critical_section();
@@ -1051,8 +1044,6 @@ MPU6000::read(struct file *filp, char *buffer, size_t buflen)
 		return -EAGAIN;
 	}
 
-	perf_count(_accel_reads);
-
 	/* copy reports out of our buffer to the caller */
 	accel_report *arp = reinterpret_cast<accel_report *>(buffer);
 	int transferred = 0;
@@ -1335,8 +1326,6 @@ MPU6000::gyro_read(struct file *filp, char *buffer, size_t buflen)
 	if (_gyro_reports->empty()) {
 		return -EAGAIN;
 	}
-
-	perf_count(_gyro_reads);
 
 	/* copy reports out of our buffer to the caller */
 	gyro_report *grp = reinterpret_cast<gyro_report *>(buffer);
@@ -1830,6 +1819,8 @@ MPU6000::check_registers(void)
 int
 MPU6000::measure()
 {
+	perf_count(_measure_interval);
+
 	if (_in_factory_test) {
 		// don't publish any data while in factory test mode
 		return OK;
@@ -1919,12 +1910,9 @@ MPU6000::measure()
 		return -EIO;
 	}
 
-	perf_count(_good_transfers);
-
 	if (_register_wait != 0) {
 		// we are waiting for some good transfers before using
-		// the sensor again. We still increment
-		// _good_transfers, but don't return any data yet
+		// the sensor again, don't return any data yet
 		_register_wait--;
 		return OK;
 	}
@@ -2092,11 +2080,8 @@ void
 MPU6000::print_info()
 {
 	perf_print_counter(_sample_perf);
-	perf_print_counter(_accel_reads);
-	perf_print_counter(_gyro_reads);
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_bad_registers);
-	perf_print_counter(_good_transfers);
 	perf_print_counter(_reset_retries);
 	perf_print_counter(_duplicates);
 	_accel_reports->print_info("accel queue");
