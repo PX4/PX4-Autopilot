@@ -217,6 +217,7 @@ static void usage()
 	PRINT_MODULE_USAGE_NAME("frsky_telemetry", "communication");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS6", "<file:dev>", "Select Serial Device", true);
+	PRINT_MODULE_USAGE_PARAM_INT('t', 0, 0, 60, "Scanning timeout [s] (default: no timeout)", true);
 	PRINT_MODULE_USAGE_COMMAND("stop");
 	PRINT_MODULE_USAGE_COMMAND("status");
 }
@@ -227,15 +228,20 @@ static void usage()
 static int frsky_telemetry_thread_main(int argc, char *argv[])
 {
 	device_name = "/dev/ttyS6"; /* default USART8 */
+	unsigned scanning_timeout_ms = 0;
 
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:t:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device_name = myoptarg;
+			break;
+
+		case 't':
+			scanning_timeout_ms = strtoul(myoptarg, nullptr, 10) * 1000;
 			break;
 
 		default:
@@ -266,6 +272,8 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 	char sbuf[20];
 	frsky_state = SCANNING;
 	frsky_state_t baudRate = DTYPE;
+
+	const hrt_abstime start_time = hrt_absolute_time();
 
 	while (!thread_should_exit && frsky_state == SCANNING) {
 		/* 2 byte polling frames indicate SmartPort telemetry
@@ -344,6 +352,11 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 		// flush buffer
 		read(uart, &sbuf[0], sizeof(sbuf));
 
+		// check for a timeout
+		if (scanning_timeout_ms > 0 && (hrt_absolute_time() - start_time) / 1000 > scanning_timeout_ms) {
+			PX4_INFO("Scanning timeout: exiting");
+			break;
+		}
 	}
 
 	if (frsky_state == SPORT || frsky_state == SPORT_SINGLE_WIRE) {
