@@ -878,13 +878,14 @@ void FixedwingAttitudeControl::control_flaps(const float dt)
 	} else if (_vcontrol_mode.flag_control_auto_enabled
 		   && fabsf(_parameters.flaps_scale) > 0.01f) {
 		switch (_att_sp.apply_flaps) {
-		case 0 : flap_control = 0.0f; // no flaps
+		case vehicle_attitude_setpoint_s::FLAPS_OFF : flap_control = 0.0f; // no flaps
 			break;
 
-		case 1 : flap_control = 1.0f * _parameters.flaps_scale; // landing flaps
+		case vehicle_attitude_setpoint_s::FLAPS_LAND : flap_control = 1.0f * _parameters.flaps_scale; // landing flaps
 			break;
 
-		case 2 : flap_control = 1.0f * _parameters.flaps_scale * _parameters.flaps_takeoff_scale; // take-off flaps
+		case vehicle_attitude_setpoint_s::FLAPS_TAKEOFF : flap_control = 1.0f * _parameters.flaps_scale *
+					_parameters.flaps_takeoff_scale; // take-off flaps
 			break;
 		}
 	}
@@ -907,7 +908,8 @@ void FixedwingAttitudeControl::control_flaps(const float dt)
 
 	} else if (_vcontrol_mode.flag_control_auto_enabled
 		   && fabsf(_parameters.flaperon_scale) > 0.01f) {
-		flaperon_control = (_att_sp.apply_flaps == 1) ? 1.0f * _parameters.flaperon_scale : 0.0f;
+		flaperon_control = (_att_sp.apply_flaps == vehicle_attitude_setpoint_s::FLAPS_LAND) ? 1.0f *
+				   _parameters.flaperon_scale : 0.0f;
 	}
 
 	// move the actual control value continuous with time, full flap travel in 1sec
