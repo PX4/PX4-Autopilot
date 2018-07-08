@@ -140,20 +140,8 @@ private:
 		int16_t		accel_z;
 		uint16_t	temp;
 		uint16_t	DATA_CNTR;
-		uint16_t	checksum;
-
-		ADISReport():
-			cmd(0),
-			diag_stat(0),
-			gyro_x(0),
-			gyro_y(0),
-			gyro_z(0),
-			accel_x(0),
-			accel_y(0),
-			accel_z(0),
-			temp(0),
-			DATA_CNTR(0)
-		{}
+		uint8_t		checksum;
+		uint8_t		_padding; // 16 bit SPI mode
 	};
 #pragma pack(pop)
 
