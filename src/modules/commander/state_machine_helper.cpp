@@ -48,7 +48,7 @@
 
 #include "state_machine_helper.h"
 #include "commander_helper.h"
-#include "PreflightCheck.h"
+#include "preflightCheck.h"
 #include "arm_auth.h"
 
 static constexpr const char reason_no_rc[] = "no RC";

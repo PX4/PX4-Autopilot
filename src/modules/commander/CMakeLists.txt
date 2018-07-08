@@ -48,7 +48,7 @@ px4_add_module(
 		gyro_calibration.cpp
 		health_flag_helper.cpp
 		mag_calibration.cpp
-		PreflightCheck.cpp
+		preflightCheck.cpp
 		rc_calibration.cpp
 		rc_check.cpp
 		state_machine_helper.cpp

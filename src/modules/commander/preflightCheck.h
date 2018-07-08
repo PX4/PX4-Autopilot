@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file PreflightCheck.h
+ * @file preflightCheck.h
  *
  * Preflight check for main system components
  *
