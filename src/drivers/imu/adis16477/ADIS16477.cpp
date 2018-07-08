@@ -41,8 +41,6 @@
 #define DIR_WRITE				0x80
 
 //  ADIS16477 registers
-
-
 static constexpr uint8_t DIAG_STAT = 0x02; // Output, system error flags
 
 static constexpr uint8_t X_GYRO_LOW = 0x04; // Output, x-axis gyroscope, low word
@@ -239,7 +237,7 @@ ADIS16477::probe()
 			return PX4_OK;
 		}
 
-		PX4_ERR("PROD_ID attempt 0x73 %d", i);
+		DEVICE_DEBUG("PROD_ID attempt 0x73 %d", i);
 		up_udelay(T_STALL);
 	}
 
@@ -495,24 +493,51 @@ ADIS16477::measure_trampoline(void *arg)
 int
 ADIS16477::measure()
 {
-	ADISReport adis_report = {};
-
-	// ADIS16477 burst report should be 176 bits
-	//static_assert(sizeof(cmd) + sizeof(report) == (176 / 8), "ADIS16477 report not 176 bits");
-
-	// start measuring
 	perf_begin(_sample_perf);
 
 	// Fetch the full set of measurements from the ADIS16477 in one pass (burst read).
+	ADISReport adis_report;
 	adis_report.cmd = ((GLOB_CMD | DIR_READ) << 8) & 0xff00;
 
+	// ADIS16477 burst report should be 176 bits
+	static_assert(sizeof(adis_report) == (176 / 8), "ADIS16477 report not 176 bits");
+
 	if (OK != transferhword((uint16_t *)&adis_report, ((uint16_t *)&adis_report), sizeof(adis_report) / sizeof(uint16_t))) {
+		perf_end(_sample_perf);
 		return -EIO;
 	}
 
-	if (adis_report.diag_stat != 0) {
-		//PX4_INFO("status: %X", adis_report.diag_stat);
+	// Calculate checksum and compare
+
+	// Checksum = DIAG_STAT, Bits[15:8] + DIAG_STAT, Bits[7:0] +
+	//  X_GYRO_OUT, Bits[15:8] + X_GYRO_OUT, Bits[7:0] +
+	//  Y_GYRO_OUT, Bits[15:8] + Y_GYRO_OUT, Bits[7:0] +
+	//  Z_GYRO_OUT, Bits[15:8] + Z_GYRO_OUT, Bits[7:0] +
+	//  X_ACCL_OUT, Bits[15:8] + X_ACCL_OUT, Bits[7:0] +
+	//  Y_ACCL_OUT, Bits[15:8] + Y_ACCL_OUT, Bits[7:0] +
+	//  Z_ACCL_OUT, Bits[15:8] + Z_ACCL_OUT, Bits[7:0] +
+	//  TEMP_OUT, Bits[15:8] + TEMP_OUT, Bits[7:0] +
+	//  DATA_CNTR, Bits[15:8] + DATA_CNTR, Bits[7:0]
+	uint8_t *checksum_helper = (uint8_t *)&adis_report.diag_stat;
+
+	uint8_t checksum = 0;
+
+	for (int i = 0; i < 18; i++) {
+		checksum += checksum_helper[i];
+	}
+
+	if (adis_report.checksum != checksum) {
+		PX4_ERR("adis_report.checksum: %X vs calculated: %X", adis_report.checksum, checksum);
 		perf_event_count(_bad_transfers);
+		perf_end(_sample_perf);
+		return -EIO;
+	}
+
+	// Check all Status/Error Flag Indicators (DIAG_STAT)
+	if (adis_report.diag_stat != 0) {
+		perf_event_count(_bad_transfers);
+		perf_end(_sample_perf);
+		return -EIO;
 	}
 
 	publish_gyro(adis_report);
@@ -526,25 +551,21 @@ ADIS16477::measure()
 bool
 ADIS16477::publish_accel(const ADISReport &report)
 {
-	const bool x_valid = (report.accel_x != 0) && (report.accel_x != INT16_MAX);
-	const bool y_valid = (report.accel_y != 0) && (report.accel_y != INT16_MAX);
-	const bool z_valid = (report.accel_z != 0) && (report.accel_z != INT16_MAX);
-
-	if (!x_valid || !y_valid || !z_valid) {
-		return false;
-	}
-
 	accel_report arb = {};
 	arb.timestamp = hrt_absolute_time();
+	arb.device_id = _device_id.devid;
 	arb.error_count = perf_event_count(_bad_transfers);
+
+	// raw sensor readings
+	arb.x_raw = report.accel_x;
+	arb.y_raw = report.accel_y;
+	arb.z_raw = report.accel_z;
+	arb.scaling = _accel_range_scale;
+	arb.range_m_s2 = _accel_range_m_s2;
 
 	float xraw_f = report.accel_x * _accel_range_scale;
 	float yraw_f = report.accel_y * _accel_range_scale;
 	float zraw_f = report.accel_z * _accel_range_scale;
-
-	arb.x_raw = report.accel_x;
-	arb.y_raw = report.accel_y;
-	arb.z_raw = report.accel_z;
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
@@ -565,15 +586,10 @@ ADIS16477::publish_accel(const ADISReport &report)
 	arb.y_integral = aval_integrated(1);
 	arb.z_integral = aval_integrated(2);
 
-	arb.scaling = _accel_range_scale;
-	arb.range_m_s2 = _accel_range_m_s2;
-
 	/* Temperature report: */
 	// temperature 1 LSB = 0.1°C
+	arb.temperature_raw = report.temp;
 	arb.temperature = report.temp * 0.1;
-
-	/* return device ID */
-	arb.device_id = _device_id.devid;
 
 	if (accel_notify) {
 		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
@@ -585,19 +601,14 @@ ADIS16477::publish_accel(const ADISReport &report)
 bool
 ADIS16477::publish_gyro(const ADISReport &report)
 {
-	const bool x_valid = (report.gyro_x != 0) && (report.gyro_x != INT16_MAX);
-	const bool y_valid = (report.gyro_y != 0) && (report.gyro_y != INT16_MAX);
-	const bool z_valid = (report.gyro_z != 0) && (report.gyro_z != INT16_MAX);
-
-	if (!x_valid || !y_valid || !z_valid) {
-		return false;
-	}
-
 	gyro_report grb = {};
 	grb.timestamp = hrt_absolute_time();
+	grb.device_id = _gyro->_device_id.devid;
 	grb.error_count = perf_event_count(_bad_transfers);
 
 	/* Gyro report: */
+	grb.scaling = math::radians(_gyro_range_scale);
+	grb.range_rad_s = _gyro_range_rad_s;
 	grb.x_raw = report.gyro_x;
 	grb.y_raw = report.gyro_y;
 	grb.z_raw = report.gyro_z;
@@ -626,12 +637,10 @@ ADIS16477::publish_gyro(const ADISReport &report)
 	grb.y_integral = gval_integrated(1);
 	grb.z_integral = gval_integrated(2);
 
-	grb.scaling = math::radians(_gyro_range_scale);
-	grb.range_rad_s = _gyro_range_rad_s;
-
 	/* Temperature report: */
 	// temperature 1 LSB = 0.1°C
-	grb.temperature = report.temp * 0.1;
+	grb.temperature_raw = report.temp;
+	grb.temperature = report.temp * 0.1f;
 
 	if (gyro_notify) {
 		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
