@@ -675,6 +675,7 @@ VL53LXX::collect()
 	report.min_distance = VL53LXX_MIN_RANGING_DISTANCE;
 	report.max_distance = VL53LXX_MAX_RANGING_DISTANCE;
 	report.covariance = 0.0f;
+	report.signal_strength = -1;
 
 	/* TODO: set proper ID */
 	report.id = 0;
