@@ -61,7 +61,9 @@ endif()
 
 if (GENERATE_RTPS_BRIDGE)
 
-	#option(CHECK_ENDIANNESS OFF)
+	# temporarily set to OFF
+	option(CHECK_ENDIANNESS OFF)
+
 	add_subdirectory(micrortps_client)
 
 	###############################################################################
