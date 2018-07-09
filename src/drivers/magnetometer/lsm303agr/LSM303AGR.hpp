@@ -115,7 +115,9 @@ private:
 	unsigned		_call_mag_interval{0};
 
 	mag_calibration_s	_mag_scale{};
-	unsigned		_mag_range_ga{0};
+
+	static constexpr float	_mag_range_scale{1.5f / 1000.0f}; // 1.5 milligauss/LSB
+	static constexpr float	_mag_range_ga{49.152f};
 
 	int			_class_instance{-1};
 
