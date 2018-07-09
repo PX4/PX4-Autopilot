@@ -3629,6 +3629,12 @@ set_control_mode()
 		control_mode.flag_control_altitude_enabled = (!offboard_control_mode.ignore_velocity ||
 				!offboard_control_mode.ignore_position) && !control_mode.flag_control_acceleration_enabled;
 
+		// These are all required for altitude control
+		control_mode.flag_control_altitude_enabled	= !offboard_control_mode.ignore_alt_hold || control_mode.flag_control_altitude_enabled;
+		control_mode.flag_control_attitude_enabled	= !offboard_control_mode.ignore_alt_hold || control_mode.flag_control_attitude_enabled;
+		control_mode.flag_control_rates_enabled		= !offboard_control_mode.ignore_alt_hold || control_mode.flag_control_rates_enabled;
+		control_mode.flag_control_climb_rate_enabled= !offboard_control_mode.ignore_alt_hold || control_mode.flag_control_climb_rate_enabled;
+
 		break;
 
 	default:

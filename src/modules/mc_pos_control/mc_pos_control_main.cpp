@@ -1533,6 +1533,13 @@ MulticopterPositionControl::control_offboard()
 
 			_hold_offboard_z = false;
 
+			/* disable position control as it is not enabled */
+			if(_control_mode.flag_control_position_enabled){
+				_run_pos_control = true;
+			} else {
+				_run_pos_control = false;
+			}
+
 		} else if (_control_mode.flag_control_climb_rate_enabled && _pos_sp_triplet.current.velocity_valid) {
 
 			/* reset alt setpoint to current altitude if needed */
@@ -3232,8 +3239,9 @@ MulticopterPositionControl::task_main()
 			 * attitude setpoints for the transition).
 			 */
 			if (!(_control_mode.flag_control_offboard_enabled &&
-			      !(_control_mode.flag_control_position_enabled ||
-				_control_mode.flag_control_velocity_enabled ||
+			      !(_control_mode.flag_control_altitude_enabled  ||
+			    _control_mode.flag_control_position_enabled      ||
+				_control_mode.flag_control_velocity_enabled      ||
 				_control_mode.flag_control_acceleration_enabled))) {
 
 				if (_att_sp_pub != nullptr) {
