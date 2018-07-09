@@ -1074,11 +1074,13 @@ PARAM_DEFINE_FLOAT(EKF2_MAGB_K, 0.2f);
  * If this parameter is enabled then the estimator will make use of the range finder measurements
  * to estimate it's height even if range sensor is not the primary height source. It will only do so if conditions
  * for range measurement fusion are met. This enables the range finder to be used during low speed and low altitude
- * operation. Speed and height criteria are controlled by EKF2_RNG_A_VMAX and EKF2_RNG_A_HMAX.
- * It should not be used for terrain following. It is intended to be used where a vertical takeoff and landing
- * is performed, and horizontal flight does not occur until above EKF2_RNG_A_HMAX. If vehicle motion causes
- * repeated switvhing between the rimary height sensor and range finder, an offset in the local position origin
- * can accumulate. For terrain following, it is recommended to use the MPC_ALT_MODE parameter instead.
+ * operation, eg takeoff and landing, where baro interference from rotor wash is excessive and can corrupt EKF state
+ * estimates. It is intended to be used where a vertical takeoff and landing is performed, and horizontal flight does
+ * not occur until above EKF2_RNG_A_HMAX. If vehicle motion causes repeated switching between the primary height
+ * sensor and range finder, an offset in the local position origin can accumulate. Also range finder measurements
+ * are less reliable and can experience unexpected errors. For these reasons, if accurate control of height
+ * relative to ground is required, it is recommended to use the MPC_ALT_MODE parameter instead, unless baro errors
+ * are severe enough to cause problems with landing and takeoff.
  *
  * @group EKF2
  * @value 0 Range aid disabled
