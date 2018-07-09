@@ -162,6 +162,8 @@ int DfBebopRangeFinderWrapper::_publish(struct bebop_range &data)
 
 	distance_data.covariance = 1.0f; // TODO set correct value
 
+	distance_data.signal_strength = -1;
+
 	if (_range_topic == nullptr) {
 		_range_topic = orb_advertise_multi(ORB_ID(distance_sensor), &distance_data,
 						   &_orb_class_instance, ORB_PRIO_DEFAULT);

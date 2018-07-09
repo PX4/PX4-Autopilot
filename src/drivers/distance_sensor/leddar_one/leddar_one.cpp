@@ -411,6 +411,7 @@ void leddar_one::_publish(uint16_t distance_mm)
 	report.min_distance = MIN_DISTANCE;
 	report.max_distance = MAX_DISTANCE;
 	report.covariance = 0.0f;
+	report.signal_strength = -1;
 	report.id = 0;
 
 	_reports->force(&report);

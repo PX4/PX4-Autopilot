@@ -595,6 +595,7 @@ PX4FLOW::collect()
 	distance_report.max_distance = PX4FLOW_MAX_DISTANCE;
 	distance_report.current_distance = report.ground_distance_m;
 	distance_report.covariance = 0.0f;
+	distance_report.signal_strength = -1;
 	distance_report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
 	/* TODO: the ID needs to be properly set */
 	distance_report.id = 0;
