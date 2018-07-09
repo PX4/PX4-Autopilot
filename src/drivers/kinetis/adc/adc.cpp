@@ -376,7 +376,7 @@ ADC::update_system_power(hrt_abstime now)
 
 		if (_samples[i].am_channel == ADC_5V_RAIL_SENSE) {
 			// it is 2:1 scaled
-			system_power.voltage5V_v = _samples[i].am_data * (6.6f / 4096);
+			system_power.voltage5V_v = _samples[i].am_data * (6.6f / 4096.0f);
 		}
 	}
 
