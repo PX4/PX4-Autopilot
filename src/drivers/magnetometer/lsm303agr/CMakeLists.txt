@@ -34,5 +34,6 @@ px4_add_module(
 	MODULE drivers__magnetometer__lsm303agr
 	MAIN lsm303agr
 	SRCS
+		lsm303agr_main.cpp
 		LSM303AGR.cpp
 	)
