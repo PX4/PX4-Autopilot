@@ -48,8 +48,6 @@
 #define DIR_WRITE				(0<<7)
 #define ADDR_INCREMENT			(1<<6)
 
-#define LSM303AGR_DEVICE_PATH_MAG	"/dev/lsm303agr_mag"
-
 /* Max measurement rate is 100Hz */
 #define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
 
@@ -62,8 +60,6 @@ static constexpr uint8_t LSM303AGR_WHO_AM_I_M = 0x40;
   due to other timers
  */
 #define LSM303AGR_TIMER_REDUCTION				200
-
-extern "C" { __EXPORT int lsm303agr_main(int argc, char *argv[]); }
 
 LSM303AGR::LSM303AGR(int bus, const char *path, uint32_t device, enum Rotation rotation) :
 	SPI("LSM303AGR", path, bus, device, SPIDEV_MODE3, 8 * 1000 * 1000),
@@ -523,135 +519,4 @@ LSM303AGR::print_info()
 	perf_print_counter(_mag_sample_perf);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_bad_values);
-}
-
-/**
- * Local functions in support of the shell command.
- */
-namespace lsm303agr
-{
-
-LSM303AGR	*g_dev;
-
-void	start(enum Rotation rotation);
-void	info();
-void	usage();
-
-/**
- * Start the driver.
- *
- * This function call only returns once the driver is
- * up and running or failed to detect the sensor.
- */
-void
-start(enum Rotation rotation)
-{
-	int fd_mag = -1;
-
-	if (g_dev != nullptr) {
-		errx(0, "already started");
-	}
-
-	/* create the driver */
-#if defined(PX4_SPIDEV_LSM303A_M) && defined(PX4_SPIDEV_LSM303A_X)
-	g_dev = new LSM303AGR(PX4_SPI_BUS_SENSOR5, LSM303AGR_DEVICE_PATH_MAG, PX4_SPIDEV_LSM303A_M, rotation);
-#else
-	errx(0, "External SPI not available");
-#endif
-
-	if (g_dev == nullptr) {
-		PX4_ERR("alloc failed");
-		goto fail;
-	}
-
-	if (OK != g_dev->init()) {
-		goto fail;
-	}
-
-	fd_mag = px4_open(LSM303AGR_DEVICE_PATH_MAG, O_RDONLY);
-
-	/* don't fail if open cannot be opened */
-	if (0 <= fd_mag) {
-		if (px4_ioctl(fd_mag, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-			goto fail;
-		}
-	}
-
-	px4_close(fd_mag);
-
-	exit(0);
-fail:
-
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
-	}
-
-	errx(1, "driver start failed");
-}
-
-/**
- * Print a little info about the driver.
- */
-void
-info()
-{
-	if (g_dev == nullptr) {
-		errx(1, "driver not running\n");
-	}
-
-	printf("state @ %p\n", g_dev);
-	g_dev->print_info();
-
-	exit(0);
-}
-
-void
-usage()
-{
-	PX4_INFO("missing command: try 'start', 'info', 'reset'");
-	PX4_INFO("options:");
-	PX4_INFO("    -X    (external bus)");
-	PX4_INFO("    -R rotation");
-}
-
-} // namespace
-
-int
-lsm303agr_main(int argc, char *argv[])
-{
-	int ch;
-	enum Rotation rotation = ROTATION_NONE;
-
-	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XR:a:")) != EOF) {
-		switch (ch) {
-		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
-			break;
-
-		default:
-			lsm303agr::usage();
-			exit(0);
-		}
-	}
-
-	const char *verb = argv[optind];
-
-	/*
-	 * Start/load the driver.
-
-	 */
-	if (!strcmp(verb, "start")) {
-		lsm303agr::start(rotation);
-	}
-
-	/*
-	 * Print driver information.
-	 */
-	if (!strcmp(verb, "info")) {
-		lsm303agr::info();
-	}
-
-	errx(1, "unrecognized command, try 'start', 'info'");
 }
