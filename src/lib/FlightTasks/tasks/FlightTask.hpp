@@ -48,6 +48,7 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_constraints.h>
+#include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include "../SubscriptionArray.hpp"
 
 class FlightTask : public ModuleParams
@@ -105,6 +106,8 @@ public:
 	 */
 	const vehicle_constraints_s getConstraints() {return _constraints;};
 
+	const vehicle_trajectory_waypoint_s getAvoidanceWaypoint() {return _desired_waypoint;};
+
 	/**
 	 * Empty setpoint.
 	 * All setpoints are set to NAN.
@@ -116,6 +119,12 @@ public:
 	 * All constraints are set to NAN.
 	 */
 	static const vehicle_constraints_s empty_constraints;
+
+	/**
+	 * Empty desired waypoints.
+	 * All waypoints are set to NAN.
+	 */
+	static const vehicle_trajectory_waypoint_s empty_trajectory_waypoint;
 
 	/**
 	 * Call this whenever a parameter update notification is received (parameter_update uORB message)
@@ -178,6 +187,12 @@ protected:
 	 * The constraints can vary with tasks.
 	 */
 	vehicle_constraints_s _constraints;
+
+	/**
+	 * Desired waypoints.
+	 * Goals set by the FCU to be sent to the obstacle avoidance system.
+	 */
+	vehicle_trajectory_waypoint_s _desired_waypoint;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
 					(ParamFloat<px4::params::MPC_XY_VEL_MAX>) MPC_XY_VEL_MAX,

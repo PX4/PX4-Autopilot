@@ -47,6 +47,17 @@ const vehicle_constraints_s FlightTasks::getConstraints()
 	}
 }
 
+const vehicle_trajectory_waypoint_s FlightTasks::getAvoidanceWaypoint()
+{
+
+	if (isAnyTaskActive()) {
+		return _current_task.task->getAvoidanceWaypoint();
+
+	} else {
+		return FlightTask::empty_trajectory_waypoint;
+	}
+}
+
 int FlightTasks::_initTask(FlightTaskIndex task_index)
 {
 
