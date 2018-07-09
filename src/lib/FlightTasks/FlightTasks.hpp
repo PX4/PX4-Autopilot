@@ -78,6 +78,12 @@ public:
 	const vehicle_constraints_s getConstraints();
 
 	/**
+	 * Get task avoidance desired waypoints
+	 * @return auto triplets in the mc_pos_control
+	 */
+	const vehicle_trajectory_waypoint_s getAvoidanceWaypoint();
+
+	/**
 	 * Switch to the next task in the available list (for testing)
 	 * @return 1 on success, <0 on error
 	 */
