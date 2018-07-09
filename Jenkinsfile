@@ -53,13 +53,13 @@ pipeline {
           }
 
           // nuttx default targets that are archived and uploaded to s3
-          for (def option in ["px4fmu-v4", "px4fmu-v4pro", "px4fmu-v5", "aerofc-v1", "aerocore2", "auav-x21", "crazyflie", "mindpx-v2", "nxphlite-v3", "tap-v1", "omnibus-f4sd"]) {
+          for (def option in ["px4fmu-v4", "px4fmu-v4pro", "px4fmu-v5", "aerofc-v1", "aerocore2", "av-x-v1", "auav-x21", "crazyflie", "mindpx-v2", "nxphlite-v3", "tap-v1", "omnibus-f4sd"]) {
             def node_name = "${option}"
             builds[node_name] = createBuildNodeArchive(docker_nuttx, "${node_name}_default")
           }
 
           // other nuttx default targets
-          for (def option in ["av-x-v1", "px4-same70xplained-v1", "px4-stm32f4discovery", "px4cannode-v1", "px4esc-v1", "px4nucleoF767ZI-v1", "s2740vc-v1"]) {
+          for (def option in ["px4-same70xplained-v1", "px4-stm32f4discovery", "px4cannode-v1", "px4esc-v1", "px4nucleoF767ZI-v1", "s2740vc-v1"]) {
             def node_name = "${option}"
             builds[node_name] = createBuildNode(docker_nuttx, "${node_name}_default")
           }
