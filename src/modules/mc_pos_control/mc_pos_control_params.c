@@ -510,8 +510,9 @@ PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 1.0f);
  * with terrain height variation. Requires a distance to ground sensor. The height controller will
  * revert to using height above origin if the distance to ground estimate becomes invalid as indicated
  * by the local_position.distance_bottom_valid message being false.
- * Set to 2 to control height relative to earth frame origin when stationary and relative to ground
- * distance when moving horizontally. The speed threshold is controlled by the MPC_ALT_MODE_SPD parameter.
+ * Set to 2 to control height relative to ground (requires a distance sensor) when stationary and relative
+ * to earth frame origin when moving horizontally.
+ * The speed threshold is controlled by the MPC_ALT_MODE_SPD parameter.
  *
  * @min 0
  * @max 2
