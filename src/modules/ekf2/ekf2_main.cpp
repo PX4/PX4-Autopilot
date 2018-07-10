@@ -665,12 +665,6 @@ void Ekf2::run()
 	vehicle_status_s vehicle_status = {};
 	sensor_selection_s sensor_selection = {};
 
-	// Position of local NED origin in GPS / WGS84 frame
-	map_projection_reference_s ekf_origin = {};
-	float ref_alt = 0.0f;
-	uint64_t origin_time = 0;
-	bool ekf_origin_valid = false;
-
 	while (!should_exit()) {
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
 
@@ -1715,8 +1709,8 @@ bool Ekf2::calc_gps_blend_weights(void)
 	memset(&_blend_weights, 0, sizeof(_blend_weights));
 
 	// Use the oldest non-zero time, but if time difference is excessive, use newest to prevent a disconnected receiver from blocking updates
-	int64_t max_us = 0; // newest non-zero system time of arrival of a GPS message
-	int64_t min_us = -1; // oldest non-zero system time of arrival of a GPS message
+	uint64_t max_us = 0; // newest non-zero system time of arrival of a GPS message
+	uint64_t min_us = -1; // oldest non-zero system time of arrival of a GPS message
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		// Find largest and smallest times
@@ -1729,7 +1723,7 @@ bool Ekf2::calc_gps_blend_weights(void)
 		}
 	}
 
-	if ((int64_t)(max_us - min_us) < 300000) {
+	if ((max_us - min_us) < 300000) {
 		// data is not too delayed so use the oldest time_stamp to give a chance for data from that receiver to be updated
 		_gps_blended_state.time_usec = min_us;
 
