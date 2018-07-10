@@ -939,6 +939,16 @@ void Ekf2::run()
 				_gps_state[0].gdop = 0.0f;
 
 				ekf2_timestamps.gps_timestamp_rel = (int16_t)((int64_t)gps.timestamp / 100 - (int64_t)ekf2_timestamps.timestamp / 100);
+
+				if (_gps_blend_mask.get() == 0) {
+					// When GPS blending is disabled we always use the first receiver instance
+					_ekf.setGpsData(_gps_state[0].time_usec, &_gps_state[0]);
+				}
+
+				if (_gps_blend_mask.get() == 0) {
+					// When GPS blending is disabled we always use the first receiver instance
+					_ekf.setGpsData(_gps_state[0].time_usec, &_gps_state[0]);
+				}
 			}
 		}
 
@@ -2128,11 +2138,11 @@ void Ekf2::calc_gps_blend_output(void)
 			// calculate the horizontal offset
 			Vector2f horiz_offset{};
 			get_vector_to_next_waypoint((_gps_blended_state.lat / 1.0e7),
-				(_gps_blended_state.lon / 1.0e7),
-				(_gps_output[i].lat / 1.0e7),
-				(_gps_output[i].lon / 1.0e7),
-				&horiz_offset(0),
-				&horiz_offset(1));
+						    (_gps_blended_state.lon / 1.0e7),
+						    (_gps_output[i].lat / 1.0e7),
+						    (_gps_output[i].lon / 1.0e7),
+						    &horiz_offset(0),
+						    &horiz_offset(1));
 
 			// sum weighted offsets
 			blended_NE_offset_m += horiz_offset * _blend_weights[i];
