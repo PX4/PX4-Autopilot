@@ -206,8 +206,8 @@ void PositionControl::_interfaceMapping()
 		// point the thrust upwards
 		_thr_sp(0) = _thr_sp(1) = 0.0f;
 		// throttle down such that vehicle goes down with
-		// 30% of throttle range between min and hover
-		_thr_sp(2) = MPC_THR_MIN.get() + (MPC_THR_HOVER.get() - MPC_THR_MIN.get()) * 0.3f;
+		// 70% of throttle range between min and hover
+		_thr_sp(2) = -(MPC_THR_MIN.get() + (MPC_THR_HOVER.get() - MPC_THR_MIN.get()) * 0.7f);
 	}
 }
 
