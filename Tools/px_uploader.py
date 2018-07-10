@@ -191,10 +191,23 @@ class uploader(object):
     MAVLINK_REBOOT_ID1 = bytearray(b'\xfe\x21\x72\xff\x00\x4c\x00\x00\x40\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x01\x00\x00\x53\x6b')
     MAVLINK_REBOOT_ID0 = bytearray(b'\xfe\x21\x45\xff\x00\x4c\x00\x00\x40\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x00\x00\x00\xcc\x37')
 
+    MAX_FLASH_PRGRAM_TIME  = 0.001 # Time on an F7 to send SYNC, RESULT from last data in multi RXed
+    SYNC_DETECT_THRESHOLD = 0.00015
+
     def __init__(self, portname, baudrate_bootloader, baudrate_flightstack):
         # Open the port, keep the default timeout short so we can poll quickly.
         # On some systems writes can suddenly get stuck without having a
         # write_timeout > 0 set.
+        # chartime 8n1 * bit rate is us
+        self.chartime = 10 * (1.0 / baudrate_bootloader)
+
+        # we use a window approche to SYNC,<result> gathring
+        self.window = 0
+        self.window_max = 256
+        self.window_per = 2 # Sync,<result>
+        self.maxDtGetSync = -1000.00
+        self.ackWindowedMode = True # assume Windowed mode for non USB
+
         self.port = serial.Serial(portname, baudrate_bootloader, timeout=0.5, write_timeout=0.5)
         self.otp = b''
         self.sn = b''
@@ -229,6 +242,11 @@ class uploader(object):
                     time.sleep(0.04)
             else:
                 break
+
+    # debugging code
+    def __probe(self, state):
+        #self.port.setRTS(state)
+        return
 
     def __send(self, c):
         # print("send " + binascii.hexlify(c))
@@ -265,6 +283,24 @@ class uploader(object):
             raise RuntimeError("bootloader reports OPERATION FAILED")
         if c != self.OK:
             raise RuntimeError("unexpected response 0x%x instead of OK" % ord(c))
+
+    # The control flow for reciving Sync is on the order of 16 Ms per Sync
+    # This will validate all the SYNC,<results> for a window of programing
+    # in about 13.81 Ms for 256 blocks written
+    def __ackSyncWindow(self, count):
+        if (count > 0):
+            data =  bytearray(bytes(self.__recv(count)))
+            if (len(data) != count):
+                raise RuntimeError("Ack Window %i not %i " % (len(data), count))
+            for i in range(0,len(data),2):
+                if chr(data[i]) != self.INSYNC:
+                    raise RuntimeError("unexpected %s instead of INSYNC" % c)
+                if chr(data[i+1]) == self.INVALID:
+                    raise RuntimeError("bootloader reports INVALID OPERATION")
+                if chr(data[i+1]) == self.FAILED:
+                    raise RuntimeError("bootloader reports OPERATION FAILED")
+                if chr(data[i+1]) != self.OK:
+                    raise RuntimeError("unexpected response 0x%x instead of OK" % ord(c))
 
     # attempt to get back into sync with the bootloader
     def __sync(self):
@@ -309,7 +345,12 @@ class uploader(object):
         t = struct.pack("I", param)  # int param as 32bit ( 4 byte ) char array.
         self.__send(uploader.GET_OTP + t + uploader.EOC)
         value = self.__recv(4)
+        synstart = time.time()
         self.__getSync()
+        dif  = time.time() - synstart
+        #print("%5.5f" %dif)
+        if (dif > self.maxDtGetSync and dif != 0) :
+            self.maxDtGetSync = dif
         return value
 
     # send the GET_SN command and wait for an info parameter
@@ -347,6 +388,8 @@ class uploader(object):
 
     # send the CHIP_ERASE command and wait for the bootloader to become ready
     def __erase(self, label):
+        self.ackWindowedMode =  self.maxDtGetSync >= uploader.SYNC_DETECT_THRESHOLD
+        print("MaxSync:%2.5f Windowed mode:%s" % (self.maxDtGetSync, self.ackWindowedMode))
         print("\n", end='')
         self.__send(uploader.CHIP_ERASE +
                     uploader.EOC)
@@ -371,7 +414,7 @@ class uploader(object):
         raise RuntimeError("timed out waiting for erase")
 
     # send a PROG_MULTI command to write a collection of bytes
-    def __program_multi(self, data):
+    def __program_multi(self, data, windowMode):
 
         if runningPython3:
             length = len(data).to_bytes(1, byteorder='big')
@@ -382,7 +425,17 @@ class uploader(object):
         self.__send(length)
         self.__send(data)
         self.__send(uploader.EOC)
-        self.__getSync()
+        if (not windowMode):
+           self.__getSync()
+        else:
+            # The following is done to have minimum delay on the transmission
+            # of the ne fw. The per block cost of __getSync was about 16 mS per.
+            # Passively wait on Sync and Result using board rates and
+            # N.B. attempts to activly wait on InWating still carried 8 mS of overhead
+            self.__probe(False)
+            self.__probe(True)
+            time.sleep((ord(length) * self.chartime) + uploader.MAX_FLASH_PRGRAM_TIME)
+            self.__probe(False)
 
     # verify multiple bytes in flash
     def __verify_multi(self, data):
@@ -420,18 +473,33 @@ class uploader(object):
 
     # upload code
     def __program(self, label, fw):
+        self.__probe(False)
         print("\n", end='')
         code = fw.image
         groups = self.__split_len(code, uploader.PROG_MULTI_MAX)
-
+        # Give imedate feedback
+        self.__drawProgressBar(label, 0, len(groups))
         uploadProgress = 0
         for bytes in groups:
-            self.__program_multi(bytes)
+            self.__program_multi(bytes, self.ackWindowedMode)
+            # If in Windo moode extend the window size for the __ackSyncWindow
+            if self.ackWindowedMode:
+                self.window += self.window_per
 
             # Print upload progress (throttled, so it does not delay upload progress)
             uploadProgress += 1
             if uploadProgress % 256 == 0:
+                self.__probe(True)
+                self.__probe(False)
+                self.__probe(True)
+                self.__ackSyncWindow(self.window)
+                self.__probe(False)
+                self.window = 0
                 self.__drawProgressBar(label, uploadProgress, len(groups))
+
+        # Do any remaining fragment
+        self.__ackSyncWindow(self.window)
+        self.window = 0
         self.__drawProgressBar(label, 100, 100)
 
     # verify code
@@ -489,6 +557,7 @@ class uploader(object):
     # upload the firmware
     def upload(self, fw, force=False, boot_delay=None):
         # Make sure we are doing the right thing
+        start = time.time()
         if self.board_type != fw.property('board_id'):
             msg = "Firmware not suitable for this board (board_type=%u board_id=%u)" % (
                 self.board_type, fw.property('board_id'))
@@ -570,7 +639,6 @@ class uploader(object):
                                    "If you know you that the board does not have the silicon errata, use\n"
                                    "this script with --force, or update the bootloader. If you are invoking\n"
                                    "upload using make, you can use force-upload target to force the upload.\n")
-
         self.__erase("Erase  ")
         self.__program("Program", fw)
 
@@ -582,9 +650,10 @@ class uploader(object):
         if boot_delay is not None:
             self.__set_boot_delay(boot_delay)
 
-        print("\nRebooting.\n")
+        print("\nRebooting.", end='')
         self.__reboot()
         self.port.close()
+        print(" Elapsed Time %3.3f\n" % (time.time() - start))
 
     def __next_baud_flightstack(self):
         if self.baudrate_flightstack_idx + 1 >= len(self.baudrate_flightstack):
