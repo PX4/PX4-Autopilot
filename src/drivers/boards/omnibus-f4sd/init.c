@@ -187,7 +187,7 @@ stm32_boardinitialize(void)
 	/* configure ADC pins */
 	stm32_configgpio(GPIO_ADC1_IN12);	/* BATT_VOLTAGE_SENS */
 	stm32_configgpio(GPIO_ADC1_IN11);	/* BATT_CURRENT_SENS */
-	stm32_configgpio(GPIO_ADC1_IN0);	/* RSSI analog in */
+	//stm32_configgpio(GPIO_ADC1_IN0);	/* RSSI analog in (TX of UART4 instead) */
 
 	// TODO: power peripherals
 	///* configure power supply control/sense pins */
