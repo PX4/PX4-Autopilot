@@ -1078,7 +1078,8 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 
 	} else {
 		/* Copy thrust and pitch values from tecs */
-		if (_vehicle_land_detected.landed) {
+		if (_vehicle_land_detected.landed && !(_launch_detection_state == LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS
+						       && pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
 			// when we are landed state we want the motor to spin at idle speed
 			_att_sp.thrust = min(_parameters.throttle_idle, throttle_max);
 
