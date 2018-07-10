@@ -554,6 +554,13 @@ MulticopterPositionControl::task_main()
 
 			} else {
 				setpoint = _flight_tasks.getPositionSetpoint();
+
+				// Check if position, velocity or thrust pairs are valid -> trigger failsaife if no pair is valid
+				if (!(PX4_ISFINITE(setpoint.x) && PX4_ISFINITE(setpoint.y)) &&
+				    !(PX4_ISFINITE(setpoint.vx) && PX4_ISFINITE(setpoint.vy)) &&
+				    !(PX4_ISFINITE(setpoint.thrust[0]) && PX4_ISFINITE(setpoint.thrust[1]))) {
+					failsafe(setpoint, _states);
+				}
 			}
 
 			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
