@@ -21,11 +21,6 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-set MIXER quad_s250aq
-set MAV_TYPE 2
-
-set PWM_OUT 1234
-
 if [ $AUTOCNF == yes ]
 then
 	param set MC_ROLL_P 8.0
@@ -63,3 +58,9 @@ then
 
 	param set CBRK_IO_SAFETY 22027
 fi
+
+set MAV_TYPE 2
+
+set MIXER quad_s250aq
+
+set PWM_OUT 1234

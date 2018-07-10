@@ -37,15 +37,15 @@ then
 	param set RTL_LAND_DELAY 0
 fi
 
-set PWM_AUX_RATE 400
-# Note: May Have to set these parameters manually. They don't appear to save.
-set PWM_AUX_DISARMED 900
-param set PWM_AUX_MIN 1075
-param set PWM_AUX_MAX 1950
-
 set MIXER dodeca_top_cox
 set MIXER_AUX dodeca_bottom_cox
 
 # Need to set all 8 channels
 set PWM_OUT 12345678
 set PWM_AUX_OUT 123456
+set PWM_AUX_RATE 400
+set PWM_AUX_DISARMED 900
+
+# Note: May Have to set these parameters manually. They don't appear to save.
+param set PWM_AUX_MIN 1075
+param set PWM_AUX_MAX 1950
