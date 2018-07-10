@@ -56,6 +56,10 @@ void PositionControl::updateState(const PositionControlStates &states)
 
 void PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &setpoint)
 {
+	// If full manual is required (thrust already generated), don't run position/velocity
+	// controller and just return thrust.
+	_skip_controller = false;
+
 	_pos_sp = Vector3f(&setpoint.x);
 	_vel_sp = Vector3f(&setpoint.vx);
 	_acc_sp = Vector3f(&setpoint.acc_x);
@@ -63,10 +67,6 @@ void PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &se
 	_yaw_sp = setpoint.yaw;
 	_yawspeed_sp = setpoint.yawspeed;
 	_interfaceMapping();
-
-	// If full manual is required (thrust already generated), don't run position/velocity
-	// controller and just return thrust.
-	_skip_controller = false;
 
 	if (PX4_ISFINITE(setpoint.thrust[0]) && PX4_ISFINITE(setpoint.thrust[1]) && PX4_ISFINITE(setpoint.thrust[2])) {
 		_skip_controller = true;
