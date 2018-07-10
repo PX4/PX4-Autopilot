@@ -71,9 +71,10 @@
 
 #include "mpu9250.h"
 
+
 #define MPU_DEVICE_PATH_ACCEL		"/dev/mpu9250_accel"
 #define MPU_DEVICE_PATH_GYRO		"/dev/mpu9250_gyro"
-#define MPU_DEVICE_PATH_MAG		"/dev/mpu9250_mag"
+#define MPU_DEVICE_PATH_MAG		    "/dev/mpu9250_mag"
 
 #define MPU_DEVICE_PATH_ACCEL_1		"/dev/mpu9250_accel1"
 #define MPU_DEVICE_PATH_GYRO_1		"/dev/mpu9250_gyro1"
@@ -82,6 +83,18 @@
 #define MPU_DEVICE_PATH_ACCEL_EXT	"/dev/mpu9250_accel_ext"
 #define MPU_DEVICE_PATH_GYRO_EXT	"/dev/mpu9250_gyro_ext"
 #define MPU_DEVICE_PATH_MAG_EXT 	"/dev/mpu9250_mag_ext"
+
+#define MPU_DEVICE_PATH_MPU6500_ACCEL       "/dev/mpu6500_accel"
+#define MPU_DEVICE_PATH_MPU6500_GYRO        "/dev/mpu6500_gyro"
+#define MPU_DEVICE_PATH_MPU6500_MAG         "/dev/mpu6500_mag"
+
+#define MPU_DEVICE_PATH_MPU6500_ACCEL_1     "/dev/mpu6500_accel1"
+#define MPU_DEVICE_PATH_MPU6500_GYRO_1      "/dev/mpu6500_gyro1"
+#define MPU_DEVICE_PATH_MPU6500_MAG_1       "/dev/mpu6500_mag1"
+
+#define MPU_DEVICE_PATH_MPU6500_ACCEL_EXT   "/dev/mpu6500_accel_ext"
+#define MPU_DEVICE_PATH_MPU6500_GYRO_EXT    "/dev/mpu6500_gyro_ext"
+#define MPU_DEVICE_PATH_MPU6500_MAG_EXT     "/dev/mpu6500_mag_ext"
 
 #define MPU_DEVICE_PATH_ICM_ACCEL_EXT  "/dev/mpu9250_icm_accel_ext"
 #define MPU_DEVICE_PATH_ICM_GYRO_EXT   "/dev/mpu9250_icm_gyro_ext"
@@ -138,23 +151,23 @@ struct mpu9250_bus_option {
 #endif
 #ifdef PX4_SPIDEV_MPU
 	{ MPU9250_BUS_SPI_INTERNAL, MPU_DEVICE_TYPE_MPU9250, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG, &MPU9250_SPI_interface, true, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_MPU, NULL },
-	{ MPU9250_BUS_SPI_INTERNAL, MPU_DEVICE_TYPE_MPU6500, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG, &MPU9250_SPI_interface, true, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_MPU, NULL },
+	{ MPU9250_BUS_SPI_INTERNAL, MPU_DEVICE_TYPE_MPU6500, MPU_DEVICE_PATH_MPU6500_ACCEL, MPU_DEVICE_PATH_MPU6500_GYRO, MPU_DEVICE_PATH_MPU6500_MAG, &MPU9250_SPI_interface, true, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_MPU, NULL },
 #endif
 #ifdef PX4_SPIDEV_MPU2
 	{ MPU9250_BUS_SPI_INTERNAL2, MPU_DEVICE_TYPE_MPU9250, MPU_DEVICE_PATH_ACCEL_1, MPU_DEVICE_PATH_GYRO_1, MPU_DEVICE_PATH_MAG_1, &MPU9250_SPI_interface, true, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_MPU2, NULL },
-	{ MPU9250_BUS_SPI_INTERNAL2, MPU_DEVICE_TYPE_MPU6500, MPU_DEVICE_PATH_ACCEL_1, MPU_DEVICE_PATH_GYRO_1, MPU_DEVICE_PATH_MAG_1, &MPU9250_SPI_interface, true, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_MPU2, NULL },
+	{ MPU9250_BUS_SPI_INTERNAL2, MPU_DEVICE_TYPE_MPU6500, MPU_DEVICE_PATH_MPU6500_ACCEL_1, MPU_DEVICE_PATH_MPU6500_GYRO_1, MPU_DEVICE_PATH_MPU6500_MAG_1, &MPU9250_SPI_interface, true, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_MPU2, NULL },
 #endif
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_MPU)
 	{ MPU9250_BUS_SPI_EXTERNAL, MPU_DEVICE_TYPE_MPU9250, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_SPI_interface, true, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_MPU, NULL },
-	{ MPU9250_BUS_SPI_EXTERNAL, MPU_DEVICE_TYPE_MPU6500, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_SPI_interface, true, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_MPU, NULL },
+	{ MPU9250_BUS_SPI_EXTERNAL, MPU_DEVICE_TYPE_MPU6500, MPU_DEVICE_PATH_MPU6500_ACCEL_EXT, MPU_DEVICE_PATH_MPU6500_GYRO_EXT, MPU_DEVICE_PATH_MPU6500_MAG_EXT, &MPU9250_SPI_interface, true, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_MPU, NULL },
 #endif
 };
 
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
 
-void	start(enum MPU9250_BUS busid, enum Rotation rotation, bool external_bus);
-bool	start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external_bus);
+void	start(enum MPU9250_BUS busid, enum Rotation rotation, bool external_bus, bool magnetometer_only);
+bool	start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external_bus, bool magnetometer_only);
 struct mpu9250_bus_option &find_bus(enum MPU9250_BUS busid);
 void	stop(enum MPU9250_BUS busid);
 void	test(enum MPU9250_BUS busid);
@@ -163,6 +176,7 @@ void	info(enum MPU9250_BUS busid);
 void	regdump(enum MPU9250_BUS busid);
 void	testerror(enum MPU9250_BUS busid);
 void	usage();
+
 
 /**
  * find a bus structure for a busid
@@ -183,10 +197,11 @@ struct mpu9250_bus_option &find_bus(enum MPU9250_BUS busid)
  * start driver for a specific bus option
  */
 bool
-start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external)
+start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external, bool magnetometer_only)
 {
 	int fd = -1;
 
+	warnx("Bus probed: %d", bus.busid);
 	if (bus.dev != nullptr) {
 		warnx("%s SPI not available", external ? "External" : "Internal");
 		return false;
@@ -217,7 +232,7 @@ start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external)
 
 #endif
 
-	bus.dev = new MPU9250(interface, mag_interface, bus.accelpath, bus.gyropath, bus.magpath, rotation, bus.device_type);
+	bus.dev = new MPU9250(interface, mag_interface, bus.accelpath, bus.gyropath, bus.magpath, rotation, bus.device_type, magnetometer_only);
 
 	if (bus.dev == nullptr) {
 		delete interface;
@@ -270,7 +285,7 @@ fail:
  * or failed to detect the sensor.
  */
 void
-start(enum MPU9250_BUS busid, enum Rotation rotation, bool external)
+start(enum MPU9250_BUS busid, enum Rotation rotation, bool external, bool magnetometer_only)
 {
 
 	bool started = false;
@@ -286,7 +301,7 @@ start(enum MPU9250_BUS busid, enum Rotation rotation, bool external)
 			continue;
 		}
 
-		started |= start_bus(bus_options[i], rotation, external);
+		started |= start_bus(bus_options[i], rotation, external, magnetometer_only);
 	}
 
 	exit(started ? 0 : 1);
@@ -489,6 +504,7 @@ usage()
 	PX4_INFO("    -S    (spi external bus)");
 	PX4_INFO("    -t    (spi internal bus, 2nd instance)");
 	PX4_INFO("    -R rotation");
+    PX4_INFO("    -M only enable magnetometer, accel/gyro disabled");
 
 }
 
@@ -503,8 +519,9 @@ mpu9250_main(int argc, char *argv[])
 
 	enum MPU9250_BUS busid = MPU9250_BUS_ALL;
 	enum Rotation rotation = ROTATION_NONE;
+	bool magnetometer_only = false;
 
-	while ((ch = px4_getopt(argc, argv, "XISstR:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XISstMR:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			busid = MPU9250_BUS_I2C_EXTERNAL;
@@ -530,6 +547,10 @@ mpu9250_main(int argc, char *argv[])
 			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
+        case 'M':
+            magnetometer_only = true;
+            break;
+
 		default:
 			mpu9250::usage();
 			return 0;
@@ -549,7 +570,7 @@ mpu9250_main(int argc, char *argv[])
 
 	 */
 	if (!strcmp(verb, "start")) {
-		mpu9250::start(busid, rotation, external);
+		mpu9250::start(busid, rotation, external, magnetometer_only);
 	}
 
 	if (!strcmp(verb, "stop")) {

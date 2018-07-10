@@ -135,7 +135,8 @@ const uint16_t MPU9250::_icm20948_checked_registers[ICM20948_NUM_CHECKED_REGISTE
 MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const char *path_accel,
 		 const char *path_gyro, const char *path_mag,
 		 enum Rotation rotation,
-		 int device_type) :
+		 int device_type,
+		 bool magnetometer_only) :
 	CDev("MPU9250", path_accel),
 	_interface(interface),
 	_gyro(new MPU9250_gyro(this, path_gyro)),
@@ -143,6 +144,7 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_whoami(0),
 	_device_type(device_type),
 	_selected_bank(0xFF),	// invalid/improbable bank value, will be set on first read/write
+	_magnetometer_only(magnetometer_only),
 #if defined(USE_I2C)
 	_work {},
 	_use_hrt(false),
@@ -284,15 +286,13 @@ MPU9250::init()
 {
 	irqstate_t state;
 
-	dbg.value = 0.0f;
-
-	const char tmpl[10] = "marker";
-	strcpy(dbg.key, tmpl);
-
 #if defined(USE_I2C)
 	unsigned dummy;
 	use_i2c((_interface->ioctl(MPUIOCGIS_I2C, dummy) == 1));
 #endif
+
+	last_arb.x = last_arb.y = last_arb.z = last_arb.x_raw = last_arb.y_raw = last_arb.z_raw = 0;
+    last_grb.x = last_grb.y = last_grb.z = last_grb.x_raw = last_grb.y_raw = last_grb.z_raw = 0;
 
 	/*
 	 * If the MPU is using I2C we should reduce the sample rate to 200Hz and
@@ -323,18 +323,20 @@ MPU9250::init()
 		return ret;
 	}
 
-	/* allocate basic report buffers */
-	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
-	ret = -ENOMEM;
+	if(!_magnetometer_only) {
+        /* allocate basic report buffers */
+        _accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+        ret = -ENOMEM;
 
-	if (_accel_reports == nullptr) {
-		return ret;
-	}
+        if (_accel_reports == nullptr) {
+            return ret;
+        }
 
-	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
+        _gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
 
-	if (_gyro_reports == nullptr) {
-		return ret;
+        if (_gyro_reports == nullptr) {
+            return ret;
+        }
 	}
 
 	state = px4_enter_critical_section();
@@ -390,14 +392,15 @@ MPU9250::init()
 		PX4_ERR("IMU_GYRO_CUTOFF param invalid");
 	}
 
-	/* do CDev init for the gyro device node, keep it optional */
-	ret = _gyro->init();
 
-	/* if probe/setup failed, bail now */
-	if (ret != OK) {
-		DEVICE_DEBUG("gyro init failed");
-		return ret;
-	}
+    /* do CDev init for the gyro device node, keep it optional */
+    ret = _gyro->init();
+
+    /* if probe/setup failed, bail now */
+    if (ret != OK) {
+        DEVICE_DEBUG("gyro init failed");
+        return ret;
+    }
 
 	/* Magnetometer setup */
 	if (_device_type == MPU_DEVICE_TYPE_MPU9250 || _device_type == MPU_DEVICE_TYPE_ICM20948) {
@@ -433,29 +436,32 @@ MPU9250::init()
 
 	measure();
 
-	/* advertise sensor topic, measure manually to initialize valid report */
-	struct accel_report arp;
-	_accel_reports->get(&arp);
 
-	/* measurement will have generated a report, publish */
-	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-					   &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
+	if(!_magnetometer_only) {
+        /* advertise sensor topic, measure manually to initialize valid report */
+        struct accel_report arp;
+        _accel_reports->get(&arp);
 
-	if (_accel_topic == nullptr) {
-		PX4_ERR("ADVERT FAIL");
-		return ret;
-	}
+        /* measurement will have generated a report, publish */
+        _accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
+                           &_accel_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
 
-	/* advertise sensor topic, measure manually to initialize valid report */
-	struct gyro_report grp;
-	_gyro_reports->get(&grp);
+        if (_accel_topic == nullptr) {
+            PX4_ERR("ADVERT FAIL");
+            return ret;
+        }
 
-	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-			     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
+        /* advertise sensor topic, measure manually to initialize valid report */
+        struct gyro_report grp;
+        _gyro_reports->get(&grp);
 
-	if (_gyro->_gyro_topic == nullptr) {
-		PX4_ERR("ADVERT FAIL");
-		return ret;
+        _gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
+                     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
+
+        if (_gyro->_gyro_topic == nullptr) {
+            PX4_ERR("ADVERT FAIL");
+            return ret;
+        }
 	}
 
 	return ret;
@@ -1605,12 +1611,6 @@ void
 MPU9250::measure()
 {
 
-	const char tmpl[10] = "marker";
-	strcpy(dbg.key, tmpl);
-	orb_advert_t pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
-	dbg.value += 1;
-	orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
-
 	if (hrt_absolute_time() < _reset_wait) {
 		// we're waiting for a reset to complete
 		return;
@@ -1634,230 +1634,258 @@ MPU9250::measure()
 	perf_begin(_sample_perf);
 
 	/*
-	 * Fetch the full set of measurements from the MPU9250 in one pass.
+	 * If registers are healthy, fetch the full set of measurements from the MPU9250 in one pass
 	 */
 
-	if (_device_type == MPU_DEVICE_TYPE_MPU9250 || _device_type == MPU_DEVICE_TYPE_MPU6500) {
-		if (OK != _interface->read(MPU9250_SET_SPEED(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED),
-					   (uint8_t *)&mpu_report,
-					   sizeof(mpu_report))) {
-			perf_end(_sample_perf);
-			return;
-		}
+    if( (!_magnetometer_only || _mag->is_passthrough())   && _register_wait == 0) {
+        if (_device_type == MPU_DEVICE_TYPE_MPU9250 || _device_type == MPU_DEVICE_TYPE_MPU6500) {
+            if (OK != _interface->read(MPU9250_SET_SPEED(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED),
+                           (uint8_t *)&mpu_report,
+                           sizeof(mpu_report))) {
+                perf_end(_sample_perf);
+                return;
+            }
 
-	} else {
-		if (OK != _interface->read(MPU9250_SET_SPEED(ICMREG_20948_ACCEL_XOUT_H, MPU9250_HIGH_BUS_SPEED),
-					   (uint8_t *)&icm_report,
-					   sizeof(icm_report))) {
-			perf_end(_sample_perf);
-			return;
-		}
-	}
+        } else {    // ICM20948
+            if (OK != _interface->read(MPU9250_SET_SPEED(ICMREG_20948_ACCEL_XOUT_H, MPU9250_HIGH_BUS_SPEED),
+                           (uint8_t *)&icm_report,
+                           sizeof(icm_report))) {
+                perf_end(_sample_perf);
+                return;
+            }
+        }
 
-	check_registers();
+        check_registers();
 
-	if (check_duplicate(MPU_OR_ICM(&mpu_report.accel_x[0], &icm_report.accel_x[0]))) {
-		return;
-	}
+        if (check_duplicate(MPU_OR_ICM(&mpu_report.accel_x[0], &icm_report.accel_x[0]))) {
+            return;
+        }
+    }
 
-#ifdef USE_I2C
+    /*
+     * In case of a mag passthrough read, hand the magnetometer data over to _mag. Else,
+     * try to read a magnetometer report.
+     */
 
-	if (_mag->is_passthrough()) {
-#endif
-		_mag->_measure(mpu_report.mag);
-#ifdef USE_I2C
+#   ifdef USE_I2C
+    if (_mag->is_passthrough()) {
+#   endif
 
-	} else {
-		_mag->measure();
-	}
+        _mag->_measure(mpu_report.mag);
 
-#endif
+#   ifdef USE_I2C
+    } else {
 
-	/*
-	 * Convert from big to little endian
-	 */
-	if (_device_type == MPU_DEVICE_TYPE_ICM20948) {
-		report.accel_x = int16_t_from_bytes(icm_report.accel_x);
-		report.accel_y = int16_t_from_bytes(icm_report.accel_y);
-		report.accel_z = int16_t_from_bytes(icm_report.accel_z);
-		report.temp    = int16_t_from_bytes(icm_report.temp);
-		report.gyro_x  = int16_t_from_bytes(icm_report.gyro_x);
-		report.gyro_y  = int16_t_from_bytes(icm_report.gyro_y);
-		report.gyro_z  = int16_t_from_bytes(icm_report.gyro_z);
+        _mag->measure();
+    }
+#   endif
 
-	} else { // MPU9250/MPU6500
-		report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
-		report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
-		report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
-		report.temp    = int16_t_from_bytes(mpu_report.temp);
-		report.gyro_x  = int16_t_from_bytes(mpu_report.gyro_x);
-		report.gyro_y  = int16_t_from_bytes(mpu_report.gyro_y);
-		report.gyro_z  = int16_t_from_bytes(mpu_report.gyro_z);
-	}
+    /*
+     * Continue evaluating gyro and accelerometer results
+     */
+    if(!_magnetometer_only && _register_wait == 0) {
 
-	if (check_null_data((uint16_t *)&report, sizeof(report) / 2)) {
-		return;
-	}
+        /*
+         * Convert from big to little endian
+         */
+        if (_device_type == MPU_DEVICE_TYPE_ICM20948) {
+            report.accel_x = int16_t_from_bytes(icm_report.accel_x);
+            report.accel_y = int16_t_from_bytes(icm_report.accel_y);
+            report.accel_z = int16_t_from_bytes(icm_report.accel_z);
+            report.temp    = int16_t_from_bytes(icm_report.temp);
+            report.gyro_x  = int16_t_from_bytes(icm_report.gyro_x);
+            report.gyro_y  = int16_t_from_bytes(icm_report.gyro_y);
+            report.gyro_z  = int16_t_from_bytes(icm_report.gyro_z);
+
+        } else { // MPU9250/MPU6500
+            report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
+            report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
+            report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
+            report.temp    = int16_t_from_bytes(mpu_report.temp);
+            report.gyro_x  = int16_t_from_bytes(mpu_report.gyro_x);
+            report.gyro_y  = int16_t_from_bytes(mpu_report.gyro_y);
+            report.gyro_z  = int16_t_from_bytes(mpu_report.gyro_z);
+        }
+
+        if (check_null_data((uint16_t *)&report, sizeof(report) / 2)) {
+            return;
+        }
+    }
 
 	if (_register_wait != 0) {
-		// we are waiting for some good transfers before using the sensor again
-		// We still increment _good_transfers, but don't return any data yet
+		/*
+		 * We are waiting for some good transfers before using the sensor again.
+		 * We still increment _good_transfers, but don't return any data yet.
+		 *
+	     */
 		_register_wait--;
 		return;
 	}
 
 	/*
-	 * Swap axes and negate y
+	 * Get sensor temperature
 	 */
-	int16_t accel_xt = report.accel_y;
-	int16_t accel_yt = ((report.accel_x == -32768) ? 32767 : -report.accel_x);
-
-	int16_t gyro_xt = report.gyro_y;
-	int16_t gyro_yt = ((report.gyro_x == -32768) ? 32767 : -report.gyro_x);
+    _last_temperature = (report.temp) / 361.0f + 35.0f;
 
 	/*
-	 * Apply the swap
-	 */
-	report.accel_x = accel_xt;
-	report.accel_y = accel_yt;
-	report.gyro_x = gyro_xt;
-	report.gyro_y = gyro_yt;
-
-	/*
-	 * Report buffers.
-	 */
-	accel_report		arb;
-	gyro_report			grb;
-
-	/*
-	 * Adjust and scale results to m/s^2.
-	 */
-	grb.timestamp = arb.timestamp = hrt_absolute_time();
-
-	// report the error count as the sum of the number of bad
-	// transfers and bad register reads. This allows the higher
-	// level code to decide if it should use this sensor based on
-	// whether it has had failures
-	grb.error_count = arb.error_count = perf_event_count(_bad_transfers) + perf_event_count(_bad_registers);
-
-	/*
-	 * 1) Scale raw value to SI units using scaling from datasheet.
-	 * 2) Subtract static offset (in SI units)
-	 * 3) Scale the statically calibrated values with a linear
-	 *    dynamically obtained factor
-	 *
-	 * Note: the static sensor offset is the number the sensor outputs
-	 * 	 at a nominally 'zero' input. Therefore the offset has to
-	 * 	 be subtracted.
-	 *
-	 *	 Example: A gyro outputs a value of 74 at zero angular rate
-	 *	 	  the offset is 74 from the origin and subtracting
-	 *		  74 from all measurements centers them around zero.
+	 * Convert and publish accelerometer and gyrometer data.
 	 */
 
-	/* NOTE: Axes have been swapped to match the board a few lines above. */
+	if(!_magnetometer_only) {
+        /*
+         * Swap axes and negate y
+         */
+        int16_t accel_xt = report.accel_y;
+        int16_t accel_yt = ((report.accel_x == -32768) ? 32767 : -report.accel_x);
 
-	arb.x_raw = report.accel_x;
-	arb.y_raw = report.accel_y;
-	arb.z_raw = report.accel_z;
+        int16_t gyro_xt = report.gyro_y;
+        int16_t gyro_yt = ((report.gyro_x == -32768) ? 32767 : -report.gyro_x);
 
-	float xraw_f = report.accel_x;
-	float yraw_f = report.accel_y;
-	float zraw_f = report.accel_z;
+        /*
+         * Apply the swap
+         */
+        report.accel_x = accel_xt;
+        report.accel_y = accel_yt;
+        report.gyro_x = gyro_xt;
+        report.gyro_y = gyro_yt;
 
-	// apply user specified rotation
-	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+        /*
+         * Report buffers.
+         */
+        accel_report		arb;
+        gyro_report			grb;
 
-	float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	float z_in_new = ((zraw_f * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+        /*
+         * Adjust and scale results to m/s^2.
+         */
+        grb.timestamp = arb.timestamp = hrt_absolute_time();
 
-	arb.x = _accel_filter_x.apply(x_in_new);
-	arb.y = _accel_filter_y.apply(y_in_new);
-	arb.z = _accel_filter_z.apply(z_in_new);
+        // report the error count as the sum of the number of bad
+        // transfers and bad register reads. This allows the higher
+        // level code to decide if it should use this sensor based on
+        // whether it has had failures
+        grb.error_count = arb.error_count = perf_event_count(_bad_transfers) + perf_event_count(_bad_registers);
 
-	matrix::Vector3f aval(x_in_new, y_in_new, z_in_new);
-	matrix::Vector3f aval_integrated;
+        /*
+         * 1) Scale raw value to SI units using scaling from datasheet.
+         * 2) Subtract static offset (in SI units)
+         * 3) Scale the statically calibrated values with a linear
+         *    dynamically obtained factor
+         *
+         * Note: the static sensor offset is the number the sensor outputs
+         * 	 at a nominally 'zero' input. Therefore the offset has to
+         * 	 be subtracted.
+         *
+         *	 Example: A gyro outputs a value of 74 at zero angular rate
+         *	 	  the offset is 74 from the origin and subtracting
+         *		  74 from all measurements centers them around zero.
+         */
 
-	bool accel_notify = _accel_int.put(arb.timestamp, aval, aval_integrated, arb.integral_dt);
-	arb.x_integral = aval_integrated(0);
-	arb.y_integral = aval_integrated(1);
-	arb.z_integral = aval_integrated(2);
+        /* NOTE: Axes have been swapped to match the board a few lines above. */
 
-	arb.scaling = _accel_range_scale;
-	arb.range_m_s2 = _accel_range_m_s2;
+        arb.x_raw = report.accel_x;
+        arb.y_raw = report.accel_y;
+        arb.z_raw = report.accel_z;
 
-	_last_temperature = (report.temp) / 361.0f + 35.0f;
+        float xraw_f = report.accel_x;
+        float yraw_f = report.accel_y;
+        float zraw_f = report.accel_z;
 
-	arb.temperature_raw = report.temp;
-	arb.temperature = _last_temperature;
+        // apply user specified rotation
+        rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
-	/* return device ID */
-	arb.device_id = _device_id.devid;
+        float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+        float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+        float z_in_new = ((zraw_f * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
 
-	grb.x_raw = report.gyro_x;
-	grb.y_raw = report.gyro_y;
-	grb.z_raw = report.gyro_z;
+        arb.x = _accel_filter_x.apply(x_in_new);
+        arb.y = _accel_filter_y.apply(y_in_new);
+        arb.z = _accel_filter_z.apply(z_in_new);
 
-	xraw_f = report.gyro_x;
-	yraw_f = report.gyro_y;
-	zraw_f = report.gyro_z;
+        matrix::Vector3f aval(x_in_new, y_in_new, z_in_new);
+        matrix::Vector3f aval_integrated;
 
-	// apply user specified rotation
-	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+        bool accel_notify = _accel_int.put(arb.timestamp, aval, aval_integrated, arb.integral_dt);
+        arb.x_integral = aval_integrated(0);
+        arb.y_integral = aval_integrated(1);
+        arb.z_integral = aval_integrated(2);
 
-	float x_gyro_in_new = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	float y_gyro_in_new = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	float z_gyro_in_new = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+        arb.scaling = _accel_range_scale;
+        arb.range_m_s2 = _accel_range_m_s2;
 
-	grb.x = _gyro_filter_x.apply(x_gyro_in_new);
-	grb.y = _gyro_filter_y.apply(y_gyro_in_new);
-	grb.z = _gyro_filter_z.apply(z_gyro_in_new);
 
-	matrix::Vector3f gval(x_gyro_in_new, y_gyro_in_new, z_gyro_in_new);
-	matrix::Vector3f gval_integrated;
 
-	bool gyro_notify = _gyro_int.put(arb.timestamp, gval, gval_integrated, grb.integral_dt);
-	grb.x_integral = gval_integrated(0);
-	grb.y_integral = gval_integrated(1);
-	grb.z_integral = gval_integrated(2);
+        arb.temperature_raw = report.temp;
+        arb.temperature = _last_temperature;
 
-	grb.scaling = _gyro_range_scale;
-	grb.range_rad_s = _gyro_range_rad_s;
+        /* return device ID */
+        arb.device_id = _device_id.devid;
 
-	grb.temperature_raw = report.temp;
-	grb.temperature = _last_temperature;
+        grb.x_raw = report.gyro_x;
+        grb.y_raw = report.gyro_y;
+        grb.z_raw = report.gyro_z;
 
-	/* return device ID */
-	grb.device_id = _gyro->_device_id.devid;
+        xraw_f = report.gyro_x;
+        yraw_f = report.gyro_y;
+        zraw_f = report.gyro_z;
 
-	_accel_reports->force(&arb);
-	_gyro_reports->force(&grb);
+        // apply user specified rotation
+        rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
-	last_grb = grb;
-	last_arb = arb;
+        float x_gyro_in_new = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
+        float y_gyro_in_new = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
+        float z_gyro_in_new = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
 
-	/* notify anyone waiting for data */
-	if (accel_notify) {
-		poll_notify(POLLIN);
-	}
+        grb.x = _gyro_filter_x.apply(x_gyro_in_new);
+        grb.y = _gyro_filter_y.apply(y_gyro_in_new);
+        grb.z = _gyro_filter_z.apply(z_gyro_in_new);
 
-	if (gyro_notify) {
-		_gyro->parent_poll_notify();
-	}
+        matrix::Vector3f gval(x_gyro_in_new, y_gyro_in_new, z_gyro_in_new);
+        matrix::Vector3f gval_integrated;
 
-	if (accel_notify && !(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
-	}
+        bool gyro_notify = _gyro_int.put(arb.timestamp, gval, gval_integrated, grb.integral_dt);
+        grb.x_integral = gval_integrated(0);
+        grb.y_integral = gval_integrated(1);
+        grb.z_integral = gval_integrated(2);
 
-	if (gyro_notify && !(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
+        grb.scaling = _gyro_range_scale;
+        grb.range_rad_s = _gyro_range_rad_s;
+
+        grb.temperature_raw = report.temp;
+        grb.temperature = _last_temperature;
+
+        /* return device ID */
+        grb.device_id = _gyro->_device_id.devid;
+
+        _accel_reports->force(&arb);
+        _gyro_reports->force(&grb);
+
+        last_grb = grb;
+        last_arb = arb;
+
+        /* notify anyone waiting for data */
+        if (accel_notify) {
+            poll_notify(POLLIN);
+        }
+
+        if (gyro_notify) {
+            _gyro->parent_poll_notify();
+        }
+
+        if (accel_notify && !(_pub_blocked)) {
+            /* publish it */
+            orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
+        }
+
+        if (gyro_notify && !(_pub_blocked)) {
+            /* publish it */
+            orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
+        }
 	}
 
 	/* stop measuring */
 	perf_end(_sample_perf);
+
 }
 
 void
@@ -1873,30 +1901,30 @@ MPU9250::print_info()
 	perf_print_counter(_reset_retries);
 	perf_print_counter(_duplicates);
 
-	measure();
+//	measure();
 
 	_accel_reports->print_info("accel queue");
 	_gyro_reports->print_info("gyro queue");
 	_mag->_mag_reports->print_info("mag queue");
-	::printf("checked_next: %u\n", _checked_next);
+//	::printf("checked_next: %u\n", _checked_next);
 
-	for (uint8_t i = 0; i < _num_checked_registers; i++) {
-		uint8_t v = read_reg(_checked_registers[i], MPU9250_HIGH_BUS_SPEED);
-
-		if (v != _checked_values[i]) {
-			::printf("reg %04x:%02x should be %02x\n",
-				 (unsigned)_checked_registers[i],
-				 (unsigned)v,
-				 (unsigned)_checked_values[i]);
-		}
-
-		if (v != _checked_bad[i]) {
-			::printf("reg %04x:%02x was bad %02x\n",
-				 (unsigned)_checked_registers[i],
-				 (unsigned)v,
-				 (unsigned)_checked_bad[i]);
-		}
-	}
+//	for (uint8_t i = 0; i < _num_checked_registers; i++) {
+//		uint8_t v = read_reg(_checked_registers[i], MPU9250_HIGH_BUS_SPEED);
+//
+//		if (v != _checked_values[i]) {
+//			::printf("reg %04x:%02x should be %02x\n",
+//				 (unsigned)_checked_registers[i],
+//				 (unsigned)v,
+//				 (unsigned)_checked_values[i]);
+//		}
+//
+//		if (v != _checked_bad[i]) {
+//			::printf("reg %04x:%02x was bad %02x\n",
+//				 (unsigned)_checked_registers[i],
+//				 (unsigned)v,
+//				 (unsigned)_checked_bad[i]);
+//		}
+//	}
 
 	::printf("temperature: %.1f\n", (double)_last_temperature);
 	float accel_cut = _accel_filter_x.get_cutoff_freq();

@@ -387,7 +387,8 @@ public:
 	MPU9250(device::Device *interface, device::Device *mag_interface, const char *path_accel, const char *path_gyro,
 		const char *path_mag,
 		enum Rotation rotation,
-		int device_type);
+		int device_type,
+		bool magnetometer_only);
 	virtual ~MPU9250();
 
 	virtual int		init();
@@ -408,9 +409,6 @@ public:
 	accel_report	last_arb;
 	gyro_report		last_grb;
 
-
-	struct debug_key_value_s dbg;
-
 protected:
 	Device			*_interface;
 
@@ -428,6 +426,7 @@ private:
 	uint8_t			_whoami;	/** whoami result */
 	int 			_device_type;
 	uint8_t 		_selected_bank;			/* Remember selected memory bank to avoid polling / setting on each read/write */
+	bool            _magnetometer_only;     /* To disable accel and gyro reporting if only magnetometer is used (e.g. as external magnetometer) */
 
 #if defined(USE_I2C)
 	/*

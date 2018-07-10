@@ -92,6 +92,9 @@ MPU9250_mag::MPU9250_mag(MPU9250 *parent, device::Device *interface, const char 
 	_mag_asa_z(1.0),
 	_last_mag_data{}
 {
+    // disable debug() calls
+    _debug_enabled = false;
+
 	// default mag scale factors
 	_mag_scale.x_offset = 0;
 	_mag_scale.x_scale  = 1.0f;
@@ -150,8 +153,8 @@ MPU9250_mag::init()
 	_mag_reports->get(&mrp);
 
 	_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
-					 &_mag_orb_class_instance, ORB_PRIO_LOW);
-	//			   &_mag_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
+				   &_mag_orb_class_instance, (_parent->is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
+//    &_mag_orb_class_instance, ORB_PRIO_LOW);
 
 	if (_mag_topic == nullptr) {
 		PX4_ERR("ADVERT FAIL");
@@ -221,7 +224,17 @@ MPU9250_mag::_measure(struct ak8963_regs data)
 
 	mag_report	mrb;
 	mrb.timestamp = hrt_absolute_time();
-	mrb.is_external = false;
+//	mrb.is_external = false;
+
+	// need a better check here. Using _parent->is_external() for mpu9250 also sets the
+	// internal magnetometers connected to the "external" spi bus as external, at least
+	// on Pixhawk 2.1
+	if(_parent->_device_type == MPU_DEVICE_TYPE_ICM20948) {
+	    mrb.is_external = _parent->is_external();
+	}
+	else {
+	    mrb.is_external = false;
+	}
 
 	/*
 	 * Align axes - note the accel & gryo are also re-aligned so this

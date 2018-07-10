@@ -94,10 +94,10 @@ then
 		else
 			# Check for Pixhawk 2.1 cube
 			# external MPU9250 is rotated 180 degrees yaw
-			# if mpu9250 -S -R 4 start
-			#then
+			if mpu9250 -S -R 4 start
+			then
 				set BOARD_FMUV3 21
-			#fi
+			fi
 		fi
 	fi
 
@@ -131,6 +131,9 @@ then
 
 		# external LSM303D is rotated 270 degrees yaw
 		lsm303d -X -R 6 start
+        
+        # probe for ICM20948 (Here GPS) on external I2C
+        mpu9250 -X -M start
 
 		if [ $BOARD_FMUV3 == 20 ]
 		then
@@ -144,7 +147,7 @@ then
 		if [ $BOARD_FMUV3 == 21 ]
 		then
 			# v2.1 internal MPU9250 is rotated 180 deg roll, 270 deg yaw
-			#mpu9250 -R 14 start
+			mpu9250 -s -R 14 start
 		fi
 
 	else
