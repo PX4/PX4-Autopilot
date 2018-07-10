@@ -58,6 +58,7 @@ then
 	param set NAV_RCL_ACT 3
 	param set SENS_FLOW_MINRNG 0.05
 fi
+
 set PWM_MIN none
 set PWM_MAX none
 set PWM_DISARMED none

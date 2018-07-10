@@ -53,4 +53,5 @@ then
 fi
 
 set MIXER caipi
+
 set PWM_OUT 1234

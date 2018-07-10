@@ -34,6 +34,7 @@
 px4_add_romfs_files(
 	1000_rc_fw_easystar.hil
 	1001_rc_quad_x.hil
+	1002_standard_vtol.hil
 	2100_standard_plane
 	2105_maja
 	2106_albatross
@@ -67,6 +68,7 @@ px4_add_romfs_files(
 	4070_aerofc
 	4080_zmr250
 	4090_nanomind
+	4100_tiltquadrotor
 	4900_crazyflie
 	5001_quad_+
 	6001_hexa_x

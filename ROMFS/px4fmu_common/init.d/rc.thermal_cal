@@ -5,7 +5,7 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-set TEMP_CALIB_ARGS	""
+set TEMP_CALIB_ARGS ""
 
 #
 # Determine if a thermal calibration should be started.

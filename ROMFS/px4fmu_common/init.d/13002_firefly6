@@ -49,10 +49,10 @@ then
 	param set VT_TYPE 1
 fi
 
-set MIXER firefly6
-set PWM_OUT 12345678
-set PWM_RATE 400
+set MAV_TYPE 21
 
+set MIXER firefly6
 set MIXER_AUX firefly6
 
-set MAV_TYPE 21
+set PWM_OUT 12345678
+set PWM_RATE 400
