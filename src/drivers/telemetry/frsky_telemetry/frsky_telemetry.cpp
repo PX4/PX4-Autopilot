@@ -218,6 +218,8 @@ static void usage()
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS6", "<file:dev>", "Select Serial Device", true);
 	PRINT_MODULE_USAGE_PARAM_INT('t', 0, 0, 60, "Scanning timeout [s] (default: no timeout)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('m', "auto", "sport|sport_single|dtype", "Select protocol (default: auto-detect)",
+					true);
 	PRINT_MODULE_USAGE_COMMAND("stop");
 	PRINT_MODULE_USAGE_COMMAND("status");
 }
@@ -229,12 +231,14 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 {
 	device_name = "/dev/ttyS6"; /* default USART8 */
 	unsigned scanning_timeout_ms = 0;
+	frsky_state = SCANNING;
+	frsky_state_t baudRate = DTYPE;
 
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "d:t:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:t:m:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device_name = myoptarg;
@@ -244,6 +248,24 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 			scanning_timeout_ms = strtoul(myoptarg, nullptr, 10) * 1000;
 			break;
 
+		case 'm':
+			if (!strcmp(myoptarg, "sport")) {
+				frsky_state = baudRate = SPORT;
+
+			} else if (!strcmp(myoptarg, "sport_single")) {
+				frsky_state = baudRate = SPORT_SINGLE_WIRE;
+
+			} else if (!strcmp(myoptarg, "dtype")) {
+				frsky_state = baudRate = DTYPE;
+
+			} else if (!strcmp(myoptarg, "auto")) {
+			} else {
+				usage();
+				return -1;
+			}
+
+			break;
+
 		default:
 			usage();
 			return -1;
@@ -251,7 +273,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 		}
 	}
 
-	/* Open UART assuming D type telemetry */
+	/* Open UART */
 	struct termios uart_config_original;
 	struct termios uart_config;
 	const int uart = sPort_open_uart(device_name, &uart_config, &uart_config_original);
@@ -270,8 +292,6 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 	/* Main thread loop */
 	char sbuf[20];
-	frsky_state = SCANNING;
-	frsky_state_t baudRate = DTYPE;
 
 	const hrt_abstime start_time = hrt_absolute_time();
 
@@ -360,6 +380,9 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 	}
 
 	if (frsky_state == SPORT || frsky_state == SPORT_SINGLE_WIRE) {
+		set_uart_speed(uart, &uart_config, B57600);
+		set_uart_single_wire(uart, frsky_state == SPORT_SINGLE_WIRE);
+
 		/* Subscribe to topics */
 		if (!sPort_init()) {
 			PX4_ERR("could not allocate memory");
@@ -607,6 +630,7 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 		/* detected D type telemetry: reconfigure UART */
 		PX4_INFO("sending FrSky D type telemetry");
 		int status = set_uart_speed(uart, &uart_config, B9600);
+		set_uart_single_wire(uart, false);
 
 		if (status < 0) {
 			PX4_DEBUG("error setting speed for %s, quitting", device_name);
