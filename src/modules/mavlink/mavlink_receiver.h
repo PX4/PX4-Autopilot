@@ -134,8 +134,6 @@ private:
 	void handle_message_att_pos_mocap(mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
 	void handle_message_gps_global_origin(mavlink_message_t *msg);
-	void handle_message_attitude_quaternion_cov(mavlink_message_t *msg);
-	void handle_message_local_position_ned_cov(mavlink_message_t *msg);
 	void handle_message_set_position_target_local_ned(mavlink_message_t *msg);
 	void handle_message_set_actuator_control_target(mavlink_message_t *msg);
 	void handle_message_set_attitude_target(mavlink_message_t *msg);

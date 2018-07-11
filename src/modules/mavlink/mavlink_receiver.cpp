@@ -239,14 +239,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_vision_position_estimate(msg);
 		break;
 
-	case MAVLINK_MSG_ID_ATTITUDE_QUATERNION_COV:
-		handle_message_attitude_quaternion_cov(msg);
-		break;
-
-	case MAVLINK_MSG_ID_LOCAL_POSITION_NED_COV:
-		handle_message_local_position_ned_cov(msg);
-		break;
-
 	case MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN:
 		handle_message_gps_global_origin(msg);
 		break;
@@ -1152,92 +1144,6 @@ MavlinkReceiver::handle_message_gps_global_origin(mavlink_message_t *msg)
 		_global_ref_timestamp = hrt_absolute_time();
 
 	}
-}
-
-void
-MavlinkReceiver::handle_message_attitude_quaternion_cov(mavlink_message_t *msg)
-{
-	mavlink_attitude_quaternion_cov_t att;
-	mavlink_msg_attitude_quaternion_cov_decode(msg, &att);
-
-	struct vehicle_attitude_s vision_attitude = {};
-
-	vision_attitude.timestamp = _mavlink_timesync.sync_stamp(att.time_usec);
-
-	vision_attitude.q[0] = att.q[0];
-	vision_attitude.q[1] = att.q[1];
-	vision_attitude.q[2] = att.q[2];
-	vision_attitude.q[3] = att.q[3];
-
-	vision_attitude.rollspeed = att.rollspeed;
-	vision_attitude.pitchspeed = att.pitchspeed;
-	vision_attitude.yawspeed = att.yawspeed;
-
-	// TODO : full covariance matrix
-
-	int instance_id = 0;
-	orb_publish_auto(ORB_ID(vehicle_vision_attitude), &_vision_attitude_pub, &vision_attitude, &instance_id, ORB_PRIO_HIGH);
-
-}
-
-void
-MavlinkReceiver::handle_message_local_position_ned_cov(mavlink_message_t *msg)
-{
-	mavlink_local_position_ned_cov_t pos;
-	mavlink_msg_local_position_ned_cov_decode(msg, &pos);
-
-	struct vehicle_local_position_s vision_position = {};
-
-	vision_position.timestamp = _mavlink_timesync.sync_stamp(pos.time_usec);
-
-	vision_position.xy_valid = true;
-	vision_position.z_valid = true;
-	vision_position.v_xy_valid = true;
-	vision_position.v_z_valid = true;
-
-	vision_position.x = pos.x;
-	vision_position.y = pos.y;
-	vision_position.z = pos.z;
-
-	vision_position.vx = pos.vx;
-	vision_position.vy = pos.vy;
-	vision_position.vz = pos.vz;
-
-	// Low risk change for now. TODO : full covariance matrix
-	vision_position.eph = sqrtf(fmaxf(pos.covariance[0], pos.covariance[9]));
-	vision_position.epv = sqrtf(pos.covariance[17]);
-	vision_position.evh = sqrtf(fmaxf(pos.covariance[24], pos.covariance[30]));
-	vision_position.evv = sqrtf(pos.covariance[35]);
-
-	// set position/velocity invalid if standard deviation is bigger than ev_max_std_dev
-	const float ev_max_std_dev = 100.0f;
-
-	if (vision_position.eph > ev_max_std_dev) {
-		vision_position.xy_valid = false;
-	}
-
-	if (vision_position.evh > ev_max_std_dev) {
-		vision_position.v_xy_valid = false;
-	}
-
-	if (vision_position.epv > ev_max_std_dev) {
-		vision_position.z_valid = false;
-	}
-
-	if (vision_position.evv > ev_max_std_dev) {
-		vision_position.v_z_valid = false;
-	}
-
-	vision_position.xy_global = globallocalconverter_initialized();
-	vision_position.z_global = globallocalconverter_initialized();
-	vision_position.ref_timestamp = _global_ref_timestamp;
-	globallocalconverter_getref(&vision_position.ref_lat, &vision_position.ref_lon, &vision_position.ref_alt);
-
-	vision_position.dist_bottom_valid = false;
-
-	int instance_id = 0;
-	orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &vision_position, &instance_id, ORB_PRIO_HIGH);
-
 }
 
 void
