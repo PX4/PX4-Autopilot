@@ -38,7 +38,31 @@
 # USART6        /dev/ttyS2      GPS
 #
 
+###############################################################################
+#               Begin Setup for board specific configurations.                #
+###############################################################################
 
+if ver hwcmp AEROFC_V1
+then
+	# don't start mavlink ttyACM0 on aerofc_v1
+else
+	# Start MAVLink
+	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
+fi
+
+if ver hwcmp NXPHLITE_V3
+then
+	set MAVLINK_COMPANION_DEVICE /dev/ttyS4
+fi
+
+if ver hwcmp OMNIBUS_F4SD
+then
+	set MAVLINK_COMPANION_DEVICE /dev/ttyS1
+fi
+
+###############################################################################
+#                 End Setup for board specific configurations.                #
+###############################################################################
 
 if [ $MAVLINK_F == default ]
 then
