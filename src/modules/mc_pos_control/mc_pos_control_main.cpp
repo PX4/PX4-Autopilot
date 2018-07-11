@@ -561,6 +561,12 @@ MulticopterPositionControl::task_main()
 				    !(PX4_ISFINITE(setpoint.thrust[0]) && PX4_ISFINITE(setpoint.thrust[1]))) {
 					failsafe(setpoint, _states);
 				}
+
+				// Check if altitude, climbrate or thrust in D-direction are valid -> trigger failsafe if none
+				// of these setpoints are valid
+				if (!PX4_ISFINITE(setpoint.z) && !PX4_ISFINITE(setpoint.vz) && !PX4_ISFINITE(setpoint.thrust[2])) {
+					failsafe(setpoint, _states);
+				}
 			}
 
 			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
