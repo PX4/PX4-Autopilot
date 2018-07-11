@@ -1,0 +1,33 @@
+# Vehicle odometry data. Fits ROS REP 147 for aerial vehicles
+
+# Position in NED earth-fixed frame (meters). NaN if invalid/unknown
+float32 x			# North position
+float32 y			# East position
+float32 z			# Down position
+
+# Orientation quaternion. NaN if invalid/unknown
+float32[4] q			# Quaternion rotation from NED earth-fixed frame to XYZ body frame
+
+# Row-major representation of 6x6 pose cross-covariance matrix URT.
+# NED earth-fixed frame.
+# Order: x, y, z, rotation about X axis, rotation about Y axis, rotation about Z axis
+# If invalid/unknown, first cell is NaN
+float32[21] pose_covariance
+
+# Velocity in NED earth-fixed frame (meters/sec). NaN if invalid/unknown
+float32 vx 			# North velocity
+float32 vy			# East velocity
+float32 vz			# Down velocity
+
+# Angular rate in body-fixed frame (rad/s). NaN if invalid/unknown
+float32 rollspeed		# Angular velocity about X body axis
+float32 pitchspeed		# Angular velocity about Y body axis
+float32 yawspeed		# Angular velocity about Z body axis
+
+# Row-major representation of 6x6 velocity cross-covariance matrix URT.
+# Linear velocity in NED earth-fixed frame. Angular velocity in body-fixed frame.
+# Order: vx, vy, vz, rotation rate about X axis, rotation rate about Y axis, rotation rate about Z axis
+# If invalid/unknown, first cell is NaN
+float32[21] velocity_covariance
+
+# TOPICS vehicle_odometry vehicle_mocap_odometry vehicle_visual_odometry
