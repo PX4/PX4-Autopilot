@@ -108,8 +108,12 @@ void Ekf::controlFusionModes()
 
 	// calculate 2,2 element of rotation matrix from sensor frame to earth frame
 	_R_rng_to_earth_2_2 = _R_to_earth(2, 0) * _sin_tilt_rng + _R_to_earth(2, 2) * _cos_tilt_rng;
+
+	// Get range data from buffer and check that is within limits and the vehicle is not excessively tilted
 	_range_data_ready = _range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed)
-			    && (_R_rng_to_earth_2_2 > _params.range_cos_max_tilt);
+			&& (_R_rng_to_earth_2_2 > _params.range_cos_max_tilt)
+			&& (_range_sample_delayed.rng >= _rng_min_distance)
+			&& (_range_sample_delayed.rng <= _rng_max_distance);
 
 	checkForStuckRange();
 
