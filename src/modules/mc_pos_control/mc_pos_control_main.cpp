@@ -130,7 +130,8 @@ private:
 		(ParamFloat<px4::params::MPC_TKO_SPEED>) _tko_speed,
 		(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude at which speed limit downwards reached minimum speed
 		(ParamInt<px4::params::MPC_POS_MODE>) MPC_POS_MODE,
-		(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE
+		(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
+		(ParamFloat<px4::params::MPC_IDLE_TKO>) MPC_IDLE_TKO /**< time constant for smooth takeoff ramp */
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
@@ -142,16 +143,14 @@ private:
 	PositionControlStates _states; /**< structure that contains required state information for position control */
 
 	hrt_abstime _last_warn = 0; /**< timer when the last warn message was sent out */
-	static constexpr uint64_t IDLE_BOFORE_TAKEOFF_TIME_US =
-		2500000; /**< time required to stay idle before enabling smooth takeoff */
 
 	/**
-	 * Hysteresis that turns true once vehicle is armed for IDLE_BOFORE_TAKEOFF_TIME_US microseconds.
+	 * Hysteresis that turns true once vehicle is armed for MPC_IDLE_TKO seconds.
 	 * A real vehicle requires some time to accelerates the propellers to IDLE speed. To ensure
-	 * that the propellers reach idle speed before initiating a takeoff, a delay of IDLE_BOFORE_TAKEOFF_TIME_US
+	 * that the propellers reach idle speed before initiating a takeoff, a delay of MPC_IDLE_TKO
 	 * is added.
 	 */
-	systemlib::Hysteresis _arm_hysteresis{false}; /**< becomes true once vehicle is armed for IDLE_BOFORE_TAKEOFF_TIME_US */
+	systemlib::Hysteresis _arm_hysteresis{false}; /**< becomes true once vehicle is armed for MPC_IDLE_TKO seconds */
 
 	/**
 	 * Update our local parameter cache.
@@ -256,9 +255,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 {
 	// fetch initial parameter values
 	parameters_update(true);
-
-	// set trigger time for arm hysteresis
-	_arm_hysteresis.set_hysteresis_time_from(false, IDLE_BOFORE_TAKEOFF_TIME_US);
 }
 
 MulticopterPositionControl::~MulticopterPositionControl()
@@ -314,9 +310,12 @@ MulticopterPositionControl::parameters_update(bool force)
 
 		_flight_tasks.handleParameterUpdate();
 
-		/* initialize vectors from params and enforce constraints */
+		// initialize vectors from params and enforce constraints
 		_tko_speed.set(math::min(_tko_speed.get(), _vel_max_up.get()));
 		_land_speed.set(math::min(_land_speed.get(), _vel_max_down.get()));
+
+		// set trigger time for arm hysteresis
+		_arm_hysteresis.set_hysteresis_time_from(false, (int)(MPC_IDLE_TKO.get() * 1000000.0f));
 	}
 
 	return OK;
