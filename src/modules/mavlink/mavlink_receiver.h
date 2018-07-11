@@ -79,6 +79,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -157,6 +158,7 @@ private:
 	void handle_message_play_tune(mavlink_message_t *msg);
 	void handle_message_obstacle_distance(mavlink_message_t *msg);
 	void handle_message_trajectory_representation_waypoints(mavlink_message_t *msg);
+	void handle_message_odometry(mavlink_message_t *msg);
 	void handle_message_named_value_float(mavlink_message_t *msg);
 	void handle_message_debug(mavlink_message_t *msg);
 	void handle_message_debug_vect(mavlink_message_t *msg);
@@ -201,6 +203,7 @@ private:
 	MavlinkTimesync		_mavlink_timesync;
 
 	mavlink_status_t _status; ///< receiver status, used for mavlink_parse_char()
+	struct vehicle_attitude_s _att;
 	struct vehicle_local_position_s _hil_local_pos;
 	struct vehicle_land_detected_s _hil_land_detector;
 	struct vehicle_control_mode_s _control_mode;
@@ -224,9 +227,8 @@ private:
 	orb_advert_t _att_sp_pub;
 	orb_advert_t _rates_sp_pub;
 	orb_advert_t _pos_sp_triplet_pub;
-	orb_advert_t _att_pos_mocap_pub;
-	orb_advert_t _vision_position_pub;
-	orb_advert_t _vision_attitude_pub;
+	orb_advert_t _mocap_odometry_pub;
+	orb_advert_t _visual_odometry_pub;
 	orb_advert_t _radio_status_pub;
 	orb_advert_t _ping_pub;
 	orb_advert_t _rc_pub;
@@ -246,6 +248,7 @@ private:
 	orb_advert_t _command_ack_pub;
 	int _control_mode_sub;
 	int _actuator_armed_sub;
+	int _vehicle_attitude_sub;
 	uint64_t _global_ref_timestamp;
 	int _hil_frames;
 	uint64_t _old_timestamp;
@@ -263,6 +266,8 @@ private:
 	param_t _p_bat_emergen_thr;
 	param_t _p_bat_crit_thr;
 	param_t _p_bat_low_thr;
+
+	static const size_t URT_SIZE = 21;
 
 	MavlinkReceiver(const MavlinkReceiver &) = delete;
 	MavlinkReceiver operator=(const MavlinkReceiver &) = delete;
