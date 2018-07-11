@@ -206,12 +206,6 @@ then
 	if ver hwcmp NXPHLITE_V3
 	then
 		param set SYS_FMU_TASK 1
-		set MAVLINK_COMPANION_DEVICE /dev/ttyS4
-	fi
-
-	if ver hwcmp OMNIBUS_F4SD
-	then
-		set MAVLINK_COMPANION_DEVICE /dev/ttyS1
 	fi
 
 	#
@@ -553,14 +547,6 @@ then
 	then
 		# Check for flow sensor - as it is a background task, launch it last
 		px4flow start &
-	fi
-
-	if ver hwcmp AEROFC_V1
-	then
-		# don't start mavlink ttyACM0 on aerofc_v1
-	else
-		# Start MAVLink
-		mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 	fi
 
 	#
