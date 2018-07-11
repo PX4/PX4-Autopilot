@@ -202,6 +202,7 @@ start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external,
 	int fd = -1;
 
 	warnx("Bus probed: %d", bus.busid);
+
 	if (bus.dev != nullptr) {
 		warnx("%s SPI not available", external ? "External" : "Internal");
 		return false;
@@ -232,7 +233,8 @@ start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external,
 
 #endif
 
-	bus.dev = new MPU9250(interface, mag_interface, bus.accelpath, bus.gyropath, bus.magpath, rotation, bus.device_type, magnetometer_only);
+	bus.dev = new MPU9250(interface, mag_interface, bus.accelpath, bus.gyropath, bus.magpath, rotation, bus.device_type,
+			      magnetometer_only);
 
 	if (bus.dev == nullptr) {
 		delete interface;
@@ -504,7 +506,7 @@ usage()
 	PX4_INFO("    -S    (spi external bus)");
 	PX4_INFO("    -t    (spi internal bus, 2nd instance)");
 	PX4_INFO("    -R rotation");
-    PX4_INFO("    -M only enable magnetometer, accel/gyro disabled");
+	PX4_INFO("    -M only enable magnetometer, accel/gyro disabled");
 
 }
 
@@ -547,9 +549,9 @@ mpu9250_main(int argc, char *argv[])
 			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
-        case 'M':
-            magnetometer_only = true;
-            break;
+		case 'M':
+			magnetometer_only = true;
+			break;
 
 		default:
 			mpu9250::usage();

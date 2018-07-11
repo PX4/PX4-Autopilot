@@ -426,7 +426,8 @@ private:
 	uint8_t			_whoami;	/** whoami result */
 	int 			_device_type;
 	uint8_t 		_selected_bank;			/* Remember selected memory bank to avoid polling / setting on each read/write */
-	bool            _magnetometer_only;     /* To disable accel and gyro reporting if only magnetometer is used (e.g. as external magnetometer) */
+	bool
+	_magnetometer_only;     /* To disable accel and gyro reporting if only magnetometer is used (e.g. as external magnetometer) */
 
 #if defined(USE_I2C)
 	/*
