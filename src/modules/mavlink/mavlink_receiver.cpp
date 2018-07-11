@@ -130,9 +130,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_att_sp_pub(nullptr),
 	_rates_sp_pub(nullptr),
 	_pos_sp_triplet_pub(nullptr),
-	_att_pos_mocap_pub(nullptr),
-	_vision_position_pub(nullptr),
-	_vision_attitude_pub(nullptr),
+	_mocap_odometry_pub(nullptr),
+	_visual_odometry_pub(nullptr),
 	_radio_status_pub(nullptr),
 	_ping_pub(nullptr),
 	_rc_pub(nullptr),
@@ -151,6 +150,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_command_ack_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
 	_actuator_armed_sub(orb_subscribe(ORB_ID(actuator_armed))),
+	_vehicle_attitude_sub(orb_subscribe(ORB_ID(vehicle_attitude))),
 	_global_ref_timestamp(0),
 	_hil_frames(0),
 	_old_timestamp(0),
@@ -165,12 +165,15 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_p_bat_crit_thr(param_find("BAT_CRIT_THR")),
 	_p_bat_low_thr(param_find("BAT_LOW_THR"))
 {
+	/* Make the attitude quaternion valid */
+	_att.q[0] = 1.0f;
 }
 
 MavlinkReceiver::~MavlinkReceiver()
 {
 	orb_unsubscribe(_control_mode_sub);
 	orb_unsubscribe(_actuator_armed_sub);
+	orb_unsubscribe(_vehicle_attitude_sub);
 }
 
 void MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result)
@@ -237,6 +240,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
 		handle_message_vision_position_estimate(msg);
+		break;
+
+	case MAVLINK_MSG_ID_ODOMETRY:
+		handle_message_odometry(msg);
 		break;
 
 	case MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN:
@@ -817,29 +824,32 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 	mavlink_att_pos_mocap_t mocap;
 	mavlink_msg_att_pos_mocap_decode(msg, &mocap);
 
-	struct att_pos_mocap_s att_pos_mocap = {};
+	struct vehicle_odometry_s mocap_odom = {};
 
-	// Use the component ID to identify the mocap system
-	att_pos_mocap.id = msg->compid;
+	mocap_odom.timestamp = _mavlink_timesync.sync_stamp(mocap.time_usec);
+	mocap_odom.x = mocap.x;
+	mocap_odom.y = mocap.y;
+	mocap_odom.z = mocap.z;
+	mocap_odom.q[0] = mocap.q[0];
+	mocap_odom.q[1] = mocap.q[1];
+	mocap_odom.q[2] = mocap.q[2];
+	mocap_odom.q[3] = mocap.q[3];
 
-	att_pos_mocap.timestamp = _mavlink_timesync.sync_stamp(mocap.time_usec);
-	att_pos_mocap.timestamp_received = hrt_absolute_time();
-
-	att_pos_mocap.q[0] = mocap.q[0];
-	att_pos_mocap.q[1] = mocap.q[1];
-	att_pos_mocap.q[2] = mocap.q[2];
-	att_pos_mocap.q[3] = mocap.q[3];
-
-	att_pos_mocap.x = mocap.x;
-	att_pos_mocap.y = mocap.y;
-	att_pos_mocap.z = mocap.z;
-
-	if (_att_pos_mocap_pub == nullptr) {
-		_att_pos_mocap_pub = orb_advertise(ORB_ID(att_pos_mocap), &att_pos_mocap);
-
-	} else {
-		orb_publish(ORB_ID(att_pos_mocap), _att_pos_mocap_pub, &att_pos_mocap);
+	for (size_t i = 0; i < URT_SIZE; i++) {
+		mocap_odom.pose_covariance[i] = mocap.covariance[i];
 	}
+
+	mocap_odom.vx = NAN;
+	mocap_odom.vy = NAN;
+	mocap_odom.vz = NAN;
+	mocap_odom.rollspeed = NAN;
+	mocap_odom.pitchspeed = NAN;
+	mocap_odom.yawspeed = NAN;
+	mocap_odom.velocity_covariance[0] = NAN;
+
+	int instance_id = 0;
+
+	orb_publish_auto(ORB_ID(vehicle_mocap_odometry), &_mocap_odometry_pub, &mocap_odom, &instance_id, ORB_PRIO_HIGH);
 }
 
 void
@@ -1149,35 +1159,146 @@ MavlinkReceiver::handle_message_gps_global_origin(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 {
-	mavlink_vision_position_estimate_t pos;
-	mavlink_msg_vision_position_estimate_decode(msg, &pos);
+	mavlink_vision_position_estimate_t ev;
+	mavlink_msg_vision_position_estimate_decode(msg, &ev);
 
-	struct vehicle_local_position_s vision_position = {};
+	struct vehicle_odometry_s visual_odom = {};
 
-	vision_position.timestamp = _mavlink_timesync.sync_stamp(pos.usec);
-	vision_position.x = pos.x;
-	vision_position.y = pos.y;
-	vision_position.z = pos.z;
+	visual_odom.timestamp = _mavlink_timesync.sync_stamp(ev.usec);
+	visual_odom.x = ev.x;
+	visual_odom.y = ev.y;
+	visual_odom.z = ev.z;
+	matrix::Quatf q(matrix::Eulerf(ev.roll, ev.pitch, ev.yaw));
+	q.copyTo(visual_odom.q);
 
-	//copy horizontal and vertical covariances
-	vision_position.eph = fmaxf(pos.covariance[0], pos.covariance[6]);
-	vision_position.epv = pos.covariance[11];
+	for (size_t i = 0; i < URT_SIZE; i++) {
+		visual_odom.pose_covariance[i] = ev.covariance[i];
+	}
 
-	vision_position.xy_valid = true;
-	vision_position.z_valid = true;
-	vision_position.v_xy_valid = true;
-	vision_position.v_z_valid = true;
+	visual_odom.vx = NAN;
+	visual_odom.vy = NAN;
+	visual_odom.vz = NAN;
+	visual_odom.rollspeed = NAN;
+	visual_odom.pitchspeed = NAN;
+	visual_odom.yawspeed = NAN;
+	visual_odom.velocity_covariance[0] = NAN;
 
-	struct vehicle_attitude_s vision_attitude = {};
+	int instance_id = 0;
+	orb_publish_auto(ORB_ID(vehicle_visual_odometry), &_visual_odometry_pub, &visual_odom, &instance_id, ORB_PRIO_HIGH);
+}
 
-	vision_attitude.timestamp = _mavlink_timesync.sync_stamp(pos.usec);
+void
+MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
+{
+	mavlink_odometry_t odom;
+	mavlink_msg_odometry_decode(msg, &odom);
 
-	matrix::Quatf q(matrix::Eulerf(pos.roll, pos.pitch, pos.yaw));
-	q.copyTo(vision_attitude.q);
+	struct vehicle_odometry_s odometry = {};
 
-	int inst = 0;
-	orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &vision_position, &inst, ORB_PRIO_DEFAULT);
-	orb_publish_auto(ORB_ID(vehicle_vision_attitude), &_vision_attitude_pub, &vision_attitude, &inst, ORB_PRIO_DEFAULT);
+	/* Dcm rotation matrix from body frame to local NED frame */
+	matrix::Dcm<float> Rbl;
+
+	odometry.timestamp = _mavlink_timesync.sync_stamp(odom.time_usec);
+	/* The position is in the local NED frame */
+	odometry.x = odom.x;
+	odometry.y = odom.y;
+	odometry.z = odom.z;
+	/* The quaternion of the ODOMETRY msg represents a rotation from NED
+	 * earth/local frame to XYZ body frame */
+	matrix::Quatf q(odom.q[0], odom.q[1], odom.q[2], odom.q[3]);
+	q.copyTo(odometry.q);
+
+	// create a method to simplify covariance copy
+	for (size_t i = 0; i < URT_SIZE; i++) {
+		odometry.pose_covariance[i] = odom.pose_covariance[i];
+	}
+
+	bool updated;
+	orb_check(_vehicle_attitude_sub, &updated);
+
+	if (odom.child_frame_id == MAV_FRAME_BODY_FRD) { /* WRT to estimated vehicle body-fixed frame */
+		/* get quaternion from the msg quaternion itself and build DCM matrix from it */
+		Rbl = matrix::Dcm<float>(matrix::Quatf(odometry.q)).I();
+
+		/* the linear velocities needs to be transformed to the local NED frame */
+		matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
+		odometry.vx = linvel_local(0);
+		odometry.vy = linvel_local(1);
+		odometry.vz = linvel_local(2);
+
+		odometry.rollspeed = odom.rollspeed;
+		odometry.pitchspeed = odom.pitchspeed;
+		odometry.yawspeed = odom.yawspeed;
+
+		//TODO: Apply rotation matrix to transform from body-fixed NED to earth-fixed NED frame
+		for (size_t i = 0; i < URT_SIZE; i++) {
+			odometry.velocity_covariance[i] = odom.twist_covariance[i];
+		}
+
+	} else if (odom.child_frame_id == MAV_FRAME_BODY_NED) { /* WRT to vehicle body-NED frame */
+		if (updated) {
+			orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_att);
+
+			/* get quaternion from vehicle_attitude quaternion and build DCM matrix from it */
+			Rbl = matrix::Dcm<float>(matrix::Quatf(_att.q)).I();
+
+			/* the linear velocities needs to be transformed to the local NED frame */
+			matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
+			odometry.vx = linvel_local(0);
+			odometry.vy = linvel_local(1);
+			odometry.vz = linvel_local(2);
+
+			odometry.rollspeed = odom.rollspeed;
+			odometry.pitchspeed = odom.pitchspeed;
+			odometry.yawspeed = odom.yawspeed;
+
+			//TODO: Apply rotation matrix to transform from body-fixed to earth-fixed NED frame
+			for (size_t i = 0; i < URT_SIZE; i++) {
+				odometry.velocity_covariance[i] = odom.twist_covariance[i];
+			}
+
+		}
+
+	} else if (odom.child_frame_id == MAV_FRAME_VISION_NED || /* WRT to vehicle local NED frame */
+		   odom.child_frame_id == MAV_FRAME_MOCAP_NED) {
+		if (updated) {
+			orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_att);
+
+			/* get quaternion from vehicle_attitude quaternion and build DCM matrix from it */
+			matrix::Dcm<float> Rlb = matrix::Quatf(_att.q);
+
+			odometry.vx = odom.vx;
+			odometry.vy = odom.vy;
+			odometry.vz = odom.vz;
+
+			/* the angular rates need to be transformed to the body frame */
+			matrix::Vector3<float> angvel_local(Rlb * matrix::Vector3<float>(odom.rollspeed, odom.pitchspeed, odom.yawspeed));
+			odometry.rollspeed = angvel_local(0);
+			odometry.pitchspeed = angvel_local(1);
+			odometry.yawspeed = angvel_local(2);
+
+			//TODO: Apply rotation matrix to transform from earth-fixed to body-fixed NED frame
+			for (size_t i = 0; i < URT_SIZE; i++) {
+				odometry.velocity_covariance[i] = odom.twist_covariance[i];
+			}
+
+		}
+
+	} else {
+		PX4_ERR("Body frame %u not supported. Unable to publish velocity", odom.child_frame_id);
+	}
+
+	int instance_id = 0;
+
+	if (odom.frame_id == MAV_FRAME_VISION_NED) {
+		orb_publish_auto(ORB_ID(vehicle_visual_odometry), &_visual_odometry_pub, &odometry, &instance_id, ORB_PRIO_HIGH);
+
+	} else if (odom.frame_id == MAV_FRAME_MOCAP_NED) {
+		orb_publish_auto(ORB_ID(vehicle_mocap_odometry), &_mocap_odometry_pub, &odometry, &instance_id, ORB_PRIO_HIGH);
+
+	} else {
+		PX4_ERR("Local frame %u not supported. Unable to publish pose and velocity", odom.frame_id);
+	}
 }
 
 void
