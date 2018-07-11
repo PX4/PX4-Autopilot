@@ -1060,9 +1060,9 @@ hagl_max : Maximum height above ground (meters). NaN when limiting is not needed
 void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max)
 {
 	// Calculate range finder limits
-	float rangefinder_hagl_min = _rng_min_distance;
+	float rangefinder_hagl_min = _rng_valid_min_val;
 	// Allow use of 75% of rangefinder maximum range to allow for angular motion
-	float rangefinder_hagl_max = 0.75f * _rng_max_distance;
+	float rangefinder_hagl_max = 0.75f * _rng_valid_max_val;
 
 	// Calculate optical flow limits
 	// Allow ground relative velocity to use 50% of available flow sensor range to allow for angular motion

@@ -107,21 +107,21 @@ void Ekf::controlFusionModes()
 	}
 
 	// calculate 2,2 element of rotation matrix from sensor frame to earth frame
+	// this is required for use of range finder and flow data
 	_R_rng_to_earth_2_2 = _R_to_earth(2, 0) * _sin_tilt_rng + _R_to_earth(2, 2) * _cos_tilt_rng;
 
-	// Get range data from buffer and check that is within limits and the vehicle is not excessively tilted
-	_range_data_ready = _range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed)
-			&& (_R_rng_to_earth_2_2 > _params.range_cos_max_tilt)
-			&& (_range_sample_delayed.rng >= _rng_min_distance)
-			&& (_range_sample_delayed.rng <= _rng_max_distance);
+	// Get range data from buffer and check validity
+	_range_data_ready = _range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed);
 
-	checkForStuckRange();
+	if (_range_data_ready) {
+		checkRangeDataValidity();
+	}
 
-	// We don't fuse flow data immediately becasue we have to wait for the mid integration point to fall behind the fusion time horizon.
+	// We don't fuse flow data immediately because we have to wait for the mid integration point to fall behind the fusion time horizon.
 	// This means we stop looking for new data until the old data has been fused.
 	if (!_flow_data_ready) {
 		_flow_data_ready = _flow_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_flow_sample_delayed)
-				   && (_R_to_earth(2, 2) > 0.7071f);
+				   && (_R_to_earth(2, 2) > _params.range_cos_max_tilt);
 	}
 
 	_ev_data_ready = _ext_vision_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_ev_sample_delayed);
@@ -1140,33 +1140,56 @@ void Ekf::rangeAidConditionsMet()
 	}
 }
 
-void Ekf::checkForStuckRange()
+void Ekf::checkRangeDataValidity()
 {
-	if (_range_data_ready && _range_sample_delayed.time_us - _time_last_rng_ready > (uint64_t)10e6 &&
+	// Check if excessively tilted
+	if (_R_rng_to_earth_2_2 < _params.range_cos_max_tilt) {
+		_range_data_ready = false;
+		return;
+	}
+
+	// Check if out of range
+	if ((_range_sample_delayed.rng > _rng_valid_max_val)
+	|| (_range_sample_delayed.rng < _rng_valid_min_val)) {
+		if (_control_status.flags.in_air) {
+			_range_data_ready = false;
+			return;
+		} else {
+			// Range finders can fail to provide valid readings when resting on the ground
+			// or being handled by the user, which prevents use of as a primary height sensor.
+			// To work around this issue, we replace out of range data with the expected on ground value.
+			_range_sample_delayed.rng = _params.rng_gnd_clearance;
+			return;
+		}
+	}
+
+	// Check for "stuck" range finder measurements when rng was not valid for certain period
+	// This handles a failure mode observed with some lidar sensors
+	if (_range_sample_delayed.time_us - _time_last_rng_ready > (uint64_t)10e6 &&
 	    _control_status.flags.in_air) {
 
 		_control_status.flags.rng_stuck = true;
 
-		//require a variance of rangefinder values to check for "stuck" measurements
-		if (_rng_check_max_val - _rng_check_min_val > 1.0f) {
+		// require a variance of rangefinder values to check for "stuck" measurements
+		if (_rng_stuck_max_val - _rng_stuck_min_val > 1.0f) {
 			_time_last_rng_ready = _range_sample_delayed.time_us;
-			_rng_check_min_val = 0.0f;
-			_rng_check_max_val = 0.0f;
+			_rng_stuck_min_val = 0.0f;
+			_rng_stuck_max_val = 0.0f;
 			_control_status.flags.rng_stuck = false;
 
 		} else {
-			if (_range_sample_delayed.rng > _rng_check_max_val) {
-				_rng_check_max_val = _range_sample_delayed.rng;
+			if (_range_sample_delayed.rng > _rng_stuck_max_val) {
+				_rng_stuck_max_val = _range_sample_delayed.rng;
 			}
 
-			if (_rng_check_min_val < 0.1f || _range_sample_delayed.rng < _rng_check_min_val) {
-				_rng_check_min_val = _range_sample_delayed.rng;
+			if (_rng_stuck_min_val < 0.1f || _range_sample_delayed.rng < _rng_stuck_min_val) {
+				_rng_stuck_min_val = _range_sample_delayed.rng;
 			}
 
 			_range_data_ready = false;
 		}
 
-	} else if (_range_data_ready) {
+	} else {
 		_time_last_rng_ready = _range_sample_delayed.time_us;
 	}
 }

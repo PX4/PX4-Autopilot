@@ -443,9 +443,9 @@ private:
 	bool _range_aid_mode_enabled{false};	///< true when range finder can be used in flight as the height reference instead of the primary height sensor
 	bool _range_aid_mode_selected{false};	///< true when range finder is being used as the height reference instead of the primary height sensor
 
-	// variables used to check for "stuck" rng data
-	float _rng_check_min_val{0.0f};		///< minimum value for new rng measurement when being stuck
-	float _rng_check_max_val{0.0f};		///< maximum value for new rng measurement when being stuck
+	// variables used to check range finder validity data
+	float _rng_stuck_min_val{0.0f};		///< minimum value for new rng measurement when being stuck
+	float _rng_stuck_max_val{0.0f};		///< maximum value for new rng measurement when being stuck
 
 	// update the real time complementary filter states. This includes the prediction
 	// and the correction step
@@ -598,7 +598,7 @@ private:
 	void rangeAidConditionsMet();
 
 	// check for "stuck" range finder measurements when rng was not valid for certain period
-	void checkForStuckRange();
+	void checkRangeDataValidity();
 
 	// return the square of two floating point numbers - used in auto coded sections
 	static constexpr float sq(float var) { return var * var; }

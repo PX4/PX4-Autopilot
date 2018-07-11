@@ -237,8 +237,8 @@ public:
 	// set sensor limitations reported by the rangefinder
 	void set_rangefinder_limits(float min_distance, float max_distance)
 	{
-		_rng_min_distance = min_distance;
-		_rng_max_distance = max_distance;
+		_rng_valid_min_val = min_distance;
+		_rng_valid_max_val = max_distance;
 	}
 
 	// set sensor limitations reported by the optical flow sensor
@@ -429,8 +429,8 @@ protected:
 	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};		// air density (kg/m**3)
 
 	// Sensor limitations
-	float _rng_min_distance{0.0f};	///< minimum distance that the rangefinder can measure (m)
-	float _rng_max_distance{0.0f};	///< maximum distance that the rangefinder can measure (m)
+	float _rng_valid_min_val{0.0f};	///< minimum distance that the rangefinder can measure (m)
+	float _rng_valid_max_val{0.0f};	///< maximum distance that the rangefinder can measure (m)
 	float _flow_max_rate{0.0f}; ///< maximum angular flow rate that the optical flow sensor can measure (rad/s)
 	float _flow_min_distance{0.0f};	///< minimum distance that the optical flow sensor can operate at (m)
 	float _flow_max_distance{0.0f};	///< maximum distance that the optical flow sensor can operate at (m)
