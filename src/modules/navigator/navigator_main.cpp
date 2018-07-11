@@ -168,6 +168,12 @@ Navigator::vehicle_land_detected_update()
 }
 
 void
+Navigator::trajectory_avoidance_update()
+{
+	orb_copy(ORB_ID(vehicle_trajectory_waypoint), _traj_wp_avoidance_sub, &_traj_wp_avoidance);
+}
+
+void
 Navigator::params_update()
 {
 	parameter_update_s param_update;
@@ -201,6 +207,8 @@ Navigator::run()
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 	_traffic_sub = orb_subscribe(ORB_ID(transponder_report));
+	_traj_wp_avoidance_sub = orb_subscribe(ORB_ID(vehicle_trajectory_waypoint));
+
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -304,6 +312,13 @@ Navigator::run()
 
 		if (updated) {
 			home_position_update();
+		}
+
+		/* obstacle avoidance update */
+		orb_check(_traj_wp_avoidance_sub, &updated);
+
+		if (updated) {
+			trajectory_avoidance_update();
 		}
 
 		/* vehicle_command updated */
@@ -785,6 +800,7 @@ Navigator::run()
 	orb_unsubscribe(_offboard_mission_sub);
 	orb_unsubscribe(_param_update_sub);
 	orb_unsubscribe(_vehicle_command_sub);
+	orb_unsubscribe(_traj_wp_avoidance_sub);
 }
 
 int Navigator::task_spawn(int argc, char *argv[])

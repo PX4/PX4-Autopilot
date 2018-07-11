@@ -71,6 +71,8 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_trajectory_waypoint.h>
+
 #include <uORB/uORB.h>
 
 /**
@@ -156,6 +158,8 @@ public:
 	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
 	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
+
+	struct vehicle_trajectory_waypoint_s *get_trajectory_waypoint() { return &_traj_wp_avoidance;}
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
 
@@ -268,6 +272,8 @@ public:
 	float		get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss.get(); }
 	float		get_vtol_reverse_delay() const { return _param_reverse_delay.get(); }
 
+	bool 		get_avoidance_active() const { return _param_avoidance_active.get(); }
+
 	bool		force_vtol();
 
 private:
@@ -282,6 +288,7 @@ private:
 	int		_traffic_sub{-1};		/**< traffic subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
 	int		_vstatus_sub{-1};		/**< vehicle status subscription */
+	int 	_traj_wp_avoidance_sub{-1}; /**< obstacle avoidance subscription */
 
 	orb_advert_t	_geofence_result_pub{nullptr};
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
@@ -301,6 +308,8 @@ private:
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
 	uint8_t					_previous_nav_state{}; /**< nav_state of the previous iteration*/
+	vehicle_trajectory_waypoint_s		_traj_wp_avoidance{}; /** < obstacle avoidance >*/
+
 	// Publications
 	geofence_result_s				_geofence_result{};
 	position_setpoint_triplet_s			_pos_sp_triplet{};	/**< triplet of position setpoints */
@@ -352,7 +361,9 @@ private:
 
 		// VTOL parameters TODO: get these out of navigator
 		(ParamFloat<px4::params::VT_B_DEC_MSS>) _param_back_trans_dec_mss,
-		(ParamFloat<px4::params::VT_B_REV_DEL>) _param_reverse_delay
+		(ParamFloat<px4::params::VT_B_REV_DEL>) _param_reverse_delay,
+
+		(ParamInt<px4::params::MPC_OBS_AVOID>) _param_avoidance_active
 	)
 
 	float _mission_cruising_speed_mc{-1.0f};
@@ -368,6 +379,7 @@ private:
 	void		params_update();
 	void		vehicle_land_detected_update();
 	void		vehicle_status_update();
+	void 		trajectory_avoidance_update();
 
 	/**
 	 * Publish a new position setpoint triplet for position controllers

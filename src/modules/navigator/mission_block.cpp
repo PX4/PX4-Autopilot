@@ -316,6 +316,12 @@ MissionBlock::is_mission_item_reached()
 		}
 	}
 
+	const bool obstacle_avoidance_running = hrt_elapsed_time(&_navigator->get_trajectory_waypoint()->timestamp) < 1e6f;
+
+	if (_navigator->get_avoidance_active() && obstacle_avoidance_running) {
+		_waypoint_yaw_reached = true;
+	}
+
 	/* Check if the waypoint and the requested yaw setpoint. */
 
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
