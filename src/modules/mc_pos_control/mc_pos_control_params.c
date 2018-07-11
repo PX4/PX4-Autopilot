@@ -629,6 +629,22 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
 PARAM_DEFINE_INT32(MPC_POS_MODE, 1);
 
 /**
+ * Delay from idle state to arming state.
+ *
+ * For altitude controlled modes, the transition from
+ * idle to armed state is delayed by MPC_IDLE_TKO time to ensure
+ * that the propellers have reached idle speed before attempting a
+ * takeoff. This delay is particularly useful for vehicles with large
+ * propellers.
+ *
+ * @min 0
+ * @max 10
+ * @unit sec
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_IDLE_TKO, 0.0f);
+
+/**
  * Flag to enable obstacle avoidance
  * Temporary Parameter to enable interface testing
  *
