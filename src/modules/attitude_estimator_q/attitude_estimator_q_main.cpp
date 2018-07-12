@@ -52,12 +52,12 @@
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
-#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
+#include <uORB/topics/vehicle_odometry.h>
 
 extern "C" __EXPORT int attitude_estimator_q_main(int argc, char *argv[]);
 
@@ -263,7 +263,7 @@ void AttitudeEstimatorQ::task_main()
 
 	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_vision_sub = orb_subscribe(ORB_ID(vehicle_vision_attitude));
-	_mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
+	_mocap_sub = orb_subscribe(ORB_ID(vehicle_mocap_odometry));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_magnetometer_sub = orb_subscribe(ORB_ID(vehicle_magnetometer));
@@ -369,9 +369,9 @@ void AttitudeEstimatorQ::task_main()
 		orb_check(_mocap_sub, &mocap_updated);
 
 		if (mocap_updated) {
-			att_pos_mocap_s mocap;
+			vehicle_odometry_s mocap;
 
-			if (orb_copy(ORB_ID(att_pos_mocap), _mocap_sub, &mocap) == PX4_OK) {
+			if (orb_copy(ORB_ID(vehicle_mocap_odometry), _mocap_sub, &mocap) == PX4_OK) {
 				Dcmf Rmoc = Quatf(mocap.q);
 				Vector3f v(1.0f, 0.0f, 0.4f);
 

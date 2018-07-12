@@ -79,7 +79,6 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/satellite_info.h>
-#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
@@ -1813,7 +1812,7 @@ int sdlog2_thread_main(int argc, char *argv[])
 			}
 
 			/* --- MOCAP ATTITUDE AND POSITION --- */
-			if (copy_if_updated(ORB_ID(att_pos_mocap), &subs.mocap_odom_sub, &buf.mocap_odom)) {
+			if (copy_if_updated(ORB_ID(vehicle_mocap_odometry), &subs.mocap_odom_sub, &buf.mocap_odom)) {
 				log_msg.msg_type = LOG_MOCP_MSG;
 				log_msg.body.log_MOCP.qw = buf.mocap_odom.q[0];
 				log_msg.body.log_MOCP.qx = buf.mocap_odom.q[1];
