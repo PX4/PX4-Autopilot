@@ -114,6 +114,7 @@ px4_add_romfs_files(
 	rc.thermal_cal
 	rc.ugv_apps
 	rc.ugv_defaults
+	rc.vehicle_setup
 	rc.vtol_apps
 	rc.vtol_defaults
 	rcS
