@@ -50,6 +50,11 @@
 #include <perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
 
+#define DRV_ACC_DEVTYPE_AMOV_IMU	0x63
+#define DRV_GYR_DEVTYPE_AMOV_IMU	0x64
+#define DRV_MAG_DEVTYPE_AMOV_IMU	0x65
+#define DRV_BARO_DEVTYPE_AMOV_IMU	0x66
+
 #define MAX_DEV_NUM   3
 
 #define DIR_READ			0x80
