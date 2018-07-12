@@ -595,7 +595,7 @@ Mission::set_mission_items()
 	work_item_type new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 
 	if (prepare_mission_items(&_mission_item, &mission_item_next_position, &has_next_position_item,
-					 &mission_item_next_next_position, &has_next_next_position_item)) {
+				  &mission_item_next_next_position, &has_next_next_position_item)) {
 		/* if mission type changed, notify */
 		if (_mission_type != MISSION_TYPE_MISSION) {
 			mavlink_log_info(_navigator->get_mavlink_log_pub(),
@@ -801,7 +801,7 @@ Mission::set_mission_items()
 
 					if (has_next_position_item) {
 						/* got next mission item, update setpoint triplet */
-						mission_item_to_position_setpoint(&mission_item_next_position, &pos_sp_triplet->current);
+						mission_item_to_position_setpoint(mission_item_next_position, &pos_sp_triplet->current);
 
 					} else {
 						_mission_item.yaw = _navigator->get_global_position()->yaw;
@@ -1054,16 +1054,13 @@ Mission::set_mission_items()
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	if (item_contains_gate(&_mission_item)) {
+	if (item_contains_gate(_mission_item)) {
 		if (has_next_position_item) {
-			/* we have a new position item so set previous position setpoint to current */
-			set_previous_pos_setpoint();
 			/* got next mission item, update setpoint triplet */
-			mission_item_to_position_setpoint(&mission_item_next_position, &pos_sp_triplet->current);
+			mission_item_to_position_setpoint(mission_item_next_position, &pos_sp_triplet->current);
 		}
 
 	} else {
-		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
 		/* set current position setpoint from mission item (is protected against non-position items) */
 		if (new_work_item_type != WORK_ITEM_TYPE_PRECISION_LAND) {
 			mission_apply_limitation(_mission_item);
@@ -1097,7 +1094,7 @@ Mission::set_mission_items()
 		set_current_mission_item();
 	}
 
-	if (item_contains_gate(&_mission_item)) {
+	if (item_contains_gate(_mission_item)) {
 		if (has_next_next_position_item) {
 			/* got next mission item, update setpoint triplet */
 			mission_apply_limitation(mission_item_next_position);
@@ -1112,7 +1109,7 @@ Mission::set_mission_items()
 			/* try to process next mission item */
 			if (has_next_position_item) {
 				/* got next mission item, update setpoint triplet */
-				mission_item_to_position_setpoint(&mission_item_next_position, &pos_sp_triplet->next);
+				mission_item_to_position_setpoint(mission_item_next_position, &pos_sp_triplet->next);
 
 			} else {
 				/* next mission item is not available */
@@ -1499,12 +1496,12 @@ Mission::prepare_mission_items(struct mission_item_s *mission_item,
 		}
 
 		if (_mission_execution_mode != mission_result_s::MISSION_EXECUTION_MODE_REVERSE &&
-			next_next_position_mission_item && has_next_next_position_item) {
+		    next_next_position_mission_item && has_next_next_position_item) {
 			/* trying to find next next position mission item */
-			while (read_mission_item(onboard, offset, next_next_position_mission_item)) {
+			while (read_mission_item(offset, next_next_position_mission_item)) {
 				offset++;
 
-				if (item_contains_position(next_next_position_mission_item)) {
+				if (item_contains_position(*next_next_position_mission_item)) {
 					*has_next_next_position_item = true;
 					break;
 				}
