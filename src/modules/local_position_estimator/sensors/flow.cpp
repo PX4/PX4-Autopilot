@@ -36,8 +36,10 @@ void BlockLocalPositionEstimator::flowInit()
 
 int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 {
+	matrix::Eulerf euler(matrix::Quatf(_sub_att.get().q));
+
 	// check for sane pitch/roll
-	if (_eul(0) > 0.5f || _eul(1) > 0.5f) {
+	if (euler.phi() > 0.5f || euler.theta() > 0.5f) {
 		return -1;
 	}
 
@@ -57,8 +59,6 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	if (!(_estimatorInitialized & EST_TZ)) {
 		return -1;
 	}
-
-	matrix::Eulerf euler = matrix::Quatf(_sub_att.get().q);
 
 	float d = agl() * cosf(euler.phi()) * cosf(euler.theta());
 
@@ -159,7 +159,8 @@ void BlockLocalPositionEstimator::flowCorrect()
 			   + _sub_att.get().pitchspeed * _sub_att.get().pitchspeed
 			   + _sub_att.get().yawspeed * _sub_att.get().yawspeed;
 
-	float rot_sq = _eul(0) * _eul(0) + _eul(1) * _eul(1);
+	matrix::Eulerf euler(matrix::Quatf(_sub_att.get().q));
+	float rot_sq = euler.phi() * euler.phi() + euler.theta() * euler.theta();
 
 	R(Y_flow_vx, Y_flow_vx) = flow_vxy_stddev * flow_vxy_stddev +
 				  _flow_r.get() * _flow_r.get() * rot_sq +
