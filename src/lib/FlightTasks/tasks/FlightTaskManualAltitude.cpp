@@ -91,25 +91,31 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 	// Depending on stick inputs and velocity, position is locked.
 	// If not locked, altitude setpoint is set to NAN.
 
-	// check if user wants to break
+	// Check if user wants to break
 	const bool apply_brake = fabsf(_velocity_setpoint(2)) <= FLT_EPSILON;
 
-	// check if vehicle has stopped
+	// Check if vehicle has stopped
 	const bool stopped = (MPC_HOLD_MAX_Z.get() < FLT_EPSILON || fabsf(_velocity(2)) < MPC_HOLD_MAX_Z.get());
 
+	// Manage transition between use of distance to ground and distance to local origin
+	// when terrain hold behaviour has been selected.
 	if (MPC_ALT_MODE.get() == 2) {
-		// terrain hold
+		// Use horizontal speed as a transition criteria
 		float spd_xy = Vector2f(&_velocity(0)).length();
-		bool stick_input = Vector2f(&_velocity_setpoint(0)).length() > 0.5f * MPC_ALT_MODE_SPD.get();
+
+		// Use presence of horizontal stick inputs as a transition criteria
+		float stick_xy = Vector2f(&_sticks_expo(0)).length();
+		bool stick_input = stick_xy > 0.001f;
 
 		if (_terrain_hold) {
-			bool too_fast = spd_xy > MPC_ALT_MODE_SPD.get();
+			bool too_fast = spd_xy > MPC_HOLD_MAX_XY.get();
 
 			if (stick_input || too_fast || !PX4_ISFINITE(_dist_to_bottom)) {
+				// Stop using distance to ground
 				_terrain_hold = false;
 				_terrain_follow = false;
 
-				// adjust the setpoint to maintain the same height error to reduce control transients
+				// Adjust the setpoint to maintain the same height error to reduce control transients
 				if (PX4_ISFINITE(_dist_to_ground_lock) && PX4_ISFINITE(_dist_to_bottom)) {
 					_position_setpoint(2) = _position(2) + (_dist_to_ground_lock - _dist_to_bottom);
 
@@ -119,13 +125,14 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 			}
 
 		} else {
-			bool not_moving = spd_xy < 0.5f * MPC_ALT_MODE_SPD.get();
+			bool not_moving = spd_xy < 0.5f * MPC_HOLD_MAX_XY.get();
 
 			if (!stick_input && not_moving && PX4_ISFINITE(_dist_to_bottom)) {
+				// Start using distance to ground
 				_terrain_hold = true;
 				_terrain_follow = true;
 
-				// adjust the setpoint to maintain the same height error to reduce control transients
+				// Adjust the setpoint to maintain the same height error to reduce control transients
 				if (PX4_ISFINITE(_position_setpoint(2))) {
 					_dist_to_ground_lock = _dist_to_bottom + (_position_setpoint(2) - _position(2));
 				}
