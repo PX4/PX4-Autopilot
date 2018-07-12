@@ -512,7 +512,7 @@ PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 1.0f);
  * by the local_position.distance_bottom_valid message being false.
  * Set to 2 to control height relative to ground (requires a distance sensor) when stationary and relative
  * to earth frame origin when moving horizontally.
- * The speed threshold is controlled by the MPC_ALT_MODE_SPD parameter.
+ * The speed threshold is controlled by the MPC_HOLD_MAX_XY parameter.
  *
  * @min 0
  * @max 2
@@ -522,22 +522,6 @@ PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 1.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);
-
-/**
- * Terrain hold speed threshold.
- *
- * Controls the horizontal speed threshold used when MPC_ALT_MODE = 2. When MPC_ALT_MODE = 2,
- * the distance to ground will not be used to control height when horizontal speed is greater
- * than MPC_ALT_MODE_SPD.
- *
- * @unit m/s
- * @min 0.2
- * @max 2.0
- * @increment 0.1
- * @decimal 1
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_ALT_MODE_SPD, 0.5f);
 
 /**
  * Manual control stick exponential curve sensitivity attenuation with small velocity setpoints
