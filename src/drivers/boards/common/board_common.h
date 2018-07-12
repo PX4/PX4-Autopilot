@@ -386,6 +386,33 @@ typedef uint8_t px4_guid_t[PX4_GUID_BYTE_LENGTH];
  * Public Functions
  ************************************************************************************/
 
+/* Provide an interface for determining if a board supports single wire */
+
+/************************************************************************************
+ * Name: board_supports_single_wire
+ *
+ * Description:
+ *   A board may provide an RC_SERIAL_PORT that supports single wire.
+ *   This interface will call into the board support code to determine
+ *   if the interface is available at runtime, on this version of the
+ *   hardware.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   true the hardware supports this interface.
+ *   false if not.
+ *
+ ************************************************************************************/
+
+#if !defined(BOARD_HAS_SINGLE_WIRE)
+#  define board_supports_single_wire() false
+#else
+__EXPORT bool board_supports_single_wire(void);
+#endif
+
+
 /* Provide an interface for reading the connected state of VBUS */
 
 /************************************************************************************
