@@ -1,5 +1,6 @@
 #include "FlightTask.hpp"
 #include <mathlib/mathlib.h>
+#include <lib/ecl/geo/geo.h>
 
 constexpr uint64_t FlightTask::_timeout;
 // First index of empty_setpoint corresponds to time-stamp and requires a finite number.
@@ -101,8 +102,11 @@ bool FlightTask::_evaluateVehicleLocalPosition()
 			_dist_to_bottom =  _sub_vehicle_local_position->get().dist_bottom;
 		}
 
-		// estimator specified vehicle limits
-
+		// global frame reference coordinates to enable conversions
+		if (_sub_vehicle_local_position->get().xy_global && _sub_vehicle_local_position->get().z_global) {
+			globallocalconverter_init(_sub_vehicle_local_position->get().ref_lat, _sub_vehicle_local_position->get().ref_lon,
+						  _sub_vehicle_local_position->get().ref_alt, _sub_vehicle_local_position->get().ref_timestamp);
+		}
 
 		// We don't check here if states are valid or not.
 		// Validity checks are done in the sub-classes.
