@@ -49,7 +49,6 @@ set(config_module_list
 	modules/muorb/krait
 	modules/sensors
 	modules/dataman
-	modules/sdlog2
 	modules/logger
 	modules/simulator
 	modules/commander
