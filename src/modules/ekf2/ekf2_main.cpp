@@ -939,10 +939,9 @@ void Ekf2::run()
 				distance_sensor_s range_finder;
 
 				if (orb_copy(ORB_ID(distance_sensor), _range_finder_subs[_range_finder_sub_index], &range_finder) == PX4_OK) {
-					// check if distance sensor is within working boundaries
-					if (range_finder.min_distance >= range_finder.current_distance ||
-					    range_finder.max_distance <= range_finder.current_distance ||
-					    range_finder.signal_quality == 0) {
+					// check distance sensor data quality
+					// TODO - move this check inside the ecl library
+					if (range_finder.signal_quality == 0) {
 						// use rng_gnd_clearance if on ground
 						if (_ekf.get_in_air_status()) {
 							range_finder_updated = false;
