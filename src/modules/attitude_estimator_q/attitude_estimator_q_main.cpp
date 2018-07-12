@@ -262,7 +262,7 @@ void AttitudeEstimatorQ::task_main()
 #endif
 
 	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
-	_vision_sub = orb_subscribe(ORB_ID(vehicle_vision_attitude));
+	_vision_sub = orb_subscribe(ORB_ID(vehicle_visual_odometry));
 	_mocap_sub = orb_subscribe(ORB_ID(vehicle_mocap_odometry));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
@@ -346,7 +346,7 @@ void AttitudeEstimatorQ::task_main()
 		if (vision_updated) {
 			vehicle_attitude_s vision;
 
-			if (orb_copy(ORB_ID(vehicle_vision_attitude), _vision_sub, &vision) == PX4_OK) {
+			if (orb_copy(ORB_ID(vehicle_visual_odometry), _vision_sub, &vision) == PX4_OK) {
 				Quatf q(vision.q);
 
 				Dcmf Rvis = Quatf(vision.q);
