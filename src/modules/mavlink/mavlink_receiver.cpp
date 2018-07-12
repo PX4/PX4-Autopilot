@@ -1205,7 +1205,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	odometry.z = odom.z;
 	/* The quaternion of the ODOMETRY msg represents a rotation from NED
 	 * earth/local frame to XYZ body frame */
-	matrix::Quatf q(odom.q[0], odom.q[1], odom.q[2], odom.q[3]);
+	matrix::Quatf q(odom.q);
 	q.copyTo(odometry.q);
 
 	// create a method to simplify covariance copy
