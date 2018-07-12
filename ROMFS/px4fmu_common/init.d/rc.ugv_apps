@@ -1,10 +1,12 @@
 #!nsh
 #
-# Standard apps for unmanned ground vehicles (UGV)
+# Standard apps for unmanned ground vehicles (UGV).
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
 #
-# Start the attitude and position estimator
+# Start the attitude and position estimator.
 #
 ekf2 start
 #attitude_estimator_q start
@@ -12,13 +14,13 @@ ekf2 start
 
 
 #
-# Start attitude controllers
+# Start attitude controllers.
 #
 gnd_att_control start
 gnd_pos_control start
 
 
 #
-# Start Land Detector
+# Start Land Detector.
 #
 land_detector start ugv
