@@ -1162,7 +1162,7 @@ void Ekf2::run()
 		if (visual_odometry_updated) {
 			// copy both attitude & position, we need both to fill a single ext_vision_message
 			vehicle_odometry_s ev_odom = {};
-			orb_copy(ORB_ID(vehicle_vision_position), _ev_odom_sub, &ev_odom);
+			orb_copy(ORB_ID(vehicle_visual_odometry), _ev_odom_sub, &ev_odom);
 
 			ext_vision_message ev_data;
 			ev_data.posNED(0) = ev_odom.x;

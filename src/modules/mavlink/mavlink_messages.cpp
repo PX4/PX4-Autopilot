@@ -91,6 +91,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
@@ -2059,6 +2060,7 @@ protected:
 	}
 };
 
+//TODO: remove this -> add ODOMETRY loopback only
 class MavlinkStreamVisionPositionEstimate : public MavlinkStream
 {
 public:
@@ -2089,15 +2091,12 @@ public:
 
 	unsigned get_size()
 	{
-		return (_pos_time > 0) ? MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		return (_odom_time > 0) ? MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 private:
 
-	MavlinkOrbSubscription *_pos_sub;
-	uint64_t _pos_time;
-
-	MavlinkOrbSubscription *_att_sub;
-	uint64_t _att_time;
+	MavlinkOrbSubscription *_odom_sub;
+	uint64_t _odom_time;
 
 	/* do not allow top copying this class */
 	MavlinkStreamVisionPositionEstimate(MavlinkStreamVisionPositionEstimate &) = delete;
@@ -2105,36 +2104,32 @@ private:
 
 protected:
 	explicit MavlinkStreamVisionPositionEstimate(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_vision_position))),
-		_pos_time(0),
-		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_vision_attitude))),
-		_att_time(0)
+		_odom_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_visual_odometry))),
+		_odom_time(0)
 	{}
 
 	bool send(const hrt_abstime t)
 	{
-		vehicle_local_position_s vpos = {};
-		vehicle_attitude_s vatt = {};
+		vehicle_odometry_s vodom = {};
 
-		bool att_updated = _att_sub->update(&_att_time, &vatt);
-		bool pos_updated = _pos_sub->update(&_pos_time, &vpos);
-
-		if (pos_updated || att_updated) {
+		if (_odom_sub->update(&_odom_time, &vodom)) {
 			mavlink_vision_position_estimate_t vmsg = {};
-			vmsg.usec = vpos.timestamp;
-			vmsg.x = vpos.x;
-			vmsg.y = vpos.y;
-			vmsg.z = vpos.z;
+			vmsg.usec = vodom.timestamp;
+			vmsg.x = vodom.x;
+			vmsg.y = vodom.y;
+			vmsg.z = vodom.z;
 
-			matrix::Eulerf euler = matrix::Quatf(vatt.q);
+			matrix::Eulerf euler = matrix::Quatf(vodom.q);
 			vmsg.roll = euler.phi();
 			vmsg.pitch = euler.theta();
 			vmsg.yaw = euler.psi();
 
 			mavlink_msg_vision_position_estimate_send_struct(_mavlink->get_channel(), &vmsg);
+
+			return true;
 		}
 
-		return (pos_updated || att_updated);
+		return false;
 	}
 };
 
