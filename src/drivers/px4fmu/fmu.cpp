@@ -527,7 +527,7 @@ PX4FMU::init()
 	// dsm_init sets some file static variables and returns a file descriptor
 	_rcs_fd = dsm_init(RC_SERIAL_PORT);
 	// assume SBUS input
-	sbus_config(_rcs_fd, false);
+	sbus_config(_rcs_fd, board_supports_single_wire());
 #  ifdef GPIO_PPM_IN
 	// disable CPPM input by mapping it away from the timer capture input
 	px4_arch_unconfiggpio(GPIO_PPM_IN);
@@ -1556,7 +1556,7 @@ PX4FMU::cycle()
 			if (_rc_scan_begin == 0) {
 				_rc_scan_begin = _cycle_timestamp;
 				// Configure serial port for SBUS
-				sbus_config(_rcs_fd, false);
+				sbus_config(_rcs_fd, board_supports_single_wire());
 				rc_io_invert(true);
 
 			} else if (_rc_scan_locked
