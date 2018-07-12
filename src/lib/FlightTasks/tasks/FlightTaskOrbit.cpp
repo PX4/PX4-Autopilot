@@ -37,6 +37,7 @@
 
 #include "FlightTaskOrbit.hpp"
 #include <mathlib/mathlib.h>
+#include <lib/ecl/geo/geo.h>
 
 using namespace matrix;
 
@@ -47,14 +48,43 @@ FlightTaskOrbit::FlightTaskOrbit()
 
 bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 {
-	const float &r = command.param3; // commanded radius
-	const float &v = command.param4; // commanded velocity
+	bool ret = true;
+	bool clockwise = _v > 0;
 
-	if (setRadius(r) && setVelocity(v)) {
-		return FlightTaskManualAltitudeSmooth::applyCommandParameters(command);
+	// commanded radius
+	if (PX4_ISFINITE(command.param1)) {
+		clockwise = command.param1 > 0;
+		const float r = fabsf(command.param1);
+		ret = ret && setRadius(r);
 	}
 
-	return false;
+	// commanded velocity, take sign of radius as rotation direction
+	if (PX4_ISFINITE(command.param2)) {
+		const float v = command.param2 * (clockwise ? 1.f : -1.f);
+		ret = ret && setVelocity(v);
+	}
+
+	// TODO: apply x,y / z independently in geo library
+	// commanded center coordinates
+	// if(PX4_ISFINITE(command.param5) && PX4_ISFINITE(command.param6)) {
+	// 	map_projection_global_project(command.param5, command.param6, &_center(0), &_center(1));
+	// }
+
+	// commanded altitude
+	// if(PX4_ISFINITE(command.param7)) {
+	// 	_position_setpoint(2) = gl_ref.alt - command.param7;
+	// }
+
+	if (PX4_ISFINITE(command.param5) && PX4_ISFINITE(command.param6) && PX4_ISFINITE(command.param7)) {
+		if(globallocalconverter_tolocal(command.param5, command.param6, command.param7, &_center(0), &_center(1),
+					     &_position_setpoint(2)))
+		{
+			// global to local conversion failed
+			ret = false;
+		}
+	}
+
+	return ret;
 }
 
 bool FlightTaskOrbit::setRadius(const float r)
@@ -92,7 +122,7 @@ bool FlightTaskOrbit::activate()
 {
 	bool ret = FlightTaskManualAltitudeSmooth::activate();
 	_r = _radius_min;
-	_v =  0.5f;
+	_v =  1.f;
 	_center = Vector2f(_position.data());
 	_center(0) -= _r;
 
