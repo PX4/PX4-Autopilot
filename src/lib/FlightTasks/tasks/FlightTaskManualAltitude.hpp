@@ -63,7 +63,7 @@ protected:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualStabilized,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) MPC_HOLD_MAX_Z,
 					(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
-					(ParamFloat<px4::params::MPC_ALT_MODE_SPD>) MPC_ALT_MODE_SPD,
+					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) MPC_HOLD_MAX_XY,
 					(ParamFloat<px4::params::MPC_Z_P>) MPC_Z_P
 				       )
 private:
