@@ -1001,7 +1001,7 @@ void ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 	} else if (sub.orb_meta == ORB_ID(vehicle_magnetometer)) {
 		_vehicle_magnetometer_msg_id = msg_id;
 
-	} else if (sub.orb_meta == ORB_ID(vehicle_odometry)) {
+	} else if (sub.orb_meta == ORB_ID(vehicle_visual_odometry)) {
 		_vehicle_visual_odometry_msg_id = msg_id;
 	}
 
