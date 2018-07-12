@@ -100,6 +100,18 @@ else
 	fi
 fi
 
+if ver hwcmp CRAZYFLIE -o ver hwcmp AEROCORE2
+then
+	# AEROCORE2 and CF2 shouldn't have an sd card.
+else
+	# Run no SD alarm.
+	if [ $LOG_FILE == /dev/null ]
+	then
+		# Play SOS.
+		tone_alarm error
+	fi
+fi
+
 #
 # Look for an init script on the microSD card.
 # Disable autostart if the script found.
@@ -561,40 +573,11 @@ then
 	#
 	navigator start
 
-	#
-	# Generic setup (autostart ID not found).
-	#
-	if [ $VEHICLE_TYPE == none ]
-	then
-		echo "No autostart ID found"
-		ekf2 start
-	fi
-
 	# Start any custom addons.
 	if [ -f $FEXTRAS ]
 	then
 		echo "Addons script: ${FEXTRAS}"
 		sh $FEXTRAS
-	fi
-
-	if ver hwcmp CRAZYFLIE
-	then
-		# CF2 shouldn't have an sd card.
-	else
-
-		if ver hwcmp AEROCORE2
-		then
-			# AEROCORE2 shouldn't have an sd card.
-		else
-			# Run no SD alarm.
-			if [ $LOG_FILE == /dev/null ]
-			then
-				# Play SOS.
-				tone_alarm error
-			fi
-
-		fi
-
 	fi
 
 	#
