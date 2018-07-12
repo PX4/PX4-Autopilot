@@ -337,7 +337,7 @@ format:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard
+.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard tests_avoidance
 .PHONY: rostest python_coverage test_mixer_multirotor
 
 test_mixer_multirotor:
@@ -374,6 +374,9 @@ tests_offboard: rostest
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_offboard_posctl.test
 
+tests_avoidance:
+	@$(SRC_DIR)/test/rostest_avoidance_run.sh mavros_posix_test_avoidance.test
+
 python_coverage:
 	@mkdir -p "$(SRC_DIR)"/build/python_coverage
 	@cd "$(SRC_DIR)"/build/python_coverage && cmake "$(SRC_DIR)" $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=px4_sitl_default -DPYTHON_COVERAGE=ON
@@ -383,6 +386,7 @@ python_coverage:
 	#@$(PX4_MAKE) -C "$(SRC_DIR)"/build/python_coverage module_documentation # TODO: fix within coverage.py
 	@coverage combine `find . -name .coverage\*`
 	@coverage report -m
+
 
 # static analyzers (scan-build, clang-tidy, cppcheck)
 # --------------------------------------------------------------------
