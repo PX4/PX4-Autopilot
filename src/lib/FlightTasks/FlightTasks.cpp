@@ -203,12 +203,14 @@ void FlightTasks::_updateCommand()
 
 	// check what command it is
 	FlightTaskIndex desired_task = FlightTaskIndex::None;
-	switch(command.command) {
-		case vehicle_command_s::VEHICLE_CMD_DO_ORBIT :
-			desired_task = FlightTaskIndex::Orbit;
-			break;
-		// ignore all unkown commands
-		default : return;
+
+	switch (command.command) {
+	case vehicle_command_s::VEHICLE_CMD_DO_ORBIT :
+		desired_task = FlightTaskIndex::Orbit;
+		break;
+
+	// ignore all unkown commands
+	default : return;
 	}
 
 	// switch to the commanded task
