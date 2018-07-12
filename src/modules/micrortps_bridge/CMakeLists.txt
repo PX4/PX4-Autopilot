@@ -61,6 +61,9 @@ endif()
 
 if (GENERATE_RTPS_BRIDGE)
 
+	# temporarily set to OFF
+	option(CHECK_ENDIANNESS OFF)
+
 	add_subdirectory(micrortps_client)
 
 	###############################################################################
@@ -132,15 +135,16 @@ if (GENERATE_RTPS_BRIDGE)
 	add_dependencies(uorb_msgs_microcdr
 		uorb_headers_microcdr_gen
 		git_micro_cdr
-		lib__micro-CDR
+		microcdr
 	)
-
-	target_link_libraries(uorb_msgs_microcdr PRIVATE lib__micro-CDR)
 
 	# microCDR
 	target_include_directories(uorb_msgs_microcdr
 		PUBLIC
 			${CMAKE_CURRENT_SOURCE_DIR}/micro-CDR/include
+			${CMAKE_CURRENT_BINARY_DIR}/micro-CDR/include
 			${CMAKE_CURRENT_BINARY_DIR}/micro-CDR/include/microcdr
 	)
+
+	target_link_libraries(uorb_msgs_microcdr PRIVATE microcdr)
 endif()

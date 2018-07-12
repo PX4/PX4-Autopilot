@@ -90,14 +90,14 @@ bool @(topic)_Subscriber::init()
     SubscriberAttributes Rparam;
     Rparam.topic.topicKind = NO_KEY;
     Rparam.topic.topicDataType = myType.getName(); //Must be registered before the creation of the subscriber
-    Rparam.topic.topicName = "@(topic)";
+    Rparam.topic.topicName = "@(topic)_PubSubTopic";
     mp_subscriber = Domain::createSubscriber(mp_participant, Rparam, (SubscriberListener*) &m_listener);
     if(mp_subscriber == nullptr)
         return false;
     return true;
 }
 
-void @(topic)_Subscriber::SubListener::onSubscriptionMatched(Subscriber* sub,MatchingInfo& info)
+void @(topic)_Subscriber::SubListener::onSubscriptionMatched(Subscriber* sub, MatchingInfo& info)
 {
     if (info.status == MATCHED_MATCHING)
     {

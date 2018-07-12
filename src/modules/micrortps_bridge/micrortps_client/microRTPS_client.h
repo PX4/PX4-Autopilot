@@ -40,7 +40,7 @@
 #include <pthread.h>
 #include <termios.h>
 
-#include <microcdr/microCdr.h>
+#include <microcdr/microcdr.h>
 #include <px4_config.h>
 #include <px4_getopt.h>
 #include <px4_posix.h>

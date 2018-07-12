@@ -68,8 +68,7 @@ topic_name = spec.short_name
 #include <uORB/topics/@(topic_name).h>
 #include <uORB_microcdr/topics/@(topic_name).h>
 
-struct microCDR;
+struct MicroBuffer;
 
-
-void serialize_@(topic_name)(const struct @(uorb_struct) *input, char *output, uint32_t *length, struct microCDR *microCDRWriter);
-void deserialize_@(topic_name)(struct @(uorb_struct) *output, char *input, struct microCDR *microCDRReader);
+void serialize_@(topic_name)(MicroBuffer *microCDRWriter, const struct @(uorb_struct) *input, char *output, uint32_t *length);
+void deserialize_@(topic_name)(MicroBuffer *microCDRReader, struct @(uorb_struct) *output, const char *input);

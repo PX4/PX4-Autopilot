@@ -61,7 +61,7 @@ topic_name = spec.short_name
 }@
 
 #include <px4_config.h>
-#include <microcdr/microCdr.h>
+#include <microcdr/microcdr.h>
 #include <uORB/topics/@(topic_name).h>
 #include <uORB_microcdr/topics/@(topic_name).h>
 
@@ -98,9 +98,9 @@ def add_serialize_functions(fields, scope_name):
         if (not field.is_header):
             if (field.is_builtin):
                 if (not field.is_array):
-                    print("    serialize"+str(get_serialization_type_name(field.type))+"(input->"+scope_name+str(field.name)+", microCDRWriter);")
+                    print("    serialize_" + str(get_serialization_type_name(field.type)) + "(microCDRWriter, input->" + scope_name+str(field.name) + ");")
                 else:
-                    print("    serialize"+str(get_serialization_type_name(field.base_type))+"Array(input->"+scope_name+str(field.name)+", "+str(field.array_len)+", microCDRWriter);")
+                    print("    serialize_array_" + str(get_serialization_type_name(field.base_type)) + "(microCDRWriter, input->" + scope_name+str(field.name) + ", " + str(field.array_len) + ");")
             else:
                 name = field.name
                 children_fields = get_children_fields(field.base_type, search_path)
@@ -116,10 +116,9 @@ def add_deserialize_functions(fields, scope_name):
         if (not field.is_header):
             if (field.is_builtin):
                 if (not field.is_array):
-                    print("    deserialize"+str(get_serialization_type_name(field.type))+"(&output->"+scope_name+str(field.name)+", microCDRReader);")
+                    print("    deserialize_" + str(get_serialization_type_name(field.type)) + "(microCDRReader, &output->" + scope_name+str(field.name) + ");")
                 else:
-                    for i in range(field.array_len):
-                        print("    deserialize"+str(get_serialization_type_name(field.base_type))+"(&output->"+scope_name+str(field.name)+ str('[%d]' %i) +", microCDRReader);")
+                    print("    deserialize_array_" + str(get_serialization_type_name(field.base_type)) + "(microCDRReader, output->" + scope_name+str(field.name) + ", " + str(field.array_len) + ");")
             else:
                 name = field.name
                 children_fields = get_children_fields(field.base_type, search_path)
@@ -141,24 +140,25 @@ def add_code_to_deserialize():
     add_deserialize_functions(sorted_fields, "")
 }@
 
-void serialize_@(topic_name)(const struct @(uorb_struct) *input, char *output, uint32_t *length, struct microCDR *microCDRWriter)
+void serialize_@(topic_name)(MicroBuffer *microCDRWriter, const struct @(uorb_struct) *input, char *output, uint32_t *length)
 {
-    if (nullptr == input || nullptr == output || nullptr == length || nullptr == microCDRWriter) return;
+    if (nullptr == microCDRWriter || nullptr == input || nullptr == output || nullptr == length)
+	return;
 
-    resetStaticMicroCDRForSerialize(microCDRWriter);
+    reset_micro_buffer(microCDRWriter);
 
-    serializeUnsignedLong(input->timestamp, microCDRWriter);
+    serialize_uint64_t(microCDRWriter, input->timestamp);
 @add_code_to_serialize()
-
-    (*length) = microCDRWriter->m_microBuffer->m_serializedBuffer;
+    (*length) = micro_buffer_length(microCDRWriter);
 }
 
-void deserialize_@(topic_name)(struct @(uorb_struct) *output, char *input, struct microCDR *microCDRReader)
+void deserialize_@(topic_name)(MicroBuffer *microCDRReader, struct @(uorb_struct) *output, const char *input)
 {
-    if (nullptr == output || nullptr == input || nullptr == microCDRReader) return;
+    if (nullptr == microCDRReader || nullptr == output || nullptr == input)
+	return;
 
-    resetStaticMicroCDRForDeserialize(microCDRReader);
+    reset_micro_buffer(microCDRReader);
 
-    deserializeUnsignedLong(&output->timestamp, microCDRReader);
+    deserialize_uint64_t(microCDRReader, &output->timestamp);
 @add_code_to_deserialize()
 }
