@@ -44,6 +44,7 @@
 #include <px4_module_params.h>
 #include <drivers/drv_hrt.h>
 #include <matrix/matrix/math.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
