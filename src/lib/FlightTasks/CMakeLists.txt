@@ -46,6 +46,7 @@ tasks/FlightTask.cpp
 		tasks/FlightTaskOffboard.cpp
 		tasks/Utility/ManualSmoothingZ.cpp
 		tasks/Utility/ManualSmoothingXY.cpp
+		tasks/Utility/StraightLine.cpp
 		SubscriptionArray.cpp
 		FlightTasks.cpp
 )
