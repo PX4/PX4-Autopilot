@@ -80,6 +80,10 @@ MavlinkOrbSubscription::update(uint64_t *time, void *data)
 	// TODO this is NOT atomic operation, we can get data newer than time
 	// if topic was published between orb_stat and orb_copy calls.
 
+	if (!is_published()) {
+		return false;
+	}
+
 	uint64_t time_topic;
 
 	if (orb_stat(_fd, &time_topic)) {
@@ -87,15 +91,11 @@ MavlinkOrbSubscription::update(uint64_t *time, void *data)
 		time_topic = 0;
 	}
 
-	if (update(data)) {
-		/* data copied successfully */
-
-		if (time_topic == 0 || (time_topic != *time)) {
+	if (time_topic == 0 || (time_topic != *time)) {
+		if (orb_copy(_topic, _fd, data) == PX4_OK) {
+			/* data copied successfully */
 			*time = time_topic;
 			return true;
-
-		} else {
-			return false;
 		}
 	}
 
