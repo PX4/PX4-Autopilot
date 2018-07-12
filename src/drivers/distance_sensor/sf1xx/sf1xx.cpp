@@ -552,7 +552,7 @@ SF1XX::collect()
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
 	report.covariance = 0.0f;
-	report.signal_strength = -1;
+	report.signal_quality = -1;
 	/* TODO: set proper ID */
 	report.id = 0;
 
