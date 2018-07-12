@@ -66,6 +66,7 @@ int BlockLocalPositionEstimator::mocapMeasure(Vector<float, n_y_mocap> &y)
 		_mocap_epv = sqrtf(_sub_mocap_odom.get().pose_covariance[11]);
 		_mocap_xy_valid = _mocap_eph <= EP_MAX_STD_DEV;
 		_mocap_z_valid = _mocap_epv <= EP_MAX_STD_DEV;
+
 	} else {
 		// if we don't have covariances, assume every reading
 		_mocap_xy_valid = true;
