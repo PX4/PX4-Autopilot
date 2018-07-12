@@ -547,19 +547,19 @@ MissionBlock::item_contains_position(const mission_item_s &item)
 }
 
 bool
-MissionBlock::item_contains_gate(const struct mission_item_s *item)
+MissionBlock::item_contains_gate(const mission_item_s &item)
 {
-	return item->nav_cmd == NAV_CMD_CONDITION_GATE;
+	return item.nav_cmd == NAV_CMD_CONDITION_GATE;
 }
 
 bool
-MissionBlock::item_contains_marker(const struct mission_item_s *item)
+MissionBlock::item_contains_marker(const mission_item_s &item)
 {
-	return item->nav_cmd == NAV_CMD_DO_LAND_START;
+	return item.nav_cmd == NAV_CMD_DO_LAND_START;
 }
 
 bool
-MissionBlock::mission_item_to_position_setpoint(const mission_item_s *item, position_setpoint_s *sp)
+MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, position_setpoint_s *sp)
 {
 	/* don't change the setpoint for non-position items */
 	if (!item_contains_position(item)) {
