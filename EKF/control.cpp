@@ -175,6 +175,11 @@ void Ekf::controlExternalVisionFusion()
 				_control_status.flags.ev_pos = true;
 				ECL_INFO("EKF commencing external vision position fusion");
 
+				if ((_params.fusion_mode & MASK_ROTATE_EV) && !(_params.fusion_mode & MASK_USE_EVYAW))  {
+					// Reset transformation between EV and EKF navigation frames when starting fusion
+					resetExtVisRotMat();
+				}
+
 				// reset the position if we are not already aiding using GPS, else use a relative position
 				// method for fusing the position data
 				if (_control_status.flags.gps) {

@@ -214,9 +214,8 @@ bool Ekf::initialiseFilter()
 	// check to see if we have enough measurements and return false if not
 	bool hgt_count_fail = _hgt_counter <= 2u * _obs_buffer_length;
 	bool mag_count_fail = _mag_counter <= 2u * _obs_buffer_length;
-	bool ev_count_fail = ((_params.fusion_mode & MASK_USE_EVPOS) || (_params.fusion_mode & MASK_USE_EVYAW)) && (_ev_counter <= 2u * _obs_buffer_length);
 
-	if (hgt_count_fail || mag_count_fail || ev_count_fail) {
+	if (hgt_count_fail || mag_count_fail) {
 		return false;
 
 	} else {
@@ -259,13 +258,6 @@ bool Ekf::initialiseFilter()
 
 		// calculate the initial magnetic field and yaw alignment
 		_control_status.flags.yaw_align = resetMagHeading(mag_init);
-
-		// initialise the rotation from EV to EKF navigation frame if required
-		if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS)
-		    && !(_params.fusion_mode & MASK_USE_EVYAW)) {
-
-			resetExtVisRotMat();
-		}
 
 		if (_control_status.flags.rng_hgt) {
 			// if we are using the range finder as the primary source, then calculate the baro height at origin so  we can use baro as a backup
