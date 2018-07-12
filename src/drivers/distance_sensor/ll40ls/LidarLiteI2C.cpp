@@ -515,14 +515,14 @@ int LidarLiteI2C::collect()
 
 	/* Final data quality evaluation. This is based on the datasheet and simple heuristics retrieved from experiments*/
 	// Step 1: Normalize signal strength to 0...100 percent using the absolute signal peak strength.
-	uint8_t signal_strength = 100 * math::max(ll40ls_peak_strength - LL40LS_PEAK_STRENGTH_LOW,
-				  0) / (LL40LS_PEAK_STRENGTH_HIGH - LL40LS_PEAK_STRENGTH_LOW);
+	uint8_t signal_quality = 100 * math::max(ll40ls_peak_strength - LL40LS_PEAK_STRENGTH_LOW,
+				 0) / (LL40LS_PEAK_STRENGTH_HIGH - LL40LS_PEAK_STRENGTH_LOW);
 
 	// Step 2: Also use ll40ls_signal_strength (a relative measure, i.e. peak strength to noise!) to reject potentially ambiguous measurements
-	if (ll40ls_signal_strength <= LL40LS_SIGNAL_STRENGTH_LOW) { signal_strength = 0; }
+	if (ll40ls_signal_strength <= LL40LS_SIGNAL_STRENGTH_LOW) { signal_quality = 0; }
 
 	// Step 3: Filter physically impossible measurements, which removes some crazy outliers that appear on LL40LS.
-	if (distance_m < LL40LS_MIN_DISTANCE) { signal_strength = 0; }
+	if (distance_m < LL40LS_MIN_DISTANCE) { signal_quality = 0; }
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
@@ -530,7 +530,7 @@ int LidarLiteI2C::collect()
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
 	report.covariance = 0.0f;
-	report.signal_strength = signal_strength;
+	report.signal_quality = signal_quality;
 	report.type =
 		distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;		// the sensor is in fact a laser + sonar but there is no enum for this
 	report.orientation = _rotation;
