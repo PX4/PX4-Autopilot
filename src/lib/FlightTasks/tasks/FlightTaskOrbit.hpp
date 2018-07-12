@@ -86,7 +86,7 @@ private:
 
 	// TODO: create/use parameters for limits
 	const float _radius_min = 1.f;
-	const float _radius_max = 20.f;
+	const float _radius_max = 100.f;
 	const float _velocity_max = 10.f;
 	const float _acceleration_max = 2.f;
 };
