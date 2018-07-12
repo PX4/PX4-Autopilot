@@ -8,7 +8,6 @@ set(config_module_list
 	systemcmds/perf
 	modules/ekf2
 	modules/ekf2_replay
-	modules/sdlog2
 	modules/logger
 	)
 

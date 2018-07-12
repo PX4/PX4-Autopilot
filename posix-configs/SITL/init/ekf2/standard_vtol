@@ -68,7 +68,7 @@ accelsim start
 barosim start
 gpssim start
 measairspeedsim start
-pwm_out_sim start start
+pwm_out_sim start
 sensors start
 commander start
 land_detector start vtol

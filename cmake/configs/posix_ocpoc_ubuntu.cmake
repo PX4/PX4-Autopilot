@@ -55,7 +55,6 @@ set(config_module_list
 	#
 	# Library modules
 	#
-	modules/sdlog2
 	modules/logger
 	modules/commander
 	modules/dataman
