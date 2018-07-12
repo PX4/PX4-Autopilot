@@ -46,6 +46,7 @@
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_odometry.h>
 
 #include <limits>
 
@@ -1128,28 +1129,18 @@ int Simulator::publish_ev_topic(mavlink_vision_position_estimate_t *ev_mavlink)
 {
 	uint64_t timestamp = hrt_absolute_time();
 
-	struct vehicle_local_position_s vision_position = {};
+	struct vehicle_odometry_s visual_odometry = {};
 
-	vision_position.timestamp = timestamp;
-	vision_position.x = ev_mavlink->x;
-	vision_position.y = ev_mavlink->y;
-	vision_position.z = ev_mavlink->z;
-
-	vision_position.xy_valid = true;
-	vision_position.z_valid = true;
-	vision_position.v_xy_valid = true;
-	vision_position.v_z_valid = true;
-
-	struct vehicle_attitude_s vision_attitude = {};
-
-	vision_attitude.timestamp = timestamp;
+	visual_odometry.timestamp = timestamp;
+	visual_odometry.x = ev_mavlink->x;
+	visual_odometry.y = ev_mavlink->y;
+	visual_odometry.z = ev_mavlink->z;
 
 	matrix::Quatf q(matrix::Eulerf(ev_mavlink->roll, ev_mavlink->pitch, ev_mavlink->yaw));
-	q.copyTo(vision_attitude.q);
+	q.copyTo(visual_odometry.q);
 
 	int inst = 0;
-	orb_publish_auto(ORB_ID(vehicle_vision_position), &_vision_position_pub, &vision_position, &inst, ORB_PRIO_HIGH);
-	orb_publish_auto(ORB_ID(vehicle_vision_attitude), &_vision_attitude_pub, &vision_attitude, &inst, ORB_PRIO_HIGH);
+	orb_publish_auto(ORB_ID(vehicle_visual_odometry), &_visual_odometry_pub, &visual_odometry, &inst, ORB_PRIO_HIGH);
 
 	return OK;
 }
