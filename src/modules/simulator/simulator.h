@@ -244,8 +244,7 @@ private:
 		_gyro_pub(nullptr),
 		_mag_pub(nullptr),
 		_flow_pub(nullptr),
-		_vision_position_pub(nullptr),
-		_vision_attitude_pub(nullptr),
+		_visual_odometry_pub(nullptr),
 		_dist_pub(nullptr),
 		_battery_pub(nullptr),
 		_param_sub(-1),
@@ -323,8 +322,7 @@ private:
 	orb_advert_t _gyro_pub;
 	orb_advert_t _mag_pub;
 	orb_advert_t _flow_pub;
-	orb_advert_t _vision_position_pub;
-	orb_advert_t _vision_attitude_pub;
+	orb_advert_t _visual_odometry_pub;
 	orb_advert_t _dist_pub;
 	orb_advert_t _battery_pub;
 	orb_advert_t _irlock_report_pub;
