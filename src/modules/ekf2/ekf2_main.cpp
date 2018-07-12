@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -71,6 +71,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
+#include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
 
@@ -216,6 +217,12 @@ private:
 		0.52f;	///< Maximum permissible yaw innovation to pass pre-flight checks when not aiding inertial nav using NE frame observations (rad)
 	const float _vel_innov_spike_lim = 2.0f * _vel_innov_test_lim;	///< preflight velocity innovation spike limit (m/sec)
 	const float _hgt_innov_spike_lim = 2.0f * _hgt_innov_test_lim;	///< preflight position innovation spike limit (m)
+
+	// set pose/velocity as invalid if standard deviation is bigger than max_std_dev
+	// TODO: the user should be allowed to set these values by a parameter
+	static constexpr float ep_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated position
+	//static constexpr float eo_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated orientation
+	//static constexpr float ev_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated velocity
 
 	// GPS blending and switching
 	gps_message _gps_state[GPS_MAX_RECEIVERS] {}; ///< internal state data for the physical GPS
@@ -408,9 +415,9 @@ private:
 		_flow_pos_y,	///< Y position of optical flow sensor focal point in body frame (m)
 		(ParamExtFloat<px4::params::EKF2_OF_POS_Z>)
 		_flow_pos_z,	///< Z position of optical flow sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_EV_POS_X>) _ev_pos_x,		///< X position of VI sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_EV_POS_Y>) _ev_pos_y,		///< Y position of VI sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_EV_POS_Z>) _ev_pos_z,		///< Z position of VI sensor focal point in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_EV_POS_X>) _ev_odom_x,		///< X position of VI sensor focal point in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_EV_POS_Y>) _ev_odom_y,		///< Y position of VI sensor focal point in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_EV_POS_Z>) _ev_odom_z,		///< Z position of VI sensor focal point in body frame (m)
 
 		// control of airspeed and sideslip fusion
 		(ParamFloat<px4::params::EKF2_ARSP_THR>)
@@ -563,9 +570,9 @@ Ekf2::Ekf2():
 	_flow_pos_x(_params->flow_pos_body(0)),
 	_flow_pos_y(_params->flow_pos_body(1)),
 	_flow_pos_z(_params->flow_pos_body(2)),
-	_ev_pos_x(_params->ev_pos_body(0)),
-	_ev_pos_y(_params->ev_pos_body(1)),
-	_ev_pos_z(_params->ev_pos_body(2)),
+	_ev_odom_x(_params->ev_pos_body(0)),
+	_ev_odom_y(_params->ev_pos_body(1)),
+	_ev_odom_z(_params->ev_pos_body(2)),
 	_tau_vel(_params->vel_Tau),
 	_tau_pos(_params->pos_Tau),
 	_gyr_bias_init(_params->switch_on_gyro_bias),
@@ -582,8 +589,7 @@ Ekf2::Ekf2():
 {
 	_airdata_sub = orb_subscribe(ORB_ID(vehicle_air_data));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
-	_ev_att_sub = orb_subscribe(ORB_ID(vehicle_vision_attitude));
-	_ev_pos_sub = orb_subscribe(ORB_ID(vehicle_vision_position));
+	_ev_odom_sub = orb_subscribe(ORB_ID(vehicle_visual_odometry));
 	_landing_target_pose_sub = orb_subscribe(ORB_ID(landing_target_pose));
 	_magnetometer_sub = orb_subscribe(ORB_ID(vehicle_magnetometer));
 	_optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
@@ -609,8 +615,7 @@ Ekf2::~Ekf2()
 
 	orb_unsubscribe(_airdata_sub);
 	orb_unsubscribe(_airspeed_sub);
-	orb_unsubscribe(_ev_att_sub);
-	orb_unsubscribe(_ev_pos_sub);
+	orb_unsubscribe(_ev_odom_sub);
 	orb_unsubscribe(_landing_target_pose_sub);
 	orb_unsubscribe(_magnetometer_sub);
 	orb_unsubscribe(_optical_flow_sub);
@@ -733,8 +738,7 @@ void Ekf2::run()
 		ekf2_timestamps.optical_flow_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 		ekf2_timestamps.vehicle_air_data_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 		ekf2_timestamps.vehicle_magnetometer_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
-		ekf2_timestamps.vision_attitude_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
-		ekf2_timestamps.vision_position_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
+		ekf2_timestamps.visual_odometry_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 
 		// update all other topics if they have new data
 
@@ -1152,40 +1156,43 @@ void Ekf2::run()
 
 		// get external vision data
 		// if error estimates are unavailable, use parameter defined defaults
-		bool vision_position_updated = false;
-		bool vision_attitude_updated = false;
-		orb_check(_ev_pos_sub, &vision_position_updated);
-		orb_check(_ev_att_sub, &vision_attitude_updated);
+		bool visual_odometry_updated = false;
+		orb_check(_ev_odom_sub, &visual_odometry_updated);
 
-		if (vision_position_updated || vision_attitude_updated) {
-			// copy both attitude & position if either updated, we need both to fill a single ext_vision_message
-			vehicle_attitude_s ev_att = {};
-			orb_copy(ORB_ID(vehicle_vision_attitude), _ev_att_sub, &ev_att);
-
-			vehicle_local_position_s ev_pos = {};
-			orb_copy(ORB_ID(vehicle_vision_position), _ev_pos_sub, &ev_pos);
+		if (visual_odometry_updated) {
+			// copy both attitude & position, we need both to fill a single ext_vision_message
+			vehicle_odometry_s ev_odom = {};
+			orb_copy(ORB_ID(vehicle_vision_position), _ev_odom_sub, &ev_odom);
 
 			ext_vision_message ev_data;
-			ev_data.posNED(0) = ev_pos.x;
-			ev_data.posNED(1) = ev_pos.y;
-			ev_data.posNED(2) = ev_pos.z;
-			matrix::Quatf q(ev_att.q);
-			ev_data.quat = q;
+			ev_data.posNED(0) = ev_odom.x;
+			ev_data.posNED(1) = ev_odom.y;
+			ev_data.posNED(2) = ev_odom.z;
+			ev_data.quat = matrix::Quatf(ev_odom.q);
 
-			// position measurement error from parameters. TODO : use covariances from topic
-			ev_data.posErr = fmaxf(_ev_pos_noise.get(), ev_pos.eph);
-			ev_data.angErr = _ev_ang_noise.get();
-			ev_data.hgtErr = fmaxf(_ev_pos_noise.get(), ev_pos.epv);
+			// position measurement error from parameters
+			if (!PX4_ISFINITE(ev_odom.pose_covariance[0])) {
+				ev_data.posErr = fmaxf(_ev_pos_noise.get(), sqrtf(fmaxf(ev_odom.pose_covariance[0], ev_odom.pose_covariance[6])));
+				ev_data.hgtErr = fmaxf(_ev_pos_noise.get(), sqrtf(fmaxf(ev_odom.pose_covariance[11]));
+			} else {
+				ev_data.posErr = _ev_pos_noise.get();
+				ev_data.hgtErr = _ev_pos_noise.get();
+			}
+			// orientation measurement error from parameters
+			if (!PX4_ISFINITE(ev_odom.pose_covariance[0])) {
+				ev_data.angErr = fmaxf(_ev_ang_noise.get(), sqrtf(fmaxf(ev_odom.pose_covariance[15], fmax(ev_odom.pose_covariance[18], ev_odom.pose_covariance[20]))));
+			}
+			else {
+			       ev_data.angErr = _ev_ang_noise.get();
+		       }
 
-			// only set data if all positions and velocities are valid
-			if (ev_pos.xy_valid && ev_pos.z_valid && ev_pos.v_xy_valid && ev_pos.v_z_valid) {
+			// only set data if all positions are valid
+			if (sqrtf(ev_odom.pose_covariance[0]) < ep_max_std_dev && sqrtf(ev_odom.pose_covariance[6]) < ep_max_std_dev) {
 				// use timestamp from external computer, clocks are synchronized when using MAVROS
-				_ekf.setExtVisionData(vision_position_updated ? ev_pos.timestamp : ev_att.timestamp, &ev_data);
+				_ekf.setExtVisionData(ev_odom.timestamp, &ev_data);
 			}
 
-			ekf2_timestamps.vision_position_timestamp_rel = (int16_t)((int64_t)ev_pos.timestamp / 100 -
-					(int64_t)ekf2_timestamps.timestamp / 100);
-			ekf2_timestamps.vision_attitude_timestamp_rel = (int16_t)((int64_t)ev_att.timestamp / 100 -
+			ekf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)ev_odom.timestamp / 100 -
 					(int64_t)ekf2_timestamps.timestamp / 100);
 		}
 
@@ -1295,8 +1302,8 @@ void Ekf2::run()
 				// The rotation of the tangent plane vs. geographical north
 				matrix::Quatf q;
 				_ekf.copy_quaternion(q.data());
-				matrix::Eulerf euler(q);
-				lpos.yaw = euler.psi();
+
+				lpos.yaw = matrix::Eulerf(q).psi();
 
 				lpos.dist_bottom_valid = _ekf.get_terrain_valid();
 

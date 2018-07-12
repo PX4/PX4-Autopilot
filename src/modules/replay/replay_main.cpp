@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -72,6 +72,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_odometry.h>
 
 #include "replay.hpp"
 
@@ -1000,11 +1001,8 @@ void ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 	} else if (sub.orb_meta == ORB_ID(vehicle_magnetometer)) {
 		_vehicle_magnetometer_msg_id = msg_id;
 
-	} else if (sub.orb_meta == ORB_ID(vehicle_vision_attitude)) {
-		_vehicle_vision_attitude_msg_id = msg_id;
-
-	} else if (sub.orb_meta == ORB_ID(vehicle_vision_position)) {
-		_vehicle_vision_position_msg_id = msg_id;
+	} else if (sub.orb_meta == ORB_ID(vehicle_odometry)) {
+		_vehicle_visual_odometry_msg_id = msg_id;
 	}
 
 	// the main loop should only handle publication of the following topics, the sensor topics are
@@ -1030,8 +1028,7 @@ bool ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std
 	handle_sensor_publication(ekf2_timestamps.optical_flow_timestamp_rel, _optical_flow_msg_id);
 	handle_sensor_publication(ekf2_timestamps.vehicle_air_data_timestamp_rel, _vehicle_air_data_msg_id);
 	handle_sensor_publication(ekf2_timestamps.vehicle_magnetometer_timestamp_rel, _vehicle_magnetometer_msg_id);
-	handle_sensor_publication(ekf2_timestamps.vision_attitude_timestamp_rel, _vehicle_vision_attitude_msg_id);
-	handle_sensor_publication(ekf2_timestamps.vision_position_timestamp_rel, _vehicle_vision_position_msg_id);
+	handle_sensor_publication(ekf2_timestamps.visual_odometry_timestamp_rel, _vehicle_visual_odometry_msg_id);
 
 	// sensor_combined: publish last because ekf2 is polling on this
 	if (!findTimestampAndPublish(ekf2_timestamps.timestamp / 100, _sensor_combined_msg_id, replay_file)) {
@@ -1111,8 +1108,7 @@ void ReplayEkf2::onExitMainLoop()
 	print_sensor_statistics(_sensor_combined_msg_id, "sensor_combined");
 	print_sensor_statistics(_vehicle_air_data_msg_id, "vehicle_air_data");
 	print_sensor_statistics(_vehicle_magnetometer_msg_id, "vehicle_magnetometer");
-	print_sensor_statistics(_vehicle_vision_attitude_msg_id, "vehicle_vision_attitude");
-	print_sensor_statistics(_vehicle_vision_position_msg_id, "vehicle_vision_position");
+	print_sensor_statistics(_vehicle_visual_odometry_msg_id, "vehicle_visual_odometry");
 
 	orb_unsubscribe(_vehicle_attitude_sub);
 	_vehicle_attitude_sub = -1;
