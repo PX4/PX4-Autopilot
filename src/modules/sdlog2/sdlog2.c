@@ -1171,9 +1171,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		struct vehicle_local_position_setpoint_s local_pos_sp;
 		struct vehicle_global_position_s global_pos;
 		struct position_setpoint_triplet_s triplet;
-		struct att_pos_mocap_s att_pos_mocap;
-		struct vehicle_local_position_s vision_pos;
-		struct vehicle_attitude_s vision_att;
+		struct vehicle_odometry_s mocap_odom;
+		struct vehicle_odometry_s visual_odom;
 		struct optical_flow_s flow;
 		struct rc_channels_s rc;
 		struct differential_pressure_s diff_pres;
@@ -1278,9 +1277,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 		int triplet_sub;
 		int gps_pos_sub[2];
 		int sat_info_sub;
-		int att_pos_mocap_sub;
-		int vision_pos_sub;
-		int vision_att_sub;
+		int mocap_odom_sub;
+		int visual_odom_sub;
 		int flow_sub;
 		int rc_sub;
 		int airspeed_sub;
@@ -1321,9 +1319,8 @@ int sdlog2_thread_main(int argc, char *argv[])
 	subs.local_pos_sp_sub = -1;
 	subs.global_pos_sub = -1;
 	subs.triplet_sub = -1;
-	subs.att_pos_mocap_sub = -1;
-	subs.vision_pos_sub = -1;
-	subs.vision_att_sub = -1;
+	subs.mocap_odom_sub = -1;
+	subs.visual_odom_sub = -1;
 	subs.flow_sub = -1;
 	subs.rc_sub = -1;
 	subs.airspeed_sub = -1;
@@ -1816,32 +1813,31 @@ int sdlog2_thread_main(int argc, char *argv[])
 			}
 
 			/* --- MOCAP ATTITUDE AND POSITION --- */
-			if (copy_if_updated(ORB_ID(att_pos_mocap), &subs.att_pos_mocap_sub, &buf.att_pos_mocap)) {
+			if (copy_if_updated(ORB_ID(att_pos_mocap), &subs.mocap_odom_sub, &buf.mocap_odom)) {
 				log_msg.msg_type = LOG_MOCP_MSG;
-				log_msg.body.log_MOCP.qw = buf.att_pos_mocap.q[0];
-				log_msg.body.log_MOCP.qx = buf.att_pos_mocap.q[1];
-				log_msg.body.log_MOCP.qy = buf.att_pos_mocap.q[2];
-				log_msg.body.log_MOCP.qz = buf.att_pos_mocap.q[3];
-				log_msg.body.log_MOCP.x = buf.att_pos_mocap.x;
-				log_msg.body.log_MOCP.y = buf.att_pos_mocap.y;
-				log_msg.body.log_MOCP.z = buf.att_pos_mocap.z;
+				log_msg.body.log_MOCP.qw = buf.mocap_odom.q[0];
+				log_msg.body.log_MOCP.qx = buf.mocap_odom.q[1];
+				log_msg.body.log_MOCP.qy = buf.mocap_odom.q[2];
+				log_msg.body.log_MOCP.qz = buf.mocap_odom.q[3];
+				log_msg.body.log_MOCP.x = buf.mocap_odom.x;
+				log_msg.body.log_MOCP.y = buf.mocap_odom.y;
+				log_msg.body.log_MOCP.z = buf.mocap_odom.z;
 				LOGBUFFER_WRITE_AND_COUNT(MOCP);
 			}
 
-			/* --- VISION POSITION --- */
-			if (copy_if_updated(ORB_ID(vehicle_visual_odometry), &subs.vision_pos_sub, &buf.vision_pos) ||
-			    copy_if_updated(ORB_ID(vehicle_vision_attitude), &subs.vision_att_sub, &buf.vision_att)) {
+			/* --- VISUAL ODOMETRY --- */
+			if (copy_if_updated(ORB_ID(vehicle_visual_odometry), &subs.visual_odom_sub, &buf.visual_odom)) {
 				log_msg.msg_type = LOG_VISN_MSG;
-				log_msg.body.log_VISN.x = buf.vision_pos.x;
-				log_msg.body.log_VISN.y = buf.vision_pos.y;
-				log_msg.body.log_VISN.z = buf.vision_pos.z;
-				log_msg.body.log_VISN.vx = buf.vision_pos.vx;
-				log_msg.body.log_VISN.vy = buf.vision_pos.vy;
-				log_msg.body.log_VISN.vz = buf.vision_pos.vz;
-				log_msg.body.log_VISN.qw = buf.vision_att.q[0]; // vision_position_estimate uses [w,x,y,z] convention
-				log_msg.body.log_VISN.qx = buf.vision_att.q[1];
-				log_msg.body.log_VISN.qy = buf.vision_att.q[2];
-				log_msg.body.log_VISN.qz = buf.vision_att.q[3];
+				log_msg.body.log_VISN.x = buf.visual_odom.x;
+				log_msg.body.log_VISN.y = buf.visual_odom.y;
+				log_msg.body.log_VISN.z = buf.visual_odom.z;
+				log_msg.body.log_VISN.vx = buf.visual_odom.vx;
+				log_msg.body.log_VISN.vy = buf.visual_odom.vy;
+				log_msg.body.log_VISN.vz = buf.visual_odom.vz;
+				log_msg.body.log_VISN.qw = buf.visual_odom.q[0]; // vision_position_estimate uses [w,x,y,z] convention
+				log_msg.body.log_VISN.qx = buf.visual_odom.q[1];
+				log_msg.body.log_VISN.qy = buf.visual_odom.q[2];
+				log_msg.body.log_VISN.qz = buf.visual_odom.q[3];
 				LOGBUFFER_WRITE_AND_COUNT(VISN);
 			}
 
