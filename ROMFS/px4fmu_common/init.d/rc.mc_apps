@@ -1,14 +1,14 @@
 #!nsh
 #
-# Standard apps for multirotors:
-# att & pos estimator, att & pos control.
+# Standard apps for multirotors. Attitude/Position estimator, Attitude/Position control.
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-
-#---------------------------------------
-# Estimator group selction
-#
-# INAV (deprecated)
+###############################################################################
+#                       Begin Estimator Group Selection                       #
+###############################################################################
+# INAV (deprecated).
 if param compare SYS_MC_EST_GROUP 0
 then
 	echo "ERROR [init] Estimator INAV deprecated. Using EKF2"
@@ -31,18 +31,26 @@ then
 	fi
 fi
 
-# EKF
+# EKF2
 if param compare SYS_MC_EST_GROUP 2
 then
 	ekf2 start
 fi
-#---------------------------------------
+###############################################################################
+#                        End Estimator Group Selection                        #
+###############################################################################
 
+#
+# Start Multicopter Attitude Controller.
+#
 mc_att_control start
 
+#
+# Start Multicopter Position Controller.
+#
 mc_pos_control start
 
 #
-# Start Land Detector
+# Start Multicopter Land Detector.
 #
 land_detector start multicopter

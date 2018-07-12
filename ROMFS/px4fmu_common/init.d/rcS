@@ -129,10 +129,14 @@ then
 	#
 	uorb start
 
+	#
 	# Start tone driver
+	#
 	tone_alarm start
 
+	#
 	# play startup tone
+	#
 	tune_control play -t 1
 
 	#
