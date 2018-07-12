@@ -71,6 +71,7 @@ int BlockLocalPositionEstimator::visionMeasure(Vector<float, n_y_vision> &y)
 		_vision_epv = sqrtf(_sub_visual_odom.get().pose_covariance[11]);
 		_vision_xy_valid = _vision_eph <= EP_MAX_STD_DEV;
 		_vision_z_valid = _vision_epv <= EP_MAX_STD_DEV;
+
 	} else {
 		// if we don't have covariances, assume every reading
 		_vision_xy_valid = true;
@@ -138,7 +139,7 @@ void BlockLocalPositionEstimator::visionCorrect()
 	if (vision_delay < 0.0f) { vision_delay = 0.0f; }
 
 	// use auto-calculated delay from measurement if parameter is set to zero
-	if (getDelayPeriods(_vision_delay.get() > 0.0f ? _vision_delay.get() : vision_delay, &i_hist) < 0){ return; }
+	if (getDelayPeriods(_vision_delay.get() > 0.0f ? _vision_delay.get() : vision_delay, &i_hist) < 0) { return; }
 
 	Vector<float, n_x> x0 = _xDelay.get(i_hist);
 

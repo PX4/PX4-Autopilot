@@ -667,10 +667,12 @@ void BlockLocalPositionEstimator::publishEstimatorStatus()
 	_pub_est_status.get().covariances[13] = _P(X_bx, X_bx);
 	_pub_est_status.get().covariances[14] = _P(X_by, X_by);
 	_pub_est_status.get().covariances[15] = _P(X_bz, X_bz);
+
 	// mag - not determined
 	for (size_t i = 16; i <= 21; i++) {
 		_pub_est_status.get().covariances[i] = NAN;
 	}
+
 	// replacing the hor wind cov with terrain altitude covariance
 	_pub_est_status.get().covariances[22] = _P(X_tz, X_tz);
 	_pub_est_status.get().covariances[23] = NAN;
