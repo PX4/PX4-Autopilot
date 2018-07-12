@@ -52,9 +52,10 @@ int BlockLocalPositionEstimator::lidarMeasure(Vector<float, n_y_lidar> &y)
 	_lidarStats.update(Scalarf(d));
 	_time_last_lidar = _timeStamp;
 	y.setZero();
+	matrix::Eulerf euler(matrix::Quatf(_sub_att.get().q));
 	y(0) = (d + _lidar_z_offset.get()) *
-	       cosf(_eul(0)) *
-	       cosf(_eul(1));
+	       cosf(euler.phi()) *
+	       cosf(euler.theta());
 	return OK;
 }
 
