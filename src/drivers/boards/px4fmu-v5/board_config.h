@@ -56,17 +56,17 @@
 /* PX4IO connection configuration */
 
 #define BOARD_USES_PX4IO_VERSION       2
-#define PX4IO_SERIAL_DEVICE     "/dev/ttyS6"
-#define PX4IO_SERIAL_TX_GPIO    GPIO_UART8_TX
-#define PX4IO_SERIAL_RX_GPIO    GPIO_UART8_RX
-#define PX4IO_SERIAL_BASE       STM32_UART8_BASE	/* hardwired on the board */
-#define PX4IO_SERIAL_VECTOR     STM32_IRQ_UART8
-#define PX4IO_SERIAL_TX_DMAMAP  DMAMAP_UART8_TX
-#define PX4IO_SERIAL_RX_DMAMAP  DMAMAP_UART8_RX
-#define PX4IO_SERIAL_RCC_REG	STM32_RCC_APB1ENR
-#define PX4IO_SERIAL_RCC_EN	RCC_APB1ENR_UART8EN
-#define PX4IO_SERIAL_CLOCK      STM32_PCLK1_FREQUENCY
-#define PX4IO_SERIAL_BITRATE    1500000			/* 1.5Mbps -> max rate for IO */
+#define PX4IO_SERIAL_DEVICE            "/dev/ttyS6"
+#define PX4IO_SERIAL_TX_GPIO           GPIO_UART8_TX
+#define PX4IO_SERIAL_RX_GPIO           GPIO_UART8_RX
+#define PX4IO_SERIAL_BASE              STM32_UART8_BASE
+#define PX4IO_SERIAL_VECTOR            STM32_IRQ_UART8
+#define PX4IO_SERIAL_TX_DMAMAP         DMAMAP_UART8_TX
+#define PX4IO_SERIAL_RX_DMAMAP         DMAMAP_UART8_RX
+#define PX4IO_SERIAL_RCC_REG           STM32_RCC_APB1ENR
+#define PX4IO_SERIAL_RCC_EN            RCC_APB1ENR_UART8EN
+#define PX4IO_SERIAL_CLOCK             STM32_PCLK1_FREQUENCY
+#define PX4IO_SERIAL_BITRATE           1500000               /* 1.5Mbps -> max rate for IO */
 
 /* Configuration ************************************************************************************/
 
@@ -130,9 +130,9 @@
 
 /* SPI1 off */
 
-#define GPIO_SPI1_SCK_OFF	_PIN_OFF(GPIO_SPI1_SCK)
-#define GPIO_SPI1_MISO_OFF	_PIN_OFF(GPIO_SPI1_MISO)
-#define GPIO_SPI1_MOSI_OFF	_PIN_OFF(GPIO_SPI1_MOSI)
+#define GPIO_SPI1_SCK_OFF  _PIN_OFF(GPIO_SPI1_SCK)
+#define GPIO_SPI1_MISO_OFF  _PIN_OFF(GPIO_SPI1_MISO)
+#define GPIO_SPI1_MOSI_OFF  _PIN_OFF(GPIO_SPI1_MOSI)
 
 #define GPIO_DRDY_OFF_SPI1_DRDY1_ICM20689    _PIN_OFF(GPIO_SPI1_DRDY1_ICM20689)
 #define GPIO_DRDY_OFF_SPI1_DRDY2_BMI055_GYRO _PIN_OFF(GPIO_SPI1_DRDY2_BMI055_GYRO)
@@ -188,30 +188,30 @@
 /* ^ END Legacy SPI defines TODO: fix this with enumeration */
 
 
-#define PX4_SPIDEV_ICM_20689      PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,0)
-#define PX4_SPIDEV_ICM_20602      PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,1)
-#define PX4_SPIDEV_BMI055_GYR     PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,2)
-#define PX4_SPIDEV_BMI055_ACC     PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,3)
+#define PX4_SPIDEV_ICM_20689        PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,0)
+#define PX4_SPIDEV_ICM_20602        PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,1)
+#define PX4_SPIDEV_BMI055_GYR       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,2)
+#define PX4_SPIDEV_BMI055_ACC       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,3)
 
-#define PX4_SENSOR_BUS_CS_GPIO    {GPIO_SPI1_CS1_ICM20689, GPIO_SPI1_CS2_ICM20602, GPIO_SPI1_CS3_BMI055_GYRO, GPIO_SPI1_CS4_BMI055_ACC}
-#define PX4_SENSORS_BUS_FIRST_CS  PX4_SPIDEV_ICM_20689
-#define PX4_SENSORS_BUS_LAST_CS   PX4_SPIDEV_BMI055_ACC
+#define PX4_SENSOR_BUS_CS_GPIO      {GPIO_SPI1_CS1_ICM20689, GPIO_SPI1_CS2_ICM20602, GPIO_SPI1_CS3_BMI055_GYRO, GPIO_SPI1_CS4_BMI055_ACC}
+#define PX4_SENSORS_BUS_FIRST_CS    PX4_SPIDEV_ICM_20689
+#define PX4_SENSORS_BUS_LAST_CS     PX4_SPIDEV_BMI055_ACC
 
-#define PX4_SPIDEV_MEMORY         PX4_MK_SPI_SEL(PX4_SPI_BUS_MEMORY,0)
-#define PX4_MEMORY_BUS_CS_GPIO    {GPIO_SPI2_CS_FRAM}
-#define PX4_MEMORY_BUS_FIRST_CS   PX4_SPIDEV_MEMORY
-#define PX4_MEMORY_BUS_LAST_CS    PX4_SPIDEV_MEMORY
+#define PX4_SPIDEV_MEMORY           PX4_MK_SPI_SEL(PX4_SPI_BUS_MEMORY,0)
+#define PX4_MEMORY_BUS_CS_GPIO      {GPIO_SPI2_CS_FRAM}
+#define PX4_MEMORY_BUS_FIRST_CS     PX4_SPIDEV_MEMORY
+#define PX4_MEMORY_BUS_LAST_CS      PX4_SPIDEV_MEMORY
 
-#define PX4_SPIDEV_BARO           PX4_MK_SPI_SEL(PX4_SPI_BUS_BARO,0)
-#define PX4_SPIDEV_SPI4_CS2       PX4_MK_SPI_SEL(PX4_SPI_BUS_BARO,1)
-#define PX4_BARO_BUS_CS_GPIO      {GPIO_SPI4_CS1_MS5611, GPIO_SPI4_CS2}
-#define PX4_BARO_BUS_FIRST_CS     PX4_SPIDEV_BARO
-#define PX4_BARO_BUS_LAST_CS      PX4_SPIDEV_SPI4_CS2
+#define PX4_SPIDEV_BARO             PX4_MK_SPI_SEL(PX4_SPI_BUS_BARO,0)
+#define PX4_SPIDEV_SPI4_CS2         PX4_MK_SPI_SEL(PX4_SPI_BUS_BARO,1)
+#define PX4_BARO_BUS_CS_GPIO        {GPIO_SPI4_CS1_MS5611, GPIO_SPI4_CS2}
+#define PX4_BARO_BUS_FIRST_CS       PX4_SPIDEV_BARO
+#define PX4_BARO_BUS_LAST_CS        PX4_SPIDEV_SPI4_CS2
 
 #define PX4_SPIDEV_EXTERNAL1_1      PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL1,0)
 #define PX4_SPIDEV_EXTERNAL1_2      PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL1,1)
 #define PX4_SPIDEV_EXTERNAL1_3      PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL1,2)
-#define PX4_EXTERNAL1_BUS_CS_GPIO  {SPI5_CS1_EXTERNAL1, SPI5_CS2_EXTERNAL1, SPI5_CS3_EXTERNAL1}
+#define PX4_EXTERNAL1_BUS_CS_GPIO   {SPI5_CS1_EXTERNAL1, SPI5_CS2_EXTERNAL1, SPI5_CS3_EXTERNAL1}
 #define PX4_EXTERNAL1_BUS_FIRST_CS  PX4_SPIDEV_EXTERNAL1_1
 #define PX4_EXTERNAL1_BUS_LAST_CS   PX4_SPIDEV_EXTERNAL1_3
 
@@ -219,21 +219,21 @@
 #define PX4_SPIDEV_EXTERNAL2_2      PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL2,1)
 #define PX4_SPIDEV_EXTERNAL2_3      PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL2,2)
 #define PX4_SPIDEV_AUX_MEM          PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL2,3)
-#define PX4_EXTERNAL2_BUS_CS_GPIO  {SPI6_CS1_EXTERNAL2, SPI6_CS2_EXTERNAL2, SPI6_CS3_EXTERNAL2, SPIAUX_CS_MEM}
+#define PX4_EXTERNAL2_BUS_CS_GPIO   {SPI6_CS1_EXTERNAL2, SPI6_CS2_EXTERNAL2, SPI6_CS3_EXTERNAL2, SPIAUX_CS_MEM}
 #define PX4_EXTERNAL2_BUS_FIRST_CS  PX4_SPIDEV_EXTERNAL2_1
 #define PX4_EXTERNAL2_BUS_LAST_CS   PX4_SPIDEV_AUX_MEM
 
 
 /* I2C busses */
 
-#define PX4_I2C_BUS_EXPANSION	1
-#define PX4_I2C_BUS_EXPANSION1	2
-#define PX4_I2C_BUS_ONBOARD		3
-#define PX4_I2C_BUS_EXPANSION2	4
-#define PX4_I2C_BUS_LED			PX4_I2C_BUS_EXPANSION
+#define PX4_I2C_BUS_EXPANSION       1
+#define PX4_I2C_BUS_EXPANSION1      2
+#define PX4_I2C_BUS_ONBOARD         3
+#define PX4_I2C_BUS_EXPANSION2      4
+#define PX4_I2C_BUS_LED             PX4_I2C_BUS_EXPANSION
 
-#define BOARD_NUMBER_I2C_BUSES  4
-#define BOARD_I2C_BUS_CLOCK_INIT {100000, 100000, 100000, 100000}
+#define BOARD_NUMBER_I2C_BUSES      4
+#define BOARD_I2C_BUS_CLOCK_INIT    {100000, 100000, 100000, 100000}
 
 /*
  * ADC channels
@@ -244,8 +244,8 @@
 
 /* ADC defines to be used in sensors.cpp to read from a particular channel */
 
-#define ADC1_CH(n)                      (n)
-#define ADC1_GPIO(n)                    GPIO_ADC1_IN##n
+#define ADC1_CH(n)                  (n)
+#define ADC1_GPIO(n)                GPIO_ADC1_IN##n
 
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below */
 
@@ -315,12 +315,12 @@
 /* Define Battery 1 Voltage Divider and A per V
  */
 
-#define BOARD_BATTERY1_V_DIV         (18.1f) 		/* measured with the provided PM board */
+#define BOARD_BATTERY1_V_DIV         (18.1f)     /* measured with the provided PM board */
 #define BOARD_BATTERY1_A_PER_V       (36.367515152f)
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 
-#define BOARD_ADC_OPEN_CIRCUIT_V               (5.6f)
+#define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
 
 /* HW Version and Revision drive signals Default to 1 to detect */
 
@@ -330,9 +330,9 @@
 #define GPIO_HW_REV_SENSE    /* PC3   */ ADC1_GPIO(13)
 #define GPIO_HW_VER_DRIVE    /* PG0   */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_VER_SENSE    /* PC2   */ ADC1_GPIO(12)
-#define HW_INFO_INIT {'V','5','x', 'x',0}
-#define HW_INFO_INIT_REV       2
-#define HW_INFO_INIT_VER            3
+#define HW_INFO_INIT         {'V','5','x', 'x',0}
+#define HW_INFO_INIT_REV     2
+#define HW_INFO_INIT_VER     3
 /* CAN Silence
  *
  * Silent mode control \ ESC Mux select
@@ -364,7 +364,7 @@
 #define DIRECT_PWM_CAPTURE_CHANNELS  3
 
 /* TIM5_CH4 SPARE PIN */
-#define GPIO_TIM5_CH4IN    /* PI0   T5C4  TIM5_SPARE_4 */	GPIO_TIM5_CH4IN_2
+#define GPIO_TIM5_CH4IN    /* PI0   T5C4  TIM5_SPARE_4 */  GPIO_TIM5_CH4IN_2
 #define GPIO_TIM5_CH4OUT   /* PI0   T5C4  TIM5_SPARE_4 */   GPIO_TIM5_CH4OUT_2
 
 /* PWM
@@ -498,8 +498,8 @@
 
 /* Tone alarm output */
 
-#define TONE_ALARM_TIMER      9 /* timer 9 */
-#define TONE_ALARM_CHANNEL      /* PE5 TIM9_CH1 */ 1	/* channel 1 */
+#define TONE_ALARM_TIMER        9  /* timer 9 */
+#define TONE_ALARM_CHANNEL      1  /* PE5 TIM9_CH1 */
 
 #define GPIO_BUZZER_1           /* PE5 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN5)
 
@@ -513,33 +513,37 @@
 #define GPIO_OTGFS_VBUS         /* PA9 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN9)
 
 /* High-resolution timer */
-#define HRT_TIMER		     8  /* use timer8 for the HRT */
-#define HRT_TIMER_CHANNEL    3  /* use capture/compare channel 3 */
+#define HRT_TIMER               8  /* use timer8 for the HRT */
+#define HRT_TIMER_CHANNEL       3  /* use capture/compare channel 3 */
 
-#define HRT_PPM_CHANNEL         /* T8C1 */  1	/* use capture/compare channel 1 */
+#define HRT_PPM_CHANNEL         /* T8C1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
-#define RC_UXART_BASE        STM32_USART6_BASE /* NOT FMUv5 test HW ONLY*/
+#define RC_UXART_BASE                      STM32_USART6_BASE
+#define BOARD_HAS_SINGLE_WIRE              1
+#define INVERT_RC_INPUT(_invert_true)      board_rc_input(_invert_true);
+#define RC_SERIAL_PORT                     "/dev/ttyS4"
+#define RC_SERIAL_PORT_IS_FULL_DUPLEX      false
 
 #define GPS_DEFAULT_UART_PORT "/dev/ttyS0" /* UART1 on FMUv5 */
 
 /* Input Capture Channels. */
-#define INPUT_CAP1_TIMER          		  2
+#define INPUT_CAP1_TIMER                  2
 #define INPUT_CAP1_CHANNEL     /* T4C1 */ 1
 #define GPIO_INPUT_CAP1        /*  PA5 */ GPIO_TIM2_CH1_IN
 
-#define INPUT_CAP2_TIMER          		  2
+#define INPUT_CAP2_TIMER                  2
 #define INPUT_CAP2_CHANNEL     /* T4C2 */ 2
 #define GPIO_INPUT_CAP2        /*  PB3 */ GPIO_TIM2_CH2_IN
 
-#define INPUT_CAP3_TIMER          		  2
+#define INPUT_CAP3_TIMER                  2
 #define INPUT_CAP3_CHANNEL     /* T4C4 */ 4
 #define GPIO_INPUT_CAP3        /* PB11 */ GPIO_TIM2_CH4_IN
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
-#define PWMIN_TIMER          4
-#define PWMIN_TIMER_CHANNEL     /* T4C2 */ 2
-#define GPIO_PWM_IN             /* PD13 */ GPIO_TIM4_CH2IN
+#define PWMIN_TIMER                       4
+#define PWMIN_TIMER_CHANNEL    /* T4C2 */ 2
+#define GPIO_PWM_IN            /* PD13 */ GPIO_TIM4_CH2IN
 
 /* Shared pins Both FMU and PX4IO control/monitor
  * FMU Initializes these pins to passive input until it is known
@@ -555,9 +559,6 @@
 #define GPIO_nSAFETY_SWITCH_LED_OUT        /* PE12 */ (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTE|GPIO_PIN12)
 #define GPIO_nSAFETY_SWITCH_LED_OUT_INIT   /* PE12 */ (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTE|GPIO_PIN12)
 #define GPIO_SAFETY_SWITCH_IN              /* PE10 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN10)
-
-#define INVERT_RC_INPUT(_invert_true)      board_rc_input(_invert_true);
-
 
 /* Power switch controls ******************************************************/
 
@@ -592,7 +593,7 @@
 #  warning SDIO initialization cannot be perfomed on the IDLE thread
 #endif
 
-#define	BOARD_NAME "PX4FMU_V5"
+#define  BOARD_NAME "PX4FMU_V5"
 
 /* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
  * this board support the ADC system_power interface, and therefore
@@ -635,7 +636,7 @@
 #define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_nVDD_5V_PERIPH_OC))
 #define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_nVDD_5V_HIPOWER_OC))
 
-#define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
+#define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
 #define BOARD_FMU_GPIO_TAB { \
 		{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,              0}, \
