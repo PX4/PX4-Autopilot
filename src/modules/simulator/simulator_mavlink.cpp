@@ -1173,7 +1173,7 @@ int Simulator::publish_distance_topic(mavlink_distance_sensor_t *dist_mavlink)
 	dist.id = dist_mavlink->id;
 	dist.orientation = dist_mavlink->orientation;
 	dist.covariance = dist_mavlink->covariance / 100.0f;
-	dist.signal_strength = -1;
+	dist.signal_quality = -1;
 
 	int dist_multi;
 	orb_publish_auto(ORB_ID(distance_sensor), &_dist_pub, &dist, &dist_multi, ORB_PRIO_HIGH);

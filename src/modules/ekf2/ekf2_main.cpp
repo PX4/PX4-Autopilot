@@ -942,7 +942,7 @@ void Ekf2::run()
 					// check if distance sensor is within working boundaries
 					if (range_finder.min_distance >= range_finder.current_distance ||
 					    range_finder.max_distance <= range_finder.current_distance ||
-					    range_finder.signal_strength == 0) {
+					    range_finder.signal_quality == 0) {
 						// use rng_gnd_clearance if on ground
 						if (_ekf.get_in_air_status()) {
 							range_finder_updated = false;
