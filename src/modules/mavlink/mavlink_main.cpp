@@ -1335,9 +1335,9 @@ void Mavlink::send_protocol_version()
 	set_proto_version(curr_proto_ver);
 }
 
-MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, int instance)
+MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, int instance, bool disable_sharing)
 {
-	if (topic != ORB_ID(vehicle_command)) {
+	if (!disable_sharing) {
 		/* check if already subscribed to this topic */
 		MavlinkOrbSubscription *sub;
 
@@ -2149,14 +2149,12 @@ Mavlink::task_main(int argc, char *argv[])
 	/* Initialize system properties */
 	mavlink_update_system();
 
-	MavlinkOrbSubscription *cmd_sub = add_orb_subscription(ORB_ID(vehicle_command));
-	uint64_t cmd_time = 0;
+	MavlinkOrbSubscription *cmd_sub = add_orb_subscription(ORB_ID(vehicle_command), 0, true);
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
 	uint64_t param_time = 0;
 	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status));
 	uint64_t status_time = 0;
-	MavlinkOrbSubscription *ack_sub = add_orb_subscription(ORB_ID(vehicle_command_ack));
-	uint64_t ack_time = 0;
+	MavlinkOrbSubscription *ack_sub = add_orb_subscription(ORB_ID(vehicle_command_ack), 0, true);
 	/* We don't want to miss the first advertise of an ACK, so we subscribe from the
 	 * beginning and not just when the topic exists. */
 	ack_sub->subscribe_from_beginning(true);
@@ -2265,7 +2263,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 		struct vehicle_command_s vehicle_cmd;
 
-		if (cmd_sub->update(&cmd_time, &vehicle_cmd)) {
+		if (cmd_sub->update_if_changed(&vehicle_cmd)) {
 			if ((vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY) &&
 			    (_mode == MAVLINK_MODE_IRIDIUM)) {
 				if (vehicle_cmd.param1 > 0.5f) {
@@ -2313,7 +2311,7 @@ Mavlink::task_main(int argc, char *argv[])
 		uint16_t current_command_ack = 0;
 		struct vehicle_command_ack_s command_ack;
 
-		if (ack_sub->update(&ack_time, &command_ack)) {
+		if (ack_sub->update_if_changed(&command_ack)) {
 			if (!command_ack.from_external) {
 				mavlink_command_ack_t msg;
 				msg.result = command_ack.result;
