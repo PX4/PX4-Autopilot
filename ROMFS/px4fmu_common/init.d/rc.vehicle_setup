@@ -165,3 +165,12 @@ then
 	# Start standard UGV apps
 	sh /etc/init.d/rc.ugv_apps
 fi
+
+#
+# Generic setup (autostart ID not found).
+#
+if [ $VEHICLE_TYPE == none ]
+then
+	echo "No autostart ID found"
+	ekf2 start
+fi
