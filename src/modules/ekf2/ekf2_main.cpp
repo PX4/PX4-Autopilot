@@ -1178,13 +1178,15 @@ void Ekf2::run()
 				ev_data.posErr = _ev_pos_noise.get();
 				ev_data.hgtErr = _ev_pos_noise.get();
 			}
+
 			// orientation measurement error from parameters
 			if (!PX4_ISFINITE(ev_odom.pose_covariance[0])) {
-				ev_data.angErr = fmaxf(_ev_ang_noise.get(), sqrtf(fmaxf(ev_odom.pose_covariance[15], fmax(ev_odom.pose_covariance[18], ev_odom.pose_covariance[20]))));
+				ev_data.angErr = fmaxf(_ev_ang_noise.get(), sqrtf(fmaxf(ev_odom.pose_covariance[15], fmax(ev_odom.pose_covariance[18],
+						       ev_odom.pose_covariance[20]))));
+
+			} else {
+				ev_data.angErr = _ev_ang_noise.get();
 			}
-			else {
-			       ev_data.angErr = _ev_ang_noise.get();
-		       }
 
 			// only set data if all positions are valid
 			if (sqrtf(ev_odom.pose_covariance[0]) < ep_max_std_dev && sqrtf(ev_odom.pose_covariance[6]) < ep_max_std_dev) {
