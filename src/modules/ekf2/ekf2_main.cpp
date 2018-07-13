@@ -1713,7 +1713,7 @@ const Vector3f Ekf2::get_vel_body_wind()
 /*
  calculate the weightings used to blend GPS location and velocity data
 */
-bool Ekf2::calc_gps_blend_weights(void)
+bool Ekf2::calc_gps_blend_weights()
 {
 	// zero the blend weights
 	memset(&_blend_weights, 0, sizeof(_blend_weights));
@@ -1887,7 +1887,7 @@ bool Ekf2::calc_gps_blend_weights(void)
  * because if physical receivers have significant position differences,  variation in receiver estimated accuracy will
  * cause undesirable variation in the position soution.
 */
-void Ekf2::update_gps_blend_states(void)
+void Ekf2::update_gps_blend_states()
 {
 	// initialise the blended states so we can accumulate the results using the weightings for each GPS receiver.
 	_gps_blended_state.time_usec = 0;
@@ -2025,7 +2025,7 @@ void Ekf2::update_gps_blend_states(void)
  * To mitigate this effect a low-pass filtered offset from each GPS location to the blended location is
  * calculated.
 */
-void Ekf2::update_gps_offsets(void)
+void Ekf2::update_gps_offsets()
 {
 
 	// Calculate filter coefficients to be applied to the offsets for each GPS position and height offset
@@ -2092,7 +2092,7 @@ void Ekf2::update_gps_offsets(void)
 /*
  * Apply the steady state physical receiver offsets calculated by update_gps_offsets().
 */
-void Ekf2::apply_gps_offsets(void)
+void Ekf2::apply_gps_offsets()
 {
 	// calculate offset corrected output for each physical GPS.
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
@@ -2125,7 +2125,7 @@ void Ekf2::apply_gps_offsets(void)
 /*
  Calculate GPS output that is a blend of the offset corrected physical receiver data
 */
-void Ekf2::calc_gps_blend_output(void)
+void Ekf2::calc_gps_blend_output()
 {
 	// Convert each GPS position to a local NEU offset relative to the reference position
 	// which is defined as the positon of the blended solution calculated from non offset corrected data
