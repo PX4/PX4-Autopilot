@@ -63,6 +63,7 @@ list(APPEND nuttx_libs
 
 if (CONFIG_NET)
 	list(APPEND nuttx_libs nuttx_net)
+	target_link_libraries(nuttx_fs INTERFACE nuttx_net)
 endif()
 
 if (NOT LD_SCRIPT)
