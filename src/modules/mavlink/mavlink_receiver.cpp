@@ -329,8 +329,8 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_obstacle_distance(msg);
 		break;
 
-	case MAVLINK_MSG_ID_TRAJECTORY:
-		handle_message_trajectory(msg);
+	case MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_WAYPOINTS:
+		handle_message_trajectory_representation_waypoints(msg);
 		break;
 
 	case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
@@ -1636,76 +1636,50 @@ MavlinkReceiver::handle_message_obstacle_distance(mavlink_message_t *msg)
 }
 
 void
-MavlinkReceiver::handle_message_trajectory(mavlink_message_t *msg)
+MavlinkReceiver::handle_message_trajectory_representation_waypoints(mavlink_message_t *msg)
 {
-	mavlink_trajectory_t trajectory;
-	mavlink_msg_trajectory_decode(msg, &trajectory);
-
-	if (trajectory.type == vehicle_trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS) {
-
-		struct vehicle_trajectory_waypoint_s trajectory_waypoint = {};
-
-		trajectory_waypoint.timestamp = hrt_absolute_time();
-		trajectory_waypoint.type = trajectory.type;
+	mavlink_trajectory_representation_waypoints_t trajectory;
+	mavlink_msg_trajectory_representation_waypoints_decode(msg, &trajectory);
 
 
-		matrix::Vector3f(trajectory.point_1[0], trajectory.point_1[1],
-				 trajectory.point_1[2]).copyTo(trajectory_waypoint.waypoints[0].position);
-		matrix::Vector3f(trajectory.point_1[3], trajectory.point_1[4],
-				 trajectory.point_1[5]).copyTo(trajectory_waypoint.waypoints[0].velocity);
-		matrix::Vector3f(trajectory.point_1[6], trajectory.point_1[7],
-				 trajectory.point_1[8]).copyTo(trajectory_waypoint.waypoints[0].acceleration);
-		trajectory_waypoint.waypoints[0].yaw = trajectory.point_1[9];
-		trajectory_waypoint.waypoints[0].yaw_speed = trajectory.point_1[10];
-		trajectory_waypoint.waypoints[0].point_valid = trajectory.point_valid[0];
+	struct vehicle_trajectory_waypoint_s trajectory_waypoint = {};
 
-		matrix::Vector3f(trajectory.point_2[0], trajectory.point_2[1],
-				 trajectory.point_2[2]).copyTo(trajectory_waypoint.waypoints[1].position);
-		matrix::Vector3f(trajectory.point_2[3], trajectory.point_2[4],
-				 trajectory.point_2[5]).copyTo(trajectory_waypoint.waypoints[1].velocity);
-		matrix::Vector3f(trajectory.point_2[6], trajectory.point_2[7],
-				 trajectory.point_2[8]).copyTo(trajectory_waypoint.waypoints[1].acceleration);
-		trajectory_waypoint.waypoints[1].yaw = trajectory.point_2[9];
-		trajectory_waypoint.waypoints[1].yaw_speed = trajectory.point_2[10];
-		trajectory_waypoint.waypoints[1].point_valid = trajectory.point_valid[1];
+	trajectory_waypoint.timestamp = hrt_absolute_time();
+	const int number_valid_points = trajectory.valid_points;
 
-		matrix::Vector3f(trajectory.point_3[0], trajectory.point_3[1],
-				 trajectory.point_3[2]).copyTo(trajectory_waypoint.waypoints[2].position);
-		matrix::Vector3f(trajectory.point_3[3], trajectory.point_3[4],
-				 trajectory.point_3[5]).copyTo(trajectory_waypoint.waypoints[2].velocity);
-		matrix::Vector3f(trajectory.point_3[6], trajectory.point_3[7],
-				 trajectory.point_3[8]).copyTo(trajectory_waypoint.waypoints[2].acceleration);
-		trajectory_waypoint.waypoints[2].yaw = trajectory.point_3[9];
-		trajectory_waypoint.waypoints[2].yaw_speed = trajectory.point_3[10];
-		trajectory_waypoint.waypoints[2].point_valid = trajectory.point_valid[2];
+	for (int i = 0; i < vehicle_trajectory_waypoint_s::NUMBER_POINTS; ++i) {
+		trajectory_waypoint.waypoints[i].position[0] = trajectory.pos_x[i];
+		trajectory_waypoint.waypoints[i].position[1] = trajectory.pos_y[i];
+		trajectory_waypoint.waypoints[i].position[2] = trajectory.pos_z[i];
 
-		matrix::Vector3f(trajectory.point_4[0], trajectory.point_4[1],
-				 trajectory.point_4[2]).copyTo(trajectory_waypoint.waypoints[3].position);
-		matrix::Vector3f(trajectory.point_4[3], trajectory.point_4[4],
-				 trajectory.point_4[5]).copyTo(trajectory_waypoint.waypoints[3].velocity);
-		matrix::Vector3f(trajectory.point_4[6], trajectory.point_4[7],
-				 trajectory.point_4[8]).copyTo(trajectory_waypoint.waypoints[3].acceleration);
-		trajectory_waypoint.waypoints[3].yaw = trajectory.point_4[9];
-		trajectory_waypoint.waypoints[3].yaw_speed = trajectory.point_4[10];
-		trajectory_waypoint.waypoints[3].point_valid = trajectory.point_valid[3];
+		trajectory_waypoint.waypoints[i].velocity[0] = trajectory.vel_x[i];
+		trajectory_waypoint.waypoints[i].velocity[1] = trajectory.vel_y[i];
+		trajectory_waypoint.waypoints[i].velocity[2] = trajectory.vel_z[i];
 
-		matrix::Vector3f(trajectory.point_5[0], trajectory.point_5[1],
-				 trajectory.point_5[2]).copyTo(trajectory_waypoint.waypoints[4].position);
-		matrix::Vector3f(trajectory.point_5[3], trajectory.point_5[4],
-				 trajectory.point_5[5]).copyTo(trajectory_waypoint.waypoints[4].velocity);
-		matrix::Vector3f(trajectory.point_5[6], trajectory.point_5[7],
-				 trajectory.point_5[8]).copyTo(trajectory_waypoint.waypoints[4].acceleration);
-		trajectory_waypoint.waypoints[4].yaw = trajectory.point_5[9];
-		trajectory_waypoint.waypoints[4].yaw_speed = trajectory.point_5[10];
-		trajectory_waypoint.waypoints[4].point_valid = trajectory.point_valid[4];
+		trajectory_waypoint.waypoints[i].acceleration[0] = trajectory.acc_x[i];
+		trajectory_waypoint.waypoints[i].acceleration[1] = trajectory.acc_y[i];
+		trajectory_waypoint.waypoints[i].acceleration[2] = trajectory.acc_z[i];
 
-		if (_trajectory_waypoint_pub == nullptr) {
-			_trajectory_waypoint_pub = orb_advertise(ORB_ID(vehicle_trajectory_waypoint), &trajectory_waypoint);
+		trajectory_waypoint.waypoints[i].yaw = trajectory.pos_yaw[i];
+		trajectory_waypoint.waypoints[i].yaw_speed = trajectory.vel_yaw[i];
 
-		} else {
-			orb_publish(ORB_ID(vehicle_trajectory_waypoint), _trajectory_waypoint_pub, &trajectory_waypoint);
-		}
 	}
+
+	for (int i = 0; i < number_valid_points; ++i) {
+		trajectory_waypoint.waypoints[i].point_valid = true;
+	}
+
+	for (int i = number_valid_points; i < vehicle_trajectory_waypoint_s::NUMBER_POINTS; ++i) {
+		trajectory_waypoint.waypoints[i].point_valid = false;
+	}
+
+	if (_trajectory_waypoint_pub == nullptr) {
+		_trajectory_waypoint_pub = orb_advertise(ORB_ID(vehicle_trajectory_waypoint), &trajectory_waypoint);
+
+	} else {
+		orb_publish(ORB_ID(vehicle_trajectory_waypoint), _trajectory_waypoint_pub, &trajectory_waypoint);
+	}
+
 }
 
 switch_pos_t
