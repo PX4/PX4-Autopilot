@@ -110,17 +110,15 @@ void Ekf::controlFusionModes()
 	// Get range data from buffer and check validity
 	_range_data_ready = _range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed);
 
-	if (_range_data_ready) {
-		checkRangeDataValidity();
+	checkRangeDataValidity();
 
-		if (_range_data_ready && !_rng_hgt_faulty) {
-			// correct the range data for position offset relative to the IMU
-			Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
-			Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-			_range_sample_delayed.rng += pos_offset_earth(2) / _R_rng_to_earth_2_2;
-		}
+	if (_range_data_ready && !_rng_hgt_faulty) {
+		// correct the range data for position offset relative to the IMU
+		Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
+		Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+		_range_sample_delayed.rng += pos_offset_earth(2) / _R_rng_to_earth_2_2;
 	}
-
+	
 	// We don't fuse flow data immediately because we have to wait for the mid integration point to fall behind the fusion time horizon.
 	// This means we stop looking for new data until the old data has been fused.
 	if (!_flow_data_ready) {
