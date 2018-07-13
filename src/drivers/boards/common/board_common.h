@@ -407,9 +407,9 @@ typedef uint8_t px4_guid_t[PX4_GUID_BYTE_LENGTH];
  ************************************************************************************/
 
 #if !defined(BOARD_HAS_SINGLE_WIRE)
-#  define board_supports_single_wire() false
+#  define board_supports_single_wire(_uxart_base) false
 #else
-__EXPORT bool board_supports_single_wire(void);
+__EXPORT bool board_supports_single_wire(uint32_t _uxart_base);
 #endif
 
 
