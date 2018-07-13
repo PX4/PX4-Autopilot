@@ -162,7 +162,7 @@ extern "C" {
 		int i;
 		mode_t mode;
 
-		if (!dev && (flags & (PX4_F_WRONLY | PX4_F_CREAT)) != 0 &&
+		if (!dev && (flags & PX4_F_WRONLY) != 0 &&
 		    strncmp(path, "/obj/", 5) != 0 &&
 		    strncmp(path, "/dev/", 5) != 0) {
 			va_list p;
