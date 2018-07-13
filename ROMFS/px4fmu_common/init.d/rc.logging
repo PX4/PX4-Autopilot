@@ -1,7 +1,7 @@
 #!nsh
-# Logging
+# Standard startup script for logging.
 #
-# Standard startup script for logging
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
 set LOGGER_ARGS ""
@@ -24,4 +24,3 @@ fi
 logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
 
 unset LOGGER_ARGS
-unset LOGGER_BUF
