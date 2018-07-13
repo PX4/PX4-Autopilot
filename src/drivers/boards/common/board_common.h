@@ -503,10 +503,34 @@ __EXPORT int board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16
  *   None
  *
  ************************************************************************************/
-#if defined(INVERT_RC_INPUT)
-#  if !defined(GPIO_SBUS_INV)
-__EXPORT void board_rc_input(bool invert_on);
-#  endif
+
+/* Provide an interface for Inversion of serial data
+ *
+ * Case 1:Board does provide UxART based inversion
+ *    Use it, and it will define RC_UXART_BASE
+ *
+ * Case 1:Board does provide GPIO inversion
+ *    Use it and let board determine active state
+ *    Define RC_UXART_BASE as empty
+ *
+ * Case 3:Board does not provide any inversions
+ *    Default to nop
+ *    Define RC_UXART_BASE as empty
+ */
+
+#if defined(RC_UXART_BASE)
+__EXPORT void board_rc_input(bool invert_on, uint32_t uxart_base);
+#  define INVERT_RC_INPUT(_invert_true, _rc_uxart) board_rc_input((_invert_true), (_rc_uxart));
+#endif
+
+#if defined(BOARD_INVERT_RC_INPUT)
+#  define INVERT_RC_INPUT BOARD_INVERT_RC_INPUT
+#  define RC_UXART_BASE 0
+#endif
+
+#if !defined(INVERT_RC_INPUT)
+#  define INVERT_RC_INPUT(_invert_true, _na) while(0)
+#  define RC_UXART_BASE 0
 #endif
 
 /************************************************************************************
