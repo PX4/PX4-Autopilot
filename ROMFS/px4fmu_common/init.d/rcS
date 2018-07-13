@@ -100,9 +100,9 @@ else
 	fi
 fi
 
-if ver hwcmp CRAZYFLIE -o ver hwcmp AEROCORE2
+if ver hwcmp CRAZYFLIE AEROCORE2
 then
-	# AEROCORE2 and CF2 shouldn't have an sd card.
+	# AEROCORE2 shouldn't have an sd card and CF2 may optionally have an sd card.
 else
 	# Run no SD alarm.
 	if [ $LOG_FILE == /dev/null ]
