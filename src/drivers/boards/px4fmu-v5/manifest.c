@@ -59,11 +59,11 @@
  *
  * Description:
  *   All boards my optionally provide this API to invert the Serial RC input.
- *   This is needed on SoCs that support the notion RXINV or TXINV as apposed to
+ *   This is needed on SoCs that support the notion RXINV or TXINV as opposed to
  *   and external XOR controlled by a GPIO
  *
  ************************************************************************************/
-__EXPORT bool board_supports_single_wire(void)
+__EXPORT bool board_supports_single_wire(uint32_t uxart_base)
 {
-	return true;
+	return uxart_base == RC_UXART_BASE;
 }
