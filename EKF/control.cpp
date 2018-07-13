@@ -90,9 +90,6 @@ void Ekf::controlFusionModes()
 	const gpsSample &gps_init = _gps_buffer.get_newest();
 	_gps_hgt_faulty = !((_time_last_imu - gps_init.time_us) < 2 * GPS_MAX_INTERVAL);
 
-	const rangeSample &rng_init = _range_buffer.get_newest();
-	_rng_hgt_faulty = !((_time_last_imu - rng_init.time_us) < 2 * RNG_MAX_INTERVAL);
-
 	// check for arrival of new sensor data at the fusion time horizon
 	_gps_data_ready = _gps_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed);
 	_mag_data_ready = _mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed);
@@ -115,6 +112,13 @@ void Ekf::controlFusionModes()
 
 	if (_range_data_ready) {
 		checkRangeDataValidity();
+
+		if (_range_data_ready && !_rng_hgt_faulty) {
+			// correct the range data for position offset relative to the IMU
+			Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
+			Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+			_range_sample_delayed.rng += pos_offset_earth(2) / _R_rng_to_earth_2_2;
+		}
 	}
 
 	// We don't fuse flow data immediately because we have to wait for the mid integration point to fall behind the fusion time horizon.
@@ -907,13 +911,6 @@ void Ekf::controlHeightFusion()
 {
 	// set control flags for the desired primary height source
 
-	if (_range_data_ready) {
-		// correct the range data for position offset relative to the IMU
-		Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
-		Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-		_range_sample_delayed.rng += pos_offset_earth(2) / _R_rng_to_earth_2_2;
-	}
-
 	rangeAidConditionsMet();
 
 	_range_aid_mode_selected = (_params.range_aid == 1) && _range_aid_mode_enabled;
@@ -1068,7 +1065,7 @@ void Ekf::controlHeightFusion()
 	}
 
 	if ((_time_last_imu - _time_last_hgt_fuse) > 2 * RNG_MAX_INTERVAL && _control_status.flags.rng_hgt
-	    && !_range_data_ready) {
+	    && (!_range_data_ready || _rng_hgt_faulty)) {
 
 		// If we are supposed to be using range finder data as the primary height sensor, have missed or rejected measurements
 		// and are on the ground, then synthesise a measurement at the expected on ground value
@@ -1088,11 +1085,12 @@ void Ekf::rangeAidConditionsMet()
 {
 	// if the parameter for range aid is enabled we allow to switch from using the primary height source to using range finder as height source
 	// under the following conditions
-	// 1) we are not further than max_hagl_for_range_aid away from the ground
-	// 2) our ground speed is not higher than max_vel_for_range_aid
-	// 3) Our terrain estimate is stable (needs better checks)
-	// 4) We are in-air
-	if (_control_status.flags.in_air) {
+	// 1) Vehicle is in-air
+	// 2) Range data is valid
+	// 3) Vehicle is no further than max_hagl_for_range_aid away from the ground
+	// 4) Ground speed is not higher than max_vel_for_range_aid
+	// 5) Terrain estimate is stable (needs better checks)
+	if (_control_status.flags.in_air && !_rng_hgt_faulty) {
 		// check if we can use range finder measurements to estimate height, use hysteresis to avoid rapid switching
 		bool can_use_range_finder;
 		if (_range_aid_mode_enabled) {
@@ -1142,9 +1140,18 @@ void Ekf::rangeAidConditionsMet()
 
 void Ekf::checkRangeDataValidity()
 {
+	// reset fault status
+	_rng_hgt_faulty = false;
+
+	// check if out of date
+	if ((_imu_sample_delayed.time_us - _range_sample_delayed .time_us) > 2 * RNG_MAX_INTERVAL) {
+		_rng_hgt_faulty = true;
+		return;
+	}
+
 	// Check if excessively tilted
 	if (_R_rng_to_earth_2_2 < _params.range_cos_max_tilt) {
-		_range_data_ready = false;
+		_rng_hgt_faulty = true;
 		return;
 	}
 
@@ -1152,7 +1159,7 @@ void Ekf::checkRangeDataValidity()
 	if ((_range_sample_delayed.rng > _rng_valid_max_val)
 	|| (_range_sample_delayed.rng < _rng_valid_min_val)) {
 		if (_control_status.flags.in_air) {
-			_range_data_ready = false;
+			_rng_hgt_faulty = true;
 			return;
 		} else {
 			// Range finders can fail to provide valid readings when resting on the ground
@@ -1163,12 +1170,10 @@ void Ekf::checkRangeDataValidity()
 		}
 	}
 
-	// Check for "stuck" range finder measurements when rng was not valid for certain period
+	// Check for "stuck" range finder measurements when range was not valid for certain period
 	// This handles a failure mode observed with some lidar sensors
 	if (_range_sample_delayed.time_us - _time_last_rng_ready > (uint64_t)10e6 &&
 	    _control_status.flags.in_air) {
-
-		_control_status.flags.rng_stuck = true;
 
 		// require a variance of rangefinder values to check for "stuck" measurements
 		if (_rng_stuck_max_val - _rng_stuck_min_val > 1.0f) {
@@ -1186,7 +1191,8 @@ void Ekf::checkRangeDataValidity()
 				_rng_stuck_min_val = _range_sample_delayed.rng;
 			}
 
-			_range_data_ready = false;
+			_control_status.flags.rng_stuck = true;
+			_rng_hgt_faulty = true;
 		}
 
 	} else {
