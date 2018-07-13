@@ -173,13 +173,13 @@ int board_read_VBUS_state(void)
  *
  ************************************************************************************/
 
-__EXPORT void board_rc_input(bool invert_on)
+__EXPORT void board_rc_input(bool invert_on, uint32_t uxart_base)
 {
 
 	irqstate_t irqstate = px4_enter_critical_section();
 
-	uint8_t s2 =  getreg8(KINETIS_UART_S2_OFFSET + RC_UXART_BASE);
-	uint8_t c3 =  getreg8(KINETIS_UART_C3_OFFSET + RC_UXART_BASE);
+	uint8_t s2 =  getreg8(KINETIS_UART_S2_OFFSET + uxart_base);
+	uint8_t c3 =  getreg8(KINETIS_UART_C3_OFFSET + uxart_base);
 
 	/* {R|T}XINV bit fields can written any time */
 
@@ -192,8 +192,8 @@ __EXPORT void board_rc_input(bool invert_on)
 		c3 &= ~(UART_C3_TXINV);
 	}
 
-	putreg8(s2, KINETIS_UART_S2_OFFSET + RC_UXART_BASE);
-	putreg8(c3, KINETIS_UART_C3_OFFSET + RC_UXART_BASE);
+	putreg8(s2, KINETIS_UART_S2_OFFSET + uxart_base);
+	putreg8(c3, KINETIS_UART_C3_OFFSET + uxart_base);
 
 	leave_critical_section(irqstate);
 }
