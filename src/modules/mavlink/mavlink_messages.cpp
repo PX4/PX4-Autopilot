@@ -3082,12 +3082,12 @@ public:
 
 	static const char *get_name_static()
 	{
-		return "TRAJECTORY";
+		return "TRAJECTORY_REPRESENTATION_WAYPOINTS";
 	}
 
 	static uint16_t get_id_static()
 	{
-		return MAVLINK_MSG_ID_TRAJECTORY;
+		return MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_WAYPOINTS;
 	}
 
 	uint16_t get_id()
@@ -3102,7 +3102,8 @@ public:
 
 	unsigned get_size()
 	{
-		return _traj_wp_avoidance_sub->is_published() ? (MAVLINK_MSG_ID_TRAJECTORY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)
+		return _traj_wp_avoidance_sub->is_published() ? (MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_WAYPOINTS_LEN +
+				MAVLINK_NUM_NON_PAYLOAD_BYTES)
 		       : 0;
 	}
 
@@ -3125,62 +3126,36 @@ protected:
 		struct vehicle_trajectory_waypoint_s traj_wp_avoidance_desired;
 
 		if (_traj_wp_avoidance_sub->update(&_traj_wp_avoidance_time, &traj_wp_avoidance_desired)) {
-			mavlink_trajectory_t msg = {};
+			mavlink_trajectory_representation_waypoints_t msg = {};
 
 			msg.time_usec = traj_wp_avoidance_desired.timestamp;
-			msg.type = traj_wp_avoidance_desired.type;
+			int number_valid_points = 0;
 
-			for (int i = 0; i < 3; ++i) {
-				msg.point_1[i] = traj_wp_avoidance_desired.waypoints[0].position[i];
-				msg.point_1[3 + i] = traj_wp_avoidance_desired.waypoints[0].velocity[i];
-				msg.point_1[6 + i] = traj_wp_avoidance_desired.waypoints[0].acceleration[i];
+			for (int i = 0; i < vehicle_trajectory_waypoint_s::NUMBER_POINTS; ++i) {
+				msg.pos_x[i] = traj_wp_avoidance_desired.waypoints[i].position[0];
+				msg.pos_y[i] = traj_wp_avoidance_desired.waypoints[i].position[1];
+				msg.pos_z[i] = traj_wp_avoidance_desired.waypoints[i].position[2];
+
+				msg.vel_x[i] = traj_wp_avoidance_desired.waypoints[i].velocity[0];
+				msg.vel_y[i] = traj_wp_avoidance_desired.waypoints[i].velocity[1];
+				msg.vel_z[i] = traj_wp_avoidance_desired.waypoints[i].velocity[2];
+
+				msg.acc_x[i] = traj_wp_avoidance_desired.waypoints[i].acceleration[0];
+				msg.acc_y[i] = traj_wp_avoidance_desired.waypoints[i].acceleration[1];
+				msg.acc_z[i] = traj_wp_avoidance_desired.waypoints[i].acceleration[2];
+
+				msg.pos_yaw[i] = traj_wp_avoidance_desired.waypoints[i].yaw;
+				msg.vel_yaw[i] = traj_wp_avoidance_desired.waypoints[i].yaw_speed;
+
+				if (traj_wp_avoidance_desired.waypoints[i].point_valid) {
+					number_valid_points++;
+				}
+
 			}
 
-			msg.point_1[9] = traj_wp_avoidance_desired.waypoints[0].yaw;
-			msg.point_1[10] = traj_wp_avoidance_desired.waypoints[0].yaw_speed;
-			msg.point_valid[0] = traj_wp_avoidance_desired.waypoints[0].point_valid;
+			msg.valid_points = number_valid_points;
 
-			for (int i = 0; i < 3; ++i) {
-				msg.point_2[i] = traj_wp_avoidance_desired.waypoints[1].position[i];
-				msg.point_2[3 + i] = traj_wp_avoidance_desired.waypoints[1].velocity[i];
-				msg.point_2[6 + i] = traj_wp_avoidance_desired.waypoints[1].acceleration[i];
-			}
-
-			msg.point_2[9] = traj_wp_avoidance_desired.waypoints[1].yaw;
-			msg.point_2[10] = traj_wp_avoidance_desired.waypoints[1].yaw_speed;
-			msg.point_valid[1] = traj_wp_avoidance_desired.waypoints[1].point_valid;
-
-			for (int i = 0; i < 3; ++i) {
-				msg.point_3[i] = traj_wp_avoidance_desired.waypoints[2].position[i];
-				msg.point_3[3 + i] = traj_wp_avoidance_desired.waypoints[2].velocity[i];
-				msg.point_3[6 + i] = traj_wp_avoidance_desired.waypoints[2].acceleration[i];
-			}
-
-			msg.point_3[9] = traj_wp_avoidance_desired.waypoints[2].yaw;
-			msg.point_3[10] = traj_wp_avoidance_desired.waypoints[2].yaw_speed;
-			msg.point_valid[2] = traj_wp_avoidance_desired.waypoints[2].point_valid;
-
-			for (int i = 0; i < 3; ++i) {
-				msg.point_4[i] = traj_wp_avoidance_desired.waypoints[3].position[i];
-				msg.point_4[3 + i] = traj_wp_avoidance_desired.waypoints[3].velocity[i];
-				msg.point_4[6 + i] = traj_wp_avoidance_desired.waypoints[3].acceleration[i];
-			}
-
-			msg.point_4[9] = traj_wp_avoidance_desired.waypoints[3].yaw;
-			msg.point_4[10] = traj_wp_avoidance_desired.waypoints[3].yaw_speed;
-			msg.point_valid[3] = traj_wp_avoidance_desired.waypoints[3].point_valid;
-
-			for (int i = 0; i < 3; ++i) {
-				msg.point_5[i] = traj_wp_avoidance_desired.waypoints[4].position[i];
-				msg.point_5[3 + i] = traj_wp_avoidance_desired.waypoints[4].velocity[i];
-				msg.point_5[6 + i] = traj_wp_avoidance_desired.waypoints[4].acceleration[i];
-			}
-
-			msg.point_5[9] = traj_wp_avoidance_desired.waypoints[4].yaw;
-			msg.point_5[10] = traj_wp_avoidance_desired.waypoints[4].yaw_speed;
-			msg.point_valid[4] = traj_wp_avoidance_desired.waypoints[4].point_valid;
-
-			mavlink_msg_trajectory_send_struct(_mavlink->get_channel(), &msg);
+			mavlink_msg_trajectory_representation_waypoints_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;
 		}
