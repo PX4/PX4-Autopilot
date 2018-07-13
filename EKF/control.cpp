@@ -1138,13 +1138,18 @@ void Ekf::rangeAidConditionsMet()
 
 void Ekf::checkRangeDataValidity()
 {
-	// reset fault status
-	_rng_hgt_faulty = false;
-
 	// check if out of date
 	if ((_imu_sample_delayed.time_us - _range_sample_delayed .time_us) > 2 * RNG_MAX_INTERVAL) {
 		_rng_hgt_faulty = true;
 		return;
+	}
+
+	// Don't run the checks after this unless we have retrieved new data from the buffer
+	if (!_range_data_ready) {
+		return;
+	} else {
+		// reset fault status when we get new data
+		_rng_hgt_faulty = false;
 	}
 
 	// Check if excessively tilted
