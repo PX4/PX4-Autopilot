@@ -335,8 +335,7 @@ private:
 			unsigned frame_drops, int rssi);
 
 	void set_rc_scan_state(RC_SCAN _rc_scan_state);
-	void rc_io_invert();
-	void rc_io_invert(bool invert);
+	void rc_io_invert(bool invert, uint32_t uxart_base);
 	void safety_check_button(void);
 	void flash_safety_button(void);
 
@@ -1149,11 +1148,9 @@ void PX4FMU::set_rc_scan_state(RC_SCAN newState)
 	_rc_scan_state = newState;
 }
 
-void PX4FMU::rc_io_invert(bool invert)
+void PX4FMU::rc_io_invert(bool invert, uint32_t uxart_base)
 {
-#ifdef INVERT_RC_INPUT
-	INVERT_RC_INPUT(invert);
-#endif
+	INVERT_RC_INPUT(invert, uxart_base);
 }
 #endif
 
@@ -1552,7 +1549,7 @@ PX4FMU::cycle()
 				_rc_scan_begin = _cycle_timestamp;
 				// Configure serial port for SBUS
 				sbus_config(_rcs_fd, board_supports_single_wire());
-				rc_io_invert(true);
+				rc_io_invert(true, RC_UXART_BASE);
 
 			} else if (_rc_scan_locked
 				   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -1583,7 +1580,7 @@ PX4FMU::cycle()
 				_rc_scan_begin = _cycle_timestamp;
 				//			// Configure serial port for DSM
 				dsm_config(_rcs_fd);
-				rc_io_invert(false);
+				rc_io_invert(false, RC_UXART_BASE);
 
 			} else if (_rc_scan_locked
 				   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -1614,7 +1611,7 @@ PX4FMU::cycle()
 				_rc_scan_begin = _cycle_timestamp;
 				// Configure serial port for DSM
 				dsm_config(_rcs_fd);
-				rc_io_invert(false);
+				rc_io_invert(false, RC_UXART_BASE);
 
 			} else if (_rc_scan_locked
 				   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -1662,7 +1659,7 @@ PX4FMU::cycle()
 				_rc_scan_begin = _cycle_timestamp;
 				// Configure serial port for DSM
 				dsm_config(_rcs_fd);
-				rc_io_invert(false);
+				rc_io_invert(false, RC_UXART_BASE);
 
 			} else if (_rc_scan_locked
 				   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -1704,7 +1701,7 @@ PX4FMU::cycle()
 				_rc_scan_begin = _cycle_timestamp;
 				// Configure timer input pin for CPPM
 				px4_arch_configgpio(GPIO_PPM_IN);
-				rc_io_invert(false);
+				rc_io_invert(false, RC_UXART_BASE);
 
 			} else if (_rc_scan_locked || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
