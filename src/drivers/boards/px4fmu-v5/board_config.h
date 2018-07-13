@@ -520,8 +520,6 @@
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
 #define RC_UXART_BASE                      STM32_USART6_BASE
-#define BOARD_HAS_SINGLE_WIRE              1
-#define INVERT_RC_INPUT(_invert_true)      board_rc_input(_invert_true);
 #define RC_SERIAL_PORT                     "/dev/ttyS4"
 #define RC_SERIAL_PORT_IS_FULL_DUPLEX      false
 
