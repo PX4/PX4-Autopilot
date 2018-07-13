@@ -2661,8 +2661,9 @@ public:
 	}
 
 private:
+	MavlinkOrbSubscription *_control_mode_sub;
+	MavlinkOrbSubscription *_lpos_sp_sub;
 	MavlinkOrbSubscription *_pos_sp_triplet_sub;
-	uint64_t _pos_sp_triplet_timestamp{0};
 
 	/* do not allow top copying this class */
 	MavlinkStreamPositionTargetGlobalInt(MavlinkStreamPositionTargetGlobalInt &) = delete;
@@ -2670,25 +2671,54 @@ private:
 
 protected:
 	explicit MavlinkStreamPositionTargetGlobalInt(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_control_mode_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_control_mode))),
+		_lpos_sp_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position_setpoint))),
 		_pos_sp_triplet_sub(_mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet)))
 	{}
 
 	bool send(const hrt_abstime t)
 	{
-		position_setpoint_triplet_s pos_sp_triplet;
+		vehicle_control_mode_s control_mode = {};
+		_control_mode_sub->update(&control_mode);
 
-		if (_pos_sp_triplet_sub->update(&_pos_sp_triplet_timestamp, &pos_sp_triplet)) {
-			mavlink_position_target_global_int_t msg = {};
+		if (control_mode.flag_control_position_enabled) {
 
-			msg.time_boot_ms = hrt_absolute_time() / 1000;
-			msg.coordinate_frame = MAV_FRAME_GLOBAL;
-			msg.lat_int = pos_sp_triplet.current.lat * 1e7;
-			msg.lon_int = pos_sp_triplet.current.lon * 1e7;
-			msg.alt = pos_sp_triplet.current.alt;
+			position_setpoint_triplet_s pos_sp_triplet;
+			_pos_sp_triplet_sub->update(&pos_sp_triplet);
 
-			mavlink_msg_position_target_global_int_send_struct(_mavlink->get_channel(), &msg);
+			if (pos_sp_triplet.timestamp > 0 && pos_sp_triplet.current.valid
+			    && PX4_ISFINITE(pos_sp_triplet.current.lat) && PX4_ISFINITE(pos_sp_triplet.current.lon)) {
 
-			return true;
+				mavlink_position_target_global_int_t msg = {};
+
+				msg.time_boot_ms = hrt_absolute_time() / 1000;
+				msg.coordinate_frame = MAV_FRAME_GLOBAL_INT;
+				msg.lat_int = pos_sp_triplet.current.lat * 1e7;
+				msg.lon_int = pos_sp_triplet.current.lon * 1e7;
+				msg.alt = pos_sp_triplet.current.alt;
+
+				vehicle_local_position_setpoint_s lpos_sp;
+
+				if (_lpos_sp_sub->update(&lpos_sp)) {
+					// velocity
+					msg.vx = lpos_sp.vx;
+					msg.vy = lpos_sp.vy;
+					msg.vz = lpos_sp.vz;
+
+					// acceleration
+					msg.afx = lpos_sp.acc_x;
+					msg.afy = lpos_sp.acc_y;
+					msg.afz = lpos_sp.acc_z;
+
+					// yaw
+					msg.yaw = lpos_sp.yaw;
+					msg.yaw_rate = lpos_sp.yawspeed;
+				}
+
+				mavlink_msg_position_target_global_int_send_struct(_mavlink->get_channel(), &msg);
+
+				return true;
+			}
 		}
 
 		return false;
