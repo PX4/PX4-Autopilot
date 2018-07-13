@@ -41,7 +41,7 @@ void BlockLocalPositionEstimator::mocapInit()
 		_global_ref_timestamp = hrt_absolute_time();
 		_is_global_cov_init = globallocalconverter_initialized();
 
-		if (!_map_ref.init_done && _is_global_cov_init && _visionUpdated) {
+		if (!_map_ref.init_done && _is_global_cov_init && !_visionUpdated) {
 			// initialize global origin using the mocap estimator reference (only if the vision estimation is not being fused as well)
 			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] global origin init (mocap) : lat %6.2f lon %6.2f alt %5.1f m",
 						     double(_ref_lat), double(_ref_lon), double(_ref_alt));
