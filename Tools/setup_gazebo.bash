@@ -23,6 +23,6 @@ export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:${SRC_DIR}/Tools/sitl_gazebo/model
 # Disabling the remote model download seems only necessary with Gazebo 6
 #export GAZEBO_MODEL_DATABASE_URI=""
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${SRC_DIR}/Tools/sitl_gazebo/Build/msgs/:${BUILD_DIR}/build_gazebo
-echo -e "GAZEBO_PLUGIN_PATH $GAZEBO_PLUGIN_PATH"
-echo -e "GAZEBO_MODEL_PATH $GAZEBO_MODEL_PATH"
-echo -e "LD_LIBRARY_PATH $LD_LIBRARY_PATH"
+#echo -e "GAZEBO_PLUGIN_PATH $GAZEBO_PLUGIN_PATH"
+#echo -e "GAZEBO_MODEL_PATH $GAZEBO_MODEL_PATH"
+#echo -e "LD_LIBRARY_PATH $LD_LIBRARY_PATH"
