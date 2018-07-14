@@ -43,7 +43,7 @@ void BlockLocalPositionEstimator::visionInit()
 
 		// get reference for global position
 		globallocalconverter_getref(&_ref_lat, &_ref_lon, &_ref_alt);
-		_global_ref_timestamp = hrt_absolute_time();
+		_global_ref_timestamp = _timeStamp;
 		_is_global_cov_init = globallocalconverter_initialized();
 
 		if (!_map_ref.init_done && _is_global_cov_init) {
