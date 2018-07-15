@@ -8,6 +8,7 @@
 .cproject
 .DS_Store
 .gdbinit
+.gdb_history
 .project
 .settings
 .swp
