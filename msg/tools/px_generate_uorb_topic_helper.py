@@ -234,6 +234,9 @@ def print_field(field):
             # cast double
             if field.type == "float32":
                 field_name = "(double)" + field_name
+            elif field.type == "bool":
+                c_type = '%s'
+                field_name = "(" + field_name + " ? \"True\" : \"False\")"
 
         else:
             print("printf(\"\\n\\t" + field.name + "\");")
