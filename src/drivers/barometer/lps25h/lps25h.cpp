@@ -211,20 +211,20 @@ protected:
 	Device			*_interface;
 
 private:
-	work_s			_work;
-	unsigned		_measure_ticks;
+	work_s			_work{};
+	unsigned		_measure_ticks{0};
 
-	ringbuffer::RingBuffer	*_reports;
-	bool			_collect_phase;
+	ringbuffer::RingBuffer	*_reports{nullptr};
+	bool			_collect_phase{false};
 
-	orb_advert_t		_baro_topic;
-	int			_orb_class_instance;
-	int			_class_instance;
+	orb_advert_t		_baro_topic{nullptr};
+	int			_orb_class_instance{-1};
+	int			_class_instance{-1};
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
 
-	struct baro_report	_last_report;           /**< used for info() */
+	sensor_baro_s	_last_report{};           /**< used for info() */
 
 	/**
 	 * Initialise the automatic measurement state machine and start it.
@@ -311,28 +311,14 @@ extern "C" __EXPORT int lps25h_main(int argc, char *argv[]);
 LPS25H::LPS25H(device::Device *interface, const char *path) :
 	CDev("LPS25H", path),
 	_interface(interface),
-	_work{},
-	_measure_ticks(0),
-	_reports(nullptr),
-	_collect_phase(false),
-	_baro_topic(nullptr),
-	_orb_class_instance(-1),
-	_class_instance(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "lps25h_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "lps25h_comms_errors")),
-	_last_report{0}
+	_comms_errors(perf_alloc(PC_COUNT, "lps25h_comms_errors"))
 {
 	// set the device type from the interface
 	_device_id.devid_s.bus_type = _interface->get_device_bus_type();
 	_device_id.devid_s.bus = _interface->get_device_bus();
 	_device_id.devid_s.address = _interface->get_device_address();
 	_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_LPS25H;
-
-	// enable debug() calls
-	_debug_enabled = false;
-
-	// work_cancel in the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
 }
 
 LPS25H::~LPS25H()
