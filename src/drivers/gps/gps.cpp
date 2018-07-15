@@ -263,6 +263,7 @@ extern "C" __EXPORT int gps_main(int argc, char *argv[]);
 GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interface, bool fake_gps,
 	 bool enable_sat_info, Instance instance) :
 	_serial_fd(-1),
+	_baudrate(0),
 	_healthy(false),
 	_mode_changed(false),
 	_mode(mode),
@@ -871,7 +872,7 @@ GPS::print_status()
 		}
 	}
 
-	PX4_INFO("port: %s, baudrate: %d, status: %s", _port, _baudrate, _healthy ? "OK" : "NOT OK");
+	PX4_INFO("status: %s, port: %s, baudrate: %d", _healthy ? "OK" : "NOT OK", _port, _baudrate);
 	PX4_INFO("sat info: %s", (_p_report_sat_info != nullptr) ? "enabled" : "disabled");
 
 	if (_report_gps_pos.timestamp != 0) {
