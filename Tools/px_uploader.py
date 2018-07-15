@@ -206,7 +206,6 @@ class uploader(object):
         self.window_max = 256
         self.window_per = 2 # Sync,<result>
         self.maxDtGetSync = -1000.00
-        self.ackWindowedMode = True # assume Windowed mode for non USB
 
         self.port = serial.Serial(portname, baudrate_bootloader, timeout=0.5, write_timeout=0.5)
         self.otp = b''
@@ -214,6 +213,16 @@ class uploader(object):
         self.baudrate_bootloader = baudrate_bootloader
         self.baudrate_flightstack = baudrate_flightstack
         self.baudrate_flightstack_idx = -1
+
+        # Windowed mode is for UART - only enable it for
+        # ports that are for sure UART.
+        self.ackWindowedMode = False
+
+        # Test the port name for known UART names
+        if "/dev/ttyS" in self.port.port or "FTDI" in self.port.port or "usbserial" in self.port.port:
+            self.ackWindowedMode = True # assume Windowed mode serial / UART
+            print("Enabled windowed mode for high-speed serial upload")
+            print()
 
     def close(self):
         if self.port is not None:
@@ -388,13 +397,14 @@ class uploader(object):
 
     # send the CHIP_ERASE command and wait for the bootloader to become ready
     def __erase(self, label):
-        self.ackWindowedMode =  self.maxDtGetSync >= uploader.SYNC_DETECT_THRESHOLD
-        print("MaxSync:%2.5f Windowed mode:%s" % (self.maxDtGetSync, self.ackWindowedMode))
-        print("\n", end='')
+        # This detection is error-prone and only reliable on Linux and without USB hubs
+        # self.ackWindowedMode = (self.maxDtGetSync >= uploader.SYNC_DETECT_THRESHOLD)
+        # print("MaxSync:%2.5f Windowed mode:%s" % (self.maxDtGetSync, self.ackWindowedMode))
+        # print("\n", end='')
         self.__send(uploader.CHIP_ERASE +
                     uploader.EOC)
 
-        # erase is very slow, give it 20s
+        # erase is very slow, give it 30s
         deadline = time.time() + 30.0
         while time.time() < deadline:
 
@@ -482,7 +492,7 @@ class uploader(object):
         uploadProgress = 0
         for bytes in groups:
             self.__program_multi(bytes, self.ackWindowedMode)
-            # If in Windo moode extend the window size for the __ackSyncWindow
+            # If in Window mode, extend the window size for the __ackSyncWindow
             if self.ackWindowedMode:
                 self.window += self.window_per
 
@@ -671,9 +681,9 @@ class uploader(object):
         if (not self.__next_baud_flightstack()):
             return False
 
-        print("Attempting reboot on %s with baudrate=%d..." % (self.port.port, self.port.baudrate), file=sys.stderr)
+        print("Attempting reboot on %s..." % (self.port.port), file=sys.stderr)
         if "ttyS" in self.port.port:
-            print("If the board does not respond, check the connection to the Flight Controller")
+            print("If the board does not respond, check the connection to the Flight Controller and the baud rate (set to %d)" % (self.port.baudrate))
         else:
             print("If the board does not respond, unplug and re-plug the USB connector.", file=sys.stderr)
 
