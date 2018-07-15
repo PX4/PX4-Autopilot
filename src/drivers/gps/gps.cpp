@@ -876,8 +876,6 @@ GPS::print_status()
 	PX4_INFO("sat info: %s", (_p_report_sat_info != nullptr) ? "enabled" : "disabled");
 
 	if (_report_gps_pos.timestamp != 0) {
-		print_message(_report_gps_pos);
-
 		if (_helper) {
 			PX4_INFO("rate position: \t\t%6.2f Hz", (double)_helper->getPositionUpdateRate());
 			PX4_INFO("rate velocity: \t\t%6.2f Hz", (double)_helper->getVelocityUpdateRate());
@@ -888,6 +886,7 @@ GPS::print_status()
 			PX4_INFO("rate RTCM injection:\t%6.2f Hz", (double)_rate_rtcm_injection);
 		}
 
+		print_message(_report_gps_pos);
 	}
 
 	if (_instance == Instance::Main && _secondary_instance) {
