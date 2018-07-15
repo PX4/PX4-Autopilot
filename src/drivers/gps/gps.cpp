@@ -145,39 +145,48 @@ public:
 
 private:
 
-	int				_serial_fd;					///< serial interface to GPS
-	unsigned			_baudrate;					///< current baudrate
-	char				_port[20];					///< device / serial port path
-	bool				_healthy;					///< flag to signal if the GPS is ok
-	bool				_baudrate_changed;				///< flag to signal that the baudrate with the GPS has changed
-	bool				_mode_changed;					///< flag that the GPS mode has changed
-	bool        			_mode_auto;					///< if true, auto-detect which GPS is attached
+	int				_serial_fd{-1};					///< serial interface to GPS
+	unsigned			_baudrate{0};					///< current baudrate
+	char				_port[20] {};					///< device / serial port path
+
+	bool				_healthy{false};				///< flag to signal if the GPS is ok
+	bool				_baudrate_changed{false};			///< flag to signal that the baudrate with the GPS has changed
+	bool				_mode_changed{false};				///< flag that the GPS mode has changed
+	bool        			_mode_auto{false};				///< if true, auto-detect which GPS is attached
+
 	gps_driver_mode_t		_mode;						///< current mode
-	GPSHelper::Interface  _interface;   						///< interface
-	GPSHelper			*_helper;					///< instance of GPS parser
-	GPS_Sat_Info			*_sat_info;					///< instance of GPS sat info data object
-	struct vehicle_gps_position_s	_report_gps_pos;				///< uORB topic for gps position
-	orb_advert_t			_report_gps_pos_pub;				///< uORB pub for gps position
-	int					_gps_orb_instance;				///< uORB multi-topic instance
-	struct satellite_info_s		*_p_report_sat_info;				///< pointer to uORB topic for satellite info
-	int					_gps_sat_orb_instance;				///< uORB multi-topic instance for satellite info
-	orb_advert_t			_report_sat_info_pub;				///< uORB pub for satellite info
-	float				_rate;						///< position update rate
-	float				_rate_rtcm_injection;				///< RTCM message injection rate
-	unsigned			_last_rate_rtcm_injection_count; 		///< counter for number of RTCM messages
-	bool				_fake_gps;					///< fake gps output
-	Instance 			_instance;
 
-	int _orb_inject_data_fd;
+	GPSHelper::Interface		_interface;   					///< interface
+	GPSHelper			*_helper{nullptr};				///< instance of GPS parser
 
-	orb_advert_t _dump_communication_pub;			///< if non-null, dump communication
-	gps_dump_s *_dump_to_device;
-	gps_dump_s *_dump_from_device;
+	GPS_Sat_Info			*_sat_info{nullptr};				///< instance of GPS sat info data object
+
+	vehicle_gps_position_s		_report_gps_pos{};				///< uORB topic for gps position
+	satellite_info_s		*_p_report_sat_info{nullptr};			///< pointer to uORB topic for satellite info
+
+	orb_advert_t			_report_gps_pos_pub{nullptr};			///< uORB pub for gps position
+	orb_advert_t			_report_sat_info_pub{nullptr};			///< uORB pub for satellite info
+
+	int				_gps_orb_instance{-1};				///< uORB multi-topic instance
+	int				_gps_sat_orb_instance{-1};			///< uORB multi-topic instance for satellite info
+
+	float				_rate{0.0f};					///< position update rate
+	float				_rate_rtcm_injection{0.0f};			///< RTCM message injection rate
+	unsigned			_last_rate_rtcm_injection_count{0}; 		///< counter for number of RTCM messages
+
+	const bool			_fake_gps;					///< fake gps output
+
+	const Instance 			_instance;
+
+	int				_orb_inject_data_fd{-1};
+	orb_advert_t			_dump_communication_pub{nullptr};		///< if non-null, dump communication
+	gps_dump_s			*_dump_to_device{nullptr};
+	gps_dump_s			*_dump_from_device{nullptr};
 
 	static volatile bool _is_gps_main_advertised; ///< for the second gps we want to make sure that it gets instance 1
 	/// and thus we wait until the first one publishes at least one message.
-	static volatile GPS *_secondary_instance;
 
+	static volatile GPS *_secondary_instance;
 
 	/**
 	 * Try to configure the GPS, handle outgoing communication to the GPS
@@ -262,28 +271,10 @@ extern "C" __EXPORT int gps_main(int argc, char *argv[]);
 
 GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interface, bool fake_gps,
 	 bool enable_sat_info, Instance instance) :
-	_serial_fd(-1),
-	_baudrate(0),
-	_healthy(false),
-	_mode_changed(false),
 	_mode(mode),
 	_interface(interface),
-	_helper(nullptr),
-	_sat_info(nullptr),
-	_report_gps_pos{},
-	_report_gps_pos_pub(nullptr),
-	_gps_orb_instance(-1),
-	_p_report_sat_info(nullptr),
-	_report_sat_info_pub(nullptr),
-	_rate(0.0f),
-	_rate_rtcm_injection(0.0f),
-	_last_rate_rtcm_injection_count(0),
 	_fake_gps(fake_gps),
-	_instance(instance),
-	_orb_inject_data_fd(-1),
-	_dump_communication_pub(nullptr),
-	_dump_to_device(nullptr),
-	_dump_from_device(nullptr)
+	_instance(instance)
 {
 	/* store port name */
 	strncpy(_port, path, sizeof(_port));
