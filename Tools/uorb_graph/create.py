@@ -222,6 +222,7 @@ class Graph:
         special_cases_sub = [
     ('sensors', r'voted_sensors_update\.cpp$', r'\binit_sensor_class\b\(([^,)]+)', r'^meta$'),
     ('mavlink', r'.*', r'\badd_orb_subscription\b\(([^,)]+)', r'^_topic$'),
+    ('listener', r'.*', None, r'^(id)$'),
     ('logger', r'.*', None, r'^(topic|sub\.metadata|_polling_topic_meta)$'),
 
     ('uavcan', r'uavcan_main\.cpp$', r'\b_control_topics\[[0-9]\]=([^,)]+)', r'^_control_topics\[i\]$'),
