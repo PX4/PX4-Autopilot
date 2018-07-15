@@ -23,6 +23,7 @@ float32 vel_n_m_s		# GPS North velocity, (metres/sec)
 float32 vel_e_m_s		# GPS East velocity, (metres/sec)
 float32 vel_d_m_s		# GPS Down velocity, (metres/sec) 
 float32 cog_rad			# Course over ground (NOT heading, but direction of movement), -PI..PI, (radians) 
+float32 heading			# Heading to true north (for RTK units with multiple antennas and heading support). Set to NaN if unknown.
 bool vel_ned_valid		# True if NED velocity is valid 
 
 int32 timestamp_time_relative	# timestamp + timestamp_time_relative = Time of the UTC timestamp since system start, (microseconds)
