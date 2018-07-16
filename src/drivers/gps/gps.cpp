@@ -152,7 +152,7 @@ private:
 	bool				_healthy{false};				///< flag to signal if the GPS is ok
 	bool				_baudrate_changed{false};			///< flag to signal that the baudrate with the GPS has changed
 	bool				_mode_changed{false};				///< flag that the GPS mode has changed
-	bool        			_mode_auto{false};				///< if true, auto-detect which GPS is attached
+	bool        			_mode_auto;				///< if true, auto-detect which GPS is attached
 
 	gps_driver_mode_t		_mode;						///< current mode
 
@@ -187,21 +187,6 @@ private:
 	/// and thus we wait until the first one publishes at least one message.
 
 	static volatile GPS *_secondary_instance;
-
-	/**
-	 * Try to configure the GPS, handle outgoing communication to the GPS
-	 */
-	void config();
-
-	/**
-	 * Set the baudrate of the UART to the GPS
-	 */
-	int set_baudrate(unsigned baud);
-
-	/**
-	 * Send a reset command to the GPS
-	 */
-	void cmd_reset();
 
 	/**
 	 * Publish the gps struct
@@ -290,9 +275,7 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 		memset(_p_report_sat_info, 0, sizeof(*_p_report_sat_info));
 	}
 
-	if (mode == GPS_DRIVER_MODE_NONE) {
-		_mode_auto = true;
-	}
+	_mode_auto = mode == GPS_DRIVER_MODE_NONE;
 }
 
 GPS::~GPS()
@@ -632,7 +615,6 @@ GPS::run()
 	while (!should_exit()) {
 
 		if (_fake_gps) {
-			_report_gps_pos = {};
 			_report_gps_pos.timestamp = hrt_absolute_time();
 			_report_gps_pos.lat = (int32_t)47.378301e7f;
 			_report_gps_pos.lon = (int32_t)8.538777e7f;
@@ -813,19 +795,6 @@ GPS::run()
 }
 
 
-
-void
-GPS::cmd_reset()
-{
-#ifdef GPIO_GPS_NRESET
-	PX4_WARN("Toggling GPS reset pin");
-	px4_arch_configgpio(GPIO_GPS_NRESET);
-	px4_arch_gpiowrite(GPIO_GPS_NRESET, 0);
-	usleep(100);
-	px4_arch_gpiowrite(GPIO_GPS_NRESET, 1);
-	PX4_WARN("Toggled GPS reset pin");
-#endif
-}
 
 int
 GPS::print_status()
