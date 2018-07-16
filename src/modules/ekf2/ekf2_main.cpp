@@ -213,9 +213,9 @@ private:
 	const float _hgt_innov_spike_lim = 2.0f * _hgt_innov_test_lim;	///< preflight position innovation spike limit (m)
 
 	// GPS blending and switching
-	struct gps_message _gps_state[GPS_MAX_RECEIVERS]; ///< internal state data for the physical GPS
-	struct gps_message _gps_blended_state;		///< internal state data for the blended GPS
-	struct gps_message _gps_output[GPS_MAX_RECEIVERS + 1]; ///< output state data for the physical and blended GPS
+	gps_message _gps_state[GPS_MAX_RECEIVERS] {}; ///< internal state data for the physical GPS
+	gps_message _gps_blended_state{};		///< internal state data for the blended GPS
+	gps_message _gps_output[GPS_MAX_RECEIVERS + 1] {}; ///< output state data for the physical and blended GPS
 	Vector2f _NE_pos_offset_m[GPS_MAX_RECEIVERS] = {}; ///< Filtered North,East position offset from GPS instance to blended solution in _output_state.location (m)
 	float _hgt_offset_mm[GPS_MAX_RECEIVERS] = {};	///< Filtered height offset from GPS instance relative to blended solution in _output_state.location (mm)
 	Vector3f _blended_antenna_offset = {};		///< blended antenna offset
@@ -238,11 +238,11 @@ private:
 	int _vehicle_land_detected_sub{-1};
 
 	// because we can have several distance sensor instances with different orientations
-	int _range_finder_subs[ORB_MULTI_MAX_INSTANCES];
+	int _range_finder_subs[ORB_MULTI_MAX_INSTANCES] {};
 	int _range_finder_sub_index = -1; // index for downward-facing range finder subscription
 
 	// because we can have multiple GPS instances
-	int _gps_subs[ORB_MULTI_MAX_INSTANCES];
+	int _gps_subs[ORB_MULTI_MAX_INSTANCES] {};
 	int _gps_orb_instance{-1};
 
 	orb_advert_t _att_pub{nullptr};
