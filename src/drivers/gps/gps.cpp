@@ -70,6 +70,7 @@
 #include <arch/board/board.h>
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <drivers/drv_gps.h>
@@ -604,6 +605,21 @@ GPS::run()
 		}
 	}
 
+	param_t handle = param_find("GPS_YAW_OFFSET");
+	float heading_offset = 0.f;
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &heading_offset);
+		heading_offset = matrix::wrap_pi(math::radians(heading_offset));
+	}
+
+	int32_t gps_ubx_dynmodel = 7; // default to 7: airborne with <2g acceleration
+	handle = param_find("GPS_UBX_DYNMODEL");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &gps_ubx_dynmodel);
+	}
+
 	_orb_inject_data_fd = orb_subscribe(ORB_ID(gps_inject_data));
 
 	initializeCommunicationDump();
@@ -655,13 +671,9 @@ GPS::run()
 				_mode = GPS_DRIVER_MODE_UBX;
 
 			/* FALLTHROUGH */
-			case GPS_DRIVER_MODE_UBX: {
-					int32_t param_gps_ubx_dynmodel = 7; // default to 7: airborne with <2g acceleration
-					param_get(param_find("GPS_UBX_DYNMODEL"), &param_gps_ubx_dynmodel);
-
-					_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info,
-								   param_gps_ubx_dynmodel);
-				}
+			case GPS_DRIVER_MODE_UBX:
+				_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info,
+							   gps_ubx_dynmodel);
 				break;
 
 			case GPS_DRIVER_MODE_MTK:
@@ -669,18 +681,15 @@ GPS::run()
 				break;
 
 			case GPS_DRIVER_MODE_ASHTECH:
-				_helper = new GPSDriverAshtech(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
+				_helper = new GPSDriverAshtech(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, heading_offset);
 				break;
 
 			default:
 				break;
 			}
 
+			_baudrate = 0; // auto-detect
 
-			/* the Ashtech driver lies about successful configuration and the
-			 * MTK driver is not well tested, so we really only trust the UBX
-			 * driver for an advance publication
-			 */
 			if (_helper && _helper->configure(_baudrate, GPSHelper::OutputMode::GPS) == 0) {
 
 				/* reset report */
