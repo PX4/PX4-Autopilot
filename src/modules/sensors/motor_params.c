@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,37 +32,36 @@
  ****************************************************************************/
 
 /**
- * Motor Ordering
+ * @file motor_params.c
  *
- * Determines the motor ordering. This can be used for example in combination with
- * a 4-in-1 ESC that assumes a motor ordering which is different from PX4.
+ * Parameters for motors.
  *
- * ONLY supported for Quads.
- * ONLY supported for fmu output (Pixracer or Omnibus F4).
- *
- * When changing this, make sure to test the motor response without props first.
- *
- * @value 0 PX4
- * @value 1 Betaflight / Cleanflight
- *
- * @min 0
- * @max 1
- * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(MOT_ORDERING, 0);
+
 
 /**
- * Run the FMU as a task to reduce latency
+ * Minimum motor rise time (slew rate limit).
  *
- * If true, the FMU will run in a separate task instead of on the work queue.
- * Set this if low latency is required, for example for racing.
+ * Minimum time allowed for the motor input signal to pass through
+ * a range of 1000 PWM units. A value x means that the motor signal
+ * can only go from 1000 to 2000 PWM in maximum x seconds.
  *
- * This is a trade-off between RAM usage and latency: running as a task, it
- * requires a separate stack and directly polls on the control topics, whereas
- * running on the work queue, it runs at a fixed update rate.
+ * Zero means that slew rate limiting is disabled.
  *
- * @boolean
- * @reboot_required true
- * @group System
+ * @min 0.0
+ * @unit s/(1000*PWM)
+ * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(SYS_FMU_TASK, 1);
+PARAM_DEFINE_FLOAT(MOT_SLEW_MAX, 0.0f);
+
+/**
+ * Thrust to PWM model parameter
+ *
+ * Parameter used to model the relationship between static thrust and motor
+ * input PWM. Model is: thrust = (1-factor)*PWM + factor * PWM^2
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_FLOAT(THR_MDL_FAC, 0.0f);
