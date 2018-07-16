@@ -154,6 +154,7 @@ MPU9250_I2C::probe()
 	uint8_t whoami = 0;
 	uint8_t reg_whoami = 0;
 	uint8_t expected = 0;
+	uint8_t register_select = REG_BANK(BANK0);  // register bank containing WHOAMI for ICM20948
 
 	switch (_device_type) {
 	case MPU_DEVICE_TYPE_MPU9250:
@@ -169,6 +170,12 @@ MPU9250_I2C::probe()
 	case MPU_DEVICE_TYPE_ICM20948:
 		reg_whoami = ICMREG_20948_WHOAMI;
 		expected = ICM_WHOAMI_20948;
+		/*
+		 * make sure register bank 0 is selected - whoami is only present on bank 0, and that is
+		 * not sure e.g. if the device has rebooted without repowering the sensor
+		 */
+		write(ICMREG_20948_BANK_SEL,&register_select, 1);
+
 		break;
 	}
 
