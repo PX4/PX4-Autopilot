@@ -281,6 +281,8 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
 
+	_report_gps_pos.heading = NAN;
+
 	/* create satellite info data object if requested */
 	if (enable_sat_info) {
 		_sat_info = new GPS_Sat_Info();
@@ -650,6 +652,7 @@ GPS::run()
 			_report_gps_pos.cog_rad = 0.0f;
 			_report_gps_pos.vel_ned_valid = true;
 			_report_gps_pos.satellites_used = 10;
+			_report_gps_pos.heading = NAN;
 
 			/* no time and satellite information simulated */
 
@@ -700,6 +703,7 @@ GPS::run()
 
 				/* reset report */
 				memset(&_report_gps_pos, 0, sizeof(_report_gps_pos));
+				_report_gps_pos.heading = NAN;
 
 				if (_mode == GPS_DRIVER_MODE_UBX) {
 
