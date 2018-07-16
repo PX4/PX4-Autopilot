@@ -1144,6 +1144,11 @@ void Ekf::checkRangeDataValidity()
 		return;
 	}
 
+	// Don't allow faulty flag to clear unless range data is continuous
+	if (_rng_hgt_faulty && !_range_data_continuous) {
+		return;
+	}
+
 	// Don't run the checks after this unless we have retrieved new data from the buffer
 	if (!_range_data_ready) {
 		return;
