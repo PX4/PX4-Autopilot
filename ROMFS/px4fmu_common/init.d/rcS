@@ -368,30 +368,6 @@ else
 	fi
 
 	#
-	# Set default output if not set.
-	#
-	if [ $OUTPUT_MODE == none ]
-	then
-		if [ $USE_IO == yes ]
-		then
-			set OUTPUT_MODE io
-		else
-			set OUTPUT_MODE fmu
-		fi
-	fi
-
-	if [ $OUTPUT_MODE == io -a $IO_PRESENT != yes ]
-	then
-		# Need IO for output but it not present, disable output.
-		set OUTPUT_MODE none
-	fi
-
-	if [ $OUTPUT_MODE == tap_esc ]
-	then
-		set FMU_MODE rcin
-	fi
-
-	#
 	# Waypoint storage.
 	# REBOOTWORK this needs to start in parallel.
 	#
@@ -425,9 +401,27 @@ else
 	#
 	# Check if UAVCAN is enabled, default to it for ESCs.
 	#
-	if param greater UAVCAN_ENABLE 2
+	
+	if param greater UAVCAN_ENABLE 0
 	then
-		set OUTPUT_MODE uavcan_esc
+		# Start core UAVCAN module.
+		if uavcan start
+		then
+			if param greater UAVCAN_ENABLE 1
+			then
+				# Reduce logger buffer to free up some RAM for UAVCAN servers.
+				set LOGGER_BUF 6
+				# Start UAVCAN firmware update server and dynamic node ID allocation server.
+				uavcan start fw
+
+				if param greater UAVCAN_ENABLE 2
+				then
+					set OUTPUT_MODE uavcan_esc
+				fi
+			fi
+		else
+			tone_alarm ${TUNE_ERR}
+		fi
 	fi
 
 	# Sensors on the PWM interface bank.
@@ -437,6 +431,7 @@ else
 		set FMU_MODE pwm4
 		set AUX_MODE pwm4
 	fi
+	
 	if param greater TRIG_MODE 0
 	then
 		# We ONLY support trigger on pins 5 and 6 when simultanously using AUX for actuator output.
@@ -453,6 +448,23 @@ else
 
 		param set CAM_FBACK_MODE 1
 		camera_feedback start
+	fi
+
+	#
+	# Set default output if not set.
+	#
+	if [ $OUTPUT_MODE == none ]
+	then
+		if [ $USE_IO == yes ]
+		then
+			# Enable IO output only if IO is present.
+			if [ $IO_PRESENT == yes ]
+			then
+				set OUTPUT_MODE io
+			fi
+		else
+			set OUTPUT_MODE fmu
+		fi
 	fi
 
 	# If OUTPUT_MODE == none then something is wrong with setup and we shouldn't try to enable output.
@@ -514,6 +526,11 @@ else
 			fi
 		fi
 
+		if [ $OUTPUT_MODE == tap_esc ]
+		then
+			set FMU_MODE rcin
+		fi
+
 		#
 		# Start IO or FMU for RC PPM input if needed.
 		#
@@ -547,25 +564,6 @@ else
 	#
 	sh /etc/init.d/rc.mavlink
 
-	#
-	# Starting stuff according to UAVCAN_ENABLE value.
-	#
-	if param greater UAVCAN_ENABLE 0
-	then
-		# Start core UAVCAN module.
-		if uavcan start
-		then
-			if param greater UAVCAN_ENABLE 1
-			then
-				# Reduce logger buffer to free up some RAM for UAVCAN servers.
-				set LOGGER_BUF 6
-				# Start UAVCAN firmware update server and dynamic node ID allocation server.
-				uavcan start fw
-			fi
-		else
-			tone_alarm ${TUNE_ERR}
-		fi
-	fi
 
 	if ver hwcmp PX4FMU_V2 PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2 PX4FMU_V5 OMNIBUS_F4SD
 	then
