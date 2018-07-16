@@ -3072,12 +3072,12 @@ protected:
 	}
 };
 
-class MavlinkStreamTrajectory: public MavlinkStream
+class MavlinkStreamTrajectoryRepresentationWaypoints: public MavlinkStream
 {
 public:
 	const char *get_name() const
 	{
-		return MavlinkStreamTrajectory::get_name_static();
+		return MavlinkStreamTrajectoryRepresentationWaypoints::get_name_static();
 	}
 
 	static const char *get_name_static()
@@ -3097,7 +3097,7 @@ public:
 
 	static MavlinkStream *new_instance(Mavlink *mavlink)
 	{
-		return new MavlinkStreamTrajectory(mavlink);
+		return new MavlinkStreamTrajectoryRepresentationWaypoints(mavlink);
 	}
 
 	unsigned get_size()
@@ -3112,11 +3112,11 @@ private:
 	uint64_t _traj_wp_avoidance_time;
 
 	/* do not allow top copying this class */
-	MavlinkStreamTrajectory(MavlinkStreamTrajectory &);
-	MavlinkStreamTrajectory &operator = (const MavlinkStreamTrajectory &);
+	MavlinkStreamTrajectoryRepresentationWaypoints(MavlinkStreamTrajectoryRepresentationWaypoints &);
+	MavlinkStreamTrajectoryRepresentationWaypoints &operator = (const MavlinkStreamTrajectoryRepresentationWaypoints &);
 
 protected:
-	explicit MavlinkStreamTrajectory(Mavlink *mavlink) : MavlinkStream(mavlink),
+	explicit MavlinkStreamTrajectoryRepresentationWaypoints(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_traj_wp_avoidance_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_trajectory_waypoint_desired))),
 		_traj_wp_avoidance_time(0)
 	{}
@@ -4275,7 +4275,7 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamAttitudeTarget::new_instance, &MavlinkStreamAttitudeTarget::get_name_static, &MavlinkStreamAttitudeTarget::get_id_static),
 	StreamListItem(&MavlinkStreamRCChannels::new_instance, &MavlinkStreamRCChannels::get_name_static, &MavlinkStreamRCChannels::get_id_static),
 	StreamListItem(&MavlinkStreamManualControl::new_instance, &MavlinkStreamManualControl::get_name_static, &MavlinkStreamManualControl::get_id_static),
-	StreamListItem(&MavlinkStreamTrajectory::new_instance, &MavlinkStreamTrajectory::get_name_static, &MavlinkStreamTrajectory::get_id_static),
+	StreamListItem(&MavlinkStreamTrajectoryRepresentationWaypoints::new_instance, &MavlinkStreamTrajectoryRepresentationWaypoints::get_name_static, &MavlinkStreamTrajectoryRepresentationWaypoints::get_id_static),
 	StreamListItem(&MavlinkStreamOpticalFlowRad::new_instance, &MavlinkStreamOpticalFlowRad::get_name_static, &MavlinkStreamOpticalFlowRad::get_id_static),
 	StreamListItem(&MavlinkStreamActuatorControlTarget<0>::new_instance, &MavlinkStreamActuatorControlTarget<0>::get_name_static, &MavlinkStreamActuatorControlTarget<0>::get_id_static),
 	StreamListItem(&MavlinkStreamActuatorControlTarget<1>::new_instance, &MavlinkStreamActuatorControlTarget<1>::get_name_static, &MavlinkStreamActuatorControlTarget<1>::get_id_static),
