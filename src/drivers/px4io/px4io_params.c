@@ -232,6 +232,126 @@ PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM7, 0);
 PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM8, 0);
 
 /**
+ * Set the disarmed PWM for the main 1 output
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * When set to -1 the value for PWM_DISARMED will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_DIS1, -1);
+
+/**
+ * Set the disarmed PWM for the main 2 output
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * When set to -1 the value for PWM_DISARMED will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_DIS2, -1);
+
+/**
+ * Set the disarmed PWM for the main 3 output
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * When set to -1 the value for PWM_DISARMED will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_DIS3, -1);
+
+/**
+ * Set the disarmed PWM for the main 4 output
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * When set to -1 the value for PWM_DISARMED will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_DIS4, -1);
+
+/**
+ * Set the disarmed PWM for the main 5 output
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * When set to -1 the value for PWM_DISARMED will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_DIS5, -1);
+
+/**
+ * Set the disarmed PWM for the main 6 output
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * When set to -1 the value for PWM_DISARMED will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_DIS6, -1);
+
+/**
+ * Set the disarmed PWM for the main 7 output
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * When set to -1 the value for PWM_DISARMED will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_DIS7, -1);
+
+/**
+ * Set the disarmed PWM for the main 8 output
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * When set to -1 the value for PWM_DISARMED will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_DIS8, -1);
+
+/**
  * S.BUS out
  *
  * Set to 1 to enable S.BUS version 1 output instead of RSSI.
