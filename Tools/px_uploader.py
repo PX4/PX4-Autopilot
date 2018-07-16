@@ -192,7 +192,6 @@ class uploader(object):
     MAVLINK_REBOOT_ID0 = bytearray(b'\xfe\x21\x45\xff\x00\x4c\x00\x00\x40\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x00\x00\x00\xcc\x37')
 
     MAX_FLASH_PRGRAM_TIME  = 0.001  # Time on an F7 to send SYNC, RESULT from last data in multi RXed
-    SYNC_DETECT_THRESHOLD = 0.00015
 
     def __init__(self, portname, baudrate_bootloader, baudrate_flightstack):
         # Open the port, keep the default timeout short so we can poll quickly.
@@ -205,24 +204,13 @@ class uploader(object):
         self.window = 0
         self.window_max = 256
         self.window_per = 2  # Sync,<result>
-        self.maxDtGetSync = -1000.00
-
+        self.ackWindowedMode = False  # Assume Non Widowed mode for all USB CDC
         self.port = serial.Serial(portname, baudrate_bootloader, timeout=0.5, write_timeout=0.5)
         self.otp = b''
         self.sn = b''
         self.baudrate_bootloader = baudrate_bootloader
         self.baudrate_flightstack = baudrate_flightstack
         self.baudrate_flightstack_idx = -1
-
-        # Windowed mode is for UART - only enable it for
-        # ports that are for sure UART.
-        self.ackWindowedMode = False
-
-        # Test the port name for known UART names
-        if "/dev/ttyS" in self.port.port or "FTDI" in self.port.port or "usbserial" in self.port.port:
-            self.ackWindowedMode = True # assume Windowed mode serial / UART
-            print("Enabled windowed mode for high-speed serial upload")
-            print()
 
     def close(self):
         if self.port is not None:
@@ -280,8 +268,9 @@ class uploader(object):
         val = struct.unpack("<I", raw)
         return val[0]
 
-    def __getSync(self):
-        self.port.flush()
+    def __getSync(self, doFlush=True):
+        if (doFlush):
+            self.port.flush()
         c = bytes(self.__recv())
         if c != self.INSYNC:
             raise RuntimeError("unexpected %s instead of INSYNC" % c)
@@ -342,6 +331,23 @@ class uploader(object):
             # timeout, no response yet
             return False
 
+    # attempt to determins if the device is CDCACM or A FTDI
+    def __determineInterface(self):
+        self.port.flushInput()
+        # Set a baudrate that can not work on a real serial port
+        # in that it is 233% off.
+        self.port.baudrate = self.baudrate_bootloader * 2.33
+
+        self.__send(uploader.GET_SYNC +
+                    uploader.EOC)
+        try:
+            self.__getSync(False)
+        except:
+            # if it fails we are on a real Serial Port
+            self.ackWindowedMode = True
+
+        self.port.baudrate =self.baudrate_bootloader
+
     # send the GET_DEVICE command and wait for an info parameter
     def __getInfo(self, param):
         self.__send(uploader.GET_DEVICE + param + uploader.EOC)
@@ -354,12 +360,7 @@ class uploader(object):
         t = struct.pack("I", param)  # int param as 32bit ( 4 byte ) char array.
         self.__send(uploader.GET_OTP + t + uploader.EOC)
         value = self.__recv(4)
-        synstart = time.time()
         self.__getSync()
-        dif  = time.time() - synstart
-        # print("%5.5f" %dif)
-        if (dif > self.maxDtGetSync and dif != 0):
-            self.maxDtGetSync = dif
         return value
 
     # send the GET_SN command and wait for an info parameter
@@ -397,10 +398,8 @@ class uploader(object):
 
     # send the CHIP_ERASE command and wait for the bootloader to become ready
     def __erase(self, label):
-        # This detection is error-prone and only reliable on Linux and without USB hubs
-        # self.ackWindowedMode = (self.maxDtGetSync >= uploader.SYNC_DETECT_THRESHOLD)
-        # print("MaxSync:%2.5f Windowed mode:%s" % (self.maxDtGetSync, self.ackWindowedMode))
-        # print("\n", end='')
+        print("Windowed mode:%s" % self.ackWindowedMode)
+        print("\n", end='')
         self.__send(uploader.CHIP_ERASE +
                     uploader.EOC)
 
@@ -551,6 +550,7 @@ class uploader(object):
 
     # get basic data about the board
     def identify(self):
+        self.__determineInterface()
         # make sure we are in sync before starting
         self.__sync()
 
