@@ -29,3 +29,5 @@ int32 timestamp_time_relative	# timestamp + timestamp_time_relative = Time of th
 uint64 time_utc_usec		# Timestamp (microseconds, UTC), this is the timestamp which comes from the gps module. It might be unavailable right after cold start, indicated by a value of 0 
 
 uint8 satellites_used		# Number of satellites used 
+
+float32 heading		# heading in NED. Set to NaN if not set (used for dual antenna GPS), (rad, [-PI, PI])
