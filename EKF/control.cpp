@@ -1184,7 +1184,7 @@ void Ekf::checkRangeDataValidity()
 	    _control_status.flags.in_air) {
 
 		// require a variance of rangefinder values to check for "stuck" measurements
-		if (_rng_stuck_max_val - _rng_stuck_min_val > 1.0f) {
+		if (_rng_stuck_max_val - _rng_stuck_min_val > _params.range_stuck_threshold) {
 			_time_last_rng_ready = _range_sample_delayed.time_us;
 			_rng_stuck_min_val = 0.0f;
 			_rng_stuck_max_val = 0.0f;
