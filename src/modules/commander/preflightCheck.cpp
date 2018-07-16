@@ -32,7 +32,7 @@
 ****************************************************************************/
 
 /**
-* @file PreflightCheck.cpp
+* @file preflightCheck.cpp
 *
 * Preflight check for main system components
 *
@@ -61,7 +61,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/subsystem_info.h>
 
-#include "PreflightCheck.h"
+#include "preflightCheck.h"
 #include "health_flag_helper.h"
 #include "rc_check.h"
 

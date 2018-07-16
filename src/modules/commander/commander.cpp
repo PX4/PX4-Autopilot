@@ -42,7 +42,7 @@
  *			- State machines will be model driven
  */
 
-#include "Commander.hpp"
+#include "commander.h"
 
 /* commander module headers */
 #include "accelerometer_calibration.h"
@@ -54,7 +54,7 @@
 #include "esc_calibration.h"
 #include "gyro_calibration.h"
 #include "mag_calibration.h"
-#include "PreflightCheck.h"
+#include "preflightCheck.h"
 #include "px4_custom_mode.h"
 #include "rc_calibration.h"
 #include "state_machine_helper.h"
