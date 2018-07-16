@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file pwm_params.c
+ * @file pwm_params_main.c
  *
  * Parameters defined for PWM output.
  *
@@ -96,6 +96,9 @@ PARAM_DEFINE_INT32(PWM_MAX, 2000);
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_DISARMED, 900);
+
+
+
 
 /**
  * Set the disarmed PWM for the main 1 output
@@ -217,135 +220,187 @@ PARAM_DEFINE_INT32(PWM_MAIN_DIS7, -1);
  */
 PARAM_DEFINE_INT32(PWM_MAIN_DIS8, -1);
 
-/**
- * Set the disarmed PWM for the AUX 1 output
- *
- * This is the PWM pulse the autopilot is outputting if not armed.
- * When set to -1 the value for PWM_AUX_DISARMED will be used
- *
- * @reboot_required true
- *
- * @min -1
- * @max 2200
- * @unit us
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_AUX_DIS1, -1);
+
+
 
 /**
- * Set the disarmed PWM for the AUX 2 output
+ * Invert direction of main output channel 1
  *
- * This is the PWM pulse the autopilot is outputting if not armed.
- * When set to -1 the value for PWM_AUX_DISARMED will be used
+ * Enable to invert the channel.
  *
- * @reboot_required true
- *
- * @min -1
- * @max 2200
- * @unit us
+ * @boolean
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_AUX_DIS2, -1);
+PARAM_DEFINE_INT32(PWM_MAIN_REV1, 0);
 
 /**
- * Set the disarmed PWM for the AUX 3 output
+ * Invert direction of main output channel 2
  *
- * This is the PWM pulse the autopilot is outputting if not armed.
- * When set to -1 the value for PWM_AUX_DISARMED will be used
+ * Enable to invert the channel.
  *
- * @reboot_required true
- *
- * @min -1
- * @max 2200
- * @unit us
+ * @boolean
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_AUX_DIS3, -1);
+PARAM_DEFINE_INT32(PWM_MAIN_REV2, 0);
 
 /**
- * Set the disarmed PWM for the AUX 4 output
+ * Invert direction of main output channel 3
  *
- * This is the PWM pulse the autopilot is outputting if not armed.
- * When set to -1 the value for PWM_AUX_DISARMED will be used
+ * Enable to invert the channel.
  *
- * @reboot_required true
- *
- * @min -1
- * @max 2200
- * @unit us
+ * @boolean
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_AUX_DIS4, -1);
+PARAM_DEFINE_INT32(PWM_MAIN_REV3, 0);
 
 /**
- * Set the disarmed PWM for the AUX 5 output
+ * Invert direction of main output channel 4
  *
- * This is the PWM pulse the autopilot is outputting if not armed.
- * When set to -1 the value for PWM_AUX_DISARMED will be used
+ * Enable to invert the channel.
  *
- * @reboot_required true
- *
- * @min -1
- * @max 2200
- * @unit us
+ * @boolean
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_AUX_DIS5, -1);
+PARAM_DEFINE_INT32(PWM_MAIN_REV4, 0);
 
 /**
- * Set the disarmed PWM for the AUX 6 output
+ * Invert direction of main output channel 5
  *
- * This is the PWM pulse the autopilot is outputting if not armed.
- * When set to -1 the value for PWM_AUX_DISARMED will be used
+ * Enable to invert the channel.
  *
- * @reboot_required true
- *
- * @min -1
- * @max 2200
- * @unit us
+ * @boolean
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_AUX_DIS6, -1);
+PARAM_DEFINE_INT32(PWM_MAIN_REV5, 0);
 
 /**
- * Set the minimum PWM for the auxiliary outputs
+ * Invert direction of main output channel 6
  *
- * Set to 1000 for default or 900 to increase servo travel
+ * Enable to invert the channel.
  *
- * @reboot_required true
- *
- * @min 800
- * @max 1400
- * @unit us
+ * @boolean
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_AUX_MIN, 1000);
+PARAM_DEFINE_INT32(PWM_MAIN_REV6, 0);
 
 /**
- * Set the maximum PWM for the auxiliary outputs
+ * Invert direction of main output channel 7
  *
- * Set to 2000 for default or 2100 to increase servo travel
+ * Enable to invert the channel.
  *
- * @reboot_required true
- *
- * @min 1600
- * @max 2200
- * @unit us
+ * @boolean
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_AUX_MAX, 2000);
+PARAM_DEFINE_INT32(PWM_MAIN_REV7, 0);
 
 /**
- * Set the disarmed PWM for auxiliary outputs
+ * Invert direction of main output channel 8
  *
- * This is the PWM pulse the autopilot is outputting if not armed.
- * The main use of this parameter is to silence ESCs when they are disarmed.
+ * Enable to invert the channel.
  *
- * @reboot_required true
- *
- * @min 0
- * @max 2200
- * @unit us
+ * @boolean
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_AUX_DISARMED, 1500);
+PARAM_DEFINE_INT32(PWM_MAIN_REV8, 0);
+
+
+
+
+/**
+ * Trim value for main output channel 1
+ *
+ * Set to normalized offset
+ *
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM1, 0);
+
+/**
+ * Trim value for main output channel 2
+ *
+ * Set to normalized offset
+ *
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM2, 0);
+
+/**
+ * Trim value for main output channel 3
+ *
+ * Set to normalized offset
+ *
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM3, 0);
+
+/**
+ * Trim value for main output channel 4
+ *
+ * Set to normalized offset
+ *
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM4, 0);
+
+/**
+ * Trim value for main output channel 5
+ *
+ * Set to normalized offset
+ *
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM5, 0);
+
+/**
+ * Trim value for main output channel 6
+ *
+ * Set to normalized offset
+ *
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM6, 0);
+
+/**
+ * Trim value for main output channel 7
+ *
+ * Set to normalized offset
+ *
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM7, 0);
+
+/**
+ * Trim value for main output channel 8
+ *
+ * Set to normalized offset
+ *
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM8, 0);
+
+
+
