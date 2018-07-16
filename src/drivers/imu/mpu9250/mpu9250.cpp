@@ -1292,10 +1292,28 @@ MPU9250::read_reg(unsigned reg, uint32_t speed)
 		_interface->read(MPU9250_SET_SPEED(REG_ADDRESS(reg), speed), &buf, 1);
 
 	} else {
-		_interface->read(MPU9250_SET_SPEED(reg, speed), &buf, 1);
+		_interface->read(MPU9250_SET_SPEED(REG_ADDRESS(reg), speed), &buf, 1);
 	}
 
 	return buf;
+}
+
+uint8_t
+MPU9250::read_reg_range(unsigned start_reg, uint32_t speed, uint8_t *buf, uint16_t count)
+{
+	uint8_t ret;
+
+	if (buf == NULL) { return PX4_ERROR; }
+
+	if (_device_type == MPU_DEVICE_TYPE_ICM20948) {
+		select_register_bank(REG_BANK(start_reg));
+		ret = _interface->read(MPU9250_SET_SPEED(REG_ADDRESS(start_reg), speed), buf, count);
+
+	} else {
+		ret = _interface->read(MPU9250_SET_SPEED(REG_ADDRESS(start_reg), speed), buf, count);
+	}
+
+	return ret;
 }
 
 uint16_t
@@ -1629,6 +1647,10 @@ MPU9250::measure()
 		int16_t		gyro_z;
 	} report;
 
+	report.accel_x = 1;
+	report.accel_y = 2;
+	report.accel_z = 3;
+
 	/* start measuring */
 	perf_begin(_sample_perf);
 
@@ -1639,17 +1661,20 @@ MPU9250::measure()
 
 	if ((!_magnetometer_only || _mag->is_passthrough()) && _register_wait == 0) {
 		if (_device_type == MPU_DEVICE_TYPE_MPU9250 || _device_type == MPU_DEVICE_TYPE_MPU6500) {
-			if (OK != _interface->read(MPU9250_SET_SPEED(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED),
-						   (uint8_t *)&mpu_report,
-						   sizeof(mpu_report))) {
+//			if (OK != _interface->read(MPU9250_SET_SPEED(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED),
+//						   (uint8_t *)&mpu_report,
+//						   sizeof(mpu_report))) {
+			if (OK != read_reg_range(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED, (uint8_t *)&icm_report, sizeof(icm_report))) {
 				perf_end(_sample_perf);
 				return;
 			}
 
 		} else {    // ICM20948
-			if (OK != _interface->read(MPU9250_SET_SPEED(ICMREG_20948_ACCEL_XOUT_H, MPU9250_HIGH_BUS_SPEED),
-						   (uint8_t *)&icm_report,
-						   sizeof(icm_report))) {
+			select_register_bank(REG_BANK(ICMREG_20948_ACCEL_XOUT_H));
+
+			//if (OK != _interface->read(MPU9250_SET_SPEED(ICMREG_20948_ACCEL_XOUT_H, MPU9250_HIGH_BUS_SPEED),
+			if (OK != read_reg_range(ICMREG_20948_ACCEL_XOUT_H, MPU9250_HIGH_BUS_SPEED, (uint8_t *)&icm_report,
+						 sizeof(icm_report))) {
 				perf_end(_sample_perf);
 				return;
 			}

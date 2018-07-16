@@ -605,10 +605,23 @@ private:
 	 * Read a register from the mpu
 	 *
 	 * @param		The register to read.
+	* @param       The bus speed to read with.
 	 * @return		The value that was read.
 	 */
 	uint8_t			read_reg(unsigned reg, uint32_t speed = MPU9250_LOW_BUS_SPEED);
 	uint16_t		read_reg16(unsigned reg);
+
+
+	/**
+	 * Read a register range from the mpu
+	 *
+	 * @param       The start address to read from.
+	 * @param       The bus speed to read with.
+	 * @param       The address of the target data buffer.
+	 * @param       The count of bytes to be read.
+	 * @return      The value that was read.
+	 */
+	uint8_t read_reg_range(unsigned start_reg, uint32_t speed, uint8_t *buf, uint16_t count);
 
 	/**
 	 * Write a register in the mpu
