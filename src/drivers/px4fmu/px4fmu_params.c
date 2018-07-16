@@ -92,6 +92,26 @@ PARAM_DEFINE_INT32(PWM_AUX_REV5, 0);
 PARAM_DEFINE_INT32(PWM_AUX_REV6, 0);
 
 /**
+ * Invert direction of aux output channel 7
+ *
+ * Enable to invert the channel.
+ *
+ * @boolean
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_REV7, 0);
+
+/**
+ * Invert direction of aux output channel 8
+ *
+ * Enable to invert the channel.
+ *
+ * @boolean
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_REV8, 0);
+
+/**
  * Trim value for FMU PWM output channel 1
  *
  * Set to normalized offset
@@ -162,6 +182,193 @@ PARAM_DEFINE_FLOAT(PWM_AUX_TRIM5, 0);
  * @group PWM Outputs
  */
 PARAM_DEFINE_FLOAT(PWM_AUX_TRIM6, 0);
+
+/**
+ * Trim value for FMU PWM output channel 7
+ *
+ * Set to normalized offset
+ *
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_FLOAT(PWM_AUX_TRIM7, 0);
+
+/**
+ * Trim value for FMU PWM output channel 8
+ *
+ * Set to normalized offset
+ *
+ * @min -0.2
+ * @max 0.2
+ * @decimal 2
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_FLOAT(PWM_AUX_TRIM8, 0);
+
+/**
+ * Set the disarmed PWM for the AUX 1 output
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * When set to -1 the value for PWM_AUX_DISARMED will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_DIS1, -1);
+
+/**
+ * Set the disarmed PWM for the AUX 2 output
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * When set to -1 the value for PWM_AUX_DISARMED will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_DIS2, -1);
+
+/**
+ * Set the disarmed PWM for the AUX 3 output
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * When set to -1 the value for PWM_AUX_DISARMED will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_DIS3, -1);
+
+/**
+ * Set the disarmed PWM for the AUX 4 output
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * When set to -1 the value for PWM_AUX_DISARMED will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_DIS4, -1);
+
+/**
+ * Set the disarmed PWM for the AUX 5 output
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * When set to -1 the value for PWM_AUX_DISARMED will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_DIS5, -1);
+
+/**
+ * Set the disarmed PWM for the AUX 6 output
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * When set to -1 the value for PWM_AUX_DISARMED will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_DIS6, -1);
+
+/**
+ * Set the disarmed PWM for the AUX 7 output
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * When set to -1 the value for PWM_AUX_DISARMED will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_DIS7, -1);
+
+/**
+ * Set the disarmed PWM for the AUX 8 output
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * When set to -1 the value for PWM_AUX_DISARMED will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_DIS8, -1);
+
+/**
+ * Set the minimum PWM for the auxiliary outputs
+ *
+ * Set to 1000 for default or 900 to increase servo travel
+ *
+ * @reboot_required true
+ *
+ * @min 800
+ * @max 1400
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_MIN, 1000);
+
+/**
+ * Set the maximum PWM for the auxiliary outputs
+ *
+ * Set to 2000 for default or 2100 to increase servo travel
+ *
+ * @reboot_required true
+ *
+ * @min 1600
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_MAX, 2000);
+
+/**
+ * Set the disarmed PWM for auxiliary outputs
+ *
+ * This is the PWM pulse the autopilot is outputting if not armed.
+ * The main use of this parameter is to silence ESCs when they are disarmed.
+ *
+ * @reboot_required true
+ *
+ * @min 0
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_AUX_DISARMED, 1500);
 
 /**
  * Thrust to PWM model parameter
