@@ -380,7 +380,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 		// If flow quality fails checks on ground, assume zero flow rate after body rate compensation
 		if ((delta_time_good && flow_quality_good && (flow_magnitude_good || relying_on_flow)) || !_control_status.flags.in_air) {
 			flowSample optflow_sample_new;
-			// calculate the system time-stamp for the leading edge of the flow data integration period
+			// calculate the system time-stamp for the trailing edge of the flow data integration period
 			optflow_sample_new.time_us = time_usec - _params.flow_delay_ms * 1000;
 
 			// copy the quality metric returned by the PX4Flow sensor
