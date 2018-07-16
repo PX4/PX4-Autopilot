@@ -151,8 +151,6 @@ private:
 	char				_port[20] {};					///< device / serial port path
 
 	bool				_healthy{false};				///< flag to signal if the GPS is ok
-	bool				_baudrate_changed{false};			///< flag to signal that the baudrate with the GPS has changed
-	bool				_mode_changed{false};				///< flag that the GPS mode has changed
 	bool        			_mode_auto;				///< if true, auto-detect which GPS is attached
 
 	gps_driver_mode_t		_mode;						///< current mode
