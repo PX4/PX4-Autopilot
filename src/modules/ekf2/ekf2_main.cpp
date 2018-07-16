@@ -582,7 +582,6 @@ Ekf2::Ekf2():
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-		_gps_subs[i] = -1;
 		_gps_subs[i] = orb_subscribe_multi(ORB_ID(vehicle_gps_position), i);
 		_range_finder_subs[i] = orb_subscribe_multi(ORB_ID(distance_sensor), i);
 	}
