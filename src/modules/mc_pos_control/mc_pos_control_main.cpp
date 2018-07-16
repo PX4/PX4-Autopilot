@@ -153,14 +153,6 @@ private:
 	/** Timeout in us for trajectory data to get considered invalid */
 	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500000;
 
-	static constexpr vehicle_trajectory_waypoint_s empty_trajectory_waypoint = {0, 0, {0, 0, 0, 0, 0, 0, 0}, {{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false},
-			{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false},
-			{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false},
-			{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false},
-			{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false}
-		}
-	};
-
 	/**
 	 * Hysteresis that turns true once vehicle is armed for MPC_IDLE_TKO seconds.
 	 * A real vehicle requires some time to accelerates the propellers to IDLE speed. To ensure
@@ -1014,7 +1006,8 @@ MulticopterPositionControl::publish_avoidance_desired_waypoint()
 	}
 
 	//reset avoidance waypoint desired
-	_traj_wp_avoidance_desired = empty_trajectory_waypoint;
+	_traj_wp_avoidance_desired = _flight_tasks.getEmptyAvoidanceWaypoint();
+
 }
 
 
