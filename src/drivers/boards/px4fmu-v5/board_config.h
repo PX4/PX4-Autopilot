@@ -331,8 +331,8 @@
 #define GPIO_HW_VER_DRIVE    /* PG0   */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_VER_SENSE    /* PC2   */ ADC1_GPIO(12)
 #define HW_INFO_INIT         {'V','5','x', 'x',0}
-#define HW_INFO_INIT_REV     2
-#define HW_INFO_INIT_VER     3
+#define HW_INFO_INIT_VER     2
+#define HW_INFO_INIT_REV     3
 /* CAN Silence
  *
  * Silent mode control \ ESC Mux select
