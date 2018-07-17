@@ -245,6 +245,9 @@
  */
 #if defined(BOARD_USES_PX4IO_VERSION)
 #  define BOARD_USES_PX4IO	1
+#  if defined(BOARD_HAS_STATIC_MANIFEST) && BOARD_HAS_STATIC_MANIFEST == 1
+#     define PX4_MFT_HW_SUPPORTED_PX4_MFT_PX4IO 1
+#  endif
 /*  Allow a board_config to override the PX4IO FW search paths */
 #  if defined(BOARD_PX4IO_FW_SEARCH_PATHS)
 #    define PX4IO_FW_SEARCH_PATHS BOARD_PX4IO_FW_SEARCH_PATHS
@@ -280,6 +283,7 @@
 #  define HW_VER_FMUV2           HW_VER_SIMPLE(HW_VER_FMUV2_STATE)
 #  define HW_VER_FMUV3           HW_VER_SIMPLE(HW_VER_FMUV3_STATE)
 #  define HW_VER_FMUV2MINI       HW_VER_SIMPLE(HW_VER_FMUV2MINI_STATE)
+#  define HW_VER_FMUV2X          HW_VER_SIMPLE(HW_VER_FMUV2X_STATE)
 #endif
 
 #if defined(BOARD_HAS_HW_VERSIONING)
@@ -613,7 +617,69 @@ __EXPORT int board_set_bootload_mode(board_reset_e mode);
 #endif
 
 /************************************************************************************
- * Name: board_get_hw_type
+ * Name: board_query_manifest
+ *
+ * Description:
+ *   Optional returns manifest item.
+ *
+ * Input Parameters:
+ *   manifest_id - the ID for the manifest item to retrieve
+ *
+ * Returned Value:
+ *   0 - item is not in manifest => assume legacy operations
+ *   pointer to a manifest item
+ *
+ ************************************************************************************/
+
+typedef enum {
+	PX4_MFT_PX4IO = 0,
+} px4_hw_mft_item_id_t;
+
+typedef enum {
+	px4_hw_con_unknown  = 0,
+	px4_hw_con_onboard  = 1,
+	px4_hw_con_conector = 3,
+} px4_hw_connection_t;
+
+
+typedef struct {
+	unsigned int present:    1;   /* 1 if this board have this item */
+	unsigned int mandatory:  1;   /* 1 if this item has to be present and working */
+	unsigned int connection: 2;   /* See px4_hw_connection_t */
+} px4_hw_mft_item_t;
+
+typedef const px4_hw_mft_item_t  *px4_hw_mft_item;
+#define px4_hw_mft_uninitialized (px4_hw_mft_item) -1
+#define px4_hw_mft_unsupported   (px4_hw_mft_item) 0
+
+#if defined(BOARD_HAS_VERSIONING)
+__EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id);
+
+#  define PX4_MFT_HW_SUPPORTED(ID)           (board_query_manifest((ID))->present)
+#  define PX4_MFT_HW_REQUIRED(ID)            (board_query_manifest((ID))->mandatory)
+#  define PX4_MFT_HW_IS_ONBOARD(ID)          (board_query_manifest((ID))->connection == px4_hw_con_onboard)
+#  define PX4_MFT_HW_IS_OFFBOARD(ID)         (board_query_manifest((ID))->connection == px4_hw_con_conector)
+#  define PX4_MFT_HW_IS_CONNECTION_KNOWN(ID) (board_query_manifest((ID))->connection != px4_hw_con_unknown)
+#elif defined(BOARD_HAS_STATIC_MANIFEST) && BOARD_HAS_STATIC_MANIFEST == 1
+/* Board has a static configuration and will supply what it has */
+#  define PX4_MFT_HW_SUPPORTED(ID)           PX4_MFT_HW_SUPPORTED_##ID
+#  define PX4_MFT_HW_REQUIRED(ID)            PX4_MFT_HW_REQUIRED_##ID
+#  define PX4_MFT_HW_IS_ONBOARD(ID)          PX4_MFT_HW_IS_ONBOARD_##ID
+#  define PX4_MFT_HW_IS_OFFBOARD(ID)         PX4_MFT_HW_IS_OFFBOARD_##ID
+#  define PX4_MFT_HW_IS_CONNECTION_KNOWN(ID) PX4_MFT_HW_IS_CONNECTION_KNOWN_##ID
+#  define board_query_manifest(_na)          px4_hw_mft_unsupported
+#else
+/* Default are Not Supported */
+#  define PX4_MFT_HW_SUPPORTED(ID)           (0)
+#  define PX4_MFT_HW_REQUIRED(ID)            (0)
+#  define PX4_MFT_HW_IS_ONBOARD(ID)          (0)
+#  define PX4_MFT_HW_IS_OFFBOARD(ID)         (0)
+#  define PX4_MFT_HW_IS_CONNECTION_KNOWN(ID) (0)
+#  define board_query_manifest(_na)          px4_hw_mft_unsupported
+#endif
+
+/************************************************************************************
+ * Name: board_get_hw_type_name
  *
  * Description:
  *   Optional returns a 0 terminated string defining the HW type.
