@@ -712,7 +712,7 @@ MulticopterPositionControl::start_flight_task()
 
 	} else if (_control_mode.flag_control_auto_enabled) {
 		// Auto relate maneuvers
-		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
+		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoSmooth);
 
 		if (error != 0) {
 			PX4_WARN("Auto activation failed with error: %s", _flight_tasks.errorToString(error));
