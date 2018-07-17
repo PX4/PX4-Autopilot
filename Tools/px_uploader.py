@@ -191,7 +191,7 @@ class uploader(object):
     MAVLINK_REBOOT_ID1 = bytearray(b'\xfe\x21\x72\xff\x00\x4c\x00\x00\x40\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x01\x00\x00\x53\x6b')
     MAVLINK_REBOOT_ID0 = bytearray(b'\xfe\x21\x45\xff\x00\x4c\x00\x00\x40\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf6\x00\x00\x00\x00\xcc\x37')
 
-    MAX_FLASH_PRGRAM_TIME  = 0.001 # Time on an F7 to send SYNC, RESULT from last data in multi RXed
+    MAX_FLASH_PRGRAM_TIME  = 0.001  # Time on an F7 to send SYNC, RESULT from last data in multi RXed
     SYNC_DETECT_THRESHOLD = 0.00015
 
     def __init__(self, portname, baudrate_bootloader, baudrate_flightstack):
@@ -204,7 +204,7 @@ class uploader(object):
         # we use a window approche to SYNC,<result> gathring
         self.window = 0
         self.window_max = 256
-        self.window_per = 2 # Sync,<result>
+        self.window_per = 2  # Sync,<result>
         self.maxDtGetSync = -1000.00
 
         self.port = serial.Serial(portname, baudrate_bootloader, timeout=0.5, write_timeout=0.5)
@@ -254,7 +254,7 @@ class uploader(object):
 
     # debugging code
     def __probe(self, state):
-        #self.port.setRTS(state)
+        # self.port.setRTS(state)
         return
 
     def __send(self, c):
@@ -301,7 +301,7 @@ class uploader(object):
             data =  bytearray(bytes(self.__recv(count)))
             if (len(data) != count):
                 raise RuntimeError("Ack Window %i not %i " % (len(data), count))
-            for i in range(0,len(data),2):
+            for i in range(0, len(data), 2):
                 if chr(data[i]) != self.INSYNC:
                     raise RuntimeError("unexpected %s instead of INSYNC" % c)
                 if chr(data[i+1]) == self.INVALID:
@@ -357,8 +357,8 @@ class uploader(object):
         synstart = time.time()
         self.__getSync()
         dif  = time.time() - synstart
-        #print("%5.5f" %dif)
-        if (dif > self.maxDtGetSync and dif != 0) :
+        # print("%5.5f" %dif)
+        if (dif > self.maxDtGetSync and dif != 0):
             self.maxDtGetSync = dif
         return value
 
@@ -436,7 +436,7 @@ class uploader(object):
         self.__send(data)
         self.__send(uploader.EOC)
         if (not windowMode):
-           self.__getSync()
+            self.__getSync()
         else:
             # The following is done to have minimum delay on the transmission
             # of the ne fw. The per block cost of __getSync was about 16 mS per.
