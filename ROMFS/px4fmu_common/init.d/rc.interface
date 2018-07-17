@@ -182,7 +182,7 @@ then
 
 		if [ $FAILSAFE_AUX != none ]
 		then
-			pwm failsafe -p ${FAILSAFE} -d ${OUTPUT_AUX_DEV}
+			pwm failsafe -c ${PWM_AUX_OUT} -p ${FAILSAFE} -d ${OUTPUT_AUX_DEV}
 		fi
 	fi
 fi
@@ -226,7 +226,7 @@ then
 
 	if [ $FAILSAFE != none ]
 	then
-		pwm failsafe -p ${FAILSAFE} -d ${OUTPUT_DEV}
+		pwm failsafe -c ${PWM_OUT} -p ${FAILSAFE} -d ${OUTPUT_DEV}
 	fi
 fi
 
