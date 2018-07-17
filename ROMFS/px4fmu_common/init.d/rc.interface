@@ -9,26 +9,36 @@
 #  Otherwise, the variable name goes to the end of the argument.
 #
 
+set MIXER_AUX_FILE none
+set OUTPUT_AUX_DEV /dev/pwm_output1
 set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
+
+if ver hwcmp AEROFC_V1 AV_X_V1 CRAZYFLIE MINDPX_V2 NXPHLITE_V3 PX4FMU_V4 OMNIBUS_F4SD
+then
+	set MIXER_AUX none
+fi
+
+if [ $USE_IO == no ]
+then
+	set MIXER_AUX none
+fi
 
 if [ $MIXER != none -a $MIXER != skip ]
 then
 	#
-	# Load main mixer
+	# Load main mixer.
 	#
-
 	if [ $MIXER_AUX == none -a $USE_IO == yes ]
 	then
 		set MIXER_AUX ${MIXER}
 	fi
 
-	# Use the mixer file from the SD-card if it exists
 	if [ -f ${SDCARD_MIXERS_PATH}/${MIXER}.main.mix ]
 	then
+		# Use the mixer file from the SD-card if it exists.
 		set MIXER_FILE ${SDCARD_MIXERS_PATH}/${MIXER}.main.mix
-	# Try out the old convention, for backward compatibility
 	else
-
+		# Try out the old convention, for backward compatibility.
 		if [ -f ${SDCARD_MIXERS_PATH}/${MIXER}.mix ]
 		then
 			set MIXER_FILE ${SDCARD_MIXERS_PATH}/${MIXER}.mix
@@ -73,72 +83,11 @@ else
 	fi
 fi
 
-if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == io ]
-then
-	if [ $PWM_OUT != none ]
-	then
-		#
-		# Set PWM output frequency
-		#
-		if [ $PWM_RATE != none ]
-		then
-			pwm rate -c ${PWM_OUT} -r ${PWM_RATE}
-		fi
-
-		#
-		# Set disarmed, min and max PWM values
-		#
-		if [ $PWM_DISARMED != none ]
-		then
-			pwm disarmed -c ${PWM_OUT} -p ${PWM_DISARMED}
-		fi
-		if [ $PWM_MIN != none ]
-		then
-			pwm min -c ${PWM_OUT} -p ${PWM_MIN}
-		fi
-		if [ $PWM_MAX != none ]
-		then
-			pwm max -c ${PWM_OUT} -p ${PWM_MAX}
-		fi
-	fi
-
-	#
-	# Per channel disarmed settings
-	#
-	pwm disarmed -c 1 -p p:PWM_MAIN_DIS1
-	pwm disarmed -c 2 -p p:PWM_MAIN_DIS2
-	pwm disarmed -c 3 -p p:PWM_MAIN_DIS3
-	pwm disarmed -c 4 -p p:PWM_MAIN_DIS4
-	pwm disarmed -c 5 -p p:PWM_MAIN_DIS5
-	pwm disarmed -c 6 -p p:PWM_MAIN_DIS6
-	pwm disarmed -c 7 -p p:PWM_MAIN_DIS7
-	pwm disarmed -c 8 -p p:PWM_MAIN_DIS8
-
-	if [ $FAILSAFE != none ]
-	then
-		pwm failsafe -d ${OUTPUT_DEV} ${FAILSAFE}
-	fi
-fi
-
-if ver hwcmp MINDPX_V2 CRAZYFLIE AEROFC_V1 PX4FMU_V4 NXPHLITE_V3 OMNIBUS_F4SD AV_X_V1
-then
-	set MIXER_AUX none
-fi
-
-if [ $USE_IO == no ]
-then
-	set MIXER_AUX none
-fi
-
 if [ $MIXER_AUX != none -a $AUX_MODE != none ]
 then
 	#
-	# Load aux mixer
+	# Load aux mixer.
 	#
-
-	set MIXER_AUX_FILE none
-	set OUTPUT_AUX_DEV /dev/pwm_output1
-
 	if [ -f ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix ]
 	then
 		set MIXER_AUX_FILE ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix
@@ -154,7 +103,7 @@ then
 	then
 		if fmu mode_${AUX_MODE} $FMU_ARGS
 		then
-			# Append aux mixer to main device
+			# Append aux mixer to main device.
 			if param compare SYS_HITL 1
 			then
 				if mixer append ${OUTPUT_DEV} ${MIXER_AUX_FILE}
@@ -185,12 +134,10 @@ then
 			set FAILSAFE_AUX none
 		fi
 
-		# Set min / max for aux out and rates
+		# Set min / max for aux out and rates.
 		if [ $PWM_AUX_OUT != none ]
 		then
-			#
-			# Set PWM_AUX output frequency
-			#
+			# Set PWM_AUX output frequency.
 			if [ $PWM_AUX_RATE != none ]
 			then
 				pwm rate -c ${PWM_AUX_OUT} -r ${PWM_AUX_RATE} -d ${OUTPUT_AUX_DEV}
@@ -206,17 +153,17 @@ then
 			fi
 		fi
 
-		# Set disarmed values for aux out
-
-		# Transitional support until all configs
-		# are updated
+		#
+		# Set disarmed values for aux out.
+		# Transitional support until all configs are updated.
+		#
 		if [ $PWM_ACHDIS == none ]
 		then
 			set PWM_ACHDIS ${PWM_AUX_OUT}
 		fi
 
 		#
-		# Set disarmed, min and max PWM_AUX values
+		# Set disarmed, min and max PWM_AUX values.
 		#
 		if [ $PWM_AUX_DISARMED != none -a $PWM_ACHDIS != none ]
 		then
@@ -224,7 +171,7 @@ then
 		fi
 
 		#
-		# Per channel disarmed settings
+		# Per channel disarmed settings.
 		#
 		pwm disarmed -c 1 -p p:PWM_AUX_DIS1 -d ${OUTPUT_AUX_DEV}
 		pwm disarmed -c 2 -p p:PWM_AUX_DIS2 -d ${OUTPUT_AUX_DEV}
@@ -235,23 +182,54 @@ then
 
 		if [ $FAILSAFE_AUX != none ]
 		then
-			pwm failsafe -d ${OUTPUT_AUX_DEV} ${FAILSAFE}
+			pwm failsafe -p ${FAILSAFE} -d ${OUTPUT_AUX_DEV}
 		fi
-
 	fi
 fi
 
-unset PWM_OUT
-unset PWM_RATE
-unset PWM_ACHDIS
-unset PWM_MIN
-unset PWM_MAX
-unset PWM_AUX_OUT
-unset PWM_AUX_RATE
-unset PWM_AUX_DISARMED
-unset PWM_AUX_MIN
-unset PWM_AUX_MAX
-unset FAILSAFE_AUX
-unset FAILSAFE
-unset OUTPUT_DEV
+if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == io ]
+then
+	if [ $PWM_OUT != none ]
+	then
+		# Set PWM output frequency.
+		if [ $PWM_RATE != none ]
+		then
+			pwm rate -c ${PWM_OUT} -r ${PWM_RATE}
+		fi
+
+		# Set disarmed, min and max PWM values.
+		if [ $PWM_DISARMED != none ]
+		then
+			pwm disarmed -c ${PWM_OUT} -p ${PWM_DISARMED}
+		fi
+		if [ $PWM_MIN != none ]
+		then
+			pwm min -c ${PWM_OUT} -p ${PWM_MIN}
+		fi
+		if [ $PWM_MAX != none ]
+		then
+			pwm max -c ${PWM_OUT} -p ${PWM_MAX}
+		fi
+	fi
+
+	#
+	# Per channel disarmed settings.
+	#
+	pwm disarmed -c 1 -p p:PWM_MAIN_DIS1
+	pwm disarmed -c 2 -p p:PWM_MAIN_DIS2
+	pwm disarmed -c 3 -p p:PWM_MAIN_DIS3
+	pwm disarmed -c 4 -p p:PWM_MAIN_DIS4
+	pwm disarmed -c 5 -p p:PWM_MAIN_DIS5
+	pwm disarmed -c 6 -p p:PWM_MAIN_DIS6
+	pwm disarmed -c 7 -p p:PWM_MAIN_DIS7
+	pwm disarmed -c 8 -p p:PWM_MAIN_DIS8
+
+	if [ $FAILSAFE != none ]
+	then
+		pwm failsafe -p ${FAILSAFE} -d ${OUTPUT_DEV}
+	fi
+fi
+
+unset MIXER_AUX_FILE
 unset OUTPUT_AUX_DEV
+unset SDCARD_MIXERS_PATH

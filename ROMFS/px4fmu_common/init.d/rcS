@@ -39,17 +39,17 @@ set MK_MODE                     none
 set MKBLCTRL_ARG                ""
 set OUTPUT_MODE                 none
 set PARAM_FILE                  /fs/microsd/params
-set PWM_OUT                     none
-set PWM_RATE                    p:PWM_RATE
-set PWM_DISARMED                p:PWM_DISARMED
-set PWM_MIN                     p:PWM_MIN
-set PWM_MAX                     p:PWM_MAX
-set PWM_AUX_OUT                 none
-set PWM_AUX_RATE                none
 set PWM_ACHDIS                  none
 set PWM_AUX_DISARMED            p:PWM_AUX_DISARMED
-set PWM_AUX_MIN                 p:PWM_AUX_MIN
 set PWM_AUX_MAX                 p:PWM_AUX_MAX
+set PWM_AUX_MIN                 p:PWM_AUX_MIN
+set PWM_AUX_OUT                 none
+set PWM_AUX_RATE                none
+set PWM_DISARMED                p:PWM_DISARMED
+set PWM_MAX                     p:PWM_MAX
+set PWM_MIN                     p:PWM_MIN
+set PWM_OUT                     none
+set PWM_RATE                    p:PWM_RATE
 set TUNE_ERR                    "ML<<CP4CP4CP4CP4CP4"
 set USE_IO                      no
 set VEHICLE_TYPE                none
@@ -636,22 +636,20 @@ unset MIXER
 unset MIXER_AUX
 unset MK_MODE
 unset MKBLCTRL_ARG
-unset OUTPUT_AUX_DEV
 unset OUTPUT_DEV
 unset OUTPUT_MODE
 unset PARAM_FILE
 unset PWM_ACHDIS
+unset PWM_AUX_DISARMED
+unset PWM_AUX_MAX
+unset PWM_AUX_MIN
+unset PWM_AUX_OUT
+unset PWM_AUX_RATE
 unset PWM_OUT
 unset PWM_RATE
 unset PWM_DISARMED
-unset PWM_MIN
 unset PWM_MAX
-unset PWM_AUX_OUT
-unset PWM_AUX_RATE
-unset PWM_ACHDIS
-unset PWM_AUX_DISARMED
-unset PWM_AUX_MIN
-unset PWM_AUX_MAX
+unset PWM_MIN
 unset TUNE_ERR
 unset USE_IO
 unset VEHICLE_TYPE
