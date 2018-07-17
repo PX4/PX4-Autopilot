@@ -446,7 +446,6 @@ namespace
 {
 
 PX4IO	*g_dev = nullptr;
-
 }
 
 PX4IO::PX4IO(device::Device *interface) :
@@ -3342,6 +3341,10 @@ px4io_main(int argc, char *argv[])
 	/* check for sufficient number of arguments */
 	if (argc < 2) {
 		goto out;
+	}
+
+	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
+		errx(1, "PX4IO Not Supported");
 	}
 
 	if (!strcmp(argv[1], "start")) {
