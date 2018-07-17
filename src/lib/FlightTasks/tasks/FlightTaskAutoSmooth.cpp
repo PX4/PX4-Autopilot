@@ -52,10 +52,11 @@ bool FlightTaskAutoSmooth::activate()
 	bool ret = FlightTaskAuto::activate();
 	_reset();
 	_target_prev = _target;
+
 	_sl.setLineFromTo(_position, _target);
-	_sl.setSpeed(2.0f);
+	_sl.setSpeed(_mc_cruise_speed);
 	_sl.setSpeedAtTarget(2.0f);
-	_sl.setAcceleration(10.0f);
+	_sl.setAcceleration(2.0f);
 	_sl.setDeceleration(1.0f);
 
 
@@ -75,58 +76,56 @@ bool FlightTaskAutoSmooth::update()
 		_update_internal_triplets();
 		_internal_triplets_update = false;
 
+		// set velocity depending on the angle between the 3 waypoints
+		float angle = Vector2f(&(_target - _prev_wp)(0)).unit_or_zero()
+			      * Vector2f(&(_target - _next_wp)(0)).unit_or_zero()
+			      + 1.0f;
+		float desired_vel = math::getVelocityFromAngle(angle, 0.0f, MPC_CRUISE_90.get(), _mc_cruise_speed);
+
+		// straight line
 		_sl.setLineFromTo(_position, _pt_0);
-		_sl.setSpeed(2.0f);
-		_sl.setSpeedAtTarget(2.0f);
-		_sl.setAcceleration(10.0f);
+		_sl.setSpeed(_mc_cruise_speed);
+		_sl.setSpeedAtTarget(desired_vel);
+		_sl.setAcceleration(2.0f);
 		_sl.setDeceleration(1.0f);
+
+		// bezier
+		float duration = 1.0f;
+
+		if (desired_vel > SIGMA_SINGLE_OP) {
+			duration = 2.0f * (_target - _pt_0).length() / desired_vel;
+		}
+
+		_b.setBezier(_pt_0, _target, _pt_1, duration);
 	}
 
-	
+
 	Vector3f acc;
 	_sl.generateSetpoints(_position_setpoint, _velocity_setpoint);
 
 	_pt0_reached_once |= (Vector2f(&(_pt_0 - _position)(0)).length() < 0.5f);
-	printf("_pt0_reached_once %d %f \n", _pt0_reached_once, (double)Vector2f(&(_pt_0 - _position)(0)).length());
 	bool pt1_reached = Vector2f(&(_pt_1 - _position)(0)).length() < 1.0f;
-	printf("py1 %f \n", (double)Vector2f(&(_pt_1 - _position)(0)).length());
 
-	if (_pt0_reached_once && !pt1_reached)
-	{
+	if (_pt0_reached_once && !pt1_reached) {
 		_b.getStatesClosest(_position_setpoint, _velocity_setpoint, acc, _position);
-		printf("------------- bezier x %f y %f \n", (double)_position_setpoint(0), (double)_position_setpoint(1));
 	}
-	
-	if (pt1_reached)
-	{
+
+	if (pt1_reached) {
 		_internal_triplets_update = true;
 		_pt0_reached_once = false;
 	}
 
-	// printf("pos sp %f %f %f \n", (double)_position_setpoint(0), (double)_position_setpoint(1), (double)_position_setpoint(2));
-	// printf("vel sp %f %f %f \n", (double)_velocity_setpoint(0), (double)_velocity_setpoint(1), (double)_velocity_setpoint(2));
 	return 1;
 
 }
 
 void FlightTaskAutoSmooth::_update_internal_triplets()
 {
-	printf("_update_internal_triplets, target: \n");
-	_target.print();
-
 	Vector3f u_prev_to_target = (_target - _prev_wp).unit_or_zero();
 	Vector3f u_target_to_next = (_next_wp - _target).unit_or_zero();
 
 	_pt_0 = _target - (u_prev_to_target * NAV_ACC_RAD.get());
 	_pt_1 = _target + (u_target_to_next * NAV_ACC_RAD.get());
-	printf("pt0: ");
-	_pt_0.print();
-	printf("pt1: ");
-	_pt_1.print();
-	printf("position: ");
-	_position.print();
-
-	_b.setBezier(_pt_0, _target, _pt_1, 5.0);
 }
 
 void FlightTaskAutoSmooth::_reset()
@@ -137,5 +136,4 @@ void FlightTaskAutoSmooth::_reset()
 void FlightTaskAutoSmooth::updateParams()
 {
 	FlightTaskAuto::updateParams();
-
 }
