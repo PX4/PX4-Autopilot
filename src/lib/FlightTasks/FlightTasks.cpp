@@ -100,6 +100,11 @@ int FlightTasks::_initTask(FlightTaskIndex task_index)
 			new (&_task_union.autoFollowMe) FlightTaskAutoFollowMe();
 		break;
 
+	case FlightTaskIndex::AutoSmooth:
+		_current_task.task =
+			new (&_task_union.autoSmooth) FlightTaskAutoSmooth();
+		break;
+
 	case FlightTaskIndex::Offboard:
 		_current_task.task = new (&_task_union.offboard) FlightTaskOffboard();
 		break;
