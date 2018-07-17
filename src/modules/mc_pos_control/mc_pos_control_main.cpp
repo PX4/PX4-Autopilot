@@ -137,7 +137,8 @@ private:
 		(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude at which speed limit downwards reached minimum speed
 		(ParamInt<px4::params::MPC_POS_MODE>) MPC_POS_MODE,
 		(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
-		(ParamFloat<px4::params::MPC_IDLE_TKO>) MPC_IDLE_TKO /**< time constant for smooth takeoff ramp */
+		(ParamFloat<px4::params::MPC_IDLE_TKO>) MPC_IDLE_TKO, /**< time constant for smooth takeoff ramp */
+		(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID /**< enable obstacle avoidance */
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
@@ -989,7 +990,8 @@ bool
 MulticopterPositionControl::use_obstacle_avoidance()
 {
 	/* check that external obstacle avoidance is sending data and that the first point is valid */
-	return ((hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) < TRAJECTORY_STREAM_TIMEOUT_US)
+	return (MPC_OBS_AVOID.get()
+		&& (hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) < TRAJECTORY_STREAM_TIMEOUT_US)
 		&& (_traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true)
 		&& ((_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) ||
 		    (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)));
