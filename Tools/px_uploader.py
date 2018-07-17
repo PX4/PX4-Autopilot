@@ -303,13 +303,13 @@ class uploader(object):
                 raise RuntimeError("Ack Window %i not %i " % (len(data), count))
             for i in range(0, len(data), 2):
                 if chr(data[i]) != self.INSYNC:
-                    raise RuntimeError("unexpected %s instead of INSYNC" % c)
+                    raise RuntimeError("unexpected %s instead of INSYNC" % data[i])
                 if chr(data[i+1]) == self.INVALID:
                     raise RuntimeError("bootloader reports INVALID OPERATION")
                 if chr(data[i+1]) == self.FAILED:
                     raise RuntimeError("bootloader reports OPERATION FAILED")
                 if chr(data[i+1]) != self.OK:
-                    raise RuntimeError("unexpected response 0x%x instead of OK" % ord(c))
+                    raise RuntimeError("unexpected response 0x%x instead of OK" % ord(data[i+1]))
 
     # attempt to get back into sync with the bootloader
     def __sync(self):
