@@ -132,7 +132,7 @@ __EXPORT void board_rc_input(bool invert_on, uint32_t uxart_base)
 	if (invert_on) {
 #if defined(BOARD_HAS_RX_TX_SWAP) &&	RC_SERIAL_PORT_IS_SWAPED == 1
 
-		/* This is only tuned on */
+		/* This is only ever turned on */
 
 		cr2 |= (USART_CR2_RXINV | USART_CR2_TXINV | USART_CR2_SWAP);
 #else
