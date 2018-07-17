@@ -613,7 +613,61 @@ __EXPORT int board_set_bootload_mode(board_reset_e mode);
 #endif
 
 /************************************************************************************
- * Name: board_get_hw_type
+ * Name: board_query_manifest
+ *
+ * Description:
+ *   Optional returns manifest item.
+ *
+ * Input Parameters:
+ *   manifest_id - the ID for the manifest item to retrieve
+ *
+ * Returned Value:
+ *   0 - item is not in manifest => assume legacy operations
+ *   pointer to a manifest item
+ *
+ ************************************************************************************/
+
+typedef enum {
+	PX4_MFT_PX4IO = 0,
+} px4_hw_mft_item_id_t;
+
+typedef enum {
+	px4_hw_con_unknown  = 0,
+	px4_hw_con_onboard  = 1,
+	px4_hw_con_conector = 3,
+} px4_hw_connection_t;
+
+
+typedef struct {
+	unsigned int present:    1;   /* 1 if this board have this item */
+	unsigned int mandatory:  1;   /* 1 if this item has to be present and working */
+	unsigned int connection: 2;   /* See px4_hw_connection_t */
+} px4_hw_mft_item_t;
+
+typedef const px4_hw_mft_item_t  *px4_hw_mft_item;
+#define px4_hw_mft_uninitialized (px4_hw_mft_item) -1
+#define px4_hw_mft_unsupported   (px4_hw_mft_item) 0
+
+#if defined(BOARD_HAS_VERSIONING) && !defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
+__EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id);
+
+#define PX4_MFT_HW_SUPPORTED(ID)           (board_query_manifest((ID))->present)
+#define PX4_MFT_HW_REQUIRED(ID)            (board_query_manifest((ID))->mandatory)
+#define PX4_MFT_HW_IS_ONBOARD(ID)          (board_query_manifest((ID))->connection == px4_hw_con_onboard)
+#define PX4_MFT_HW_IS_OFFBOARD(ID)         (board_query_manifest((ID))->connection == px4_hw_con_conector)
+#define PX4_MFT_HW_IS_CONNECTION_KNOWN(ID) (board_query_manifest((ID))->connection != px4_hw_con_unknown)
+
+#else
+#define PX4_MFT_HW_SUPPORTED(ID)           (1)
+#define PX4_MFT_HW_REQUIRED(ID)            (0)
+#define PX4_MFT_HW_IS_ONBOARD(ID)          (0)
+#define PX4_MFT_HW_IS_OFFBOARD(ID)         (0)
+#define PX4_MFT_HW_IS_CONNECTION_KNOWN(ID) (0)
+#define board_query_manifest(_na)          px4_hw_mft_unsupported
+#endif
+
+/************************************************************************************
+ * Name: board_get_hw_type_name
  *
  * Description:
  *   Optional returns a 0 terminated string defining the HW type.
