@@ -48,10 +48,49 @@
 
 #include <px4_config.h>
 #include <stdbool.h>
+#include "systemlib/px4_macros.h"
+#include "px4_log.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
+
+typedef struct {
+	uint32_t                hw_ver_rev; /* the version and revision */
+	const px4_hw_mft_item_t *mft;       /* The first entry */
+	uint32_t                entries;    /* the lenght of the list */
+} px4_hw_mft_list_entry_t;
+
+typedef px4_hw_mft_list_entry_t *px4_hw_mft_list_entry;
+#define px4_hw_mft_list_uninitialized (px4_hw_mft_list_entry) -1
+
+static const px4_hw_mft_item_t device_unsupported = {0, 0, 0};
+
+static const px4_hw_mft_item_t hw_mft_list_v0500[] = {
+	{
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+	{
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = 1,
+	},
+};
+
+static const px4_hw_mft_item_t hw_mft_list_v0540[] = {
+	{
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
+	},
+};
+
+static px4_hw_mft_list_entry_t mft_lists[] = {
+	{0x0000, hw_mft_list_v0500, arraySize(hw_mft_list_v0500)},
+	{0x0400, hw_mft_list_v0540, arraySize(hw_mft_list_v0540)},
+};
 
 
 /************************************************************************************
@@ -66,4 +105,49 @@
 __EXPORT bool board_supports_single_wire(uint32_t uxart_base)
 {
 	return uxart_base == RC_UXART_BASE;
+}
+
+/************************************************************************************
+ * Name: board_query_manifest
+ *
+ * Description:
+ *   Optional returns manifest item.
+ *
+ * Input Parameters:
+ *   manifest_id - the ID for the manifest item to retrieve
+ *
+ * Returned Value:
+ *   0 - item is not in manifest => assume legacy operations
+ *   pointer to a manifest item
+ *
+ ************************************************************************************/
+
+__EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
+{
+	static px4_hw_mft_list_entry boards_manifest = px4_hw_mft_list_uninitialized;
+
+	if (boards_manifest == px4_hw_mft_list_uninitialized) {
+		uint32_t ver_rev = board_get_hw_version() << 8;
+		ver_rev |= board_get_hw_revision();
+
+		for (unsigned i = 0; i < arraySize(mft_lists); i++) {
+			if (mft_lists[i].hw_ver_rev == ver_rev) {
+				boards_manifest = &mft_lists[i];
+				break;
+			}
+		}
+
+		if (boards_manifest == px4_hw_mft_list_uninitialized) {
+			PX4_ERR("Board %4x is not supported!", ver_rev);
+		}
+	}
+
+	px4_hw_mft_item rv = &device_unsupported;
+
+	if (boards_manifest != px4_hw_mft_list_uninitialized &&
+	    id < boards_manifest->entries) {
+		rv = &boards_manifest->mft[id];
+	}
+
+	return rv;
 }
