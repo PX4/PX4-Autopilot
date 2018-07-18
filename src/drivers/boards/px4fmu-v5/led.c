@@ -104,8 +104,8 @@ static void phy_set_led(int led, bool state)
 
 static bool phy_get_led(int led)
 {
-
-	return stm32_gpioread(g_ledmap[led]);
+	/* If Low it is on */
+	return !stm32_gpioread(g_ledmap[led]);
 }
 
 __EXPORT void led_on(int led)
@@ -120,7 +120,6 @@ __EXPORT void led_off(int led)
 
 __EXPORT void led_toggle(int led)
 {
-
 	phy_set_led(xlat(led), !phy_get_led(xlat(led)));
 }
 
