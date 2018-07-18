@@ -228,7 +228,7 @@ CameraCapture::status()
 
 static int usage()
 {
-	PX4_INFO("usage: camera_capture {start|stop|on|off|reset}\n");
+	PX4_INFO("usage: camera_capture {start|stop|on|off|reset|status}\n");
 	return 1;
 }
 
