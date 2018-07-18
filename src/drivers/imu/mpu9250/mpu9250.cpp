@@ -1661,10 +1661,7 @@ MPU9250::measure()
 
 	if ((!_magnetometer_only || _mag->is_passthrough()) && _register_wait == 0) {
 		if (_device_type == MPU_DEVICE_TYPE_MPU9250 || _device_type == MPU_DEVICE_TYPE_MPU6500) {
-//			if (OK != _interface->read(MPU9250_SET_SPEED(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED),
-//						   (uint8_t *)&mpu_report,
-//						   sizeof(mpu_report))) {
-			if (OK != read_reg_range(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED, (uint8_t *)&icm_report, sizeof(icm_report))) {
+			if (OK != read_reg_range(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED, (uint8_t *)&mpu_report, sizeof(mpu_report))) {
 				perf_end(_sample_perf);
 				return;
 			}
@@ -1672,7 +1669,6 @@ MPU9250::measure()
 		} else {    // ICM20948
 			select_register_bank(REG_BANK(ICMREG_20948_ACCEL_XOUT_H));
 
-			//if (OK != _interface->read(MPU9250_SET_SPEED(ICMREG_20948_ACCEL_XOUT_H, MPU9250_HIGH_BUS_SPEED),
 			if (OK != read_reg_range(ICMREG_20948_ACCEL_XOUT_H, MPU9250_HIGH_BUS_SPEED, (uint8_t *)&icm_report,
 						 sizeof(icm_report))) {
 				perf_end(_sample_perf);

@@ -240,13 +240,27 @@ MPU9250_mag::_measure(struct ak8963_regs data)
 	 * Align axes - note the accel & gryo are also re-aligned so this
 	 *              doesn't look obvious with the datasheet
 	 */
-	mrb.x_raw =  data.x;
-	mrb.y_raw = -data.y;
-	mrb.z_raw = -data.z;
+	float xraw_f, yraw_f, zraw_f;
 
-	float xraw_f =  data.x;
-	float yraw_f = -data.y;
-	float zraw_f = -data.z;
+	if (_parent->_device_type == MPU_DEVICE_TYPE_ICM20948) {
+		// mag rotated by 90deg cw on ICM20948 compared to MPU9250
+		mrb.x_raw = -data.y;
+		mrb.y_raw = -data.x;
+		mrb.z_raw = -data.z;
+
+		xraw_f = -data.y;
+		yraw_f = -data.x;
+		zraw_f = -data.z;
+
+	} else {
+		mrb.x_raw =  data.x;
+		mrb.y_raw = -data.y;
+		mrb.z_raw = -data.z;
+
+		xraw_f =  data.x;
+		yraw_f = -data.y;
+		zraw_f = -data.z;
+	}
 
 	/* apply user specified rotation */
 	rotate_3f(_parent->_rotation, xraw_f, yraw_f, zraw_f);
