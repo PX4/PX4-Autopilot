@@ -241,14 +241,6 @@ else
 	#                 End Setup for board specific configurations.                #
 	###############################################################################
 
-	#
-	# Set USE_IO flag.
-	#
-	if param compare SYS_USE_IO 1
-	then
-		set USE_IO yes
-	fi
-
 	if param compare SYS_FMU_TASK 1
 	then
 		set FMU_ARGS "-t"
@@ -261,19 +253,6 @@ else
 	then
 	else
 		sh /etc/init.d/rc.autostart
-	fi
-
-	#
-	# If mount (gimbal) control is enabled and output mode is AUX, set the aux
-	# mixer to mount (override the airframe-specific MIXER_AUX setting).
-	#
-	if param compare MNT_MODE_IN -1
-	then
-	else
-		if param compare MNT_MODE_OUT 0
-		then
-			set MIXER_AUX mount
-		fi
 	fi
 
 	#
@@ -314,6 +293,7 @@ else
 		fi
 
 		param set SYS_AUTOCONFIG 0
+		param save
 	fi
 
 	#
@@ -361,18 +341,18 @@ else
 		fi
 	fi
 
+	#
+	# Set USE_IO flag.
+	#
+	if param compare SYS_USE_IO 1
+	then
+		set USE_IO yes
+	fi
+
 	if [ $USE_IO == yes -a $IO_PRESENT == no ]
 	then
 		echo "PX4IO not found" >> $LOG_FILE
 		tune_control play -m ${TUNE_ERR}
-	fi
-
-	#
-	# Waypoint storage.
-	# REBOOTWORK this needs to start in parallel.
-	#
-	if dataman start $DATAMAN_OPT
-	then
 	fi
 
 	#
@@ -395,13 +375,9 @@ else
 		commander start
 	fi
 
-	send_event start
-	load_mon start
-
 	#
 	# Check if UAVCAN is enabled, default to it for ESCs.
 	#
-	
 	if param greater UAVCAN_ENABLE 0
 	then
 		# Start core UAVCAN module.
@@ -431,7 +407,7 @@ else
 		set FMU_MODE pwm4
 		set AUX_MODE pwm4
 	fi
-	
+
 	if param greater TRIG_MODE 0
 	then
 		# We ONLY support trigger on pins 5 and 6 when simultanously using AUX for actuator output.
@@ -444,10 +420,34 @@ else
 			set FMU_MODE none
 			set AUX_MODE none
 		fi
-		camera_trigger start
 
+		camera_trigger start
 		param set CAM_FBACK_MODE 1
 		camera_feedback start
+	fi
+
+	#
+	# If mount (gimbal) control is enabled and output mode is AUX, set the aux
+	# mixer to mount (override the airframe-specific MIXER_AUX setting).
+	#
+	if param compare MNT_MODE_IN -1
+	then
+	else
+		if param compare MNT_MODE_OUT 0
+		then
+			set MIXER_AUX mount
+		fi
+	fi
+
+	#
+	# Start vmount to control mounts such as gimbals, disabled by default.
+	#
+	if param compare MNT_MODE_IN -1
+	then
+	else
+		if vmount start
+		then
+		fi
 	fi
 
 	#
@@ -560,16 +560,25 @@ else
 	fi
 
 	#
+	# Waypoint storage.
+	# REBOOTWORK this needs to start in parallel.
+	#
+	dataman start $DATAMAN_OPT
+
+	#
+	# Start the socket communication send_event handler.
+	#
+	send_event start
+
+	#
+	# Start the resource load monitor.
+	#
+	load_mon start
+
+	#
 	# Start mavlink streams.
 	#
 	sh /etc/init.d/rc.mavlink
-
-
-	if ver hwcmp PX4FMU_V2 PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2 PX4FMU_V5 OMNIBUS_F4SD
-	then
-		# Check for flow sensor - as it is a background task, launch it last.
-		px4flow start &
-	fi
 
 	#
 	# Configure vehicle type specific parameters.
@@ -583,33 +592,32 @@ else
 	#
 	navigator start
 
-	# Start any custom addons.
-	if [ -f $FEXTRAS ]
-	then
-		echo "Addons script: ${FEXTRAS}"
-		sh $FEXTRAS
-	fi
-
 	#
 	# Start a thermal calibration if required.
 	#
 	sh /etc/init.d/rc.thermal_cal
 
 	#
-	# vmount to control mounts such as gimbals, disabled by default.
-	#
-	if param compare MNT_MODE_IN -1
-	then
-	else
-		if vmount start
-		then
-		fi
-	fi
-
-	#
 	# Start the logger.
 	#
 	sh /etc/init.d/rc.logging
+
+	#
+	# Launch the flow sensor as a background task.
+	#
+	if ver hwcmp PX4FMU_V2 PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2 PX4FMU_V5 OMNIBUS_F4SD
+	then
+		px4flow start &
+	fi
+
+	#
+	# Start any custom addons.
+	#
+	if [ -f $FEXTRAS ]
+	then
+		echo "Addons script: ${FEXTRAS}"
+		sh $FEXTRAS
+	fi
 
 # End of autostart.
 fi
