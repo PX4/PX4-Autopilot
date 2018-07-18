@@ -67,8 +67,8 @@ private:
 	matrix::Vector3f _pt_0;
 	matrix::Vector3f _pt_1;
 
-	bool _internal_triplets_update = true;
-	bool _pt0_reached_once = false;
+	bool _control_points_update = true;
+	bool _pt_0_reached_once = false;
 
-	void _update_internal_triplets();
+	void _update_control_points(); /**< Update Bezier control points */
 };
