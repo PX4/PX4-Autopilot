@@ -778,6 +778,9 @@ start(int argc, char *argv[])
 #ifdef PX4_I2C_BUS_EXPANSION1
 			PX4_I2C_BUS_EXPANSION1,
 #endif
+#ifdef PX4_I2C_BUS_EXPANSION2
+			PX4_I2C_BUS_EXPANSION2,
+#endif
 
 			-1
 		};
