@@ -544,13 +544,17 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 		bool accel_updated;
 		orb_check(_accel.subscription[uorb_index], &accel_updated);
 
-		if (accel_updated && _accel.enabled[uorb_index]) {
+		if (accel_updated) {
 			struct accel_report accel_report;
 
 			int ret = orb_copy(ORB_ID(sensor_accel), _accel.subscription[uorb_index], &accel_report);
 
 			if (ret != PX4_OK || accel_report.timestamp == 0) {
 				continue; //ignore invalid data
+			}
+
+			if (!_accel.enabled[uorb_index]) {
+				continue;
 			}
 
 			// First publication with data
@@ -649,13 +653,17 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 		bool gyro_updated;
 		orb_check(_gyro.subscription[uorb_index], &gyro_updated);
 
-		if (gyro_updated && _gyro.enabled[uorb_index]) {
+		if (gyro_updated) {
 			struct gyro_report gyro_report;
 
 			int ret = orb_copy(ORB_ID(sensor_gyro), _gyro.subscription[uorb_index], &gyro_report);
 
 			if (ret != PX4_OK || gyro_report.timestamp == 0) {
 				continue; //ignore invalid data
+			}
+
+			if (!_gyro.enabled[uorb_index]) {
+				continue;
 			}
 
 			// First publication with data
@@ -752,13 +760,17 @@ void VotedSensorsUpdate::mag_poll(vehicle_magnetometer_s &magnetometer)
 		bool mag_updated;
 		orb_check(_mag.subscription[uorb_index], &mag_updated);
 
-		if (mag_updated && _mag.enabled[uorb_index]) {
+		if (mag_updated) {
 			struct mag_report mag_report;
 
 			int ret = orb_copy(ORB_ID(sensor_mag), _mag.subscription[uorb_index], &mag_report);
 
 			if (ret != PX4_OK || mag_report.timestamp == 0) {
 				continue; //ignore invalid data
+			}
+
+			if (!_mag.enabled[uorb_index]) {
+				continue;
 			}
 
 			// First publication with data
