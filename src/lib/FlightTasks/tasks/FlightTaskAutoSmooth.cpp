@@ -51,14 +51,6 @@ bool FlightTaskAutoSmooth::activate()
 {
 	bool ret = FlightTaskAuto::activate();
 	_reset();
-	_target_prev = _target;
-
-	_sl.setLineFromTo(_position, _target);
-	_sl.setSpeed(_mc_cruise_speed);
-	_sl.setSpeedAtTarget(2.0f);
-	_sl.setAcceleration(2.0f);
-	_sl.setDeceleration(1.0f);
-
 
 	ret = ret && PX4_ISFINITE(_position(0))
 	      && PX4_ISFINITE(_position(1))
