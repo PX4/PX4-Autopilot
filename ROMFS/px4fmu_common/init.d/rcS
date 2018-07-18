@@ -90,7 +90,7 @@ else
 	then
 		if mount -t vfat /dev/mmcsd0 /fs/microsd
 		then
-			echo "INFO  [init] card formatted"
+			echo "INFO [init] card formatted"
 		else
 			echo "ERROR [init] format failed"
 			tone_alarm MNBG
@@ -135,6 +135,22 @@ else
 	# play startup tone.
 	#
 	tune_control play -t 1
+
+	#
+	# Waypoint storage.
+	# REBOOTWORK this needs to start in parallel.
+	#
+	dataman start $DATAMAN_OPT
+
+	#
+	# Start the socket communication send_event handler.
+	#
+	send_event start
+
+	#
+	# Start the resource load monitor.
+	#
+	load_mon start
 
 	#
 	# Set the parameter file if mtd starts successfully.
@@ -293,7 +309,6 @@ else
 		fi
 
 		param set SYS_AUTOCONFIG 0
-		param save
 	fi
 
 	#
@@ -387,6 +402,7 @@ else
 			then
 				# Reduce logger buffer to free up some RAM for UAVCAN servers.
 				set LOGGER_BUF 6
+
 				# Start UAVCAN firmware update server and dynamic node ID allocation server.
 				uavcan start fw
 
@@ -424,30 +440,6 @@ else
 		camera_trigger start
 		param set CAM_FBACK_MODE 1
 		camera_feedback start
-	fi
-
-	#
-	# If mount (gimbal) control is enabled and output mode is AUX, set the aux
-	# mixer to mount (override the airframe-specific MIXER_AUX setting).
-	#
-	if param compare MNT_MODE_IN -1
-	then
-	else
-		if param compare MNT_MODE_OUT 0
-		then
-			set MIXER_AUX mount
-		fi
-	fi
-
-	#
-	# Start vmount to control mounts such as gimbals, disabled by default.
-	#
-	if param compare MNT_MODE_IN -1
-	then
-	else
-		if vmount start
-		then
-		fi
 	fi
 
 	#
@@ -560,22 +552,6 @@ else
 	fi
 
 	#
-	# Waypoint storage.
-	# REBOOTWORK this needs to start in parallel.
-	#
-	dataman start $DATAMAN_OPT
-
-	#
-	# Start the socket communication send_event handler.
-	#
-	send_event start
-
-	#
-	# Start the resource load monitor.
-	#
-	load_mon start
-
-	#
 	# Start mavlink streams.
 	#
 	sh /etc/init.d/rc.mavlink
@@ -601,6 +577,17 @@ else
 	# Start the logger.
 	#
 	sh /etc/init.d/rc.logging
+
+	#
+	# Start vmount to control mounts such as gimbals, disabled by default.
+	#
+	if param compare MNT_MODE_IN -1
+	then
+	else
+		if vmount start
+		then
+		fi
+	fi
 
 	#
 	# Launch the flow sensor as a background task.
