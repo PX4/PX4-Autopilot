@@ -62,9 +62,9 @@ bool FlightTaskAutoSmooth::activate()
 
 bool FlightTaskAutoSmooth::update()
 {
-	if (_internal_triplets_update) {
-		_update_internal_triplets();
-		_internal_triplets_update = false;
+	if (_control_points_update) {
+		_update_control_points();
+		_control_points_update = false;
 
 		// set velocity depending on the angle between the 3 waypoints
 		float angle = Vector2f(&(_target - _prev_wp)(0)).unit_or_zero()
@@ -90,27 +90,27 @@ bool FlightTaskAutoSmooth::update()
 	}
 
 
-	Vector3f acc;
+	Vector3f acceleration;
 
-	_pt0_reached_once = _pt0_reached_once || (Vector2f(&(_pt_0 - _position_setpoint)(0)).length() < 0.1f);
-	bool pt1_reached = Vector2f(&(_pt_1 - _position_setpoint)(0)).length() < 0.1f;
+	_pt_0_reached_once = _pt_0_reached_once || (Vector2f(&(_pt_0 - _position_setpoint)(0)).length() < 0.1f);
+	const bool pt_1_reached = Vector2f(&(_pt_1 - _position_setpoint)(0)).length() < 0.1f;
 
-	if (_pt0_reached_once && !pt1_reached) {
-		_b.getStatesClosest(_position_setpoint, _velocity_setpoint, acc, _position);
-	} else if (!pt1_reached) {
+	if (_pt_0_reached_once && !pt_1_reached) {
+		_b.getStatesClosest(_position_setpoint, _velocity_setpoint, acceleration, _position);
+	} else if (!pt_1_reached) {
 		_sl.generateSetpoints(_position_setpoint, _velocity_setpoint);
 	}
 
-	if (pt1_reached) {
-		_internal_triplets_update = true;
-		_pt0_reached_once = false;
+	if (pt_1_reached) {
+		_control_points_update = true;
+		_pt_0_reached_once = false;
 	}
 
-	return 1;
+	return true;
 
 }
 
-void FlightTaskAutoSmooth::_update_internal_triplets()
+void FlightTaskAutoSmooth::_update_control_points()
 {
 	Vector3f u_prev_to_target = (_target - _prev_wp).unit_or_zero();
 	Vector3f u_target_to_next = (_next_wp - _target).unit_or_zero();
