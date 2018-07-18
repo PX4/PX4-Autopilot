@@ -960,13 +960,11 @@ MulticopterPositionControl::update_avoidance_waypoint_desired(PositionControlSta
 	_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw = states.yaw;
 	_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed = NAN;
 	_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid = true;
-
 }
 
 void
 MulticopterPositionControl::execute_avoidance_waypoint()
 {
-
 	vehicle_local_position_setpoint_s setpoint;
 
 	setpoint.x = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].position[0];
@@ -983,7 +981,6 @@ MulticopterPositionControl::execute_avoidance_waypoint()
 	Vector3f(NAN, NAN, NAN).copyTo(setpoint.thrust);
 
 	_control.updateSetpoint(setpoint);
-
 }
 
 bool
@@ -1011,7 +1008,6 @@ MulticopterPositionControl::publish_avoidance_desired_waypoint()
 
 	//reset avoidance waypoint desired
 	_traj_wp_avoidance_desired = _flight_tasks.getEmptyAvoidanceWaypoint();
-
 }
 
 

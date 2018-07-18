@@ -289,7 +289,6 @@ void FlightTaskAuto::_updateAvoidanceWaypoints()
 		_sub_triplet_setpoint->get().next.yawspeed_valid ?
 		_sub_triplet_setpoint->get().next.yawspeed : NAN;
 	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].point_valid = true;
-
 }
 
 bool FlightTaskAuto::_isFinite(const position_setpoint_s sp)
