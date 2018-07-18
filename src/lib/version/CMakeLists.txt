@@ -69,10 +69,9 @@ target_include_directories(git_ver INTERFACE ${CMAKE_CURRENT_BINARY_DIR})
 add_dependencies(git_ver ver_gen)
 
 # The URL for the elf file for crash logging
+set(BUILD_URI "localhost")
 if (DEFINED ENV{BUILD_URI})
 	set(BUILD_URI $ENV{BUILD_URI})
-else()
-	set(BUILD_URI "localhost")
 endif()
 
 add_library(version version.c)
