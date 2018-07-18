@@ -984,14 +984,15 @@ bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_n
 void VotedSensorsUpdate::init_sensor_class(const struct orb_metadata *meta, SensorData &sensor_data,
 		uint8_t sensor_count_max)
 {
-	unsigned group_count = orb_group_count(meta);
+	int max_sensor_index = -1;
 
-	if (group_count > sensor_count_max) {
-		PX4_WARN("Detected %u %s sensors, but will only use %u", group_count, meta->o_name, sensor_count_max);
-		group_count = sensor_count_max;
-	}
+	for (unsigned i = 0; i < sensor_count_max; i++) {
+		if (orb_exists(meta, i) != 0) {
+			continue;
+		}
 
-	for (unsigned i = 0; i < group_count; i++) {
+		max_sensor_index = i;
+
 		if (sensor_data.subscription[i] < 0) {
 			sensor_data.subscription[i] = orb_subscribe_multi(meta, i);
 
@@ -1004,7 +1005,10 @@ void VotedSensorsUpdate::init_sensor_class(const struct orb_metadata *meta, Sens
 		}
 	}
 
-	sensor_data.subscription_count = group_count;
+	// never decrease the sensor count, as we could end up with mismatching validators
+	if (max_sensor_index + 1 > sensor_data.subscription_count) {
+		sensor_data.subscription_count = max_sensor_index + 1;
+	}
 }
 
 void VotedSensorsUpdate::print_status()
