@@ -77,7 +77,7 @@
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/mavlink_log.h>
-
+#include <v2.0/mavlink_implement.h>
 #include "mavlink_bridge_header.h"
 #include "mavlink_main.h"
 #include "mavlink_messages.h"
