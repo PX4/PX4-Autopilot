@@ -41,7 +41,6 @@
 using namespace matrix;
 
 #define SIGMA_SINGLE_OP			0.000001f
-#define SIGMA_NORM			0.001f
 
 FlightTaskAutoSmooth::FlightTaskAutoSmooth() :
 	_sl(nullptr, _deltatime, _position)
@@ -50,7 +49,6 @@ FlightTaskAutoSmooth::FlightTaskAutoSmooth() :
 bool FlightTaskAutoSmooth::activate()
 {
 	bool ret = FlightTaskAuto::activate();
-	_reset();
 
 	ret = ret && PX4_ISFINITE(_position(0))
 	      && PX4_ISFINITE(_position(1))
@@ -119,11 +117,6 @@ void FlightTaskAutoSmooth::_update_internal_triplets()
 
 	_pt_0 = _target - (u_prev_to_target * NAV_ACC_RAD.get());
 	_pt_1 = _target + (u_target_to_next * NAV_ACC_RAD.get());
-}
-
-void FlightTaskAutoSmooth::_reset()
-{
-
 }
 
 void FlightTaskAutoSmooth::updateParams()
