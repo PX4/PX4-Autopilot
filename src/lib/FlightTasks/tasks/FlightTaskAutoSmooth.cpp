@@ -80,10 +80,10 @@ bool FlightTaskAutoSmooth::update()
 		float angle = Vector2f(&(_target - _prev_wp)(0)).unit_or_zero()
 			      * Vector2f(&(_target - _next_wp)(0)).unit_or_zero()
 			      + 1.0f;
-		float desired_vel = math::getVelocityFromAngle(angle, 0.0f, MPC_CRUISE_90.get(), _mc_cruise_speed);
+		float desired_vel = math::getVelocityFromAngle(angle, 1.0f, MPC_CRUISE_90.get(), _mc_cruise_speed);
 
 		// straight line
-		_sl.setLineFromTo(_position, _pt_0);
+		_sl.setLineFromTo(_prev_wp, _pt_0);
 		_sl.setSpeed(_mc_cruise_speed);
 		_sl.setSpeedAtTarget(desired_vel);
 		_sl.setAcceleration(2.0f);
@@ -101,13 +101,14 @@ bool FlightTaskAutoSmooth::update()
 
 
 	Vector3f acc;
-	_sl.generateSetpoints(_position_setpoint, _velocity_setpoint);
 
-	_pt0_reached_once |= (Vector2f(&(_pt_0 - _position)(0)).length() < 0.5f);
-	bool pt1_reached = Vector2f(&(_pt_1 - _position)(0)).length() < 1.0f;
+	_pt0_reached_once = _pt0_reached_once || (Vector2f(&(_pt_0 - _position_setpoint)(0)).length() < 0.1f);
+	bool pt1_reached = Vector2f(&(_pt_1 - _position_setpoint)(0)).length() < 0.1f;
 
 	if (_pt0_reached_once && !pt1_reached) {
 		_b.getStatesClosest(_position_setpoint, _velocity_setpoint, acc, _position);
+	} else if (!pt1_reached) {
+		_sl.generateSetpoints(_position_setpoint, _velocity_setpoint);
 	}
 
 	if (pt1_reached) {
