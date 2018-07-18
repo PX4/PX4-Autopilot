@@ -174,7 +174,7 @@ MPU9250_I2C::probe()
 		 * make sure register bank 0 is selected - whoami is only present on bank 0, and that is
 		 * not sure e.g. if the device has rebooted without repowering the sensor
 		 */
-		write(ICMREG_20948_BANK_SEL,&register_select, 1);
+		write(ICMREG_20948_BANK_SEL, &register_select, 1);
 
 		break;
 	}

@@ -511,6 +511,7 @@ int MPU9250::reset_mpu()
 		write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
 		write_checked_reg(MPUREG_PWR_MGMT_1, MPU_CLK_SEL_AUTO);
 		write_checked_reg(MPUREG_PWR_MGMT_2, 0);
+		up_udelay(1000);
 		break;
 
 	case MPU_DEVICE_TYPE_ICM20948:
@@ -593,11 +594,13 @@ int MPU9250::reset_mpu()
 		// Assume all checked values are as expected
 		all_ok = true;
 		uint8_t reg;
-		uint8_t bankcheck;
+		uint8_t bankcheck = 0;
 
 		for (uint8_t i = 0; i < _num_checked_registers; i++) {
 			if ((reg = read_reg(_checked_registers[i])) != _checked_values[i]) {
-				_interface->read(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &bankcheck, 1);
+				if (_device_type == MPU_DEVICE_TYPE_ICM20948) {
+					_interface->read(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &bankcheck, 1);
+				}
 
 				write_reg(_checked_registers[i], _checked_values[i]);
 				PX4_ERR("Reg %d is:%d s/b:%d Tries:%d - bank s/b %d, is %d", _checked_registers[i], reg, _checked_values[i], retries,

@@ -131,9 +131,6 @@ then
 
 		# external LSM303D is rotated 270 degrees yaw
 		lsm303d -X -R 6 start
-        
-        # probe for ICM20948 (Here GPS) on external I2C
-        mpu9250 -X -M start
 
 		if [ $BOARD_FMUV3 == 20 ]
 		then
@@ -147,8 +144,11 @@ then
 		if [ $BOARD_FMUV3 == 21 ]
 		then
 			# v2.1 internal MPU9250 is rotated 180 deg roll, 270 deg yaw
-			mpu9250 -s -R 14 start
+			mpu9250 -R 14 start
 		fi
+
+        # probe for ICM20948 (Here GPS) on external I2C
+        mpu9250 -X -M start
 
 	else
 		# $BOARD_FMUV3 == 0 -> FMUv2
@@ -332,6 +332,19 @@ then
 	ist8310 -C -b 5 start
 fi
 
+if ver hwcmp AV_X_V1
+then
+	adis16477 -R 8 start
+
+	#adis16497 start
+
+	lps22hb start
+
+	lsm303agr -R 4 start
+
+	#ms4525_airspeed start
+fi
+
 if ver hwcmp AEROCORE2
 then
 	l3gd20 -R 12 start
@@ -346,11 +359,7 @@ if [ ${VEHICLE_TYPE} == fw -o ${VEHICLE_TYPE} == vtol ]
 then
 	if param compare CBRK_AIRSPD_CHK 0
 	then
-		if sdp3x_airspeed start
-		then
-		else
-			sdp3x_airspeed start -b 2
-		fi
+		sdp3x_airspeed start -a
 
 		# Pixhawk 2.1 has a MS5611 on I2C which gets wrongly
 		# detected as MS5525 because the chip manufacturer was so
@@ -360,20 +369,13 @@ then
 		then
 			ms5525_airspeed start -b 2
 		else
-			ms5525_airspeed start
+			ms5525_airspeed start -a
 		fi
 
-		if ms4525_airspeed start
-		then
-		else
-			ms4525_airspeed start -b 2
-		fi
+		ms4525_airspeed start -a
 
-		if ets_airspeed start
-		then
-		else
-			ets_airspeed start -b 1
-		fi
+		ets_airspeed start -a
+
 	fi
 fi
 
@@ -401,19 +403,19 @@ fi
 # lightware i2c lidar sensor
 if param greater SENS_EN_SF1XX 0
 then
-	sf1xx start
+	sf1xx start -a
 fi
 
 # mb12xx sonar sensor
 if param greater SENS_EN_MB12XX 0
 then
-	mb12xx start
+	mb12xx start -a
 fi
 
 # teraranger one tof sensor
 if param greater SENS_EN_TRANGER 0
 then
-	teraranger start
+	teraranger start -a
 fi
 
 # Benewake TFMini
