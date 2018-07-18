@@ -43,7 +43,6 @@
 #include "FlightTaskAuto.hpp"
 #include "lib/bezier/BezierQuad.hpp"
 #include "Utility/StraightLine.hpp"
-#include <iostream>
 
 class FlightTaskAutoSmooth : public FlightTaskAuto
 {
@@ -54,23 +53,17 @@ public:
 	bool update() override;
 
 protected:
-
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAuto,
 					(ParamFloat<px4::params::NAV_ACC_RAD>) NAV_ACC_RAD, // acceptance radius at which waypoints are updated
-					(ParamFloat<px4::params::MIS_YAW_ERR>) MIS_YAW_ERR, // yaw-error threshold
 					(ParamFloat<px4::params::MPC_CRUISE_90>) MPC_CRUISE_90 // speed at corner when angle is 90 degrees
-				       )
+				    )
 
 	void updateParams() override; /**< See ModuleParam class */
 
 private:
-	void _reset(); /**< Resets member variables to current vehicle state */
+
 	bezier::BezierQuad_f _b;
 	StraightLine _sl;
-	matrix::Vector3f _target_prev;
-	matrix::Vector3f _internal_curr;
-	matrix::Vector3f _internal_prev;
-	matrix::Vector3f _internal_next;
 	matrix::Vector3f _pt_0;
 	matrix::Vector3f _pt_1;
 
