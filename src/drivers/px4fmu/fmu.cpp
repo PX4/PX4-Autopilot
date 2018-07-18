@@ -538,45 +538,49 @@ void
 PX4FMU::safety_check_button(void)
 {
 #ifdef GPIO_BTN_SAFETY
-	static int counter = 0;
-	/*
-	 * Debounce the safety button, change state if it has been held for long enough.
-	 *
-	 */
-	bool safety_button_pressed = px4_arch_gpioread(GPIO_BTN_SAFETY);
 
-	/*
-	 * Keep pressed for a while to arm.
-	 *
-	 * Note that the counting sequence has to be same length
-	 * for arming / disarming in order to end up as proper
-	 * state machine, keep ARM_COUNTER_THRESHOLD the same
-	 * length in all cases of the if/else struct below.
-	 */
-	if (safety_button_pressed && !_safety_off) {
+	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
 
-		if (counter < CYCLE_COUNT) {
-			counter++;
+		static int counter = 0;
+		/*
+		 * Debounce the safety button, change state if it has been held for long enough.
+		 *
+		 */
+		bool safety_button_pressed = px4_arch_gpioread(GPIO_BTN_SAFETY);
 
-		} else if (counter == CYCLE_COUNT) {
-			/* switch to armed state */
-			_safety_off = true;
-			counter++;
+		/*
+		 * Keep pressed for a while to arm.
+		 *
+		 * Note that the counting sequence has to be same length
+		 * for arming / disarming in order to end up as proper
+		 * state machine, keep ARM_COUNTER_THRESHOLD the same
+		 * length in all cases of the if/else struct below.
+		 */
+		if (safety_button_pressed && !_safety_off) {
+
+			if (counter < CYCLE_COUNT) {
+				counter++;
+
+			} else if (counter == CYCLE_COUNT) {
+				/* switch to armed state */
+				_safety_off = true;
+				counter++;
+			}
+
+		} else if (safety_button_pressed && _safety_off) {
+
+			if (counter < CYCLE_COUNT) {
+				counter++;
+
+			} else if (counter == CYCLE_COUNT) {
+				/* change to disarmed state and notify the FMU */
+				_safety_off = false;
+				counter++;
+			}
+
+		} else {
+			counter = 0;
 		}
-
-	} else if (safety_button_pressed && _safety_off) {
-
-		if (counter < CYCLE_COUNT) {
-			counter++;
-
-		} else if (counter == CYCLE_COUNT) {
-			/* change to disarmed state and notify the FMU */
-			_safety_off = false;
-			counter++;
-		}
-
-	} else {
-		counter = 0;
 	}
 
 #endif
@@ -585,35 +589,37 @@ PX4FMU::safety_check_button(void)
 void
 PX4FMU::flash_safety_button()
 {
-#ifdef GPIO_BTN_SAFETY
+#if defined(GPIO_BTN_SAFETY) &&  defined(GPIO_LED_SAFETY)
 
-	/* Select the appropriate LED flash pattern depending on the current arm state */
-	uint16_t pattern = LED_PATTERN_FMU_REFUSE_TO_ARM;
+	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
+		/* Select the appropriate LED flash pattern depending on the current arm state */
+		uint16_t pattern = LED_PATTERN_FMU_REFUSE_TO_ARM;
 
-	/* cycle the blink state machine at 10Hz */
-	static int blink_counter = 0;
+		/* cycle the blink state machine at 10Hz */
+		static int blink_counter = 0;
 
-	if (_safety_off) {
-		if (_armed.armed) {
-			pattern = LED_PATTERN_IO_FMU_ARMED;
+		if (_safety_off) {
+			if (_armed.armed) {
+				pattern = LED_PATTERN_IO_FMU_ARMED;
+
+			} else {
+				pattern = LED_PATTERN_IO_ARMED;
+			}
+
+		} else if (_armed.armed) {
+			pattern = LED_PATTERN_FMU_ARMED;
 
 		} else {
-			pattern = LED_PATTERN_IO_ARMED;
+			pattern = LED_PATTERN_FMU_OK_TO_ARM;
+
 		}
 
-	} else if (_armed.armed) {
-		pattern = LED_PATTERN_FMU_ARMED;
+		/* Turn the LED on if we have a 1 at the current bit position */
+		px4_arch_gpiowrite(GPIO_LED_SAFETY, !(pattern & (1 << blink_counter++)));
 
-	} else {
-		pattern = LED_PATTERN_FMU_OK_TO_ARM;
-
-	}
-
-	/* Turn the LED on if we have a 1 at the current bit position */
-	px4_arch_gpiowrite(GPIO_LED_SAFETY, !(pattern & (1 << blink_counter++)));
-
-	if (blink_counter > 15) {
-		blink_counter = 0;
+		if (blink_counter > 15) {
+			blink_counter = 0;
+		}
 	}
 
 #endif
@@ -1407,43 +1413,46 @@ PX4FMU::cycle()
 
 #ifdef GPIO_BTN_SAFETY
 
-		if (_cycle_timestamp - _last_safety_check >= (unsigned int)1e5) {
-			_last_safety_check = _cycle_timestamp;
+		if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
 
-			/**
-			 * Get and handle the safety status at 10Hz
-			 */
-			struct safety_s safety = {};
+			if (_cycle_timestamp - _last_safety_check >= (unsigned int)1e5) {
+				_last_safety_check = _cycle_timestamp;
 
-			if (_safety_disabled) {
-				_safety_off = true;
+				/**
+				 * Get and handle the safety status at 10Hz
+				 */
+				struct safety_s safety = {};
 
-			} else {
-				/* read safety switch input and control safety switch LED at 10Hz */
-				safety_check_button();
-			}
+				if (_safety_disabled) {
+					_safety_off = true;
 
-			/* Make the safety button flash anyway, no matter if it's used or not. */
-			flash_safety_button();
+				} else {
+					/* read safety switch input and control safety switch LED at 10Hz */
+					safety_check_button();
+				}
 
-			safety.timestamp = hrt_absolute_time();
+				/* Make the safety button flash anyway, no matter if it's used or not. */
+				flash_safety_button();
 
-			if (_safety_off) {
-				safety.safety_off = true;
-				safety.safety_switch_available = true;
+				safety.timestamp = hrt_absolute_time();
 
-			} else {
-				safety.safety_off = false;
-				safety.safety_switch_available = true;
-			}
+				if (_safety_off) {
+					safety.safety_off = true;
+					safety.safety_switch_available = true;
 
-			/* lazily publish the safety status */
-			if (_to_safety != nullptr) {
-				orb_publish(ORB_ID(safety), _to_safety, &safety);
+				} else {
+					safety.safety_off = false;
+					safety.safety_switch_available = true;
+				}
 
-			} else {
-				int instance = _class_instance;
-				_to_safety = orb_advertise_multi(ORB_ID(safety), &safety, &instance, ORB_PRIO_DEFAULT);
+				/* lazily publish the safety status */
+				if (_to_safety != nullptr) {
+					orb_publish(ORB_ID(safety), _to_safety, &safety);
+
+				} else {
+					int instance = _class_instance;
+					_to_safety = orb_advertise_multi(ORB_ID(safety), &safety, &instance, ORB_PRIO_DEFAULT);
+				}
 			}
 		}
 
