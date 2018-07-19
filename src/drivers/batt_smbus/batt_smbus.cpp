@@ -185,7 +185,7 @@ void BATT_SMBUS::cycle()
 
 		// Read current.
 		if (read_word(BATT_SMBUS_CURRENT, &tmp) == PX4_OK) {
-			new_report.current_a = ((float)(*(int16_t *)&tmp)) / 1000.0f;
+			new_report.current_a = (-1.0f * ((float)(*(int16_t *)&tmp)) / 1000.0f);
 			new_report.current_filtered_a = new_report.current_a;
 
 		} else {
@@ -194,7 +194,7 @@ void BATT_SMBUS::cycle()
 
 		// Read average current.
 		if (read_word(BATT_SMBUS_AVERAGE_CURRENT, &tmp) == PX4_OK) {
-			new_report.average_current_a = ((float)(*(int16_t *)&tmp)) / 1000.0f;
+			new_report.average_current_a = (-1.0f * ((float)(*(int16_t *)&tmp)) / 1000.0f);
 
 		} else {
 			success = false;
