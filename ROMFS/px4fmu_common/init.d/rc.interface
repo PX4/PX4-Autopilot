@@ -13,16 +13,6 @@ set MIXER_AUX_FILE none
 set OUTPUT_AUX_DEV /dev/pwm_output1
 set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
 
-if ver hwcmp AEROFC_V1 AV_X_V1 CRAZYFLIE MINDPX_V2 NXPHLITE_V3 PX4FMU_V4 OMNIBUS_F4SD
-then
-	set MIXER_AUX none
-fi
-
-if [ $USE_IO == no ]
-then
-	set MIXER_AUX none
-fi
-
 #
 # If mount (gimbal) control is enabled and output mode is AUX, set the aux
 # mixer to mount (override the airframe-specific MIXER_AUX setting).
@@ -36,6 +26,15 @@ else
         fi
 fi
 
+if ver hwcmp AEROFC_V1 AV_X_V1 CRAZYFLIE MINDPX_V2 NXPHLITE_V3 PX4FMU_V4 OMNIBUS_F4SD
+then
+	set MIXER_AUX none
+fi
+
+if [ $USE_IO == no ]
+then
+	set MIXER_AUX none
+fi
 
 if [ $MIXER != none -a $MIXER != skip ]
 then
