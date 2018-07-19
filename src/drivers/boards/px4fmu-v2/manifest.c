@@ -67,7 +67,7 @@ typedef px4_hw_mft_list_entry_t *px4_hw_mft_list_entry;
 
 static const px4_hw_mft_item_t device_unsupported = {0, 0, 0};
 
-static const px4_hw_mft_item_t hw_mft_list_v90008[] = {
+static const px4_hw_mft_item_t hw_mft_list_FMUv2[] = {
 	{
 		.present     = 1,
 		.mandatory   = 1,
@@ -75,21 +75,21 @@ static const px4_hw_mft_item_t hw_mft_list_v90008[] = {
 	},
 };
 
-static const px4_hw_mft_item_t hw_mft_list_v9000a[] = {
+static const px4_hw_mft_item_t hw_mft_list_FMUv2Mini[] = {
 	{
 		.present     = 1,
 		.mandatory   = 1,
 		.connection  = px4_hw_con_onboard,
 	},
 };
-static const px4_hw_mft_item_t hw_mft_list_v9000b[] = {
+static const px4_hw_mft_item_t hw_mft_list_FMUv2X[] = {
 	{
 		.present     = 1,
 		.mandatory   = 1,
 		.connection  = px4_hw_con_onboard,
 	},
 };
-static const px4_hw_mft_item_t hw_mft_list_v9000e[] = {
+static const px4_hw_mft_item_t hw_mft_list_FMUv3[] = {
 	{
 		.present     = 1,
 		.mandatory   = 1,
@@ -98,10 +98,10 @@ static const px4_hw_mft_item_t hw_mft_list_v9000e[] = {
 };
 
 static px4_hw_mft_list_entry_t mft_lists[] = {
-	{0x90008, hw_mft_list_v90008, arraySize(hw_mft_list_v90008)},
-	{0x9000a, hw_mft_list_v9000e, arraySize(hw_mft_list_v9000a)},
-	{0x9000b, hw_mft_list_v9000b, arraySize(hw_mft_list_v9000b)},
-	{0x9000e, hw_mft_list_v9000e, arraySize(hw_mft_list_v9000e)},
+	{HW_VER_FMUV2,        hw_mft_list_FMUv2,     arraySize(hw_mft_list_FMUv2)},
+	{HW_VER_FMUV2MINI,    hw_mft_list_FMUv2Mini, arraySize(hw_mft_list_FMUv2Mini)},
+	{HW_VER_FMUV2X,       hw_mft_list_FMUv2X,    arraySize(hw_mft_list_FMUv2X)},
+	{HW_VER_FMUV3,        hw_mft_list_FMUv3,     arraySize(hw_mft_list_FMUv3)},
 };
 
 /************************************************************************************
