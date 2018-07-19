@@ -1,0 +1,21 @@
+# Build version
+version: "{build}"
+
+# Build worker image (build VM template)
+image: Visual Studio 2017
+
+# build platform, i.e. Win32 (instead of x86), x64, Any CPU. This setting is optional.
+platform:
+- x64
+
+# scripts that are called at very beginning, before repo cloning
+init:
+- ver
+
+install:
+- cd C:\
+- git clone https://github.com/MaEtUgR/PX4Toolchain.git PX4
+- call PX4\toolchain\install-all-components.bat
+
+build_script:
+- call C:\PX4\toolchain\clone-px4-build-sitl.bat
