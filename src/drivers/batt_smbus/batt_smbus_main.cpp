@@ -54,7 +54,7 @@ struct batt_smbus_bus_option {
 	const char *devpath;
 	BATT_SMBUS_constructor interface_constructor;
 	uint8_t busnum;
-	BATT_SMBUS	*dev;
+	BATT_SMBUS      *dev;
 } bus_options[] = {
 	{ BATT_SMBUS_BUS_I2C_EXTERNAL, "/dev/batt_smbus_ext", &BATT_SMBUS_I2C_interface, PX4_I2C_BUS_EXPANSION, nullptr },
 #ifdef PX4_I2C_BUS_ONBOARD
