@@ -470,27 +470,6 @@ else
 			fi
 		fi
 
-		if [ $OUTPUT_MODE == io -o $OUTPUT_MODE == uavcan_esc ]
-		then
-			if px4io start
-			then
-				sh /etc/init.d/rc.io
-			else
-				echo "PX4IO start failed" >> $LOG_FILE
-				tune_control play -m  ${TUNE_ERR}
-			fi
-		fi
-
-		if [ $OUTPUT_MODE == fmu ]
-		then
-			if fmu mode_$FMU_MODE $FMU_ARGS
-			then
-			else
-				echo "FMU start failed" >> $LOG_FILE
-				tune_control play -m ${TUNE_ERR}
-			fi
-		fi
-
 		if [ $OUTPUT_MODE == mkblctrl ]
 		then
 			if [ $MKBLCTRL_MODE == x ]
@@ -523,6 +502,21 @@ else
 			set FMU_MODE rcin
 		fi
 
+		if [ $OUTPUT_MODE == fmu ]
+		then
+			if fmu mode_$FMU_MODE $FMU_ARGS
+			then
+			else
+				echo "FMU start failed" >> $LOG_FILE
+				tune_control play -m ${TUNE_ERR}
+			fi
+		fi
+
+		if [ $OUTPUT_MODE == io -o $OUTPUT_MODE == uavcan_esc ]
+		then
+			sh /etc/init.d/rc.io
+		fi
+
 		#
 		# Start IO or FMU for RC PPM input if needed.
 		#
@@ -530,13 +524,7 @@ else
 		then
 			if [ $OUTPUT_MODE != io ]
 			then
-				if px4io start
-				then
-					sh /etc/init.d/rc.io
-				else
-					echo "PX4IO start failed" >> $LOG_FILE
-					tune_control play -m ${TUNE_ERR}
-				fi
+				sh /etc/init.d/rc.io
 			fi
 		else
 			if [ $OUTPUT_MODE != fmu ]
