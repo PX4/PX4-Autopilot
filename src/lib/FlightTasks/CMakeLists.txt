@@ -42,6 +42,7 @@ tasks/FlightTask.cpp
 		tasks/FlightTaskManualPositionSmooth.cpp
 		tasks/FlightTaskAuto.cpp
 		tasks/FlightTaskAutoLine.cpp
+		tasks/FlightTaskAutoMapper.cpp
 		tasks/FlightTaskAutoFollowMe.cpp
 		tasks/FlightTaskOffboard.cpp
 		tasks/Utility/ManualSmoothingZ.cpp

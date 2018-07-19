@@ -40,60 +40,31 @@
 
 #pragma once
 
-#include "FlightTaskAuto.hpp"
+#include "FlightTaskAutoMapper.hpp"
 
-class FlightTaskAutoLine : public FlightTaskAuto
+class FlightTaskAutoLine : public FlightTaskAutoMapper
 {
 public:
 	FlightTaskAutoLine() = default;
 	virtual ~FlightTaskAutoLine() = default;
 	bool activate() override;
-	bool update() override;
 
 protected:
 
-	matrix::Vector3f _destination{}; /**< Current target. Is not necessarily the same as triplet target. */
-	matrix::Vector3f _origin{}; /**< Previous waypoint. Is not necessarily the same as triplet previous. */
-	float _speed_at_target = 0.0f; /**< Desired velocity at target. */
-	float _alt_above_ground{0.0f}; /**< If home provided, then it is altitude above home, otherwise it is altitude above local position reference. */
-
-	enum class State {
-		offtrack, /**< Vehicle is more than cruise speed away from track */
-		target_behind, /**< Vehicle is in front of target. */
-		previous_infront, /**< Vehilce is behind previous waypoint.*/
-		none /**< Vehicle is in normal tracking mode from triplet previous to triplet target */
-	};
-	State _current_state{State::none};
-
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAuto,
-					(ParamFloat<px4::params::MPC_LAND_SPEED>) MPC_LAND_SPEED,
-					(ParamFloat<px4::params::MPC_CRUISE_90>) MPC_CRUISE_90, // speed at corner when angle is 90 degrees
-					(ParamFloat<px4::params::NAV_ACC_RAD>) NAV_ACC_RAD, // acceptance radius at which waypoints are updated
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAutoLine,
 					(ParamFloat<px4::params::MIS_YAW_ERR>) MIS_YAW_ERR, // yaw-error threshold
-					(ParamFloat<px4::params::MPC_LAND_ALT1>) MPC_LAND_ALT1, // altitude at which speed limit downwards reaches maximum speed
-					(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude at which speed limit downwards reached minimum speed
 					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) MPC_ACC_UP_MAX,
 					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) MPC_ACC_DOWN_MAX,
-					(ParamFloat<px4::params::MPC_ACC_HOR>) MPC_ACC_HOR, // acceleration in flight
-					(ParamFloat<px4::params::MPC_TILTMAX_LND>) MPC_TILTMAX_LND,
-					(ParamFloat<px4::params::MPC_TKO_SPEED>) MPC_TKO_SPEED
+					(ParamFloat<px4::params::MPC_ACC_HOR>) MPC_ACC_HOR // acceleration in flight
 				       )
 
-	void _generateIdleSetpoints();
-	void _generateLandSetpoints();
-	void _generateVelocitySetpoints();
-	void _generateTakeoffSetpoints();
+	void _generateSetpoints() override;
 	void _updateInternalWaypoints(); /**< Depending on state of vehicle, the internal waypoints might differ from target (for instance if offtrack). */
-	void _generateSetpoints(); /**< Generate velocity and position setpoint for following line. */
 	void _generateAltitudeSetpoints(); /**< Generate velocity and position setpoints for following line along z. */
-	void _updateAltitudeAboveGround(); /**< Computes altitude above ground based on sensors available. */
 	void _generateXYsetpoints(); /**< Generate velocity and position setpoints for following line along xy. */
-	void updateParams() override; /**< See ModuleParam class */
 
 private:
 	float _getVelocityFromAngle(const float angle); /**< Computes the speed at target depending on angle. */
 	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
-	void _reset(); /**< Resets member variables to current vehicle state */
-	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
 
 };
