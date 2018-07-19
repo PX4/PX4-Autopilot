@@ -681,9 +681,9 @@ class uploader(object):
         if (not self.__next_baud_flightstack()):
             return False
 
-        print("Attempting reboot on %s..." % (self.port.port), file=sys.stderr)
+        print("Attempting reboot on %s with baudrate=%d..." % (self.port.port, self.port.baudrate), file=sys.stderr)
         if "ttyS" in self.port.port:
-            print("If the board does not respond, check the connection to the Flight Controller and the baud rate (set to %d)" % (self.port.baudrate))
+            print("If the board does not respond, check the connection to the Flight Controller")
         else:
             print("If the board does not respond, unplug and re-plug the USB connector.", file=sys.stderr)
 
