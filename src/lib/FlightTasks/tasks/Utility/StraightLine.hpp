@@ -104,7 +104,8 @@ private:
 		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) MPC_ACC_DOWN_MAX,  /**< maximum vertical acceleration downwards*/
 		(ParamFloat<px4::params::MPC_XY_VEL_MAX>)   MPC_XY_VEL_MAX,    /**< maximum horizontal velocity */
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) MPC_Z_VEL_MAX_UP,  /**< maximum vertical velocity upwards */
-		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) MPC_Z_VEL_MAX_DN   /**< maximum vertical velocity downwards */
+		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) MPC_Z_VEL_MAX_DN,  /**< maximum vertical velocity downwards */
+		(ParamFloat<px4::params::NAV_ACC_RAD>) NAV_ACC_RAD             /**< acceptance radius if a waypoint is reached */
 	)
 
 };
