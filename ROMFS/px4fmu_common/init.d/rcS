@@ -29,7 +29,6 @@ set FMU_MODE                    pwm
 set IO_FILE                     ""
 set IO_PRESENT                  no
 set LOG_FILE                    /fs/microsd/bootlog.txt
-set LOGGER_BUF                  14
 set MAVLINK_F                   default
 set MAVLINK_COMPANION_DEVICE    /dev/ttyS2
 set MAV_TYPE                    none
@@ -215,20 +214,6 @@ else
 	#               Begin setup for board specific configurations.                #
 	###############################################################################
 
-	if ver hwcmp PX4FMU_V5
-	then
-		set LOGGER_BUF 64
-	fi
-
-	if ver hwcmp CRAZYFLIE
-	then
-		if param compare SYS_AUTOSTART 0
-		then
-			param set SYS_AUTOSTART 4900
-			set AUTOCNF yes
-		fi
-	fi
-
 	if ver hwcmp AEROCORE2
 	then
 		set DATAMAN_OPT "-f /fs/mtd_dataman"
@@ -246,6 +231,15 @@ else
 		param set SYS_AUTOSTART 4070
 
 		set DATAMAN_OPT -i
+	fi
+
+	if ver hwcmp CRAZYFLIE
+	then
+		if param compare SYS_AUTOSTART 0
+		then
+			param set SYS_AUTOSTART 4900
+			set AUTOCNF yes
+		fi
 	fi
 
 	if ver hwcmp NXPHLITE_V3
@@ -285,16 +279,16 @@ else
 	#
 	if [ $AUTOCNF == yes ]
 	then
-		# Disable safety switch by default on Pixracer and OmnibusF4SD
-		if ver hwcmp PX4FMU_V4 OMNIBUS_F4SD
-		then
-			param set CBRK_IO_SAFETY 22027
-		fi
-
 		# Run FMU as task on Pixracer and on boards with enough RAM.
 		if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO PX4FMU_V5
 		then
 			param set SYS_FMU_TASK 1
+		fi
+
+		# Disable safety switch by default on Pixracer and OmnibusF4SD
+		if ver hwcmp PX4FMU_V4 OMNIBUS_F4SD
+		then
+			param set CBRK_IO_SAFETY 22027
 		fi
 
 		if ver hwcmp OMNIBUS_F4SD
@@ -390,32 +384,6 @@ else
 		commander start
 	fi
 
-	#
-	# Check if UAVCAN is enabled, default to it for ESCs.
-	#
-	if param greater UAVCAN_ENABLE 0
-	then
-		# Start core UAVCAN module.
-		if uavcan start
-		then
-			if param greater UAVCAN_ENABLE 1
-			then
-				# Reduce logger buffer to free up some RAM for UAVCAN servers.
-				set LOGGER_BUF 6
-
-				# Start UAVCAN firmware update server and dynamic node ID allocation server.
-				uavcan start fw
-
-				if param greater UAVCAN_ENABLE 2
-				then
-					set OUTPUT_MODE uavcan_esc
-				fi
-			fi
-		else
-			tone_alarm ${TUNE_ERR}
-		fi
-	fi
-
 	# Sensors on the PWM interface bank.
 	if param compare SENS_EN_LL40LS 1
 	then
@@ -440,6 +408,29 @@ else
 		camera_trigger start
 		param set CAM_FBACK_MODE 1
 		camera_feedback start
+	fi
+
+	#
+	# Check if UAVCAN is enabled, default to it for ESCs.
+	#
+	if param greater UAVCAN_ENABLE 0
+	then
+		# Start core UAVCAN module.
+		if uavcan start
+		then
+			if param greater UAVCAN_ENABLE 1
+			then
+				# Start UAVCAN firmware update server and dynamic node ID allocation server.
+				uavcan start fw
+
+				if param greater UAVCAN_ENABLE 2
+				then
+					set OUTPUT_MODE uavcan_esc
+				fi
+			fi
+		else
+			tone_alarm ${TUNE_ERR}
+		fi
 	fi
 
 	#
@@ -611,7 +602,6 @@ unset FMU_MODE
 unset IO_FILE
 unset IO_PRESENT
 unset LOG_FILE
-unset LOGGER_BUF
 unset MAVLINK_F
 unset MAVLINK_COMPANION_DEVICE
 unset MAV_TYPE
