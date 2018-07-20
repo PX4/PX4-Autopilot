@@ -13,6 +13,37 @@ set +e
 #
 # NOTE: COMMENT LINES ARE REMOVED BEFORE STORED IN ROMFS.
 #
+#------------------------------------------------------------------------------
+#
+# UART mapping on FMUv2/3/4:
+#
+# UART1         /dev/ttyS0      IO debug (except v4, there ttyS0 is the wifi)
+# USART2        /dev/ttyS1      TELEM1 (flow control)
+# USART3        /dev/ttyS2      TELEM2 (flow control)
+# UART4
+# UART7                         CONSOLE
+# UART8                         SERIAL4
+#
+#------------------------------------------------------------------------------
+#
+# UART mapping on FMUv5:
+#
+# UART1         /dev/ttyS0      GPS
+# USART2        /dev/ttyS1      TELEM1 (flow control)
+# USART3        /dev/ttyS2      TELEM2 (flow control)
+# UART4         /dev/ttyS3      TELEM4
+# USART6        /dev/ttyS4      TELEM3 (flow control)
+# UART7         /dev/ttyS5
+# UART8         /dev/ttyS6      CONSOLE
+#
+#------------------------------------------------------------------------------
+#
+# UART mapping on OMNIBUSF4SD:
+#
+# USART1        /dev/ttyS0      SerialRX
+# USART4        /dev/ttyS1      TELEM1
+# USART6        /dev/ttyS2      GPS
+#
 
 #
 # Set default paramter values
@@ -38,7 +69,6 @@ set MK_MODE                     none
 set MKBLCTRL_ARG                ""
 set OUTPUT_MODE                 none
 set PARAM_FILE                  /fs/microsd/params
-set PWM_ACHDIS                  none
 set PWM_AUX_DISARMED            p:PWM_AUX_DISARMED
 set PWM_AUX_MAX                 p:PWM_AUX_MAX
 set PWM_AUX_MIN                 p:PWM_AUX_MIN
@@ -49,7 +79,6 @@ set PWM_MAX                     p:PWM_MAX
 set PWM_MIN                     p:PWM_MIN
 set PWM_OUT                     none
 set PWM_RATE                    p:PWM_RATE
-set TUNE_ERR                    "ML<<CP4CP4CP4CP4CP4"
 set USE_IO                      no
 set VEHICLE_TYPE                none
 
@@ -76,7 +105,9 @@ if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
 	if hardfault_log check
 	then
-		tone_alarm error
+		# Error tune.
+		tune_control play -t 2
+
 		if hardfault_log commit
 		then
 			hardfault_log reset
@@ -92,7 +123,7 @@ else
 			echo "INFO [init] card formatted"
 		else
 			echo "ERROR [init] format failed"
-			tone_alarm MNBG
+			tune_control play -m MNBG
 			set LOG_FILE /dev/null
 		fi
 	else
@@ -107,8 +138,8 @@ else
 	# Run no SD alarm.
 	if [ $LOG_FILE == /dev/null ]
 	then
-		# Play SOS.
-		tone_alarm error
+		# Error tune.
+		tune_control play -t 2
 	fi
 fi
 
@@ -131,7 +162,7 @@ else
 	tone_alarm start
 
 	#
-	# play startup tone.
+	# Play startup tone.
 	#
 	tune_control play -t 1
 
@@ -316,7 +347,7 @@ else
 		then
 			set IO_PRESENT yes
 		else
-			tone_alarm MLL32CP8MB
+			tune_control play -m MLL32CP8MB
 
 			if px4io start
 			then
@@ -336,16 +367,18 @@ else
 				if px4io checkcrc ${IO_FILE}
 				then
 					echo "PX4IO CRC OK after updating" >> $LOG_FILE
-					tone_alarm MLL8CDE
+					tune_control play -m MLL8CDE
 
 					set IO_PRESENT yes
 				else
 					echo "PX4IO update failed" >> $LOG_FILE
-					tone_alarm ${TUNE_ERR}
+					# Error tune.
+					tune_control play -t 2
 				fi
 			else
 				echo "PX4IO update failed" >> $LOG_FILE
-				tune_control play -m ${TUNE_ERR}
+				# Error tune.
+				tune_control play -t 2
 			fi
 		fi
 	fi
@@ -361,7 +394,8 @@ else
 	if [ $USE_IO == yes -a $IO_PRESENT == no ]
 	then
 		echo "PX4IO not found" >> $LOG_FILE
-		tune_control play -m ${TUNE_ERR}
+		# Error tune.
+		tune_control play -t 2
 	fi
 
 	#
@@ -429,7 +463,8 @@ else
 				fi
 			fi
 		else
-			tone_alarm ${TUNE_ERR}
+			# Error tune.
+			tune_control play -t 2
 		fi
 	fi
 
@@ -475,7 +510,8 @@ else
 			if mkblctrl $MKBLCTRL_ARG
 			then
 			else
-				tune_control play -m ${TUNE_ERR}
+				# Error tune.
+				tune_control play -t 2
 			fi
 		fi
 
@@ -484,7 +520,8 @@ else
 			if pwm_out_sim start
 			then
 			else
-				tune_control play -m ${TUNE_ERR}
+				# Error tune.
+				tune_control play -t 2
 			fi
 		fi
 
@@ -499,7 +536,8 @@ else
 			then
 			else
 				echo "FMU start failed" >> $LOG_FILE
-				tune_control play -m ${TUNE_ERR}
+				# Error tune.
+				tune_control play -t 2
 			fi
 		fi
 
@@ -524,7 +562,8 @@ else
 				then
 				else
 					echo "FMU mode_${FMU_MODE} start failed" >> $LOG_FILE
-					tune_control play -m ${TUNE_ERR}
+					# Error tune.
+					tune_control play -t 2
 				fi
 			fi
 		fi
@@ -612,7 +651,6 @@ unset MKBLCTRL_ARG
 unset OUTPUT_DEV
 unset OUTPUT_MODE
 unset PARAM_FILE
-unset PWM_ACHDIS
 unset PWM_AUX_DISARMED
 unset PWM_AUX_MAX
 unset PWM_AUX_MIN
@@ -623,7 +661,6 @@ unset PWM_RATE
 unset PWM_DISARMED
 unset PWM_MAX
 unset PWM_MIN
-unset TUNE_ERR
 unset USE_IO
 unset VEHICLE_TYPE
 
