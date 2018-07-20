@@ -6,37 +6,6 @@
 #
 # NOTE: Normal mode uses baud rate of 57600 (default) and data rate of 1000 bytes/s.
 #
-#------------------------------------------------------------------------------
-#
-# UART mapping on FMUv2/3/4:
-#
-# UART1         /dev/ttyS0      IO debug (except v4, there ttyS0 is the wifi)
-# USART2        /dev/ttyS1      TELEM1 (flow control)
-# USART3        /dev/ttyS2      TELEM2 (flow control)
-# UART4
-# UART7                         CONSOLE
-# UART8                         SERIAL4
-#
-#------------------------------------------------------------------------------
-#
-# UART mapping on FMUv5:
-#
-# UART1         /dev/ttyS0      GPS
-# USART2        /dev/ttyS1      TELEM1 (flow control)
-# USART3        /dev/ttyS2      TELEM2 (flow control)
-# UART4         /dev/ttyS3      TELEM4
-# USART6        /dev/ttyS4      TELEM3 (flow control)
-# UART7         /dev/ttyS5
-# UART8         /dev/ttyS6      CONSOLE
-#
-#------------------------------------------------------------------------------
-#
-# UART mapping on OMNIBUSF4SD:
-#
-# USART1        /dev/ttyS0      SerialRX
-# USART4        /dev/ttyS1      TELEM1
-# USART6        /dev/ttyS2      GPS
-#
 
 ###############################################################################
 #               Begin Setup for board specific configurations.                #

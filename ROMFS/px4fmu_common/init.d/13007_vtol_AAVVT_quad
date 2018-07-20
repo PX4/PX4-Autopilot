@@ -37,14 +37,14 @@ then
 	param set VT_MOT_COUNT 4
 	param set VT_IDLE_PWM_MC 1080
 	param set VT_TYPE 2
+
+	param set PWM_AUX_DIS5 950
 fi
 
+set MAV_TYPE 22
+
 set MIXER quad_x
+set MIXER_AUX vtol_AAVVT
+
 set PWM_OUT 1234
 set PWM_RATE 400
-
-set MIXER_AUX vtol_AAVVT
-set PWM_ACHDIS 5
-set PWM_AUX_DISARMED 950
-
-set MAV_TYPE 22
