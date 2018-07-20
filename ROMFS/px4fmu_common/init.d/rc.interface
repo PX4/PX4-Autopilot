@@ -167,23 +167,6 @@ then
 		fi
 
 		#
-		# Set disarmed values for aux out.
-		# Transitional support until all configs are updated.
-		#
-		if [ $PWM_ACHDIS == none ]
-		then
-			set PWM_ACHDIS ${PWM_AUX_OUT}
-		fi
-
-		#
-		# Set disarmed, min and max PWM_AUX values.
-		#
-		if [ $PWM_AUX_DISARMED != none -a $PWM_ACHDIS != none ]
-		then
-			pwm disarmed -c ${PWM_ACHDIS} -p ${PWM_AUX_DISARMED} -d ${OUTPUT_AUX_DEV}
-		fi
-
-		#
 		# Per channel disarmed settings.
 		#
 		pwm disarmed -c 1 -p p:PWM_AUX_DIS1 -d ${OUTPUT_AUX_DEV}

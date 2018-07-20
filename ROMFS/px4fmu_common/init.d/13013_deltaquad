@@ -131,7 +131,6 @@ then
 	param set MIS_DIST_WPS 100000
 	param set MIS_TAKEOFF_ALT 15
 
-
 	param set NAV_DLL_ACT 0
 	param set NAV_LOITER_RAD 100
 
@@ -139,17 +138,18 @@ then
 	param set SENS_BOARD_ROT 18
 fi
 
-set MIXER deltaquad
-set PWM_OUT 1234
-set PWM_RATE 400
-
 param set PWM_MAIN_DIS5 1500
 param set PWM_MAIN_DIS6 1500
 param set PWM_MAIN_DIS7 900
 param set PWM_MAIN_DIS8 900
 
+set MAV_TYPE 22
+
+set MIXER deltaquad
 set MIXER_AUX pass
+
+set PWM_OUT 1234
+set PWM_RATE 400
+
 set PWM_AUX_OUT 12345
 set PWM_AUX_DISARMED 950
-
-set MAV_TYPE 22

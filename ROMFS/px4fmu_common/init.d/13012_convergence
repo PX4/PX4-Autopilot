@@ -75,8 +75,9 @@ then
 	param set SENS_BOARD_ROT 8
 fi
 
+set MAV_TYPE 21
+
 set MIXER vtol_convergence
+
 set PWM_OUT 1234
 set PWM_RATE 400
-
-set MAV_TYPE 21
