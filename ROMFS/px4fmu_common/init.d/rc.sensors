@@ -3,6 +3,10 @@
 # Standard startup script for sensor drivers.
 #
 
+###############################################################################
+#               Begin Setup for board specific configurations.                #
+###############################################################################
+
 if ver hwcmp AEROFC_V1 OMNIBUS_F4SD
 then
 	# Aero FC uses separate driver
@@ -40,16 +44,23 @@ else
 	adc start
 fi
 
-if ver hwcmp NXPHLITE_V3
+if ver hwcmp AEROFC_V1
 then
-	# Internal I2C (baro)
-	mpl3115a2 -I start
+	ms5611 -T 0 start
+	mpu9250 -s -R 14 start
 
-	# Internal SPI (accel + mag)
-	fxos8701cq start -a 8 -R 0
+	# Possible external compasses
+	hmc5883 -X start
 
-	# Internal SPI (gyro)
-	fxas21002c start -R 0
+	ist8310 -C -b 1 -R 4 start
+	aerofc_adc start
+	ll40ls start i2c
+fi
+
+if ver hwcmp AEROCORE2
+then
+	l3gd20 -R 12 start
+	lsm303d start
 fi
 
 if ver hwcmp AUAV_X21
@@ -66,6 +77,45 @@ then
 
 	# Internal SPI bus mpu9250 is rotated 90 deg yaw
 	mpu9250 -R 2 start
+fi
+
+if ver hwcmp AV_X_V1
+then
+	adis16477 -R 8 start
+
+	#adis16497 start
+
+	lps22hb start
+
+	lsm303agr -R 4 start
+
+	#ms4525_airspeed start
+fi
+
+if ver hwcmp CRAZYFLIE
+then
+	# Onboard I2C
+	mpu9250 -R 12 start
+
+	# I2C bypass of mpu
+	lps25h start
+
+	# Optical flow deck
+	vl53lxx start
+	pmw3901 start
+
+fi
+
+if ver hwcmp NXPHLITE_V3
+then
+	# Internal I2C (baro)
+	mpl3115a2 -I start
+
+	# Internal SPI (accel + mag)
+	fxos8701cq start -a 8 -R 0
+
+	# Internal SPI (gyro)
+	fxas21002c start -R 0
 fi
 
 if ver hwcmp PX4FMU_V2
@@ -245,33 +295,6 @@ then
 	l3gd20 -R 14 start
 fi
 
-if ver hwcmp CRAZYFLIE
-then
-	# Onboard I2C
-	mpu9250 -R 12 start
-
-	# I2C bypass of mpu
-	lps25h start
-
-	# Optical flow deck
-	vl53lxx start
-	pmw3901 start
-
-fi
-
-if ver hwcmp AEROFC_V1
-then
-	ms5611 -T 0 start
-	mpu9250 -s -R 14 start
-
-	# Possible external compasses
-	hmc5883 -X start
-
-	ist8310 -C -b 1 -R 4 start
-	aerofc_adc start
-	ll40ls start i2c
-fi
-
 if ver hwcmp OMNIBUS_F4SD
 then
 	mpu6000 -R 12 -s start
@@ -329,28 +352,13 @@ then
 	ist8310 -C -b 5 start
 fi
 
-if ver hwcmp AV_X_V1
-then
-	adis16477 -R 8 start
+###############################################################################
+#                 End Setup for board specific configurations.                #
+###############################################################################
 
-	#adis16497 start
-
-	lps22hb start
-
-	lsm303agr -R 4 start
-
-	#ms4525_airspeed start
-fi
-
-if ver hwcmp AEROCORE2
-then
-	l3gd20 -R 12 start
-	lsm303d start
-fi
-
-#
-# Optional drivers
-#
+###############################################################################
+#                           Begin Optional drivers                            #
+###############################################################################
 
 if [ ${VEHICLE_TYPE} == fw -o ${VEHICLE_TYPE} == vtol ]
 then
@@ -391,13 +399,13 @@ then
 	ll40ls start i2c
 fi
 
-# lightware serial lidar sensor
+# Lightware serial lidar sensor
 if param greater SENS_EN_SF0X 0
 then
 	sf0x start
 fi
 
-# lightware i2c lidar sensor
+# Lightware i2c lidar sensor
 if param greater SENS_EN_SF1XX 0
 then
 	sf1xx start -a
@@ -409,7 +417,7 @@ then
 	mb12xx start -a
 fi
 
-# teraranger one tof sensor
+# Teraranger one tof sensor
 if param greater SENS_EN_TRANGER 0
 then
 	teraranger start -a
@@ -457,6 +465,10 @@ then
 		fi
 	fi
 fi
+
+###############################################################################
+#                            End Optional drivers                             #
+###############################################################################
 
 # Wait 20 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)
 usleep 20000
