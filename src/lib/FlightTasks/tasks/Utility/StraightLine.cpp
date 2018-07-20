@@ -39,7 +39,6 @@
 #include <mathlib/mathlib.h>
 #include <float.h>
 
-#define ACC_RAD_ZERO_VEL 2.0f
 #define VEL_ZERO_THRESHOLD 0.001f
 #define DECELERATION_MAX 8.0f
 
@@ -56,7 +55,7 @@ void StraightLine::generateSetpoints(matrix::Vector3f &position_setpoint, matrix
 {
 	// Check if target position has been reached
 	if (_is_target_reached || (_desired_speed_at_target < VEL_ZERO_THRESHOLD &&
-				   (_pos - _target).length() < ACC_RAD_ZERO_VEL)) {
+				   (_pos - _target).length() < NAV_ACC_RAD.get())) {
 		// Vehicle has reached target. Lock position
 		position_setpoint = _target;
 		velocity_setpoint = Vector3f(0.0f, 0.0f, 0.0f);
