@@ -386,6 +386,12 @@ then
 	fi
 fi
 
+# Heater driver for temperature regulated IMUs.
+if param compare SENS_EN_THERMAL 1
+then
+	heater start
+fi
+
 # Sensors on the PWM interface bank
 if param compare SENS_EN_LL40LS 1
 then
