@@ -223,6 +223,9 @@ function(px4_os_add_flags)
 		list(APPEND added_c_flags --sysroot=${HEXAGON_ARM_SYSROOT})
 		list(APPEND added_cxx_flags --sysroot=${HEXAGON_ARM_SYSROOT})
 
+		# TODO: Wmissing-field-initializers ignored on older toolchain, can be removed eventually
+		list(APPEND added_cxx_flags -Wno-missing-field-initializers)
+
 		list(APPEND added_exe_linker_flags
 			-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/usr/lib
 			-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib
@@ -254,6 +257,9 @@ function(px4_os_add_flags)
 		list(APPEND added_c_flags ${RPI_COMPILE_FLAGS})
 		list(APPEND added_cxx_flags ${RPI_COMPILE_FLAGS})
 
+		# TODO: Wmissing-field-initializers ignored on older toolchain, can be removed eventually
+		list(APPEND added_cxx_flags -Wno-missing-field-initializers)
+
 		find_program(CXX_COMPILER_PATH ${CMAKE_CXX_COMPILER})
 
 		GET_FILENAME_COMPONENT(CXX_COMPILER_PATH ${CXX_COMPILER_PATH} DIRECTORY)
@@ -274,6 +280,9 @@ function(px4_os_add_flags)
 				-L${CXX_COMPILER_PATH}/arm-linux-gnueabihf/libc/usr/lib
 			)
 		ENDIF()
+	elseif ("${BOARD}" STREQUAL "bebop")
+		# TODO: Wmissing-field-initializers ignored on older toolchain, can be removed eventually
+		list(APPEND added_cxx_flags -Wno-missing-field-initializers)
 	endif()
 
 	# output
