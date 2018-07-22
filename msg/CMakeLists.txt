@@ -52,6 +52,7 @@ set(msg_files
 	distance_sensor.msg
 	ekf2_innovations.msg
 	ekf2_timestamps.msg
+	ekf_gps_position.msg
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
@@ -127,9 +128,9 @@ set(msg_files
 	vehicle_magnetometer.msg
 	vehicle_rates_setpoint.msg
 	vehicle_roi.msg
-	vehicle_trajectory_waypoint.msg
 	vehicle_status.msg
 	vehicle_status_flags.msg
+	vehicle_trajectory_waypoint.msg
 	vtol_vehicle_status.msg
 	wind_estimate.msg
 	vehicle_constraints.msg
