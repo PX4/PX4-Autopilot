@@ -263,6 +263,26 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 	return ret;
 }
 
+static bool send_vehicle_command(uint16_t cmd, float param1 = NAN, float param2 = NAN)
+{
+	vehicle_command_s vcmd = {};
+	vcmd.timestamp = hrt_absolute_time();
+	vcmd.param1 = param1;
+	vcmd.param2 = param2;
+	vcmd.param3 = NAN;
+	vcmd.param4 = NAN;
+	vcmd.param5 = (double)NAN;
+	vcmd.param6 = (double)NAN;
+	vcmd.param7 = NAN;
+	vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF;
+	vcmd.target_system = status.system_id;
+	vcmd.target_component = status.component_id;
+
+	orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+
+	return (h != nullptr);
+}
+
 int commander_main(int argc, char *argv[])
 {
 	if (argc < 2) {
@@ -273,7 +293,7 @@ int commander_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			warnx("already running");
+			PX4_INFO("already running");
 			/* this is not an error */
 			return 0;
 		}
@@ -299,7 +319,7 @@ int commander_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "stop")) {
 
 		if (!thread_running) {
-			warnx("commander already stopped");
+			PX4_WARN("already stopped");
 			return 0;
 		}
 
@@ -307,14 +327,14 @@ int commander_main(int argc, char *argv[])
 
 		Commander::main(argc, argv);
 
-		warnx("terminated.");
+		PX4_INFO("terminated.");
 
 		return 0;
 	}
 
 	/* commands needing the app to run below */
 	if (!thread_running) {
-		warnx("\tcommander not started");
+		PX4_ERR("not started");
 		return 1;
 	}
 
@@ -339,17 +359,17 @@ int commander_main(int argc, char *argv[])
 			} else if (!strcmp(argv[2], "airspeed")) {
 				calib_ret = do_airspeed_calibration(&mavlink_log_pub);
 			} else {
-				warnx("argument %s unsupported.", argv[2]);
+				PX4_ERR("argument %s unsupported.", argv[2]);
 			}
 
 			if (calib_ret) {
-				warnx("calibration failed, exiting.");
+				PX4_ERR("calibration failed, exiting.");
 				return 1;
 			} else {
 				return 0;
 			}
 		} else {
-			warnx("missing argument");
+			PX4_ERR("missing argument");
 		}
 	}
 
@@ -365,98 +385,51 @@ int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "arm")) {
 		if (TRANSITION_CHANGED != arm_disarm(true, &mavlink_log_pub, "command line")) {
-			warnx("arming failed");
+			PX4_ERR("arming failed");
 		}
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "disarm")) {
 		if (TRANSITION_DENIED == arm_disarm(false, &mavlink_log_pub, "command line")) {
-			warnx("rejected disarm");
+			PX4_ERR("rejected disarm");
 		}
 		return 0;
 	}
 
 	if (!strcmp(argv[1], "takeoff")) {
 
+		bool ret = false;
+
 		/* see if we got a home position */
 		if (status_flags.condition_local_position_valid) {
 
 			if (TRANSITION_DENIED != arm_disarm(true, &mavlink_log_pub, "command line")) {
-
-				struct vehicle_command_s cmd = {
-					.timestamp = hrt_absolute_time(),
-					.param5 = (double)NAN,
-					.param6 = (double)NAN,
-					/* minimum pitch */
-					.param1 = NAN,
-					.param2 = NAN,
-					.param3 = NAN,
-					.param4 = NAN,
-					.param7 = NAN,
-					.command = vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF,
-					.target_system = status.system_id,
-					.target_component = status.component_id
-				};
-
-				orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-				(void)orb_unadvertise(h);
+				ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF);
 
 			} else {
-				warnx("arming failed");
+				PX4_ERR("arming failed");
 			}
 
 		} else {
-			warnx("rejecting takeoff, no position lock yet. Please retry..");
+			PX4_ERR("rejecting takeoff, no position lock yet. Please retry..");
 		}
 
-		return 0;
+		return (ret ? 0 : 1);
 	}
 
 	if (!strcmp(argv[1], "land")) {
+		bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_NAV_LAND);
 
-		struct vehicle_command_s cmd = {
-			.timestamp = 0,
-			.param5 = (double)NAN,
-			.param6 = (double)NAN,
-			/* minimum pitch */
-			.param1 = NAN,
-			.param2 = NAN,
-			.param3 = NAN,
-			.param4 = NAN,
-			.param7 = NAN,
-			.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND,
-			.target_system = status.system_id,
-			.target_component = status.component_id
-		};
-
-		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-		(void)orb_unadvertise(h);
-
-		return 0;
+		return (ret ? 0 : 1);
 	}
 
 	if (!strcmp(argv[1], "transition")) {
 
-		struct vehicle_command_s cmd = {
-			.timestamp = 0,
-			.param5 = (double)NAN,
-			.param6 = (double)NAN,
-			/* transition to the other mode */
-			.param1 = (float)((status.is_rotary_wing) ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC),
-			.param2 = NAN,
-			.param3 = NAN,
-			.param4 = NAN,
-			.param7 = NAN,
-			.command = vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION,
-			.target_system = status.system_id,
-			.target_component = status.component_id
-		};
+		bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION,
+				(float)(status.is_rotary_wing ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW : vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC));
 
-		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-		(void)orb_unadvertise(h);
-
-		return 0;
+		return (ret ? 0 : 1);
 	}
 
 	if (!strcmp(argv[1], "mode")) {
@@ -489,16 +462,16 @@ int commander_main(int argc, char *argv[])
 			} else if (!strcmp(argv[2], "auto:precland")) {
 				new_main_state = commander_state_s::MAIN_STATE_AUTO_PRECLAND;
 			} else {
-				warnx("argument %s unsupported.", argv[2]);
+				PX4_ERR("argument %s unsupported.", argv[2]);
 			}
 
 			if (TRANSITION_DENIED == main_state_transition(status, new_main_state, status_flags, &internal_state)) {
-				warnx("mode change failed");
+				PX4_ERR("mode change failed");
 			}
 			return 0;
 
 		} else {
-			warnx("missing argument");
+			PX4_ERR("missing argument");
 		}
 	}
 
@@ -509,25 +482,10 @@ int commander_main(int argc, char *argv[])
 			return 1;
 		}
 
-		struct vehicle_command_s cmd = {
-			.timestamp = 0,
-			.param5 = 0.0,
-			.param6 = 0.0,
-			/* if the comparison matches for off (== 0) set 0.0f, 2.0f (on) else */
-			.param1 = strcmp(argv[2], "off") ? 2.0f : 0.0f, /* lockdown */
-			.param2 = 0.0f,
-			.param3 = 0.0f,
-			.param4 = 0.0f,
-			.param7 = 0.0f,
-			.command = vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION,
-			.target_system = status.system_id,
-			.target_component = status.component_id
-		};
+		bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION,
+				strcmp(argv[2], "off") ? 2.0f : 0.0f /* lockdown */, 0.0f);
 
-		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-		(void)orb_unadvertise(h);
-
-		return 0;
+		return (ret ? 0 : 1);
 	}
 
 	usage("unrecognized command");
@@ -3700,23 +3658,18 @@ void answer_command(const vehicle_command_s &cmd, unsigned result, orb_advert_t 
 	}
 
 	/* publish ACK */
-	vehicle_command_ack_s command_ack = {
-		.timestamp = 0,
-		.result_param2 = 0,
-		.command = cmd.command,
-		.result = (uint8_t)result,
-		.from_external = false,
-		.result_param1 = 0,
-		.target_system = cmd.source_system,
-		.target_component = cmd.source_component
-	};
+	vehicle_command_ack_s command_ack = {};
+	command_ack.timestamp = hrt_absolute_time();
+	command_ack.command = cmd.command;
+	command_ack.result = (uint8_t)result;
+	command_ack.target_system = cmd.source_system;
+	command_ack.target_component = cmd.source_component;
 
 	if (command_ack_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_command_ack), command_ack_pub, &command_ack);
 
 	} else {
-		command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-						      vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+		command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
 	}
 }
 

@@ -2288,16 +2288,13 @@ Mavlink::task_main(int argc, char *argv[])
 				}
 
 				// send positive command ack
-				struct vehicle_command_ack_s command_ack = {
-					.timestamp = vehicle_cmd.timestamp,
-					.result_param2 = 0,
-					.command = vehicle_cmd.command,
-					.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED,
-					.from_external = !vehicle_cmd.from_external,
-					.result_param1 = 0,
-					.target_system = vehicle_cmd.source_system,
-					.target_component = vehicle_cmd.source_component
-				};
+				vehicle_command_ack_s command_ack = {};
+				command_ack.timestamp = vehicle_cmd.timestamp;
+				command_ack.command = vehicle_cmd.command;
+				command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+				command_ack.from_external = !vehicle_cmd.from_external;
+				command_ack.target_system = vehicle_cmd.source_system;
+				command_ack.target_component = vehicle_cmd.source_component;
 
 				if (command_ack_pub != nullptr) {
 					orb_publish(ORB_ID(vehicle_command_ack), command_ack_pub, &command_ack);

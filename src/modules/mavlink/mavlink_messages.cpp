@@ -1551,25 +1551,24 @@ protected:
 
 				mavlink_msg_camera_trigger_send_struct(_mavlink->get_channel(), &msg);
 
-				struct vehicle_command_s cmd = {
-					.timestamp = 0,
-					.param5 = (double)NAN,
-					.param6 = (double)NAN,
-					.param1 = 0.0f, // all cameras
-					.param2 = 0.0f, // duration 0 because only taking one picture
-					.param3 = 1.0f, // only take one
-					.param4 = NAN,
-					.param7 = NAN,
-					.command = MAV_CMD_IMAGE_START_CAPTURE,
-					.target_system = mavlink_system.sysid,
-					.target_component = MAV_COMP_ID_CAMERA
-				};
+				vehicle_command_s vcmd = {};
+				vcmd.timestamp = hrt_absolute_time();
+				vcmd.param1 = 0.0f; // all cameras
+				vcmd.param2 = 0.0f; // duration 0 because only taking one picture
+				vcmd.param3 = 1.0f; // only take one
+				vcmd.param4 = NAN;
+				vcmd.param5 = (double)NAN;
+				vcmd.param6 = (double)NAN;
+				vcmd.param7 = NAN;
+				vcmd.command = MAV_CMD_IMAGE_START_CAPTURE;
+				vcmd.target_system = mavlink_system.sysid;
+				vcmd.target_component = MAV_COMP_ID_CAMERA;
 
-				MavlinkCommandSender::instance().handle_vehicle_command(cmd, _mavlink->get_channel());
+				MavlinkCommandSender::instance().handle_vehicle_command(vcmd, _mavlink->get_channel());
 
 				// TODO: move this camera_trigger and publish as a vehicle_command
 				/* send MAV_CMD_DO_DIGICAM_CONTROL*/
-				mavlink_command_long_t digicam_ctrl_cmd;
+				mavlink_command_long_t digicam_ctrl_cmd = {};
 
 				digicam_ctrl_cmd.target_system = 0; // 0 for broadcast
 				digicam_ctrl_cmd.target_component = MAV_COMP_ID_CAMERA;

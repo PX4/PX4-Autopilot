@@ -332,16 +332,13 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 
 void InputMavlinkCmdMount::_ack_vehicle_command(vehicle_command_s *cmd)
 {
-	vehicle_command_ack_s vehicle_command_ack = {
-		.timestamp = hrt_absolute_time(),
-		.result_param2 = 0,
-		.command = cmd->command,
-		.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED,
-		.from_external = false,
-		.result_param1 = 0,
-		.target_system = cmd->source_system,
-		.target_component = cmd->source_component
-	};
+	vehicle_command_ack_s vehicle_command_ack = {};
+
+	vehicle_command_ack.timestamp = hrt_absolute_time();
+	vehicle_command_ack.command = cmd->command;
+	vehicle_command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+	vehicle_command_ack.target_system = cmd->source_system;
+	vehicle_command_ack.target_component = cmd->source_component;
 
 	if (_vehicle_command_ack_pub == nullptr) {
 		_vehicle_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &vehicle_command_ack,
@@ -350,7 +347,6 @@ void InputMavlinkCmdMount::_ack_vehicle_command(vehicle_command_s *cmd)
 	} else {
 		orb_publish(ORB_ID(vehicle_command_ack), _vehicle_command_ack_pub, &vehicle_command_ack);
 	}
-
 }
 
 void InputMavlinkCmdMount::print_status()

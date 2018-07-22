@@ -194,16 +194,12 @@ void SendEvent::process_commands()
 void SendEvent::answer_command(const vehicle_command_s &cmd, unsigned result)
 {
 	/* publish ACK */
-	struct vehicle_command_ack_s command_ack = {
-		.timestamp = hrt_absolute_time(),
-		.result_param2 = 0,
-		.command = cmd.command,
-		.result = (uint8_t)result,
-		.from_external = false,
-		.result_param1 = 0,
-		.target_system = cmd.source_system,
-		.target_component = cmd.source_component
-	};
+	vehicle_command_ack_s command_ack = {};
+	command_ack.timestamp = hrt_absolute_time();
+	command_ack.command = cmd.command;
+	command_ack.result = (uint8_t)result;
+	command_ack.target_system = cmd.source_system;
+	command_ack.target_component = cmd.source_component;
 
 	if (_command_ack_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
@@ -213,8 +209,6 @@ void SendEvent::answer_command(const vehicle_command_s &cmd, unsigned result)
 						       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
 	}
 }
-
-
 
 int SendEvent::print_usage(const char *reason)
 {
@@ -287,20 +281,18 @@ int SendEvent::custom_command(int argc, char *argv[])
 			}
 		}
 
-		struct vehicle_command_s cmd = {
-			.timestamp = 0,
-			.param5 = ((accel_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : (double)NAN),
-			.param6 = (double)NAN,
-			.param1 = (float)((gyro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN),
-			.param2 = NAN,
-			.param3 = NAN,
-			.param4 = NAN,
-			.param7 = (float)((baro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN),
-			.command = vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION
-		};
+		vehicle_command_s vcmd = {};
+		vcmd.timestamp = hrt_absolute_time();
+		vcmd.param1 = (float)((gyro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
+		vcmd.param2 = NAN;
+		vcmd.param3 = NAN;
+		vcmd.param4 = NAN;
+		vcmd.param5 = ((accel_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : (double)NAN);
+		vcmd.param6 = (double)NAN;
+		vcmd.param7 = (float)((baro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
+		vcmd.command = vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION;
 
-		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-		(void)orb_unadvertise(h);
+		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 
 	} else {
 		print_usage("unrecognized command");

@@ -207,17 +207,19 @@ protected:
 	virtual int probe();
 
 private:
-	work_s          _work;
-	unsigned        _measure_ticks;
+	work_s          _work{};
+	unsigned        _measure_ticks{0};
 
-	ringbuffer::RingBuffer  *_reports;
-	struct mag_calibration_s    _scale;
-	float           _range_scale;
-	bool        _collect_phase;
-	int         _class_instance;
-	int         _orb_class_instance;
+	ringbuffer::RingBuffer  *_reports{nullptr};
 
-	orb_advert_t        _mag_topic;
+	struct mag_calibration_s	_scale {};
+	float				_range_scale{0.003f}; /* default range scale from counts to gauss */
+
+	bool        _collect_phase{false};
+	int         _class_instance{-1};
+	int         _orb_class_instance{-1};
+
+	orb_advert_t        _mag_topic{nullptr};
 
 	perf_counter_t      _sample_perf;
 	perf_counter_t      _comms_errors;
@@ -225,16 +227,16 @@ private:
 	perf_counter_t      _conf_errors;
 
 	/* status reporting */
-	bool            _sensor_ok;         /**< sensor was found and reports ok */
-	bool            _calibrated;        /**< the calibration is valid */
-	bool			_ctl_reg_mismatch;	/**< control register value mismatch after checking */
+	bool			_sensor_ok{false};		/**< sensor was found and reports ok */
+	bool			_calibrated{false};		/**< the calibration is valid */
+	bool			_ctl_reg_mismatch{false};	/**< control register value mismatch after checking */
 
 	enum Rotation       _rotation;
 
-	struct mag_report   _last_report;           /**< used for info() */
+	sensor_mag_s   _last_report{};           /**< used for info() */
 
-	uint8_t 		_ctl3_reg;
-	uint8_t			_ctl4_reg;
+	uint8_t 		_ctl3_reg{0};
+	uint8_t			_ctl4_reg{0};
 
 	/**
 	 * Initialise the automatic measurement state machine and start it.
@@ -396,31 +398,13 @@ extern "C" __EXPORT int ist8310_main(int argc, char *argv[]);
 
 IST8310::IST8310(int bus_number, int address, const char *path, enum Rotation rotation) :
 	I2C("IST8310", path, bus_number, address, IST8310_DEFAULT_BUS_SPEED),
-	_work{},
-	_measure_ticks(0),
-	_reports(nullptr),
-	_scale{},
-	_range_scale(0.003), /* default range scale from counts to gauss */
-	_collect_phase(false),
-	_class_instance(-1),
-	_orb_class_instance(-1),
-	_mag_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ist8310_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ist8310_com_err")),
 	_range_errors(perf_alloc(PC_COUNT, "ist8310_rng_err")),
 	_conf_errors(perf_alloc(PC_COUNT, "ist8310_conf_err")),
-	_sensor_ok(false),
-	_calibrated(false),
-	_ctl_reg_mismatch(false),
-	_rotation(rotation),
-	_last_report{0},
-	_ctl3_reg(0),
-	_ctl4_reg(0)
+	_rotation(rotation)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_IST8310;
-
-	// enable debug() calls
-	_debug_enabled = false;
 
 	// default scaling
 	_scale.x_offset = 0;
@@ -429,9 +413,6 @@ IST8310::IST8310(int bus_number, int address, const char *path, enum Rotation ro
 	_scale.y_scale = 1.0f;
 	_scale.z_offset = 0;
 	_scale.z_scale = 1.0f;
-
-	// work_cancel in the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
 }
 
 IST8310::~IST8310()
@@ -1018,7 +999,7 @@ out:
 
 int IST8310::calibrate(struct file *filp, unsigned enable)
 {
-	struct mag_report report;
+	struct mag_report report {};
 	ssize_t sz;
 	int ret = 1;
 	float total_x = 0.0f;
@@ -1387,7 +1368,7 @@ void
 test(enum IST8310_BUS busid)
 {
 	struct ist8310_bus_option &bus = find_bus(busid);
-	struct mag_report report;
+	struct mag_report report {};
 	ssize_t sz;
 	int ret;
 	const char *path = bus.devpath;
