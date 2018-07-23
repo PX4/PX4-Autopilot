@@ -42,8 +42,6 @@
 #pragma once
 
 #include <stdint.h>
-#include <px4_config.h>
-#include <board_config.h>
 #include <px4_defines.h>
 
 __BEGIN_DECLS
@@ -52,6 +50,18 @@ __BEGIN_DECLS
 #define DSM_FRAME_CHANNELS	7		/**< Max supported DSM channels per frame */
 #define DSM_MAX_CHANNEL_COUNT   18  /**< Max channel count of any DSM RC */
 #define DSM_BUFFER_SIZE		(DSM_FRAME_SIZE + DSM_FRAME_SIZE / 2)
+
+
+#pragma pack(push, 1)
+typedef   uint8_t dsm_frame_t[DSM_BUFFER_SIZE]; /**< DSM dsm frame receive buffer */
+typedef   uint8_t dsm_buf_t[DSM_FRAME_SIZE * 2]; // Define working buffer
+
+typedef  struct dsm_decode_t {
+	dsm_frame_t frame;
+	dsm_buf_t buf;
+} dsm_decode_t;
+
+#pragma pack(pop)
 
 __EXPORT int	dsm_init(const char *device);
 __EXPORT void	dsm_deinit(void);
