@@ -105,7 +105,7 @@ public:
 	 *
 	 * @return Roll angle (in NED frame)
 	 */
-	float nav_roll();
+	float get_roll_setpoint(){ return _roll_setpoint; }
 
 	/**
 	 * Get the current crosstrack error.
@@ -195,6 +195,16 @@ public:
 	 */
 	void set_l1_roll_limit(float roll_lim_rad) { _roll_lim_rad = roll_lim_rad; }
 
+	/**
+	 * Set roll angle slew rate. Set to zero to deactivate.
+	 */
+	void set_roll_slew_rate(float roll_slew_rate) { _roll_slew_rate = roll_slew_rate; }
+
+	/**
+	 * Set control loop dt. The value will be used to apply roll angle setpoint slew rate limiting.
+	 */
+	void set_dt(float dt) { _dt = dt;}
+
 private:
 
 	float _lateral_accel{0.0f};		///< Lateral acceleration setpoint in m/s^2
@@ -211,7 +221,10 @@ private:
 	float _K_L1{2.0f};			///< L1 control gain for _L1_damping
 	float _heading_omega{1.0f};		///< Normalized frequency
 
-	float _roll_lim_rad{math::radians(30.0f)};  ///<maximum roll angle
+	float _roll_lim_rad{math::radians(30.0f)};  ///<maximum roll angle in radians
+	float _roll_setpoint{0.0f};	///< current roll angle setpoint in radians
+	float _roll_slew_rate{0.0f};	///< roll angle setpoint slew rate limit in rad/s
+	float _dt{0};				///< control loop time in seconds
 
 	/**
 	 * Convert a 2D vector from WGS84 to planar coordinates.
@@ -225,6 +238,12 @@ private:
 	 * @return The vector in meters pointing from the reference position to the coordinates
 	 */
 	matrix::Vector2f get_local_planar_vector(const matrix::Vector2f &origin, const matrix::Vector2f &target) const;
+
+	/**
+	 * Update roll angle setpoint. This will also apply slew rate limits if set.
+	 *
+	 */
+	void update_roll_setpoint();
 
 };
 
