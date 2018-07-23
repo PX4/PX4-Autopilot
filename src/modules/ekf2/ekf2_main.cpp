@@ -57,6 +57,7 @@
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/ekf_gps_position.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/ekf_gps_drift.h>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/parameter_update.h>
@@ -252,6 +253,7 @@ private:
 	orb_advert_t _att_pub{nullptr};
 	orb_advert_t _wind_pub{nullptr};
 	orb_advert_t _estimator_status_pub{nullptr};
+	orb_advert_t _ekf_gps_drift_pub{nullptr};
 	orb_advert_t _estimator_innovations_pub{nullptr};
 	orb_advert_t _ekf2_timestamps_pub{nullptr};
 	orb_advert_t _sensor_bias_pub{nullptr};
@@ -469,7 +471,12 @@ private:
 		(ParamInt<px4::params::EKF2_GPS_MASK>)
 		_gps_blend_mask,	///< mask defining when GPS accuracy metrics are used to calculate the blend ratio
 		(ParamFloat<px4::params::EKF2_GPS_TAU>)
-		_gps_blend_tau		///< time constant controlling how rapidly the offset used to bring GPS solutions together is allowed to change (sec)
+		_gps_blend_tau,		///< time constant controlling how rapidly the offset used to bring GPS solutions together is allowed to change (sec)
+
+		// Test used to determine if the vehicle is static or moving
+		(ParamExtFloat<px4::params::EKF2_MOVE_TEST>)
+		_is_moving_scaler	///< scaling applied to IMU data thresholds used to determine if the vehicle is static or moving.
+
 	)
 
 };
@@ -570,7 +577,8 @@ Ekf2::Ekf2():
 	_acc_bias_learn_tc(_params->acc_bias_learn_tc),
 	_drag_noise(_params->drag_noise),
 	_bcoef_x(_params->bcoef_x),
-	_bcoef_y(_params->bcoef_y)
+	_bcoef_y(_params->bcoef_y),
+	_is_moving_scaler(_params->is_moving_scaler)
 {
 	_airdata_sub = orb_subscribe(ORB_ID(vehicle_air_data));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
@@ -1438,6 +1446,26 @@ void Ekf2::run()
 
 			} else {
 				orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
+			}
+
+			// publish GPS drift data only when updated to minimise overhead
+			float gps_drift[3];
+			bool blocked;
+
+			if (_ekf.get_gps_drift_metrics(gps_drift, &blocked)) {
+				ekf_gps_drift_s drift_data;
+				drift_data.timestamp = now;
+				drift_data.hpos_drift_rate = gps_drift[0];
+				drift_data.vpos_drift_rate = gps_drift[1];
+				drift_data.hspd = gps_drift[2];
+				drift_data.blocked = blocked;
+
+				if (_ekf_gps_drift_pub == nullptr) {
+					_ekf_gps_drift_pub = orb_advertise(ORB_ID(ekf_gps_drift), &drift_data);
+
+				} else {
+					orb_publish(ORB_ID(ekf_gps_drift), _ekf_gps_drift_pub, &drift_data);
+				}
 			}
 
 			{
