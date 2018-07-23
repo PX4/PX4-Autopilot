@@ -294,7 +294,7 @@ dsm_init(const char *device)
 {
 
 	if (dsm_fd < 0) {
-		dsm_fd = open(device, O_RDONLY | O_NONBLOCK);
+		dsm_fd = open(device, O_RDWR | O_NONBLOCK);
 	}
 
 	dsm_proto_init();
