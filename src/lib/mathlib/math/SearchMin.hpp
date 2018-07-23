@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,18 +32,51 @@
  ****************************************************************************/
 
 /**
- * @file mathlib.h
+ * @file Seach.hpp
  *
- * Common header for mathlib exports.
+ * - Binary Search (ToDo)
+ * - Golden Section Search
  */
+
+#define GOLDEN_RATIO 1.6180339887 //(sqrt(5)+1)/2
 
 #pragma once
 
-#ifdef __cplusplus
+#include <platforms/px4_defines.h>
 
-#include "math/Limits.hpp"
-#include "math/Functions.hpp"
-#include "math/matrix_alg.h"
-#include "math/SearchMin.hpp"
+namespace math
+{
 
-#endif
+// Type-safe abs
+template<typename _Tp>
+_Tp abs_t(_Tp val)
+{
+	return ((val > (_Tp)0) ? val : -val);
+}
+
+// golden section search to find extremeum for function with minimum
+template<typename _Tp>
+inline const _Tp goldensection(const _Tp &arg1, const _Tp &arg2, _Tp(*fun)(_Tp), const _Tp &tol)
+{
+	_Tp a = arg1;
+	_Tp b = arg2;
+	_Tp c = b - (b - a) / ((_Tp)GOLDEN_RATIO);
+	_Tp d = a + (b - a) / ((_Tp)GOLDEN_RATIO);
+
+	while (abs_t(c - d) > tol) {
+
+		if (fun(c) < fun(d)) {
+			b = d;
+
+		} else {
+			a = c;
+		}
+
+		c = b - (b - a) / ((_Tp)GOLDEN_RATIO);
+		d = a + (b - a) / ((_Tp)GOLDEN_RATIO);
+
+	}
+
+	return ((b + a) / (_Tp)2);
+}
+}
