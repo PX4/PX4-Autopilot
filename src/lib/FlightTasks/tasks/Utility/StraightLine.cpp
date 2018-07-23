@@ -54,12 +54,11 @@ StraightLine::StraightLine(ModuleParams *parent, const float &deltatime, const m
 void StraightLine::generateSetpoints(matrix::Vector3f &position_setpoint, matrix::Vector3f &velocity_setpoint)
 {
 	// Check if target position has been reached
-	if (_is_target_reached || (_desired_speed_at_target < VEL_ZERO_THRESHOLD &&
-				   (_pos - _target).length() < NAV_ACC_RAD.get())) {
+	if (_desired_speed_at_target < VEL_ZERO_THRESHOLD &&
+				   (_pos - _target).length() < NAV_ACC_RAD.get()) {
 		// Vehicle has reached target. Lock position
 		position_setpoint = _target;
 		velocity_setpoint = Vector3f(0.0f, 0.0f, 0.0f);
-		_is_target_reached = true;
 
 		return;
 	}
@@ -171,7 +170,6 @@ void StraightLine::setTarget(const matrix::Vector3f &target)
 {
 	if (PX4_ISFINITE(target(0)) && PX4_ISFINITE(target(1)) && PX4_ISFINITE(target(2))) {
 		_target = target;
-		_is_target_reached = false;
 
 		// set all parameters to their default value (depends on the direction)
 		setAllDefaults();

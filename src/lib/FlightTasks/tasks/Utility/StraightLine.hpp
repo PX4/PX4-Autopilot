@@ -92,8 +92,6 @@ private:
 	float _desired_speed{0.0f};              /**< desired maximum velocity */
 	float _desired_speed_at_target{0.0f};    /**< desired velocity at target point */
 
-	bool _is_target_reached{false};
-
 	matrix::Vector3f _target{};              /**< End point of the straight line */
 	matrix::Vector3f _origin{};              /**< Start point of the straight line */
 
