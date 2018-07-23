@@ -50,7 +50,7 @@ px4_add_module(
 message(STATUS "Building and including ${config_io_board}")
 
 set(fw_io_exe "${PX4_SOURCE_DIR}/build/nuttx_${config_io_board}_default/nuttx_${config_io_board}_default.elf")
-set(fw_io_bin "${PX4_BINARY_DIR}/genromfs/${config_romfs_root}/extras/${config_io_board}.bin")
+set(fw_io_bin "${PX4_BINARY_DIR}/romfs_extras/${config_io_board}.bin" CACHE FILEPATH "px4io binary path")
 
 file(GLOB_RECURSE px4io_driver_files ${PX4_SOURCE_DIR}/src/drivers/boards/${config_io_board}/*)
 file(GLOB_RECURSE px4io_config_files ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/configs/${config_io_board}/*)
@@ -66,11 +66,10 @@ add_custom_command(OUTPUT ${fw_io_exe}
 
 file(RELATIVE_PATH fw_io_exe_relative ${CMAKE_CURRENT_BINARY_DIR} ${fw_io_exe})
 file(RELATIVE_PATH fw_io_bin_relative ${CMAKE_CURRENT_BINARY_DIR} ${fw_io_bin})
-set(fw_io_bin ${fw_io_bin} PARENT_SCOPE)
 
 add_custom_command(OUTPUT ${fw_io_bin}
-	COMMAND mkdir -p ${PX4_BINARY_DIR}/genromfs/${config_romfs_root}/extras/
-	COMMAND ${OBJCOPY} -O binary ${fw_io_exe_relative} ${fw_io_bin_relative}
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/romfs_extras
+	COMMAND ${CMAKE_OBJCOPY} -O binary ${fw_io_exe_relative} ${fw_io_bin_relative}
 	DEPENDS ${fw_io_exe}
 	COMMENT "Copying ${config_io_board} to ROMFS extras"
 	)
