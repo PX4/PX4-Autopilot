@@ -129,85 +129,79 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 	_gps_error_norm = fmaxf((gps->eph / _params.req_hacc) , (gps->epv / _params.req_vacc));
 	_gps_error_norm = fmaxf(_gps_error_norm , (gps->sacc / _params.req_sacc));
 
-	// Calculate position movement since last measurement
-	float delta_posN = 0.0f;
-	float delta_PosE = 0.0f;
-	double lat = gps->lat * 1.0e-7;
-	double lon = gps->lon * 1.0e-7;
-
-	// calculate position movement since last GPS fix
-	if (_gps_pos_prev.timestamp > 0) {
-		map_projection_project(&_gps_pos_prev, lat, lon, &delta_posN, &delta_PosE);
-
-	} else {
-		// no previous position has been set
-		map_projection_init_timestamped(&_gps_pos_prev, lat, lon, _time_last_imu);
-		_gps_alt_prev = 1e-3f * (float)gps->alt;
-	}
-
-	// Calculate time lapsed since last update, limit to prevent numerical errors and calculate the lowpass filter coefficient
+	// Calculate time lapsed since last update, limit to prevent numerical errors and calculate a lowpass filter coefficient
 	const float filt_time_const = 10.0f;
 	float dt = fminf(fmaxf(float(_time_last_imu - _gps_pos_prev.timestamp) * 1e-6f, 0.001f), filt_time_const);
 	float filter_coef = dt / filt_time_const;
 
-	// save GPS fix for next time
-	map_projection_init_timestamped(&_gps_pos_prev, lat, lon, _time_last_imu);
+	// The following checks are only valid when the vehicle is at rest
+	double lat = gps->lat * 1.0e-7;
+	double lon = gps->lon * 1.0e-7;
+	if (!_control_status.flags.in_air && _vehicle_at_rest) {
+		// Calculate position movement since last measurement
+		float delta_posN = 0.0f;
+		float delta_PosE = 0.0f;
 
-	// Calculate the horizontal drift velocity components and limit to 10x the threshold
-	float vel_limit = 10.0f * _params.req_hdrift;
-	float velN = fminf(fmaxf(delta_posN / dt, -vel_limit), vel_limit);
-	float velE = fminf(fmaxf(delta_PosE / dt, -vel_limit), vel_limit);
+		// calculate position movement since last GPS fix
+		if (_gps_pos_prev.timestamp > 0) {
+			map_projection_project(&_gps_pos_prev, lat, lon, &delta_posN, &delta_PosE);
 
-	// Apply a low pass filter
-	_gpsDriftVelN = velN * filter_coef + _gpsDriftVelN * (1.0f - filter_coef);
-	_gpsDriftVelE = velE * filter_coef + _gpsDriftVelE * (1.0f - filter_coef);
+		} else {
+			// no previous position has been set
+			map_projection_init_timestamped(&_gps_pos_prev, lat, lon, _time_last_imu);
+			_gps_alt_prev = 1e-3f * (float)gps->alt;
 
-	// Calculate the horizontal drift speed and fail if too high
-	// This check can only be used if the vehicle is stationary during alignment
-	if (!_control_status.flags.in_air) {
+		}
+
+		// Calculate the horizontal drift velocity components and limit to 10x the threshold
+		float vel_limit = 10.0f * _params.req_hdrift;
+		float velN = fminf(fmaxf(delta_posN / dt, -vel_limit), vel_limit);
+		float velE = fminf(fmaxf(delta_PosE / dt, -vel_limit), vel_limit);
+
+		// Apply a low pass filter
+		_gpsDriftVelN = velN * filter_coef + _gpsDriftVelN * (1.0f - filter_coef);
+		_gpsDriftVelE = velE * filter_coef + _gpsDriftVelE * (1.0f - filter_coef);
+
+		// Calculate the horizontal drift speed and fail if too high
 		float drift_speed = sqrtf(_gpsDriftVelN * _gpsDriftVelN + _gpsDriftVelE * _gpsDriftVelE);
 		_gps_check_fail_status.flags.hdrift = (drift_speed > _params.req_hdrift);
 
-	} else {
-		_gps_check_fail_status.flags.hdrift = false;
-	}
+		// Calculate the vertical drift velocity and limit to 10x the threshold
+		float vz_drift_limit = 10.0f * _params.req_vdrift;
+		float gps_alt_m = 1e-3f * (float)gps->alt;
+		float velD = math::constrain(((_gps_alt_prev - gps_alt_m) / dt), -vz_drift_limit, vz_drift_limit);
 
-	// Calculate the vertical drift velocity and limit to 10x the threshold
-	vel_limit = 10.0f * _params.req_vdrift;
-	float gps_alt_m = 1e-3f * (float)gps->alt;
-	float velD = math::constrain(((_gps_alt_prev - gps_alt_m) / dt), -vel_limit, vel_limit);
-	_gps_alt_prev = gps_alt_m;
+		// Apply a low pass filter to the vertical velocity
+		_gps_drift_velD = velD * filter_coef + _gps_drift_velD * (1.0f - filter_coef);
 
-	// Apply a low pass filter to the vertical velocity
-	_gps_drift_velD = velD * filter_coef + _gps_drift_velD * (1.0f - filter_coef);
-
-	// Fail if the vertical drift speed is too high
-	// This check can only be used if the vehicle is stationary during alignment
-	if (!_control_status.flags.in_air) {
+		// Fail if the vertical drift speed is too high
 		_gps_check_fail_status.flags.vdrift = (fabsf(_gps_drift_velD) > _params.req_vdrift);
 
-	} else {
-		_gps_check_fail_status.flags.vdrift = false;
-	}
-
-	// Check the magnitude of the filtered horizontal GPS velocity
-	// This check can only be used if the vehicle is stationary during alignment
-	if (!_control_status.flags.in_air) {
-		vel_limit = 10.0f * _params.req_hdrift;
-		float gps_velN = fminf(fmaxf(gps->vel_ned[0], -vel_limit), vel_limit);
-		float gps_velE = fminf(fmaxf(gps->vel_ned[1], -vel_limit), vel_limit);
+		// Check the magnitude of the filtered horizontal GPS velocity
+		float vxy_drift_limit = 10.0f * _params.req_hdrift;
+		float gps_velN = fminf(fmaxf(gps->vel_ned[0], -vxy_drift_limit), vxy_drift_limit);
+		float gps_velE = fminf(fmaxf(gps->vel_ned[1], -vxy_drift_limit), vxy_drift_limit);
 		_gps_velN_filt = gps_velN * filter_coef + _gps_velN_filt * (1.0f - filter_coef);
 		_gps_velE_filt  = gps_velE * filter_coef + _gps_velE_filt  * (1.0f - filter_coef);
 		float horiz_speed = sqrtf(_gps_velN_filt * _gps_velN_filt + _gps_velE_filt * _gps_velE_filt);
 		_gps_check_fail_status.flags.hspeed = (horiz_speed > _params.req_hdrift);
 
-	} else {
+	} else if (_control_status.flags.in_air) {
+		// These checks are always declared as passed when flying
+		// If on ground and moving, the last result before movemenent commenced is kept
+		_gps_check_fail_status.flags.hdrift = false;
+		_gps_check_fail_status.flags.vdrift = false;
 		_gps_check_fail_status.flags.hspeed = false;
+
 	}
 
+	// save GPS fix for next time
+	map_projection_init_timestamped(&_gps_pos_prev, lat, lon, _time_last_imu);
+	_gps_alt_prev = 1e-3f * (float)gps->alt;
+
 	// Check  the filtered difference between GPS and EKF vertical velocity
-	vel_limit = 10.0f * _params.req_vdrift;
-	float vertVel = fminf(fmaxf((gps->vel_ned[2] - _state.vel(2)), -vel_limit), vel_limit);
+	float vz_diff_limit = 10.0f * _params.req_vdrift;
+	float vertVel = fminf(fmaxf((gps->vel_ned[2] - _state.vel(2)), -vz_diff_limit), vz_diff_limit);
 	_gps_velD_diff_filt = vertVel * filter_coef + _gps_velD_diff_filt * (1.0f - filter_coef);
 	_gps_check_fail_status.flags.vspeed = (fabsf(_gps_velD_diff_filt) > _params.req_vdrift);
 
