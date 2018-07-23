@@ -55,6 +55,7 @@ __BEGIN_DECLS
 extern int	test_adc(int argc, char *argv[]);
 extern int	test_autodeclination(int argc, char *argv[]);
 extern int	test_hysteresis(int argc, char *argv[]);
+extern int	test_bezierQuad(int argc, char *argv[]);
 extern int	test_bson(int argc, char *argv[]);
 extern int	test_conv(int argc, char *argv[]);
 extern int	test_dataman(int argc, char *argv[]);
@@ -80,6 +81,7 @@ extern int	test_perf(int argc, char *argv[]);
 extern int	test_ppm(int argc, char *argv[]);
 extern int	test_ppm_loopback(int argc, char *argv[]);
 extern int	test_rc(int argc, char *argv[]);
+extern int	test_search_min(int argc, char *argv[]);
 extern int	test_sensors(int argc, char *argv[]);
 extern int	test_servo(int argc, char *argv[]);
 extern int	test_sleep(int argc, char *argv[]);
