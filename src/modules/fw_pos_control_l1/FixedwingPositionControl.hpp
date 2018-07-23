@@ -306,6 +306,7 @@ private:
 		param_t l1_period;
 		param_t l1_damping;
 		param_t roll_limit;
+		param_t roll_slew_deg_sec;
 
 		param_t time_const;
 		param_t time_const_throt;
