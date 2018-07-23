@@ -33,7 +33,7 @@
 
 message(STATUS "ROMFS: ${config_romfs_root}")
 
-set(config_romfs_files_list)
+unset(config_romfs_files_list CACHE)
 set(romfs_src_dir ${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root})
 set(romfs_temp_dir ${PX4_BINARY_DIR}/genromfs/${config_romfs_root})
 
@@ -72,6 +72,7 @@ add_subdirectory(${romfs_src_dir})
 # directory setup
 # copy all romfs files, process airframes, prune comments
 add_custom_command(OUTPUT ${romfs_temp_dir}/init.d/rcS ${romfs_temp_dir}/init.d/rc.autostart
+	COMMAND cmake -E remove_directory ${romfs_temp_dir}
 	COMMAND cmake -E copy_directory ${romfs_src_dir} ${romfs_temp_dir}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		-a ${romfs_temp_dir}/init.d
