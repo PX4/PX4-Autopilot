@@ -170,7 +170,10 @@ using ::isfinite;
 #define USEC_PER_TICK (1000000/PX4_TICKS_PER_SEC)
 #define USEC2TICK(x) (((x)+(USEC_PER_TICK/2))/USEC_PER_TICK)
 
-#define px4_statfs_buf_f_bavail_t unsigned long
+#ifdef __cplusplus
+#include <sys/statfs.h>
+typedef decltype(statfs::f_bavail) px4_statfs_buf_f_bavail_t;
+#endif
 
 #ifdef __PX4_QURT
 
