@@ -614,11 +614,6 @@ Sensors::run()
 
 	_rc_update.rc_parameter_map_poll(_parameter_handles, true /* forced */);
 
-	/* advertise the sensor_combined topic and make the initial publication */
-	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
-	_airdata_pub = orb_advertise(ORB_ID(vehicle_air_data), &airdata);
-	_magnetometer_pub = orb_advertise(ORB_ID(vehicle_magnetometer), &magnetometer);
-
 	/* advertise the sensor_preflight topic and make the initial publication */
 	preflt.accel_inconsistency_m_s_s = 0.0f;
 
@@ -681,14 +676,15 @@ Sensors::run()
 
 			_voted_sensors_update.set_relative_timestamps(raw);
 
-			orb_publish(ORB_ID(sensor_combined), _sensor_pub, &raw);
+			int instance;
+			orb_publish_auto(ORB_ID(sensor_combined), &_sensor_pub, &raw, &instance, ORB_PRIO_DEFAULT);
 
 			if (airdata.timestamp != airdata_prev_timestamp) {
-				orb_publish(ORB_ID(vehicle_air_data), _airdata_pub, &airdata);
+				orb_publish_auto(ORB_ID(vehicle_air_data), &_airdata_pub, &airdata, &instance, ORB_PRIO_DEFAULT);
 			}
 
 			if (magnetometer.timestamp != magnetometer_prev_timestamp) {
-				orb_publish(ORB_ID(vehicle_magnetometer), _magnetometer_pub, &magnetometer);
+				orb_publish_auto(ORB_ID(vehicle_magnetometer), &_magnetometer_pub, &magnetometer, &instance, ORB_PRIO_DEFAULT);
 			}
 
 			_voted_sensors_update.check_failover();
@@ -731,9 +727,18 @@ Sensors::run()
 	orb_unsubscribe(_vcontrol_mode_sub);
 	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_actuator_ctrl_0_sub);
-	orb_unadvertise(_sensor_pub);
-	orb_unadvertise(_airdata_pub);
-	orb_unadvertise(_magnetometer_pub);
+
+	if (_sensor_pub) {
+		orb_unadvertise(_sensor_pub);
+	}
+
+	if (_airdata_pub) {
+		orb_unadvertise(_airdata_pub);
+	}
+
+	if (_magnetometer_pub) {
+		orb_unadvertise(_magnetometer_pub);
+	}
 
 	_rc_update.deinit();
 	_voted_sensors_update.deinit();
