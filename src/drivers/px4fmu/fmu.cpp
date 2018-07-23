@@ -260,8 +260,8 @@ private:
 	pollfd	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 	unsigned	_poll_fds_num;
 
-	uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
-	uint16_t raw_rc_count;
+	uint16_t _raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
+	uint16_t _raw_rc_count;
 
 	static pwm_limit_t	_pwm_limit;
 	static actuator_armed_s	_armed;
@@ -383,7 +383,7 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_groups_required(0),
 	_groups_subscribed(0),
 	_poll_fds_num(0),
-	raw_rc_count(0),
+	_raw_rc_count(0),
 	_failsafe_pwm{0},
 	_disarmed_pwm{0},
 	_reverse_pwm_mask(0),
@@ -431,10 +431,8 @@ PX4FMU::PX4FMU(bool run_as_task) :
 
 	// initialize raw_rc values and count
 	for (unsigned i = 0; i < input_rc_s::RC_INPUT_MAX_CHANNELS; i++) {
-		raw_rc_values[i] = UINT16_MAX;
+		_raw_rc_values[i] = UINT16_MAX;
 	}
-
-	raw_rc_count = 0;
 
 	// If there is no safety button, disable it on boot.
 #ifndef GPIO_BTN_SAFETY
@@ -1126,7 +1124,7 @@ PX4FMU::fill_rc_in(uint16_t raw_rc_count_local,
 		}
 
 		// once filled, reset values back to default
-		raw_rc_values[i] = UINT16_MAX;
+		_raw_rc_values[i] = UINT16_MAX;
 	}
 
 	_rc_in.timestamp = now;
@@ -1587,13 +1585,13 @@ PX4FMU::cycle()
 
 				// parse new data
 				if (newBytes > 0) {
-					rc_updated = sbus_parse(_cycle_timestamp, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count, &sbus_failsafe,
+					rc_updated = sbus_parse(_cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &_raw_rc_count, &sbus_failsafe,
 								&sbus_frame_drop, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 					if (rc_updated) {
 						// we have a new SBUS frame. Publish it.
 						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SBUS;
-						fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
+						fill_rc_in(_raw_rc_count, _raw_rc_values, _cycle_timestamp,
 							   sbus_frame_drop, sbus_failsafe, frame_drops);
 						_rc_scan_locked = true;
 					}
@@ -1620,13 +1618,13 @@ PX4FMU::cycle()
 					int8_t dsm_rssi;
 
 					// parse new data
-					rc_updated = dsm_parse(_cycle_timestamp, &_rcs_buf[0], newBytes, &raw_rc_values[0], &raw_rc_count,
+					rc_updated = dsm_parse(_cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &_raw_rc_count,
 							       &dsm_11_bit, &frame_drops, &dsm_rssi, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 					if (rc_updated) {
 						// we have a new DSM frame. Publish it.
 						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_DSM;
-						fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
+						fill_rc_in(_raw_rc_count, _raw_rc_values, _cycle_timestamp,
 							   false, false, frame_drops, dsm_rssi);
 						_rc_scan_locked = true;
 					}
@@ -1659,7 +1657,7 @@ PX4FMU::cycle()
 						/* set updated flag if one complete packet was parsed */
 						st24_rssi = RC_INPUT_RSSI_MAX;
 						rc_updated = (OK == st24_decode(_rcs_buf[i], &st24_rssi, &lost_count,
-										&raw_rc_count, raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS));
+										&_raw_rc_count, _raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS));
 					}
 
 					// The st24 will keep outputting RC channels and RSSI even if RC has been lost.
@@ -1669,7 +1667,7 @@ PX4FMU::cycle()
 						if (lost_count == 0) {
 							// we have a new ST24 frame. Publish it.
 							_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_ST24;
-							fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
+							fill_rc_in(_raw_rc_count, _raw_rc_values, _cycle_timestamp,
 								   false, false, frame_drops, st24_rssi);
 							_rc_scan_locked = true;
 
@@ -1708,13 +1706,13 @@ PX4FMU::cycle()
 						/* set updated flag if one complete packet was parsed */
 						sumd_rssi = RC_INPUT_RSSI_MAX;
 						rc_updated = (OK == sumd_decode(_rcs_buf[i], &sumd_rssi, &rx_count,
-										&raw_rc_count, raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS, &sumd_failsafe));
+										&_raw_rc_count, _raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS, &sumd_failsafe));
 					}
 
 					if (rc_updated) {
 						// we have a new SUMD frame. Publish it.
 						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SUMD;
-						fill_rc_in(raw_rc_count, raw_rc_values, _cycle_timestamp,
+						fill_rc_in(_raw_rc_count, _raw_rc_values, _cycle_timestamp,
 							   false, sumd_failsafe, frame_drops, sumd_rssi);
 						_rc_scan_locked = true;
 					}
