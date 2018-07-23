@@ -73,8 +73,8 @@ void StraightLine::generateSetpoints(matrix::Vector3f &position_setpoint, matrix
 	// previous velocity in the direction of the line
 	float speed_sp_prev = math::max(velocity_setpoint * u_orig_to_target, 0.0f);
 
-	// Calculate accelerating/decelerating distance depending on speed, speed at target and acceleration/deceleration (add 10% safety margin)
-	float acc_dec_distance = 1.1f * fabs(powf(_desired_speed, 2) - powf(_desired_speed_at_target, 2)) / 2.0f;
+	// Calculate accelerating/decelerating distance depending on speed, speed at target and acceleration/deceleration
+	float acc_dec_distance = fabs(powf(_desired_speed, 2) - powf(_desired_speed_at_target, 2)) / 2.0f;
 	acc_dec_distance /= _desired_speed > _desired_speed_at_target ? _desired_deceleration : _desired_acceleration;
 
 	float dist_to_target = (_target - _pos).length(); // distance to target
