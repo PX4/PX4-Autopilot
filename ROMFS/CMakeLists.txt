@@ -33,9 +33,11 @@
 
 message(STATUS "ROMFS: ${config_romfs_root}")
 
-unset(config_romfs_files_list CACHE)
 set(romfs_src_dir ${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root})
-set(romfs_temp_dir ${PX4_BINARY_DIR}/genromfs/${config_romfs_root})
+set(romfs_gen_root_dir ${PX4_BINARY_DIR}/genromfs)
+
+set_property(GLOBAL PROPERTY PX4_ROMFS_FILES)
+set_property(GLOBAL PROPERTY PX4_ROMFS_CMAKE_FILES)
 
 #=============================================================================
 #
@@ -57,62 +59,99 @@ set(romfs_temp_dir ${PX4_BINARY_DIR}/genromfs/${config_romfs_root})
 #			)
 #
 function(px4_add_romfs_files)
-	foreach(arg IN LISTS ARGN)
-		list(APPEND config_romfs_files_list
-			${CMAKE_CURRENT_SOURCE_DIR}/${arg}
-			)
-	endforeach()
+	set_property(GLOBAL APPEND PROPERTY PX4_ROMFS_CMAKE_FILES ${CMAKE_CURRENT_LIST_FILE})
 
-	set(config_romfs_files_list ${config_romfs_files_list} CACHE INTERNAL "ROMFS file list")
+	foreach(arg IN LISTS ARGN)
+		set_property(GLOBAL APPEND PROPERTY PX4_ROMFS_FILES ${CMAKE_CURRENT_LIST_DIR}/${arg})
+	endforeach()
 endfunction()
 
 # get list of all ROMFS files
 add_subdirectory(${romfs_src_dir})
 
-# directory setup
-# copy all romfs files, process airframes, prune comments
-add_custom_command(OUTPUT ${romfs_temp_dir}/init.d/rcS ${romfs_temp_dir}/init.d/rc.autostart
-	COMMAND cmake -E remove_directory ${romfs_temp_dir}
-	COMMAND cmake -E copy_directory ${romfs_src_dir} ${romfs_temp_dir}
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
-		-a ${romfs_temp_dir}/init.d
-		-s ${romfs_temp_dir}/init.d/rc.autostart
-		--board ${BOARD}
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
-		--folder ${romfs_temp_dir} --board ${BOARD}
+# copy ROMFS/ files to build directory
+get_property(romfs_cmake_files GLOBAL PROPERTY PX4_ROMFS_CMAKE_FILES)
+get_property(romfs_copy_files GLOBAL PROPERTY PX4_ROMFS_FILES)
+add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rcS
+	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${romfs_src_dir} ${romfs_gen_root_dir}
 	DEPENDS
-		${config_romfs_files_list}
-		${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
-		${PX4_SOURCE_DIR}/ROMFS/${config_romfs_root}/init.d/rcS
-		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
+		${romfs_cmake_files}
+		${romfs_copy_files}
+	COMMENT "ROMFS: copying"
 	)
 
-set(romfs_dependencies)
-list(APPEND romfs_dependencies
-	${romfs_temp_dir}/init.d/rcS
-	${romfs_temp_dir}/init.d/rc.autostart
+# create rc.autostart
+add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rc.autostart
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
+		--airframes-path ${romfs_gen_root_dir}/init.d
+		--start-script ${romfs_gen_root_dir}/init.d/rc.autostart
+		--board ${BOARD}
+	DEPENDS
+		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
+		${romfs_gen_root_dir}/init.d/rcS
+	COMMENT "ROMFS: Generating rc.autostart"
 	)
-	
+
+# prune ROMFS
+add_custom_command(OUTPUT romfs_pruned.stamp
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
+		--folder ${romfs_gen_root_dir} --board ${BOARD}
+	COMMAND ${CMAKE_COMMAND} -E touch romfs_pruned.stamp
+	DEPENDS
+		${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
+		${romfs_gen_root_dir}/init.d/rcS
+		${romfs_gen_root_dir}/init.d/rc.autostart
+	COMMENT "ROMFS: pruning"
+	)
+
+# copy extras into ROMFS
+set(extras_dependencies)
 # copy px4io binary if configured
 if (config_io_board)
-	list(APPEND romfs_dependencies
+	list(APPEND extras_dependencies
 		copy_px4io_bin
 		${fw_io_bin}
 		)
 endif()
 
+add_custom_command(OUTPUT romfs_extras.stamp
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${romfs_gen_root_dir}/extras/
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${PX4_BINARY_DIR}/romfs_extras/ ${romfs_gen_root_dir}/extras/
+	COMMAND ${CMAKE_COMMAND} -E touch romfs_extras.stamp
+	DEPENDS
+		${romfs_gen_root_dir}/init.d/rcS
+		${romfs_gen_root_dir}/init.d/rc.autostart
+		romfs_pruned.stamp
+		${extras_dependencies}
+	COMMENT "ROMFS: copying extras"
+	)
+
 # create romfs.img
-add_custom_command(OUTPUT romfs.img
+find_program(GENROMFS genromfs)
+if(NOT GENROMFS)
+    message(FATAL_ERROR "genromfs not found")
+endif()
+add_custom_command(OUTPUT romfs.img romfs.txt
 	COMMAND ${CMAKE_COMMAND} -E remove -f romfs.img romfs.txt
-	COMMAND ${GENROMFS} -f romfs.img -d ${romfs_temp_dir} -V "NSHInitVol" -v > romfs.txt 2>&1
-	DEPENDS ${romfs_dependencies}
+	COMMAND ${GENROMFS} -f romfs.img -d ${romfs_gen_root_dir} -V "NSHInitVol" -v > romfs.txt 2>&1
+	DEPENDS
+		${romfs_gen_root_dir}/init.d/rcS
+		${romfs_gen_root_dir}/init.d/rc.autostart
+		romfs_pruned.stamp
+		romfs_extras.stamp
+	COMMENT "ROMFS: generating image"
 	)
 
 # create nsh_romfsimg.c
+find_program(XXD xxd)
+if(NOT XXD)
+    message(FATAL_ERROR "xxd not found")
+endif()
 add_custom_command(OUTPUT nsh_romfsimg.c
 	COMMAND ${CMAKE_COMMAND} -E remove -f nsh_romfsimg.c
-	COMMAND xxd -i romfs.img nsh_romfsimg.c
-	COMMAND sed 's/unsigned/const unsigned/g' nsh_romfsimg.c > nsh_romfsimg.c.tmp && mv nsh_romfsimg.c.tmp nsh_romfsimg.c
+	COMMAND ${XXD} -i romfs.img nsh_romfsimg.c
+	COMMAND sed 's/unsigned/const unsigned/g' nsh_romfsimg.c > nsh_romfsimg.c.tmp && ${CMAKE_COMMAND} -E rename nsh_romfsimg.c.tmp nsh_romfsimg.c
 	DEPENDS romfs.img
 	)
 
