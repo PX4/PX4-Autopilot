@@ -10,7 +10,7 @@ set(config_module_list
 	drivers/barometer
 	drivers/differential_pressure
 	drivers/distance_sensor
-	drivers/magnetometer
+    #drivers/magnetometer
 	drivers/telemetry
 
 	drivers/batt_smbus
@@ -18,6 +18,8 @@ set(config_module_list
 	drivers/camera_trigger
 	drivers/gps
 	#drivers/hott
+    drivers/magnetometer/lis3mdl
+    drivers/imu/bmi160
 	drivers/imu/l3gd20
 	drivers/imu/lsm303d
 	#drivers/mkblctrl
@@ -25,12 +27,13 @@ set(config_module_list
 	drivers/imu/mpu9250
 	#drivers/oreoled
 	drivers/pwm_input
-	drivers/pwm_out_sim
+    #drivers/pwm_out_sim
 	drivers/px4flow
 	drivers/px4fmu
-	drivers/rgbled
-	drivers/rc_input
-	#drivers/rgbled_pwm
+    drivers/rc_input
+    drivers/px4ecu
+    drivers/rgbled
+	drivers/rgbled_pwm
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm

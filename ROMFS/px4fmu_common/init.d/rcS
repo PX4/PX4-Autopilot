@@ -57,6 +57,8 @@ set FEXTRAS                     /fs/microsd/etc/extras.txt
 set FRC                         /fs/microsd/etc/rc.txt
 set FMU_ARGS                    ""
 set FMU_MODE                    pwm
+set ECU_MODE                    pwm
+set ECU_ARGS                    ""
 set IO_FILE                     ""
 set IO_PRESENT                  no
 set LOG_FILE                    /fs/microsd/bootlog.txt
@@ -80,6 +82,7 @@ set PWM_MIN                     p:PWM_MIN
 set PWM_OUT                     none
 set PWM_RATE                    p:PWM_RATE
 set USE_IO                      no
+set USE_ECU                     no
 set VEHICLE_TYPE                none
 
 #
@@ -286,6 +289,21 @@ else
 		set FMU_ARGS "-t"
 	fi
 
+    #
+    # Check ECU to see if override USE_IO
+    #
+    if param compare SYS_USE_ECU 1
+    then
+        echo "USE_ECU = yes"
+        set USE_IO no
+        set USE_ECU yes
+    fi
+
+    if param compare SYS_ECU_TASK 1
+    then
+        set ECU_ARGS "task"
+    fi
+
 	#
 	# Set parameters and env variables for selected AUTOSTART.
 	#
@@ -309,14 +327,24 @@ else
 	#
 	if [ $AUTOCNF == yes ]
 	then
+<<<<<<< HEAD
 		# Run FMU as task on Pixracer and on boards with enough RAM.
 		if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO PX4FMU_V5
+=======
+		# Disable safety switch by default on Pixracer and OmnibusF4SD
+		if ver hwcmp MINDPX_V2 PX4FMU_V4 OMNIBUS_F4SD
+>>>>>>> 1. add px4ecu (engine control unit) component to support main/aux co-existence on FMU.
 		then
 			param set SYS_FMU_TASK 1
 		fi
 
+<<<<<<< HEAD
 		# Disable safety switch by default on Pixracer and OmnibusF4SD.
 		if ver hwcmp PX4FMU_V4 OMNIBUS_F4SD
+=======
+		# Run FMU as task on Pixracer and on boards with enough RAM
+		if ver hwcmp MINDPX_V2 PX4FMU_V4 PX4FMU_V4PRO PX4FMU_V5
+>>>>>>> 1. add px4ecu (engine control unit) component to support main/aux co-existence on FMU.
 		then
 			param set CBRK_IO_SAFETY 22027
 		fi
@@ -338,7 +366,104 @@ else
 	#
 	# Set USE_IO flag.
 	#
+<<<<<<< HEAD
 	if param compare SYS_USE_IO 1
+=======
+	if [ -f /etc/extras/px4io-v2.bin ]
+	then
+		set IO_FILE /etc/extras/px4io-v2.bin
+
+		if px4io checkcrc ${IO_FILE}
+		then
+			set IO_PRESENT yes
+		else
+			tone_alarm MLL32CP8MB
+
+			if px4io start
+			then
+				# try to safe px4 io so motor outputs dont go crazy
+				if px4io safety_on
+				then
+					# success! no-op
+				else
+					# px4io did not respond to the safety command
+					px4io stop
+				fi
+			fi
+
+			if px4io forceupdate 14662 ${IO_FILE}
+			then
+				usleep 10000
+				if px4io checkcrc ${IO_FILE}
+				then
+					echo "PX4IO CRC OK after updating" >> $LOG_FILE
+					tone_alarm MLL8CDE
+
+					set IO_PRESENT yes
+				else
+					echo "PX4IO update failed" >> $LOG_FILE
+					tone_alarm ${TUNE_ERR}
+				fi
+			else
+				echo "PX4IO update failed" >> $LOG_FILE
+				tune_control play -m ${TUNE_ERR}
+			fi
+		fi
+	fi
+
+	if [ $USE_IO == yes -a $IO_PRESENT == no ]
+	then
+		echo "PX4IO not found" >> $LOG_FILE
+		tune_control play -m ${TUNE_ERR}
+	fi
+
+	#
+	# Set default output if not set
+	#
+	if [ $OUTPUT_MODE == none ]
+	then
+		if [ $USE_IO == yes ]
+		then
+			set OUTPUT_MODE io
+		else
+			set OUTPUT_MODE fmu
+            # Check ECU flag to override output mode, on mindpx_v2 only for now
+            if ver hwcmp MINDPX_V2
+            then
+                if [ $USE_ECU == yes ]
+                then
+                    set OUTPUT_MODE ecu
+                fi
+            fi
+		fi
+	fi
+
+	if [ $OUTPUT_MODE == io -a $IO_PRESENT != yes ]
+	then
+		# Need IO for output but it not present, disable output
+		set OUTPUT_MODE none
+	fi
+
+	if [ $OUTPUT_MODE == tap_esc ]
+	then
+		set FMU_MODE rcin
+	fi
+
+	if ver hwcmp AEROFC_V1
+	then
+		set DATAMAN_OPT -i
+	fi
+	if ver hwcmp AEROCORE2
+	then
+		set DATAMAN_OPT "-f /fs/mtd_dataman"
+	fi
+
+	#
+	# waypoint storage
+	# REBOOTWORK this needs to start in parallel
+	#
+	if dataman start $DATAMAN_OPT
+>>>>>>> 1. add px4ecu (engine control unit) component to support main/aux co-existence on FMU.
 	then
 		set USE_IO yes
 	fi
@@ -368,6 +493,7 @@ else
 	then
 		# Clear pins 5 and 6.
 		set FMU_MODE pwm4
+        set ECU_MODE pwm4
 		set AUX_MODE pwm4
 	fi
 
@@ -378,6 +504,7 @@ else
 		then
 			# clear pins 5 and 6
 			set FMU_MODE pwm4
+            set ECU_MODE pwm4
 			set AUX_MODE pwm4
 		else
 			set FMU_MODE none
@@ -394,8 +521,71 @@ else
 	#
 	if param greater UAVCAN_ENABLE 0
 	then
+<<<<<<< HEAD
 		# Start core UAVCAN module.
 		if uavcan start
+=======
+		if [ $OUTPUT_MODE == uavcan_esc ]
+		then
+			if param compare UAVCAN_ENABLE 0
+			then
+				param set UAVCAN_ENABLE 3
+			fi
+		fi
+
+		if [ $OUTPUT_MODE == io -o $OUTPUT_MODE == uavcan_esc ]
+		then
+			if px4io start
+			then
+				sh /etc/init.d/rc.io
+			else
+				echo "PX4IO start failed" >> $LOG_FILE
+				tune_control play -m  ${TUNE_ERR}
+			fi
+		fi
+
+		if [ $OUTPUT_MODE == fmu ]
+		then
+			if fmu mode_$FMU_MODE $FMU_ARGS
+			then
+                echo "fmu started."
+			else
+				echo "FMU start failed" >> $LOG_FILE
+				tune_control play -m ${TUNE_ERR}
+			fi
+		fi
+
+        if [ $OUTPUT_MODE == ecu ]
+        then
+        if px4ecu $ECU_ARGS mode_$ECU_MODE
+            then
+                echo "ecu started."
+            else
+                echo "PX4 ECU start failed" >> $LOG_FILE
+                tune_control play -m ${TUNE_ERR}
+            fi
+        fi
+
+		if [ $OUTPUT_MODE == mkblctrl ]
+		then
+			if [ $MKBLCTRL_MODE == x ]
+			then
+				set MKBLCTRL_ARG "-mkmode x"
+			fi
+			if [ $MKBLCTRL_MODE == + ]
+			then
+				set MKBLCTRL_ARG "-mkmode +"
+			fi
+
+			if mkblctrl $MKBLCTRL_ARG
+			then
+			else
+				tune_control play -m ${TUNE_ERR}
+			fi
+		fi
+
+		if [ $OUTPUT_MODE == hil ]
+>>>>>>> 1. add px4ecu (engine control unit) component to support main/aux co-existence on FMU.
 		then
 			if param greater UAVCAN_ENABLE 1
 			then
@@ -408,8 +598,21 @@ else
 				fi
 			fi
 		else
+<<<<<<< HEAD
 			# Error tune.
 			tune_control play -t 2
+=======
+			if [ $OUTPUT_MODE != fmu ]
+			then
+            if fmu mode_${FMU_MODE} $FMU_ARGS
+				then
+                    echo "start FMU as AUX"
+				else
+					echo "FMU mode_${FMU_MODE} start failed" >> $LOG_FILE
+					tune_control play -m ${TUNE_ERR}
+				fi
+			fi
+>>>>>>> 1. add px4ecu (engine control unit) component to support main/aux co-existence on FMU.
 		fi
 	fi
 
@@ -497,6 +700,8 @@ unset FEXTRAS
 unset FRC
 unset FMU_ARGS
 unset FMU_MODE
+unset ECU_ARGS
+unset ECU_MODE
 unset IO_FILE
 unset IO_PRESENT
 unset LOG_FILE
@@ -521,6 +726,7 @@ unset PWM_DISARMED
 unset PWM_MAX
 unset PWM_MIN
 unset USE_IO
+unset USE_ECU
 unset VEHICLE_TYPE
 
 #

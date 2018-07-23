@@ -274,7 +274,6 @@ BMI160::probe()
 {
 	/* look for device ID */
 	_whoami = read_reg(BMIREG_CHIP_ID);
-
 	// verify product revision
 	switch (_whoami) {
 	case BMI160_WHO_AM_I:
@@ -282,6 +281,7 @@ BMI160::probe()
 		memset(_checked_bad, 0, sizeof(_checked_bad));
 		_checked_values[0] = _whoami;
 		_checked_bad[0] = _whoami;
+
 		return OK;
 	}
 

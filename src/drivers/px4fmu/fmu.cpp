@@ -65,6 +65,8 @@
 
 #define SCHEDULE_INTERVAL	2000	/**< The schedule interval in usec (500 Hz) */
 
+#define IO_TIMER_ALL_MODES_CHANNELS 0
+
 static constexpr uint8_t CYCLE_COUNT = 10; /* safety switch must be held for 1 second to activate */
 static constexpr uint8_t MAX_ACTUATORS = DIRECT_PWM_OUTPUT_CHANNELS;
 
@@ -94,6 +96,13 @@ enum PortMode {
 
 #if !defined(BOARD_HAS_PWM)
 #  error "board_config.h needs to define BOARD_HAS_PWM"
+#endif
+
+#ifdef BOARD_HAS_ECU_PWM
+//                               7 . MAX_IO_TIMER .0
+//                               |     |           |
+//timer occupation map for FMU, [0, 0, 0, 1, 1, 0, 0]
+__EXPORT extern const uint8_t aux_group_timer_map;
 #endif
 
 class PX4FMU : public device::CDev, public ModuleBase<PX4FMU>
@@ -167,7 +176,6 @@ public:
 	void update_pwm_trims();
 
 private:
-
 	enum class MotorOrdering : int32_t {
 		PX4 = 0,
 		Betaflight = 1
@@ -249,6 +257,7 @@ private:
 	int			pwm_ioctl(file *filp, int cmd, unsigned long arg);
 	void		update_pwm_rev_mask();
 	void		update_pwm_out_state(bool on);
+    void        pwm_output_set(unsigned i, unsigned value);
 
 	void		update_params();
 
@@ -401,18 +410,19 @@ PX4FMU::init()
 	if (ret != OK) {
 		return ret;
 	}
-
+    
 	// XXX best would be to register / de-register the device depending on modes
 
 	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
 	_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		/* lets not be too verbose */
+        //be verbose to avoid confuse as ecu may also be presented as primary device.
+        PX4_INFO("default PWM output device");
 	} else if (_class_instance < 0) {
 		PX4_ERR("FAILED registering class device");
 	}
-
+    
 	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
 
 	/* force a reset of the update rate */
@@ -669,7 +679,13 @@ PX4FMU::set_mode(Mode mode)
 		return -EINVAL;
 	}
 
+#ifdef BOARD_HAS_ECU_PWM
+    //_pwm_alt_rate_channels = _pwm_alt_rate_channels << 8;
+    //_pwm_mask = _pwm_mask << 8;
+#endif
+    
 	_mode = mode;
+    printf ("[fmu] _mode = %dPWM\n", _mode);
 	return OK;
 }
 
@@ -702,6 +718,12 @@ PX4FMU::set_mode(Mode mode)
 int
 PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate)
 {
+
+    printf("set_pwm_rate %x %u %u\n", rate_map, default_rate, alt_rate);
+    
+#ifdef BOARD_HAS_ECU_PWM
+    uint32_t global_rate_map = rate_map << 8;
+#endif
 	PX4_DEBUG("set_pwm_rate %x %u %u", rate_map, default_rate, alt_rate);
 
 	for (unsigned pass = 0; pass < 2; pass++) {
@@ -719,23 +741,35 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 		 * To say it another way, all channels in a group moust have the same
 		 * rate and mode. (See rates above.)
 		 */
-
+#ifndef BOARD_HAS_ECU_PWM
 		for (unsigned group = 0; group < _max_actuators; group++) {
 
-			// get the channel mask for this rate group
-			uint32_t mask = up_pwm_servo_get_rate_group(group);
+#else
+        for (unsigned group = 0; group < PWM_OUTPUT_MAX_CHANNELS; group++) {
 
+            if (((1 << group) & aux_group_timer_map) == 0) {
+                //only set groups/timers fmu owns.
+                continue;
+            }
+#endif
+            // get the channel mask for this rate group
+			uint32_t mask = up_pwm_servo_get_rate_group(group);
+            
 			if (mask == 0) {
 				continue;
 			}
 
 			// all channels in the group must be either default or alt-rate
-			uint32_t alt = rate_map & mask;
-
+#ifdef BOARD_HAS_ECU_PWM
+			uint32_t alt = global_rate_map & mask;
+#else
+            uint32_t alt = rate_map & mask;
+#endif
+            
 			if (pass == 0) {
 				// preflight
 				if ((alt != 0) && (alt != mask)) {
-					PX4_WARN("rate group %u mask %x bad overlap %x", group, mask, alt);
+					PX4_WARN("rate group %u mask %x bad overlap %x rate map %x", group, mask, alt, rate_map);
 					// not a legal map, bail
 					return -EINVAL;
 				}
@@ -743,12 +777,15 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 			} else {
 				// set it - errors here are unexpected
 				if (alt != 0) {
+                    printf ("[fmu] set group %d to alt_rate %d\n", group, alt_rate);
 					if (up_pwm_servo_set_rate_group_update(group, alt_rate) != OK) {
 						PX4_WARN("rate group set alt failed");
 						return -EINVAL;
 					}
 
 				} else {
+                    printf ("[fmu] set group %d to default_rate %d\n", group, default_rate);
+
 					if (up_pwm_servo_set_rate_group_update(group, default_rate) != OK) {
 						PX4_WARN("rate group set default failed");
 						return -EINVAL;
@@ -887,6 +924,17 @@ PX4FMU::update_pwm_trims()
 	}
 }
 
+void
+PX4FMU::pwm_output_set(unsigned i, unsigned value)
+{
+    if (_pwm_initialized) {
+#ifdef BOARD_HAS_ECU_PWM
+        i = i + 8 ;
+#endif
+        up_pwm_servo_set(i, value);
+    }
+}
+    
 int
 PX4FMU::task_spawn(int argc, char *argv[])
 {
@@ -1001,7 +1049,13 @@ void
 PX4FMU::update_pwm_out_state(bool on)
 {
 	if (on && !_pwm_initialized && _pwm_mask != 0) {
-		up_pwm_servo_init(_pwm_mask);
+#ifdef BOARD_HAS_ECU_PWM
+        up_pwm_servo_init(_pwm_mask << 8, 0);
+        //_pwm_alt_rate_channels = _pwm_alt_rate_channels << 8;
+#endif
+		//up_pwm_servo_init(0xF00F, 0);
+        up_pwm_servo_init(_pwm_mask, 0);
+        printf("fmu init pwm out state rate map: 0x%04X\n", _pwm_alt_rate_channels);
 		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
 		_pwm_initialized = true;
 	}
@@ -1177,7 +1231,7 @@ PX4FMU::cycle()
 				/* output to the servos */
 				if (_pwm_initialized) {
 					for (size_t i = 0; i < mixed_num_outputs; i++) {
-						up_pwm_servo_set(i, pwm_limited[i]);
+						pwm_output_set(i, pwm_limited[i]);
 					}
 				}
 
@@ -1289,6 +1343,7 @@ PX4FMU::cycle()
 
 		/* update PWM status if armed or if disarmed PWM values are set */
 		bool pwm_on = _armed.armed || _num_disarmed_set > 0 || _armed.in_esc_calibration_mode;
+        //printf("FMU check pwm update state %d, armed %d, disarm set %d, in esc cal %d\n", pwm_on, _armed.armed, _num_disarmed_set, _armed.in_esc_calibration_mode);
 
 		if (_pwm_on != pwm_on) {
 			_pwm_on = pwm_on;
@@ -1416,6 +1471,7 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 	ret = gpio_ioctl(filp, cmd, arg);
 
 	if (ret != -ENOTTY) {
+        printf ("GPIO ioctl ENOTTY\n");
 		return ret;
 	}
 
@@ -1423,6 +1479,7 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 	ret = capture_ioctl(filp, cmd, arg);
 
 	if (ret != -ENOTTY) {
+        printf ("capture ioctl ENOTTY\n");
 		return ret;
 	}
 
@@ -1443,7 +1500,7 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
 	case MODE_14PWM:
 #endif
-		ret = pwm_ioctl(filp, cmd, arg);
+ 		ret = pwm_ioctl(filp, cmd, arg);
 		break;
 
 	default:
@@ -1489,6 +1546,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case PWM_SERVO_DISARM:
 
+            printf("[fmu] set pmw servo disarm\n");
 		/* Ignore disarm if disarmed PWM is set already. */
 		if (_num_disarmed_set == 0) {
 			update_pwm_out_state(false);
@@ -1502,6 +1560,8 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case PWM_SERVO_SET_UPDATE_RATE:
 		ret = set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, arg);
+            printf("[fmu] rate updated.\n");
+
 		break;
 
 	case PWM_SERVO_GET_UPDATE_RATE:
@@ -1509,6 +1569,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
+            printf("[fmu] select rate updated.\n");
 		ret = set_pwm_rate(arg, _pwm_default_rate, _pwm_alt_rate);
 		break;
 
@@ -1607,8 +1668,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			 * this is needed to decide if disarmed PWM output should be turned on or not
 			 */
 			_num_disarmed_set = 0;
-
-			for (unsigned i = 0; i < _max_actuators; i++) {
+ 			for (unsigned i = 0; i < _max_actuators; i++) {
 				if (_disarmed_pwm[i] > 0) {
 					_num_disarmed_set++;
 				}
@@ -1795,7 +1855,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_SET(1):
 	case PWM_SERVO_SET(0):
 		if (arg <= 2100) {
-			up_pwm_servo_set(cmd - PWM_SERVO_SET(0), arg);
+			pwm_output_set(cmd - PWM_SERVO_SET(0), arg);
 
 		} else {
 			ret = -EINVAL;
@@ -1886,6 +1946,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case PWM_SERVO_GET_COUNT:
 	case MIXERIOCGETOUTPUTCOUNT:
+ 
 		switch (_mode) {
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
@@ -2146,10 +2207,13 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
 	}
 
 	reorder_outputs(values);
+    
+    printf("[fmu] write pwm values\n");
 
 	for (unsigned i = 0; i < _num_outputs; i++) {
 		if (values[i] != PWM_IGNORE_THIS_CHANNEL) {
-			up_pwm_servo_set(i, values[i]);
+			pwm_output_set(i, values[i]);
+
 		}
 	}
 
@@ -2320,7 +2384,11 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case INPUT_CAP_SET:
 		if (pconfig) {
-			ret =  up_input_capture_set(pconfig->channel, pconfig->edge, pconfig->filter,
+            uint8_t chan = pconfig->channel;
+#ifdef BOARD_HAS_ECU_PWM
+            //chan = chan + 8;
+#endif
+			ret =  up_input_capture_set(chan, pconfig->edge, pconfig->filter,
 						    pconfig->callback, pconfig->context);
 		}
 
@@ -2328,56 +2396,88 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case INPUT_CAP_SET_CALLBACK:
 		if (pconfig) {
-			ret =  up_input_capture_set_callback(pconfig->channel, pconfig->callback, pconfig->context);
+            uint8_t chan = pconfig->channel;
+#ifdef BOARD_HAS_ECU_PWM
+            //chan = chan + 8;
+#endif
+			ret =  up_input_capture_set_callback(chan, pconfig->callback, pconfig->context);
 		}
 
 		break;
 
 	case INPUT_CAP_GET_CALLBACK:
 		if (pconfig) {
-			ret =  up_input_capture_get_callback(pconfig->channel, &pconfig->callback, &pconfig->context);
+            uint8_t chan = pconfig->channel;
+#ifdef BOARD_HAS_ECU_PWM
+            //chan = chan + 8;
+#endif
+			ret =  up_input_capture_get_callback(chan, &pconfig->callback, &pconfig->context);
 		}
 
 		break;
 
 	case INPUT_CAP_GET_STATS:
 		if (arg) {
-			ret =  up_input_capture_get_stats(stats->chan_in_edges_out, stats, false);
+            uint8_t chan = stats->chan_in_edges_out;
+#ifdef BOARD_HAS_ECU_PWM
+            //chan = chan + 8;
+#endif
+			ret =  up_input_capture_get_stats(chan, stats, false);
 		}
 
 		break;
 
 	case INPUT_CAP_GET_CLR_STATS:
 		if (arg) {
-			ret =  up_input_capture_get_stats(stats->chan_in_edges_out, stats, true);
+            uint8_t chan = stats->chan_in_edges_out;
+#ifdef BOARD_HAS_ECU_PWM
+            //chan = chan + 8;
+#endif
+			ret =  up_input_capture_get_stats(chan, stats, true);
 		}
 
 		break;
 
 	case INPUT_CAP_SET_EDGE:
 		if (pconfig) {
-			ret =  up_input_capture_set_trigger(pconfig->channel, pconfig->edge);
+            uint8_t chan = pconfig->channel;
+#ifdef BOARD_HAS_ECU_PWM
+            //chan = chan + 8;
+#endif
+			ret =  up_input_capture_set_trigger(chan, pconfig->edge);
 		}
 
 		break;
 
 	case INPUT_CAP_GET_EDGE:
 		if (pconfig) {
-			ret =  up_input_capture_get_trigger(pconfig->channel, &pconfig->edge);
+            uint8_t chan = pconfig->channel;
+#ifdef BOARD_HAS_ECU_PWM
+            //chan = chan + 8;
+#endif
+			ret =  up_input_capture_get_trigger(chan, &pconfig->edge);
 		}
 
 		break;
 
 	case INPUT_CAP_SET_FILTER:
 		if (pconfig) {
-			ret =  up_input_capture_set_filter(pconfig->channel, pconfig->filter);
+            uint8_t chan = pconfig->channel;
+#ifdef BOARD_HAS_ECU_PWM
+            //chan = chan + 8;
+#endif
+			ret =  up_input_capture_set_filter(chan, pconfig->filter);
 		}
 
 		break;
 
 	case INPUT_CAP_GET_FILTER:
 		if (pconfig) {
-			ret =  up_input_capture_get_filter(pconfig->channel, &pconfig->filter);
+            uint8_t chan = pconfig->channel;
+#ifdef BOARD_HAS_ECU_PWM
+            //chan = chan + 8;
+#endif
+			ret =  up_input_capture_get_filter(chan, &pconfig->filter);
 		}
 
 		break;
@@ -2550,6 +2650,7 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 
 		/* reset to all-inputs */
 		if (mode_with_input) {
+            printf("[fmu] GPIO reset\n");
 			object->ioctl(0, GPIO_RESET, 0);
 		}
 

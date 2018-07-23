@@ -296,6 +296,7 @@ extern "C" {
 
 	int px4_ioctl(int fd, int cmd, unsigned long arg)
 	{
+        printf("px4_ioctl fd = %d\n", fd");
 		PX4_DEBUG("px4_ioctl fd = %d", fd);
 		int ret = 0;
 

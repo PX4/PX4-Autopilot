@@ -101,7 +101,7 @@ CDev::register_class_devname(const char *class_devname)
 		if (ret == OK) {
 			break;
 		}
-
+        
 		class_instance++;
 	}
 

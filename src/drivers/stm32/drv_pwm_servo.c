@@ -73,35 +73,35 @@ servo_position_t up_pwm_servo_get(unsigned channel)
 	return io_channel_get_ccr(channel);
 }
 
-int up_pwm_servo_init(uint32_t channel_mask)
+int up_pwm_servo_init(uint32_t channel_mask, uint16_t clear_mask)
 {
-	/* Init channels */
-	uint32_t current = io_timer_get_mode_channels(IOTimerChanMode_PWMOut) |
+    if (clear_mask) {
+        /* Init channels */
+        uint32_t current = io_timer_get_mode_channels(IOTimerChanMode_PWMOut) |
 			   io_timer_get_mode_channels(IOTimerChanMode_OneShot);
 
-	/* First free the current set of PWMs */
+        /* First free the current set of PWMs */
 
-	for (unsigned channel = 0; current != 0 &&  channel < MAX_TIMER_IO_CHANNELS; channel++) {
-		if (current & (1 << channel)) {
-			io_timer_free_channel(channel);
-			current &= ~(1 << channel);
-		}
-	}
+        for (unsigned channel = 0; current != 0 &&  channel < MAX_TIMER_IO_CHANNELS; channel++) {
+            if (current & (1 << channel)) {
+                io_timer_free_channel(channel);
+                current &= ~(1 << channel);
+            }
+        }
+    }
 
-
+    printf("pwm servo driver: init channel mask: 0x%04X\n", channel_mask);
+    
 	/* Now allocate the new set */
 
 	for (unsigned channel = 0; channel_mask != 0 &&  channel < MAX_TIMER_IO_CHANNELS; channel++) {
 		if (channel_mask & (1 << channel)) {
-
 			/* First free any that were not PWM mode before */
 
 			if (-EBUSY == io_timer_is_channel_free(channel)) {
 				io_timer_free_channel(channel);
 			}
-
 			/* OneShot is set later, with the set_rate_group_update call. Init to PWM mode for now */
-
 			io_timer_channel_init(channel, IOTimerChanMode_PWMOut, NULL, NULL);
 			channel_mask &= ~(1 << channel);
 		}
@@ -157,6 +157,7 @@ int up_pwm_servo_set_rate(unsigned rate)
 uint32_t up_pwm_servo_get_rate_group(unsigned group)
 {
 	/* only return the set of channels in the group which we own */
+    //printf("pwm servo get rate group: %d\n", group);
 	return (io_timer_get_mode_channels(IOTimerChanMode_PWMOut) |
 		io_timer_get_mode_channels(IOTimerChanMode_OneShot)) &
 	       io_timer_get_group(group);

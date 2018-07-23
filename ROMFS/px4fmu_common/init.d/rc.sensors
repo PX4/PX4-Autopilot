@@ -292,6 +292,14 @@ then
 	# Internal I2C bus
 	hmc5883 -C -T -I -R 12 start
 
+    if lis3mdl -I -R 8 start
+    then
+    fi
+
+    if bmi160 -R 10 start
+    then
+    fi
+
 	mpu6000 -s -R 8 start
 	mpu9250 -s -R 8 start
 	lsm303d -R 10 start

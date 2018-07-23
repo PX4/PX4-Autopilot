@@ -169,8 +169,9 @@ led_pwm_channel_init(unsigned channel)
 	/* Only initialize used channels */
 
 	if (led_pwm_channels[channel].timer_channel) {
-
+        
 		unsigned timer = led_pwm_channels[channel].timer_index;
+        printf("init lwd pwm timer #%d, channel #%d\n", timer, channel);
 
 		/* configure the GPIO first */
 		px4_arch_configgpio(led_pwm_channels[channel].gpio_out);
@@ -208,7 +209,6 @@ led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 	if (channel >= arraySize(led_pwm_channels)) {
 		return -1;
 	}
-
 	unsigned timer = led_pwm_channels[channel].timer_index;
 
 	/* test timer for validity */
@@ -219,13 +219,16 @@ led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 
 	unsigned period = led_pwm_timer_get_period(timer);
 
-	unsigned value = (unsigned)cvalue * period / 255;
-
+#if defined(BOARD_LED_PWM_DRIVE_ACTIVE_LOW)
+    unsigned value = period - (unsigned)cvalue * period / 255;
+#else
+    unsigned value = (unsigned)cvalue * period / 255;
+#endif
+    
 	/* configure the channel */
 	if (value > 0) {
 		value--;
 	}
-
 
 	switch (led_pwm_channels[channel].timer_channel) {
 	case 1:
@@ -242,6 +245,7 @@ led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 
 	case 4:
 		rCCR4(timer) = value;
+
 		break;
 
 	default:
@@ -294,8 +298,10 @@ led_pwm_servo_init(void)
 	/* do basic timer initialisation first */
 	for (unsigned i = 0; i < arraySize(led_pwm_timers); i++) {
 #if defined(BOARD_HAS_SHARED_PWM_TIMERS)
-		io_timer_init_timer(i);
+        printf("led io timer init.\n");
+		io_timer_init_timer(3);
 #else
+        printf("led pwm servo init.\n");
 		led_pwm_timer_init_timer(i);
 #endif
 	}

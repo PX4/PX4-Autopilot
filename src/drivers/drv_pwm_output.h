@@ -298,9 +298,11 @@ struct pwm_output_rc_config {
  * @param channel_mask	Bitmask of channels (LSB = channel 0) to enable.
  *			This allows some of the channels to remain configured
  *			as GPIOs or as another function.
+ * @param clear_ops    indicates if previous channels setting should be
+ *          cleared before initialization. 0 - no, non-zero yes.
  * @return		OK on success.
  */
-__EXPORT extern int	up_pwm_servo_init(uint32_t channel_mask);
+__EXPORT extern int	up_pwm_servo_init(uint32_t channel_mask, uint16_t clear_ops);
 
 /**
  * De-initialise the PWM servo outputs.

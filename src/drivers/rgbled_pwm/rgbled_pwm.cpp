@@ -35,7 +35,7 @@
  * @file rgbled_pwm.cpp
  *
  * Driver for the onboard RGB LED controller by PWM.
- * this driver is based the PX4 led driver
+ * this driver is based on the PX4 led driver
  *
  */
 
@@ -138,6 +138,7 @@ RGBLED_PWM::init()
 {
 	/* switch off LED on start */
 	CDev::init();
+    printf("Initializing pwm tri-color LED ...\n");
 	led_pwm_servo_init();
 	send_led_rgb();
 
@@ -258,6 +259,7 @@ RGBLED_PWM::led()
 int
 RGBLED_PWM::send_led_rgb()
 {
+
 #if defined(BOARD_HAS_LED_PWM)
 	led_pwm_servo_set(0, _r);
 	led_pwm_servo_set(1, _g);
