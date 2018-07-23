@@ -100,6 +100,11 @@ void StraightLine::generateSetpoints(matrix::Vector3f &position_setpoint, matrix
 
 float StraightLine::getMaxAcc()
 {
+	// check if origin and target are different points
+	if ((_target - _origin).length() < FLT_EPSILON) {
+		return MPC_ACC_HOR_MAX.get();
+	}
+
 	// unit vector in the direction of the straight line
 	Vector3f u_orig_to_target = (_target - _origin).unit_or_zero();
 
@@ -130,6 +135,11 @@ float StraightLine::getMaxAcc()
 
 float StraightLine::getMaxVel()
 {
+	// check if origin and target are different points
+	if ((_target - _origin).length() < FLT_EPSILON) {
+		return MPC_XY_VEL_MAX.get();
+	}
+
 	// unit vector in the direction of the straight line
 	Vector3f u_orig_to_target = (_target - _origin).unit_or_zero();
 
