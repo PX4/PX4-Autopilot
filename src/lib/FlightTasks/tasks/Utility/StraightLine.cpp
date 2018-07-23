@@ -187,22 +187,34 @@ void StraightLine::setOrigin(const matrix::Vector3f &origin)
 
 void StraightLine::setSpeed(const float &speed)
 {
-	if (speed > 0 && speed < getMaxVel()) {
+	float vel_max = getMaxVel();
+
+	if (speed > 0 && speed < vel_max) {
 		_desired_speed = speed;
+	} else if (speed > vel_max) {
+		_desired_speed = vel_max;
 	}
 }
 
 void StraightLine::setSpeedAtTarget(const float &speed_at_target)
 {
-	if (speed_at_target > 0 && speed_at_target < getMaxVel()) {
+	float vel_max = getMaxVel();
+
+	if (speed_at_target > 0 && speed_at_target < vel_max) {
 		_desired_speed_at_target = speed_at_target;
+	} else if (speed_at_target > vel_max) {
+		_desired_speed_at_target = vel_max;
 	}
 }
 
 void StraightLine::setAcceleration(const float &acc)
 {
-	if (acc > 0 && acc < getMaxAcc()) {
+	float acc_max = getMaxVel();
+
+	if (acc > 0 && acc < acc_max) {
 		_desired_acceleration = acc;
+	} else if (acc > acc_max) {
+		_desired_acceleration = acc_max;
 	}
 }
 
@@ -210,5 +222,7 @@ void StraightLine::setDeceleration(const float &dec)
 {
 	if (dec > 0 && dec < DECELERATION_MAX) {
 		_desired_deceleration = dec;
+	} else if (dec > DECELERATION_MAX) {
+		_desired_deceleration = DECELERATION_MAX;
 	}
 }
