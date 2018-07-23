@@ -195,7 +195,7 @@ private:
 	ITxQueueInjector		*_tx_injector;
 	uint32_t			_groups_required = 0;
 	uint32_t			_groups_subscribed = 0;
-	int				_control_subs[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
+	int				_control_subs[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
 	actuator_controls_s		_controls[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
 	orb_id_t			_control_topics[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
 	pollfd				_poll_fds[UAVCAN_NUM_POLL_FDS] = {};
