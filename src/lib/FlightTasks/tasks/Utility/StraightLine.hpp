@@ -51,8 +51,7 @@ public:
 	~StraightLine() = default;
 
 	// setter functions
-	void setTarget(const matrix::Vector3f &target);
-	void setOrigin(const matrix::Vector3f &origin);
+	void setLineFromTo(const matrix::Vector3f &origin, const matrix::Vector3f &target);
 	void setSpeed(const float &speed);
 	void setSpeedAtTarget(const float &speed_at_target);
 	void setAcceleration(const float &acc);
