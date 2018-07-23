@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file FlightAutoLine.cpp
+ * @file FlightAutoMapper.cpp
  */
 
 #include "FlightTaskAutoMapper.hpp"
@@ -108,7 +108,7 @@ void FlightTaskAutoMapper::_reset()
 
 void FlightTaskAutoMapper::_generateIdleSetpoints()
 {
-	// Send zero thrust setpoint */
+	// Send zero thrust setpoint
 	_position_setpoint = Vector3f(NAN, NAN, NAN); // Don't require any position/velocity setpoints
 	_velocity_setpoint = Vector3f(NAN, NAN, NAN);
 	_thrust_setpoint.zero();
@@ -116,7 +116,7 @@ void FlightTaskAutoMapper::_generateIdleSetpoints()
 
 void FlightTaskAutoMapper::_generateLandSetpoints()
 {
-	// Keep xy-position and go down with landspeed. */
+	// Keep xy-position and go down with landspeed
 	_position_setpoint = Vector3f(_target(0), _target(1), NAN);
 	_velocity_setpoint = Vector3f(Vector3f(NAN, NAN, MPC_LAND_SPEED.get()));
 	// set constraints
@@ -127,7 +127,7 @@ void FlightTaskAutoMapper::_generateLandSetpoints()
 
 void FlightTaskAutoMapper::_generateTakeoffSetpoints()
 {
-	// Takeoff is completely defined by target position. */
+	// Takeoff is completely defined by target position
 	_position_setpoint = _target;
 	_velocity_setpoint = Vector3f(NAN, NAN, NAN);
 

@@ -34,8 +34,8 @@
 /**
  * @file FlightTaskAutoMapper.hpp
  *
- * Flight task for autonomous, gps driven mode. The vehicle flies
- * along a straight line in between waypoints.
+ * Abstract Flight task which generates local setpoints
+ * based on the triplet type.
  */
 
 #pragma once
