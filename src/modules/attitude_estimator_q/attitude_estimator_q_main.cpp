@@ -311,7 +311,7 @@ void AttitudeEstimatorQ::task_main()
 				_accel(2) = sensors.accelerometer_m_s2[2];
 
 				if (_accel.length() < 0.01f) {
-					PX4_ERR("WARNING: degenerate accel!");
+					PX4_ERR("degenerate accel!");
 					continue;
 				}
 			}
@@ -324,7 +324,7 @@ void AttitudeEstimatorQ::task_main()
 		orb_check(_magnetometer_sub, &magnetometer_updated);
 
 		if (magnetometer_updated) {
-			vehicle_magnetometer_s magnetometer = {};
+			vehicle_magnetometer_s magnetometer;
 
 			if (orb_copy(ORB_ID(vehicle_magnetometer), _magnetometer_sub, &magnetometer) == PX4_OK) {
 				_mag(0) = magnetometer.magnetometer_ga[0];
@@ -332,7 +332,7 @@ void AttitudeEstimatorQ::task_main()
 				_mag(2) = magnetometer.magnetometer_ga[2];
 
 				if (_mag.length() < 0.01f) {
-					PX4_ERR("WARNING: degenerate mag!");
+					PX4_ERR("degenerate mag!");
 					continue;
 				}
 			}
