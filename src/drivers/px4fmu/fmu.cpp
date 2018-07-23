@@ -382,7 +382,6 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_mixers(nullptr),
 	_groups_required(0),
 	_groups_subscribed(0),
-	_control_subs{ -1},
 	_poll_fds_num(0),
 	raw_rc_count(0),
 	_failsafe_pwm{0},
@@ -409,6 +408,10 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_control_topics[1] = ORB_ID(actuator_controls_1);
 	_control_topics[2] = ORB_ID(actuator_controls_2);
 	_control_topics[3] = ORB_ID(actuator_controls_3);
+
+	for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; ++i) {
+		_control_subs[i] = -1;
+	}
 
 	memset(_controls, 0, sizeof(_controls));
 	memset(_poll_fds, 0, sizeof(_poll_fds));
@@ -445,9 +448,8 @@ PX4FMU::PX4FMU(bool run_as_task) :
 PX4FMU::~PX4FMU()
 {
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (_control_subs[i] > 0) {
+		if (_control_subs[i] >= 0) {
 			orb_unsubscribe(_control_subs[i]);
-			_control_subs[i] = -1;
 		}
 	}
 
@@ -907,7 +909,7 @@ PX4FMU::subscribe()
 			_control_subs[i] = -1;
 		}
 
-		if (_control_subs[i] > 0) {
+		if (_control_subs[i] >= 0) {
 			_poll_fds[_poll_fds_num].fd = _control_subs[i];
 			_poll_fds[_poll_fds_num].events = POLLIN;
 			_poll_fds_num++;
@@ -1244,7 +1246,7 @@ PX4FMU::cycle()
 				PX4_DEBUG("adjusted actuator update interval to %ums", update_rate_in_ms);
 
 				for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-					if (_control_subs[i] > 0) {
+					if (_control_subs[i] >= 0) {
 						orb_set_interval(_control_subs[i], update_rate_in_ms);
 					}
 				}
@@ -1275,7 +1277,7 @@ PX4FMU::cycle()
 				unsigned poll_id = 0;
 
 				for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-					if (_control_subs[i] > 0) {
+					if (_control_subs[i] >= 0) {
 
 						if (_poll_fds[poll_id].revents & POLLIN) {
 							if (i == 0) {
