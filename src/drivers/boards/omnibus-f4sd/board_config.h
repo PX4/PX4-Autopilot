@@ -172,6 +172,7 @@
 // One device per bus
 #define PX4_SPI_BUS_SENSORS         1
 #define PX4_SPIDEV_MPU              1
+#define PX4_SPIDEV_ICM_20602        1
 #define PX4_SPIDEV_BARO_BUS         3
 #define PX4_SPIDEV_BARO             1
 

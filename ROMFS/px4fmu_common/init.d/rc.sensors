@@ -297,7 +297,12 @@ fi
 
 if ver hwcmp OMNIBUS_F4SD
 then
-	mpu6000 -R 12 -s start
+	if mpu6000 -R 12 -s start
+	then
+	else
+		# some boards such as the Hobbywing XRotor F4 G2 use the ICM-20602
+		mpu6000 -R 12 -T 20602 -s start
+	fi
 
 	# Possible external compasses
 	hmc5883 -X start
