@@ -176,20 +176,15 @@ void StraightLine::setAllDefaults()
 	_desired_deceleration = DECELERATION_MAX;
 }
 
-void StraightLine::setTarget(const matrix::Vector3f &target)
+void StraightLine::setLineFromTo(const matrix::Vector3f &origin, const matrix::Vector3f &target)
 {
-	if (PX4_ISFINITE(target(0)) && PX4_ISFINITE(target(1)) && PX4_ISFINITE(target(2))) {
+	if (PX4_ISFINITE(target(0)) && PX4_ISFINITE(target(1)) && PX4_ISFINITE(target(2)) &&
+	    PX4_ISFINITE(origin(0)) && PX4_ISFINITE(origin(1)) && PX4_ISFINITE(origin(2))) {
 		_target = target;
+		_origin = origin;
 
 		// set all parameters to their default value (depends on the direction)
 		setAllDefaults();
-	}
-}
-
-void StraightLine::setOrigin(const matrix::Vector3f &origin)
-{
-	if (PX4_ISFINITE(origin(0)) && PX4_ISFINITE(origin(1)) && PX4_ISFINITE(origin(2))) {
-		_origin = origin;
 	}
 }
 
