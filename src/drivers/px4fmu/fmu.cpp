@@ -48,6 +48,7 @@
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_rc_input.h>
+#include <lib/rc/crsf.h>
 #include <lib/rc/dsm.h>
 #include <lib/rc/sbus.h>
 #include <lib/rc/st24.h>
@@ -70,6 +71,8 @@
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
+
+#include "crsf_telemetry.h"
 
 #ifdef HRT_PPM_CHANNEL
 # include <systemlib/ppm_decode.h>
@@ -197,16 +200,18 @@ private:
 		RC_SCAN_SBUS,
 		RC_SCAN_DSM,
 		RC_SCAN_SUMD,
-		RC_SCAN_ST24
+		RC_SCAN_ST24,
+		RC_SCAN_CRSF
 	};
 	enum RC_SCAN _rc_scan_state = RC_SCAN_SBUS;
 
-	char const *RC_SCAN_STRING[5] = {
+	char const *RC_SCAN_STRING[6] = {
 		"PPM",
 		"SBUS",
 		"DSM",
 		"SUMD",
-		"ST24"
+		"ST24",
+		"CRSF"
 	};
 
 	enum class MotorOrdering : int32_t {
@@ -281,6 +286,8 @@ private:
 	float _thr_mdl_fac;	///< thrust to pwm modelling factor
 	bool _airmode; 		///< multicopter air-mode
 	MotorOrdering _motor_ordering;
+
+	CRSFTelemetry *_crsf_telemetry;
 
 	perf_counter_t	_perf_control_latency;
 
@@ -397,6 +404,7 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_thr_mdl_fac(0.0f),
 	_airmode(false),
 	_motor_ordering(MotorOrdering::PX4),
+	_crsf_telemetry(nullptr),
 	_perf_control_latency(perf_alloc(PC_ELAPSED, "fmu control latency"))
 {
 	for (unsigned i = 0; i < _max_actuators; i++) {
@@ -472,6 +480,10 @@ PX4FMU::~PX4FMU()
 	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
 
 	perf_free(_perf_control_latency);
+
+	if (_crsf_telemetry) {
+		delete (_crsf_telemetry);
+	}
 }
 
 int
@@ -1751,13 +1763,59 @@ PX4FMU::cycle()
 				// disable CPPM input by mapping it away from the timer capture input
 				px4_arch_unconfiggpio(GPIO_PPM_IN);
 				// Scan the next protocol
-				set_rc_scan_state(RC_SCAN_SBUS);
+				set_rc_scan_state(RC_SCAN_CRSF);
 			}
 
 #else   // skip PPM if it's not supported
-			set_rc_scan_state(RC_SCAN_SBUS);
+			set_rc_scan_state(RC_SCAN_CRSF);
 
 #endif  // HRT_PPM_CHANNEL
+
+			break;
+
+		case RC_SCAN_CRSF:
+			if (_rc_scan_begin == 0) {
+				_rc_scan_begin = _cycle_timestamp;
+				// Configure serial port for CRSF
+				crsf_config(_rcs_fd);
+				rc_io_invert(false, RC_UXART_BASE);
+
+			} else if (_rc_scan_locked
+				   || _cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+
+				// parse new data
+				if (newBytes > 0) {
+					rc_updated = crsf_parse(_cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &_raw_rc_count,
+								input_rc_s::RC_INPUT_MAX_CHANNELS);
+
+					if (rc_updated) {
+						// we have a new CRSF frame. Publish it.
+						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_CRSF;
+						fill_rc_in(_raw_rc_count, _raw_rc_values, _cycle_timestamp, false, false, 0);
+
+						// Enable CRSF Telemetry only on the Omnibus, because on Pixhawk (-related) boards
+						// we cannot write to the RC UART
+						// It might work on FMU-v5. Or another option is to use a different UART port
+#ifdef CONFIG_ARCH_BOARD_OMNIBUS_F4SD
+
+						if (!_rc_scan_locked && !_crsf_telemetry) {
+							_crsf_telemetry = new CRSFTelemetry(_rcs_fd);
+						}
+
+#endif
+
+						_rc_scan_locked = true;
+
+						if (_crsf_telemetry) {
+							_crsf_telemetry->update(_cycle_timestamp);
+						}
+					}
+				}
+
+			} else {
+				// Scan the next protocol
+				set_rc_scan_state(RC_SCAN_SBUS);
+			}
 
 			break;
 		}
@@ -3496,6 +3554,7 @@ In addition it does the RC input parsing and auto-selecting the method. Supporte
 - DSM
 - SUMD
 - ST24
+- TBS Crossfire (CRSF)
 
 The module is configured via mode_* commands. This defines which of the first N pins the driver should occupy.
 By using mode_pwm4 for example, pins 5 and 6 can be used by the camera trigger driver or by a PWM rangefinder
@@ -3571,7 +3630,8 @@ int PX4FMU::print_status()
 		PX4_INFO("Max update rate: %i Hz", _current_update_rate);
 	}
 
-	PX4_INFO("RC scan state: %s", RC_SCAN_STRING[_rc_scan_state]);
+	PX4_INFO("RC scan state: %s, locked: %s", RC_SCAN_STRING[_rc_scan_state], _rc_scan_locked ? "yes" : "no");
+	PX4_INFO("CRSF Telemetry: %s", _crsf_telemetry ? "yes" : "no");
 #ifdef RC_SERIAL_PORT
 	PX4_INFO("SBUS frame drops: %u", sbus_dropped_frames());
 #endif

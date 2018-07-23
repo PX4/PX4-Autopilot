@@ -37,6 +37,7 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		fmu.cpp
+		crsf_telemetry.cpp
 	DEPENDS
 		circuit_breaker
 		mixer
