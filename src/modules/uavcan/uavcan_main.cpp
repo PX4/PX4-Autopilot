@@ -97,6 +97,10 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_control_topics[2] = ORB_ID(actuator_controls_2);
 	_control_topics[3] = ORB_ID(actuator_controls_3);
 
+	for (int i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN; ++i) {
+		_control_subs[i] = -1;
+	}
+
 	int res = pthread_mutex_init(&_node_mutex, nullptr);
 
 	if (res < 0) {
@@ -888,7 +892,7 @@ int UavcanNode::run()
 			bool controls_updated = false;
 
 			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-				if (_control_subs[i] > 0) {
+				if (_control_subs[i] >= 0) {
 					if (_poll_fds[_poll_ids[i]].revents & POLLIN) {
 						controls_updated = true;
 						orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
@@ -1037,7 +1041,7 @@ UavcanNode::teardown()
 	px4_sem_post(&_server_command_sem);
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (_control_subs[i] > 0) {
+		if (_control_subs[i] >= 0) {
 			orb_unsubscribe(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
@@ -1074,7 +1078,7 @@ UavcanNode::subscribe()
 			_control_subs[i] = -1;
 		}
 
-		if (_control_subs[i] > 0) {
+		if (_control_subs[i] >= 0) {
 			_poll_ids[i] = add_poll_fd(_control_subs[i]);
 		}
 	}
