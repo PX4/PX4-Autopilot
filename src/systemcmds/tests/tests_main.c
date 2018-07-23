@@ -102,6 +102,7 @@ const struct {
 
 	{"mixer",		test_mixer,	OPT_NOJIGTEST},
 	{"autodeclination",	test_autodeclination,	0},
+	{"bezier",		test_bezierQuad, 0},
 	{"bson",		test_bson,	0},
 	{"conv",		test_conv, 0},
 	{"dataman",		test_dataman, OPT_NOJIGTEST | OPT_NOALLTEST},
@@ -125,6 +126,7 @@ const struct {
 	{"ppm",			test_ppm,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"ppm_loopback",	test_ppm_loopback,	OPT_NOALLTEST},
 	{"rc",			test_rc,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"search_min",	test_search_min, 0},
 	{"servo",		test_servo,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"sleep",		test_sleep,	OPT_NOJIGTEST},
 	{"tone",		test_tone,	0},
