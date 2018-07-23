@@ -52,11 +52,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
-#include <sys/ioctl.h>
+//#include <sys/ioctl.h>
 #include <sys/stat.h>
 
 #ifdef __PX4_NUTTX
-#include <nuttx/fs/ioctl.h>
+//#include <nuttx/fs/ioctl.h>
 #endif
 
 #include <arch/board/board.h>
@@ -332,9 +332,9 @@ pwm_main(int argc, char *argv[])
 	/* get the number of servo channels */
 	unsigned servo_count;
 	ret = px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count);
-
 	if (ret != OK) {
-		PX4_ERR("PWM_SERVO_GET_COUNT");
+        int err = get_errno();
+		PX4_ERR("PWM_SERVO_GET_COUNT %d", err);
 		return error_on_warn;
 	}
 
@@ -433,7 +433,6 @@ pwm_main(int argc, char *argv[])
 		return 0;
 
 	} else if (!strcmp(command, "min")) {
-
 		if (set_mask == 0) {
 			usage("min: no channels set");
 			return 1;

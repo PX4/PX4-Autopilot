@@ -126,7 +126,7 @@
 #define CCER_C1_INIT  GTIM_CCER_CC1E
 #endif
 //												 				  NotUsed   PWMOut  PWMIn Capture OneShot Trigger
-io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT8_MAX,   0,  0,  0, 0, 0 };
+io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT16_MAX,   0,  0,  0, 0, 0 };
 
 typedef uint8_t io_timer_allocation_t; /* big enough to hold MAX_IO_TIMERS */
 
@@ -286,6 +286,7 @@ static uint32_t get_timer_channels(unsigned timer)
 	static uint32_t channels_cache[MAX_IO_TIMERS] = {0};
 
 	if (validate_timer_index(timer) < 0) {
+        //printf("invalid group/timer %d\n", timer);
 		return channels;
 
 	} else {
@@ -293,10 +294,10 @@ static uint32_t get_timer_channels(unsigned timer)
 			const io_timers_t *tmr = &io_timers[timer];
 
 			/* Gather the channel bits that belong to the timer */
-
-			for (unsigned chan_index = tmr->first_channel_index; chan_index <= tmr->last_channel_index; chan_index++) {
+ 			for (unsigned chan_index = tmr->first_channel_index; chan_index <= tmr->last_channel_index; chan_index++) {
 				channels |= 1 << chan_index;
 			}
+            //printf("gather channel bits for timer %d 0x%04X\n", timer, channels);
 
 			/* cache them */
 
@@ -304,6 +305,7 @@ static uint32_t get_timer_channels(unsigned timer)
 		}
 	}
 
+    //printf("channel mask for timer %d 0x%04X\n", timer, channels_cache[timer]);
 	return channels_cache[timer];
 }
 
@@ -318,6 +320,7 @@ int io_timer_is_channel_free(unsigned channel)
 
 	if (rv == 0) {
 		if (0 == (channel_allocations[IOTimerChanMode_NotUsed] & (1 << channel))) {
+            printf("channel #%d busy, %d\n", channel, rv);
 			rv = -EBUSY;
 		}
 	}
@@ -444,7 +447,7 @@ static int allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 
 	if (mode != IOTimerChanMode_NotUsed) {
 		rv = io_timer_validate_channel_index(channel);
-
+ 
 		if (rv == 0) {
 			rv = allocate_channel_resource(channel, mode);
 		}
@@ -456,6 +459,7 @@ static int allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 static int timer_set_rate(unsigned timer, unsigned rate)
 {
 
+    printf("set timer #%d to rate %d\n", timer, rate);
 	/* configure the timer to update at the desired rate */
 	rARR(timer) = (BOARD_PWM_FREQ / rate) - 1;
 
@@ -682,7 +686,6 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 	int rv = allocate_channel(channel, mode);
 
 	/* Valid channel should now be reserved in new mode */
-
 	if (rv >= 0) {
 
 		/* Blindly try to initialize the timer - it will only do it once */
@@ -799,6 +802,8 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 
 	}
 
+    //printf("pwm servo arm: enabling timer mask 0x%04X\n", masks);
+    
 	/* Pre calculate all the changes */
 
 	for (int chan_index = 0; masks != 0 && chan_index < MAX_TIMER_IO_CHANNELS; chan_index++) {
@@ -806,6 +811,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 			masks &= ~(1 << chan_index);
 			uint32_t shifts = timer_io_channels[chan_index].timer_channel - 1;
 			uint32_t timer = channels_timer(chan_index);
+
 			action_cache[timer].base  = io_timers[timer].base;
 			action_cache[timer].ccer_clearbits |= CCER_C1_INIT << (shifts * CCER_C1_NUM_BITS);
 			action_cache[timer].ccer_setbits   |= ccer_bit  << (shifts * CCER_C1_NUM_BITS);
@@ -855,7 +861,6 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 				rCR1(actions) |= GTIM_CR1_CEN | GTIM_CR1_ARPE;
 
 			} else 	{
-
 				rCR1(actions) = 0;
 			}
 		}

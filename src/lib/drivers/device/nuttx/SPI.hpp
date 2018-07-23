@@ -85,7 +85,7 @@ protected:
 	/**
 	 * Check for the presence of the device on the bus.
 	 */
-	virtual int	probe() { return PX4_OK; }
+    virtual int	probe() { return PX4_OK; }
 
 	/**
 	 * Perform a SPI transfer.

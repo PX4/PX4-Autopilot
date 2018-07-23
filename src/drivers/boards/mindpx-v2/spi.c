@@ -103,6 +103,7 @@ __EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, uint32_t devid, bool s
 
 	switch (devid) {
 	case PX4_SPIDEV_GYRO:
+    case PX4_SPIDEV_BMI:
 		/* Making sure the other peripherals are not selected */
 		stm32_gpiowrite(GPIO_SPI_CS_GYRO, !selected);
 		stm32_gpiowrite(GPIO_SPI_CS_ACCEL_MAG, 1);

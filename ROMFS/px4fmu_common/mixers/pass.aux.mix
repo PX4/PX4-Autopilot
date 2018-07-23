@@ -15,3 +15,4 @@ S: 3 7  10000  10000      0 -10000  10000
 # FLAPS channel (select RC channel with RC_MAP_FLAPS param)
 M: 1
 S: 3 4  10000  10000      0 -10000  10000
+

@@ -69,6 +69,8 @@ set FEXTRAS /fs/microsd/etc/extras.txt
 set FRC /fs/microsd/etc/rc.txt
 set FMU_ARGS ""
 set FMU_MODE pwm
+set ECU_MODE pwm
+set ECU_ARGS ""
 set IOFW "/etc/extras/px4io-v2.bin"
 set IO_PRESENT no
 set LOG_FILE /fs/microsd/bootlog.txt
@@ -94,6 +96,7 @@ set PWM_OUT none
 set PWM_RATE p:PWM_RATE
 set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
 set USE_IO no
+set USE_ECU no
 set VEHICLE_TYPE none
 
 #
@@ -315,6 +318,11 @@ else
 		set FMU_ARGS "-t"
 	fi
 
+    if param compare SYS_ECU_TASK 1
+    then
+        set ECU_ARGS "task"
+    fi
+
 	#
 	# Set parameters and env variables for selected AUTOSTART.
 	#
@@ -338,13 +346,13 @@ else
 	if [ $AUTOCNF == yes ]
 	then
 		# Run FMU as task on Pixracer and on boards with enough RAM.
-		if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO PX4FMU_V5
+		if ver hwcmp MINDPX_V2 PX4FMU_V4 PX4FMU_V4PRO PX4FMU_V5
 		then
 			param set SYS_FMU_TASK 1
 		fi
 
 		# Disable safety switch by default on Pixracer and OmnibusF4SD.
-		if ver hwcmp PX4FMU_V4 OMNIBUS_F4SD
+		if ver hwcmp MINDPX_V2 PX4FMU_V4 OMNIBUS_F4SD
 		then
 			param set CBRK_IO_SAFETY 22027
 		fi
@@ -417,10 +425,21 @@ else
 	#
 	# Set USE_IO flag.
 	#
+
 	if param compare SYS_USE_IO 1
 	then
 		set USE_IO yes
 	fi
+
+    #
+    # Check ECU to see if override USE_IO
+    #
+    if param compare SYS_USE_ECU 1
+    then
+        echo "USE_ECU = yes"
+        set USE_IO no
+        set USE_ECU yes
+    fi
 
 	if [ $USE_IO == yes -a $IO_PRESENT == no ]
 	then
@@ -459,6 +478,7 @@ else
 	then
 		# Clear pins 5 and 6.
 		set FMU_MODE pwm4
+        set ECU_MODE pwm4
 		set AUX_MODE pwm4
 	fi
 
@@ -469,6 +489,7 @@ else
 		then
 			# clear pins 5 and 6
 			set FMU_MODE pwm4
+            set ECU_MODE pwm4
 			set AUX_MODE pwm4
 		else
 			set FMU_MODE none
@@ -581,6 +602,9 @@ unset FRC
 unset FMU_ARGS
 unset FMU_MODE
 unset IOFW
+unset ECU_ARGS
+unset ECU_MODE
+unset IO_FILE
 unset IO_PRESENT
 unset LOG_FILE
 unset MAVLINK_F
@@ -606,6 +630,7 @@ unset PWM_MAX
 unset PWM_MIN
 unset SDCARD_MIXERS_PATH
 unset USE_IO
+unset USE_ECU
 unset VEHICLE_TYPE
 
 #

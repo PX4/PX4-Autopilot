@@ -24,7 +24,7 @@ then
         fi
 fi
 
-if ver hwcmp AEROFC_V1 AV_X_V1 CRAZYFLIE MINDPX_V2 NXPHLITE_V3 PX4FMU_V4 OMNIBUS_F4SD SITL
+if ver hwcmp AEROFC_V1 AV_X_V1 CRAZYFLIE NXPHLITE_V3 PX4FMU_V4 OMNIBUS_F4SD SITL
 then
 	set MIXER_AUX none
 fi
@@ -125,7 +125,10 @@ then
 	#
 	if [ $MIXER_AUX == none -a $USE_IO == yes ]
 	then
-		set MIXER_AUX ${MIXER}
+        if [ $USE_IO == yes -o $USE_ECU == yes ]
+        then
+		    set MIXER_AUX ${MIXER}
+        fi
 	fi
 
 	if [ "$MIXER_FILE" == none ]
@@ -162,8 +165,8 @@ then
 		set OUTPUT_DEV /dev/tap_esc
 	fi
 
-	if mixer load ${OUTPUT_DEV} ${MIXER_FILE}
-	then
+    if mixer load ${OUTPUT_DEV} ${MIXER_FILE}
+    then
 		echo "INFO  [init] Mixer: ${MIXER_FILE} on ${OUTPUT_DEV}"
 	else
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}"
@@ -237,7 +240,7 @@ then
 			# Set PWM_AUX output frequency.
 			if [ $PWM_AUX_RATE != none ]
 			then
-				pwm rate -c ${PWM_AUX_OUT} -r ${PWM_AUX_RATE} -d ${OUTPUT_AUX_DEV}
+                pwm rate -c ${PWM_AUX_OUT} -r ${PWM_AUX_RATE} -d ${OUTPUT_AUX_DEV}
 			fi
 
 			if [ $PWM_AUX_MIN != none ]
@@ -250,10 +253,26 @@ then
 			fi
 		fi
 
+		# Set disarmed values for aux out
+
+		# Transitional support until all configs
+		# are updated
+		if [ $PWM_ACHDIS == none ]
+		then
+			set PWM_ACHDIS ${PWM_AUX_OUT}
+		fi
+		#
+		# Set disarmed, min and max PWM_AUX values
+		#
+		if [ $PWM_AUX_DISARMED != none -a $PWM_ACHDIS != none ]
+		then
+			pwm disarmed -c ${PWM_ACHDIS} -p ${PWM_AUX_DISARMED} -d ${OUTPUT_AUX_DEV}
+		fi
+
 		#
 		# Per channel disarmed settings.
 		#
-		pwm disarmed -c 1 -p p:PWM_AUX_DIS1 -d ${OUTPUT_AUX_DEV}
+        pwm disarmed -c 1 -p p:PWM_AUX_DIS1 -d ${OUTPUT_AUX_DEV}
 		pwm disarmed -c 2 -p p:PWM_AUX_DIS2 -d ${OUTPUT_AUX_DEV}
 		pwm disarmed -c 3 -p p:PWM_AUX_DIS3 -d ${OUTPUT_AUX_DEV}
 		pwm disarmed -c 4 -p p:PWM_AUX_DIS4 -d ${OUTPUT_AUX_DEV}
