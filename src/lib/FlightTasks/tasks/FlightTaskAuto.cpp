@@ -101,6 +101,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 	// takeoff/land was initiated. Until then we do this kind of logic here.
 
 	// Check if triplet is valid. There must be at least a valid altitude.
+
 	if (!_sub_triplet_setpoint->get().current.valid || !PX4_ISFINITE(_sub_triplet_setpoint->get().current.alt)) {
 		// Best we can do is to just set all waypoints to current state and return false.
 		_prev_prev_wp = _triplet_prev_wp = _triplet_target = _triplet_next_wp = _position;
@@ -191,12 +192,14 @@ bool FlightTaskAuto::_evaluateTriplets()
 		}
 	}
 
-	// Check if yaw target is valid.
-	_yaw_setpoint = _sub_triplet_setpoint->get().current.yaw;
-
+	// set heading
 	if (_type == WaypointType::follow_target && _sub_triplet_setpoint->get().current.yawspeed_valid) {
 		_yawspeed_setpoint = _sub_triplet_setpoint->get().current.yawspeed;
 		_yaw_setpoint = NAN;
+
+	} else {
+		_set_heading_from_mode();
+		_yawspeed_setpoint = NAN;
 	}
 
 	// Calculate the current vehicle state and check if it has updated.
@@ -208,6 +211,52 @@ bool FlightTaskAuto::_evaluateTriplets()
 	}
 
 	return true;
+}
+
+void FlightTaskAuto::_set_heading_from_mode()
+{
+
+	matrix::Vector2f v; // Vector that points towards desired location
+
+	switch (MPC_YAW_MODE.get()) {
+
+	case 0: { // Heading is set by waypoint.
+			_yaw_setpoint = _sub_triplet_setpoint->get().current.yaw;
+			break;
+		}
+
+	case 1: { // Heading points towards the current waypoint.
+			v = Vector2f(&_target(0)) - Vector2f(&_position(0));
+			break;
+		}
+
+	case 2: { // Heading points towards home.
+			if (_sub_home_position->get().valid_hpos) {
+				v = Vector2f(_sub_home_position->get().x, _sub_home_position->get().y) - Vector2f(&_position(0));
+			}
+
+			break;
+		}
+
+	case 3: { // Heading point away from home.
+			if (_sub_home_position->get().valid_hpos) {
+				v = Vector2f(&_position(0)) - Vector2f(_sub_home_position->get().x, _sub_home_position->get().y);
+			}
+
+			break;
+		}
+	}
+
+	// We only adjust yaw if vehicle is outside of acceptance radius.
+	// This prevents excessive yawing.
+	if (PX4_ISFINITE(v.length()) && v.length() > NAV_ACC_RAD.get()) {
+		v.normalize();
+		// To find yaw: take dot product of x = (1,0) and v
+		// and multiply by the sign given of cross product of x and v.
+		// Dot product: (x(0)*v(0)+(x(1)*v(1)) = v(0)
+		// Cross product: x(0)*v(1) - v(0)*x(1) = v(1)
+		_yaw_setpoint = math::sign(v(1)) * wrap_pi(acosf(v(0)));
+	}
 }
 
 bool FlightTaskAuto::_isFinite(const position_setpoint_s sp)
