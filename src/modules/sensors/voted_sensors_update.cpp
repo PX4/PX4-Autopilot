@@ -148,7 +148,7 @@ void VotedSensorsUpdate::parameters_update()
 	 */
 
 	/* temperature compensation */
-	_temperature_compensation.parameters_update();
+	_temperature_compensation.parameters_update(_hil_enabled);
 
 	/* gyro */
 	for (int topic_instance = 0; topic_instance < GYRO_COUNT_MAX; ++topic_instance) {
@@ -602,11 +602,9 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 			}
 
 			// handle temperature compensation
-			if (!_hil_enabled) {
-				if (_temperature_compensation.apply_corrections_accel(uorb_index, accel_data, accel_report.temperature,
-						offsets[uorb_index], scales[uorb_index]) == 2) {
-					_corrections_changed = true;
-				}
+			if (_temperature_compensation.apply_corrections_accel(uorb_index, accel_data, accel_report.temperature,
+					offsets[uorb_index], scales[uorb_index]) == 2) {
+				_corrections_changed = true;
 			}
 
 			// rotate corrected measurements from sensor to body frame
@@ -711,11 +709,9 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 			}
 
 			// handle temperature compensation
-			if (!_hil_enabled) {
-				if (_temperature_compensation.apply_corrections_gyro(uorb_index, gyro_rate, gyro_report.temperature,
-						offsets[uorb_index], scales[uorb_index]) == 2) {
-					_corrections_changed = true;
-				}
+			if (_temperature_compensation.apply_corrections_gyro(uorb_index, gyro_rate, gyro_report.temperature,
+					offsets[uorb_index], scales[uorb_index]) == 2) {
+				_corrections_changed = true;
 			}
 
 			// rotate corrected measurements from sensor to body frame
@@ -829,11 +825,9 @@ void VotedSensorsUpdate::baro_poll(vehicle_air_data_s &airdata)
 			float corrected_pressure = 100.0f * baro_report.pressure;
 
 			// handle temperature compensation
-			if (!_hil_enabled) {
-				if (_temperature_compensation.apply_corrections_baro(uorb_index, corrected_pressure, baro_report.temperature,
-						offsets[uorb_index], scales[uorb_index]) == 2) {
-					_corrections_changed = true;
-				}
+			if (_temperature_compensation.apply_corrections_baro(uorb_index, corrected_pressure, baro_report.temperature,
+					offsets[uorb_index], scales[uorb_index]) == 2) {
+				_corrections_changed = true;
 			}
 
 			// First publication with data
@@ -1080,7 +1074,7 @@ void VotedSensorsUpdate::sensors_poll(sensor_combined_s &raw, vehicle_air_data_s
 	baro_poll(airdata);
 
 	// publish sensor corrections if necessary
-	if (!_hil_enabled && _corrections_changed) {
+	if (_corrections_changed) {
 		_corrections.timestamp = hrt_absolute_time();
 
 		if (_sensor_correction_pub == nullptr) {

@@ -151,7 +151,7 @@ int TemperatureCompensation::initialize_parameter_handles(ParameterHandles &para
 	return PX4_OK;
 }
 
-int TemperatureCompensation::parameters_update()
+int TemperatureCompensation::parameters_update(bool hil_enabled)
 {
 	int ret = 0;
 
@@ -163,7 +163,12 @@ int TemperatureCompensation::parameters_update()
 	}
 
 	/* rate gyro calibration parameters */
-	param_get(parameter_handles.gyro_tc_enable, &(_parameters.gyro_tc_enable));
+	if (!hil_enabled) {
+		param_get(parameter_handles.gyro_tc_enable, &_parameters.gyro_tc_enable);
+
+	} else {
+		_parameters.gyro_tc_enable = 0;
+	}
 
 	if (_parameters.gyro_tc_enable == 1) {
 		for (unsigned j = 0; j < GYRO_COUNT_MAX; j++) {
@@ -196,7 +201,12 @@ int TemperatureCompensation::parameters_update()
 	}
 
 	/* accelerometer calibration parameters */
-	param_get(parameter_handles.accel_tc_enable, &(_parameters.accel_tc_enable));
+	if (!hil_enabled) {
+		param_get(parameter_handles.accel_tc_enable, &_parameters.accel_tc_enable);
+
+	} else {
+		_parameters.accel_tc_enable = 0;
+	}
 
 	if (_parameters.accel_tc_enable == 1) {
 		for (unsigned j = 0; j < ACCEL_COUNT_MAX; j++) {
@@ -229,7 +239,12 @@ int TemperatureCompensation::parameters_update()
 	}
 
 	/* barometer calibration parameters */
-	param_get(parameter_handles.baro_tc_enable, &(_parameters.baro_tc_enable));
+	if (!hil_enabled) {
+		param_get(parameter_handles.baro_tc_enable, &_parameters.baro_tc_enable);
+
+	} else {
+		_parameters.baro_tc_enable = 0;
+	}
 
 	if (_parameters.baro_tc_enable == 1) {
 		for (unsigned j = 0; j < BARO_COUNT_MAX; j++) {
