@@ -244,28 +244,7 @@ kinetis_boardinitialize(void)
 	/* Power on Spektrum */
 
 	VDD_3V3_SPEKTRUM_POWER_EN(true);
-
 }
-
-//FIXME: Stubs  -----v
-int up_rtc_getdatetime(FAR struct tm *tp);
-int up_rtc_getdatetime(FAR struct tm *tp)
-{
-	tp->tm_sec = 0;
-	tp->tm_min = 0;
-	tp->tm_hour = 0;
-	tp->tm_mday = 30;
-	tp->tm_mon = 10;
-	tp->tm_year = 116;
-	tp->tm_wday = 1;    /* Day of the week (0-6) */
-	tp->tm_yday = 0;    /* Day of the year (0-365) */
-	tp->tm_isdst = 0;   /* Non-0 if daylight savings time is in effect */
-	return 0;
-}
-
-
-//FIXME: Stubs  -----v
-
 
 /****************************************************************************
  * Name: board_app_initialize
