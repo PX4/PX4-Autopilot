@@ -64,7 +64,6 @@
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/ping.h>
-#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
@@ -78,7 +77,6 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -208,6 +206,7 @@ private:
 	struct vehicle_control_mode_s _control_mode;
 	orb_advert_t _global_pos_pub;
 	orb_advert_t _local_pos_pub;
+	orb_advert_t _offboard_pub;
 	orb_advert_t _attitude_pub;
 	orb_advert_t _gps_pub;
 	orb_advert_t _gyro_pub;
@@ -225,7 +224,7 @@ private:
 	orb_advert_t _actuator_controls_pub;
 	orb_advert_t _att_sp_pub;
 	orb_advert_t _rates_sp_pub;
-	orb_advert_t _pos_sp_triplet_pub;
+	orb_advert_t _pos_sp_pub;
 	orb_advert_t _att_pos_mocap_pub;
 	orb_advert_t _vision_position_pub;
 	orb_advert_t _vision_attitude_pub;

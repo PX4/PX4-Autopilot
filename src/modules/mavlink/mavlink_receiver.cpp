@@ -90,6 +90,7 @@
 #include <commander/px4_custom_mode.h>
 
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/offboard_setpoints.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_receiver.h"
@@ -111,6 +112,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_control_mode{},
 	_global_pos_pub(nullptr),
 	_local_pos_pub(nullptr),
+	_offboard_pub(nullptr),
 	_attitude_pub(nullptr),
 	_gps_pub(nullptr),
 	_gyro_pub(nullptr),
@@ -128,7 +130,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_actuator_controls_pub(nullptr),
 	_att_sp_pub(nullptr),
 	_rates_sp_pub(nullptr),
-	_pos_sp_triplet_pub(nullptr),
+	_pos_sp_pub(nullptr),
 	_att_pos_mocap_pub(nullptr),
 	_vision_position_pub(nullptr),
 	_vision_attitude_pub(nullptr),
@@ -867,49 +869,29 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t *msg)
 {
-	mavlink_set_position_target_local_ned_t set_position_target_local_ned;
-	mavlink_msg_set_position_target_local_ned_decode(msg, &set_position_target_local_ned);
+	// decode mavlink message
+	mavlink_set_position_target_local_ned_t mav_setpoint;
+	mavlink_msg_set_position_target_local_ned_decode(msg, &mav_setpoint);
 
-	struct offboard_control_mode_s offboard_control_mode = {};
+	// only accept messages which are intended for this system
+	if ((mavlink_system.sysid == mav_setpoint.target_system ||
+	     mav_setpoint.target_system == 0) &&
+	    (mavlink_system.compid == mav_setpoint.target_component ||
+	     mav_setpoint.target_component == 0)) {
 
-	bool values_finite =
-		PX4_ISFINITE(set_position_target_local_ned.x) &&
-		PX4_ISFINITE(set_position_target_local_ned.y) &&
-		PX4_ISFINITE(set_position_target_local_ned.z) &&
-		PX4_ISFINITE(set_position_target_local_ned.vx) &&
-		PX4_ISFINITE(set_position_target_local_ned.vy) &&
-		PX4_ISFINITE(set_position_target_local_ned.vz) &&
-		PX4_ISFINITE(set_position_target_local_ned.afx) &&
-		PX4_ISFINITE(set_position_target_local_ned.afy) &&
-		PX4_ISFINITE(set_position_target_local_ned.afz) &&
-		PX4_ISFINITE(set_position_target_local_ned.yaw);
+		// convert mavlink type (local, NED) to uORB offboard control struct
+		struct offboard_control_mode_s offboard_control_mode = {};
 
-	/* Only accept messages which are intended for this system */
-	if ((mavlink_system.sysid == set_position_target_local_ned.target_system ||
-	     set_position_target_local_ned.target_system == 0) &&
-	    (mavlink_system.compid == set_position_target_local_ned.target_component ||
-	     set_position_target_local_ned.target_component == 0) &&
-	    values_finite) {
-
-		/* convert mavlink type (local, NED) to uORB offboard control struct */
-		offboard_control_mode.ignore_position = (bool)(set_position_target_local_ned.type_mask & 0x7);
-		offboard_control_mode.ignore_altitude = (bool)(set_position_target_local_ned.type_mask & 0x4);
-		offboard_control_mode.ignore_velocity = (bool)(set_position_target_local_ned.type_mask & 0x38);
-		offboard_control_mode.ignore_acceleration_force = (bool)(set_position_target_local_ned.type_mask & 0x1C0);
-		bool is_force_sp = (bool)(set_position_target_local_ned.type_mask & (1 << 9));
-		/* yaw ignore flag mapps to ignore_attitude */
-		offboard_control_mode.ignore_attitude = (bool)(set_position_target_local_ned.type_mask & 0x400);
-		/* yawrate ignore flag mapps to ignore_bodyrate */
-		offboard_control_mode.ignore_bodyrate = (bool)(set_position_target_local_ned.type_mask & 0x800);
-
-
-		bool is_takeoff_sp = (bool)(set_position_target_local_ned.type_mask & 0x1000);
-		bool is_land_sp = (bool)(set_position_target_local_ned.type_mask & 0x2000);
-		bool is_loiter_sp = (bool)(set_position_target_local_ned.type_mask & 0x3000);
-		bool is_idle_sp = (bool)(set_position_target_local_ned.type_mask & 0x4000);
-
+		offboard_control_mode.ignore_position = (bool)(mav_setpoint.type_mask & 0x3);
+		offboard_control_mode.ignore_altitude = (bool)(mav_setpoint.type_mask & 0x4);
+		offboard_control_mode.ignore_velocity = (bool)(mav_setpoint.type_mask & 0x18);
+		offboard_control_mode.ignore_climbrate = (bool)(mav_setpoint.type_mask & 0x20);
+		offboard_control_mode.ignore_acceleration_force = (bool)(mav_setpoint.type_mask & 0x1C0);
+		offboard_control_mode.ignore_attitude = (bool)(mav_setpoint.type_mask & 0x400);
+		offboard_control_mode.ignore_bodyrate = (bool)(mav_setpoint.type_mask & 0x800);
 		offboard_control_mode.timestamp = hrt_absolute_time();
 
+		// send offboard control mode
 		if (_offboard_control_mode_pub == nullptr) {
 			_offboard_control_mode_pub = orb_advertise(ORB_ID(offboard_control_mode), &offboard_control_mode);
 
@@ -917,9 +899,12 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			orb_publish(ORB_ID(offboard_control_mode), _offboard_control_mode_pub, &offboard_control_mode);
 		}
 
-		/* If we are in offboard control mode and offboard control loop through is enabled
-		 * also publish the setpoint topic which is read by the controller */
+		// If we are in offboard control mode and offboard control loop through is enabled
+		// also publish the setpoint topic which is read by the controller
+		// TODO: this is not clear and requires more explanation
 		if (_mavlink->get_forward_externalsp()) {
+
+			// get control mode
 			bool updated;
 			orb_check(_control_mode_sub, &updated);
 
@@ -927,118 +912,128 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 				orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
 			}
 
+			// only create setpoints if control mode is in Offboard-mode
 			if (_control_mode.flag_control_offboard_enabled) {
+
+				// check for force setpoint
+				bool is_force_sp = (bool)(mav_setpoint.type_mask & (1 << 9));
+
 				if (is_force_sp && offboard_control_mode.ignore_position &&
 				    offboard_control_mode.ignore_velocity) {
 
 					PX4_WARN("force setpoint not supported");
 
 				} else {
-					/* It's not a pure force setpoint: publish to setpoint triplet  topic */
-					struct position_setpoint_triplet_s pos_sp_triplet = {};
-					pos_sp_triplet.timestamp = hrt_absolute_time();
-					pos_sp_triplet.previous.valid = false;
-					pos_sp_triplet.next.valid = false;
-					pos_sp_triplet.current.valid = true;
 
-					/* Order of statements matters. Takeoff can override loiter.
-					 * See https://github.com/mavlink/mavlink/pull/670 for a broader conversation. */
+					// check if setpoint has a specific type
+					bool is_takeoff_sp = (bool)(mav_setpoint.type_mask & 0x1000);
+					bool is_land_sp = (bool)(mav_setpoint.type_mask & 0x2000);
+					bool is_loiter_sp = (bool)(mav_setpoint.type_mask & 0x3000);
+					bool is_idle_sp = (bool)(mav_setpoint.type_mask & 0x4000);
+					// map setpoints to offboard_setpoints
+					offboard_setpoints_s offboard = {};
+
+					// reset all setpoints
+					offboard.setpoint.x = offboard.setpoint.y = offboard.setpoint.z = NAN;
+					offboard.setpoint.yaw = offboard.setpoint.yawspeed = NAN;
+					offboard.setpoint.vx = offboard.setpoint.vy = offboard.setpoint.vz = NAN;
+					offboard.setpoint.acc_x = offboard.setpoint.acc_y = offboard.setpoint.acc_z = NAN;
+					offboard.setpoint.thrust[0] = offboard.setpoint.thrust[1] = offboard.setpoint.thrust[2] = NAN;
+
+					// order of statements matters. Takeoff can override loiter.
 					if (is_loiter_sp) {
-						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+						offboard.type = offboard_setpoints_s::TYPE_LOITER;
+
+						if (!offboard_control_mode.ignore_position && !offboard_control_mode.ignore_altitude) {
+							// vehicle should not hover at current pose, but rather should go to a new loiter position
+							offboard.setpoint.x = mav_setpoint.x;
+							offboard.setpoint.y = mav_setpoint.y;
+							offboard.setpoint.z = mav_setpoint.z;
+						}
 
 					} else if (is_takeoff_sp) {
-						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+						offboard.type = offboard_setpoints_s::TYPE_TAKEOFF;
+
+						if (!offboard_control_mode.ignore_altitude) {
+							// non-default takeoff altitude
+							offboard.setpoint.z = mav_setpoint.z;
+						}
 
 					} else if (is_land_sp) {
-						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
+						offboard.type = offboard_setpoints_s::TYPE_LAND;
+
+						if (!offboard_control_mode.ignore_climbrate) {
+							// non-default landing speed
+							offboard.setpoint.vz = mav_setpoint.vz;
+						}
 
 					} else if (is_idle_sp) {
-						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
+						offboard.type = offboard_setpoints_s::TYPE_IDLE;
 
 					} else {
-						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+						// continuous offboard stream
+						offboard.type = offboard_setpoints_s::TYPE_STREAM;
+
+						// position horizontally
+						if (!offboard_control_mode.ignore_position) {
+							offboard.setpoint.x = mav_setpoint.x;
+							offboard.setpoint.y = mav_setpoint.y;
+						}
+
+						//  altitude
+						if (!offboard_control_mode.ignore_altitude) {
+							offboard.setpoint.z = mav_setpoint.z;
+						}
+
+						// velocity horizontally
+						if (!offboard_control_mode.ignore_velocity) {
+							offboard.setpoint.vx = mav_setpoint.vx;
+							offboard.setpoint.vy = mav_setpoint.vy;
+							offboard.velocity_frame = mav_setpoint.coordinate_frame;
+						}
+
+						// climb-rate
+						if (!offboard_control_mode.ignore_climbrate) {
+							offboard.setpoint.vz = mav_setpoint.vz;
+						}
+
+						// acceleration
+						if (!offboard_control_mode.ignore_acceleration_force && !is_force_sp) {
+							offboard.setpoint.acc_x = mav_setpoint.afx;
+							offboard.setpoint.acc_y = mav_setpoint.afy;
+							offboard.setpoint.acc_z = mav_setpoint.afz;
+						}
+
+						// thrust
+						if (!offboard_control_mode.ignore_acceleration_force && is_force_sp) {
+							offboard.setpoint.thrust[0] = mav_setpoint.afx;
+							offboard.setpoint.thrust[1] = mav_setpoint.afy;
+							offboard.setpoint.thrust[2] = mav_setpoint.afz;
+						}
+
+						// yaw
+						if (!offboard_control_mode.ignore_attitude) {
+							offboard.setpoint.yaw = mav_setpoint.yaw;
+						}
+
+						// yawspeed
+						if (!offboard_control_mode.ignore_bodyrate) {
+							offboard.setpoint.yawspeed = mav_setpoint.yaw_rate;
+						}
+
 					}
 
-					/* set the local pos values */
-					if (!offboard_control_mode.ignore_position) {
-						pos_sp_triplet.current.position_valid = true;
-						pos_sp_triplet.current.x = set_position_target_local_ned.x;
-						pos_sp_triplet.current.y = set_position_target_local_ned.y;
-						pos_sp_triplet.current.z = set_position_target_local_ned.z;
+					// publish offboard
+					offboard.timestamp = hrt_absolute_time();
+
+					if (_offboard_pub == nullptr) {
+						_offboard_pub = orb_advertise(ORB_ID(offboard_setpoints),  &offboard);
 
 					} else {
-						pos_sp_triplet.current.position_valid = false;
+						orb_publish(ORB_ID(offboard_setpoints), _offboard_pub, &offboard);
 					}
-
-					/* set the local vel values */
-					if (!offboard_control_mode.ignore_velocity) {
-						pos_sp_triplet.current.velocity_valid = true;
-						pos_sp_triplet.current.vx = set_position_target_local_ned.vx;
-						pos_sp_triplet.current.vy = set_position_target_local_ned.vy;
-						pos_sp_triplet.current.vz = set_position_target_local_ned.vz;
-
-						pos_sp_triplet.current.velocity_frame =
-							set_position_target_local_ned.coordinate_frame;
-
-					} else {
-						pos_sp_triplet.current.velocity_valid = false;
-					}
-
-					if (!offboard_control_mode.ignore_altitude) {
-						pos_sp_triplet.current.alt_valid = true;
-						pos_sp_triplet.current.z = set_position_target_local_ned.z;
-
-					} else {
-						pos_sp_triplet.current.alt_valid = false;
-					}
-
-					/* set the local acceleration values if the setpoint type is 'local pos' and none
-					 * of the accelerations fields is set to 'ignore' */
-					if (!offboard_control_mode.ignore_acceleration_force) {
-						pos_sp_triplet.current.acceleration_valid = true;
-						pos_sp_triplet.current.a_x = set_position_target_local_ned.afx;
-						pos_sp_triplet.current.a_y = set_position_target_local_ned.afy;
-						pos_sp_triplet.current.a_z = set_position_target_local_ned.afz;
-						pos_sp_triplet.current.acceleration_is_force =
-							is_force_sp;
-
-					} else {
-						pos_sp_triplet.current.acceleration_valid = false;
-					}
-
-					/* set the yaw sp value */
-					if (!offboard_control_mode.ignore_attitude) {
-						pos_sp_triplet.current.yaw_valid = true;
-						pos_sp_triplet.current.yaw = set_position_target_local_ned.yaw;
-
-					} else {
-						pos_sp_triplet.current.yaw_valid = false;
-					}
-
-					/* set the yawrate sp value */
-					if (!offboard_control_mode.ignore_bodyrate) {
-						pos_sp_triplet.current.yawspeed_valid = true;
-						pos_sp_triplet.current.yawspeed = set_position_target_local_ned.yaw_rate;
-
-					} else {
-						pos_sp_triplet.current.yawspeed_valid = false;
-					}
-
-					//XXX handle global pos setpoints (different MAV frames)
-
-					if (_pos_sp_triplet_pub == nullptr) {
-						_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet),
-										    &pos_sp_triplet);
-
-					} else {
-						orb_publish(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_pub,
-							    &pos_sp_triplet);
-					}
-
 				}
-
 			}
-
 		}
 	}
 }
