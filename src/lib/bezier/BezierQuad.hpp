@@ -61,7 +61,7 @@ public:
 	/**
 	 * Empty constructor
 	 */
-	BezierQuad(void) :
+	BezierQuad() :
 		_pt0(Vector3_t()), _ctrl(Vector3_t()), _pt1(Vector3_t()), _duration(1.0f) {}
 
 	/**
