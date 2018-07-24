@@ -161,7 +161,7 @@ int DfBmp280Wrapper::_publish(struct baro_sensor_data &data)
 
 	baro_report.pressure    = data.pressure_pa / 100.0f; // to mbar
 	baro_report.temperature = data.temperature_c;
-    
+
 	// TODO: when is this ever blocked?
 	if (!(m_pub_blocked)) {
 

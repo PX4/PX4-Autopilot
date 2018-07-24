@@ -132,7 +132,7 @@ int BBBlueADC::init()
 	}
 
 	_measure(); // start the initial conversion so that the test command right
-	            // after the start command can return values
+	// after the start command can return values
 	return PX4_OK;
 }
 
@@ -232,7 +232,7 @@ int bbblue_adc_main(int argc, char *argv[])
 
 		for (int i = BBBLUE_MAX_ADC_USER_CHANNELS; i < BBBLUE_MAX_ADC_CHANNELS; ++i) {
 			PX4_INFO("ADC channel: %d; value: %d, voltage: %6.2f V", (int)adc_msgs[i].am_channel,
-					adc_msgs[i].am_data, adc_msgs[i].am_data* 1.8/4095.0 * 11.0);
+				 adc_msgs[i].am_data, adc_msgs[i].am_data * 1.8 / 4095.0 * 11.0);
 
 		}
 

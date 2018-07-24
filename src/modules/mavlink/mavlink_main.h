@@ -609,7 +609,7 @@ private:
 #endif
 
 #ifdef __PX4_POSIX_BBBLUE
-	const char * _mavlink_wifi_name;
+	const char *_mavlink_wifi_name;
 #endif
 
 	int _socket_fd;

@@ -73,7 +73,7 @@ int BBBlueRcPWMOut::send_output_pwm(const uint16_t *pwm, int num_outputs)
 
 	// pwm[ch] is duty_cycle in us
 	for (int ch = 0; ch < num_outputs; ++ch) {
-		ret += rc_servo_send_pulse_us(ch+1, pwm[ch]);  // converts to 1-based channel #
+		ret += rc_servo_send_pulse_us(ch + 1, pwm[ch]); // converts to 1-based channel #
 	}
 
 	return ret;
