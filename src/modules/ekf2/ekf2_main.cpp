@@ -119,7 +119,8 @@ private:
 
 	template<typename Param>
 	void update_mag_bias(Param &mag_bias_param, int axis_index);
-
+	template<typename Param>
+	bool update_mag_decl(Param &mag_decl_param);
 	bool publish_attitude(const sensor_combined_s &sensors);
 	bool publish_wind_estimate(const hrt_abstime &timestamp);
 
@@ -190,6 +191,9 @@ private:
 	float _last_valid_mag_cal[3] = {};	///< last valid XYZ magnetometer bias estimates (mGauss)
 	bool _valid_cal_available[3] = {};	///< true when an unsaved valid calibration for the XYZ magnetometer bias is available
 	float _last_valid_variance[3] = {};	///< variances for the last valid magnetometer XYZ bias estimates (mGauss**2)
+
+	// Used to control saving of mag declination to be used on next startup
+	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
 
 	// Used to filter velocity innovations during pre-flight checks
 	bool _preflt_horiz_fail = false;	///< true if preflight horizontal innovation checks are failed
@@ -646,6 +650,21 @@ void Ekf2::update_mag_bias(Param &mag_bias_param, int axis_index)
 
 		_valid_cal_available[axis_index] = false;
 	}
+}
+
+template<typename Param>
+bool Ekf2::update_mag_decl(Param &mag_decl_param)
+{
+	// update stored declination value
+	float declination_deg;
+
+	if (_ekf.get_mag_decl_deg(&declination_deg)) {
+		mag_decl_param.set(declination_deg);
+		mag_decl_param.commit_no_notification();
+		return true;
+	}
+
+	return false;
 }
 
 void Ekf2::run()
@@ -1488,7 +1507,12 @@ void Ekf2::run()
 					_total_cal_time_us = 0;
 				}
 
-				publish_wind_estimate(now);
+			}
+
+			publish_wind_estimate(now);
+
+			if (!_mag_decl_saved && (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)) {
+				_mag_decl_saved = update_mag_decl(_mag_declination_deg);
 			}
 
 			{
