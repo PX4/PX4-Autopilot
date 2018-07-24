@@ -64,11 +64,19 @@
 #include <replay/definitions.hpp>
 #include <version/version.h>
 
-#ifdef __PX4_DARWIN
+#if defined(__PX4_DARWIN)
 #include <sys/param.h>
 #include <sys/mount.h>
 #else
 #include <sys/statfs.h>
+#endif
+
+#if defined(__PX4_NUTTX)
+#define px4_statfs_buf_f_bavail_t int
+#elif defined(__PX4_DARWIN) || defined(__PX4_QURT)
+#define px4_statfs_buf_f_bavail_t unsigned long
+#else
+typedef decltype(statfs::f_bavail) px4_statfs_buf_f_bavail_t;
 #endif
 
 #define GPS_EPOCH_SECS ((time_t)1234567890ULL)
