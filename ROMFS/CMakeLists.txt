@@ -69,40 +69,25 @@ endfunction()
 # get list of all ROMFS files
 add_subdirectory(${romfs_src_dir})
 
-# copy ROMFS/ files to build directory
+# directory setup
+# copy all romfs files, process airframes, prune comments
 get_property(romfs_cmake_files GLOBAL PROPERTY PX4_ROMFS_CMAKE_FILES)
 get_property(romfs_copy_files GLOBAL PROPERTY PX4_ROMFS_FILES)
-add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rcS
+add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rcS ${romfs_gen_root_dir}/init.d/rc.autostart
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${romfs_src_dir} ${romfs_gen_root_dir}
-	DEPENDS
-		${romfs_cmake_files}
-		${romfs_copy_files}
-	COMMENT "ROMFS: copying"
-	)
-
-# create rc.autostart
-add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rc.autostart
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		--airframes-path ${romfs_gen_root_dir}/init.d
 		--start-script ${romfs_gen_root_dir}/init.d/rc.autostart
 		--board ${BOARD}
-	DEPENDS
-		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
-		${romfs_gen_root_dir}/init.d/rcS
-	COMMENT "ROMFS: Generating rc.autostart"
-	)
-
-# prune ROMFS
-add_custom_command(OUTPUT romfs_pruned.stamp
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
 		--folder ${romfs_gen_root_dir} --board ${BOARD}
-	COMMAND ${CMAKE_COMMAND} -E touch romfs_pruned.stamp
 	DEPENDS
+		${romfs_cmake_files}
+		${romfs_copy_files}
+		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
-		${romfs_gen_root_dir}/init.d/rcS
-		${romfs_gen_root_dir}/init.d/rc.autostart
-	COMMENT "ROMFS: pruning"
+	COMMENT "ROMFS: copying, generating airframes, pruning"
 	)
 
 # copy extras into ROMFS
@@ -122,7 +107,6 @@ add_custom_command(OUTPUT romfs_extras.stamp
 	DEPENDS
 		${romfs_gen_root_dir}/init.d/rcS
 		${romfs_gen_root_dir}/init.d/rc.autostart
-		romfs_pruned.stamp
 		${extras_dependencies}
 	COMMENT "ROMFS: copying extras"
 	)
@@ -138,7 +122,6 @@ add_custom_command(OUTPUT romfs.img romfs.txt
 	DEPENDS
 		${romfs_gen_root_dir}/init.d/rcS
 		${romfs_gen_root_dir}/init.d/rc.autostart
-		romfs_pruned.stamp
 		romfs_extras.stamp
 	COMMENT "ROMFS: generating image"
 	)
