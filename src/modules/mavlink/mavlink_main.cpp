@@ -1150,6 +1150,10 @@ Mavlink::find_broadcast_address()
 			const struct in_addr netmask_addr = query_netmask_addr(_socket_fd, *cur_ifreq);
 			const struct in_addr broadcast_addr = compute_broadcast_addr(sin_addr, netmask_addr);
 
+			#ifdef __PX4_POSIX_BBBLUE
+			if (strstr(cur_ifreq->ifr_name, _mavlink_wifi_name) == NULL) { continue; }
+			#endif
+
 			PX4_INFO("using network interface %s, IP: %s", cur_ifreq->ifr_name, inet_ntoa(sin_addr));
 			PX4_INFO("with netmask: %s", inet_ntoa(netmask_addr));
 			PX4_INFO("and broadcast IP: %s", inet_ntoa(broadcast_addr));
@@ -1945,6 +1949,10 @@ Mavlink::task_main(int argc, char *argv[])
 	_mode = MAVLINK_MODE_NORMAL;
 	bool _force_flow_control = false;
 
+#ifdef __PX4_POSIX_BBBLUE
+	_mavlink_wifi_name = __PX4_BBBLUE_DEFAULT_MAVLINK_WIFI;
+#endif
+
 #ifdef __PX4_NUTTX
 	/* the NuttX optarg handler does not
 	 * ignore argv[0] like the POSIX handler
@@ -1966,7 +1974,7 @@ Mavlink::task_main(int argc, char *argv[])
 	int temp_int_arg;
 #endif
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:u:o:m:t:fwxz", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:fwxz", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			_baudrate = strtoul(myoptarg, nullptr, 10);
@@ -1991,6 +1999,12 @@ Mavlink::task_main(int argc, char *argv[])
 		case 'd':
 			_device_name = myoptarg;
 			set_protocol(SERIAL);
+			break;
+
+		case 'n':
+#ifdef __PX4_POSIX_BBBLUE
+			_mavlink_wifi_name = myoptarg;
+#endif
 			break;
 
 #ifdef __PX4_POSIX

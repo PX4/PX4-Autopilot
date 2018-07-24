@@ -63,6 +63,12 @@
 #include <net/if.h>
 #endif
 
+#ifdef __PX4_POSIX_BBBLUE
+#ifndef __PX4_BBBLUE_DEFAULT_MAVLINK_WIFI
+#define __PX4_BBBLUE_DEFAULT_MAVLINK_WIFI "SoftAp"
+#endif
+#endif
+
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
@@ -601,6 +607,11 @@ private:
 	uint8_t _network_buf[MAVLINK_MAX_PACKET_LEN];
 	unsigned _network_buf_len;
 #endif
+
+#ifdef __PX4_POSIX_BBBLUE
+	const char * _mavlink_wifi_name;
+#endif
+
 	int _socket_fd;
 	Protocol	_protocol;
 	unsigned short _network_port;

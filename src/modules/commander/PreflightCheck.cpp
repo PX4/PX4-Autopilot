@@ -685,6 +685,9 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 #elif defined(__PX4_POSIX_RPI)
 	PX4_WARN("Preflight checks for mag, acc, gyro always pass on RPI");
 	checkSensors = false;
+#elif defined(__PX4_POSIX_BBBLUE)
+	PX4_WARN("Preflight checks for mag, acc, gyro always pass on BBBLUE");
+	checkSensors = false;    
 #elif defined(__PX4_POSIX_BEBOP)
 	PX4_WARN("Preflight checks always pass on Bebop.");
 	checkSensors = false;

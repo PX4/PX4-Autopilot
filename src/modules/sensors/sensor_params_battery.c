@@ -98,10 +98,20 @@ PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
  * means that measurements are expected to come from a power module. If the value is set to
  * 'External' then the system expects to receive mavlink battery status messages.
  *
- * @min 0
+ * @min -1
  * @max 1
  * @value 0 Power Module
  * @value 1 External
  * @group Battery Calibration
  */
 PARAM_DEFINE_INT32(BAT_SOURCE, 0);
+
+/**
+ * Battery ADC Channel
+ *
+ * This parameter specifies the ADC channel used to monitor voltage of main power battery.
+ * A value of -1 means to use the board default.
+ *
+ * @group Battery Calibration
+ */
+PARAM_DEFINE_INT32(BAT_ADC_CHANNEL, -1);
