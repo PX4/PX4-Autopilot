@@ -51,7 +51,7 @@ public:
 
 protected:
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAutoLine,
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAutoMapper,
 					(ParamFloat<px4::params::MIS_YAW_ERR>) MIS_YAW_ERR, // yaw-error threshold
 					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) MPC_ACC_UP_MAX,
 					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) MPC_ACC_DOWN_MAX,
