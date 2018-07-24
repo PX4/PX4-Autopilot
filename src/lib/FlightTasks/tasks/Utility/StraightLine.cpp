@@ -55,7 +55,7 @@ void StraightLine::generateSetpoints(matrix::Vector3f &position_setpoint, matrix
 {
 	// Check if target position has been reached
 	if (_desired_speed_at_target < VEL_ZERO_THRESHOLD &&
-				   (_pos - _target).length() < NAV_ACC_RAD.get()) {
+	    (_pos - _target).length() < NAV_ACC_RAD.get()) {
 		// Vehicle has reached target. Lock position
 		position_setpoint = _target;
 		velocity_setpoint = Vector3f(0.0f, 0.0f, 0.0f);
@@ -73,7 +73,8 @@ void StraightLine::generateSetpoints(matrix::Vector3f &position_setpoint, matrix
 	float speed_sp_prev = math::max(velocity_setpoint * u_orig_to_target, 0.0f);
 
 	// Calculate accelerating/decelerating distance depending on speed, speed at target and acceleration/deceleration
-	float acc_dec_distance = fabs((_desired_speed * _desired_speed) - (_desired_speed_at_target * _desired_speed_at_target)) / 2.0f;
+	float acc_dec_distance = fabs((_desired_speed * _desired_speed) - (_desired_speed_at_target *
+				      _desired_speed_at_target)) / 2.0f;
 	acc_dec_distance /= _desired_speed > _desired_speed_at_target ? _desired_deceleration : _desired_acceleration;
 
 	float dist_to_target = (_target - _pos).length(); // distance to target
@@ -193,6 +194,7 @@ void StraightLine::setSpeed(const float &speed)
 
 	if (speed > 0 && speed < vel_max) {
 		_desired_speed = speed;
+
 	} else if (speed > vel_max) {
 		_desired_speed = vel_max;
 	}
@@ -204,6 +206,7 @@ void StraightLine::setSpeedAtTarget(const float &speed_at_target)
 
 	if (speed_at_target > 0 && speed_at_target < vel_max) {
 		_desired_speed_at_target = speed_at_target;
+
 	} else if (speed_at_target > vel_max) {
 		_desired_speed_at_target = vel_max;
 	}
@@ -215,6 +218,7 @@ void StraightLine::setAcceleration(const float &acc)
 
 	if (acc > 0 && acc < acc_max) {
 		_desired_acceleration = acc;
+
 	} else if (acc > acc_max) {
 		_desired_acceleration = acc_max;
 	}
@@ -224,6 +228,7 @@ void StraightLine::setDeceleration(const float &dec)
 {
 	if (dec > 0 && dec < DECELERATION_MAX) {
 		_desired_deceleration = dec;
+
 	} else if (dec > DECELERATION_MAX) {
 		_desired_deceleration = DECELERATION_MAX;
 	}
