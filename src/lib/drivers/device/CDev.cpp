@@ -394,21 +394,12 @@ CDev::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 {
 	DEVICE_DEBUG("CDev::poll_notify_one");
 
-#ifdef __PX4_NUTTX
-	int value = fds->sem->semcount;
-#else
-	int value = -1;
-	px4_sem_getvalue(fds->sem, &value);
-#endif
-
 	/* update the reported event set */
 	fds->revents |= fds->events & events;
 
-	DEVICE_DEBUG(" Events fds=%p %0x %0x %0x %d", fds, fds->revents, fds->events, events, value);
+	DEVICE_DEBUG(" Events fds=%p %0x %0x %0x", fds, fds->revents, fds->events, events);
 
-	/* if the state is now interesting, wake the waiter if it's still asleep */
-	/* XXX semcount check here is a vile hack; counting semphores should not be abused as cvars */
-	if ((fds->revents != 0) && (value <= 0)) {
+	if (fds->revents != 0) {
 		px4_sem_post(fds->sem);
 	}
 }
