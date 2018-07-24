@@ -1425,6 +1425,7 @@ Commander::run()
 			orb_copy(ORB_ID(parameter_update), param_changed_sub, &param_changed);
 
 			updateParams();
+			_failure_detector.update_params();
 
 			/* update parameters */
 			if (!armed.armed) {
@@ -2177,6 +2178,16 @@ Commander::run()
 					status.engine_failure = false;
 					status_changed = true;
 				}
+			}
+		}
+
+		if (_failure_detector.update()) {
+			const auto _failure_status = _failure_detector.get();
+			if (_failure_status.roll) {
+				PX4_ERR("Roll angle exceeded");
+			}
+			if (_failure_status.pitch) {
+				PX4_ERR("Pitch angle exceeded");
 			}
 		}
 
