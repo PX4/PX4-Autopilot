@@ -293,14 +293,14 @@ private:
 	 *
 	 * @return		OK, or -errno on error.
 	 */
-	int		store_poll_waiter(px4_pollfd_struct_t *fds);
+	inline int	store_poll_waiter(px4_pollfd_struct_t *fds);
 
 	/**
 	 * Remove a poll waiter.
 	 *
 	 * @return		OK, or -errno on error.
 	 */
-	int		remove_poll_waiter(px4_pollfd_struct_t *fds);
+	inline int	remove_poll_waiter(px4_pollfd_struct_t *fds);
 
 	/* do not allow copying this class */
 	CDev(const CDev &);

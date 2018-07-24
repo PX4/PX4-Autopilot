@@ -44,6 +44,12 @@
 #include "px4_posix.h"
 #include "drivers/drv_device.h"
 
+#if 1 // Disable poll debug ouput by default completely as it uses CPU cycles
+#define DEVICE_POLL_DEBUG(FMT, ...)
+#else
+#define DEVICE_POLL_DEBUG(FMT, ...) DEVICE_DEBUG(FMT, ##__VA_ARGS__)
+#endif
+
 namespace device
 {
 
@@ -268,7 +274,7 @@ CDev::ioctl(file_t *filep, int cmd, unsigned long arg)
 int
 CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 {
-	DEVICE_DEBUG("CDev::Poll %s", setup ? "setup" : "teardown");
+	DEVICE_POLL_DEBUG("CDev::Poll %s", setup ? "setup" : "teardown");
 	int ret = PX4_OK;
 
 	if (setup) {
@@ -277,7 +283,7 @@ CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 		 * benefit.
 		 */
 		fds->priv = (void *)filep;
-		DEVICE_DEBUG("CDev::poll: fds->priv = %p", filep);
+		DEVICE_POLL_DEBUG("CDev::poll: fds->priv = %p", filep);
 
 		/*
 		 * Lock against poll_notify() and possibly other callers.
@@ -354,8 +360,6 @@ CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 				px4_sem_post(fds->sem);
 			}
 
-		} else {
-			PX4_WARN("Store Poll Waiter error.");
 		}
 
 		ATOMIC_LEAVE;
@@ -375,7 +379,7 @@ CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 void
 CDev::poll_notify(pollevent_t events)
 {
-	DEVICE_DEBUG("CDev::poll_notify events = %0x", events);
+	DEVICE_POLL_DEBUG("CDev::poll_notify events = %0x", events);
 
 	/* lock against poll() as well as other wakeups */
 	ATOMIC_ENTER;
@@ -392,12 +396,12 @@ CDev::poll_notify(pollevent_t events)
 void
 CDev::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 {
-	DEVICE_DEBUG("CDev::poll_notify_one");
+	DEVICE_POLL_DEBUG("CDev::poll_notify_one");
 
 	/* update the reported event set */
 	fds->revents |= fds->events & events;
 
-	DEVICE_DEBUG(" Events fds=%p %0x %0x %0x", fds, fds->revents, fds->events, events);
+	DEVICE_POLL_DEBUG(" Events fds=%p %0x %0x %0x", fds, fds->revents, fds->events, events);
 
 	if (fds->revents != 0) {
 		px4_sem_post(fds->sem);
@@ -407,7 +411,7 @@ CDev::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 pollevent_t
 CDev::poll_state(file_t *filep)
 {
-	DEVICE_DEBUG("CDev::poll_notify");
+	DEVICE_POLL_DEBUG("CDev::poll_notify");
 	/* by default, no poll events to report */
 	return 0;
 }
@@ -418,7 +422,7 @@ CDev::store_poll_waiter(px4_pollfd_struct_t *fds)
 	/*
 	 * Look for a free slot.
 	 */
-	DEVICE_DEBUG("CDev::store_poll_waiter");
+	DEVICE_POLL_DEBUG("CDev::store_poll_waiter");
 
 	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		if (nullptr == _pollset[i]) {
@@ -436,7 +440,7 @@ CDev::store_poll_waiter(px4_pollfd_struct_t *fds)
 int
 CDev::remove_poll_waiter(px4_pollfd_struct_t *fds)
 {
-	DEVICE_DEBUG("CDev::remove_poll_waiter");
+	DEVICE_POLL_DEBUG("CDev::remove_poll_waiter");
 
 	for (unsigned i = 0; i < _max_pollwaiters; i++) {
 		if (fds == _pollset[i]) {
@@ -447,7 +451,7 @@ CDev::remove_poll_waiter(px4_pollfd_struct_t *fds)
 		}
 	}
 
-	PX4_WARN("poll: bad fd state");
+	DEVICE_POLL_DEBUG("poll: bad fd state");
 	return -EINVAL;
 }
 
