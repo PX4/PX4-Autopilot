@@ -58,11 +58,7 @@ void ECL_L1_Pos_Controller::update_roll_setpoint()
 	}
 
 	// slew rate limiting active
-	if ((roll_new - _roll_setpoint) / _dt > _roll_slew_rate) {
-		roll_new = _roll_setpoint + _roll_slew_rate * _dt;
-	} else if ((roll_new - _roll_setpoint) / _dt < -_roll_slew_rate) {
-		roll_new = _roll_setpoint - _roll_slew_rate * _dt;
-	}
+	roll_new = math::constrain(roll_new, _roll_setpoint - _roll_slew_rate * _dt, _roll_setpoint + _roll_slew_rate * _dt);
 
 	_roll_setpoint = roll_new;
 
