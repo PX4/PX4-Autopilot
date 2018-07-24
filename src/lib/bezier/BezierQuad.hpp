@@ -102,7 +102,7 @@ public:
 	 * Set new bezier points and duration
 	 */
 	void setBezier(const Vector3_t &pt0, const Vector3_t &ctrl, const Vector3_t &pt1,
-		       Tp duration = 1.0f);
+		       Tp duration = (Tp)1);
 
 	/*
 	 * Set duration
@@ -165,7 +165,7 @@ public:
 	 * the desired velocity vectors at the end points.
 	 */
 	void setBezFromVel(const Vector3_t &ctrl, const Vector3_t &vel0, const Vector3_t &vel1,
-			   const Tp duration = 1.0f);
+			   const Tp duration = (Tp)1);
 
 	/*
 	 * Return the arc length of a bezier spline
@@ -183,8 +183,8 @@ private:
 	Tp _duration = (Tp)1; /**< Total time to travle along spline */
 
 	Tp _cached_arc_length = (Tp)0; /**< The saved arc length of the spline */
-	Tp _cached_resolution = (Tp)(
-					-1); /**< The resolution used to compute the arc length. Negative number means that cache is not up to date. */
+	Tp _cached_resolution = (Tp)(-1); /**< The resolution used to compute the arc length.
+									Negative number means that cache is not up to date. */
 
 	/*
 	 * Golden section search
