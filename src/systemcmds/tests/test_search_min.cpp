@@ -64,7 +64,6 @@ bool SearchMinTest::_init_inputs()
 
 	float opt = math::goldensection(a, b, fun, tol);
 	float opt2 = math::goldensection(a, b, fun2, tol);
-	PX4_INFO("opt2: %.5f", (double)opt2);
 	ut_assert("linear function opt not equal min ", fabsf(opt - a) <= (tol * 2.0f));
 	ut_assert("quad function opt not equal min ", fabsf(opt2 - 2.0f) <= (tol * 2.0f));
 
@@ -108,7 +107,6 @@ bool SearchMinTest::_init_inputs_negative()
 	ut_assert("linear function opt not equal min", fabsf(opt - a) <= (tol * 2.0f));
 	ut_assert("quad function opt not equal min ", fabsf(opt2 - b) <= (tol * 2.0f));
 
-
 	return true;
 }
 
@@ -129,7 +127,6 @@ bool SearchMinTest::_init_tol_larger_than_range()
 	ut_assert("linear function opt not equal min", fabsf(opt - (b + a) / 2.0f) <= (0.001f * 2.0f));
 	ut_assert("quad function opt not equal min ", fabsf(opt2 - (b + a) / 2.0f) <= (0.001f * 2.0f));
 
-
 	return true;
 }
 
@@ -149,7 +146,6 @@ bool SearchMinTest::_init_tol_larger_than_range_flipped()
 
 	ut_assert("linear function opt not equal min", fabsf(opt - (b + a) / 2.0f) <= (0.001f * 2.0f));
 	ut_assert("quad function opt not equal min ", fabsf(opt2 - (b + a) / 2.0f) <= (0.001f * 2.0f));
-
 
 	return true;
 }
