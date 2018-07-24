@@ -153,7 +153,7 @@ int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
 
 	/* give the test task some data */
 	while (!pubsubtest_passed) {
-		t.val = 308;
+		++t.val;
 		t.time = hrt_absolute_time();
 
 		if (PX4_OK != orb_publish(T, pfd0, &t)) {
