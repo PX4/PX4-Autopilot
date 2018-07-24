@@ -517,9 +517,6 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		sp->acceptance_radius = _navigator->get_default_acceptance_radius();
 	}
 
-	sp->cruising_speed = _navigator->get_cruising_speed();
-	sp->cruising_throttle = _navigator->get_cruising_throttle();
-
 	switch (item.nav_cmd) {
 	case NAV_CMD_IDLE:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_IDLE;

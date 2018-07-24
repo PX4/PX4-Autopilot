@@ -722,6 +722,9 @@ Navigator::run()
 
 		/* we have a new navigation mode: reset triplet */
 		if (_navigation_mode != navigation_mode_new) {
+
+			reset_cruising_speed();
+
 			// We don't reset the triplet if we just did an auto-takeoff and are now
 			// going to loiter. Otherwise, we lose the takeoff altitude and end up lower
 			// than where we wanted to go.
@@ -918,6 +921,18 @@ Navigator::set_cruising_speed(float speed)
 	} else {
 		_mission_cruising_speed_fw = speed;
 	}
+
+	if (_navigation_mode != nullptr) {
+		/* Don't change setpoint if the current waypoint is not valid */
+		if (!_pos_sp_triplet.current.valid ||
+		    fabsf(_pos_sp_triplet.current.cruising_speed - speed) < FLT_EPSILON) {
+			return;
+		}
+
+		_pos_sp_triplet.current.cruising_speed = speed;
+
+		set_position_setpoint_triplet_updated();
+	}
 }
 
 void
@@ -930,9 +945,19 @@ Navigator::reset_cruising_speed()
 void
 Navigator::reset_triplets()
 {
-	_pos_sp_triplet.current.valid = false;
 	_pos_sp_triplet.previous.valid = false;
+	_pos_sp_triplet.current.cruising_speed = -1.0f;
+	_pos_sp_triplet.current.cruising_throttle = -1.0f;
+
+	_pos_sp_triplet.current.valid = false;
+	_pos_sp_triplet.current.cruising_speed = -1.0f;
+	_pos_sp_triplet.current.cruising_throttle = -1.0f;
+
+
 	_pos_sp_triplet.next.valid = false;
+	_pos_sp_triplet.current.cruising_speed = -1.0f;
+	_pos_sp_triplet.current.cruising_throttle = -1.0f;
+
 	_pos_sp_triplet_updated = true;
 }
 

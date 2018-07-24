@@ -57,6 +57,8 @@ Loiter::on_inactive()
 void
 Loiter::on_activation()
 {
+	_navigator->reset_cruising_speed();
+
 	if (_navigator->get_reposition_triplet()->current.valid) {
 		reposition();
 

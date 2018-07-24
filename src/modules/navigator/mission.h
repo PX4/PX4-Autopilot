@@ -165,11 +165,6 @@ private:
 	void altitude_sp_foh_update();
 
 	/**
-	 * Update the cruising speed setpoint.
-	 */
-	void cruising_speed_sp_update();
-
-	/**
 	 * Abort landing
 	 */
 	void do_abort_landing();

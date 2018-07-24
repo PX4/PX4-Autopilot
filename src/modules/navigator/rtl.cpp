@@ -65,6 +65,8 @@ RTL::rtl_type() const
 void
 RTL::on_activation()
 {
+	_navigator->reset_cruising_speed();
+
 	if (_navigator->get_land_detected()->landed) {
 		// For safety reasons don't go into RTL if landed.
 		_rtl_state = RTL_STATE_LANDED;

@@ -70,11 +70,6 @@ Mission::Mission(Navigator *navigator) :
 void
 Mission::on_inactive()
 {
-	/* We need to reset the mission cruising speed, otherwise the
-	 * mission velocity which might have been set using mission items
-	 * is used for missions such as RTL. */
-	_navigator->set_cruising_speed();
-
 	/* Without home a mission can't be valid yet anyway, let's wait. */
 	if (!_navigator->home_position_valid()) {
 		return;
@@ -96,7 +91,6 @@ Mission::on_inactive()
 		if (need_to_reset_mission(false)) {
 			reset_offboard_mission(_offboard_mission);
 			update_offboard_mission();
-			_navigator->reset_cruising_speed();
 		}
 
 	} else {
@@ -237,11 +231,6 @@ Mission::on_active()
 		if (_waypoint_position_reached && _mission_item.nav_cmd != NAV_CMD_IDLE) {
 			_navigator->set_can_loiter_at_sp(true);
 		}
-	}
-
-	/* check if a cruise speed change has been commanded */
-	if (_mission_type != MISSION_TYPE_NONE) {
-		cruising_speed_sp_update();
 	}
 
 	/* see if we need to update the current yaw heading */
@@ -1312,24 +1301,6 @@ Mission::altitude_sp_foh_update()
 	}
 
 	// we set altitude directly so we can run this in parallel to the heading update
-	_navigator->set_position_setpoint_triplet_updated();
-}
-
-void
-Mission::cruising_speed_sp_update()
-{
-	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
-	const float cruising_speed = _navigator->get_cruising_speed();
-
-	/* Don't change setpoint if the current waypoint is not valid */
-	if (!pos_sp_triplet->current.valid ||
-	    fabsf(pos_sp_triplet->current.cruising_speed - cruising_speed) < FLT_EPSILON) {
-		return;
-	}
-
-	pos_sp_triplet->current.cruising_speed = cruising_speed;
-
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
