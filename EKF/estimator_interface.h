@@ -315,8 +315,9 @@ public:
 		*time_us = _time_last_imu;
 	}
 
-	// Copy the magnetic declination that we wish to save to the EKF2_MAG_DECL parameter for the next startup
-	void copy_mag_decl_deg(float *val)
+	// Get the value of magnetic declination in degrees to be saved for use at the next startup
+	// At the next startup, set param.mag_declination_deg to the value saved
+	void get_mag_decl_deg(float *val)
 	{
 		*val = _mag_declination_to_save_deg;
 	}
