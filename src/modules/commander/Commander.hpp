@@ -35,6 +35,7 @@
 #define COMMANDER_HPP_
 
 #include "state_machine_helper.h"
+#include "failure_detector/FailureDetector.hpp"
 
 #include <controllib/blocks.hpp>
 #include <px4_module.h>
@@ -117,6 +118,8 @@ private:
 	hrt_abstime	_gpos_probation_time_us = POSVEL_PROBATION_MIN;
 	hrt_abstime	_lpos_probation_time_us = POSVEL_PROBATION_MIN;
 	hrt_abstime	_lvel_probation_time_us = POSVEL_PROBATION_MIN;
+
+	FailureDetector _failure_detector;
 
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd,
 			    actuator_armed_s *armed, home_position_s *home, orb_advert_t *home_pub, orb_advert_t *command_ack_pub, bool *changed);
