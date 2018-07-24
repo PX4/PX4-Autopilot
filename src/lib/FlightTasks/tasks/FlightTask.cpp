@@ -5,6 +5,15 @@ constexpr uint64_t FlightTask::_timeout;
 // First index of empty_setpoint corresponds to time-stamp and requires a finite number.
 const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {NAN, NAN, NAN}};
 const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, NAN};
+const vehicle_trajectory_waypoint_s FlightTask::empty_trajectory_waypoint = {0, 0, {0, 0, 0, 0, 0, 0, 0},
+	{	{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false},
+		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false},
+		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false},
+		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false},
+		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false}
+	}
+};
+
 bool FlightTask::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
 	if (!subscription_array.get(ORB_ID(vehicle_local_position), _sub_vehicle_local_position)) {
@@ -52,6 +61,7 @@ void FlightTask::_resetSetpoints()
 	_acceleration_setpoint *= NAN;
 	_thrust_setpoint *= NAN;
 	_yaw_setpoint = _yawspeed_setpoint = NAN;
+	_desired_waypoint = FlightTask::empty_trajectory_waypoint;
 }
 
 bool FlightTask::_evaluateVehicleLocalPosition()
