@@ -76,9 +76,8 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 	// }
 
 	if (PX4_ISFINITE(command.param5) && PX4_ISFINITE(command.param6) && PX4_ISFINITE(command.param7)) {
-		if(globallocalconverter_tolocal(command.param5, command.param6, command.param7, &_center(0), &_center(1),
-					     &_position_setpoint(2)))
-		{
+		if (globallocalconverter_tolocal(command.param5, command.param6, command.param7, &_center(0), &_center(1),
+						 &_position_setpoint(2))) {
 			// global to local conversion failed
 			ret = false;
 		}
