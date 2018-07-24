@@ -648,11 +648,18 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 			// The EKF is not using GPS
 			if (ekf_gps_check_fail) {
 				// Poor GPS quality is the likely cause
-				if (report_fail) mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS QUALITY POOR");
+				if (report_fail) {
+					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS QUALITY POOR");
+				}
+
 				gps_success = false;
+
 			} else {
 				// Likely cause unknown
-				if (report_fail) mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF NOT USING GPS");
+				if (report_fail) {
+					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF NOT USING GPS");
+				}
+
 				gps_success = false;
 				gps_present = false;
 			}
@@ -669,7 +676,10 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 						  + (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR))) > 0);
 
 			if (gps_quality_fail) {
-				if (report_fail) mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS QUALITY POOR");
+				if (report_fail) {
+					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS QUALITY POOR");
+				}
+
 				gps_success = false;
 				success = false;
 				goto out;
@@ -919,9 +929,8 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 	param_get(param_find("SYS_MC_EST_GROUP"), &estimator_type);
 
 	if (estimator_type == 2) {
-		// don't report ekf failures for the first 10 seconds to allow time for the filter to start
-		bool report_ekf_fail = (time_since_boot > 10 * 1000000);
-		if (!ekf2Check(mavlink_log_pub, status, false, reportFailures && report_ekf_fail && !failed, checkGNSS)) {
+		// only send failure messages during arming attempt
+		if (!ekf2Check(mavlink_log_pub, status, false, (prearm && reportFailures && !failed), checkGNSS)) {
 			failed = true;
 		}
 	}
