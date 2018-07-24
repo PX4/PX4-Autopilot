@@ -618,6 +618,8 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 
 	accel_report.timestamp = gyro_report.timestamp = hrt_absolute_time();
 
+	accel_report.error_count = gyro_report.error_count = mag_report.error_count = data.error_counter;
+
 	// ACCEL
 
 	float xraw_f = data.accel_m_s2_x;
