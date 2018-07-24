@@ -289,7 +289,7 @@ private:
 	/**
 	 * Store a pollwaiter in a slot where we can find it later.
 	 *
-	 * Expands the pollset as required.  Must be called with the driver locked.
+	 * Must be called with the driver locked.
 	 *
 	 * @return		OK, or -errno on error.
 	 */
