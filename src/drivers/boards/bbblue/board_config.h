@@ -99,7 +99,7 @@ void rc_cleaning(void);
 /**
  * struct to hold the data retreived during one read of the barometer.
  */
-typedef struct rc_bmp_data_t{
+typedef struct rc_bmp_data_t {
 	float temp_c;		///< temperature in degrees celcius
 	float alt_m;		///< altitude in meters
 	float pressure_pa;	///< current pressure in pascals
@@ -109,7 +109,7 @@ typedef struct rc_bmp_data_t{
 extern "C" {
 #endif
 
-int rc_bmp_read(rc_bmp_data_t* data);
+int rc_bmp_read(rc_bmp_data_t *data);
 
 #ifdef __cplusplus
 }

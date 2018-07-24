@@ -50,6 +50,7 @@ int rc_init(void)
 	return rc_initialize();
 #else
 #ifdef __DF_BBBLUE
+
 	if (rc_get_state() == RUNNING) {  return 0; }
 
 	PX4_INFO("Initializing Robotics Cape library ...");
@@ -88,7 +89,7 @@ int rc_init(void)
 		PX4_ERR("rc_init failed to set default pinmux");
 		return -1;
 	}
-    */
+	*/
 
 	// no direct equivalent of configure_gpio_pins()
 
@@ -102,7 +103,7 @@ int rc_init(void)
 		return -1;
 	}
 
-	if(rc_servo_power_rail_en(1)) { // Turning On 6V Servo Power Rail
+	if (rc_servo_power_rail_en(1)) { // Turning On 6V Servo Power Rail
 		PX4_ERR("rc_init failed to run rc_servo_power_rail_en(1)");
 		return -1;
 	}
@@ -126,6 +127,7 @@ void rc_cleaning(void)
 	rc_cleanup();  return ;
 #else
 #ifdef __DF_BBBLUE
+
 	if (rc_get_state() == EXITING) { return; }
 
 	rc_set_state(EXITING);
@@ -142,7 +144,8 @@ void rc_cleaning(void)
 
 
 #ifdef __RC_V0_3
-int rc_bmp_read(rc_bmp_data_t* data) {
+int rc_bmp_read(rc_bmp_data_t *data)
+{
 	int rtn = rc_read_barometer();
 
 	data->temp_c 		= rc_bmp_get_temperature();
