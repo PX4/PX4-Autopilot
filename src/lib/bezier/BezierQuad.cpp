@@ -140,18 +140,18 @@ Tp BezierQuad<Tp>::getArcLength(const Tp resolution)
 	// step size
 	Tp h = (_duration) / n;
 	// get integration
-	Tp area = (Tp)0;
 	Data y;
+	_cached_arc_length = (Tp)0;
 
 	for (int i = 1; i < n; i++) {
 
 		y = getVelocity(h * i);
 
 		if (i % 2 == 1) {
-			area += (Tp)4 * y.length();
+			_cached_arc_length += (Tp)4 * y.length();
 
 		} else {
-			area += (Tp)2 * y.length();
+			_cached_arc_length += (Tp)2 * y.length();
 		}
 	}
 
@@ -161,12 +161,12 @@ Tp BezierQuad<Tp>::getArcLength(const Tp resolution)
 	yn = vn.length();
 
 	// 1/3 simpsons rule
-	area = h / (Tp)3 * (y0 + yn + area);
+	_cached_arc_length = h / (Tp)3 * (y0 + yn + _cached_arc_length);
 
-	// update cached resolution
+	// update cache
 	_cached_resolution = resolution;
 
-	return area;
+	return _cached_arc_length;
 }
 
 template<typename Tp>
