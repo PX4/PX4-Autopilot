@@ -38,7 +38,7 @@ bool BezierQuadTest::_get_states_from_time()
 	matrix::Vector3f pt1(0.5f, 0.0f, 0.0f);
 
 	// create bezier with default t = [0,1]
-	bezier::BezierQuadf bz(pt0, ctrl, pt1);
+	bezier::BezierQuad_f bz(pt0, ctrl, pt1);
 
 	matrix::Vector3f pos, vel, acc;
 	float precision = 0.00001;
@@ -165,7 +165,7 @@ bool BezierQuadTest::_get_arc_length()
 		duration = random(0.0f, T);
 
 		// create bezier
-		bezier::BezierQuadf bz(pt0, ctrl, pt1, duration);
+		bezier::BezierQuad_f bz(pt0, ctrl, pt1, duration);
 
 		// compute arc length, triangle length and straigh length
 		arc_length = bz.getArcLength(resolution);
@@ -211,7 +211,7 @@ bool BezierQuadTest::_set_bez_from_vel()
 		matrix::Vector3f vel1(random(low, max), random(low, max), random(low, max));
 		float duration = random(0.0f, 100.0f);
 
-		bezier::BezierQuadf bz;;
+		bezier::BezierQuad_f bz;;
 		bz.setBezFromVel(ctrl, vel0, vel1, duration);
 
 		// get velocity back

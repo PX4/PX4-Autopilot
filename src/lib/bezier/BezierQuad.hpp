@@ -35,147 +35,175 @@
  * @file BerzierQuad.hpp
  *
  * Quadratic bezier lib
+ *
+ * A quadratic bezier function/spline is completely defined by three 3D points in space and a time scaling factor.
+ * pt0 and pt1 define the start and end points of the spline. ctrl point is a point in space that effects the curvature
+ * of the spline. The time scaling factor (= duration) defines the time it takes to travel along the spline from pt0 to
+ * pt1.
+ * A bezier spline is a continuous function from which position, velocity and acceleration can be extracted. For a given spline,
+ * acceleration stays constant.
  */
 
 
 #pragma once
-
-#include <px4_defines.h>
-#include <stdlib.h>
 
 #include <matrix/math.hpp>
 
 namespace bezier
 {
 template<typename Tp>
-class __EXPORT BezierQuad
+class BezierQuad
 {
 public:
 
-	using Data = matrix::Vector<Tp, 3>;
+	using Vector3_t = matrix::Vector<Tp, 3>;
 
 	/**
-	 * empty constructor
+	 * Empty constructor
 	 */
 	BezierQuad(void) :
-		_pt0(Data()), _ctrl(Data()), _pt1(Data()), _duration(1.0f) {}
+		_pt0(Vector3_t()), _ctrl(Vector3_t()), _pt1(Vector3_t()), _duration(1.0f) {}
 
 	/**
-	 * constructor from array
+	 * Constructor from array
 	 */
 	BezierQuad(const Tp pt0[3], const Tp ctrl[3], const Tp pt1[3], Tp duration = 1.0f) :
-		_pt0(Data(pt0)), _ctrl(Data(ctrl)), _pt1(Data(pt1)), _duration(duration) {}
+		_pt0(Vector3_t(pt0)), _ctrl(Vector3_t(ctrl)), _pt1(Vector3_t(pt1)), _duration(duration) {}
 
 	/**
-	 * constructor from vector
+	 * Constructor from vector
 	 */
-	BezierQuad(const Data &pt0, const Data &ctrl, const Data &pt1,
+	BezierQuad(const Vector3_t &pt0, const Vector3_t &ctrl, const Vector3_t &pt1,
 		   Tp duration = 1.0f):
 		_pt0(pt0), _ctrl(ctrl), _pt1(pt1), _duration(duration) {}
 
 
 	/*
-	 * return bezier points
+	 * Get bezier points
 	 */
-	void getBezier(Data &pt0, Data &ctrl, Data &pt1);
+	void getBezier(Vector3_t &pt0, Vector3_t &ctrl, Vector3_t &pt1);
 
 	/*
-	 * get pt0
+	 * Return pt0
 	 */
-	Data getPt0() {return _pt0;}
+	Vector3_t getPt0() {return _pt0;}
 
 	/*
-	 * get ctrl
+	 * Return ctrl
 	 */
-	Data getCtrl() {return _ctrl;}
+	Vector3_t getCtrl() {return _ctrl;}
 
 	/*
-	 * get pt1
+	 * Return pt1
 	 */
-	Data getPt1() {return _pt1;}
+	Vector3_t getPt1() {return _pt1;}
 
 	/**
-	 * set new bezier points
+	 * Set new bezier points and duration
 	 */
-	void setBezier(const Data &pt0, const Data &ctrl, const Data &pt1,
+	void setBezier(const Vector3_t &pt0, const Vector3_t &ctrl, const Vector3_t &pt1,
 		       Tp duration = 1.0f);
 
 	/*
-	* set duration
-	*/
+	 * Set duration
+	 *
+	 * @param time is the total time it takes to travel along the bezier spline.
+	 */
 	void setDuration(const Tp time) {_duration = time;}
 
 	/**
-	 * get point on bezier point corresponding to t
+	 * Return point on bezier point corresponding to time t
+	 *
+	 * @param t is a time in seconds in between [0, duration]
+	 * @return a point on bezier
 	 */
-	Data getPoint(const Tp t);
+	Vector3_t getPoint(const Tp t);
 
 	/*
 	 * Distance to closest point given a position
+	 *
+	 * @param pose is a position in 3D space from which distance to bezier is computed.
+	 * @return distance to closest point on bezier
 	 */
-	Tp getDistToClosestPoint(const Data &pose);
+	Tp getDistToClosestPoint(const Vector3_t &pose);
 
 	/*
-	 * get velocity on bezier corresponding to t
+	 * Return velocity on bezier corresponding to time t
+	 *
+	 * @param t is a time in seconds in between [0, duration]
+	 * @return velocity vector at time t
 	 */
-	Data getVelocity(const Tp t);
+	Vector3_t getVelocity(const Tp t);
 
 	/*
-	 * get acceleration on bezier corresponding to t
+	 * Return acceleration on bezier corresponding to time t
+	 *
+	 * @return constant acceleration of bezier
 	 */
-	Data getAcceleration();
+	Vector3_t getAcceleration();
 
 	/*
-	 * get states on bezier corresponding to t
+	 * Get all states on bezier corresponding to time t
 	 */
-	void getStates(Data &point, Data &vel, Data &acc, const Tp t);
+	void getStates(Vector3_t &point, Vector3_t &vel, Vector3_t &acc, const Tp t);
 
 	/*
-	 * get states on bezier which are closest to pose
+	 * Get states on bezier which are closest to pose in space
+	 *
+	 * @param point is a posiiton on the spline that is closest to a given pose
+	 * @param vel is the velocity at that given point
+	 * @param acc is the acceleration for that spline
+	 * @param pose represent a position in space from which closest point is computed
 	 */
-	void getStatesClosest(Data &point, Data &vel, Data &acc,
-			      const Data pose);
+	void getStatesClosest(Vector3_t &point, Vector3_t &vel, Vector3_t &acc,
+			      const Vector3_t pose);
 
 	/*
-	 * compute bezier from velocity at bezier end points and ctrl point
+	 * Compute bezier from velocity at bezier end points and ctrl point
+	 *
+	 * The bezier end points are fully defined by a given control point ctrl, the duration and
+	 * the desired velocity vectors at the end points.
 	 */
-	void setBezFromVel(const Data &ctrl, const Data &vel0, const Data &vel1,
+	void setBezFromVel(const Vector3_t &ctrl, const Vector3_t &vel0, const Vector3_t &vel1,
 			   const Tp duration = 1.0f);
 
 	/*
-	 * simpsons inegrattion applied to velocity
+	 * Return the arc length of a bezier spline
+	 *
+	 * The arc length is computed with simpsons integration.
+	 * @param resolution in meters.
 	 */
 	Tp getArcLength(const Tp resolution);
 
 private:
 
-	/* control points */
-	Data _pt0;
-	Data _ctrl;
-	Data _pt1;
-	Tp _duration;
+	Vector3_t _pt0; /**< Bezier starting point */
+	Vector3_t _ctrl; /**< Bezier control point */
+	Vector3_t _pt1; /**< bezier end point */
+	Tp _duration = (Tp)1; /**< Total time to travle along spline */
 
-	/* cache */
-	Tp _cached_arc_length;
-	Tp _cached_resolution = (Tp)(-1); // negative number means that cache is not up to date
-
-	/*
-	 * Helper functions
-	 */
-
-	/* golden section search */
-	Tp _goldenSectionSearch(const Data &pose);
+	Tp _cached_arc_length = (Tp)0; /**< The saved arc length of the spline */
+	Tp _cached_resolution = (Tp)(
+					-1); /**< The resolution used to compute the arc length. Negative number means that cache is not up to date. */
 
 	/*
-	 * get distance to point on bezier
+	 * Golden section search
 	 */
-	Tp _getDistanceSquared(const Tp t, const Data &pose);
+	Tp _goldenSectionSearch(const Vector3_t &pose);
+
+	/*
+	 * Get squared distance from 3D pose in space and a point on bezier.
+	 *
+	 * @param t is the time in between [0, duration] that defines a point on the bezier.
+	 * @param pose is a 3D pose in space.
+	 */
+	Tp _getDistanceSquared(const Tp t, const Vector3_t &pose);
 
 
 };
 
-using BezierQuadf = BezierQuad<float>;
-using BezierQuadd = BezierQuad<double>;
+using BezierQuad_f = BezierQuad<float>;
+using BezierQuad_d = BezierQuad<double>;
 }
 
 // include implementation
