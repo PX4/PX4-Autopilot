@@ -112,7 +112,6 @@ typedef param_t px4_param_t;
 
 #define PX4_ROOTFSDIR ""
 #define _PX4_IOC(x,y) _IOC(x,y)
-#define px4_statfs_buf_f_bavail_t int
 
 // mode for open with O_CREAT
 #define PX4_O_MODE_777 0777
@@ -169,8 +168,6 @@ using ::isfinite;
 
 #define USEC_PER_TICK (1000000/PX4_TICKS_PER_SEC)
 #define USEC2TICK(x) (((x)+(USEC_PER_TICK/2))/USEC_PER_TICK)
-
-#define px4_statfs_buf_f_bavail_t unsigned long
 
 #ifdef __PX4_QURT
 
