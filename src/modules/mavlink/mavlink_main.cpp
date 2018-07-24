@@ -1150,9 +1150,11 @@ Mavlink::find_broadcast_address()
 			const struct in_addr netmask_addr = query_netmask_addr(_socket_fd, *cur_ifreq);
 			const struct in_addr broadcast_addr = compute_broadcast_addr(sin_addr, netmask_addr);
 
-			#ifdef __PX4_POSIX_BBBLUE
+#ifdef __PX4_POSIX_BBBLUE
+
 			if (strstr(cur_ifreq->ifr_name, _mavlink_wifi_name) == NULL) { continue; }
-			#endif
+
+#endif
 
 			PX4_INFO("using network interface %s, IP: %s", cur_ifreq->ifr_name, inet_ntoa(sin_addr));
 			PX4_INFO("with netmask: %s", inet_ntoa(netmask_addr));

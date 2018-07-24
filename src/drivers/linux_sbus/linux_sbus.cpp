@@ -42,7 +42,7 @@ int RcInput::init()
 	/**
 	 * initialize the data of each channel
 	 */
-	for (i = 0; i < input_rc_s::RC_INPUT_MAX_CHANNELS && i<16; ++i) {
+	for (i = 0; i < input_rc_s::RC_INPUT_MAX_CHANNELS && i < 16; ++i) {
 		//_data.values defined as int[16] and RC_INPUT_MAX_CHANNELS (=18) > 16
 		_data.values[i] = UINT16_MAX;
 	}
