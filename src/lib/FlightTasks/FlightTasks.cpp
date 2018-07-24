@@ -104,6 +104,10 @@ int FlightTasks::_initTask(FlightTaskIndex task_index)
 		_current_task.task = new (&_task_union.offboard) FlightTaskOffboard();
 		break;
 
+	case FlightTaskIndex::Journey:
+		_current_task.task = new (&_task_union.journey) FlightTaskJourney();
+		break;
+
 	default:
 		// invalid task
 		return 1;
