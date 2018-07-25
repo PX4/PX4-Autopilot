@@ -161,18 +161,6 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	}
 
 	/*
-	 * GPIO config.
-	 * Forced pull up on CAN2 is required for Pixhawk v1 where the second interface lacks a transceiver.
-	 * If no transceiver is connected, the RX pin will float, occasionally causing CAN controller to
-	 * fail during initialization.
-	 */
-	px4_arch_configgpio(GPIO_CAN1_RX);
-	px4_arch_configgpio(GPIO_CAN1_TX);
-#if defined(GPIO_CAN2_RX)
-	px4_arch_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
-	px4_arch_configgpio(GPIO_CAN2_TX);
-#endif
-	/*
 	 * CAN driver init
 	 */
 	static CanInitHelper can;
