@@ -104,7 +104,6 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	if (!_sub_triplet_setpoint->get().current.valid || !PX4_ISFINITE(_sub_triplet_setpoint->get().current.alt)) {
 		// Best we can do is to just set all waypoints to current state and return false.
-		_prev_prev_wp = _triplet_prev_wp = _triplet_target = _triplet_next_wp = _position;
 		_type = WaypointType::position;
 		return false;
 	}
