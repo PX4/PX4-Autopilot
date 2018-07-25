@@ -40,8 +40,7 @@
 
 using namespace matrix;
 
-#define SIGMA_SINGLE_OP			0.000001f
-#define SIGMA_NORM			0.001f
+
 
 bool FlightTaskAutoMapper::activate()
 {
@@ -100,9 +99,6 @@ void FlightTaskAutoMapper::_reset()
 	// Set setpoints equal current state.
 	_velocity_setpoint = _velocity;
 	_position_setpoint = _position;
-	_yaw_setpoint = _yaw;
-	_destination = _position;
-	_origin = _position;
 	_speed_at_target = 0.0f;
 }
 
