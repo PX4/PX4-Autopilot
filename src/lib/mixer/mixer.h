@@ -221,9 +221,9 @@ public:
 	/**
 	 * @brief Set airmode. Airmode allows the mixer to increase the total thrust in order to unsaturate the motors.
 	 *
-	 * @param[in]  airmode   De/-activate airmode by setting it to false/true
+	 * @param[in]  airmode   Select airmode type (0 = disabled, 1 = roll/pitch, 2 = roll/pitch/yaw)
 	 */
-	virtual void set_airmode(bool airmode) {};
+	virtual void set_airmode(int32_t airmode) {};
 
 protected:
 	/** client-supplied callback used when fetching control values */
@@ -419,7 +419,7 @@ public:
 	 */
 	virtual void	set_thrust_factor(float val);
 
-	virtual void 	set_airmode(bool airmode);
+	virtual void 	set_airmode(uint32_t airmode);
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */
@@ -668,7 +668,7 @@ public:
 	 */
 	virtual void			set_thrust_factor(float val) {_thrust_factor = val;}
 
-	virtual void 			set_airmode(bool airmode);
+	virtual void 			set_airmode(uint32_t airmode);
 
 	union saturation_status {
 		struct {
@@ -695,7 +695,7 @@ private:
 	float 				_delta_out_max;
 	float 				_thrust_factor;
 
-	bool                		_airmode;
+	uint32_t			_airmode;
 
 	void update_saturation_status(unsigned index, bool clipping_high, bool clipping_low);
 	saturation_status _saturation_status;

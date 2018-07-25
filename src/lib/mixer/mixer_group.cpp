@@ -188,7 +188,7 @@ MixerGroup::set_thrust_factor(float val)
 }
 
 void
-MixerGroup::set_airmode(bool airmode)
+MixerGroup::set_airmode(int32_t airmode)
 {
 	Mixer	*mixer = _first;
 

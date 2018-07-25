@@ -572,7 +572,11 @@ PARAM_DEFINE_FLOAT(MC_DTERM_CUTOFF, 30.f);
  * This function should be disabled during tuning as it will help the controller
  * to diverge if the closed-loop is unstable.
  *
- * @boolean
+ * 0 = Disabled, 1 = Roll/Pitch, 2 = Roll/Pitch/Yaw
+ *
+ * @min 0
+ * @max 2
+ * @decimal 0
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_INT32(MC_AIRMODE, 0);
