@@ -2206,7 +2206,7 @@ Commander::run()
 		}
 
 		/* Check for failure detector status */
-		if (armed.armed) {
+		if (armed.armed && !_in_flight_termination) {
 
 			if (_failure_detector.update()) {
 
@@ -2217,15 +2217,16 @@ Commander::run()
 					status_changed = true;
 				}
 
-				if (failure_status != 0 && !status_flags.circuit_breaker_flight_termination_disabled) {
+				if (!status_flags.circuit_breaker_flight_termination_disabled) {
+					if (failure_status != 0) {
 
-					// TODO: set force_failsafe flag
+						armed.force_failsafe = true;
+						status_changed = true;
 
-					if (!_failure_detector_termination_printed) {
-						mavlink_log_critical(&mavlink_log_pub, "Attitude failure detected! Enforcing failsafe");
-						_failure_detector_termination_printed = true;
+						_in_flight_termination = true;
+
+						mavlink_log_critical(&mavlink_log_pub, "Attitude failure detected: force failsafe");
 					}
-
 				}
 			}
 		}
