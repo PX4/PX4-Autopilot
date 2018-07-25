@@ -210,7 +210,7 @@ private:
 
 	perf_counter_t			_perf_control_latency;
 
-	bool 				_airmode = false;
+	int32_t 			_airmode = 0;
 
 	// index into _poll_fds for each _control_subs handle
 	uint8_t				_poll_ids[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
