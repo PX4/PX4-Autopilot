@@ -213,6 +213,10 @@ void FlightTasks::_updateCommand()
 		desired_task = FlightTaskIndex::Orbit;
 		break;
 
+	case vehicle_command_s::VEHICLE_CMD_DO_JOURNEY :
+		desired_task = FlightTaskIndex::Journey;
+		break;
+
 	// ignore all unkown commands
 	default : return;
 	}
