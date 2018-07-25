@@ -99,16 +99,19 @@ bool FlightTaskJourney::activate()
 	_acc_desired = 0.5f;
 	_dec_desired = 0.5f;
 
+	// set start and target position depending on current position, camera orientation and distance
 	_start_position = _position;
 	_target_position = _start_position - u_mount * _distance;
 
+	// setup straight line
 	_straight_line.setLineFromTo(_start_position, _target_position);
 	_straight_line.setSpeed(_vel_desired);
 	_straight_line.setSpeedAtTarget(0.0f);
 	_straight_line.setAcceleration(_acc_desired);
 	_straight_line.setDeceleration(_dec_desired);
 
-	is_returning = false;
+	// set to not returning yet
+	_is_returning = false;
 
 	// call activate() from parent
 	bool ret = FlightTaskManual::activate();
@@ -129,13 +132,13 @@ bool FlightTaskJourney::update()
 	// TODO check smoothness
 	_straight_line.generateSetpoints(_position_setpoint, _velocity_setpoint);
 
-	if (!is_returning && (_target_position - _position).length() < 0.2f) {
+	if (!_is_returning && (_target_position - _position).length() < 0.2f) {
 		_straight_line.setLineFromTo(_target_position, _start_position);
 		_straight_line.setSpeed(_vel_desired);
 		_straight_line.setSpeedAtTarget(0.0f);
 		_straight_line.setAcceleration(_acc_desired);
 		_straight_line.setDeceleration(_dec_desired);
-		is_returning = true;
+		_is_returning = true;
 	}
 
 	return true;

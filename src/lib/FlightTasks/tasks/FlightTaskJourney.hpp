@@ -65,7 +65,7 @@ public:
 private:
 	StraightLine _straight_line;
 
-	bool is_returning = false;
+	bool _is_returning = false;
 
 	float _distance = 0.0f;
 	float _vel_desired = 0.0f;
