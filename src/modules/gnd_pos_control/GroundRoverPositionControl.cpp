@@ -286,7 +286,7 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 
 			/* waypoint is a plain navigation waypoint or the takeoff waypoint, does not matter */
 			_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
-			_att_sp.roll_body = _gnd_control.nav_roll();
+			_att_sp.roll_body = _gnd_control.get_roll_setpoint();
 			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
 			_att_sp.fw_control_yaw = true;
@@ -298,7 +298,7 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 			_gnd_control.navigate_loiter(curr_wp, current_position, pos_sp_triplet.current.loiter_radius,
 						     pos_sp_triplet.current.loiter_direction, ground_speed_2d);
 
-			_att_sp.roll_body = _gnd_control.nav_roll();
+			_att_sp.roll_body = _gnd_control.get_roll_setpoint();
 			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
 			_att_sp.fw_control_yaw = true;
@@ -453,7 +453,7 @@ GroundRoverPositionControl::task_main()
 					/* set new turn distance */
 					_gnd_pos_ctrl_status.turn_distance = turn_distance;
 
-					_gnd_pos_ctrl_status.nav_roll = _gnd_control.nav_roll();
+					_gnd_pos_ctrl_status.nav_roll = _gnd_control.get_roll_setpoint();
 					_gnd_pos_ctrl_status.nav_pitch = 0.0f;
 					_gnd_pos_ctrl_status.nav_bearing = _gnd_control.nav_bearing();
 
