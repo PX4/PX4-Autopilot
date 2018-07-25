@@ -67,6 +67,11 @@ private:
 
 	bool is_returning = false;
 
+	float _distance = 0.0f;
+	float _vel_desired = 0.0f;
+	float _acc_desired = 0.0f;
+	float _dec_desired = 0.0f;
+
 	matrix::Vector3f _start_position{};
 	matrix::Vector3f _target_position{};
 

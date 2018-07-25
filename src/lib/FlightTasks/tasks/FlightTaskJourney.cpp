@@ -78,15 +78,20 @@ bool FlightTaskJourney::activate()
 	Vector3f u_mount = rot_attitude * rot_mount * Vector3f(1.0f, 0.0f,
 			   0.0f); // unit vector of the camera/gimbal direction in the vehicle frame
 
-	float distance = 20.0f; // TODO make parameter
+	// set defaults
+	_distance = 20.0f;
+	_vel_desired = 3.0f;
+	_acc_desired = 0.5f;
+	_dec_desired = 0.5f;
+
 	_start_position = _position;
-	_target_position = _start_position - u_mount * distance;
+	_target_position = _start_position - u_mount * _distance;
 
 	_straight_line.setLineFromTo(_start_position, _target_position);
-	_straight_line.setSpeed(2.0f);
+	_straight_line.setSpeed(_vel_desired);
 	_straight_line.setSpeedAtTarget(0.0f);
-	_straight_line.setAcceleration(0.5f);
-	_straight_line.setDeceleration(0.5f);
+	_straight_line.setAcceleration(_acc_desired);
+	_straight_line.setDeceleration(_dec_desired);
 
 	is_returning = false;
 
@@ -111,10 +116,10 @@ bool FlightTaskJourney::update()
 
 	if (!is_returning && (_target_position - _position).length() < 0.2f) {
 		_straight_line.setLineFromTo(_target_position, _start_position);
-		_straight_line.setSpeed(2.0f);
+		_straight_line.setSpeed(_vel_desired);
 		_straight_line.setSpeedAtTarget(0.0f);
-		_straight_line.setAcceleration(0.5f);
-		_straight_line.setDeceleration(0.5f);
+		_straight_line.setAcceleration(_acc_desired);
+		_straight_line.setDeceleration(_dec_desired);
 		is_returning = true;
 	}
 
