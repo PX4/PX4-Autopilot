@@ -104,7 +104,9 @@ private:
 
 		(ParamInt<px4::params::COM_POS_FS_DELAY>) _failsafe_pos_delay,
 		(ParamInt<px4::params::COM_POS_FS_PROB>) _failsafe_pos_probation,
-		(ParamInt<px4::params::COM_POS_FS_GAIN>) _failsafe_pos_gain
+		(ParamInt<px4::params::COM_POS_FS_GAIN>) _failsafe_pos_gain,
+
+		(ParamInt<px4::params::PWM_CHUTE_OUT>) _parachute_output_channel
 	)
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
