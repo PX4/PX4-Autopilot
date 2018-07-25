@@ -401,6 +401,8 @@
 
 #define PX4_GPIO_INIT_LIST { \
 		PX4_ADC_GPIO,                     \
+		GPIO_CAN1_RX,                     \
+		GPIO_CAN1_TX,                     \
 	}
 
 __BEGIN_DECLS
