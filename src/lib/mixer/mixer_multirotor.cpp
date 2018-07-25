@@ -72,7 +72,7 @@ MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 	_idle_speed(-1.0f + idle_speed * 2.0f),	/* shift to output range here to avoid runtime calculation */
 	_delta_out_max(0.0f),
 	_thrust_factor(0.0f),
-	_airmode(false),
+	_airmode(0),
 	_rotor_count(_config_rotor_count[(MultirotorGeometryUnderlyingType)geometry]),
 	_rotors(_config_index[(MultirotorGeometryUnderlyingType)geometry]),
 	_outputs_prev(new float[_rotor_count])
@@ -214,7 +214,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		boost = 1.0f - ((max_out - thrust) * roll_pitch_scale + thrust);
 	}
 
-	if (!_airmode) {
+	if (_airmode == 0) {
 		// disable positive boosting if not in air-mode
 		// boosting can only be positive when min_out < 0.0
 		// roll_pitch_scale is reduced accordingly
@@ -425,7 +425,7 @@ MultirotorMixer::update_saturation_status(unsigned index, bool clipping_high, bo
 }
 
 void
-MultirotorMixer::set_airmode(bool airmode)
+MultirotorMixer::set_airmode(int32_t airmode)
 {
 	_airmode = airmode;
 }

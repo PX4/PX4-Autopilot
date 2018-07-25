@@ -131,7 +131,7 @@ private:
 	actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {};
 	orb_id_t	_control_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {};
 
-	bool 	_airmode{false}; 	///< multicopter air-mode
+	int32_t 	_airmode{0}; 	///< multicopter air-mode
 
 	perf_counter_t	_perf_control_latency;
 
