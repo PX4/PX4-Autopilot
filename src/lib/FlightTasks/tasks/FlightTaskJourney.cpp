@@ -64,8 +64,23 @@ bool FlightTaskJourney::initializeSubscriptions(SubscriptionArray &subscription_
 
 bool FlightTaskJourney::applyCommandParameters(const vehicle_command_s &command)
 {
-	// TODO get parameters from command
-	return FlightTaskManual::applyCommandParameters(command);
+	const float &dist = command.param1; /**< commanded distance */
+	const float &vel  = command.param2; /**< commanded velocity */
+	const float &acc  = command.param3; /**< commanded acceleration */
+	const float &dec  = command.param4; /**< commanded deceleration */
+
+	if (dist > 0 && dist < 50.0f &&
+	    vel  > 0 && vel  < 10.0f &&
+	    acc  > 0 && acc  < 10.0f &&
+	    dec  > 0 && dec  < 10.0f) {
+		_distance = dist;
+		_vel_desired = vel;
+		_acc_desired = acc;
+		_dec_desired = dec;
+		return FlightTaskManual::applyCommandParameters(command);
+	}
+
+	return false;
 }
 
 bool FlightTaskJourney::activate()
