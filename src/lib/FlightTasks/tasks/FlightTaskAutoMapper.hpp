@@ -53,28 +53,15 @@ public:
 
 protected:
 
-	matrix::Vector3f _destination{}; /**< Current target. Is not necessarily the same as triplet target. */
-	matrix::Vector3f _origin{}; /**< Previous waypoint. Is not necessarily the same as triplet previous. */
-	float _speed_at_target = 0.0f; /**< Desired velocity at target. */
 	float _alt_above_ground{0.0f}; /**< If home provided, then it is altitude above home, otherwise it is altitude above local position reference. */
-
-	enum class State {
-		offtrack, /**< Vehicle is more than cruise speed away from track */
-		target_behind, /**< Vehicle is in front of target. */
-		previous_infront, /**< Vehilce is behind previous waypoint.*/
-		none /**< Vehicle is in normal tracking mode from triplet previous to triplet target */
-	};
-	State _current_state{State::none};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAuto,
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) MPC_LAND_SPEED,
-					(ParamFloat<px4::params::MPC_CRUISE_90>) MPC_CRUISE_90, // speed at corner when angle is 90 degrees move to line
-					(ParamFloat<px4::params::NAV_ACC_RAD>) NAV_ACC_RAD, // acceptance radius at which waypoints are updated move to line
+					(ParamFloat<px4::params::MPC_TILTMAX_LND>) MPC_TILTMAX_LND,
 					(ParamFloat<px4::params::MPC_LAND_ALT1>) MPC_LAND_ALT1, // altitude at which speed limit downwards reaches maximum speed
 					(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude at which speed limit downwards reached minimum speed
-					(ParamFloat<px4::params::MPC_TILTMAX_LND>) MPC_TILTMAX_LND,
 					(ParamFloat<px4::params::MPC_TKO_SPEED>) MPC_TKO_SPEED
-				       )
+				       );
 
 	virtual void _generateSetpoints() = 0; /**< Generate velocity and position setpoint for following line. */
 
