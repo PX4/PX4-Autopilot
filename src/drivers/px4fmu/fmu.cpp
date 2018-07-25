@@ -237,7 +237,7 @@ private:
 
 	float _mot_t_max;	///< maximum rise time for motor (slew rate limiting)
 	float _thr_mdl_fac;	///< thrust to pwm modelling factor
-	bool _airmode; 		///< multicopter air-mode
+	int32_t _airmode;	///< multicopter air-mode
 	MotorOrdering _motor_ordering;
 
 	perf_counter_t	_perf_control_latency;
@@ -321,7 +321,7 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_to_mixer_status(nullptr),
 	_mot_t_max(0.0f),
 	_thr_mdl_fac(0.0f),
-	_airmode(false),
+	_airmode(0),
 	_motor_ordering(MotorOrdering::PX4),
 	_perf_control_latency(perf_alloc(PC_ELAPSED, "fmu control latency"))
 {
@@ -1195,7 +1195,7 @@ PX4FMU::cycle()
 					}
 				}
 
-				/* overwrite outputs in case of lockdown with disarmed PWM values */
+				/* overwrite outputs in case of lockdown or parachute triggering with disarmed PWM values */
 				if (_armed.lockdown || _armed.manual_lockdown) {
 					for (size_t i = 0; i < mixed_num_outputs; i++) {
 						pwm_limited[i] = _disarmed_pwm[i];
@@ -1382,10 +1382,7 @@ void PX4FMU::update_params()
 	param_handle = param_find("MC_AIRMODE");
 
 	if (param_handle != PARAM_INVALID) {
-		int32_t val;
-		param_get(param_handle, &val);
-		_airmode = val > 0;
-		PX4_DEBUG("%s: %d", "MC_AIRMODE", _airmode);
+		param_get(param_handle, &_airmode);
 	}
 
 	// motor ordering
