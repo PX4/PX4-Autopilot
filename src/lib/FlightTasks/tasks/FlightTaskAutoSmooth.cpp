@@ -48,7 +48,7 @@ FlightTaskAutoSmooth::FlightTaskAutoSmooth() :
 
 bool FlightTaskAutoSmooth::activate()
 {
-	bool ret = FlightTaskAuto::activate();
+	bool ret = FlightTaskAutoMapper::activate();
 
 	ret = ret && PX4_ISFINITE(_position(0))
 	      && PX4_ISFINITE(_position(1))
@@ -60,7 +60,7 @@ bool FlightTaskAutoSmooth::activate()
 	return ret;
 }
 
-bool FlightTaskAutoSmooth::update()
+void FlightTaskAutoSmooth::_generateSetpoints()
 {
 	if (_control_points_update) {
 		_update_control_points();
@@ -73,12 +73,7 @@ bool FlightTaskAutoSmooth::update()
 		float desired_vel = math::getVelocityFromAngle(angle, 1.0f, MPC_CRUISE_90.get(), _mc_cruise_speed);
 
 		// straight line
-		if (_type == WaypointType::loiter) {
-			_sl.setLineFromTo(_prev_wp, _target);
-
-		} else {
-			_sl.setLineFromTo(_prev_wp, _pt_0);
-		}
+		_sl.setLineFromTo(_prev_wp, _pt_0);
 		_sl.setSpeed(_mc_cruise_speed);
 		_sl.setSpeedAtTarget(desired_vel);
 		_sl.setAcceleration(2.0f);
@@ -102,6 +97,7 @@ bool FlightTaskAutoSmooth::update()
 
 	if (_pt_0_reached_once && !pt_1_reached) {
 		_b.getStatesClosest(_position_setpoint, _velocity_setpoint, acceleration, _position);
+
 	} else if (!pt_1_reached) {
 		_control_points_update = true;
 		_sl.generateSetpoints(_position_setpoint, _velocity_setpoint);
@@ -113,8 +109,6 @@ bool FlightTaskAutoSmooth::update()
 		_pt_0_reached_once = false;
 	}
 
-	return true;
-
 }
 
 void FlightTaskAutoSmooth::_update_control_points()
@@ -124,9 +118,4 @@ void FlightTaskAutoSmooth::_update_control_points()
 
 	_pt_0 = _target - (u_prev_to_target * NAV_ACC_RAD.get());
 	_pt_1 = _target + (u_target_to_next * NAV_ACC_RAD.get());
-}
-
-void FlightTaskAutoSmooth::updateParams()
-{
-	FlightTaskAuto::updateParams();
 }

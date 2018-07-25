@@ -40,25 +40,23 @@
 
 #pragma once
 
-#include "FlightTaskAuto.hpp"
+#include "FlightTaskAutoMapper.hpp"
 #include "lib/bezier/BezierQuad.hpp"
 #include "Utility/StraightLine.hpp"
 
-class FlightTaskAutoSmooth : public FlightTaskAuto
+class FlightTaskAutoSmooth : public FlightTaskAutoMapper
 {
 public:
 	FlightTaskAutoSmooth();
 	virtual ~FlightTaskAutoSmooth() = default;
 	bool activate() override;
-	bool update() override;
+	void _generateSetpoints() override;
 
 protected:
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAuto,
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAutoMapper,
 					(ParamFloat<px4::params::NAV_ACC_RAD>) NAV_ACC_RAD, // acceptance radius at which waypoints are updated
 					(ParamFloat<px4::params::MPC_CRUISE_90>) MPC_CRUISE_90 // speed at corner when angle is 90 degrees
-				    )
-
-	void updateParams() override; /**< See ModuleParam class */
+				       )
 
 private:
 
