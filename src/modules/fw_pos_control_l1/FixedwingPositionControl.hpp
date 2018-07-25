@@ -66,11 +66,13 @@
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <perf/perf_counter.h>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_bias.h>
@@ -114,6 +116,7 @@ using matrix::Quatf;
 using matrix::Vector2f;
 using matrix::Vector3f;
 
+using uORB::Publication;
 using uORB::Subscription;
 
 using namespace launchdetection;
@@ -180,6 +183,8 @@ private:
 
 	Subscription<airspeed_s> _sub_airspeed;
 	Subscription<sensor_bias_s> _sub_sensors;
+
+	Publication<position_controller_status_s> _position_controller_status_pub{ORB_ID(position_controller_status)};
 
 	perf_counter_t	_loop_perf;				///< loop performance counter */
 

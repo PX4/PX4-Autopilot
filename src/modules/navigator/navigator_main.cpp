@@ -59,9 +59,9 @@
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <systemlib/mavlink_log.h>
-#include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
+#include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_status.h>
@@ -76,6 +76,8 @@
 extern "C" __EXPORT int navigator_main(int argc, char *argv[]);
 
 #define GEOFENCE_CHECK_INTERVAL 200000
+
+using namespace time_literals;
 
 namespace navigator
 {
@@ -142,17 +144,6 @@ Navigator::home_position_update(bool force)
 }
 
 void
-Navigator::fw_pos_ctrl_status_update(bool force)
-{
-	bool updated = false;
-	orb_check(_fw_pos_ctrl_status_sub, &updated);
-
-	if (updated || force) {
-		orb_copy(ORB_ID(fw_pos_ctrl_status), _fw_pos_ctrl_status_sub, &_fw_pos_ctrl_status);
-	}
-}
-
-void
 Navigator::vehicle_status_update()
 {
 	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK) {
@@ -193,7 +184,6 @@ Navigator::run()
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	_fw_pos_ctrl_status_sub = orb_subscribe(ORB_ID(fw_pos_ctrl_status));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
@@ -209,7 +199,6 @@ Navigator::run()
 	local_position_update();
 	gps_position_update();
 	home_position_update(true);
-	fw_pos_ctrl_status_update(true);
 	params_update();
 
 	/* wakeup source(s) */
@@ -293,11 +282,7 @@ Navigator::run()
 		}
 
 		/* navigation capabilities updated */
-		orb_check(_fw_pos_ctrl_status_sub, &updated);
-
-		if (updated) {
-			fw_pos_ctrl_status_update();
-		}
+		_position_controller_status_sub.update();
 
 		/* home position updated */
 		orb_check(_home_pos_sub, &updated);
@@ -778,7 +763,6 @@ Navigator::run()
 	orb_unsubscribe(_global_pos_sub);
 	orb_unsubscribe(_local_pos_sub);
 	orb_unsubscribe(_gps_pos_sub);
-	orb_unsubscribe(_fw_pos_ctrl_status_sub);
 	orb_unsubscribe(_vstatus_sub);
 	orb_unsubscribe(_land_detected_sub);
 	orb_unsubscribe(_home_pos_sub);
@@ -934,10 +918,11 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 	// when in fixed wing mode
 	// this might need locking against a commanded transition
 	// so that a stale _vstatus doesn't trigger an accepted mission item.
-	if (!_vstatus.is_rotary_wing && !_vstatus.in_transition_mode) {
-		if ((hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) < 5000000) && (_fw_pos_ctrl_status.turn_distance > radius)) {
-			radius = _fw_pos_ctrl_status.turn_distance;
-		}
+
+	const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
+
+	if ((pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp) && pos_ctrl_status.acceptance_radius > radius) {
+		radius = pos_ctrl_status.acceptance_radius;
 	}
 
 	return radius;
@@ -1102,12 +1087,12 @@ Navigator::abort_landing()
 	bool should_abort = false;
 
 	if (!_vstatus.is_rotary_wing && !_vstatus.in_transition_mode) {
-		if (hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) < 1000000) {
+		if (hrt_elapsed_time(&_position_controller_status_sub.get().timestamp) < 1_s) {
 
 			if (get_position_setpoint_triplet()->current.valid
 			    && get_position_setpoint_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
-				should_abort = _fw_pos_ctrl_status.abort_landing;
+				should_abort = _position_controller_status_sub.get().abort_landing;
 			}
 		}
 	}

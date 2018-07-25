@@ -151,9 +151,6 @@ GroundRoverPositionControl::parameters_update()
 			   _parameters.gndspeed_max);
 
 	/* Update and publish the navigation capabilities */
-	_gnd_pos_ctrl_status.landing_slope_angle_rad = 0;
-	_gnd_pos_ctrl_status.landing_horizontal_slope_displacement = 0;
-	_gnd_pos_ctrl_status.landing_flare_length = 0;
 	gnd_pos_ctrl_status_publish();
 
 	return OK;
@@ -197,10 +194,10 @@ void GroundRoverPositionControl::gnd_pos_ctrl_status_publish()
 	_gnd_pos_ctrl_status.timestamp = hrt_absolute_time();
 
 	if (_gnd_pos_ctrl_status_pub != nullptr) {
-		orb_publish(ORB_ID(fw_pos_ctrl_status), _gnd_pos_ctrl_status_pub, &_gnd_pos_ctrl_status);
+		orb_publish(ORB_ID(position_controller_status), _gnd_pos_ctrl_status_pub, &_gnd_pos_ctrl_status);
 
 	} else {
-		_gnd_pos_ctrl_status_pub = orb_advertise(ORB_ID(fw_pos_ctrl_status), &_gnd_pos_ctrl_status);
+		_gnd_pos_ctrl_status_pub = orb_advertise(ORB_ID(position_controller_status), &_gnd_pos_ctrl_status);
 	}
 }
 
@@ -447,22 +444,22 @@ GroundRoverPositionControl::task_main()
 
 				/* lazily publish navigation capabilities */
 				if ((hrt_elapsed_time(&_gnd_pos_ctrl_status.timestamp) > 1000000)
-				    || (fabsf(turn_distance - _gnd_pos_ctrl_status.turn_distance) > FLT_EPSILON
+				    || (fabsf(turn_distance - _gnd_pos_ctrl_status.acceptance_radius) > FLT_EPSILON
 					&& turn_distance > 0)) {
 
 					/* set new turn distance */
-					_gnd_pos_ctrl_status.turn_distance = turn_distance;
+					_gnd_pos_ctrl_status.acceptance_radius = turn_distance;
 
-					_gnd_pos_ctrl_status.nav_roll = _gnd_control.get_roll_setpoint();
-					_gnd_pos_ctrl_status.nav_pitch = 0.0f;
-					_gnd_pos_ctrl_status.nav_bearing = _gnd_control.nav_bearing();
-
-					_gnd_pos_ctrl_status.target_bearing = _gnd_control.target_bearing();
-					_gnd_pos_ctrl_status.xtrack_error = _gnd_control.crosstrack_error();
-
-					matrix::Vector2f curr_wp((float)_pos_sp_triplet.current.lat, (float)_pos_sp_triplet.current.lon);
-					_gnd_pos_ctrl_status.wp_dist = get_distance_to_next_waypoint((double)current_position(0), (double)current_position(1),
-								       (double)curr_wp(0), (double)curr_wp(1));
+//					_gnd_pos_ctrl_status.nav_roll = _gnd_control.get_roll_setpoint();
+//					_gnd_pos_ctrl_status.nav_pitch = 0.0f;
+//					_gnd_pos_ctrl_status.nav_bearing = _gnd_control.nav_bearing();
+//
+//					_gnd_pos_ctrl_status.target_bearing = _gnd_control.target_bearing();
+//					_gnd_pos_ctrl_status.xtrack_error = _gnd_control.crosstrack_error();
+//
+//					matrix::Vector2f curr_wp((float)_pos_sp_triplet.current.lat, (float)_pos_sp_triplet.current.lon);
+//					_gnd_pos_ctrl_status.wp_dist = get_distance_to_next_waypoint((double)current_position(0), (double)current_position(1),
+//								       (double)curr_wp(0), (double)curr_wp(1));
 
 					gnd_pos_ctrl_status_publish();
 				}

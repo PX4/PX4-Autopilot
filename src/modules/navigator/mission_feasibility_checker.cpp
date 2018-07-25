@@ -395,19 +395,21 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 
 				if (MissionBlock::item_contains_position(missionitem_previous)) {
 
-					const bool fw_status_valid = (_navigator->get_fw_pos_ctrl_status()->timestamp > 0);
+					uORB::Subscription<fw_pos_ctrl_status_s> fw_pos_ctrl_status{ORB_ID(fw_pos_ctrl_status)};
+
+					const bool fw_status_valid = (fw_pos_ctrl_status.get().timestamp > 0);
 					const float wp_distance = get_distance_to_next_waypoint(missionitem_previous.lat, missionitem_previous.lon,
 								  missionitem.lat, missionitem.lon);
 
-					if (fw_status_valid && (wp_distance > _navigator->get_fw_pos_ctrl_status()->landing_flare_length)) {
+					if (fw_status_valid && (wp_distance > fw_pos_ctrl_status.get().landing_flare_length)) {
 						/* Last wp is before flare region */
 
 						const float delta_altitude = missionitem.altitude - missionitem_previous.altitude;
 
 						if (delta_altitude < 0) {
 
-							const float horizontal_slope_displacement = _navigator->get_fw_pos_ctrl_status()->landing_horizontal_slope_displacement;
-							const float slope_angle_rad = _navigator->get_fw_pos_ctrl_status()->landing_slope_angle_rad;
+							const float horizontal_slope_displacement = fw_pos_ctrl_status.get().landing_horizontal_slope_displacement;
+							const float slope_angle_rad = fw_pos_ctrl_status.get().landing_slope_angle_rad;
 							const float slope_alt_req = Landingslope::getLandingSlopeAbsoluteAltitude(wp_distance, missionitem.altitude,
 										    horizontal_slope_displacement, slope_angle_rad);
 
