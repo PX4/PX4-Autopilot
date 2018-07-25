@@ -2501,7 +2501,6 @@ Commander::run()
 			}
 		}
 
-
 		/* Check for failure detector status */
 		if (armed.armed) {
 
@@ -2515,7 +2514,7 @@ Commander::run()
 					armed.parachute_failsafe = true;
 					status_changed = true;
 
-					// Only display an user message if the parachute output is set to some value
+					/* Only display an user message if the parachute output is set to some value */
 					if (_parachute_output_channel.get() != 0) {
 						static bool parachute_termination_printed = false;
 
@@ -2530,6 +2529,8 @@ Commander::run()
 					}
 				}
 			}
+			/* Stop the motors if the parachute is deployed */
+			armed.lockdown |= armed.parachute_failsafe;
 		}
 
 		/* Get current timestamp */
