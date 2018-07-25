@@ -210,6 +210,11 @@ stm32_boardinitialize(void)
 	px4_arch_configgpio(GPIO_VDD_BRICK_VALID);
 	px4_arch_configgpio(GPIO_VDD_5V_PERIPH_OC);
 
+	/* configure CAN interface */
+
+	stm32_configgpio(GPIO_CAN1_RX);
+	stm32_configgpio(GPIO_CAN1_TX);
+
 	/* configure SPI interfaces */
 
 	stm32_spiinitialize();
