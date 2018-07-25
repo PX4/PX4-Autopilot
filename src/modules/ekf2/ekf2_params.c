@@ -432,6 +432,7 @@ PARAM_DEFINE_FLOAT(EKF2_BETA_NOISE, 0.3f);
  * Magnetic declination
  *
  * @group EKF2
+ * @volatile
  * @unit deg
  * @decimal 1
  */
