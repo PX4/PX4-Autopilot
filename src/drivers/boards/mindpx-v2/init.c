@@ -190,6 +190,10 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_SBUS_INV);
 	stm32_configgpio(GPIO_FRSKY_INV);
 
+	/* configure CAN interface */
+
+	stm32_configgpio(GPIO_CAN1_RX);
+	stm32_configgpio(GPIO_CAN1_TX);
 
 	/* configure SPI interfaces */
 
