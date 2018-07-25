@@ -375,6 +375,13 @@ pwm_main(int argc, char *argv[])
 
 		return 0;
 
+    }else if (!strcmp(command, "led")) {
+        /* set pwm led flag */
+        printf("[pwm cmd] Set use pwm led\n");
+        ret = px4_ioctl(fd, PWM_SERVO_SET_USE_PWM_LED, 1);
+        
+        return 0;
+        
 	} else if (oneshot || !strcmp(command, "rate")) {
 
 		/* Change alternate PWM rate or set oneshot

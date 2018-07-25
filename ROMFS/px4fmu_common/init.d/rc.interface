@@ -183,11 +183,27 @@ else
 	fi
 fi
 
+
+#set pwm led flag on /dev/pwm_output0
+if [ $USE_PWM_LED == yes ]
+then
+    pwm led
+fi
+
 if [ $MIXER_AUX != none -a $AUX_MODE != none ]
 then
 	#
 	# Load aux mixer.
 	#
+	set MIXER_AUX_FILE none
+	set OUTPUT_AUX_DEV /dev/pwm_output1
+
+    #set pwm led flag on /dev/pwm_output1
+    if [ $USE_PWM_LED == yes ]
+    then
+        pwm led -d ${OUTPUT_AUX_DEV}
+    fi
+
 	if [ -f ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix ]
 	then
 		set MIXER_AUX_FILE ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix
@@ -234,7 +250,7 @@ then
 			set FAILSAFE_AUX none
 		fi
 
-		# Set min / max for aux out and rates.
+		# Set min / max for aux out and rates
 		if [ $PWM_AUX_OUT != none ]
 		then
 			# Set PWM_AUX output frequency.
@@ -324,7 +340,7 @@ then
 	fi
 fi
 
-if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == io ]
+if [ $OUTPUT_MODE != none ]
 then
 	if [ $PWM_OUT != none ]
 	then
