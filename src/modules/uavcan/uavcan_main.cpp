@@ -534,24 +534,6 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	}
 
 	/*
-	 * GPIO config.
-	 * Forced pull up on CAN2 is required for Pixhawk v1 where the second interface lacks a transceiver.
-	 * If no transceiver is connected, the RX pin will float, occasionally causing CAN controller to
-	 * fail during initialization.
-	 */
-#if defined(GPIO_CAN1_RX)
-	px4_arch_configgpio(GPIO_CAN1_RX);
-	px4_arch_configgpio(GPIO_CAN1_TX);
-#endif
-#if defined(GPIO_CAN2_RX)
-	px4_arch_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
-	px4_arch_configgpio(GPIO_CAN2_TX);
-#endif
-#if !defined(GPIO_CAN1_RX) &&  !defined(GPIO_CAN2_RX)
-# error  "Need to define GPIO_CAN1_RX and/or GPIO_CAN2_RX"
-#endif
-
-	/*
 	 * CAN driver init
 	 * Note that we instantiate and initialize CanInitHelper only once, because the STM32's bxCAN driver
 	 * shipped with libuavcan does not support deinitialization.
