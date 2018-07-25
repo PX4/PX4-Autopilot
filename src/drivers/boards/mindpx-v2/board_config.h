@@ -334,6 +334,10 @@
 
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
+/* This board provides the board_on_reset interface */
+
+#define BOARD_HAS_ON_RESET 1
+
 __BEGIN_DECLS
 
 /****************************************************************************************************
