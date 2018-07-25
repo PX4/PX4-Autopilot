@@ -2181,16 +2181,6 @@ Commander::run()
 			}
 		}
 
-		if (_failure_detector.update()) {
-			const auto _failure_status = _failure_detector.get();
-			if (_failure_status.roll) {
-				PX4_ERR("Roll angle exceeded");
-			}
-			if (_failure_status.pitch) {
-				PX4_ERR("Pitch angle exceeded");
-			}
-		}
-
 		/* Reset main state to loiter or auto-mission after takeoff is completed.
 		 * Sometimes, the mission result topic is outdated and the mission is still signaled
 		 * as finished even though we only just started with the takeoff. Therefore, we also
@@ -2289,6 +2279,37 @@ Commander::run()
 
 				if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
 					mavlink_log_critical(&mavlink_log_pub, "RC and GPS lost: flight termination");
+				}
+			}
+		}
+
+
+		/* Check for failure detector status */
+		if (armed.armed) {
+
+			if (_failure_detector.update()) {
+
+				const auto _failure_status = _failure_detector.get();
+
+				if (_failure_status.roll ||
+					_failure_status.pitch) {
+
+					armed.force_failsafe = true;
+					status_changed = true;
+
+					// Only display an user message if the circuit-breaker is disabled
+					if (!status_flags.circuit_breaker_flight_termination_disabled) {
+						static bool parachute_termination_printed = false;
+
+						if (!parachute_termination_printed) {
+							warnx("Flight termination because of attitude exceeding maximum values");
+							parachute_termination_printed = true;
+						}
+
+						if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
+							mavlink_log_critical(&mavlink_log_pub, "Attitude failure detected: force failsafe");
+						}
+					}
 				}
 			}
 		}
