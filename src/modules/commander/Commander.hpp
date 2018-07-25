@@ -108,7 +108,6 @@ private:
 		(ParamInt<px4::params::COM_POS_FS_GAIN>) _failsafe_pos_gain,
 
 		(ParamInt<px4::params::COM_LOW_BAT_ACT>) _low_bat_action
-
 	)
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
