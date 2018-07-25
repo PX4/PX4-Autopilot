@@ -69,7 +69,8 @@ RTL::on_activation()
 		// For safety reasons don't go into RTL if landed.
 		_rtl_state = RTL_STATE_LANDED;
 
-	} else if (_navigator->get_position_setpoint_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+	} else if (_navigator->get_position_setpoint_triplet()->current.valid
+		   && _navigator->get_position_setpoint_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 		// Skip straight to land if already performing a land.
 		_rtl_state = RTL_STATE_LAND;
 
