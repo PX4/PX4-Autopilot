@@ -40,20 +40,6 @@
 #include <float.h>
 
 using namespace matrix;
-uint8_t FlightTaskManualStabilized::_heading_reset_counter = 0;
-
-bool FlightTaskManualStabilized::initializeSubscriptions(SubscriptionArray &subscription_array)
-{
-	if (!FlightTaskManual::initializeSubscriptions(subscription_array)) {
-		return false;
-	}
-
-	if (!subscription_array.get(ORB_ID(vehicle_attitude), _sub_attitude)) {
-		return false;
-	}
-
-	return true;
-}
 
 bool FlightTaskManualStabilized::activate()
 {
