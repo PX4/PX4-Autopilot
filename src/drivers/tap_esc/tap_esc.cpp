@@ -723,7 +723,7 @@ int TAP_ESC::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("tap_esc",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_ACTUATOR_OUTPUTS,
-				      1100,
+				      1180,
 				      (px4_main_t)&run_trampoline,
 				      argv);
 
