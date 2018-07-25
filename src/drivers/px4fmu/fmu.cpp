@@ -181,6 +181,8 @@ private:
 		Betaflight = 1
 	};
 
+
+    bool _use_pwm_led = false;
 	hrt_abstime _cycle_timestamp = 0;
 	hrt_abstime _last_safety_check = 0;
 	hrt_abstime _time_last_mix = 0;
@@ -928,10 +930,16 @@ void
 PX4FMU::pwm_output_set(unsigned i, unsigned value)
 {
     if (_pwm_initialized) {
+        if (_use_pwm_led) {
+            if (i > 4) {
+                return;
+            }
+        }
+
 #ifdef BOARD_HAS_ECU_PWM
         i = i + 8 ;
 #endif
-        up_pwm_servo_set(i, value);
+         up_pwm_servo_set(i, value);
     }
 }
     
@@ -1526,6 +1534,10 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	lock();
 
 	switch (cmd) {
+    case PWM_SERVO_SET_USE_PWM_LED:
+        _use_pwm_led = true;
+        break;
+            
 	case PWM_SERVO_ARM:
 		update_pwm_out_state(true);
 		break;

@@ -202,7 +202,17 @@ else
 fi
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+
+#set pwm led flag on /dev/pwm_output0
+if [ $USE_PWM_LED == yes ]
+then
+    pwm led
+fi
+
+>>>>>>> Unify MindPX and new MindRacer in one target
 #if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == io -o $OUTPUT_MODE == ecu]
 if [ $OUTPUT_MODE != none ]
 then
@@ -266,6 +276,19 @@ then
 	#
 	# Load aux mixer.
 	#
+<<<<<<< HEAD
+=======
+
+	set MIXER_AUX_FILE none
+	set OUTPUT_AUX_DEV /dev/pwm_output1
+
+    #set pwm led flag on /dev/pwm_output1
+    if [ $USE_PWM_LED == yes ]
+    then
+        pwm led -d ${OUTPUT_AUX_DEV}
+    fi
+
+>>>>>>> Unify MindPX and new MindRacer in one target
 	if [ -f ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix ]
 	then
 		set MIXER_AUX_FILE ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix
@@ -317,12 +340,8 @@ then
 			set PWM_AUX_OUT none
 			set FAILSAFE_AUX none
 		fi
-<<<<<<< HEAD
 
-		# Set min / max for aux out and rates.
-=======
 		# Set min / max for aux out and rates
->>>>>>> 1. add px4ecu (engine control unit) component to support main/aux co-existence on FMU.
 		if [ $PWM_AUX_OUT != none ]
 		then
 			# Set PWM_AUX output frequency.

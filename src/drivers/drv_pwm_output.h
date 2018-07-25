@@ -251,6 +251,10 @@ struct pwm_output_rc_config {
 /** set SBUS output frame rate in Hz */
 #define PWM_SERVO_SET_SBUS_RATE			_PX4_IOC(_PWM_SERVO_BASE, 33)
 
+/** set PWM LED used */
+#define PWM_SERVO_SET_USE_PWM_LED            _PX4_IOC(_PWM_SERVO_BASE, 35)
+
+
 /** set auxillary output mode. These correspond to enum Mode in px4fmu/fmu.cpp */
 #define PWM_SERVO_MODE_NONE         0
 #define PWM_SERVO_MODE_1PWM         1
