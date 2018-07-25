@@ -114,6 +114,12 @@ __EXPORT void stm32_boardinitialize(void)
 	board_autoled_initialize();
 	board_button_initialize();
 	stm32_configgpio(GPIO_CAN_CTRL);
+
+	/* configure CAN interface */
+
+	stm32_configgpio(GPIO_CAN1_RX);
+	stm32_configgpio(GPIO_CAN1_TX);
+
 #if defined(CONFIG_STM32_SPI1) || defined(CONFIG_STM32_SPI2) || \
     defined(CONFIG_STM32_SPI3)
 	board_spiinitialize();
