@@ -72,8 +72,9 @@ RTL::rtl_type() const
 void
 RTL::on_activation()
 {
-	if (_navigator->get_land_detected()->landed) {
-		// for safety reasons don't go into RTL if landed
+	if (_navigator->get_land_detected()->landed
+	    || (_navigator->get_position_setpoint_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND)) {
+		// for safety reasons don't go into RTL if landed or currently in landing
 		_rtl_state = RTL_STATE_LANDED;
 
 	} else if ((rtl_type() == RTL_LAND) && _navigator->on_mission_landing()) {
