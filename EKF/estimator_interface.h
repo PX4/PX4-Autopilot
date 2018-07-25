@@ -316,10 +316,12 @@ public:
 	}
 
 	// Get the value of magnetic declination in degrees to be saved for use at the next startup
+	// Returns true when the declination can be saved
 	// At the next startup, set param.mag_declination_deg to the value saved
-	void get_mag_decl_deg(float *val)
+	bool get_mag_decl_deg(float *val)
 	{
 		*val = _mag_declination_to_save_deg;
+		return _NED_origin_initialised && (_params.mag_declination_source & MASK_SAVE_GEO_DECL);
 	}
 
 	virtual void get_accel_bias(float bias[3]) = 0;
