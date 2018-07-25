@@ -43,7 +43,6 @@
 
 #include <dataman/dataman.h>
 #include <uORB/topics/mission.h>
-#include <uORB/topics/fw_pos_ctrl_status.h>
 
 class Geofence;
 class Navigator;

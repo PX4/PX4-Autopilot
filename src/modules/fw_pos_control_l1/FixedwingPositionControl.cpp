@@ -277,13 +277,7 @@ FixedwingPositionControl::parameters_update()
 
 	_landingslope.update(radians(land_slope_angle), land_flare_alt_relative, land_thrust_lim_alt_relative, land_H1_virt);
 
-
-	// Update and publish the navigation capabilities
-	_fw_pos_ctrl_status.landing_slope_angle_rad = _landingslope.landing_slope_angle_rad();
-	_fw_pos_ctrl_status.landing_horizontal_slope_displacement = _landingslope.horizontal_slope_displacement();
-	_fw_pos_ctrl_status.landing_flare_length = _landingslope.flare_length();
-	fw_pos_ctrl_status_publish();
-
+	landing_status_publish();
 
 	// sanity check parameters
 	if ((_parameters.airspeed_max < _parameters.airspeed_min) ||
@@ -546,16 +540,119 @@ FixedwingPositionControl::calculate_gndspeed_undershoot(const Vector2f &curr_pos
 }
 
 void
-FixedwingPositionControl::fw_pos_ctrl_status_publish()
+FixedwingPositionControl::tecs_status_publish()
 {
-	_fw_pos_ctrl_status.timestamp = hrt_absolute_time();
+	tecs_status_s t = {};
 
-	if (_fw_pos_ctrl_status_pub != nullptr) {
-		orb_publish(ORB_ID(fw_pos_ctrl_status), _fw_pos_ctrl_status_pub, &_fw_pos_ctrl_status);
+	switch (_tecs.tecs_mode()) {
+	case TECS::ECL_TECS_MODE_NORMAL:
+		t.mode = tecs_status_s::TECS_MODE_NORMAL;
+		break;
+
+	case TECS::ECL_TECS_MODE_UNDERSPEED:
+		t.mode = tecs_status_s::TECS_MODE_UNDERSPEED;
+		break;
+
+	case TECS::ECL_TECS_MODE_BAD_DESCENT:
+		t.mode = tecs_status_s::TECS_MODE_BAD_DESCENT;
+		break;
+
+	case TECS::ECL_TECS_MODE_CLIMBOUT:
+		t.mode = tecs_status_s::TECS_MODE_CLIMBOUT;
+		break;
+	}
+
+	t.altitude_sp = _tecs.hgt_setpoint_adj();
+	t.altitude_filtered = _tecs.vert_pos_state();
+
+	t.airspeed_sp = _tecs.TAS_setpoint_adj();
+	t.airspeed_filtered = _tecs.tas_state();
+
+	t.flight_path_angle_sp = _tecs.hgt_rate_setpoint();
+	t.flight_path_angle = _tecs.vert_vel_state();
+
+	t.airspeed_derivative_sp = _tecs.TAS_rate_setpoint();
+	t.airspeed_derivative = _tecs.speed_derivative();
+
+	t.total_energy_error = _tecs.STE_error();
+	t.total_energy_rate_error = _tecs.STE_rate_error();
+
+	t.energy_distribution_error = _tecs.SEB_error();
+	t.energy_distribution_rate_error = _tecs.SEB_rate_error();
+
+	t.throttle_integ = _tecs.throttle_integ_state();
+	t.pitch_integ = _tecs.pitch_integ_state();
+
+	t.timestamp = hrt_absolute_time();
+
+	if (_tecs_status_pub != nullptr) {
+		orb_publish(ORB_ID(tecs_status), _tecs_status_pub, &t);
 
 	} else {
-		_fw_pos_ctrl_status_pub = orb_advertise(ORB_ID(fw_pos_ctrl_status), &_fw_pos_ctrl_status);
+		_tecs_status_pub = orb_advertise(ORB_ID(tecs_status), &t);
 	}
+}
+
+void
+FixedwingPositionControl::status_publish()
+{
+	position_controller_status_s pos_ctrl_status = {};
+
+	pos_ctrl_status.nav_roll = _att_sp.roll_body;
+	pos_ctrl_status.nav_pitch = _att_sp.pitch_body;
+	pos_ctrl_status.nav_bearing = _l1_control.nav_bearing();
+
+	pos_ctrl_status.target_bearing = _l1_control.target_bearing();
+	pos_ctrl_status.xtrack_error = _l1_control.crosstrack_error();
+
+	pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon,
+				  _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
+
+	pos_ctrl_status.acceptance_radius = _l1_control.switch_distance(500.0f);
+
+	pos_ctrl_status.yaw_acceptance = NAN;
+
+	pos_ctrl_status.timestamp = hrt_absolute_time();
+
+	if (_pos_ctrl_status_pub != nullptr) {
+		orb_publish(ORB_ID(position_controller_status), _pos_ctrl_status_pub, &pos_ctrl_status);
+
+	} else {
+		_pos_ctrl_status_pub = orb_advertise(ORB_ID(position_controller_status), &pos_ctrl_status);
+	}
+}
+
+void
+FixedwingPositionControl::landing_status_publish()
+{
+	position_controller_landing_status_s pos_ctrl_landing_status = {};
+
+	pos_ctrl_landing_status.slope_angle_rad = _landingslope.landing_slope_angle_rad();
+	pos_ctrl_landing_status.horizontal_slope_displacement = _landingslope.horizontal_slope_displacement();
+	pos_ctrl_landing_status.flare_length = _landingslope.flare_length();
+
+	pos_ctrl_landing_status.abort_landing = _land_abort;
+
+	pos_ctrl_landing_status.timestamp = hrt_absolute_time();
+
+	if (_pos_ctrl_landing_status_pub != nullptr) {
+		orb_publish(ORB_ID(position_controller_landing_status), _pos_ctrl_landing_status_pub, &pos_ctrl_landing_status);
+
+	} else {
+		_pos_ctrl_landing_status_pub = orb_advertise(ORB_ID(position_controller_landing_status), &pos_ctrl_landing_status);
+	}
+}
+
+void
+FixedwingPositionControl::abort_landing(bool abort)
+{
+	// only announce changes
+	if (abort && !_land_abort) {
+		mavlink_log_critical(&_mavlink_log_pub, "Landing aborted");
+	}
+
+	_land_abort = abort;
+	landing_status_publish();
 }
 
 void
@@ -677,7 +774,7 @@ bool
 FixedwingPositionControl::in_takeoff_situation()
 {
 	// in air for < 10s
-	const hrt_abstime delta_takeoff = 10000000;
+	const hrt_abstime delta_takeoff = 10_s;
 
 	return (hrt_elapsed_time(&_time_went_in_air) < delta_takeoff)
 	       && (_global_pos.alt <= _takeoff_ground_alt + _parameters.climbout_diff);
@@ -864,10 +961,10 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 				_att_sp.roll_body = constrain(_att_sp.roll_body, radians(-5.0f), radians(5.0f));
 			}
 
-			if (_fw_pos_ctrl_status.abort_landing) {
+			if (_land_abort) {
 				if (pos_sp_curr.alt - _global_pos.alt  < _parameters.climbout_diff) {
 					// aborted landing complete, normal loiter over landing point
-					_fw_pos_ctrl_status.abort_landing = false;
+					abort_landing(false);
 
 				} else {
 					// continue straight until vehicle has sufficient altitude
@@ -1344,9 +1441,8 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 
 	// save time at which we started landing and reset abort_landing
 	if (_time_started_landing == 0) {
+		reset_landing_state();
 		_time_started_landing = hrt_absolute_time();
-
-		_fw_pos_ctrl_status.abort_landing = false;
 	}
 
 	const float bearing_airplane_currwp = get_bearing_to_next_waypoint((double)curr_pos(0), (double)curr_pos(1),
@@ -1437,16 +1533,16 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			// we have started landing phase but don't have valid terrain
 			// wait for some time, maybe we will soon get a valid estimate
 			// until then just use the altitude of the landing waypoint
-			if (hrt_elapsed_time(&_time_started_landing) < 10 * 1000 * 1000) {
+			if (hrt_elapsed_time(&_time_started_landing) < 10_s) {
 				terrain_alt = pos_sp_curr.alt;
 
 			} else {
 				// still no valid terrain, abort landing
 				terrain_alt = pos_sp_curr.alt;
-				_fw_pos_ctrl_status.abort_landing = true;
+				abort_landing(true);
 			}
 
-		} else if ((!_global_pos.terrain_alt_valid && hrt_elapsed_time(&_time_last_t_alt) < T_ALT_TIMEOUT * 1000 * 1000)
+		} else if ((!_global_pos.terrain_alt_valid && hrt_elapsed_time(&_time_last_t_alt) < T_ALT_TIMEOUT)
 			   || _land_noreturn_vertical) {
 			// use previous terrain estimate for some time and hope to recover
 			// if we are already flaring (land_noreturn_vertical) then just
@@ -1456,7 +1552,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 		} else {
 			// terrain alt was not valid for long time, abort landing
 			terrain_alt = _t_alt_prev_valid;
-			_fw_pos_ctrl_status.abort_landing = true;
+			abort_landing(true);
 		}
 	}
 
@@ -1615,8 +1711,7 @@ FixedwingPositionControl::handle_command()
 		    _pos_sp_triplet.current.valid &&
 		    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
-			_fw_pos_ctrl_status.abort_landing = true;
-			mavlink_log_critical(&_mavlink_log_pub, "Landing aborted");
+			abort_landing(true);
 		}
 	}
 }
@@ -1760,32 +1855,11 @@ FixedwingPositionControl::run()
 						/* advertise and publish */
 						_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 					}
-				}
 
-				/* XXX check if radius makes sense here */
-				float turn_distance = _l1_control.switch_distance(500.0f);
-
-				/* lazily publish navigation capabilities */
-				if ((hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) > 1000000)
-				    || (fabsf(turn_distance - _fw_pos_ctrl_status.turn_distance) > FLT_EPSILON
-					&& turn_distance > 0)) {
-
-					/* set new turn distance */
-					_fw_pos_ctrl_status.turn_distance = turn_distance;
-
-					_fw_pos_ctrl_status.nav_roll = _l1_control.get_roll_setpoint();
-					_fw_pos_ctrl_status.nav_pitch = get_tecs_pitch();
-					_fw_pos_ctrl_status.nav_bearing = _l1_control.nav_bearing();
-
-					_fw_pos_ctrl_status.target_bearing = _l1_control.target_bearing();
-					_fw_pos_ctrl_status.xtrack_error = _l1_control.crosstrack_error();
-
-					Vector2f curr_wp((float)_pos_sp_triplet.current.lat, (float)_pos_sp_triplet.current.lon);
-
-					_fw_pos_ctrl_status.wp_dist = get_distance_to_next_waypoint((double)curr_pos(0), (double)curr_pos(1),
-								      (double)curr_wp(0), (double)curr_wp(1));
-
-					fw_pos_ctrl_status_publish();
+					// only publish status in full FW mode
+					if (!_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
+						status_publish();
+					}
 				}
 			}
 
@@ -1826,10 +1900,9 @@ FixedwingPositionControl::reset_landing_state()
 	_land_onslope = false;
 
 	// reset abort land, unless loitering after an abort
-	if (_fw_pos_ctrl_status.abort_landing
-	    && _pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_LOITER) {
+	if (_land_abort && (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_LOITER)) {
 
-		_fw_pos_ctrl_status.abort_landing = false;
+		abort_landing(false);
 	}
 }
 
@@ -1962,52 +2035,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 				    throttle_min, throttle_max, throttle_cruise,
 				    pitch_min_rad, pitch_max_rad);
 
-	tecs_status_s t;
-	t.timestamp = _tecs.timestamp();
-
-	switch (_tecs.tecs_mode()) {
-	case TECS::ECL_TECS_MODE_NORMAL:
-		t.mode = tecs_status_s::TECS_MODE_NORMAL;
-		break;
-
-	case TECS::ECL_TECS_MODE_UNDERSPEED:
-		t.mode = tecs_status_s::TECS_MODE_UNDERSPEED;
-		break;
-
-	case TECS::ECL_TECS_MODE_BAD_DESCENT:
-		t.mode = tecs_status_s::TECS_MODE_BAD_DESCENT;
-		break;
-
-	case TECS::ECL_TECS_MODE_CLIMBOUT:
-		t.mode = tecs_status_s::TECS_MODE_CLIMBOUT;
-		break;
-	}
-
-	t.altitude_sp			= _tecs.hgt_setpoint_adj();
-	t.altitude_filtered		= _tecs.vert_pos_state();
-	t.airspeed_sp			= _tecs.TAS_setpoint_adj();
-	t.airspeed_filtered 		= _tecs.tas_state();
-
-	t.flight_path_angle_sp		= _tecs.hgt_rate_setpoint();
-	t.flight_path_angle		= _tecs.vert_vel_state();
-
-	t.airspeed_derivative_sp	= _tecs.TAS_rate_setpoint();
-	t.airspeed_derivative		= _tecs.speed_derivative();
-
-	t.total_energy_error			= _tecs.STE_error();
-	t.total_energy_rate_error		= _tecs.STE_rate_error();
-	t.energy_distribution_error		= _tecs.SEB_error();
-	t.energy_distribution_rate_error	= _tecs.SEB_rate_error();
-
-	t.throttle_integ	= _tecs.throttle_integ_state();
-	t.pitch_integ		= _tecs.pitch_integ_state();
-
-	if (_tecs_status_pub != nullptr) {
-		orb_publish(ORB_ID(tecs_status), _tecs_status_pub, &t);
-
-	} else {
-		_tecs_status_pub = orb_advertise(ORB_ID(tecs_status), &t);
-	}
+	tecs_status_publish();
 }
 
 FixedwingPositionControl *FixedwingPositionControl::instantiate(int argc, char *argv[])

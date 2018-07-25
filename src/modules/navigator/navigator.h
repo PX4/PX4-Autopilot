@@ -55,15 +55,17 @@
 #include "rtl.h"
 #include "takeoff.h"
 
-#include <navigator/navigation.h>
-#include <px4_module_params.h>
+#include "navigation.h"
+
+#include <lib/perf/perf_counter.h>
 #include <px4_module.h>
-#include <perf/perf_counter.h>
-#include <uORB/topics/fw_pos_ctrl_status.h>
+#include <px4_module_params.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
@@ -145,7 +147,6 @@ public:
 	/**
 	 * Getters
 	 */
-	struct fw_pos_ctrl_status_s *get_fw_pos_ctrl_status() { return &_fw_pos_ctrl_status; }
 	struct home_position_s *get_home_position() { return &_home_pos; }
 	struct mission_result_s *get_mission_result() { return &_mission_result; }
 	struct position_setpoint_triplet_s *get_position_setpoint_triplet() { return &_pos_sp_triplet; }
@@ -278,7 +279,6 @@ public:
 	bool		force_vtol();
 
 private:
-	int		_fw_pos_ctrl_status_sub{-1};	/**< notification of vehicle capabilities updates */
 	int		_global_pos_sub{-1};		/**< global position subscription */
 	int		_gps_pos_sub{-1};		/**< gps position subscription */
 	int		_home_pos_sub{-1};		/**< home position subscription */
@@ -286,6 +286,7 @@ private:
 	int		_local_pos_sub{-1};		/**< local position subscription */
 	int		_offboard_mission_sub{-1};	/**< offboard mission subscription */
 	int		_param_update_sub{-1};		/**< param update subscription */
+	int		_pos_ctrl_landing_status_sub{-1};	/**< position controller landing status subscription */
 	int		_traffic_sub{-1};		/**< traffic subscription */
 	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
 	int		_vstatus_sub{-1};		/**< vehicle status subscription */
@@ -299,7 +300,6 @@ private:
 	orb_advert_t	_vehicle_roi_pub{nullptr};
 
 	// Subscriptions
-	fw_pos_ctrl_status_s				_fw_pos_ctrl_status{};	/**< fixed wing navigation capabilities */
 	home_position_s					_home_pos{};		/**< home position for RTL */
 	mission_result_s				_mission_result{};
 	vehicle_global_position_s			_global_pos{};		/**< global vehicle position */
@@ -307,7 +307,11 @@ private:
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
-	uint8_t					_previous_nav_state{}; /**< nav_state of the previous iteration*/
+
+	uORB::Subscription<position_controller_status_s>	_position_controller_status_sub{ORB_ID(position_controller_status)};
+
+	uint8_t						_previous_nav_state{}; /**< nav_state of the previous iteration*/
+
 	// Publications
 	geofence_result_s				_geofence_result{};
 	position_setpoint_triplet_s			_pos_sp_triplet{};	/**< triplet of position setpoints */
@@ -369,7 +373,6 @@ private:
 	float _mission_throttle{-1.0f};
 
 	// update subscriptions
-	void		fw_pos_ctrl_status_update(bool force = false);
 	void		global_position_update();
 	void		gps_position_update();
 	void		home_position_update(bool force = false);

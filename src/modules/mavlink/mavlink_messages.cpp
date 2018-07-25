@@ -49,8 +49,8 @@
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_rc_input.h>
 #include <lib/ecl/geo/geo.h>
-#include <mathlib/mathlib.h>
-#include <matrix/math.hpp>
+#include <lib/mathlib/mathlib.h>
+#include <lib/matrix/matrix/math.hpp>
 #include <px4_time.h>
 #include <systemlib/mavlink_log.h>
 
@@ -69,13 +69,13 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/estimator_status.h>
-#include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/optical_flow.h>
+#include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_bias.h>
@@ -3743,15 +3743,15 @@ public:
 
 	unsigned get_size()
 	{
-		return (_fw_pos_ctrl_status_sub->is_published()) ?
+		return (_pos_ctrl_status_sub->is_published()) ?
 		       MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
-	MavlinkOrbSubscription *_fw_pos_ctrl_status_sub;
+	MavlinkOrbSubscription *_pos_ctrl_status_sub;
 	MavlinkOrbSubscription *_tecs_status_sub;
 
-	uint64_t _fw_pos_ctrl_status_timestamp{0};
+	uint64_t _pos_ctrl_status_timestamp{0};
 	uint64_t _tecs_status_timestamp{0};
 
 	/* do not allow top copying this class */
@@ -3760,30 +3760,30 @@ private:
 
 protected:
 	explicit MavlinkStreamNavControllerOutput(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_fw_pos_ctrl_status_sub(_mavlink->add_orb_subscription(ORB_ID(fw_pos_ctrl_status))),
+		_pos_ctrl_status_sub(_mavlink->add_orb_subscription(ORB_ID(position_controller_status))),
 		_tecs_status_sub(_mavlink->add_orb_subscription(ORB_ID(tecs_status)))
 	{}
 
 	bool send(const hrt_abstime t)
 	{
-		fw_pos_ctrl_status_s _fw_pos_ctrl_status = {};
-		tecs_status_s _tecs_status = {};
+		position_controller_status_s pos_ctrl_status = {};
+		tecs_status_s tecs_status = {};
 
 		bool updated = false;
-		updated |= _fw_pos_ctrl_status_sub->update(&_fw_pos_ctrl_status_timestamp, &_fw_pos_ctrl_status);
-		updated |= _tecs_status_sub->update(&_tecs_status_timestamp, &_tecs_status);
+		updated |= _pos_ctrl_status_sub->update(&_pos_ctrl_status_timestamp, &pos_ctrl_status);
+		updated |= _tecs_status_sub->update(&_tecs_status_timestamp, &tecs_status);
 
 		if (updated) {
 			mavlink_nav_controller_output_t msg = {};
 
-			msg.nav_roll = math::degrees(_fw_pos_ctrl_status.nav_roll);
-			msg.nav_pitch = math::degrees(_fw_pos_ctrl_status.nav_pitch);
-			msg.nav_bearing = (int16_t)math::degrees(_fw_pos_ctrl_status.nav_bearing);
-			msg.target_bearing = (int16_t)math::degrees(_fw_pos_ctrl_status.target_bearing);
-			msg.wp_dist = (uint16_t)_fw_pos_ctrl_status.wp_dist;
-			msg.xtrack_error = _fw_pos_ctrl_status.xtrack_error;
-			msg.alt_error = _tecs_status.altitude_filtered - _tecs_status.altitude_sp;
-			msg.aspd_error = _tecs_status.airspeed_filtered - _tecs_status.airspeed_sp;
+			msg.nav_roll = math::degrees(pos_ctrl_status.nav_roll);
+			msg.nav_pitch = math::degrees(pos_ctrl_status.nav_pitch);
+			msg.nav_bearing = (int16_t)math::degrees(pos_ctrl_status.nav_bearing);
+			msg.target_bearing = (int16_t)math::degrees(pos_ctrl_status.target_bearing);
+			msg.wp_dist = (uint16_t)pos_ctrl_status.wp_dist;
+			msg.xtrack_error = pos_ctrl_status.xtrack_error;
+			msg.alt_error = tecs_status.altitude_filtered - tecs_status.altitude_sp;
+			msg.aspd_error = tecs_status.airspeed_filtered - tecs_status.airspeed_sp;
 
 			mavlink_msg_nav_controller_output_send_struct(_mavlink->get_channel(), &msg);
 
