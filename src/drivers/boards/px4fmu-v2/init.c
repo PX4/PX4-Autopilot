@@ -340,6 +340,18 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_VDD_USB_VALID);
 	stm32_configgpio(GPIO_VDD_5V_HIPOWER_OC);
 	stm32_configgpio(GPIO_VDD_5V_PERIPH_OC);
+
+	/*
+	 * CAN GPIO config.
+	 * Forced pull up on CAN2 is required for FMUv2  where the second interface lacks a transceiver.
+	 * If no transceiver is connected, the RX pin will float, occasionally causing CAN controller to
+	 * fail during initialization.
+	 */
+	stm32_configgpio(GPIO_CAN1_RX);
+	stm32_configgpio(GPIO_CAN1_TX);
+	stm32_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
+	stm32_configgpio(GPIO_CAN2_TX);
+
 }
 
 /****************************************************************************
@@ -387,15 +399,19 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (OK == determin_hw_version(&hw_version, & hw_revision)) {
 		switch (hw_version) {
-		case 0x8:
+		case HW_VER_FMUV2_STATE:
 			break;
 
-		case 0xE:
+		case HW_VER_FMUV3_STATE:
 			hw_type[1]++;
 			hw_type[2] = '0';
+
+			/* Has CAN2 transceiver Remove pull up */
+			stm32_configgpio(GPIO_CAN2_RX);
+
 			break;
 
-		case 0xA:
+		case HW_VER_FMUV2MINI_STATE:
 			hw_type[2] = 'M';
 			break;
 
