@@ -492,6 +492,10 @@ __BEGIN_DECLS
 		GPIO_ENET_INH,        \
 		GPIO_ENET_CONFIG0,    \
 		GPIO_ENET_CONFIG1,    \
+		PIN_CAN0_RX,          \
+		PIN_CAN0_TX,          \
+		PIN_CAN1_RX,          \
+		PIN_CAN1_TX,          \
 		GPIO_CAN0_STB,        \
 		GPIO_CAN1_STB,        \
 		GPIO_BTN_SAFETY,      \
