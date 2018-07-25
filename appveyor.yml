@@ -14,8 +14,8 @@ init:
 
 install:
 - cd C:\
-- git clone https://github.com/MaEtUgR/PX4Toolchain.git PX4
-- call PX4\toolchain\install-all-components.bat
+- certutil -urlcache -split -f "https://s3-us-west-2.amazonaws.com/px4-tools/PX4+Windows+Cygwin+Toolchain/PX4+Windows+Cygwin+Toolchain+0.3.msi" Toolchain.msi
+- msiexec /i Toolchain.msi /quiet /qn /norestart /log install.log
 
 build_script:
 - call C:\PX4\toolchain\clone-px4-build-sitl.bat
