@@ -52,6 +52,7 @@
 #include "tasks/FlightTaskOrbit.hpp"
 #include "tasks/FlightTaskSport.hpp"
 #include "tasks/FlightTaskOffboard.hpp"
+#include "tasks/FlightTaskJourney.hpp"
 
 #include "SubscriptionArray.hpp"
 
@@ -69,6 +70,7 @@ enum class FlightTaskIndex : int {
 	AutoLine,
 	AutoFollowMe,
 	Offboard,
+	Journey,
 
 	Count // number of tasks
 };
@@ -159,6 +161,7 @@ private:
 		FlightTaskAutoLine autoLine;
 		FlightTaskAutoFollowMe autoFollowMe;
 		FlightTaskOffboard offboard;
+		FlightTaskJourney journey;
 	} _task_union; /**< storage for the currently active task */
 
 	struct flight_task_t {

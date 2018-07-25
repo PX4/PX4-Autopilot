@@ -104,6 +104,10 @@ int FlightTasks::_initTask(FlightTaskIndex task_index)
 		_current_task.task = new (&_task_union.offboard) FlightTaskOffboard();
 		break;
 
+	case FlightTaskIndex::Journey:
+		_current_task.task = new (&_task_union.journey) FlightTaskJourney();
+		break;
+
 	default:
 		// invalid task
 		return 1;
@@ -207,6 +211,10 @@ void FlightTasks::_updateCommand()
 	switch (command.command) {
 	case vehicle_command_s::VEHICLE_CMD_DO_ORBIT :
 		desired_task = FlightTaskIndex::Orbit;
+		break;
+
+	case vehicle_command_s::VEHICLE_CMD_DO_JOURNEY :
+		desired_task = FlightTaskIndex::Journey;
 		break;
 
 	// ignore all unkown commands
