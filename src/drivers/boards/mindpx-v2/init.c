@@ -118,6 +118,39 @@ __END_DECLS
 /****************************************************************************
  * Protected Functions
  ****************************************************************************/
+/************************************************************************************
+ * Name: board_on_reset
+ *
+ * Description:
+ * Optionally provided function called on entry to board_system_reset
+ * It should perform any house keeping prior to the rest.
+ *
+ * status - 1 if resetting to boot loader
+ *          0 if just resetting
+ *
+ ************************************************************************************/
+__EXPORT void board_on_reset(int status)
+{
+	/* configure the GPIO pins to outputs and keep them low */
+	stm32_configgpio(GPIO_GPIO0_OUTPUT);
+	stm32_configgpio(GPIO_GPIO1_OUTPUT);
+	stm32_configgpio(GPIO_GPIO2_OUTPUT);
+	stm32_configgpio(GPIO_GPIO3_OUTPUT);
+	stm32_configgpio(GPIO_GPIO4_OUTPUT);
+	stm32_configgpio(GPIO_GPIO5_OUTPUT);
+	stm32_configgpio(GPIO_GPIO6_OUTPUT);
+	stm32_configgpio(GPIO_GPIO7_OUTPUT);
+
+	/**
+	 * On resets invoked from system (not boot) insure we establish a low
+	 * output state (discharge the pins) on PWM pins before they become inputs.
+	 */
+
+	if (status >= 0) {
+		up_mdelay(400);
+	}
+}
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -134,34 +167,29 @@ __END_DECLS
 __EXPORT void
 stm32_boardinitialize(void)
 {
+	// Reset all PWM to Low outputs.
+
+	board_on_reset(-1);
+
 	/* configure LEDs */
 
 	board_autoled_initialize();
 
 	/* configure ADC pins */
 
-	px4_arch_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	px4_arch_configgpio(GPIO_ADC1_IN10);	/* BATT_CURRENT_SENS */
-	px4_arch_configgpio(GPIO_ADC1_IN12);	/* BATT_VOLTAGE_SENS */
-	px4_arch_configgpio(GPIO_ADC1_IN11);	/* RSSI analog in */
-	px4_arch_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
-	px4_arch_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
-	px4_arch_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
+	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
+	stm32_configgpio(GPIO_ADC1_IN10);	/* BATT_CURRENT_SENS */
+	stm32_configgpio(GPIO_ADC1_IN12);	/* BATT_VOLTAGE_SENS */
+	stm32_configgpio(GPIO_ADC1_IN11);	/* RSSI analog in */
+	stm32_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
+	stm32_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
+	stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
 
 	/* configure power supply control/sense pins */
 
-	px4_arch_configgpio(GPIO_SBUS_INV);
-	px4_arch_configgpio(GPIO_FRSKY_INV);
+	stm32_configgpio(GPIO_SBUS_INV);
+	stm32_configgpio(GPIO_FRSKY_INV);
 
-	/* configure the GPIO pins to outputs and keep them low */
-	px4_arch_configgpio(GPIO_GPIO0_OUTPUT);
-	px4_arch_configgpio(GPIO_GPIO1_OUTPUT);
-	px4_arch_configgpio(GPIO_GPIO2_OUTPUT);
-	px4_arch_configgpio(GPIO_GPIO3_OUTPUT);
-	px4_arch_configgpio(GPIO_GPIO4_OUTPUT);
-	px4_arch_configgpio(GPIO_GPIO5_OUTPUT);
-	px4_arch_configgpio(GPIO_GPIO6_OUTPUT);
-	px4_arch_configgpio(GPIO_GPIO7_OUTPUT);
 
 	/* configure SPI interfaces */
 
