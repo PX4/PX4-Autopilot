@@ -41,23 +41,22 @@
  * @author Marco Zorzi <mzorzi@student.ethz.ch>
  */
 
+#include <cfloat>
+
+#include <drivers/drv_hrt.h>
+#include <lib/ecl/geo/geo.h>
+#include <lib/ecl/l1/ecl_l1_pos_controller.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/perf/perf_counter.h>
+#include <lib/pid/pid.h>
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
-
-#include <cfloat>
-
-#include <drivers/drv_hrt.h>
-#include <ecl/l1/ecl_l1_pos_controller.h>
-#include <lib/ecl/geo/geo.h>
-#include <mathlib/mathlib.h>
-#include <perf/perf_counter.h>
-#include <pid/pid.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -94,7 +93,7 @@ public:
 
 private:
 	orb_advert_t	_attitude_sp_pub{nullptr};		/**< attitude setpoint */
-	orb_advert_t	_gnd_pos_ctrl_status_pub{nullptr};		/**< navigation capabilities publication */
+	orb_advert_t	_pos_ctrl_status_pub{nullptr};		/**< navigation capabilities publication */
 
 	bool		_task_should_exit{false};		/**< if true, sensor task should exit */
 	bool		_task_running{false};			/**< if true, task is running in its mainloop */
@@ -105,7 +104,6 @@ private:
 	int		_params_sub{-1};			/**< notification of parameter updates */
 	int		_pos_sp_triplet_sub{-1};
 
-	fw_pos_ctrl_status_s			_gnd_pos_ctrl_status{};		/**< navigation capabilities */
 	manual_control_setpoint_s		_manual{};			/**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
 	vehicle_attitude_setpoint_s		_att_sp{};			/**< vehicle attitude setpoint */
@@ -187,11 +185,6 @@ private:
 	void		manual_control_setpoint_poll();
 	void		position_setpoint_triplet_poll();
 	void		vehicle_control_mode_poll();
-
-	/**
-	 * Publish navigation capabilities
-	 */
-	void		gnd_pos_ctrl_status_publish();
 
 	/**
 	 * Control position.

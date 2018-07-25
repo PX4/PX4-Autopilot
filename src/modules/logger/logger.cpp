@@ -655,10 +655,11 @@ void Logger::add_default_topics()
 	add_topic("actuator_controls_virtual_fw");
 	add_topic("actuator_controls_virtual_mc");
 	add_topic("commander_state");
-	add_topic("fw_pos_ctrl_status");
 	add_topic("fw_virtual_attitude_setpoint");
 	add_topic("mc_virtual_attitude_setpoint");
 	add_topic("multirotor_motor_limits");
+	add_topic("position_controller_status");
+	add_topic("position_controller_landingstatus");
 	add_topic("offboard_control_mode");
 	add_topic("time_offset");
 	add_topic("vehicle_attitude_groundtruth", 10);
