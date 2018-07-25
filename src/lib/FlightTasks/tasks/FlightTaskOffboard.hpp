@@ -38,8 +38,7 @@
 #pragma once
 
 #include "FlightTask.hpp"
-#include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/position_setpoint.h>
+#include <uORB/topics/offboard_setpoints.h>
 
 class FlightTaskOffboard : public FlightTask
 {
@@ -53,7 +52,7 @@ public:
 	bool updateInitialize() override;
 
 protected:
-	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
+	uORB::Subscription<offboard_setpoints_s> *_sub_offboard{nullptr};
 private:
 	matrix::Vector3f _position_lock{};
 

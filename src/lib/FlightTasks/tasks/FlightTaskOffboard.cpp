@@ -45,7 +45,7 @@ bool FlightTaskOffboard::initializeSubscriptions(SubscriptionArray &subscription
 		return false;
 	}
 
-	if (!subscription_array.get(ORB_ID(position_setpoint_triplet), _sub_triplet_setpoint)) {
+	if (!subscription_array.get(ORB_ID(offboard_setpoints), _sub_offboard)) {
 		return false;
 	}
 
@@ -55,8 +55,6 @@ bool FlightTaskOffboard::initializeSubscriptions(SubscriptionArray &subscription
 bool FlightTaskOffboard::updateInitialize()
 {
 	bool ret = FlightTask::updateInitialize();
-	// require a valid triplet
-	ret = ret && _sub_triplet_setpoint->get().current.valid;
 	// require valid position / velocity in xy
 	return ret && PX4_ISFINITE(_position(0))
 	       && PX4_ISFINITE(_position(1))
@@ -75,36 +73,29 @@ bool FlightTaskOffboard::activate()
 
 bool FlightTaskOffboard::update()
 {
-	if (!_sub_triplet_setpoint->get().current.valid) {
-		_resetSetpoints();
-		_position_setpoint = _position;
-		return false;
-	}
-
 	// reset setpoint for every loop
 	_resetSetpoints();
 
 	// Yaw / Yaw-speed
-
-	if (_sub_triplet_setpoint->get().current.yaw_valid) {
+	if (PX4_ISFINITE(_sub_offboard->get().setpoint.yaw)) {
 		// yaw control required
-		_yaw_setpoint = _sub_triplet_setpoint->get().current.yaw;
+		_yaw_setpoint = _sub_offboard->get().setpoint.yaw;
 
-		if (_sub_triplet_setpoint->get().current.yawspeed_valid) {
+		if (PX4_ISFINITE(_sub_offboard->get().setpoint.yawspeed)) {
 			// yawspeed is used as feedforward
-			_yawspeed_setpoint = _sub_triplet_setpoint->get().current.yawspeed;
+			_yawspeed_setpoint = _sub_offboard->get().setpoint.yawspeed;
 		}
 
-	} else if (_sub_triplet_setpoint->get().current.yawspeed_valid) {
+	} else if (PX4_ISFINITE(_sub_offboard->get().setpoint.yawspeed)) {
 		// only yawspeed required
-		_yawspeed_setpoint = _sub_triplet_setpoint->get().current.yawspeed;
+		_yawspeed_setpoint = _sub_offboard->get().setpoint.yawspeed;
 		// set yaw setpoint to NAN since not used
 		_yaw_setpoint = NAN;
 
 	}
 
 	// Loiter
-	if (_sub_triplet_setpoint->get().current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+	if (_sub_offboard->get().type == offboard_setpoints_s::TYPE_LOITER) {
 		// loiter just means that the vehicle should keep position
 		if (!PX4_ISFINITE(_position_lock(0))) {
 			_position_setpoint = _position_lock = _position;
@@ -121,7 +112,7 @@ bool FlightTaskOffboard::update()
 	}
 
 	// Takeoff
-	if (_sub_triplet_setpoint->get().current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+	if (_sub_offboard->get().type == offboard_setpoints_s::TYPE_TAKEOFF) {
 		// just do takeoff to default altitude
 		if (!PX4_ISFINITE(_position_lock(0))) {
 			_position_setpoint = _position_lock = _position;
@@ -139,7 +130,7 @@ bool FlightTaskOffboard::update()
 	}
 
 	// Land
-	if (_sub_triplet_setpoint->get().current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+	if (_sub_offboard->get().type == offboard_setpoints_s::TYPE_LAND) {
 		// land with landing speed, but keep position in xy
 		if (!PX4_ISFINITE(_position_lock(0))) {
 			_position_setpoint = _position_lock = _position;
@@ -159,7 +150,7 @@ bool FlightTaskOffboard::update()
 	}
 
 	// IDLE
-	if (_sub_triplet_setpoint->get().current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+	if (_sub_offboard->get().type == offboard_setpoints_s::TYPE_IDLE) {
 		_thrust_setpoint.zero();
 		return true;
 	}
@@ -170,53 +161,56 @@ bool FlightTaskOffboard::update()
 	// 3. velocity setpoint
 	// 4. acceleration setpoint -> this will be mapped to normalized thrust setpoint because acceleration is not supported
 
-	const bool position_ctrl_xy = _sub_triplet_setpoint->get().current.position_valid
-				      && _sub_vehicle_local_position->get().xy_valid;
-	const bool position_ctrl_z = _sub_triplet_setpoint->get().current.alt_valid
-				     && _sub_vehicle_local_position->get().z_valid;
-	const bool velocity_ctrl_xy = _sub_triplet_setpoint->get().current.velocity_valid
-				      && _sub_vehicle_local_position->get().v_xy_valid;
-	const bool velocity_ctrl_z = _sub_triplet_setpoint->get().current.velocity_valid
-				     && _sub_vehicle_local_position->get().v_z_valid;
+	const bool position_ctrl_xy = PX4_ISFINITE(_sub_offboard->get().setpoint.x)
+				      && PX4_ISFINITE(_sub_offboard->get().setpoint.y);
+	const bool position_ctrl_z = PX4_ISFINITE(_sub_offboard->get().setpoint.z);
+	const bool velocity_ctrl_xy = PX4_ISFINITE(_sub_offboard->get().setpoint.vx)
+				      && PX4_ISFINITE(_sub_offboard->get().setpoint.vy);
+	const bool velocity_ctrl_z = PX4_ISFINITE(_sub_offboard->get().setpoint.vz);
 	const bool feedforward_ctrl_xy = position_ctrl_xy && velocity_ctrl_xy;
 	const bool feedforward_ctrl_z = position_ctrl_z && velocity_ctrl_z;
-	const bool acceleration_ctrl = _sub_triplet_setpoint->get().current.acceleration_valid;
+	const bool acceleration_ctrl = PX4_ISFINITE(_sub_offboard->get().setpoint.acc_x)
+				       && PX4_ISFINITE(_sub_offboard->get().setpoint.acc_y) &&
+				       PX4_ISFINITE(_sub_offboard->get().setpoint.acc_z);
+	const bool thrust_ctrl = PX4_ISFINITE(_sub_offboard->get().setpoint.thrust[0])
+				 && PX4_ISFINITE(_sub_offboard->get().setpoint.thrust[1]) &&
+				 PX4_ISFINITE(_sub_offboard->get().setpoint.thrust[2]);
 
 	// if nothing is valid in xy, then exit offboard
-	if (!(position_ctrl_xy || velocity_ctrl_xy || acceleration_ctrl)) {
+	if (!(position_ctrl_xy || velocity_ctrl_xy || acceleration_ctrl || thrust_ctrl)) {
 		return false;
 	}
 
 	// if nothing is valid in z, then exit offboard
-	if (!(position_ctrl_z || velocity_ctrl_z || acceleration_ctrl)) {
+	if (!(position_ctrl_z || velocity_ctrl_z || acceleration_ctrl || thrust_ctrl)) {
 		return false;
 	}
 
 	// XY-direction
 	if (feedforward_ctrl_xy) {
-		_position_setpoint(0) = _sub_triplet_setpoint->get().current.x;
-		_position_setpoint(1) = _sub_triplet_setpoint->get().current.y;
-		_velocity_setpoint(0) = _sub_triplet_setpoint->get().current.vx;
-		_velocity_setpoint(1) = _sub_triplet_setpoint->get().current.vy;
+		_position_setpoint(0) = _sub_offboard->get().setpoint.x;
+		_position_setpoint(1) = _sub_offboard->get().setpoint.y;
+		_velocity_setpoint(0) = _sub_offboard->get().setpoint.vx;
+		_velocity_setpoint(1) = _sub_offboard->get().setpoint.vy;
 
 	} else if (position_ctrl_xy) {
-		_position_setpoint(0) = _sub_triplet_setpoint->get().current.x;
-		_position_setpoint(1) = _sub_triplet_setpoint->get().current.y;
+		_position_setpoint(0) = _sub_offboard->get().setpoint.x;
+		_position_setpoint(1) = _sub_offboard->get().setpoint.y;
 
 	} else if (velocity_ctrl_xy) {
 
-		if (_sub_triplet_setpoint->get().current.velocity_frame == position_setpoint_s::VELOCITY_FRAME_LOCAL_NED) {
+		if (_sub_offboard->get().velocity_frame == offboard_setpoints_s::FRAME_LOCAL_NED) {
 			// in local frame: don't require any transformation
-			_velocity_setpoint(0) = _sub_triplet_setpoint->get().current.vx;
-			_velocity_setpoint(1) = _sub_triplet_setpoint->get().current.vy;
+			_velocity_setpoint(0) = _sub_offboard->get().setpoint.vx;
+			_velocity_setpoint(1) = _sub_offboard->get().setpoint.vy;
 
-		} else if (_sub_triplet_setpoint->get().current.velocity_frame == position_setpoint_s::VELOCITY_FRAME_BODY_NED) {
-			// in body frame: need to transorm first
-			// Note, this transformation is wrong because body-xy is not neccessarily on the same plane as locale-xy
-			_velocity_setpoint(0) = cosf(_yaw) * _sub_triplet_setpoint->get().current.vx - sinf(
-							_yaw) * _sub_triplet_setpoint->get().current.vy;
-			_velocity_setpoint(1) = sinf(_yaw) * _sub_triplet_setpoint->get().current.vx + cosf(
-							_yaw) * _sub_triplet_setpoint->get().current.vy;
+		} else if (_sub_offboard->get().velocity_frame == offboard_setpoints_s::FRAME_BODY_NED) {
+			// in body frame: need to transform first
+			// Note, this transformation is wrong because body-xy is not neccessarily on the same plane as local-xy
+			_velocity_setpoint(0) = cosf(_yaw) * _sub_offboard->get().setpoint.vx - sinf(
+							_yaw) * _sub_offboard->get().setpoint.vy;
+			_velocity_setpoint(1) = sinf(_yaw) * _sub_offboard->get().setpoint.vx + cosf(
+							_yaw) * _sub_offboard->get().setpoint.vy;
 
 		} else {
 			// no valid frame
@@ -225,25 +219,30 @@ bool FlightTaskOffboard::update()
 	}
 
 	// Z-direction
-
 	if (feedforward_ctrl_z) {
-		_position_setpoint(2) = _sub_triplet_setpoint->get().current.z;
-		_velocity_setpoint(2) = _sub_triplet_setpoint->get().current.vz;
+		_position_setpoint(2) = _sub_offboard->get().setpoint.z;
+		_velocity_setpoint(2) = _sub_offboard->get().setpoint.vz;
 
 	} else if (position_ctrl_z) {
-		_position_setpoint(2) = _sub_triplet_setpoint->get().current.z;
+		_position_setpoint(2) = _sub_offboard->get().setpoint.vz;
 
 	} else if (velocity_ctrl_z) {
-		_velocity_setpoint(2) = _sub_triplet_setpoint->get().current.vz;
+		_velocity_setpoint(2) = _sub_offboard->get().setpoint.vz;
 	}
 
 	// Acceleration
 	// Note: this is not supported yet and will be mapped to normalized thrust directly.
+	if (acceleration_ctrl) {
+		_thrust_setpoint(0) = _sub_offboard->get().setpoint.acc_x;
+		_thrust_setpoint(1) = _sub_offboard->get().setpoint.acc_y;
+		_thrust_setpoint(2) = _sub_offboard->get().setpoint.acc_z;
+	}
 
-	if (_sub_triplet_setpoint->get().current.acceleration_valid) {
-		_thrust_setpoint(0) = _sub_triplet_setpoint->get().current.a_x;
-		_thrust_setpoint(1) = _sub_triplet_setpoint->get().current.a_y;
-		_thrust_setpoint(2) = _sub_triplet_setpoint->get().current.a_z;
+	// thrust
+	if (thrust_ctrl) {
+		_thrust_setpoint(0) = _sub_offboard->get().setpoint.thrust[0];
+		_thrust_setpoint(1) = _sub_offboard->get().setpoint.thrust[1];
+		_thrust_setpoint(2) = _sub_offboard->get().setpoint.thrust[2];
 	}
 
 	return true;
