@@ -126,12 +126,12 @@ bool FlightTaskAuto::_evaluateTriplets()
 	    || !PX4_ISFINITE(_sub_triplet_setpoint->get().current.lon)) {
 		// No position provided in xy. Lock position
 		if (!PX4_ISFINITE(_lock_position_xy(0))) {
-			_triplet_target(0) = _lock_position_xy(0) = _position(0);
-			_triplet_target(1) = _lock_position_xy(1) = _position(1);
+			tmp_target(0) = _lock_position_xy(0) = _position(0);
+			tmp_target(1) = _lock_position_xy(1) = _position(1);
 
 		} else {
-			_triplet_target(0) = _lock_position_xy(0);
-			_triplet_target(1) = _lock_position_xy(1);
+			tmp_target(0) = _lock_position_xy(0);
+			tmp_target(1) = _lock_position_xy(1);
 			_lock_position_xy *= NAN;
 		}
 
