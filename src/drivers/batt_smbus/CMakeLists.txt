@@ -33,6 +33,7 @@
 px4_add_module(
 	MODULE drivers__batt_smbus
 	MAIN batt_smbus
+	STACK_MAIN 1100
 	COMPILE_FLAGS
 	SRCS
 		batt_smbus_main.cpp
