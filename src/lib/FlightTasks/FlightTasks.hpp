@@ -41,17 +41,17 @@
 
 #pragma once
 
-#include "tasks/FlightTask.hpp"
-#include "tasks/FlightTaskManualAltitude.hpp"
-#include "tasks/FlightTaskManualAltitudeSmooth.hpp"
-#include "tasks/FlightTaskManualPosition.hpp"
-#include "tasks/FlightTaskManualPositionSmooth.hpp"
-#include "tasks/FlightTaskManualStabilized.hpp"
-#include "tasks/FlightTaskAutoLine.hpp"
-#include "tasks/FlightTaskAutoFollowMe.hpp"
-#include "tasks/FlightTaskOrbit.hpp"
-#include "tasks/FlightTaskSport.hpp"
-#include "tasks/FlightTaskOffboard.hpp"
+#include "FlightTask.hpp"
+#include "FlightTaskManualAltitude.hpp"
+#include "FlightTaskManualAltitudeSmooth.hpp"
+#include "FlightTaskManualPosition.hpp"
+#include "FlightTaskManualPositionSmooth.hpp"
+#include "FlightTaskManualStabilized.hpp"
+#include "FlightTaskAutoLine.hpp"
+#include "FlightTaskAutoFollowMe.hpp"
+#include "FlightTaskOrbit.hpp"
+#include "tasks/Sport/FlightTaskSport.hpp"
+#include "FlightTaskOffboard.hpp"
 
 #include "SubscriptionArray.hpp"
 

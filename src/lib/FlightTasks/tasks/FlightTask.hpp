@@ -50,7 +50,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_constraints.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include "../SubscriptionArray.hpp"
+#include "SubscriptionArray.hpp"
 
 class FlightTask : public ModuleParams
 {
