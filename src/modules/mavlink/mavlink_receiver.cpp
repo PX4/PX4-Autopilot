@@ -835,8 +835,9 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 	mocap_odom.q[2] = mocap.q[2];
 	mocap_odom.q[3] = mocap.q[3];
 
-	size_t URT_SIZE = sizeof(mocap_odom.pose_covariance) / sizeof(mocap_odom.pose_covariance[0]);
-	assert(URT_SIZE == (sizeof(mocap.covariance) / sizeof(mocap.covariance[0])));
+	const size_t URT_SIZE = sizeof(mocap_odom.pose_covariance) / sizeof(mocap_odom.pose_covariance[0]);
+	static_assert(URT_SIZE == (sizeof(mocap.covariance) / sizeof(mocap.covariance[0])),
+		      "Odometry Pose Covariance matrix URT array size mismatch");
 
 	for (size_t i = 0; i < URT_SIZE; i++) {
 		mocap_odom.pose_covariance[i] = mocap.covariance[i];
@@ -1174,8 +1175,9 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	matrix::Quatf q(matrix::Eulerf(ev.roll, ev.pitch, ev.yaw));
 	q.copyTo(visual_odom.q);
 
-	size_t URT_SIZE = sizeof(visual_odom.pose_covariance) / sizeof(visual_odom.pose_covariance[0]);
-	assert(URT_SIZE == (sizeof(ev.covariance) / sizeof(ev.covariance[0])));
+	const size_t URT_SIZE = sizeof(visual_odom.pose_covariance) / sizeof(visual_odom.pose_covariance[0]);
+	static_assert(URT_SIZE == (sizeof(ev.covariance) / sizeof(ev.covariance[0])),
+		      "Odometry Pose Covariance matrix URT array size mismatch");
 
 	for (size_t i = 0; i < URT_SIZE; i++) {
 		visual_odom.pose_covariance[i] = ev.covariance[i];
@@ -1214,10 +1216,12 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	matrix::Quatf q(odom.q);
 	q.copyTo(odometry.q);
 
-	size_t POS_URT_SIZE = sizeof(odometry.pose_covariance) / sizeof(odometry.pose_covariance[0]);
-	size_t VEL_URT_SIZE = sizeof(odometry.velocity_covariance) / sizeof(odometry.velocity_covariance[0]);
-	assert(POS_URT_SIZE == (sizeof(odom.covariance) / sizeof(odom.covariance[0])));
-	assert(VEL_URT_SIZE == (sizeof(odom.twist_covariance) / sizeof(odom.twist_covariance[0])));
+	const size_t POS_URT_SIZE = sizeof(odometry.pose_covariance) / sizeof(odometry.pose_covariance[0]);
+	const size_t VEL_URT_SIZE = sizeof(odometry.velocity_covariance) / sizeof(odometry.velocity_covariance[0]);
+	static_assert(POS_URT_SIZE == (sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0])),
+		      "Odometry Pose Covariance matrix URT array size mismatch");
+	static_assert(VEL_URT_SIZE == (sizeof(odom.twist_covariance) / sizeof(odom.twist_covariance[0])),
+		      "Odometry Velocity Covariance matrix URT array size mismatch");
 
 	// create a method to simplify covariance copy
 	for (size_t i = 0; i < POS_URT_SIZE; i++) {
