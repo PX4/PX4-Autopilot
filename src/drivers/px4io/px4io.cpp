@@ -1411,6 +1411,13 @@ PX4IO::io_set_arming_state()
 		} else {
 			clear |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
 		}
+
+		if (armed.parachute_failsafe) {
+			set |= PX4IO_P_SETUP_ARMING_PARACHUTE_FAILSAFE;
+
+		} else {
+			clear |= PX4IO_P_SETUP_ARMING_PARACHUTE_FAILSAFE;
+		}
 	}
 
 	if (have_control_mode == OK) {

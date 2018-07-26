@@ -89,6 +89,27 @@ enum mixer_source {
 	MIX_OVERRIDE_FMU_OK
 };
 
+/* all output channels on a pixhawk */
+enum class PwmChannel : int16_t {
+	Disabled = 0,
+	IO1 = 1,
+	IO2 = 2,
+	IO3 = 3,
+	IO4 = 4,
+	IO5 = 5,
+	IO6 = 6,
+	IO7 = 7,
+	IO8 = 8,
+	FMU1 = 9,
+	FMU2 = 10,
+	FMU3 = 11,
+	FMU4 = 12,
+	FMU5 = 13,
+	FMU6 = 14,
+	FMU7 = 15,
+	FMU8 = 16
+};
+
 static volatile mixer_source source;
 
 static int mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &control);
@@ -349,21 +370,15 @@ mixer_tick(void)
 		isr_debug(5, "> PWM disabled");
 	}
 
+	bool update_sbus_outputs(false);
+
 	if (mixer_servos_armed && (should_arm || should_arm_nothrottle)
 	    && !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)) {
 		/* update the servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servos[i]);
 		}
-
-		/* set S.BUS1 or S.BUS2 outputs */
-
-		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
-			sbus2_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
-
-		} else if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
-			sbus1_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
-		}
+		update_sbus_outputs = true;
 
 	} else if (mixer_servos_armed && (should_always_enable_pwm
 					  || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN))) {
@@ -373,14 +388,37 @@ mixer_tick(void)
 			/* copy values into reporting register */
 			r_page_servos[i] = r_page_servo_disarmed[i];
 		}
+		update_sbus_outputs = true;
+	}
 
+	const auto pwm_parachute_output(static_cast<PwmChannel>(REG_TO_SIGNED(r_setup_chute_out))); // get PWM_CHUTE_OUT param
+	const bool parachute_on_io(pwm_parachute_output >= PwmChannel::IO1 && pwm_parachute_output <= PwmChannel::IO8);
+
+	/* if set, override parachute channel with corresponding value */
+	if (mixer_servos_armed && parachute_on_io) {
+		const int16_t parachute_channel((int16_t)pwm_parachute_output - (int16_t)PwmChannel::IO1); // remove offset
+		const bool trigger_parachute(parachute_on_io && (r_setup_arming & PX4IO_P_SETUP_ARMING_PARACHUTE_FAILSAFE));
+		uint16_t parachute_value;
+
+		if (trigger_parachute) {
+			parachute_value = REG_TO_SIGNED(r_setup_chute_on);
+		} else {
+			parachute_value = REG_TO_SIGNED(r_setup_chute_off);
+		}
+
+		up_pwm_servo_set(parachute_channel, parachute_value);
+		/* copy values into reporting register */
+		r_page_servos[parachute_channel] = parachute_value;
+	}
+
+	if (update_sbus_outputs) {
 		/* set S.BUS1 or S.BUS2 outputs */
 		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
-			sbus1_output(_sbus_fd, r_page_servo_disarmed, PX4IO_SERVO_COUNT);
+			sbus1_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
 		}
 
 		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
-			sbus2_output(_sbus_fd, r_page_servo_disarmed, PX4IO_SERVO_COUNT);
+			sbus2_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
 		}
 	}
 }
@@ -651,5 +689,4 @@ mixer_set_failsafe()
 	for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++) {
 		r_page_servo_failsafe[i] = 0;
 	}
-
 }
