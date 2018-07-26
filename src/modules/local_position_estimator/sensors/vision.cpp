@@ -65,7 +65,7 @@ void BlockLocalPositionEstimator::visionInit()
 
 int BlockLocalPositionEstimator::visionMeasure(Vector<float, n_y_vision> &y)
 {
-	if (!PX4_ISFINITE(_sub_visual_odom.get().pose_covariance[0])) {
+	if (PX4_ISFINITE(_sub_visual_odom.get().pose_covariance[0])) {
 		// check if the vision data is valid based on the covariances
 		_vision_eph = sqrtf(fmaxf(_sub_visual_odom.get().pose_covariance[0], _sub_visual_odom.get().pose_covariance[6]));
 		_vision_epv = sqrtf(_sub_visual_odom.get().pose_covariance[11]);
@@ -80,7 +80,7 @@ int BlockLocalPositionEstimator::visionMeasure(Vector<float, n_y_vision> &y)
 
 	if (!_vision_xy_valid || !_vision_z_valid) {
 		_time_last_vision_p = _sub_visual_odom.get().timestamp;
-		return !OK;
+		return -1;
 
 	} else {
 		y.setZero();

@@ -221,7 +221,7 @@ private:
 	// set pose/velocity as invalid if standard deviation is bigger than max_std_dev
 	// TODO: the user should be allowed to set these values by a parameter
 	static constexpr float ep_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated position
-	//static constexpr float eo_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated orientation
+	static constexpr float eo_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated orientation
 	//static constexpr float ev_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated velocity
 
 	// GPS blending and switching
@@ -1160,35 +1160,43 @@ void Ekf2::run()
 
 		if (visual_odometry_updated) {
 			// copy both attitude & position, we need both to fill a single ext_vision_message
-			vehicle_odometry_s ev_odom = {};
+			vehicle_odometry_s ev_odom;
 			orb_copy(ORB_ID(vehicle_visual_odometry), _ev_odom_sub, &ev_odom);
 
 			ext_vision_message ev_data;
-			ev_data.posNED(0) = ev_odom.x;
-			ev_data.posNED(1) = ev_odom.y;
-			ev_data.posNED(2) = ev_odom.z;
-			ev_data.quat = matrix::Quatf(ev_odom.q);
 
-			// position measurement error from parameters
-			if (!PX4_ISFINITE(ev_odom.pose_covariance[0])) {
-				ev_data.posErr = fmaxf(_ev_pos_noise.get(), sqrtf(fmaxf(ev_odom.pose_covariance[0], ev_odom.pose_covariance[6])));
-				ev_data.hgtErr = fmaxf(_ev_pos_noise.get(), sqrtf(fmaxf(ev_odom.pose_covariance[11]));
-			} else {
-				ev_data.posErr = _ev_pos_noise.get();
-				ev_data.hgtErr = _ev_pos_noise.get();
+			// check for valid position data
+			if (PX4_ISFINITE(ev_odom.x) && PX4_ISFINITE(ev_odom.y) && PX4_ISFINITE(ev_odom.z)) {
+				ev_data.posNED(0) = ev_odom.x;
+				ev_data.posNED(1) = ev_odom.y;
+				ev_data.posNED(2) = ev_odom.z;
+
+				// position measurement error from parameters
+				if (PX4_ISFINITE(ev_odom.pose_covariance[0])) {
+					ev_data.posErr = fmaxf(_ev_pos_noise.get(), sqrtf(fmaxf(ev_odom.pose_covariance[0], ev_odom.pose_covariance[6])));
+					ev_data.hgtErr = fmaxf(_ev_pos_noise.get(), sqrtf(fmaxf(ev_odom.pose_covariance[11]));
+				} else {
+					ev_data.posErr = _ev_pos_noise.get();
+					ev_data.hgtErr = _ev_pos_noise.get();
+				}
 			}
 
-			// orientation measurement error from parameters
-			if (!PX4_ISFINITE(ev_odom.pose_covariance[0])) {
-				ev_data.angErr = fmaxf(_ev_ang_noise.get(), sqrtf(fmaxf(ev_odom.pose_covariance[15], fmaxf(ev_odom.pose_covariance[18],
-						       ev_odom.pose_covariance[20]))));
+			// check for valid orientation data
+			if (PX4_ISFINITE(ev_odom.q[0])) {
+				ev_data.quat = matrix::Quatf(ev_odom.q);
 
-			} else {
-				ev_data.angErr = _ev_ang_noise.get();
+				// orientation measurement error from parameters
+				if (PX4_ISFINITE(ev_odom.pose_covariance[15])) {
+					ev_data.angErr = fmaxf(_ev_ang_noise.get(), sqrtf(fmaxf(ev_odom.pose_covariance[15], fmaxf(ev_odom.pose_covariance[18],
+							       ev_odom.pose_covariance[20]))));
+
+				} else {
+					ev_data.angErr = _ev_ang_noise.get();
+				}
 			}
 
-			// only set data if all positions are valid
-			if (sqrtf(ev_odom.pose_covariance[0]) < ep_max_std_dev && sqrtf(ev_odom.pose_covariance[6]) < ep_max_std_dev) {
+			// only set data if all positions and orientation are valid
+			if (ev_data.posErr < ep_max_std_dev && ev_data.angErr < eo_max_std_dev) {
 				// use timestamp from external computer, clocks are synchronized when using MAVROS
 				_ekf.setExtVisionData(ev_odom.timestamp, &ev_data);
 			}

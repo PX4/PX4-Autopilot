@@ -1123,18 +1123,17 @@ int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
 	return OK;
 }
 
-template<typename T>
-int Simulator::publish_odometry_topic(T *msg)
+int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
 {
 	uint64_t timestamp = hrt_absolute_time();
 
-	struct vehicle_odometry_s odom = {};
+	struct vehicle_odometry_s odom;
 
 	odom.timestamp = timestamp;
 
-	if (msg->msgid == MAVLINK_MSG_ID_ODOMETRY) {
+	if (odom_mavlink->msgid == MAVLINK_MSG_ID_ODOMETRY) {
 		mavlink_odometry_t odom_msg;
-		mavlink_msg_odometry_decode(msg, &odom_msg);
+		mavlink_msg_odometry_decode(odom_mavlink, &odom_msg);
 
 		/* Dcm rotation matrix from body frame to local NED frame */
 		matrix::Dcm<float> Rbl;
@@ -1175,9 +1174,9 @@ int Simulator::publish_odometry_topic(T *msg)
 			odom.velocity_covariance[i] = odom_msg.twist_covariance[i];
 		}
 
-	} else if (msg->msgid == MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE) {
+	} else if (odom_mavlink->msgid == MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE) {
 		mavlink_vision_position_estimate_t ev;
-		mavlink_msg_vision_position_estimate_decode(msg, &ev);
+		mavlink_msg_vision_position_estimate_decode(odom_mavlink, &ev);
 		/* The position in the local NED frame */
 		odom.x = ev.x;
 		odom.y = ev.y;
