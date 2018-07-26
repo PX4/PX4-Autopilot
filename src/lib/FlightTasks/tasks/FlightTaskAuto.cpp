@@ -201,11 +201,10 @@ bool FlightTaskAuto::_evaluateTriplets()
 	}
 
 	// Calculate the current vehicle state and check if it has updated.
-	State _previous_state = _current_state;
+	State previous_state = _current_state;
 	_current_state = _getCurrentState();
-	bool state_update = (_current_state != _previous_state) ? true : false;
 
-	if (triplet_update || state_update) {
+	if (triplet_update || (_current_state != previous_state)) {
 		_updateInternalWaypoints();
 	}
 
@@ -276,6 +275,7 @@ State FlightTaskAuto::_getCurrentState()
 	Vector2f u_prev_to_target = Vector2f(&(_triplet_target - _triplet_prev_wp)(0)).unit_or_zero();
 	Vector2f pos_to_target = Vector2f(&(_triplet_target - _position)(0));
 	Vector2f prev_to_pos = Vector2f(&(_position - _triplet_prev_wp)(0));
+	// Calculate the closest point to the vehicle position on the line prev_wp - target
 	_closest_pt = Vector2f(&_triplet_prev_wp(0)) + u_prev_to_target * (prev_to_pos * u_prev_to_target);
 
 	State return_state = State::none;
