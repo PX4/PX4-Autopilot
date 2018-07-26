@@ -38,6 +38,10 @@
  *
  */
 
+/******************************************************************************
+*                                  PWM_RATE                                   *
+******************************************************************************/
+
 /**
  * Set the PWM output frequency for the main outputs
  *
@@ -97,8 +101,9 @@ PARAM_DEFINE_INT32(PWM_MAX, 2000);
  */
 PARAM_DEFINE_INT32(PWM_DISARMED, 900);
 
-
-
+/******************************************************************************
+*                                PWM_MAIN_DIS                                 *
+******************************************************************************/
 
 /**
  * Set the disarmed PWM for the main 1 output
@@ -220,8 +225,9 @@ PARAM_DEFINE_INT32(PWM_MAIN_DIS7, -1);
  */
 PARAM_DEFINE_INT32(PWM_MAIN_DIS8, -1);
 
-
-
+/******************************************************************************
+*                                PWM_MAIN_REV                                 *
+******************************************************************************/
 
 /**
  * Invert direction of main output channel 1
@@ -303,8 +309,9 @@ PARAM_DEFINE_INT32(PWM_MAIN_REV7, 0);
  */
 PARAM_DEFINE_INT32(PWM_MAIN_REV8, 0);
 
-
-
+/******************************************************************************
+*                                PWM_MAIN_TRIM                                *
+******************************************************************************/
 
 /**
  * Trim value for main output channel 1
@@ -401,6 +408,3 @@ PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM7, 0);
  * @group PWM Outputs
  */
 PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM8, 0);
-
-
-
