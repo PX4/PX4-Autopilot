@@ -1178,7 +1178,7 @@ int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
 			      "Odometry Velocity Covariance matrix URT array size mismatch");
 
 		/* The velocity covariance URT */
-		for (size_t i = 0; i < (sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0])); i++) {
+		for (size_t i = 0; i < VEL_URT_SIZE; i++) {
 			odom.velocity_covariance[i] = odom_msg.twist_covariance[i];
 		}
 
