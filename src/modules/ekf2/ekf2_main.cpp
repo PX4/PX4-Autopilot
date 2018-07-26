@@ -238,8 +238,7 @@ private:
 
 	int _airdata_sub{-1};
 	int _airspeed_sub{-1};
-	int _ev_att_sub{-1};
-	int _ev_pos_sub{-1};
+	int _ev_odom_sub{-1};
 	int _landing_target_pose_sub{-1};
 	int _magnetometer_sub{-1};
 	int _optical_flow_sub{-1};
