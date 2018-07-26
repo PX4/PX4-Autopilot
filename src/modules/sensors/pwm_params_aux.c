@@ -38,6 +38,10 @@
  *
  */
 
+/******************************************************************************
+*                                PWM_AUX_RATE                                 *
+******************************************************************************/
+
 /**
  * Set the PWM output frequency for the auxiliary outputs
  *
@@ -98,8 +102,9 @@ PARAM_DEFINE_INT32(PWM_AUX_MAX, 2000);
 PARAM_DEFINE_INT32(PWM_AUX_DISARMED, 1500);
 
 
-
-
+/******************************************************************************
+*                                 PWM_AUX_DIS                                 *
+******************************************************************************/
 /**
  * Set the disarmed PWM for the auxiliary 1 output
  *
@@ -220,9 +225,9 @@ PARAM_DEFINE_INT32(PWM_AUX_DIS7, -1);
  */
 PARAM_DEFINE_INT32(PWM_AUX_DIS8, -1);
 
-
-
-
+/******************************************************************************
+*                                 PWM_AUX_REV                                 *
+******************************************************************************/
 /**
  * Invert direction of auxiliary output channel 1
  *
@@ -303,8 +308,9 @@ PARAM_DEFINE_INT32(PWM_AUX_REV7, 0);
  */
 PARAM_DEFINE_INT32(PWM_AUX_REV8, 0);
 
-
-
+/******************************************************************************
+*                                PWM_AUX_TRIM                                 *
+******************************************************************************/
 
 /**
  * Trim value for auxiliary output channel 1
@@ -401,6 +407,3 @@ PARAM_DEFINE_FLOAT(PWM_AUX_TRIM7, 0);
  * @group PWM Outputs
  */
 PARAM_DEFINE_FLOAT(PWM_AUX_TRIM8, 0);
-
-
-
