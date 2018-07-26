@@ -122,11 +122,12 @@ MissionBlock::is_mission_item_reached()
 		break;
 	}
 
-	hrt_abstime now = hrt_absolute_time();
+	_prev_t = _now;
+	_now = hrt_absolute_time();
 
 	if (!_navigator->get_land_detected()->landed && !_waypoint_position_reached) {
 
-		float dist = -1.0f;
+		//float dist = -1.0f;
 		float dist_xy = -1.0f;
 		float dist_z = -1.0f;
 
@@ -134,7 +135,8 @@ MissionBlock::is_mission_item_reached()
 				      ? _mission_item.altitude + _navigator->get_home_position()->alt
 				      : _mission_item.altitude;
 
-		dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, altitude_amsl,
+		_prev_dist = _dist;
+		_dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, altitude_amsl,
 				_navigator->get_global_position()->lat,
 				_navigator->get_global_position()->lon,
 				_navigator->get_global_position()->alt,
@@ -147,7 +149,7 @@ MissionBlock::is_mission_item_reached()
 			struct position_setpoint_s *curr_sp = &_navigator->get_position_setpoint_triplet()->current;
 
 			/* close to waypoint, but altitude error greater than twice acceptance */
-			if ((dist >= 0.0f)
+			if ((_dist >= 0.0f)
 			    && (dist_z > 2 * _navigator->get_altitude_acceptance_radius())
 			    && (dist_xy < 2 * _navigator->get_loiter_radius())) {
 
@@ -163,7 +165,7 @@ MissionBlock::is_mission_item_reached()
 				/* restore SETPOINT_TYPE_POSITION */
 				if (curr_sp->type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 					/* loiter acceptance criteria required to revert back to SETPOINT_TYPE_POSITION */
-					if ((dist >= 0.0f)
+					if ((_dist >= 0.0f)
 					    && (dist_z < _navigator->get_loiter_radius())
 					    && (dist_xy <= _navigator->get_loiter_radius() * 1.2f)) {
 
@@ -200,7 +202,7 @@ MissionBlock::is_mission_item_reached()
 
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
 			/* for takeoff mission items use the parameter for the takeoff acceptance radius */
-			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius()
+			if (_dist >= 0.0f && _dist <= _navigator->get_acceptance_radius()
 			    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
@@ -214,7 +216,7 @@ MissionBlock::is_mission_item_reached()
 			 * Therefore the item is marked as reached once the system reaches the loiter
 			 * radius (+ some margin). Time inside and turn count is handled elsewhere.
 			 */
-			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f)
+			if (_dist >= 0.0f && _dist <= _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f)
 			    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
 				_waypoint_position_reached = true;
@@ -236,22 +238,22 @@ MissionBlock::is_mission_item_reached()
 				dist_xy = -1.0f;
 				dist_z = -1.0f;
 
-				dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, curr_sp->alt,
+				_dist = get_distance_to_point_global_wgs84(_mission_item.lat, _mission_item.lon, curr_sp->alt,
 						_navigator->get_global_position()->lat,
 						_navigator->get_global_position()->lon,
 						_navigator->get_global_position()->alt,
 						&dist_xy, &dist_z);
 
-				if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f)
+				if (_dist >= 0.0f && _dist <= _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f)
 				    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
-					// now set the loiter to the final altitude in the NAV_CMD_LOITER_TO_ALT mission item
+					// _now set the loiter to the final altitude in the NAV_CMD_LOITER_TO_ALT mission item
 					curr_sp->alt = altitude_amsl;
 					_navigator->set_position_setpoint_triplet_updated();
 				}
 
 			} else {
-				if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f)
+				if (_dist >= 0.0f && _dist <= _navigator->get_acceptance_radius(fabsf(_mission_item.loiter_radius) * 1.2f)
 				    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
 
 					_waypoint_position_reached = true;
@@ -277,7 +279,7 @@ MissionBlock::is_mission_item_reached()
 		} else if (_mission_item.nav_cmd == NAV_CMD_DELAY) {
 			_waypoint_position_reached = true;
 			_waypoint_yaw_reached = true;
-			_time_wp_reached = now;
+			_time_wp_reached = _now;
 
 		} else {
 			/* for normal mission items used their acceptance radius */
@@ -304,15 +306,69 @@ MissionBlock::is_mission_item_reached()
 
 			}
 
-			if (dist >= 0.0f && dist <= mission_acceptance_radius
+			if (_dist >= 0.0f && _dist <= mission_acceptance_radius
 			    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
 				_waypoint_position_reached = true;
 			}
 		}
 
 		if (_waypoint_position_reached) {
-			// reached just now
-			_time_wp_reached = now;
+			// reached just _now
+			_time_wp_reached = _now;
+		}
+	}
+
+
+	const bool obstacle_avoidance_running = hrt_elapsed_time(&_navigator->get_trajectory_waypoint()->timestamp) < 1e6f;
+
+	/* Obstacle Avoidance is running and it's healty */
+	if (_navigator->get_avoidance_active() && obstacle_avoidance_running) {
+
+		/* project the vehicle position on the vector previous-current triplet and calculate how much
+		 * distance has been travelled so far */
+
+		matrix::Vector2f u_prev_to_curr;
+		matrix::Vector2f prev_to_pos(_navigator->get_global_position()->lat -
+					     _navigator->get_position_setpoint_triplet()->previous.lat,
+					     _navigator->get_global_position()->lon - _navigator->get_position_setpoint_triplet()->previous.lon);
+
+		get_vector_to_next_waypoint(_navigator->get_position_setpoint_triplet()->previous.lat,
+					    _navigator->get_position_setpoint_triplet()->previous.lon,
+					    _navigator->get_position_setpoint_triplet()->current.lat,
+					    _navigator->get_position_setpoint_triplet()->current.lon, &u_prev_to_curr(0), &u_prev_to_curr(1));
+
+		const float dist_prev_curr = u_prev_to_curr.length();
+		u_prev_to_curr = u_prev_to_curr.normalized();
+
+		matrix::Vector2f pt_on_line = matrix::Vector2f(_navigator->get_position_setpoint_triplet()->previous.lat,
+					      _navigator->get_position_setpoint_triplet()->previous.lon) + u_prev_to_curr * (prev_to_pos * u_prev_to_curr);
+
+		const float prev_curr_travelled = get_distance_to_next_waypoint(
+				_navigator->get_position_setpoint_triplet()->previous.lat,
+				_navigator->get_position_setpoint_triplet()->previous.lon, pt_on_line(0), pt_on_line(1)) / dist_prev_curr;
+
+		/* calculate the progress towards the goal (negative slope) and keep track of how much time
+		 * has elapsed since the last time progress was made */
+		const float slope = (_dist - _prev_dist) / (_now - _prev_t);
+
+		if (slope > 0.0f) {
+			_time_positive_slope += (_now - _prev_t);
+
+		} else {
+			_time_positive_slope = 0;
+		}
+
+		/* always set the yaw as reached since it might never reach the requested
+		 * yaw because avoidance is in charge of setting the vehicle heading */
+		_waypoint_yaw_reached = true;
+
+		/* if the vehicle projetced position has passed the current triplet or
+		 * the vehicle is not making progress towards the goal for more than 10
+		 * seconds, set current triplet as reached so that navigator updates
+		 * the triplets */
+		if (prev_curr_travelled > 1.0f || _time_positive_slope > 10 * 1000000) {
+			_waypoint_position_reached = true;
+			_time_wp_reached = _now;
 		}
 	}
 
@@ -341,7 +397,7 @@ MissionBlock::is_mission_item_reached()
 			/* if heading needs to be reached, the timeout is enabled and we don't make it, abort mission */
 			if (!_waypoint_yaw_reached && _mission_item.force_heading &&
 			    (_navigator->get_yaw_timeout() >= FLT_EPSILON) &&
-			    (now - _time_wp_reached >= (hrt_abstime)_navigator->get_yaw_timeout() * 1e6f)) {
+			    (_now - _time_wp_reached >= (hrt_abstime)_navigator->get_yaw_timeout() * 1e6f)) {
 
 				_navigator->set_mission_failure("unable to reach heading within timeout");
 			}
@@ -355,12 +411,12 @@ MissionBlock::is_mission_item_reached()
 	if (_waypoint_position_reached && _waypoint_yaw_reached) {
 
 		if (_time_first_inside_orbit == 0) {
-			_time_first_inside_orbit = now;
+			_time_first_inside_orbit = _now;
 		}
 
 		/* check if the MAV was long enough inside the waypoint orbit */
 		if ((get_time_inside(_mission_item) < FLT_EPSILON) ||
-		    (now - _time_first_inside_orbit >= (hrt_abstime)(get_time_inside(_mission_item) * 1e6f))) {
+		    (_now - _time_first_inside_orbit >= (hrt_abstime)(get_time_inside(_mission_item) * 1e6f))) {
 
 			position_setpoint_s &curr_sp = _navigator->get_position_setpoint_triplet()->current;
 			const position_setpoint_s &next_sp = _navigator->get_position_setpoint_triplet()->next;

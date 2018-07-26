@@ -131,6 +131,13 @@ protected:
 	hrt_abstime _time_first_inside_orbit{0};
 	hrt_abstime _action_start{0};
 	hrt_abstime _time_wp_reached{0};
+	hrt_abstime _prev_t{0};
+	hrt_abstime _now{0};
+
+	float _prev_dist = -1.0f;
+	float _dist = -1.0f;
+	hrt_abstime _time_positive_slope = 0;
+	hrt_abstime  _first_time_positive_slope = 0;
 
 	orb_advert_t    _actuator_pub{nullptr};
 };
