@@ -599,7 +599,7 @@ void BlockLocalPositionEstimator::publishLocalPos()
 			_pub_lpos.get().z = xLP(X_z);	// down
 		}
 
-		_pub_gpos.get().yaw = matrix::Eulerf(_q).psi();
+		_pub_gpos.get().yaw = matrix::Eulerf(matrix::Quatf(_sub_att.get().q)).psi();
 
 		_pub_lpos.get().vx = xLP(X_vx);		// north
 		_pub_lpos.get().vy = xLP(X_vy);		// east
@@ -723,7 +723,7 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 		_pub_gpos.get().vel_n = xLP(X_vx);
 		_pub_gpos.get().vel_e = xLP(X_vy);
 		_pub_gpos.get().vel_d = xLP(X_vz);
-		_pub_gpos.get().yaw = matrix::Eulerf(_q).psi();
+		_pub_gpos.get().yaw = matrix::Eulerf(matrix::Quatf(_sub_att.get().q)).psi();
 		_pub_gpos.get().eph = eph;
 		_pub_gpos.get().epv = epv;
 		_pub_gpos.get().terrain_alt = _altOrigin - xLP(X_tz);
@@ -827,8 +827,7 @@ void BlockLocalPositionEstimator::updateSSParams()
 void BlockLocalPositionEstimator::predict()
 {
 	// get acceleration
-	_q = matrix::Quatf(&_sub_att.get().q[0]);
-	_R_att = matrix::Dcm<float>(_q);
+	_R_att = matrix::Dcm<float>(matrix::Quatf(_sub_att.get().q));
 	Vector3f a(_sub_sensor.get().accelerometer_m_s2);
 	// note, bias is removed in dynamics function
 	_u = _R_att * a;

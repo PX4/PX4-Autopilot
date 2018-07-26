@@ -436,7 +436,6 @@ private:
 	Vector<float, n_u>  _u;	// input vector
 	Matrix<float, n_x, n_x>  _P;	// state covariance matrix
 
-	matrix::Quatf _q;
 	matrix::Dcm<float> _R_att;
 
 	Matrix<float, n_x, n_x>  _A;	// dynamics matrix

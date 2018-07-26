@@ -2109,7 +2109,7 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		vehicle_odometry_s vodom = {};
+		vehicle_odometry_s vodom;
 
 		if (_odom_sub->update(&_odom_time, &vodom)) {
 			mavlink_vision_position_estimate_t vmsg = {};

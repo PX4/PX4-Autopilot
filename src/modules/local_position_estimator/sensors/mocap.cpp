@@ -60,7 +60,7 @@ void BlockLocalPositionEstimator::mocapInit()
 
 int BlockLocalPositionEstimator::mocapMeasure(Vector<float, n_y_mocap> &y)
 {
-	if (!PX4_ISFINITE(_sub_mocap_odom.get().pose_covariance[0])) {
+	if (PX4_ISFINITE(_sub_mocap_odom.get().pose_covariance[0])) {
 		// check if the mocap data is valid based on the covariances
 		_mocap_eph = sqrtf(fmaxf(_sub_mocap_odom.get().pose_covariance[0], _sub_mocap_odom.get().pose_covariance[6]));
 		_mocap_epv = sqrtf(_sub_mocap_odom.get().pose_covariance[11]);
@@ -75,7 +75,7 @@ int BlockLocalPositionEstimator::mocapMeasure(Vector<float, n_y_mocap> &y)
 
 	if (!_mocap_xy_valid || !_mocap_z_valid) {
 		_time_last_mocap = _sub_mocap_odom.get().timestamp;
-		return !OK;
+		return -1;
 
 	} else {
 		y.setZero();
