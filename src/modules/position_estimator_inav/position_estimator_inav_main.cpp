@@ -792,13 +792,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					static float last_vision_y = 0.0f;
 					static float last_vision_z = 0.0f;
 
-					vision_xy_valid = !PX4_ISFINITE(visual_odom.pose_covariance[0]) ? sqrtf(fmaxf(visual_odom.pose_covariance[0],
+					vision_xy_valid = PX4_ISFINITE(visual_odom.pose_covariance[0]) ? sqrtf(fmaxf(visual_odom.pose_covariance[0],
 							  visual_odom.pose_covariance[6])) > ep_max_std_dev : true;
-					vision_z_valid = !PX4_ISFINITE(visual_odom.pose_covariance[0]) ? visual_odom.pose_covariance[11] > ep_max_std_dev :
+					vision_z_valid = PX4_ISFINITE(visual_odom.pose_covariance[0]) ? visual_odom.pose_covariance[11] > ep_max_std_dev :
 							 true;
-					vision_vxy_valid = !PX4_ISFINITE(visual_odom.velocity_covariance[0]) ? sqrtf(fmaxf(visual_odom.velocity_covariance[0],
+					vision_vxy_valid = PX4_ISFINITE(visual_odom.velocity_covariance[0]) ? sqrtf(fmaxf(visual_odom.velocity_covariance[0],
 							   visual_odom.velocity_covariance[6])) > ev_max_std_dev : true;
-					vision_vz_valid = !PX4_ISFINITE(visual_odom.velocity_covariance[0]) ? visual_odom.velocity_covariance[11] >
+					vision_vz_valid = PX4_ISFINITE(visual_odom.velocity_covariance[0]) ? visual_odom.velocity_covariance[11] >
 							  ep_max_std_dev : true;
 
 					/* reset position estimate on first vision update */
@@ -913,9 +913,9 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(vehicle_mocap_odometry), mocap_position_sub, &mocap);
 
-				mocap_xy_valid = (!PX4_ISFINITE(mocap.pose_covariance[0]) ? sqrtf(fmaxf(mocap.pose_covariance[0],
+				mocap_xy_valid = (PX4_ISFINITE(mocap.pose_covariance[0]) ? sqrtf(fmaxf(mocap.pose_covariance[0],
 						  mocap.pose_covariance[6])) > ep_max_std_dev : true) ? false : true;
-				mocap_z_valid = (!PX4_ISFINITE(mocap.pose_covariance[0]) ? mocap.pose_covariance[11] > ep_max_std_dev : true) ? false :
+				mocap_z_valid = (PX4_ISFINITE(mocap.pose_covariance[0]) ? mocap.pose_covariance[11] > ep_max_std_dev : true) ? false :
 						true;
 
 				if (!params.disable_mocap) {
