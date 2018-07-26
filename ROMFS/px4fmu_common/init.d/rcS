@@ -336,70 +336,11 @@ else
 	fi
 
 	#
-	# Check if PX4IO present and update firmware if needed.
-	#
-	if [ -f /etc/extras/px4io-v2.bin ]
-	then
-		set IO_FILE /etc/extras/px4io-v2.bin
-
-		if px4io checkcrc ${IO_FILE}
-		then
-			set IO_PRESENT yes
-		else
-			tune_control play -m MLL32CP8MB
-
-			if px4io start
-			then
-				# Try to safety px4 io so motor outputs don't go crazy.
-				if px4io safety_on
-				then
-					# success! no-op
-				else
-					# px4io did not respond to the safety command.
-					px4io stop
-				fi
-			fi
-
-			if px4io forceupdate 14662 ${IO_FILE}
-			then
-				usleep 10000
-				if px4io checkcrc ${IO_FILE}
-				then
-					echo "PX4IO CRC OK after updating" >> $LOG_FILE
-					tune_control play -m MLL8CDE
-
-					set IO_PRESENT yes
-				else
-					echo "PX4IO update failed" >> $LOG_FILE
-					# Error tune.
-					tune_control play -t 2
-				fi
-			else
-				echo "PX4IO update failed" >> $LOG_FILE
-				# Error tune.
-				tune_control play -t 2
-			fi
-		fi
-	fi
-
-	#
 	# Set USE_IO flag.
 	#
 	if param compare SYS_USE_IO 1
 	then
 		set USE_IO yes
-	fi
-
-	if [ $USE_IO == yes -a $IO_PRESENT == no ]
-	then
-		echo "PX4IO not found" >> $LOG_FILE
-		# Error tune.
-		tune_control play -t 2
-	fi
-
-	if [ $IO_PRESENT == no -o $USE_IO == no ]
-	then
-		rc_input start
 	fi
 
 	#
@@ -503,6 +444,14 @@ else
 	# Start the logger.
 	#
 	sh /etc/init.d/rc.logging
+
+	#
+	# Start the rc_input driver.
+	#
+	if [ $USE_IO == no -o $IO_PRESENT == no ]
+	then
+		rc_input start
+	fi
 
 	#
 	# Start vmount to control mounts such as gimbals, disabled by default.
