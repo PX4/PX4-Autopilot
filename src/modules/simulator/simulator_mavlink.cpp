@@ -1156,7 +1156,7 @@ int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
 		q.copyTo(odom.q);
 
 		/* The pose covariance URT */
-		for (size_t i = 0; i < 21; i++) {
+		for (size_t i = 0; i < (sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0])); i++) {
 			odom.pose_covariance[i] = odom_msg.pose_covariance[i];
 		}
 
@@ -1170,7 +1170,7 @@ int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
 		odom.yawspeed = odom_msg.yawspeed;
 
 		/* The velocity covariance URT */
-		for (size_t i = 0; i < 21; i++) {
+		for (size_t i = 0; i < (sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0])); i++) {
 			odom.velocity_covariance[i] = odom_msg.twist_covariance[i];
 		}
 
@@ -1187,7 +1187,7 @@ int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
 		q.copyTo(odom.q);
 
 		/* The pose covariance URT */
-		for (size_t i = 0; i < 21; i++) {
+		for (size_t i = 0; i < (sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0])); i++) {
 			odom.pose_covariance[i] = ev.covariance[i];
 		}
 
