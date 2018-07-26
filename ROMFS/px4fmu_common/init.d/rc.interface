@@ -278,6 +278,8 @@ then
 		pwm disarmed -c 4 -p p:PWM_AUX_DIS4 -d ${OUTPUT_AUX_DEV}
 		pwm disarmed -c 5 -p p:PWM_AUX_DIS5 -d ${OUTPUT_AUX_DEV}
 		pwm disarmed -c 6 -p p:PWM_AUX_DIS6 -d ${OUTPUT_AUX_DEV}
+		pwm disarmed -c 7 -p p:PWM_AUX_DIS7 -d ${OUTPUT_AUX_DEV}
+		pwm disarmed -c 8 -p p:PWM_AUX_DIS8 -d ${OUTPUT_AUX_DEV}
 
 		if [ $FAILSAFE_AUX != none ]
 		then
