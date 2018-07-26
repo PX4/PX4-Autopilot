@@ -1155,8 +1155,12 @@ int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
 		matrix::Quatf q(odom_msg.q[0], odom_msg.q[1], odom_msg.q[2], odom_msg.q[3]);
 		q.copyTo(odom.q);
 
+		const size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
+		static_assert(POS_URT_SIZE == (sizeof(odom_msg.pose_covariance) / sizeof(odom_msg.pose_covariance[0])),
+			      "Odometry Pose Covariance matrix URT array size mismatch");
+
 		/* The pose covariance URT */
-		for (size_t i = 0; i < (sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0])); i++) {
+		for (size_t i = 0; i < POS_URT_SIZE; i++) {
 			odom.pose_covariance[i] = odom_msg.pose_covariance[i];
 		}
 
@@ -1168,6 +1172,10 @@ int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
 		odom.rollspeed = odom_msg.rollspeed;
 		odom.pitchspeed = odom_msg.pitchspeed;
 		odom.yawspeed = odom_msg.yawspeed;
+
+		const size_t VEL_URT_SIZE = sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
+		static_assert(VEL_URT_SIZE == (sizeof(odom_msg.twist_covariance) / sizeof(odom_msg.twist_covariance[0])),
+			      "Odometry Velocity Covariance matrix URT array size mismatch");
 
 		/* The velocity covariance URT */
 		for (size_t i = 0; i < (sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0])); i++) {
