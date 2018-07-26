@@ -239,6 +239,13 @@ enum {							/* DSM bind states */
 #define PX4IO_P_SETUP_THR_MDL_FAC 		25	/* factor for modelling static pwm output to thrust relationship */
 
 #define PX4IO_P_SETUP_THERMAL			26	/* thermal management */
+
+#define PX4IO_P_SETUP_PWM_CHUTE_OUT 		28 	/* parachute pwm channel */
+
+#define PX4IO_P_SETUP_PWM_CHUTE_ON 		29 	/* parachute on */
+
+#define PX4IO_P_SETUP_PWM_CHUTE_OFF		30 	/* parachute off */
+
 #define PX4IO_THERMAL_IGNORE			UINT16_MAX
 #define PX4IO_THERMAL_OFF			0
 #define PX4IO_THERMAL_FULL			10000

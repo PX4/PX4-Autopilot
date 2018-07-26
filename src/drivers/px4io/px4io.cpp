@@ -1209,6 +1209,33 @@ PX4IO::task_main()
 					param_get(parm_handle, &param_val_int);
 					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_AIRMODE, SIGNED_TO_REG(param_val_int));
 				}
+
+				/* parachute pwm channel */
+				parm_handle = param_find("PWM_CHUTE_OUT");
+
+				if (parm_handle != PARAM_INVALID) {
+					int32_t param_val_int;
+					param_get(parm_handle, &param_val_int);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_CHUTE_OUT, SIGNED_TO_REG(param_val_int));
+				}
+
+				/* parachute pwm on */
+				parm_handle = param_find("PWM_CHUTE_ON");
+
+				if (parm_handle != PARAM_INVALID) {
+					int32_t param_val_int;
+					param_get(parm_handle, &param_val_int);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_CHUTE_ON, SIGNED_TO_REG(param_val_int));
+				}
+
+				/* parachute pwm off */
+				parm_handle = param_find("PWM_CHUTE_OFF");
+
+				if (parm_handle != PARAM_INVALID) {
+					int32_t param_val_int;
+					param_get(parm_handle, &param_val_int);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_CHUTE_OFF, SIGNED_TO_REG(param_val_int));
+				}
 			}
 
 		}
