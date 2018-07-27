@@ -79,6 +79,8 @@ ADIS16477::ADIS16477(int bus, const char *path_accel, const char *path_gyro, uin
 	_bad_transfers(perf_alloc(PC_COUNT, "adis16477_bad_transfers")),
 	_rotation(rotation)
 {
+	_debug_enabled = true;
+
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_ADIS16477;
 
 	_gyro->_device_id.devid = _device_id.devid;
@@ -125,11 +127,6 @@ ADIS16477::init()
 	if (SPI::init() != OK) {
 		/* if probe/setup failed, bail now */
 		DEVICE_DEBUG("SPI setup failed");
-		return PX4_ERROR;
-	}
-
-	if (reset() != OK) {
-		PX4_ERR("reset failed");
 		return PX4_ERROR;
 	}
 
@@ -184,14 +181,16 @@ ADIS16477::init()
 
 int ADIS16477::reset()
 {
-	// reset
+	DEVICE_DEBUG("resetting");
 
-	uint8_t cmd[2] = { 0xE8, 0x80 };
-	transfer(cmd, cmd, sizeof(cmd));
+	uint8_t cmd1[2] = { 0xE8, 0x80 };
+	transfer(cmd1, cmd1, sizeof(cmd1));
 
-	cmd[0] = 0xE9;
-	cmd[1] = 0x00;
-	transfer(cmd, cmd, sizeof(cmd));
+	uint8_t cmd2[2] = { 0xE9, 0x00 };
+	transfer(cmd2, cmd2, sizeof(cmd2));
+
+	// Reset Recovery Time
+	up_mdelay(200);
 
 	return OK;
 }
@@ -201,27 +200,8 @@ ADIS16477::probe()
 {
 	reset();
 
-	// why?
-	for (int i = 0; i < 255; i++) {
-		read_reg(i);
-		up_udelay(T_STALL);
-	}
-
-	for (int i = 0; i < 25; i++) {
-		_product = read_reg(PROD_ID);
-
-		if (_product == PROD_ID_ADIS16477) {
-			PX4_INFO("PRODUCT: %X", _product);
-			return PX4_OK;
-		}
-
-		up_udelay(T_STALL);
-	}
-
-	// settling time
-	up_udelay(50000);
-
-	for (int i = 0; i < 25; i++) {
+	// read product id (5 attempts)
+	for (int i = 0; i < 5; i++) {
 		_product = read_reg(PROD_ID + 1);
 
 		if (_product == PROD_ID_ADIS16477) {
@@ -230,10 +210,8 @@ ADIS16477::probe()
 		}
 
 		DEVICE_DEBUG("PROD_ID attempt 0x73 %d", i);
-		up_udelay(T_STALL);
 	}
 
-	DEVICE_DEBUG("unexpected ID 0x%02x", _product);
 	return -EIO;
 }
 
