@@ -560,7 +560,7 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	/*
 	 * Node init
 	 */
-	_instance = new UavcanNode(can->driver, uavcan_stm32::SystemClock::instance());
+	_instance = new UavcanNode(can->driver, UAVCAN_DRIVER::SystemClock::instance());
 
 	if (_instance == nullptr) {
 		PX4_ERR("Out of memory");
@@ -773,20 +773,20 @@ int UavcanNode::run()
 	}
 
 	/* When we have a system wide notion of time update (i.e the transition from the initial
-	 * System RTC setting to the GPS) we would call uavcan_stm32::clock::setUtc() when that
+	 * System RTC setting to the GPS) we would call UAVCAN_DRIVER::clock::setUtc() when that
 	 * happens, but for now we use adjustUtc with a correction of the hrt so that the
 	 * time bases are the same
 	 */
-	uavcan_stm32::clock::adjustUtc(uavcan::UtcDuration::fromUSec(hrt_absolute_time()));
+	UAVCAN_DRIVER::clock::adjustUtc(uavcan::UtcDuration::fromUSec(hrt_absolute_time()));
 	_master_timer.setCallback(TimerCallback(this, &UavcanNode::handle_time_sync));
 	_master_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000));
 
 	_node_status_monitor.start();
 
-	const int busevent_fd = ::open(uavcan_stm32::BusEvent::DevName, 0);
+	const int busevent_fd = ::open(UAVCAN_DRIVER::BusEvent::DevName, 0);
 
 	if (busevent_fd < 0) {
-		PX4_ERR("Failed to open %s", uavcan_stm32::BusEvent::DevName);
+		PX4_ERR("Failed to open %s", UAVCAN_DRIVER::BusEvent::DevName);
 		_task_should_exit = true;
 	}
 
