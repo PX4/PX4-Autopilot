@@ -44,7 +44,7 @@
 
 #include <px4_config.h>
 
-#include <uavcan_stm32/uavcan_stm32.hpp>
+#include "uavcan_driver.hpp"
 #include <uavcan/helpers/heap_based_pool_allocator.hpp>
 #include <uavcan/protocol/global_time_sync_master.hpp>
 #include <uavcan/protocol/global_time_sync_slave.hpp>
