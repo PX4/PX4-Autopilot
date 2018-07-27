@@ -1310,6 +1310,14 @@ void Mavlink::send_autopilot_capabilites()
 		board_get_uuid32(uid);
 		msg.uid = (((uint64_t)uid[PX4_CPU_UUID_WORD32_UNIQUE_M]) << 32) | uid[PX4_CPU_UUID_WORD32_UNIQUE_H];
 
+#ifdef CONFIG_ARCH_BOARD_SITL
+		// To avoid that multiple SITL instances have the same UUID, we add the mavlink
+		// system ID. We subtract 1, so that the first UUID remains unchanged given the
+		// default system ID is 1.
+		//
+		// Note that the UUID show in `ver` will still be the same for all instances.
+		msg.uid += mavlink_system.sysid - 1;
+#endif
 		mavlink_msg_autopilot_version_send_struct(get_channel(), &msg);
 	}
 }
