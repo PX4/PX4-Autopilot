@@ -28,8 +28,10 @@ then
 	param set RTL_DESCEND_ALT 100
 	param set RTL_LAND_DELAY -1
 
-	# FW uses L1 distance for acceptance radius,
-	#  set a smaller NAV_ACC_RAD for vertical acceptance distance.
+	#
+	# FW uses L1 distance for acceptance radius.
+	# Set a smaller NAV_ACC_RAD for vertical acceptance distance.
+	#
 	param set NAV_ACC_RAD 10
 
 	param set MIS_LTRMIN_ALT 25
@@ -37,11 +39,16 @@ then
 
 	param set PWM_RATE 50
 
+	#
 	# FW takeoff acceleration can easily exceed ublox GPS 2G default.
+	#
 	param set GPS_UBX_DYNMODEL 8
 fi
 
+#
 # This is the gimbal pass mixer.
+#
 set MIXER_AUX pass
+
 set PWM_AUX_RATE 50
 set PWM_AUX_OUT 1234

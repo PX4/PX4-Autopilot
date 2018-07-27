@@ -1,10 +1,15 @@
 #!nsh
 #
 # Standard apps for rovers:
-# att & pos estimator, rover steering control
+# Attitude/Position estimator and rover steering control.
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
+#
+# Start the Attitude estimator.
+#
 ekf2 start
 
 # disabled the start of steering control app due to use of offboard mode only
-# rover_steering_control start
+# rover_steering_control start.

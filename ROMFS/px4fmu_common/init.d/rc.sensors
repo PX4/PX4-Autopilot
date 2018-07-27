@@ -2,6 +2,8 @@
 #
 # Standard startup script for sensor drivers.
 #
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
 
 ###############################################################################
 #               Begin Setup for board specific configurations.                #

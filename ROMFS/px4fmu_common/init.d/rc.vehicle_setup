@@ -6,19 +6,19 @@
 #
 
 #
-# Fixed wing setup
+# Fixed wing setup.
 #
 if [ $VEHICLE_TYPE == fw ]
 then
 	if [ $MIXER == none ]
 	then
-		# Set default mixer for fixed wing if not defined
+		# Set default mixer for fixed wing if not defined.
 		set MIXER AERT
 	fi
 
 	if [ $MAV_TYPE == none ]
 	then
-		# Use MAV_TYPE = 1 (fixed wing) if not defined
+		# Use MAV_TYPE = 1 (fixed wing) if not defined.
 		set MAV_TYPE 1
 	fi
 
@@ -32,7 +32,7 @@ then
 fi
 
 #
-# Multicopters setup
+# Multicopter setup.
 #
 if [ $VEHICLE_TYPE == mc ]
 then
@@ -82,7 +82,7 @@ then
 		fi
 	fi
 
-	# Still no MAV_TYPE found
+	# Still no MAV_TYPE found.
 	if [ $MAV_TYPE == none ]
 	then
 		param set MAV_TYPE 2
@@ -90,15 +90,15 @@ then
 		param set MAV_TYPE ${MAV_TYPE}
 	fi
 
-	# Load mixer and configure outputs
+	# Load mixer and configure outputs.
 	sh /etc/init.d/rc.interface
 
-	# Start standard multicopter apps
+	# Start standard multicopter apps.
 	sh /etc/init.d/rc.mc_apps
 fi
 
 #
-# VTOL setup
+# VTOL setup.
 #
 if [ $VEHICLE_TYPE == vtol ]
 then
@@ -109,7 +109,7 @@ then
 
 	if [ $MAV_TYPE == none ]
 	then
-		# Use mixer to detect vehicle type
+		# Use mixer to detect vehicle type.
 		if [ $MIXER == caipirinha_vtol ]
 		then
 			set MAV_TYPE 19
@@ -124,7 +124,7 @@ then
 		fi
 	fi
 
-	# Still no MAV_TYPE found
+	# Still no MAV_TYPE found.
 	if [ $MAV_TYPE == none ]
 	then
 		echo "Unknown MAV_TYPE"
@@ -133,10 +133,10 @@ then
 		param set MAV_TYPE ${MAV_TYPE}
 	fi
 
-	# Load mixer and configure outputs
+	# Load mixer and configure outputs.
 	sh /etc/init.d/rc.interface
 
-	# Start standard vtol apps
+	# Start standard vtol apps.
 	sh /etc/init.d/rc.vtol_apps
 fi
 
@@ -147,22 +147,22 @@ if [ $VEHICLE_TYPE == ugv ]
 then
 	if [ $MIXER == none ]
 	then
-		# Set default mixer for UGV if not defined
+		# Set default mixer for UGV if not defined.
 		set MIXER ugv_generic
 	fi
 
 	if [ $MAV_TYPE == none ]
 	then
-		# Use MAV_TYPE = 10 (UGV) if not defined
+		# Use MAV_TYPE = 10 (UGV) if not defined.
 		set MAV_TYPE 10
 	fi
 
 	param set MAV_TYPE ${MAV_TYPE}
 
-	# Load mixer and configure outputs
+	# Load mixer and configure outputs.
 	sh /etc/init.d/rc.interface
 
-	# Start standard UGV apps
+	# Start standard UGV apps.
 	sh /etc/init.d/rc.ugv_apps
 fi
 
