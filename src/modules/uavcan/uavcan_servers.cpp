@@ -80,8 +80,8 @@
 UavcanServers *UavcanServers::_instance;
 UavcanServers::UavcanServers(uavcan::INode &main_node) :
 	_subnode_thread(-1),
-	_vdriver(NumIfaces, uavcan_stm32::SystemClock::instance(), main_node.getAllocator(), VirtualIfaceBlockAllocationQuota),
-	_subnode(_vdriver, uavcan_stm32::SystemClock::instance(), main_node.getAllocator()),
+	_vdriver(NumIfaces, UAVCAN_DRIVER::SystemClock::instance(), main_node.getAllocator(), VirtualIfaceBlockAllocationQuota),
+	_subnode(_vdriver, UAVCAN_DRIVER::SystemClock::instance(), main_node.getAllocator()),
 	_main_node(main_node),
 	_server_instance(_subnode, _storage_backend, _tracer),
 	_fileserver_backend(_subnode),
