@@ -1,7 +1,9 @@
 
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
 
-set(config_uavcan_num_ifaces 1)
+set(UAVCAN_PLATFORM kinetis CACHE STRING "uavcan platform")
+set(UAVCAN_TIMER 1)
+set(config_uavcan_num_ifaces 2)
 
 set(config_module_list
 	#
@@ -86,7 +88,7 @@ set(config_module_list
 	modules/load_mon
 	modules/mavlink
 	modules/navigator
-#NO UAVCAN YET	modules/uavcan
+	modules/uavcan
 	modules/camera_feedback
 
 	#
