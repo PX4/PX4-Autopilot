@@ -8,7 +8,10 @@
 ###############################################################################
 #                       Begin Estimator Group Selection                       #
 ###############################################################################
+
+#
 # INAV (deprecated).
+#
 if param compare SYS_MC_EST_GROUP 0
 then
 	echo "ERROR [init] Estimator INAV deprecated. Using EKF2"
@@ -16,11 +19,15 @@ then
 	param save
 fi
 
+#
 # LPE
+#
 if param compare SYS_MC_EST_GROUP 1
 then
-	# Try to start LPE. If it fails, start EKF2 as a default
+	#
+	# Try to start LPE. If it fails, start EKF2 as a default.
 	# Unfortunately we do not build it on px4fmu-v2 due to a limited flash.
+	#
 	if attitude_estimator_q start
 	then
 		local_position_estimator start
@@ -31,7 +38,9 @@ then
 	fi
 fi
 
+#
 # EKF2
+#
 if param compare SYS_MC_EST_GROUP 2
 then
 	ekf2 start

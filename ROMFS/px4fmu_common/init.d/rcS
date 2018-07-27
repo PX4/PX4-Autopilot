@@ -46,7 +46,7 @@ set +e
 #
 
 #
-# Set default paramter values
+# Set default paramter values.
 #
 set AUX_MODE                    pwm
 set DATAMAN_OPT                 ""
@@ -157,12 +157,12 @@ else
 	uorb start
 
 	#
-	# Start tone driver.
+	# Start the tone_alarm driver.
 	#
 	tone_alarm start
 
 	#
-	# Play startup tone.
+	# Play the startup tone.
 	#
 	tune_control play -t 1
 
@@ -224,15 +224,14 @@ else
 	#
 	if param compare SYS_AUTOCONFIG 1
 	then
-		# Wipe out params except RC*, flight modes and total flight time
+		# Wipe out params except RC*, flight modes and total flight time.
 		param reset_nostart RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO*
 		set AUTOCNF yes
 	else
 		set AUTOCNF no
 
 		#
-		# Release 1.4.0 transitional support:
-		# set to old default if unconfigured,
+		# Release 1.4.0 transitional support: set to old default if unconfigured,
 		# this preserves the previous behaviour.
 		#
 		if param compare BAT_N_CELLS 0
@@ -316,7 +315,7 @@ else
 			param set SYS_FMU_TASK 1
 		fi
 
-		# Disable safety switch by default on Pixracer and OmnibusF4SD
+		# Disable safety switch by default on Pixracer and OmnibusF4SD.
 		if ver hwcmp PX4FMU_V4 OMNIBUS_F4SD
 		then
 			param set CBRK_IO_SAFETY 22027
@@ -351,7 +350,7 @@ else
 
 			if px4io start
 			then
-				# Try to safety px4 io so motor outputs dont go crazy.
+				# Try to safety px4 io so motor outputs don't go crazy.
 				if px4io safety_on
 				then
 					# success! no-op
@@ -405,7 +404,7 @@ else
 
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run).
-	# Commander Needs to be this early for in-air-restarts.
+	# Commander needs to be this early for in-air-restarts.
 	#
 	if param compare SYS_HITL 1
 	then
@@ -527,12 +526,14 @@ else
 		echo "Addons script: ${FEXTRAS}"
 		sh $FEXTRAS
 	fi
-
+#
 # End of autostart.
+#
 fi
 
-# There is no further script processing, so we can free some RAM
-# XXX potentially unset all script variables.
+#
+# Unset all script parameters to free RAM.
+#
 unset AUX_MODE
 unset DATAMAN_OPT
 unset FAILSAFE
@@ -568,6 +569,7 @@ unset PWM_MIN
 unset USE_IO
 unset VEHICLE_TYPE
 
-
+#
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running.
+#
 mavlink boot_complete

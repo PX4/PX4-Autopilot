@@ -1,6 +1,6 @@
 #!nsh
 #
-# Script to configure control interface
+# Script to configure control interfaces.
 #
 #
 # NOTE: environment variable references:

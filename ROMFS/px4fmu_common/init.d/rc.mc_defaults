@@ -20,7 +20,10 @@ then
 	param set PWM_RATE 400
 fi
 
+#
 # This is the gimbal pass mixer.
+#
 set MIXER_AUX pass
+
 set PWM_AUX_RATE 50
 set PWM_AUX_OUT 1234
