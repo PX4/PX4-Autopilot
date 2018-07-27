@@ -163,6 +163,14 @@ stm32_boardinitialize(void)
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
+#ifdef GPIO_SPI1_RESET_ADIS16477
+	// ADIS16477 reset pin
+	stm32_configgpio(GPIO_SPI1_RESET_ADIS16477);
+	stm32_gpiowrite(GPIO_SPI1_RESET_ADIS16477, false);
+	up_udelay(10);
+	stm32_gpiowrite(GPIO_SPI1_RESET_ADIS16477, true);
+#endif /* GPIO_SPI1_RESET_ADIS16477 */
+
 	/* run C++ ctors before we go any further */
 	up_cxxinitialize();
 
