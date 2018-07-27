@@ -523,9 +523,20 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 		if (inst != self) {
 			const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
 
-			// Extract target system and target component if set
-			int target_system_id = (meta->target_system_ofs != 0) ? ((uint8_t *)msg)[meta->target_system_ofs] : 0;
-			int target_component_id = (meta->target_component_ofs != 0) ? ((uint8_t *)msg)[meta->target_component_ofs] : 233;
+			int target_system_id = 0;
+			int target_component_id = 233;
+
+			// might be nullptr if message is unknown
+			if (meta) {
+				// Extract target system and target component if set
+				if (meta->target_system_ofs != 0) {
+					target_system_id = ((uint8_t *)msg)[meta->target_system_ofs];
+				}
+
+				if (meta->target_component_ofs != 0) {
+					target_component_id = ((uint8_t *)msg)[meta->target_component_ofs];
+				}
+			}
 
 			// Broadcast or addressing this system and not trying to talk
 			// to the autopilot component -> pass on to other components
