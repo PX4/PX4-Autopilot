@@ -44,7 +44,7 @@
 
 namespace math
 {
-static const double GOLDEN_RATIO = 1.6180339887; //(sqrt(5)+1)/2
+static constexpr double GOLDEN_RATIO = 1.6180339887; //(sqrt(5)+1)/2
 
 // Type-safe abs
 template<typename _Tp>

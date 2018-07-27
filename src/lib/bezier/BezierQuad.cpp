@@ -41,8 +41,8 @@
 
 namespace bezier
 {
-static const double GOLDEN_RATIO = 1.6180339887; //(sqrt(5)+1)/2
-static const double RESOLUTION = 0.0001; //End criterion for golden section search
+static constexpr double GOLDEN_RATIO = 1.6180339887; //(sqrt(5)+1)/2
+static constexpr double RESOLUTION = 0.0001; //End criterion for golden section search
 
 template<typename Tp>
 void BezierQuad<Tp>::setBezier(const Vector3_t &pt0, const Vector3_t &ctrl, const Vector3_t &pt1,
