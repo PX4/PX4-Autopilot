@@ -79,14 +79,6 @@ ADIS16477::ADIS16477(int bus, const char *path_accel, const char *path_gyro, uin
 	_bad_transfers(perf_alloc(PC_COUNT, "adis16477_bad_transfers")),
 	_rotation(rotation)
 {
-#ifdef GPIO_SPI1_RESET_ADIS16477
-	// ADIS16477 reset pin
-	stm32_configgpio(GPIO_SPI1_RESET_ADIS16477);
-	stm32_gpiowrite(GPIO_SPI1_RESET_ADIS16477, false);
-	up_mdelay(10);
-	stm32_gpiowrite(GPIO_SPI1_RESET_ADIS16477, true);
-#endif /* GPIO_SPI1_RESET_ADIS16477 */
-
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_ADIS16477;
 
 	_gyro->_device_id.devid = _device_id.devid;
