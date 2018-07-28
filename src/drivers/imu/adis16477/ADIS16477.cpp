@@ -64,13 +64,15 @@ static constexpr uint8_t GLOB_CMD	= 0x68;
 
 static constexpr uint8_t PROD_ID	= 0x72;
 
-#define PROD_ID_ADIS16477	0x405D /* ADIS16477 Identification, device number  */
+static constexpr uint16_t PROD_ID_ADIS16477 = 0x405D; /* ADIS16477 Identification, device number  */
 
-#define T_STALL				200
+static constexpr int T_STALL = 16;
 
 #define GYROINITIALSENSITIVITY		250
 #define ACCELINITIALSENSITIVITY		(1.0f / 1200.0f)
 #define ACCELDYNAMICRANGE		18.0f
+
+using namespace time_literals;
 
 ADIS16477::ADIS16477(int bus, const char *path_accel, const char *path_gyro, uint32_t device, enum Rotation rotation) :
 	SPI("ADIS16477", path_accel, bus, device, SPIDEV_MODE3, 1000000),
@@ -80,11 +82,8 @@ ADIS16477::ADIS16477(int bus, const char *path_accel, const char *path_gyro, uin
 	_rotation(rotation)
 {
 #ifdef GPIO_SPI1_RESET_ADIS16477
-	// ADIS16477 reset pin
-	stm32_configgpio(GPIO_SPI1_RESET_ADIS16477);
-	stm32_gpiowrite(GPIO_SPI1_RESET_ADIS16477, false);
-	up_mdelay(10);
-	stm32_gpiowrite(GPIO_SPI1_RESET_ADIS16477, true);
+	// ADIS16477 configure reset
+	px4_arch_configgpio(GPIO_SPI1_RESET_ADIS16477);
 #endif /* GPIO_SPI1_RESET_ADIS16477 */
 
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_ADIS16477;
@@ -129,6 +128,11 @@ ADIS16477::~ADIS16477()
 int
 ADIS16477::init()
 {
+	if (hrt_absolute_time() < 252_ms) {
+		// power-on startup time (if needed)
+		up_mdelay(252);
+	}
+
 	/* do SPI init (and probe) first */
 	if (SPI::init() != OK) {
 		/* if probe/setup failed, bail now */
@@ -136,24 +140,19 @@ ADIS16477::init()
 		return PX4_ERROR;
 	}
 
-	if (reset() != OK) {
-		PX4_ERR("reset failed");
-		return PX4_ERROR;
-	}
-
 	/* Initialize offsets and scales */
-	_gyro_scale.x_offset = 0;
+	_gyro_scale.x_offset = 0.0f;
 	_gyro_scale.x_scale  = 1.0f;
-	_gyro_scale.y_offset = 0;
+	_gyro_scale.y_offset = 0.0f;
 	_gyro_scale.y_scale  = 1.0f;
-	_gyro_scale.z_offset = 0;
+	_gyro_scale.z_offset = 0.0f;
 	_gyro_scale.z_scale  = 1.0f;
 
-	_accel_scale.x_offset = 0;
+	_accel_scale.x_offset = 0.0f;
 	_accel_scale.x_scale  = 1.0f;
-	_accel_scale.y_offset = 0;
+	_accel_scale.y_offset = 0.0f;
 	_accel_scale.y_scale  = 1.0f;
-	_accel_scale.z_offset = 0;
+	_accel_scale.z_offset = 0.0f;
 	_accel_scale.z_scale  = 1.0f;
 
 	/* do CDev init for the gyro device node, keep it optional */
@@ -192,14 +191,25 @@ ADIS16477::init()
 
 int ADIS16477::reset()
 {
-	// reset
+	DEVICE_DEBUG("resetting");
 
-	uint8_t cmd[2] = { 0xE8, 0x80 };
-	transfer(cmd, cmd, sizeof(cmd));
+#ifdef GPIO_SPI1_RESET_ADIS16477
+	// ADIS16477 reset
+	px4_arch_gpiowrite(GPIO_SPI1_RESET_ADIS16477, 0);
 
-	cmd[0] = 0xE9;
-	cmd[1] = 0x00;
-	transfer(cmd, cmd, sizeof(cmd));
+	// The RST line must be in a low state for at least 10 μs to ensure a proper reset initiation and recovery.
+	up_udelay(10);
+
+	px4_arch_gpiowrite(GPIO_SPI1_RESET_ADIS16477, 1);
+#else
+	// reset (global command bit 7)
+	uint8_t value[2] = {};
+	value[0] = (1 << 7);
+	write_reg16(GLOB_CMD, (uint16_t)value[0]);
+#endif /* GPIO_SPI1_RESET_ADIS16477 */
+
+	// Reset Recovery Time
+	up_mdelay(193);
 
 	return OK;
 }
@@ -207,41 +217,23 @@ int ADIS16477::reset()
 int
 ADIS16477::probe()
 {
+	DEVICE_DEBUG("probe");
+
 	reset();
 
-	// why?
-	for (int i = 0; i < 255; i++) {
-		read_reg(i);
-		up_udelay(T_STALL);
-	}
-
-	for (int i = 0; i < 25; i++) {
-		_product = read_reg(PROD_ID);
+	// read product id (5 attempts)
+	for (int i = 0; i < 5; i++) {
+		_product = read_reg16(PROD_ID);
 
 		if (_product == PROD_ID_ADIS16477) {
-			PX4_INFO("PRODUCT: %X", _product);
+			DEVICE_DEBUG("PRODUCT: %X", _product);
 			return PX4_OK;
 		}
 
-		up_udelay(T_STALL);
+		PX4_ERR("read product id attempt %d failed, resetting", i);
+		reset();
 	}
 
-	// settling time
-	up_udelay(50000);
-
-	for (int i = 0; i < 25; i++) {
-		_product = read_reg(PROD_ID + 1);
-
-		if (_product == PROD_ID_ADIS16477) {
-			PX4_INFO("PRODUCT: %X", _product);
-			return PX4_OK;
-		}
-
-		DEVICE_DEBUG("PROD_ID attempt 0x73 %d", i);
-		up_udelay(T_STALL);
-	}
-
-	DEVICE_DEBUG("unexpected ID 0x%02x", _product);
 	return -EIO;
 }
 
@@ -445,13 +437,17 @@ ADIS16477::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 uint16_t
-ADIS16477::read_reg(uint8_t reg)
+ADIS16477::read_reg16(uint8_t reg)
 {
-	uint8_t cmd[2] = { reg, 0 };
-	transfer(cmd, cmd, sizeof(cmd));
+	uint16_t cmd[1];
 
-	// return cmd[0] + cmd[1]
-	return (cmd[0] << 8) + cmd[1];
+	cmd[0] = ((reg | DIR_READ) << 8) & 0xff00;
+	transferhword(cmd, nullptr, 1);
+	up_udelay(T_STALL);
+	transferhword(nullptr, cmd, 1);
+	up_udelay(T_STALL);
+
+	return cmd[0];
 }
 
 void
@@ -461,6 +457,20 @@ ADIS16477::write_reg(uint8_t reg, uint8_t val)
 	cmd[0] = reg | 0x8;
 	cmd[1] = val;
 	transfer(cmd, cmd, sizeof(cmd));
+}
+
+void
+ADIS16477::write_reg16(uint8_t reg, uint16_t value)
+{
+	uint16_t cmd[2];
+
+	cmd[0] = ((reg | DIR_WRITE) << 8) | (0x00ff & value);
+	cmd[1] = (((reg + 0x1) | DIR_WRITE) << 8) | ((0xff00 & value) >> 8);
+
+	transferhword(cmd, nullptr, 1);
+	up_udelay(T_STALL);
+	transferhword(cmd + 1, nullptr, 1);
+	up_udelay(T_STALL);
 }
 
 void
