@@ -12,6 +12,10 @@ bool FlightTask::initializeSubscriptions(SubscriptionArray &subscription_array)
 		return false;
 	}
 
+	if (!subscription_array.get(ORB_ID(vehicle_attitude), _sub_attitude)) {
+		return false;
+	}
+
 	return true;
 }
 
@@ -20,6 +24,7 @@ bool FlightTask::activate()
 	_resetSetpoints();
 	_setDefaultConstraints();
 	_time_stamp_activate = hrt_absolute_time();
+	_heading_reset_counter = _sub_attitude->get().quat_reset_counter;
 	return true;
 }
 
