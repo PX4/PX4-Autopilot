@@ -126,7 +126,6 @@ void MicroBenchORB::reset()
 	lpos.dist_bottom_valid = rand();
 
 	gyro.timestamp = rand();
-	gyro.temperature_raw = rand();
 }
 
 ut_declare_test_c(test_microbench_uorb, MicroBenchORB)

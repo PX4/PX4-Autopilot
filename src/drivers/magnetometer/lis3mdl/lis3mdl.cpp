@@ -372,7 +372,6 @@ LIS3MDL::collect()
 
 	new_mag_report.timestamp = hrt_absolute_time();
 	new_mag_report.error_count = perf_event_count(_comms_errors);
-	new_mag_report.range_ga = _range_ga;
 	new_mag_report.scaling = _range_scale;
 	new_mag_report.device_id = _device_id.devid;
 

@@ -1469,7 +1469,6 @@ FXOS8701CQ::measure()
 	accel_report.z_integral = aval_integrated(2);
 
 	accel_report.scaling = _accel_range_scale;
-	accel_report.range_m_s2 = _accel_range_m_s2;
 
 	/* return device ID */
 	accel_report.device_id = _device_id.devid;
@@ -1535,7 +1534,6 @@ FXOS8701CQ::mag_measure()
 	mag_report.y = ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
 	mag_report.z = ((zraw_f * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
 	mag_report.scaling = _mag_range_scale;
-	mag_report.range_ga = (float)_mag_range_ga;
 	mag_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
 
 	mag_report.temperature = _last_temperature;
@@ -1818,8 +1816,6 @@ test()
 	PX4_INFO("accel y: \t%d\traw", (int)accel_report.y_raw);
 	PX4_INFO("accel z: \t%d\traw", (int)accel_report.z_raw);
 
-	PX4_INFO("accel range: %8.4f m/s^2", (double)accel_report.range_m_s2);
-
 	/* get the driver */
 	fd_mag = open(FXOS8701C_DEVICE_PATH_MAG, O_RDONLY);
 
@@ -1850,7 +1846,6 @@ test()
 	PX4_INFO("mag x: \t%d\traw", (int)m_report.x_raw);
 	PX4_INFO("mag y: \t%d\traw", (int)m_report.y_raw);
 	PX4_INFO("mag z: \t%d\traw", (int)m_report.z_raw);
-	PX4_INFO("mag range: %8.4f ga", (double)m_report.range_ga);
 
 	/* reset to default polling */
 	if (ioctl(fd_accel, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {

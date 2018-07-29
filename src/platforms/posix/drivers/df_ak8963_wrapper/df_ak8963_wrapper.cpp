@@ -297,7 +297,6 @@ int DfAK8963Wrapper::_publish(struct mag_sensor_data &data)
 
 	// TODO: get these right
 	//mag_report.scaling = -1.0f;
-	//mag_report.range_m_s2 = -1.0f;
 
 	mag_report.device_id = m_id.dev_id;
 
