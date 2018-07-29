@@ -29,6 +29,7 @@ set(config_module_list
 	drivers/px4flow
 	drivers/px4fmu
 	drivers/rgbled
+	drivers/rc_input
 	#drivers/rgbled_pwm
 	drivers/stm32
 	drivers/stm32/adc

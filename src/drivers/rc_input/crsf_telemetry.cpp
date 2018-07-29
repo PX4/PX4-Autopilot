@@ -204,4 +204,3 @@ bool CRSFTelemetry::send_flight_mode()
 
 	return crsf_send_telemetry_flight_mode(_uart_fd, flight_mode);
 }
-

@@ -20,6 +20,7 @@ set(config_module_list
 	drivers/gps
 	drivers/px4flow
 	drivers/px4fmu
+	drivers/rc_input
 	drivers/rgbled
 	drivers/stm32
 	drivers/stm32/adc
