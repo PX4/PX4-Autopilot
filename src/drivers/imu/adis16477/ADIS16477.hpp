@@ -186,12 +186,8 @@ private:
 	void			write_reg(uint8_t reg, uint8_t value);
 	void			write_reg16(uint8_t reg, uint16_t value);
 
-	/**
-	 * Measurement self test
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int 			self_test();
+	// ADIS16477 onboard self test
+	bool 			self_test();
 
 	/*
 	  set low pass filter frequency

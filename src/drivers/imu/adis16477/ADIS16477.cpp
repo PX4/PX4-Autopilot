@@ -227,11 +227,19 @@ ADIS16477::probe()
 
 		if (_product == PROD_ID_ADIS16477) {
 			DEVICE_DEBUG("PRODUCT: %X", _product);
-			return PX4_OK;
-		}
 
-		PX4_ERR("read product id attempt %d failed, resetting", i);
-		reset();
+			if (self_test()) {
+				return PX4_OK;
+
+			} else {
+				PX4_ERR("probe attempt %d: self test failed, resetting", i);
+				reset();
+			}
+
+		} else {
+			PX4_ERR("probe attempt %d: read product id failed, resetting", i);
+			reset();
+		}
 	}
 
 	return -EIO;
@@ -270,15 +278,24 @@ ADIS16477::_set_gyro_dyn_range(uint16_t desired_gyro_dyn_range)
 {
 }
 
-int
+bool
 ADIS16477::self_test()
 {
-	if (perf_event_count(_sample_perf) == 0) {
-		measure();
+	DEVICE_DEBUG("self test");
+
+	// self test (global command bit 2)
+	uint8_t value[2] = {};
+	value[0] = (1 << 2);
+	write_reg16(GLOB_CMD, (uint16_t)value[0]);
+
+	// read DIAG_STAT to check result
+	uint16_t diag_stat = read_reg16(DIAG_STAT);
+
+	if (diag_stat != 0) {
+		return false;
 	}
 
-	/* return 0 on success, 1 else */
-	return (perf_event_count(_sample_perf) > 0) ? 0 : 1;
+	return true;
 }
 
 int
@@ -537,7 +554,7 @@ ADIS16477::measure()
 	}
 
 	if (adis_report.checksum != checksum) {
-		PX4_ERR("adis_report.checksum: %X vs calculated: %X", adis_report.checksum, checksum);
+		DEVICE_DEBUG("adis_report.checksum: %X vs calculated: %X", adis_report.checksum, checksum);
 		perf_event_count(_bad_transfers);
 		perf_end(_sample_perf);
 		return -EIO;
