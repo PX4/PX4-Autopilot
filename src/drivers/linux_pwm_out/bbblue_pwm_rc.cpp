@@ -30,7 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#ifdef __DF_BBBLUE
+#ifdef __PX4_POSIX_BBBLUE
 
 #include <fcntl.h>
 #include <errno.h>
@@ -79,4 +79,4 @@ int BBBlueRcPWMOut::send_output_pwm(const uint16_t *pwm, int num_outputs)
 	return ret;
 }
 
-#endif  // __DF_BBBLUE
+#endif  // __PX4_POSIX_BBBLUE

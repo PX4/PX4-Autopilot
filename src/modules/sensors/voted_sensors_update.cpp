@@ -626,7 +626,6 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 
 	// write the best sensor data to the output variables
 	if (best_index >= 0) {
-		raw.timestamp = _last_sensor_data[best_index].timestamp;
 		raw.accelerometer_integral_dt = _last_sensor_data[best_index].accelerometer_integral_dt;
 		memcpy(&raw.accelerometer_m_s2, &_last_sensor_data[best_index].accelerometer_m_s2, sizeof(raw.accelerometer_m_s2));
 
