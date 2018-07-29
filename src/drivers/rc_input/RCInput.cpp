@@ -37,15 +37,15 @@
 
 using namespace time_literals;
 
-#define SCHEDULE_INTERVAL	4000	/**< The schedule interval in usec (250 Hz) */
-
 #if defined(SPEKTRUM_POWER)
 static bool bind_spektrum(int arg);
 #endif /* SPEKTRUM_POWER */
 
 work_s RCInput::_work = {};
 
-RCInput::RCInput(bool run_as_task)
+RCInput::RCInput(bool run_as_task) :
+	_cycle_perf(perf_alloc(PC_ELAPSED, "rc_input cycle time")),
+	_publish_interval_perf(perf_alloc(PC_INTERVAL, "rc_input publish interval"))
 {
 	// rc input, published to ORB
 	_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
@@ -73,6 +73,9 @@ RCInput::~RCInput()
 	if (_crsf_telemetry) {
 		delete (_crsf_telemetry);
 	}
+
+	perf_free(_cycle_perf);
+	perf_free(_publish_interval_perf);
 }
 
 int
@@ -286,6 +289,8 @@ void
 RCInput::cycle()
 {
 	while (true) {
+
+		perf_begin(_cycle_perf);
 
 		_cycle_timestamp = hrt_absolute_time();
 
@@ -639,7 +644,11 @@ RCInput::cycle()
 #endif  // HRT_PPM_CHANNEL
 #endif  // RC_SERIAL_PORT
 
+		perf_end(_cycle_perf);
+
 		if (rc_updated) {
+			perf_count(_publish_interval_perf);
+
 			int instance;
 			orb_publish_auto(ORB_ID(input_rc), &_to_input_rc, &_rc_in, &instance, ORB_PRIO_DEFAULT);
 
@@ -658,7 +667,7 @@ RCInput::cycle()
 
 			} else {
 				/* schedule next cycle */
-				work_queue(HPWORK, &_work, (worker_t)&RCInput::cycle_trampoline, this, USEC2TICK(SCHEDULE_INTERVAL));
+				work_queue(HPWORK, &_work, (worker_t)&RCInput::cycle_trampoline, this, USEC2TICK(_current_update_interval));
 			}
 
 			break;
@@ -778,14 +787,19 @@ int RCInput::print_status()
 	PX4_INFO("Running %s", (_run_as_task ? "as task" : "on work queue"));
 
 	if (!_run_as_task) {
-		PX4_INFO("Max update rate: %i Hz", _current_update_rate);
+		PX4_INFO("Max update rate: %i Hz", 1000000 / _current_update_interval);
 	}
 
 	PX4_INFO("RC scan state: %s, locked: %s", RC_SCAN_STRING[_rc_scan_state], _rc_scan_locked ? "yes" : "no");
 	PX4_INFO("CRSF Telemetry: %s", _crsf_telemetry ? "yes" : "no");
-#ifdef RC_SERIAL_PORT
 	PX4_INFO("SBUS frame drops: %u", sbus_dropped_frames());
-#endif
+
+	perf_print_counter(_cycle_perf);
+	perf_print_counter(_publish_interval_perf);
+
+	if (hrt_elapsed_time(&_rc_in.timestamp) < 1_s) {
+		print_message(_rc_in);
+	}
 
 	return 0;
 }
