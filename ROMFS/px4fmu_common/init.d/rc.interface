@@ -87,11 +87,6 @@ then
 		fi
 	fi
 
-	if [ $OUTPUT_MODE == tap_esc ]
-	then
-		set FMU_MODE rcin
-	fi
-
 	if [ $OUTPUT_MODE == fmu ]
 	then
 		if fmu mode_$FMU_MODE $FMU_ARGS

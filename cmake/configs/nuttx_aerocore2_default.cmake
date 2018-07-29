@@ -24,6 +24,7 @@ set(config_module_list
 	modules/sensors
 	#drivers/pwm_input
 	#drivers/camera_trigger
+	drivers/rc_input
 
 	#
 	# System commands
