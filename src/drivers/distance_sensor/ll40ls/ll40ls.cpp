@@ -83,30 +83,30 @@ static constexpr struct ll40ls_bus_option {
 #endif
 };
 
-/*
- * Driver 'main' command.
+/**
+ * @brief Driver 'main' command.
  */
 extern "C" __EXPORT int ll40ls_main(int argc, char *argv[]);
 
 
 /**
- * Local functions in support of the shell command.
+ * @brief Local functions in support of the shell command.
  */
 namespace ll40ls
 {
 
 LidarLite *instance = nullptr;
 
-void	start(enum LL40LS_BUS busid, uint8_t rotation);
-void	stop();
-void	test();
-void	reset();
-void	info();
-void	regdump();
-void	usage();
+void    start(enum LL40LS_BUS busid, uint8_t rotation);
+void    stop();
+void    test();
+void    reset();
+void    info();
+void    regdump();
+void    usage();
 
 /**
- * Start the driver.
+ * @brief Starts the driver.
  */
 void start(enum LL40LS_BUS busid, uint8_t rotation)
 {
@@ -126,7 +126,8 @@ void start(enum LL40LS_BUS busid, uint8_t rotation)
 
 		if (instance->init() != PX4_OK) {
 			PX4_ERR("failed to initialize LidarLitePWM");
-			goto fail;
+			stop();
+			return;
 		}
 
 	} else {
@@ -147,8 +148,8 @@ void start(enum LL40LS_BUS busid, uint8_t rotation)
 			}
 
 			PX4_ERR("failed to initialize LidarLiteI2C on busnum=%u", bus_options[i].busnum);
-			delete instance;
-			instance = nullptr;
+			stop();
+			return;
 		}
 	}
 
@@ -161,7 +162,8 @@ void start(enum LL40LS_BUS busid, uint8_t rotation)
 
 	if (fd == -1) {
 		PX4_ERR("Error opening fd");
-		goto fail;
+		stop();
+		return;
 	}
 
 	ret = px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
@@ -169,18 +171,13 @@ void start(enum LL40LS_BUS busid, uint8_t rotation)
 
 	if (ret < 0) {
 		PX4_ERR("pollrate fail");
-		goto fail;
+		stop();
+		return;
 	}
-
-	return;
-
-fail:
-	delete instance;
-	instance = nullptr;
 }
 
 /**
- * Stop the driver
+ * @brief Stops the driver
  */
 void stop()
 {
@@ -189,9 +186,9 @@ void stop()
 }
 
 /**
- * Perform some basic functional tests on the driver;
- * make sure we can collect data from the sensor in polled
- * and automatic modes.
+ * @brief Performs some basic functional tests on the driver;
+ *        make sure we can collect data from the sensor in polled
+ *        and automatic modes.
  */
 void
 test()
@@ -212,7 +209,7 @@ test()
 		return;
 	}
 
-	/* do a simple demand read */
+	/* Do a simple demand read. */
 	sz = px4_read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
@@ -222,17 +219,17 @@ test()
 
 	print_message(report);
 
-	/* start the sensor polling at 2Hz */
+	/* Start the sensor polling at 2Hz. */
 	if (PX4_OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
 		PX4_ERR("failed to set 2Hz poll rate");
 		return;
 	}
 
-	/* read the sensor 5 times and report each value */
+	/* Read the sensor 5 times and report each value. */
 	for (unsigned i = 0; i < 5; i++) {
 		px4_pollfd_struct_t fds;
 
-		/* wait for data to be ready */
+		/* Wait for data to be ready. */
 		fds.fd = fd;
 		fds.events = POLLIN;
 		ret = px4_poll(&fds, 1, 2000);
@@ -242,7 +239,7 @@ test()
 			return;
 		}
 
-		/* now go get it */
+		/* Now go get it. */
 		sz = px4_read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
@@ -253,7 +250,7 @@ test()
 		print_message(report);
 	}
 
-	/* reset the sensor polling to default rate */
+	/* Reset the sensor polling to default rate. */
 	if (PX4_OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
 		PX4_WARN("failed to set default poll rate");
 	}
@@ -262,7 +259,7 @@ test()
 }
 
 /**
- * Reset the driver.
+ * @brief Resets the driver.
  */
 void
 reset()
@@ -281,20 +278,19 @@ reset()
 
 	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0) {
 		PX4_ERR("driver reset failed");
-		goto error;
+		px4_close(fd);
+		return;
 	}
 
 	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		PX4_ERR("driver poll restart failed");
-		goto error;
+		px4_close(fd);
+		return;
 	}
-
-error:
-	px4_close(fd);
 }
 
 /**
- * Print a little info about the driver.
+ * @brief Prints status info about the driver.
  */
 void
 info()
@@ -309,7 +305,7 @@ info()
 }
 
 /**
- * Dump registers
+ * @brief Dumps the register information.
  */
 void
 regdump()
@@ -323,6 +319,9 @@ regdump()
 	instance->print_registers();
 }
 
+/**
+ * @brief Displays driver usage at the console.
+ */
 void
 usage()
 {
@@ -335,7 +334,7 @@ usage()
 	PX4_INFO("E.g. ll40ls start i2c -R 0");
 }
 
-} // namespace
+} // namespace ll40ls
 
 int
 ll40ls_main(int argc, char *argv[])
@@ -370,7 +369,7 @@ ll40ls_main(int argc, char *argv[])
 		}
 	}
 
-	/* determine protocol first because it's needed next */
+	/* Determine protocol first because it's needed next. */
 	if (argc > myoptind + 1) {
 		const char *protocol = argv[myoptind + 1];
 
@@ -387,7 +386,7 @@ ll40ls_main(int argc, char *argv[])
 		}
 	}
 
-	/* now determine action */
+	/* Now determine action. */
 	if (argc > myoptind) {
 		const char *verb = argv[myoptind];
 
