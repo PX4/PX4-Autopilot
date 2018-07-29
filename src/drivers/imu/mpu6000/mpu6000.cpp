@@ -1970,6 +1970,7 @@ MPU6000::measure()
 
 	/* NOTE: Axes have been swapped to match the board a few lines above. */
 
+	arb.scaling = _accel_range_scale;
 	arb.x_raw = report.accel_x;
 	arb.y_raw = report.accel_y;
 	arb.z_raw = report.accel_z;
@@ -1997,9 +1998,6 @@ MPU6000::measure()
 	arb.y_integral = aval_integrated(1);
 	arb.z_integral = aval_integrated(2);
 
-	arb.scaling = _accel_range_scale;
-	arb.range_m_s2 = _accel_range_m_s2;
-
 	if (is_icm_device()) { // if it is an ICM20608
 		_last_temperature = (report.temp) / 326.8f + 25.0f;
 
@@ -2007,7 +2005,6 @@ MPU6000::measure()
 		_last_temperature = (report.temp) / 361.0f + 35.0f;
 	}
 
-	arb.temperature_raw = report.temp;
 	arb.temperature = _last_temperature;
 
 	/* return device ID */
@@ -2041,9 +2038,7 @@ MPU6000::measure()
 	grb.z_integral = gval_integrated(2);
 
 	grb.scaling = _gyro_range_scale;
-	grb.range_rad_s = _gyro_range_rad_s;
 
-	grb.temperature_raw = report.temp;
 	grb.temperature = _last_temperature;
 
 	/* return device ID */

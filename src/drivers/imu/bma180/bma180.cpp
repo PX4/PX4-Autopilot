@@ -727,7 +727,6 @@ BMA180::measure()
 	report.y = ((report.y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
 	report.z = ((report.z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
 	report.scaling = _accel_range_scale;
-	report.range_m_s2 = _accel_range_m_s2;
 
 	_reports->force(&report);
 

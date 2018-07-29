@@ -1033,11 +1033,9 @@ GYROSIM::_measure()
 	arb.z_raw = (int16_t)(mpu_report.accel_z / _accel_range_scale);
 
 	arb.scaling = _accel_range_scale;
-	arb.range_m_s2 = _accel_range_m_s2;
 
 	_last_temperature = mpu_report.temp;
 
-	arb.temperature_raw = (int16_t)((mpu_report.temp - 35.0f) * 361.0f);
 	arb.temperature = _last_temperature;
 
 	arb.x = mpu_report.accel_x;
@@ -1060,9 +1058,7 @@ GYROSIM::_measure()
 	grb.z_raw = (int16_t)(mpu_report.gyro_z / _gyro_range_scale);
 
 	grb.scaling = _gyro_range_scale;
-	grb.range_rad_s = _gyro_range_rad_s;
 
-	grb.temperature_raw = (int16_t)((mpu_report.temp - 35.0f) * 361.0f);
 	grb.temperature = _last_temperature;
 
 	grb.x = mpu_report.gyro_x;
@@ -1322,8 +1318,6 @@ test()
 	PX4_INFO("acc  x:  \t%d\traw 0x%0x", (short)a_report.x_raw, (unsigned short)a_report.x_raw);
 	PX4_INFO("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
 	PX4_INFO("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
-	PX4_INFO("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
-		 (double)(a_report.range_m_s2 / CONSTANTS_ONE_G));
 
 	/* do a simple demand read */
 	sz = h_gyro.read(&g_report, sizeof(g_report));
@@ -1340,11 +1334,8 @@ test()
 	PX4_INFO("gyro x: \t%d\traw", (int)g_report.x_raw);
 	PX4_INFO("gyro y: \t%d\traw", (int)g_report.y_raw);
 	PX4_INFO("gyro z: \t%d\traw", (int)g_report.z_raw);
-	PX4_INFO("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
-		 (int)((g_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
 
 	PX4_INFO("temp:  \t%8.4f\tdeg celsius", (double)a_report.temperature);
-	PX4_INFO("temp:  \t%d\traw 0x%0x", (short)a_report.temperature_raw, (unsigned short)a_report.temperature_raw);
 
 
 	/* XXX add poll-rate tests here too */

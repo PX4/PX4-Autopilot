@@ -891,7 +891,6 @@ IST8310::collect()
 	new_report.timestamp = hrt_absolute_time();
 	new_report.is_external = sensor_is_external;
 	new_report.error_count = perf_event_count(_comms_errors);
-	new_report.range_ga = 1.6f; // constant for this sensor for x and y
 	new_report.scaling = _range_scale;
 	new_report.device_id = _device_id.devid;
 

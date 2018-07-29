@@ -145,7 +145,6 @@ void UavcanMagnetometerBridge::mag_sub_cb(const
 		&msg)
 {
 	lock();
-	_report.range_ga = 1.3F;   // Arbitrary number, doesn't really mean anything
 	/*
 	 * FIXME HACK
 	 * This code used to rely on msg.getMonotonicTimestamp().toUSec() instead of HRT.

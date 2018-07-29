@@ -405,31 +405,26 @@ void update_reports()
 	_gyro.y = ((_data.gyro_raw[1] * _data.gyro_scaling) - _gyro_sc.y_offset) * _gyro_sc.y_scale;
 	_gyro.z = ((_data.gyro_raw[2] * _data.gyro_scaling) - _gyro_sc.z_offset) * _gyro_sc.z_scale;
 	_gyro.temperature = _data.temperature;
-	_gyro.range_rad_s = _data.gyro_range_rad_s;
 	_gyro.scaling = _data.gyro_scaling;
 	_gyro.x_raw = _data.gyro_raw[0];
 	_gyro.y_raw = _data.gyro_raw[1];
 	_gyro.z_raw = _data.gyro_raw[2];
-	_gyro.temperature_raw = _data.temperature_raw;
 
 	_accel.timestamp = _data.timestamp;
 	_accel.x = ((_data.accel_raw[0] * _data.accel_scaling) - _accel_sc.x_offset) * _accel_sc.x_scale;
 	_accel.y = ((_data.accel_raw[1] * _data.accel_scaling) - _accel_sc.y_offset) * _accel_sc.y_scale;
 	_accel.z = ((_data.accel_raw[2] * _data.accel_scaling) - _accel_sc.z_offset) * _accel_sc.z_scale;
 	_accel.temperature = _data.temperature;
-	_accel.range_m_s2 = _data.accel_range_m_s2;
 	_accel.scaling = _data.accel_scaling;
 	_accel.x_raw = _data.accel_raw[0];
 	_accel.y_raw = _data.accel_raw[1];
 	_accel.z_raw = _data.accel_raw[2];
-	_accel.temperature_raw = _data.temperature_raw;
 
 	if (_data.mag_data_ready) {
 		_mag.timestamp = _data.timestamp;
 		_mag.x = ((_data.mag_raw[0] * _data.mag_scaling) - _mag_sc.x_offset) * _mag_sc.x_scale;
 		_mag.y = ((_data.mag_raw[1] * _data.mag_scaling) - _mag_sc.y_offset) * _mag_sc.y_scale;
 		_mag.z = ((_data.mag_raw[2] * _data.mag_scaling) - _mag_sc.z_offset) * _mag_sc.z_scale;
-		_mag.range_ga = _data.mag_range_ga;
 		_mag.scaling = _data.mag_scaling;
 		_mag.temperature = _data.temperature;
 		_mag.x_raw = _data.mag_raw[0];
