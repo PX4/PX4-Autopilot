@@ -98,7 +98,7 @@ PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
  * means that measurements are expected to come from a power module. If the value is set to
  * 'External' then the system expects to receive mavlink battery status messages.
  *
- * @min -1
+ * @min 0
  * @max 1
  * @value 0 Power Module
  * @value 1 External
