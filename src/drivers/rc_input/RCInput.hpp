@@ -112,10 +112,9 @@ private:
 	};
 
 	hrt_abstime _rc_scan_begin{0};
+
 	bool _rc_scan_locked{false};
 	bool _report_lock{true};
-
-	hrt_abstime _cycle_timestamp{0};
 
 	unsigned	_current_update_interval{4000};
 
@@ -126,7 +125,7 @@ private:
 	int		_vehicle_cmd_sub{-1};
 	int		_adc_sub{-1};
 
-	rc_input_values	_rc_in{};
+	input_rc_s	_rc_in{};
 
 	float		_analog_rc_rssi_volt{-1.0f};
 	bool		_analog_rc_rssi_stable{false};
