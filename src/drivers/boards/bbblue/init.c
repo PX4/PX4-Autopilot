@@ -111,9 +111,6 @@ int rc_init(void)
 	//i2c, barometer and mpu will be initialized later
 
 	rc_set_state(RUNNING);
-
-	// wait to let threads start up
-	rc_usleep(10000);
 #endif
 
 	return 0;
