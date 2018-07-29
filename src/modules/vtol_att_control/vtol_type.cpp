@@ -210,11 +210,11 @@ void VtolType::check_quadchute_condition()
 			// We use tecs for tracking in FW and local_pos_sp during transitions
 			if (_tecs_running) {
 				// 1 second rolling average
-				_ra_hrate = (49 * _ra_hrate + _tecs_status->flightPathAngle) / 50;
-				_ra_hrate_sp = (49 * _ra_hrate_sp + _tecs_status->flightPathAngleSp) / 50;
+				_ra_hrate = (49 * _ra_hrate + _tecs_status->flight_path_angle) / 50;
+				_ra_hrate_sp = (49 * _ra_hrate_sp + _tecs_status->flight_path_angle_sp) / 50;
 
 				// are we dropping while requesting significant ascend?
-				if (((_tecs_status->altitudeSp - _tecs_status->altitude_filtered) > _params->fw_alt_err) &&
+				if (((_tecs_status->altitude_sp - _tecs_status->altitude_filtered) > _params->fw_alt_err) &&
 				    (_ra_hrate < -1.0f) &&
 				    (_ra_hrate_sp > 1.0f)) {
 

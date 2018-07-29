@@ -967,7 +967,7 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 
 	transponder_report_s tr = {};
 	tr.timestamp = hrt_absolute_time();
-	tr.ICAO_address = 1234;
+	tr.icao_address = 1234;
 	tr.lat = lat; // Latitude, expressed as degrees
 	tr.lon = lon; // Longitude, expressed as degrees
 	tr.altitude_type = 0;

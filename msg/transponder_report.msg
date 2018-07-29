@@ -1,4 +1,4 @@
-uint32 ICAO_address 	# ICAO address
+uint32 icao_address 	# ICAO address
 float64 lat 		# Latitude, expressed as degrees
 float64 lon 		# Longitude, expressed as degrees
 uint8 altitude_type	# Type from ADSB_ALTITUDE_TYPE enum
