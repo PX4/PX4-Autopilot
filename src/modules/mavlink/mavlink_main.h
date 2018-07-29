@@ -63,10 +63,8 @@
 #include <net/if.h>
 #endif
 
-#ifdef __PX4_POSIX_BBBLUE
-#ifndef __PX4_BBBLUE_DEFAULT_MAVLINK_WIFI
-#define __PX4_BBBLUE_DEFAULT_MAVLINK_WIFI "SoftAp"
-#endif
+#ifndef __DEFAULT_MAVLINK_WIFI
+#define __DEFAULT_MAVLINK_WIFI "wlan"
 #endif
 
 #include <uORB/uORB.h>
@@ -608,9 +606,7 @@ private:
 	unsigned _network_buf_len;
 #endif
 
-#ifdef __PX4_POSIX_BBBLUE
 	const char *_mavlink_wifi_name;
-#endif
 
 	int _socket_fd;
 	Protocol	_protocol;
