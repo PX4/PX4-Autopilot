@@ -23,6 +23,7 @@ set(config_module_list
 	drivers/pwm_out_sim
 	drivers/px4flow
 	drivers/px4fmu
+	drivers/rc_input
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/tap_esc

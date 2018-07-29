@@ -17,6 +17,7 @@ set(config_module_list
 	drivers/px4fmu
 	drivers/stm32
 	drivers/pwm_out_sim
+	drivers/rc_input
 	drivers/tap_esc
 	modules/sensors
 

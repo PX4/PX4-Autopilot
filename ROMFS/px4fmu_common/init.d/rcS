@@ -398,6 +398,11 @@ else
 		tune_control play -t 2
 	fi
 
+	if [ $IO_PRESENT == no -o $USE_IO == no ]
+	then
+		rc_input start
+	fi
+
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run).
 	# Commander Needs to be this early for in-air-restarts.

@@ -14,6 +14,7 @@ set(config_module_list
 	drivers/imu/mpu6000
 	drivers/px4fmu
 	drivers/rgbled_pwm
+	drivers/rc_input
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
