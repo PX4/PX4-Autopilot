@@ -861,7 +861,6 @@ ACCELSIM::_measure()
 	accel_report.z = raw_accel_report.z;
 
 	accel_report.scaling = _accel_range_scale;
-	accel_report.range_m_s2 = _accel_range_m_s2;
 
 	_accel_reports->force(&accel_report);
 

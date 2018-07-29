@@ -1071,7 +1071,6 @@ FXAS21002C::measure()
 	gyro_report.z_integral = gval_integrated(2);
 
 	gyro_report.scaling = _gyro_range_scale;
-	gyro_report.range_rad_s = _gyro_range_rad_s;
 
 	/* return device ID */
 	gyro_report.device_id = _device_id.devid;

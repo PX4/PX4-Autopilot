@@ -1015,8 +1015,6 @@ L3GD20::measure()
 
 	report.z_raw = raw_report.z;
 
-	report.temperature_raw = raw_report.temp;
-
 	float xraw_f = report.x_raw;
 	float yraw_f = report.y_raw;
 	float zraw_f = report.z_raw;
@@ -1043,7 +1041,6 @@ L3GD20::measure()
 	report.temperature = L3GD20_TEMP_OFFSET_CELSIUS - raw_report.temp;
 
 	report.scaling = _gyro_range_scale;
-	report.range_rad_s = _gyro_range_rad_s;
 
 	/* return device ID */
 	report.device_id = _device_id.devid;

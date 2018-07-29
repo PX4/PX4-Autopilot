@@ -1458,7 +1458,6 @@ ADIS16448::measure()
 	}
 
 	grb.scaling = _gyro_range_scale * M_PI_F / 180.0f;
-	grb.range_rad_s = _gyro_range_rad_s;
 
 	/* Accel report: */
 	arb.x_raw = report.accel_x;
@@ -1488,7 +1487,6 @@ ADIS16448::measure()
 	}
 
 	arb.scaling = _accel_range_scale;
-	arb.range_m_s2 = _accel_range_m_s2;
 
 	/* Mag report: */
 	mrb.x_raw = report.mag_x;
@@ -1518,14 +1516,10 @@ ADIS16448::measure()
 	}
 
 	mrb.scaling  = _mag_range_scale / 1000.0f;
-	mrb.range_ga = _mag_range_mgauss / 1000.0f;
 
 	/* Temperature report: */
-	grb.temperature_raw = report.temp;
 	grb.temperature 	= (report.temp * 0.07386f) + 31.0f;
-
-	arb.temperature_raw = report.temp;
-	arb.temperature 	= (report.temp * 0.07386f) + 31.0f;
+	arb.temperature 	= grb.temperature;
 
 	matrix::Vector3f aval(x_in_new, y_in_new, z_in_new);
 	matrix::Vector3f aval_integrated;

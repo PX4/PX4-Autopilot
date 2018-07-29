@@ -561,7 +561,6 @@ ADIS16477::publish_accel(const ADISReport &report)
 	arb.y_raw = report.accel_y;
 	arb.z_raw = report.accel_z;
 	arb.scaling = _accel_range_scale;
-	arb.range_m_s2 = _accel_range_m_s2;
 
 	float xraw_f = report.accel_x * _accel_range_scale;
 	float yraw_f = report.accel_y * _accel_range_scale;
@@ -588,7 +587,6 @@ ADIS16477::publish_accel(const ADISReport &report)
 
 	/* Temperature report: */
 	// temperature 1 LSB = 0.1°C
-	arb.temperature_raw = report.temp;
 	arb.temperature = report.temp * 0.1;
 
 	if (accel_notify) {
@@ -608,7 +606,6 @@ ADIS16477::publish_gyro(const ADISReport &report)
 
 	/* Gyro report: */
 	grb.scaling = math::radians(_gyro_range_scale);
-	grb.range_rad_s = _gyro_range_rad_s;
 	grb.x_raw = report.gyro_x;
 	grb.y_raw = report.gyro_y;
 	grb.z_raw = report.gyro_z;
@@ -639,7 +636,6 @@ ADIS16477::publish_gyro(const ADISReport &report)
 
 	/* Temperature report: */
 	// temperature 1 LSB = 0.1°C
-	grb.temperature_raw = report.temp;
 	grb.temperature = report.temp * 0.1f;
 
 	if (gyro_notify) {
