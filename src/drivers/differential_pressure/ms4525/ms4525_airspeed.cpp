@@ -322,7 +322,7 @@ MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
 		orb_copy(ORB_ID(system_power), _t_system_power, &system_power);
 	}
 
-	if (system_power.voltage5V_v < 3.0f || system_power.voltage5V_v > 6.0f) {
+	if (system_power.voltage5v_v < 3.0f || system_power.voltage5v_v > 6.0f) {
 		// not valid, skip correction
 		return;
 	}
@@ -331,7 +331,7 @@ MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
 	/*
 	  apply a piecewise linear correction, flattening at 0.5V from 5V
 	 */
-	float voltage_diff = system_power.voltage5V_v - 5.0f;
+	float voltage_diff = system_power.voltage5v_v - 5.0f;
 
 	if (voltage_diff > 0.5f) {
 		voltage_diff = 0.5f;
@@ -347,7 +347,7 @@ MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
 	  the temperature masurement varies as well
 	 */
 	const float temp_slope = 0.887f;
-	voltage_diff = system_power.voltage5V_v - 5.0f;
+	voltage_diff = system_power.voltage5v_v - 5.0f;
 
 	if (voltage_diff > 0.5f) {
 		voltage_diff = 0.5f;

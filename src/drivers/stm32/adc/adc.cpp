@@ -386,8 +386,8 @@ ADC::update_system_power(hrt_abstime now)
 	system_power_s system_power = {};
 	system_power.timestamp = now;
 
-	system_power.voltage5V_v = 0;
-	system_power.voltage3V3_v = 0;
+	system_power.voltage5v_v = 0;
+	system_power.voltage3v3_v = 0;
 	system_power.v3v3_valid = 0;
 
 	/* Assume HW provides only ADC_SCALED_V5_SENSE */
@@ -402,7 +402,7 @@ ADC::update_system_power(hrt_abstime now)
 
 		if (_samples[i].am_channel == ADC_SCALED_V5_SENSE) {
 			// it is 2:1 scaled
-			system_power.voltage5V_v = _samples[i].am_data * (ADC_V5_V_FULL_SCALE / 4096.0f);
+			system_power.voltage5v_v = _samples[i].am_data * (ADC_V5_V_FULL_SCALE / 4096.0f);
 			cnt--;
 
 		} else
@@ -411,7 +411,7 @@ ADC::update_system_power(hrt_abstime now)
 		{
 			if (_samples[i].am_channel == ADC_SCALED_V3V3_SENSORS_SENSE) {
 				// it is 2:1 scaled
-				system_power.voltage3V3_v = _samples[i].am_data * (ADC_3V3_SCALE * (3.3f / 4096.0f));
+				system_power.voltage3v3_v = _samples[i].am_data * (ADC_3V3_SCALE * (3.3f / 4096.0f));
 				system_power.v3v3_valid = 1;
 				cnt--;
 			}
@@ -451,8 +451,8 @@ ADC::update_system_power(hrt_abstime now)
 	system_power.servo_valid   = BOARD_ADC_SERVO_VALID;
 
 	// OC pins are active low
-	system_power.periph_5V_OC  = BOARD_ADC_PERIPH_5V_OC;
-	system_power.hipower_5V_OC = BOARD_ADC_HIPOWER_5V_OC;
+	system_power.periph_5v_oc  = BOARD_ADC_PERIPH_5V_OC;
+	system_power.hipower_5v_oc = BOARD_ADC_HIPOWER_5V_OC;
 
 	/* lazily publish */
 	if (_to_system_power != nullptr) {

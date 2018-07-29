@@ -1956,21 +1956,21 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 		break;
 	}
 
-	t.altitudeSp			= _tecs.hgt_setpoint_adj();
+	t.altitude_sp			= _tecs.hgt_setpoint_adj();
 	t.altitude_filtered		= _tecs.vert_pos_state();
-	t.airspeedSp			= _tecs.TAS_setpoint_adj();
-	t.airspeed_filtered 	= _tecs.tas_state();
+	t.airspeed_sp			= _tecs.TAS_setpoint_adj();
+	t.airspeed_filtered 		= _tecs.tas_state();
 
-	t.flightPathAngleSp		= _tecs.hgt_rate_setpoint();
-	t.flightPathAngle		= _tecs.vert_vel_state();
+	t.flight_path_angle_sp		= _tecs.hgt_rate_setpoint();
+	t.flight_path_angle		= _tecs.vert_vel_state();
 
-	t.airspeedDerivativeSp	= _tecs.TAS_rate_setpoint();
-	t.airspeedDerivative	= _tecs.speed_derivative();
+	t.airspeed_derivative_sp	= _tecs.TAS_rate_setpoint();
+	t.airspeed_derivative		= _tecs.speed_derivative();
 
-	t.totalEnergyError				= _tecs.STE_error();
-	t.totalEnergyRateError			= _tecs.STE_rate_error();
-	t.energyDistributionError		= _tecs.SEB_error();
-	t.energyDistributionRateError	= _tecs.SEB_rate_error();
+	t.total_energy_error			= _tecs.STE_error();
+	t.total_energy_rate_error		= _tecs.STE_rate_error();
+	t.energy_distribution_error		= _tecs.SEB_error();
+	t.energy_distribution_rate_error	= _tecs.SEB_rate_error();
 
 	t.throttle_integ	= _tecs.throttle_integ_state();
 	t.pitch_integ		= _tecs.pitch_integ_state();

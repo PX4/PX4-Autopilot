@@ -1378,7 +1378,7 @@ protected:
 
 			if (!(pos.flags & transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE)) { continue; }
 
-			msg.ICAO_address = pos.ICAO_address;
+			msg.ICAO_address = pos.icao_address;
 			msg.lat = pos.lat * 1e7;
 			msg.lon = pos.lon * 1e7;
 			msg.altitude_type = pos.altitude_type;
@@ -3517,8 +3517,8 @@ protected:
 			msg.target_bearing = (int16_t)math::degrees(_fw_pos_ctrl_status.target_bearing);
 			msg.wp_dist = (uint16_t)_fw_pos_ctrl_status.wp_dist;
 			msg.xtrack_error = _fw_pos_ctrl_status.xtrack_error;
-			msg.alt_error = _tecs_status.altitude_filtered - _tecs_status.altitudeSp;
-			msg.aspd_error = _tecs_status.airspeed_filtered - _tecs_status.airspeedSp;
+			msg.alt_error = _tecs_status.altitude_filtered - _tecs_status.altitude_sp;
+			msg.aspd_error = _tecs_status.airspeed_filtered - _tecs_status.airspeed_sp;
 
 			mavlink_msg_nav_controller_output_send_struct(_mavlink->get_channel(), &msg);
 

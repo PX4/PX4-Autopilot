@@ -107,7 +107,7 @@ def sizeof_field_type(field):
 def get_children_fields(base_type, search_path):
     (package, name) = genmsg.names.package_resource_name(base_type)
     tmp_msg_context = genmsg.msg_loader.MsgContext.create_default()
-    spec_temp = genmsg.msg_loader.load_msg_by_type(tmp_msg_context, '%s/%s' %(package, name), search_path)  
+    spec_temp = genmsg.msg_loader.load_msg_by_type(tmp_msg_context, '%s/%s' %(package, name), search_path)
     sorted_fields = sorted(spec_temp.parsed_fields(), key=sizeof_field_type, reverse=True)
     return sorted_fields
 
@@ -184,6 +184,9 @@ def print_field(field):
     Echo printf line
     """
 
+    # check if there are any upper case letters in the field name
+    assert not any(a.isupper() for a in field.name), "%r field contains uppercase letters" % field.name
+
     # skip padding
     if field.name.startswith('_padding'):
         return
@@ -250,6 +253,10 @@ def print_field_def(field):
     """
     Print the C type from a field
     """
+
+    # check if there are any upper case letters in the field name
+    assert not any(a.isupper() for a in field.name), "%r field contains uppercase letters" % field.name
+
     type_name = field.type
     # detect embedded types
     sl_pos = type_name.find('/')
