@@ -38,6 +38,7 @@
 #include <board_config.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
+#include <lib/perf/perf_counter.h>
 #include <lib/rc/crsf.h>
 #include <lib/rc/dsm.h>
 #include <lib/rc/sbus.h>
@@ -116,7 +117,8 @@ private:
 
 	hrt_abstime _cycle_timestamp{0};
 
-	unsigned	_current_update_rate{0};
+	unsigned	_current_update_interval{4000};
+
 	bool 		_run_as_task{false};
 
 	static struct work_s	_work;
@@ -139,6 +141,9 @@ private:
 	uint16_t _raw_rc_count{};
 
 	CRSFTelemetry *_crsf_telemetry{nullptr};
+
+	perf_counter_t      _cycle_perf;
+	perf_counter_t      _publish_interval_perf;
 
 	static void	cycle_trampoline(void *arg);
 	int 		start();
