@@ -85,7 +85,7 @@ then
 
 	#adis16497 start
 
-	lps22hb start
+	lps22hb -S start
 
 	lsm303agr -R 4 start
 
