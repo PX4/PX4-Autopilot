@@ -93,10 +93,7 @@ static inline int px4_board_hw_revision(void)
 /**
  * get the build URI (used for crash logging)
  */
-static inline const char *px4_build_uri(void)
-{
-	return STRINGIFY(BUILD_URI);
-}
+const char *px4_build_uri(void);
 
 /**
  * Convert a version tag string to a number
