@@ -355,6 +355,9 @@ then
 
 	# Possible internal compass
 	ist8310 -C -b 5 start
+
+	# Bitcraze optical flow deck
+	pmw3901 start
 fi
 
 ###############################################################################

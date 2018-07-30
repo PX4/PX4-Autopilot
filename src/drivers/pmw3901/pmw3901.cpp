@@ -77,18 +77,6 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#ifdef PX4_SPI_BUS_EXPANSION
-#define PMW3901_BUS PX4_SPI_BUS_EXPANSION
-#else
-#define PMW3901_BUS 0
-#endif
-
-#ifdef PX4_SPIDEV_EXPANSION_2
-#define PMW3901_SPIDEV PX4_SPIDEV_EXPANSION_2
-#else
-#define PMW3901_SPIDEV 0
-#endif
-
 #define PMW3901_SPI_BUS_SPEED (2000000L) // 2MHz
 
 #define DIR_WRITE(a) ((a) | (1 << 7))
@@ -108,7 +96,7 @@
 class PMW3901 : public device::SPI
 {
 public:
-	PMW3901(int bus = PMW3901_BUS);
+	PMW3901(int bus = PX4_SPI_BUS_BITCRAZE_FLOW);
 
 	virtual ~PMW3901();
 
@@ -196,7 +184,7 @@ private:
 extern "C" __EXPORT int pmw3901_main(int argc, char *argv[]);
 
 PMW3901::PMW3901(int bus) :
-	SPI("PMW3901", PMW3901_DEVICE_PATH, bus, PMW3901_SPIDEV, SPIDEV_MODE0, PMW3901_SPI_BUS_SPEED),
+	SPI("PMW3901", PMW3901_DEVICE_PATH, bus, PX4_SPIDEV_BITCRAZE_FLOW, SPIDEV_MODE0, PMW3901_SPI_BUS_SPEED),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),
@@ -787,7 +775,7 @@ start()
 	}
 
 	/* create the driver */
-	g_dev = new PMW3901(PMW3901_BUS);
+	g_dev = new PMW3901(PX4_SPI_BUS_BITCRAZE_FLOW);
 
 	if (g_dev == nullptr) {
 		goto fail;

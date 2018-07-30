@@ -25,6 +25,7 @@ set(config_module_list
 	drivers/imu/mpu6000
 	drivers/imu/mpu9250
 	drivers/oreoled
+	drivers/pmw3901
 	drivers/pwm_input
 	drivers/pwm_out_sim
 	drivers/px4flow
