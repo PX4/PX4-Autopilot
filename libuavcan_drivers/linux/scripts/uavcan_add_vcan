@@ -19,8 +19,9 @@ if [ "$1" == '--help' ] || [ "$1" == '-h' ]; then echo "$HELP"; exit; fi
 
 IFACE="$1"
 
-if [ $(ifconfig -a | grep -c "^$IFACE") -eq "1" ]; then
-    ifconfig $IFACE up
+ip link show $IFACE > /dev/null
+if [ $? == 0 ]; then
+    ip link set up $IFACE
     exit
 fi
 
@@ -31,7 +32,5 @@ modprobe vcan
 
 ip link add dev $IFACE type vcan
 ip link set up $IFACE
-
-ifconfig $IFACE up || exit 1
 
 echo "New iface $IFACE added successfully. To delete: ip link delete $IFACE"
