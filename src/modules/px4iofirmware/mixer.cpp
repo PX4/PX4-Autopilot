@@ -77,6 +77,9 @@ static volatile bool in_mixer = false;
 
 static bool new_fmu_data = false;
 static uint64_t last_fmu_update = 0;
+static bool fmu_was_lost = true;
+static bool in_parachute_failsafe = false;
+static bool in_timeout_lockdown = false;
 
 extern int _sbus_fd;
 
@@ -87,6 +90,27 @@ enum mixer_source {
 	MIX_OVERRIDE,
 	MIX_FAILSAFE,
 	MIX_OVERRIDE_FMU_OK
+};
+
+/* all output channels on a pixhawk */
+enum class PwmChannel : int16_t {
+	Disabled = 0,
+	IO1 = 1,
+	IO2 = 2,
+	IO3 = 3,
+	IO4 = 4,
+	IO5 = 5,
+	IO6 = 6,
+	IO7 = 7,
+	IO8 = 8,
+	FMU1 = 9,
+	FMU2 = 10,
+	FMU3 = 11,
+	FMU4 = 12,
+	FMU5 = 13,
+	FMU6 = 14,
+	FMU7 = 15,
+	FMU8 = 16
 };
 
 static volatile mixer_source source;
@@ -131,6 +155,7 @@ mixer_tick(void)
 
 	} else {
 		PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_FMU_OK);
+		PX4_ATOMIC_MODIFY_CLEAR(r_status_alarms, PX4IO_P_STATUS_ALARMS_FMU_LOST);
 
 		/* this flag is never cleared once OK */
 		PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED);
@@ -349,40 +374,75 @@ mixer_tick(void)
 		isr_debug(5, "> PWM disabled");
 	}
 
+	bool update_sbus_outputs(false);
+
 	if (mixer_servos_armed && (should_arm || should_arm_nothrottle)
-	    && !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)) {
+	    && !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)
+	    && !in_timeout_lockdown) {
 		/* update the servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servos[i]);
 		}
-
-		/* set S.BUS1 or S.BUS2 outputs */
-
-		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
-			sbus2_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
-
-		} else if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
-			sbus1_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
-		}
+		update_sbus_outputs = true;
 
 	} else if (mixer_servos_armed && (should_always_enable_pwm
-					  || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN))) {
+					  || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)
+					  || in_timeout_lockdown)) {
 		/* set the disarmed servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servo_disarmed[i]);
 			/* copy values into reporting register */
 			r_page_servos[i] = r_page_servo_disarmed[i];
 		}
+		update_sbus_outputs = true;
+	}
 
+	const auto pwm_parachute_output(static_cast<PwmChannel>(REG_TO_SIGNED(r_setup_chute_out))); // get PWM_CHUTE_OUT param
+	const bool parachute_on_io(pwm_parachute_output >= PwmChannel::IO1 && pwm_parachute_output <= PwmChannel::IO8);
+
+	/* if set, override parachute channel with corresponding value */
+	if (mixer_servos_armed && parachute_on_io) {
+		const int16_t parachute_channel((int16_t)pwm_parachute_output - (int16_t)PwmChannel::IO1); // remove offset
+		const bool fmu_trigger_parachute(r_setup_arming & PX4IO_P_SETUP_ARMING_PARACHUTE_FAILSAFE);
+		const bool fmu_armed(r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED);
+		const bool fmu_lost(r_status_alarms & PX4IO_P_STATUS_ALARMS_FMU_LOST);
+		uint16_t parachute_value;
+
+		/* triggers if FMU was operational before and is lost now or if
+		 * FMU asks to trigger the parachute. In both cases, FMU needs to be armed*/
+		if (fmu_armed) {
+			if (fmu_lost && !fmu_was_lost) {
+				in_parachute_failsafe = true; // go into parachute failsafe mode
+				in_timeout_lockdown = true;
+
+			} else if (fmu_trigger_parachute) {
+				in_parachute_failsafe = true; // go into parachute failsafe mode
+			}
+		}
+
+		if (in_parachute_failsafe) {
+			parachute_value = REG_TO_SIGNED(r_setup_chute_on);
+		} else {
+			parachute_value = REG_TO_SIGNED(r_setup_chute_off);
+		}
+
+		up_pwm_servo_set(parachute_channel, parachute_value);
+		/* copy values into reporting register */
+		r_page_servos[parachute_channel] = parachute_value;
+	}
+
+	if (update_sbus_outputs) {
 		/* set S.BUS1 or S.BUS2 outputs */
 		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS1_OUT) {
-			sbus1_output(_sbus_fd, r_page_servo_disarmed, PX4IO_SERVO_COUNT);
+			sbus1_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
 		}
 
 		if (r_setup_features & PX4IO_P_SETUP_FEATURES_SBUS2_OUT) {
-			sbus2_output(_sbus_fd, r_page_servo_disarmed, PX4IO_SERVO_COUNT);
+			sbus2_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
 		}
 	}
+
+	fmu_was_lost = r_status_alarms & PX4IO_P_STATUS_ALARMS_FMU_LOST;
 }
 
 static int
@@ -651,5 +711,4 @@ mixer_set_failsafe()
 	for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++) {
 		r_page_servo_failsafe[i] = 0;
 	}
-
 }

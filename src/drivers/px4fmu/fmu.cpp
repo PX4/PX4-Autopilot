@@ -219,6 +219,26 @@ private:
 		Betaflight = 1
 	};
 
+	enum class PwmChannel : int32_t {
+		Disabled = 0,
+		IO1 = 1,
+		IO2 = 2,
+		IO3 = 3,
+		IO4 = 4,
+		IO5 = 5,
+		IO6 = 6,
+		IO7 = 7,
+		IO8 = 8,
+		FMU1 = 9,
+		FMU2 = 10,
+		FMU3 = 11,
+		FMU4 = 12,
+		FMU5 = 13,
+		FMU6 = 14,
+		FMU7 = 15,
+		FMU8 = 16
+	};
+
 	hrt_abstime _rc_scan_begin = 0;
 	bool _rc_scan_locked = false;
 	bool _report_lock = true;
@@ -286,6 +306,9 @@ private:
 	float _thr_mdl_fac;	///< thrust to pwm modelling factor
 	bool _airmode; 		///< multicopter air-mode
 	MotorOrdering _motor_ordering;
+	PwmChannel _pwm_parachute_output; ///< PWM channel where the parachute is connected
+	int32_t _pwm_parachute_on;
+	int32_t _pwm_parachute_off;
 
 	CRSFTelemetry *_crsf_telemetry;
 
@@ -404,6 +427,9 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_thr_mdl_fac(0.0f),
 	_airmode(false),
 	_motor_ordering(MotorOrdering::PX4),
+	_pwm_parachute_output(PwmChannel::Disabled),
+	_pwm_parachute_on(0),
+	_pwm_parachute_off(0),
 	_crsf_telemetry(nullptr),
 	_perf_control_latency(perf_alloc(PC_ELAPSED, "fmu control latency"))
 {
@@ -431,6 +457,7 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_armed.lockdown = false;
 	_armed.force_failsafe = false;
 	_armed.in_esc_calibration_mode = false;
+	_armed.parachute_failsafe = false;
 
 	// rc input, published to ORB
 	_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
@@ -1366,6 +1393,15 @@ PX4FMU::cycle()
 					}
 				}
 
+				const bool parachute_on_fmu(_pwm_parachute_output >= PwmChannel::FMU1 && _pwm_parachute_output <= PwmChannel::FMU8);
+				if (parachute_on_fmu) {
+					if (_armed.parachute_failsafe) {
+						pwm_limited[(int32_t)_pwm_parachute_output - (int32_t)PwmChannel::FMU1] = _pwm_parachute_on;
+					} else {
+						pwm_limited[(int32_t)_pwm_parachute_output - (int32_t)PwmChannel::FMU1] = _pwm_parachute_off;
+					}
+				}
+
 				/* apply _motor_ordering */
 				reorder_outputs(pwm_limited);
 
@@ -1901,6 +1937,27 @@ void PX4FMU::update_params()
 
 	if (param_handle != PARAM_INVALID) {
 		param_get(param_handle, (int32_t *)&_motor_ordering);
+	}
+
+	// parachute output channel
+	param_handle = param_find("PWM_CHUTE_OUT");
+
+	if (param_handle != PARAM_INVALID) {
+		param_get(param_handle, (int32_t *)&_pwm_parachute_output);
+	}
+
+	// parachute IDLE value
+	param_handle = param_find("PWM_CHUTE_OFF");
+
+	if (param_handle != PARAM_INVALID) {
+		param_get(param_handle, &_pwm_parachute_off);
+	}
+
+	// parachute triggering value
+	param_handle = param_find("PWM_CHUTE_ON");
+
+	if (param_handle != PARAM_INVALID) {
+		param_get(param_handle, &_pwm_parachute_on);
 	}
 }
 

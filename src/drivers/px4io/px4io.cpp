@@ -1209,6 +1209,33 @@ PX4IO::task_main()
 					param_get(parm_handle, &param_val_int);
 					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_AIRMODE, SIGNED_TO_REG(param_val_int));
 				}
+
+				/* parachute pwm channel */
+				parm_handle = param_find("PWM_CHUTE_OUT");
+
+				if (parm_handle != PARAM_INVALID) {
+					int32_t param_val_int;
+					param_get(parm_handle, &param_val_int);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_CHUTE_OUT, SIGNED_TO_REG(param_val_int));
+				}
+
+				/* parachute pwm on */
+				parm_handle = param_find("PWM_CHUTE_ON");
+
+				if (parm_handle != PARAM_INVALID) {
+					int32_t param_val_int;
+					param_get(parm_handle, &param_val_int);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_CHUTE_ON, SIGNED_TO_REG(param_val_int));
+				}
+
+				/* parachute pwm off */
+				parm_handle = param_find("PWM_CHUTE_OFF");
+
+				if (parm_handle != PARAM_INVALID) {
+					int32_t param_val_int;
+					param_get(parm_handle, &param_val_int);
+					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_CHUTE_OFF, SIGNED_TO_REG(param_val_int));
+				}
 			}
 
 		}
@@ -1383,6 +1410,13 @@ PX4IO::io_set_arming_state()
 
 		} else {
 			clear |= PX4IO_P_SETUP_ARMING_IO_ARM_OK;
+		}
+
+		if (armed.parachute_failsafe) {
+			set |= PX4IO_P_SETUP_ARMING_PARACHUTE_FAILSAFE;
+
+		} else {
+			clear |= PX4IO_P_SETUP_ARMING_PARACHUTE_FAILSAFE;
 		}
 	}
 
@@ -2193,7 +2227,7 @@ PX4IO::print_status(bool extended_status)
 	       ((alarms & PX4IO_P_STATUS_ALARMS_PWM_ERROR)     ? " PWM_ERROR" : ""),
 	       ((alarms & PX4IO_P_STATUS_ALARMS_VSERVO_FAULT)  ? " VSERVO_FAULT" : ""));
 	/* now clear alarms */
-	io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, 0xFFFF);
+	io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, 0x0000);
 
 	if (_hardware == 2) {
 		printf("vservo %u mV vservo scale %u\n",

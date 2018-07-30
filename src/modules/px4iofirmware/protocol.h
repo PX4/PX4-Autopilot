@@ -191,6 +191,7 @@
 #define PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE	(1 << 8) /* If set, the system will always output the failsafe values */
 #define PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE	(1 << 9) /* If set, the system will never return from a failsafe, but remain in failsafe once triggered. */
 #define PX4IO_P_SETUP_ARMING_OVERRIDE_IMMEDIATE	(1 << 10) /* If set then on FMU failure override is immediate. Othewise it waits for the mode switch to go past the override thrshold */
+#define PX4IO_P_SETUP_ARMING_PARACHUTE_FAILSAFE	(1 << 11) /* If set, changes the parachute output channel to ON */
 
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
 #define PX4IO_P_SETUP_PWM_DEFAULTRATE		3	/* 'low' PWM frame output rate in Hz */
@@ -239,6 +240,11 @@ enum {							/* DSM bind states */
 #define PX4IO_P_SETUP_THR_MDL_FAC 		25	/* factor for modelling static pwm output to thrust relationship */
 
 #define PX4IO_P_SETUP_THERMAL			26	/* thermal management */
+
+#define PX4IO_P_SETUP_PWM_CHUTE_OUT 		28 	/* parachute pwm channel */
+#define PX4IO_P_SETUP_PWM_CHUTE_ON 		29 	/* parachute on */
+#define PX4IO_P_SETUP_PWM_CHUTE_OFF		30 	/* parachute off */
+
 #define PX4IO_THERMAL_IGNORE			UINT16_MAX
 #define PX4IO_THERMAL_OFF			0
 #define PX4IO_THERMAL_FULL			10000

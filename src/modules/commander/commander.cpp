@@ -1453,6 +1453,7 @@ Commander::run()
 			orb_copy(ORB_ID(parameter_update), param_changed_sub, &param_changed);
 
 			updateParams();
+			_failure_detector.update_params();
 
 			/* update parameters */
 			if (!armed.armed) {
@@ -2498,6 +2499,38 @@ Commander::run()
 					mavlink_log_critical(&mavlink_log_pub, "RC and GPS lost: flight termination");
 				}
 			}
+		}
+
+		/* Check for failure detector status */
+		if (armed.armed) {
+
+			if (_failure_detector.update()) {
+
+				const auto _failure_status = _failure_detector.get();
+
+				if (_failure_status.roll ||
+					_failure_status.pitch) {
+
+					armed.parachute_failsafe = true;
+					status_changed = true;
+
+					/* Only display an user message if the parachute output is set to some value */
+					if (_parachute_output_channel.get() != 0) {
+						static bool parachute_termination_printed = false;
+
+						if (!parachute_termination_printed) {
+							warnx("Flight termination and parachute deployment because of control failure detected");
+							parachute_termination_printed = true;
+						}
+
+						if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
+							mavlink_log_critical(&mavlink_log_pub, "Control failure: parachute deployment");
+						}
+					}
+				}
+			}
+			/* Stop the motors if the parachute is deployed */
+			armed.lockdown |= armed.parachute_failsafe;
 		}
 
 		/* Get current timestamp */

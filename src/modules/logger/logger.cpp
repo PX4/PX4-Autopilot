@@ -606,6 +606,7 @@ void Logger::add_default_topics()
 	add_topic("actuator_controls_0", 100);
 	add_topic("actuator_controls_1", 100);
 	add_topic("actuator_outputs", 100);
+	add_topic("actuator_armed", 100);
 	add_topic("airspeed", 200);
 	add_topic("att_pos_mocap", 50);
 	add_topic("battery_status", 500);
