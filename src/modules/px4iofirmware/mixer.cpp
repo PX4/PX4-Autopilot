@@ -77,6 +77,9 @@ static volatile bool in_mixer = false;
 
 static bool new_fmu_data = false;
 static uint64_t last_fmu_update = 0;
+static bool fmu_was_lost = true;
+static bool in_parachute_failsafe = false;
+static bool in_timeout_lockdown = false;
 
 extern int _sbus_fd;
 
@@ -152,6 +155,7 @@ mixer_tick(void)
 
 	} else {
 		PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_FMU_OK);
+		PX4_ATOMIC_MODIFY_CLEAR(r_status_alarms, PX4IO_P_STATUS_ALARMS_FMU_LOST);
 
 		/* this flag is never cleared once OK */
 		PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED);
@@ -373,7 +377,8 @@ mixer_tick(void)
 	bool update_sbus_outputs(false);
 
 	if (mixer_servos_armed && (should_arm || should_arm_nothrottle)
-	    && !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)) {
+	    && !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)
+	    && !in_timeout_lockdown) {
 		/* update the servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servos[i]);
@@ -381,7 +386,8 @@ mixer_tick(void)
 		update_sbus_outputs = true;
 
 	} else if (mixer_servos_armed && (should_always_enable_pwm
-					  || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN))) {
+					  || (r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)
+					  || in_timeout_lockdown)) {
 		/* set the disarmed servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
 			up_pwm_servo_set(i, r_page_servo_disarmed[i]);
@@ -397,10 +403,24 @@ mixer_tick(void)
 	/* if set, override parachute channel with corresponding value */
 	if (mixer_servos_armed && parachute_on_io) {
 		const int16_t parachute_channel((int16_t)pwm_parachute_output - (int16_t)PwmChannel::IO1); // remove offset
-		const bool trigger_parachute(parachute_on_io && (r_setup_arming & PX4IO_P_SETUP_ARMING_PARACHUTE_FAILSAFE));
+		const bool fmu_trigger_parachute(r_setup_arming & PX4IO_P_SETUP_ARMING_PARACHUTE_FAILSAFE);
+		const bool fmu_armed(r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED);
+		const bool fmu_lost(r_status_alarms & PX4IO_P_STATUS_ALARMS_FMU_LOST);
 		uint16_t parachute_value;
 
-		if (trigger_parachute) {
+		/* triggers if FMU was operational before and is lost now or if
+		 * FMU asks to trigger the parachute. In both cases, FMU needs to be armed*/
+		if (fmu_armed) {
+			if (fmu_lost && !fmu_was_lost) {
+				in_parachute_failsafe = true; // go into parachute failsafe mode
+				in_timeout_lockdown = true;
+
+			} else if (fmu_trigger_parachute) {
+				in_parachute_failsafe = true; // go into parachute failsafe mode
+			}
+		}
+
+		if (in_parachute_failsafe) {
 			parachute_value = REG_TO_SIGNED(r_setup_chute_on);
 		} else {
 			parachute_value = REG_TO_SIGNED(r_setup_chute_off);
@@ -421,6 +441,8 @@ mixer_tick(void)
 			sbus2_output(_sbus_fd, r_page_servos, PX4IO_SERVO_COUNT);
 		}
 	}
+
+	fmu_was_lost = r_status_alarms & PX4IO_P_STATUS_ALARMS_FMU_LOST;
 }
 
 static int
