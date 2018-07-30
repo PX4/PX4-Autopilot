@@ -250,7 +250,7 @@ coverity_scan: posix_sitl_default
 
 # Documentation
 # --------------------------------------------------------------------
-.PHONY: parameters_metadata airframe_metadata module_documentation px4_metadata
+.PHONY: parameters_metadata airframe_metadata module_documentation px4_metadata doxygen
 
 parameters_metadata:
 	@python $(SRC_DIR)/src/lib/parameters/px_process_params.py -s `find $(SRC_DIR)/src -maxdepth 4 -type d` --inject-xml $(SRC_DIR)/src/lib/parameters/parameters_injected.xml --markdown
@@ -264,6 +264,11 @@ module_documentation:
 	@python $(SRC_DIR)/Tools/px_process_module_doc.py -v --markdown $(SRC_DIR)/modules --src-path $(SRC_DIR)/src
 
 px4_metadata: parameters_metadata airframe_metadata module_documentation
+
+doxygen:
+	@mkdir -p $(SRC_DIR)/build/doxygen
+	@cd $(SRC_DIR)/build/doxygen && cmake $(SRC_DIR) $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=posix_sitl_default -DBUILD_DOXYGEN=ON
+	@$(PX4_MAKE) -C $(SRC_DIR)/build/doxygen
 
 # Astyle
 # --------------------------------------------------------------------
