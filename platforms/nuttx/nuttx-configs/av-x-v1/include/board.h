@@ -283,6 +283,7 @@
 
 #define GPIO_UART4_RX    GPIO_UART4_RX_4    /* PD0 */
 #define GPIO_UART4_TX    GPIO_UART4_TX_3    /* PA12 */
+#define GPIO_UART4_RS485_DIR GPIO_UART4_RTS_2	/* PB14 */
 
 #define GPIO_UART5_RX    GPIO_UART5_RX_4    /* PB8 */
 #define GPIO_UART5_TX    GPIO_UART5_TX_4    /* PB9 */
@@ -290,9 +291,8 @@
 #define GPIO_USART6_RX   GPIO_USART6_RX_2   /* PG9 */
 #define GPIO_USART6_TX   GPIO_USART6_TX_2   /* PG14 */
 
-// SWAPPED in REV C
-#define GPIO_UART7_RX    GPIO_UART7_TX_1    /* PE8 */
-#define GPIO_UART7_TX    GPIO_UART7_RX_1    /* PE7 */
+#define GPIO_UART7_RX    GPIO_UART7_RX_1    /* PE8 */
+#define GPIO_UART7_TX    GPIO_UART7_TX_1    /* PE7 */
 
 /* USART8: has no remap
  *
