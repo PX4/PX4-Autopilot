@@ -38,14 +38,13 @@
  * - Golden Section Search
  */
 
-#define GOLDEN_RATIO 1.6180339887 //(sqrt(5)+1)/2
-
 #pragma once
 
 #include <platforms/px4_defines.h>
 
 namespace math
 {
+static constexpr double GOLDEN_RATIO = 1.6180339887; //(sqrt(5)+1)/2
 
 // Type-safe abs
 template<typename _Tp>
@@ -60,8 +59,8 @@ inline const _Tp goldensection(const _Tp &arg1, const _Tp &arg2, _Tp(*fun)(_Tp),
 {
 	_Tp a = arg1;
 	_Tp b = arg2;
-	_Tp c = b - (b - a) / ((_Tp)GOLDEN_RATIO);
-	_Tp d = a + (b - a) / ((_Tp)GOLDEN_RATIO);
+	_Tp c = b - (b - a) / GOLDEN_RATIO;
+	_Tp d = a + (b - a) / GOLDEN_RATIO;
 
 	while (abs_t(c - d) > tol) {
 
@@ -72,8 +71,8 @@ inline const _Tp goldensection(const _Tp &arg1, const _Tp &arg2, _Tp(*fun)(_Tp),
 			a = c;
 		}
 
-		c = b - (b - a) / ((_Tp)GOLDEN_RATIO);
-		d = a + (b - a) / ((_Tp)GOLDEN_RATIO);
+		c = b - (b - a) / GOLDEN_RATIO;
+		d = a + (b - a) / GOLDEN_RATIO;
 
 	}
 
