@@ -1033,7 +1033,7 @@ PX4FMU::cycle()
 			_current_update_rate = 0;
 		}
 
-		int poll_timeout = 5;
+		int poll_timeout = 10;
 
 		if (!_run_as_task) {
 			/*
