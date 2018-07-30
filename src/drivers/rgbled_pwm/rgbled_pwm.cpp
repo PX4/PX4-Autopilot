@@ -86,7 +86,6 @@ private:
 	uint8_t			_r;
 	uint8_t			_g;
 	uint8_t			_b;
-	uint8_t			_brightness;
 
 	volatile bool		_running;
 	volatile bool		_should_run;
@@ -209,36 +208,36 @@ RGBLED_PWM::led()
 	LedControlData led_control_data;
 
 	if (_led_controller.update(led_control_data) == 1) {
-              _brightness = led_control_data.leds[0].brightness;
+              uint8_t brightness = led_control_data.leds[0].brightness;
         
 		switch (led_control_data.leds[0].color) {
 		case led_control_s::COLOR_RED:
-			_r = _brightness; _g = 0; _b = 0;
+			_r = brightness; _g = 0; _b = 0;
 			break;
 
 		case led_control_s::COLOR_GREEN:
-			_r = 0; _g = _brightness; _b = 0;
+			_r = 0; _g = brightness; _b = 0;
 			break;
 
 		case led_control_s::COLOR_BLUE:
-			_r = 0; _g = 0; _b = _brightness;
+			_r = 0; _g = 0; _b = brightness;
 			break;
 
 		case led_control_s::COLOR_AMBER: //make it the same as yellow
 		case led_control_s::COLOR_YELLOW:
-			_r = _brightness; _g = _brightness; _b = 0;
+			_r = brightness; _g = brightness; _b = 0;
 			break;
 
 		case led_control_s::COLOR_PURPLE:
-			_r = _brightness; _g = 0; _b = _brightness;
+			_r = brightness; _g = 0; _b = brightness;
 			break;
 
 		case led_control_s::COLOR_CYAN:
-			_r = 0; _g = _brightness; _b = _brightness;
+			_r = 0; _g = brightness; _b = brightness;
 			break;
 
 		case led_control_s::COLOR_WHITE:
-			_r = _brightness; _g = _brightness; _b = _brightness;
+			_r = brightness; _g = brightness; _b = brightness;
 			break;
 
 		default: // led_control_s::COLOR_OFF
