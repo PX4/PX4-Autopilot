@@ -42,6 +42,7 @@ static bool bind_spektrum(int arg);
 #endif /* SPEKTRUM_POWER */
 
 work_s RCInput::_work = {};
+constexpr char const *RCInput::RC_SCAN_STRING[];
 
 RCInput::RCInput(bool run_as_task) :
 	_cycle_perf(perf_alloc(PC_ELAPSED, "rc_input cycle time")),
