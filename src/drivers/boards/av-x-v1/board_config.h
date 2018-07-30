@@ -321,7 +321,7 @@
 #define BOARD_HAS_RX_TX_SWAP               1 /* HW Can swap TX and RX */
 #define RC_SERIAL_PORT_IS_SWAPED           0 /* Board wired with RC's TX is on cpu RX */
 
-#define GPS_DEFAULT_UART_PORT "/dev/ttyS5" /* UART7 */
+#define GPS_DEFAULT_UART_PORT "/dev/ttyS6" /* UART7 */
 
 /* Power switch controls ******************************************************/
 
