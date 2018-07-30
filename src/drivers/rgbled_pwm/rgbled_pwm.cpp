@@ -118,7 +118,6 @@ RGBLED_PWM::RGBLED_PWM() :
 	_r(0),
 	_g(0),
 	_b(0),
-	_brightness(1.0f),
 	_running(false),
 	_should_run(true)
 {
