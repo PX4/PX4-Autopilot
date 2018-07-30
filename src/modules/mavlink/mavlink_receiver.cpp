@@ -308,6 +308,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_gps_rtcm_data(msg);
 		break;
 
+	case MAVLINK_MSG_ID_GPS_INPUT:
+		handle_message_gps_input(msg);
+		break;
+
 	case MAVLINK_MSG_ID_BATTERY_STATUS:
 		handle_message_battery_status(msg);
 		break;
@@ -2172,6 +2176,44 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		_old_timestamp = timestamp;
 		_hil_frames = 0;
 	}
+}
+
+void
+MavlinkReceiver::handle_message_gps_input(mavlink_message_t *msg)
+{
+	mavlink_gps_input_t gps_input;
+	mavlink_msg_gps_input_decode(msg, &gps_input);
+
+	uint64_t timestamp = hrt_absolute_time();
+
+	vehicle_gps_position_s gps = {};
+
+	gps.timestamp_time_relative = 0;
+	gps.time_utc_usec = gps_input.time_usec;
+
+	gps.timestamp = timestamp;
+	gps.lat = gps_input.lat;
+	gps.lon = gps_input.lon;
+	gps.alt = gps_input.alt;
+	gps.eph = (float)gps_input.horiz_accuracy * 1e-2f; // from cm to m
+	gps.epv = (float)gps_input.vert_accuracy * 1e-2f; // from cm to m
+
+	gps.s_variance_m_s = 1.0f;
+
+	//gps.vel_m_s = (float)gps_input.vel * 1e-2f; // from cm/s to m/s
+	gps.vel_n_m_s = gps_input.vn * 1e-2f; // from cm to m
+	gps.vel_e_m_s = gps_input.ve * 1e-2f; // from cm to m
+	gps.vel_d_m_s = gps_input.vd * 1e-2f; // from cm to m
+	gps.vel_ned_valid = true;
+	//gps.cog_rad = ((gps_input.cog == 65535) ? NAN : wrap_2pi(math::radians(gps_input.cog * 1e-2f)));
+
+	gps.fix_type = gps_input.fix_type;
+	gps.satellites_used = gps_input.satellites_visible;  //TODO: rename mavlink_hil_gps_t sats visible to used?
+
+	gps.heading = NAN;
+
+	int instance;
+	orb_publish_auto(ORB_ID(vehicle_gps_position), &_gps_pub, &gps, &instance, ORB_PRIO_DEFAULT);
 }
 
 void
