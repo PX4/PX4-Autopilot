@@ -99,10 +99,9 @@ private:
 		RC_SCAN_SUMD,
 		RC_SCAN_ST24,
 		RC_SCAN_CRSF
-	};
-	enum RC_SCAN _rc_scan_state = RC_SCAN_SBUS;
+	} _rc_scan_state{RC_SCAN_SBUS};
 
-	char const *RC_SCAN_STRING[6] = {
+	static constexpr char const *RC_SCAN_STRING[6] {
 		"PPM",
 		"SBUS",
 		"DSM",
