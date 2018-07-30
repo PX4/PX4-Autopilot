@@ -118,7 +118,6 @@ RGBLED_PWM::RGBLED_PWM() :
 	_r(0),
 	_g(0),
 	_b(0),
-	_brightness(1.0f),
 	_running(false),
 	_should_run(true)
 {
@@ -208,8 +207,8 @@ RGBLED_PWM::led()
 	LedControlData led_control_data;
 
 	if (_led_controller.update(led_control_data) == 1) {
-              uint8_t brightness = led_control_data.leds[0].brightness;
-        
+		uint8_t brightness = led_control_data.leds[0].brightness;
+
 		switch (led_control_data.leds[0].color) {
 		case led_control_s::COLOR_RED:
 			_r = brightness; _g = 0; _b = 0;
