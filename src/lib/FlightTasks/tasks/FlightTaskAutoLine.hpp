@@ -47,7 +47,6 @@ class FlightTaskAutoLine : public FlightTaskAutoMapper
 public:
 	FlightTaskAutoLine() = default;
 	virtual ~FlightTaskAutoLine() = default;
-	bool activate() override;
 
 protected:
 
