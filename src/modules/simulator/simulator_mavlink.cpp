@@ -670,7 +670,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	struct sockaddr_in _myaddr;
 
 	if (udp_port < 1) {
-		int prt;
+		int32_t prt;
 		param_get(param_find("SITL_UDP_PRT"), &prt);
 		udp_port = prt;
 	}
@@ -682,12 +682,12 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	_myaddr.sin_port = htons(udp_port);
 
 	if ((_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		PX4_WARN("create socket failed\n");
+		PX4_ERR("create socket failed (%i)", errno);
 		return;
 	}
 
 	if (bind(_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
-		PX4_WARN("bind failed\n");
+		PX4_ERR("bind for UDP port %i failed (%i)", udp_port, errno);
 		return;
 	}
 
