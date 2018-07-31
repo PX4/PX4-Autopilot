@@ -40,12 +40,11 @@
 
 using namespace matrix;
 
-#define SIGMA_SINGLE_OP			0.000001f
+static constexpr float SIGMA_SINGLE_OP = 0.000001f;
 
 FlightTaskAutoSmooth::FlightTaskAutoSmooth() :
-	_sl(nullptr, _deltatime, _position)
-{ }
-
+	_line(nullptr, _deltatime, _position)
+{}
 
 void FlightTaskAutoSmooth::_generateSetpoints()
 {
@@ -60,11 +59,11 @@ void FlightTaskAutoSmooth::_generateSetpoints()
 		float desired_vel = math::getVelocityFromAngle(angle, 1.0f, MPC_CRUISE_90.get(), _mc_cruise_speed);
 
 		// straight line
-		_sl.setLineFromTo(_prev_wp, _pt_0);
-		_sl.setSpeed(_mc_cruise_speed);
-		_sl.setSpeedAtTarget(desired_vel);
-		_sl.setAcceleration(2.0f);
-		_sl.setDeceleration(1.0f);
+		_line.setLineFromTo(_prev_wp, _pt_0);
+		_line.setSpeed(_mc_cruise_speed);
+		_line.setSpeedAtTarget(desired_vel);
+		_line.setAcceleration(2.0f);
+		_line.setDeceleration(1.0f);
 
 		// bezier
 		float duration = 1.0f;
@@ -73,7 +72,7 @@ void FlightTaskAutoSmooth::_generateSetpoints()
 			duration = 2.0f * (_target - _pt_0).length() / desired_vel;
 		}
 
-		_b.setBezier(_pt_0, _target, _pt_1, duration);
+		_bezier.setBezier(_pt_0, _target, _pt_1, duration);
 	}
 
 
@@ -83,11 +82,11 @@ void FlightTaskAutoSmooth::_generateSetpoints()
 	const bool pt_1_reached = (_pt_1 - _position_setpoint).length() < 0.1f;
 
 	if (_pt_0_reached_once && !pt_1_reached) {
-		_b.getStatesClosest(_position_setpoint, _velocity_setpoint, acceleration, _position);
+		_bezier.getStatesClosest(_position_setpoint, _velocity_setpoint, acceleration, _position);
 
 	} else if (!pt_1_reached) {
 		_control_points_update = true;
-		_sl.generateSetpoints(_position_setpoint, _velocity_setpoint);
+		_line.generateSetpoints(_position_setpoint, _velocity_setpoint);
 
 	}
 
