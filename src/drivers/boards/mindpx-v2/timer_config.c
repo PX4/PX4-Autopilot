@@ -263,4 +263,14 @@ __EXPORT const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNEL
 };
 
 __EXPORT const uint8_t main_group_timer_map = 0x03 ;
+__EXPORT const uint32_t main_group_chanel_map = 0x00FF;
+
 __EXPORT const uint8_t aux_group_timer_map = 0x0C ;
+__EXPORT const uint32_t aux_group_chanel_map = 0xFF00;
+
+__EXPORT const uint8_t led_group_timer_map = 0x20 ;
+__EXPORT const uint32_t led_group_chanel_map = 0xE000;
+
+__EXPORT const uint8_t heater_group_timer_map = 0x20 ;
+
+
