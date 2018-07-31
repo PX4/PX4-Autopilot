@@ -1228,6 +1228,27 @@ out:
 		unregister_driver(PWM_OUTPUT0_DEVICE_PATH);
 	}
 
+	if (_to_input_rc) {
+		orb_unadvertise(_to_input_rc);
+	}
+
+	if (_to_outputs) {
+		orb_unadvertise(_to_outputs);
+	}
+
+	if (_to_servorail) {
+		orb_unadvertise(_to_servorail);
+	}
+
+	if (_to_safety) {
+		orb_unadvertise(_to_safety);
+	}
+
+	if (_to_mixer_status) {
+		orb_unadvertise(_to_mixer_status);
+	}
+
+
 	/* tell the dtor that we are exiting */
 	_task = -1;
 	_exit(0);
