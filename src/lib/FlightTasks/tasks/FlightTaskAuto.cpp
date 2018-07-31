@@ -40,8 +40,7 @@
 
 using namespace matrix;
 
-#define SIGMA_SINGLE_OP			0.000001f
-#define SIGMA_NORM			0.001f
+static constexpr float SIGMA_NORM	= 0.001f;
 
 bool FlightTaskAuto::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
@@ -296,7 +295,6 @@ State FlightTaskAuto::_getCurrentState()
 
 	return return_state;
 }
-
 
 void FlightTaskAuto::_updateInternalWaypoints()
 {
