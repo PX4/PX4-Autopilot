@@ -43,12 +43,6 @@ using namespace matrix;
 #define SIGMA_SINGLE_OP			0.000001f
 #define SIGMA_NORM			0.001f
 
-bool FlightTaskAutoLine::activate()
-{
-	return FlightTaskAutoMapper::activate();
-}
-
-
 void FlightTaskAutoLine::_generateSetpoints()
 {
 	_generateAltitudeSetpoints();
@@ -60,8 +54,6 @@ void FlightTaskAutoLine::_generateSetpoints()
 		_constraints.landing_gear = vehicle_constraints_s::GEAR_UP;
 	}
 }
-
-
 
 void FlightTaskAutoLine::_generateXYsetpoints()
 {
