@@ -57,7 +57,7 @@ enum class WaypointType : int {
 	takeoff,
 	land,
 	idle,
-	offboard, // only part of this structure due to legacy reason. It is not used
+	offboard, // only part of this structure due to legacy reason. It is not used within the Auto flighttasks
 	follow_target
 };
 
@@ -105,13 +105,16 @@ protected:
 
 
 private:
-	matrix::Vector2f _lock_position_xy{NAN, NAN};
+	matrix::Vector2f _lock_position_xy{NAN, NAN}; /**< if no valid triplet is received, lock positition to current position */
 
 	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
 
-	matrix::Vector3f _triplet_target; /**< current triplet from navigator which may differ from the intenal one (_target) depending on the vehicle state. */
-	matrix::Vector3f _triplet_prev_wp; /**< previous triplet from navigator which may differ from the intenal one (_prev_wp) depending on the vehicle state.*/
-	matrix::Vector3f _triplet_next_wp; /**< next triplet from navigator which may differ from the intenal one (_next_wp) depending on the vehicle state.*/
+	matrix::Vector3f
+	_triplet_target; /**< current triplet from navigator which may differ from the intenal one (_target) depending on the vehicle state. */
+	matrix::Vector3f
+	_triplet_prev_wp; /**< previous triplet from navigator which may differ from the intenal one (_prev_wp) depending on the vehicle state.*/
+	matrix::Vector3f
+	_triplet_next_wp; /**< next triplet from navigator which may differ from the intenal one (_next_wp) depending on the vehicle state.*/
 	matrix::Vector2f _closest_pt; /**< closest point to the vehicle position on the line previous - target */
 
 	map_projection_reference_s _reference_position{}; /**< Structure used to project lat/lon setpoint into local frame. */

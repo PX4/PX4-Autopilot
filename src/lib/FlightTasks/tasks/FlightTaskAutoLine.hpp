@@ -57,13 +57,8 @@ protected:
 					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) MPC_ACC_DOWN_MAX
 				       );
 
-	void _generateSetpoints() override;
+	void _generateSetpoints() override; /**< Generate setpoints along line. */
 
 	void _generateAltitudeSetpoints(); /**< Generate velocity and position setpoints for following line along z. */
 	void _generateXYsetpoints(); /**< Generate velocity and position setpoints for following line along xy. */
-
-private:
-
-	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
-
 };

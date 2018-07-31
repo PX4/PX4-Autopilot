@@ -40,8 +40,6 @@
 
 using namespace matrix;
 
-
-
 bool FlightTaskAutoMapper::activate()
 {
 	bool ret = FlightTaskAuto::activate();
@@ -86,6 +84,12 @@ bool FlightTaskAutoMapper::update()
 
 	} else if (_type == WaypointType::velocity) {
 		_generateVelocitySetpoints();
+	}
+
+	// during mission and reposition, raise the landing gears but only
+	// if altitude is high enough
+	if (_highEnoughForLandingGear()) {
+		_constraints.landing_gear = vehicle_constraints_s::GEAR_UP;
 	}
 
 	// update previous type
@@ -164,4 +168,10 @@ void FlightTaskAutoMapper::updateParams()
 
 	// make sure that alt1 is above alt2
 	MPC_LAND_ALT1.set(math::max(MPC_LAND_ALT1.get(), MPC_LAND_ALT2.get()));
+}
+
+bool FlightTaskAutoMapper::_highEnoughForLandingGear()
+{
+	// return true if altitude is above two meters
+	return _alt_above_ground > 2.0f;
 }
