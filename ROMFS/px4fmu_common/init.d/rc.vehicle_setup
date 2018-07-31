@@ -18,16 +18,17 @@ then
 
 	if [ $MAV_TYPE == none ]
 	then
-		# Use MAV_TYPE = 1 (fixed wing) if not defined.
+		# Set a default MAV_TYPE = 1 if not defined.
 		set MAV_TYPE 1
 	fi
 
+	# Set the mav type parameter.
 	param set MAV_TYPE ${MAV_TYPE}
 
-	# Load mixer and configure outputs
+	# Load mixer and configure outputs.
 	sh /etc/init.d/rc.interface
 
-	# Start standard fixedwing apps
+	# Start standard fixedwing apps.
 	sh /etc/init.d/rc.fw_apps
 fi
 
@@ -38,11 +39,14 @@ if [ $VEHICLE_TYPE == mc ]
 then
 	if [ $MIXER == none ]
 	then
-		echo "Mixer undefined"
+		echo "MC mixer undefined"
 	fi
 
 	if [ $MAV_TYPE == none ]
 	then
+		# Set a default MAV_TYPE = 2 if not defined.
+		set MAV_TYPE 2
+
 		# Use mixer to detect vehicle type
 		if [ $MIXER == quad_x -o $MIXER == quad_+ ]
 		then
@@ -56,9 +60,9 @@ then
 		then
 			set MAV_TYPE 2
 		fi
-		if [ $MIXER == tri_y_yaw- -o $MIXER == tri_y_yaw+ ]
+		if [ $MIXER == coax ]
 		then
-			set MAV_TYPE 15
+			set MAV_TYPE 3
 		fi
 		if [ $MIXER == hexa_x -o $MIXER == hexa_+ ]
 		then
@@ -76,25 +80,47 @@ then
 		then
 			set MAV_TYPE 14
 		fi
-		if [ $MIXER == coax ]
+		if [ $MIXER == tri_y_yaw- -o $MIXER == tri_y_yaw+ ]
 		then
-			set MAV_TYPE 3
+			set MAV_TYPE 15
 		fi
 	fi
 
-	# Still no MAV_TYPE found.
-	if [ $MAV_TYPE == none ]
-	then
-		param set MAV_TYPE 2
-	else
-		param set MAV_TYPE ${MAV_TYPE}
-	fi
+	# Set the mav type parameter.
+	param set MAV_TYPE ${MAV_TYPE}
 
 	# Load mixer and configure outputs.
 	sh /etc/init.d/rc.interface
 
 	# Start standard multicopter apps.
 	sh /etc/init.d/rc.mc_apps
+fi
+
+#
+# UGV setup.
+#
+if [ $VEHICLE_TYPE == ugv ]
+then
+	if [ $MIXER == none ]
+	then
+		# Set default mixer for UGV if not defined.
+		set MIXER ugv_generic
+	fi
+
+	if [ $MAV_TYPE == none ]
+	then
+		# Set a default MAV_TYPE = 10 if not defined.
+		set MAV_TYPE 10
+	fi
+
+	# Set the mav type parameter.
+	param set MAV_TYPE ${MAV_TYPE}
+
+	# Load mixer and configure outputs.
+	sh /etc/init.d/rc.interface
+
+	# Start standard UGV apps.
+	sh /etc/init.d/rc.ugv_apps
 fi
 
 #
@@ -109,11 +135,10 @@ then
 
 	if [ $MAV_TYPE == none ]
 	then
+		# Set a default MAV_TYPE = 19 if not defined.
+		set MAV_TYPE 19
+
 		# Use mixer to detect vehicle type.
-		if [ $MIXER == caipirinha_vtol ]
-		then
-			set MAV_TYPE 19
-		fi
 		if [ $MIXER == firefly6 ]
 		then
 			set MAV_TYPE 21
@@ -124,46 +149,14 @@ then
 		fi
 	fi
 
-	# Still no MAV_TYPE found.
-	if [ $MAV_TYPE == none ]
-	then
-		echo "Unknown MAV_TYPE"
-		param set MAV_TYPE 19
-	else
-		param set MAV_TYPE ${MAV_TYPE}
-	fi
+	# Set the mav type parameter.
+	param set MAV_TYPE ${MAV_TYPE}
 
 	# Load mixer and configure outputs.
 	sh /etc/init.d/rc.interface
 
 	# Start standard vtol apps.
 	sh /etc/init.d/rc.vtol_apps
-fi
-
-#
-# UGV setup
-#
-if [ $VEHICLE_TYPE == ugv ]
-then
-	if [ $MIXER == none ]
-	then
-		# Set default mixer for UGV if not defined.
-		set MIXER ugv_generic
-	fi
-
-	if [ $MAV_TYPE == none ]
-	then
-		# Use MAV_TYPE = 10 (UGV) if not defined.
-		set MAV_TYPE 10
-	fi
-
-	param set MAV_TYPE ${MAV_TYPE}
-
-	# Load mixer and configure outputs.
-	sh /etc/init.d/rc.interface
-
-	# Start standard UGV apps.
-	sh /etc/init.d/rc.ugv_apps
 fi
 
 #
