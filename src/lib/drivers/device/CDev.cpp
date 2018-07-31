@@ -286,7 +286,7 @@ CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 		DEVICE_POLL_DEBUG("CDev::poll: fds->priv = %p", filep);
 
 		/*
-		 * Lock against poll_notify() and possibly other callers.
+		 * Lock against poll_notify() and possibly other callers (protect _pollset).
 		 */
 		ATOMIC_ENTER;
 
@@ -325,12 +325,24 @@ CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 				if (_max_pollwaiters > 0) {
 					memset(new_pollset + _max_pollwaiters, 0, sizeof(px4_pollfd_struct_t *) * (new_count - _max_pollwaiters));
 					memcpy(new_pollset, _pollset, sizeof(px4_pollfd_struct_t *) * _max_pollwaiters);
-					delete[](_pollset);
 				}
 
 				_pollset = new_pollset;
 				_pollset[_max_pollwaiters] = fds;
 				_max_pollwaiters = new_count;
+
+				// free the previous _pollset (we need to unlock here which is fine because we don't access _pollset anymore)
+#ifdef __PX4_NUTTX
+				px4_leave_critical_section(flags);
+#endif
+
+				if (prev_pollset) {
+					delete[](prev_pollset);
+				}
+
+#ifdef __PX4_NUTTX
+				flags = px4_enter_critical_section();
+#endif
 
 				// Success
 				ret = PX4_OK;
