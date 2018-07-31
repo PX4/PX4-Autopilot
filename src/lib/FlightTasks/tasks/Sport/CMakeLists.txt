@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,23 +31,13 @@
 #
 ############################################################################
 
-px4_add_library(FlightTasks
-	FlightTasks.cpp
+# create header only library
+add_library(FlightTaskSport INTERFACE)
+
+# include header directory
+target_include_directories(FlightTaskSport
+INTERFACE
+	${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_include_directories(FlightTasks PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-
-target_link_libraries(FlightTasks PUBLIC
-	FlightTaskManual
-	FlightTaskManualStabilized
-	FlightTaskManualAltitude
-	FlightTaskManualAltitudeSmooth
-	FlightTaskManualPosition
-	FlightTaskManualPositionSmooth
-	FlightTaskSport
-	FlightTaskAutoLine
-	FlightTaskAutoFollowMe
-	FlightTaskOffboard
-)
-
-add_subdirectory(tasks)
+target_link_libraries(FlightTaskSport INTERFACE FlightTaskManual)
