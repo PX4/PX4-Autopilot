@@ -1150,7 +1150,7 @@ Mavlink::find_broadcast_address()
 			const struct in_addr netmask_addr = query_netmask_addr(_socket_fd, *cur_ifreq);
 			const struct in_addr broadcast_addr = compute_broadcast_addr(sin_addr, netmask_addr);
 
-			if (strstr(cur_ifreq->ifr_name, _mavlink_wifi_name) == NULL) { continue; }
+			if (_interface_name && strstr(cur_ifreq->ifr_name, _interface_name) == NULL) { continue; }
 
 			PX4_INFO("using network interface %s, IP: %s", cur_ifreq->ifr_name, inet_ntoa(sin_addr));
 			PX4_INFO("with netmask: %s", inet_ntoa(netmask_addr));
@@ -1947,7 +1947,7 @@ Mavlink::task_main(int argc, char *argv[])
 	_mode = MAVLINK_MODE_NORMAL;
 	bool _force_flow_control = false;
 
-	_mavlink_wifi_name = __DEFAULT_MAVLINK_WIFI;
+	_interface_name = nullptr;
 
 #ifdef __PX4_NUTTX
 	/* the NuttX optarg handler does not
@@ -1998,7 +1998,7 @@ Mavlink::task_main(int argc, char *argv[])
 			break;
 
 		case 'n':
-			_mavlink_wifi_name = myoptarg;
+			_interface_name = myoptarg;
 			break;
 
 #ifdef __PX4_POSIX

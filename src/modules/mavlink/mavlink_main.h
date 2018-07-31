@@ -63,10 +63,6 @@
 #include <net/if.h>
 #endif
 
-#ifndef __DEFAULT_MAVLINK_WIFI
-#define __DEFAULT_MAVLINK_WIFI "wlan"
-#endif
-
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
@@ -606,7 +602,7 @@ private:
 	unsigned _network_buf_len;
 #endif
 
-	const char *_mavlink_wifi_name;
+	const char *_interface_name;
 
 	int _socket_fd;
 	Protocol	_protocol;
