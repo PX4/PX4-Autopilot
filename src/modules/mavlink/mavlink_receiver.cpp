@@ -1294,6 +1294,8 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		_offboard_control_mode.ignore_position = true;
 		_offboard_control_mode.ignore_velocity = true;
 		_offboard_control_mode.ignore_acceleration_force = true;
+		_offboard_control_mode.ignore_altitude = true;
+		_offboard_control_mode.ignore_climbrate = true;
 
 		_offboard_control_mode.timestamp = hrt_absolute_time();
 
