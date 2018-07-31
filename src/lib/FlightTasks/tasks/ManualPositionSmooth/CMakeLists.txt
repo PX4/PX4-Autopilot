@@ -31,9 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(flight_tasks_manual_position_smooth
+px4_add_library(FlightTaskManualPositionSmooth
 	FlightTaskManualPositionSmooth.cpp
 )
 
-target_link_libraries(flight_tasks_manual_position_smooth PUBLIC flight_tasks_manual_position flight_tasks_utility)
-target_include_directories(flight_tasks_manual_position_smooth PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(FlightTaskManualPositionSmooth PUBLIC FlightTaskManualPosition FlightTaskUtility)
+target_include_directories(FlightTaskManualPositionSmooth PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

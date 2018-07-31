@@ -31,9 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(flight_tasks_manual_altitude
+px4_add_library(FlightTaskManualAltitude
 	FlightTaskManualAltitude.cpp
 )
 
-target_link_libraries(flight_tasks_manual_altitude PUBLIC flight_tasks_manual_stabilized)
-target_include_directories(flight_tasks_manual_altitude PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(FlightTaskManualAltitude PUBLIC FlightTaskManualStabilized)
+target_include_directories(FlightTaskManualAltitude PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

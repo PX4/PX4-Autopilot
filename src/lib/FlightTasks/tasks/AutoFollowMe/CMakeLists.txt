@@ -31,9 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(flight_tasks_auto_follow_me
+px4_add_library(FlightTaskAutoFollowMe
 	FlightTaskAutoFollowMe.cpp
 )
 
-target_link_libraries(flight_tasks_auto_follow_me PUBLIC flight_tasks_auto)
-target_include_directories(flight_tasks_auto_follow_me PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(FlightTaskAutoFollowMe PUBLIC FlightTaskAuto)
+target_include_directories(FlightTaskAutoFollowMe PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

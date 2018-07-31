@@ -31,11 +31,11 @@
 #
 ############################################################################
 
-px4_add_library(flight_tasks_utility
+px4_add_library(FlightTaskUtility
 	ManualSmoothingZ.cpp
 	ManualSmoothingXY.cpp
 	StraightLine.cpp
 )
 
-target_link_libraries(flight_tasks_utility PUBLIC flight_task)
-target_include_directories(flight_tasks_utility PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(FlightTaskUtility PUBLIC FlightTask)
+target_include_directories(FlightTaskUtility PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

@@ -31,9 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(flight_tasks_orbit
+px4_add_library(FlightTaskOrbit
 	FlightTaskOrbit.cpp
 )
 
-target_link_libraries(flight_tasks_orbit PUBLIC flight_tasks_manual_altitude_smooth)
-target_include_directories(flight_tasks_orbit PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(FlightTaskOrbit PUBLIC FlightTaskManualAltitudeSmooth)
+target_include_directories(FlightTaskOrbit PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
