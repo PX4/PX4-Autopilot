@@ -182,10 +182,10 @@ Tp BezierQuad<Tp>::_goldenSectionSearch(const Vector3_t &pose)
 	a = (Tp)0; // represents most left point
 	b = _duration * (Tp)1; // represents most right point
 
-	c = b - (b - a) / GOLDEN_RATIO;
-	d = a + (b - a) / GOLDEN_RATIO;
+	c = b - (b - a) / (Tp)GOLDEN_RATIO;
+	d = a + (b - a) / (Tp)GOLDEN_RATIO;
 
-	while (fabsf(c - d) > RESOLUTION) {
+	while (fabsf(c - d) > (Tp)RESOLUTION) {
 		if (_getDistanceSquared(c, pose) < _getDistanceSquared(d, pose)) {
 			b = d;
 
@@ -193,8 +193,8 @@ Tp BezierQuad<Tp>::_goldenSectionSearch(const Vector3_t &pose)
 			a = c;
 		}
 
-		c = b - (b - a) / GOLDEN_RATIO;
-		d = a + (b - a) / GOLDEN_RATIO;
+		c = b - (b - a) / (Tp)GOLDEN_RATIO;
+		d = a + (b - a) / (Tp)GOLDEN_RATIO;
 	}
 
 	return (b + a) / (Tp)2;
