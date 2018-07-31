@@ -59,8 +59,8 @@ protected:
 
 private:
 
-	bezier::BezierQuad_f _b;
-	StraightLine _sl;
+	bezier::BezierQuad_f _bezier;
+	StraightLine _line;
 	matrix::Vector3f _pt_0;
 	matrix::Vector3f _pt_1;
 
