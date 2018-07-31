@@ -79,11 +79,7 @@ CameraCapture::capture_callback(uint32_t chan_index,
 				hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
 
-	if (edge_state == 0) {											// Falling edge
-		// Timestamp and compensate for strobe delay
-		_last_fall_time = edge_time - uint64_t(1000 * _strobe_delay);
-
-	} else if (edge_state == 1 && _last_fall_time > 0) {			// Falling edge and got rising before
+	if (_last_fall_time > 0) {
 		struct camera_trigger_s	trigger {};
 
 		trigger.timestamp = edge_time - ((edge_time - _last_fall_time) / 2);	// Get timestamp of mid-exposure
@@ -93,6 +89,9 @@ CameraCapture::capture_callback(uint32_t chan_index,
 
 		_last_exposure_time = edge_time - _last_fall_time;
 	}
+
+	// Timestamp and compensate for strobe delay
+	_last_fall_time = edge_time - uint64_t(1000 * _strobe_delay);
 
 	_capture_overflows = overflow;
 
@@ -176,7 +175,7 @@ CameraCapture::set_capture_control(bool enabled)
 	if (enabled) {
 		// register callbacks
 		//up_input_capture_set(4, Both, 0, &CameraCapture::capture_trampoline, this);
-		up_input_capture_set(5, Both, 0, &CameraCapture::capture_trampoline, this);
+		up_input_capture_set(5, Falling, 0, &CameraCapture::capture_trampoline, this);
 		_capture_enabled = true;
 
 	} else {
