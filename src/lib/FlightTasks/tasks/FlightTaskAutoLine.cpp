@@ -40,19 +40,13 @@
 
 using namespace matrix;
 
-#define SIGMA_SINGLE_OP			0.000001f
-#define SIGMA_NORM			0.001f
+static constexpr float SIGMA_SINGLE_OP	= 0.000001f;
+static constexpr float SIGMA_NORM		=	0.001f;
 
 void FlightTaskAutoLine::_generateSetpoints()
 {
 	_generateAltitudeSetpoints();
 	_generateXYsetpoints();
-
-	// during mission and reposition, raise the landing gears but only
-	// if altitude is high enough
-	if (_highEnoughForLandingGear()) {
-		_constraints.landing_gear = vehicle_constraints_s::GEAR_UP;
-	}
 }
 
 void FlightTaskAutoLine::_generateXYsetpoints()
@@ -237,11 +231,4 @@ void FlightTaskAutoLine::_generateAltitudeSetpoints()
 		_velocity_setpoint(2) = 0.0f;
 		_position_setpoint(2) = _target(2);
 	}
-}
-
-
-bool FlightTaskAutoLine::_highEnoughForLandingGear()
-{
-	// return true if altitude is above two meters
-	return _alt_above_ground > 2.0f;
 }
