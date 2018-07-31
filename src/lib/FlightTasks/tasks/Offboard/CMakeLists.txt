@@ -31,9 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(flight_tasks_offboard
+px4_add_library(FlightTaskOffboard
 	FlightTaskOffboard.cpp
 )
 
-target_link_libraries(flight_tasks_offboard PUBLIC flight_task)
-target_include_directories(flight_tasks_offboard PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ../)
+target_link_libraries(FlightTaskOffboard PUBLIC FlightTask)
+target_include_directories(FlightTaskOffboard PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ../)
