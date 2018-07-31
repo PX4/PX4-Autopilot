@@ -40,7 +40,6 @@
 
 using namespace matrix;
 
-static constexpr float SIGMA_SINGLE_OP	= 0.000001f;
 static constexpr float SIGMA_NORM		=	0.001f;
 
 void FlightTaskAutoLine::_generateSetpoints()
