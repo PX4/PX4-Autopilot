@@ -202,7 +202,7 @@ public:
 	 *
 	 * @return the number of outputs this mixer feeds to
 	 */
-	virtual unsigned set_trim(float trim) = 0;
+	uint8_t set_device_pwm_mode(mode);
 
 	/**
 	 * @brief Get trim offset for this mixer
@@ -228,6 +228,10 @@ public:
 protected:
 
 private:
+    typedef struct channel_entry {
+        uint8_t dev_ch_idx;
+        uint8_t global_ch_idx;
+    } channel_entry_t;
     
     static uint8_t all_timers;
     static uint32_t all_channels;
