@@ -31,23 +31,70 @@
 #
 ############################################################################
 
+# add core flight tasks to list
+set(flight_tasks_all
+	ManualStabilized
+	ManualAltitude
+	ManualAltitudeSmooth
+	ManualPosition
+	ManualPositionSmooth
+	Sport
+	AutoLine
+	AutoFollowMe
+	Offboard
+	${flight_tasks_additional}
+)
+
+set(files_to_generate
+	FlightTasks_generated.hpp
+	FlightTasks_generated.cpp
+)
+
+# generate files needed for Flight Tasks
+if(${flight_tasks_additional}) # TODO look for nicer solution
+	add_custom_command(
+		OUTPUT
+			${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.hpp
+			${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.cpp
+		COMMAND ${PYTHON_EXECUTABLE} generate_flight_tasks.py
+			-t ${flight_tasks_all}
+			-s ${flight_tasks_additional}
+			-i ${CMAKE_CURRENT_SOURCE_DIR}/Templates
+			-o ${CMAKE_CURRENT_BINARY_DIR}
+			-f ${files_to_generate}
+		COMMENT "Generating Flight Tasks"
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		VERBATIM
+	)
+else()
+	add_custom_command(
+		OUTPUT
+			${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.hpp
+			${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.cpp
+		COMMAND ${PYTHON_EXECUTABLE} generate_flight_tasks.py
+			-t ${flight_tasks_all}
+			-i ${CMAKE_CURRENT_SOURCE_DIR}/Templates
+			-o ${CMAKE_CURRENT_BINARY_DIR}
+			-f ${files_to_generate}
+		COMMENT "Generating Flight Tasks"
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		VERBATIM
+	)
+endif()
+
+# add the Flight Tasks library
 px4_add_library(FlightTasks
 	FlightTasks.cpp
+	FlightTasks_generated.cpp
 )
 
-target_include_directories(FlightTasks PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# add directories to target
+target_include_directories(FlightTasks PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
-target_link_libraries(FlightTasks PUBLIC
-	FlightTaskManual
-	FlightTaskManualStabilized
-	FlightTaskManualAltitude
-	FlightTaskManualAltitudeSmooth
-	FlightTaskManualPosition
-	FlightTaskManualPositionSmooth
-	FlightTaskSport
-	FlightTaskAutoLine
-	FlightTaskAutoFollowMe
-	FlightTaskOffboard
-)
+# add all flight task dependencies
+foreach(task ${flight_tasks_all})
+	target_link_libraries(FlightTasks PUBLIC FlightTask${task})
+endforeach()
 
+# add subdirectory containing all tasks
 add_subdirectory(tasks)

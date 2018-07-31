@@ -727,11 +727,11 @@ MulticopterPositionControl::start_flight_task()
 
 		switch (MPC_POS_MODE.get()) {
 		case 0:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::Position);
+			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPosition);
 			break;
 
 		case 1:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::PositionSmooth);
+			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmooth);
 			break;
 
 		case 2:
@@ -739,7 +739,7 @@ MulticopterPositionControl::start_flight_task()
 			break;
 
 		default:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::Position);
+			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPosition);
 			break;
 		}
 
@@ -754,7 +754,7 @@ MulticopterPositionControl::start_flight_task()
 
 	// manual altitude control
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL || task_failure) {
-		int error = _flight_tasks.switchTask(FlightTaskIndex::Altitude);
+		int error = _flight_tasks.switchTask(FlightTaskIndex::ManualAltitude);
 
 		if (error != 0) {
 			PX4_WARN("Altitude-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
@@ -769,7 +769,7 @@ MulticopterPositionControl::start_flight_task()
 	// manual stabilized control
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL
 	    ||  _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_STAB || task_failure) {
-		int error = _flight_tasks.switchTask(FlightTaskIndex::Stabilized);
+		int error = _flight_tasks.switchTask(FlightTaskIndex::ManualStabilized);
 
 		if (error != 0) {
 			PX4_WARN("Stabilized-Ctrl failed with error: %s", _flight_tasks.errorToString(error));

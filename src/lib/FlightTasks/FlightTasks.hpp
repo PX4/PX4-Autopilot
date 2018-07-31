@@ -41,37 +41,11 @@
 
 #pragma once
 
-#include "FlightTask.hpp"
-#include "FlightTaskManualAltitude.hpp"
-#include "FlightTaskManualAltitudeSmooth.hpp"
-#include "FlightTaskManualPosition.hpp"
-#include "FlightTaskManualPositionSmooth.hpp"
-#include "FlightTaskManualStabilized.hpp"
-#include "FlightTaskAutoLine.hpp"
-#include "FlightTaskAutoFollowMe.hpp"
-#include "FlightTaskOrbit.hpp"
-#include "tasks/Sport/FlightTaskSport.hpp"
-#include "FlightTaskOffboard.hpp"
-
-#include "SubscriptionArray.hpp"
+#include "tasks/FlightTask.hpp"
+#include "tasks/SubscriptionArray.hpp"
+#include "FlightTasks_generated.hpp"
 
 #include <new>
-
-enum class FlightTaskIndex : int {
-	None = -1,
-	Stabilized,
-	Altitude,
-	AltitudeSmooth,
-	Position,
-	PositionSmooth,
-	Orbit,
-	Sport,
-	AutoLine,
-	AutoFollowMe,
-	Offboard,
-
-	Count // number of tasks
-};
 
 class FlightTasks
 {
@@ -145,21 +119,7 @@ private:
 	 * Union with all existing tasks: we use it to make sure that only the memory of the largest existing
 	 * task is needed, and to avoid using dynamic memory allocations.
 	 */
-	union TaskUnion {
-		TaskUnion() {}
-		~TaskUnion() {}
-
-		FlightTaskManualStabilized stabilized;
-		FlightTaskManualAltitude altitude;
-		FlightTaskManualAltitudeSmooth altitude_smooth;
-		FlightTaskManualPosition position;
-		FlightTaskManualPositionSmooth position_smooth;
-		FlightTaskOrbit orbit;
-		FlightTaskSport sport;
-		FlightTaskAutoLine autoLine;
-		FlightTaskAutoFollowMe autoFollowMe;
-		FlightTaskOffboard offboard;
-	} _task_union; /**< storage for the currently active task */
+	TaskUnion _task_union; /**< storage for the currently active task */
 
 	struct flight_task_t {
 		FlightTask *task;
@@ -188,6 +148,7 @@ private:
 	 * Check for vehicle commands (received via MAVLink), evaluate and acknowledge them
 	 */
 	void _updateCommand();
+	FlightTaskIndex switchVehicleCommand(const int command);
 	int _sub_vehicle_command = -1; /**< topic handle on which commands are received */
 	orb_advert_t _pub_vehicle_command_ack = nullptr; /**< topic handle to which commands get acknowledged */
 
