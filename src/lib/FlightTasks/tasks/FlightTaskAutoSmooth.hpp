@@ -49,7 +49,6 @@ class FlightTaskAutoSmooth : public FlightTaskAutoMapper
 public:
 	FlightTaskAutoSmooth();
 	virtual ~FlightTaskAutoSmooth() = default;
-	bool activate() override;
 	void _generateSetpoints() override;
 
 protected:
