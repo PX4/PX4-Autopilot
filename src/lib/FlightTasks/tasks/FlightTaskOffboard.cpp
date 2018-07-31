@@ -224,7 +224,7 @@ bool FlightTaskOffboard::update()
 		_velocity_setpoint(2) = _sub_offboard->get().setpoint.vz;
 
 	} else if (position_ctrl_z) {
-		_position_setpoint(2) = _sub_offboard->get().setpoint.vz;
+		_position_setpoint(2) = _sub_offboard->get().setpoint.z;
 
 	} else if (velocity_ctrl_z) {
 		_velocity_setpoint(2) = _sub_offboard->get().setpoint.vz;
