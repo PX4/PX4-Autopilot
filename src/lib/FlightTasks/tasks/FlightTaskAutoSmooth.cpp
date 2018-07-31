@@ -46,19 +46,6 @@ FlightTaskAutoSmooth::FlightTaskAutoSmooth() :
 	_sl(nullptr, _deltatime, _position)
 { }
 
-bool FlightTaskAutoSmooth::activate()
-{
-	bool ret = FlightTaskAutoMapper::activate();
-
-	ret = ret && PX4_ISFINITE(_position(0))
-	      && PX4_ISFINITE(_position(1))
-	      && PX4_ISFINITE(_position(2))
-	      && PX4_ISFINITE(_velocity(0))
-	      && PX4_ISFINITE(_velocity(1))
-	      && PX4_ISFINITE(_velocity(2));
-
-	return ret;
-}
 
 void FlightTaskAutoSmooth::_generateSetpoints()
 {
