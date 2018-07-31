@@ -189,6 +189,7 @@ private:
 
 	int		_armed_sub;
 	int		_param_sub;
+	int		_safety_sub;
 
 	orb_advert_t	_outputs_pub;
 	unsigned	_num_outputs;
@@ -218,7 +219,8 @@ private:
 	uint16_t	_reverse_pwm_mask;
 	unsigned	_num_failsafe_set;
 	unsigned	_num_disarmed_set;
-	bool		_safety_off;
+	bool		_safety_off;			///< State of the safety button from the subscribed safety topic
+	bool		_safety_btn_off;		///< State of the safety button read from the HW button
 	bool		_safety_disabled;
 	orb_advert_t		_to_safety;
 	orb_advert_t      _to_mixer_status; 	///< mixer status flags
@@ -304,6 +306,7 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_run_as_task(run_as_task),
 	_armed_sub(-1),
 	_param_sub(-1),
+	_safety_sub(-1),
 	_outputs_pub(nullptr),
 	_num_outputs(0),
 	_class_instance(0),
@@ -321,6 +324,7 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_num_failsafe_set(0),
 	_num_disarmed_set(0),
 	_safety_off(false),
+	_safety_btn_off(false),
 	_safety_disabled(false),
 	_to_safety(nullptr),
 	_to_mixer_status(nullptr),
@@ -358,6 +362,7 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	// If there is no safety button, disable it on boot.
 #ifndef GPIO_BTN_SAFETY
 	_safety_off = true;
+	_safety_btn_off = true;
 #endif
 
 	/* only enable this during development */
@@ -374,6 +379,7 @@ PX4FMU::~PX4FMU()
 
 	orb_unsubscribe(_armed_sub);
 	orb_unsubscribe(_param_sub);
+	orb_unsubscribe(_safety_sub);
 
 	orb_unadvertise(_outputs_pub);
 	orb_unadvertise(_to_safety);
@@ -415,11 +421,17 @@ PX4FMU::init()
 
 	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
 
+	if (_safety_disabled) {
+		_safety_off = true;
+		_safety_btn_off = true;
+	}
+
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_param_sub = orb_subscribe(ORB_ID(parameter_update));
+	_safety_sub = orb_subscribe(ORB_ID(safety));
 
 	/* initialize PWM limit lib */
 	pwm_limit_init(&_pwm_limit);
@@ -452,25 +464,25 @@ PX4FMU::safety_check_button(void)
 		 * state machine, keep ARM_COUNTER_THRESHOLD the same
 		 * length in all cases of the if/else struct below.
 		 */
-		if (safety_button_pressed && !_safety_off) {
+		if (safety_button_pressed && !_safety_btn_off) {
 
 			if (counter < CYCLE_COUNT) {
 				counter++;
 
 			} else if (counter == CYCLE_COUNT) {
 				/* switch to armed state */
-				_safety_off = true;
+				_safety_btn_off = true;
 				counter++;
 			}
 
-		} else if (safety_button_pressed && _safety_off) {
+		} else if (safety_button_pressed && _safety_btn_off) {
 
 			if (counter < CYCLE_COUNT) {
 				counter++;
 
 			} else if (counter == CYCLE_COUNT) {
 				/* change to disarmed state and notify the FMU */
-				_safety_off = false;
+				_safety_btn_off = false;
 				counter++;
 			}
 
@@ -494,7 +506,7 @@ PX4FMU::flash_safety_button()
 		/* cycle the blink state machine at 10Hz */
 		static int blink_counter = 0;
 
-		if (_safety_off) {
+		if (_safety_btn_off) {
 			if (_armed.armed) {
 				pattern = LED_PATTERN_IO_FMU_ARMED;
 
@@ -1240,10 +1252,7 @@ PX4FMU::cycle()
 				 */
 				struct safety_s safety = {};
 
-				if (_safety_disabled) {
-					_safety_off = true;
-
-				} else {
+				if (!_safety_disabled) {
 					/* read safety switch input and control safety switch LED at 10Hz */
 					safety_check_button();
 				}
@@ -1252,30 +1261,35 @@ PX4FMU::cycle()
 				flash_safety_button();
 
 				safety.timestamp = hrt_absolute_time();
-
-				if (_safety_off) {
-					safety.safety_off = true;
-					safety.safety_switch_available = true;
-
-				} else {
-					safety.safety_off = false;
-					safety.safety_switch_available = true;
-				}
+				safety.safety_switch_available = true;
+				safety.safety_off = _safety_btn_off;
 
 				/* lazily publish the safety status */
 				if (_to_safety != nullptr) {
 					orb_publish(ORB_ID(safety), _to_safety, &safety);
 
 				} else {
-					int instance = _class_instance;
+					int instance;
 					_to_safety = orb_advertise_multi(ORB_ID(safety), &safety, &instance, ORB_PRIO_DEFAULT);
 				}
 			}
 		}
 
 #endif
-		/* check arming state */
+
+		/* check safety button state */
 		bool updated = false;
+		orb_check(_safety_sub, &updated);
+
+		if (updated) {
+			safety_s safety;
+
+			if (orb_copy(ORB_ID(actuator_armed), _safety_sub, &safety) == 0) {
+				_safety_off = !safety.safety_switch_available || safety.safety_off;
+			}
+		}
+
+		/* check arming state */
 		orb_check(_armed_sub, &updated);
 
 		if (updated) {
@@ -1479,12 +1493,12 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
 		/* force safety switch off */
-		_safety_off = true;
+		_safety_btn_off = true;
 		break;
 
 	case PWM_SERVO_SET_FORCE_SAFETY_ON:
 		/* force safety switch on */
-		_safety_off = false;
+		_safety_btn_off = false;
 		break;
 
 	case PWM_SERVO_DISARM:
@@ -3015,6 +3029,12 @@ int PX4FMU::print_status()
 	if (!_run_as_task) {
 		PX4_INFO("Max update rate: %i Hz", _current_update_rate);
 	}
+
+#ifdef GPIO_BTN_SAFETY
+	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
+		PX4_INFO("Safety State (from button): %s", _safety_btn_off ? "off" : "on");
+	}
+#endif
 
 	const char *mode_str = nullptr;
 

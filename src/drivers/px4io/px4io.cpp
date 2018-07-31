@@ -1650,7 +1650,8 @@ PX4IO::io_handle_status(uint16_t status)
 		orb_publish(ORB_ID(safety), _to_safety, &safety);
 
 	} else {
-		_to_safety = orb_advertise(ORB_ID(safety), &safety);
+		int instance;
+		_to_safety = orb_advertise_multi(ORB_ID(safety), &safety, &instance, ORB_PRIO_DEFAULT);
 	}
 
 	return ret;
