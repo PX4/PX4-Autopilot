@@ -53,7 +53,7 @@ int rc_init(void)
 
 	if (rc_get_state() == RUNNING) {  return 0; }
 
-	PX4_INFO("Initializing Robotics Cape library ...");
+	PX4_INFO("Initializing librobotcontrol ...");
 
 	// make sure another instance isn't running
 	rc_kill_existing_process(2.0f);
