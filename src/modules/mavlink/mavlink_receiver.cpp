@@ -130,7 +130,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_actuator_controls_pub(nullptr),
 	_att_sp_pub(nullptr),
 	_rates_sp_pub(nullptr),
-	_pos_sp_pub(nullptr),
 	_att_pos_mocap_pub(nullptr),
 	_vision_position_pub(nullptr),
 	_vision_attitude_pub(nullptr),
