@@ -152,8 +152,8 @@ __BEGIN_DECLS
  * high-speed mode (Low) or silent mode (high)
  */
 
-#define GPIO_CAN0_STB           (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTC | PIN19)
-#define GPIO_CAN1_STB           (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTC | PIN18)
+#define GPIO_CAN0_STB           (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTC | PIN19)
+#define GPIO_CAN1_STB           (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTC | PIN18)
 
 
 /* Safety Switch
