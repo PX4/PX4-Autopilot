@@ -31,9 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(flight_tasks_manual_altitude_smooth
+px4_add_library(FlightTaskManualAltitudeSmooth
 	FlightTaskManualAltitudeSmooth.cpp
 )
 
-target_link_libraries(flight_tasks_manual_altitude_smooth PUBLIC flight_tasks_manual_altitude flight_tasks_utility)
-target_include_directories(flight_tasks_manual_altitude_smooth PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(FlightTaskManualAltitudeSmooth PUBLIC FlightTaskManualAltitude FlightTaskUtility)
+target_include_directories(FlightTaskManualAltitudeSmooth PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

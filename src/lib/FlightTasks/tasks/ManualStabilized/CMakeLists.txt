@@ -31,9 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(flight_tasks_manual_stabilized
+px4_add_library(FlightTaskManualStabilized
 	FlightTaskManualStabilized.cpp
 )
 
-target_link_libraries(flight_tasks_manual_stabilized PUBLIC flight_tasks_manual)
-target_include_directories(flight_tasks_manual_stabilized PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(FlightTaskManualStabilized PUBLIC FlightTaskManual)
+target_include_directories(FlightTaskManualStabilized PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

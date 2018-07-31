@@ -31,23 +31,22 @@
 #
 ############################################################################
 
-px4_add_library(flight_tasks
+px4_add_library(FlightTasks
 	FlightTasks.cpp
 )
 
-target_link_libraries(flight_tasks PUBLIC
-	flight_tasks_manual
-	flight_tasks_manual_altitude
-	flight_tasks_manual_altitude_smooth
-	flight_tasks_manual_stabilized
-	flight_tasks_manual_position
-	flight_tasks_manual_position_smooth
-	flight_tasks_auto
-	flight_tasks_auto_line
-	flight_tasks_auto_follow_me
-	flight_tasks_offboard
-	flight_tasks_orbit
-	flight_tasks_utility
+target_include_directories(FlightTasks PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_link_libraries(FlightTasks PUBLIC
+	FlightTaskManual
+	FlightTaskManualStabilized
+	FlightTaskManualAltitude
+	FlightTaskManualAltitudeSmooth
+	FlightTaskManualPosition
+	FlightTaskManualPositionSmooth
+	FlightTaskAutoLine
+	FlightTaskAutoFollowMe
+	FlightTaskOffboard
 )
 
 add_subdirectory(tasks)
