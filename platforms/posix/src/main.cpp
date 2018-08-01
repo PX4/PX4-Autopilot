@@ -425,7 +425,7 @@ int main(int argc, char **argv)
 
 			PX4_DEBUG("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
 
-			if (dirExists(path_sym_link)) { continue; }
+			if (dirExists(path_sym_link) || src_path == dest_path) { continue; }
 
 			// create sym-links
 			int ret = symlink(src_path.c_str(), dest_path.c_str());
