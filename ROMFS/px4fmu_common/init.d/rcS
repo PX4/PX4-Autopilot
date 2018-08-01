@@ -180,7 +180,7 @@ fi
 #
 if [ -f $FRC ]
 then
-	sh $FRC
+    sh $FRC
 else
 	#
 	# Waypoint storage.
@@ -188,23 +188,23 @@ else
 	#
 	dataman start $DATAMAN_OPT
 
-	#
-	# Start the socket communication send_event handler.
-	#
-	send_event start
+    #
+    # Start the socket communication send_event handler.
+    #
+    send_event start
 
-	#
-	# Start the resource load monitor.
-	#
-	load_mon start
+    #
+    # Start the resource load monitor.
+    #
+    load_mon start
 
-	#
-	# Set the parameter file if mtd starts successfully.
-	#
-	if mtd start
-	then
-		set PARAM_FILE /fs/mtd_params
-	fi
+    #
+    # Set the parameter file if mtd starts successfully.
+    #
+    if mtd start
+    then
+        set PARAM_FILE /fs/mtd_params
+    fi
 
 	#
 	# Load parameters.
@@ -241,87 +241,191 @@ else
 	#
 	if ! rgbled start
 	then
+        set USE_PWM_LED yes
+        if blinkm start
+        then
+            blinkm systemstate
+        fi
+    else
         echo "rgbled started. "
         set USE_PWM_LED no
-	else
-        set USE_PWM_LED yes
-		if blinkm start
-		then
-			blinkm systemstate
-		fi
-	fi
+    fi
 
 echo "USE_PWM_LED = $USE_PWM_LED"
 
     # FMUv5 may have both PWM I2C RGB LED support
     rgbled_pwm start
 
-	#
-	# Set AUTOCNF flag to use it in AUTOSTART scripts.
-	#
-	if param compare SYS_AUTOCONFIG 1
-	then
-		# Wipe out params except RC*, flight modes and total flight time.
-		param reset_nostart RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO*
-		set AUTOCNF yes
-	else
-		set AUTOCNF no
+    #
+    # Set AUTOCNF flag to use it in AUTOSTART scripts.
+    #
+    if param compare SYS_AUTOCONFIG 1
+    then
+        # Wipe out params except RC*, flight modes and total flight time.
+        param reset_nostart RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO*
+        set AUTOCNF yes
+    else
+        set AUTOCNF no
 
-		#
-		# Release 1.4.0 transitional support: set to old default if unconfigured,
-		# this preserves the previous behaviour.
-		#
-		if param compare BAT_N_CELLS 0
-		then
-			param set BAT_N_CELLS 3
-		fi
-	fi
+        #
+        # Release 1.4.0 transitional support: set to old default if unconfigured,
+        # this preserves the previous behaviour.
+        #
+        if param compare BAT_N_CELLS 0
+        then
+            param set BAT_N_CELLS 3
+        fi
+    fi
 
-	###############################################################################
-	#               Begin setup for board specific configurations.                #
-	###############################################################################
+    ###############################################################################
+    #               Begin setup for board specific configurations.                #
+    ###############################################################################
 
-	if ver hwcmp AEROCORE2
-	then
-		set DATAMAN_OPT "-f /fs/mtd_dataman"
-	fi
+    if ver hwcmp AEROCORE2
+    then
+        set DATAMAN_OPT "-f /fs/mtd_dataman"
+    fi
 
-	if ver hwcmp AEROFC_V1
-	then
-		if param compare SYS_AUTOSTART 0
-		then
-			set AUTOCNF yes
-		fi
+    if ver hwcmp AEROFC_V1
+    then
+        if param compare SYS_AUTOSTART 0
+        then
+            set AUTOCNF yes
+        fi
 
-		# We don't allow changing AUTOSTART as it doesn't work in
-		# other configurations.
-		param set SYS_AUTOSTART 4070
+        # We don't allow changing AUTOSTART as it doesn't work in
+        # other configurations.
+        param set SYS_AUTOSTART 4070
 
-		set DATAMAN_OPT -i
-	fi
+        set DATAMAN_OPT -i
+    fi
 
-	if ver hwcmp CRAZYFLIE
-	then
-		if param compare SYS_AUTOSTART 0
-		then
-			param set SYS_AUTOSTART 4900
-			set AUTOCNF yes
-		fi
-	fi
+    if ver hwcmp CRAZYFLIE
+    then
+        if param compare SYS_AUTOSTART 0
+        then
+            param set SYS_AUTOSTART 4900
+            set AUTOCNF yes
+        fi
+    fi
 
-	if ver hwcmp NXPHLITE_V3
-	then
-		param set SYS_FMU_TASK 1
-	fi
+    if ver hwcmp NXPHLITE_V3
+    then
+        param set SYS_FMU_TASK 1
+    fi
 
-	###############################################################################
-	#                 End Setup for board specific configurations.                #
-	###############################################################################
+    ###############################################################################
+    #                 End Setup for board specific configurations.                #
+    ###############################################################################
 
-	if param compare SYS_FMU_TASK 1
-	then
-		set FMU_ARGS "-t"
-	fi
+    if param compare SYS_FMU_TASK 1
+    then
+        set FMU_ARGS "-t"
+    fi
+
+    #
+    # Set parameters and env variables for selected AUTOSTART.
+    #
+    if param compare SYS_AUTOSTART 0
+    then
+    else
+        sh /etc/init.d/rc.autostart
+    fi
+
+    #
+    # Override parameters from user configuration file.
+    #
+    if [ -f $FCONFIG ]
+    then
+        echo "Custom: ${FCONFIG}"
+        sh $FCONFIG
+    fi
+
+    #
+    # If autoconfig parameter was set, reset it and save parameters.
+    #
+    if [ $AUTOCNF == yes ]
+    then
+        # Run FMU as task on Pixracer and on boards with enough RAM.
+        if ver hwcmp MINDPX_V2 PX4FMU_V4 OMNIBUS_F4SD
+        then
+            param set SYS_FMU_TASK 1
+        fi
+
+        # Disable safety switch by default on MindPX, Pixracer and OmnibusF4SD.
+        if ver hwcmp MINDPX_V2 PX4FMU_V4 PX4FMU_V4PRO PX4FMU_V5
+        then
+            param set CBRK_IO_SAFETY 22027
+        fi
+
+        if ver hwcmp OMNIBUS_F4SD
+        then
+            param set SYS_FMU_TASK 1
+            param set SYS_HAS_MAG 0
+            # use the Q attitude estimator, it works w/o mag or GPS.
+            param set SYS_MC_EST_GROUP 1
+            param set ATT_ACC_COMP 0
+            param set ATT_W_ACC 0.4000
+            param set ATT_W_GYRO_BIAS 0.0000
+        fi
+
+        param set SYS_AUTOCONFIG 0
+    fi
+
+    #
+    # Check if PX4IO present and update firmware if needed.
+    #
+    if [ -f /etc/extras/px4io-v2.bin ]
+    then
+        set IO_FILE /etc/extras/px4io-v2.bin
+
+        if px4io checkcrc ${IO_FILE}
+        then
+            set IO_PRESENT yes
+        else
+            tune_control play -m MLL32CP8MB
+
+            if px4io start
+            then
+                # Try to safety px4 io so motor outputs don't go crazy.
+                if px4io safety_on
+                then
+                    # success! no-op
+                else
+                    # px4io did not respond to the safety command.
+                    px4io stop
+                fi
+            fi
+
+            if px4io forceupdate 14662 ${IO_FILE}
+            then
+                usleep 10000
+                if px4io checkcrc ${IO_FILE}
+                then
+                    echo "PX4IO CRC OK after updating" >> $LOG_FILE
+                    tune_control play -m MLL8CDE
+
+                    set IO_PRESENT yes
+                else
+                    echo "PX4IO update failed" >> $LOG_FILE
+                    # Error tune.
+                    tune_control play -t 2
+                fi
+            else
+                echo "PX4IO update failed" >> $LOG_FILE
+                # Error tune.
+                tune_control play -t 2
+            fi
+        fi
+    fi
+
+    #
+    # Set USE_IO flag.
+    #
+    if param compare SYS_USE_IO 1
+    then
+        set USE_IO yes
+    fi
 
     if param compare SYS_ECU_TASK 1
     then
@@ -380,7 +484,6 @@ echo "USE_PWM_LED = $USE_PWM_LED"
 	# Check if PX4IO present and update firmware if needed.
 	# Assumption IOFW set to firware file and IO_PRESENT = no
 	#
-
 	if [ -f $IOFW ]
 	then
 		# Check for the mini using build with px4io fw file
@@ -484,16 +587,16 @@ echo "USE_PWM_LED = $USE_PWM_LED"
 		# Clear pins 5 and 6.
 		set FMU_MODE pwm4
         set ECU_MODE pwm4
-		set AUX_MODE pwm4
-	fi
+        set AUX_MODE pwm4
+    fi
 
-	if param greater TRIG_MODE 0
-	then
-		# We ONLY support trigger on pins 5 and 6 when simultanously using AUX for actuator output.
-		if param compare TRIG_PINS 56
-		then
-			# clear pins 5 and 6
-			set FMU_MODE pwm4
+    if param greater TRIG_MODE 0
+    then
+        # We ONLY support trigger on pins 5 and 6 when simultanously using AUX for actuator output.
+        if param compare TRIG_PINS 56
+        then
+            # clear pins 5 and 6
+            set FMU_MODE pwm4
             set ECU_MODE pwm4
 			set AUX_MODE pwm4
 		else
@@ -535,12 +638,12 @@ echo "USE_PWM_LED = $USE_PWM_LED"
 	#
 	sh /etc/init.d/rc.mavlink
 
-	#
-	# Configure vehicle type specific parameters.
-	# Note: rc.vehicle_setup is the entry point for rc.interface,
-	#       rc.fw_apps, rc.mc_apps, rc.ugv_apps, and rc.vtol_apps.
-	#
-	sh /etc/init.d/rc.vehicle_setup
+    #
+    # Configure vehicle type specific parameters.
+    # Note: rc.vehicle_setup is the entry point for rc.interface,
+    #       rc.fw_apps, rc.mc_apps, rc.ugv_apps, and rc.vtol_apps.
+    #
+    sh /etc/init.d/rc.vehicle_setup
 
 	#
 	# Start the navigator.
@@ -589,6 +692,7 @@ echo "USE_PWM_LED = $USE_PWM_LED"
 		echo "Addons script: ${FEXTRAS}"
 		sh $FEXTRAS
 	fi
+
 #
 # End of autostart.
 #

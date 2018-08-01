@@ -198,18 +198,18 @@ public:
     uint8_t output_pwm_channel_value (uint8_t device_channel_idx, uint8_t value);
 
 	/**
-	 * @brief Set trim offset for this mixer
+	 * @brief Set working pwm channels map.
 	 *
 	 * @return the number of outputs this mixer feeds to
 	 */
-	uint8_t set_device_pwm_mode(mode);
+	uint8_t set_device_pwm_mode(mode_map);
 
 	/**
-	 * @brief Get trim offset for this mixer
+	 * @brief initialize all channels in global channel map.
 	 *
 	 * @return the number of outputs this mixer feeds to
 	 */
-	virtual unsigned get_trim(float *trim) = 0;
+    uint8_t register_init_group_channels();
 
 	/*
 	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to pwm.
@@ -228,16 +228,18 @@ public:
 protected:
 
 private:
-    typedef struct channel_entry {
-        uint8_t dev_ch_idx;
-        uint8_t global_ch_idx;
-    } channel_entry_t;
+    //statically allocated, share-able, alt-rate,
+    //typedef uint8_t channel_attr_t;
+    //static channel_attr_t[32] channel_attrs;
     
     static uint8_t all_timers;
     static uint32_t all_channels;
-    
-    uint8_t used_timer_map;
-    uint32_t used_channel_map;
+    static uint32_t all_shared_channels;
+
+    uint8_t group_timer_map;
+    uint32_t group_channel_map;
+    uint32_t working_channel_map;
+    uint32_t shared_channel_map;
 
 	/* do not allow to copy due to pointer data members */
 	Mixer(const Mixer &);

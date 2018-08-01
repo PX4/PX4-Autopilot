@@ -26,29 +26,40 @@ fi
 
 if ver hwcmp AEROFC_V1 AV_X_V1 CRAZYFLIE NXPHLITE_V3 PX4FMU_V4 OMNIBUS_F4SD SITL
 then
-	set MIXER_AUX none
+    set MIXER_AUX none
 fi
 
-if [ $USE_IO == no ]
+if [ $USE_IO == no -a $USE_ECU == no ]
 then
-	set MIXER_AUX none
+    set MIXER_AUX none
 fi
+
+echo "$PWM_AUX_OUT"
+echo "$MIXER_AUX"
 
 #
 # Set the default output mode if none was set.
 #
 if [ $OUTPUT_MODE == none ]
 then
-	if [ $USE_IO == yes ]
-	then
-		# Enable IO output only if IO is present.
-		if [ $IO_PRESENT == yes ]
-		then
-			set OUTPUT_MODE io
-		fi
-	else
-		set OUTPUT_MODE fmu
-	fi
+    if [ $USE_IO == yes ]
+    then
+        # Enable IO output only if IO is present.
+        if [ $IO_PRESENT == yes ]
+        then
+            set OUTPUT_MODE io
+        fi
+    else
+        set OUTPUT_MODE fmu
+        # Check ECU flag to override output mode, on mindpx_v2 only for now
+        if ver hwcmp MINDPX_V2
+        then
+            if [ $USE_ECU == yes ]
+            then
+                set OUTPUT_MODE ecu
+            fi
+        fi
+    fi
 fi
 
 #
@@ -93,6 +104,17 @@ then
 		fi
 	fi
 
+    if [ $OUTPUT_MODE == ecu ]
+    then
+        if px4ecu $ECU_ARGS mode_$ECU_MODE
+        then
+            echo "ecu started."
+        else
+            echo "PX4 ECU start failed" >> $LOG_FILE
+            tune_control play -m ${TUNE_ERR}
+        fi
+    fi
+
 	if [ $OUTPUT_MODE == uavcan_esc ]
 	then
 		if param compare UAVCAN_ENABLE 0
@@ -101,10 +123,10 @@ then
 		fi
 	fi
 
-	if [ $OUTPUT_MODE == io -o $OUTPUT_MODE == uavcan_esc ]
-	then
-		sh /etc/init.d/rc.io
-	fi
+    if [ $OUTPUT_MODE == io -o $OUTPUT_MODE == uavcan_esc ]
+    then
+        sh /etc/init.d/rc.io
+    fi
 
 	#
 	# Start IO for RC input if needed.
@@ -115,7 +137,18 @@ then
 		then
 			sh /etc/init.d/rc.io
 		fi
-	fi
+    else
+        if [ $OUTPUT_MODE != fmu ]
+        then
+            if fmu mode_${FMU_MODE} $FMU_ARGS
+            then
+                echo "start FMU as AUX"
+            else
+                echo "FMU mode_${FMU_MODE} start failed" >> $LOG_FILE
+                # Error tune.
+                tune_control play -t 2
+        fi
+    fi
 fi
 
 if [ $MIXER != none -a $MIXER != skip ]
@@ -127,9 +160,9 @@ then
 	then
         if [ $USE_IO == yes -o $USE_ECU == yes ]
         then
-		    set MIXER_AUX ${MIXER}
+            set MIXER_AUX ${MIXER}
         fi
-	fi
+    fi
 
 	if [ "$MIXER_FILE" == none ]
 	then
@@ -148,22 +181,22 @@ then
 		fi
 	fi
 
-	if [ $OUTPUT_MODE == mkblctrl ]
-	then
-		set OUTPUT_DEV /dev/mkblctrl0
-	else
-		set OUTPUT_DEV /dev/pwm_output0
-	fi
+    if [ $OUTPUT_MODE == mkblctrl ]
+    then
+        set OUTPUT_DEV /dev/mkblctrl0
+    else
+        set OUTPUT_DEV /dev/pwm_output0
+    fi
 
-	if [ $OUTPUT_MODE == uavcan_esc ]
-	then
-		set OUTPUT_DEV /dev/uavcan/esc
-	fi
+    if [ $OUTPUT_MODE == uavcan_esc ]
+    then
+        set OUTPUT_DEV /dev/uavcan/esc
+    fi
 
-	if [ $OUTPUT_MODE == tap_esc ]
-	then
-		set OUTPUT_DEV /dev/tap_esc
-	fi
+    if [ $OUTPUT_MODE == tap_esc ]
+    then
+        set OUTPUT_DEV /dev/tap_esc
+    fi
 
     if mixer load ${OUTPUT_DEV} ${MIXER_FILE}
     then
@@ -182,7 +215,6 @@ else
 		tune_control play -t 20
 	fi
 fi
-
 
 #set pwm led flag on /dev/pwm_output0
 if [ $USE_PWM_LED == yes ]
@@ -204,16 +236,17 @@ then
         pwm led -d ${OUTPUT_AUX_DEV}
     fi
 
-	if [ -f ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix ]
-	then
-		set MIXER_AUX_FILE ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix
-	else
+echo "aux mixer: ${MIXER_AUX}.aux.mix"
 
-		if [ -f /etc/mixers/${MIXER_AUX}.aux.mix ]
-		then
-			set MIXER_AUX_FILE /etc/mixers/${MIXER_AUX}.aux.mix
-		fi
-	fi
+    if [ -f ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix ]
+    then
+        set MIXER_AUX_FILE ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix
+    else
+        if [ -f /etc/mixers/${MIXER_AUX}.aux.mix ]
+        then
+            set MIXER_AUX_FILE /etc/mixers/${MIXER_AUX}.aux.mix
+        fi
+    fi
 
 	if [ $MIXER_AUX_FILE != none ]
 	then
@@ -257,37 +290,34 @@ then
 			if [ $PWM_AUX_RATE != none ]
 			then
                 pwm rate -c ${PWM_AUX_OUT} -r ${PWM_AUX_RATE} -d ${OUTPUT_AUX_DEV}
-			fi
+            fi
 
-			if [ $PWM_AUX_MIN != none ]
-			then
-				pwm min -c ${PWM_AUX_OUT} -p ${PWM_AUX_MIN} -d ${OUTPUT_AUX_DEV}
-			fi
-			if [ $PWM_AUX_MAX != none ]
-			then
-				pwm max -c ${PWM_AUX_OUT} -p ${PWM_AUX_MAX} -d ${OUTPUT_AUX_DEV}
-			fi
-		fi
+            if [ $PWM_AUX_MIN != none ]
+            then
+                pwm min -c ${PWM_AUX_OUT} -p ${PWM_AUX_MIN} -d ${OUTPUT_AUX_DEV}
+            fi
+            if [ $PWM_AUX_MAX != none ]
+            then
+                pwm max -c ${PWM_AUX_OUT} -p ${PWM_AUX_MAX} -d ${OUTPUT_AUX_DEV}
+            fi
+        fi
 
-		# Set disarmed values for aux out
+        # Transitional support until all configs
+        # are updated
+        if [ $PWM_ACHDIS == none ]
+        then
+            set PWM_ACHDIS ${PWM_AUX_OUT}
+        fi
 
-		# Transitional support until all configs
-		# are updated
-		if [ $PWM_ACHDIS == none ]
-		then
-			set PWM_ACHDIS ${PWM_AUX_OUT}
-		fi
-		#
-		# Set disarmed, min and max PWM_AUX values
-		#
-		if [ $PWM_AUX_DISARMED != none -a $PWM_ACHDIS != none ]
-		then
-			pwm disarmed -c ${PWM_ACHDIS} -p ${PWM_AUX_DISARMED} -d ${OUTPUT_AUX_DEV}
-		fi
+        # Set disarmed values for aux out
+        if [ $PWM_AUX_DISARMED != none -a $PWM_ACHDIS != none ]
+        then
+            pwm disarmed -c ${PWM_AUX_OUT} -p ${PWM_AUX_DISARMED} -d ${OUTPUT_AUX_DEV}
+        fi
 
-		#
-		# Per channel disarmed settings.
-		#
+        #
+        # Per channel disarmed settings.
+        #
         pwm disarmed -c 1 -p p:PWM_AUX_DIS1 -d ${OUTPUT_AUX_DEV}
 		pwm disarmed -c 2 -p p:PWM_AUX_DIS2 -d ${OUTPUT_AUX_DEV}
 		pwm disarmed -c 3 -p p:PWM_AUX_DIS3 -d ${OUTPUT_AUX_DEV}
@@ -342,28 +372,27 @@ fi
 
 if [ $OUTPUT_MODE != none ]
 then
-	if [ $PWM_OUT != none ]
-	then
-		# Set PWM output frequency.
-		if [ $PWM_RATE != none ]
-		then
-			pwm rate -c ${PWM_OUT} -r ${PWM_RATE}
-		fi
-
-		# Set disarmed, min and max PWM values.
-		if [ $PWM_DISARMED != none ]
-		then
-			pwm disarmed -c ${PWM_OUT} -p ${PWM_DISARMED}
-		fi
-		if [ $PWM_MIN != none ]
-		then
-			pwm min -c ${PWM_OUT} -p ${PWM_MIN}
-		fi
-		if [ $PWM_MAX != none ]
-		then
-			pwm max -c ${PWM_OUT} -p ${PWM_MAX}
-		fi
-	fi
+    if [ $PWM_OUT != none ]
+    then
+        # Set PWM output frequency.
+        if [ $PWM_RATE != none ]
+        then
+            pwm rate -c ${PWM_OUT} -r ${PWM_RATE}
+        fi
+        # Set disarmed, min and max PWM values.
+        if [ $PWM_DISARMED != none ]
+        then
+            pwm disarmed -c ${PWM_OUT} -p ${PWM_DISARMED}
+        fi
+        if [ $PWM_MIN != none ]
+        then
+            pwm min -c ${PWM_OUT} -p ${PWM_MIN}
+        fi
+        if [ $PWM_MAX != none ]
+        then
+            pwm max -c ${PWM_OUT} -p ${PWM_MAX}
+        fi
+    fi
 
 	#
 	# Per channel disarmed settings.
