@@ -1,6 +1,12 @@
 # Build version
 version: "{build}"
 
+branches:
+  only:
+  - master
+  - beta
+  - stable
+
 # Build worker image (build VM template)
 image: Visual Studio 2017
 
