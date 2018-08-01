@@ -142,17 +142,6 @@ static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &sta
 		goto out;
 	}
 
-	ret = h.ioctl(MAGIOCSELFTEST, 0);
-
-	if (ret != OK) {
-		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: MAG #%u SELFTEST FAILED", instance);
-		}
-
-		success = false;
-		goto out;
-	}
-
 out:
 	if (instance==0) set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG, present, !optional, success, status);
 	if (instance==1) set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG2, present, !optional, success, status);
@@ -281,17 +270,6 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 		goto out;
 	}
 
-	ret = h.ioctl(ACCELIOCSELFTEST, 0);
-
-	if (ret != OK) {
-		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ACCEL #%u TEST FAILED: %d", instance, ret);
-		}
-
-		success = false;
-		goto out;
-	}
-
 #ifdef __PX4_NUTTX
 
 	if (dynamic) {
@@ -361,17 +339,6 @@ static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 	if (ret) {
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GYRO #%u UNCALIBRATED", instance);
-		}
-
-		success = false;
-		goto out;
-	}
-
-	ret = h.ioctl(GYROIOCSELFTEST, 0);
-
-	if (ret != OK) {
-		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GYRO #%u SELFTEST FAILED", instance);
 		}
 
 		success = false;
