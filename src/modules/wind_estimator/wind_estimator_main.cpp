@@ -330,5 +330,12 @@ extern "C" __EXPORT int wind_estimator_main(int argc, char *argv[]);
 int
 wind_estimator_main(int argc, char *argv[])
 {
-	return WindEstimatorModule::main(argc, argv);
+	int32_t wind_estimator_enabled = 0;
+	param_get(param_find("WEST_EN"), &wind_estimator_enabled);
+
+	if (wind_estimator_enabled == 1) {
+		return WindEstimatorModule::main(argc, argv);
+	}
+
+	return PX4_OK;
 }

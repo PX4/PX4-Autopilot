@@ -490,6 +490,11 @@ else
 	navigator start
 
 	#
+	# Start the standalone wind estimator.
+	#
+	wind_estimator start
+
+	#
 	# Start a thermal calibration if required.
 	#
 	sh /etc/init.d/rc.thermal_cal
