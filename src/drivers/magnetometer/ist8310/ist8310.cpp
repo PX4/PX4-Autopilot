@@ -688,12 +688,6 @@ IST8310::ioctl(struct file *filp, int cmd, unsigned long arg)
 		/* same as pollrate because device is in single measurement mode*/
 		return 1000000 / TICK2USEC(_measure_ticks);
 
-	case MAGIOCSRANGE:
-		return OK;
-
-	case MAGIOCGRANGE:
-		return 0;
-
 	case MAGIOCEXSTRAP:
 		return set_selftest(arg);
 

@@ -99,14 +99,6 @@ lis3mdl::init(LIS3MDL_BUS bus_id)
 		PX4_INFO("Poll rate set to max (80hz)");
 	}
 
-	/* Set to 4 Gauss */
-	if (ioctl(fd, MAGIOCSRANGE, 4) != OK) {
-		PX4_WARN("FAILED: MAGIOCSRANGE 4 Gauss");
-
-	} else {
-		PX4_INFO("Set mag range to 4 Gauss");
-	}
-
 	close(fd);
 
 	return true;

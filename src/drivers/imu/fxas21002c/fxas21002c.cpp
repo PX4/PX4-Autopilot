@@ -736,9 +736,6 @@ FXAS21002C::ioctl(struct file *filp, int cmd, unsigned long arg)
 		/* convert to dps and round */
 		return (unsigned long)(_gyro_range_rad_s * 180.0f / M_PI_F + 0.5f);
 
-	case GYROIOCSELFTEST:
-		return self_test();
-
 	default:
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);
@@ -748,14 +745,12 @@ FXAS21002C::ioctl(struct file *filp, int cmd, unsigned long arg)
 int
 FXAS21002C::self_test()
 {
-
 	if (_read == 0) {
 		return 1;
 	}
 
 	return 0;
 }
-
 
 uint8_t
 FXAS21002C::read_reg(unsigned reg)
