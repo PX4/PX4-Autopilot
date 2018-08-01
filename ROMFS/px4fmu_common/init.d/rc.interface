@@ -328,6 +328,14 @@ echo "set aux pwm out rate $PWM_AUX_OUT"
         then
             set PWM_ACHDIS ${PWM_AUX_OUT}
         fi
+
+        # Set disarmed, min and max PWM_AUX values
+        #
+        if [ $PWM_AUX_DISARMED != none -a $PWM_ACHDIS != none ]
+        then
+            pwm disarmed -c ${PWM_AUX_OUT} -p ${PWM_AUX_DISARMED} -d ${OUTPUT_AUX_DEV}
+        fi
+
         #
         # Per channel disarmed settings.
         #
