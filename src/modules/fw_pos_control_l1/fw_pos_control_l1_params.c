@@ -74,6 +74,18 @@ PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 20.0f);
 PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
 
 /**
+ * L1 controller roll slew rate limit.
+ *
+ * The maxium change in roll angle setpoint per second.
+ *
+ * @unit deg/s
+ * @min 0
+ * @increment 1
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_L1_R_SLEW_MAX, 90.0f);
+
+/**
  * Cruise throttle
  *
  * This is the throttle setting required to achieve the desired cruise speed. Most airframes have a value of 0.5-0.7.
