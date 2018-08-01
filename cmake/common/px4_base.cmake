@@ -347,8 +347,6 @@ function(px4_add_common_flags)
 		-Winit-self
 		-Wlogical-op
 		-Wmissing-declarations
-		-Wmissing-field-initializers
-
 		-Wpointer-arith
 		-Wshadow
 		-Wuninitialized
@@ -356,6 +354,7 @@ function(px4_add_common_flags)
 		-Wunused-variable
 
 		-Wno-implicit-fallthrough # set appropriate level and update
+		-Wno-missing-field-initializers
 		-Wno-missing-include-dirs # TODO: fix and enable
 		-Wno-unused-parameter
 		)
