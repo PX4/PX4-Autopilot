@@ -415,7 +415,7 @@ int main(int argc, char **argv)
 		vector<string> path_sym_links;
 		path_sym_links.push_back("ROMFS");
 		path_sym_links.push_back("posix-configs");
-		path_sym_links.push_back("test_data");  // optional
+		path_sym_links.push_back("test_data");
 
 		for (unsigned i = 0; i < path_sym_links.size(); i++) {
 			string path_sym_link = path_sym_links[i];
@@ -425,7 +425,7 @@ int main(int argc, char **argv)
 
 			PX4_DEBUG("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
 
-			if (dirExists(path_sym_link) || !dirExists(dest_path)) { continue; }
+			if (dirExists(path_sym_link)) { continue; }
 
 			// create sym-links
 			int ret = symlink(src_path.c_str(), dest_path.c_str());
