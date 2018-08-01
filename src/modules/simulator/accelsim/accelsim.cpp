@@ -601,9 +601,6 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 		memcpy((struct accel_calibration_s *) arg, &(_accel_scale), sizeof(_accel_scale));
 		return OK;
 
-	case ACCELIOCSELFTEST:
-		return OK;
-
 	default:
 		/* give it to the superclass */
 		return VirtDevObj::devIOCTL(cmd, arg);

@@ -372,13 +372,6 @@ private:
 	void			mag_measure();
 
 	/**
-	 * Accel self test
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int			accel_self_test();
-
-	/**
 	 * Read a register from the LSM303D
 	 *
 	 * @param		The register to read.
@@ -945,9 +938,6 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 		memcpy((struct accel_calibration_s *) arg, &_accel_scale, sizeof(_accel_scale));
 		return OK;
 
-	case ACCELIOCSELFTEST:
-		return accel_self_test();
-
 	default:
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);
@@ -1053,12 +1043,6 @@ LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 		memcpy((struct mag_calibration_s *) arg, &_mag_scale, sizeof(_mag_scale));
 		return OK;
 
-	case MAGIOCSRANGE:
-		return mag_set_range(arg);
-
-	case MAGIOCGRANGE:
-		return _mag_range_ga;
-
 	case MAGIOCGEXTERNAL:
 		/* Even if this sensor is on the "external" SPI bus
 		 * it is still fixed to the autopilot assembly,
@@ -1070,16 +1054,6 @@ LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);
 	}
-}
-
-int
-LSM303D::accel_self_test()
-{
-	if (_accel_read == 0) {
-		return 1;
-	}
-
-	return 0;
 }
 
 uint8_t
