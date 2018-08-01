@@ -1004,7 +1004,7 @@ void Ekf2::run()
 
 			} else {
 				// handle case where the blended states cannot be updated
-				if (_gps_state[0].fix_type > _gps_state[0].fix_type) {
+				if (_gps_state[0].fix_type > _gps_state[1].fix_type) {
 					// GPS 1 has the best fix status so use that
 					_gps_select_index = 0;
 
