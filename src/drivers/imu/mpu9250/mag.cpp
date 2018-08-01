@@ -384,9 +384,6 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCGRANGE:
 		return 48; // fixed full scale measurement range of +/- 4800 uT == 48 Gauss
 
-	case MAGIOCSELFTEST:
-		return self_test();
-
 #ifdef MAGIOCSHWLOWPASS
 
 	case MAGIOCSHWLOWPASS:
@@ -402,12 +399,6 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 	default:
 		return (int)CDev::ioctl(filp, cmd, arg);
 	}
-}
-
-int
-MPU9250_mag::self_test(void)
-{
-	return 0;
 }
 
 void

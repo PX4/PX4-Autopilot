@@ -717,9 +717,6 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 		 */
 		return 0;
 
-	case MAGIOCSELFTEST:
-		return OK;
-
 	default:
 		/* give it to the superclass */
 		return VirtDevObj::devIOCTL(cmd, arg);

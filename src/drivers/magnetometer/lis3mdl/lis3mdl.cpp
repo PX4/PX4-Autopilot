@@ -287,22 +287,6 @@ out:
 }
 
 int
-LIS3MDL::check_calibration()
-{
-	bool offset_valid = (check_offset() == OK);
-	bool scale_valid  = (check_scale() == OK);
-
-	if (_calibrated != (offset_valid && scale_valid)) {
-		PX4_WARN("mag cal status changed %s%s", (scale_valid) ? "" : "scale invalid ",
-			 (offset_valid) ? "" : "offset invalid");
-		_calibrated = (offset_valid && scale_valid);
-	}
-
-	/* return 0 if calibrated, 1 else */
-	return !_calibrated;
-}
-
-int
 LIS3MDL::check_offset()
 {
 	bool offset_valid;
@@ -613,8 +597,6 @@ LIS3MDL::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 	case MAGIOCSSCALE:
 		/* set new scale factors */
 		memcpy(&_scale, (struct mag_calibration_s *)arg, sizeof(_scale));
-		/* check calibration, but not actually return an error */
-		(void)check_calibration();
 		return 0;
 
 	case MAGIOCGSCALE:
@@ -622,16 +604,11 @@ LIS3MDL::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 		memcpy((struct mag_calibration_s *)arg, &_scale, sizeof(_scale));
 		return 0;
 
-
 	case MAGIOCCALIBRATE:
 		return calibrate(file_pointer, arg);
 
 	case MAGIOCEXSTRAP:
 		return set_excitement(arg);
-
-	case MAGIOCSELFTEST:
-		return check_calibration();
-
 
 	case MAGIOCGEXTERNAL:
 		DEVICE_DEBUG("MAGIOCGEXTERNAL in main driver");

@@ -314,13 +314,6 @@ private:
 	int			accel_self_test();
 
 	/**
-	 * Mag self test
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int			mag_self_test();
-
-	/**
 	 * Read a register from the FXOS8701C
 	 *
 	 * @param		The register to read.
@@ -998,9 +991,6 @@ FXOS8701CQ::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCGRANGE:
 		return _mag_range_ga;
 
-	case MAGIOCSELFTEST:
-		return mag_self_test();
-
 	case MAGIOCGEXTERNAL:
 		/* Even if this sensor is on the "external" SPI bus
 		 * it is still fixed to the autopilot assembly,
@@ -1027,32 +1017,6 @@ FXOS8701CQ::accel_self_test()
 
 
 	if (_accel_read == 0) {
-		return 1;
-	}
-
-	return 0;
-}
-
-int
-FXOS8701CQ::mag_self_test()
-{
-	if (_mag_read == 0) {
-		return 1;
-	}
-
-	/**
-	 * inspect mag offsets
-	 * don't check mag scale because it seems this is calibrated on chip
-	 */
-	if (fabsf(_mag_scale.x_offset) < 0.000001f) {
-		return 1;
-	}
-
-	if (fabsf(_mag_scale.y_offset) < 0.000001f) {
-		return 1;
-	}
-
-	if (fabsf(_mag_scale.z_offset) < 0.000001f) {
 		return 1;
 	}
 
