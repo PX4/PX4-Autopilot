@@ -200,13 +200,6 @@ private:
 	int collect();
 
 	/**
-	 * Check the current calibration and update device status
-	 *
-	 * @return 0 if calibration is ok, 1 else
-	 */
-	int check_calibration();
-
-	/**
 	* Check the current scale calibration
 	*
 	* @return 0 if scale calibration is ok, 1 else

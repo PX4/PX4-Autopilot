@@ -810,9 +810,6 @@ BMM150::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCEXSTRAP:
 		return OK;
 
-	case MAGIOCSELFTEST:
-		return OK;
-
 	case MAGIOCSSAMPLERATE:
 		return ioctl(filp, SENSORIOCSPOLLRATE, arg);
 

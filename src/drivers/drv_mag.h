@@ -93,9 +93,6 @@ struct mag_calibration_s {
 /** excite strap */
 #define MAGIOCEXSTRAP		_MAGIOC(9)
 
-/** perform self test and report status */
-#define MAGIOCSELFTEST		_MAGIOC(10)
-
 /** determine if mag is external or onboard */
 #define MAGIOCGEXTERNAL		_MAGIOC(11)
 
