@@ -1,4 +1,13 @@
 /**
+ * Enable Wind estimator
+ *
+ * @boolean
+ * @reboot_required true
+ * @group Wind Estimator
+ */
+PARAM_DEFINE_INT32(WEST_EN, 0);
+
+/**
  * Wind estimator wind process noise.
  *
  * @min 0
