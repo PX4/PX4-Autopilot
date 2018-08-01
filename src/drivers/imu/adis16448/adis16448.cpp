@@ -1266,9 +1266,6 @@ ADIS16448::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCGRANGE:
 		return (unsigned long)(_mag_range_mgauss);
 
-	case MAGIOCSELFTEST:
-		return OK;
-
 	case MAGIOCTYPE:
 		return (ADIS16448_Product);
 

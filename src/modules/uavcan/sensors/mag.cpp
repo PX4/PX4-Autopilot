@@ -114,10 +114,6 @@ int UavcanMagnetometerBridge::ioctl(struct file *filp, int cmd, unsigned long ar
 			return 0;
 		}
 
-	case MAGIOCSELFTEST: {
-			return 0;           // Nothing to do
-		}
-
 	case MAGIOCGEXTERNAL: {
 			return 1;           // declare it external rise it's priority and to allow for correct orientation compensation
 		}

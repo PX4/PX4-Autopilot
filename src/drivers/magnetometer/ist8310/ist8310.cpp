@@ -358,13 +358,6 @@ private:
 	float       meas_to_float(uint8_t in[2]);
 
 	/**
-	 * Check the current calibration and update device status
-	 *
-	 * @return 0 if calibration is ok, 1 else
-	 */
-	int         check_calibration();
-
-	/**
 	* Check the current scale calibration
 	*
 	* @return 0 if scale calibration is ok, 1 else
@@ -707,8 +700,6 @@ IST8310::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCSSCALE:
 		/* set new scale factors */
 		memcpy(&_scale, (struct mag_calibration_s *)arg, sizeof(_scale));
-		/* check calibration, but not actually return an error */
-		(void)check_calibration();
 		return 0;
 
 	case MAGIOCGSCALE:
@@ -719,11 +710,7 @@ IST8310::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCCALIBRATE:
 		return calibrate(filp, arg);
 
-	case MAGIOCSELFTEST:
-		return check_calibration();
-
 	case MAGIOCGEXTERNAL:
-		DEVICE_DEBUG("MAGIOCGEXTERNAL in main driver");
 		return external();
 
 	default:
@@ -1146,25 +1133,6 @@ int IST8310::check_offset()
 
 	/* return 0 if calibrated, 1 else */
 	return !offset_valid;
-}
-
-int IST8310::check_calibration()
-{
-	bool offset_valid = (check_offset() == OK);
-	bool scale_valid  = (check_scale() == OK);
-
-	if (_calibrated != (offset_valid && scale_valid)) {
-
-		if (!scale_valid || !offset_valid) {
-			PX4_WARN("mag cal status changed %s%s", (scale_valid) ? "" : "scale invalid ",
-				 (offset_valid) ? "" : "offset invalid");
-		}
-
-		_calibrated = (offset_valid && scale_valid);
-	}
-
-	/* return 0 if calibrated, 1 else */
-	return (!_calibrated);
 }
 
 int
