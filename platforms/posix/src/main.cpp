@@ -335,10 +335,8 @@ int main(int argc, char **argv)
 	string data_path;
 	string node_name;
 
-	bool skippingOutputRedirect = false;
-
 	// parse arguments
-	while (index < argc && !skippingOutputRedirect) {
+	while (index < argc) {
 		//cout << "arg: " << index << " : " << argv[index] << endl;
 
 		if (argv[index][0] == '-') {
@@ -367,9 +365,6 @@ int main(int argc, char **argv)
 				node_name = name_arg.substr(8);
 				cout << "node name: " << node_name << endl;
 			}
-
-		} else if (strchr(argv[index], '>')) {
-			skippingOutputRedirect = true;
 
 		} else {
 			//cout << "positional argument" << endl;
@@ -420,7 +415,7 @@ int main(int argc, char **argv)
 		vector<string> path_sym_links;
 		path_sym_links.push_back("ROMFS");
 		path_sym_links.push_back("posix-configs");
-		path_sym_links.push_back("test_data");
+		path_sym_links.push_back("test_data");  // optional
 
 		for (unsigned i = 0; i < path_sym_links.size(); i++) {
 			string path_sym_link = path_sym_links[i];
@@ -430,7 +425,7 @@ int main(int argc, char **argv)
 
 			PX4_DEBUG("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
 
-			if (dirExists(path_sym_link)) { continue; }
+			if (dirExists(path_sym_link) || !dirExists(dest_path)) { continue; }
 
 			// create sym-links
 			int ret = symlink(src_path.c_str(), dest_path.c_str());
