@@ -44,8 +44,24 @@ static constexpr float SIGMA_NORM		=	0.001f;
 
 void FlightTaskAutoLine::_generateSetpoints()
 {
+	if (!PX4_ISFINITE(_yaw_setpoint)) {
+		// no valid heading -> set heading along track
+		_generateHeadingAlongTrack();
+	}
+
 	_generateAltitudeSetpoints();
 	_generateXYsetpoints();
+}
+
+void FlightTaskAutoLine::_generateHeadingAlongTrack()
+{
+	Vector2f prev_to_dest = Vector2f(&(_target - _prev_wp)(0));
+
+	if (!_compute_heading_from_2D_vector(_yaw_setpoint, prev_to_dest)) {
+		// heading could not be computed. best we can do is to set heading
+		// to current yaw
+		_yaw_setpoint = _yaw;
+	}
 }
 
 void FlightTaskAutoLine::_generateXYsetpoints()
