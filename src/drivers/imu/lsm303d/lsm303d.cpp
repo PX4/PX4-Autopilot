@@ -608,11 +608,11 @@ LSM303D::~LSM303D()
 int
 LSM303D::init()
 {
-	int ret = PX4_ERROR;
-
 	/* do SPI init (and probe) first */
-	if (SPI::init() != OK) {
-		warnx("SPI init failed");
+	int ret = SPI::init();
+
+	if (ret != OK) {
+		PX4_ERR("SPI init failed (%i)", ret);
 		goto out;
 	}
 
@@ -635,7 +635,7 @@ LSM303D::init()
 	ret = _mag->init();
 
 	if (ret != OK) {
-		warnx("MAG init failed");
+		PX4_ERR("MAG init failed (%i)", ret);
 		goto out;
 	}
 
@@ -650,10 +650,6 @@ LSM303D::init()
 	_mag->_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
 					       &_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
 
-	if (_mag->_mag_topic == nullptr) {
-		warnx("ADVERT ERR");
-	}
-
 
 	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 
@@ -664,10 +660,6 @@ LSM303D::init()
 	/* measurement will have generated a report, publish */
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
 					   &_accel_orb_class_instance, (external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
-
-	if (_accel_topic == nullptr) {
-		warnx("ADVERT ERR");
-	}
 
 out:
 	return ret;
@@ -1827,7 +1819,7 @@ start(bool external_bus, enum Rotation rotation, unsigned range)
 	}
 
 	if (g_dev == nullptr) {
-		warnx("failed instantiating LSM303D obj");
+		PX4_ERR("failed instantiating LSM303D obj");
 		goto fail;
 	}
 
@@ -1917,7 +1909,7 @@ test()
 		errx(1, "failed to get if mag is onboard or external");
 	}
 
-	warnx("mag device active: %s", ret ? "external" : "onboard");
+	PX4_INFO("mag device active: %s", ret ? "external" : "onboard");
 
 	/* do a simple demand read */
 	sz = read(fd_mag, &m_report, sizeof(m_report));
@@ -1965,7 +1957,7 @@ reset()
 	fd = open(LSM303D_DEVICE_PATH_MAG, O_RDONLY);
 
 	if (fd < 0) {
-		warnx("mag could not be opened, external mag might be used");
+		PX4_WARN("mag could not be opened, external mag might be used");
 
 	} else {
 		/* no need to reset the mag as well, the reset() is the same */
@@ -2029,10 +2021,10 @@ test_error()
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'reset', 'testerror' or 'regdump'");
-	warnx("options:");
-	warnx("    -X    (external bus)");
-	warnx("    -R rotation");
+	PX4_INFO("missing command: try 'start', 'info', 'test', 'reset', 'testerror' or 'regdump'");
+	PX4_INFO("options:");
+	PX4_INFO("    -X    (external bus)");
+	PX4_INFO("    -R rotation");
 }
 
 } // namespace
