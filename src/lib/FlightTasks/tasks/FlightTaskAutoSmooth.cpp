@@ -104,4 +104,11 @@ void FlightTaskAutoSmooth::_update_control_points()
 
 	_pt_0 = _target - (u_prev_to_target * NAV_ACC_RAD.get());
 	_pt_1 = _target + (u_target_to_next * NAV_ACC_RAD.get());
+
+	Vector3f pt_0_next = _next_wp - (u_target_to_next * NAV_ACC_RAD.get());
+
+	if ((pt_0_next - _pt_1) * u_target_to_next < 0.0f) {
+		// pt_0_next is closer to target than _pt_1. set _pt_1 to pt_0_next
+		_pt_1 = pt_0_next;
+	}
 }
