@@ -31,9 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskAutoLine
-	FlightTaskAutoLine.cpp
+px4_add_library(FlightTaskAutoMapper
+	FlightTaskAutoMapper.cpp
 )
 
-target_link_libraries(FlightTaskAutoLine PUBLIC FlightTaskAutoMapper)
-target_include_directories(FlightTaskAutoLine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(FlightTaskAutoMapper PUBLIC FlightTaskAuto)
+target_include_directories(FlightTaskAutoMapper PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
