@@ -1,0 +1,15 @@
+#!nsh
+#
+# @name Typhoon H480 SITL
+#
+# @type Hexarotor x
+#
+# @maintainer empty@empty.com
+#
+
+param set MAV_TYPE 13
+
+pwm_out_sim mode_pwm16
+mixer load /dev/pwm_output0 etc/mixers/hexa_x.main.mix
+mixer append /dev/pwm_output0 etc/mixers/mount_legs.aux.mix
+vmount start
