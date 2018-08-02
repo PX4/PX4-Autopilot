@@ -119,6 +119,8 @@ public:
 	/**
 	 * @brief main Main entry point to the module that should be
 	 *        called directly from the module's main method.
+	 * @param argc The task argument count.
+	 * @param argc Pointer to the task argument variable array.
 	 * @return Returns 0 iff successful, -1 otherwise.
 	 */
 	static int main(int argc, char *argv[])
@@ -157,8 +159,8 @@ public:
 	 *        - instantiate the object
 	 *        - call run() on it to execute the main loop
 	 *        - cleanup: delete the object
-	 * @param argc The start argument count.
-	 * @param argv The start argument vector.
+	 * @param argc The task argument count.
+	 * @param argc Pointer to the task argument variable array.
 	 * @return Returns 0 iff successful, -1 otherwise.
 	 */
 	static int run_trampoline(int argc, char *argv[])
@@ -190,6 +192,8 @@ public:
 	/**
 	 * @brief Stars the command, ('command start'), checks if if is already
 	 *        running and calls T::task_spawn() if it's not.
+	 * @param argc The task argument count.
+	 * @param argc Pointer to the task argument variable array.
 	 * @return Returns 0 iff successful, -1 otherwise.
 	 */
 	static int start_command_base(int argc, char *argv[])
@@ -386,15 +390,15 @@ protected:
 	}
 
 	/**
-	 * @param _object Instance if the module is running.
+	 * @var _object Instance if the module is running.
 	 * @note There will be one instance for each template type.
 	 */
 	static volatile T *_object;
 
-	/** @brief _task_id The task handle: -1 = invalid, otherwise task is assumed to be running. */
+	/** @var _task_id The task handle: -1 = invalid, otherwise task is assumed to be running. */
 	static int _task_id;
 
-	/** @brief task_id_is_work_queue Value to indicate if the task runs on the work queue. */
+	/** @var task_id_is_work_queue Value to indicate if the task runs on the work queue. */
 	static constexpr const int task_id_is_work_queue = -2;
 
 private:
@@ -414,7 +418,7 @@ private:
 		pthread_mutex_unlock(&px4_modules_mutex);
 	}
 
-	/** @param _task_should_exit Boolean flag to indicate if the task should exit. */
+	/** @var _task_should_exit Boolean flag to indicate if the task should exit. */
 	volatile bool _task_should_exit = false;
 };
 
@@ -441,6 +445,7 @@ __BEGIN_DECLS
  * @note Disable module description on NuttX to reduce Flash usage.
  *       There's a GCC bug (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=55971), preventing us to use
  *       a macro, but GCC will remove the string as well with this empty inline method.
+ * @param description The provided functionality of the module and potentially the most important parameters.
  */
 static inline void PRINT_MODULE_DESCRIPTION(const char *description) {}
 #else
