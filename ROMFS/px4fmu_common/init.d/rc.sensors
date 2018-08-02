@@ -129,6 +129,7 @@ then
 	# External I2C bus
 	hmc5883 -C -T -X start
 	lis3mdl -X start
+	ist8310 -C start
 
 	# Internal I2C bus
 	hmc5883 -C -T -I -R 4 start
