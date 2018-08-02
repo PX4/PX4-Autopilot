@@ -42,12 +42,23 @@ const vehicle_local_position_setpoint_s FlightTask::getPositionSetpoint()
 	/* fill position setpoint message */
 	vehicle_local_position_setpoint_s vehicle_local_position_setpoint;
 	vehicle_local_position_setpoint.timestamp = hrt_absolute_time();
-	_position_setpoint.copyToRaw(&vehicle_local_position_setpoint.x);
-	_velocity_setpoint.copyToRaw(&vehicle_local_position_setpoint.vx);
-	_acceleration_setpoint.copyToRaw(&vehicle_local_position_setpoint.acc_x);
+
+	vehicle_local_position_setpoint.x = _position_setpoint(0);
+	vehicle_local_position_setpoint.y = _position_setpoint(1);
+	vehicle_local_position_setpoint.z = _position_setpoint(2);
+
+	vehicle_local_position_setpoint.vx = _velocity_setpoint(0);
+	vehicle_local_position_setpoint.vy = _velocity_setpoint(1);
+	vehicle_local_position_setpoint.vz = _velocity_setpoint(2);
+
+	vehicle_local_position_setpoint.acc_x = _acceleration_setpoint(0);
+	vehicle_local_position_setpoint.acc_y = _acceleration_setpoint(1);
+	vehicle_local_position_setpoint.acc_z = _acceleration_setpoint(2);
+
 	_thrust_setpoint.copyTo(vehicle_local_position_setpoint.thrust);
 	vehicle_local_position_setpoint.yaw = _yaw_setpoint;
 	vehicle_local_position_setpoint.yawspeed = _yawspeed_setpoint;
+
 	return vehicle_local_position_setpoint;
 }
 
