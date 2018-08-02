@@ -5,7 +5,7 @@ set -e
 echo args: $@
 
 sitl_bin=$1
-rcS_dir=$2
+rcS_path=$2
 debugger=$3
 program=$4
 model=$5
@@ -15,7 +15,7 @@ build_path=$7
 echo SITL ARGS
 
 echo sitl_bin: $sitl_bin
-echo rcS_dir: $rcS_dir
+echo rcS_path: $rcS_path
 echo debugger: $debugger
 echo program: $program
 echo model: $model
@@ -63,7 +63,7 @@ fi
 
 if [ "$#" -lt 7 ]
 then
-	echo usage: sitl_run.sh rc_script rcS_dir debugger program model src_path build_path
+	echo usage: sitl_run.sh sitl_bin rcS_path debugger program model src_path build_path
 	echo ""
 	exit 1
 fi
@@ -123,9 +123,17 @@ cd $working_dir
 # Do not exit on failure now from here on because we want the complete cleanup
 set +e
 
-sitl_command="$sudo_enabled $sitl_bin $no_pxh $chroot_enabled $src_path $src_path/${rcS_dir}/${model}"
+sitl_command="$sitl_bin $no_pxh $rootfs $rootfs/${rcS_path}"
 
 echo SITL COMMAND: $sitl_command
+
+# Prepend to path to prioritize PX4 commands over potentially already
+# installed PX4 commands.
+export PATH="$build_path/bin":$PATH
+
+export PX4_SIM_MODEL=${model}
+
+pushd $rootfs
 
 if [[ -n "$DONT_RUN" ]]
 then
@@ -156,8 +164,10 @@ then
 	echo "######################################################################"
 	read
 else
-	$sitl_command
+	eval $sitl_command
 fi
+
+popd
 
 if [[ -z "$DONT_RUN" ]]
 then

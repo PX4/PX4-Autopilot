@@ -41,6 +41,7 @@ set(config_module_list
 	systemcmds/led_control
 	systemcmds/mixer
 	systemcmds/ver
+	systemcmds/shutdown
 	systemcmds/topic_listener
 	systemcmds/tune_control
 

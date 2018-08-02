@@ -34,6 +34,7 @@ set(config_module_list
 	systemcmds/perf
 	systemcmds/pwm
 	systemcmds/reboot
+	systemcmds/shutdown
 	systemcmds/sd_bench
 	systemcmds/top
 	systemcmds/topic_listener
@@ -147,7 +148,7 @@ set(config_module_list
 # Default config_sitl_rcS_dir (posix_sitl_default), this is overwritten later
 # for the config posix_sitl_efk2 and set again, explicitly, for posix_sitl_lpe,
 # which are based on posix_sitl_default.
-set(config_sitl_rcS_dir posix-configs/SITL/init/ekf2 CACHE INTERNAL "init script dir for sitl")
+set(config_sitl_rcS_dir etc/init/rcS CACHE INTERNAL "init script dir for sitl")
 
 set(config_sitl_viewer jmavsim CACHE STRING "viewer for sitl")
 set_property(CACHE config_sitl_viewer PROPERTY STRINGS "jmavsim;none")
@@ -162,3 +163,4 @@ if(REPLAY_FILE)
 	message("Building with uorb publisher rules support")
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 endif()
+
