@@ -1,9 +1,9 @@
 #!/bin/bash
 
-if [ -z ${BEBOP_IP+x} ]; then 
+if [ -z ${BEBOP_IP+x} ]; then
   ip=192.168.42.1
   echo "\$BEBOP_IP is not set (use default: $ip)"
-else 
+else
   ip=$BEBOP_IP
   echo "\$BEBOP_IP is set to $ip"
 fi

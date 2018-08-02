@@ -54,6 +54,7 @@ add_library(px4_layer
 	${SHMEM_SRCS}
 )
 target_link_libraries(px4_layer PRIVATE work_queue)
+target_link_libraries(px4_layer PRIVATE px4_daemon)
 
 if (EXTRA_DEPENDS)
 	add_dependencies(px4_layer ${EXTRA_DEPENDS})
