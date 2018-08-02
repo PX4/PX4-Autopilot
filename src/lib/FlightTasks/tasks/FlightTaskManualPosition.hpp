@@ -63,6 +63,6 @@ protected:
 					(ParamFloat<px4::params::MPC_ACC_HOR_ESTM>) MPC_ACC_HOR_ESTM
 				       )
 private:
-	float _velocity_scale; //scales the stick input to velocity
-	uint8_t _reset_counter = 0; /**< counter for estimator resets in xy-direction */
+	float _velocity_scale{0.0f}; //scales the stick input to velocity
+	uint8_t _reset_counter{0}; /**< counter for estimator resets in xy-direction */
 };
