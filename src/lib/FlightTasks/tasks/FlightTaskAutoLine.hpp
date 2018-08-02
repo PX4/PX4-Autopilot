@@ -61,4 +61,8 @@ protected:
 
 	void _generateAltitudeSetpoints(); /**< Generate velocity and position setpoints for following line along z. */
 	void _generateXYsetpoints(); /**< Generate velocity and position setpoints for following line along xy. */
+	void _set_speed_at_target(); /**< Sets desiered speed at target */
+
+private:
+	float _speed_at_target = 0.0f;
 };

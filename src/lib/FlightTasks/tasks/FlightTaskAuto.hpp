@@ -95,8 +95,6 @@ protected:
 
 	State _current_state{State::none};
 
-	float _speed_at_target = 0.0f; /**< Desired velocity at target. */
-
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) MPC_XY_CRUISE,
 					(ParamFloat<px4::params::MPC_CRUISE_90>) MPC_CRUISE_90, // speed at corner when angle is 90 degrees move to line
@@ -124,6 +122,5 @@ private:
 	bool _evaluateTriplets(); /**< Checks and sets triplets. */
 	bool _isFinite(const position_setpoint_s sp); /**< Checks if all waypoint triplets are finite. */
 	bool _evaluateGlobalReference(); /**< Check is global reference is available. */
-	float _getVelocityFromAngle(const float angle); /**< Computes the speed at target depending on angle. */
 	State _getCurrentState(); /**< Computes the current vehicle state based on the vehicle position and navigator triplets. */
 };

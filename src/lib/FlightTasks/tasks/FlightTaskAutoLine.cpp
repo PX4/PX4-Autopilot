@@ -44,8 +44,27 @@ static constexpr float SIGMA_NORM		=	0.001f;
 
 void FlightTaskAutoLine::_generateSetpoints()
 {
+	_set_speed_at_target();
 	_generateAltitudeSetpoints();
 	_generateXYsetpoints();
+}
+
+void FlightTaskAutoLine::_set_speed_at_target()
+{
+	// angle goes from 0 to 2 with 0 = large angle, 2 = small angle:   0 = PI ; 2 = PI*0
+	float angle = 2.0f; // minimum angle
+	_speed_at_target = 0.1f; // minimum speed hard-coded to 0.1f
+
+	// angle = cos(x) + 1.0
+	if (Vector2f(&(_target - _next_wp)(0)).length() > 0.001f &&
+	    (Vector2f(&(_target - _prev_wp)(0)).length() > NAV_ACC_RAD.get())) {
+
+		angle =
+			Vector2f(&(_target - _prev_wp)(0)).unit_or_zero()
+			* Vector2f(&(_target - _next_wp)(0)).unit_or_zero()
+			+ 1.0f;
+		_speed_at_target = math::getVelocityFromAngle(angle, 0.1f, MPC_CRUISE_90.get(), _mc_cruise_speed);
+	}
 }
 
 void FlightTaskAutoLine::_generateXYsetpoints()

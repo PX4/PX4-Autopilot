@@ -103,7 +103,6 @@ void FlightTaskAutoMapper::_reset()
 	// Set setpoints equal current state.
 	_velocity_setpoint = _velocity;
 	_position_setpoint = _position;
-	_speed_at_target = 0.0f;
 }
 
 void FlightTaskAutoMapper::_generateIdleSetpoints()
