@@ -121,11 +121,11 @@ then
 	fxas21002c start -R 0
 fi
 
+# V2 build hwtypecmp is always false
+set BOARD_FMUV3 0
+
 if ver hwcmp PX4FMU_V2
 then
-	# V2 build hwtypecmp is always false
-	set BOARD_FMUV3 0
-
 	# External I2C bus
 	hmc5883 -C -T -X start
 	lis3mdl -X start
@@ -218,8 +218,6 @@ then
 		l3gd20 start
 		lsm303d start
 	fi
-
-	unset BOARD_FMUV3
 fi
 
 if ver hwcmp PX4_SAME70XPLAINED_V1
@@ -477,6 +475,8 @@ fi
 ###############################################################################
 #                            End Optional drivers                             #
 ###############################################################################
+
+unset BOARD_FMUV3
 
 # Wait 20 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)
 usleep 20000
