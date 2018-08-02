@@ -1369,7 +1369,7 @@ PX4FMU::cycle()
 
 		if (_pwm_on != pwm_on) {
 			_pwm_on = pwm_on;
-
+            printf("[fmu] aux pwm initialize disarmed ...\n");
 			update_pwm_out_state(pwm_on);
 		}
 
@@ -1663,6 +1663,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_SET_DISARMED_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
+        printf("[fmu] pwm set channel count: %d\n", pwm->channel_count);
 			/* discard if too many values are sent */
 			if (pwm->channel_count > _max_actuators) {
 				ret = -EINVAL;
@@ -1696,6 +1697,8 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			_num_disarmed_set = 0;
  			for (unsigned i = 0; i < _max_actuators; i++) {
 				if (_disarmed_pwm[i] > 0) {
+                    printf("[fmu] _num_disarmed_set: %d\n", _num_disarmed_set);
+
 					_num_disarmed_set++;
 				}
 			}
