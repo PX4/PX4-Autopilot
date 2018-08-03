@@ -433,6 +433,7 @@ PARAM_DEFINE_FLOAT(EKF2_BETA_NOISE, 0.3f);
  *
  * @group EKF2
  * @volatile
+ * @category system
  * @unit deg
  * @decimal 1
  */
