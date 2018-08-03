@@ -601,34 +601,6 @@ protected:
 
 			mavlink_msg_sys_status_send_struct(_mavlink->get_channel(), &msg);
 
-			/* battery status message with higher resolution */
-			mavlink_battery_status_t bat_msg = {};
-			bat_msg.id = 0;
-			bat_msg.battery_function = MAV_BATTERY_FUNCTION_ALL;
-			bat_msg.type = MAV_BATTERY_TYPE_LIPO;
-			bat_msg.current_consumed = (battery_status.connected) ? battery_status.discharged_mah : -1;
-			bat_msg.energy_consumed = -1;
-			bat_msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100 : -1;
-			bat_msg.battery_remaining = (battery_status.connected) ? ceilf(battery_status.remaining * 100.0f) : -1;
-			bat_msg.temperature = (battery_status.connected) ? (int16_t)battery_status.temperature : INT16_MAX;
-			//bat_msg.average_current_battery = (battery_status.connected) ? battery_status.average_current_a * 100.0f : -1;
-			//bat_msg.serial_number = (battery_status.connected) ? battery_status.serial_number : 0;
-			//bat_msg.capacity = (battery_status.connected) ? battery_status.capacity : 0;
-			//bat_msg.cycle_count = (battery_status.connected) ? battery_status.cycle_count : UINT16_MAX;
-			//bat_msg.run_time_to_empty = (battery_status.connected) ? battery_status.run_time_to_empty * 60 : 0;
-			//bat_msg.average_time_to_empty = (battery_status.connected) ? battery_status.average_time_to_empty * 60 : 0;
-
-			for (unsigned int i = 0; i < (sizeof(bat_msg.voltages) / sizeof(bat_msg.voltages[0])); i++) {
-				if ((int)i < battery_status.cell_count && battery_status.connected) {
-					bat_msg.voltages[i] = (battery_status.voltage_v / battery_status.cell_count) * 1000.0f;
-
-				} else {
-					bat_msg.voltages[i] = UINT16_MAX;
-				}
-			}
-
-			mavlink_msg_battery_status_send_struct(_mavlink->get_channel(), &bat_msg);
-
 			return true;
 		}
 
@@ -636,6 +608,101 @@ protected:
 	}
 };
 
+class MavlinkStreamBatteryStatus : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamBatteryStatus::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "BATTERY_STATUS";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_BATTERY_STATUS;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamBatteryStatus(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_BATTERY_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_battery_status_sub[BOARD_NUMBER_BRICKS] {};
+
+	uint64_t _battery_status_timestamp[BOARD_NUMBER_BRICKS] {};
+
+	/* do not allow top copying this class */
+	MavlinkStreamBatteryStatus(MavlinkStreamSysStatus &) = delete;
+	MavlinkStreamBatteryStatus &operator = (const MavlinkStreamSysStatus &) = delete;
+
+protected:
+	explicit MavlinkStreamBatteryStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
+			_battery_status_sub[i] = _mavlink->add_orb_subscription(ORB_ID(battery_status), i);
+		}
+	}
+
+	bool send(const hrt_abstime t)
+	{
+		bool updated = false;
+
+		for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
+			if (_battery_status_sub[i]) {
+				battery_status_s battery_status{};
+
+				if (_battery_status_sub[i]->update(&_battery_status_timestamp[i], &battery_status)) {
+					/* battery status message with higher resolution */
+					mavlink_battery_status_t bat_msg{};
+					bat_msg.id = i;
+					bat_msg.battery_function = MAV_BATTERY_FUNCTION_ALL;
+					bat_msg.type = MAV_BATTERY_TYPE_LIPO;
+					bat_msg.current_consumed = (battery_status.connected) ? battery_status.discharged_mah : -1;
+					bat_msg.energy_consumed = -1;
+					bat_msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100 : -1;
+					bat_msg.battery_remaining = (battery_status.connected) ? ceilf(battery_status.remaining * 100.0f) : -1;
+					bat_msg.temperature = (battery_status.connected) ? (int16_t)battery_status.temperature : INT16_MAX;
+					//bat_msg.average_current_battery = (battery_status.connected) ? battery_status.average_current_a * 100.0f : -1;
+					//bat_msg.serial_number = (battery_status.connected) ? battery_status.serial_number : 0;
+					//bat_msg.capacity = (battery_status.connected) ? battery_status.capacity : 0;
+					//bat_msg.cycle_count = (battery_status.connected) ? battery_status.cycle_count : UINT16_MAX;
+					//bat_msg.run_time_to_empty = (battery_status.connected) ? battery_status.run_time_to_empty * 60 : 0;
+					//bat_msg.average_time_to_empty = (battery_status.connected) ? battery_status.average_time_to_empty * 60 : 0;
+
+					for (unsigned cell = 0; cell < (sizeof(bat_msg.voltages) / sizeof(bat_msg.voltages[0])); cell++) {
+						if ((int32_t)cell < battery_status.cell_count && battery_status.connected) {
+							bat_msg.voltages[cell] = (battery_status.voltage_v / battery_status.cell_count) * 1000.0f;
+
+						} else {
+							bat_msg.voltages[cell] = UINT16_MAX;
+						}
+					}
+
+					mavlink_msg_battery_status_send_struct(_mavlink->get_channel(), &bat_msg);
+
+					updated = true;
+				}
+			}
+		}
+
+		return updated;
+	}
+};
 
 class MavlinkStreamHighresIMU : public MavlinkStream
 {
