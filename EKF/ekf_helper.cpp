@@ -987,6 +987,25 @@ void Ekf::get_imu_vibe_metrics(float vibe[3])
 	memcpy(vibe, _vibe_metrics, 3 * sizeof(float));
 }
 
+/*
+	First argument returns GPS drift  metrics in the following array locations
+	0 : Horizontal position drift rate (m/s)
+	1 : Vertical position drift rate (m/s)
+	2 : Filtered horizontal velocity (m/s)
+	Second argument returns true when IMU movement is blocking the drift calculation
+	Function returns true if the metrics have been updated and not returned previously by this function
+*/
+bool Ekf::get_gps_drift_metrics(float drift[3], bool *blocked)
+{
+	memcpy(drift, _gps_drift_metrics, 3 * sizeof(float));
+	*blocked = !_vehicle_at_rest;
+	if (_gps_drift_updated) {
+		_gps_drift_updated = false;
+		return true;
+	}
+	return false;
+}
+
 // get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
 void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv)
 {

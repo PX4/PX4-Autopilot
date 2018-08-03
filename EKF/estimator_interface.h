@@ -140,6 +140,16 @@ public:
 	*/
 	virtual void get_imu_vibe_metrics(float vibe[3]) = 0;
 
+	/*
+	First argument returns GPS drift  metrics in the following array locations
+	0 : Horizontal position drift rate (m/s)
+	1 : Vertical position drift rate (m/s)
+	2 : Filtered horizontal velocity (m/s)
+	Second argument returns true when IMU movement is blocking the drift calculation
+	Function returns true if the metrics have been updated and not returned previously by this function
+	*/
+	virtual bool get_gps_drift_metrics(float drift[3], bool *blocked) = 0;
+
 	// get the ekf WGS-84 origin position and height and the system time it was last set
 	// return true if the origin is valid
 	virtual bool get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt) = 0;
@@ -480,8 +490,13 @@ protected:
 					// [0] Level of coning vibration in the IMU delta angles (rad^2)
 					// [1] high frequency vibraton level in the IMU delta angle data (rad)
 					// [2] high frequency vibration level in the IMU delta velocity data (m/s)
+	float _gps_drift_metrics[3] {};	// Array containing GPS drift metrics
+					// [0] Horizontal position drift rate (m/s)
+					// [1] Vertical position drift rate (m/s)
+					// [2] Filtered horizontal velocity (m/s)
 	bool _vehicle_at_rest{false};	// true when the vehicle is at rest
 	uint64_t _time_last_move_detect_us{0};	// timestamp of last movement detection event in microseconds
+	bool _gps_drift_updated{false};	// true when _gps_drift_metrics has been updated and is ready for retrieval
 
 	// data buffer instances
 	RingBuffer<imuSample> _imu_buffer;
