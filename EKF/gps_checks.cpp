@@ -163,8 +163,8 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 		_gpsDriftVelE = velE * filter_coef + _gpsDriftVelE * (1.0f - filter_coef);
 
 		// Calculate the horizontal drift speed and fail if too high
-		float drift_speed = sqrtf(_gpsDriftVelN * _gpsDriftVelN + _gpsDriftVelE * _gpsDriftVelE);
-		_gps_check_fail_status.flags.hdrift = (drift_speed > _params.req_hdrift);
+		_gps_drift_metrics[0] = sqrtf(_gpsDriftVelN * _gpsDriftVelN + _gpsDriftVelE * _gpsDriftVelE);
+		_gps_check_fail_status.flags.hdrift = (_gps_drift_metrics[0] > _params.req_hdrift);
 
 		// Calculate the vertical drift velocity and limit to 10x the threshold
 		float vz_drift_limit = 10.0f * _params.req_vdrift;
@@ -175,7 +175,8 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 		_gps_drift_velD = velD * filter_coef + _gps_drift_velD * (1.0f - filter_coef);
 
 		// Fail if the vertical drift speed is too high
-		_gps_check_fail_status.flags.vdrift = (fabsf(_gps_drift_velD) > _params.req_vdrift);
+		_gps_drift_metrics[1] = fabsf(_gps_drift_velD);
+		_gps_check_fail_status.flags.vdrift = (_gps_drift_metrics[1] > _params.req_vdrift);
 
 		// Check the magnitude of the filtered horizontal GPS velocity
 		float vxy_drift_limit = 10.0f * _params.req_hdrift;
@@ -183,8 +184,10 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 		float gps_velE = fminf(fmaxf(gps->vel_ned[1], -vxy_drift_limit), vxy_drift_limit);
 		_gps_velN_filt = gps_velN * filter_coef + _gps_velN_filt * (1.0f - filter_coef);
 		_gps_velE_filt  = gps_velE * filter_coef + _gps_velE_filt  * (1.0f - filter_coef);
-		float horiz_speed = sqrtf(_gps_velN_filt * _gps_velN_filt + _gps_velE_filt * _gps_velE_filt);
-		_gps_check_fail_status.flags.hspeed = (horiz_speed > _params.req_hdrift);
+		_gps_drift_metrics[2] = sqrtf(_gps_velN_filt * _gps_velN_filt + _gps_velE_filt * _gps_velE_filt);
+		_gps_check_fail_status.flags.hspeed = (_gps_drift_metrics[2] > _params.req_hdrift);
+
+		_gps_drift_updated = true;
 
 	} else if (_control_status.flags.in_air) {
 		// These checks are always declared as passed when flying
@@ -192,6 +195,11 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 		_gps_check_fail_status.flags.hdrift = false;
 		_gps_check_fail_status.flags.vdrift = false;
 		_gps_check_fail_status.flags.hspeed = false;
+		_gps_drift_updated = false;
+
+	} else {
+		// This is the case where the vehicle is on ground and IMU movement is blocking the drift calculation
+		_gps_drift_updated = true;
 
 	}
 
