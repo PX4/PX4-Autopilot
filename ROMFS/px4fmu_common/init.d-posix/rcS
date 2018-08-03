@@ -94,18 +94,14 @@ then
 	param set BAT_N_CELLS 3
 
 	param set CAL_ACC0_ID 1376264
-	param set CAL_ACC0_XOFF 0.01
-	param set CAL_ACC0_XSCALE 1.01
-	param set CAL_ACC0_YOFF -0.01
-	param set CAL_ACC0_YSCALE 1.01
-	param set CAL_ACC0_ZOFF 0.01
-	param set CAL_ACC0_ZSCALE 1.01
 	param set CAL_ACC1_ID 1310728
-	param set CAL_ACC1_XOFF 0.01
+	param set CAL_ACC_PRIME 1376264
+
 	param set CAL_GYRO0_ID 2293768
-	param set CAL_GYRO0_XOFF 0.01
+	param set CAL_GYRO_PRIME 2293768
+
 	param set CAL_MAG0_ID 196616
-	param set CAL_MAG0_XOFF 0.01
+	param set CAL_MAG_PRIME 196616
 
 	param set CBRK_AIRSPD_CHK 0
 
