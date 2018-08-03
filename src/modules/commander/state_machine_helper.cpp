@@ -92,8 +92,8 @@ void set_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
 
 void reset_link_loss_globals(actuator_armed_s *armed, const bool old_failsafe, const link_loss_actions_t link_loss_act);
 
-transition_result_t arming_state_transition(vehicle_status_s *status, const battery_status_s &battery,
-		const safety_s &safety, const arming_state_t new_arming_state, actuator_armed_s *armed, const bool fRunPreArmChecks,
+transition_result_t arming_state_transition(vehicle_status_s *status, const safety_s &safety,
+		const arming_state_t new_arming_state, actuator_armed_s *armed, const bool fRunPreArmChecks,
 		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s *status_flags, const uint8_t arm_requirements,
 		const hrt_abstime &time_since_boot)
 {
@@ -163,7 +163,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const batt
 
 					if (preflight_check_ret) {
 						// only bother running prearm if preflight was successful
-						prearm_check_ret = prearm_check(mavlink_log_pub, *status_flags, battery, safety, arm_requirements, time_since_boot);
+						prearm_check_ret = prearm_check(mavlink_log_pub, *status_flags, safety, arm_requirements);
 					}
 
 					if (!(preflight_check_ret && prearm_check_ret)) {
@@ -917,9 +917,8 @@ void reset_link_loss_globals(actuator_armed_s *armed, const bool old_failsafe, c
 	}
 }
 
-bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
-		  const battery_status_s &battery, const safety_s &safety, const uint8_t arm_requirements,
-		  const hrt_abstime &time_since_boot)
+bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags, const safety_s &safety,
+		  const uint8_t arm_requirements)
 {
 	bool reportFailures = true;
 	bool prearm_ok = true;
@@ -946,9 +945,9 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 		}
 
 		// main battery level
-		if (battery.warning >= battery_status_s::BATTERY_WARNING_LOW) {
+		if (!status_flags.condition_battery_healthy) {
 			if (prearm_ok && reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: LOW BATTERY");
+				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: CHECK BATTERY");
 			}
 
 			prearm_ok = false;
@@ -1007,4 +1006,89 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 	}
 
 	return prearm_ok;
+}
+
+
+void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
+		      const vehicle_status_flags_s &status_flags, commander_state_s *internal_state, const uint8_t battery_warning,
+		      const low_battery_action_t low_battery_action)
+{
+	switch (battery_warning) {
+	case battery_status_s::BATTERY_WARNING_NONE:
+		break;
+
+	case battery_status_s::BATTERY_WARNING_LOW:
+		mavlink_log_critical(mavlink_log_pub, "LOW BATTERY, RETURN ADVISED");
+		break;
+
+	case battery_status_s::BATTERY_WARNING_CRITICAL:
+
+		switch (low_battery_action) {
+		case LOW_BAT_ACTION::WARNING:
+			mavlink_log_critical(mavlink_log_pub, "CRITICAL BATTERY, RETURN ADVISED!");
+			break;
+
+		case LOW_BAT_ACTION::RETURN:
+			// FALLTHROUGH
+		case LOW_BAT_ACTION::RETURN_OR_LAND:
+
+			// let us send the critical message even if already in RTL
+			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, internal_state)) {
+				mavlink_log_critical(mavlink_log_pub, "CRITICAL BATTERY, RETURNING");
+
+			} else {
+				mavlink_log_emergency(mavlink_log_pub, "CRITICAL BATTERY, RETURN FAILED");
+			}
+
+			break;
+
+		case LOW_BAT_ACTION::LAND:
+			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, internal_state)) {
+				mavlink_log_critical(mavlink_log_pub, "CRITICAL BATTERY, LANDING AT CURRENT POSITION");
+
+			} else {
+				mavlink_log_emergency(mavlink_log_pub, "CRITICAL BATTERY, LANDING FAILED");
+			}
+
+			break;
+		}
+
+		break;
+
+	case battery_status_s::BATTERY_WARNING_EMERGENCY:
+
+		switch (low_battery_action) {
+		case LOW_BAT_ACTION::WARNING:
+			mavlink_log_emergency(mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING ADVISED!");
+			break;
+
+		case LOW_BAT_ACTION::RETURN:
+			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, internal_state)) {
+				mavlink_log_emergency(mavlink_log_pub, "DANGEROUS BATTERY LEVEL, RETURNING");
+
+			} else {
+				mavlink_log_emergency(mavlink_log_pub, "DANGEROUS BATTERY LEVEL, RETURN FAILED");
+			}
+
+			break;
+
+		case LOW_BAT_ACTION::RETURN_OR_LAND:
+			// FALLTHROUGH
+		case LOW_BAT_ACTION::LAND:
+			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, internal_state)) {
+				mavlink_log_emergency(mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING IMMEDIATELY");
+
+			} else {
+				mavlink_log_emergency(mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING FAILED");
+			}
+
+			break;
+		}
+
+		break;
+
+	case battery_status_s::BATTERY_WARNING_FAILED:
+		mavlink_log_emergency(mavlink_log_pub, "BATTERY FAILED");
+		break;
+	}
 }
