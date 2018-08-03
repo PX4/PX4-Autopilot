@@ -272,10 +272,6 @@ else
 	if ver hwcmp NXPHLITE_V3
 	then
 		param set SYS_FMU_TASK 1
-		# Let the mavlink compaion logic fail to start
-		set MAVLINK_COMPANION_DEVICE  none
-		# Telem 1 is P10
-		set MAVLINK_F "-r 1200 -f -d  /dev/ttyS4"
 	fi
 
 	###############################################################################
