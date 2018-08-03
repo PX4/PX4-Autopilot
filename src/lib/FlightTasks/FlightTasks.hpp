@@ -41,8 +41,8 @@
 
 #pragma once
 
-#include "tasks/FlightTask.hpp"
-#include "tasks/SubscriptionArray.hpp"
+#include "FlightTask.hpp"
+#include "SubscriptionArray.hpp"
 #include "FlightTasks_generated.hpp"
 
 #include <new>
