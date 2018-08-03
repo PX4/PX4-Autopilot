@@ -968,7 +968,7 @@ GYROSIM::_measure()
 	arb.z_integral = aval_integrated(2);
 
 	/* fake device ID */
-	arb.device_id = 6789478;
+	arb.device_id = 1376264;
 
 	grb.x_raw = (int16_t)(mpu_report.gyro_x / _gyro_range_scale);
 	grb.y_raw = (int16_t)(mpu_report.gyro_y / _gyro_range_scale);
@@ -991,11 +991,10 @@ GYROSIM::_measure()
 	grb.z_integral = gval_integrated(2);
 
 	/* fake device ID */
-	grb.device_id = 3467548;
+	grb.device_id = 2293768;
 
 	_accel_reports->force(&arb);
 	_gyro_reports->force(&grb);
-
 
 	if (accel_notify) {
 		if (!(_pub_blocked)) {
