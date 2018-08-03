@@ -36,4 +36,4 @@ px4_add_library(FlightTaskManual
 )
 
 target_link_libraries(FlightTaskManual PUBLIC FlightTask)
-target_include_directories(FlightTaskManual PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ../)
+target_include_directories(FlightTaskManual PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
