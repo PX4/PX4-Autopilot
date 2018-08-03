@@ -104,7 +104,10 @@ private:
 
 		(ParamInt<px4::params::COM_POS_FS_DELAY>) _failsafe_pos_delay,
 		(ParamInt<px4::params::COM_POS_FS_PROB>) _failsafe_pos_probation,
-		(ParamInt<px4::params::COM_POS_FS_GAIN>) _failsafe_pos_gain
+		(ParamInt<px4::params::COM_POS_FS_GAIN>) _failsafe_pos_gain,
+
+		(ParamInt<px4::params::COM_LOW_BAT_ACT>) _low_bat_action
+
 	)
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
@@ -172,6 +175,12 @@ private:
 	} _telemetry[ORB_MULTI_MAX_INSTANCES];
 
 	void estimator_check(bool *status_changed);
+
+	int _battery_sub{-1};
+	uint8_t _battery_warning{battery_status_s::BATTERY_WARNING_NONE};
+	float _battery_current{0.0f};
+
+	void battery_status_check();
 
 	// Subscriptions
 	Subscription<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};

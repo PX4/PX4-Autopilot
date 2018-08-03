@@ -41,9 +41,6 @@
  * @author Julian Oes <julian@px4.io>
  */
 
-#include <px4_config.h>
-#include <parameters/param.h>
-
 /**
  * Roll trim
  *
