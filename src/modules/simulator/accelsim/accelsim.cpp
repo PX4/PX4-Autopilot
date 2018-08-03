@@ -837,6 +837,8 @@ ACCELSIM::_measure()
 
 	accel_report.timestamp = hrt_absolute_time();
 
+	accel_report.device_id = 1310728;
+
 	// use the temperature from the last mag reading
 	accel_report.temperature = _last_temperature;
 
@@ -919,6 +921,7 @@ ACCELSIM::mag_measure()
 
 
 	mag_report.timestamp = hrt_absolute_time();
+	mag_report.device_id = 196616;
 	mag_report.is_external = false;
 
 	mag_report.x_raw = (int16_t)(raw_mag_report.x / _mag_range_scale);
