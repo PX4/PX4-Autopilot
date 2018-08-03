@@ -51,36 +51,30 @@ set(files_to_generate
 )
 
 # generate files needed for Flight Tasks
-if(${flight_tasks_additional}) # TODO look for nicer solution
-	add_custom_command(
-		OUTPUT
-			${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.hpp
-			${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.cpp
-		COMMAND ${PYTHON_EXECUTABLE} generate_flight_tasks.py
-			-t ${flight_tasks_all}
-			-s ${flight_tasks_additional}
-			-i ${CMAKE_CURRENT_SOURCE_DIR}/Templates
-			-o ${CMAKE_CURRENT_BINARY_DIR}
-			-f ${files_to_generate}
-		COMMENT "Generating Flight Tasks"
-		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-		VERBATIM
-	)
-else()
-	add_custom_command(
-		OUTPUT
-			${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.hpp
-			${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.cpp
-		COMMAND ${PYTHON_EXECUTABLE} generate_flight_tasks.py
-			-t ${flight_tasks_all}
-			-i ${CMAKE_CURRENT_SOURCE_DIR}/Templates
-			-o ${CMAKE_CURRENT_BINARY_DIR}
-			-f ${files_to_generate}
-		COMMENT "Generating Flight Tasks"
-		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-		VERBATIM
+set(python_args
+	-t ${flight_tasks_all}
+	-i ${CMAKE_CURRENT_SOURCE_DIR}/Templates
+	-o ${CMAKE_CURRENT_BINARY_DIR}
+	-f ${files_to_generate}
+)
+
+if(${flight_tasks_additional})
+	list(APPEND python_args
+		-s ${flight_tasks_additional}
 	)
 endif()
+
+add_custom_command(
+	OUTPUT
+		${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.hpp
+		${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.cpp
+	COMMAND ${PYTHON_EXECUTABLE} generate_flight_tasks.py
+		${python_args}
+	COMMENT "Generating Flight Tasks"
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	VERBATIM
+)
+
 
 # add the Flight Tasks library
 px4_add_library(FlightTasks
