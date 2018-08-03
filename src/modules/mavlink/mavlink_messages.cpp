@@ -544,8 +544,6 @@ private:
 	MavlinkOrbSubscription *_battery_status_sub;
 
 	uint64_t _status_timestamp{0};
-	uint64_t _cpuload_timestamp{0};
-	uint64_t _battery_status_timestamp{0};
 
 	/* do not allow top copying this class */
 	MavlinkStreamSysStatus(MavlinkStreamSysStatus &) = delete;
@@ -560,15 +558,22 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		vehicle_status_s status = {};
-		cpuload_s cpuload = {};
-		battery_status_s battery_status = {};
-
+		vehicle_status_s status{};
 		const bool updated_status = _status_sub->update(&_status_timestamp, &status);
-		const bool updated_cpuload = _cpuload_sub->update(&_cpuload_timestamp, &cpuload);
-		const bool updated_battery = _battery_status_sub->update(&_battery_status_timestamp, &battery_status);
 
-		if (updated_status || updated_battery || updated_cpuload) {
+		if (updated_status) {
+
+			// grab latest battery_status that's no more than 10 seconds older than vehicle_status
+			uint64_t battery_oldest = _status_timestamp - 10_s;
+			battery_status_s battery_status{};
+			_battery_status_sub->update(&battery_oldest, &battery_status);
+
+			// grab latest cpuload that's no more than 10 seconds older than vehicle_status
+			uint64_t cpuload_oldest = _status_timestamp - 10_s;
+			cpuload_s cpuload{};
+			_cpuload_sub->update(&cpuload_oldest, &cpuload);
+
+			// fill Mavlink SYS_STATUS message
 			mavlink_sys_status_t msg = {};
 
 			msg.onboard_control_sensors_present = status.onboard_control_sensors_present;
@@ -578,15 +583,69 @@ protected:
 			msg.voltage_battery = (battery_status.connected) ? battery_status.voltage_filtered_v * 1000.0f : UINT16_MAX;
 			msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100.0f : -1;
 			msg.battery_remaining = (battery_status.connected) ? ceilf(battery_status.remaining * 100.0f) : -1;
-			// TODO: fill in something useful in the fields below
-			msg.drop_rate_comm = 0;
-			msg.errors_comm = 0;
-			msg.errors_count1 = 0;
-			msg.errors_count2 = 0;
-			msg.errors_count3 = 0;
-			msg.errors_count4 = 0;
 
 			mavlink_msg_sys_status_send_struct(_mavlink->get_channel(), &msg);
+
+			return true;
+		}
+
+		return false;
+	}
+};
+
+class MavlinkStreamBatteryStatus : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamBatteryStatus::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "BATTERY_STATUS";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_BATTERY_STATUS;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamBatteryStatus(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_BATTERY_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_battery_status_sub;
+
+	uint64_t _battery_status_timestamp{0};
+
+	/* do not allow top copying this class */
+	MavlinkStreamBatteryStatus(MavlinkStreamSysStatus &) = delete;
+	MavlinkStreamBatteryStatus &operator = (const MavlinkStreamSysStatus &) = delete;
+
+protected:
+	explicit MavlinkStreamBatteryStatus(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_battery_status_sub(_mavlink->add_orb_subscription(ORB_ID(battery_status)))
+	{}
+
+	bool send(const hrt_abstime t)
+	{
+		battery_status_s battery_status{};
+		const bool updated_battery = _battery_status_sub->update(&_battery_status_timestamp, &battery_status);
+
+		if (updated_battery) {
 
 			/* battery status message with higher resolution */
 			mavlink_battery_status_t bat_msg = {};
@@ -622,7 +681,6 @@ protected:
 		return false;
 	}
 };
-
 
 class MavlinkStreamHighresIMU : public MavlinkStream
 {
@@ -4826,6 +4884,7 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static, &MavlinkStreamStatustext::get_id_static),
 	StreamListItem(&MavlinkStreamCommandLong::new_instance, &MavlinkStreamCommandLong::get_name_static, &MavlinkStreamCommandLong::get_id_static),
 	StreamListItem(&MavlinkStreamSysStatus::new_instance, &MavlinkStreamSysStatus::get_name_static, &MavlinkStreamSysStatus::get_id_static),
+	StreamListItem(&MavlinkStreamBatteryStatus::new_instance, &MavlinkStreamBatteryStatus::get_name_static, &MavlinkStreamBatteryStatus::get_id_static),
 	StreamListItem(&MavlinkStreamHighresIMU::new_instance, &MavlinkStreamHighresIMU::get_name_static, &MavlinkStreamHighresIMU::get_id_static),
 	StreamListItem(&MavlinkStreamScaledIMU::new_instance, &MavlinkStreamScaledIMU::get_name_static, &MavlinkStreamScaledIMU::get_id_static),
 	StreamListItem(&MavlinkStreamScaledIMU2::new_instance, &MavlinkStreamScaledIMU2::get_name_static, &MavlinkStreamScaledIMU2::get_id_static),
