@@ -106,7 +106,6 @@
 #include <uORB/uORB.h>
 
 using matrix::wrap_2pi;
-using namespace time_literals;
 
 static uint16_t cm_uint16_from_m_float(float m);
 
@@ -535,6 +534,8 @@ private:
 	MavlinkOrbSubscription *_battery_status_sub;
 
 	uint64_t _status_timestamp{0};
+	uint64_t _cpuload_timestamp{0};
+	uint64_t _battery_status_timestamp{0};
 
 	/* do not allow top copying this class */
 	MavlinkStreamSysStatus(MavlinkStreamSysStatus &) = delete;
@@ -549,20 +550,21 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		vehicle_status_s status;
-		const bool updated_status = _status_sub->update(&_status_timestamp, &status);
+		const bool updated_status = _status_sub->updated(_status_timestamp);
+		const bool updated_cpuload = _cpuload_sub->updated(_cpuload_timestamp);
+		const bool updated_battery = _battery_status_sub->updated(_battery_status_timestamp);
 
-		if (updated_status) {
+		if (updated_status || updated_battery || updated_cpuload) {
+			// if any are updated, then grab all
 
-			// grab latest cpuload and battery_status that's no more than 1 second older than vehicle_status
-
-			battery_status_s battery_status = {};
-			uint64_t battery_oldest = _status_timestamp - 1_s;
-			_battery_status_sub->update(&battery_oldest, &battery_status);
+			vehicle_status_s status = {};
+			_status_sub->update(&status);
 
 			cpuload_s cpuload = {};
-			uint64_t cpuload_oldest = _status_timestamp - 1_s;
-			_cpuload_sub->update(&cpuload_oldest, &cpuload);
+			_cpuload_sub->update(&cpuload);
+
+			battery_status_s battery_status = {};
+			_battery_status_sub->update(&battery_status);
 
 			mavlink_sys_status_t msg = {};
 

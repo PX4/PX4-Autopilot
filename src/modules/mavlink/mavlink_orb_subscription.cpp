@@ -75,26 +75,37 @@ MavlinkOrbSubscription::get_instance() const
 }
 
 bool
+MavlinkOrbSubscription::updated(const uint64_t &time)
+{
+	if (!is_published()) {
+		return false;
+	}
+
+	uint64_t time_topic = 0;
+
+	if (orb_stat(_fd, &time_topic) != PX4_OK) {
+		/* error getting last topic publication time */
+		return false;
+	}
+
+	if (time_topic > time) {
+		return true;
+	}
+
+	return false;
+}
+
+bool
 MavlinkOrbSubscription::update(uint64_t *time, void *data)
 {
 	// TODO this is NOT atomic operation, we can get data newer than time
 	// if topic was published between orb_stat and orb_copy calls.
 
-	if (!is_published()) {
-		return false;
-	}
-
-	uint64_t time_topic;
-
-	if (orb_stat(_fd, &time_topic)) {
-		/* error getting last topic publication time */
-		time_topic = 0;
-	}
-
-	if (time_topic == 0 || (time_topic != *time)) {
+	if (updated(*time)) {
 		if (orb_copy(_topic, _fd, data) == PX4_OK) {
 			/* data copied successfully */
-			*time = time_topic;
+			orb_stat(_fd, time);
+
 			return true;
 		}
 	}

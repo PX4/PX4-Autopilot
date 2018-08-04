@@ -56,11 +56,17 @@ public:
 	/**
 	 * Check if subscription updated based on timestamp.
 	 *
+	 * @return true only if topic was updated based on a timestamp
+	 */
+	bool updated(const uint64_t &time);
+
+	/**
+	 * Check if subscription updated based on timestamp.
+	 *
 	 * @return true only if topic was updated based on a timestamp and
 	 * copied to buffer successfully.
 	 * If topic was not updated since last check it will return false but
 	 * still copy the data.
-	 * If no data available data buffer will be filled with zeros.
 	 */
 	bool update(uint64_t *time, void *data);
 
