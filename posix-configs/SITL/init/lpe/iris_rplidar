@@ -1,3 +1,8 @@
+#!/usr/bin/bash
+# PX4 commands need the 'px4-' prefix in bash.
+# (px4-alias.sh is expected to be in the PATH)
+source px4-alias.sh
+
 uorb start
 param load
 param set MAV_TYPE 2
@@ -37,7 +42,6 @@ param set MC_PITCHRATE_P 0.2
 param set MC_PITCH_P 6
 param set MC_ROLL_P 6
 param set MPC_HOLD_MAX_Z 2.0
-param set MPC_HOLD_XY_DZ 0.1
 param set MPC_Z_VEL_P 0.6
 param set MPC_Z_VEL_I 0.15
 param set LPE_FUSION 242
@@ -61,7 +65,7 @@ attitude_estimator_q start
 local_position_estimator start
 mc_pos_control start
 mc_att_control start
-mixer load /dev/pwm_output0 ROMFS/px4fmu_common/mixers/quad_w.main.mix
+mixer load /dev/pwm_output0 etc/mixers/quad_w.main.mix
 mavlink start -x -u 14556 -r 4000000
 mavlink start -x -u 14557 -r 4000000 -m onboard -o 14540
 mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u 14556

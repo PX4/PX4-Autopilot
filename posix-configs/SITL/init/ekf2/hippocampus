@@ -1,3 +1,8 @@
+#!/usr/bin/bash
+# PX4 commands need the 'px4-' prefix in bash.
+# (px4-alias.sh is expected to be in the PATH)
+source px4-alias.sh
+
 uorb start
 param load
 param set CAL_GYRO0_ID 2293768
@@ -14,7 +19,7 @@ dataman start
 simulator start -s
 
 pwm_out_sim start
-mixer load /dev/pwm_output0 ROMFS/px4fmu_test/mixers/uuv_quad_x.mix
+mixer load /dev/pwm_output0 etc/mixers/uuv_quad_x.mix
 
 gyrosim start
 accelsim start

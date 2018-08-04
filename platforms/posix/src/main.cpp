@@ -52,14 +52,17 @@
  */
 
 #include <string>
+#include <algorithm>
 #include <fstream>
 #include <signal.h>
 #include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <stdlib.h>
 
 #include <px4_log.h>
+#include <px4_getopt.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
 #include <px4_log.h>
@@ -96,12 +99,14 @@ static void register_sig_handler();
 static void set_cpu_scaling();
 static int create_symlinks_if_needed(std::string &data_path);
 static int create_dirs();
-static int run_startup_bash_script(const char *commands_file);
+static int run_startup_bash_script(const std::string &commands_file, const std::string &absolute_binary_path);
+static std::string get_absolute_binary_path(const std::string &argv0);
 static void wait_to_exit();
 static bool is_already_running();
 static void print_usage();
 static bool dir_exists(const std::string &path);
 static bool file_exists(const std::string &name);
+static std::string file_basename(std::string const &pathname);
 static std::string pwd();
 
 
@@ -120,16 +125,20 @@ int main(int argc, char **argv)
 	const char prefix[] = PX4_BASH_PREFIX;
 	int path_length = 0;
 
+	std::string absolute_binary_path; // full path to the px4 binary being executed
 
 	if (argc > 0) {
 		/* The executed binary name could start with a path, so strip it away */
 		const std::string full_binary_name = argv[0];
 		const std::string binary_name = file_basename(full_binary_name);
+
 		if (binary_name.compare(0, strlen(prefix), prefix) == 0) {
 			is_client = true;
 		}
+
 		path_length = full_binary_name.length() - binary_name.length();
 
+		absolute_binary_path = get_absolute_binary_path(full_binary_name);
 	}
 
 	if (is_client) {
@@ -155,56 +164,54 @@ int main(int argc, char **argv)
 
 		/* Server/daemon apps need to parse the command line arguments. */
 
-		int positional_arg_count = 0;
 		std::string data_path = "";
-		std::string commands_file = "";
-		std::string node_name = "";
+		std::string commands_file = "etc/init.d/rcS";
+		std::string test_data_path = "";
 
-		// parse arguments
-		for (int i = 1; i < argc; ++i) {
-			if (argv[i][0] == '-') {
+		int myoptind = 1;
+		int ch;
+		const char *myoptarg = nullptr;
 
-				if (strcmp(argv[i], "-h") == 0) {
-					print_usage();
-					return 0;
+		while ((ch = px4_getopt(argc, argv, "hdt:s:", &myoptind, &myoptarg)) != EOF) {
+			switch (ch) {
+			case 'h':
+				print_usage();
+				return 0;
 
-				} else if (strcmp(argv[i], "-d") == 0) {
-					pxh_off = true;
+			case 'd':
+				pxh_off = true;
+				break;
 
-				} else {
-					printf("Unknown/unhandled parameter: %s\n", argv[i]);
-					print_usage();
-					return 1;
-				}
+			case 't':
+				test_data_path = myoptarg;
+				break;
 
-			} else if (!strncmp(argv[i], "__", 2)) {
+			case 's':
+				commands_file = myoptarg;
+				break;
 
-				// FIXME: what is this?
-				// ros arguments
-				if (!strncmp(argv[i], "__name:=", 8)) {
-					std::string name_arg = argv[i];
-					node_name = name_arg.substr(8);
-					PX4_INFO("node name: %s", node_name.c_str());
-				}
-
-			} else {
-				//printf("positional argument\n");
-
-				positional_arg_count += 1;
-
-				if (positional_arg_count == 1) {
-					commands_file = argv[i];
-
-				} else if (positional_arg_count == 2) {
-					data_path = commands_file;
-					commands_file = argv[i];
-				}
-			}
-
-			if (positional_arg_count != 2 && positional_arg_count != 1) {
-				PX4_ERR("Error expected 1 or 2 position arguments, got %d", positional_arg_count);
+			default:
+				PX4_ERR("unrecognized flag");
 				print_usage();
 				return -1;
+			}
+		}
+
+		if (myoptind < argc) {
+			data_path = argv[myoptind];
+		}
+
+		int ret = create_symlinks_if_needed(data_path);
+
+		if (ret != PX4_OK) {
+			return ret;
+		}
+
+		if (test_data_path != "") {
+			const std::string required_test_data_path = "./test_data";
+
+			if (!dir_exists(required_test_data_path.c_str())) {
+				symlink(test_data_path.c_str(), required_test_data_path.c_str());
 			}
 		}
 
@@ -213,19 +220,11 @@ int main(int argc, char **argv)
 			return -1;
 		}
 
-		PX4_INFO("startup file: %s", commands_file.c_str());
-
 		register_sig_handler();
 		set_cpu_scaling();
 
 		px4_daemon::Server server;
 		server.start();
-
-		int ret = create_symlinks_if_needed(data_path);
-
-		if (ret != PX4_OK) {
-			return ret;
-		}
 
 		ret = create_dirs();
 
@@ -238,7 +237,7 @@ int main(int argc, char **argv)
 		px4::init_once();
 		px4::init(argc, argv, "px4");
 
-		ret = run_startup_bash_script(commands_file.c_str());
+		ret = run_startup_bash_script(commands_file, absolute_binary_path);
 
 		// We now block here until we need to exit.
 		if (pxh_off) {
@@ -283,33 +282,28 @@ int create_symlinks_if_needed(std::string &data_path)
 		return PX4_OK;
 	}
 
-	std::vector<std::string> path_sym_links;
-	path_sym_links.push_back("etc");
-	path_sym_links.push_back("test_data");
+	const std::string path_sym_link = "etc";
 
-	for (const auto &it = path_sym_links.begin(); it != path_sym_links.end(); ++it) {
+	PX4_DEBUG("path sym link: %s", path_sym_link.c_str());
 
-		PX4_DEBUG("path sym link: %s", it->c_str());;
+	std::string src_path = data_path;
+	std::string dest_path = current_path + "/" + path_sym_link;
 
-		std::string src_path = data_path + "/" + *it;
-		std::string dest_path = current_path + "/" + *it;
+	if (dir_exists(dest_path.c_str())) {
+		return PX4_OK;
+	}
 
-		if (dir_exists(dest_path.c_str())) {
-			continue;
-		}
+	PX4_INFO("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
 
-		PX4_INFO("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
+	// create sym-link
+	int ret = symlink(src_path.c_str(), dest_path.c_str());
 
-		// create sym-links
-		int ret = symlink(src_path.c_str(), dest_path.c_str());
+	if (ret != 0) {
+		PX4_ERR("Error creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
+		return ret;
 
-		if (ret != 0) {
-			PX4_ERR("Error creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
-			return ret;
-
-		} else {
-			PX4_DEBUG("Successfully created symlink %s -> %s", src_path.c_str(), dest_path.c_str());
-		}
+	} else {
+		PX4_DEBUG("Successfully created symlink %s -> %s", src_path.c_str(), dest_path.c_str());
 	}
 
 	return PX4_OK;
@@ -416,13 +410,71 @@ void set_cpu_scaling()
 #endif
 }
 
-int run_startup_bash_script(const char *commands_file)
+std::string get_absolute_binary_path(const std::string &argv0)
+{
+	// On Linux we could also use readlink("/proc/self/exe", buf, bufsize) to get the absolute path
+
+	std::size_t last_slash = argv0.find_last_of("/");
+
+	if (last_slash == std::string::npos) {
+		// either relative path or in PATH (PATH is ignored here)
+		return pwd();
+	}
+
+	std::string base = argv0.substr(0, last_slash);
+
+	if (base.length() > 0 && base[0] == '/') {
+		// absolute path
+		return base;
+	}
+
+	// relative path
+	return pwd() + "/" + base;
+}
+
+int run_startup_bash_script(const std::string &commands_file, const std::string &absolute_binary_path)
 {
 	std::string bash_command("bash ");
 
 	bash_command += commands_file;
 
-	PX4_INFO("Calling bash script: %s", bash_command.c_str());
+	// Update the PATH variable to include the absolute_binary_path
+	// (required for the px4-alias.sh script and px4-* commands).
+	// They must be within the same directory as the px4 binary
+	const char *path_variable = "PATH";
+	std::string updated_path = absolute_binary_path;
+	const char *path = getenv(path_variable);
+
+	if (path) {
+		std::string spath = path;
+
+		// Check if absolute_binary_path already in PATH
+		bool already_in_path = false;
+		std::size_t current, previous = 0;
+		current = spath.find(':');
+
+		while (current != std::string::npos) {
+			if (spath.substr(previous, current - previous) == absolute_binary_path) {
+				already_in_path = true;
+			}
+
+			previous = current + 1;
+			current = spath.find(':', previous);
+		}
+
+		if (spath.substr(previous, current - previous) == absolute_binary_path) {
+			already_in_path = true;
+		}
+
+		if (!already_in_path) {
+			// Prepend to path to prioritize PX4 commands over potentially already installed PX4 commands.
+			updated_path = updated_path + ":" + path;
+			setenv(path_variable, updated_path.c_str(), 1);
+		}
+	}
+
+
+	PX4_INFO("Calling startup script: %s", bash_command.c_str());
 
 	int ret = 0;
 
@@ -454,11 +506,11 @@ void print_usage()
 {
 	printf("Usage for Server/daemon process: \n");
 	printf("\n");
-	printf("    px4 [-h|-d] [rootfs_directory] startup_file\n");
+	printf("    px4 [-h|-d] [-s <startup_file>] [-d <test_data_directory>] [<rootfs_directory>]\n");
 	printf("\n");
+	printf("    <startup_file>     bash start script to be used as startup (default=etc/init.d/rcS)\n");
 	printf("    <rootfs_directory> directory where startup files and mixers are located,\n");
 	printf("                       (if not given, CWD is used)\n");
-	printf("    <startup_file>     bash start script to be used as startup\n");
 	printf("        -h             help/usage information\n");
 	printf("        -d             daemon mode, don't start pxh shell\n");
 	printf("\n");
@@ -503,6 +555,18 @@ bool file_exists(const std::string &name)
 {
 	struct stat buffer;
 	return (stat(name.c_str(), &buffer) == 0);
+}
+
+static std::string file_basename(std::string const &pathname)
+{
+	struct MatchPathSeparator {
+		bool operator()(char ch) const
+		{
+			return ch == '/';
+		}
+	};
+	return std::string(std::find_if(pathname.rbegin(), pathname.rend(),
+					MatchPathSeparator()).base(), pathname.end());
 }
 
 bool dir_exists(const std::string &path)

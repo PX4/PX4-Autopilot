@@ -3,7 +3,7 @@ file(MAKE_DIRECTORY ${SITL_WORKING_DIR})
 
 # add a symlink to the logs dir to make it easier to find them
 add_custom_command(OUTPUT ${PX4_BINARY_DIR}/logs
-		COMMAND ${CMAKE_COMMAND} -E create_symlink ${SITL_WORKING_DIR}/rootfs/fs/microsd/log logs
+		COMMAND ${CMAKE_COMMAND} -E create_symlink ${SITL_WORKING_DIR}/rootfs/log logs
 		WORKING_DIRECTORY ${PX4_BINARY_DIR})
 add_custom_target(logs_symlink DEPENDS ${PX4_BINARY_DIR}/logs)
 

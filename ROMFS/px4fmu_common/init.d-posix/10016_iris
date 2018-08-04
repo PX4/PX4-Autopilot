@@ -4,7 +4,7 @@
 #
 # @type Quadrotor Wide
 #
-# @maintainer Anton Babushkin <julian@oes.ch>
+# @maintainer Julian Oes <julian@oes.ch>
 #
 
 pwm_out_sim mode_pwm

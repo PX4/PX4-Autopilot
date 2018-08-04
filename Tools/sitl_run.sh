@@ -2,15 +2,13 @@
 
 set -e
 
-echo args: $@
-
-sitl_bin=$1
-rcS_path=$2
-debugger=$3
-program=$4
-model=$5
-src_path=$6
-build_path=$7
+sitl_bin="$1"
+rcS_path="$2"
+debugger="$3"
+program="$4"
+model="$5"
+src_path="$6"
+build_path="$7"
 
 echo SITL ARGS
 
@@ -22,17 +20,8 @@ echo model: $model
 echo src_path: $src_path
 echo build_path: $build_path
 
-working_dir=`pwd`
-rootfs=$build_path/tmp/rootfs
-
-if [ "$chroot" == "1" ]
-then
-	chroot_enabled=-c
-	sudo_enabled=sudo
-else
-	chroot_enabled=""
-	sudo_enabled=""
-fi
+rootfs="$build_path/tmp/rootfs" # this is the working directory
+mkdir -p "$rootfs"
 
 # To disable user input
 if [[ -n "$NO_PXH" ]]; then
@@ -52,7 +41,6 @@ if [ "$replay_mode" == "ekf2" ]
 then
 	model="iris_replay"
 	# create the publisher rules
-	mkdir -p $rootfs
 	publisher_rules_file="$rootfs/orb_publisher.rules"
 	cat <<EOF > "$publisher_rules_file"
 restrict_topics: sensor_combined, vehicle_gps_position, vehicle_land_detected
@@ -80,16 +68,16 @@ then
 	kill $jmavsim_pid
 fi
 
-cp $src_path/Tools/posix_lldbinit $working_dir/.lldbinit
-cp $src_path/Tools/posix.gdbinit $working_dir/.gdbinit
+cp $src_path/Tools/posix_lldbinit $rootfs/.lldbinit
+cp $src_path/Tools/posix.gdbinit $rootfs/.gdbinit
 
 SIM_PID=0
 
 if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]
 then
+	# Start Java simulator
 	$src_path/Tools/jmavsim_run.sh -r 500 &
 	SIM_PID=`echo $!`
-	cd ../..
 elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]
 then
 	if [ -x "$(command -v gazebo)" ]
@@ -118,27 +106,29 @@ then
 	fi
 fi
 
-cd $working_dir
+pushd "$rootfs" >/dev/null
 
 # Do not exit on failure now from here on because we want the complete cleanup
 set +e
 
-sitl_command="$sitl_bin $no_pxh $rootfs $rootfs/${rcS_path}"
+# Use the new unified rcS for the supported models
+# (All models will be transitioned over)
+if [[ ($rcS_path == posix-configs/SITL/init/ekf2 || $rcS_path == posix-configs/SITL/init/lpe)
+	&& ($model == "iris" || $model == "typhoon_h480") ]]; then
+	echo "Using new unified rcS for $model"
+	sitl_command="$sitl_bin $no_pxh $src_path/ROMFS/px4fmu_common -s etc/init.d-posix/rcS -t $src_path/test_data"
+else
+	sitl_command="$sitl_bin $no_pxh $src_path/ROMFS/px4fmu_common -s ${src_path}/${rcS_path}/${model} -t $src_path/test_data"
+fi
 
 echo SITL COMMAND: $sitl_command
 
-# Prepend to path to prioritize PX4 commands over potentially already
-# installed PX4 commands.
-export PATH="$build_path/bin":$PATH
-
 export PX4_SIM_MODEL=${model}
 
-pushd $rootfs
 
 if [[ -n "$DONT_RUN" ]]
 then
     echo "Not running simulation (\$DONT_RUN is set)."
-# Start Java simulator
 elif [ "$debugger" == "lldb" ]
 then
 	lldb -- $sitl_command
@@ -167,7 +157,7 @@ else
 	eval $sitl_command
 fi
 
-popd
+popd >/dev/null
 
 if [[ -z "$DONT_RUN" ]]
 then
