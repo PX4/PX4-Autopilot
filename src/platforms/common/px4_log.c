@@ -106,21 +106,38 @@ __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *
 
 			if (is_atty) { pos += snprintf(buffer + pos, max_length - pos, "%s", __px4_log_level_color[level]); }
 
+			if (pos >= max_length) { return; }
+
 			pos += snprintf(buffer + pos, max_length - pos, __px4__log_level_fmt __px4__log_level_arg(level));
 
+			if (pos >= max_length) { return; }
+
 			if (is_atty) { pos += snprintf(buffer + pos, max_length - pos, "%s", PX4_ANSI_COLOR_GRAY); }
+
+			if (pos >= max_length) { return; }
 
 			pos += snprintf(buffer + pos, max_length - pos, __px4__log_modulename_pfmt, moduleName);
 			va_list argptr;
 
+			if (pos >= max_length) { return; }
+
 			if (is_atty) { pos += snprintf(buffer + pos, max_length - pos, "%s", __px4_log_level_color[level]); }
+
+			if (pos >= max_length) { return; }
 
 			va_start(argptr, fmt);
 			pos += vsnprintf(buffer + pos, max_length - pos, fmt, argptr);
+
+			if (pos >= max_length) { return; }
+
 			va_end(argptr);
 			pos += snprintf(buffer + pos, max_length - pos, "\n");
 
+			if (pos >= max_length) { return; }
+
 			if (is_atty) { pos += snprintf(buffer + pos, max_length - pos, "%s", PX4_ANSI_COLOR_RESET); }
+
+			if (pos >= max_length) { return; }
 
 			// +1 for the terminating 0 char.
 			send_stdout_pipe_buffer(pos + 1);
@@ -197,11 +214,17 @@ __EXPORT void px4_log_raw(int level, const char *fmt, ...)
 
 			if (is_atty) { pos += snprintf(buffer + pos, max_length - pos, "%s", __px4_log_level_color[level]); }
 
+			if (pos >= max_length) { return; }
+
 			va_start(argptr, fmt);
 			pos += vsnprintf(buffer + pos, max_length - pos, fmt, argptr);
 			va_end(argptr);
 
+			if (pos >= max_length) { return; }
+
 			if (is_atty) { pos += snprintf(buffer + pos, max_length - pos, "%s", PX4_ANSI_COLOR_RESET); }
+
+			if (pos >= max_length) { return; }
 
 			// +1 for the terminating 0 char.
 			send_stdout_pipe_buffer(pos + 1);
