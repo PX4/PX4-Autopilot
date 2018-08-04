@@ -253,15 +253,13 @@ coverity_scan: posix_sitl_default
 .PHONY: parameters_metadata airframe_metadata module_documentation px4_metadata doxygen
 
 parameters_metadata:
-	@python $(SRC_DIR)/src/lib/parameters/px_process_params.py -s `find $(SRC_DIR)/src -maxdepth 4 -type d` --inject-xml $(SRC_DIR)/src/lib/parameters/parameters_injected.xml --markdown
-	@python $(SRC_DIR)/src/lib/parameters/px_process_params.py -s `find $(SRC_DIR)/src -maxdepth 4 -type d` --inject-xml $(SRC_DIR)/src/lib/parameters/parameters_injected.xml --xml
+	@$(MAKE) --no-print-directory posix_sitl_default metadata_parameters
 
 airframe_metadata:
-	@python $(SRC_DIR)/Tools/px_process_airframes.py -v -a $(SRC_DIR)/ROMFS/px4fmu_common/init.d --markdown
-	@python $(SRC_DIR)/Tools/px_process_airframes.py -v -a $(SRC_DIR)/ROMFS/px4fmu_common/init.d --xml
+	@$(MAKE) --no-print-directory posix_sitl_default metadata_airframes
 
 module_documentation:
-	@python $(SRC_DIR)/Tools/px_process_module_doc.py -v --markdown $(SRC_DIR)/modules --src-path $(SRC_DIR)/src
+	@$(MAKE) --no-print-directory posix_sitl_default metadata_module_documentation
 
 px4_metadata: parameters_metadata airframe_metadata module_documentation
 
@@ -285,7 +283,7 @@ format:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard rostest
+.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard rostest python_coverage
 
 tests:
 	@$(MAKE) --no-print-directory posix_sitl_default test_results \
@@ -313,6 +311,16 @@ tests_mission_coverage:
 tests_offboard: rostest
 	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test
 	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_tests_offboard_posctl.test
+
+python_coverage:
+	@mkdir -p $(SRC_DIR)/build/python_coverage
+	@cd $(SRC_DIR)/build/python_coverage && cmake $(SRC_DIR) $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=posix_sitl_default -DPYTHON_COVERAGE=ON
+	@$(PX4_MAKE) -C $(SRC_DIR)/build/python_coverage
+	@$(PX4_MAKE) -C $(SRC_DIR)/build/python_coverage metadata_airframes
+	@$(PX4_MAKE) -C $(SRC_DIR)/build/python_coverage metadata_parameters
+	#@$(PX4_MAKE) -C $(SRC_DIR)/build/python_coverage module_documentation # TODO: fix within coverage.py
+	@coverage combine `find . -name .coverage\*`
+	@coverage report -m
 
 # static analyzers (scan-build, clang-tidy, cppcheck)
 # --------------------------------------------------------------------

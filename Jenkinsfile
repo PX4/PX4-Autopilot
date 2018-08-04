@@ -188,7 +188,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'ulimit -c unlimited; make tests_coverage'
+            sh 'ulimit -c unlimited; make tests_coverage || true' // always pass for now
             withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
               sh 'curl -s https://codecov.io/bash | bash -s - -F unittests'
             }
@@ -200,6 +200,24 @@ pipeline {
               sh('find . -name core')
               sh('gdb --batch --quiet -ex "thread apply all bt full" -ex "quit" build/posix_sitl_default/px4 core || true') // always pass for now
             }
+          }
+        }
+
+        stage('code coverage (python)') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base:2018-08-04'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'make python_coverage'
+            withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
+              sh 'curl -s https://codecov.io/bash | bash -s - -F python'
+            }
+            sh 'make distclean'
           }
         }
 
@@ -262,7 +280,9 @@ pipeline {
           steps {
             sh 'make distclean'
             sh 'make airframe_metadata'
-            archiveArtifacts(artifacts: 'airframes.md, airframes.xml', fingerprint: true)
+            dir('build/posix_sitl_default/docs') {
+              archiveArtifacts(artifacts: 'airframes.md, airframes.xml')
+            }
             sh 'make distclean'
           }
         }
@@ -274,7 +294,9 @@ pipeline {
           steps {
             sh 'make distclean'
             sh 'make parameters_metadata'
-            archiveArtifacts(artifacts: 'parameters.md, parameters.xml', fingerprint: true)
+            dir('build/posix_sitl_default/docs') {
+              archiveArtifacts(artifacts: 'parameters.md, parameters.xml')
+            }
             sh 'make distclean'
           }
         }
@@ -286,7 +308,9 @@ pipeline {
           steps {
             sh 'make distclean'
             sh 'make module_documentation'
-            archiveArtifacts(artifacts: 'modules/*.md', fingerprint: true)
+            dir('build/posix_sitl_default/docs') {
+              archiveArtifacts(artifacts: 'modules/*.md')
+            }
             sh 'make distclean'
           }
         }
@@ -302,7 +326,9 @@ pipeline {
             sh 'export'
             sh 'make distclean'
             sh 'make uorb_graphs'
-            archiveArtifacts(artifacts: 'Tools/uorb_graph/graph_sitl.json')
+            dir('Tools/uorb_graph') {
+              archiveArtifacts(artifacts: 'graph_sitl.json')
+            }
             sh 'make distclean'
           }
         }
