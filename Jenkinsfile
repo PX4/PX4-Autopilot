@@ -198,7 +198,7 @@ pipeline {
             failure {
               sh('ls -a')
               sh('find . -name core')
-              sh('gdb --batch --quiet -ex "thread apply all bt full" -ex "quit" build/posix_sitl_default/px4 core')
+              sh('gdb --batch --quiet -ex "thread apply all bt full" -ex "quit" build/posix_sitl_default/px4 core || true') // always pass for now
             }
           }
         }
