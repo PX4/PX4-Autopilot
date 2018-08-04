@@ -830,11 +830,7 @@ void Logger::run()
 	orb_set_interval(log_message_sub, 20);
 
 
-#if __PX4_POSIX
-	int ntopics = add_topics_from_file(PX4_ROOTFSDIR "/etc/logging/logger_topics.txt");
-#else
-	int ntopics = add_topics_from_file(PX4_ROOTFSDIR "/fs/microsd/etc/logging/logger_topics.txt");
-#endif
+	int ntopics = add_topics_from_file(PX4_STORAGEDIR "/etc/logging/logger_topics.txt");
 
 	if (ntopics > 0) {
 		PX4_INFO("logging %d topics from logger_topics.txt", ntopics);
