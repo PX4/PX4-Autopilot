@@ -114,6 +114,15 @@ void *Replay::CompatSensorCombinedDtType::apply(void *data)
 	return data;
 }
 
+Replay::~Replay()
+{
+	for (size_t i = 0; i < _subscriptions.size(); ++i) {
+		delete (_subscriptions[i]);
+	}
+
+	_subscriptions.clear();
+}
+
 void Replay::setupReplayFile(const char *file_name)
 {
 	if (_replay_file) {
@@ -383,15 +392,15 @@ bool Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 		}
 	}
 
-	Subscription subscription;
-	subscription.orb_meta = orb_meta;
-	subscription.multi_id = multi_id;
-	subscription.compat = compat;
+	Subscription *subscription = new Subscription();
+	subscription->orb_meta = orb_meta;
+	subscription->multi_id = multi_id;
+	subscription->compat = compat;
 
 
 	//find the timestamp offset
 	int field_size;
-	bool timestamp_found = findFieldOffset(orb_meta->o_fields, "timestamp", subscription.timestamp_offset, field_size);
+	bool timestamp_found = findFieldOffset(orb_meta->o_fields, "timestamp", subscription->timestamp_offset, field_size);
 
 	if (!timestamp_found) {
 		return true;
@@ -404,20 +413,20 @@ bool Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 
 	//find first data message (and the timestamp)
 	streampos cur_pos = file.tellg();
-	subscription.next_read_pos = this_message_pos; //this will be skipped
+	subscription->next_read_pos = this_message_pos; //this will be skipped
 
-	if (!nextDataMessage(file, subscription, msg_id)) {
+	if (!nextDataMessage(file, *subscription, msg_id)) {
 		return false;
 	}
 
 	file.seekg(cur_pos);
 
-	if (!subscription.orb_meta) {
+	if (!subscription->orb_meta) {
 		//no message found. This is not a fatal error
 		return true;
 	}
 
-	PX4_DEBUG("adding subscription for %s (msg_id %i)", subscription.orb_meta->o_name, msg_id);
+	PX4_DEBUG("adding subscription for %s (msg_id %i)", subscription->orb_meta->o_name, msg_id);
 
 	//add subscription
 	if (_subscriptions.size() <= msg_id) {
@@ -426,7 +435,7 @@ bool Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 
 	_subscriptions[msg_id] = subscription;
 
-	onSubscriptionAdded(_subscriptions[msg_id], msg_id);
+	onSubscriptionAdded(*_subscriptions[msg_id], msg_id);
 
 	return true;
 }
@@ -765,12 +774,16 @@ void Replay::run()
 		int next_msg_id = -1;
 
 		for (size_t i = 0; i < _subscriptions.size(); ++i) {
-			const Subscription &subscription = _subscriptions[i];
+			const Subscription *subscription = _subscriptions[i];
 
-			if (subscription.orb_meta && !subscription.ignored) {
-				if (next_file_time == 0 || subscription.next_timestamp < next_file_time) {
+			if (!subscription) {
+				continue;
+			}
+
+			if (subscription->orb_meta && !subscription->ignored) {
+				if (next_file_time == 0 || subscription->next_timestamp < next_file_time) {
 					next_msg_id = (int)i;
-					next_file_time = subscription.next_timestamp;
+					next_file_time = subscription->next_timestamp;
 				}
 			}
 		}
@@ -779,7 +792,7 @@ void Replay::run()
 			break; //no active subscription anymore. We're done.
 		}
 
-		Subscription &sub = _subscriptions[next_msg_id];
+		Subscription &sub = *_subscriptions[next_msg_id];
 
 		if (next_file_time == 0) {
 			//someone didn't set the timestamp properly. Consider the message invalid
@@ -812,14 +825,18 @@ void Replay::run()
 	}
 
 	for (auto &subscription : _subscriptions) {
-		if (subscription.compat) {
-			delete subscription.compat;
-			subscription.compat = nullptr;
+		if (!subscription) {
+			continue;
 		}
 
-		if (subscription.orb_advert) {
-			orb_unadvertise(subscription.orb_advert);
-			subscription.orb_advert = nullptr;
+		if (subscription->compat) {
+			delete subscription->compat;
+			subscription->compat = nullptr;
+		}
+
+		if (subscription->orb_advert) {
+			orb_unadvertise(subscription->orb_advert);
+			subscription->orb_advert = nullptr;
 		}
 	}
 
@@ -885,9 +902,13 @@ bool Replay::publishTopic(Subscription &sub, void *data)
 			bool advertised = false;
 
 			for (const auto &subscription : _subscriptions) {
-				if (subscription.orb_meta) {
-					if (strcmp(sub.orb_meta->o_name, subscription.orb_meta->o_name) == 0 &&
-					    subscription.orb_advert && subscription.multi_id == sub.multi_id - 1) {
+				if (!subscription) {
+					continue;
+				}
+
+				if (subscription->orb_meta) {
+					if (strcmp(sub.orb_meta->o_name, subscription->orb_meta->o_name) == 0 &&
+					    subscription->orb_advert && subscription->multi_id == sub.multi_id - 1) {
 						advertised = true;
 					}
 				}
@@ -1018,13 +1039,13 @@ bool ReplayEkf2::publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std
 			// subscription not found yet or sensor_combined not contained in log
 			return false;
 
-		} else if (!_subscriptions[_sensor_combined_msg_id].orb_meta) {
+		} else if (!_subscriptions[_sensor_combined_msg_id]->orb_meta) {
 			return false; // read past end of file
 
 		} else {
 			// we should publish a topic, just publish the same again
-			readTopicDataToBuffer(_subscriptions[_sensor_combined_msg_id], replay_file);
-			publishTopic(_subscriptions[_sensor_combined_msg_id], _read_buffer.data());
+			readTopicDataToBuffer(*_subscriptions[_sensor_combined_msg_id], replay_file);
+			publishTopic(*_subscriptions[_sensor_combined_msg_id], _read_buffer.data());
 		}
 	}
 
@@ -1039,7 +1060,7 @@ bool ReplayEkf2::findTimestampAndPublish(uint64_t timestamp, uint16_t msg_id, st
 		return false;
 	}
 
-	Subscription &sub = _subscriptions[msg_id];
+	Subscription &sub = *_subscriptions[msg_id];
 
 	while (sub.next_timestamp / 100 < timestamp && sub.orb_meta) {
 		nextDataMessage(replay_file, sub, msg_id);
@@ -1072,7 +1093,7 @@ void ReplayEkf2::onExitMainLoop()
 	// print statistics
 	auto print_sensor_statistics = [this](uint16_t msg_id, const char *name) {
 		if (msg_id != msg_id_invalid) {
-			Subscription &sub = _subscriptions[msg_id];
+			Subscription &sub = *_subscriptions[msg_id];
 
 			if (sub.publication_counter > 0 || sub.error_counter > 0) {
 				PX4_INFO("%s: %i, %i", name, sub.publication_counter, sub.error_counter);
