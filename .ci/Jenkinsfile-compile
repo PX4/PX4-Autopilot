@@ -19,51 +19,6 @@ pipeline {
             snapdragon: "lorenzmeier/px4-dev-snapdragon:2017-12-29"
           ]
 
-          // special builds:
-          // fmu-v2_{default, lpe} and fmu-v3_{default, rtps}
-          // bloaty compare to last successful master build
-          build_nodes["px4fmu-v2"] = {
-            node {
-              stage("Build Test px4fmu-v2") {
-                docker.image(docker_images.nuttx).inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
-                  stage("px4fmu-v2") {
-                    try {
-                      checkout(scm)
-                      sh('export')
-                      sh('make distclean')
-                      sh('ccache -z')
-                      sh('git fetch --tags')
-                      sh('make nuttx_px4io-v2_default')
-                      sh('make nuttx_px4io-v2_default bloaty_symbols')
-                      sh('make nuttx_px4io-v2_default bloaty_compileunits')
-                      sh('make nuttx_px4io-v2_default bloaty_compare_master')
-                      sh('make nuttx_px4fmu-v2_default')
-                      sh('make nuttx_px4fmu-v2_default bloaty_symbols')
-                      sh('make nuttx_px4fmu-v2_default bloaty_compileunits')
-                      sh('make nuttx_px4fmu-v2_default bloaty_inlines')
-                      sh('make nuttx_px4fmu-v2_default bloaty_templates')
-                      sh('make nuttx_px4fmu-v2_default bloaty_compare_master')
-                      sh('make nuttx_px4fmu-v2_lpe')
-                      sh('make nuttx_px4fmu-v2_test')
-                      sh('make nuttx_px4fmu-v3_default')
-                      sh('make nuttx_px4fmu-v3_default bloaty_compare_master')
-                      sh('make nuttx_px4fmu-v3_rtps')
-                      sh('make sizes')
-                      sh('ccache -s')
-                      archiveArtifacts(allowEmptyArchive: false, artifacts: 'build/**/*.px4, build/**/*.elf', fingerprint: true, onlyIfSuccessful: true)
-                    }
-                    catch (exc) {
-                      throw (exc)
-                    }
-                    finally {
-                      sh('make distclean')
-                    }
-                  }
-                }
-              }
-            }
-          }
-
           // MAC OSX posix_sitl_default
           build_nodes["posix_sitl_default (OSX)"] = {
             node("mac") {
@@ -132,8 +87,8 @@ pipeline {
           ]
 
           def nuttx_builds_archive = [
-            target: ["px4fmu-v4_default", "px4fmu-v4pro_default", "px4fmu-v5_default", "aerofc-v1_default",
-                     "aerocore2_default", "auav-x21_default", "crazyflie_default", "mindpx-v2_default",
+            target: ["px4fmu-v2_default", "px4fmu-v3_default", "px4fmu-v4_default", "px4fmu-v4pro_default", "px4fmu-v5_default", "px4fmu-v5_rtps",
+                     "aerofc-v1_default", "aerocore2_default", "auav-x21_default", "crazyflie_default", "mindpx-v2_default",
                      "nxphlite-v3_default", "tap-v1_default", "omnibus-f4sd_default"],
             image: docker_images.nuttx,
             archive: true
@@ -159,8 +114,7 @@ pipeline {
           ]
 
           def docker_builds = [
-            arch_builds, armhf_builds, base_builds, nuttx_builds_archive, nuttx_builds_other,
-            rpi_builds, snapdragon_builds
+            arch_builds, armhf_builds, base_builds, nuttx_builds_archive, nuttx_builds_other, rpi_builds, snapdragon_builds
           ]
 
           for (def build_type = 0; build_type < docker_builds.size(); build_type++) {
