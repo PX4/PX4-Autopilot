@@ -199,7 +199,7 @@ PWMSim::run()
 
 		/* this can happen during boot, but after the sleep its likely resolved */
 		if (_poll_fds_num == 0) {
-			usleep(1000 * 1000);
+			sleep(1);
 
 			PX4_DEBUG("no valid fds");
 			continue;
