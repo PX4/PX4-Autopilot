@@ -282,6 +282,7 @@ pipeline {
             sh 'make airframe_metadata'
             dir('build/posix_sitl_default/docs') {
               archiveArtifacts(artifacts: 'airframes.md, airframes.xml')
+              stash includes: 'airframes.md, airframes.xml', name: 'metadata_airframes'
             }
             sh 'make distclean'
           }
@@ -296,6 +297,7 @@ pipeline {
             sh 'make parameters_metadata'
             dir('build/posix_sitl_default/docs') {
               archiveArtifacts(artifacts: 'parameters.md, parameters.xml')
+              stash includes: 'parameters.md, parameters.xml', name: 'metadata_parameters'
             }
             sh 'make distclean'
           }
@@ -310,6 +312,7 @@ pipeline {
             sh 'make module_documentation'
             dir('build/posix_sitl_default/docs') {
               archiveArtifacts(artifacts: 'modules/*.md')
+              stash includes: 'modules/*.md', name: 'metadata_module_documentation'
             }
             sh 'make distclean'
           }
@@ -328,8 +331,96 @@ pipeline {
             sh 'make uorb_graphs'
             dir('Tools/uorb_graph') {
               archiveArtifacts(artifacts: 'graph_sitl.json')
+              stash includes: 'graph_sitl.json', name: 'uorb_graph'
             }
             sh 'make distclean'
+          }
+        }
+
+      } // parallel
+    } // stage: Generate Metadata
+
+    stage('Deploy') {
+
+      parallel {
+
+        stage('Devguide') {
+          agent {
+            docker { image 'px4io/px4-dev-base:2018-07-19' }
+          }
+          steps {
+            unstash 'metadata_airframes'
+            unstash 'metadata_parameters'
+            unstash 'metadata_module_documentation'
+            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
+              sh('git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/Devguide.git')
+            }
+            sh('cp airframes.md Devguide/en/airframes/airframe_reference.md')
+            sh('cp parameters.md Devguide/en/advanced/parameter_reference.md')
+            sh('cp -R modules/*.md Devguide/en/middleware/')
+            sh('cd Devguide; git checkout -B pr-firmware_metadata_update; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
+            sh('cd Devguide; git push origin pr-firmware_metadata_update || true')
+          }
+          when {
+            anyOf {
+              branch 'master'
+              branch 'pr-jenkins' // for testing
+            }
+          }
+          options {
+            skipDefaultCheckout()
+          }
+        }
+
+        stage('Userguide') {
+          agent {
+            docker { image 'px4io/px4-dev-base:2018-07-19' }
+          }
+          steps {
+            unstash 'metadata_airframes'
+            unstash 'metadata_parameters'
+            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
+              sh('git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_user_guide.git')
+            }
+            sh('cp airframes.md px4_user_guide/en/airframes/airframe_reference.md')
+            sh('cp parameters.md px4_user_guide/en/advanced_config/parameter_reference.md')
+            sh('cd px4_user_guide; git checkout -B pr-firmware_metadata_update; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
+            sh('cd px4_user_guide; git push origin pr-firmware_metadata_update || true')
+          }
+          when {
+            anyOf {
+              branch 'master'
+              branch 'pr-jenkins' // for testing
+            }
+          }
+          options {
+            skipDefaultCheckout()
+          }
+        }
+
+        stage('QGroundControl') {
+          agent {
+            docker { image 'px4io/px4-dev-base:2018-07-19' }
+          }
+          steps {
+            unstash 'metadata_airframes'
+            unstash 'metadata_parameters'
+            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
+              sh('git clone https://${GIT_USER}:${GIT_PASS}@github.com/mavlink/qgroundcontrol.git')
+            }
+            sh('cp airframes.xml qgroundcontrol/src/AutoPilotPlugins/PX4/AirframeFactMetaData.xml')
+            sh('cp parameters.xml qgroundcontrol/src/FirmwarePlugin/PX4/PX4ParameterFactMetaData.xml')
+            sh('cd qgroundcontrol; git checkout -B pr-firmware_metadata_update; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
+            sh('cd qgroundcontrol; git push origin pr-firmware_metadata_update || true')
+          }
+          when {
+            anyOf {
+              branch 'master'
+              branch 'pr-jenkins' // for testing
+            }
+          }
+          options {
+            skipDefaultCheckout()
           }
         }
 
@@ -341,6 +432,10 @@ pipeline {
   environment {
     CCACHE_DIR = '/tmp/ccache'
     CI = true
+    GIT_AUTHOR_EMAIL = "bot@pixhawk.org"
+    GIT_AUTHOR_NAME = "PX4BuildBot"
+    GIT_COMMITTER_EMAIL = "bot@pixhawk.org"
+    GIT_COMMITTER_NAME = "PX4BuildBot"
   }
   options {
     buildDiscarder(logRotator(numToKeepStr: '10', artifactDaysToKeepStr: '30'))
