@@ -1,8 +1,6 @@
 #
 # Various PX4-specific macros
 #
-source platforms/nuttx/Debug/NuttX
-source platforms/nuttx/Debug/ARMv7M
 
 echo Loading PX4 GDB macros.  Use 'help px4' for more information.\n
 
