@@ -54,11 +54,7 @@
 #define FLAG_FSYNC 1
 #define FLAG_LSEEK 2
 
-#ifdef __PX4_POSIX
-#define LOG_PATH PX4_ROOTFSDIR "/log/"
-#else
-#define LOG_PATH PX4_ROOTFSDIR "/fs/microsd/"
-#endif
+#define LOG_PATH PX4_STORAGEDIR
 
 /*
   return a predictable value for any file offset to allow detection of corruption

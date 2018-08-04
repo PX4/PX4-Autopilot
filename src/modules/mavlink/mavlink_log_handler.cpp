@@ -39,7 +39,7 @@
 #include <sys/stat.h>
 #include <time.h>
 
-#define MOUNTPOINT PX4_ROOTFSDIR "/fs/microsd"
+#define MOUNTPOINT PX4_STORAGEDIR
 
 static const char *kLogRoot    = MOUNTPOINT "/log";
 static const char *kLogData    = MOUNTPOINT "/logdata.txt";

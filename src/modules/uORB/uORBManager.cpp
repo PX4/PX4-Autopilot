@@ -65,7 +65,7 @@ bool uORB::Manager::initialize()
 uORB::Manager::Manager()
 {
 #ifdef ORB_USE_PUBLISHER_RULES
-	const char *file_name = "./rootfs/orb_publisher.rules";
+	const char *file_name = PX4_STORAGEDIR"/orb_publisher.rules";
 	int ret = readPublisherRulesFromFile(file_name, _publisher_rule);
 
 	if (ret == PX4_OK) {

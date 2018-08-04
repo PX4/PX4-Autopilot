@@ -313,11 +313,7 @@ private:
 
 	static constexpr size_t 	MAX_TOPICS_NUM = 64; /**< Maximum number of logged topics */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
-#ifdef __PX4_POSIX
-	static constexpr const char	*LOG_ROOT = PX4_ROOTFSDIR"/log";
-#else
-	static constexpr const char 	*LOG_ROOT = PX4_ROOTFSDIR"/fs/microsd/log";
-#endif
+	static constexpr const char	*LOG_ROOT = PX4_STORAGEDIR "/log";
 
 	uint8_t						*_msg_buffer{nullptr};
 	int						_msg_buffer_len{0};
