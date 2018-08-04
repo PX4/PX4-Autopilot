@@ -81,11 +81,11 @@ then
 
 	# Roll Integrator Anti-Windup
 	param set FW_RR_IMAX 0.2
-	
+
+	param set PWM_DISARMED 1000
 fi
 
 set MIXER fw_generic_wing.main.mix
 
 # Provide ESC a constant 1000 us pulse
 set PWM_OUT 4
-set PWM_DISARMED 1000
