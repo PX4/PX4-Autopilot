@@ -346,20 +346,21 @@ pipeline {
 
         stage('Devguide') {
           agent {
-            docker { image 'px4io/px4-dev-base:2018-07-19' }
+            docker { image 'px4io/px4-dev-base:2018-08-05' }
           }
           steps {
+            sh('export')
             unstash 'metadata_airframes'
             unstash 'metadata_parameters'
             unstash 'metadata_module_documentation'
-            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
+            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh('git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/Devguide.git')
+              sh('cp airframes.md Devguide/en/airframes/airframe_reference.md')
+              sh('cp parameters.md Devguide/en/advanced/parameter_reference.md')
+              sh('cp -R modules/*.md Devguide/en/middleware/')
+              sh('cd Devguide; git checkout -B pr-firmware_metadata_update; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
+              sh('cd Devguide; git push origin pr-firmware_metadata_update || true')
             }
-            sh('cp airframes.md Devguide/en/airframes/airframe_reference.md')
-            sh('cp parameters.md Devguide/en/advanced/parameter_reference.md')
-            sh('cp -R modules/*.md Devguide/en/middleware/')
-            sh('cd Devguide; git checkout -B pr-firmware_metadata_update; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
-            sh('cd Devguide; git push origin pr-firmware_metadata_update || true')
           }
           when {
             anyOf {
@@ -374,18 +375,19 @@ pipeline {
 
         stage('Userguide') {
           agent {
-            docker { image 'px4io/px4-dev-base:2018-07-19' }
+            docker { image 'px4io/px4-dev-base:2018-08-05' }
           }
           steps {
+            sh('export')
             unstash 'metadata_airframes'
             unstash 'metadata_parameters'
-            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
+            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh('git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_user_guide.git')
+              sh('cp airframes.md px4_user_guide/en/airframes/airframe_reference.md')
+              sh('cp parameters.md px4_user_guide/en/advanced_config/parameter_reference.md')
+              sh('cd px4_user_guide; git checkout -B pr-firmware_metadata_update; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
+              sh('cd px4_user_guide; git push origin pr-firmware_metadata_update || true')
             }
-            sh('cp airframes.md px4_user_guide/en/airframes/airframe_reference.md')
-            sh('cp parameters.md px4_user_guide/en/advanced_config/parameter_reference.md')
-            sh('cd px4_user_guide; git checkout -B pr-firmware_metadata_update; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
-            sh('cd px4_user_guide; git push origin pr-firmware_metadata_update || true')
           }
           when {
             anyOf {
@@ -400,18 +402,19 @@ pipeline {
 
         stage('QGroundControl') {
           agent {
-            docker { image 'px4io/px4-dev-base:2018-07-19' }
+            docker { image 'px4io/px4-dev-base:2018-08-05' }
           }
           steps {
+            sh('export')
             unstash 'metadata_airframes'
             unstash 'metadata_parameters'
-            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
+            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh('git clone https://${GIT_USER}:${GIT_PASS}@github.com/mavlink/qgroundcontrol.git')
+              sh('cp airframes.xml qgroundcontrol/src/AutoPilotPlugins/PX4/AirframeFactMetaData.xml')
+              sh('cp parameters.xml qgroundcontrol/src/FirmwarePlugin/PX4/PX4ParameterFactMetaData.xml')
+              sh('cd qgroundcontrol; git checkout -B pr-firmware_metadata_update; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
+              sh('cd qgroundcontrol; git push origin pr-firmware_metadata_update || true')
             }
-            sh('cp airframes.xml qgroundcontrol/src/AutoPilotPlugins/PX4/AirframeFactMetaData.xml')
-            sh('cp parameters.xml qgroundcontrol/src/FirmwarePlugin/PX4/PX4ParameterFactMetaData.xml')
-            sh('cd qgroundcontrol; git checkout -B pr-firmware_metadata_update; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
-            sh('cd qgroundcontrol; git push origin pr-firmware_metadata_update || true')
           }
           when {
             anyOf {
@@ -432,10 +435,11 @@ pipeline {
   environment {
     CCACHE_DIR = '/tmp/ccache'
     CI = true
-    GIT_AUTHOR_EMAIL = "bot@pixhawk.org"
+    GIT_AUTHOR_EMAIL = "bot@px4.io"
     GIT_AUTHOR_NAME = "PX4BuildBot"
-    GIT_COMMITTER_EMAIL = "bot@pixhawk.org"
+    GIT_COMMITTER_EMAIL = "bot@px4.io"
     GIT_COMMITTER_NAME = "PX4BuildBot"
+    GIT_SSH_COMMAND='ssh -i ${SSH_KEY_FILE}'
   }
   options {
     buildDiscarder(logRotator(numToKeepStr: '10', artifactDaysToKeepStr: '30'))
