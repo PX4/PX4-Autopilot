@@ -688,24 +688,9 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 			break;
 
-		case PX4IO_P_SETUP_PWM_REVERSE:
-			r_page_setup[PX4IO_P_SETUP_PWM_REVERSE] = value;
-			break;
-
-		case PX4IO_P_SETUP_TRIM_ROLL:
-		case PX4IO_P_SETUP_TRIM_PITCH:
-		case PX4IO_P_SETUP_TRIM_YAW:
-		case PX4IO_P_SETUP_SCALE_ROLL:
-		case PX4IO_P_SETUP_SCALE_PITCH:
-		case PX4IO_P_SETUP_SCALE_YAW:
-		case PX4IO_P_SETUP_MOTOR_SLEW_MAX:
 		case PX4IO_P_SETUP_SBUS_RATE:
 			r_page_setup[offset] = value;
 			sbus1_set_output_rate_hz(value);
-			break;
-
-		case PX4IO_P_SETUP_AIRMODE:
-			r_page_setup[PX4IO_P_SETUP_AIRMODE] = value;
 			break;
 
 		case PX4IO_P_SETUP_THR_MDL_FAC:
@@ -713,8 +698,17 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			r_page_setup[offset] = value;
 			break;
 
+		case PX4IO_P_SETUP_PWM_REVERSE:
+		case PX4IO_P_SETUP_TRIM_ROLL:
+		case PX4IO_P_SETUP_TRIM_PITCH:
+		case PX4IO_P_SETUP_TRIM_YAW:
+		case PX4IO_P_SETUP_SCALE_ROLL:
+		case PX4IO_P_SETUP_SCALE_PITCH:
+		case PX4IO_P_SETUP_SCALE_YAW:
+		case PX4IO_P_SETUP_MOTOR_SLEW_MAX:
+		case PX4IO_P_SETUP_AIRMODE:
 		case PX4IO_P_SETUP_THERMAL:
-			r_page_setup[PX4IO_P_SETUP_THERMAL] = value;
+			r_page_setup[offset] = value;
 			break;
 
 		default:
