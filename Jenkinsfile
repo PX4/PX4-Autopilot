@@ -172,7 +172,7 @@ pipeline {
             sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
             sh 'ulimit -c unlimited; make tests_mission_coverage'
             withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
-              sh 'curl -s https://codecov.io/bash | bash -s'
+              sh 'curl -s https://codecov.io/bash | bash -s - -F mission'
             }
             sh 'make distclean'
           }
@@ -190,7 +190,7 @@ pipeline {
             sh 'make distclean'
             sh 'ulimit -c unlimited; make tests_coverage'
             withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
-              sh 'curl -s https://codecov.io/bash | bash -s'
+              sh 'curl -s https://codecov.io/bash | bash -s - -F unittests'
             }
             sh 'make distclean'
           }
