@@ -1,3 +1,8 @@
+#!/usr/bin/bash
+# PX4 commands need the 'px4-' prefix in bash.
+# (px4-alias.sh is expected to be in the PATH)
+source px4-alias.sh
+
 uorb start
 param load
 param set MAV_TYPE 22
@@ -74,7 +79,7 @@ mc_pos_control start
 mc_att_control start
 fw_pos_control_l1 start
 fw_att_control start
-mixer load /dev/pwm_output0 ROMFS/sitl/mixers/standard_vtol_sitl.main.mix
+mixer load /dev/pwm_output0 etc/mixers-sitl/standard_vtol_sitl.main.mix
 mavlink start -x -u 14556 -r 2000000
 mavlink start -x -u 14557 -r 2000000 -m onboard -o 14540
 mavlink stream -r 20 -s EXTENDED_SYS_STATE -u 14540

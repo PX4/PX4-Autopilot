@@ -1,0 +1,32 @@
+#!nsh
+#
+# @name Typhoon H480 SITL
+#
+# @type Hexarotor x
+#
+
+if [ $AUTOCNF == yes ]
+then
+	param set MAV_TYPE 13
+
+	param set MC_PITCHRATE_P 0.1
+	param set MC_ROLLRATE_P 0.05
+	param set MPC_XY_VEL_I 0.2
+	param set MPC_XY_VEL_P 0.15
+
+	param set RTL_DESCEND_ALT 10.0
+	param set RTL_LAND_DELAY 0
+
+	param set TRIG_INTERFACE 3
+	param set TRIG_MODE 4
+	param set MNT_MODE_IN 0
+	param set MAV_PROTO_VER 2
+fi
+
+mavlink start -x -u 14558 -r 4000 -f -m onboard -o 14530
+
+pwm_out_sim mode_pwm16
+mixer load /dev/pwm_output0 etc/mixers/hexa_x.main.mix
+mixer append /dev/pwm_output0 etc/mixers/mount_legs.aux.mix
+vmount start
+camera_trigger start

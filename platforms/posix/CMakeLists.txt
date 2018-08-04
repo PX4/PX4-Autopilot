@@ -207,27 +207,3 @@ px4_posix_generate_symlinks(
 	TARGET px4
 )
 
-add_custom_command(TARGET px4
-	POST_BUILD
-	COMMAND mkdir -p ${CMAKE_BINARY_DIR}/rootfs/etc/
-	)
-
-add_custom_command(TARGET px4
-	POST_BUILD
-	COMMAND mkdir -p ${CMAKE_BINARY_DIR}/rootfs/etc/
-	)
-
-add_custom_command(TARGET px4
-	POST_BUILD
-	COMMAND cp -R ${PROJECT_SOURCE_DIR}/posix-configs/SITL/init ${CMAKE_BINARY_DIR}/rootfs/etc/
-)
-
-add_custom_command(TARGET px4
-	POST_BUILD
-	COMMAND cp -R ${PROJECT_SOURCE_DIR}/ROMFS/sitl/mixers ${CMAKE_BINARY_DIR}/rootfs/etc/
-)
-
-add_custom_command(TARGET px4
-	POST_BUILD
-	COMMAND cp -R ${PROJECT_SOURCE_DIR}/ROMFS/px4fmu_common/mixers ${CMAKE_BINARY_DIR}/rootfs/etc/
-)

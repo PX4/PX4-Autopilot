@@ -7,6 +7,14 @@ if [ ! -n "$ZSH_VERSION" ]; then
 	shopt -s expand_aliases
 fi
 
+# Map the NuttX-style variable definition 'set <var> <value>' to something that
+# bash and alternatives understand
+set() {
+	eval $1=$2
+}
+# alternative method with an alias:
+# alias set='f(){ set -- "$1=$2"; eval "$1"; unset -f f; }; eval f'
+
 # Don't stop on errors.
 #set -e
 
