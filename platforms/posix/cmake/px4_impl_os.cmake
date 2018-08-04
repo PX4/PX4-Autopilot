@@ -123,7 +123,7 @@ function(px4_posix_generate_alias)
 		endforeach()
 		if (MAIN)
 			set(alias_string
-				"${alias_string}alias ${MAIN}='${PREFIX}${MAIN}'\n"
+				"${alias_string}alias ${MAIN}='${PREFIX}${MAIN} --instance $px4_instance'\n"
 			)
 		endif()
 	endforeach()
