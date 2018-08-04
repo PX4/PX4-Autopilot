@@ -110,7 +110,8 @@ typedef param_t px4_param_t;
  * NuttX specific defines.
  ****************************************************************************/
 
-#define PX4_ROOTFSDIR "."
+#define PX4_ROOTFSDIR ""
+#define PX4_STORAGEDIR PX4_ROOTFSDIR "/fs/microsd"
 #define _PX4_IOC(x,y) _IOC(x,y)
 
 // mode for open with O_CREAT
@@ -200,6 +201,8 @@ __END_DECLS
 #  endif
 
 #endif // __PX4_QURT
+
+#define PX4_STORAGEDIR PX4_ROOTFSDIR
 #endif // __PX4_POSIX
 
 #if defined(__PX4_ROS) || defined(__PX4_POSIX)

@@ -312,7 +312,7 @@ bool ParameterTest::exportImportAll()
 	static constexpr float MAGIC_FLOAT_VAL = 0.217828f;
 
 	// backup current parameters
-	const char *param_file_name = PX4_ROOTFSDIR "/fs/microsd/param_backup";
+	const char *param_file_name = PX4_STORAGEDIR "/param_backup";
 	int fd = open(param_file_name, O_WRONLY | O_CREAT, PX4_O_MODE_666);
 
 	if (fd < 0) {

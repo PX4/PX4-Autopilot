@@ -55,8 +55,8 @@ const MavlinkFtpTest::DownloadTestCase MavlinkFtpTest::_rgDownloadTestCases[] = 
 	{ PX4_MAVLINK_TEST_DATA_DIR  "/unit_test_data/mavlink_tests/test_240.data",	MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN - sizeof(MavlinkFTP::PayloadHeader) + 1,	false, false },	// Read take two packets
 };
 
-const char MavlinkFtpTest::_unittest_microsd_dir[] = PX4_ROOTFSDIR "/fs/microsd/ftp_unit_test_dir";
-const char MavlinkFtpTest::_unittest_microsd_file[] = PX4_ROOTFSDIR "/fs/microsd/ftp_unit_test_dir/file";
+const char MavlinkFtpTest::_unittest_microsd_dir[] = PX4_STORAGEDIR "/ftp_unit_test_dir";
+const char MavlinkFtpTest::_unittest_microsd_file[] = PX4_STORAGEDIR "/ftp_unit_test_dir/file";
 
 MavlinkFtpTest::MavlinkFtpTest() :
 	_ftp_server(nullptr),

@@ -139,7 +139,7 @@ int uORBTest::UnitTest::pubsublatency_main()
 
 	if (pubsubtest_print) {
 		char fname[32];
-		sprintf(fname, PX4_ROOTFSDIR"/fs/microsd/timings%u.txt", timingsgroup);
+		sprintf(fname, PX4_STORAGEDIR"/uorb_timings%u.txt", timingsgroup);
 		FILE *f = fopen(fname, "w");
 
 		if (f == nullptr) {

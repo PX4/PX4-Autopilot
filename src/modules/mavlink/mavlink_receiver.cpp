@@ -443,7 +443,7 @@ void
 MavlinkReceiver::send_storage_information(int storage_id)
 {
 	mavlink_storage_information_t storage_info{};
-	const char *microsd_dir = PX4_ROOTFSDIR"/fs/microsd";
+	const char *microsd_dir = PX4_STORAGEDIR;
 
 	if (storage_id == 0 || storage_id == 1) { // request is for all or the first storage
 		storage_info.storage_id = 1;
