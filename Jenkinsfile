@@ -2,7 +2,8 @@ pipeline {
   agent none
   stages {
 
-    stage('Test') {
+ stage('Analysis') {
+
       parallel {
 
         stage('Style Check') {
@@ -96,7 +97,71 @@ pipeline {
           }
         }
 
-        stage('tests') {
+        stage('check stack') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2018-07-19'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'make px4fmu-v2_default stack_check'
+            sh 'make distclean'
+          }
+        }
+
+        stage('code coverage (mission test)') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ros:2018-07-19'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
+            sh 'ulimit -c unlimited; make tests_mission_coverage'
+            withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
+              sh 'curl -s https://codecov.io/bash | bash -s'
+            }
+            sh 'make distclean'
+          }
+        }
+
+        stage('code coverage (unit tests)') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base:2018-07-19'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ulimit -c unlimited; make tests_coverage'
+            withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
+              sh 'curl -s https://codecov.io/bash | bash -s'
+            }
+            sh 'make distclean'
+          }
+          post {
+            failure {
+              sh('ls -a')
+              sh('find . -name core')
+              sh('gdb --batch --quiet -ex "thread apply all bt full" -ex "quit" build/posix_sitl_default/px4 core')
+            }
+          }
+        }
+
+      } // parallel
+    } // stage Analysis
+
+    stage('Test') {
+      parallel {
+
+        stage('unit tests') {
           agent {
             docker {
               image 'px4io/px4-dev-base:2018-07-19'
@@ -112,26 +177,8 @@ pipeline {
           }
         }
 
-        stage('test mission (code coverage)') {
-          agent {
-            docker {
-              image 'px4io/px4-dev-ros:2018-07-19'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
-            }
-          }
-          steps {
-            sh 'export'
-            sh 'make distclean; rm -rf .ros; rm -rf .gazebo'
-            sh 'make tests_mission_coverage'
-            withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
-              sh 'curl -s https://codecov.io/bash | bash -s'
-            }
-            sh 'make distclean'
-          }
-        }
-
         // TODO: PX4 requires clean shutdown first
-        // stage('tests (address sanitizer)') {
+        // stage('unit tests (address sanitizer)') {
         //   agent {
         //     docker {
         //       image 'px4io/px4-dev-base:2018-07-19'
@@ -150,50 +197,8 @@ pipeline {
         //   }
         // }
 
-        // TODO: test and re-enable once GDB is available in px4-dev-ros
-        // stage('tests (code coverage)') {
-        //   agent {
-        //     docker {
-        //       image 'px4io/px4-dev-ros:2018-07-19'
-        //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-        //     }
-        //   }
-        //   steps {
-        //     sh 'export'
-        //     sh 'make distclean'
-        //     sh 'ulimit -c unlimited; make tests_coverage'
-        //     sh 'ls'
-        //     withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
-        //       sh 'curl -s https://codecov.io/bash | bash -s'
-        //     }
-        //     sh 'make distclean'
-        //   }
-        //   post {
-        //     failure {
-        //       sh('find . -name core')
-        //       sh('gdb --batch --quiet -ex "thread apply all bt full" -ex "quit" build/posix_sitl_default/px4 core')
-        //     }
-        //   }
-        // }
-
-        stage('check stack') {
-          agent {
-            docker {
-              image 'px4io/px4-dev-nuttx:2018-07-19'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-            }
-          }
-          steps {
-            sh 'export'
-            sh 'make distclean'
-            sh 'make px4fmu-v2_default stack_check'
-            sh 'make distclean'
-          }
-        }
-
-
-      }
-    }
+      } // parallel
+    } // stage Test
 
     stage('Generate Metadata') {
 
@@ -250,8 +255,9 @@ pipeline {
             sh 'make distclean'
           }
         }
-      }
-    }
+
+      } // parallel
+    } // stage: Generate Metadata
 
   } // stages
 
