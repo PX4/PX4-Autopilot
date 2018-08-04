@@ -2,7 +2,7 @@ pipeline {
   agent none
   stages {
 
- stage('Analysis') {
+    stage('Analysis') {
 
       parallel {
 

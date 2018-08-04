@@ -429,7 +429,6 @@ endfunction()
 #
 #	Input:
 #		BOARD 		: board
-#		THREADS 	: number of threads for building
 #
 #	Output:
 #		OUT	: the target list
@@ -440,7 +439,7 @@ endfunction()
 function(px4_os_prebuild_targets)
 	px4_parse_function_args(
 			NAME px4_os_prebuild_targets
-			ONE_VALUE OUT BOARD THREADS
+			ONE_VALUE OUT BOARD
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
 

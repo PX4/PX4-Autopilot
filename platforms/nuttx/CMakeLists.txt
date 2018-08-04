@@ -298,11 +298,92 @@ if (BLOATY_PROGRAM)
 endif()
 
 # debugger helpers
-configure_file(gdbinit.in .gdbinit)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/gdbinit.in ${PX4_BINARY_DIR}/.gdbinit)
 
 add_custom_target(debug
-	COMMAND ${GDB} $<TARGET_FILE:${FW_NAME}>
-	DEPENDS ${FW_NAME} ${CMAKE_CURRENT_BINARY_DIR}/.gdbinit
+	COMMAND ${GDB} -iex 'set auto-load safe-path ${PX4_BINARY_DIR}' $<TARGET_FILE:${FW_NAME}>
+	DEPENDS ${FW_NAME} ${PX4_BINARY_DIR}/.gdbinit
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	USES_TERMINAL
+	)
+
+file(GLOB_RECURSE black_magic_probe_path
+     FOLLOW_SYMLINKS
+     /dev/serial/by-id/usb-Black_Sphere_Technologies_Black_Magic_Probe_*-if00
+     )
+file(GLOB_RECURSE black_magic_probe_console_path
+     FOLLOW_SYMLINKS
+     /dev/serial/by-id/usb-Black_Sphere_Technologies_Black_Magic_Probe_*-if02
+     )
+
+if(black_magic_probe_path)
+
+	add_custom_target(blackmagic_debug
+		COMMAND ${GDB} --nh
+			-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
+			-ex 'target extended-remote ${black_magic_probe_path}'
+			-ex 'monitor version'
+			-ex 'monitor connect_srst enable'
+			-ex 'monitor swdp_scan'
+			-ex 'attach 1'
+			-ex 'load'
+			-ex 'run'
+			$<TARGET_FILE:${FW_NAME}>
+		DEPENDS ${FW_NAME} ${PX4_BINARY_DIR}/.gdbinit
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+		USES_TERMINAL
+		)
+
+	add_custom_target(blackmagic_upload
+		COMMAND ${GDB} --nx --batch
+			-ex 'target extended-remote ${black_magic_probe_path}'
+			-ex 'monitor version'
+			-ex 'monitor connect_srst enable'
+			-ex 'monitor swdp_scan'
+			-ex 'attach 1'
+			-ex 'load'
+			-ex 'kill'
+			$<TARGET_FILE:${FW_NAME}>
+		DEPENDS ${FW_NAME}
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+		USES_TERMINAL
+		COMMENT "Uploading with Black Magic Probe"
+		)
+
+	add_custom_target(blackmagic_console
+		COMMAND screen -t "${BOARD} console" ${black_magic_probe_console_path} 57600 8N1
+		USES_TERMINAL
+		)
+
+endif()
+
+add_custom_target(jlink_upload
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink.sh
+	COMMAND ${GDB} --nx --batch
+		-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
+		-ex 'target remote localhost:2331'
+		-ex 'monitor reset'
+		-ex 'load'
+		-ex 'kill'
+		$<TARGET_FILE:${FW_NAME}>
+	DEPENDS ${FW_NAME} ${PX4_BINARY_DIR}/.gdbinit
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	USES_TERMINAL
+	)
+
+add_custom_target(jlink_debug
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink.sh
+	COMMAND ${GDB} --nh
+		-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
+		-ex 'target remote localhost:2331'
+		-ex 'monitor reset'
+		-ex 'load'
+		-ex 'monitor reset'
+		-ex 'continue'
+		$<TARGET_FILE:${FW_NAME}>
+	DEPENDS ${FW_NAME} ${PX4_BINARY_DIR}/.gdbinit
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	USES_TERMINAL
 	)
 
@@ -319,7 +400,9 @@ ExternalProject_Add(FlameGraph
 	)
 
 add_custom_target(profile
-	COMMAND ${CMAKE_COMMAND} -E env PATH="${PX4_BINARY_DIR}/external/Source/FlameGraph:$ENV{PATH}" ${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh --elf=$<TARGET_FILE:${FW_NAME}> --nsamples=10000
+	COMMAND ${CMAKE_COMMAND} -E env PATH="${PX4_BINARY_DIR}/external/Source/FlameGraph:$ENV{PATH}"
+		${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh --elf=$<TARGET_FILE:${FW_NAME}> --nsamples=10000
 	DEPENDS ${FW_NAME} ${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh FlameGraph
 	USES_TERMINAL
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	)
