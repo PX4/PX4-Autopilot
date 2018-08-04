@@ -485,6 +485,7 @@ function(px4_add_common_flags)
 		${PX4_SOURCE_DIR}/src/include
 		${PX4_SOURCE_DIR}/src/lib
 		${PX4_SOURCE_DIR}/src/lib/DriverFramework/framework/include
+		${PX4_SOURCE_DIR}/src/lib/ecl # temporary workaround for Catkin build support (see #9554)
 		${PX4_SOURCE_DIR}/src/lib/matrix
 		${PX4_SOURCE_DIR}/src/modules
 		${PX4_SOURCE_DIR}/src/platforms
