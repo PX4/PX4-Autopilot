@@ -1,0 +1,242 @@
+#!/usr/bin/env groovy
+
+pipeline {
+  agent none
+  stages {
+
+    stage('Build') {
+      steps {
+        script {
+          def build_nodes = [:]
+          def docker_images = [
+            arch: "px4io/px4-dev-base-archlinux:2018-07-19",
+            armhf: "px4io/px4-dev-armhf:2018-07-19",
+            base: "px4io/px4-dev-base:2018-07-19",
+            clang: "px4io/px4-dev-clang:2018-07-19",
+            nuttx: "px4io/px4-dev-nuttx:2018-07-19",
+            ros: "px4io/px4-dev-ros:2018-07-19",
+            rpi: "px4io/px4-dev-raspi:2018-07-19",
+            snapdragon: "lorenzmeier/px4-dev-snapdragon:2017-12-29"
+          ]
+
+          // special builds:
+          // fmu-v2_{default, lpe} and fmu-v3_{default, rtps}
+          // bloaty compare to last successful master build
+          build_nodes["px4fmu-v2"] = {
+            node {
+              stage("Build Test px4fmu-v2") {
+                docker.image(docker_images.nuttx).inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
+                  stage("px4fmu-v2") {
+                    try {
+                      checkout(scm)
+                      sh('export')
+                      sh('make distclean')
+                      sh('ccache -z')
+                      sh('git fetch --tags')
+                      sh('make nuttx_px4io-v2_default')
+                      sh('make nuttx_px4io-v2_default bloaty_symbols')
+                      sh('make nuttx_px4io-v2_default bloaty_compileunits')
+                      sh('make nuttx_px4io-v2_default bloaty_compare_master')
+                      sh('make nuttx_px4fmu-v2_default')
+                      sh('make nuttx_px4fmu-v2_default bloaty_symbols')
+                      sh('make nuttx_px4fmu-v2_default bloaty_compileunits')
+                      sh('make nuttx_px4fmu-v2_default bloaty_inlines')
+                      sh('make nuttx_px4fmu-v2_default bloaty_templates')
+                      sh('make nuttx_px4fmu-v2_default bloaty_compare_master')
+                      sh('make nuttx_px4fmu-v2_lpe')
+                      sh('make nuttx_px4fmu-v2_test')
+                      sh('make nuttx_px4fmu-v3_default')
+                      sh('make nuttx_px4fmu-v3_default bloaty_compare_master')
+                      sh('make nuttx_px4fmu-v3_rtps')
+                      sh('make sizes')
+                      sh('ccache -s')
+                      archiveArtifacts(allowEmptyArchive: false, artifacts: 'build/**/*.px4, build/**/*.elf', fingerprint: true, onlyIfSuccessful: true)
+                    }
+                    catch (exc) {
+                      throw (exc)
+                    }
+                    finally {
+                      sh('make distclean')
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          // MAC OSX posix_sitl_default
+          build_nodes["posix_sitl_default (OSX)"] = {
+            node("mac") {
+              withEnv(["CCACHE_BASEDIR=${pwd()}"]) {
+                stage("sitl (OSX)") {
+                  try {
+                    checkout(scm)
+                    sh('export')
+                    sh('make distclean')
+                    sh('ccache -z')
+                    sh('make posix_sitl_default')
+                    sh('ccache -s')
+                  }
+                  catch (exc) {
+                    throw (exc)
+                  }
+                  finally {
+                    sh('make distclean')
+                  }
+                }
+              }
+            }
+          }
+
+          // MAC OSX nuttx_px4fmu-v4pro_default
+          build_nodes["px4fmu-v4pro_default (OSX)"] = {
+            node("mac") {
+              withEnv(["CCACHE_BASEDIR=${pwd()}"]) {
+                stage("px4fmu-v4pro (OSX)") {
+                  try {
+                    checkout(scm)
+                    sh('export')
+                    sh('make distclean')
+                    sh('ccache -z')
+                    sh('make nuttx_px4fmu-v4pro_default')
+                    sh('ccache -s')
+                  }
+                  catch (exc) {
+                    throw (exc)
+                  }
+                  finally {
+                    sh('make distclean')
+                  }
+                }
+              }
+            }
+          }
+
+          // docker builds:
+          def arch_builds = [
+            target: ["posix_sitl_default"],
+            image: docker_images.arch,
+            archive: false
+          ]
+
+          def armhf_builds = [
+            target: ["posix_ocpoc_ubuntu"],
+            image: docker_images.armhf,
+            archive: false
+          ]
+
+          def base_builds = [
+            target: ["posix_sitl_rtps"],
+            image: docker_images.base,
+            archive: false
+          ]
+
+          def nuttx_builds_archive = [
+            target: ["px4fmu-v4_default", "px4fmu-v4pro_default", "px4fmu-v5_default", "aerofc-v1_default",
+                     "aerocore2_default", "auav-x21_default", "crazyflie_default", "mindpx-v2_default",
+                     "nxphlite-v3_default", "tap-v1_default", "omnibus-f4sd_default"],
+            image: docker_images.nuttx,
+            archive: true
+          ]
+
+          def nuttx_builds_other = [
+            target: ["px4-same70xplained-v1_default", "px4-stm32f4discovery_default", "px4cannode-v1_default",
+                     "px4esc-v1_default", "px4nucleoF767ZI-v1_default", "s2740vc-v1_default"],
+            image: docker_images.nuttx,
+            archive: false
+          ]
+
+          def rpi_builds = [
+            target: ["posix_rpi_cross", "posix_bebop_default"],
+            image: docker_images.rpi,
+            archive: false
+          ]
+
+          def snapdragon_builds = [
+            target: ["qurt_eagle_default", "posix_eagle_default"],
+            image: docker_images.snapdragon,
+            archive: false
+          ]
+
+          def docker_builds = [
+            arch_builds, armhf_builds, base_builds, nuttx_builds_archive, nuttx_builds_other,
+            rpi_builds, snapdragon_builds
+          ]
+
+          for (def build_type = 0; build_type < docker_builds.size(); build_type++) {
+            for (def build_target = 0; build_target < docker_builds[build_type].target.size(); build_target++) {
+              build_nodes.put(docker_builds[build_type].target[build_target],
+                createBuildNode(docker_builds[build_type].archive, docker_builds[build_type].image, docker_builds[build_type].target[build_target])
+                )
+            }
+          }
+
+        parallel build_nodes
+
+        } // script
+      } // steps
+    } // stage Build
+
+    // TODO: actually upload artifacts to S3
+    stage('S3 Upload') {
+      agent {
+        docker { image 'px4io/px4-dev-base:2018-07-19' }
+      }
+      options {
+            skipDefaultCheckout()
+      }
+      when {
+        anyOf {
+          branch 'master'
+          branch 'beta'
+          branch 'stable'
+          branch 'pr-jenkins' // for testing
+        }
+      }
+      steps {
+        sh 'echo "uploading to S3"'
+      }
+    }
+
+  } // stages
+  environment {
+    CCACHE_DIR = '/tmp/ccache'
+    CI = true
+  }
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '10', artifactDaysToKeepStr: '30'))
+    timeout(time: 60, unit: 'MINUTES')
+  }
+}
+
+def createBuildNode(Boolean archive, String docker_image, String target) {
+  return {
+    node {
+      docker.withRegistry('https://registry.hub.docker.com', 'docker_hub_dagar') {
+        docker.image(docker_image).inside('-e CCACHE_BASEDIR=${WORKSPACE} -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
+          stage(target) {
+            try {
+              sh('export')
+              checkout(scm)
+              sh('make distclean')
+              sh('git fetch --tags')
+              sh('ccache -z')
+              sh('make ' + target)
+              sh('ccache -s')
+              sh('make sizes')
+              if (archive) {
+                archiveArtifacts(allowEmptyArchive: false, artifacts: 'build/**/*.px4, build/**/*.elf, build/**/*.bin', fingerprint: true, onlyIfSuccessful: true)
+              }
+            }
+            catch (exc) {
+              throw (exc)
+            }
+            finally {
+              sh('make distclean')
+            }
+          }
+        }
+      }
+    }
+  }
+}
