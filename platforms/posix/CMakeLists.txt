@@ -46,7 +46,7 @@ if (("${BOARD}" STREQUAL "eagle") OR ("${BOARD}" STREQUAL "excelsior"))
 		)
 
 	add_custom_target(upload
-		COMMAND ${PX4_SOURCE_DIR}/Tools/adb_upload.sh $<TARGET_FILE:px4> ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config /home/linaro
+		COMMAND ${PX4_SOURCE_DIR}/Tools/adb_upload.sh ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config /home/linaro
 		DEPENDS px4
 		COMMENT "uploading px4"
 		USES_TERMINAL
@@ -75,7 +75,7 @@ endif()
 
 if ("${BOARD}" STREQUAL "rpi")
 	add_custom_target(upload
-		COMMAND scp -r $<TARGET_FILE:px4> ${PX4_SOURCE_DIR}/posix-configs/rpi/*.config ${PX4_SOURCE_DIR}/ROMFS pi@"ENV{AUTOPILOT_HOST}":/home/pi
+		COMMAND rsync -arh --progress ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${PX4_SOURCE_DIR}/posix-configs/rpi/*.config ${PX4_SOURCE_DIR}/ROMFS pi@"$ENV{AUTOPILOT_HOST}":/home/pi
 		DEPENDS px4
 		COMMENT "uploading px4"
 		USES_TERMINAL
