@@ -121,7 +121,7 @@ private:
 	void update_mag_bias(Param &mag_bias_param, int axis_index);
 	template<typename Param>
 	bool update_mag_decl(Param &mag_decl_param);
-	bool publish_attitude(const sensor_combined_s &sensors);
+	bool publish_attitude(const sensor_combined_s &sensors, const hrt_abstime &now);
 	bool publish_wind_estimate(const hrt_abstime &timestamp);
 
 	const Vector3f get_vel_body_wind();
@@ -798,7 +798,7 @@ void Ekf2::run()
 		_ekf.setIMUData(now, sensors.gyro_integral_dt, sensors.accelerometer_integral_dt, gyro_integral, accel_integral);
 
 		// publish attitude immediately (uses quaternion from output predictor)
-		publish_attitude(sensors);
+		publish_attitude(sensors, now);
 
 		// read mag data
 		bool magnetometer_updated = false;
@@ -1643,12 +1643,12 @@ int Ekf2::getRangeSubIndex(const int *subs)
 	return -1;
 }
 
-bool Ekf2::publish_attitude(const sensor_combined_s &sensors)
+bool Ekf2::publish_attitude(const sensor_combined_s &sensors, const hrt_abstime &now)
 {
 	if (_ekf.attitude_valid()) {
 		// generate vehicle attitude quaternion data
 		vehicle_attitude_s att;
-		att.timestamp = hrt_absolute_time();
+		att.timestamp = now;
 
 		const Quatf q{_ekf.calculate_quaternion()};
 		q.copyTo(att.q);
