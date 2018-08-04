@@ -118,9 +118,18 @@ int main(int argc, char **argv)
 
 	/* Symlinks point to all commands that can be used as a client with a prefix. */
 	const char prefix[] = PX4_BASH_PREFIX;
+	int path_length = 0;
 
-	if (strstr(argv[0], prefix)) {
-		is_client = true;
+
+	if (argc > 0) {
+		/* The executed binary name could start with a path, so strip it away */
+		const std::string full_binary_name = argv[0];
+		const std::string binary_name = file_basename(full_binary_name);
+		if (binary_name.compare(0, strlen(prefix), prefix) == 0) {
+			is_client = true;
+		}
+		path_length = full_binary_name.length() - binary_name.length();
+
 	}
 
 	if (is_client) {
@@ -130,8 +139,8 @@ int main(int argc, char **argv)
 			return -1;
 		}
 
-		/* Remove the prefix. */
-		argv[0] += strlen(prefix);
+		/* Remove the path and prefix. */
+		argv[0] += path_length + strlen(prefix);
 
 		px4_daemon::Client client;
 		client.generate_uuid();
@@ -310,11 +319,9 @@ int create_dirs()
 {
 	std::string current_path = pwd();
 
-	std::vector<std::string> dirs;
-	dirs.push_back("log");
+	std::vector<std::string> dirs{"log", "eeprom"};
 
-	for (int i = 0; i < dirs.size(); i++) {
-		std::string dir = dirs[i];
+	for (const auto &dir : dirs) {
 		PX4_DEBUG("mkdir: %s", dir.c_str());;
 		std::string dir_path = current_path + "/" + dir;
 
@@ -343,12 +350,12 @@ void register_sig_handler()
 	// SIGINT
 	struct sigaction sig_int {};
 	sig_int.sa_handler = sig_int_handler;
-	sig_int.sa_flags = 0;// not SA_RESTART!;
+	sig_int.sa_flags = 0;// not SA_RESTART!
 
 	// SIGFPE
 	struct sigaction sig_fpe {};
-	sig_int.sa_handler = sig_fpe_handler;
-	sig_int.sa_flags = 0;// not SA_RESTART!;
+	sig_fpe.sa_handler = sig_fpe_handler;
+	sig_fpe.sa_flags = 0;// not SA_RESTART!
 
 	// SIGPIPE
 	// We want to ignore if a PIPE has been closed.
