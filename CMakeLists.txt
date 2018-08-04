@@ -139,8 +139,6 @@ list(GET config_args 0 OS)
 list(GET config_args 1 BOARD)
 list(GET config_args 2 LABEL)
 
-set(THREADS "4" CACHE STRING "number of threads to use for external build processes")
-set(DEBUG_PORT "/dev/ttyACM0" CACHE STRING "debugging port")
 set(EXTERNAL_MODULES_LOCATION "" CACHE STRING "External modules source location")
 
 if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
@@ -301,9 +299,7 @@ message(STATUS "C++ compiler: ${cxx_compiler_version_short}")
 #=============================================================================
 # external libraries
 #
-px4_os_prebuild_targets(OUT prebuild_targets
-	BOARD ${BOARD}
-	THREADS ${THREADS})
+px4_os_prebuild_targets(OUT prebuild_targets BOARD ${BOARD})
 
 #=============================================================================
 # build flags
