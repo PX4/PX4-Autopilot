@@ -63,8 +63,6 @@ then
 	param set EKF2_BARO_GATE 10.0
 	param set EKF2_BARO_NOISE 5.0
 	param set EKF2_ACC_NOISE 0.7
-
-	param set SYS_LOGGER 1
 fi
 
 if param compare SYS_HITL 0
