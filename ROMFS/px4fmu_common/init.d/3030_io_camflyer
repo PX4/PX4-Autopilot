@@ -39,10 +39,11 @@ then
 	param set FW_RR_FF 0.6
 	param set FW_RR_IMAX 0.2
 	param set FW_RR_P 0.04
+
+	param set PWM_DISARMED 1000
 fi
 
 set MIXER fw_generic_wing
 
 # Provide ESC a constant 1000 us pulse while disarmed
 set PWM_OUT 4
-set PWM_DISARMED 1000
