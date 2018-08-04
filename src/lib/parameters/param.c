@@ -1281,7 +1281,7 @@ param_import_internal(int fd, bool mark_saved)
 
 	if (bson_decoder_init_file(&decoder, fd, param_import_callback, &state)) {
 		PX4_ERR("decoder init failed");
-		return -ENODATA;
+		return PX4_ERROR;
 	}
 
 	state.mark_saved = mark_saved;
