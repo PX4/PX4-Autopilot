@@ -99,10 +99,11 @@ static void register_sig_handler();
 static void set_cpu_scaling();
 static int create_symlinks_if_needed(std::string &data_path);
 static int create_dirs();
-static int run_startup_bash_script(const std::string &commands_file, const std::string &absolute_binary_path);
+static int run_startup_bash_script(const std::string &commands_file, const std::string &absolute_binary_path,
+				   int instance);
 static std::string get_absolute_binary_path(const std::string &argv0);
 static void wait_to_exit();
-static bool is_already_running();
+static bool is_already_running(int instance);
 static void print_usage();
 static bool dir_exists(const std::string &path);
 static bool file_exists(const std::string &name);
@@ -141,9 +142,23 @@ int main(int argc, char **argv)
 		absolute_binary_path = get_absolute_binary_path(full_binary_name);
 	}
 
-	if (is_client) {
 
-		if (!is_already_running()) {
+	if (is_client) {
+		int instance = 0;
+
+		if (argc >= 3 && strcmp(argv[1], "--instance") == 0) {
+			instance = strtoul(argv[2], nullptr, 10);
+			/* update argv so that "--instance <instance>" is not visible anymore */
+			argc -= 2;
+
+			for (int i = 1; i < argc; ++i) {
+				argv[i] = argv[i + 2];
+			}
+		}
+
+		PX4_DEBUG("instance: %i", instance);
+
+		if (!is_already_running(instance)) {
 			PX4_ERR("PX4 daemon not running yet");
 			return -1;
 		}
@@ -151,28 +166,24 @@ int main(int argc, char **argv)
 		/* Remove the path and prefix. */
 		argv[0] += path_length + strlen(prefix);
 
-		px4_daemon::Client client;
+		px4_daemon::Client client(instance);
 		client.generate_uuid();
 		client.register_sig_handler();
 		return client.process_args(argc, (const char **)argv);
 
 	} else {
-		if (is_already_running()) {
-			PX4_ERR("PX4 daemon already running");
-			return -1;
-		}
-
 		/* Server/daemon apps need to parse the command line arguments. */
 
 		std::string data_path = "";
 		std::string commands_file = "etc/init.d/rcS";
 		std::string test_data_path = "";
+		int instance = 0;
 
 		int myoptind = 1;
 		int ch;
 		const char *myoptarg = nullptr;
 
-		while ((ch = px4_getopt(argc, argv, "hdt:s:", &myoptind, &myoptarg)) != EOF) {
+		while ((ch = px4_getopt(argc, argv, "hdt:s:i:", &myoptind, &myoptarg)) != EOF) {
 			switch (ch) {
 			case 'h':
 				print_usage();
@@ -190,6 +201,10 @@ int main(int argc, char **argv)
 				commands_file = myoptarg;
 				break;
 
+			case 'i':
+				instance = strtoul(myoptarg, nullptr, 10);
+				break;
+
 			default:
 				PX4_ERR("unrecognized flag");
 				print_usage();
@@ -197,9 +212,18 @@ int main(int argc, char **argv)
 			}
 		}
 
+		PX4_DEBUG("instance: %i", instance);
+
 		if (myoptind < argc) {
 			data_path = argv[myoptind];
 		}
+
+		if (is_already_running(instance)) {
+			// allow running multiple instances, but the server is only started for the first
+			PX4_INFO("PX4 daemon already running for instance %i", instance);
+			return -1;
+		}
+
 
 		int ret = create_symlinks_if_needed(data_path);
 
@@ -223,7 +247,7 @@ int main(int argc, char **argv)
 		register_sig_handler();
 		set_cpu_scaling();
 
-		px4_daemon::Server server;
+		px4_daemon::Server server(instance);
 		server.start();
 
 		ret = create_dirs();
@@ -237,7 +261,7 @@ int main(int argc, char **argv)
 		px4::init_once();
 		px4::init(argc, argv, "px4");
 
-		ret = run_startup_bash_script(commands_file, absolute_binary_path);
+		ret = run_startup_bash_script(commands_file, absolute_binary_path, instance);
 
 		// We now block here until we need to exit.
 		if (pxh_off) {
@@ -432,11 +456,12 @@ std::string get_absolute_binary_path(const std::string &argv0)
 	return pwd() + "/" + base;
 }
 
-int run_startup_bash_script(const std::string &commands_file, const std::string &absolute_binary_path)
+int run_startup_bash_script(const std::string &commands_file, const std::string &absolute_binary_path,
+			    int instance)
 {
 	std::string bash_command("bash ");
 
-	bash_command += commands_file;
+	bash_command += commands_file + ' ' + std::to_string(instance);
 
 	// Update the PATH variable to include the absolute_binary_path
 	// (required for the px4-alias.sh script and px4-* commands).
@@ -506,24 +531,26 @@ void print_usage()
 {
 	printf("Usage for Server/daemon process: \n");
 	printf("\n");
-	printf("    px4 [-h|-d] [-s <startup_file>] [-d <test_data_directory>] [<rootfs_directory>]\n");
+	printf("    px4 [-h|-d] [-s <startup_file>] [-t <test_data_directory>] [<rootfs_directory>] [-i <instance>]\n");
 	printf("\n");
-	printf("    <startup_file>     bash start script to be used as startup (default=etc/init.d/rcS)\n");
+	printf("    -s <startup_file>  bash start script to be used as startup (default=etc/init.d/rcS)\n");
 	printf("    <rootfs_directory> directory where startup files and mixers are located,\n");
 	printf("                       (if not given, CWD is used)\n");
-	printf("        -h             help/usage information\n");
-	printf("        -d             daemon mode, don't start pxh shell\n");
+	printf("    -i <instance>      px4 instance id to run multiple instances [0...N], default=0\n");
+	printf("    -h                 help/usage information\n");
+	printf("    -d                 daemon mode, don't start pxh shell\n");
 	printf("\n");
 	printf("Usage for client: \n");
 	printf("\n");
-	printf("    px4-MODULE command using symlink.\n");
+	printf("    px4-MODULE [--instance <instance>] command using symlink.\n");
 	printf("        e.g.: px4-commander status\n");
 }
 
-bool is_already_running()
+bool is_already_running(int instance)
 {
+	const std::string file_lock_path = std::string(LOCK_FILE_PATH) + '-' + std::to_string(instance);
 	struct flock fl;
-	int fd = open(LOCK_FILE_PATH, O_RDWR | O_CREAT, 0666);
+	int fd = open(file_lock_path.c_str(), O_RDWR | O_CREAT, 0666);
 
 	if (fd < 0) {
 		return false;

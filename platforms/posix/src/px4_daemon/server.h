@@ -64,7 +64,7 @@ namespace px4_daemon
 class Server
 {
 public:
-	Server();
+	Server(int instance_id = 0);
 	~Server();
 
 	/**
@@ -117,6 +117,8 @@ private:
 	ThreadsafeMap <uint64_t, pthread_t> _client_uuid_to_pthread;
 
 	pthread_key_t _key;
+
+	int _instance_id; ///< instance ID for running multiple instances of the px4 server
 
 	static void _pthread_key_destructor(void *arg);
 

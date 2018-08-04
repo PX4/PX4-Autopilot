@@ -43,6 +43,10 @@
 
 #include "pipe_protocol.h"
 
+static const char CLIENT_SEND_PIPE_PATH[] = "/tmp/px4_client_send_pipe-";
+static const char CLIENT_RECV_PIPE_PATH[] = "/tmp/px4_client_recv_pipe";
+
+
 namespace px4_daemon
 {
 
@@ -59,9 +63,13 @@ unsigned get_client_recv_packet_length(const client_recv_packet_s *packet)
 
 int get_client_recv_pipe_path(const uint64_t uuid, char *path, const size_t path_len)
 {
-	return snprintf(path, path_len, "%s_%016" PRIx64, CLIENT_RECV_PIPE_PATH, uuid);
+	return snprintf(path, path_len, "%s-%016" PRIx64, CLIENT_RECV_PIPE_PATH, uuid);
 }
 
+std::string get_client_send_pipe_path(int instance_id)
+{
+	return std::string(CLIENT_SEND_PIPE_PATH) + std::to_string(instance_id);
+}
 
 } // namespace px4_daemon
 
