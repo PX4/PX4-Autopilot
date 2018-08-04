@@ -18,4 +18,9 @@ set() {
 # Don't stop on errors.
 #set -e
 
+# Arguments passed to this script:
+# $1: optional instance id
+px4_instance=0
+[[ -n "$1" ]] && px4_instance=$1
+
 ${alias_string}

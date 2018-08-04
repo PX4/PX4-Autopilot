@@ -39,13 +39,10 @@
 #pragma once
 
 #include <stdint.h>
+#include <string>
 
 namespace px4_daemon
 {
-
-
-static const char CLIENT_SEND_PIPE_PATH[] = "/tmp/px4_client_send_pipe";
-static const char CLIENT_RECV_PIPE_PATH[] = "/tmp/px4_client_recv_pipe";
 
 static const unsigned RECV_PIPE_PATH_LEN = 64;
 
@@ -93,6 +90,7 @@ struct client_recv_packet_s {
 unsigned get_client_send_packet_length(const client_send_packet_s *packet);
 unsigned get_client_recv_packet_length(const client_recv_packet_s *packet);
 int get_client_recv_pipe_path(const uint64_t uuid, char *path, const size_t path_len);
+std::string get_client_send_pipe_path(int instance_id);
 
 } // namespace px4_daemon
 

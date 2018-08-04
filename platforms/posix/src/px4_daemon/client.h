@@ -56,7 +56,7 @@ namespace px4_daemon
 class Client
 {
 public:
-	Client();
+	Client(int instance_id = 0);
 	~Client();
 
 	/**
@@ -97,6 +97,7 @@ private:
 	uint64_t _uuid;
 	int _client_send_pipe_fd;
 	char _recv_pipe_path[RECV_PIPE_PATH_LEN];
+	int _instance_id; ///< instance ID for running multiple instances of the px4 server
 };
 
 } // namespace px4_daemon

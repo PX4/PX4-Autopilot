@@ -59,9 +59,10 @@ namespace client
 static Client *_instance;
 }
 
-Client::Client() :
+Client::Client(int instance_id) :
 	_uuid(0),
-	_client_send_pipe_fd(-1)
+	_client_send_pipe_fd(-1),
+	_instance_id(instance_id)
 {
 	client::_instance = this;
 }
@@ -166,7 +167,7 @@ Client::_send_cmds(const int argc, const char **argv)
 	// The size is +1 because we want to include the null termination.
 	packet.header.payload_length = cmd_buf.size() + 1;
 
-	_client_send_pipe_fd = open(CLIENT_SEND_PIPE_PATH, O_WRONLY);
+	_client_send_pipe_fd = open(get_client_send_pipe_path(_instance_id).c_str(), O_WRONLY);
 
 	if (_client_send_pipe_fd < 0) {
 		PX4_ERR("pipe open fail");

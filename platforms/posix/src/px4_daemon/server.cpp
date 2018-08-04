@@ -57,7 +57,8 @@ namespace px4_daemon
 
 Server *Server::_instance = nullptr;
 
-Server::Server()
+Server::Server(int instance_id)
+	: _instance_id(instance_id)
 {
 	_instance = this;
 }
@@ -109,12 +110,14 @@ Server::_server_main(void *arg)
 		return;
 	}
 
+	std::string client_send_pipe_path = get_client_send_pipe_path(_instance_id);
+
 	// Delete pipe in case it exists already.
-	unlink(CLIENT_SEND_PIPE_PATH);
+	unlink(client_send_pipe_path.c_str());
 
 	// Create new pipe to listen to clients.
-	mkfifo(CLIENT_SEND_PIPE_PATH, 0666);
-	int client_send_pipe_fd = open(CLIENT_SEND_PIPE_PATH, O_RDONLY);
+	mkfifo(client_send_pipe_path.c_str(), 0666);
+	int client_send_pipe_fd = open(client_send_pipe_path.c_str(), O_RDONLY);
 
 	while (true) {
 
@@ -129,7 +132,7 @@ Server::_server_main(void *arg)
 			// 0 means the pipe has been closed by all clients
 			// and we need to re-open it.
 			close(client_send_pipe_fd);
-			client_send_pipe_fd = open(CLIENT_SEND_PIPE_PATH, O_RDONLY);
+			client_send_pipe_fd = open(client_send_pipe_path.c_str(), O_RDONLY);
 		}
 	}
 
