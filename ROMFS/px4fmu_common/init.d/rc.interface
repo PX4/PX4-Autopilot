@@ -240,6 +240,11 @@ then
 				pwm rate -c ${PWM_AUX_OUT} -r ${PWM_AUX_RATE} -d ${OUTPUT_AUX_DEV}
 			fi
 
+			# Set disarmed, min and max PWM_AUX values.
+			if [ $PWM_AUX_DISARMED != none ]
+			then
+				pwm disarmed -c ${PWM_AUX_OUT} -p ${PWM_AUX_DISARMED} -d ${OUTPUT_AUX_DEV}
+			fi
 			if [ $PWM_AUX_MIN != none ]
 			then
 				pwm min -c ${PWM_AUX_OUT} -p ${PWM_AUX_MIN} -d ${OUTPUT_AUX_DEV}
