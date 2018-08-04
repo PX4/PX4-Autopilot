@@ -16,6 +16,54 @@ pipeline {
           }
         }
 
+        stage('bloaty px4fmu-v2') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2018-07-19'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'make nuttx_px4fmu-v2_default'
+            sh 'make nuttx_px4fmu-v2_default bloaty_symbols'
+            sh 'make nuttx_px4fmu-v2_default bloaty_compileunits'
+            sh 'make nuttx_px4fmu-v2_default bloaty_inlines'
+            sh 'make nuttx_px4fmu-v2_default bloaty_templates'
+            sh 'make nuttx_px4fmu-v2_default bloaty_compare_master'
+            sh 'make sizes'
+            sh 'ccache -s'
+            sh 'make distclean'
+          }
+        }
+
+        stage('bloaty px4fmu-v5') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2018-07-19'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'make nuttx_px4fmu-v5_default'
+            sh 'make nuttx_px4fmu-v5_default bloaty_symbols'
+            sh 'make nuttx_px4fmu-v5_default bloaty_compileunits'
+            sh 'make nuttx_px4fmu-v5_default bloaty_inlines'
+            sh 'make nuttx_px4fmu-v5_default bloaty_templates'
+            sh 'make nuttx_px4fmu-v5_default bloaty_compare_master'
+            sh 'make sizes'
+            sh 'ccache -s'
+            sh 'make distclean'
+          }
+        }
+
         stage('clang analyzer') {
           agent {
             docker {
