@@ -1,3 +1,8 @@
+#!/usr/bin/bash
+# PX4 commands need the 'px4-' prefix in bash.
+# (px4-alias.sh is expected to be in the PATH)
+source px4-alias.sh
+
 uorb start
 param load
 dataman start
@@ -60,7 +65,7 @@ navigator start
 ekf2 start
 mc_pos_control start
 mc_att_control start
-mixer load /dev/pwm_output0 ROMFS/px4fmu_common/mixers/quad_w.main.mix
+mixer load /dev/pwm_output0 etc/mixers/quad_w.main.mix
 mavlink start -x -u _MAVPORT_ -r 4000000 -o _MAVOPORT_
 mavlink start -x -u _MAVPORT2_ -r 4000000 -m onboard -o _MAVOPORT2_
 mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u _MAVPORT_
