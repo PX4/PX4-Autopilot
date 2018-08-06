@@ -31,8 +31,26 @@
 #
 ############################################################################
 
+###########################################
+# Prepare flight tasks
+###########################################
+
+# add upstream flight tasks (they are being handled differently from the core below)
+list(APPEND flight_tasks_to_add
+	Orbit
+)
+# remove possible douplicates
+list(REMOVE_DUPLICATES flight_tasks_to_add)
+
+# remove flight tasks depending on target
+if(flight_tasks_to_remove)
+	list(REMOVE_ITEM flight_tasks_to_add
+		${flight_tasks_to_remove}
+	)
+endif()
+
 # add core flight tasks to list
-set(flight_tasks_all
+list(APPEND flight_tasks_all
 	ManualStabilized
 	ManualAltitude
 	ManualAltitudeSmooth
@@ -42,9 +60,10 @@ set(flight_tasks_all
 	AutoLine
 	AutoFollowMe
 	Offboard
-	${flight_tasks_additional}
+	${flight_tasks_to_add}
 )
 
+# set the files to be generated
 set(files_to_generate
 	FlightTasks_generated.hpp
 	FlightTasks_generated.cpp
@@ -58,12 +77,14 @@ set(python_args
 	-f ${files_to_generate}
 )
 
-if(${flight_tasks_additional})
+# add the additional tasks for the python script (if there are any)
+if(flight_tasks_to_add)
 	list(APPEND python_args
-		-s ${flight_tasks_additional}
+		-s ${flight_tasks_to_add}
 	)
 endif()
 
+# generate the files using the python script and template
 add_custom_command(
 	OUTPUT
 		${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.hpp
@@ -75,8 +96,10 @@ add_custom_command(
 	VERBATIM
 )
 
+###########################################
+# Create Flight Tasks Library
+###########################################
 
-# add the Flight Tasks library
 px4_add_library(FlightTasks
 	FlightTasks.cpp
 	FlightTasks_generated.cpp
