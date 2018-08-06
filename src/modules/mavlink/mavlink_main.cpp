@@ -72,6 +72,7 @@
 #include <lib/ecl/geo/geo.h>
 #include <dataman/dataman.h>
 #include <version/version.h>
+#include <mathlib/mathlib.h>
 
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_command_ack.h>
@@ -186,7 +187,6 @@ mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel)
 static void usage();
 
 bool Mavlink::_boot_complete = false;
-bool Mavlink::_config_link_on = false;
 
 Mavlink::Mavlink() :
 	_device_name("/dev/ttyS1"),
@@ -222,9 +222,7 @@ Mavlink::Mavlink() :
 	_uart_fd(-1),
 	_baudrate(57600),
 	_datarate(1000),
-	_datarate_events(500),
 	_rate_mult(1.0f),
-	_last_hw_rate_timestamp(0),
 	_mavlink_param_queue_index(0),
 	mavlink_link_termination_allowed(false),
 	_subscribe_to_stream(nullptr),
@@ -240,9 +238,6 @@ Mavlink::Mavlink() :
 	_bytes_txerr(0),
 	_bytes_rx(0),
 	_bytes_timestamp(0),
-	_rate_tx(0.0f),
-	_rate_txerr(0.0f),
-	_rate_rx(0.0f),
 #ifdef __PX4_POSIX
 	_myaddr {},
 	_src_addr{},
@@ -258,8 +253,6 @@ Mavlink::Mavlink() :
 	_protocol(SERIAL),
 	_network_port(14556),
 	_remote_port(DEFAULT_REMOTE_PORT_UDP),
-	_rstatus {},
-	_ping_stats{},
 	_message_buffer {},
 	_message_buffer_mutex {},
 	_send_mutex {},
@@ -275,8 +268,7 @@ Mavlink::Mavlink() :
 	_system_type(0),
 
 	/* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
-	_txerr_perf(perf_alloc(PC_COUNT, "mavlink_txe"))
+	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el"))
 {
 	_instance_id = Mavlink::instance_count();
 
@@ -322,13 +314,12 @@ Mavlink::Mavlink() :
 		break;
 	}
 
-	_rstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
+	_tstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
 }
 
 Mavlink::~Mavlink()
 {
 	perf_free(_loop_perf);
-	perf_free(_txerr_perf);
 
 	if (_task_running) {
 		/* task wakes up every 10ms or so at the longest */
@@ -364,12 +355,6 @@ Mavlink::set_proto_version(unsigned version)
 		get_status()->flags &= ~(MAVLINK_STATUS_FLAG_OUT_MAVLINK1);
 		_protocol_version = 2;
 	}
-}
-
-void
-Mavlink::count_txerr()
-{
-	perf_count(_txerr_perf);
 }
 
 int
@@ -814,7 +799,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, bool force_flow_
 		_is_usb_uart = true;
 		/* USB has no baudrate, but use a magic number for 'fast' */
 		_baudrate = 2000000;
-		_rstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB;
+		_tstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB;
 	}
 
 #if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
@@ -919,8 +904,9 @@ Mavlink::get_free_tx_buf()
 			 * and if the last try was not the last successful write
 			 */
 			if (_last_write_try_time != 0 &&
-			    hrt_elapsed_time(&_last_write_success_time) > 500 * 1000UL &&
+			    hrt_elapsed_time(&_last_write_success_time) > 500_ms &&
 			    _last_write_success_time != _last_write_try_time) {
+
 				enable_flow_control(FLOW_CONTROL_OFF);
 			}
 		}
@@ -952,16 +938,13 @@ Mavlink::send_packet()
 
 	if (get_protocol() == UDP) {
 
-
 		ret = sendto(_socket_fd, _network_buf, _network_buf_len, 0,
 			     (struct sockaddr *)&_src_addr, sizeof(_src_addr));
-
-		struct telemetry_status_s &tstatus = get_rx_status();
 
 		/* resend message via broadcast if no valid connection exists */
 		if ((_mode != MAVLINK_MODE_ONBOARD) && broadcast_enabled() &&
 		    (!get_client_source_initialized()
-		     || (hrt_elapsed_time(&tstatus.heartbeat_time) > 3 * 1000 * 1000))) {
+		     || (hrt_elapsed_time(&_tstatus.heartbeat_time) > 3_s))) {
 
 			if (!_broadcast_address_found) {
 				find_broadcast_address();
@@ -1017,7 +1000,6 @@ Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 
 		if (buf_free < packet_len) {
 			/* not enough space in buffer to send */
-			count_txerr();
 			count_txerrbytes(packet_len);
 			return;
 		}
@@ -1044,7 +1026,6 @@ Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 #endif
 
 	if (ret != (size_t) packet_len) {
-		count_txerr();
 		count_txerrbytes(packet_len);
 
 	} else {
@@ -1247,10 +1228,6 @@ Mavlink::init_udp()
 void
 Mavlink::handle_message(const mavlink_message_t *msg)
 {
-	if (!accepting_commands()) {
-		return;
-	}
-
 	/*
 	 *  NOTE: this is called from the receiver thread
 	 */
@@ -1379,26 +1356,19 @@ MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, int 
 }
 
 int
-Mavlink::interval_from_rate(float rate)
-{
-	if (rate > 0.000001f) {
-		return (1000000.0f / rate);
-
-	} else if (rate < 0.0f) {
-		return -1;
-
-	} else {
-		return 0;
-	}
-}
-
-int
 Mavlink::configure_stream(const char *stream_name, const float rate)
 {
 	PX4_DEBUG("configure_stream(%s, %.3f)", stream_name, (double)rate);
 
 	/* calculate interval in us, -1 means unlimited stream, 0 means disabled */
-	int interval = interval_from_rate(rate);
+	int interval = 0;
+
+	if (rate > 0.000001f) {
+		interval = (1000000.0f / rate);
+
+	} else if (rate < 0.0f) {
+		interval = -1;
+	}
 
 	/* search if stream exists */
 	MavlinkStream *stream;
@@ -1438,38 +1408,6 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	PX4_WARN("stream %s not found", stream_name);
 
 	return PX4_ERROR;
-}
-
-void
-Mavlink::adjust_stream_rates(const float multiplier)
-{
-	/* do not allow to push us to zero */
-	if (multiplier < MAVLINK_MIN_MULTIPLIER) {
-		return;
-	}
-
-	/* search if stream exists */
-	MavlinkStream *stream;
-	LL_FOREACH(_streams, stream) {
-		/* set new interval */
-		int interval = stream->get_interval();
-
-		if (interval > 0) {
-			interval /= multiplier;
-
-			/* limit min / max interval */
-			if (interval < MAVLINK_MIN_INTERVAL) {
-				interval = MAVLINK_MIN_INTERVAL;
-			}
-
-			if (interval > MAVLINK_MAX_INTERVAL) {
-				interval = MAVLINK_MAX_INTERVAL;
-			}
-
-			/* set new interval */
-			stream->set_interval(interval);
-		}
-	}
 }
 
 void
@@ -1631,12 +1569,6 @@ Mavlink::pass_message(const mavlink_message_t *msg)
 	}
 }
 
-float
-Mavlink::get_rate_mult()
-{
-	return _rate_mult;
-}
-
 MavlinkShell *
 Mavlink::get_shell()
 {
@@ -1700,57 +1632,52 @@ Mavlink::update_rate_mult()
 		bandwidth_mult = fminf(1.0f, bandwidth_mult);
 	}
 
-	/* check if we have radio feedback */
-	struct telemetry_status_s &tstatus = get_rx_status();
-
-	bool radio_critical = false;
-	bool radio_found = false;
-
-	/* 2nd pass: Now check hardware limits */
-	if (tstatus.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
-
-		radio_found = true;
-
-		if (tstatus.txbuf < RADIO_BUFFER_LOW_PERCENTAGE) {
-			radio_critical = true;
-		}
-	}
-
-	float hardware_mult = _rate_mult;
+	float hardware_mult = 1.0f;
 
 	/* scale down if we have a TX err rate suggesting link congestion */
-	if (_rate_txerr > 0.0f && !radio_critical) {
-		hardware_mult = (_rate_tx) / (_rate_tx + _rate_txerr);
+	if (_tstatus.rate_txerr > 0.0f && !_radio_status_critical) {
+		hardware_mult = (_tstatus.rate_tx) / (_tstatus.rate_tx + _tstatus.rate_txerr);
 
-	} else if (radio_found && tstatus.telem_time != _last_hw_rate_timestamp) {
-
-		if (tstatus.txbuf < RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE) {
-			/* this indicates link congestion, reduce rate by 20% */
-			hardware_mult *= 0.80f;
-
-		} else if (tstatus.txbuf < RADIO_BUFFER_LOW_PERCENTAGE) {
-			/* this indicates link congestion, reduce rate by 2.5% */
-			hardware_mult *= 0.975f;
-
-		} else if (tstatus.txbuf > RADIO_BUFFER_HALF_PERCENTAGE) {
-			/* this indicates spare bandwidth, increase by 2.5% */
-			hardware_mult *= 1.025f;
-			/* limit to a max multiplier of 1 */
-			hardware_mult = fminf(1.0f, hardware_mult);
-		}
-
-	} else if (!radio_found) {
-		/* no limitation, set hardware to 1 */
-		hardware_mult = 1.0f;
+	} else if (_radio_status_available) {
+		hardware_mult *= _radio_status_mult;
 	}
-
-	_last_hw_rate_timestamp = tstatus.telem_time;
 
 	/* pick the minimum from bandwidth mult and hardware mult as limit */
 	_rate_mult = fminf(bandwidth_mult, hardware_mult);
 
 	/* ensure the rate multiplier never drops below 5% so that something is always sent */
-	_rate_mult = fmaxf(0.05f, _rate_mult);
+	_rate_mult = math::constrain(_rate_mult, 0.05f, 1.0f);
+}
+
+void
+Mavlink::update_radio_status(const radio_status_s &radio_status)
+{
+	_rstatus = radio_status;
+
+	/* check hardware limits */
+	if (radio_status.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
+
+		_radio_status_available = true;
+		_radio_status_critical = (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE);
+
+		if (radio_status.txbuf < RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE) {
+			/* this indicates link congestion, reduce rate by 20% */
+			_radio_status_mult *= 0.80f;
+
+		} else if (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE) {
+			/* this indicates link congestion, reduce rate by 2.5% */
+			_radio_status_mult *= 0.975f;
+
+		} else if (radio_status.txbuf > RADIO_BUFFER_HALF_PERCENTAGE) {
+			/* this indicates spare bandwidth, increase by 2.5% */
+			_radio_status_mult *= 1.025f;
+		}
+
+	} else {
+		_radio_status_available = false;
+		_radio_status_critical = false;
+		_radio_status_mult = 1.0f;
+	}
 }
 
 int
@@ -2079,7 +2006,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 			} else if (strcmp(myoptarg, "iridium") == 0) {
 				_mode = MAVLINK_MODE_IRIDIUM;
-				_rstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM;
+				_tstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM;
 
 			} else if (strcmp(myoptarg, "minimal") == 0) {
 				_mode = MAVLINK_MODE_MINIMAL;
@@ -2517,16 +2444,23 @@ Mavlink::task_main(int argc, char *argv[])
 		/* update TX/RX rates*/
 		if (t > _bytes_timestamp + 1000000) {
 			if (_bytes_timestamp != 0) {
-				float dt = (t - _bytes_timestamp) / 1000.0f;
-				_rate_tx = _bytes_tx / dt;
-				_rate_txerr = _bytes_txerr / dt;
-				_rate_rx = _bytes_rx / dt;
+				const float dt = (t - _bytes_timestamp) / 1000.0f;
+
+				_tstatus.rate_tx = _bytes_tx / dt;
+				_tstatus.rate_txerr = _bytes_txerr / dt;
+				_tstatus.rate_rx = _bytes_rx / dt;
+
 				_bytes_tx = 0;
 				_bytes_txerr = 0;
 				_bytes_rx = 0;
 			}
 
 			_bytes_timestamp = t;
+		}
+
+		// publish status at 1 Hz, or sooner if HEARTBEAT has updated
+		if ((hrt_elapsed_time(&_tstatus.timestamp) >= 1_s) || (_tstatus.timestamp < _tstatus.heartbeat_time)) {
+			publish_telemetry_status();
 		}
 
 		perf_end(_loop_perf);
@@ -2590,10 +2524,37 @@ Mavlink::task_main(int argc, char *argv[])
 	return OK;
 }
 
+void Mavlink::publish_telemetry_status()
+{
+	// many fields are populated in place
+
+	_tstatus.mode = _mode;
+	_tstatus.data_rate = _datarate;
+	_tstatus.rate_multiplier = _rate_mult;
+	_tstatus.flow_control = get_flow_control_enabled();
+	_tstatus.ftp = ftp_enabled();
+	_tstatus.forwarding = get_forwarding_on();
+	_tstatus.mavlink_v2 = (_protocol_version == 2);
+
+	int num_streams = 0;
+
+	MavlinkStream *stream;
+	LL_FOREACH(_streams, stream) {
+		// count
+		num_streams++;
+	}
+
+	_tstatus.streams = num_streams;
+
+	_tstatus.timestamp = hrt_absolute_time();
+	int instance;
+	orb_publish_auto(ORB_ID(telemetry_status), &_telem_status_pub, &_tstatus, &instance, ORB_PRIO_DEFAULT);
+}
+
 void Mavlink::check_radio_config()
 {
 	/* radio config check */
-	if (_uart_fd >= 0 && _radio_id != 0 && _rstatus.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
+	if (_uart_fd >= 0 && _radio_id != 0 && _tstatus.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
 		/* request to configure radio and radio is present */
 		FILE *fs = fdopen(_uart_fd, "w");
 
@@ -2727,17 +2688,17 @@ void
 Mavlink::display_status()
 {
 
-	if (_rstatus.heartbeat_time > 0) {
-		printf("\tGCS heartbeat:\t%llu us ago\n", (unsigned long long)hrt_elapsed_time(&_rstatus.heartbeat_time));
+	if (_tstatus.heartbeat_time > 0) {
+		printf("\tGCS heartbeat:\t%llu us ago\n", (unsigned long long)hrt_elapsed_time(&_tstatus.heartbeat_time));
 	}
 
 	printf("\tmavlink chan: #%u\n", _channel);
 
-	if (_rstatus.timestamp > 0) {
+	if (_tstatus.timestamp > 0) {
 
 		printf("\ttype:\t\t");
 
-		switch (_rstatus.type) {
+		switch (_tstatus.type) {
 		case telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO:
 			printf("3DR RADIO\n");
 			printf("\trssi:\t\t%d\n", _rstatus.rssi);
@@ -2759,24 +2720,23 @@ Mavlink::display_status()
 		}
 
 	} else {
-		printf("\tno telem status.\n");
+		printf("\tno radio status.\n");
 	}
 
 	printf("\tflow control: %s\n", _flow_control_mode ? "ON" : "OFF");
 	printf("\trates:\n");
-	printf("\t  tx: %.3f kB/s\n", (double)_rate_tx);
-	printf("\t  txerr: %.3f kB/s\n", (double)_rate_txerr);
+	printf("\t  tx: %.3f kB/s\n", (double)_tstatus.rate_tx);
+	printf("\t  txerr: %.3f kB/s\n", (double)_tstatus.rate_txerr);
 	printf("\t  tx rate mult: %.3f\n", (double)_rate_mult);
 	printf("\t  tx rate max: %i B/s\n", _datarate);
-	printf("\t  rx: %.3f kB/s\n", (double)_rate_rx);
+	printf("\t  rx: %.3f kB/s\n", (double)_tstatus.rate_rx);
 
 	if (_mavlink_ulog) {
 		printf("\tULog rate: %.1f%% of max %.1f%%\n", (double)_mavlink_ulog->current_data_rate() * 100.,
 		       (double)_mavlink_ulog->maximum_data_rate() * 100.);
 	}
 
-	printf("\taccepting commands: %s, FTP enabled: %s, TX enabled: %s\n",
-	       accepting_commands() ? "YES" : "NO",
+	printf("\tFTP enabled: %s, TX enabled: %s\n",
 	       _ftp_on ? "YES" : "NO",
 	       _transmitting_enabled ? "YES" : "NO");
 	printf("\tmode: %s\n", mavlink_mode_str(_mode));
