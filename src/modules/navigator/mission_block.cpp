@@ -459,8 +459,8 @@ MissionBlock::issue_command(const mission_item_s &item)
 			vcmd.param7 = item.altitude + _navigator->get_home_position()->alt;
 
 		} else {
-			vcmd.param5 = item.params[4];
-			vcmd.param6 = item.params[5];
+			vcmd.param5 = (double)item.params[4];
+			vcmd.param6 = (double)item.params[5];
 			vcmd.param7 = item.params[6];
 		}
 
