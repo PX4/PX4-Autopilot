@@ -309,8 +309,8 @@ Client::register_sig_handler()
 	// been pressed, and we can't wait for the return value from the
 	// cancelled command.
 	sig_int.sa_flags = SA_RESTART;
-	sigaction(SIGINT, &sig_int, NULL);
-	sigaction(SIGTERM, &sig_int, NULL);
+	sigaction(SIGINT, &sig_int, nullptr);
+	sigaction(SIGTERM, &sig_int, nullptr);
 }
 
 void
