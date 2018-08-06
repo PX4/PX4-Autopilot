@@ -69,7 +69,7 @@ int get_stdout_pipe_buffer(char **buffer, unsigned *max_length, bool *is_atty)
 	// have any thread specific data set and we won't have a pipe to write
 	// stdout to.
 	if ((thread_data_ptr = (Server::CmdThreadSpecificData *)pthread_getspecific(
-				       Server::get_pthread_key())) == NULL) {
+				       Server::get_pthread_key())) == nullptr) {
 		return -1;
 	}
 
@@ -104,7 +104,7 @@ int send_stdout_pipe_buffer(unsigned buffer_length)
 	}
 
 	if ((thread_data_ptr = (Server::CmdThreadSpecificData *)pthread_getspecific(
-				       Server::get_pthread_key())) == NULL) {
+				       Server::get_pthread_key())) == nullptr) {
 		return -1;
 	}
 
@@ -117,11 +117,11 @@ int send_stdout_pipe_buffer(unsigned buffer_length)
 	// Check if we can write first by writing 0 bytes.
 	// If we don't do this, we'll get SIGPIPE and be very unhappy
 	// because the whole process will go down.
-	int ret = write(pipe_fd, NULL, 0);
+	int ret = write(pipe_fd, nullptr, 0);
 
 	if (ret == 0 && errno == EPIPE) {
 		printf("Error: can't write to closed pipe, giving up.\n");
-		pthread_exit(NULL);
+		pthread_exit(nullptr);
 	}
 
 	int bytes_sent = write(pipe_fd, packet, bytes_to_send);

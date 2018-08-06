@@ -88,7 +88,7 @@ static volatile bool _exit_requested = false;
 
 namespace px4
 {
-void init_once(void);
+void init_once();
 }
 
 static void sig_int_handler(int sig_num);
@@ -174,9 +174,9 @@ int main(int argc, char **argv)
 	} else {
 		/* Server/daemon apps need to parse the command line arguments. */
 
-		std::string data_path = "";
+		std::string data_path;
 		std::string commands_file = "etc/init.d/rcS";
-		std::string test_data_path = "";
+		std::string test_data_path;
 		int instance = 0;
 
 		int myoptind = 1;
@@ -234,8 +234,12 @@ int main(int argc, char **argv)
 		if (test_data_path != "") {
 			const std::string required_test_data_path = "./test_data";
 
-			if (!dir_exists(required_test_data_path.c_str())) {
-				symlink(test_data_path.c_str(), required_test_data_path.c_str());
+			if (!dir_exists(required_test_data_path)) {
+				ret = symlink(test_data_path.c_str(), required_test_data_path.c_str());
+
+				if (ret != PX4_OK) {
+					return ret;
+				}
 			}
 		}
 
@@ -293,14 +297,14 @@ int create_symlinks_if_needed(std::string &data_path)
 {
 	std::string current_path = pwd();
 
-	if (data_path.size() == 0) {
+	if (data_path.empty()) {
 		// No data path given, we'll just try to use the current working dir.
 		data_path = current_path;
 		PX4_INFO("assuming working directory is rootfs, no symlinks needed.");
 		return PX4_OK;
 	}
 
-	if (data_path.compare(current_path) == 0) {
+	if (data_path == current_path) {
 		// We are already running in the data path, so no need to symlink
 		PX4_INFO("working directory seems to be rootfs, no symlinks needed");
 		return PX4_OK;
@@ -313,7 +317,7 @@ int create_symlinks_if_needed(std::string &data_path)
 	std::string src_path = data_path;
 	std::string dest_path = current_path + "/" + path_sym_link;
 
-	if (dir_exists(dest_path.c_str())) {
+	if (dir_exists(dest_path)) {
 		return PX4_OK;
 	}
 
@@ -385,10 +389,10 @@ void register_sig_handler()
 	sig_segv.sa_handler = sig_segv_handler;
 	sig_segv.sa_flags = SA_RESTART | SA_SIGINFO;
 
-	sigaction(SIGINT, &sig_int, NULL);
-	//sigaction(SIGTERM, &sig_int, NULL);
-	sigaction(SIGFPE, &sig_fpe, NULL);
-	sigaction(SIGPIPE, &sig_pipe, NULL);
+	sigaction(SIGINT, &sig_int, nullptr);
+	//sigaction(SIGTERM, &sig_int, nullptr);
+	sigaction(SIGFPE, &sig_fpe, nullptr);
+	sigaction(SIGPIPE, &sig_pipe, nullptr);
 	sigaction(SIGSEGV, &sig_segv, nullptr);
 }
 
@@ -438,7 +442,7 @@ std::string get_absolute_binary_path(const std::string &argv0)
 {
 	// On Linux we could also use readlink("/proc/self/exe", buf, bufsize) to get the absolute path
 
-	std::size_t last_slash = argv0.find_last_of("/");
+	std::size_t last_slash = argv0.find_last_of('/');
 
 	if (last_slash == std::string::npos) {
 		// either relative path or in PATH (PATH is ignored here)

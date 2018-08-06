@@ -71,7 +71,7 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 		return 0;
 	}
 
-	if (_apps.size() == 0) {
+	if (_apps.empty()) {
 		init_app_map(_apps);
 	}
 
@@ -109,7 +109,7 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 
 		return retval;
 
-	} else if (command.compare("help") == 0) {
+	} else if (command == "help") {
 		list_builtins(_apps);
 		return 0;
 
@@ -134,7 +134,7 @@ void Pxh::run_pxh()
 
 	_setup_term();
 
-	std::string mystr = "";
+	std::string mystr;
 	int cursor_position = 0; // position of the cursor from right to left
 	// (0: all the way to the right, mystr.length: all the way to the left)
 
@@ -262,10 +262,10 @@ void Pxh::_setup_term()
 	term.c_lflag &= ~ICANON;
 	term.c_lflag &= ~ECHO;
 	tcsetattr(0, TCSANOW, &term);
-	setbuf(stdin, NULL);
+	setbuf(stdin, nullptr);
 }
 
-void Pxh::_restore_term(void)
+void Pxh::_restore_term()
 {
 	if (_instance) {
 		tcsetattr(0, TCSANOW, &_instance->_orig_term);
