@@ -124,12 +124,30 @@ Server::_server_main(void *arg)
 
 		client_send_packet_s packet;
 
-		int bytes_read = read(client_send_pipe_fd, &packet, sizeof(packet));
+		// We only read as much as we need, otherwise we might get out of
+		// sync with packets.
+		int bytes_read = read(client_send_pipe_fd, &packet, sizeof(client_send_packet_s::header));
 
 		if (bytes_read > 0) {
-			_parse_client_send_packet(packet);
 
-		} else if (bytes_read == 0) {
+			// Using the header we can determine how big the payload is.
+			int payload_to_read = sizeof(packet)
+					      - sizeof(packet.header)
+					      - sizeof(packet.payload)
+					      + packet.header.payload_length;
+
+			// Again, we only read as much as we need because otherwise we need
+			// hold a buffer and parse it.
+			bytes_read = read(client_send_pipe_fd, ((uint8_t *)&packet) + bytes_read, payload_to_read);
+
+			if (bytes_read > 0) {
+
+				_parse_client_send_packet(packet);
+
+			}
+		}
+
+		if (bytes_read == 0) {
 			// 0 means the pipe has been closed by all clients
 			// and we need to re-open it.
 			close(client_send_pipe_fd);
@@ -169,7 +187,7 @@ Server::_execute_cmd_packet(const client_send_packet_s &packet)
 
 	// We open the client's specific pipe to write the return value and stdout back to.
 	// The pipe's path is created knowing the UUID of the client.
-	char path[RECV_PIPE_PATH_LEN] = {};
+	char path[RECV_PIPE_PATH_LEN];
 	int ret = get_client_recv_pipe_path(packet.header.client_uuid, path, RECV_PIPE_PATH_LEN);
 
 	if (ret < 0) {
@@ -190,7 +208,7 @@ Server::_execute_cmd_packet(const client_send_packet_s &packet)
 	// We need to copy everything that the new thread needs because we will go
 	// out of scope.
 	RunCmdArgs *args = new RunCmdArgs;
-	memcpy(args->cmd, packet.payload.execute_msg.cmd, sizeof(args->cmd));
+	strncpy(args->cmd, (char *)packet.payload.execute_msg.cmd, sizeof(args->cmd));
 	args->client_uuid = packet.header.client_uuid;
 	args->pipe_fd = pipe_fd;
 	args->is_atty = packet.payload.execute_msg.is_atty;
