@@ -34,8 +34,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <px4_log.h>
-#if defined(__PX4_POSIX) && !defined(__PX4_CYGWIN)
+#if defined(__PX4_POSIX)
+#if !defined(__PX4_CYGWIN)
 #include <execinfo.h>
+#endif
 #include <px4_daemon/server_io.h>
 #endif
 
