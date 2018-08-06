@@ -208,7 +208,7 @@ def print_field(field):
 
         else:
             for i in range(array_length):
-                print("printf(\"\\t" + field.type + " " + field.name + "[" + str(i) + "]\");")
+                print("PX4_INFO_RAW(\"\\t" + field.type + " " + field.name + "[" + str(i) + "]\");")
                 print(" print_message(message." + field.name + "[" + str(i) + "]);")
             return
 
@@ -242,11 +242,11 @@ def print_field(field):
                 field_name = "(" + field_name + " ? \"True\" : \"False\")"
 
         else:
-            print("printf(\"\\n\\t" + field.name + "\");")
+            print("PX4_INFO_RAW(\"\\n\\t" + field.name + "\");")
             print("\tprint_message(message."+ field.name + ");")
             return
 
-    print("printf(\"\\t" + field.name + ": " + c_type + "\\n\", " + field_name + ");" )
+    print("PX4_INFO_RAW(\"\\t" + field.name + ": " + c_type + "\\n\", " + field_name + ");" )
 
 
 def print_field_def(field):
