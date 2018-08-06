@@ -229,7 +229,7 @@ private:
 	orb_advert_t _att_pos_mocap_pub;
 	orb_advert_t _vision_position_pub;
 	orb_advert_t _vision_attitude_pub;
-	orb_advert_t _telemetry_status_pub;
+	orb_advert_t _radio_status_pub;
 	orb_advert_t _ping_pub;
 	orb_advert_t _rc_pub;
 	orb_advert_t _manual_pub;

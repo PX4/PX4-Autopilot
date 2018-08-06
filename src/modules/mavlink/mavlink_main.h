@@ -66,6 +66,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/radio_status.h>
 #include <uORB/topics/telemetry_status.h>
 
 #include "mavlink_bridge_header.h"
@@ -80,6 +81,8 @@ enum Protocol {
 	UDP,
 	TCP,
 };
+
+using namespace time_literals;
 
 #define HASH_PARAM "_HASH_CHECK"
 
@@ -233,13 +236,9 @@ public:
 
 	bool			get_forwarding_on() { return _forwarding_on; }
 
-	bool			get_config_link_on() { return _config_link_on; }
+	bool			is_connected() { return ((_tstatus.heartbeat_time > 0) && (hrt_absolute_time() - _tstatus.heartbeat_time < 3_s)); }
 
-	void			set_config_link_on(bool on) { _config_link_on = on; }
-
-	bool			is_connected() { return ((_rstatus.heartbeat_time > 0) && (hrt_absolute_time() - _rstatus.heartbeat_time < 3000000)); }
-
-	bool			broadcast_enabled() { return _broadcast_mode > BROADCAST_MODE_OFF; }
+	bool			broadcast_enabled() { return _broadcast_mode == BROADCAST_MODE_ON; }
 
 	/**
 	 * Set the boot complete flag on all instances
@@ -387,7 +386,7 @@ public:
 
 	MavlinkStream 		*get_streams() const { return _streams; }
 
-	float			get_rate_mult();
+	float			get_rate_mult() const { return _rate_mult; }
 
 	float			get_baudrate() { return _baudrate; }
 
@@ -402,11 +401,6 @@ public:
 
 	void			lockMessageBufferMutex(void) { pthread_mutex_lock(&_message_buffer_mutex); }
 	void			unlockMessageBufferMutex(void) { pthread_mutex_unlock(&_message_buffer_mutex); }
-
-	/**
-	 * Count a transmission error
-	 */
-	void			count_txerr();
 
 	/**
 	 * Count transmitted bytes
@@ -426,7 +420,9 @@ public:
 	/**
 	 * Get the receive status of this MAVLink link
 	 */
-	struct telemetry_status_s	&get_rx_status() { return _rstatus; }
+	telemetry_status_s	&get_telemetry_status() { return _tstatus; }
+
+	void update_radio_status(const radio_status_s &radio_status);
 
 	ringbuffer::RingBuffer	*get_logbuffer() { return &_logbuffer; }
 
@@ -458,8 +454,6 @@ public:
 	static bool		boot_complete() { return _boot_complete; }
 
 	bool			is_usb_uart() { return _is_usb_uart; }
-
-	bool			accepting_commands() { return true; /* non-trivial side effects ((!_config_link_on) || (_mode == MAVLINK_MODE_CONFIG));*/ }
 
 	int			get_data_rate()		{ return _datarate; }
 	void			set_data_rate(int rate) { if (rate > 0) { _datarate = rate; } }
@@ -514,7 +508,9 @@ private:
 	bool			_transmitting_enabled_commanded;
 	bool			_first_heartbeat_sent{false};
 
-	orb_advert_t		_mavlink_log_pub;
+	orb_advert_t		_mavlink_log_pub{nullptr};
+	orb_advert_t		_telem_status_pub{nullptr};
+
 	bool			_task_running;
 	static bool		_boot_complete;
 	static constexpr int MAVLINK_MAX_INSTANCES = 4;
@@ -558,9 +554,11 @@ private:
 
 	int			_baudrate;
 	int			_datarate;		///< data rate for normal streams (attitude, position, etc.)
-	int			_datarate_events;	///< data rate for params, waypoints, text messages
 	float			_rate_mult;
-	hrt_abstime		_last_hw_rate_timestamp;
+
+	bool			_radio_status_available{false};
+	bool			_radio_status_critical{false};
+	float			_radio_status_mult{1.0f};
 
 	/**
 	 * If the queue index is not at 0, the queue sending
@@ -586,9 +584,6 @@ private:
 	unsigned		_bytes_txerr;
 	unsigned		_bytes_rx;
 	uint64_t		_bytes_timestamp;
-	float			_rate_tx;
-	float			_rate_txerr;
-	float			_rate_rx;
 
 #ifdef __PX4_POSIX
 	struct sockaddr_in _myaddr;
@@ -609,9 +604,10 @@ private:
 	unsigned short _network_port;
 	unsigned short _remote_port;
 
-	struct telemetry_status_s	_rstatus;			///< receive status
+	radio_status_s		_rstatus{};
+	telemetry_status_s	_tstatus{};
 
-	struct ping_statistics_s	_ping_stats;		///< ping statistics
+	ping_statistics_s	_ping_stats{};
 
 	struct mavlink_message_buffer {
 		int write_ptr;
@@ -638,16 +634,12 @@ private:
 	param_t			_param_broadcast;
 
 	unsigned		_system_type;
-	static bool		_config_link_on;
 
 	perf_counter_t		_loop_perf;			/**< loop performance counter */
-	perf_counter_t		_txerr_perf;			/**< TX error counter */
 
 	void			mavlink_update_system();
 
 	int			mavlink_open_uart(int baudrate, const char *uart_name, bool force_flow_control);
-
-	static int		interval_from_rate(float rate);
 
 	static constexpr unsigned RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE = 25;
 	static constexpr unsigned RADIO_BUFFER_LOW_PERCENTAGE = 35;
@@ -669,13 +661,6 @@ private:
 	 */
 	int configure_streams_to_default(const char *configure_single_stream = nullptr);
 
-	/**
-	 * Adjust the stream rates based on the current rate
-	 *
-	 * @param multiplier if greater than 1, the transmission rate will increase, if smaller than one decrease
-	 */
-	void adjust_stream_rates(const float multiplier);
-
 	int message_buffer_init(int size);
 
 	void message_buffer_destroy();
@@ -689,6 +674,8 @@ private:
 	void message_buffer_mark_read(int n);
 
 	void pass_message(const mavlink_message_t *msg);
+
+	void publish_telemetry_status();
 
 	/**
 	 * Check the configuration of a connected radio
