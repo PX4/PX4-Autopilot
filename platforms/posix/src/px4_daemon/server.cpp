@@ -58,7 +58,8 @@ namespace px4_daemon
 Server *Server::_instance = nullptr;
 
 Server::Server(int instance_id)
-	: _instance_id(instance_id)
+	: _mutex(PTHREAD_MUTEX_INITIALIZER),
+	  _instance_id(instance_id)
 {
 	_instance = this;
 }
@@ -194,35 +195,52 @@ Server::_execute_cmd_packet(const client_send_packet_s &packet)
 	args->pipe_fd = pipe_fd;
 	args->is_atty = packet.payload.execute_msg.is_atty;
 
-	if (0 != pthread_create(&new_pthread, NULL, Server::_run_cmd, (void *)args)) {
-		PX4_ERR("could not start pthread");
+	_lock(); // need to lock, otherwise the thread could already exit before we insert into the map
+	ret = pthread_create(&new_pthread, NULL, Server::_run_cmd, (void *)args);
+
+	if (ret != 0) {
+		PX4_ERR("could not start pthread (%i)", ret);
 		delete args;
-		return;
+
+	} else {
+		// We won't join the thread, so detach to automatically release resources at its end
+		pthread_detach(new_pthread);
+		// We keep two maps for cleanup if a thread is finished or killed.
+		_client_uuid_to_pthread.insert(std::pair<uint64_t, pthread_t>
+					       (packet.header.client_uuid, new_pthread));
+		_pthread_to_pipe_fd.insert(std::pair<pthread_t, int>
+					   (new_pthread, pipe_fd));
 	}
 
-	// We keep two maps for cleanup if a thread is finished or killed.
-	_client_uuid_to_pthread.insert(std::pair<uint64_t, pthread_t>
-				       (packet.header.client_uuid, new_pthread));
-	_pthread_to_pipe_fd.insert(std::pair<pthread_t, int>
-				   (new_pthread, pipe_fd));
+	_unlock();
 }
 
 
 void
 Server::_kill_cmd_packet(const client_send_packet_s &packet)
 {
-	// TODO: we currently ignore the signal type.
+	_lock();
 
-	pthread_t pthread_to_kill = _client_uuid_to_pthread.get(packet.header.client_uuid);
+	// TODO: we currently ignore the signal type.
+	auto client_uuid_iter = _client_uuid_to_pthread.find(packet.header.client_uuid);
+
+	if (client_uuid_iter == _client_uuid_to_pthread.end()) {
+		_unlock();
+		return;
+	}
+
+	pthread_t pthread_to_kill = client_uuid_iter->second;
 
 	// TODO: use a more graceful exit method to avoid resource leaks
 	int ret = pthread_cancel(pthread_to_kill);
 
+	__cleanup_thread(packet.header.client_uuid);
+
+	_unlock();
+
 	if (ret != 0) {
 		PX4_ERR("failed to cancel thread");
 	}
-
-	_cleanup_thread(packet.header.client_uuid);
 
 	// We don't send retval when we get killed.
 	// The client knows this and just exits without confirmation.
@@ -291,9 +309,24 @@ Server::_send_retval(const int pipe_fd, const int retval, const uint64_t client_
 void
 Server::_cleanup_thread(const uint64_t client_uuid)
 {
-	pthread_t pthread_killed = _client_uuid_to_pthread.get(client_uuid);
-	int pipe_fd = _pthread_to_pipe_fd.get(pthread_killed);
+	_lock();
+	__cleanup_thread(client_uuid);
+	_unlock();
+}
 
+void
+Server::__cleanup_thread(const uint64_t client_uuid)
+{
+	pthread_t pthread_killed = _client_uuid_to_pthread[client_uuid];
+	auto pipe_iter = _pthread_to_pipe_fd.find(pthread_killed);
+
+	if (pipe_iter == _pthread_to_pipe_fd.end()) {
+		// can happen if the thread already exited and then got a kill packet
+		PX4_DEBUG("pipe fd already closed");
+		return;
+	}
+
+	int pipe_fd = pipe_iter->second;
 	close(pipe_fd);
 
 	char path[RECV_PIPE_PATH_LEN] = {};
