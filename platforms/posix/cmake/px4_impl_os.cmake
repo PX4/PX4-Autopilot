@@ -104,7 +104,30 @@ function(px4_posix_generate_builtin_commands)
 endfunction()
 
 
-# TODO: document API
+#=============================================================================
+#
+#	px4_posix_generate_alias
+#
+#	This function generates the px4-alias.sh script containing the command
+#	aliases for all modules and commands.
+#
+#	Usage:
+#		px4_posix_generate_alias(
+#			MODULE_LIST <in-list>
+#			OUT <file>
+#			PREFIX <prefix>)
+#
+#	Input:
+#		MODULE_LIST	: list of modules
+#		PREFIX	: command prefix (e.g. "px4-")
+#
+#	Output:
+#		OUT	: px4-alias.sh file path
+#
+#	Example:
+#		px4_posix_generate_alias(
+#			OUT <generated-src> MODULE_LIST px4_simple_app PREFIX px4-)
+#
 function(px4_posix_generate_alias)
 	px4_parse_function_args(
 		NAME px4_posix_generate_alias
@@ -133,7 +156,27 @@ function(px4_posix_generate_alias)
 endfunction()
 
 
-# TODO: document API
+#=============================================================================
+#
+#	px4_posix_generate_symlinks
+#
+#	This function generates symlinks for all modules/commands.
+#
+#	Usage:
+#		px4_posix_generate_symlinks(
+#			TARGET <target>
+#			MODULE_LIST <in-list>
+#			PREFIX <prefix>)
+#
+#	Input:
+#		MODULE_LIST	: list of modules
+#		PREFIX	: command prefix (e.g. "px4-")
+#		TARGET	: cmake target for which the symlinks should be created
+#
+#	Example:
+#		px4_posix_generate_symlinks(
+#			TARGET px4 MODULE_LIST px4_simple_app PREFIX px4-)
+#
 function(px4_posix_generate_symlinks)
 	px4_parse_function_args(
 		NAME px4_posix_generate_symlinks
