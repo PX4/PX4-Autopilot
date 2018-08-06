@@ -91,7 +91,7 @@ set PWM_OUT                     none
 set PWM_RATE                    p:PWM_RATE
 set USE_IO                      no
 set VEHICLE_TYPE                none
-
+set TUNE_ERR                    ML<<CP4CP4CP4CP4CP4
 #
 # Mount the procfs.
 #
