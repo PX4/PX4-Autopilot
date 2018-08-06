@@ -307,6 +307,8 @@ public:
 	 */
 	void			send_bytes(const uint8_t *buf, unsigned packet_len);
 
+	bool			should_send_bytes(unsigned packet_len);
+
 	/**
 	 * Flush the transmit buffer and send one MAVLink packet
 	 *

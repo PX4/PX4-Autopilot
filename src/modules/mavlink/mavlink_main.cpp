@@ -964,6 +964,23 @@ Mavlink::send_packet()
 	return ret;
 }
 
+bool
+Mavlink::should_send_bytes(unsigned packet_len)
+{
+	if (get_protocol() == SERIAL) {
+		/* check if there is space in the buffer, let it overflow else */
+		unsigned buf_free = get_free_tx_buf();
+
+		if (buf_free < packet_len) {
+			/* not enough space in buffer to send */
+			count_txerrbytes(packet_len);
+			return false;
+		}
+	}
+
+	return true;
+}
+
 void
 Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 {
@@ -979,15 +996,8 @@ Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 		_mavlink_start_time = _last_write_try_time;
 	}
 
-	if (get_protocol() == SERIAL) {
-		/* check if there is space in the buffer, let it overflow else */
-		unsigned buf_free = get_free_tx_buf();
-
-		if (buf_free < packet_len) {
-			/* not enough space in buffer to send */
-			count_txerrbytes(packet_len);
-			return;
-		}
+	if (!should_send_bytes(packet_len)) {
+		return;
 	}
 
 	size_t ret = -1;
