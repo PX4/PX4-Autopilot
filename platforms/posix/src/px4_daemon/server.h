@@ -55,7 +55,6 @@
 #include <map>
 
 #include "pipe_protocol.h"
-#include "threadsafe_map.h"
 
 
 namespace px4_daemon
@@ -100,6 +99,22 @@ private:
 	void _kill_cmd_packet(const client_send_packet_s &packet);
 	void _cleanup_thread(const uint64_t client_uuid);
 
+	/**
+	 * Like _cleanup_thread(), but does not take the mutex
+	 */
+	void __cleanup_thread(const uint64_t client_uuid);
+
+	void _lock()
+	{
+		pthread_mutex_lock(&_mutex);
+	}
+
+	void _unlock()
+	{
+		pthread_mutex_unlock(&_mutex);
+	}
+
+
 	static void _send_retval(const int pipe_fd, const int retval, const uint64_t client_uuid);
 
 	struct RunCmdArgs {
@@ -113,12 +128,14 @@ private:
 
 	pthread_t _server_main_pthread;
 
-	ThreadsafeMap <pthread_t, int> _pthread_to_pipe_fd;
-	ThreadsafeMap <uint64_t, pthread_t> _client_uuid_to_pthread;
+	std::map<pthread_t, int> _pthread_to_pipe_fd;
+	std::map<uint64_t, pthread_t> _client_uuid_to_pthread;
+	pthread_mutex_t _mutex; ///< protects access to _pthread_to_pipe_fd and _client_uuid_to_pthread
 
 	pthread_key_t _key;
 
 	int _instance_id; ///< instance ID for running multiple instances of the px4 server
+
 
 	static void _pthread_key_destructor(void *arg);
 
