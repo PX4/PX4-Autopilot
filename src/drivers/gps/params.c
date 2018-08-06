@@ -85,3 +85,22 @@ PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
  * @group GPS
  */
 PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
+
+
+/**
+ * GPS Baudrate
+ *
+ * Configure the Baudrate for the GPS Serial Port. In most cases this can be set to Auto.
+ *
+ * The Trimble MB-Two GPS does not support auto-detection and uses a baudrate of 115200.
+ *
+ * @value 0 Auto
+ * @value 9600 9600 8N1
+ * @value 19200 19200 8N1
+ * @value 38400 38400 8N1
+ * @value 57600 57600 8N1
+ * @value 115200 115200 8N1
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(SER_GPS1_BAUD, 0);
