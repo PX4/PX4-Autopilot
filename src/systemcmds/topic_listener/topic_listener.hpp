@@ -43,6 +43,7 @@
 #include <px4_middleware.h>
 #include <px4_app.h>
 #include <px4_config.h>
+#include <px4_log.h>
 #include <uORB/uORB.h>
 #include <string.h>
 #include <stdint.h>
@@ -54,7 +55,7 @@ template <typename T>
 void listener(const orb_id_t &id, unsigned num_msgs, unsigned topic_instance, unsigned topic_interval)
 {
 	if (orb_exists(id, topic_instance) != 0) {
-		printf("never published\n");
+		PX4_INFO_RAW("never published\n");
 		return;
 	}
 
@@ -79,7 +80,7 @@ void listener(const orb_id_t &id, unsigned num_msgs, unsigned topic_instance, un
 			start_time = hrt_absolute_time();
 			i++;
 
-			printf("\nTOPIC: %s instance %d #%d\n", id->o_name, topic_instance, i);
+			PX4_INFO_RAW("\nTOPIC: %s instance %d #%d\n", id->o_name, topic_instance, i);
 
 			T container;
 
@@ -92,7 +93,7 @@ void listener(const orb_id_t &id, unsigned num_msgs, unsigned topic_instance, un
 
 		} else {
 			if (hrt_elapsed_time(&start_time) > 2 * 1000 * 1000) {
-				printf("Waited for 2 seconds without a message. Giving up.\n");
+				PX4_INFO_RAW("Waited for 2 seconds without a message. Giving up.\n");
 				break;
 			}
 		}

@@ -92,6 +92,7 @@ print("""
 #include <px4_middleware.h>
 #include <px4_app.h>
 #include <px4_config.h>
+#include <px4_log.h>
 #include <uORB/uORB.h>
 #include <string.h>
 #include <stdint.h>
@@ -125,7 +126,7 @@ for index, (m, t) in enumerate(zip(messages, topics)):
 	print("\t\tlistener<%s_s>(ORB_ID(%s), num_msgs, topic_instance, topic_interval);" % (m, t))
 
 print("\t} else {")
-print("\t\t printf(\" Topic did not match any known topics\\n\");")
+print("\t\t PX4_INFO_RAW(\" Topic did not match any known topics\\n\");")
 print("\t}")
 
 print("}\n")
