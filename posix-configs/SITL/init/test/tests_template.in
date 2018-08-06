@@ -21,11 +21,6 @@ pwm_out_sim start
 
 ver all
 
-list_tasks
-list_devices
-list_topics
-list_files
-
 mavlink start -x -u 14556 -r 2000000
 mavlink boot_complete
 
