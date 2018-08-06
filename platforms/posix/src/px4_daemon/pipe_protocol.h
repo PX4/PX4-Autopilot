@@ -46,13 +46,16 @@ namespace px4_daemon
 
 static const unsigned RECV_PIPE_PATH_LEN = 64;
 
+// The packet size is no more than 512 bytes, because that is the minimum guaranteed size
+// for a pipe to avoid interleaving of messages when multiple clients write at the same time
+// (atomic writes).
 struct client_send_packet_s {
 	struct message_header_s {
-		enum class e_msg_id : uint8_t {
+		uint64_t client_uuid;
+		enum class e_msg_id : int {
 			EXECUTE,
 			KILL
 		} msg_id;
-		uint64_t client_uuid;
 		unsigned payload_length;
 	} header;
 
@@ -70,7 +73,7 @@ struct client_send_packet_s {
 // We have per client receiver a pipe with the uuid in its file path.
 struct client_recv_packet_s {
 	struct message_header_s {
-		enum class e_msg_id : uint8_t {
+		enum class e_msg_id : int {
 			RETVAL,
 			STDOUT
 		} msg_id;
@@ -82,7 +85,7 @@ struct client_recv_packet_s {
 			int retval;
 		} retval_msg;
 		struct stdout_msg_s {
-			uint8_t text[512 - sizeof(message_header_s)];
+			uint8_t text[512 - sizeof(message_header_s)]; ///< null-terminated string (payload_length includes the null)
 		} stdout_msg;
 	} payload;
 };

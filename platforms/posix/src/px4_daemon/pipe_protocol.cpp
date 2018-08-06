@@ -53,7 +53,7 @@ namespace px4_daemon
 
 unsigned get_client_send_packet_length(const client_send_packet_s *packet)
 {
-	return sizeof(client_send_packet_s) - sizeof(packet->payload) + packet->header.payload_length + sizeof(uint8_t);
+	return sizeof(client_send_packet_s) - sizeof(packet->payload) + packet->header.payload_length;
 }
 
 unsigned get_client_recv_packet_length(const client_recv_packet_s *packet)
