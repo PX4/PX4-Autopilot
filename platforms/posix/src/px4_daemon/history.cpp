@@ -52,7 +52,7 @@ void History::try_to_add(const std::string &line)
 	}
 
 	// Don't add duplicate entries.
-	if (!_history.empty() && line.compare(_history.back()) == 0) {
+	if (!_history.empty() && line == _history.back()) {
 		return;
 	}
 

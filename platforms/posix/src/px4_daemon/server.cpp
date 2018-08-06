@@ -73,9 +73,9 @@ int
 Server::start()
 {
 	if (0 != pthread_create(&_server_main_pthread,
-				NULL,
+				nullptr,
 				_server_main_trampoline,
-				NULL)) {
+				nullptr)) {
 
 		PX4_ERR("error creating client handler thread");
 
@@ -92,7 +92,7 @@ Server::_server_main_trampoline(void *arg)
 		_instance->_server_main(arg);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void Server::_pthread_key_destructor(void *arg)
@@ -156,7 +156,6 @@ Server::_server_main(void *arg)
 	}
 
 	close(client_send_pipe_fd);
-	return;
 }
 
 void
@@ -214,7 +213,7 @@ Server::_execute_cmd_packet(const client_send_packet_s &packet)
 	args->is_atty = packet.payload.execute_msg.is_atty;
 
 	_lock(); // need to lock, otherwise the thread could already exit before we insert into the map
-	ret = pthread_create(&new_pthread, NULL, Server::_run_cmd, (void *)args);
+	ret = pthread_create(&new_pthread, nullptr, Server::_run_cmd, (void *)args);
 
 	if (ret != 0) {
 		PX4_ERR("could not start pthread (%i)", ret);
@@ -284,7 +283,7 @@ void
 	// We register thread specific data. This is used for PX4_INFO (etc.) log calls.
 	CmdThreadSpecificData *thread_data_ptr;
 
-	if ((thread_data_ptr = (CmdThreadSpecificData *)pthread_getspecific(_instance->_key)) == NULL) {
+	if ((thread_data_ptr = (CmdThreadSpecificData *)pthread_getspecific(_instance->_key)) == nullptr) {
 		thread_data_ptr = new CmdThreadSpecificData;
 		thread_data_ptr->pipe_fd = pipe_fd;
 		thread_data_ptr->is_atty = is_atty;
@@ -302,7 +301,7 @@ void
 	// Clean up before returning.
 	_instance->_cleanup_thread(client_uuid);
 
-	return NULL;
+	return nullptr;
 }
 
 
