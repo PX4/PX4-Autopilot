@@ -215,7 +215,11 @@ int main(int argc, char **argv)
 		PX4_DEBUG("instance: %i", instance);
 
 		if (myoptind < argc) {
-			data_path = argv[myoptind];
+			std::string optional_arg = argv[myoptind];
+
+			if (optional_arg.compare(0, 2, "__") != 0 || optional_arg.find(":=") == std::string::npos) {
+				data_path = optional_arg;
+			} // else: ROS argument (in the form __<name>:=<value>)
 		}
 
 		if (is_already_running(instance)) {
