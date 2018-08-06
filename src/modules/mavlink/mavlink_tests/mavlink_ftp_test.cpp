@@ -45,7 +45,7 @@
 #ifdef __PX4_NUTTX
 #define PX4_MAVLINK_TEST_DATA_DIR "/etc"
 #else
-#define PX4_MAVLINK_TEST_DATA_DIR "ROMFS/px4fmu_test"
+#define PX4_MAVLINK_TEST_DATA_DIR "etc"
 #endif
 
 /// @brief Test case file name for Read command. File are generated using mavlink_ftp_test_data.py

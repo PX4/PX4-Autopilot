@@ -117,6 +117,8 @@ if [[ ($rcS_path == posix-configs/SITL/init/ekf2 || $rcS_path == posix-configs/S
 	&& ($model == "iris" || $model == "typhoon_h480") ]]; then
 	echo "Using new unified rcS for $model"
 	sitl_command="$sitl_bin $no_pxh $src_path/ROMFS/px4fmu_common -s etc/init.d-posix/rcS -t $src_path/test_data"
+elif [[ ${model} == tests* ]]; then
+	sitl_command="$sitl_bin $no_pxh $src_path/ROMFS/px4fmu_test -s ${src_path}/${rcS_path}/${model} -t $src_path/test_data"
 else
 	sitl_command="$sitl_bin $no_pxh $src_path/ROMFS/px4fmu_common -s ${src_path}/${rcS_path}/${model} -t $src_path/test_data"
 fi

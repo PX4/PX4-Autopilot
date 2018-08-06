@@ -321,8 +321,17 @@ int create_symlinks_if_needed(std::string &data_path)
 	std::string src_path = data_path;
 	std::string dest_path = current_path + "/" + path_sym_link;
 
-	if (dir_exists(dest_path)) {
-		return PX4_OK;
+	struct stat info;
+
+	if (lstat(dest_path.c_str(), &info) == 0) {
+		if (S_ISLNK(info.st_mode)) {
+			// recreate the symlink, as it might point to some other location than what we want now
+			unlink(dest_path.c_str());
+
+		} else if (S_ISDIR(info.st_mode)) {
+			return PX4_OK;
+		}
+
 	}
 
 	PX4_INFO("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
@@ -614,9 +623,9 @@ bool dir_exists(const std::string &path)
 	} else if (info.st_mode & S_IFDIR) {
 		return true;
 
-	} else {
-		return false;
 	}
+
+	return false;
 }
 
 std::string pwd()
