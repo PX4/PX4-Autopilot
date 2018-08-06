@@ -618,6 +618,14 @@ GPS::run()
 		param_get(handle, &gps_ubx_dynmodel);
 	}
 
+	int32_t configured_baudrate = 0; // auto-detect
+	handle = param_find("SER_GPS1_BAUD");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &configured_baudrate);
+	}
+
+
 	_orb_inject_data_fd = orb_subscribe(ORB_ID(gps_inject_data));
 
 	initializeCommunicationDump();
@@ -686,7 +694,7 @@ GPS::run()
 				break;
 			}
 
-			_baudrate = 0; // auto-detect
+			_baudrate = configured_baudrate;
 
 			if (_helper && _helper->configure(_baudrate, GPSHelper::OutputMode::GPS) == 0) {
 
