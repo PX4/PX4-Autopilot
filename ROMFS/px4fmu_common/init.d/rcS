@@ -45,6 +45,16 @@ set +e
 # USART6        /dev/ttyS2      GPS
 #
 
+#------------------------------------------------------------------------------
+#
+# UART mapping on NXPhlitev3:
+#
+# LPUART0		/dev/ttyS0		P16 CONSOLE
+# UART0			/dev/ttyS1		P7  IR
+# UART1			/dev/ttyS2		P14-3, P15-2 RC input
+# UART2			/dev/ttyS3		P3 GPS
+# UART4			/dev/ttyS3		P10 TELEM1 (flow control)
+
 #
 # Set default paramter values.
 #
