@@ -165,7 +165,7 @@ Client::_send_cmds(const int argc, const char **argv)
 	strcpy((char *)packet.payload.execute_msg.cmd, cmd_buf.c_str());
 
 	// The size is +1 because we want to include the null termination.
-	packet.header.payload_length = cmd_buf.size() + 1;
+	packet.header.payload_length = cmd_buf.size() + 1 + sizeof(packet.payload.execute_msg.is_atty);
 
 	_client_send_pipe_fd = open(get_client_send_pipe_path(_instance_id).c_str(), O_WRONLY);
 
@@ -214,7 +214,7 @@ Client::_listen()
 
 			// Again, we only read as much as we need because otherwise we need
 			// hold a buffer and parse it.
-			bytes_read = read(client_recv_pipe_fd, (char *)&packet_recv + bytes_read, payload_to_read);
+			bytes_read = read(client_recv_pipe_fd, ((uint8_t *)&packet_recv) + bytes_read, payload_to_read);
 
 			if (bytes_read > 0) {
 
@@ -293,7 +293,7 @@ Client::_stdout_msg_packet(const client_recv_packet_s &packet)
 		return 0;
 
 	} else {
-		PX4_ERR("payload size wrong");
+		PX4_ERR("payload size wrong (%i > %i)", packet.header.payload_length, sizeof(packet.payload.stdout_msg.text));
 		return -1;
 	}
 }

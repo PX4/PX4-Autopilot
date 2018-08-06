@@ -239,8 +239,6 @@ void Pxh::run_pxh()
 		}
 
 	}
-
-	return;
 }
 
 void Pxh::stop()
