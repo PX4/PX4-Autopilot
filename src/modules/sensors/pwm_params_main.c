@@ -102,6 +102,138 @@ PARAM_DEFINE_INT32(PWM_MAX, 2000);
 PARAM_DEFINE_INT32(PWM_DISARMED, 900);
 
 /******************************************************************************
+*                                PWM_MAIN_FAIL                                *
+******************************************************************************/
+
+/**
+ * Set the failsafe PWM for the main 1 output
+ *
+ * This is the PWM pulse the autopilot is outputting if in failsafe mode.
+ * When set to -1 the value is set automatically depending if the actuator
+ * is a motor (900us) or a servo (1500us)
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_FAIL1, -1);
+
+/**
+ * Set the failsafe PWM for the main 2 output
+ *
+ * This is the PWM pulse the autopilot is outputting if in failsafe mode.
+ * When set to -1 the value is set automatically depending if the actuator
+ * is a motor (900us) or a servo (1500us)
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_FAIL2, -1);
+
+/**
+ * Set the failsafe PWM for the main 3 output
+ *
+ * This is the PWM pulse the autopilot is outputting if in failsafe mode.
+ * When set to -1 the value is set automatically depending if the actuator
+ * is a motor (900us) or a servo (1500us)
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_FAIL3, -1);
+
+/**
+ * Set the failsafe PWM for the main 4 output
+ *
+ * This is the PWM pulse the autopilot is outputting if in failsafe mode.
+ * When set to -1 the value is set automatically depending if the actuator
+ * is a motor (900us) or a servo (1500us)
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_FAIL4, -1);
+
+/**
+ * Set the failsafe PWM for the main 5 output
+ *
+ * This is the PWM pulse the autopilot is outputting if in failsafe mode.
+ * When set to -1 the value is set automatically depending if the actuator
+ * is a motor (900us) or a servo (1500us)
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_FAIL5, -1);
+
+/**
+ * Set the failsafe PWM for the main 6 output
+ *
+ * This is the PWM pulse the autopilot is outputting if in failsafe mode.
+ * When set to -1 the value is set automatically depending if the actuator
+ * is a motor (900us) or a servo (1500us)
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_FAIL6, -1);
+
+/**
+ * Set the failsafe PWM for the main 7 output
+ *
+ * This is the PWM pulse the autopilot is outputting if in failsafe mode.
+ * When set to -1 the value is set automatically depending if the actuator
+ * is a motor (900us) or a servo (1500us)
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_FAIL7, -1);
+
+/**
+ * Set the failsafe PWM for the main 8 output
+ *
+ * This is the PWM pulse the autopilot is outputting if in failsafe mode.
+ * When set to -1 the value is set automatically depending if the actuator
+ * is a motor (900us) or a servo (1500us)
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_FAIL8, -1);
+
+/******************************************************************************
 *                                PWM_MAIN_DIS                                 *
 ******************************************************************************/
 
