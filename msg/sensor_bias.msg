@@ -3,6 +3,8 @@
 # scale errors, in-run bias and thermal drift (if thermal compensation is enabled and available).
 #
 
+uint64 timestamp		# time since system start (microseconds)
+
 float32 accel_x		# Bias corrected acceleration in body X axis (in m/s^2)
 float32 accel_y		# Bias corrected acceleration in body Y axis (in m/s^2)
 float32 accel_z		# Bias corrected acceleration in body Z axis (in m/s^2)

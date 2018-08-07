@@ -110,8 +110,6 @@ struct __EXPORT @(uorb_struct) {
 #else
 struct @(uorb_struct) {
 #endif
-@# timestamp at the beginning of each topic is required for logger
-	uint64_t timestamp; // required for logger
 @print_parsed_fields()
 
 #ifdef __cplusplus

@@ -1,3 +1,4 @@
+uint64 timestamp		# time since system start (microseconds)
 float32 nav_roll
 float32 nav_pitch
 float32 nav_bearing

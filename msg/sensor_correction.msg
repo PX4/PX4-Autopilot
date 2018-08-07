@@ -2,6 +2,8 @@
 # Sensor corrections in SI-unit form for the voted sensor
 #
 
+uint64 timestamp		# time since system start (microseconds)
+
 # Corrections for gyro angular rate outputs where corrected_rate = raw_rate * gyro_scale + gyro_offset
 # Note the corrections are in the sensor frame and must be applied before the sensor data is rotated into body frame
 # corrections for uORB instance 0

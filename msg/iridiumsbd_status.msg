@@ -1,3 +1,4 @@
+uint64 timestamp				# time since system start (microseconds)
 uint64 last_heartbeat				# timestamp of the last successful sbd session
 uint16 tx_buf_write_index			# current size of the tx buffer
 uint16 rx_buf_read_index			# the rx buffer is parsed up to that index

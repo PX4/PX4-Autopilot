@@ -1,3 +1,4 @@
+uint64 timestamp		# time since system start (microseconds)
 float32 voltage_v		# Battery voltage in volts, 0 if unknown
 float32 voltage_filtered_v	# Battery voltage in volts, filtered, 0 if unknown
 float32 current_a		# Battery current in amperes, -1 if unknown
