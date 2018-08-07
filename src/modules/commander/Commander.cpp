@@ -2242,8 +2242,8 @@ Commander::run()
 					armed.force_failsafe = true;
 					status_changed = true;
 
-					// Only display an user message if the parachute output is set to some value
-					if (_parachute_output_channel.get() != 0) {
+					// Only display an user message if the circuit-breaker is disabled
+					if (!status_flags.circuit_breaker_flight_termination_disabled) {
 						static bool parachute_termination_printed = false;
 
 						if (!parachute_termination_printed) {
