@@ -928,6 +928,20 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 	return radius;
 }
 
+float
+Navigator::get_yaw_acceptance(float mission_item_yaw)
+{
+	float yaw = mission_item_yaw;
+
+	const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
+
+	if ((pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp) && !PX4_ISFINITE(pos_ctrl_status.yaw_acceptance)) {
+		yaw = pos_ctrl_status.yaw_acceptance;
+	}
+
+	return yaw;
+}
+
 void
 Navigator::load_fence_from_file(const char *filename)
 {

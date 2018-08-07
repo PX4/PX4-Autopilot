@@ -239,6 +239,16 @@ public:
 	 */
 	float		get_acceptance_radius(float mission_item_radius);
 
+	/**
+	 * Get the yaw acceptance given the current mission item
+	 *
+	 * @param mission_item_yaw the yaw to use in case the controller-derived radius is finite
+	 *
+	 * @return the yaw at which the next waypoint should be used or if the yaw at a waypoint
+	 * should be ignored
+	 */
+	float 		get_yaw_acceptance(float mission_item_yaw);
+
 	orb_advert_t	*get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
 	void		increment_mission_instance_count() { _mission_result.instance_count++; }
