@@ -311,6 +311,14 @@ void FlightTaskAuto::_checkAvoidanceProgress()
 		pos_control_status.acceptance_radius = Vector2f(&(_triplet_target - _position)(0)).length() + 0.5f;
 	}
 
+	Vector2f pos_to_target = Vector2f(&(_triplet_target - _position)(0));
+	const float pos_to_target_z = fabsf(_triplet_target(2) - _position(2));
+
+	if (pos_to_target.length() < NAV_ACC_RAD.get() && pos_to_target_z > NAV_MC_ALT_RAD.get()) {
+		// vehicle above or below the target waypoint
+		pos_control_status.altitude_acceptance_radius = pos_to_target_z + 0.5f;
+	}
+
 	// do not check for waypoints yaw acceptance in navigator
 	pos_control_status.yaw_acceptance = NAN;
 
