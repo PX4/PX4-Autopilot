@@ -104,7 +104,8 @@ protected:
 					(ParamFloat<px4::params::MPC_CRUISE_90>) MPC_CRUISE_90, // speed at corner when angle is 90 degrees move to line
 					(ParamFloat<px4::params::NAV_ACC_RAD>) NAV_ACC_RAD, // acceptance radius at which waypoints are updated move to line
 					(ParamFloat<px4::params::NAV_MC_ALT_RAD>) NAV_MC_ALT_RAD, //vertical acceptance radius at which waypoints are updated
-					(ParamInt<px4::params::MPC_YAW_MODE>) MPC_YAW_MODE // defines how heading is executed
+					(ParamInt<px4::params::MPC_YAW_MODE>) MPC_YAW_MODE, // defines how heading is executed,
+					(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID // obstacle avoidance active
 				       );
 
 private:
