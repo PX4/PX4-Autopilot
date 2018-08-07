@@ -111,14 +111,14 @@ def createTestNode(Map test_def) {
             unstash('px4_sitl_package')
             sh('tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2')
             sh('px4-posix_sitl_default*/px4/test/rostest_px4_run.sh ' + test_def.test + ' mission:=' + test_def.mission + ' vehicle:=' + test_def.vehicle)
-            sh('px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py .ros/rootfs/fs/microsd/log/*/*.ulg')
+            sh('px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
             }
           catch (exc) {
             archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.ulg, .ros/**/rosunit-*.xml, .ros/**/rostest-*.log')
             throw (exc)
           }
           finally {
-            sh('px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/rootfs/fs/microsd/log/*/*.ulg')
+            sh('px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
             archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.pdf, .ros/**/*.csv')
           }
         }
