@@ -1,4 +1,4 @@
-uint64 timestamp		# time since system start (microseconds)
+uint64 timestamp			# time since system start (microseconds)
 
 float32 indicated_airspeed_m_s		# indicated airspeed in m/s
 

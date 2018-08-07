@@ -1,6 +1,6 @@
 # this file is only used in the position_setpoint triple as a dependency
 
-uint64 timestamp	# time since system start (microseconds)
+uint64 timestamp		# time since system start (microseconds)
 
 uint8 SETPOINT_TYPE_POSITION=0	# position setpoint
 uint8 SETPOINT_TYPE_VELOCITY=1	# velocity setpoint
