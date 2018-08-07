@@ -1,3 +1,4 @@
+uint64 timestamp		# time since system start (microseconds)
 
 float32 baro_alt_meter			# Altitude above MSL calculated from temperature compensated baro sensor data using an ISA corrected for sea level pressure SENS_BARO_QNH.
 float32 baro_temp_celcius		# Temperature in degrees celsius

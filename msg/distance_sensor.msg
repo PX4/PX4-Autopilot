@@ -1,5 +1,6 @@
 # DISTANCE_SENSOR message data
 
+uint64 timestamp		# time since system start (microseconds)
 
 float32 min_distance		# Minimum distance the sensor can measure (in m)
 float32 max_distance		# Maximum distance the sensor can measure (in m)

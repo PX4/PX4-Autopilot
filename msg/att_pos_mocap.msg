@@ -1,3 +1,4 @@
+uint64 timestamp		# time since system start (microseconds)
 uint32 id			# ID of the estimator, commonly the component ID of the incoming message
 
 uint64 timestamp_received	# timestamp when the estimate was received

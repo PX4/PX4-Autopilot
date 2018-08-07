@@ -1,3 +1,4 @@
+uint64 timestamp		# time since system start (microseconds)
 float32[6] vel_pos_innov  # velocity and position innovations
 float32[3] mag_innov 	# earth magnetic field innovations
 float32 heading_innov 	# heading innovation

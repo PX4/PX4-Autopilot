@@ -1,3 +1,5 @@
+uint64 timestamp			# time since system start (microseconds)
+
 uint8 TELEMETRY_STATUS_RADIO_TYPE_GENERIC = 0
 uint8 TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO = 1
 uint8 TELEMETRY_STATUS_RADIO_TYPE_UBIQUITY_BULLET = 2

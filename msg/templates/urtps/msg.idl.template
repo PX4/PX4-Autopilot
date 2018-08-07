@@ -65,11 +65,10 @@ def add_msg_fields():
     for field in sorted_fields:
         add_msg_field(field)
 
-        
+
 }@
 @
 struct @(spec.short_name)_
 {
-    unsigned long long timestamp;
 @add_msg_fields()
 }; // struct @(spec.short_name)_

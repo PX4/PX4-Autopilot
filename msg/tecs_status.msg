@@ -1,3 +1,4 @@
+uint64 timestamp		# time since system start (microseconds)
 uint8 TECS_MODE_NORMAL = 0
 uint8 TECS_MODE_UNDERSPEED = 1
 uint8 TECS_MODE_TAKEOFF = 2

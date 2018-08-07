@@ -1,3 +1,4 @@
+uint64 timestamp		# time since system start (microseconds)
 uint16 saturation_status	# Integer bit mask indicating which axes in the control mixer are saturated
 
 # 0 - True if the saturation status is valid

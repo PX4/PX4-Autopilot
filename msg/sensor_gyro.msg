@@ -1,5 +1,7 @@
 uint32 device_id	# unique device ID for the sensor that does not change between power cycles
 
+uint64 timestamp	# time since system start (microseconds)
+
 uint64 error_count
 
 float32 x		# angular velocity in the NED X board axis in rad/s

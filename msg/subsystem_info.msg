@@ -1,3 +1,5 @@
+uint64 timestamp		# time since system start (microseconds)
+
 uint64 SUBSYSTEM_TYPE_GYRO = 1
 uint64 SUBSYSTEM_TYPE_ACC = 2
 uint64 SUBSYSTEM_TYPE_MAG = 4
