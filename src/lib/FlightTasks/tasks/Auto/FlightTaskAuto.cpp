@@ -217,7 +217,9 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_updateAvoidanceWaypoints();
 	}
 
-	_checkAvoidanceProgress();
+	if (MPC_OBS_AVOID.get()) {
+		_checkAvoidanceProgress();
+	}
 
 	return true;
 }
