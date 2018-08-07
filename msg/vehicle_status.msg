@@ -1,6 +1,6 @@
 # If you change the order, add or remove arming_state_t states make sure to update the arrays
 # in state_machine_helper.cpp as well.
-uint64 timestamp		# time since system start (microseconds)
+uint64 timestamp				# time since system start (microseconds)
 
 uint8 ARMING_STATE_INIT = 0
 uint8 ARMING_STATE_STANDBY = 1
