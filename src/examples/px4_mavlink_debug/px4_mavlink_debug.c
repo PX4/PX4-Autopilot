@@ -77,19 +77,19 @@ int px4_mavlink_debug_main(int argc, char *argv[])
 
 		/* send one named value */
 		dbg_key.value = value_counter;
-		dbg_key.timestamp_ms = timestamp_ms;
+		dbg_key.timestamp = timestamp_ms * 1e3f;
 		orb_publish(ORB_ID(debug_key_value), pub_dbg_key, &dbg_key);
 
 		/* send one indexed value */
 		dbg_ind.value = 0.5f * value_counter;
-		dbg_ind.timestamp_ms = timestamp_ms;
+		dbg_ind.timestamp = timestamp_ms * 1e3f;
 		orb_publish(ORB_ID(debug_value), pub_dbg_ind, &dbg_ind);
 
 		/* send one vector */
 		dbg_vect.x = 1.0f * value_counter;
 		dbg_vect.y = 2.0f * value_counter;
 		dbg_vect.z = 3.0f * value_counter;
-		dbg_vect.timestamp_us = timestamp_us;
+		dbg_vect.timestamp = timestamp_us;
 		orb_publish(ORB_ID(debug_vect), pub_dbg_vect, &dbg_vect);
 
 		warnx("sent one more value..");

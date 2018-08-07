@@ -1,6 +1,8 @@
 # Optical flow in XYZ body frame in SI units.
 # @see http://en.wikipedia.org/wiki/International_System_of_Units
 
+uint64 timestamp		# time since system start (microseconds)
+
 uint8 sensor_id			# id of the sensor emitting the flow value
 float32 pixel_flow_x_integral	# accumulated optical flow in radians where a positive value is produced by a RH rotation about the X body axis
 float32 pixel_flow_y_integral	# accumulated optical flow in radians where a positive value is produced by a RH rotation about the Y body axis

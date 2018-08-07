@@ -1,5 +1,7 @@
 # This is a struct used by the commander internally.
 
+uint64 timestamp		# time since system start (microseconds)
+
 bool condition_calibration_enabled
 bool condition_system_sensors_initialized
 bool condition_system_hotplug_timeout		# true if the hotplug sensor search is over

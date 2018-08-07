@@ -1,3 +1,4 @@
+uint64 timestamp		# time since system start (microseconds)
 float32 voltage5v_v		# peripheral 5V rail voltage
 float32 voltage3v3_v		# Sensor 3V3 rail voltage
 uint8 v3v3_valid		# Sensor 3V3 rail voltage was read.
