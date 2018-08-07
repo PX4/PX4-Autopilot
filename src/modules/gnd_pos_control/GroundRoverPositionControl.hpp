@@ -55,7 +55,7 @@
 #include <perf/perf_counter.h>
 #include <pid/pid.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/fw_pos_ctrl_status.h>
+#include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
@@ -105,7 +105,7 @@ private:
 	int		_params_sub{-1};			/**< notification of parameter updates */
 	int		_pos_sp_triplet_sub{-1};
 
-	fw_pos_ctrl_status_s			_gnd_pos_ctrl_status{};		/**< navigation capabilities */
+	position_controller_status_s			_gnd_pos_ctrl_status{};		/**< navigation capabilities */
 	manual_control_setpoint_s		_manual{};			/**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
 	vehicle_attitude_setpoint_s		_att_sp{};			/**< vehicle attitude setpoint */

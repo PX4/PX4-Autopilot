@@ -33,6 +33,8 @@
 
 #include "FixedwingPositionControl.hpp"
 
+using namespace time_literals;
+
 extern "C" __EXPORT int fw_pos_control_l1_main(int argc, char *argv[]);
 
 FixedwingPositionControl::FixedwingPositionControl() :
@@ -849,10 +851,10 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 				_att_sp.roll_body = constrain(_att_sp.roll_body, radians(-5.0f), radians(5.0f));
 			}
 
-			if (_fw_pos_ctrl_status.abort_landing) {
+			if (_position_controller_status_pub.get().abort_landing) {
 				if (pos_sp_curr.alt - _global_pos.alt  < _parameters.climbout_diff) {
 					// aborted landing complete, normal loiter over landing point
-					_fw_pos_ctrl_status.abort_landing = false;
+					_position_controller_status_pub.get().abort_landing = false;
 
 				} else {
 					// continue straight until vehicle has sufficient altitude
@@ -1326,7 +1328,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 	if (_time_started_landing == 0) {
 		_time_started_landing = hrt_absolute_time();
 
-		_fw_pos_ctrl_status.abort_landing = false;
+		_position_controller_status_pub.get().abort_landing = false;
 	}
 
 	const float bearing_airplane_currwp = get_bearing_to_next_waypoint((double)curr_pos(0), (double)curr_pos(1),
@@ -1423,7 +1425,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			} else {
 				// still no valid terrain, abort landing
 				terrain_alt = pos_sp_curr.alt;
-				_fw_pos_ctrl_status.abort_landing = true;
+				_position_controller_status_pub.get().abort_landing = true;
 			}
 
 		} else if ((!_global_pos.terrain_alt_valid && hrt_elapsed_time(&_time_last_t_alt) < T_ALT_TIMEOUT * 1000 * 1000)
@@ -1436,7 +1438,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 		} else {
 			// terrain alt was not valid for long time, abort landing
 			terrain_alt = _t_alt_prev_valid;
-			_fw_pos_ctrl_status.abort_landing = true;
+			_position_controller_status_pub.get().abort_landing = true;
 		}
 	}
 
@@ -1594,7 +1596,7 @@ FixedwingPositionControl::handle_command()
 		    _pos_sp_triplet.current.valid &&
 		    _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
-			_fw_pos_ctrl_status.abort_landing = true;
+			_position_controller_status_pub.get().abort_landing = true;
 			mavlink_log_critical(&_mavlink_log_pub, "Landing aborted");
 		}
 	}
@@ -1745,12 +1747,10 @@ FixedwingPositionControl::run()
 				float turn_distance = _l1_control.switch_distance(500.0f);
 
 				/* lazily publish navigation capabilities */
-				if ((hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) > 1000000)
-				    || (fabsf(turn_distance - _fw_pos_ctrl_status.turn_distance) > FLT_EPSILON
-					&& turn_distance > 0)) {
+				if ((hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) > 1_s) && turn_distance > 0) {
 
 					/* set new turn distance */
-					_fw_pos_ctrl_status.turn_distance = turn_distance;
+					//_fw_pos_ctrl_status.turn_distance = turn_distance;
 
 					_fw_pos_ctrl_status.nav_roll = _l1_control.get_roll_setpoint();
 					_fw_pos_ctrl_status.nav_pitch = get_tecs_pitch();
@@ -1766,6 +1766,11 @@ FixedwingPositionControl::run()
 
 					fw_pos_ctrl_status_publish();
 				}
+
+				_position_controller_status_pub.get().timestamp = hrt_absolute_time();
+				_position_controller_status_pub.get().acceptance_radius = turn_distance;
+				_position_controller_status_pub.get().yaw_acceptance = NAN;
+				_position_controller_status_pub.update();
 			}
 
 			perf_end(_loop_perf);
@@ -1805,10 +1810,10 @@ FixedwingPositionControl::reset_landing_state()
 	_land_onslope = false;
 
 	// reset abort land, unless loitering after an abort
-	if (_fw_pos_ctrl_status.abort_landing
+	if (_position_controller_status_pub.get().abort_landing
 	    && _pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
-		_fw_pos_ctrl_status.abort_landing = false;
+		_position_controller_status_pub.get().abort_landing = false;
 	}
 }
 
