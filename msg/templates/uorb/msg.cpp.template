@@ -81,9 +81,8 @@ ORB_DEFINE(@multi_topic, struct @uorb_struct, @(struct_size-padding_end_size), _
 void print_message(const @uorb_struct& message)
 {
 	PX4_INFO_RAW(" @(uorb_struct)\n");
-	PX4_INFO_RAW("\ttimestamp: %" PRIu64, message.timestamp);
 	if (message.timestamp != 0) {
-		PX4_INFO_RAW(" (%.6f seconds ago)\n", hrt_elapsed_time(&message.timestamp) / 1e6);
+		PX4_INFO_RAW("\t(%.6f seconds ago)\n", hrt_elapsed_time(&message.timestamp) / 1e6);
 	} else {
 		PX4_INFO_RAW("\n");
 	}
