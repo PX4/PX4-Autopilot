@@ -113,7 +113,7 @@ PARAM_DEFINE_INT32(CBRK_AIRSPD_CHK, 0);
  * @category Developer
  * @group Circuit Breaker
  */
-PARAM_DEFINE_INT32(CBRK_FLIGHTTERM, 121212);
+PARAM_DEFINE_INT32(CBRK_FLIGHTTERM, 0);
 
 /**
  * Circuit breaker for engine failure detection
