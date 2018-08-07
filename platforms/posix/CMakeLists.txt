@@ -114,14 +114,6 @@ endif()
 # install
 #
 
-# px4 app
-install(
-	TARGETS
-		px4
-	DESTINATION
-		${PROJECT_NAME}
-	)
-
 # px4 dirs
 install(
 	DIRECTORY
@@ -130,6 +122,7 @@ install(
 		${PROJECT_SOURCE_DIR}/posix-configs
 		${PROJECT_SOURCE_DIR}/ROMFS
 		${PROJECT_SOURCE_DIR}/test
+		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 	DESTINATION
 		${PROJECT_NAME}
 	USE_SOURCE_PERMISSIONS
