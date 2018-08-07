@@ -1863,6 +1863,7 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 			 */
 			tstatus.timestamp = hrt_absolute_time();
 			tstatus.heartbeat_time = tstatus.timestamp;
+			tstatus.source = hb.type;
 
 			if (_telemetry_status_pub == nullptr) {
 				int multi_instance;

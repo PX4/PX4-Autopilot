@@ -3974,6 +3974,8 @@ void Commander::poll_telemetry_status()
 			if (telemetry.heartbeat_time > 0 && (_telemetry[i].last_heartbeat < telemetry.heartbeat_time)) {
 				_telemetry[i].last_heartbeat = telemetry.heartbeat_time;
 			}
+
+			_telemetry[i].source = telemetry.source;
 		}
 
 		// for iridium telemetry use the iridiumsbd_status to update the heartbeat
@@ -3993,7 +3995,7 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 				 int32_t datalink_loss_timeout, int32_t datalink_regain_timeout, bool *status_changed)
 {
 	/* data links check */
-	bool have_link = false;
+	bool have_gcs_link = false;
 	bool high_latency_link_exists = false;
 	bool have_low_latency_link = false;
 	int32_t dl_loss_timeout_local = 0;
@@ -4038,7 +4040,10 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 				*status_changed = true;
 
 				_telemetry[i].lost = false;
-				have_link = true;
+
+				if (_telemetry[i].source == telemetry_status_s::TELEMETRY_SOURCE_GCS) {
+					have_gcs_link = true;
+				}
 
 				if (!_telemetry[i].high_latency) {
 					have_low_latency_link = true;
@@ -4047,7 +4052,9 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 			} else if (!_telemetry[i].lost) {
 				/* telemetry was healthy also in last iteration
 				 * we don't have to check a timeout */
-				have_link = true;
+				if (_telemetry[i].source == telemetry_status_s::TELEMETRY_SOURCE_GCS) {
+					have_gcs_link = true;
+				}
 
 				if (!_telemetry[i].high_latency) {
 					have_low_latency_link = true;
@@ -4066,7 +4073,7 @@ void Commander::data_link_checks(int32_t highlatencydatalink_loss_timeout, int32
 		}
 	}
 
-	if (have_link) {
+	if (have_gcs_link) {
 		/* handle the case where data link was regained */
 		if (status.data_link_lost) {
 			status.data_link_lost = false;

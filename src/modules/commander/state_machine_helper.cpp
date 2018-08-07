@@ -56,7 +56,7 @@ static constexpr const char reason_no_offboard[] = "no offboard";
 static constexpr const char reason_no_rc_and_no_offboard[] = "no RC and no offboard";
 static constexpr const char reason_no_local_position[] = "no local position";
 static constexpr const char reason_no_global_position[] = "no global position";
-static constexpr const char reason_no_datalink[] = "no datalink";
+static constexpr const char reason_no_datalink[] = "no GCS datalink";
 
 // This array defines the arming state transitions. The rows are the new state, and the columns
 // are the current state. Using new state and current state you can index into the array which

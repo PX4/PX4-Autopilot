@@ -98,7 +98,7 @@ PARAM_DEFINE_FLOAT(NAV_FW_ALT_RAD, 10.0f);
 PARAM_DEFINE_FLOAT(NAV_MC_ALT_RAD, 0.8f);
 
 /**
- * Set data link loss failsafe mode
+ * Set GCS data link loss failsafe mode
  *
  * The data link loss failsafe will only be entered after a timeout,
  * set by COM_DL_LOSS_T in seconds. Once the timeout occurs the selected

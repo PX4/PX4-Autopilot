@@ -169,6 +169,7 @@ private:
 		bool preflight_checks_reported = false;
 		bool lost = true;
 		bool high_latency = false;
+		uint8_t source = 0;
 	} _telemetry[ORB_MULTI_MAX_INSTANCES];
 
 	void estimator_check(bool *status_changed);
