@@ -125,7 +125,7 @@ PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 2);
  * @value 338400 Normal Telemetry (38400 baud, 8N1)
  * @value 357600 Normal Telemetry (57600 baud, 8N1)
  * @value 3115200 Normal Telemetry (115200 baud, 8N1)
- * @value 419200 Iridium Telemetry (19200 baud, 8N1)
+ * @value 4115200 Iridium Telemetry (115200 baud, 8N1)
  * @value 519200 Minimal Telemetry (19200 baud, 8N1)
  * @value 538400 Minimal Telemetry (38400 baud, 8N1)
  * @value 557600 Minimal Telemetry (57600 baud, 8N1)
