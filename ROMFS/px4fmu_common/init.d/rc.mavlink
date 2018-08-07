@@ -109,11 +109,6 @@ if param compare SYS_COMPANION 319200
 then
 	mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 19200 -r 1000 -f
 fi
-if param compare SYS_COMPANION 419200
-then
-	iridiumsbd start -d ${MAVLINK_COMPANION_DEVICE}
-	mavlink start -d /dev/iridium -b 19200 -m iridium -r 10
-fi
 if param compare SYS_COMPANION 519200
 then
 	mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 19200 -m minimal -r 1000
@@ -161,6 +156,17 @@ fi
 if param compare SYS_COMPANION 3115200
 then
 	mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 115200 -r 1000 -f
+fi
+if param compare SYS_COMPANION 4115200
+then
+	usleep 200000 			# add a sleep here to make sure that the module is powered
+	if iridiumsbd start -d ${MAVLINK_COMPANION_DEVICE}
+	then
+		mavlink start -d /dev/iridium -m iridium -b 115200
+	else
+		echo "WARN: Iridiumsbd driver not started, reboot"
+		tune_control play -m "ML<<CP4CP4CP4CP4CP4"
+	fi
 fi
 if param compare SYS_COMPANION 5115200
 then
