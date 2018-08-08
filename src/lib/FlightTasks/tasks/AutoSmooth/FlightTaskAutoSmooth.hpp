@@ -42,7 +42,7 @@
 
 #include "FlightTaskAutoMapper.hpp"
 #include "lib/bezier/BezierQuad.hpp"
-#include "Utility/StraightLine.hpp"
+#include "StraightLine.hpp"
 
 class FlightTaskAutoSmooth : public FlightTaskAutoMapper
 {
