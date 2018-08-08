@@ -119,7 +119,7 @@ void VtolType::set_weather_vane_yaw_rate()
 	matrix::Eulerf euler_sp(R_sp);
 
 	// compute the yaw error and than rotate the setpoint in a way that yaw is not compensated for
-	float yaw_error = _wrap_pi(euler_sp(2) - euler(2));
+	float yaw_error = matrix::wrap_pi(euler_sp(2) - euler(2));
 	matrix::Dcmf R_yaw_correction = matrix::Eulerf(0.0f, 0.0f, -yaw_error);
 	matrix::Dcmf R_sp_new = R_sp * R_yaw_correction;
 
