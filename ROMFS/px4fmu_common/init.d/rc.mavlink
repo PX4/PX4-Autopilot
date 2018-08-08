@@ -164,7 +164,6 @@ then
 	then
 		mavlink start -d /dev/iridium -m iridium -b 115200
 	else
-		echo "WARN: Iridiumsbd driver not started, reboot"
 		tune_control play -m "ML<<CP4CP4CP4CP4CP4"
 	fi
 fi
