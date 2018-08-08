@@ -117,7 +117,7 @@ def add_padding_bytes(fields, search_path):
     struct size
     returns a tuple with the struct size and padding at the end
     """
-    struct_size = 8 # account for the timestamp
+    struct_size = 0
     align_to = 8 # this is always 8, because of the 64bit timestamp
     i = 0
     padding_idx = 0
