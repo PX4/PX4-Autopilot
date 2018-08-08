@@ -251,7 +251,7 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 	}
 
 	if (arg_uart_name == 0) {
-		PX4_WARN("no Iridium SBD modem UART port provided!");
+		PX4_ERR("no Iridium SBD modem UART port provided!");
 		_task_should_exit = true;
 		return;
 	}
@@ -269,7 +269,7 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 	}
 
 	if (!command_executed) {
-		PX4_WARN("failed to open UART port!");
+		PX4_ERR("failed to open UART port!");
 		_task_should_exit = true;
 		return;
 	}
@@ -289,7 +289,7 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 	}
 
 	if (!command_executed) {
-		PX4_WARN("modem not responding");
+		PX4_ERR("modem not responding");
 		_task_should_exit = true;
 		return;
 	}
@@ -309,7 +309,7 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 	}
 
 	if (!command_executed) {
-		PX4_WARN("modem not responding");
+		PX4_ERR("modem not responding");
 		_task_should_exit = true;
 		return;
 	}
