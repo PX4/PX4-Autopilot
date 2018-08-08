@@ -48,53 +48,97 @@ FlightTaskAutoSmooth::FlightTaskAutoSmooth() :
 
 void FlightTaskAutoSmooth::_generateSetpoints()
 {
+
 	if (_control_points_update) {
 		_update_control_points();
 		_control_points_update = false;
 
+		float angle = 2.0f;
+
 		// set velocity depending on the angle between the 3 waypoints
-		float angle = Vector2f(&(_target - _prev_wp)(0)).unit_or_zero()
-			      * Vector2f(&(_target - _next_wp)(0)).unit_or_zero()
-			      + 1.0f;
-		float desired_vel = math::getVelocityFromAngle(angle, 1.0f, MPC_CRUISE_90.get(), _mc_cruise_speed);
+		if (Vector2f(&(_target - _prev_wp)(0)).unit_or_zero().length() > SIGMA_SINGLE_OP &&
+		    Vector2f(&(_target - _next_wp)(0)).unit_or_zero().length() > SIGMA_SINGLE_OP) {
+
+			angle = Vector2f(&(_target - _prev_wp)(0)).unit_or_zero()
+				* Vector2f(&(_target - _next_wp)(0)).unit_or_zero()
+				+ 1.0f;
+		}
+
+		float desired_vel = math::getVelocityFromAngle(angle, 0.5f, MPC_CRUISE_90.get(), _mc_cruise_speed);
+
+		// compute speed at transition line - bezier
+		bezier::BezierQuad_f bez_tmp(_pt_0, _target, _pt_1);
+		float s = 0.5f * bez_tmp.getArcLength(0.1f);
+		float acc = 0.5f;
+		float duration = 2.0f * (sqrtf(2.0f * acc * s + desired_vel * desired_vel) - desired_vel) / acc;
+		_bezier.setBezier(_pt_0, _target, _pt_1, duration);
+
+		if (_bezier.getVelocity(0).length() > _mc_cruise_speed) {
+			duration = 2.0f * (_target - _pt_0).length() / _mc_cruise_speed;
+			_bezier.setBezier(_pt_0, _target, _pt_1, duration);
+		}
 
 		// straight line
 		_line.setLineFromTo(_prev_wp, _pt_0);
 		_line.setSpeed(_mc_cruise_speed);
-		_line.setSpeedAtTarget(desired_vel);
+		_line.setSpeedAtTarget(_bezier.getVelocity(0).length());
 		_line.setAcceleration(2.0f);
 		_line.setDeceleration(1.0f);
 
-		// bezier
-		float duration = 1.0f;
-
-		if (desired_vel > SIGMA_SINGLE_OP) {
-			duration = 2.0f * (_target - _pt_0).length() / desired_vel;
-		}
-
-		_bezier.setBezier(_pt_0, _target, _pt_1, duration);
-	}
-
-
-	Vector3f acceleration;
-
-	_pt_0_reached_once = _pt_0_reached_once || ((_pt_0 - _position_setpoint).length() < 0.1f);
-	const bool pt_1_reached = (_pt_1 - _position_setpoint).length() < 0.1f;
-
-	if (_pt_0_reached_once && !pt_1_reached) {
-		_bezier.getStatesClosest(_position_setpoint, _velocity_setpoint, acceleration, _position);
-
-	} else if (!pt_1_reached) {
-		_control_points_update = true;
-		_line.generateSetpoints(_position_setpoint, _velocity_setpoint);
 
 	}
 
-	if (pt_1_reached) {
+	if (_type == WaypointType::loiter) {
 		_control_points_update = true;
 		_pt_0_reached_once = false;
+		_line.setLineFromTo(_prev_wp, _target);
+		_line.setAcceleration(2.0f);
+		_line.setDeceleration(1.0f);
+
+		_line.setSpeed(_mc_cruise_speed);
+		_line.setSpeedAtTarget(0.1f);
+
+
+		if ((_position_setpoint - _target).length() < 0.1f && !_lock_position) {
+			_position_setpoint = _target;
+			_velocity_setpoint *=  0.0f;
+
+		} else if (!_lock_position) {
+		}
+
+		if ((_position_setpoint - _target).length() > 1.5f) {
+			// release lock once 1m off track
+			_lock_position = false;
+		}
+
+
+	} else {
+
+		_lock_position = false;
+
+		_pt_0_reached_once = _pt_0_reached_once || ((_pt_0 - _position_setpoint).length() < 0.1f);
+		const bool pt_1_reached = (_pt_1 - _position_setpoint).length() < 0.1f;
+
+		if (_pt_0_reached_once && !pt_1_reached) {
+			Vector3f acceleration;
+			_bezier.getStatesClosest(_position_setpoint, _velocity_setpoint, acceleration, _position);
+
+		} else if (!pt_1_reached) {
+			_control_points_update = true;
+			_line.generateSetpoints(_position_setpoint, _velocity_setpoint);
+
+		}
+
+		if (pt_1_reached) {
+			_control_points_update = true;
+			_pt_0_reached_once = false;
+		}
 	}
 
+
+	if (!PX4_ISFINITE(_yaw_setpoint)) {
+		_compute_heading_from_2D_vector(_yaw_setpoint, Vector2f(&_velocity_setpoint(0)));
+	}
 }
 
 void FlightTaskAutoSmooth::_update_control_points()
@@ -109,6 +153,5 @@ void FlightTaskAutoSmooth::_update_control_points()
 
 	if ((pt_0_next - _pt_1) * u_target_to_next < 0.0f) {
 		// pt_0_next is closer to target than _pt_1. set _pt_1 to pt_0_next
-		_pt_1 = pt_0_next;
 	}
 }
