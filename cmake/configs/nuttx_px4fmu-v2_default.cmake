@@ -173,3 +173,5 @@ set(config_module_list
 	# Hardware test
 	#examples/hwtest
 )
+
+set(flight_tasks_to_remove Orbit)
