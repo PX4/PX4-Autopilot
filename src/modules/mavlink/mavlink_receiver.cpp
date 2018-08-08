@@ -1390,7 +1390,7 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 
 		struct telemetry_status_s &tstatus = _mavlink->get_rx_status();
 
-		tstatus.timestamp = _mavlink_timesync.sync_stamp(tstatus.timestamp);
+		tstatus.timestamp = hrt_absolute_time();
 		tstatus.telem_time = tstatus.timestamp;
 		/* tstatus.heartbeat_time is set by system heartbeats */
 		tstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO;
