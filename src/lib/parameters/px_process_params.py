@@ -40,18 +40,14 @@
 #
 # Currently supported formats are:
 #   * XML for the parametric UI generator
-#   * Human-readable description in DokuWiki page format
 #   * Human-readable description in Markdown page format for the PX4 dev guide
-#
-# This tool also allows to automatically upload the human-readable version
-# to the DokuWiki installation via XML-RPC.
 #
 
 from __future__ import print_function
 import sys
 import os
 import argparse
-from px4params import srcscanner, srcparser, xmlout, dokuwikiout, dokuwikirpc, markdownout
+from px4params import srcscanner, srcparser, xmlout, markdownout
 
 import re
 import json
@@ -88,37 +84,6 @@ def main():
                         metavar="FILENAME",
                         help="Create Markdown file"
                              " (default FILENAME: parameters.md)")
-    parser.add_argument("-w", "--wiki",
-                        nargs='?',
-                        const="parameters.wiki",
-                        metavar="FILENAME",
-                        help="Create DokuWiki file"
-                             " (default FILENAME: parameters.wiki)")
-    parser.add_argument("-u", "--wiki-update",
-                        nargs='?',
-                        const="firmware:parameters",
-                        metavar="PAGENAME",
-                        help="Update DokuWiki page"
-                             " (default PAGENAME: firmware:parameters)")
-    parser.add_argument("--wiki-url",
-                        default="https://pixhawk.org",
-                        metavar="URL",
-                        help="DokuWiki URL"
-                             " (default: https://pixhawk.org)")
-    parser.add_argument("--wiki-user",
-                        default=os.environ.get('XMLRPCUSER', None),
-                        metavar="USERNAME",
-                        help="DokuWiki XML-RPC user name"
-                             " (default: $XMLRPCUSER environment variable)")
-    parser.add_argument("--wiki-pass",
-                        default=os.environ.get('XMLRPCPASS', None),
-                        metavar="PASSWORD",
-                        help="DokuWiki XML-RPC user password"
-                             " (default: $XMLRPCUSER environment variable)")
-    parser.add_argument("--wiki-summary",
-                        metavar="SUMMARY",
-                        default="Automagically updated parameter documentation from code.",
-                        help="DokuWiki page edit summary")
     parser.add_argument('-v', '--verbose',
                         action='store_true',
                         help="verbose output")
@@ -130,7 +95,7 @@ def main():
     args = parser.parse_args()
 
     # Check for valid command
-    if not (args.xml or args.wiki or args.wiki_update or args.markdown):
+    if not (args.xml or args.markdown):
         print("Error: You need to specify at least one output method!\n")
         parser.print_usage()
         sys.exit(1)
@@ -171,20 +136,6 @@ def main():
         out = xmlout.XMLOutput(param_groups, args.board,
                                os.path.join(cur_dir, args.inject_xml))
         out.Save(args.xml)
-
-    # Output to DokuWiki tables
-    if args.wiki or args.wiki_update:
-        out = dokuwikiout.DokuWikiTablesOutput(param_groups)
-        if args.wiki:
-            print("Creating wiki file " + args.wiki)
-            out.Save(args.wiki)
-        if args.wiki_update:
-            if args.wiki_user and args.wiki_pass:
-                print("Updating wiki page " + args.wiki_update)
-                xmlrpc = dokuwikirpc.get_xmlrpc(args.wiki_url, args.wiki_user, args.wiki_pass)
-                xmlrpc.wiki.putPage(args.wiki_update, out.output, {'sum': args.wiki_summary})
-            else:
-                print("Error: You need to specify DokuWiki XML-RPC username and password!")
 
     # Output to Markdown/HTML tables
     if args.markdown:
