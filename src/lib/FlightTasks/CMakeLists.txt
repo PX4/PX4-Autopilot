@@ -35,11 +35,11 @@
 # Prepare flight tasks
 ###########################################
 
-# add upstream flight tasks (they are being handled differently from the core below)
+# add upstream flight tasks (they are being handled differently from the core inside the python script)
 list(APPEND flight_tasks_to_add
 	Orbit
 )
-# remove possible douplicates
+# remove possible duplicates
 list(REMOVE_DUPLICATES flight_tasks_to_add)
 
 # remove flight tasks depending on target
