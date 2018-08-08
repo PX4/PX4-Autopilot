@@ -64,6 +64,7 @@ private:
 	matrix::Vector3f _pt_0; /**< Bezier starting point */
 	matrix::Vector3f _pt_1; /**< Bezier end point */
 
+	bool _lock_position = false;
 	bool _control_points_update = true;
 	bool _pt_0_reached_once = false;
 
