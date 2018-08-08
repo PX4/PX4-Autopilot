@@ -110,6 +110,14 @@ elseif ("${BOARD}" STREQUAL "sitl")
 
 endif()
 
+# Module Symlinks
+px4_posix_generate_symlinks(
+	MODULE_LIST ${module_libraries}
+	PREFIX ${PX4_BASH_PREFIX}
+	TARGET px4
+)
+
+
 #=============================================================================
 # install
 #
@@ -184,11 +192,4 @@ install(
 		${PROJECT_NAME}/Tools/sitl_gazebo
 	)
 
-
-# symlinks
-px4_posix_generate_symlinks(
-	MODULE_LIST ${module_libraries}
-	PREFIX ${PX4_BASH_PREFIX}
-	TARGET px4
-)
 

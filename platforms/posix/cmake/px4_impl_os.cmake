@@ -150,7 +150,7 @@ function(px4_posix_generate_alias)
 			)
 		endif()
 	endforeach()
-	configure_file(${PX4_SOURCE_DIR}/cmake/posix/px4-alias.sh_in
+	configure_file(${PX4_SOURCE_DIR}/platforms/posix/src/px4-alias.sh_in
 		${OUT}
 	)
 endfunction()
