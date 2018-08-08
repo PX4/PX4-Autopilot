@@ -40,17 +40,11 @@
 
 #include "FailureDetector.hpp"
 
-FailureDetector::FailureDetector() :
-	ModuleParams(nullptr),
+FailureDetector::FailureDetector(ModuleParams *parent) :
+	ModuleParams(parent),
 	_sub_vehicle_attitude_setpoint(ORB_ID(vehicle_attitude_setpoint)),
 	_sub_vehicule_attitude(ORB_ID(vehicle_attitude))
 {
-}
-
-void
-FailureDetector::update_params()
-{
-	updateParams();
 }
 
 bool
@@ -80,23 +74,8 @@ FailureDetector::update_attitude_status()
 		const float max_roll(fabsf(math::radians(max_roll_deg)));
 		const float max_pitch(fabsf(math::radians(max_pitch_deg)));
 
-		if ((max_roll > 0.0f) &&
-		    (fabsf(roll) > max_roll)) {
-
-			_status.roll = true;
-
-		} else {
-			_status.roll = false;
-		}
-
-		if ((max_pitch > 0.0f) &&
-		    (fabsf(pitch) > max_pitch)) {
-
-			_status.pitch = true;
-
-		} else {
-			_status.pitch = false;
-		}
+		_status.roll = (max_roll > 0.0f) && (fabsf(roll) > max_roll);
+		_status.pitch = (max_pitch > 0.0f) && (fabsf(pitch) > max_pitch);
 
 		updated = true;
 

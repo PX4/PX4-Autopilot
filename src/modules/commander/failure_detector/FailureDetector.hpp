@@ -41,8 +41,7 @@
 *
 */
 
-#ifndef FAILURE_DETECTOR_HPP
-#define FAILURE_DETECTOR_HPP
+#pragma once
 
 #include <matrix/matrix/math.hpp>
 #include <mathlib/mathlib.h>
@@ -53,24 +52,22 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 
+struct failure_detector_status_s {
+	bool roll;
+	bool pitch;
+	bool altitude;
+};
+
 using uORB::Subscription;
 
 class FailureDetector : public ModuleParams
 {
 public:
-	FailureDetector();
-
-	void update_params();
+	FailureDetector(ModuleParams *parent);
 
 	bool update();
 
-	struct failure_detector_status_s {
-		bool roll;
-		bool pitch;
-		bool altitude;
-	};
-
-	failure_detector_status_s get() {return _status;};
+	const failure_detector_status_s& get_status() const {return _status;}
 
 private:
 
@@ -87,5 +84,3 @@ private:
 
 	bool update_attitude_status();
 };
-
-#endif /* FAILURE_DETECTOR_HPP */

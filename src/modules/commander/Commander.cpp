@@ -540,7 +540,8 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 }
 
 Commander::Commander() :
-	ModuleParams(nullptr)
+	ModuleParams(nullptr),
+	_failure_detector(this)
 {
 	_battery_sub = orb_subscribe(ORB_ID(battery_status));
 }
@@ -1425,7 +1426,6 @@ Commander::run()
 			orb_copy(ORB_ID(parameter_update), param_changed_sub, &param_changed);
 
 			updateParams();
-			_failure_detector.update_params();
 
 			/* update parameters */
 			if (!armed.armed) {
@@ -2289,21 +2289,20 @@ Commander::run()
 
 			if (_failure_detector.update()) {
 
-				const auto _failure_status = _failure_detector.get();
+				const failure_detector_status_s failure_status = _failure_detector.get_status();
 
-				if (_failure_status.roll ||
-					_failure_status.pitch) {
+				if (failure_status.roll ||
+					failure_status.pitch) {
 
 					armed.force_failsafe = true;
 					status_changed = true;
 
 					// Only display an user message if the circuit-breaker is disabled
 					if (!status_flags.circuit_breaker_flight_termination_disabled) {
-						static bool parachute_termination_printed = false;
 
-						if (!parachute_termination_printed) {
-							warnx("Flight termination because of attitude exceeding maximum values");
-							parachute_termination_printed = true;
+						if (!_failure_detector_termination_printed) {
+							PX4_WARN("Flight termination because of attitude exceeding maximum values");
+							_failure_detector_termination_printed = true;
 						}
 
 						if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {

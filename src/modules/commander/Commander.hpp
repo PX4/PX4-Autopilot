@@ -129,6 +129,7 @@ private:
 	bool		_nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
 
 	FailureDetector _failure_detector;
+	bool _failure_detector_termination_printed{false};
 
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd,
 			    actuator_armed_s *armed, home_position_s *home, orb_advert_t *home_pub, orb_advert_t *command_ack_pub, bool *changed);
