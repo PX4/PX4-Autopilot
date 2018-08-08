@@ -67,10 +67,10 @@ void FlightTaskAutoSmooth::_generateSetpoints()
 		float desired_vel = math::getVelocityFromAngle(angle, 0.5f, MPC_CRUISE_90.get(), _mc_cruise_speed);
 
 		// compute speed at transition line - bezier
-		bezier::BezierQuad_f bez_tmp(_pt_0, _target, _pt_1);
-		float s = 0.5f * bez_tmp.getArcLength(0.1f);
-		float acc = 0.5f;
-		float duration = 2.0f * (sqrtf(2.0f * acc * s + desired_vel * desired_vel) - desired_vel) / acc;
+		bezier::BezierQuad_f bez_tmp(_pt_0, _target, _pt_1); // only care about bezier position with default dureation = 1s
+		float distance_half = 0.5f * bez_tmp.getArcLength(0.1f); // half the the bezier distance
+		float acc = 1.0f; // TODO: replace with parameter
+		float duration = 2.0f * (sqrtf(2.0f * acc * distance_half + desired_vel * desired_vel) - desired_vel) / acc;
 		_bezier.setBezier(_pt_0, _target, _pt_1, duration);
 
 		if (_bezier.getVelocity(0).length() > _mc_cruise_speed) {
@@ -82,28 +82,26 @@ void FlightTaskAutoSmooth::_generateSetpoints()
 		_line.setLineFromTo(_prev_wp, _pt_0);
 		_line.setSpeed(_mc_cruise_speed);
 		_line.setSpeedAtTarget(_bezier.getVelocity(0).length());
-		_line.setAcceleration(2.0f);
-		_line.setDeceleration(1.0f);
-
-
+		_line.setAcceleration(2.0f); // TODO: replace with parameter
+		_line.setDeceleration(1.0f); // TODO: replace with parameter
 	}
 
 	if (_type == WaypointType::loiter) {
 		_control_points_update = true;
 		_pt_0_reached_once = false;
 		_line.setLineFromTo(_prev_wp, _target);
-		_line.setAcceleration(2.0f);
-		_line.setDeceleration(1.0f);
-
+		_line.setAcceleration(2.0f); // TODO: replace with parameter
+		_line.setDeceleration(1.0f); // TODO: replace with parameter
 		_line.setSpeed(_mc_cruise_speed);
-		_line.setSpeedAtTarget(0.1f);
-
+		_line.setSpeedAtTarget(0.5f);
 
 		if ((_position_setpoint - _target).length() < 0.1f && !_lock_position) {
 			_position_setpoint = _target;
 			_velocity_setpoint *=  0.0f;
+			_lock_position = true;
 
 		} else if (!_lock_position) {
+			_line.generateSetpoints(_position_setpoint, _velocity_setpoint);
 		}
 
 		if ((_position_setpoint - _target).length() > 1.5f) {
