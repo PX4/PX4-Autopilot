@@ -246,7 +246,12 @@ def print_field(field):
             print("\tprint_message(message."+ field.name + ");")
             return
 
-    print("PX4_INFO_RAW(\"\\t" + field.name + ": " + c_type + "\\n\", " + field_name + ");" )
+    if field.name == 'timestamp':
+        print("if (message.timestamp != 0) {\n\t\tPX4_INFO_RAW(\"\\t" + field.name + \
+            ": " + c_type + "  (%.6f seconds ago)\\n\", " + field_name + \
+            ", hrt_elapsed_time(&message.timestamp) / 1e6);\n\t} else {\n\t\tprintf(\"\\n\");\n\t}" )
+    else:
+        print("PX4_INFO_RAW(\"\\t" + field.name + ": " + c_type + "\\n\", " + field_name + ");" )
 
 
 def print_field_def(field):
