@@ -2300,8 +2300,6 @@ Commander::run()
 					// Only display an user message if the circuit-breaker is disabled
 					if (!status_flags.circuit_breaker_flight_termination_disabled) {
 
-						armed.force_failsafe = true;
-
 						if (!_failure_detector_termination_printed) {
 							mavlink_log_critical(&mavlink_log_pub, "Attitude failure detected: force failsafe");
 							_failure_detector_termination_printed = true;
