@@ -32,17 +32,17 @@
  ****************************************************************************/
 
 /**
- * @file FlightAutoLine.cpp
+ * @file FlightTaskAutoTrajectoryImpl.cpp
  */
 
-#include "FlightTaskAutoLine.hpp"
+#include "FlightTaskAutoTrajectoryImpl.hpp"
 #include <mathlib/mathlib.h>
 
 using namespace matrix;
 
 static constexpr float SIGMA_NORM		=	0.001f;
 
-void FlightTaskAutoLine::_generateSetpoints()
+void FlightTaskAutoTrajectoryImpl::_generateSetpoints()
 {
 	if (!PX4_ISFINITE(_yaw_setpoint)) {
 		// no valid heading -> set heading along track
@@ -53,7 +53,7 @@ void FlightTaskAutoLine::_generateSetpoints()
 	_generateXYsetpoints();
 }
 
-void FlightTaskAutoLine::_generateHeadingAlongTrack()
+void FlightTaskAutoTrajectoryImpl::_generateHeadingAlongTrack()
 {
 	Vector2f prev_to_dest = Vector2f(&(_target - _prev_wp)(0));
 
@@ -64,7 +64,7 @@ void FlightTaskAutoLine::_generateHeadingAlongTrack()
 	}
 }
 
-void FlightTaskAutoLine::_generateXYsetpoints()
+void FlightTaskAutoTrajectoryImpl::_generateXYsetpoints()
 {
 	Vector2f pos_sp_to_dest = Vector2f(&(_target - _position_setpoint)(0));
 	const bool has_reached_altitude = fabsf(_target(2) - _position(2)) < NAV_ACC_RAD.get();
@@ -171,7 +171,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 	}
 }
 
-void FlightTaskAutoLine::_generateAltitudeSetpoints()
+void FlightTaskAutoTrajectoryImpl::_generateAltitudeSetpoints()
 {
 	// Total distance between previous and target set-point.
 	const float dist = fabsf(_target(2) - _prev_wp(2));

@@ -31,9 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskAutoSmooth
-	FlightTaskAutoSmooth.cpp
+px4_add_library(FlightTaskAutoTrajectoryImpl
+	FlightTaskAutoTrajectoryImpl.cpp
 )
 
-target_link_libraries(FlightTaskAutoSmooth PUBLIC FlightTaskAutoMapper FlightTaskUtility)
-target_include_directories(FlightTaskAutoSmooth PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(FlightTaskAutoTrajectoryImpl PUBLIC FlightTaskAutoMapper FlightTaskUtility)
+target_include_directories(FlightTaskAutoTrajectoryImpl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

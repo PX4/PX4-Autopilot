@@ -32,21 +32,21 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskAutoSmooth.cpp
+ * @file FlightTaskAutoTrajectoryImpl.cpp
  */
 
-#include "FlightTaskAutoSmooth.hpp"
+#include "FlightTaskAutoTrajectoryImpl.hpp"
 #include <mathlib/mathlib.h>
 
 using namespace matrix;
 
 static constexpr float SIGMA_SINGLE_OP = 0.000001f;
 
-FlightTaskAutoSmooth::FlightTaskAutoSmooth() :
+FlightTaskAutoTrajectoryImpl::FlightTaskAutoTrajectoryImpl() :
 	_line(nullptr, _deltatime, _position)
 {}
 
-void FlightTaskAutoSmooth::_generateSetpoints()
+void FlightTaskAutoTrajectoryImpl::_generateSetpoints()
 {
 
 	if (_control_points_update) {
@@ -139,7 +139,7 @@ void FlightTaskAutoSmooth::_generateSetpoints()
 	}
 }
 
-void FlightTaskAutoSmooth::_update_control_points()
+void FlightTaskAutoTrajectoryImpl::_update_control_points()
 {
 	Vector3f u_prev_to_target = (_target - _prev_wp).unit_or_zero();
 	Vector3f u_target_to_next = (_next_wp - _target).unit_or_zero();

@@ -31,20 +31,13 @@
 #
 ############################################################################
 
-# add the core Flight tasks that the additional flight tasks depend on
-add_subdirectory(FlightTask)
-add_subdirectory(Utility)
-add_subdirectory(Manual)
-add_subdirectory(Auto)
-add_subdirectory(AutoMapper)
+# header only library
+add_library(FlightTaskAutoTrajectory INTERFACE)
 
-if(flight_tasks_minimum_core)
-	add_subdirectory(AutoLine)
-else()
-    add_subdirectory(AutoSmooth)
-endif()
+# include header directory
+target_include_directories(FlightTaskAutoTrajectory
+INTERFACE
+	${CMAKE_CURRENT_SOURCE_DIR}
+)
 
-# add all additional flight tasks
-foreach(task ${flight_tasks_all})
-    add_subdirectory(${task})
-endforeach()
+target_link_libraries(FlightTaskAutoTrajectory INTERFACE FlightTaskAutoTrajectoryImpl)

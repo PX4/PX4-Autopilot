@@ -174,4 +174,9 @@ set(config_module_list
 	#examples/hwtest
 )
 
+# Remove none-core FlightTask
 set(flight_tasks_to_remove Orbit)
+
+# This will set core to minimum required tasks to preserve backwards compatibility.
+# The flag is only required for targets, which have memory lower than default.
+set(flight_tasks_minimum_core true CACHE BOOL "Sets core flighttask to minimum.")

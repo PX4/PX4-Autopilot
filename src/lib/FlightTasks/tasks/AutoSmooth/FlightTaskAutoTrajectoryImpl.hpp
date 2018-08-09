@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskAutoSmooth.hpp
+ * @file FlightTaskAutoTrajectoryImpl.hpp
  *
  * Flight task for smooth, autonomous, gps driven mode.
  *
@@ -44,11 +44,11 @@
 #include "lib/bezier/BezierQuad.hpp"
 #include "StraightLine.hpp"
 
-class FlightTaskAutoSmooth : public FlightTaskAutoMapper
+class FlightTaskAutoTrajectoryImpl : public FlightTaskAutoMapper
 {
 public:
-	FlightTaskAutoSmooth();
-	virtual ~FlightTaskAutoSmooth() = default;
+	FlightTaskAutoTrajectoryImpl();
+	virtual ~FlightTaskAutoTrajectoryImpl() = default;
 	void _generateSetpoints() override;
 
 protected:
