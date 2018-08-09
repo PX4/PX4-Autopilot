@@ -118,13 +118,20 @@ def generate_output_from_file(format_idx, filename, outputdir, templatedir, incl
         msg_context = genmsg.msg_loader.MsgContext.create_default()
         full_type_name = genmsg.gentools.compute_full_type_name(PACKAGE, os.path.basename(filename))
         spec = genmsg.msg_loader.load_msg_from_file(msg_context, filename, full_type_name)
-        field_name_list = []
+        field_name_and_type = {}
         for field in spec.parsed_fields():
-                field_name_list.append(field.name)
+                field_name_and_type.update({field.name:field.type})
+        # assert if the timestamp field exists
         try:
-                assert 'timestamp' in field_name_list
+                assert 'timestamp' in field_name_and_type
         except AssertionError:
                 print("[ERROR] uORB topic files generator:\n\tgenerate_output_from_file:\tNo 'timestamp' field found in " + spec.short_name + " msg definition!")
+                exit(1)
+        # assert if the timestamp field is of type uint64
+        try:
+                assert field_name_and_type.get('timestamp') == 'uint64'
+        except AssertionError:
+                print("[ERROR] uORB topic files generator:\n\tgenerate_output_from_file:\t'timestamp' field in " + spec.short_name + " msg definition is not of type uint64 but rather of type " + field_name_and_type.get('timestamp') + "!")
                 exit(1)
         topics = get_multi_topics(filename)
         if includepath:
