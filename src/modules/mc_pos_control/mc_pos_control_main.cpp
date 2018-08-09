@@ -100,38 +100,37 @@ public:
 
 private:
 
-	bool		_task_should_exit = false;			/**<true if task should exit */
-	bool 		_in_smooth_takeoff = false; 		/**<true if takeoff ramp is applied */
+	bool _task_should_exit = false;  /**<true if task should exit */
+	bool _in_smooth_takeoff = false; /**<true if takeoff ramp is applied */
 
-	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
-	orb_advert_t	_local_pos_sp_pub{nullptr};		/**< vehicle local position setpoint publication */
+	orb_advert_t _att_sp_pub{nullptr};                    /**< attitude setpoint publication */
+	orb_advert_t _local_pos_sp_pub{nullptr};              /**< vehicle local position setpoint publication */
 	orb_advert_t _traj_wp_avoidance_desired_pub{nullptr}; /**< trajectory waypoint desired publication */
-	orb_advert_t _pub_vehicle_command_ack{nullptr}; /**< vehicle command acknowledgement publication */
+	orb_advert_t _pub_vehicle_command_ack{nullptr};       /**< vehicle command acknowledgement publication */
 	orb_id_t _attitude_setpoint_id{nullptr};
 
-	int		_control_task{-1};			/**< task handle for task */
-	int		_vehicle_status_sub{-1};		/**< vehicle status subscription */
-	int		_vehicle_land_detected_sub{-1};	/**< vehicle land detected subscription */
-	int		_control_mode_sub{-1};		/**< vehicle control mode subscription */
-	int		_params_sub{-1};			/**< notification of parameter updates */
-	int		_local_pos_sub{-1};			/**< vehicle local position */
-	int		_home_pos_sub{-1}; 			/**< home position */
-	int		_traj_wp_avoidance_sub{-1};	/**< trajectory waypoint */
+	int _control_task{-1};              /**< task handle for task */
+	int _vehicle_status_sub{-1};        /**< vehicle status subscription */
+	int _vehicle_land_detected_sub{-1}; /**< vehicle land detected subscription */
+	int _control_mode_sub{-1};          /**< vehicle control mode subscription */
+	int _params_sub{-1};                /**< notification of parameter updates */
+	int _local_pos_sub{-1};             /**< vehicle local position */
+	int _home_pos_sub{-1};              /**< home position */
+	int _traj_wp_avoidance_sub{-1};     /**< trajectory waypoint */
 	int _vehicle_command_sub{-1};       /**< vehicle command subscription */
 
 	float _takeoff_speed = -1.f; /**< For flighttask interface used only. It can be thrust or velocity setpoints */
 
-	vehicle_status_s 			_vehicle_status{}; 	/**< vehicle status */
-	vehicle_land_detected_s 			_vehicle_land_detected{};	/**< vehicle land detected */
-	vehicle_attitude_setpoint_s		_att_sp{};		/**< vehicle attitude setpoint */
-	vehicle_control_mode_s			_control_mode{};		/**< vehicle control mode */
-	vehicle_local_position_s			_local_pos{};		/**< vehicle local position */
-	vehicle_local_position_setpoint_s	_local_pos_sp{};		/**< vehicle local position setpoint */
-	home_position_s				_home_pos{}; 				/**< home position */
-	vehicle_trajectory_waypoint_s		_traj_wp_avoidance; /**< trajectory waypoint */
-	vehicle_trajectory_waypoint_s
-	_traj_wp_avoidance_desired; /**< desired waypoints, inputs to an obstacle avoidance module */
-	vehicle_command_s                 _vehicle_command{};       /**< vehicle command */
+	vehicle_status_s                  _vehicle_status{};            /**< vehicle status */
+	vehicle_land_detected_s           _vehicle_land_detected{};     /**< vehicle land detected */
+	vehicle_attitude_setpoint_s       _att_sp{};                    /**< vehicle attitude setpoint */
+	vehicle_control_mode_s            _control_mode{};              /**< vehicle control mode */
+	vehicle_local_position_s          _local_pos{};                 /**< vehicle local position */
+	vehicle_local_position_setpoint_s _local_pos_sp{};              /**< vehicle local position setpoint */
+	home_position_s                   _home_pos{};                  /**< home position */
+	vehicle_trajectory_waypoint_s     _traj_wp_avoidance{};         /**< trajectory waypoint */
+	vehicle_trajectory_waypoint_s     _traj_wp_avoidance_desired{}; /**< desired waypoints, inputs to an obstacle avoidance module */
+	vehicle_command_s                 _vehicle_command{};           /**< vehicle command */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time constant for smooth takeoff ramp */
@@ -150,8 +149,8 @@ private:
 	control::BlockDerivative _vel_y_deriv; /**< velocity derivative in y */
 	control::BlockDerivative _vel_z_deriv; /**< velocity derivative in z */
 
-	FlightTasks _flight_tasks; /**< class that generates position controller tracking setpoints*/
-	PositionControl _control; /**< class that handles the core PID position controller */
+	FlightTasks _flight_tasks;     /**< class that generates position controller tracking setpoints*/
+	PositionControl _control;      /**< class that handles the core PID position controller */
 	PositionControlStates _states; /**< structure that contains required state information for position control */
 
 	hrt_abstime _last_warn = 0; /**< timer when the last warn message was sent out */
