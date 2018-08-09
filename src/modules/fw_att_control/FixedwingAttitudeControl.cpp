@@ -262,6 +262,9 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 void
 FixedwingAttitudeControl::vehicle_manual_poll()
 {
+	bool manual_updated;
+	orb_check(_manual_sub, &manual_updated);
+
 	// only update manual if in a manual mode
 	if (_vcontrol_mode.flag_control_manual_enabled && manual_updated && !_vehicle_status.is_rotary_wing) {
 
