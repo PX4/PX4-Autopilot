@@ -292,7 +292,7 @@ MPU9250::init()
 	 * make the integration autoreset faster so that we integrate just one
 	 * sample since the sampling rate is already low.
 	*/
-	if (is_i2c()) {
+	if (is_i2c() && !_magnetometer_only) {
 		_sample_rate = 200;
 		_accel_int.set_autoreset_interval(1000000 / 1000);
 		_gyro_int.set_autoreset_interval(1000000 / 1000);
@@ -306,7 +306,6 @@ MPU9250::init()
 	}
 
 	/* do init */
-
 	ret = CDev::init();
 
 	/* if init failed, bail now */
@@ -360,6 +359,8 @@ MPU9250::init()
 	float accel_cut = MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ;
 
 	if (accel_cut_ph != PARAM_INVALID && (param_get(accel_cut_ph, &accel_cut) == PX4_OK)) {
+		PX4_INFO("accel cutoff set to %.2f Hz", double(accel_cut));
+
 		_accel_filter_x.set_cutoff_frequency(MPU9250_ACCEL_DEFAULT_RATE, accel_cut);
 		_accel_filter_y.set_cutoff_frequency(MPU9250_ACCEL_DEFAULT_RATE, accel_cut);
 		_accel_filter_z.set_cutoff_frequency(MPU9250_ACCEL_DEFAULT_RATE, accel_cut);
@@ -372,6 +373,8 @@ MPU9250::init()
 	float gyro_cut = MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ;
 
 	if (gyro_cut_ph != PARAM_INVALID && (param_get(gyro_cut_ph, &gyro_cut) == PX4_OK)) {
+		PX4_INFO("gyro cutoff set to %.2f Hz", double(gyro_cut));
+
 		_gyro_filter_x.set_cutoff_frequency(MPU9250_GYRO_DEFAULT_RATE, gyro_cut);
 		_gyro_filter_y.set_cutoff_frequency(MPU9250_GYRO_DEFAULT_RATE, gyro_cut);
 		_gyro_filter_z.set_cutoff_frequency(MPU9250_GYRO_DEFAULT_RATE, gyro_cut);
@@ -381,12 +384,14 @@ MPU9250::init()
 	}
 
 	/* do CDev init for the gyro device node, keep it optional */
-	ret = _gyro->init();
+	if (!_magnetometer_only) {
+		ret = _gyro->init();
 
-	/* if probe/setup failed, bail now */
-	if (ret != OK) {
-		DEVICE_DEBUG("gyro init failed");
-		return ret;
+		/* if probe/setup failed, bail now */
+		if (ret != OK) {
+			DEVICE_DEBUG("gyro init failed");
+			return ret;
+		}
 	}
 
 	/* Magnetometer setup */
@@ -420,7 +425,9 @@ MPU9250::init()
 		}
 	}
 
-	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
+	if (!_magnetometer_only) {
+		_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
+	}
 
 	measure();
 
@@ -1258,8 +1265,11 @@ MPU9250::start()
 	stop();
 
 	/* discard any stale data in the buffers */
-	_accel_reports->flush();
-	_gyro_reports->flush();
+	if (!_magnetometer_only) {
+		_accel_reports->flush();
+		_gyro_reports->flush();
+	}
+
 	_mag->_mag_reports->flush();
 
 	if (_use_hrt) {
@@ -1447,6 +1457,7 @@ bool MPU9250::check_duplicate(uint8_t *accel_data)
 void
 MPU9250::measure()
 {
+
 	if (hrt_absolute_time() < _reset_wait) {
 		// we're waiting for a reset to complete
 		return;
@@ -1597,8 +1608,8 @@ MPU9250::measure()
 		/*
 		 * Report buffers.
 		 */
-		sensor_accel_s arb{};
-		sensor_gyro_s grb{};
+		sensor_accel_s		arb;
+		sensor_gyro_s		grb;
 
 		/*
 		 * Adjust and scale results to m/s^2.
@@ -1740,13 +1751,13 @@ MPU9250::print_info()
 	_accel_reports->print_info("accel queue");
 	_gyro_reports->print_info("gyro queue");
 	_mag->_mag_reports->print_info("mag queue");
-	::printf("checked_next: %u\n", _checked_next);
 
 	::printf("temperature: %.1f\n", (double)_last_temperature);
 	float accel_cut = _accel_filter_x.get_cutoff_freq();
 	::printf("accel cutoff set to %10.2f Hz\n", double(accel_cut));
 	float gyro_cut = _gyro_filter_x.get_cutoff_freq();
 	::printf("gyro cutoff set to %10.2f Hz\n", double(gyro_cut));
+
 
 }
 
