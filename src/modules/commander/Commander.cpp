@@ -3280,6 +3280,7 @@ set_control_mode()
 
 	switch (status.nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+	case vehicle_status_s::NAVIGATION_STATE_CUSTOM:
 		control_mode.flag_control_manual_enabled = true;
 		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = stabilization_required();
