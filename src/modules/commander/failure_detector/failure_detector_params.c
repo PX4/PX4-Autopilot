@@ -50,9 +50,9 @@
  * @min 0
  * @max 180
  * @unit degrees
- * @group Commander
+ * @group FailureDetector
  */
-PARAM_DEFINE_INT32(COM_FAIL_R, 60);
+PARAM_DEFINE_INT32(FD_FAIL_R, 60);
 
 /**
  * FailureDetector Max Pitch
@@ -62,6 +62,6 @@ PARAM_DEFINE_INT32(COM_FAIL_R, 60);
  * @min 0
  * @max 180
  * @unit degrees
- * @group Commander
+ * @group FailureDetector
  */
-PARAM_DEFINE_INT32(COM_FAIL_P, 60);
+PARAM_DEFINE_INT32(FD_FAIL_P, 60);
