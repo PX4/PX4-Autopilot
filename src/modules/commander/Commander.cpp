@@ -2240,6 +2240,7 @@ Commander::run()
 					failure_status.pitch) {
 
 					armed.force_failsafe = true;
+					status.attitude_failure = true;
 					status_changed = true;
 
 					// Only display an user message if the circuit-breaker is disabled
