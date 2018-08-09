@@ -2294,20 +2294,17 @@ Commander::run()
 				if (failure_status.roll ||
 					failure_status.pitch) {
 
-					armed.force_failsafe = true;
 					status.attitude_failure = true;
 					status_changed = true;
 
 					// Only display an user message if the circuit-breaker is disabled
 					if (!status_flags.circuit_breaker_flight_termination_disabled) {
 
-						if (!_failure_detector_termination_printed) {
-							PX4_WARN("Flight termination because of attitude exceeding maximum values");
-							_failure_detector_termination_printed = true;
-						}
+						armed.force_failsafe = true;
 
-						if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
+						if (!_failure_detector_termination_printed) {
 							mavlink_log_critical(&mavlink_log_pub, "Attitude failure detected: force failsafe");
+							_failure_detector_termination_printed = true;
 						}
 					}
 				}
