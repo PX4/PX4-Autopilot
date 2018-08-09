@@ -747,30 +747,6 @@ PARAM_DEFINE_FLOAT(COM_POS_FS_EPV, 10);
 PARAM_DEFINE_FLOAT(COM_VEL_FS_EVH, 1);
 
 /**
- * FailureDetector Max Roll
- *
- * Maximum roll angle before FailureDetector triggers the attitude_failure flag
- * Does not affect the behavior of the vehicle for now; only for logging
- * @min 0
- * @max 180
- * @unit degrees
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_FAIL_R, 60);
-
-/**
- * FailureDetector Max Pitch
- *
- * Maximum pitch angle before FailureDetector triggers the attitude_failure flag
- * Does not affect the behavior of the vehicle for now; only for logging
- * @min 0
- * @max 180
- * @unit degrees
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_FAIL_P, 60);
-
-/**
  * Next flight UUID
  *
  * This number is incremented automatically after every flight on
