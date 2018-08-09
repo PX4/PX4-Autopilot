@@ -138,6 +138,7 @@ PARAM_DEFINE_INT32(MAV_FWDEXTSP, 1);
  *
  * @value 0 Never broadcast
  * @value 1 Always broadcast
+ * @value 2 Only multicast
  * @group MAVLink
  */
 PARAM_DEFINE_INT32(MAV_BROADCAST, 0);

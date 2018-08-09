@@ -67,6 +67,13 @@
 #ifndef __PX4_POSIX
 #include <termios.h>
 #endif
+
+#ifdef CONFIG_NET
+#include <net/if.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#endif
+
 #include <errno.h>
 #include <stdlib.h>
 #include <poll.h>
@@ -96,6 +103,12 @@
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
 #include "mavlink_command_sender.h"
+
+#ifdef CONFIG_NET
+#define MAVLINK_RECEIVER_NET_ADDED_STACK 1360
+#else
+#define MAVLINK_RECEIVER_NET_ADDED_STACK 0
+#endif
 
 using matrix::wrap_2pi;
 
@@ -2558,7 +2571,7 @@ void MavlinkReceiver::handle_message_debug_vect(mavlink_message_t *msg)
 }
 
 /**
- * Receive data from UART.
+ * Receive data from UART/UDP
  */
 void *
 MavlinkReceiver::receive_thread(void *arg)
@@ -2574,9 +2587,12 @@ MavlinkReceiver::receive_thread(void *arg)
 	// poll timeout in ms. Also defines the max update frequency of the mission & param manager, etc.
 	const int timeout = 10;
 
-#ifdef __PX4_POSIX
+#if defined(__PX4_POSIX)
 	/* 1500 is the Wifi MTU, so we make sure to fit a full packet */
 	uint8_t buf[1600 * 5];
+#elif defined(CONFIG_NET)
+	/* 1500 is the Wifi MTU, so we make sure to fit a full packet */
+	uint8_t buf[1000];
 #else
 	/* the serial port buffers internally as well, we just need to fit a small chunk */
 	uint8_t buf[64];
@@ -2590,7 +2606,7 @@ MavlinkReceiver::receive_thread(void *arg)
 		fds[0].events = POLLIN;
 	}
 
-#ifdef __PX4_POSIX
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
 	struct sockaddr_in srcaddr = {};
 	socklen_t addrlen = sizeof(srcaddr);
 
@@ -2625,7 +2641,7 @@ MavlinkReceiver::receive_thread(void *arg)
 				}
 			}
 
-#ifdef __PX4_POSIX
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
 
 			if (_mavlink->get_protocol() == UDP) {
 				if (fds[0].revents & POLLIN) {
@@ -2757,7 +2773,7 @@ MavlinkReceiver::receive_start(pthread_t *thread, Mavlink *parent)
 	param.sched_priority = SCHED_PRIORITY_MAX - 80;
 	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
-	pthread_attr_setstacksize(&receiveloop_attr, PX4_STACK_ADJUSTED(2840));
+	pthread_attr_setstacksize(&receiveloop_attr, PX4_STACK_ADJUSTED(2840 + MAVLINK_RECEIVER_NET_ADDED_STACK));
 	pthread_create(thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void *)parent);
 
 	pthread_attr_destroy(&receiveloop_attr);
