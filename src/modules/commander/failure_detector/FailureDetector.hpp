@@ -72,8 +72,8 @@ public:
 private:
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::VT_FW_QC_P>) _fail_trig_pitch,
-		(ParamInt<px4::params::VT_FW_QC_R>) _fail_trig_roll
+		(ParamInt<px4::params::COM_FAIL_P>) _fail_trig_pitch,
+		(ParamInt<px4::params::COM_FAIL_R>) _fail_trig_roll
 	)
 
 	// Subscriptions
