@@ -182,14 +182,6 @@ public:
 	int      		set_update_rate(int rate);
 
 	/**
-	 * Push failsafe values to IO.
-	 *
-	 * @param[in] vals	Failsafe control inputs: in us PPM (900 for zero, 1500 for centered, 2100 for full)
-	 * @param[in] len	Number of channels, could up to 8
-	 */
-	int			set_failsafe_values(const uint16_t *vals, unsigned len);
-
-	/**
 	 * Disable RC input handling
 	 */
 	int			disable_rc_handling();
