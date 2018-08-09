@@ -17,8 +17,6 @@ FlightTasks::FlightTasks()
 
 bool FlightTasks::update()
 {
-	_updateCommand();
-
 	if (isAnyTaskActive()) {
 		_subscription_array.update();
 		return _current_task.task->updateInitialize() && _current_task.task->update();
@@ -112,6 +110,34 @@ int FlightTasks::switchTask(int new_task_index)
 	return -1;
 }
 
+int FlightTasks::switchTask(const vehicle_command_s &command, uint8_t &cmd_result)
+{
+	// check what command it is
+	FlightTaskIndex desired_task = switchVehicleCommand(command.command);
+
+	cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
+
+	if (desired_task == FlightTaskIndex::None)
+		// ignore all unkown commands
+	{
+		return -1;
+	}
+
+	int switch_result = switchTask(desired_task);
+
+	// if we are in/switched to the desired task
+	if (switch_result >= 0) {
+		cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+
+		// if the task is running apply parameters to it and see if it rejects
+		if (isAnyTaskActive() && !_current_task.task->applyCommandParameters(command)) {
+			cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+		}
+	}
+
+	return switch_result;
+}
+
 void FlightTasks::handleParameterUpdate()
 {
 	if (isAnyTaskActive()) {
@@ -128,69 +154,4 @@ const char *FlightTasks::errorToString(const int error)
 	}
 
 	return "This error is not mapped to a string or is unknown.";
-}
-
-void FlightTasks::_updateCommand()
-{
-	// lazy subscription to command topic
-	if (_sub_vehicle_command < 0) {
-		_sub_vehicle_command = orb_subscribe(ORB_ID(vehicle_command));
-	}
-
-	// check if there's any new command
-	bool updated = false;
-	orb_check(_sub_vehicle_command, &updated);
-
-	if (!updated) {
-		return;
-	}
-
-	// get command
-	struct vehicle_command_s command;
-	orb_copy(ORB_ID(vehicle_command), _sub_vehicle_command, &command);
-
-	// check what command it is
-	FlightTaskIndex desired_task = switchVehicleCommand(command.command);
-
-	if (desired_task == FlightTaskIndex::None) {
-		// ignore all unkown commands
-		return;
-	}
-
-	// switch to the commanded task
-	int switch_result = switchTask(desired_task);
-	uint8_t cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
-
-	// if we are in/switched to the desired task
-	if (switch_result >= 0) {
-		cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
-
-		// if the task is running apply parameters to it and see if it rejects
-		if (isAnyTaskActive() && !_current_task.task->applyCommandParameters(command)) {
-			cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
-
-			// if we just switched and parameters are not accepted, go to failsafe
-			if (switch_result == 1) {
-				switchTask(FlightTaskIndex::ManualPosition);
-				cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
-			}
-		}
-	}
-
-	// send back acknowledgment
-	vehicle_command_ack_s command_ack = {};
-	command_ack.command = command.command;
-	command_ack.result = cmd_result;
-	command_ack.result_param1 = switch_result;
-	command_ack.target_system = command.source_system;
-	command_ack.target_component = command.source_component;
-
-	if (_pub_vehicle_command_ack == nullptr) {
-		_pub_vehicle_command_ack = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-					   vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-
-	} else {
-		orb_publish(ORB_ID(vehicle_command_ack), _pub_vehicle_command_ack, &command_ack);
-
-	}
 }

@@ -58,6 +58,8 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 
 #include <float.h>
 #include <mathlib/mathlib.h>
@@ -104,6 +106,7 @@ private:
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub{nullptr};		/**< vehicle local position setpoint publication */
 	orb_advert_t _traj_wp_avoidance_desired_pub{nullptr}; /**< trajectory waypoint desired publication */
+	orb_advert_t _pub_vehicle_command_ack{nullptr}; /**< vehicle command acknowledgement publication */
 	orb_id_t _attitude_setpoint_id{nullptr};
 
 	int		_control_task{-1};			/**< task handle for task */
@@ -114,6 +117,7 @@ private:
 	int		_local_pos_sub{-1};			/**< vehicle local position */
 	int		_home_pos_sub{-1}; 			/**< home position */
 	int		_traj_wp_avoidance_sub{-1};	/**< trajectory waypoint */
+	int _vehicle_command_sub{-1};       /**< vehicle command subscription */
 
 	float _takeoff_speed = -1.f; /**< For flighttask interface used only. It can be thrust or velocity setpoints */
 
@@ -127,6 +131,7 @@ private:
 	vehicle_trajectory_waypoint_s		_traj_wp_avoidance; /**< trajectory waypoint */
 	vehicle_trajectory_waypoint_s
 	_traj_wp_avoidance_desired; /**< desired waypoints, inputs to an obstacle avoidance module */
+	vehicle_command_s                 _vehicle_command{};       /**< vehicle command */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time constant for smooth takeoff ramp */
@@ -269,6 +274,11 @@ private:
 	static int	task_main_trampoline(int argc, char *argv[]);
 
 	/**
+	 * send acknowledgement of vehicle command
+	 */
+	void send_command_ack(const vehicle_command_s &command, const uint8_t &cmd_result, const int &switch_result);
+
+	/**
 	 * Main sensor collection task.
 	 */
 	void		task_main();
@@ -374,6 +384,12 @@ MulticopterPositionControl::poll_subscriptions()
 				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
 			}
 		}
+	}
+
+	orb_check(_vehicle_command_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &_vehicle_command);
 	}
 
 	orb_check(_vehicle_land_detected_sub, &updated);
@@ -514,6 +530,7 @@ MulticopterPositionControl::task_main()
 {
 	// do subscriptions
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -766,13 +783,27 @@ MulticopterPositionControl::start_flight_task()
 		}
 
 	} else if (_control_mode.flag_control_auto_enabled) {
-		// Auto relate maneuvers
+		// Auto related maneuvers
 		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
 
 		if (error != 0) {
 			PX4_WARN("Auto activation failed with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
 		}
+	}
+
+	// custom flight task
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_CUSTOM) {
+		uint8_t cmd_result;
+		int error = _flight_tasks.switchTask(_vehicle_command, cmd_result);
+
+		if (error != 0) {
+			PX4_WARN("Custom command %d activation failed with error: %s", _vehicle_command.command,
+				 _flight_tasks.errorToString(error));
+			task_failure = true;
+		}
+
+		send_command_ack(_vehicle_command, cmd_result, error);
 	}
 
 	// manual position control
@@ -1060,6 +1091,27 @@ MulticopterPositionControl::start()
 	}
 
 	return OK;
+}
+
+void MulticopterPositionControl::send_command_ack(const vehicle_command_s &command, const uint8_t &cmd_result,
+		const int &switch_result)
+{
+	// send back acknowledgment
+	vehicle_command_ack_s command_ack = {};
+	command_ack.command = command.command;
+	command_ack.result = cmd_result;
+	command_ack.result_param1 = switch_result;
+	command_ack.target_system = command.source_system;
+	command_ack.target_component = command.source_component;
+
+	if (_pub_vehicle_command_ack == nullptr) {
+		_pub_vehicle_command_ack = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
+					   vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+
+	} else {
+		orb_publish(ORB_ID(vehicle_command_ack), _pub_vehicle_command_ack, &command_ack);
+
+	}
 }
 
 int mc_pos_control_main(int argc, char *argv[])

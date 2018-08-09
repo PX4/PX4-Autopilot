@@ -102,6 +102,7 @@ public:
 	 */
 	int switchTask(FlightTaskIndex new_task_index);
 	int switchTask(int new_task_index);
+	int switchTask(const vehicle_command_s &command, uint8_t &cmd_result);
 
 	/**
 	 * Get the number of the active task
@@ -157,12 +158,9 @@ private:
 		{-3, "Activation Failed"}
 	};
 	/**
-	 * Check for vehicle commands (received via MAVLink), evaluate and acknowledge them
+	 * Map vehicle command to Flght Task
 	 */
-	void _updateCommand();
 	FlightTaskIndex switchVehicleCommand(const int command);
-	int _sub_vehicle_command = -1; /**< topic handle on which commands are received */
-	orb_advert_t _pub_vehicle_command_ack = nullptr; /**< topic handle to which commands get acknowledged */
 
 	int _initTask(FlightTaskIndex task_index);
 };
