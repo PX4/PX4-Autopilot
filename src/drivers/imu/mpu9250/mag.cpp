@@ -338,25 +338,8 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return ak8963_reset();
 
 	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
-
-			/* zero would be bad */
-			case 0:
-				return -EINVAL;
-
-			/* set default polling rate */
-			case SENSOR_POLLRATE_DEFAULT:
-				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_AK8963_SAMPLE_RATE);
-
-			/* adjust to a legal polling interval in Hz */
-			default: {
-					if (MPU9250_AK8963_SAMPLE_RATE != arg) {
-						return -EINVAL;
-					}
-
-					return OK;
-				}
-			}
+			/* mag is polled through main driver only */
+			return _parent->accel_ioctl(filp, cmd, arg);
 		}
 
 	case MAGIOCSSCALE:

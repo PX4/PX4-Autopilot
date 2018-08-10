@@ -53,6 +53,7 @@
 #include <uORB/topics/debug_key_value.h>
 
 #include "mag.h"
+#include "accel.h"
 #include "gyro.h"
 
 
@@ -379,9 +380,10 @@ extern int MPU9250_probe(device::Device *dev, int device_type);
 typedef device::Device *(*MPU9250_constructor)(int, int, uint32_t, bool);
 
 class MPU9250_mag;
+class MPU9250_accel;
 class MPU9250_gyro;
 
-class MPU9250 : public device::CDev
+class MPU9250
 {
 public:
 	MPU9250(device::Device *interface, device::Device *mag_interface, const char *path_accel, const char *path_gyro,
@@ -393,8 +395,8 @@ public:
 
 	virtual int		init();
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t		accel_read(struct file *filp, char *buffer, size_t buflen);
+	virtual int		accel_ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -407,10 +409,14 @@ public:
 	void 			test_error();
 
 protected:
-	Device			*_interface;
+	device::Device *_interface;
+
+	const char  *_name;
+	bool        _debug_enabled{false};
 
 	virtual int		probe();
 
+	friend class MPU9250_accel;
 	friend class MPU9250_mag;
 	friend class MPU9250_gyro;
 
@@ -418,6 +424,7 @@ protected:
 	virtual int		gyro_ioctl(struct file *filp, int cmd, unsigned long arg);
 
 private:
+	MPU9250_accel   *_accel;
 	MPU9250_gyro	*_gyro;
 	MPU9250_mag     *_mag;
 	uint8_t			_whoami;	/** whoami result */
@@ -444,8 +451,6 @@ private:
 	float			_accel_range_scale;
 	float			_accel_range_m_s2;
 	orb_advert_t		_accel_topic;
-	int			_accel_orb_class_instance;
-	int			_accel_class_instance;
 
 	ringbuffer::RingBuffer	*_gyro_reports;
 
@@ -694,6 +699,11 @@ private:
 	  set sample rate (approximate) - 1kHz to 5Hz
 	*/
 	void _set_sample_rate(unsigned desired_sample_rate_hz);
+
+	/*
+	  set poll rate
+	 */
+	int _set_pollrate(unsigned long rate);
 
 	/*
 	  check that key registers still have the right value
