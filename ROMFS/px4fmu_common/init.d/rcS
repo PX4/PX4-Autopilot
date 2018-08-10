@@ -579,6 +579,7 @@ unset PWM_MIN
 unset SDCARD_MIXERS_PATH
 unset USE_IO
 unset VEHICLE_TYPE
+unset TUNE_ERR
 
 #
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running.
