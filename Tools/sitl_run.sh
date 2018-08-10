@@ -36,19 +36,6 @@ then
 	model="iris"
 fi
 
-# check replay mode
-if [ "$replay_mode" == "ekf2" ]
-then
-	model="iris_replay"
-	# create the publisher rules
-	publisher_rules_file="$rootfs/orb_publisher.rules"
-	cat <<EOF > "$publisher_rules_file"
-restrict_topics: sensor_combined, vehicle_gps_position, vehicle_land_detected
-module: replay
-ignore_others: false
-EOF
-fi
-
 if [ "$#" -lt 7 ]
 then
 	echo usage: sitl_run.sh sitl_bin rcS_path debugger program model src_path build_path

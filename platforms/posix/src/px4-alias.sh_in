@@ -15,6 +15,15 @@ set() {
 # alternative method with an alias:
 # alias set='f(){ set -- "$1=$2"; eval "$1"; unset -f f; }; eval f'
 
+# Execute another shell script.
+# $1: Path to the script, (optionally starts with /, to match with the NuttX
+# scripts)
+sh() {
+	script="$1"
+	[[ "$script" != /* ]] && script="/$script"
+	source "$(pwd)$script"
+}
+
 # Don't stop on errors.
 #set -e
 

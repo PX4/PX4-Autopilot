@@ -4,6 +4,17 @@
 # (px4-alias.sh is expected to be in the PATH)
 source px4-alias.sh
 
+# Main SITL startup script
+
+
+# check for ekf2 replay
+if [ "$replay_mode" == "ekf2" ]
+then
+	sh etc/init.d-posix/rc.replay
+	exit 0
+fi
+
+
 # TODO: In the future we want to share rc.autostart with NuttX
 #source rc.autostart
 
@@ -119,11 +130,11 @@ mc_att_control start
 #       infrastructure already available on NuttX.
 if param compare SYS_AUTOSTART 10016
 then
-	source etc/init.d-posix/10016_iris
+	sh etc/init.d-posix/10016_iris
 
 elif param compare SYS_AUTOSTART 6011
 then
-	source etc/init.d-posix/6011_typhoon_h480
+	sh etc/init.d-posix/6011_typhoon_h480
 fi
 
 
