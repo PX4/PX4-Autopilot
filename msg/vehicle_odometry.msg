@@ -1,4 +1,5 @@
 # Vehicle odometry data. Fits ROS REP 147 for aerial vehicles
+uint64 timestamp		# time since system start (microseconds)
 
 # Position in NED earth-fixed frame (meters). NaN if invalid/unknown
 float32 x			# North position
