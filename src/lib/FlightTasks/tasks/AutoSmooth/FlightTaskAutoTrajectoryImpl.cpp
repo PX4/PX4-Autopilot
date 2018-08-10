@@ -102,8 +102,7 @@ void FlightTaskAutoTrajectoryImpl::_generateSetpoints()
 		_line.setSpeed(_mc_cruise_speed);
 		_line.setSpeedAtTarget(0.0f); // minimum speed at target -> sanity number to prevent the vehicle from getting stuck
 		_line.setAcceleration(MPC_ACC_HOR.get());
-		// for now just set it to half the acceleration because no parameter exists.
-		const float deceleration = MPC_ACC_HOR.get() / 5.0f;
+		const float deceleration = 0.5f; // decelerate very slowly with 0.5f
 		_line.setDeceleration(deceleration);
 		_line.generateSetpoints(_position_setpoint, _velocity_setpoint);
 
