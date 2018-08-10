@@ -37,6 +37,16 @@ fi
 # exit early when the minimal shell is requested
 [ $RUN_MINIMAL_SHELL == yes ] && exit 0
 
+
+# Use environment variable PX4_ESTIMATOR to choose estimator.
+if [ "$PX4_ESTIMATOR" == "ekf2" ]; then
+	param set SYS_MC_EST_GROUP 2
+elif [ "$PX4_ESTIMATOR" == "lpe" ]; then
+	param set SYS_MC_EST_GROUP 1
+elif [ "$PX4_ESTIMATOR" == "inav" ]; then
+	param set SYS_MC_EST_GROUP 0
+fi
+
 if param compare SYS_AUTOSTART $REQUESTED_AUTOSTART
 then
 	set AUTOCNF no
@@ -92,13 +102,18 @@ then
 	param set SYS_RESTART_TYPE 2
 fi
 
-
-# Use environment variable PX4_ESTIMATOR to choose estimator.
-if [ "$PX4_ESTIMATOR" == "ekf2" ]; then
-	param set SYS_MC_EST_GROUP 2
-elif [ "$PX4_ESTIMATOR" == "lpe" ]; then
-	param set SYS_MC_EST_GROUP 1
+# Autostart ID
+autostart_file_match="etc/init.d-posix/$(param show -q SYS_AUTOSTART)_*"
+autostart_files=( $autostart_file_match )
+autostart_file="${autostart_files[0]}" # use first match, but there should really only be one
+if [ ! -e "$autostart_file" ]; then
+	echo "Error: no autostart file found"
+	exit -1
 fi
+
+sh "$autostart_file"
+
+
 
 dataman start
 replay tryapplyparams
@@ -113,7 +128,11 @@ commander start
 land_detector start multicopter
 navigator start
 
-if param compare SYS_MC_EST_GROUP 1
+if param compare SYS_MC_EST_GROUP 0
+then
+	attitude_estimator_q start
+	position_estimator_inav start
+elif param compare SYS_MC_EST_GROUP 1
 then
 	attitude_estimator_q start
 	local_position_estimator start
@@ -127,18 +146,6 @@ fi
 
 mc_pos_control start
 mc_att_control start
-
-# TODO: eventually we want to re-use the existing autostart
-#       infrastructure already available on NuttX.
-if param compare SYS_AUTOSTART 10016
-then
-	sh etc/init.d-posix/10016_iris
-
-elif param compare SYS_AUTOSTART 6011
-then
-	sh etc/init.d-posix/6011_typhoon_h480
-fi
-
 
 mavlink start -x -u 14556 -r 4000000
 mavlink start -x -u 14557 -r 4000000 -m onboard -o 14540
