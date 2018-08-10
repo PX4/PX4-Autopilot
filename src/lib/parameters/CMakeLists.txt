@@ -122,7 +122,6 @@ if (NOT "${CONFIG}" MATCHES "px4io")
 		px4_parameters.h
 		px4_parameters_public.h
 		)
-	add_dependencies(parameters prebuild_targets)
 
 	if ("${CONFIG_SHMEM}" STREQUAL "1")
 		target_link_libraries(parameters PRIVATE px4_layer)
@@ -134,6 +133,7 @@ if (NOT "${CONFIG}" MATCHES "px4io")
 else()
 	add_library(parameters ${PX4_SOURCE_DIR}/src/platforms/empty.c)
 endif()
+add_dependencies(parameters prebuild_targets)
 
 if(${OS} STREQUAL "nuttx")
 	target_link_libraries(parameters PRIVATE flashparams)
