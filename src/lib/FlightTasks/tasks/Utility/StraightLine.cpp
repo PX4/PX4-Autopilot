@@ -55,7 +55,7 @@ void StraightLine::generateSetpoints(matrix::Vector3f &position_setpoint, matrix
 {
 	// Check if target position has been reached
 	if (_desired_speed_at_target < VEL_ZERO_THRESHOLD &&
-	    (_pos - _target).length() < NAV_ACC_RAD.get()) {
+	    velocity_setpoint.length() < 0.1f && (_target - _pos).length() < NAV_ACC_RAD.get()) {
 		// Vehicle has reached target. Lock position
 		position_setpoint = _target;
 		velocity_setpoint = Vector3f(0.0f, 0.0f, 0.0f);
