@@ -74,8 +74,18 @@ FailureDetector::update_attitude_status()
 		const float max_roll(fabsf(math::radians(max_roll_deg)));
 		const float max_pitch(fabsf(math::radians(max_pitch_deg)));
 
-		_status.roll = (max_roll > 0.0f) && (fabsf(roll) > max_roll);
-		_status.pitch = (max_pitch > 0.0f) && (fabsf(pitch) > max_pitch);
+		const bool roll_status = (max_roll > 0.0f) && (fabsf(roll) > max_roll);
+		const bool pitch_status = (max_pitch > 0.0f) && (fabsf(pitch) > max_pitch);
+
+		// Update bitmask
+		_status &= ~(FAILURE_ROLL | FAILURE_PITCH);
+
+		if (roll_status) {
+			_status |= FAILURE_ROLL;
+		}
+		if (pitch_status) {
+			_status |= FAILURE_PITCH;
+		}
 
 		updated = true;
 

@@ -2289,22 +2289,22 @@ Commander::run()
 
 			if (_failure_detector.update()) {
 
-				const failure_detector_status_s failure_status = _failure_detector.get_status();
+				const uint8_t failure_status = _failure_detector.get_status();
 
-				if (failure_status.roll ||
-					failure_status.pitch) {
-
-					status.attitude_failure = true;
+				if (failure_status != status.failure_detector_status) {
+					status.failure_detector_status = failure_status;
 					status_changed = true;
+				}
 
-					// Only display an user message if the circuit-breaker is disabled
-					if (!status_flags.circuit_breaker_flight_termination_disabled) {
+				if (failure_status != 0 && !status_flags.circuit_breaker_flight_termination_disabled) {
 
-						if (!_failure_detector_termination_printed) {
-							mavlink_log_critical(&mavlink_log_pub, "Attitude failure detected: force failsafe");
-							_failure_detector_termination_printed = true;
-						}
+					// TODO: set force_failsafe flag
+
+					if (!_failure_detector_termination_printed) {
+						mavlink_log_critical(&mavlink_log_pub, "Attitude failure detected: force failsafe");
+						_failure_detector_termination_printed = true;
 					}
+
 				}
 			}
 		}

@@ -51,12 +51,14 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_status.h>
 
-struct failure_detector_status_s {
-	bool roll;
-	bool pitch;
-	bool altitude;
-};
+typedef enum {
+	FAILURE_NONE = vehicle_status_s::FAILURE_NONE,
+	FAILURE_ROLL = vehicle_status_s::FAILURE_ROLL,
+	FAILURE_PITCH = vehicle_status_s::FAILURE_PITCH,
+	FAILURE_ALT = vehicle_status_s::FAILURE_ALT,
+} failure_detector_bitmak;
 
 using uORB::Subscription;
 
@@ -67,7 +69,7 @@ public:
 
 	bool update();
 
-	const failure_detector_status_s& get_status() const {return _status;}
+	uint8_t get_status() const {return _status;}
 
 private:
 
@@ -80,7 +82,7 @@ private:
 	Subscription<vehicle_attitude_s> _sub_vehicle_attitude_setpoint;
 	Subscription<vehicle_attitude_s> _sub_vehicule_attitude;
 
-	struct failure_detector_status_s _status;
+	uint8_t _status{FAILURE_NONE};
 
 	bool update_attitude_status();
 };
