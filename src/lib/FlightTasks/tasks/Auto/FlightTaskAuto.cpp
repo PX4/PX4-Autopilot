@@ -255,10 +255,12 @@ void FlightTaskAuto::_set_heading_from_mode()
 		}
 	}
 
-	// We only adjust yaw if vehicle is outside of acceptance radius.
-	// This prevents excessive yawing.
-	if (PX4_ISFINITE(v.length()) && v.length() > NAV_ACC_RAD.get()) {
-		_compute_heading_from_2D_vector(_yaw_setpoint, v);
+	if (PX4_ISFINITE(v.length())) {
+		// We only adjust yaw if vehicle is outside of acceptance radius.
+		// This prevents excessive yawing.
+		if (v.length() > NAV_ACC_RAD.get()) {
+			_compute_heading_from_2D_vector(_yaw_setpoint, v);
+		}
 
 	} else {
 		_yaw_setpoint = NAN;
