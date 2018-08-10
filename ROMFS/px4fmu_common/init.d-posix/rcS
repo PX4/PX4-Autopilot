@@ -14,14 +14,13 @@ then
 	exit 0
 fi
 
-
-# TODO: In the future we want to share rc.autostart with NuttX
-#source rc.autostart
+RUN_MINIMAL_SHELL=no
 
 # Use the variable set by sitl_run.sh to choose the model settings.
-if [ "$PX4_SIM_MODEL" == "iris" ]; then
+if [ "$PX4_SIM_MODEL" == "shell" ]; then
+	set RUN_MINIMAL_SHELL yes
+elif [ "$PX4_SIM_MODEL" == "iris" ]; then
 	set REQUESTED_AUTOSTART 10016
-
 elif [ "$PX4_SIM_MODEL" == "typhoon_h480" ]; then
 	set REQUESTED_AUTOSTART 6011
 else
@@ -34,6 +33,9 @@ if [ -f eeprom/parameters ]
 then
 	param load
 fi
+
+# exit early when the minimal shell is requested
+[ $RUN_MINIMAL_SHELL == yes ] && exit 0
 
 if param compare SYS_AUTOSTART $REQUESTED_AUTOSTART
 then
