@@ -74,6 +74,32 @@ PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 20.0f);
 PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
 
 /**
+ * Enable L1 airspeed reference incrementing
+ *
+ * Enable airspeed compensation from L1 control during high wind scenarios.
+ *
+ * @min 0
+ * @max 1
+ * @boolean
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_INT32(FW_L1_AIRSP_INCR, 0);
+
+/**
+ * L1 minimum ground speed
+ *
+ * Minimum forward ground speed which must be maintained (airspeed reference increment allowing)
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 5.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_L1_GSP_MIN, 0.0f);
+
+/**
  * L1 controller roll slew rate limit.
  *
  * The maxium change in roll angle setpoint per second.

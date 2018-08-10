@@ -218,6 +218,8 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 
 	bool setpoint = true;
 
+	matrix::Vector2f wind_speed_vector {0.0f, 0.0f}; // ground rover does not consider wind speed
+
 	if (_control_mode.flag_control_auto_enabled && pos_sp_triplet.current.valid) {
 		/* AUTONOMOUS FLIGHT */
 
@@ -285,7 +287,7 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 			   || (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
 
 			/* waypoint is a plain navigation waypoint or the takeoff waypoint, does not matter */
-			_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+			_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d, wind_speed_vector);
 			_att_sp.roll_body = _gnd_control.get_roll_setpoint();
 			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
@@ -296,7 +298,7 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 
 			/* waypoint is a loiter waypoint so we want to stop*/
 			_gnd_control.navigate_loiter(curr_wp, current_position, pos_sp_triplet.current.loiter_radius,
-						     pos_sp_triplet.current.loiter_direction, ground_speed_2d);
+						     pos_sp_triplet.current.loiter_direction, ground_speed_2d, wind_speed_vector);
 
 			_att_sp.roll_body = _gnd_control.get_roll_setpoint();
 			_att_sp.pitch_body = 0.0f;
