@@ -41,6 +41,7 @@
 using namespace matrix;
 
 static constexpr float SIGMA_SINGLE_OP = 0.000001f;
+static constexpr float BEZ_LINE_THRESHOLD = 1.0f;
 
 FlightTaskAutoTrajectoryImpl::FlightTaskAutoTrajectoryImpl() :
 	_line(nullptr, _deltatime, _position)
@@ -53,8 +54,8 @@ void FlightTaskAutoTrajectoryImpl::_generateSetpoints()
 		_update_control_points();
 		_control_points_update = false;
 
-		const float deceleration = MPC_ACC_HOR.get() /
-					   5.0f; // for now just set it to half the acceleration because no parameter exists.
+		// for now just set it to half the acceleration because no parameter exists.
+		const float deceleration = MPC_ACC_HOR.get() / 5.0f;
 
 		float angle = 2.0f;
 
@@ -92,37 +93,23 @@ void FlightTaskAutoTrajectoryImpl::_generateSetpoints()
 		_line.setDeceleration(deceleration);
 	}
 
-	if (_type == WaypointType::loiter) {
+	if (_type == WaypointType::loiter && _traj_state != TrajectoryState::Bezier) {
 		// vehicle requires to stop at target
 
 		_control_points_update = true;
 		_pt_0_reached_once = false;
 		_line.setLineFromTo(_prev_wp, _target);
 		_line.setSpeed(_mc_cruise_speed);
-		_line.setSpeedAtTarget(0.5f); // minimum speed at target -> sanity number to prevent the vehicle from getting stuck
-
-		if ((_position_setpoint - _target).length() < 0.1f && !_lock_position) {
-			// close to target: lock position
-			_position_setpoint = _target;
-			_velocity_setpoint *=  0.0f;
-			_lock_position = true;
-
-		} else if (!_lock_position) {
-			// continue on straight line
-			_line.generateSetpoints(_position_setpoint, _velocity_setpoint);
-
-		}
-
-		if ((_position_setpoint - _target).length() > 1.5f) {
-			// release lock once 1.5 meter away from target
-			_lock_position = false;
-		}
+		_line.setSpeedAtTarget(0.0f); // minimum speed at target -> sanity number to prevent the vehicle from getting stuck
+		_line.setAcceleration(MPC_ACC_HOR.get());
+		// for now just set it to half the acceleration because no parameter exists.
+		const float deceleration = MPC_ACC_HOR.get() / 5.0f;
+		_line.setDeceleration(deceleration);
+		_line.generateSetpoints(_position_setpoint, _velocity_setpoint);
 
 
 	} else {
 		// vehicle requires to pass target
-
-		_lock_position = false;
 
 		_pt_0_reached_once = _pt_0_reached_once || ((_pt_0 - _position_setpoint).length() < 0.1f);
 		const bool pt_1_reached = (_pt_1 - _position_setpoint).length() < 0.1f;
@@ -130,11 +117,12 @@ void FlightTaskAutoTrajectoryImpl::_generateSetpoints()
 		if (_pt_0_reached_once && !pt_1_reached) {
 			Vector3f acceleration;
 			_bezier.getStatesClosest(_position_setpoint, _velocity_setpoint, acceleration, _position);
+			_traj_state = TrajectoryState::Bezier;
 
 		} else if (!pt_1_reached) {
 			_control_points_update = true;
+			_traj_state = TrajectoryState::Line;
 			_line.generateSetpoints(_position_setpoint, _velocity_setpoint);
-
 		}
 
 		if (pt_1_reached) {
@@ -153,12 +141,13 @@ void FlightTaskAutoTrajectoryImpl::_update_control_points()
 	Vector3f u_prev_to_target = (_target - _prev_wp).unit_or_zero();
 	Vector3f u_target_to_next = (_next_wp - _target).unit_or_zero();
 
-	_pt_0 = _target - (u_prev_to_target * NAV_ACC_RAD.get());
-	_pt_1 = _target + (u_target_to_next * NAV_ACC_RAD.get());
+	_pt_0 = _target - (u_prev_to_target * (NAV_ACC_RAD.get() + BEZ_LINE_THRESHOLD));
+	_pt_1 = _target + (u_target_to_next * (NAV_ACC_RAD.get() +  BEZ_LINE_THRESHOLD));
 
-	Vector3f pt_0_next = _next_wp - (u_target_to_next * NAV_ACC_RAD.get());
+	Vector3f pt_0_next = _next_wp - (u_target_to_next * (NAV_ACC_RAD.get() + BEZ_LINE_THRESHOLD));
 
 	if ((pt_0_next - _pt_1) * u_target_to_next < 0.0f) {
 		// pt_0_next is closer to target than _pt_1. set _pt_1 to pt_0_next
+		_pt_1 = pt_0_next;
 	}
 }
