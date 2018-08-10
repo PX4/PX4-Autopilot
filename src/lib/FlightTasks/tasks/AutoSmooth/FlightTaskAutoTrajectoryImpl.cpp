@@ -53,6 +53,9 @@ void FlightTaskAutoTrajectoryImpl::_generateSetpoints()
 		_update_control_points();
 		_control_points_update = false;
 
+		const float deceleration = MPC_ACC_HOR.get() /
+					   5.0f; // for now just set it to half the acceleration because no parameter exists.
+
 		float angle = 2.0f;
 
 		// set velocity depending on the angle between the 3 waypoints
@@ -64,15 +67,18 @@ void FlightTaskAutoTrajectoryImpl::_generateSetpoints()
 				+ 1.0f;
 		}
 
+		// the desired velocity at target
 		float desired_vel = math::getVelocityFromAngle(angle, 0.5f, MPC_CRUISE_90.get(), _mc_cruise_speed);
 
-		// compute speed at transition line - bezier
+		// compute speed at transition line - bezier based on deceleration and desired velocity at target
 		bezier::BezierQuad_f bez_tmp(_pt_0, _target, _pt_1); // only care about bezier position with default dureation = 1s
 		float distance_half = 0.5f * bez_tmp.getArcLength(0.1f); // half the the bezier distance
-		float acc = 1.0f; // TODO: replace with parameter
-		float duration = 2.0f * (sqrtf(2.0f * acc * distance_half + desired_vel * desired_vel) - desired_vel) / acc;
+		float duration = 2.0f * (sqrtf(2.0f * deceleration * distance_half + desired_vel * desired_vel) - desired_vel) /
+				 deceleration; // total time to travel bezier
 		_bezier.setBezier(_pt_0, _target, _pt_1, duration);
 
+		// if speed at intersection is larger than cruise speed, then compute duration based
+		// on maximums speed at intersection.
 		if (_bezier.getVelocity(0).length() > _mc_cruise_speed) {
 			duration = 2.0f * (_target - _pt_0).length() / _mc_cruise_speed;
 			_bezier.setBezier(_pt_0, _target, _pt_1, duration);
@@ -82,35 +88,39 @@ void FlightTaskAutoTrajectoryImpl::_generateSetpoints()
 		_line.setLineFromTo(_prev_wp, _pt_0);
 		_line.setSpeed(_mc_cruise_speed);
 		_line.setSpeedAtTarget(_bezier.getVelocity(0).length());
-		_line.setAcceleration(2.0f); // TODO: replace with parameter
-		_line.setDeceleration(1.0f); // TODO: replace with parameter
+		_line.setAcceleration(MPC_ACC_HOR.get());
+		_line.setDeceleration(deceleration);
 	}
 
 	if (_type == WaypointType::loiter) {
+		// vehicle requires to stop at target
+
 		_control_points_update = true;
 		_pt_0_reached_once = false;
 		_line.setLineFromTo(_prev_wp, _target);
-		_line.setAcceleration(2.0f); // TODO: replace with parameter
-		_line.setDeceleration(1.0f); // TODO: replace with parameter
 		_line.setSpeed(_mc_cruise_speed);
-		_line.setSpeedAtTarget(0.5f);
+		_line.setSpeedAtTarget(0.5f); // minimum speed at target -> sanity number to prevent the vehicle from getting stuck
 
 		if ((_position_setpoint - _target).length() < 0.1f && !_lock_position) {
+			// close to target: lock position
 			_position_setpoint = _target;
 			_velocity_setpoint *=  0.0f;
 			_lock_position = true;
 
 		} else if (!_lock_position) {
+			// continue on straight line
 			_line.generateSetpoints(_position_setpoint, _velocity_setpoint);
+
 		}
 
 		if ((_position_setpoint - _target).length() > 1.5f) {
-			// release lock once 1m off track
+			// release lock once 1.5 meter away from target
 			_lock_position = false;
 		}
 
 
 	} else {
+		// vehicle requires to pass target
 
 		_lock_position = false;
 
@@ -132,7 +142,6 @@ void FlightTaskAutoTrajectoryImpl::_generateSetpoints()
 			_pt_0_reached_once = false;
 		}
 	}
-
 
 	if (!PX4_ISFINITE(_yaw_setpoint)) {
 		_compute_heading_from_2D_vector(_yaw_setpoint, Vector2f(&_velocity_setpoint(0)));

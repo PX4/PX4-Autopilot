@@ -54,7 +54,8 @@ public:
 protected:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAutoMapper,
 					(ParamFloat<px4::params::NAV_ACC_RAD>) NAV_ACC_RAD, // acceptance radius at which waypoints are updated
-					(ParamFloat<px4::params::MPC_CRUISE_90>) MPC_CRUISE_90 // speed at corner when angle is 90 degrees
+					(ParamFloat<px4::params::MPC_CRUISE_90>) MPC_CRUISE_90, // speed at corner when angle is 90 degrees
+					(ParamFloat<px4::params::MPC_ACC_HOR>) MPC_ACC_HOR // acceleration along line
 				       )
 
 private:
