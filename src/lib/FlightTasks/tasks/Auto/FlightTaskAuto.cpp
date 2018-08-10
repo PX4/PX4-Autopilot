@@ -108,8 +108,6 @@ bool FlightTaskAuto::_evaluateTriplets()
 		return false;
 	}
 
-	_type = (WaypointType)_sub_triplet_setpoint->get().current.type;
-
 	// Always update cruise speed since that can change without waypoint changes.
 	_mc_cruise_speed = _sub_triplet_setpoint->get().current.cruising_speed;
 
@@ -148,13 +146,22 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	bool triplet_update = true;
 
+	// update current type only if not waypoint or loiter
+	WaypointType type_tmp = (WaypointType)_sub_triplet_setpoint->get().current.type;
+
+	if (type_tmp != WaypointType::loiter && type_tmp != WaypointType::position) {
+		_type = type_tmp;
+	}
+
 	if (!(fabsf(_triplet_target(0) - tmp_target(0)) > 0.001f || fabsf(_triplet_target(1) - tmp_target(1)) > 0.001f
 	      || fabsf(_triplet_target(2) - tmp_target(2)) > 0.001f)) {
 		// Nothing has changed: just keep old waypoints.
 		triplet_update = false;
 
 	} else {
+
 		_triplet_target = tmp_target;
+		_type = type_tmp;
 
 		if (!PX4_ISFINITE(_triplet_target(0)) || !PX4_ISFINITE(_triplet_target(1))) {
 			// Horizontal target is not finite.
@@ -188,6 +195,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 		} else {
 			_triplet_next_wp = _triplet_target;
+			_type = WaypointType::loiter;
 		}
 	}
 
