@@ -61,12 +61,9 @@ then
 fi
 
 param select $PARAM_FILE
-if param load
+if !param load
 then
-else
-	if param reset
-	then
-	fi
+	param reset
 fi
 
 tone_alarm start

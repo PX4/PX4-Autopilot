@@ -17,9 +17,8 @@ set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
 # If mount (gimbal) control is enabled and output mode is AUX, set the aux
 # mixer to mount (override the airframe-specific MIXER_AUX setting).
 #
-if param compare MNT_MODE_IN -1
+if ! param compare MNT_MODE_IN -1
 then
-else
         if param compare MNT_MODE_OUT 0
         then
                 set MIXER_AUX mount
@@ -69,9 +68,8 @@ then
 			set MKBLCTRL_ARG "-mkmode +"
 		fi
 
-		if mkblctrl $MKBLCTRL_ARG
+		if ! mkblctrl $MKBLCTRL_ARG
 		then
-		else
 			# Error tune.
 			tune_control play -t 2
 		fi
@@ -79,9 +77,8 @@ then
 
 	if [ $OUTPUT_MODE == hil ]
 	then
-		if pwm_out_sim start
+		if ! pwm_out_sim start
 		then
-		else
 			# Error tune.
 			tune_control play -t 2
 		fi
@@ -89,9 +86,8 @@ then
 
 	if [ $OUTPUT_MODE == fmu ]
 	then
-		if fmu mode_$FMU_MODE $FMU_ARGS
+		if ! fmu mode_$FMU_MODE $FMU_ARGS
 		then
-		else
 			echo "FMU start failed" >> $LOG_FILE
 			# Error tune.
 			tune_control play -t 2
