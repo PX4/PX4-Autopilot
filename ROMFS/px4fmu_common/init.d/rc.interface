@@ -108,24 +108,13 @@ then
 	fi
 
 	#
-	# Start IO or FMU for RC PPM input if needed.
+	# Start IO for RC input if needed.
 	#
 	if [ $IO_PRESENT == yes ]
 	then
 		if [ $OUTPUT_MODE != io ]
 		then
 			sh /etc/init.d/rc.io
-		fi
-	else
-		if [ $OUTPUT_MODE != fmu ]
-		then
-			if fmu mode_${FMU_MODE} $FMU_ARGS
-			then
-			else
-				echo "FMU mode_${FMU_MODE} start failed" >> $LOG_FILE
-				# Error tune.
-				tune_control play -t 2
-			fi
 		fi
 	fi
 fi
