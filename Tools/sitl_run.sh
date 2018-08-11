@@ -98,16 +98,10 @@ pushd "$rootfs" >/dev/null
 # Do not exit on failure now from here on because we want the complete cleanup
 set +e
 
-# Use the new unified rcS for the supported models
-# (All models will be transitioned over)
-if [[ ($rcS_path == posix-configs/SITL/init/ekf2 || $rcS_path == posix-configs/SITL/init/lpe)
-	&& ($model == "iris" || $model == "typhoon_h480") ]]; then
-	echo "Using new unified rcS for $model"
-	sitl_command="$sitl_bin $no_pxh $src_path/ROMFS/px4fmu_common -s etc/init.d-posix/rcS -t $src_path/test_data"
-elif [[ ${model} == tests* ]]; then
+if [[ ${model} == tests* ]]; then
 	sitl_command="$sitl_bin $no_pxh $src_path/ROMFS/px4fmu_test -s ${src_path}/${rcS_path}/${model} -t $src_path/test_data"
 else
-	sitl_command="$sitl_bin $no_pxh $src_path/ROMFS/px4fmu_common -s ${src_path}/${rcS_path}/${model} -t $src_path/test_data"
+	sitl_command="$sitl_bin $no_pxh $src_path/ROMFS/px4fmu_common -s etc/init.d-posix/rcS -t $src_path/test_data"
 fi
 
 echo SITL COMMAND: $sitl_command

@@ -327,13 +327,12 @@ int WindEstimatorModule::print_status()
 	perf_print_counter(_perf_interval);
 
 	if (_instance > -1) {
-		unsigned instance = _instance;
-		uORB::Subscription<wind_estimate_s> est{ORB_ID(wind_estimate), instance};
+		uORB::Subscription<wind_estimate_s> est{ORB_ID(wind_estimate), (unsigned)_instance};
 		est.update();
 
 		print_message(est.get());
 	} else {
-		PX4_INFO("never published");
+		PX4_INFO("Running, but never published");
 	}
 
 	return 0;
@@ -344,12 +343,5 @@ extern "C" __EXPORT int wind_estimator_main(int argc, char *argv[]);
 int
 wind_estimator_main(int argc, char *argv[])
 {
-	int32_t wind_estimator_enabled = 0;
-	param_get(param_find("WEST_EN"), &wind_estimator_enabled);
-
-	if (wind_estimator_enabled == 1) {
-		return WindEstimatorModule::main(argc, argv);
-	}
-
-	return PX4_OK;
+	return WindEstimatorModule::main(argc, argv);
 }
