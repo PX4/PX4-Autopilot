@@ -9,14 +9,10 @@
 #               Begin Setup for board specific configurations.                #
 ###############################################################################
 
-if ver hwcmp AEROFC_V1 OMNIBUS_F4SD
+if ! ver hwcmp AEROFC_V1 OMNIBUS_F4SD
 then
-	# Aero FC uses separate driver
-else
-	if ver hwcmp CRAZYFLIE
+	if ! ver hwcmp CRAZYFLIE
 	then
-		# Crazyflie uses separate driver
-	else
 		# Configure all I2C buses to 100 KHz as they
 		# are all external or slow
 		fmu i2c 1 100000
@@ -209,11 +205,10 @@ then
 		# As we will use the external mag and the ICM-20608-G
 		# V2 build hwtypecmp is always false
 		# V3 build hwtypecmp supports V2|V2M|V30
-		if ver hwtypecmp V2M
+		if ! ver hwtypecmp V2M
 		then
-			# On the PixhawkMini the mpu9250 has been disabled due to HW errata
-		else
 			mpu9250 start
+		# else: On the PixhawkMini the mpu9250 has been disabled due to HW errata
 		fi
 
 		l3gd20 start
@@ -240,14 +235,12 @@ then
 	# expansion i2c used for BMM150 rotated by 90deg
 	bmm150 -R 2 start
 
-	if hmc5883 -C -T -S -R 2 start
+	# hmc5883 internal SPI bus is rotated 90 deg yaw
+	if ! hmc5883 -C -T -S -R 2 start
 	then
-		# hmc5883 internal SPI bus is rotated 90 deg yaw
-	else
-		if lis3mdl start
+		# lis3mdl internal SPI bus is rotated 90 deg yaw
+		if ! lis3mdl start
 		then
-			# lis3mdl internal SPI bus is rotated 90 deg yaw
-		else
 			# BMI055 gyro internal SPI bus
 			bmi055 -G start
 		fi
@@ -257,14 +250,12 @@ then
 	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
 	# will prevent the incorrect driver from a successful initialization.
 
-	if mpu6000 -R 2 -T 20602 start
+	# ICM20602 internal SPI bus ICM-20608-G is rotated 90 deg yaw
+	if ! mpu6000 -R 2 -T 20602 start
 	then
-		# ICM20602 internal SPI bus ICM-20608-G is rotated 90 deg yaw
-	else
-		if mpu6000 -R 2 -T 20608 start
+		# ICM20608 internal SPI bus ICM-20602-G is rotated 90 deg yaw
+		if ! mpu6000 -R 2 -T 20608 start
 		then
-			# ICM20608 internal SPI bus ICM-20602-G is rotated 90 deg yaw
-		else
 			# BMI055 accel internal SPI bus
 			bmi055 -A start
 		fi
@@ -274,10 +265,9 @@ then
 	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
 	# will prevent the incorrect driver from a successful initialization.
 
-	if mpu9250 -R 2 start
+	# mpu9250 internal SPI bus mpu9250 is rotated 90 deg yaw
+	if ! mpu9250 -R 2 start
 	then
-		# mpu9250 internal SPI bus mpu9250 is rotated 90 deg yaw
-	else
 		# BMI160 internal SPI bus
 		bmi160 start
 	fi
@@ -299,9 +289,8 @@ fi
 
 if ver hwcmp OMNIBUS_F4SD
 then
-	if mpu6000 -R 12 -s start
+	if ! mpu6000 -R 12 -s start
 	then
-	else
 		# some boards such as the Hobbywing XRotor F4 G2 use the ICM-20602
 		mpu6000 -R 12 -T 20602 -s start
 	fi

@@ -11,10 +11,8 @@
 #               Begin Setup for board specific configurations.                #
 ###############################################################################
 
-if ver hwcmp AEROFC_V1
+if ! ver hwcmp AEROFC_V1
 then
-	# don't start mavlink ttyACM0 on aerofc_v1
-else
 	# Start MAVLink
 	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 fi
@@ -74,9 +72,8 @@ then
 	fi
 fi
 
-if [ "x$MAVLINK_F" == xnone ]
+if [ "x$MAVLINK_F" != xnone ]
 then
-else
 	mavlink start ${MAVLINK_F}
 fi
 
