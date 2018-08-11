@@ -60,6 +60,7 @@ set(config_module_list
 	#
 	# General system control
 	#
+	modules/camera_feedback
 	modules/commander
 	modules/events
 	#modules/gpio_led
