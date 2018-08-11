@@ -131,10 +131,9 @@ else
 	fi
 fi
 
-if ver hwcmp CRAZYFLIE AEROCORE2
+# AEROCORE2 shouldn't have an sd card and CF2 may optionally have an sd card.
+if ! ver hwcmp CRAZYFLIE AEROCORE2
 then
-	# AEROCORE2 shouldn't have an sd card and CF2 may optionally have an sd card.
-else
 	# Run no SD alarm.
 	if [ $LOG_FILE == /dev/null ]
 	then
@@ -194,20 +193,16 @@ else
 	# Load parameters.
 	#
 	param select $PARAM_FILE
-	if param load
+	if ! param load
 	then
-	else
-		if param reset
-		then
-		fi
+		param reset
 	fi
 
 	#
 	# Start system state indicator.
 	#
-	if rgbled start
+	if ! rgbled start
 	then
-	else
 		if blinkm start
 		then
 			blinkm systemstate
@@ -289,9 +284,8 @@ else
 	#
 	# Set parameters and env variables for selected AUTOSTART.
 	#
-	if param compare SYS_AUTOSTART 0
+	if ! param compare SYS_AUTOSTART 0
 	then
-	else
 		sh /etc/init.d/rc.autostart
 	fi
 
@@ -351,10 +345,8 @@ else
 			if px4io start
 			then
 				# Try to safety px4 io so motor outputs don't go crazy.
-				if px4io safety_on
+				if ! px4io safety_on
 				then
-					# success! no-op
-				else
 					# px4io did not respond to the safety command.
 					px4io stop
 				fi
@@ -507,12 +499,9 @@ else
 	#
 	# Start vmount to control mounts such as gimbals, disabled by default.
 	#
-	if param compare MNT_MODE_IN -1
+	if ! param compare MNT_MODE_IN -1
 	then
-	else
-		if vmount start
-		then
-		fi
+		vmount start
 	fi
 
 	#
