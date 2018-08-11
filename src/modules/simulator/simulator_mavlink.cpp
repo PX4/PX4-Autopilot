@@ -669,12 +669,6 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	// udp socket data
 	struct sockaddr_in _myaddr;
 
-	if (udp_port < 1) {
-		int32_t prt;
-		param_get(param_find("SITL_UDP_PRT"), &prt);
-		udp_port = prt;
-	}
-
 	// try to setup udp socket for communcation with simulator
 	memset((char *)&_myaddr, 0, sizeof(_myaddr));
 	_myaddr.sin_family = AF_INET;
