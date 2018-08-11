@@ -225,10 +225,11 @@ CameraFeedback::task_main()
 
 }
 
-void
+int
 CameraFeedback::task_main_trampoline(int argc, char *argv[])
 {
 	camera_feedback::g_camera_feedback->task_main();
+	return 0;
 }
 
 static int usage()
