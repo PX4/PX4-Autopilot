@@ -220,7 +220,7 @@ GPSSIM::init()
 	}
 
 	/* start the GPS driver worker task */
-	_task = px4_task_spawn_cmd("gps", SCHED_DEFAULT,
+	_task = px4_task_spawn_cmd("gpssim", SCHED_DEFAULT,
 				   SCHED_PRIORITY_DEFAULT, 1500, (px4_main_t)&GPSSIM::task_main_trampoline, nullptr);
 
 	if (_task < 0) {
