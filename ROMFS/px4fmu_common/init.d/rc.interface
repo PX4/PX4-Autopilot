@@ -128,17 +128,20 @@ then
 		set MIXER_AUX ${MIXER}
 	fi
 
-	if [ -f ${SDCARD_MIXERS_PATH}/${MIXER}.main.mix ]
+	if [ "$MIXER_FILE" == none ]
 	then
-		# Use the mixer file from the SD-card if it exists.
-		set MIXER_FILE ${SDCARD_MIXERS_PATH}/${MIXER}.main.mix
-	else
-		# Try out the old convention, for backward compatibility.
-		if [ -f ${SDCARD_MIXERS_PATH}/${MIXER}.mix ]
+		if [ -f ${SDCARD_MIXERS_PATH}/${MIXER}.main.mix ]
 		then
-			set MIXER_FILE ${SDCARD_MIXERS_PATH}/${MIXER}.mix
+			# Use the mixer file from the SD-card if it exists.
+			set MIXER_FILE ${SDCARD_MIXERS_PATH}/${MIXER}.main.mix
 		else
-			set MIXER_FILE /etc/mixers/${MIXER}.main.mix
+			# Try out the old convention, for backward compatibility.
+			if [ -f ${SDCARD_MIXERS_PATH}/${MIXER}.mix ]
+			then
+				set MIXER_FILE ${SDCARD_MIXERS_PATH}/${MIXER}.mix
+			else
+				set MIXER_FILE /etc/mixers/${MIXER}.main.mix
+			fi
 		fi
 	fi
 
@@ -168,7 +171,6 @@ then
 		tone_alarm ${TUNE_ERR}
 	fi
 
-	unset MIXER_FILE
 else
 	if [ $MIXER != skip ]
 	then
