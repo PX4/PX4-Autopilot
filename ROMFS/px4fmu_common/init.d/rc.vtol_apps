@@ -55,7 +55,3 @@ fw_pos_control_l1 start
 #
 land_detector start vtol
 
-#
-# Start Wind and Airspeed Scale Estimator
-#
-#wind_estimator start

@@ -486,7 +486,10 @@ else
 	#
 	# Start the standalone wind estimator.
 	#
-	wind_estimator start
+	if param compare WEST_EN 1
+	then
+		wind_estimator start
+	fi
 
 	#
 	# Start a thermal calibration if required.
