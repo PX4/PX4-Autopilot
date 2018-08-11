@@ -33,7 +33,6 @@
             <arg name="P" value="0"/>
             <arg name="Y" value="0"/>
             <arg name="vehicle" value="$(arg vehicle)"/>
-            <arg name="rcS" value="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle)_$(arg ID)"/>
             <arg name="mavlink_udp_port" value="14561"/>
             <arg name="ID" value="$(arg ID)"/>
         </include>
@@ -59,7 +58,6 @@
             <arg name="P" value="0"/>
             <arg name="Y" value="0"/>
             <arg name="vehicle" value="$(arg vehicle)"/>
-            <arg name="rcS" value="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle)_$(arg ID)"/>
             <arg name="mavlink_udp_port" value="14562"/>
             <arg name="ID" value="$(arg ID)"/>
         </include>

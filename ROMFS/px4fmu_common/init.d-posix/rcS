@@ -4,8 +4,9 @@
 # (px4-alias.sh is expected to be in the PATH)
 source px4-alias.sh
 
+#
 # Main SITL startup script
-
+#
 
 # check for ekf2 replay
 if [ "$replay_mode" == "ekf2" ]
@@ -21,6 +22,7 @@ set LOG_FILE                    bootlog.txt
 set MAV_TYPE                    none
 set MIXER                       none
 set MIXER_AUX                   none
+set MIXER_FILE                  none
 set OUTPUT_MODE                 sim
 set PWM_OUT                     none
 set SDCARD_MIXERS_PATH          etc/mixers
@@ -34,6 +36,28 @@ if [ "$PX4_SIM_MODEL" == "shell" ]; then
 	set RUN_MINIMAL_SHELL yes
 elif [ "$PX4_SIM_MODEL" == "iris" ]; then
 	set REQUESTED_AUTOSTART 10016
+elif [ "$PX4_SIM_MODEL" == "iris_opt_flow" ]; then
+	set REQUESTED_AUTOSTART 1010
+elif [ "$PX4_SIM_MODEL" == "iris_irlock" ]; then
+	set REQUESTED_AUTOSTART 1011
+elif [ "$PX4_SIM_MODEL" == "iris_rplidar" ]; then
+	set REQUESTED_AUTOSTART 1012
+elif [ "$PX4_SIM_MODEL" == "iris_vision" ]; then
+	set REQUESTED_AUTOSTART 1013
+elif [ "$PX4_SIM_MODEL" == "solo" ]; then
+	set REQUESTED_AUTOSTART 1014
+elif [ "$PX4_SIM_MODEL" == "hippocampus" ]; then
+	set REQUESTED_AUTOSTART 1020
+elif [ "$PX4_SIM_MODEL" == "plane" ]; then
+	set REQUESTED_AUTOSTART 1030
+elif [ "$PX4_SIM_MODEL" == "standard_vtol" ]; then
+	set REQUESTED_AUTOSTART 1040
+elif [ "$PX4_SIM_MODEL" == "tailsitter" ]; then
+	set REQUESTED_AUTOSTART 1041
+elif [ "$PX4_SIM_MODEL" == "tiltrotor" ]; then
+	set REQUESTED_AUTOSTART 1042
+elif [ "$PX4_SIM_MODEL" == "rover" ]; then
+	set REQUESTED_AUTOSTART 1060
 elif [ "$PX4_SIM_MODEL" == "typhoon_h480" ]; then
 	set REQUESTED_AUTOSTART 6011
 else
@@ -96,6 +120,8 @@ then
 	param set CAL_GYRO0_XOFF 0.01
 	param set CAL_MAG0_ID 196616
 	param set CAL_MAG0_XOFF 0.01
+	param set SENS_DPRES_OFF 0.001
+	param set CBRK_AIRSPD_CHK 0
 
 	param set COM_DISARM_LAND 3
 	param set COM_OBL_ACT 2
@@ -114,6 +140,7 @@ then
 	param set MC_ROLL_P 6
 	param set MC_ROLLRATE_P 0.2
 	param set MIS_TAKEOFF_ALT 2.5
+	param set MPC_ALT_MODE 0
 	param set MPC_HOLD_MAX_Z 2.0
 	param set MPC_Z_VEL_I 0.15
 	param set MPC_Z_VEL_P 0.6
@@ -127,6 +154,11 @@ then
 	param set SENS_BOARD_ROT 0
 	param set SENS_BOARD_X_OFF 0.000001
 	param set SYS_RESTART_TYPE 2
+
+	# LPE: GPS only mode
+	param set LPE_FUSION 145
+
+	param set WEST_EN 0
 fi
 
 # Autostart ID
@@ -153,6 +185,10 @@ sensors start
 commander start
 navigator start
 
+if param compare WEST_EN 1
+then
+	wind_estimator start
+fi
 
 if ! param compare MNT_MODE_IN -1
 then
@@ -164,6 +200,15 @@ then
 	camera_trigger start
 	param set CAM_FBACK_MODE 1
 	camera_feedback start
+fi
+
+
+if [ ${VEHICLE_TYPE} == fw -o ${VEHICLE_TYPE} == vtol ]
+then
+	if param compare CBRK_AIRSPD_CHK 0
+	then
+		measairspeedsim start
+	fi
 fi
 
 # Configure vehicle type specific parameters.
