@@ -7,5 +7,7 @@
 # @maintainer Julian Oes <julian@oes.ch>
 #
 
-pwm_out_sim mode_pwm
-mixer load /dev/pwm_output0 etc/mixers/quad_w.main.mix
+sh /etc/init.d/rc.mc_defaults
+
+set MIXER quad_w
+

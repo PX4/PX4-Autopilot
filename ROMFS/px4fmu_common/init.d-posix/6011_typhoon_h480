@@ -5,6 +5,8 @@
 # @type Hexarotor x
 #
 
+sh /etc/init.d/rc.mc_defaults
+
 if [ $AUTOCNF == yes ]
 then
 	param set MAV_TYPE 13
@@ -23,10 +25,5 @@ then
 	param set MAV_PROTO_VER 2
 fi
 
-mavlink start -x -u 14558 -r 4000 -f -m onboard -o 14530
+set MIXER hexa_x
 
-pwm_out_sim mode_pwm16
-mixer load /dev/pwm_output0 etc/mixers/hexa_x.main.mix
-mixer append /dev/pwm_output0 etc/mixers/mount_legs.aux.mix
-vmount start
-camera_trigger start

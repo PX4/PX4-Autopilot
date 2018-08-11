@@ -1,0 +1,8 @@
+
+mixer append /dev/pwm_output0 etc/mixers/mount_legs.aux.mix
+
+mavlink start -x -u 14558 -r 4000 -f -m onboard -o 14530
+
+mavlink stream -r 10 -s MOUNT_ORIENTATION -u 14556
+mavlink stream -r 50 -s ATTITUDE_QUATERNION -u 14557
+mavlink stream -r 10 -s MOUNT_ORIENTATION -u 14557
