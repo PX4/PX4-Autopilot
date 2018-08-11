@@ -34,7 +34,7 @@
             <arg name="Y" value="0"/>
             <arg name="vehicle" value="$(arg vehicle)"/>
             <arg name="rcS" value="$(find px4)/posix-configs/SITL/init/$(arg est)/$(arg vehicle)_$(arg ID)"/>
-            <arg name="mavlink_udp_port" value="14560"/>
+            <arg name="mavlink_udp_port" value="14561"/>
             <arg name="ID" value="$(arg ID)"/>
         </include>
         <!-- MAVROS -->
@@ -49,7 +49,7 @@
     <group ns="uav2">
         <!-- MAVROS and vehicle configs -->
         <arg name="ID" value="2"/>
-        <arg name="fcu_url" default="udp://:14541@localhost:14559"/>
+        <arg name="fcu_url" default="udp://:14541@localhost:14558"/>
         <!-- PX4 SITL and vehicle spawn -->
         <include file="$(find px4)/launch/single_vehicle_spawn.launch">
             <arg name="x" value="1"/>
