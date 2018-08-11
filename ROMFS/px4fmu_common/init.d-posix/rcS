@@ -14,7 +14,20 @@ then
 	exit 0
 fi
 
-RUN_MINIMAL_SHELL=no
+# initialize script variables
+set AUX_MODE                    none
+set IO_PRESENT                  no
+set LOG_FILE                    bootlog.txt
+set MAV_TYPE                    none
+set MIXER                       none
+set MIXER_AUX                   none
+set OUTPUT_MODE                 sim
+set PWM_OUT                     none
+set SDCARD_MIXERS_PATH          etc/mixers
+set USE_IO                      no
+set VEHICLE_TYPE                none
+
+set RUN_MINIMAL_SHELL           no
 
 # Use the variable set by sitl_run.sh to choose the model settings.
 if [ "$PX4_SIM_MODEL" == "shell" ]; then
@@ -27,6 +40,10 @@ else
 	echo "Unknown model"
 	exit -1
 fi
+
+# clear bootlog
+[ -f $LOG_FILE ] && rm $LOG_FILE
+
 
 uorb start
 if [ -f eeprom/parameters ]
@@ -73,16 +90,19 @@ then
 	param set CAL_GYRO0_XOFF 0.01
 	param set CAL_MAG0_ID 196616
 	param set CAL_MAG0_XOFF 0.01
+
 	param set COM_DISARM_LAND 3
 	param set COM_OBL_ACT 2
 	param set COM_OBL_RC_ACT 0
 	param set COM_OF_LOSS_T 5
 	param set COM_RC_IN_MODE 1
+
 	param set EKF2_AID_MASK 1
 	param set EKF2_ANGERR_INIT 0.01
 	param set EKF2_GBIAS_INIT 0.01
 	param set EKF2_HGT_MODE 0
 	param set EKF2_MAG_TYPE 1
+
 	param set MC_PITCH_P 6
 	param set MC_PITCHRATE_P 0.2
 	param set MC_ROLL_P 6
@@ -96,6 +116,7 @@ then
 	param set RTL_DESCEND_ALT 5.0
 	param set RTL_LAND_DELAY 5
 	param set RTL_RETURN_ALT 30.0
+
 	param set SDLOG_DIRS_MAX 7
 	param set SENS_BOARD_ROT 0
 	param set SENS_BOARD_X_OFF 0.000001
@@ -114,7 +135,6 @@ fi
 sh "$autostart_file"
 
 
-
 dataman start
 replay tryapplyparams
 simulator start -s
@@ -125,27 +145,27 @@ barosim start
 gpssim start
 sensors start
 commander start
-land_detector start multicopter
 navigator start
 
-if param compare SYS_MC_EST_GROUP 0
+
+if ! param compare MNT_MODE_IN -1
 then
-	attitude_estimator_q start
-	position_estimator_inav start
-elif param compare SYS_MC_EST_GROUP 1
-then
-	attitude_estimator_q start
-	local_position_estimator start
-elif param compare SYS_MC_EST_GROUP 2
-then
-	ekf2 start
-else
-	echo "No estimator chosen"
-	exit -1
+	vmount start
 fi
 
-mc_pos_control start
-mc_att_control start
+if param greater TRIG_MODE 0
+then
+	camera_trigger start
+	param set CAM_FBACK_MODE 1
+	camera_feedback start
+fi
+
+# Configure vehicle type specific parameters.
+# Note: rc.vehicle_setup is the entry point for rc.interface,
+#       rc.fw_apps, rc.mc_apps, rc.ugv_apps, and rc.vtol_apps.
+#
+sh etc/init.d/rc.vehicle_setup
+
 
 mavlink start -x -u 14556 -r 4000000
 mavlink start -x -u 14557 -r 4000000 -m onboard -o 14540
@@ -160,10 +180,9 @@ mavlink stream -r 20 -s RC_CHANNELS -u 14556
 mavlink stream -r 250 -s HIGHRES_IMU -u 14556
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u 14556
 
-# Required for the typhoon
-mavlink stream -r 10 -s MOUNT_ORIENTATION -u 14556
-mavlink stream -r 50 -s ATTITUDE_QUATERNION -u 14557
-mavlink stream -r 10 -s MOUNT_ORIENTATION -u 14557
+# execute autostart post script if any
+[ -e "$autostart_file".post ] && sh "$autostart_file".post
+
 
 logger start -e -t -b 1000
 

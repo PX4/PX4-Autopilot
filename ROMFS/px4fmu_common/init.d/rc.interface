@@ -11,7 +11,6 @@
 
 set MIXER_AUX_FILE none
 set OUTPUT_AUX_DEV /dev/pwm_output1
-set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
 
 #
 # If mount (gimbal) control is enabled and output mode is AUX, set the aux
@@ -25,7 +24,7 @@ then
         fi
 fi
 
-if ver hwcmp AEROFC_V1 AV_X_V1 CRAZYFLIE MINDPX_V2 NXPHLITE_V3 PX4FMU_V4 OMNIBUS_F4SD
+if ver hwcmp AEROFC_V1 AV_X_V1 CRAZYFLIE MINDPX_V2 NXPHLITE_V3 PX4FMU_V4 OMNIBUS_F4SD SITL
 then
 	set MIXER_AUX none
 fi
@@ -75,7 +74,7 @@ then
 		fi
 	fi
 
-	if [ $OUTPUT_MODE == hil ]
+	if [ $OUTPUT_MODE == hil -o $OUTPUT_MODE == sim ]
 	then
 		if ! pwm_out_sim start
 		then
@@ -313,4 +312,3 @@ fi
 
 unset MIXER_AUX_FILE
 unset OUTPUT_AUX_DEV
-unset SDCARD_MIXERS_PATH

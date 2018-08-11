@@ -79,6 +79,7 @@ set PWM_MAX                     p:PWM_MAX
 set PWM_MIN                     p:PWM_MIN
 set PWM_OUT                     none
 set PWM_RATE                    p:PWM_RATE
+set SDCARD_MIXERS_PATH          /fs/microsd/etc/mixers
 set USE_IO                      no
 set VEHICLE_TYPE                none
 
@@ -560,6 +561,7 @@ unset PWM_RATE
 unset PWM_DISARMED
 unset PWM_MAX
 unset PWM_MIN
+unset SDCARD_MIXERS_PATH
 unset USE_IO
 unset VEHICLE_TYPE
 
