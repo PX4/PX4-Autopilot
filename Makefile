@@ -267,6 +267,7 @@ doxygen:
 	@mkdir -p $(SRC_DIR)/build/doxygen
 	@cd $(SRC_DIR)/build/doxygen && cmake $(SRC_DIR) $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=posix_sitl_default -DBUILD_DOXYGEN=ON
 	@$(PX4_MAKE) -C $(SRC_DIR)/build/doxygen
+	@touch $(SRC_DIR)/build/doxygen/Documentation/.nojekyll
 
 # Astyle
 # --------------------------------------------------------------------
