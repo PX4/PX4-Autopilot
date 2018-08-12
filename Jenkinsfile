@@ -188,22 +188,20 @@ pipeline {
             }
           }
           environment {
-            GIT_COMMITTER_EMAIL = "bot@pixhawk.org"
+            GIT_COMMITTER_EMAIL = "bot@px4.io"
             GIT_COMMITTER_NAME = "PX4BuildBot"
             PX4_FIRMWARE_TEST_BRANCH = "ecl_${env.JOB_BASE_NAME}"
           }
           steps {
             sh 'export'
-            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
+            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh('git clone --branch master --origin px4 https://${GIT_USER}:${GIT_PASS}@github.com/PX4/Firmware.git')
-            }
-            sh('cd Firmware; git checkout -B ${PX4_FIRMWARE_TEST_BRANCH}')
-            sh('if [ -n "${CHANGE_FORK+set}" ]; then cd Firmware; git config --file=.gitmodules submodule."src/lib/ecl".url https://github.com/${CHANGE_FORK}/ecl.git; fi')
-            sh('cd Firmware; git submodule sync')
-            sh('cd Firmware; git submodule update --init --recursive --force src/lib/ecl')
-            sh 'cd Firmware/src/lib/ecl; git fetch --all --tags; git checkout -f ${GIT_COMMIT}'
-            sh('cd Firmware; git commit -a -m "PX4/ecl test `date` ${GIT_BRANCH} ${GIT_COMMIT}"')
-            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
+              sh('cd Firmware; git checkout -B ${PX4_FIRMWARE_TEST_BRANCH}')
+              sh('if [ -n "${CHANGE_FORK+set}" ]; then cd Firmware; git config --file=.gitmodules submodule."src/lib/ecl".url https://github.com/${CHANGE_FORK}/ecl.git; fi')
+              sh('cd Firmware; git submodule sync')
+              sh('cd Firmware; git submodule update --init --recursive --force src/lib/ecl')
+              sh 'cd Firmware/src/lib/ecl; git fetch --all --tags; git checkout -f ${GIT_COMMIT}'
+              sh('cd Firmware; git commit -a -m "PX4/ecl test `date` ${GIT_BRANCH} ${GIT_COMMIT}"')
               sh('cd Firmware; git push --force px4 ${PX4_FIRMWARE_TEST_BRANCH}')
             }
           }
