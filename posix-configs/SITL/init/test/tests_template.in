@@ -27,6 +27,5 @@ mavlink boot_complete
 tests @test_name@
 
 dataman status
-dataman stop
 
 shutdown

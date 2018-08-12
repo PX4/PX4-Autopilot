@@ -31,6 +31,5 @@ sleep 1
 @cmd_name@ stop
 
 dataman status
-dataman stop
 
 shutdown
