@@ -442,8 +442,6 @@ private:
 
 	float		get_demanded_airspeed();
 	float		calculate_target_airspeed(float airspeed_demand, const Vector2f &ground_speed);
-	void		calculate_gndspeed_undershoot(const Vector2f &curr_pos, const Vector2f &ground_speed,
-			const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 
 	/**
 	 * Handle incoming vehicle commands
