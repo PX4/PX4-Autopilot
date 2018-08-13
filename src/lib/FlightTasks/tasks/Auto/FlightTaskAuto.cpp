@@ -311,22 +311,41 @@ bool FlightTaskAuto::_evaluateGlobalReference()
 	// Only update if reference timestamp has changed AND no valid reference altitude
 	// is available.
 	// TODO: this needs to be revisited and needs a more clear implementation
-	if (_sub_vehicle_local_position->get().ref_timestamp != _time_stamp_reference &&
-	    (_sub_vehicle_local_position->get().z_global && !PX4_ISFINITE(_reference_altitude))) {
-
-		map_projection_init(&_reference_position,
-				    _sub_vehicle_local_position->get().ref_lat,
-				    _sub_vehicle_local_position->get().ref_lon);
-		_reference_altitude = _sub_vehicle_local_position->get().ref_alt;
-		_time_stamp_reference = _sub_vehicle_local_position->get().ref_timestamp;
+	if (_sub_vehicle_local_position->get().ref_timestamp == _time_stamp_reference && PX4_ISFINITE(_reference_altitude)) {
+		// don't need to update anything
+		return true;
 	}
 
+	double ref_lat =  _sub_vehicle_local_position->get().ref_lat;
+	double ref_lon =  _sub_vehicle_local_position->get().ref_lon;
+	_reference_altitude = _sub_vehicle_local_position->get().ref_alt;
+
+	if (!_sub_vehicle_local_position->get().z_global) {
+		// we have no valid global altitude
+		// set global reference to local reference
+		_reference_altitude = 0.0f;
+	}
+
+	if (!_sub_vehicle_local_position->get().xy_global) {
+		// we have no valid global alt/lat
+		// set global reference to local reference
+		ref_lat = 0.0;
+		ref_lon = 0.0;
+	}
+
+	// init projection
+	map_projection_init(&_reference_position,
+			    ref_lat,
+			    ref_lon);
+
+	// check if everything is still finite
 	if (PX4_ISFINITE(_reference_altitude)
 	    && PX4_ISFINITE(_sub_vehicle_local_position->get().ref_lat)
-	    && PX4_ISFINITE(_sub_vehicle_local_position->get().ref_lat)) {
+	    && PX4_ISFINITE(_sub_vehicle_local_position->get().ref_lon)) {
 		return true;
 
 	} else {
+		// no valid reference
 		return false;
 	}
 }
