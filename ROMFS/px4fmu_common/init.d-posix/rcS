@@ -2,13 +2,17 @@
 
 # PX4 commands need the 'px4-' prefix in bash.
 # (px4-alias.sh is expected to be in the PATH)
+# shellcheck disable=SC1091
 source px4-alias.sh
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 #
 # Main SITL startup script
 #
 
 # check for ekf2 replay
+# shellcheck disable=SC2154
 if [ "$replay_mode" == "ekf2" ]
 then
 	sh etc/init.d-posix/rc.replay
@@ -96,11 +100,12 @@ else
 fi
 
 # multi-instance setup
-param set MAV_SYS_ID $((1+$px4_instance))
-simulator_udp_port=$((14560+$px4_instance))
-udp_offboard_port_local=$((14557+$px4_instance))
-udp_offboard_port_remote=$((14540+$px4_instance))
-udp_gcs_port_local=$((14556+$px4_instance))
+# shellcheck disable=SC2154
+param set MAV_SYS_ID $((1+px4_instance))
+simulator_udp_port=$((14560+px4_instance))
+udp_offboard_port_local=$((14557+px4_instance))
+udp_offboard_port_remote=$((14540+px4_instance))
+udp_gcs_port_local=$((14556+px4_instance))
 
 if [ $AUTOCNF == yes ]
 then
@@ -163,6 +168,7 @@ fi
 
 # Autostart ID
 autostart_file_match="etc/init.d-posix/$(param show -q SYS_AUTOSTART)_*"
+# shellcheck disable=SC2206
 autostart_files=( $autostart_file_match )
 autostart_file="${autostart_files[0]}" # use first match, but there should really only be one
 if [ ! -e "$autostart_file" ]; then
