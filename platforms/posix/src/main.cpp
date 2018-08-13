@@ -527,7 +527,7 @@ int run_startup_bash_script(const std::string &commands_file, const std::string 
 			PX4_INFO("Startup script returned successfully");
 
 		} else {
-			PX4_WARN("Startup script returned with return value: %d", ret);
+			PX4_ERR("Startup script returned with return value: %d", ret);
 		}
 
 	} else {
