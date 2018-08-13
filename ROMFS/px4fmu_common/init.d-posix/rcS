@@ -38,35 +38,14 @@ set RUN_MINIMAL_SHELL           no
 # Use the variable set by sitl_run.sh to choose the model settings.
 if [ "$PX4_SIM_MODEL" == "shell" ]; then
 	set RUN_MINIMAL_SHELL yes
-elif [ "$PX4_SIM_MODEL" == "iris" ]; then
-	set REQUESTED_AUTOSTART 10016
-elif [ "$PX4_SIM_MODEL" == "iris_opt_flow" ]; then
-	set REQUESTED_AUTOSTART 1010
-elif [ "$PX4_SIM_MODEL" == "iris_irlock" ]; then
-	set REQUESTED_AUTOSTART 1011
-elif [ "$PX4_SIM_MODEL" == "iris_rplidar" ]; then
-	set REQUESTED_AUTOSTART 1012
-elif [ "$PX4_SIM_MODEL" == "iris_vision" ]; then
-	set REQUESTED_AUTOSTART 1013
-elif [ "$PX4_SIM_MODEL" == "solo" ]; then
-	set REQUESTED_AUTOSTART 1014
-elif [ "$PX4_SIM_MODEL" == "hippocampus" ]; then
-	set REQUESTED_AUTOSTART 1020
-elif [ "$PX4_SIM_MODEL" == "plane" ]; then
-	set REQUESTED_AUTOSTART 1030
-elif [ "$PX4_SIM_MODEL" == "standard_vtol" ]; then
-	set REQUESTED_AUTOSTART 1040
-elif [ "$PX4_SIM_MODEL" == "tailsitter" ]; then
-	set REQUESTED_AUTOSTART 1041
-elif [ "$PX4_SIM_MODEL" == "tiltrotor" ]; then
-	set REQUESTED_AUTOSTART 1042
-elif [ "$PX4_SIM_MODEL" == "rover" ]; then
-	set REQUESTED_AUTOSTART 1060
-elif [ "$PX4_SIM_MODEL" == "typhoon_h480" ]; then
-	set REQUESTED_AUTOSTART 6011
 else
-	echo "Unknown model"
-	exit -1
+	# Find the matching Autostart ID (file name has the form: [0-9]+_${PX4_SIM_MODEL})
+	# shellcheck disable=SC2010 #(the file names don't contain spaces)
+	REQUESTED_AUTOSTART=$(ls "$SCRIPT_DIR" | grep -oP '^[0-9]+(?=_'${PX4_SIM_MODEL}'$)')
+	if [ -z "$REQUESTED_AUTOSTART" ]; then
+		echo "Error: Unknown model '$PX4_SIM_MODEL'"
+		exit -1
+	fi
 fi
 
 # clear bootlog
