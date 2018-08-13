@@ -145,6 +145,9 @@ set(config_module_list
 	# Demo apps
 	#
 
+	#IQ code
+	examples/iqinetics_underactuated_propeller
+	
 	# Tutorial code from
 	# https://px4.io/dev/px4_simple_app
 	examples/px4_simple_app
