@@ -170,7 +170,7 @@ Client::_send_cmds(const int argc, const char **argv)
 	_client_send_pipe_fd = open(get_client_send_pipe_path(_instance_id).c_str(), O_WRONLY);
 
 	if (_client_send_pipe_fd < 0) {
-		PX4_ERR("pipe open fail");
+		PX4_ERR("pipe open fail (%i)", errno);
 		return _client_send_pipe_fd;
 	}
 
@@ -178,7 +178,7 @@ Client::_send_cmds(const int argc, const char **argv)
 	int bytes_sent = write(_client_send_pipe_fd, &packet, bytes_to_send);
 
 	if (bytes_sent != bytes_to_send) {
-		PX4_ERR("write fail");
+		PX4_ERR("write fail (%i)", errno);
 		return bytes_sent;
 	}
 
