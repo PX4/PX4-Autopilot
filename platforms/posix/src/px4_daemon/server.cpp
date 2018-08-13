@@ -72,6 +72,15 @@ Server::~Server()
 int
 Server::start()
 {
+	std::string client_send_pipe_path = get_client_send_pipe_path(_instance_id);
+
+	// Delete pipe in case it exists already.
+	unlink(client_send_pipe_path.c_str());
+
+	// Create new pipe to listen to clients.
+	// This needs to happen before we return from this method, so that the caller can launch clients.
+	mkfifo(client_send_pipe_path.c_str(), 0666);
+
 	if (0 != pthread_create(&_server_main_pthread,
 				nullptr,
 				_server_main_trampoline,
@@ -112,12 +121,6 @@ Server::_server_main(void *arg)
 	}
 
 	std::string client_send_pipe_path = get_client_send_pipe_path(_instance_id);
-
-	// Delete pipe in case it exists already.
-	unlink(client_send_pipe_path.c_str());
-
-	// Create new pipe to listen to clients.
-	mkfifo(client_send_pipe_path.c_str(), 0666);
 	int client_send_pipe_fd = open(client_send_pipe_path.c_str(), O_RDONLY);
 
 	while (true) {
