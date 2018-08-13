@@ -98,7 +98,6 @@ private:
 	int			_main_task;				/**< handle for task */
 
 	int			_trigger_sub;
-	int			_lpos_sub;
 	int			_gpos_sub;
 	int			_att_sub;
 

@@ -220,7 +220,10 @@ CameraFeedback::task_main()
 
 	}
 
-	PX4_INFO("Exiting.");
+	orb_unsubscribe(_trigger_sub);
+	orb_unsubscribe(_gpos_sub);
+	orb_unsubscribe(_att_sub);
+
 	_main_task = -1;
 
 }
