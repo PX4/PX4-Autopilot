@@ -56,6 +56,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <drivers/drv_hrt.h>
 
 /**
  * Multicopter attitude control app start / stop handling function
@@ -64,6 +65,7 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 
 #define MAX_GYRO_COUNT 3
 
+using namespace time_literals;
 
 class MulticopterAttitudeControl : public ModuleBase<MulticopterAttitudeControl>, public ModuleParams
 {
@@ -88,6 +90,10 @@ public:
 	void run() override;
 
 private:
+
+	static constexpr hrt_abstime VEHICLE_ATT_SP_TIMEOUT = 10_ms;
+	hrt_abstime _timeout_att_sp = 0;
+	int32_t _priority_att_sp = 0;
 
 	/**
 	 * initialize some vectors/matrices from parameters

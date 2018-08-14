@@ -46,7 +46,6 @@
 #include "mc_att_control.hpp"
 
 #include <conversion/rotation.h>
-#include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <circuit_breaker/circuit_breaker.h>
 #include <mathlib/math/Limits.hpp>
@@ -60,7 +59,6 @@
 #define AXIS_COUNT 3
 
 using namespace matrix;
-
 
 int MulticopterAttitudeControl::print_usage(const char *reason)
 {
@@ -253,14 +251,22 @@ MulticopterAttitudeControl::vehicle_attitude_setpoint_poll()
 	int32_t priority = 0;
 
 	for (int &sub : _v_att_sp_subs) {
-		orb_check(sub, &updated);
-		int32_t priority_tmp;
-		orb_priority(sub, &priority_tmp);
+		orb_priority(sub, &priority);
 
-		// only update if setpoint has updated and priority is larger than previous subscription
-		if (updated && priority_tmp > priority) {
-			orb_copy(ORB_ID(vehicle_attitude_setpoint), sub, &_v_att_sp);
-			priority = priority_tmp;
+		// only update if setpoint priority is larger equal than previous subscription
+		if (priority >= _priority_att_sp) {
+			// check if anything has updated
+			orb_check(sub, &updated);
+
+			if (updated) {
+				orb_copy(ORB_ID(vehicle_attitude_setpoint), sub, &_v_att_sp);
+				_priority_att_sp = priority;
+				_timeout_att_sp = hrt_absolute_time();
+
+			} else if (hrt_elapsed_time(&_timeout_att_sp) >= VEHICLE_ATT_SP_TIMEOUT){
+				_priority_att_sp = 0;
+				_timeout_att_sp = hrt_absolute_time();
+			}
 		}
 	}
 }
