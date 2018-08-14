@@ -129,6 +129,11 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 		_sensor_correction.gyro_scale_2[i] = 1.0f;
 	}
 
+	// initialize attitude setpoint subscription
+	for (int &sub : _v_att_sp_subs) {
+		sub = -1;
+	}
+
 	parameters_updated();
 }
 
@@ -245,10 +250,18 @@ MulticopterAttitudeControl::vehicle_attitude_setpoint_poll()
 {
 	/* check if there is a new setpoint */
 	bool updated;
-	orb_check(_v_att_sp_sub, &updated);
+	int32_t priority = 0;
 
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_attitude_setpoint), _v_att_sp_sub, &_v_att_sp);
+	for (int &sub : _v_att_sp_subs) {
+		orb_check(sub, &updated);
+		int32_t priority_tmp;
+		orb_priority(sub, &priority_tmp);
+
+		// only update if setpoint has updated and priority is larger than previous subscription
+		if (updated && priority_tmp > priority) {
+			orb_copy(ORB_ID(vehicle_attitude_setpoint), sub, &_v_att_sp);
+			priority = priority_tmp;
+		}
 	}
 }
 
@@ -602,8 +615,10 @@ MulticopterAttitudeControl::run()
 	/*
 	 * do subscriptions
 	 */
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		_v_att_sp_subs[i] = orb_subscribe_multi(ORB_ID(vehicle_attitude_setpoint), i);
+	}
 	_v_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_v_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_v_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 	_v_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -843,7 +858,12 @@ MulticopterAttitudeControl::run()
 	}
 
 	orb_unsubscribe(_v_att_sub);
-	orb_unsubscribe(_v_att_sp_sub);
+
+	for (int &sub : _v_att_sp_subs) {
+		orb_unsubscribe(sub);
+		sub = -1;
+	}
+
 	orb_unsubscribe(_v_rates_sp_sub);
 	orb_unsubscribe(_v_control_mode_sub);
 	orb_unsubscribe(_params_sub);

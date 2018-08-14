@@ -1381,12 +1381,9 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						att_sp.thrust = set_attitude_target.thrust;
 					}
 
-					if (_att_sp_pub == nullptr) {
-						_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
-
-					} else {
-						orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &att_sp);
-					}
+					int instance; // provides the instance ID or the publication
+					ORB_PRIO priority = ORB_PRIO_HIGH; // since it is an override, set priority high
+					orb_publish_auto(ORB_ID(vehicle_attitude_setpoint), &_att_sp_pub, &att_sp, &instance, priority);
 				}
 
 				/* Publish attitude rate setpoint if bodyrate and thrust ignore bits are not set */
