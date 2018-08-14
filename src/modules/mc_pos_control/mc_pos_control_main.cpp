@@ -781,7 +781,19 @@ MulticopterPositionControl::start_flight_task()
 			task_failure = true;
 		}
 
-	} else if (_control_mode.flag_control_auto_enabled) {
+	}
+
+	// Auto related maneuvers
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ||
+	    _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER ||
+	    _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL ||
+	    _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER ||
+	    _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS ||
+	    _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL ||
+	    _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
+	    _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND ||
+	    _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND ||
+	    _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND) {
 		// Auto related maneuvers
 		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
 
