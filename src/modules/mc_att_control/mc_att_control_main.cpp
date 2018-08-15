@@ -246,13 +246,12 @@ MulticopterAttitudeControl::vehicle_manual_poll()
 void
 MulticopterAttitudeControl::vehicle_attitude_setpoint_poll()
 {
-	/* check if there is a new setpoint */
+	// check if there is a new setpoint
 	bool updated;
 	int32_t priority = 0;
 
 	for (int &sub : _v_att_sp_subs) {
 		orb_priority(sub, &priority);
-
 		// only update if setpoint priority is larger equal than previous subscription
 		if (priority >= _priority_att_sp) {
 			// check if anything has updated

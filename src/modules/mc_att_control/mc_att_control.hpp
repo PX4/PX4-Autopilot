@@ -91,9 +91,9 @@ public:
 
 private:
 
-	static constexpr hrt_abstime VEHICLE_ATT_SP_TIMEOUT = 10_ms;
+	static constexpr hrt_abstime VEHICLE_ATT_SP_TIMEOUT = 150_ms; /**< defines timeout for attitude setpoint subscription */
 	hrt_abstime _timeout_att_sp = 0;
-	int32_t _priority_att_sp = 0;
+	int32_t _priority_att_sp = 0; /**< attitude setpoint subscription priority */
 
 	/**
 	 * initialize some vectors/matrices from parameters
