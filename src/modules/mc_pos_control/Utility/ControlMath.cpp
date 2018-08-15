@@ -166,7 +166,7 @@ matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f 
 
 		matrix::Vector2f u1 = v1.normalized();
 		float m = u1.dot(v0);
-		float c = v0.length() * v0.length() - max * max;
+		float c = v0.dot(v0) - max * max;
 		float s = -m + sqrtf(m * m - c);
 		return v0 + u1 * s;
 	}
