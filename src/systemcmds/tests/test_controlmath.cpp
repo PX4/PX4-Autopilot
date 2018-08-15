@@ -3,6 +3,8 @@
 #include <mathlib/mathlib.h>
 #include <cfloat>
 
+#define SIGMA_SINGLE_OP			0.000001f
+
 class ControlMathTest : public UnitTest
 {
 public:
@@ -32,20 +34,20 @@ bool ControlMathTest::testThrAttMapping()
 	matrix::Vector3f thr{0.0f, 0.0f, -1.0f};
 	float yaw = 0.0f;
 	vehicle_attitude_setpoint_s att = ControlMath::thrustToAttitude(thr, yaw);
-	ut_assert_true(att.roll_body < FLT_EPSILON);
-	ut_assert_true(att.pitch_body < FLT_EPSILON);
-	ut_assert_true(att.yaw_body < FLT_EPSILON);
-	ut_assert_true(att.thrust - 1.0f < FLT_EPSILON);
+	ut_assert_true(att.roll_body < SIGMA_SINGLE_OP);
+	ut_assert_true(att.pitch_body < SIGMA_SINGLE_OP);
+	ut_assert_true(att.yaw_body < SIGMA_SINGLE_OP);
+	ut_assert_true(att.thrust - 1.0f < SIGMA_SINGLE_OP);
 
 	/* expected: same as before but with 90 yaw
 	 * reason: only yaw changed
 	 */
 	yaw = M_PI_2_F;
 	att = ControlMath::thrustToAttitude(thr, yaw);
-	ut_assert_true(att.roll_body < FLT_EPSILON);
-	ut_assert_true(att.pitch_body < FLT_EPSILON);
-	ut_assert_true(att.yaw_body - M_PI_2_F < FLT_EPSILON);
-	ut_assert_true(att.thrust - 1.0f < FLT_EPSILON);
+	ut_assert_true(att.roll_body < SIGMA_SINGLE_OP);
+	ut_assert_true(att.pitch_body < SIGMA_SINGLE_OP);
+	ut_assert_true(att.yaw_body - M_PI_2_F < SIGMA_SINGLE_OP);
+	ut_assert_true(att.thrust - 1.0f < SIGMA_SINGLE_OP);
 
 	/* expected: same as before but roll 180
 	 * reason: thrust points straight down and order Euler
@@ -53,10 +55,10 @@ bool ControlMathTest::testThrAttMapping()
 	 */
 	thr = matrix::Vector3f(0.0f, 0.0f, 1.0f);
 	att = ControlMath::thrustToAttitude(thr, yaw);
-	ut_assert_true(fabsf(att.roll_body) - M_PI_F < FLT_EPSILON);
-	ut_assert_true(fabsf(att.pitch_body) < FLT_EPSILON);
-	ut_assert_true(att.yaw_body - M_PI_2_F < FLT_EPSILON);
-	ut_assert_true(att.thrust - 1.0f < FLT_EPSILON);
+	ut_assert_true(fabsf(att.roll_body) - M_PI_F < SIGMA_SINGLE_OP);
+	ut_assert_true(fabsf(att.pitch_body) < SIGMA_SINGLE_OP);
+	ut_assert_true(att.yaw_body - M_PI_2_F < SIGMA_SINGLE_OP);
+	ut_assert_true(att.thrust - 1.0f < SIGMA_SINGLE_OP);
 
 	/* TODO: find a good way to test it */
 
@@ -75,29 +77,29 @@ bool ControlMathTest::testPrioritizeVector()
 	// the static keywork is a workaround for an internal bug of GCC
 	// "internal compiler error: in trunc_int_for_mode, at explow.c:55"
 	matrix::Vector2f v_r = ControlMath::constrainXY(v0, v1, max);
-	ut_assert_true(fabsf(v_r(0)) - max < FLT_EPSILON && v_r(0) > 0.0f);
-	ut_assert_true(fabsf(v_r(1) - 0.0f) < FLT_EPSILON);
+	ut_assert_true(fabsf(v_r(0)) - max < SIGMA_SINGLE_OP && v_r(0) > 0.0f);
+	ut_assert_true(fabsf(v_r(1) - 0.0f) < SIGMA_SINGLE_OP);
 
 	// v1 exceeds max but v0 is zero
 	v0.zero();
 	v_r = ControlMath::constrainXY(v0, v1, max);
-	ut_assert_true(fabsf(v_r(1)) - max < FLT_EPSILON && v_r(1) < 0.0f);
-	ut_assert_true(fabsf(v_r(0) - 0.0f) < FLT_EPSILON);
+	ut_assert_true(fabsf(v_r(1)) - max < SIGMA_SINGLE_OP && v_r(1) < 0.0f);
+	ut_assert_true(fabsf(v_r(0) - 0.0f) < SIGMA_SINGLE_OP);
 
 	// v0 and v1 are below max
 	v0 = matrix::Vector2f(0.5f, 0.5f);
 	v1(0) = v0(1); v1(1) = -v0(0);
 	v_r = ControlMath::constrainXY(v0, v1, max);
 	float diff = matrix::Vector2f(v_r - (v0 + v1)).length();
-	ut_assert_true(diff < FLT_EPSILON);
+	ut_assert_true(diff < SIGMA_SINGLE_OP);
 
 	// v0 and v1 exceed max and are perpendicular
 	v0 = matrix::Vector2f(4.0f, 0.0f);
 	v1 = matrix::Vector2f(0.0f, -4.0f);
 	v_r = ControlMath::constrainXY(v0, v1, max);
-	ut_assert_true(v_r(0) - v0(0) < FLT_EPSILON && v_r(0) > 0.0f);
+	ut_assert_true(v_r(0) - v0(0) < SIGMA_SINGLE_OP && v_r(0) > 0.0f);
 	float remaining = sqrtf(max * max - (v0(0) * v0(0)));
-	ut_assert_true(fabsf(v_r(1)) - remaining  < FLT_EPSILON && v_r(1) < FLT_EPSILON);
+	ut_assert_true(fabsf(v_r(1)) - remaining  < SIGMA_SINGLE_OP && v_r(1) < SIGMA_SINGLE_OP);
 
 	//TODO: add more tests with vectors not perpendicular
 
