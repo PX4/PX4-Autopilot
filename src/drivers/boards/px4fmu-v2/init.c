@@ -407,18 +407,45 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 			hw_type[2] = '0';
 
 			/* Has CAN2 transceiver Remove pull up */
+
 			stm32_configgpio(GPIO_CAN2_RX);
 
 			break;
 
 		case HW_VER_FMUV2MINI_STATE:
-			hw_type[2] = 'M';
+
+			/* Detection for a Pixhack3 */
+
+			stm32_configgpio(HW_VER_PA8);
+			up_udelay(10);
+			bool isph3 = stm32_gpioread(HW_VER_PA8);
+			stm32_configgpio(HW_VER_PA8_INIT);
+
+
+			if (isph3) {
+
+				/* Pixhack3 looks like a FMuV3 Cube */
+
+				hw_version = HW_VER_FMUV3_STATE;
+				hw_type[1]++;
+				hw_type[2] = '0';
+				message("\nPixhack V3 detected, forcing to fmu-v3");
+
+			} else {
+
+				/* It is a mini */
+
+				hw_type[2] = 'M';
+			}
+
 			break;
 
 		default:
-			// questionable px4fmu-v2 hardware, try forcing regular FMUv2 (not much else we can do)
-			message("bad version detected, forcing to fmu-v2\n");
-			hw_version = 0x8;
+
+			/* questionable px4fmu-v2 hardware, try forcing regular FMUv2 (not much else we can do) */
+
+			message("\nbad version detected, forcing to fmu-v2");
+			hw_version = HW_VER_FMUV2_STATE;
 			break;
 		}
 
