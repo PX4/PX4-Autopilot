@@ -49,13 +49,12 @@ FlightTaskAutoTrajectoryImpl::FlightTaskAutoTrajectoryImpl() :
 
 void FlightTaskAutoTrajectoryImpl::_generateSetpoints()
 {
-
 	if (_control_points_update) {
 		_update_control_points();
 		_control_points_update = false;
 
 		// for now just set it to half the acceleration because no parameter exists.
-		const float deceleration = MPC_ACC_HOR.get() / 5.0f;
+		const float deceleration = MPC_ACC_HOR.get() / 2.0f;
 
 		float angle = 2.0f;
 
@@ -118,7 +117,7 @@ void FlightTaskAutoTrajectoryImpl::_generateSetpoints()
 			_bezier.getStatesClosest(_position_setpoint, _velocity_setpoint, acceleration, _position);
 			_traj_state = TrajectoryState::Bezier;
 
-		} else if (!pt_1_reached) {
+		} else {
 			_control_points_update = true;
 			_traj_state = TrajectoryState::Line;
 			_line.generateSetpoints(_position_setpoint, _velocity_setpoint);
