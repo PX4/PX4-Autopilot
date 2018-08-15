@@ -47,7 +47,4 @@ px4_add_module(
 		mavlink_ftp_test.cpp
 		../mavlink_stream.cpp
 		../mavlink_ftp.cpp
-		../mavlink.c
-	DEPENDS
 	)
-

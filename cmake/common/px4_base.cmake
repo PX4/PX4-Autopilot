@@ -175,6 +175,7 @@ endfunction()
 #		INCLUDES		: include directories
 #		DEPENDS			: targets which this module depends on
 #		EXTERNAL		: flag to indicate that this module is out-of-tree
+#		UNITY_BUILD		: merge all source files and build this module as a single compilation unit
 #
 #	Output:
 #		Static library with name matching MODULE.
@@ -194,11 +195,34 @@ function(px4_add_module)
 		NAME px4_add_module
 		ONE_VALUE MODULE MAIN STACK STACK_MAIN STACK_MAX PRIORITY
 		MULTI_VALUE COMPILE_FLAGS LINK_FLAGS SRCS INCLUDES DEPENDS
-		OPTIONS EXTERNAL
+		OPTIONS EXTERNAL UNITY_BUILD
 		REQUIRED MODULE MAIN
 		ARGN ${ARGN})
 
-	add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
+	if(UNITY_BUILD AND (${OS} STREQUAL "nuttx"))
+		# build standalone test library to catch compilation errors and provide sane output
+		add_library(${MODULE}_original STATIC EXCLUDE_FROM_ALL ${SRCS})
+		if(DEPENDS)
+			add_dependencies(${MODULE}_original ${DEPENDS})
+		endif()
+
+		if(INCLUDES)
+			target_include_directories(${MODULE}_original PRIVATE ${INCLUDES})
+		endif()
+
+		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_unity.cpp
+			COMMAND cat ${SRCS} > ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_unity.cpp
+			DEPENDS ${MODULE}_original ${DEPENDS} ${SRCS}
+			COMMENT "${MODULE} merging source"
+			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+			)
+		set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_unity.cpp PROPERTIES GENERATED true)
+
+		add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_unity.cpp)
+		target_include_directories(${MODULE} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+	else()
+		add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
+	endif()
 
 	# all modules can potentially use parameters and uORB
 	add_dependencies(${MODULE} uorb_headers)
@@ -230,9 +254,9 @@ function(px4_add_module)
 	endif()
 	set_target_properties(${MODULE} PROPERTIES STACK_MAX ${STACK_MAX})
 
-	if(${OS} STREQUAL "qurt" )
+	if(${OS} STREQUAL "qurt")
 		set_property(TARGET ${MODULE} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
-	elseif(${OS} STREQUAL "nuttx" )
+	elseif(${OS} STREQUAL "nuttx")
 		target_compile_options(${MODULE} PRIVATE -Wframe-larger-than=${STACK_MAX})
 	endif()
 
