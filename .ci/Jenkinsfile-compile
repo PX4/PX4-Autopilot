@@ -96,7 +96,7 @@ pipeline {
 
           def nuttx_builds_other = [
             target: ["px4-same70xplained-v1_default", "px4-stm32f4discovery_default", "px4cannode-v1_default",
-                     "px4esc-v1_default", "px4nucleoF767ZI-v1_default", "s2740vc-v1_default"],
+                     "px4esc-v1_default", "s2740vc-v1_default"],
             image: docker_images.nuttx,
             archive: false
           ]
