@@ -92,6 +92,7 @@ struct Parameters {
 	int32_t rc_map_stab_sw;
 	int32_t rc_map_man_sw;
 	int32_t rc_map_flaps;
+	int32_t rc_map_power_off_sw;
 
 	int32_t rc_map_aux1;
 	int32_t rc_map_aux2;
@@ -118,6 +119,7 @@ struct Parameters {
 	float rc_gear_th;
 	float rc_stab_th;
 	float rc_man_th;
+	float rc_poweroffswitch_th;
 
 	bool rc_assist_inv;
 	bool rc_auto_inv;
@@ -133,6 +135,7 @@ struct Parameters {
 	bool rc_gear_inv;
 	bool rc_stab_inv;
 	bool rc_man_inv;
+	bool rc_poweroffswitch_inv;
 
 	float rc_flt_smp_rate;
 	float rc_flt_cutoff;
