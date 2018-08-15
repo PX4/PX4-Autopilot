@@ -16,5 +16,6 @@ uint8 MAIN_STATE_AUTO_LAND = 11
 uint8 MAIN_STATE_AUTO_FOLLOW_TARGET = 12
 uint8 MAIN_STATE_AUTO_PRECLAND = 13
 uint8 MAIN_STATE_MAX = 14
+uint8 MAIN_STATE_CUSTOM = 15
 
 uint8 main_state		    	# main state machine

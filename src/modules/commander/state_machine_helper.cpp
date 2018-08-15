@@ -350,6 +350,13 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 
 		break;
 
+	case commander_state_s::MAIN_STATE_CUSTOM:
+
+		// checks will be done in flight tasks
+		ret = TRANSITION_CHANGED;
+
+		break;
+
 	case commander_state_s::MAIN_STATE_MAX:
 	default:
 		break;
@@ -530,6 +537,30 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 			}
 		}
 		break;
+
+	case commander_state_s::MAIN_STATE_CUSTOM: {
+
+			if (rc_lost && is_armed) {
+					enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
+
+					set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act,
+								vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER);
+
+					/* As long as there is RC, we can fallback to ALTCTL, or STAB. */
+					/* A local position estimate is enough for POSCTL for multirotors,
+					* this enables POSCTL using e.g. flow.
+					* For fixedwing, a global position is needed. */
+
+				} else if (is_armed
+					&& check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, !(posctl_nav_loss_act == 1),
+							!status->is_rotary_wing)) {
+					// nothing to do - everything done in check_invalid_pos_nav_state
+
+				} else {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_CUSTOM;
+				}
+			}
+			break;
 
 	case commander_state_s::MAIN_STATE_AUTO_MISSION:
 
