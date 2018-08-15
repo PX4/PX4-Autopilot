@@ -48,6 +48,7 @@
 #include <px4_posix.h>
 #include <drivers/drv_hrt.h>
 #include <systemlib/hysteresis/hysteresis.h>
+#include <commander/px4_custom_mode.h>
 
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/parameter_update.h>
@@ -68,6 +69,8 @@
 #include <lib/FlightTasks/FlightTasks.hpp>
 #include "PositionControl.hpp"
 #include "Utility/ControlMath.hpp"
+
+#define NUM_FAILURE_TRIES 10 /**< number of tries before switching to a failsafe flight task */
 
 /**
  * Multicopter position control app start / stop handling function
@@ -104,6 +107,7 @@ private:
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub{nullptr};		/**< vehicle local position setpoint publication */
 	orb_advert_t _traj_wp_avoidance_desired_pub{nullptr}; /**< trajectory waypoint desired publication */
+	orb_advert_t _pub_vehicle_command{nullptr};           /**< vehicle command publication */
 	orb_id_t _attitude_setpoint_id{nullptr};
 
 	int		_control_task{-1};			/**< task handle for task */
@@ -114,6 +118,8 @@ private:
 	int		_local_pos_sub{-1};			/**< vehicle local position */
 	int		_home_pos_sub{-1}; 			/**< home position */
 	int		_traj_wp_avoidance_sub{-1};	/**< trajectory waypoint */
+
+	int _task_failure_count{0};         /**< counter for task failures */
 
 	float _takeoff_speed = -1.f; /**< For flighttask interface used only. It can be thrust or velocity setpoints */
 
@@ -267,6 +273,15 @@ private:
 	 * Shim for calling task_main from task_create.
 	 */
 	static int	task_main_trampoline(int argc, char *argv[]);
+
+	/**
+	 * check if task should be switched because of failsafe
+	 */
+	void check_failure(bool task_failure, uint8_t nav_state);
+	/**
+	 * send vehicle command to inform commander about failsafe
+	 */
+	void send_vehicle_cmd_do(uint8_t nav_state);
 
 	/**
 	 * Main sensor collection task.
@@ -753,6 +768,11 @@ MulticopterPositionControl::start_flight_task()
 		if (error != 0) {
 			PX4_WARN("Offboard activation failded with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
+			_task_failure_count++;
+
+		} else {
+			// we want to be in this mode, reset the failure count
+			_task_failure_count = 0;
 		}
 	}
 
@@ -763,6 +783,11 @@ MulticopterPositionControl::start_flight_task()
 		if (error != 0) {
 			PX4_WARN("Follow-Me activation failed with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
+			_task_failure_count++;
+
+		} else {
+			// we want to be in this mode, reset the failure count
+			_task_failure_count = 0;
 		}
 
 	} else if (_control_mode.flag_control_auto_enabled) {
@@ -772,6 +797,11 @@ MulticopterPositionControl::start_flight_task()
 		if (error != 0) {
 			PX4_WARN("Auto activation failed with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
+			_task_failure_count++;
+
+		} else {
+			// we want to be in this mode, reset the failure count
+			_task_failure_count = 0;
 		}
 	}
 
@@ -801,8 +831,10 @@ MulticopterPositionControl::start_flight_task()
 		if (error != 0) {
 			PX4_WARN("Position-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
+			_task_failure_count++;
 
 		} else {
+			check_failure(task_failure, vehicle_status_s::NAVIGATION_STATE_POSCTL);
 			task_failure = false;
 		}
 	}
@@ -814,8 +846,10 @@ MulticopterPositionControl::start_flight_task()
 		if (error != 0) {
 			PX4_WARN("Altitude-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
+			_task_failure_count++;
 
 		} else {
+			check_failure(task_failure, vehicle_status_s::NAVIGATION_STATE_ALTCTL);
 			task_failure = false;
 		}
 	}
@@ -829,8 +863,10 @@ MulticopterPositionControl::start_flight_task()
 		if (error != 0) {
 			PX4_WARN("Stabilized-Ctrl failed with error: %s", _flight_tasks.errorToString(error));
 			task_failure = true;
+			_task_failure_count++;
 
 		} else {
+			check_failure(task_failure, vehicle_status_s::NAVIGATION_STATE_STAB);
 			task_failure = false;
 		}
 	}
@@ -1060,6 +1096,57 @@ MulticopterPositionControl::start()
 	}
 
 	return OK;
+}
+
+void MulticopterPositionControl::check_failure(bool task_failure, uint8_t nav_state)
+{
+	if (!task_failure) {
+		// we want to be in this mode, reset the failure count
+		_task_failure_count = 0;
+
+	} else if (_task_failure_count > NUM_FAILURE_TRIES) {
+		// tell commander to switch mode
+		PX4_WARN("Previous flight task failed, switching to mode %d", nav_state);
+		send_vehicle_cmd_do(nav_state);
+	}
+}
+
+void MulticopterPositionControl::send_vehicle_cmd_do(uint8_t nav_state)
+{
+	vehicle_command_s command{};
+	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
+	command.param1 = (float)1; // base mode
+	command.param3 = (float)0; // sub mode
+	command.target_system = 1;
+	command.target_component = 1;
+	command.source_system = 1;
+	command.source_component = 1;
+	command.confirmation = false;
+	command.from_external = false;
+
+	// set the main mode
+	switch (nav_state) {
+	case vehicle_status_s::NAVIGATION_STATE_STAB:
+		command.param2 = (float)PX4_CUSTOM_MAIN_MODE_STABILIZED;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+		command.param2 = (float)PX4_CUSTOM_MAIN_MODE_ALTCTL;
+		break;
+
+	default: //vehicle_status_s::NAVIGATION_STATE_POSCTL
+		command.param2 = (float)PX4_CUSTOM_MAIN_MODE_POSCTL;
+		break;
+	}
+
+	// publish the vehicle command
+	if (_pub_vehicle_command == nullptr) {
+		_pub_vehicle_command = orb_advertise_queue(ORB_ID(vehicle_command), &command,
+				       vehicle_command_s::ORB_QUEUE_LENGTH);
+
+	} else {
+		orb_publish(ORB_ID(vehicle_command), _pub_vehicle_command, &command);
+	}
 }
 
 int mc_pos_control_main(int argc, char *argv[])
