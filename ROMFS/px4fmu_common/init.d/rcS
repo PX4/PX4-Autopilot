@@ -93,7 +93,7 @@ set PWM_RATE                    p:PWM_RATE
 set SDCARD_MIXERS_PATH          /fs/microsd/etc/mixers
 set USE_IO                      no
 set VEHICLE_TYPE                none
-set TUNE_ERR                    ML<<CP4CP4CP4CP4CP4
+set TUNE_ERR                    "ML<<CP4CP4CP4CP4CP4"
 #
 # Mount the procfs.
 #
