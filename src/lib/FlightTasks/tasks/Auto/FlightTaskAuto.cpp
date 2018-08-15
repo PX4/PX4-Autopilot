@@ -400,7 +400,6 @@ void FlightTaskAuto::_updateInternalWaypoints()
 			_target = _triplet_target;
 			_prev_wp = _position;
 			_next_wp = _triplet_next_wp;
-			//_current_state = State::target_behind;
 
 			float angle = 2.0f;
 			_speed_at_target = 0.0f;
