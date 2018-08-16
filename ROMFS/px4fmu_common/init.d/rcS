@@ -57,6 +57,8 @@ set +e
 
 #
 # Set default paramter values.
+# Do not add intra word spaces
+# it wastes flash
 #
 set AUX_MODE pwm
 set DATAMAN_OPT ""
@@ -67,7 +69,7 @@ set FEXTRAS /fs/microsd/etc/extras.txt
 set FRC /fs/microsd/etc/rc.txt
 set FMU_ARGS ""
 set FMU_MODE pwm
-set IO_FILE ""
+set IOFW "/etc/extras/px4io-v2.bin"
 set IO_PRESENT no
 set LOG_FILE /fs/microsd/bootlog.txt
 set MAVLINK_F default
@@ -93,7 +95,7 @@ set PWM_RATE p:PWM_RATE
 set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
 set USE_IO no
 set VEHICLE_TYPE none
-set TUNE_ERR "ML<<CP4CP4CP4CP4CP4"
+
 #
 # Mount the procfs.
 #
@@ -110,6 +112,18 @@ sercon
 ver all
 
 #
+# Start the ORB (first app to start)
+# tone_alarm and tune_control
+# is dependent.
+#
+uorb start
+
+#
+# Start the tone_alarm driver.
+#
+tone_alarm start
+
+#
 # Try to mount the microSD card.
 #
 # REBOOTWORK this needs to start after the flight control loop.
@@ -119,23 +133,24 @@ then
 	then
 		# Error tune.
 		tune_control play -t 2
-
 		if hardfault_log commit
 		then
 			hardfault_log reset
-			tone_alarm stop
 		fi
+	else
+		tune_control play -t 1
 	fi
 else
-	tone_alarm MBAGP
+	# tune SD_INIT
+	tune_control play -t 16
 	if mkfatfs /dev/mmcsd0
 	then
 		if mount -t vfat /dev/mmcsd0 /fs/microsd
 		then
 			echo "INFO [init] card formatted"
 		else
+			tune_control play -t 17
 			echo "ERROR [init] format failed"
-			tune_control play -m MNBG
 			set LOG_FILE /dev/null
 		fi
 	else
@@ -149,7 +164,7 @@ then
 	# Run no SD alarm.
 	if [ $LOG_FILE == /dev/null ]
 	then
-		# Error tune.
+		# tune Make FS MBAGP
 		tune_control play -t 2
 	fi
 fi
@@ -162,21 +177,6 @@ if [ -f $FRC ]
 then
 	sh $FRC
 else
-	#
-	# Start the ORB (first app to start).
-	#
-	uorb start
-
-	#
-	# Start the tone_alarm driver.
-	#
-	tone_alarm start
-
-	#
-	# Play the startup tone.
-	#
-	tune_control play -t 1
-
 	#
 	# Waypoint storage.
 	# REBOOTWORK this needs to start in parallel.
@@ -343,45 +343,53 @@ else
 
 	#
 	# Check if PX4IO present and update firmware if needed.
+	# Assumption IOFW set to firware file and IO_PRESENT = no
 	#
-	if [ -f /etc/extras/px4io-v2.bin ]
-	then
-		set IO_FILE /etc/extras/px4io-v2.bin
 
-		if px4io checkcrc ${IO_FILE}
+	if [ -f $IOFW ]
+	then
+		if px4io checkcrc ${IOFW}
 		then
 			set IO_PRESENT yes
 		else
-			tune_control play -m MLL32CP8MB
-
-			if px4io start
+			# Check for the mini using build with px4io fw file
+			# but not a px4IO
+			if ver hwtypecmp V540
 			then
-				# Try to safety px4 io so motor outputs don't go crazy.
-				if ! px4io safety_on
+				echo "PX4IO Not Suported" >> $LOG_FILE
+			else
+				# tune Program PX4IO
+				tune_control play -t 18
+
+				if px4io start
 				then
-					# px4io did not respond to the safety command.
-					px4io stop
+					# Try to safety px4 io so motor outputs don't go crazy.
+					if ! px4io safety_on
+					then
+						# px4io did not respond to the safety command.
+						px4io stop
+					fi
 				fi
-			fi
 
-			if px4io forceupdate 14662 ${IO_FILE}
-			then
-				usleep 10000
-				if px4io checkcrc ${IO_FILE}
+				if px4io forceupdate 14662 ${IOFW}
 				then
-					echo "PX4IO CRC OK after updating" >> $LOG_FILE
-					tune_control play -m MLL8CDE
+					usleep 10000
+					tune_control stop
+					if px4io checkcrc ${IOFW}
+					then
+						echo "PX4IO CRC OK after updating" >> $LOG_FILE
+						#tune MLL8CDE Program PX4IO success
+						tune_control play -t 19
+						set IO_PRESENT yes
+					fi
+				fi
 
-					set IO_PRESENT yes
-				else
+				if [ $IO_PRESENT == no ]
+				then
 					echo "PX4IO update failed" >> $LOG_FILE
 					# Error tune.
-					tune_control play -t 2
+					tune_control play -t 20
 				fi
-			else
-				echo "PX4IO update failed" >> $LOG_FILE
-				# Error tune.
-				tune_control play -t 2
 			fi
 		fi
 	fi
@@ -552,7 +560,7 @@ unset FEXTRAS
 unset FRC
 unset FMU_ARGS
 unset FMU_MODE
-unset IO_FILE
+unset IOFW
 unset IO_PRESENT
 unset LOG_FILE
 unset MAVLINK_F
@@ -579,7 +587,6 @@ unset PWM_MIN
 unset SDCARD_MIXERS_PATH
 unset USE_IO
 unset VEHICLE_TYPE
-unset TUNE_ERR
 
 #
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running.
