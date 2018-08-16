@@ -9,6 +9,7 @@ env:
     - TARGET=native
     - TARGET=lpc11c24
     - TARGET=stm32
+    - TARGET=kinetis
 addons:
   coverity_scan:
     project:
@@ -25,3 +26,4 @@ script:
     - if [ "${COVERITY_SCAN_BRANCH}" != 1 ] && [ "${TARGET}" == "native" ]; then make && make ARGS=-VV test; fi
     - if [ "${COVERITY_SCAN_BRANCH}" != 1 ] && [ "${TARGET}" == "lpc11c24" ]; then cd "$TRAVIS_BUILD_DIR/libuavcan_drivers/lpc11c24/test_olimex_lpc_p11c24" && make all; fi
     - if [ "${COVERITY_SCAN_BRANCH}" != 1 ] && [ "${TARGET}" == "stm32" ]; then echo "TODO STM32 test environment is not configured"; fi
+    - if [ "${COVERITY_SCAN_BRANCH}" != 1 ] && [ "${TARGET}" == "kinetis" ]; then echo "TODO Kinetis test environment is not configured"; fi
