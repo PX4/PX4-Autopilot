@@ -62,6 +62,7 @@
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
+#include <parameters/param.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
@@ -108,7 +109,7 @@
 class PMW3901 : public device::SPI
 {
 public:
-	PMW3901(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING, int bus = PMW3901_BUS);
+	PMW3901(int bus = PMW3901_BUS, enum Rotation yaw_rotation = (enum Rotation)0);
 
 	virtual ~PMW3901();
 
@@ -127,7 +128,6 @@ protected:
 	virtual int probe();
 
 private:
-	uint8_t _rotation;
 	work_s _work;
 	ringbuffer::RingBuffer *_reports;
 	bool _sensor_ok;
@@ -143,7 +143,7 @@ private:
 
 	uint64_t _previous_collect_timestamp;
 
-	enum Rotation _sensor_rotation;
+	enum Rotation _yaw_rotation;
 	int _flow_sum_x = 0;
 	int _flow_sum_y = 0;
 	uint64_t _flow_dt_sum_usec = 0;
@@ -193,9 +193,8 @@ private:
  */
 extern "C" __EXPORT int pmw3901_main(int argc, char *argv[]);
 
-PMW3901::PMW3901(uint8_t rotation, int bus) :
+PMW3901::PMW3901(int bus, enum Rotation yaw_rotation) :
 	SPI("PMW3901", PMW3901_DEVICE_PATH, bus, PMW3901_SPIDEV, SPIDEV_MODE0, PMW3901_SPI_BUS_SPEED),
-	_rotation(rotation),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),
@@ -206,7 +205,7 @@ PMW3901::PMW3901(uint8_t rotation, int bus) :
 	_sample_perf(perf_alloc(PC_ELAPSED, "pmw3901_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "pmw3901_com_err")),
 	_previous_collect_timestamp(0),
-	_sensor_rotation((enum Rotation)rotation)
+	_yaw_rotation(yaw_rotation)
 {
 
 	// enable debug() calls
@@ -340,6 +339,16 @@ int
 PMW3901::init()
 {
 	int ret = PX4_ERROR;
+
+	// get yaw rotation from sensor frame to body frame
+	param_t rot = param_find("SENS_FLOW_ROT");
+
+	if (rot != PARAM_INVALID) {
+		int32_t val = 0;
+		param_get(rot, &val);
+
+		_yaw_rotation = (enum Rotation)val;
+	}
 
 	/* For devices competing with NuttX SPI drivers on a bus (Crazyflie SD Card expansion board) */
 	SPI::set_lockmode(LOCK_THREADS);
@@ -583,6 +592,11 @@ PMW3901::collect()
 	report.pixel_flow_x_integral = static_cast<float>(delta_x);
 	report.pixel_flow_y_integral = static_cast<float>(delta_y);
 
+	// rotate measurements in yaw from sensor frame to body frame according to parameter SENS_FLOW_ROT
+	float zeroval = 0.0f;
+	rotate_3f(_yaw_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval);
+	rotate_3f(_yaw_rotation, report.gyro_x_rate_integral, report.gyro_y_rate_integral, report.gyro_z_rate_integral);
+
 	report.frame_count_since_last_readout = 4;				//microseconds
 	report.integration_timespan = _flow_dt_sum_usec; 		//microseconds
 
@@ -719,18 +733,19 @@ namespace pmw3901
 
 PMW3901	*g_dev;
 
-void	start(uint8_t rotation);
+void	start(int spi_bus);
 void	stop();
 void	test();
 void	reset();
 void	info();
+void	usage();
 
 
 /**
  * Start the driver.
  */
 void
-start(uint8_t rotation)
+start(int spi_bus)
 {
 	int fd;
 
@@ -739,7 +754,7 @@ start(uint8_t rotation)
 	}
 
 	/* create the driver */
-	g_dev = new PMW3901(rotation, PMW3901_BUS);
+	g_dev = new PMW3901(spi_bus, (enum Rotation)0);
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -837,24 +852,57 @@ info()
 	exit(0);
 }
 
+/**
+ * Print a little info about how to start/stop/use the driver
+ */
+void usage()
+{
+	PX4_INFO("usage: pmw3901 {start|test|reset|info'}");
+	PX4_INFO("    [-b SPI_BUS]");
+}
+
 } // namespace pmw3901
 
 
 int
 pmw3901_main(int argc, char *argv[])
 {
-	int myoptind = 1;
-	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-
 	if (argc < 2) {
-		goto out;
+		pmw3901::usage();
+		return PX4_ERROR;
+	}
+
+	// don't exit from getopt loop to leave getopt global variables in consistent state,
+	// set error flag instead
+	bool err_flag = false;
+	int ch;
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
+	int spi_bus = PMW3901_BUS;
+
+	while ((ch = px4_getopt(argc, argv, "b:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'b':
+			spi_bus = (uint8_t)atoi(myoptarg);
+
+			break;
+
+		default:
+			err_flag = true;
+			break;
+		}
+	}
+
+	if (err_flag) {
+		pmw3901::usage();
+		return PX4_ERROR;
 	}
 
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		pmw3901::start(rotation);
+		pmw3901::start(spi_bus);
 	}
 
 	/*
@@ -878,8 +926,6 @@ pmw3901_main(int argc, char *argv[])
 		pmw3901::info();
 	}
 
-out:
-
-	PX4_ERR("unrecognized command, try 'start', 'test', or 'info'");
+	pmw3901::usage();
 	return PX4_ERROR;
 }
