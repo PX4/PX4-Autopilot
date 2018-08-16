@@ -490,13 +490,14 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
  * If set to '3-axis' 3-axis field fusion is used at all times.
  * If set to 'VTOL custom' the behaviour is the same as 'Automatic', but if fusing airspeed, magnetometer fusion is only allowed to modify the magnetic field states. This can be used by VTOL platforms with large magnetic field disturbances to prevent incorrect bias states being learned during forward flight operation which can adversely affect estimation accuracy after transition to hovering flight.
  * If set to 'MC custom' the behaviour is the same as 'Automatic, but if there are no earth frame position or velocity observations being used, the magnetometer will not be used. This enables vehicles to operate with no GPS in environments where the magnetic field cannot be used to provide a heading reference. Prior to flight, the yaw angle is assumed to be constant if movement tests controlled by the EKF2_MOVE_TEST parameter indicate that the vehicle is static. This allows the vehicle to be placed on the ground to learn the yaw gyro bias prior to flight.
- *
+ * If set to 'None' the magnetometer will not be used under any circumstance. Other sources of yaw may be used if selected via the EKF2_AID_MASK parameter.
  * @group EKF2
  * @value 0 Automatic
  * @value 1 Magnetic heading
  * @value 2 3-axis
  * @value 3 VTOL customn
  * @value 4 MC custom
+ * @value 5 None
  * @reboot_required true
  */
 PARAM_DEFINE_INT32(EKF2_MAG_TYPE, 0);
@@ -581,13 +582,14 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * 1 : Set to true to use optical flow data if available
  * 2 : Set to true to inhibit IMU bias estimation
  * 3 : Set to true to enable vision position fusion
- * 4 : Set to true to enable vision yaw fusion
+ * 4 : Set to true to enable vision yaw fusion. Cannot be used if bit position 7 is true.
  * 5 : Set to true to enable multi-rotor drag specific force fusion
  * 6 : set to true if the EV observations are in a non NED reference frame and need to be rotated before being used
+ * 7 : Set to true to enable GPS yaw fusion. Cannot be used if bit position 4 is true.
  *
  * @group EKF2
  * @min 0
- * @max 127
+ * @max 255
  * @bit 0 use GPS
  * @bit 1 use optical flow
  * @bit 2 inhibit IMU bias estimation
@@ -595,6 +597,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * @bit 4 vision yaw fusion
  * @bit 5 multi-rotor drag fusion
  * @bit 6 rotate external vision
+ * @bit 7 GPS yaw fusion
  * @reboot_required true
  */
 PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);

@@ -965,6 +965,8 @@ void Ekf2::run()
 				_gps_state[0].lat = gps.lat;
 				_gps_state[0].lon = gps.lon;
 				_gps_state[0].alt = gps.alt;
+				_gps_state[0].yaw = gps.heading;
+				_gps_state[0].yaw_offset = gps.heading_offset;
 				_gps_state[0].fix_type = gps.fix_type;
 				_gps_state[0].eph = gps.eph;
 				_gps_state[0].epv = gps.epv;
@@ -994,6 +996,8 @@ void Ekf2::run()
 				_gps_state[1].lat = gps.lat;
 				_gps_state[1].lon = gps.lon;
 				_gps_state[1].alt = gps.alt;
+				_gps_state[1].yaw = gps.heading;
+				_gps_state[1].yaw_offset = gps.heading_offset;
 				_gps_state[1].fix_type = gps.fix_type;
 				_gps_state[1].eph = gps.eph;
 				_gps_state[1].epv = gps.epv;
@@ -1074,6 +1078,8 @@ void Ekf2::run()
 				gps.vel_d_m_s = _gps_output[_gps_select_index].vel_ned[2];
 				gps.vel_ned_valid = _gps_output[_gps_select_index].vel_ned_valid;
 				gps.satellites_used = _gps_output[_gps_select_index].nsats;
+				gps.heading = _gps_output[_gps_select_index].yaw;
+				gps.heading_offset = _gps_output[_gps_select_index].yaw_offset;
 				gps.selected = _gps_select_index;
 
 				// Publish to the EKF blended GPS topic
@@ -2165,6 +2171,19 @@ void Ekf2::update_gps_blend_states()
 	_gps_blended_state.lon = (int32_t)(1.0E7 * lon_deg_res);
 	_gps_blended_state.alt += (int32_t)blended_alt_offset_mm;
 
+	// Take GPS heading from the highest weighted receiver that is publishing a valid .heading value
+	uint8_t gps_best_yaw_index = 0;
+	best_weight = 0.0f;
+
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		if (PX4_ISFINITE(_gps_state[i].yaw) && (_blend_weights[i] > best_weight)) {
+			best_weight = _blend_weights[i];
+			gps_best_yaw_index = i;
+		}
+	}
+
+	_gps_blended_state.yaw = _gps_state[gps_best_yaw_index].yaw;
+	_gps_blended_state.yaw_offset = _gps_state[gps_best_yaw_index].yaw_offset;
 }
 
 /*
@@ -2266,6 +2285,9 @@ void Ekf2::apply_gps_offsets()
 		_gps_output[i].gdop		= _gps_state[i].gdop;
 		_gps_output[i].nsats		= _gps_state[i].nsats;
 		_gps_output[i].vel_ned_valid	= _gps_state[i].vel_ned_valid;
+		_gps_output[i].yaw		= _gps_state[i].yaw;
+		_gps_output[i].yaw_offset	= _gps_state[i].yaw_offset;
+
 	}
 }
 
@@ -2325,6 +2347,8 @@ void Ekf2::calc_gps_blend_output()
 	_gps_output[GPS_BLENDED_INSTANCE].gdop		= _gps_blended_state.gdop;
 	_gps_output[GPS_BLENDED_INSTANCE].nsats		= _gps_blended_state.nsats;
 	_gps_output[GPS_BLENDED_INSTANCE].vel_ned_valid	= _gps_blended_state.vel_ned_valid;
+	_gps_output[GPS_BLENDED_INSTANCE].yaw		= _gps_blended_state.yaw;
+	_gps_output[GPS_BLENDED_INSTANCE].yaw_offset	= _gps_blended_state.yaw_offset;
 
 }
 
