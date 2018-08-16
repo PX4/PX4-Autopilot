@@ -2230,7 +2230,7 @@ Commander::run()
 		}
 
 		/* Check for failure detector status */
-		if (armed.armed) {
+		if (armed.armed && !_in_flight_termination) {
 
 			if (_failure_detector.update()) {
 
@@ -2241,45 +2241,15 @@ Commander::run()
 					status_changed = true;
 				}
 
-				if (failure_status != 0 && !status_flags.circuit_breaker_flight_termination_disabled) {
+				if (!status_flags.circuit_breaker_flight_termination_disabled) {
+					if (failure_status != 0) {
 
-					// TODO: set force_failsafe flag
+						armed.force_failsafe = true;
+						status_changed = true;
 
-					if (!_failure_detector_termination_printed) {
+						_in_flight_termination = true;
+
 						mavlink_log_critical(&mavlink_log_pub, "Attitude failure detected: force failsafe");
-						_failure_detector_termination_printed = true;
-					}
-
-				}
-			}
-		}
-
-
-		/* Check for failure detector status */
-		if (armed.armed) {
-
-			if (_failure_detector.update()) {
-
-				const auto _failure_status = _failure_detector.get();
-
-				if (_failure_status.roll ||
-					_failure_status.pitch) {
-
-					armed.force_failsafe = true;
-					status_changed = true;
-
-					// Only display an user message if the circuit-breaker is disabled
-					if (!status_flags.circuit_breaker_flight_termination_disabled) {
-						static bool parachute_termination_printed = false;
-
-						if (!parachute_termination_printed) {
-							warnx("Flight termination because of attitude exceeding maximum values");
-							parachute_termination_printed = true;
-						}
-
-						if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
-							mavlink_log_critical(&mavlink_log_pub, "Attitude failure detected: force failsafe");
-						}
 					}
 				}
 			}
