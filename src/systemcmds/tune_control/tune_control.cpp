@@ -81,7 +81,8 @@ static void publish_tune_control(tune_control_s &tune_control)
 	tune_control.timestamp = hrt_absolute_time();
 
 	if (tune_control_pub == nullptr) {
-		tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+		// We have a minimum of 3 so that tune, stop, tune will fit
+		tune_control_pub = orb_advertise_queue(ORB_ID(tune_control), &tune_control, 3);
 
 	} else {
 		orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
@@ -233,6 +234,9 @@ tune_control_main(int argc, char *argv[])
 		tune_control.silence = 0;
 		tune_control.tune_override = true;
 		publish_tune_control(tune_control);
+		// We wait the maximum update interval to ensure
+		// The stop will not be overwritten
+		usleep(tunes.get_maximum_update_interval());
 
 	}	else {
 		usage();

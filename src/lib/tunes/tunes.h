@@ -127,8 +127,10 @@ public:
 
 private:
 	static const char *const _default_tunes[];
+	static const bool _default_tunes_interruptable[];
 	static const uint8_t _note_tab[];
 	static const unsigned int _default_tunes_size;
+	int _current_tune_id = static_cast<int>(TuneID::NONE);
 	bool _repeat = false;	     ///< if true, tune restarts at end
 	const char *_tune = nullptr; ///< current tune string
 	const char *_next = nullptr; ///< next note in the string
