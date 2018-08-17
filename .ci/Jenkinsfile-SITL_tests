@@ -42,27 +42,16 @@ pipeline {
         script {
           def missions = [
             [
-              name: "VTOL standard",
+              name: "FW",
               test: "mavros_posix_test_mission.test",
-              mission: "vtol_new_1",
-              vehicle: "standard_vtol"
+              mission: "FW_mission_1",
+              vehicle: "plane"
             ],
-            [
-              name: "VTOL tailsitter",
-              test: "mavros_posix_test_mission.test",
-              mission: "vtol_new_1",
-              vehicle: "tailsitter"
-            ],
-            [
-              name: "VTOL tiltrotor",
-              test: "mavros_posix_test_mission.test",
-              mission: "vtol_new_1",
-              vehicle: "tiltrotor"
-            ],
+
             [
               name: "MC box",
               test: "mavros_posix_test_mission.test",
-              mission: "multirotor_box",
+              mission: "MC_mission_box",
               vehicle: "iris"
             ],
             [
@@ -76,7 +65,27 @@ pipeline {
               test: "mavros_posix_tests_offboard_posctl.test",
               mission: "",
               vehicle: "iris"
-            ]
+            ],
+
+            [
+              name: "VTOL standard",
+              test: "mavros_posix_test_mission.test",
+              mission: "VTOL_mission_1",
+              vehicle: "standard_vtol"
+            ],
+            [
+              name: "VTOL tailsitter",
+              test: "mavros_posix_test_mission.test",
+              mission: "VTOL_mission_1",
+              vehicle: "tailsitter"
+            ],
+            [
+              name: "VTOL tiltrotor",
+              test: "mavros_posix_test_mission.test",
+              mission: "VTOL_mission_1",
+              vehicle: "tiltrotor"
+            ],
+
           ]
         
           def test_nodes = [:]
