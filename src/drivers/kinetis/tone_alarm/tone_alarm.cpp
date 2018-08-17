@@ -162,7 +162,6 @@ public:
 	virtual int init();
 	void status();
 
-
 	enum {
 		CBRK_OFF = 0,
 		CBRK_ON,
@@ -239,8 +238,7 @@ ToneAlarm::~ToneAlarm()
 	}
 }
 
-int
-ToneAlarm::init()
+int ToneAlarm::init()
 {
 	int ret;
 
@@ -254,6 +252,7 @@ ToneAlarm::init()
 	px4_arch_configgpio(GPIO_TONE_ALARM_IDLE);
 
 #ifdef GPIO_TONE_ALARM_NEG
+
 	px4_arch_configgpio(GPIO_TONE_ALARM_NEG);
 #endif
 
@@ -391,17 +390,11 @@ void ToneAlarm::next_note()
 
 	if (updated) {
 		orb_copy(ORB_ID(tune_control), _tune_control_sub, &_tune);
-
-		if (_tunes.set_control(_tune) == 0) {
-			_play_tone = true;
-
-		} else {
-			_play_tone = false;
-		}
+		_play_tone = _tunes.set_control(_tune) == 0;
 	}
 
-
-	unsigned frequency = 0, duration = 0;
+	unsigned frequency = 0;
+	unsigned duration = 0;
 
 	if (_play_tone) {
 		_play_tone = false;
@@ -432,6 +425,7 @@ void ToneAlarm::next_note()
 	}
 
 	// and arrange a callback when the note should stop
+	assert(duration != 0);
 	work_queue(HPWORK, &_work, (worker_t)&ToneAlarm::next_trampoline, this, USEC2TICK(duration));
 }
 
