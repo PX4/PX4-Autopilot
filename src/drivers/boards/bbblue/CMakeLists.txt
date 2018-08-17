@@ -36,6 +36,7 @@ if ("${BOARD}" STREQUAL "bbblue")
 
 	px4_add_library(drivers_board
 		init.c
+		pwr.cpp
 	)
 
 endif()

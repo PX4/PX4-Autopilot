@@ -35,6 +35,8 @@
  * @file init.c
  *
  * BBBLUE specific initialization
+ *
+ * @author: UAV-Pilot
  */
 #include <stddef.h>
 #include <px4_log.h>

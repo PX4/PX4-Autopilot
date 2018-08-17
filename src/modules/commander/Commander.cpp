@@ -1263,6 +1263,13 @@ Commander::run()
 	int stick_off_counter = 0;
 	int stick_on_counter = 0;
 
+	/* power off count down */
+	const int POWER_OFF_RESET_COUNT = 3;
+	const int64_t POWER_OFF_PROBATION = 10_s;	/**< power off probation duration (usec) */
+	hrt_abstime	last_power_off_sw_change_time_us{0};	/**< Last time that power off switch status changed (usec) */
+	int power_off_countdown = POWER_OFF_RESET_COUNT;
+	int last_power_off_sw_pos = manual_control_setpoint_s::SWITCH_POS_OFF;
+
 	bool low_battery_voltage_actions_done = false;
 	bool critical_battery_voltage_actions_done = false;
 	bool emergency_battery_voltage_actions_done = false;
@@ -1343,6 +1350,8 @@ Commander::run()
 	_last_lpos_fail_time_us = commander_boot_timestamp;
 	_last_gpos_fail_time_us = commander_boot_timestamp;
 	_last_lvel_fail_time_us = commander_boot_timestamp;
+
+	last_power_off_sw_change_time_us = commander_boot_timestamp;
 
 	// Run preflight check
 	int32_t rc_in_off = 0;
@@ -2611,6 +2620,25 @@ Commander::run()
 			} else {
 				while (1) { usleep(1); }
 			}
+		}
+
+		// handle remote power off request
+		if (!armed.armed && last_power_off_sw_pos != sp_man.power_off_switch) {
+			if (sp_man.power_off_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+				if (now >= last_power_off_sw_change_time_us + POWER_OFF_PROBATION) {
+					power_off_countdown = POWER_OFF_RESET_COUNT - 1;
+
+				} else {
+					if (--power_off_countdown <= 0) {
+						mavlink_log_critical(&mavlink_log_pub, "REMOTELY REQUESTED POWER OFF");
+						usleep(200000);
+						power_button_state_notification_cb(PWR_BUTTON_REQUEST_SHUT_DOWN);
+					}
+				}
+			}
+
+			last_power_off_sw_pos = sp_man.power_off_switch;
+			last_power_off_sw_change_time_us = now;
 		}
 
 		usleep(COMMANDER_MONITORING_INTERVAL);

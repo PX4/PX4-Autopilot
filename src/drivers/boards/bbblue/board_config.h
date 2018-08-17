@@ -35,6 +35,8 @@
  * @file board_config.h
  *
  * BBBLUE internal definitions
+ *
+ * @author: UAV-Pilot
  */
 
 #pragma once
@@ -56,6 +58,7 @@
 #define ADC_AIRSPEED_VOLTAGE_CHANNEL    ((uint8_t)(-1))
 
 #define BOARD_HAS_NO_BOOTLOADER
+#define BOARD_HAS_POWER_CONTROL	1
 
 #define BOARD_MAX_LEDS 4 // Number external of LED's this board has
 
