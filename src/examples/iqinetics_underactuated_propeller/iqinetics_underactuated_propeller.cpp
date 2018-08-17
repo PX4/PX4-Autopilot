@@ -50,6 +50,7 @@
 #include <poll.h>
 #include <string.h>
 #include <math.h>
+#include <fcntl.h>
 #include <termios.h>
 
 #include <uORB/uORB.h>
@@ -57,7 +58,6 @@
 #include <uORB/topics/actuator_armed.h>
 
 #include "generic_interface.hpp"
-// #include "virtual_swashplate_client.hpp"
 #include "voltage_super_position_client.hpp"
 #include "propeller_motor_control_client.hpp"
 
@@ -132,23 +132,18 @@ int iqinetics_underactuated_propeller_thread_main(int argc, char *argv[])
 	PX4_INFO("IQinetics Underactuated Propeller Thread Loading");
 
 	// Check input arguments
-	if (argc < 3) {
+	if (argc < 2) {
 	  PX4_ERR("need 2 serial port names as arguments");
 	  exit(1);
   }
 
 	// Start UART
   char *uart_name1 = argv[1];
-  char *uart_name2 = argv[2];
 
-  int serial_fds[2] = {-1, -1};
+  int serial_fds = -1;
 
-  if(setup_uart(uart_name1, serial_fds[0]) == 0)
-    PX4_INFO("Opened %s with fd %d", uart_name1, serial_fds[0]);
-  else
-    exit(1);
-  if(setup_uart(uart_name2, serial_fds[1]) == 0)
-    PX4_INFO("Opened %s with fd %d", uart_name2, serial_fds[1]);
+  if(setup_uart(uart_name1, serial_fds) == 0)
+    PX4_INFO("Opened %s with fd %d", uart_name1, serial_fds);
   else
     exit(1);
 
@@ -189,15 +184,13 @@ int iqinetics_underactuated_propeller_thread_main(int argc, char *argv[])
   }
 
 	// Make a communication interface object
-  GenericInterface com1;
-  GenericInterface com2;
-	// Make a objects that talk to the module
-	// VirtualSwashplateClient     swash1(0);
-  // VirtualSwashplateClient     swash2(0);
+  GenericInterface com;
+
+  //creates clients
   PropellerMotorControlClient pmc1(0);
-  PropellerMotorControlClient pmc2(0);
+  PropellerMotorControlClient pmc2(1);
   VoltageSuperPositionClient  vsc1(0); 
-  VoltageSuperPositionClient  vsc2(0);
+  VoltageSuperPositionClient  vsc2(1);
 
 	// subscribe to actuator_controls_0 topic
 	int actuator_ctrl_sub_fd = orb_subscribe(ORB_ID(actuator_controls_0));
@@ -221,6 +214,7 @@ int iqinetics_underactuated_propeller_thread_main(int argc, char *argv[])
 	// main while loop for this thread
 	while(!thread_should_exit)
 	{
+    // PX4_INFO("ola");
 		/* wait for sensor update of 2 file descriptors for 10 ms (100hz) */
 		int poll_ret = px4_poll(fds, 2, 10);
 
@@ -251,46 +245,35 @@ int iqinetics_underactuated_propeller_thread_main(int argc, char *argv[])
         // Remember armed state
         is_armed = actuator_arm_raw.armed;
 		  }
-
 			if (is_armed && (fds[0].revents & POLLIN))
 			{
 				// Get the actuator control data
 				struct actuator_controls_s actuator_raw;
 				orb_copy(ORB_ID(actuator_controls_0), actuator_ctrl_sub_fd, &actuator_raw);
-
 				// --------------------------------------------------------------------
 				// Vehicle behavior goes here
 
-				// swash1.speed_.set(com1,actuator_raw.control[3]*max_speed_value + actuator_raw.control[2]*max_yaw_value); // INDEX_THROTTLE = 3, INDEX_YAW = 2
-				// swash1.roll_.set(com1,actuator_raw.control[0]*max_pulse_volts_value); // INDEX_ROLL = 0
-				// swash1.pitch_.set(com1,actuator_raw.control[1]*max_pulse_volts_value); // INDEX_PITCH = 1
-        // swash2.speed_.set(com2,actuator_raw.control[3]*max_speed_value - actuator_raw.control[2]*max_yaw_value); // INDEX_THROTTLE = 3, INDEX_YAW = 2
-        // swash2.roll_.set(com2,actuator_raw.control[0]*max_pulse_volts_value); // INDEX_ROLL = 0
-        // swash2.pitch_.set(com2,actuator_raw.control[1]*max_pulse_volts_value); // INDEX_PITCH = 1
-
         float x_roll    = actuator_raw.control[0]*max_pulse_volts_value;
         float y_pitch   = actuator_raw.control[1]*max_pulse_volts_value; 
-        float amplitude = sqrt(pow(x_roll,2.0f)+pow(y_pitch,2.0f));
+        float amplitude = sqrt(x_roll * x_roll + y_pitch * y_pitch);
+        float velocity  = actuator_raw.control[3]*max_speed_value + actuator_raw.control[2]*max_yaw_value;
+        // PX4_INFO("velocity = %f | x roll = %f | y pitch = %f | amplitude %f",(double)velocity, (double)x_roll, (double)y_pitch, (double)amplitude);
 
-        pmc1.ctrl_velocity_.set(com1,actuator_raw.control[3]*max_speed_value + actuator_raw.control[2]*max_yaw_value); // INDEX_THROTTLE = 3, INDEX_YAW = 2
-        vsc1.phase_.set(com1,atan2(x_roll,y_pitch));
-        vsc1.amplitude_.set(com1,amplitude);
+        pmc1.ctrl_velocity_.set(com,velocity); // INDEX_THROTTLE = 3, INDEX_YAW = 2
+        vsc1.phase_.set(com,atan2(x_roll,y_pitch));
+        vsc1.amplitude_.set(com,amplitude);
 
-        pmc2.ctrl_velocity_.set(com2,actuator_raw.control[3]*max_speed_value - actuator_raw.control[2]*max_yaw_value); // INDEX_THROTTLE = 3, INDEX_YAW = 2
-        vsc2.phase_.set(com1,atan2(x_roll,y_pitch));
-        vsc2.amplitude_.set(com1,amplitude);
+        pmc2.ctrl_velocity_.set(com,actuator_raw.control[3]*max_speed_value - actuator_raw.control[2]*max_yaw_value); // INDEX_THROTTLE = 3, INDEX_YAW = 2
+        vsc2.phase_.set(com,atan2(x_roll,y_pitch));
+        vsc2.amplitude_.set(com,amplitude);
 
-        int send_ret = send_msgs_to_uart(com1, serial_fds[0]);
+        int send_ret = send_msgs_to_uart(com, serial_fds);
+        // PX4_INFO("ola2");
         if(send_ret != 0)
           PX4_WARN("serial1 send error %d", send_ret);
-
-        send_ret = send_msgs_to_uart(com2, serial_fds[1]);
-        if(send_ret != 0)
-          PX4_WARN("serial2 send error %d", send_ret);
         // End vehicle behavior
         // --------------------------------------------------------------------
 			}
-
 		}
 	}
 	PX4_INFO("exiting");
@@ -329,11 +312,10 @@ int send_msgs_to_uart(GenericInterface& com, int serial_fd)
  */
 int setup_uart(char *uart_name, int &serial_fd)
 {
+
   PX4_INFO("opening port %s", uart_name);
 
   serial_fd = open(uart_name, O_RDWR | O_NOCTTY);
-
-  unsigned speed = 115200;
 
   if (serial_fd < 0) {
     PX4_WARN("failed to open port: %s", uart_name);
@@ -342,14 +324,42 @@ int setup_uart(char *uart_name, int &serial_fd)
 
   /* Try to set baud rate */
   struct termios uart_config;
+  struct termios uart_config_original;
   int termios_state;
 
   /* Back up the original uart configuration to restore it after exit */
-  if ((termios_state = tcgetattr(serial_fd, &uart_config)) < 0) {
+  if ((termios_state = tcgetattr(serial_fd, &uart_config_original)) < 0) {
     PX4_WARN("ERR GET CONF %s: %d\n", uart_name, termios_state);
     close(serial_fd);
     return -1;
   }
+
+  tcgetattr(serial_fd, &uart_config);
+  uart_config.c_cflag = (uart_config.c_cflag & ~CSIZE) | CS8;     // 8-bit chars
+  // disable IGNBRK for mismatched speed tests; otherwise receive break
+  // as \000 chars
+  uart_config.c_iflag &= ~IGNBRK;         // disable break processing
+  uart_config.c_lflag = 0;                // no signaling chars, no echo,
+  uart_config.c_iflag &= ~INLCR;
+  uart_config.c_iflag &= ~ICRNL;
+  uart_config.c_oflag &= ~OCRNL;
+  uart_config.c_oflag &= ~ONLCR;
+  // no canonical processing
+  uart_config.c_oflag = 0;                // no remapping, no delays
+  uart_config.c_cc[VMIN]  = 0;            // read doesn't block
+  uart_config.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
+
+  uart_config.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
+
+  uart_config.c_cflag |= (CLOCAL | CREAD);// ignore modem controls,
+  // enable reading
+  uart_config.c_cflag &= ~(PARENB | PARODD);      // shut off parity
+  uart_config.c_cflag |= 0;
+  uart_config.c_cflag &= ~CSTOPB;
+  uart_config.c_cflag &= ~CRTSCTS;
+
+  /* Set baud rate */
+  const speed_t speed = B115200;
 
   /* Set baud rate */
   if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
