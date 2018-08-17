@@ -182,7 +182,7 @@ then
 		then
 			mavlink start -d /dev/iridium -m iridium -b 115200
 		else
-			tune_control play -m "ML<<CP4CP4CP4CP4CP4"
+			tune_control play -t 20
 		fi
 	fi
 	if param compare SYS_COMPANION 5115200
