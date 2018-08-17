@@ -27,7 +27,7 @@ then
 	else
 		echo "ERROR [init] Error loading mixer: $MIXER_FILE"
 		echo "ERROR:[init] Could not load mixer: $MIXER_FILE" >> $LOG_FILE
-		tone_alarm $TUNE_ERR
+		tune_control play -t 20
 	fi
 
 	unset MIXER_FILE
@@ -36,7 +36,7 @@ else
 	then
 		echo "ERROR [init] Mixer not defined"
 		echo "ERROR [init] Mixer not defined" >> $LOG_FILE
-		tone_alarm $TUNE_ERR
+		tune_control play -t 20
 	fi
 fi
 
