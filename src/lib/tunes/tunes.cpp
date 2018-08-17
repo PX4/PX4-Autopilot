@@ -92,15 +92,10 @@ int Tunes::set_control(const tune_control_s &tune_control)
 		return -EINVAL;
 	}
 
-	// Accept new tune ?
-	if (_repeat || 			   // Repeated tunes can always be interrupted
-	    _tune == nullptr ||  	   // No tune is currently being played
+	// Accept new tune or a stop ?
+	if (_tune == nullptr ||  	   // No tune is currently being played
 	    tune_control.tune_override ||  // Override interrupts everything
-	    tune_control.tune_id == static_cast<int>(TuneID::STARTUP) ||
-	    tune_control.tune_id == static_cast<int>(TuneID::ERROR_TUNE) ||
-	    tune_control.tune_id == static_cast<int>(TuneID::NOTIFY_POSITIVE) ||
-	    tune_control.tune_id == static_cast<int>(TuneID::NOTIFY_NEUTRAL) ||
-	    tune_control.tune_id == static_cast<int>(TuneID::NOTIFY_NEGATIVE)) {
+	    _default_tunes_interruptable[_current_tune_id]) {
 
 		// Reset repeat flag. Can jump to true again while tune is being parsed later
 		_repeat = false;
@@ -116,6 +111,7 @@ int Tunes::set_control(const tune_control_s &tune_control)
 			_strength = TUNE_MAX_STRENGTH;
 		}
 
+
 		// Special treatment for custom tunes
 		if (tune_control.tune_id == static_cast<int>(TuneID::CUSTOM)) {
 			_using_custom_msg = true;
@@ -126,9 +122,11 @@ int Tunes::set_control(const tune_control_s &tune_control)
 		} else {
 			_using_custom_msg = false;
 			_tune = _default_tunes[tune_control.tune_id];
-			_tune_start_ptr = _default_tunes[tune_control.tune_id];
+			_tune_start_ptr = _tune;
 			_next = _tune;
 		}
+
+		_current_tune_id = tune_control.tune_id;
 	}
 
 	return OK;
@@ -171,7 +169,7 @@ int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
 int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
 			 unsigned &silence)
 {
-	// Return the vaules for frequency and duration if the custom msg was received
+	// Return the values for frequency and duration if the custom msg was received
 	if (_using_custom_msg) {
 		_using_custom_msg = false;
 		frequency = _frequency;
