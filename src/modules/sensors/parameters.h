@@ -187,6 +187,7 @@ struct ParameterHandles {
 	param_t rc_map_flaps;
 	param_t rc_map_stab_sw;
 	param_t rc_map_man_sw;
+	param_t rc_map_power_off_sw;
 
 	param_t rc_map_aux1;
 	param_t rc_map_aux2;
@@ -217,6 +218,7 @@ struct ParameterHandles {
 	param_t rc_gear_th;
 	param_t rc_stab_th;
 	param_t rc_man_th;
+	param_t rc_poweroffswitch_th;
 
 	param_t rc_flt_smp_rate;
 	param_t rc_flt_cutoff;

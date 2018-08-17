@@ -2635,6 +2635,8 @@ Commander::run()
 						power_button_state_notification_cb(PWR_BUTTON_REQUEST_SHUT_DOWN);
 					}
 				}
+
+				PX4_INFO("Power off count down to: %d", power_off_countdown);
 			}
 
 			last_power_off_sw_pos = sp_man.power_off_switch;
