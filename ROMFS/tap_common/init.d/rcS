@@ -18,9 +18,20 @@
 #
 sercon
 
-set TUNE_ERR ML<<CP4CP4CP4CP4CP4
 set LOG_FILE /fs/microsd/bootlog.txt
 set DATAMAN_OPT -r
+
+#
+# Start the ORB (first app to start)
+# tone_alarm and tune_control
+# is dependent.
+#
+uorb start
+
+#
+# Start the tone_alarm driver.
+#
+tone_alarm start
 
 #
 # Try to mount the microSD card.
@@ -38,18 +49,13 @@ else
 			unset DATAMAN_OPT
 		else
 			echo "ERROR [init] Format failed"
-			tone_alarm MNBG
+			tune_control play -t 17
 			set LOG_FILE /dev/null
 		fi
 	else
 		set LOG_FILE /dev/null
 	fi
 fi
-
-#
-# Start the ORB (first app to start)
-#
-uorb start
 
 #
 # Load parameters
@@ -65,8 +71,6 @@ if !param load
 then
 	param reset
 fi
-
-tone_alarm start
 
 #
 # Start system state indicator
@@ -356,6 +360,8 @@ fi
 # There is no further script processing, so we can free some RAM
 # XXX potentially unset all script variables.
 unset TUNE_ERR
+unset LOG_FILE
+unset DATAMAN_OPT
 
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
 mavlink boot_complete
