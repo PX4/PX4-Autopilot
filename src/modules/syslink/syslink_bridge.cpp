@@ -44,7 +44,7 @@
 
 
 SyslinkBridge::SyslinkBridge(Syslink *link) :
-	CDev("SyslinkBridge", "/dev/bridge0"),
+	CDev("/dev/bridge0"),
 	_link(link),
 	_readbuffer(16, sizeof(crtp_message_t))
 {
@@ -55,12 +55,6 @@ SyslinkBridge::SyslinkBridge(Syslink *link) :
 	//ideally _msg_to_send.data size should be CRTP_MAX_DATA_SIZE but cfbridge does not receive 31 bytes of data due to a bug somewhere
 }
 
-SyslinkBridge::~SyslinkBridge()
-{
-
-}
-
-
 int
 SyslinkBridge::init()
 {
@@ -68,7 +62,7 @@ SyslinkBridge::init()
 
 	/* if init failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("CDev init failed");
+		PX4_DEBUG("CDev init failed");
 		return ret;
 	}
 
