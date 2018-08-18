@@ -1023,9 +1023,11 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 
 	case battery_status_s::BATTERY_WARNING_CRITICAL:
 
+		static constexpr char battery_critical[] = "CRITICAL BATTERY";
+
 		switch (low_battery_action) {
 		case LOW_BAT_ACTION::WARNING:
-			mavlink_log_critical(mavlink_log_pub, "CRITICAL BATTERY, RETURN ADVISED!");
+			mavlink_log_critical(mavlink_log_pub, "%s, RETURN ADVISED!", battery_critical);
 			break;
 
 		case LOW_BAT_ACTION::RETURN:
@@ -1034,20 +1036,20 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 
 			// let us send the critical message even if already in RTL
 			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, internal_state)) {
-				mavlink_log_critical(mavlink_log_pub, "CRITICAL BATTERY, RETURNING");
+				mavlink_log_critical(mavlink_log_pub, "%s, RETURNING", battery_critical);
 
 			} else {
-				mavlink_log_emergency(mavlink_log_pub, "CRITICAL BATTERY, RETURN FAILED");
+				mavlink_log_emergency(mavlink_log_pub, "%s, RETURN FAILED", battery_critical);
 			}
 
 			break;
 
 		case LOW_BAT_ACTION::LAND:
 			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, internal_state)) {
-				mavlink_log_critical(mavlink_log_pub, "CRITICAL BATTERY, LANDING AT CURRENT POSITION");
+				mavlink_log_critical(mavlink_log_pub, "%s, LANDING AT CURRENT POSITION", battery_critical);
 
 			} else {
-				mavlink_log_emergency(mavlink_log_pub, "CRITICAL BATTERY, LANDING FAILED");
+				mavlink_log_emergency(mavlink_log_pub, "%s, LANDING FAILED", battery_critical);
 			}
 
 			break;
@@ -1057,17 +1059,19 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 
 	case battery_status_s::BATTERY_WARNING_EMERGENCY:
 
+		static constexpr char battery_dangerous[] = "DANGEROUS BATTERY LEVEL";
+
 		switch (low_battery_action) {
 		case LOW_BAT_ACTION::WARNING:
-			mavlink_log_emergency(mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING ADVISED!");
+			mavlink_log_emergency(mavlink_log_pub, "%s, LANDING ADVISED!", battery_dangerous);
 			break;
 
 		case LOW_BAT_ACTION::RETURN:
 			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, internal_state)) {
-				mavlink_log_emergency(mavlink_log_pub, "DANGEROUS BATTERY LEVEL, RETURNING");
+				mavlink_log_emergency(mavlink_log_pub, "%s, RETURNING", battery_dangerous);
 
 			} else {
-				mavlink_log_emergency(mavlink_log_pub, "DANGEROUS BATTERY LEVEL, RETURN FAILED");
+				mavlink_log_emergency(mavlink_log_pub, "%s, RETURN FAILED", battery_dangerous);
 			}
 
 			break;
@@ -1076,10 +1080,10 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 			// FALLTHROUGH
 		case LOW_BAT_ACTION::LAND:
 			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, internal_state)) {
-				mavlink_log_emergency(mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING IMMEDIATELY");
+				mavlink_log_emergency(mavlink_log_pub, "%s, LANDING IMMEDIATELY", battery_dangerous);
 
 			} else {
-				mavlink_log_emergency(mavlink_log_pub, "DANGEROUS BATTERY LEVEL, LANDING FAILED");
+				mavlink_log_emergency(mavlink_log_pub, "%s, LANDING FAILED", battery_dangerous);
 			}
 
 			break;
