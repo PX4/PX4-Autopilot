@@ -39,6 +39,8 @@
 
 #include <px4_config.h>
 
+#include <lib/cdev/CDev.hpp>
+#include <drivers/device/Device.hpp>
 #include <drivers/device/i2c.h>
 
 #include <sys/types.h>
@@ -191,7 +193,7 @@ enum LPS25H_BUS {
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class LPS25H : public device::CDev
+class LPS25H : public cdev::CDev
 {
 public:
 	LPS25H(device::Device *interface, const char *path);
@@ -208,7 +210,7 @@ public:
 	void			print_info();
 
 protected:
-	Device			*_interface;
+	device::Device			*_interface;
 
 private:
 	work_s			_work{};
@@ -309,16 +311,12 @@ extern "C" __EXPORT int lps25h_main(int argc, char *argv[]);
 
 
 LPS25H::LPS25H(device::Device *interface, const char *path) :
-	CDev("LPS25H", path),
+	CDev(path),
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, "lps25h_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "lps25h_comms_errors"))
 {
-	// set the device type from the interface
-	_device_id.devid_s.bus_type = _interface->get_device_bus_type();
-	_device_id.devid_s.bus = _interface->get_device_bus();
-	_device_id.devid_s.address = _interface->get_device_address();
-	_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_LPS25H;
+	_interface->set_device_type(DRV_BARO_DEVTYPE_LPS25H);
 }
 
 LPS25H::~LPS25H()
@@ -349,7 +347,7 @@ LPS25H::init()
 	ret = CDev::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("CDev init failed");
+		PX4_DEBUG("CDev init failed");
 		goto out;
 	}
 
@@ -357,7 +355,7 @@ LPS25H::init()
 	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_baro_s));
 
 	if (_reports == nullptr) {
-		DEVICE_DEBUG("can't get memory for reports");
+		PX4_DEBUG("can't get memory for reports");
 		ret = -ENOMEM;
 		goto out;
 	}
@@ -591,7 +589,7 @@ LPS25H::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			DEVICE_DEBUG("collection error");
+			PX4_DEBUG("collection error");
 			/* restart the measurement state machine */
 			start();
 			return;
@@ -618,7 +616,7 @@ LPS25H::cycle()
 
 	/* measurement phase */
 	if (OK != measure()) {
-		DEVICE_DEBUG("measure error");
+		PX4_DEBUG("measure error");
 	}
 
 	/* next phase is collection */
@@ -698,21 +696,18 @@ LPS25H::collect()
 	new_report.pressure = p;
 
 	/* get device ID */
-	new_report.device_id = _device_id.devid;
+	new_report.device_id = _interface->get_device_id();
 
-	if (!(_pub_blocked)) {
+	if (_baro_topic != nullptr) {
+		/* publish it */
+		orb_publish(ORB_ID(sensor_baro), _baro_topic, &new_report);
 
-		if (_baro_topic != nullptr) {
-			/* publish it */
-			orb_publish(ORB_ID(sensor_baro), _baro_topic, &new_report);
+	} else {
+		_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &new_report,
+						  &_orb_class_instance, (sensor_is_onboard) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
 
-		} else {
-			_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &new_report,
-							  &_orb_class_instance, (sensor_is_onboard) ? ORB_PRIO_HIGH : ORB_PRIO_MAX);
-
-			if (_baro_topic == nullptr) {
-				DEVICE_DEBUG("ADVERT FAIL");
-			}
+		if (_baro_topic == nullptr) {
+			PX4_DEBUG("ADVERT FAIL");
 		}
 	}
 
