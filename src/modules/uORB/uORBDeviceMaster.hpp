@@ -35,6 +35,7 @@
 
 #include <stdint.h>
 #include "uORBCommon.hpp"
+#include <lib/cdev/CDev.hpp>
 
 namespace uORB
 {
@@ -61,10 +62,10 @@ class Manager;
  * Used primarily to create new objects via the ORBIOCCREATE
  * ioctl.
  */
-class uORB::DeviceMaster : public device::CDev
+class uORB::DeviceMaster : public cdev::CDev
 {
 public:
-	virtual int   ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual int   ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Public interface for getDeviceNodeLocked(). Takes care of synchronization.

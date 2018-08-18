@@ -61,16 +61,14 @@
 	UNUSED(node_name_str);
 #endif
 
-using namespace device;
-
 uORB::DeviceMaster::DeviceMaster() :
-	CDev("obj_master", TOPIC_MASTER_DEVICE_PATH)
+	CDev(TOPIC_MASTER_DEVICE_PATH)
 {
 	_last_statistics_output = hrt_absolute_time();
 }
 
 int
-uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+uORB::DeviceMaster::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret;
 
@@ -114,8 +112,6 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					*(adv->instance) = group_tries;
 				}
 
-				const char *objname = meta->o_name; //no need for a copy, meta->o_name will never be freed or changed
-
 				/* driver wants a permanent copy of the path, so make one here */
 				const char *devpath = strdup(nodepath);
 
@@ -124,7 +120,7 @@ uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				}
 
 				/* construct the new node */
-				uORB::DeviceNode *node = new uORB::DeviceNode(meta, objname, devpath, adv->priority);
+				uORB::DeviceNode *node = new uORB::DeviceNode(meta, devpath, adv->priority);
 
 				/* if we didn't get a device, that's bad */
 				if (node == nullptr) {
