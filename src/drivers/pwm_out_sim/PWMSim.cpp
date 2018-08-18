@@ -34,7 +34,7 @@
 #include "PWMSim.hpp"
 
 PWMSim::PWMSim() :
-	CDev("pwm_out_sim", PWM_OUTPUT0_DEVICE_PATH),
+	CDev(PWM_OUTPUT0_DEVICE_PATH),
 	_perf_control_latency(perf_alloc(PC_ELAPSED, "pwm_out_sim control latency"))
 {
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
