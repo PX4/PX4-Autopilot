@@ -32,31 +32,36 @@
  ****************************************************************************/
 
 /**
- * @file vfile.cpp
+ * @file vdev_file.cpp
  * Virtual file
  *
  * @author Mark Charlebois <charlebm@gmail.com>
  */
 
-#pragma once
+#include "vfile.h"
 
-#include "../CDev.hpp"
-
-namespace device
+namespace cdev
 {
 
-class VFile : public CDev
+VFile::VFile(const char *fname, mode_t mode) :
+	CDev(fname)
 {
-public:
+}
 
-	static VFile *createFile(const char *fname, mode_t mode);
-	~VFile() {}
+VFile *VFile::createFile(const char *fname, mode_t mode)
+{
+	VFile *me = new VFile(fname, mode);
+	px4_file_operations_t *file_ops = nullptr;
+	register_driver(fname, file_ops, 0666, (void *)me);
+	return me;
+}
 
-	ssize_t write(file_t *handlep, const char *buffer, size_t buflen) override;
+ssize_t VFile::write(file_t *handlep, const char *buffer, size_t buflen)
+{
+	// ignore what was written, but let pollers know something was written
+	poll_notify(POLLIN);
 
-private:
-	VFile(const char *fname, mode_t mode);
-	VFile(const VFile &);
-};
+	return buflen;
+}
 
-} // namespace device
+} // namespace cdev

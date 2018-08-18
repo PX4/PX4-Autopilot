@@ -47,7 +47,7 @@
 # error This driver is not compatible with CONFIG_DISABLE_POLL
 #endif
 
-namespace device
+namespace cdev
 {
 
 /*
@@ -71,7 +71,7 @@ static int	cdev_poll(file_t *filp, px4_pollfd_struct_t *fds, bool setup);
  * Note that we use the GNU extension syntax here because we don't get designated
  * initialisers in gcc 4.6.
  */
-const struct file_operations device::CDev::fops = {
+const struct file_operations cdev::CDev::fops = {
 open	: cdev_open,
 close	: cdev_close,
 read	: cdev_read,
@@ -87,7 +87,7 @@ unlink	: nullptr
 static int
 cdev_open(file_t *filp)
 {
-	device::CDev *cdev = (device::CDev *)(filp->f_inode->i_private);
+	cdev::CDev *cdev = (cdev::CDev *)(filp->f_inode->i_private);
 
 	return cdev->open(filp);
 }
@@ -95,7 +95,7 @@ cdev_open(file_t *filp)
 static int
 cdev_close(file_t *filp)
 {
-	device::CDev *cdev = (device::CDev *)(filp->f_inode->i_private);
+	cdev::CDev *cdev = (cdev::CDev *)(filp->f_inode->i_private);
 
 	return cdev->close(filp);
 }
@@ -103,7 +103,7 @@ cdev_close(file_t *filp)
 static ssize_t
 cdev_read(file_t *filp, char *buffer, size_t buflen)
 {
-	device::CDev *cdev = (device::CDev *)(filp->f_inode->i_private);
+	cdev::CDev *cdev = (cdev::CDev *)(filp->f_inode->i_private);
 
 	return cdev->read(filp, buffer, buflen);
 }
@@ -111,7 +111,7 @@ cdev_read(file_t *filp, char *buffer, size_t buflen)
 static ssize_t
 cdev_write(file_t *filp, const char *buffer, size_t buflen)
 {
-	device::CDev *cdev = (device::CDev *)(filp->f_inode->i_private);
+	cdev::CDev *cdev = (cdev::CDev *)(filp->f_inode->i_private);
 
 	return cdev->write(filp, buffer, buflen);
 }
@@ -119,7 +119,7 @@ cdev_write(file_t *filp, const char *buffer, size_t buflen)
 static off_t
 cdev_seek(file_t *filp, off_t offset, int whence)
 {
-	device::CDev *cdev = (device::CDev *)(filp->f_inode->i_private);
+	cdev::CDev *cdev = (cdev::CDev *)(filp->f_inode->i_private);
 
 	return cdev->seek(filp, offset, whence);
 }
@@ -127,7 +127,7 @@ cdev_seek(file_t *filp, off_t offset, int whence)
 static int
 cdev_ioctl(file_t *filp, int cmd, unsigned long arg)
 {
-	device::CDev *cdev = (device::CDev *)(filp->f_inode->i_private);
+	cdev::CDev *cdev = (cdev::CDev *)(filp->f_inode->i_private);
 
 	return cdev->ioctl(filp, cmd, arg);
 }
@@ -135,9 +135,9 @@ cdev_ioctl(file_t *filp, int cmd, unsigned long arg)
 static int
 cdev_poll(file_t *filp, px4_pollfd_struct_t *fds, bool setup)
 {
-	device::CDev *cdev = (device::CDev *)(filp->f_inode->i_private);
+	cdev::CDev *cdev = (cdev::CDev *)(filp->f_inode->i_private);
 
 	return cdev->poll(filp, fds, setup);
 }
 
-} // namespace device
+} // namespace cdev
