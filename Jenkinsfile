@@ -427,6 +427,31 @@ pipeline {
           }
         }
 
+        stage('S3') {
+          agent {
+            docker { image 'px4io/px4-dev-base:2018-08-05' }
+          }
+          steps {
+            sh('export')
+            unstash 'metadata_airframes'
+            unstash 'metadata_parameters'
+            sh('ls')
+            withAWS(credentials: 'px4_aws_s3_key', region: 'us-east-1') {
+              s3Upload(acl: 'PublicRead', bucket: 'px4-travis', file: 'airframes.xml', path: 'Firmware/master/')
+              s3Upload(acl: 'PublicRead', bucket: 'px4-travis', file: 'parameters.xml', path: 'Firmware/master/')
+            }
+          }
+          when {
+            anyOf {
+              branch 'master'
+              branch 'pr-jenkins' // for testing
+            }
+          }
+          options {
+            skipDefaultCheckout()
+          }
+        }
+
       } // parallel
     } // stage: Generate Metadata
 
@@ -439,7 +464,6 @@ pipeline {
     GIT_AUTHOR_NAME = "PX4BuildBot"
     GIT_COMMITTER_EMAIL = "bot@px4.io"
     GIT_COMMITTER_NAME = "PX4BuildBot"
-    GIT_SSH_COMMAND='ssh -i ${SSH_KEY_FILE}'
   }
   options {
     buildDiscarder(logRotator(numToKeepStr: '10', artifactDaysToKeepStr: '30'))
