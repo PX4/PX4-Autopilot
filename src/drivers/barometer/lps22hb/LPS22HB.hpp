@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <drivers/device/CDev.hpp>
+#include <lib/cdev/CDev.hpp>
 #include <drivers/device/Device.hpp>
 #include <px4_config.h>
 #include <px4_workqueue.h>
@@ -83,7 +83,7 @@ extern device::Device *LPS22HB_SPI_interface(int bus);
 extern device::Device *LPS22HB_I2C_interface(int bus);
 typedef device::Device *(*LPS22HB_constructor)(int);
 
-class LPS22HB : public device::CDev
+class LPS22HB : public cdev::CDev
 {
 public:
 	LPS22HB(device::Device *interface, const char *path);
@@ -99,7 +99,7 @@ public:
 	void			print_info();
 
 protected:
-	Device			*_interface;
+	device::Device			*_interface;
 
 private:
 	work_s			_work{};
