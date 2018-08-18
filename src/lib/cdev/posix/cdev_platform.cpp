@@ -54,7 +54,7 @@
 using namespace std;
 using namespace DriverFramework;
 
-const device::px4_file_operations_t device::CDev::fops = {};
+const cdev::px4_file_operations_t cdev::CDev::fops = {};
 
 pthread_mutex_t devmutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t filemutex = PTHREAD_MUTEX_INITIALIZER;
@@ -65,13 +65,13 @@ volatile bool sim_delay = false;
 
 #define PX4_MAX_FD 350
 static map<string, void *> devmap;
-static device::file_t filemap[PX4_MAX_FD] = {};
+static cdev::file_t filemap[PX4_MAX_FD] = {};
 
 extern "C" {
 
 	int px4_errno;
 
-	static device::CDev *getDev(const char *path)
+	static cdev::CDev *getDev(const char *path)
 	{
 		PX4_DEBUG("CDev::getDev");
 
@@ -81,7 +81,7 @@ extern "C" {
 
 		if (item != devmap.end()) {
 			pthread_mutex_unlock(&devmutex);
-			return (device::CDev *)item->second;
+			return (cdev::CDev *)item->second;
 		}
 
 		pthread_mutex_unlock(&devmutex);
@@ -89,14 +89,14 @@ extern "C" {
 		return nullptr;
 	}
 
-	static device::CDev *get_vdev(int fd)
+	static cdev::CDev *get_vdev(int fd)
 	{
 		pthread_mutex_lock(&filemutex);
 		bool valid = (fd < PX4_MAX_FD && fd >= 0 && filemap[fd].vdev);
-		device::CDev *dev;
+		cdev::CDev *dev;
 
 		if (valid) {
-			dev = (device::CDev *)(filemap[fd].vdev);
+			dev = (cdev::CDev *)(filemap[fd].vdev);
 
 		} else {
 			dev = nullptr;
@@ -106,7 +106,7 @@ extern "C" {
 		return dev;
 	}
 
-	int register_driver(const char *name, const device::px4_file_operations_t *fops, device::mode_t mode, void *data)
+	int register_driver(const char *name, const cdev::px4_file_operations_t *fops, cdev::mode_t mode, void *data)
 	{
 		PX4_DEBUG("CDev::register_driver %s", name);
 		int ret = 0;
@@ -157,7 +157,7 @@ extern "C" {
 	int px4_open(const char *path, int flags, ...)
 	{
 		PX4_DEBUG("px4_open");
-		device::CDev *dev = getDev(path);
+		cdev::CDev *dev = getDev(path);
 		int ret = 0;
 		int i;
 		mode_t mode;
@@ -172,7 +172,7 @@ extern "C" {
 
 			// Create the file
 			PX4_DEBUG("Creating virtual file %s", path);
-			dev = device::VFile::createFile(path, mode);
+			dev = cdev::VFile::createFile(path, mode);
 		}
 
 		if (dev) {
@@ -181,7 +181,7 @@ extern "C" {
 
 			for (i = 0; i < PX4_MAX_FD; ++i) {
 				if (filemap[i].vdev == nullptr) {
-					filemap[i] = device::file_t(flags, dev);
+					filemap[i] = cdev::file_t(flags, dev);
 					break;
 				}
 			}
@@ -227,7 +227,7 @@ extern "C" {
 	{
 		int ret;
 
-		device::CDev *dev = get_vdev(fd);
+		cdev::CDev *dev = get_vdev(fd);
 
 		if (dev) {
 			pthread_mutex_lock(&filemutex);
@@ -254,7 +254,7 @@ extern "C" {
 	{
 		int ret;
 
-		device::CDev *dev = get_vdev(fd);
+		cdev::CDev *dev = get_vdev(fd);
 
 		if (dev) {
 			PX4_DEBUG("px4_read fd = %d", fd);
@@ -276,7 +276,7 @@ extern "C" {
 	{
 		int ret;
 
-		device::CDev *dev = get_vdev(fd);
+		cdev::CDev *dev = get_vdev(fd);
 
 		if (dev) {
 			PX4_DEBUG("px4_write fd = %d", fd);
@@ -299,7 +299,7 @@ extern "C" {
 		PX4_DEBUG("px4_ioctl fd = %d", fd);
 		int ret = 0;
 
-		device::CDev *dev = get_vdev(fd);
+		cdev::CDev *dev = get_vdev(fd);
 
 		if (dev) {
 			ret = dev->ioctl(&filemap[fd], cmd, arg);
@@ -358,7 +358,7 @@ extern "C" {
 			fds[i].revents = 0;
 			fds[i].priv    = nullptr;
 
-			device::CDev *dev = get_vdev(fds[i].fd);
+			cdev::CDev *dev = get_vdev(fds[i].fd);
 
 			// If fd is valid
 			if (dev) {
@@ -419,7 +419,7 @@ extern "C" {
 			// go through all fds and count how many have data
 			for (i = 0; i < nfds; ++i) {
 
-				device::CDev *dev = get_vdev(fds[i].fd);
+				cdev::CDev *dev = get_vdev(fds[i].fd);
 
 				// If fd is valid
 				if (dev) {
@@ -457,7 +457,7 @@ extern "C" {
 			return -1;
 		}
 
-		device::CDev *dev = getDev(pathname);
+		cdev::CDev *dev = getDev(pathname);
 		return (dev != nullptr) ? 0 : -1;
 	}
 
