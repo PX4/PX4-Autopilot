@@ -37,6 +37,8 @@
  * Driver for the MPL3115A2 barometric pressure sensor connected via I2C.
  */
 
+#include <lib/cdev/CDev.hpp>
+#include <drivers/device/Device.hpp>
 #include <px4_config.h>
 #include <px4_log.h>
 
@@ -100,7 +102,7 @@ enum MPL3115A2_BUS {
 #define MPL3115A2_BARO_DEVICE_PATH_EXT  "/dev/mpl3115a2_ext"
 #define MPL3115A2_BARO_DEVICE_PATH_INT  "/dev/mpl3115a2_int"
 
-class MPL3115A2 : public device::CDev
+class MPL3115A2 : public cdev::CDev
 {
 public:
 	MPL3115A2(device::Device *interface, const char *path);
@@ -117,7 +119,7 @@ public:
 	void			print_info();
 
 protected:
-	Device			*_interface;
+	device::Device			*_interface;
 
 	struct work_s		_work;
 	unsigned		_measure_ticks;
@@ -195,7 +197,7 @@ protected:
 extern "C" __EXPORT int mpl3115a2_main(int argc, char *argv[]);
 
 MPL3115A2::MPL3115A2(device::Device *interface, const char *path) :
-	CDev("MPL3115A2", path),
+	CDev(path),
 	_interface(interface),
 	_measure_ticks(0),
 	_reports(nullptr),
@@ -212,11 +214,7 @@ MPL3115A2::MPL3115A2(device::Device *interface, const char *path) :
 	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
 
-	// set the device type from the interface
-	_device_id.devid_s.bus_type = _interface->get_device_bus_type();
-	_device_id.devid_s.bus = _interface->get_device_bus();
-	_device_id.devid_s.address = _interface->get_device_address();
-	_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_MPL3115A2;
+	_interface->set_device_type(DRV_BARO_DEVTYPE_MPL3115A2);
 }
 
 MPL3115A2::~MPL3115A2()
@@ -249,7 +247,7 @@ MPL3115A2::init()
 	ret = CDev::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("CDev init failed");
+		PX4_DEBUG("CDev init failed");
 		goto out;
 	}
 
@@ -257,7 +255,7 @@ MPL3115A2::init()
 	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_baro_s));
 
 	if (_reports == nullptr) {
-		DEVICE_DEBUG("can't get memory for reports");
+		PX4_DEBUG("can't get memory for reports");
 		ret = -ENOMEM;
 		goto out;
 	}
@@ -304,12 +302,12 @@ MPL3115A2::init()
 		// DEVICE_LOG("altitude (%u) = %.2f", _device_type, (double)brp.altitude);
 
 		/* ensure correct devid */
-		brp.device_id = _device_id.devid;
+		brp.device_id = _interface->get_device_id();
 
 		ret = OK;
 
 		_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &brp,
-						  &_orb_class_instance, (external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
+						  &_orb_class_instance, (_interface->external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
 
 		if (_baro_topic == nullptr) {
 			warnx("failed to create sensor_baro publication");
@@ -640,21 +638,17 @@ MPL3115A2::collect()
 		return ret;
 	}
 
-
 	_T = (float) reading.temperature.b[1] + ((float)(reading.temperature.b[0]) / 16.0f);
-
 	_P = (float)(reading.pressure.q >> 8) + ((float)(reading.pressure.b[0]) / 4.0f);
 
 	report.temperature = _T;
 	report.pressure = _P / 100.0f;		/* convert to millibar */
 
 	/* return device ID */
-	report.device_id = _device_id.devid;
-
-	/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
+	report.device_id = _interface->get_device_id();
 
 	/* publish it */
-	if (!(_pub_blocked) && _baro_topic != nullptr) {
+	if (_baro_topic != nullptr) {
 		/* publish it */
 		orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
 	}
