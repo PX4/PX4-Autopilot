@@ -83,7 +83,7 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class HC_SR04 : public device::CDev
+class HC_SR04 : public cdev::CDev
 {
 public:
 	HC_SR04(unsigned sonars = 6);
@@ -106,7 +106,7 @@ protected:
 private:
 	float				_min_distance;
 	float				_max_distance;
-	work_s				_work;
+	work_s				_work{};
 	ringbuffer::RingBuffer	*_reports;
 	bool				_sensor_ok;
 	int					_measure_ticks;
@@ -201,7 +201,7 @@ extern "C"  __EXPORT int hc_sr04_main(int argc, char *argv[]);
 static int sonar_isr(int irq, void *context);
 
 HC_SR04::HC_SR04(unsigned sonars) :
-	CDev("HC_SR04", SR04_DEVICE_PATH, 0),
+	CDev(SR04_DEVICE_PATH, 0),
 	_min_distance(SR04_MIN_DISTANCE),
 	_max_distance(SR04_MAX_DISTANCE),
 	_reports(nullptr),
@@ -222,11 +222,6 @@ HC_SR04::HC_SR04(unsigned sonars) :
 	_status(0)
 
 {
-	/* enable debug() calls */
-	_debug_enabled = false;
-
-	/* work_cancel in the dtor will explode if we don't do this... */
-	memset(&_work, 0, sizeof(_work));
 }
 
 HC_SR04::~HC_SR04()
@@ -274,7 +269,7 @@ HC_SR04::init()
 				 &_orb_class_instance, ORB_PRIO_LOW);
 
 	if (_distance_sensor_topic == nullptr) {
-		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+		PX4_ERR("failed to create distance_sensor object");
 	}
 
 	/* init echo port : */
@@ -290,7 +285,7 @@ HC_SR04::init()
 	_cycling_rate = SR04_CONVERSION_INTERVAL;
 
 	/* show the connected sonars in terminal */
-	DEVICE_DEBUG("Number of sonars set: %d", _sonars);
+	PX4_DEBUG("Number of sonars set: %d", _sonars);
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
@@ -533,7 +528,7 @@ HC_SR04::collect()
 
 	/* read from the sensor */
 	if (_status != 2) {
-		DEVICE_DEBUG("erro sonar %d ,status=%d", _cycle_counter, _status);
+		PX4_DEBUG("erro sonar %d ,status=%d", _cycle_counter, _status);
 		px4_arch_gpiosetevent(_gpio_tab[_cycle_counter].echo_port, true, true, false, nullptr);
 		perf_end(_sample_perf);
 		return (ret);
@@ -645,7 +640,7 @@ HC_SR04::cycle()
 	/*_circle_count 计录当前sonar　*/
 	/* perform collection */
 	if (OK != collect()) {
-		DEVICE_DEBUG("collection error");
+		PX4_DEBUG("collection error");
 	}
 
 	/* change to next sonar */
@@ -657,7 +652,7 @@ HC_SR04::cycle()
 
 	/* 测量next sonar */
 	if (OK != measure()) {
-		DEVICE_DEBUG("measure error sonar adress %d", _cycle_counter);
+		PX4_DEBUG("measure error sonar adress %d", _cycle_counter);
 	}
 
 
