@@ -85,7 +85,7 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class TFMINI : public device::CDev
+class TFMINI : public cdev::CDev
 {
 public:
 	TFMINI(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
@@ -107,7 +107,7 @@ private:
 	float                    _min_distance;
 	float                    _max_distance;
 	int                      _conversion_interval;
-	work_s                   _work;
+	work_s                   _work{};
 	ringbuffer::RingBuffer  *_reports;
 	int                      _measure_ticks;
 	bool                     _collect_phase;
@@ -170,7 +170,7 @@ private:
 extern "C" __EXPORT int tfmini_main(int argc, char *argv[]);
 
 TFMINI::TFMINI(const char *port, uint8_t rotation) :
-	CDev("tfmini", RANGE_FINDER0_DEVICE_PATH),
+	CDev(RANGE_FINDER0_DEVICE_PATH),
 	_rotation(rotation),
 	_min_distance(0.30f),
 	_max_distance(12.0f),
@@ -192,12 +192,6 @@ TFMINI::TFMINI(const char *port, uint8_t rotation) :
 	strncpy(_port, port, sizeof(_port));
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
-
-	// disable debug() calls
-	_debug_enabled = false;
-
-	// work_cancel in the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
 }
 
 TFMINI::~TFMINI()
@@ -226,7 +220,7 @@ TFMINI::init()
 
 	switch (hw_model) {
 	case 0:
-		DEVICE_LOG("disabled.");
+		PX4_WARN("disabled.");
 		return 0;
 
 	case 1: /* TFMINI (12m, 100 Hz)*/
@@ -236,7 +230,7 @@ TFMINI::init()
 		break;
 
 	default:
-		DEVICE_LOG("invalid HW model %d.", hw_model);
+		PX4_ERR("invalid HW model %d.", hw_model);
 		return -1;
 	}
 
@@ -329,7 +323,7 @@ TFMINI::init()
 					 &_orb_class_instance, ORB_PRIO_HIGH);
 
 		if (_distance_sensor_topic == nullptr) {
-			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+			PX4_ERR("failed to create distance_sensor object. Did you start uOrb?");
 		}
 
 	} while (0);
@@ -581,7 +575,7 @@ TFMINI::collect()
 	}
 
 	/* publish most recent valid measurement from buffer */
-	struct distance_sensor_s report;
+	distance_sensor_s report{};
 
 	report.timestamp = hrt_absolute_time();
 	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
