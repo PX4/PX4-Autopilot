@@ -225,7 +225,7 @@
 #define TIMEOUT_POLL 300000 /* reset after no response over this time in microseconds [0.3s] */
 #define TIMEOUT_READ 200000 /* don't reset if the last read is back more than this time in microseconds [0.2s] */
 
-class PWMIN : device::CDev
+class PWMIN : cdev::CDev
 {
 public:
 	PWMIN();
@@ -271,7 +271,7 @@ static void pwmin_usage(void);
 static PWMIN *g_dev;
 
 PWMIN::PWMIN() :
-	CDev("pwmin", PWMIN0_DEVICE_PATH),
+	CDev(PWMIN0_DEVICE_PATH),
 	_error_count(0),
 	_pulses_captured(0),
 	_last_period(0),
