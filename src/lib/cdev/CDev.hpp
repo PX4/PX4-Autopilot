@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -272,7 +272,7 @@ private:
 	bool		_registered{false};		/**< true if device name was registered */
 
 	uint8_t		_max_pollwaiters{0};		/**< size of the _pollset array */
-	uint8_t		_open_count{0};			/**< number of successful opens */
+	uint16_t	_open_count{0};			/**< number of successful opens */
 
 	/**
 	 * Store a pollwaiter in a slot where we can find it later.
@@ -281,14 +281,14 @@ private:
 	 *
 	 * @return		OK, or -errno on error.
 	 */
-	int		store_poll_waiter(px4_pollfd_struct_t *fds);
+	inline int	store_poll_waiter(px4_pollfd_struct_t *fds);
 
 	/**
 	 * Remove a poll waiter.
 	 *
 	 * @return		OK, or -errno on error.
 	 */
-	int		remove_poll_waiter(px4_pollfd_struct_t *fds);
+	inline int	remove_poll_waiter(px4_pollfd_struct_t *fds);
 
 	/* do not allow copying this class */
 	CDev(const CDev &);

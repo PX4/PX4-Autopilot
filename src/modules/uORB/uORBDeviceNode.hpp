@@ -46,23 +46,22 @@ class Manager;
 /**
  * Per-object device instance.
  */
-class uORB::DeviceNode : public device::CDev
+class uORB::DeviceNode : public cdev::CDev
 {
 public:
-	DeviceNode(const struct orb_metadata *meta, const char *name, const char *path,
-		   int priority, unsigned int queue_size = 1);
+	DeviceNode(const struct orb_metadata *meta, const char *path, int priority, unsigned int queue_size = 1);
 	~DeviceNode();
 
 	/**
 	 * Method to create a subscriber instance and return the struct
 	 * pointing to the subscriber as a file pointer.
 	 */
-	virtual int open(device::file_t *filp);
+	virtual int open(cdev::file_t *filp);
 
 	/**
 	 * Method to close a subscriber for this topic.
 	 */
-	virtual int   close(device::file_t *filp);
+	virtual int   close(cdev::file_t *filp);
 
 	/**
 	 * reads data from a subscriber node to the buffer provided.
@@ -75,7 +74,7 @@ public:
 	 * @return
 	 *   ssize_t the number of bytes read.
 	 */
-	virtual ssize_t   read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual ssize_t   read(cdev::file_t *filp, char *buffer, size_t buflen);
 
 	/**
 	 * writes the published data to the internal buffer to be read by
@@ -89,12 +88,12 @@ public:
 	 * @return ssize_t
 	 *   The number of bytes that are written
 	 */
-	virtual ssize_t   write(device::file_t *filp, const char *buffer, size_t buflen);
+	virtual ssize_t   write(cdev::file_t *filp, const char *buffer, size_t buflen);
 
 	/**
 	 * IOCTL control for the subscriber.
 	 */
-	virtual int   ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual int   ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Method to publish a data to this node.
@@ -177,7 +176,7 @@ public:
 	void set_priority(uint8_t priority) { _priority = priority; }
 
 protected:
-	virtual pollevent_t poll_state(device::file_t *filp);
+	virtual pollevent_t poll_state(cdev::file_t *filp);
 	virtual void poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events);
 
 private:
@@ -211,7 +210,7 @@ private:
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
 	int8_t _subscriber_count{0};
 
-	inline static SubscriberData    *filp_to_sd(device::file_t *filp);
+	inline static SubscriberData    *filp_to_sd(cdev::file_t *filp);
 
 #ifdef __PX4_NUTTX
 	pid_t     _publisher {0}; /**< if nonzero, current publisher. Only used inside the advertise call.
