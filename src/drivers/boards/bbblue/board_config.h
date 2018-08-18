@@ -118,4 +118,3 @@ int rc_bmp_read(rc_bmp_data_t *data);
 #endif
 
 #endif // BOARD_CONFIG_H
-
