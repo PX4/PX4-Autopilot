@@ -160,6 +160,21 @@ pipeline {
           }
         }
 
+        stage('ShellCheck') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base:2018-08-23'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'make shellcheck'
+            sh 'make distclean'
+          }
+        }
+
       } // parallel
     } // stage Analysis
 
