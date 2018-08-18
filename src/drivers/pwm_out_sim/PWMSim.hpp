@@ -51,7 +51,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/parameter_update.h>
 
-class PWMSim : public device::CDev, public ModuleBase<PWMSim>
+class PWMSim : public cdev::CDev, public ModuleBase<PWMSim>
 {
 	static constexpr uint32_t PWM_SIM_DISARMED_MAGIC = 900;
 	static constexpr uint32_t PWM_SIM_FAILSAFE_MAGIC = 600;
