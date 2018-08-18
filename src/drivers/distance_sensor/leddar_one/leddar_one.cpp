@@ -107,7 +107,7 @@ struct __attribute__((__packed__)) reading_msg {
 	uint16_t crc; /* little-endian */
 };
 
-class leddar_one : public device::CDev
+class leddar_one : public cdev::CDev
 {
 public:
 	leddar_one(const char *device_path, const char *serial_port, uint8_t rotation);
@@ -242,7 +242,7 @@ int leddar_one_main(int argc, char *argv[])
 }
 
 leddar_one::leddar_one(const char *device_path, const char *serial_port, uint8_t rotation):
-	CDev(NAME, device_path),
+	CDev(device_path),
 	_rotation(rotation),
 	_collect_timeout_perf(perf_alloc(PC_COUNT, "leddar_one_collect_timeout")),
 	_comm_error(perf_alloc(PC_COUNT, "leddar_one_comm_errors")),
