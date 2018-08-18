@@ -35,15 +35,14 @@
 #include <sys/stat.h>
 #include <stdarg.h>
 #include <fcntl.h>
-#include <errno.h>
 
 #include <px4_config.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
 
+#include "uORBDeviceNode.hpp"
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
-#include "uORBDevices.hpp"
 
 
 //=========================  Static initializations =================
