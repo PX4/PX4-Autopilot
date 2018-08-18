@@ -360,6 +360,9 @@ cppcheck: posix_sitl_default
 	@cppcheck -i$(SRC_DIR)/src/examples --enable=performance --std=c++11 --std=c99 --std=posix --project=$(SRC_DIR)/build/posix_sitl_default/compile_commands.json --xml-version=2 2> $(SRC_DIR)/build/cppcheck/cppcheck-result.xml > /dev/null
 	@cppcheck-htmlreport --source-encoding=ascii --file=$(SRC_DIR)/build/cppcheck/cppcheck-result.xml --report-dir=$(SRC_DIR)/build/cppcheck --source-dir=$(SRC_DIR)/src/
 
+shellcheck:
+	@$(SRC_DIR)/Tools/run-shellcheck.sh $(SRC_DIR)/ROMFS/px4fmu_common/
+
 # Cleanup
 # --------------------------------------------------------------------
 .PHONY: clean submodulesclean submodulesupdate gazeboclean distclean
