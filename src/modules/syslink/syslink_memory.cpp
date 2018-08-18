@@ -40,17 +40,10 @@
 
 
 SyslinkMemory::SyslinkMemory(Syslink *link) :
-	CDev("SyslinkMemory", DECK_DEVICE_PATH),
+	CDev(DECK_DEVICE_PATH),
 	_link(link),
 	_activeI(0)
 {
-
-
-}
-
-SyslinkMemory::~SyslinkMemory()
-{
-
 }
 
 
@@ -61,7 +54,7 @@ SyslinkMemory::init()
 
 	/* if init failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("CDev init failed");
+		PX4_DEBUG("CDev init failed");
 		return ret;
 	}
 
