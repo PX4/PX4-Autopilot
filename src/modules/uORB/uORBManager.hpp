@@ -35,8 +35,10 @@
 #define _uORBManager_hpp_
 
 #include "uORBCommon.hpp"
-#include "uORBDevices.hpp"
+#include "uORBDeviceMaster.hpp"
+
 #include <stdint.h>
+
 #ifdef __PX4_NUTTX
 #include "ORBSet.hpp"
 #else
