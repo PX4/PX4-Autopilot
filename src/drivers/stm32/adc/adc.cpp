@@ -116,7 +116,7 @@
 #  endif
 #endif
 
-class ADC : public device::CDev
+class ADC : public cdev::CDev
 {
 public:
 	ADC(uint32_t channels);
@@ -165,7 +165,7 @@ private:
 };
 
 ADC::ADC(uint32_t channels) :
-	CDev("adc", ADC0_DEVICE_PATH),
+	CDev(ADC0_DEVICE_PATH),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_channel_count(0),
 	_samples(nullptr),
@@ -288,7 +288,7 @@ ADC::init()
 	int rv = board_adc_init();
 
 	if (rv < 0) {
-		DEVICE_LOG("sample timeout");
+		PX4_DEBUG("sample timeout");
 		return rv;
 	}
 
@@ -500,7 +500,7 @@ ADC::_sample(unsigned channel)
 	uint16_t result = board_adc_sample(channel);
 
 	if (result == 0xffff) {
-		DEVICE_LOG("sample timeout");
+		PX4_ERR("sample timeout");
 	}
 
 	perf_end(_sample_perf);

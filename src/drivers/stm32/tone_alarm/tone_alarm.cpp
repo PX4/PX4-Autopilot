@@ -299,7 +299,7 @@
 
 #define CBRK_BUZZER_KEY 782097
 
-class ToneAlarm : public device::CDev
+class ToneAlarm : public cdev::CDev
 {
 public:
 	ToneAlarm();
@@ -361,7 +361,7 @@ extern "C" __EXPORT int tone_alarm_main(int argc, char *argv[]);
 
 
 ToneAlarm::ToneAlarm() :
-	CDev("tone_alarm", TONEALARM0_DEVICE_PATH),
+	CDev(TONEALARM0_DEVICE_PATH),
 	_running(false),
 	_should_run(true),
 	_play_tone(false),
@@ -429,7 +429,7 @@ int ToneAlarm::init()
 	/* make sure the timer is running */
 	rCR1 = GTIM_CR1_CEN;
 
-	DEVICE_DEBUG("ready");
+	PX4_DEBUG("ready");
 
 	_running = true;
 	work_queue(HPWORK, &_work, (worker_t)&ToneAlarm::next_trampoline, this, 0);
