@@ -44,7 +44,7 @@
 #include <cstring>
 
 #include <lib/mathlib/mathlib.h>
-#include <drivers/device/device.h>
+#include <lib/cdev/CDev.hpp>
 #include <perf/perf_counter.h>
 #include <px4_module_params.h>
 #include <uORB/uORB.h>
@@ -82,7 +82,7 @@
 /*
  * This driver connects to TAP ESCs via serial.
  */
-class TAP_ESC : public device::CDev, public ModuleBase<TAP_ESC>, public ModuleParams
+class TAP_ESC : public cdev::CDev, public ModuleBase<TAP_ESC>, public ModuleParams
 {
 public:
 	TAP_ESC(char const *const device, uint8_t channels_count);
@@ -104,7 +104,7 @@ public:
 	void run() override;
 
 	virtual int init();
-	virtual int ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual int ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 	void cycle();
 
 private:
@@ -155,7 +155,7 @@ const uint8_t TAP_ESC::_device_mux_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_POS;
 const uint8_t TAP_ESC::_device_dir_map[TAP_ESC_MAX_MOTOR_NUM] = ESC_DIR;
 
 TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count):
-	CDev("tap_esc", TAP_ESC_DEVICE_PATH),
+	CDev(TAP_ESC_DEVICE_PATH),
 	ModuleParams(nullptr),
 	_perf_control_latency(perf_alloc(PC_ELAPSED, "tap_esc control latency")),
 	_channels_count(channels_count)
@@ -200,7 +200,7 @@ TAP_ESC::~TAP_ESC()
 
 	tap_esc_common::deinitialise_uart(_uart_fd);
 
-	DEVICE_LOG("stopping");
+	PX4_INFO("stopping");
 
 	perf_free(_perf_control_latency);
 }
@@ -351,12 +351,12 @@ void TAP_ESC::subscribe()
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
-			DEVICE_DEBUG("subscribe to actuator_controls_%d", i);
+			PX4_DEBUG("subscribe to actuator_controls_%d", i);
 			_control_subs[i] = orb_subscribe(_control_topics[i]);
 		}
 
 		if (unsub_groups & (1 << i)) {
-			DEVICE_DEBUG("unsubscribe from actuator_controls_%d", i);
+			PX4_DEBUG("unsubscribe from actuator_controls_%d", i);
 			orb_unsubscribe(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
@@ -414,7 +414,7 @@ void TAP_ESC::cycle()
 		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 			if (_control_subs[i] >= 0) {
 				orb_set_interval(_control_subs[i], TAP_ESC_CTRL_UORB_UPDATE_INTERVAL);
-				DEVICE_DEBUG("New actuator update interval: %ums", TAP_ESC_CTRL_UORB_UPDATE_INTERVAL);
+				PX4_DEBUG("New actuator update interval: %ums", TAP_ESC_CTRL_UORB_UPDATE_INTERVAL);
 			}
 		}
 	}
@@ -428,7 +428,7 @@ void TAP_ESC::cycle()
 
 	/* this would be bad... */
 	if (ret < 0) {
-		DEVICE_LOG("poll error %d", errno);
+		PX4_ERR("poll error %d", errno);
 
 	} else { /* update even in the case of a timeout, to check for test_motor commands */
 
@@ -652,7 +652,7 @@ int TAP_ESC::control_callback(uint8_t control_group, uint8_t control_index, floa
 	return 0;
 }
 
-int TAP_ESC::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+int TAP_ESC::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
 
@@ -684,7 +684,7 @@ int TAP_ESC::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				ret = _mixers->load_from_buf(buf, buflen);
 
 				if (ret != 0) {
-					DEVICE_DEBUG("mixer load failed with %d", ret);
+					PX4_DEBUG("mixer load failed with %d", ret);
 					delete _mixers;
 					_mixers = nullptr;
 					_groups_required = 0;
