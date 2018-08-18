@@ -257,7 +257,7 @@ PX4FLOW::init()
 					 &_orb_class_instance, ORB_PRIO_HIGH);
 
 		if (_distance_sensor_topic == nullptr) {
-			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+			PX4_ERR("failed to create distance_sensor object");
 		}
 
 	} else {
