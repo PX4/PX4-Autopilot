@@ -48,7 +48,7 @@
 #include "batt_smbus.h"
 
 BATT_SMBUS::BATT_SMBUS(device::Device *interface, const char *path) :
-	CDev("BATT_SMBUS", path),
+	CDev(path),
 	_interface(interface),
 	_batt_topic(nullptr),
 	_batt_orb_id(nullptr),
@@ -61,10 +61,6 @@ BATT_SMBUS::BATT_SMBUS(device::Device *interface, const char *path) :
 	_low_thr(0.0f),
 	_manufacturer_name(nullptr)
 {
-	// Set the device type from the interface.
-	_device_id.devid_s.bus_type = _interface->get_device_bus_type();
-	_device_id.devid_s.bus = _interface->get_device_bus();
-	_device_id.devid_s.address = _interface->get_device_address();
 }
 
 BATT_SMBUS::~BATT_SMBUS()
@@ -107,7 +103,7 @@ int BATT_SMBUS::block_read(const uint8_t cmd_code, void *data, const unsigned le
 	}
 
 	// addr(wr), cmd_code, addr(r), byte_count, rx_data[]
-	uint8_t device_address = get_device_address();
+	uint8_t device_address = _interface->get_device_address();
 	uint8_t full_data_packet[DATA_BUFFER_SIZE + 4] = {0};
 
 	full_data_packet[0] = (device_address << 1) | 0x00;
@@ -560,7 +556,7 @@ int BATT_SMBUS::read_word(const uint8_t cmd_code, void *data)
 
 	if (PX4_OK == result) {
 		// Check PEC.
-		uint8_t addr = (get_device_address() << 1);
+		uint8_t addr = (_interface->get_device_address() << 1);
 		uint8_t full_data_packet[5];
 		full_data_packet[0] = addr | 0x00;
 		full_data_packet[1] = cmd_code;
@@ -584,12 +580,12 @@ int BATT_SMBUS::search_addresses()
 {
 	uint16_t tmp;
 
-	set_device_address(BATT_SMBUS_ADDR);
+	_interface->set_device_address(BATT_SMBUS_ADDR);
 
 	if (PX4_OK != read_word(BATT_SMBUS_VOLTAGE, &tmp)) {
 		// Search through all valid SMBus addresses.
 		for (uint8_t i = BATT_SMBUS_ADDR_MIN; i < BATT_SMBUS_ADDR_MAX; i++) {
-			set_device_address(i);
+			_interface->set_device_address(i);
 
 			if (read_word(BATT_SMBUS_VOLTAGE, &tmp) == PX4_OK) {
 				if (tmp > 0) {
@@ -604,7 +600,7 @@ int BATT_SMBUS::search_addresses()
 		}
 	}
 
-	PX4_INFO("Smart battery found at 0x%x", get_device_address());
+	PX4_INFO("Smart battery found at 0x%x", _interface->get_device_address());
 	PX4_INFO("Smart battery connected");
 
 	return PX4_OK;
