@@ -1388,6 +1388,82 @@ protected:
 	}
 };
 
+class MavlinkStreamGPS2Raw : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamGPS2Raw::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "GPS2_RAW";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_GPS2_RAW;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamGPS2Raw(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return (_gps_time > 0) ? (MAVLINK_MSG_ID_GPS2_RAW_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_gps_sub;
+	uint64_t _gps_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamGPS2Raw(MavlinkStreamGPS2Raw &) = delete;
+	MavlinkStreamGPS2Raw &operator = (const MavlinkStreamGPS2Raw &) = delete;
+
+protected:
+	explicit MavlinkStreamGPS2Raw(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_gps_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_gps_position), 1)),
+		_gps_time(0)
+	{}
+
+	bool send(const hrt_abstime t)
+	{
+		vehicle_gps_position_s gps;
+
+		if (_gps_sub->update(&_gps_time, &gps)) {
+			mavlink_gps2_raw_t msg = {};
+
+			msg.time_usec = gps.timestamp;
+			msg.fix_type = gps.fix_type;
+			msg.lat = gps.lat;
+			msg.lon = gps.lon;
+			msg.alt = gps.alt;
+			msg.eph = gps.eph * 1e3f;
+			msg.epv = gps.epv * 1e3f;
+			msg.vel = cm_uint16_from_m_float(gps.vel_m_s);
+			msg.cog = math::degrees(wrap_2pi(gps.cog_rad)) * 1e2f;
+			msg.satellites_visible = gps.satellites_used;
+			//msg.dgps_numch = // Number of DGPS satellites
+			//msg.dgps_age = // Age of DGPS info
+
+			mavlink_msg_gps2_raw_send_struct(_mavlink->get_channel(), &msg);
+
+			return true;
+		}
+
+		return false;
+	}
+};
+
 class MavlinkStreamSystemTime : public MavlinkStream
 {
 public:
@@ -4447,6 +4523,7 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamAttitudeQuaternion::new_instance, &MavlinkStreamAttitudeQuaternion::get_name_static, &MavlinkStreamAttitudeQuaternion::get_id_static),
 	StreamListItem(&MavlinkStreamVFRHUD::new_instance, &MavlinkStreamVFRHUD::get_name_static, &MavlinkStreamVFRHUD::get_id_static),
 	StreamListItem(&MavlinkStreamGPSRawInt::new_instance, &MavlinkStreamGPSRawInt::get_name_static, &MavlinkStreamGPSRawInt::get_id_static),
+	StreamListItem(&MavlinkStreamGPS2Raw::new_instance, &MavlinkStreamGPS2Raw::get_name_static, &MavlinkStreamGPS2Raw::get_id_static),
 	StreamListItem(&MavlinkStreamSystemTime::new_instance, &MavlinkStreamSystemTime::get_name_static, &MavlinkStreamSystemTime::get_id_static),
 	StreamListItem(&MavlinkStreamTimesync::new_instance, &MavlinkStreamTimesync::get_name_static, &MavlinkStreamTimesync::get_id_static),
 	StreamListItem(&MavlinkStreamGlobalPositionInt::new_instance, &MavlinkStreamGlobalPositionInt::get_name_static, &MavlinkStreamGlobalPositionInt::get_id_static),
