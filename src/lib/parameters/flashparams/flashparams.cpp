@@ -75,21 +75,21 @@ struct param_wbuf_s {
 static int
 param_export_internal(bool only_unsaved)
 {
-	struct param_wbuf_s *s = NULL;
+	struct param_wbuf_s *s = nullptr;
 	struct bson_encoder_s encoder;
 	int     result = -1;
 
 	/* Use realloc */
 
-	bson_encoder_init_buf(&encoder, NULL, 0);
+	bson_encoder_init_buf(&encoder, nullptr, 0);
 
 	/* no modified parameters -> we are done */
-	if (param_values == NULL) {
+	if (param_values == nullptr) {
 		result = 0;
 		goto out;
 	}
 
-	while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != NULL) {
+	while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != nullptr) {
 
 		int32_t i;
 		float   f;
@@ -209,13 +209,13 @@ struct param_import_state {
 };
 
 static int
-param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
+param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 {
 	float f;
 	int32_t i;
-	void *v, *tmp = NULL;
+	void *v, *tmp = nullptr;
 	int result = -1;
-	struct param_import_state *state = (struct param_import_state *)private;
+	struct param_import_state *state = (struct param_import_state *)priv;
 
 	/*
 	 * EOO means the end of the parameter object. (Currently not supporting
@@ -280,7 +280,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		/* XXX check actual file data size? */
 		tmp = malloc(param_size(param));
 
-		if (tmp == NULL) {
+		if (tmp == nullptr) {
 			debug("failed allocating for '%s'", node->name);
 			goto out;
 		}
@@ -304,9 +304,9 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		goto out;
 	}
 
-	if (tmp != NULL) {
+	if (tmp != nullptr) {
 		free(tmp);
-		tmp = NULL;
+		tmp = nullptr;
 	}
 
 	/* don't return zero, that means EOF */
@@ -314,7 +314,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 
 out:
 
-	if (tmp != NULL) {
+	if (tmp != nullptr) {
 		free(tmp);
 	}
 
@@ -353,18 +353,18 @@ out:
 	return result;
 }
 
-int flash_param_save(void)
+int flash_param_save()
 {
 	return param_export_internal(false);
 }
 
-int flash_param_load(void)
+int flash_param_load()
 {
 	param_reset_all();
 	return param_import_internal(true);
 }
 
-int flash_param_import(void)
+int flash_param_import()
 {
 	return -1;
 }

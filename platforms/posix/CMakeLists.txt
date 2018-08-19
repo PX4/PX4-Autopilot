@@ -38,6 +38,8 @@ if (("${BOARD}" STREQUAL "eagle") OR ("${BOARD}" STREQUAL "excelsior"))
 			apps.cpp
 		LINK_LIBS
 			-Wl,--start-group
+				px4_layer
+				parameters
 				${module_libraries}
 				${df_driver_libs}
 				${FASTRPC_ARM_LIBS}
