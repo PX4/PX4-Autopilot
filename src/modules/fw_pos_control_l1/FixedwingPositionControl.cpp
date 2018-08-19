@@ -534,12 +534,13 @@ FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand, const
 
 	if (_wind_estimate_valid && _parameters.l1_airsp_incr_en == 1) {
 		Vector2f airspeed_2d = ground_speed - _wind_speed_vector;
-		airsp_incr = _l1_control.airspeed_incr(airspeed_2d.length(), airspeed_demand, _parameters.airspeed_max,
+		airsp_incr = _l1_control.airspeed_incr(airspeed_2d.length(), airspeed_demand * _eas2tas,
+						       _parameters.airspeed_max * _eas2tas,
 						       _wind_speed_vector.length(), _parameters.l1_min_ground_speed);
 	}
 
 	// sanity check: limit to range
-	return constrain(airspeed_demand + airsp_incr, adjusted_min_airspeed, _parameters.airspeed_max);
+	return constrain(airspeed_demand + airsp_incr / _eas2tas, adjusted_min_airspeed, _parameters.airspeed_max);
 }
 
 void
