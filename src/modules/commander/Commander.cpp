@@ -2627,9 +2627,13 @@ Commander::run()
 			if (sp_man.power_off_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 				if (now >= last_power_off_sw_change_time_us + POWER_OFF_PROBATION) {
 					power_off_countdown = POWER_OFF_RESET_COUNT - 1;
+					mavlink_log_critical(&mavlink_log_pub, "Power off count down to %d", power_off_countdown);
 
 				} else {
-					if (--power_off_countdown <= 0) {
+					--power_off_countdown;
+					mavlink_log_critical(&mavlink_log_pub, "Power off count down to %d", power_off_countdown);
+
+					if (power_off_countdown <= 0) {
 						mavlink_log_critical(&mavlink_log_pub, "REMOTELY REQUESTED POWER OFF");
 						usleep(200000);
 						power_button_state_notification_cb(PWR_BUTTON_REQUEST_SHUT_DOWN);
