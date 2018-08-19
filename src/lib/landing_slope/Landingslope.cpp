@@ -83,7 +83,6 @@ Landingslope::getLandingSlopeRelativeAltitudeSave(float wp_landing_distance, flo
 	}
 
 	return 0.0f;
-
 }
 
 float
@@ -97,5 +96,36 @@ Landingslope::getFlareCurveRelativeAltitudeSave(float wp_landing_distance, float
 	}
 
 	return 0.0f;
+}
 
+/**
+ *
+ * @return Relative altitude of point on landing slope at distance to landing waypoint=wp_landing_distance
+ */
+float Landingslope::getLandingSlopeRelativeAltitude(float wp_landing_distance, float horizontal_slope_displacement,
+		float landing_slope_angle_rad)
+{
+	// flare_relative_alt is negative
+	return (wp_landing_distance - horizontal_slope_displacement) * tanf(landing_slope_angle_rad);
+}
+
+/**
+ *
+ * @return Absolute altitude of point on landing slope at distance to landing waypoint=wp_landing_distance
+ */
+float Landingslope::getLandingSlopeAbsoluteAltitude(float wp_landing_distance, float wp_landing_altitude,
+		float horizontal_slope_displacement, float landing_slope_angle_rad)
+{
+	return getLandingSlopeRelativeAltitude(wp_landing_distance, horizontal_slope_displacement,
+					       landing_slope_angle_rad) + wp_landing_altitude;
+}
+
+/**
+ *
+ * @return distance to landing waypoint of point on landing slope at altitude=slope_altitude
+ */
+float Landingslope::getLandingSlopeWPDistance(float slope_altitude, float wp_landing_altitude,
+		float horizontal_slope_displacement, float landing_slope_angle_rad)
+{
+	return (slope_altitude - wp_landing_altitude) / tanf(landing_slope_angle_rad) + horizontal_slope_displacement;
 }
