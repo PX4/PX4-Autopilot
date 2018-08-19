@@ -112,6 +112,8 @@ private:
 	// Parameters
 	param_t 		_p_strobe_delay;
 	float			_strobe_delay;
+	param_t 		_p_hotshoe_trigger_feedback;
+	int32_t			_hotshoe_trigger_feedback;
 
 	// Signal capture statistics
 	uint32_t		_capture_seq;

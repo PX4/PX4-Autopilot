@@ -50,3 +50,15 @@
  * @group Camera Control
  */
 PARAM_DEFINE_INT32(CAM_FBACK_MODE, 0);
+
+
+/**
+ * Camera feedback from hotshoe
+ *
+ * Enables trigger feedback from hotshoe on camera..
+ *
+ * @boolean
+ * @group Camera Control
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(CAM_HSHOE_FBACK, 0);
