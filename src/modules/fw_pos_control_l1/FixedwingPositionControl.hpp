@@ -48,7 +48,6 @@
 #ifndef FIXEDWINGPOSITIONCONTROL_HPP_
 #define FIXEDWINGPOSITIONCONTROL_HPP_
 
-#include "Landingslope.hpp"
 #include "launchdetection/LaunchDetector.h"
 #include "runway_takeoff/RunwayTakeoff.h"
 
@@ -58,6 +57,7 @@
 #include <lib/ecl/geo/geo.h>
 #include <lib/ecl/l1/ecl_l1_pos_controller.h>
 #include <lib/ecl/tecs/tecs.h>
+#include <lib/landing_slope/Landingslope.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_config.h>
