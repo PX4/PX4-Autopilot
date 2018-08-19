@@ -54,7 +54,8 @@
 
 int board_register_power_state_notification_cb(power_button_state_notification_t cb) { return 0; }
 
-int board_shutdown(void) {
+int board_shutdown(void)
+{
 	PX4_INFO("Powering off board ...");
 
 	// root is required by librobotcontrol

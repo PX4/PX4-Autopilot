@@ -442,7 +442,7 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			manual.man_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_MAN,
 					    _parameters.rc_man_th, _parameters.rc_man_inv);
 			manual.power_off_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_POWER_OFF_SWITCH,
-					     _parameters.rc_poweroffswitch_th, _parameters.rc_poweroffswitch_inv);
+						  _parameters.rc_poweroffswitch_th, _parameters.rc_poweroffswitch_inv);
 
 			/* publish manual_control_setpoint topic */
 			orb_publish_auto(ORB_ID(manual_control_setpoint), &_manual_control_pub, &manual, &instance,
