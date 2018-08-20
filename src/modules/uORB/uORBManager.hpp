@@ -39,16 +39,14 @@
 
 #include <stdint.h>
 
-#ifdef __PX4_NUTTX
-#include "ORBSet.hpp"
-#else
+#ifdef ORB_COMMUNICATOR
+
+#include "uORBCommunicator.hpp"
+
 #include <string>
 #include <set>
 #define ORBSet std::set<std::string>
-#endif
 
-#ifdef ORB_COMMUNICATOR
-#include "uORBCommunicator.hpp"
 #endif /* ORB_COMMUNICATOR */
 
 namespace uORB

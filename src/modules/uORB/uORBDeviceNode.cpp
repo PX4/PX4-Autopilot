@@ -49,6 +49,9 @@
 #include "uORBCommunicator.hpp"
 #endif /* ORB_COMMUNICATOR */
 
+#include <stdio.h>
+#include <string.h>
+
 using namespace device;
 
 uORB::DeviceNode::SubscriberData *uORB::DeviceNode::filp_to_sd(device::file_t *filp)
@@ -63,10 +66,11 @@ uORB::DeviceNode::SubscriberData *uORB::DeviceNode::filp_to_sd(device::file_t *f
 	return (SubscriberData *)(FILE_PRIV(filp));
 }
 
-uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const char *name, const char *path,
-			     int priority, unsigned int queue_size) :
+uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *name,
+			     const char *path, int priority, unsigned int queue_size) :
 	CDev(name, path),
 	_meta(meta),
+	_instance(instance),
 	_priority((uint8_t)priority),
 	_queue_size(queue_size)
 {

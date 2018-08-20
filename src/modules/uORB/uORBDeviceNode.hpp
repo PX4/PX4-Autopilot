@@ -49,9 +49,16 @@ class Manager;
 class uORB::DeviceNode : public device::CDev
 {
 public:
-	DeviceNode(const struct orb_metadata *meta, const char *name, const char *path,
-		   int priority, unsigned int queue_size = 1);
-	~DeviceNode();
+	DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *name, const char *path, int priority,
+		   unsigned int queue_size = 1);
+
+	virtual ~DeviceNode() override;
+
+	// no copy, assignment, move, move assignment
+	DeviceNode(const DeviceNode &) = delete;
+	DeviceNode &operator=(const DeviceNode &) = delete;
+	DeviceNode(DeviceNode &&) = delete;
+	DeviceNode &operator=(DeviceNode &&) = delete;
 
 	/**
 	 * Method to create a subscriber instance and return the struct
@@ -168,11 +175,19 @@ public:
 	 */
 	bool print_statistics(bool reset);
 
-	unsigned int get_queue_size() const { return _queue_size; }
+	uint8_t get_queue_size() const { return _queue_size; }
+
 	int8_t subscriber_count() const { return _subscriber_count; }
+
 	uint32_t lost_message_count() const { return _lost_messages; }
-	unsigned int published_message_count() const { return _generation; }
+
+	unsigned published_message_count() const { return _generation; }
+
 	const struct orb_metadata *get_meta() const { return _meta; }
+
+	const char *get_name() const { return _meta->o_name; }
+
+	uint8_t get_instance() const { return _instance; }
 
 	void set_priority(uint8_t priority) { _priority = priority; }
 
@@ -203,27 +218,31 @@ private:
 	};
 
 	const struct orb_metadata *_meta; /**< object metadata information */
+
+	const uint8_t _instance;
+
 	uint8_t     *_data{nullptr};   /**< allocated object buffer */
+
 	hrt_abstime   _last_update{0}; /**< time the object was last updated */
+
 	volatile unsigned   _generation{0};  /**< object generation count */
+
 	uint8_t   _priority;  /**< priority of the topic */
+
 	bool _published{false};  /**< has ever data been published */
+
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
+
 	int8_t _subscriber_count{0};
 
 	inline static SubscriberData    *filp_to_sd(device::file_t *filp);
 
-#ifdef __PX4_NUTTX
-	pid_t     _publisher {0}; /**< if nonzero, current publisher. Only used inside the advertise call.
-					We allow one publisher to have an open file descriptor at the same time. */
-#else
 	px4_task_t     _publisher {0}; /**< if nonzero, current publisher. Only used inside the advertise call.
 					We allow one publisher to have an open file descriptor at the same time. */
-#endif
 
-	//statistics
-	uint32_t _lost_messages = 0; ///< nr of lost messages for all subscribers. If two subscribers lose the same
-	///message, it is counted as two.
+	// statistics
+	uint32_t _lost_messages = 0; /**< nr of lost messages for all subscribers. If two subscribers lose the same
+					message, it is counted as two. */
 
 	/**
 	 * Perform a deferred update for a rate-limited subscriber.
@@ -247,8 +266,4 @@ private:
 	 */
 	bool      appears_updated(SubscriberData *sd);
 
-
-	// disable copy and assignment operators
-	DeviceNode(const DeviceNode &);
-	DeviceNode &operator=(const DeviceNode &);
 };
