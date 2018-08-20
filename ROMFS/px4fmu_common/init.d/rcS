@@ -138,6 +138,7 @@ then
 			hardfault_log reset
 		fi
 	else
+		# Play the startup tune.
 		tune_control play -t 1
 	fi
 else
@@ -348,15 +349,13 @@ else
 
 	if [ -f $IOFW ]
 	then
-		if px4io checkcrc ${IOFW}
+		# Check for the mini using build with px4io fw file
+		# but not a px4IO
+		if ! ver hwtypecmp V540
 		then
-			set IO_PRESENT yes
-		else
-			# Check for the mini using build with px4io fw file
-			# but not a px4IO
-			if ver hwtypecmp V540
+			if px4io checkcrc ${IOFW}
 			then
-				echo "PX4IO Not Suported" >> $LOG_FILE
+				set IO_PRESENT yes
 			else
 				# tune Program PX4IO
 				tune_control play -t 18
