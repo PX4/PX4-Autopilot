@@ -48,7 +48,6 @@ if ("${BOARD}" STREQUAL "bbblue")
 			#
 			# so include bbblue board specific code here:
 			../boards/bbblue/init.c
-			../boards/bbblue/pwr.cpp
 		DEPENDS
 			platforms__common
 	)

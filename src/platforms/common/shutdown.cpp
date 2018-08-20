@@ -45,6 +45,26 @@
 #include <errno.h>
 #include <pthread.h>
 
+#if defined(__PX4_POSIX) && defined(BOARD_HAS_POWER_CONTROL)
+#include <unistd.h>
+#include <sys/reboot.h>
+
+int board_register_power_state_notification_cb(power_button_state_notification_t cb) { return 0; }
+
+int board_shutdown(void)
+{
+	PX4_INFO("Powering off board ...");
+
+	// Requires PX4 is running with sufficient priviledges
+	sync();
+	reboot(RB_POWER_OFF);
+
+	while (1);
+
+	return 0;
+}
+#endif
+
 static pthread_mutex_t shutdown_mutex =
 	PTHREAD_MUTEX_INITIALIZER; // protects access to shutdown_hooks & shutdown_lock_counter
 static uint8_t shutdown_lock_counter = 0;
