@@ -19,7 +19,8 @@ fi
 
 if ver hwcmp NXPHLITE_V3
 then
-	set MAVLINK_COMPANION_DEVICE /dev/ttyS4
+	set MAVLINK_COMPANION_DEVICE none
+	set MAVLINK_F "-r 1200 -d /dev/ttyS4"
 fi
 
 if ver hwcmp OMNIBUS_F4SD
@@ -82,132 +83,135 @@ fi
 #
 # XXX We need a better way for runtime eval of shell variables,
 # but this works for now
-if param compare SYS_COMPANION 10
+if [ "x${MAVLINK_COMPANION_DEVICE}" != xnone ]
 then
-	frsky_telemetry start -d ${MAVLINK_COMPANION_DEVICE}
-else
-	if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2
+	if param compare SYS_COMPANION 10
 	then
-		# This is TELEM4 on Pixhawk 3 Pro
-		frsky_telemetry start -d /dev/ttyS6 -t 15
-	fi
-fi
-
-if param compare SYS_COMPANION 20
-then
-	syslink start
-	mavlink start -d /dev/bridge0 -b 57600 -m osd -r 40000
-fi
-
-#
-# 19200 Baud Rate.
-#
-if param compare SYS_COMPANION 319200
-then
-	mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 19200 -r 1000 -f
-fi
-if param compare SYS_COMPANION 519200
-then
-	mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 19200 -m minimal -r 1000
-fi
-
-#
-# 38400 Baud Rate.
-#
-if param compare SYS_COMPANION 338400
-then
-	mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 38400 -r 1000 -f
-fi
-if param compare SYS_COMPANION 538400
-then
-	mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 38400 -m minimal -r 1000
-fi
-
-#
-# 57600 Baud Rate.
-#
-if param compare SYS_COMPANION 57600
-then
-	mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m onboard -r 5000 -x -f
-fi
-if param compare SYS_COMPANION 157600
-then
-	mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m osd -r 1000
-fi
-if param compare SYS_COMPANION 257600
-then
-	mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m magic -r 5000 -x -f
-fi
-if param compare SYS_COMPANION 357600
-then
-	mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -r 1000 -f
-fi
-if param compare SYS_COMPANION 557600
-then
-	mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m minimal -r 1000
-fi
-
-#
-# 115200 Baud Rate.
-#
-if param compare SYS_COMPANION 3115200
-then
-	mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 115200 -r 1000 -f
-fi
-if param compare SYS_COMPANION 4115200
-then
-	usleep 200000 			# add a sleep here to make sure that the module is powered
-	if iridiumsbd start -d ${MAVLINK_COMPANION_DEVICE}
-	then
-		mavlink start -d /dev/iridium -m iridium -b 115200
+		frsky_telemetry start -d ${MAVLINK_COMPANION_DEVICE}
 	else
-		tune_control play -m "ML<<CP4CP4CP4CP4CP4"
-	fi
-fi
-if param compare SYS_COMPANION 5115200
-then
-	mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 115200 -m minimal -r 1000
-fi
-
-#
-# 460800 Baud Rate.
-#
-if param compare SYS_COMPANION 460800
-then
-	mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 460800 -m onboard -r 5000 -x -f
-fi
-if param compare SYS_COMPANION 6460800
-then
-	micrortps_client start -t UART -d /dev/ttyS2 -b 460800
-fi
-
-#
-# 921600 Baud Rate.
-#
-if param compare SYS_COMPANION 921600
-then
-	if ver hwcmp AEROFC_V1
-	then
-		if protocol_splitter start ${MAVLINK_COMPANION_DEVICE}
+		if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2
 		then
-			mavlink start -d /dev/mavlink -b 921600 -m onboard -r 5000 -x
-			micrortps_client start -d /dev/rtps -b 921600 -l -1 -s 2000
+			# This is TELEM4 on Pixhawk 3 Pro
+			frsky_telemetry start -d /dev/ttyS6 -t 15
+		fi
+	fi
+
+	if param compare SYS_COMPANION 20
+	then
+		syslink start
+		mavlink start -d /dev/bridge0 -b 57600 -m osd -r 40000
+	fi
+
+	#
+	# 19200 Baud Rate.
+	#
+	if param compare SYS_COMPANION 319200
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 19200 -r 1000 -f
+	fi
+	if param compare SYS_COMPANION 519200
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 19200 -m minimal -r 1000
+	fi
+
+	#
+	# 38400 Baud Rate.
+	#
+	if param compare SYS_COMPANION 338400
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 38400 -r 1000 -f
+	fi
+	if param compare SYS_COMPANION 538400
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 38400 -m minimal -r 1000
+	fi
+
+	#
+	# 57600 Baud Rate.
+	#
+	if param compare SYS_COMPANION 57600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m onboard -r 5000 -x -f
+	fi
+	if param compare SYS_COMPANION 157600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m osd -r 1000
+	fi
+	if param compare SYS_COMPANION 257600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m magic -r 5000 -x -f
+	fi
+	if param compare SYS_COMPANION 357600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -r 1000 -f
+	fi
+	if param compare SYS_COMPANION 557600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m minimal -r 1000
+	fi
+
+	#
+	# 115200 Baud Rate.
+	#
+	if param compare SYS_COMPANION 3115200
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 115200 -r 1000 -f
+	fi
+	if param compare SYS_COMPANION 4115200
+	then
+		usleep 200000 			# add a sleep here to make sure that the module is powered
+		if iridiumsbd start -d ${MAVLINK_COMPANION_DEVICE}
+		then
+			mavlink start -d /dev/iridium -m iridium -b 115200
+		else
+			tune_control play -m "ML<<CP4CP4CP4CP4CP4"
+		fi
+	fi
+	if param compare SYS_COMPANION 5115200
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 115200 -m minimal -r 1000
+	fi
+
+	#
+	# 460800 Baud Rate.
+	#
+	if param compare SYS_COMPANION 460800
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 460800 -m onboard -r 5000 -x -f
+	fi
+	if param compare SYS_COMPANION 6460800
+	then
+		micrortps_client start -t UART -d /dev/ttyS2 -b 460800
+	fi
+
+	#
+	# 921600 Baud Rate.
+	#
+	if param compare SYS_COMPANION 921600
+	then
+		if ver hwcmp AEROFC_V1
+		then
+			if protocol_splitter start ${MAVLINK_COMPANION_DEVICE}
+			then
+				mavlink start -d /dev/mavlink -b 921600 -m onboard -r 5000 -x
+				micrortps_client start -d /dev/rtps -b 921600 -l -1 -s 2000
+			else
+				mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -m onboard -r 80000 -x -f
+			fi
 		else
 			mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -m onboard -r 80000 -x -f
 		fi
-	else
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -m onboard -r 80000 -x -f
 	fi
-fi
-if param compare SYS_COMPANION 1921600
-then
-	mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -r 20000
-fi
+	if param compare SYS_COMPANION 1921600
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 921600 -r 20000
+	fi
 
-#
-# 1500000 Baud Rate.
-#
-if param compare SYS_COMPANION 1500000
-then
-	mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 1500000 -m onboard -r 140000 -x -f
+	#
+	# 1500000 Baud Rate.
+	#
+	if param compare SYS_COMPANION 1500000
+	then
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 1500000 -m onboard -r 140000 -x -f
+	fi
 fi
