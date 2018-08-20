@@ -164,7 +164,7 @@ extern int orb_unadvertise(orb_advert_t handle) __EXPORT;
 /**
  * @see uORB::Manager::orb_publish()
  */
-extern int	orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data) __EXPORT;
+extern int orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data) __EXPORT;
 
 /**
  * Advertise as the publisher of a topic.
@@ -175,8 +175,7 @@ extern int	orb_publish(const struct orb_metadata *meta, orb_advert_t handle, con
  * @see uORB::Manager::orb_advertise_multi() for meaning of the individual parameters
  */
 static inline int orb_publish_auto(const struct orb_metadata *meta, orb_advert_t *handle, const void *data,
-				   int *instance,
-				   int priority)
+				   int *instance, int priority)
 {
 	if (!*handle) {
 		*handle = orb_advertise_multi(meta, data, instance, priority);
@@ -195,37 +194,37 @@ static inline int orb_publish_auto(const struct orb_metadata *meta, orb_advert_t
 /**
  * @see uORB::Manager::orb_subscribe()
  */
-extern int	orb_subscribe(const struct orb_metadata *meta) __EXPORT;
+extern int orb_subscribe(const struct orb_metadata *meta) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_subscribe_multi()
  */
-extern int	orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance) __EXPORT;
+extern int orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_unsubscribe()
  */
-extern int	orb_unsubscribe(int handle) __EXPORT;
+extern int orb_unsubscribe(int handle) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_copy()
  */
-extern int	orb_copy(const struct orb_metadata *meta, int handle, void *buffer) __EXPORT;
+extern int orb_copy(const struct orb_metadata *meta, int handle, void *buffer) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_check()
  */
-extern int	orb_check(int handle, bool *updated) __EXPORT;
+extern int orb_check(int handle, bool *updated) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_stat()
  */
-extern int	orb_stat(int handle, uint64_t *time) __EXPORT;
+extern int orb_stat(int handle, uint64_t *time) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_exists()
  */
-extern int	orb_exists(const struct orb_metadata *meta, int instance) __EXPORT;
+extern int orb_exists(const struct orb_metadata *meta, int instance) __EXPORT;
 
 /**
  * Get the number of published instances of a topic group
@@ -233,7 +232,7 @@ extern int	orb_exists(const struct orb_metadata *meta, int instance) __EXPORT;
  * @param meta    ORB topic metadata.
  * @return    The number of published instances of this topic
  */
-extern int	orb_group_count(const struct orb_metadata *meta) __EXPORT;
+extern int orb_group_count(const struct orb_metadata *meta) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_priority()

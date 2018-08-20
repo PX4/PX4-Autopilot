@@ -191,7 +191,7 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 	orb_advert_t advertiser;
 
 	/* open the node as an advertiser */
-	fd = node_open(meta, data, true, instance, priority);
+	fd = node_open(meta, true, instance, priority);
 
 	if (fd == PX4_ERROR) {
 		PX4_ERR("%s advertise failed", meta->o_name);
@@ -247,13 +247,13 @@ int uORB::Manager::orb_unadvertise(orb_advert_t handle)
 
 int uORB::Manager::orb_subscribe(const struct orb_metadata *meta)
 {
-	return node_open(meta, nullptr, false);
+	return node_open(meta, false);
 }
 
 int uORB::Manager::orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance)
 {
 	int inst = instance;
-	return node_open(meta, nullptr, false, &inst);
+	return node_open(meta, false, &inst);
 }
 
 int uORB::Manager::orb_unsubscribe(int fd)
@@ -353,11 +353,11 @@ out:
 	return ret;
 }
 
-int uORB::Manager::node_open(const struct orb_metadata *meta, const void *data, bool advertiser, int *instance,
-			     int priority)
+int uORB::Manager::node_open(const struct orb_metadata *meta, bool advertiser, int *instance, int priority)
 {
 	char path[orb_maxpath];
-	int fd = -1, ret;
+	int fd = -1;
+	int ret = PX4_ERROR;
 
 	/*
 	 * If meta is null, the object was not defined, i.e. it is not
@@ -365,14 +365,6 @@ int uORB::Manager::node_open(const struct orb_metadata *meta, const void *data, 
 	 */
 	if (nullptr == meta) {
 		errno = ENOENT;
-		return PX4_ERROR;
-	}
-
-	/*
-	 * Advertiser must publish an initial value.
-	 */
-	if (advertiser && (data == nullptr)) {
-		errno = EINVAL;
 		return PX4_ERROR;
 	}
 
