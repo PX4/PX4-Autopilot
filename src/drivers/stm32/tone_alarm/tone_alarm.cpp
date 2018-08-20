@@ -511,7 +511,6 @@ void ToneAlarm::next_note()
 	}
 
 	// and arrange a callback when the note should stop
-	assert(duration != 0);
 	work_queue(HPWORK, &_work, (worker_t)&ToneAlarm::next_trampoline, this, USEC2TICK(duration));
 }
 
