@@ -233,7 +233,7 @@ private:
 
 	/**
 	 * Start flightasks based on navigation state.
-	 * This methods activates a taks basedn on the navigation state.
+	 * This methods activates a task based on the navigation state.
 	 */
 	void start_flight_task();
 
