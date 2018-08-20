@@ -31,7 +31,7 @@ fi
 #                 End Setup for board specific configurations.                #
 ###############################################################################
 
-if [ $MAVLINK_F == default ]
+if [ "x${MAVLINK_F}" == xdefault ]
 then
 	# Normal mode, use baudrate 57600 (default) and data rate 1000 bytes/s
 	set MAVLINK_F "-r 1200 -f"
@@ -72,7 +72,7 @@ then
 	fi
 fi
 
-if [ "x$MAVLINK_F" != xnone ]
+if [ "x${MAVLINK_F}" != xnone ]
 then
 	mavlink start ${MAVLINK_F}
 fi
