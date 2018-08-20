@@ -61,6 +61,8 @@
 #include <systemlib/err.h>
 #include <circuit_breaker/circuit_breaker.h>
 
+#include <px4_workqueue.h>
+
 #include <lib/tunes/tunes.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/tune_control.h>
@@ -97,14 +99,14 @@ private:
 
 	Tunes _tunes;
 
-	hrt_call		_note_call;	// HRT callout for note completion
-
 	unsigned _silence_length; // if nonzero, silence before next note
 
 	int _cbrk; ///< if true, no audio output
 	int _tune_control_sub;
 
 	tune_control_s _tune;
+
+	static work_s _work;
 
 	// Convert a frequency value into a divisor for the configured timer's clock.
 	//
@@ -122,13 +124,15 @@ private:
 	//
 	void next_note();
 
-	// hrt_call trampoline for next_note
+	// work queue trampoline for next_note
 	//
 	static void next_trampoline(void *arg);
 
 	// Unused
 	virtual void _measure() {}
 };
+
+struct work_s ToneAlarm::_work = {};
 
 /*
  * Driver 'main' command.
@@ -168,9 +172,8 @@ int ToneAlarm::init()
 		return ret;
 	}
 
-	_note_call = {};
-	hrt_call_after(&_note_call, (hrt_abstime)TUNE_MAX_UPDATE_INTERVAL_US, (hrt_callout)next_trampoline, this);
 	_running = true;
+	work_queue(HPWORK, &_work, (worker_t)&ToneAlarm::next_trampoline, this, 0);
 	return OK;
 }
 
@@ -243,8 +246,7 @@ void ToneAlarm::next_note()
 	// do we have an inter-note gap to wait for?
 	if (_silence_length > 0) {
 		stop_note();
-		_note_call = {};
-		hrt_call_after(&_note_call, (hrt_abstime)_silence_length, (hrt_callout)next_trampoline, this);
+		work_queue(HPWORK, &_work, (worker_t)&ToneAlarm::next_trampoline, this, USEC2TICK(_silence_length));
 		_silence_length = 0;
 		return;
 	}
@@ -255,7 +257,6 @@ void ToneAlarm::next_note()
 
 	if (updated) {
 		orb_copy(ORB_ID(tune_control), _tune_control_sub, &_tune);
-		_play_tone = _tunes.set_control(_tune) == 0;
 	}
 
 	unsigned frequency = 0;
@@ -290,9 +291,7 @@ void ToneAlarm::next_note()
 	}
 
 	// and arrange a callback when the note should stop
-	assert(duration != 0);
-	_note_call = {};
-	hrt_call_after(&_note_call, (hrt_abstime) duration, (hrt_callout)next_trampoline, this);
+	work_queue(HPWORK, &_work, (worker_t)&ToneAlarm::next_trampoline, this, USEC2TICK(duration));
 }
 
 void ToneAlarm::next_trampoline(void *arg)
