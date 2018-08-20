@@ -48,120 +48,115 @@
 
 using namespace device;
 
-uORB::DeviceMaster::DeviceMaster() :
-	CDev("obj_master", TOPIC_MASTER_DEVICE_PATH)
+uORB::DeviceMaster::DeviceMaster()
 {
+	px4_sem_init(&_lock, 0, 1);
 	_last_statistics_output = hrt_absolute_time();
 }
 
+uORB::DeviceMaster::~DeviceMaster()
+{
+	px4_sem_destroy(&_lock);
+}
+
 int
-uORB::DeviceMaster::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+uORB::DeviceMaster::advertise(const struct orb_metadata *meta, int *instance, int priority)
 {
 	int ret;
 
-	switch (cmd) {
-	case ORBIOCADVERTISE: {
-			const struct orb_advertdata *adv = (const struct orb_advertdata *)arg;
-			const struct orb_metadata *meta = adv->meta;
-			char nodepath[orb_maxpath];
+	char nodepath[orb_maxpath];
 
-			/* construct a path to the node - this also checks the node name */
-			ret = uORB::Utils::node_mkpath(nodepath, meta, adv->instance);
+	/* construct a path to the node - this also checks the node name */
+	ret = uORB::Utils::node_mkpath(nodepath, meta, instance);
 
-			if (ret != PX4_OK) {
-				return ret;
-			}
+	if (ret != PX4_OK) {
+		return ret;
+	}
 
-			ret = PX4_ERROR;
+	ret = PX4_ERROR;
 
-			/* try for topic groups */
-			const unsigned max_group_tries = (adv->instance != nullptr) ? ORB_MULTI_MAX_INSTANCES : 1;
-			unsigned group_tries = 0;
+	/* try for topic groups */
+	const unsigned max_group_tries = (instance != nullptr) ? ORB_MULTI_MAX_INSTANCES : 1;
+	unsigned group_tries = 0;
 
-			if (adv->instance) {
-				/* for an advertiser, this will be 0, but a for subscriber that requests a certain instance,
-				 * we do not want to start with 0, but with the instance the subscriber actually requests.
-				 */
-				group_tries = *adv->instance;
+	if (instance) {
+		/* for an advertiser, this will be 0, but a for subscriber that requests a certain instance,
+		 * we do not want to start with 0, but with the instance the subscriber actually requests.
+		 */
+		group_tries = *instance;
 
-				if (group_tries >= max_group_tries) {
-					return -ENOMEM;
-				}
-			}
+		if (group_tries >= max_group_tries) {
+			return -ENOMEM;
+		}
+	}
 
-			SmartLock smart_lock(_lock);
+	SmartLock smart_lock(_lock);
 
-			do {
-				/* if path is modifyable change try index */
-				if (adv->instance != nullptr) {
-					/* replace the number at the end of the string */
-					nodepath[strlen(nodepath) - 1] = '0' + group_tries;
-					*(adv->instance) = group_tries;
-				}
-
-				const char *objname = meta->o_name; //no need for a copy, meta->o_name will never be freed or changed
-
-				/* driver wants a permanent copy of the path, so make one here */
-				const char *devpath = strdup(nodepath);
-
-				if (devpath == nullptr) {
-					return -ENOMEM;
-				}
-
-				/* construct the new node */
-				uORB::DeviceNode *node = new uORB::DeviceNode(meta, group_tries, objname, devpath, adv->priority);
-
-				/* if we didn't get a device, that's bad */
-				if (node == nullptr) {
-					free((void *)devpath);
-					return -ENOMEM;
-				}
-
-				/* initialise the node - this may fail if e.g. a node with this name already exists */
-				ret = node->init();
-
-				/* if init failed, discard the node and its name */
-				if (ret != PX4_OK) {
-					delete node;
-
-					if (ret == -EEXIST) {
-						/* if the node exists already, get the existing one and check if
-						 * something has been published yet. */
-						uORB::DeviceNode *existing_node = getDeviceNodeLocked(meta, group_tries);
-
-						if ((existing_node != nullptr) && !(existing_node->is_published())) {
-							/* nothing has been published yet, lets claim it */
-							existing_node->set_priority(adv->priority);
-							ret = PX4_OK;
-
-						} else {
-							/* otherwise: data has already been published, keep looking */
-						}
-					}
-
-					/* also discard the name now */
-					free((void *)devpath);
-
-				} else {
-					// add to the node map;.
-					_nodes.push_back(node);
-				}
-
-				group_tries++;
-
-			} while (ret != PX4_OK && (group_tries < max_group_tries));
-
-			if (ret != PX4_OK && group_tries >= max_group_tries) {
-				ret = -ENOMEM;
-			}
-
-			return ret;
+	do {
+		/* if path is modifyable change try index */
+		if (instance != nullptr) {
+			/* replace the number at the end of the string */
+			nodepath[strlen(nodepath) - 1] = '0' + group_tries;
+			*instance = group_tries;
 		}
 
-	default:
-		/* give it to the superclass */
-		return CDev::ioctl(filp, cmd, arg);
+		const char *objname = meta->o_name; //no need for a copy, meta->o_name will never be freed or changed
+
+		/* driver wants a permanent copy of the path, so make one here */
+		const char *devpath = strdup(nodepath);
+
+		if (devpath == nullptr) {
+			return -ENOMEM;
+		}
+
+		/* construct the new node */
+		uORB::DeviceNode *node = new uORB::DeviceNode(meta, group_tries, objname, devpath, priority);
+
+		/* if we didn't get a device, that's bad */
+		if (node == nullptr) {
+			free((void *)devpath);
+			return -ENOMEM;
+		}
+
+		/* initialise the node - this may fail if e.g. a node with this name already exists */
+		ret = node->init();
+
+		/* if init failed, discard the node and its name */
+		if (ret != PX4_OK) {
+			delete node;
+
+			if (ret == -EEXIST) {
+				/* if the node exists already, get the existing one and check if
+				 * something has been published yet. */
+				uORB::DeviceNode *existing_node = getDeviceNodeLocked(meta, group_tries);
+
+				if ((existing_node != nullptr) && !(existing_node->is_published())) {
+					/* nothing has been published yet, lets claim it */
+					existing_node->set_priority(priority);
+					ret = PX4_OK;
+
+				} else {
+					/* otherwise: data has already been published, keep looking */
+				}
+			}
+
+			/* also discard the name now */
+			free((void *)devpath);
+
+		} else {
+			// add to the node map;.
+			_nodes.push_back(node);
+		}
+
+		group_tries++;
+
+	} while (ret != PX4_OK && (group_tries < max_group_tries));
+
+	if (ret != PX4_OK && group_tries >= max_group_tries) {
+		ret = -ENOMEM;
 	}
+
+	return ret;
 }
 
 void uORB::DeviceMaster::printStatistics(bool reset)

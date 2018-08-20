@@ -34,7 +34,6 @@
 #include <string.h>
 #include "../uORBDeviceNode.hpp"
 #include "../uORB.h"
-#include "../uORBCommon.hpp"
 
 #ifndef __PX4_QURT
 #include "uORBTest_UnitTest.hpp"

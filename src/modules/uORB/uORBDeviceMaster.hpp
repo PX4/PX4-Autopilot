@@ -50,10 +50,11 @@ class Manager;
  * Used primarily to create new objects via the ORBIOCCREATE
  * ioctl.
  */
-class uORB::DeviceMaster : public device::CDev
+class uORB::DeviceMaster
 {
 public:
-	virtual int   ioctl(device::file_t *filp, int cmd, unsigned long arg);
+
+	int advertise(const struct orb_metadata *meta, int *instance, int priority);
 
 	/**
 	 * Public interface for getDeviceNodeLocked(). Takes care of synchronization.
@@ -80,7 +81,7 @@ public:
 private:
 	// Private constructor, uORB::Manager takes care of its creation
 	DeviceMaster();
-	virtual ~DeviceMaster() = default;
+	~DeviceMaster();
 
 	struct DeviceNodeStatisticsData {
 		DeviceNode *node;
@@ -106,4 +107,10 @@ private:
 	std::vector<uORB::DeviceNode *> _nodes;
 
 	hrt_abstime       _last_statistics_output;
+
+
+	px4_sem_t	_lock; /**< lock to protect access to all class members (also for derived classes) */
+
+	void		lock() { do {} while (px4_sem_wait(&_lock) != 0); }
+	void		unlock() { px4_sem_post(&_lock); }
 };

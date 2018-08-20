@@ -38,7 +38,6 @@
 
 #include "uORB.h"
 #include "uORBManager.hpp"
-#include "uORBCommon.hpp"
 
 orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data)
 {

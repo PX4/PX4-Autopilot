@@ -44,12 +44,8 @@
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
 
-
-//=========================  Static initializations =================
 uORB::Manager *uORB::Manager::_Instance = nullptr;
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 bool uORB::Manager::initialize()
 {
 	if (_Instance == nullptr) {
@@ -59,8 +55,6 @@ bool uORB::Manager::initialize()
 	return _Instance != nullptr;
 }
 
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
 uORB::Manager::Manager()
 {
 #ifdef ORB_USE_PUBLISHER_RULES
@@ -89,17 +83,7 @@ uORB::DeviceMaster *uORB::Manager::get_device_master()
 	if (!_device_master) {
 		_device_master = new DeviceMaster();
 
-		if (_device_master) {
-			int ret = _device_master->init();
-
-			if (ret != PX4_OK) {
-				PX4_ERR("Initialization of DeviceMaster failed (%i)", ret);
-				errno = -ret;
-				delete _device_master;
-				_device_master = nullptr;
-			}
-
-		} else {
+		if (!_device_master) {
 			PX4_ERR("Failed to allocate DeviceMaster");
 			errno = ENOMEM;
 		}
@@ -331,31 +315,17 @@ int uORB::Manager::orb_get_interval(int handle, unsigned *interval)
 
 int uORB::Manager::node_advertise(const struct orb_metadata *meta, int *instance, int priority)
 {
-	int fd = -1;
 	int ret = PX4_ERROR;
 
 	/* fill advertiser data */
-	const struct orb_advertdata adv = { meta, instance, priority };
 
-	/* open the control device */
-	fd = px4_open(TOPIC_MASTER_DEVICE_PATH, 0);
-
-	if (fd < 0) {
-		goto out;
+	if (get_device_master()) {
+		ret = _device_master->advertise(meta, instance, priority);
 	}
-
-	/* advertise the object */
-	ret = px4_ioctl(fd, ORBIOCADVERTISE, (unsigned long)(uintptr_t)&adv);
 
 	/* it's PX4_OK if it already exists */
 	if ((PX4_OK != ret) && (EEXIST == errno)) {
 		ret = PX4_OK;
-	}
-
-out:
-
-	if (fd >= 0) {
-		px4_close(fd);
 	}
 
 	return ret;
