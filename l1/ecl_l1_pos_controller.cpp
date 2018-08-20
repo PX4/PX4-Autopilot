@@ -51,16 +51,14 @@ void ECL_L1_Pos_Controller::update_roll_setpoint()
 	float roll_new = atanf(_lateral_accel * 1.0f / CONSTANTS_ONE_G);
 	roll_new = math::constrain(roll_new, -_roll_lim_rad, _roll_lim_rad);
 
-	// no slew rate limiting active
-	if (_dt <= 0.0f || _roll_slew_rate <= 0.0f) {
-		_roll_setpoint = roll_new;
-		return;
+	if (_dt > 0.0f && _roll_slew_rate > 0.0f) {
+		// slew rate limiting active
+		roll_new = math::constrain(roll_new, _roll_setpoint - _roll_slew_rate * _dt, _roll_setpoint + _roll_slew_rate * _dt);
 	}
 
-	// slew rate limiting active
-	roll_new = math::constrain(roll_new, _roll_setpoint - _roll_slew_rate * _dt, _roll_setpoint + _roll_slew_rate * _dt);
-
-	_roll_setpoint = roll_new;
+	if (ISFINITE(roll_new)) {
+		_roll_setpoint = roll_new;
+	}
 
 }
 
