@@ -67,9 +67,9 @@ PARAM_DEFINE_INT32(SDLOG_UTC_OFFSET, 0);
 PARAM_DEFINE_INT32(SDLOG_MODE, 0);
 
 /**
- * Logging Topic Profile
+ * Logging topic profile (integer bitmask).
  *
- * This is an integer bitmask controlling the set and rates of logged topics.
+ * This integer bitmask controls the set and rates of logged topics.
  * The default allows for general log analysis and estimator replay, while
  * keeping the log file size reasonably small.
  *
