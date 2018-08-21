@@ -77,9 +77,8 @@ PARAM_DEFINE_INT32(CAM_CAP_MODE, 0);
 /**
  * Camera capture edge
  *
- * @value 0 Rising edge
- * @value 1 Falling edge
- * @value 2 Both edges
+ * @value 0 Falling edge
+ * @value 1 Rising edge
  *
  * @group Camera Control
  * @reboot_required true
