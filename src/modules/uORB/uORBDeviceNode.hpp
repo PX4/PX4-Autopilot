@@ -206,15 +206,14 @@ private:
 	struct SubscriberData {
 		~SubscriberData() { if (update_interval) { delete (update_interval); } }
 
-		unsigned  generation; /**< last generation the subscriber has seen */
-		int   flags; /**< lowest 8 bits: priority of publisher, 9. bit: update_reported bit */
-		UpdateIntervalData *update_interval; /**< if null, no update interval */
+		unsigned  generation{0}; /**< last generation the subscriber has seen */
 
-		int priority() const { return flags & 0xff; }
-		void set_priority(uint8_t prio) { flags = (flags & ~0xff) | prio; }
+		UpdateIntervalData *update_interval{nullptr}; /**< if null, no update interval */
 
-		bool update_reported() const { return flags & (1 << 8); }
-		void set_update_reported(bool update_reported_flag) { flags = (flags & ~(1 << 8)) | (((int)update_reported_flag) << 8); }
+		bool _update_reported{false};
+
+		bool update_reported() const { return _update_reported; }
+		void set_update_reported(bool update_reported_flag) { _update_reported = update_reported_flag; }
 	};
 
 	const struct orb_metadata *_meta; /**< object metadata information */

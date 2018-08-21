@@ -122,9 +122,6 @@ uORB::DeviceNode::open(device::file_t *filp)
 		/* If there were any previous publications, allow the subscriber to read them */
 		sd->generation = _generation - (_queue_size < _generation ? _queue_size : _generation);
 
-		/* set priority */
-		sd->set_priority(_priority);
-
 		filp->f_priv = (void *)sd;
 
 		ret = CDev::open(filp);
@@ -213,9 +210,6 @@ uORB::DeviceNode::read(device::file_t *filp, char *buffer, size_t buflen)
 	if (sd->generation < _generation) {
 		++sd->generation;
 	}
-
-	/* set priority */
-	sd->set_priority(_priority);
 
 	/*
 	 * Clear the flag that indicates that an update has been reported, as
@@ -361,7 +355,7 @@ uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		return PX4_OK;
 
 	case ORBIOCGPRIORITY:
-		*(int *)arg = sd->priority();
+		*(int *)arg = _priority;
 		return PX4_OK;
 
 	case ORBIOCSETQUEUESIZE:
