@@ -33,14 +33,6 @@
 
 #include "uORBDeviceNode.hpp"
 
-#ifdef __PX4_NUTTX
-#define FILE_FLAGS(filp) filp->f_oflags
-#define FILE_PRIV(filp) filp->f_priv
-#else
-#define FILE_FLAGS(filp) filp->flags
-#define FILE_PRIV(filp) filp->priv
-#endif
-
 #include "uORBDeviceNode.hpp"
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
@@ -63,7 +55,7 @@ uORB::DeviceNode::SubscriberData *uORB::DeviceNode::filp_to_sd(device::file_t *f
 	}
 
 #endif
-	return (SubscriberData *)(FILE_PRIV(filp));
+	return (SubscriberData *)(filp->f_priv);
 }
 
 uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *name,
@@ -89,7 +81,7 @@ uORB::DeviceNode::open(device::file_t *filp)
 	int ret;
 
 	/* is this a publisher? */
-	if (FILE_FLAGS(filp) == PX4_F_WRONLY) {
+	if (filp->f_oflags == PX4_F_WRONLY) {
 
 		/* become the publisher if we can */
 		lock();
@@ -118,7 +110,7 @@ uORB::DeviceNode::open(device::file_t *filp)
 	}
 
 	/* is this a new subscriber? */
-	if (FILE_FLAGS(filp) == PX4_F_RDONLY) {
+	if (filp->f_oflags == PX4_F_RDONLY) {
 
 		/* allocate subscriber data */
 		SubscriberData *sd = new SubscriberData{};
@@ -133,7 +125,7 @@ uORB::DeviceNode::open(device::file_t *filp)
 		/* set priority */
 		sd->set_priority(_priority);
 
-		FILE_PRIV(filp) = (void *)sd;
+		filp->f_priv = (void *)sd;
 
 		ret = CDev::open(filp);
 
@@ -147,7 +139,7 @@ uORB::DeviceNode::open(device::file_t *filp)
 		return ret;
 	}
 
-	if (FILE_FLAGS(filp) == 0) {
+	if (filp->f_oflags == 0) {
 		return CDev::open(filp);
 	}
 
