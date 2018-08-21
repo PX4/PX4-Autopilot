@@ -192,29 +192,12 @@ public:
 	void set_priority(uint8_t priority) { _priority = priority; }
 
 protected:
+
 	virtual pollevent_t poll_state(device::file_t *filp);
+
 	virtual void poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events);
 
 private:
-	struct UpdateIntervalData {
-		unsigned  interval; /**< if nonzero minimum interval between updates */
-		struct hrt_call update_call;  /**< deferred wakeup call if update_period is nonzero */
-#ifndef __PX4_NUTTX
-		uint64_t last_update; /**< time at which the last update was provided, used when update_interval is nonzero */
-#endif
-	};
-	struct SubscriberData {
-		~SubscriberData() { if (update_interval) { delete (update_interval); } }
-
-		unsigned  generation{0}; /**< last generation the subscriber has seen */
-
-		UpdateIntervalData *update_interval{nullptr}; /**< if null, no update interval */
-
-		bool _update_reported{false};
-
-		bool update_reported() const { return _update_reported; }
-		void set_update_reported(bool update_reported_flag) { _update_reported = update_reported_flag; }
-	};
 
 	const struct orb_metadata *_meta; /**< object metadata information */
 
@@ -233,8 +216,6 @@ private:
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
 
 	int8_t _subscriber_count{0};
-
-	inline static SubscriberData    *filp_to_sd(device::file_t *filp);
 
 	px4_task_t     _publisher {0}; /**< if nonzero, current publisher. Only used inside the advertise call.
 					We allow one publisher to have an open file descriptor at the same time. */
@@ -263,6 +244,6 @@ private:
 	 * @param sd    The subscriber for whom to check.
 	 * @return    True if the topic should appear updated to the subscriber
 	 */
-	bool      appears_updated(SubscriberData *sd);
+	bool      appears_updated(device::file_t *filp);
 
 };

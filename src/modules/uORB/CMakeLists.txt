@@ -46,6 +46,7 @@ px4_add_module(
 		uORBDeviceNode.cpp
 		uORBMain.cpp
 		uORBManager.cpp
+		uORBSubscriber.cpp
 		uORBUtils.cpp
 	DEPENDS
 		uorb_msgs

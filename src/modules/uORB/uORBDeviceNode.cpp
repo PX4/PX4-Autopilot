@@ -36,6 +36,7 @@
 #include "uORBDeviceNode.hpp"
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
+#include "uORBSubscriber.hpp"
 
 #ifdef ORB_COMMUNICATOR
 #include "uORBCommunicator.hpp"
@@ -45,18 +46,6 @@
 #include <string.h>
 
 using namespace device;
-
-uORB::DeviceNode::SubscriberData *uORB::DeviceNode::filp_to_sd(device::file_t *filp)
-{
-#ifndef __PX4_NUTTX
-
-	if (!filp) {
-		return nullptr;
-	}
-
-#endif
-	return (SubscriberData *)(filp->f_priv);
-}
 
 uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *name,
 			     const char *path, int priority, unsigned int queue_size) :
@@ -155,10 +144,6 @@ uORB::DeviceNode::close(device::file_t *filp)
 		SubscriberData *sd = filp_to_sd(filp);
 
 		if (sd != nullptr) {
-			if (sd->update_interval) {
-				hrt_cancel(&sd->update_interval->update_call);
-			}
-
 			remove_internal_subscriber();
 
 			delete sd;
@@ -172,7 +157,7 @@ uORB::DeviceNode::close(device::file_t *filp)
 ssize_t
 uORB::DeviceNode::read(device::file_t *filp, char *buffer, size_t buflen)
 {
-	SubscriberData *sd = (SubscriberData *)filp_to_sd(filp);
+	SubscriberData *sd = filp_to_sd(filp);
 
 	/* if the object has not been written yet, return zero */
 	if (_data == nullptr) {
@@ -307,7 +292,7 @@ uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 #ifndef __PX4_NUTTX
 		lock();
 #endif
-		*(bool *)arg = appears_updated(sd);
+		*(bool *)arg = appears_updated(filp);
 #ifndef __PX4_NUTTX
 		unlock();
 #endif
@@ -316,36 +301,7 @@ uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case ORBIOCSETINTERVAL: {
 			int ret = PX4_OK;
 			lock();
-
-			if (arg == 0) {
-				if (sd->update_interval) {
-					delete (sd->update_interval);
-					sd->update_interval = nullptr;
-				}
-
-			} else {
-				if (sd->update_interval) {
-					sd->update_interval->interval = arg;
-#ifndef __PX4_NUTTX
-					sd->update_interval->last_update = hrt_absolute_time();
-#endif
-
-				} else {
-					sd->update_interval = new UpdateIntervalData();
-
-					if (sd->update_interval) {
-						memset(&sd->update_interval->update_call, 0, sizeof(hrt_call));
-						sd->update_interval->interval = arg;
-#ifndef __PX4_NUTTX
-						sd->update_interval->last_update = hrt_absolute_time();
-#endif
-
-					} else {
-						ret = -ENOMEM;
-					}
-				}
-			}
-
+			ret = sd->set_interval(arg);
 			unlock();
 			return ret;
 		}
@@ -364,13 +320,7 @@ uORB::DeviceNode::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		return update_queue_size(arg);
 
 	case ORBIOCGETINTERVAL:
-		if (sd->update_interval) {
-			*(unsigned *)arg = sd->update_interval->interval;
-
-		} else {
-			*(unsigned *)arg = 0;
-		}
-
+		*(unsigned *)arg = sd->get_interval();
 		return OK;
 
 	case ORBIOCISPUBLISHED:
@@ -485,12 +435,8 @@ int16_t uORB::DeviceNode::topic_unadvertised(const orb_metadata *meta, int prior
 pollevent_t
 uORB::DeviceNode::poll_state(device::file_t *filp)
 {
-	SubscriberData *sd = filp_to_sd(filp);
-
-	/*
-	 * If the topic appears updated to the subscriber, say so.
-	 */
-	if (appears_updated(sd)) {
+	// If the topic appears updated to the subscriber, say so.
+	if (appears_updated(filp)) {
 		return POLLIN;
 	}
 
@@ -500,20 +446,18 @@ uORB::DeviceNode::poll_state(device::file_t *filp)
 void
 uORB::DeviceNode::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 {
-	SubscriberData *sd = filp_to_sd((device::file_t *)fds->priv);
-
-	/*
-	 * If the topic looks updated to the subscriber, go ahead and notify them.
-	 */
-	if (appears_updated(sd)) {
+	// If the topic looks updated to the subscriber, go ahead and notify them.
+	if (appears_updated((device::file_t *)fds->priv)) {
 		CDev::poll_notify_one(fds, events);
 	}
 }
 
 #ifdef __PX4_NUTTX
 bool
-uORB::DeviceNode::appears_updated(SubscriberData *sd)
+uORB::DeviceNode::appears_updated(device::file_t *filp)
 {
+	SubscriberData *sd = filp_to_sd(filp);
+
 	/* assume it doesn't look updated */
 	bool ret = false;
 
@@ -593,8 +537,9 @@ out:
 #else
 
 bool
-uORB::DeviceNode::appears_updated(SubscriberData *sd)
+uORB::DeviceNode::appears_updated(device::file_t *filp)
 {
+	SubscriberData *sd = filp_to_sd(filp);
 
 	/* block if in simulation mode */
 	while (px4_sim_delay_enabled()) {
