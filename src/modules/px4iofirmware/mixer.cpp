@@ -84,6 +84,7 @@ extern int _sbus_fd;
 /* selected control values and count for mixing */
 enum mixer_source {
 	MIX_NONE,
+	MIX_DISARMED,
 	MIX_FMU,
 	MIX_OVERRIDE,
 	MIX_FAILSAFE,
@@ -146,8 +147,8 @@ mixer_tick(void)
 		}
 	}
 
-	/* default to failsafe mixing - it will be forced below if flag is set */
-	source = MIX_FAILSAFE;
+	/* default to disarmed mixing */
+	source = MIX_DISARMED;
 
 	/*
 	 * Decide which set of controls we're using.
@@ -206,8 +207,6 @@ mixer_tick(void)
 				((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)		/* and FMU is armed */
 					&& (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK))	/* and there is valid input via or mixer */
 				|| (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)		/* or direct PWM is set */
-				|| ((r_setup_arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM)	/* or failsafe was set manually */
-					&& !(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK))	/* and FMU is not active */
 			)
 	);
 
@@ -228,10 +227,10 @@ mixer_tick(void)
 	 * set the force failsafe flag once entering the first
 	 * failsafe condition.
 	 */
-	if ( /* if we have requested flight termination style failsafe (noreturn) */
-		(r_setup_arming & PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE) &&
-		/* and we ended up in a failsafe condition */
-		(source == MIX_FAILSAFE) &&
+	if (	/* Flight termination is allowed */
+		REG_TO_BOOL(r_setup_flightterm) &&
+		/* If we ended up not changing the default mixer */
+		(source == MIX_DISARMED) &&
 		/* and we should be armed, so we intended to provide outputs */
 		should_arm &&
 		/* and FMU is initialized */
@@ -283,6 +282,15 @@ mixer_tick(void)
 			r_page_actuators[i] = FLOAT_TO_REG((r_page_servos[i] - 1500) / 600.0f);
 		}
 
+	} else if (source == MIX_DISARMED) {
+
+		/* copy disarmed values to the servo outputs */
+		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
+			r_page_servos[i] = r_page_servo_disarmed[i];
+
+			/* safe actuators for FMU feedback */
+			r_page_actuators[i] = FLOAT_TO_REG((r_page_servos[i] - 1500) / 600.0f);
+		}
 
 	} else if (source != MIX_NONE && (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)
 		   && !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)) {
@@ -437,6 +445,7 @@ mixer_callback(uintptr_t handle,
 
 		return -1;
 
+	case MIX_DISARMED:
 	case MIX_FAILSAFE:
 	case MIX_NONE:
 		control = 0.0f;
