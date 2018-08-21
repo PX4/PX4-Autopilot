@@ -183,14 +183,6 @@ public:
 	int      		set_update_rate(int rate);
 
 	/**
-	 * Push failsafe values to IO.
-	 *
-	 * @param[in] vals	Failsafe control inputs: in us PPM (900 for zero, 1500 for centered, 2100 for full)
-	 * @param[in] len	Number of channels, could up to 8
-	 */
-	int			set_failsafe_values(const uint16_t *vals, unsigned len);
-
-	/**
 	 * Disable RC input handling
 	 */
 	int			disable_rc_handling();
@@ -1031,21 +1023,16 @@ PX4IO::task_main()
 					}
 				}
 
+				/* Check if the IO safety circuit breaker has been updated */
 				int32_t safety_param_val;
-				param_t safety_param = param_find("CBRK_IO_SAFETY");
-
-				if (safety_param != PARAM_INVALID) {
-
-					param_get(safety_param, &safety_param_val);
-
-					if (safety_param_val == PX4IO_FORCE_SAFETY_MAGIC) {
-						/* disable IO safety if circuit breaker asked for it */
-						(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, safety_param_val);
-					}
-				}
+				safety_param_val = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
+				/* Bypass IO safety switch logic by setting FORCE_SAFETY_OFF */
+				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, safety_param_val);
 
 				/* Check if the flight termination circuit breaker has been updated */
 				_cb_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
+				/* Tell IO that it can terminate the flight if FMU is not responding */
+				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ENABLE_FLIGHTTERM, !_cb_flighttermination);
 
 				param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
 				param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
@@ -2217,7 +2204,7 @@ PX4IO::print_status(bool extended_status)
 	       ((alarms & PX4IO_P_STATUS_ALARMS_PWM_ERROR)     ? " PWM_ERROR" : ""),
 	       ((alarms & PX4IO_P_STATUS_ALARMS_VSERVO_FAULT)  ? " VSERVO_FAULT" : ""));
 	/* now clear alarms */
-	io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, 0xFFFF);
+	io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, 0x0000);
 
 	if (_hardware == 2) {
 		printf("vservo %u mV vservo scale %u\n",

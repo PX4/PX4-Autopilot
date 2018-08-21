@@ -266,6 +266,18 @@ then
 		then
 			pwm failsafe -c ${PWM_AUX_OUT} -p ${FAILSAFE} -d ${OUTPUT_AUX_DEV}
 		fi
+
+		#
+		# Per channel failsafe settings.
+		#
+		pwm failsafe -c 1 -p p:PWM_AUX_FAIL1 -d ${OUTPUT_AUX_DEV}
+		pwm failsafe -c 2 -p p:PWM_AUX_FAIL2 -d ${OUTPUT_AUX_DEV}
+		pwm failsafe -c 3 -p p:PWM_AUX_FAIL3 -d ${OUTPUT_AUX_DEV}
+		pwm failsafe -c 4 -p p:PWM_AUX_FAIL4 -d ${OUTPUT_AUX_DEV}
+		pwm failsafe -c 5 -p p:PWM_AUX_FAIL5 -d ${OUTPUT_AUX_DEV}
+		pwm failsafe -c 6 -p p:PWM_AUX_FAIL6 -d ${OUTPUT_AUX_DEV}
+		pwm failsafe -c 7 -p p:PWM_AUX_FAIL7 -d ${OUTPUT_AUX_DEV}
+		pwm failsafe -c 8 -p p:PWM_AUX_FAIL8 -d ${OUTPUT_AUX_DEV}
 	fi
 fi
 
@@ -310,6 +322,18 @@ then
 	then
 		pwm failsafe -c ${PWM_OUT} -p ${FAILSAFE} -d ${OUTPUT_DEV}
 	fi
+
+	#
+	# Per channel failsafe settings.
+	#
+	pwm failsafe -c 1 -p p:PWM_MAIN_FAIL1
+	pwm failsafe -c 2 -p p:PWM_MAIN_FAIL2
+	pwm failsafe -c 3 -p p:PWM_MAIN_FAIL3
+	pwm failsafe -c 4 -p p:PWM_MAIN_FAIL4
+	pwm failsafe -c 5 -p p:PWM_MAIN_FAIL5
+	pwm failsafe -c 6 -p p:PWM_MAIN_FAIL6
+	pwm failsafe -c 7 -p p:PWM_MAIN_FAIL7
+	pwm failsafe -c 8 -p p:PWM_MAIN_FAIL8
 fi
 
 unset MIXER_AUX_FILE

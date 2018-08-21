@@ -10,6 +10,13 @@ uint8 ARMING_STATE_REBOOT = 4
 uint8 ARMING_STATE_IN_AIR_RESTORE = 5
 uint8 ARMING_STATE_MAX = 6
 
+# FailureDetector status
+uint8 FAILURE_NONE = 0
+uint8 FAILURE_ROLL = 1 	# (1 << 0)
+uint8 FAILURE_PITCH = 2	# (1 << 1)
+uint8 FAILURE_ALT = 4 	# (1 << 2)
+
+# HIL
 uint8 HIL_STATE_OFF = 0
 uint8 HIL_STATE_ON = 1
 
@@ -47,7 +54,7 @@ uint8 RC_IN_MODE_GENERATED = 2
 uint8 nav_state				# set navigation state machine to specified value
 uint8 arming_state			# current arming state
 uint8 hil_state				# current hil state
-bool failsafe				# true if system is in failsafe state
+bool failsafe				# true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)
 
 uint8 system_type			# system type, contains mavlink MAV_TYPE
 uint8 system_id			# system id, contains MAVLink's system ID field
@@ -67,6 +74,7 @@ bool high_latency_data_link_active 		# all low latency datalinks to GCS lost
 uint8 data_link_lost_counter			# counts unique data link lost events
 bool engine_failure				# Set to true if an engine failure is detected
 bool mission_failure				# Set to true if mission could not continue/finish
+uint8 failure_detector_status			# Bitmask containing FailureDetector status [0, 0, 0, 0, 0, FAILURE_ALT, FAILURE_PITCH, FAILURE_ROLL]
 
 # see SYS_STATUS mavlink message for the following
 uint32 onboard_control_sensors_present

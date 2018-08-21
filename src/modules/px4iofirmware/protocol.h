@@ -239,6 +239,9 @@ enum {							/* DSM bind states */
 #define PX4IO_P_SETUP_THR_MDL_FAC 		25	/* factor for modelling static pwm output to thrust relationship */
 
 #define PX4IO_P_SETUP_THERMAL			26	/* thermal management */
+
+#define PX4IO_P_SETUP_ENABLE_FLIGHTTERM		28	/* flight termination circuit breaker */
+
 #define PX4IO_THERMAL_IGNORE			UINT16_MAX
 #define PX4IO_THERMAL_OFF			0
 #define PX4IO_THERMAL_FULL			10000

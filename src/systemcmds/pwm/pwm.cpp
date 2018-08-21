@@ -597,6 +597,10 @@ pwm_main(int argc, char *argv[])
 			return 1;
 		}
 
+		if (pwm_value < 0) {
+			return 0;
+		}
+
 		if (pwm_value == 0) {
 			usage("failsafe: no PWM provided");
 			return 1;
