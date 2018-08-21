@@ -377,7 +377,8 @@ else
 	fi
 
 	# Camera capture driver
-	if param compare CAM_HSHOE_FBACK 1
+	if param greater CAM_CAP_FBACK 0
+	then
 		if camera_capture start
 		then
 			set FMU_MODE pwm4
