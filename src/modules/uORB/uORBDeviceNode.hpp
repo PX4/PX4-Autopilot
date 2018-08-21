@@ -54,16 +54,22 @@ public:
 	DeviceNode(const struct orb_metadata *meta, const char *path, int priority, unsigned int queue_size = 1);
 	~DeviceNode();
 
+	// no copy, assignment, move, move assignment
+	DeviceNode(const DeviceNode &) = delete;
+	DeviceNode &operator=(const DeviceNode &) = delete;
+	DeviceNode(DeviceNode &&) = delete;
+	DeviceNode &operator=(DeviceNode &&) = delete;
+
 	/**
 	 * Method to create a subscriber instance and return the struct
 	 * pointing to the subscriber as a file pointer.
 	 */
-	virtual int open(cdev::file_t *filp);
+	int open(cdev::file_t *filp) override;
 
 	/**
 	 * Method to close a subscriber for this topic.
 	 */
-	virtual int   close(cdev::file_t *filp);
+	int close(cdev::file_t *filp) override;
 
 	/**
 	 * reads data from a subscriber node to the buffer provided.
@@ -76,7 +82,7 @@ public:
 	 * @return
 	 *   ssize_t the number of bytes read.
 	 */
-	virtual ssize_t   read(cdev::file_t *filp, char *buffer, size_t buflen);
+	ssize_t read(cdev::file_t *filp, char *buffer, size_t buflen) override;
 
 	/**
 	 * writes the published data to the internal buffer to be read by
@@ -90,12 +96,12 @@ public:
 	 * @return ssize_t
 	 *   The number of bytes that are written
 	 */
-	virtual ssize_t   write(cdev::file_t *filp, const char *buffer, size_t buflen);
+	ssize_t write(cdev::file_t *filp, const char *buffer, size_t buflen) override;
 
 	/**
 	 * IOCTL control for the subscriber.
 	 */
-	virtual int   ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
+	int ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
 
 	/**
 	 * Method to publish a data to this node.
@@ -179,8 +185,10 @@ public:
 	void set_priority(uint8_t priority) { _priority = priority; }
 
 protected:
-	virtual pollevent_t poll_state(cdev::file_t *filp);
-	virtual void poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events);
+
+	pollevent_t poll_state(cdev::file_t *filp) override;
+
+	void poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events) override;
 
 private:
 	struct UpdateIntervalData {
@@ -248,8 +256,4 @@ private:
 	 */
 	bool      appears_updated(SubscriberData *sd);
 
-
-	// disable copy and assignment operators
-	DeviceNode(const DeviceNode &);
-	DeviceNode &operator=(const DeviceNode &);
 };
