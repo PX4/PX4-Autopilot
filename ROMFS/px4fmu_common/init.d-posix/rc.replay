@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/sh
 
 # EKF2 replay script
 
