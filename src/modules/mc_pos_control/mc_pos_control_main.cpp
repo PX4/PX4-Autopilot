@@ -719,16 +719,9 @@ MulticopterPositionControl::task_main()
 				}
 			}
 
-			// Publish local position setpoint (for logging only) and attitude setpoint (for attitude controller).
+			// Publish local position setpoint (for logging only)
 			publish_local_pos_sp();
-
-			// publish attitude setpoint
-			// Note: this requires review. The reason for not sending
-			// an attitude setpoint is because for non-flighttask modes
-			// the attitude septoint should come from another source, otherwise
-			// they might conflict with each other such as in offboard attitude control.
-			publish_attitude();
-
+			// Publish desired waypoint fot avoidance module
 			publish_avoidance_desired_waypoint();
 
 		} else {
@@ -744,7 +737,11 @@ MulticopterPositionControl::task_main()
 			q_sp.copyTo(_att_sp.q_d);
 			_att_sp.q_d_valid = true;
 			_att_sp.thrust = 0.0f;
+			_att_sp.landing_gear = 0; // keep gears as they are
 		}
+
+		// Always publish attitude setpoint
+		publish_attitude();
 	}
 
 	_control_task = -1;
@@ -1022,7 +1019,7 @@ MulticopterPositionControl::execute_avoidance_waypoint()
 bool
 MulticopterPositionControl::use_obstacle_avoidance()
 {
-	/* check that external obstacle avoidance is sending data and that the first point is valid */
+	// check that external obstacle avoidance is sending data and that the first point is valid
 	return (MPC_OBS_AVOID.get()
 		&& (hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) < TRAJECTORY_STREAM_TIMEOUT_US)
 		&& (_traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true)
@@ -1033,7 +1030,7 @@ MulticopterPositionControl::use_obstacle_avoidance()
 void
 MulticopterPositionControl::publish_avoidance_desired_waypoint()
 {
-	/* publish desired waypoint*/
+	// publish desired waypoint
 	if (_traj_wp_avoidance_desired_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_trajectory_waypoint_desired), _traj_wp_avoidance_desired_pub, &_traj_wp_avoidance_desired);
 
@@ -1050,21 +1047,15 @@ MulticopterPositionControl::publish_avoidance_desired_waypoint()
 void
 MulticopterPositionControl::publish_attitude()
 {
-
 	_att_sp.timestamp = hrt_absolute_time();
-
-	if (_att_sp_pub != nullptr) {
-		orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
-
-	} else if (_attitude_setpoint_id) {
-		_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
-	}
+	int instance;
+	// publish with default priority
+	orb_publish_auto(_attitude_setpoint_id, &_att_sp_pub, &_att_sp, &instance, ORB_PRIO_DEFAULT);
 }
 
 void
 MulticopterPositionControl::publish_local_pos_sp()
 {
-
 	_local_pos_sp.timestamp = hrt_absolute_time();
 
 	// publish local position setpoint

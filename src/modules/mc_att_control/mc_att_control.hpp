@@ -56,6 +56,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <drivers/drv_hrt.h>
 
 /**
  * Multicopter attitude control app start / stop handling function
@@ -64,6 +65,7 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 
 #define MAX_GYRO_COUNT 3
 
+using namespace time_literals;
 
 class MulticopterAttitudeControl : public ModuleBase<MulticopterAttitudeControl>, public ModuleParams
 {
@@ -88,6 +90,10 @@ public:
 	void run() override;
 
 private:
+
+	static constexpr hrt_abstime VEHICLE_ATT_SP_TIMEOUT = 150_ms; /**< defines timeout for attitude setpoint subscription */
+	hrt_abstime _timeout_att_sp = 0;
+	int32_t _priority_att_sp = 0; /**< attitude setpoint subscription priority */
 
 	/**
 	 * initialize some vectors/matrices from parameters
@@ -125,9 +131,8 @@ private:
 	 */
 	matrix::Vector3f pid_attenuations(float tpa_breakpoint, float tpa_rate);
 
-
+	int		_v_att_sp_subs[ORB_MULTI_MAX_INSTANCES];		/**< vehicle attitude setpoint subscriptions */
 	int		_v_att_sub{-1};			/**< vehicle attitude subscription */
-	int		_v_att_sp_sub{-1};		/**< vehicle attitude setpoint subscription */
 	int		_v_rates_sp_sub{-1};		/**< vehicle rates setpoint subscription */
 	int		_v_control_mode_sub{-1};	/**< vehicle control mode subscription */
 	int		_params_sub{-1};		/**< parameter updates subscription */
