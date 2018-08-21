@@ -64,12 +64,12 @@ public:
 	 * Method to create a subscriber instance and return the struct
 	 * pointing to the subscriber as a file pointer.
 	 */
-	virtual int open(device::file_t *filp);
+	virtual int open(device::file_t *filp) override;
 
 	/**
 	 * Method to close a subscriber for this topic.
 	 */
-	virtual int   close(device::file_t *filp);
+	virtual int   close(device::file_t *filp) override;
 
 	/**
 	 * reads data from a subscriber node to the buffer provided.
@@ -82,7 +82,7 @@ public:
 	 * @return
 	 *   ssize_t the number of bytes read.
 	 */
-	virtual ssize_t   read(device::file_t *filp, char *buffer, size_t buflen);
+	virtual ssize_t   read(device::file_t *filp, char *buffer, size_t buflen) override;
 
 	/**
 	 * writes the published data to the internal buffer to be read by
@@ -96,12 +96,12 @@ public:
 	 * @return ssize_t
 	 *   The number of bytes that are written
 	 */
-	virtual ssize_t   write(device::file_t *filp, const char *buffer, size_t buflen);
+	virtual ssize_t   write(device::file_t *filp, const char *buffer, size_t buflen) override;
 
 	/**
 	 * IOCTL control for the subscriber.
 	 */
-	virtual int   ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual int   ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
 	/**
 	 * Method to publish a data to this node.
@@ -193,9 +193,9 @@ public:
 
 protected:
 
-	virtual pollevent_t poll_state(device::file_t *filp);
+	virtual pollevent_t poll_state(device::file_t *filp) override;
 
-	virtual void poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events);
+	virtual void poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events) override;
 
 private:
 
