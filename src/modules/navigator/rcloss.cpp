@@ -100,7 +100,7 @@ RCLoss::set_rcl_item()
 			_mission_item.lon = _navigator->get_global_position()->lon;
 			_mission_item.altitude = _navigator->get_global_position()->alt;
 			_mission_item.altitude_is_relative = false;
-			_mission_item.yaw = NAN;
+			_mission_item.yaw = _navigator->get_global_position()->yaw;
 			_mission_item.loiter_radius = _navigator->get_loiter_radius();
 			_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
