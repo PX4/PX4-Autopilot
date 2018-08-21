@@ -49,3 +49,14 @@
  * @group Camera Capture
  */
 PARAM_DEFINE_FLOAT(CAM_CAP_DELAY, 1.0f);
+
+/**
+ * Camera capture feedback
+ *
+ * Enables camera feedback from hotshoe on camera..
+ *
+ * @boolean
+ * @group Camera Control
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(CAM_CAP_FBACK, 0);
