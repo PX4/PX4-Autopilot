@@ -278,18 +278,17 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
  * automatically disarmed in case a landing situation has been detected during this period.
  *
  * The vehicle will also auto-disarm right after arming if it has not even flown, however the time
- * will be longer by a factor of 5.
+ * will always be 10 seconds such that the pilot has enough time to take off.
  *
- * A value of zero means that automatic disarming is disabled.
+ * A negative value means that automatic disarming triggered by landing detection is disabled.
  *
  * @group Commander
- * @min 0
+ * @min -1
  * @max 20
  * @unit s
- * @decimal 0
- * @increment 1
+ * @decimal 2
  */
-PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
+PARAM_DEFINE_FLOAT(COM_DISARM_LAND, -1.0f);
 
 /**
  * Allow arming without GPS
