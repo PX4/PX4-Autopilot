@@ -231,7 +231,13 @@ mixer_tick(void)
 		/* and FMU is initialized */
 		(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED)) {
 		PX4_ATOMIC_MODIFY_OR(r_setup_arming, PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE);
+
+	} else if (!should_arm) {
+
+		/* TODO: Demo only! Go out of failsafe state when FMU alive */
+		PX4_ATOMIC_MODIFY_CLEAR(r_setup_arming, PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE);
 	}
+
 
 	/*
 	 * Check if we should force failsafe - and do it if we have to

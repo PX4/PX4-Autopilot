@@ -2263,6 +2263,14 @@ Commander::run()
 			}
 		}
 
+		/* TODO : Demo only, reset termination states when disarmed */
+		if (!armed.armed) {
+			armed.force_failsafe = false;
+			status_changed = true;
+
+			_in_flight_termination = false;
+		}
+
 		/* Get current timestamp */
 		const hrt_abstime now = hrt_absolute_time();
 
