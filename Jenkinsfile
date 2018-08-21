@@ -115,7 +115,7 @@ pipeline {
         stage('cppcheck') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:ubuntu17.10'
+              image 'px4io/px4-dev-base:2018-08-21'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
