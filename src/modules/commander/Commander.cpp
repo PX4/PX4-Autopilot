@@ -2248,10 +2248,18 @@ Commander::run()
 						status_changed = true;
 
 						_in_flight_termination = true;
+						_failure_detected_timestamp = hrt_absolute_time();
 
 						mavlink_log_critical(&mavlink_log_pub, "Attitude failure detected: force failsafe");
 					}
 				}
+			}
+		}
+
+		/* TODO : Remove that. For test only, disarm after failure detected */
+		if (armed.armed && _in_flight_termination) {
+			if (hrt_elapsed_time(&_failure_detected_timestamp) >= 2_s) {
+				arm_disarm(false, &mavlink_log_pub, "FailureDetector");
 			}
 		}
 
