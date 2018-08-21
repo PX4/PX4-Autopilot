@@ -1031,6 +1031,8 @@ PX4IO::task_main()
 
 				/* Check if the flight termination circuit breaker has been updated */
 				_cb_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
+				/* Tell IO that it can terminate the flight if FMU is not responding */
+				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ENABLE_FLIGHTTERM, !_cb_flighttermination);
 
 				param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
 				param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
