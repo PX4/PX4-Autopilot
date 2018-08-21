@@ -17,12 +17,12 @@ using px4_file_operations_t = struct file_operations;
 using mode_t = uint32_t;
 
 struct file_t {
-	int flags;
-	void *priv;
-	void *vdev;
+	int f_oflags{0};
+	void *f_priv{nullptr};
+	void *vdev{nullptr};
 
-	file_t() : flags(0), priv(nullptr), vdev(nullptr) {}
-	file_t(int f, void *c) : flags(f), priv(nullptr), vdev(c) {}
+	file_t() = default;
+	file_t(int f, void *c) : f_oflags(f), vdev(c) {}
 };
 
 } // namespace cdev
