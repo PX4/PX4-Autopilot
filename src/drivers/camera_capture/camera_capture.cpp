@@ -53,7 +53,7 @@ CameraCapture::CameraCapture() :
 	_trigger_pub(nullptr),
 	_command_ack_pub(nullptr),
 	_command_sub(-1),
-	_hotshoe_trigger_feedback(false),
+	_camera_capture_feedback(false),
 	_capture_seq(0),
 	_last_fall_time(0),
 	_last_exposure_time(0),
@@ -66,10 +66,10 @@ CameraCapture::CameraCapture() :
 	_p_strobe_delay = param_find("CAM_CAP_DELAY");
 	param_get(_p_strobe_delay, &_strobe_delay);
 
-	_p_hotshoe_trigger_feedback = param_find("CAM_HSHOE_FBACK");
-	param_get(_p_hotshoe_trigger_feedback, &_hotshoe_trigger_feedback);
+	_p_camera_capture_feedback = param_find("CAM_CAP_FBACK");
+	param_get(_p_camera_capture_feedback, &_camera_capture_feedback);
 
-	if (_hotshoe_trigger_feedback != 0) {
+	if (_camera_capture_feedback != 0) {
 		struct camera_trigger_s trigger = {};
 		_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
 	}
@@ -91,7 +91,7 @@ CameraCapture::capture_callback(uint32_t chan_index,
 		trigger.timestamp = edge_time - ((edge_time - _last_fall_time) / 2);	// Get timestamp of mid-exposure
 		trigger.seq = _capture_seq++;
 
-		if (_hotshoe_trigger_feedback != 0) {
+		if (_camera_capture_feedback != 0) {
 			orb_publish(ORB_ID(camera_trigger), _trigger_pub, &trigger);
 		}
 
