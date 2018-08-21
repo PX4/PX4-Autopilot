@@ -1383,7 +1383,7 @@ Commander::run()
 	float ef_time_thres = 1000.0f;
 	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
 
-	int32_t disarm_when_landed = 0;
+	float disarm_when_landed_timeout = 0.f;
 
 	/* check which state machines for changes, clear "changed" flag */
 	bool main_state_changed = false;
@@ -1481,7 +1481,7 @@ Commander::run()
 			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
 			param_get(_param_ef_time_thres, &ef_time_thres);
 			param_get(_param_geofence_action, &geofence_action);
-			param_get(_param_disarm_land, &disarm_when_landed);
+			param_get(_param_disarm_land, &disarm_when_landed_timeout);
 			param_get(_param_flight_uuid, &flight_uuid);
 
 			// If we update parameters the first time
@@ -1489,7 +1489,7 @@ Commander::run()
 			// After that it will be set in the main state
 			// machine based on the arming state.
 			if (param_init_forced) {
-				auto_disarm_hysteresis.set_hysteresis_time_from(false, disarm_when_landed * 1_s);
+				auto_disarm_hysteresis.set_hysteresis_time_from(false, disarm_when_landed_timeout * 1_s);
 			}
 
 			param_get(_param_offboard_loss_timeout, &offboard_loss_timeout);
@@ -1719,17 +1719,16 @@ Commander::run()
 			was_falling = land_detector.freefall;
 		}
 
-		/* Update hysteresis time. Use a time of factor 5 longer if we have not taken off yet. */
-		hrt_abstime timeout_time = disarm_when_landed * 1_s;
-
+		// Auto disarm when landed
 		if (!have_taken_off_since_arming) {
-			timeout_time *= 5;
+			// pilot has ten seconds time to take off
+			auto_disarm_hysteresis.set_hysteresis_time_from(false, 10_s);
+		} else {
+			auto_disarm_hysteresis.set_hysteresis_time_from(false, disarm_when_landed_timeout * 1_s);
 		}
 
-		auto_disarm_hysteresis.set_hysteresis_time_from(false, timeout_time);
-
 		// Check for auto-disarm
-		if (armed.armed && land_detector.landed && disarm_when_landed > 0) {
+		if (armed.armed && land_detector.landed && disarm_when_landed_timeout > FLT_EPSILON) {
 			auto_disarm_hysteresis.set_state_and_update(true);
 
 		} else {
