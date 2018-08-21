@@ -248,7 +248,7 @@ CameraTrigger::CameraTrigger() :
 	_turning_on(false),
 	_last_shoot_position(0.0f, 0.0f),
 	_valid_position(false),
-	_camera_capture_feedback(0),
+	_camera_capture_feedback(false),
 	_command_sub(-1),
 	_lpos_sub(-1),
 	_trigger_pub(nullptr),
@@ -318,7 +318,7 @@ CameraTrigger::CameraTrigger() :
 		param_set_no_notification(_p_activation_time, &(_activation_time));
 	}
 
-	if (_camera_capture_feedback == 0) {
+	if (!_camera_capture_feedback) {
 		// Advertise critical publishers here, because we cannot advertise in interrupt context
 		struct camera_trigger_s trigger = {};
 		_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
@@ -750,7 +750,7 @@ CameraTrigger::engage(void *arg)
 	// Trigger the camera
 	trig->_camera_interface->trigger(true);
 
-	if (trig->_test_shot || (trig->_camera_capture_feedback != 0)) {
+	if (trig->_test_shot || trig->_camera_capture_feedback) {
 		// do not send messages or increment frame count for test shots
 		return;
 	}
