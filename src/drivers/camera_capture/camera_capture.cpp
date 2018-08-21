@@ -54,6 +54,8 @@ CameraCapture::CameraCapture() :
 	_command_ack_pub(nullptr),
 	_command_sub(-1),
 	_camera_capture_feedback(false),
+	_camera_capture_mode(0),
+	_camera_capture_edge(0),
 	_capture_seq(0),
 	_last_fall_time(0),
 	_last_exposure_time(0),
@@ -68,6 +70,12 @@ CameraCapture::CameraCapture() :
 
 	_p_camera_capture_feedback = param_find("CAM_CAP_FBACK");
 	param_get(_p_camera_capture_feedback, &_camera_capture_feedback);
+
+	_p_camera_capture_mode = param_find("CAM_CAP_MODE");
+	param_get(_p_camera_capture_mode, &_camera_capture_mode);
+
+	_p_camera_capture_edge = param_find("CAM_CAP_EDGE");
+	param_get(_p_camera_capture_edge, &_camera_capture_edge);
 
 	if (_camera_capture_feedback != 0) {
 		struct camera_trigger_s trigger = {};
@@ -88,7 +96,13 @@ CameraCapture::capture_callback(uint32_t chan_index,
 	if (_last_fall_time > 0) {
 		struct camera_trigger_s	trigger {};
 
-		trigger.timestamp = edge_time - ((edge_time - _last_fall_time) / 2);	// Get timestamp of mid-exposure
+		if (_camera_capture_mode == 0) {
+			trigger.timestamp = hrt_absolute_time();
+
+		} else {
+			trigger.timestamp = edge_time - ((edge_time - _last_fall_time) / 2);	// Get timestamp of mid-exposure
+		}
+
 		trigger.seq = _capture_seq++;
 
 		if (_camera_capture_feedback != 0) {
@@ -182,12 +196,26 @@ CameraCapture::set_capture_control(bool enabled)
 {
 	if (enabled) {
 		// register callbacks
-		//up_input_capture_set(4, Both, 0, &CameraCapture::capture_trampoline, this);
-		up_input_capture_set(5, Falling, 0, &CameraCapture::capture_trampoline, this);
+		switch (_camera_capture_edge) {
+		case 0:
+			up_input_capture_set(5, Rising, 0, &CameraCapture::capture_trampoline, this);
+			break;
+
+		case 1:
+			up_input_capture_set(5, Falling, 0, &CameraCapture::capture_trampoline, this);
+			break;
+
+		case 2:
+			up_input_capture_set(5, Both, 0, &CameraCapture::capture_trampoline, this);
+			break;
+
+		default:
+			break;
+		}
+
 		_capture_enabled = true;
 
 	} else {
-		//up_input_capture_set(4, Disabled, 0, NULL, NULL);
 		up_input_capture_set(5, Disabled, 0, NULL, NULL);
 		_capture_enabled = false;
 	}

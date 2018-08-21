@@ -53,10 +53,35 @@ PARAM_DEFINE_FLOAT(CAM_CAP_DELAY, 1.0f);
 /**
  * Camera capture feedback
  *
- * Enables camera feedback from hotshoe on camera..
+ * Enables camera capture feedback
  *
  * @boolean
  * @group Camera Control
  * @reboot_required true
  */
 PARAM_DEFINE_INT32(CAM_CAP_FBACK, 0);
+
+/**
+ * Camera capture timestamping mode
+ *
+ * Change time measurement
+ *
+ * @value 0 Get absolute timestamp
+ * @value 1 Get timestamp of mid exposure
+ *
+ * @group Camera Control
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(CAM_CAP_MODE, 0);
+
+/**
+ * Camera capture edge
+ *
+ * @value 0 Rising edge
+ * @value 1 Falling edge
+ * @value 2 Both edges
+ *
+ * @group Camera Control
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(CAM_CAP_EDGE, 0);
