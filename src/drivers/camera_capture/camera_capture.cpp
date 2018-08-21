@@ -77,7 +77,7 @@ CameraCapture::CameraCapture() :
 	_p_camera_capture_edge = param_find("CAM_CAP_EDGE");
 	param_get(_p_camera_capture_edge, &_camera_capture_edge);
 
-	if (_camera_capture_feedback != 0) {
+	if (_camera_capture_feedback) {
 		struct camera_trigger_s trigger = {};
 		_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
 	}
@@ -97,7 +97,7 @@ CameraCapture::capture_callback(uint32_t chan_index,
 		struct camera_trigger_s	trigger {};
 
 		if (_camera_capture_mode == 0) {
-			trigger.timestamp = hrt_absolute_time();
+			trigger.timestamp = edge_time;
 
 		} else {
 			trigger.timestamp = edge_time - ((edge_time - _last_fall_time) / 2);	// Get timestamp of mid-exposure
@@ -105,7 +105,7 @@ CameraCapture::capture_callback(uint32_t chan_index,
 
 		trigger.seq = _capture_seq++;
 
-		if (_camera_capture_feedback != 0) {
+		if (_camera_capture_feedback) {
 			orb_publish(ORB_ID(camera_trigger), _trigger_pub, &trigger);
 		}
 
@@ -196,21 +196,12 @@ CameraCapture::set_capture_control(bool enabled)
 {
 	if (enabled) {
 		// register callbacks
-		switch (_camera_capture_edge) {
-		case 0:
-			up_input_capture_set(5, Rising, 0, &CameraCapture::capture_trampoline, this);
-			break;
-
-		case 1:
+		if (!_camera_capture_edge) {
 			up_input_capture_set(5, Falling, 0, &CameraCapture::capture_trampoline, this);
-			break;
 
-		case 2:
-			up_input_capture_set(5, Both, 0, &CameraCapture::capture_trampoline, this);
-			break;
+		} else {
+			up_input_capture_set(5, Rising, 0, &CameraCapture::capture_trampoline, this);
 
-		default:
-			break;
 		}
 
 		_capture_enabled = true;
