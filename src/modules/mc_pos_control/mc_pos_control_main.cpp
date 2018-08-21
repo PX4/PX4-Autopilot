@@ -597,7 +597,7 @@ MulticopterPositionControl::task_main()
 		}
 
 		// check if any task is active
-		if (_flight_tasks.isAnyTaskActive()) {
+		if (_flight_tasks.isAnyTaskActive() && _vehicle_status.is_rotary_wing) {
 
 			// setpoints from flighttask
 			vehicle_local_position_setpoint_s setpoint;
