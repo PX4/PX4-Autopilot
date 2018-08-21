@@ -1684,9 +1684,10 @@ Mission::need_to_reset_mission(bool active)
 	} else if (_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED && active) {
 		/* mission is running, need reset after disarm */
 		_need_mission_reset = true;
-	} else if(_navigator->get_mission_result()->finished 
-		&& _navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED
-		&& _need_mission_reset) {
+
+	} else if (_navigator->get_mission_result()->finished
+		   && _navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED
+		   && _need_mission_reset) {
 		/* mission is finished, need reset */
 		_need_mission_reset = false;
 		return true;
