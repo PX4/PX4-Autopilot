@@ -604,7 +604,7 @@ MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 
 		if (_navigator->get_vstatus()->is_rotary_wing) {
 			item->yaw = _navigator->get_global_position()->yaw;
-			
+
 		} else {
 			item->yaw = NAN;
 		}
