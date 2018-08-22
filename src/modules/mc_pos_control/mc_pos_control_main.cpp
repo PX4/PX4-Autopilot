@@ -742,7 +742,6 @@ MulticopterPositionControl::task_main()
 			publish_avoidance_desired_waypoint();
 
 		} else {
-
 			// no flighttask is active: set attitude setpoint to idle
 			_att_sp.roll_body = _att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _local_pos.yaw;
@@ -864,7 +863,6 @@ MulticopterPositionControl::start_flight_task()
 		}
 	}
 
-
 	// manual stabilized control
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL
 	    ||  _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_STAB || task_failure) {
@@ -883,9 +881,17 @@ MulticopterPositionControl::start_flight_task()
 
 	// check task failure
 	if (task_failure) {
-		// No task was activated.
-		_flight_tasks.switchTask(FlightTaskIndex::None);
-		warn_rate_limited("No Flighttask is running");
+
+		// for some reason no flighttask was able to start.
+		// go into failsafe flighttask
+		int error = _flight_tasks.switchTask(FlightTaskIndex::Failsafe);
+		task_failure = false;
+
+		if (error != 0) {
+			// No task was activated.
+			_flight_tasks.switchTask(FlightTaskIndex::None);
+
+		}
 	}
 
 }
