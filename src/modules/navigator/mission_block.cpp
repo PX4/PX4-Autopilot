@@ -601,11 +601,14 @@ MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 		}
 
 		item->altitude_is_relative = false;
-		if(_navigator->get_vstatus()->is_rotary_wing){
+
+		if (_navigator->get_vstatus()->is_rotary_wing) {
 			item->yaw = _navigator->get_global_position()->yaw;
+			
 		} else {
 			item->yaw = NAN;
 		}
+
 		item->loiter_radius = _navigator->get_loiter_radius();
 		item->acceptance_radius = _navigator->get_acceptance_radius();
 		item->time_inside = 0.0f;
