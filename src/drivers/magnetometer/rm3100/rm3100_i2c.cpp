@@ -148,10 +148,11 @@ RM3100_I2C::read(unsigned address, void *data, unsigned count)
 	/* We need a first transfer where we write the register to read with the read flag */
 	uint8_t cmd = address | DIR_READ;
 	ret =  transfer(&cmd, 1, nullptr, 0);
-	if(ret != OK)
-	{
+
+	if (ret != OK) {
 		return ret;
 	}
+
 	/* Now we read directly the previously selected register */
 	return transfer(nullptr, 0, (uint8_t *)data, count);
 }

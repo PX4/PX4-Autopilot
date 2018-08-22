@@ -121,30 +121,30 @@ RM3100::self_test()
 	/* Configure mag into self test mode */
 	cmd = BIST_SELFTEST;
 	ret = _interface->write(ADDR_BIST, &cmd, 1);
-	if(ret != PX4_OK)
-	{
+
+	if (ret != PX4_OK) {
 		return ret;
 	}
 
 	/* Now we need to write to POLL to launch self test */
 	cmd = POLL_XYZ;
 	ret = _interface->write(ADDR_POLL, &cmd, 1);
-	if(ret != PX4_OK)
-	{
+
+	if (ret != PX4_OK) {
 		return ret;
 	}
 
 	/* Now wait for status register */
 	usleep(RM3100_CONVERSION_INTERVAL);
-	if(check_measurement() != PX4_OK)
-	{
+
+	if (check_measurement() != PX4_OK) {
 		return -1;;
 	}
 
 	/* Now check BIST register to see whether self test is ok or not*/
 	ret = _interface->read(ADDR_BIST, &cmd, 1);
-	if(ret != PX4_OK)
-	{
+
+	if (ret != PX4_OK) {
 		return ret;
 	}
 
@@ -163,8 +163,8 @@ RM3100::check_measurement()
 	int ret = -1;
 
 	ret = _interface->read(ADDR_STATUS, &status, 1);
-	if(ret != 0)
-	{
+
+	if (ret != 0) {
 		return ret;
 	}
 
@@ -175,8 +175,7 @@ int
 RM3100::collect()
 {
 	/* Check whether a measurement is available or not, otherwise return immediately */
-	if(check_measurement() != 0)
-	{
+	if (check_measurement() != 0) {
 		DEVICE_DEBUG("No measurement available");
 		return 0;
 	}
@@ -239,9 +238,9 @@ RM3100::collect()
 	 * RAW outputs
 	 * As we only have 16 bits to store raw data, the following values are not correct
 	 */
-	new_mag_report.x_raw = (int16_t) (xraw >> 8);
-	new_mag_report.y_raw = (int16_t) (yraw >> 8);
-	new_mag_report.z_raw = (int16_t) (zraw >> 8);
+	new_mag_report.x_raw = (int16_t)(xraw >> 8);
+	new_mag_report.y_raw = (int16_t)(yraw >> 8);
+	new_mag_report.z_raw = (int16_t)(zraw >> 8);
 
 	xraw_f = xraw;
 	yraw_f = yraw;
@@ -288,8 +287,7 @@ void
 RM3100::convert_signed(int32_t *n)
 {
 	/* Sensor returns values as 24 bit signed values, so we need to manually convert to 32 bit signed values */
-	if((*n & (1 << 23)) == (1 << 23))
-	{
+	if ((*n & (1 << 23)) == (1 << 23)) {
 		*n |= 0xFF000000;
 	}
 }
@@ -359,8 +357,7 @@ RM3100::init()
 
 	ret = self_test();
 
-	if(ret != PX4_OK)
-	{
+	if (ret != PX4_OK) {
 		PX4_ERR("self test failed");
 	}
 
@@ -410,8 +407,7 @@ RM3100::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if(ticks < USEC2TICK(RM3100_CONVERSION_INTERVAL))
-					{
+					if (ticks < USEC2TICK(RM3100_CONVERSION_INTERVAL)) {
 						return -EINVAL;
 					}
 
@@ -506,18 +502,19 @@ RM3100::measure()
 		_continuous_mode_set = true;
 
 	} else if (_mode == SINGLE) {
-		if(_continuous_mode_set)
-		{
+		if (_continuous_mode_set) {
 			/* This is needed for polling mode */
 			cmd = (CMM_DEFAULT | POLLING_MODE);
 			ret = _interface->write(ADDR_CMM, &cmd, 1);
-			if(ret != OK)
-			{
+
+			if (ret != OK) {
 				perf_count(_comms_errors);
 				return ret;
 			}
+
 			_continuous_mode_set = false;
 		}
+
 		cmd = POLL_XYZ;
 		ret = _interface->write(ADDR_POLL, &cmd, 1);
 	}

@@ -67,7 +67,7 @@ class RM3100_SPI : public device::SPI
 {
 public:
 	RM3100_SPI(int bus, uint32_t device);
-	virtual ~RM3100_SPI()= default;
+	virtual ~RM3100_SPI() = default;
 
 	virtual int     init();
 	virtual int     ioctl(unsigned operation, unsigned &arg);
