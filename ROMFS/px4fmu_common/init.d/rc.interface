@@ -1,12 +1,8 @@
 #!nsh
 #
-# Script to configure control interfaces.
+# Script to configure control interface devices.
 #
-#
-# NOTE: environment variable references:
-#  If the dollar sign ('$') is followed by a left bracket ('{') then the
-#  variable name is terminated with the right bracket character ('}').
-#  Otherwise, the variable name goes to the end of the argument.
+# NOTE: Additional script variables are declared/initialized/unset in the rcS script.
 #
 
 set MIXER_AUX_FILE none
@@ -168,7 +164,8 @@ then
 	else
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}"
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}" >> $LOG_FILE
-		tone_alarm ${TUNE_ERR}
+		# Error tune.
+		tune_control play -t 2
 	fi
 
 else
@@ -176,7 +173,8 @@ else
 	then
 		echo "ERROR  [init] Mixer undefined"
 		echo "ERROR  [init] Mixer undefined" >> $LOG_FILE
-		tone_alarm ${TUNE_ERR}
+		# Error tune.
+		tune_control play -t 2
 	fi
 fi
 
@@ -226,7 +224,9 @@ then
 			fi
 		else
 			echo "ERROR: Could not start: fmu mode_pwm" >> $LOG_FILE
-			tone_alarm ${TUNE_ERR}
+			# Error tune.
+			tune_control play -t 2
+
 			set PWM_AUX_OUT none
 			set FAILSAFE_AUX none
 		fi
