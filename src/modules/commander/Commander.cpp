@@ -2226,6 +2226,7 @@ Commander::run()
 						_in_flight_termination = true;
 
 						mavlink_log_critical(&mavlink_log_pub, "Attitude failure detected: force failsafe");
+						set_tune_override(TONE_PARACHUTE_RELEASE_TUNE);
 					}
 				}
 			}
