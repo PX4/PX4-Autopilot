@@ -601,7 +601,7 @@ MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
 		}
 
 		item->altitude_is_relative = false;
-		item->yaw = NAN;
+		item->yaw = _navigator->get_global_position()->yaw;
 		item->loiter_radius = _navigator->get_loiter_radius();
 		item->acceptance_radius = _navigator->get_acceptance_radius();
 		item->time_inside = 0.0f;
