@@ -1138,7 +1138,6 @@ Commander::run()
 	param_t _param_rc_arm_hyst = param_find("COM_RC_ARM_HYST");
 	param_t _param_min_stick_change = param_find("COM_RC_STICK_OV");
 	param_t _param_geofence_action = param_find("GF_ACTION");
-	param_t _param_disarm_land = param_find("COM_DISARM_LAND");
 	param_t _param_offboard_loss_timeout = param_find("COM_OF_LOSS_T");
 	param_t _param_arm_without_gps = param_find("COM_ARM_WO_GPS");
 	param_t _param_arm_switch_is_button = param_find("COM_ARM_SWISBTN");
@@ -1383,8 +1382,6 @@ Commander::run()
 	float ef_time_thres = 1000.0f;
 	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
 
-	float disarm_when_landed_timeout = 0.f;
-
 	/* check which state machines for changes, clear "changed" flag */
 	bool main_state_changed = false;
 	bool failsafe_old = false;
@@ -1481,16 +1478,7 @@ Commander::run()
 			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
 			param_get(_param_ef_time_thres, &ef_time_thres);
 			param_get(_param_geofence_action, &geofence_action);
-			param_get(_param_disarm_land, &disarm_when_landed_timeout);
 			param_get(_param_flight_uuid, &flight_uuid);
-
-			// If we update parameters the first time
-			// make sure the hysteresis time gets set.
-			// After that it will be set in the main state
-			// machine based on the arming state.
-			if (param_init_forced) {
-				auto_disarm_hysteresis.set_hysteresis_time_from(false, disarm_when_landed_timeout * 1_s);
-			}
 
 			param_get(_param_offboard_loss_timeout, &offboard_loss_timeout);
 			param_get(_param_offboard_loss_act, &offboard_loss_act);
@@ -1724,11 +1712,11 @@ Commander::run()
 			// pilot has ten seconds time to take off
 			auto_disarm_hysteresis.set_hysteresis_time_from(false, 10_s);
 		} else {
-			auto_disarm_hysteresis.set_hysteresis_time_from(false, disarm_when_landed_timeout * 1_s);
+			auto_disarm_hysteresis.set_hysteresis_time_from(false, _disarm_when_landed_timeout.get() * 1_s);
 		}
 
 		// Check for auto-disarm
-		if (armed.armed && land_detector.landed && disarm_when_landed_timeout > FLT_EPSILON) {
+		if (armed.armed && land_detector.landed && _disarm_when_landed_timeout.get() > FLT_EPSILON) {
 			auto_disarm_hysteresis.set_state_and_update(true);
 
 		} else {
