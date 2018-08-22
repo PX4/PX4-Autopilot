@@ -55,7 +55,10 @@ int board_mcu_version(char *rev, const char **revstr, const char **errata)
 	chip[CHIP_TAG_LEN - 1] = '0' + ((sim_sdid & SIM_SDID_SUBFAMID_MASK) >> SIM_SDID_SUBFAMID_SHIFT);
 	*revstr = chip;
 	*rev = '0' + ((sim_sdid & SIM_SDID_REVID_MASK) >> SIM_SDID_REVID_SHIFT);
-	*errata = NULL;
+
+	if (errata) {
+		*errata = NULL;
+	}
 
 	return 0;
 }
