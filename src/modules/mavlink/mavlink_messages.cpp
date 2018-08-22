@@ -3560,7 +3560,7 @@ protected:
 		if (_debug_sub->update(&_debug_time, &debug)) {
 			mavlink_named_value_float_t msg = {};
 
-			msg.time_boot_ms = debug.timestamp * 1e-3f;
+			msg.time_boot_ms = debug.timestamp / 1000ULL;
 			memcpy(msg.name, debug.key, sizeof(msg.name));
 			/* enforce null termination */
 			msg.name[sizeof(msg.name) - 1] = '\0';
@@ -3629,7 +3629,7 @@ protected:
 		if (_debug_sub->update(&_debug_time, &debug)) {
 			mavlink_debug_t msg = {};
 
-			msg.time_boot_ms = debug.timestamp * 1e-3f;
+			msg.time_boot_ms = debug.timestamp / 1000ULL;
 			msg.ind = debug.ind;
 			msg.value = debug.value;
 
