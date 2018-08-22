@@ -322,6 +322,9 @@ then
 
 	# Possible external compasses
 	hmc5883 -C -T -X start
+
+	#RM3100
+	rm3100 start
 fi
 
 if ver hwcmp PX4FMU_V5
