@@ -70,8 +70,6 @@
 #include "PositionControl.hpp"
 #include "Utility/ControlMath.hpp"
 
-#define NUM_FAILURE_TRIES 10 /**< number of tries before switching to a failsafe flight task */
-
 /**
  * Multicopter position control app start / stop handling function
  *
@@ -160,6 +158,11 @@ private:
 
 	/** Timeout in us for trajectory data to get considered invalid */
 	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500000;
+	/**< number of tries before switching to a failsafe flight task */
+	static constexpr int NUM_FAILURE_TRIES = 10;
+	/**< If Flighttask fails, keep 1s the current setpoint before going into failsafe land */
+	static constexpr uint64_t LOITER_TIME_BEFORE_DESCEND = 1000000;
+
 
 	/**
 	 * Hysteresis that turns true once vehicle is armed for MPC_IDLE_TKO seconds.
@@ -168,6 +171,8 @@ private:
 	 * is added.
 	 */
 	systemlib::Hysteresis _arm_hysteresis{false}; /**< becomes true once vehicle is armed for MPC_IDLE_TKO seconds */
+
+	systemlib::Hysteresis _failsafe_land_hysteresis{false}; /**< becomes true if task did not update correctly for LOITER_TIME_BEFORE_DESCEND */
 
 	/**
 	 * Update our local parameter cache.
@@ -242,9 +247,10 @@ private:
 	 * Failsafe.
 	 * If flighttask fails for whatever reason, then do failsafe. This could
 	 * occur if the commander fails to switch to a mode in case of invalid states or
-	 * setpoints.
+	 * setpoints. The failsafe will occur after LOITER_TIME_BEFORE_DESCEND. If force is set
+	 * to true, the failsafe will be initiated immediately.
 	 */
-	void failsafe(vehicle_local_position_setpoint_s &setpoint, const PositionControlStates &states);
+	void failsafe(vehicle_local_position_setpoint_s &setpoint, const PositionControlStates &states, const bool force);
 
 	/**
 	 * Fill desired vehicle_trajectory_waypoint:
@@ -305,6 +311,8 @@ MulticopterPositionControl::MulticopterPositionControl() :
 {
 	// fetch initial parameter values
 	parameters_update(true);
+	// set failsafe hysteresis
+	_failsafe_land_hysteresis.set_hysteresis_time_from(false, LOITER_TIME_BEFORE_DESCEND);
 }
 
 MulticopterPositionControl::~MulticopterPositionControl()
@@ -606,22 +614,23 @@ MulticopterPositionControl::task_main()
 			if (!_flight_tasks.update()) {
 				// FAILSAFE
 				// Task was not able to update correctly. Do Failsafe.
-				failsafe(setpoint, _states);
+				failsafe(setpoint, _states, false);
 
 			} else {
 				setpoint = _flight_tasks.getPositionSetpoint();
+				_failsafe_land_hysteresis.set_state_and_update(false);
 
 				// Check if position, velocity or thrust pairs are valid -> trigger failsaife if no pair is valid
 				if (!(PX4_ISFINITE(setpoint.x) && PX4_ISFINITE(setpoint.y)) &&
 				    !(PX4_ISFINITE(setpoint.vx) && PX4_ISFINITE(setpoint.vy)) &&
 				    !(PX4_ISFINITE(setpoint.thrust[0]) && PX4_ISFINITE(setpoint.thrust[1]))) {
-					failsafe(setpoint, _states);
+					failsafe(setpoint, _states, true);
 				}
 
 				// Check if altitude, climbrate or thrust in D-direction are valid -> trigger failsafe if none
 				// of these setpoints are valid
 				if (!PX4_ISFINITE(setpoint.z) && !PX4_ISFINITE(setpoint.vz) && !PX4_ISFINITE(setpoint.thrust[2])) {
-					failsafe(setpoint, _states);
+					failsafe(setpoint, _states, true);
 				}
 			}
 
@@ -964,23 +973,33 @@ MulticopterPositionControl::limit_thrust_during_landing(matrix::Vector3f &thr_sp
 }
 
 void
-MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint, const PositionControlStates &states)
+MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint, const PositionControlStates &states,
+				     const bool force)
 {
+	_failsafe_land_hysteresis.set_state_and_update(true);
 
-	setpoint.x = setpoint.y = setpoint.z = NAN;
-	setpoint.vx = setpoint.vy = setpoint.vz = NAN;
-	setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = NAN;
+	if (!_failsafe_land_hysteresis.get_state() && !force) {
+		// just keep current setpoint and don't do anything.
 
-	if (PX4_ISFINITE(_states.velocity(2))) {
-		// We have a valid velocity in D-direction.
-		// descend downwards with landspeed.
-		setpoint.vz = _land_speed.get();
-		setpoint.thrust[0] = setpoint.thrust[1] = 0.0f;
-		warn_rate_limited("Failsafe: Descend with land-speed.");
+
 
 	} else {
-		// Use the failsafe from the PositionController.
-		warn_rate_limited("Failsafe: Descend with just attitude control.");
+		setpoint.x = setpoint.y = setpoint.z = NAN;
+		setpoint.vx = setpoint.vy = setpoint.vz = NAN;
+		setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = NAN;
+		setpoint.yaw = setpoint.yawspeed = NAN;
+
+		if (PX4_ISFINITE(_states.velocity(2))) {
+			// We have a valid velocity in D-direction.
+			// descend downwards with landspeed.
+			setpoint.vz = _land_speed.get();
+			setpoint.thrust[0] = setpoint.thrust[1] = 0.0f;
+			warn_rate_limited("Failsafe: Descend with land-speed.");
+
+		} else {
+			// Use the failsafe from the PositionController.
+			warn_rate_limited("Failsafe: Descend with just attitude control.");
+		}
 	}
 }
 
