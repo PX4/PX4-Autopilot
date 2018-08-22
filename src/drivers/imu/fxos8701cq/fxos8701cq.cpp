@@ -555,20 +555,33 @@ FXOS8701CQ::init()
 	/* do SPI init (and probe) first */
 	if (SPI::init() != OK) {
 		PX4_ERR("SPI init failed");
-		goto out;
+		return PX4_ERROR;
 	}
 
 	/* allocate basic report buffers */
 	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
 
 	if (_accel_reports == nullptr) {
-		goto out;
+		return PX4_ERROR;
 	}
 
 	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
 
 	if (_mag_reports == nullptr) {
-		goto out;
+		return PX4_ERROR;
+	}
+
+	// set software low pass filter for controllers
+	param_t accel_cut_ph = param_find("IMU_ACCEL_CUTOFF");
+	float accel_cut = FXOS8701C_ACCEL_DEFAULT_DRIVER_FILTER_FREQ;
+
+	if (accel_cut_ph != PARAM_INVALID && param_get(accel_cut_ph, &accel_cut) == PX4_OK) {
+		PX4_INFO("accel cutoff set to %.2f Hz", double(accel_cut));
+
+		accel_set_driver_lowpass_filter(FXOS8701C_ACCEL_DEFAULT_RATE, accel_cut);
+
+	} else {
+		PX4_ERR("IMU_ACCEL_CUTOFF param invalid");
 	}
 
 	reset();
@@ -578,7 +591,7 @@ FXOS8701CQ::init()
 
 	if (ret != OK) {
 		PX4_ERR("MAG init failed");
-		goto out;
+		return PX4_ERROR;
 	}
 
 	/* fill report structures */
@@ -594,6 +607,7 @@ FXOS8701CQ::init()
 
 	if (_mag->_mag_topic == nullptr) {
 		PX4_ERR("ADVERT ERR");
+		return PX4_ERROR;
 	}
 
 
@@ -609,10 +623,10 @@ FXOS8701CQ::init()
 
 	if (_accel_topic == nullptr) {
 		PX4_ERR("ADVERT ERR");
+		return PX4_ERROR;
 	}
 
-out:
-	return ret;
+	return PX4_OK;
 }
 
 
