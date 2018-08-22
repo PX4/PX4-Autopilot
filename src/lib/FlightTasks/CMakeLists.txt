@@ -60,6 +60,7 @@ list(APPEND flight_tasks_all
 	AutoLine
 	AutoFollowMe
 	Offboard
+	Failsafe
 	${flight_tasks_to_add}
 )
 
