@@ -83,23 +83,41 @@ fi
 #
 # XXX We need a better way for runtime eval of shell variables,
 # but this works for now
+#----------------------------------------------------------------
+#
+# Sys companion setups not dependant on MAVLINK_COMPANION_DEVICE
+#
+
+if ! param compare SYS_COMPANION 10
+then
+	if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2
+	then
+		# This is TELEM4 on Pixhawk 3 Pro
+		frsky_telemetry start -d /dev/ttyS6 -t 15
+	fi
+fi
+
+if param compare SYS_COMPANION 20
+then
+	syslink start
+	mavlink start -d /dev/bridge0 -b 57600 -m osd -r 40000
+fi
+
+if param compare SYS_COMPANION 6460800
+then
+	micrortps_client start -t UART -d /dev/ttyS2 -b 460800
+fi
+
+#----------------------------------------------------------------
+#
+# Sys companion setups dependant on MAVLINK_COMPANION_DEVICE
+#
+
 if [ "x${MAVLINK_COMPANION_DEVICE}" != xnone ]
 then
 	if param compare SYS_COMPANION 10
 	then
 		frsky_telemetry start -d ${MAVLINK_COMPANION_DEVICE}
-	else
-		if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2
-		then
-			# This is TELEM4 on Pixhawk 3 Pro
-			frsky_telemetry start -d /dev/ttyS6 -t 15
-		fi
-	fi
-
-	if param compare SYS_COMPANION 20
-	then
-		syslink start
-		mavlink start -d /dev/bridge0 -b 57600 -m osd -r 40000
 	fi
 
 	#
@@ -178,10 +196,6 @@ then
 	if param compare SYS_COMPANION 460800
 	then
 		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 460800 -m onboard -r 5000 -x -f
-	fi
-	if param compare SYS_COMPANION 6460800
-	then
-		micrortps_client start -t UART -d /dev/ttyS2 -b 460800
 	fi
 
 	#
