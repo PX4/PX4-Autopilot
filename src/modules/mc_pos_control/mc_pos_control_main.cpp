@@ -161,7 +161,7 @@ private:
 	/**< number of tries before switching to a failsafe flight task */
 	static constexpr int NUM_FAILURE_TRIES = 10;
 	/**< If Flighttask fails, keep 1s the current setpoint before going into failsafe land */
-	static constexpr uint64_t LOITER_TIME_BEFORE_DESCEND = 1000000;
+	static constexpr uint64_t LOITER_TIME_BEFORE_DESCEND = 200000;
 
 
 	/**
