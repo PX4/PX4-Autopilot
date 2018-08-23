@@ -229,8 +229,8 @@ protected:
 };
 
 /**
- * Group of mixers, built up from single mixers and processed
- * in order when mixing.
+ * Derived class from PwmGroups for static allocated pwm channel
+ * devices.
  */
 class __EXPORT StaticPwmDevice : public PwmGroups
 {
@@ -240,9 +240,9 @@ public:
     ~StaticPwmDevice() {};
 
 	/**
-	 * Add a mixer to the group.
+	 * Get channel map of group.
 	 *
-	 * @param mixer			The mixer to be added.
+	 * @return			group channel map.
 	 */
 	uint32_t				get_group_channel_map();
 
@@ -253,9 +253,8 @@ public:
 };
 
 /**
- * Null mixer; returns zero.
- *
- * Used as a placeholder for output channels that are unassigned in groups.
+ * Derived class from PwmGroups for pwm
+ * devices can hook to arbitary compatible channels.
  */
 class __EXPORT FloatingPwmDevice : public PwmGroups
 {
