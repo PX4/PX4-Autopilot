@@ -96,6 +96,11 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 {
 	int ret = PX4_ERROR;
 
+	// instance valid range: [0, ORB_MULTI_MAX_INSTANCES)
+	if ((instance < 0) || (instance > (ORB_MULTI_MAX_INSTANCES - 1))) {
+		return ret;
+	}
+
 	if (get_device_master()) {
 		uORB::DeviceNode *node = _device_master->getDeviceNode(meta, instance);
 
