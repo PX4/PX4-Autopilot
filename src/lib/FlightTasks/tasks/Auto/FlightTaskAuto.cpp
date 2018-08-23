@@ -256,13 +256,20 @@ void FlightTaskAuto::_set_heading_from_mode()
 	}
 
 	if (PX4_ISFINITE(v.length())) {
-		// We only adjust yaw if vehicle is outside of acceptance radius.
+		// We only adjust yaw if vehicle is outside of acceptance radius. Once we enter acceptance
+		// radius, lock yaw to current yaw.
 		// This prevents excessive yawing.
 		if (v.length() > NAV_ACC_RAD.get()) {
 			_compute_heading_from_2D_vector(_yaw_setpoint, v);
+			_yaw_lock = false;
+		} else {
+			if (!_yaw_lock) {
+				_yaw_setpoint = _yaw;
+				_yaw_lock = true;
 		}
 
 	} else {
+		_yaw_lock = false;
 		_yaw_setpoint = NAN;
 	}
 }
