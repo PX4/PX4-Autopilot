@@ -67,6 +67,31 @@ pipeline {
             }
           }
 
+          // Ubuntu 18.04 test posix_sitl_default
+          build_nodes["posix_sitl_default (Ubuntu 18.04)"] = {
+            node {
+              docker.image('px4io/px4-dev-base:2018-08-21').inside('-e CCACHE_BASEDIR=${WORKSPACE} -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
+                stage("sitl (Ubuntu 18.04)") {
+                  try {
+                    sh('export')
+                    checkout(scm)
+                    sh('make distclean')
+                    sh('git fetch --tags')
+                    sh('ccache -z')
+                    sh('make posix_sitl_default')
+                    sh('ccache -s')
+                  }
+                  catch (exc) {
+                    throw (exc)
+                  }
+                  finally {
+                    sh('make distclean')
+                  }
+                }
+              }
+            }
+          }
+
           // docker builds:
           def arch_builds = [
             target: ["posix_sitl_default"],
