@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file px4ecu.cpp
+ * @file pwm_heater.cpp
  *
- * Driver/configurator for the PX4 pwm engine control unit (ECU) on boards like MindPX/MindRacer which have no IO processor.
+ * Driver/configurator for the PX4 pwm heater.
  */
 
 #include <cfloat>
@@ -66,46 +66,41 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
 
-#include <lib/pwmgroups/pwmgroups.h>
-
 #ifdef HRT_PPM_CHANNEL
 # include <systemlib/ppm_decode.h>
 #endif
+
+#define IO_TIMER_ALL_MODES_CHANNELS 0
 
 #define SCHEDULE_INTERVAL	2000	/**< The schedule interval in usec (500 Hz) */
 #define NAN_VALUE	(0.0f/0.0f)		/**< NaN value for throttle lock mode */
 // #define BUTTON_SAFETY	px4_arch_gpioread(GPIO_BTN_SAFETY)
 #define CYCLE_COUNT 10			/* safety switch must be held for 1 second to activate */
 
-#ifndef BOARD_HAS_ECU_PWM
-#  error "board_config.h needs to define BOARD_HAS_ECU_PWM"
+/*
+ * Define the various LED flash sequences for each system state.
+ */
+// #define LED_PATTERN_FMU_OK_TO_ARM 		0x0003		/**< slow blinking			*/
+// #define LED_PATTERN_FMU_REFUSE_TO_ARM 	0x5555		/**< fast blinking			*/
+// #define LED_PATTERN_IO_ARMED 			0x5050		*< long off, then double blink
+// #define LED_PATTERN_FMU_ARMED 			0x5500		/**< long off, then quad blink 		*/
+// #define LED_PATTERN_IO_FMU_ARMED 		0xffff		/**< constantly on			*/
+
+#ifndef BOARD_HAS_pwm_heater_PWM
+#  error "board_config.h needs to define BOARD_HAS_pwm_heater_PWM"
 #endif
 
 //                               7 . MAX_IO_TIMER .0
 //                               |     |           |
-//timer occupation map for ECU, [0, 0, 0, 0, 0, 1, 1]
+//timer occupation map for pwm_heater, [0, 0, 0, 0, 0, 1, 1]
 __EXPORT extern const uint8_t main_group_timer_map;
-__EXPORT extern const uint32_t main_group_channel_map;
 
-class PX4ECU : public StaticPwmDevice
+class PwmHeater : public FloatingPwmDevice
 {
 public:
-	enum Mode {
-		MODE_NONE,
-		MODE_1PWM,
-		MODE_2PWM,
-		MODE_2PWM2CAP,
-		MODE_3PWM,
-		MODE_3PWM1CAP,
-		MODE_4PWM,
-		MODE_6PWM,
-		MODE_8PWM,
-		MODE_4CAP,
-		MODE_5CAP,
-		MODE_6CAP,
-	};
-	PX4ECU(bool run_as_task);
-	virtual ~PX4ECU();
+
+	PwmHeater(bool run_as_task);
+	virtual ~PwmHeater();
 
 	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
 	virtual ssize_t	write(file *filp, const char *buffer, size_t len);
@@ -123,8 +118,6 @@ public:
 					   uint32_t overflow);
 
 	void update_pwm_trims();
-    
-    int set_pwm_channel_rates (uint16_t alt_rate, uint16_t default_rate);
 
 private:
     
@@ -154,12 +147,8 @@ private:
 	static void	task_main_trampoline(int argc, char *argv[]);
 
 	volatile bool	_initialized;
-	bool		_throttle_armed;
-	bool		_pwm_on;
-	uint32_t	_pwm_mask;
-	bool		_pwm_initialized;
 
-	MixerGroup	*_mixers;
+	bool		_pwm_initialized;
 
 	uint32_t	_groups_required;
 	uint32_t	_groups_subscribed;
@@ -180,10 +169,6 @@ private:
 	unsigned	_num_failsafe_set;
 	unsigned	_num_disarmed_set;
 
-	orb_advert_t      _to_mixer_status; 	///< mixer status flags
-
-	float _mot_t_max;	// maximum rise time for motor (slew rate limiting)
-	float _thr_mdl_fac;	// thrust to pwm modelling factor
 
 	perf_counter_t	_ctl_latency;
 
@@ -214,24 +199,24 @@ private:
 	int		capture_ioctl(file *filp, int cmd, unsigned long arg);
 
 	/* do not allow to copy due to ptr data members */
-	PX4ECU(const PX4ECU &);
-	PX4ECU operator=(const PX4ECU &);
+	PwmHeater(const PwmHeater &);
+	PwmHeater operator=(const PwmHeater &);
 
 };
 
-pwm_limit_t		PX4ECU::_pwm_limit;
-actuator_armed_s	PX4ECU::_armed = {};
+pwm_limit_t		PwmHeater::_pwm_limit;
+actuator_armed_s	PwmHeater::_armed = {};
 
 namespace
 {
 
-PX4ECU	*g_ecu;
+    PwmHeater	*g_heater;
 
 } // namespace
 
-/*/dev/PX4ECU*/
-PX4ECU::PX4ECU(bool run_as_task) :
-	StaticPwmDevice("ecu", "/dev/PX4ECU"),
+/*/dev/PwmHeater*/
+PwmHeater::PwmHeater(bool run_as_task) :
+	CDev("pwm_heater", "/dev/PwmHeater"),
     _primary_pwm_device(false),
 	_mode(MODE_NONE),
 	_pwm_default_rate(50),
@@ -253,7 +238,6 @@ PX4ECU::PX4ECU(bool run_as_task) :
 	_pwm_on(false),
 	_pwm_mask(0),
 	_pwm_initialized(false),
-	_mixers(nullptr),
 	_groups_required(0),
 	_groups_subscribed(0),
 	_control_subs{ -1},
@@ -294,7 +278,7 @@ PX4ECU::PX4ECU(bool run_as_task) :
 	_debug_enabled = false;
 }
 
-PX4ECU::~PX4ECU()
+PwmHeater::~PwmHeater()
 {
 	if (_initialized) {
 		/* tell the task we want it to go away */
@@ -315,11 +299,11 @@ PX4ECU::~PX4ECU()
 
 	perf_free(_ctl_latency);
 
-	g_ecu = nullptr;
+	g_pwm_heater = nullptr;
 }
 
 int
-PX4ECU::init()
+PwmHeater::init()
 {
 	int ret;
 
@@ -332,33 +316,22 @@ PX4ECU::init()
 		return ret;
 	}
     
-	_class_instance = register_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH);
+	_class_instance = register_class_devname(PWM_HEATER_BASE_DEVICE_PATH);
 
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-        PX4_INFO("default PWM output device");
+        PX4_INFO("default PWM heater device");
         _primary_pwm_device = true;
 
 	} else if (_class_instance < 0) {
 		PX4_ERR("FAILED registering class device");
 	}
 
-    //calculate channel map offset;
-    _group_timer_map = main_group_timer_map;
-    _group_channel_map = main_group_channel_map;
-    _timer_map_offset = group_timer_map_offset(main_group_timer_map);
-    printf("[ecu] main_group_channel_map 0x%04X\n", main_group_channel_map);
-    _channel_map_offset = group_channel_map_offset(main_group_channel_map);
-    
-    //set working pwm low/up limits.
-    _working_pwm_rate_up_limit = 400;
-    _working_pwm_rate_low_limit = 10;
-
 	return start();
 }
 
 
 int
-PX4ECU::set_mode(Mode mode)
+PwmHeater::set_mode(Mode mode)
 {
 	unsigned old_mask = _pwm_mask;
 
@@ -393,64 +366,6 @@ PX4ECU::set_mode(Mode mode)
 
 		break;
 
-	// no break
-	case MODE_3PWM:	// v1 multi-port with flow control lines as PWM
-		DEVICE_DEBUG("MODE_3PWM");
-
-		/* default output rates */
-		_pwm_default_rate = 50;
-		_pwm_alt_rate = 50;
-		_pwm_alt_rate_channels = 0;
-		_pwm_mask = 0x7;
-		_pwm_initialized = false;
-		_num_outputs = 3;
-
-		break;
-
-	case MODE_4PWM: // v1 or v2 multi-port as 4 PWM outs
-		DEVICE_DEBUG("MODE_4PWM");
-
-		/* default output rates */
-		_pwm_default_rate = 50;
-		_pwm_alt_rate = 50;
-		_pwm_alt_rate_channels = 0;
-		_pwm_mask = 0xf;
-		_pwm_initialized = false;
-		_num_outputs = 4;
-
-		break;
-
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >= 6
-
-	case MODE_6PWM:
-		DEVICE_DEBUG("MODE_6PWM");
-
-		/* default output rates */
-		_pwm_default_rate = 50;
-		_pwm_alt_rate = 50;
-		_pwm_alt_rate_channels = 0;
-		_pwm_mask = 0x3f;
-		_pwm_initialized = false;
-		_num_outputs = 6;
-
-		break;
-#endif
-
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >= 8
-
-	case MODE_8PWM: // AeroCore PWMs as 8 PWM outs
-		DEVICE_DEBUG("MODE_8PWM");
-		/* default output rates */
-		_pwm_default_rate = 50;
-		_pwm_alt_rate = 50;
-		_pwm_alt_rate_channels = 0;
-		_pwm_mask = 0xff;
-		_pwm_initialized = false;
-		_num_outputs = 8;
-
-		break;
-#endif
-
 	case MODE_NONE:
 		DEVICE_DEBUG("MODE_NONE");
 
@@ -473,12 +388,6 @@ PX4ECU::set_mode(Mode mode)
 	}
 
 	_mode = mode;
-    
-    //mode set, register channel resource to global channel map;
-    set_pwm_rate_map(_pwm_alt_rate_channels);
-    _working_channel_map = _pwm_alt_rate_channels << _channel_map_offset;
-    printf ("[ecu] working mode: %dPWM working channel map = 0x%04X\n", _mode, _working_channel_map);
-
 	return OK;
 }
 
@@ -508,10 +417,9 @@ PX4ECU::set_mode(Mode mode)
  *                                    For Oneshot there is no rate, 0 is therefore used
  *                                    to  select Oneshot mode
  */
-
 /*
 int
-PX4ECU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate)
+PwmHeater::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate)
 {
 	PX4_DEBUG("set_pwm_rate %x %u %u", rate_map, default_rate, alt_rate);
 
@@ -547,14 +455,14 @@ PX4ECU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 			} else {
 				// set it - errors here are unexpected
 				if (alt != 0) {
-                    printf ("[ecu] set group %d to alt_rate %d\n", group, alt_rate);
+                    printf ("[pwm_heater] set group %d to alt_rate %d\n", group, alt_rate);
 					if (up_pwm_servo_set_rate_group_update(group, alt_rate) != OK) {
 						PX4_WARN("rate group set alt failed");
 						return -EINVAL;
 					}
 
 				} else {
-                    printf ("[ecu] set group %d to default_rate %d\n", group, default_rate);
+                    printf ("[pwm_heater] set group %d to default_rate %d\n", group, default_rate);
 					if (up_pwm_servo_set_rate_group_update(group, default_rate) != OK) {
 						PX4_WARN("rate group set default failed");
 						return -EINVAL;
@@ -572,22 +480,22 @@ PX4ECU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 }
 
 int
-PX4ECU::set_pwm_alt_rate(unsigned rate)
+PwmHeater::set_pwm_alt_rate(unsigned rate)
 {
 	return set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, rate);
 }
 
 int
-PX4ECU::set_pwm_alt_channels(uint32_t channels)
+PwmHeater::set_pwm_alt_channels(uint32_t channels)
 {
 	return set_pwm_rate(channels, _pwm_default_rate, _pwm_alt_rate);
 }
 */
 
 int
-PX4ECU::set_pwm_channel_rates (uint16_t alt_rate, uint16_t default_rate) {
+PX4pwm_heater::set_pwm_channel_rates (uint8_t alt_rate, uint8_t default_rate) {
     
-    PX4_DEBUG("set_pwm_rate %x %u %u", _channel_rate_map, default_rate, alt_rate);
+    PX4_DEBUG("set_pwm_rate %x %u %u", rate_map, default_rate, alt_rate);
     
     //uint32_t global_rate_map = rate_map << 8;
     
@@ -609,8 +517,8 @@ PX4ECU::set_pwm_channel_rates (uint16_t alt_rate, uint16_t default_rate) {
         
         for (unsigned group = 0; group < _max_actuators; group++) {
             
-            if (((1 << group) & _group_timer_map) == 0) {
-                //only set groups/timers ecu owns.
+            if (((1 << group) & main_group_timer_map) == 0) {
+                //only set groups/timers fmu owns.
                 continue;
             }
             
@@ -618,7 +526,6 @@ PX4ECU::set_pwm_channel_rates (uint16_t alt_rate, uint16_t default_rate) {
             uint32_t mask = up_pwm_servo_get_rate_group(group);
             
             if (mask == 0) {
-                group++;
                 continue;
             }
             
@@ -636,14 +543,14 @@ PX4ECU::set_pwm_channel_rates (uint16_t alt_rate, uint16_t default_rate) {
             } else {
                 // set it - errors here are unexpected
                 if (alt != 0) {
-                    printf ("[ecu] set group %d to alt_rate %d\n", group, alt_rate);
+                    printf ("[pwm_heater] set group %d to alt_rate %d\n", group, alt_rate);
                     if (up_pwm_servo_set_rate_group_update(group, alt_rate) != OK) {
                         PX4_WARN("rate group set alt failed");
                         return -EINVAL;
                     }
                     
                 } else {
-                    printf ("[ecu] set group %d to default_rate %d\n", group, default_rate);
+                    printf ("[pwm_heater] set group %d to default_rate %d\n", group, default_rate);
                     if (up_pwm_servo_set_rate_group_update(group, default_rate) != OK) {
                         PX4_WARN("rate group set default failed");
                         return -EINVAL;
@@ -656,15 +563,12 @@ PX4ECU::set_pwm_channel_rates (uint16_t alt_rate, uint16_t default_rate) {
     _pwm_default_rate = default_rate;
     _pwm_alt_rate = alt_rate;
     
-    _default_rate = default_rate;
-    _pwm_alt_rate = _pwm_alt_rate;
-    
     return OK;
-
+    
 }
 
 void
-PX4ECU::subscribe()
+PwmHeater::subscribe()
 {
 	/* subscribe/unsubscribe to required actuator control groups */
 	uint32_t sub_groups = _groups_required & ~_groups_subscribed;
@@ -692,7 +596,7 @@ PX4ECU::subscribe()
 }
 
 void
-PX4ECU::update_pwm_rev_mask()
+PwmHeater::update_pwm_rev_mask()
 {
 	_reverse_pwm_mask = 0;
 
@@ -712,7 +616,7 @@ PX4ECU::update_pwm_rev_mask()
 }
 
 void
-PX4ECU::update_pwm_trims()
+PwmHeater::update_pwm_trims()
 {
 	PX4_DEBUG("update_pwm_trims");
 
@@ -742,7 +646,7 @@ PX4ECU::update_pwm_trims()
 }
 
 void
-PX4ECU::publish_pwm_outputs(uint16_t *values, size_t numvalues)
+PwmHeater::publish_pwm_outputs(uint16_t *values, size_t numvalues)
 {
 	actuator_outputs_s outputs = {};
 	outputs.noutputs = numvalues;
@@ -763,25 +667,25 @@ PX4ECU::publish_pwm_outputs(uint16_t *values, size_t numvalues)
 
 
 int
-PX4ECU::start()
+PwmHeater::start()
 {
 
 	if (!_run_as_task) {
 
 		/* schedule a cycle to start things */
 
-		work_queue(HPWORK, &_work, (worker_t)&PX4ECU::cycle_trampoline, this, 0);
+		work_queue(HPWORK, &_work, (worker_t)&PwmHeater::cycle_trampoline, this, 0);
 
 	} else {
 
 		/* start the IO interface task */
 
-		_task = px4_task_spawn_cmd("ecu",
+		_task = px4_task_spawn_cmd("pwm_heater",
 					   SCHED_DEFAULT,
 					   //SCHED_PRIORITY_FAST_DRIVER - 1,
                        SCHED_PRIORITY_ACTUATOR_OUTPUTS,
 					   1280,
-					   (main_t)&PX4ECU::task_main_trampoline,
+					   (main_t)&PwmHeater::task_main_trampoline,
 					   nullptr);
 
 		/* wait until the task is up and running or has failed */
@@ -798,44 +702,37 @@ PX4ECU::start()
 }
 
 void
-PX4ECU::cycle_trampoline(void *arg)
+PwmHeater::cycle_trampoline(void *arg)
 {
-	PX4ECU *dev = reinterpret_cast<PX4ECU *>(arg);
+	PwmHeater *dev = reinterpret_cast<PwmHeater *>(arg);
 
 	dev->cycle();
 }
 
 void
-PX4ECU::task_main_trampoline(int argc, char *argv[])
+PwmHeater::task_main_trampoline(int argc, char *argv[])
 {
-	cycle_trampoline(g_ecu);
+	cycle_trampoline(g_pwm_heater);
 }
 
-/*
+
 void
-PX4ECU::pwm_output_set(unsigned i, unsigned value)
+PwmHeater::pwm_output_set(unsigned i, unsigned value)
 {
 	if (_pwm_initialized) {
         //i = i + 8 ;
 		up_pwm_servo_set(i, value);
 	}
 }
-*/
 
 void
-PX4ECU::update_pwm_out_state(bool on)
+PwmHeater::update_pwm_out_state(bool on)
 {
 	if (on && !_pwm_initialized && _pwm_mask != 0) {
- 		up_pwm_servo_init(_working_channel_map, 0);
+ 		up_pwm_servo_init(_pwm_mask, 0);
         //up_pwm_servo_init(0x0F0F, 0);
-        printf("[ecu] init pwm out channel alt rate map: 0x%04X\n", _pwm_alt_rate_channels);
-        //set_pwm_rate_map();
-        printf("[ecu] alt rate: %d\n", _pwm_alt_rate);
-        set_pwm_channel_rates (_pwm_alt_rate, _pwm_default_rate);
+		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
         //set_pwm_rate(0x0F0F, _pwm_default_rate, _pwm_alt_rate);
-        if (register_working_channels() != OK) {
-            return;
-        }
 		_pwm_initialized = true;
 	}
 
@@ -844,7 +741,7 @@ PX4ECU::update_pwm_out_state(bool on)
 }
 
 void
-PX4ECU::cycle()
+PwmHeater::cycle()
 {
 	while (!_should_exit) {
 
@@ -925,7 +822,7 @@ PX4ECU::cycle()
 
 		/* this would be bad... */
 		if (ret < 0) {
-            printf("ECU poll error\n");
+            printf("pwm_heater poll error\n");
 			DEVICE_LOG("poll error %d", errno);
 
 		} else if (ret == 0) {
@@ -1066,12 +963,9 @@ PX4ECU::cycle()
 				}
 
 				/* output to the servos */
-                if (_pwm_initialized) {
-                    for (size_t i = 0; i < mixed_num_outputs; i++) {
-                        //pwm_output_set(i, pwm_limited[i]);
-                        set_pwm_channel_value_single(i, pwm_limited[i]);
-                    }
-                }
+				for (size_t i = 0; i < mixed_num_outputs; i++) {
+					pwm_output_set(i, pwm_limited[i]);
+				}
 
 				/* Trigger all timer's channels in Oneshot mode to fire
 				 * the oneshots with updated values.
@@ -1102,7 +996,7 @@ PX4ECU::cycle()
 
         /* update PWM status if armed or if disarmed PWM values are set */
         bool pwm_on = _armed.armed || _num_disarmed_set > 0 || _armed.in_esc_calibration_mode;
-        //printf("ECU check pwm update state %d, armed %d, disarm set %d, in esc cal %d\n", pwm_on, _armed.armed, _num_disarmed_set, _armed.in_esc_calibration_mode);
+        //printf("pwm_heater check pwm update state %d, armed %d, disarm set %d, in esc cal %d\n", pwm_on, _armed.armed, _num_disarmed_set, _armed.in_esc_calibration_mode);
 
         if (_pwm_on != pwm_on) {
             _pwm_on = pwm_on;
@@ -1122,7 +1016,7 @@ PX4ECU::cycle()
 			 * schedule next cycle
 			 */
 
-			work_queue(HPWORK, &_work, (worker_t)&PX4ECU::cycle_trampoline, this, USEC2TICK(SCHEDULE_INTERVAL));
+			work_queue(HPWORK, &_work, (worker_t)&PwmHeater::cycle_trampoline, this, USEC2TICK(SCHEDULE_INTERVAL));
 			//																			  USEC2TICK(SCHEDULE_INTERVAL - main_out_latency));
 			/* Running a worker. So exit the loop */
 			break;
@@ -1130,7 +1024,7 @@ PX4ECU::cycle()
 	}
 }
 
-void PX4ECU::update_params()
+void PwmHeater::update_params()
 {
 	parameter_update_s pupdate;
 	orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
@@ -1158,7 +1052,7 @@ void PX4ECU::update_params()
 }
 
 
-void PX4ECU::stop()
+void PwmHeater::stop()
 {
 	/* Signal that we want to stop the task or work.
 	 *
@@ -1197,7 +1091,7 @@ void PX4ECU::stop()
 }
 
 int
-PX4ECU::control_callback(uintptr_t handle,
+PwmHeater::control_callback(uintptr_t handle,
 			 uint8_t control_group,
 			 uint8_t control_index,
 			 float &input)
@@ -1240,7 +1134,7 @@ PX4ECU::control_callback(uintptr_t handle,
 }
 
 int
-PX4ECU::ioctl(file *filp, int cmd, unsigned long arg)
+PwmHeater::ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret = -1;
 
@@ -1252,10 +1146,10 @@ PX4ECU::ioctl(file *filp, int cmd, unsigned long arg)
 	case MODE_4PWM:
 	case MODE_2PWM2CAP:
 	case MODE_3PWM1CAP:
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >= 6
+#if defined(BOARD_HAS_pwm_heater_PWM) && BOARD_HAS_pwm_heater_PWM >= 6
 	case MODE_6PWM:
 #endif
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >= 8
+#if defined(BOARD_HAS_pwm_heater_PWM) && BOARD_HAS_pwm_heater_PWM >= 8
 	case MODE_8PWM:
 #endif
 		ret = pwm_ioctl(filp, cmd, arg);
@@ -1275,7 +1169,7 @@ PX4ECU::ioctl(file *filp, int cmd, unsigned long arg)
 }
 
 int
-PX4ECU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
+PwmHeater::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
 
@@ -1284,6 +1178,10 @@ PX4ECU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	lock();
 
 	switch (cmd) {
+    case PWM_SERVO_SET_FLOATING_BASE:
+            set_group_channel_map_offset (arg);
+        break;
+            
 	case PWM_SERVO_ARM:
 		update_pwm_out_state(true);
 		break;
@@ -1306,9 +1204,8 @@ PX4ECU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_SET_UPDATE_RATE:
-        printf("[ecu] pwm servo set update rate to %d\n", arg);
-		//ret = set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, arg);
-        ret = set_pwm_channel_rates (arg, _pwm_default_rate);
+        printf("pwm servo set update rate\n");
+		ret = set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, arg);
 		break;
 
 	case PWM_SERVO_GET_UPDATE_RATE:
@@ -1316,12 +1213,8 @@ PX4ECU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
-            printf("[ecu] pwm servo set select update rate channel map: 0x%04X\n", arg);
-		//ret = set_pwm_rate(arg, _pwm_default_rate, _pwm_alt_rate);
-        _pwm_alt_rate_channels = arg;
-        set_pwm_rate_map (_pwm_alt_rate_channels);
-        _working_channel_map = _pwm_alt_rate_channels << _channel_map_offset;
-        ret = set_pwm_channel_rates (_pwm_alt_rate, _pwm_default_rate);
+        printf("pwm servo set select update rate\n");
+		ret = set_pwm_rate(arg, _pwm_default_rate, _pwm_alt_rate);
 		break;
 
 	case PWM_SERVO_GET_SELECT_UPDATE_RATE:
@@ -1370,7 +1263,7 @@ PX4ECU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 					_num_failsafe_set++;
 				}
 			}
-            printf ("ECU pwm_ioctl: PWM_SERVO_SET_DISARMED_PWM %d\n", _num_disarmed_set);
+            printf ("pwm_heater pwm_ioctl: PWM_SERVO_SET_DISARMED_PWM %d\n", _num_disarmed_set);
 
 			break;
 		}
@@ -1441,147 +1334,6 @@ PX4ECU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_SET_MIN_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			/* discard if too many values are sent */
-			if (pwm->channel_count > _max_actuators) {
-				ret = -EINVAL;
-				break;
-			}
-
-			for (unsigned i = 0; i < pwm->channel_count; i++) {
-				if (pwm->values[i] == 0) {
-					/* ignore 0 */
-				} else if (pwm->values[i] > PWM_HIGHEST_MIN) {
-					_min_pwm[i] = PWM_HIGHEST_MIN;
-
-				}
-
-#if PWM_LOWEST_MIN > 0
-
-				else if (pwm->values[i] < PWM_LOWEST_MIN) {
-					_min_pwm[i] = PWM_LOWEST_MIN;
-				}
-
-#endif
-
-				else {
-					_min_pwm[i] = pwm->values[i];
-				}
-			}
-
-			break;
-		}
-
-	case PWM_SERVO_GET_MIN_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			for (unsigned i = 0; i < _max_actuators; i++) {
-				pwm->values[i] = _min_pwm[i];
-			}
-
-			pwm->channel_count = _max_actuators;
-			arg = (unsigned long)&pwm;
-			break;
-		}
-
-	case PWM_SERVO_SET_MAX_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			/* discard if too many values are sent */
-			if (pwm->channel_count > _max_actuators) {
-				ret = -EINVAL;
-				break;
-			}
-
-			for (unsigned i = 0; i < pwm->channel_count; i++) {
-				if (pwm->values[i] == 0) {
-					/* ignore 0 */
-				} else if (pwm->values[i] < PWM_LOWEST_MAX) {
-					_max_pwm[i] = PWM_LOWEST_MAX;
-
-				} else if (pwm->values[i] > PWM_HIGHEST_MAX) {
-					_max_pwm[i] = PWM_HIGHEST_MAX;
-
-				} else {
-					_max_pwm[i] = pwm->values[i];
-				}
-			}
-
-			break;
-		}
-
-	case PWM_SERVO_GET_MAX_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			for (unsigned i = 0; i < _max_actuators; i++) {
-				pwm->values[i] = _max_pwm[i];
-			}
-
-			pwm->channel_count = _max_actuators;
-			arg = (unsigned long)&pwm;
-			break;
-		}
-
-	case PWM_SERVO_SET_TRIM_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			/* discard if too many values are sent */
-			if (pwm->channel_count > _max_actuators) {
-				PX4_DEBUG("error: too many trim values: %d", pwm->channel_count);
-				ret = -EINVAL;
-				break;
-			}
-
-			/* copy the trim values to the mixer offsets */
-			_mixers->set_trims((int16_t *)pwm->values, pwm->channel_count);
-			PX4_DEBUG("set_trims: %d, %d, %d, %d", pwm->values[0], pwm->values[1], pwm->values[2], pwm->values[3]);
-
-			break;
-		}
-
-	case PWM_SERVO_GET_TRIM_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			for (unsigned i = 0; i < _max_actuators; i++) {
-				pwm->values[i] = _trim_pwm[i];
-			}
-
-			pwm->channel_count = _max_actuators;
-			arg = (unsigned long)&pwm;
-			break;
-		}
-
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >= 8
-
-	case PWM_SERVO_SET(7):
-	case PWM_SERVO_SET(6):
-		if (_mode < MODE_8PWM) {
-			ret = -EINVAL;
-			break;
-		}
-
-#endif
-
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >= 6
-
-	case PWM_SERVO_SET(5):
-	case PWM_SERVO_SET(4):
-		if (_mode < MODE_6PWM) {
-			ret = -EINVAL;
-			break;
-		}
-
-#endif
-
-	/* FALLTHROUGH */
-	case PWM_SERVO_SET(3):
-		if (_mode < MODE_4PWM) {
-			ret = -EINVAL;
-			break;
-		}
-
 	/* FALLTHROUGH */
 	case PWM_SERVO_SET(2):
 		if (_mode < MODE_3PWM) {
@@ -1601,34 +1353,6 @@ PX4ECU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 		break;
 
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >= 8
-
-	case PWM_SERVO_GET(7):
-	case PWM_SERVO_GET(6):
-		if (_mode < MODE_8PWM) {
-			ret = -EINVAL;
-			break;
-		}
-
-#endif
-
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >= 6
-
-	case PWM_SERVO_GET(5):
-	case PWM_SERVO_GET(4):
-		if (_mode < MODE_6PWM) {
-			ret = -EINVAL;
-			break;
-		}
-
-#endif
-
-	/* FALLTHROUGH */
-	case PWM_SERVO_GET(3):
-		if (_mode < MODE_4PWM) {
-			ret = -EINVAL;
-			break;
-		}
 
 	/* FALLTHROUGH */
 	case PWM_SERVO_GET(2):
@@ -1647,11 +1371,11 @@ PX4ECU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_RATEGROUP(1):
 	case PWM_SERVO_GET_RATEGROUP(2):
 	case PWM_SERVO_GET_RATEGROUP(3):
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >= 6
+#if defined(BOARD_HAS_pwm_heater_PWM) && BOARD_HAS_pwm_heater_PWM >= 6
 	case PWM_SERVO_GET_RATEGROUP(4):
 	case PWM_SERVO_GET_RATEGROUP(5):
 #endif
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >= 8
+#if defined(BOARD_HAS_pwm_heater_PWM) && BOARD_HAS_pwm_heater_PWM >= 8
 	case PWM_SERVO_GET_RATEGROUP(6):
 	case PWM_SERVO_GET_RATEGROUP(7):
 #endif
@@ -1659,48 +1383,6 @@ PX4ECU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_GET_COUNT:
-	case MIXERIOCGETOUTPUTCOUNT:
-
-		switch (_mode) {
-
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >= 8
-
-		case MODE_8PWM:
-			*(unsigned *)arg = 8;
-			break;
-#endif
-
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >= 6
-
-		case MODE_6PWM:
-			*(unsigned *)arg = 6;
-			break;
-#endif
-
-		case MODE_4PWM:
-			*(unsigned *)arg = 4;
-			break;
-
-		case MODE_3PWM:
-		case MODE_3PWM1CAP:
-			*(unsigned *)arg = 3;
-			break;
-
-		case MODE_2PWM:
-		case MODE_2PWM2CAP:
-			*(unsigned *)arg = 2;
-			break;
-
-		case MODE_1PWM:
-			*(unsigned *)arg = 1;
-			break;
-
-		default:
-			ret = -EINVAL;
-			break;
-		}
-
-		break;
 
 	case PWM_SERVO_SET_COUNT: {
 			/* change the number of outputs that are enabled for
@@ -1711,10 +1393,6 @@ PX4ECU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			 * FMUv1
 			 */
 			switch (arg) {
-			case 0:
-				set_mode(MODE_NONE);
-				break;
-
 			case 1:
 				set_mode(MODE_1PWM);
 				break;
@@ -1723,27 +1401,6 @@ PX4ECU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				set_mode(MODE_2PWM);
 				break;
 
-			case 3:
-				set_mode(MODE_3PWM);
-				break;
-
-			case 4:
-				set_mode(MODE_4PWM);
-				break;
-
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >=6
-
-			case 6:
-				set_mode(MODE_6PWM);
-				break;
-#endif
-
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >=8
-
-			case 8:
-				set_mode(MODE_8PWM);
-				break;
-#endif
 
 			default:
 				ret = -EINVAL;
@@ -1767,41 +1424,10 @@ PX4ECU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				ret = set_mode(MODE_2PWM);
 				break;
 
-			case PWM_SERVO_MODE_2PWM2CAP:
-				ret = set_mode(MODE_2PWM2CAP);
+			case PWM_SERVO_MODE_1PWM1CAP:
+				ret = set_mode(MODE_1PWM1CAP);
 				break;
 
-			case PWM_SERVO_MODE_3PWM:
-				ret = set_mode(MODE_3PWM);
-				break;
-
-			case PWM_SERVO_MODE_3PWM1CAP:
-				ret = set_mode(MODE_3PWM1CAP);
-				break;
-
-			case PWM_SERVO_MODE_4PWM:
-				ret = set_mode(MODE_4PWM);
-				break;
-
-			case PWM_SERVO_MODE_6PWM:
-				ret = set_mode(MODE_6PWM);
-				break;
-
-			case PWM_SERVO_MODE_8PWM:
-				ret = set_mode(MODE_8PWM);
-				break;
-
-			case PWM_SERVO_MODE_4CAP:
-				ret = set_mode(MODE_4CAP);
-				break;
-
-			case PWM_SERVO_MODE_5CAP:
-				ret = set_mode(MODE_5CAP);
-				break;
-
-			case PWM_SERVO_MODE_6CAP:
-				ret = set_mode(MODE_6CAP);
-				break;
 
 			default:
 				ret = -EINVAL;
@@ -1810,70 +1436,6 @@ PX4ECU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case MIXERIOCRESET:
-		if (_mixers != nullptr) {
-			delete _mixers;
-			_mixers = nullptr;
-			_groups_required = 0;
-		}
- 		break;
-
-	case MIXERIOCADDSIMPLE: {
-			mixer_simple_s *mixinfo = (mixer_simple_s *)arg;
-
-			SimpleMixer *mixer = new SimpleMixer(control_callback,
-							     (uintptr_t)_controls, mixinfo);
-
-			if (mixer->check()) {
-				delete mixer;
-				_groups_required = 0;
-				ret = -EINVAL;
-
-			} else {
-				if (_mixers == nullptr)
-					_mixers = new MixerGroup(control_callback,
-								 (uintptr_t)_controls);
-
-				_mixers->add_mixer(mixer);
-				_mixers->groups_required(_groups_required);
-			}
-
-			break;
-		}
-
-	case MIXERIOCLOADBUF: {
-			const char *buf = (const char *)arg;
-			unsigned buflen = strnlen(buf, 1024);
-
-			if (_mixers == nullptr) {
-				_mixers = new MixerGroup(control_callback, (uintptr_t)_controls);
-			}
-
-			if (_mixers == nullptr) {
-				_groups_required = 0;
-				ret = -ENOMEM;
-
-			} else {
-
-				ret = _mixers->load_from_buf(buf, buflen);
-
-				if (ret != 0) {
-					PX4_DEBUG("mixer load failed with %d", ret);
-					delete _mixers;
-					_mixers = nullptr;
-					_groups_required = 0;
-					ret = -EINVAL;
-
-				} else {
-
-					_mixers->groups_required(_groups_required);
-					PX4_DEBUG("loaded mixers \n%s\n", buf);
-					update_pwm_trims();
-				}
-			}
-
-			break;
-		}
 
 	default:
 		ret = -ENOTTY;
@@ -1890,18 +1452,14 @@ PX4ECU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
   with px4io
  */
 ssize_t
-PX4ECU::write(file *filp, const char *buffer, size_t len)
+PwmHeater::write(file *filp, const char *buffer, size_t len)
 {
 	unsigned count = len / 2;
 	uint16_t values[8];
 
-#if BOARD_HAS_ECU_PWM == 0
-	return 0;
-#endif
-
-	if (count > BOARD_HAS_ECU_PWM) {
-		// we have at most BOARD_HAS_ECU_PWM outputs
-		count = BOARD_HAS_ECU_PWM;
+	if (count > BOARD_HAS_pwm_heater_PWM) {
+		// we have at most BOARD_HAS_pwm_heater_PWM outputs
+		count = BOARD_HAS_pwm_heater_PWM;
 	}
 
 	// allow for misaligned values
@@ -1922,30 +1480,20 @@ namespace
 
 enum PortMode {
 	PORT_MODE_UNSET = 0,
-	PORT_FULL_GPIO,
-	PORT_FULL_SERIAL,
 	PORT_FULL_PWM,
-	PORT_GPIO_AND_SERIAL,
-	PORT_PWM_AND_SERIAL,
-	PORT_PWM_AND_GPIO,
-	PORT_PWM4,
-	PORT_PWM3,
 	PORT_PWM2,
 	PORT_PWM1,
-	PORT_PWM3CAP1,
-	PORT_PWM2CAP2,
-	PORT_CAPTURE,
 };
 
 PortMode g_port_mode;
 
 int
-ecu_new_mode(PortMode new_mode)
+pwm_heater_new_mode(PortMode new_mode)
 {
-	PX4ECU::Mode servo_mode;
+	PwmHeater::Mode servo_mode;
 	bool mode_with_input = false;
 
-	servo_mode = PX4ECU::MODE_NONE;
+	servo_mode = PwmHeater::MODE_NONE;
 
 	switch (new_mode) {
 	case PORT_FULL_GPIO:
@@ -1954,49 +1502,17 @@ ecu_new_mode(PortMode new_mode)
 
 	case PORT_FULL_PWM:
 
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM == 4
-		/* select 4-pin PWM mode */
-		servo_mode = PX4ECU::MODE_4PWM;
-#endif
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM == 6
-		servo_mode = PX4ECU::MODE_6PWM;
-#endif
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM == 8
-		servo_mode = PX4ECU::MODE_8PWM;
-#endif
+		servo_mode = PwmHeater::MODE_2PWM;
 		break;
 
 	case PORT_PWM1:
 		/* select 2-pin PWM mode */
-		servo_mode = PX4ECU::MODE_1PWM;
+		servo_mode = PwmHeater::MODE_1PWM;
 		break;
 
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >= 6
-
-	case PORT_PWM4:
-		/* select 4-pin PWM mode */
-		servo_mode = PX4ECU::MODE_4PWM;
-		break;
-
-	case PORT_PWM3:
-		/* select 3-pin PWM mode */
-		servo_mode = PX4ECU::MODE_3PWM;
-		break;
-
-	case PORT_PWM3CAP1:
-		/* select 3-pin PWM mode 1 capture */
-		servo_mode = PX4ECU::MODE_3PWM1CAP;
-		mode_with_input = true;
-		break;
-
-	case PORT_PWM2:
-		/* select 2-pin PWM mode */
-		servo_mode = PX4ECU::MODE_2PWM;
-		break;
-
-	case PORT_PWM2CAP2:
+	case PORT_PWM1CAP1:
 		/* select 2-pin PWM mode 2 capture */
-		servo_mode = PX4ECU::MODE_2PWM2CAP;
+		servo_mode = PwmHeater::MODE_1PWM1CAP;
 		mode_with_input = true;
 		break;
 #endif
@@ -2005,40 +1521,39 @@ ecu_new_mode(PortMode new_mode)
 		return -1;
 	}
 
-	if (servo_mode != g_ecu->get_mode()) {
+	if (servo_mode != g_pwm_heater->get_mode()) {
 
 		/* reset to all-inputs */
 		if (mode_with_input) {
-			g_ecu->ioctl(0, GPIO_RESET, 0);
+			g_pwm_heater->ioctl(0, GPIO_RESET, 0);
 
 		}
 
 		/* (re)set the PWM output mode */
-		g_ecu->set_mode(servo_mode);
+		g_pwm_heater->set_mode(servo_mode);
 	}
 
 	return OK;
 }
 
-
 int
-ecu_start(bool run_as_task)
+pwm_heater_start(bool run_as_task)
 {
 	int ret = OK;
 
-	if (g_ecu == nullptr) {
+	if (g_pwm_heater == nullptr) {
 
-		g_ecu = new PX4ECU(run_as_task);
+		g_pwm_heater = new PwmHeater(run_as_task);
 
-		if (g_ecu == nullptr) {
+		if (g_pwm_heater == nullptr) {
 			ret = -ENOMEM;
 
 		} else {
-			ret = g_ecu->init();
+			ret = g_pwm_heater->init();
 
 			if (ret != OK) {
-				delete g_ecu;
-				g_ecu = nullptr;
+				delete g_pwm_heater;
+				g_pwm_heater = nullptr;
 			}
 		}
 	}
@@ -2047,14 +1562,14 @@ ecu_start(bool run_as_task)
 }
 
 int
-ecu_stop(void)
+pwm_heater_stop(void)
 {
 	int ret = OK;
 
-	if (g_ecu != nullptr) {
+	if (g_pwm_heater != nullptr) {
 
-		delete g_ecu;
-		g_ecu = nullptr;
+		delete g_pwm_heater;
+		g_pwm_heater = nullptr;
 	}
 
 	return ret;
@@ -2067,7 +1582,7 @@ void
 fake(int argc, char *argv[])
 {
 	if (argc < 5) {
-		errx(1, "ecu fake <roll> <pitch> <yaw> <thrust> (values -100 .. 100)");
+		errx(1, "pwm_heater fake <roll> <pitch> <yaw> <thrust> (values -100 .. 100)");
 	}
 
 	actuator_controls_s ac;
@@ -2106,18 +1621,18 @@ fake(int argc, char *argv[])
 
 } // namespace
 
-extern "C" __EXPORT int px4ecu_main(int argc, char *argv[]);
+extern "C" __EXPORT int PwmHeater_main(int argc, char *argv[]);
 
 int
-px4ecu_main(int argc, char *argv[])
+PwmHeater_main(int argc, char *argv[])
 {
 	bool run_as_task = false;
 	PortMode new_mode = PORT_MODE_UNSET;
 	const char *verb = argv[1];
 
 	if (!strcmp(verb, "stop")) {
-		ecu_stop();
-		errx(0, "ECU driver stopped");
+		pwm_heater_stop();
+		errx(0, "Pwm heater driver stopped");
 	}
 
 	run_as_task = !strcmp(verb, "task");
@@ -2126,8 +1641,8 @@ px4ecu_main(int argc, char *argv[])
 		verb = argv[2];
 	}
 
-	if (ecu_start(run_as_task) != OK) {
-		errx(1, "failed to start the ECU driver");
+	if (pwm_heater_start(run_as_task) != OK) {
+		errx(1, "failed to start the pwm_heater driver");
 	}
 
 	/*
@@ -2142,13 +1657,13 @@ px4ecu_main(int argc, char *argv[])
 	} else if (!strcmp(verb, "mode_pwm")) {
 		new_mode = PORT_FULL_PWM;
 
-#if defined(BOARD_HAS_ECU_PWM)
+#if defined(BOARD_HAS_pwm_heater_PWM)
 
 	} else if (!strcmp(verb, "mode_pwm1")) {
 		new_mode = PORT_PWM1;
 #endif
 
-#if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >= 6
+#if defined(BOARD_HAS_pwm_heater_PWM) && BOARD_HAS_pwm_heater_PWM >= 6
 
 	} else if (!strcmp(verb, "mode_pwm4")) {
 		new_mode = PORT_PWM4;
@@ -2190,7 +1705,7 @@ px4ecu_main(int argc, char *argv[])
 		}
 
 		/* switch modes */
-		int ret = ecu_new_mode(new_mode);
+		int ret = pwm_heater_new_mode(new_mode);
 		exit(ret == OK ? 0 : 1);
 	}
 
@@ -2205,14 +1720,14 @@ px4ecu_main(int argc, char *argv[])
 	}
 
 
-	fprintf(stderr, "ECU: unrecognized command %s, try:\n", verb);
+	fprintf(stderr, "pwm_heater: unrecognized command %s, try:\n", verb);
 #if defined(RC_SERIAL_PORT)
 	fprintf(stderr, " mode_rcin");
 #endif
 #if defined(BOARD_HAS_MULTI_PURPOSE_GPIO)
 	fprintf(stderr,
 		" , mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio, test, fake, sensor_reset, id\n");
-#elif defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >= 6
+#elif defined(BOARD_HAS_pwm_heater_PWM) && BOARD_HAS_pwm_heater_PWM >= 6
 	fprintf(stderr, "  mode_gpio, mode_pwm, mode_pwm4, test, sensor_reset [milliseconds], i2c <bus> <hz>, bind\n");
 #endif
 	fprintf(stderr, "\n");

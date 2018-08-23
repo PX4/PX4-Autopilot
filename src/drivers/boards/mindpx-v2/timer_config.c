@@ -229,6 +229,26 @@ __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
     },
 };
 
+#define CCER_C1_NUM_BITS   4
+#define ACTIVE_LOW(c)      (GTIM_CCER_CC1P << (((c)-1) * CCER_C1_NUM_BITS))
+#define ACTIVE_HIGH(c)     0
+
+#if defined(BOARD_LED_PWM_DRIVE_ACTIVE_LOW)
+#  define POLARITY(c)      ACTIVE_LOW(c)
+#  define DRIVE_TYPE(p)    ((p)|GPIO_OPENDRAIN)
+#else
+#  define POLARITY(c)      ACTIVE_HIGH((c))
+#  define DRIVE_TYPE(p)    (p)
+#endif
+
+#if defined(BOARD_UI_LED_PWM_DRIVE_ACTIVE_LOW)
+#  define UI_POLARITY(c)    ACTIVE_LOW(c)
+#  define UI_DRIVE_TYPE(p)  ((p)|GPIO_OPENDRAIN)
+#else
+#  define UI_POLARITY(c)    ACTIVE_HIGH((c))
+#  define UI_DRIVE_TYPE(p)  (p)
+#endif
+
 __EXPORT const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
     {
         .base             = STM32_TIM2_BASE,
@@ -236,8 +256,8 @@ __EXPORT const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
         .clock_bit         = RCC_APB1ENR_TIM2EN,
         .clock_freq         = STM32_APB1_TIM2_CLKIN,
         .vectorno         = 0,
-        .first_channel_index = 0,
-        .last_channel_index = 2,
+        .first_channel_index = 1,
+        .last_channel_index = 3,
     }
 };
 
@@ -247,29 +267,35 @@ __EXPORT const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNEL
         .gpio_in  = 0,
         .timer_index = 0,
         .timer_channel = 2,
+        .masks = POLARITY(2),
+
     },
     {
         .gpio_out = LED_TIM2_CH3OUT,
         .gpio_in  = 0,
         .timer_index = 0,
         .timer_channel = 3,
+        .masks = POLARITY(3),
+
     },
     {
         .gpio_out = LED_TIM2_CH4OUT,
         .gpio_in  = 0,
         .timer_index = 0,
         .timer_channel = 4,
+        .masks = POLARITY(4),
+
     }
 };
 
 __EXPORT const uint8_t main_group_timer_map = 0x03 ;
-__EXPORT const uint32_t main_group_chanel_map = 0x00FF;
+__EXPORT const uint32_t main_group_channel_map = 0x00FF;
 
 __EXPORT const uint8_t aux_group_timer_map = 0x0C ;
-__EXPORT const uint32_t aux_group_chanel_map = 0xFF00;
+__EXPORT const uint32_t aux_group_channel_map = 0xFF00;
 
-__EXPORT const uint8_t led_group_timer_map = 0x20 ;
-__EXPORT const uint32_t led_group_chanel_map = 0xE000;
+__EXPORT const uint8_t led_group_timer_map = 0x08 ;
+__EXPORT const uint32_t led_group_channel_map = 0xE000;
 
 __EXPORT const uint8_t heater_group_timer_map = 0x20 ;
 

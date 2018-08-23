@@ -108,7 +108,7 @@ then
     then
         if px4ecu $ECU_ARGS mode_$ECU_MODE
         then
-            echo "ecu started."
+            echo "[rcS] ecu started."
         else
             echo "PX4 ECU start failed" >> $LOG_FILE
             tune_control play -m ${TUNE_ERR}
@@ -142,7 +142,7 @@ then
         then
             if fmu mode_${FMU_MODE} $FMU_ARGS
             then
-                echo "start FMU as AUX"
+                echo "[rcS] start FMU as AUX"
             else
                 echo "FMU mode_${FMU_MODE} start failed" >> $LOG_FILE
                 # Error tune.
@@ -282,6 +282,8 @@ echo "aux mixer: ${MIXER_AUX}.aux.mix"
 			set PWM_AUX_OUT none
 			set FAILSAFE_AUX none
 		fi
+
+echo "[rcS] set aux pwm out rate $PWM_AUX_OUT"
 
 		# Set min / max for aux out and rates
 		if [ $PWM_AUX_OUT != none ]

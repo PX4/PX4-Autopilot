@@ -27,3 +27,4 @@ fi
 # Set environment variables (!= parameters)
 param set PWM_RATE 400
 param set PWM_AUX_RATE 50
+

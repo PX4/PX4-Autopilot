@@ -66,10 +66,16 @@
 #include <drivers/device/device.h>
 #include <systemlib/err.h>
 
+#include <lib/pwmgroups/pwmgroups.h>
+
 #define RGBLED_ONTIME 120
 #define RGBLED_OFFTIME 120
 
-class RGBLED_PWM : public device::CDev
+__EXPORT const extern uint8_t led_group_timer_map;
+__EXPORT const extern uint32_t led_group_channel_map;
+
+
+class RGBLED_PWM : public StaticPwmDevice
 {
 public:
     RGBLED_PWM();
@@ -79,7 +85,8 @@ public:
     virtual int        init();
     virtual int        probe();
     int        status();
-
+    int     init_rgb_led_pwm_servo();
+    
 private:
     work_s            _work;
 
@@ -104,7 +111,7 @@ extern int led_pwm_servo_set(unsigned channel, uint8_t  value);
 extern unsigned led_pwm_servo_get(unsigned channel);
 extern int led_pwm_servo_init(void);
 extern void led_pwm_servo_deinit(void);
-
+extern int led_pwm_servo_init_group_map(uint8_t timer_map, uint32_t channel_map);
 
 /* for now, we only support one RGBLED */
 namespace
@@ -113,7 +120,7 @@ RGBLED_PWM *g_rgbled = nullptr;
 }
 
 RGBLED_PWM::RGBLED_PWM() :
-    CDev("rgbled_pwm", RGBLED_PWM0_DEVICE_PATH),
+    StaticPwmDevice("rgbled_pwm", RGBLED_PWM0_DEVICE_PATH),
     _work{},
     _r(0),
     _g(0),
@@ -139,7 +146,22 @@ RGBLED_PWM::init()
     /* switch off LED on start */
     CDev::init();
     printf("Initializing pwm tri-color LED ...\n");
-    led_pwm_servo_init();
+    _timer_map_offset = group_timer_map_offset(led_group_timer_map);
+    _channel_map_offset = group_channel_map_offset(_working_channel_map);
+    _group_timer_map = led_group_timer_map;
+    _working_channel_map = led_group_channel_map;
+    _working_pwm_rate_up_limit = 400;
+    _working_pwm_rate_low_limit = 50;
+    
+    _default_rate = 50;
+    _alt_rate = 50;
+    
+    if (register_working_channels()!=OK) {
+        printf("fail to register rgb led\n");
+        return -EINVAL;
+    }
+    //led_pwm_servo_init();
+    led_pwm_servo_init_group_map(_group_timer_map, _working_channel_map);
     send_led_rgb();
 
     _running = true;
@@ -208,7 +230,7 @@ RGBLED_PWM::led()
     LedControlData led_control_data;
 
 	if (_led_controller.update(led_control_data) == 1) {
-		uint8_t brightness = led_control_data.leds[0].brightness;
+        uint8_t brightness = led_control_data.leds[0].brightness;
 
 		switch (led_control_data.leds[0].color) {
 		case led_control_s::COLOR_RED:

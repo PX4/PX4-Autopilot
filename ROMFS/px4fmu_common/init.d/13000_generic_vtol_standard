@@ -35,3 +35,4 @@ set MIXER quad_x
 set MIXER_AUX vtol_AAERT
 
 set PWM_OUT 1234
+
