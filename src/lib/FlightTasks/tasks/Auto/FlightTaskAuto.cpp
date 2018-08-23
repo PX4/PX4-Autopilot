@@ -262,10 +262,12 @@ void FlightTaskAuto::_set_heading_from_mode()
 		if (v.length() > NAV_ACC_RAD.get()) {
 			_compute_heading_from_2D_vector(_yaw_setpoint, v);
 			_yaw_lock = false;
+
 		} else {
 			if (!_yaw_lock) {
 				_yaw_setpoint = _yaw;
 				_yaw_lock = true;
+			}
 		}
 
 	} else {
