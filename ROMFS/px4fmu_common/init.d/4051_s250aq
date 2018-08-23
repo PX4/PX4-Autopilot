@@ -28,6 +28,10 @@ set PWM_OUT 1234
 
 if [ $AUTOCNF == yes ]
 then
+	param set ATT_BIAS_MAX 0.0
+
+	param set CBRK_IO_SAFETY 22027
+
 	param set MC_ROLL_P 8.0
 	param set MC_ROLLRATE_P 0.19
 	param set MC_ROLLRATE_I 0.1
@@ -52,13 +56,8 @@ then
 	param set MC_TPA_RATE_I 0.0
 	param set MC_TPA_RATE_P 1.0
 
-
-	param set PWM_MIN 1075
-
 	param set MPC_THR_MIN 0.06
 	param set MPC_MANTHR_MIN 0.06
 
-	param set ATT_BIAS_MAX 0.0
-
-	param set CBRK_IO_SAFETY 22027
+	param set PWM_MIN 1075
 fi

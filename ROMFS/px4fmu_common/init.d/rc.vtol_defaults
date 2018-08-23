@@ -21,7 +21,9 @@ then
 	param set NAV_ACC_RAD 3
 
 	param set RTL_LAND_DELAY 0
+
 fi
 
 # Set environment variables (!= parameters)
-set PWM_RATE 400
+param set PWM_RATE 400
+param set PWM_AUX_RATE 50

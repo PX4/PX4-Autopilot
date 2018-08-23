@@ -29,5 +29,5 @@ fi
 
 set MIXER AETRFG
 
-# rate must be set by group (see pwm info)
-# throttle is in the same group as servos
+# Rate must be set by group (see pwm info).
+# Throttle is in the same group as servos.

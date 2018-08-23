@@ -22,9 +22,13 @@
 
 sh /etc/init.d/rc.mc_defaults
 
+if [ $AUTOCNF == yes ]
+then
+	param set PWM_AUX_RATE 50
+fi
+
 set MIXER quad_x
 set PWM_OUT 1234
 
 set MIXER_AUX mount
 set PWM_AUX_OUT 123456
-set PWM_AUX_RATE 50

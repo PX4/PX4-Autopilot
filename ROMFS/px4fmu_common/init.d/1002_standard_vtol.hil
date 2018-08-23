@@ -27,8 +27,6 @@ then
 	param set FW_AIRSPD_MIN 14
 	param set FW_AIRSPD_TRIM 16
 
-	param set MAV_TYPE 22
-
 	param set MC_PITCH_P 6
 	param set MC_PITCHRATE_P 0.2
 	param set MC_ROLL_P 6
@@ -66,8 +64,10 @@ then
 	param set VT_TYPE 2
 fi
 
+param set SYS_HITL 1
+
+set MAV_TYPE 22
+
 set MIXER standard_vtol_hitl
 
 set PWM_OUT 1234
-
-param set SYS_HITL 1
