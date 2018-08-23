@@ -40,14 +40,14 @@ then
 	param set FW_RR_FF 0.6
 	param set FW_RR_P 0.04
 
-	# Configure this as plane
-	param set MAV_TYPE 1
-
 	param set PWM_DISARMED 1000
 fi
 
-# Set mixer
+# Configure this as plane.
+set MAV_TYPE 1
+
+# Set mixer.
 set MIXER wingwing
 
-# Provide ESC a constant 1000 us pulse
+# Provide ESC a constant 1000 us pulse.
 set PWM_OUT 4

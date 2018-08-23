@@ -20,10 +20,6 @@ sh /etc/init.d/rc.vtol_defaults
 
 if [ $AUTOCNF == yes ]
 then
-	param set VT_TYPE 2
-	param set VT_MOT_COUNT 4
-	param set VT_F_TRANS_THR 0.75
-
 	param set MC_ROLL_P 6.5
 	param set MC_ROLLRATE_P 0.15
 	param set MC_ROLLRATE_I 0.01
@@ -46,11 +42,13 @@ then
 	param set MPC_XY_VEL_P 0.1
 	param set MPC_ACC_HOR_MAX 2.0
 
+	param set PWM_AUX_DIS3 950
+	param set PWM_RATE 400
+
 	param set VT_MOT_COUNT 4
+	param set VT_F_TRANS_THR 0.75
 	param set VT_IDLE_PWM_MC 1080
 	param set VT_TYPE 2
-
-	param set PWM_AUX_DIS3 950
 fi
 
 set MAV_TYPE 22
@@ -59,4 +57,3 @@ set MIXER quad_x
 set MIXER_AUX vtol_delta
 
 set PWM_OUT 1234
-set PWM_RATE 400

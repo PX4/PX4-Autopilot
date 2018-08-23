@@ -37,7 +37,7 @@ then
 
 	param set FW_L1_PERIOD 20 #units of meters
 	
-	#Damping factor for L1 control (def = 0.75)
+	# Damping factor for L1 control (def = 0.75)
 	param set FW_L1_DAMPING 0.75
 
 	####################################

@@ -33,12 +33,13 @@ then
 	param set MC_YAWRATE_D 0.0
 	param set MC_YAWRATE_FF 0.0
 
-	param set VT_MOT_COUNT 2
 	param set VT_IDLE_PWM_MC  1080
-	param set VT_TYPE 0
-	param set MAV_TYPE 19
 	param set VT_ELEV_MC_LOCK 0
+	param set VT_MOT_COUNT 2
+	param set VT_TYPE 0
 fi
+
+set MAV_TYPE 19
 
 set MIXER caipirinha_vtol
 

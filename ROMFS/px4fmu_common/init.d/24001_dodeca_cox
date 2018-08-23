@@ -28,6 +28,7 @@ set VEHICLE_TYPE mc
 if [ $AUTOCNF == yes ]
 then
 	param set NAV_ACC_RAD 2.0
+
 	param set PWM_AUX_RATE 400
 	param set PWM_AUX_DISARMED 900
 	param set PWM_AUX_MIN 1075

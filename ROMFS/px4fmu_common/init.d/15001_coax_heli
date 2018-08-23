@@ -18,14 +18,6 @@ set MIXER coax
 
 if [ $AUTOCNF == yes ]
 then
-	param set NAV_ACC_RAD 2.0
-	param set RTL_RETURN_ALT 30.0
-	param set RTL_DESCEND_ALT 10.0
-
-	param set PWM_DISARMED 900
-	param set PWM_MIN 1075
-	param set PWM_MAX 1950
-
 	param set MC_ROLL_P 6.5
 	param set MC_ROLLRATE_P 0.17
 	param set MC_ROLLRATE_I 0.05
@@ -41,13 +33,22 @@ then
 	param set MC_YAWRATE_I 0.1
 	param set MC_YAWRATE_D 0.0
 	param set MC_YAWRATE_FF 0
-fi
 
-# use PWM parameters for throttle channel
-set PWM_OUT 34
-set PWM_RATE 400
+	param set NAV_ACC_RAD 2.0
+
+	param set PWM_AUX_RATE 50
+	param set PWM_DISARMED 900
+	param set PWM_MIN 1075
+	param set PWM_MAX 1950
+	param set PWM_RATE 400
+
+	param set RTL_RETURN_ALT 30.0
+	param set RTL_DESCEND_ALT 10.0
+fi
 
 # This is the gimbal pass mixer
 set MIXER_AUX pass
-set PWM_AUX_RATE 50
+
+# use PWM parameters for throttle channel
 set PWM_AUX_OUT 1234
+set PWM_OUT 34
