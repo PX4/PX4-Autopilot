@@ -22,9 +22,11 @@ sh /etc/init.d/rc.vtol_defaults
 
 if [ $AUTOCNF == yes ]
 then
+	param set PWM_AUX_DIS5 950
+	param set PWM_RATE 400
+
 	param set VT_TYPE 2
 	param set VT_MOT_COUNT 4
-	param set PWM_AUX_DIS5 950
 fi
 
 set MAV_TYPE 22
@@ -33,4 +35,3 @@ set MIXER quad_x
 set MIXER_AUX vtol_AAERT
 
 set PWM_OUT 1234
-set PWM_RATE 400

@@ -25,5 +25,5 @@ fi
 #
 set MIXER_AUX pass
 
-set PWM_AUX_RATE 50
 set PWM_AUX_OUT 1234
+set PWM_AUX_RATE 50

@@ -38,20 +38,20 @@ then
 	param set MC_YAWRATE_D 0.0
 	param set MC_YAWRATE_FF 0.0
 
+	param set PWM_RATE 400
+
+	param set VT_FW_MOT_OFFID 34
+	param set VT_IDLE_PWM_MC 1080
+	param set VT_MOT_COUNT 6
 	param set VT_TILT_MC 0.08
 	param set VT_TILT_TRANS 0.5
 	param set VT_TILT_FW 0.9
-
-	param set VT_MOT_COUNT 6
-	param set VT_FW_MOT_OFFID 34
-	param set VT_IDLE_PWM_MC 1080
 	param set VT_TYPE 1
 fi
 
-set MIXER firefly6
-set PWM_OUT 12345678
-set PWM_RATE 400
+set MAV_TYPE 21
 
+set MIXER firefly6
 set MIXER_AUX firefly6
 
-set MAV_TYPE 21
+set PWM_OUT 12345678

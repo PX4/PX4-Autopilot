@@ -24,6 +24,8 @@ sh /etc/init.d/rc.mc_defaults
 
 if [ $AUTOCNF == yes ]
 then
+	param set BAT_N_CELLS 4
+
 	param set MC_ROLL_P 7.0
 	param set MC_ROLLRATE_P 0.13
 	param set MC_ROLLRATE_I 0.05
@@ -36,8 +38,6 @@ then
 	param set MC_YAWRATE_P 0.2
 	param set MC_YAWRATE_I 0.1
 	param set MC_YAWRATE_D 0.0
-
-	param set BAT_N_CELLS 4
 fi
 
 set MIXER quad_w

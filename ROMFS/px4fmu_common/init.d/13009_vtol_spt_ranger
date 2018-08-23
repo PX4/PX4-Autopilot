@@ -12,16 +12,6 @@ sh /etc/init.d/rc.vtol_defaults
 
 if [ $AUTOCNF == yes ]
 then
-	param set VT_TYPE 2
-	param set VT_MOT_COUNT 4
-	param set VT_IDLE_PWM_MC 1180
-	param set MAV_TYPE    22
-	param set VT_ARSP_TRANS   15.0
-	param set VT_B_TRANS_DUR  4.0
-	param set VT_TRANS_MIN_TM 5.0
-	param set VT_F_TRANS_THR    0.6
-	param set VT_TRANS_TIMEOUT    30.0
-
 	param set FW_AIRSPD_MAX   22.0
 	param set FW_AIRSPD_MIN   14.0
 	param set FW_AIRSPD_TRIM  16.0
@@ -33,20 +23,19 @@ then
 	param set FW_RR_P 0.04
 	param set FW_R_RMAX   40.0
 
-	param set MC_PITCHRATE_D  0.004
-	param set MC_PITCHRATE_I  0.0
-	param set MC_PITCHRATE_MAX    60.0
-	param set MC_PITCHRATE_P  0.21
-	param set MC_PITCH_P  4.0
-	param set MC_ROLLRATE_D   0.004
-	param set MC_ROLLRATE_I   0.002
+	param set MC_PITCHRATE_D 0.004
+	param set MC_PITCHRATE_I 0.0
+	param set MC_PITCHRATE_MAX 60.0
+	param set MC_PITCHRATE_P 0.21
+	param set MC_PITCH_P 4.0
+	param set MC_ROLLRATE_D 0.004
+	param set MC_ROLLRATE_I 0.002
 	param set MC_ROLLRATE_MAX 60.0
-	param set MC_ROLLRATE_P   0.24
-	param set MC_ROLL_P   4.0
-	param set MC_YAWRATE_I    0.02
-	param set MC_YAWRATE_MAX  40.0
-	param set MC_YAWRATE_P    0.18
-	param set MC_YAWRATE_MAX  40.0
+	param set MC_ROLLRATE_P 0.24
+	param set MC_ROLL_P 4.0
+	param set MC_YAWRATE_I 0.02
+	param set MC_YAWRATE_MAX 40.0
+	param set MC_YAWRATE_P 0.18
 	param set MC_YAWRAUTO_MAX 40.0
 
 	param set MIS_TAKEOFF_ALT 2.5
@@ -76,6 +65,18 @@ then
 	param set PWM_AUX_REV4    1
 
 	param set PWM_AUX_DIS5 950
+
+	param set PWM_RATE 400
+
+	param set VT_ARSP_TRANS   15.0
+	param set VT_B_TRANS_DUR  4.0
+	param set VT_F_TRANS_THR    0.6
+	param set VT_IDLE_PWM_MC 1180
+	param set VT_MOT_COUNT 4
+	param set VT_TRANS_MIN_TM 5.0
+	param set VT_TRANS_TIMEOUT    30.0
+	param set VT_TYPE 2
+
 fi
 
 set MAV_TYPE 22
@@ -84,4 +85,3 @@ set MIXER quad_x
 set MIXER_AUX vtol_AAERT
 
 set PWM_OUT 1234
-set PWM_RATE 400
