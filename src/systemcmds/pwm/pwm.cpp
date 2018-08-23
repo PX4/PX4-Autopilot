@@ -287,7 +287,6 @@ pwm_main(int argc, char *argv[])
 
 		case 'p':
 			pwm_value = get_parameter_value(myoptarg, "PWM Value");
-                printf("[pwm cli] pwm_value %d\n", pwm_value);
 
 			break;
 
@@ -550,7 +549,6 @@ pwm_main(int argc, char *argv[])
 		}
 
 		if (pwm_value < 0) {
-            printf("[pwm cli] return early as pwm_value < 0\n");
 			return 0;
 		}
 
@@ -587,18 +585,12 @@ pwm_main(int argc, char *argv[])
 			return 1;
 
 		} else {
-
-            printf("[pwm] set disarmed channel %d ...\n", pwm_values.channel_count);
 			ret = px4_ioctl(fd, PWM_SERVO_SET_DISARMED_PWM, (long unsigned int)&pwm_values);
 
 			if (ret != OK) {
-                printf("[pwm ioctl] failed setting disarmed values (%d)\n", ret);
-
 				PX4_ERR("failed setting disarmed values (%d)", ret);
 				return error_on_warn;
 			}
-            printf("[pwm ioctl] call pwm ioctl successfully. (%d)\n", ret);
-
 		}
 
 		return 0;

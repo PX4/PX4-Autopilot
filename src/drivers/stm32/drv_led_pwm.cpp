@@ -105,6 +105,7 @@ void led_pwm_servo_deinit(void);
 void led_pwm_servo_arm(bool armed);
 unsigned led_pwm_timer_get_period(unsigned timer);
 
+int led_pwm_servo_init_group_map(uint8_t timer_map, uint32_t channel_map);
 
 unsigned
 led_pwm_timer_get_period(unsigned timer)
@@ -171,12 +172,13 @@ led_pwm_channel_init(unsigned channel)
 	if (led_pwm_channels[channel].timer_channel) {
         
 		unsigned timer = led_pwm_channels[channel].timer_index;
-        printf("init lwd pwm timer #%d, channel #%d\n", timer, channel);
+        printf("init led pwm timer #%d, channel #%d\n", timer, channel);
 
 		/* configure the GPIO first */
 		px4_arch_configgpio(led_pwm_channels[channel].gpio_out);
 
-		uint16_t polarity = led_pwm_channels[channel].masks;
+        uint16_t polarity = 0; //led_pwm_channels[channel].masks;
+        printf("polarity for channel #%d: %d\n", channel, polarity);
 
 		/* configure the channel */
 		switch (led_pwm_channels[channel].timer_channel) {
@@ -254,6 +256,7 @@ led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 
 	return 0;
 }
+
 unsigned
 led_pwm_servo_get(unsigned channel)
 {
@@ -292,14 +295,15 @@ led_pwm_servo_get(unsigned channel)
 	unsigned period = led_pwm_timer_get_period(timer);
 	return ((value + 1) * 255 / period);
 }
+
 int
-led_pwm_servo_init(void)
+led_pwm_servo_init()
 {
 	/* do basic timer initialisation first */
 	for (unsigned i = 0; i < arraySize(led_pwm_timers); i++) {
 #if defined(BOARD_HAS_SHARED_PWM_TIMERS)
         printf("led io timer init.\n");
-		io_timer_init_timer(3);
+		io_timer_init_timer(i);
 #else
         printf("led pwm servo init.\n");
 		led_pwm_timer_init_timer(i);
@@ -313,6 +317,36 @@ led_pwm_servo_init(void)
 
 	led_pwm_servo_arm(true);
 	return OK;
+}
+
+int
+led_pwm_servo_init_group_map(uint8_t timer_map, uint32_t channel_map) {
+    if (timer_map == 0 || channel_map == 0) {
+        return -EINVAL;
+    }
+    
+    uint8_t tim_idx = 0;
+    while (((timer_map >> tim_idx) & 1) == 0) {
+        tim_idx ++;
+    }
+    
+    while (((1 << tim_idx) & timer_map) != 0) {
+        io_timer_init_timer(tim_idx);
+        tim_idx ++;
+    }
+    
+    uint8_t ch_idx = 0;
+    while ((channel_map & 1) == 0) {
+        channel_map >>= 1;
+    }
+
+    while (((1 << ch_idx) & channel_map) != 0) {
+        led_pwm_channel_init(ch_idx);
+        ch_idx ++;
+    }
+    
+    return OK;
+
 }
 
 void

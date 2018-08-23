@@ -41,4 +41,5 @@ px4_add_module(
 		circuit_breaker
 		mixer
 		pwm_limit
+        pwmgroups
 	)

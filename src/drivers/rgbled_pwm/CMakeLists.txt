@@ -38,4 +38,5 @@ px4_add_module(
 		rgbled_pwm.cpp
 	DEPENDS
 		led
+        pwmgroups
 	)

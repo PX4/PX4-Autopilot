@@ -25,3 +25,6 @@ fi
 
 # Set environment variables (!= parameters)
 set PWM_RATE 400
+
+#testing pwmgroups.
+set PWM_AUX_RATE 50

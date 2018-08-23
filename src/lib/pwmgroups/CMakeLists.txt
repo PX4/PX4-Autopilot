@@ -31,66 +31,9 @@
 #
 ############################################################################
 
-set(geometry_files
-	dodeca_bottom_cox.toml
-	dodeca_top_cox.toml
-	hex_cox.toml
-	hex_plus.toml
-	hex_t.toml
-	hex_x.toml
-	octa_cox.toml
-	octa_cox_wide.toml
-	octa_plus.toml
-	octa_x.toml
-	quad_deadcat.toml
-	quad_h.toml
-	quad_plus.toml
-	quad_s250aq.toml
-	quad_vtail.toml
-	quad_wide.toml
-	quad_x.toml
-	quad_x_pusher.toml
-	quad_y.toml
-	tri_y.toml
-	twin_engine.toml
+px4_add_library(pwmgroups
+	pwmgroups.cpp
+    staticpwmdevice.cpp
+    floatingpwmdevice.cpp
 )
 
-set(geometries_list)
-foreach(geom_file ${geometry_files})
-	list(APPEND geometries_list ${CMAKE_CURRENT_SOURCE_DIR}/geometries/${geom_file})
-endforeach()
-
-set(MIXER_TOOLS ${CMAKE_CURRENT_SOURCE_DIR}/geometries/tools)
-
-# generate mixers and normalize
-add_custom_command(
-	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h
-	COMMAND ${PYTHON_EXECUTABLE} ${MIXER_TOOLS}/px_generate_mixers.py -f ${geometries_list} -o mixer_multirotor.generated.h
-	DEPENDS ${MIXER_TOOLS}/px_generate_mixers.py ${geometries_list}
-	)
-add_custom_command(
-	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_normalized.generated.h
-	COMMAND ${PYTHON_EXECUTABLE} ${MIXER_TOOLS}/px_generate_mixers.py --normalize -f ${geometries_list} -o mixer_multirotor_normalized.generated.h
-	DEPENDS ${MIXER_TOOLS}/px_generate_mixers.py ${geometries_list}
-	)
-add_custom_target(mixer_gen DEPENDS mixer_multirotor.generated.h ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_normalized.generated.h)
-
-# 6DOF mixers
-add_custom_command(
-	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_6dof.generated.h
-	COMMAND ${PYTHON_EXECUTABLE} ${MIXER_TOOLS}/px_generate_mixers.py --sixdof -f ${geometries_list} -o mixer_multirotor_6dof.generated.h
-	DEPENDS ${MIXER_TOOLS}/px_generate_mixers.py ${geometries_list}
-	)
-add_custom_target(mixer_gen_6dof DEPENDS mixer_multirotor_6dof.generated.h)
-
-add_library(mixer
-	mixer.cpp
-	mixer_group.cpp
-	mixer_helicopter.cpp
-	mixer_load.c
-	mixer_multirotor.cpp
-	mixer_simple.cpp
-)
-target_include_directories(mixer PRIVATE ${PX4_BINARY_DIR}/src/lib/mixer)
-
-add_dependencies(mixer mixer_gen mixer_gen_6dof prebuild_targets)

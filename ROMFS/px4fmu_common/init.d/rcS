@@ -75,7 +75,7 @@ set PWM_AUX_DISARMED            p:PWM_AUX_DISARMED
 set PWM_AUX_MAX                 p:PWM_AUX_MAX
 set PWM_AUX_MIN                 p:PWM_AUX_MIN
 set PWM_AUX_OUT                 none
-set PWM_AUX_RATE                none
+set PWM_AUX_RATE                p:PWM_AUX_RATE
 set PWM_DISARMED                p:PWM_DISARMED
 set PWM_MAX                     p:PWM_MAX
 set PWM_MIN                     p:PWM_MIN
@@ -654,14 +654,7 @@ unset PWM_MIN
 unset USE_IO
 unset USE_ECU
 unset VEHICLE_TYPE
-<<<<<<< HEAD
-
-#
-# Boot is complete, inform MAVLink app(s) that the system is now fully up and running.
-#
-=======
 unset USE_PWM_LED
 
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running
->>>>>>> Unify MindPX and new MindRacer in one target
 mavlink boot_complete

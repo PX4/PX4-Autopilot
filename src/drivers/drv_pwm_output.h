@@ -62,6 +62,12 @@ __BEGIN_DECLS
 #define PWM_OUTPUT_BASE_DEVICE_PATH "/dev/pwm_output"
 #define PWM_OUTPUT0_DEVICE_PATH	"/dev/pwm_output0"
 
+#define PWM_HEATER_BASE_DEVICE_PATH "/dev/pwm_heater"
+#define PWM_HEATER0_DEVICE_PATH    "/dev/pwm_heater0"
+
+#define PWM_CAMERA_TRIGGER_BASE_DEVICE_PATH "/dev/pwm_camera_trigger"
+#define PWM_CAMERA_TRIGGER0_DEVICE_PATH "/dev/pwm_camera_trigger0"
+
 #define PWM_OUTPUT_MAX_CHANNELS 16
 
 struct pwm_output_values {

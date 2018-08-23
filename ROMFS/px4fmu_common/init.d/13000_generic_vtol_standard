@@ -34,3 +34,4 @@ set MIXER_AUX vtol_AAERT
 
 set PWM_OUT 1234
 set PWM_RATE 400
+
