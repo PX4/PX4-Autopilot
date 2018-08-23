@@ -63,6 +63,8 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/safety.h>
 
+#include <lib/pwmgroups/pwmgroups.h>
+
 #define SCHEDULE_INTERVAL	2000	/**< The schedule interval in usec (500 Hz) */
 
 #define IO_TIMER_ALL_MODES_CHANNELS 0
@@ -98,14 +100,15 @@ enum PortMode {
 #  error "board_config.h needs to define BOARD_HAS_PWM"
 #endif
 
-#ifdef BOARD_HAS_ECU_PWM
 //                               7 . MAX_IO_TIMER .0
 //                               |     |           |
 //timer occupation map for FMU, [0, 0, 0, 1, 1, 0, 0]
 __EXPORT extern const uint8_t aux_group_timer_map;
-#endif
+__EXPORT extern const uint32_t aux_group_channel_map;
+__EXPORT extern const uint8_t main_group_timer_map;
+__EXPORT extern const uint32_t main_group_channel_map;
 
-class PX4FMU : public device::CDev, public ModuleBase<PX4FMU>
+class PX4FMU : public StaticPwmDevice, public ModuleBase<PX4FMU>
 {
 public:
 	enum Mode {
@@ -174,6 +177,7 @@ public:
 					   uint32_t overflow);
 
 	void update_pwm_trims();
+    int set_pwm_channel_rates (uint16_t alt_rate, uint16_t default_rate);
 
 private:
 	enum class MotorOrdering : int32_t {
@@ -306,7 +310,7 @@ actuator_armed_s	PX4FMU::_armed = {};
 work_s	PX4FMU::_work = {};
 
 PX4FMU::PX4FMU(bool run_as_task) :
-	CDev("fmu", PX4FMU_DEVICE_PATH),
+	StaticPwmDevice("fmu", PX4FMU_DEVICE_PATH),
 	_mode(MODE_NONE),
 	_pwm_default_rate(50),
 	_pwm_alt_rate(50),
@@ -421,9 +425,22 @@ PX4FMU::init()
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
         //be verbose to avoid confuse as ecu may also be presented as primary device.
         PX4_INFO("default PWM output device");
+        _group_timer_map = main_group_timer_map;
+        _group_channel_map = main_group_channel_map;
+        _timer_map_offset = group_timer_map_offset(main_group_timer_map);
+        _channel_map_offset = group_channel_map_offset(main_group_channel_map);
+
 	} else if (_class_instance < 0) {
 		PX4_ERR("FAILED registering class device");
 	}
+    else {
+        _group_timer_map = aux_group_timer_map;
+        _group_channel_map = aux_group_channel_map;
+        _timer_map_offset = group_timer_map_offset(aux_group_timer_map);
+        printf("[fmu] aux_group_channel_map 0x%04X\n", aux_group_channel_map);
+        _channel_map_offset = group_channel_map_offset(aux_group_channel_map);
+
+    }
     
 	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
 
@@ -439,6 +456,10 @@ PX4FMU::init()
 	// Getting initial parameter values
 	update_params();
 
+    //set working pwm low/up limits.
+    _working_pwm_rate_up_limit = 400;
+    _working_pwm_rate_low_limit = 10;
+    
 	return 0;
 }
 
@@ -680,15 +701,15 @@ PX4FMU::set_mode(Mode mode)
 	default:
 		return -EINVAL;
 	}
-
-#ifdef BOARD_HAS_ECU_PWM
-    //_pwm_alt_rate_channels = _pwm_alt_rate_channels << 8;
-    //_pwm_mask = _pwm_mask << 8;
-#endif
     
 	_mode = mode;
-    printf ("[fmu] _mode = %dPWM\n", _mode);
-	return OK;
+    
+    //mode set, register channel resource to global channel map;
+    set_pwm_rate_map(_pwm_alt_rate_channels);
+    _working_channel_map = _pwm_alt_rate_channels << _channel_map_offset;
+    printf ("[fmu] working mode: %dPWM working channel map = 0x%04X\n", _mode, _working_channel_map);
+
+    return OK;
 }
 
 /* When set_pwm_rate is called from either of the 2 IOCTLs:
@@ -717,6 +738,7 @@ PX4FMU::set_mode(Mode mode)
  *                                    For Oneshot there is no rate, 0 is therefore used
  *                                    to  select Oneshot mode
  */
+/*
 int
 PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate)
 {
@@ -730,19 +752,6 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 
 	for (unsigned pass = 0; pass < 2; pass++) {
 
-		/* We should note that group is iterated over from 0 to _max_actuators.
-		 * This allows for the ideal worlds situation: 1 channel per group
-		 * configuration.
-		 *
-		 * This is typically not what HW supports. A group represents a timer
-		 * and channels belongs to a timer.
-		 * Therefore all channels in a group are dependent on the timer's
-		 * common settings and can not be independent in terms of count frequency
-		 * (granularity of pulse width) and rate (period of repetition).
-		 *
-		 * To say it another way, all channels in a group moust have the same
-		 * rate and mode. (See rates above.)
-		 */
 #ifndef BOARD_HAS_ECU_PWM
 		for (unsigned group = 0; group < _max_actuators; group++) {
 
@@ -803,7 +812,85 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 
 	return OK;
 }
+*/
 
+int
+PX4FMU::set_pwm_channel_rates (uint16_t alt_rate, uint16_t default_rate) {
+    
+    PX4_DEBUG("set_pwm_rate %x %u %u", _channel_rate_map, default_rate, alt_rate);
+    
+    //uint32_t global_rate_map = rate_map << 8;
+    
+    for (unsigned pass = 0; pass < 2; pass++) {
+        
+        /* We should note that group is iterated over from 0 to _max_actuators.
+         * This allows for the ideal worlds situation: 1 channel per group
+         * configuration.
+         *
+         * This is typically not what HW supports. A group represents a timer
+         * and channels belongs to a timer.
+         * Therefore all channels in a group are dependent on the timer's
+         * common settings and can not be independent in terms of count frequency
+         * (granularity of pulse width) and rate (period of repetition).
+         *
+         * To say it another way, all channels in a group moust have the same
+         * rate and mode. (See rates above.)
+         */
+        uint8_t group = _timer_map_offset;
+ 
+        while (((1 << group) & _group_timer_map) != 0) {
+            //group timers has to be allocated continously.
+            //only set groups/timers ecu owns.
+            // get the channel mask for this rate group
+            uint32_t mask = up_pwm_servo_get_rate_group(group);
+            
+            if (mask == 0) {
+                group++;
+                continue;
+            }
+            
+            // all channels in the group must be either default or alt-rate
+            uint32_t alt = _channel_rate_map & mask;
+            
+            if (pass == 0) {
+                // preflight
+                if ((alt != 0) && (alt != mask)) {
+                    PX4_WARN("rate group %u mask %x bad overlap %x", group, mask, alt);
+                    // not a legal map, bail
+                    return -EINVAL;
+                }
+                
+            } else {
+                // set it - errors here are unexpected
+                if (alt != 0) {
+                    printf ("[ecu] set group %d to alt_rate %d\n", group, alt_rate);
+                    if (up_pwm_servo_set_rate_group_update(group, alt_rate) != OK) {
+                        PX4_WARN("rate group set alt failed");
+                        return -EINVAL;
+                    }
+                    
+                } else {
+                    printf ("[ecu] set group %d to default_rate %d\n", group, default_rate);
+                    if (up_pwm_servo_set_rate_group_update(group, default_rate) != OK) {
+                        PX4_WARN("rate group set default failed");
+                        return -EINVAL;
+                    }
+                }
+            }
+            group ++;
+        }
+    }
+    
+    _pwm_default_rate = default_rate;
+    _pwm_alt_rate = alt_rate;
+    _default_rate = default_rate;
+    _pwm_alt_rate = _pwm_alt_rate;
+
+    return OK;
+    
+}
+
+/*
 int
 PX4FMU::set_pwm_alt_rate(unsigned rate)
 {
@@ -815,6 +902,7 @@ PX4FMU::set_pwm_alt_channels(uint32_t channels)
 {
 	return set_pwm_rate(channels, _pwm_default_rate, _pwm_alt_rate);
 }
+*/
 
 int
 PX4FMU::set_i2c_bus_clock(unsigned bus, unsigned clock_hz)
@@ -926,6 +1014,7 @@ PX4FMU::update_pwm_trims()
 	}
 }
 
+/*
 void
 PX4FMU::pwm_output_set(unsigned i, unsigned value)
 {
@@ -942,7 +1031,8 @@ PX4FMU::pwm_output_set(unsigned i, unsigned value)
          up_pwm_servo_set(i, value);
     }
 }
-    
+*/
+
 int
 PX4FMU::task_spawn(int argc, char *argv[])
 {
@@ -1057,14 +1147,13 @@ void
 PX4FMU::update_pwm_out_state(bool on)
 {
 	if (on && !_pwm_initialized && _pwm_mask != 0) {
-#ifdef BOARD_HAS_ECU_PWM
-        up_pwm_servo_init(_pwm_mask << 8, 0);
+        up_pwm_servo_init(_working_channel_map, 0);
         //_pwm_alt_rate_channels = _pwm_alt_rate_channels << 8;
-#endif
-		//up_pwm_servo_init(0xF00F, 0);
-        up_pwm_servo_init(_pwm_mask, 0);
-        printf("fmu init pwm out state rate map: 0x%04X\n", _pwm_alt_rate_channels);
-		set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, _pwm_alt_rate);
+        printf("[fmu] init pwm out channel alt rate map: 0x%04X\n", _pwm_alt_rate_channels);
+        set_pwm_channel_rates (_pwm_alt_rate, _pwm_default_rate);
+        if (register_working_channels() != OK) {
+            return;
+        }
 		_pwm_initialized = true;
 	}
 
@@ -1237,11 +1326,12 @@ PX4FMU::cycle()
 				reorder_outputs(pwm_limited);
 
 				/* output to the servos */
-				if (_pwm_initialized) {
-					for (size_t i = 0; i < mixed_num_outputs; i++) {
-						pwm_output_set(i, pwm_limited[i]);
-					}
-				}
+                if (_pwm_initialized) {
+                    for (size_t i = 0; i < mixed_num_outputs; i++) {
+                        //pwm_output_set(i, pwm_limited[i]);
+                        set_pwm_channel_value_single(i, pwm_limited[i]);
+                    }
+                }
 
 				/* Trigger all timer's channels in Oneshot mode to fire
 				 * the oneshots with updated values.
@@ -1355,7 +1445,6 @@ PX4FMU::cycle()
 
 		if (_pwm_on != pwm_on) {
 			_pwm_on = pwm_on;
-            printf("[fmu] aux pwm initialize disarmed ...\n");
 			update_pwm_out_state(pwm_on);
 		}
 
@@ -1557,9 +1646,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_DISARM:
-
-            printf("[fmu] set pmw servo disarm\n");
-		/* Ignore disarm if disarmed PWM is set already. */
+ 		/* Ignore disarm if disarmed PWM is set already. */
 		if (_num_disarmed_set == 0) {
 			update_pwm_out_state(false);
 		}
@@ -1571,7 +1658,8 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_SET_UPDATE_RATE:
-		ret = set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, arg);
+            //ret = set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, arg);
+            ret = set_pwm_channel_rates (arg, _pwm_default_rate);
             printf("[fmu] rate updated.\n");
 
 		break;
@@ -1581,8 +1669,11 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
-            printf("[fmu] select rate updated.\n");
-		ret = set_pwm_rate(arg, _pwm_default_rate, _pwm_alt_rate);
+            printf("[fmu] pwm servo set select update rate channel map: 0x%04X\n", arg);
+            _pwm_alt_rate_channels = arg;
+            set_pwm_rate_map (_pwm_alt_rate_channels);
+            _working_channel_map = _pwm_alt_rate_channels << _channel_map_offset;
+            ret = set_pwm_channel_rates (_pwm_alt_rate, _pwm_default_rate);
 		break;
 
 	case PWM_SERVO_GET_SELECT_UPDATE_RATE:
@@ -1649,7 +1740,6 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_SET_DISARMED_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
-        printf("[fmu] pwm set channel count: %d\n", pwm->channel_count);
 			/* discard if too many values are sent */
 			if (pwm->channel_count > _max_actuators) {
 				ret = -EINVAL;
@@ -1683,9 +1773,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			_num_disarmed_set = 0;
  			for (unsigned i = 0; i < _max_actuators; i++) {
 				if (_disarmed_pwm[i] > 0) {
-                    printf("[fmu] _num_disarmed_set: %d\n", _num_disarmed_set);
-
-					_num_disarmed_set++;
+ 					_num_disarmed_set++;
 				}
 			}
 
@@ -1870,7 +1958,10 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_SET(1):
 	case PWM_SERVO_SET(0):
 		if (arg <= 2100) {
-			pwm_output_set(cmd - PWM_SERVO_SET(0), arg);
+			//pwm_output_set(cmd - PWM_SERVO_SET(0), arg);
+            if (_pwm_initialized) {
+                set_pwm_channel_value_single(cmd - PWM_SERVO_SET(0), arg);
+            }
 
 		} else {
 			ret = -EINVAL;
@@ -2225,13 +2316,17 @@ PX4FMU::write(file *filp, const char *buffer, size_t len)
     
     printf("[fmu] write pwm values\n");
 
+    if (_pwm_initialized) {
+        
 	for (unsigned i = 0; i < _num_outputs; i++) {
 		if (values[i] != PWM_IGNORE_THIS_CHANNEL) {
-			pwm_output_set(i, values[i]);
+			//pwm_output_set(i, values[i]);
+            set_pwm_channel_value_single(i, values[i]);
 
 		}
 	}
-
+    }
+    
 	return count * 2;
 }
 
