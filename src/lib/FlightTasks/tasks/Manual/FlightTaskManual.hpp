@@ -76,6 +76,7 @@ private:
 					(ParamFloat<px4::params::MPC_Z_MAN_EXPO>)
 					_z_vel_man_expo, /**< ratio of exponential curve for stick input in z direction */
 					(ParamFloat<px4::params::MPC_YAW_EXPO>)
-					_yaw_expo /**< ratio of exponential curve for stick input in yaw for modes except acro */
+					_yaw_expo, /**< ratio of exponential curve for stick input in yaw for modes except acro */
+					(ParamFloat<px4::params::COM_RC_LOSS_T>) COM_RC_LOSS_T /**< time at which commander considers RC lost */
 				       )
 };
