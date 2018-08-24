@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +37,7 @@
  * @author Greg Hulands
  * @author Ayush Gaud <ayush.gaud@gmail.com>
  * @author Christoph Tobler <christoph@px4.io>
+ * @author Mohammed Kabir <mhkabir@mit.edu>
  *
  * Driver for the Benewake TFmini laser rangefinder series
  */
@@ -58,6 +59,9 @@
 #include <math.h>
 #include <unistd.h>
 #include <termios.h>
+#ifdef __PX4_CYGWIN
+#include <asm/socket.h>
+#endif
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
@@ -517,8 +521,6 @@ TFMINI::read(device::file_t *filp, char *buffer, size_t buflen)
 int
 TFMINI::collect()
 {
-	int	ret;
-
 	perf_begin(_sample_perf);
 
 	/* clear buffer if last read was too long ago */
@@ -528,43 +530,55 @@ TFMINI::collect()
 	char readbuf[sizeof(_linebuf)];
 	unsigned readlen = sizeof(readbuf) - 1;
 
-	/* read from the sensor (uart buffer) */
-	ret = ::read(_fd, &readbuf[0], readlen);
-
-	if (ret < 0) {
-		PX4_ERR("read err: %d", ret);
-		perf_count(_comms_errors);
-		perf_end(_sample_perf);
-
-		/* only throw an error if we time out */
-		if (read_elapsed > (_conversion_interval * 2)) {
-			return ret;
-
-		} else {
-			return -EAGAIN;
-		}
-
-	} else if (ret == 0) {
-		return -EAGAIN;
-	}
-
-	_last_read = hrt_absolute_time();
-
+	int ret = 0;
 	float distance_m = -1.0f;
-	bool valid = false;
 
-	for (int i = 0; i < ret; i++) {
-		if (OK == tfmini_parser(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &distance_m)) {
-			valid = true;
-		}
-	}
+	/* Check the number of bytes available in the buffer*/
+	int bytes_available = 0;
+	::ioctl(_fd, FIONREAD, (unsigned long)&bytes_available);
 
-	if (!valid) {
+	if(!bytes_available) {
 		return -EAGAIN;
 	}
 
-	DEVICE_DEBUG("val (float): %8.4f, raw: %s, valid: %s", (double)distance_m, _linebuf, ((valid) ? "OK" : "NO"));
+	/* parse entire buffer */
+	do {
+		/* read from the sensor (uart buffer) */
+		ret = ::read(_fd, &readbuf[0], readlen);
 
+		if (ret < 0) {
+			PX4_ERR("read err: %d", ret);
+			perf_count(_comms_errors);
+			perf_end(_sample_perf);
+
+			/* only throw an error if we time out */
+           	if (read_elapsed > (_conversion_interval * 2)) {
+           		/* flush anything in RX buffer */
+				tcflush(_fd, TCIFLUSH);
+                return ret;
+            } else {
+				return -EAGAIN;
+			}
+		}
+
+		_last_read = hrt_absolute_time();
+
+		/* parse buffer */
+		for (int i = 0; i < ret; i++) {
+			tfmini_parse(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &distance_m);
+		}
+
+		/* bytes left to parse */
+		bytes_available -= ret;
+
+	} while (bytes_available > 0);
+
+	/* no valid measurement after parsing buffer */
+	if (distance_m < 0.0f) {
+		return -EAGAIN;
+	}
+
+	/* publish most recent valid measurement from buffer */
 	struct distance_sensor_s report;
 
 	report.timestamp = hrt_absolute_time();
