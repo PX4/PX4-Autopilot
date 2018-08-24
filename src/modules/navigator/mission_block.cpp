@@ -54,6 +54,8 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
+#include <drivers/drv_pwm_output.h>
+
 using matrix::wrap_pi;
 
 MissionBlock::MissionBlock(Navigator *navigator) :
@@ -444,9 +446,15 @@ MissionBlock::issue_command(const mission_item_s &item)
 		actuator_controls_s actuators = {};
 		actuators.timestamp = hrt_absolute_time();
 
+		// Copying actual AUX values to change only one output
+		// and leave others as they are
+		orb_copy(ORB_ID(actuator_controls_2), _t_actuator_controls_2,
+			 &actuators);
+
 		// params[0] actuator number to be set 0..5 (corresponds to AUX outputs 1..6)
 		// params[1] new value for selected actuator in ms 900...2000
-		actuators.control[(int)item.params[0]] = 1.0f / 2000 * -item.params[1];
+		actuators.control[(int)item.params[0]] =
+			(float)(((float)item.params[1] - (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2));
 
 		_actuator_pub.publish(actuators);
 
