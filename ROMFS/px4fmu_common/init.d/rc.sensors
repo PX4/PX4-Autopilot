@@ -398,6 +398,12 @@ then
 	ll40ls start i2c
 fi
 
+# pga460 sonar sensor
+if param greater SENS_EN_PGA460 0
+then
+	pga460 start
+fi
+
 # Lightware serial lidar sensor
 if param greater SENS_EN_SF0X 0
 then
