@@ -93,6 +93,9 @@ public:
 
 private:
 
+	static constexpr float _airspeed_numerical_min =
+		0.5f; /**< lowest airspeed we will ever use to prevent numerical problems */
+
 	int		_att_sub{-1};				/**< vehicle attitude */
 	int		_att_sp_sub{-1};			/**< vehicle attitude setpoint */
 	int		_rates_sp_sub{-1};			/**< vehicle attitude setpoint */
@@ -202,6 +205,7 @@ private:
 		float rattitude_thres;
 
 		int32_t vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
+		int32_t vtol_airspeed_rule;
 
 		int32_t bat_scale_en;			/**< Battery scaling enabled */
 		bool airspeed_disabled;
@@ -271,6 +275,7 @@ private:
 		param_t rattitude_thres;
 
 		param_t vtol_type;
+		param_t vtol_airspeed_rule;
 
 		param_t bat_scale_en;
 		param_t airspeed_mode;
@@ -296,5 +301,5 @@ private:
 	void		global_pos_poll();
 	void		vehicle_status_poll();
 	void		vehicle_land_detected_poll();
-
+	float 		get_airspeed_scaling(float airspeed);
 };

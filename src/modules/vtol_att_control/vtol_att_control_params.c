@@ -352,3 +352,14 @@ PARAM_DEFINE_INT32(VT_FW_DIFTHR_EN, 0);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_SC, 0.1f);
+
+/**
+ * Airspeed rules regarding fixed wing control surface scaling.
+ *
+ * @value 0 No special rules
+ * @value 1 During hover (excluding transitions) use the lowest possible airspeed value.
+ * @min 0.0
+ * @increment 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_AIRSPD_RULE, 0);

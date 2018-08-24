@@ -116,6 +116,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	// initialize to invalid VTOL type
 	_parameters.vtol_type = -1;
+	_parameters.vtol_airspeed_rule = 0;
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -209,6 +210,7 @@ FixedwingAttitudeControl::parameters_update()
 
 	if (_vehicle_status.is_vtol) {
 		param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
+		param_get(_parameter_handles.vtol_airspeed_rule, &_parameters.vtol_airspeed_rule);
 	}
 
 	param_get(_parameter_handles.bat_scale_en, &_parameters.bat_scale_en);
@@ -409,6 +411,7 @@ FixedwingAttitudeControl::vehicle_status_poll()
 				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
 
 				_parameter_handles.vtol_type = param_find("VT_TYPE");
+				_parameter_handles.vtol_airspeed_rule = param_find("VT_AIRSPD_RULE");
 
 				parameters_update();
 
@@ -434,6 +437,29 @@ FixedwingAttitudeControl::vehicle_land_detected_poll()
 			_landed = vehicle_land_detected.landed;
 		}
 	}
+}
+
+float FixedwingAttitudeControl::get_airspeed_scaling(float airspeed)
+{
+	// check if we have special airspeed rules for vtol
+	if (_vehicle_status.is_vtol && _parameters.vtol_airspeed_rule > 0) {
+
+		// always use minimum airspeed during hover
+		if (_parameters.vtol_airspeed_rule == 1 && _vehicle_status.is_rotary_wing &&
+		    !_vehicle_status.in_transition_mode) {
+			airspeed = _airspeed_numerical_min;
+		}
+	}
+
+	/*
+	 * For scaling our actuators using anything less than the min (close to stall)
+	 * speed doesn't make any sense - its the strongest reasonable deflection we
+	 * want to do in flight and its the baseline a human pilot would choose.
+	 *
+	 * Forcing the scaling to this value allows reasonable handheld tests.
+	 */
+	return _parameters.airspeed_trim / ((airspeed < _parameters.airspeed_min) ? _parameters.airspeed_min :
+					    airspeed);
 }
 
 void FixedwingAttitudeControl::run()
@@ -599,6 +625,7 @@ void FixedwingAttitudeControl::run()
 
 			/* decide if in stabilized or full manual control */
 			if (_vcontrol_mode.flag_control_rates_enabled) {
+
 				/* scale around tuning airspeed */
 				float airspeed;
 
@@ -609,7 +636,7 @@ void FixedwingAttitudeControl::run()
 
 				if (!_parameters.airspeed_disabled && airspeed_valid) {
 					/* prevent numerical drama by requiring 0.5 m/s minimal speed */
-					airspeed = math::max(0.5f, _airspeed_sub.get().indicated_airspeed_m_s);
+					airspeed = math::max(_airspeed_numerical_min, _airspeed_sub.get().indicated_airspeed_m_s);
 
 				} else {
 					airspeed = _parameters.airspeed_trim;
@@ -619,19 +646,7 @@ void FixedwingAttitudeControl::run()
 					}
 				}
 
-				if (_vehicle_status.in_transition_mode || !_vehicle_status.is_rotary_wing) {
-					airspeed = _parameters.airspeed_max;
-				}
-
-				/*
-				 * For scaling our actuators using anything less than the min (close to stall)
-				 * speed doesn't make any sense - its the strongest reasonable deflection we
-				 * want to do in flight and its the baseline a human pilot would choose.
-				 *
-				 * Forcing the scaling to this value allows reasonable handheld tests.
-				 */
-				float airspeed_scaling = _parameters.airspeed_trim / ((airspeed < _parameters.airspeed_min) ? _parameters.airspeed_min :
-							 airspeed);
+				float airspeed_scaling = get_airspeed_scaling(airspeed);
 
 				/* Use min airspeed to calculate ground speed scaling region.
 				 * Don't scale below gspd_scaling_trim
