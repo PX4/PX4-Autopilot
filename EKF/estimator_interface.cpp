@@ -376,9 +376,10 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 		// check quality metric
 		bool flow_quality_good = (flow->quality >= _params.flow_qual_min);
 
-		// Always use data when on ground to allow for bad quality due to unfocussed sensors and operator handling
-		// If flow quality fails checks on ground, assume zero flow rate after body rate compensation
-		if ((delta_time_good && flow_quality_good && (flow_magnitude_good || relying_on_flow)) || !_control_status.flags.in_air) {
+		// Check data validity and write to buffers
+		// Use a zero velocity assumption to constrain drift when on-ground if necessary
+		float use_flow_data_to_navigate = delta_time_good && flow_quality_good && (flow_magnitude_good || relying_on_flow);
+		if (use_flow_data_to_navigate || (!_control_status.flags.in_air && relying_on_flow)) {
 			flowSample optflow_sample_new;
 			// calculate the system time-stamp for the trailing edge of the flow data integration period
 			optflow_sample_new.time_us = time_usec - _params.flow_delay_ms * 1000;
@@ -386,10 +387,20 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 			// copy the quality metric returned by the PX4Flow sensor
 			optflow_sample_new.quality = flow->quality;
 
-			// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate is produced by a RH rotation of the image about the sensor axis.
 			// copy the optical and gyro measured delta angles
+			// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate
+			// is produced by a RH rotation of the image about the sensor axis.
 			optflow_sample_new.gyroXYZ = - flow->gyrodata;
-			optflow_sample_new.flowRadXY = - flow->flowdata;
+
+			// If flow quality checks are failed, then we are on ground without another method of navigation
+			// and can use a zero velocity assumption to constrain drift
+			if (!use_flow_data_to_navigate) {
+				// set flow rates to value consistent with pure rotational motion
+				optflow_sample_new.flowRadXY(0) = - flow->gyrodata(0);
+				optflow_sample_new.flowRadXY(1) = - flow->gyrodata(1);
+			} else {
+				optflow_sample_new.flowRadXY = -flow->flowdata;
+			}
 
 			// convert integration interval to seconds
 			optflow_sample_new.dt = delta_time;
