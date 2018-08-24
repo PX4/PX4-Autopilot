@@ -42,7 +42,9 @@
 #include "output.h"
 
 #include <uORB/uORB.h>
+#include <uORB/topics/actuator_controls.h>
 
+float abs_float(float val);
 
 namespace vmount
 {
@@ -63,8 +65,12 @@ public:
 	virtual void print_status();
 
 private:
+	int _t_actuator_controls_2;	///< actuator controls group 2 topic
 	orb_advert_t _actuator_controls_pub = nullptr;
 	bool _retract_gimbal = true;
+	actuator_controls_s _prev_inputed_actuator_controls;
+	actuator_controls_s _current_actuator_controls_from_topic;
+	float _actuator_changed_epsilon = 0.005;
 };
 
 
