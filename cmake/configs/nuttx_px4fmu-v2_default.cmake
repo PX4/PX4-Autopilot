@@ -174,4 +174,8 @@ set(config_module_list
 	#examples/hwtest
 )
 
+# Remove none-core FlightTask
 set(flight_tasks_to_remove Orbit)
+
+# This will set flighttask core to minimum core.
+set(flight_tasks_minimum_core true CACHE BOOL "Sets core flighttask to minimum.")

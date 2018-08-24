@@ -146,10 +146,56 @@ const T gradual(const T &value, const T &x_low, const T &x_high, const T &y_low,
 
 	} else {
 		/* linear function between the two points */
-		float a = (y_high - y_low) / (x_high - x_low);
-		float b = y_low - a * x_low;
+		T a = (y_high - y_low) / (x_high - x_low);
+		T b = y_low - a * x_low;
 		return  a * value + b;
 	}
+}
+
+/*
+ * Returns an appropriate velocity depending on the angle between 3 waypoints (e.g. position triplet)
+ * angle goes from 0 to 2 with 0 = large angle, 2 = small angle:   0 = PI ; 2 = PI*0
+ *
+ */
+template<typename T>
+const T getVelocityFromAngle(const T &angle, const T &speed_min, const T &speed_mid, const T &speed_max)
+{
+	T SIGMA_NORM = (T)0.001;
+
+	// If middle cruise speed is exactly in the middle, then compute speed linearly.
+	bool use_linear_approach = false;
+
+	if (((speed_max + speed_min) * (T)0.5) - speed_mid < SIGMA_NORM) {
+		use_linear_approach = true;
+	}
+
+	// compute speed sp at target
+	T speed_close;
+
+	if (use_linear_approach) {
+
+		// velocity close to target adjusted to angle:
+		// vel_close =  m*x+q
+		float slope = -(speed_max - speed_min) / (T)2.0;
+		speed_close = slope * angle + speed_max;
+
+	} else {
+
+		// Speed close to target adjusted to angle x.
+		// speed_close = a *b ^x + c; where at angle x = 0 -> speed_close = cruise; angle x = 1 -> speed_close = speed_mid (this means that at 90degrees
+		// the velocity at target is speed_mid);
+		// angle x = 2 -> speed_close = min_cruising_speed
+
+		// from maximum cruise speed, minimum cruise speed and middle cruise speed compute constants a, b and c
+		T a = -((speed_mid - speed_max) * (speed_mid - speed_max))
+		      / ((T)2.0 * speed_mid - speed_max - speed_min);
+		T c = speed_max - a;
+		T b = (speed_mid - c) / a;
+		speed_close = a * powf(b, angle) + c;
+	}
+
+	// speed_close needs to be in between max and min
+	return constrain(speed_close, speed_min, speed_max);
 }
 
 } /* namespace math */

@@ -136,3 +136,6 @@ set(config_module_list
 	## Hardware test
 	#examples/hwtest
 )
+
+# This will set flighttask core to minimum core.
+set(flight_tasks_minimum_core true CACHE BOOL "Sets core flighttask to minimum.")

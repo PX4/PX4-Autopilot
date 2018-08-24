@@ -39,8 +39,9 @@
 #include <mathlib/mathlib.h>
 #include <float.h>
 
-#define VEL_ZERO_THRESHOLD 0.001f // Threshold to compare if the target velocity is zero
-#define DECELERATION_MAX 8.0f     // The vehicles maximum deceleration TODO check to create param
+static constexpr float VEL_ZERO_THRESHOLD = 0.001f; // Threshold to compare if the target velocity is zero
+static constexpr float  DECELERATION_MAX = 8.0f;     // The vehicles maximum deceleration TODO check to create param
+static constexpr float TARGET_REACHED_THRESHOLD = 1.0f; // Threshold to compare if the target position has been reached
 
 using namespace matrix;
 
@@ -55,7 +56,7 @@ void StraightLine::generateSetpoints(matrix::Vector3f &position_setpoint, matrix
 {
 	// Check if target position has been reached
 	if (_desired_speed_at_target < VEL_ZERO_THRESHOLD &&
-	    (_pos - _target).length() < NAV_ACC_RAD.get()) {
+	    velocity_setpoint.length() < 0.1f && (_target - position_setpoint).length() < TARGET_REACHED_THRESHOLD) {
 		// Vehicle has reached target. Lock position
 		position_setpoint = _target;
 		velocity_setpoint = Vector3f(0.0f, 0.0f, 0.0f);
@@ -63,8 +64,10 @@ void StraightLine::generateSetpoints(matrix::Vector3f &position_setpoint, matrix
 		return;
 	}
 
-	// unit vector in the direction of the straight line
-	Vector3f u_orig_to_target = (_target - _origin).unit_or_zero();
+	// vector in the direction of the straight line
+	Vector3f orig_to_target = (_target - _origin);
+	Vector3f u_orig_to_target = orig_to_target.unit_or_zero();
+
 	// vector from origin to current position
 	Vector3f orig_to_pos = _pos - _origin;
 	// current position projected perpendicularly onto desired line
@@ -75,7 +78,11 @@ void StraightLine::generateSetpoints(matrix::Vector3f &position_setpoint, matrix
 	// Calculate accelerating/decelerating distance depending on speed, speed at target and acceleration/deceleration
 	float acc_dec_distance = fabs((_desired_speed * _desired_speed) - (_desired_speed_at_target *
 				      _desired_speed_at_target)) / 2.0f;
+
 	acc_dec_distance /= _desired_speed > _desired_speed_at_target ? _desired_deceleration : _desired_acceleration;
+
+	// Make sure that there is a feed-forward speed
+	acc_dec_distance = math::min(acc_dec_distance, orig_to_target.length() / 2.0f);
 
 	float dist_to_target = (_target - _pos).length(); // distance to target
 
