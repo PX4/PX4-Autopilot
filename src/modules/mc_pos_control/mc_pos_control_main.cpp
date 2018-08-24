@@ -159,7 +159,7 @@ private:
 	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500000;
 	/**< number of tries before switching to a failsafe flight task */
 	static constexpr int NUM_FAILURE_TRIES = 10;
-	/**< If Flighttask fails, keep 1s the current setpoint before going into failsafe land */
+	/**< If Flighttask fails, keep 0.2 seconds the current setpoint before going into failsafe land */
 	static constexpr uint64_t LOITER_TIME_BEFORE_DESCEND = 200000;
 
 
@@ -884,15 +884,12 @@ MulticopterPositionControl::start_flight_task()
 		// for some reason no flighttask was able to start.
 		// go into failsafe flighttask
 		int error = _flight_tasks.switchTask(FlightTaskIndex::Failsafe);
-		task_failure = false;
 
 		if (error != 0) {
 			// No task was activated.
 			_flight_tasks.switchTask(FlightTaskIndex::None);
-
 		}
 	}
-
 }
 
 void
