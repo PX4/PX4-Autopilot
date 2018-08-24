@@ -59,7 +59,7 @@
 
 #if defined(PX4_I2C_BUS_ONBOARD) || defined(PX4_I2C_BUS_EXPANSION)
 
-#define RM3100_ADDRESS		0x21
+#define RM3100_ADDRESS		0x20
 
 #define DIR_READ		(1<<7)
 #define DIR_WRITE		(0<<7)
@@ -143,18 +143,8 @@ RM3100_I2C::probe()
 int
 RM3100_I2C::read(unsigned address, void *data, unsigned count)
 {
-	int ret;
-
-	/* We need a first transfer where we write the register to read with the read flag */
 	uint8_t cmd = address | DIR_READ;
-	ret =  transfer(&cmd, 1, nullptr, 0);
-
-	if (ret != OK) {
-		return ret;
-	}
-
-	/* Now we read directly the previously selected register */
-	return transfer(nullptr, 0, (uint8_t *)data, count);
+	return transfer(&cmd, 1, (uint8_t *)data, count);
 }
 
 int
