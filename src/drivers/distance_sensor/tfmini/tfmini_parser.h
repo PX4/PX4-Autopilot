@@ -69,4 +69,4 @@ enum TFMINI_PARSE_STATE {
 	TFMINI_PARSE_STATE6_GOT_CHECKSUM
 };
 
-int tfmini_parser(char c, char *parserbuf, unsigned *parserbuf_index, enum TFMINI_PARSE_STATE *state, float *dist);
+int tfmini_parse(char c, char *parserbuf, unsigned *parserbuf_index, enum TFMINI_PARSE_STATE *state, float *dist);
