@@ -134,7 +134,7 @@ endif()
 if (TARGET parameters_xml AND TARGET airframes_xml)
 	add_custom_command(OUTPUT ${fw_file}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_mkfw.py
-			--prototype ${PX4_SOURCE_DIR}/platforms/nuttx/Images/${FW_PROTOTYPE}.prototype
+			--prototype ${PX4_SOURCE_DIR}/src/platforms/nuttx/Images/${FW_PROTOTYPE}.prototype
 			--git_identity ${PX4_SOURCE_DIR}
 			--parameter_xml ${PX4_BINARY_DIR}/parameters.xml
 			--airframe_xml ${PX4_BINARY_DIR}/airframes.xml
@@ -147,7 +147,7 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 
 	# upload helper
 	if (${BOARD} STREQUAL "aerofc-v1")
-		
+
 		# TODO: should be set only in aero config
 		add_custom_target(upload
 			COMMAND ${PX4_SOURCE_DIR}/Tools/aero_upload.sh ${fw_file}
@@ -401,8 +401,8 @@ ExternalProject_Add(FlameGraph
 
 add_custom_target(profile
 	COMMAND ${CMAKE_COMMAND} -E env PATH="${PX4_BINARY_DIR}/external/Source/FlameGraph:$ENV{PATH}"
-		${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh --elf=$<TARGET_FILE:${FW_NAME}> --nsamples=10000
-	DEPENDS ${FW_NAME} ${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh FlameGraph
+		${PX4_SOURCE_DIR}/src/platforms/nuttx/Debug/poor-mans-profiler.sh --elf=$<TARGET_FILE:${FW_NAME}> --nsamples=10000
+	DEPENDS ${FW_NAME} ${PX4_SOURCE_DIR}/src/platforms/nuttx/Debug/poor-mans-profiler.sh FlameGraph
 	USES_TERMINAL
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	)
