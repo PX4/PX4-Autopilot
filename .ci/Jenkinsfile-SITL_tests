@@ -2,40 +2,84 @@
 
 pipeline {
   agent none
-  stages {
 
+  parameters {
+    choice(
+      name: 'CMAKE_BUILD_TYPE',
+      choices: ['RelWithDebInfo', 'Coverage', 'AddressSanitizer'],
+      description: "CMake build type"
+      )
+  }
+
+  stages {
     stage('Build') {
-      steps {
-        script {
-          stage('sitl package') {
-            node {
-              docker.image("px4io/px4-dev-ros:2018-07-19").inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE') {
-                stage("sitl package") {
-                  try {
-                    checkout(scm)
-                    sh('export')
-                    sh('make distclean')
-                    sh "ccache -z"
-                    sh('make posix_sitl_default')
-                    sh "ccache -s"
-                    sh('make posix_sitl_default sitl_gazebo')
-                    sh "ccache -s"
-                    sh('make posix_sitl_default package')
-                    stash(name: "px4_sitl_package", includes: "build/posix_sitl_default/*.bz2")
-                  }
-                  catch (exc) {
-                    throw (exc)
-                  }
-                  finally {
-                    sh('make distclean')
-                  }
-                }
-              }
+      parallel {
+
+        stage('sitl package') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ros:2018-07-19'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
-        } // script
-      } // steps
-    } // Build
+          steps {
+            sh('export')
+            sh('make distclean')
+            sh "ccache -z"
+            sh('make posix_sitl_default')
+            sh "ccache -s"
+            sh('make posix_sitl_default sitl_gazebo')
+            sh "ccache -s"
+            sh('make posix_sitl_default package')
+            stash(name: "px4_sitl_package", includes: "build/posix_sitl_default/*.bz2")
+            sh 'make distclean'
+          }
+        }
+
+        stage('unit tests') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base:2018-07-19'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'make posix_sitl_default test_results_junit'
+            sh 'ccache -s'
+            junit 'build/posix_sitl_default/JUnitTestResults.xml'
+            withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
+              sh 'curl -s https://codecov.io/bash | bash -s - -F unittest'
+            }
+            sh 'make distclean'
+          }
+        }
+
+        stage('code coverage (python)') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base:2018-08-04'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'make python_coverage'
+            withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
+              sh 'curl -s https://codecov.io/bash | bash -s - -F python'
+            }
+            sh 'make distclean'
+          }
+          when {
+            environment name: 'CMAKE_BUILD_TYPE', value: 'Coverage'
+          }
+        }
+
+      } // parallel
+    } // stage Build
 
     stage('ROS Tests') {
       steps {
@@ -129,6 +173,9 @@ def createTestNode(Map test_def) {
           finally {
             sh('px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
             archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.pdf, .ros/**/*.csv')
+            withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
+              sh 'curl -s https://codecov.io/bash | bash -s - -F mission'
+            }
           }
         }
       }
