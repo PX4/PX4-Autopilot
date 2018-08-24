@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,16 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-#add_subdirectory(hc_sr04) # not currently supported
-add_subdirectory(ll40ls)
-add_subdirectory(mb12xx)
-add_subdirectory(sf0x)
-add_subdirectory(sf1xx)
-add_subdirectory(srf02)
-add_subdirectory(teraranger)
-add_subdirectory(tfmini)
-add_subdirectory(ulanding)
-add_subdirectory(leddar_one)
-add_subdirectory(vl53lxx)
-add_subdirectory(pga460)
+px4_add_module(
+	MODULE drivers__pga460
+	MAIN pga460
+	COMPILE_FLAGS
+		-Os
+	SRCS
+		pga460.cpp
+	DEPENDS
+		platforms__common
+	)
+# vim: set noet ft=cmake fenc=utf-8 ff=unix :
