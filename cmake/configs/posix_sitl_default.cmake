@@ -7,7 +7,7 @@ set(config_module_list
 	drivers/distance_sensor
 	#drivers/telemetry
 
-	drivers/batt_smbus
+	drivers/battery
 	drivers/camera_trigger
 	drivers/gps
 	drivers/linux_gpio

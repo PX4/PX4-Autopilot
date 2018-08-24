@@ -19,7 +19,7 @@ set(config_module_list
 	drivers/magnetometer
 	drivers/telemetry
 
-	drivers/batt_smbus
+	drivers/battery
 	drivers/blinkm
 	drivers/camera_trigger
 	drivers/gps
