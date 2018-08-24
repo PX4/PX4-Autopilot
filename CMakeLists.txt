@@ -145,9 +145,9 @@ if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 	get_filename_component(EXTERNAL_MODULES_LOCATION "${EXTERNAL_MODULES_LOCATION}" ABSOLUTE)
 endif()
 
-include(platforms/${OS}/cmake/px4_impl_os.cmake)
+include(src/platforms/${OS}/cmake/px4_impl_os.cmake)
 include(configs/${CONFIG})
-list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${OS}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/src/platforms/${OS}/cmake)
 
 # CMake build type (Debug Release RelWithDebInfo MinSizeRel Coverage)
 if (NOT CMAKE_BUILD_TYPE)
@@ -391,7 +391,7 @@ add_subdirectory(src/lib/parameters EXCLUDE_FROM_ALL)
 target_link_libraries(parameters_interface INTERFACE parameters)
 
 # firmware added last to generate the builtin for included modules
-add_subdirectory(platforms/${OS})
+add_subdirectory(src/platforms/${OS})
 
 #=============================================================================
 # generate custom target to print for all executable and module cmake targets

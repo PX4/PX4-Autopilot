@@ -150,7 +150,7 @@ function(px4_posix_generate_alias)
 			)
 		endif()
 	endforeach()
-	configure_file(${PX4_SOURCE_DIR}/platforms/posix/src/px4-alias.sh_in
+	configure_file(${PX4_SOURCE_DIR}/src/platforms/posix/src/px4-alias.sh_in
 		${OUT}
 	)
 endfunction()
@@ -274,8 +274,8 @@ function(px4_os_add_flags)
 		-D__PX4_POSIX
 		-Dnoreturn_function=__attribute__\(\(noreturn\)\)
 		)
-		
-	include_directories(platforms/posix/include)
+
+	include_directories(src/platforms/posix/include)
 
 	if(UNIX AND APPLE)
 		add_definitions(
@@ -341,7 +341,7 @@ function(px4_os_add_flags)
 		else()
 			set(HEXAGON_ARM_SYSROOT $ENV{HEXAGON_ARM_SYSROOT})
 		endif()
-		
+
 		set(excelsior_flags --sysroot=${HEXAGON_ARM_SYSROOT}/lib32-apq8096 -mfloat-abi=softfp -mfpu=neon -mthumb-interwork)
 
 		# Add the toolchain specific flags
@@ -385,7 +385,7 @@ function(px4_os_add_flags)
 	elseif ("${BOARD}" STREQUAL "bebop")
 		# TODO: Wmissing-field-initializers ignored on older toolchain, can be removed eventually
 		list(APPEND added_cxx_flags -Wno-missing-field-initializers)
-		
+
 	elseif ("${BOARD}" STREQUAL "bbblue")
 		set(BBBLUE_COMPILE_FLAGS -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=hard -mtune=cortex-a8)
 		list(APPEND added_c_flags   ${BBBLUE_COMPILE_FLAGS})
@@ -396,13 +396,13 @@ function(px4_os_add_flags)
 		# TODO: Wmissing-field-initializers ignored on older toolchain, can be removed eventually
 		#
 		# On cross compile host system and native build system:
-		#   a) select and define LIBROBOTCONTROL_INSTALL_DIR environment variable so that 
+		#   a) select and define LIBROBOTCONTROL_INSTALL_DIR environment variable so that
 		#      other unwanted headers will not be included
 		#   b) install robotcontrol.h and rc/* into $LIBROBOTCONTROL_INSTALL_DIR/include
 		#   c) install pre-built native (ARM) version of librobotcontrol.* into $LIBROBOTCONTROL_INSTALL_DIR/lib
 		list(APPEND added_cxx_flags -I${LIBROBOTCONTROL_INSTALL_DIR}/include -Wno-missing-field-initializers)
 		list(APPEND added_c_flags   -I${LIBROBOTCONTROL_INSTALL_DIR}/include)
-		
+
 		list(APPEND added_exe_linker_flags -L${LIBROBOTCONTROL_INSTALL_DIR}/lib)
 	endif()
 
