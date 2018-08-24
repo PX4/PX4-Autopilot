@@ -69,6 +69,16 @@ int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 		return 0;
 	}
 
+	// check if data is available
+	if (!_isDataAvailable(new_task_index, _subscription_array)) {
+		// stay in current taks
+		PX4_INFO("stay in current");
+		return 0;
+
+	} else {
+		PX4_INFO("data is available");
+	}
+
 	if (_initTask(new_task_index)) {
 		// invalid task
 		return -1;
@@ -84,16 +94,26 @@ int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 		_current_task.task->~FlightTask();
 		_current_task.task = nullptr;
 		_current_task.index = FlightTaskIndex::None;
+		PX4_INFO("subsciption failed");
 		return -2;
 	}
 
 	_subscription_array.forcedUpdate(); // make sure data is available for all new subscriptions
 
 	// activation failed
-	if (!_current_task.task->updateInitialize() || !_current_task.task->activate()) {
+	if (!_current_task.task->updateInitialize()) {
 		_current_task.task->~FlightTask();
 		_current_task.task = nullptr;
 		_current_task.index = FlightTaskIndex::None;
+		PX4_INFO("updateInitialize faild");
+		return -3;
+	}
+
+	if (!_current_task.task->activate()) {
+		_current_task.task->~FlightTask();
+		_current_task.task = nullptr;
+		_current_task.index = FlightTaskIndex::None;
+		PX4_INFO("activation faild");
 		return -3;
 	}
 

@@ -29,6 +29,24 @@ bool FlightTask::initializeSubscriptions(SubscriptionArray &subscription_array)
 	return true;
 }
 
+bool FlightTask::_isDataAvailable(SubscriptionArray &subscription_array)
+{
+	// subscritption to local and attitude is required
+	uORB::Subscription<vehicle_local_position_s> *sub_vehicle_local_position{nullptr};
+
+	if (!subscription_array.get(ORB_ID(vehicle_local_position), sub_vehicle_local_position)) {
+		return false;
+	}
+
+	uORB::Subscription<vehicle_attitude_s> *sub_attitude{nullptr};
+
+	if (!subscription_array.get(ORB_ID(vehicle_attitude), sub_attitude)) {
+		return false;
+	}
+
+	return true;
+}
+
 bool FlightTask::activate()
 {
 	_resetSetpoints();

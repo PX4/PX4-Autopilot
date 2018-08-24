@@ -165,4 +165,6 @@ private:
 	orb_advert_t _pub_vehicle_command_ack = nullptr; /**< topic handle to which commands get acknowledged */
 
 	int _initTask(FlightTaskIndex task_index);
+
+	bool _isDataAvailable(FlightTaskIndex task_index, SubscriptionArray &subscription_array);
 };

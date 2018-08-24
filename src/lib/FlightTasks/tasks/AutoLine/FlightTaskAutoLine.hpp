@@ -47,6 +47,8 @@ class FlightTaskAutoLine : public FlightTaskAutoMapper
 public:
 	FlightTaskAutoLine() = default;
 	virtual ~FlightTaskAutoLine() = default;
+	static bool _isDataAvailable(SubscriptionArray &subscription_array);
+
 
 protected:
 

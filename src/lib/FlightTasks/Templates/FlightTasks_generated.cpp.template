@@ -98,3 +98,30 @@ upperCase = lambda s: s[:].upper() if s else ''
 	default : return FlightTaskIndex::None;
 	}
 }
+
+bool FlightTasks::_isDataAvailable(FlightTaskIndex task_index, SubscriptionArray &subscription_array)
+{
+	switch (task_index) {
+	case FlightTaskIndex::None:
+		// already disabled task
+		return true;
+		break;
+
+@# loop through all requested tasks
+@[if tasks]@
+@[for task in tasks]@
+@{
+firstLowercase = lambda s: s[:1].lower() + s[1:] if s else ''
+}@
+	case FlightTaskIndex::@(task):
+		return FlightTask@(task)::_isDataAvailable(subscription_array);
+		break;
+
+@[end for]@
+@[end if]@
+	default:
+		// invalid task
+		return false;
+	}
+
+}

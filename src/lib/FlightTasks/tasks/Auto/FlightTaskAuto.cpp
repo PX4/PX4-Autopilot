@@ -58,6 +58,25 @@ bool FlightTaskAuto::initializeSubscriptions(SubscriptionArray &subscription_arr
 
 	return true;
 }
+bool FlightTaskAuto::_isDataAvailable(SubscriptionArray &subscription_array)
+{
+	bool data_available = FlightTask::_isDataAvailable(subscription_array);
+
+	uORB::Subscription<vehicle_local_position_s> *sub_vehicle_local_position{nullptr};
+	data_available = data_available && subscription_array.get(ORB_ID(vehicle_local_position), sub_vehicle_local_position);
+
+	// need a valid triplet
+	uORB::Subscription<position_setpoint_triplet_s> *sub_triplet_setpoint{nullptr};
+	data_available = data_available && subscription_array.get(ORB_ID(position_setpoint_triplet), sub_triplet_setpoint);
+	data_available = data_available && sub_triplet_setpoint->get().current.valid;
+
+	// need to have valid global state
+	data_available = data_available && sub_vehicle_local_position->get().xy_global
+			 && sub_vehicle_local_position->get().z_global;
+
+	// need reference
+	return data_available;
+}
 
 bool FlightTaskAuto::activate()
 {
@@ -106,6 +125,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 		// Best we can do is to just set all waypoints to current state and return false.
 		_prev_prev_wp = _triplet_prev_wp = _triplet_target = _triplet_next_wp = _position;
 		_type = WaypointType::position;
+		PX4_INFO("no valid triplet:");
 		return false;
 	}
 
@@ -318,6 +338,7 @@ bool FlightTaskAuto::_evaluateGlobalReference()
 		return true;
 
 	} else {
+		PX4_INFO("no valid reference");
 		return false;
 	}
 }

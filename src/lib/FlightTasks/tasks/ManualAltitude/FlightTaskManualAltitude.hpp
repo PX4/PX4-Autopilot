@@ -48,6 +48,7 @@ public:
 	virtual ~FlightTaskManualAltitude() = default;
 	bool activate() override;
 	bool updateInitialize() override;
+	static bool _isDataAvailable(SubscriptionArray &subscription_array);
 
 protected:
 	void _updateSetpoints() override; /**< updates all setpoints */

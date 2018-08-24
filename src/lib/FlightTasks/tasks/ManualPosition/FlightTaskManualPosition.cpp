@@ -51,6 +51,13 @@ bool FlightTaskManualPosition::updateInitialize()
 	       && PX4_ISFINITE(_velocity(1));
 }
 
+bool FlightTaskManualPosition::_isDataAvailable(SubscriptionArray &subscription_array)
+{
+
+
+	return true;
+}
+
 bool FlightTaskManualPosition::activate()
 {
 

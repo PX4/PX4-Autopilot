@@ -52,6 +52,12 @@ public:
 
 	virtual ~FlightTaskSport() = default;
 
+	static bool _isDataAvailable(SubscriptionArray &subscription_array)
+	{
+		return true;
+	}
+
+
 	bool activate() override
 	{
 		bool ret = FlightTaskManualPosition::activate();

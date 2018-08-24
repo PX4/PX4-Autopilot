@@ -43,6 +43,13 @@ FlightTaskManualAltitudeSmooth::FlightTaskManualAltitudeSmooth() :
 	_smoothing(this, _velocity(2), _sticks(2))
 {}
 
+bool FlightTaskManualAltitudeSmooth::_isDataAvailable(SubscriptionArray &subscription_array)
+{
+
+
+	return true;
+}
+
 void FlightTaskManualAltitudeSmooth::_updateSetpoints()
 {
 	/* Get yaw, thrust */

@@ -41,6 +41,13 @@
 
 using namespace matrix;
 
+bool FlightTaskManualAltitude::_isDataAvailable(SubscriptionArray &subscription_array)
+{
+
+
+	return true;
+}
+
 bool FlightTaskManualAltitude::updateInitialize()
 {
 	bool ret = FlightTaskManualStabilized::updateInitialize();

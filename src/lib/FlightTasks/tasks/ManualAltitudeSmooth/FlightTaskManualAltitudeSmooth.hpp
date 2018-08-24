@@ -47,6 +47,7 @@ class FlightTaskManualAltitudeSmooth : public FlightTaskManualAltitude
 public:
 	FlightTaskManualAltitudeSmooth();
 	virtual ~FlightTaskManualAltitudeSmooth() = default;
+	static bool _isDataAvailable(SubscriptionArray &subscription_array);
 
 protected:
 	virtual void _updateSetpoints() override;

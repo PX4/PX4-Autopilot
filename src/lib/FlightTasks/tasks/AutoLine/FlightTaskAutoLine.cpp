@@ -42,6 +42,12 @@ using namespace matrix;
 
 static constexpr float SIGMA_NORM		=	0.001f;
 
+bool FlightTaskAutoLine::_isDataAvailable(SubscriptionArray &subscription_array)
+{
+
+	return FlightTaskAutoMapper::_isDataAvailable(subscription_array);
+}
+
 void FlightTaskAutoLine::_generateSetpoints()
 {
 	if (!PX4_ISFINITE(_yaw_setpoint)) {

@@ -47,3 +47,10 @@ bool FlightTaskAutoFollowMe::update()
 	_velocity_setpoint = matrix::Vector3f(vel_sp(0), vel_sp(1), 0.0f);
 	return true;
 }
+
+bool FlightTaskAutoFollowMe::_isDataAvailable(SubscriptionArray &subscription_array)
+{
+
+
+	return true;
+}

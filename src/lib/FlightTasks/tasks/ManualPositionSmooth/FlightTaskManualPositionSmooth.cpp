@@ -44,6 +44,11 @@ FlightTaskManualPositionSmooth::FlightTaskManualPositionSmooth() :
 	_smoothingZ(this, _velocity(2), _sticks(2))
 {}
 
+bool FlightTaskManualPositionSmooth::_isDataAvailable(SubscriptionArray &subscription_array)
+{
+	return true;
+}
+
 void FlightTaskManualPositionSmooth::_updateSetpoints()
 {
 	/* Get yaw setpont, un-smoothed position setpoints.*/

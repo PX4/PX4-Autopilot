@@ -49,6 +49,7 @@ public:
 	FlightTaskManualPositionSmooth();
 
 	virtual ~FlightTaskManualPositionSmooth() = default;
+	static bool _isDataAvailable(SubscriptionArray &subscription_array);
 
 protected:
 

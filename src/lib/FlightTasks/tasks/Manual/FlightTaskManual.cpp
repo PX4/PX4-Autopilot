@@ -53,6 +53,17 @@ bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_a
 	return true;
 }
 
+bool FlightTaskManual::_isDataAvailable(SubscriptionArray &subscription_array)
+{
+	bool data_available = FlightTask::_isDataAvailable(subscription_array);
+
+	uORB::Subscription<manual_control_setpoint_s> *sub_manual_control_setpoint{nullptr};
+
+	data_available = data_available && subscription_array.get(ORB_ID(manual_control_setpoint), sub_manual_control_setpoint);
+
+	return data_available;
+}
+
 bool FlightTaskManual::updateInitialize()
 {
 	bool ret = FlightTask::updateInitialize();

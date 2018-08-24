@@ -41,6 +41,13 @@
 
 using namespace matrix;
 
+bool FlightTaskManualStabilized::_isDataAvailable(SubscriptionArray &subscription_array)
+{
+
+
+	return true;
+}
+
 bool FlightTaskManualStabilized::activate()
 {
 	bool ret = FlightTaskManual::activate();

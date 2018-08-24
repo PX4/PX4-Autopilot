@@ -52,6 +52,8 @@ public:
 	bool applyCommandParameters(const vehicle_command_s &command) override;
 	bool activate() override;
 	bool update() override;
+	static bool _isDataAvailable(SubscriptionArray &subscription_array);
+
 
 	/**
 	 * Check the feasibility of orbit parameters with respect to

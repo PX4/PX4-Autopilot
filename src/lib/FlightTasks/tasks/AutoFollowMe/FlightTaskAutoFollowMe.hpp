@@ -47,4 +47,6 @@ public:
 	FlightTaskAutoFollowMe() = default;
 	virtual ~FlightTaskAutoFollowMe() = default;
 	bool update() override;
+	static bool _isDataAvailable(SubscriptionArray &subscription_array);
+
 };

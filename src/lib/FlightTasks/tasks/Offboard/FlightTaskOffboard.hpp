@@ -51,6 +51,7 @@ public:
 	bool update() override;
 	bool activate() override;
 	bool updateInitialize() override;
+	static bool _isDataAvailable(SubscriptionArray &subscription_array);
 
 protected:
 	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};

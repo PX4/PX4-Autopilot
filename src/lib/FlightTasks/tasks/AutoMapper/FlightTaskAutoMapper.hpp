@@ -49,6 +49,7 @@ public:
 	virtual ~FlightTaskAutoMapper() = default;
 	bool activate() override;
 	bool update() override;
+	static bool _isDataAvailable(SubscriptionArray &subscription_array);
 
 protected:
 

@@ -51,6 +51,7 @@ public:
 	bool activate() override;
 	bool updateInitialize() override;
 	bool update() override;
+	static bool _isDataAvailable(SubscriptionArray &subscription_array);
 
 protected:
 	virtual void _updateSetpoints(); /**< updates all setpoints*/

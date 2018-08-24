@@ -140,6 +140,8 @@ public:
 		updateParams();
 	}
 
+	static bool _isDataAvailable(SubscriptionArray &subscription_array);
+
 protected:
 
 	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};

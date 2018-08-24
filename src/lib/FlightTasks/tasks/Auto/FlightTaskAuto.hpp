@@ -77,6 +77,8 @@ public:
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 	bool activate() override;
 	bool updateInitialize() override;
+	static bool _isDataAvailable(SubscriptionArray &subscription_array);
+
 
 protected:
 	void _setDefaultConstraints() override;

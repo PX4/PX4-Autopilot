@@ -46,6 +46,13 @@ FlightTaskOrbit::FlightTaskOrbit()
 	_sticks_data_required = false;
 }
 
+bool FlightTaskOrbit::_isDataAvailable(SubscriptionArray &subscription_array)
+{
+
+
+	return true;
+}
+
 bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 {
 	bool ret = true;

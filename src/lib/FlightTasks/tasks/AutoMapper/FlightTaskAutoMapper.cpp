@@ -40,6 +40,11 @@
 
 using namespace matrix;
 
+bool FlightTaskAutoMapper::_isDataAvailable(SubscriptionArray &subscription_array)
+{
+	return FlightTaskAuto::_isDataAvailable(subscription_array);
+}
+
 bool FlightTaskAutoMapper::activate()
 {
 	bool ret = FlightTaskAuto::activate();

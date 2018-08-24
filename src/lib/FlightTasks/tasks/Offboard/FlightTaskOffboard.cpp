@@ -39,6 +39,13 @@
 
 using namespace matrix;
 
+bool FlightTaskOffboard::_isDataAvailable(SubscriptionArray &subscription_array)
+{
+
+
+	return true;
+}
+
 bool FlightTaskOffboard::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
 	if (!FlightTask::initializeSubscriptions(subscription_array)) {
