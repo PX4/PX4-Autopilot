@@ -129,37 +129,43 @@ CameraCapture::capture_trampoline(void *context, uint32_t chan_index,
 void
 CameraCapture::cycle_trampoline(void *arg)
 {
+	CameraCapture *dev = reinterpret_cast<CameraCapture *>(arg);
 
-	CameraCapture *cap = reinterpret_cast<CameraCapture *>(arg);
+	dev->cycle();
+}
 
-	if (cap->_command_sub < 0) {
-		cap->_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+void
+CameraCapture::cycle()
+{
+
+	if (_command_sub < 0) {
+		_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 	}
 
 	bool updated = false;
-	orb_check(cap->_command_sub, &updated);
+	orb_check(_command_sub, &updated);
 
 	// Command handling
 	if (updated) {
 
 		vehicle_command_s cmd;
-		orb_copy(ORB_ID(vehicle_command), cap->_command_sub, &cmd);
+		orb_copy(ORB_ID(vehicle_command), _command_sub, &cmd);
 
 		// TODO : this should eventuallly be a capture control command
 		if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL) {
 
 			// Enable/disable signal capture
 			if (commandParamToInt(cmd.param1) == 1) {
-				cap->set_capture_control(true);
+				set_capture_control(true);
 
 			} else if (commandParamToInt(cmd.param1) == 0) {
-				cap->set_capture_control(false);
+				set_capture_control(false);
 
 			}
 
 			// Reset capture sequence
 			if (commandParamToInt(cmd.param2) == 1) {
-				cap->reset_statistics(true);
+				reset_statistics(true);
 
 			}
 
@@ -175,12 +181,12 @@ CameraCapture::cycle_trampoline(void *arg)
 				.target_component = cmd.source_component
 			};
 
-			if (cap->_command_ack_pub == nullptr) {
-				cap->_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-							vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+			if (_command_ack_pub == nullptr) {
+				_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
+								       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
 
 			} else {
-				orb_publish(ORB_ID(vehicle_command_ack), cap->_command_ack_pub, &command_ack);
+				orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
 
 			}
 		}
