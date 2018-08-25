@@ -56,53 +56,53 @@ mark_as_advanced(CMAKE_CXX_FLAGS_COVERAGE CMAKE_C_FLAGS_COVERAGE CMAKE_EXE_LINKE
 #   Pass them in list form, e.g.: "-j;2" for -j 2
 FUNCTION(SETUP_TARGET_FOR_COVERAGE _targetname _testrunner _outputname)
 
-        set(options NONE)
-        set(oneValueArgs NAME)
-        set(multiValueArgs EXECUTABLE EXECUTABLE_ARGS DEPENDENCIES)
-        cmake_parse_arguments(Coverage "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+	set(options NONE)
+	set(oneValueArgs NAME)
+	set(multiValueArgs EXECUTABLE EXECUTABLE_ARGS DEPENDENCIES)
+	cmake_parse_arguments(Coverage "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-        if (NOT LCOV_PATH)
-        message(FATAL_ERROR "lcov required")
-        endif()
+	if (NOT LCOV_PATH)
+		message(FATAL_ERROR "lcov required")
+	endif()
 
-        if (NOT GENHTML_PATH)
-        message(FATAL_ERROR "genhtml required")
-        endif()
+	if (NOT GENHTML_PATH)
+		message(FATAL_ERROR "genhtml required")
+	endif()
 
-        set(coverage_info "${CMAKE_BINARY_DIR}/${_outputname}.info")
-        set(coverage_cleaned "${coverage_info}.cleaned")
+	set(coverage_info "${CMAKE_BINARY_DIR}/${_outputname}.info")
+	set(coverage_cleaned "${coverage_info}.cleaned")
 
-        separate_arguments(test_command UNIX_COMMAND "${_testrunner}")
+	separate_arguments(test_command UNIX_COMMAND "${_testrunner}")
 
-        # Setup target
-        add_custom_command(OUTPUT ${coverage_info}
-                # Cleanup lcov
-                #COMMAND ${LCOV_PATH} --quiet --directory . --zerocounters
+	# Setup target
+	add_custom_command(OUTPUT ${coverage_info}
+		# Cleanup lcov
+		#COMMAND ${LCOV_PATH} --quiet --directory . --zerocounters
 
-                # Run tests
-                COMMAND ${test_command} ${ARGV3}
+		# Run tests
+		COMMAND ${test_command} ${ARGV3}
 
-                # Capturing lcov counters and generating report
-                COMMAND ${LCOV_PATH} --quiet --base-directory ${CMAKE_BINARY_DIR} --directory ${CMAKE_SOURCE_DIR} --capture --output-file ${coverage_info}
+		# Capturing lcov counters and generating report
+		COMMAND ${LCOV_PATH} --quiet --base-directory ${CMAKE_BINARY_DIR} --directory ${CMAKE_SOURCE_DIR} --capture --output-file ${coverage_info}
 
-                DEPENDS px4
-                USES_TERMINAL
-                WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-                COMMENT "Running code coverage and generating report."
-        )
-        add_custom_target(${_targetname} DEPENDS ${coverage_info})
+		DEPENDS px4
+		USES_TERMINAL
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+		COMMENT "Running code coverage and generating report."
+	)
+	add_custom_target(${_targetname} DEPENDS ${coverage_info})
 
-        add_custom_command(OUTPUT ${coverage_cleaned}
-                COMMAND COMMAND ${LCOV_PATH} --quiet
-                        --remove ${coverage_info} 'tests/*' '/usr/*' 'src/examples*'
-                        --output-file ${coverage_cleaned}
-                DEPENDS ${coverage_info}
-        )
+	add_custom_command(OUTPUT ${coverage_cleaned}
+		COMMAND ${LCOV_PATH} --quiet
+			--remove ${coverage_info} 'tests/*' '/usr/*' 'src/examples*'
+			--output-file ${coverage_cleaned}
+		DEPENDS ${coverage_info}
+	)
 
-        add_custom_target(${_targetname}_genhtml
-                COMMAND ${GENHTML_PATH} --quiet -o coverage-html ${coverage_cleaned}
-                DEPENDS ${coverage_cleaned}
-                WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        )
+	add_custom_target(${_targetname}_genhtml
+		COMMAND ${GENHTML_PATH} --quiet -o coverage-html ${coverage_cleaned}
+		DEPENDS ${coverage_cleaned}
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+	)
 
 endfunction() # SETUP_TARGET_FOR_COVERAGE
