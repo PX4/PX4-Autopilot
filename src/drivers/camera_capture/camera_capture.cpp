@@ -104,6 +104,7 @@ CameraCapture::capture_callback(uint32_t chan_index,
 		}
 
 		trigger.seq = _capture_seq++;
+		trigger.feedback = true;
 
 		if (_camera_capture_feedback) {
 			orb_publish(ORB_ID(camera_trigger), _trigger_pub, &trigger);

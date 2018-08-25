@@ -768,6 +768,7 @@ CameraTrigger::engage(void *arg)
 	trigger.timestamp_utc = (uint64_t) tv.tv_sec * 1000000 + tv.tv_nsec / 1000;
 
 	trigger.seq = trig->_trigger_seq;
+	trigger.feedback = false;
 
 	orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &trigger);
 
