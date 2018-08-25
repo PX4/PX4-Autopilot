@@ -484,6 +484,10 @@ public:
 
 	bool ftp_enabled() const { return _ftp_on; }
 
+	bool hash_check_disabled() { return _hash_check_disabled; }
+
+	bool forward_heartbeats_disabled() { return _heartbeat_forwarding_disabled; }
+
 	struct ping_statistics_s {
 		uint64_t last_ping_time;
 		uint32_t last_ping_seq;
@@ -623,6 +627,8 @@ private:
 
 	bool			_param_initialized;
 	int32_t			_broadcast_mode;
+	bool 			_hash_check_disabled;
+	bool 			_heartbeat_forwarding_disabled;
 
 	param_t			_param_system_id;
 	param_t			_param_component_id;
@@ -632,6 +638,8 @@ private:
 	param_t			_param_use_hil_gps;
 	param_t			_param_forward_externalsp;
 	param_t			_param_broadcast;
+	param_t 		_param_hash_check_disabled;
+	param_t 		_param_heartbeat_forwarding_disabled;
 
 	unsigned		_system_type;
 
