@@ -325,7 +325,7 @@ python_coverage:
 
 # static analyzers (scan-build, clang-tidy, cppcheck)
 # --------------------------------------------------------------------
-.PHONY: scan-build posix_sitl_default-clang clang-tidy clang-tidy-fix clang-tidy-quiet cppcheck
+.PHONY: scan-build posix_sitl_default-clang clang-tidy clang-tidy-fix clang-tidy-quiet cppcheck shellcheck
 
 scan-build:
 	@export CCC_CC=clang
@@ -362,6 +362,7 @@ cppcheck: posix_sitl_default
 
 shellcheck:
 	@$(SRC_DIR)/Tools/run-shellcheck.sh $(SRC_DIR)/ROMFS/px4fmu_common/
+	@make px4fmu-v2_default shellcheck
 
 # Cleanup
 # --------------------------------------------------------------------

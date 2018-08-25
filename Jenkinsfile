@@ -163,7 +163,7 @@ pipeline {
         stage('ShellCheck') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2018-08-23'
+              image 'px4io/px4-dev-nuttx:2018-08-23'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
