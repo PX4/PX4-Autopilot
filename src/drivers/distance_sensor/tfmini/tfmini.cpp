@@ -47,6 +47,7 @@
 #include <px4_getopt.h>
 
 #include <sys/types.h>
+#include <sys/ioctl.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -537,7 +538,7 @@ TFMINI::collect()
 	int bytes_available = 0;
 	::ioctl(_fd, FIONREAD, (unsigned long)&bytes_available);
 
-	if(!bytes_available) {
+	if (!bytes_available) {
 		return -EAGAIN;
 	}
 
@@ -552,11 +553,12 @@ TFMINI::collect()
 			perf_end(_sample_perf);
 
 			/* only throw an error if we time out */
-           	if (read_elapsed > (_conversion_interval * 2)) {
-           		/* flush anything in RX buffer */
+			if (read_elapsed > (_conversion_interval * 2)) {
+				/* flush anything in RX buffer */
 				tcflush(_fd, TCIFLUSH);
-                return ret;
-            } else {
+				return ret;
+
+			} else {
 				return -EAGAIN;
 			}
 		}
@@ -704,23 +706,23 @@ namespace tfmini
 
 TFMINI	*g_dev;
 
-void start(const char *port, uint8_t rotation);
-void stop();
-void test();
-void info();
+int start(const char *port, uint8_t rotation);
+int stop();
+int test();
+int info();
 void usage();
 
 /**
  * Start the driver.
  */
-void
+int
 start(const char *port, uint8_t rotation)
 {
 	int fd;
 
 	if (g_dev != nullptr) {
 		PX4_ERR("already started");
-		exit(1);
+		return 1;
 	}
 
 	/* create the driver */
@@ -746,7 +748,7 @@ start(const char *port, uint8_t rotation)
 		goto fail;
 	}
 
-	exit(0);
+	return 0;
 
 fail:
 
@@ -756,13 +758,13 @@ fail:
 	}
 
 	PX4_ERR("driver start failed");
-	exit(1);
+	return 1;
 }
 
 /**
  * Stop the driver
  */
-void stop()
+int stop()
 {
 	if (g_dev != nullptr) {
 		PX4_INFO("stopping driver");
@@ -772,10 +774,10 @@ void stop()
 
 	} else {
 		PX4_ERR("driver not running");
-		exit(1);
+		return 1;
 	}
 
-	exit(0);
+	return 0;
 }
 
 /**
@@ -783,7 +785,7 @@ void stop()
  * make sure we can collect data from the sensor in polled
  * and automatic modes.
  */
-void
+int
 test()
 {
 	struct distance_sensor_s report;
@@ -792,14 +794,17 @@ test()
 	int fd = px4_open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'tfmini start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
+		PX4_ERR("%s open failed (try 'tfmini start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
+		return 1;
 	}
 
 	/* do a simple demand read */
 	sz = px4_read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		err(1, "immediate read failed");
+		PX4_ERR("immediate read failed");
+		close(fd);
+		return 1;
 	}
 
 	print_message(report);
@@ -807,7 +812,7 @@ test()
 	/* start the sensor polling at 2 Hz rate */
 	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
 		PX4_ERR("failed to set 2Hz poll rate");
-		exit(1);
+		return 1;
 	}
 
 	/* read the sensor 5x and report each value */
@@ -838,27 +843,28 @@ test()
 	/* reset the sensor polling to the default rate */
 	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
 		PX4_ERR("failed to set default poll rate");
-		exit(1);
+		return 1;
 	}
 
 	PX4_INFO("PASS");
+	return 0;
 }
 
 /**
  * Print a little info about the driver.
  */
-void
+int
 info()
 {
 	if (g_dev == nullptr) {
 		PX4_ERR("driver not running");
-		exit(1);
+		return 1;
 	}
 
 	printf("state @ %p\n", g_dev);
 	g_dev->print_info();
 
-	exit(0);
+	return 0;
 }
 
 /**
@@ -907,7 +913,7 @@ tfmini_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
 		if (strcmp(device_path, "") != 0) {
-			tfmini::start(device_path, rotation);
+			return tfmini::start(device_path, rotation);
 
 		} else {
 			PX4_WARN("Please specify device path!");
@@ -920,14 +926,14 @@ tfmini_main(int argc, char *argv[])
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[myoptind], "stop")) {
-		tfmini::stop();
+		return tfmini::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[myoptind], "test")) {
-		tfmini::test();
+		return tfmini::test();
 	}
 
 	/*
@@ -935,6 +941,7 @@ tfmini_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
 		tfmini::info();
+		return 0;
 	}
 
 out_error:
