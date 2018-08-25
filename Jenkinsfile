@@ -170,7 +170,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'make shellcheck'
+            sh 'make shellcheck_all'
             sh 'make distclean'
           }
         }
