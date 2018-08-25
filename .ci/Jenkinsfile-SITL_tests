@@ -5,7 +5,7 @@ pipeline {
 
   parameters {
     choice(
-      name: 'CMAKE_BUILD_TYPE',
+      name: 'PX4_CMAKE_BUILD_TYPE',
       choices: ['RelWithDebInfo', 'Coverage', 'AddressSanitizer'],
       description: "CMake build type"
       )
@@ -74,7 +74,7 @@ pipeline {
             sh 'make distclean'
           }
           when {
-            environment name: 'CMAKE_BUILD_TYPE', value: 'Coverage'
+            environment name: 'PX4_CMAKE_BUILD_TYPE', value: 'Coverage'
           }
         }
 
