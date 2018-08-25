@@ -87,6 +87,8 @@ public:
 
 	void 			status();
 
+	void			cycle();
+
 	static void		capture_trampoline(void *context, uint32_t chan_index,
 			hrt_abstime edge_time, uint32_t edge_state,
 			uint32_t overflow);
