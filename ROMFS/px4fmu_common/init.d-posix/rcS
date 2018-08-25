@@ -3,7 +3,7 @@
 # PX4 commands need the 'px4-' prefix in bash.
 # (px4-alias.sh is expected to be in the PATH)
 # shellcheck disable=SC1091
-source px4-alias.sh
+. px4-alias.sh
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
