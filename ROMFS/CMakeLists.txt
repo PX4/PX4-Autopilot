@@ -144,3 +144,22 @@ add_custom_command(OUTPUT nsh_romfsimg.c
 add_library(romfs STATIC nsh_romfsimg.c)
 add_dependencies(romfs prebuild_targets)
 set_target_properties(romfs PROPERTIES LINKER_LANGUAGE C)
+
+
+# shellcheck
+find_program(SHELLCHECK_PATH shellcheck)
+
+if(SHELLCHECK_PATH)
+	# TODO: fix SC2039, SC2086, SC2166
+	add_custom_target(shellcheck
+		COMMAND ${SHELLCHECK_PATH} --shell=sh
+			--exclude=SC2121 # SC2121: To assign a variable, use just 'var=value'
+			--exclude=SC2086 # SC2086: Double quote to prevent globbing and word splitting.
+			--exclude=SC2039 # SC2039: In POSIX sh, == in place of = is undefined.
+			--exclude=SC2166 # SC2166: Prefer [ p ] || [ q ] as [ p -o q ] is not well defined.
+			init.d/*
+		DEPENDS ${romfs_gen_root_dir}/init.d/rc.autostart
+		WORKING_DIRECTORY ${romfs_gen_root_dir}
+		USES_TERMINAL
+    )
+endif()
