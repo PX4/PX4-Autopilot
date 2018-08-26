@@ -71,7 +71,33 @@ else()
 	endif()
 
 	target_link_libraries(px4 PRIVATE modules__uORB)
+
+	#=============================================================================
+	# install
+	#
+
+	# TODO: extend to snapdragon
+
+	# px4 dirs
+	install(
+		DIRECTORY
+			${PROJECT_SOURCE_DIR}/posix-configs
+			${PROJECT_SOURCE_DIR}/ROMFS
+			${PROJECT_SOURCE_DIR}/test
+			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+		DESTINATION
+			${PROJECT_NAME}
+		USE_SOURCE_PERMISSIONS
+		)
+
 endif()
+
+# Module Symlinks
+px4_posix_generate_symlinks(
+	MODULE_LIST ${module_libraries}
+	PREFIX ${PX4_BASH_PREFIX}
+	TARGET px4
+)
 
 if ("${BOARD}" STREQUAL "rpi")
 	add_custom_target(upload
@@ -108,88 +134,83 @@ elseif ("${BOARD}" STREQUAL "sitl")
 		include(sitl_tests)
 	endif()
 
+	# install
+
+	# px4 dirs
+	install(
+		DIRECTORY
+			${PROJECT_SOURCE_DIR}/integrationtests
+			${PROJECT_SOURCE_DIR}/launch
+			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+		DESTINATION
+			${PROJECT_NAME}
+		USE_SOURCE_PERMISSIONS
+		)
+
+	# px4 files
+	install(
+		FILES
+			${PROJECT_SOURCE_DIR}/CMakeLists.txt
+			${PROJECT_SOURCE_DIR}/package.xml
+		DESTINATION
+			${PROJECT_NAME}
+		)
+
+	# px4 Tools dirs
+	install(
+		DIRECTORY
+			${PROJECT_SOURCE_DIR}/Tools/ecl_ekf
+		DESTINATION
+			${PROJECT_NAME}/Tools
+		USE_SOURCE_PERMISSIONS
+		)
+
+	# px4 Tools files
+	install(
+		PROGRAMS
+			${PROJECT_SOURCE_DIR}/Tools/setup_gazebo.bash
+			${PROJECT_SOURCE_DIR}/Tools/upload_log.py
+		DESTINATION
+			${PROJECT_NAME}/Tools
+		)
+
+	# sitl_gazebo built plugins
+	install(
+		DIRECTORY
+			${PROJECT_SOURCE_DIR}/build/posix_sitl_default/build_gazebo
+		DESTINATION
+			${PROJECT_NAME}/build/posix_sitl_default
+		FILES_MATCHING
+			PATTERN "CMakeFiles" EXCLUDE
+			PATTERN "*.so"
+		)
+
+	# sitl_gazebo dirs
+	install(
+		DIRECTORY
+			${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/models
+			${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/worlds
+		DESTINATION
+			${PROJECT_NAME}/Tools/sitl_gazebo
+		)
+
+	# sitl_gazebo files
+	install(
+		FILES
+			${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/CMakeLists.txt
+			${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/package.xml
+		DESTINATION
+			${PROJECT_NAME}/Tools/sitl_gazebo
+		)
+
+elseif (("${BOARD}" STREQUAL "eagle") OR ("${BOARD}" STREQUAL "excelsior"))
+
+	# package all libs?
+	#install(
+	#	FILES
+	#		$ENV{HEXAGON_ARM_SYSROOT}/usr/lib/libadsprpc.so
+	#	DESTINATION
+	#		lib
+	#	)
+
 endif()
-
-# Module Symlinks
-px4_posix_generate_symlinks(
-	MODULE_LIST ${module_libraries}
-	PREFIX ${PX4_BASH_PREFIX}
-	TARGET px4
-)
-
-
-#=============================================================================
-# install
-#
-
-# px4 dirs
-install(
-	DIRECTORY
-		${PROJECT_SOURCE_DIR}/integrationtests
-		${PROJECT_SOURCE_DIR}/launch
-		${PROJECT_SOURCE_DIR}/posix-configs
-		${PROJECT_SOURCE_DIR}/ROMFS
-		${PROJECT_SOURCE_DIR}/test
-		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-	DESTINATION
-		${PROJECT_NAME}
-	USE_SOURCE_PERMISSIONS
-	)
-
-# px4 files
-install(
-	FILES
-		${PROJECT_SOURCE_DIR}/CMakeLists.txt
-		${PROJECT_SOURCE_DIR}/package.xml
-	DESTINATION
-		${PROJECT_NAME}
-	)
-
-# px4 Tools dirs
-install(
-	DIRECTORY
-		${PROJECT_SOURCE_DIR}/Tools/ecl_ekf
-	DESTINATION
-		${PROJECT_NAME}/Tools
-	USE_SOURCE_PERMISSIONS
-	)
-
-# px4 Tools files
-install(
-	PROGRAMS
-		${PROJECT_SOURCE_DIR}/Tools/setup_gazebo.bash
-		${PROJECT_SOURCE_DIR}/Tools/upload_log.py
-	DESTINATION
-		${PROJECT_NAME}/Tools
-	)
-
-# sitl_gazebo built plugins
-install(
-	DIRECTORY
-		${PROJECT_SOURCE_DIR}/build/posix_sitl_default/build_gazebo
-	DESTINATION
-		${PROJECT_NAME}/build/posix_sitl_default
-	FILES_MATCHING
-		PATTERN "CMakeFiles" EXCLUDE
-		PATTERN "*.so"
-	)
-
-# sitl_gazebo dirs
-install(
-	DIRECTORY
-		${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/models
-		${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/worlds
-	DESTINATION
-		${PROJECT_NAME}/Tools/sitl_gazebo
-	)
-
-# sitl_gazebo files
-install(
-	FILES
-		${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/CMakeLists.txt
-		${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/package.xml
-	DESTINATION
-		${PROJECT_NAME}/Tools/sitl_gazebo
-	)
-
-
