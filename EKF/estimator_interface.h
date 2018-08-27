@@ -470,6 +470,7 @@ protected:
 	struct map_projection_reference_s _pos_ref {};   // Contains WGS-84 position latitude and longitude (radians) of the EKF origin
 	struct map_projection_reference_s _gps_pos_prev {};   // Contains WGS-84 position latitude and longitude (radians) of the previous GPS message
 	float _gps_alt_prev{0.0f};	// height from the previous GPS message (m)
+	float _gps_yaw_offset{0.0f};	// Yaw offset angle for dual GPS antennas used for yaw estimation (radians).
 
 	// innovation consistency check monitoring ratios
 	float _yaw_test_ratio{0.0f};          // yaw innovation consistency check ratio

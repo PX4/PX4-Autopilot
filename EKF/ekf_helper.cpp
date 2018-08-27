@@ -545,6 +545,15 @@ bool Ekf::realignYawGPS()
 // Reset heading and magnetic field states
 bool Ekf::resetMagHeading(Vector3f &mag_init)
 {
+	if (_params.mag_fusion_type >= MAG_FUSE_TYPE_NONE) {
+		// do not use the magnetomer and deactivate magnetic field states
+		zeroRows(P, 16, 21);
+		zeroCols(P, 16, 21);
+		_control_status.flags.mag_hdg = false;
+		_control_status.flags.mag_3D = false;
+		return false;
+	}
+
 	// save a copy of the quaternion state for later use in calculating the amount of reset change
 	Quatf quat_before_reset = _state.quat_nominal;
 	Quatf quat_after_reset = _state.quat_nominal;

@@ -220,6 +220,9 @@ void EstimatorInterface::setGpsData(uint64_t time_usec, struct gps_message *gps)
 
 		gps_sample_new.hgt = (float)gps->alt * 1e-3f;
 
+		gps_sample_new.yaw = gps->yaw;
+		_gps_yaw_offset = gps->yaw_offset;
+
 		// Only calculate the relative position if the WGS-84 location of the origin is set
 		if (collect_gps(time_usec, gps)) {
 			float lpos_x = 0.0f;
