@@ -69,10 +69,10 @@ def main():
                              " (default FILENAME: parameters.xml)")
     parser.add_argument("-i", "--inject-xml",
                         nargs='?',
-                        const="../Tools/parameters_injected.xml",
+                        const="parameters_injected.xml",
                         metavar="FILENAME",
                         help="Inject additional param XML file"
-                             " (default FILENAME: ../Tools/parameters_injected.xml)")
+                             " (default FILENAME: parameters_injected.xml)")
     parser.add_argument("-b", "--board",
                         nargs='?',
                         const="",
