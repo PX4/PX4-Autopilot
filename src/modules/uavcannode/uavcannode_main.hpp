@@ -57,7 +57,7 @@
 /**
  * A UAVCAN node.
  */
-class UavcanNode : public device::CDev
+class UavcanNode : public cdev::CDev
 {
 	/*
 	 * This memory is reserved for uavcan to use as over flow for message
