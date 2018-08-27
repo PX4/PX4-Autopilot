@@ -228,7 +228,7 @@ void FlightTaskAuto::_set_heading_from_mode()
 	switch (MPC_YAW_MODE.get()) {
 
 	case 0: { // Heading points towards the current waypoint.
-			v = Vector2f(&_target(0)) - Vector2f(&_position(0));
+			v = Vector2f(_target(0), _target(1)) - Vector2f(_position(0), _position(1));
 			break;
 		}
 
