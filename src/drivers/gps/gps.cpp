@@ -62,6 +62,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
+#include <px4_cli.h>
 #include <px4_config.h>
 #include <px4_getopt.h>
 #include <px4_module.h>
@@ -111,7 +112,7 @@ public:
 	};
 
 	GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interface, bool fake_gps, bool enable_sat_info,
-	    Instance instance);
+	    Instance instance, unsigned configured_baudrate);
 	virtual ~GPS();
 
 	/** @see ModuleBase */
@@ -148,6 +149,7 @@ private:
 
 	int				_serial_fd{-1};					///< serial interface to GPS
 	unsigned			_baudrate{0};					///< current baudrate
+	const unsigned			_configured_baudrate{0};			///< configured baudrate (0=auto-detect)
 	char				_port[20] {};					///< device / serial port path
 
 	bool				_healthy{false};				///< flag to signal if the GPS is ok
@@ -254,7 +256,8 @@ extern "C" __EXPORT int gps_main(int argc, char *argv[]);
 
 
 GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interface, bool fake_gps,
-	 bool enable_sat_info, Instance instance) :
+	 bool enable_sat_info, Instance instance, unsigned configured_baudrate) :
+	_configured_baudrate(configured_baudrate),
 	_mode(mode),
 	_interface(interface),
 	_fake_gps(fake_gps),
@@ -618,14 +621,6 @@ GPS::run()
 		param_get(handle, &gps_ubx_dynmodel);
 	}
 
-	int32_t configured_baudrate = 0; // auto-detect
-	handle = param_find("SER_GPS1_BAUD");
-
-	if (handle != PARAM_INVALID) {
-		param_get(handle, &configured_baudrate);
-	}
-
-
 	_orb_inject_data_fd = orb_subscribe(ORB_ID(gps_inject_data));
 
 	initializeCommunicationDump();
@@ -694,7 +689,7 @@ GPS::run()
 				break;
 			}
 
-			_baudrate = configured_baudrate;
+			_baudrate = _configured_baudrate;
 
 			if (_helper && _helper->configure(_baudrate, GPSHelper::OutputMode::GPS) == 0) {
 
@@ -930,12 +925,16 @@ so that they can be used in other projects as well (eg. QGroundControl uses them
 For testing it can be useful to fake a GPS signal (it will signal the system that it has a valid position):
 $ gps stop
 $ gps start -f
+Starting 2 GPS devices (the main GPS on /dev/ttyS3 and the secondary on /dev/ttyS4):
+gps start -d /dev/ttyS3 -e /dev/ttyS4
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("gps", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS3", "<file:dev>", "GPS device", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 0, 3000000, "Baudrate (can also be p:<param_name>)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('e', nullptr, "<file:dev>", "Optional secondary GPS device", true);
+	PRINT_MODULE_USAGE_PARAM_INT('g', 0, 0, 3000000, "Baudrate (secondary GPS, can also be p:<param_name>)", true);
 
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Fake a GPS signal (useful for testing)", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('s', "Enable publication of satellite info", true);
@@ -1006,6 +1005,8 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 {
 	const char *device_name = "/dev/ttyS3";
 	const char *device_name_secondary = nullptr;
+	int baudrate_main = 0;
+	int baudrate_secondary = 0;
 	bool fake_gps = false;
 	bool enable_sat_info = false;
 	GPSHelper::Interface interface = GPSHelper::Interface::UART;
@@ -1016,8 +1017,21 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "d:e:fsi:p:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:d:e:fg:si:p:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
+		case 'b':
+			if (px4_get_parameter_value(myoptarg, baudrate_main) != 0) {
+				PX4_ERR("baudrate parsing failed");
+				error_flag = true;
+			}
+			break;
+		case 'g':
+			if (px4_get_parameter_value(myoptarg, baudrate_secondary) != 0) {
+				PX4_ERR("baudrate parsing failed");
+				error_flag = true;
+			}
+			break;
+
 		case 'd':
 			device_name = myoptarg;
 			break;
@@ -1080,7 +1094,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 
 	GPS *gps;
 	if (instance == Instance::Main) {
-		gps = new GPS(device_name, mode, interface, fake_gps, enable_sat_info, instance);
+		gps = new GPS(device_name, mode, interface, fake_gps, enable_sat_info, instance, baudrate_main);
 
 		if (gps && device_name_secondary) {
 			task_spawn(argc, argv, Instance::Secondary);
@@ -1098,7 +1112,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 			}
 		}
 	} else { // secondary instance
-		gps = new GPS(device_name_secondary, mode, interface, fake_gps, enable_sat_info, instance);
+		gps = new GPS(device_name_secondary, mode, interface, fake_gps, enable_sat_info, instance, baudrate_secondary);
 	}
 
 	return gps;
