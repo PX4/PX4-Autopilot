@@ -415,6 +415,29 @@ fix_c_code('calcH_YAW312.c');
 clear all;
 reset(symengine);
 
+%% derive equations for fusion of dual antenna yaw measurement
+load('StatePrediction.mat');
+
+syms ant_yaw real; % yaw angle of antenna array axis wrt X body axis
+
+% define antenna vector in body frame
+ant_vec_bf = [cos(ant_yaw);sin(ant_yaw);0];
+
+% rotate into earth frame
+ant_vec_ef = Tbn * ant_vec_bf;
+
+% Calculate the yaw angle from the projection
+angMeas = atan(ant_vec_ef(2)/ant_vec_ef(1));
+
+H_YAWGPS = jacobian(angMeas,stateVector); % measurement Jacobian
+H_YAWGPS = simplify(H_YAWGPS);
+ccode(H_YAWGPS,'file','calcH_YAWGPS.c');
+fix_c_code('calcH_YAWGPS.c');
+
+% reset workspace
+clear all;
+reset(symengine);
+
 %% derive equations for fusion of declination
 load('StatePrediction.mat');
 
