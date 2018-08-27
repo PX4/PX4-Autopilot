@@ -73,6 +73,11 @@ add_subdirectory(${romfs_src_dir})
 # copy all romfs files, process airframes, prune comments
 get_property(romfs_cmake_files GLOBAL PROPERTY PX4_ROMFS_CMAKE_FILES)
 get_property(romfs_copy_files GLOBAL PROPERTY PX4_ROMFS_FILES)
+get_property(module_config_files GLOBAL PROPERTY PX4_MODULE_CONFIG_FILES)
+file(GLOB jinja_templates ${PX4_SOURCE_DIR}/Tools/serial/*.jinja)
+if (px4_constrained_flash_build)
+	set(added_arguments --constrained-flash)
+endif()
 add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rcS ${romfs_gen_root_dir}/init.d/rc.serial ${romfs_gen_root_dir}/init.d/rc.autostart
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}
 	# TODO: we should only copy the files in ${romfs_copy_files}
@@ -84,11 +89,14 @@ add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rcS ${romfs_gen_root_dir}
 		--start-script ${romfs_gen_root_dir}/init.d/rc.autostart
 		--board ${BOARD}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
-		--rc-file ${romfs_temp_dir}/init.d/rc.serial
-		--serial-ports ${board_serial_ports} #--verbose
+		--rc-dir ${romfs_gen_root_dir}/init.d
+		--serial-ports ${board_serial_ports} ${added_arguments}
+		--config-files ${module_config_files} #--verbose
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
 		--folder ${romfs_gen_root_dir} --board ${BOARD}
 	DEPENDS
+		${jinja_templates}
+		${module_config_files}
 		${romfs_cmake_files}
 		${romfs_copy_files}
 		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py

@@ -71,12 +71,19 @@ list(REMOVE_DUPLICATES module_list)
 get_property(module_config_files GLOBAL PROPERTY PX4_MODULE_CONFIG_FILES)
 set(generated_params_dir ${PX4_BINARY_DIR}/generated_params)
 set(generated_serial_params_file ${generated_params_dir}/serial_params.c)
+file(GLOB jinja_templates ${PX4_SOURCE_DIR}/Tools/serial/*.jinja)
+if (px4_constrained_flash_build)
+	set(added_arguments --constrained-flash)
+endif()
 add_custom_command(OUTPUT ${generated_serial_params_file}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_params_dir}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 		--params-file ${generated_serial_params_file}
-		--serial-ports ${board_serial_ports} #--verbose
+		--serial-ports ${board_serial_ports} ${added_arguments}
+		--config-files ${module_config_files} #--verbose
 	DEPENDS
+		${module_config_files}
+		${jinja_templates}
 		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 	COMMENT "Generating serial_params.c"
 )
