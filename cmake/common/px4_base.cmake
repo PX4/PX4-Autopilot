@@ -160,6 +160,8 @@ endfunction()
 #			[ COMPILE_FLAGS <list> ]
 #			[ INCLUDES <list> ]
 #			[ DEPENDS <string> ]
+#			[ SRCS <list> ]
+#			[ MODULE_CONFIG <list> ]
 #			[ EXTERNAL ]
 #			)
 #
@@ -172,6 +174,7 @@ endfunction()
 #		COMPILE_FLAGS		: compile flags
 #		LINK_FLAGS		: link flags
 #		SRCS			: source files
+#		MODULE_CONFIG		: yaml config file(s)
 #		INCLUDES		: include directories
 #		DEPENDS			: targets which this module depends on
 #		EXTERNAL		: flag to indicate that this module is out-of-tree
@@ -194,7 +197,7 @@ function(px4_add_module)
 	px4_parse_function_args(
 		NAME px4_add_module
 		ONE_VALUE MODULE MAIN STACK STACK_MAIN STACK_MAX PRIORITY
-		MULTI_VALUE COMPILE_FLAGS LINK_FLAGS SRCS INCLUDES DEPENDS
+		MULTI_VALUE COMPILE_FLAGS LINK_FLAGS SRCS INCLUDES DEPENDS MODULE_CONFIG
 		OPTIONS EXTERNAL UNITY_BUILD
 		REQUIRED MODULE MAIN
 		ARGN ${ARGN})
@@ -306,6 +309,12 @@ function(px4_add_module)
 			set_target_properties(${MODULE} PROPERTIES ${prop} ${${prop}})
 		endif()
 	endforeach()
+
+	if(MODULE_CONFIG)
+		foreach(module_config ${MODULE_CONFIG})
+			set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/${module_config})
+		endforeach()
+	endif()
 endfunction()
 
 #=============================================================================

@@ -2,27 +2,13 @@
 
 
 {% for serial_device in serial_devices -%}
-/**
- * Serial Configuration for {{ serial_device.label }} Port
- *
- * Configure what is running on the {{ serial_device.label }} Serial Port.
- *
-{% for command in commands -%}
- * @value {{ command.value }} {{ command.label }}
-{% endfor -%}
- * @group Serial
- * @reboot_required true
- */
-PARAM_DEFINE_INT32(SER_{{ serial_device.tag }}_CONFIG, {{
-	serial_ports[serial_device.tag].defaults["CONFIG"]|default(0) }});
 
 /**
- * Baudrate for {{ serial_device.label }} Port
+ * Baudrate for the {{ serial_device.label }} Serial Port
  *
  * Configure the Baudrate for the {{ serial_device.label }} Serial Port.
  *
- * Certain drivers such as the GPS determine the Baudrate automatically, and
- * changing this parameter will have no effect.
+ * Note: certain drivers such as the GPS can determine the Baudrate automatically.
  *
  * @value 0 Auto
  * @value 50 50 8N1
@@ -48,66 +34,35 @@ PARAM_DEFINE_INT32(SER_{{ serial_device.tag }}_CONFIG, {{
  * @value 921600 921600 8N1
  * @value 1000000 1000000 8N1
  * @value 1500000 1500000 8N1
+ * @value 2000000 2000000 8N1
  * @value 3000000 3000000 8N1
  * @group Serial
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(SER_{{ serial_device.tag }}_BAUD, {{
-	serial_ports[serial_device.tag].defaults["BAUD"]|default(0) }});
-
-/**
- * MAVLink Mode for {{ serial_device.label }} Port
- *
- * The MAVLink Mode defines the set of streamed messages (for example the
- * vehicle's attitude) and their sending rates.
- *
- * Note: this is only used if the {{ serial_device.label }} Port is configured to run MAVLink.
- *
-{% for key, value in mavlink_modes.iteritems() -%}
- * @value {{ key }} {{ value }}
-{% endfor -%}
- * @group Serial
- * @reboot_required true
- */
-PARAM_DEFINE_INT32(SER_{{ serial_device.tag }}_MAV_MDE, {{
-	serial_ports[serial_device.tag].defaults["MAV_MDE"]|default(0) }});
-
-/**
- * Maximum MAVLink sending rate for {{ serial_device.label }} Port
- *
- * Configure the maximum sending rate for the MAVLink streams in Bytes/sec.
- * If the configured streams exceed the maximum rate, the sending rate of
- * each stream is automatically decreased.
- * 
- * If this is set to 0, a value of <baudrate>/20 is used, which corresponds to
- * half of the theoretical maximum bandwidth.
- * 
- * Note: this is only used if the {{ serial_device.label }} Port is configured to run MAVLink.
- *
- * @min 0
- * @unit B/s
- * @group Serial
- * @reboot_required true
- */
-PARAM_DEFINE_INT32(SER_{{ serial_device.tag }}_MAV_R, {{
-	serial_ports[serial_device.tag].defaults["MAV_R"]|default(0) }});
-
-/**
- * Enable MAVLink Message forwarding for {{ serial_device.label }} Port
- *
- * If enabled, forward incoming MAVLink messages to other MAVLink ports if the
- * message is either broadcast or the target is not the autopilot.
- *
- * This allows for example a GCS to talk to a camera that is connected to the
- * autopilot via MAVLink (on a different link than the GCS).
- *
- * Note: this is only used if the {{ serial_device.label }} Port is configured to run MAVLink.
- *
- * @boolean
- * @group Serial
- * @reboot_required true
- */
-PARAM_DEFINE_INT32(SER_{{ serial_device.tag }}_MAV_FWD, {{
-	serial_ports[serial_device.tag].defaults["MAV_FWD"]|default(0) }});
+PARAM_DEFINE_INT32(SER_{{ serial_device.tag }}_BAUD, {{ serial_device.default_baudrate }});
 
 {% endfor %}
+
+
+{%- if serial_devices|length > 0 %}
+{% for command in commands -%}
+/**
+ * Serial Configuration for {{ command.label }}
+{%- if command.multi_instance %} (instance {{ command.instance }}){% endif %}
+ *
+ * Configure on which serial port to run {{ command.label }}.
+ *
+ * @value 0 Disabled
+{% for serial_device in serial_devices -%}
+ * @value {{ serial_device.index }} {{ serial_device.label }}
+{% endfor -%}
+ * @group {{ command.param_group }}
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32({{ command.port_param_name }}, {{ command.default_port }});
+
+{% endfor -%}
+{% endif %}
+
+{{ additional_definitions }}
+
