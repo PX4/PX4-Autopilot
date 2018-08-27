@@ -17,21 +17,18 @@ template<typename Type>
 class Scalar
 {
 public:
-    Scalar() : _value()
+    Scalar() = delete;
+
+    Scalar(const Matrix<Type, 1, 1> & other) :
+        _value{other(0,0)}
     {
     }
 
-    Scalar(const Matrix<Type, 1, 1> & other)
+    Scalar(Type other) : _value(other)
     {
-        _value = other(0,0);
     }
 
-    Scalar(Type other)
-    {
-        _value = other;
-    }
-
-    operator Type &()
+    operator const Type &()
     {
         return _value;
     }
@@ -49,7 +46,7 @@ public:
     }
 
 private:
-    Type _value;
+    const Type _value;
 
 };
 

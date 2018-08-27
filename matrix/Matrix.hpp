@@ -30,22 +30,22 @@ class Matrix
 
 public:
 
-    Type _data[M][N];
+    Type _data[M][N] {};
 
     // Constructors
-    Matrix() : _data() {}
+    Matrix() = default;
 
-    Matrix(const Type data_[][N]) : _data()
+    Matrix(const Type data_[][N])
     {
         memcpy(_data, data_, sizeof(_data));
     }
 
-    Matrix(const Type *data_) : _data()
+    Matrix(const Type *data_)
     {
         memcpy(_data, data_, sizeof(_data));
     }
 
-    Matrix(const Matrix &other) : _data()
+    Matrix(const Matrix &other)
     {
         memcpy(_data, other._data, sizeof(_data));
     }

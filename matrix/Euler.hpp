@@ -43,9 +43,7 @@ public:
     /**
      * Standard constructor
      */
-    Euler() : Vector<Type, 3>()
-    {
-    }
+    Euler() = default;
 
     /**
      * Copy constructor
@@ -95,7 +93,7 @@ public:
      *
      * @param dcm Direction cosine matrix
     */
-    Euler(const Dcm<Type> &dcm) : Vector<Type, 3>()
+    Euler(const Dcm<Type> &dcm)
     {
         Type phi_val = Type(atan2(dcm(2, 1), dcm(2, 2)));
         Type theta_val = Type(asin(-dcm(2, 0)));
@@ -126,8 +124,7 @@ public:
      *
      * @param q quaternion
     */
-    Euler(const Quaternion<Type> &q) :
-        Vector<Type, 3>()
+    Euler(const Quaternion<Type> &q)
     {
         *this = Euler(Dcm<Type>(q));
     }

@@ -24,10 +24,7 @@ template<typename Type, size_t  M>
 class SquareMatrix : public Matrix<Type, M, M>
 {
 public:
-    SquareMatrix() :
-        Matrix<Type, M, M>()
-    {
-    }
+    SquareMatrix() = default;
 
     SquareMatrix(const Type *data_) :
         Matrix<Type, M, M>(data_)

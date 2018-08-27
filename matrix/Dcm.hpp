@@ -46,7 +46,7 @@ public:
      *
      * Initializes to identity
      */
-    Dcm() : SquareMatrix<Type, 3>()
+    Dcm()
     {
         (*this) = eye<Type, 3>();
     }

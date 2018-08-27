@@ -70,8 +70,7 @@ public:
     /**
      * Standard constructor
      */
-    Quaternion() :
-        Vector<Type, 4>()
+    Quaternion()
     {
         Quaternion &q = *this;
         q(0) = 1;
@@ -98,8 +97,7 @@ public:
      *
      * @param dcm dcm to set quaternion to
      */
-    Quaternion(const Dcm<Type> &R) :
-        Vector<Type, 4>()
+    Quaternion(const Dcm<Type> &R)
     {
         Quaternion &q = *this;
         Type t = R.trace();
@@ -143,8 +141,7 @@ public:
      *
      * @param euler euler angle instance
      */
-    Quaternion(const Euler<Type> &euler) :
-        Vector<Type, 4>()
+    Quaternion(const Euler<Type> &euler)
     {
         Quaternion &q = *this;
         Type cosPhi_2 = Type(cos(euler.phi() / Type(2.0)));
@@ -168,8 +165,7 @@ public:
      *
      * @param aa axis-angle vector
      */
-    Quaternion(const AxisAngle<Type> &aa) :
-        Vector<Type, 4>()
+    Quaternion(const AxisAngle<Type> &aa)
     {
         Quaternion &q = *this;
         Type angle = aa.norm();
@@ -194,8 +190,7 @@ public:
      * @param src source vector (no need to normalize)
      * @param eps epsilon threshold which decides if a value is considered zero
      */
-    Quaternion(const Vector3<Type> &src, const Vector3<Type> &dst, const Type eps = Type(1e-5)) :
-        Vector<Type, 4>()
+    Quaternion(const Vector3<Type> &src, const Vector3<Type> &dst, const Type eps = Type(1e-5))
     {
         Quaternion &q = *this;
         Vector3<Type> cr = src.cross(dst);
@@ -242,8 +237,7 @@ public:
      * @param c set quaternion value 2
      * @param d set quaternion value 3
      */
-    Quaternion(Type a, Type b, Type c, Type d) :
-        Vector<Type, 4>()
+    Quaternion(Type a, Type b, Type c, Type d)
     {
         Quaternion &q = *this;
         q(0) = a;

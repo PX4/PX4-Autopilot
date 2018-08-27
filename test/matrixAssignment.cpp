@@ -97,8 +97,7 @@ int main()
     TEST(fabs(m4.min() - 1) < 1e-5);
     TEST(fabs((-m4).min() + 9) < 1e-5);
 
-    Scalar<float> s;
-    s = 1;
+    Scalar<float> s = 1;
     const Vector<float, 1> & s_vect = s;
     TEST(fabs(s - 1) < 1e-5);
     TEST(fabs(s_vect(0) - 1.0f) < 1e-5);
