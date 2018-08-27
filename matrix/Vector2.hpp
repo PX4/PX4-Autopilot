@@ -30,7 +30,7 @@ public:
     {
     }
 
-    Vector2(const Type *data_) :
+    Vector2(const Type data_[2]) :
         Vector<Type, 2>(data_)
     {
     }

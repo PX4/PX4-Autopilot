@@ -62,7 +62,7 @@ public:
      *
      * @param data_ array
      */
-    Quaternion(const Type *data_) :
+    Quaternion(const Type data_[4]) :
         Vector<Type, 4>(data_)
     {
     }

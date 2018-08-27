@@ -29,7 +29,7 @@ public:
     {
     }
 
-    Vector(const Type *data_) :
+    Vector(const Type data_[M]) :
         MatrixM1(data_)
     {
     }

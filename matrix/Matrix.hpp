@@ -24,7 +24,7 @@ namespace matrix
 template <typename Type, size_t M>
 class Vector;
 
-template<typename Type, size_t  M, size_t N>
+template<typename Type, size_t M, size_t N>
 class Matrix
 {
 
@@ -35,12 +35,12 @@ public:
     // Constructors
     Matrix() = default;
 
-    Matrix(const Type data_[][N])
+    Matrix(const Type data_[M*N])
     {
         memcpy(_data, data_, sizeof(_data));
     }
 
-    Matrix(const Type *data_)
+    Matrix(const Type data_[M][N])
     {
         memcpy(_data, data_, sizeof(_data));
     }

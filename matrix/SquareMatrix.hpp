@@ -26,7 +26,7 @@ class SquareMatrix : public Matrix<Type, M, M>
 public:
     SquareMatrix() = default;
 
-    SquareMatrix(const Type *data_) :
+    SquareMatrix(const Type data_[M][M]) :
         Matrix<Type, M, M>(data_)
     {
     }
