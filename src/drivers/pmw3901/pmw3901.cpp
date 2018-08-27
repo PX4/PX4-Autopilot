@@ -608,6 +608,11 @@ PMW3901::collect()
 	report.gyro_y_rate_integral = NAN;
 	report.gyro_z_rate_integral = NAN;
 
+	// set (conservative) specs according to datasheet
+	report.max_flow_rate = 5.0f;       // Datasheet: 7.4 rad/s
+	report.min_ground_distance = 0.1f; // Datasheet: 80mm
+	report.max_ground_distance = 5.0f; // Datasheet: infinity
+
 	_flow_dt_sum_usec = 0;
 	_flow_sum_x = 0;
 	_flow_sum_y = 0;
