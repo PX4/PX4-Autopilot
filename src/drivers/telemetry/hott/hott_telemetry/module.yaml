@@ -1,0 +1,7 @@
+module_name: HoTT Telemetry
+serial_config:
+    - command: hott_telemetry start -d ${SERIAL_DEV}
+      port_config_param:
+        name: TEL_HOTT_CONFIG
+        group: Telemetry
+
