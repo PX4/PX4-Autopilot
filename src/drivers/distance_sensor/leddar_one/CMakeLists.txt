@@ -36,5 +36,7 @@ px4_add_module(
 	STACK_MAIN 1200
 	SRCS
 		leddar_one.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 	)

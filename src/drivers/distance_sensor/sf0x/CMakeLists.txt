@@ -37,6 +37,8 @@ px4_add_module(
 	SRCS
 		sf0x.cpp
 		sf0x_parser.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 	)
 
