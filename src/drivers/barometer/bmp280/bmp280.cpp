@@ -61,7 +61,7 @@
 #include <board_config.h>
 #include "bmp280.h"
 
-#include <drivers/device/device.h>
+#include <lib/cdev/CDev.hpp>
 #include <drivers/drv_baro.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/ringbuffer.h>
@@ -86,7 +86,7 @@ enum BMP280_BUS {
  * BMP280 internal constants and data structures.
  */
 
-class BMP280 : public device::CDev
+class BMP280 : public cdev::CDev
 {
 public:
 	BMP280(bmp280::IBMP280 *interface, const char *path);
@@ -148,7 +148,7 @@ private:
 extern "C" __EXPORT int bmp280_main(int argc, char *argv[]);
 
 BMP280::BMP280(bmp280::IBMP280 *interface, const char *path) :
-	CDev("BMP280", path),
+	CDev(path),
 	_interface(interface),
 	_running(false),
 	_report_ticks(0),
@@ -197,7 +197,7 @@ BMP280::init()
 	int ret = CDev::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("CDev init failed");
+		PX4_ERR("CDev init failed");
 		return ret;
 	}
 
@@ -205,7 +205,7 @@ BMP280::init()
 	_reports = new ringbuffer::RingBuffer(2, sizeof(baro_report));
 
 	if (_reports == nullptr) {
-		DEVICE_DEBUG("can't get memory for reports");
+		PX4_ERR("can't get memory for reports");
 		ret = -ENOMEM;
 		return ret;
 	}
@@ -533,10 +533,7 @@ BMP280::collect()
 	report.pressure = _P / 100.0f; // to mbar
 
 	/* publish it */
-	if (!(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
-	}
+	orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
 
 	_reports->force(&report);
 
