@@ -9,143 +9,58 @@ import sys
 
 from jinja2 import Environment, FileSystemLoader
 
+try:
+    import yaml
+except:
+    print("Failed to import yaml.")
+    print("You may need to install it with 'sudo pip install pyyaml'")
+    print("")
+    raise
+
 
 ## Configuration
 
-# All possible Serial ports and their default param values.
-# Omitted default values will be set to 0.
+# All possible Serial ports
+# Note: do not re-use or change indexes. When adding a port, always use an
+# index that has never been used before. This is important for compatibility
+# with QGC (parameter metadata)
 serial_ports = {
-    "GPS1": {
-        "label": "GPS 1",
-        "defaults": {
-            "CONFIG": 'Main GPS',
-            "BAUD": 0,
-            },
-        },
-    "GPS2": {
-        "label": "GPS 2",
-        "defaults": {
-            "CONFIG": 'Disabled',
-            "BAUD": 0,
-            },
-        },
-    "TEL1": {
+    # index 0 means disabled
+    "TEL1": { # telemetry link
         "label": "TELEM 1",
-        "defaults": {
-            "CONFIG": 'MAVLink',
-            "BAUD": 57600,
-            "MAV_MDE": 'Normal',
-            "MAV_R": 1200,
-            "MAV_FWD": 1,
-            },
+        "index": 1,
+        "default_baudrate": 57600,
         },
     "TEL2": { # companion port
         "label": "TELEM 2",
-        "defaults": {
-            "CONFIG": 'Disabled', # disabled by default to reduce RAM usage
-            "BAUD": 57600,
-            "MAV_MDE": 'OSD',
-            },
+        "index": 2,
+        "default_baudrate": 921600,
         },
     "TEL3": {
         "label": "TELEM 3",
-        "defaults": {
-            "CONFIG": 'Disabled',
-            "BAUD": 57600,
-            "MAV_MDE": 'Normal',
-            },
+        "index": 3,
+        "default_baudrate": 57600,
         },
     "TEL4": {
-        "label": "TELEM 4",
-        "defaults": {
-            "CONFIG": 'MAVLink',
-            "BAUD": 57600,
-            "MAV_MDE": 'Normal',
-            "MAV_R": 1200,
-            },
+        "label": "TELEM/SERIAL 4",
+        "index": 4,
+        "default_baudrate": 57600,
         },
-    "URT3": { # for Omnibus
-        "label": "UART 3",
-        "defaults": {
-            "CONFIG": 'MAVLink',
-            "BAUD": 57600,
-            "MAV_MDE": 'Normal',
-            "MAV_R": 1200,
-            "MAV_FWD": 1,
-            },
+    "GPS1": {
+        "label": "GPS 1",
+        "index": 5,
+        "default_baudrate": 0,
+        },
+    "GPS2": {
+        "label": "GPS 2",
+        "index": 6,
+        "default_baudrate": 0,
         },
     "URT6": { # for Omnibus
         "label": "UART 6",
-        "defaults": {
-            "CONFIG": 'Main GPS',
-            "BAUD": 0,
-            },
+        "index": 7,
+        "default_baudrate": 0,
         },
-    }
-
-# Serial commands: each dict entry is a list with 2 items:
-# - user-facing label (must be short, will be shown in a drop-down list)
-# - ROMFS command (can be more than one or any scripting logic).
-#   These variables can be used:
-#       ${SER_DEV}             Serial device (e.g. /dev/ttyS1)
-#       ${SER_TAG}             Serial tag (e.g. GPS1)
-#       SER_${SER_TAG}_CONFIG  Param name for the current configuration
-#       SER_${SER_TAG}_BAUD    Param name for the current baudrate
-#       SER_${SER_TAG}_MAV_MDE Param name for the current mavlink mode
-#       SER_${SER_TAG}_MAV_R   Param name for the current mavlink rate
-#       SER_${SER_TAG}_MAV_FWD Param name for current mavlink forwarding
-#       ${DUAL_GPS_ARGS}       Arguments passed to the gps to start the secondary GPS
-#       ${MAV_ARGS}            Mavlink arguments (baudrate, mode and rate)
-#
-# Note: do NOT re-use or change indexes. When adding a command, always use an
-# index that has never been used before. This is important for compatibility
-# with QGC
-serial_commands = {
-    0: ["Disabled", ""],
-
-    # MAVLink & RTPS
-    1: ["MAVLink", "mavlink start -d ${SER_DEV} ${MAV_ARGS} -x"],
-
-    2: ["MAVLink over Syslink", '''
-syslink start
-mavlink start -d /dev/bridge0 ${MAV_ARGS}
-'''],
-
-    3: ["MAVLink over Iridium", '''
-iridiumsbd start -d ${SER_DEV}
-mavlink start -d /dev/iridium -b 19200 -m iridium -r 10
-'''],
-
-    4: ["MAVLink + FastRTPS", '''
-protocol_splitter start ${SER_DEV}
-mavlink start -d /dev/mavlink ${MAV_ARGS} -x
-micrortps_client start -d /dev/rtps -b p:SER_${SER_TAG}_BAUD -l -1
-'''],
-    5: ["FastRTPS", "micrortps_client start -d ${SER_DEV} -b p:SER_${SER_TAG}_BAUD -l -1"],
-
-    # GPS
-    50: ["Main GPS", "gps start -d ${SER_DEV} ${DUAL_GPS_ARGS}"],
-    51: ["Secondary GPS", ""], # special handling for the command
-
-    # Telemetry
-    100: ["FrSky Telemetry", "frsky_telemetry start -d ${SER_DEV}"],
-    101: ["HoTT Telemetry", "hott_telemetry start -d ${SER_DEV}"],
-
-    # Sensor drivers
-    200: ["LeddarOne Rangefinder", "leddar_one start -d ${SER_DEV}"],
-    201: ["Benewake TFmini Rangefinder", "tfmini start -d ${SER_DEV}"],
-    202: ["Lightware Laser Rangefinder", "sf0x start -d ${SER_DEV}"],
-    }
-
-mavlink_modes = {
-    0: "Normal",
-    1: "Custom",
-    2: "Onboard",
-    3: "OSD",
-    4: "Magic",
-    5: "Config",
-    6: "Iridium",
-    7: "Minimal",
     }
 
 parser = argparse.ArgumentParser(description='Generate Serial params & startup script')
@@ -153,10 +68,14 @@ parser = argparse.ArgumentParser(description='Generate Serial params & startup s
 parser.add_argument('--serial-ports', type=str, nargs='*', metavar="TAG:DEVICE",
                     default=[],
                     help='Serial ports: mappings from the tag name to the device (e.g. GPS1:/dev/ttyS1)')
+parser.add_argument('--config-files', type=str, nargs='*', default=[],
+                    help='YAML module config file(s)')
 parser.add_argument('--all-ports', action='store_true',
                     help='Generate output for all known ports (params file only)')
-parser.add_argument('--rc-file', type=str, action='store',
-                    help='ROMFS output script', default=None)
+parser.add_argument('--constrained-flash', action='store_true',
+                    help='Reduce verbosity in ROMFS scripts to reduce flash size')
+parser.add_argument('--rc-dir', type=str, action='store',
+                    help='ROMFS output directory', default=None)
 parser.add_argument('--params-file', type=str, action='store',
                     help='Parameter output file', default=None)
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
@@ -166,11 +85,13 @@ args = parser.parse_args()
 
 arg_board_serial_ports = args.serial_ports
 verbose = args.verbose
-rc_serial_output_file = args.rc_file
+rc_serial_output_dir = args.rc_dir
 rc_serial_template = 'rc.serial.jinja'
+rc_serial_port_template = 'rc.serial_port.jinja'
 serial_params_output_file = args.params_file
 serial_params_template = 'serial_params.c.jinja'
 generate_for_all_ports = args.all_ports
+constrained_flash = args.constrained_flash
 
 if generate_for_all_ports:
     board_ports = [(key, "") for key in serial_ports]
@@ -179,28 +100,109 @@ else:
     board_ports = [tuple(port.split(":")) for port in arg_board_serial_ports]
 
 
-if rc_serial_output_file is None and serial_params_output_file is None:
-    raise Exception("At least one of --rc-file (e.g. rc.serial) or --params-file "
+if rc_serial_output_dir is None and serial_params_output_file is None:
+    raise Exception("At least one of --rc-dir or --params-file "
         "(e.g. serial_params.c) needs to be specified")
 
 
-# replace strings in defaults with their numerical value
-for key in serial_ports:
-    defaults = serial_ports[key]["defaults"]
+# parse the YAML files
+serial_commands = []
+additional_params = ""
 
-    if "CONFIG" in defaults and isinstance(defaults["CONFIG"], str):
-        config_index_list = [ key for key in serial_commands \
-                if serial_commands[key][0] == defaults["CONFIG"]]
-        if len(config_index_list) == 0:
-            raise Exception("Config mode {:} not found".format(defaults["CONFIG"]))
-        defaults["CONFIG"] = config_index_list[0]
+def parse_yaml_serial_config(yaml_config):
+    """ parse the serial_config section from the yaml config file """
+    if 'serial_config' not in yaml_config:
+        return []
+    ret = []
+    module_name = yaml_config['module_name']
+    for serial_config in yaml_config['serial_config']:
+        if 'label' not in serial_config:
+            serial_config['label'] = module_name
+        ret.append(serial_config)
+    return ret
 
-    if "MAV_MDE" in defaults and isinstance(defaults["MAV_MDE"], str):
-        mode_index_list = [ key for key in mavlink_modes \
-                if mavlink_modes[key] == defaults["MAV_MDE"]]
-        if len(mode_index_list) == 0:
-            raise Exception("Mavlink mode {:} not found".format(defaults["MAV_MDE"]))
-        defaults["MAV_MDE"] = mode_index_list[0]
+def parse_yaml_parameters_config(yaml_config):
+    """ parse the parameters section from the yaml config file """
+    if 'parameters' not in yaml_config:
+        return ''
+    parameters_section_list = yaml_config['parameters']
+    for parameters_section in parameters_section_list:
+        if 'definitions' not in parameters_section:
+            return ''
+        definitions = parameters_section['definitions']
+        ret = ''
+        param_group = parameters_section.get('group', None)
+        for param_name in definitions:
+            param = definitions[param_name]
+            num_instances = param.get('num_instances', 1)
+            instance_start = param.get('instance_start', 0) # offset
+
+            # get the type and extract all tags
+            tags = '@group {:}'.format(param_group)
+            if param['type'] == 'enum':
+                param_type = 'INT32'
+                for key in param['values']:
+                    tags += '\n * @value {:} {:}'.format(key, param['values'][key])
+            elif param['type'] == 'boolean':
+                param_type = 'INT32'
+                tags += '\n * @boolean'
+            elif param['type'] == 'int32':
+                param_type = 'INT32'
+            elif param['type'] == 'float':
+                param_type = 'FLOAT'
+            else:
+                raise Exception("unknown param type {:}".format(param['type']))
+
+            for tag in ['decimal', 'increment', 'category', 'volatile', 'bit',
+                        'min', 'max', 'unit', 'reboot_required']:
+                if tag in param:
+                    tags += '\n * @{:} {:}'.format(tag, param[tag])
+
+            for i in range(num_instances):
+                # default value
+                default_value = 0
+                if 'default' in param:
+                    # default can be a list of num_instances or a single value
+                    if type(param['default']) == list:
+                        assert len(param['default']) == num_instances
+                        default_value = param['default'][i]
+                    else:
+                        default_value = param['default']
+
+                if type(default_value) == bool:
+                    default_value = int(default_value)
+
+                # output the existing C-style format
+                ret += '''
+/**
+ * {short_descr}
+ *
+ * {long_descr}
+ *
+ * {tags}
+ */
+PARAM_DEFINE_{param_type}({name}, {default_value});
+'''.format(short_descr=param['description']['short'].replace("\n", "\n * "),
+           long_descr=param['description']['long'].replace("\n", "\n * "),
+           tags=tags,
+           param_type=param_type,
+           name=param_name,
+           default_value=default_value,
+          ).replace('${i}', str(i+instance_start))
+    return ret
+
+for yaml_file in args.config_files:
+    with open(yaml_file, 'r') as stream:
+        try:
+            yaml_config = yaml.load(stream)
+            serial_commands.extend(parse_yaml_serial_config(yaml_config))
+
+            # TODO: additional params should be parsed in a separate script
+            additional_params += parse_yaml_parameters_config(yaml_config)
+
+        except yaml.YAMLError as exc:
+            print(exc)
+            raise
 
 
 # sanity check (makes sure the param names don't exceed the max length of 16 chars)
@@ -217,23 +219,41 @@ for tag, device in board_ports:
     serial_devices.append({
         'tag': tag,
         'device': device,
-        'label': serial_ports[tag]["label"]
+        'label': serial_ports[tag]["label"],
+        'index': serial_ports[tag]["index"],
+        'default_baudrate': serial_ports[tag]["default_baudrate"]
         })
 
 
 # construct commands based on selected board
 commands = []
-disabled_commands = [] # e.g. ["HoTT Telemetry"] TODO: do we need support for that and configure it from the board config?
-for key in serial_commands:
-    if serial_commands[key][0] in disabled_commands:
-        continue
-    label = serial_commands[key][0]
-    command = serial_commands[key][1]
-    commands.append({
-        'value': key,
-        'command': command,
-        'label': label
-        })
+for serial_command in serial_commands:
+    num_instances = serial_command.get('num_instances', 1)
+    # TODO: use a loop in the script instead of explicitly enumerating all instances
+    for i in range(num_instances):
+        port_config = serial_command['port_config_param']
+        port_param_name = port_config['name'].replace('${i}', str(i))
+        default_port = 0 # disabled
+        if 'default' in port_config:
+            if type(port_config['default']) == list:
+                assert len(port_config['default']) == num_instances
+                default_port_str = port_config['default'][i]
+            else:
+                default_port_str = port_config['default']
+            if default_port_str != "":
+                if default_port_str not in serial_ports:
+                    raise Exception("Default Port {:} not found for {:}".format(default_port_str, serial_command['label']))
+                default_port = serial_ports[default_port_str]['index']
+
+        commands.append({
+            'command': serial_command['command'],
+            'label': serial_command['label'],
+            'instance': i,
+            'multi_instance': num_instances > 1,
+            'port_param_name': port_param_name,
+            'default_port': default_port,
+            'param_group': port_config['group']
+            })
 
 if verbose:
     print("Serial Devices: {:}".format(serial_devices))
@@ -244,9 +264,11 @@ jinja_env = Environment(loader=FileSystemLoader(
     os.path.dirname(os.path.realpath(__file__))))
 
 # generate the ROMFS script using a jinja template
-if rc_serial_output_file is not None:
+if rc_serial_output_dir is not None:
     if generate_for_all_ports:
         raise Exception("Cannot create rc file for --all-ports")
+    rc_serial_output_file = os.path.join(rc_serial_output_dir, "rc.serial")
+    rc_serial_port_output_file = os.path.join(rc_serial_output_dir, "rc.serial_port")
 
     if verbose: print("Generating {:}".format(rc_serial_output_file))
     if len(serial_devices) == 0:
@@ -255,13 +277,15 @@ if rc_serial_output_file is not None:
     else:
         template = jinja_env.get_template(rc_serial_template)
         with open(rc_serial_output_file, 'w') as fid:
-            secondary_gps_value = 51
-            # sanity-check
-            if serial_commands[secondary_gps_value][0] != "Secondary GPS":
-                raise Exception("Unexpected value for Secondary GPS")
             fid.write(template.render(serial_devices=serial_devices,
-                secondary_gps_value=secondary_gps_value,
-                commands=commands))
+                commands=commands,
+                constrained_flash=constrained_flash))
+
+        if verbose: print("Generating {:}".format(rc_serial_port_output_file))
+        template = jinja_env.get_template(rc_serial_port_template)
+        with open(rc_serial_port_output_file, 'w') as fid:
+            fid.write(template.render(serial_devices=serial_devices,
+                constrained_flash=constrained_flash))
 
 # parameter definitions
 if serial_params_output_file is not None:
@@ -269,6 +293,6 @@ if serial_params_output_file is not None:
     template = jinja_env.get_template(serial_params_template)
     with open(serial_params_output_file, 'w') as fid:
         fid.write(template.render(serial_devices=serial_devices,
-            commands=commands, mavlink_modes=mavlink_modes,
-            serial_ports=serial_ports))
+            commands=commands, serial_ports=serial_ports,
+            additional_definitions=additional_params))
 

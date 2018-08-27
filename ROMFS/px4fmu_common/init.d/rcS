@@ -17,12 +17,13 @@ set +e
 #
 # UART mapping on FMUv2/3/4:
 #
-# UART1         /dev/ttyS0      IO debug (except v4, there ttyS0 is the wifi)
+# UART1         /dev/ttyS0      IO debug (except v4, there ttyS0 is the wifi,
+#                                         v4pro: TELEM3)
 # USART2        /dev/ttyS1      TELEM1 (flow control)
 # USART3        /dev/ttyS2      TELEM2 (flow control)
 # UART4
 # UART7                         CONSOLE
-# UART8                         SERIAL4
+# UART8         /dev/ttyS6      SERIAL4/TELEM4
 #
 #------------------------------------------------------------------------------
 #
@@ -41,8 +42,9 @@ set +e
 # UART mapping on OMNIBUSF4SD:
 #
 # USART1        /dev/ttyS0      SerialRX
-# USART4        /dev/ttyS1      TELEM1
-# USART6        /dev/ttyS2      GPS
+# (USART3                       configured as I2C)
+# USART4        /dev/ttyS1      TELEM2 (TX=RSSI, RX=PWM out 5)
+# USART6        /dev/ttyS2      URT6
 #
 
 #------------------------------------------------------------------------------
