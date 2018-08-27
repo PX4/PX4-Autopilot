@@ -29,10 +29,7 @@ public:
 
     typedef Matrix<Type, 3, 1> Matrix31;
 
-    Vector3() :
-        Vector<Type, 3>()
-    {
-    }
+    Vector3() = default;
 
     Vector3(const Matrix31 & other) :
         Vector<Type, 3>(other)
@@ -44,15 +41,14 @@ public:
     {
     }
 
-    Vector3(Type x, Type y, Type z) : Vector<Type, 3>()
-    {
+    Vector3(Type x, Type y, Type z) {
         Vector3 &v(*this);
         v(0) = x;
         v(1) = y;
         v(2) = z;
     }
 
-    Vector3 cross(const Matrix31 & b)  const {
+    Vector3 cross(const Matrix31 & b) const {
         const Vector3 &a(*this);
         Vector3 c;
         c(0) = a(1)*b(2,0) - a(2)*b(1,0);

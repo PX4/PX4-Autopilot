@@ -22,9 +22,7 @@ class Vector : public Matrix<Type, M, 1>
 public:
     typedef Matrix<Type, M, 1> MatrixM1;
 
-    Vector() : MatrixM1()
-    {
-    }
+    Vector() = default;
 
     Vector(const MatrixM1 & other) :
         MatrixM1(other)

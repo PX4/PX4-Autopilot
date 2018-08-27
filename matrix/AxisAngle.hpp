@@ -46,10 +46,7 @@ public:
     /**
      * Standard constructor
      */
-    AxisAngle() :
-        Vector<Type, 3>()
-    {
-    }
+    AxisAngle() = default;
 
     /**
      * Constructor from Matrix31
@@ -70,8 +67,7 @@ public:
      *
      * @param q quaternion
      */
-    AxisAngle(const Quaternion<Type> &q) :
-        Vector<Type, 3>()
+    AxisAngle(const Quaternion<Type> &q)
     {
         AxisAngle &v = *this;
         Type ang = Type(2.0f)*acos(q(0));
@@ -95,8 +91,7 @@ public:
      *
      * @param dcm dcm to set quaternion to
      */
-    AxisAngle(const Dcm<Type> &dcm) :
-        Vector<Type, 3>()
+    AxisAngle(const Dcm<Type> &dcm)
     {
         AxisAngle &v = *this;
         v = Quaternion<Type>(dcm);
@@ -111,8 +106,7 @@ public:
      *
      * @param euler euler angle instance
      */
-    AxisAngle(const Euler<Type> &euler) :
-        Vector<Type, 3>()
+    AxisAngle(const Euler<Type> &euler)
     {
         AxisAngle &v = *this;
         v = Quaternion<Type>(euler);
@@ -125,8 +119,7 @@ public:
      * @param y r_y*angle
      * @param z r_z*angle
      */
-    AxisAngle(Type x, Type y, Type z) :
-        Vector<Type, 3>()
+    AxisAngle(Type x, Type y, Type z)
     {
         AxisAngle &v = *this;
         v(0) = x;
@@ -140,8 +133,7 @@ public:
      * @param axis An axis of rotation, normalized if not unit length
      * @param angle The amount to rotate
      */
-    AxisAngle(const Matrix31 & axis_, Type angle_) :
-        Vector<Type, 3>()
+    AxisAngle(const Matrix31 & axis_, Type angle_)
     {
         AxisAngle &v = *this;
         // make sure axis is a unit vector
