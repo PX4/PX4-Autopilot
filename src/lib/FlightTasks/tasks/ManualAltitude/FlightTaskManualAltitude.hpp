@@ -40,6 +40,7 @@
 #pragma once
 
 #include "FlightTaskManualStabilized.hpp"
+#include <uORB/topics/home_position.h>
 
 class FlightTaskManualAltitude : public FlightTaskManualStabilized
 {
@@ -48,6 +49,7 @@ public:
 	virtual ~FlightTaskManualAltitude() = default;
 	bool activate() override;
 	bool updateInitialize() override;
+	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 
 protected:
 	void _updateSetpoints() override; /**< updates all setpoints */
@@ -65,8 +67,12 @@ protected:
 					(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) MPC_HOLD_MAX_XY,
 					(ParamFloat<px4::params::MPC_Z_P>) MPC_Z_P
+					(ParamFloat<px4::params::MPC_LAND_ALT1>) MPC_LAND_ALT1, // altitude at which speed limit downwards reaches maximum speed
+					(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude at which speed limit downwards reached minimum speed
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) MPC_LAND_SPEED
 				       )
 private:
+	uORB::Subscription<home_position_s> *_sub_home_position{nullptr};
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
 	float _max_speed_up = 10.0f;
 	float _min_speed_down = 1.0f;

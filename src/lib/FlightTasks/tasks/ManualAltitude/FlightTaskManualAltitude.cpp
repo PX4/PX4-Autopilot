@@ -41,6 +41,18 @@
 
 using namespace matrix;
 
+bool FlightTaskManualAltitude::initializeSubscriptions(SubscriptionArray &subscription_array)
+{
+	if (!FlightTaskManualStabilized::initializeSubscriptions(subscription_array)) {
+		return false;
+	}
+
+	// subscribe to home position, but don't require it
+	subscription_array.get(ORB_ID(home_position), _sub_home_position);
+
+	return true;
+}
+
 bool FlightTaskManualAltitude::updateInitialize()
 {
 	bool ret = FlightTaskManualStabilized::updateInitialize();
@@ -84,6 +96,25 @@ void FlightTaskManualAltitude::_scaleSticks()
 	// scale horizontal velocity with expo curve stick input
 	const float vel_max_z = (_sticks(2) > 0.0f) ? _constraints.speed_down : _constraints.speed_up;
 	_velocity_setpoint(2) = vel_max_z * _sticks_expo(2);
+
+	// if there is a valid distance to bottom or distance to home, then
+	// adjust speed downwards gradually within the limits MPC_LAND_ALT1 and MPC_LAND_ALT2.
+	if (_sticks(2) > 0.0f) { //user demands speed downwards
+
+		float dist_to_ground = NAN;
+
+		if (PX4_ISFINITE(_dist_to_bottom)) {
+			dist_to_ground = _dist_to_bottom;
+
+		} else if (PX4_ISFINITE(_sub_home_position->get().valid_alt)) {
+			dist_to_ground = -_position(2) + _sub_home_position->get().z;
+		}
+
+		if (PX4_ISFINITE(dist_to_ground)) {
+			_velocity_setpoint(2) = math::gradual(dist_to_ground,  MPC_LAND_ALT2.get(),
+							      MPC_LAND_ALT1.get(), MPC_LAND_SPEED.get(), _velocity_setpoint(2));
+		}
+	}
 }
 
 void FlightTaskManualAltitude::_updateAltitudeLock()
