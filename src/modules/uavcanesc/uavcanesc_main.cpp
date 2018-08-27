@@ -86,7 +86,7 @@ boot_app_shared_section app_descriptor_t AppDescriptor = {
 UavcanEsc *UavcanEsc::_instance;
 
 UavcanEsc::UavcanEsc(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
-	CDev("uavcanesc", UAVCAN_DEVICE_PATH),
+	CDev(UAVCAN_DEVICE_PATH),
 	active_bitrate(0),
 	_node(can_driver, system_clock),
 	_node_mutex(),
