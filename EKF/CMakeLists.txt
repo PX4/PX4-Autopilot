@@ -45,6 +45,7 @@ add_library(ecl_EKF
 	sideslip_fusion.cpp
 	terrain_estimator.cpp
 	vel_pos_fusion.cpp
+	gps_yaw_fusion.cpp
 )
 
 add_dependencies(ecl_EKF prebuild_targets)

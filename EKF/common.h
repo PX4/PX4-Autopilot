@@ -59,7 +59,9 @@ struct gps_message {
 	int32_t lat;		///< Latitude in 1E-7 degrees
 	int32_t lon;		///< Longitude in 1E-7 degrees
 	int32_t alt;		///< Altitude in 1E-3 meters (millimeters) above MSL
-	uint8_t fix_type;	///< 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: Real-Time
+	float yaw;		///< yaw angle. NaN if not set (used for dual antenna GPS), (rad, [-PI, PI])
+	float yaw_offset;	///< Heading/Yaw offset for dual antenna GPS - refer to description for GPS_YAW_OFFSET
+	uint8_t fix_type;	///< 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: Real-Time Kinematic
 	float eph;		///< GPS horizontal position accuracy in m
 	float epv;		///< GPS vertical position accuracy in m
 	float sacc;		///< GPS speed accuracy in m/s
@@ -111,6 +113,7 @@ struct gpsSample {
 	Vector2f    pos;	///< NE earth frame gps horizontal position measurement (m)
 	float       hgt;	///< gps height measurement (m)
 	Vector3f    vel;	///< NED earth frame gps velocity measurement (m/sec)
+	float	    yaw;	///< yaw angle. NaN if not set (used for dual antenna GPS), (rad, [-PI, PI])
 	float	    hacc;	///< 1-std horizontal position error (m)
 	float	    vacc;	///< 1-std vertical position error (m)
 	float       sacc;	///< 1-std speed error (m/sec)
@@ -185,6 +188,7 @@ struct auxVelSample {
 #define MASK_USE_EVYAW  (1<<4)		///< set to true to use exernal vision quaternion data for yaw
 #define MASK_USE_DRAG  (1<<5)		///< set to true to use the multi-rotor drag model to estimate wind
 #define MASK_ROTATE_EV  (1<<6)		///< set to true to if the EV observations are in a non NED reference frame and need to be rotated before being used
+#define MASK_USE_GPSYAW  (1<<7)		///< set to true to use GPS yaw data if available
 
 // Integer definitions for mag_fusion_type
 #define MAG_FUSE_TYPE_AUTO      0	///< The selection of either heading or 3D magnetometer fusion will be automatic
@@ -192,6 +196,7 @@ struct auxVelSample {
 #define MAG_FUSE_TYPE_3D        2	///< Magnetometer 3-axis fusion will always be used. This is more accurate, but more affected by localised earth field distortions
 #define MAG_FUSE_TYPE_AUTOFW    3	///< The same as option 0, but if fusing airspeed, magnetometer fusion is only allowed to modify the magnetic field states.
 #define MAG_FUSE_TYPE_INDOOR    4	///< The same as option 0, but magnetomer or yaw fusion will not be used unless earth frame external aiding (GPS or External Vision) is being used. This prevents inconsistent magnetic fields associated with indoor operation degrading state estimates.
+#define MAG_FUSE_TYPE_NONE	5	///< Do not use magnetomer under any circumstance. Other sources of yaw may be used if selected via the EKF2_AID_MASK parameter.
 
 // Maximum sensor intervals in usec
 #define GPS_MAX_INTERVAL  (uint64_t)5e5	///< Maximum allowable time interval between GPS measurements (uSec)
@@ -442,6 +447,7 @@ union filter_control_status_u {
 		uint32_t fuse_aspd   : 1; ///< 19 - true when airspeed measurements are being fused
 		uint32_t gnd_effect  : 1; ///< 20 - true when protection from ground effect induced static pressure rise is active
 		uint32_t rng_stuck   : 1; ///< 21 - true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
+		uint32_t gps_yaw     : 1; ///< 22 - true when yaw (not ground course) data from a GPS receiver is being fused
 	} flags;
 	uint32_t value;
 };
