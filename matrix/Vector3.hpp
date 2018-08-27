@@ -36,7 +36,7 @@ public:
     {
     }
 
-    Vector3(const Type *data_) :
+    Vector3(const Type data_[3]) :
         Vector<Type, 3>(data_)
     {
     }
