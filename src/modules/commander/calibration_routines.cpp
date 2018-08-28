@@ -417,13 +417,13 @@ int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[], floa
 		ellipsoid_jacob[1] = 1.0f * (((*offdiag_x * A) + (*diag_y    * B) + (*offdiag_z * C)) / length);
 		ellipsoid_jacob[2] = 1.0f * (((*offdiag_y * A) + (*offdiag_z * B) + (*diag_z    * C)) / length);
 		// 3-5: partial derivative (diag offset wrt fitness fn) fn operated on sample
-		ellipsoid_jacob[3] = -1.0f * ((x[k] + *offset_x) * A) / length;
-		ellipsoid_jacob[4] = -1.0f * ((y[k] + *offset_y) * B) / length;
-		ellipsoid_jacob[5] = -1.0f * ((z[k] + *offset_z) * C) / length;
+		ellipsoid_jacob[3] = -1.0f * ((x[k] - *offset_x) * A) / length;
+		ellipsoid_jacob[4] = -1.0f * ((y[k] - *offset_y) * B) / length;
+		ellipsoid_jacob[5] = -1.0f * ((z[k] - *offset_z) * C) / length;
 		// 6-8: partial derivative (off-diag offset wrt fitness fn) fn operated on sample
-		ellipsoid_jacob[6] = -1.0f * (((y[k] + *offset_y) * A) + ((x[k] + *offset_x) * B)) / length;
-		ellipsoid_jacob[7] = -1.0f * (((z[k] + *offset_z) * A) + ((x[k] + *offset_x) * C)) / length;
-		ellipsoid_jacob[8] = -1.0f * (((z[k] + *offset_z) * B) + ((y[k] + *offset_y) * C)) / length;
+		ellipsoid_jacob[6] = -1.0f * (((y[k] - *offset_y) * A) + ((x[k] - *offset_x) * B)) / length;
+		ellipsoid_jacob[7] = -1.0f * (((z[k] - *offset_z) * A) + ((x[k] - *offset_x) * C)) / length;
+		ellipsoid_jacob[8] = -1.0f * (((z[k] - *offset_z) * B) + ((y[k] - *offset_y) * C)) / length;
 
 		for (uint8_t i = 0; i < 9; i++) {
 			// compute JTJ
