@@ -64,7 +64,12 @@ ifeq ($(WINTOOL),y)
   MKDEP = $(TOPDIR)/tools/mknulldeps.sh
 endif
 
-CFLAGS = -Os -g2 ${CMAKE_C_FLAGS} $(ARCHINCLUDES) \
+# enable precise stack overflow tracking
+ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
+  INSTRUMENTATIONDEFINES = -finstrument-functions -ffixed-r10
+endif
+
+CFLAGS = -Os -g2 ${CMAKE_C_FLAGS} $(ARCHINCLUDES) $(INSTRUMENTATIONDEFINES) \
 	-Wno-bad-function-cast \
 	-Wno-cpp \
 	-Wno-float-equal \
@@ -82,7 +87,7 @@ CFLAGS = -Os -g2 ${CMAKE_C_FLAGS} $(ARCHINCLUDES) \
 	-Wno-sign-compare \
 	-Wno-type-limits
 
-CXXFLAGS = -Os -g2 ${CMAKE_CXX_FLAGS} $(ARCHXXINCLUDES) \
+CXXFLAGS = -Os -g2 ${CMAKE_CXX_FLAGS} $(ARCHXXINCLUDES) $(INSTRUMENTATIONDEFINES) \
 	-fcheck-new \
 	-fno-builtin \
 	-Wno-double-promotion \
