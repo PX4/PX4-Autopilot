@@ -68,7 +68,7 @@ __BEGIN_DECLS
 #define PWM_CAMERA_TRIGGER_BASE_DEVICE_PATH "/dev/pwm_camera_trigger"
 #define PWM_CAMERA_TRIGGER0_DEVICE_PATH "/dev/pwm_camera_trigger0"
 
-#define PWM_OUTPUT_MAX_CHANNELS 16
+#define PWM_OUTPUT_MAX_CHANNELS 8
 
 struct pwm_output_values {
 	uint32_t channel_count;
@@ -376,6 +376,15 @@ __EXPORT extern void up_pwm_update(void);
  * @param value		The output pulse width in microseconds.
  */
 __EXPORT extern int	up_pwm_servo_set(unsigned channel, servo_position_t value);
+
+/**
+ * Get the group for a given channel.
+ *
+ * @param channel    The channel given.
+ * @param value        The group this channel belongs to.
+ */
+__EXPORT extern uint8_t    up_pwm_servo_get_group_of_channel (unsigned channel);
+
 
 /**
  * Get the current output value for a channel.

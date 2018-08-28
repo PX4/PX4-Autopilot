@@ -116,6 +116,16 @@ void up_pwm_servo_deinit(void)
 	up_pwm_servo_arm(false);
 }
 
+/**
+ * Get the group for a given channel.
+ *
+ * @param channel    The channel given.
+ * @param value        The group this channel belongs to.
+ */
+uint8_t  up_pwm_servo_get_group_of_channel (unsigned channel) {
+    return timer_io_channels[channel].timer_index;
+}
+
 int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 {
 	if ((group >= MAX_IO_TIMERS) || (io_timers[group].base == 0)) {

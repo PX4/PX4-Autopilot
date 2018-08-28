@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2018 AirMind Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name AirMind nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -33,6 +33,8 @@
 
 /**
  * @file pwmgroups.h
+ *
+ * @Author: ning.roland@mindpx.net (or ning.roland@gmail.com)
  *
  * Base class for System-wide pwm device resource allocation coordination and management.
  *
@@ -115,10 +117,13 @@
 #include "../drivers/device/CDev.hpp"
 
 typedef enum {
-    PMW_GROUP_TYPE_INPUT,
-    PMW_GROUP_TYPE_OUTPUT,
-    PMW_GROUP_TYPE_TRIGGER,
-} pwm_groups_type_t;
+    PWM_GROUP_RATE_ALT,
+    PWM_GROUP_RATE_DEFAULT,
+    PWM_GROUP_RATE_UNSPECIFIED
+} pwm_groups_rate_t;
+
+#define PWM_OUTPUT_RATE_ALT 400
+#define PWM_OUTPUT_RATE_DEFAULT 50
 
 /**
  * Abstract class defining a mixer mixing zero or more inputs to
@@ -210,13 +215,16 @@ protected:
     //statically allocated, share-able, alt-rate.
     static uint8_t all_timers;
     static uint32_t all_channels;
-    static uint32_t default_rate_channels;
-    static uint32_t alt_rate_channels;
+    static uint32_t _default_rate_channels;
+    static uint32_t _alt_rate_channels;
+    static uint8_t _alt_rate_timers;
+    static uint8_t _default_rate_timers;
 
     uint8_t _group_timer_map;
     //group channels must be continously allocated;
     uint32_t _group_channel_map;
     uint32_t _working_channel_map;
+    //map of channels with alt rate;
     uint32_t _channel_rate_map;
     
     uint8_t _timer_map_offset;
@@ -226,6 +234,13 @@ protected:
     uint16_t _alt_rate;
     uint16_t _working_pwm_rate_up_limit;
     uint16_t _working_pwm_rate_low_limit;
+    
+    pwm_groups_rate_t _working_rate;
+    
+private:
+    bool is_free_channels_available(uint32_t channel_map, pwm_groups_rate_t rate_type);
+    void update_default_alt_rate_map (pwm_groups_rate_t rate_type, uint32_t channel_map);
+    uint32_t get_channel_mask_of_rate_type (pwm_groups_rate_t rate_type);
 };
 
 /**

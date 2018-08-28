@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2018 AirMind Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name AirMind nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -34,7 +34,10 @@
 /**
  * @file pwmgroups.cpp
  *
- * Programmable multi-channel pwm library.
+ * Pwm device resource coordination library.
+ *
+ * @Author: ning.roland@mindpx.net (or ning.roland@gmail.com)
+ *
  */
 
 #include <cstring>
@@ -48,12 +51,17 @@
 
 uint8_t PwmGroups::all_timers = 0;
 uint32_t PwmGroups::all_channels = 0;
-uint32_t PwmGroups::default_rate_channels = 0;
-uint32_t PwmGroups::alt_rate_channels = 0;
+uint32_t PwmGroups::_default_rate_channels = 0;
+uint32_t PwmGroups::_alt_rate_channels = 0;
+uint8_t PwmGroups::_alt_rate_timers = 0;
+uint8_t PwmGroups::_default_rate_timers = 0;
 
 PwmGroups::PwmGroups(const char *name, const char *devname) :
 	CDev(name, devname)
 {
+    _default_rate = PWM_OUTPUT_RATE_DEFAULT;
+    _alt_rate = PWM_OUTPUT_RATE_ALT;
+    _working_rate = PWM_GROUP_RATE_UNSPECIFIED;
 
 }
 
@@ -81,7 +89,7 @@ PwmGroups::working_channel_map (void) {
 uint8_t
 PwmGroups::group_channel_map_offset(uint32_t channel_map) {
     //calculate channel map offset;
-    //for static pmw device only?
+    //for static PWM device only?
     uint8_t offset = 0;
     if (channel_map == 0) {
         //invalid map;
@@ -98,7 +106,7 @@ PwmGroups::group_channel_map_offset(uint32_t channel_map) {
 uint8_t
 PwmGroups::group_timer_map_offset(uint8_t timer_map) {
     //calculate channel map offset;
-    //for static pmw device only?
+    //for static PWM device only?
     uint8_t offset = 0;
     if (timer_map == 0) {
         //invalid map;
@@ -126,37 +134,170 @@ PwmGroups::register_working_channels() {
     }
     
     //free channel available, check conflicts on rate;
-    //select working rate;
-    uint16_t working_rate;
-    if ( _default_rate <= _working_pwm_rate_up_limit && _default_rate >= _working_pwm_rate_low_limit ) {
-        working_rate = _default_rate;
-    }
-    else if (_alt_rate <= _working_pwm_rate_up_limit && _alt_rate >= _working_pwm_rate_low_limit) {
-        working_rate = _alt_rate;
-    }
-    else {
-        //illegal working rate;
-        return -EINVAL;
+    
+    //obligation to use specified rate;
+    //TODO: static pwm device needs to specify working rate on start. move to subclass
+    if (_working_rate != PWM_GROUP_RATE_UNSPECIFIED) {
+        printf("[pwmgroups] use specified pwm rate....\n");
+
+        if (_working_rate == PWM_GROUP_RATE_ALT) {
+            if (!is_free_channels_available(_channel_rate_map, PWM_GROUP_RATE_ALT)) {
+                return -EINVAL;
+            }
+        }
+        else {
+            if (!is_free_channels_available(_channel_rate_map, PWM_GROUP_RATE_DEFAULT)) {
+                return -EINVAL;
+            }
+
+        }
+        all_channels |= _working_channel_map;
+        update_default_alt_rate_map (_working_rate, _working_channel_map);
+        printf("[pwmgroups] registered channels all: 0x%04X\n", all_channels);
+        return OK;
+        
     }
     
-    if (working_rate == _default_rate) {
-        res = _channel_rate_map & alt_rate_channels;
+    //select a working rate;
+    //TODO: floating pwm device can select a rate on start. move to subclass
+    if (_default_rate >= _working_pwm_rate_low_limit && _alt_rate <= _working_pwm_rate_up_limit) {
+        if (!is_free_channels_available(_channel_rate_map, PWM_GROUP_RATE_DEFAULT)) {
+            if (!is_free_channels_available(_channel_rate_map, PWM_GROUP_RATE_ALT)) {
+                return -EINVAL;
+            }
+            else {
+                _working_rate = PWM_GROUP_RATE_ALT;
+            }
+        }
+        else {
+            _working_rate = PWM_GROUP_RATE_DEFAULT;
+        }
     }
     else {
-        res = _channel_rate_map & default_rate_channels;
-    }
-    
-    if (res != 0) {
-        //rate conflicts;
-        return -EINVAL;
+        if ( _default_rate <= _working_pwm_rate_up_limit && _default_rate >= _working_pwm_rate_low_limit ) {
+            
+            _working_rate = PWM_GROUP_RATE_DEFAULT;
+            //check rate conflicts;
+            if(!is_free_channels_available(_channel_rate_map, PWM_GROUP_RATE_DEFAULT)) {
+                return -EINVAL;
+            }
+        }
+        else if (_alt_rate <= _working_pwm_rate_up_limit && _alt_rate >= _working_pwm_rate_low_limit) {
+            
+            _working_rate = PWM_GROUP_RATE_ALT;
+            //check rate conflicts;
+            if(!is_free_channels_available(_channel_rate_map, PWM_GROUP_RATE_DEFAULT)) {
+                return -EINVAL;
+            }
+        }
+        else {
+            //illegal working rate;
+            return -EINVAL;
+        }
     }
     
     //no conflicts, allocate the channel
     all_channels |= _working_channel_map;
-    printf("[pwmgroups] registered channels: 0x%04X\n", all_channels);
+    update_default_alt_rate_map (_working_rate, _working_channel_map);
+    printf("[pwmgroups] registered channels all: 0x%04X\n", all_channels);
     return OK;
 }
 
+void
+PwmGroups::update_default_alt_rate_map (pwm_groups_rate_t rate_type, uint32_t channel_map) {
+
+    if (rate_type == PWM_GROUP_RATE_ALT) {
+        _alt_rate_channels |= channel_map;
+        //remove corresponding bit in opposite rate map if its there;
+        //_default_rate_channels ^= channel_map;
+
+        for (uint8_t i=_channel_map_offset; i<_channel_map_offset+PWM_OUTPUT_MAX_CHANNELS; i++) {
+            if (((1 << i) & _alt_rate_channels) != 0) {
+                //printf("[pwmgroups] group for channel %d : %d\n", i, up_pwm_servo_get_group_of_channel(i));
+                _alt_rate_timers |= (1 << up_pwm_servo_get_group_of_channel(i));
+                //delete corresponding bit in opposite rate map;
+                
+            }
+        }
+    }
+    else {
+        printf("[pwmgroups] selected default reate\n");
+        _default_rate_channels |= channel_map;
+        //printf("[pwmgroups] offset: %d, default channel 0x%04X\n", _channel_map_offset, _default_rate_channels);
+        
+        for (uint8_t i=_channel_map_offset; i<_channel_map_offset+PWM_OUTPUT_MAX_CHANNELS; i++) {
+            if (((1 << i) & _default_rate_channels) != 0) {
+                //printf("[pwmgroups] group for channel %d : %d\n", i, up_pwm_servo_get_group_of_channel(i));
+                _default_rate_timers |= (1 << up_pwm_servo_get_group_of_channel(i));
+            }
+        }
+    }
+    printf("[pwmgroups] occupation channel map: 0x%04X\n", channel_map);
+    printf("[pwmgroups] alt rate channel: 0x%04X default rate channel: 0x%04X\n", _alt_rate_channels, _default_rate_channels);
+    printf("[pwmgroups] alt rate timer: 0x%04X, default rate timer: 0x%04X\n", _alt_rate_timers, _default_rate_timers);
+}
+
+bool
+PwmGroups::is_free_channels_available(uint32_t channel_map, pwm_groups_rate_t rate_type) {
+    //uint8_t rate_group;
+    //uint32_t rate_channel;
+    uint32_t res;
+    
+    //check free channel;
+    if (rate_type == PWM_GROUP_RATE_ALT) {
+        res = channel_map & _alt_rate_channels;
+    }
+    else {
+        res = channel_map & _default_rate_channels;
+    }
+    
+    if (res != 0) {
+        //channel conflicts;
+        return false;
+    }
+    
+    //check rate conflicts;
+    if (rate_type == PWM_GROUP_RATE_ALT) {
+        res = get_channel_mask_of_rate_type(PWM_GROUP_RATE_DEFAULT) & channel_map;
+    }
+    else {
+        res = get_channel_mask_of_rate_type(PWM_GROUP_RATE_ALT) & channel_map;
+    }
+    
+    if (res != 0) {
+        //rate conflicts;
+        return false;
+    }
+    
+    return true;
+
+}
+
+uint32_t
+PwmGroups::get_channel_mask_of_rate_type (pwm_groups_rate_t rate_type) {
+    uint8_t target_map;
+    uint32_t ret_channel = 0;
+    if (rate_type == PWM_GROUP_RATE_ALT) {
+        target_map = _alt_rate_timers;
+    }
+    else {
+        target_map = _default_rate_timers;
+    }
+    
+    if (target_map == 0) {
+        return 0;
+    }
+    else {
+        //uint8_t start = 0;
+        for (uint8_t i=0 ; i<sizeof(uint8_t); i++) {
+            if (((1 << i) & target_map) != 0) {
+                ret_channel |= up_pwm_servo_get_rate_group(i);
+            }
+        }
+    }
+    return ret_channel;
+    
+}
 
 int
 PwmGroups::set_pwm_rate_map (uint32_t device_rate_map) {
