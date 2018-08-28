@@ -122,6 +122,7 @@ private:
 	int _task_failure_count{0};         /**< counter for task failures */
 
 	float _takeoff_speed = -1.f; /**< For flighttask interface used only. It can be thrust or velocity setpoints */
+	float _takeoff_reference_z; /**< Z-position when takeoff was initiated */
 
 	vehicle_status_s 			_vehicle_status{}; 	/**< vehicle status */
 	vehicle_land_detected_s 			_vehicle_land_detected{};	/**< vehicle land detected */
@@ -899,6 +900,7 @@ MulticopterPositionControl::check_for_smooth_takeoff(const float &z_sp, const fl
 			// takeoff speed. Enable smooth takeoff.
 			_in_smooth_takeoff = true;
 			_takeoff_speed = -0.5f;
+			_takeoff_reference_z = _states.position(2);
 
 		} else {
 			// Default
@@ -927,7 +929,7 @@ MulticopterPositionControl::update_smooth_takeoff(const float &z_sp, const float
 
 		// Smooth takeoff is achieved once desired altitude/velocity setpoint is reached.
 		if (PX4_ISFINITE(z_sp)) {
-			_in_smooth_takeoff = _states.position(2) - 0.2f > math::max(z_sp, -MPC_LAND_ALT2.get());
+			_in_smooth_takeoff = _states.position(2) - 0.2f > math::max(z_sp, _takeoff_reference_z - MPC_LAND_ALT2.get());
 
 		} else  {
 			_in_smooth_takeoff = _takeoff_speed < -vz_sp;
