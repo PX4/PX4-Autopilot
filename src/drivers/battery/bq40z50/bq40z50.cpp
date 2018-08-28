@@ -50,7 +50,6 @@
 
 BQ40Z50::BQ40Z50(device::Device *interface, const char *path) :
 	CDev(path),
->>>>>>> c10ea132b420072b5a0dfcb03940ddef2618dc87:src/drivers/batt_smbus/batt_smbus.cpp
 	_interface(interface),
 	_batt_topic(nullptr),
 	_batt_orb_id(nullptr),
