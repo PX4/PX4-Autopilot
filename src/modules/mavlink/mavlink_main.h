@@ -43,6 +43,7 @@
 #pragma once
 
 #include <px4_posix.h>
+#include <px4_module_params.h>
 
 #include <stdbool.h>
 #ifdef __PX4_NUTTX
@@ -86,7 +87,7 @@ using namespace time_literals;
 
 #define HASH_PARAM "_HASH_CHECK"
 
-class Mavlink
+class Mavlink : public ModuleParams
 {
 
 public:
@@ -228,9 +229,9 @@ public:
 
 	bool			get_hil_enabled() { return _hil_enabled; }
 
-	bool			get_use_hil_gps() { return _use_hil_gps; }
+	bool			get_use_hil_gps() { return _param_use_hil_gps.get(); }
 
-	bool			get_forward_externalsp() { return _forward_externalsp; }
+	bool			get_forward_externalsp() { return _param_forward_externalsp.get(); }
 
 	bool			get_flow_control_enabled() { return _flow_control_mode; }
 
@@ -238,7 +239,7 @@ public:
 
 	bool			is_connected() { return ((_tstatus.heartbeat_time > 0) && (hrt_absolute_time() - _tstatus.heartbeat_time < 3_s)); }
 
-	bool			broadcast_enabled() { return _broadcast_mode == BROADCAST_MODE_ON; }
+	bool			broadcast_enabled() { return _param_broadcast_mode.get() == BROADCAST_MODE_ON; }
 
 	/**
 	 * Set the boot complete flag on all instances
@@ -426,7 +427,7 @@ public:
 
 	ringbuffer::RingBuffer	*get_logbuffer() { return &_logbuffer; }
 
-	unsigned		get_system_type() { return _system_type; }
+	unsigned		get_system_type() { return _param_system_type.get(); }
 
 	Protocol 		get_protocol() { return _protocol; }
 
@@ -523,8 +524,6 @@ private:
 	/* states */
 	bool			_hil_enabled;		/**< Hardware In the Loop mode */
 	bool			_generate_rc;		/**< Generate RC messages from manual input MAVLink messages */
-	bool			_use_hil_gps;		/**< Accept GPS HIL messages (for example from an external motion capturing system to fake indoor gps) */
-	bool			_forward_externalsp;	/**< Forward external setpoint messages to controllers directly if in offboard mode */
 	bool			_is_usb_uart;		/**< Port is USB */
 	bool			_wait_to_transmit;  	/**< Wait to transmit until received messages. */
 	bool			_received_messages;	/**< Whether we've received valid mavlink messages. */
@@ -541,7 +540,6 @@ private:
 	MAVLINK_MODE 		_mode;
 
 	mavlink_channel_t	_channel;
-	int32_t			_radio_id;
 
 	ringbuffer::RingBuffer		_logbuffer;
 
@@ -621,23 +619,20 @@ private:
 	pthread_mutex_t		_message_buffer_mutex;
 	pthread_mutex_t		_send_mutex;
 
-	bool			_param_initialized;
-	int32_t			_broadcast_mode;
-
-	param_t			_param_system_id;
-	param_t			_param_component_id;
-	param_t			_param_proto_ver;
-	param_t			_param_radio_id;
-	param_t			_param_system_type;
-	param_t			_param_use_hil_gps;
-	param_t			_param_forward_externalsp;
-	param_t			_param_broadcast;
-
-	unsigned		_system_type;
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::MAV_SYS_ID>) _param_system_id,
+		(ParamInt<px4::params::MAV_COMP_ID>) _param_component_id,
+		(ParamInt<px4::params::MAV_PROTO_VER>) _param_mav_proto_version,
+		(ParamInt<px4::params::MAV_RADIO_ID>) _param_radio_id,
+		(ParamInt<px4::params::MAV_TYPE>) _param_system_type,
+		(ParamBool<px4::params::MAV_USEHILGPS>) _param_use_hil_gps,
+		(ParamBool<px4::params::MAV_FWDEXTSP>) _param_forward_externalsp,
+		(ParamInt<px4::params::MAV_BROADCAST>) _param_broadcast_mode
+	)
 
 	perf_counter_t		_loop_perf;			/**< loop performance counter */
 
-	void			mavlink_update_system();
+	void mavlink_update_parameters();
 
 	int			mavlink_open_uart(int baudrate, const char *uart_name, bool force_flow_control);
 
