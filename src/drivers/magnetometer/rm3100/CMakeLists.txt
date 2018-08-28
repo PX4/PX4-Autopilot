@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,10 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(bmm150)
-add_subdirectory(hmc5883)
-add_subdirectory(ist8310)
-add_subdirectory(lis3mdl)
-add_subdirectory(lsm303agr)
-add_subdirectory(rm3100)
+px4_add_module(
+	MODULE drivers__rm3100
+	MAIN rm3100
+	STACK_MAIN 1200
+	COMPILE_FLAGS
+	SRCS
+		rm3100_i2c.cpp
+		rm3100_spi.cpp
+		rm3100_main.cpp
+		rm3100.cpp
+	DEPENDS
+	)
