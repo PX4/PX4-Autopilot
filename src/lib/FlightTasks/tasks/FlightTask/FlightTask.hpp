@@ -81,7 +81,7 @@ public:
 	 * To be called to adopt parameters from an arrived vehicle command
 	 * @return true if accepted, false if declined
 	 */
-	virtual bool applyCommandParameters(const vehicle_command_s &command) { return true; };
+	virtual bool applyCommandParameters(const vehicle_command_s &command) { return true; }
 
 	/**
 	 * Call before activate() or update()
@@ -106,13 +106,13 @@ public:
 	 * The constraints can vary with task.
 	 * @return constraints
 	 */
-	const vehicle_constraints_s getConstraints() {return _constraints;};
+	const vehicle_constraints_s &getConstraints() { return _constraints; }
 
 	/**
 	 * Get avoidance desired waypoint
 	 * @return desired waypoints
 	 */
-	const vehicle_trajectory_waypoint_s getAvoidanceWaypoint() {return _desired_waypoint;};
+	const vehicle_trajectory_waypoint_s &getAvoidanceWaypoint() { return _desired_waypoint; }
 
 	/**
 	 * Empty setpoint.

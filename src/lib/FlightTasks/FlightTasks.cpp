@@ -57,7 +57,7 @@ const vehicle_trajectory_waypoint_s FlightTasks::getAvoidanceWaypoint()
 	}
 }
 
-const vehicle_trajectory_waypoint_s FlightTasks::getEmptyAvoidanceWaypoint()
+const vehicle_trajectory_waypoint_s &FlightTasks::getEmptyAvoidanceWaypoint()
 {
 	return FlightTask::empty_trajectory_waypoint;
 }

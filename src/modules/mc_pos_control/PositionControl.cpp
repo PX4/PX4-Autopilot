@@ -60,9 +60,9 @@ void PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &se
 	// controller and just return thrust.
 	_skip_controller = false;
 
-	_pos_sp = Vector3f(&setpoint.x);
-	_vel_sp = Vector3f(&setpoint.vx);
-	_acc_sp = Vector3f(&setpoint.acc_x);
+	_pos_sp = Vector3f(setpoint.x, setpoint.y, setpoint.z);
+	_vel_sp = Vector3f(setpoint.vx, setpoint.vy, setpoint.vz);
+	_acc_sp = Vector3f(setpoint.acc_x, setpoint.acc_y, setpoint.acc_z);
 	_thr_sp = Vector3f(setpoint.thrust);
 	_yaw_sp = setpoint.yaw;
 	_yawspeed_sp = setpoint.yawspeed;
@@ -73,7 +73,7 @@ void PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &se
 	}
 }
 
-void PositionControl::generateThrustYawSetpoint(const float &dt)
+void PositionControl::generateThrustYawSetpoint(const float dt)
 {
 	if (_skip_controller) {
 		// Already received a valid thrust set-point.
@@ -214,13 +214,13 @@ void PositionControl::_interfaceMapping()
 void PositionControl::_positionController()
 {
 	// P-position controller
-	Vector3f vel_sp_position = (_pos_sp - _pos).emult(Vector3f(MPC_XY_P.get(), MPC_XY_P.get(), MPC_Z_P.get()));
+	const Vector3f vel_sp_position = (_pos_sp - _pos).emult(Vector3f(MPC_XY_P.get(), MPC_XY_P.get(), MPC_Z_P.get()));
 	_vel_sp = vel_sp_position + _vel_sp;
 
 	// Constrain horizontal velocity by prioritizing the velocity component along the
 	// the desired position setpoint over the feed-forward term.
-	Vector2f vel_sp_xy = ControlMath::constrainXY(Vector2f(&vel_sp_position(0)),
-			     Vector2f(&(_vel_sp - vel_sp_position)(0)), _constraints.speed_xy);
+	const Vector2f vel_sp_xy = ControlMath::constrainXY(Vector2f(vel_sp_position(0), vel_sp_position(1)),
+				   Vector2f(&(_vel_sp - vel_sp_position)(0)), _constraints.speed_xy);
 	_vel_sp(0) = vel_sp_xy(0);
 	_vel_sp(1) = vel_sp_xy(1);
 	// Constrain velocity in z-direction.
@@ -254,7 +254,7 @@ void PositionControl::_velocityController(const float &dt)
 	// 	 consideration of the desired thrust in D-direction. In addition, the thrust in
 	// 	 NE-direction is also limited by the maximum tilt.
 
-	Vector3f vel_err = _vel_sp - _vel;
+	const Vector3f vel_err = _vel_sp - _vel;
 
 	// Consider thrust in D-direction.
 	float thrust_desired_D = MPC_Z_VEL_P.get() * vel_err(2) +  MPC_Z_VEL_D.get() * _vel_dot(2) + _thr_int(
@@ -307,7 +307,7 @@ void PositionControl::_velocityController(const float &dt)
 		}
 
 		// Get the direction of (r-y) in NE-direction.
-		float direction_NE = Vector2f(&vel_err(0)) * Vector2f(&_vel_sp(0));
+		float direction_NE = Vector2f(vel_err(0), vel_err(1)) * Vector2f(_vel_sp(0), _vel_sp(1));
 
 		// Apply Anti-Windup in NE-direction.
 		bool stop_integral_NE = (thrust_desired_NE * thrust_desired_NE >= thrust_max_NE * thrust_max_NE &&

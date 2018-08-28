@@ -111,54 +111,54 @@ public:
 	 * @see _yawspeed_sp
 	 * @param dt the delta-time
 	 */
-	void generateThrustYawSetpoint(const float &dt);
+	void generateThrustYawSetpoint(const float dt);
 
 	/**
 	 * 	Set the integral term in xy to 0.
 	 * 	@see _thr_int
 	 */
-	void resetIntegralXY() {_thr_int(0) = _thr_int(1) = 0.0f;};
+	void resetIntegralXY() { _thr_int(0) = _thr_int(1) = 0.0f; }
 
 	/**
 	 * 	Set the integral term in z to 0.
 	 * 	@see _thr_int
 	 */
-	void resetIntegralZ() {_thr_int(2) = 0.0f;};
+	void resetIntegralZ() { _thr_int(2) = 0.0f; }
 
 	/**
 	 * 	Get the
 	 * 	@see _thr_sp
 	 * 	@return The thrust set-point member.
 	 */
-	matrix::Vector3f getThrustSetpoint() {return _thr_sp;}
+	const matrix::Vector3f &getThrustSetpoint() { return _thr_sp; }
 
 	/**
 	 * 	Get the
 	 * 	@see _yaw_sp
 	 * 	@return The yaw set-point member.
 	 */
-	float getYawSetpoint() { return _yaw_sp;}
+	const float &getYawSetpoint() { return _yaw_sp; }
 
 	/**
 	 * 	Get the
 	 * 	@see _yawspeed_sp
 	 * 	@return The yawspeed set-point member.
 	 */
-	float getYawspeedSetpoint() {return _yawspeed_sp;}
+	const float &getYawspeedSetpoint() { return _yawspeed_sp; }
 
 	/**
 	 * 	Get the
 	 * 	@see _vel_sp
 	 * 	@return The velocity set-point member.
 	 */
-	matrix::Vector3f getVelSp() {return _vel_sp;}
+	const matrix::Vector3f &getVelSp() { return _vel_sp; }
 
 	/**
 	 * 	Get the
 	 * 	@see _pos_sp
 	 * 	@return The position set-point member.
 	 */
-	matrix::Vector3f getPosSp() {return _pos_sp;}
+	const matrix::Vector3f &getPosSp() { return _pos_sp; }
 
 protected:
 
