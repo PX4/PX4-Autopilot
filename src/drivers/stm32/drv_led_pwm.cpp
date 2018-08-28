@@ -95,6 +95,7 @@
 
 
 extern int             io_timer_init_timer(unsigned timer);
+extern int              up_pwm_servo_init(uint32_t channel_mask, uint16_t clear_mask);
 
 static void             led_pwm_channel_init(unsigned channel);
 
@@ -335,6 +336,7 @@ led_pwm_servo_init_group_map(uint8_t timer_map, uint32_t channel_map) {
         tim_idx ++;
     }
     
+    /*
     uint8_t ch_idx = 0;
     while ((channel_map & 1) == 0) {
         channel_map >>= 1;
@@ -344,7 +346,9 @@ led_pwm_servo_init_group_map(uint8_t timer_map, uint32_t channel_map) {
         led_pwm_channel_init(ch_idx);
         ch_idx ++;
     }
-    
+    */
+    up_pwm_servo_init(channel_map, 0);
+
     return OK;
 
 }
