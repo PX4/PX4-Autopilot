@@ -1674,6 +1674,13 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
             set_pwm_rate_map (_pwm_alt_rate_channels);
             _working_channel_map = _pwm_alt_rate_channels << _channel_map_offset;
             ret = set_pwm_channel_rates (_pwm_alt_rate, _pwm_default_rate);
+            if (_pwm_alt_rate == PWM_OUTPUT_RATE_ALT) {
+                _working_rate = PWM_GROUP_RATE_ALT;
+            }
+            else {
+                _working_rate = PWM_GROUP_RATE_DEFAULT;
+                
+            }
 		break;
 
 	case PWM_SERVO_GET_SELECT_UPDATE_RATE:
@@ -1776,7 +1783,6 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
  					_num_disarmed_set++;
 				}
 			}
-
 			break;
 		}
 
