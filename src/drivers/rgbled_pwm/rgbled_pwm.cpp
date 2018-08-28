@@ -65,6 +65,7 @@
 #include <lib/led/led.h>
 #include <drivers/device/device.h>
 #include <systemlib/err.h>
+#include <drivers/drv_pwm_output.h>
 
 #include <lib/pwmgroups/pwmgroups.h>
 
@@ -146,15 +147,16 @@ RGBLED_PWM::init()
     /* switch off LED on start */
     CDev::init();
     printf("Initializing pwm tri-color LED ...\n");
-    _timer_map_offset = group_timer_map_offset(led_group_timer_map);
-    _channel_map_offset = group_channel_map_offset(_working_channel_map);
     _group_timer_map = led_group_timer_map;
     _working_channel_map = led_group_channel_map;
+    _timer_map_offset = group_timer_map_offset(led_group_timer_map);
+    _channel_map_offset = group_channel_map_offset(_working_channel_map);
     _working_pwm_rate_up_limit = 400;
     _working_pwm_rate_low_limit = 50;
     
     _default_rate = 50;
-    _alt_rate = 50;
+    _alt_rate = 400;
+    _working_rate = PWM_GROUP_RATE_UNSPECIFIED;
     
     if (register_working_channels()!=OK) {
         printf("fail to register rgb led\n");
@@ -162,6 +164,18 @@ RGBLED_PWM::init()
     }
     //led_pwm_servo_init();
     led_pwm_servo_init_group_map(_group_timer_map, _working_channel_map);
+    
+    uint8_t group_idx = 1 << _timer_map_offset ;
+    while ((group_idx & _group_timer_map) != 0) {
+        if (_working_rate == PWM_GROUP_RATE_ALT) {
+            up_pwm_servo_set_rate_group_update(group_idx, 400);
+        }
+        else {
+            up_pwm_servo_set_rate_group_update(group_idx, 50);
+        }
+        group_idx <<= 1;
+    }
+    
     send_led_rgb();
 
     _running = true;
