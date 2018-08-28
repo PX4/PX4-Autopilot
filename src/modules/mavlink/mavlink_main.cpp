@@ -189,6 +189,7 @@ static void usage();
 bool Mavlink::_boot_complete = false;
 
 Mavlink::Mavlink() :
+	ModuleParams(nullptr),
 	_device_name("/dev/ttyS1"),
 	_task_should_exit(false),
 	next(nullptr),
@@ -201,8 +202,6 @@ Mavlink::Mavlink() :
 	_mavlink_status{},
 	_hil_enabled(false),
 	_generate_rc(false),
-	_use_hil_gps(false),
-	_forward_externalsp(false),
 	_is_usb_uart(false),
 	_wait_to_transmit(false),
 	_received_messages(false),
@@ -214,7 +213,6 @@ Mavlink::Mavlink() :
 	_mavlink_ulog_stop_requested(false),
 	_mode(MAVLINK_MODE_NORMAL),
 	_channel(MAVLINK_COMM_0),
-	_radio_id(0),
 	_logbuffer(5, sizeof(mavlink_log_s)),
 	_receive_thread{},
 	_forwarding_on(false),
@@ -256,16 +254,6 @@ Mavlink::Mavlink() :
 	_message_buffer {},
 	_message_buffer_mutex {},
 	_send_mutex {},
-	_param_initialized(false),
-	_broadcast_mode(Mavlink::BROADCAST_MODE_OFF),
-	_param_system_id(PARAM_INVALID),
-	_param_component_id(PARAM_INVALID),
-	_param_radio_id(PARAM_INVALID),
-	_param_system_type(PARAM_INVALID),
-	_param_use_hil_gps(PARAM_INVALID),
-	_param_forward_externalsp(PARAM_INVALID),
-	_param_broadcast(PARAM_INVALID),
-	_system_type(0),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el"))
@@ -315,6 +303,23 @@ Mavlink::Mavlink() :
 	}
 
 	_tstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
+
+	// initialise parameter cache
+	mavlink_update_parameters();
+
+
+	// save the current system- and component ID because we don't allow them to change during operation
+	int sys_id = _param_system_id.get();
+
+	if (sys_id > 0 && sys_id < 255) {
+		mavlink_system.sysid = sys_id;
+	}
+
+	int comp_id = _param_component_id.get();
+
+	if (comp_id > 0 && comp_id < 255) {
+		mavlink_system.compid = comp_id;
+	}
 }
 
 Mavlink::~Mavlink()
@@ -339,6 +344,24 @@ Mavlink::~Mavlink()
 				break;
 			}
 		} while (_task_running);
+	}
+}
+
+void Mavlink::mavlink_update_parameters()
+{
+	updateParams();
+
+	int32_t proto = _param_mav_proto_version.get();
+
+	if (_protocol_version_switch != proto) {
+		_protocol_version_switch = proto;
+		set_proto_version(proto);
+	}
+
+	if (_param_system_type.get() < 0 || _param_system_type.get() >= MAV_TYPE_ENUM_END) {
+		_param_system_type.set(0);
+		_param_system_type.commit_no_notification();
+		PX4_ERR("MAV_TYPE parameter invalid, resetting to 0.");
 	}
 }
 
@@ -563,70 +586,6 @@ mavlink_channel_t
 Mavlink::get_channel()
 {
 	return _channel;
-}
-
-void Mavlink::mavlink_update_system()
-{
-	if (!_param_initialized) {
-		_param_system_id = param_find("MAV_SYS_ID");
-		_param_component_id = param_find("MAV_COMP_ID");
-		_param_proto_ver = param_find("MAV_PROTO_VER");
-		_param_radio_id = param_find("MAV_RADIO_ID");
-		_param_system_type = param_find("MAV_TYPE");
-		_param_use_hil_gps = param_find("MAV_USEHILGPS");
-		_param_forward_externalsp = param_find("MAV_FWDEXTSP");
-		_param_broadcast = param_find("MAV_BROADCAST");
-	}
-
-	/* update system and component id */
-	int32_t system_id;
-	param_get(_param_system_id, &system_id);
-
-	int32_t component_id;
-	param_get(_param_component_id, &component_id);
-
-	int32_t proto = 0;
-	param_get(_param_proto_ver, &proto);
-
-	if (_protocol_version_switch != proto) {
-		_protocol_version_switch = proto;
-		set_proto_version(proto);
-	}
-
-	param_get(_param_radio_id, &_radio_id);
-
-	/* only allow system ID and component ID updates
-	 * after reboot - not during operation */
-	if (!_param_initialized) {
-		if (system_id > 0 && system_id < 255) {
-			mavlink_system.sysid = system_id;
-		}
-
-		if (component_id > 0 && component_id < 255) {
-			mavlink_system.compid = component_id;
-		}
-
-		_param_initialized = true;
-	}
-
-	int32_t system_type;
-	param_get(_param_system_type, &system_type);
-
-	if (system_type >= 0 && system_type < MAV_TYPE_ENUM_END) {
-		_system_type = system_type;
-	}
-
-	int32_t use_hil_gps;
-	param_get(_param_use_hil_gps, &use_hil_gps);
-
-	_use_hil_gps = (bool)use_hil_gps;
-
-	int32_t forward_externalsp;
-	param_get(_param_forward_externalsp, &forward_externalsp);
-
-	param_get(_param_broadcast, &_broadcast_mode);
-
-	_forward_externalsp = (bool)forward_externalsp;
 }
 
 int Mavlink::get_system_id()
@@ -2105,9 +2064,6 @@ Mavlink::task_main(int argc, char *argv[])
 		pthread_mutex_init(&_message_buffer_mutex, nullptr);
 	}
 
-	/* Initialize system properties */
-	mavlink_update_system();
-
 	MavlinkOrbSubscription *cmd_sub = add_orb_subscription(ORB_ID(vehicle_command), 0, true);
 	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
 	uint64_t param_time = 0;
@@ -2193,8 +2149,7 @@ Mavlink::task_main(int argc, char *argv[])
 		update_rate_mult();
 
 		if (param_sub->update(&param_time, nullptr)) {
-			/* parameters updated */
-			mavlink_update_system();
+			mavlink_update_parameters();
 		}
 
 		check_radio_config();
@@ -2557,7 +2512,8 @@ void Mavlink::publish_telemetry_status()
 void Mavlink::check_radio_config()
 {
 	/* radio config check */
-	if (_uart_fd >= 0 && _radio_id != 0 && _tstatus.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
+	if (_uart_fd >= 0 && _param_radio_id.get() != 0
+	    && _tstatus.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
 		/* request to configure radio and radio is present */
 		FILE *fs = fdopen(_uart_fd, "w");
 
@@ -2567,9 +2523,9 @@ void Mavlink::check_radio_config()
 			fprintf(fs, "+++\n");
 			usleep(1200000);
 
-			if (_radio_id > 0) {
+			if (_param_radio_id.get() > 0) {
 				/* set channel */
-				fprintf(fs, "ATS3=%u\n", _radio_id);
+				fprintf(fs, "ATS3=%u\n", _param_radio_id.get());
 				usleep(200000);
 
 			} else {
@@ -2600,8 +2556,8 @@ void Mavlink::check_radio_config()
 		}
 
 		/* reset param and save */
-		_radio_id = 0;
-		param_set_no_notification(_param_radio_id, &_radio_id);
+		_param_radio_id.set(0);
+		_param_radio_id.commit_no_notification();
 	}
 }
 
