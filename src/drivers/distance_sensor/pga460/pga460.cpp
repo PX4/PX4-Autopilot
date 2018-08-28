@@ -649,7 +649,13 @@ void PGA460::request_results()
 void PGA460::run()
 {
 	open_serial();
-	initialize_device_settings();
+	int ret = initialize_device_settings();
+
+	if(ret != PX4_OK) {
+		close_serial();
+		PX4_INFO("Could not initialize device settings. Exiting.");
+		return;
+	}
 
 	struct distance_sensor_s report = {};
 	_distance_sensor_topic = orb_advertise(ORB_ID(distance_sensor), &report);
