@@ -76,7 +76,7 @@
  */
 UavcanNode *UavcanNode::_instance;
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
-	CDev("uavcan", UAVCAN_DEVICE_PATH),
+	CDev(UAVCAN_DEVICE_PATH),
 	_node(can_driver, system_clock, _pool_allocator),
 	_node_mutex(),
 	_esc_controller(_node),
@@ -866,7 +866,7 @@ int UavcanNode::run()
 
 		// this would be bad...
 		if (poll_ret < 0) {
-			DEVICE_LOG("poll error %d", errno);
+			PX4_ERR("poll error %d", errno);
 			continue;
 
 		} else {

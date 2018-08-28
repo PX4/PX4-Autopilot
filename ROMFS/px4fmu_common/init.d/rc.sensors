@@ -322,6 +322,9 @@ then
 
 	# Possible external compasses
 	hmc5883 -C -T -X start
+
+	#RM3100
+	rm3100 start
 fi
 
 if ver hwcmp PX4FMU_V5
@@ -396,6 +399,12 @@ fi
 if param compare SENS_EN_LL40LS 2
 then
 	ll40ls start i2c
+fi
+
+# pga460 sonar sensor
+if param greater SENS_EN_PGA460 0
+then
+	pga460 start
 fi
 
 # Lightware serial lidar sensor

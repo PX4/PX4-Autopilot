@@ -1,9 +1,9 @@
-#!/usr/bin/bash
+#!/bin/sh
 
 # PX4 commands need the 'px4-' prefix in bash.
 # (px4-alias.sh is expected to be in the PATH)
 # shellcheck disable=SC1091
-source px4-alias.sh
+. px4-alias.sh
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -13,7 +13,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # check for ekf2 replay
 # shellcheck disable=SC2154
-if [ "$replay_mode" == "ekf2" ]
+if [ "$replay_mode" = "ekf2" ]
 then
 	sh etc/init.d-posix/rc.replay
 	exit 0
@@ -36,11 +36,12 @@ set VEHICLE_TYPE                none
 set RUN_MINIMAL_SHELL           no
 
 # Use the variable set by sitl_run.sh to choose the model settings.
-if [ "$PX4_SIM_MODEL" == "shell" ]; then
+if [ "$PX4_SIM_MODEL" = "shell" ]; then
 	set RUN_MINIMAL_SHELL yes
 else
 	# Find the matching Autostart ID (file name has the form: [0-9]+_${PX4_SIM_MODEL})
-	# shellcheck disable=SC2012 #(the file names don't contain spaces)
+	# TODO: unify with rc.autostart generation
+	# shellcheck disable=SC2012
 	REQUESTED_AUTOSTART=$(ls "$SCRIPT_DIR" | sed -n 's/^\([0-9][0-9]*\)_'${PX4_SIM_MODEL}'$/\1/p')
 	if [ -z "$REQUESTED_AUTOSTART" ]; then
 		echo "Error: Unknown model '$PX4_SIM_MODEL'"
@@ -59,15 +60,15 @@ then
 fi
 
 # exit early when the minimal shell is requested
-[ $RUN_MINIMAL_SHELL == yes ] && exit 0
+[ $RUN_MINIMAL_SHELL = yes ] && exit 0
 
 
 # Use environment variable PX4_ESTIMATOR to choose estimator.
-if [ "$PX4_ESTIMATOR" == "ekf2" ]; then
+if [ "$PX4_ESTIMATOR" = "ekf2" ]; then
 	param set SYS_MC_EST_GROUP 2
-elif [ "$PX4_ESTIMATOR" == "lpe" ]; then
+elif [ "$PX4_ESTIMATOR" = "lpe" ]; then
 	param set SYS_MC_EST_GROUP 1
-elif [ "$PX4_ESTIMATOR" == "inav" ]; then
+elif [ "$PX4_ESTIMATOR" = "inav" ]; then
 	param set SYS_MC_EST_GROUP 0
 fi
 
@@ -86,7 +87,7 @@ udp_offboard_port_local=$((14557+px4_instance))
 udp_offboard_port_remote=$((14540+px4_instance))
 udp_gcs_port_local=$((14556+px4_instance))
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set SYS_AUTOSTART $REQUESTED_AUTOSTART
 
@@ -188,7 +189,7 @@ then
 fi
 
 
-if [ ${VEHICLE_TYPE} == fw -o ${VEHICLE_TYPE} == vtol ]
+if [ ${VEHICLE_TYPE} = fw -o ${VEHICLE_TYPE} = vtol ]
 then
 	if param compare CBRK_AIRSPD_CHK 0
 	then

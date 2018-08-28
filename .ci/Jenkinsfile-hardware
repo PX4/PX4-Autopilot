@@ -23,7 +23,11 @@ pipeline {
             sh 'ccache -s'
             stash includes: 'build/nuttx_px4fmu-v2_test/nuttx_px4fmu-v2_test.elf', name: 'px4fmu-v2_test'
             stash includes: 'Tools/HIL/monitor_firmware_upload.py, Tools/HIL/run_tests.py', name: 'scripts-px4fmu-v2'
-            sh 'make distclean'
+          }
+          post {
+            always {
+                sh 'make distclean'
+            }
           }
         }
 
@@ -44,7 +48,11 @@ pipeline {
             sh 'ccache -s'
             stash includes: 'build/nuttx_px4fmu-v4_default/nuttx_px4fmu-v4_default.elf', name: 'px4fmu-v4_default'
             stash includes: 'Tools/HIL/monitor_firmware_upload.py, Tools/HIL/run_tests.py', name: 'scripts-px4fmu-v4'
-            sh 'make distclean'
+          }
+          post {
+            always {
+                sh 'make distclean'
+            }
           }
         }
 

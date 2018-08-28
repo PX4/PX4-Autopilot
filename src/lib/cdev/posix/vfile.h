@@ -42,7 +42,7 @@
 
 #include "../CDev.hpp"
 
-namespace device
+namespace cdev
 {
 
 class VFile : public CDev
@@ -59,4 +59,4 @@ private:
 	VFile(const VFile &);
 };
 
-} // namespace device
+} // namespace cdev

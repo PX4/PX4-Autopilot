@@ -77,7 +77,7 @@
 /**
  * A UAVCAN node.
  */
-class UavcanNode : public device::CDev
+class UavcanNode : public cdev::CDev
 {
 	static constexpr unsigned MaxBitRatePerSec	= 1000000;
 	static constexpr unsigned bitPerFrame		= 148;

@@ -128,6 +128,10 @@
 #define FXAS21002C_CTRL_REG0             0x0d
 #  define CTRL_REG0_BW_SHIFTS            6
 #  define CTRL_REG0_BW_MASK              (0x3 << CTRL_REG0_BW_SHIFTS)
+#  define CTRL_REG0_BW(n)                (((n) & 0x3) << CTRL_REG0_BW_SHIFTS)
+#    define CTRL_REG0_BW_HIGH             CTRL_REG0_BW(0)
+#    define CTRL_REG0_BW_MED              CTRL_REG0_BW(1)
+#    define CTRL_REG0_BW_LOW              CTRL_REG0_BW(2)
 #  define CTRL_REG0_SPIW                 (1 << 6)
 #  define CTRL_REG0_SEL_SHIFTS           3
 #  define CTRL_REG0_SEL_MASK             (0x2 << CTRL_REG0_SEL_SHIFTS)
@@ -165,16 +169,16 @@
 #define FXAS21002C_CTRL_REG1             0x13
 #  define CTRL_REG1_RST                  (1 << 6)
 #  define CTRL_REG1_ST                   (1 << 5)
-#  define CTRL_REG_DR_SHIFTS             2
-#  define CTRL_REG_DR_MASK               (0x07 << CTRL_REG_DR_SHIFTS)
-#  define CTRL_REG_DR_12_5               (7 << CTRL_REG_DR_SHIFTS)
-#  define CTRL_REG_DR_12_5_1             (6 << CTRL_REG_DR_SHIFTS)
-#  define CTRL_REG_DR_25HZ               (5 << CTRL_REG_DR_SHIFTS)
-#  define CTRL_REG_DR_50HZ               (4 << CTRL_REG_DR_SHIFTS)
-#  define CTRL_REG_DR_100HZ              (3 << CTRL_REG_DR_SHIFTS)
-#  define CTRL_REG_DR_200HZ              (2 << CTRL_REG_DR_SHIFTS)
-#  define CTRL_REG_DR_400HZ              (1 << CTRL_REG_DR_SHIFTS)
-#  define CTRL_REG_DR_800HZ              (0 << CTRL_REG_DR_SHIFTS)
+#  define CTRL_REG1_DR_SHIFTS             2
+#  define CTRL_REG1_DR_MASK               (0x07 << CTRL_REG1_DR_SHIFTS)
+#  define CTRL_REG1_DR_12_5               (7 << CTRL_REG1_DR_SHIFTS)
+#  define CTRL_REG1_DR_12_5_1             (6 << CTRL_REG1_DR_SHIFTS)
+#  define CTRL_REG1_DR_25HZ               (5 << CTRL_REG1_DR_SHIFTS)
+#  define CTRL_REG1_DR_50HZ               (4 << CTRL_REG1_DR_SHIFTS)
+#  define CTRL_REG1_DR_100HZ              (3 << CTRL_REG1_DR_SHIFTS)
+#  define CTRL_REG1_DR_200HZ              (2 << CTRL_REG1_DR_SHIFTS)
+#  define CTRL_REG1_DR_400HZ              (1 << CTRL_REG1_DR_SHIFTS)
+#  define CTRL_REG1_DR_800HZ              (0 << CTRL_REG1_DR_SHIFTS)
 #  define CTRL_REG1_ACTIVE               (1 << 1)
 #  define CTRL_REG1_READY                (1 << 0)
 
@@ -196,12 +200,13 @@
 #define DEF_REG(r)   {r, #r}
 
 /* default values for this device */
-#define FXAS21002C_DEFAULT_RATE          400
 #define FXAS21002C_MAX_RATE              800
+#define FXAS21002C_DEFAULT_RATE          FXAS21002C_MAX_RATE
 #define FXAS21002C_MAX_OUTPUT_RATE       280
 #define FXAS21002C_DEFAULT_RANGE_DPS     2000
 #define FXAS21002C_DEFAULT_FILTER_FREQ   30
 #define FXAS21002C_TEMP_OFFSET_CELSIUS   40
+#define FXAS21002C_DEFAULT_ONCHIP_FILTER_FREQ 	64 // ODR dependant
 
 #define FXAS21002C_MAX_OFFSET			0.45f /**< max offset: 25 degrees/s */
 
@@ -210,8 +215,9 @@
   sample rate and then throw away duplicates using the data ready bit.
   This time reduction is enough to cope with worst case timing jitter
   due to other timers
+  Typical reductions for the MPU6000 is 20% so 20% of 1/800 is 250 us
  */
-#define FXAS21002C_TIMER_REDUCTION				240
+#define FXAS21002C_TIMER_REDUCTION				250
 
 extern "C" { __EXPORT int fxas21002c_main(int argc, char *argv[]); }
 
@@ -221,65 +227,65 @@ public:
 	FXAS21002C(int bus, const char *path, uint32_t device, enum Rotation rotation);
 	virtual ~FXAS21002C();
 
-	virtual int		init();
+	virtual int init();
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t read(struct file *filp, char *buffer, size_t buflen);
+	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
-	void			print_info();
+	void print_info();
 
 	/**
 	 * dump register values
 	 */
-	void			print_registers();
+	void print_registers();
 
 	/**
 	 * deliberately trigger an error
 	 */
-	void			test_error();
+	void test_error();
 
 protected:
-	virtual int		probe();
+	virtual int probe();
 
 private:
 
-	struct hrt_call		_gyro_call;
+	struct hrt_call _gyro_call;
 
-	unsigned		_call_interval;
+	unsigned _call_interval;
 
-	ringbuffer::RingBuffer	*_reports;
+	ringbuffer::RingBuffer *_reports;
 
-	struct gyro_calibration_s	_gyro_scale;
-	float			_gyro_range_scale;
-	float			_gyro_range_rad_s;
-	orb_advert_t		_gyro_topic;
-	int			_orb_class_instance;
-	int			_class_instance;
+	struct gyro_calibration_s _gyro_scale;
+	float _gyro_range_scale;
+	float _gyro_range_rad_s;
+	orb_advert_t _gyro_topic;
+	int _orb_class_instance;
+	int _class_instance;
 
-	unsigned		_current_rate;
-	unsigned		_orientation;
-	float			_last_temperature;
+	unsigned _current_rate;
+	unsigned _orientation;
+	float _last_temperature;
 
-	unsigned		_read;
+	unsigned _read;
 
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_errors;
-	perf_counter_t		_bad_registers;
-	perf_counter_t		_duplicates;
+	perf_counter_t _sample_perf;
+	perf_counter_t _errors;
+	perf_counter_t _bad_registers;
+	perf_counter_t _duplicates;
 
-	uint8_t			_register_wait;
+	uint8_t _register_wait;
 
-	math::LowPassFilter2p	_gyro_filter_x;
-	math::LowPassFilter2p	_gyro_filter_y;
-	math::LowPassFilter2p	_gyro_filter_z;
+	math::LowPassFilter2p _gyro_filter_x;
+	math::LowPassFilter2p _gyro_filter_y;
+	math::LowPassFilter2p _gyro_filter_z;
 
-	Integrator		_gyro_int;
+	Integrator _gyro_int;
 
-	enum Rotation		_rotation;
+	enum Rotation _rotation;
 
 
 	/* this is used to support runtime checking of key
@@ -287,31 +293,36 @@ private:
 	 * reset
 	 */
 #define FXAS21002C_NUM_CHECKED_REGISTERS 6
-	static const uint8_t	_checked_registers[FXAS21002C_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_values[FXAS21002C_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_next;
+	static const uint8_t _checked_registers[FXAS21002C_NUM_CHECKED_REGISTERS];
+	uint8_t _checked_values[FXAS21002C_NUM_CHECKED_REGISTERS];
+	uint8_t _checked_next;
 
 	/**
 	 * Start automatic measurement.
 	 */
-	void			start();
+	void start();
 
 	/**
 	 * Stop automatic measurement.
 	 */
-	void			stop();
+	void stop();
 
 	/**
 	 * Reset chip.
 	 *
 	 * Resets the chip and measurements ranges, but not scale and offset.
 	 */
-	void			reset();
+	void reset();
 
 	/**
 	 * disable I2C on the chip
 	 */
-	void			disable_i2c();
+	void disable_i2c();
+
+	/**
+	 * Put the chip In stand by
+	 */
+	void set_standby(int rate, bool standby_true);
 
 	/**
 	 * Static trampoline from the hrt_call context; because we don't have a
@@ -322,17 +333,17 @@ private:
 	 *
 	 * @param arg		Instance pointer for the driver that is polling.
 	 */
-	static void		measure_trampoline(void *arg);
+	static void measure_trampoline(void *arg);
 
 	/**
 	 * check key registers for correct values
 	 */
-	void			check_registers(void);
+	void check_registers(void);
 
 	/**
 	 * Fetch accel measurements from the sensor and update the report ring.
 	 */
-	void			measure();
+	void measure();
 
 	/**
 	 * Read a register from the FXAS21002C
@@ -340,7 +351,7 @@ private:
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-	uint8_t			read_reg(unsigned reg);
+	uint8_t read_reg(unsigned reg);
 
 	/**
 	 * Write a register in the FXAS21002C
@@ -348,7 +359,7 @@ private:
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
 	 */
-	void			write_reg(unsigned reg, uint8_t value);
+	void write_reg(unsigned reg, uint8_t value);
 
 	/**
 	 * Modify a register in the FXAS21002C
@@ -359,7 +370,7 @@ private:
 	 * @param clearbits	Bits in the register to clear.
 	 * @param setbits	Bits in the register to set.
 	 */
-	void			modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
+	void modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
 
 	/**
 	 * Write a register in the FXAS21002C, updating _checked_values
@@ -367,7 +378,7 @@ private:
 	 * @param reg		The register to write.
 	 * @param value		The new value to write.
 	 */
-	void			write_checked_reg(unsigned reg, uint8_t value);
+	void write_checked_reg(unsigned reg, uint8_t value);
 
 	/**
 	 * Set the FXAS21002C measurement range.
@@ -377,7 +388,7 @@ private:
 	 *			Zero selects the maximum supported range.
 	 * @return		OK if the value can be supported, -ERANGE otherwise.
 	 */
-	int			set_range(unsigned max_dps);
+	int set_range(unsigned max_dps);
 
 	/**
 	 * Set the FXAS21002C internal sampling frequency.
@@ -387,7 +398,7 @@ private:
 	 *			Zero selects the maximum rate supported.
 	 * @return		OK if the value can be supported.
 	 */
-	int			set_samplerate(unsigned frequency);
+	int set_samplerate(unsigned frequency);
 
 	/**
 	 * Set the lowpass filter of the driver
@@ -395,14 +406,19 @@ private:
 	 * @param samplerate	The current samplerate
 	 * @param frequency	The cutoff frequency for the lowpass filter
 	 */
-	void		set_driver_lowpass_filter(float samplerate, float bandwidth);
+	void set_sw_lowpass_filter(float samplerate, float bandwidth);
+
+	/*
+	  set onchip low pass filter frequency
+	 */
+	void set_onchip_lowpass_filter(int frequency_hz);
 
 	/**
 	 * Self test
 	 *
 	 * @return 0 on success, 1 on failure
 	 */
-	int 			self_test();
+	int self_test();
 
 
 	/* this class cannot be copied */
@@ -435,6 +451,9 @@ FXAS21002C::FXAS21002C(int bus, const char *path, uint32_t device, enum Rotation
 	_gyro_range_rad_s(0.0f),
 	_gyro_topic(nullptr),
 	_orb_class_instance(-1),
+	_class_instance(-1),
+	_current_rate(800),
+	_orientation(0),
 	_last_temperature(0.0f),
 	_read(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "fxas21002c_acc_read")),
@@ -451,7 +470,7 @@ FXAS21002C::FXAS21002C(int bus, const char *path, uint32_t device, enum Rotation
 	_checked_next(0)
 {
 	// enable debug() calls
-	_debug_enabled = false;
+	//_debug_enabled = false;
 
 	_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_FXAS2100C;
 
@@ -491,19 +510,29 @@ FXAS21002C::~FXAS21002C()
 int
 FXAS21002C::init()
 {
-	int ret = PX4_ERROR;
-
 	/* do SPI init (and probe) first */
 	if (SPI::init() != OK) {
 		PX4_ERR("SPI init failed");
-		goto out;
+		return PX4_ERROR;
+	}
+
+	param_t gyro_cut_ph = param_find("IMU_GYRO_CUTOFF");
+	float gyro_cut = FXAS21002C_DEFAULT_FILTER_FREQ;
+
+	if (gyro_cut_ph != PARAM_INVALID && param_get(gyro_cut_ph, &gyro_cut) == PX4_OK) {
+		PX4_INFO("gyro cutoff set to %.2f Hz", double(gyro_cut));
+
+		set_sw_lowpass_filter(FXAS21002C_DEFAULT_RATE, gyro_cut);
+
+	} else {
+		PX4_ERR("IMU_GYRO_CUTOFF param invalid");
 	}
 
 	/* allocate basic report buffers */
 	_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
 
 	if (_reports == nullptr) {
-		goto out;
+		return PX4_ERROR;
 	}
 
 	reset();
@@ -523,12 +552,10 @@ FXAS21002C::init()
 
 	if (_gyro_topic == nullptr) {
 		PX4_ERR("ADVERT ERR");
+		return PX4_ERROR;
 	}
 
-	ret = OK;
-
-out:
-	return ret;
+	return PX4_OK;
 }
 
 
@@ -545,24 +572,24 @@ FXAS21002C::reset()
 	write_reg(FXAS21002C_CTRL_REG1, 0);
 
 	/* write 0000 0000 = 0x00 to CTRL_REG0 to configure range and filters
-	 * [7-6]: BW[1-0]=00, LPF disabled
+	 * [7-6]: BW[1-0]=00, LPF 64 @ 800Hz ODR
 	 *  [5]: SPIW=0 4 wire SPI
 	 * [4-3]: SEL[1-0]=00 for 10Hz HPF at 200Hz ODR
 	 *  [2]: HPF_EN=0 disable HPF
 	 * [1-0]: FS[1-0]=00 for 1600dps (TBD CHANGE TO 2000dps when final trimmed parts available)
 	 */
 
-	write_checked_reg(FXAS21002C_CTRL_REG0, 0);
+	write_checked_reg(FXAS21002C_CTRL_REG0, CTRL_REG0_BW_LOW | CTRL_REG0_FS_2000_DPS);
 
 	/* write CTRL_REG1 to configure 800Hz ODR and enter Active mode */
 
-	write_checked_reg(FXAS21002C_CTRL_REG1, CTRL_REG_DR_800HZ | CTRL_REG1_ACTIVE);
+	write_checked_reg(FXAS21002C_CTRL_REG1, CTRL_REG1_DR_800HZ | CTRL_REG1_ACTIVE);
 
 	/* Set the default */
 
 	set_samplerate(0);
 	set_range(FXAS21002C_DEFAULT_RANGE_DPS);
-	set_driver_lowpass_filter(FXAS21002C_DEFAULT_RATE, FXAS21002C_DEFAULT_FILTER_FREQ);
+	set_onchip_lowpass_filter(FXAS21002C_DEFAULT_ONCHIP_FILTER_FREQ);
 	_read = 0;
 }
 
@@ -671,7 +698,7 @@ FXAS21002C::ioctl(struct file *filp, int cmd, unsigned long arg)
 					/* adjust filters */
 					float cutoff_freq_hz = _gyro_filter_x.get_cutoff_freq();
 					float sample_rate = 1.0e6f / ticks;
-					set_driver_lowpass_filter(sample_rate, cutoff_freq_hz);
+					set_sw_lowpass_filter(sample_rate, cutoff_freq_hz);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -834,17 +861,42 @@ FXAS21002C::set_range(unsigned max_dps)
 		return -EINVAL;
 	}
 
+	set_standby(_current_rate, true);
 	_gyro_range_rad_s = new_range / 180.0f * M_PI_F;
 	_gyro_range_scale = new_range_scale_dps_digit / 180.0f * M_PI_F;
 	modify_reg(FXAS21002C_CTRL_REG0, CTRL_REG0_FS_MASK, bits);
+	set_standby(_current_rate, false);
 
 	return OK;
+}
+
+void FXAS21002C::set_standby(int rate, bool standby_true)
+{
+	uint8_t c = 0;
+	uint8_t s = 0;
+
+	if (standby_true) {
+		c = CTRL_REG1_ACTIVE | CTRL_REG1_READY;
+
+	} else {
+		s = CTRL_REG1_ACTIVE | CTRL_REG1_READY;
+	}
+
+	modify_reg(FXAS21002C_CTRL_REG1, c, s);
+
+	// From the data sheet
+
+	int wait_ms = (1000 / rate) + 60 + 1;
+
+	usleep(wait_ms * 1000);
 }
 
 int
 FXAS21002C::set_samplerate(unsigned frequency)
 {
-	uint8_t bits = CTRL_REG1_READY | CTRL_REG1_ACTIVE;
+	uint8_t bits = 0;
+
+	unsigned last_rate = _current_rate;
 
 	if (frequency == 0 || frequency == GYRO_SAMPLERATE_DEFAULT) {
 		frequency = FXAS21002C_DEFAULT_RATE;
@@ -852,43 +904,80 @@ FXAS21002C::set_samplerate(unsigned frequency)
 
 	if (frequency <= 13) {
 		_current_rate = 13;
-		bits |= CTRL_REG_DR_12_5;
+		bits = CTRL_REG1_DR_12_5;
 
 	} else if (frequency <= 25) {
 		_current_rate = 25;
-		bits |= CTRL_REG_DR_25HZ;
+		bits = CTRL_REG1_DR_25HZ;
 
 	} else if (frequency <= 50) {
 		_current_rate = 50;
-		bits |= CTRL_REG_DR_50HZ;
+		bits = CTRL_REG1_DR_50HZ;
 
 	} else if (frequency <= 100) {
 		_current_rate = 100;
-		bits |= CTRL_REG_DR_100HZ;
+		bits = CTRL_REG1_DR_100HZ;
 
 	} else if (frequency <= 200) {
 		_current_rate = 200;
-		bits |= CTRL_REG_DR_200HZ;
+		bits = CTRL_REG1_DR_200HZ;
 
 	} else if (frequency <= 400) {
 		_current_rate = 400;
-		bits |= CTRL_REG_DR_400HZ;
+		bits = CTRL_REG1_DR_400HZ;
 
 	} else if (frequency <= 800) {
 		_current_rate = 800;
-		bits |= CTRL_REG_DR_800HZ;
+		bits = CTRL_REG1_DR_800HZ;
 
 	} else {
 		return -EINVAL;
 	}
 
-	write_checked_reg(FXAS21002C_CTRL_REG1, bits);
-
+	set_standby(last_rate, true);
+	modify_reg(FXAS21002C_CTRL_REG1, CTRL_REG1_DR_MASK, bits);
+	set_standby(_current_rate, false);
 	return OK;
 }
 
+void	FXAS21002C::set_onchip_lowpass_filter(int frequency_hz)
+{
+	int high = 256 / (800 / _current_rate);
+	int med = high / 2 ;
+	int low = med / 2;
+
+	if (_current_rate <= 25) {
+		low = -1;
+	}
+
+	if (_current_rate == 13) {
+		med = -1;
+		low = -1;
+	}
+
+	uint8_t filter = CTRL_REG0_BW_HIGH;
+
+	if (frequency_hz == 0) {
+		filter = CTRL_REG0_BW_HIGH;
+
+	} else if (frequency_hz <= low) {
+		filter = CTRL_REG0_BW_LOW;
+
+	} else if (frequency_hz <= med) {
+		filter = CTRL_REG0_BW_MED;
+
+	} else if (frequency_hz <= high) {
+		filter = CTRL_REG0_BW_HIGH;
+	}
+
+	set_standby(_current_rate, true);
+	modify_reg(FXAS21002C_CTRL_REG1, CTRL_REG0_BW_MASK, filter);
+	set_standby(_current_rate, false);
+}
+
+
 void
-FXAS21002C::set_driver_lowpass_filter(float samplerate, float bandwidth)
+FXAS21002C::set_sw_lowpass_filter(float samplerate, float bandwidth)
 {
 	_gyro_filter_x.set_cutoff_frequency(samplerate, bandwidth);
 	_gyro_filter_y.set_cutoff_frequency(samplerate, bandwidth);

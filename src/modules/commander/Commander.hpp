@@ -35,6 +35,7 @@
 #define COMMANDER_HPP_
 
 #include "state_machine_helper.h"
+#include "failure_detector/FailureDetector.hpp"
 
 #include <controllib/blocks.hpp>
 #include <px4_module.h>
@@ -107,7 +108,6 @@ private:
 		(ParamInt<px4::params::COM_POS_FS_GAIN>) _failsafe_pos_gain,
 
 		(ParamInt<px4::params::COM_LOW_BAT_ACT>) _low_bat_action
-
 	)
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
@@ -127,6 +127,9 @@ private:
 	hrt_abstime	_time_last_innov_pass{0};	/**< last time velocity innovations passed */
 	bool		_nav_test_passed{false};	/**< true if the post takeoff navigation test has passed */
 	bool		_nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
+
+	FailureDetector _failure_detector;
+	bool _failure_detector_termination_printed{false};
 
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd,
 			    actuator_armed_s *armed, home_position_s *home, orb_advert_t *home_pub, orb_advert_t *command_ack_pub, bool *changed);

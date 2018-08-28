@@ -43,7 +43,6 @@
  * @author Jacob Dahl <dahl.jakejacob@gmail.com>
  */
 
-
 #include <px4_config.h>
 #include <px4_workqueue.h>
 
@@ -52,7 +51,7 @@
 #include <string.h>
 #include <ecl/geo/geo.h>
 
-#include <drivers/device/CDev.hpp>
+#include <lib/cdev/CDev.hpp>
 #include <drivers/device/Device.hpp>
 #include <drivers/device/i2c.h>
 #include <drivers/drv_device.h>
@@ -135,7 +134,7 @@ int serial_number();
 extern device::Device *BQ40Z50_I2C_interface(int bus);
 typedef device::Device *(*BQ40Z50_constructor)(int);
 
-class BQ40Z50 : public device::CDev
+class BQ40Z50 : public cdev::CDev
 {
 public:
 
@@ -302,7 +301,7 @@ public:
 	int write_flash(uint16_t address, uint8_t *tx_buf, const unsigned length);
 
 protected:
-	Device *_interface;
+	device::Device *_interface;
 
 private:
 

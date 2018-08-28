@@ -153,6 +153,8 @@
 #define PX4_SPI_BUS_EXT0       5
 #define PX4_SPI_BUS_EXT1       6
 
+#define PX4_SPI_BUS_EXT		PX4_SPI_BUS_EXT0
+
 /* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
 
 #define PX4_SPIDEV_GYRO         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
@@ -170,6 +172,8 @@
 
 #define PX4_SPIDEV_EXT0         PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT0, 1)
 #define PX4_SPIDEV_EXT1         PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT1, 1)
+
+#define PX4_SPIDEV_RM_EXT	PX4_SPIDEV_EXT0
 
 /* I2C busses */
 #define PX4_I2C_BUS_ONBOARD     1

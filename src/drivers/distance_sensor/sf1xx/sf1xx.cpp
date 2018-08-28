@@ -107,7 +107,7 @@ private:
 	float				_min_distance;
 	float				_max_distance;
 	int                             _conversion_interval;
-	work_s				_work;
+	work_s				_work{};
 	ringbuffer::RingBuffer  *_reports;
 	bool				_sensor_ok;
 	int				_measure_ticks;
@@ -192,11 +192,6 @@ SF1XX::SF1XX(uint8_t rotation, int bus, int address) :
 	_comms_errors(perf_alloc(PC_COUNT, "sf1xx_com_err"))
 
 {
-	/* enable debug() calls */
-	_debug_enabled = false;
-
-	/* work_cancel in the dtor will explode if we don't do this... */
-	memset(&_work, 0, sizeof(_work));
 }
 
 SF1XX::~SF1XX()
@@ -231,7 +226,7 @@ SF1XX::init()
 
 	switch (hw_model) {
 	case 0:
-		DEVICE_LOG("disabled.");
+		PX4_WARN("disabled.");
 		return ret;
 
 	case 1:  /* SF10/a (25m 32Hz) */
@@ -267,7 +262,7 @@ SF1XX::init()
 		break;
 
 	default:
-		DEVICE_LOG("invalid HW model %d.", hw_model);
+		PX4_ERR("invalid HW model %d.", hw_model);
 		return ret;
 	}
 
@@ -294,7 +289,7 @@ SF1XX::init()
 				 &_orb_class_instance, ORB_PRIO_HIGH);
 
 	if (_distance_sensor_topic == nullptr) {
-		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+		PX4_ERR("failed to create distance_sensor object");
 	}
 
 	// Select altitude register
@@ -303,8 +298,8 @@ SF1XX::init()
 	if (ret2 == 0) {
 		ret = OK;
 		_sensor_ok = true;
-		DEVICE_LOG("(%dm %dHz) with address %d found", (int)_max_distance,
-			   (int)(1e6f / _conversion_interval), SF1XX_BASEADDR);
+		PX4_INFO("(%dm %dHz) with address %d found", (int)_max_distance,
+			 (int)(1e6f / _conversion_interval), SF1XX_BASEADDR);
 	}
 
 	return ret;
@@ -514,7 +509,7 @@ SF1XX::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		DEVICE_DEBUG("i2c::transfer returned %d", ret);
+		PX4_DEBUG("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -535,7 +530,7 @@ SF1XX::collect()
 	ret = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret < 0) {
-		DEVICE_DEBUG("error reading from sensor: %d", ret);
+		PX4_DEBUG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
@@ -604,7 +599,7 @@ SF1XX::cycle()
 {
 	/* Collect results */
 	if (OK != collect()) {
-		DEVICE_DEBUG("collection error");
+		PX4_DEBUG("collection error");
 		/* if error restart the measurement state machine */
 		start();
 		return;

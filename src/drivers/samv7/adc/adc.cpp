@@ -99,7 +99,7 @@
 # define rCCR		REG(STM32_ADC_CCR_OFFSET)
 #endif
 
-class ADC : public device::CDev
+class ADC : public cdev::CDev
 {
 public:
 	ADC(uint32_t channels);
@@ -145,7 +145,7 @@ private:
 };
 
 ADC::ADC(uint32_t channels) :
-	CDev("adc", ADC0_DEVICE_PATH),
+	CDev(ADC0_DEVICE_PATH),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_channel_count(0),
 	_samples(nullptr),

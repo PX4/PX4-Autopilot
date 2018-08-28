@@ -540,7 +540,8 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 }
 
 Commander::Commander() :
-	ModuleParams(nullptr)
+	ModuleParams(nullptr),
+	_failure_detector(this)
 {
 	_battery_sub = orb_subscribe(ORB_ID(battery_status));
 }
@@ -2278,6 +2279,32 @@ Commander::run()
 
 				if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
 					mavlink_log_critical(&mavlink_log_pub, "RC and GPS lost: flight termination");
+				}
+			}
+		}
+
+
+		/* Check for failure detector status */
+		if (armed.armed) {
+
+			if (_failure_detector.update()) {
+
+				const uint8_t failure_status = _failure_detector.get_status();
+
+				if (failure_status != status.failure_detector_status) {
+					status.failure_detector_status = failure_status;
+					status_changed = true;
+				}
+
+				if (failure_status != 0 && !status_flags.circuit_breaker_flight_termination_disabled) {
+
+					// TODO: set force_failsafe flag
+
+					if (!_failure_detector_termination_printed) {
+						mavlink_log_critical(&mavlink_log_pub, "Attitude failure detected: force failsafe");
+						_failure_detector_termination_printed = true;
+					}
+
 				}
 			}
 		}

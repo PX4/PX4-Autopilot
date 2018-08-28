@@ -57,7 +57,7 @@ IridiumSBD *IridiumSBD::instance;
 int IridiumSBD::task_handle;
 
 IridiumSBD::IridiumSBD()
-	: CDev("iridiumsbd", IRIDIUMSBD_DEVICE_PATH)
+	: CDev(IRIDIUMSBD_DEVICE_PATH)
 {
 }
 

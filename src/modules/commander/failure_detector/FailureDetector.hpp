@@ -1,6 +1,7 @@
+
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,36 +33,56 @@
  ****************************************************************************/
 
 /**
- * @file vdev_file.cpp
- * Virtual file
- *
- * @author Mark Charlebois <charlebm@gmail.com>
- */
+* @file FailureDetector.hpp
+* Base class for failure detection logic based on vehicle states
+* for failsafe triggering.
+*
+* @author Mathieu Bresciani 	<brescianimathieu@gmail.com>
+*
+*/
 
-#include "vfile.h"
+#pragma once
 
-namespace device
+#include <matrix/matrix/math.hpp>
+#include <mathlib/mathlib.h>
+#include <px4_module_params.h>
+
+// subscriptions
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_status.h>
+
+typedef enum {
+	FAILURE_NONE = vehicle_status_s::FAILURE_NONE,
+	FAILURE_ROLL = vehicle_status_s::FAILURE_ROLL,
+	FAILURE_PITCH = vehicle_status_s::FAILURE_PITCH,
+	FAILURE_ALT = vehicle_status_s::FAILURE_ALT,
+} failure_detector_bitmak;
+
+using uORB::Subscription;
+
+class FailureDetector : public ModuleParams
 {
+public:
+	FailureDetector(ModuleParams *parent);
 
-VFile::VFile(const char *fname, mode_t mode) :
-	CDev("vfile", fname)
-{
-}
+	bool update();
 
-VFile *VFile::createFile(const char *fname, mode_t mode)
-{
-	VFile *me = new VFile(fname, mode);
-	px4_file_operations_t *file_ops = nullptr;
-	register_driver(fname, file_ops, 0666, (void *)me);
-	return me;
-}
+	uint8_t get_status() const {return _status;}
 
-ssize_t VFile::write(file_t *handlep, const char *buffer, size_t buflen)
-{
-	// ignore what was written, but let pollers know something was written
-	poll_notify(POLLIN);
+private:
 
-	return buflen;
-}
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::FD_FAIL_P>) _fail_trig_pitch,
+		(ParamInt<px4::params::FD_FAIL_R>) _fail_trig_roll
+	)
 
-} // namespace device
+	// Subscriptions
+	Subscription<vehicle_attitude_s> _sub_vehicle_attitude_setpoint;
+	Subscription<vehicle_attitude_s> _sub_vehicule_attitude;
+
+	uint8_t _status{FAILURE_NONE};
+
+	bool update_attitude_status();
+};

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +37,7 @@
  * @author Greg Hulands
  * @author Ayush Gaud <ayush.gaud@gmail.com>
  * @author Christoph Tobler <christoph@px4.io>
+ * @author Mohammed Kabir <mhkabir@mit.edu>
  *
  * Driver for the Benewake TFmini laser rangefinder series
  */
@@ -46,6 +47,7 @@
 #include <px4_getopt.h>
 
 #include <sys/types.h>
+#include <sys/ioctl.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -58,6 +60,9 @@
 #include <math.h>
 #include <unistd.h>
 #include <termios.h>
+#ifdef __PX4_CYGWIN
+#include <asm/socket.h>
+#endif
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
@@ -80,7 +85,7 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class TFMINI : public device::CDev
+class TFMINI : public cdev::CDev
 {
 public:
 	TFMINI(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
@@ -102,7 +107,7 @@ private:
 	float                    _min_distance;
 	float                    _max_distance;
 	int                      _conversion_interval;
-	work_s                   _work;
+	work_s                   _work{};
 	ringbuffer::RingBuffer  *_reports;
 	int                      _measure_ticks;
 	bool                     _collect_phase;
@@ -118,16 +123,11 @@ private:
 
 	orb_advert_t             _distance_sensor_topic;
 
-	unsigned                 _consecutive_fail_count;
-
 	perf_counter_t           _sample_perf;
 	perf_counter_t           _comms_errors;
 
 	/**
 	* Initialise the automatic measurement state machine and start it.
-	*
-	* @note This function is called at open and error time.  It might make sense
-	*       to make it more aggressive about resetting the bus in case of errors.
 	*/
 	void				start();
 
@@ -170,11 +170,11 @@ private:
 extern "C" __EXPORT int tfmini_main(int argc, char *argv[]);
 
 TFMINI::TFMINI(const char *port, uint8_t rotation) :
-	CDev("tfmini", RANGE_FINDER0_DEVICE_PATH),
+	CDev(RANGE_FINDER0_DEVICE_PATH),
 	_rotation(rotation),
 	_min_distance(0.30f),
 	_max_distance(12.0f),
-	_conversion_interval(10000),
+	_conversion_interval(9000),
 	_reports(nullptr),
 	_measure_ticks(0),
 	_collect_phase(false),
@@ -185,7 +185,6 @@ TFMINI::TFMINI(const char *port, uint8_t rotation) :
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
-	_consecutive_fail_count(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "tfmini_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "tfmini_com_err"))
 {
@@ -193,12 +192,6 @@ TFMINI::TFMINI(const char *port, uint8_t rotation) :
 	strncpy(_port, port, sizeof(_port));
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
-
-	// disable debug() calls
-	_debug_enabled = false;
-
-	// work_cancel in the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
 }
 
 TFMINI::~TFMINI()
@@ -227,17 +220,17 @@ TFMINI::init()
 
 	switch (hw_model) {
 	case 0:
-		DEVICE_LOG("disabled.");
+		PX4_WARN("disabled.");
 		return 0;
 
 	case 1: /* TFMINI (12m, 100 Hz)*/
 		_min_distance = 0.3f;
 		_max_distance = 12.0f;
-		_conversion_interval =	10000;
+		_conversion_interval = 9000;
 		break;
 
 	default:
-		DEVICE_LOG("invalid HW model %d.", hw_model);
+		PX4_ERR("invalid HW model %d.", hw_model);
 		return -1;
 	}
 
@@ -247,10 +240,10 @@ TFMINI::init()
 	do { /* create a scope to handle exit conditions using break */
 
 		/* open fd */
-		_fd = ::open(_port, O_RDWR | O_NOCTTY | O_SYNC);
+		_fd = ::open(_port, O_RDWR | O_NOCTTY);
 
 		if (_fd < 0) {
-			warnx("Error opening fd");
+			PX4_ERR("Error opening fd");
 			return -1;
 		}
 
@@ -268,19 +261,19 @@ TFMINI::init()
 
 		/* set baud rate */
 		if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
-			warnx("ERR CFG: %d ISPD", termios_state);
+			PX4_ERR("CFG: %d ISPD", termios_state);
 			ret = -1;
 			break;
 		}
 
 		if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
-			warnx("ERR CFG: %d OSPD\n", termios_state);
+			PX4_ERR("CFG: %d OSPD\n", termios_state);
 			ret = -1;
 			break;
 		}
 
 		if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
-			warnx("ERR baud %d ATTR", termios_state);
+			PX4_ERR("baud %d ATTR", termios_state);
 			ret = -1;
 			break;
 		}
@@ -302,7 +295,7 @@ TFMINI::init()
 		uart_config.c_cc[VTIME] = 1;
 
 		if (_fd < 0) {
-			warnx("FAIL: laser fd");
+			PX4_ERR("FAIL: laser fd");
 			ret = -1;
 			break;
 		}
@@ -316,7 +309,7 @@ TFMINI::init()
 		_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
 		if (_reports == nullptr) {
-			warnx("mem err");
+			PX4_ERR("mem err");
 			ret = -1;
 			break;
 		}
@@ -330,7 +323,7 @@ TFMINI::init()
 					 &_orb_class_instance, ORB_PRIO_HIGH);
 
 		if (_distance_sensor_topic == nullptr) {
-			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+			PX4_ERR("failed to create distance_sensor object. Did you start uOrb?");
 		}
 
 	} while (0);
@@ -523,8 +516,6 @@ TFMINI::read(device::file_t *filp, char *buffer, size_t buflen)
 int
 TFMINI::collect()
 {
-	int	ret;
-
 	perf_begin(_sample_perf);
 
 	/* clear buffer if last read was too long ago */
@@ -534,44 +525,57 @@ TFMINI::collect()
 	char readbuf[sizeof(_linebuf)];
 	unsigned readlen = sizeof(readbuf) - 1;
 
-	/* read from the sensor (uart buffer) */
-	ret = ::read(_fd, &readbuf[0], readlen);
-
-	if (ret < 0) {
-		DEVICE_DEBUG("read err: %d", ret);
-		perf_count(_comms_errors);
-		perf_end(_sample_perf);
-
-		/* only throw an error if we time out */
-		if (read_elapsed > (_conversion_interval * 2)) {
-			return ret;
-
-		} else {
-			return -EAGAIN;
-		}
-
-	} else if (ret == 0) {
-		return -EAGAIN;
-	}
-
-	_last_read = hrt_absolute_time();
-
+	int ret = 0;
 	float distance_m = -1.0f;
-	bool valid = false;
 
-	for (int i = 0; i < ret; i++) {
-		if (OK == tfmini_parser(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &distance_m)) {
-			valid = true;
-		}
-	}
+	/* Check the number of bytes available in the buffer*/
+	int bytes_available = 0;
+	::ioctl(_fd, FIONREAD, (unsigned long)&bytes_available);
 
-	if (!valid) {
+	if (!bytes_available) {
 		return -EAGAIN;
 	}
 
-	DEVICE_DEBUG("val (float): %8.4f, raw: %s, valid: %s", (double)distance_m, _linebuf, ((valid) ? "OK" : "NO"));
+	/* parse entire buffer */
+	do {
+		/* read from the sensor (uart buffer) */
+		ret = ::read(_fd, &readbuf[0], readlen);
 
-	struct distance_sensor_s report;
+		if (ret < 0) {
+			PX4_ERR("read err: %d", ret);
+			perf_count(_comms_errors);
+			perf_end(_sample_perf);
+
+			/* only throw an error if we time out */
+			if (read_elapsed > (_conversion_interval * 2)) {
+				/* flush anything in RX buffer */
+				tcflush(_fd, TCIFLUSH);
+				return ret;
+
+			} else {
+				return -EAGAIN;
+			}
+		}
+
+		_last_read = hrt_absolute_time();
+
+		/* parse buffer */
+		for (int i = 0; i < ret; i++) {
+			tfmini_parse(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &distance_m);
+		}
+
+		/* bytes left to parse */
+		bytes_available -= ret;
+
+	} while (bytes_available > 0);
+
+	/* no valid measurement after parsing buffer */
+	if (distance_m < 0.0f) {
+		return -EAGAIN;
+	}
+
+	/* publish most recent valid measurement from buffer */
+	distance_sensor_s report{};
 
 	report.timestamp = hrt_absolute_time();
 	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
@@ -629,7 +633,7 @@ TFMINI::cycle()
 	/* fds initialized? */
 	if (_fd < 0) {
 		/* open fd */
-		_fd = ::open(_port, O_RDWR | O_NOCTTY | O_SYNC);
+		_fd = ::open(_port, O_RDWR | O_NOCTTY);
 	}
 
 	/* collection phase? */
@@ -639,31 +643,13 @@ TFMINI::cycle()
 		int collect_ret = collect();
 
 		if (collect_ret == -EAGAIN) {
-			/* reschedule to grab the missing bits, time to transmit 8 bytes @ 9600 bps */
+			/* reschedule to grab the missing bits, time to transmit 9 bytes @ 115200 bps */
 			work_queue(HPWORK,
 				   &_work,
 				   (worker_t)&TFMINI::cycle_trampoline,
 				   this,
-				   USEC2TICK(1042 * 8));
+				   USEC2TICK(87 * 9));
 			return;
-		}
-
-		if (OK != collect_ret) {
-
-			/* we know the sensor needs about four seconds to initialize */
-			if (hrt_absolute_time() > 5 * 1000 * 1000LL && _consecutive_fail_count < 5) {
-				DEVICE_LOG("collection error #%u", _consecutive_fail_count);
-			}
-
-			_consecutive_fail_count++;
-
-			/* restart the measurement state machine */
-			start();
-			return;
-
-		} else {
-			/* apparently success */
-			_consecutive_fail_count = 0;
 		}
 
 		/* next phase is measurement */
@@ -714,23 +700,23 @@ namespace tfmini
 
 TFMINI	*g_dev;
 
-void start(const char *port, uint8_t rotation);
-void stop();
-void test();
-void reset();
-void info();
+int start(const char *port, uint8_t rotation);
+int stop();
+int test();
+int info();
 void usage();
 
 /**
  * Start the driver.
  */
-void
+int
 start(const char *port, uint8_t rotation)
 {
 	int fd;
 
 	if (g_dev != nullptr) {
-		errx(1, "already started");
+		PX4_ERR("already started");
+		return 1;
 	}
 
 	/* create the driver */
@@ -748,7 +734,7 @@ start(const char *port, uint8_t rotation)
 	fd = px4_open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		warnx("Opening device '%s' failed");
+		PX4_ERR("Opening device '%s' failed");
 		goto fail;
 	}
 
@@ -756,7 +742,7 @@ start(const char *port, uint8_t rotation)
 		goto fail;
 	}
 
-	exit(0);
+	return 0;
 
 fail:
 
@@ -765,25 +751,27 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	PX4_ERR("driver start failed");
+	return 1;
 }
 
 /**
  * Stop the driver
  */
-void stop()
+int stop()
 {
 	if (g_dev != nullptr) {
-		warnx("stopping driver");
+		PX4_INFO("stopping driver");
 		delete g_dev;
 		g_dev = nullptr;
-		warnx("driver stopped");
+		PX4_INFO("driver stopped");
 
 	} else {
-		errx(1, "driver not running");
+		PX4_ERR("driver not running");
+		return 1;
 	}
 
-	exit(0);
+	return 0;
 }
 
 /**
@@ -791,7 +779,7 @@ void stop()
  * make sure we can collect data from the sensor in polled
  * and automatic modes.
  */
-void
+int
 test()
 {
 	struct distance_sensor_s report;
@@ -800,21 +788,25 @@ test()
 	int fd = px4_open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'tfmini start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
+		PX4_ERR("%s open failed (try 'tfmini start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
+		return 1;
 	}
 
 	/* do a simple demand read */
 	sz = px4_read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		err(1, "immediate read failed");
+		PX4_ERR("immediate read failed");
+		close(fd);
+		return 1;
 	}
 
 	print_message(report);
 
 	/* start the sensor polling at 2 Hz rate */
 	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
+		PX4_ERR("failed to set 2Hz poll rate");
+		return 1;
 	}
 
 	/* read the sensor 5x and report each value */
@@ -827,7 +819,7 @@ test()
 		int ret = px4_poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			warnx("timed out");
+			PX4_ERR("timed out");
 			break;
 		}
 
@@ -835,7 +827,7 @@ test()
 		sz = px4_read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			warnx("read failed: got %d vs exp. %d", sz, sizeof(report));
+			PX4_ERR("read failed: got %d vs exp. %d", sz, sizeof(report));
 			break;
 		}
 
@@ -844,49 +836,29 @@ test()
 
 	/* reset the sensor polling to the default rate */
 	if (OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		errx(1, "ERR: DEF RATE");
+		PX4_ERR("failed to set default poll rate");
+		return 1;
 	}
 
-	errx(0, "PASS");
-}
-
-/**
- * Reset the driver.
- */
-void
-reset()
-{
-	int fd = px4_open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "failed ");
-	}
-
-	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
-	}
-
-	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
-	}
-
-	exit(0);
+	PX4_INFO("PASS");
+	return 0;
 }
 
 /**
  * Print a little info about the driver.
  */
-void
+int
 info()
 {
 	if (g_dev == nullptr) {
-		errx(1, "driver not running");
+		PX4_ERR("driver not running");
+		return 1;
 	}
 
 	printf("state @ %p\n", g_dev);
 	g_dev->print_info();
 
-	exit(0);
+	return 0;
 }
 
 /**
@@ -935,7 +907,7 @@ tfmini_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
 		if (strcmp(device_path, "") != 0) {
-			tfmini::start(device_path, rotation);
+			return tfmini::start(device_path, rotation);
 
 		} else {
 			PX4_WARN("Please specify device path!");
@@ -948,21 +920,14 @@ tfmini_main(int argc, char *argv[])
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[myoptind], "stop")) {
-		tfmini::stop();
+		return tfmini::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[myoptind], "test")) {
-		tfmini::test();
-	}
-
-	/*
-	 * Reset the driver.
-	 */
-	if (!strcmp(argv[myoptind], "reset")) {
-		tfmini::reset();
+		return tfmini::test();
 	}
 
 	/*
@@ -970,9 +935,10 @@ tfmini_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
 		tfmini::info();
+		return 0;
 	}
 
 out_error:
-	PX4_ERR("unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	PX4_ERR("unrecognized command, try 'start', 'test', or 'info'");
 	return -1;
 }

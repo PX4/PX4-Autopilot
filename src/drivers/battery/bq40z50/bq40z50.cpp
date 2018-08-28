@@ -49,7 +49,8 @@
 #include "bq40z50.h"
 
 BQ40Z50::BQ40Z50(device::Device *interface, const char *path) :
-	CDev("BQ40Z50", path),
+	CDev(path),
+>>>>>>> c10ea132b420072b5a0dfcb03940ddef2618dc87:src/drivers/batt_smbus/batt_smbus.cpp
 	_interface(interface),
 	_batt_topic(nullptr),
 	_batt_orb_id(nullptr),
@@ -64,10 +65,6 @@ BQ40Z50::BQ40Z50(device::Device *interface, const char *path) :
 	_lifetime_max_delta_cell_voltage(0.0f),
 	_cell_undervoltage_protection_status(1)
 {
-	// Set the device type from the interface.
-	_device_id.devid_s.bus_type = _interface->get_device_bus_type();
-	_device_id.devid_s.bus = _interface->get_device_bus();
-	_device_id.devid_s.address = _interface->get_device_address();
 }
 
 BQ40Z50::~BQ40Z50()
@@ -110,7 +107,7 @@ int BQ40Z50::block_read(const uint8_t cmd_code, void *data, const unsigned lengt
 	}
 
 	// addr(wr), cmd_code, addr(r), byte_count, rx_data[]
-	uint8_t device_address = get_device_address();
+	uint8_t device_address = _interface->get_device_address();
 	uint8_t full_data_packet[DATA_BUFFER_SIZE + 4] = {0};
 
 	full_data_packet[0] = (device_address << 1) | 0x00;
@@ -693,7 +690,7 @@ int BQ40Z50::read_word(const uint8_t cmd_code, void *data)
 
 	if (PX4_OK == result) {
 		// Check PEC.
-		uint8_t addr = (get_device_address() << 1);
+		uint8_t addr = (_interface->get_device_address() << 1);
 		uint8_t full_data_packet[5];
 		full_data_packet[0] = addr | 0x00;
 		full_data_packet[1] = cmd_code;
@@ -717,12 +714,12 @@ int BQ40Z50::search_addresses()
 {
 	uint16_t tmp;
 
-	set_device_address(BQ40Z50_ADDR);
+	_interface->set_device_address(BQ40Z50_ADDR);
 
 	if (PX4_OK != read_word(BQ40Z50_VOLTAGE, &tmp)) {
 		// Search through all valid SMBus addresses.
 		for (uint8_t i = BQ40Z50_ADDR_MIN; i < BQ40Z50_ADDR_MAX; i++) {
-			set_device_address(i);
+			_interface->set_device_address(i);
 
 			if (read_word(BQ40Z50_VOLTAGE, &tmp) == PX4_OK) {
 				if (tmp > 0) {
@@ -737,7 +734,7 @@ int BQ40Z50::search_addresses()
 		}
 	}
 
-	PX4_INFO("Smart battery found at 0x%x", get_device_address());
+	PX4_INFO("Smart battery found at 0x%x", _interface->get_device_address());
 	PX4_INFO("Smart battery connected");
 
 	return PX4_OK;

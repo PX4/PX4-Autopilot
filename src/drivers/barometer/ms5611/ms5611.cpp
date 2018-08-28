@@ -126,7 +126,7 @@ enum MS5611_BUS {
 #define MS5611_BARO_DEVICE_PATH_EXT	"/dev/ms5611_ext"
 #define MS5611_BARO_DEVICE_PATH_INT	"/dev/ms5611_int"
 
-class MS5611 : public device::CDev
+class MS5611 : public cdev::CDev
 {
 public:
 	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *path, enum MS56XX_DEVICE_TYPES device_type);
@@ -143,11 +143,11 @@ public:
 	void			print_info();
 
 protected:
-	Device			*_interface;
+	device::Device		*_interface;
 
 	ms5611::prom_s		_prom;
 
-	struct work_s		_work;
+	struct work_s		_work {};
 	unsigned		_measure_ticks;
 
 	ringbuffer::RingBuffer	*_reports;
@@ -228,7 +228,7 @@ extern "C" __EXPORT int ms5611_main(int argc, char *argv[]);
 
 MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *path,
 	       enum MS56XX_DEVICE_TYPES device_type) :
-	CDev("MS5611", path),
+	CDev(path),
 	_interface(interface),
 	_prom(prom_buf.s),
 	_measure_ticks(0),
@@ -246,16 +246,6 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *
 	_measure_perf(perf_alloc(PC_ELAPSED, "ms5611_measure")),
 	_comms_errors(perf_alloc(PC_COUNT, "ms5611_com_err"))
 {
-	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
-
-	// set the device type from the interface
-	_device_id.devid_s.bus_type = _interface->get_device_bus_type();
-	_device_id.devid_s.bus = _interface->get_device_bus();
-	_device_id.devid_s.address = _interface->get_device_address();
-
-	/* set later on init */
-	_device_id.devid_s.devtype = 0;
 }
 
 MS5611::~MS5611()
@@ -289,7 +279,7 @@ MS5611::init()
 	ret = CDev::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("CDev init failed");
+		PX4_DEBUG("CDev init failed");
 		goto out;
 	}
 
@@ -297,7 +287,7 @@ MS5611::init()
 	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_baro_s));
 
 	if (_reports == nullptr) {
-		DEVICE_DEBUG("can't get memory for reports");
+		PX4_DEBUG("can't get memory for reports");
 		ret = -ENOMEM;
 		goto out;
 	}
@@ -370,16 +360,16 @@ MS5611::init()
 
 		/* fall through */
 		case MS5611_DEVICE:
-			_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_MS5611;
+			_interface->set_device_type(DRV_BARO_DEVTYPE_MS5611);
 			break;
 
 		case MS5607_DEVICE:
-			_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_MS5607;
+			_interface->set_device_type(DRV_BARO_DEVTYPE_MS5607);
 			break;
 		}
 
 		/* ensure correct devid */
-		brp.device_id = _device_id.devid;
+		brp.device_id = _interface->get_device_id();
 
 		ret = OK;
 
@@ -805,10 +795,10 @@ MS5611::collect()
 		report.pressure = P / 100.0f;		/* convert to millibar */
 
 		/* return device ID */
-		report.device_id = _device_id.devid;
+		report.device_id = _interface->get_device_id();
 
 		/* publish it */
-		if (!(_pub_blocked) && _baro_topic != nullptr) {
+		if (_baro_topic != nullptr) {
 			/* publish it */
 			orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
 		}

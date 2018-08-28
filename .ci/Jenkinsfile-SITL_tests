@@ -2,40 +2,80 @@
 
 pipeline {
   agent none
-  stages {
 
+  parameters {
+    choice(
+      name: 'PX4_CMAKE_BUILD_TYPE',
+      choices: ['RelWithDebInfo', 'Coverage', 'AddressSanitizer'],
+      description: "CMake build type"
+      )
+  }
+
+  stages {
     stage('Build') {
-      steps {
-        script {
-          stage('sitl package') {
-            node {
-              docker.image("px4io/px4-dev-ros:2018-07-19").inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE') {
-                stage("sitl package") {
-                  try {
-                    checkout(scm)
-                    sh('export')
-                    sh('make distclean')
-                    sh "ccache -z"
-                    sh('make posix_sitl_default')
-                    sh "ccache -s"
-                    sh('make posix_sitl_default sitl_gazebo')
-                    sh "ccache -s"
-                    sh('make posix_sitl_default package')
-                    stash(name: "px4_sitl_package", includes: "build/posix_sitl_default/*.bz2")
-                  }
-                  catch (exc) {
-                    throw (exc)
-                  }
-                  finally {
-                    sh('make distclean')
-                  }
-                }
-              }
-            }
+
+      agent {
+        docker {
+          image 'px4io/px4-dev-ros:2018-08-23'
+          args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+        }
+      }
+
+      stages {
+
+        stage('build px4') {
+          steps {
+            sh('export')
+            sh('make distclean')
+            sh "ccache -z"
+            sh('make posix_sitl_default')
+            sh "ccache -s"
           }
-        } // script
-      } // steps
-    } // Build
+        }
+
+        stage('stash build for coverage') {
+          steps {
+            stash includes: 'build/**/*', name: 'build_sitl_coverage', useDefaultExcludes: false
+          }
+          when {
+            environment name: 'PX4_CMAKE_BUILD_TYPE', value: 'Coverage'
+          }
+        }
+
+        stage('unit tests') {
+          steps {
+            sh 'export'
+            sh 'make posix_sitl_default test_results_junit'
+            junit 'build/posix_sitl_default/JUnitTestResults.xml'
+          }
+        }
+
+        stage('build sitl_gazebo') {
+          steps {
+            sh 'export'
+            sh "ccache -z"
+            sh('make posix_sitl_default sitl_gazebo')
+            sh "ccache -s"
+          }
+        }
+
+        stage('package') {
+          steps {
+            sh 'export'
+            sh('make posix_sitl_default package')
+            stash(name: "px4_sitl_package", includes: "build/posix_sitl_default/*.bz2")
+          }
+        }
+
+      }
+
+      post {
+        always {
+            sh 'make distclean'
+        }
+      }
+
+    }
 
     stage('ROS Tests') {
       steps {
@@ -49,38 +89,38 @@ pipeline {
             ],
 
             [
-              name: "MC box",
+              name: "MC_box",
               test: "mavros_posix_test_mission.test",
               mission: "MC_mission_box",
               vehicle: "iris"
             ],
             [
-              name: "MC offboard att",
+              name: "MC_offboard_att",
               test: "mavros_posix_tests_offboard_attctl.test",
               mission: "",
               vehicle: "iris"
             ],
             [
-              name: "MC offboard pos",
+              name: "MC_offboard_pos",
               test: "mavros_posix_tests_offboard_posctl.test",
               mission: "",
               vehicle: "iris"
             ],
 
             [
-              name: "VTOL standard",
+              name: "VTOL_standard",
               test: "mavros_posix_test_mission.test",
               mission: "VTOL_mission_1",
               vehicle: "standard_vtol"
             ],
             [
-              name: "VTOL tailsitter",
+              name: "VTOL_tailsitter",
               test: "mavros_posix_test_mission.test",
               mission: "VTOL_mission_1",
               vehicle: "tailsitter"
             ],
             [
-              name: "VTOL tiltrotor",
+              name: "VTOL_tiltrotor",
               test: "mavros_posix_test_mission.test",
               mission: "VTOL_mission_1",
               vehicle: "tiltrotor"
@@ -98,6 +138,56 @@ pipeline {
       } // steps
     } // ROS Tests
 
+    stage('Coverage') {
+      parallel {
+
+        stage('code coverage (python)') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base:2018-08-23'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'make python_coverage'
+            withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
+              sh 'curl -s https://codecov.io/bash | bash -s - -F python'
+            }
+
+            sh 'make distclean'
+          }
+
+          when {
+            environment name: 'PX4_CMAKE_BUILD_TYPE', value: 'Coverage'
+          }
+        }
+
+        stage('unit tests') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base:2018-08-23'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'make posix_sitl_default test_results_junit'
+            withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
+              sh 'curl -s https://codecov.io/bash | bash -s - -F unittest'
+            }
+            sh 'make distclean'
+          }
+          when {
+            environment name: 'PX4_CMAKE_BUILD_TYPE', value: 'Coverage'
+          }
+        }
+
+      } // parallel
+    } // stage Coverage
+
   } //stages
   environment {
     CCACHE_DIR = '/tmp/ccache'
@@ -113,23 +203,47 @@ def createTestNode(Map test_def) {
   return {
     node {
       cleanWs()
-      docker.image("px4io/px4-dev-ros:2018-03-30").inside('-e HOME=${WORKSPACE}') {
+      docker.image("px4io/px4-dev-ros:2018-08-23").inside('-e HOME=${WORKSPACE}') {
         stage(test_def.name) {
-          try {
-            sh('export')            
-            unstash('px4_sitl_package')
-            sh('tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2')
-            sh('px4-posix_sitl_default*/px4/test/rostest_px4_run.sh ' + test_def.test + ' mission:=' + test_def.mission + ' vehicle:=' + test_def.vehicle)
-            sh('px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
+
+          sh('export')
+
+          if (env.PX4_CMAKE_BUILD_TYPE == 'Coverage') {
+              checkout(scm)
+              unstash 'build_sitl_coverage'
+          }
+
+          unstash('px4_sitl_package')
+          sh('tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2')
+          sh('px4-posix_sitl_default*/px4/test/rostest_px4_run.sh ' + test_def.test + ' mission:=' + test_def.mission + ' vehicle:=' + test_def.vehicle)
+
+          if (env.PX4_CMAKE_BUILD_TYPE == 'Coverage') {
+            withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
+              sh 'curl -s https://codecov.io/bash | bash -s - -F sitl_mission_${STAGE_NAME}'
+
+              // upload log to flight review (https://logs.px4.io/) with python code coverage
+              sh('coverage run -p px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
+
+              // process log data (with python code coverage)
+              sh('coverage run -p px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
+
+              // upload python code coverage to codecov.io
+              sh 'curl -s https://codecov.io/bash | bash -s - -X gcov -F sitl_python_${STAGE_NAME}'
             }
-          catch (exc) {
-            archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.ulg, .ros/**/rosunit-*.xml, .ros/**/rostest-*.log')
-            throw (exc)
           }
-          finally {
+
+          // log analysis (non code coverage)
+          if (env.PX4_CMAKE_BUILD_TYPE != 'Coverage') {
+            // upload log to flight review (https://logs.px4.io/)
             sh('px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
-            archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.pdf, .ros/**/*.csv')
+
+            sh('px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
           }
+
+          // save all test artifacts for debugging
+          archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.ulg, .ros/**/rosunit-*.xml, .ros/**/rostest-*.log')
+          archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.pdf, .ros/**/*.csv')
+
         }
       }
       cleanWs()
