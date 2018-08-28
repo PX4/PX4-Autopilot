@@ -87,7 +87,7 @@ public:
 	 * Get empty avoidance desired waypoints
 	 * @return empty triplets in the mc_pos_control
 	 */
-	const vehicle_trajectory_waypoint_s getEmptyAvoidanceWaypoint();
+	const vehicle_trajectory_waypoint_s &getEmptyAvoidanceWaypoint();
 
 	/**
 	 * Switch to the next task in the available list (for testing)
