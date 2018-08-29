@@ -258,6 +258,8 @@ Mavlink::Mavlink() :
 	_send_mutex {},
 	_param_initialized(false),
 	_broadcast_mode(Mavlink::BROADCAST_MODE_OFF),
+	_hash_check_disabled(false),
+	_heartbeat_forwarding_disabled(false),
 	_param_system_id(PARAM_INVALID),
 	_param_component_id(PARAM_INVALID),
 	_param_radio_id(PARAM_INVALID),
@@ -265,6 +267,8 @@ Mavlink::Mavlink() :
 	_param_use_hil_gps(PARAM_INVALID),
 	_param_forward_externalsp(PARAM_INVALID),
 	_param_broadcast(PARAM_INVALID),
+	_param_hash_check_disabled(PARAM_INVALID),
+	_param_heartbeat_forwarding_disabled(PARAM_INVALID),
 	_system_type(0),
 
 	/* performance counters */
@@ -526,7 +530,8 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 			// Broadcast or addressing this system and not trying to talk
 			// to the autopilot component -> pass on to other components
 			if ((target_system_id == 0 || target_system_id == self->get_system_id())
-			    && (target_component_id == 0 || target_component_id != self->get_component_id())) {
+			    && (target_component_id == 0 || target_component_id != self->get_component_id())
+			    && !(self->forward_heartbeats_disabled() && msg->msgid == MAVLINK_MSG_ID_HEARTBEAT)) {
 
 				inst->pass_message(msg);
 			}
@@ -576,6 +581,8 @@ void Mavlink::mavlink_update_system()
 		_param_use_hil_gps = param_find("MAV_USEHILGPS");
 		_param_forward_externalsp = param_find("MAV_FWDEXTSP");
 		_param_broadcast = param_find("MAV_BROADCAST");
+		_param_hash_check_disabled = param_find("MAV_DIS_HASH_CHK");
+		_param_heartbeat_forwarding_disabled = param_find("MAV_DIS_HB_FORW");
 	}
 
 	/* update system and component id */
@@ -616,17 +623,20 @@ void Mavlink::mavlink_update_system()
 		_system_type = system_type;
 	}
 
-	int32_t use_hil_gps;
-	param_get(_param_use_hil_gps, &use_hil_gps);
+	int32_t tmp;
+	param_get(_param_use_hil_gps, &tmp);
+	_use_hil_gps = (bool)tmp;
 
-	_use_hil_gps = (bool)use_hil_gps;
-
-	int32_t forward_externalsp;
-	param_get(_param_forward_externalsp, &forward_externalsp);
+	param_get(_param_forward_externalsp, &tmp);
+	_forward_externalsp = (bool)tmp;
 
 	param_get(_param_broadcast, &_broadcast_mode);
 
-	_forward_externalsp = (bool)forward_externalsp;
+	param_get(_param_hash_check_disabled, &tmp);
+	_hash_check_disabled = (bool)tmp;
+
+	param_get(_param_heartbeat_forwarding_disabled, &tmp);
+	_heartbeat_forwarding_disabled = (bool)tmp;
 }
 
 int Mavlink::get_system_id()
