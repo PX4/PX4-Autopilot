@@ -2206,29 +2206,31 @@ Commander::run()
 		}
 
 		/* Check for failure detector status */
-		if (armed.armed && !_in_flight_termination) {
+		const bool failure_detector_updated = _failure_detector.update();
+		if (failure_detector_updated) {
 
-			if (_failure_detector.update()) {
+			const uint8_t failure_status = _failure_detector.get_status();
 
-				const uint8_t failure_status = _failure_detector.get_status();
+			if (failure_status != status.failure_detector_status) {
+				status.failure_detector_status = failure_status;
+				status_changed = true;
+			}
+		}
 
-				if (failure_status != status.failure_detector_status) {
-					status.failure_detector_status = failure_status;
-					status_changed = true;
-				}
+		if (armed.armed &&
+			failure_detector_updated &&
+			!_in_flight_termination &&
+			!status_flags.circuit_breaker_flight_termination_disabled) {
 
-				if (!status_flags.circuit_breaker_flight_termination_disabled) {
-					if (failure_status != 0) {
+			if (status.failure_detector_status != 0) {
 
-						armed.force_failsafe = true;
-						status_changed = true;
+				armed.force_failsafe = true;
+				status_changed = true;
 
-						_in_flight_termination = true;
+				_in_flight_termination = true;
 
-						mavlink_log_critical(&mavlink_log_pub, "Attitude failure detected: force failsafe");
-						set_tune_override(TONE_PARACHUTE_RELEASE_TUNE);
-					}
-				}
+				mavlink_log_critical(&mavlink_log_pub, "Attitude failure detected: force failsafe");
+				set_tune_override(TONE_PARACHUTE_RELEASE_TUNE);
 			}
 		}
 
