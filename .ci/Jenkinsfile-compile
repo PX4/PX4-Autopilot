@@ -206,6 +206,9 @@ def createBuildNode(Boolean archive, String docker_image, String target) {
               if (archive) {
                 archiveArtifacts(allowEmptyArchive: false, artifacts: 'build/**/*.px4, build/**/*.elf, build/**/*.bin', fingerprint: true, onlyIfSuccessful: true)
               }
+              sh('make ' + target + ' package')
+              archiveArtifacts(allowEmptyArchive: true, artifacts: 'build/*/*.tar.bz2', fingerprint: true, onlyIfSuccessful: true)
+              archiveArtifacts(allowEmptyArchive: true, artifacts: 'build/*/*.deb', fingerprint: true, onlyIfSuccessful: true)
             }
             catch (exc) {
               throw (exc)
