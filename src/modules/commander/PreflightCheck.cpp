@@ -674,6 +674,35 @@ out:
 	return success;
 }
 
+static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, bool report_fail, bool prearm)
+{
+	bool success = true;
+
+	if (!prearm) {
+		// Ignore power check after arming.
+		return true;
+
+	} else {
+		if (status.failure_detector_status != 0) {
+			success = false;
+
+			if (report_fail) {
+				if (status.failure_detector_status & vehicle_status_s::FAILURE_ROLL) {
+					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ROLL FAILURE DETECTED");
+				}
+				if (status.failure_detector_status & vehicle_status_s::FAILURE_PITCH) {
+					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: PITCH FAILURE DETECTED");
+				}
+				if (status.failure_detector_status & vehicle_status_s::FAILURE_ALT) {
+					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ALTITUDE FAILURE DETECTED");
+				}
+			}
+		}
+	}
+
+	return success;
+}
+
 bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 		    vehicle_status_flags_s &status_flags, bool checkGNSS, bool reportFailures, bool prearm,
 		    const hrt_abstime &time_since_boot)
@@ -689,6 +718,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 	const bool checkRC = (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT);
 	const bool checkDynamic = !hil_enabled;
 	const bool checkPower = (status_flags.condition_power_input_valid && !status_flags.circuit_breaker_engaged_power_check);
+	const bool checkFailureDetector = true;
 
 	bool checkAirspeed = false;
 
@@ -940,6 +970,13 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 		bool report_ekf_fail = (time_since_boot > 10_s);
 
 		if (!ekf2Check(mavlink_log_pub, status, false, reportFailures && report_ekf_fail && !failed, checkGNSS)) {
+			failed = true;
+		}
+	}
+
+	/* ---- Failure Detector ---- */
+	if (checkFailureDetector) {
+		if (!failureDetectorCheck(mavlink_log_pub, status, (reportFailures && !failed), prearm)) {
 			failed = true;
 		}
 	}
