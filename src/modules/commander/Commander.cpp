@@ -271,7 +271,7 @@ static bool send_vehicle_command(uint16_t cmd, float param1 = NAN, float param2 
 	vcmd.param5 = (double)NAN;
 	vcmd.param6 = (double)NAN;
 	vcmd.param7 = NAN;
-	vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF;
+	vcmd.command = cmd;
 	vcmd.target_system = status.system_id;
 	vcmd.target_component = status.component_id;
 
