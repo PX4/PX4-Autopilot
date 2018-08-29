@@ -45,7 +45,7 @@ namespace ControlMath
 {
 vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp)
 {
-	vehicle_attitude_setpoint_s att_sp;
+	vehicle_attitude_setpoint_s att_sp = {};
 	att_sp.yaw_body = yaw_sp;
 
 	// desired body_z axis = -normalize(thrust_vector)
