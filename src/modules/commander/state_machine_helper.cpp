@@ -369,65 +369,6 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 }
 
 /**
- * Transition from one hil state to another
- */
-transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t status_pub,
-		vehicle_status_s *current_status, orb_advert_t *mavlink_log_pub)
-{
-	transition_result_t ret = TRANSITION_DENIED;
-
-	if (current_status->hil_state == new_state) {
-		ret = TRANSITION_NOT_CHANGED;
-
-	} else {
-		switch (new_state) {
-		case vehicle_status_s::HIL_STATE_OFF:
-			/* The system is in HITL mode and unexpected things can happen if we disable HITL without rebooting. */
-			mavlink_log_critical(mavlink_log_pub, "Set SYS_HITL to 0 and reboot to disable HITL.");
-			ret = TRANSITION_DENIED;
-			break;
-
-		case vehicle_status_s::HIL_STATE_ON:
-			if (current_status->arming_state == vehicle_status_s::ARMING_STATE_INIT
-			    || current_status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY
-			    || current_status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
-
-				ret = TRANSITION_CHANGED;
-
-				int32_t hitl_on = 0;
-				param_get(param_find("SYS_HITL"), &hitl_on);
-
-				if (hitl_on) {
-					mavlink_log_info(mavlink_log_pub, "Enabled Hardware-in-the-loop simulation (HITL).");
-
-				} else {
-					mavlink_log_critical(mavlink_log_pub, "Set SYS_HITL to 1 and reboot to enable HITL.");
-					ret = TRANSITION_DENIED;
-				}
-
-			} else {
-				mavlink_log_critical(mavlink_log_pub, "Not switching to HITL when armed.");
-				ret = TRANSITION_DENIED;
-			}
-
-			break;
-
-		default:
-			PX4_WARN("Unknown HITL state");
-			break;
-		}
-	}
-
-	if (ret == TRANSITION_CHANGED) {
-		current_status->hil_state = new_state;
-		current_status->timestamp = hrt_absolute_time();
-		orb_publish(ORB_ID(vehicle_status), status_pub, current_status);
-	}
-
-	return ret;
-}
-
-/**
  * Enable failsafe and report to user
  */
 void enable_failsafe(vehicle_status_s *status, bool old_failsafe, orb_advert_t *mavlink_log_pub, const char *reason)
