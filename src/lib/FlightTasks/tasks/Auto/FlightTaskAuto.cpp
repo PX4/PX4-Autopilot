@@ -300,7 +300,7 @@ void FlightTaskAuto::_updateAvoidanceWaypoints()
 	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].point_valid = true;
 }
 
-bool FlightTaskAuto::_isFinite(const position_setpoint_s sp)
+bool FlightTaskAuto::_isFinite(const position_setpoint_s &sp)
 {
 	return (PX4_ISFINITE(sp.lat) && PX4_ISFINITE(sp.lon) && PX4_ISFINITE(sp.alt));
 }
