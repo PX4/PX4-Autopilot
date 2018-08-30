@@ -510,7 +510,7 @@ public:
     /**
      * XXX DEPRECATED, can use assignment or ctor
      */
-    Quaternion from_dcm(Matrix<Type, 3, 3> dcm) {
+    Quaternion from_dcm(const Matrix<Type, 3, 3>& dcm) {
         return Quaternion(Dcmf(dcm));
     }
 
