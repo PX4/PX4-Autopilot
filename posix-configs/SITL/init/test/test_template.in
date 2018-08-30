@@ -21,9 +21,6 @@ pwm_out_sim start
 
 ver all
 
-mavlink start -x -u 14556 -r 2000000
-mavlink boot_complete
-
 tests @test_name@
 
 dataman status
