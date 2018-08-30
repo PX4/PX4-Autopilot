@@ -123,7 +123,7 @@ private:
 	hrt_abstime _time_stamp_reference = 0; /**< time stamp when last reference update occured. */
 
 	bool _evaluateTriplets(); /**< Checks and sets triplets. */
-	bool _isFinite(const position_setpoint_s sp); /**< Checks if all waypoint triplets are finite. */
+	bool _isFinite(const position_setpoint_s &sp); /**< Checks if all waypoint triplets are finite. */
 	bool _evaluateGlobalReference(); /**< Check is global reference is available. */
 	float _getVelocityFromAngle(const float angle); /**< Computes the speed at target depending on angle. */
 	State _getCurrentState(); /**< Computes the current vehicle state based on the vehicle position and navigator triplets. */
