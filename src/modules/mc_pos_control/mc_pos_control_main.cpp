@@ -129,9 +129,8 @@ private:
 	vehicle_local_position_s			_local_pos{};		/**< vehicle local position */
 	vehicle_local_position_setpoint_s	_local_pos_sp{};		/**< vehicle local position setpoint */
 	home_position_s				_home_pos{}; 				/**< home position */
-	vehicle_trajectory_waypoint_s		_traj_wp_avoidance; /**< trajectory waypoint */
-	vehicle_trajectory_waypoint_s
-	_traj_wp_avoidance_desired; /**< desired waypoints, inputs to an obstacle avoidance module */
+	vehicle_trajectory_waypoint_s		_traj_wp_avoidance{}; /**< trajectory waypoint */
+	vehicle_trajectory_waypoint_s		_traj_wp_avoidance_desired{}; /**< desired waypoints, inputs to an obstacle avoidance module */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time constant for smooth takeoff ramp */
@@ -274,7 +273,6 @@ private:
 	 * Publish desired vehicle_trajectory_waypoint
 	 */
 	void publish_avoidance_desired_waypoint();
-
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -739,8 +737,6 @@ MulticopterPositionControl::task_main()
 			// they might conflict with each other such as in offboard attitude control.
 			publish_attitude();
 
-			publish_avoidance_desired_waypoint();
-
 		} else {
 			// no flighttask is active: set attitude setpoint to idle
 			_att_sp.roll_body = _att_sp.pitch_body = 0.0f;
@@ -1009,17 +1005,24 @@ MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint
 void
 MulticopterPositionControl::update_avoidance_waypoint_desired(PositionControlStates &states)
 {
-	_traj_wp_avoidance_desired = _flight_tasks.getAvoidanceWaypoint();
+	if (MPC_OBS_AVOID.get()) {
+		const vehicle_trajectory_waypoint_s traj_wp_desired_new = _flight_tasks.getAvoidanceWaypoint();
 
-	_traj_wp_avoidance_desired.timestamp = hrt_absolute_time();
-	_traj_wp_avoidance_desired.type = vehicle_trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
+		if (traj_wp_desired_new.timestamp > _traj_wp_avoidance_desired.timestamp) {
+			_traj_wp_avoidance_desired = traj_wp_desired_new;
+			_traj_wp_avoidance_desired.timestamp = hrt_absolute_time();
+			_traj_wp_avoidance_desired.type = vehicle_trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
 
-	states.position.copyTo(_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].position);
-	states.position.copyTo(_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity);
-	states.position.copyTo(_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].acceleration);
-	_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw = states.yaw;
-	_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed = NAN;
-	_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid = true;
+			states.position.copyTo(_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].position);
+			states.position.copyTo(_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity);
+			states.position.copyTo(_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].acceleration);
+			_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw = states.yaw;
+			_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed = NAN;
+			_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid = true;
+
+			publish_avoidance_desired_waypoint();
+		}
+	}
 }
 
 void
@@ -1057,7 +1060,7 @@ MulticopterPositionControl::use_obstacle_avoidance()
 void
 MulticopterPositionControl::publish_avoidance_desired_waypoint()
 {
-	/* publish desired waypoint*/
+	// publish desired waypoint
 	if (_traj_wp_avoidance_desired_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_trajectory_waypoint_desired), _traj_wp_avoidance_desired_pub, &_traj_wp_avoidance_desired);
 
@@ -1065,16 +1068,11 @@ MulticopterPositionControl::publish_avoidance_desired_waypoint()
 		_traj_wp_avoidance_desired_pub = orb_advertise(ORB_ID(vehicle_trajectory_waypoint_desired),
 						 &_traj_wp_avoidance_desired);
 	}
-
-	//reset avoidance waypoint desired
-	_traj_wp_avoidance_desired = _flight_tasks.getEmptyAvoidanceWaypoint();
 }
-
 
 void
 MulticopterPositionControl::publish_attitude()
 {
-
 	_att_sp.timestamp = hrt_absolute_time();
 
 	if (_att_sp_pub != nullptr) {
@@ -1088,7 +1086,6 @@ MulticopterPositionControl::publish_attitude()
 void
 MulticopterPositionControl::publish_local_pos_sp()
 {
-
 	_local_pos_sp.timestamp = hrt_absolute_time();
 
 	// publish local position setpoint
