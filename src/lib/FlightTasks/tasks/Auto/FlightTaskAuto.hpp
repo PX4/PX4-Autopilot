@@ -43,6 +43,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/position_setpoint.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/position_controller_status.h>
 #include <lib/ecl/geo/geo.h>
 
 /**
@@ -102,7 +103,9 @@ protected:
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) MPC_XY_CRUISE,
 					(ParamFloat<px4::params::MPC_CRUISE_90>) MPC_CRUISE_90, // speed at corner when angle is 90 degrees move to line
 					(ParamFloat<px4::params::NAV_ACC_RAD>) NAV_ACC_RAD, // acceptance radius at which waypoints are updated move to line
-					(ParamInt<px4::params::MPC_YAW_MODE>) MPC_YAW_MODE // defines how heading is executed
+					(ParamFloat<px4::params::NAV_MC_ALT_RAD>) NAV_MC_ALT_RAD, //vertical acceptance radius at which waypoints are updated
+					(ParamInt<px4::params::MPC_YAW_MODE>) MPC_YAW_MODE, // defines how heading is executed,
+					(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID // obstacle avoidance active
 				       );
 
 private:
@@ -122,10 +125,13 @@ private:
 	float _reference_altitude = NAN;  /**< Altitude relative to ground. */
 	hrt_abstime _time_stamp_reference = 0; /**< time stamp when last reference update occured. */
 
+	orb_advert_t _pub_pos_control_status = nullptr; /**< Publisher for the position controller status */
+
 	bool _evaluateTriplets(); /**< Checks and sets triplets. */
 	bool _isFinite(const position_setpoint_s sp); /**< Checks if all waypoint triplets are finite. */
 	bool _evaluateGlobalReference(); /**< Check is global reference is available. */
 	float _getVelocityFromAngle(const float angle); /**< Computes the speed at target depending on angle. */
 	State _getCurrentState(); /**< Computes the current vehicle state based on the vehicle position and navigator triplets. */
 	void _set_heading_from_mode(); /**< @see  MPC_YAW_MODE */
+	void _checkAvoidanceProgress();
 };

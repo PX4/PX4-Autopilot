@@ -58,7 +58,6 @@ set(msg_files
 	esc_status.msg
 	estimator_status.msg
 	follow_target.msg
-	fw_pos_ctrl_status.msg
 	geofence_result.msg
 	gps_dump.msg
 	gps_inject_data.msg
@@ -81,6 +80,8 @@ set(msg_files
 	optical_flow.msg
 	parameter_update.msg
 	ping.msg
+	position_controller_landing_status.msg
+	position_controller_status.msg
 	position_setpoint.msg
 	position_setpoint_triplet.msg
 	power_button_state.msg

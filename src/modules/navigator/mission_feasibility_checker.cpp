@@ -45,10 +45,12 @@
 #include "navigator.h"
 
 #include <drivers/drv_pwm_output.h>
-#include <fw_pos_control_l1/Landingslope.hpp>
 #include <lib/ecl/geo/geo.h>
-#include <mathlib/mathlib.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/landing_slope/Landingslope.hpp>
 #include <systemlib/mavlink_log.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/position_controller_landing_status.h>
 
 bool
 MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
@@ -395,19 +397,22 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 
 				if (MissionBlock::item_contains_position(missionitem_previous)) {
 
-					const bool fw_status_valid = (_navigator->get_fw_pos_ctrl_status()->timestamp > 0);
+					uORB::Subscription<position_controller_landing_status_s> landing_status{ORB_ID(position_controller_landing_status)};
+					landing_status.forcedUpdate();
+
+					const bool landing_status_valid = (landing_status.get().timestamp > 0);
 					const float wp_distance = get_distance_to_next_waypoint(missionitem_previous.lat, missionitem_previous.lon,
 								  missionitem.lat, missionitem.lon);
 
-					if (fw_status_valid && (wp_distance > _navigator->get_fw_pos_ctrl_status()->landing_flare_length)) {
+					if (landing_status_valid && (wp_distance > landing_status.get().flare_length)) {
 						/* Last wp is before flare region */
 
 						const float delta_altitude = missionitem.altitude - missionitem_previous.altitude;
 
 						if (delta_altitude < 0) {
 
-							const float horizontal_slope_displacement = _navigator->get_fw_pos_ctrl_status()->landing_horizontal_slope_displacement;
-							const float slope_angle_rad = _navigator->get_fw_pos_ctrl_status()->landing_slope_angle_rad;
+							const float horizontal_slope_displacement = landing_status.get().horizontal_slope_displacement;
+							const float slope_angle_rad = landing_status.get().slope_angle_rad;
 							const float slope_alt_req = Landingslope::getLandingSlopeAbsoluteAltitude(wp_distance, missionitem.altitude,
 										    horizontal_slope_displacement, slope_angle_rad);
 
