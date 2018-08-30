@@ -781,7 +781,7 @@ int BQ40Z50::lifetime_read_block_one()
 {
 
 	uint8_t lifetime_block_one_size = 19;
-	uint16_t lifetime_block_one[lifetime_block_one_size]{};
+	uint16_t lifetime_block_one[lifetime_block_one_size] {};
 
 	if (PX4_OK != manufacturer_read(BQ40Z50_LIFETIME_BLOCK_ONE, &lifetime_block_one, lifetime_block_one_size)) {
 		PX4_INFO("Failed to read lifetime block 1.");
