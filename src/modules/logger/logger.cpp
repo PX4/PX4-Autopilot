@@ -643,8 +643,8 @@ void Logger::add_default_topics()
 	add_topic("vehicle_rates_setpoint", 30);
 	add_topic("vehicle_status", 200);
 	add_topic("vehicle_status_flags");
-	add_topic("vehicle_trajectory_waypoint");
-	add_topic("vehicle_trajectory_waypoint_desired");
+	add_topic("vehicle_trajectory_waypoint", 200);
+	add_topic("vehicle_trajectory_waypoint_desired", 200);
 	add_topic("vehicle_vision_attitude");
 	add_topic("vehicle_vision_position");
 	add_topic("vtol_vehicle_status", 200);
