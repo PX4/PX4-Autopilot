@@ -40,7 +40,7 @@ bool FlightTaskFailsafe::activate()
 {
 	bool ret = FlightTask::activate();
 	_position_setpoint = _position;
-	_velocity_setpoint *= 0.0f;
+	_velocity_setpoint.zero();
 	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, -MPC_THR_HOVER.get() * 0.6f);
 	_yaw_setpoint = _yaw;
 	_yawspeed_setpoint = 0.0f;
