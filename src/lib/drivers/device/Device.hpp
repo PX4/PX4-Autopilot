@@ -148,6 +148,24 @@ public:
 	 */
 	DeviceBusType get_device_bus_type() const { return _device_id.devid_s.bus_type; }
 
+	static const char *get_device_bus_string(DeviceBusType bus)
+	{
+		switch (bus) {
+		case DeviceBusType_I2C:
+			return "I2C";
+
+		case DeviceBusType_SPI:
+			return "SPI";
+
+		case DeviceBusType_UAVCAN:
+			return "UAVCAN";
+
+		case DeviceBusType_UNKNOWN:
+		default:
+			return "UNKNOWN";
+		}
+	}
+
 	/**
 	 * Return the bus address of the device.
 	 *
@@ -183,6 +201,27 @@ public:
 		struct DeviceStructure devid_s;
 		uint32_t devid;
 	};
+
+	/**
+	 * Print decoded device id string to a buffer.
+	 *
+	 * @param buffer                        buffer to write to
+	 * @param length                        buffer length
+	 * @param id	                        The device id.
+	 * @param return                        number of bytes written
+	 */
+	static int device_id_print_buffer(char *buffer, int length, uint32_t id)
+	{
+		DeviceId dev_id;
+		dev_id.devid = id;
+
+		int num_written = snprintf(buffer, length, "Type: 0x%02X, %s:%d (0x%02X)", dev_id.devid_s.devtype,
+					   get_device_bus_string(dev_id.devid_s.bus_type), dev_id.devid_s.bus, dev_id.devid_s.address);
+
+		buffer[length - 1] = 0; // ensure 0-termination
+
+		return num_written;
+	}
 
 protected:
 	union DeviceId	_device_id;             /**< device identifier information */
