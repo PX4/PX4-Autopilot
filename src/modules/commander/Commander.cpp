@@ -593,10 +593,6 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 			transition_result_t main_ret = TRANSITION_NOT_CHANGED;
 
-			/* set HIL state */
-			hil_state_t new_hil_state = (base_mode & VEHICLE_MODE_FLAG_HIL_ENABLED) ? vehicle_status_s::HIL_STATE_ON : vehicle_status_s::HIL_STATE_OFF;
-			transition_result_t hil_ret = hil_state_transition(new_hil_state, status_pub, status_local, &mavlink_log_pub);
-
 			// We ignore base_mode & VEHICLE_MODE_FLAG_SAFETY_ARMED because
 			// the command VEHICLE_CMD_COMPONENT_ARM_DISARM should be used
 			// instead according to the latest mavlink spec.
@@ -704,7 +700,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 				}
 			}
 
-			if ((hil_ret != TRANSITION_DENIED) && (arming_ret != TRANSITION_DENIED) && (main_ret != TRANSITION_DENIED)) {
+			if ((arming_ret != TRANSITION_DENIED) && (main_ret != TRANSITION_DENIED)) {
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
