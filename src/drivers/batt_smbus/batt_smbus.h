@@ -43,6 +43,8 @@
  * @author Jacob Dahl <dahl.jakejacob@gmail.com>
  */
 
+#pragma once
+
 #include <px4_config.h>
 #include <px4_workqueue.h>
 
