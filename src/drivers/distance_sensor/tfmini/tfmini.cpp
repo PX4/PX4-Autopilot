@@ -734,7 +734,7 @@ start(const char *port, uint8_t rotation)
 	fd = px4_open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		PX4_ERR("Opening device '%s' failed");
+		PX4_ERR("Opening device '%s' failed", port);
 		goto fail;
 	}
 
