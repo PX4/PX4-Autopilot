@@ -111,12 +111,12 @@ def get_msgs_list(msgdir):
     return [fn for fn in os.listdir(msgdir) if fn.endswith(".msg")]
 
 
-def generate_output_from_file(format_idx, filename, outputdir, templatedir, includepath):
+def generate_output_from_file(format_idx, filename, outputdir, package, templatedir, includepath):
         """
         Converts a single .msg file to an uorb header/source file
         """
         msg_context = genmsg.msg_loader.MsgContext.create_default()
-        full_type_name = genmsg.gentools.compute_full_type_name(PACKAGE, os.path.basename(filename))
+        full_type_name = genmsg.gentools.compute_full_type_name(package, os.path.basename(filename))
         spec = genmsg.msg_loader.load_msg_from_file(msg_context, filename, full_type_name)
         field_name_and_type = {}
         for field in spec.parsed_fields():
@@ -161,11 +161,11 @@ def generate_output_from_file(format_idx, filename, outputdir, templatedir, incl
 
         return generate_by_template(output_file, template_file, em_globals)
 
-def generate_idl_file(filename_msg, outputdir, templatedir, includepath):
+def generate_idl_file(filename_msg, outputdir, templatedir, package, includepath):
         """
         Generates an .idl from .msg file
         """
-        em_globals = get_em_globals(filename_msg, includepath, MsgScope.NONE)
+        em_globals = get_em_globals(filename_msg, package, includepath, MsgScope.NONE)
         spec_short_name = em_globals["spec"].short_name
 
         # Make sure output directory exists:
@@ -178,16 +178,16 @@ def generate_idl_file(filename_msg, outputdir, templatedir, includepath):
         return generate_by_template(output_file, template_file, em_globals)
 
 def generate_uRTPS_general(filename_send_msgs, filename_received_msgs,
-                           outputdir, templatedir, includepath, template_name):
+                           outputdir, templatedir, package, includepath, template_name):
         """
         Generates source file by msg content
         """
         em_globals_list = []
         if filename_send_msgs:
-            em_globals_list.extend([get_em_globals(f, includepath, MsgScope.SEND) for f in filename_send_msgs])
+            em_globals_list.extend([get_em_globals(f, package, includepath, MsgScope.SEND) for f in filename_send_msgs])
 
         if filename_received_msgs:
-            em_globals_list.extend([get_em_globals(f, includepath, MsgScope.RECEIVE) for f in filename_received_msgs])
+            em_globals_list.extend([get_em_globals(f, package, includepath, MsgScope.RECEIVE) for f in filename_received_msgs])
 
         merged_em_globals = merge_em_globals_list(em_globals_list)
         # Make sure output directory exists:
@@ -199,11 +199,11 @@ def generate_uRTPS_general(filename_send_msgs, filename_received_msgs,
 
         return generate_by_template(output_file, template_file, merged_em_globals)
 
-def generate_topic_file(filename_msg, outputdir, templatedir, includepath, template_name):
+def generate_topic_file(filename_msg, outputdir, templatedir, package, includepath, template_name):
         """
         Generates an .idl from .msg file
         """
-        em_globals = get_em_globals(filename_msg, includepath, MsgScope.NONE)
+        em_globals = get_em_globals(filename_msg, package, includepath, MsgScope.NONE)
         spec_short_name = em_globals["spec"].short_name
 
         # Make sure output directory exists:
@@ -215,12 +215,12 @@ def generate_topic_file(filename_msg, outputdir, templatedir, includepath, templ
 
         return generate_by_template(output_file, template_file, em_globals)
 
-def get_em_globals(filename_msg, includepath, scope):
+def get_em_globals(filename_msg, package, includepath, scope):
         """
         Generates em globals dictionary
         """
         msg_context = genmsg.msg_loader.MsgContext.create_default()
-        full_type_name = genmsg.gentools.compute_full_type_name(PACKAGE, os.path.basename(filename_msg))
+        full_type_name = genmsg.gentools.compute_full_type_name(package, os.path.basename(filename_msg))
         spec = genmsg.msg_loader.load_msg_from_file(msg_context, filename_msg, full_type_name)
         topics = get_multi_topics(filename_msg)
         if includepath:
@@ -281,7 +281,7 @@ def generate_by_template(output_file, template_file, em_globals):
         return True
 
 
-def convert_dir(format_idx, inputdir, outputdir, templatedir):
+def convert_dir(format_idx, inputdir, outputdir, package, templatedir):
         """
         Converts all .msg files in inputdir to uORB header/source files
         """
@@ -309,7 +309,7 @@ def convert_dir(format_idx, inputdir, outputdir, templatedir):
         if (maxinputtime != 0 and maxouttime != 0 and maxinputtime < maxouttime):
             return False
 
-        includepath = INCL_DEFAULT + [':'.join([PACKAGE, inputdir])]
+        includepath = INCL_DEFAULT + [':'.join([package, inputdir])]
         for f in os.listdir(inputdir):
                 # Ignore hidden files
                 if f.startswith("."):
@@ -323,7 +323,7 @@ def convert_dir(format_idx, inputdir, outputdir, templatedir):
                 if fn[-4:].lower() != '.msg':
                         continue
 
-                generate_output_from_file(format_idx, fn, outputdir, templatedir, includepath)
+                generate_output_from_file(format_idx, fn, outputdir, package, templatedir, includepath)
         return True
 
 
@@ -361,13 +361,13 @@ def copy_changed(inputdir, outputdir, prefix='', quiet=False):
                             print("{0}: unchanged".format(input_file))
 
 
-def convert_dir_save(format_idx, inputdir, outputdir, templatedir, temporarydir, prefix, quiet=False):
+def convert_dir_save(format_idx, inputdir, outputdir, package, templatedir, temporarydir, prefix, quiet=False):
         """
         Converts all .msg files in inputdir to uORB header files
         Unchanged existing files are not overwritten.
         """
         # Create new headers in temporary output directory
-        convert_dir(format_idx, inputdir, temporarydir, templatedir)
+        convert_dir(format_idx, inputdir, temporarydir, package, templatedir)
         if generate_idx == 1:
             generate_topics_list_file(inputdir, temporarydir, templatedir)
         # Copy changed headers from temporary dir to output dir
@@ -396,9 +396,9 @@ def generate_topics_list_file_from_files(files, outputdir, templatedir):
         tl_out_file = os.path.join(outputdir, TOPICS_LIST_TEMPLATE_FILE.replace(".template", ""))
         generate_by_template(tl_out_file, tl_template_file, tl_globals)
 
-def append_to_include_path(path_to_append, curr_include):
+def append_to_include_path(path_to_append, curr_include, package):
     for p in path_to_append:
-        curr_include.append("%s:%s" % (PACKAGE, p))
+        curr_include.append('%s:%s' % (package, p))
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser(
@@ -416,6 +416,8 @@ if __name__ == "__main__":
                             default=None)
         parser.add_argument('-e', dest='templatedir',
                             help='directory with template files',)
+        parser.add_argument('-k', dest='package', default=PACKAGE,
+                            help='package name')
         parser.add_argument('-o', dest='outputdir',
                             help='output directory for header files')
         parser.add_argument('-t', dest='temporarydir',
@@ -429,7 +431,7 @@ if __name__ == "__main__":
         args = parser.parse_args()
 
         if args.include_paths:
-            append_to_include_path(args.include_paths, INCL_DEFAULT)
+            append_to_include_path(args.include_paths, INCL_DEFAULT, args.package)
 
         if args.headers:
             generate_idx = 0
@@ -440,7 +442,7 @@ if __name__ == "__main__":
             exit(-1)
         if args.file is not None:
             for f in args.file:
-                generate_output_from_file(generate_idx, f, args.temporarydir, args.templatedir, INCL_DEFAULT)
+                generate_output_from_file(generate_idx, f, args.temporarydir, args.package, args.templatedir, INCL_DEFAULT)
             if generate_idx == 1:
                 generate_topics_list_file_from_files(args.file, args.outputdir, args.templatedir)
             copy_changed(args.temporarydir, args.outputdir, args.prefix, args.quiet)
@@ -449,6 +451,7 @@ if __name__ == "__main__":
                     generate_idx,
                     args.dir,
                     args.outputdir,
+                    args.package,
                     args.templatedir,
                     args.temporarydir,
                     args.prefix,
