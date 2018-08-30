@@ -19,7 +19,6 @@ set(tests
 	int
 	mathlib
 	matrix
-	mavlink
 	microbench_hrt
 	microbench_math
 	microbench_matrix
@@ -45,7 +44,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 endif()
 
 foreach(test_name ${tests})
-	configure_file(${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/tests_template.in ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/tests_${test_name}_generated)
+	configure_file(${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_template.in ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_${test_name}_generated)
 
 	add_test(NAME ${test_name}
 		COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
@@ -53,7 +52,7 @@ foreach(test_name ${tests})
 			posix-configs/SITL/init/test
 			none
 			none
-			tests_${test_name}_generated
+			test_${test_name}_generated
 			${PX4_SOURCE_DIR}
 			${PX4_BINARY_DIR}
 		WORKING_DIRECTORY ${SITL_WORKING_DIR})
@@ -61,6 +60,23 @@ foreach(test_name ${tests})
 	set_tests_properties(${test_name} PROPERTIES FAIL_REGULAR_EXPRESSION "${test_name} FAILED")
 	set_tests_properties(${test_name} PROPERTIES PASS_REGULAR_EXPRESSION "${test_name} PASSED")
 endforeach()
+
+
+# Mavlink test requires mavlink running
+add_test(NAME mavlink
+	COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
+		$<TARGET_FILE:px4>
+		posix-configs/SITL/init/test
+		none
+		none
+		test_mavlink
+		${PX4_SOURCE_DIR}
+		${PX4_BINARY_DIR}
+	WORKING_DIRECTORY ${SITL_WORKING_DIR})
+
+set_tests_properties(mavlink PROPERTIES FAIL_REGULAR_EXPRESSION "mavlink FAILED")
+set_tests_properties(mavlink PROPERTIES PASS_REGULAR_EXPRESSION "mavlink PASSED")
+
 
 # run arbitrary commands
 set(test_cmds
