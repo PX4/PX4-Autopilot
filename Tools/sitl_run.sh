@@ -98,7 +98,7 @@ pushd "$rootfs" >/dev/null
 # Do not exit on failure now from here on because we want the complete cleanup
 set +e
 
-if [[ ${model} == tests* ]] || [[ ${model} == *_generated ]]; then
+if [[ ${model} == test_* ]] || [[ ${model} == *_generated ]]; then
 	sitl_command="$sitl_bin $no_pxh $src_path/ROMFS/px4fmu_test -s ${src_path}/${rcS_path}/${model} -t $src_path/test_data"
 else
 	sitl_command="$sitl_bin $no_pxh $src_path/ROMFS/px4fmu_common -s etc/init.d-posix/rcS -t $src_path/test_data"

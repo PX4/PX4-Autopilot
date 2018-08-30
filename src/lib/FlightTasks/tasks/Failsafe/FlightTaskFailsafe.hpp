@@ -31,11 +31,27 @@
  *
  ****************************************************************************/
 
+/**
+ * @file FlightTaskFailsafe.hpp
+ *
+ */
+
 #pragma once
 
-#define PX4_DEFINE_TUNE(ordinal,name,tune,interruptable) name,
-enum class TuneID {
-#include "tune_definition.desc"
-	NONE = -1
+#include "FlightTask.hpp"
+
+class FlightTaskFailsafe : public FlightTask
+{
+public:
+	FlightTaskFailsafe() = default;
+
+	virtual ~FlightTaskFailsafe() = default;
+	bool update() override;
+	bool activate() override;
+
+private:
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) MPC_LAND_SPEED,
+					(ParamFloat<px4::params::MPC_THR_HOVER>) MPC_THR_HOVER /**< throttle value at which vehicle is at hover equilibrium */
+				       )
 };
-#undef PX4_DEFINE_TUNE

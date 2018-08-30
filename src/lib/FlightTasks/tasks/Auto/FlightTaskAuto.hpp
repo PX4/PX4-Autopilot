@@ -107,7 +107,7 @@ protected:
 
 private:
 	matrix::Vector2f _lock_position_xy{NAN, NAN}; /**< if no valid triplet is received, lock positition to current position */
-
+	bool _yaw_lock = false; /**< if within acceptance radius, lock yaw to current yaw */
 	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
 
 	matrix::Vector3f
@@ -123,7 +123,7 @@ private:
 	hrt_abstime _time_stamp_reference = 0; /**< time stamp when last reference update occured. */
 
 	bool _evaluateTriplets(); /**< Checks and sets triplets. */
-	bool _isFinite(const position_setpoint_s sp); /**< Checks if all waypoint triplets are finite. */
+	bool _isFinite(const position_setpoint_s &sp); /**< Checks if all waypoint triplets are finite. */
 	bool _evaluateGlobalReference(); /**< Check is global reference is available. */
 	float _getVelocityFromAngle(const float angle); /**< Computes the speed at target depending on angle. */
 	State _getCurrentState(); /**< Computes the current vehicle state based on the vehicle position and navigator triplets. */

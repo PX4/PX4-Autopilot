@@ -168,7 +168,7 @@ then
 	else
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}"
 		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}" >> $LOG_FILE
-		tone_alarm ${TUNE_ERR}
+		tune_control play -t 20
 	fi
 
 else
@@ -176,7 +176,7 @@ else
 	then
 		echo "ERROR  [init] Mixer undefined"
 		echo "ERROR  [init] Mixer undefined" >> $LOG_FILE
-		tone_alarm ${TUNE_ERR}
+		tune_control play -t 20
 	fi
 fi
 
@@ -226,7 +226,7 @@ then
 			fi
 		else
 			echo "ERROR: Could not start: fmu mode_pwm" >> $LOG_FILE
-			tone_alarm ${TUNE_ERR}
+			tune_control play -t 20
 			set PWM_AUX_OUT none
 			set FAILSAFE_AUX none
 		fi

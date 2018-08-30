@@ -13,6 +13,6 @@ then
 		px4io limit 400
 	else
 		echo "PX4IO start failed" >> $LOG_FILE
-		tune_control play -m ${TUNE_ERR}
+		tune_control play -t 20
 	fi
 fi

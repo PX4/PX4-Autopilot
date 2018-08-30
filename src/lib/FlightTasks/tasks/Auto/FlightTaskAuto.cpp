@@ -256,13 +256,22 @@ void FlightTaskAuto::_set_heading_from_mode()
 	}
 
 	if (PX4_ISFINITE(v.length())) {
-		// We only adjust yaw if vehicle is outside of acceptance radius.
+		// We only adjust yaw if vehicle is outside of acceptance radius. Once we enter acceptance
+		// radius, lock yaw to current yaw.
 		// This prevents excessive yawing.
 		if (v.length() > NAV_ACC_RAD.get()) {
 			_compute_heading_from_2D_vector(_yaw_setpoint, v);
+			_yaw_lock = false;
+
+		} else {
+			if (!_yaw_lock) {
+				_yaw_setpoint = _yaw;
+				_yaw_lock = true;
+			}
 		}
 
 	} else {
+		_yaw_lock = false;
 		_yaw_setpoint = NAN;
 	}
 }
@@ -291,7 +300,7 @@ void FlightTaskAuto::_updateAvoidanceWaypoints()
 	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].point_valid = true;
 }
 
-bool FlightTaskAuto::_isFinite(const position_setpoint_s sp)
+bool FlightTaskAuto::_isFinite(const position_setpoint_s &sp)
 {
 	return (PX4_ISFINITE(sp.lat) && PX4_ISFINITE(sp.lon) && PX4_ISFINITE(sp.alt));
 }
@@ -302,22 +311,41 @@ bool FlightTaskAuto::_evaluateGlobalReference()
 	// Only update if reference timestamp has changed AND no valid reference altitude
 	// is available.
 	// TODO: this needs to be revisited and needs a more clear implementation
-	if (_sub_vehicle_local_position->get().ref_timestamp != _time_stamp_reference &&
-	    (_sub_vehicle_local_position->get().z_global && !PX4_ISFINITE(_reference_altitude))) {
-
-		map_projection_init(&_reference_position,
-				    _sub_vehicle_local_position->get().ref_lat,
-				    _sub_vehicle_local_position->get().ref_lon);
-		_reference_altitude = _sub_vehicle_local_position->get().ref_alt;
-		_time_stamp_reference = _sub_vehicle_local_position->get().ref_timestamp;
+	if (_sub_vehicle_local_position->get().ref_timestamp == _time_stamp_reference && PX4_ISFINITE(_reference_altitude)) {
+		// don't need to update anything
+		return true;
 	}
 
+	double ref_lat =  _sub_vehicle_local_position->get().ref_lat;
+	double ref_lon =  _sub_vehicle_local_position->get().ref_lon;
+	_reference_altitude = _sub_vehicle_local_position->get().ref_alt;
+
+	if (!_sub_vehicle_local_position->get().z_global) {
+		// we have no valid global altitude
+		// set global reference to local reference
+		_reference_altitude = 0.0f;
+	}
+
+	if (!_sub_vehicle_local_position->get().xy_global) {
+		// we have no valid global alt/lat
+		// set global reference to local reference
+		ref_lat = 0.0;
+		ref_lon = 0.0;
+	}
+
+	// init projection
+	map_projection_init(&_reference_position,
+			    ref_lat,
+			    ref_lon);
+
+	// check if everything is still finite
 	if (PX4_ISFINITE(_reference_altitude)
 	    && PX4_ISFINITE(_sub_vehicle_local_position->get().ref_lat)
-	    && PX4_ISFINITE(_sub_vehicle_local_position->get().ref_lat)) {
+	    && PX4_ISFINITE(_sub_vehicle_local_position->get().ref_lon)) {
 		return true;
 
 	} else {
+		// no valid reference
 		return false;
 	}
 }

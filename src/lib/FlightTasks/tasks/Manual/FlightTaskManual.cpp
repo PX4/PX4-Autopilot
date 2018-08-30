@@ -37,8 +37,10 @@
 #include "FlightTaskManual.hpp"
 #include <mathlib/mathlib.h>
 #include <float.h>
+#include <drivers/drv_hrt.h>
 
 using namespace matrix;
+using namespace time_literals;
 
 bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
@@ -67,8 +69,10 @@ bool FlightTaskManual::updateInitialize()
 
 bool FlightTaskManual::_evaluateSticks()
 {
+	hrt_abstime rc_timeout = (COM_RC_LOSS_T.get() * 1.5f) * 1_s;
+
 	/* Sticks are rescaled linearly and exponentially to [-1,1] */
-	if ((_time_stamp_current - _sub_manual_control_setpoint->get().timestamp) < _timeout) {
+	if ((_time_stamp_current - _sub_manual_control_setpoint->get().timestamp) < rc_timeout) {
 
 		/* Linear scale  */
 		_sticks(0) = _sub_manual_control_setpoint->get().x; /* NED x, "pitch" [-1,1] */
