@@ -39,6 +39,8 @@
  *
  */
 
+#pragma once
+
 #include "common.h"
 #include "RingBuffer.h"
 
