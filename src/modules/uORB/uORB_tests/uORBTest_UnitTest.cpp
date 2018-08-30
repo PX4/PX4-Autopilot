@@ -280,7 +280,7 @@ int uORBTest::UnitTest::test_single()
 		return test_fail("advertise failed: %d", errno);
 	}
 
-	test_note("publish handle 0x%08x", ptopic);
+	test_note("publish handle %p", ptopic);
 	sfd = orb_subscribe(ORB_ID(orb_test));
 
 	if (sfd < 0) {
