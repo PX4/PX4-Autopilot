@@ -57,13 +57,21 @@ def get_absolute_path(arg_parse_dir):
 
 default_client_out = get_absolute_path("src/modules/micrortps_bridge/micrortps_client")
 default_agent_out = get_absolute_path("src/modules/micrortps_bridge/micrortps_agent")
+default_uorb_templates_dir = "/templates/uorb_microcdr"
+default_urtps_templates_dir = "/templates/urtps"
+default_package_name = px_generate_uorb_topic_files.PACKAGE
 
 parser = argparse.ArgumentParser()
+
 parser.add_argument("-s", "--send", dest='send', metavar='*.msg', type=str, nargs='+', help="Topics to be sended")
 parser.add_argument("-r", "--receive", dest='receive', metavar='*.msg', type=str, nargs='+', help="Topics to be received")
 parser.add_argument("-a", "--agent", dest='agent', action="store_true", help="Flag for generate the agent, by default is true if -c is not specified")
 parser.add_argument("-c", "--client", dest='client', action="store_true", help="Flag for generate the client, by default is true if -a is not specified")
+parser.add_argument("-i", "--no-idl", dest='idl', action="store_false", help="Flag for generate idl files for each msg, by default is true if -i is not specified")
 parser.add_argument("-t", "--topic-msg-dir", dest='msgdir', type=str, nargs=1, help="Topics message dir, by default msg/", default="msg")
+parser.add_argument("-b", "--uorb-templates-dir", dest='uorb_templates', type=str, nargs=1, help="uORB templates dir, by default msg_dir/templates/uorb_microcdr", default=default_uorb_templates_dir)
+parser.add_argument("-q", "--urtps-templates-dir", dest='urtps_templates', type=str, nargs=1, help="uRTPS templates dir, by default msg_dir/templates/urtps", default=default_urtps_templates_dir)
+parser.add_argument("-p", "--package", dest='package', type=str, nargs=1, help="Msg package naming, by default px4", default=default_package_name)
 parser.add_argument("-o", "--agent-outdir", dest='agentdir', type=str, nargs=1, help="Agent output dir, by default src/modules/micrortps_bridge/micrortps_agent", default=default_agent_out)
 parser.add_argument("-u", "--client-outdir", dest='clientdir', type=str, nargs=1, help="Client output dir, by default src/modules/micrortps_bridge/micrortps_client", default=default_client_out)
 parser.add_argument("-f", "--fastrtpsgen-dir", dest='fastrtpsgen', type=str, nargs='?', help="fastrtpsgen installation dir, only needed if fastrtpsgen is not in PATH, by default empty", default="")
@@ -77,18 +85,26 @@ if len(sys.argv) <= 1:
 args = parser.parse_args()
 msg_folder = get_absolute_path(args.msgdir)
 msg_files_send = []
+msg_files_receive = []
 if args.send:
     msg_files_send = [get_absolute_path(msg) for msg in args.send]
-else:
-    msg_files_send = []
 if args.receive:
     msg_files_receive = [get_absolute_path(msg) for msg in args.receive]
+
+if args.package[0] != px_generate_uorb_topic_files.PACKAGE:
+    package = args.package[0]
 else:
-    msg_files_receive = []
+    package = px_generate_uorb_topic_files.PACKAGE
+
 agent = args.agent
 client = args.client
+# If not specified, auto generate the idl filename_send_msgs
+if args.idl is None or args.idl == "":
+    idl = True
+else:
+    idl = args.idl
 del_tree = args.del_tree
-px_generate_uorb_topic_files.append_to_include_path({msg_folder}, px_generate_uorb_topic_files.INCL_DEFAULT)
+px_generate_uorb_topic_files.append_to_include_path({msg_folder}, px_generate_uorb_topic_files.INCL_DEFAULT, package)
 agent_out_dir = get_absolute_path(args.agentdir)
 client_out_dir = get_absolute_path(args.clientdir)
 
@@ -126,8 +142,8 @@ if del_tree:
 if agent and os.path.isdir(agent_out_dir + "/idl"):
     shutil.rmtree(agent_out_dir + "/idl")
 
-uorb_templates_dir = msg_folder + "/templates/uorb_microcdr"
-urtps_templates_dir = msg_folder + "/templates/urtps"
+uorb_templates_dir = msg_folder + get_absolute_path(args.uorb_templates)
+urtps_templates_dir = msg_folder + get_absolute_path(args.urtps_templates)
 
 uRTPS_CLIENT_TEMPL_FILE = 'microRTPS_client.cpp.template'
 uRTPS_AGENT_TOPICS_H_TEMPL_FILE = 'RtpsTopics.h.template'
@@ -143,30 +159,32 @@ def generate_agent(out_dir):
 
     if msg_files_send:
         for msg_file in msg_files_send:
-            px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir + "/idl", urtps_templates_dir,
-                px_generate_uorb_topic_files.INCL_DEFAULT)
+            if idl:
+                px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir + "/idl", urtps_templates_dir,
+                    package, px_generate_uorb_topic_files.INCL_DEFAULT)
             px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
-                px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBLISHER_SRC_TEMPL_FILE)
+                package, px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBLISHER_SRC_TEMPL_FILE)
             px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
-                px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBLISHER_H_TEMPL_FILE)
+                package, px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBLISHER_H_TEMPL_FILE)
 
     if msg_files_receive:
         for msg_file in msg_files_receive:
-            px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir + "/idl", urtps_templates_dir,
-                px_generate_uorb_topic_files.INCL_DEFAULT)
+            if idl:
+                px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir + "/idl", urtps_templates_dir,
+                    package, px_generate_uorb_topic_files.INCL_DEFAULT)
             px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
-                px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_SUBSCRIBER_SRC_TEMPL_FILE)
+                package, px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_SUBSCRIBER_SRC_TEMPL_FILE)
             px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
-                px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_SUBSCRIBER_H_TEMPL_FILE)
+                package, px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_SUBSCRIBER_H_TEMPL_FILE)
 
     px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, urtps_templates_dir,
-                    px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_TEMPL_FILE)
+                    package, px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_TEMPL_FILE)
     px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, urtps_templates_dir,
-                    px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_TOPICS_H_TEMPL_FILE)
+                    package, px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_TOPICS_H_TEMPL_FILE)
     px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, urtps_templates_dir,
-                    px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_TOPICS_SRC_TEMPL_FILE)
+                    package, px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_TOPICS_SRC_TEMPL_FILE)
     px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, urtps_templates_dir,
-                    px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_CMAKELIST_TEMPL_FILE)
+                    package, px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_CMAKELIST_TEMPL_FILE)
 
     # Final steps to install agent
     mkdir_p(agent_out_dir + "/fastrtpsgen")
@@ -221,7 +239,7 @@ def generate_client(out_dir):
             os.rename(def_file, def_file.replace(".h", ".h_"))
 
     px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, uorb_templates_dir,
-                    px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_CLIENT_TEMPL_FILE)
+                    package, px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_CLIENT_TEMPL_FILE)
 
     # Final steps to install client
     cp_wildcard(urtps_templates_dir + "/microRTPS_transport.*", out_dir)
