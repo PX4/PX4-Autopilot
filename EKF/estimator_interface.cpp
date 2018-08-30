@@ -378,7 +378,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 
 		// Check data validity and write to buffers
 		// Use a zero velocity assumption to constrain drift when on-ground if necessary
-		float use_flow_data_to_navigate = delta_time_good && flow_quality_good && (flow_magnitude_good || relying_on_flow);
+		bool use_flow_data_to_navigate = delta_time_good && flow_quality_good && (flow_magnitude_good || relying_on_flow);
 		if (use_flow_data_to_navigate || (!_control_status.flags.in_air && relying_on_flow)) {
 			flowSample optflow_sample_new;
 			// calculate the system time-stamp for the trailing edge of the flow data integration period
