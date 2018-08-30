@@ -40,6 +40,8 @@
  *
  */
 
+#pragma once
+
 #include "estimator_interface.h"
 
 class Ekf : public EstimatorInterface
