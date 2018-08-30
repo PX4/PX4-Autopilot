@@ -76,7 +76,7 @@ class ECL_Controller
 {
 public:
 	ECL_Controller(const char *name);
-	~ECL_Controller() = default;
+	virtual ~ECL_Controller() = default;
 
 	virtual float control_attitude(const struct ECL_ControlData &ctl_data) = 0;
 	virtual float control_euler_rate(const struct ECL_ControlData &ctl_data) = 0;
