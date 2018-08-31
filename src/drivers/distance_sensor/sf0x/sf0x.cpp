@@ -58,7 +58,6 @@
 #include <termios.h>
 
 #include <perf/perf_counter.h>
-#include <systemlib/err.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
@@ -201,7 +200,7 @@ SF0X::SF0X(const char *port, uint8_t rotation) :
 	_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 	if (_fd < 0) {
-		warnx("FAIL: laser fd");
+		PX4_ERR("open failed (%i)", errno);
 	}
 
 	struct termios uart_config;
@@ -221,15 +220,15 @@ SF0X::SF0X(const char *port, uint8_t rotation) :
 
 	/* set baud rate */
 	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
-		warnx("ERR CFG: %d ISPD", termios_state);
+		PX4_ERR("CFG: %d ISPD", termios_state);
 	}
 
 	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
-		warnx("ERR CFG: %d OSPD\n", termios_state);
+		PX4_ERR("CFG: %d OSPD", termios_state);
 	}
 
 	if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERR baud %d ATTR", termios_state);
+		PX4_ERR("baud %d ATTR", termios_state);
 	}
 }
 
@@ -312,7 +311,7 @@ SF0X::init()
 		_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
 		if (_reports == nullptr) {
-			warnx("mem err");
+			PX4_ERR("alloc failed");
 			ret = -1;
 			break;
 		}
@@ -749,22 +748,23 @@ namespace sf0x
 
 SF0X	*g_dev;
 
-void	start(const char *port, uint8_t rotation);
-void	stop();
-void	test();
-void	reset();
-void	info();
+int	start(const char *port, uint8_t rotation);
+int	stop();
+int	test();
+int	reset();
+int	info();
 
 /**
  * Start the driver.
  */
-void
+int
 start(const char *port, uint8_t rotation)
 {
 	int fd;
 
 	if (g_dev != nullptr) {
-		errx(1, "already started");
+		PX4_WARN("already started");
+		return -1;
 	}
 
 	/* create the driver */
@@ -782,7 +782,7 @@ start(const char *port, uint8_t rotation)
 	fd = open(RANGE_FINDER0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
-		warnx("device open fail");
+		PX4_ERR("device open fail (%i)", errno);
 		goto fail;
 	}
 
@@ -790,7 +790,7 @@ start(const char *port, uint8_t rotation)
 		goto fail;
 	}
 
-	exit(0);
+	return 0;
 
 fail:
 
@@ -799,23 +799,23 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	return -1;
 }
 
 /**
  * Stop the driver
  */
-void stop()
+int stop()
 {
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
 
 	} else {
-		errx(1, "driver not running");
+		return -1;
 	}
 
-	exit(0);
+	return 0;
 }
 
 /**
@@ -823,7 +823,7 @@ void stop()
  * make sure we can collect data from the sensor in polled
  * and automatic modes.
  */
-void
+int
 test()
 {
 	struct distance_sensor_s report;
@@ -832,21 +832,24 @@ test()
 	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'sf0x start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
+		PX4_ERR("%s open failed (try 'sf0x start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
+		return -1;
 	}
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		err(1, "immediate read failed");
+		PX4_ERR("immediate read failed");
+		return -1;
 	}
 
 	print_message(report);
 
 	/* start the sensor polling at 2 Hz rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
+		PX4_ERR("failed to set 2Hz poll rate");
+		return -1;
 	}
 
 	/* read the sensor 5x and report each value */
@@ -859,7 +862,7 @@ test()
 		int ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			warnx("timed out");
+			PX4_ERR("timed out");
 			break;
 		}
 
@@ -867,7 +870,7 @@ test()
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			warnx("read failed: got %d vs exp. %d", sz, sizeof(report));
+			PX4_ERR("read failed: got %d vs exp. %d", sz, sizeof(report));
 			break;
 		}
 
@@ -876,49 +879,54 @@ test()
 
 	/* reset the sensor polling to the default rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		errx(1, "ERR: DEF RATE");
+		PX4_ERR("ioctl SENSORIOCSPOLLRATE failed");
+		return -1;
 	}
 
-	errx(0, "PASS");
+	return 0;
 }
 
 /**
  * Reset the driver.
  */
-void
+int
 reset()
 {
 	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "failed ");
+		PX4_ERR("open failed (%i)", errno);
+		return -1;
 	}
 
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
+		PX4_ERR("driver reset failed");
+		return -1;
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
+		PX4_ERR("driver poll restart failed");
+		return -1;
 	}
 
-	exit(0);
+	return 0;
 }
 
 /**
  * Print a little info about the driver.
  */
-void
+int
 info()
 {
 	if (g_dev == nullptr) {
-		errx(1, "driver not running");
+		PX4_ERR("driver not running");
+		return -1;
 	}
 
 	printf("state @ %p\n", g_dev);
 	g_dev->print_info();
 
-	exit(0);
+	return 0;
 }
 
 } // namespace
@@ -952,10 +960,10 @@ sf0x_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
 		if (argc > myoptind + 1) {
-			sf0x::start(argv[myoptind + 1], rotation);
+			return sf0x::start(argv[myoptind + 1], rotation);
 
 		} else {
-			sf0x::start(SF0X_DEFAULT_PORT, rotation);
+			return sf0x::start(SF0X_DEFAULT_PORT, rotation);
 		}
 	}
 
@@ -963,28 +971,28 @@ sf0x_main(int argc, char *argv[])
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[myoptind], "stop")) {
-		sf0x::stop();
+		return sf0x::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[myoptind], "test")) {
-		sf0x::test();
+		return sf0x::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[myoptind], "reset")) {
-		sf0x::reset();
+		return sf0x::reset();
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
-		sf0x::info();
+		return sf0x::info();
 	}
 
 out_error:
