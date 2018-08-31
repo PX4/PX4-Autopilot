@@ -330,7 +330,7 @@ Client::_sig_handler(int sig_num)
 
 	if (_client_send_pipe_fd < 0) {
 		PX4_ERR("pipe open fail");
-		exit(-1);
+		system_exit(-1);
 	}
 
 	int bytes_to_send = get_client_send_packet_length(&packet);
@@ -338,7 +338,7 @@ Client::_sig_handler(int sig_num)
 
 	if (bytes_sent != bytes_to_send) {
 		PX4_ERR("write fail");
-		exit(-1);
+		system_exit(-1);
 	}
 }
 
