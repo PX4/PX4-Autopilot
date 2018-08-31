@@ -4,6 +4,7 @@
 # Another positive effect of having the code here, is that this file will get
 # precompiled and thus message generation will be much faster
 
+import json
 
 import genmsg.msgs
 import gencpp
@@ -296,3 +297,15 @@ def print_field_def(field):
 
     print('\t%s%s%s %s%s;%s'%(type_prefix, type_px4, type_appendix, field.name,
                 array_size, comment))
+
+def rtps_message_id(json_file, message):
+    """
+    Get RTPS ID of uORB message
+    """
+    with open(json_file, 'r') as f:
+        msg_id_map = json.load(f)
+
+    for dict in msg_id_map["rtps"]:
+        if message in dict["msg"]:
+            return dict["id"]
+    return 0
