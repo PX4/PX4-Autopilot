@@ -943,14 +943,14 @@ param_save_default(void)
 
 	if (fd < 0) {
 		PX4_ERR("failed to open param file: %s", filename);
-		goto exit;
+		goto do_exit;
 	}
 
 	res = param_export(fd, false);
 
 	if (res != OK) {
 		PX4_ERR("failed to write parameters to file: %s", filename);
-		goto exit;
+		goto do_exit;
 	}
 
 	PARAM_CLOSE(fd);
@@ -958,7 +958,7 @@ param_save_default(void)
 
 	fd = -1;
 
-exit:
+do_exit:
 
 	if (fd >= 0) {
 		close(fd);
