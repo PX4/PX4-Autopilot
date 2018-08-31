@@ -194,8 +194,8 @@ function(px4_os_add_flags)
 		-D__DF_NUTTX
 		)
 
-
-	if("${config_nuttx_hw_stack_check_${BOARD}}" STREQUAL "y")
+	if("${CONFIG_ARMV7M_STACKCHECK}" STREQUAL "y")
+		message(WARNING !!!!!!!!! CONFIG_ARMV7M_STACKCHECK=${CONFIG_ARMV7M_STACKCHECK} !!!!!!)
 		set(instrument_flags
 			-finstrument-functions
 			-ffixed-r10
