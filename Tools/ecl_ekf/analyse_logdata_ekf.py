@@ -7,382 +7,204 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
+def plot_timeseries(pdf_pages, dataset, variables, title, xlabels, ylabels):
+    plt.figure(figsize=(20, 13))
+    plt.title(title)
+    for i in range(len(variables)):
+        plt.subplot(2, 1, i+1)
+        for v in variables[i]:
+            plt.plot(dataset[v], 'b')
+        plt.xlabel(xlabels[i])
+        plt.ylabel(ylabels[i])
+    pdf_pages.savefig()
+    plt.close()
+
+def get_min_arg_time_value(time_series_data, data_time):
+    min_arg = np.argmin(time_series_data)
+    min_time = data_time[min_arg]
+    min_value = np.amin(time_series_data)
+    return min_arg, min_value, min_time
+
+def get_max_arg_time_value(time_series_data, data_time):
+    max_arg = np.argmax(time_series_data)
+    max_time = data_time[max_arg]
+    max_value = np.amax(time_series_data)
+    return max_arg, max_value, max_time
+
+def plot_innovations(pdf_pages, dataset, variables, variances, titles, xlabels, ylabels):
+
+    plt.figure(figsize=(20, 13))
+    # if there is one title per variable, every subplot gets its own title, otherwise a single title is set
+    if len(titles) == 1:
+        plt.suptitle(titles[0])
+    for i in range(len(variables)):
+        # create a subplot for every variable
+        plt.subplot(len(variables), 1, i+1)
+        if len(titles) > 1:
+            plt.title(titles[i])
+
+        # plot the value and the standard deviation as a variable
+        plt.plot(1e-6 * dataset['timestamp'], dataset[variables[i]], 'b')
+        plt.plot(1e-6 * dataset['timestamp'], np.sqrt(dataset[variances[i]]), 'r')
+        plt.plot(1e-6 * dataset['timestamp'], -np.sqrt(dataset[variances[i]]), 'r')
+
+        plt.xlabel(xlabels[i])
+        plt.ylabel(ylabels[i])
+        plt.grid()
+
+        # add the maximum and minimum value as an annotation
+        _, max_value, max_time = get_max_arg_time_value(dataset[variables[i]], 1e-6 * dataset['timestamp'])
+        _, min_value, min_time = get_min_arg_time_value(dataset[variables[i]], 1e-6 * dataset['timestamp'])
+
+        plt.text(
+            max_time, max_value, 'max={:.2f}'.format(max_value), fontsize=12, horizontalalignment='left',
+            verticalalignment='bottom')
+        plt.text(
+            min_time, min_value, 'min={:.2f}'.format(min_value), fontsize=12, horizontalalignment='left',
+            verticalalignment='top')
+
+    if pdf_pages is not None:
+        pdf_pages.savefig()
+        plt.close()
+
+def plot_test_ratio(pdf_pages, dataset, data_time, variables, titles, xlabel, ylabels):
+
+    colors = ['b', 'r', 'g']
+
+    plt.figure(figsize=(20, 13))
+    # if there is one title per variable, every subplot gets its own title, otherwise a single title is set
+    if len(titles) == 1:
+        plt.suptitle(titles[0])
+
+    for i in range(len(variables)):
+        # create a subplot for every variable
+        plt.subplot(len(variables), 1, i + 1)
+        if len(titles) > 1:
+            plt.title(titles[i])
+
+        for col, var in zip(colors[:len(variables[i])], variables[i]):
+            plt.plot(data_time, dataset[var], col)
+
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabels[i])
+        plt.grid()
+
+        for var in variables[i]:
+            # add the maximum and minimum value as an annotation
+            _, max_value, max_time = get_max_arg_time_value(dataset[var], data_time)
+            mean_value = np.mean(dataset[var])
+
+            plt.text(
+                max_time, max_value, 'max={:.2f}, mean={:.2f}'.format(max_value, mean_value), fontsize=12,
+                horizontalalignment='left', verticalalignment='bottom')
+
+    if pdf_pages is not None:
+        pdf_pages.savefig()
+        plt.close()
+
+def get_control_mode_flags(estimator_status):
+
+    control_mode = dict()
+    # extract control mode metadata from estimator_status.control_mode_flags
+    # 0 - true if the filter tilt alignment is complete
+    # 1 - true if the filter yaw alignment is complete
+    # 2 - true if GPS measurements are being fused
+    # 3 - true if optical flow measurements are being fused
+    # 4 - true if a simple magnetic yaw heading is being fused
+    # 5 - true if 3-axis magnetometer measurement are being fused
+    # 6 - true if synthetic magnetic declination measurements are being fused
+    # 7 - true when the vehicle is airborne
+    # 8 - true when wind velocity is being estimated
+    # 9 - true when baro height is being fused as a primary height reference
+    # 10 - true when range finder height is being fused as a primary height reference
+    # 11 - true when range finder height is being fused as a primary height reference
+    # 12 - true when local position data from external vision is being fused
+    # 13 - true when yaw data from external vision measurements is being fused
+    # 14 - true when height data from external vision measurements is being fused
+    control_mode['tilt_aligned'] = ((2 ** 0 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['yaw_aligned'] = ((2 ** 1 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['using_gps'] = ((2 ** 2 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['using_optflow'] = ((2 ** 3 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['using_magyaw'] = ((2 ** 4 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['using_mag3d'] = ((2 ** 5 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['using_magdecl'] = ((2 ** 6 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['airborne'] = ((2 ** 7 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['estimating_wind'] = ((2 ** 8 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['using_barohgt'] = ((2 ** 9 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['using_rnghgt'] = ((2 ** 10 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['using_gpshgt'] = ((2 ** 11 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['using_evpos'] = ((2 ** 12 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['using_evyaw'] = ((2 ** 13 & estimator_status['control_mode_flags']) > 0) * 1
+    control_mode['using_evhgt'] = ((2 ** 14 & estimator_status['control_mode_flags']) > 0) * 1
+    return control_mode
+
+def get_estimator_check_flags(estimator_status):
+    control_mode = get_control_mode_flags(estimator_status)
+    innov_flags = get_innovation_check_flags(estimator_status)
+    return control_mode, innov_flags
+
 def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_levels,
                 plot=False, output_plot_filename=None, late_start_early_ending=True):
+
+    control_mode, innov_flags = get_estimator_check_flags(estimator_status)
 
     if plot:
         # create summary plots
         # save the plots to PDF
-        pp = PdfPages(output_plot_filename)
+        pdf_pages = PdfPages(output_plot_filename)
         # plot IMU consistency data
         if ('accel_inconsistency_m_s_s' in sensor_preflight.keys()) and (
                 'gyro_inconsistency_rad_s' in sensor_preflight.keys()):
-            plt.figure(0, figsize=(20, 13))
-            plt.subplot(2, 1, 1)
-            plt.plot(sensor_preflight['accel_inconsistency_m_s_s'], 'b')
-            plt.title('IMU Consistency Check Levels')
-            plt.ylabel('acceleration (m/s/s)')
-            plt.xlabel('data index')
-            plt.grid()
-            plt.subplot(2, 1, 2)
-            plt.plot(sensor_preflight['gyro_inconsistency_rad_s'], 'b')
-            plt.ylabel('angular rate (rad/s)')
-            plt.xlabel('data index')
-            pp.savefig()
-            plt.close(0)
+            plot_timeseries(
+                pdf_pages, sensor_preflight, [['accel_inconsistency_m_s_s'], ['gyro_inconsistency_rad_s']],
+                title='IMU Consistency Check Levels', xlabels=['data index', 'data index'],
+                ylabels=['acceleration (m/s/s)', 'angular rate (rad/s)'])
+
+        # vertical velocity and position innovations
+        plot_innovations(
+            pdf_pages, ekf2_innovations, ['vel_pos_innov[2]', 'vel_pos_innov[5]'],
+            ['vel_pos_innov_var[2]', 'vel_pos_innov_var[5]'], titles=['Vertical Innovations'],
+            xlabels=['time (sec)', 'time (sec)'], ylabels=['Down Vel (m/s)', 'Down Pos (m)'])
+
+        # horizontal velocity innovations
+        plot_innovations(
+            pdf_pages, ekf2_innovations, ['vel_pos_innov[0]', 'vel_pos_innov[1]'],
+            ['vel_pos_innov_var[0]', 'vel_pos_innov_var[1]'], titles=['Horizontal Velocity  Innovations'],
+            xlabels=['time (sec)', 'time (sec)'], ylabels=['North Vel (m/s)', 'East Vel (m/s)'])
+
+        # horizontal position innovations
+        plot_innovations(
+            pdf_pages, ekf2_innovations, ['vel_pos_innov[3]', 'vel_pos_innov[4]'],
+            ['vel_pos_innov_var[3]', 'vel_pos_innov_var[4]'], titles=['Horizontal Position Innovations'],
+            xlabels=['time (sec)', 'time (sec)'], ylabels=['North Pos (m)', 'East Pos (m)'])
+
+        # magnetometer innovations
+        plot_innovations(
+            pdf_pages, ekf2_innovations, ['mag_innov[0]', 'mag_innov[1]', 'mag_innov[2]'],
+            ['mag_innov_var[0]', 'mag_innov_var[1]', 'mag_innov_var[2]'], titles=['Magnetometer Innovations'],
+            xlabels=['time (sec)', 'time (sec)', 'time (sec)'], ylabels=['X (Gauss)', 'Y (Gauss)', 'Z (Gauss)'])
+
+        # magnetic heading innovations
+        plot_innovations(
+            pdf_pages, ekf2_innovations, ['heading_innov'], ['heading_innov_var'],
+            titles=['Magnetic Heading Innovations'], xlabels=['time (sec)'], ylabels=['Heading (rad)'])
+
+        # air data innovations
+        plot_innovations(
+            pdf_pages, ekf2_innovations, ['airspeed_innov', 'beta_innov'], ['airspeed_innov_var', 'beta_innov_var'],
+            titles=['True Airspeed Innovations', 'Synthetic Sideslip Innovations'],
+            xlabels=['time (sec)', 'time (sec)'], ylabels=['innovation (m/sec)', 'innovation (rad)'])
+
+        # optical flow innovations
+        plot_innovations(
+            pdf_pages, ekf2_innovations, ['flow_innov[0]', 'flow_innov[1]'],
+            ['flow_innov_var[0]', 'flow_innov_var[1]'],
+            titles=['Optical Flow Innovations'], xlabels=['time (sec)', 'time (sec)'],
+            ylabels=['X (rad/sec)', 'Y (rad/sec)'])
 
     # generate max, min and 1-std metadata
     innov_time = 1e-6 * ekf2_innovations['timestamp']
     status_time = 1e-6 * estimator_status['timestamp']
-
-    if plot:
-        # vertical velocity and position innovations
-        plt.figure(1, figsize=(20, 13))
-        # generate metadata for velocity innovations
-        innov_2_max_arg = np.argmax(ekf2_innovations['vel_pos_innov[2]'])
-        innov_2_max_time = innov_time[innov_2_max_arg]
-        innov_2_max = np.amax(ekf2_innovations['vel_pos_innov[2]'])
-        innov_2_min_arg = np.argmin(ekf2_innovations['vel_pos_innov[2]'])
-        innov_2_min_time = innov_time[innov_2_min_arg]
-        innov_2_min = np.amin(ekf2_innovations['vel_pos_innov[2]'])
-        s_innov_2_max = str(round(innov_2_max, 2))
-        s_innov_2_min = str(round(innov_2_min, 2))
-        # s_innov_2_std = str(round(np.std(ekf2_innovations['vel_pos_innov[2]']),2))
-        # generate metadata for position innovations
-        innov_5_max_arg = np.argmax(ekf2_innovations['vel_pos_innov[5]'])
-        innov_5_max_time = innov_time[innov_5_max_arg]
-        innov_5_max = np.amax(ekf2_innovations['vel_pos_innov[5]'])
-        innov_5_min_arg = np.argmin(ekf2_innovations['vel_pos_innov[5]'])
-        innov_5_min_time = innov_time[innov_5_min_arg]
-        innov_5_min = np.amin(ekf2_innovations['vel_pos_innov[5]'])
-        s_innov_5_max = str(round(innov_5_max, 2))
-        s_innov_5_min = str(round(innov_5_min, 2))
-        # s_innov_5_std = str(round(np.std(ekf2_innovations['vel_pos_innov[5]']),2))
-        # generate plot for vertical velocity innovations
-        plt.subplot(2, 1, 1)
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['vel_pos_innov[2]'], 'b')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], np.sqrt(ekf2_innovations['vel_pos_innov_var[2]']), 'r')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], -np.sqrt(ekf2_innovations['vel_pos_innov_var[2]']), 'r')
-        plt.title('Vertical Innovations')
-        plt.ylabel('Down Vel (m/s)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(innov_2_max_time, innov_2_max, 'max=' + s_innov_2_max, fontsize=12, horizontalalignment='left',
-                 verticalalignment='bottom')
-        plt.text(innov_2_min_time, innov_2_min, 'min=' + s_innov_2_min, fontsize=12, horizontalalignment='left',
-                 verticalalignment='top')
-        # plt.legend(['std='+s_innov_2_std],loc='upper left',frameon=False)
-        # generate plot for vertical position innovations
-        plt.subplot(2, 1, 2)
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['vel_pos_innov[5]'], 'b')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], np.sqrt(ekf2_innovations['vel_pos_innov_var[5]']), 'r')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], -np.sqrt(ekf2_innovations['vel_pos_innov_var[5]']), 'r')
-        plt.ylabel('Down Pos (m)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(innov_5_max_time, innov_5_max, 'max=' + s_innov_5_max, fontsize=12, horizontalalignment='left',
-                 verticalalignment='bottom')
-        plt.text(innov_5_min_time, innov_5_min, 'min=' + s_innov_5_min, fontsize=12, horizontalalignment='left',
-                 verticalalignment='top')
-        # plt.legend(['std='+s_innov_5_std],loc='upper left',frameon=False)
-        pp.savefig()
-        plt.close(1)
-        # horizontal velocity innovations
-        plt.figure(2, figsize=(20, 13))
-        # generate North axis metadata
-        innov_0_max_arg = np.argmax(ekf2_innovations['vel_pos_innov[0]'])
-        innov_0_max_time = innov_time[innov_0_max_arg]
-        innov_0_max = np.amax(ekf2_innovations['vel_pos_innov[0]'])
-        innov_0_min_arg = np.argmin(ekf2_innovations['vel_pos_innov[0]'])
-        innov_0_min_time = innov_time[innov_0_min_arg]
-        innov_0_min = np.amin(ekf2_innovations['vel_pos_innov[0]'])
-        s_innov_0_max = str(round(innov_0_max, 2))
-        s_innov_0_min = str(round(innov_0_min, 2))
-        # s_innov_0_std = str(round(np.std(ekf2_innovations['vel_pos_innov[0]']),2))
-        # Generate East axis metadata
-        innov_1_max_arg = np.argmax(ekf2_innovations['vel_pos_innov[1]'])
-        innov_1_max_time = innov_time[innov_1_max_arg]
-        innov_1_max = np.amax(ekf2_innovations['vel_pos_innov[1]'])
-        innov_1_min_arg = np.argmin(ekf2_innovations['vel_pos_innov[1]'])
-        innov_1_min_time = innov_time[innov_1_min_arg]
-        innov_1_min = np.amin(ekf2_innovations['vel_pos_innov[1]'])
-        s_innov_1_max = str(round(innov_1_max, 2))
-        s_innov_1_min = str(round(innov_1_min, 2))
-        # s_innov_1_std = str(round(np.std(ekf2_innovations['vel_pos_innov[1]']),2))
-        # draw plots
-        plt.subplot(2, 1, 1)
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['vel_pos_innov[0]'], 'b')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], np.sqrt(ekf2_innovations['vel_pos_innov_var[0]']), 'r')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], -np.sqrt(ekf2_innovations['vel_pos_innov_var[0]']), 'r')
-        plt.title('Horizontal Velocity  Innovations')
-        plt.ylabel('North Vel (m/s)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(innov_0_max_time, innov_0_max, 'max=' + s_innov_0_max, fontsize=12, horizontalalignment='left',
-                 verticalalignment='bottom')
-        plt.text(innov_0_min_time, innov_0_min, 'min=' + s_innov_0_min, fontsize=12, horizontalalignment='left',
-                 verticalalignment='top')
-        # plt.legend(['std='+s_innov_0_std],loc='upper left',frameon=False)
-        plt.subplot(2, 1, 2)
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['vel_pos_innov[1]'], 'b')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], np.sqrt(ekf2_innovations['vel_pos_innov_var[1]']), 'r')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], -np.sqrt(ekf2_innovations['vel_pos_innov_var[1]']), 'r')
-        plt.ylabel('East Vel (m/s)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(innov_1_max_time, innov_1_max, 'max=' + s_innov_1_max, fontsize=12, horizontalalignment='left',
-                 verticalalignment='bottom')
-        plt.text(innov_1_min_time, innov_1_min, 'min=' + s_innov_1_min, fontsize=12, horizontalalignment='left',
-                 verticalalignment='top')
-        # plt.legend(['std='+s_innov_1_std],loc='upper left',frameon=False)
-        pp.savefig()
-        plt.close(2)
-        # horizontal position innovations
-        plt.figure(3, figsize=(20, 13))
-        # generate North axis metadata
-        innov_3_max_arg = np.argmax(ekf2_innovations['vel_pos_innov[3]'])
-        innov_3_max_time = innov_time[innov_3_max_arg]
-        innov_3_max = np.amax(ekf2_innovations['vel_pos_innov[3]'])
-        innov_3_min_arg = np.argmin(ekf2_innovations['vel_pos_innov[3]'])
-        innov_3_min_time = innov_time[innov_3_min_arg]
-        innov_3_min = np.amin(ekf2_innovations['vel_pos_innov[3]'])
-        s_innov_3_max = str(round(innov_3_max, 2))
-        s_innov_3_min = str(round(innov_3_min, 2))
-        # s_innov_3_std = str(round(np.std(ekf2_innovations['vel_pos_innov[3]']),2))
-        # generate East axis metadata
-        innov_4_max_arg = np.argmax(ekf2_innovations['vel_pos_innov[4]'])
-        innov_4_max_time = innov_time[innov_4_max_arg]
-        innov_4_max = np.amax(ekf2_innovations['vel_pos_innov[4]'])
-        innov_4_min_arg = np.argmin(ekf2_innovations['vel_pos_innov[4]'])
-        innov_4_min_time = innov_time[innov_4_min_arg]
-        innov_4_min = np.amin(ekf2_innovations['vel_pos_innov[4]'])
-        s_innov_4_max = str(round(innov_4_max, 2))
-        s_innov_4_min = str(round(innov_4_min, 2))
-        # s_innov_4_std = str(round(np.std(ekf2_innovations['vel_pos_innov[4]']),2))
-        # generate plots
-        plt.subplot(2, 1, 1)
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['vel_pos_innov[3]'], 'b')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], np.sqrt(ekf2_innovations['vel_pos_innov_var[3]']), 'r')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], -np.sqrt(ekf2_innovations['vel_pos_innov_var[3]']), 'r')
-        plt.title('Horizontal Position Innovations')
-        plt.ylabel('North Pos (m)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(innov_3_max_time, innov_3_max, 'max=' + s_innov_3_max, fontsize=12, horizontalalignment='left',
-                 verticalalignment='bottom')
-        plt.text(innov_3_min_time, innov_3_min, 'min=' + s_innov_3_min, fontsize=12, horizontalalignment='left',
-                 verticalalignment='top')
-        # plt.legend(['std='+s_innov_3_std],loc='upper left',frameon=False)
-        plt.subplot(2, 1, 2)
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['vel_pos_innov[4]'], 'b')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], np.sqrt(ekf2_innovations['vel_pos_innov_var[4]']), 'r')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], -np.sqrt(ekf2_innovations['vel_pos_innov_var[4]']), 'r')
-        plt.ylabel('East Pos (m)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(innov_4_max_time, innov_4_max, 'max=' + s_innov_4_max, fontsize=12, horizontalalignment='left',
-                 verticalalignment='bottom')
-        plt.text(innov_4_min_time, innov_4_min, 'min=' + s_innov_4_min, fontsize=12, horizontalalignment='left',
-                 verticalalignment='top')
-        # plt.legend(['std='+s_innov_4_std],loc='upper left',frameon=False)
-        pp.savefig()
-        plt.close(3)
-        # manetometer innovations
-        plt.figure(4, figsize=(20, 13))
-        # generate X axis metadata
-        innov_0_max_arg = np.argmax(ekf2_innovations['mag_innov[0]'])
-        innov_0_max_time = innov_time[innov_0_max_arg]
-        innov_0_max = np.amax(ekf2_innovations['mag_innov[0]'])
-        innov_0_min_arg = np.argmin(ekf2_innovations['mag_innov[0]'])
-        innov_0_min_time = innov_time[innov_0_min_arg]
-        innov_0_min = np.amin(ekf2_innovations['mag_innov[0]'])
-        s_innov_0_max = str(round(innov_0_max, 3))
-        s_innov_0_min = str(round(innov_0_min, 3))
-        # s_innov_0_std = str(round(np.std(ekf2_innovations['mag_innov[0]']),3))
-        # generate Y axis metadata
-        innov_1_max_arg = np.argmax(ekf2_innovations['mag_innov[1]'])
-        innov_1_max_time = innov_time[innov_1_max_arg]
-        innov_1_max = np.amax(ekf2_innovations['mag_innov[1]'])
-        innov_1_min_arg = np.argmin(ekf2_innovations['mag_innov[1]'])
-        innov_1_min_time = innov_time[innov_1_min_arg]
-        innov_1_min = np.amin(ekf2_innovations['mag_innov[1]'])
-        s_innov_1_max = str(round(innov_1_max, 3))
-        s_innov_1_min = str(round(innov_1_min, 3))
-        # s_innov_1_std = str(round(np.std(ekf2_innovations['mag_innov[1]']),3))
-        # generate Z axis metadata
-        innov_2_max_arg = np.argmax(ekf2_innovations['mag_innov[2]'])
-        innov_2_max_time = innov_time[innov_2_max_arg]
-        innov_2_max = np.amax(ekf2_innovations['mag_innov[2]'])
-        innov_2_min_arg = np.argmin(ekf2_innovations['mag_innov[2]'])
-        innov_2_min_time = innov_time[innov_2_min_arg]
-        innov_2_min = np.amin(ekf2_innovations['mag_innov[2]'])
-        s_innov_2_max = str(round(innov_2_max, 3))
-        s_innov_2_min = str(round(innov_2_min, 3))
-        # s_innov_2_std = str(round(np.std(ekf2_innovations['mag_innov[0]']),3))
-        # draw plots
-        plt.subplot(3, 1, 1)
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['mag_innov[0]'], 'b')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], np.sqrt(ekf2_innovations['mag_innov_var[0]']), 'r')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], -np.sqrt(ekf2_innovations['mag_innov_var[0]']), 'r')
-        plt.title('Magnetometer Innovations')
-        plt.ylabel('X (Gauss)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(innov_0_max_time, innov_0_max, 'max=' + s_innov_0_max, fontsize=12, horizontalalignment='left',
-                 verticalalignment='bottom')
-        plt.text(innov_0_min_time, innov_0_min, 'min=' + s_innov_0_min, fontsize=12, horizontalalignment='left',
-                 verticalalignment='top')
-        # plt.legend(['std='+s_innov_0_std],loc='upper left',frameon=False)
-        plt.subplot(3, 1, 2)
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['mag_innov[1]'], 'b')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], np.sqrt(ekf2_innovations['mag_innov_var[1]']), 'r')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], -np.sqrt(ekf2_innovations['mag_innov_var[1]']), 'r')
-        plt.ylabel('Y (Gauss)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(innov_1_max_time, innov_1_max, 'max=' + s_innov_1_max, fontsize=12, horizontalalignment='left',
-                 verticalalignment='bottom')
-        plt.text(innov_1_min_time, innov_1_min, 'min=' + s_innov_1_min, fontsize=12, horizontalalignment='left',
-                 verticalalignment='top')
-        # plt.legend(['std='+s_innov_1_std],loc='upper left',frameon=False)
-        plt.subplot(3, 1, 3)
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['mag_innov[2]'], 'b')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], np.sqrt(ekf2_innovations['mag_innov_var[2]']), 'r')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], -np.sqrt(ekf2_innovations['mag_innov_var[2]']), 'r')
-        plt.ylabel('Z (Gauss)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(innov_2_max_time, innov_2_max, 'max=' + s_innov_2_max, fontsize=12, horizontalalignment='left',
-                 verticalalignment='bottom')
-        plt.text(innov_2_min_time, innov_2_min, 'min=' + s_innov_2_min, fontsize=12, horizontalalignment='left',
-                 verticalalignment='top')
-        # plt.legend(['std='+s_innov_2_std],loc='upper left',frameon=False)
-        pp.savefig()
-        plt.close(4)
-        # magnetic heading innovations
-        plt.figure(5, figsize=(20, 13))
-        # generate metadata
-        innov_0_max_arg = np.argmax(ekf2_innovations['heading_innov'])
-        innov_0_max_time = innov_time[innov_0_max_arg]
-        innov_0_max = np.amax(ekf2_innovations['heading_innov'])
-        innov_0_min_arg = np.argmin(ekf2_innovations['heading_innov'])
-        innov_0_min_time = innov_time[innov_0_min_arg]
-        innov_0_min = np.amin(ekf2_innovations['heading_innov'])
-        s_innov_0_max = str(round(innov_0_max, 3))
-        s_innov_0_min = str(round(innov_0_min, 3))
-        # s_innov_0_std = str(round(np.std(ekf2_innovations['heading_innov']),3))
-        # draw plot
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['heading_innov'], 'b')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], np.sqrt(ekf2_innovations['heading_innov_var']), 'r')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], -np.sqrt(ekf2_innovations['heading_innov_var']), 'r')
-        plt.title('Magnetic Heading Innovations')
-        plt.ylabel('Heaing (rad)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(innov_0_max_time, innov_0_max, 'max=' + s_innov_0_max, fontsize=12, horizontalalignment='left',
-                 verticalalignment='bottom')
-        plt.text(innov_0_min_time, innov_0_min, 'min=' + s_innov_0_min, fontsize=12, horizontalalignment='left',
-                 verticalalignment='top')
-        # plt.legend(['std='+s_innov_0_std],loc='upper left',frameon=False)
-        pp.savefig()
-        plt.close(5)
-        # air data innovations
-        plt.figure(6, figsize=(20, 13))
-        # generate airspeed metadata
-        airspeed_innov_max_arg = np.argmax(ekf2_innovations['airspeed_innov'])
-        airspeed_innov_max_time = innov_time[airspeed_innov_max_arg]
-        airspeed_innov_max = np.amax(ekf2_innovations['airspeed_innov'])
-        airspeed_innov_min_arg = np.argmin(ekf2_innovations['airspeed_innov'])
-        airspeed_innov_min_time = innov_time[airspeed_innov_min_arg]
-        airspeed_innov_min = np.amin(ekf2_innovations['airspeed_innov'])
-        s_airspeed_innov_max = str(round(airspeed_innov_max, 3))
-        s_airspeed_innov_min = str(round(airspeed_innov_min, 3))
-        # generate sideslip metadata
-        beta_innov_max_arg = np.argmax(ekf2_innovations['beta_innov'])
-        beta_innov_max_time = innov_time[beta_innov_max_arg]
-        beta_innov_max = np.amax(ekf2_innovations['beta_innov'])
-        beta_innov_min_arg = np.argmin(ekf2_innovations['beta_innov'])
-        beta_innov_min_time = innov_time[beta_innov_min_arg]
-        beta_innov_min = np.amin(ekf2_innovations['beta_innov'])
-        s_beta_innov_max = str(round(beta_innov_max, 3))
-        s_beta_innov_min = str(round(beta_innov_min, 3))
-        # draw plots
-        plt.subplot(2, 1, 1)
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['airspeed_innov'], 'b')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], np.sqrt(ekf2_innovations['airspeed_innov_var']), 'r')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], -np.sqrt(ekf2_innovations['airspeed_innov_var']), 'r')
-        plt.title('True Airspeed Innovations')
-        plt.ylabel('innovation (m/sec)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(airspeed_innov_max_time, airspeed_innov_max, 'max=' + s_airspeed_innov_max, fontsize=12,
-                 horizontalalignment='left', verticalalignment='bottom')
-        plt.text(airspeed_innov_min_time, airspeed_innov_min, 'min=' + s_airspeed_innov_min, fontsize=12,
-                 horizontalalignment='left', verticalalignment='top')
-        plt.subplot(2, 1, 2)
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['beta_innov'], 'b')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], np.sqrt(ekf2_innovations['beta_innov_var']), 'r')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], -np.sqrt(ekf2_innovations['beta_innov_var']), 'r')
-        plt.title('Synthetic Sideslip Innovations')
-        plt.ylabel('innovation (rad)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(beta_innov_max_time, beta_innov_max, 'max=' + s_beta_innov_max, fontsize=12, horizontalalignment='left',
-                 verticalalignment='bottom')
-        plt.text(beta_innov_min_time, beta_innov_min, 'min=' + s_beta_innov_min, fontsize=12, horizontalalignment='left',
-                 verticalalignment='top')
-        pp.savefig()
-        plt.close(6)
-        # optical flow innovations
-        plt.figure(7, figsize=(20, 13))
-        # generate X axis metadata
-        flow_innov_x_max_arg = np.argmax(ekf2_innovations['flow_innov[0]'])
-        flow_innov_x_max_time = innov_time[flow_innov_x_max_arg]
-        flow_innov_x_max = np.amax(ekf2_innovations['flow_innov[0]'])
-        flow_innov_x_min_arg = np.argmin(ekf2_innovations['flow_innov[0]'])
-        flow_innov_x_min_time = innov_time[flow_innov_x_min_arg]
-        flow_innov_x_min = np.amin(ekf2_innovations['flow_innov[0]'])
-        s_flow_innov_x_max = str(round(flow_innov_x_max, 3))
-        s_flow_innov_x_min = str(round(flow_innov_x_min, 3))
-        # s_flow_innov_x_std = str(round(np.std(ekf2_innovations['flow_innov[0]']),3))
-        # generate Y axis metadata
-        flow_innov_y_max_arg = np.argmax(ekf2_innovations['flow_innov[1]'])
-        flow_innov_y_max_time = innov_time[flow_innov_y_max_arg]
-        flow_innov_y_max = np.amax(ekf2_innovations['flow_innov[1]'])
-        flow_innov_y_min_arg = np.argmin(ekf2_innovations['flow_innov[1]'])
-        flow_innov_y_min_time = innov_time[flow_innov_y_min_arg]
-        flow_innov_y_min = np.amin(ekf2_innovations['flow_innov[1]'])
-        s_flow_innov_y_max = str(round(flow_innov_y_max, 3))
-        s_flow_innov_y_min = str(round(flow_innov_y_min, 3))
-        # s_flow_innov_y_std = str(round(np.std(ekf2_innovations['flow_innov[1]']),3))
-        # draw plots
-        plt.subplot(2, 1, 1)
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['flow_innov[0]'], 'b')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], np.sqrt(ekf2_innovations['flow_innov_var[0]']), 'r')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], -np.sqrt(ekf2_innovations['flow_innov_var[0]']), 'r')
-        plt.title('Optical Flow Innovations')
-        plt.ylabel('X (rad/sec)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(flow_innov_x_max_time, flow_innov_x_max, 'max=' + s_flow_innov_x_max, fontsize=12,
-                 horizontalalignment='left', verticalalignment='bottom')
-        plt.text(flow_innov_x_min_time, flow_innov_x_min, 'min=' + s_flow_innov_x_min, fontsize=12,
-                 horizontalalignment='left', verticalalignment='top')
-        # plt.legend(['std='+s_flow_innov_x_std],loc='upper left',frameon=False)
-        plt.subplot(2, 1, 2)
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['flow_innov[1]'], 'b')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], np.sqrt(ekf2_innovations['flow_innov_var[1]']), 'r')
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], -np.sqrt(ekf2_innovations['flow_innov_var[1]']), 'r')
-        plt.ylabel('Y (rad/sec)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(flow_innov_y_max_time, flow_innov_y_max, 'max=' + s_flow_innov_y_max, fontsize=12,
-                 horizontalalignment='left', verticalalignment='bottom')
-        plt.text(flow_innov_y_min_time, flow_innov_y_min, 'min=' + s_flow_innov_y_min, fontsize=12,
-                 horizontalalignment='left', verticalalignment='top')
-        # plt.legend(['std='+s_flow_innov_y_std],loc='upper left',frameon=False)
-        pp.savefig()
-        plt.close(7)
 
     # generate metadata for the normalised innovation consistency test levels
     # a value > 1.0 means the measurement data for that test has been rejected by the EKF
@@ -418,100 +240,33 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
     hagl_test_mean = np.mean(estimator_status['hagl_test_ratio'])
 
     if plot:
+
         # plot normalised innovation test levels
         plt.figure(8, figsize=(20, 13))
-        if tas_test_max == 0.0:
-            n_plots = 3
-        else:
-            n_plots = 4
-        plt.subplot(n_plots, 1, 1)
-        plt.plot(status_time, estimator_status['mag_test_ratio'], 'b')
-        plt.title('Normalised Innovation Test Levels')
-        plt.ylabel('mag')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(mag_test_max_time, mag_test_max,
-                 'max=' + str(round(mag_test_max, 2)) + ' , mean=' + str(round(mag_test_mean, 2)), fontsize=12,
-                 horizontalalignment='left', verticalalignment='bottom', color='b')
-        plt.subplot(n_plots, 1, 2)
-        plt.plot(status_time, estimator_status['vel_test_ratio'], 'b')
-        plt.plot(status_time, estimator_status['pos_test_ratio'], 'r')
-        plt.ylabel('vel,pos')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(vel_test_max_time, vel_test_max,
-                 'vel max=' + str(round(vel_test_max, 2)) + ' , mean=' + str(round(vel_test_mean, 2)), fontsize=12,
-                 horizontalalignment='left', verticalalignment='bottom', color='b')
-        plt.text(pos_test_max_time, pos_test_max,
-                 'pos max=' + str(round(pos_test_max, 2)) + ' , mean=' + str(round(pos_test_mean, 2)), fontsize=12,
-                 horizontalalignment='left', verticalalignment='bottom', color='r')
-        plt.subplot(n_plots, 1, 3)
-        plt.plot(status_time, estimator_status['hgt_test_ratio'], 'b')
-        plt.ylabel('hgt')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(hgt_test_max_time, hgt_test_max,
-                 'hgt max=' + str(round(hgt_test_max, 2)) + ' , mean=' + str(round(hgt_test_mean, 2)), fontsize=12,
-                 horizontalalignment='left', verticalalignment='bottom', color='b')
-        if hagl_test_max > 0.0:
-            plt.plot(status_time, estimator_status['hagl_test_ratio'], 'r')
-            plt.text(hagl_test_max_time, hagl_test_max,
-                     'hagl max=' + str(round(hagl_test_max, 2)) + ' , mean=' + str(round(hagl_test_mean, 2)), fontsize=12,
-                     horizontalalignment='left', verticalalignment='bottom', color='r')
-            plt.ylabel('hgt,HAGL')
-        if n_plots == 4:
-            plt.subplot(n_plots, 1, 4)
-            plt.plot(status_time, estimator_status['tas_test_ratio'], 'b')
-            plt.ylabel('TAS')
-            plt.xlabel('time (sec)')
-            plt.grid()
-            plt.text(tas_test_max_time, tas_test_max,
-                     'max=' + str(round(tas_test_max, 2)) + ' , mean=' + str(round(tas_test_mean, 2)), fontsize=12,
-                     horizontalalignment='left', verticalalignment='bottom', color='b')
-        pp.savefig()
-        plt.close(8)
 
-    # extract control mode metadata from estimator_status.control_mode_flags
-    # 0 - true if the filter tilt alignment is complete
-    # 1 - true if the filter yaw alignment is complete
-    # 2 - true if GPS measurements are being fused
-    # 3 - true if optical flow measurements are being fused
-    # 4 - true if a simple magnetic yaw heading is being fused
-    # 5 - true if 3-axis magnetometer measurement are being fused
-    # 6 - true if synthetic magnetic declination measurements are being fused
-    # 7 - true when the vehicle is airborne
-    # 8 - true when wind velocity is being estimated
-    # 9 - true when baro height is being fused as a primary height reference
-    # 10 - true when range finder height is being fused as a primary height reference
-    # 11 - true when range finder height is being fused as a primary height reference
-    # 12 - true when local position data from external vision is being fused
-    # 13 - true when yaw data from external vision measurements is being fused
-    # 14 - true when height data from external vision measurements is being fused
-    tilt_aligned = ((2 ** 0 & estimator_status['control_mode_flags']) > 0) * 1
-    yaw_aligned = ((2 ** 1 & estimator_status['control_mode_flags']) > 0) * 1
-    using_gps = ((2 ** 2 & estimator_status['control_mode_flags']) > 0) * 1
-    using_optflow = ((2 ** 3 & estimator_status['control_mode_flags']) > 0) * 1
-    using_magyaw = ((2 ** 4 & estimator_status['control_mode_flags']) > 0) * 1
-    using_mag3d = ((2 ** 5 & estimator_status['control_mode_flags']) > 0) * 1
-    using_magdecl = ((2 ** 6 & estimator_status['control_mode_flags']) > 0) * 1
-    airborne = ((2 ** 7 & estimator_status['control_mode_flags']) > 0) * 1
-    estimating_wind = ((2 ** 8 & estimator_status['control_mode_flags']) > 0) * 1
-    using_barohgt = ((2 ** 9 & estimator_status['control_mode_flags']) > 0) * 1
-    using_rnghgt = ((2 ** 10 & estimator_status['control_mode_flags']) > 0) * 1
-    using_gpshgt = ((2 ** 11 & estimator_status['control_mode_flags']) > 0) * 1
-    using_evpos = ((2 ** 12 & estimator_status['control_mode_flags']) > 0) * 1
-    using_evyaw = ((2 ** 13 & estimator_status['control_mode_flags']) > 0) * 1
-    using_evhgt = ((2 ** 14 & estimator_status['control_mode_flags']) > 0) * 1
+        variables = [['mag_test_ratio'], ['vel_test_ratio', 'pos_test_ratio'], ['hgt_test_ratio']]
+        if hagl_test_max > 0.0:
+            variables[-1].append('hagl_test_ratio')
+
+        ylabels = ['mag', 'vel, pos', 'hgt']
+
+        if tas_test_max > 0.0:
+            variables.append(['tas_test_ratio'])
+            ylabels.append('TAS')
+
+        plot_test_ratio(
+            pdf_pages, estimator_status, status_time, variables, titles=['Normalised Innovation Test Levels'],
+            xlabel='time (sec)', ylabels=ylabels)
 
     # define flags for starting and finishing in air
     b_starts_in_air = False
     b_finishes_in_air = False
 
     # calculate in-air transition time
-    if (np.amin(airborne) < 0.5) and (np.amax(airborne) > 0.5):
-        in_air_transtion_time_arg = np.argmax(np.diff(airborne))
+    if (np.amin(control_mode['airborne']) < 0.5) and (np.amax(control_mode['airborne']) > 0.5):
+        in_air_transtion_time_arg = np.argmax(np.diff(control_mode['airborne']))
         in_air_transition_time = status_time[in_air_transtion_time_arg]
-    elif (np.amax(airborne) > 0.5):
+    elif (np.amax(control_mode['airborne']) > 0.5):
         in_air_transition_time = np.amin(status_time)
         print('log starts while in-air at ' + str(round(in_air_transition_time, 1)) + ' sec')
         b_starts_in_air = True
@@ -519,64 +274,72 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         in_air_transition_time = float('NaN')
         print('always on ground')
     # calculate on-ground transition time
-    if (np.amin(np.diff(airborne)) < 0.0):
-        on_ground_transition_time_arg = np.argmin(np.diff(airborne))
+    if (np.amin(np.diff(control_mode['airborne'])) < 0.0):
+        on_ground_transition_time_arg = np.argmin(np.diff(control_mode['airborne']))
         on_ground_transition_time = status_time[on_ground_transition_time_arg]
-    elif (np.amax(airborne) > 0.5):
+    elif (np.amax(control_mode['airborne']) > 0.5):
         on_ground_transition_time = np.amax(status_time)
         print('log finishes while in-air at ' + str(round(on_ground_transition_time, 1)) + ' sec')
         b_finishes_in_air = True
     else:
         on_ground_transition_time = float('NaN')
         print('always on ground')
-    if (np.amax(np.diff(airborne)) > 0.5) and (np.amin(np.diff(airborne)) < -0.5):
+    if (np.amax(np.diff(control_mode['airborne'])) > 0.5) and (np.amin(np.diff(control_mode['airborne'])) < -0.5):
         if ((on_ground_transition_time - in_air_transition_time) > 0.0):
             in_air_duration = on_ground_transition_time - in_air_transition_time;
         else:
             in_air_duration = float('NaN')
     else:
         in_air_duration = float('NaN')
+
     # calculate alignment completion times
-    tilt_align_time_arg = np.argmax(np.diff(tilt_aligned))
+    tilt_align_time_arg = np.argmax(np.diff(control_mode['tilt_aligned']))
     tilt_align_time = status_time[tilt_align_time_arg]
-    yaw_align_time_arg = np.argmax(np.diff(yaw_aligned))
+    yaw_align_time_arg = np.argmax(np.diff(control_mode['yaw_aligned']))
     yaw_align_time = status_time[yaw_align_time_arg]
     # calculate position aiding start times
-    gps_aid_time_arg = np.argmax(np.diff(using_gps))
+    gps_aid_time_arg = np.argmax(np.diff(control_mode['using_gps']))
     gps_aid_time = status_time[gps_aid_time_arg]
-    optflow_aid_time_arg = np.argmax(np.diff(using_optflow))
+    optflow_aid_time_arg = np.argmax(np.diff(control_mode['using_optflow']))
     optflow_aid_time = status_time[optflow_aid_time_arg]
-    evpos_aid_time_arg = np.argmax(np.diff(using_evpos))
+    evpos_aid_time_arg = np.argmax(np.diff(control_mode['using_evpos']))
     evpos_aid_time = status_time[evpos_aid_time_arg]
     # calculate height aiding start times
-    barohgt_aid_time_arg = np.argmax(np.diff(using_barohgt))
+    barohgt_aid_time_arg = np.argmax(np.diff(control_mode['using_barohgt']))
     barohgt_aid_time = status_time[barohgt_aid_time_arg]
-    gpshgt_aid_time_arg = np.argmax(np.diff(using_gpshgt))
+    gpshgt_aid_time_arg = np.argmax(np.diff(control_mode['using_gpshgt']))
     gpshgt_aid_time = status_time[gpshgt_aid_time_arg]
-    rnghgt_aid_time_arg = np.argmax(np.diff(using_rnghgt))
+    rnghgt_aid_time_arg = np.argmax(np.diff(control_mode['using_rnghgt']))
     rnghgt_aid_time = status_time[rnghgt_aid_time_arg]
-    evhgt_aid_time_arg = np.argmax(np.diff(using_evhgt))
+    evhgt_aid_time_arg = np.argmax(np.diff(control_mode['using_evhgt']))
     evhgt_aid_time = status_time[evhgt_aid_time_arg]
     # calculate magnetometer aiding start times
-    using_magyaw_time_arg = np.argmax(np.diff(using_magyaw))
+    using_magyaw_time_arg = np.argmax(np.diff(control_mode['using_magyaw']))
     using_magyaw_time = status_time[using_magyaw_time_arg]
-    using_mag3d_time_arg = np.argmax(np.diff(using_mag3d))
+    using_mag3d_time_arg = np.argmax(np.diff(control_mode['using_mag3d']))
     using_mag3d_time = status_time[using_mag3d_time_arg]
-    using_magdecl_time_arg = np.argmax(np.diff(using_magdecl))
+    using_magdecl_time_arg = np.argmax(np.diff(control_mode['using_magdecl']))
     using_magdecl_time = status_time[using_magdecl_time_arg]
 
     if plot:
+
+        '''
+        def control_mode_summary_plot(pdf_pages, control_mode, status_time):
+            plt.figure(figsize=(20, 13))
+        '''
+
+
         # control mode summary plot A
         plt.figure(9, figsize=(20, 13))
         # subplot for alignment completion
         plt.subplot(4, 1, 1)
         plt.title('EKF Control Status - Figure A')
-        plt.plot(status_time, tilt_aligned, 'b')
-        plt.plot(status_time, yaw_aligned, 'r')
+        plt.plot(status_time, control_mode['tilt_aligned'], 'b')
+        plt.plot(status_time, control_mode['yaw_aligned'], 'r')
         plt.ylim(-0.1, 1.1)
         plt.ylabel('aligned')
         plt.grid()
-        if np.amin(tilt_aligned) > 0:
+        if np.amin(control_mode['tilt_aligned']) > 0:
             plt.text(tilt_align_time, 0.5, 'no pre-arm data - cannot calculate alignment completion times', fontsize=12,
                      horizontalalignment='left', verticalalignment='center', color='black')
         else:
@@ -586,22 +349,22 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
                      horizontalalignment='left', verticalalignment='center', color='r')
         # subplot for position aiding
         plt.subplot(4, 1, 2)
-        plt.plot(status_time, using_gps, 'b')
-        plt.plot(status_time, using_optflow, 'r')
+        plt.plot(status_time, control_mode['using_gps'], 'b')
+        plt.plot(status_time, control_mode['using_optflow'], 'r')
         plt.plot(status_time, using_evpos, 'g')
         plt.ylim(-0.1, 1.1)
         plt.ylabel('pos aiding')
         plt.grid()
-        if np.amin(using_gps) > 0:
+        if np.amin(control_mode['using_gps']) > 0:
             plt.text(gps_aid_time, 0.25, 'no pre-arm data - cannot calculate GPS aiding start time', fontsize=12,
                      horizontalalignment='left', verticalalignment='center', color='b')
-        elif np.amax(using_gps) > 0:
+        elif np.amax(control_mode['using_gps']) > 0:
             plt.text(gps_aid_time, 0.25, 'GPS aiding at ' + str(round(gps_aid_time, 1)) + ' sec', fontsize=12,
                      horizontalalignment='left', verticalalignment='center', color='b')
         if np.amin(using_optflow) > 0:
             plt.text(optflow_aid_time, 0.50, 'no pre-arm data - cannot calculate optical flow aiding start time',
                      fontsize=12, horizontalalignment='left', verticalalignment='center', color='r')
-        elif np.amax(using_optflow) > 0:
+        elif np.amax(control_mode['using_optflow']) > 0:
             plt.text(optflow_aid_time, 0.50, 'optical flow aiding at ' + str(round(optflow_aid_time, 1)) + ' sec',
                      fontsize=12, horizontalalignment='left', verticalalignment='center', color='r')
         if np.amin(using_evpos) > 0:
@@ -612,17 +375,17 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
                      fontsize=12, horizontalalignment='left', verticalalignment='center', color='g')
         # subplot for height aiding
         plt.subplot(4, 1, 3)
-        plt.plot(status_time, using_barohgt, 'b')
-        plt.plot(status_time, using_gpshgt, 'r')
-        plt.plot(status_time, using_rnghgt, 'g')
+        plt.plot(status_time, control_mode['using_barohgt'], 'b')
+        plt.plot(status_time, control_mode['using_gpshgt'], 'r')
+        plt.plot(status_time, control_mode['using_rnghgt'], 'g')
         plt.plot(status_time, using_evhgt, 'c')
         plt.ylim(-0.1, 1.1)
         plt.ylabel('hgt aiding')
         plt.grid()
-        if np.amin(using_barohgt) > 0:
+        if np.amin(control_mode['using_barohgt']) > 0:
             plt.text(barohgt_aid_time, 0.2, 'no pre-arm data - cannot calculate Baro aiding start time', fontsize=12,
                      horizontalalignment='left', verticalalignment='center', color='b')
-        elif np.amax(using_barohgt) > 0:
+        elif np.amax(control_mode['using_barohgt']) > 0:
             plt.text(barohgt_aid_time, 0.2, 'Baro aiding at ' + str(round(gps_aid_time, 1)) + ' sec', fontsize=12,
                      horizontalalignment='left', verticalalignment='center', color='b')
         if np.amin(using_gpshgt) > 0:
@@ -631,10 +394,10 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         elif np.amax(using_gpshgt) > 0:
             plt.text(gpshgt_aid_time, 0.4, 'GPS aiding at ' + str(round(gpshgt_aid_time, 1)) + ' sec', fontsize=12,
                      horizontalalignment='left', verticalalignment='center', color='r')
-        if np.amin(using_rnghgt) > 0:
+        if np.amin(control_mode['using_rnghgt']) > 0:
             plt.text(rnghgt_aid_time, 0.6, 'no pre-arm data - cannot calculate rangfinder aiding start time', fontsize=12,
                      horizontalalignment='left', verticalalignment='center', color='g')
-        elif np.amax(using_rnghgt) > 0:
+        elif np.amax(control_mode['using_rnghgt']) > 0:
             plt.text(rnghgt_aid_time, 0.6, 'rangefinder aiding at ' + str(round(rnghgt_aid_time, 1)) + ' sec', fontsize=12,
                      horizontalalignment='left', verticalalignment='center', color='g')
         if np.amin(using_evhgt) > 0:
@@ -645,50 +408,50 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
                      fontsize=12, horizontalalignment='left', verticalalignment='center', color='c')
         # subplot for magnetometer aiding
         plt.subplot(4, 1, 4)
-        plt.plot(status_time, using_magyaw, 'b')
-        plt.plot(status_time, using_mag3d, 'r')
-        plt.plot(status_time, using_magdecl, 'g')
+        plt.plot(status_time, control_mode['using_magyaw'], 'b')
+        plt.plot(status_time, control_mode['using_mag3d'], 'r')
+        plt.plot(status_time, control_mode['using_magdecl'], 'g')
         plt.ylim(-0.1, 1.1)
         plt.ylabel('mag aiding')
         plt.xlabel('time (sec)')
         plt.grid()
-        if np.amin(using_magyaw) > 0:
+        if np.amin(control_mode['using_magyaw']) > 0:
             plt.text(using_magyaw_time, 0.25, 'no pre-arm data - cannot calculate magnetic yaw aiding start time',
                      fontsize=12, horizontalalignment='left', verticalalignment='center', color='b')
-        elif np.amax(using_magyaw) > 0:
+        elif np.amax(control_mode['using_magyaw']) > 0:
             plt.text(using_magyaw_time, 0.25, 'magnetic yaw aiding at ' + str(round(using_magyaw_time, 1)) + ' sec',
                      fontsize=12, horizontalalignment='right', verticalalignment='center', color='b')
-        if np.amin(using_mag3d) > 0:
+        if np.amin(control_mode['using_mag3d']) > 0:
             plt.text(using_mag3d_time, 0.50, 'no pre-arm data - cannot calculate 3D magnetoemter aiding start time',
                      fontsize=12, horizontalalignment='left', verticalalignment='center', color='r')
-        elif np.amax(using_mag3d) > 0:
+        elif np.amax(control_mode['using_mag3d']) > 0:
             plt.text(using_mag3d_time, 0.50, 'magnetometer 3D aiding at ' + str(round(using_mag3d_time, 1)) + ' sec',
                      fontsize=12, horizontalalignment='left', verticalalignment='center', color='r')
-        if np.amin(using_magdecl) > 0:
+        if np.amin(control_mode['using_magdecl']) > 0:
             plt.text(using_magdecl_time, 0.75, 'no pre-arm data - cannot magnetic declination aiding start time',
                      fontsize=12, horizontalalignment='left', verticalalignment='center', color='g')
-        elif np.amax(using_magdecl) > 0:
+        elif np.amax(control_mode['using_magdecl']) > 0:
             plt.text(using_magdecl_time, 0.75,
                      'magnetic declination aiding at ' + str(round(using_magdecl_time, 1)) + ' sec', fontsize=12,
                      horizontalalignment='left', verticalalignment='center', color='g')
-        pp.savefig()
+        pdf_pages.savefig()
         plt.close(9)
         # control mode summary plot B
         plt.figure(10, figsize=(20, 13))
         # subplot for airborne status
         plt.subplot(2, 1, 1)
         plt.title('EKF Control Status - Figure B')
-        plt.plot(status_time, airborne, 'b')
+        plt.plot(status_time, control_mode['airborne'], 'b')
         plt.ylim(-0.1, 1.1)
         plt.ylabel('airborne')
         plt.grid()
-        if np.amax(np.diff(airborne)) < 0.5:
+        if np.amax(np.diff(control_mode['airborne'])) < 0.5:
             plt.text(in_air_transition_time, 0.67, 'ground to air transition not detected', fontsize=12,
                      horizontalalignment='left', verticalalignment='center', color='b')
         else:
             plt.text(in_air_transition_time, 0.67, 'in-air at ' + str(round(in_air_transition_time, 1)) + ' sec',
                      fontsize=12, horizontalalignment='left', verticalalignment='center', color='b')
-        if np.amin(np.diff(airborne)) > -0.5:
+        if np.amin(np.diff(control_mode['airborne'])) > -0.5:
             plt.text(on_ground_transition_time, 0.33, 'air to ground transition not detected', fontsize=12,
                      horizontalalignment='left', verticalalignment='center', color='b')
         else:
@@ -700,39 +463,13 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
                      verticalalignment='center', color='b')
         # subplot for wind estimation status
         plt.subplot(2, 1, 2)
-        plt.plot(status_time, estimating_wind, 'b')
+        plt.plot(status_time, control_mode['estimating_wind'], 'b')
         plt.ylim(-0.1, 1.1)
         plt.ylabel('estimating wind')
         plt.xlabel('time (sec)')
         plt.grid()
-        pp.savefig()
+        pdf_pages.savefig()
         plt.close(10)
-
-    # innovation_check_flags summary
-    # 0 - true if velocity observations have been rejected
-    # 1 - true if horizontal position observations have been rejected
-    # 2 - true if true if vertical position observations have been rejected
-    # 3 - true if the X magnetometer observation has been rejected
-    # 4 - true if the Y magnetometer observation has been rejected
-    # 5 - true if the Z magnetometer observation has been rejected
-    # 6 - true if the yaw observation has been rejected
-    # 7 - true if the airspeed observation has been rejected
-    # 8 - true if synthetic sideslip observation has been rejected
-    # 9 - true if the height above ground observation has been rejected
-    # 10 - true if the X optical flow observation has been rejected
-    # 11 - true if the Y optical flow observation has been rejected
-    vel_innov_fail = ((2 ** 0 & estimator_status['innovation_check_flags']) > 0) * 1
-    posh_innov_fail = ((2 ** 1 & estimator_status['innovation_check_flags']) > 0) * 1
-    posv_innov_fail = ((2 ** 2 & estimator_status['innovation_check_flags']) > 0) * 1
-    magx_innov_fail = ((2 ** 3 & estimator_status['innovation_check_flags']) > 0) * 1
-    magy_innov_fail = ((2 ** 4 & estimator_status['innovation_check_flags']) > 0) * 1
-    magz_innov_fail = ((2 ** 5 & estimator_status['innovation_check_flags']) > 0) * 1
-    yaw_innov_fail = ((2 ** 6 & estimator_status['innovation_check_flags']) > 0) * 1
-    tas_innov_fail = ((2 ** 7 & estimator_status['innovation_check_flags']) > 0) * 1
-    sli_innov_fail = ((2 ** 8 & estimator_status['innovation_check_flags']) > 0) * 1
-    hagl_innov_fail = ((2 ** 9 & estimator_status['innovation_check_flags']) > 0) * 1
-    ofx_innov_fail = ((2 ** 10 & estimator_status['innovation_check_flags']) > 0) * 1
-    ofy_innov_fail = ((2 ** 11 & estimator_status['innovation_check_flags']) > 0) * 1
 
     if plot:
         # plot innovation_check_flags summary
@@ -781,7 +518,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.xlabel('time (sec')
         plt.legend(loc='upper left')
         plt.grid()
-        pp.savefig()
+        pdf_pages.savefig()
         plt.close(11)
         # gps_check_fail_flags summary
         plt.figure(12, figsize=(20, 13))
@@ -828,7 +565,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.xlabel('time (sec')
         plt.legend(loc='upper right')
         plt.grid()
-        pp.savefig()
+        pdf_pages.savefig()
         plt.close(12)
         # filter reported accuracy
         plt.figure(13, figsize=(20, 13))
@@ -839,7 +576,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.xlabel('time (sec')
         plt.legend(loc='upper right')
         plt.grid()
-        pp.savefig()
+        pdf_pages.savefig()
         plt.close(13)
         # Plot the EKF IMU vibration metrics
         plt.figure(14, figsize=(20, 13))
@@ -872,7 +609,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.grid()
         plt.text(vibe_hf_dvel_max_time, vibe_hf_dvel_max, 'max=' + str(round(vibe_hf_dvel_max, 4)), fontsize=12,
                  horizontalalignment='left', verticalalignment='top')
-        pp.savefig()
+        pdf_pages.savefig()
         plt.close(14)
         # Plot the EKF output observer tracking errors
         plt.figure(15, figsize=(20, 13))
@@ -905,7 +642,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.grid()
         plt.text(pos_track_err_max_time, pos_track_err_max, 'max=' + str(round(pos_track_err_max, 2)), fontsize=12,
                  horizontalalignment='left', verticalalignment='top')
-        pp.savefig()
+        pdf_pages.savefig()
         plt.close(15)
         # Plot the delta angle bias estimates
         plt.figure(16, figsize=(20, 13))
@@ -925,7 +662,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.ylabel('Z (rad)')
         plt.xlabel('time (sec)')
         plt.grid()
-        pp.savefig()
+        pdf_pages.savefig()
         plt.close(16)
         # Plot the delta velocity bias estimates
         plt.figure(17, figsize=(20, 13))
@@ -945,7 +682,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.ylabel('Z (m/s)')
         plt.xlabel('time (sec)')
         plt.grid()
-        pp.savefig()
+        pdf_pages.savefig()
         plt.close(17)
         # Plot the earth frame magnetic field estimates
         plt.figure(18, figsize=(20, 13))
@@ -970,7 +707,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.ylabel('inclination (deg)')
         plt.xlabel('time (sec)')
         plt.grid()
-        pp.savefig()
+        pdf_pages.savefig()
         plt.close(18)
         # Plot the body frame magnetic field estimates
         plt.figure(19, figsize=(20, 13))
@@ -990,7 +727,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.ylabel('Z (Gauss)')
         plt.xlabel('time (sec)')
         plt.grid()
-        pp.savefig()
+        pdf_pages.savefig()
         plt.close(19)
         # Plot the EKF wind estimates
         plt.figure(20, figsize=(20, 13))
@@ -1005,10 +742,10 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.ylabel('East (m/s)')
         plt.xlabel('time (sec)')
         plt.grid()
-        pp.savefig()
+        pdf_pages.savefig()
         plt.close(20)
         # close the pdf file
-        pp.close()
+        pdf_pages.close()
         # don't display to screen
         # plt.show()
         # clase all figures
@@ -1191,7 +928,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
             test_results['imu_hfdvel_mean'][0] = np.mean(estimator_status['vibe[2]'][late_start_index:early_end_index + 1])
 
         # Magnetometer Sensor Checks
-        if (np.amax(yaw_aligned) > 0.5):
+        if (np.amax(control_mode['yaw_aligned']) > 0.5):
             mag_num_red = (estimator_status['mag_test_ratio'][start_index:end_index + 1] > 1.0).sum()
             mag_num_amber = (estimator_status['mag_test_ratio'][start_index:end_index + 1] > 0.5).sum() - mag_num_red
             test_results['mag_percentage_red'][0] = 100.0 * mag_num_red / num_valid_values_trimmed
@@ -1209,7 +946,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
                     yaw_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
 
         # Velocity Sensor Checks
-        if (np.amax(using_gps) > 0.5):
+        if (np.amax(control_mode['using_gps']) > 0.5):
             vel_num_red = (estimator_status['vel_test_ratio'][start_index:end_index + 1] > 1.0).sum()
             vel_num_amber = (estimator_status['vel_test_ratio'][start_index:end_index + 1] > 0.5).sum() - vel_num_red
             test_results['vel_percentage_red'][0] = 100.0 * vel_num_red / num_valid_values
@@ -1220,7 +957,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
                     vel_innov_fail[start_index:end_index + 1] > 0.5).sum() / num_valid_values
 
         # Position Sensor Checks
-        if ((np.amax(using_gps) > 0.5) or (np.amax(using_evpos) > 0.5)):
+        if ((np.amax(control_mode['using_gps']) > 0.5) or (np.amax(using_evpos) > 0.5)):
             pos_num_red = (estimator_status['pos_test_ratio'][start_index:end_index + 1] > 1.0).sum()
             pos_num_amber = (estimator_status['pos_test_ratio'][start_index:end_index + 1] > 0.5).sum() - pos_num_red
             test_results['pos_percentage_red'][0] = 100.0 * pos_num_red / num_valid_values
@@ -1263,7 +1000,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
                     hagl_innov_fail[start_index:end_index + 1] > 0.5).sum() / num_valid_values
 
         # optical flow sensor checks
-        if (np.amax(using_optflow) > 0.5):
+        if (np.amax(control_mode['using_optflow']) > 0.5):
             test_results['ofx_fail_percentage'][0] = 100.0 * (
                     ofx_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
             test_results['ofy_fail_percentage'][0] = 100.0 * (
@@ -1380,3 +1117,35 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         test_results['filter_fault_status'][0] = 'Fail'
 
     return test_results
+
+
+def get_innovation_check_flags(estimator_status):
+
+    innov_flags = dict()
+    # innovation_check_flags summary
+    # 0 - true if velocity observations have been rejected
+    # 1 - true if horizontal position observations have been rejected
+    # 2 - true if true if vertical position observations have been rejected
+    # 3 - true if the X magnetometer observation has been rejected
+    # 4 - true if the Y magnetometer observation has been rejected
+    # 5 - true if the Z magnetometer observation has been rejected
+    # 6 - true if the yaw observation has been rejected
+    # 7 - true if the airspeed observation has been rejected
+    # 8 - true if synthetic sideslip observation has been rejected
+    # 9 - true if the height above ground observation has been rejected
+    # 10 - true if the X optical flow observation has been rejected
+    # 11 - true if the Y optical flow observation has been rejected
+    innov_flags['vel_innov_fail'] = ((2 ** 0 & estimator_status['innovation_check_flags']) > 0) * 1
+    innov_flags['posh_innov_fail'] = ((2 ** 1 & estimator_status['innovation_check_flags']) > 0) * 1
+    innov_flags['posv_innov_fail'] = ((2 ** 2 & estimator_status['innovation_check_flags']) > 0) * 1
+    innov_flags['magx_innov_fail'] = ((2 ** 3 & estimator_status['innovation_check_flags']) > 0) * 1
+    innov_flags['magy_innov_fail'] = ((2 ** 4 & estimator_status['innovation_check_flags']) > 0) * 1
+    innov_flags['magz_innov_fail'] = ((2 ** 5 & estimator_status['innovation_check_flags']) > 0) * 1
+    innov_flags['yaw_innov_fail'] = ((2 ** 6 & estimator_status['innovation_check_flags']) > 0) * 1
+    innov_flags['tas_innov_fail'] = ((2 ** 7 & estimator_status['innovation_check_flags']) > 0) * 1
+    innov_flags['sli_innov_fail'] = ((2 ** 8 & estimator_status['innovation_check_flags']) > 0) * 1
+    innov_flags['hagl_innov_fail'] = ((2 ** 9 & estimator_status['innovation_check_flags']) > 0) * 1
+    innov_flags['ofx_innov_fail'] = ((2 ** 10 & estimator_status['innovation_check_flags']) > 0) * 1
+    innov_flags['ofy_innov_fail'] = ((2 ** 11 & estimator_status['innovation_check_flags']) > 0) * 1
+    return innov_flags
+
