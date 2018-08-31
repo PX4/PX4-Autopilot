@@ -59,6 +59,18 @@
 #  define __END_DECLS
 #endif
 
+/* exit() is used on NuttX to exit a task. However on Posix, it will exit the
+ * whole application, so we prevent its use there. There are cases where it
+ * still needs to be used, thus we remap system_exit to exit.
+ */
+#define system_exit exit
+#ifdef __PX4_POSIX
+#include <stdlib.h>
+#ifdef __cplusplus
+#include <cstdlib>
+#endif
+#pragma GCC poison exit
+#endif
 
 #ifdef __PX4_NUTTX
 /* On NuttX we call clearenv() so we cannot use getenv() and others (see px4_task_spawn_cmd() in px4_nuttx_tasks.c).
