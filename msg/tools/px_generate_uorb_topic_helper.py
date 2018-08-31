@@ -77,8 +77,8 @@ type_printf_map = {
     'uint16': '%u',
     'uint32': '%" PRIu32 "',
     'uint64': '%" PRIu64 "',
-    'float32': '%.3f',
-    'float64': '%.3f',
+    'float32': '%.4f',
+    'float64': '%.6f',
     'bool': '%u',
     'char': '%c',
 }
