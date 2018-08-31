@@ -115,7 +115,7 @@ void
 px4_systemreset(bool to_bootloader)
 {
 	PX4_WARN("Called px4_system_reset");
-	exit(0);
+	system_exit(0);
 }
 
 px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, px4_main_t entry,
