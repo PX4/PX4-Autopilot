@@ -326,7 +326,7 @@ int tone_alarm_main(int argc, char *argv[])
 		if (!strcmp(argv1, "start")) {
 			if (g_dev != nullptr) {
 				PX4_ERR("already started");
-				exit(1);
+				return 1;
 			}
 
 			if (g_dev == nullptr) {
@@ -334,33 +334,33 @@ int tone_alarm_main(int argc, char *argv[])
 
 				if (g_dev == nullptr) {
 					PX4_ERR("couldn't allocate the ToneAlarm driver");
-					exit(1);
+					return 1;
 				}
 
 				if (OK != g_dev->init()) {
 					delete g_dev;
 					g_dev = nullptr;
 					PX4_ERR("ToneAlarm init failed");
-					exit(1);
+					return 1;
 				}
 			}
 
-			exit(0);
+			return 0;
 		}
 
 		if (!strcmp(argv1, "stop")) {
 			delete g_dev;
 			g_dev = nullptr;
-			exit(0);
+			return 0;
 		}
 
 		if (!strcmp(argv1, "status")) {
 			g_dev->status();
-			exit(0);
+			return 0;
 		}
 
 	}
 
 	tone_alarm_usage();
-	exit(0);
+	return 0;
 }
