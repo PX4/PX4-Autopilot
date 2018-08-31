@@ -49,7 +49,6 @@ foreach(test_name ${tests})
 	add_test(NAME ${test_name}
 		COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
 			$<TARGET_FILE:px4>
-			posix-configs/SITL/init/test
 			none
 			none
 			test_${test_name}_generated
@@ -66,7 +65,6 @@ endforeach()
 add_test(NAME mavlink
 	COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
 		$<TARGET_FILE:px4>
-		posix-configs/SITL/init/test
 		none
 		none
 		test_mavlink
@@ -92,7 +90,6 @@ foreach(cmd_name ${test_cmds})
 	add_test(NAME posix_${cmd_name}
 		COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
 			$<TARGET_FILE:px4>
-			posix-configs/SITL/init/test
 			none
 			none
 			cmd_${cmd_name}_generated

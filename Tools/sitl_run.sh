@@ -3,17 +3,15 @@
 set -e
 
 sitl_bin="$1"
-rcS_path="$2"
-debugger="$3"
-program="$4"
-model="$5"
-src_path="$6"
-build_path="$7"
+debugger="$2"
+program="$3"
+model="$4"
+src_path="$5"
+build_path="$6"
 
 echo SITL ARGS
 
 echo sitl_bin: $sitl_bin
-echo rcS_path: $rcS_path
 echo debugger: $debugger
 echo program: $program
 echo model: $model
@@ -36,9 +34,9 @@ then
 	model="iris"
 fi
 
-if [ "$#" -lt 7 ]
+if [ "$#" -lt 6 ]
 then
-	echo usage: sitl_run.sh sitl_bin rcS_path debugger program model src_path build_path
+	echo usage: sitl_run.sh sitl_bin debugger program model src_path build_path
 	echo ""
 	exit 1
 fi
@@ -99,7 +97,7 @@ pushd "$rootfs" >/dev/null
 set +e
 
 if [[ ${model} == test_* ]] || [[ ${model} == *_generated ]]; then
-	sitl_command="$sitl_bin $no_pxh $src_path/ROMFS/px4fmu_test -s ${src_path}/${rcS_path}/${model} -t $src_path/test_data"
+	sitl_command="$sitl_bin $no_pxh $src_path/ROMFS/px4fmu_test -s ${src_path}/posix-configs/SITL/init/test/${model} -t $src_path/test_data"
 else
 	sitl_command="$sitl_bin $no_pxh $src_path/ROMFS/px4fmu_common -s etc/init.d-posix/rcS -t $src_path/test_data"
 fi
