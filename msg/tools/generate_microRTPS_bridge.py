@@ -142,8 +142,8 @@ if del_tree:
 if agent and os.path.isdir(agent_out_dir + "/idl"):
     shutil.rmtree(agent_out_dir + "/idl")
 
-uorb_templates_dir = msg_folder + get_absolute_path(args.uorb_templates)
-urtps_templates_dir = msg_folder + get_absolute_path(args.urtps_templates)
+uorb_templates_dir = msg_folder + args.uorb_templates
+urtps_templates_dir = msg_folder + args.urtps_templates
 
 uRTPS_CLIENT_TEMPL_FILE = 'microRTPS_client.cpp.template'
 uRTPS_AGENT_TOPICS_H_TEMPL_FILE = 'RtpsTopics.h.template'
