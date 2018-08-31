@@ -1253,6 +1253,10 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	vision_position.y = pos.y;
 	vision_position.z = pos.z;
 
+	//copy horizontal and vertical covariances
+	vision_position.eph = fmaxf(pos.covariance[0], pos.covariance[6]);
+	vision_position.epv = pos.covariance[11];
+
 	vision_position.xy_valid = true;
 	vision_position.z_valid = true;
 	vision_position.v_xy_valid = true;

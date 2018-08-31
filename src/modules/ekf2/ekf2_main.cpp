@@ -1173,8 +1173,9 @@ void Ekf2::run()
 			ev_data.quat = q;
 
 			// position measurement error from parameters. TODO : use covariances from topic
-			ev_data.posErr = fmaxf(_ev_pos_noise.get(), fmaxf(ev_pos.eph, ev_pos.epv));
+			ev_data.posErr = fmaxf(_ev_pos_noise.get(), ev_pos.eph);
 			ev_data.angErr = _ev_ang_noise.get();
+			ev_data.hgtErr = fmaxf(_ev_pos_noise.get(), ev_pos.epv);
 
 			// only set data if all positions and velocities are valid
 			if (ev_pos.xy_valid && ev_pos.z_valid && ev_pos.v_xy_valid && ev_pos.v_z_valid) {
