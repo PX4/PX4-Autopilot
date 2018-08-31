@@ -10,7 +10,6 @@ add_custom_target(logs_symlink DEPENDS ${PX4_BINARY_DIR}/logs)
 add_custom_target(run_config
 		COMMAND Tools/sitl_run.sh
 			$<TARGET_FILE:px4>
-			${config_sitl_rcS_dir}
 			${config_sitl_debugger}
 			${config_sitl_viewer}
 			${config_sitl_model}
@@ -69,7 +68,6 @@ foreach(viewer ${viewers})
 			add_custom_target(${_targ_name}
 					COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
 						$<TARGET_FILE:px4>
-						${config_sitl_rcS_dir}
 						${debugger}
 						${viewer}
 						${model}
