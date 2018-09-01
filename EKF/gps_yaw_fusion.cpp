@@ -59,7 +59,7 @@ void Ekf::fuseGpsAntYaw()
 	float measured_hdg;
 
 	// check if data has been set to NAN indicating no measurement
-	if (isfinite(_gps_sample_delayed.yaw)) {
+	if (ISFINITE(_gps_sample_delayed.yaw)) {
 		// calculate the observed yaw angle of antenna array, converting a from body to antenna yaw measurement
 		measured_hdg = _gps_sample_delayed.yaw + _gps_yaw_offset;
 
@@ -293,7 +293,7 @@ void Ekf::fuseGpsAntYaw()
 bool Ekf::resetGpsAntYaw()
 {
 	// check if data has been set to NAN indicating no measurement
-	if (isfinite(_gps_sample_delayed.yaw)) {
+	if (ISFINITE(_gps_sample_delayed.yaw)) {
 
 		// define the predicted antenna array vector and rotate into earth frame
 		Vector3f ant_vec_bf = {cosf(_gps_yaw_offset), sinf(_gps_yaw_offset), 0.0f};
