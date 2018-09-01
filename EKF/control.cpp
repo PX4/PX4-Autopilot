@@ -513,7 +513,7 @@ void Ekf::controlGpsFusion()
 
 		// GPS yaw aiding selection logic
 		if ((_params.fusion_mode & MASK_USE_GPSYAW)
-				&& isfinite(_gps_sample_delayed.yaw)
+				&& ISFINITE(_gps_sample_delayed.yaw)
 				&& _control_status.flags.tilt_align
 				&& (!_control_status.flags.gps_yaw || !_control_status.flags.yaw_align)
 				&& (_time_last_imu - _time_last_gps < 2 * GPS_MAX_INTERVAL)) {
