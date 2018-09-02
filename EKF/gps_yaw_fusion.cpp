@@ -76,8 +76,8 @@ void Ekf::fuseGpsAntYaw()
 		predicted_hdg =  atan2f(ant_vec_ef(1),ant_vec_ef(0));
 
 		// calculate observation jacobian
-		float t2 = sin(_gps_yaw_offset);
-		float t3 = cos(_gps_yaw_offset);
+		float t2 = sinf(_gps_yaw_offset);
+		float t3 = cosf(_gps_yaw_offset);
 		float t4 = q0*q3*2.0f;
 		float t5 = q0*q0;
 		float t6 = q1*q1;
