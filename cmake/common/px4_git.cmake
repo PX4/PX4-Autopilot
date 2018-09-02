@@ -81,6 +81,7 @@ function(px4_add_git_submodule)
 		DEPENDS ${PX4_SOURCE_DIR}/.gitmodules ${PATH}/.git
 		COMMENT "git submodule ${PATH}"
 		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+		USES_TERMINAL
 		)
 
 	add_custom_target(${TARGET} DEPENDS git_init_${NAME}.stamp)
