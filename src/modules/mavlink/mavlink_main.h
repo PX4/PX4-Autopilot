@@ -237,7 +237,7 @@ public:
 
 	bool			get_forwarding_on() { return _forwarding_on; }
 
-	bool			is_connected() { return ((_tstatus.heartbeat_time > 0) && (hrt_absolute_time() - _tstatus.heartbeat_time < 3_s)); }
+	bool			is_connected() { return (hrt_elapsed_time(&_tstatus.heartbeat_time) < 3_s); }
 
 	bool			broadcast_enabled() { return _param_broadcast_mode.get() == BROADCAST_MODE_ON; }
 
@@ -422,6 +422,8 @@ public:
 	 * Get the receive status of this MAVLink link
 	 */
 	telemetry_status_s	&get_telemetry_status() { return _tstatus; }
+
+	void				set_telemetry_status_type(uint8_t type) { _tstatus.type = type; }
 
 	void update_radio_status(const radio_status_s &radio_status);
 
