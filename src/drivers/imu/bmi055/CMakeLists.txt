@@ -33,8 +33,7 @@
 px4_add_module(
 	MODULE drivers__bmi055
 	MAIN bmi055
-	STACK_MAIN 1200
-	COMPILE_FLAGS
+	STACK_MAIN 1500
 	SRCS		
 		BMI055_accel.cpp
 		BMI055_gyro.cpp
