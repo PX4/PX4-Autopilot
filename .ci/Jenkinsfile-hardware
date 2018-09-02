@@ -31,7 +31,7 @@ pipeline {
           }
         }
 
-        stage('px4fmu-v4') {
+        stage('px4fmu-v4 (stackcheck)') {
           agent {
             docker {
               image 'px4io/px4-dev-nuttx:2018-08-05'
@@ -43,10 +43,10 @@ pipeline {
             sh 'make distclean'
             sh 'ccache -z'
             sh 'git fetch --tags'
-            sh 'make nuttx_px4fmu-v4_default'
+            sh 'make nuttx_px4fmu-v4_stackcheck'
             sh 'make sizes'
             sh 'ccache -s'
-            stash includes: 'build/nuttx_px4fmu-v4_default/nuttx_px4fmu-v4_default.elf', name: 'px4fmu-v4_default'
+            stash includes: 'build/nuttx_px4fmu-v4_stackcheck/nuttx_px4fmu-v4_stackcheck.elf', name: 'px4fmu-v4_stackcheck'
             stash includes: 'Tools/HIL/monitor_firmware_upload.py, Tools/HIL/run_tests.py', name: 'scripts-px4fmu-v4'
           }
           post {
@@ -107,7 +107,7 @@ pipeline {
                 sh 'export'
                 sh 'find /dev/serial'
                 unstash 'scripts-px4fmu-v4'
-                unstash 'px4fmu-v4_default'
+                unstash 'px4fmu-v4_stackcheck'
                 sh ''' gdb -nx --batch \
                       -ex "target extended-remote `find /dev/serial -name *Black_Magic_Probe_*-if00`" \
                       -ex "monitor version" \
@@ -116,7 +116,7 @@ pipeline {
                       -ex "attach 1" \
                       -ex "load" \
                       -ex "kill" \
-                      build/nuttx_px4fmu-v4_default/nuttx_px4fmu-v4_default.elf
+                      build/nuttx_px4fmu-v4_stackcheck/nuttx_px4fmu-v4_stackcheck.elf
                 '''
                 sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *Black_Magic_Probe_*-if02` --baudrate 57600'
                 sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *Black_Magic_Probe_*-if02`'
