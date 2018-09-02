@@ -382,7 +382,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 		bool flow_quality_good = (flow->quality >= _params.flow_qual_min);
 
 		// Check data validity and write to buffers
-		// Use a zero velocity assumption to constrain drift when on-ground if necessary
+		// Invalid flow data is allowed when on ground and is handled as a special case in controlOpticalFlowFusion()
 		bool use_flow_data_to_navigate = delta_time_good && flow_quality_good && (flow_magnitude_good || relying_on_flow);
 		if (use_flow_data_to_navigate || (!_control_status.flags.in_air && relying_on_flow)) {
 			flowSample optflow_sample_new;
@@ -396,16 +396,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 			// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate
 			// is produced by a RH rotation of the image about the sensor axis.
 			optflow_sample_new.gyroXYZ = - flow->gyrodata;
-
-			// If flow quality checks are failed, then we are on ground without another method of navigation
-			// and can use a zero velocity assumption to constrain drift
-			if (!use_flow_data_to_navigate) {
-				// set flow rates to value consistent with pure rotational motion
-				optflow_sample_new.flowRadXY(0) = - flow->gyrodata(0);
-				optflow_sample_new.flowRadXY(1) = - flow->gyrodata(1);
-			} else {
-				optflow_sample_new.flowRadXY = -flow->flowdata;
-			}
+			optflow_sample_new.flowRadXY = -flow->flowdata;
 
 			// convert integration interval to seconds
 			optflow_sample_new.dt = delta_time;
