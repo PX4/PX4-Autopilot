@@ -1597,6 +1597,17 @@ Mavlink::update_rate_mult()
 		hardware_mult = (_tstatus.rate_tx) / (_tstatus.rate_tx + _tstatus.rate_txerr);
 
 	} else if (_radio_status_available) {
+
+		// check for RADIO_STATUS timeout and reset
+		if (hrt_elapsed_time(&_rstatus.timestamp) > 5_s) {
+			PX4_ERR("instance %d: RADIO_STATUS timeout", _instance_id);
+			set_telemetry_status_type(telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_GENERIC);
+
+			_radio_status_available = false;
+			_radio_status_critical = false;
+			_radio_status_mult = 1.0f;
+		}
+
 		hardware_mult *= _radio_status_mult;
 	}
 
