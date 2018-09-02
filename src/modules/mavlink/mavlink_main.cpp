@@ -302,11 +302,8 @@ Mavlink::Mavlink() :
 		break;
 	}
 
-	_tstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_GENERIC;
-
 	// initialise parameter cache
 	mavlink_update_parameters();
-
 
 	// save the current system- and component ID because we don't allow them to change during operation
 	int sys_id = _param_system_id.get();
@@ -756,9 +753,11 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, bool force_flow_
 
 	} else {
 		_is_usb_uart = true;
+
 		/* USB has no baudrate, but use a magic number for 'fast' */
 		_baudrate = 2000000;
-		_tstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB;
+
+		set_telemetry_status_type(telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB);
 	}
 
 #if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
@@ -1612,30 +1611,23 @@ void
 Mavlink::update_radio_status(const radio_status_s &radio_status)
 {
 	_rstatus = radio_status;
+	set_telemetry_status_type(telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO);
 
 	/* check hardware limits */
-	if (radio_status.type == telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO) {
+	_radio_status_available = true;
+	_radio_status_critical = (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE);
 
-		_radio_status_available = true;
-		_radio_status_critical = (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE);
+	if (radio_status.txbuf < RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE) {
+		/* this indicates link congestion, reduce rate by 20% */
+		_radio_status_mult *= 0.80f;
 
-		if (radio_status.txbuf < RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE) {
-			/* this indicates link congestion, reduce rate by 20% */
-			_radio_status_mult *= 0.80f;
+	} else if (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE) {
+		/* this indicates link congestion, reduce rate by 2.5% */
+		_radio_status_mult *= 0.975f;
 
-		} else if (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE) {
-			/* this indicates link congestion, reduce rate by 2.5% */
-			_radio_status_mult *= 0.975f;
-
-		} else if (radio_status.txbuf > RADIO_BUFFER_HALF_PERCENTAGE) {
-			/* this indicates spare bandwidth, increase by 2.5% */
-			_radio_status_mult *= 1.025f;
-		}
-
-	} else {
-		_radio_status_available = false;
-		_radio_status_critical = false;
-		_radio_status_mult = 1.0f;
+	} else if (radio_status.txbuf > RADIO_BUFFER_HALF_PERCENTAGE) {
+		/* this indicates spare bandwidth, increase by 2.5% */
+		_radio_status_mult *= 1.025f;
 	}
 }
 
@@ -1968,7 +1960,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 			} else if (strcmp(myoptarg, "iridium") == 0) {
 				_mode = MAVLINK_MODE_IRIDIUM;
-				_tstatus.type = telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM;
+				set_telemetry_status_type(telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_IRIDIUM);
 
 			} else if (strcmp(myoptarg, "minimal") == 0) {
 				_mode = MAVLINK_MODE_MINIMAL;
@@ -2646,7 +2638,6 @@ Mavlink::start(int argc, char *argv[])
 void
 Mavlink::display_status()
 {
-
 	if (_tstatus.heartbeat_time > 0) {
 		printf("\tGCS heartbeat:\t%llu us ago\n", (unsigned long long)hrt_elapsed_time(&_tstatus.heartbeat_time));
 	}
@@ -2660,13 +2651,13 @@ Mavlink::display_status()
 		switch (_tstatus.type) {
 		case telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO:
 			printf("3DR RADIO\n");
-			printf("\trssi:\t\t%d\n", _rstatus.rssi);
-			printf("\tremote rssi:\t%u\n", _rstatus.remote_rssi);
-			printf("\ttxbuf:\t\t%u\n", _rstatus.txbuf);
-			printf("\tnoise:\t\t%d\n", _rstatus.noise);
-			printf("\tremote noise:\t%u\n", _rstatus.remote_noise);
-			printf("\trx errors:\t%u\n", _rstatus.rxerrors);
-			printf("\tfixed:\t\t%u\n", _rstatus.fixed);
+			printf("\t  rssi:\t\t%d\n", _rstatus.rssi);
+			printf("\t  remote rssi:\t%u\n", _rstatus.remote_rssi);
+			printf("\t  txbuf:\t%u\n", _rstatus.txbuf);
+			printf("\t  noise:\t%d\n", _rstatus.noise);
+			printf("\t  remote noise:\t%u\n", _rstatus.remote_noise);
+			printf("\t  rx errors:\t%u\n", _rstatus.rxerrors);
+			printf("\t  fixed:\t%u\n", _rstatus.fixed);
 			break;
 
 		case telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB:
