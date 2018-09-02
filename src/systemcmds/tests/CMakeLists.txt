@@ -86,7 +86,6 @@ px4_add_module(
 	MODULE systemcmds__tests
 	MAIN tests
 	STACK_MAIN 10000
-	STACK_MAX 10000
 	COMPILE_FLAGS
 		-Wno-sign-compare # TODO: fix all sign-compare
 		-Wno-unused-result
