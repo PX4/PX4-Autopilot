@@ -179,6 +179,7 @@ GPSSIM::GPSSIM(bool fake_gps, bool enable_sat_info,
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
 	_report_gps_pos.heading = NAN;
+	_report_gps_pos.heading_offset = NAN;
 
 	/* create satellite info data object if requested */
 	if (enable_sat_info) {
