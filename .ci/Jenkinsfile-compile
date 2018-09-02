@@ -7,6 +7,8 @@ pipeline {
     stage('Build') {
       steps {
         script {
+          build job: 'PX4_misc/check-slaves', propagate: false 
+
           def build_nodes = [:]
           def docker_images = [
             arch: "px4io/px4-dev-base-archlinux:2018-09-11",
@@ -25,7 +27,15 @@ pipeline {
               withEnv(["CCACHE_BASEDIR=${pwd()}"]) {
                 stage("sitl (OSX)") {
                   try {
-                    checkout(scm)
+                    retry(3) {
+                      try {
+                        checkout(scm)
+                      }
+                      catch (exc) {
+                        cleanWs()
+                        throw (exc)
+                      }
+                    }
                     sh('export')
                     sh('make distclean')
                     sh('ccache -z')
@@ -33,10 +43,6 @@ pipeline {
                     sh('ccache -s')
                   }
                   catch (exc) {
-                    retry(3) {
-                      cleanWs()
-                      build 'posix_sitl_default (OSX)'
-                    }
                     throw (exc)
                   }
                   finally {
@@ -53,7 +59,15 @@ pipeline {
               withEnv(["CCACHE_BASEDIR=${pwd()}"]) {
                 stage("px4fmu-v4pro (OSX)") {
                   try {
-                    checkout(scm)
+                    retry(3) {
+                      try {
+                        checkout(scm)
+                      }
+                      catch (exc) {
+                        cleanWs()
+                        throw (exc)
+                      }
+                    }
                     sh('export')
                     sh('make distclean')
                     sh('ccache -z')
@@ -61,10 +75,6 @@ pipeline {
                     sh('ccache -s')
                   }
                   catch (exc) {
-                    retry(3) {
-                      cleanWs()
-                      build 'px4fmu-v4pro_default (OSX)'
-                    }
                     throw (exc)
                   }
                   finally {
