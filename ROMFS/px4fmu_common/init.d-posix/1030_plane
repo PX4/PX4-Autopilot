@@ -29,6 +29,7 @@ then
 
 	param set MIS_LTRMIN_ALT 30
 	param set MIS_TAKEOFF_ALT 30
+
 	param set NAV_ACC_RAD 15.0
 	param set NAV_DLL_ACT 2
 	param set NAV_LOITER_RAD 50
@@ -40,4 +41,3 @@ fi
 
 set MIXER_FILE etc/mixers-sitl/plane_sitl.main.mix
 set MIXER custom
-

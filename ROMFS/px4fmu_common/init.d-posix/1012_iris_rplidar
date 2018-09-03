@@ -11,4 +11,3 @@ if [ $AUTOCNF = yes ]
 then
 	param set LPE_FUSION 242
 fi
-
