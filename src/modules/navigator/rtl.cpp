@@ -309,17 +309,25 @@ RTL::advance_rtl()
 	case RTL_STATE_RETURN:
 		_rtl_state = RTL_STATE_DESCEND;
 
+		break;
+
+	case RTL_STATE_DESCEND:
+
+		// if we are a VTOL and in fixed wing mode then we should now transition to rotary wing mode
 		if (_navigator->get_vstatus()->is_vtol && !_navigator->get_vstatus()->is_rotary_wing) {
 			_rtl_state = RTL_STATE_TRANSITION_TO_MC;
+
+		} else if (_param_land_delay.get() < -DELAY_SIGMA || _param_land_delay.get() > DELAY_SIGMA) {
+			// Only go to land if autoland is enabled.
+			_rtl_state = RTL_STATE_LOITER;
+
+		} else {
+			_rtl_state = RTL_STATE_LAND;
 		}
 
 		break;
 
 	case RTL_STATE_TRANSITION_TO_MC:
-		_rtl_state = RTL_STATE_RETURN;
-		break;
-
-	case RTL_STATE_DESCEND:
 
 		// Only go to land if autoland is enabled.
 		if (_param_land_delay.get() < -DELAY_SIGMA || _param_land_delay.get() > DELAY_SIGMA) {
