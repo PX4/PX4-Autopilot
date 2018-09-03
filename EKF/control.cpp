@@ -420,7 +420,7 @@ void Ekf::controlOpticalFlowFusion()
 			       _control_status.flags.opt_flow = false;
 			       _time_last_of_fuse = 0;
 
-			} else if (_time_last_imu - _flow_sample_delayed.time_us > (uint64_t)_params.no_gps_timeout_max) {
+			} else if (_time_last_imu - _time_last_of_fuse > (uint64_t)_params.no_gps_timeout_max) {
 				_control_status.flags.opt_flow = false;
 
 			}
