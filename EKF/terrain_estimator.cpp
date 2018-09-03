@@ -206,7 +206,7 @@ void Ekf::checkRangeDataContinuity()
 	/* Apply a 2.0 sec low pass filter to the time delta from the last range finder updates */
 	float alpha = 0.5f * _dt_update;
 	_dt_last_range_update_filt_us = _dt_last_range_update_filt_us * (1.0f - alpha) + alpha *
-					(_time_last_imu - _time_last_range);
+					(_imu_sample_delayed.time_us - _range_sample_delayed.time_us);
 
 	_dt_last_range_update_filt_us = fminf(_dt_last_range_update_filt_us, 4e6f);
 
