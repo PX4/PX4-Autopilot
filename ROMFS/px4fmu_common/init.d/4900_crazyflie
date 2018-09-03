@@ -71,7 +71,6 @@ then
 
 fi
 
-# TODO - These values overwrite param sets above.  Can they be removed?
 set PWM_DISARMED none
 set PWM_MAX none
 set PWM_MIN none

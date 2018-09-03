@@ -2,4 +2,3 @@
 # shellcheck disable=SC2154
 mavlink stream -r 10 -s DISTANCE_SENSOR -u $udp_gcs_port_local
 mavlink stream -r 10 -s VISION_POSITION_ESTIMATE -u $udp_gcs_port_local
-

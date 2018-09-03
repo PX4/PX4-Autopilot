@@ -9,16 +9,16 @@ sh /etc/init.d/rc.vtol_defaults
 
 if [ $AUTOCNF = yes ]
 then
-	param set MAV_TYPE 20
-
 	param set FW_AIRSPD_MAX 25
 	param set FW_AIRSPD_MIN 14
 	param set FW_AIRSPD_TRIM 16
 
 	param set MC_ROLLRATE_P 0.3
+
 	param set MIS_LTRMIN_ALT 10
 	param set MIS_TAKEOFF_ALT 10
 	param set MIS_YAW_TMT 10
+
 	param set MPC_ACC_HOR_MAX 2
 	param set MPC_ACC_HOR_MAX 2.0
 	param set MPC_THR_MIN 0.1
@@ -41,7 +41,7 @@ then
 	param set WEST_EN 1
 fi
 
+set MAV_TYPE 20
+
 set MIXER_FILE etc/mixers-sitl/quad_x_vtol.main.mix
 set MIXER custom
-
-

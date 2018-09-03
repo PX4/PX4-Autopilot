@@ -9,8 +9,6 @@ sh /etc/init.d/rc.mc_defaults
 
 if [ $AUTOCNF = yes ]
 then
-	param set MAV_TYPE 13
-
 	param set MC_PITCHRATE_P 0.1
 	param set MC_ROLLRATE_P 0.05
 	param set MPC_XY_VEL_I 0.2
@@ -25,5 +23,6 @@ then
 	param set MAV_PROTO_VER 2
 fi
 
-set MIXER hexa_x
+set MAV_TYPE 13
 
+set MIXER hexa_x
