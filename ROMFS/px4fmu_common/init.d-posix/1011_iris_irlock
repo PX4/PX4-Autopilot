@@ -7,11 +7,9 @@
 
 sh /etc/init.d-posix/10016_iris
 
-
 if [ $AUTOCNF = yes ]
 then
 	# enable fusion of landing target velocity
 	param set LTEST_MODE 1
 	param set PLD_HACC_RAD 0.1
 fi
-
