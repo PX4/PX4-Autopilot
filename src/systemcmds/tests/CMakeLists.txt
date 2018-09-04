@@ -35,7 +35,7 @@ set(srcs
 	test_adc.c
 	test_autodeclination.cpp
 	test_bezierQuad.cpp
-	test_bson.c
+	test_bson.cpp
 	test_conv.cpp
 	test_dataman.c
 	test_file.c

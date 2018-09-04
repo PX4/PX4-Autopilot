@@ -67,7 +67,7 @@ read_x(bson_decoder_t decoder, void *p, size_t s)
 		return (BSON_READ(decoder->fd, p, s) == s) ? 0 : -1;
 	}
 
-	if (decoder->buf != NULL) {
+	if (decoder->buf != nullptr) {
 		/* staged operations to avoid integer overflow for corrupt data */
 		if (s >= decoder->bufsize) {
 			CODER_KILL(decoder, "buffer too small for read");
@@ -116,7 +116,7 @@ bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder_callback cal
 	int32_t	junk;
 
 	decoder->fd = fd;
-	decoder->buf = NULL;
+	decoder->buf = nullptr;
 	decoder->dead = false;
 	decoder->callback = callback;
 	decoder->priv = priv;
@@ -140,7 +140,7 @@ bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_
 	int32_t	len;
 
 	/* argument sanity */
-	if ((buf == NULL) || (callback == NULL)) {
+	if ((buf == nullptr) || (callback == nullptr)) {
 		return -1;
 	}
 
@@ -216,7 +216,7 @@ bson_decoder_next(bson_decoder_t decoder)
 		CODER_KILL(decoder, "read error on type byte");
 	}
 
-	decoder->node.type = tbyte;
+	decoder->node.type = (bson_type_t)tbyte;
 	decoder->pending = 0;
 
 	debug("got type byte 0x%02x", decoder->node.type);
@@ -295,7 +295,7 @@ bson_decoder_next(bson_decoder_t decoder)
 				CODER_KILL(decoder, "read error on BSON_BINDATA subtype");
 			}
 
-			decoder->node.subtype = tbyte;
+			decoder->node.subtype = (bson_binary_subtype_t)tbyte;
 			break;
 
 		/* XXX currently not supporting other types */
@@ -339,7 +339,7 @@ write_x(bson_encoder_t encoder, const void *p, size_t s)
 	CODER_CHECK(encoder);
 
 	/* bson file encoder (non-buffered) */
-	if (encoder->fd > -1 && encoder->buf == NULL) {
+	if (encoder->fd > -1 && encoder->buf == nullptr) {
 		return (BSON_WRITE(encoder->fd, p, s) == (int)s) ? 0 : -1;
 	}
 
@@ -371,9 +371,9 @@ write_x(bson_encoder_t encoder, const void *p, size_t s)
 			CODER_KILL(encoder, "fixed-size buffer overflow");
 		}
 
-		uint8_t *newbuf = realloc(encoder->buf, encoder->bufsize + BSON_BUF_INCREMENT);
+		uint8_t *newbuf = (uint8_t *)realloc(encoder->buf, encoder->bufsize + BSON_BUF_INCREMENT);
 
-		if (newbuf == NULL) {
+		if (newbuf == nullptr) {
 			CODER_KILL(encoder, "could not grow buffer");
 		}
 
@@ -429,7 +429,7 @@ int
 bson_encoder_init_file(bson_encoder_t encoder, int fd)
 {
 	encoder->fd = fd;
-	encoder->buf = NULL;
+	encoder->buf = nullptr;
 	encoder->dead = false;
 
 	if (write_int32(encoder, 0)) {
@@ -464,7 +464,7 @@ bson_encoder_init_buf(bson_encoder_t encoder, void *buf, unsigned bufsize)
 	encoder->bufpos = 0;
 	encoder->dead = false;
 
-	if (encoder->buf == NULL) {
+	if (encoder->buf == nullptr) {
 		encoder->bufsize = 0;
 		encoder->realloc_ok = true;
 
@@ -489,7 +489,7 @@ bson_encoder_fini(bson_encoder_t encoder)
 		CODER_KILL(encoder, "write error on document terminator");
 	}
 
-	if (encoder->fd > -1 && encoder->buf != NULL) {
+	if (encoder->fd > -1 && encoder->buf != nullptr) {
 		/* write final buffer to disk */
 		int ret = BSON_WRITE(encoder->fd, encoder->buf, encoder->bufpos);
 
@@ -497,7 +497,7 @@ bson_encoder_fini(bson_encoder_t encoder)
 			CODER_KILL(encoder, "write error");
 		}
 
-	} else if (encoder->buf != NULL) {
+	} else if (encoder->buf != nullptr) {
 		/* update buffer length */
 		int32_t len = bson_encoder_buf_size(encoder);
 		memcpy(encoder->buf, &len, sizeof(len));
@@ -529,7 +529,7 @@ bson_encoder_buf_data(bson_encoder_t encoder)
 	/* note, no CODER_CHECK here as the caller has to clean up dead buffers */
 
 	if (encoder->fd > -1) {
-		return NULL;
+		return nullptr;
 	}
 
 	return encoder->buf;

@@ -43,10 +43,10 @@ else()
 		SOURCES
 			${PX4_BINARY_DIR}/apps.cpp
 		LINK_LIBS
+			modules__muorb__adsp
 			${module_libraries}
 			${df_driver_libs}
 			m
-			modules__muorb__adsp
 		)
 
 	add_custom_target(upload

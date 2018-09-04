@@ -41,32 +41,37 @@
  * and background parameter saving.
  */
 
-//#include <debug.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_shutdown.h>
-#include <string.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <systemlib/err.h>
-#include <errno.h>
-#include <px4_sem.h>
-
-#include <sys/stat.h>
-
-#include <drivers/drv_hrt.h>
-
 #include "param.h"
-#include "systemlib/uthash/utarray.h"
+#include <parameters/px4_parameters.h>
 #include "tinybson/tinybson.h"
 
-#include "uORB/uORB.h"
-#include "uORB/topics/parameter_update.h"
-#include <parameters/px4_parameters.h>
-
 #include <crc32.h>
+#include <float.h>
+#include <math.h>
+
+#include <drivers/drv_hrt.h>
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_posix.h>
+#include <px4_sem.h>
+#include <px4_shutdown.h>
+
+#include <perf/perf_counter.h>
+#include <systemlib/uthash/utarray.h>
+
+//#define PARAM_NO_ORB ///< if defined, avoid uorb dependency. This disables publication of parameter_update on param change
+//#define PARAM_NO_AUTOSAVE ///< if defined, do not autosave (avoids LP work queue dependency)
+
+#if !defined(PARAM_NO_ORB)
+# include "uORB/uORB.h"
+# include "uORB/topics/parameter_update.h"
+#endif
+
+#if defined(FLASH_BASED_PARAMS)
+#include "flashparams/flashparams.h"
+#endif
+
+#include <sys/stat.h>
 
 #include "shmem.h"
 
@@ -75,9 +80,7 @@ static const char *param_default_file = "/dev/fs/params";
 #else
 static const char *param_default_file = "/usr/share/data/adsp/params";
 #endif
-static char *param_user_file = NULL;
-
-#define debug(fmt, args...)		do { } while(0)
+static char *param_user_file = nullptr;
 
 #ifdef __PX4_QURT
 //Mode not supported by qurt
@@ -87,18 +90,20 @@ static char *param_user_file = NULL;
 #endif
 #define PARAM_CLOSE	close
 
+#ifndef PARAM_NO_AUTOSAVE
 #include <px4_workqueue.h>
 /* autosaving variables */
 static hrt_abstime last_autosave_timestamp = 0;
 static struct work_s autosave_work;
 static bool autosave_scheduled = false;
 static bool autosave_disabled = false;
+#endif /* PARAM_NO_AUTOSAVE */
 
 /**
  * Array of static parameter info.
  */
-static struct param_info_s *param_info_base = (struct param_info_s *) &px4_parameters;
-#define	param_info_count		px4_parameters.param_count
+static const param_info_s *param_info_base = (const param_info_s *) &px4_parameters;
+#define	param_info_count px4_parameters.param_count
 
 /**
  * Storage for modified parameters.
@@ -110,7 +115,7 @@ struct param_wbuf_s {
 };
 
 
-uint8_t  *param_changed_storage = 0;
+uint8_t  *param_changed_storage = nullptr;
 int size_param_changed_storage_bytes = 0;
 const int bits_per_allocation_unit  = (sizeof(*param_changed_storage) * 8);
 
@@ -119,20 +124,17 @@ const int bits_per_allocation_unit  = (sizeof(*param_changed_storage) * 8);
 extern int get_shmem_lock(const char *caller_file_name, int caller_line_number);
 extern void release_shmem_lock(const char *caller_file_name, int caller_line_number);
 
-struct param_wbuf_s *param_find_changed(param_t param);
+static void init_params();
+extern void init_shared_memory();
 
-void init_params(void);
-extern void init_shared_memory(void);
-
-extern void copy_params_to_shmem(struct param_info_s *param_info_base);
+extern void copy_params_to_shmem(const param_info_s *param_info_base);
 
 extern struct shmem_info *shmem_info_p;
 uint64_t sync_other_prev_time = 0, sync_other_current_time = 0;
-int param_instance = 0;
 
 extern void update_to_shmem(param_t param, union param_value_u value);
 extern int update_from_shmem(param_t param, union param_value_u *value);
-extern void update_index_from_shmem(void);
+extern void update_index_from_shmem();
 
 static int param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes);
 unsigned char set_called_from_get = 0;
@@ -140,20 +142,21 @@ unsigned char set_called_from_get = 0;
 static int param_import_done =
 	0; /*at startup, params are loaded from file, if present. we dont want to send notifications that time since muorb is not ready*/
 
-static int param_load_default_no_notify(void);
+static int param_load_default_no_notify();
 
 static unsigned
-get_param_info_count(void)
+get_param_info_count()
 {
 	/* Singleton creation of and array of bits to track changed values */
 	if (!param_changed_storage) {
+		/* Note that we have a (highly unlikely) race condition here: in the worst case the allocation is done twice */
 		size_param_changed_storage_bytes  = (param_info_count / bits_per_allocation_unit) + 1;
-		param_changed_storage = calloc(size_param_changed_storage_bytes, 1);
+		param_changed_storage = (uint8_t *)calloc(size_param_changed_storage_bytes, 1);
 
 		/* If the allocation fails we need to indicate failure in the
 		 * API by returning PARAM_INVALID
 		 */
-		if (param_changed_storage == NULL) {
+		if (param_changed_storage == nullptr) {
 			return 0;
 		}
 	}
@@ -162,49 +165,122 @@ get_param_info_count(void)
 }
 
 /** flexible array holding modified parameter values */
-UT_array	*param_values;
+UT_array *param_values{nullptr};
 
 /** array info for the modified parameters array */
-const UT_icd	param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
+const UT_icd param_icd = {sizeof(param_wbuf_s), nullptr, nullptr, nullptr};
 
+#if !defined(PARAM_NO_ORB)
 /** parameter update topic handle */
-static orb_advert_t param_topic = NULL;
+static orb_advert_t param_topic = nullptr;
+static unsigned int param_instance = 0;
+#endif
 
 static void param_set_used_internal(param_t param);
 
 static param_t param_find_internal(const char *name, bool notification);
 
 // TODO: not working on Snappy just yet
-//static px4_sem_t param_sem; ///< this protects against concurrent access to param_values and param save
+// the following implements an RW-lock using 2 semaphores (used as mutexes). It gives
+// priority to readers, meaning a writer could suffer from starvation, but in our use-case
+// we only have short periods of reads and writes are rare.
+//static px4_sem_t param_sem; ///< this protects against concurrent access to param_values
+//static int reader_lock_holders = 0;
+//static px4_sem_t reader_lock_holders_lock; ///< this protects against concurrent access to reader_lock_holders
 
-/** lock the parameter store */
+static perf_counter_t param_export_perf;
+static perf_counter_t param_find_perf;
+static perf_counter_t param_get_perf;
+static perf_counter_t param_set_perf;
+
+//static px4_sem_t param_sem_save; ///< this protects against concurrent param saves (file or flash access).
+///< we use a separate lock to allow concurrent param reads and saves.
+///< a param_set could still be blocked by a param save, because it
+///< needs to take the reader lock
+
+/** lock the parameter store for read access */
 static void
-param_lock(void)
+param_lock_reader()
 {
 	// TODO: this doesn't seem to work on Snappy
-	//do {} while (px4_sem_wait(&param_sem) != 0);
+#if 0
+	do {} while (px4_sem_wait(&reader_lock_holders_lock) != 0);
+
+	++reader_lock_holders;
+
+	if (reader_lock_holders == 1) {
+		// the first reader takes the lock, the next ones are allowed to just continue
+		do {} while (px4_sem_wait(&param_sem) != 0);
+	}
+
+	px4_sem_post(&reader_lock_holders_lock);
+#endif
+}
+
+/** lock the parameter store for write access */
+static void
+param_lock_writer()
+{
+	// TODO: this doesn't seem to work on Snappy
+#if 0
+	do {} while (px4_sem_wait(&param_sem) != 0);
+
+#endif
 }
 
 /** unlock the parameter store */
 static void
-param_unlock(void)
+param_unlock_reader()
 {
 	// TODO: this doesn't seem to work on Snappy
-	//px4_sem_post(&param_sem);
+#if 0
+	do {} while (px4_sem_wait(&reader_lock_holders_lock) != 0);
+
+	--reader_lock_holders;
+
+	if (reader_lock_holders == 0) {
+		// the last reader releases the lock
+		px4_sem_post(&param_sem);
+	}
+
+	px4_sem_post(&reader_lock_holders_lock);
+#endif
+}
+
+/** unlock the parameter store */
+static void
+param_unlock_writer()
+{
+	// TODO: this doesn't seem to work on Snappy
+#if 0
+	px4_sem_post(&param_sem);
+#endif
 }
 
 /** assert that the parameter store is locked */
 static void
-param_assert_locked(void)
+param_assert_locked()
 {
-	/* TODO */
+	/* XXX */
 }
 
 void
-param_init(void)
+param_init()
 {
 	// TODO: not needed on Snappy yet.
-	// px4_sem_init(&param_sem, 0, 1);
+	//px4_sem_init(&param_sem, 0, 1);
+	//px4_sem_init(&param_sem_save, 0, 1);
+	//px4_sem_init(&reader_lock_holders_lock, 0, 1);
+
+	param_export_perf = perf_alloc(PC_ELAPSED, "param_export");
+	param_find_perf = perf_alloc(PC_ELAPSED, "param_find");
+	param_get_perf = perf_alloc(PC_ELAPSED, "param_get");
+	param_set_perf = perf_alloc(PC_ELAPSED, "param_set");
+
+#ifdef CONFIG_SHMEM
+	PX4_DEBUG("Syncing params to shared memory\n");
+	init_params();
+#endif
 }
 
 /**
@@ -216,7 +292,7 @@ param_init(void)
 bool
 handle_in_range(param_t param)
 {
-	int count = get_param_info_count();
+	unsigned count = get_param_info_count();
 	return (count && param < count);
 }
 
@@ -247,53 +323,57 @@ param_compare_values(const void *a, const void *b)
  *
  * @param param			The parameter being searched.
  * @return			The structure holding the modified value, or
- *				NULL if the parameter has not been modified.
+ *				nullptr if the parameter has not been modified.
  */
-struct param_wbuf_s *
+static param_wbuf_s *
 param_find_changed(param_t param)
 {
-	struct param_wbuf_s	*s = NULL;
+	param_wbuf_s	*s = nullptr;
 
 	param_assert_locked();
 
-	if (param_values != NULL) {
-		while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != NULL) {
-			if (s->param == param) {
-				break;
-			}
-		}
+	if (param_values != nullptr) {
+		param_wbuf_s key{};
+		key.param = param;
+		s = (param_wbuf_s *)utarray_find(param_values, &key, param_compare_values);
 	}
 
 	return s;
 }
 
 static void
-_param_notify_changes(void)
+_param_notify_changes()
 {
-	struct parameter_update_s pup = { .timestamp = hrt_absolute_time(), .instance = param_instance++ };
+#if !defined(PARAM_NO_ORB)
+	parameter_update_s pup = {};
+	pup.timestamp = hrt_absolute_time();
+	pup.instance = param_instance++;
 
 	/*
 	 * If we don't have a handle to our topic, create one now; otherwise
 	 * just publish.
 	 */
-	if (param_topic == NULL) {
+	if (param_topic == nullptr) {
 		param_topic = orb_advertise(ORB_ID(parameter_update), &pup);
 
 	} else {
 		orb_publish(ORB_ID(parameter_update), param_topic, &pup);
 	}
+
+#endif
 }
 
 void
-param_notify_changes(void)
+param_notify_changes()
 {
 	_param_notify_changes();
 }
 
-
 param_t
 param_find_internal(const char *name, bool notification)
 {
+	perf_begin(param_find_perf);
+
 	param_t param;
 
 	/* perform a linear search of the known parameters */
@@ -303,9 +383,12 @@ param_find_internal(const char *name, bool notification)
 				param_set_used_internal(param);
 			}
 
+			perf_end(param_find_perf);
 			return param;
 		}
 	}
+
+	perf_end(param_find_perf);
 
 	/* not found */
 	return PARAM_INVALID;
@@ -324,13 +407,13 @@ param_find_no_notification(const char *name)
 }
 
 unsigned
-param_count(void)
+param_count()
 {
 	return get_param_info_count();
 }
 
 unsigned
-param_count_used(void)
+param_count_used()
 {
 	//TODO FIXME: all params used right now
 #if 0
@@ -339,8 +422,8 @@ param_count_used(void)
 	// ensure the allocation has been done
 	if (get_param_info_count()) {
 
-		for (unsigned i = 0; i < size_param_changed_storage_bytes; i++) {
-			for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
+		for (int i = 0; i < size_param_changed_storage_bytes; i++) {
+			for (int j = 0; j < bits_per_allocation_unit; j++) {
 				if (param_changed_storage[i] & (1 << j)) {
 					count++;
 				}
@@ -372,12 +455,12 @@ param_for_used_index(unsigned index)
 #if 0
 	int count = get_param_info_count();
 
-	if (count && index < count) {
+	if (count && (int)index < count) {
 		/* walk all params and count used params */
 		unsigned used_count = 0;
 
-		for (unsigned i = 0; i < (unsigned)size_param_changed_storage_bytes; i++) {
-			for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
+		for (int i = 0; i < size_param_changed_storage_bytes; i++) {
+			for (int j = 0; j < bits_per_allocation_unit; j++) {
 				if (param_changed_storage[i] & (1 << j)) {
 
 					/* we found the right used count,
@@ -422,12 +505,11 @@ param_get_used_index(param_t param)
 	/* walk all params and count, now knowing that it has a valid index */
 	int used_count = 0;
 
-	for (unsigned i = 0; i < (unsigned)size_param_changed_storage_bytes; i++) {
-		for (unsigned j = 0; j < bits_per_allocation_unit; j++) {
-
+	for (int i = 0; i < size_param_changed_storage_bytes; i++) {
+		for (int j = 0; j < bits_per_allocation_unit; j++) {
 			if (param_changed_storage[i] & (1 << j)) {
 
-				if ((unsigned)param == i * bits_per_allocation_unit + j) {
+				if ((int)param == i * bits_per_allocation_unit + j) {
 					return used_count;
 				}
 
@@ -446,16 +528,22 @@ param_get_used_index(param_t param)
 const char *
 param_name(param_t param)
 {
-	return handle_in_range(param) ? param_info_base[param].name : NULL;
+	return handle_in_range(param) ? param_info_base[param].name : nullptr;
+}
+
+bool
+param_is_volatile(param_t param)
+{
+	return handle_in_range(param) ? param_info_base[param].volatile_param : false;
 }
 
 bool
 param_value_is_default(param_t param)
 {
 	struct param_wbuf_s *s;
-	param_lock();
+	param_lock_reader();
 	s = param_find_changed(param);
-	param_unlock();
+	param_unlock_reader();
 	return s ? false : true;
 }
 
@@ -463,10 +551,10 @@ bool
 param_value_unsaved(param_t param)
 {
 	struct param_wbuf_s *s;
-	param_lock();
+	param_lock_reader();
 	s = param_find_changed(param);
 	bool ret = s && s->unsaved;
-	param_unlock();
+	param_unlock_reader();
 	return ret;
 }
 
@@ -503,13 +591,13 @@ param_size(param_t param)
  * Obtain a pointer to the storage allocated for a parameter.
  *
  * @param param			The parameter whose storage is sought.
- * @return			A pointer to the parameter value, or NULL
+ * @return			A pointer to the parameter value, or nullptr
  *				if the parameter does not exist.
  */
 static const void *
 param_get_value_ptr(param_t param)
 {
-	const void *result = NULL;
+	const void *result = nullptr;
 
 	param_assert_locked();
 
@@ -520,7 +608,7 @@ param_get_value_ptr(param_t param)
 		/* work out whether we're fetching the default or a written value */
 		struct param_wbuf_s *s = param_find_changed(param);
 
-		if (s != NULL) {
+		if (s != nullptr) {
 			v = &s->val;
 
 		} else {
@@ -545,7 +633,8 @@ param_get(param_t param, void *val)
 {
 	int result = -1;
 
-	param_lock();
+	param_lock_reader();
+	perf_begin(param_get_perf);
 
 	if (!handle_in_range(param)) {
 		return result;
@@ -558,7 +647,6 @@ param_get(param_t param, void *val)
 		param_set_internal(param, &value, true, false);
 		set_called_from_get = 0;
 	}
-
 
 	const void *v = param_get_value_ptr(param);
 
@@ -583,25 +671,27 @@ param_get(param_t param, void *val)
 
 #endif
 
-	param_unlock();
+	perf_end(param_get_perf);
+	param_unlock_reader();
 
 	return result;
 }
 
-
+#ifndef PARAM_NO_AUTOSAVE
 /**
  * worker callback method to save the parameters
  * @param arg unused
  */
-static void autosave_worker(void *arg)
+static void
+autosave_worker(void *arg)
 {
 	bool disabled = false;
 
-	param_lock();
+	param_lock_writer();
 	last_autosave_timestamp = hrt_absolute_time();
 	autosave_scheduled = false;
 	disabled = autosave_disabled;
-	param_unlock();
+	param_unlock_writer();
 
 	if (disabled) {
 		return;
@@ -614,6 +704,7 @@ static void autosave_worker(void *arg)
 		PX4_ERR("param save failed (%i)", ret);
 	}
 }
+#endif /* PARAM_NO_AUTOSAVE */
 
 /**
  * Automatically save the parameters after a timeout and limited rate.
@@ -621,8 +712,11 @@ static void autosave_worker(void *arg)
  * This needs to be called with the writer lock held (it's not necessary that it's the writer lock, but it
  * needs to be the same lock as autosave_worker() and param_control_autosave() use).
  */
-static void param_autosave(void)
+static void
+param_autosave()
 {
+#ifndef PARAM_NO_AUTOSAVE
+
 	if (autosave_scheduled || autosave_disabled) {
 		return;
 	}
@@ -641,13 +735,15 @@ static void param_autosave(void)
 	}
 
 	autosave_scheduled = true;
-	work_queue(LPWORK, &autosave_work, (worker_t)&autosave_worker, NULL, USEC2TICK(delay));
+	work_queue(LPWORK, &autosave_work, (worker_t)&autosave_worker, nullptr, USEC2TICK(delay));
+#endif /* PARAM_NO_AUTOSAVE */
 }
 
 void
 param_control_autosave(bool enable)
 {
-	param_lock();
+#ifndef PARAM_NO_AUTOSAVE
+	param_lock_writer();
 
 	if (!enable && autosave_scheduled) {
 		work_cancel(LPWORK, &autosave_work);
@@ -655,7 +751,8 @@ param_control_autosave(bool enable)
 	}
 
 	autosave_disabled = !enable;
-	param_unlock();
+	param_unlock_writer();
+#endif /* PARAM_NO_AUTOSAVE */
 }
 
 static int
@@ -664,36 +761,29 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	int result = -1;
 	bool params_changed = false;
 
-	PX4_DEBUG("param_set_internal params: param = %d, val = 0x%X, mark_saved: %d, notify_changes: %d",
-		  param, val, (int)mark_saved, (int)notify_changes);
+	param_lock_writer();
+	perf_begin(param_set_perf);
 
-	param_lock();
-
-	if (!handle_in_range(param)) {
-		return result;
-	}
-
-	if (param_values == NULL) {
+	if (param_values == nullptr) {
 		utarray_new(param_values, &param_icd);
 	}
 
-	if (param_values == NULL) {
-		debug("failed to allocate modified values array");
+	if (param_values == nullptr) {
+		PX4_ERR("failed to allocate modified values array");
 		goto out;
 	}
 
 	if (handle_in_range(param)) {
 
-		struct param_wbuf_s *s = param_find_changed(param);
+		param_wbuf_s *s = param_find_changed(param);
 
-		if (s == NULL) {
+		if (s == nullptr) {
 
 			/* construct a new parameter */
-			struct param_wbuf_s buf = {
-				.param = param,
-				.val.p = NULL,
-				.unsaved = false
-			};
+			param_wbuf_s buf = {};
+			buf.param = param;
+
+			params_changed = true;
 
 			/* add it to the array and sort */
 			utarray_push_back(param_values, &buf);
@@ -707,24 +797,34 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 		switch (param_type(param)) {
 
 		case PARAM_TYPE_INT32:
+			params_changed = params_changed || s->val.i != *(int32_t *)val;
 			s->val.i = *(int32_t *)val;
 			break;
 
 		case PARAM_TYPE_FLOAT:
+			params_changed = params_changed || fabsf(s->val.f - * (float *)val) > FLT_EPSILON;
 			s->val.f = *(float *)val;
 			break;
 
 		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX:
-			if (s->val.p == NULL) {
-				s->val.p = malloc(param_size(param));
+			if (s->val.p == nullptr) {
+				size_t psize = param_size(param);
 
-				if (s->val.p == NULL) {
-					debug("failed to allocate parameter storage");
+				if (psize > 0) {
+					s->val.p = malloc(psize);
+
+				} else {
+					s->val.p = nullptr;
+				}
+
+				if (s->val.p == nullptr) {
+					PX4_ERR("failed to allocate parameter storage");
 					goto out;
 				}
 			}
 
 			memcpy(s->val.p, val, param_size(param));
+			params_changed = true;
 			break;
 
 		default:
@@ -732,7 +832,6 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 		}
 
 		s->unsaved = !mark_saved;
-		params_changed = true;
 		result = 0;
 
 		if (!mark_saved) { // this is false when importing parameters
@@ -741,7 +840,8 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 	}
 
 out:
-	param_unlock();
+	perf_end(param_set_perf);
+	param_unlock_writer();
 
 	/*
 	 * If we set something, now that we have unlocked, go ahead and advertise that
@@ -776,6 +876,18 @@ out:
 
 	return result;
 }
+
+#if defined(FLASH_BASED_PARAMS)
+int param_set_external(param_t param, const void *val, bool mark_saved, bool notify_changes)
+{
+	return param_set_internal(param, val, mark_saved, notify_changes);
+}
+
+const void *param_get_value_ptr_external(param_t param)
+{
+	return param_get_value_ptr(param);
+}
+#endif
 
 int
 param_set(param_t param, const void *val)
@@ -818,6 +930,7 @@ void param_set_used_internal(param_t param)
 		return;
 	}
 
+	// FIXME: this needs locking too
 	param_changed_storage[param_index / bits_per_allocation_unit] |=
 		(1 << param_index % bits_per_allocation_unit);
 }
@@ -825,10 +938,10 @@ void param_set_used_internal(param_t param)
 int
 param_reset(param_t param)
 {
-	struct param_wbuf_s *s = NULL;
+	param_wbuf_s *s = nullptr;
 	bool param_found = false;
 
-	param_lock();
+	param_lock_writer();
 
 	if (handle_in_range(param)) {
 
@@ -836,7 +949,7 @@ param_reset(param_t param)
 		s = param_find_changed(param);
 
 		/* if we found one, erase it */
-		if (s != NULL) {
+		if (s != nullptr) {
 			int pos = utarray_eltidx(param_values, s);
 			utarray_erase(param_values, pos, 1);
 		}
@@ -846,9 +959,9 @@ param_reset(param_t param)
 
 	param_autosave();
 
-	param_unlock();
+	param_unlock_writer();
 
-	if (s != NULL) {
+	if (s != nullptr) {
 		_param_notify_changes();
 	}
 
@@ -857,26 +970,26 @@ param_reset(param_t param)
 static void
 param_reset_all_internal(bool auto_save)
 {
-	param_lock();
+	param_lock_writer();
 
-	if (param_values != NULL) {
+	if (param_values != nullptr) {
 		utarray_free(param_values);
 	}
 
 	/* mark as reset / deleted */
-	param_values = NULL;
+	param_values = nullptr;
 
 	if (auto_save) {
 		param_autosave();
 	}
 
-	param_unlock();
+	param_unlock_writer();
 
 	_param_notify_changes();
 }
 
 void
-param_reset_all(void)
+param_reset_all()
 {
 	param_reset_all_internal(true);
 }
@@ -896,6 +1009,7 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 			if ((excludes[index][len - 1] == '*'
 			     && strncmp(name, excludes[index], len - 1) == 0)
 			    || strcmp(name, excludes[index]) == 0) {
+
 				exclude = true;
 				break;
 			}
@@ -912,10 +1026,10 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 int
 param_set_default_file(const char *filename)
 {
-	if (param_user_file != NULL) {
+	if (param_user_file != nullptr) {
 		// we assume this is not in use by some other thread
 		free(param_user_file);
-		param_user_file = NULL;
+		param_user_file = nullptr;
 	}
 
 	if (filename) {
@@ -926,13 +1040,13 @@ param_set_default_file(const char *filename)
 }
 
 const char *
-param_get_default_file(void)
+param_get_default_file()
 {
-	return (param_user_file != NULL) ? param_user_file : param_default_file;
+	return (param_user_file != nullptr) ? param_user_file : param_default_file;
 }
 
 int
-param_save_default(void)
+param_save_default()
 {
 	int res = OK;
 	int fd = -1;
@@ -975,8 +1089,10 @@ do_exit:
  * @return 0 on success, 1 if all params have not yet been stored, -1 if device open failed, -2 if writing parameters failed
  */
 int
-param_load_default(void)
+param_load_default()
 {
+	int res = 0;
+#if !defined(FLASH_BASED_PARAMS)
 	int fd_load = PARAM_OPEN(param_get_default_file(), O_RDONLY);
 
 	if (fd_load < 0) {
@@ -990,7 +1106,6 @@ param_load_default(void)
 	}
 
 	int result = param_load(fd_load);
-
 	PARAM_CLOSE(fd_load);
 
 	if (result != 0) {
@@ -998,14 +1113,18 @@ param_load_default(void)
 		return -2;
 	}
 
-	return 0;
+#else
+	// no need for locking
+	res = flash_param_load();
+#endif
+	return res;
 }
 
 /**
  * @return 0 on success, 1 if all params have not yet been stored, -1 if device open failed, -2 if writing parameters failed
  */
 static int
-param_load_default_no_notify(void)
+param_load_default_no_notify()
 {
 	int fd_load = open(param_get_default_file(), O_RDONLY);
 
@@ -1040,9 +1159,12 @@ param_load_default_no_notify(void)
 int
 param_export(int fd, bool only_unsaved)
 {
-	struct param_wbuf_s *s = NULL;
-	struct bson_encoder_s encoder;
+	perf_begin(param_export_perf);
+
+	param_wbuf_s *s = nullptr;
 	int	result = -1;
+
+	struct bson_encoder_s encoder;
 
 	int shutdown_lock_ret = px4_shutdown_lock();
 
@@ -1050,12 +1172,15 @@ param_export(int fd, bool only_unsaved)
 		PX4_ERR("px4_shutdown_lock() failed (%i)", shutdown_lock_ret);
 	}
 
-	param_lock();
+	// take the file lock
+	//do {} while (px4_sem_wait(&param_sem_save) != 0);
+
+	param_lock_reader();
 
 	bson_encoder_init_file(&encoder, fd);
 
 	/* no modified parameters -> we are done */
-	if (param_values == NULL) {
+	if (param_values == nullptr) {
 		result = 0;
 		goto out;
 	}
@@ -1064,11 +1189,7 @@ param_export(int fd, bool only_unsaved)
 	 * that have recently been changed. */
 	update_index_from_shmem();
 
-	while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != NULL) {
-
-		int32_t	i;
-		float	f;
-
+	while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != nullptr) {
 		/*
 		 * If we are only saving values changed since last save, and this
 		 * one hasn't, then skip it
@@ -1082,44 +1203,54 @@ param_export(int fd, bool only_unsaved)
 		/* Make sure to get latest from shmem before saving. */
 		update_from_shmem(s->param, &s->val);
 
-		/* append the appropriate BSON type object */
+		const char *name = param_name(s->param);
+		const size_t size = param_size(s->param);
 
+		/* append the appropriate BSON type object */
 		switch (param_type(s->param)) {
 
-		case PARAM_TYPE_INT32:
-			i = s->val.i;
+		case PARAM_TYPE_INT32: {
+				const int32_t i = s->val.i;
 
-			if (bson_encoder_append_int(&encoder, param_name(s->param), i)) {
-				PX4_DEBUG("BSON append failed for '%s'", param_name(s->param));
-				goto out;
+				PX4_DEBUG("exporting: %s (%d) size: %d val: %d", name, s->param, size, i);
+
+				if (bson_encoder_append_int(&encoder, name, i)) {
+					PX4_ERR("BSON append failed for '%s'", name);
+					goto out;
+				}
 			}
-
 			break;
 
-		case PARAM_TYPE_FLOAT:
-			f = s->val.f;
+		case PARAM_TYPE_FLOAT: {
+				const double f = (double)s->val.f;
 
-			if (bson_encoder_append_double(&encoder, param_name(s->param), f)) {
-				PX4_DEBUG("BSON append failed for '%s'", param_name(s->param));
-				goto out;
+				PX4_DEBUG("exporting: %s (%d) size: %d val: %.3f", name, s->param, size, (double)f);
+
+				if (bson_encoder_append_double(&encoder, name, f)) {
+					PX4_ERR("BSON append failed for '%s'", name);
+					goto out;
+				}
 			}
-
 			break;
 
-		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX:
-			if (bson_encoder_append_binary(&encoder,
-						       param_name(s->param),
-						       BSON_BIN_BINARY,
-						       param_size(s->param),
-						       param_get_value_ptr(s->param))) {
-				PX4_DEBUG("BSON append failed for '%s'", param_name(s->param));
-				goto out;
-			}
+		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX: {
+				const void *value_ptr = param_get_value_ptr(s->param);
 
+				/* lock as short as possible */
+				if (bson_encoder_append_binary(&encoder,
+							       name,
+							       BSON_BIN_BINARY,
+							       size,
+							       value_ptr)) {
+
+					PX4_ERR("BSON append failed for '%s'", name);
+					goto out;
+				}
+			}
 			break;
 
 		default:
-			PX4_DEBUG("unrecognized parameter type");
+			PX4_ERR("unrecognized parameter type");
 			goto out;
 		}
 	}
@@ -1127,7 +1258,9 @@ param_export(int fd, bool only_unsaved)
 	result = 0;
 
 out:
-	param_unlock();
+	param_unlock_reader();
+
+	//px4_sem_post(&param_sem_save);
 
 	fsync(fd); // make sure the data is flushed before releasing the shutdown lock
 
@@ -1139,6 +1272,8 @@ out:
 		result = bson_encoder_fini(&encoder);
 	}
 
+	perf_end(param_export_perf);
+
 	return result;
 }
 
@@ -1147,13 +1282,14 @@ struct param_import_state {
 };
 
 static int
-param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
+param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 {
-	float f;
-	int32_t i;
-	void *v, *tmp = NULL;
+	float f = 0.0f;
+	int32_t i = 0;
+	void *tmp = nullptr;
+	void *v = nullptr;
 	int result = -1;
-	struct param_import_state *state = (struct param_import_state *)private;
+	param_import_state *state = (param_import_state *)priv;
 
 	/*
 	 * EOO means the end of the parameter object. (Currently not supporting
@@ -1171,7 +1307,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 	param_t param = param_find_no_notification(node->name);
 
 	if (param == PARAM_INVALID) {
-		PX4_DEBUG("ignoring unrecognised parameter '%s'", node->name);
+		PX4_ERR("ignoring unrecognised parameter '%s'", node->name);
 		return 1;
 	}
 
@@ -1180,57 +1316,69 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 	 */
 
 	switch (node->type) {
-	case BSON_INT32:
-		if (param_type(param) != PARAM_TYPE_INT32) {
-			PX4_WARN("unexpected type for %s", node->name);
-			result = 1; // just skip this entry
-			goto out;
-		}
+	case BSON_INT32: {
+			if (param_type(param) != PARAM_TYPE_INT32) {
+				PX4_WARN("unexpected type for %s", node->name);
+				result = 1; // just skip this entry
+				goto out;
+			}
 
-		i = node->i;
-		v = &i;
-		PX4_DEBUG("Imported %s with value %d", param_name(param), i);
+			i = node->i;
+			v = &i;
+
+			PX4_DEBUG("Imported %s with value %d", param_name(param), i);
+		}
 		break;
 
-	case BSON_DOUBLE:
-		if (param_type(param) != PARAM_TYPE_FLOAT) {
-			PX4_WARN("unexpected type for %s", node->name);
-			result = 1; // just skip this entry
-			goto out;
-		}
+	case BSON_DOUBLE: {
+			if (param_type(param) != PARAM_TYPE_FLOAT) {
+				PX4_WARN("unexpected type for %s", node->name);
+				result = 1; // just skip this entry
+				goto out;
+			}
 
-		f = node->d;
-		v = &f;
-		PX4_DEBUG("Imported %s with value %f", param_name(param), (double)f);
+			f = node->d;
+			v = &f;
+
+			PX4_DEBUG("Imported %s with value %f", param_name(param), (double)f);
+		}
 		break;
 
-	case BSON_BINDATA:
-		if (node->subtype != BSON_BIN_BINARY) {
-			PX4_WARN("unexpected type for %s", node->name);
-			result = 1; // just skip this entry
-			goto out;
+	case BSON_BINDATA: {
+			if (node->subtype != BSON_BIN_BINARY) {
+				PX4_WARN("unexpected subtype for %s", node->name);
+				result = 1; // just skip this entry
+				goto out;
+			}
+
+			if (bson_decoder_data_pending(decoder) != param_size(param)) {
+				PX4_WARN("bad size for '%s'", node->name);
+				result = 1; // just skip this entry
+				goto out;
+			}
+
+			/* XXX check actual file data size? */
+			size_t psize = param_size(param);
+
+			if (psize > 0) {
+				tmp = malloc(psize);
+
+			} else {
+				tmp = nullptr;
+			}
+
+			if (tmp == nullptr) {
+				PX4_ERR("failed allocating for '%s'", node->name);
+				goto out;
+			}
+
+			if (bson_decoder_copy_data(decoder, tmp)) {
+				PX4_ERR("failed copying data for '%s'", node->name);
+				goto out;
+			}
+
+			v = tmp;
 		}
-
-		if (bson_decoder_data_pending(decoder) != param_size(param)) {
-			PX4_WARN("bad size for '%s'", node->name);
-			result = 1; // just skip this entry
-			goto out;
-		}
-
-		/* XXX check actual file data size? */
-		tmp = malloc(param_size(param));
-
-		if (tmp == NULL) {
-			PX4_DEBUG("failed allocating for '%s'", node->name);
-			goto out;
-		}
-
-		if (bson_decoder_copy_data(decoder, tmp)) {
-			PX4_DEBUG("failed copying data for '%s'", node->name);
-			goto out;
-		}
-
-		v = tmp;
 		break;
 
 	default:
@@ -1243,9 +1391,9 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		goto out;
 	}
 
-	if (tmp != NULL) {
+	if (tmp != nullptr) {
 		free(tmp);
-		tmp = NULL;
+		tmp = nullptr;
 	}
 
 	/* don't return zero, that means EOF */
@@ -1253,7 +1401,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 
 out:
 
-	if (tmp != NULL) {
+	if (tmp != nullptr) {
 		free(tmp);
 	}
 
@@ -1263,27 +1411,22 @@ out:
 static int
 param_import_internal(int fd, bool mark_saved)
 {
-	struct bson_decoder_s decoder;
+	bson_decoder_s decoder;
+	param_import_state state;
 	int result = -1;
-	struct param_import_state state;
 
 	if (bson_decoder_init_file(&decoder, fd, param_import_callback, &state)) {
-		PX4_DEBUG("decoder init failed");
-		goto out;
+		PX4_ERR("decoder init failed");
+		return PX4_ERROR;
 	}
 
 	state.mark_saved = mark_saved;
 
 	do {
 		result = bson_decoder_next(&decoder);
+		usleep(1);
 
 	} while (result > 0);
-
-out:
-
-	if (result < 0) {
-		PX4_DEBUG("BSON error decoding parameters");
-	}
 
 	return result;
 }
@@ -1291,7 +1434,13 @@ out:
 int
 param_import(int fd)
 {
+#if !defined(FLASH_BASED_PARAMS)
 	return param_import_internal(fd, false);
+#else
+	(void)fd; // unused
+	// no need for locking here
+	return flash_param_import();
+#endif
 }
 
 int
@@ -1309,7 +1458,7 @@ param_foreach(void (*func)(void *arg, param_t param), void *arg, bool only_chang
 	for (param = 0; handle_in_range(param); param++) {
 
 		/* if requested, skip unchanged values */
-		if (only_changed && (param_find_changed(param) == NULL)) {
+		if (only_changed && (param_find_changed(param) == nullptr)) {
 			continue;
 		}
 
@@ -1321,30 +1470,30 @@ param_foreach(void (*func)(void *arg, param_t param), void *arg, bool only_chang
 	}
 }
 
-uint32_t param_hash_check(void)
+uint32_t param_hash_check()
 {
 	uint32_t param_hash = 0;
 
-	param_lock();
+	param_lock_reader();
 
 	/* compute the CRC32 over all string param names and 4 byte values */
 	for (param_t param = 0; handle_in_range(param); param++) {
-		if (!param_used(param)) {
+		if (!param_used(param) || param_is_volatile(param)) {
 			continue;
 		}
 
 		const char *name = param_name(param);
 		const void *val = param_get_value_ptr(param);
 		param_hash = crc32part((const uint8_t *)name, strlen(name), param_hash);
-		param_hash = crc32part(val, sizeof(union param_value_u), param_hash);
+		param_hash = crc32part((const uint8_t *)val, param_size(param), param_hash);
 	}
 
-	param_unlock();
+	param_unlock_reader();
 
 	return param_hash;
 }
 
-void init_params(void)
+void init_params()
 {
 #ifdef __PX4_QURT
 	//copy params to shared memory
@@ -1355,11 +1504,11 @@ void init_params(void)
 #ifdef __PX4_POSIX
 	param_load_default_no_notify();
 #endif
+
 	param_import_done = 1;
 
 #ifdef __PX4_QURT
 	copy_params_to_shmem(param_info_base);
-
 
 #ifdef ENABLE_SHMEM_DEBUG
 	PX4_INFO("Offsets:");
@@ -1367,7 +1516,7 @@ void init_params(void)
 		 (unsigned char *)shmem_info_p->params_val - (unsigned char *)shmem_info_p,
 		 (unsigned char *)&shmem_info_p->krait_changed_index - (unsigned char *)shmem_info_p,
 		 (unsigned char *)&shmem_info_p->adsp_changed_index - (unsigned char *)shmem_info_p);
-#endif
-#endif
-}
+#endif /* ENABLE_SHMEM_DEBUG */
 
+#endif /* __PX4_QURT */
+}

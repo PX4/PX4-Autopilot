@@ -56,11 +56,11 @@ unsigned char *map_base, *virt_addr;
 struct shmem_info *shmem_info_p;
 int get_shmem_lock(const char *caller_file_name, int caller_line_number);
 void release_shmem_lock(const char *caller_file_name, int caller_line_number);
-void init_shared_memory(void);
-void copy_params_to_shmem(struct param_info_s *);
+void init_shared_memory();
+void copy_params_to_shmem(param_info_s *);
 void update_to_shmem(param_t param, union param_value_u value);
 int update_from_shmem(param_t param, union param_value_u *value);
-void update_index_from_shmem(void);
+void update_index_from_shmem();
 uint64_t update_from_shmem_prev_time = 0, update_from_shmem_current_time = 0;
 static unsigned char krait_changed_index[MAX_SHMEM_PARAMS / 8 + 1];
 
@@ -136,7 +136,7 @@ void init_shared_memory(void)
 	}
 
 	//virt_addr = map_memory(MAP_ADDRESS);
-	map_base = calloc(MAP_SIZE, 1);  //16KB
+	map_base = (unsigned char *)calloc(MAP_SIZE, 1); //16KB
 
 	if (map_base == NULL) {
 		PX4_INFO("adsp memory malloc failed\n");
@@ -153,10 +153,9 @@ void init_shared_memory(void)
 	}
 
 	PX4_INFO("adsp memory mapped\n");
-
 }
 
-void copy_params_to_shmem(struct param_info_s *param_info_base)
+void copy_params_to_shmem(const param_info_s *param_info_base)
 {
 	param_t param;
 	unsigned int i;
@@ -350,4 +349,3 @@ int update_from_shmem(param_t param, union param_value_u *value)
 
 	return retval;
 }
-

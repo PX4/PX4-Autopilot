@@ -69,8 +69,7 @@ struct param_wbuf_s {
 /*update value and param's change bit in shared memory*/
 void update_to_shmem(param_t param, union param_value_u value)
 {
-	if (px4muorb_param_update_to_shmem(param, (unsigned char *) &value,
-					   sizeof(value))) {
+	if (px4muorb_param_update_to_shmem(param, (unsigned char *) &value, sizeof(value))) {
 		PX4_ERR("krait update param %u failed", param);
 	}
 }
@@ -82,14 +81,12 @@ void update_index_from_shmem(void)
 		return;
 	}
 
-	px4muorb_param_update_index_from_shmem(adsp_changed_index,
-					       PARAM_BUFFER_SIZE);
+	px4muorb_param_update_index_from_shmem(adsp_changed_index, PARAM_BUFFER_SIZE);
 }
 
 static void update_value_from_shmem(param_t param, union param_value_u *value)
 {
-	if (px4muorb_param_update_value_from_shmem(param, (unsigned char *) value,
-			sizeof(union param_value_u))) {
+	if (px4muorb_param_update_value_from_shmem(param, (unsigned char *) value, sizeof(union param_value_u))) {
 		PX4_ERR("%s get param failed", __FUNCTION__);
 	}
 }
@@ -128,4 +125,3 @@ int update_from_shmem(param_t param, union param_value_u *value)
 
 	return retval;
 }
-
