@@ -142,12 +142,7 @@ private:
 		(ParamInt<px4::params::MPC_POS_MODE>) MPC_POS_MODE,
 		(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
 		(ParamFloat<px4::params::MPC_IDLE_TKO>) MPC_IDLE_TKO, /**< time constant for smooth takeoff ramp */
-		(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID, /**< enable obstacle avoidance */
-		(ParamBool<px4::params::MPC_WV_MAN_EN>) _wv_manual_enabled,
-		(ParamBool<px4::params::MPC_WV_AUTO_EN>) _wv_auto_enabled,
-		(ParamFloat<px4::params::MPC_WV_ROLL_MIN>) _wv_min_roll,
-		(ParamFloat<px4::params::MPC_WV_GAIN>) _wv_gain,
-		(ParamFloat<px4::params::MPC_WV_YRATE_MAX>) _wv_max_yaw_rate
+		(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID /**< enable obstacle avoidance */
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
@@ -380,9 +375,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		// set trigger time for arm hysteresis
 		_arm_hysteresis.set_hysteresis_time_from(false, (int)(MPC_IDLE_TKO.get() * 1000000.0f));
 
-		_wv_controller.set_weathervane_gain(_wv_gain.get());
-		_wv_controller.set_min_roll_rad(math::radians(_wv_min_roll.get()));
-		_wv_controller.set_yawrate_max_rad(math::radians(_wv_max_yaw_rate.get()));
+		_wv_controller.update_parameters();
 	}
 
 	return OK;
@@ -602,10 +595,10 @@ MulticopterPositionControl::task_main()
 		// activate the weathervane controller if required. If activated a flighttask can use it to implement a yaw-rate control strategy
 		// that turns the nose of the vehicle into the wind
 		if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled
-		    && _wv_manual_enabled.get()) {
+		    && _wv_controller.manual_enabled()) {
 			_wv_controller.activate();
 
-		} else if (_control_mode.flag_control_auto_enabled && _wv_auto_enabled.get()) {
+		} else if (_control_mode.flag_control_auto_enabled && _wv_controller.auto_enabled()) {
 			_wv_controller.activate();
 
 		} else {
