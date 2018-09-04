@@ -1,0 +1,175 @@
+rtps:
+  - msg: actuator_armed
+    id: 1
+  - msg: actuator_controls
+    id: 2
+  - msg: actuator_direct
+    id: 3
+  - msg: actuator_outputs
+    id: 4
+  - msg: adc_report
+    id: 5
+  - msg: airspeed
+    id: 6
+  - msg: att_pos_mocap
+    id: 7
+  - msg: battery_status
+    id: 8
+  - msg: camera_capture
+    id: 9
+  - msg: camera_trigger
+    id: 10
+  - msg: collision_report
+    id: 11
+  - msg: commander_state
+    id: 12
+  - msg: cpuload
+    id: 14
+  - msg: debug_key_value
+    id: 15
+  - msg: differential_pressure
+    id: 16
+  - msg: distance_sensor
+    id: 17
+  - msg: ekf2_innovations
+    id: 18
+  - msg: ekf2_timestamps
+    id: 20
+  - msg: esc_report
+    id: 21
+  - msg: esc_status
+    id: 22
+  - msg: estimator_status
+    id: 23
+  - msg: fence
+    id: 24
+  - msg: fence_vertex
+    id: 25
+  - msg: follow_target
+    id: 27
+  - msg: fw_pos_ctrl_status
+    id: 28
+  - msg: geofence_result
+    id: 29
+  - msg: gps_dump
+    id: 30
+  - msg: gps_inject_data
+    id: 31
+  - msg: home_position
+    id: 33
+  - msg: input_rc
+    id: 34
+  - msg: led_control
+    id: 35
+  - msg: log_message
+    id: 36
+  - msg: manual_control_setpoint
+    id: 37
+  - msg: mavlink_log
+    id: 38
+  - msg: mc_att_ctrl_status
+    id: 39
+  - msg: mission
+    id: 40
+  - msg: mission_result
+    id: 41
+  - msg: mount_orientation
+    id: 42
+  - msg: multirotor_motor_limits
+    id: 43
+  - msg: offboard_control_mode
+    id: 44
+  - msg: optical_flow
+    id: 45
+  - msg: parameter_update
+    id: 47
+  - msg: position_setpoint
+    id: 48
+  - msg: position_setpoint_triplet
+    id: 49
+  - msg: pwm_input
+    id: 40
+  - msg: qshell_req
+    id: 51
+  - msg: rc_channels
+    id: 52
+  - msg: rc_parameter_map
+    id: 53
+  - msg: safety
+    id: 54
+  - msg: satellite_info
+    id: 55
+  - msg: sensor_accel
+    id: 56
+  - msg: sensor_baro
+    id: 57
+  - msg: sensor_combined
+    id: 58
+  - msg: sensor_correction
+    id: 59
+  - msg: sensor_gyro
+    id: 60
+  - msg: sensor_mag
+    id: 61
+  - msg: sensor_preflight
+    id: 62
+  - msg: sensor_selection
+    id: 63
+  - msg: servorail_status
+    id: 64
+  - msg: subsystem_info
+    id: 65
+  - msg: system_power
+    id: 66
+  - msg: task_stack_info
+    id: 67
+  - msg: tecs_status
+    id: 68
+  - msg: telemetry_status
+    id: 69
+  - msg: test_motor
+    id: 70
+  - msg: time_offset
+    id: 71
+  - msg: transponder_report
+    id: 72
+  - msg: uavcan_parameter_request
+    id: 73
+  - msg: uavcan_parameter_value
+    id: 74
+  - msg: ulog_stream_ack
+    id: 75
+  - msg: ulog_stream
+    id: 76
+  - msg: vehicle_attitude
+    id: 77
+  - msg: vehicle_attitude_setpoint
+    id: 78
+  - msg: vehicle_command_ack
+    id: 79
+  - msg: vehicle_command
+    id: 80
+  - msg: vehicle_control_mode
+    id: 81
+  - msg: vehicle_global_position
+    id: 83
+  - msg: vehicle_gps_position
+    id: 85
+  - msg: vehicle_land_detected
+    id: 86
+  - msg: vehicle_local_position
+    id: 87
+  - msg: vehicle_local_position_setpoint
+    id: 88
+  - msg: vehicle_rates_setpoint
+    id: 89
+  - msg: vehicle_roi
+    id: 90
+  - msg: vehicle_status_flags
+    id: 91
+  - msg: vehicle_status
+    id: 92
+  - msg: vtol_vehicle_status
+    id: 93
+  - msg: wind_estimate
+    id: 94

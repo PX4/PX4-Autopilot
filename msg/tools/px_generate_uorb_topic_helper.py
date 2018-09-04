@@ -4,7 +4,8 @@
 # Another positive effect of having the code here, is that this file will get
 # precompiled and thus message generation will be much faster
 
-import json
+import os
+import yaml
 
 import genmsg.msgs
 import gencpp
@@ -298,13 +299,23 @@ def print_field_def(field):
     print('\t%s%s%s %s%s;%s'%(type_prefix, type_px4, type_appendix, field.name,
                 array_size, comment))
 
-def rtps_message_id(json_file, message):
+def parse_yaml_msg_id_file(yaml_file):
+    """
+    Parses a yaml file into a dict
+    """
+    try:
+        with open(yaml_file, 'r') as f:
+            return yaml.load(f)
+    except OSError as e:
+        if e.errno == errno.ENOENT:
+            raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), yaml_file)
+        else:
+            raise
+
+def rtps_message_id(msg_id_map, message):
     """
     Get RTPS ID of uORB message
     """
-    with open(json_file, 'r') as f:
-        msg_id_map = json.load(f)
-
     for dict in msg_id_map["rtps"]:
         if message in dict["msg"]:
             return dict["id"]
