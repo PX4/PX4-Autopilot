@@ -58,7 +58,7 @@ typedef enum {
 	BSON_UNDEFINED = 6,
 	BSON_BOOL = 8,
 	BSON_DATE = 9,
-	BSON_NULL = 10,
+	BSON_nullptr = 10,
 	BSON_INT32 = 16,
 	BSON_INT64 = 18
 } bson_type_t;
@@ -198,7 +198,7 @@ __EXPORT int bson_encoder_init_file(bson_encoder_t encoder, int fd);
  *
  * @param encoder		Encoder state structure to be initialised.
  * @param fd			File to write to.
- * @param buf			Buffer pointer to use, can't be NULL
+ * @param buf			Buffer pointer to use, can't be nullptr
  * @param bufsize		Supplied buffer size
  * @return			Zero on success.
  */
@@ -208,7 +208,7 @@ __EXPORT int bson_encoder_init_buf_file(bson_encoder_t encoder, int fd, void *bu
  * Initialze the encoder for writing to a buffer.
  *
  * @param encoder		Encoder state structure to be initialised.
- * @param buf			Buffer pointer to use, or NULL if the buffer
+ * @param buf			Buffer pointer to use, or nullptr if the buffer
  *				should be allocated by the encoder.
  * @param bufsize		Maximum buffer size, or zero for no limit. If
  *				the buffer is supplied, the size of the supplied buffer.

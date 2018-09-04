@@ -38,10 +38,9 @@ if("${CONFIG_SHMEM}" STREQUAL "1")
 	include_directories(${HEXAGON_SDK_INCLUDES})
 	include_directories(${PX4_BINARY_DIR}/platforms/posix)
 	list(APPEND SHMEM_SRCS
-		shmem_posix.c
+		shmem_posix.cpp
 	)
-	# TODO: This didn't seem to be tracked correctly from posix_eagle_release.cmake
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCONFIG_SHMEM")
+	add_definitions(-DCONFIG_SHMEM=1)
 	set(EXTRA_DEPENDS generate_px4muorb_stubs)
 endif()
 

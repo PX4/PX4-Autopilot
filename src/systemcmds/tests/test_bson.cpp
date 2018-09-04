@@ -98,7 +98,7 @@ encode(bson_encoder_t encoder)
 }
 
 static int
-decode_callback(bson_decoder_t decoder, void *private, bson_node_t node)
+decode_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 {
 	unsigned len;
 
@@ -194,7 +194,7 @@ decode_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 			return 1;
 		}
 
-		if (strcmp(sbuf, sample_string)) {
+		if (strcmp(sbuf, sample_string) != 0) {
 			PX4_ERR("FAIL: decoder: string1 value '%s', expected '%s'", sbuf, sample_string);
 			return 1;
 		}
@@ -268,7 +268,7 @@ test_bson(int argc, char *argv[])
 	int len;
 
 	/* encode data to a memory buffer */
-	if (bson_encoder_init_buf(&encoder, NULL, 0)) {
+	if (bson_encoder_init_buf(&encoder, nullptr, 0)) {
 		PX4_ERR("FAIL: bson_encoder_init_buf");
 		return 1;
 	}
@@ -283,13 +283,13 @@ test_bson(int argc, char *argv[])
 
 	buf = bson_encoder_buf_data(&encoder);
 
-	if (buf == NULL) {
+	if (buf == nullptr) {
 		PX4_ERR("FAIL: bson_encoder_buf_data");
 		return 1;
 	}
 
 	/* now test-decode it */
-	if (bson_decoder_init_buf(&decoder, buf, len, decode_callback, NULL)) {
+	if (bson_decoder_init_buf(&decoder, buf, len, decode_callback, nullptr)) {
 		PX4_ERR("FAIL: bson_decoder_init_buf");
 		return 1;
 	}
