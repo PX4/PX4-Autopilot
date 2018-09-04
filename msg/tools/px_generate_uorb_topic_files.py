@@ -43,6 +43,7 @@ import shutil
 import filecmp
 import argparse
 import sys
+import errno
 
 px4_tools_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(px4_tools_dir + "/genmsg/src")
@@ -271,11 +272,12 @@ def generate_by_template(output_file, template_file, em_globals):
         ofile = open(output_file, 'w')
         # todo, reuse interpreter
         interpreter = em.Interpreter(output=ofile, globals=em_globals, options={em.RAW_OPT:True,em.BUFFERED_OPT:True})
-        if not os.path.isfile(template_file):
-                ofile.close()
-                os.remove(output_file)
-                raise RuntimeError("Template file %s not found" % (template_file))
-        interpreter.file(open(template_file)) #todo try
+        try:
+            interpreter.file(open(template_file))
+        except OSError as e:
+            ofile.close()
+            os.remove(output_file)
+            raise
         interpreter.shutdown()
         ofile.close()
         return True

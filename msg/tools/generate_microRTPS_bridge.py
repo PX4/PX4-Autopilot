@@ -69,8 +69,8 @@ parser.add_argument("-a", "--agent", dest='agent', action="store_true", help="Fl
 parser.add_argument("-c", "--client", dest='client', action="store_true", help="Flag for generate the client, by default is true if -a is not specified")
 parser.add_argument("-i", "--no-idl", dest='idl', action="store_false", help="Flag for generate idl files for each msg, by default is true if -i is not specified")
 parser.add_argument("-t", "--topic-msg-dir", dest='msgdir', type=str, nargs=1, help="Topics message dir, by default msg/", default="msg")
-parser.add_argument("-b", "--uorb-templates-dir", dest='uorb_templates', type=str, nargs=1, help="uORB templates dir, by default msg_dir/templates/uorb_microcdr", default=default_uorb_templates_dir)
-parser.add_argument("-q", "--urtps-templates-dir", dest='urtps_templates', type=str, nargs=1, help="uRTPS templates dir, by default msg_dir/templates/urtps", default=default_urtps_templates_dir)
+parser.add_argument("-b", "--uorb-templates-dir", dest='uorb_templates', type=str, help="uORB templates dir, by default msg_dir/templates/uorb_microcdr", default=default_uorb_templates_dir)
+parser.add_argument("-q", "--urtps-templates-dir", dest='urtps_templates', type=str, help="uRTPS templates dir, by default msg_dir/templates/urtps", default=default_urtps_templates_dir)
 parser.add_argument("-p", "--package", dest='package', type=str, nargs=1, help="Msg package naming, by default px4", default=default_package_name)
 parser.add_argument("-o", "--agent-outdir", dest='agentdir', type=str, nargs=1, help="Agent output dir, by default src/modules/micrortps_bridge/micrortps_agent", default=default_agent_out)
 parser.add_argument("-u", "--client-outdir", dest='clientdir', type=str, nargs=1, help="Client output dir, by default src/modules/micrortps_bridge/micrortps_client", default=default_client_out)
@@ -188,6 +188,7 @@ def generate_agent(out_dir):
 
     # Final steps to install agent
     mkdir_p(agent_out_dir + "/fastrtpsgen")
+    prev_cwd_path = os.getcwd()
     os.chdir(agent_out_dir + "/fastrtpsgen")
     for idl_file in glob.glob(agent_out_dir + "/idl/*.idl"):
         ret = subprocess.call(fastrtpsgen_path + " -d " + agent_out_dir + "/fastrtpsgen -example x64Linux2.6gcc " + idl_file, shell=True)
@@ -205,6 +206,7 @@ def generate_agent(out_dir):
     cp_wildcard(urtps_templates_dir + "/microRTPS_transport.*", agent_out_dir)
     os.rename(agent_out_dir + "/microRTPS_agent_CMakeLists.txt", agent_out_dir + "/CMakeLists.txt")
     mkdir_p(agent_out_dir + "/build")
+    os.chdir(prev_cwd_path)
     return 0
 
 def rm_wildcard(pattern):

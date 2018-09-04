@@ -10,16 +10,24 @@
 @#  - multi_topics (List) list of all multi-topic names
 @###############################################
 @{
+import os
+
 import genmsg.msgs
 import gencpp
 from px_generate_uorb_topic_helper import * # this is in Tools/
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
-from uorb_rtps_message_ids import * # this is in Tools/
 
 topic_names = [single_spec.short_name for single_spec in spec]
 send_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
 recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
-
+yaml_file = os.path.abspath('uorb_rtps_message_ids.yaml')
+try:
+    msg_ids = parse_yaml_msg_id_file(yaml_file)
+except OSError as e:
+    if e.errno == errno.ENOENT:
+        raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), yaml_file)
+    else:
+        raise
 }@
 /****************************************************************************
  *
@@ -112,7 +120,7 @@ void* send(void* /*unused*/)
                 /* payload is shifted by header length to make room for header*/
                 serialize_@(topic)(&MicroBufferWriter, &data, &data_buffer[header_length], &length);
 
-                if (0 < (read = transport_node->write((char)@(message_id(topic)), data_buffer, length)))
+                if (0 < (read = transport_node->write((char)@(rtps_message_id(msg_ids, topic)), data_buffer, length)))
                 {
                     total_sent += read;
                     ++sent;
@@ -187,7 +195,8 @@ void micrortps_start_topics(struct timespec &begin, int &total_read, uint32_t &r
             switch (topic_ID)
             {
 @[for topic in recv_topics]@
-                case @(message_id(topic)):
+
+                case @(rtps_message_id(msg_ids, topic)):
                 {
                     deserialize_@(topic)(&MicroBufferReader, &@(topic)_data, data_buffer);
                     if (!@(topic)_pub) {
