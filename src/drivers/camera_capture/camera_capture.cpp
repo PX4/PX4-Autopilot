@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,6 +53,7 @@ CameraCapture::CameraCapture() :
 	_trigger_pub(nullptr),
 	_command_ack_pub(nullptr),
 	_command_sub(-1),
+	_trig_buffer(nullptr),
 	_camera_capture_feedback(false),
 	_camera_capture_mode(0),
 	_camera_capture_edge(0),
@@ -77,14 +78,15 @@ CameraCapture::CameraCapture() :
 	_p_camera_capture_edge = param_find("CAM_CAP_EDGE");
 	param_get(_p_camera_capture_edge, &_camera_capture_edge);
 
-	if (_camera_capture_feedback) {
-		struct camera_trigger_s trigger = {};
-		_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
-	}
 }
 
 CameraCapture::~CameraCapture()
 {
+	/* free any existing reports */
+	if (_trig_buffer != nullptr) {
+		delete _trig_buffer;
+	}
+
 	camera_capture::g_camera_capture = nullptr;
 }
 
@@ -93,31 +95,66 @@ CameraCapture::capture_callback(uint32_t chan_index,
 				hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
 
+	struct _trig_s trigger;
+
+	trigger.chan_index = chan_index;
+	trigger.edge_time = edge_time;
+	trigger.edge_state = edge_state;
+	trigger.overflow = overflow;
+
+	/* post message to the ring */
+	_trig_buffer->put(&trigger);
+
+	work_queue(LPWORK, &_work, (worker_t)&CameraCapture::publish_trigger_trampoline, this, 0);
+}
+
+void
+CameraCapture::publish_trigger_trampoline(void *arg)
+{
+	CameraCapture *dev = reinterpret_cast<CameraCapture *>(arg);
+
+	dev->publish_trigger();
+}
+
+void
+CameraCapture::publish_trigger()
+{
+	struct _trig_s trig;
+
+	_trig_buffer->get(&trig);
+
 	if (_last_fall_time > 0) {
+
 		struct camera_trigger_s	trigger {};
 
 		if (_camera_capture_mode == 0) {
-			trigger.timestamp = edge_time;
+			trigger.timestamp = trig.edge_time;
 
 		} else {
-			trigger.timestamp = edge_time - ((edge_time - _last_fall_time) / 2);	// Get timestamp of mid-exposure
+			trigger.timestamp = trig.edge_time - ((trig.edge_time - _last_fall_time) / 2);	// Get timestamp of mid-exposure
 		}
 
 		trigger.seq = _capture_seq++;
 		trigger.feedback = true;
 
 		if (_camera_capture_feedback) {
-			orb_publish(ORB_ID(camera_trigger), _trigger_pub, &trigger);
+			if (_trigger_pub == nullptr) {
+
+				_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
+
+			} else {
+
+				orb_publish(ORB_ID(camera_trigger), _trigger_pub, &trigger);
+			}
 		}
 
-		_last_exposure_time = edge_time - _last_fall_time;
+		_last_exposure_time = trig.edge_time - _last_fall_time;
 	}
 
 	// Timestamp and compensate for strobe delay
-	_last_fall_time = edge_time - uint64_t(1000 * _strobe_delay);
+	_last_fall_time = trig.edge_time - uint64_t(1000 * _strobe_delay);
 
-	_capture_overflows = overflow;
-
+	_capture_overflows = trig.overflow;
 }
 
 void
@@ -231,12 +268,21 @@ CameraCapture::reset_statistics(bool reset_seq)
 	_capture_overflows = 0;
 }
 
-void
+int
 CameraCapture::start()
 {
+	/* allocate basic report buffers */
+	_trig_buffer = new ringbuffer::RingBuffer(2, sizeof(_trig_s));
+
+	if (_trig_buffer == nullptr) {
+		return PX4_ERROR;
+	}
+
 	// start to monitor at low rates for capture control commands
 	work_queue(LPWORK, &_work, (worker_t)&CameraCapture::cycle_trampoline, this,
 		   USEC2TICK(1)); // TODO : is this low rate??!
+
+	return PX4_OK;
 }
 
 void
@@ -288,8 +334,13 @@ int camera_capture_main(int argc, char *argv[])
 			return 1;
 		}
 
-		camera_capture::g_camera_capture->start();
-		return 0;
+		if (!camera_capture::g_camera_capture->start()) {
+			return 0;
+
+		} else {
+			return 1;
+		}
+
 	}
 
 	if (camera_capture::g_camera_capture == nullptr) {
