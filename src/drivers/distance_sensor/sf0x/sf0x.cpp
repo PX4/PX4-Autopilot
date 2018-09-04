@@ -96,9 +96,6 @@ public:
 	*/
 	void				print_info();
 
-protected:
-	virtual int			probe();
-
 private:
 	char 				_port[20];
 	uint8_t _rotation;
@@ -196,40 +193,6 @@ SF0X::SF0X(const char *port, uint8_t rotation) :
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
 
-	/* open fd */
-	_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
-
-	if (_fd < 0) {
-		PX4_ERR("open failed (%i)", errno);
-	}
-
-	struct termios uart_config;
-
-	int termios_state;
-
-	/* fill the struct for the new configuration */
-	tcgetattr(_fd, &uart_config);
-
-	/* clear ONLCR flag (which appends a CR for every LF) */
-	uart_config.c_oflag &= ~ONLCR;
-
-	/* no parity, one stop bit */
-	uart_config.c_cflag &= ~(CSTOPB | PARENB);
-
-	unsigned speed = B9600;
-
-	/* set baud rate */
-	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
-		PX4_ERR("CFG: %d ISPD", termios_state);
-	}
-
-	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
-		PX4_ERR("CFG: %d OSPD", termios_state);
-	}
-
-	if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
-		PX4_ERR("baud %d ATTR", termios_state);
-	}
 }
 
 SF0X::~SF0X()
@@ -330,17 +293,7 @@ SF0X::init()
 
 	} while (0);
 
-	/* close the fd */
-	::close(_fd);
-	_fd = -1;
-
-	return OK;
-}
-
-int
-SF0X::probe()
-{
-	return measure();
+	return ret;
 }
 
 void
@@ -660,6 +613,39 @@ SF0X::cycle()
 	if (_fd < 0) {
 		/* open fd */
 		_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
+
+		if (_fd < 0) {
+			PX4_ERR("open failed (%i)", errno);
+			return;
+		}
+
+		struct termios uart_config;
+
+		int termios_state;
+
+		/* fill the struct for the new configuration */
+		tcgetattr(_fd, &uart_config);
+
+		/* clear ONLCR flag (which appends a CR for every LF) */
+		uart_config.c_oflag &= ~ONLCR;
+
+		/* no parity, one stop bit */
+		uart_config.c_cflag &= ~(CSTOPB | PARENB);
+
+		unsigned speed = B9600;
+
+		/* set baud rate */
+		if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
+			PX4_ERR("CFG: %d ISPD", termios_state);
+		}
+
+		if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
+			PX4_ERR("CFG: %d OSPD", termios_state);
+		}
+
+		if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
+			PX4_ERR("baud %d ATTR", termios_state);
+		}
 	}
 
 	/* collection phase? */
