@@ -44,4 +44,5 @@ px4_add_module(
 		FlightTasks
 		git_ecl
 		ecl_geo
+		WeatherVane
 	)

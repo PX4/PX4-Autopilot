@@ -88,6 +88,12 @@ void FlightTaskManualStabilized::_updateHeadingSetpoints()
 			}
 		}
 	}
+
+	// check if an external yaw handler is active and if yes, let it compute the yaw setpoints
+	if (_ext_yaw_handler != nullptr && _ext_yaw_handler->is_active()) {
+		_yaw_setpoint = NAN;
+		_yawspeed_setpoint += _ext_yaw_handler->get_weathervane_yawrate();
+	}
 }
 
 void FlightTaskManualStabilized::_updateThrustSetpoints()

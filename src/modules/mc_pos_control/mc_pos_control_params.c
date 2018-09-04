@@ -672,3 +672,52 @@ PARAM_DEFINE_INT32(MPC_OBS_AVOID, 0);
  * @group Mission
  */
 PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);
+
+/**
+ * Enable weathervane for manual.
+ *
+ * @value 0 Disabled
+ * @value 1 Enabled
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_WV_MAN_EN, 0);
+
+/**
+ * Enable weathervane for auto.
+ *
+ * @value 0 Disabled
+ * @value 1 Enabled
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_WV_AUTO_EN, 0);
+
+/**
+ * Weather-vane yaw rate from roll gain.
+ *
+ * The desired gain to convert roll sp into yaw rate sp.
+ *
+ * @min 0.0
+ * @max 3.0
+ * @increment 0.01
+ * @decimal 3
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MPC_WV_GAIN, 1.0f);
+
+/**
+ * Minimum roll angle setpoint for weathervane controller to demand a yaw-rate.
+ *
+ * @min 0
+ * @max 5
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_WV_ROLL_MIN, 1.0f);
+
+/**
+ * Maximum yawrate the weathervane controller is able to demand.
+ *
+ * @min 0
+ * @max 120
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_WV_YRATE_MAX, 90.0f);

@@ -44,6 +44,7 @@
 #include "FlightTask.hpp"
 #include "SubscriptionArray.hpp"
 #include "FlightTasks_generated.hpp"
+#include <lib/WeatherVane/WeatherVane.hpp>
 
 #include <new>
 
@@ -124,6 +125,11 @@ public:
 	 * Call this method to get the description of a task error.
 	 */
 	const char *errorToString(const int error);
+
+	/**
+	 * Sets an external yaw handler. The active flight task can use the yaw handler to implement a different yaw control strategy.
+	 */
+	void set_yaw_handler(WeatherVane *ext_yaw_handler) {_current_task.task->set_yaw_handler(ext_yaw_handler);}
 
 private:
 

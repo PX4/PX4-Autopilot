@@ -50,6 +50,11 @@ public:
 	bool activate() override;
 	bool update() override;
 
+	/**
+	 * Sets an external yaw handler which can be used to implement a different yaw control strategy.
+	 */
+	void set_yaw_handler(WeatherVane *ext_yaw_handler) override {_ext_yaw_handler = ext_yaw_handler;}
+
 protected:
 
 	float _alt_above_ground{0.0f}; /**< If home provided, then it is altitude above home, otherwise it is altitude above local position reference. */
@@ -73,6 +78,9 @@ protected:
 	void updateParams() override; /**< See ModuleParam class */
 
 private:
+	WeatherVane *_ext_yaw_handler =
+		nullptr;	/**< external weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
+
 	void _reset(); /**< Resets member variables to current vehicle state */
 	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
 	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
