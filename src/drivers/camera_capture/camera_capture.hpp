@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -56,6 +56,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_input_capture.h>
+#include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/camera_trigger.h>
@@ -78,7 +79,7 @@ public:
 	/**
 	 * Start the task.
 	 */
-	void			start();
+	int			start();
 
 	/**
 	 * Stop the task.
@@ -97,6 +98,8 @@ public:
 
 	void			reset_statistics(bool reset_seq);
 
+	void			publish_trigger();
+
 
 	static struct work_s	_work;
 
@@ -110,6 +113,16 @@ private:
 
 	// Subscribers
 	int				_command_sub;
+
+	// Trigger Buffer
+	struct _trig_s {
+		uint32_t chan_index;
+		hrt_abstime edge_time;
+		uint32_t edge_state;
+		uint32_t overflow;
+	};
+
+	ringbuffer::RingBuffer *_trig_buffer;
 
 	// Parameters
 	param_t 		_p_strobe_delay;
@@ -130,6 +143,9 @@ private:
 	// Signal capture callback
 	void			capture_callback(uint32_t chan_index,
 			hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
+
+	// Signal capture publish
+	static void		publish_trigger_trampoline(void *arg);
 
 	// Low-rate command handling loop
 	static void		cycle_trampoline(void *arg);
