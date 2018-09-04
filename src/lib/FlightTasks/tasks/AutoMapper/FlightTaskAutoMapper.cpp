@@ -62,6 +62,12 @@ bool FlightTaskAutoMapper::update()
 		_reset();
 	}
 
+	// check if an external yaw handler is active and if yes, let it compute the yaw setpoints
+	if (_ext_yaw_handler != nullptr && _ext_yaw_handler->is_active()) {
+		_yaw_setpoint = _yaw;
+		_yawspeed_setpoint = _ext_yaw_handler->get_weathervane_yawrate();
+	}
+
 	// The only time a thrust set-point is sent out is during
 	// idle. Hence, reset thrust set-point to NAN in case the
 	// vehicle exits idle.

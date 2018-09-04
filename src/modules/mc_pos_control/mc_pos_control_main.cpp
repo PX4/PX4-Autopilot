@@ -67,6 +67,7 @@
 #include <controllib/blocks.hpp>
 
 #include <lib/FlightTasks/FlightTasks.hpp>
+#include <lib/WeatherVane/WeatherVane.hpp>
 #include "PositionControl.hpp"
 #include "Utility/ControlMath.hpp"
 
@@ -141,7 +142,12 @@ private:
 		(ParamInt<px4::params::MPC_POS_MODE>) MPC_POS_MODE,
 		(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
 		(ParamFloat<px4::params::MPC_IDLE_TKO>) MPC_IDLE_TKO, /**< time constant for smooth takeoff ramp */
-		(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID /**< enable obstacle avoidance */
+		(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID, /**< enable obstacle avoidance */
+		(ParamBool<px4::params::MPC_WV_MAN_EN>) _wv_manual_enabled,
+		(ParamBool<px4::params::MPC_WV_AUTO_EN>) _wv_auto_enabled,
+		(ParamFloat<px4::params::MPC_WV_ROLL_MIN>) _wv_min_roll,
+		(ParamFloat<px4::params::MPC_WV_GAIN>) _wv_gain,
+		(ParamFloat<px4::params::MPC_WV_YRATE_MAX>) _wv_max_yaw_rate
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
@@ -171,6 +177,8 @@ private:
 	systemlib::Hysteresis _arm_hysteresis{false}; /**< becomes true once vehicle is armed for MPC_IDLE_TKO seconds */
 
 	systemlib::Hysteresis _failsafe_land_hysteresis{false}; /**< becomes true if task did not update correctly for LOITER_TIME_BEFORE_DESCEND */
+
+	WeatherVane _wv_controller;
 
 	/**
 	 * Update our local parameter cache.
@@ -371,6 +379,10 @@ MulticopterPositionControl::parameters_update(bool force)
 
 		// set trigger time for arm hysteresis
 		_arm_hysteresis.set_hysteresis_time_from(false, (int)(MPC_IDLE_TKO.get() * 1000000.0f));
+
+		_wv_controller.set_weathervane_gain(_wv_gain.get());
+		_wv_controller.set_min_roll_rad(math::radians(_wv_min_roll.get()));
+		_wv_controller.set_yawrate_max_rad(math::radians(_wv_max_yaw_rate.get()));
 	}
 
 	return OK;
@@ -587,6 +599,19 @@ MulticopterPositionControl::task_main()
 		// set dt for control blocks
 		setDt(dt);
 
+		// activate the weathervane controller if required. If activated a flighttask can use it to implement a yaw-rate control strategy
+		// that turns the nose of the vehicle into the wind
+		if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled
+		    && _wv_manual_enabled.get()) {
+			_wv_controller.activate();
+
+		} else if (_control_mode.flag_control_auto_enabled && _wv_auto_enabled.get()) {
+			_wv_controller.activate();
+
+		} else {
+			_wv_controller.deactivate();
+		}
+
 		if (_control_mode.flag_armed) {
 			// as soon vehicle is armed check for flighttask
 			start_flight_task();
@@ -606,6 +631,8 @@ MulticopterPositionControl::task_main()
 
 			// setpoints from flighttask
 			vehicle_local_position_setpoint_s setpoint;
+
+			_flight_tasks.set_yaw_handler(&_wv_controller);
 
 			// update task
 			if (!_flight_tasks.update()) {
@@ -720,6 +747,8 @@ MulticopterPositionControl::task_main()
 			_att_sp.fw_control_yaw = false;
 			_att_sp.disable_mc_yaw_control = false;
 			_att_sp.apply_flaps = false;
+
+			_wv_controller.update(matrix::Quatf(&_att_sp.q_d[0]), _local_pos.yaw);
 
 			if (!constraints.landing_gear) {
 				if (constraints.landing_gear == vehicle_constraints_s::GEAR_UP) {
