@@ -126,7 +126,7 @@ static void input_capture_chan_handler(void *context, const io_timers_t *timer, 
 	if (channel_handlers[chan_index].callback)  {
 		channel_handlers[chan_index].callback(channel_handlers[chan_index].context, chan_index,
 						      channel_stats[chan_index].last_time,
-						      channel_stats[chan_index].last_edge, channel_stats[chan_index].overflows);
+						      channel_stats[chan_index].last_edge, overflow);
 	}
 }
 
