@@ -41,7 +41,8 @@
 #include <mathlib/mathlib.h>
 
 
-WeatherVane::WeatherVane()
+WeatherVane::WeatherVane() :
+	ModuleParams(nullptr)
 {
 	_q_sp_prev = matrix::Quatf();
 }
@@ -68,15 +69,16 @@ float WeatherVane::get_weathervane_yawrate()
 	float roll_sp = -asinf(body_z_sp(1));
 
 	float roll_exceeding_treshold = 0;
+	float min_roll_rad = math::radians(_wv_min_roll.get());
 
-	if (roll_sp > _wv_min_roll_rad) {
-		roll_exceeding_treshold = roll_sp - _wv_min_roll_rad;
+	if (roll_sp > min_roll_rad) {
+		roll_exceeding_treshold = roll_sp - min_roll_rad;
 
-	} else if (roll_sp < -_wv_min_roll_rad) {
-		roll_exceeding_treshold = roll_sp + _wv_min_roll_rad;
+	} else if (roll_sp < -min_roll_rad) {
+		roll_exceeding_treshold = roll_sp + min_roll_rad;
 
 	}
 
-	return math::constrain(roll_exceeding_treshold * _wv_gain, -_wv_yawrate_max_rad,
-			       _wv_yawrate_max_rad);
+	return math::constrain(roll_exceeding_treshold * _wv_gain.get(), -math::radians(_wv_max_yaw_rate.get()),
+			       math::radians(_wv_max_yaw_rate.get()));
 }

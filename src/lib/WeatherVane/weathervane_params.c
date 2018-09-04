@@ -32,54 +32,61 @@
  ****************************************************************************/
 
 /**
- * @file WeatherVane.hpp
- * @author Ivo Drescher
+ * @file weathervane_params.c
+ *
+ * Parameters defined by the weathervane lib.
+ *
  * @author Roman Bapst <roman@auterion.com>
- *
- * Weathervane controller.
- *
  */
 
-#pragma once
+#include <px4_config.h>
+#include <parameters/param.h>
 
-#include <px4_module_params.h>
-#include <matrix/matrix/math.hpp>
+/**
+ * Enable weathervane for manual.
+ *
+ * @value 0 Disabled
+ * @value 1 Enabled
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(WV_MAN_EN, 0);
 
-class WeatherVane : public ModuleParams
-{
-public:
-	WeatherVane();
+/**
+ * Enable weathervane for auto.
+ *
+ * @value 0 Disabled
+ * @value 1 Enabled
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(WV_AUTO_EN, 0);
 
-	~WeatherVane() = default;
+/**
+ * Weather-vane yaw rate from roll gain.
+ *
+ * The desired gain to convert roll sp into yaw rate sp.
+ *
+ * @min 0.0
+ * @max 3.0
+ * @increment 0.01
+ * @decimal 3
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(WV_GAIN, 1.0f);
 
-	void activate() {_is_active = true;}
+/**
+ * Minimum roll angle setpoint for weathervane controller to demand a yaw-rate.
+ *
+ * @min 0
+ * @max 5
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(WV_ROLL_MIN, 1.0f);
 
-	void deactivate() {_is_active = false;}
-
-	bool is_active() {return _is_active;}
-
-	bool manual_enabled() { return _wv_manual_enabled.get(); }
-
-	bool auto_enabled() { return _wv_auto_enabled.get(); }
-
-	void update(matrix::Quatf q_sp_prev, float yaw);
-
-	float get_weathervane_yawrate();
-
-	void update_parameters() { ModuleParams::updateParams(); }
-
-private:
-	matrix::Quatf _q_sp_prev;	// previous attitude setpoint quaternion
-	float _yaw = 0.0f;			// current yaw angle
-
-	bool _is_active = true;
-
-	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::WV_MAN_EN>) _wv_manual_enabled,
-		(ParamBool<px4::params::WV_AUTO_EN>) _wv_auto_enabled,
-		(ParamFloat<px4::params::WV_ROLL_MIN>) _wv_min_roll,
-		(ParamFloat<px4::params::WV_GAIN>) _wv_gain,
-		(ParamFloat<px4::params::WV_YRATE_MAX>) _wv_max_yaw_rate
-	)
-
-};
+/**
+ * Maximum yawrate the weathervane controller is able to demand.
+ *
+ * @min 0
+ * @max 120
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(WV_YRATE_MAX, 90.0f);
