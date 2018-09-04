@@ -67,7 +67,125 @@ serial_config:
                 type: integer
                 min: 1
 
+
 parameters:
+    # Parameter definitions.
+    # This is a list of parameter groups, where each group has one or more
+    # parameter definitions.
     type: list
-    # TODO
+    minlength: 1
+    schema:
+        type: dict
+        schema:
+            group:
+                # Parameter group (should be short)
+                # This applies to all parameters in the definitions dictionary
+                type: string
+                required: true
+            definitions:
+                type: dict
+                keyschema:
+                    type: string
+                    regex: '[0-9A-Z_]+(\$\{i\}[0-9A-Z_]*)?'
+                valueschema:
+                    type: dict
+                    schema:
+                        description:
+                            type: dict
+                            required: true
+                            schema:
+                                short:
+                                    # Short description (one line)
+                                    type: string
+                                    required: true
+                                long:
+                                    # Long description (can be multiple lines)
+                                    type: string
+                                    required: true
+
+                        type:
+                            # Define the parameter type
+                            required: true
+                            type: string
+                            allowed: ['int32', 'float', 'boolean', 'enum', 'bitmask' ]
+                        min:
+                            # Optional minimum value (only for int32 or float)
+                            type: number
+                        max:
+                            # Optional maximum value (only for int32 or float)
+                            type: number
+                        unit:
+                            # Optional parameter unit (only for int32 or float)
+                            # (Extend this list as needed)
+                            type: string
+                            allowed: [
+                                '%', 'Hz', 'mAh',
+                                'rad', '%/rad', 'rad/s',
+                                'bit/s', 'B/s',
+                                'deg', 'deg*1e7', 'deg/s',
+                                'celcius', 'gauss', 'gauss/s', 'mgauss', 'mgauss^2',
+                                'hPa', 'kg', 'kg/m^2',
+                                'mm', 'm', 'm/s', 'm/s^2', 'm/s^3', 'm/s^2/sqrt(Hz)', 'm/s/rad',
+                                'Ohm',
+                                'us', 'ms', 's' ]
+                        bit:
+                            # description of all bits for type bitmask.
+                            # The first bit is 0.
+                            type: dict
+                            keyschema:
+                                type: integer
+                            valueschema:
+                                type: string
+
+                        values:
+                            # enumeration of possible values for type enum
+                            type: dict
+                            keyschema:
+                                type: integer
+                            valueschema:
+                                type: string
+
+                        default:
+                            # Default value(s). This is an integer or a float,
+                            # or a list of values for multiple instances.
+                            required: true
+                            anyof:
+                                - type: boolean
+                                - type: number
+                                - type: list
+                                  minlength: 1
+                                  schema:
+                                      anyof:
+                                          - type: boolean
+                                          - type: number
+                                          - type: list
+
+                        category:
+                            # Optional parameter category
+                            type: string
+                            allowed: [ 'Developer', 'System' ]
+                        volatile:
+                            # Optional volatile flag. Set to true if the
+                            # parameter can be changed by the system
+                            # automatially
+                            type: boolean
+                        reboot_required:
+                            # set to true, if changing of the parameter requires
+                            # a reboot to take effect
+                            type: boolean
+                        num_instances:
+                            # Optional number of instances.
+                            # For multiple instances, '${i}' can be used to
+                            # refer to an instance, for example in the parameter
+                            # name or description.
+                            # Default: 1
+                            type: integer
+                            min: 1
+                        instance_start:
+                            # The value of the first instance for multiple
+                            # instances, used in '${i}'. If 0, ${i} expands to
+                            # [0, N-1]
+                            # Default: 0
+                            type: integer
+
 
