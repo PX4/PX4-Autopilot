@@ -67,7 +67,7 @@ parser.add_argument("-s", "--send", dest='send', metavar='*.msg', type=str, narg
 parser.add_argument("-r", "--receive", dest='receive', metavar='*.msg', type=str, nargs='+', help="Topics to be received")
 parser.add_argument("-a", "--agent", dest='agent', action="store_true", help="Flag for generate the agent, by default is true if -c is not specified")
 parser.add_argument("-c", "--client", dest='client', action="store_true", help="Flag for generate the client, by default is true if -a is not specified")
-parser.add_argument("-i", "--no-idl", dest='idl', action="store_false", help="Flag for generate idl files for each msg, by default is true if -i is not specified")
+parser.add_argument("-i", "--generate-idl", dest='idl', action="store_true", help="Flag for generate idl files for each msg")
 parser.add_argument("-t", "--topic-msg-dir", dest='msgdir', type=str, help="Topics message dir, by default msg/", default="msg")
 parser.add_argument("-b", "--uorb-templates-dir", dest='uorb_templates', type=str, help="uORB templates dir, by default msg_dir/templates/uorb_microcdr", default=default_uorb_templates_dir)
 parser.add_argument("-q", "--urtps-templates-dir", dest='urtps_templates', type=str, help="uRTPS templates dir, by default msg_dir/templates/urtps", default=default_urtps_templates_dir)
@@ -98,11 +98,7 @@ else:
 
 agent = args.agent
 client = args.client
-# If not specified, auto generate the idl filename_send_msgs
-if args.idl is None or args.idl == "":
-    idl = True
-else:
-    idl = args.idl
+idl = args.idl
 del_tree = args.del_tree
 px_generate_uorb_topic_files.append_to_include_path({msg_folder}, px_generate_uorb_topic_files.INCL_DEFAULT, package)
 agent_out_dir = get_absolute_path(args.agentdir)
