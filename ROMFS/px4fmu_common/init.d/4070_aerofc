@@ -64,7 +64,11 @@ then
 	param set MPC_Z_VEL_MAX_UP 5.0000
 	param set MPC_Z_VEL_P 0.8000
 
-	param set SYS_COMPANION 921600
+	# TELEM2 config
+	param set MAV_1_CONFIG 2
+	param set MAV_1_RATE 80000
+	param set MAV_1_FORWARD 1
+	param set SER_TEL2_BAUD 921600
 fi
 
 if param compare SYS_HITL 0
@@ -78,4 +82,3 @@ fi
 set MIXER quad_x
 set USE_IO no
 
-set MAVLINK_COMPANION_DEVICE /dev/ttyS1

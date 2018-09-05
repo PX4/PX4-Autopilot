@@ -65,8 +65,9 @@ then
 	param set PWM_RATE 3921
 
 	param set SDLOG_PROFILE 1
+
 	param set SENS_FLOW_MINRNG 0.05
-	param set SYS_COMPANION 20
+
 	param set SYS_FMU_TASK 1
 
 fi
@@ -74,3 +75,7 @@ fi
 set PWM_DISARMED none
 set PWM_MAX none
 set PWM_MIN none
+
+syslink start
+mavlink start -d /dev/bridge0 -b 57600 -m osd -r 40000
+
