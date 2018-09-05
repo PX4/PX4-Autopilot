@@ -129,7 +129,7 @@ public:
 	/**
 	 * Sets an external yaw handler. The active flight task can use the yaw handler to implement a different yaw control strategy.
 	 */
-	void set_yaw_handler(WeatherVane *ext_yaw_handler) {_current_task.task->set_yaw_handler(ext_yaw_handler);}
+	void setYawHandler(WeatherVane *ext_yaw_handler) {_current_task.task->setYawHandler(ext_yaw_handler);}
 
 private:
 
