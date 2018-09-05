@@ -114,7 +114,7 @@ class ModuleBase
 {
 public:
 	ModuleBase() = default;
-	virtual ~ModuleBase() {};
+	virtual ~ModuleBase() {}
 
 	/**
 	 * @brief main Main entry point to the module that should be
