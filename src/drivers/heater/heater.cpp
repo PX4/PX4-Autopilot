@@ -147,6 +147,8 @@ void Heater::cycle()
 		return;
 	}
 
+	int _controller_time_on_usec = 0;
+
 	if (_heater_on) {
 		// Turn the heater off.
 		px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 0);
@@ -204,9 +206,9 @@ void Heater::cycle()
 	}
 }
 
-void Heater::cycle_trampoline(void *arg)
+void Heater::cycle_trampoline(void *argv)
 {
-	Heater *obj = reinterpret_cast<Heater *>(arg);
+	Heater *obj = reinterpret_cast<Heater *>(argv);
 	obj->cycle();
 }
 
@@ -256,7 +258,7 @@ void Heater::initialize_topics()
 	}
 }
 
-void Heater::initialize_trampoline(void *arg)
+void Heater::initialize_trampoline(void *argv)
 {
 	Heater *heater = new Heater();
 

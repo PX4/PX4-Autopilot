@@ -96,12 +96,14 @@ public:
 	 * @see ModuleBase::task_spawn().
 	 * @brief Initializes the class in the same context as the work queue
 	 *        and starts the background listener.
+	 * @param argv Pointer to the input argument array.
 	 * @return Returns 0 iff successful, -1 otherwise.
 	 */
 	static int task_spawn(int argc, char *argv[]);
 
 	/**
 	 * @brief Sets and/or reports the heater controller time period value in microseconds.
+	 * @param argv Pointer to the input argument array.
 	 * @return Returns 0 iff successful, -1 otherwise.
 	 */
 	int controller_period(char *argv[]);
@@ -160,6 +162,7 @@ public:
 
 	/**
 	 * @brief Sets and/or reports the heater target temperature.
+	 * @param argv Pointer to the input argument array.
 	 * @return Returns the heater target temperature value iff successful, -1.0f otherwise.
 	 */
 	float temperature_setpoint(char *argv[]);
@@ -174,9 +177,9 @@ protected:
 	/**
 	 * @see ModuleBase::initialize_trampoline().
 	 * @brief Trampoline initialization.
-	 * @param arg Pointer to the task startup arguments.
+	 * @param argv Pointer to the task startup arguments.
 	 */
-	static void initialize_trampoline(void *arg);
+	static void initialize_trampoline(void *argv);
 
 private:
 
@@ -187,8 +190,9 @@ private:
 
 	/**
 	 * @brief Trampoline for the work queue.
+	 * @param argv Pointer to the task startup arguments.
 	 */
-	static void cycle_trampoline(void *arg);
+	static void cycle_trampoline(void *argv);
 
 	/**
 	 * @brief Calculates the heater element on/off time, carries out
@@ -210,62 +214,35 @@ private:
 	 * @brief Updates and checks for updated uORB parameters.
 	 * @param force Boolean to determine if an update check should be forced.
 	 */
-	void update_params(const bool force = true);
+	void update_params(const bool force = false);
 
-	/** @var _command_ack_pub The command ackowledgement topic. */
-	orb_advert_t _command_ack_pub = nullptr;
+	/** Work queue struct for the RTOS scheduler. */
+	static struct work_s _work;
 
-	/** @var _controller_period_usec The heater controller time period in microseconds.*/
 	int _controller_period_usec = CONTROLLER_PERIOD_DEFAULT;
 
-	/** @var _controller_time_on_usec The heater time-on in microseconds.*/
-	int _controller_time_on_usec = 0;
-
-	/** @var _duty_cycle The heater time-on duty cycle value. */
 	float _duty_cycle = 0.0f;
 
-	/** @var _heater_on Indicator for the heater on/off status. */
 	bool _heater_on = false;
 
-	/** @var _integrator_value The heater controller integrator value. */
 	float _integrator_value = 0.0f;
 
-	/** @var Local member variable to store the parameter subscriptions. */
-	int _params_sub;
+	int _params_sub = 0;
 
-	/** @var _proportional_value The heater controller proportional value. */
 	float _proportional_value = 0.0f;
 
-	/** @struct _sensor_accel Accelerometer struct to receive uORB accelerometer data. */
 	struct sensor_accel_s _sensor_accel = {};
 
-	/** @var _sensor_accel_sub The accelerometer subtopic subscribed to.*/
 	int _sensor_accel_sub = -1;
 
-	/** @var _sensor_temperature The sensor's reported temperature. */
 	float _sensor_temperature = 0.0f;
-
-	/** @var _temperature_setpoint The heater controller temperature setpoint target. */
-	float _temperature_setpoint;
-
-	/** @struct _work Work Queue struct for the RTOS scheduler. */
-	static struct work_s _work;
 
 	/** @note Declare local parameters using defined parameters. */
 	DEFINE_PARAMETERS(
-		/** @var _feed_forward The heater controller feedforward value. */
 		(ParamFloat<px4::params::SENS_IMU_TEMP_FF>)  _p_feed_forward_value,
-
-		/** @var _integrator_gain The heater controller integrator gain value. */
 		(ParamFloat<px4::params::SENS_IMU_TEMP_I>)  _p_integrator_gain,
-
-		/** @var _proportional_gain The heater controller proportional gain value. */
 		(ParamFloat<px4::params::SENS_IMU_TEMP_P>)  _p_proportional_gain,
-
-		/** @var _p_sensor_id The ID of sensor to control temperature. */
 		(ParamInt<px4::params::SENS_TEMP_ID>) _p_sensor_id,
-
-		/** @var _p_temperature_setpoint The heater controller temperature setpoint parameter. */
 		(ParamFloat<px4::params::SENS_IMU_TEMP>) _p_temperature_setpoint
 	)
 };
