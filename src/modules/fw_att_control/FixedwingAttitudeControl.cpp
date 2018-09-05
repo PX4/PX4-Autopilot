@@ -449,6 +449,10 @@ float FixedwingAttitudeControl::get_airspeed_scaling(float airspeed)
 		    !_vehicle_status.in_transition_mode) {
 			airspeed = _airspeed_numerical_min;
 		}
+
+		if (_parameters.vtol_airspeed_rule == 2 && _vehicle_status.in_transition_to_fw) {
+			airspeed = _parameters.airspeed_max;
+		}
 	}
 
 	/*
