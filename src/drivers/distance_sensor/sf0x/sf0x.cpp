@@ -220,9 +220,6 @@ SF0X::init()
 	param_get(param_find("SENS_EN_SF0X"), &hw_model);
 
 	switch (hw_model) {
-	case 0:
-		PX4_WARN("disabled.");
-		return 0;
 
 	case 1: /* SF02 (40m, 12 Hz)*/
 		_min_distance = 0.3f;
