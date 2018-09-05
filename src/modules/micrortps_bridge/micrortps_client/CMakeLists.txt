@@ -71,7 +71,7 @@ if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_t
 		${msg_out_path}/micrortps_client/microRTPS_transport.h
 		)
 
-	# Copy json file to the bin dir to be used by empy on the file generation
+	# Copy yaml file to the bin dir to be used by empy on the file generation
 	configure_file("${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_message_ids.yaml"
 	     "${CMAKE_CURRENT_BINARY_DIR}/uorb_rtps_message_ids.yaml" COPYONLY)
 
