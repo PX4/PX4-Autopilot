@@ -67,7 +67,7 @@ PARAM_DEFINE_FLOAT(SENS_IMU_TEMP, 55.0f);
  * @max 1.0
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(SENS_IMU_TEMP_FF, 0.25f);
+PARAM_DEFINE_FLOAT(SENS_IMU_TEMP_FF, 0.5f);
 
 /**
  * IMU heater controller integrator gain value.
