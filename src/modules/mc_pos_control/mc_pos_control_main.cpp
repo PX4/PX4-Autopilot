@@ -625,7 +625,7 @@ MulticopterPositionControl::task_main()
 			// setpoints from flighttask
 			vehicle_local_position_setpoint_s setpoint;
 
-			_flight_tasks.set_yaw_handler(&_wv_controller);
+			_flight_tasks.setYawHandler(&_wv_controller);
 
 			// update task
 			if (!_flight_tasks.update()) {

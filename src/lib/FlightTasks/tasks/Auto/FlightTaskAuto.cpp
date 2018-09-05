@@ -193,7 +193,11 @@ bool FlightTaskAuto::_evaluateTriplets()
 	}
 
 	// set heading
-	if (_type == WaypointType::follow_target && _sub_triplet_setpoint->get().current.yawspeed_valid) {
+	if (_ext_yaw_handler != nullptr && _ext_yaw_handler->is_active()) {
+		_yaw_setpoint = _yaw;
+		_yawspeed_setpoint = _ext_yaw_handler->get_weathervane_yawrate();
+
+	} else if (_type == WaypointType::follow_target && _sub_triplet_setpoint->get().current.yawspeed_valid) {
 		_yawspeed_setpoint = _sub_triplet_setpoint->get().current.yawspeed;
 		_yaw_setpoint = NAN;
 
