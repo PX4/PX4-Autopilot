@@ -67,9 +67,10 @@ def plot_innovations(pdf_pages, dataset, variables, variances, titles, xlabels, 
         pdf_pages.savefig()
         plt.close()
 
-def plot_test_ratio(pdf_pages, dataset, data_time, variables, titles, xlabel, ylabels):
+def plot_check_flags(
+        pdf_pages, dataset, data_time, variables, titles, xlabel, ylabels, ylim=None, legend=None, annotate=True):
 
-    colors = ['b', 'r', 'g']
+    colors = ['b', 'r', 'g', 'c', 'k', 'm']
 
     plt.figure(figsize=(20, 13))
     # if there is one title per variable, every subplot gets its own title, otherwise a single title is set
@@ -88,15 +89,72 @@ def plot_test_ratio(pdf_pages, dataset, data_time, variables, titles, xlabel, yl
         plt.xlabel(xlabel)
         plt.ylabel(ylabels[i])
         plt.grid()
+        if ylim is not None:
+            plt.ylim(ylim)
 
-        for var in variables[i]:
-            # add the maximum and minimum value as an annotation
-            _, max_value, max_time = get_max_arg_time_value(dataset[var], data_time)
-            mean_value = np.mean(dataset[var])
+        if legend is not None:
+            plt.legend(legend[i], loc='upper left')
 
-            plt.text(
-                max_time, max_value, 'max={:.2f}, mean={:.2f}'.format(max_value, mean_value), fontsize=12,
-                horizontalalignment='left', verticalalignment='bottom')
+        if annotate:
+            for var in variables[i]:
+                # add the maximum and minimum value as an annotation
+                _, max_value, max_time = get_max_arg_time_value(dataset[var], data_time)
+                mean_value = np.mean(dataset[var])
+
+                plt.text(
+                    max_time, max_value, 'max={:.4f}, mean={:.4f}'.format(max_value, mean_value), fontsize=12,
+                    horizontalalignment='left', verticalalignment='bottom')
+
+    if pdf_pages is not None:
+        pdf_pages.savefig()
+        plt.close()
+
+def control_mode_summary_plot(pdf_pages, dataset, data_time, variables, titles, xlabel, ylabels, annotation_text,
+                              additional_annotation=None):
+
+    colors = ['b', 'r', 'g', 'c']
+
+    plt.figure(figsize=(20, 13))
+    # if there is one title per variable, every subplot gets its own title, otherwise a single title is set
+    if len(titles) == 1:
+        plt.suptitle(titles[0])
+
+    for i in range(len(variables)):
+        # create a subplot for every variable
+        plt.subplot(len(variables), 1, i + 1)
+        if len(titles) > 1:
+            plt.title(titles[i])
+
+        for col, var in zip(colors[:len(variables[i])], variables[i]):
+            plt.plot(data_time, dataset[var], col)
+
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabels[i])
+        plt.grid()
+        plt.ylim(-0.1, 1.1)
+
+        for t in range(len(annotation_text[i])):
+
+            _, _, align_time = get_max_arg_time_value(np.diff(dataset[variables[i][t]]), data_time)
+            v_annot_pos = (t+1.0)/(len(variables[i])+1) # vertical annotation position
+
+            if np.amin(dataset[variables[i][t]]) > 0:
+                plt.text(
+                    align_time, v_annot_pos,
+                    'no pre-arm data - cannot calculate {:s} start time'.format(annotation_text[i][t]),
+                    fontsize=12, horizontalalignment='left', verticalalignment='center', color=colors[t])
+            elif np.amax(dataset[variables[i][t]]) > 0:
+                plt.text(
+                    align_time, v_annot_pos, '{:s} at {:.1f} sec'.format(
+                        annotation_text[i][t], align_time), fontsize=12, horizontalalignment='left',
+                    verticalalignment='center', color=colors[t])
+
+        if additional_annotation is not None:
+            for a in range(len(additional_annotation[i])):
+                v_annot_pos = (a + 1.0) / (len(additional_annotation[i]) + 1)  # vertical annotation position
+                plt.text(
+                    additional_annotation[i][a][0], v_annot_pos, additional_annotation[i][a][1], fontsize=12,
+                    horizontalalignment='left', verticalalignment='center', color='b')
 
     if pdf_pages is not None:
         pdf_pages.savefig()
@@ -141,12 +199,19 @@ def get_control_mode_flags(estimator_status):
 def get_estimator_check_flags(estimator_status):
     control_mode = get_control_mode_flags(estimator_status)
     innov_flags = get_innovation_check_flags(estimator_status)
-    return control_mode, innov_flags
+    gps_fail_flags = get_gps_check_fail_flags(estimator_status)
+    return control_mode, innov_flags, gps_fail_flags
 
 def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_levels,
                 plot=False, output_plot_filename=None, late_start_early_ending=True):
 
-    control_mode, innov_flags = get_estimator_check_flags(estimator_status)
+    control_mode, innov_flags, gps_fail_flags = get_estimator_check_flags(estimator_status)
+
+    innov_time = 1e-6 * ekf2_innovations['timestamp']
+    status_time = 1e-6 * estimator_status['timestamp']
+
+    b_finishes_in_air, b_starts_in_air, in_air_duration, in_air_transition_time, on_ground_transition_time = detect_airtime(
+        control_mode, status_time)
 
     if plot:
         # create summary plots
@@ -202,9 +267,52 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
             titles=['Optical Flow Innovations'], xlabels=['time (sec)', 'time (sec)'],
             ylabels=['X (rad/sec)', 'Y (rad/sec)'])
 
-    # generate max, min and 1-std metadata
-    innov_time = 1e-6 * ekf2_innovations['timestamp']
-    status_time = 1e-6 * estimator_status['timestamp']
+        # plot normalised innovation test levels
+        # define variables to plot
+        variables = [['mag_test_ratio'], ['vel_test_ratio', 'pos_test_ratio'], ['hgt_test_ratio']]
+        if np.amax(estimator_status['hagl_test_ratio']) > 0.0:  # plot hagl test ratio, if applicable
+            variables[-1].append('hagl_test_ratio')
+        ylabels = ['mag', 'vel, pos', 'hgt']
+
+        if np.amax(estimator_status['tas_test_ratio']) > 0.0:  # plot airspeed sensor test ratio, if applicable
+            variables.append(['tas_test_ratio'])
+            ylabels.append('TAS')
+
+        plot_check_flags(
+            pdf_pages, estimator_status, status_time, variables, titles=['Normalised Innovation Test Levels'],
+            xlabel='time (sec)', ylabels=ylabels)
+
+        # plot control mode summary A
+        control_mode_summary_plot(pdf_pages, control_mode, status_time, [['tilt_aligned', 'yaw_aligned'],
+            ['using_gps', 'using_optflow', 'using_evpos'], ['using_barohgt', 'using_gpshgt', 'using_rnghgt', 'using_evhgt'],
+             ['using_magyaw', 'using_mag3d', 'using_magdecl']], titles=['EKF Control Status - Figure A'],
+            xlabel='time (sec)', ylabels=['aligned', 'pos aiding', 'hgt aiding', 'mag aiding'], annotation_text=[
+                ['tilt alignment', 'yaw alignment'], ['GPS aiding', 'optical flow aiding', 'external vision aiding'],
+                ['Baro aiding', 'GPS aiding', 'rangefinder aiding', 'external vision aiding'],
+                ['magnetic yaw aiding', '3D magnetoemter aiding', 'magnetic declination aiding']])
+
+        # plot control mode summary B
+        # construct additional annotations for the airborne plot
+        airborne_annotations = list()
+        if np.amin(np.diff(control_mode['airborne'])) > -0.5:
+            airborne_annotations.append((on_ground_transition_time, 'air to ground transition not detected'))
+        else:
+            airborne_annotations.append((on_ground_transition_time, 'on-ground at {:.1f} sec'.format(
+                on_ground_transition_time)))
+
+        if in_air_duration > 0.0:
+            airborne_annotations.append(((in_air_transition_time + on_ground_transition_time) / 2,
+                                         'duration = {:.1f} sec'.format(in_air_duration)))
+
+        if np.amax(np.diff(control_mode['airborne'])) < 0.5:
+            airborne_annotations.append((in_air_transition_time, 'ground to air transition not detected'))
+        else:
+            airborne_annotations.append((in_air_transition_time, 'in-air at {:.1f} sec'.format(in_air_transition_time)))
+
+        control_mode_summary_plot(
+            pdf_pages, control_mode, status_time, [['airborne'], ['estimating_wind']],
+            titles=['EKF Control Status - Figure B'], xlabel='time (sec)', ylabels=['airborne', 'estimating wind'],
+            annotation_text=[[], []], additional_annotation=[airborne_annotations, []])
 
     # generate metadata for the normalised innovation consistency test levels
     # a value > 1.0 means the measurement data for that test has been rejected by the EKF
@@ -239,60 +347,11 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
     hagl_test_max = np.amax(estimator_status['hagl_test_ratio'])
     hagl_test_mean = np.mean(estimator_status['hagl_test_ratio'])
 
-    if plot:
-
-        # plot normalised innovation test levels
-        plt.figure(8, figsize=(20, 13))
-
-        variables = [['mag_test_ratio'], ['vel_test_ratio', 'pos_test_ratio'], ['hgt_test_ratio']]
-        if hagl_test_max > 0.0:
-            variables[-1].append('hagl_test_ratio')
-
-        ylabels = ['mag', 'vel, pos', 'hgt']
-
-        if tas_test_max > 0.0:
-            variables.append(['tas_test_ratio'])
-            ylabels.append('TAS')
-
-        plot_test_ratio(
-            pdf_pages, estimator_status, status_time, variables, titles=['Normalised Innovation Test Levels'],
-            xlabel='time (sec)', ylabels=ylabels)
-
-    # define flags for starting and finishing in air
-    b_starts_in_air = False
-    b_finishes_in_air = False
-
-    # calculate in-air transition time
-    if (np.amin(control_mode['airborne']) < 0.5) and (np.amax(control_mode['airborne']) > 0.5):
-        in_air_transtion_time_arg = np.argmax(np.diff(control_mode['airborne']))
-        in_air_transition_time = status_time[in_air_transtion_time_arg]
-    elif (np.amax(control_mode['airborne']) > 0.5):
-        in_air_transition_time = np.amin(status_time)
-        print('log starts while in-air at ' + str(round(in_air_transition_time, 1)) + ' sec')
-        b_starts_in_air = True
-    else:
-        in_air_transition_time = float('NaN')
-        print('always on ground')
-    # calculate on-ground transition time
-    if (np.amin(np.diff(control_mode['airborne'])) < 0.0):
-        on_ground_transition_time_arg = np.argmin(np.diff(control_mode['airborne']))
-        on_ground_transition_time = status_time[on_ground_transition_time_arg]
-    elif (np.amax(control_mode['airborne']) > 0.5):
-        on_ground_transition_time = np.amax(status_time)
-        print('log finishes while in-air at ' + str(round(on_ground_transition_time, 1)) + ' sec')
-        b_finishes_in_air = True
-    else:
-        on_ground_transition_time = float('NaN')
-        print('always on ground')
-    if (np.amax(np.diff(control_mode['airborne'])) > 0.5) and (np.amin(np.diff(control_mode['airborne'])) < -0.5):
-        if ((on_ground_transition_time - in_air_transition_time) > 0.0):
-            in_air_duration = on_ground_transition_time - in_air_transition_time;
-        else:
-            in_air_duration = float('NaN')
-    else:
-        in_air_duration = float('NaN')
+    # TODO: continue here
 
     # calculate alignment completion times
+    tilt_align_time_arg, _, tilt_align_time = get_max_arg_time_value(np.diff(control_mode['tilt_aligned']), status_time)
+
     tilt_align_time_arg = np.argmax(np.diff(control_mode['tilt_aligned']))
     tilt_align_time = status_time[tilt_align_time_arg]
     yaw_align_time_arg = np.argmax(np.diff(control_mode['yaw_aligned']))
@@ -323,328 +382,65 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
 
     if plot:
 
-        '''
-        def control_mode_summary_plot(pdf_pages, control_mode, status_time):
-            plt.figure(figsize=(20, 13))
-        '''
-
-
-        # control mode summary plot A
-        plt.figure(9, figsize=(20, 13))
-        # subplot for alignment completion
-        plt.subplot(4, 1, 1)
-        plt.title('EKF Control Status - Figure A')
-        plt.plot(status_time, control_mode['tilt_aligned'], 'b')
-        plt.plot(status_time, control_mode['yaw_aligned'], 'r')
-        plt.ylim(-0.1, 1.1)
-        plt.ylabel('aligned')
-        plt.grid()
-        if np.amin(control_mode['tilt_aligned']) > 0:
-            plt.text(tilt_align_time, 0.5, 'no pre-arm data - cannot calculate alignment completion times', fontsize=12,
-                     horizontalalignment='left', verticalalignment='center', color='black')
-        else:
-            plt.text(tilt_align_time, 0.33, 'tilt alignment at ' + str(round(tilt_align_time, 1)) + ' sec', fontsize=12,
-                     horizontalalignment='left', verticalalignment='center', color='b')
-            plt.text(yaw_align_time, 0.67, 'yaw alignment at ' + str(round(tilt_align_time, 1)) + ' sec', fontsize=12,
-                     horizontalalignment='left', verticalalignment='center', color='r')
-        # subplot for position aiding
-        plt.subplot(4, 1, 2)
-        plt.plot(status_time, control_mode['using_gps'], 'b')
-        plt.plot(status_time, control_mode['using_optflow'], 'r')
-        plt.plot(status_time, using_evpos, 'g')
-        plt.ylim(-0.1, 1.1)
-        plt.ylabel('pos aiding')
-        plt.grid()
-        if np.amin(control_mode['using_gps']) > 0:
-            plt.text(gps_aid_time, 0.25, 'no pre-arm data - cannot calculate GPS aiding start time', fontsize=12,
-                     horizontalalignment='left', verticalalignment='center', color='b')
-        elif np.amax(control_mode['using_gps']) > 0:
-            plt.text(gps_aid_time, 0.25, 'GPS aiding at ' + str(round(gps_aid_time, 1)) + ' sec', fontsize=12,
-                     horizontalalignment='left', verticalalignment='center', color='b')
-        if np.amin(using_optflow) > 0:
-            plt.text(optflow_aid_time, 0.50, 'no pre-arm data - cannot calculate optical flow aiding start time',
-                     fontsize=12, horizontalalignment='left', verticalalignment='center', color='r')
-        elif np.amax(control_mode['using_optflow']) > 0:
-            plt.text(optflow_aid_time, 0.50, 'optical flow aiding at ' + str(round(optflow_aid_time, 1)) + ' sec',
-                     fontsize=12, horizontalalignment='left', verticalalignment='center', color='r')
-        if np.amin(using_evpos) > 0:
-            plt.text(evpos_aid_time, 0.75, 'no pre-arm data - cannot calculate external vision aiding start time',
-                     fontsize=12, horizontalalignment='left', verticalalignment='center', color='g')
-        elif np.amax(using_evpos) > 0:
-            plt.text(evpos_aid_time, 0.75, 'external vision aiding at ' + str(round(evpos_aid_time, 1)) + ' sec',
-                     fontsize=12, horizontalalignment='left', verticalalignment='center', color='g')
-        # subplot for height aiding
-        plt.subplot(4, 1, 3)
-        plt.plot(status_time, control_mode['using_barohgt'], 'b')
-        plt.plot(status_time, control_mode['using_gpshgt'], 'r')
-        plt.plot(status_time, control_mode['using_rnghgt'], 'g')
-        plt.plot(status_time, using_evhgt, 'c')
-        plt.ylim(-0.1, 1.1)
-        plt.ylabel('hgt aiding')
-        plt.grid()
-        if np.amin(control_mode['using_barohgt']) > 0:
-            plt.text(barohgt_aid_time, 0.2, 'no pre-arm data - cannot calculate Baro aiding start time', fontsize=12,
-                     horizontalalignment='left', verticalalignment='center', color='b')
-        elif np.amax(control_mode['using_barohgt']) > 0:
-            plt.text(barohgt_aid_time, 0.2, 'Baro aiding at ' + str(round(gps_aid_time, 1)) + ' sec', fontsize=12,
-                     horizontalalignment='left', verticalalignment='center', color='b')
-        if np.amin(using_gpshgt) > 0:
-            plt.text(gpshgt_aid_time, 0.4, 'no pre-arm data - cannot calculate GPS aiding start time', fontsize=12,
-                     horizontalalignment='left', verticalalignment='center', color='r')
-        elif np.amax(using_gpshgt) > 0:
-            plt.text(gpshgt_aid_time, 0.4, 'GPS aiding at ' + str(round(gpshgt_aid_time, 1)) + ' sec', fontsize=12,
-                     horizontalalignment='left', verticalalignment='center', color='r')
-        if np.amin(control_mode['using_rnghgt']) > 0:
-            plt.text(rnghgt_aid_time, 0.6, 'no pre-arm data - cannot calculate rangfinder aiding start time', fontsize=12,
-                     horizontalalignment='left', verticalalignment='center', color='g')
-        elif np.amax(control_mode['using_rnghgt']) > 0:
-            plt.text(rnghgt_aid_time, 0.6, 'rangefinder aiding at ' + str(round(rnghgt_aid_time, 1)) + ' sec', fontsize=12,
-                     horizontalalignment='left', verticalalignment='center', color='g')
-        if np.amin(using_evhgt) > 0:
-            plt.text(evhgt_aid_time, 0.8, 'no pre-arm data - cannot calculate external vision aiding start time',
-                     fontsize=12, horizontalalignment='left', verticalalignment='center', color='c')
-        elif np.amax(using_evhgt) > 0:
-            plt.text(evhgt_aid_time, 0.8, 'external vision aiding at ' + str(round(evhgt_aid_time, 1)) + ' sec',
-                     fontsize=12, horizontalalignment='left', verticalalignment='center', color='c')
-        # subplot for magnetometer aiding
-        plt.subplot(4, 1, 4)
-        plt.plot(status_time, control_mode['using_magyaw'], 'b')
-        plt.plot(status_time, control_mode['using_mag3d'], 'r')
-        plt.plot(status_time, control_mode['using_magdecl'], 'g')
-        plt.ylim(-0.1, 1.1)
-        plt.ylabel('mag aiding')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        if np.amin(control_mode['using_magyaw']) > 0:
-            plt.text(using_magyaw_time, 0.25, 'no pre-arm data - cannot calculate magnetic yaw aiding start time',
-                     fontsize=12, horizontalalignment='left', verticalalignment='center', color='b')
-        elif np.amax(control_mode['using_magyaw']) > 0:
-            plt.text(using_magyaw_time, 0.25, 'magnetic yaw aiding at ' + str(round(using_magyaw_time, 1)) + ' sec',
-                     fontsize=12, horizontalalignment='right', verticalalignment='center', color='b')
-        if np.amin(control_mode['using_mag3d']) > 0:
-            plt.text(using_mag3d_time, 0.50, 'no pre-arm data - cannot calculate 3D magnetoemter aiding start time',
-                     fontsize=12, horizontalalignment='left', verticalalignment='center', color='r')
-        elif np.amax(control_mode['using_mag3d']) > 0:
-            plt.text(using_mag3d_time, 0.50, 'magnetometer 3D aiding at ' + str(round(using_mag3d_time, 1)) + ' sec',
-                     fontsize=12, horizontalalignment='left', verticalalignment='center', color='r')
-        if np.amin(control_mode['using_magdecl']) > 0:
-            plt.text(using_magdecl_time, 0.75, 'no pre-arm data - cannot magnetic declination aiding start time',
-                     fontsize=12, horizontalalignment='left', verticalalignment='center', color='g')
-        elif np.amax(control_mode['using_magdecl']) > 0:
-            plt.text(using_magdecl_time, 0.75,
-                     'magnetic declination aiding at ' + str(round(using_magdecl_time, 1)) + ' sec', fontsize=12,
-                     horizontalalignment='left', verticalalignment='center', color='g')
-        pdf_pages.savefig()
-        plt.close(9)
-        # control mode summary plot B
-        plt.figure(10, figsize=(20, 13))
-        # subplot for airborne status
-        plt.subplot(2, 1, 1)
-        plt.title('EKF Control Status - Figure B')
-        plt.plot(status_time, control_mode['airborne'], 'b')
-        plt.ylim(-0.1, 1.1)
-        plt.ylabel('airborne')
-        plt.grid()
-        if np.amax(np.diff(control_mode['airborne'])) < 0.5:
-            plt.text(in_air_transition_time, 0.67, 'ground to air transition not detected', fontsize=12,
-                     horizontalalignment='left', verticalalignment='center', color='b')
-        else:
-            plt.text(in_air_transition_time, 0.67, 'in-air at ' + str(round(in_air_transition_time, 1)) + ' sec',
-                     fontsize=12, horizontalalignment='left', verticalalignment='center', color='b')
-        if np.amin(np.diff(control_mode['airborne'])) > -0.5:
-            plt.text(on_ground_transition_time, 0.33, 'air to ground transition not detected', fontsize=12,
-                     horizontalalignment='left', verticalalignment='center', color='b')
-        else:
-            plt.text(on_ground_transition_time, 0.33, 'on-ground at ' + str(round(on_ground_transition_time, 1)) + ' sec',
-                     fontsize=12, horizontalalignment='right', verticalalignment='center', color='b')
-        if in_air_duration > 0.0:
-            plt.text((in_air_transition_time + on_ground_transition_time) / 2, 0.5,
-                     'duration = ' + str(round(in_air_duration, 1)) + ' sec', fontsize=12, horizontalalignment='center',
-                     verticalalignment='center', color='b')
-        # subplot for wind estimation status
-        plt.subplot(2, 1, 2)
-        plt.plot(status_time, control_mode['estimating_wind'], 'b')
-        plt.ylim(-0.1, 1.1)
-        plt.ylabel('estimating wind')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        pdf_pages.savefig()
-        plt.close(10)
-
-    if plot:
         # plot innovation_check_flags summary
-        plt.figure(11, figsize=(20, 13))
-        plt.subplot(6, 1, 1)
-        plt.title('EKF Innovation Test Fails')
-        plt.plot(status_time, vel_innov_fail, 'b', label='vel NED')
-        plt.plot(status_time, posh_innov_fail, 'r', label='pos NE')
-        plt.ylim(-0.1, 1.1)
-        plt.ylabel('failed')
-        plt.legend(loc='upper left')
-        plt.grid()
-        plt.subplot(6, 1, 2)
-        plt.plot(status_time, posv_innov_fail, 'b', label='hgt absolute')
-        plt.plot(status_time, hagl_innov_fail, 'r', label='hgt above ground')
-        plt.ylim(-0.1, 1.1)
-        plt.ylabel('failed')
-        plt.legend(loc='upper left')
-        plt.grid()
-        plt.subplot(6, 1, 3)
-        plt.plot(status_time, magx_innov_fail, 'b', label='mag_x')
-        plt.plot(status_time, magy_innov_fail, 'r', label='mag_y')
-        plt.plot(status_time, magz_innov_fail, 'g', label='mag_z')
-        plt.plot(status_time, yaw_innov_fail, 'c', label='yaw')
-        plt.legend(loc='upper left')
-        plt.ylim(-0.1, 1.1)
-        plt.ylabel('failed')
-        plt.grid()
-        plt.subplot(6, 1, 4)
-        plt.plot(status_time, tas_innov_fail, 'b', label='airspeed')
-        plt.ylim(-0.1, 1.1)
-        plt.ylabel('failed')
-        plt.legend(loc='upper left')
-        plt.grid()
-        plt.subplot(6, 1, 5)
-        plt.plot(status_time, sli_innov_fail, 'b', label='sideslip')
-        plt.ylim(-0.1, 1.1)
-        plt.ylabel('failed')
-        plt.legend(loc='upper left')
-        plt.grid()
-        plt.subplot(6, 1, 6)
-        plt.plot(status_time, ofx_innov_fail, 'b', label='flow X')
-        plt.plot(status_time, ofy_innov_fail, 'r', label='flow Y')
-        plt.ylim(-0.1, 1.1)
-        plt.ylabel('failed')
-        plt.xlabel('time (sec')
-        plt.legend(loc='upper left')
-        plt.grid()
-        pdf_pages.savefig()
-        plt.close(11)
+        plot_check_flags(
+            pdf_pages, innov_flags, status_time, [['vel_innov_fail', 'posh_innov_fail'], ['posv_innov_fail',
+            'hagl_innov_fail'], ['magx_innov_fail', 'magy_innov_fail', 'magz_innov_fail', 'yaw_innov_fail'],
+            ['tas_innov_fail'], ['sli_innov_fail'], ['ofx_innov_fail', 'ofy_innov_fail']],
+            titles=['EKF Innovation Test Fails'], xlabel='time (sec)', ylim=(-0.1, 1.1),
+            ylabels=['failed', 'failed', 'failed', 'failed', 'failed', 'failed'],
+            legend=[['vel NED', 'pos NE'], ['hgt absolute', 'hgt above ground'], ['mag_x', 'mag_y', 'mag_z', 'yaw'],
+                    ['airspeed'], ['sideslip'], ['flow X', 'flow Y']], annotate=False)
+
         # gps_check_fail_flags summary
-        plt.figure(12, figsize=(20, 13))
-        # 0 : insufficient fix type (no 3D solution)
-        # 1 : minimum required sat count fail
-        # 2 : minimum required GDoP fail
-        # 3 : maximum allowed horizontal position error fail
-        # 4 : maximum allowed vertical position error fail
-        # 5 : maximum allowed speed error fail
-        # 6 : maximum allowed horizontal position drift fail
-        # 7 : maximum allowed vertical position drift fail
-        # 8 : maximum allowed horizontal speed fail
-        # 9 : maximum allowed vertical velocity discrepancy fail
-        gfix_fail = ((2 ** 0 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        nsat_fail = ((2 ** 1 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        gdop_fail = ((2 ** 2 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        herr_fail = ((2 ** 3 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        verr_fail = ((2 ** 4 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        serr_fail = ((2 ** 5 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        hdrift_fail = ((2 ** 6 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        vdrift_fail = ((2 ** 7 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        hspd_fail = ((2 ** 8 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        veld_diff_fail = ((2 ** 9 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        plt.subplot(2, 1, 1)
-        plt.title('GPS Direct Output Check Failures')
-        plt.plot(status_time, gfix_fail, 'k', label='fix type')
-        plt.plot(status_time, nsat_fail, 'b', label='N sats')
-        plt.plot(status_time, gdop_fail, 'r', label='GDOP')
-        plt.plot(status_time, herr_fail, 'g', label='horiz pos error')
-        plt.plot(status_time, verr_fail, 'c', label='vert pos error')
-        plt.plot(status_time, serr_fail, 'm', label='speed error')
-        plt.ylim(-0.1, 1.1)
-        plt.ylabel('failed')
-        plt.legend(loc='upper right')
-        plt.grid()
-        plt.subplot(2, 1, 2)
-        plt.title('GPS Derived Output Check Failures')
-        plt.plot(status_time, hdrift_fail, 'b', label='horiz drift')
-        plt.plot(status_time, vdrift_fail, 'r', label='vert drift')
-        plt.plot(status_time, hspd_fail, 'g', label='horiz speed')
-        plt.plot(status_time, veld_diff_fail, 'c', label='vert vel inconsistent')
-        plt.ylim(-0.1, 1.1)
-        plt.ylabel('failed')
-        plt.xlabel('time (sec')
-        plt.legend(loc='upper right')
-        plt.grid()
-        pdf_pages.savefig()
-        plt.close(12)
+        plot_check_flags(
+            pdf_pages, gps_fail_flags, status_time,
+            [['nsat_fail', 'gdop_fail', 'herr_fail', 'verr_fail', 'gfix_fail', 'serr_fail'],
+             ['hdrift_fail', 'vdrift_fail', 'hspd_fail', 'veld_diff_fail']],
+            titles=['GPS Direct Output Check Failures', 'GPS Derived Output Check Failures'], xlabel='time (sec)',
+            ylim=(-0.1, 1.1), ylabels=['failed', 'failed'],
+            legend=[['N sats', 'GDOP', 'horiz pos error', 'vert pos error', 'fix type', 'speed error'],
+                    ['horiz drift', 'vert drift', 'horiz speed', 'vert vel inconsistent']], annotate=False)
+
+
+
         # filter reported accuracy
-        plt.figure(13, figsize=(20, 13))
-        plt.title('Reported Accuracy')
-        plt.plot(status_time, estimator_status['pos_horiz_accuracy'], 'b', label='horizontal')
-        plt.plot(status_time, estimator_status['pos_vert_accuracy'], 'r', label='vertical')
-        plt.ylabel('accuracy (m)')
-        plt.xlabel('time (sec')
-        plt.legend(loc='upper right')
-        plt.grid()
-        pdf_pages.savefig()
-        plt.close(13)
+        plot_check_flags(
+            pdf_pages, estimator_status, status_time, [['pos_horiz_accuracy', 'pos_vert_accuracy']],
+            titles=['Reported Accuracy'], xlabel='time (sec)', ylabels=['accuracy (m)'],
+            legend=[['horizontal', 'vertical']], annotate=False)
+
         # Plot the EKF IMU vibration metrics
-        plt.figure(14, figsize=(20, 13))
-        vibe_coning_max_arg = np.argmax(estimator_status['vibe[0]'])
-        vibe_coning_max_time = status_time[vibe_coning_max_arg]
-        vibe_coning_max = np.amax(estimator_status['vibe[0]'])
-        vibe_hf_dang_max_arg = np.argmax(estimator_status['vibe[1]'])
-        vibe_hf_dang_max_time = status_time[vibe_hf_dang_max_arg]
-        vibe_hf_dang_max = np.amax(estimator_status['vibe[1]'])
-        vibe_hf_dvel_max_arg = np.argmax(estimator_status['vibe[2]'])
-        vibe_hf_dvel_max_time = status_time[vibe_hf_dvel_max_arg]
-        vibe_hf_dvel_max = np.amax(estimator_status['vibe[2]'])
-        plt.subplot(3, 1, 1)
-        plt.plot(1e-6 * estimator_status['timestamp'], 1000.0 * estimator_status['vibe[0]'], 'b')
-        plt.title('IMU Vibration Metrics')
-        plt.ylabel('Del Ang Coning (mrad)')
-        plt.grid()
-        plt.text(vibe_coning_max_time, 1000.0 * vibe_coning_max, 'max=' + str(round(1000.0 * vibe_coning_max, 5)),
-                 fontsize=12, horizontalalignment='left', verticalalignment='top')
-        plt.subplot(3, 1, 2)
-        plt.plot(1e-6 * estimator_status['timestamp'], 1000.0 * estimator_status['vibe[1]'], 'b')
-        plt.ylabel('HF Del Ang (mrad)')
-        plt.grid()
-        plt.text(vibe_hf_dang_max_time, 1000.0 * vibe_hf_dang_max, 'max=' + str(round(1000.0 * vibe_hf_dang_max, 3)),
-                 fontsize=12, horizontalalignment='left', verticalalignment='top')
-        plt.subplot(3, 1, 3)
-        plt.plot(1e-6 * estimator_status['timestamp'], estimator_status['vibe[2]'], 'b')
-        plt.ylabel('HF Del Vel (m/s)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(vibe_hf_dvel_max_time, vibe_hf_dvel_max, 'max=' + str(round(vibe_hf_dvel_max, 4)), fontsize=12,
-                 horizontalalignment='left', verticalalignment='top')
-        pdf_pages.savefig()
-        plt.close(14)
+        scaled_estimator_status = {'vibe[0]': 1000.* estimator_status['vibe[0]'],
+                                   'vibe[1]': 1000.* estimator_status['vibe[1]'],
+                                   'vibe[2]': estimator_status['vibe[2]']
+                                    }
+
+        plot_check_flags(
+            pdf_pages, scaled_estimator_status, status_time, [['vibe[0]'], ['vibe[1]'], ['vibe[2]']],
+            titles=['IMU Vibration Metrics'], xlabel='time (sec)',
+            ylabels=['Del Ang Coning (mrad)', 'HF Del Ang (mrad)', 'HF Del Vel (m/s)'])
+
         # Plot the EKF output observer tracking errors
-        plt.figure(15, figsize=(20, 13))
-        ang_track_err_max_arg = np.argmax(ekf2_innovations['output_tracking_error[0]'])
-        ang_track_err_max_time = innov_time[ang_track_err_max_arg]
-        ang_track_err_max = np.amax(ekf2_innovations['output_tracking_error[0]'])
-        vel_track_err_max_arg = np.argmax(ekf2_innovations['output_tracking_error[1]'])
-        vel_track_err_max_time = innov_time[vel_track_err_max_arg]
-        vel_track_err_max = np.amax(ekf2_innovations['output_tracking_error[1]'])
-        pos_track_err_max_arg = np.argmax(ekf2_innovations['output_tracking_error[2]'])
-        pos_track_err_max_time = innov_time[pos_track_err_max_arg]
-        pos_track_err_max = np.amax(ekf2_innovations['output_tracking_error[2]'])
-        plt.subplot(3, 1, 1)
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], 1e3 * ekf2_innovations['output_tracking_error[0]'], 'b')
-        plt.title('Output Observer Tracking Error Magnitudes')
-        plt.ylabel('angles (mrad)')
-        plt.grid()
-        plt.text(ang_track_err_max_time, 1e3 * ang_track_err_max, 'max=' + str(round(1e3 * ang_track_err_max, 2)),
-                 fontsize=12, horizontalalignment='left', verticalalignment='top')
-        plt.subplot(3, 1, 2)
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['output_tracking_error[1]'], 'b')
-        plt.ylabel('velocity (m/s)')
-        plt.grid()
-        plt.text(vel_track_err_max_time, vel_track_err_max, 'max=' + str(round(vel_track_err_max, 2)), fontsize=12,
-                 horizontalalignment='left', verticalalignment='top')
-        plt.subplot(3, 1, 3)
-        plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['output_tracking_error[2]'], 'b')
-        plt.ylabel('position (m)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.text(pos_track_err_max_time, pos_track_err_max, 'max=' + str(round(pos_track_err_max, 2)), fontsize=12,
-                 horizontalalignment='left', verticalalignment='top')
-        pdf_pages.savefig()
-        plt.close(15)
+
+        scaled_innovations = {'output_tracking_error[0]': 1000.* ekf2_innovations['output_tracking_error[0]'],
+                              'output_tracking_error[1]': ekf2_innovations['output_tracking_error[1]'],
+                              'output_tracking_error[2]': ekf2_innovations['output_tracking_error[2]']
+                              }
+
+        plot_check_flags(
+            pdf_pages, scaled_innovations, 1e-6 * ekf2_innovations['timestamp'],
+            [['output_tracking_error[0]'], ['output_tracking_error[1]'], ['output_tracking_error[2]']],
+            titles=['Output Observer Tracking Error Magnitudes'], xlabel='time (sec)',
+            ylabels=['angles (mrad)', 'velocity (m/s)', 'position (m)'])
+
         # Plot the delta angle bias estimates
+        plot_check_flags(
+            pdf_pages, estimator_status, 1e-6 * estimator_status['timestamp'],
+            [['states[10]'], ['states[11]'], ['states[12]']],
+            titles=['Delta Angle Bias Estimates'], xlabel='time (sec)',
+            ylabels=['X (rad)', 'Y (rad)', 'Z (rad)'], annotate=False)
+
         plt.figure(16, figsize=(20, 13))
         plt.subplot(3, 1, 1)
         plt.plot(1e-6 * estimator_status['timestamp'], estimator_status['states[10]'], 'b')
@@ -665,6 +461,12 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         pdf_pages.savefig()
         plt.close(16)
         # Plot the delta velocity bias estimates
+        plot_check_flags(
+            pdf_pages, estimator_status, 1e-6 * estimator_status['timestamp'],
+            [['states[13]'], ['states[14]'], ['states[15]']],
+            titles=['Delta Velocity Bias Estimates'], xlabel='time (sec)',
+            ylabels=['X (m/s)', 'Y (m/s)', 'Z (m/s)'], annotate=False)
+
         plt.figure(17, figsize=(20, 13))
         plt.subplot(3, 1, 1)
         plt.plot(1e-6 * estimator_status['timestamp'], estimator_status['states[13]'], 'b')
@@ -684,32 +486,52 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.grid()
         pdf_pages.savefig()
         plt.close(17)
+
         # Plot the earth frame magnetic field estimates
+        rad2deg = 57.2958
+        field_strength = np.sqrt(
+            estimator_status['states[16]'] ** 2 + estimator_status['states[17]'] ** 2 +
+            estimator_status['states[18]'] ** 2)
+        declination = rad2deg * np.arctan2(estimator_status['states[17]'], estimator_status['states[16]'])
+        inclination = rad2deg * np.arcsin(
+            estimator_status['states[18]'] / np.maximum(field_strength, np.finfo(np.float32).eps))
+
+        plot_check_flags(
+            pdf_pages, {'strength': field_strength, 'declination': declination, 'inclination': inclination},
+            1e-6 * estimator_status['timestamp'], [['declination'], ['inclination'], ['strength']],
+            titles=['Earth Magnetic Field Estimates'], xlabel='time (sec)',
+            ylabels=['declination (deg)', 'inclination (deg)', 'strength (Gauss)'], annotate=False)
+
         plt.figure(18, figsize=(20, 13))
         plt.subplot(3, 1, 3)
-        strength = (estimator_status['states[16]'] ** 2 + estimator_status['states[17]'] ** 2 + estimator_status[
-            'states[18]'] ** 2) ** 0.5
+
         plt.plot(1e-6 * estimator_status['timestamp'], strength, 'b')
         plt.ylabel('strength (Gauss)')
         plt.xlabel('time (sec)')
         plt.grid()
         plt.subplot(3, 1, 1)
-        rad2deg = 57.2958
-        declination = rad2deg * np.arctan2(estimator_status['states[17]'], estimator_status['states[16]'])
+
         plt.plot(1e-6 * estimator_status['timestamp'], declination, 'b')
         plt.title('Earth Magnetic Field Estimates')
         plt.ylabel('declination (deg)')
         plt.xlabel('time (sec)')
         plt.grid()
         plt.subplot(3, 1, 2)
-        inclination = rad2deg * np.arcsin(estimator_status['states[18]'] / np.maximum(strength, np.finfo(np.float32).eps) )
         plt.plot(1e-6 * estimator_status['timestamp'], inclination, 'b')
         plt.ylabel('inclination (deg)')
         plt.xlabel('time (sec)')
         plt.grid()
         pdf_pages.savefig()
         plt.close(18)
+
         # Plot the body frame magnetic field estimates
+        plot_check_flags(
+            pdf_pages, estimator_status, 1e-6 * estimator_status['timestamp'],
+            [['states[19]'], ['states[20]'], ['states[21]']],
+            titles=['Magnetomer Bias Estimates'], xlabel='time (sec)',
+            ylabels=['X (Gauss)', 'Y (Gauss)', 'Z (Gauss)'], annotate=False)
+
+
         plt.figure(19, figsize=(20, 13))
         plt.subplot(3, 1, 1)
         plt.plot(1e-6 * estimator_status['timestamp'], estimator_status['states[19]'], 'b')
@@ -729,6 +551,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.grid()
         pdf_pages.savefig()
         plt.close(19)
+
         # Plot the EKF wind estimates
         plt.figure(20, figsize=(20, 13))
         plt.subplot(2, 1, 1)
@@ -1117,6 +940,68 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         test_results['filter_fault_status'][0] = 'Fail'
 
     return test_results
+
+
+def get_gps_check_fail_flags(estimator_status):
+    gps_fail_flags = dict()
+
+    # 0 : insufficient fix type (no 3D solution)
+    # 1 : minimum required sat count fail
+    # 2 : minimum required GDoP fail
+    # 3 : maximum allowed horizontal position error fail
+    # 4 : maximum allowed vertical position error fail
+    # 5 : maximum allowed speed error fail
+    # 6 : maximum allowed horizontal position drift fail
+    # 7 : maximum allowed vertical position drift fail
+    # 8 : maximum allowed horizontal speed fail
+    # 9 : maximum allowed vertical velocity discrepancy fail
+    gps_fail_flags['gfix_fail'] = ((2 ** 0 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['nsat_fail'] = ((2 ** 1 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['gdop_fail'] = ((2 ** 2 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['herr_fail'] = ((2 ** 3 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['verr_fail'] = ((2 ** 4 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['serr_fail'] = ((2 ** 5 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['hdrift_fail'] = ((2 ** 6 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['vdrift_fail'] = ((2 ** 7 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['hspd_fail'] = ((2 ** 8 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['veld_diff_fail'] = ((2 ** 9 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    return gps_fail_flags
+
+
+def detect_airtime(control_mode, status_time):
+    # define flags for starting and finishing in air
+    b_starts_in_air = False
+    b_finishes_in_air = False
+    # calculate in-air transition time
+    if (np.amin(control_mode['airborne']) < 0.5) and (np.amax(control_mode['airborne']) > 0.5):
+        in_air_transtion_time_arg = np.argmax(np.diff(control_mode['airborne']))
+        in_air_transition_time = status_time[in_air_transtion_time_arg]
+    elif (np.amax(control_mode['airborne']) > 0.5):
+        in_air_transition_time = np.amin(status_time)
+        print('log starts while in-air at ' + str(round(in_air_transition_time, 1)) + ' sec')
+        b_starts_in_air = True
+    else:
+        in_air_transition_time = float('NaN')
+        print('always on ground')
+    # calculate on-ground transition time
+    if (np.amin(np.diff(control_mode['airborne'])) < 0.0):
+        on_ground_transition_time_arg = np.argmin(np.diff(control_mode['airborne']))
+        on_ground_transition_time = status_time[on_ground_transition_time_arg]
+    elif (np.amax(control_mode['airborne']) > 0.5):
+        on_ground_transition_time = np.amax(status_time)
+        print('log finishes while in-air at ' + str(round(on_ground_transition_time, 1)) + ' sec')
+        b_finishes_in_air = True
+    else:
+        on_ground_transition_time = float('NaN')
+        print('always on ground')
+    if (np.amax(np.diff(control_mode['airborne'])) > 0.5) and (np.amin(np.diff(control_mode['airborne'])) < -0.5):
+        if ((on_ground_transition_time - in_air_transition_time) > 0.0):
+            in_air_duration = on_ground_transition_time - in_air_transition_time;
+        else:
+            in_air_duration = float('NaN')
+    else:
+        in_air_duration = float('NaN')
+    return b_finishes_in_air, b_starts_in_air, in_air_duration, in_air_transition_time, on_ground_transition_time
 
 
 def get_innovation_check_flags(estimator_status):
