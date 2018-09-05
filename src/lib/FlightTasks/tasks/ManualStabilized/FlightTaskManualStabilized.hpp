@@ -55,7 +55,7 @@ public:
 	/**
 	 * Sets an external yaw handler which can be used to implement a different yaw control strategy.
 	 */
-	void set_yaw_handler(WeatherVane *ext_yaw_handler) override {_ext_yaw_handler = ext_yaw_handler;}
+	void setYawHandler(WeatherVane *ext_yaw_handler) override {_ext_yaw_handler = ext_yaw_handler;}
 
 protected:
 	virtual void _updateSetpoints(); /**< updates all setpoints*/
