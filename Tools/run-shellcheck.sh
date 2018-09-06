@@ -14,7 +14,7 @@ search_directory="$1"
 command -v shellcheck >/dev/null 2>&1 || { echo -e >&2 \
 "Error: shellcheck required but it's not installed. On Ubuntu use:\n sudo apt-get install shellcheck\n\nAborting."; exit 1; }
 
-scripts="$(find "$search_directory" -type f ! -name '*.txt' ! -name '*.mix')"
+scripts="$(find "$search_directory" -type f ! -name '*.txt' ! -name '*.mix' ! -name '*.bin')"
 
 echo "Running shellcheck in '$search_directory'."
 
