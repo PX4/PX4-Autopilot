@@ -16,7 +16,7 @@ pipeline {
 
       agent {
         docker {
-          image 'px4io/px4-dev-ros:2018-08-23'
+          image 'px4io/px4-dev-ros:2018-09-06'
           args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
         }
       }
@@ -127,7 +127,7 @@ pipeline {
             ],
 
           ]
-        
+
           def test_nodes = [:]
           for (def i = 0; i < missions.size(); i++) {
             test_nodes.put(missions[i].name, createTestNode(missions[i]))
@@ -144,7 +144,7 @@ pipeline {
         stage('code coverage (python)') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2018-08-23'
+              image 'px4io/px4-dev-base:2018-09-06'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -167,7 +167,7 @@ pipeline {
         stage('unit tests') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2018-08-23'
+              image 'px4io/px4-dev-base:2018-09-06'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -203,7 +203,7 @@ def createTestNode(Map test_def) {
   return {
     node {
       cleanWs()
-      docker.image("px4io/px4-dev-ros:2018-08-23").inside('-e HOME=${WORKSPACE}') {
+      docker.image("px4io/px4-dev-ros:2018-09-06").inside('-e HOME=${WORKSPACE}') {
         stage(test_def.name) {
 
           try {
