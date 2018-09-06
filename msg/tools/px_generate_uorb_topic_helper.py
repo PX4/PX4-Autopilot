@@ -6,6 +6,7 @@
 
 import os
 import yaml
+import errno
 
 import genmsg.msgs
 import gencpp
