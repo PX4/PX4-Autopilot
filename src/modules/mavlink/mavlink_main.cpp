@@ -546,7 +546,8 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 			// Broadcast or addressing this system and not trying to talk
 			// to the autopilot component -> pass on to other components
 			if ((target_system_id == 0 || target_system_id == self->get_system_id())
-			    && (target_component_id == 0 || target_component_id != self->get_component_id())) {
+			    && (target_component_id == 0 || target_component_id != self->get_component_id())
+			    && !(!self->forward_heartbeats_enabled() && msg->msgid == MAVLINK_MSG_ID_HEARTBEAT)) {
 
 				inst->pass_message(msg);
 			}
