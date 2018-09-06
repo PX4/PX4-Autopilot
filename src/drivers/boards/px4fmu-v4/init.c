@@ -195,7 +195,6 @@ __EXPORT void
 stm32_boardinitialize(void)
 {
 	// Reset all PWM to Low outputs.
-
 	board_on_reset(-1);
 
 	// Configure LEDs.
@@ -231,15 +230,16 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_8266_RST);
 
 	// Safety - led on in led driver.
-
 	stm32_configgpio(GPIO_BTN_SAFETY);
 	stm32_configgpio(GPIO_RSSI_IN);
 	stm32_configgpio(GPIO_PPM_IN);
 
 	// Configure SPI all interfaces GPIO.
-
 	stm32_spiinitialize(PX4_SPI_BUS_RAMTRON | PX4_SPI_BUS_SENSORS);
 
+	// Configure heater GPIO.
+	stm32_configgpio(GPIO_HEATER_INPUT);
+	stm32_configgpio(GPIO_HEATER_OUTPUT);
 }
 
 /****************************************************************************
@@ -277,7 +277,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 
 	// Run C++ ctors before we go any further.
-
 	up_cxxinitialize();
 
 #	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
@@ -294,7 +293,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	param_init();
 
 	// Configure the DMA allocator.
-
 	if (board_dma_alloc_init() < 0) {
 		message("DMA alloc FAILED");
 	}
@@ -329,7 +327,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	 */
 
 	// Using Battery Backed Up SRAM.
-
 	int filesizes[CONFIG_STM32_BBSRAM_FILES + 1] = BSRAM_FILE_SIZES;
 
 	stm32_bbsraminitialize(BBSRAM_PATH, filesizes);
@@ -367,11 +364,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		 * Yes. So add one to the boot count - this will be reset after a successful
 		 * commit to SD.
 		 */
-
 		int reboots = hardfault_increment_reboot("boot", false);
 
 		/* Also end the misery for a user that holds for a key down on the console. */
-
 		int bytesWaiting;
 		ioctl(fileno(stdin), FIONREAD, (unsigned long)((uintptr_t) &bytesWaiting));
 
@@ -381,7 +376,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 			 * Since we can not commit the fault dump to disk. Display it
 			 * to the console.
 			 */
-
 			hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
 
 			message("[boot] There were %d reboots with Hard fault that were not committed to disk - System halted %s\n",
@@ -395,7 +389,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 			 */
 
 			// Clear any key press that got us here.
-
 			static volatile bool dbgContinue = false;
 			int c = '>';
 
@@ -451,7 +444,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 				} // outer switch
 			} // for
-
 		} // inner if
 	} // outer if
 
@@ -465,11 +457,12 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	led_off(LED_BLUE);
 
 	// Power up the sensors.
-
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
 
-	// Configure SPI-based devices.
+	// Power down the heater.
+	stm32_gpiowrite(GPIO_HEATER_OUTPUT, 0);
 
+	// Configure SPI-based devices.
 	spi1 = stm32_spibus_initialize(1);
 
 	if (!spi1) {
@@ -489,7 +482,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	up_udelay(20);
 
 	// Get the SPI port for the FRAM.
-
 	spi2 = stm32_spibus_initialize(2);
 
 	if (!spi2) {
@@ -511,8 +503,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SELECT(spi2, PX4_SPIDEV_BARO, false);
 
 #ifdef CONFIG_MMCSD
-	// First, get an instance of the SDIO interface.
 
+	// First, get an instance of the SDIO interface.
 	sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
 
 	if (!sdio) {
