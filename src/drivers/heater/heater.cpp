@@ -73,7 +73,10 @@ Heater::~Heater()
 
 	// Unsubscribe from uORB topics.
 	orb_unsubscribe(_params_sub);
-	orb_unsubscribe(_sensor_accel_sub);
+
+	if (_sensor_accel_sub >= 0) {
+		orb_unsubscribe(_sensor_accel_sub);
+	}
 }
 
 int Heater::controller_period(char *argv[])
@@ -238,6 +241,10 @@ void Heater::initialize_topics()
 	for (size_t x = 0; x < number_of_imus; x++) {
 		_sensor_accel_sub = orb_subscribe_multi(ORB_ID(sensor_accel), (int)x);
 
+		if (_sensor_accel_sub < 0) {
+			continue;
+		}
+
 		while (orb_update(ORB_ID(sensor_accel), _sensor_accel_sub, &_sensor_accel) != PX4_OK) {
 			usleep(200000);
 		}
@@ -247,6 +254,8 @@ void Heater::initialize_topics()
 			PX4_INFO("IMU sensor identified.");
 			break;
 		}
+
+		orb_unsubscribe(_sensor_accel_sub);
 	}
 
 	PX4_INFO("Device ID:  %d", _sensor_accel.device_id);
