@@ -686,6 +686,10 @@ FixedwingPositionControl::in_takeoff_situation()
 void
 FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitch_limit_min)
 {
+	if (_vehicle_status.is_vtol) {
+		return;
+	}
+
 	/* demand "climbout_diff" m above ground if user switched into this mode during takeoff */
 	if (in_takeoff_situation()) {
 		*hold_altitude = _takeoff_ground_alt + _parameters.climbout_diff;
@@ -1854,7 +1858,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	// (it should also not run during VTOL blending because airspeed is too low still)
 	if (_vehicle_status.is_vtol) {
-		if (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode) {
+		if (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
 			run_tecs = false;
 		}
 
@@ -1955,6 +1959,10 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 		}
 	}
 
+	if (_vehicle_status.in_transition_to_fw) {
+		_tecs.do_front_transition();
+	}
+
 	_tecs.update_pitch_throttle(_R_nb, pitch_for_tecs,
 				    _global_pos.alt, alt_sp,
 				    airspeed_sp, _airspeed, _eas2tas,
@@ -1980,6 +1988,10 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 
 	case TECS::ECL_TECS_MODE_CLIMBOUT:
 		t.mode = tecs_status_s::TECS_MODE_CLIMBOUT;
+		break;
+
+	case TECS::ECL_TECS_MODE_VTOL_FRONT_TRANSITION:
+		t.mode = tecs_status_s::TECS_MODE_VTOL_FRONT_TRANSITION;
 		break;
 	}
 

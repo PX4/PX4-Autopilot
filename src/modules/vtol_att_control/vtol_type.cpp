@@ -250,7 +250,7 @@ void VtolType::update_fw_state()
 	if ((!_tecs_running || (_tecs_running && _fw_virtual_att_sp->timestamp <= _tecs_running_ts))
 	    && _v_control_mode->flag_control_altitude_enabled) {
 
-		waiting_on_tecs();
+		//waiting_on_tecs();
 	}
 
 	check_quadchute_condition();

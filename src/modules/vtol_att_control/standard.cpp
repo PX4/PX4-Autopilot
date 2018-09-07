@@ -231,6 +231,13 @@ void Standard::update_transition_state()
 	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 
 	if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
+		// copy virtual attitude setpoint to real attitude setpoint
+		memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+		matrix::Quatf q_sp(matrix::Eulerf(_fw_virtual_att_sp->roll_body, _fw_virtual_att_sp->pitch_body,
+						  _mc_virtual_att_sp->yaw_body));
+		q_sp.copyTo(_v_att_sp->q_d);
+		_v_att_sp->thrust = _mc_virtual_att_sp->thrust;
+
 		if (_params_standard.pusher_ramp_dt <= 0.0f) {
 			// just set the final target throttle value
 			_pusher_throttle = _params->front_trans_throttle;
@@ -256,12 +263,6 @@ void Standard::update_transition_state()
 
 		}
 
-		// ramp up FW_PSP_OFF
-		_v_att_sp->pitch_body = _params_standard.pitch_setpoint_offset * (1.0f - mc_weight);
-		matrix::Quatf q_sp(matrix::Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
-		q_sp.copyTo(_v_att_sp->q_d);
-		_v_att_sp->q_d_valid = true;
-
 		// check front transition timeout
 		if (_params->front_trans_timeout > FLT_EPSILON) {
 			if (time_since_trans_start > _params->front_trans_timeout) {
@@ -269,6 +270,8 @@ void Standard::update_transition_state()
 				_attc->abort_front_transition("Transition timeout");
 			}
 		}
+
+		_pusher_throttle = _fw_virtual_att_sp->thrust;
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 
