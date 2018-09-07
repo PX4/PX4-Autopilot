@@ -1680,6 +1680,172 @@ protected:
 	}
 };
 
+class MavlinkStreamUTMGlobalPosition : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamUTMGlobalPosition::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "UTM_GLOBAL_POSITION";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_UTM_GLOBAL_POSITION;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamUTMGlobalPosition(mavlink);
+	}
+
+	bool const_rate()
+	{
+		return true;
+	}
+
+	unsigned get_size()
+	{
+		return _local_pos_time > 0 ? MAVLINK_MSG_ID_UTM_GLOBAL_POSITION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+	}
+
+private:
+	MavlinkOrbSubscription *_global_pos_sub;
+	uint64_t _global_pos_time = 0;
+
+	MavlinkOrbSubscription *_local_pos_sub;
+	uint64_t _local_pos_time = 0;
+
+	MavlinkOrbSubscription *_position_setpoint_triplet_sub;
+	uint64_t _setpoint_triplet_time = 0;
+	position_setpoint_triplet_s _setpoint_triplet = {};
+
+	MavlinkOrbSubscription *_vehicle_status_sub;
+	uint64_t _vehicle_status_time = 0;
+	vehicle_status_s _vehicle_status = {};
+
+	MavlinkOrbSubscription *_land_detected_sub;
+	uint64_t _land_detected_time = 0;
+	vehicle_land_detected_s _land_detected = {};
+
+	/* do not allow top copying this class */
+	MavlinkStreamUTMGlobalPosition(MavlinkStreamUTMGlobalPosition &) = delete;
+	MavlinkStreamUTMGlobalPosition &operator = (const MavlinkStreamUTMGlobalPosition &) = delete;
+
+protected:
+	explicit MavlinkStreamUTMGlobalPosition(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_global_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position))),
+		_local_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
+		_position_setpoint_triplet_sub(_mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet))),
+		_vehicle_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
+		_land_detected_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_land_detected)))
+	{}
+
+	bool send(const hrt_abstime t)
+	{
+		vehicle_global_position_s global_position = {};
+		vehicle_local_position_s local_position   = {};
+
+		bool global_updated = _global_pos_sub->update(&_global_pos_time, &global_position);
+		bool local_updated = _local_pos_sub->update(&_local_pos_time, &local_position);
+
+		// Check if new setpoint, vehicle status and land detected are available otherwise use the last received
+		_position_setpoint_triplet_sub->update(&_setpoint_triplet_time, &_setpoint_triplet);
+		_vehicle_status_sub->update(&_vehicle_status_time, &_vehicle_status);
+		_land_detected_sub->update(&_land_detected_time, &_land_detected);
+
+		mavlink_utm_global_position_t msg = {};
+
+		// Compute Unix epoch and set time field
+		timespec tv;
+		px4_clock_gettime(CLOCK_REALTIME, &tv);
+		uint64_t unix_epoch = (uint64_t)tv.tv_sec * 1000000 + tv.tv_nsec / 1000;
+
+		// If the time is before 2001-01-01, it's probably the default 2000
+		if (unix_epoch > 978307200000000) {
+			msg.time = unix_epoch;
+			msg.flags |= UTM_DATA_AVAIL_FLAGS_TIME_VALID;
+		}
+
+		// TODO Fill ID with something reasonable
+		memset(&msg.uas_id[0], 0, sizeof(msg.uas_id));
+		//msg.flags |= UTM_DATA_AVAIL_FLAGS_UAS_ID_AVAILABLE;
+
+		// Handle global position update
+		if (global_updated) {
+			msg.lat = global_position.lat * 1e7;
+			msg.lon = global_position.lon * 1e7;
+			msg.alt = global_position.alt_ellipsoid * 1000.0f;
+
+			msg.h_acc = global_position.eph * 1000.0f;
+			msg.v_acc = global_position.epv * 1000.0f;
+
+			msg.flags |= UTM_DATA_AVAIL_FLAGS_POSITION_AVAILABLE;
+			msg.flags |= UTM_DATA_AVAIL_FLAGS_ALTITUDE_AVAILABLE;
+		}
+
+		// Handle local position update
+		if (local_updated) {
+
+			if (local_position.v_xy_valid) {
+				msg.vx = local_position.vx * 100.0f;
+				msg.vy = local_position.vy * 100.0f;
+			}
+
+			msg.vel_acc = sqrtf(local_position.evh * local_position.evh
+					    + local_position.evv * local_position.evv) * 1000.0f;
+
+			if (local_position.v_z_valid) {
+				msg.vz = local_position.vz * 100.0f;
+			}
+
+			if (local_position.dist_bottom_valid) {
+				msg.relative_alt = local_position.dist_bottom * 1000.0f; // TODO Check if terrain height is correct field
+				msg.flags |= UTM_DATA_AVAIL_FLAGS_ALTITUDE_AVAILABLE;
+			}
+
+			// Handle next waypoint if it is valid
+			if (_setpoint_triplet_time > 0 && _setpoint_triplet.next.valid) {
+				msg.next_lat = _setpoint_triplet.current.lat * 1e7;
+				msg.next_lon = _setpoint_triplet.current.lon * 1e7;
+				// HACK We assume that the offset between AMSL and WGS84 is constant between the current
+				// vehicle position and the the target waypoint.
+				msg.next_alt = (_setpoint_triplet.current.alt + (global_position.alt_ellipsoid - global_position.alt)) * 1000.0f;
+				msg.flags |= UTM_DATA_AVAIL_FLAGS_NEXT_WAYPOINT_AVAILABLE;
+			}
+
+			// Handle flight state
+			if (_vehicle_status_time > 0 && _land_detected_time > 0
+			    && _vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+				if (_land_detected.landed) {
+					msg.flight_state |= UTM_FLIGHT_STATE_GROUND;
+
+				} else {
+					msg.flight_state |= UTM_FLIGHT_STATE_AIRBORNE;
+				}
+
+			} else {
+				msg.flight_state |= UTM_FLIGHT_STATE_UNKNOWN;
+			}
+
+			msg.update_rate = 0; // Data driven mode
+
+			mavlink_msg_utm_global_position_send_struct(_mavlink->get_channel(), &msg);
+		}
+
+		return true;
+	}
+};
+
 class MavlinkStreamCollision : public MavlinkStream
 {
 public:
@@ -4629,6 +4795,7 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamExtendedSysState::new_instance, &MavlinkStreamExtendedSysState::get_name_static, &MavlinkStreamExtendedSysState::get_id_static),
 	StreamListItem(&MavlinkStreamAltitude::new_instance, &MavlinkStreamAltitude::get_name_static, &MavlinkStreamAltitude::get_id_static),
 	StreamListItem(&MavlinkStreamADSBVehicle::new_instance, &MavlinkStreamADSBVehicle::get_name_static, &MavlinkStreamADSBVehicle::get_id_static),
+	StreamListItem(&MavlinkStreamUTMGlobalPosition::new_instance, &MavlinkStreamUTMGlobalPosition::get_name_static, &MavlinkStreamUTMGlobalPosition::get_id_static),
 	StreamListItem(&MavlinkStreamCollision::new_instance, &MavlinkStreamCollision::get_name_static, &MavlinkStreamCollision::get_id_static),
 	StreamListItem(&MavlinkStreamWind::new_instance, &MavlinkStreamWind::get_name_static, &MavlinkStreamWind::get_id_static),
 	StreamListItem(&MavlinkStreamMountOrientation::new_instance, &MavlinkStreamMountOrientation::get_name_static, &MavlinkStreamMountOrientation::get_id_static),
