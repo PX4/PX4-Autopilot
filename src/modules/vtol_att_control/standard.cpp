@@ -236,7 +236,8 @@ void Standard::update_transition_state()
 		matrix::Quatf q_sp(matrix::Eulerf(_fw_virtual_att_sp->roll_body, _fw_virtual_att_sp->pitch_body,
 						  _mc_virtual_att_sp->yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
-		_v_att_sp->thrust = _mc_virtual_att_sp->thrust;
+		_v_att_sp->thrust_z = _mc_virtual_att_sp->thrust_z;
+		_v_att_sp->q_d_valid = true;
 
 		if (_params_standard.pusher_ramp_dt <= 0.0f) {
 			// just set the final target throttle value
@@ -271,7 +272,7 @@ void Standard::update_transition_state()
 			}
 		}
 
-		_pusher_throttle = _fw_virtual_att_sp->thrust;
+		_pusher_throttle = _fw_virtual_att_sp->thrust_x;
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
 
