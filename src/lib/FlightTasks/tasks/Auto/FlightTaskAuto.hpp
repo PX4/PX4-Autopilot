@@ -44,6 +44,7 @@
 #include <uORB/topics/position_setpoint.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/position_controller_status.h>
+#include <uORB/topics/vehicle_status.h>
 #include <lib/ecl/geo/geo.h>
 
 /**
@@ -117,6 +118,7 @@ private:
 	matrix::Vector2f _lock_position_xy{NAN, NAN}; /**< if no valid triplet is received, lock positition to current position */
 	bool _yaw_lock = false; /**< if within acceptance radius, lock yaw to current yaw */
 	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
+	uORB::Subscription<vehicle_status_s> *_sub_vehicle_status{nullptr};
 
 	matrix::Vector3f
 	_triplet_target; /**< current triplet from navigator which may differ from the intenal one (_target) depending on the vehicle state. */

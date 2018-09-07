@@ -56,6 +56,10 @@ bool FlightTaskAuto::initializeSubscriptions(SubscriptionArray &subscription_arr
 		return false;
 	}
 
+	if (!subscription_array.get(ORB_ID(vehicle_status), _sub_vehicle_status)) {
+		return false;
+	}
+
 	return true;
 }
 
@@ -221,7 +225,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_updateAvoidanceWaypoints();
 	}
 
-	if (MPC_OBS_AVOID.get()) {
+	if (MPC_OBS_AVOID.get() && _sub_vehicle_status->get().is_rotary_wing) {
 		_checkAvoidanceProgress();
 	}
 
