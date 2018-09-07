@@ -160,6 +160,11 @@ private:
 	*/
 	void calc_gps_blend_output();
 
+	/*
+	 * Calculate filtered WGS84 height from estimated AMSL height
+	 */
+	float filter_altitude_ellipsoid(float amsl_hgt);
+
 	bool 	_replay_mode = false;			///< true when we use replay data from a log
 
 	// time slip monitoring
@@ -242,6 +247,10 @@ private:
 	uint8_t _gps_slowest_index = 0;			///< index of the physical receiver with the slowest update rate
 	float _gps_dt[GPS_MAX_RECEIVERS] = {};		///< average time step in seconds.
 	bool  _gps_new_output_data = false;		///< true if there is new output data for the EKF
+
+	int32_t _gps_alttitude_ellipsoid[GPS_MAX_RECEIVERS] {};	///< altitude in 1E-3 meters (millimeters) above ellipsoid
+	uint64_t _gps_alttitude_ellipsoid_previous_timestamp[GPS_MAX_RECEIVERS] {}; ///< storage for previous timestamp to compute dt
+	float   _wgs84_hgt_offset = 0;  ///< height offset between AMSL and WGS84
 
 	int _airdata_sub{-1};
 	int _airspeed_sub{-1};
@@ -979,6 +988,7 @@ void Ekf2::run()
 				_gps_state[0].nsats = gps.satellites_used;
 				//TODO: add gdop to gps topic
 				_gps_state[0].gdop = 0.0f;
+				_gps_alttitude_ellipsoid[0] = gps.alt_ellipsoid;
 
 				ekf2_timestamps.gps_timestamp_rel = (int16_t)((int64_t)gps.timestamp / 100 - (int64_t)ekf2_timestamps.timestamp / 100);
 			}
@@ -1010,6 +1020,7 @@ void Ekf2::run()
 				_gps_state[1].nsats = gps.satellites_used;
 				//TODO: add gdop to gps topic
 				_gps_state[1].gdop = 0.0f;
+				_gps_alttitude_ellipsoid[1] = gps.alt_ellipsoid;
 			}
 		}
 
@@ -1399,6 +1410,7 @@ void Ekf2::run()
 					global_pos.lat_lon_reset_counter = lpos.xy_reset_counter;
 
 					global_pos.alt = -lpos.z + lpos.ref_alt; // Altitude AMSL in meters
+					global_pos.alt_ellipsoid = filter_altitude_ellipsoid(global_pos.alt);
 
 					// global altitude has opposite sign of local down position
 					global_pos.delta_alt = -lpos.delta_z;
@@ -2352,6 +2364,27 @@ void Ekf2::calc_gps_blend_output()
 
 }
 
+float Ekf2::filter_altitude_ellipsoid(float amsl_hgt)
+{
+
+	float height_diff = static_cast<float>(_gps_alttitude_ellipsoid[0]) * 1e-3f - amsl_hgt;
+
+	if (_gps_alttitude_ellipsoid_previous_timestamp[0] == 0) {
+
+		_wgs84_hgt_offset = height_diff;
+		_gps_alttitude_ellipsoid_previous_timestamp[0] = _gps_state[0].time_usec;
+
+	} else if (_gps_state[0].time_usec != _gps_alttitude_ellipsoid_previous_timestamp[0]) {
+
+		// apply a 10 second first order low pass filter to baro offset
+		float dt = 1e-6f * static_cast<float>(_gps_state[0].time_usec - _gps_alttitude_ellipsoid_previous_timestamp[0]);
+		_gps_alttitude_ellipsoid_previous_timestamp[0] = _gps_state[0].time_usec;
+		float offset_rate_correction = 0.1f * (height_diff - _wgs84_hgt_offset);
+		_wgs84_hgt_offset += dt * math::constrain(offset_rate_correction, -0.1f, 0.1f);
+	}
+
+	return amsl_hgt + _wgs84_hgt_offset;
+}
 
 Ekf2 *Ekf2::instantiate(int argc, char *argv[])
 {
