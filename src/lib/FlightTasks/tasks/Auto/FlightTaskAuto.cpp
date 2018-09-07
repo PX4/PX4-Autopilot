@@ -314,19 +314,20 @@ void FlightTaskAuto::_checkAvoidanceProgress()
 	pos_control_status.timestamp = hrt_absolute_time();
 
 	// vector from previous triplet to current target
-	Vector2f prev_to_target = Vector2f(&(_triplet_target - _triplet_prev_wp)(0));
+	Vector2f prev_to_target = Vector2f(_triplet_target(0) - _triplet_prev_wp(0), _triplet_target(1) - _triplet_prev_wp(1));
 	// vector from previous triplet to the vehicle projected position on the line previous-target triplet
-	Vector2f prev_to_closest_pt = _closest_pt - Vector2f(&(_triplet_prev_wp)(0));
+	Vector2f prev_to_closest_pt = Vector2f(_closest_pt(0) - _triplet_prev_wp(0), _closest_pt(1) - _triplet_prev_wp(1));
 	// fraction of the previous-tagerget line that has been flown
 	const float prev_curr_travelled = prev_to_closest_pt.length() / prev_to_target.length();
+
+	Vector2f pos_to_target = Vector2f(_triplet_target(0) - _position(0), _triplet_target(1) - _position(1));
 
 	if (prev_curr_travelled > 1.0f) {
 		// if the vehicle projected position on the line previous-target is past the target waypoint,
 		// increase the target acceptance radius such that navigator will update the triplets
-		pos_control_status.acceptance_radius = Vector2f(&(_triplet_target - _position)(0)).length() + 0.5f;
+		pos_control_status.acceptance_radius = pos_to_target.length() + 0.5f;
 	}
 
-	Vector2f pos_to_target = Vector2f(&(_triplet_target - _position)(0));
 	const float pos_to_target_z = fabsf(_triplet_target(2) - _position(2));
 
 	if (pos_to_target.length() < NAV_ACC_RAD.get() && pos_to_target_z > NAV_MC_ALT_RAD.get()) {
