@@ -58,6 +58,8 @@ foreach(test_name ${tests})
 
 	set_tests_properties(${test_name} PROPERTIES FAIL_REGULAR_EXPRESSION "${test_name} FAILED")
 	set_tests_properties(${test_name} PROPERTIES PASS_REGULAR_EXPRESSION "${test_name} PASSED")
+
+	sanitizer_fail_test_on_error(${test_name})
 endforeach()
 
 
@@ -75,6 +77,7 @@ add_test(NAME mavlink
 set_tests_properties(mavlink PROPERTIES FAIL_REGULAR_EXPRESSION "mavlink FAILED")
 set_tests_properties(mavlink PROPERTIES PASS_REGULAR_EXPRESSION "mavlink PASSED")
 
+sanitizer_fail_test_on_error(mavlink)
 
 # run arbitrary commands
 set(test_cmds
@@ -97,6 +100,7 @@ foreach(cmd_name ${test_cmds})
 			${PX4_BINARY_DIR}
 		WORKING_DIRECTORY ${SITL_WORKING_DIR})
 
+	sanitizer_fail_test_on_error(posix_${cmd_name})
 	set_tests_properties(posix_${cmd_name} PROPERTIES PASS_REGULAR_EXPRESSION "Shutting down")
 endforeach()
 
