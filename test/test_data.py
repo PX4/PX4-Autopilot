@@ -124,4 +124,26 @@ for i in range(1,3):
     A_pow = A_pow.dot(A)
 print(eA_approx)
 
+print('\nqr decomposition 4x4')
+A = array([[20.0, -10.0, -13.0, 21.0], [ 17.0, 16.0, -18.0, -14], [0.7, -0.8, 0.9, -0.5], [-1.0, -1.1, -1.2, -1.3]])
+b = array([[2.], [3.], [4.], [5.]])
+x = scipy.linalg.lstsq(A,b)[0]
+print('A:')
+pprint(A)
+print('b:')
+pprint(b)
+print('x:')
+pprint(scipy.linalg.lstsq(A,b)[0])
+
+print('\nqr decomposition 4x3')
+A = array([[20.0, -10.0, -13.0], [ 17.0, 16.0, -18.0], [0.7, -0.8, 0.9], [-1.0, -1.1, -1.2]])
+b = array([[2.], [3.], [4.], [5.]])
+x = scipy.linalg.lstsq(A,b)[0]
+print('A:')
+pprint(A)
+print('b:')
+pprint(b)
+print('x:')
+pprint(x)
+
 # vim: set et ft=python fenc=utf-8 ff=unix sts=4 sw=4 ts=8 : 
