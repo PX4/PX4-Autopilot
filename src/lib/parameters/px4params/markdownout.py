@@ -4,7 +4,7 @@ import codecs
 class MarkdownTablesOutput():
     def __init__(self, groups):
         result = ("# Parameter Reference\n"
-                  "> **Note** **This list is auto-generated from the source code** and contains the most recent parameter documentation.\n"
+                  "> **Note** **This list is auto-generated from the source code** (using `make parameters_metadata`) and contains the most recent parameter documentation.\n"
                   "\n")
         for group in groups:
             result += '## %s\n\n' % group.GetName()
