@@ -791,7 +791,7 @@ MulticopterPositionControl::start_flight_task()
 			_task_failure_count = 0;
 		}
 
-	} else if (_control_mode.flag_control_auto_enabled) {
+	} else if (_control_mode.flag_control_auto_enabled && !_vehicle_status.in_transition_mode) {
 		// Auto relate maneuvers
 		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
 
@@ -843,7 +843,7 @@ MulticopterPositionControl::start_flight_task()
 
 	// manual altitude control
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL ||
-	    (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL && _vehicle_status.in_transition_mode) ||
+	    (_vehicle_status.in_transition_mode) ||
 	    task_failure) {
 		int error = _flight_tasks.switchTask(FlightTaskIndex::ManualAltitude);
 

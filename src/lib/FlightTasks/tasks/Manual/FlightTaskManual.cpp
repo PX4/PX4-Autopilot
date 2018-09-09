@@ -50,6 +50,10 @@ bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_a
 		return false;
 	}
 
+	if (!subscription_array.get(ORB_ID(vehicle_status), _sub_vehicle_status)) {
+		return false;
+	}
+
 	return true;
 }
 
@@ -103,6 +107,20 @@ bool FlightTaskManual::_evaluateSticks()
 					   && PX4_ISFINITE(_sticks(3));
 
 		return valid_sticks;
+
+	} else if (_sub_vehicle_status->get().in_transition_mode) {
+		_sticks(0) = 0;
+		_sticks(1) = 0;
+		_sticks(2) = 0.5f;
+		_sticks(3) = 0;
+
+		/* Exponential scale */
+		_sticks_expo(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), _stick_dz.get());
+		_sticks_expo(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _stick_dz.get());
+		_sticks_expo(2) = math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _stick_dz.get());
+		_sticks_expo(3) = math::expo_deadzone(_sticks(3), _yaw_expo.get(), _stick_dz.get());
+
+		return true;
 
 	} else {
 		/* Timeout: set all sticks to zero */
