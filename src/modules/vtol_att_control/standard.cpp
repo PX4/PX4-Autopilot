@@ -233,7 +233,7 @@ void Standard::update_transition_state()
 	if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 		// copy virtual attitude setpoint to real attitude setpoint
 		memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
-		matrix::Quatf q_sp(matrix::Eulerf(_fw_virtual_att_sp->roll_body, _fw_virtual_att_sp->pitch_body,
+		matrix::Quatf q_sp(matrix::Eulerf(0.0f, _fw_virtual_att_sp->pitch_body,
 						  _mc_virtual_att_sp->yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
 		_v_att_sp->thrust_z = _mc_virtual_att_sp->thrust_z;
