@@ -543,6 +543,7 @@ __BEGIN_DECLS
 #  endif
 #endif /* HAVE_AUTOMOUNTER */
 
+#define BOARD_HAS_NOISY_FXOS8700_MAG 1 // Disable internal MAG
 
 /************************************************************************************
  * Public data

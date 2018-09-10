@@ -1200,7 +1200,9 @@ FXOS8701CQ::start()
 		       1000,
 		       _call_accel_interval - FXOS8701C_TIMER_REDUCTION,
 		       (hrt_callout)&FXOS8701CQ::measure_trampoline, this);
+#if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	hrt_call_every(&_mag_call, 1000, _call_mag_interval, (hrt_callout)&FXOS8701CQ::mag_measure_trampoline, this);
+#endif
 }
 
 void
