@@ -47,7 +47,7 @@ pkill -x gazebo || true
 pkill -x px4 || true
 pkill -x px4_$model || true
 
-jmavsim_pid=`ps aux | grep java | grep Simulator | cut -d" " -f1`
+jmavsim_pid=`ps aux | grep java | grep "\-jar jmavsim_run.jar" | awk '{ print $2 }'`
 if [ -n "$jmavsim_pid" ]
 then
 	kill $jmavsim_pid
