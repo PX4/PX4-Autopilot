@@ -81,6 +81,7 @@ if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_t
 			${send_topic_opt} ${send_topic_files}
 			${receive_topic_opt} ${receive_topic_files}
 			--generate-idl
+			--mkdir-build
 			--topic-msg-dir ${PX4_SOURCE_DIR}/msg
 			--uorb-templates-dir "/templates/uorb_microcdr"
 			--urtps-templates-dir "/templates/urtps"
