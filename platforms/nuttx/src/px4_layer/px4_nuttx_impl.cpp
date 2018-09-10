@@ -46,7 +46,7 @@ namespace px4
 
 void init(int argc, char *argv[], const char *process_name)
 {
-	PX4_WARN("process: %s", process_name);
+	printf("process: %s\n", process_name);
 }
 
 uint64_t get_time_micros()
