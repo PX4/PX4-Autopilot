@@ -149,7 +149,7 @@ void Ekf::fuseVelPosHeight()
 			// calculate the innovation assuming the external vision observaton is in local NED frame
 			innovation[5] = _state.pos(2) - _ev_sample_delayed.posNED(2);
 			// observation variance - defined externally
-			R[5] = fmaxf(_ev_sample_delayed.posErr, 0.01f);
+			R[5] = fmaxf(_ev_sample_delayed.hgtErr, 0.01f);
 			R[5] = R[5] * R[5];
 			// innovation gate size
 			gate_size[5] = fmaxf(_params.ev_innov_gate, 1.0f);
