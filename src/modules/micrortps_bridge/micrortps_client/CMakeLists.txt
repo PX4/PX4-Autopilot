@@ -87,6 +87,7 @@ if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_t
 			--urtps-templates-dir "/templates/urtps"
 			--agent-outdir ${CMAKE_CURRENT_BINARY_DIR}/micrortps_agent
 			--client-outdir ${CMAKE_CURRENT_BINARY_DIR}/micrortps_client
+			--idl-dir ${CMAKE_CURRENT_BINARY_DIR}/micrortps_agent/idl
 			>micrortps_bridge.log 2>&1 || cat micrortps_bridge.log # quiet successful build output
 		DEPENDS ${send_topic_files} ${receive_topic_files}
 		COMMENT "Generating RTPS topic bridge"
