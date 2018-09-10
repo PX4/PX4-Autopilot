@@ -440,7 +440,10 @@ FixedwingPositionControl::position_setpoint_triplet_poll()
 	orb_check(_pos_sp_triplet_sub, &pos_sp_triplet_updated);
 
 	if (pos_sp_triplet_updated) {
-		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
+		if (orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet) == PX4_OK) {
+			// reset the altitude foh (first order hold) logic
+			_min_current_sp_distance_xy = FLT_MAX;
+		}
 	}
 }
 
@@ -774,9 +777,7 @@ bool
 FixedwingPositionControl::in_takeoff_situation()
 {
 	// in air for < 10s
-	const hrt_abstime delta_takeoff = 10_s;
-
-	return (hrt_elapsed_time(&_time_went_in_air) < delta_takeoff)
+	return (hrt_elapsed_time(&_time_went_in_air) < 10_s)
 	       && (_global_pos.alt <= _takeoff_ground_alt + _parameters.climbout_diff);
 }
 
@@ -915,36 +916,36 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 			mission_throttle = pos_sp_curr.cruising_throttle;
 		}
 
+		const float acc_rad = _l1_control.switch_distance(500.0f);
+
 
 		uint8_t position_sp_type = pos_sp_curr.type;
 
-		// TAKEOFF: handle like a regular POSITION setpoint if already flying
 		if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+			// TAKEOFF: handle like a regular POSITION setpoint if already flying
 
 			const bool airspeed_min = (_airspeed >= _parameters.airspeed_min);
 
 			if (!in_takeoff_situation() && airspeed_min) {
-
 				// SETPOINT_TYPE_TAKEOFF -> SETPOINT_TYPE_POSITION
 				position_sp_type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 			}
-		}
 
-		// POSITION: achieve position setpoint altitude via loiter
-		if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
+		} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
+			// POSITION: achieve position setpoint altitude via loiter
 
 			float dist_xy = -1.0f;
 			float dist_z = -1.0f;
 
-			float dist = get_distance_to_point_global_wgs84(
-					     pos_sp_curr.lat, pos_sp_curr.lon, pos_sp_curr.alt,
-					     _global_pos.lat, _global_pos.lon, _global_pos.alt,
-					     &dist_xy, &dist_z);
+			const float dist = get_distance_to_point_global_wgs84(
+						   pos_sp_curr.lat, pos_sp_curr.lon, pos_sp_curr.alt,
+						   _global_pos.lat, _global_pos.lon, _global_pos.alt,
+						   &dist_xy, &dist_z);
 
-			/* close to waypoint, but altitude error greater than twice acceptance */
+			// close to waypoint, but altitude error greater than twice acceptance
 			if ((dist >= 0.0f)
-			    && (dist_z > 2 * _parameters.climbout_diff)
-			    && (dist_xy < 2 * pos_sp_curr.acceptance_radius)) {
+			    && (dist_z > 2.0f * _parameters.climbout_diff)
+			    && (dist_xy < 2.0f * acc_rad)) {
 
 				/* SETPOINT_TYPE_POSITION -> SETPOINT_TYPE_LOITER */
 				position_sp_type = position_setpoint_s::SETPOINT_TYPE_LOITER;
@@ -961,38 +962,35 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 
 			float position_sp_alt = pos_sp_curr.alt;
 
+			// Altitude first order hold (FOH)
 			if (pos_sp_prev.valid && PX4_ISFINITE(pos_sp_prev.alt) &&
 			    ((pos_sp_prev.type == position_setpoint_s::SETPOINT_TYPE_POSITION) ||
 			     (pos_sp_prev.type == position_setpoint_s::SETPOINT_TYPE_LOITER) ||
 			     (pos_sp_prev.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF))
 			   ) {
+				const float d_curr_prev = get_distance_to_next_waypoint(pos_sp_curr.lat, pos_sp_curr.lon,
+							  pos_sp_prev.lat, pos_sp_prev.lon);
 
-				// first order hold (FOH)
-
-				const float distance_current_previous = get_distance_to_next_waypoint(pos_sp_curr.lat, pos_sp_curr.lon,
-									pos_sp_prev.lat, pos_sp_prev.lon);
-
-				/* Do not try to find a solution if the last waypoint is inside the acceptance radius of the current one */
-				if ((distance_current_previous - pos_sp_curr.acceptance_radius) > FLT_EPSILON) {
-					/* Calculate distance to current waypoint */
-					const float d_current = get_distance_to_next_waypoint(pos_sp_curr.lat, pos_sp_curr.lon, (double)curr_pos(0),
-								(double)curr_pos(1));
+				// Do not try to find a solution if the last waypoint is inside the acceptance radius of the current one
+				if (d_curr_prev > acc_rad) {
+					// Calculate distance to current waypoint
+					const float d_curr = get_distance_to_next_waypoint(pos_sp_curr.lat, pos_sp_curr.lon,
+							     (double)curr_pos(0), (double)curr_pos(1));
 
 					/* Save distance to waypoint if it is the smallest ever achieved, however make sure that
-					 * min_current_sp_distance_xy is never larger than the distance between the current and the previous wp */
-					const float min_current_sp_distance_xy = min(d_current, distance_current_previous);
+					 * _min_current_sp_distance_xy is never larger than the distance between the current and the previous wp */
+					_min_current_sp_distance_xy = math::min(math::min(d_curr, _min_current_sp_distance_xy), d_curr_prev);
 
-					/* if the minimal distance is smaller then the acceptance radius, we should be at waypoint alt
+					/* if the minimal distance is smaller than the acceptance radius, we should be at waypoint alt
 					 * navigator will soon switch to the next waypoint item (if there is one) as soon as we reach this altitude */
-					if (min_current_sp_distance_xy > pos_sp_curr.acceptance_radius) {
-
+					if (_min_current_sp_distance_xy > acc_rad) {
 						// The setpoint is set linearly and such that the system reaches the current altitude at the acceptance
 						// radius around the current waypoint
 						const float delta_alt = (pos_sp_curr.alt - pos_sp_prev.alt);
-						const float grad = -delta_alt / (distance_current_previous - pos_sp_curr.acceptance_radius);
-						const float a = pos_sp_prev.alt - grad * distance_current_previous;
+						const float grad = -delta_alt / (d_curr_prev - acc_rad);
+						const float a = pos_sp_prev.alt - grad * _min_current_sp_distance_xy;
 
-						position_sp_alt = a + grad * min_current_sp_distance_xy;
+						position_sp_alt = a + grad * _min_current_sp_distance_xy;
 					}
 				}
 			}
@@ -1097,7 +1095,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 			/* reset setpoints from other modes (auto) otherwise we won't
 			 * level out without new manual input */
 			_att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
-			_att_sp.yaw_body = 0;
+			_att_sp.yaw_body = 0.0f;
 		}
 
 		_control_mode_current = FW_POSCTRL_MODE_POSITION;
@@ -1190,7 +1188,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 			_hdg_hold_enabled = false;
 			_yaw_lock_engaged = false;
 			_att_sp.roll_body = _manual.y * _parameters.man_roll_max_rad;
-			_att_sp.yaw_body = 0;
+			_att_sp.yaw_body = 0.0f;
 		}
 
 	} else if (_control_mode.flag_control_altitude_enabled) {
