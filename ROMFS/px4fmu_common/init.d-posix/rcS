@@ -81,11 +81,11 @@ fi
 
 # multi-instance setup
 # shellcheck disable=SC2154
-param set MAV_SYS_ID $((1+px4_instance))
+param set MAV_SYS_ID $((px4_instance+1))
 simulator_udp_port=$((14560+px4_instance))
-udp_offboard_port_local=$((14557+px4_instance))
+udp_offboard_port_local=$((14580+px4_instance))
 udp_offboard_port_remote=$((14540+px4_instance))
-udp_gcs_port_local=$((14556+px4_instance))
+udp_gcs_port_local=$((14570+px4_instance))
 
 if [ $AUTOCNF = yes ]
 then
