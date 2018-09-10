@@ -1,5 +1,20 @@
 #! /usr/bin/env bash
 
+
+# detect if running in docker
+if [ -f /.dockerenv ]; then
+	echo "Running within docker, installing initial dependencies";
+	apt-get --quiet -y update && apt-get --quiet -y install \
+		ca-certificates \
+		curl \
+		gnupg \
+		gosu \
+		lsb-core \
+		sudo \
+		wget \
+		;
+fi
+
 # script directory
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
@@ -18,26 +33,31 @@ then
 elif [[ "${UBUNTU_RELEASE}" == "18.04" ]]
 then
 	echo "Ubuntu 18.04"
-	echo "WARNING, instructions only tested on Ubuntu 16.04"
 fi
 
 export DEBIAN_FRONTEND=noninteractive
+
 sudo apt-get update -yy --quiet
 sudo apt-get -yy --quiet --no-install-recommends install \
+	astyle \
 	bzip2 \
-	ca-certificates \
 	ccache \
 	cmake \
+	cppcheck \
+	doxygen \
 	g++ \
 	gcc \
+	gdb \
 	git \
 	lcov \
 	make \
 	ninja-build \
-	python-pip
+	python-pip \
+	python-pygments \
+	python-setuptools \
 	rsync \
+	shellcheck \
 	unzip \
-	wget \
 	wget \
 	xsltproc \
 	zip
@@ -50,4 +70,8 @@ python -m pip install --user -r ${DIR}/requirements.txt
 # TODO: only install when necessary
 sudo apt-get -y --quiet --no-install-recommends install \
 	default-jre-headless \
-	default-jdk-headless \
+	default-jdk-headless
+
+# TODO: nuttx, raspberrypi, armhf generic
+
+# TODO: gazebo or ROS optional
