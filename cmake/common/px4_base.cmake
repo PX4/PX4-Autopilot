@@ -212,7 +212,10 @@ function(px4_add_module)
 		if(INCLUDES)
 			target_include_directories(${MODULE}_original PRIVATE ${INCLUDES})
 		endif()
+		target_compile_definitions(${MODULE}_original PRIVATE PX4_MAIN=${MAIN}_app_main)
+		target_compile_definitions(${MODULE}_original PRIVATE MODULE_NAME="${MAIN}_original")
 
+		# unity build
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_unity.cpp
 			COMMAND cat ${SRCS} > ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_unity.cpp
 			DEPENDS ${MODULE}_original ${DEPENDS} ${SRCS}
