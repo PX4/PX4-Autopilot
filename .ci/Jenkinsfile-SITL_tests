@@ -28,6 +28,7 @@ pipeline {
             sh('export')
             sh('make distclean')
             sh "ccache -z"
+            sh "git fetch --tags"
             sh('make posix_sitl_default')
             sh "ccache -s"
           }
