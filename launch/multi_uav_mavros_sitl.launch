@@ -23,7 +23,7 @@
     <group ns="uav1">
         <!-- MAVROS and vehicle configs -->        
         <arg name="ID" value="1"/>
-        <arg name="fcu_url" default="udp://:14540@localhost:14557"/>
+        <arg name="fcu_url" default="udp://:14541@localhost:14558"/>
         <!-- PX4 SITL and vehicle spawn -->
         <include file="$(find px4)/launch/single_vehicle_spawn.launch">
             <arg name="x" value="0"/>
@@ -48,7 +48,7 @@
     <group ns="uav2">
         <!-- MAVROS and vehicle configs -->
         <arg name="ID" value="2"/>
-        <arg name="fcu_url" default="udp://:14541@localhost:14558"/>
+        <arg name="fcu_url" default="udp://:14542@localhost:14559"/>
         <!-- PX4 SITL and vehicle spawn -->
         <include file="$(find px4)/launch/single_vehicle_spawn.launch">
             <arg name="x" value="1"/>
@@ -70,3 +70,6 @@
         </include>
     </group>
 </launch>
+<!-- to add more quads increase the id
+set the FCU to default="udp://:14540+id@localhost:14557+id"
+set the malink_udo_port to 14560+id -->
