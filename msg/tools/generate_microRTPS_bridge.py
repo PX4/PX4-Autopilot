@@ -67,7 +67,8 @@ parser.add_argument("-s", "--send", dest='send', metavar='*.msg', type=str, narg
 parser.add_argument("-r", "--receive", dest='receive', metavar='*.msg', type=str, nargs='+', help="Topics to be received")
 parser.add_argument("-a", "--agent", dest='agent', action="store_true", help="Flag for generate the agent, by default is true if -c is not specified")
 parser.add_argument("-c", "--client", dest='client', action="store_true", help="Flag for generate the client, by default is true if -a is not specified")
-parser.add_argument("-i", "--generate-idl", dest='idl', action="store_true", help="Flag for generate idl files for each msg")
+parser.add_argument("-i", "--generate-idl", dest='gen_idl', action="store_true", help="Flag for generate idl files for each msg")
+parser.add_argument("-j", "--idl-dir", dest='idl_dir', type=str, help="IDL files dir", default='')
 parser.add_argument("-m", "--mkdir-build", dest='mkdir_build', action="store_true", help="Flag to create 'build' dir")
 parser.add_argument("-t", "--topic-msg-dir", dest='msgdir', type=str, help="Topics message dir, by default msg/", default="msg")
 parser.add_argument("-b", "--uorb-templates-dir", dest='uorb_templates', type=str, help="uORB templates dir, by default msg_dir/templates/uorb_microcdr", default=default_uorb_templates_dir)
@@ -99,12 +100,17 @@ else:
 
 agent = args.agent
 client = args.client
-idl = args.idl
 mkdir_build = args.mkdir_build
 del_tree = args.del_tree
 px_generate_uorb_topic_files.append_to_include_path({msg_folder}, px_generate_uorb_topic_files.INCL_DEFAULT, package)
 agent_out_dir = get_absolute_path(args.agentdir)
 client_out_dir = get_absolute_path(args.clientdir)
+gen_idl = args.gen_idl
+idl_dir = args.idl_dir
+if idl_dir != '':
+    idl_dir = get_absolute_path(args.idl_dir)
+else:
+    idl_dir = agent_out_dir + "/idl"
 
 if args.fastrtpsgen is None or args.fastrtpsgen == "":
     # Assume fastrtpsgen is in PATH
@@ -157,9 +163,13 @@ def generate_agent(out_dir):
 
     if msg_files_send:
         for msg_file in msg_files_send:
-            if idl:
-                px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir + "/idl", urtps_templates_dir,
-                    package, px_generate_uorb_topic_files.INCL_DEFAULT)
+            if gen_idl:
+                if out_dir != agent_out_dir:
+                    px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir + "/idl", urtps_templates_dir,
+                        package, px_generate_uorb_topic_files.INCL_DEFAULT)
+                else:
+                    px_generate_uorb_topic_files.generate_idl_file(msg_file, idl_dir, urtps_templates_dir,
+                        package, px_generate_uorb_topic_files.INCL_DEFAULT)
             px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
                 package, px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_PUBLISHER_SRC_TEMPL_FILE)
             px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
@@ -167,9 +177,13 @@ def generate_agent(out_dir):
 
     if msg_files_receive:
         for msg_file in msg_files_receive:
-            if idl:
-                px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir + "/idl", urtps_templates_dir,
-                    package, px_generate_uorb_topic_files.INCL_DEFAULT)
+            if gen_idl:
+                if out_dir != agent_out_dir:
+                    px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir + "/idl", urtps_templates_dir,
+                        package, px_generate_uorb_topic_files.INCL_DEFAULT)
+                else:
+                    px_generate_uorb_topic_files.generate_idl_file(msg_file, idl_dir, urtps_templates_dir,
+                        package, px_generate_uorb_topic_files.INCL_DEFAULT)
             px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
                 package, px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_SUBSCRIBER_SRC_TEMPL_FILE)
             px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
@@ -185,26 +199,28 @@ def generate_agent(out_dir):
                     package, px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_CMAKELIST_TEMPL_FILE)
 
     # Final steps to install agent
-    mkdir_p(agent_out_dir + "/fastrtpsgen")
+    mkdir_p(out_dir + "/fastrtpsgen")
     prev_cwd_path = os.getcwd()
-    os.chdir(agent_out_dir + "/fastrtpsgen")
-    for idl_file in glob.glob(agent_out_dir + "/idl/*.idl"):
-        ret = subprocess.call(fastrtpsgen_path + " -d " + agent_out_dir + "/fastrtpsgen -example x64Linux2.6gcc " + idl_file, shell=True)
+    os.chdir(out_dir + "/fastrtpsgen")
+    if not glob.glob(idl_dir + "/*.idl"):
+        raise Exception("No IDL files found in %s" % idl_dir)
+    for idl_file in glob.glob(idl_dir + "/*.idl"):
+        ret = subprocess.call(fastrtpsgen_path + " -d " + out_dir + "/fastrtpsgen -example x64Linux2.6gcc " + idl_file, shell=True)
         if ret:
             raise Exception("fastrtpsgen not found. Specify the location of fastrtpsgen with the -f flag")
-    rm_wildcard(agent_out_dir + "/fastrtpsgen/*PubSubMain*")
-    rm_wildcard(agent_out_dir + "/fastrtpsgen/makefile*")
-    rm_wildcard(agent_out_dir + "/fastrtpsgen/*Publisher*")
-    rm_wildcard(agent_out_dir + "/fastrtpsgen/*Subscriber*")
-    for f in glob.glob(agent_out_dir + "/fastrtpsgen/*.cxx"):
+    rm_wildcard(out_dir + "/fastrtpsgen/*PubSubMain*")
+    rm_wildcard(out_dir + "/fastrtpsgen/makefile*")
+    rm_wildcard(out_dir + "/fastrtpsgen/*Publisher*")
+    rm_wildcard(out_dir + "/fastrtpsgen/*Subscriber*")
+    for f in glob.glob(out_dir + "/fastrtpsgen/*.cxx"):
         os.rename(f, f.replace(".cxx", ".cpp"))
-    cp_wildcard(agent_out_dir + "/fastrtpsgen/*", agent_out_dir)
-    if os.path.isdir(agent_out_dir + "/fastrtpsgen"):
-        shutil.rmtree(agent_out_dir + "/fastrtpsgen")
+    cp_wildcard(out_dir + "/fastrtpsgen/*", out_dir)
+    if os.path.isdir(out_dir + "/fastrtpsgen"):
+        shutil.rmtree(out_dir + "/fastrtpsgen")
     cp_wildcard(urtps_templates_dir + "/microRTPS_transport.*", agent_out_dir)
-    os.rename(agent_out_dir + "/microRTPS_agent_CMakeLists.txt", agent_out_dir + "/CMakeLists.txt")
+    os.rename(out_dir + "/microRTPS_agent_CMakeLists.txt", out_dir + "/CMakeLists.txt")
     if (mkdir_build):
-        mkdir_p(agent_out_dir + "/build")
+        mkdir_p(out_dir + "/build")
     os.chdir(prev_cwd_path)
     return 0
 
