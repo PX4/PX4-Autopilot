@@ -5,8 +5,11 @@
 # precompiled and thus message generation will be much faster
 
 import os
-import yaml
 import errno
+try:
+    import yaml
+except ImportError:
+    raise ImportError("Failed to import yaml. You may need to install it with 'sudo pip install pyyaml")
 
 import genmsg.msgs
 import gencpp
