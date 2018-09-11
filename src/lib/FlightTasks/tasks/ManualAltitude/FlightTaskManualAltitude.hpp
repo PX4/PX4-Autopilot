@@ -66,7 +66,7 @@ protected:
 					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) MPC_HOLD_MAX_Z,
 					(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) MPC_HOLD_MAX_XY,
-					(ParamFloat<px4::params::MPC_Z_P>) MPC_Z_P
+					(ParamFloat<px4::params::MPC_Z_P>) MPC_Z_P,
 					(ParamFloat<px4::params::MPC_LAND_ALT1>) MPC_LAND_ALT1, // altitude at which speed limit downwards reaches maximum speed
 					(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude at which speed limit downwards reached minimum speed
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) MPC_LAND_SPEED

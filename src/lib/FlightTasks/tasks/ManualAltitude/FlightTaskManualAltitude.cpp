@@ -94,12 +94,12 @@ void FlightTaskManualAltitude::_scaleSticks()
 	FlightTaskManualStabilized::_scaleSticks();
 
 	// scale horizontal velocity with expo curve stick input
-	const float vel_max_z = (_sticks(2) > 0.0f) ? _constraints.speed_down : _constraints.speed_up;
+	float vel_max_z = (_sticks_expo(2) > FLT_EPSILON) ? _constraints.speed_down : _constraints.speed_up;
 	_velocity_setpoint(2) = vel_max_z * _sticks_expo(2);
 
 	// if there is a valid distance to bottom or distance to home, then
 	// adjust speed downwards gradually within the limits MPC_LAND_ALT1 and MPC_LAND_ALT2.
-	if (_sticks(2) > 0.0f) { //user demands speed downwards
+	if (_sticks_expo(2) > FLT_EPSILON) { //user demands speed downwards
 
 		float dist_to_ground = NAN;
 

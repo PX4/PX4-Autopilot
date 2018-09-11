@@ -74,17 +74,17 @@ bool FlightTaskManual::_evaluateSticks()
 	/* Sticks are rescaled linearly and exponentially to [-1,1] */
 	if ((_time_stamp_current - _sub_manual_control_setpoint->get().timestamp) < rc_timeout) {
 
-		/* Linear scale  */
+		// Linear scale
 		_sticks(0) = _sub_manual_control_setpoint->get().x; /* NED x, "pitch" [-1,1] */
 		_sticks(1) = _sub_manual_control_setpoint->get().y; /* NED y, "roll" [-1,1] */
 		_sticks(2) = -(_sub_manual_control_setpoint->get().z - 0.5f) * 2.f; /* NED z, "thrust" resacaled from [0,1] to [-1,1] */
 		_sticks(3) = _sub_manual_control_setpoint->get().r; /* "yaw" [-1,1] */
 
-		/* Exponential scale */
-		_sticks_expo(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), _stick_dz.get());
-		_sticks_expo(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), _stick_dz.get());
-		_sticks_expo(2) = math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), _stick_dz.get());
-		_sticks_expo(3) = math::expo_deadzone(_sticks(3), _yaw_expo.get(), _stick_dz.get());
+		// Exponential scale
+		_sticks_expo(0) = math::expo_deadzone(_sticks(0), _xy_vel_man_expo.get(), MPC_HOLD_DZ.get());
+		_sticks_expo(1) = math::expo_deadzone(_sticks(1), _xy_vel_man_expo.get(), MPC_HOLD_DZ.get());
+		_sticks_expo(2) = math::expo_deadzone(_sticks(2), _z_vel_man_expo.get(), MPC_HOLD_DZ.get());
+		_sticks_expo(3) = math::expo_deadzone(_sticks(3), _yaw_expo.get(), MPC_HOLD_DZ.get());
 
 		// Only switch the landing gear up if the user switched from gear down to gear up.
 		// If the user had the switch in the gear up position and took off ignore it
