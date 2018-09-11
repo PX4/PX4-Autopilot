@@ -115,12 +115,7 @@ if args.send:
     msg_files_send = [get_absolute_path(msg) for msg in args.send]
 if args.receive:
     msg_files_receive = [get_absolute_path(msg) for msg in args.receive]
-
-if args.package != px_generate_uorb_topic_files.PACKAGE:
-    package = args.package
-else:
-    package = px_generate_uorb_topic_files.PACKAGE
-
+package = args.package
 agent = args.agent
 client = args.client
 mkdir_build = args.mkdir_build
