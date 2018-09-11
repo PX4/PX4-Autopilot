@@ -44,7 +44,8 @@ import errno
 try:
     import yaml
 except ImportError:
-    raise ImportError("Failed to import yaml. You may need to install it with 'sudo pip install pyyaml")
+    raise ImportError(
+        "Failed to import yaml. You may need to install it with 'sudo pip install pyyaml")
 
 import genmsg.msgs
 import gencpp
@@ -124,6 +125,7 @@ type_printf_map = {
     'char': '%c',
 }
 
+
 def bare_name(msg_type):
     """
     Get bare_name from <dir>/<bare_name>[x] format
@@ -143,14 +145,18 @@ def sizeof_field_type(field):
     bare_name_str = bare_name(field.type)
     if bare_name_str in msgtype_size_map:
         return msgtype_size_map[bare_name_str]
-    return 0 # this is for non-builtin types: sort them at the end
+    return 0  # this is for non-builtin types: sort them at the end
+
 
 def get_children_fields(base_type, search_path):
     (package, name) = genmsg.names.package_resource_name(base_type)
     tmp_msg_context = genmsg.msg_loader.MsgContext.create_default()
-    spec_temp = genmsg.msg_loader.load_msg_by_type(tmp_msg_context, '%s/%s' %(package, name), search_path)
-    sorted_fields = sorted(spec_temp.parsed_fields(), key=sizeof_field_type, reverse=True)
+    spec_temp = genmsg.msg_loader.load_msg_by_type(
+        tmp_msg_context, '%s/%s' % (package, name), search_path)
+    sorted_fields = sorted(spec_temp.parsed_fields(),
+                           key=sizeof_field_type, reverse=True)
     return sorted_fields
+
 
 def add_padding_bytes(fields, search_path):
     """
@@ -159,7 +165,7 @@ def add_padding_bytes(fields, search_path):
     returns a tuple with the struct size and padding at the end
     """
     struct_size = 0
-    align_to = 8 # this is always 8, because of the 64bit timestamp
+    align_to = 8  # this is always 8, because of the 64bit timestamp
     i = 0
     padding_idx = 0
     while i < len(fields):
@@ -175,16 +181,17 @@ def add_padding_bytes(fields, search_path):
                 # embedded type: may need to add padding
                 num_padding_bytes = align_to - (struct_size % align_to)
                 if num_padding_bytes != align_to:
-                    padding_field = genmsg.Field('_padding'+str(padding_idx),
-                        'uint8['+str(num_padding_bytes)+']')
+                    padding_field = genmsg.Field('_padding' + str(padding_idx),
+                                                 'uint8[' + str(num_padding_bytes) + ']')
                     padding_idx += 1
                     padding_field.sizeof_field_type = 1
                     struct_size += num_padding_bytes
                     fields.insert(i, padding_field)
                     i += 1
-                children_fields = get_children_fields(field.base_type, search_path)
+                children_fields = get_children_fields(
+                    field.base_type, search_path)
                 field.sizeof_field_type, unused = add_padding_bytes(children_fields,
-                        search_path)
+                                                                    search_path)
             struct_size += field.sizeof_field_type * array_size
         i += 1
 
@@ -193,8 +200,8 @@ def add_padding_bytes(fields, search_path):
     if num_padding_bytes == align_to:
         num_padding_bytes = 0
     else:
-        padding_field = genmsg.Field('_padding'+str(padding_idx),
-                'uint8['+str(num_padding_bytes)+']')
+        padding_field = genmsg.Field('_padding' + str(padding_idx),
+                                     'uint8[' + str(num_padding_bytes) + ']')
         padding_idx += 1
         padding_field.sizeof_field_type = 1
         struct_size += num_padding_bytes
@@ -226,7 +233,8 @@ def print_field(field):
     """
 
     # check if there are any upper case letters in the field name
-    assert not any(a.isupper() for a in field.name), "%r field contains uppercase letters" % field.name
+    assert not any(a.isupper()
+                   for a in field.name), "%r field contains uppercase letters" % field.name
 
     # skip padding
     if field.name.startswith('_padding'):
@@ -249,8 +257,10 @@ def print_field(field):
 
         else:
             for i in range(array_length):
-                print("PX4_INFO_RAW(\"\\t" + field.type + " " + field.name + "[" + str(i) + "]\");")
-                print(" print_message(message." + field.name + "[" + str(i) + "]);")
+                print("PX4_INFO_RAW(\"\\t" + field.type +
+                      " " + field.name + "[" + str(i) + "]\");")
+                print(" print_message(message." +
+                      field.name + "[" + str(i) + "]);")
             return
 
         for i in range(array_length):
@@ -260,7 +270,8 @@ def print_field(field):
                 field_name += ", "
 
             if "float32" in field.type:
-                field_name += "(double)message." + field.name + "[" + str(i) + "]"
+                field_name += "(double)message." + \
+                    field.name + "[" + str(i) + "]"
             else:
                 field_name += "message." + field.name + "[" + str(i) + "]"
 
@@ -284,19 +295,20 @@ def print_field(field):
 
         else:
             print("PX4_INFO_RAW(\"\\n\\t" + field.name + "\");")
-            print("\tprint_message(message."+ field.name + ");")
+            print("\tprint_message(message." + field.name + ");")
             return
 
     if field.name == 'timestamp':
-        print("if (message.timestamp != 0) {\n\t\tPX4_INFO_RAW(\"\\t" + field.name + \
-            ": " + c_type + "  (%.6f seconds ago)\\n\", " + field_name + \
-            ", hrt_elapsed_time(&message.timestamp) / 1e6);\n\t} else {\n\t\tPX4_INFO_RAW(\"\\n\");\n\t}" )
+        print("if (message.timestamp != 0) {\n\t\tPX4_INFO_RAW(\"\\t" + field.name +
+              ": " + c_type + "  (%.6f seconds ago)\\n\", " + field_name +
+              ", hrt_elapsed_time(&message.timestamp) / 1e6);\n\t} else {\n\t\tPX4_INFO_RAW(\"\\n\");\n\t}")
     elif field.name == 'device_id':
         print("char device_id_buffer[80];")
         print("device::Device::device_id_print_buffer(device_id_buffer, sizeof(device_id_buffer), message.device_id);")
-        print("PX4_INFO_RAW(\"\\tdevice_id: %d (%s) \\n\", message.device_id, device_id_buffer);" )
+        print("PX4_INFO_RAW(\"\\tdevice_id: %d (%s) \\n\", message.device_id, device_id_buffer);")
     else:
-        print("PX4_INFO_RAW(\"\\t" + field.name + ": " + c_type + "\\n\", " + field_name + ");" )
+        print("PX4_INFO_RAW(\"\\t" + field.name + ": " +
+              c_type + "\\n\", " + field_name + ");")
 
 
 def print_field_def(field):
@@ -305,7 +317,8 @@ def print_field_def(field):
     """
 
     # check if there are any upper case letters in the field name
-    assert not any(a.isupper() for a in field.name), "%r field contains uppercase letters" % field.name
+    assert not any(a.isupper()
+                   for a in field.name), "%r field contains uppercase letters" % field.name
 
     type_name = field.type
     # detect embedded types
@@ -335,8 +348,9 @@ def print_field_def(field):
     if field.name.startswith('_padding'):
         comment = ' // required for logger'
 
-    print('\t%s%s%s %s%s;%s'%(type_prefix, type_px4, type_appendix, field.name,
-                array_size, comment))
+    print('\t%s%s%s %s%s;%s' % (type_prefix, type_px4, type_appendix, field.name,
+                                array_size, comment))
+
 
 def parse_yaml_msg_id_file(yaml_file):
     """
@@ -350,6 +364,7 @@ def parse_yaml_msg_id_file(yaml_file):
             raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), yaml_file)
         else:
             raise
+
 
 def rtps_message_id(msg_id_map, message):
     """
