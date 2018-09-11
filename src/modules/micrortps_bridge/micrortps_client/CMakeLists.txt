@@ -83,8 +83,8 @@ if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_t
 			--generate-idl
 			--mkdir-build
 			--topic-msg-dir ${PX4_SOURCE_DIR}/msg
-			--uorb-templates-dir "/templates/uorb_microcdr"
-			--urtps-templates-dir "/templates/urtps"
+			--uorb-templates-dir "templates/uorb_microcdr"
+			--urtps-templates-dir "templates/urtps"
 			--agent-outdir ${CMAKE_CURRENT_BINARY_DIR}/micrortps_agent
 			--client-outdir ${CMAKE_CURRENT_BINARY_DIR}/micrortps_client
 			--idl-dir ${CMAKE_CURRENT_BINARY_DIR}/micrortps_agent/idl

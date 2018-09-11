@@ -57,8 +57,8 @@ def get_absolute_path(arg_parse_dir):
 
 default_client_out = get_absolute_path("src/modules/micrortps_bridge/micrortps_client")
 default_agent_out = get_absolute_path("src/modules/micrortps_bridge/micrortps_agent")
-default_uorb_templates_dir = "/templates/uorb_microcdr"
-default_urtps_templates_dir = "/templates/urtps"
+default_uorb_templates_dir = "templates/uorb_microcdr"
+default_urtps_templates_dir = "templates/urtps"
 default_package_name = px_generate_uorb_topic_files.PACKAGE
 
 parser = argparse.ArgumentParser()
@@ -110,14 +110,14 @@ idl_dir = args.idl_dir
 if idl_dir != '':
     idl_dir = get_absolute_path(args.idl_dir)
 else:
-    idl_dir = agent_out_dir + "/idl"
+    idl_dir = os.path.join(agent_out_dir, "idl")
 
 if args.fastrtpsgen is None or args.fastrtpsgen == "":
     # Assume fastrtpsgen is in PATH
     fastrtpsgen_path = "fastrtpsgen"
 else:
     # Path to fastrtpsgen is explicitly specified
-    fastrtpsgen_path = get_absolute_path(args.fastrtpsgen) + "/fastrtpsgen"
+    fastrtpsgen_path = os.path.join(get_absolute_path(args.fastrtpsgen), "/fastrtpsgen")
 
 # If nothing specified it's generated both
 if agent == False and client == False:
@@ -143,11 +143,11 @@ if del_tree:
             if client and os.path.isdir(client_out_dir):
                 shutil.rmtree(client_out_dir)
 
-if agent and os.path.isdir(agent_out_dir + "/idl"):
-    shutil.rmtree(agent_out_dir + "/idl")
+if agent and os.path.isdir(os.path.join(agent_out_dir, "idl")):
+    shutil.rmtree(os.path.join(agent_out_dir, "idl"))
 
-uorb_templates_dir = msg_folder + args.uorb_templates
-urtps_templates_dir = msg_folder + args.urtps_templates
+uorb_templates_dir = os.path.join(msg_folder, args.uorb_templates)
+urtps_templates_dir = os.path.join(msg_folder, args.urtps_templates)
 
 uRTPS_CLIENT_TEMPL_FILE = 'microRTPS_client.cpp.template'
 uRTPS_AGENT_TOPICS_H_TEMPL_FILE = 'RtpsTopics.h.template'
@@ -165,7 +165,7 @@ def generate_agent(out_dir):
         for msg_file in msg_files_send:
             if gen_idl:
                 if out_dir != agent_out_dir:
-                    px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir + "/idl", urtps_templates_dir,
+                    px_generate_uorb_topic_files.generate_idl_file(msg_file, os.path.join(out_dir, "/idl"), urtps_templates_dir,
                         package, px_generate_uorb_topic_files.INCL_DEFAULT)
                 else:
                     px_generate_uorb_topic_files.generate_idl_file(msg_file, idl_dir, urtps_templates_dir,
@@ -179,7 +179,7 @@ def generate_agent(out_dir):
         for msg_file in msg_files_receive:
             if gen_idl:
                 if out_dir != agent_out_dir:
-                    px_generate_uorb_topic_files.generate_idl_file(msg_file, out_dir + "/idl", urtps_templates_dir,
+                    px_generate_uorb_topic_files.generate_idl_file(msg_file, os.path.join(out_dir, "/idl"), urtps_templates_dir,
                         package, px_generate_uorb_topic_files.INCL_DEFAULT)
                 else:
                     px_generate_uorb_topic_files.generate_idl_file(msg_file, idl_dir, urtps_templates_dir,
@@ -199,28 +199,28 @@ def generate_agent(out_dir):
                     package, px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_CMAKELIST_TEMPL_FILE)
 
     # Final steps to install agent
-    mkdir_p(out_dir + "/fastrtpsgen")
+    mkdir_p(os.path.join(out_dir, "fastrtpsgen"))
     prev_cwd_path = os.getcwd()
-    os.chdir(out_dir + "/fastrtpsgen")
-    if not glob.glob(idl_dir + "/*.idl"):
+    os.chdir(os.path.join(out_dir, "fastrtpsgen"))
+    if not glob.glob(os.path.join(idl_dir, "*.idl")):
         raise Exception("No IDL files found in %s" % idl_dir)
-    for idl_file in glob.glob(idl_dir + "/*.idl"):
+    for idl_file in glob.glob(os.path.join(idl_dir, "*.idl")):
         ret = subprocess.call(fastrtpsgen_path + " -d " + out_dir + "/fastrtpsgen -example x64Linux2.6gcc " + idl_file, shell=True)
         if ret:
             raise Exception("fastrtpsgen not found. Specify the location of fastrtpsgen with the -f flag")
-    rm_wildcard(out_dir + "/fastrtpsgen/*PubSubMain*")
-    rm_wildcard(out_dir + "/fastrtpsgen/makefile*")
-    rm_wildcard(out_dir + "/fastrtpsgen/*Publisher*")
-    rm_wildcard(out_dir + "/fastrtpsgen/*Subscriber*")
-    for f in glob.glob(out_dir + "/fastrtpsgen/*.cxx"):
+    rm_wildcard(os.path.join(out_dir, "fastrtpsgen/*PubSubMain*"))
+    rm_wildcard(os.path.join(out_dir, "fastrtpsgen/makefile*"))
+    rm_wildcard(os.path.join(out_dir, "fastrtpsgen/*Publisher*"))
+    rm_wildcard(os.path.join(out_dir, "fastrtpsgen/*Subscriber*"))
+    for f in glob.glob(os.path.join(out_dir, "fastrtpsgen/*.cxx")):
         os.rename(f, f.replace(".cxx", ".cpp"))
-    cp_wildcard(out_dir + "/fastrtpsgen/*", out_dir)
-    if os.path.isdir(out_dir + "/fastrtpsgen"):
-        shutil.rmtree(out_dir + "/fastrtpsgen")
-    cp_wildcard(urtps_templates_dir + "/microRTPS_transport.*", agent_out_dir)
-    os.rename(out_dir + "/microRTPS_agent_CMakeLists.txt", out_dir + "/CMakeLists.txt")
+    cp_wildcard(os.path.join(out_dir, "fastrtpsgen/*"), out_dir)
+    if os.path.isdir(os.path.join(out_dir, "fastrtpsgen")):
+        shutil.rmtree(os.path.join(out_dir, "fastrtpsgen"))
+    cp_wildcard(os.path.join(urtps_templates_dir, "microRTPS_transport.*"), agent_out_dir)
+    os.rename(os.path.join(out_dir, "microRTPS_agent_CMakeLists.txt"), os.path.join(out_dir, "CMakeLists.txt"))
     if (mkdir_build):
-        mkdir_p(out_dir + "/build")
+        mkdir_p(os.path.join(out_dir, "build"))
     os.chdir(prev_cwd_path)
     return 0
 
@@ -245,13 +245,13 @@ def generate_client(out_dir):
 
     # Rename work in the default path
     if default_client_out != out_dir:
-        def_file = default_client_out + "/microRTPS_client.cpp"
+        def_file = os.path.join(default_client_out, "microRTPS_client.cpp")
         if os.path.isfile(def_file):
             os.rename(def_file, def_file.replace(".cpp", ".cpp_"))
-        def_file = default_client_out + "/microRTPS_transport.cpp"
+        def_file = os.path.join(default_client_out, "microRTPS_transport.cpp")
         if os.path.isfile(def_file):
             os.rename(def_file, def_file.replace(".cpp", ".cpp_"))
-        def_file = default_client_out + "/microRTPS_transport.h"
+        def_file = os.path.join(default_client_out, "microRTPS_transport.h")
         if os.path.isfile(def_file):
             os.rename(def_file, def_file.replace(".h", ".h_"))
 
@@ -259,7 +259,7 @@ def generate_client(out_dir):
                     package, px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_CLIENT_TEMPL_FILE)
 
     # Final steps to install client
-    cp_wildcard(urtps_templates_dir + "/microRTPS_transport.*", out_dir)
+    cp_wildcard(os.path.join(urtps_templates_dir, "microRTPS_transport.*"), out_dir)
 
     return 0
 
