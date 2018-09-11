@@ -64,8 +64,15 @@ sudo apt-get -yy --quiet --no-install-recommends install \
 	zip
 
 # python dependencies
-python -m pip install --user --upgrade pip setuptools wheel
-python -m pip install --user -r ${DIR}/requirements.txt
+if [ -f /.dockerenv ]; then
+	# in docker install requirements system wide
+	sudo python -m pip install --upgrade pip setuptools wheel
+	sudo python -m pip install -r ${DIR}/requirements.txt
+else
+	# otherwise only install for the user
+	python -m pip install --user --upgrade pip setuptools wheel
+	python -m pip install --user -r ${DIR}/requirements.txt
+fi
 
 # java (jmavsim or fastrtps)
 # TODO: only install when necessary
