@@ -45,6 +45,7 @@ sudo apt-get -yy --quiet --no-install-recommends install \
 	cmake \
 	cppcheck \
 	doxygen \
+	file \
 	g++ \
 	gcc \
 	gdb \
