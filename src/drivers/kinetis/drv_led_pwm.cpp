@@ -203,10 +203,10 @@ led_pwm_timer_init(unsigned timer)
 
 		/*
 		 * Note we do the Standard PWM Out init here
-		 * default to updating at 50Hz
+		 * default to updating at LED_PWM_RATE
 		 */
 
-		led_pwm_timer_set_rate(timer, 50);
+		led_pwm_timer_set_rate(timer, LED_PWM_RATE);
 	}
 }
 unsigned
@@ -274,12 +274,7 @@ led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 		value--;
 	}
 
-	irqstate_t flags = px4_enter_critical_section();
-	uint32_t save = rSC(timer);
-	rSC(timer) = save & ~(FTM_SC_CLKS_MASK);
 	REG(timer, KINETIS_FTM_CV_OFFSET(led_pwm_channels[channel].timer_channel - 1)) = value;
-	rSC(timer) = save;
-	px4_leave_critical_section(flags);
 
 	return 0;
 }
