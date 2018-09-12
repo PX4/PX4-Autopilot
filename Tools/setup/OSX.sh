@@ -8,7 +8,7 @@ brew install px4-dev
 
 # python dependencies
 sudo easy_install pip
-pip install -r ${DIR}/requirements.txt
+sudo -H pip install -r ${DIR}/requirements.txt
 
 # Optional, but recommended additional simulation tools:
 brew install px4-sim
