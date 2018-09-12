@@ -10,7 +10,7 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 		PX4_DOCKER_REPO="px4io/px4-dev-raspi:2018-09-11"
 	elif [[ $@ =~ .*eagle.* ]] || [[ $@ =~ .*excelsior.* ]]; then
 		# eagle, excelsior
-		PX4_DOCKER_REPO="lorenzmeier/px4-dev-snapdragon:2017-12-29"
+		PX4_DOCKER_REPO="lorenzmeier/px4-dev-snapdragon:2018-09-12"
 	elif [[ $@ =~ .*ocpoc.* ]]; then
 		# posix_ocpoc_ubuntu
 		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2018-09-11"
