@@ -5,6 +5,7 @@ using namespace matrix;
 
 int test_4x3(void);
 int test_4x4(void);
+int test_div_zero(void);
 
 int main()
 {
@@ -14,6 +15,9 @@ int main()
     if (ret != 0) return ret;
 
     ret = test_4x3();
+    if (ret != 0) return ret;
+
+    ret = test_div_zero();
     if (ret != 0) return ret;
 
     return 0;
@@ -66,6 +70,24 @@ int test_4x4() {
     LeastSquaresSolver<float, 4, 4> qrd = LeastSquaresSolver<float, 4, 4>(A);
 
     Vector<float, 4> x = qrd.solve(b);
+    TEST(isEqual(x, x_check));
+    return 0;
+}
+
+int test_div_zero() {
+    float data[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    Matrix<float, 2, 2> A(data);
+
+    float b_data[2] = {1.0, 1.0};
+    Vector<float, 2> b(b_data);
+
+    // Implement such that x returns zeros if it reaches div by zero
+    float x_check_data[2] = {0.0f, 0.0f};
+    Vector<float, 2> x_check(x_check_data);
+
+    LeastSquaresSolver<float, 2, 2> qrd = LeastSquaresSolver<float, 2, 2>(A);
+
+    Vector<float, 2> x = qrd.solve(b);
     TEST(isEqual(x, x_check));
     return 0;
 }
