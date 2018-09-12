@@ -1735,6 +1735,12 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				break;
 			}
 
+			if (_mixers == nullptr) {
+				PX4_ERR("error: no mixer loaded");
+				ret = -EIO;
+				break;
+			}
+
 			/* copy the trim values to the mixer offsets */
 			_mixers->set_trims((int16_t *)pwm->values, pwm->channel_count);
 			PX4_DEBUG("set_trims: %d, %d, %d, %d", pwm->values[0], pwm->values[1], pwm->values[2], pwm->values[3]);
@@ -1745,7 +1751,14 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_TRIM_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
-			pwm->channel_count = _mixers->get_trims((int16_t *)pwm->values);
+			if (_mixers == nullptr) {
+				memset(pwm, 0, sizeof(pwm_output_values));
+				PX4_WARN("warning: trim values not valid - no mixer loaded");
+
+			} else {
+
+				pwm->channel_count = _mixers->get_trims((int16_t *)pwm->values);
+			}
 
 			break;
 		}
