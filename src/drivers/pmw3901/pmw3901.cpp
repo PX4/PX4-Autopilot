@@ -57,6 +57,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
+#include <float.h>
 
 #include <conversion/rotation.h>
 
@@ -601,7 +602,15 @@ PMW3901::collect()
 	report.integration_timespan = _flow_dt_sum_usec; 		//microseconds
 
 	report.sensor_id = 0;
-	report.quality = 255;
+
+	// This sensor doesn't provide any quality metric. However if the sensor is unable to calculate the optical flow it will
+	// output 0 for the delta. Hence, we set the measurement to "invalid" (quality = 0) if the values are smaller than FLT_EPSILON
+	if (fabsf(report.pixel_flow_x_integral) < FLT_EPSILON && fabsf(report.pixel_flow_y_integral) < FLT_EPSILON) {
+		report.quality = 0;
+
+	} else {
+		report.quality = 255;
+	}
 
 	/* No gyro on this board */
 	report.gyro_x_rate_integral = NAN;
