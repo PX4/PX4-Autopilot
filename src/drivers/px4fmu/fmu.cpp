@@ -200,6 +200,7 @@ private:
 	bool		_pwm_on;
 	uint32_t	_pwm_mask;
 	bool		_pwm_initialized;
+	bool		_test_mode;
 
 	MixerGroup	*_mixers;
 
@@ -315,6 +316,7 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_pwm_on(false),
 	_pwm_mask(0),
 	_pwm_initialized(false),
+	_test_mode(false),
 	_mixers(nullptr),
 	_groups_required(0),
 	_groups_subscribed(0),
@@ -1185,7 +1187,7 @@ PX4FMU::cycle()
 				reorder_outputs(pwm_limited);
 
 				/* output to the servos */
-				if (_pwm_initialized) {
+				if (_pwm_initialized && !_test_mode) {
 					for (size_t i = 0; i < mixed_num_outputs; i++) {
 						up_pwm_servo_set(i, pwm_limited[i]);
 					}
@@ -1194,7 +1196,7 @@ PX4FMU::cycle()
 				/* Trigger all timer's channels in Oneshot mode to fire
 				 * the oneshots with updated values.
 				 */
-				if (n_updates > 0) {
+				if (n_updates > 0 && !_test_mode) {
 					up_pwm_update();
 				}
 
@@ -2045,6 +2047,14 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				ret = set_mode(MODE_6CAP);
 				break;
 
+			case PWM_SERVO_ENTER_TEST_MODE:
+				_test_mode = true;
+				break;
+
+			case PWM_SERVO_EXIT_TEST_MODE:
+				_test_mode = false;
+				break;
+
 			default:
 				ret = -EINVAL;
 			}
@@ -2591,7 +2601,8 @@ PX4FMU::test()
 	unsigned capture_count = 0;
 	unsigned pwm_value = 1000;
 	int	 direction = 1;
-	int	 ret;
+	int  ret;
+	int   rv = -1;
 	uint32_t rate_limit = 0;
 	struct input_capture_t {
 		bool valid;
@@ -2603,6 +2614,11 @@ PX4FMU::test()
 	if (fd < 0) {
 		PX4_ERR("open fail");
 		return -1;
+	}
+
+	if (::ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_ENTER_TEST_MODE) < 0) {
+		PX4_ERR("Failed to Enter pwm test mode");
+		goto err_out_no_test;
 	}
 
 	if (::ioctl(fd, PWM_SERVO_ARM, 0) < 0) {
@@ -2768,12 +2784,17 @@ PX4FMU::test()
 		}
 	}
 
-	::close(fd);
-	return 0;
+	rv = 0;
 
 err_out:
+
+	if (::ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_EXIT_TEST_MODE) < 0) {
+		PX4_ERR("Failed to Exit pwm test mode");
+	}
+
+err_out_no_test:
 	::close(fd);
-	return -1;
+	return rv;
 }
 
 int
