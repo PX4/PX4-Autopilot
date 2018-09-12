@@ -51,7 +51,7 @@ public:
             // prevent divide by zero
             // also covers u1. normx is never negative
             if (normx < 1e-8f) {
-                return;
+                break;
             }
             float w[M] = {};
             w[0] = 1.0f;
@@ -128,6 +128,7 @@ public:
                 for (size_t z = 0; z < N; z++) {
                     x(z) = 0.0f;
                 }
+                break;
             }
             x(i) = x(i) / _A(i,i);
         }
