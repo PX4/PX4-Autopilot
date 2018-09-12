@@ -130,6 +130,14 @@ const char *FlightTasks::errorToString(const int error)
 	return "This error is not mapped to a string or is unknown.";
 }
 
+void FlightTasks::reActivate()
+{
+
+	if (_current_task.task) {
+		_current_task.task->activate();
+	}
+}
+
 void FlightTasks::_updateCommand()
 {
 	// lazy subscription to command topic
