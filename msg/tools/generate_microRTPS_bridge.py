@@ -86,6 +86,8 @@ parser.add_argument("-j", "--idl-dir", dest='idl_dir',
                     type=str, help="IDL files dir", default='')
 parser.add_argument("-m", "--mkdir-build", dest='mkdir_build',
                     action="store_true", help="Flag to create 'build' dir")
+parser.add_argument("-l", "--generate-cmakelists", dest='cmakelists',
+                    action="store_true", help="Flag to generate a CMakeLists.txt file for the micro-RTPS agent")
 parser.add_argument("-t", "--topic-msg-dir", dest='msgdir', type=str,
                     help="Topics message dir, by default msg/", default="msg")
 parser.add_argument("-b", "--uorb-templates-dir", dest='uorb_templates', type=str,
@@ -106,7 +108,6 @@ parser.add_argument("--delete-tree", dest='del_tree',
                     action="store_true", help="Delete dir tree output dir(s)")
 
 
-
 if len(sys.argv) <= 1:
     parser.print_usage()
     exit(-1)
@@ -124,6 +125,7 @@ package = args.package
 agent = args.agent
 client = args.client
 mkdir_build = args.mkdir_build
+cmakelists = args.cmakelists
 del_tree = args.del_tree
 px_generate_uorb_topic_files.append_to_include_path(
     {msg_folder}, px_generate_uorb_topic_files.INCL_DEFAULT, package)
@@ -143,7 +145,9 @@ else:
     # Path to fastrtpsgen is explicitly specified
     fastrtpsgen_path = os.path.join(
         get_absolute_path(args.fastrtpsgen), "/fastrtpsgen")
-fastrtpsgen_include = get_absolute_path(args.fastrtpsgen_include)
+fastrtpsgen_include = args.fastrtpsgen_include
+if fastrtpsgen_include is not None and fastrtpsgen_include != '':
+    fastrtpsgen_include = "-I " + get_absolute_path(args.fastrtpsgen_include) + " "
 
 # If nothing specified it's generated both
 if agent == False and client == False:
@@ -181,7 +185,7 @@ uRTPS_CLIENT_TEMPL_FILE = 'microRTPS_client.cpp.template'
 uRTPS_AGENT_TOPICS_H_TEMPL_FILE = 'RtpsTopics.h.template'
 uRTPS_AGENT_TOPICS_SRC_TEMPL_FILE = 'RtpsTopics.cpp.template'
 uRTPS_AGENT_TEMPL_FILE = 'microRTPS_agent.cpp.template'
-uRTPS_AGENT_CMAKELIST_TEMPL_FILE = 'microRTPS_agent_CMakeLists.txt.template'
+uRTPS_AGENT_CMAKELISTS_TEMPL_FILE = 'microRTPS_agent_CMakeLists.txt.template'
 uRTPS_PUBLISHER_SRC_TEMPL_FILE = 'Publisher.cpp.template'
 uRTPS_PUBLISHER_H_TEMPL_FILE = 'Publisher.h.template'
 uRTPS_SUBSCRIBER_SRC_TEMPL_FILE = 'Subscriber.cpp.template'
@@ -224,8 +228,9 @@ def generate_agent(out_dir):
                                                         package, px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_TOPICS_H_TEMPL_FILE)
     px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, urtps_templates_dir,
                                                         package, px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_TOPICS_SRC_TEMPL_FILE)
-    px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, urtps_templates_dir,
-                                                        package, px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_CMAKELIST_TEMPL_FILE)
+    if cmakelists:
+        px_generate_uorb_topic_files.generate_uRTPS_general(msg_files_send, msg_files_receive, out_dir, urtps_templates_dir,
+                                                            package, px_generate_uorb_topic_files.INCL_DEFAULT, uRTPS_AGENT_CMAKELISTS_TEMPL_FILE)
 
     # Final steps to install agent
     mkdir_p(os.path.join(out_dir, "fastrtpsgen"))
@@ -235,7 +240,7 @@ def generate_agent(out_dir):
         raise Exception("No IDL files found in %s" % idl_dir)
     for idl_file in glob.glob(os.path.join(idl_dir, "*.idl")):
         ret = subprocess.call(fastrtpsgen_path + " -d " + out_dir +
-                              "/fastrtpsgen -example x64Linux2.6gcc " + "-I " + fastrtpsgen_include + " " + idl_file, shell=True)
+                              "/fastrtpsgen -example x64Linux2.6gcc " + fastrtpsgen_include + idl_file, shell=True)
         if ret:
             raise Exception(
                 "fastrtpsgen not found. Specify the location of fastrtpsgen with the -f flag")
@@ -250,8 +255,9 @@ def generate_agent(out_dir):
         shutil.rmtree(os.path.join(out_dir, "fastrtpsgen"))
     cp_wildcard(os.path.join(urtps_templates_dir,
                              "microRTPS_transport.*"), agent_out_dir)
-    os.rename(os.path.join(out_dir, "microRTPS_agent_CMakeLists.txt"),
-              os.path.join(out_dir, "CMakeLists.txt"))
+    if cmakelists:
+        os.rename(os.path.join(out_dir, "microRTPS_agent_CMakeLists.txt"),
+                  os.path.join(out_dir, "CMakeLists.txt"))
     if (mkdir_build):
         mkdir_p(os.path.join(out_dir, "build"))
     os.chdir(prev_cwd_path)
