@@ -779,6 +779,11 @@ err_out_no_test:
 		PX4_WARN("Running 5 steps. WARNING! Motors will be live in 5 seconds\nPress any key to abort now.");
 		sleep(5);
 
+		if (::ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_ENTER_TEST_MODE) < 0) {
+				PX4_ERR("Failed to Enter pwm test mode");
+				goto err_out_no_test;
+		}
+
 		unsigned off = 900;
 		unsigned idle = 1300;
 		unsigned full = 2000;
@@ -815,7 +820,7 @@ err_out_no_test:
 
 						if (ret != OK) {
 							PX4_ERR("PWM_SERVO_SET(%d)", i);
-							return 1;
+							goto err_out;
 						}
 					}
 				}
@@ -836,13 +841,14 @@ err_out_no_test:
 
 								if (ret != OK) {
 									PX4_ERR("PWM_SERVO_SET(%d)", i);
-									return 1;
+									goto err_out;
 								}
 							}
 						}
 
 						PX4_INFO("User abort\n");
-						return 0;
+						rv = 0;
+						goto err_out;
 					}
 				}
 
@@ -868,7 +874,8 @@ err_out_no_test:
 			}
 		}
 
-		return 0;
+		rv = 0;
+		goto err_out;
 
 
 	} else if (!strcmp(command, "info")) {
