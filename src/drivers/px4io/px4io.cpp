@@ -2745,6 +2745,10 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			break;
 		}
 
+	case PWM_SERVO_SET_MODE:
+		ret = (arg == PWM_SERVO_ENTER_TEST_MODE || PWM_SERVO_EXIT_TEST_MODE) ? 0 : -EINVAL;
+		break;
+
 	case GPIO_RESET: {
 			ret = -EINVAL;
 			break;
