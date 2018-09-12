@@ -684,7 +684,14 @@ MulticopterPositionControl::run()
 				// don't control position in xy
 				setpoint.x = setpoint.y = NAN;
 				setpoint.vx = setpoint.vy = NAN;
-				setpoint.thrust[0] = setpoint.thrust[1] = 0.0f; // just keeping pointing upwards
+				setpoint.thrust[0] = setpoint.thrust[1] = NAN;
+
+				if (PX4_ISFINITE(_states.velocity(0)) && PX4_ISFINITE(_states.velocity(1))) {
+					setpoint.vx = setpoint.vy = NAN; // try to keep zero velocity
+
+				} else {
+					setpoint.thrust[0] = setpoint.thrust[1] = 0.0f; // just keeping pointing upwards
+				}
 			}
 
 			if (_vehicle_land_detected.landed && !_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
