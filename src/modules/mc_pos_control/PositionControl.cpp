@@ -54,7 +54,7 @@ void PositionControl::updateState(const PositionControlStates &states)
 	_vel_dot = states.acceleration;
 }
 
-void PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &setpoint)
+bool PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &setpoint)
 {
 	// If full manual is required (thrust already generated), don't run position/velocity
 	// controller and just return thrust.
@@ -66,11 +66,13 @@ void PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &se
 	_thr_sp = Vector3f(setpoint.thrust);
 	_yaw_sp = setpoint.yaw;
 	_yawspeed_sp = setpoint.yawspeed;
-	_interfaceMapping();
+	bool mapping_succeeded = _interfaceMapping();
 
 	if (PX4_ISFINITE(setpoint.thrust[0]) && PX4_ISFINITE(setpoint.thrust[1]) && PX4_ISFINITE(setpoint.thrust[2])) {
 		_skip_controller = true;
 	}
+
+	return mapping_succeeded;
 }
 
 void PositionControl::generateThrustYawSetpoint(const float dt)
@@ -98,7 +100,7 @@ void PositionControl::generateThrustYawSetpoint(const float dt)
 	}
 }
 
-void PositionControl::_interfaceMapping()
+bool PositionControl::_interfaceMapping()
 {
 	// if noting is valid, then apply failsafe landing
 	bool failsafe = false;
@@ -209,6 +211,8 @@ void PositionControl::_interfaceMapping()
 		// 70% of throttle range between min and hover
 		_thr_sp(2) = -(MPC_THR_MIN.get() + (MPC_THR_HOVER.get() - MPC_THR_MIN.get()) * 0.7f);
 	}
+
+	return !(failsafe);
 }
 
 void PositionControl::_positionController()
