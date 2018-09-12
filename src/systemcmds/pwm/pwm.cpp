@@ -208,6 +208,7 @@ pwm_main(int argc, char *argv[])
 	bool oneshot = false;
 	int ch;
 	int ret;
+	int rv = 1;
 	char *ep;
 	uint32_t set_mask = 0;
 	unsigned group;
@@ -679,6 +680,11 @@ pwm_main(int argc, char *argv[])
 		fds.fd = 0; /* stdin */
 		fds.events = POLLIN;
 
+		if (::ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_ENTER_TEST_MODE) < 0) {
+				PX4_ERR("Failed to Enter pwm test mode");
+				goto err_out_no_test;
+		}
+
 		PX4_INFO("Press CTRL-C or 'c' to abort.");
 
 		while (1) {
@@ -688,7 +694,7 @@ pwm_main(int argc, char *argv[])
 
 					if (ret != OK) {
 						PX4_ERR("PWM_SERVO_SET(%d)", i);
-						return 1;
+						goto err_out;
 					}
 				}
 			}
@@ -709,13 +715,14 @@ pwm_main(int argc, char *argv[])
 
 							if (ret != OK) {
 								PX4_ERR("PWM_SERVO_SET(%d)", i);
-								return 1;
+								goto err_out;
 							}
 						}
 					}
 
 					PX4_INFO("User abort\n");
-					return 0;
+					rv = 0;
+					goto err_out;
 				}
 			}
 
@@ -731,8 +738,15 @@ pwm_main(int argc, char *argv[])
 			up_pwm_update();
 #endif
 		}
+		rv = 0;
+err_out:
+			if (::ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_EXIT_TEST_MODE) < 0) {
+					rv = 1;
+					PX4_ERR("Failed to Exit pwm test mode");
+			}
 
-		return 0;
+err_out_no_test:
+		return rv;
 
 
 	} else if (!strcmp(command, "steps")) {
