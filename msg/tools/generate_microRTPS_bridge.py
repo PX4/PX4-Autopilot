@@ -100,8 +100,12 @@ parser.add_argument("-u", "--client-outdir", dest='clientdir', type=str, nargs=1
                     help="Client output dir, by default src/modules/micrortps_bridge/micrortps_client", default=default_client_out)
 parser.add_argument("-f", "--fastrtpsgen-dir", dest='fastrtpsgen', type=str, nargs='?',
                     help="fastrtpsgen installation dir, only needed if fastrtpsgen is not in PATH, by default empty", default="")
+parser.add_argument("-g", "--fastrtpsgen-include", dest='fastrtpsgen_include', type=str, nargs='?',
+                    help="directory(ies) to add to preprocessor include paths of fastrtpsgen, by default empty", default="")
 parser.add_argument("--delete-tree", dest='del_tree',
                     action="store_true", help="Delete dir tree output dir(s)")
+
+
 
 if len(sys.argv) <= 1:
     parser.print_usage()
@@ -139,6 +143,7 @@ else:
     # Path to fastrtpsgen is explicitly specified
     fastrtpsgen_path = os.path.join(
         get_absolute_path(args.fastrtpsgen), "/fastrtpsgen")
+fastrtpsgen_include = get_absolute_path(args.fastrtpsgen_include)
 
 # If nothing specified it's generated both
 if agent == False and client == False:
@@ -230,7 +235,7 @@ def generate_agent(out_dir):
         raise Exception("No IDL files found in %s" % idl_dir)
     for idl_file in glob.glob(os.path.join(idl_dir, "*.idl")):
         ret = subprocess.call(fastrtpsgen_path + " -d " + out_dir +
-                              "/fastrtpsgen -example x64Linux2.6gcc " + idl_file, shell=True)
+                              "/fastrtpsgen -example x64Linux2.6gcc " + "-I " + fastrtpsgen_include + " " + idl_file, shell=True)
         if ret:
             raise Exception(
                 "fastrtpsgen not found. Specify the location of fastrtpsgen with the -f flag")
