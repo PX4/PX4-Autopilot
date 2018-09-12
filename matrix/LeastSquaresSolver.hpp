@@ -38,16 +38,16 @@ public:
             return;
         }
         // Copy contentents of matrix A
-        memcpy(_data, A._data, sizeof(_data));
+        _A = A;
 
         for (size_t j = 0; j < N; j++) {
             float normx = 0.0f;
             for (size_t i = j; i < M; i++) {
-                normx += _data[i][j] * _data[i][j];
+                normx += _A(i,j) * _A(i,j);
             }
             normx = sqrt(normx);
-            float s = _data[j][j] > 0 ? -1.0f : 1.0f;
-            float u1 = _data[j][j] - s*normx;
+            float s = _A(j,j) > 0 ? -1.0f : 1.0f;
+            float u1 = _A(j,j) - s*normx;
             // prevent divide by zero
             // also covers u1. normx is never negative
             if (normx < 1e-8f) {
@@ -56,19 +56,19 @@ public:
             float w[M] = {};
             w[0] = 1.0f;
             for (size_t i = j+1; i < M; i++) {
-                w[i-j] = _data[i][j] / u1;
-                _data[i][j] = w[i-j];
+                w[i-j] = _A(i,j) / u1;
+                _A(i,j) = w[i-j];
             }
-            _data[j][j] = s*normx;
-            _tau[j] = -s*u1/normx;
+            _A(j,j) = s*normx;
+            _tau(j) = -s*u1/normx;
 
             for (size_t k = j+1; k < N; k++) {
                 float tmp = 0.0f;
                 for (size_t i = j; i < M; i++) {
-                    tmp += w[i-j] * _data[i][k];
+                    tmp += w[i-j] * _A(i,k);
                 }
                 for (size_t i = j; i < M; i++) {
-                    _data[i][k] -= _tau[j] * w[i-j] * tmp;
+                    _A(i,k) -= _tau(j) * w[i-j] * tmp;
                 }
             }
 
@@ -91,7 +91,7 @@ public:
             w[0] = 1.0f;
             // fill vector w
             for (size_t i = j+1; i < M; i++) {
-                w[i-j] = _data[i][j];
+                w[i-j] = _A(i,j);
             }
             float tmp = 0.0f;
             for (size_t i = j; i < M; i++) {
@@ -99,7 +99,7 @@ public:
             }
 
             for (size_t i = j; i < M; i++) {
-                qtbv(i) -= _tau[j] * w[i-j] * tmp;
+                qtbv(i) -= _tau(j) * w[i-j] * tmp;
             }
         }
         return qtbv;
@@ -121,22 +121,22 @@ public:
             size_t i = l - 1;
             x(i) = qtbv(i);
             for (size_t r = i+1; r < N; r++) {
-                x(i) -= _data[i][r] * x(r);
+                x(i) -= _A(i,r) * x(r);
             }
             // divide by zero, return vector of zeros
-            if (fabs(_data[i][i]) < 1e-8f) {
+            if (fabs(_A(i,i)) < 1e-8f) {
                 for (size_t z = 0; z < N; z++) {
                     x(z) = 0.0f;
                 }
             }
-            x(i) = x(i) / _data[i][i];
+            x(i) = x(i) / _A(i,i);
         }
         return x;
     }
 
 private:
-    Type _data[M][N] {};
-    Type _tau[N] {};
+    Matrix<Type, M, N> _A;
+    Vector<Type, N> _tau;
 
 };
 
