@@ -9,13 +9,13 @@ pipeline {
         script {
           def build_nodes = [:]
           def docker_images = [
-            arch: "px4io/px4-dev-base-archlinux:2018-07-19",
-            armhf: "px4io/px4-dev-armhf:2018-07-19",
-            base: "px4io/px4-dev-base:2018-07-19",
-            clang: "px4io/px4-dev-clang:2018-07-19",
-            nuttx: "px4io/px4-dev-nuttx:2018-07-19",
-            ros: "px4io/px4-dev-ros:2018-07-19",
-            rpi: "px4io/px4-dev-raspi:2018-07-19",
+            arch: "px4io/px4-dev-base-archlinux:2018-09-06-ubuntu1604",
+            armhf: "px4io/px4-dev-armhf:2018-09-06",
+            base: "px4io/px4-dev-base:2018-09-06-ubuntu1604",
+            clang: "px4io/px4-dev-clang:2018-09-06-ubuntu1604",
+            nuttx: "px4io/px4-dev-nuttx:2018-09-06-ubuntu1604",
+            ros: "px4io/px4-dev-ros:2018-09-06-ubuntu1604",
+            rpi: "px4io/px4-dev-raspi:2018-09-06-ubuntu1604",
             snapdragon: "lorenzmeier/px4-dev-snapdragon:2017-12-29"
           ]
 
@@ -70,7 +70,7 @@ pipeline {
           // Ubuntu 18.04 test posix_sitl_default
           build_nodes["posix_sitl_default (Ubuntu 18.04)"] = {
             node {
-              docker.image('px4io/px4-dev-base:2018-08-21').inside('-e CCACHE_BASEDIR=${WORKSPACE} -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
+              docker.image('px4io/px4-dev-base:2018-09-06').inside('-e CCACHE_BASEDIR=${WORKSPACE} -v ${CCACHE_DIR}:${CCACHE_DIR}:rw') {
                 stage("sitl (Ubuntu 18.04)") {
                   try {
                     sh('export')
