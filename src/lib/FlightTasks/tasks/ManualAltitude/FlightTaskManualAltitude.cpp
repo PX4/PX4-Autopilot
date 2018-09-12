@@ -92,7 +92,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 	// If not locked, altitude setpoint is set to NAN.
 
 	// Check if user wants to break
-	const bool apply_brake = fabsf(_velocity_setpoint(2)) <= FLT_EPSILON;
+	const bool apply_brake = fabsf(_sticks_expo(2)) <= FLT_EPSILON;
 
 	// Check if vehicle has stopped
 	const bool stopped = (MPC_HOLD_MAX_Z.get() < FLT_EPSILON || fabsf(_velocity(2)) < MPC_HOLD_MAX_Z.get());
