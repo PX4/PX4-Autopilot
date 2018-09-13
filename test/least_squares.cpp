@@ -5,6 +5,7 @@ using namespace matrix;
 
 int test_4x3(void);
 int test_4x4(void);
+int test_4x4_type_double(void);
 int test_div_zero(void);
 
 int main()
@@ -16,6 +17,8 @@ int main()
 
     ret = test_4x3();
     if (ret != 0) return ret;
+
+    ret = test_4x4_type_double();
 
     ret = test_div_zero();
     if (ret != 0) return ret;
@@ -70,6 +73,32 @@ int test_4x4() {
     LeastSquaresSolver<float, 4, 4> qrd = LeastSquaresSolver<float, 4, 4>(A);
 
     Vector<float, 4> x = qrd.solve(b);
+    TEST(isEqual(x, x_check));
+    return 0;
+}
+
+int test_4x4_type_double() {
+    // Start with an (m x n) A matrix
+    double data[16] = { 20., -10., -13.,  21.,
+                        17.,  16., -18., -14.,
+                        0.7,  -0.8,   0.9,  -0.5,
+                        -1.,  -1.1,  -1.2,  -1.3
+                      };
+    Matrix<double, 4, 4> A(data);
+
+    double b_data[4] = {2.0, 3.0, 4.0, 5.0};
+    Vector<double, 4> b(b_data);
+
+    double x_check_data[4] = { 0.97893433,
+                               -2.80798701,
+                               -0.03175765,
+                               -2.19387649
+                             };
+    Vector<double, 4> x_check(x_check_data);
+
+    LeastSquaresSolver<double, 4, 4> qrd = LeastSquaresSolver<double, 4, 4>(A);
+
+    Vector<double, 4> x = qrd.solve(b);
     TEST(isEqual(x, x_check));
     return 0;
 }
