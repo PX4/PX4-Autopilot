@@ -40,20 +40,20 @@ public:
         _A = A;
 
         for (size_t j = 0; j < N; j++) {
-            Type normx = 0.;
+            Type normx = Type(0);
             for (size_t i = j; i < M; i++) {
                 normx += _A(i,j) * _A(i,j);
             }
             normx = sqrt(normx);
-            Type s = _A(j,j) > 0 ? -1. : 1.;
+            Type s = _A(j,j) > 0 ? Type(-1) : Type(1);
             Type u1 = _A(j,j) - s*normx;
             // prevent divide by zero
             // also covers u1. normx is never negative
-            if (normx < 1e-8) {
+            if (normx < Type(1e-8)) {
                 break;
             }
             Type w[M] = {};
-            w[0] = 1.;
+            w[0] = Type(1);
             for (size_t i = j+1; i < M; i++) {
                 w[i-j] = _A(i,j) / u1;
                 _A(i,j) = w[i-j];
@@ -62,7 +62,7 @@ public:
             _tau(j) = -s*u1/normx;
 
             for (size_t k = j+1; k < N; k++) {
-                Type tmp = 0.;
+                Type tmp = Type(0);
                 for (size_t i = j; i < M; i++) {
                     tmp += w[i-j] * _A(i,k);
                 }
@@ -87,12 +87,12 @@ public:
 
         for (size_t j = 0; j < N; j++) {
             Type w[M];
-            w[0] = 1.;
+            w[0] = Type(1);
             // fill vector w
             for (size_t i = j+1; i < M; i++) {
                 w[i-j] = _A(i,j);
             }
-            Type tmp = 0.;
+            Type tmp = Type(0);
             for (size_t i = j; i < M; i++) {
                 tmp += w[i-j] * qtbv(i);
             }
@@ -123,9 +123,9 @@ public:
                 x(i) -= _A(i,r) * x(r);
             }
             // divide by zero, return vector of zeros
-            if (fabs(_A(i,i)) < 1e-8) {
+            if (fabs(_A(i,i)) < Type(1e-8)) {
                 for (size_t z = 0; z < N; z++) {
-                    x(z) = 0.;
+                    x(z) = Type(0);
                 }
                 break;
             }
