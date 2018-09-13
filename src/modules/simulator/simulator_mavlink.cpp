@@ -85,6 +85,8 @@ void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &msg, unsi
 
 	const float pwm_center = (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2;
 
+	int _system_type = _param_system_type.get();
+
 	/* scale outputs depending on system type */
 	if (_system_type == MAV_TYPE_QUADROTOR ||
 	    _system_type == MAV_TYPE_HEXAROTOR ||

@@ -251,9 +251,7 @@ private:
 		_param_sub(-1),
 		_initialized(false),
 		_realtime_factor(1.0),
-		_system_type(0)
 #ifndef __PX4_QURT
-		,
 		_rc_channels_pub(nullptr),
 		_attitude_pub(nullptr),
 		_gpos_pub(nullptr),
@@ -275,11 +273,6 @@ private:
 		_vehicle_status{}
 #endif
 	{
-		// We need to know the type for the correct mapping from
-		// actuator controls to the hil actuator message.
-		param_t param_system_type = param_find("MAV_TYPE");
-		param_get(param_system_type, &_system_type);
-
 		for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++)
 		{
 			_actuator_outputs_sub[i] = -1;
@@ -347,9 +340,6 @@ private:
 	Battery _battery;
 	battery_status_s _battery_status{};
 
-	// For param MAV_TYPE
-	int32_t _system_type;
-
 	// class methods
 	int publish_sensor_topics(mavlink_hil_sensor_t *imu);
 	int publish_flow_topic(mavlink_hil_optical_flow_t *flow);
@@ -385,7 +375,9 @@ private:
 	struct vehicle_status_s _vehicle_status;
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _battery_drain_interval_s ///< battery drain interval
+		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _battery_drain_interval_s, ///< battery drain interval
+		(ParamInt<px4::params::MAV_TYPE>) _param_system_type
+
 	)
 
 	void poll_topics();
