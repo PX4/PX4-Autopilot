@@ -159,7 +159,13 @@ int main(int argc, char **argv)
 		PX4_DEBUG("instance: %i", instance);
 
 		if (!is_already_running(instance)) {
-			PX4_ERR("PX4 daemon not running yet");
+			if (errno) {
+				PX4_ERR("Failed to communicate with daemon: %s", strerror(errno));
+
+			} else {
+				PX4_ERR("PX4 daemon not running yet");
+			}
+
 			return -1;
 		}
 
@@ -224,7 +230,7 @@ int main(int argc, char **argv)
 
 		if (is_already_running(instance)) {
 			// allow running multiple instances, but the server is only started for the first
-			PX4_INFO("PX4 daemon already running for instance %i", instance);
+			PX4_INFO("PX4 daemon already running for instance %i (%s)", instance, strerror(errno));
 			return -1;
 		}
 
@@ -581,12 +587,14 @@ bool is_already_running(int instance)
 
 	if (fcntl(fd, F_SETLK, &fl) == -1) {
 		// We failed to create a file lock, must be already locked.
-
 		if (errno == EACCES || errno == EAGAIN) {
 			return true;
 		}
+
+		return false;
 	}
 
+	errno = 0;
 	return false;
 }
 
