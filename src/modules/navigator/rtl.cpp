@@ -180,8 +180,19 @@ RTL::set_rtl_item()
 				_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, home.lat, home.lon);
 			}
 
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = 0.0f;
+			if (_navigator->get_vstatus()->is_vtol) {
+				float velocity = sqrtf(_navigator->get_local_position()->vx * _navigator->get_local_position()->vx +
+						       _navigator->get_local_position()->vy * _navigator->get_local_position()->vy);
+
+				float altdiff = math::max(return_alt - loiter_altitude, 0.0f);
+				float acceptance_radius = velocity * altdiff / _param_fw_sink_max.get();
+
+				_mission_item.acceptance_radius = (_navigator->get_loiter_radius() + acceptance_radius) * 1.2f;
+
+			} else {
+				_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+			}
+
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
 

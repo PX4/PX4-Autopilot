@@ -97,6 +97,7 @@ private:
 		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_descend_alt,
 		(ParamFloat<px4::params::RTL_LAND_DELAY>) _param_land_delay,
 		(ParamFloat<px4::params::RTL_MIN_DIST>) _param_rtl_min_dist,
+        (ParamFloat<px4::params::FW_T_SINK_MAX>) _param_fw_sink_max,
 		(ParamInt<px4::params::RTL_TYPE>) _param_rtl_type
 	)
 };
