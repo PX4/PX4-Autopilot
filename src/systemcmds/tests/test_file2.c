@@ -175,7 +175,7 @@ int test_file2(int argc, char *argv[])
 {
 	int opt;
 	uint16_t flags = 0;
-	const char *filename = LOG_PATH "testfile2.dat";
+	const char *filename = LOG_PATH "/testfile2.dat";
 	uint32_t write_chunk = 64;
 	uint32_t write_size = 5 * 1024;
 
