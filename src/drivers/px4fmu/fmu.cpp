@@ -1284,7 +1284,7 @@ PX4FMU::cycle()
 		if (updated) {
 			safety_s safety;
 
-			if (orb_copy(ORB_ID(actuator_armed), _safety_sub, &safety) == 0) {
+			if (orb_copy(ORB_ID(safety), _safety_sub, &safety) == 0) {
 				_safety_off = !safety.safety_switch_available || safety.safety_off;
 			}
 		}
