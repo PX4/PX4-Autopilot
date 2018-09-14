@@ -1131,6 +1131,8 @@ int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
 
 	odom.timestamp = timestamp;
 
+	const size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
+
 	if (odom_mavlink->msgid == MAVLINK_MSG_ID_ODOMETRY) {
 		mavlink_odometry_t odom_msg;
 		mavlink_msg_odometry_decode(odom_mavlink, &odom_msg);
@@ -1155,7 +1157,6 @@ int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
 		matrix::Quatf q(odom_msg.q[0], odom_msg.q[1], odom_msg.q[2], odom_msg.q[3]);
 		q.copyTo(odom.q);
 
-		const size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
 		static_assert(POS_URT_SIZE == (sizeof(odom_msg.pose_covariance) / sizeof(odom_msg.pose_covariance[0])),
 			      "Odometry Pose Covariance matrix URT array size mismatch");
 
@@ -1194,8 +1195,11 @@ int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
 		matrix::Quatf q(matrix::Eulerf(ev.roll, ev.pitch, ev.yaw));
 		q.copyTo(odom.q);
 
+		static_assert(POS_URT_SIZE == (sizeof(ev.covariance) / sizeof(ev.covariance[0])),
+			      "Vision Position Estimate Pose Covariance matrix URT array size mismatch");
+
 		/* The pose covariance URT */
-		for (size_t i = 0; i < (sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0])); i++) {
+		for (size_t i = 0; i < POS_URT_SIZE; i++) {
 			odom.pose_covariance[i] = ev.covariance[i];
 		}
 

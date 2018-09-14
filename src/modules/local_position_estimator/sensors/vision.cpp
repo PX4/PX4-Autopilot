@@ -65,10 +65,15 @@ void BlockLocalPositionEstimator::visionInit()
 
 int BlockLocalPositionEstimator::visionMeasure(Vector<float, n_y_vision> &y)
 {
-	if (PX4_ISFINITE(_sub_visual_odom.get().pose_covariance[0])) {
+	uint8_t x_variance = _sub_visual_odom.get().COVARIANCE_MATRIX_X_VARIANCE;
+	uint8_t y_variance = _sub_visual_odom.get().COVARIANCE_MATRIX_Y_VARIANCE;
+	uint8_t z_variance = _sub_visual_odom.get().COVARIANCE_MATRIX_Z_VARIANCE;
+
+	if (PX4_ISFINITE(_sub_visual_odom.get().pose_covariance[x_variance])) {
 		// check if the vision data is valid based on the covariances
-		_vision_eph = sqrtf(fmaxf(_sub_visual_odom.get().pose_covariance[0], _sub_visual_odom.get().pose_covariance[6]));
-		_vision_epv = sqrtf(_sub_visual_odom.get().pose_covariance[11]);
+		_vision_eph = sqrtf(fmaxf(_sub_visual_odom.get().pose_covariance[x_variance],
+					  _sub_visual_odom.get().pose_covariance[y_variance]));
+		_vision_epv = sqrtf(_sub_visual_odom.get().pose_covariance[z_variance]);
 		_vision_xy_valid = _vision_eph <= EP_MAX_STD_DEV;
 		_vision_z_valid = _vision_epv <= EP_MAX_STD_DEV;
 
@@ -83,13 +88,20 @@ int BlockLocalPositionEstimator::visionMeasure(Vector<float, n_y_vision> &y)
 		return -1;
 
 	} else {
-		y.setZero();
-		y(Y_vision_x) = _sub_visual_odom.get().x;
-		y(Y_vision_y) = _sub_visual_odom.get().y;
-		y(Y_vision_z) = _sub_visual_odom.get().z;
-		_visionStats.update(y);
 		_time_last_vision_p = _sub_visual_odom.get().timestamp;
-		return OK;
+
+		if (PX4_ISFINITE(_sub_visual_odom.get().x)) {
+			y.setZero();
+			y(Y_vision_x) = _sub_visual_odom.get().x;
+			y(Y_vision_y) = _sub_visual_odom.get().y;
+			y(Y_vision_z) = _sub_visual_odom.get().z;
+			_visionStats.update(y);
+
+			return OK;
+
+		} else {
+			return -1;
+		}
 	}
 }
 
