@@ -937,7 +937,7 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 
 	const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
 
-	if ((pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp) && pos_ctrl_status.acceptance_radius > radius) {
+	if ((hrt_elapsed_time(&pos_ctrl_status.timestamp) < 1_s) && (pos_ctrl_status.acceptance_radius > radius)) {
 		radius = pos_ctrl_status.acceptance_radius;
 	}
 
