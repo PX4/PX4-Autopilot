@@ -28,6 +28,14 @@ else
 	no_pxh=""
 fi
 
+if [ "$model" != none ]; then
+	jmavsim_pid=`ps aux | grep java | grep "\-jar jmavsim_run.jar" | awk '{ print $2 }'`
+	if [ -n "$jmavsim_pid" ]
+	then
+		kill $jmavsim_pid
+	fi
+fi
+
 if [ "$model" == "" ] || [ "$model" == "none" ]
 then
 	echo "empty model, setting iris as default"
@@ -46,12 +54,6 @@ fi
 pkill -x gazebo || true
 pkill -x px4 || true
 pkill -x px4_$model || true
-
-jmavsim_pid=`ps aux | grep java | grep "\-jar jmavsim_run.jar" | awk '{ print $2 }'`
-if [ -n "$jmavsim_pid" ]
-then
-	kill $jmavsim_pid
-fi
 
 cp $src_path/Tools/posix_lldbinit $rootfs/.lldbinit
 cp $src_path/Tools/posix.gdbinit $rootfs/.gdbinit
