@@ -676,21 +676,35 @@ MulticopterPositionControl::run()
 				update_smooth_takeoff(setpoint.z, setpoint.vz);
 			}
 
+			// disable horizontal / yaw control during smooth takeoff and limit maximum speed upwards
 			if (_in_smooth_takeoff) {
+
 				// during smooth takeoff, constrain speed to takeoff speed
 				constraints.speed_up = _takeoff_speed;
-				// disable yaw command
-				setpoint.yaw = setpoint.yawspeed = NAN;
-				// don't control position in xy
-				setpoint.x = setpoint.y = NAN;
-				setpoint.vx = setpoint.vy = NAN;
-				setpoint.thrust[0] = setpoint.thrust[1] = NAN;
+				// altitude above reference takeoff
+				const float alt_above_tko = -(_states.position(2) - _takeoff_reference_z);
+				// altitude threshold at which full control is enabled
+				const float alt_threshold = 0.5f; //at 0.5m above grouund, control all setpoints
 
-				if (PX4_ISFINITE(_states.velocity(0)) && PX4_ISFINITE(_states.velocity(1))) {
-					setpoint.vx = setpoint.vy = 0.0f; // try to keep zero velocity
+				// disable position-xy / yaw control when close to ground
+				if (alt_above_tko <= alt_threshold) {
+					// don't control position in xy
+					setpoint.x = setpoint.y = NAN;
+					setpoint.vx = setpoint.vy = NAN;
+					setpoint.thrust[0] = setpoint.thrust[1] = NAN;
+					setpoint.yaw = setpoint.yawspeed = NAN;
 
-				} else {
-					setpoint.thrust[0] = setpoint.thrust[1] = 0.0f; // just keeping pointing upwards
+					if (PX4_ISFINITE(_states.velocity(0)) && PX4_ISFINITE(_states.velocity(1))) {
+						setpoint.vx = setpoint.vy = 0.0f; // try to keep zero velocity
+
+					} else {
+						setpoint.thrust[0] = setpoint.thrust[1] = 0.0f; // just keeping pointing upwards
+					}
+
+					// if there is a valid yaw estimate, just set setpoint to yaw
+					if (PX4_ISFINITE(_states.yaw)) {
+						setpoint.yaw = _states.yaw;
+					}
 				}
 			}
 
