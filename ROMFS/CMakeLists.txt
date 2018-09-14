@@ -103,6 +103,15 @@ if (config_io_board)
 		)
 endif()
 
+if (config_bl_file)
+	file(MAKE_DIRECTORY ${PX4_BINARY_DIR}/romfs_extras)
+	configure_file(${config_bl_file} ${PX4_BINARY_DIR}/romfs_extras COPYONLY)
+
+	list(APPEND extras_dependencies
+		${config_bl_file}
+		)
+endif()
+
 add_custom_command(OUTPUT romfs_extras.stamp
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${romfs_gen_root_dir}/extras/
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/romfs_extras/
