@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE drivers__fxas21002c
 	MAIN fxas21002c
-	STACK_MAIN 1200
+	STACK_MAIN 1500
 	COMPILE_FLAGS
 	SRCS
 		fxas21002c.cpp
