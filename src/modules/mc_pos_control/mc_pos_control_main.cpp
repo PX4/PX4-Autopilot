@@ -687,7 +687,7 @@ MulticopterPositionControl::run()
 				setpoint.thrust[0] = setpoint.thrust[1] = NAN;
 
 				if (PX4_ISFINITE(_states.velocity(0)) && PX4_ISFINITE(_states.velocity(1))) {
-					setpoint.vx = setpoint.vy = NAN; // try to keep zero velocity
+					setpoint.vx = setpoint.vy = 0.0f; // try to keep zero velocity
 
 				} else {
 					setpoint.thrust[0] = setpoint.thrust[1] = 0.0f; // just keeping pointing upwards
