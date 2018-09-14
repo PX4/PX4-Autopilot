@@ -1,6 +1,20 @@
 # Vehicle odometry data. Fits ROS REP 147 for aerial vehicles
 uint64 timestamp		# time since system start (microseconds)
 
+# Covariance matrix index constants
+uint8 COVARIANCE_MATRIX_X_VARIANCE=0
+uint8 COVARIANCE_MATRIX_Y_VARIANCE=6
+uint8 COVARIANCE_MATRIX_Z_VARIANCE=11
+uint8 COVARIANCE_MATRIX_ROLL_VARIANCE=15
+uint8 COVARIANCE_MATRIX_PITCH_VARIANCE=18
+uint8 COVARIANCE_MATRIX_YAW_VARIANCE=20
+uint8 COVARIANCE_MATRIX_VX_VARIANCE=0
+uint8 COVARIANCE_MATRIX_VY_VARIANCE=6
+uint8 COVARIANCE_MATRIX_VZ_VARIANCE=11
+uint8 COVARIANCE_MATRIX_ROLLRATE_VARIANCE=15
+uint8 COVARIANCE_MATRIX_PITCHRATE_VARIANCE=18
+uint8 COVARIANCE_MATRIX_YAWRATE_VARIANCE=20
+
 # Position in NED earth-fixed frame (meters). NaN if invalid/unknown
 float32 x			# North position
 float32 y			# East position
@@ -12,7 +26,8 @@ float32[4] q			# Quaternion rotation from NED earth-fixed frame to XYZ body fram
 # Row-major representation of 6x6 pose cross-covariance matrix URT.
 # NED earth-fixed frame.
 # Order: x, y, z, rotation about X axis, rotation about Y axis, rotation about Z axis
-# If invalid/unknown, first cell is NaN
+# If position covariance invalid/unknown, first cell is NaN
+# If orientation covariance invalid/unknown, 16th cell is NaN
 float32[21] pose_covariance
 
 # Velocity in NED earth-fixed frame (meters/sec). NaN if invalid/unknown
@@ -28,7 +43,8 @@ float32 yawspeed		# Angular velocity about Z body axis
 # Row-major representation of 6x6 velocity cross-covariance matrix URT.
 # Linear velocity in NED earth-fixed frame. Angular velocity in body-fixed frame.
 # Order: vx, vy, vz, rotation rate about X axis, rotation rate about Y axis, rotation rate about Z axis
-# If invalid/unknown, first cell is NaN
+# If linear velocity covariance invalid/unknown, first cell is NaN
+# If angular velocity covariance invalid/unknown, 16th cell is NaN
 float32[21] velocity_covariance
 
 # TOPICS vehicle_odometry vehicle_mocap_odometry vehicle_visual_odometry

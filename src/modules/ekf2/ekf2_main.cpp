@@ -1172,9 +1172,10 @@ void Ekf2::run()
 				ev_data.posNED(2) = ev_odom.z;
 
 				// position measurement error from parameters
-				if (PX4_ISFINITE(ev_odom.pose_covariance[0])) {
-					ev_data.posErr = fmaxf(_ev_pos_noise.get(), sqrtf(fmaxf(ev_odom.pose_covariance[0], ev_odom.pose_covariance[6])));
-					ev_data.hgtErr = fmaxf(_ev_pos_noise.get(), sqrtf(fmaxf(ev_odom.pose_covariance[11]));
+				if (PX4_ISFINITE(ev_odom.COVARIANCE_MATRIX_X_VARIANCE)) {
+					ev_data.posErr = fmaxf(_ev_pos_noise.get(), sqrtf(fmaxf(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_X_VARIANCE],
+							       ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Y_VARIANCE])));
+					ev_data.hgtErr = fmaxf(_ev_pos_noise.get(), sqrtf(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Z_VARIANCE])));
 				} else {
 					ev_data.posErr = _ev_pos_noise.get();
 					ev_data.hgtErr = _ev_pos_noise.get();
@@ -1186,9 +1187,11 @@ void Ekf2::run()
 				ev_data.quat = matrix::Quatf(ev_odom.q);
 
 				// orientation measurement error from parameters
-				if (PX4_ISFINITE(ev_odom.pose_covariance[15])) {
-					ev_data.angErr = fmaxf(_ev_ang_noise.get(), sqrtf(fmaxf(ev_odom.pose_covariance[15], fmaxf(ev_odom.pose_covariance[18],
-							       ev_odom.pose_covariance[20]))));
+				if (PX4_ISFINITE(ev_odom.COVARIANCE_MATRIX_ROLL_VARIANCE)) {
+					ev_data.angErr = fmaxf(_ev_ang_noise.get(),
+							       sqrtf(fmaxf(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_ROLL_VARIANCE],
+									   fmaxf(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_PITCH_VARIANCE],
+											   ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE]))));
 
 				} else {
 					ev_data.angErr = _ev_ang_noise.get();
