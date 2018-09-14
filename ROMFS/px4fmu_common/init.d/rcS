@@ -212,6 +212,27 @@ else
 	fi
 
 	#
+	# Bootloader upgrade
+	#
+	if ver hwcmp PX4FMU_V2
+	then
+		set BL_FILE /etc/extras/px4fmuv3_bl.bin
+		if [ -f $BL_FILE ]
+		then
+			if param compare SYS_BL_UPDATE 1
+			then
+				param set SYS_BL_UPDATE 0
+				param save
+				echo "BL update..." >> $LOG_FILE
+				bl_update $BL_FILE
+				echo "BL update done" >> $LOG_FILE
+				reboot
+			fi
+		fi
+		unset BL_FILE
+	fi
+
+	#
 	# Start system state indicator.
 	#
 	if ! rgbled start
