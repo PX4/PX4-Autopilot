@@ -470,7 +470,7 @@ Vector3f
 MulticopterAttitudeControl::pid_attenuations(float tpa_breakpoint, float tpa_rate)
 {
 	/* throttle pid attenuation factor */
-	float tpa = 1.0f - tpa_rate * (fabsf(_v_rates_sp.thrust_z) - tpa_breakpoint) / (1.0f - tpa_breakpoint);
+	float tpa = 1.0f - tpa_rate * (fabsf(-_v_rates_sp.thrust_z) - tpa_breakpoint) / (1.0f - tpa_breakpoint);
 	tpa = fmaxf(TPA_RATE_LOWER_LIMIT, fminf(1.0f, tpa));
 
 	Vector3f pidAttenuationPerAxis;
@@ -729,7 +729,7 @@ MulticopterAttitudeControl::run()
 					_v_rates_sp.yaw = _rates_sp(2);
 					_v_rates_sp.thrust_x = 0.0f;
 					_v_rates_sp.thrust_y = 0.0f;
-					_v_rates_sp.thrust_z = _manual_control_sp.z;
+					_v_rates_sp.thrust_z = -_manual_control_sp.z;
 
 					if (_v_rates_sp_pub != nullptr) {
 						orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &_v_rates_sp);
@@ -754,7 +754,7 @@ MulticopterAttitudeControl::run()
 				_actuators.control[0] = (PX4_ISFINITE(_att_control(0))) ? _att_control(0) : 0.0f;
 				_actuators.control[1] = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
 				_actuators.control[2] = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
-				_actuators.control[3] = (PX4_ISFINITE(_v_rates_sp.thrust_z)) ? _v_rates_sp.thrust_z : 0.0f;
+				_actuators.control[3] = (PX4_ISFINITE(_v_rates_sp.thrust_z)) ? -_v_rates_sp.thrust_z : 0.0f;
 				_actuators.control[7] = _v_att_sp.landing_gear;
 				_actuators.timestamp = hrt_absolute_time();
 				_actuators.timestamp_sample = _sensor_gyro.timestamp;
