@@ -32,14 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file batt_smbus_i2c.cpp
+ * @file bq40z50_i2c.cpp
  *
- * I2C interface for batt_smbus
+ * I2C interface for bq40z50
  *
  * @author Jacob Dahl <dahl.jakejacob@gmail.com>
  */
 
-#include "batt_smbus.h"
+#include "bq40z50.h"
 
 #include <cstring>
 
@@ -50,13 +50,13 @@
 
 #include "board_config.h"
 
-device::Device *BATT_SMBUS_I2C_interface(int bus);
+device::Device *BQ40Z50_I2C_interface(int bus);
 
-class BATT_SMBUS_I2C : public device::I2C
+class BQ40Z50_I2C : public device::I2C
 {
 public:
-	BATT_SMBUS_I2C(int bus);
-	virtual ~BATT_SMBUS_I2C() = default;
+	BQ40Z50_I2C(int bus);
+	virtual ~BQ40Z50_I2C() = default;
 
 	/**
 	 * @brief Sends a block read command.
@@ -106,26 +106,26 @@ protected:
 };
 
 device::Device *
-BATT_SMBUS_I2C_interface(int bus)
+BQ40Z50_I2C_interface(int bus)
 {
-	return new BATT_SMBUS_I2C(bus);
+	return new BQ40Z50_I2C(bus);
 }
 
-BATT_SMBUS_I2C::BATT_SMBUS_I2C(int bus) :
-	I2C("BATT_SMBUS_I2C", nullptr, bus, BATT_SMBUS_ADDR, 100000)
+BQ40Z50_I2C::BQ40Z50_I2C(int bus) :
+	I2C("BQ40Z50_I2C", nullptr, bus, BQ40Z50_ADDR, 100000)
 {
 }
 
 
 int
-BATT_SMBUS_I2C::read(unsigned cmd_code, void *data, unsigned length)
+BQ40Z50_I2C::read(unsigned cmd_code, void *data, unsigned length)
 {
 	uint8_t buf = (uint8_t) cmd_code;
 	return transfer(&buf, 1, (uint8_t *)data, length);
 }
 
 int
-BATT_SMBUS_I2C::write(unsigned cmd_code, void *data, unsigned length)
+BQ40Z50_I2C::write(unsigned cmd_code, void *data, unsigned length)
 {
 	return transfer((uint8_t *)data, length, nullptr, 0);
 }

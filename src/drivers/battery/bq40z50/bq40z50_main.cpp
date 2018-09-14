@@ -31,43 +31,43 @@
  *
  ****************************************************************************/
 
-#include "batt_smbus.h"
+#include "bq40z50.h"
 #include <px4_module.h>
 
-extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
+extern "C" __EXPORT int bq40z50_main(int argc, char *argv[]);
 
-enum BATT_SMBUS_BUS {
-	BATT_SMBUS_BUS_ALL = 0,
-	BATT_SMBUS_BUS_I2C_INTERNAL,
-	BATT_SMBUS_BUS_I2C_EXTERNAL,
+enum BQ40Z50_BUS {
+	BQ40Z50_BUS_ALL = 0,
+	BQ40Z50_BUS_I2C_INTERNAL,
+	BQ40Z50_BUS_I2C_EXTERNAL,
 };
 
 /**
  * Local functions in support of the shell command.
  */
 
-namespace batt_smbus
+namespace bq40z50
 {
 
-struct batt_smbus_bus_option {
-	enum BATT_SMBUS_BUS busid;
+struct bq40z50_bus_option {
+	enum BQ40Z50_BUS busid;
 	const char *devpath;
-	BATT_SMBUS_constructor interface_constructor;
+	BQ40Z50_constructor interface_constructor;
 	uint8_t busnum;
-	BATT_SMBUS      *dev;
+	BQ40Z50      *dev;
 } bus_options[] = {
-	{ BATT_SMBUS_BUS_I2C_EXTERNAL, "/dev/batt_smbus_ext", &BATT_SMBUS_I2C_interface, PX4_I2C_BUS_EXPANSION, nullptr },
+	{ BQ40Z50_BUS_I2C_EXTERNAL, "/dev/bq40z50_ext", &BQ40Z50_I2C_interface, PX4_I2C_BUS_EXPANSION, nullptr },
 #ifdef PX4_I2C_BUS_ONBOARD
-	{ BATT_SMBUS_BUS_I2C_INTERNAL, "/dev/batt_smbus_int", &BATT_SMBUS_I2C_interface, PX4_I2C_BUS_ONBOARD, nullptr },
+	{ BQ40Z50_BUS_I2C_INTERNAL, "/dev/bq40z50_int", &BQ40Z50_I2C_interface, PX4_I2C_BUS_ONBOARD, nullptr },
 #endif
 };
 
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
-int start(enum BATT_SMBUS_BUS busid);
-bool start_bus(struct batt_smbus_bus_option &bus);
-struct batt_smbus_bus_option &find_bus(enum BATT_SMBUS_BUS busid);
-int reset(enum BATT_SMBUS_BUS busid);
+int start(enum BQ40Z50_BUS busid);
+bool start_bus(struct bq40z50_bus_option &bus);
+struct bq40z50_bus_option &find_bus(enum BQ40Z50_BUS busid);
+int reset(enum BQ40Z50_BUS busid);
 int info();
 
 void usage(const char *reason);
@@ -78,7 +78,7 @@ int serial_number();
 /**
  * start driver for a specific bus option
  */
-bool start_bus(struct batt_smbus_bus_option &bus)
+bool start_bus(struct bq40z50_bus_option &bus)
 {
 	PX4_INFO("starting %s", bus.devpath);
 
@@ -95,7 +95,7 @@ bool start_bus(struct batt_smbus_bus_option &bus)
 		return false;
 	}
 
-	bus.dev = new BATT_SMBUS(interface, bus.devpath);
+	bus.dev = new BQ40Z50(interface, bus.devpath);
 
 	if (bus.dev != nullptr && PX4_OK != bus.dev->init()) {
 		PX4_WARN("init failed");
@@ -113,16 +113,16 @@ bool start_bus(struct batt_smbus_bus_option &bus)
  * This function call only returns once the driver
  * is either successfully up and running or failed to start.
  */
-int start(enum BATT_SMBUS_BUS busid)
+int start(enum BQ40Z50_BUS busid)
 {
 	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
-		if (busid == BATT_SMBUS_BUS_ALL && bus_options[i].dev != nullptr) {
+		if (busid == BQ40Z50_BUS_ALL && bus_options[i].dev != nullptr) {
 			// This device is already started.
 			PX4_INFO("Smart battery %d already started", bus_options[i].dev);
 			continue;
 		}
 
-		if (busid != BATT_SMBUS_BUS_ALL && bus_options[i].busid != busid) {
+		if (busid != BQ40Z50_BUS_ALL && bus_options[i].busid != busid) {
 			// Not the one that is asked for.
 			continue;
 		}
@@ -141,10 +141,10 @@ int start(enum BATT_SMBUS_BUS busid)
 /**
  * Find a bus structure for a busid.
  */
-struct batt_smbus_bus_option &find_bus(enum BATT_SMBUS_BUS busid)
+struct bq40z50_bus_option &find_bus(enum BQ40Z50_BUS busid)
 {
 	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
-		if ((busid == BATT_SMBUS_BUS_ALL || busid == bus_options[i].busid) &&
+		if ((busid == BQ40Z50_BUS_ALL || busid == bus_options[i].busid) &&
 		    bus_options[i].dev != nullptr) {
 			return bus_options[i];
 		}
@@ -163,7 +163,7 @@ int manufacture_date()
 	uint16_t man_date = 0;
 
 	for (uint8_t i = 0; i < NUM_BUS_OPTIONS; i++) {
-		struct batt_smbus_bus_option &bus = bus_options[i];
+		struct bq40z50_bus_option &bus = bus_options[i];
 
 		if (bus.dev != nullptr) {
 			PX4_INFO("%s", bus.devpath);
@@ -192,7 +192,7 @@ int manufacturer_name()
 	uint8_t man_name[22];
 
 	for (uint8_t i = 0; i < NUM_BUS_OPTIONS; i++) {
-		struct batt_smbus_bus_option &bus = bus_options[i];
+		struct bq40z50_bus_option &bus = bus_options[i];
 
 		if (bus.dev != nullptr) {
 			PX4_INFO("%s", bus.devpath);
@@ -215,7 +215,7 @@ int serial_number()
 	uint16_t serial_num = 0;
 
 	for (uint8_t i = 0; i < NUM_BUS_OPTIONS; i++) {
-		struct batt_smbus_bus_option &bus = bus_options[i];
+		struct bq40z50_bus_option &bus = bus_options[i];
 
 		if (bus.dev != nullptr) {
 			PX4_INFO("%s", bus.devpath);
@@ -241,15 +241,15 @@ Smart battery driver for the BQ40Z50 fuel gauge IC.
 
 ### Examples
 To write to flash to set parameters. address, number_of_bytes, byte0, ... , byteN
-$ batt_smbus -X write_flash 19069 2 27 0
+$ bq40z50 -X write_flash 19069 2 27 0
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("batt_smbus", "driver");
+	PRINT_MODULE_USAGE_NAME("bq40z50", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAM_STRING('X', "BATT_SMBUS_BUS_I2C_EXTERNAL", nullptr, nullptr, true);
-	PRINT_MODULE_USAGE_PARAM_STRING('I', "BATT_SMBUS_BUS_I2C_INTERNAL", nullptr, nullptr, true);
-	PRINT_MODULE_USAGE_PARAM_STRING('A', "BATT_SMBUS_BUS_ALL", nullptr, nullptr, true);
+	PRINT_MODULE_USAGE_PARAM_STRING('X', "BQ40Z50_BUS_I2C_EXTERNAL", nullptr, nullptr, true);
+	PRINT_MODULE_USAGE_PARAM_STRING('I', "BQ40Z50_BUS_I2C_INTERNAL", nullptr, nullptr, true);
+	PRINT_MODULE_USAGE_PARAM_STRING('A', "BQ40Z50_BUS_ALL", nullptr, nullptr, true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stops the driver.");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("suspend", "Suspends the drive but does stop it completely.");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("resume", "Resumes the driver from the suspended state.");
@@ -282,9 +282,9 @@ $ batt_smbus -X write_flash 19069 2 27 0
 } //namespace
 
 int
-batt_smbus_main(int argc, char *argv[])
+bq40z50_main(int argc, char *argv[])
 {
-	enum BATT_SMBUS_BUS busid = BATT_SMBUS_BUS_I2C_EXTERNAL;
+	enum BQ40Z50_BUS busid = BQ40Z50_BUS_I2C_EXTERNAL;
 	int ch;
 
 
@@ -292,19 +292,19 @@ batt_smbus_main(int argc, char *argv[])
 	while ((ch = getopt(argc, argv, "XIA:")) != EOF) {
 		switch (ch) {
 		case 'X':
-			busid = BATT_SMBUS_BUS_I2C_EXTERNAL;
+			busid = BQ40Z50_BUS_I2C_EXTERNAL;
 			break;
 
 		case 'I':
-			busid = BATT_SMBUS_BUS_I2C_INTERNAL;
+			busid = BQ40Z50_BUS_I2C_INTERNAL;
 			break;
 
 		case 'A':
-			busid = BATT_SMBUS_BUS_ALL;
+			busid = BQ40Z50_BUS_ALL;
 			break;
 
 		default:
-			batt_smbus::usage("unrecognized argument");
+			bq40z50::usage("unrecognized argument");
 			return 0;
 		}
 	}
@@ -312,15 +312,15 @@ batt_smbus_main(int argc, char *argv[])
 	const char *input = argv[optind];
 
 	if(!input) {
-		batt_smbus::usage("Please enter an appropriate command.");
+		bq40z50::usage("Please enter an appropriate command.");
 		return 1;
 	}
 
 	if (!strcmp(input, "start")) {
-		return batt_smbus::start(busid);
+		return bq40z50::start(busid);
 	}
 
-	struct batt_smbus::batt_smbus_bus_option &bus = batt_smbus::find_bus(busid);
+	struct bq40z50::bq40z50_bus_option &bus = bq40z50::find_bus(busid);
 
 	if (!strcmp(input, "stop")) {
 		delete bus.dev;
@@ -339,24 +339,24 @@ batt_smbus_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(input, "man_name")) {
-		batt_smbus::manufacturer_name();
+		bq40z50::manufacturer_name();
 		return 0;
 	}
 
 	if (!strcmp(input, "man_date")) {
-		batt_smbus::manufacture_date();
+		bq40z50::manufacture_date();
 		return 0;
 	}
 
 	if (!strcmp(input, "serial_num")) {
-		batt_smbus::serial_number();
+		bq40z50::serial_number();
 		return 0;
 	}
 
 	if (!strcmp(input, "sbs_info")) {
-		batt_smbus::manufacturer_name();
-		batt_smbus::manufacture_date();
-		batt_smbus::serial_number();
+		bq40z50::manufacturer_name();
+		bq40z50::manufacture_date();
+		bq40z50::serial_number();
 		return 0;
 	}
 
@@ -516,6 +516,6 @@ batt_smbus_main(int argc, char *argv[])
 		}
 	}
 
-	batt_smbus::usage("unrecognized argument");
+	bq40z50::usage("unrecognized argument");
 	return 1;
 }

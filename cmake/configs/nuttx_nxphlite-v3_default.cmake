@@ -16,7 +16,7 @@ set(config_module_list
 	drivers/telemetry
 
 	drivers/barometer/mpl3115a2
-	drivers/batt_smbus
+	drivers/battery
 	drivers/blinkm
 	drivers/camera_trigger
 	drivers/imu/fxas21002c

@@ -16,7 +16,7 @@ set(config_module_list
 	# Board support modules
 	#
 	#drivers/barometer
-	drivers/batt_smbus
+	drivers/battery
 	drivers/differential_pressure
 	drivers/distance_sensor
 	#drivers/telemetry

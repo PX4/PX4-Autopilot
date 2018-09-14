@@ -12,7 +12,7 @@ set(config_module_list
 	drivers/telemetry/frsky_telemetry
 	drivers/imu/mpu6000
 
-	#drivers/batt_smbus
+	#drivers/battery
 	#drivers/blinkm
 	#drivers/camera_trigger
 	drivers/gps

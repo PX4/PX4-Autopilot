@@ -14,7 +14,7 @@ set(config_module_list
 	drivers/telemetry
 	drivers/imu
 
-	drivers/batt_smbus
+	drivers/battery
 	drivers/blinkm
 	drivers/camera_trigger
 	drivers/gps

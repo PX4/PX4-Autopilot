@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file batt_smbus.cpp
+ * @file bq40z50.cpp
  *
  * Driver for a battery monitor connected via SMBus (I2C).
  * Designed for BQ40Z50-R1/R2
@@ -44,10 +44,11 @@
  */
 
 #include <px4_defines.h>
+#include <mathlib/mathlib.h>
 
-#include "batt_smbus.h"
+#include "bq40z50.h"
 
-BATT_SMBUS::BATT_SMBUS(device::Device *interface, const char *path) :
+BQ40Z50::BQ40Z50(device::Device *interface, const char *path) :
 	CDev(path),
 	_interface(interface),
 	_batt_topic(nullptr),
@@ -59,11 +60,13 @@ BATT_SMBUS::BATT_SMBUS(device::Device *interface, const char *path) :
 	_crit_thr(0.0f),
 	_emergency_thr(0.0f),
 	_low_thr(0.0f),
-	_manufacturer_name(nullptr)
+	_manufacturer_name(nullptr),
+	_lifetime_max_delta_cell_voltage(0.0f),
+	_cell_undervoltage_protection_status(1)
 {
 }
 
-BATT_SMBUS::~BATT_SMBUS()
+BQ40Z50::~BQ40Z50()
 {
 	// Ensure we are truly inactive.
 	stop();
@@ -78,14 +81,14 @@ BATT_SMBUS::~BATT_SMBUS()
 	param_set(param_find("BAT_SOURCE"), &battsource);
 }
 
-int BATT_SMBUS::block_read(const uint8_t cmd_code, void *data, const unsigned length)
+int BQ40Z50::block_read(const uint8_t cmd_code, void *data, const unsigned length)
 {
 	unsigned byte_count = 0;
 	// Length of data (32max). byte_count(1), cmd_code(2), pec(1)
 	uint8_t rx_data[DATA_BUFFER_SIZE + 4];
 
 	// If this is a ManufacturerBlockAccess() command then the first 2 data bytes will be the cmd_code.
-	if (cmd_code == BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS) {
+	if (cmd_code == BQ40Z50_MANUFACTURER_BLOCK_ACCESS) {
 		_interface->read(cmd_code, rx_data, length + 4);
 
 		byte_count = rx_data[0];
@@ -125,7 +128,7 @@ int BATT_SMBUS::block_read(const uint8_t cmd_code, void *data, const unsigned le
 	}
 }
 
-int BATT_SMBUS::block_write(const uint8_t cmd_code, void *data, const unsigned byte_count)
+int BQ40Z50::block_write(const uint8_t cmd_code, void *data, const unsigned byte_count)
 {
 	// cmd code, byte count, data[byte_count], pec
 	uint8_t buf[byte_count + 2];
@@ -154,7 +157,7 @@ int BATT_SMBUS::block_write(const uint8_t cmd_code, void *data, const unsigned b
 	return PX4_ERROR;
 }
 
-void BATT_SMBUS::cycle()
+void BQ40Z50::cycle()
 {
 	// Get the current time.
 	uint64_t now = hrt_absolute_time();
@@ -171,7 +174,10 @@ void BATT_SMBUS::cycle()
 	// Temporary variable for storing SMBUS reads.
 	uint16_t tmp;
 
-	if (read_word(BATT_SMBUS_VOLTAGE, &tmp) == PX4_OK) {
+	// Stores the minimum voltage of the four cells
+	float min_cell_voltage = 0.0f;
+
+	if (read_word(BQ40Z50_VOLTAGE, &tmp) == PX4_OK) {
 
 		new_report.connected = true;
 
@@ -179,8 +185,54 @@ void BATT_SMBUS::cycle()
 		new_report.voltage_v = ((float)tmp) / 1000.0f;
 		new_report.voltage_filtered_v = new_report.voltage_v;
 
+		// Read cell voltages
+		if (read_word(BQ40Z50_CELL_1_VOLTAGE, &tmp) == PX4_OK) {
+			// Convert millivolts to volts.
+			new_report.voltage_cell_v[0] = ((float)tmp) / 1000.0f;
+
+			if (read_word(BQ40Z50_CELL_2_VOLTAGE, &tmp) == PX4_OK) {
+				// Convert millivolts to volts.
+				new_report.voltage_cell_v[1] = ((float)tmp) / 1000.0f;
+
+				if (read_word(BQ40Z50_CELL_3_VOLTAGE, &tmp) == PX4_OK) {
+					// Convert millivolts to volts.
+					new_report.voltage_cell_v[2] = ((float)tmp) / 1000.0f;
+
+					if (read_word(BQ40Z50_CELL_4_VOLTAGE, &tmp) == PX4_OK) {
+						// Convert millivolts to volts.
+						new_report.voltage_cell_v[3] = ((float)tmp) / 1000.0f;
+
+						//Calculate max cell delta
+						min_cell_voltage = new_report.voltage_cell_v[0];
+						float max_cell_voltage = new_report.voltage_cell_v[0];
+
+						for (uint8_t i = 1; i < (sizeof(new_report.voltage_cell_v) / sizeof(new_report.voltage_cell_v[0])); i++) {
+							min_cell_voltage = math::min(min_cell_voltage, new_report.voltage_cell_v[i]);
+							max_cell_voltage = math::max(max_cell_voltage, new_report.voltage_cell_v[i]);
+						}
+
+						// Calculate the max difference between the min and max cells with complementary filter.
+						new_report.max_cell_voltage_delta = (0.5f * (max_cell_voltage - min_cell_voltage)) +
+										    (0.5f * _last_report.max_cell_voltage_delta);
+
+					} else {
+						success = false;
+					}
+
+				} else {
+					success = false;
+				}
+
+			} else {
+				success = false;
+			}
+
+		} else {
+			success = false;
+		}
+
 		// Read current.
-		if (read_word(BATT_SMBUS_CURRENT, &tmp) == PX4_OK) {
+		if (read_word(BQ40Z50_CURRENT, &tmp) == PX4_OK) {
 			new_report.current_a = (-1.0f * ((float)(*(int16_t *)&tmp)) / 1000.0f);
 			new_report.current_filtered_a = new_report.current_a;
 
@@ -189,15 +241,49 @@ void BATT_SMBUS::cycle()
 		}
 
 		// Read average current.
-		if (read_word(BATT_SMBUS_AVERAGE_CURRENT, &tmp) == PX4_OK) {
+		if (read_word(BQ40Z50_AVERAGE_CURRENT, &tmp) == PX4_OK) {
 			new_report.average_current_a = (-1.0f * ((float)(*(int16_t *)&tmp)) / 1000.0f);
+
+			// Disable undervoltage protection if armed. Enable if disarmed and cell voltage is above limit.
+			if (new_report.average_current_a > BATT_CURRENT_UNDERVOLTAGE_THRESHOLD) {
+				if (_cell_undervoltage_protection_status != 0) {
+					// Disable undervoltage protection
+					uint8_t protections_a_tmp = BQ40Z50_ENABLED_PROTECTIONS_A_CUV_DISABLED;
+					uint16_t address = BQ40Z50_ENABLED_PROTECTIONS_A_ADDRESS;
+
+					if (write_flash(address, &protections_a_tmp, 1) == PX4_OK) {
+						_cell_undervoltage_protection_status = 0;
+						PX4_WARN("Disabled CUV");
+
+					} else {
+						PX4_WARN("Dataflash write failed");
+					}
+				}
+
+			} else {
+				if (_cell_undervoltage_protection_status == 0) {
+					if (min_cell_voltage > BATT_VOLTAGE_UNDERVOLTAGE_THRESHOLD) {
+						// Enable undervoltage protection
+						uint8_t protections_a_tmp = BQ40Z50_ENABLED_PROTECTIONS_A_DEFAULT;
+						uint16_t address = BQ40Z50_ENABLED_PROTECTIONS_A_ADDRESS;
+
+						if (write_flash(address, &protections_a_tmp, 1) == PX4_OK) {
+							_cell_undervoltage_protection_status = 1;
+							PX4_WARN("Enabled CUV");
+
+						} else {
+							PX4_WARN("Dataflash write failed");
+						}
+					}
+				}
+			}
 
 		} else {
 			success = false;
 		}
 
 		// Read run time to empty.
-		if (read_word(BATT_SMBUS_RUN_TIME_TO_EMPTY, &tmp) == PX4_OK) {
+		if (read_word(BQ40Z50_RUN_TIME_TO_EMPTY, &tmp) == PX4_OK) {
 			new_report.run_time_to_empty = tmp;
 
 		} else {
@@ -205,7 +291,7 @@ void BATT_SMBUS::cycle()
 		}
 
 		// Read average time to empty.
-		if (read_word(BATT_SMBUS_AVERAGE_TIME_TO_EMPTY, &tmp) == PX4_OK) {
+		if (read_word(BQ40Z50_AVERAGE_TIME_TO_EMPTY, &tmp) == PX4_OK) {
 			new_report.average_time_to_empty = tmp;
 
 		} else {
@@ -213,7 +299,7 @@ void BATT_SMBUS::cycle()
 		}
 
 		// Read remaining capacity.
-		if (read_word(BATT_SMBUS_REMAINING_CAPACITY, &tmp) == PX4_OK) {
+		if (read_word(BQ40Z50_REMAINING_CAPACITY, &tmp) == PX4_OK) {
 
 			if (tmp > _batt_capacity) {
 				PX4_WARN("Remaining capacity greater than total: Capacity:%hu \tRemaining Capacity:%hu",
@@ -221,24 +307,56 @@ void BATT_SMBUS::cycle()
 				_batt_capacity = (uint16_t)tmp;
 			}
 
-			// Calculate remaining capacity percent with complementary filter
+			// Calculate remaining capacity percent with complementary filter.
 			new_report.remaining = ((float)_last_report.remaining * 0.8f) + (0.2f * (1.0f -
 					       (((float)_batt_capacity - (float)tmp) / (float)_batt_capacity)));
 
 			// Calculate total discharged amount.
 			new_report.discharged_mah = (float)_batt_startup_capacity - (float)tmp;
 
-			// Check if remaining % is out of range.
-			if ((new_report.remaining > 1.00f) || (new_report.remaining <= 0.00f)) {
-				new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
-				PX4_INFO("Percent out of range: %4.2f", (double)new_report.remaining);
+			//Check if max lifetime voltage delta is greater than allowed.
+			if (_lifetime_max_delta_cell_voltage > BATT_CELL_VOLTAGE_THRESHOLD_FAILED) {
+				new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+
+				uint64_t timer = hrt_absolute_time() - now;
+
+				/* Only warn every 5 seconds */
+				if (timer > 5000000) {
+					PX4_WARN("Bad battery. Max Lifetime Imbalance: %4.2f V", (double)_lifetime_max_delta_cell_voltage);
+				}
 			}
 
-			// Check if discharged amount is greater than the starting capacity.
-			else if (new_report.discharged_mah > (float)_batt_startup_capacity) {
-				new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
-				PX4_INFO("Discharged greater than startup capacity: %4.2f", (double)new_report.discharged_mah);
-			}
+			// // Check if remaining % is out of range.
+			// else if ((new_report.remaining > 1.00f) || (new_report.remaining <= 0.00f)) {
+			// new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+			// PX4_INFO("Percent out of range: %4.2f", (double)new_report.remaining);
+			// }
+
+			// // Check if discharged amount is greater than the starting capacity.
+			// else if (new_report.discharged_mah > (float)_batt_startup_capacity) {
+			// new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+			// PX4_INFO("Discharged greater than startup capacity: %4.2f", (double)new_report.discharged_mah);
+			// }
+
+			// //Check if cells are mismatched or damaged.
+			// else if (new_report.max_cell_voltage_delta > BATT_CELL_VOLTAGE_THRESHOLD_FAILED) {
+			// new_report.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+
+			// uint64_t timer = hrt_absolute_time() - now;
+
+			// /* Only warn every 5 seconds */
+			// if (timer > 5000000) {
+			// PX4_WARN("Battery Damaged Emergency. Max voltage difference: %4.2f", (double)new_report.max_cell_voltage_delta);
+			// }
+			// }
+
+			// //Check if cells are mismatched or damaged
+			// else if (new_report.max_cell_voltage_delta > BATT_CELL_VOLTAGE_THRESHOLD_RTL) {
+			// if (_last_report.warning != battery_status_s::BATTERY_WARNING_EMERGENCY) {
+			// new_report.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
+			// PX4_WARN("Battery Damaged Critical. Max voltage difference: %4.2f", (double)new_report.max_cell_voltage_delta);
+			// }
+			// }
 
 			// Propagate warning state.
 			else {
@@ -267,7 +385,7 @@ void BATT_SMBUS::cycle()
 		}
 
 		// Read battery temperature and covert to Celsius.
-		if (read_word(BATT_SMBUS_TEMP, &tmp) == PX4_OK) {
+		if (read_word(BQ40Z50_TEMP, &tmp) == PX4_OK) {
 			new_report.temperature = (float)(((float)tmp / 10.0f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS);
 
 		} else {
@@ -277,6 +395,7 @@ void BATT_SMBUS::cycle()
 		new_report.capacity = _batt_capacity;
 		new_report.cycle_count = _cycle_count;
 		new_report.serial_number = _serial_number;
+		new_report.cell_count = (int)4;
 
 		// Publish to orb.
 		if (_batt_topic != nullptr && success) {
@@ -299,19 +418,19 @@ void BATT_SMBUS::cycle()
 	}
 
 	// Schedule a fresh cycle call when the measurement is done.
-	work_queue(HPWORK, &_work, (worker_t)&BATT_SMBUS::cycle_trampoline, this,
-		   USEC2TICK(BATT_SMBUS_MEASUREMENT_INTERVAL_US));
+	work_queue(HPWORK, &_work, (worker_t)&BQ40Z50::cycle_trampoline, this,
+		   USEC2TICK(BQ40Z50_MEASUREMENT_INTERVAL_US));
 }
 
-void BATT_SMBUS::cycle_trampoline(void *arg)
+void BQ40Z50::cycle_trampoline(void *arg)
 {
-	BATT_SMBUS *dev = (BATT_SMBUS *)arg;
+	BQ40Z50 *dev = (BQ40Z50 *)arg;
 	dev->cycle();
 }
 
-int BATT_SMBUS::dataflash_read(uint16_t &address, void *data)
+int BQ40Z50::dataflash_read(uint16_t &address, void *data)
 {
-	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
+	uint8_t code = BQ40Z50_MANUFACTURER_BLOCK_ACCESS;
 
 	// address is 2 bytes
 	block_write(code, &address, 2);
@@ -326,10 +445,9 @@ int BATT_SMBUS::dataflash_read(uint16_t &address, void *data)
 	return PX4_OK;
 }
 
-
-int BATT_SMBUS::dataflash_write(uint16_t &address, void *data, const unsigned length)
+int BQ40Z50::dataflash_write(uint16_t &address, void *data, const unsigned length)
 {
-	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
+	uint8_t code = BQ40Z50_MANUFACTURER_BLOCK_ACCESS;
 
 	// @NOTE: The data buffer can be 1 - 32 bytes. The address field is 2 bytes.
 	uint8_t tx_buf[DATA_BUFFER_SIZE + 2] = {0};
@@ -344,7 +462,7 @@ int BATT_SMBUS::dataflash_write(uint16_t &address, void *data, const unsigned le
 	return PX4_OK;
 }
 
-uint8_t BATT_SMBUS::get_pec(uint8_t *buff, const uint8_t len)
+uint8_t BQ40Z50::get_pec(uint8_t *buff, const uint8_t len)
 {
 	// Initialise CRC to zero.
 	uint8_t crc = 0;
@@ -363,7 +481,7 @@ uint8_t BATT_SMBUS::get_pec(uint8_t *buff, const uint8_t len)
 			shift_register <<= 1;
 
 			if (invert_crc) {
-				crc ^= BATT_SMBUS_PEC_POLYNOMIAL;
+				crc ^= BQ40Z50_PEC_POLYNOMIAL;
 			}
 		}
 	}
@@ -371,7 +489,7 @@ uint8_t BATT_SMBUS::get_pec(uint8_t *buff, const uint8_t len)
 	return crc;
 }
 
-int BATT_SMBUS::get_startup_info()
+int BQ40Z50::get_startup_info()
 {
 	int result = PX4_ERROR;
 	const unsigned name_length = 22;
@@ -394,27 +512,42 @@ int BATT_SMBUS::get_startup_info()
 	uint16_t tmp = 0;
 
 	// Read battery serial number on startup.
-	if (read_word(BATT_SMBUS_SERIAL_NUMBER, &tmp) == PX4_OK) {
+	if (read_word(BQ40Z50_SERIAL_NUMBER, &tmp) == PX4_OK) {
 		_serial_number = tmp;
 		result = PX4_OK;
 	}
 
 	// Read battery capacity on startup.
-	if (read_word(BATT_SMBUS_REMAINING_CAPACITY, &tmp) == PX4_OK) {
+	if (read_word(BQ40Z50_REMAINING_CAPACITY, &tmp) == PX4_OK) {
 		_batt_startup_capacity = tmp;
 		result = PX4_OK;
 	}
 
 	// Read battery cycle count on startup.
-	if (read_word(BATT_SMBUS_CYCLE_COUNT, &tmp) == PX4_OK) {
+	if (read_word(BQ40Z50_CYCLE_COUNT, &tmp) == PX4_OK) {
 		_cycle_count = tmp;
 		result = PX4_OK;
 	}
 
 	// Read battery design capacity on startup.
-	if (read_word(BATT_SMBUS_FULL_CHARGE_CAPACITY, &tmp) == PX4_OK) {
+	if (read_word(BQ40Z50_FULL_CHARGE_CAPACITY, &tmp) == PX4_OK) {
 		_batt_capacity = tmp;
 		result = PX4_OK;
+	}
+
+	if (lifetime_data_flush() == PX4_OK) {
+		if (lifetime_read_block_one() == PX4_OK) {
+			if (_lifetime_max_delta_cell_voltage > BATT_CELL_VOLTAGE_THRESHOLD_FAILED) {
+				PX4_WARN("Battery Damaged Will Not Fly. Lifetime max voltage difference: %4.2f",
+					 (double)_lifetime_max_delta_cell_voltage);
+			}
+
+		} else {
+			PX4_WARN("Failed to read lifetime block 1");
+		}
+
+	} else {
+		PX4_WARN("Failed to flush lifetime data");
 	}
 
 	// Read battery threshold params on startup.
@@ -425,24 +558,24 @@ int BATT_SMBUS::get_startup_info()
 	return result;
 }
 
-uint16_t BATT_SMBUS::get_serial_number()
+uint16_t BQ40Z50::get_serial_number()
 {
 	uint16_t serial_num = 0;
 
-	if (read_word(BATT_SMBUS_SERIAL_NUMBER, &serial_num) == PX4_OK) {
+	if (read_word(BQ40Z50_SERIAL_NUMBER, &serial_num) == PX4_OK) {
 		return serial_num;
 	}
 
 	return PX4_ERROR;
 }
 
-int BATT_SMBUS::info()
+int BQ40Z50::info()
 {
 	print_message(_last_report);
 	return PX4_OK;
 }
 
-int BATT_SMBUS::init()
+int BQ40Z50::init()
 {
 	if (PX4_OK != CDev::init()) {
 		PX4_ERR("CDev init failed");
@@ -476,9 +609,9 @@ int BATT_SMBUS::init()
 	return PX4_OK;
 }
 
-int BATT_SMBUS::manufacture_date(void *man_date)
+int BQ40Z50::manufacture_date(void *man_date)
 {
-	uint8_t code = BATT_SMBUS_MANUFACTURE_DATE;
+	uint8_t code = BQ40Z50_MANUFACTURE_DATE;
 
 	int result = read_word(code, man_date);
 
@@ -490,9 +623,9 @@ int BATT_SMBUS::manufacture_date(void *man_date)
 	return PX4_OK;
 }
 
-int BATT_SMBUS::manufacturer_name(uint8_t *man_name, const uint8_t length)
+int BQ40Z50::manufacturer_name(uint8_t *man_name, const uint8_t length)
 {
-	uint8_t code = BATT_SMBUS_MANUFACTURER_NAME;
+	uint8_t code = BQ40Z50_MANUFACTURER_NAME;
 	uint8_t rx_buf[21] = {0};
 
 	// Returns 21 bytes, add 1 byte for null terminator.
@@ -510,9 +643,9 @@ int BATT_SMBUS::manufacturer_name(uint8_t *man_name, const uint8_t length)
 	return PX4_OK;
 }
 
-int BATT_SMBUS::manufacturer_read(const uint16_t cmd_code, void *data, const unsigned length)
+int BQ40Z50::manufacturer_read(const uint16_t cmd_code, void *data, const unsigned length)
 {
-	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
+	uint8_t code = BQ40Z50_MANUFACTURER_BLOCK_ACCESS;
 
 	uint8_t address[2] = {0};
 	address[0] = ((uint8_t *)&cmd_code)[0];
@@ -526,15 +659,15 @@ int BATT_SMBUS::manufacturer_read(const uint16_t cmd_code, void *data, const uns
 	uint8_t rx_buf[DATA_BUFFER_SIZE] = {0};
 	memcpy(rx_buf, data, DATA_BUFFER_SIZE);
 
-	PX4_INFO("Received data: %d %d %d %d %d %d %d %d %d %d %d %d", rx_buf[0], rx_buf[1], rx_buf[2], rx_buf[3], rx_buf[4],
-		 rx_buf[5], rx_buf[6], rx_buf[7], rx_buf[8], rx_buf[9], rx_buf[10], rx_buf[11]);
+	//PX4_INFO("Received data: %d %d %d %d %d %d %d %d %d %d %d %d", rx_buf[0], rx_buf[1], rx_buf[2], rx_buf[3], rx_buf[4],
+	//	 rx_buf[5], rx_buf[6], rx_buf[7], rx_buf[8], rx_buf[9], rx_buf[10], rx_buf[11]);
 
 	return PX4_OK;
 }
 
-int BATT_SMBUS::manufacturer_write(const uint16_t cmd_code, void *data, const unsigned length)
+int BQ40Z50::manufacturer_write(const uint16_t cmd_code, void *data, const unsigned length)
 {
-	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
+	uint8_t code = BQ40Z50_MANUFACTURER_BLOCK_ACCESS;
 
 	uint8_t address[2] = {0};
 	address[0] = ((uint8_t *)&cmd_code)[0];
@@ -549,7 +682,7 @@ int BATT_SMBUS::manufacturer_write(const uint16_t cmd_code, void *data, const un
 	return PX4_OK;
 }
 
-int BATT_SMBUS::read_word(const uint8_t cmd_code, void *data)
+int BQ40Z50::read_word(const uint8_t cmd_code, void *data)
 {
 	// 2 data bytes + pec byte
 	int result = _interface->read(cmd_code, data, 3);
@@ -576,24 +709,24 @@ int BATT_SMBUS::read_word(const uint8_t cmd_code, void *data)
 	return PX4_ERROR;
 }
 
-int BATT_SMBUS::search_addresses()
+int BQ40Z50::search_addresses()
 {
 	uint16_t tmp;
 
-	_interface->set_device_address(BATT_SMBUS_ADDR);
+	_interface->set_device_address(BQ40Z50_ADDR);
 
-	if (PX4_OK != read_word(BATT_SMBUS_VOLTAGE, &tmp)) {
+	if (PX4_OK != read_word(BQ40Z50_VOLTAGE, &tmp)) {
 		// Search through all valid SMBus addresses.
-		for (uint8_t i = BATT_SMBUS_ADDR_MIN; i < BATT_SMBUS_ADDR_MAX; i++) {
+		for (uint8_t i = BQ40Z50_ADDR_MIN; i < BQ40Z50_ADDR_MAX; i++) {
 			_interface->set_device_address(i);
 
-			if (read_word(BATT_SMBUS_VOLTAGE, &tmp) == PX4_OK) {
+			if (read_word(BQ40Z50_VOLTAGE, &tmp) == PX4_OK) {
 				if (tmp > 0) {
 					break;
 				}
 			}
 
-			if (i == BATT_SMBUS_ADDR_MAX - 1) {
+			if (i == BQ40Z50_ADDR_MAX - 1) {
 				PX4_WARN("No smart batteries found.");
 				return PX4_ERROR;
 			}
@@ -606,19 +739,19 @@ int BATT_SMBUS::search_addresses()
 	return PX4_OK;
 }
 
-void BATT_SMBUS::start()
+void BQ40Z50::start()
 {
 	// Schedule a cycle to start things.
-	work_queue(HPWORK, &_work, (worker_t)&BATT_SMBUS::cycle_trampoline, this, 1);
+	work_queue(HPWORK, &_work, (worker_t)&BQ40Z50::cycle_trampoline, this, 1);
 }
 
-void BATT_SMBUS::stop()
+void BQ40Z50::stop()
 {
 	// Cancel the work queue.
 	work_cancel(HPWORK, &_work);
 }
 
-int BATT_SMBUS::unseal()
+int BQ40Z50::unseal()
 {
 	// See pg85 of bq40z50 technical reference.
 	uint16_t keys[2] = {0x0414, 0x3672};
@@ -629,4 +762,55 @@ int BATT_SMBUS::unseal()
 	}
 
 	return PX4_OK;
+}
+
+int BQ40Z50::lifetime_data_flush()
+{
+	// See pg95 of bq40z50 technical reference.
+	uint16_t flush = BQ40Z50_LIFETIME_FLUSH;
+
+	if (PX4_OK != manufacturer_write(flush, 0, 0)) {
+		PX4_INFO("Failed to flush lifetimes.");
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
+}
+
+int BQ40Z50::lifetime_read_block_one()
+{
+
+	uint8_t lifetime_block_one_size = 19;
+	uint16_t lifetime_block_one[lifetime_block_one_size] {};
+
+	if (PX4_OK != manufacturer_read(BQ40Z50_LIFETIME_BLOCK_ONE, &lifetime_block_one, lifetime_block_one_size)) {
+		PX4_INFO("Failed to read lifetime block 1.");
+		return PX4_ERROR;
+	}
+
+	//Get max cell voltage delta and convert from mV to V.
+	_lifetime_max_delta_cell_voltage = (float)lifetime_block_one[8] / 1000.0f;
+
+	PX4_INFO("Max Cell Delta: %4.2f", (double)_lifetime_max_delta_cell_voltage);
+
+	return PX4_OK;
+}
+
+int BQ40Z50::write_flash(uint16_t address, uint8_t *tx_buf, const unsigned length)
+{
+
+	if (length > 32) {
+		PX4_WARN("Data length out of range: Max 32 bytes");
+		return PX4_ERROR;
+	}
+
+	if (PX4_OK != dataflash_write(address, tx_buf, length)) {
+		PX4_INFO("Dataflash write failed: %d", address);
+		usleep(100000);
+		return PX4_ERROR;
+
+	} else {
+		usleep(100000);
+		return PX4_OK;
+	}
 }
