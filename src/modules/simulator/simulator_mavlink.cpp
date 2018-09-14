@@ -1157,6 +1157,8 @@ int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
 		matrix::Quatf q(odom_msg.q[0], odom_msg.q[1], odom_msg.q[2], odom_msg.q[3]);
 		q.copyTo(odom.q);
 
+		odom.local_frame = odom.LOCAL_FRAME_NED;
+
 		static_assert(POS_URT_SIZE == (sizeof(odom_msg.pose_covariance) / sizeof(odom_msg.pose_covariance[0])),
 			      "Odometry Pose Covariance matrix URT array size mismatch");
 
@@ -1194,6 +1196,8 @@ int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
 		 * rotation from NED earth/local frame to XYZ body frame */
 		matrix::Quatf q(matrix::Eulerf(ev.roll, ev.pitch, ev.yaw));
 		q.copyTo(odom.q);
+
+		odom.local_frame = odom.LOCAL_FRAME_NED;
 
 		static_assert(POS_URT_SIZE == (sizeof(ev.covariance) / sizeof(ev.covariance[0])),
 			      "Vision Position Estimate Pose Covariance matrix URT array size mismatch");

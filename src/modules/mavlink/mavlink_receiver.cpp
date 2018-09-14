@@ -1175,6 +1175,12 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	matrix::Quatf q(matrix::Eulerf(ev.roll, ev.pitch, ev.yaw));
 	q.copyTo(visual_odom.q);
 
+	// TODO:
+	// - add a MAV_FRAME_*_OTHER to the Mavlink MAV_FRAME enum IOT define
+	// a frame of reference which is not aligned with NED or ENU
+	// - add usage on the estimator side
+	visual_odom.local_frame = visual_odom.LOCAL_FRAME_NED;
+
 	const size_t URT_SIZE = sizeof(visual_odom.pose_covariance) / sizeof(visual_odom.pose_covariance[0]);
 	static_assert(URT_SIZE == (sizeof(ev.covariance) / sizeof(ev.covariance[0])),
 		      "Odometry Pose Covariance matrix URT array size mismatch");
@@ -1216,6 +1222,12 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	matrix::Quatf q(odom.q);
 	q.copyTo(odometry.q);
 
+	// TODO:
+	// - add a MAV_FRAME_*_OTHER to the Mavlink MAV_FRAME enum IOT define
+	// a frame of reference which is not aligned with NED or ENU
+	// - add usage on the estimator side
+	odometry.local_frame = odometry.LOCAL_FRAME_NED;
+
 	const size_t POS_URT_SIZE = sizeof(odometry.pose_covariance) / sizeof(odometry.pose_covariance[0]);
 	const size_t VEL_URT_SIZE = sizeof(odometry.velocity_covariance) / sizeof(odometry.velocity_covariance[0]);
 	static_assert(POS_URT_SIZE == (sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0])),
@@ -1235,7 +1247,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		/* get quaternion from the msg quaternion itself and build DCM matrix from it */
 		Rbl = matrix::Dcmf(matrix::Quatf(odometry.q)).I();
 
-		/* the linear velocities needs to be transformed to the local NED frame */
+		/* the linear velocities needs to be transformed to the local NED frame */\
 		matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
 		odometry.vx = linvel_local(0);
 		odometry.vy = linvel_local(1);
