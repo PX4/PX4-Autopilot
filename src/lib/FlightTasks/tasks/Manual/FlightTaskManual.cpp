@@ -111,7 +111,7 @@ bool FlightTaskManual::_evaluateSticks()
 	} else if (_sub_vehicle_status->get().in_transition_mode) {
 		_sticks(0) = 0;
 		_sticks(1) = 0;
-		_sticks(2) = 0.5f;
+		_sticks(2) = 0;
 		_sticks(3) = 0;
 
 		/* Exponential scale */
