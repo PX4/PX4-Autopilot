@@ -15,7 +15,15 @@ uint8 COVARIANCE_MATRIX_ROLLRATE_VARIANCE=15
 uint8 COVARIANCE_MATRIX_PITCHRATE_VARIANCE=18
 uint8 COVARIANCE_MATRIX_YAWRATE_VARIANCE=20
 
-# Position in NED earth-fixed frame (meters). NaN if invalid/unknown
+# Position and linear velocity frame of reference constants
+uint8 LOCAL_FRAME_NED=0         # NED earth-fixed frame
+uint8 LOCAL_FRAME_ENU=1         # ENU earth-fixed frame
+uint8 LOCAL_FRAME_OTHER=2       # Not aligned with the std frames of reference
+
+# Position and linear velocity local frame of reference
+uint8 local_frame
+
+# Position in meters. Frame of reference defined by local_frame. NaN if invalid/unknown
 float32 x			# North position
 float32 y			# East position
 float32 z			# Down position
@@ -30,7 +38,7 @@ float32[4] q			# Quaternion rotation from NED earth-fixed frame to XYZ body fram
 # If orientation covariance invalid/unknown, 16th cell is NaN
 float32[21] pose_covariance
 
-# Velocity in NED earth-fixed frame (meters/sec). NaN if invalid/unknown
+# Velocity in meters/sec. Frame of reference defined by local_frame. NaN if invalid/unknown
 float32 vx 			# North velocity
 float32 vy			# East velocity
 float32 vz			# Down velocity
