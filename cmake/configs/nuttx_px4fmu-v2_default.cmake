@@ -2,6 +2,8 @@ px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common IO px4
 
 #set(config_uavcan_num_ifaces 2)
 
+set(config_bl_file ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/extras/px4fmuv3_bl.bin)
+
 set(config_module_list
 	#
 	# Board support modules
@@ -62,7 +64,7 @@ set(config_module_list
 	#
 	# System commands
 	#
-	#systemcmds/bl_update
+	systemcmds/bl_update
 	#systemcmds/config
 	#systemcmds/dumpfile
 	#systemcmds/esc_calib
