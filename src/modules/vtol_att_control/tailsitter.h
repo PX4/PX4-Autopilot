@@ -55,11 +55,11 @@ public:
 	Tailsitter(VtolAttitudeControl *_att_controller);
 	~Tailsitter() override = default;
 
-	virtual void update_vtol_state();
-	virtual void update_transition_state();
-	virtual void update_fw_state();
-	virtual void fill_actuator_outputs();
-	virtual void waiting_on_tecs();
+	void update_vtol_state() override;
+	void update_transition_state() override;
+	void update_fw_state() override;
+	void fill_actuator_outputs() override;
+	void waiting_on_tecs() override;
 
 private:
 
@@ -89,10 +89,7 @@ private:
 	matrix::Quatf _q_trans_sp;
 	matrix::Vector3f _trans_rot_axis;
 
-	/**
-	 * Update parameters.
-	 */
-	virtual void parameters_update();
+	void parameters_update() override;
 
 };
 #endif

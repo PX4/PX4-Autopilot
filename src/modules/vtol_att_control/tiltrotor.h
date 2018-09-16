@@ -52,12 +52,12 @@ public:
 	Tiltrotor(VtolAttitudeControl *_att_controller);
 	~Tiltrotor() override = default;
 
-	virtual void update_vtol_state();
-	virtual void update_transition_state();
-	virtual void fill_actuator_outputs();
-	virtual void update_mc_state();
-	virtual void update_fw_state();
-	virtual void waiting_on_tecs();
+	void update_vtol_state() override;
+	void update_transition_state() override;
+	void fill_actuator_outputs() override;
+	void update_mc_state() override;
+	void update_fw_state() override;
+	void waiting_on_tecs() override;
 
 private:
 
@@ -97,10 +97,7 @@ private:
 
 	float _tilt_control{0.0f};		/**< actuator value for the tilt servo */
 
-	/**
-	 * Update parameters.
-	 */
-	virtual void parameters_update();
+	void parameters_update() override;
 
 };
 #endif

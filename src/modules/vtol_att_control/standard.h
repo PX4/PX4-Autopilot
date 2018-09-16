@@ -57,12 +57,12 @@ public:
 	Standard(VtolAttitudeControl *_att_controller);
 	~Standard() override = default;
 
-	virtual void update_vtol_state();
-	virtual void update_transition_state();
-	virtual void update_fw_state();
-	virtual void update_mc_state();
-	virtual void fill_actuator_outputs();
-	virtual void waiting_on_tecs();
+	void update_vtol_state() override;
+	void update_transition_state() override;
+	void update_fw_state() override;
+	void update_mc_state() override;
+	void fill_actuator_outputs() override;
+	void waiting_on_tecs() override;
 
 private:
 
@@ -102,6 +102,6 @@ private:
 	float _reverse_output{0.0f};
 	float _airspeed_trans_blend_margin{0.0f};
 
-	virtual void parameters_update();
+	void parameters_update() override;
 };
 #endif
