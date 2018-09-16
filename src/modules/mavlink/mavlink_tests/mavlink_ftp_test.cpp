@@ -417,6 +417,7 @@ bool MavlinkFtpTest::_read_test()
 						 &reply);		// Payload inside FTP message response
 
 		if (!success) {
+			delete[] bytes;
 			return false;
 		}
 
@@ -432,6 +433,7 @@ bool MavlinkFtpTest::_read_test()
 					    &reply);	// Payload inside FTP message response
 
 		if (!success) {
+			delete[] bytes;
 			return false;
 		}
 
@@ -453,6 +455,7 @@ bool MavlinkFtpTest::_read_test()
 						    &reply);	// Payload inside FTP message response
 
 			if (!success) {
+				delete[] bytes;
 				return false;
 			}
 
@@ -465,6 +468,7 @@ bool MavlinkFtpTest::_read_test()
 						    &reply);	// Payload inside FTP message response
 
 			if (!success) {
+				delete[] bytes;
 				return false;
 			}
 
@@ -486,11 +490,15 @@ bool MavlinkFtpTest::_read_test()
 					    &reply);	// Payload inside FTP message response
 
 		if (!success) {
+			delete[] bytes;
 			return false;
 		}
 
 		ut_compare("Didn't get Ack back", reply->opcode, MavlinkFTP::kRspAck);
 		ut_compare("Incorrect payload size", reply->size, 0);
+
+		delete[] bytes;
+		bytes = nullptr;
 	}
 
 	return true;
@@ -531,6 +539,7 @@ bool MavlinkFtpTest::_burst_test()
 						 &reply);		// Payload inside FTP message response
 
 		if (!success) {
+			delete[] bytes;
 			return false;
 		}
 
@@ -573,11 +582,15 @@ bool MavlinkFtpTest::_burst_test()
 					    &reply);	// Payload inside FTP message response
 
 		if (!success) {
+			delete[] bytes;
 			return false;
 		}
 
 		ut_compare("Didn't get Ack back", reply->opcode, MavlinkFTP::kRspAck);
 		ut_compare("Incorrect payload size", reply->size, 0);
+
+		delete[] bytes;
+		bytes = nullptr;
 	}
 
 	return true;
