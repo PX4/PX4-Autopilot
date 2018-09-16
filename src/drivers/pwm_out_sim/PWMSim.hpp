@@ -110,7 +110,7 @@ private:
 
 	int		_armed_sub{-1};
 
-	actuator_outputs_s _actuator_outputs = {};
+	actuator_outputs_s _actuator_outputs{};
 	orb_advert_t	_outputs_pub{nullptr};
 
 	unsigned	_num_outputs{0};

@@ -158,9 +158,6 @@ PWMSim::run()
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
-	/* advertise the mixed control outputs, insist on the first group output */
-	_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_actuator_outputs);
-
 	update_params();
 	int params_sub = orb_subscribe(ORB_ID(parameter_update));
 
@@ -287,7 +284,8 @@ PWMSim::run()
 
 			/* and publish for anyone that cares to see */
 			_actuator_outputs.timestamp = hrt_absolute_time();
-			orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_actuator_outputs);
+			int instance;
+			orb_publish_auto(ORB_ID(actuator_outputs), &_outputs_pub, &_actuator_outputs, &instance, ORB_PRIO_DEFAULT);
 
 			// use first valid timestamp_sample for latency tracking
 			for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
