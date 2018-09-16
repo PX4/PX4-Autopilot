@@ -65,7 +65,7 @@ then
 	param set MPC_Z_VEL_P 0.8000
 
 	# TELEM2 config
-	param set MAV_1_CONFIG 2
+	param set MAV_1_CONFIG 102
 	param set MAV_1_RATE 80000
 	param set MAV_1_FORWARD 1
 	param set SER_TEL2_BAUD 921600
