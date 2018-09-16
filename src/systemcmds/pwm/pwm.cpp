@@ -439,6 +439,10 @@ pwm_main(int argc, char *argv[])
 			return 1;
 		}
 
+		if (pwm_value < 0) {
+			return 0;
+		}
+
 		if (pwm_value == 0) {
 			usage("min: no PWM value provided");
 			return 1;
@@ -489,6 +493,10 @@ pwm_main(int argc, char *argv[])
 		if (set_mask == 0) {
 			usage("no channels set");
 			return 1;
+		}
+
+		if (pwm_value < 0) {
+			return 0;
 		}
 
 		if (pwm_value == 0) {

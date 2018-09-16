@@ -262,6 +262,30 @@ then
 		pwm disarmed -c 7 -p p:PWM_AUX_DIS7 -d ${OUTPUT_AUX_DEV}
 		pwm disarmed -c 8 -p p:PWM_AUX_DIS8 -d ${OUTPUT_AUX_DEV}
 
+		#
+		# Per channel min settings.
+		#
+		pwm min -c 1 -p p:PWM_AUX_MIN1 -d ${OUTPUT_AUX_DEV}
+		pwm min -c 2 -p p:PWM_AUX_MIN2 -d ${OUTPUT_AUX_DEV}
+		pwm min -c 3 -p p:PWM_AUX_MIN3 -d ${OUTPUT_AUX_DEV}
+		pwm min -c 4 -p p:PWM_AUX_MIN4 -d ${OUTPUT_AUX_DEV}
+		pwm min -c 5 -p p:PWM_AUX_MIN5 -d ${OUTPUT_AUX_DEV}
+		pwm min -c 6 -p p:PWM_AUX_MIN6 -d ${OUTPUT_AUX_DEV}
+		pwm min -c 7 -p p:PWM_AUX_MIN7 -d ${OUTPUT_AUX_DEV}
+		pwm min -c 8 -p p:PWM_AUX_MIN8 -d ${OUTPUT_AUX_DEV}
+
+		#
+		# Per channel max settings.
+		#
+		pwm max -c 1 -p p:PWM_AUX_MAX1 -d ${OUTPUT_AUX_DEV}
+		pwm max -c 2 -p p:PWM_AUX_MAX2 -d ${OUTPUT_AUX_DEV}
+		pwm max -c 3 -p p:PWM_AUX_MAX3 -d ${OUTPUT_AUX_DEV}
+		pwm max -c 4 -p p:PWM_AUX_MAX4 -d ${OUTPUT_AUX_DEV}
+		pwm max -c 5 -p p:PWM_AUX_MAX5 -d ${OUTPUT_AUX_DEV}
+		pwm max -c 6 -p p:PWM_AUX_MAX6 -d ${OUTPUT_AUX_DEV}
+		pwm max -c 7 -p p:PWM_AUX_MAX7 -d ${OUTPUT_AUX_DEV}
+		pwm max -c 8 -p p:PWM_AUX_MAX8 -d ${OUTPUT_AUX_DEV}
+
 		if [ $FAILSAFE_AUX != none ]
 		then
 			pwm failsafe -c ${PWM_AUX_OUT} -p ${FAILSAFE} -d ${OUTPUT_AUX_DEV}
@@ -317,6 +341,30 @@ then
 	pwm disarmed -c 6 -p p:PWM_MAIN_DIS6
 	pwm disarmed -c 7 -p p:PWM_MAIN_DIS7
 	pwm disarmed -c 8 -p p:PWM_MAIN_DIS8
+
+	#
+	# Per channel min settings.
+	#
+	pwm min -c 1 -p p:PWM_MAIN_MIN1
+	pwm min -c 2 -p p:PWM_MAIN_MIN2
+	pwm min -c 3 -p p:PWM_MAIN_MIN3
+	pwm min -c 4 -p p:PWM_MAIN_MIN4
+	pwm min -c 5 -p p:PWM_MAIN_MIN5
+	pwm min -c 6 -p p:PWM_MAIN_MIN6
+	pwm min -c 7 -p p:PWM_MAIN_MIN7
+	pwm min -c 8 -p p:PWM_MAIN_MIN8
+
+	#
+	# Per channel max settings.
+	#
+	pwm max -c 1 -p p:PWM_MAIN_MAX1
+	pwm max -c 2 -p p:PWM_MAIN_MAX2
+	pwm max -c 3 -p p:PWM_MAIN_MAX3
+	pwm max -c 4 -p p:PWM_MAIN_MAX4
+	pwm max -c 5 -p p:PWM_MAIN_MAX5
+	pwm max -c 6 -p p:PWM_MAIN_MAX6
+	pwm max -c 7 -p p:PWM_MAIN_MAX7
+	pwm max -c 8 -p p:PWM_MAIN_MAX8
 
 	if [ $FAILSAFE != none ]
 	then
