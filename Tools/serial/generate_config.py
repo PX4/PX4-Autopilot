@@ -26,41 +26,88 @@ except:
 # with QGC (parameter metadata)
 serial_ports = {
     # index 0 means disabled
+
+    # Generic
+#     "URT1": {
+#         "label": "UART 1",
+#         "index": 1,
+#         "default_baudrate": 57600,
+#         },
+#     "URT2": {
+#         "label": "UART 2",
+#         "index": 2,
+#         "default_baudrate": 57600,
+#         },
+#     "URT3": {
+#         "label": "UART 3",
+#         "index": 3,
+#         "default_baudrate": 57600,
+#         },
+#     "URT4": {
+#         "label": "UART 4",
+#         "index": 4,
+#         "default_baudrate": 57600,
+#         },
+#     "URT5": {
+#         "label": "UART 5",
+#         "index": 5,
+#         "default_baudrate": 57600,
+#         },
+    "URT6": {
+        "label": "UART 6",
+        "index": 6,
+        "default_baudrate": 57600,
+        },
+#     "URT7": {
+#         "label": "UART 7",
+#         "index": 7,
+#         "default_baudrate": 57600,
+#         },
+#     "URT8": {
+#         "label": "UART 8",
+#         "index": 8,
+#         "default_baudrate": 57600,
+#         },
+#     "URT9": {
+#         "label": "UART 9",
+#         "index": 9,
+#         "default_baudrate": 57600,
+#         },
+
+    # Telemetry Ports
     "TEL1": { # telemetry link
         "label": "TELEM 1",
-        "index": 1,
+        "index": 101,
         "default_baudrate": 57600,
         },
     "TEL2": { # companion port
         "label": "TELEM 2",
-        "index": 2,
+        "index": 102,
         "default_baudrate": 921600,
         },
     "TEL3": {
         "label": "TELEM 3",
-        "index": 3,
+        "index": 103,
         "default_baudrate": 57600,
         },
     "TEL4": {
         "label": "TELEM/SERIAL 4",
-        "index": 4,
+        "index": 104,
         "default_baudrate": 57600,
         },
+
+    # GPS Ports
     "GPS1": {
         "label": "GPS 1",
-        "index": 5,
+        "index": 201,
         "default_baudrate": 0,
         },
     "GPS2": {
         "label": "GPS 2",
-        "index": 6,
+        "index": 202,
         "default_baudrate": 0,
         },
-    "URT6": { # for Omnibus
-        "label": "UART 6",
-        "index": 7,
-        "default_baudrate": 0,
-        },
+
     }
 
 parser = argparse.ArgumentParser(description='Generate Serial params & startup script')
