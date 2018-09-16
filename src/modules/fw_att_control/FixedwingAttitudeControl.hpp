@@ -93,9 +93,6 @@ public:
 
 private:
 
-	static constexpr float _airspeed_numerical_min =
-		0.5f; /**< lowest airspeed we will ever use to prevent numerical problems */
-
 	int		_att_sub{-1};				/**< vehicle attitude */
 	int		_att_sp_sub{-1};			/**< vehicle attitude setpoint */
 	int		_rates_sp_sub{-1};			/**< vehicle attitude setpoint */
