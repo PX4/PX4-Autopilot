@@ -323,9 +323,11 @@ Navigator::run()
 				// Go on and check which changes had been requested
 				if (PX4_ISFINITE(cmd.param4)) {
 					rep->current.yaw = cmd.param4;
+					rep->current.yaw_valid = true;
 
 				} else {
 					rep->current.yaw = NAN;
+					rep->current.yaw_valid = false;
 				}
 
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
