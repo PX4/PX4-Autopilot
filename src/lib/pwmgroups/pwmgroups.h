@@ -119,6 +119,7 @@
 typedef enum {
     PWM_GROUP_RATE_ALT,
     PWM_GROUP_RATE_DEFAULT,
+    PWM_GROUP_RATE_MIXED,
     PWM_GROUP_RATE_UNSPECIFIED
 } pwm_groups_rate_t;
 
@@ -224,8 +225,12 @@ protected:
     //group channels must be continously allocated;
     uint32_t _group_channel_map;
     uint32_t _working_channel_map;
-    //map of channels with alt rate;
+    //map of channels with alt rate, different from _working_channel_map in some cases,
+    //e.g., a mixer group includes both main output and camera trigger;
     uint32_t _channel_rate_map;
+    
+    //channel map for capture function;
+    uint32_t _capture_channel_map;
     
     uint8_t _timer_map_offset;
     uint32_t _channel_map_offset;
