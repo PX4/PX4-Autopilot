@@ -398,7 +398,7 @@ private: // class methods
 	 * Handles creation of the object and the initial publication for
 	 * advertisers.
 	 */
-	int node_open(const struct orb_metadata *meta, const void *data, bool advertiser, int *instance = nullptr,
+	int node_open(const struct orb_metadata *meta, bool advertiser, int *instance = nullptr,
 		      int priority = ORB_PRIO_DEFAULT);
 
 private: // data members
