@@ -23,7 +23,7 @@
     <group ns="uav1">
         <!-- MAVROS and vehicle configs -->        
         <arg name="ID" value="1"/>
-        <arg name="fcu_url" default="udp://:14541@localhost:14558"/>
+        <arg name="fcu_url" default="udp://:14552@localhost:14551"/>
         <!-- PX4 SITL and vehicle spawn -->
         <include file="$(find px4)/launch/single_vehicle_spawn.launch">
             <arg name="x" value="0"/>
@@ -33,7 +33,7 @@
             <arg name="P" value="0"/>
             <arg name="Y" value="0"/>
             <arg name="vehicle" value="$(arg vehicle)"/>
-            <arg name="mavlink_udp_port" value="14561"/>
+            <arg name="mavlink_udp_port" value="14550"/>
             <arg name="ID" value="$(arg ID)"/>
         </include>
         <!-- MAVROS -->
@@ -48,7 +48,7 @@
     <group ns="uav2">
         <!-- MAVROS and vehicle configs -->
         <arg name="ID" value="2"/>
-        <arg name="fcu_url" default="udp://:14542@localhost:14559"/>
+        <arg name="fcu_url" default="udp://:14556@localhost:14555"/>
         <!-- PX4 SITL and vehicle spawn -->
         <include file="$(find px4)/launch/single_vehicle_spawn.launch">
             <arg name="x" value="1"/>
@@ -58,7 +58,33 @@
             <arg name="P" value="0"/>
             <arg name="Y" value="0"/>
             <arg name="vehicle" value="$(arg vehicle)"/>
-            <arg name="mavlink_udp_port" value="14562"/>
+            <arg name="mavlink_udp_port" value="14554"/>
+            <arg name="ID" value="$(arg ID)"/>
+        </include>
+        <!-- MAVROS -->
+        <include file="$(find mavros)/launch/px4.launch">
+            <arg name="fcu_url" value="$(arg fcu_url)"/>
+            <arg name="gcs_url" value=""/>
+            <arg name="tgt_system" value="$(arg ID)"/>
+            <arg name="tgt_component" value="1"/>
+        </include>
+    </group>
+
+    <!-- UAV3 -->
+    <group ns="uav3">
+        <!-- MAVROS and vehicle configs -->
+        <arg name="ID" value="3"/>
+        <arg name="fcu_url" default="udp://:14560@localhost:14559"/>
+        <!-- PX4 SITL and vehicle spawn -->
+        <include file="$(find px4)/launch/single_vehicle_spawn.launch">
+            <arg name="x" value="0"/>
+            <arg name="y" value="1"/>
+            <arg name="z" value="0"/>
+            <arg name="R" value="0"/>
+            <arg name="P" value="0"/>
+            <arg name="Y" value="0"/>
+            <arg name="vehicle" value="$(arg vehicle)"/>
+            <arg name="mavlink_udp_port" value="14558"/>
             <arg name="ID" value="$(arg ID)"/>
         </include>
         <!-- MAVROS -->
@@ -70,6 +96,9 @@
         </include>
     </group>
 </launch>
-<!-- to add more quads increase the id
-set the FCU to default="udp://:14540+id@localhost:14557+id"
-set the malink_udo_port to 14560+id -->
+
+<!-- to add more UAVs:
+Increase the id
+Change the name space
+Set the FCU to default="udp://:14552+4*(id-1)+id@localhost:14551+4*(id-1)"
+Set the malink_udp_port to 14550+4*(id-1) -->
