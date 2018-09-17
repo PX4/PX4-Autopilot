@@ -10,8 +10,8 @@ uint8 TECS_MODE_CLIMBOUT = 6
 
 float32 altitude_sp
 float32 altitude_filtered
-float32 flight_path_angle_sp
-float32 flight_path_angle
+float32 height_rate_setpoint
+float32 height_rate
 float32 airspeed_sp
 float32 airspeed_filtered
 float32 airspeed_derivative_sp
