@@ -2551,7 +2551,7 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_SET:
 		if (pconfig) {
             uint8_t chan = pconfig->channel;
-            chan = chan + _channel_offset;
+            chan = chan + _channel_map_offset;
             //_capture_channel_map = 1 << chan;
 			ret =  up_input_capture_set(chan, pconfig->edge, pconfig->filter,
 						    pconfig->callback, pconfig->context);
@@ -2562,7 +2562,7 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_SET_CALLBACK:
 		if (pconfig) {
             uint8_t chan = pconfig->channel;
-            chan = chan + _channel_offset;
+            chan = chan + _channel_map_offset;
             _capture_channel_map = 1 << chan;
 			ret =  up_input_capture_set_callback(chan, pconfig->callback, pconfig->context);
 		}
@@ -2572,7 +2572,7 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_GET_CALLBACK:
 		if (pconfig) {
             uint8_t chan = pconfig->channel;
-            chan = chan + _channel_offset;
+            chan = chan + _channel_map_offset;
             //_capture_channel_map = 1 << chan;
 			ret =  up_input_capture_get_callback(chan, &pconfig->callback, &pconfig->context);
 		}
@@ -2582,7 +2582,7 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_GET_STATS:
 		if (arg) {
             uint8_t chan = stats->chan_in_edges_out;
-            chan = chan + _channel_offset;
+            chan = chan + _channel_map_offset;
             //_capture_channel_map = 1 << chan;
 
 			ret =  up_input_capture_get_stats(chan, stats, false);
@@ -2593,7 +2593,7 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_GET_CLR_STATS:
 		if (arg) {
             uint8_t chan = stats->chan_in_edges_out;
-            chan = chan + _channel_offset;
+            chan = chan + _channel_map_offset;
             //_capture_channel_map = 1 << chan;
 
 			ret =  up_input_capture_get_stats(chan, stats, true);
@@ -2604,7 +2604,7 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_SET_EDGE:
 		if (pconfig) {
             uint8_t chan = pconfig->channel;
-            chan = chan + _channel_offset;
+            chan = chan + _channel_map_offset;
             //_capture_channel_map = 1 << chan;
 
 			ret =  up_input_capture_set_trigger(chan, pconfig->edge);
@@ -2615,7 +2615,7 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_GET_EDGE:
 		if (pconfig) {
             uint8_t chan = pconfig->channel;
-            chan = chan + _channel_offset;
+            chan = chan + _channel_map_offset;
             //_capture_channel_map = 1 << chan;
 
 			ret =  up_input_capture_get_trigger(chan, &pconfig->edge);
@@ -2626,7 +2626,7 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_SET_FILTER:
 		if (pconfig) {
             uint8_t chan = pconfig->channel;
-            chan = chan + _channel_offset;
+            chan = chan + _channel_map_offset;
             //_capture_channel_map = 1 << chan;
 
 			ret =  up_input_capture_set_filter(chan, pconfig->filter);
@@ -2637,7 +2637,7 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_GET_FILTER:
 		if (pconfig) {
             uint8_t chan = pconfig->channel;
-            chan = chan + _channel_offset;
+            chan = chan + _channel_map_offset;
             //_capture_channel_map = 1 << chan;
 
 			ret =  up_input_capture_get_filter(chan, &pconfig->filter);
