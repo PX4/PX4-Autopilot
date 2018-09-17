@@ -36,6 +36,8 @@
 #include "uORBCommon.hpp"
 #include "uORBDeviceMaster.hpp"
 
+#include <lib/cdev/CDev.hpp>
+
 namespace uORB
 {
 class DeviceNode;

@@ -397,8 +397,8 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 	uORB::DeviceNode *devnode = (uORB::DeviceNode *)handle;
 	int ret;
 
-	/* check if the device handle is initialized */
-	if ((devnode == nullptr) || (meta == nullptr)) {
+	/* check if the device handle is initialized and data is valid */
+	if ((devnode == nullptr) || (meta == nullptr) || (data == nullptr)) {
 		errno = EFAULT;
 		return PX4_ERROR;
 	}
