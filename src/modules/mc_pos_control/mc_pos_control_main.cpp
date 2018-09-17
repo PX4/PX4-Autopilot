@@ -741,7 +741,7 @@ MulticopterPositionControl::task_main()
 			_att_sp.disable_mc_yaw_control = false;
 			_att_sp.apply_flaps = false;
 
-			_wv_controller.update(matrix::Quatf(&_att_sp.q_d[0]), _local_pos.yaw);
+			_wv_controller.update(matrix::Quatf(_att_sp.q_d), _local_pos.yaw);
 
 			if (!constraints.landing_gear) {
 				if (constraints.landing_gear == vehicle_constraints_s::GEAR_UP) {
