@@ -72,11 +72,11 @@ using namespace vmount;
 static volatile bool thread_should_exit = false;
 static volatile bool thread_running = false;
 
-static constexpr int input_objs_len_max = 3;
+static constexpr unsigned input_objs_len_max = 3;
 
 struct ThreadData {
 	InputBase *input_objs[input_objs_len_max] = {nullptr, nullptr, nullptr};
-	int input_objs_len = 0;
+	unsigned input_objs_len = 0;
 	OutputBase *output_obj = nullptr;
 };
 static volatile ThreadData *g_thread_data = nullptr;
@@ -92,17 +92,28 @@ struct Parameters {
 	int32_t mnt_man_roll;
 	int32_t mnt_man_yaw;
 	int32_t mnt_do_stab;
-	float mnt_range_pitch;
+
 	float mnt_range_roll;
+	float mnt_range_pitch;
 	float mnt_range_yaw;
+
 	float mnt_off_pitch;
 	float mnt_off_roll;
 	float mnt_off_yaw;
 
+	// roll/pitch/yaw safe positions for closing
+	float mnt_roll_close;
+	float mnt_pitch_close;
+	float mnt_yaw_close;
+
+	float doors_delay;
+	float doors_open;
+	float doors_close;
+
+	float camera_safe_position_close_delay;
+
 	bool operator!=(const Parameters &p)
 	{
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfloat-equal"
 		return mnt_mode_in != p.mnt_mode_in ||
 		       mnt_mode_out != p.mnt_mode_out ||
 		       mnt_mav_sysid != p.mnt_mav_sysid ||
@@ -113,14 +124,12 @@ struct Parameters {
 		       mnt_man_roll != p.mnt_man_roll ||
 		       mnt_man_yaw != p.mnt_man_yaw ||
 		       mnt_do_stab != p.mnt_do_stab ||
-		       mnt_range_pitch != p.mnt_range_pitch ||
-		       mnt_range_roll != p.mnt_range_roll ||
-		       mnt_range_yaw != p.mnt_range_yaw ||
-		       mnt_off_pitch != p.mnt_off_pitch ||
-		       mnt_off_roll != p.mnt_off_roll ||
-		       mnt_off_yaw != p.mnt_off_yaw;
-#pragma GCC diagnostic pop
-
+		       fabsf(mnt_range_pitch - p.mnt_range_pitch) > 1e-6f ||
+		       fabsf(mnt_range_roll - p.mnt_range_roll) > 1e-6f ||
+		       fabsf(mnt_range_yaw - p.mnt_range_yaw) > 1e-6f ||
+		       fabsf(mnt_off_pitch - p.mnt_off_pitch) > 1e-6f ||
+		       fabsf(mnt_off_roll - p.mnt_off_roll) > 1e-6f ||
+		       fabsf(mnt_off_yaw - p.mnt_off_yaw) > 1e-6f;
 	}
 };
 
@@ -141,12 +150,22 @@ struct ParameterHandles {
 	param_t mnt_off_pitch;
 	param_t mnt_off_roll;
 	param_t mnt_off_yaw;
+
+	param_t mnt_camera_safe_position_close_delay;
+	param_t mnt_doors_delay;
+
+	param_t mnt_doors_open;
+	param_t mnt_doors_close;
+
+	param_t mnt_roll_close_safe;
+	param_t mnt_pitch_close_safe;
+	param_t mnt_yaw_close_safe;
 };
 
 
 /* functions */
 static void usage();
-static void update_params(ParameterHandles &param_handles, Parameters &params, bool &got_changes);
+static bool update_params(const ParameterHandles &param_handles, Parameters &params);
 static bool get_params(ParameterHandles &param_handles, Parameters &params);
 
 static int vmount_thread_main(int argc, char *argv[]);
@@ -182,12 +201,10 @@ $ vmount test yaw 30
 
 static int vmount_thread_main(int argc, char *argv[])
 {
-	ParameterHandles param_handles;
-	Parameters params;
-	OutputConfig output_config;
-	ThreadData thread_data;
-	memset(&params, 0, sizeof(params));
-
+	ParameterHandles param_handles{};
+	Parameters params{};
+	OutputConfig output_config{};
+	ThreadData thread_data{};
 
 	InputTest *test_input = nullptr;
 
@@ -248,7 +265,7 @@ static int vmount_thread_main(int argc, char *argv[])
 	ControlData *control_data = nullptr;
 	g_thread_data = &thread_data;
 
-	int last_active = 0;
+	unsigned last_active = 0;
 
 	while (!thread_should_exit) {
 
@@ -256,14 +273,37 @@ static int vmount_thread_main(int argc, char *argv[])
 
 			output_config.gimbal_normal_mode_value = params.mnt_ob_norm_mode;
 			output_config.gimbal_retracted_mode_value = params.mnt_ob_lock_mode;
-			output_config.pitch_scale = 1.0f / ((params.mnt_range_pitch / 2.0f) * M_DEG_TO_RAD_F);
+
+			output_config.gimbal_roll_retracted_mode_value = params.mnt_roll_close;
+			output_config.gimbal_pitch_retracted_mode_value = params.mnt_pitch_close;
+			output_config.gimbal_yaw_retracted_mode_value = params.mnt_yaw_close;
+
+			const float pitch_range = params.mnt_range_pitch * M_DEG_TO_RAD_F;
+			const float pitch_range_half = (params.mnt_range_pitch / 2.0f) * M_DEG_TO_RAD_F;
+			const float pitch_offset = params.mnt_off_pitch * M_DEG_TO_RAD_F;
+
+			PX4_INFO("pitch range: %.3f", (double)(pitch_range));
+			PX4_INFO("pitch offset: %.3f", (double)(pitch_offset));
+
+			output_config.pitch_scale = 1.0f / pitch_range_half;
+			output_config.pitch_min = pitch_offset - pitch_range_half;
+			output_config.pitch_max = pitch_offset + pitch_range_half;
+
 			output_config.roll_scale = 1.0f / ((params.mnt_range_roll / 2.0f) * M_DEG_TO_RAD_F);
 			output_config.yaw_scale = 1.0f / ((params.mnt_range_yaw / 2.0f) * M_DEG_TO_RAD_F);
+
 			output_config.pitch_offset = params.mnt_off_pitch * M_DEG_TO_RAD_F;
 			output_config.roll_offset = params.mnt_off_roll * M_DEG_TO_RAD_F;
 			output_config.yaw_offset = params.mnt_off_yaw * M_DEG_TO_RAD_F;
+
 			output_config.mavlink_sys_id = params.mnt_mav_sysid;
 			output_config.mavlink_comp_id = params.mnt_mav_compid;
+
+			output_config.doors_delay = params.doors_delay;
+			output_config.doors_open_value = params.doors_open;
+			output_config.doors_closed_value = params.doors_close;
+
+			output_config.camera_safe_position_close_delay = params.camera_safe_position_close_delay;
 
 			bool alloc_failed = false;
 			thread_data.input_objs_len = 1;
@@ -305,7 +345,7 @@ static int vmount_thread_main(int argc, char *argv[])
 				}
 			}
 
-			for (int i = 0; i < thread_data.input_objs_len; ++i) {
+			for (unsigned i = 0; i < thread_data.input_objs_len; ++i) {
 				if (!thread_data.input_objs[i]) {
 					alloc_failed = true;
 				}
@@ -356,7 +396,7 @@ static int vmount_thread_main(int argc, char *argv[])
 			//get input: we cannot make the timeout too large, because the output needs to update
 			//periodically for stabilization and angle updates.
 
-			for (int i = 0; i < thread_data.input_objs_len; ++i) {
+			for (unsigned i = 0; i < thread_data.input_objs_len; ++i) {
 
 				bool already_active = (last_active == i);
 
@@ -402,11 +442,11 @@ static int vmount_thread_main(int argc, char *argv[])
 		if (orb_check(parameter_update_sub, &updated) == 0 && updated) {
 			parameter_update_s param_update;
 			orb_copy(ORB_ID(parameter_update), parameter_update_sub, &param_update);
-			update_params(param_handles, params, updated);
+			updated = update_params(param_handles, params);
 
 			if (updated) {
 				//re-init objects
-				for (int i = 0; i < input_objs_len_max; ++i) {
+				for (unsigned i = 0; i < input_objs_len_max; ++i) {
 					if (thread_data.input_objs[i]) {
 						delete (thread_data.input_objs[i]);
 						thread_data.input_objs[i] = nullptr;
@@ -429,7 +469,7 @@ static int vmount_thread_main(int argc, char *argv[])
 
 	orb_unsubscribe(parameter_update_sub);
 
-	for (int i = 0; i < input_objs_len_max; ++i) {
+	for (unsigned i = 0; i < input_objs_len_max; ++i) {
 		if (thread_data.input_objs[i]) {
 			delete (thread_data.input_objs[i]);
 			thread_data.input_objs[i] = nullptr;
@@ -513,7 +553,7 @@ int vmount_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running && g_thread_data) {
 
-			for (int i = 0; i < g_thread_data->input_objs_len; ++i) {
+			for (unsigned i = 0; i < g_thread_data->input_objs_len; ++i) {
 				g_thread_data->input_objs[i]->print_status();
 			}
 
@@ -535,32 +575,95 @@ int vmount_main(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(argv[1], "deploy")) {
+		if (thread_running) {
+
+			int32_t mav_sys_id = 0;
+			param_get(param_find("MAV_SYS_ID"), &mav_sys_id);
+			int32_t mav_comp_id = 0;
+			param_get(param_find("MAV_COMP_ID"), &mav_comp_id);
+
+			PX4_INFO("sending DO_MOUNT_CONFIGURE: neutral");
+
+			vehicle_command_s vcmd = {};
+			vcmd.timestamp = hrt_absolute_time();
+			vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE;
+			vcmd.param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL;
+			vcmd.target_system = mav_sys_id;
+			vcmd.target_component = mav_comp_id;
+			orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+			orb_unadvertise(h);
+		}
+
+		return 0;
+	}
+
+	if (!strcmp(argv[1], "retract")) {
+		if (thread_running) {
+
+			PX4_INFO("sending DO_MOUNT_CONFIGURE: retract");
+
+			int32_t mav_sys_id = 0;
+			param_get(param_find("MAV_SYS_ID"), &mav_sys_id);
+			int32_t mav_comp_id = 0;
+			param_get(param_find("MAV_COMP_ID"), &mav_comp_id);
+
+			vehicle_command_s vcmd = {};
+			vcmd.timestamp = hrt_absolute_time();
+			vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE;
+			vcmd.param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT;
+			vcmd.target_system = mav_sys_id;
+			vcmd.target_component = mav_comp_id;
+			orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+			orb_unadvertise(h);
+		}
+
+		return 0;
+	}
+
 	PX4_ERR("unrecognized command");
 	usage();
 	return -1;
 }
 
-void update_params(ParameterHandles &param_handles, Parameters &params, bool &got_changes)
+bool update_params(const ParameterHandles &param_handles, Parameters &params)
 {
 	Parameters prev_params = params;
+
 	param_get(param_handles.mnt_mode_in, &params.mnt_mode_in);
 	param_get(param_handles.mnt_mode_out, &params.mnt_mode_out);
+
 	param_get(param_handles.mnt_mav_sysid, &params.mnt_mav_sysid);
 	param_get(param_handles.mnt_mav_compid, &params.mnt_mav_compid);
+
 	param_get(param_handles.mnt_ob_lock_mode, &params.mnt_ob_lock_mode);
 	param_get(param_handles.mnt_ob_norm_mode, &params.mnt_ob_norm_mode);
+
 	param_get(param_handles.mnt_man_pitch, &params.mnt_man_pitch);
 	param_get(param_handles.mnt_man_roll, &params.mnt_man_roll);
 	param_get(param_handles.mnt_man_yaw, &params.mnt_man_yaw);
+
 	param_get(param_handles.mnt_do_stab, &params.mnt_do_stab);
+
 	param_get(param_handles.mnt_range_pitch, &params.mnt_range_pitch);
 	param_get(param_handles.mnt_range_roll, &params.mnt_range_roll);
 	param_get(param_handles.mnt_range_yaw, &params.mnt_range_yaw);
+
 	param_get(param_handles.mnt_off_pitch, &params.mnt_off_pitch);
 	param_get(param_handles.mnt_off_roll, &params.mnt_off_roll);
 	param_get(param_handles.mnt_off_yaw, &params.mnt_off_yaw);
 
-	got_changes = prev_params != params;
+	param_get(param_handles.mnt_camera_safe_position_close_delay, &params.camera_safe_position_close_delay);
+
+	param_get(param_handles.mnt_doors_delay, &params.doors_delay);
+	param_get(param_handles.mnt_doors_open, &params.doors_open);
+	param_get(param_handles.mnt_doors_close, &params.doors_close);
+
+	param_get(param_handles.mnt_roll_close_safe, &params.mnt_roll_close);
+	param_get(param_handles.mnt_pitch_close_safe, &params.mnt_pitch_close);
+	param_get(param_handles.mnt_yaw_close_safe, &params.mnt_yaw_close);
+
+	return (prev_params != params);
 }
 
 bool get_params(ParameterHandles &param_handles, Parameters &params)
@@ -582,6 +685,16 @@ bool get_params(ParameterHandles &param_handles, Parameters &params)
 	param_handles.mnt_off_roll = param_find("MNT_OFF_ROLL");
 	param_handles.mnt_off_yaw = param_find("MNT_OFF_YAW");
 
+	param_handles.mnt_roll_close_safe = param_find("MNT_ROLL_CLOSE");
+	param_handles.mnt_pitch_close_safe = param_find("MNT_PITCH_CLOSE");
+	param_handles.mnt_yaw_close_safe = param_find("MNT_YAW_CLOSE");
+
+	param_handles.mnt_doors_delay = param_find("MNT_DOORS_DELAY");
+	param_handles.mnt_doors_open = param_find("MNT_DOORS_OPEN");
+	param_handles.mnt_doors_close = param_find("MNT_DOORS_CLOSED");
+
+	param_handles.mnt_camera_safe_position_close_delay = param_find("MNT_SF_POS_DELAY");
+
 	if (param_handles.mnt_mode_in == PARAM_INVALID ||
 	    param_handles.mnt_mode_out == PARAM_INVALID ||
 	    param_handles.mnt_mav_sysid == PARAM_INVALID ||
@@ -597,11 +710,24 @@ bool get_params(ParameterHandles &param_handles, Parameters &params)
 		param_handles.mnt_range_yaw == PARAM_INVALID ||
 		param_handles.mnt_off_pitch == PARAM_INVALID ||
 		param_handles.mnt_off_roll == PARAM_INVALID ||
-		param_handles.mnt_off_yaw == PARAM_INVALID) {
+		param_handles.mnt_off_yaw == PARAM_INVALID ||
+
+		param_handles.mnt_roll_close_safe == PARAM_INVALID ||
+		param_handles.mnt_pitch_close_safe == PARAM_INVALID ||
+		param_handles.mnt_yaw_close_safe == PARAM_INVALID ||
+
+		param_handles.mnt_doors_delay == PARAM_INVALID ||
+		param_handles.mnt_doors_open == PARAM_INVALID ||
+		param_handles.mnt_doors_close == PARAM_INVALID ||
+
+		param_handles.mnt_camera_safe_position_close_delay == PARAM_INVALID
+
+
+	) {
+
 		return false;
 	}
 
-	bool dummy;
-	update_params(param_handles, params, dummy);
+	update_params(param_handles, params);
 	return true;
 }

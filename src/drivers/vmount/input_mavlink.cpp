@@ -118,6 +118,7 @@ int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_
 			} else if (vehicle_roi.mode == vehicle_roi_s::ROI_WPNEXT) {
 				_control_data.type = ControlData::Type::LonLat;
 				_read_control_data_from_position_setpoint_sub();
+				_control_data.type_data.lonlat.roll_angle = 0.f;
 				_control_data.type_data.lonlat.pitch_fixed_angle = -10.f;
 
 				_control_data.type_data.lonlat.roll_angle = vehicle_roi.roll_offset;
@@ -125,6 +126,9 @@ int InputMavlinkROI::update_impl(unsigned int timeout_ms, ControlData **control_
 				_control_data.type_data.lonlat.yaw_angle_offset = vehicle_roi.yaw_offset;
 
 				*control_data = &_control_data;
+
+			} else if (vehicle_roi.mode == vehicle_roi_s::ROI_WPINDEX) {
+				//TODO how to do this?
 
 			} else if (vehicle_roi.mode == vehicle_roi_s::ROI_LOCATION) {
 				control_data_set_lon_lat(vehicle_roi.lon, vehicle_roi.lat, vehicle_roi.alt);
@@ -172,7 +176,6 @@ void InputMavlinkROI::print_status()
 {
 	PX4_INFO("Input: Mavlink (ROI)");
 }
-
 
 InputMavlinkCmdMount::InputMavlinkCmdMount(bool stabilize)
 	: _stabilize {stabilize, stabilize, stabilize}
@@ -258,44 +261,45 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 					continue;
 				}
 
-				for (int i = 0; i < 3; ++i) {
-					_control_data.stabilize_axis[i] = _stabilize[i];
-				}
-
-				_control_data.gimbal_shutter_retract = false;
-
 				if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL) {
 
 					switch ((int)vehicle_command.param7) {
 					case vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT:
+						PX4_WARN("MOUNT_CONTROL: retract");
 						_control_data.gimbal_shutter_retract = true;
-
-					/* FALLTHROUGH */
-
-					case vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL:
-						_control_data.type = ControlData::Type::Neutral;
 
 						*control_data = &_control_data;
 						break;
 
-					case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
-						_control_data.type = ControlData::Type::Angle;
-						_control_data.type_data.angle.is_speed[0] = false;
-						_control_data.type_data.angle.is_speed[1] = false;
-						_control_data.type_data.angle.is_speed[2] = false;
-						// vmount spec has roll on channel 0, MAVLink spec has pitch on channel 0
-						_control_data.type_data.angle.angles[0] = vehicle_command.param2 * M_DEG_TO_RAD_F;
-						// vmount spec has pitch on channel 1, MAVLink spec has roll on channel 1
-						_control_data.type_data.angle.angles[1] = vehicle_command.param1 * M_DEG_TO_RAD_F;
-						// both specs have yaw on channel 2
-						_control_data.type_data.angle.angles[2] = vehicle_command.param3 * M_DEG_TO_RAD_F;
-
-						// We expect angle of [-pi..+pi]. If the input range is [0..2pi] we can fix that.
-						if (_control_data.type_data.angle.angles[2] > M_PI_F) {
-							_control_data.type_data.angle.angles[2] -= 2 * M_PI_F;
-						}
+					case vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL:
+						PX4_WARN("MOUNT_CONTROL: deploy (neutral)");
+						_control_data.type = ControlData::Type::Neutral;
+						_control_data.gimbal_shutter_retract = false;
 
 						*control_data = &_control_data;
+						break;
+
+					case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING: {
+							_control_data.type = ControlData::Type::Angle;
+
+							// mavlink spec MAV_CMD_DO_MOUNT_CONTROL
+							// param1: pitch (tilt)
+							// param2: roll
+							// param3: yaw (pan)
+
+							// We expect angle of [-pi..+pi]. If the input range is [0..2pi] we can fix that.
+							const float roll = vehicle_command.param2 * M_DEG_TO_RAD_F;
+							const float pitch = vehicle_command.param1 * M_DEG_TO_RAD_F;
+							const float yaw = vehicle_command.param3 * M_DEG_TO_RAD_F;
+
+							if (PX4_ISFINITE(pitch) && PX4_ISFINITE(yaw)) {
+								_control_data.type_data.angle.angles[0] = roll;
+								_control_data.type_data.angle.angles[1] = pitch;
+								_control_data.type_data.angle.angles[2] = yaw;
+							}
+
+							*control_data = &_control_data;
+						}
 						break;
 
 					case vehicle_command_s::VEHICLE_MOUNT_MODE_RC_TARGETING:
@@ -311,19 +315,49 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 					_ack_vehicle_command(&vehicle_command);
 
 				} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE) {
+
+
+					switch ((int)vehicle_command.param1) {
+					case vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT:
+						PX4_WARN("MOUNT_CONFIGURE: retract");
+						_control_data.gimbal_shutter_retract = true;
+
+						*control_data = &_control_data;
+						break;
+
+					case vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL:
+						PX4_WARN("MOUNT_CONFIGURE: deploy");
+						_control_data.type = ControlData::Type::Neutral;
+						_control_data.gimbal_shutter_retract = false;
+
+						*control_data = &_control_data;
+						break;
+					}
+
 					_stabilize[0] = (uint8_t) vehicle_command.param2 == 1;
 					_stabilize[1] = (uint8_t) vehicle_command.param3 == 1;
 					_stabilize[2] = (uint8_t) vehicle_command.param4 == 1;
-					_control_data.type = ControlData::Type::Neutral; //always switch to neutral position
+
+					_control_data.type_data.angle.is_speed[0] = (uint8_t) vehicle_command.param5 == 1;
+					_control_data.type_data.angle.is_speed[1] = (uint8_t) vehicle_command.param6 == 1;
+					_control_data.type_data.angle.is_speed[2] = (uint8_t) vehicle_command.param7 == 1;
 
 					*control_data = &_control_data;
+					_ack_vehicle_command(&vehicle_command);
+
+				} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL) {
+					// find a better home for this
+					const float zoom = vehicle_command.param2;
+
+					_control_data.zoom = zoom;
+					*control_data = &_control_data;
+
 					_ack_vehicle_command(&vehicle_command);
 
 				} else {
 					exit_loop = false;
 				}
 			}
-
 		}
 	}
 

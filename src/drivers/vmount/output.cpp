@@ -42,7 +42,7 @@
 #include <errno.h>
 
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/mount_orientation.h>
 #include <px4_defines.h>
@@ -70,6 +70,10 @@ OutputBase::~OutputBase()
 		orb_unsubscribe(_vehicle_global_position_sub);
 	}
 
+	if (_vehicle_control_mode_sub >= 0) {
+		orb_unsubscribe(_vehicle_control_mode_sub);
+	}
+
 	if (_mount_orientation_pub) {
 		orb_unadvertise(_mount_orientation_pub);
 	}
@@ -82,6 +86,10 @@ int OutputBase::initialize()
 	}
 
 	if ((_vehicle_global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position))) < 0) {
+		return -errno;
+	}
+
+	if ((_vehicle_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode))) < 0) {
 		return -errno;
 	}
 
@@ -199,20 +207,24 @@ void OutputBase::_handle_position_update(bool force_update)
 void OutputBase::_calculate_output_angles(const hrt_abstime &t)
 {
 	//take speed into account
-	float dt = (t - _last_update) / 1.e6f;
+	const float dt = (t - _last_update) / 1.e6f;
 
 	for (int i = 0; i < 3; ++i) {
-		_angle_setpoints[i] += dt * _angle_speeds[i];
+		const float inc = math::constrain(dt * _angle_speeds[i], -M_PI_F * 2.0f, M_PI_F * 2.0f);
+
+		if (PX4_ISFINITE(inc)) {
+			_angle_setpoints[i] += inc;
+		}
 	}
 
-	//get the output angles and stabilize if necessary
-	vehicle_attitude_s vehicle_attitude;
+	matrix::Eulerf euler{0.0f, 0.0f, 0.0f};
 
 	if (_stabilize[0] || _stabilize[1] || _stabilize[2]) {
+		//get the output angles and stabilize if necessary
+		vehicle_attitude_s vehicle_attitude = {};
 		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &vehicle_attitude);
+		euler = matrix::Quatf(vehicle_attitude.q);
 	}
-
-	matrix::Eulerf euler = matrix::Quatf(vehicle_attitude.q);
 
 	for (int i = 0; i < 3; ++i) {
 		if (_stabilize[i]) {
@@ -221,12 +233,10 @@ void OutputBase::_calculate_output_angles(const hrt_abstime &t)
 		} else {
 			_angle_outputs[i] = _angle_setpoints[i];
 		}
-
-		//bring angles into proper range [-pi, pi]
-		while (_angle_outputs[i] > M_PI_F) { _angle_outputs[i] -= 2.f * M_PI_F; }
-
-		while (_angle_outputs[i] < -M_PI_F) { _angle_outputs[i] += 2.f * M_PI_F; }
 	}
+
+	// wrap yaw
+	_angle_outputs[2] = matrix::wrap_2pi(_angle_setpoints[2]);
 }
 
 } /* namespace vmount */

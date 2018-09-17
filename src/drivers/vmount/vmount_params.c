@@ -225,3 +225,71 @@ PARAM_DEFINE_FLOAT(MNT_OFF_ROLL, 0.0f);
 * @group Mount
 */
 PARAM_DEFINE_FLOAT(MNT_OFF_YAW, 0.0f);
+
+/**
+* Pitch output safe position for gimbal retract
+*
+* @min -1.0
+* @max 1.0
+* @decimal 3
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_PITCH_CLOSE, 0.0f);
+
+/**
+* Roll output safe position for gimbal retract
+*
+* @min -1.0
+* @max 1.0
+* @decimal 3
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_ROLL_CLOSE, 0.0f);
+
+/**
+* Yaw output safe position for gimbal retract
+*
+* @min -1.0
+* @max 1.0
+* @decimal 3
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_YAW_CLOSE, 0.0f);
+
+/**
+* Mount doors open position
+*
+* @min -1.0
+* @max 1.0
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_DOORS_OPEN, 1.0f);
+
+/**
+* Mount doors closed position
+*
+* @min -1.0
+* @max 1.0
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_DOORS_CLOSED, 0.0f);
+
+/**
+* Gimbal roll/pitch/yaw safe positioning delay
+*
+* @unit ms
+* @min 0
+* @max 5000
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_SF_POS_DELAY, 500);
+
+/**
+* Gimbal Retract delay before closing doors
+*
+* @unit ms
+* @min 0
+* @max 5000
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_DOORS_DELAY, 500);
