@@ -110,6 +110,9 @@ then
 	# External I2C bus
 	hmc5883 -C -X start
 
+	# External I2C bus
+	lis3mdl -X start
+
 	# Onboard I2C (baro) but an external bus on V3 RC15
 	mpl3115a2 -X start
 
