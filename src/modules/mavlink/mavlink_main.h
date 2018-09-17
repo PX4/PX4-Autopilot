@@ -487,6 +487,10 @@ public:
 
 	bool ftp_enabled() const { return _ftp_on; }
 
+	bool hash_check_enabled() { return _param_hash_check_enabled.get(); }
+
+	bool forward_heartbeats_enabled() { return _param_heartbeat_forwarding_enabled.get(); }
+
 	struct ping_statistics_s {
 		uint64_t last_ping_time;
 		uint32_t last_ping_seq;
@@ -629,7 +633,9 @@ private:
 		(ParamInt<px4::params::MAV_TYPE>) _param_system_type,
 		(ParamBool<px4::params::MAV_USEHILGPS>) _param_use_hil_gps,
 		(ParamBool<px4::params::MAV_FWDEXTSP>) _param_forward_externalsp,
-		(ParamInt<px4::params::MAV_BROADCAST>) _param_broadcast_mode
+		(ParamInt<px4::params::MAV_BROADCAST>) _param_broadcast_mode,
+		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_hash_check_enabled,
+		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_heartbeat_forwarding_enabled
 	)
 
 	perf_counter_t		_loop_perf;			/**< loop performance counter */
