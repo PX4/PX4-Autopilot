@@ -1719,11 +1719,12 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *_global_pos_sub;
-	uint64_t _global_pos_time = 0;
-
 	MavlinkOrbSubscription *_local_pos_sub;
 	uint64_t _local_pos_time = 0;
+
+	MavlinkOrbSubscription *_global_pos_sub;
+	uint64_t _global_pos_time = 0;
+	vehicle_global_position_s _global_position = {};
 
 	MavlinkOrbSubscription *_position_setpoint_triplet_sub;
 	uint64_t _setpoint_triplet_time = 0;
@@ -1743,8 +1744,8 @@ private:
 
 protected:
 	explicit MavlinkStreamUTMGlobalPosition(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_global_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position))),
 		_local_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
+		_global_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position))),
 		_position_setpoint_triplet_sub(_mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet))),
 		_vehicle_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
 		_land_detected_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_land_detected)))
@@ -1752,13 +1753,13 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		vehicle_global_position_s global_position = {};
 		vehicle_local_position_s local_position   = {};
 
-		bool global_updated = _global_pos_sub->update(&_global_pos_time, &global_position);
 		bool local_updated = _local_pos_sub->update(&_local_pos_time, &local_position);
 
-		// Check if new setpoint, vehicle status and land detected are available otherwise use the last received
+		// Check if new global position, setpoint, vehicle status and land detected are available
+		// otherwise use the last received
+		_global_pos_sub->update(&_global_pos_time, &_global_position);
 		_position_setpoint_triplet_sub->update(&_setpoint_triplet_time, &_setpoint_triplet);
 		_vehicle_status_sub->update(&_vehicle_status_time, &_vehicle_status);
 		_land_detected_sub->update(&_land_detected_time, &_land_detected);
@@ -1780,21 +1781,21 @@ protected:
 		memset(&msg.uas_id[0], 0, sizeof(msg.uas_id));
 		//msg.flags |= UTM_DATA_AVAIL_FLAGS_UAS_ID_AVAILABLE;
 
-		// Handle global position update
-		if (global_updated) {
-			msg.lat = global_position.lat * 1e7;
-			msg.lon = global_position.lon * 1e7;
-			msg.alt = global_position.alt_ellipsoid * 1000.0f;
-
-			msg.h_acc = global_position.eph * 1000.0f;
-			msg.v_acc = global_position.epv * 1000.0f;
-
-			msg.flags |= UTM_DATA_AVAIL_FLAGS_POSITION_AVAILABLE;
-			msg.flags |= UTM_DATA_AVAIL_FLAGS_ALTITUDE_AVAILABLE;
-		}
-
 		// Handle local position update
 		if (local_updated) {
+
+			if (_global_pos_time > 0) {
+				// Handle global position update
+				msg.lat = _global_position.lat * 1e7;
+				msg.lon = _global_position.lon * 1e7;
+				msg.alt = _global_position.alt_ellipsoid * 1000.0f;
+
+				msg.h_acc = _global_position.eph * 1000.0f;
+				msg.v_acc = _global_position.epv * 1000.0f;
+
+				msg.flags |= UTM_DATA_AVAIL_FLAGS_POSITION_AVAILABLE;
+				msg.flags |= UTM_DATA_AVAIL_FLAGS_ALTITUDE_AVAILABLE;
+			}
 
 			if (local_position.v_xy_valid) {
 				msg.vx = local_position.vx * 100.0f;
@@ -1809,17 +1810,17 @@ protected:
 			}
 
 			if (local_position.dist_bottom_valid) {
-				msg.relative_alt = local_position.dist_bottom * 1000.0f; // TODO Check if terrain height is correct field
-				msg.flags |= UTM_DATA_AVAIL_FLAGS_ALTITUDE_AVAILABLE;
+				msg.relative_alt = local_position.dist_bottom * 1000.0f;
+				msg.flags |= UTM_DATA_AVAIL_FLAGS_RELATIVE_ALTITUDE_AVAILABLE;
 			}
 
 			// Handle next waypoint if it is valid
-			if (_setpoint_triplet_time > 0 && _setpoint_triplet.next.valid) {
+			if (_setpoint_triplet_time > 0 && _setpoint_triplet.current.valid) {
 				msg.next_lat = _setpoint_triplet.current.lat * 1e7;
 				msg.next_lon = _setpoint_triplet.current.lon * 1e7;
 				// HACK We assume that the offset between AMSL and WGS84 is constant between the current
 				// vehicle position and the the target waypoint.
-				msg.next_alt = (_setpoint_triplet.current.alt + (global_position.alt_ellipsoid - global_position.alt)) * 1000.0f;
+				msg.next_alt = (_setpoint_triplet.current.alt + (_global_position.alt_ellipsoid - _global_position.alt)) * 1000.0f;
 				msg.flags |= UTM_DATA_AVAIL_FLAGS_NEXT_WAYPOINT_AVAILABLE;
 			}
 
