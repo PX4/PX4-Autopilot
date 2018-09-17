@@ -44,21 +44,19 @@
 WeatherVane::WeatherVane() :
 	ModuleParams(nullptr)
 {
-	_q_sp_prev = matrix::Quatf();
+	_R_sp_prev = matrix::Dcmf();
 }
 
 void WeatherVane::update(matrix::Quatf q_sp_prev, float yaw)
 {
-	_q_sp_prev = q_sp_prev;
+	_R_sp_prev = matrix::Dcmf(q_sp_prev);
 	_yaw = yaw;
 }
 
 float WeatherVane::get_weathervane_yawrate()
 {
-	matrix::Dcmf R_sp(_q_sp_prev);
-
 	// direction of desired body z axis represented in earth frame
-	matrix::Vector3f body_z_sp(R_sp(0, 2), R_sp(1, 2), R_sp(2, 2));
+	matrix::Vector3f body_z_sp(_R_sp_prev(0, 2), _R_sp_prev(1, 2), _R_sp_prev(2, 2));
 
 	// rotate desired body z axis into new frame which is rotated in z by the current
 	// heading of the vehicle. we refer to this as the heading frame.

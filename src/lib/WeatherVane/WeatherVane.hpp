@@ -69,7 +69,7 @@ public:
 	void update_parameters() { ModuleParams::updateParams(); }
 
 private:
-	matrix::Quatf _q_sp_prev;	// previous attitude setpoint quaternion
+	matrix::Dcmf _R_sp_prev;	// previous attitude setpoint rotation matrix
 	float _yaw = 0.0f;			// current yaw angle
 
 	bool _is_active = true;
