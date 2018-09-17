@@ -214,7 +214,8 @@ private:
 	bool		_pwm_initialized;
 
 	MixerGroup	*_mixers;
-
+    unsigned    _mixed_num_outputs;
+    
 	uint32_t	_groups_required;
 	uint32_t	_groups_subscribed;
 	int		_control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
@@ -1147,10 +1148,24 @@ void
 PX4FMU::update_pwm_out_state(bool on)
 {
 	if (on && !_pwm_initialized && _pwm_mask != 0) {
+        //TODO: check if mixer present and mixed output number;
+        if (_mixers != nullptr) {
+            for (uint8_t i = 0; i < _mixed_num_outputs; i++) {
+                _working_channel_map |= (1 << (i + _channel_map_offset));
+            }
+            if (_working_channel_map != _channel_rate_map) {
+                //mixed rates here;
+                _working_rate = PWM_GROUP_RATE_MIXED;
+                printf("[fmu] mixed group rates.\n");
+
+            }
+        }
+
         up_pwm_servo_init(_working_channel_map, 0);
         //_pwm_alt_rate_channels = _pwm_alt_rate_channels << 8;
         printf("[fmu] init pwm out channel alt rate map: 0x%04X\n", _pwm_alt_rate_channels);
         set_pwm_channel_rates (_pwm_alt_rate, _pwm_default_rate);
+        
         if (register_working_channels() != OK) {
             return;
         }
@@ -1300,24 +1315,24 @@ PX4FMU::cycle()
 
 				/* do mixing */
 				float outputs[_max_actuators];
-				const unsigned mixed_num_outputs = _mixers->mix(outputs, _num_outputs);
+				_mixed_num_outputs = _mixers->mix(outputs, _num_outputs);
 
 				/* the PWM limit call takes care of out of band errors, NaN and constrains */
 				uint16_t pwm_limited[MAX_ACTUATORS];
 
-				pwm_limit_calc(_throttle_armed, arm_nothrottle(), mixed_num_outputs, _reverse_pwm_mask,
+				pwm_limit_calc(_throttle_armed, arm_nothrottle(), _mixed_num_outputs, _reverse_pwm_mask,
 					       _disarmed_pwm, _min_pwm, _max_pwm, outputs, pwm_limited, &_pwm_limit);
 
 				/* overwrite outputs in case of force_failsafe with _failsafe_pwm PWM values */
 				if (_armed.force_failsafe) {
-					for (size_t i = 0; i < mixed_num_outputs; i++) {
+					for (size_t i = 0; i < _mixed_num_outputs; i++) {
 						pwm_limited[i] = _failsafe_pwm[i];
 					}
 				}
 
 				/* overwrite outputs in case of lockdown with disarmed PWM values */
 				if (_armed.lockdown || _armed.manual_lockdown) {
-					for (size_t i = 0; i < mixed_num_outputs; i++) {
+					for (size_t i = 0; i < _mixed_num_outputs; i++) {
 						pwm_limited[i] = _disarmed_pwm[i];
 					}
 				}
@@ -1327,7 +1342,7 @@ PX4FMU::cycle()
 
 				/* output to the servos */
                 if (_pwm_initialized) {
-                    for (size_t i = 0; i < mixed_num_outputs; i++) {
+                    for (size_t i = 0; i < _mixed_num_outputs; i++) {
                         //pwm_output_set(i, pwm_limited[i]);
                         set_pwm_channel_value_single(i, pwm_limited[i]);
                     }
@@ -1342,10 +1357,10 @@ PX4FMU::cycle()
 
 				actuator_outputs_s actuator_outputs = {};
 				actuator_outputs.timestamp = hrt_absolute_time();
-				actuator_outputs.noutputs = mixed_num_outputs;
+				actuator_outputs.noutputs = _mixed_num_outputs;
 
 				// zero unused outputs
-				for (size_t i = 0; i < mixed_num_outputs; ++i) {
+				for (size_t i = 0; i < _mixed_num_outputs; ++i) {
 					actuator_outputs.output[i] = pwm_limited[i];
 				}
 
@@ -2501,9 +2516,8 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_SET:
 		if (pconfig) {
             uint8_t chan = pconfig->channel;
-#ifdef BOARD_HAS_ECU_PWM
-            //chan = chan + 8;
-#endif
+            chan = chan + _channel_offset;
+            //_capture_channel_map = 1 << chan;
 			ret =  up_input_capture_set(chan, pconfig->edge, pconfig->filter,
 						    pconfig->callback, pconfig->context);
 		}
@@ -2513,9 +2527,8 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_SET_CALLBACK:
 		if (pconfig) {
             uint8_t chan = pconfig->channel;
-#ifdef BOARD_HAS_ECU_PWM
-            //chan = chan + 8;
-#endif
+            chan = chan + _channel_offset;
+            _capture_channel_map = 1 << chan;
 			ret =  up_input_capture_set_callback(chan, pconfig->callback, pconfig->context);
 		}
 
@@ -2524,9 +2537,8 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_GET_CALLBACK:
 		if (pconfig) {
             uint8_t chan = pconfig->channel;
-#ifdef BOARD_HAS_ECU_PWM
-            //chan = chan + 8;
-#endif
+            chan = chan + _channel_offset;
+            //_capture_channel_map = 1 << chan;
 			ret =  up_input_capture_get_callback(chan, &pconfig->callback, &pconfig->context);
 		}
 
@@ -2535,9 +2547,9 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_GET_STATS:
 		if (arg) {
             uint8_t chan = stats->chan_in_edges_out;
-#ifdef BOARD_HAS_ECU_PWM
-            //chan = chan + 8;
-#endif
+            chan = chan + _channel_offset;
+            //_capture_channel_map = 1 << chan;
+
 			ret =  up_input_capture_get_stats(chan, stats, false);
 		}
 
@@ -2546,9 +2558,9 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_GET_CLR_STATS:
 		if (arg) {
             uint8_t chan = stats->chan_in_edges_out;
-#ifdef BOARD_HAS_ECU_PWM
-            //chan = chan + 8;
-#endif
+            chan = chan + _channel_offset;
+            //_capture_channel_map = 1 << chan;
+
 			ret =  up_input_capture_get_stats(chan, stats, true);
 		}
 
@@ -2557,9 +2569,9 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_SET_EDGE:
 		if (pconfig) {
             uint8_t chan = pconfig->channel;
-#ifdef BOARD_HAS_ECU_PWM
-            //chan = chan + 8;
-#endif
+            chan = chan + _channel_offset;
+            //_capture_channel_map = 1 << chan;
+
 			ret =  up_input_capture_set_trigger(chan, pconfig->edge);
 		}
 
@@ -2568,9 +2580,9 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_GET_EDGE:
 		if (pconfig) {
             uint8_t chan = pconfig->channel;
-#ifdef BOARD_HAS_ECU_PWM
-            //chan = chan + 8;
-#endif
+            chan = chan + _channel_offset;
+            //_capture_channel_map = 1 << chan;
+
 			ret =  up_input_capture_get_trigger(chan, &pconfig->edge);
 		}
 
@@ -2579,9 +2591,9 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_SET_FILTER:
 		if (pconfig) {
             uint8_t chan = pconfig->channel;
-#ifdef BOARD_HAS_ECU_PWM
-            //chan = chan + 8;
-#endif
+            chan = chan + _channel_offset;
+            //_capture_channel_map = 1 << chan;
+
 			ret =  up_input_capture_set_filter(chan, pconfig->filter);
 		}
 
@@ -2590,9 +2602,9 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case INPUT_CAP_GET_FILTER:
 		if (pconfig) {
             uint8_t chan = pconfig->channel;
-#ifdef BOARD_HAS_ECU_PWM
-            //chan = chan + 8;
-#endif
+            chan = chan + _channel_offset;
+            //_capture_channel_map = 1 << chan;
+
 			ret =  up_input_capture_get_filter(chan, &pconfig->filter);
 		}
 

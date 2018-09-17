@@ -157,6 +157,7 @@ RGBLED_PWM::init()
     _default_rate = 50;
     _alt_rate = 400;
     _working_rate = PWM_GROUP_RATE_UNSPECIFIED;
+    _channel_rate_map = _working_channel_map;
     
     if (register_working_channels()!=OK) {
         printf("fail to register rgb led\n");

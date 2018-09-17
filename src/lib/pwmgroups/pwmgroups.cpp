@@ -62,6 +62,9 @@ PwmGroups::PwmGroups(const char *name, const char *devname) :
     _default_rate = PWM_OUTPUT_RATE_DEFAULT;
     _alt_rate = PWM_OUTPUT_RATE_ALT;
     _working_rate = PWM_GROUP_RATE_UNSPECIFIED;
+    _capture_channel_map = 0;
+    _working_channel_map = 0;
+    _channel_rate_map = 0;
 
 }
 
@@ -134,6 +137,21 @@ PwmGroups::register_working_channels() {
     }
     
     //free channel available, check conflicts on rate;
+    if (_working_rate == PWM_GROUP_RATE_MIXED) {
+        //both alt rate and default rate at work.
+        uint32_t default_rate_channel_map = (~_channel_rate_map) & _working_channel_map;
+        if (!is_free_channels_available(_channel_rate_map, PWM_GROUP_RATE_ALT)
+            || !is_free_channels_available(default_rate_channel_map, PWM_GROUP_RATE_DEFAULT)) {
+            return -EINVAL;
+        }
+        else {
+            all_channels |= _working_channel_map;
+            update_default_alt_rate_map (PWM_GROUP_RATE_ALT, _channel_rate_map);
+            update_default_alt_rate_map (PWM_GROUP_RATE_DEFAULT, default_rate_channel_map);
+            printf("[pwmgroups] mixed rate, registered channels all: 0x%04X\n", all_channels);
+            return OK;
+        }
+    }
     
     //obligation to use specified rate;
     //TODO: static pwm device needs to specify working rate on start. move to subclass
@@ -186,7 +204,7 @@ PwmGroups::register_working_channels() {
             
             _working_rate = PWM_GROUP_RATE_ALT;
             //check rate conflicts;
-            if(!is_free_channels_available(_channel_rate_map, PWM_GROUP_RATE_DEFAULT)) {
+            if(!is_free_channels_available(_channel_rate_map, PWM_GROUP_RATE_ALT)) {
                 return -EINVAL;
             }
         }
@@ -196,16 +214,16 @@ PwmGroups::register_working_channels() {
         }
     }
     
-    //no conflicts, allocate the channel
+    //no conflicts, allocate requested channels
     all_channels |= _working_channel_map;
-    update_default_alt_rate_map (_working_rate, _working_channel_map);
+    update_default_alt_rate_map (_working_rate, _channel_rate_map);
     printf("[pwmgroups] registered channels all: 0x%04X\n", all_channels);
     return OK;
 }
 
 void
 PwmGroups::update_default_alt_rate_map (pwm_groups_rate_t rate_type, uint32_t channel_map) {
-
+    //TODO: add critical section protection;
     if (rate_type == PWM_GROUP_RATE_ALT) {
         _alt_rate_channels |= channel_map;
         //remove corresponding bit in opposite rate map if its there;
@@ -221,7 +239,7 @@ PwmGroups::update_default_alt_rate_map (pwm_groups_rate_t rate_type, uint32_t ch
         }
     }
     else {
-        printf("[pwmgroups] selected default reate\n");
+        printf("[pwmgroups] selected default rate\n");
         _default_rate_channels |= channel_map;
         //printf("[pwmgroups] offset: %d, default channel 0x%04X\n", _channel_map_offset, _default_rate_channels);
         
@@ -232,6 +250,7 @@ PwmGroups::update_default_alt_rate_map (pwm_groups_rate_t rate_type, uint32_t ch
             }
         }
     }
+    printf("[pwmgroups] device name: %s\n", get_devname());
     printf("[pwmgroups] occupation channel map: 0x%04X\n", channel_map);
     printf("[pwmgroups] alt rate channel: 0x%04X default rate channel: 0x%04X\n", _alt_rate_channels, _default_rate_channels);
     printf("[pwmgroups] alt rate timer: 0x%04X, default rate timer: 0x%04X\n", _alt_rate_timers, _default_rate_timers);

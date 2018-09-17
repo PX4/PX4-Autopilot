@@ -160,6 +160,7 @@ private:
 	bool		_pwm_initialized;
 
 	MixerGroup	*_mixers;
+    unsigned    _mixed_num_outputs;
 
 	uint32_t	_groups_required;
 	uint32_t	_groups_subscribed;
@@ -826,6 +827,18 @@ void
 PX4ECU::update_pwm_out_state(bool on)
 {
 	if (on && !_pwm_initialized && _pwm_mask != 0) {
+        //TODO: check if mixer present and mixed output number;
+        if (_mixers != nullptr) {
+            for (uint8_t i = 0; i < _mixed_num_outputs; i++) {
+                _working_channel_map |= (1 << (i + _channel_map_offset));
+            }
+            if (_working_channel_map != _channel_rate_map) {
+                //mixed rates here;
+                _working_rate = PWM_GROUP_RATE_MIXED;
+                printf("[ecu] mixed group rates.\n");
+            }
+
+        }
  		up_pwm_servo_init(_working_channel_map, 0);
         //up_pwm_servo_init(0x0F0F, 0);
         printf("[ecu] init pwm out channel alt rate map: 0x%04X\n", _pwm_alt_rate_channels);
@@ -1020,7 +1033,7 @@ PX4ECU::cycle()
 
 				/* do mixing */
 				float outputs[_max_actuators];
-				size_t mixed_num_outputs = _mixers->mix(outputs, _num_outputs);
+				_mixed_num_outputs = _mixers->mix(outputs, _num_outputs);
 
 				/* publish mixer status */
 				multirotor_motor_limits_s multirotor_motor_limits = {};
@@ -1039,7 +1052,7 @@ PX4ECU::cycle()
 
 				/* disable unused ports by setting their output to NaN */
 				for (size_t i = 0; i < sizeof(outputs) / sizeof(outputs[0]); i++) {
-					if (i >= mixed_num_outputs) {
+					if (i >= _mixed_num_outputs) {
 						outputs[i] = NAN_VALUE;
 					}
 				}
@@ -1047,27 +1060,27 @@ PX4ECU::cycle()
 				uint16_t pwm_limited[_max_actuators];
 
 				/* the PWM limit call takes care of out of band errors, NaN and constrains */
-				pwm_limit_calc(_throttle_armed, arm_nothrottle(), mixed_num_outputs, _reverse_pwm_mask,
+				pwm_limit_calc(_throttle_armed, arm_nothrottle(), _mixed_num_outputs, _reverse_pwm_mask,
 					       _disarmed_pwm, _min_pwm, _max_pwm, outputs, pwm_limited, &_pwm_limit);
 
 
 				/* overwrite outputs in case of force_failsafe with _failsafe_pwm PWM values */
 				if (_armed.force_failsafe) {
-					for (size_t i = 0; i < mixed_num_outputs; i++) {
+					for (size_t i = 0; i < _mixed_num_outputs; i++) {
 						pwm_limited[i] = _failsafe_pwm[i];
 					}
 				}
 
 				/* overwrite outputs in case of lockdown with disarmed PWM values */
 				if (_armed.lockdown || _armed.manual_lockdown) {
-					for (size_t i = 0; i < mixed_num_outputs; i++) {
+					for (size_t i = 0; i < _mixed_num_outputs; i++) {
 						pwm_limited[i] = _disarmed_pwm[i];
 					}
 				}
 
 				/* output to the servos */
                 if (_pwm_initialized) {
-                    for (size_t i = 0; i < mixed_num_outputs; i++) {
+                    for (size_t i = 0; i < _mixed_num_outputs; i++) {
                         //pwm_output_set(i, pwm_limited[i]);
                         set_pwm_channel_value_single(i, pwm_limited[i]);
                     }
@@ -1081,7 +1094,7 @@ PX4ECU::cycle()
 					up_pwm_update();
 				}
 
-				publish_pwm_outputs(pwm_limited, mixed_num_outputs);
+				publish_pwm_outputs(pwm_limited, _mixed_num_outputs);
 				perf_end(_ctl_latency);
 			}
 		}
