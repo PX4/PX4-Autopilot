@@ -19,7 +19,7 @@ init:
 - ver
 
 install:
-- ps: if (-not (Test-Path C:\Toolchain.msi)) {Invoke-WebRequest https://s3-us-west-2.amazonaws.com/px4-tools/PX4+Windows+Cygwin+Toolchain/PX4+Windows+Cygwin+Toolchain+0.3.msi -OutFile C:\Toolchain.msi}
+- ps: if (-not (Test-Path C:\Toolchain.msi)) {Invoke-WebRequest https://s3-us-west-2.amazonaws.com/px4-tools/PX4+Windows+Cygwin+Toolchain/PX4+Windows+Cygwin+Toolchain+0.4.msi -OutFile C:\Toolchain.msi}
 - start /wait msiexec /i C:\Toolchain.msi /quiet /qn /norestart /log C:\install.log
 
 # Note: using start /wait is important
