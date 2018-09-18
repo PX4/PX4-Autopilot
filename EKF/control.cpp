@@ -530,8 +530,6 @@ void Ekf::controlGpsFusion()
 				_control_status.flags.mag_dec = false;
 
 				ECL_INFO("EKF commencing GPS yaw fusion");
-				// flag the yaw as aligned
-				_control_status.flags.yaw_align = true;
 			}
 		}
 
