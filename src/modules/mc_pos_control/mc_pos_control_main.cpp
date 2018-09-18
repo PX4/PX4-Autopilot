@@ -606,11 +606,10 @@ MulticopterPositionControl::task_main()
 		// activate the weathervane controller if required. If activated a flighttask can use it to implement a yaw-rate control strategy
 		// that turns the nose of the vehicle into the wind
 		if (_wv_controller != nullptr) {
-			if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled
-			    && _wv_controller->manual_enabled()) {
-				_wv_controller->activate();
 
-			} else if (_control_mode.flag_control_auto_enabled && _wv_controller->auto_enabled()) {
+			// in manual mode we just want to use weathervane if position is controlled as well
+			if (_wv_controller->weathervane_enabled() && !(_control_mode.flag_control_manual_enabled
+					&& !_control_mode.flag_control_position_enabled)) {
 				_wv_controller->activate();
 
 			} else {
