@@ -57,7 +57,7 @@ uint8_t PwmGroups::_alt_rate_timers = 0;
 uint8_t PwmGroups::_default_rate_timers = 0;
 
 PwmGroups::PwmGroups(const char *name, const char *devname) :
-	CDev(name, devname)
+	CDev(devname)
 {
     _default_rate = PWM_OUTPUT_RATE_DEFAULT;
     _alt_rate = PWM_OUTPUT_RATE_ALT;

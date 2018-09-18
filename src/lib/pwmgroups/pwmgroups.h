@@ -114,7 +114,8 @@
 #define _SYSTEMLIB_PWM_GROUPS_H value
 
 #include <px4_config.h>
-#include "../drivers/device/CDev.hpp"
+//#include "../drivers/device/CDev.hpp"
+#include <lib/cdev/CDev.hpp>
 
 typedef enum {
     PWM_GROUP_RATE_ALT,
@@ -130,7 +131,7 @@ typedef enum {
  * Abstract class defining a mixer mixing zero or more inputs to
  * one or more outputs.
  */
-class __EXPORT PwmGroups : public device::CDev
+class __EXPORT PwmGroups : public cdev::CDev
 {
 public:
 	/**
