@@ -87,11 +87,6 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.mpc_xy_cruise = param_find("MPC_XY_CRUISE");
 	_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
 
-
-	_params_handles.wv_takeoff = param_find("VT_WV_TKO_EN");
-	_params_handles.wv_land = param_find("VT_WV_LND_EN");
-	_params_handles.wv_loiter = param_find("VT_WV_LTR_EN");
-
 	/* fetch initial parameter values */
 	parameters_update();
 
@@ -478,16 +473,6 @@ VtolAttitudeControl::parameters_update()
 	 */
 	_params.front_trans_time_min = math::min(_params.front_trans_time_openloop * 0.9f,
 				       _params.front_trans_time_min);
-
-	/* weathervane */
-	param_get(_params_handles.wv_takeoff, &l);
-	_params.wv_takeoff = (l == 1);
-
-	param_get(_params_handles.wv_loiter, &l);
-	_params.wv_loiter = (l == 1);
-
-	param_get(_params_handles.wv_land, &l);
-	_params.wv_land = (l == 1);
 
 
 	param_get(_params_handles.front_trans_duration, &_params.front_trans_duration);

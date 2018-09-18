@@ -189,9 +189,6 @@ private:
 		param_t fw_qc_max_roll;
 		param_t front_trans_time_openloop;
 		param_t front_trans_time_min;
-		param_t wv_takeoff;
-		param_t wv_loiter;
-		param_t wv_land;
 		param_t front_trans_duration;
 		param_t back_trans_duration;
 		param_t transition_airspeed;
