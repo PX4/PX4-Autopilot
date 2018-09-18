@@ -62,7 +62,7 @@ public:
 
 	bool auto_enabled() { return _wv_auto_enabled.get(); }
 
-	void update(matrix::Quatf q_sp_prev, float yaw);
+	void update(const matrix::Quatf &q_sp_prev, float yaw);
 
 	float get_weathervane_yawrate();
 
