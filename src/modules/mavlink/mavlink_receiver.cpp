@@ -163,7 +163,11 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mom_switch_state(0),
 	_p_bat_emergen_thr(param_find("BAT_EMERGEN_THR")),
 	_p_bat_crit_thr(param_find("BAT_CRIT_THR")),
-	_p_bat_low_thr(param_find("BAT_LOW_THR"))
+	_p_bat_low_thr(param_find("BAT_LOW_THR")),
+	_p_flow_rot(param_find("SENS_FLOW_ROT")),
+	_p_flow_maxr(param_find("SENS_FLOW_MAXR")),
+	_p_flow_minhgt(param_find("SENS_FLOW_MINHGT")),
+	_p_flow_maxhgt(param_find("SENS_FLOW_MAXHGT"))
 {
 	/* Make the attitude quaternion valid */
 	_att.q[0] = 1.0f;
@@ -649,8 +653,9 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	mavlink_optical_flow_rad_t flow;
 	mavlink_msg_optical_flow_rad_decode(msg, &flow);
 
+	/* read flow sensor parameters */
 	int32_t flow_rot_int;
-	param_get(param_find("SENS_FLOW_ROT"), &flow_rot_int);
+	param_get(_p_flow_rot, &flow_rot_int);
 	const enum Rotation flow_rot = (Rotation)flow_rot_int;
 
 	struct optical_flow_s f = {};
@@ -667,6 +672,9 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	f.quality = flow.quality;
 	f.sensor_id = flow.sensor_id;
 	f.gyro_temperature = flow.temperature;
+	param_get(_p_flow_maxr, &f.max_flow_rate);
+	param_get(_p_flow_minhgt, &f.min_ground_distance);
+	param_get(_p_flow_maxhgt, &f.max_ground_distance);
 
 	/* rotate measurements according to parameter */
 	float zeroval = 0.0f;
