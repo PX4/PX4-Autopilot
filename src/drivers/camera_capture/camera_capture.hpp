@@ -127,8 +127,6 @@ private:
 	// Parameters
 	param_t 		_p_strobe_delay;
 	float			_strobe_delay;
-	param_t 		_p_camera_capture_feedback;
-	int32_t			_camera_capture_feedback;
 	param_t			_p_camera_capture_mode;
 	int32_t			_camera_capture_mode;
 	param_t			_p_camera_capture_edge;
