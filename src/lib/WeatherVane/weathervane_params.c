@@ -39,14 +39,10 @@
  * @author Roman Bapst <roman@auterion.com>
  */
 
-#include <px4_config.h>
-#include <parameters/param.h>
-
 /**
  * Enable weathervane for manual.
  *
- * @value 0 Disabled
- * @value 1 Enabled
+ * @boolean
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(WV_MAN_EN, 0);
@@ -54,14 +50,13 @@ PARAM_DEFINE_INT32(WV_MAN_EN, 0);
 /**
  * Enable weathervane for auto.
  *
- * @value 0 Disabled
- * @value 1 Enabled
+ * @boolean
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(WV_AUTO_EN, 0);
 
 /**
- * Weather-vane yaw rate from roll gain.
+ * Weather-vane roll angle to yawrate.
  *
  * The desired gain to convert roll sp into yaw rate sp.
  *
@@ -78,15 +73,17 @@ PARAM_DEFINE_FLOAT(WV_GAIN, 1.0f);
  *
  * @min 0
  * @max 5
+ * @unit deg
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(WV_ROLL_MIN, 1.0f);
 
 /**
- * Maximum yawrate the weathervane controller is able to demand.
+ * Maximum yawrate the weathervane controller is allowed to demand.
  *
  * @min 0
  * @max 120
+ * @unit deg/s
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(WV_YRATE_MAX, 90.0f);
