@@ -1721,6 +1721,7 @@ public:
 private:
 	MavlinkOrbSubscription *_local_pos_sub;
 	uint64_t _local_pos_time = 0;
+	vehicle_local_position_s _local_position   = {};
 
 	MavlinkOrbSubscription *_global_pos_sub;
 	uint64_t _global_pos_time = 0;
@@ -1753,12 +1754,9 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		vehicle_local_position_s local_position   = {};
 
-		bool local_updated = _local_pos_sub->update(&_local_pos_time, &local_position);
-
-		// Check if new global position, setpoint, vehicle status and land detected are available
-		// otherwise use the last received
+		// Check if new uORB messages are available otherwise use the last received
+		_local_pos_sub->update(&_local_pos_time, &_local_position);
 		_global_pos_sub->update(&_global_pos_time, &_global_position);
 		_position_setpoint_triplet_sub->update(&_setpoint_triplet_time, &_setpoint_triplet);
 		_vehicle_status_sub->update(&_vehicle_status_time, &_vehicle_status);
@@ -1781,67 +1779,84 @@ protected:
 		memset(&msg.uas_id[0], 0, sizeof(msg.uas_id));
 		//msg.flags |= UTM_DATA_AVAIL_FLAGS_UAS_ID_AVAILABLE;
 
-		// Handle local position update
-		if (local_updated) {
+		// Handle global position
+		if (_global_pos_time > 0) {
+			msg.lat = _global_position.lat * 1e7;
+			msg.lon = _global_position.lon * 1e7;
+			msg.alt = _global_position.alt_ellipsoid * 1000.0f;
 
-			if (_global_pos_time > 0) {
-				// Handle global position update
-				msg.lat = _global_position.lat * 1e7;
-				msg.lon = _global_position.lon * 1e7;
-				msg.alt = _global_position.alt_ellipsoid * 1000.0f;
+			msg.h_acc = _global_position.eph * 1000.0f;
+			msg.v_acc = _global_position.epv * 1000.0f;
 
-				msg.h_acc = _global_position.eph * 1000.0f;
-				msg.v_acc = _global_position.epv * 1000.0f;
+			msg.flags |= UTM_DATA_AVAIL_FLAGS_POSITION_AVAILABLE;
+			msg.flags |= UTM_DATA_AVAIL_FLAGS_ALTITUDE_AVAILABLE;
+		}
 
-				msg.flags |= UTM_DATA_AVAIL_FLAGS_POSITION_AVAILABLE;
-				msg.flags |= UTM_DATA_AVAIL_FLAGS_ALTITUDE_AVAILABLE;
+		// Handle local position
+		if (_local_pos_time > 0) {
+			float evh = 0.0f;
+			float evv = 0.0f;
+
+			if (_local_position.v_xy_valid) {
+				msg.vx = _local_position.vx * 100.0f;
+				msg.vy = _local_position.vy * 100.0f;
+				evh = _local_position.evh;
+				msg.flags |= UTM_DATA_AVAIL_FLAGS_HORIZONTAL_VELO_AVAILABLE;
 			}
 
-			if (local_position.v_xy_valid) {
-				msg.vx = local_position.vx * 100.0f;
-				msg.vy = local_position.vy * 100.0f;
+			if (_local_position.v_z_valid) {
+				msg.vz = _local_position.vz * 100.0f;
+				evv = _local_position.evv;
+				msg.flags |= UTM_DATA_AVAIL_FLAGS_VERTICAL_VELO_AVAILABLE;
 			}
 
-			msg.vel_acc = sqrtf(local_position.evh * local_position.evh
-					    + local_position.evv * local_position.evv) * 1000.0f;
+			msg.vel_acc = sqrtf(evh * evh + evv * evv) * 1000.0f;
 
-			if (local_position.v_z_valid) {
-				msg.vz = local_position.vz * 100.0f;
-			}
-
-			if (local_position.dist_bottom_valid) {
-				msg.relative_alt = local_position.dist_bottom * 1000.0f;
+			if (_local_position.dist_bottom_valid) {
+				msg.relative_alt = _local_position.dist_bottom * 1000.0f;
 				msg.flags |= UTM_DATA_AVAIL_FLAGS_RELATIVE_ALTITUDE_AVAILABLE;
 			}
+		}
 
-			// Handle next waypoint if it is valid
-			if (_setpoint_triplet_time > 0 && _setpoint_triplet.current.valid) {
-				msg.next_lat = _setpoint_triplet.current.lat * 1e7;
-				msg.next_lon = _setpoint_triplet.current.lon * 1e7;
-				// HACK We assume that the offset between AMSL and WGS84 is constant between the current
-				// vehicle position and the the target waypoint.
-				msg.next_alt = (_setpoint_triplet.current.alt + (_global_position.alt_ellipsoid - _global_position.alt)) * 1000.0f;
-				msg.flags |= UTM_DATA_AVAIL_FLAGS_NEXT_WAYPOINT_AVAILABLE;
-			}
+		bool vehicle_in_auto_mode = _vehicle_status_time > 0
+					    && (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET
+						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS
+						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
+						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL
+						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND
+						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION
+						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER
+						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
+						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
+						|| _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER);
 
-			// Handle flight state
-			if (_vehicle_status_time > 0 && _land_detected_time > 0
-			    && _vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-				if (_land_detected.landed) {
-					msg.flight_state |= UTM_FLIGHT_STATE_GROUND;
+		// Handle next waypoint if it is valid
+		if (vehicle_in_auto_mode && _setpoint_triplet_time > 0 && _setpoint_triplet.current.valid) {
+			msg.next_lat = _setpoint_triplet.current.lat * 1e7;
+			msg.next_lon = _setpoint_triplet.current.lon * 1e7;
+			// HACK We assume that the offset between AMSL and WGS84 is constant between the current
+			// vehicle position and the the target waypoint.
+			msg.next_alt = (_setpoint_triplet.current.alt + (_global_position.alt_ellipsoid - _global_position.alt)) * 1000.0f;
+			msg.flags |= UTM_DATA_AVAIL_FLAGS_NEXT_WAYPOINT_AVAILABLE;
+		}
 
-				} else {
-					msg.flight_state |= UTM_FLIGHT_STATE_AIRBORNE;
-				}
+		// Handle flight state
+		if (_vehicle_status_time > 0 && _land_detected_time > 0
+		    && _vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+			if (_land_detected.landed) {
+				msg.flight_state |= UTM_FLIGHT_STATE_GROUND;
 
 			} else {
-				msg.flight_state |= UTM_FLIGHT_STATE_UNKNOWN;
+				msg.flight_state |= UTM_FLIGHT_STATE_AIRBORNE;
 			}
 
-			msg.update_rate = 0; // Data driven mode
-
-			mavlink_msg_utm_global_position_send_struct(_mavlink->get_channel(), &msg);
+		} else {
+			msg.flight_state |= UTM_FLIGHT_STATE_UNKNOWN;
 		}
+
+		msg.update_rate = 0; // Data driven mode
+
+		mavlink_msg_utm_global_position_send_struct(_mavlink->get_channel(), &msg);
 
 		return true;
 	}
