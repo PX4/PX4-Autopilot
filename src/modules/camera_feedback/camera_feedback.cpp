@@ -53,13 +53,13 @@ CameraFeedback::CameraFeedback() :
 	_gpos_sub(-1),
 	_att_sub(-1),
 	_capture_pub(nullptr),
-	_camera_feedback_mode(CAMERA_FEEDBACK_MODE_NONE)
+	_camera_capture_feedback(false)
 {
 
 	// Parameters
-	_p_feedback = param_find("CAM_FBACK_MODE");
+	_p_camera_capture_feedback = param_find("CAM_CAP_FBACK");
 
-	param_get(_p_feedback, (int32_t *)&_camera_feedback_mode);
+	param_get(_p_camera_capture_feedback, (int32_t *)&_camera_capture_feedback);
 
 }
 
@@ -122,15 +122,13 @@ CameraFeedback::stop()
 void
 CameraFeedback::task_main()
 {
-
-	// We only support trigger feedback for now
-	// This will later be extended to support hardware feedback from the camera.
-	if (_camera_feedback_mode != CAMERA_FEEDBACK_MODE_TRIGGER) {
-		return;
+	if(!_camera_capture_feedback){
+		_trigger_sub = orb_subscribe(ORB_ID(camera_trigger));
+	} else {
+		_trigger_sub = orb_subscribe(ORB_ID(camera_trigger_feedback));
 	}
 
 	// Polling sources
-	_trigger_sub = orb_subscribe(ORB_ID(camera_trigger));
 	struct camera_trigger_s trig = {};
 
 	px4_pollfd_struct_t fds[1] = {};
