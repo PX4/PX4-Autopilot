@@ -265,6 +265,10 @@ private:
 	param_t _p_bat_emergen_thr;
 	param_t _p_bat_crit_thr;
 	param_t _p_bat_low_thr;
+	param_t _p_flow_rot;
+	param_t _p_flow_maxr;
+	param_t _p_flow_minhgt;
+	param_t _p_flow_maxhgt;
 
 	MavlinkReceiver(const MavlinkReceiver &) = delete;
 	MavlinkReceiver operator=(const MavlinkReceiver &) = delete;
