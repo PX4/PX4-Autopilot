@@ -50,7 +50,13 @@
 #include "pxh.h"
 #include "server.h"
 
-
+// In Cygwin opening and closing the same named pipe multiple times within one process doesn't work POSIX compliant.
+// As a workaround we open the client send pipe file in read write mode such that we can keep it open all the time.
+#if !defined(__PX4_CYGWIN)
+#define CLIENT_SEND_PIPE_OFLAGS O_RDONLY
+#else
+#define CLIENT_SEND_PIPE_OFLAGS O_RDWR
+#endif
 
 namespace px4_daemon
 {
@@ -121,7 +127,7 @@ Server::_server_main(void *arg)
 	}
 
 	std::string client_send_pipe_path = get_client_send_pipe_path(_instance_id);
-	int client_send_pipe_fd = open(client_send_pipe_path.c_str(), O_RDONLY);
+	int client_send_pipe_fd = open(client_send_pipe_path.c_str(), CLIENT_SEND_PIPE_OFLAGS);
 
 	while (true) {
 
