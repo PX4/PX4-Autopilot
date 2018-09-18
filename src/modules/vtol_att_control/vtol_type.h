@@ -58,9 +58,6 @@ struct Params {
 	float fw_qc_max_roll;		// maximum roll angle FW mode (QuadChute)
 	float front_trans_time_openloop;
 	float front_trans_time_min;
-	bool wv_takeoff;
-	bool wv_loiter;
-	bool wv_land;
 	float front_trans_duration;
 	float back_trans_duration;
 	float transition_airspeed;
