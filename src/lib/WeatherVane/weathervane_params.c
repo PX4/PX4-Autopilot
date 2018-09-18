@@ -40,7 +40,7 @@
  */
 
 /**
- * Enable weathervane for manual.
+ * Enable weathervane for manual position control mode.
  *
  * @boolean
  * @group Multicopter Position Control
@@ -62,6 +62,7 @@ PARAM_DEFINE_INT32(WV_AUTO_EN, 0);
  *
  * @min 0.0
  * @max 3.0
+ * @unit 1/s
  * @increment 0.01
  * @decimal 3
  * @group VTOL Attitude Control
