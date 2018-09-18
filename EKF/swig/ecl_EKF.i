@@ -74,7 +74,7 @@
         bool bad_mag_x;	// 0 - true if the fusion of the magnetometer X-axis has encountered a numerical error
         bool bad_mag_y;	// 1 - true if the fusion of the magnetometer Y-axis has encountered a numerical error
         bool bad_mag_z;	// 2 - true if the fusion of the magnetometer Z-axis has encountered a numerical error
-        bool bad_mag_hdg;	// 3 - true if the fusion of the magnetic heading has encountered a numerical error
+	bool bad_hdg;	// 3 - true if the fusion of the heading angle has encountered a numerical error
         bool bad_mag_decl;	// 4 - true if the fusion of the magnetic declination has encountered a numerical error
         bool bad_airspeed;	// 5 - true if fusion of the airspeed has encountered a numerical error
         bool bad_sideslip;	// 6 - true if fusion of the synthetic sideslip constraint has encountered a numerical error
@@ -92,7 +92,7 @@
             ss << "[bad_mag_x: " << bad_mag_x << "\n";
             ss << " bad_mag_y: " << bad_mag_y << "\n";
             ss << " bad_mag_z: " << bad_mag_z << "\n";
-            ss << " bad_mag_hdg: " << bad_mag_hdg << "\n";
+	    ss << " bad_hdg: " << bad_hdg << "\n";
             ss << " bad_mag_decl: " << bad_mag_decl << "\n";
             ss << " bad_airspeed: " << bad_airspeed << "\n";
             ss << " bad_sideslip: " << bad_sideslip << "\n";
@@ -209,7 +209,7 @@
         result.bad_mag_x = result_union.flags.bad_mag_x;
         result.bad_mag_y = result_union.flags.bad_mag_y;
         result.bad_mag_z = result_union.flags.bad_mag_z;
-        result.bad_mag_hdg = result_union.flags.bad_mag_hdg;
+	result.bad_hdg = result_union.flags.bad_hdg;
         result.bad_mag_decl = result_union.flags.bad_mag_decl;
         result.bad_airspeed = result_union.flags.bad_airspeed;
         result.bad_sideslip = result_union.flags.bad_sideslip;
