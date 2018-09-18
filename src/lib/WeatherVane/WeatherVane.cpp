@@ -66,7 +66,7 @@ float WeatherVane::get_weathervane_yawrate()
 
 	float roll_sp = -asinf(body_z_sp(1));
 
-	float roll_exceeding_treshold = 0;
+	float roll_exceeding_treshold = 0.0f;
 	float min_roll_rad = math::radians(_wv_min_roll.get());
 
 	if (roll_sp > min_roll_rad) {
