@@ -753,7 +753,6 @@ MulticopterPositionControl::task_main()
 			_att_sp = ControlMath::thrustToAttitude(thr_sp, _control.getYawSetpoint());
 			_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
 			_att_sp.fw_control_yaw = false;
-			_att_sp.disable_mc_yaw_control = false;
 			_att_sp.apply_flaps = false;
 
 			if (!constraints.landing_gear) {
@@ -779,7 +778,6 @@ MulticopterPositionControl::task_main()
 			_att_sp.yaw_body = _local_pos.yaw;
 			_att_sp.yaw_sp_move_rate = 0.0f;
 			_att_sp.fw_control_yaw = false;
-			_att_sp.disable_mc_yaw_control = false;
 			_att_sp.apply_flaps = false;
 			matrix::Quatf q_sp = matrix::Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
 			q_sp.copyTo(_att_sp.q_d);

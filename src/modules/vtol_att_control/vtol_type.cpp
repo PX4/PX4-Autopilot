@@ -124,24 +124,6 @@ void VtolType::update_mc_state()
 	_mc_roll_weight = 1.0f;
 	_mc_pitch_weight = 1.0f;
 	_mc_yaw_weight = 1.0f;
-
-	// VTOL weathervane
-	_v_att_sp->disable_mc_yaw_control = false;
-
-	if (_attc->get_pos_sp_triplet()->current.valid &&
-	    !_v_control_mode->flag_control_manual_enabled) {
-
-		if (_params->wv_takeoff && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
-			_v_att_sp->disable_mc_yaw_control = true;
-
-		} else if (_params->wv_loiter
-			   && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
-			_v_att_sp->disable_mc_yaw_control = true;
-
-		} else if (_params->wv_land && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-			_v_att_sp->disable_mc_yaw_control = true;
-		}
-	}
 }
 
 void VtolType::update_fw_state()

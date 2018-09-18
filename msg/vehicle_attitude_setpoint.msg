@@ -19,7 +19,6 @@ bool pitch_reset_integral	# Reset pitch integral part (navigation logic change)
 bool yaw_reset_integral	# Reset yaw integral part (navigation logic change)
 
 bool fw_control_yaw		# control heading with rudder (used for auto takeoff on runway)
-bool disable_mc_yaw_control	# control yaw for mc (used for vtol weather-vane mode)
 
 uint8 apply_flaps       	# flap config specifier
 uint8 FLAPS_OFF = 0     	# no flaps
