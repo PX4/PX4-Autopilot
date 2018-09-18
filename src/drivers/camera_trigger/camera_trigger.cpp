@@ -171,7 +171,6 @@ private:
 	bool 			_turning_on;
 	matrix::Vector2f	_last_shoot_position;
 	bool			_valid_position;
-	int32_t			_camera_capture_feedback;
 
 	int			_command_sub;
 	int			_lpos_sub;
@@ -184,7 +183,6 @@ private:
 	param_t			_p_interval;
 	param_t			_p_distance;
 	param_t			_p_interface;
-	param_t 		_p_camera_capture_feedback;
 
 	trigger_mode_t		_trigger_mode;
 
@@ -248,7 +246,6 @@ CameraTrigger::CameraTrigger() :
 	_turning_on(false),
 	_last_shoot_position(0.0f, 0.0f),
 	_valid_position(false),
-	_camera_capture_feedback(false),
 	_command_sub(-1),
 	_lpos_sub(-1),
 	_trigger_pub(nullptr),
@@ -272,14 +269,12 @@ CameraTrigger::CameraTrigger() :
 	_p_activation_time = param_find("TRIG_ACT_TIME");
 	_p_mode = param_find("TRIG_MODE");
 	_p_interface = param_find("TRIG_INTERFACE");
-	_p_camera_capture_feedback = param_find("CAM_CAP_FBACK");
 
 	param_get(_p_activation_time, &_activation_time);
 	param_get(_p_interval, &_interval);
 	param_get(_p_distance, &_distance);
 	param_get(_p_mode, (int32_t *)&_trigger_mode);
 	param_get(_p_interface, (int32_t *)&_camera_interface_mode);
-	param_get(_p_camera_capture_feedback, &_camera_capture_feedback);
 
 	switch (_camera_interface_mode) {
 #ifdef __PX4_NUTTX
@@ -318,11 +313,9 @@ CameraTrigger::CameraTrigger() :
 		param_set_no_notification(_p_activation_time, &(_activation_time));
 	}
 
-	if (!_camera_capture_feedback) {
-		// Advertise critical publishers here, because we cannot advertise in interrupt context
-		struct camera_trigger_s trigger = {};
-		_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
-	}
+	// Advertise critical publishers here, because we cannot advertise in interrupt context
+	struct camera_trigger_s trigger = {};
+	_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
 
 }
 
@@ -750,7 +743,7 @@ CameraTrigger::engage(void *arg)
 	// Trigger the camera
 	trig->_camera_interface->trigger(true);
 
-	if (trig->_test_shot || trig->_camera_capture_feedback) {
+	if (trig->_test_shot) {
 		// do not send messages or increment frame count for test shots
 		return;
 	}
