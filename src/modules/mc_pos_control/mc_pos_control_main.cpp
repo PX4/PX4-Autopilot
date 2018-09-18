@@ -379,7 +379,9 @@ MulticopterPositionControl::parameters_update(bool force)
 		// set trigger time for arm hysteresis
 		_arm_hysteresis.set_hysteresis_time_from(false, (int)(MPC_IDLE_TKO.get() * 1000000.0f));
 
-		_wv_controller->update_parameters();
+		if (_wv_controller != nullptr) {
+			_wv_controller->update_parameters();
+		}
 	}
 
 	return OK;
@@ -603,15 +605,19 @@ MulticopterPositionControl::task_main()
 
 		// activate the weathervane controller if required. If activated a flighttask can use it to implement a yaw-rate control strategy
 		// that turns the nose of the vehicle into the wind
-		if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled
-		    && _wv_controller->manual_enabled()) {
-			_wv_controller->activate();
+		if (_wv_controller != nullptr) {
+			if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled
+			    && _wv_controller->manual_enabled()) {
+				_wv_controller->activate();
 
-		} else if (_control_mode.flag_control_auto_enabled && _wv_controller->auto_enabled()) {
-			_wv_controller->activate();
+			} else if (_control_mode.flag_control_auto_enabled && _wv_controller->auto_enabled()) {
+				_wv_controller->activate();
 
-		} else {
-			_wv_controller->deactivate();
+			} else {
+				_wv_controller->deactivate();
+			}
+
+			_wv_controller->update(matrix::Quatf(_att_sp.q_d), _local_pos.yaw);
 		}
 
 		if (_control_mode.flag_armed) {
@@ -749,8 +755,6 @@ MulticopterPositionControl::task_main()
 			_att_sp.fw_control_yaw = false;
 			_att_sp.disable_mc_yaw_control = false;
 			_att_sp.apply_flaps = false;
-
-			_wv_controller->update(matrix::Quatf(_att_sp.q_d), _local_pos.yaw);
 
 			if (!constraints.landing_gear) {
 				if (constraints.landing_gear == vehicle_constraints_s::GEAR_UP) {

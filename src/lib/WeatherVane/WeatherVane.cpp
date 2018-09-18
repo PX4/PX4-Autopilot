@@ -47,7 +47,7 @@ WeatherVane::WeatherVane() :
 	_R_sp_prev = matrix::Dcmf();
 }
 
-void WeatherVane::update(matrix::Quatf q_sp_prev, float yaw)
+void WeatherVane::update(const matrix::Quatf &q_sp_prev, float yaw)
 {
 	_R_sp_prev = matrix::Dcmf(q_sp_prev);
 	_yaw = yaw;
