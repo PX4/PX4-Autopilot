@@ -122,8 +122,9 @@ CameraFeedback::stop()
 void
 CameraFeedback::task_main()
 {
-	if(!_camera_capture_feedback){
+	if (!_camera_capture_feedback) {
 		_trigger_sub = orb_subscribe(ORB_ID(camera_trigger));
+
 	} else {
 		_trigger_sub = orb_subscribe(ORB_ID(camera_trigger_feedback));
 	}

@@ -54,7 +54,6 @@ CameraCapture::CameraCapture() :
 	_command_ack_pub(nullptr),
 	_command_sub(-1),
 	_trig_buffer(nullptr),
-	_camera_capture_feedback(false),
 	_camera_capture_mode(0),
 	_camera_capture_edge(0),
 	_capture_seq(0),
@@ -68,9 +67,6 @@ CameraCapture::CameraCapture() :
 	// Parameters
 	_p_strobe_delay = param_find("CAM_CAP_DELAY");
 	param_get(_p_strobe_delay, &_strobe_delay);
-
-	_p_camera_capture_feedback = param_find("CAM_CAP_FBACK");
-	param_get(_p_camera_capture_feedback, &_camera_capture_feedback);
 
 	_p_camera_capture_mode = param_find("CAM_CAP_MODE");
 	param_get(_p_camera_capture_mode, &_camera_capture_mode);
@@ -137,15 +133,13 @@ CameraCapture::publish_trigger()
 		trigger.seq = _capture_seq++;
 		trigger.feedback = true;
 
-		if (_camera_capture_feedback) {
-			if (_trigger_pub == nullptr) {
+		if (_trigger_pub == nullptr) {
 
-				_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
+			_trigger_pub = orb_advertise(ORB_ID(camera_trigger_feedback), &trigger);
 
-			} else {
+		} else {
 
-				orb_publish(ORB_ID(camera_trigger), _trigger_pub, &trigger);
-			}
+			orb_publish(ORB_ID(camera_trigger_feedback), _trigger_pub, &trigger);
 		}
 
 		_last_exposure_time = trig.edge_time - _last_fall_time;
