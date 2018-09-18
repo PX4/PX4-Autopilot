@@ -367,7 +367,7 @@ union fault_status_u {
 		bool bad_mag_x: 1;	///< 0 - true if the fusion of the magnetometer X-axis has encountered a numerical error
 		bool bad_mag_y: 1;	///< 1 - true if the fusion of the magnetometer Y-axis has encountered a numerical error
 		bool bad_mag_z: 1;	///< 2 - true if the fusion of the magnetometer Z-axis has encountered a numerical error
-		bool bad_mag_hdg: 1;	///< 3 - true if the fusion of the magnetic heading has encountered a numerical error
+		bool bad_hdg: 1;	///< 3 - true if the fusion of the heading angle has encountered a numerical error
 		bool bad_mag_decl: 1;	///< 4 - true if the fusion of the magnetic declination has encountered a numerical error
 		bool bad_airspeed: 1;	///< 5 - true if fusion of the airspeed has encountered a numerical error
 		bool bad_sideslip: 1;	///< 6 - true if fusion of the synthetic sideslip constraint has encountered a numerical error
