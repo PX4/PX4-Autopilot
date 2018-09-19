@@ -2657,7 +2657,7 @@ MavlinkReceiver::receive_thread(void *arg)
 
 				/* non-blocking read. read may return negative values */
 				if ((nread = ::read(fds[0].fd, buf, sizeof(buf))) < (ssize_t)character_count) {
-					unsigned sleeptime = (1.0f / (_mavlink->get_baudrate() / 10)) * character_count * 1000000;
+					const unsigned sleeptime = character_count * 1000000 / (_mavlink->get_baudrate() / 10);
 					usleep(sleeptime);
 				}
 			}
