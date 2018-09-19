@@ -44,6 +44,7 @@
  */
 
 #include "mc_att_control.hpp"
+#include <systemlib/mavlink_log.h>
 
 #include <conversion/rotation.h>
 #include <drivers/drv_hrt.h>
@@ -61,6 +62,7 @@
 
 using namespace matrix;
 
+//static orb_advert_t mavlink_log_pub = nullptr;
 
 int MulticopterAttitudeControl::print_usage(const char *reason)
 {
@@ -98,7 +100,11 @@ To reduce control latency, the module directly polls on the gyro topic published
 
 MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	ModuleParams(nullptr),
-	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
+	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
+	_lp_filters_d{
+	{initial_update_rate_hz, 50.f},
+	{initial_update_rate_hz, 50.f},
+	{initial_update_rate_hz, 50.f}} // will be initialized correctly when params are loaded
 {
 	for (uint8_t i = 0; i < MAX_GYRO_COUNT; i++) {
 		_sensor_gyro_sub[i] = -1;
@@ -157,9 +163,13 @@ MulticopterAttitudeControl::parameters_updated()
 	_rate_d(2) = _yaw_rate_d.get();
 	_rate_ff(2) = _yaw_rate_ff.get();
 
-	if (fabsf(_lp_filters_d.get_cutoff_freq() - _d_term_cutoff_freq.get()) > 0.01f) {
-		_lp_filters_d.set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
-		_lp_filters_d.reset(_rates_prev);
+	if (fabsf(_lp_filters_d[0].get_cutoff_freq() - _d_term_cutoff_freq.get()) > 0.01f) {
+		_lp_filters_d[0].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
+		_lp_filters_d[1].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
+		_lp_filters_d[2].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
+		_lp_filters_d[0].reset(_rates_prev(0));
+		_lp_filters_d[1].reset(_rates_prev(1));
+		_lp_filters_d[2].reset(_rates_prev(2));
 	}
 
 	/* angular rate limits */
@@ -685,7 +695,10 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	Vector3f rates_err = _rates_sp - rates;
 
 	/* apply low-pass filtering to the rates for D-term */
-	Vector3f rates_filtered(_lp_filters_d.apply(rates));
+	Vector3f rates_filtered(
+		_lp_filters_d[0].apply(rates(0)),
+		_lp_filters_d[1].apply(rates(1)),
+		_lp_filters_d[2].apply(rates(2)));
 
 	_att_control = rates_p_scaled.emult(rates_err) +
 		       _rates_int -
@@ -935,6 +948,7 @@ MulticopterAttitudeControl::run()
 
 				} else {
 					/* attitude controller disabled, poll rates setpoint topic */
+<<<<<<< HEAD
 					if (vehicle_rates_setpoint_poll()) {
 						_rates_sp(0) = _v_rates_sp.roll;
 						_rates_sp(1) = _v_rates_sp.pitch;
@@ -942,6 +956,67 @@ MulticopterAttitudeControl::run()
 						_thrust_sp = -_v_rates_sp.thrust_body[2];
 					}
 				}
+=======
+					vehicle_rates_setpoint_poll();
+					_rates_sp(0) = _v_rates_sp.roll;
+					_rates_sp(1) = _v_rates_sp.pitch;
+					_rates_sp(2) = _v_rates_sp.yaw;
+					_thrust_sp = _v_rates_sp.thrust;
+				}
+			}
+
+			if (_v_control_mode.flag_control_rates_enabled) {
+				control_attitude_rates(dt);
+
+				/* publish actuator controls */
+				_actuators.control[0] = (PX4_ISFINITE(_att_control(0))) ? _att_control(0) : 0.0f;
+				_actuators.control[1] = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
+				_actuators.control[2] = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
+				_actuators.control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
+				_actuators.control[7] = _v_att_sp.landing_gear;
+				_actuators.timestamp = hrt_absolute_time();
+				_actuators.timestamp_sample = _sensor_gyro.timestamp;
+
+
+				/* scale effort by battery status */
+				if (_bat_scale_en.get() && _battery_status.scale > 0.0f) {
+					for (int i = 0; i < 4; i++) {
+						_actuators.control[i] *= _battery_status.scale;
+					}
+				}
+
+				if (!_actuators_0_circuit_breaker_enabled) {
+					if (_actuators_0_pub != nullptr) {
+
+						orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
+
+					} else if (_actuators_id) {
+						_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
+					}
+
+				}
+
+				/* publish controller status */
+				rate_ctrl_status_s rate_ctrl_status;
+				rate_ctrl_status.timestamp = hrt_absolute_time();
+				rate_ctrl_status.rollspeed = _rates_prev(0);
+				rate_ctrl_status.pitchspeed = _rates_prev(1);
+				rate_ctrl_status.yawspeed = _rates_prev(2);
+				rate_ctrl_status.rollspeed_integ = _rates_int(0);
+				rate_ctrl_status.pitchspeed_integ = _rates_int(1);
+				rate_ctrl_status.yawspeed_integ = _rates_int(2);
+
+				/*
+				static int ii = 0;
+				ii++;
+				if ((ii % 200) == 0) {
+					mavlink_log_critical(&mavlink_log_pub, "att_ctrl_THR:%d %.2f", ii/100*(-1), (double)(_actuators.control[3]));
+				}
+				*/
+
+				int instance;
+				orb_publish_auto(ORB_ID(rate_ctrl_status), &_controller_status_pub, &rate_ctrl_status, &instance, ORB_PRIO_DEFAULT);
+>>>>>>> Orig_XW
 			}
 
 			if (_v_control_mode.flag_control_termination_enabled) {
@@ -971,7 +1046,9 @@ MulticopterAttitudeControl::run()
 					_loop_update_rate_hz = _loop_update_rate_hz * 0.5f + loop_update_rate * 0.5f;
 					dt_accumulator = 0;
 					loop_counter = 0;
-					_lp_filters_d.set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
+					_lp_filters_d[0].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
+					_lp_filters_d[1].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
+					_lp_filters_d[2].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
 				}
 			}
 
