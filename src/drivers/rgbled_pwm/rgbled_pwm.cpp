@@ -197,8 +197,8 @@ RGBLED_PWM::status()
 
     if (ret == OK) {
         /* we don't care about power-save mode */
-        DEVICE_LOG("state: %s", on ? "ON" : "OFF");
-        DEVICE_LOG("red: %u, green: %u, blue: %u", (unsigned)r, (unsigned)g, (unsigned)b);
+        //DEVICE_LOG("state: %s", on ? "ON" : "OFF");
+        //DEVICE_LOG("red: %u, green: %u, blue: %u", (unsigned)r, (unsigned)g, (unsigned)b);
 
     } else {
         PX4_WARN("failed to read led");

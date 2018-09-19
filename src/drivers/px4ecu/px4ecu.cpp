@@ -291,8 +291,6 @@ PX4ECU::PX4ECU(bool run_as_task) :
 	_armed.force_failsafe = false;
 	_armed.in_esc_calibration_mode = false;
 
-	/* only enable this during development */
-	_debug_enabled = false;
 }
 
 PX4ECU::~PX4ECU()
@@ -382,7 +380,7 @@ PX4ECU::set_mode(Mode mode)
 		break;
 
 	case MODE_2PWM:	// v1 multi-port with flow control lines as PWM
-		DEVICE_DEBUG("MODE_2PWM");
+		//DEVICE_DEBUG("MODE_2PWM");
 
 		/* default output rates */
 		_pwm_default_rate = 50;
@@ -396,7 +394,7 @@ PX4ECU::set_mode(Mode mode)
 
 	// no break
 	case MODE_3PWM:	// v1 multi-port with flow control lines as PWM
-		DEVICE_DEBUG("MODE_3PWM");
+		//DEVICE_DEBUG("MODE_3PWM");
 
 		/* default output rates */
 		_pwm_default_rate = 50;
@@ -409,7 +407,7 @@ PX4ECU::set_mode(Mode mode)
 		break;
 
 	case MODE_4PWM: // v1 or v2 multi-port as 4 PWM outs
-		DEVICE_DEBUG("MODE_4PWM");
+		//DEVICE_DEBUG("MODE_4PWM");
 
 		/* default output rates */
 		_pwm_default_rate = 50;
@@ -424,7 +422,7 @@ PX4ECU::set_mode(Mode mode)
 #if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >= 6
 
 	case MODE_6PWM:
-		DEVICE_DEBUG("MODE_6PWM");
+		//DEVICE_DEBUG("MODE_6PWM");
 
 		/* default output rates */
 		_pwm_default_rate = 50;
@@ -440,7 +438,7 @@ PX4ECU::set_mode(Mode mode)
 #if defined(BOARD_HAS_ECU_PWM) && BOARD_HAS_ECU_PWM >= 8
 
 	case MODE_8PWM: // AeroCore PWMs as 8 PWM outs
-		DEVICE_DEBUG("MODE_8PWM");
+		//DEVICE_DEBUG("MODE_8PWM");
 		/* default output rates */
 		_pwm_default_rate = 50;
 		_pwm_alt_rate = 50;
@@ -453,7 +451,7 @@ PX4ECU::set_mode(Mode mode)
 #endif
 
 	case MODE_NONE:
-		DEVICE_DEBUG("MODE_NONE");
+		//DEVICE_DEBUG("MODE_NONE");
 
 		_pwm_default_rate = 10;	/* artificially reduced output rate */
 		_pwm_alt_rate = 10;
@@ -674,12 +672,12 @@ PX4ECU::subscribe()
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		if (sub_groups & (1 << i)) {
-			DEVICE_DEBUG("subscribe to actuator_controls_%d", i);
+			//DEVICE_DEBUG("subscribe to actuator_controls_%d", i);
 			_control_subs[i] = orb_subscribe(_control_topics[i]);
 		}
 
 		if (unsub_groups & (1 << i)) {
-			DEVICE_DEBUG("unsubscribe from actuator_controls_%d", i);
+			//DEVICE_DEBUG("unsubscribe from actuator_controls_%d", i);
 			orb_unsubscribe(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
@@ -939,7 +937,7 @@ PX4ECU::cycle()
 		/* this would be bad... */
 		if (ret < 0) {
             printf("ECU poll error\n");
-			DEVICE_LOG("poll error %d", errno);
+			//DEVICE_LOG("poll error %d", errno);
 
 		} else if (ret == 0) {
 			/* timeout: no control data, switch to failsafe values */
@@ -1201,7 +1199,7 @@ void PX4ECU::stop()
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
 
-	DEVICE_LOG("stopping");
+	//DEVICE_LOG("stopping");
 
 	/* note - someone else is responsible for restoring the GPIO config */
 

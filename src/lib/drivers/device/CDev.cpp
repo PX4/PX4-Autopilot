@@ -51,127 +51,65 @@ CDev::CDev(const char *name, const char *devname) :
 	Device(name),
 	cdev::CDev(devname)
 {
-	DEVICE_DEBUG("CDev::CDev");
-
-	int ret = px4_sem_init(&_lock, 0, 1);
-
-	if (ret != 0) {
-		PX4_WARN("SEM INIT FAIL: ret %d", ret);
-	}
 }
 
-CDev::~CDev()
-{
-	DEVICE_DEBUG("CDev::~CDev");
-
-	if (_registered) {
-		unregister_driver(_devname);
-	}
-
-	if (_pollset) {
-		delete[](_pollset);
-	}
-
-	px4_sem_destroy(&_lock);
-}
-
-int
-CDev::register_class_devname(const char *class_devname)
-{
-	DEVICE_DEBUG("CDev::register_class_devname %s", class_devname);
-
-	if (class_devname == nullptr) {
-		return -EINVAL;
-	}
-
-	int class_instance = 0;
-	int ret = -ENOSPC;
-
-	while (class_instance < 4) {
-		char name[32];
-		snprintf(name, sizeof(name), "%s%d", class_devname, class_instance);
-		ret = register_driver(name, &fops, 0666, (void *)this);
-
-		if (ret == OK) {
-			break;
-		}
+    int
+    CDev::init()
+    {
+        DEVICE_DEBUG("CDev::init");
         
-		class_instance++;
-	}
-
-	if (class_instance == 4) {
-		return ret;
-	}
-
-	return class_instance;
-}
-
-int
-CDev::unregister_class_devname(const char *class_devname, unsigned class_instance)
-{
-	DEVICE_DEBUG("CDev::unregister_class_devname");
-	char name[32];
-	snprintf(name, sizeof(name), "%s%u", class_devname, class_instance);
-	return unregister_driver(name);
-}
-
-int
-CDev::init()
-{
-	DEVICE_DEBUG("CDev::init");
-
-	// base class init first
-	int ret = Device::init();
-
-	if (ret != PX4_OK) {
-		goto out;
-	}
-
-	// now register the driver
-	if (get_devname() != nullptr) {
-		ret = cdev::CDev::init();
-
-		if (ret != PX4_OK) {
-			goto out;
-		}
-	}
-
-out:
-	return ret;
-}
-
-int
-CDev::ioctl(file_t *filep, int cmd, unsigned long arg)
-{
-	DEVICE_DEBUG("CDev::ioctl");
-	int ret = -ENOTTY;
-
-	switch (cmd) {
-
-	/* fetch a pointer to the driver's private data */
-	case DIOC_GETPRIV:
-		*(void **)(uintptr_t)arg = (void *)this;
-		ret = PX4_OK;
-		break;
-
-	case DEVIOCSPUBBLOCK:
-		_pub_blocked = (arg != 0);
-		ret = PX4_OK;
-		break;
-
-	case DEVIOCGPUBBLOCK:
-		ret = _pub_blocked;
-		break;
-
-	case DEVIOCGDEVICEID:
-		ret = (int)_device_id.devid;
-		break;
-
-	default:
-		break;
-	}
-
-	return ret;
-}
-
+        // base class init first
+        int ret = Device::init();
+        
+        if (ret != PX4_OK) {
+            goto out;
+        }
+        
+        // now register the driver
+        if (get_devname() != nullptr) {
+            ret = cdev::CDev::init();
+            
+            if (ret != PX4_OK) {
+                goto out;
+            }
+        }
+        
+    out:
+        return ret;
+    }
+    
+    int
+    CDev::ioctl(file_t *filep, int cmd, unsigned long arg)
+    {
+        DEVICE_DEBUG("CDev::ioctl");
+        int ret = -ENOTTY;
+        
+        switch (cmd) {
+                
+                /* fetch a pointer to the driver's private data */
+            case DIOC_GETPRIV:
+                *(void **)(uintptr_t)arg = (void *)this;
+                ret = PX4_OK;
+                break;
+                
+            case DEVIOCSPUBBLOCK:
+                _pub_blocked = (arg != 0);
+                ret = PX4_OK;
+                break;
+                
+            case DEVIOCGPUBBLOCK:
+                ret = _pub_blocked;
+                break;
+                
+            case DEVIOCGDEVICEID:
+                ret = (int)_device_id.devid;
+                break;
+                
+            default:
+                break;
+        }
+        
+        return ret;
+    }
+    
 } // namespace device
