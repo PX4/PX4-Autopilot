@@ -715,7 +715,7 @@ calibrate_return calculate_calibration_values(unsigned sensor, float (&accel_ref
 	for (unsigned i = 0; i < 3; i++) {
 		for (unsigned j = 0; j < 3; j++) {
 			float a = accel_ref[sensor][i * 2][j] - accel_offs[sensor][j];
-			mat_A[i][j] = a;
+			mat_A[j][i] = a;
 		}
 	}
 
