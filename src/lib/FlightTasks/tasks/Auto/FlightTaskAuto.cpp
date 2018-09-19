@@ -336,7 +336,7 @@ void FlightTaskAuto::_checkAvoidanceProgress()
 
 	if (pos_to_target.length() < NAV_ACC_RAD.get() && pos_to_target_z > NAV_MC_ALT_RAD.get()) {
 		// vehicle above or below the target waypoint
-		pos_control_status.altitude_acceptance_radius = pos_to_target_z + 0.5f;
+		pos_control_status.altitude_acceptance = pos_to_target_z + 0.5f;
 	}
 
 	// do not check for waypoints yaw acceptance in navigator
