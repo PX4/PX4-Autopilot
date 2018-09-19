@@ -95,6 +95,7 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.rc_map_gear_sw = param_find("RC_MAP_GEAR_SW");
 	parameter_handles.rc_map_stab_sw = param_find("RC_MAP_STAB_SW");
 	parameter_handles.rc_map_man_sw = param_find("RC_MAP_MAN_SW");
+	parameter_handles.rc_map_fti_sw = param_find("RC_MAP_FTI_SW");
 
 	parameter_handles.rc_map_aux1 = param_find("RC_MAP_AUX1");
 	parameter_handles.rc_map_aux2 = param_find("RC_MAP_AUX2");
@@ -282,6 +283,10 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	}
 
 	if (param_get(parameter_handles.rc_map_kill_sw, &(parameters.rc_map_kill_sw)) != OK) {
+		PX4_WARN("%s", paramerr);
+	}
+
+	if (param_get(parameter_handles.rc_map_fti_sw, &(parameters.rc_map_fti_sw)) != OK) {
 		PX4_WARN("%s", paramerr);
 	}
 

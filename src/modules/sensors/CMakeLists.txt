@@ -51,4 +51,5 @@ px4_add_module(
 		git_ecl
 		ecl_validation
 		mathlib
+		flight_test_input
 	)

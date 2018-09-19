@@ -282,6 +282,11 @@ PWMSim::run()
 				}
 			}
 
+			_fti_pwm1.inject(_actuator_outputs.output[0]);
+			_fti_pwm2.inject(_actuator_outputs.output[1]);
+			_fti_pwm3.inject(_actuator_outputs.output[2]);
+			_fti_pwm4.inject(_actuator_outputs.output[3]);
+
 			/* and publish for anyone that cares to see */
 			_actuator_outputs.timestamp = hrt_absolute_time();
 			int instance;
