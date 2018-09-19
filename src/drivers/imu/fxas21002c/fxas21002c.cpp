@@ -520,8 +520,6 @@ FXAS21002C::init()
 	float gyro_cut = FXAS21002C_DEFAULT_FILTER_FREQ;
 
 	if (gyro_cut_ph != PARAM_INVALID && param_get(gyro_cut_ph, &gyro_cut) == PX4_OK) {
-		PX4_INFO("gyro cutoff set to %.2f Hz", double(gyro_cut));
-
 		set_sw_lowpass_filter(FXAS21002C_DEFAULT_RATE, gyro_cut);
 
 	} else {

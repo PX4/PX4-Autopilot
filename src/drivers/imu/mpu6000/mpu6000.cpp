@@ -676,8 +676,6 @@ MPU6000::init()
 	float accel_cut = MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ;
 
 	if (accel_cut_ph != PARAM_INVALID && param_get(accel_cut_ph, &accel_cut) == PX4_OK) {
-		PX4_INFO("accel cutoff set to %.2f Hz", double(accel_cut));
-
 		_accel_filter_x.set_cutoff_frequency(MPU6000_ACCEL_DEFAULT_RATE, accel_cut);
 		_accel_filter_y.set_cutoff_frequency(MPU6000_ACCEL_DEFAULT_RATE, accel_cut);
 		_accel_filter_z.set_cutoff_frequency(MPU6000_ACCEL_DEFAULT_RATE, accel_cut);
@@ -690,8 +688,6 @@ MPU6000::init()
 	float gyro_cut = MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ;
 
 	if (gyro_cut_ph != PARAM_INVALID && param_get(gyro_cut_ph, &gyro_cut) == PX4_OK) {
-		PX4_INFO("gyro cutoff set to %.2f Hz", double(gyro_cut));
-
 		_gyro_filter_x.set_cutoff_frequency(MPU6000_GYRO_DEFAULT_RATE, gyro_cut);
 		_gyro_filter_y.set_cutoff_frequency(MPU6000_GYRO_DEFAULT_RATE, gyro_cut);
 		_gyro_filter_z.set_cutoff_frequency(MPU6000_GYRO_DEFAULT_RATE, gyro_cut);
@@ -2010,10 +2006,6 @@ MPU6000::print_info()
 	}
 
 	::printf("temperature: %.1f\n", (double)_last_temperature);
-	float accel_cut = _accel_filter_x.get_cutoff_freq();
-	::printf("accel cutoff set to %10.2f Hz\n", double(accel_cut));
-	float gyro_cut = _gyro_filter_x.get_cutoff_freq();
-	::printf("gyro cutoff set to %10.2f Hz\n", double(gyro_cut));
 }
 
 void
