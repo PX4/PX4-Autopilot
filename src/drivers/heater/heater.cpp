@@ -272,7 +272,7 @@ void Heater::initialize_trampoline(void *argv)
 	Heater *heater = new Heater();
 
 	if (!heater) {
-		PX4_ERR("Heater driver alloc failed");
+		PX4_ERR("driver allocation failed");
 		return;
 	}
 
