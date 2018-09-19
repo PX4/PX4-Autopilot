@@ -90,7 +90,6 @@
 
 #define TIMEOUT_5HZ 500
 #define RATE_MEASUREMENT_PERIOD 5000000
-#define GPS_WAIT_BEFORE_READ	20		// ms, wait before reading to save read() calls
 
 
 /* struct for dynamic allocation of satellite info data */
@@ -381,17 +380,21 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 			 * If we have all requested data available, read it without waiting.
 			 * If more bytes are available, we'll go back to poll() again.
 			 */
+			const unsigned character_count = 32; // minimum bytes that we want to read
+			unsigned baudrate = _baudrate == 0 ? 115200 : _baudrate;
+			const unsigned sleeptime = character_count * 1000000 / (baudrate / 10);
+
 #ifdef __PX4_NUTTX
 			int err = 0;
-			int bytesAvailable = 0;
-			err = ioctl(_serial_fd, FIONREAD, (unsigned long)&bytesAvailable);
+			int bytes_available = 0;
+			err = ioctl(_serial_fd, FIONREAD, (unsigned long)&bytes_available);
 
-			if ((err != 0) || (bytesAvailable < (int)buf_length)) {
-				usleep(GPS_WAIT_BEFORE_READ * 1000);
+			if (err != 0 || bytes_available < (int)character_count) {
+				usleep(sleeptime);
 			}
 
 #else
-			usleep(GPS_WAIT_BEFORE_READ * 1000);
+			usleep(sleeptime);
 #endif
 
 			ret = ::read(_serial_fd, buf, buf_length);
