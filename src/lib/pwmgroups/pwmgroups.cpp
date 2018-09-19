@@ -346,7 +346,7 @@ PwmGroups::set_pwm_channel_rates (uint8_t alt_rate, uint8_t default_rate) {
  *
  */
 int
-PwmGroups::set_pwm_channel_value_single (uint8_t device_channel_idx, uint8_t value) {
+PwmGroups::set_pwm_channel_value_single (uint8_t device_channel_idx, unsigned value) {
     device_channel_idx += _channel_map_offset;
     up_pwm_servo_set(device_channel_idx, value);
     return OK;

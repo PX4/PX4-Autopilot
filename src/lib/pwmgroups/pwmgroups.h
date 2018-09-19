@@ -195,7 +195,7 @@ public:
      * @return     0 on success.
      *
 	 */
-    int set_pwm_channel_value_single (uint8_t device_channel_idx, uint8_t value);
+    int set_pwm_channel_value_single (uint8_t device_channel_idx, unsigned value);
 
 	/**
 	 * @brief Set current working mode, hence the working channel map.
