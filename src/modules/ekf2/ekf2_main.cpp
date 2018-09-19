@@ -260,7 +260,7 @@ private:
 	int _range_finder_sub_index = -1; // index for downward-facing range finder subscription
 
 	// because we can have multiple GPS instances
-	int _gps_subs[ORB_MULTI_MAX_INSTANCES] {};
+	int _gps_subs[GPS_MAX_RECEIVERS] {};
 	int _gps_orb_instance{-1};
 
 	orb_advert_t _att_pub{nullptr};
@@ -281,7 +281,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamExtInt<px4::params::EKF2_MIN_OBS_DT>)
-		_obs_dt_min_ms,	///< Maximmum time delay of any sensor used to increse buffer length to handle large timing jitter (mSec)
+		_obs_dt_min_ms,	///< Maximum time delay of any sensor used to increase buffer length to handle large timing jitter (mSec)
 		(ParamExtFloat<px4::params::EKF2_MAG_DELAY>)
 		_mag_delay_ms,	///< magnetometer measurement delay relative to the IMU (mSec)
 		(ParamExtFloat<px4::params::EKF2_BARO_DELAY>)
@@ -605,8 +605,11 @@ Ekf2::Ekf2():
 	_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
-	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+	for (unsigned i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		_gps_subs[i] = orb_subscribe_multi(ORB_ID(vehicle_gps_position), i);
+	}
+
+	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		_range_finder_subs[i] = orb_subscribe_multi(ORB_ID(distance_sensor), i);
 	}
 
@@ -633,9 +636,10 @@ Ekf2::~Ekf2()
 
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		orb_unsubscribe(_range_finder_subs[i]);
-		_range_finder_subs[i] = -1;
+	}
+
+	for (unsigned i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		orb_unsubscribe(_gps_subs[i]);
-		_gps_subs[i] = -1;
 	}
 }
 
