@@ -602,8 +602,6 @@ FXOS8701CQ::init()
 	float accel_cut = FXOS8701C_ACCEL_DEFAULT_DRIVER_FILTER_FREQ;
 
 	if (accel_cut_ph != PARAM_INVALID && param_get(accel_cut_ph, &accel_cut) == PX4_OK) {
-		PX4_INFO("accel cutoff set to %.2f Hz", double(accel_cut));
-
 		accel_set_driver_lowpass_filter(FXOS8701C_ACCEL_DEFAULT_RATE, accel_cut);
 
 	} else {
