@@ -313,9 +313,9 @@ then
 fi
 
 #
-# Rover setup
+# UGV/Rover setup
 #
-if [ $VEHICLE_TYPE == rover ]
+if [ $VEHICLE_TYPE == ugv ]
 then
 	# 10 is MAV_TYPE_GROUND_ROVER
 	set MAV_TYPE 10
@@ -324,7 +324,7 @@ then
 	sh /etc/init.d/rc.interface
 
 	# Start standard rover apps
-	sh /etc/init.d/rc.axialracing_ax10_apps
+	sh /etc/init.d/rc.ugv_apps
 
 	param set MAV_TYPE 10
 fi
