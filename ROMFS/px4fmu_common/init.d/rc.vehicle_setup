@@ -48,18 +48,6 @@ then
 		set MAV_TYPE 2
 
 		# Use mixer to detect vehicle type
-		if [ $MIXER == quad_x -o $MIXER == quad_+ ]
-		then
-			set MAV_TYPE 2
-		fi
-		if [ $MIXER == quad_w -o $MIXER == quad_dc ]
-		then
-			set MAV_TYPE 2
-		fi
-		if [ $MIXER == quad_h ]
-		then
-			set MAV_TYPE 2
-		fi
 		if [ $MIXER == coax ]
 		then
 			set MAV_TYPE 3
