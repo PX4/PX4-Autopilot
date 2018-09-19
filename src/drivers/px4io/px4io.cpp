@@ -2962,7 +2962,7 @@ start(int argc, char *argv[])
 
 	if (g_dev == nullptr) {
 		delete interface;
-		errx(1, "driver alloc failed");
+		errx(1, "driver allocation failed");
 	}
 
 	bool rc_handling_disabled = false;
@@ -3001,7 +3001,7 @@ detect(int argc, char *argv[])
 	(void)new PX4IO(interface);
 
 	if (g_dev == nullptr) {
-		errx(1, "driver alloc failed");
+		errx(1, "driver allocation failed");
 	}
 
 	int ret = g_dev->detect();
@@ -3031,7 +3031,7 @@ checkcrc(int argc, char *argv[])
 		(void)new PX4IO(interface);
 
 		if (g_dev == nullptr) {
-			errx(1, "driver alloc failed");
+			errx(1, "driver allocation failed");
 		}
 
 	} else {
@@ -3455,7 +3455,7 @@ px4io_main(int argc, char *argv[])
 
 			if (g_dev == nullptr) {
 				delete interface;
-				errx(1, "driver alloc failed");
+				errx(1, "driver allocation failed");
 			}
 		}
 
