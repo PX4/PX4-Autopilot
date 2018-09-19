@@ -5,6 +5,7 @@ environment:
   matrix:
     - PX4_CONFIG: posix_sitl_default
     - PX4_CONFIG: nuttx_px4fmu-v4_default
+      CCACHE_DISABLE: 1
 
 branches:
   only:
@@ -24,7 +25,7 @@ init:
 - ver
 
 install:
-- ps: if (-not (Test-Path C:\Toolchain.msi)) {Invoke-WebRequest https://s3-us-west-2.amazonaws.com/px4-tools/PX4+Windows+Cygwin+Toolchain/PX4+Windows+Cygwin+Toolchain+0.4.msi -OutFile C:\Toolchain.msi}
+- ps: if (-not (Test-Path C:\Toolchain.msi)) {Invoke-WebRequest https://s3-us-west-2.amazonaws.com/px4-tools/PX4+Windows+Cygwin+Toolchain/PX4+Toolchain+Cygwin+Toolchain+ccache+beta.msi -OutFile C:\Toolchain.msi}
 - start /wait msiexec /i C:\Toolchain.msi /quiet /qn /norestart /log C:\install.log
 
 # Note: using start /wait is important
@@ -37,8 +38,12 @@ build_script:
 - for /f %%i in ('cygpath -u %%CD%%') do set repopath=%%i
 # fetch all submodules in parallel
 - call bash --login -c "cd $repopath && git submodule update --init --recursive --jobs=10"
+
+# clear ccache stats for posix build
+- call bash --login -c "ccache -z"
 # make SITL
 - call bash --login -c "cd $repopath && make ${PX4_CONFIG}"
+- call bash --login -c "ccache -s"
 
 # Note: using bash --login is important
 # because otherwise certain things (like python; import numpy) do not work
@@ -47,3 +52,4 @@ cache:
 # cache toolchain installation file to avoid downloading it from AWS S3 each time
 # it's ~496MB < 1GB free limit for build caches
 - C:\Toolchain.msi -> appveyor.yml
+- C:\PX4\home\.ccache
