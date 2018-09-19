@@ -24,4 +24,6 @@ then
 	param set PWM_RATE 400
 
 	param set RTL_LAND_DELAY 0
+
+	param set WV_EN 1
 fi
