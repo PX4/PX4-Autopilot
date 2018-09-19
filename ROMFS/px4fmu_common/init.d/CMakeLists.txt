@@ -100,8 +100,6 @@ px4_add_romfs_files(
 	50000_generic_ground_vehicle
 	50001_axialracing_ax10
 	50002_traxxas_stampede_2wd
-	rc.axialracing_ax10_apps
-	rc.axialracing_ax10_defaults
 	rc.fw_apps
 	rc.fw_defaults
 	rc.interface
