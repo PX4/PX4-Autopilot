@@ -66,7 +66,7 @@ int InputTest::update(unsigned int timeout_ms, ControlData **control_data, bool 
 	_control_data.type = ControlData::Type::Angle;
 
 	for (int i = 0; i < 3; ++i) {
-		_control_data.type_data.angle.is_speed[i] = false;
+		_control_data.type_data.angle.frames[i] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 		_control_data.type_data.angle.angles[i] = _angles[i] * M_DEG_TO_RAD_F;
 
 		_control_data.stabilize_axis[i] = false;

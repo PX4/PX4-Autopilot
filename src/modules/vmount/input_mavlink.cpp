@@ -281,9 +281,9 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 
 					case vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING:
 						_control_data.type = ControlData::Type::Angle;
-						_control_data.type_data.angle.is_speed[0] = false;
-						_control_data.type_data.angle.is_speed[1] = false;
-						_control_data.type_data.angle.is_speed[2] = false;
+						_control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+						_control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+						_control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 						// vmount spec has roll on channel 0, MAVLink spec has pitch on channel 0
 						_control_data.type_data.angle.angles[0] = vehicle_command.param2 * M_DEG_TO_RAD_F;
 						// vmount spec has pitch on channel 1, MAVLink spec has roll on channel 1
@@ -315,6 +315,39 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 					_stabilize[0] = (uint8_t) vehicle_command.param2 == 1;
 					_stabilize[1] = (uint8_t) vehicle_command.param3 == 1;
 					_stabilize[2] = (uint8_t) vehicle_command.param4 == 1;
+
+					for (int i = 0; i < 3; ++i) {
+						float param;
+
+						if (i == 0) {
+							param = vehicle_command.param5;
+
+						} else if (i == 1) {
+							param = vehicle_command.param6;
+
+						} else {
+							param = vehicle_command.param7;
+						}
+
+						if (int(param) == 0) {
+							_control_data.type_data.angle.frames[i] =
+								ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+
+						} else if (int(param) == 1) {
+							_control_data.type_data.angle.frames[i] =
+								ControlData::TypeData::TypeAngle::Frame::AngularRate;
+
+						} else if (int(param) == 2) {
+							_control_data.type_data.angle.frames[i] =
+								ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
+
+						} else {
+							// Not supported, fallback to body angle.
+							_control_data.type_data.angle.frames[i] =
+								ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+						}
+					}
+
 					_control_data.type = ControlData::Type::Neutral; //always switch to neutral position
 
 					*control_data = &_control_data;
