@@ -13,4 +13,4 @@ float32 acceptance_radius		# the optimal distance to a waypoint to switch to the
 
 float32 yaw_acceptance			# NaN if not set
 
-float32 altitude_acceptance_radius # the optimal vertical distance to a waypoint to switch to the next
+float32 altitude_acceptance		# the optimal vertical distance to a waypoint to switch to the next
