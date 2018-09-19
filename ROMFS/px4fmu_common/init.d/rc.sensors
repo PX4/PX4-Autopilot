@@ -1,45 +1,187 @@
 #!nsh
 #
-# Standard startup script for sensor drivers.
+# Sensor driver startup script.
 #
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
+
+# V2 build hwtypecmp is always false
+set BOARD_FMUV3 0
+
 
 ###############################################################################
 #               Begin Setup for board specific configurations.                #
 ###############################################################################
 
-if ! ver hwcmp AEROFC_V1 OMNIBUS_F4SD
+if ver hwcmp AEROFC_V1 OMNIBUS_F4SD
 then
-	if ! ver hwcmp CRAZYFLIE
+	# Invenses 9-DOF IMU/magnetometer.
+	mpu9250 -s -R 14 start
+
+	# TE Connectivity barometric pressure sensor.
+	ms5611 -T 0 start
+
+	#
+	# Possible external compasses.
+	#
+	# Honeywell 3-axis magnetometer.
+	hmc5883 -X start
+	# iSentek 3-axis magnetometer.
+	ist8310 -C -b 1 -R 4 start
+
+	aerofc_adc start
+
+	# Distance sensor.
+	ll40ls start i2c
+
+	# Benewake TFMini distance sensor.
+	if param greater SENS_EN_TFMINI 0
 	then
-		# Configure all I2C buses to 100 KHz as they
-		# are all external or slow
-		fmu i2c 1 100000
-		fmu i2c 2 100000
+		# Start the driver on /dev/ttyS3.
+		tfmini start -d /dev/ttyS3
 	fi
 
-	if ver hwcmp PX4FMU_V4
+	# LeddarOne
+	if param greater SENS_EN_LEDDAR1 0
 	then
-		# We know there are sketchy boards out there
-		# as chinese companies produce Pixracers without
-		# fully understanding the critical parts of the
-		# schematic and BOM, leading to sensor brownouts
-		# on boot. Original Pixracers following the
-		# open hardware design do not require this.
-		fmu sensor_reset 50
+		# Start the driver on telemetry.
+		leddar_one -d /dev/ttyS3 start
 	fi
+fi
 
-	# External SPI
+if ver hwcmp AEROCORE2
+then
+	# STMicroelectronics 3-axis gyro.
+	l3gd20 -R 12 start
+
+	# STMicroelectronics 3-axis accelerometer/3-axis magnetometer.
+	lsm303d start
+
+	# TE Connectivity barometric pressure sensor on External SPI
 	ms5611 -S start
 
-	# Internal SPI (auto detect ms5611 or ms5607)
+	# TE Connectivity barometric pressure sensor on Internal SPI.
+	# (auto detect ms5611 or ms5607)
 	ms5611 -T 0 -s start
 
 	# Blacksheep telemetry
 	bst start
 
+	# ADC
 	adc start
+fi
+
+if ver hwcmp AUAV_X21
+then
+	# External I2C bus
+	# Honeywell 3-axis magnetometer.
+	hmc5883 -C -T -X start
+	# STMicroelectronis 3-axis magnetometer - This magnetometer is highly sensitive to temperature changes.
+	lis3mdl -X start
+
+	# Internal SPI bus ICM-20608-G is rotated 90 deg yaw.
+	mpu6000 -R 2 -T 20608 start
+
+	# Internal SPI bus ICM-20602-G is rotated 90 deg yaw.
+	mpu6000 -R 2 -T 20602 start
+
+	# Internal SPI bus mpu9250 is rotated 90 deg yaw.
+	mpu9250 -R 2 start
+
+	# TE Connectivity barometric pressure sensor on External SPI
+	ms5611 -S start
+
+	# TE Connectivity barometric pressure sensor on Internal SPI.
+	# (auto detect ms5611 or ms5607)
+	ms5611 -T 0 -s start
+
+	# Blacksheep telemetry
+	bst start
+
+	# ADC
+	adc start
+fi
+
+if ver hwcmp AV_X_V1
+then
+	adis16477 -R 8 start
+
+	#adis16497 start
+
+	lps22hb start
+
+	lsm303agr -R 4 start
+
+	#ms4525_airspeed start
+fi
+
+if ver hwcmp CRAZYFLIE
+then
+	# Onboard I2C.
+	mpu9250 -R 12 start
+
+	# I2C bypass of mpu.
+	lps25h start
+
+	# Optical flow deck.
+	vl53lxx start
+
+	# Pixart optical flow sensor.
+	pmw3901 start
+
+	# TE Connectivity barometric pressure sensor on External SPI
+	ms5611 -S start
+
+	# TE Connectivity barometric pressure sensor on Internal SPI.
+	# (auto detect ms5611 or ms5607)
+	ms5611 -T 0 -s start
+
+	# Blacksheep telemetry
+	bst start
+
+	# ADC
+	adc start
+fi
+
+if ver hwcmp MINDPX_V2
+then
+	# Internal I2C bus.
+	# Honeywell 3-axis magnetometer.
+	hmc5883 -C -T -I -R 12 start
+
+	# External I2C bus.
+	# Honeywell 3-axis magnetometer.
+	hmc5883 -C -T -X start
+
+	# Invensense 6-DOF IMU.
+	mpu6000 -s -R 8 start
+
+	# Invensense 9-DOF IMU/magnetometer.
+	mpu9250 -s -R 8 start
+
+	# STMicroelectronics 3-axis accelerometer/3-axis magnetometer.
+	lsm303d -R 10 start
+
+	# STMicroelectronics 3-axis gyro.
+	l3gd20 -R 14 start
+
+	# TE Connectivity barometric pressure sensor on External SPI
+	ms5611 -S start
+
+	# TE Connectivity barometric pressure sensor on Internal SPI.
+	# (auto detect ms5611 or ms5607)
+	ms5611 -T 0 -s start
+
+	# Blacksheep telemetry
+	bst start
+
+	# ADC
+	adc start
+
+	# Start the optical flow driver as a background process.
+	px4flow start &
 fi
 
 if ver hwcmp AEROFC_V1
@@ -61,20 +203,27 @@ then
 	lsm303d start
 fi
 
-if ver hwcmp AUAV_X21
+if ver hwcmp PX4_SAME70XPLAINED_V1
 then
-	# External I2C bus
+	# External I2C bus.
+	# Honeywell 3-axis magnetometer.
 	hmc5883 -C -T -X start
-	lis3mdl -X start
 
-	# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
-	mpu6000 -R 2 -T 20608 start
-
-	# Internal SPI bus ICM-20602-G is rotated 90 deg yaw
-	mpu6000 -R 2 -T 20602 start
-
-	# Internal SPI bus mpu9250 is rotated 90 deg yaw
+	# Internal SPI bus mpu9250 is rotated 90 deg yaw.
 	mpu9250 -R 2 start
+
+	# TE Connectivity barometric pressure sensor on External SPI
+	ms5611 -S start
+
+	# TE Connectivity barometric pressure sensor on Internal SPI.
+	# (auto detect ms5611 or ms5607)
+	ms5611 -T 0 -s start
+
+	# Blacksheep telemetry
+	bst start
+
+	# ADC
+	adc start
 fi
 
 if ver hwcmp AV_X_V1
@@ -107,14 +256,8 @@ fi
 
 if ver hwcmp NXPHLITE_V3
 then
-	# External I2C bus
-	hmc5883 -C -X start
-
-	# External I2C bus
-	lis3mdl -X start
-
-	# Onboard I2C (baro) but an external bus on V3 RC15
-	mpl3115a2 -X start
+	# Internal I2C (baro)
+	mpl3115a2 -I start
 
 	# Internal SPI (accel + mag)
 	fxos8701cq start -a 8 -R 0
@@ -123,33 +266,46 @@ then
 	fxas21002c start -R 0
 fi
 
-# V2 build hwtypecmp is always false
-set BOARD_FMUV3 0
-
 if ver hwcmp PX4FMU_V2
 then
-	# External I2C bus
+	# External I2C bus.
+	# Honeywell 3-axis magnetometer.
 	hmc5883 -C -T -X start
+	# STMicroelectronis 3-axis magnetometer - This magnetometer is highly sensitive to temperature changes.
 	lis3mdl -X start
 	ist8310 -C start
 
-	# Internal I2C bus
+	# Internal I2C bus.
+	# Honeywell 3-axis magnetometer.
 	hmc5883 -C -T -I -R 4 start
 
-	# Internal SPI bus ICM-20608-G
+	# Internal SPI bus ICM-20608-G.
 	mpu6000 -T 20608 start
 
-	# V3 build hwtypecmp supports V2|V2M|V30
+	# TE Connectivity barometric pressure sensor on External SPI
+	ms5611 -S start
+
+	# TE Connectivity barometric pressure sensor on Internal SPI.
+	# (auto detect ms5611 or ms5607)
+	ms5611 -T 0 -s start
+
+	# Blacksheep telemetry
+	bst start
+
+	# ADC
+	adc start
+
+	# V3 build hwtypecmp supports V2|V2M|V30.
 	if ver hwtypecmp V30
 	then
-		# Check for Pixhawk 2.0 cube
-		# external MPU6K is rotated 180 degrees yaw
+		# Check for Pixhawk 2.0 cube.
+		# external MPU6K is rotated 180 degrees yaw.
 		if mpu6000 -S -R 4 start
 		then
 			set BOARD_FMUV3 20
 		else
-			# Check for Pixhawk 2.1 cube
-			# external MPU9250 is rotated 180 degrees yaw
+			# Check for Pixhawk 2.1 cube.
+			# external MPU9250 is rotated 180 degrees yaw.
 			if mpu9250 -S -R 4 start
 			then
 				set BOARD_FMUV3 21
@@ -157,19 +313,19 @@ then
 		fi
 	fi
 
-	# Check if a Pixhack (which reports as V2M) is present
+	# Check if a Pixhack (which reports as V2M) is present.
 	if ver hwtypecmp V2M
 	then
 		# Pixhawk Mini doesn't have these sensors,
-		# so if they are found we know its a Pixhack
+		# so if they are found we know its a Pixhack.
 
-		# external MPU6K is rotated 180 degrees yaw
+		# external MPU6K is rotated 180 degrees yaw.
 		if mpu6000 -S -R 4 start
 		then
 			set BOARD_FMUV3 20
 		else
-			# Check for Pixhack 3.1
-			# external MPU9250 is rotated 180 degrees yaw
+			# Check for Pixhack 3.1.
+			# External MPU9250 is rotated 180 degrees yaw.
 			if mpu9250 -S -R 4 start
 			then
 				set BOARD_FMUV3 21
@@ -179,90 +335,93 @@ then
 
 	if [ $BOARD_FMUV3 != 0 ]
 	then
-		# sensor heating is available, but we disable it for now
+		# Sensor heating is available, but we disable it for now.
 		param set SENS_EN_THERMAL 0
 
-		# external L3GD20H is rotated 180 degrees yaw
+		# External L3GD20H is rotated 180 degrees yaw.
 		l3gd20 -X -R 4 start
 
-		# external LSM303D is rotated 270 degrees yaw
+		# External LSM303D is rotated 270 degrees yaw.
 		lsm303d -X -R 6 start
 
 		if [ $BOARD_FMUV3 == 20 ]
 		then
-			# v2.0 internal MPU6000 is rotated 180 deg roll, 270 deg yaw
+			# v2.0 internal MPU6000 is rotated 180 deg roll, 270 deg yaw.
 			mpu6000 -R 14 start
 
-			# v2.0 Has internal hmc5883 on SPI1
+			# v2.0 Has internal hmc5883 on SPI1.
+			# Honeywell 3-axis magnetometer.
 			hmc5883 -C -T -S -R 8 start
 		fi
 
 		if [ $BOARD_FMUV3 == 21 ]
 		then
-			# v2.1 internal MPU9250 is rotated 180 deg roll, 270 deg yaw
+			# v2.1 internal MPU9250 is rotated 180 deg roll, 270 deg yaw.
 			mpu9250 -R 14 start
 		fi
 
 	else
-		# $BOARD_FMUV3 == 0 -> FMUv2
-
+		# $BOARD_FMUV3 == 0 -> FMUv2.
 		mpu6000 start
 
-		# As we will use the external mag and the ICM-20608-G
-		# V2 build hwtypecmp is always false
-		# V3 build hwtypecmp supports V2|V2M|V30
-		if ! ver hwtypecmp V2M
+		# As we will use the external mag and the ICM-20608-G.
+		# V2 build hwtypecmp is always false.
+		# V3 build hwtypecmp supports V2|V2M|V30.
+		if ver hwtypecmp V2M
 		then
+			# On the PixhawkMini the mpu9250 has been disabled due to HW errata.
+		else
+			# Invensense 9-DOF IMU/magnetometer.
 			mpu9250 start
-		# else: On the PixhawkMini the mpu9250 has been disabled due to HW errata
 		fi
 
+		# STMicroelectronics 3-axis gyro.
 		l3gd20 start
+
+		# STMicroelectronics 3-axis magnetometer.
 		lsm303d start
 	fi
-fi
 
-if ver hwcmp PX4_SAME70XPLAINED_V1
-then
-	# External I2C bus
-	hmc5883 -C -T -X start
+	# Benewake TFMini distance sensor.
+	if param greater SENS_EN_TFMINI 0
+	then
+		# Start the driver on serial 4/5.
+		tfmini start -d /dev/ttyS6
+	fi
 
-	# Internal SPI bus mpu9250 is rotated 90 deg yaw
-	mpu9250 -R 2 start
+	# LeddarOne
+	if param greater SENS_EN_LEDDAR1 0
+	then
+		# Start the driver on serial 4/5.
+		leddar_one -d /dev/ttyS6 start
+	fi
+
+	# Start the optical flow driver as a background process.
+	px4flow start &
 fi
 
 if ver hwcmp PX4FMU_V4
 then
-	# External I2C bus
-	hmc5883 -C -T -X start
-	lis3mdl -X start
-	bmp280 -I start
-
-	# expansion i2c used for BMM150 rotated by 90deg
-	bmm150 -R 2 start
-
-	# hmc5883 internal SPI bus is rotated 90 deg yaw
-	if ! hmc5883 -C -T -S -R 2 start
-	then
-		# lis3mdl internal SPI bus is rotated 90 deg yaw
-		if ! lis3mdl start
-		then
-			# BMI055 gyro internal SPI bus
-			bmi055 -G start
-		fi
-	fi
+	# We know there are sketchy boards out there
+	# as chinese companies produce Pixracers without
+	# fully understanding the critical parts of the
+	# schematic and BOM, leading to sensor brownouts
+	# on boot. Original Pixracers following the
+	# open hardware design do not require this.
+	fmu sensor_reset 50
 
 	# Start either ICM2060X or BMI055. They are both connected to the same SPI bus and use the same
 	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
 	# will prevent the incorrect driver from a successful initialization.
-
-	# ICM20602 internal SPI bus ICM-20608-G is rotated 90 deg yaw
-	if ! mpu6000 -R 2 -T 20602 start
+	if mpu6000 -R 2 -T 20602 start
 	then
-		# ICM20608 internal SPI bus ICM-20602-G is rotated 90 deg yaw
-		if ! mpu6000 -R 2 -T 20608 start
+		# ICM20602 internal SPI bus ICM-20608-G is rotated 90 deg yaw.
+	else
+		if mpu6000 -R 2 -T 20608 start
 		then
-			# BMI055 accel internal SPI bus
+			# ICM20608 internal SPI bus ICM-20602-G is rotated 90 deg yaw.
+		else
+			# BMI055 accel internal SPI bus.
 			bmi055 -A start
 		fi
 	fi
@@ -270,19 +429,16 @@ then
 	# Start either MPU9250 or BMI160. They are both connected to the same SPI bus and use the same
 	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
 	# will prevent the incorrect driver from a successful initialization.
-
-	# mpu9250 internal SPI bus mpu9250 is rotated 90 deg yaw
-	if ! mpu9250 -R 2 start
+	if mpu9250 -R 2 start
 	then
-		# BMI160 internal SPI bus
+		# mpu9250 internal SPI bus mpu9250 is rotated 90 deg yaw.
+	else
+		# BMI160 6-DOF IMU - internal SPI bus.
 		bmi160 start
 	fi
-fi
 
-if ver hwcmp MINDPX_V2
-then
-	# External I2C bus
-	hmc5883 -C -T -X start
+	# Bosch BMI055 IMU - Internal SPI bus.
+	bmi055 -G start
 
 	# Internal I2C bus
 	hmc5883 -C -T -I -R 12 start
@@ -295,36 +451,77 @@ fi
 
 if ver hwcmp OMNIBUS_F4SD
 then
-	if ! mpu6000 -R 12 -s start
+	if mpu6000 -R 12 -s start
 	then
+	else
 		# some boards such as the Hobbywing XRotor F4 G2 use the ICM-20602
 		mpu6000 -R 12 -T 20602 -s start
 	fi
 
-	# Possible external compasses
-	hmc5883 -X start
+	# TE Connectivity barometric pressure sensor on Internal SPI.
+	# (auto detect ms5611 or ms5607)
+	ms5611 -T 0 -s start
 
-	bmp280 start
+	# Blacksheep telemetry
+	bst start
 
+	# ADC
 	adc start
+
+	# Start the optical flow driver as a background process.
+	px4flow start &
 fi
 
 if ver hwcmp PX4FMU_V4PRO
 then
-	# Internal SPI bus ICM-20608-G
+	# Internal SPI bus ICM-20608-G.
 	mpu6000 -R 2 -T 20608 start
 
-	# Internal SPI bus ICM-20602
+	# Internal SPI bus ICM-20602.
 	mpu6000 -R 2 -T 20602 start
 
-	# Internal SPI bus mpu9250
+	# Internal SPI bus mpu9250.
 	mpu9250 -R 2 start
 
-	# Internal SPI bus
+	# Internal SPI bus.
+	# STMicroelectronis 3-axis magnetometer - This magnetometer is highly sensitive to temperature changes.
 	lis3mdl -R 0 start
 
-	# Possible external compasses
+	#
+	# Possible external compasses.
+	#
+	# Honeywell 3-axis magnetometer.
 	hmc5883 -C -T -X start
+
+	# Benewake TFMini distance sensor.
+	if param greater SENS_EN_TFMINI 0
+	then
+		# Start the driver on serial 4/5.
+		tfmini start -d /dev/ttyS6
+	fi
+
+	# LeddarOne distance sensor.
+	if param greater SENS_EN_LEDDAR1 0
+	then
+		# Start the driver on serial 4/5.
+		leddar_one -d /dev/ttyS6 start
+	fi
+
+	# TE Connectivity barometric pressure sensor on External SPI
+	ms5611 -S start
+
+	# TE Connectivity barometric pressure sensor on Internal SPI.
+	# (auto detect ms5611 or ms5607)
+	ms5611 -T 0 -s start
+
+	# Blacksheep telemetry
+	bst start
+
+	# ADC
+	adc start
+
+	# Start the optical flow driver as a background process.
+	px4flow start &
 
 	#RM3100
 	rm3100 start
@@ -332,25 +529,32 @@ fi
 
 if ver hwcmp PX4FMU_V5
 then
-
-	# Internal SPI bus ICM-20602
+	# Internal SPI bus ICM-20602.
 	mpu6000 -R 8 -s -T 20602 start
 
-	# Internal SPI bus ICM-20689
+	# Internal SPI bus ICM-20689.
 	mpu6000 -R 8 -z -T 20689 start
 
-	# Internal SPI bus BMI055 accel
+	# Internal SPI bus BMI055 accel.
 	bmi055 -A -R 10 start
 
-	# Internal SPI bus BMI055 gyro
+	# Internal SPI bus BMI055 gyro.
 	bmi055 -G -R 10 start
 
-	# Possible external compasses
+	#
+	# Possible internal compasses.
+	#
+	# iSentek 3-axis magnetometer.
+	ist8310 -C -b 5 start
+
+	#
+	# Possible external compasses.
+	#
+	# Honeywell 3-axis magnetometer.
 	hmc5883 -C -T -X start
-
-	# Possible external compasses
-
+	# iSentek 3-axis magnetometer.
 	ist8310 -C -b 1 start
+	# iSentek 3-axis magnetometer.
 	ist8310 -C -b 2 start
 
 	# Possible internal compass
@@ -385,26 +589,20 @@ then
 		ms4525_airspeed start -a
 
 		ets_airspeed start -a
-
 	fi
 fi
 
-# Heater driver for temperature regulated IMUs.
-if param compare SENS_EN_THERMAL 1
-then
-	heater start
-fi
-
-# Sensors on the PWM interface bank
+# Lidar-Lite distance sensor on PWM.
 if param compare SENS_EN_LL40LS 1
 then
+	# Sensor on the PWM interface bank.
 	if pwm_input start
 	then
 		ll40ls start pwm
 	fi
 fi
 
-# Lidar-Lite on I2C
+# Lidar-Lite distance sensor on I2C.
 if param compare SENS_EN_LL40LS 2
 then
 	ll40ls start i2c
@@ -422,69 +620,46 @@ then
 	sf0x start
 fi
 
-# Lightware i2c lidar sensor
+# Lightware i2c lidar sensor.
 if param greater SENS_EN_SF1XX 0
 then
 	sf1xx start -a
 fi
 
-# mb12xx sonar sensor
+# mb12xx sonar sensor.
 if param greater SENS_EN_MB12XX 0
 then
 	mb12xx start -a
 fi
 
-# Teraranger one tof sensor
+# Teraranger one Time of Flight sensor.
 if param greater SENS_EN_TRANGER 0
 then
 	teraranger start -a
 fi
 
-# Benewake TFMini
+# Benewake TFMini.
 if param greater SENS_EN_TFMINI 0
 then
-	if ver hwcmp PX4FMU_V2 PX4FMU_V4PRO
+	if param compare SYS_COMPANION 0
 	then
-		# start the driver on serial 4/5
-		tfmini start -d /dev/ttyS6
-	else
-		if ver hwcmp AEROFC_V1
-		then
-			# start the driver on telemetry
-			tfmini start -d /dev/ttyS3
-		else
-			if param compare SYS_COMPANION 0
-			then
-				# start on default mavlink companion device
-				tfmini start -d /dev/ttyS2
-			fi
-		fi
+		# Start on default serial device.
+		tfmini start -d /dev/ttyS2
 	fi
 fi
 
-# LeddarOne
+# LeddarOne LiDAR sensor.
 if param greater SENS_EN_LEDDAR1 0
 then
-	if ver hwcmp PX4FMU_V2 PX4FMU_V4PRO
+	if param compare SYS_COMPANION 0
 	then
-		# start the driver on serial 4/5
-		leddar_one -d /dev/ttyS6 start
-	fi
-	if ver hwcmp AEROFC_V1
-	then
-		# start the driver on telemetry
-		leddar_one -d /dev/ttyS3 start
-	else
-		if param compare SYS_COMPANION 0
-		then
-			# start on default mavlink companion device
-			leddar_one -d /dev/ttyS2 start
-		fi
+		# Start on default serial device.
+		leddar_one -d /dev/ttyS2 start
 	fi
 fi
 
 ###############################################################################
-#                            End Optional drivers                             #
+#                            End Optional drivers.                            #
 ###############################################################################
 
 unset BOARD_FMUV3
