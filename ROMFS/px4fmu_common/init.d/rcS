@@ -637,7 +637,6 @@ echo "USE_PWM_LED = $USE_PWM_LED"
 	# Start mavlink streams.
 	#
 	sh /etc/init.d/rc.mavlink
-
     #
     # Configure vehicle type specific parameters.
     # Note: rc.vehicle_setup is the entry point for rc.interface,

@@ -114,7 +114,6 @@
 #define _SYSTEMLIB_PWM_GROUPS_H value
 
 #include <px4_config.h>
-//#include "../drivers/device/CDev.hpp"
 #include <lib/cdev/CDev.hpp>
 
 typedef enum {

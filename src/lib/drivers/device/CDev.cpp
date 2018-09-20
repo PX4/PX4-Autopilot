@@ -111,5 +111,4 @@ CDev::CDev(const char *name, const char *devname) :
         
         return ret;
     }
-    
 } // namespace device
