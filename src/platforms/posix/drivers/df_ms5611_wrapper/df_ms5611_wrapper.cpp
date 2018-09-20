@@ -59,7 +59,7 @@
 
 #include <ms5611/MS5611.hpp>
 #include <DevMgr.hpp>
-
+#include <lib/flight_test_input/flight_test_input.hpp>
 
 extern "C" { __EXPORT int df_ms5611_wrapper_main(int argc, char *argv[]); }
 
@@ -95,6 +95,8 @@ private:
 	int			_baro_orb_class_instance;
 
 	perf_counter_t		_baro_sample_perf;
+
+    FlightTestInput _fti_baro{"FTI_BARO"};
 
 };
 
@@ -146,6 +148,10 @@ int DfMS5611Wrapper::stop()
 
 int DfMS5611Wrapper::_publish(struct baro_sensor_data &data)
 {
+    // Noise inject
+    _fti_baro.inject(data.pressure_pa);
+
+
 	perf_begin(_baro_sample_perf);
 
 	sensor_baro_s baro_report{};

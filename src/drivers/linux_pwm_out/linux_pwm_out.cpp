@@ -62,6 +62,8 @@
 #include "PCA9685.h"
 #include "ocpoc_mmap.h"
 #include "bbblue_pwm_rc.h"
+#include <lib/flight_test_input/flight_test_input.hpp>
+
 
 namespace linux_pwm_out
 {
@@ -215,6 +217,12 @@ void subscribe()
 
 void task_main(int argc, char *argv[])
 {
+    //Noise Inject
+    FlightTestInput fti_PWM1{"FTI_PWM1"};
+    FlightTestInput fti_PWM2{"FTI_PWM2"};
+    FlightTestInput fti_PWM3{"FTI_PWM3"};
+    FlightTestInput fti_PWM4{"FTI_PWM4"};
+
 	_is_running = true;
 
 	_perf_control_latency = perf_alloc(PC_ELAPSED, "linux_pwm_out control latency");
@@ -368,6 +376,27 @@ void task_main(int argc, char *argv[])
 				       _outputs.output,
 				       pwm,
 				       &_pwm_limit);
+
+
+            // Noise inject
+            float tmpinject;
+
+            tmpinject = pwm[0];
+            fti_PWM1.inject(tmpinject);
+            pwm[0] = tmpinject;
+
+            tmpinject = pwm[1];
+            fti_PWM2.inject(tmpinject);
+            pwm[1] = tmpinject;
+
+            tmpinject = pwm[2];
+            fti_PWM3.inject(tmpinject);
+            pwm[2] = tmpinject;
+
+            tmpinject = pwm[3];
+            fti_PWM4.inject(tmpinject);
+            pwm[3] = tmpinject;
+
 
 			if (_armed.lockdown || _armed.manual_lockdown) {
 				pwm_out->send_output_pwm(disarmed_pwm, _outputs.noutputs);
