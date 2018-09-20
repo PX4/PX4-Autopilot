@@ -6,9 +6,12 @@ add_custom_command(OUTPUT ${generated_fti_params_file}
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_parameters.py
 		--params-file ${generated_fti_params_file}
 		--groups
-			ACCX ACCY ACCZ
-			GYROX GYROY GYROZ
-			MAGX MAGY MAGZ
+			ACC1X ACC1Y ACC1Z
+			ACC2X ACC2Y ACC2Z
+			GYRO1X GYRO1Y GYRO1Z
+			GYRO2X GYRO2Y GYRO2Z
+			MAG1X MAG1Y MAG1Z
+			MAG2X MAG2Y MAG2Z
 			BARO
 			BAT_V BAT_C
 			GPS_EPH GPS_EPV

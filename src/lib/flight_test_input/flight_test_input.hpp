@@ -33,6 +33,7 @@ private:
 	control::BlockParamFloat _dwell_time;
 	control::BlockParamFloat _bias;
 	control::BlockParamFloat _amplitude;
+    control::BlockParamFloat _standard_deviation;
 
 	enum FlightTestInputState {
 		TEST_INPUT_OFF = 0,
