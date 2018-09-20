@@ -962,6 +962,8 @@ Navigator::get_yaw_acceptance(float mission_item_yaw)
 
 	const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
 
+	// if yaw_acceptance from position controller is NaN overwrite the mission item yaw such that
+	// the waypoint can be reached from any direction
 	if ((pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp) && !PX4_ISFINITE(pos_ctrl_status.yaw_acceptance)) {
 		yaw = pos_ctrl_status.yaw_acceptance;
 	}
