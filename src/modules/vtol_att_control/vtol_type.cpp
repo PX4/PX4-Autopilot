@@ -181,28 +181,35 @@ void VtolType::update_mc_state()
 
 	// VTOL weathervane
 	// TODO: Add check regarding data integrity. To avoid "pitch up"-bug at start.
-	if (_v_control_mode->flag_control_manual_enabled) {
+	if (_v_control_mode->flag_control_manual_enabled && _v_control_mode->flag_armed) {
 
 		if (_params->wv_manual && _v_control_mode->flag_control_velocity_enabled) {
 			wv_do_strategy();
 
 		}
 
-	} else if (_attc->get_pos_sp_triplet()->current.valid) {
+	} else if (_attc->get_pos_sp_triplet()->current.valid && _v_control_mode->flag_armed) {
 
-		if (_params->wv_auto) {
-			wv_do_strategy();
+		if (_attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+			if (_params->wv_takeoff) {
+				wv_do_strategy();
+			}
 
-		} else if (_params->wv_takeoff
-			   && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
-			wv_do_strategy();
+		} else if (_attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+			if (_params->wv_loiter) {
+				wv_do_strategy();
+			}
 
-		} else if (_params->wv_loiter
-			   && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
-			wv_do_strategy();
+		} else if (_attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+			if (_params->wv_land) {
+				wv_do_strategy();
+			}
 
-		} else if (_params->wv_land && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-			wv_do_strategy();
+		} else {
+			if (_params->wv_auto) {
+				wv_do_strategy();
+			}
+
 		}
 	}
 }
