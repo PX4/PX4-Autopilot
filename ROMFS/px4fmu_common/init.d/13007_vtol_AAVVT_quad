@@ -41,7 +41,7 @@ fi
 
 set MAV_TYPE 22
 
-set MIXER quad_x
+set MIXER octo_cox
 set MIXER_AUX vtol_AAVVT
 
-set PWM_OUT 1234
+set PWM_OUT 12345678
