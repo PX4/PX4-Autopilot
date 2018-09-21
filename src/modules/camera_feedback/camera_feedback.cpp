@@ -157,7 +157,12 @@ CameraFeedback::task_main()
 		/* trigger subscription updated */
 		if (fds[0].revents & POLLIN) {
 
-			orb_copy(ORB_ID(camera_trigger), _trigger_sub, &trig);
+			if (!_camera_capture_feedback) {
+				orb_copy(ORB_ID(camera_trigger), _trigger_sub, &trig);
+
+			} else {
+				orb_copy(ORB_ID(camera_trigger_feedback), _trigger_sub, &trig);
+			}
 
 			/* update geotagging subscriptions */
 			orb_check(_gpos_sub, &updated);
@@ -208,8 +213,14 @@ CameraFeedback::task_main()
 
 			capture.q[3] = att.q[3];
 
-			// Indicate that no capture feedback from camera is available
-			capture.result = -1;
+			// Indicate that whether capture feedback from camera is available
+			// What is case 0 for capture.result?
+			if (!_camera_capture_feedback) {
+				capture.result = -1;
+
+			} else {
+				capture.result = 1;
+			}
 
 			int instance_id;
 
