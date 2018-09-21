@@ -60,7 +60,7 @@ then
 	param set PWM_RATE 400
 
 	param set SENS_BOARD_ROT 8
-	
+
 	param set VT_B_TRANS_DUR  1.0
 	param set VT_F_TRANS_DUR  1.2
 	param set VT_F_TR_OL_TM   4.0
