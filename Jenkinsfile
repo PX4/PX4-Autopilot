@@ -175,6 +175,19 @@ pipeline {
           }
         }
 
+        stage('Module Config Validation') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base:2018-09-11'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make validate_module_configs'
+          }
+        }
+
       } // parallel
     } // stage Analysis
 
