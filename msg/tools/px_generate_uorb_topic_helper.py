@@ -370,7 +370,7 @@ def rtps_message_id(msg_id_map, message):
     """
     Get RTPS ID of uORB message
     """
-    for dict in msg_id_map["rtps"]:
-        if message in dict["msg"]:
-            return dict["id"]
+    for dict in msg_id_map[0]['rtps']:
+        if message in dict['msg']:
+            return dict['id']
     return 0
