@@ -123,9 +123,10 @@ void FlightTaskManualStabilized::_updateThrustSetpoints()
 
 	/* The final thrust setpoint is found by rotating the scaled unit vector pointing
 	 * upward by the Axis-Angle.
+	 * Make sure that the attitude can be controlled even at 0 throttle.
 	 */
 	Quatf q_sp = AxisAnglef(v(0), v(1), 0.0f);
-	_thrust_setpoint = q_sp.conjugate(Vector3f(0.0f, 0.0f, -1.0f)) * _throttle;
+	_thrust_setpoint = q_sp.conjugate(Vector3f(0.0f, 0.0f, -1.0f)) * math::max(_throttle, 0.0001f);
 }
 
 void FlightTaskManualStabilized::_rotateIntoHeadingFrame(Vector2f &v)
