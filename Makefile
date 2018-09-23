@@ -114,6 +114,28 @@ endif
 
 ifdef PX4_CMAKE_BUILD_TYPE
 	CMAKE_ARGS += -DCMAKE_BUILD_TYPE=${PX4_CMAKE_BUILD_TYPE}
+else
+
+	# Address Sanitizer
+	ifdef PX4_ASAN
+		CMAKE_ARGS += -DCMAKE_BUILD_TYPE=AddressSanitizer
+	endif
+
+	# Memory Sanitizer
+	ifdef PX4_MSAN
+		CMAKE_ARGS += -DCMAKE_BUILD_TYPE=MemorySanitizer
+	endif
+
+	# Thread Sanitizer
+	ifdef PX4_TSAN
+		CMAKE_ARGS += -DCMAKE_BUILD_TYPE=ThreadSanitizer
+	endif
+
+	# Undefined Behavior Sanitizer
+	ifdef PX4_UBSAN
+		CMAKE_ARGS += -DCMAKE_BUILD_TYPE=UndefinedBehaviorSanitizer
+	endif
+
 endif
 
 # Functions

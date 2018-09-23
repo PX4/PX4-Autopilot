@@ -6,26 +6,12 @@ pipeline {
   parameters {
     choice(
       name: 'PX4_CMAKE_BUILD_TYPE',
-      choices: ['RelWithDebInfo', 'Coverage', 'AddressSanitizer'],
+      choices: ['RelWithDebInfo', 'Coverage', 'AddressSanitizer', 'UndefinedBehaviorSanitizer'],
       description: "CMake build type"
       )
   }
 
   stages {
-
-    stage('Setup Environment') {
-      steps {
-        script {
-
-          env.CTEST_OUTPUT_ON_FAILURE=1
-
-          if (env.PX4_CMAKE_BUILD_TYPE == 'AddressSanitizer') {
-            env.PX4_ASAN=1
-            env.ASAN_OPTIONS="detect_stack_use_after_return=1:check_initialization_order=1"
-          }
-        }
-      }
-    }
 
     stage('Build') {
 
@@ -206,8 +192,10 @@ pipeline {
 
   } //stages
   environment {
+    ASAN_OPTIONS = 'detect_stack_use_after_return=1:check_initialization_order=1'
     CCACHE_DIR = '/tmp/ccache'
     CI = true
+    CTEST_OUTPUT_ON_FAILURE = 1
   }
   options {
     buildDiscarder(logRotator(numToKeepStr: '10', artifactDaysToKeepStr: '30'))
