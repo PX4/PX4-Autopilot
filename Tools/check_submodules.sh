@@ -6,11 +6,12 @@ function check_git_submodule {
 if [[ -f $1"/.git" || -d $1"/.git" ]];
 then
 
+	# CI environment always force update everything
 	if [ "$CI" == "true" ];
 	then
-		git submodule sync --recursive -- $1
-		git submodule update --init --recursive --force -- $1  || true
-		git submodule update --init --recursive --force -- $1
+		git submodule --quiet sync --recursive -- $1
+		git submodule --quiet update --init --recursive --force -- $1  || true
+		git submodule --quiet update --init --recursive --force -- $1
 		exit 0
 	fi
 
@@ -53,9 +54,9 @@ then
 		fi
 	fi
 else
-	git submodule sync --recursive --quiet -- $1
-	git submodule update --init --recursive -- $1  || true
-	git submodule update --init --recursive -- $1
+	git submodule --quiet sync --recursive --quiet -- $1
+	git submodule --quiet update --init --recursive -- $1  || true
+	git submodule --quiet update --init --recursive -- $1
 fi
 
 }
