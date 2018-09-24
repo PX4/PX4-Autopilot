@@ -47,6 +47,11 @@ import px_generate_uorb_topic_helper
 import subprocess
 import glob
 import errno
+try:
+    import yaml
+except ImportError:
+    raise ImportError(
+        "Failed to import yaml. You may need to install it with 'sudo pip install pyyaml'")
 
 
 def get_absolute_path(arg_parse_dir):
@@ -61,6 +66,20 @@ def get_absolute_path(arg_parse_dir):
         dir = root_path + "/" + dir
 
     return dir
+
+
+def parse_yaml_msg_id_file(yaml_file):
+    """
+    Parses a yaml file into a dict
+    """
+    try:
+        with open(yaml_file, 'r') as f:
+            return yaml.load(f)
+    except OSError as e:
+        if e.errno == errno.ENOENT:
+            raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), yaml_file)
+        else:
+            raise
 
 
 default_client_out = get_absolute_path(
@@ -186,8 +205,7 @@ if agent and os.path.isdir(os.path.join(agent_out_dir, "idl")):
 uorb_templates_dir = os.path.join(msg_folder, args.uorb_templates)
 urtps_templates_dir = os.path.join(msg_folder, args.urtps_templates)
 # parse yaml file into a map of ids
-rtps_ids = px_generate_uorb_topic_helper.parse_yaml_msg_id_file(
-    os.path.join(msg_folder, args.yaml_file))
+rtps_ids = parse_yaml_msg_id_file(os.path.join(msg_folder, args.yaml_file))
 
 
 uRTPS_CLIENT_TEMPL_FILE = 'microRTPS_client.cpp.template'
