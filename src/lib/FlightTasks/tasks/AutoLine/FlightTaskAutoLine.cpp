@@ -63,10 +63,10 @@ void FlightTaskAutoLine::_generateHeadingAlongTrack()
 void FlightTaskAutoLine::_generateXYsetpoints()
 {
 	Vector2f pos_sp_to_dest(_target - _position_setpoint);
-	const bool has_reached_altitude = fabsf(_target(2) - _position(2)) < NAV_ACC_RAD.get();
+	const bool has_reached_altitude = fabsf(_target(2) - _position(2)) < _target_acceptance_radius;
 
-	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < NAV_ACC_RAD.get()) ||
-	    (!has_reached_altitude && pos_sp_to_dest.length() < NAV_ACC_RAD.get())) {
+	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < _target_acceptance_radius) ||
+	    (!has_reached_altitude && pos_sp_to_dest.length() < _target_acceptance_radius)) {
 
 		// Vehicle reached target in xy and no passing required. Lock position */
 		_position_setpoint(0) = _target(0);
@@ -96,9 +96,9 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 		}
 
 		// Compute maximum speed at target threshold */
-		if (threshold_max > NAV_ACC_RAD.get()) {
-			float m = (_mc_cruise_speed - _speed_at_target) / (threshold_max - NAV_ACC_RAD.get());
-			speed_threshold = m * (target_threshold - NAV_ACC_RAD.get()) + _speed_at_target; // speed at transition
+		if (threshold_max > _target_acceptance_radius) {
+			float m = (_mc_cruise_speed - _speed_at_target) / (threshold_max - _target_acceptance_radius);
+			speed_threshold = m * (target_threshold - _target_acceptance_radius) + _speed_at_target; // speed at transition
 		}
 
 		// Either accelerate or decelerate
@@ -111,7 +111,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 				_speed_at_target = 0.0f;
 			}
 
-			float acceptance_radius = NAV_ACC_RAD.get();
+			float acceptance_radius = _target_acceptance_radius;
 
 			if (_speed_at_target < 0.01f) {
 				// If vehicle wants to stop at the target, then set acceptance radius to zero as well.
