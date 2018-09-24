@@ -72,6 +72,12 @@
  */
 extern "C" __EXPORT int mc_pos_control_main(int argc, char *argv[]);
 
+/**
+ * During smooth-takeoff, below ALTITUDE_THRESHOLD the control in xy and yaw is turned off.
+ * This prevents the vehicle from yawing and moving in xy when still close to ground and in smooth-takoff state.
+ */
+static constexpr float ALTITUDE_THRESHOLD = 0.5f;
+
 class MulticopterPositionControl : public ModuleBase<MulticopterPositionControl>, public control::SuperBlock,
 	public ModuleParams
 {
@@ -683,11 +689,9 @@ MulticopterPositionControl::run()
 				constraints.speed_up = _takeoff_speed;
 				// altitude above reference takeoff
 				const float alt_above_tko = -(_states.position(2) - _takeoff_reference_z);
-				// altitude threshold at which full control is enabled
-				const float alt_threshold = 0.5f; //at 0.5m above grouund, control all setpoints
 
 				// disable position-xy / yaw control when close to ground
-				if (alt_above_tko <= alt_threshold) {
+				if (alt_above_tko <= ALTITUDE_THRESHOLD) {
 					// don't control position in xy
 					setpoint.x = setpoint.y = NAN;
 					setpoint.vx = setpoint.vy = NAN;
