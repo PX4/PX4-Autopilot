@@ -1,6 +1,7 @@
-/****************************************************************************
+
+/***************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,60 +31,79 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file px4_custom_mode.h
- * PX4 custom flight modes
+ * @file ams.h
+ * Helper class for AMS (Auto Maneuver System)
  *
+ * @author Mathieu Bresciani <brescianimathieu@gmail.com>
  */
 
-#ifndef PX4_CUSTOM_MODE_H_
-#define PX4_CUSTOM_MODE_H_
+#pragma once
 
-#include <stdint.h>
+#include <px4_module_params.h>
 
-enum PX4_CUSTOM_MAIN_MODE {
-	PX4_CUSTOM_MAIN_MODE_MANUAL = 1,
-	PX4_CUSTOM_MAIN_MODE_ALTCTL,
-	PX4_CUSTOM_MAIN_MODE_POSCTL,
-	PX4_CUSTOM_MAIN_MODE_AUTO,
-	PX4_CUSTOM_MAIN_MODE_ACRO,
-	PX4_CUSTOM_MAIN_MODE_OFFBOARD,
-	PX4_CUSTOM_MAIN_MODE_STABILIZED,
-	PX4_CUSTOM_MAIN_MODE_RATTITUDE,
-	PX4_CUSTOM_MAIN_MODE_SIMPLE /* unused, but reserved for future use */
-};
+#include "navigator_mode.h"
+#include "mission_block.h"
 
-enum PX4_CUSTOM_SUB_MODE_AUTO {
-	PX4_CUSTOM_SUB_MODE_AUTO_READY = 1,
-	PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF,
-	PX4_CUSTOM_SUB_MODE_AUTO_LOITER,
-	PX4_CUSTOM_SUB_MODE_AUTO_MISSION,
-	PX4_CUSTOM_SUB_MODE_AUTO_RTL,
-	PX4_CUSTOM_SUB_MODE_AUTO_LAND,
-	PX4_CUSTOM_SUB_MODE_AUTO_RTGS,
-	PX4_CUSTOM_SUB_MODE_AUTO_FOLLOW_TARGET,
-	PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND,
-	PX4_CUSTOM_SUB_MODE_AUTO_AMS
-};
+// subscriptions
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/vehicle_local_position.h>
 
-enum PX4_CUSTOM_SUB_MODE_POSCTL {
-	PX4_CUSTOM_SUB_MODE_POSCTL_POSCTL = 0,
-	PX4_CUSTOM_SUB_MODE_POSCTL_ORBIT
-};
+class Navigator;
 
-union px4_custom_mode {
-	struct {
-		uint16_t reserved;
-		uint8_t main_mode;
-		uint8_t sub_mode;
+
+class AMS : public MissionBlock, public ModuleParams
+{
+public:
+	enum class AMSType {
+		LOITER = 0,
+		LAND,
+		RALLY,
 	};
-	uint32_t data;
-	float data_float;
-	struct {
-		uint16_t reserved_hl;
-		uint16_t custom_mode_hl;
-	};
-};
 
-#endif /* PX4_CUSTOM_MODE_H_ */
+	AMS(Navigator *navigator);
+
+	~AMS() = default;
+
+	void on_inactive() override;
+	void on_activation() override;
+	void on_active() override;
+
+	AMSType ams_type() const {return static_cast<AMSType>(_param_ams_type.get());};
+
+private:
+	/**
+	 * Set the AMS item
+	 */
+	void set_ams_item();
+
+	/**
+	 * Move to next AMS item
+	 */
+	void advance_ams();
+
+	int ams_alt() const {return _param_ams_descend_alt.get();};
+	int ams_vel() const {return _param_ams_descend_vel.get();};
+
+	enum class AMSState {
+		NONE = 0,
+		TRANSITION_TO_MC,
+		DESCEND,
+		LOITER,
+		LAND,
+		RALLY,
+		LANDED,
+	} _ams_state{AMSState::NONE};
+
+	bool _ams_alt_min{false};
+
+	float _latitude{0.0f};
+	float _longitude{0.0f};
+	float _altitude{0.0f};
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::AMS_DESCEND_ALT>) _param_ams_descend_alt,
+		(ParamFloat<px4::params::AMS_DESCEND_VEL>) _param_ams_descend_vel,
+		(ParamInt<px4::params::AMS_TYPE>) _param_ams_type
+	)
+};

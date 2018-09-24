@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -32,58 +32,58 @@
  ****************************************************************************/
 
 /**
- * @file px4_custom_mode.h
- * PX4 custom flight modes
+ * @file ams_params.c
  *
+ * Parameters for AMS
+ *
+ * @author Mathieu Bresciani <brescianimathieu@gmail.com>
  */
 
-#ifndef PX4_CUSTOM_MODE_H_
-#define PX4_CUSTOM_MODE_H_
+/*
+ * AMS parameters, accessible via MAVLink
+ */
 
-#include <stdint.h>
+/**
+ * AMS velocity
+ *
+ * Downward target velocity during emergency descend phase
+ *
+ * @unit m/s
+ * @min 1
+ * @max 20
+ * @decimal 1
+ * @increment 0.1
+ * @group Auto Maneuver System
+ */
+PARAM_DEFINE_FLOAT(AMS_DESCEND_VEL, 5);
 
-enum PX4_CUSTOM_MAIN_MODE {
-	PX4_CUSTOM_MAIN_MODE_MANUAL = 1,
-	PX4_CUSTOM_MAIN_MODE_ALTCTL,
-	PX4_CUSTOM_MAIN_MODE_POSCTL,
-	PX4_CUSTOM_MAIN_MODE_AUTO,
-	PX4_CUSTOM_MAIN_MODE_ACRO,
-	PX4_CUSTOM_MAIN_MODE_OFFBOARD,
-	PX4_CUSTOM_MAIN_MODE_STABILIZED,
-	PX4_CUSTOM_MAIN_MODE_RATTITUDE,
-	PX4_CUSTOM_MAIN_MODE_SIMPLE /* unused, but reserved for future use */
-};
+/**
+ * AMS loiter altitude
+ *
+ * Descend to this altitude. Above ground if possible, relative to home position
+ * if ground distance is not available.
+ * Loiter at this altitude if AMS_TYPE = Loiter
+ * Land (i.e. slowly descend) from this altitude if AMS_TYPE = Land.
+ * Go to rally point at this altitude if AMS_TYPE = Rally
+ *
+ * @unit m
+ * @min 2
+ * @max 200
+ * @decimal 1
+ * @increment 0.5
+ * @group Auto Maneuver System
+ */
+PARAM_DEFINE_FLOAT(AMS_DESCEND_ALT, 50);
 
-enum PX4_CUSTOM_SUB_MODE_AUTO {
-	PX4_CUSTOM_SUB_MODE_AUTO_READY = 1,
-	PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF,
-	PX4_CUSTOM_SUB_MODE_AUTO_LOITER,
-	PX4_CUSTOM_SUB_MODE_AUTO_MISSION,
-	PX4_CUSTOM_SUB_MODE_AUTO_RTL,
-	PX4_CUSTOM_SUB_MODE_AUTO_LAND,
-	PX4_CUSTOM_SUB_MODE_AUTO_RTGS,
-	PX4_CUSTOM_SUB_MODE_AUTO_FOLLOW_TARGET,
-	PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND,
-	PX4_CUSTOM_SUB_MODE_AUTO_AMS
-};
-
-enum PX4_CUSTOM_SUB_MODE_POSCTL {
-	PX4_CUSTOM_SUB_MODE_POSCTL_POSCTL = 0,
-	PX4_CUSTOM_SUB_MODE_POSCTL_ORBIT
-};
-
-union px4_custom_mode {
-	struct {
-		uint16_t reserved;
-		uint8_t main_mode;
-		uint8_t sub_mode;
-	};
-	uint32_t data;
-	float data_float;
-	struct {
-		uint16_t reserved_hl;
-		uint16_t custom_mode_hl;
-	};
-};
-
-#endif /* PX4_CUSTOM_MODE_H_ */
+/**
+ * Return type
+ *
+ * Fly straight to the home location or planned mission landing and land there or
+ * use the planned mission to get to those points.
+ *
+ * @value 0 Descend and loiter
+ * @value 1 Descend and land
+ * @value 2 Descend and go to closest rally point
+ * @group Auto Maneuver System
+ */
+PARAM_DEFINE_INT32(AMS_TYPE, 0);

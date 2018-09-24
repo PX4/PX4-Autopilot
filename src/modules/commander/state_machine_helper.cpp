@@ -314,6 +314,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 
 		break;
 
+	case commander_state_s::MAIN_STATE_AUTO_AMS:
 	case commander_state_s::MAIN_STATE_AUTO_RTL:
 
 		/* need global position and home position */
@@ -567,6 +568,21 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 			// nothing to do - everything done in check_invalid_pos_nav_state
 		} else {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+		}
+
+		break;
+
+	case commander_state_s::MAIN_STATE_AUTO_AMS:
+
+		/* require global position and home, also go into failsafe on an engine failure */
+
+		if (status->engine_failure) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
+
+		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+			// nothing to do - everything done in check_invalid_pos_nav_state
+		} else {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_AMS;
 		}
 
 		break;

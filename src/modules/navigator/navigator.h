@@ -54,6 +54,7 @@
 #include "rcloss.h"
 #include "rtl.h"
 #include "takeoff.h"
+#include "ams.h"
 
 #include "navigation.h"
 
@@ -77,7 +78,7 @@
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 11
+#define NAVIGATOR_MODE_ARRAY_SIZE 12
 
 
 class Navigator : public ModuleBase<Navigator>, public ModuleParams
@@ -351,6 +352,7 @@ private:
 	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode (FW only!) */
 	GpsFailure	_gpsFailure;			/**< class that handles the OBC gpsfailure loss mode */
 	FollowTarget	_follow_target;
+	AMS 		_ams;
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
