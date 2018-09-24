@@ -717,19 +717,21 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 			}
 		}
 
-		/* check if the primary device is present */
-		if (!prime_found) {
-			if (reportFailures && !failed) {
-				mavlink_log_critical(mavlink_log_pub, "Primary compass not found");
+		if (sys_has_mag == 1) {
+			/* check if the primary device is present */
+			if (!prime_found) {
+				if (reportFailures && !failed) {
+					mavlink_log_critical(mavlink_log_pub, "Primary compass not found");
+				}
+
+				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG, false, true, false, status);
+				failed = true;
 			}
 
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG, false, true, false, status);
-			failed = true;
-		}
-
-		/* mag consistency checks (need to be performed after the individual checks) */
-		if (!magConsistencyCheck(mavlink_log_pub, status, (reportFailures && !failed))) {
-			failed = true;
+			/* mag consistency checks (need to be performed after the individual checks) */
+			if (!magConsistencyCheck(mavlink_log_pub, status, (reportFailures && !failed))) {
+				failed = true;
+			}
 		}
 	}
 
