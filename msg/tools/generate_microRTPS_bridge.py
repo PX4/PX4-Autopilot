@@ -97,7 +97,7 @@ parser.add_argument("-b", "--uorb-templates-dir", dest='uorb_templates', type=st
 parser.add_argument("-q", "--urtps-templates-dir", dest='urtps_templates', type=str,
                     help="uRTPS templates dir, by default msg_dir/templates/urtps", default=default_urtps_templates_dir)
 parser.add_argument("-y", "--rtps-ids-file", dest='yaml_file', type=str,
-                    help="RTPS msg IDs definition file, by default tools/uorb_rtps_message_ids.yaml", default=default_rtps_id_file)
+                    help="RTPS msg IDs definition file, relative to the msg_dir, by default tools/uorb_rtps_message_ids.yaml", default=default_rtps_id_file)
 parser.add_argument("-p", "--package", dest='package', type=str,
                     help="Msg package naming, by default px4", default=default_package_name)
 parser.add_argument("-o", "--agent-outdir", dest='agentdir', type=str, nargs=1,
