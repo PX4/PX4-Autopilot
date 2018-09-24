@@ -260,7 +260,8 @@ def get_em_globals(filename_msg, package, includepath, ids, scope):
         "spec": spec,
         "topics": topics,
         "ids": ids,
-        "scope": scope
+        "scope": scope,
+        "package": package
     }
 
     return em_globals
