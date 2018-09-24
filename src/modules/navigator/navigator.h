@@ -253,7 +253,7 @@ public:
 	 *
 	 * @param mission_item_yaw the yaw to use in case the controller-derived radius is finite
 	 *
-	 * @return the yaw at which the next waypoint should be used or if the yaw at a waypoint
+	 * @return the yaw at which the next waypoint should be used or NaN if the yaw at a waypoint
 	 * should be ignored
 	 */
 	float 		get_yaw_acceptance(float mission_item_yaw);
