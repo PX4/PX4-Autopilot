@@ -43,7 +43,7 @@ set(config_module_list
 	systemcmds/reboot
 	systemcmds/sd_bench
 	systemcmds/top
-	#systemcmds/topic_listener
+	systemcmds/topic_listener
 	systemcmds/tune_control
 	systemcmds/ver
 
