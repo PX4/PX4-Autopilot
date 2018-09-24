@@ -104,11 +104,11 @@ protected:
 	State _current_state{State::none};
 
 	float _speed_at_target = 0.0f; /**< Desired velocity at target. */
+	float _target_acceptance_radius = 0.0f; /**< Acceptances radius of the target */
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) MPC_XY_CRUISE,
 					(ParamFloat<px4::params::MPC_CRUISE_90>) MPC_CRUISE_90, // speed at corner when angle is 90 degrees move to line
-					(ParamFloat<px4::params::NAV_ACC_RAD>) NAV_ACC_RAD, // acceptance radius at which waypoints are updated move to line
 					(ParamFloat<px4::params::NAV_MC_ALT_RAD>) NAV_MC_ALT_RAD, //vertical acceptance radius at which waypoints are updated
 					(ParamInt<px4::params::MPC_YAW_MODE>) MPC_YAW_MODE, // defines how heading is executed,
 					(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID // obstacle avoidance active
