@@ -41,11 +41,6 @@ precompiled and thus message generation will be much faster
 
 import os
 import errno
-try:
-    import yaml
-except ImportError:
-    raise ImportError(
-        "Failed to import yaml. You may need to install it with 'sudo pip install pyyaml")
 
 import genmsg.msgs
 import gencpp
@@ -350,21 +345,6 @@ def print_field_def(field):
 
     print('\t%s%s%s %s%s;%s' % (type_prefix, type_px4, type_appendix, field.name,
                                 array_size, comment))
-
-
-def parse_yaml_msg_id_file(yaml_file):
-    """
-    Parses a yaml file into a dict
-    """
-    try:
-        with open(yaml_file, 'r') as f:
-            return yaml.load(f)
-    except OSError as e:
-        if e.errno == errno.ENOENT:
-            raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), yaml_file)
-        else:
-            raise
-
 
 def rtps_message_id(msg_id_map, message):
     """
