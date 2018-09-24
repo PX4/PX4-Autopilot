@@ -428,9 +428,7 @@ void UavcanNode::update_params()
 	param_t param_handle = param_find("MC_AIRMODE");
 
 	if (param_handle != PARAM_INVALID) {
-		int32_t val;
-		param_get(param_handle, &val);
-		_airmode = val > 0;
+		param_get(param_handle, &_airmode);
 	}
 }
 
