@@ -259,14 +259,17 @@ struct pwm_output_rc_config {
 #define PWM_SERVO_MODE_3PWM         4
 #define PWM_SERVO_MODE_3PWM1CAP     5
 #define PWM_SERVO_MODE_4PWM         6
-#define PWM_SERVO_MODE_6PWM         7
-#define PWM_SERVO_MODE_8PWM         8
-#define PWM_SERVO_MODE_14PWM        9
-#define PWM_SERVO_MODE_4CAP        10
-#define PWM_SERVO_MODE_5CAP        11
-#define PWM_SERVO_MODE_6CAP        12
-#define PWM_SERVO_ENTER_TEST_MODE  13
-#define PWM_SERVO_EXIT_TEST_MODE   14
+#define PWM_SERVO_MODE_4PWM1CAP     7
+#define PWM_SERVO_MODE_5PWM         8
+#define PWM_SERVO_MODE_5PWM1CAP     9
+#define PWM_SERVO_MODE_6PWM        10
+#define PWM_SERVO_MODE_8PWM        11
+#define PWM_SERVO_MODE_14PWM       12
+#define PWM_SERVO_MODE_4CAP        13
+#define PWM_SERVO_MODE_5CAP        14
+#define PWM_SERVO_MODE_6CAP        15
+#define PWM_SERVO_ENTER_TEST_MODE  16
+#define PWM_SERVO_EXIT_TEST_MODE   17
 #define PWM_SERVO_SET_MODE         _PX4_IOC(_PWM_SERVO_BASE, 34)
 
 /*
