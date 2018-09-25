@@ -11,6 +11,7 @@
 
 set MIXER_AUX_FILE none
 set OUTPUT_AUX_DEV /dev/pwm_output1
+set OUTPUT_DEV none
 
 #
 # If mount (gimbal) control is enabled and output mode is AUX, set the aux
@@ -391,3 +392,4 @@ fi
 
 unset MIXER_AUX_FILE
 unset OUTPUT_AUX_DEV
+unset OUTPUT_DEV
