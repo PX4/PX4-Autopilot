@@ -232,24 +232,55 @@ CameraCapture::cycle()
 void
 CameraCapture::set_capture_control(bool enabled)
 {
+	int fd = -1;
+	fd = ::open(PX4FMU_DEVICE_PATH, O_RDWR);
+
+	if (fd < 0) {
+		PX4_ERR("open fail");
+		return;
+	}
+
+	input_capture_config_t conf;
+	conf.channel = 5; // FMU chan 6
+	conf.filter = 0;
+	conf.edge = _camera_capture_edge ? Rising : Falling;
+	conf.callback = NULL;
+	conf.context = NULL;
+
 	if (enabled) {
-		// register callbacks
-		if (!_camera_capture_edge) {
-			up_input_capture_set(5, Falling, 0, &CameraCapture::capture_trampoline, this);
 
-		} else {
-			up_input_capture_set(5, Rising, 0, &CameraCapture::capture_trampoline, this);
+		conf.callback = &CameraCapture::capture_trampoline;
+		conf.context = this;
 
+		unsigned int capture_count = 0;
+
+		if (::ioctl(fd, INPUT_CAP_GET_COUNT, (unsigned long)&capture_count) != 0) {
+			PX4_INFO("Not in a capture mode");
+			unsigned long mode = PWM_SERVO_MODE_5PWM1CAP;
+
+			if (::ioctl(fd, PWM_SERVO_SET_MODE, mode) == 0) {
+				PX4_INFO("Mode changed to 5PWM1CAP");
+
+			} else {
+				PX4_ERR("Mode NOT changed to 4PWM2CAP");
+				goto err_out;
+			}
 		}
+	}
 
-		_capture_enabled = true;
+	if (::ioctl(fd, INPUT_CAP_SET_CALLBACK, (unsigned long)&conf) == 0) {
+		_capture_enabled = enabled;
 
 	} else {
-		up_input_capture_set(5, Disabled, 0, NULL, NULL);
+		PX4_ERR("Unable to set capture callback for chan %u\n", conf.channel);
 		_capture_enabled = false;
+		goto err_out;
 	}
 
 	reset_statistics(false);
+err_out:
+	::close(fd);
+	return;
 }
 
 void
