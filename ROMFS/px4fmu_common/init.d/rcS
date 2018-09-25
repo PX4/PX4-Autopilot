@@ -591,7 +591,6 @@ unset MIXER_AUX
 unset MIXER_FILE
 unset MK_MODE
 unset MKBLCTRL_ARG
-unset OUTPUT_DEV
 unset OUTPUT_MODE
 unset PARAM_FILE
 unset PWM_AUX_DISARMED
