@@ -346,11 +346,19 @@ def print_field_def(field):
     print('\t%s%s%s %s%s;%s' % (type_prefix, type_px4, type_appendix, field.name,
                                 array_size, comment))
 
+
 def rtps_message_id(msg_id_map, message):
     """
     Get RTPS ID of uORB message
     """
+    msg_id = -1
     for dict in msg_id_map[0]['rtps']:
         if message in dict['msg']:
-            return dict['id']
-    return 0
+            msg_id = dict['id']
+
+    if msg_id != -1:
+        return msg_id
+    else:
+        raise AssertionError(
+            "%s does not have a RTPS ID set in the definition file. Please add an ID from the available pool!")
+        exit(1)
