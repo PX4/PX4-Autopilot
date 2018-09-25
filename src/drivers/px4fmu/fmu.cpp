@@ -2486,12 +2486,14 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 		servo_mode = PX4FMU::MODE_5PWM;
 		break;
 
+
 #  if defined(BOARD_HAS_CAPTURE)
 
 	case PORT_PWM5CAP1:
 		/* select 5-pin PWM mode 1 capture */
 		servo_mode = PX4FMU::MODE_5PWM1CAP;
 		break;
+
 #  endif
 
 	case PORT_PWM4:
@@ -2499,12 +2501,14 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 		servo_mode = PX4FMU::MODE_4PWM;
 		break;
 
+
 #  if defined(BOARD_HAS_CAPTURE)
 
 	case PORT_PWM4CAP1:
 		/* select 4-pin PWM mode 1 capture */
 		servo_mode = PX4FMU::MODE_4PWM1CAP;
 		break;
+
 #  endif
 
 	case PORT_PWM3:
@@ -3067,13 +3071,13 @@ int PX4FMU::print_status()
 
 	case MODE_4PWM: mode_str = "pwm4"; break;
 
-  case MODE_4PWM1CAP: mode_str = "pwm4cap1"; break;
+  	case MODE_4PWM1CAP: mode_str = "pwm4cap1"; break;
 
-  case MODE_5PWM: mode_str = "pwm5"; break;
+  	case MODE_5PWM: mode_str = "pwm5"; break;
 
-  case MODE_5PWM1CAP: mode_str = "pwm5cap1"; break;
+  	case MODE_5PWM1CAP: mode_str = "pwm5cap1"; break;
 
-  case MODE_6PWM: mode_str = "pwm6"; break;
+  	case MODE_6PWM: mode_str = "pwm6"; break;
 
 	case MODE_8PWM: mode_str = "pwm8"; break;
 
