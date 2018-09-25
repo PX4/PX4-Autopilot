@@ -39,8 +39,8 @@ px4_add_romfs_files(
 	rc.interface
 	rc.mc_apps
 	rc.mc_defaults
-	rcS
 	rc.sensors
 	rc.vtol_apps
 	rc.vtol_defaults
+	rcS
 	)
