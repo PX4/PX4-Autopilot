@@ -55,6 +55,8 @@
 #include <px4_workqueue.h>
 
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_gpio.h>
+#include <drivers/drv_pwm_output.h>
 #include <drivers/drv_input_capture.h>
 #include <drivers/device/ringbuffer.h>
 
