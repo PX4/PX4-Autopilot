@@ -66,6 +66,8 @@ private:
 
 	orb_advert_t _topic{nullptr};
 
+	device::Device::DeviceId _device_id = {};
+
 	int	_orb_class_instance{-1};
 
 	enum Rotation _rotation = ROTATION_NONE;

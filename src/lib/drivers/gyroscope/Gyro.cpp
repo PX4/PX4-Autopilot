@@ -38,6 +38,14 @@ Gyro::Gyro(const char *path, device::Device *interface, uint8_t dev_type) :
 	CDev(path),
 	_interface(interface)
 {
+	_device_id.devid = _interface->get_device_id();
+	// _device_id.devid_s.bus_type = (device::Device::DeviceBusType)_interface->get_device_bus_type();
+	// _device_id.devid_s.bus = _interface->get_device_bus();
+	// _device_id.devid_s.address = _interface->get_device_address();
+	_device_id.devid_s.devtype = dev_type;
+
+	PX4_INFO("Accel device id: %d", _device_id.devid);
+
 	_cal.x_offset = 0;
 	_cal.x_scale  = 1.0f;
 	_cal.y_offset = 0;
@@ -58,6 +66,7 @@ int Gyro::init()
 	CDev::init();
 
 	gyro_report report{};
+	report.device_id = _device_id.devid;
 
 	if (_topic == nullptr) {
 		_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &report, &_orb_class_instance, ORB_PRIO_HIGH - 1);
@@ -73,6 +82,8 @@ int Gyro::init()
 
 int Gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
+	PX4_INFO("gyro getting ioctl'd");
+
 	switch (cmd) {
 	case GYROIOCSSCALE:
 		// Copy scale in.
@@ -85,7 +96,7 @@ int Gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return OK;
 
 	case DEVIOCGDEVICEID:
-		return (int)_interface->get_device_id();
+		return _device_id.devid;
 
 	default:
 		// Give it to the superclass.
@@ -105,7 +116,7 @@ int Gyro::publish(float x, float y, float z, float scale, Rotation rotation)
 {
 	sensor_gyro_s report{};
 
-	report.device_id   = _interface->get_device_id();
+	report.device_id   = _device_id.devid;
 	report.error_count = 0;
 	report.scaling 	   = scale;
 	report.timestamp   = hrt_absolute_time();
