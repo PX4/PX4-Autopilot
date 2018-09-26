@@ -372,8 +372,10 @@ else
 	then
 		# Check for the mini using build with px4io fw file
 		# but not a px4IO
-		if ! ver hwtypecmp V540
+		if ver hwtypecmp V540
 		then
+			param set SYS_USE_IO 0
+		else
 			if px4io checkcrc ${IOFW}
 			then
 				set IO_PRESENT yes
