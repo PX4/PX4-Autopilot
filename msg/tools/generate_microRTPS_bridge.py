@@ -82,6 +82,35 @@ def parse_yaml_msg_id_file(yaml_file):
             raise
 
 
+def get_used_rtps_ids(msg_id_map):
+    msg_ids = {}
+    for dict in msg_id_map['rtps']:
+        msg_ids.update({dict['msg']: dict['id']})
+    return msg_ids
+
+
+def check_rtps_id_uniqueness(msg_id_map):
+    """
+    Checks if there are no ID's repeated on the map
+    """
+    msg_ids = get_used_rtps_ids(msg_id_map)
+
+    used_ids = msg_ids.values()
+    used_ids.sort()
+
+    repeated_keys = dict()
+    for key, value in msg_ids.items():
+        if used_ids.count(value) > 1:
+            repeated_keys.update({key: value})
+
+    if not repeated_keys:
+        print("All good. RTPS ID's are unique")
+    else:
+        raise AssertionError(", ".join('%s' % msgs for msgs in repeated_keys.keys()) +
+                             " have their keys repeated. Please choose from the following pool:\n" +
+                             ", ".join('%d' % id for id in px_generate_uorb_topic_helper.check_available_ids(used_ids)))
+
+
 default_client_out = get_absolute_path(
     "src/modules/micrortps_bridge/micrortps_client")
 default_agent_out = get_absolute_path(
@@ -206,6 +235,8 @@ uorb_templates_dir = os.path.join(msg_folder, args.uorb_templates)
 urtps_templates_dir = os.path.join(msg_folder, args.urtps_templates)
 # parse yaml file into a map of ids
 rtps_ids = parse_yaml_msg_id_file(os.path.join(msg_folder, args.yaml_file))
+# check if there are no ID's repeated
+check_rtps_id_uniqueness(rtps_ids)
 
 
 uRTPS_CLIENT_TEMPL_FILE = 'microRTPS_client.cpp.template'
