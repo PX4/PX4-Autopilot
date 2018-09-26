@@ -38,6 +38,12 @@ Mag::Mag(const char *path, device::Device  *interface, uint8_t dev_type) :
 	CDev(path),
 	_interface(interface)
 {
+	_cal.x_offset = 0;
+	_cal.x_scale  = 1.0f;
+	_cal.y_offset = 0;
+	_cal.y_scale  = 1.0f;
+	_cal.z_offset = 0;
+	_cal.z_scale  = 1.0f;
 }
 
 Mag::~Mag()
@@ -70,12 +76,12 @@ int Mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 	switch (cmd) {
 	case MAGIOCSSCALE:
 		// Copy scale in.
-		memcpy(&_scale, (struct mag_calibration_s *) arg, sizeof(_scale));
+		memcpy(&_cal, (struct mag_calibration_s *) arg, sizeof(_cal));
 		return OK;
 
 	case MAGIOCGSCALE:
 		// Copy scale out.
-		memcpy((struct mag_calibration_s *) arg, &_scale, sizeof(_scale));
+		memcpy((struct mag_calibration_s *) arg, &_cal, sizeof(_cal));
 		return OK;
 
 	case DEVIOCGDEVICEID:
@@ -103,6 +109,9 @@ int Mag::publish(float x, float y, float z, float scale, Rotation rotation)
 	report.error_count = 0;
 	report.scaling 	   = scale;
 	report.timestamp   = hrt_absolute_time();
+	report.is_external = false;
+
+	report.temperature = 20.0;
 
 	// Raw values (ADC units 0 - 65535)
 	report.x_raw = x;
@@ -112,16 +121,17 @@ int Mag::publish(float x, float y, float z, float scale, Rotation rotation)
 	// Apply the rotation.
 	rotate_3f(rotation, x, y, z);
 
-	// Apply the scaling
-	x *= scale;
-	y *= scale;
-	z *= scale;
+	// Apply FS range scale and the calibrating offset/scale
+	x = ((x * scale) - _cal.x_offset) * _cal.x_scale;
+	y = ((y * scale) - _cal.y_offset) * _cal.y_scale;
+	z = ((z * scale) - _cal.z_offset) * _cal.z_scale;
 
 	// Filtered values
 	report.x = _filter_x.apply(x);
 	report.y = _filter_y.apply(y);
 	report.z = _filter_z.apply(z);
 
+	poll_notify(POLLIN);
 	orb_publish(ORB_ID(sensor_mag), _topic, &report);
 
 	return PX4_OK;

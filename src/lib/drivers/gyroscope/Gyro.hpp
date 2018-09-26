@@ -62,7 +62,7 @@ private:
 	// Pointer to the communication interface
 	const device::Device *_interface;
 
-	gyro_calibration_s _scale;
+	gyro_calibration_s _cal{};
 
 	orb_advert_t _topic{nullptr};
 

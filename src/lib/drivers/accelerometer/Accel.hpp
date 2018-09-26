@@ -61,7 +61,7 @@ private:
 	// Pointer to the communication interface
 	const device::Device *_interface;
 
-	accel_calibration_s _scale{};
+	accel_calibration_s _cal{};
 
 	orb_advert_t _topic{nullptr};
 
