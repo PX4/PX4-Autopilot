@@ -75,7 +75,9 @@ __EXPORT void led_init(void)
 static void phy_set_led(int led, bool state)
 {
 	/* Pull Down to switch on */
-	stm32_gpiowrite(g_ledmap[led], !state);
+	if (led == 0) {
+		stm32_gpiowrite(g_ledmap[led], !state);
+	}
 }
 
 __EXPORT void led_on(int led)
@@ -88,6 +90,13 @@ __EXPORT void led_off(int led)
 	phy_set_led(led, false);
 }
 
+__EXPORT void led_toggle(int led)
+{
+	if (led == 0) {
+		phy_set_led(led, !stm32_gpioread(g_ledmap[led]));
+	}
+}
+
 __EXPORT void board_autoled_initialize(void)
 {
 	/* Configure LED1 GPIO for output */
@@ -95,7 +104,6 @@ __EXPORT void board_autoled_initialize(void)
 }
 
 __EXPORT void board_autoled_on(int led)
-
 {
 	if (led == 1) {
 		/* Pull down to switch on */
@@ -104,22 +112,9 @@ __EXPORT void board_autoled_on(int led)
 }
 
 __EXPORT void board_autoled_off(int led)
-
 {
 	if (led == 1) {
 		/* Pull up to switch off */
 		stm32_gpiowrite(GPIO_LED1, true);
-	}
-}
-
-__EXPORT void led_toggle(int led)
-{
-	if (led == 1) {
-		if (stm32_gpioread(GPIO_LED1)) {
-			stm32_gpiowrite(GPIO_LED1, false);
-
-		} else {
-			stm32_gpiowrite(GPIO_LED1, true);
-		}
 	}
 }
