@@ -9,9 +9,11 @@ fi
 
 # Map the NuttX-style variable definition 'set <var> <value>' to something that
 # bash and alternatives understand
-set() {
+# define _set first because sh does not like overwriting set directly
+_set() {
 	eval $1=$2
 }
+alias set=_set
 # alternative method with an alias:
 # alias set='f(){ set -- "$1=$2"; eval "$1"; unset -f f; }; eval f'
 
