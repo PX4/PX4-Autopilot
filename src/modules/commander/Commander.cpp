@@ -2644,33 +2644,33 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 	/* this runs at around 20Hz, full cycle is 16 ticks = 10/16Hz */
 	if (actuator_armed->armed) {
 		if (status.failsafe) {
-			led_off(LED_BLUE);
+			BOARD_ARMED_LED_OFF();
 
 			if (leds_counter % 5 == 0) {
-				led_toggle(LED_GREEN);
+				BOARD_ARMED_STATE_LED_TOGGLE();
 			}
 
 		} else {
-			led_off(LED_GREEN);
+			BOARD_ARMED_STATE_LED_OFF();
 
 			/* armed, solid */
-			led_on(LED_BLUE);
+			BOARD_ARMED_LED_ON();
 		}
 
 	} else if (actuator_armed->ready_to_arm) {
-		led_off(LED_BLUE);
+			BOARD_ARMED_LED_OFF();
 
 		/* ready to arm, blink at 1Hz */
 		if (leds_counter % 20 == 0) {
-			led_toggle(LED_GREEN);
+			BOARD_ARMED_STATE_LED_TOGGLE();
 		}
 
 	} else {
-		led_off(LED_BLUE);
+			BOARD_ARMED_LED_OFF();
 
 		/* not ready to arm, blink at 10Hz */
 		if (leds_counter % 2 == 0) {
-			led_toggle(LED_GREEN);
+			BOARD_ARMED_STATE_LED_TOGGLE();
 		}
 	}
 
@@ -2679,11 +2679,11 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 	/* give system warnings on error LED */
 	if (overload) {
 		if (leds_counter % 2 == 0) {
-			led_toggle(LED_AMBER);
+			BOARD_OVERLOAD_LED_TOGGLE();
 		}
 
 	} else {
-		led_off(LED_AMBER);
+		BOARD_OVERLOAD_LED_OFF();
 	}
 
 	leds_counter++;
