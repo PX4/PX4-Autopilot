@@ -482,7 +482,11 @@ std::string get_absolute_binary_path(const std::string &argv0)
 int run_startup_bash_script(const std::string &commands_file, const std::string &absolute_binary_path,
 			    int instance)
 {
+#ifdef __DF_BEBOP
+	std::string bash_command("sh ");
+#else
 	std::string bash_command("bash ");
+#endif
 
 	bash_command += commands_file + ' ' + std::to_string(instance);
 
