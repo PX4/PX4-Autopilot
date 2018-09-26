@@ -128,14 +128,13 @@ public:
 		return _tail->_id;
 	}
 
-private:
-	Module *_head;
-	Module *_tail;
-
 	void delete_node(Module *obj)
 	{
-		// If we are the tail, give it to guy behind us
-		if (obj == _tail) {
+		if (obj == _tail && obj == _head) {
+			_tail = nullptr;
+			_head = nullptr;
+
+		} else if (obj == _tail) {
 			_tail = obj->prev;
 
 		} else if (obj == _head) {
@@ -150,6 +149,10 @@ private:
 
 		delete obj;
 	}
+
+private:
+	Module *_head;
+	Module *_tail;
 };
 
 template<class T>
@@ -175,7 +178,7 @@ public:
 		}
 
 		if (strcmp(argv[1], "status") == 0) {
-			int module_id = 0;
+			int module_id = 1;
 
 			if (argv[2]) {
 				module_id = atoi(argv[2]);
@@ -185,11 +188,13 @@ public:
 		}
 
 		if (strcmp(argv[1], "stop") == 0) {
-			int module_id = 0;
+			int module_id = 1;
 
 			if (argv[2]) {
 				module_id = atoi(argv[2]);
 			}
+
+			PX4_INFO("Stopping ID: %d", module_id);
 
 			return stop_command(module_id);
 		}
@@ -215,7 +220,7 @@ public:
 		// Dervied class must define an instantiate() function. Creates the object and passes it up.
 		T *obj = T::instantiate(argc, argv);
 		obj->_instance_id = add_instance_to_list(obj);
-		PX4_INFO("Object added to list");
+		PX4_INFO("Object added to list. ID: %d", obj->_instance_id);
 
 		if (obj) {
 			// This is the final function and just chills here if in a px4_task_spawn()
@@ -226,6 +231,7 @@ public:
 			ret = -1;
 		}
 
+		PX4_INFO("Exit and clean up");
 		exit_and_cleanup(obj);
 
 		return ret;
@@ -267,31 +273,17 @@ public:
 		// get_instance will return a pointer to the module with the ID, or nullptr if it does not exist
 		T *obj = get_instance(module_id);
 
+		if (!obj) {
+			PX4_ERR("Could not find instance with id: %d", module_id);
+			return PX4_ERROR;
+		}
+
+		// Remove the object from the linked-list
+		remove_instance_from_list(obj);
+
 		if (obj) {
 			obj->request_stop();
 
-			unsigned int i = 0;
-
-			do {
-				unlock_module();
-				usleep(20000); // 20 ms
-				lock_module();
-
-				if (++i > 100 && _task_id != -1) { // wait at most 2 sec
-					if (_task_id != task_id_is_work_queue) {
-						px4_task_delete(_task_id);
-					}
-
-					_task_id = -1;
-
-					if (obj) {
-						delete obj;
-					}
-
-					ret = -1;
-					break;
-				}
-			} while (_task_id != -1);
 
 		} else {
 			// In the very unlikely event that can only happen on work queues,
@@ -363,6 +355,14 @@ public:
 		return _module_list.add_node(obj);
 	}
 
+	static int remove_instance_from_list(T *obj)
+	{
+		Module *node = _module_list.get_node(obj->_instance_id);
+		_module_list.delete_node(node);
+
+		return PX4_OK;
+	}
+
 
 protected:
 
@@ -397,6 +397,7 @@ protected:
 		lock_module();
 
 		if (obj) {
+			PX4_INFO("exit and clean up: deleting object");
 			delete obj;
 		}
 
@@ -404,27 +405,6 @@ protected:
 		unlock_module();
 	}
 
-	// /**
-	//  * @brief Waits until _object is initialized, (from the new thread). This can be called from task_spawn().
-	//  * @return Returns 0 iff successful, -1 on timeout or otherwise.
-	//  */
-	// static int wait_until_running()
-	// {
-	// 	int i = 0;
-
-	// 	do {
-	// 		/* Wait up to 1s. */
-	// 		usleep(2500);
-
-	// 	} while (!_object && ++i < 400);
-
-	// 	if (i == 400) {
-	// 		PX4_ERR("Timed out while waiting for thread to start");
-	// 		return -1;
-	// 	}
-
-	// 	return 0;
-	// }
 
 	/**
 	 * @brief Get the module's object instance, (this is null if it's not running).
@@ -433,6 +413,12 @@ protected:
 	{
 
 		Module *node = _module_list.get_node(module_id);
+
+		if (!node) {
+			PX4_INFO("Module with ID: %d not found.", module_id);
+			return nullptr;
+		}
+
 		T *instance = reinterpret_cast<T *>(node->_module);
 
 		return instance;
