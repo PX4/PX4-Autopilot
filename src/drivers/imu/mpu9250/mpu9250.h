@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,494 +31,298 @@
  *
  ****************************************************************************/
 
-#include <stdint.h>
+#pragma once
+
+#include <drivers/drv_hrt.h>
+#include <drivers/accelerometer/Accel.hpp>
+#include <drivers/gyroscope/Gyro.hpp>
+#include <drivers/magnetometer/Mag.hpp>
+
+#include <ecl/geo/geo.h>
+
+#include <nuttx/fs/fat.h>
 
 #include <perf/perf_counter.h>
-#include <systemlib/conversions.h>
 
-#include <nuttx/wqueue.h>
-
-#include <board_config.h>
-#include <drivers/drv_hrt.h>
-
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/drv_mag.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <lib/conversion/rotation.h>
-
-#include "mag.h"
-#include "gyro.h"
+#include <px4_module_multi.h>
+#include <px4_getopt.h>
 
 
+// MPU9250 registers
+#define WHOAMI_ADDR					0x75
 
-#if defined(PX4_I2C_OBDEV_MPU9250)
-#  define USE_I2C
-#endif
+#define PWR_MGMT_1_ADDR				0x6B
+#define PWR_MGMT_1_AUTO_SELECT		0x01
+#define PWR_MGMT_1_20MHZ_OSC		0x00
+#define PWR_MGMT_1_RESET			0x80
 
+#define PWR_MGMT_2_ADDR				0x6C
+#define PWR_MGMT_2_ENABLE_GYRO_ACCEL 0x00
+#define PWR_MGMT_2_DISABLE_GYRO_ACCEL 0x3F
 
-// MPU 9250 registers
-#define MPUREG_WHOAMI			0x75
-#define MPUREG_SMPLRT_DIV		0x19
-#define MPUREG_CONFIG			0x1A
-#define MPUREG_GYRO_CONFIG		0x1B
-#define MPUREG_ACCEL_CONFIG		0x1C
-#define MPUREG_ACCEL_CONFIG2		0x1D
-#define MPUREG_LPACCEL_ODR		0x1E
-#define MPUREG_WOM_THRESH		0x1F
-#define MPUREG_FIFO_EN			0x23
-#define MPUREG_I2C_MST_CTRL		0x24
-#define MPUREG_I2C_SLV0_ADDR		0x25
-#define MPUREG_I2C_SLV0_REG		0x26
-#define MPUREG_I2C_SLV0_CTRL		0x27
-#define MPUREG_I2C_SLV1_ADDR		0x28
-#define MPUREG_I2C_SLV1_REG		0x29
-#define MPUREG_I2C_SLV1_CTRL		0x2A
-#define MPUREG_I2C_SLV2_ADDR		0x2B
-#define MPUREG_I2C_SLV2_REG		0x2C
-#define MPUREG_I2C_SLV2_CTRL		0x2D
-#define MPUREG_I2C_SLV3_ADDR		0x2E
-#define MPUREG_I2C_SLV3_REG		0x2F
-#define MPUREG_I2C_SLV3_CTRL		0x30
-#define MPUREG_I2C_SLV4_ADDR		0x31
-#define MPUREG_I2C_SLV4_REG		0x32
-#define MPUREG_I2C_SLV4_DO		0x33
-#define MPUREG_I2C_SLV4_CTRL		0x34
-#define MPUREG_I2C_SLV4_DI		0x35
-#define MPUREG_I2C_MST_STATUS		0x36
-#define MPUREG_INT_PIN_CFG		0x37
-#define MPUREG_INT_ENABLE		0x38
-#define MPUREG_INT_STATUS		0x3A
-#define MPUREG_ACCEL_XOUT_H		0x3B
-#define MPUREG_ACCEL_XOUT_L		0x3C
-#define MPUREG_ACCEL_YOUT_H		0x3D
-#define MPUREG_ACCEL_YOUT_L		0x3E
-#define MPUREG_ACCEL_ZOUT_H		0x3F
-#define MPUREG_ACCEL_ZOUT_L		0x40
-#define MPUREG_TEMP_OUT_H		0x41
-#define MPUREG_TEMP_OUT_L		0x42
-#define MPUREG_GYRO_XOUT_H		0x43
-#define MPUREG_GYRO_XOUT_L		0x44
-#define MPUREG_GYRO_YOUT_H		0x45
-#define MPUREG_GYRO_YOUT_L		0x46
-#define MPUREG_GYRO_ZOUT_H		0x47
-#define MPUREG_GYRO_ZOUT_L		0x48
-#define MPUREG_EXT_SENS_DATA_00		0x49
-#define MPUREG_I2C_SLV0_D0		0x63
-#define MPUREG_I2C_SLV1_D0		0x64
-#define MPUREG_I2C_SLV2_D0		0x65
-#define MPUREG_I2C_SLV3_D0		0x66
-#define MPUREG_I2C_MST_DELAY_CTRL	0x67
-#define MPUREG_SIGNAL_PATH_RESET	0x68
-#define MPUREG_MOT_DETECT_CTRL		0x69
-#define MPUREG_USER_CTRL		0x6A
-#define MPUREG_PWR_MGMT_1		0x6B
-#define MPUREG_PWR_MGMT_2		0x6C
-#define MPUREG_FIFO_COUNTH		0x72
-#define MPUREG_FIFO_COUNTL		0x73
-#define MPUREG_FIFO_R_W			0x74
+#define SMPLRT_DIV					0x19
 
-// Configuration bits MPU 9250
-#define BIT_SLEEP			0x40
-#define BIT_H_RESET			0x80
-#define MPU_CLK_SEL_AUTO		0x01
+#define SIGNAL_PATH_RESET_ADDR		0x68
+#define SIGNAL_PATH_RESET_GYRO_ACCEL 0x06
+#define SIGNAL_PATH_RESET_ALL		0x07
 
-#define BITS_GYRO_ST_X			0x80
-#define BITS_GYRO_ST_Y			0x40
-#define BITS_GYRO_ST_Z			0x20
-#define BITS_FS_250DPS			0x00
-#define BITS_FS_500DPS			0x08
-#define BITS_FS_1000DPS			0x10
-#define BITS_FS_2000DPS			0x18
-#define BITS_FS_MASK			0x18
+#define CONFIG_ADDR					0x1A
+#define CONFIG_VALUE				0x07
+#define CONFIG_NO_OVERFLOW 			0x47
 
-#define BITS_DLPF_CFG_250HZ		0x00
-#define BITS_DLPF_CFG_184HZ		0x01
-#define BITS_DLPF_CFG_92HZ		0x02
-#define BITS_DLPF_CFG_41HZ		0x03
-#define BITS_DLPF_CFG_20HZ		0x04
-#define BITS_DLPF_CFG_10HZ		0x05
-#define BITS_DLPF_CFG_5HZ		0x06
-#define BITS_DLPF_CFG_3600HZ		0x07
-#define BITS_DLPF_CFG_MASK		0x07
+#define GYRO_CONFIG_ADDR			0x1B
+#define GYRO_CONFIG_8KHZ			0x18
+#define GYRO_CONFIG_32KHZ			0x1B
 
-#define BITS_ACCEL_CONFIG2_41HZ		0x03
+#define ACCEL_CONFIG1_ADDR			0x1C
+#define ACCEL_CONFIG1_16G_FS		0x18
+#define ACCEL_CONFIG2_ADDR 			0x1D
+#define ACCEL_CONFIG2_4KHZ			0x0F
 
-#define BIT_RAW_RDY_EN			0x01
-#define BIT_INT_ANYRD_2CLEAR		0x10
-#define BIT_INT_BYPASS_EN		0x02
+#define INT_PIN_CFG_ADDR			0x37
+#define INT_PIN_CFG_VALUE			0x10
 
-#define BIT_I2C_READ_FLAG           0x80
+#define INT_ENABLE_ADDR				0x38
+#define INT_ENABLE_ANY_READ			0x10
+#define INT_ENABLE_NONE				0x00
 
-#define BIT_I2C_SLV0_NACK           0x01
-#define BIT_I2C_FIFO_EN             0x40
-#define BIT_I2C_MST_EN              0x20
-#define BIT_I2C_IF_DIS              0x10
-#define BIT_FIFO_RST                0x04
-#define BIT_I2C_MST_RST             0x02
-#define BIT_SIG_COND_RST            0x01
+#define FIFO_EN_ADDR				0x23
+#define FIFO_EN_GYRO_ACCEL			0x78
+#define FIFO_EN_ACCEL 				0x08
+#define FIFO_EN_DISABLE_ALL 		0x00
 
+#define USER_CTRL_ADDR				0x6A
+#define USER_CTRL_FIFO_EN			0x60
+#define USER_CTRL_SENSORS_CLEAR		0x21
+#define USER_CTRL_FIFO_RESET		0x24
+#define USER_CTRL_BIT_I2C_MST_EN    0x20
+#define USER_CTRL_I2C_MASTER_EN		0x5D
+
+#define INT_STATUS					0x3A
+
+// Supports 20MHz reads
+#define FIFO_COUNTH					0x72
+#define FIFO_COUNTL					0x73
+#define FIFO_R_W					0x74
+
+#define WHOAMI_9250					0x71
+#define WHOAMI_6500					0x70
+
+#define I2C_MST_CTRL_ADDR			0x24
+#define I2C_MST_CTRL_VALUE			0x5D
+
+#define I2C_SLV0_ADDR				0x25
+#define I2C_SLV0_REG				0x26
+#define I2C_SLV0_CTRL				0x27
+#define I2C_SLV0_DATA_OUT		 	0x63
+#define I2C_SLV0_EN_8BYTES          0x88
+#define I2C_SLV0_EN_1BYTES          0x81
 #define BIT_I2C_SLV0_EN             0x80
-#define BIT_I2C_SLV0_BYTE_SW        0x40
-#define BIT_I2C_SLV0_REG_DIS        0x20
-#define BIT_I2C_SLV0_REG_GRP        0x10
 
-#define BIT_I2C_MST_MULT_MST_EN     0x80
-#define BIT_I2C_MST_WAIT_FOR_ES     0x40
-#define BIT_I2C_MST_SLV_3_FIFO_EN   0x20
-#define BIT_I2C_MST_P_NSR           0x10
-#define BITS_I2C_MST_CLOCK_258HZ    0x08
-#define BITS_I2C_MST_CLOCK_400HZ    0x0D
-
-#define BIT_I2C_SLV0_DLY_EN         0x01
-#define BIT_I2C_SLV1_DLY_EN         0x02
-#define BIT_I2C_SLV2_DLY_EN         0x04
-#define BIT_I2C_SLV3_DLY_EN         0x08
-
-#define MPU_WHOAMI_9250			0x71
-#define MPU_WHOAMI_6500			0x70
-
-#define MPU9250_ACCEL_DEFAULT_RATE	1000
-#define MPU9250_ACCEL_MAX_OUTPUT_RATE			280
-#define MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ 30
-#define MPU9250_GYRO_DEFAULT_RATE	1000
-/* rates need to be the same between accel and gyro */
-#define MPU9250_GYRO_MAX_OUTPUT_RATE			MPU9250_ACCEL_MAX_OUTPUT_RATE
-#define MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ 30
-
-#define MPU9250_DEFAULT_ONCHIP_FILTER_FREQ	92
-
-#define MPUIOCGIS_I2C	(unsigned)(DEVIOCGDEVICEID+100)
+#define EXT_SENS_DATA_00			0x49
 
 
-#pragma pack(push, 1)
-/**
- * Report conversation within the mpu, including command byte and
- * interrupt status.
- */
-struct MPUReport {
-	uint8_t		cmd;
-	uint8_t		status;
-	uint8_t		accel_x[2];
-	uint8_t		accel_y[2];
-	uint8_t		accel_z[2];
-	uint8_t		temp[2];
-	uint8_t		gyro_x[2];
-	uint8_t		gyro_y[2];
-	uint8_t		gyro_z[2];
-	struct ak8963_regs mag;
-};
-#pragma pack(pop)
-
-#define MPU_MAX_WRITE_BUFFER_SIZE (2)
+// ak8963 register address and bit definitions
+#define AK8963_I2C_ADDR         0x0C
+#define AK8963_DEVICE_ID        0x48
+#define AK8963REG_WIA           0x00
+#define AK8963REG_ST1           0x02
+#define AK8963REG_CNTL1_ADDR	0x0A
+#define AK8963REG_CNTL2_ADDR    0x0B
+#define AK8963_CONTINUOUS_16BIT 0x16
+#define AK8963_SELFTEST_MODE    0x08
+#define AK8963_RESET            0x01
 
 
-/*
-  The MPU9250 can only handle high bus speeds on the sensor and
-  interrupt status registers. All other registers have a maximum 1MHz
-  Communication with all registers of the device is performed using either
-  I2C at 400kHz or SPI at 1MHz. For applications requiring faster communications,
-  the sensor and interrupt registers may be read using SPI at 20MHz
- */
-#define MPU9250_LOW_BUS_SPEED				0
-#define MPU9250_HIGH_BUS_SPEED				0x8000
-#  define MPU9250_IS_HIGH_SPEED(r) 			((r) & MPU9250_HIGH_BUS_SPEED)
-#  define MPU9250_REG(r) 					((r) &~MPU9250_HIGH_BUS_SPEED)
-#  define MPU9250_SET_SPEED(r, s) 			((r)|(s))
-#  define MPU9250_HIGH_SPEED_OP(r) 			MPU9250_SET_SPEED((r), MPU9250_HIGH_BUS_SPEED)
-#  define MPU9250_LOW_SPEED_OP(r)			MPU9250_REG((r))
+#define ACCEL_SAMPLE_RATE	1000
+#define ACCEL_FILTER_FREQ 30
+#define ACCEL_FS_RANGE_M_S2	32.0f * CONSTANTS_ONE_G
 
-/* interface factories */
-extern device::Device *MPU9250_SPI_interface(int bus, uint32_t cs, bool external_bus);
-extern device::Device *MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus);
+#define GYRO_SAMPLE_RATE	1000
+#define GYRO_FILTER_FREQ 30
+#define GYRO_FS_RANGE_RADS	(4000.0f * M_PI_F) / 180
+
+#define MAG_SAMPLE_RATE 100
+#define MAG_FILTER_FREQ 10
+#define MAG_FS_RANGE_UT 9600.0f
+
+
+#define MPU_DEVICE_PATH_ACCEL		"/dev/mpu9250_accel"
+#define MPU_DEVICE_PATH_GYRO		"/dev/mpu9250_gyro"
+#define MPU_DEVICE_PATH_MAG			"/dev/mpu9250_mag"
+
+#define MPU_DEVICE_PATH_ACCEL_1		"/dev/mpu9250_accel1"
+#define MPU_DEVICE_PATH_GYRO_1		"/dev/mpu9250_gyro1"
+#define MPU_DEVICE_PATH_MAG_1		"/dev/mpu9250_mag1"
+
+#define MPU_DEVICE_PATH_ACCEL_EXT	"/dev/mpu9250_accel_ext"
+#define MPU_DEVICE_PATH_GYRO_EXT	"/dev/mpu9250_gyro_ext"
+#define MPU_DEVICE_PATH_MAG_EXT 	"/dev/mpu9250_mag_ext"
+
+#define MPU_DEVICE_PATH_ACCEL_EXT1	"/dev/mpu9250_accel_ext1"
+#define MPU_DEVICE_PATH_GYRO_EXT1	"/dev/mpu9250_gyro_ext1"
+#define MPU_DEVICE_PATH_MAG_EXT1 	"/dev/mpu9250_mag_ext1"
+
+#define MPU_DEVICE_PATH_ACCEL_EXT2	"/dev/mpu9250_accel_ext2"
+#define MPU_DEVICE_PATH_GYRO_EXT2	"/dev/mpu9250_gyro_ext2"
+#define MPU_DEVICE_PATH_MAG_EXT2	"/dev/mpu9250_mag_ext2"
+
+#define NUM_BUS_OPTIONS (sizeof(mpu9250::g_bus_options)/sizeof(mpu9250::g_bus_options[0]))
+
+
+typedef device::Device *(*MPU9250_constructor)(int, uint32_t);
+
+// Interface factories.
+extern device::Device *MPU9250_SPI_interface(int bus, uint32_t cs);
+extern device::Device *MPU9250_I2C_interface(int bus, uint32_t address);
 extern int MPU9250_probe(device::Device *dev, int device_type);
 
-typedef device::Device *(*MPU9250_constructor)(int, uint32_t, bool);
+namespace mpu9250
+{
+enum MPU9250_BUS {
+	MPU9250_BUS_ALL = 0,
+	MPU9250_BUS_I2C_INTERNAL,
+	MPU9250_BUS_I2C_EXTERNAL,
+	MPU9250_BUS_SPI_INTERNAL,
+	MPU9250_BUS_SPI_INTERNAL2,
+	MPU9250_BUS_SPI_EXTERNAL
+};
+// shitty list of bus configurations -- lets find a better way to do this in the future?
 
-class MPU9250_mag;
-class MPU9250_gyro;
+struct mpu9250_bus_option {
+	enum MPU9250_BUS busid;
+	const char *accel_path;
+	const char *gyro_path;
+	const char *mag_path;
+	MPU9250_constructor interface_constructor;
+	uint8_t busnum;
+	uint32_t address;
+} g_bus_options[] = {
 
-class MPU9250 : public device::CDev
+#  if defined(PX4_I2C_BUS_ONBOARD)
+	{ MPU9250_BUS_I2C_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG,  &MPU9250_I2C_interface, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_MPU9250},
+#  endif
+#  if defined(PX4_I2C_BUS_EXPANSION)
+	{ MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_I2C_interface, PX4_I2C_BUS_EXPANSION, PX4_I2C_OBDEV_MPU9250},
+#  endif
+#  if defined(PX4_I2C_BUS_EXPANSION1)
+	{
+		MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT1, MPU_DEVICE_PATH_GYRO_EXT1, MPU_DEVICE_PATH_MAG_EXT1, &MPU9250_I2C_interface, PX4_I2C_BUS_EXPANSION1, PX4_I2C_OBDEV_MPU9250,
+#  endif
+#  if defined(PX4_I2C_BUS_EXPANSION2)
+		{ MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT2, MPU_DEVICE_PATH_GYRO_EXT2, MPU_DEVICE_PATH_MAG_EXT2, &MPU9250_I2C_interface, PX4_I2C_BUS_EXPANSION2, PX4_I2C_OBDEV_MPU9250},
+#  endif
+
+#ifdef PX4_SPIDEV_MPU
+		{ MPU9250_BUS_SPI_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG, &MPU9250_SPI_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_MPU},
+#endif
+#ifdef PX4_SPIDEV_MPU2
+		{ MPU9250_BUS_SPI_INTERNAL2, MPU_DEVICE_PATH_ACCEL_1, MPU_DEVICE_PATH_GYRO_1, MPU_DEVICE_PATH_MAG_1, &MPU9250_SPI_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_MPU2},
+#endif
+#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_MPU)
+		{ MPU9250_BUS_SPI_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_SPI_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_MPU},
+#endif
+	};
+}///end namespace
+
+
+class MPU9250 : public ModuleBaseMulti<MPU9250>
 {
 public:
-	MPU9250(device::Device *interface, device::Device *mag_interface, const char *path_accel, const char *path_gyro,
-		const char *path_mag,
-		enum Rotation rotation);
+	MPU9250(mpu9250::mpu9250_bus_option &options, enum Rotation rotation);
 	virtual ~MPU9250();
 
-	virtual int		init();
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+	/** @see ModuleBase */
+	static MPU9250 *instantiate(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage();
+
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
 	/**
-	 * Diagnostics - print some basic information about the driver.
+	 * @brief Finds bus options structure associated with the given ID.
+	 * @return Returns the bus options structure.
 	 */
-	void			print_info();
+	static mpu9250::mpu9250_bus_option &initialize_bus(mpu9250::MPU9250_BUS bus_id);
 
-	void			print_registers();
+	/** @brief Posts the semaphore to signal the main loop to continue. */
+	static void post_semaphore(void *sem);
 
-	// deliberately cause a sensor error
-	void 			test_error();
+	/** @brief Resets the mpu9250 such that the FIFO does NOT become corrupt. */
+	void clean_reset();
 
-protected:
-	Device			*_interface;
+	/** @brief Initializes the driver and ASIC settings. */
+	void init();
 
-	virtual int		probe();
+	/** @brief Starts the driver and kicks off the main loop. */
+	void run();
 
-	friend class MPU9250_mag;
-	friend class MPU9250_gyro;
+	/**
+	 * @brief Prints the status of the driver.
+	 * @return Returns PX4_OK.
+	 */
+	int print_status() override;
 
-	virtual ssize_t		gyro_read(struct file *filp, char *buffer, size_t buflen);
-	virtual int		gyro_ioctl(struct file *filp, int cmd, unsigned long arg);
+	/**
+	 * @brief Reads the device ID from the ASIC.
+	 * @return Returns PX4_OK if device is found, PX4_ERROR otherwise.
+	 */
+	int	probe();
+
 
 private:
-	MPU9250_gyro	*_gyro;
-	MPU9250_mag     *_mag;
-	uint8_t			_whoami;	/** whoami result */
 
-#if defined(USE_I2C)
-	/*
-	 * SPI bus based device use hrt
-	 * I2C bus needs to use work queue
-	 */
-	work_s			_work;
-#endif
-	bool 			_use_hrt;
+	device::Device *_interface = nullptr;
 
-	struct hrt_call		_call;
-	unsigned		_call_interval;
+	Accel _accel;
+	Gyro _gyro;
+	Mag _mag;
 
-	ringbuffer::RingBuffer	*_accel_reports;
+	hrt_abstime _mag_poll_time = 0;
+	hrt_abstime _mag_interval = 12000;
 
-	struct accel_calibration_s	_accel_scale;
-	float			_accel_range_scale;
-	float			_accel_range_m_s2;
-	orb_advert_t		_accel_topic;
-	int			_accel_orb_class_instance;
-	int			_accel_class_instance;
+	uint8_t	_whoami = 0;
 
-	ringbuffer::RingBuffer	*_gyro_reports;
+	struct hrt_call _hrt_call;
 
-	struct gyro_calibration_s	_gyro_scale;
-	float			_gyro_range_scale;
-	float			_gyro_range_rad_s;
+	perf_counter_t		_spi_transfer;
+	perf_counter_t		_cycle;
+	perf_counter_t		_fifo_maxed;
 
-	unsigned		_dlpf_freq;
+	unsigned _offset = 1;
 
-	unsigned		_sample_rate;
-	perf_counter_t		_accel_reads;
-	perf_counter_t		_gyro_reads;
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_bad_transfers;
-	perf_counter_t		_bad_registers;
-	perf_counter_t		_good_transfers;
-	perf_counter_t		_reset_retries;
-	perf_counter_t		_duplicates;
+	uint8_t	*_dma_data_buffer;
 
-	uint8_t			_register_wait;
-	uint64_t		_reset_wait;
+	static constexpr unsigned _dma_buffer_size = 544; // 32B block size
 
-	math::LowPassFilter2p	_accel_filter_x;
-	math::LowPassFilter2p	_accel_filter_y;
-	math::LowPassFilter2p	_accel_filter_z;
-	math::LowPassFilter2p	_gyro_filter_x;
-	math::LowPassFilter2p	_gyro_filter_y;
-	math::LowPassFilter2p	_gyro_filter_z;
+	px4_sem_t _data_semaphore;
 
-	Integrator		_accel_int;
-	Integrator		_gyro_int;
-
-	enum Rotation		_rotation;
-
-	// this is used to support runtime checking of key
-	// configuration registers to detect SPI bus errors and sensor
-	// reset
-#define MPU9250_NUM_CHECKED_REGISTERS 11
-	static const uint8_t	_checked_registers[MPU9250_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_values[MPU9250_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_bad[MPU9250_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_next;
-
-	// last temperature reading for print_info()
-	float			_last_temperature;
-
-	bool check_null_data(uint32_t *data, uint8_t size);
-	bool check_duplicate(uint8_t *accel_data);
-	// keep last accel reading for duplicate detection
-	uint8_t			_last_accel_data[6];
-	bool			_got_duplicate;
+	enum Rotation _rotation = ROTATION_NONE;
 
 	/**
-	 * Start automatic measurement.
-	 */
-	void			start();
-
-	/**
-	 * Stop automatic measurement.
-	 */
-	void			stop();
-
-	/**
-	 * Reset chip.
-	 *
-	 * Resets the chip and measurements ranges, but not scale and offset.
-	 */
-	int			reset();
-
-
-	/**
-	 * Resets the main chip (excluding the magnetometer if any).
-	 */
-	int			reset_mpu();
-
-
-#if defined(USE_I2C)
-	/**
-	 * When the I2C interfase is on
-	 * Perform a poll cycle; collect from the previous measurement
-	 * and start a new one.
-	 *
-	 * This is the heart of the measurement state machine.  This function
-	 * alternately starts a measurement, or collects the data from the
-		 * previous measurement.
-		 *
-		 * When the interval between measurements is greater than the minimum
-		 * measurement interval, a gap is inserted between collection
-		 * and measurement to provide the most recent measurement possible
-		 * at the next interval.
-		 */
-	void			cycle();
-
-	/**
-	 * Static trampoline from the workq context; because we don't have a
-	 * generic workq wrapper yet.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		cycle_trampoline(void *arg);
-
-	void use_i2c(bool on_true) { _use_hrt = !on_true; }
-
-#endif
-
-	bool is_i2c(void) { return !_use_hrt; }
-
-
-
-
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		measure_trampoline(void *arg);
-
-	/**
-	 * Fetch measurements from the sensor and update the report buffers.
-	 */
-	void			measure();
-
-	/**
-	 * Read a register from the mpu
-	 *
+	 * @brief 		Read a register.
 	 * @param		The register to read.
 	 * @return		The value that was read.
 	 */
-	uint8_t			read_reg(unsigned reg, uint32_t speed = MPU9250_LOW_BUS_SPEED);
-	uint16_t		read_reg16(unsigned reg);
+	uint8_t			read_reg(unsigned reg);
+
 
 	/**
-	 * Write a register in the mpu
-	 *
-	 * @param reg		The register to write.
-	 * @param value		The new value to write.
+	 * @brief 		Write a register.
+	 * @param		The register to write.
+	 * @param		The value to write.
 	 */
 	void			write_reg(unsigned reg, uint8_t value);
 
-	/**
-	 * Modify a register in the mpu
-	 *
-	 * Bits are cleared before bits are set.
-	 *
-	 * @param reg		The register to modify.
-	 * @param clearbits	Bits in the register to clear.
-	 * @param setbits	Bits in the register to set.
-	 */
-	void			modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
 
 	/**
-	 * Write a register in the mpu, updating _checked_values
-	 *
-	 * @param reg		The register to write.
-	 * @param value		The new value to write.
-	 */
-	void			write_checked_reg(unsigned reg, uint8_t value);
-
-	/**
-	 * Modify a checked register in the mpu
-	 *
-	 * Bits are cleared before bits are set.
-	 *
-	 * @param reg		The register to modify.
-	 * @param clearbits	Bits in the register to clear.
-	 * @param setbits	Bits in the register to set.
-	 */
-	void			modify_checked_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
-
-	/**
-	 * Set the mpu measurement range.
-	 *
-	 * @param max_g		The maximum G value the range must support.
-	 * @return		OK if the value can be supported, -ERANGE otherwise.
-	 */
-	int			set_accel_range(unsigned max_g);
-
-	/**
-	 * Swap a 16-bit value read from the mpu to native byte order.
-	 */
-	uint16_t		swap16(uint16_t val) { return (val >> 8) | (val << 8);	}
-
-	/**
-	 * Get the internal / external state
-	 *
-	 * @return true if the sensor is not on the main MCU board
-	 */
-	bool			is_external()
-	{
-		unsigned dummy;
-		return _interface->ioctl(ACCELIOCGEXTERNAL, dummy);
-	}
-
-	/**
-	 * Measurement self test
-	 *
-	 * @return 0 on success, 1 on failure
+	 * @brief 		Measurement self test
+	 * @return 		PX4_OK on success, PX4_ERROR on failure
 	 */
 	int 			self_test();
-
-	/*
-	  set low pass filter frequency
-	 */
-	void _set_dlpf_filter(uint16_t frequency_hz);
-
-	/*
-	  set sample rate (approximate) - 1kHz to 5Hz
-	*/
-	void _set_sample_rate(unsigned desired_sample_rate_hz);
-
-	/*
-	  check that key registers still have the right value
-	 */
-	void check_registers(void);
-
-	/* do not allow to copy this class due to pointer data members */
-	MPU9250(const MPU9250 &);
-	MPU9250 operator=(const MPU9250 &);
 };

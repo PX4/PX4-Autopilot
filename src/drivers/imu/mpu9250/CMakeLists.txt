@@ -39,10 +39,10 @@ px4_add_module(
 		mpu9250.cpp
 		mpu9250_i2c.cpp
 		mpu9250_spi.cpp
-		main.cpp
-		gyro.cpp
-		mag.cpp
-		mag_i2c.cpp
+
 	DEPENDS
+		drivers__accelerometer
+		drivers__gyroscope
+		drivers__magnetometer
 	)
 

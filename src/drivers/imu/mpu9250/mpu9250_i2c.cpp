@@ -38,30 +38,19 @@
  */
 
 /* XXX trim includes */
-#include <px4_config.h>
 
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <assert.h>
-#include <debug.h>
-#include <errno.h>
-#include <unistd.h>
-
-#include <arch/board/board.h>
+// 	THIS NEED WORKS. I HAVE NOT YET REWRITTEN THIS --JAKE
 
 #include <drivers/device/i2c.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_device.h>
 
-#include "mpu9250.h"
+//#include "mpu9250.h"
+#include <drivers/drv_accel.h>
+#include <drivers/drv_gyro.h>
 
 #include "board_config.h"
 
-#ifdef USE_I2C
 
-device::Device *MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus);
+device::Device *MPU9250_I2C_interface(int bus, uint32_t address);
 
 class MPU9250_I2C : public device::I2C
 {
@@ -80,7 +69,7 @@ protected:
 };
 
 device::Device *
-MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus)
+MPU9250_I2C_interface(int bus, uint32_t address)
 {
 	return new MPU9250_I2C(bus, address);
 }
@@ -104,9 +93,6 @@ MPU9250_I2C::ioctl(unsigned operation, unsigned &arg)
 	case DEVIOCGDEVICEID:
 		return CDev::ioctl(nullptr, operation, arg);
 
-	case MPUIOCGIS_I2C:
-		return 1;
-
 	default:
 		ret = -EINVAL;
 	}
@@ -117,13 +103,15 @@ MPU9250_I2C::ioctl(unsigned operation, unsigned &arg)
 int
 MPU9250_I2C::write(unsigned reg_speed, void *data, unsigned count)
 {
-	uint8_t cmd[MPU_MAX_WRITE_BUFFER_SIZE];
+	uint8_t cmd[2];
+
+	PX4_INFO("what am i doing here");
 
 	if (sizeof(cmd) < (count + 1)) {
 		return -EIO;
 	}
 
-	cmd[0] = MPU9250_REG(reg_speed);
+	//cmd[0] = MPU9250_REG(reg_speed);
 	cmd[1] = *(uint8_t *)data;
 	return transfer(&cmd[0], count + 1, nullptr, 0);
 }
@@ -137,17 +125,17 @@ MPU9250_I2C::read(unsigned reg_speed, void *data, unsigned count)
 	 * Since MPUReport has a cmd at front, we must return the data
 	 * after that. Foe anthing else we must return it
 	 */
-	uint32_t offset = count < sizeof(MPUReport) ? 0 : offsetof(MPUReport, status);
-	uint8_t cmd = MPU9250_REG(reg_speed);
-	return transfer(&cmd, 1, &((uint8_t *)data)[offset], count);
+	// uint32_t offset = count < sizeof(MPUReport) ? 0 : offsetof(MPUReport, status);
+	// uint8_t cmd = MPU9250_REG(reg_speed);
+	// return transfer(&cmd, 1, &((uint8_t *)data)[offset], count);
+	return 0;
 }
 
 int
 MPU9250_I2C::probe()
 {
-	uint8_t whoami = 0;
-	uint8_t expected = MPU_WHOAMI_9250;
-	return (read(MPUREG_WHOAMI, &whoami, 1) == OK && (whoami == expected)) ? 0 : -EIO;
+	// uint8_t whoami = 0;
+	// uint8_t expected = WHOAMI_9250;
+	//return (read(MPUREG_WHOAMI, &whoami, 1) == OK && (whoami == expected)) ? 0 : -EIO;
+	return 0;
 }
-
-#endif /* USE_I2C */
