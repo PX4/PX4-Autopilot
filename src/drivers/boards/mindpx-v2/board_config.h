@@ -56,6 +56,7 @@
 /* PX4FMU GPIOs ***********************************************************************************/
 /* LEDs */
 #define GPIO_LED1		(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN8)
+#define BOARD_OVERLOAD_LED     LED_RED
 
 /* External interrupts */
 #define GPIO_EXTI_GYRO_DRDY	(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTE|GPIO_PIN4)
