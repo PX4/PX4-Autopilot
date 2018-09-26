@@ -347,18 +347,23 @@ def print_field_def(field):
                                 array_size, comment))
 
 
+def check_available_ids(used_msg_ids_list):
+    """
+    Checks the available RTPS ID's
+    """
+    return set(list(range(0, 255))) - set(used_msg_ids_list)
+
+
 def rtps_message_id(msg_id_map, message):
     """
     Get RTPS ID of uORB message
     """
-    msg_id = -1
+    used_ids = list()
     for dict in msg_id_map[0]['rtps']:
+        used_ids.append(dict['id'])
         if message in dict['msg']:
-            msg_id = dict['id']
+            return dict['id']
 
-    if msg_id != -1:
-        return msg_id
-    else:
-        raise AssertionError(
-            "%s does not have a RTPS ID set in the definition file. Please add an ID from the available pool!")
-        exit(1)
+    raise AssertionError(
+        "%s does not have a RTPS ID set in the definition file. Please add an ID from the available pool:\n" % message +
+        ", ".join('%d' % id for id in check_available_ids(used_ids)))
