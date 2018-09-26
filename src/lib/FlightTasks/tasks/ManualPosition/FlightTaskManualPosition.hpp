@@ -40,7 +40,7 @@
 
 #pragma once
 
-#include "FlightTaskManualAltitude.hpp"
+#include "tasks/ManualAltitude/FlightTaskManualAltitude.hpp"
 
 class FlightTaskManualPosition : public FlightTaskManualAltitude
 {

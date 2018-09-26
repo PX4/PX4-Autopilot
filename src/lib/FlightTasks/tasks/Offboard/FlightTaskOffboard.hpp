@@ -37,7 +37,7 @@
 
 #pragma once
 
-#include "FlightTask.hpp"
+#include "tasks/FlightTask/FlightTask.hpp"
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/position_setpoint.h>
 

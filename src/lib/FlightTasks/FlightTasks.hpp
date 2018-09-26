@@ -41,8 +41,8 @@
 
 #pragma once
 
-#include "FlightTask.hpp"
-#include "SubscriptionArray.hpp"
+#include "tasks/FlightTask/FlightTask.hpp"
+#include "tasks/FlightTask/SubscriptionArray.hpp"
 #include "FlightTasks_generated.hpp"
 #include <lib/WeatherVane/WeatherVane.hpp>
 

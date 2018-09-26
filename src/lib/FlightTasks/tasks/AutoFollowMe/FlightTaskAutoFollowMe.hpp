@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include "FlightTaskAuto.hpp"
+#include "tasks/Auto/FlightTaskAuto.hpp"
 
 class FlightTaskAutoFollowMe : public FlightTaskAuto
 {

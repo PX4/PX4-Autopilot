@@ -46,7 +46,7 @@
 @# loop through all requested tasks
 @[if tasks]@
 @[for task in tasks]@
-#include "FlightTask@(task).hpp"
+#include "tasks/@(task)/FlightTask@(task).hpp"
 @[end for]@
 @[end if]@
 

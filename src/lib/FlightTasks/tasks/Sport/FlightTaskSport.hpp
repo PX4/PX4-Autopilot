@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include "FlightTaskManualPosition.hpp"
+#include "tasks/ManualPosition/FlightTaskManualPosition.hpp"
 #include "mathlib/mathlib.h"
 #include <float.h>
 

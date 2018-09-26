@@ -39,8 +39,8 @@
 
 #pragma once
 
-#include "FlightTaskManualAltitude.hpp"
-#include "ManualSmoothingZ.hpp"
+#include "tasks/ManualAltitude/FlightTaskManualAltitude.hpp"
+#include "tasks/Utility/ManualSmoothingZ.hpp"
 
 class FlightTaskManualAltitudeSmooth : public FlightTaskManualAltitude
 {
