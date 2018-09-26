@@ -75,16 +75,16 @@ static uint32_t _led_param_get(int led)
 {
 	switch (led) {
 	case 0:
-		return GPIO_LED0;
+		return GPIO_LED0; // LED_BLUE
 
 	case 1:
-		return GPIO_LED1;
+		return GPIO_LED1; // LED_RED
 
 	case 2:
-		return GPIO_LED2;
+		return GPIO_LED2; // LED SAFETY
 
 	case 3:
-		return GPIO_LED3;
+		return GPIO_LED3; // LED GREEN
 
 	}
 
