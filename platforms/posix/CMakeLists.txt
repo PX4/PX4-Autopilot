@@ -7,9 +7,9 @@ get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-set(PX4_BASH_PREFIX "px4-")
+set(PX4_SHELL_COMMAND_PREFIX "px4-")
 
-add_definitions("-DPX4_BASH_PREFIX=\"${PX4_BASH_PREFIX}\"")
+add_definitions("-DPX4_SHELL_COMMAND_PREFIX=\"${PX4_SHELL_COMMAND_PREFIX}\"")
 
 px4_posix_generate_builtin_commands(
 	OUT apps
@@ -18,7 +18,7 @@ px4_posix_generate_builtin_commands(
 px4_posix_generate_alias(
 	OUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/px4-alias.sh
 	MODULE_LIST ${module_libraries}
-	PREFIX ${PX4_BASH_PREFIX}
+	PREFIX ${PX4_SHELL_COMMAND_PREFIX}
 )
 
 if (("${BOARD}" STREQUAL "eagle") OR ("${BOARD}" STREQUAL "excelsior"))
@@ -97,7 +97,7 @@ endif()
 # Module Symlinks
 px4_posix_generate_symlinks(
 	MODULE_LIST ${module_libraries}
-	PREFIX ${PX4_BASH_PREFIX}
+	PREFIX ${PX4_SHELL_COMMAND_PREFIX}
 	TARGET px4
 )
 

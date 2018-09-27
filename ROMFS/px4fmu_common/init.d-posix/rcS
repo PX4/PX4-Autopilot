@@ -5,7 +5,7 @@
 # shellcheck disable=SC1091
 . px4-alias.sh
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 
 #
 # Main SITL startup script
@@ -149,10 +149,7 @@ then
 fi
 
 # Autostart ID
-autostart_file_match="etc/init.d-posix/$(param show -q SYS_AUTOSTART)_*"
-# shellcheck disable=SC2206
-autostart_files=( $autostart_file_match )
-autostart_file="${autostart_files[0]}" # use first match, but there should really only be one
+autostart_file=$( ls -- etc/init.d-posix/"$(param show -q SYS_AUTOSTART)"_* )
 if [ ! -e "$autostart_file" ]; then
 	echo "Error: no autostart file found"
 	exit -1
