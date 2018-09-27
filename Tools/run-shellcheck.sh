@@ -32,6 +32,7 @@ shellcheck -x \
 	-e SC2148 \
 	-e SC2166 \
 	-e SC2039 \
+	--shell=dash \
 	$scripts
 ret=$?
 if [ $ret -ne 0 ]; then
