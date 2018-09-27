@@ -1446,6 +1446,9 @@ void Ekf2::run()
 			status.n_states = 24;
 			_ekf.get_covariances(status.covariances);
 			_ekf.get_gps_check_status(&status.gps_check_fail_flags);
+			// only report enabled GPS check failures (the param indexes are shifted by 1 bit, because they don't include
+			// the GPS Fix bit, which is always checked)
+			status.gps_check_fail_flags &= ((uint16_t)_params->gps_check_mask << 1) | 1;
 			status.control_mode_flags = control_status.value;
 			_ekf.get_filter_fault_status(&status.filter_fault_flags);
 			_ekf.get_innovation_test_status(&status.innovation_check_flags, &status.mag_test_ratio,
