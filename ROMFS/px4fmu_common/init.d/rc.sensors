@@ -293,7 +293,7 @@ then
 	# will prevent the incorrect driver from a successful initialization.
 
 	# mpu9250 internal SPI bus mpu9250 is rotated 90 deg yaw
-	if ! mpu9250 -R 2 start
+	if ! mpu9250 start -R 2
 	then
 		# BMI160 internal SPI bus
 		bmi160 start
