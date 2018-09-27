@@ -77,6 +77,7 @@ AMS::on_active()
 	// Stop the descend if we suddenly get altitude above ground data and we reached the AMS descend altitude target
 	if (_ams_state == AMSState::DESCEND) {
 		const vehicle_local_position_s &local_pos = *_navigator->get_local_position();
+
 		if (local_pos.dist_bottom_valid) {
 			if (local_pos.dist_bottom <= _param_ams_descend_alt.get()) {
 				fast_forward = true;
@@ -107,78 +108,72 @@ AMS::set_ams_item()
 	const float loiter_altitude = math::min(home.alt + altitude_above_ground + _param_ams_descend_alt.get(), gpos.alt);
 
 	switch (_ams_state) {
-	case AMSState::TRANSITION_TO_MC: {
-			set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
-			break;
-		}
+	case AMSState::TRANSITION_TO_MC:
+		set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+		break;
 
-	case AMSState::DESCEND: {
-			_latitude = gpos.lat;
-			_longitude = gpos.lon;
-			_altitude = loiter_altitude;
+	case AMSState::DESCEND:
+		_latitude = gpos.lat;
+		_longitude = gpos.lon;
+		_altitude = loiter_altitude;
 
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			_mission_item.lat = _latitude;
-			_mission_item.lon = _longitude;
-			_mission_item.altitude = _altitude;
-			_mission_item.altitude_is_relative = false;
+		_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+		_mission_item.lat = _latitude;
+		_mission_item.lon = _longitude;
+		_mission_item.altitude = _altitude;
+		_mission_item.altitude_is_relative = false;
 
-			_mission_item.yaw = NAN;
+		_mission_item.yaw = NAN;
 
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = 0.0f;
-			_mission_item.autocontinue = true;
-			_mission_item.origin = ORIGIN_ONBOARD;
+		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+		_mission_item.time_inside = 0.0f;
+		_mission_item.autocontinue = true;
+		_mission_item.origin = ORIGIN_ONBOARD;
 
-			// Disable previous setpoint to prevent drift.
-			pos_sp_triplet->previous.valid = false;
+		// Disable previous setpoint to prevent drift.
+		pos_sp_triplet->previous.valid = false;
 
-			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "AMS: descend to %d m (%d m above home)",
-						     (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - home.alt));
-			break;
-		}
+		mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "AMS: descend to %d m (%d m above home)",
+					     (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - home.alt));
+		break;
 
-	case AMSState::LOITER: {
-			_mission_item.lat = _latitude;
-			_mission_item.lon = _longitude;
-			_mission_item.altitude = _altitude;
-			_mission_item.altitude_is_relative = false;
-			_mission_item.yaw = NAN;
-			_mission_item.loiter_radius = _navigator->get_loiter_radius();
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = 0.0f;
-			_mission_item.autocontinue = false;
-			_mission_item.origin = ORIGIN_ONBOARD;
+	case AMSState::LOITER:
+		_mission_item.lat = _latitude;
+		_mission_item.lon = _longitude;
+		_mission_item.altitude = _altitude;
+		_mission_item.altitude_is_relative = false;
+		_mission_item.yaw = NAN;
+		_mission_item.loiter_radius = _navigator->get_loiter_radius();
+		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+		_mission_item.time_inside = 0.0f;
+		_mission_item.autocontinue = false;
+		_mission_item.origin = ORIGIN_ONBOARD;
 
-			_navigator->set_can_loiter_at_sp(true);
+		_navigator->set_can_loiter_at_sp(true);
 
-			_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "AMS: completed, loitering");
+		_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+		mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "AMS: completed, loitering");
+		break;
 
-			break;
-		}
+	case AMSState::LAND:
+		// Land at home position.
+		_mission_item.nav_cmd = NAV_CMD_LAND;
+		_mission_item.lat = _latitude;
+		_mission_item.lon = _longitude;
+		_mission_item.yaw = NAN;
+		_mission_item.altitude = _altitude;
+		_mission_item.altitude_is_relative = false;
+		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+		_mission_item.time_inside = 0.0f;
+		_mission_item.autocontinue = true;
+		_mission_item.origin = ORIGIN_ONBOARD;
 
-	case AMSState::LAND: {
-			// Land at home position.
-			_mission_item.nav_cmd = NAV_CMD_LAND;
-			_mission_item.lat = _latitude;
-			_mission_item.lon = _longitude;
-			_mission_item.yaw = NAN;
-			_mission_item.altitude = _altitude;
-			_mission_item.altitude_is_relative = false;
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = 0.0f;
-			_mission_item.autocontinue = true;
-			_mission_item.origin = ORIGIN_ONBOARD;
+		mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "AMS: landing");
+		break;
 
-			mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "AMS: landing");
-			break;
-		}
-
-	case AMSState::LANDED: {
-			set_idle_item(&_mission_item);
-			break;
-		}
+	case AMSState::LANDED:
+		set_idle_item(&_mission_item);
+		break;
 
 	default:
 		break;
@@ -210,23 +205,30 @@ AMS::advance_ams()
 
 	case AMSState::DESCEND:
 
-		if (ams_type() == AMSType::LOITER) {
-			_ams_state = AMSState::LOITER;
+		switch (ams_type()) {
 
-		} else if (ams_type() == AMSType::LAND) {
+		case AMSType::LOITER:
+			_ams_state = AMSState::LOITER;
+			break;
+
+		case AMSType::LAND:
 			_ams_state = AMSState::LAND;
+			break;
 
-		} else if (ams_type() == AMSType::RALLY) {
+		case AMSType::RALLY:
 			_ams_state = AMSState::RALLY;
+			break;
 
-		} else { // unknown, just loiter
+		default: // unknown, just loiter
 			_ams_state = AMSState::LOITER;
+			break;
 		}
 
 		break;
 
 	case AMSState::RALLY:
 		_ams_state = AMSState::LAND;
+		break;
 
 	case AMSState::LAND:
 		_ams_state = AMSState::LANDED;
