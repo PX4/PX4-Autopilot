@@ -687,6 +687,7 @@ void Logger::add_debug_topics()
 	add_topic("debug_key_value");
 	add_topic("debug_value");
 	add_topic("debug_vect");
+	add_topic("debug_array");
 }
 
 void Logger::add_estimator_replay_topics()
