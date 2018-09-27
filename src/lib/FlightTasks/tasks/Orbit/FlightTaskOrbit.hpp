@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include "FlightTaskManualAltitudeSmooth.hpp"
+#include "tasks/ManualAltitudeSmooth/FlightTaskManualAltitudeSmooth.hpp"
 
 class FlightTaskOrbit : public FlightTaskManualAltitudeSmooth
 {

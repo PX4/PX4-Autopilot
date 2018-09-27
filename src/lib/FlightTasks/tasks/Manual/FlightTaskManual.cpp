@@ -34,7 +34,7 @@
  * @file FlightTaskManual.cpp
  */
 
-#include "FlightTaskManual.hpp"
+#include "tasks/Manual/FlightTaskManual.hpp"
 #include <mathlib/mathlib.h>
 #include <float.h>
 #include <drivers/drv_hrt.h>

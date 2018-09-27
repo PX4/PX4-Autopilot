@@ -40,7 +40,7 @@
 
 #pragma once
 
-#include "FlightTaskAutoMapper.hpp"
+#include "tasks/AutoMapper/FlightTaskAutoMapper.hpp"
 
 class FlightTaskAutoLine : public FlightTaskAutoMapper
 {

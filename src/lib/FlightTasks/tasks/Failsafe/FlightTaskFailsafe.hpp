@@ -38,7 +38,7 @@
 
 #pragma once
 
-#include "FlightTask.hpp"
+#include "tasks/FlightTask/FlightTask.hpp"
 
 class FlightTaskFailsafe : public FlightTask
 {

@@ -39,9 +39,9 @@
 
 #pragma once
 
-#include "FlightTaskManualPosition.hpp"
-#include "ManualSmoothingXY.hpp"
-#include "ManualSmoothingZ.hpp"
+#include "tasks/ManualPosition/FlightTaskManualPosition.hpp"
+#include "tasks/Utility/ManualSmoothingXY.hpp"
+#include "tasks/Utility/ManualSmoothingZ.hpp"
 
 class FlightTaskManualPositionSmooth : public FlightTaskManualPosition
 {

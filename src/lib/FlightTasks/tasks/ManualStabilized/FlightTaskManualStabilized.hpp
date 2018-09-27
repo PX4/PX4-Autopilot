@@ -40,7 +40,7 @@
 
 #pragma once
 
-#include "FlightTaskManual.hpp"
+#include "tasks/Manual/FlightTaskManual.hpp"
 
 class FlightTaskManualStabilized : public FlightTaskManual
 {

@@ -511,6 +511,7 @@ function(px4_add_common_flags)
 		${PX4_BINARY_DIR}/src
 		${PX4_BINARY_DIR}/src/lib
 		${PX4_BINARY_DIR}/src/modules
+		${PX4_BINARY_DIR}/src/lib/FlightTasks
 
 
 		${PX4_SOURCE_DIR}/src
@@ -519,6 +520,8 @@ function(px4_add_common_flags)
 		${PX4_SOURCE_DIR}/src/lib
 		${PX4_SOURCE_DIR}/src/lib/DriverFramework/framework/include
 		${PX4_SOURCE_DIR}/src/lib/matrix
+		${PX4_SOURCE_DIR}/src/lib/ecl
+		${PX4_SOURCE_DIR}/src/lib/FlightTasks
 		${PX4_SOURCE_DIR}/src/modules
 		${PX4_SOURCE_DIR}/src/platforms
 		)
@@ -646,7 +649,7 @@ function(px4_find_python_module module)
 			"import re, ${module}; print(re.compile('/__init__.py.*').sub('',${module}.__file__))"
 			RESULT_VARIABLE _${module}_status
 			OUTPUT_VARIABLE _${module}_location
-			ERROR_QUIET 
+			ERROR_QUIET
 			OUTPUT_STRIP_TRAILING_WHITESPACE)
 		if(NOT _${module}_status)
 			set(PY_${module_upper} ${_${module}_location} CACHE STRING
@@ -663,4 +666,3 @@ function(px4_find_python_module module)
 		#message(FATAL_ERROR "python module not found, exiting")
 	#endif()
 endfunction(px4_find_python_module)
-

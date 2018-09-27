@@ -40,7 +40,7 @@
 
 #pragma once
 
-#include "FlightTask.hpp"
+#include "tasks/FlightTask/FlightTask.hpp"
 #include <uORB/topics/manual_control_setpoint.h>
 
 class FlightTaskManual : public FlightTask
