@@ -24,7 +24,7 @@ fi
 # Try to mount the microSD card.
 #
 mount -t vfat /dev/mmcsd0 /fs/microsd
-if [ $? == 0 ]
+if [ $? = 0 ]
 then
 	echo "[i] card mounted at /fs/microsd"
 	# Start playing the startup tune

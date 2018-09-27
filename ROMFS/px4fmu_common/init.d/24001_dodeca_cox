@@ -25,7 +25,7 @@
 
 set VEHICLE_TYPE mc
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set NAV_ACC_RAD 2.0
 

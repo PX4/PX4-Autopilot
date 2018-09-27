@@ -46,7 +46,7 @@ then
 		set BOARD_FMUV3 false
 	fi
 
-	if [ $BOARD_FMUV3 == true ]
+	if [ $BOARD_FMUV3 = true ]
 	then
 		# external L3GD20H is rotated 180 degrees yaw
 		if l3gd20 -X -R 4 start

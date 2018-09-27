@@ -23,7 +23,7 @@
 
 sh /etc/init.d/rc.fw_defaults
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set FW_AIRSPD_MIN 10
 	param set FW_AIRSPD_TRIM 15

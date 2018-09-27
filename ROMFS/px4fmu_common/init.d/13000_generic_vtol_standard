@@ -20,7 +20,7 @@
 
 sh /etc/init.d/rc.vtol_defaults
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set PWM_AUX_DIS5 950
 	param set PWM_RATE 400

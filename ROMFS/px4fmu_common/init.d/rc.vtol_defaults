@@ -7,7 +7,7 @@
 
 set VEHICLE_TYPE vtol
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set MIS_TAKEOFF_ALT 20
 	param set MIS_YAW_TMT 10

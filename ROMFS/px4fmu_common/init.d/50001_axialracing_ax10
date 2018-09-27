@@ -23,7 +23,7 @@ sh /etc/init.d/rc.ugv_defaults
 # This section can be enabled once tuning parameters for this particular
 # rover model are known. It allows to configure default gains via the GUI.
 #
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	# PWM default value for "disarmed" mode.
 	# This centers the steering and throttle, which means

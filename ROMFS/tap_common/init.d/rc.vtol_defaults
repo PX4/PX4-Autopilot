@@ -2,7 +2,7 @@
 
 set VEHICLE_TYPE vtol
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set MC_ROLL_P 6.0
 	param set MC_PITCH_P 6.0

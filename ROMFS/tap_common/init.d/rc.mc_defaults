@@ -2,7 +2,7 @@
 
 set VEHICLE_TYPE mc
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set PWM_DISARMED 900
 	param set PWM_MIN 1075
