@@ -163,7 +163,7 @@ fi
 if ! ver hwcmp CRAZYFLIE AEROCORE2
 then
 	# Run no SD alarm.
-	if [ $LOG_FILE == /dev/null ]
+	if [ $LOG_FILE = /dev/null ]
 	then
 		# tune Make FS MBAGP
 		tune_control play -t 2
@@ -335,7 +335,7 @@ else
 	#
 	# If autoconfig parameter was set, reset it and save parameters.
 	#
-	if [ $AUTOCNF == yes ]
+	if [ $AUTOCNF = yes ]
 	then
 		# Run FMU as task on Pixracer and on boards with enough RAM.
 		if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO PX4FMU_V5
@@ -406,7 +406,7 @@ else
 					fi
 				fi
 
-				if [ $IO_PRESENT == no ]
+				if [ $IO_PRESENT = no ]
 				then
 					echo "PX4IO update failed" >> $LOG_FILE
 					# Error tune.
@@ -424,14 +424,14 @@ else
 		set USE_IO yes
 	fi
 
-	if [ $USE_IO == yes -a $IO_PRESENT == no ]
+	if [ $USE_IO = yes -a $IO_PRESENT = no ]
 	then
 		echo "PX4IO not found" >> $LOG_FILE
 		# Error tune.
 		tune_control play -t 2
 	fi
 
-	if [ $IO_PRESENT == no -o $USE_IO == no ]
+	if [ $IO_PRESENT = no -o $USE_IO = no ]
 	then
 		rc_input start
 	fi

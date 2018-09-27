@@ -10,7 +10,7 @@
 
 sh /etc/init.d/rc.vtol_defaults
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set FW_THR_CRUISE 65.0
 	param set FW_PR_P 0.08

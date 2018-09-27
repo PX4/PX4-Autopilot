@@ -12,7 +12,7 @@
 
 sh /etc/init.d/rc.vtol_defaults
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set PWM_AUX_DISARMED 1000
 	param set PWM_AUX_MAX 2000

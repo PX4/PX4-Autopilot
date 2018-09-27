@@ -8,15 +8,15 @@
 #
 # Fixed wing setup.
 #
-if [ $VEHICLE_TYPE == fw ]
+if [ $VEHICLE_TYPE = fw ]
 then
-	if [ $MIXER == none ]
+	if [ $MIXER = none ]
 	then
 		# Set default mixer for fixed wing if not defined.
 		set MIXER AERT
 	fi
 
-	if [ $MAV_TYPE == none ]
+	if [ $MAV_TYPE = none ]
 	then
 		# Set a default MAV_TYPE = 1 if not defined.
 		set MAV_TYPE 1
@@ -35,40 +35,40 @@ fi
 #
 # Multicopter setup.
 #
-if [ $VEHICLE_TYPE == mc ]
+if [ $VEHICLE_TYPE = mc ]
 then
-	if [ $MIXER == none ]
+	if [ $MIXER = none ]
 	then
 		echo "MC mixer undefined"
 	fi
 
-	if [ $MAV_TYPE == none ]
+	if [ $MAV_TYPE = none ]
 	then
 		# Set a default MAV_TYPE = 2 if not defined.
 		set MAV_TYPE 2
 
 		# Use mixer to detect vehicle type
-		if [ $MIXER == coax ]
+		if [ $MIXER = coax ]
 		then
 			set MAV_TYPE 3
 		fi
-		if [ $MIXER == hexa_x -o $MIXER == hexa_+ ]
+		if [ $MIXER = hexa_x -o $MIXER = hexa_+ ]
 		then
 			set MAV_TYPE 13
 		fi
-		if [ $MIXER == hexa_cox ]
+		if [ $MIXER = hexa_cox ]
 		then
 			set MAV_TYPE 13
 		fi
-		if [ $MIXER == octo_x -o $MIXER == octo_+ ]
+		if [ $MIXER = octo_x -o $MIXER = octo_+ ]
 		then
 			set MAV_TYPE 14
 		fi
-		if [ $MIXER == octo_cox -o $MIXER == octo_cox_w ]
+		if [ $MIXER = octo_cox -o $MIXER = octo_cox_w ]
 		then
 			set MAV_TYPE 14
 		fi
-		if [ $MIXER == tri_y_yaw- -o $MIXER == tri_y_yaw+ ]
+		if [ $MIXER = tri_y_yaw- -o $MIXER = tri_y_yaw+ ]
 		then
 			set MAV_TYPE 15
 		fi
@@ -87,15 +87,15 @@ fi
 #
 # UGV setup.
 #
-if [ $VEHICLE_TYPE == ugv ]
+if [ $VEHICLE_TYPE = ugv ]
 then
-	if [ $MIXER == none ]
+	if [ $MIXER = none ]
 	then
 		# Set default mixer for UGV if not defined.
 		set MIXER ugv_generic
 	fi
 
-	if [ $MAV_TYPE == none ]
+	if [ $MAV_TYPE = none ]
 	then
 		# Set a default MAV_TYPE = 10 if not defined.
 		set MAV_TYPE 10
@@ -114,24 +114,24 @@ fi
 #
 # VTOL setup.
 #
-if [ $VEHICLE_TYPE == vtol ]
+if [ $VEHICLE_TYPE = vtol ]
 then
-	if [ $MIXER == none ]
+	if [ $MIXER = none ]
 	then
 		echo "VTOL mixer undefined"
 	fi
 
-	if [ $MAV_TYPE == none ]
+	if [ $MAV_TYPE = none ]
 	then
 		# Set a default MAV_TYPE = 19 if not defined.
 		set MAV_TYPE 19
 
 		# Use mixer to detect vehicle type.
-		if [ $MIXER == firefly6 ]
+		if [ $MIXER = firefly6 ]
 		then
 			set MAV_TYPE 21
 		fi
-		if [ $MIXER == quad_x_pusher_vtol ]
+		if [ $MIXER = quad_x_pusher_vtol ]
 		then
 			set MAV_TYPE 22
 		fi
@@ -150,7 +150,7 @@ fi
 #
 # Generic setup (autostart ID not found).
 #
-if [ $VEHICLE_TYPE == none ]
+if [ $VEHICLE_TYPE = none ]
 then
 	echo "No autostart ID found"
 	ekf2 start
