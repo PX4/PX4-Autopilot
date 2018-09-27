@@ -37,7 +37,7 @@ serial_config:
                     name:
                         # Parameter name (e.g. TEL_FRSKY_CONFIG, MAV_${i}_CONFIG)
                         type: string
-                        regex: '[0-9A-Z_]+(\$\{i\}[0-9A-Z_]*)?'
+                        regex: '[0-9A-Z_]+(\$\{i\}[0-9A-Z_]*)?_(CONFIG|CFG)'
                         required: true
                     group:
                         # Associated parameter group (e.g. GPS)
