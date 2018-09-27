@@ -83,6 +83,7 @@ enum PortMode {
 	PORT_MODE_UNSET = 0,
 	PORT_FULL_GPIO,
 	PORT_FULL_PWM,
+	PORT_PWM8,
 	PORT_PWM6,
 	PORT_PWM5,
 	PORT_PWM4,
@@ -2613,56 +2614,73 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
-	case PORT_PWM6:
-		/* select 4-pin PWM mode */
-		servo_mode = PX4FMU::MODE_6PWM;
+	case PORT_PWM8:
+		/* select 8-pin PWM mode */
+		servo_mode = PX4FMU::MODE_8PWM;
 		break;
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
+
+	case PORT_PWM6:
+		/* select 6-pin PWM mode */
+		servo_mode = PX4FMU::MODE_6PWM;
+		break;
 
 	case PORT_PWM5:
 		/* select 5-pin PWM mode */
 		servo_mode = PX4FMU::MODE_5PWM;
 		break;
 
+#  if defined(BOARD_HAS_CAPTURE)
+
 	case PORT_PWM5CAP1:
 		/* select 5-pin PWM mode 1 capture */
 		servo_mode = PX4FMU::MODE_5PWM1CAP;
 		mode_with_input = true;
 		break;
+#  endif
 
 	case PORT_PWM4:
 		/* select 4-pin PWM mode */
 		servo_mode = PX4FMU::MODE_4PWM;
 		break;
 
+#  if defined(BOARD_HAS_CAPTURE)
+
 	case PORT_PWM4CAP1:
 		/* select 4-pin PWM mode 1 capture */
 		servo_mode = PX4FMU::MODE_4PWM1CAP;
 		mode_with_input = true;
 		break;
+#  endif
 
 	case PORT_PWM3:
 		/* select 3-pin PWM mode */
 		servo_mode = PX4FMU::MODE_3PWM;
 		break;
 
+#  if defined(BOARD_HAS_CAPTURE)
+
 	case PORT_PWM3CAP1:
 		/* select 3-pin PWM mode 1 capture */
 		servo_mode = PX4FMU::MODE_3PWM1CAP;
 		mode_with_input = true;
 		break;
+#  endif
 
 	case PORT_PWM2:
 		/* select 2-pin PWM mode */
 		servo_mode = PX4FMU::MODE_2PWM;
 		break;
 
+#  if defined(BOARD_HAS_CAPTURE)
+
 	case PORT_PWM2CAP2:
 		/* select 2-pin PWM mode 2 capture */
 		servo_mode = PX4FMU::MODE_2PWM2CAP;
 		mode_with_input = true;
 		break;
+#  endif
 #endif
 
 	default:
@@ -3025,31 +3043,49 @@ int PX4FMU::custom_command(int argc, char *argv[])
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 
+	} else if (!strcmp(verb, "mode_pwm6")) {
+		new_mode = PORT_PWM6;
+
+	} else if (!strcmp(verb, "mode_pwm5")) {
+		new_mode = PORT_PWM5;
+
+#  if defined(BOARD_HAS_CAPTURE)
+
+	} else if (!strcmp(verb, "mode_pwm5cap1")) {
+		new_mode = PORT_PWM5CAP1;
+#  endif
+
 	} else if (!strcmp(verb, "mode_pwm4")) {
 		new_mode = PORT_PWM4;
 
-	} else if (!strcmp(verb, "mode_pwm2")) {
-		new_mode = PORT_PWM2;
+#  if defined(BOARD_HAS_CAPTURE)
+
+	} else if (!strcmp(verb, "mode_pwm4cap1")) {
+		new_mode = PORT_PWM4CAP1;
+#  endif
 
 	} else if (!strcmp(verb, "mode_pwm3")) {
 		new_mode = PORT_PWM3;
 
-	} else if (!strcmp(verb, "mode_pwm5cap1")) {
-		new_mode = PORT_PWM5CAP1;
-
-	} else if (!strcmp(verb, "mode_pwm4cap1")) {
-		new_mode = PORT_PWM4CAP1;
+#  if defined(BOARD_HAS_CAPTURE)
 
 	} else if (!strcmp(verb, "mode_pwm3cap1")) {
 		new_mode = PORT_PWM3CAP1;
+#  endif
+
+	} else if (!strcmp(verb, "mode_pwm2")) {
+		new_mode = PORT_PWM2;
+
+#  if defined(BOARD_HAS_CAPTURE)
 
 	} else if (!strcmp(verb, "mode_pwm2cap2")) {
 		new_mode = PORT_PWM2CAP2;
+#  endif
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
 
-	} else if (!strcmp(verb, "mode_pwm6")) {
-		new_mode = PORT_PWM6;
+	} else if (!strcmp(verb, "mode_pwm8")) {
+		new_mode = PORT_PWM8;
 #endif
 	}
 
@@ -3120,18 +3156,22 @@ mixer files.
 
 	PRINT_MODULE_USAGE_COMMAND("mode_gpio");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("mode_pwm", "Select all available pins as PWM");
-#if defined(BOARD_HAS_PWM)
-	PRINT_MODULE_USAGE_COMMAND("mode_pwm1");
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
+  PRINT_MODULE_USAGE_COMMAND("mode_pwm8");
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
+  PRINT_MODULE_USAGE_COMMAND("mode_pwm6");
+  PRINT_MODULE_USAGE_COMMAND("mode_pwm5");
+  PRINT_MODULE_USAGE_COMMAND("mode_pwm5cap1");
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm4");
+  PRINT_MODULE_USAGE_COMMAND("mode_pwm4cap1");
+  PRINT_MODULE_USAGE_COMMAND("mode_pwm3");
+  PRINT_MODULE_USAGE_COMMAND("mode_pwm3cap1");
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm2");
-	PRINT_MODULE_USAGE_COMMAND("mode_pwm3");
-	PRINT_MODULE_USAGE_COMMAND("mode_pwm3cap1");
-	PRINT_MODULE_USAGE_COMMAND("mode_pwm2cap2");
+  PRINT_MODULE_USAGE_COMMAND("mode_pwm2cap2");
 #endif
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
-	PRINT_MODULE_USAGE_COMMAND("mode_pwm6");
+#if defined(BOARD_HAS_PWM)
+  PRINT_MODULE_USAGE_COMMAND("mode_pwm1");
 #endif
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("sensor_reset", "Do a sensor reset (SPI bus)");
@@ -3167,23 +3207,28 @@ int PX4FMU::print_status()
 	const char *mode_str = nullptr;
 
 	switch (_mode) {
+
+	case MODE_NONE: mode_str = "no pwm"; break;
+
 	case MODE_1PWM: mode_str = "pwm1"; break;
 
 	case MODE_2PWM: mode_str = "pwm2"; break;
 
+	case MODE_2PWM2CAP: mode_str = "pwm2cap2"; break;
+
 	case MODE_3PWM: mode_str = "pwm3"; break;
+
+	case MODE_3PWM1CAP: mode_str = "pwm3cap1"; break;
 
 	case MODE_4PWM: mode_str = "pwm4"; break;
 
-	case MODE_2PWM2CAP: mode_str = "pwm2cap2"; break;
-
-  case MODE_3PWM1CAP: mode_str = "pwm3cap1"; break;
-
   case MODE_4PWM1CAP: mode_str = "pwm4cap1"; break;
+
+  case MODE_5PWM: mode_str = "pwm5"; break;
 
   case MODE_5PWM1CAP: mode_str = "pwm5cap1"; break;
 
-	case MODE_6PWM: mode_str = "pwm6"; break;
+  case MODE_6PWM: mode_str = "pwm6"; break;
 
 	case MODE_8PWM: mode_str = "pwm8"; break;
 
@@ -3192,8 +3237,6 @@ int PX4FMU::print_status()
 	case MODE_5CAP: mode_str = "cap5"; break;
 
 	case MODE_6CAP: mode_str = "cap6"; break;
-
-	case MODE_NONE: mode_str = "no pwm"; break;
 
 	default:
 		break;
