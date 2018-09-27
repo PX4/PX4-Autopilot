@@ -102,8 +102,11 @@ device::Device *MPU9250_SPI_interface(int bus, uint32_t cs)
 MPU9250_SPI::MPU9250_SPI(int bus, uint32_t device) :
 	SPI("MPU9250", nullptr, bus, device, SPIDEV_MODE3, 20e6)
 {
-	CDev::init();
-	_device_id.devid_s.devtype =  DRV_ACC_DEVTYPE_MPU9250;
+	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU9250;
+	// _device_id.devid_s.bus_type = (device::Device::DeviceBusType)this->get_device_bus_type();
+	// _device_id.devid_s.bus = this->get_device_bus();
+	// _device_id.devid_s.address = this->get_device_address();
+
 	set_lockmode(LOCK_THREADS);
 }
 
@@ -111,8 +114,9 @@ int MPU9250_SPI::ioctl(unsigned operation, unsigned &arg)
 {
 	int ret;
 
-	switch (operation) {
+	PX4_INFO("Spi getting ioctl'd");
 
+	switch (operation) {
 	case ACCELIOCGEXTERNAL:
 		external();
 

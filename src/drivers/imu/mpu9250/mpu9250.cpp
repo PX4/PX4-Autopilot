@@ -51,7 +51,6 @@ MPU9250::MPU9250(mpu9250::mpu9250_bus_option &bus, enum Rotation rotation) :
 	// Construct the gyro and accel objects.
 	_accel(bus.accel_path, _interface, DRV_ACC_DEVTYPE_MPU9250),
 	_gyro(bus.gyro_path, _interface, DRV_GYR_DEVTYPE_MPU9250),
-	_mag(bus.mag_path, _interface, DRV_MAG_DEVTYPE_MPU9250),
 
 	_spi_transfer(perf_alloc(PC_ELAPSED, "mpu9250_spi_transfer")),
 	_cycle(perf_alloc(PC_ELAPSED, "mpu9250_cycle")),
@@ -65,6 +64,12 @@ MPU9250::MPU9250(mpu9250::mpu9250_bus_option &bus, enum Rotation rotation) :
 		warnx("No device on bus %u.", (unsigned)bus.busid);
 	}
 
+	probe();
+
+	if (_whoami == WHOAMI_9250) {
+		_mag = new Mag(bus.mag_path, _interface, DRV_MAG_DEVTYPE_MPU9250);
+	}
+
 	// Allocate 512 bytes for dma FIFO transfer.
 	_dma_data_buffer = (uint8_t *)fat_dma_alloc(_dma_buffer_size);
 }
@@ -73,6 +78,10 @@ MPU9250::~MPU9250()
 {
 	if (_interface) {
 		delete _interface;
+	}
+
+	if (_mag) {
+		delete _mag;
 	}
 
 	fat_dma_free(_dma_data_buffer, _dma_buffer_size);
@@ -205,8 +214,8 @@ void MPU9250::init()
 	// Set up the mag for SPI mode. NOTE: enabling the i2c master interface brings the FIFO output rate down to 4KHz.
 	if (_whoami == WHOAMI_9250) {
 
-		_mag.init();
-		_mag.configure_filter(MAG_SAMPLE_RATE, MAG_FILTER_FREQ);
+		_mag->init();
+		_mag->configure_filter(MAG_SAMPLE_RATE, MAG_FILTER_FREQ);
 
 		// Enable the i2c master.
 		write_reg(USER_CTRL_ADDR, USER_CTRL_FIFO_EN | USER_CTRL_BIT_I2C_MST_EN);
@@ -407,7 +416,7 @@ void MPU9250::run()
 				x = y;
 				y = temp;
 
-				_mag.publish(x, y, z, MAG_FS_RANGE_UT / 65535.0f, _rotation);
+				_mag->publish(x, y, z, MAG_FS_RANGE_UT / 65535.0f, _rotation);
 
 				_mag_poll_time = hrt_absolute_time();
 			}
@@ -433,10 +442,8 @@ int MPU9250::print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
-
 		### Description
 		Bla Blah blaaaa.
-
 		)DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("mpu9250", "system");

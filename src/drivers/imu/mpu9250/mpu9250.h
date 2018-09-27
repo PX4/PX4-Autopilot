@@ -281,7 +281,7 @@ private:
 
 	Accel _accel;
 	Gyro _gyro;
-	Mag _mag;
+	Mag *_mag;
 
 	hrt_abstime _mag_poll_time = 0;
 	hrt_abstime _mag_interval = 12000;
