@@ -186,6 +186,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PX4_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PX4_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PX4_BINARY_DIR})
 
+# For the catkin build process, unset build of dynamically-linked binaries
+if (CATKIN_DEVEL_PREFIX)
+	SET(BUILD_SHARED_LIBS OFF)
+endif()
+
 #=============================================================================
 
 # Setup install paths
