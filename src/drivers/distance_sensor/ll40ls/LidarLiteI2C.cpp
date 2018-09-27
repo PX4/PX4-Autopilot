@@ -208,7 +208,7 @@ int LidarLiteI2C::probe()
 			 */
 			if (read_reg(LL40LS_HW_VERSION, _hw_version) == OK && _hw_version > 0 &&
 			    read_reg(LL40LS_SW_VERSION, _sw_version) == OK && _sw_version > 0) {
-				set_maximum_distance(LL40LS_MAX_DISTANCE_OLD);
+				set_maximum_distance(LL40LS_MAX_DISTANCE_V1);
 				goto ok;
 			}
 
