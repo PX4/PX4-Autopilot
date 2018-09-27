@@ -770,6 +770,13 @@ MulticopterPositionControl::run()
 		}
 	}
 
+	orb_unsubscribe(_vehicle_status_sub);
+	orb_unsubscribe(_vehicle_land_detected_sub);
+	orb_unsubscribe(_control_mode_sub);
+	orb_unsubscribe(_params_sub);
+	orb_unsubscribe(_local_pos_sub);
+	orb_unsubscribe(_home_pos_sub);
+	orb_unsubscribe(_traj_wp_avoidance_sub);
 }
 
 void
