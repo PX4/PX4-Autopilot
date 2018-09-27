@@ -600,47 +600,51 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 	}
 
 	// If GPS aiding is required, declare fault condition if the required GPS quality checks are failing
-	if (enforce_gps_required) {
-		bool ekf_gps_fusion = status.control_mode_flags & (1 << 2);
-		bool ekf_gps_check_fail = status.gps_check_fail_flags > 0;
+	if (enforce_gps_required || report_fail) {
+		const bool ekf_gps_fusion = status.control_mode_flags & (1 << estimator_status_s::CS_GPS);
+		const bool ekf_gps_check_fail = status.gps_check_fail_flags > 0;
 
-		if (!ekf_gps_fusion) {
-			// The EKF is not using GPS
-			if (ekf_gps_check_fail) {
-				// Poor GPS quality is the likely cause
-				if (report_fail) {
-					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS QUALITY POOR");
+		gps_success = ekf_gps_fusion; // default to success if gps data is fused
+
+		const char *fail_str = enforce_gps_required ? "Fail" : "Warn";
+
+		if (ekf_gps_check_fail) {
+			if (report_fail) {
+				// Only report the first failure to avoid spamming
+				if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_GPS_FIX)) {
+					mavlink_log_critical(mavlink_log_pub, "Preflight %s: GPS fix too low", fail_str);
+				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT)) {
+					mavlink_log_critical(mavlink_log_pub, "Preflight %s: not enough GPS Satellites", fail_str);
+				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_GDOP)) {
+					mavlink_log_critical(mavlink_log_pub, "Preflight %s: GPS GDoP too low", fail_str);
+				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR)) {
+					mavlink_log_critical(mavlink_log_pub, "Preflight %s: GPS Horizontal Pos Error too high", fail_str);
+				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR)) {
+					mavlink_log_critical(mavlink_log_pub, "Preflight %s: GPS Vertical Pos Error too high", fail_str);
+				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR)) {
+					mavlink_log_critical(mavlink_log_pub, "Preflight %s: GPS Speed Accuracy too low", fail_str);
+				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_DRIFT)) {
+					mavlink_log_critical(mavlink_log_pub, "Preflight %s: GPS Horizontal Pos Drift too high", fail_str);
+				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_DRIFT)) {
+					mavlink_log_critical(mavlink_log_pub, "Preflight %s: GPS Vertical Pos Drift too high", fail_str);
+				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR)) {
+					mavlink_log_critical(mavlink_log_pub, "Preflight %s: GPS Hor Speed Drift too high", fail_str);
+				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_SPD_ERR)) {
+					mavlink_log_critical(mavlink_log_pub, "Preflight %s: GPS Vert Speed Drift too high", fail_str);
+				} else {
+					if (!ekf_gps_fusion) {
+						// Likely cause unknown
+						mavlink_log_critical(mavlink_log_pub, "Preflight %s: EKF not using GPS", fail_str);
+						gps_present = false;
+					} else {
+						// if we land here there was a new flag added and the code not updated. Show a generic message.
+						mavlink_log_critical(mavlink_log_pub, "Preflight %s: Poor GPS Quality", fail_str);
+					}
 				}
-
-				gps_success = false;
-
-			} else {
-				// Likely cause unknown
-				if (report_fail) {
-					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: EKF NOT USING GPS");
-				}
-
-				gps_success = false;
-				gps_present = false;
 			}
+			gps_success = false;
 
-			success = false;
-			goto out;
-
-		} else {
-			// The EKF is using GPS so check for bad quality on key performance indicators
-			bool gps_quality_fail = ((status.gps_check_fail_flags & ((1 << estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT)
-						  + (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_GDOP)
-						  + (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR)
-						  + (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR)
-						  + (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR))) > 0);
-
-			if (gps_quality_fail) {
-				if (report_fail) {
-					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: GPS QUALITY POOR");
-				}
-
-				gps_success = false;
+			if (enforce_gps_required) {
 				success = false;
 				goto out;
 			}
