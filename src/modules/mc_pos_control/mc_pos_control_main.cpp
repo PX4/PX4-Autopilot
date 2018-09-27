@@ -139,7 +139,8 @@ private:
 		(ParamInt<px4::params::MPC_POS_MODE>) MPC_POS_MODE,
 		(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
 		(ParamFloat<px4::params::MPC_IDLE_TKO>) MPC_IDLE_TKO, /**< time constant for smooth takeoff ramp */
-		(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID /**< enable obstacle avoidance */
+		(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID, /**< enable obstacle avoidance */
+		(ParamFloat<px4::params::MPC_TILTMAX_LND>) MPC_TILTMAX_LND /**< maximum tilt for landing and smooth takeoff */
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
@@ -684,25 +685,18 @@ MulticopterPositionControl::run()
 				// altitude above reference takeoff
 				const float alt_above_tko = -(_states.position(2) - _takeoff_reference_z);
 
-				// disable position-xy / yaw control when close to ground
+				// disable yaw control when close to ground
 				if (alt_above_tko <= ALTITUDE_THRESHOLD) {
-					// don't control position in xy
-					setpoint.x = setpoint.y = NAN;
-					setpoint.vx = setpoint.vy = NAN;
-					setpoint.thrust[0] = setpoint.thrust[1] = NAN;
-					setpoint.yaw = setpoint.yawspeed = NAN;
 
-					if (PX4_ISFINITE(_states.velocity(0)) && PX4_ISFINITE(_states.velocity(1))) {
-						setpoint.vx = setpoint.vy = 0.0f; // try to keep zero velocity
-
-					} else {
-						setpoint.thrust[0] = setpoint.thrust[1] = 0.0f; // just keeping pointing upwards
-					}
+					setpoint.yawspeed = NAN;
 
 					// if there is a valid yaw estimate, just set setpoint to yaw
 					if (PX4_ISFINITE(_states.yaw)) {
 						setpoint.yaw = _states.yaw;
 					}
+
+					// limit tilt during smooth takeoff when still close to ground
+					constraints.tilt = math::radians(MPC_TILTMAX_LND.get());
 				}
 			}
 
