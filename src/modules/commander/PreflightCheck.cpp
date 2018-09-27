@@ -113,7 +113,7 @@ static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &sta
 
 		if (!mag_valid) {
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Mag #%u invalid", instance);
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid Data for Mag #%u", instance);
 			}
 		}
 
@@ -249,7 +249,7 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 
 		if (!accel_valid) {
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Accel #%u invalid", instance);
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid Data for Accel #%u", instance);
 			}
 		}
 
@@ -313,7 +313,7 @@ static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 
 		if (!gyro_valid) {
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Gyro #%u invalid", instance);
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid Data for Gyro #%u", instance);
 			}
 		}
 
@@ -356,7 +356,7 @@ static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 
 		if (!baro_valid) {
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Baro #%u invalid", instance);
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid Data for Baro #%u", instance);
 			}
 		}
 
