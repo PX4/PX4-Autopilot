@@ -10,7 +10,7 @@
 
 sh /etc/init.d/rc.vtol_defaults
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set FW_AIRSPD_MAX   22.0
 	param set FW_AIRSPD_MIN   14.0

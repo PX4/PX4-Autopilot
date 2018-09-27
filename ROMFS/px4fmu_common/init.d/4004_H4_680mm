@@ -15,7 +15,7 @@ sh /etc/init.d/4002_quad_x_mount
 # see http://www.zhiyun-tech.com/uploadfile/datedown/instruction/Tiny2_English_instructionV1.03.pdf
 # under Gimbal Connection Instruction
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set PWM_AUX_DISARMED 1520
 	param set PWM_AUX_MIN 1020

@@ -125,7 +125,7 @@ sh /etc/init.d/rc.autostart
 #
 # If autoconfig parameter was set, reset it and save parameters
 #
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set SYS_AUTOCONFIG 0
 	param save
@@ -135,9 +135,9 @@ unset AUTOCNF
 #
 # Set default output if not set
 #
-if [ $OUTPUT_MODE == none ]
+if [ $OUTPUT_MODE = none ]
 then
-	if [ $USE_IO == yes ]
+	if [ $USE_IO = yes ]
 	then
 		set OUTPUT_MODE io
 	else
@@ -181,17 +181,17 @@ mavlink start -r 60000 -d /dev/ttyACM0 -m config
 #
 # Fixed wing setup
 #
-if [ $VEHICLE_TYPE == fw ]
+if [ $VEHICLE_TYPE = fw ]
 then
 	echo "INFO  [init] Fixedwing"
 
-	if [ $MIXER == none ]
+	if [ $MIXER = none ]
 	then
 		# Set default mixer for fixed wing if not defined
 		set MIXER AERT
 	fi
 
-	if [ $MAV_TYPE == none ]
+	if [ $MAV_TYPE = none ]
 	then
 		# Use MAV_TYPE = 1 (fixed wing) if not defined
 		set MAV_TYPE 1
@@ -209,50 +209,50 @@ fi
 #
 # Multicopters setup
 #
-if [ $VEHICLE_TYPE == mc ]
+if [ $VEHICLE_TYPE = mc ]
 then
 	echo "INFO  [init] Multicopter"
 
-	if [ $MIXER == none ]
+	if [ $MIXER = none ]
 	then
 		echo "INFO  [init] Mixer undefined"
 	fi
 
-	if [ $MAV_TYPE == none ]
+	if [ $MAV_TYPE = none ]
 	then
 		# Use mixer to detect vehicle type
-		if [ $MIXER == quad_x -o $MIXER == quad_+ ]
+		if [ $MIXER = quad_x -o $MIXER = quad_+ ]
 		then
 			set MAV_TYPE 2
 		fi
-		if [ $MIXER == quad_w ]
+		if [ $MIXER = quad_w ]
 		then
 			set MAV_TYPE 2
 		fi
-		if [ $MIXER == quad_h ]
+		if [ $MIXER = quad_h ]
 		then
 			set MAV_TYPE 2
 		fi
-		if [ $MIXER == tri_y_yaw- -o $MIXER == tri_y_yaw+ ]
+		if [ $MIXER = tri_y_yaw- -o $MIXER = tri_y_yaw+ ]
 		then
 			set MAV_TYPE 15
 		fi
-		if [ $MIXER == hexa_x -o $MIXER == hexa_+ ]
+		if [ $MIXER = hexa_x -o $MIXER = hexa_+ ]
 		then
 			set MAV_TYPE 13
 		fi
-		if [ $MIXER == hexa_cox ]
+		if [ $MIXER = hexa_cox ]
 		then
 			set MAV_TYPE 13
 		fi
-		if [ $MIXER == octo_x -o $MIXER == octo_+ ]
+		if [ $MIXER = octo_x -o $MIXER = octo_+ ]
 		then
 			set MAV_TYPE 14
 		fi
 	fi
 
 	# Still no MAV_TYPE found
-	if [ $MAV_TYPE == none ]
+	if [ $MAV_TYPE = none ]
 	then
 		echo "WARN  [init] Unknown MAV_TYPE"
 		param set MAV_TYPE 2
@@ -270,34 +270,34 @@ fi
 #
 # VTOL setup
 #
-if [ $VEHICLE_TYPE == vtol ]
+if [ $VEHICLE_TYPE = vtol ]
 then
 	echo "INFO  [init] VTOL"
 
-	if [ $MIXER == none ]
+	if [ $MIXER = none ]
 	then
 		echo "WARN  [init] VTOL mixer undefined"
 	fi
 
-	if [ $MAV_TYPE == none ]
+	if [ $MAV_TYPE = none ]
 	then
 		# Use mixer to detect vehicle type
-		if [ $MIXER == caipirinha_vtol ]
+		if [ $MIXER = caipirinha_vtol ]
 		then
 			set MAV_TYPE 19
 		fi
-		if [ $MIXER == firefly6 ]
+		if [ $MIXER = firefly6 ]
 		then
 			set MAV_TYPE 21
 		fi
-		if [ $MIXER == quad_x_pusher_vtol ]
+		if [ $MIXER = quad_x_pusher_vtol ]
 		then
 			set MAV_TYPE 22
 		fi
 	fi
 
 	# Still no MAV_TYPE found
-	if [ $MAV_TYPE == none ]
+	if [ $MAV_TYPE = none ]
 	then
 		echo "WARN  [init] Unknown MAV_TYPE"
 		param set MAV_TYPE 19
@@ -315,7 +315,7 @@ fi
 #
 # UGV/Rover setup
 #
-if [ $VEHICLE_TYPE == ugv ]
+if [ $VEHICLE_TYPE = ugv ]
 then
 	# 10 is MAV_TYPE_GROUND_ROVER
 	set MAV_TYPE 10

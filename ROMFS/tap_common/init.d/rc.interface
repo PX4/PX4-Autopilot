@@ -16,7 +16,7 @@ then
 
 	set OUTPUT_DEV /dev/pwm_output0
 
-	if [ $OUTPUT_MODE == tap_esc ]
+	if [ $OUTPUT_MODE = tap_esc ]
 	then
 		set OUTPUT_DEV /dev/tap_esc
 	fi
@@ -40,7 +40,7 @@ else
 	fi
 fi
 
-if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == io ]
+if [ $OUTPUT_MODE = fmu -o $OUTPUT_MODE = io ]
 then
 	if [ $PWM_OUT != none ]
 	then

@@ -10,7 +10,7 @@
 
 sh /etc/init.d/rc.vtol_defaults
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set PWM_MAX 2000
 	param set PWM_RATE 400

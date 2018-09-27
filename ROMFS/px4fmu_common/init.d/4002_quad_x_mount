@@ -22,7 +22,7 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set PWM_AUX_RATE 50
 fi

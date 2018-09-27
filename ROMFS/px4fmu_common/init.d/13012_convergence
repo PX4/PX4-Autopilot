@@ -19,7 +19,7 @@
 
 sh /etc/init.d/rc.vtol_defaults
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set CBRK_AIRSPD_CHK 162128
 

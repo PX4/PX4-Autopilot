@@ -19,7 +19,7 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set MC_PITCH_P 4.0
 	param set MC_PITCHRATE_P 0.24

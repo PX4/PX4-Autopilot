@@ -20,7 +20,7 @@
 
 sh /etc/init.d/rc.vtol_defaults
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set MC_ROLL_P 7.0
 	param set MC_ROLLRATE_P 0.19

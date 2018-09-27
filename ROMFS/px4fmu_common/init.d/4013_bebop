@@ -20,7 +20,7 @@ sh /etc/init.d/rc.mc_defaults
 #
 # Load default params for this platform
 #
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	# Set all params here, then disable autoconfig
 	param set MC_ROLL_P 6.5

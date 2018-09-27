@@ -6,7 +6,7 @@ set SERIAL_DEV none
 {% for serial_device in serial_devices -%}
 if param compare "$PRT" {{ serial_device.index }}
 then
-	if [ "x$PRT_{{ serial_device.tag }}_" == "x" ]
+	if [ "x$PRT_{{ serial_device.tag }}_" = "x" ]
 	then
 		set SERIAL_DEV {{ serial_device.device }}
 		set BAUD_PARAM SER_{{ serial_device.tag }}_BAUD
