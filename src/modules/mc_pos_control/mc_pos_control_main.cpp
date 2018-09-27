@@ -783,6 +783,7 @@ void
 MulticopterPositionControl::start_flight_task()
 {
 	bool task_failure = false;
+	int prev_failure_count = _task_failure_count;
 
 	// offboard
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD
@@ -795,7 +796,9 @@ MulticopterPositionControl::start_flight_task()
 		int error = _flight_tasks.switchTask(FlightTaskIndex::Offboard);
 
 		if (error != 0) {
-			PX4_WARN("Offboard activation failded with error: %s", _flight_tasks.errorToString(error));
+			if (prev_failure_count == 0) {
+				PX4_WARN("Offboard activation failed with error: %s", _flight_tasks.errorToString(error));
+			}
 			task_failure = true;
 			_task_failure_count++;
 
@@ -810,7 +813,9 @@ MulticopterPositionControl::start_flight_task()
 		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe);
 
 		if (error != 0) {
-			PX4_WARN("Follow-Me activation failed with error: %s", _flight_tasks.errorToString(error));
+			if (prev_failure_count == 0) {
+				PX4_WARN("Follow-Me activation failed with error: %s", _flight_tasks.errorToString(error));
+			}
 			task_failure = true;
 			_task_failure_count++;
 
@@ -824,7 +829,9 @@ MulticopterPositionControl::start_flight_task()
 		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
 
 		if (error != 0) {
-			PX4_WARN("Auto activation failed with error: %s", _flight_tasks.errorToString(error));
+			if (prev_failure_count == 0) {
+				PX4_WARN("Auto activation failed with error: %s", _flight_tasks.errorToString(error));
+			}
 			task_failure = true;
 			_task_failure_count++;
 
@@ -858,7 +865,9 @@ MulticopterPositionControl::start_flight_task()
 		}
 
 		if (error != 0) {
-			PX4_WARN("Position-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
+			if (prev_failure_count == 0) {
+				PX4_WARN("Position-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
+			}
 			task_failure = true;
 			_task_failure_count++;
 
@@ -873,7 +882,9 @@ MulticopterPositionControl::start_flight_task()
 		int error = _flight_tasks.switchTask(FlightTaskIndex::ManualAltitude);
 
 		if (error != 0) {
-			PX4_WARN("Altitude-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
+			if (prev_failure_count == 0) {
+				PX4_WARN("Altitude-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
+			}
 			task_failure = true;
 			_task_failure_count++;
 
@@ -889,7 +900,9 @@ MulticopterPositionControl::start_flight_task()
 		int error = _flight_tasks.switchTask(FlightTaskIndex::ManualStabilized);
 
 		if (error != 0) {
-			PX4_WARN("Stabilized-Ctrl failed with error: %s", _flight_tasks.errorToString(error));
+			if (prev_failure_count == 0) {
+				PX4_WARN("Stabilized-Ctrl failed with error: %s", _flight_tasks.errorToString(error));
+			}
 			task_failure = true;
 			_task_failure_count++;
 
@@ -1136,6 +1149,7 @@ void MulticopterPositionControl::check_failure(bool task_failure, uint8_t nav_st
 		// tell commander to switch mode
 		PX4_WARN("Previous flight task failed, switching to mode %d", nav_state);
 		send_vehicle_cmd_do(nav_state);
+		_task_failure_count = 0; // avoid immediate resending of a vehicle command in the next iteration
 	}
 }
 
