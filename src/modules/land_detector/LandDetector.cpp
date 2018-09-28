@@ -105,6 +105,7 @@ void LandDetector::_cycle()
 
 		// Initialize uORB topics.
 		_armingSub = orb_subscribe(ORB_ID(actuator_armed));
+		_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 		_initialize_topics();
 
 		_check_params(true);
