@@ -60,6 +60,18 @@ LandDetector::LandDetector() :
 LandDetector::~LandDetector()
 {
 	perf_free(_cycle_perf);
+
+	if (_armingSub >= 0) {
+		orb_unsubscribe(_armingSub);
+	}
+
+	if (_parameterSub >= 0) {
+		orb_unsubscribe(_parameterSub);
+	}
+
+	if (_landDetectedPub) {
+		orb_unadvertise(_landDetectedPub);
+	}
 }
 
 int LandDetector::start()
