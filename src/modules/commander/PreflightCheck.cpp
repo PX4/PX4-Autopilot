@@ -113,7 +113,7 @@ static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &sta
 
 		if (!mag_valid) {
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid Data for Mag #%u", instance);
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from Compass #%u", instance);
 			}
 		}
 
@@ -123,13 +123,13 @@ static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &sta
 
 		if (!calibration_valid) {
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Mag #%u uncalibrated", instance);
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compass #%u uncalibrated", instance);
 			}
 		}
 
 	} else {
 		if (!optional && report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no Mag Sensor #%u", instance);
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compass Sensor #%u missing", instance);
 		}
 	}
 
@@ -223,7 +223,7 @@ static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s 
 
 	if (sensors.mag_inconsistency_ga > test_limit) {
 		if (report_status) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Mag Sensors inconsistent");
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compass Sensors inconsistent");
 			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_MAG, false, status);
 			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_MAG2, false, status);
 		}
@@ -249,7 +249,7 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 
 		if (!accel_valid) {
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid Data for Accel #%u", instance);
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from Accel #%u", instance);
 			}
 		}
 
@@ -282,7 +282,7 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 
 	} else {
 		if (!optional && report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: No Accel Sensor #%u", instance);
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Accel Sensor #%u missing", instance);
 		}
 	}
 
@@ -313,7 +313,7 @@ static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 
 		if (!gyro_valid) {
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid Data for Gyro #%u", instance);
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from Gyro #%u", instance);
 			}
 		}
 
@@ -329,7 +329,7 @@ static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 
 	} else {
 		if (!optional && report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no Gyro Sensor #%u", instance);
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Gyro Sensor #%u missing", instance);
 		}
 	}
 
@@ -356,14 +356,14 @@ static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 
 		if (!baro_valid) {
 			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid Data for Baro #%u", instance);
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from Baro #%u", instance);
 			}
 		}
 
 
 	} else {
 		if (!optional && report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no Baro Sensor #%u", instance);
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Baro Sensor #%u missing", instance);
 		}
 	}
 
@@ -518,7 +518,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 	// Check if preflight check performed by estimator has failed
 	if (status.pre_flt_fail) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: EKF internal checks");
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Estimator internal checks");
 		}
 
 		success = false;
@@ -530,7 +530,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 
 	if (status.hgt_test_ratio > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: EKF Height Error");
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Height estimate Error");
 		}
 
 		success = false;
@@ -542,7 +542,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 
 	if (status.vel_test_ratio > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: EKF Velocity Error");
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Velocity estimate Error");
 		}
 
 		success = false;
@@ -554,7 +554,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 
 	if (status.pos_test_ratio > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: EKF Horizontal Position Error");
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Horizontal estimate Pos Error");
 		}
 
 		success = false;
@@ -566,7 +566,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 
 	if (status.mag_test_ratio > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: EKF Yaw Error");
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Yaw estimate Error");
 		}
 
 		success = false;
@@ -579,7 +579,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 	if (fabsf(status.states[13]) > test_limit || fabsf(status.states[14]) > test_limit
 	    || fabsf(status.states[15]) > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: EKF High IMU Accel Bias");
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: High Accelerometer Bias");
 		}
 
 		success = false;
@@ -592,7 +592,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 	if (fabsf(status.states[10]) > test_limit || fabsf(status.states[11]) > test_limit
 	    || fabsf(status.states[12]) > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: EKF High IMU Gyro Bias");
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: High Gyro Bias");
 		}
 
 		success = false;
@@ -606,39 +606,45 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 
 		gps_success = ekf_gps_fusion; // default to success if gps data is fused
 
-		const char *fail_str = enforce_gps_required ? "Fail" : "Warn";
-
 		if (ekf_gps_check_fail) {
 			if (report_fail) {
 				// Only report the first failure to avoid spamming
+				const char *message = nullptr;
 				if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_GPS_FIX)) {
-					mavlink_log_critical(mavlink_log_pub, "Preflight %s: GPS fix too low", fail_str);
+					message = "Preflight%s: GPS fix too low";
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT)) {
-					mavlink_log_critical(mavlink_log_pub, "Preflight %s: not enough GPS Satellites", fail_str);
+					message = "Preflight%s: not enough GPS Satellites";
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_GDOP)) {
-					mavlink_log_critical(mavlink_log_pub, "Preflight %s: GPS GDoP too low", fail_str);
+					message = "Preflight%s: GPS GDoP too low";
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR)) {
-					mavlink_log_critical(mavlink_log_pub, "Preflight %s: GPS Horizontal Pos Error too high", fail_str);
+					message = "Preflight%s: GPS Horizontal Pos Error too high";
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR)) {
-					mavlink_log_critical(mavlink_log_pub, "Preflight %s: GPS Vertical Pos Error too high", fail_str);
+					message = "Preflight%s: GPS Vertical Pos Error too high";
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR)) {
-					mavlink_log_critical(mavlink_log_pub, "Preflight %s: GPS Speed Accuracy too low", fail_str);
+					message = "Preflight%s: GPS Speed Accuracy too low";
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_DRIFT)) {
-					mavlink_log_critical(mavlink_log_pub, "Preflight %s: GPS Horizontal Pos Drift too high", fail_str);
+					message = "Preflight%s: GPS Horizontal Pos Drift too high";
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_DRIFT)) {
-					mavlink_log_critical(mavlink_log_pub, "Preflight %s: GPS Vertical Pos Drift too high", fail_str);
+					message = "Preflight%s: GPS Vertical Pos Drift too high";
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR)) {
-					mavlink_log_critical(mavlink_log_pub, "Preflight %s: GPS Hor Speed Drift too high", fail_str);
+					message = "Preflight%s: GPS Hor Speed Drift too high";
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_SPD_ERR)) {
-					mavlink_log_critical(mavlink_log_pub, "Preflight %s: GPS Vert Speed Drift too high", fail_str);
+					message = "Preflight%s: GPS Vert Speed Drift too high";
 				} else {
 					if (!ekf_gps_fusion) {
 						// Likely cause unknown
-						mavlink_log_critical(mavlink_log_pub, "Preflight %s: EKF not using GPS", fail_str);
+						message = "Preflight%s: Estimator not using GPS";
 						gps_present = false;
 					} else {
 						// if we land here there was a new flag added and the code not updated. Show a generic message.
-						mavlink_log_critical(mavlink_log_pub, "Preflight %s: Poor GPS Quality", fail_str);
+						message = "Preflight%s: Poor GPS Quality";
+					}
+				}
+				if (message) {
+					if (enforce_gps_required) {
+						mavlink_log_critical(mavlink_log_pub, message, " Fail");
+					} else {
+						mavlink_log_warning(mavlink_log_pub, message, "");
 					}
 				}
 			}
