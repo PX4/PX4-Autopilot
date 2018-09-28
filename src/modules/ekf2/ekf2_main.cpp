@@ -241,7 +241,7 @@ private:
 	uint8_t _gps_newest_index = 0;			///< index of the physical receiver with the newest data
 	uint8_t _gps_slowest_index = 0;			///< index of the physical receiver with the slowest update rate
 	float _gps_dt[GPS_MAX_RECEIVERS] = {};		///< average time step in seconds.
-	bool  _new_output_data = false;			///< true if there is new output data for the EKF
+	bool  _gps_new_output_data = false;		///< true if there is new output data for the EKF
 
 	int _airdata_sub{-1};
 	int _airspeed_sub{-1};
@@ -1035,14 +1035,14 @@ void Ekf2::run()
 
 				// Only use selected receiver data if it has been updated
 				if ((gps1_updated && _gps_select_index == 0) || (gps2_updated && _gps_select_index == 1)) {
-					_new_output_data = true;
+					_gps_new_output_data = true;
 
 				} else {
-					_new_output_data = false;
+					_gps_new_output_data = false;
 				}
 			}
 
-			if (_new_output_data) {
+			if (_gps_new_output_data) {
 				// correct the _gps_state data for steady state offsets and write to _gps_output
 				apply_gps_offsets();
 
@@ -1076,7 +1076,7 @@ void Ekf2::run()
 				orb_publish_auto(ORB_ID(ekf_gps_position), &_blended_gps_pub, &gps, &_gps_orb_instance, ORB_PRIO_LOW);
 
 				// clear flag to avoid re-use of the same data
-				_new_output_data = false;
+				_gps_new_output_data = false;
 			}
 		}
 
@@ -1858,7 +1858,7 @@ bool Ekf2::blend_gps_data()
 		if ((max_us - min_us) < (uint64_t)(5e5f * dt_min)) {
 			// data arrival within a short time window enables the two measurements to be blended
 			_gps_time_ref_index = _gps_newest_index;
-			_new_output_data = true;
+			_gps_new_output_data = true;
 		}
 
 	} else {
@@ -1867,11 +1867,11 @@ bool Ekf2::blend_gps_data()
 
 		if (_gps_state[_gps_time_ref_index].time_usec > _time_prev_us[_gps_time_ref_index]) {
 			// blend data at the rate of the slower receiver
-			_new_output_data = true;
+			_gps_new_output_data = true;
 		}
 	}
 
-	if (_new_output_data) {
+	if (_gps_new_output_data) {
 		_gps_blended_state.time_usec = _gps_state[_gps_time_ref_index].time_usec;
 
 		// calculate the sum squared speed accuracy across all GPS sensors
