@@ -518,7 +518,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 	// Check if preflight check performed by estimator has failed
 	if (status.pre_flt_fail) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Estimator internal checks");
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Position unknown");
 		}
 
 		success = false;
