@@ -49,15 +49,17 @@
 #include <float.h>
 #include <math.h>
 
+#include <bitset.hpp>
 #include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_sem.h>
 #include <px4_shutdown.h>
-
-#include <perf/perf_counter.h>
 #include <systemlib/uthash/utarray.h>
+
+using namespace time_literals;
 
 //#define PARAM_NO_ORB ///< if defined, avoid uorb dependency. This disables publication of parameter_update on param change
 //#define PARAM_NO_AUTOSAVE ///< if defined, do not autosave (avoids LP work queue dependency)
@@ -99,7 +101,7 @@ static bool autosave_scheduled = false;
 static bool autosave_disabled = false;
 #endif /* PARAM_NO_AUTOSAVE */
 
-static constexpr int param_info_count = sizeof(px4::parameters) / sizeof(param_info_s);
+static constexpr uint16_t param_info_count = sizeof(px4::parameters) / sizeof(param_info_s);
 
 // Storage for modified parameters.
 struct param_wbuf_s {
@@ -108,10 +110,7 @@ struct param_wbuf_s {
 	bool			unsaved;
 };
 
-
-uint8_t  *param_changed_storage = nullptr;
-int size_param_changed_storage_bytes = 0;
-const int bits_per_allocation_unit  = (sizeof(*param_changed_storage) * 8);
+static bitset<param_info_count> params_active;
 
 //#define ENABLE_SHMEM_DEBUG
 
@@ -137,26 +136,6 @@ static int param_import_done =
 	0; /*at startup, params are loaded from file, if present. we dont want to send notifications that time since muorb is not ready*/
 
 static int param_load_default_no_notify();
-
-static unsigned
-get_param_info_count()
-{
-	/* Singleton creation of and array of bits to track changed values */
-	if (!param_changed_storage) {
-		/* Note that we have a (highly unlikely) race condition here: in the worst case the allocation is done twice */
-		size_param_changed_storage_bytes  = (param_info_count / bits_per_allocation_unit) + 1;
-		param_changed_storage = (uint8_t *)calloc(size_param_changed_storage_bytes, 1);
-
-		/* If the allocation fails we need to indicate failure in the
-		 * API by returning PARAM_INVALID
-		 */
-		if (param_changed_storage == nullptr) {
-			return 0;
-		}
-	}
-
-	return param_info_count;
-}
 
 /** flexible array holding modified parameter values */
 UT_array *param_values{nullptr};
@@ -286,12 +265,11 @@ param_init()
 bool
 handle_in_range(param_t param)
 {
-	unsigned count = get_param_info_count();
-	return (count && param < count);
+	return (param < param_info_count);
 }
 
 /**
- * Compare two modifid parameter structures to determine ordering.
+ * Compare two modified parameter structures to determine ordering.
  *
  * This function is suitable for passing to qsort or bsearch.
  */
@@ -322,7 +300,7 @@ param_compare_values(const void *a, const void *b)
 static param_wbuf_s *
 param_find_changed(param_t param)
 {
-	param_wbuf_s	*s = nullptr;
+	param_wbuf_s *s = nullptr;
 
 	param_assert_locked();
 
@@ -330,6 +308,10 @@ param_find_changed(param_t param)
 		param_wbuf_s key{};
 		key.param = param;
 		s = (param_wbuf_s *)utarray_find(param_values, &key, param_compare_values);
+
+		if (s != nullptr) {
+			params_active.set(param, true);
+		}
 	}
 
 	return s;
@@ -403,7 +385,7 @@ param_find_no_notification(const char *name)
 unsigned
 param_count()
 {
-	return get_param_info_count();
+	return param_info_count;
 }
 
 unsigned
@@ -411,32 +393,16 @@ param_count_used()
 {
 	//TODO FIXME: all params used right now
 #if 0
-	unsigned count = 0;
-
-	// ensure the allocation has been done
-	if (get_param_info_count()) {
-
-		for (int i = 0; i < size_param_changed_storage_bytes; i++) {
-			for (int j = 0; j < bits_per_allocation_unit; j++) {
-				if (param_changed_storage[i] & (1 << j)) {
-					count++;
-				}
-			}
-		}
-	}
-
-	return count;
+	return params_active.count();
 #else
-	return get_param_info_count();
+	return param_info_count;
 #endif
 }
 
 param_t
 param_for_index(unsigned index)
 {
-	unsigned count = get_param_info_count();
-
-	if (count && index < count) {
+	if (index < param_info_count) {
 		return (param_t)index;
 	}
 
@@ -447,25 +413,22 @@ param_t
 param_for_used_index(unsigned index)
 {
 #if 0
-	int count = get_param_info_count();
 
-	if (count && (int)index < count) {
+	if (index < param_info_count) {
 		/* walk all params and count used params */
 		unsigned used_count = 0;
 
-		for (int i = 0; i < size_param_changed_storage_bytes; i++) {
-			for (int j = 0; j < bits_per_allocation_unit; j++) {
-				if (param_changed_storage[i] & (1 << j)) {
+		for (int i = 0; i < params_active.size(); i++) {
 
-					/* we found the right used count,
-					 * return the param value
-					 */
-					if (index == used_count) {
-						return (param_t)(i * bits_per_allocation_unit + j);
-					}
-
-					used_count++;
+			if (params_active[index]) {
+				/* we found the right used count,
+				 * return the param value
+				 */
+				if (index == used_count) {
+					return (param_t)i;
 				}
+
+				used_count++;
 			}
 		}
 	}
@@ -496,19 +459,22 @@ param_get_used_index(param_t param)
 		return -1;
 	}
 
+	int index = param_get_index(param);
+
 	/* walk all params and count, now knowing that it has a valid index */
 	int used_count = 0;
 
-	for (int i = 0; i < size_param_changed_storage_bytes; i++) {
-		for (int j = 0; j < bits_per_allocation_unit; j++) {
-			if (param_changed_storage[i] & (1 << j)) {
+	for (int i = 0; i < params_active.size(); i++) {
 
-				if ((int)param == i * bits_per_allocation_unit + j) {
-					return used_count;
-				}
-
-				used_count++;
+		if (params_active[index]) {
+			/* we found the right used count,
+			 * return the param value
+			 */
+			if (index == used_count) {
+				return (param_t)i;
 			}
+
+			used_count++;
 		}
 	}
 
@@ -516,7 +482,6 @@ param_get_used_index(param_t param)
 #else
 	return param;
 #endif
-
 }
 
 const char *
@@ -555,7 +520,11 @@ param_value_unsaved(param_t param)
 param_type_t
 param_type(param_t param)
 {
-	return handle_in_range(param) ? px4::parameters[param].type : PARAM_TYPE_UNKNOWN;
+	if (handle_in_range(param)) {
+		return px4::parameters[param].type;
+	}
+
+	return PARAM_TYPE_UNKNOWN;
 }
 
 size_t
@@ -597,25 +566,33 @@ param_get_value_ptr(param_t param)
 
 	if (handle_in_range(param)) {
 
-		const union param_value_u *v;
+		int index = param_get_index(param);
 
-		/* work out whether we're fetching the default or a written value */
-		struct param_wbuf_s *s = param_find_changed(param);
+		// only return active parameters
+		if (params_active[index]) {
+			const union param_value_u *v;
 
-		if (s != nullptr) {
-			v = &s->val;
+			/* work out whether we're fetching the default or a written value */
+			struct param_wbuf_s *s = param_find_changed(param);
+
+			if (s != nullptr) {
+				v = &s->val;
+
+			} else {
+				v = &px4::parameters[param].val;
+			}
+
+			if (param_type(param) >= PARAM_TYPE_STRUCT &&
+			    param_type(param) <= PARAM_TYPE_STRUCT_MAX) {
+
+				result = v->p;
+
+			} else {
+				result = v;
+			}
 
 		} else {
-			v = &px4::parameters[param].val;
-		}
-
-		if (param_type(param) >= PARAM_TYPE_STRUCT &&
-		    param_type(param) <= PARAM_TYPE_STRUCT_MAX) {
-
-			result = v->p;
-
-		} else {
-			result = v;
+			result = &px4::parameters[param].val;
 		}
 	}
 
@@ -719,9 +696,9 @@ param_autosave()
 	// - tasks often call param_set() for multiple params, so this avoids unnecessary save calls
 	// - the logger stores changed params. He gets notified on a param change via uORB and then
 	//   looks at all unsaved params.
-	hrt_abstime delay = 300 * 1000;
+	hrt_abstime delay = 300_ms;
 
-	const hrt_abstime rate_limit = 2000 * 1000; // rate-limit saving to 2 seconds
+	static constexpr hrt_abstime rate_limit = 2_s; // rate-limit saving to 2 seconds
 	hrt_abstime last_save_elapsed = hrt_elapsed_time(&last_autosave_timestamp);
 
 	if (last_save_elapsed < rate_limit && rate_limit > last_save_elapsed + delay) {
@@ -760,11 +737,11 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 
 	if (param_values == nullptr) {
 		utarray_new(param_values, &param_icd);
-	}
 
-	if (param_values == nullptr) {
-		PX4_ERR("failed to allocate modified values array");
-		goto out;
+		if (param_values == nullptr) {
+			PX4_ERR("failed to allocate modified values array");
+			goto out;
+		}
 	}
 
 	if (handle_in_range(param)) {
@@ -901,14 +878,11 @@ param_used(param_t param)
 	// TODO FIXME: for now all params are used
 	return true;
 
-	int param_index = param_get_index(param);
-
-	if (param_index < 0) {
-		return false;
+	if (handle_in_range(param)) {
+		return params_active[param];
 	}
 
-	return param_changed_storage[param_index / bits_per_allocation_unit] &
-	       (1 << param_index % bits_per_allocation_unit);
+	return false;
 }
 
 void param_set_used(param_t param)
@@ -925,8 +899,7 @@ void param_set_used_internal(param_t param)
 	}
 
 	// FIXME: this needs locking too
-	param_changed_storage[param_index / bits_per_allocation_unit] |=
-		(1 << param_index % bits_per_allocation_unit);
+	params_active.set(param, true);
 }
 
 int
