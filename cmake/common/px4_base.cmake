@@ -389,6 +389,7 @@ function(px4_add_common_flags)
 		-Wno-implicit-fallthrough # set appropriate level and update
 		-Wno-missing-field-initializers
 		-Wno-missing-include-dirs # TODO: fix and enable
+		-Wno-narrowing # TODO: fix SLNK_RADIO_ADDR2 narrowing
 		-Wno-unused-parameter
 		)
 
