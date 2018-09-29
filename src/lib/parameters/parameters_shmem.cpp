@@ -42,7 +42,7 @@
  */
 
 #include "param.h"
-#include <parameters/px4_parameters.h>
+#include <parameters/px4_parameters.hpp>
 #include "tinybson/tinybson.h"
 
 #include <crc32.h>
@@ -103,7 +103,7 @@ static bool autosave_disabled = false;
  * Array of static parameter info.
  */
 static const param_info_s *param_info_base = (const param_info_s *) &px4_parameters;
-#define	param_info_count px4_parameters.param_count
+static constexpr int param_info_count = sizeof(px4_parameters) / sizeof(param_info_s);
 
 /**
  * Storage for modified parameters.
