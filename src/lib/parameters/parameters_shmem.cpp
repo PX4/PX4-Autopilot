@@ -99,15 +99,9 @@ static bool autosave_scheduled = false;
 static bool autosave_disabled = false;
 #endif /* PARAM_NO_AUTOSAVE */
 
-/**
- * Array of static parameter info.
- */
-static const param_info_s *param_info_base = (const param_info_s *) &px4_parameters;
-static constexpr int param_info_count = sizeof(px4_parameters) / sizeof(param_info_s);
+static constexpr int param_info_count = sizeof(px4::parameters) / sizeof(param_info_s);
 
-/**
- * Storage for modified parameters.
- */
+// Storage for modified parameters.
 struct param_wbuf_s {
 	union param_value_u	val;
 	param_t			param;
@@ -364,7 +358,7 @@ param_find_internal(const char *name, bool notification)
 
 	/* perform a linear search of the known parameters */
 	for (param = 0; handle_in_range(param); param++) {
-		if (!strcmp(param_info_base[param].name, name)) {
+		if (!strcmp(px4::parameters[param].name, name)) {
 			if (notification) {
 				param_set_used_internal(param);
 			}
@@ -514,13 +508,13 @@ param_get_used_index(param_t param)
 const char *
 param_name(param_t param)
 {
-	return handle_in_range(param) ? param_info_base[param].name : nullptr;
+	return handle_in_range(param) ? px4::parameters[param].name : nullptr;
 }
 
 bool
 param_is_volatile(param_t param)
 {
-	return handle_in_range(param) ? param_info_base[param].volatile_param : false;
+	return handle_in_range(param) ? px4::parameters[param].volatile_param : false;
 }
 
 bool
@@ -547,7 +541,7 @@ param_value_unsaved(param_t param)
 param_type_t
 param_type(param_t param)
 {
-	return handle_in_range(param) ? param_info_base[param].type : PARAM_TYPE_UNKNOWN;
+	return handle_in_range(param) ? px4::parameters[param].type : PARAM_TYPE_UNKNOWN;
 }
 
 size_t
@@ -598,7 +592,7 @@ param_get_value_ptr(param_t param)
 			v = &s->val;
 
 		} else {
-			v = &param_info_base[param].val;
+			v = &px4::parameters[param].val;
 		}
 
 		if (param_type(param) >= PARAM_TYPE_STRUCT &&
@@ -1527,7 +1521,7 @@ void init_params()
 	param_import_done = 1;
 
 #ifdef __PX4_QURT
-	copy_params_to_shmem(param_info_base);
+	copy_params_to_shmem(px4::parameters);
 
 #ifdef ENABLE_SHMEM_DEBUG
 	PX4_INFO("Offsets:");

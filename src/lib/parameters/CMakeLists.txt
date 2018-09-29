@@ -109,15 +109,14 @@ add_custom_command(OUTPUT ${parameters_xml}
 )
 add_custom_target(parameters_xml DEPENDS ${parameters_xml})
 
-# generate px4_parameters.hpp and px4_parameters_public.h
-add_custom_command(OUTPUT px4_parameters.hpp px4_parameters_public.h
+# generate px4_parameters.hpp
+add_custom_command(OUTPUT px4_parameters.hpp
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_generate_params.py
 		--xml ${parameters_xml} --dest ${CMAKE_CURRENT_BINARY_DIR}
 	DEPENDS
 		${PX4_BINARY_DIR}/parameters.xml
 		px_generate_params.py
 		templates/px4_parameters.hpp.jinja
-		templates/px4_parameters_public.h.jinja
 	)
 
 set(SRCS)
@@ -138,7 +137,6 @@ if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 	add_library(parameters
 		${SRCS}
 		px4_parameters.hpp
-		px4_parameters_public.h
 		)
 
 	if ("${CONFIG_SHMEM}" STREQUAL "1")

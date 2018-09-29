@@ -97,15 +97,9 @@ static volatile bool autosave_scheduled = false;
 static bool autosave_disabled = false;
 #endif /* PARAM_NO_AUTOSAVE */
 
-/**
- * Array of static parameter info.
- */
-static const param_info_s *param_info_base = (const param_info_s *) &px4_parameters;
-static constexpr int param_info_count = sizeof(px4_parameters) / sizeof(param_info_s);
+static constexpr int param_info_count = sizeof(px4::parameters) / sizeof(param_info_s);
 
-/**
- * Storage for modified parameters.
- */
+// Storage for modified parameters.
 struct param_wbuf_s {
 	union param_value_u	val;
 	param_t			param;
@@ -336,7 +330,7 @@ param_find_internal(const char *name, bool notification)
 
 	while (front <= last) {
 		middle = front + (last - front) / 2;
-		int ret = strcmp(name, param_info_base[middle].name);
+		int ret = strcmp(name, px4::parameters[middle].name);
 
 		if (ret == 0) {
 			if (notification) {
@@ -483,13 +477,13 @@ param_get_used_index(param_t param)
 const char *
 param_name(param_t param)
 {
-	return handle_in_range(param) ? param_info_base[param].name : nullptr;
+	return handle_in_range(param) ? px4::parameters[param].name : nullptr;
 }
 
 bool
 param_is_volatile(param_t param)
 {
-	return handle_in_range(param) ? param_info_base[param].volatile_param : false;
+	return handle_in_range(param) ? px4::parameters[param].volatile_param : false;
 }
 
 bool
@@ -516,7 +510,7 @@ param_value_unsaved(param_t param)
 param_type_t
 param_type(param_t param)
 {
-	return handle_in_range(param) ? param_info_base[param].type : PARAM_TYPE_UNKNOWN;
+	return handle_in_range(param) ? px4::parameters[param].type : PARAM_TYPE_UNKNOWN;
 }
 
 size_t
@@ -567,7 +561,7 @@ param_get_value_ptr(param_t param)
 			v = &s->val;
 
 		} else {
-			v = &param_info_base[param].val;
+			v = &px4::parameters[param].val;
 		}
 
 		if (param_type(param) >= PARAM_TYPE_STRUCT &&
