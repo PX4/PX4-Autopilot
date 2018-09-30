@@ -44,7 +44,7 @@ import argparse
 import shutil
 import px_generate_uorb_topic_files
 import px_generate_uorb_topic_helper
-import uorb_rtps_classifier
+from uorb_rtps_classifier import Classifier
 import subprocess
 import glob
 import errno
@@ -69,7 +69,7 @@ def check_rtps_id_uniqueness(classifier):
     used_ids.sort()
 
     repeated_keys = dict()
-    for key, value in msg_ids.items():
+    for key, value in msgs_to_use.items():
         if used_ids.count(value) > 1:
             repeated_keys.update({key: value})
 
@@ -196,20 +196,21 @@ if agent and os.path.isdir(os.path.join(agent_out_dir, "idl")):
 uorb_templates_dir = os.path.join(msg_folder, args.uorb_templates)
 urtps_templates_dir = os.path.join(msg_folder, args.urtps_templates)
 # parse yaml file into a map of ids
-classifier = Classifier(px_generate_uorb_topic_helper.parse_yaml_msg_id_file(os.path.join(msg_folder, args.yaml_file), msg_folder)
+classifier = Classifier(px_generate_uorb_topic_helper.parse_yaml_msg_id_file(
+    os.path.join(msg_folder, args.yaml_file)), msg_folder)
 # check if there are no ID's repeated
 check_rtps_id_uniqueness(classifier)
 
 
-uRTPS_CLIENT_TEMPL_FILE='microRTPS_client.cpp.template'
-uRTPS_AGENT_TOPICS_H_TEMPL_FILE='RtpsTopics.h.template'
-uRTPS_AGENT_TOPICS_SRC_TEMPL_FILE='RtpsTopics.cpp.template'
-uRTPS_AGENT_TEMPL_FILE='microRTPS_agent.cpp.template'
-uRTPS_AGENT_CMAKELISTS_TEMPL_FILE='microRTPS_agent_CMakeLists.txt.template'
-uRTPS_PUBLISHER_SRC_TEMPL_FILE='Publisher.cpp.template'
-uRTPS_PUBLISHER_H_TEMPL_FILE='Publisher.h.template'
-uRTPS_SUBSCRIBER_SRC_TEMPL_FILE='Subscriber.cpp.template'
-uRTPS_SUBSCRIBER_H_TEMPL_FILE='Subscriber.h.template'
+uRTPS_CLIENT_TEMPL_FILE = 'microRTPS_client.cpp.template'
+uRTPS_AGENT_TOPICS_H_TEMPL_FILE = 'RtpsTopics.h.template'
+uRTPS_AGENT_TOPICS_SRC_TEMPL_FILE = 'RtpsTopics.cpp.template'
+uRTPS_AGENT_TEMPL_FILE = 'microRTPS_agent.cpp.template'
+uRTPS_AGENT_CMAKELISTS_TEMPL_FILE = 'microRTPS_agent_CMakeLists.txt.template'
+uRTPS_PUBLISHER_SRC_TEMPL_FILE = 'Publisher.cpp.template'
+uRTPS_PUBLISHER_H_TEMPL_FILE = 'Publisher.h.template'
+uRTPS_SUBSCRIBER_SRC_TEMPL_FILE = 'Subscriber.cpp.template'
+uRTPS_SUBSCRIBER_H_TEMPL_FILE = 'Subscriber.h.template'
 
 
 def generate_agent(out_dir):
@@ -254,12 +255,12 @@ def generate_agent(out_dir):
 
     # Final steps to install agent
     mkdir_p(os.path.join(out_dir, "fastrtpsgen"))
-    prev_cwd_path=os.getcwd()
+    prev_cwd_path = os.getcwd()
     os.chdir(os.path.join(out_dir, "fastrtpsgen"))
     if not glob.glob(os.path.join(idl_dir, "*.idl")):
         raise Exception("No IDL files found in %s" % idl_dir)
     for idl_file in glob.glob(os.path.join(idl_dir, "*.idl")):
-        ret=subprocess.call(fastrtpsgen_path + " -d " + out_dir +
+        ret = subprocess.call(fastrtpsgen_path + " -d " + out_dir +
                               "/fastrtpsgen -example x64Linux2.6gcc " + fastrtpsgen_include + idl_file, shell=True)
         if ret:
             raise Exception(
@@ -308,13 +309,13 @@ def generate_client(out_dir):
 
     # Rename work in the default path
     if default_client_out != out_dir:
-        def_file=os.path.join(default_client_out, "microRTPS_client.cpp")
+        def_file = os.path.join(default_client_out, "microRTPS_client.cpp")
         if os.path.isfile(def_file):
             os.rename(def_file, def_file.replace(".cpp", ".cpp_"))
-        def_file=os.path.join(default_client_out, "microRTPS_transport.cpp")
+        def_file = os.path.join(default_client_out, "microRTPS_transport.cpp")
         if os.path.isfile(def_file):
             os.rename(def_file, def_file.replace(".cpp", ".cpp_"))
-        def_file=os.path.join(default_client_out, "microRTPS_transport.h")
+        def_file = os.path.join(default_client_out, "microRTPS_transport.h")
         if os.path.isfile(def_file):
             os.rename(def_file, def_file.replace(".h", ".h_"))
 

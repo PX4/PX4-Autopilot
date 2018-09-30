@@ -71,15 +71,9 @@ if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_t
 		${msg_out_path}/micrortps_client/microRTPS_transport.h
 		)
 
-	# Copy yaml file to the bin dir to be used by empy on the file generation
-	configure_file("${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_message_ids.yaml"
-	     "${CMAKE_CURRENT_BINARY_DIR}/uorb_rtps_message_ids.yaml" COPYONLY)
-
 	add_custom_command(OUTPUT ${topic_bridge_files_out}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/msg/tools/generate_microRTPS_bridge.py
 			--fastrtpsgen-dir $ENV{FASTRTPSGEN_DIR}
-			${send_topic_opt} ${send_topic_files}
-			${receive_topic_opt} ${receive_topic_files}
 			--generate-idl
 			--mkdir-build
 			--generate-cmakelists
