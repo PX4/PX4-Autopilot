@@ -41,6 +41,7 @@ precompiled and thus message generation will be much faster
 
 import os
 import errno
+import yaml
 
 import genmsg.msgs
 import gencpp
@@ -347,6 +348,37 @@ def print_field_def(field):
                                 array_size, comment))
 
 
+def get_absolute_path(arg_parse_dir):
+    """
+    Get absolute path from dir
+    """
+    root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    if isinstance(arg_parse_dir, list):
+        dir = arg_parse_dir[0]
+    else:
+        dir = arg_parse_dir
+
+    if dir[0] != '/':
+        dir = root_path + "/" + dir
+
+    return dir
+
+
+def parse_yaml_msg_id_file(yaml_file):
+    """
+    Parses a yaml file into a dict
+    """
+    try:
+        with open(yaml_file, 'r') as f:
+            return yaml.load(f)
+    except OSError as e:
+        if e.errno == errno.ENOENT:
+            raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), yaml_file)
+        else:
+            raise
+
+
 def check_available_ids(used_msg_ids_list):
     """
     Checks the available RTPS ID's
@@ -359,7 +391,13 @@ def rtps_message_id(msg_id_map, message):
     Get RTPS ID of uORB message
     """
     used_ids = list()
-    for dict in msg_id_map[0]['rtps']:
+    # check 'send' list
+    for dict in msg_id_map[0]['rtps']['send']:
+        used_ids.append(dict['id'])
+        if message in dict['msg']:
+            return dict['id']
+    # check 'receive' list
+    for dict in msg_id_map[0]['rtps']['receive']:
         used_ids.append(dict['id'])
         if message in dict['msg']:
             return dict['id']
