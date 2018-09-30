@@ -69,11 +69,13 @@ rtps:
       id: 14
     - msg: obstacle_distance
       id: 42
-    # multi topics
-    - msg: vehicle_mocap_odometry
-      id: 132
-    - msg: vehicle_visual_odometry
-      id: 133
+    - msg: optical_flow
+      id: 44
+    # multi topics TODO
+    # - msg: vehicle_mocap_odometry
+    #   id: 132
+    # - msg: vehicle_visual_odometry
+    #   id: 133
   unclassified:
     - msg: actuator_armed
       id: 0
@@ -141,8 +143,6 @@ rtps:
       id: 41
     - msg: offboard_control_mode
       id: 43
-    - msg: optical_flow
-      id: 44
     - msg: parameter_update
       id: 45
     - msg: ping
