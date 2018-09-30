@@ -56,7 +56,7 @@ Land::on_activation()
 	reset_mission_item_reached();
 
 	/* convert mission item to current setpoint */
-	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	pos_sp_triplet->previous.valid = false;
 	mission_apply_limitation(_mission_item);
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
@@ -73,19 +73,22 @@ Land::on_active()
 	/* for VTOL update landing location during back transition */
 	if (_navigator->get_vstatus()->is_vtol &&
 	    _navigator->get_vstatus()->in_transition_mode) {
-		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
 		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
+
 		_navigator->set_position_setpoint_triplet_updated();
 	}
 
 
 	if (_navigator->get_land_detected()->landed) {
+
 		_navigator->get_mission_result()->finished = true;
 		_navigator->set_mission_result_updated();
 		set_idle_item(&_mission_item);
 
-		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 		_navigator->set_position_setpoint_triplet_updated();
 	}

@@ -52,7 +52,11 @@ public:
 	void on_activation() override;
 	void on_active() override;
 
+	position_setpoint_s &get_reposition() { return _reposition; }
+
 private:
 
 	void set_takeoff_position();
+
+	position_setpoint_s			_reposition{};	/**< position setpoint for non-mission direct position command */
 };

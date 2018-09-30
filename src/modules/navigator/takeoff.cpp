@@ -55,9 +55,7 @@ Takeoff::on_activation()
 void
 Takeoff::on_active()
 {
-	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
-
-	if (rep->current.valid) {
+	if (_reposition.valid) {
 		// reset the position
 		set_takeoff_position();
 
@@ -77,8 +75,6 @@ Takeoff::on_active()
 void
 Takeoff::set_takeoff_position()
 {
-	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
-
 	float abs_altitude = 0.0f;
 
 	float min_abs_altitude;
@@ -91,8 +87,8 @@ Takeoff::set_takeoff_position()
 	}
 
 	// Use altitude if it has been set. If home position is invalid use min_abs_altitude
-	if (rep->current.valid && PX4_ISFINITE(rep->current.alt) && _navigator->home_position_valid()) {
-		abs_altitude = rep->current.alt;
+	if (_reposition.valid && PX4_ISFINITE(_reposition.alt) && _navigator->home_position_valid()) {
+		abs_altitude = _reposition.alt;
 
 		// If the altitude suggestion is lower than home + minimum clearance, raise it and complain.
 		if (abs_altitude < min_abs_altitude) {
@@ -132,20 +128,20 @@ Takeoff::set_takeoff_position()
 	pos_sp_triplet->current.yaw_valid = true;
 	pos_sp_triplet->next.valid = false;
 
-	if (rep->current.valid) {
+	if (_reposition.valid) {
 
 		// Go on and check which changes had been requested
-		if (PX4_ISFINITE(rep->current.yaw)) {
-			pos_sp_triplet->current.yaw = rep->current.yaw;
+		if (PX4_ISFINITE(_reposition.yaw)) {
+			pos_sp_triplet->current.yaw = _reposition.yaw;
 		}
 
-		if (PX4_ISFINITE(rep->current.lat) && PX4_ISFINITE(rep->current.lon)) {
-			pos_sp_triplet->current.lat = rep->current.lat;
-			pos_sp_triplet->current.lon = rep->current.lon;
+		if (PX4_ISFINITE(_reposition.lat) && PX4_ISFINITE(_reposition.lon)) {
+			pos_sp_triplet->current.lat = _reposition.lat;
+			pos_sp_triplet->current.lon = _reposition.lon;
 		}
 
 		// mark this as done
-		memset(rep, 0, sizeof(*rep));
+		_reposition = position_setpoint_s{};
 	}
 
 	_navigator->set_can_loiter_at_sp(true);

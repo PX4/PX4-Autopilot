@@ -84,7 +84,8 @@ class Navigator : public ModuleBase<Navigator>, public ModuleParams
 {
 public:
 	Navigator();
-	virtual ~Navigator() = default;
+	~Navigator() override;
+
 	Navigator(const Navigator &) = delete;
 	Navigator operator=(const Navigator &) = delete;
 
@@ -149,8 +150,6 @@ public:
 	struct home_position_s *get_home_position() { return &_home_pos; }
 	struct mission_result_s *get_mission_result() { return &_mission_result; }
 	struct position_setpoint_triplet_s *get_position_setpoint_triplet() { return &_pos_sp_triplet; }
-	struct position_setpoint_triplet_s *get_reposition_triplet() { return &_reposition_triplet; }
-	struct position_setpoint_triplet_s *get_takeoff_triplet() { return &_takeoff_triplet; }
 	struct vehicle_global_position_s *get_global_position() { return &_global_pos; }
 	struct vehicle_land_detected_s *get_land_detected() { return &_land_detected; }
 	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
@@ -324,8 +323,6 @@ private:
 	// Publications
 	geofence_result_s				_geofence_result{};
 	position_setpoint_triplet_s			_pos_sp_triplet{};	/**< triplet of position setpoints */
-	position_setpoint_triplet_s			_reposition_triplet{};	/**< triplet for non-mission direct position command */
-	position_setpoint_triplet_s			_takeoff_triplet{};	/**< triplet for non-mission direct takeoff command */
 	vehicle_roi_s					_vroi{};		/**< vehicle ROI */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
@@ -335,7 +332,6 @@ private:
 
 	bool		_can_loiter_at_sp{false};			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated{false};		/**< flags if position SP triplet needs to be published */
-	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};		/**< flags if mission result has seen an update */
 
 	NavigatorMode	*_navigation_mode{nullptr};		/**< abstract pointer to current navigation mode class */
