@@ -32,7 +32,7 @@
 ############################################################################
 
 set(SRCS_PLATFORM)
-if (${OS} STREQUAL "nuttx")
+if (${OS} MATCHES "nuttx")
 	if ("${CONFIG_I2C}" STREQUAL "y")
 		list(APPEND SRCS_PLATFORM nuttx/I2C.cpp)
 	endif()
@@ -40,9 +40,15 @@ if (${OS} STREQUAL "nuttx")
 	if ("${CONFIG_SPI}" STREQUAL "y")
 		list(APPEND SRCS_PLATFORM nuttx/SPI.cpp)
 	endif()
+elseif (${OS} MATCHES "qurt")
+	list(APPEND SRCS_PLATFORM
+		#qurt/I2C.cpp
+		#qurt/SPI.cpp
+	)
 else()
 	list(APPEND SRCS_PLATFORM
 		posix/I2C.cpp
+		posix/SPI.cpp
 	)
 endif()
 
