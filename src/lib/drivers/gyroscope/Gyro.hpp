@@ -70,7 +70,7 @@ private:
 
 	int	_orb_class_instance{-1};
 
-	enum Rotation _rotation = ROTATION_NONE;
+	//enum Rotation _rotation = ROTATION_NONE;
 
 	math::LowPassFilter2p _filter_x{1000, 100};
 	math::LowPassFilter2p _filter_y{1000, 100};

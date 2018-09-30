@@ -10,6 +10,7 @@ set(config_module_list
 	drivers/batt_smbus
 	drivers/camera_trigger
 	drivers/gps
+	drivers/imu/mpu9250
 	drivers/linux_gpio
 	drivers/pwm_out_sim
 	drivers/vmount

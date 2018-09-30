@@ -34,19 +34,19 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
-#include <drivers/accelerometer/Accel.hpp>
-#include <drivers/gyroscope/Gyro.hpp>
-#include <drivers/magnetometer/Mag.hpp>
-
+#include <lib/drivers/accelerometer/Accel.hpp>
+#include <lib/drivers/gyroscope/Gyro.hpp>
+#include <lib/drivers/magnetometer/Mag.hpp>
 #include <ecl/geo/geo.h>
-
-#include <nuttx/fs/fat.h>
-
 #include <perf/perf_counter.h>
-
 #include <px4_module_multi.h>
 #include <px4_getopt.h>
 
+#include "AK8963.h"
+
+#ifdef CONFIG_FAT_DMAMEMORY
+#include <nuttx/fs/fat.h>
+#endif
 
 // MPU9250 registers
 #define WHOAMI_ADDR					0x75
@@ -121,19 +121,6 @@
 
 #define EXT_SENS_DATA_00			0x49
 
-
-// ak8963 register address and bit definitions
-#define AK8963_I2C_ADDR         0x0C
-#define AK8963_DEVICE_ID        0x48
-#define AK8963REG_WIA           0x00
-#define AK8963REG_ST1           0x02
-#define AK8963REG_CNTL1_ADDR	0x0A
-#define AK8963REG_CNTL2_ADDR    0x0B
-#define AK8963_CONTINUOUS_16BIT 0x16
-#define AK8963_SELFTEST_MODE    0x08
-#define AK8963_RESET            0x01
-
-
 #define ACCEL_SAMPLE_RATE	1000
 #define ACCEL_FILTER_FREQ 30
 #define ACCEL_FS_RANGE_M_S2	32.0f * CONSTANTS_ONE_G
@@ -145,6 +132,7 @@
 #define MAG_SAMPLE_RATE 100
 #define MAG_FILTER_FREQ 10
 #define MAG_FS_RANGE_UT 9600.0f
+
 
 
 #define MPU_DEVICE_PATH_ACCEL		"/dev/mpu9250_accel"
@@ -261,7 +249,7 @@ public:
 	void init();
 
 	/** @brief Starts the driver and kicks off the main loop. */
-	void run();
+	void run() override;
 
 	/**
 	 * @brief Prints the status of the driver.
@@ -274,7 +262,6 @@ public:
 	 * @return Returns PX4_OK if device is found, PX4_ERROR otherwise.
 	 */
 	int	probe();
-
 
 private:
 
@@ -289,7 +276,7 @@ private:
 
 	uint8_t	_whoami = 0;
 
-	struct hrt_call _hrt_call;
+	struct hrt_call _hrt_call {};
 
 	perf_counter_t		_spi_transfer;
 	perf_counter_t		_cycle;
@@ -297,7 +284,7 @@ private:
 
 	unsigned _offset = 1;
 
-	uint8_t	*_dma_data_buffer;
+	uint8_t	*_dma_data_buffer{nullptr};
 
 	static constexpr unsigned _dma_buffer_size = 544; // 32B block size
 
@@ -312,14 +299,12 @@ private:
 	 */
 	uint8_t			read_reg(unsigned reg);
 
-
 	/**
 	 * @brief 		Write a register.
 	 * @param		The register to write.
 	 * @param		The value to write.
 	 */
 	void			write_reg(unsigned reg, uint8_t value);
-
 
 	/**
 	 * @brief 		Measurement self test

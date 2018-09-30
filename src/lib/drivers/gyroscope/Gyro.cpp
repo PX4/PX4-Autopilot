@@ -80,7 +80,7 @@ int Gyro::init()
 	return PX4_OK;
 }
 
-int Gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
+int Gyro::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	PX4_INFO("gyro getting ioctl'd");
 

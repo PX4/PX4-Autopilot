@@ -80,7 +80,7 @@ int Mag::init()
 	return PX4_OK;
 }
 
-int Mag::ioctl(struct file *filp, int cmd, unsigned long arg)
+int Mag::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	PX4_INFO("mag getting ioctl'd");
 

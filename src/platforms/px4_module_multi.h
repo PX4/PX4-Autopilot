@@ -240,15 +240,13 @@ public:
 
 	static int start_command_base(int argc, char *argv[])
 	{
-
 		// If no module created, create one. If module exits, user must explicity specify they want to create another.
-		if (!strcmp(argv[1], "+") == 0 && _module_list.get_head() != nullptr) {
+		if (!(strcmp(argv[1], "+") == 0) && _module_list.get_head() != nullptr) {
 			PX4_ERR("Task already running.");
 			return PX4_ERROR;
 		}
 
 		lock_module();
-
 
 		// Task spawn should only fire off the px4_task_spawn function and then enter at run_trampoline()
 		// OR

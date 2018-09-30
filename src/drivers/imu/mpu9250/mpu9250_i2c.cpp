@@ -56,15 +56,13 @@ class MPU9250_I2C : public device::I2C
 {
 public:
 	MPU9250_I2C(int bus, uint32_t address);
-	virtual ~MPU9250_I2C() = default;
+	~MPU9250_I2C() override = default;
 
-	virtual int	read(unsigned address, void *data, unsigned count);
-	virtual int	write(unsigned address, void *data, unsigned count);
-
-	virtual int	ioctl(unsigned operation, unsigned &arg);
+	int	read(unsigned address, void *data, unsigned count) override;
+	int	write(unsigned address, void *data, unsigned count) override;
 
 protected:
-	virtual int	probe();
+	int	probe() override;
 
 };
 
@@ -77,33 +75,12 @@ MPU9250_I2C_interface(int bus, uint32_t address)
 MPU9250_I2C::MPU9250_I2C(int bus, uint32_t address) :
 	I2C("MPU9250_I2C", nullptr, bus, address, 400000)
 {
-	_device_id.devid_s.devtype =  DRV_ACC_DEVTYPE_MPU9250;
-}
-
-int
-MPU9250_I2C::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret = PX4_ERROR;
-
-	switch (operation) {
-
-	case ACCELIOCGEXTERNAL:
-		return external();
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	default:
-		ret = -EINVAL;
-	}
-
-	return ret;
 }
 
 int
 MPU9250_I2C::write(unsigned reg_speed, void *data, unsigned count)
 {
-	uint8_t cmd[2];
+	uint8_t cmd[2] {};
 
 	PX4_INFO("what am i doing here");
 

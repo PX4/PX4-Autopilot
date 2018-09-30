@@ -43,24 +43,9 @@
 
 
 #include <px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <assert.h>
-#include <debug.h>
-#include <errno.h>
-#include <unistd.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/device/spi.h>
+#include <lib/drivers/device/spi.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_device.h>
-
-//#include "mpu9250.h"
-#include <board_config.h>
 
 #define DIR_READ			0x80
 #define DIR_WRITE			0x00
@@ -69,9 +54,7 @@
 #define WHOAMI_9250			0x71
 #define WHOAMI_6500			0x70
 
-
 device::Device *MPU9250_SPI_interface(int bus, uint32_t cs);
-
 
 class MPU9250_SPI : public device::SPI
 {
@@ -80,19 +63,18 @@ public:
 	~MPU9250_SPI() = default;
 
 	int	read(unsigned reg, void *data, unsigned count) override;
-	//virtual int read_jake(unsigned reg, void* data, unsigned count);
 	int	write(unsigned reg, void *data, unsigned count) override;
 
-	int	ioctl(unsigned operation, unsigned &arg);
 protected:
-	int probe();
+
+	int probe() override;
 };
 
 device::Device *MPU9250_SPI_interface(int bus, uint32_t cs)
 {
 	device::Device *interface = nullptr;
 
-	if (cs != SPIDEV_NONE(0)) {
+	if (cs != 0) {
 		interface = new MPU9250_SPI(bus, cs);
 	}
 
@@ -110,30 +92,6 @@ MPU9250_SPI::MPU9250_SPI(int bus, uint32_t device) :
 	set_lockmode(LOCK_THREADS);
 }
 
-int MPU9250_SPI::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	PX4_INFO("Spi getting ioctl'd");
-
-	switch (operation) {
-	case ACCELIOCGEXTERNAL:
-		external();
-
-	// FALLTHROUGH
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	default: {
-			ret = -EINVAL;
-		}
-	}
-
-	return ret;
-	//return PX4_OK;
-}
-
 int MPU9250_SPI::write(unsigned reg, void *data, unsigned count)
 {
 	uint32_t clock_speed = 1e6;
@@ -142,10 +100,8 @@ int MPU9250_SPI::write(unsigned reg, void *data, unsigned count)
 
 	uint8_t temp = ((uint8_t *)data)[0];
 
-
 	((uint8_t *)data)[0] = reg | DIR_WRITE;
 	((uint8_t *)data)[1] = temp;
-
 
 	return transfer((uint8_t *)data, (uint8_t *)data, count);
 }
@@ -154,7 +110,6 @@ int MPU9250_SPI::read(unsigned reg, void *data, unsigned count)
 {
 	// If we are doing dma read we do this
 	uint32_t clock_speed = 20e6;
-
 
 	set_frequency(clock_speed);
 
@@ -170,7 +125,7 @@ int MPU9250_SPI::read(unsigned reg, void *data, unsigned count)
 
 int MPU9250_SPI::probe()
 {
-	uint8_t whoami[2] = {0};
+	uint8_t whoami[2] = {};
 
 	int ret = read(WHOAMI_ADDR, whoami, 2);
 

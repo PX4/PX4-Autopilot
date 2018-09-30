@@ -57,11 +57,10 @@ MPU9250::MPU9250(mpu9250::mpu9250_bus_option &bus, enum Rotation rotation) :
 	_fifo_maxed(perf_alloc(PC_COUNT, "mpu9250_fifo_maxed")),
 
 	_rotation(rotation)
-
 {
 	if (_interface->init() != OK) {
 		delete _interface;
-		warnx("No device on bus %u.", (unsigned)bus.busid);
+		PX4_ERR("No device on bus %u.", (unsigned)bus.busid);
 	}
 
 	probe();
@@ -70,8 +69,10 @@ MPU9250::MPU9250(mpu9250::mpu9250_bus_option &bus, enum Rotation rotation) :
 		_mag = new Mag(bus.mag_path, _interface, DRV_MAG_DEVTYPE_MPU9250);
 	}
 
+#ifdef CONFIG_FAT_DMAMEMORY
 	// Allocate 512 bytes for dma FIFO transfer.
 	_dma_data_buffer = (uint8_t *)fat_dma_alloc(_dma_buffer_size);
+#endif
 }
 
 MPU9250::~MPU9250()
@@ -84,7 +85,9 @@ MPU9250::~MPU9250()
 		delete _mag;
 	}
 
+#ifdef CONFIG_FAT_DMAMEMORY
 	fat_dma_free(_dma_data_buffer, _dma_buffer_size);
+#endif
 
 	hrt_cancel(&_hrt_call);
 	px4_sem_destroy(&_data_semaphore);
@@ -96,21 +99,19 @@ MPU9250::~MPU9250()
 
 mpu9250::mpu9250_bus_option &MPU9250::initialize_bus(mpu9250::MPU9250_BUS bus_id)
 {
-	uint8_t i = 0;
-
-	for (i = 0; i < NUM_BUS_OPTIONS; i++) {
+	for (uint8_t i = 0; i < NUM_BUS_OPTIONS; i++) {
 		if (bus_id == mpu9250::g_bus_options[i].busid) {
 			return mpu9250::g_bus_options[i];
 		}
 	}
 
 	PX4_ERR("Could not find bus.");
-	return mpu9250::g_bus_options[i];
+	return mpu9250::g_bus_options[0];
 }
 
 MPU9250 *MPU9250::instantiate(int argc, char *argv[])
 {
-	int ch;
+	int ch = 0;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
@@ -159,7 +160,6 @@ MPU9250 *MPU9250::instantiate(int argc, char *argv[])
 	return mpu9250;
 }
 
-
 int MPU9250::task_spawn(int argc, char *argv[])
 {
 	int task_id = px4_task_spawn_cmd("mpu9250", SCHED_DEFAULT,
@@ -171,7 +171,6 @@ int MPU9250::task_spawn(int argc, char *argv[])
 
 int MPU9250::custom_command(int argc, char *argv[])
 {
-
 	return 0;
 }
 
@@ -262,8 +261,6 @@ void MPU9250::clean_reset()
 	write_reg(USER_CTRL_ADDR, USER_CTRL_FIFO_EN);
 }
 
-
-
 int MPU9250::probe()
 {
 	_whoami = read_reg(WHOAMI_ADDR);
@@ -281,7 +278,6 @@ int MPU9250::probe()
 	return PX4_ERROR;
 }
 
-
 int MPU9250::self_test()
 {
 	// if (perf_event_count(_sample_perf) == 0) {
@@ -295,7 +291,7 @@ int MPU9250::self_test()
 
 uint8_t MPU9250::read_reg(unsigned reg)
 {
-	uint8_t buf[2] = {0};
+	uint8_t buf[2] = {};
 
 	_interface->read(reg, buf, 2);
 
@@ -304,10 +300,7 @@ uint8_t MPU9250::read_reg(unsigned reg)
 
 void MPU9250::write_reg(unsigned reg, uint8_t value)
 {
-	uint8_t buf[2] = {0};
-
-	buf[0] = value;
-
+	uint8_t buf[2] = { value, 0 };
 	_interface->write(reg, buf, 2);
 }
 
@@ -367,13 +360,13 @@ void MPU9250::run()
 
 		unsigned samples = fifo_count / 12;
 
-		float accel_x = 0;
-		float accel_y = 0;
-		float accel_z = 0;
+		float accel_x = 0.0f;
+		float accel_y = 0.0f;
+		float accel_z = 0.0f;
 
-		float gyro_x = 0;
-		float gyro_y = 0;
-		float gyro_z = 0;
+		float gyro_x = 0.0f;
+		float gyro_y = 0.0f;
+		float gyro_z = 0.0f;
 
 		for (unsigned i = 0; i < samples; i++) {
 			accel_x += int16_t(_dma_data_buffer[_offset + 0 + i * 12] << 8 | _dma_data_buffer[_offset + 1 + i * 12]);
@@ -407,9 +400,9 @@ void MPU9250::run()
 
 				_interface->read(EXT_SENS_DATA_00, _dma_data_buffer, 8 + _offset);
 
-				float x 		= (uint16_t)(_dma_data_buffer[3] << 8 | _dma_data_buffer[2]);
-				float y 		= (uint16_t)(_dma_data_buffer[5] << 8 | _dma_data_buffer[4]);
-				float z 		= (uint16_t)(_dma_data_buffer[7] << 8 | _dma_data_buffer[6]);
+				float x = (uint16_t)(_dma_data_buffer[3] << 8 | _dma_data_buffer[2]);
+				float y = (uint16_t)(_dma_data_buffer[5] << 8 | _dma_data_buffer[4]);
+				float z = (uint16_t)(_dma_data_buffer[7] << 8 | _dma_data_buffer[6]);
 
 				// Now bring the mag into same reference frame as the accel and gyro.
 				int16_t temp = x;
@@ -426,17 +419,12 @@ void MPU9250::run()
 
 		perf_end(_cycle);
 	}
-
 }
-
-
 
 int MPU9250::print_status()
 {
-
 	return PX4_OK;
 }
-
 
 int MPU9250::print_usage()
 {
