@@ -141,7 +141,7 @@ if __name__ == "__main__":
     # Parse arguments
     args = parser.parse_args()
 
-    msg_folder = os.path.dirname(os.path.dirname(os.path.abspath(args.msgdir)))
+    msg_folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     classifier = Classifier(px_generate_uorb_topic_helper.parse_yaml_msg_id_file(
         os.path.join(msg_folder, args.yaml_file)), msg_folder)
 
@@ -150,19 +150,19 @@ if __name__ == "__main__":
             print ('send files: ' + ', '.join(str(msg_file)
                                               for msg_file in classifier.msgs_files_send) + '\n')
         else:
-            print ('send topics: ' + ', '.join(str(msg)
-                                               for msg in classifier.msgs_to_send.keys()) + '\n')
+            print (', '.join(str(msg)
+                             for msg in classifier.msgs_to_send.keys()) + '\n')
     if args.receive:
         if args.path:
             print ('receive files: ' + ', '.join(str(msg_file)
                                                  for msg_file in classifier.msgs_files_receive) + '\n')
         else:
-            print ('receive topics: ' + ', '.join(str(msg)
-                                                  for msg in classifier.msgs_to_receive.keys()) + '\n')
+            print (', '.join(str(msg)
+                             for msg in classifier.msgs_to_receive.keys()) + '\n')
     if args.ignore:
         if args.path:
             print ('ignore files: ' + ', '.join(str(msg_file)
                                                 for msg_file in classifier.msgs_files_ignore) + '\n')
         else:
-            print ('ignore topics: ' + ', '.join(str(msg)
-                                                 for msg in classifier.msgs_to_ignore.keys()) + '\n')
+            print (', '.join(str(msg)
+                             for msg in classifier.msgs_to_ignore.keys()) + '\n')
