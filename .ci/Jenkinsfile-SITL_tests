@@ -193,6 +193,7 @@ pipeline {
   } //stages
   environment {
     ASAN_OPTIONS = 'detect_stack_use_after_return=1:check_initialization_order=1'
+    UBSAN_OPTIONS = 'print_stacktrace=1'
     CCACHE_DIR = '/tmp/ccache'
     CI = true
     CTEST_OUTPUT_ON_FAILURE = 1
