@@ -41,7 +41,6 @@ precompiled and thus message generation will be much faster
 
 import os
 import errno
-import yaml
 
 import genmsg.msgs
 import gencpp
@@ -363,20 +362,6 @@ def get_absolute_path(arg_parse_dir):
         dir = root_path + "/" + dir
 
     return dir
-
-
-def parse_yaml_msg_id_file(yaml_file):
-    """
-    Parses a yaml file into a dict
-    """
-    try:
-        with open(yaml_file, 'r') as f:
-            return yaml.load(f)
-    except OSError as e:
-        if e.errno == errno.ENOENT:
-            raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), yaml_file)
-        else:
-            raise
 
 
 def check_available_ids(used_msg_ids_list):

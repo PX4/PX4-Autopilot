@@ -36,7 +36,7 @@
 import sys
 import os
 import argparse
-import px_generate_uorb_topic_helper
+import yaml
 
 
 class Classifier():
@@ -44,8 +44,8 @@ class Classifier():
     Class to classify RTPS msgs as senders, receivers or to be ignored
     """
 
-    def __init__(self, msg_id_map, msg_folder):
-        self.msg_id_map = msg_id_map
+    def __init__(self, yaml_file, msg_folder):
+        self.msg_id_map = self.parse_yaml_msg_id_file(yaml_file)
         self.msg_folder = msg_folder
         self.msgs_to_send = {}
         self.msgs_to_receive = {}
@@ -109,16 +109,31 @@ class Classifier():
             self.msgs_to_ignore.update({dict['msg']: dict['id']})
 
     def set_msg_files_send(self):
-        self.msgs_files_send = [px_generate_uorb_topic_helper.get_absolute_path(os.path.join(self.msg_folder, msg + ".msg"))
+        self.msgs_files_send = [os.path.dirname(os.path.dirname(os.path.join(self.msg_folder, msg + ".msg")))
                                 for msg in self.msgs_to_send.keys()]
 
     def set_msg_files_receive(self):
-        self.msgs_files_receive = [px_generate_uorb_topic_helper.get_absolute_path(os.path.join(self.msg_folder, msg + ".msg"))
+        self.msgs_files_receive = [os.path.dirname(os.path.dirname(os.path.join(self.msg_folder, msg + ".msg")))
                                    for msg in self.msgs_to_receive.keys()]
 
     def set_msg_files_ignore(self):
-        self.msgs_files_ignore = [px_generate_uorb_topic_helper.get_absolute_path(os.path.join(self.msg_folder, msg + ".msg"))
+        self.msgs_files_ignore = [os.path.dirname(os.path.dirname(os.path.join(self.msg_folder, msg + ".msg")))
                                   for msg in self.msgs_to_ignore.keys()]
+
+    @staticmethod
+    def parse_yaml_msg_id_file(yaml_file):
+        """
+        Parses a yaml file into a dict
+        """
+        try:
+            with open(yaml_file, 'r') as f:
+                return yaml.load(f)
+        except OSError as e:
+            if e.errno == errno.ENOENT:
+                raise IOError(errno.ENOENT, os.strerror(
+                    errno.ENOENT), yaml_file)
+            else:
+                raise
 
 
 if __name__ == "__main__":
@@ -142,8 +157,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     msg_folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    classifier = Classifier(px_generate_uorb_topic_helper.parse_yaml_msg_id_file(
-        os.path.join(msg_folder, args.yaml_file)), msg_folder)
+    classifier = Classifier(os.path.join(msg_folder, args.yaml_file), msg_folder)
 
     if args.send:
         if args.path:
