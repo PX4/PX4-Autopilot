@@ -44,12 +44,7 @@
 
 #include <px4_spi.h>
 
-#ifdef __PX4_LINUX
-#include <sys/ioctl.h>
-#include <linux/types.h>
-#include <alloca.h>
-#include <linux/spi/spidev.h>
-#endif
+#include "dev_fs_lib_spi.h"
 
 namespace device __EXPORT
 {

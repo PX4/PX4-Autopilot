@@ -35,5 +35,11 @@
 #ifdef __PX4_NUTTX
 #include "nuttx/SPI.hpp"
 #else
+
+#ifdef __PX4_QURT
+#include "qurt/SPI.hpp"
+#else
 #include "posix/SPI.hpp"
+#endif
+
 #endif
