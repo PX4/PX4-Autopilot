@@ -196,8 +196,7 @@ if agent and os.path.isdir(os.path.join(agent_out_dir, "idl")):
 uorb_templates_dir = os.path.join(msg_folder, args.uorb_templates)
 urtps_templates_dir = os.path.join(msg_folder, args.urtps_templates)
 # parse yaml file into a map of ids
-classifier = Classifier(px_generate_uorb_topic_helper.parse_yaml_msg_id_file(
-    os.path.join(msg_folder, args.yaml_file)), msg_folder)
+classifier = Classifier(os.path.join(msg_folder, args.yaml_file), msg_folder)
 # check if there are no ID's repeated
 check_rtps_id_uniqueness(classifier)
 
