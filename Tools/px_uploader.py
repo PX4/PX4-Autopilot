@@ -346,7 +346,7 @@ class uploader(object):
             # if it fails we are on a real Serial Port
             self.ackWindowedMode = True
 
-        self.port.baudrate =self.baudrate_bootloader
+        self.port.baudrate = self.baudrate_bootloader
 
     # send the GET_DEVICE command and wait for an info parameter
     def __getInfo(self, param):
@@ -398,7 +398,7 @@ class uploader(object):
 
     # send the CHIP_ERASE command and wait for the bootloader to become ready
     def __erase(self, label):
-        print("Windowed mode:%s" % self.ackWindowedMode)
+        print("Windowed mode: %s" % self.ackWindowedMode)
         print("\n", end='')
         self.__send(uploader.CHIP_ERASE +
                     uploader.EOC)
