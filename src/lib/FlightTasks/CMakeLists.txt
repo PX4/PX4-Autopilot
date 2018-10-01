@@ -56,6 +56,7 @@ list(APPEND flight_tasks_all
 	ManualAltitudeSmooth
 	ManualPosition
 	ManualPositionSmooth
+	ManualPositionSmoothVel
 	Sport
 	AutoLine
 	AutoFollowMe
