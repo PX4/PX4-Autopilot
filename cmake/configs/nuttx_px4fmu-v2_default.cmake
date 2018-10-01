@@ -27,7 +27,7 @@ set(config_module_list
 	drivers/barometer/ms5611
 	#drivers/blinkm
 	#drivers/bst
-	drivers/camera_trigger
+	#drivers/camera_trigger
 	#drivers/differential_pressure/ets
 	drivers/differential_pressure/ms4525
 	drivers/differential_pressure/ms5525
