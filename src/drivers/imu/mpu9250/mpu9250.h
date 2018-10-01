@@ -37,7 +37,9 @@
 #include <lib/drivers/accelerometer/Accel.hpp>
 #include <lib/drivers/gyroscope/Gyro.hpp>
 #include <lib/drivers/magnetometer/Mag.hpp>
+
 #include <ecl/geo/geo.h>
+
 #include <perf/perf_counter.h>
 #include <px4_module_multi.h>
 #include <px4_getopt.h>
@@ -47,6 +49,7 @@
 #ifdef CONFIG_FAT_DMAMEMORY
 #include <nuttx/fs/fat.h>
 #endif
+
 
 // MPU9250 registers
 #define WHOAMI_ADDR					0x75
@@ -93,12 +96,17 @@
 
 #define USER_CTRL_ADDR				0x6A
 #define USER_CTRL_FIFO_EN			0x60
-#define USER_CTRL_SENSORS_CLEAR		0x21
-#define USER_CTRL_FIFO_RESET		0x24
+#define USER_CTRL_SENSORS_CLEAR		0x41
+#define USER_CTRL_BIT_FIFO_RST		0x04
+#define USER_CTRL_BIT_BIT_FIFO_EN	0x40
+
+
 #define USER_CTRL_BIT_I2C_MST_EN    0x20
 #define USER_CTRL_I2C_MASTER_EN		0x5D
 
 #define INT_STATUS					0x3A
+
+#define TEMPERATURE_ADDR			0x41
 
 // Supports 20MHz reads
 #define FIFO_COUNTH					0x72
@@ -124,16 +132,17 @@
 #define ACCEL_SAMPLE_RATE	1000
 #define ACCEL_FILTER_FREQ 30
 #define ACCEL_FS_RANGE_M_S2	32.0f * CONSTANTS_ONE_G
+#define ACCEL_SCALE ACCEL_FS_RANGE_M_S2 / 65535
 
 #define GYRO_SAMPLE_RATE	1000
-#define GYRO_FILTER_FREQ 30
+#define GYRO_FILTER_FREQ 80
 #define GYRO_FS_RANGE_RADS	(4000.0f * M_PI_F) / 180
+#define GYRO_SCALE GYRO_FS_RANGE_RADS / 65535
 
 #define MAG_SAMPLE_RATE 100
 #define MAG_FILTER_FREQ 10
 #define MAG_FS_RANGE_UT 9600.0f
-
-
+#define MAG_SCALE MAG_FS_RANGE_UT / 65535
 
 #define MPU_DEVICE_PATH_ACCEL		"/dev/mpu9250_accel"
 #define MPU_DEVICE_PATH_GYRO		"/dev/mpu9250_gyro"
@@ -249,7 +258,7 @@ public:
 	void init();
 
 	/** @brief Starts the driver and kicks off the main loop. */
-	void run() override;
+	void run();
 
 	/**
 	 * @brief Prints the status of the driver.
@@ -274,6 +283,9 @@ private:
 	hrt_abstime _mag_poll_time = 0;
 	hrt_abstime _mag_interval = 12000;
 
+	hrt_abstime _temp_poll_time = 0;
+	hrt_abstime	_temp_interval = 100000;
+
 	uint8_t	_whoami = 0;
 
 	struct hrt_call _hrt_call {};
@@ -281,8 +293,11 @@ private:
 	perf_counter_t		_spi_transfer;
 	perf_counter_t		_cycle;
 	perf_counter_t		_fifo_maxed;
+	perf_counter_t		_reset;
 
 	unsigned _offset = 1;
+
+	bool _just_reset = false;
 
 	uint8_t	*_dma_data_buffer{nullptr};
 
@@ -290,7 +305,7 @@ private:
 
 	px4_sem_t _data_semaphore;
 
-	enum Rotation _rotation = ROTATION_NONE;
+	float _temperature{0};
 
 	/**
 	 * @brief 		Read a register.

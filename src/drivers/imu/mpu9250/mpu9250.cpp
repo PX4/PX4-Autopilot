@@ -49,14 +49,14 @@ MPU9250::MPU9250(mpu9250::mpu9250_bus_option &bus, enum Rotation rotation) :
 	_interface(bus.interface_constructor(bus.busnum, bus.address)),
 
 	// Construct the gyro and accel objects.
-	_accel(bus.accel_path, _interface, DRV_ACC_DEVTYPE_MPU9250),
-	_gyro(bus.gyro_path, _interface, DRV_GYR_DEVTYPE_MPU9250),
+	_accel(bus.accel_path, _interface, DRV_ACC_DEVTYPE_MPU9250, rotation, ACCEL_SCALE),
+	_gyro(bus.gyro_path, _interface, DRV_GYR_DEVTYPE_MPU9250, rotation, GYRO_SCALE),
 
 	_spi_transfer(perf_alloc(PC_ELAPSED, "mpu9250_spi_transfer")),
 	_cycle(perf_alloc(PC_ELAPSED, "mpu9250_cycle")),
 	_fifo_maxed(perf_alloc(PC_COUNT, "mpu9250_fifo_maxed")),
+	_reset(perf_alloc(PC_COUNT, "mpu9250_reset"))
 
-	_rotation(rotation)
 {
 	if (_interface->init() != OK) {
 		delete _interface;
@@ -66,13 +66,14 @@ MPU9250::MPU9250(mpu9250::mpu9250_bus_option &bus, enum Rotation rotation) :
 	probe();
 
 	if (_whoami == WHOAMI_9250) {
-		_mag = new Mag(bus.mag_path, _interface, DRV_MAG_DEVTYPE_MPU9250);
+		_mag = new Mag(bus.mag_path, _interface, DRV_MAG_DEVTYPE_MPU9250, rotation, MAG_SCALE);
 	}
 
 #ifdef CONFIG_FAT_DMAMEMORY
 	// Allocate 512 bytes for dma FIFO transfer.
 	_dma_data_buffer = (uint8_t *)fat_dma_alloc(_dma_buffer_size);
 #endif
+
 }
 
 MPU9250::~MPU9250()
@@ -95,6 +96,7 @@ MPU9250::~MPU9250()
 	perf_free(_spi_transfer);
 	perf_free(_cycle);
 	perf_free(_fifo_maxed);
+	perf_free(_reset);
 }
 
 mpu9250::mpu9250_bus_option &MPU9250::initialize_bus(mpu9250::MPU9250_BUS bus_id)
@@ -169,6 +171,7 @@ int MPU9250::task_spawn(int argc, char *argv[])
 	return task_id;
 }
 
+// @TODO: what custom commands should we provide?
 int MPU9250::custom_command(int argc, char *argv[])
 {
 	return 0;
@@ -207,17 +210,14 @@ void MPU9250::init()
 	// Using the FIFO at 32khz for gyro and accel only.
 	write_reg(FIFO_EN_ADDR, FIFO_EN_GYRO_ACCEL);
 
-	// Must write this last. Clears the FIFO, resets sensors, resets data path and enables FIFO.
-	clean_reset();
-
 	// Set up the mag for SPI mode. NOTE: enabling the i2c master interface brings the FIFO output rate down to 4KHz.
 	if (_whoami == WHOAMI_9250) {
 
-		_mag->init();
-		_mag->configure_filter(MAG_SAMPLE_RATE, MAG_FILTER_FREQ);
-
 		// Enable the i2c master.
 		write_reg(USER_CTRL_ADDR, USER_CTRL_FIFO_EN | USER_CTRL_BIT_I2C_MST_EN);
+
+		_mag->init();
+		_mag->configure_filter(MAG_SAMPLE_RATE, MAG_FILTER_FREQ);
 
 		// Configure the i2c master.
 		write_reg(I2C_MST_CTRL_ADDR, I2C_MST_CTRL_VALUE);
@@ -237,28 +237,30 @@ void MPU9250::init()
 		write_reg(I2C_SLV0_REG,  AK8963REG_ST1);
 		// Turn the thing on.
 		write_reg(I2C_SLV0_CTRL, 0x08 | BIT_I2C_SLV0_EN);
+
+	} else {
+
+		write_reg(USER_CTRL_ADDR, USER_CTRL_FIFO_EN);
 	}
 }
 
 void MPU9250::clean_reset()
 {
-	// Disable new data from entering FIFO.
-	write_reg(FIFO_EN_ADDR, FIFO_EN_DISABLE_ALL);
+	// From the example code -- https://os.mbed.com/users/oprospero/code/MotionDriver_6_1/docs/tip/inv__mpu_8c_source.html#l02554
+	write_reg(FIFO_EN_ADDR, 0);
+	write_reg(USER_CTRL_ADDR, 0);
 
-	// Reset the digital signal path for all the sensors.
-	write_reg(SIGNAL_PATH_RESET_ADDR, SIGNAL_PATH_RESET_ALL);
+	write_reg(USER_CTRL_ADDR, USER_CTRL_BIT_FIFO_RST);
 
-	// Clear the sensors registers -- turn off FIFO.
-	write_reg(USER_CTRL_ADDR, USER_CTRL_SENSORS_CLEAR);
+	if (_whoami == WHOAMI_9250) {
+		write_reg(USER_CTRL_ADDR, USER_CTRL_BIT_BIT_FIFO_EN | USER_CTRL_BIT_I2C_MST_EN);
 
-	// Reset the FIFO -- turn off FIFO.
-	write_reg(USER_CTRL_ADDR, USER_CTRL_FIFO_RESET);
+	} else {
+		write_reg(USER_CTRL_ADDR, USER_CTRL_BIT_BIT_FIFO_EN);
+	}
 
-	// Re-enable FIFO.
 	write_reg(FIFO_EN_ADDR, FIFO_EN_GYRO_ACCEL);
 
-	// Turn on FIFO.
-	write_reg(USER_CTRL_ADDR, USER_CTRL_FIFO_EN);
 }
 
 int MPU9250::probe()
@@ -278,6 +280,7 @@ int MPU9250::probe()
 	return PX4_ERROR;
 }
 
+// @TODO: Is this needed?
 int MPU9250::self_test()
 {
 	// if (perf_event_count(_sample_perf) == 0) {
@@ -292,7 +295,6 @@ int MPU9250::self_test()
 uint8_t MPU9250::read_reg(unsigned reg)
 {
 	uint8_t buf[2] = {};
-
 	_interface->read(reg, buf, 2);
 
 	return buf[1];
@@ -322,9 +324,11 @@ void MPU9250::run()
 
 	px4_sem_init(&_data_semaphore, 0, 0);
 
-	hrt_call_every(&_hrt_call, 100000, 1000, (hrt_callout)&MPU9250::post_semaphore, &_data_semaphore);
+	hrt_call_after(&_hrt_call, 1000, (hrt_callout)&MPU9250::post_semaphore, &_data_semaphore);
 
 	while (!should_exit()) {
+
+		bool should_reset = false;
 
 		perf_begin(_cycle);
 
@@ -333,6 +337,9 @@ void MPU9250::run()
 
 		// Wait until semaphore has been posted via the timer interrupt.
 		px4_sem_wait(&_data_semaphore);
+
+		hrt_abstime timer = hrt_absolute_time();
+
 		perf_begin(_spi_transfer);
 
 		// Check the FIFO data count.
@@ -343,6 +350,7 @@ void MPU9250::run()
 
 		if (fifo_count >= 512) {
 			fifo_count = 512;
+			should_reset = true;
 			perf_count(_fifo_maxed);
 		}
 
@@ -360,6 +368,11 @@ void MPU9250::run()
 
 		unsigned samples = fifo_count / 12;
 
+		// Need this to perform error checking.
+		int16_t int_accel_x[42];
+		int16_t int_accel_y[42];
+		int16_t int_accel_z[42];
+
 		float accel_x = 0.0f;
 		float accel_y = 0.0f;
 		float accel_z = 0.0f;
@@ -368,19 +381,33 @@ void MPU9250::run()
 		float gyro_y = 0.0f;
 		float gyro_z = 0.0f;
 
+		uint16_t accel_poor_mans_crc = 0;
+
 		for (unsigned i = 0; i < samples; i++) {
-			accel_x += int16_t(_dma_data_buffer[_offset + 0 + i * 12] << 8 | _dma_data_buffer[_offset + 1 + i * 12]);
-			accel_y += int16_t(_dma_data_buffer[_offset + 2 + i * 12] << 8 | _dma_data_buffer[_offset + 3 + i * 12]);
-			accel_z += int16_t(_dma_data_buffer[_offset + 4 + i * 12] << 8 | _dma_data_buffer[_offset + 5 + i * 12]);
+			int_accel_x[i] = int16_t(_dma_data_buffer[_offset + 0 + i * 12] << 8 | _dma_data_buffer[_offset + 1 + i * 12]);
+			int_accel_y[i] = int16_t(_dma_data_buffer[_offset + 2 + i * 12] << 8 | _dma_data_buffer[_offset + 3 + i * 12]);
+			int_accel_z[i] = int16_t(_dma_data_buffer[_offset + 4 + i * 12] << 8 | _dma_data_buffer[_offset + 5 + i * 12]);
+
+			accel_x += int_accel_x[i];
+			accel_y += int_accel_y[i];
+			accel_z += int_accel_z[i];
 
 			gyro_x 	+= int16_t(_dma_data_buffer[_offset + 6 + i * 12] << 8 | _dma_data_buffer[_offset + 7 + i * 12]);
 			gyro_y 	+= int16_t(_dma_data_buffer[_offset + 8 + i * 12] << 8 | _dma_data_buffer[_offset + 9 + i * 12]);
 			gyro_z 	+= int16_t(_dma_data_buffer[_offset + 10 + i * 12] << 8 | _dma_data_buffer[_offset + 11 + i * 12]);
-		}
 
-		// Always reset if the fifo has filled.
-		if (fifo_count >= 504) {
-			clean_reset();
+
+			// This is our poor mans CRC. We look for duplicate accel data since the accel only produces data at 4KHz max.
+			bool accel_x_matched = int_accel_x[i] == (int16_t)(_dma_data_buffer[_offset + 0 + (i + 1) * 12] << 8 |
+					       _dma_data_buffer[_offset + 1 + (i + 1) * 12]);
+			bool accel_y_matched = int_accel_y[i] == (int16_t)(_dma_data_buffer[_offset + 2 + (i + 1) * 12] << 8 |
+					       _dma_data_buffer[_offset + 3 + (i + 1) * 12]);
+			bool accel_z_matched = int_accel_z[i] == (int16_t)(_dma_data_buffer[_offset + 4 + (i + 1) * 12] << 8 |
+					       _dma_data_buffer[_offset + 5 + (i + 1) * 12]);
+
+			if (accel_x_matched && accel_y_matched && accel_z_matched) {
+				accel_poor_mans_crc++;
+			}
 		}
 
 		accel_x = (accel_x / (samples));
@@ -391,8 +418,24 @@ void MPU9250::run()
 		gyro_y = (gyro_y / (samples));
 		gyro_z = (gyro_z / (samples));
 
-		_accel.publish(accel_x, accel_y, accel_z, ACCEL_FS_RANGE_M_S2 / 65535.0f, _rotation);
-		_gyro.publish(gyro_x, gyro_y, gyro_z, GYRO_FS_RANGE_RADS / 65535.0f, _rotation);
+		_accel.publish(accel_x, accel_y, accel_z, _temperature);
+		_gyro.publish(gyro_x, gyro_y, gyro_z, _temperature);
+
+		// Take the byte count, divide by 12. Divide by 4 (truncate)
+		uint16_t crc_pass = (fifo_count / 12) / 4;
+		crc_pass *= 4; // at 372 bytes for a standard interval, this gives us 28 duplicates.
+
+		// When using the mag, the sensor/gyro sample rates get reduced to 4KHz for some reason.
+		// This means we never have duplicates and cannot use the poor mans CRC check.
+		// This also means the FIFO fills up in about 8ms, which never happens!
+		if ((accel_poor_mans_crc < crc_pass - 3) && _whoami != WHOAMI_9250) {
+			should_reset = true;
+		}
+
+		if (should_reset) {
+			perf_count(_reset);
+			clean_reset();
+		}
 
 		// Read mag at 100hz.
 		if (_whoami == WHOAMI_9250) {
@@ -400,25 +443,50 @@ void MPU9250::run()
 
 				_interface->read(EXT_SENS_DATA_00, _dma_data_buffer, 8 + _offset);
 
-				float x = (uint16_t)(_dma_data_buffer[3] << 8 | _dma_data_buffer[2]);
-				float y = (uint16_t)(_dma_data_buffer[5] << 8 | _dma_data_buffer[4]);
-				float z = (uint16_t)(_dma_data_buffer[7] << 8 | _dma_data_buffer[6]);
+				float x 		= (uint16_t)(_dma_data_buffer[3] << 8 | _dma_data_buffer[2]);
+				float y 		= (uint16_t)(_dma_data_buffer[5] << 8 | _dma_data_buffer[4]);
+				float z 		= (-1.0f) * (uint16_t)(_dma_data_buffer[7] << 8 | _dma_data_buffer[6]);
 
 				// Now bring the mag into same reference frame as the accel and gyro.
 				int16_t temp = x;
 				x = y;
 				y = temp;
 
-				_mag->publish(x, y, z, MAG_FS_RANGE_UT / 65535.0f, _rotation);
+				_mag->publish(x, y, z, _temperature);
 
 				_mag_poll_time = hrt_absolute_time();
 			}
 		}
 
 		// Read temperature at 10hz
+		if (hrt_elapsed_time(&_temp_poll_time) > _temp_interval) {
+
+			uint8_t buf[4] = {0};
+
+			_interface->read(TEMPERATURE_ADDR, buf, 2 + _offset);
+
+			_temperature = ((int16_t)(buf[1] << 8 | buf[2])) / 333.87f + 21.0f;;
+
+			_temp_poll_time = hrt_absolute_time();
+		}
+
+		// Reschedule the next cycle with a minimum delay of 200us
+		hrt_abstime elapsed_time = hrt_elapsed_time(&timer);
+
+		hrt_abstime next_schedule = 0;
+
+		if (elapsed_time > 800) {
+			next_schedule = 200;
+
+		} else {
+			next_schedule = 1000 - elapsed_time;
+		}
+
+		hrt_call_after(&_hrt_call, next_schedule, (hrt_callout)&MPU9250::post_semaphore, &_data_semaphore);
 
 		perf_end(_cycle);
 	}
+
 }
 
 int MPU9250::print_status()
@@ -430,27 +498,23 @@ int MPU9250::print_usage()
 {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
-		### Description
-		Bla Blah blaaaa.
-		)DESCR_STR");
+### Description
+Driver for the Invensense MPU9250 and MPU6500 IMUs. The 9250 is identical to the 6500 but includes a magnetometer.
+
+The default mode of operation for the device is continuous measurement mode. The gyro takes samples at 32KHz, accel at 4KHz
+and mag at 100Hz if available. The gyro and accel measurements are stored in a 512B FIFO buffer on chip. The FIFO is fetched
+at 1KHz, the data is averaged and then published.
+
+)DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("mpu9250", "system");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("controller_period",
-					 "Reports the heater driver cycle period value, (us), and sets it if supplied an argument.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("duty_cycle", "Reports the heater duty cycle (%).");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("feed_forward",
-					 "Sets the feedforward value if supplied an argument and reports the current value.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("integrator",
-					 "Sets the integrator gain value if supplied an argument and reports the current value.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("proportional",
-					 "Sets the proportional gain value if supplied an argument and reports the current value.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("sensor_id", "Reports the current IMU the heater is temperature controlling.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("setpoint", "Reports the current IMU temperature.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Starts the IMU heater driver as a background task");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("status",
-					 "Reports the current IMU temperature, temperature setpoint, and heater on/off status.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stops the IMU heater driver.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("temp", "Reports the current IMU temperature.");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_FLAG('X', "Start driver on external I2C bus.", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('I', "Start driver on internal I2C bus.", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('S', "Start driver on external SPI bus.", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('s', "Start driver on internal SPI_1 bus.", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('t', "Start driver on internal SPI_2 bus.", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('R', "0", "1 - 8", "Rotation", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
