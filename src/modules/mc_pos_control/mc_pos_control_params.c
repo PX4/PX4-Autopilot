@@ -633,12 +633,13 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
  * 	 and jerk limits.
  * 2 Sport mode that is the same Default position control but with velocity limits set to
  * 	 the maximum allowed speeds (MPC_XY_VEL_MAX)
+ * 3 Smooth position control with maximum acceleration and jerk limits (different algorithm
+ *   than 1).
  *
- * @min 0
- * @max 2
  * @value 0 Default position control
  * @value 1 Smooth position control
  * @value 2 Sport position control
+ * @value 3 Smooth position control (Velocity)
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_POS_MODE, 1);
