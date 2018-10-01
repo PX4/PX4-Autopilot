@@ -101,7 +101,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 	// when terrain hold behaviour has been selected.
 	if (MPC_ALT_MODE.get() == 2) {
 		// Use horizontal speed as a transition criteria
-		float spd_xy = Vector2f(&_velocity(0)).length();
+		float spd_xy = Vector2f(_velocity).length();
 
 		// Use presence of horizontal stick inputs as a transition criteria
 		float stick_xy = Vector2f(&_sticks_expo(0)).length();
@@ -260,7 +260,7 @@ void FlightTaskManualAltitude::_updateSetpoints()
 	// thrust along xy is demanded. The maximum thrust along xy depends on the thrust
 	// setpoint along z-direction, which is computed in PositionControl.cpp.
 
-	Vector2f sp{_sticks(0), _sticks(1)};
+	Vector2f sp(&_sticks(0));
 	_rotateIntoHeadingFrame(sp);
 
 	if (sp.length() > 1.0f) {
