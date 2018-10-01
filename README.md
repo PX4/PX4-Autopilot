@@ -31,6 +31,15 @@ A simple and efficient template based matrix library.
 * matrix/integrate.hpp : Provides integration routines.
     * integrate_rk4 (Runge-Kutta 4th order)
 
+## Testing
+The tests can be executed as following:
+```
+mkdir build
+cd build
+cmake  -DTESTING=ON ..
+make check
+```
+
 ## Example
 
 See the test directory for detailed examples. Some simple examples are included below:
