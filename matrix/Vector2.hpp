@@ -22,6 +22,7 @@ class Vector2 : public Vector<Type, 2>
 public:
 
     typedef Matrix<Type, 2, 1> Matrix21;
+    typedef Vector<Type, 3> Vector3;
 
     Vector2() = default;
 
@@ -40,6 +41,13 @@ public:
         Vector2 &v(*this);
         v(0) = x;
         v(1) = y;
+    }
+
+    explicit Vector2(const Vector3 & other)
+    {
+        Vector2 &v(*this);
+        v(0) = other(0);
+        v(1) = other(1);
     }
 
     Type cross(const Matrix21 & b) const {
