@@ -40,7 +40,9 @@
 #include <mathlib/mathlib.h>
 #include <float.h>
 
-ManualSmoothingXY::ManualSmoothingXY(ModuleParams *parent, const matrix::Vector2f &vel) :
+using namespace matrix;
+
+ManualSmoothingXY::ManualSmoothingXY(ModuleParams *parent, const Vector2f &vel) :
 	ModuleParams(parent), 	_vel_sp_prev(vel)
 
 {
@@ -49,7 +51,7 @@ ManualSmoothingXY::ManualSmoothingXY(ModuleParams *parent, const matrix::Vector2
 }
 
 void
-ManualSmoothingXY::smoothVelocity(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float &yaw,
+ManualSmoothingXY::smoothVelocity(Vector2f &vel_sp, const Vector2f &vel, const float &yaw,
 				  const float &yawrate_sp, const float dt)
 {
 	_updateAcceleration(vel_sp, vel, yaw, yawrate_sp, dt);
@@ -58,7 +60,7 @@ ManualSmoothingXY::smoothVelocity(matrix::Vector2f &vel_sp, const matrix::Vector
 }
 
 void
-ManualSmoothingXY::_updateAcceleration(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel,  const float &yaw,
+ManualSmoothingXY::_updateAcceleration(Vector2f &vel_sp, const Vector2f &vel,  const float &yaw,
 				       const float &yawrate_sp, const float dt)
 {
 	Intention intention = _getIntention(vel_sp, vel, yaw, yawrate_sp);
@@ -69,7 +71,7 @@ ManualSmoothingXY::_updateAcceleration(matrix::Vector2f &vel_sp, const matrix::V
 }
 
 ManualSmoothingXY::Intention
-ManualSmoothingXY::_getIntention(const matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float &yaw,
+ManualSmoothingXY::_getIntention(const Vector2f &vel_sp, const Vector2f &vel, const float &yaw,
 				 const float &yawrate_sp)
 {
 
@@ -81,8 +83,8 @@ ManualSmoothingXY::_getIntention(const matrix::Vector2f &vel_sp, const matrix::V
 		// that the user demanded a direction change.
 		// The detection is done in body frame.
 		// Rotate velocity setpoint into body frame
-		matrix::Vector2f vel_sp_heading = _getWorldToHeadingFrame(vel_sp, yaw);
-		matrix::Vector2f vel_heading = _getWorldToHeadingFrame(vel, yaw);
+		Vector2f vel_sp_heading = _getWorldToHeadingFrame(vel_sp, yaw);
+		Vector2f vel_heading = _getWorldToHeadingFrame(vel, yaw);
 
 		if (vel_sp_heading.length() > FLT_EPSILON) {
 			vel_sp_heading.normalize();
@@ -117,7 +119,7 @@ ManualSmoothingXY::_getIntention(const matrix::Vector2f &vel_sp, const matrix::V
 }
 
 void
-ManualSmoothingXY::_setStateAcceleration(const matrix::Vector2f &vel_sp, const matrix::Vector2f &vel,
+ManualSmoothingXY::_setStateAcceleration(const Vector2f &vel_sp, const Vector2f &vel,
 		const Intention &intention, const float dt)
 {
 	switch (intention) {
@@ -194,10 +196,10 @@ ManualSmoothingXY::_setStateAcceleration(const matrix::Vector2f &vel_sp, const m
 }
 
 void
-ManualSmoothingXY::_velocitySlewRate(matrix::Vector2f &vel_sp, const float dt)
+ManualSmoothingXY::_velocitySlewRate(Vector2f &vel_sp, const float dt)
 {
 	// Adjust velocity setpoint if demand exceeds acceleration. /
-	matrix::Vector2f acc{};
+	Vector2f acc{};
 
 	if (dt > FLT_EPSILON) {
 		acc = (vel_sp - _vel_sp_prev) / dt;
@@ -208,18 +210,18 @@ ManualSmoothingXY::_velocitySlewRate(matrix::Vector2f &vel_sp, const float dt)
 	}
 }
 
-matrix::Vector2f
-ManualSmoothingXY::_getWorldToHeadingFrame(const matrix::Vector2f &vec, const float &yaw)
+Vector2f
+ManualSmoothingXY::_getWorldToHeadingFrame(const Vector2f &vec, const float &yaw)
 {
-	matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), yaw);
-	matrix::Vector3f vec_heading = q_yaw.conjugate_inversed(matrix::Vector3f(vec(0), vec(1), 0.0f));
-	return matrix::Vector2f(&vec_heading(0));
+	Quatf q_yaw = AxisAnglef(Vector3f(0.0f, 0.0f, 1.0f), yaw);
+	Vector3f vec_heading = q_yaw.conjugate_inversed(Vector3f(vec(0), vec(1), 0.0f));
+	return Vector2f(vec_heading);
 }
 
-matrix::Vector2f
-ManualSmoothingXY::_getHeadingToWorldFrame(const matrix::Vector2f &vec, const float &yaw)
+Vector2f
+ManualSmoothingXY::_getHeadingToWorldFrame(const Vector2f &vec, const float &yaw)
 {
-	matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), yaw);
-	matrix::Vector3f vec_world = q_yaw.conjugate(matrix::Vector3f(vec(0), vec(1), 0.0f));
-	return matrix::Vector2f(&vec_world(0));
+	Quatf q_yaw = AxisAnglef(Vector3f(0.0f, 0.0f, 1.0f), yaw);
+	Vector3f vec_world = q_yaw.conjugate(Vector3f(vec(0), vec(1), 0.0f));
+	return Vector2f(vec_world);
 }
