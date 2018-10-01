@@ -63,10 +63,14 @@ static void
 usage()
 {
 	PX4_INFO(
-		"External tune control for testing. Usage:\n"
+		"External tune control for testing.\n\n"
+		"For information about tune format/system tunes see:\n"
+		"https://github.com/PX4/Firmware/blob/master/src/lib/tunes/tune_definition.desc.\n\n"
+		"Usage:\n"
+
 		"tune_control play [-t <default tunes>] [-f <frequency>] [-d <duration>] [-s <strength>] [-m < melody>]\n"
 		"\n"
-		"\t-t <defualt tunes>\tPlay the default (1...15) (default=1)\n"
+		"\t-t <system tunes>\tPlay a predefined system tune (default=1)\n"
 		"\t-f <frequency>\t\tFrequency from 0-20kHz\n"
 		"\t-d <duration>\t\tDuration of the tone in us\n"
 		"\t-s <strength>\t\tStrength of the tone between 0-100\n"
