@@ -113,7 +113,7 @@ float StraightLine::getMaxAcc()
 	Vector3f u_orig_to_target = (_target - _origin).unit_or_zero();
 
 	// calculate the maximal horizontal acceleration
-	float divider = Vector2f(u_orig_to_target(0), u_orig_to_target(1)).length();
+	float divider = Vector2f(u_orig_to_target).length();
 	float max_acc_hor = MPC_ACC_HOR_MAX.get();
 
 	if (divider > FLT_EPSILON) {
@@ -148,7 +148,7 @@ float StraightLine::getMaxVel()
 	Vector3f u_orig_to_target = (_target - _origin).unit_or_zero();
 
 	// calculate the maximal horizontal velocity
-	float divider = Vector2f(u_orig_to_target.data()).length();
+	float divider = Vector2f(u_orig_to_target).length();
 	float max_vel_hor = MPC_XY_VEL_MAX.get();
 
 	if (divider > FLT_EPSILON) {

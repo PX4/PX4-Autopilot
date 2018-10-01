@@ -122,7 +122,7 @@ bool FlightTaskOrbit::activate()
 	bool ret = FlightTaskManualAltitudeSmooth::activate();
 	_r = _radius_min;
 	_v =  1.f;
-	_center = Vector2f(_position.data());
+	_center = Vector2f(_position);
 	_center(0) -= _r;
 
 	// need a valid position and velocity
@@ -149,8 +149,8 @@ bool FlightTaskOrbit::update()
 	setVelocity(v);
 
 	// xy velocity to go around in a circle
-	Vector2f center_to_position = Vector2f(_position.data()) - _center;
-	Vector2f velocity_xy = Vector2f(-center_to_position(1), center_to_position(0));
+	Vector2f center_to_position = Vector2f(_position) - _center;
+	Vector2f velocity_xy(-center_to_position(1), center_to_position(0));
 	velocity_xy = velocity_xy.unit_or_zero();
 	velocity_xy *= _v;
 

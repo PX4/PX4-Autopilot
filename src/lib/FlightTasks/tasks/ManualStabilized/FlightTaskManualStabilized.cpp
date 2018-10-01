@@ -99,7 +99,7 @@ void FlightTaskManualStabilized::_updateHeadingSetpoints()
 void FlightTaskManualStabilized::_updateThrustSetpoints()
 {
 	/* Rotate setpoint into local frame. */
-	Vector2f sp{_sticks(0), _sticks(1)};
+	Vector2f sp(&_sticks(0));
 	_rotateIntoHeadingFrame(sp);
 
 	/* Ensure that maximum tilt is in [0.001, Pi] */

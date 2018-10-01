@@ -55,14 +55,14 @@ void FlightTaskAutoLine::_generateSetpoints()
 
 void FlightTaskAutoLine::_generateHeadingAlongTrack()
 {
-	Vector2f prev_to_dest = Vector2f(&(_target - _prev_wp)(0));
+	Vector2f prev_to_dest(_target - _prev_wp);
 	_compute_heading_from_2D_vector(_yaw_setpoint, prev_to_dest);
 
 }
 
 void FlightTaskAutoLine::_generateXYsetpoints()
 {
-	Vector2f pos_sp_to_dest = Vector2f(&(_target - _position_setpoint)(0));
+	Vector2f pos_sp_to_dest(_target - _position_setpoint);
 	const bool has_reached_altitude = fabsf(_target(2) - _position(2)) < NAV_ACC_RAD.get();
 
 	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < NAV_ACC_RAD.get()) ||
@@ -76,13 +76,13 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 	} else {
 
 		// Get various path specific vectors. */
-		Vector2f u_prev_to_dest = Vector2f(&(_target - _prev_wp)(0)).unit_or_zero();
-		Vector2f prev_to_pos(&(_position - _prev_wp)(0));
-		Vector2f closest_pt = Vector2f(&_prev_wp(0)) + u_prev_to_dest * (prev_to_pos * u_prev_to_dest);
-		Vector2f closest_to_dest = Vector2f(&(_target - _position)(0));
-		Vector2f prev_to_dest = Vector2f(&(_target - _prev_wp)(0));
+		Vector2f u_prev_to_dest = Vector2f(_target - _prev_wp).unit_or_zero();
+		Vector2f prev_to_pos(_position - _prev_wp);
+		Vector2f closest_pt = Vector2f(_prev_wp) + u_prev_to_dest * (prev_to_pos * u_prev_to_dest);
+		Vector2f closest_to_dest(_target - _position);
+		Vector2f prev_to_dest(_target - _prev_wp);
 		float speed_sp_track = _mc_cruise_speed;
-		float speed_sp_prev_track = math::max(Vector2f(&_velocity_setpoint(0)) * u_prev_to_dest, 0.0f);
+		float speed_sp_prev_track = math::max(Vector2f(_velocity_setpoint) * u_prev_to_dest, 0.0f);
 
 		// Distance to target when brake should occur. The assumption is made that
 		// 1.5 * cruising speed is enough to break.

@@ -41,15 +41,16 @@
 #include <float.h>
 #include <mathlib/mathlib.h>
 
+using namespace matrix;
 namespace ControlMath
 {
-vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp)
+vehicle_attitude_setpoint_s thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp)
 {
 	vehicle_attitude_setpoint_s att_sp = {};
 	att_sp.yaw_body = yaw_sp;
 
 	// desired body_z axis = -normalize(thrust_vector)
-	matrix::Vector3f body_x, body_y, body_z;
+	Vector3f body_x, body_y, body_z;
 
 	if (thr_sp.length() > 0.00001f) {
 		body_z = -thr_sp.normalized();
@@ -61,7 +62,7 @@ vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, con
 	}
 
 	// vector of desired yaw direction in XY plane, rotated by PI/2
-	matrix::Vector3f y_C(-sinf(att_sp.yaw_body), cosf(att_sp.yaw_body), 0.0f);
+	Vector3f y_C(-sinf(att_sp.yaw_body), cosf(att_sp.yaw_body), 0.0f);
 
 	if (fabsf(body_z(2)) > 0.000001f) {
 		// desired body_x axis, orthogonal to body_z
@@ -84,7 +85,7 @@ vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, con
 	// desired body_y axis
 	body_y = body_z % body_x;
 
-	matrix::Dcmf R_sp;
+	Dcmf R_sp;
 
 	// fill rotation matrix
 	for (int i = 0; i < 3; i++) {
@@ -94,12 +95,12 @@ vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, con
 	}
 
 	//copy quaternion setpoint to attitude setpoint topic
-	matrix::Quatf q_sp = R_sp;
+	Quatf q_sp = R_sp;
 	q_sp.copyTo(att_sp.q_d);
 	att_sp.q_d_valid = true;
 
 	// calculate euler angles, for logging only, must not be used for control
-	matrix::Eulerf euler = R_sp;
+	Eulerf euler = R_sp;
 	att_sp.roll_body = euler(0);
 	att_sp.pitch_body = euler(1);
 	att_sp.thrust = thr_sp.length();
@@ -107,9 +108,9 @@ vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, con
 	return att_sp;
 }
 
-matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f &v1, const float &max)
+Vector2f constrainXY(const Vector2f &v0, const Vector2f &v1, const float &max)
 {
-	if (matrix::Vector2f(v0 + v1).norm() <= max) {
+	if (Vector2f(v0 + v1).norm() <= max) {
 		// vector does not exceed maximum magnitude
 		return v0 + v1;
 
@@ -117,7 +118,7 @@ matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f 
 		// the magnitude along v0, which has priority, already exceeds maximum.
 		return v0.normalized() * max;
 
-	} else if (fabsf(matrix::Vector2f(v1 - v0).norm()) < 0.001f) {
+	} else if (fabsf(Vector2f(v1 - v0).norm()) < 0.001f) {
 		// the two vectors are equal
 		return v0.normalized() * max;
 
@@ -164,7 +165,7 @@ matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f 
 		// 	- s (=scaling factor) needs to be positive
 		// 	- (max - ||v||) always larger than zero, otherwise it never entered this if-statement
 
-		matrix::Vector2f u1 = v1.normalized();
+		Vector2f u1 = v1.normalized();
 		float m = u1.dot(v0);
 		float c = v0.dot(v0) - max * max;
 		float s = -m + sqrtf(m * m - c);
@@ -172,18 +173,18 @@ matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f 
 	}
 }
 
-bool cross_sphere_line(const matrix::Vector3f &sphere_c, const float sphere_r,
-		       const matrix::Vector3f &line_a, const matrix::Vector3f &line_b, matrix::Vector3f &res)
+bool cross_sphere_line(const Vector3f &sphere_c, const float sphere_r,
+		       const Vector3f &line_a, const Vector3f &line_b, Vector3f &res)
 {
 	// project center of sphere on line  normalized AB
-	matrix::Vector3f ab_norm = line_b - line_a;
+	Vector3f ab_norm = line_b - line_a;
 
 	if (ab_norm.length() < 0.01f) {
 		return true;
 	}
 
 	ab_norm.normalize();
-	matrix::Vector3f d = line_a + ab_norm * ((sphere_c - line_a) * ab_norm);
+	Vector3f d = line_a + ab_norm * ((sphere_c - line_a) * ab_norm);
 	float cd_len = (sphere_c - d).length();
 
 	if (sphere_r > cd_len) {

@@ -219,7 +219,7 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 			prev_wp(1) = (float)pos_sp_triplet.previous.lon;
 		}
 
-		matrix::Vector2f ground_speed_2d = {ground_speed(0), ground_speed(1)};
+		matrix::Vector2f ground_speed_2d(ground_speed);
 
 		float mission_throttle = _parameters.throttle_cruise;
 

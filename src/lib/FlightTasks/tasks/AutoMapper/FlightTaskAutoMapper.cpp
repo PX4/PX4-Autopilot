@@ -143,7 +143,7 @@ void FlightTaskAutoMapper::_generateVelocitySetpoints()
 	// TODO: Remove velocity force logic from navigator, since
 	// navigator should only send out waypoints.
 	_position_setpoint = Vector3f(NAN, NAN, _position(2));
-	Vector2f vel_sp_xy = Vector2f(&_velocity(0)).unit_or_zero() * _mc_cruise_speed;
+	Vector2f vel_sp_xy = Vector2f(_velocity).unit_or_zero() * _mc_cruise_speed;
 	_velocity_setpoint = Vector3f(vel_sp_xy(0), vel_sp_xy(1), NAN);
 }
 
