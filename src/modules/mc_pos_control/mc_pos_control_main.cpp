@@ -917,6 +917,10 @@ MulticopterPositionControl::start_flight_task()
 			error =  _flight_tasks.switchTask(FlightTaskIndex::Sport);
 			break;
 
+		case 3:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmoothVel);
+			break;
+
 		default:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPosition);
 			break;

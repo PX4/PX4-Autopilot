@@ -31,12 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskUtility
-	ManualSmoothingZ.cpp
-	ManualSmoothingXY.cpp
-	StraightLine.cpp
-	VelocitySmoothing.cpp
+px4_add_library(FlightTaskManualPositionSmoothVel
+	FlightTaskManualPositionSmoothVel.cpp
 )
 
-target_link_libraries(FlightTaskUtility PUBLIC FlightTask)
-target_include_directories(FlightTaskUtility PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(FlightTaskManualPositionSmoothVel PUBLIC FlightTaskManualPosition FlightTaskUtility)
+target_include_directories(FlightTaskManualPositionSmoothVel PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
