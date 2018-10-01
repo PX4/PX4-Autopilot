@@ -29,6 +29,11 @@ int main()
     TEST(fabs(f(0) - 4) < 1e-5);
     TEST(fabs(f(1) - 5) < 1e-5);
 
+    Vector3f g(1.23f, 423.4f, 3221.f);
+    Vector2f h(g);
+    TEST(fabs(h(0) - 1.23f) < 1e-5);
+    TEST(fabs(h(1) - 423.4f) < 1e-5);
+
     return 0;
 }
 
