@@ -43,24 +43,23 @@
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/uORB.h>
 
-
 class Gyro : public cdev::CDev
 {
 
 public:
-	Gyro(const char *name, device::Device  *interface, uint8_t dev_type);
+	Gyro(const char *name, device::Device  *interface, uint8_t dev_type, enum Rotation rotation, float scale);
 	~Gyro() override;
 
 	int	init() override;
 	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
 
-	int publish(float x, float y, float z, float scale, Rotation rotation);
+	int publish(float x, float y, float z, float temperature);
 
 	void configure_filter(float sample_freq, float cutoff_freq);
 
 private:
 	// Pointer to the communication interface
-	const device::Device *_interface;
+	const device::Device *_interface{nullptr};
 
 	gyro_calibration_s _cal{};
 
@@ -70,7 +69,11 @@ private:
 
 	int	_orb_class_instance{-1};
 
-	//enum Rotation _rotation = ROTATION_NONE;
+	int _class_device_instance{-1};
+
+	enum Rotation _rotation = ROTATION_NONE;
+
+	float _scale;
 
 	math::LowPassFilter2p _filter_x{1000, 100};
 	math::LowPassFilter2p _filter_y{1000, 100};

@@ -34,9 +34,13 @@
 
 #include "Gyro.hpp"
 
-Gyro::Gyro(const char *path, device::Device *interface, uint8_t dev_type) :
+#define INTEGRATED_MAX_OUTPUT_RATE 280
+
+
+Gyro::Gyro(const char *path, device::Device *interface, uint8_t dev_type, enum Rotation rotation, float scale) :
 	CDev(path),
-	_interface(interface)
+	_interface(interface),
+	_integrator(1000000 / INTEGRATED_MAX_OUTPUT_RATE, true)
 {
 	_device_id.devid = _interface->get_device_id();
 	// _device_id.devid_s.bus_type = (device::Device::DeviceBusType)_interface->get_device_bus_type();
@@ -44,7 +48,12 @@ Gyro::Gyro(const char *path, device::Device *interface, uint8_t dev_type) :
 	// _device_id.devid_s.address = _interface->get_device_address();
 	_device_id.devid_s.devtype = dev_type;
 
-	PX4_INFO("Accel device id: %d", _device_id.devid);
+	CDev::init();
+
+	_class_device_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
+
+	_rotation = rotation;
+	_scale = scale;
 
 	_cal.x_offset = 0;
 	_cal.x_scale  = 1.0f;
@@ -63,8 +72,6 @@ Gyro::~Gyro()
 
 int Gyro::init()
 {
-	CDev::init();
-
 	gyro_report report{};
 	report.device_id = _device_id.devid;
 
@@ -82,8 +89,6 @@ int Gyro::init()
 
 int Gyro::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
-	PX4_INFO("gyro getting ioctl'd");
-
 	switch (cmd) {
 	case GYROIOCSSCALE:
 		// Copy scale in.
@@ -112,14 +117,15 @@ void Gyro::configure_filter(float sample_freq, float cutoff_freq)
 }
 
 // @TODO: Use fixed point math to reclaim CPU usage.
-int Gyro::publish(float x, float y, float z, float scale, Rotation rotation)
+int Gyro::publish(float x, float y, float z, float temperature)
 {
 	sensor_gyro_s report{};
 
 	report.device_id   = _device_id.devid;
 	report.error_count = 0;
-	report.scaling 	   = scale;
+	report.scaling 	   = _scale;
 	report.timestamp   = hrt_absolute_time();
+	report.temperature = temperature;
 
 	// Raw values (ADC units 0 - 65535)
 	report.x_raw = x;
@@ -127,12 +133,12 @@ int Gyro::publish(float x, float y, float z, float scale, Rotation rotation)
 	report.z_raw = z;
 
 	// Apply the rotation.
-	rotate_3f(rotation, x, y, z);
+	rotate_3f(_rotation, x, y, z);
 
 	// Apply FS range scale and the calibrating offset/scale
-	x = ((x * scale) - _cal.x_offset) * _cal.x_scale;
-	y = ((y * scale) - _cal.y_offset) * _cal.y_scale;
-	z = ((z * scale) - _cal.z_offset) * _cal.z_scale;
+	x = ((x * _scale) - _cal.x_offset) * _cal.x_scale;
+	y = ((y * _scale) - _cal.y_offset) * _cal.y_scale;
+	z = ((z * _scale) - _cal.z_offset) * _cal.z_scale;
 
 	// Filtered values
 	report.x = _filter_x.apply(x);

@@ -34,7 +34,7 @@
 
 #include "Mag.hpp"
 
-Mag::Mag(const char *path, device::Device  *interface, uint8_t dev_type) :
+Mag::Mag(const char *path, device::Device  *interface, uint8_t dev_type, enum Rotation rotation, float scale) :
 	CDev(path),
 	_interface(interface)
 {
@@ -44,7 +44,12 @@ Mag::Mag(const char *path, device::Device  *interface, uint8_t dev_type) :
 	// _device_id.devid_s.address = _interface->get_device_address();
 	_device_id.devid_s.devtype = dev_type;
 
-	PX4_INFO("Accel device id: %d", _device_id.devid);
+	CDev::init();
+
+	_class_device_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
+
+	_rotation = rotation;
+	_scale = scale;
 
 	_cal.x_offset = 0;
 	_cal.x_scale  = 1.0f;
@@ -63,8 +68,6 @@ Mag::~Mag()
 
 int Mag::init()
 {
-	CDev::init();
-
 	mag_report report{};
 	report.device_id = _device_id.devid;
 
@@ -82,8 +85,6 @@ int Mag::init()
 
 int Mag::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
-	PX4_INFO("mag getting ioctl'd");
-
 	switch (cmd) {
 	case MAGIOCSSCALE:
 		// Copy scale in.
@@ -112,17 +113,17 @@ void Mag::configure_filter(float sample_freq, float cutoff_freq)
 }
 
 // @TODO: use fixed point math to reclaim CPU usage
-int Mag::publish(float x, float y, float z, float scale, Rotation rotation)
+int Mag::publish(float x, float y, float z, float temperature)
 {
 	sensor_mag_s report{};
 
 	report.device_id   = _device_id.devid;
 	report.error_count = 0;
-	report.scaling 	   = scale;
+	report.scaling 	   = _scale;
 	report.timestamp   = hrt_absolute_time();
+	report.temperature = temperature;
 	report.is_external = false;
 
-	report.temperature = 20.0;
 
 	// Raw values (ADC units 0 - 65535)
 	report.x_raw = x;
@@ -130,12 +131,12 @@ int Mag::publish(float x, float y, float z, float scale, Rotation rotation)
 	report.z_raw = z;
 
 	// Apply the rotation.
-	rotate_3f(rotation, x, y, z);
+	rotate_3f(_rotation, x, y, z);
 
 	// Apply FS range scale and the calibrating offset/scale
-	x = ((x * scale) - _cal.x_offset) * _cal.x_scale;
-	y = ((y * scale) - _cal.y_offset) * _cal.y_scale;
-	z = ((z * scale) - _cal.z_offset) * _cal.z_scale;
+	x = ((x * _scale) - _cal.x_offset) * _cal.x_scale;
+	y = ((y * _scale) - _cal.y_offset) * _cal.y_scale;
+	z = ((z * _scale) - _cal.z_offset) * _cal.z_scale;
 
 	// Filtered values
 	report.x = _filter_x.apply(x);
