@@ -47,20 +47,12 @@ class Classifier():
     def __init__(self, yaml_file, msg_folder):
         self.msg_id_map = self.parse_yaml_msg_id_file(yaml_file)
         self.msg_folder = msg_folder
-        self.msgs_to_send = {}
-        self.msgs_to_receive = {}
-        self.msgs_to_ignore = {}
-        self.msg_files_send = []
-        self.msg_files_receive = []
-        self.msg_files_ignore = []
-
-        # init class attributtes
-        self.set_msgs_to_send()
-        self.set_msgs_to_receive()
-        self.set_msgs_to_ignore()
-        self.set_msg_files_send()
-        self.set_msg_files_receive()
-        self.set_msg_files_ignore()
+        self.msgs_to_send = self.set_msgs_to_send()
+        self.msgs_to_receive = self.set_msgs_to_receive()
+        self.msgs_to_ignore = self.set_msgs_to_ignore()
+        self.msg_files_send = self.set_msg_files_send()
+        self.msg_files_receive = self.set_msg_files_receive()
+        self.msg_files_ignore = self.set_msg_files_ignore()
 
     # getters
     @property
@@ -97,27 +89,33 @@ class Classifier():
 
     # setters (for class init)
     def set_msgs_to_send(self):
+        send = {}
         for dict in self.msg_id_map['rtps']['send']:
-            self.msgs_to_send.update({dict['msg']: dict['id']})
+            send.update({dict['msg']: dict['id']})
+        return send
 
     def set_msgs_to_receive(self):
+        receive = {}
         for dict in self.msg_id_map['rtps']['receive']:
-            self.msgs_to_receive.update({dict['msg']: dict['id']})
+            receive.update({dict['msg']: dict['id']})
+        return receive
 
     def set_msgs_to_ignore(self):
+        ignore = {}
         for dict in self.msg_id_map['rtps']['unclassified']:
-            self.msgs_to_ignore.update({dict['msg']: dict['id']})
+            ignore.update({dict['msg']: dict['id']})
+        return ignore
 
     def set_msg_files_send(self):
-        self.msgs_files_send = [os.path.dirname(os.path.dirname(os.path.join(self.msg_folder, msg + ".msg")))
+        return [os.path.join(self.msg_folder, msg + ".msg")
                                 for msg in self.msgs_to_send.keys()]
 
     def set_msg_files_receive(self):
-        self.msgs_files_receive = [os.path.dirname(os.path.dirname(os.path.join(self.msg_folder, msg + ".msg")))
+        return [os.path.join(self.msg_folder, msg + ".msg")
                                    for msg in self.msgs_to_receive.keys()]
 
     def set_msg_files_ignore(self):
-        self.msgs_files_ignore = [os.path.dirname(os.path.dirname(os.path.join(self.msg_folder, msg + ".msg")))
+        return [os.path.join(self.msg_folder, msg + ".msg")
                                   for msg in self.msgs_to_ignore.keys()]
 
     @staticmethod
