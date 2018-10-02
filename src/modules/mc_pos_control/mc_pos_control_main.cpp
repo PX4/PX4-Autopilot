@@ -1055,27 +1055,23 @@ MulticopterPositionControl::update_avoidance_waypoint_desired(PositionControlSta
 		vehicle_local_position_setpoint_s &setpoint)
 {
 	if (MPC_OBS_AVOID.get()) {
-		const vehicle_trajectory_waypoint_s traj_wp_desired_new = _flight_tasks.getAvoidanceWaypoint();
+		_traj_wp_avoidance_desired = _flight_tasks.getAvoidanceWaypoint();
+		_traj_wp_avoidance_desired.timestamp = hrt_absolute_time();
+		_traj_wp_avoidance_desired.type = vehicle_trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
 
-		if (traj_wp_desired_new.timestamp > _traj_wp_avoidance_desired.timestamp) {
-			_traj_wp_avoidance_desired = traj_wp_desired_new;
-			_traj_wp_avoidance_desired.timestamp = hrt_absolute_time();
-			_traj_wp_avoidance_desired.type = vehicle_trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
+		states.position.copyTo(_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].position);
 
-			states.position.copyTo(_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].position);
+		_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[0] = setpoint.vx;
+		_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[1] = setpoint.vy;
+		_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[2] = setpoint.vz;
 
-			_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[0] = setpoint.vx;
-			_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[1] = setpoint.vy;
-			_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[2] = setpoint.vz;
+		states.acceleration.copyTo(_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].acceleration);
 
-			states.acceleration.copyTo(_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].acceleration);
+		_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw = states.yaw;
+		_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed = NAN;
+		_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid = true;
 
-			_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw = states.yaw;
-			_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed = NAN;
-			_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid = true;
-
-			publish_avoidance_desired_waypoint();
-		}
+		publish_avoidance_desired_waypoint();
 	}
 }
 
