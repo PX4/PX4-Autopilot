@@ -32,7 +32,7 @@
  ****************************************************************************/
 #pragma once
 /*
- * This file is a shim to bridge to the many SoC architecture supported by PX3
+ * This file is a shim to bridge to the many SoC architecture supported by PX4
  */
 
 #ifdef __PX4_NUTTX
