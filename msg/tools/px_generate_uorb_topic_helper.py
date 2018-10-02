@@ -61,7 +61,7 @@ type_map = {
 }
 
 type_serialize_map = {
-    'int8': 'char',
+    'int8': 'int8_t',
     'int16': 'int16_t',
     'int32': 'int32_t',
     'int64': 'int64_t',
