@@ -219,7 +219,6 @@ misc_qgc_extra_firmware: \
 	check_crazyflie_default \
 	check_mindpx-v2_default \
 	check_px4fmu-v2_lpe \
-	check_tap-v1_default \
 	sizes
 
 # Other NuttX firmware
