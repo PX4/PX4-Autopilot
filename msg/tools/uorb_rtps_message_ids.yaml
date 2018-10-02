@@ -6,6 +6,8 @@ rtps:
       id: 6
     - msg: differential_pressure
       id: 15
+    - msg: esc_report
+      id: 21
     - msg: esc_status
       id: 22
     - msg: estimator_status
@@ -105,8 +107,6 @@ rtps:
       id: 19
     - msg: ekf_gps_position
       id: 20
-    - msg: esc_report
-      id: 21
     - msg: follow_target
       id: 24
     - msg: geofence_result
