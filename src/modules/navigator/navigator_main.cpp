@@ -945,6 +945,11 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 {
 	float radius = mission_item_radius;
 
+
+	if (_vstatus.is_vtol && _vstatus.in_transition_mode) {
+		return radius;
+	}
+
 	// XXX only use navigation capabilities for now
 	// when in fixed wing mode
 	// this might need locking against a commanded transition
