@@ -816,7 +816,8 @@ Mission::set_mission_items()
 				}
 
 				/* move to landing waypoint before descent if necessary */
-				if ((_work_item_type == WORK_ITEM_TYPE_DEFAULT ||
+				if (do_need_move_to_land() &&
+				    (_work_item_type == WORK_ITEM_TYPE_DEFAULT ||
 				     _work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION) &&
 				    new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 
@@ -839,8 +840,6 @@ Mission::set_mission_items()
 					    && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
 						altitude = pos_sp_triplet->current.alt;
 					}
-
-					_navigator->get_position_setpoint_triplet()->previous.valid = false;
 
 					_mission_item.altitude = altitude;
 					_mission_item.altitude_is_relative = false;
@@ -1009,8 +1008,7 @@ Mission::set_mission_items()
 	/* only set the previous position item if the current one really changed */
 	if ((_work_item_type != WORK_ITEM_TYPE_MOVE_TO_LAND) &&
 	    !position_setpoint_equal(&pos_sp_triplet->current, &current_setpoint_copy)) {
-		//pos_sp_triplet->previous = current_setpoint_copy;
-
+		pos_sp_triplet->previous = current_setpoint_copy;
 	}
 
 	/* issue command if ready (will do nothing for position mission items) */
