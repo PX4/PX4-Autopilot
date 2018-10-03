@@ -19,7 +19,7 @@ This repository holds the [PX4](http://px4.io) flight control solution for drone
 
 ## PX4 Users
 
-The [PX4 User Guide](https://docs.px4.io/en/) explains how to assemble [supported vehicles](https://docs.px4.io/en/airframes/airframe_reference.html) and fly drones with PX4. 
+The [PX4 User Guide](https://docs.px4.io/en/) explains how to assemble [supported vehicles](https://docs.px4.io/en/airframes/airframe_reference.html) and fly drones with PX4.
 See the [forum and chat](https://docs.px4.io/en/#support) if you need help!
 
 
@@ -75,7 +75,7 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/en/contribut
     * [José Roberto de Souza](https://github.com/zehortigoza)
   * [Raspberry Pi / Navio](https://github.com/PX4/Firmware/labels/raspberry_pi) - [Beat Kueng](https://github.com/bkueng)
   * [Airmind MindPX / MindRacer](https://github.com/PX4/Firmware/labels/mindpx) - [Henry Zhang](https://github.com/iZhangHui)
-  * RTPS/ROS2 Interface - [Vicente Monge](https://github.com/vicenteeprosima)
+  * RTPS/ROS2 Interface - [Nuno Marques](https://github.com/TSC21)
 
 See also [About Us](http://px4.io/about-us/#development_team) (px4.io) and the [contributors list](https://github.com/PX4/Firmware/graphs/contributors) (Github).
 
