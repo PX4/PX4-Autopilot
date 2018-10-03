@@ -149,9 +149,21 @@ then
 fi
 
 # Autostart ID
-autostart_file=$( ls -- etc/init.d-posix/"$(param show -q SYS_AUTOSTART)"_* )
+autostart_file=''
+for f in etc/init.d-posix/"$(param show -q SYS_AUTOSTART)"_*
+do
+	filename=$(basename "$f")
+	case "$filename" in
+		*\.*)
+			# ignore files that contain a dot (e.g. <vehicle>.post)
+			;;
+		*)
+			autostart_file="$f"
+			;;
+	esac
+done
 if [ ! -e "$autostart_file" ]; then
-	echo "Error: no autostart file found"
+	echo "Error: no autostart file found ($autostart_file)"
 	exit -1
 fi
 
