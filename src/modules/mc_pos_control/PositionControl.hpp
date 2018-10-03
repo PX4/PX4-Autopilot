@@ -202,6 +202,7 @@ private:
 		(ParamFloat<px4::params::MPC_XY_P>) MPC_XY_P,
 		(ParamFloat<px4::params::MPC_XY_VEL_P>) MPC_XY_VEL_P,
 		(ParamFloat<px4::params::MPC_XY_VEL_I>) MPC_XY_VEL_I,
-		(ParamFloat<px4::params::MPC_XY_VEL_D>) MPC_XY_VEL_D
+		(ParamFloat<px4::params::MPC_XY_VEL_D>) MPC_XY_VEL_D,
+		(ParamFloat<px4::params::MPC_XY_VEL_ARW>) MPC_XY_VEL_ARW
 	)
 };
