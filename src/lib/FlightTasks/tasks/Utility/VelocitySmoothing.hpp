@@ -39,6 +39,19 @@
  * @class VelocitySmoothing
  *
  * TODO: document the algorithm
+ *    |T1| T2 |T3|
+ *     ___
+ *   __| |____   __ Jerk
+ *            |_|
+ *        ___
+ *       /   \	 Acceleration
+ *   ___/     \___
+ *             ___
+ *           ;"
+ *          /
+ *         / 	 Velocity
+ *        ;
+ *   ----"
  */
 class VelocitySmoothing
 {
@@ -55,18 +68,22 @@ public:
 	void reset(float accel, float vel, float pos);
 
 	/**
-	 * Update the setpoint and get the smoothed setpoints. This should be called on every cycle.
-	 * @param dt delta time between last update() call and now [s]
-	 * @param pos Current vehicle's position
+	 * Compute T1, T2, T3 depending on the current state and velocity setpoint. This should be called on every cycle.
 	 * @param vel_setpoint velocity setpoint input
+	 * @param T123 optional parameter. If set, the total trajectory time will be T123, if not,
+	 * 		the algorithm optimizes for time.
+	 */
+	void updateDurations(float vel_setpoint, float T123 = NAN);
+
+	/**
+	 * Generate the trajectory (acceleration, velocity and position) by integrating the current jerk
+	 * @param pos Current vehicle's position (used for position error clamping)
 	 * @param vel_setpoint_smooth returned smoothed velocity setpoint
 	 * @param pos_setpoint_smooth returned smoothed position setpoint
 	 */
-	void update(float dt, float pos, float vel_setpoint, float &vel_setpoint_smooth, float &pos_setpoint_smooth);
-
+	void integrate(float pos, float &vel_setpoint_smooth, float &pos_setpoint_smooth);
 
 	/* Get / Set constraints (constraints can be updated at any time) */
-
 	float getMaxJerk() const { return _max_jerk; }
 	void setMaxJerk(float max_jerk) { _max_jerk = max_jerk; }
 
@@ -76,15 +93,38 @@ public:
 	float getMaxVel() const { return _max_vel; }
 	void setMaxVel(float max_vel) { _max_vel = max_vel; }
 
+	/* Other getters and setters */
+	float getTotalTime() const {return _T1 + _T2 + _T3; }
+	float getVelSp() const {return _vel_sp; }
+
+	void setDt(float dt) {_dt = dt; } // delta time between last update() call and now [s]
+
+	/**
+	 * Synchronize several trajectories to have the same total time. This is required to generate
+	 * straight lines.
+	 * The resulting total time is the one of the longest trajectory.
+	 * @param traj[3] a table of VelocitySmoothing objects
+	 * n_traj the number of trajectories to be synchronized
+	 */
+	static void timeSynchronization(VelocitySmoothing traj[3], int n_traj);
+
 private:
 	/**
 	 * Compute increasing acceleration time
 	 */
 	inline float computeT1(float accel_prev, float vel_prev, float vel_setpoint, float max_jerk);
 	/**
+	 * Compute increasing acceleration time using total time constraint
+	 */
+	inline float computeT1(float T123, float accel_prev, float vel_prev, float vel_setpoint, float max_jerk);
+	/**
 	 * Compute constant acceleration time
 	 */
 	inline float computeT2(float T1, float T3, float accel_prev, float vel_prev, float vel_setpoint, float max_jerk);
+	/**
+	 * Compute constant acceleration time using total time constraint
+	 */
+	inline float computeT2(float T123, float T1, float T3);
 	/**
 	 * Compute decreasing acceleration time
 	 */
@@ -93,7 +133,7 @@ private:
 	/**
 	 * Integrate the jerk, acceleration and velocity to get the new setpoints and states.
 	 */
-	inline void integrateT(float jerk, float accel_prev, float vel_prev, float pos_prev, float dt,
+	inline void integrateT(float jerk, float accel_prev, float vel_prev, float pos_prev,
 			       float &accel_out, float &vel_out, float &pos_out);
 
 	/* Constraints */
@@ -106,6 +146,16 @@ private:
 	float _accel;
 	float _vel;
 	float _pos;
+
+	float _max_jerk_T1 = 0.f; ///< jerk during phase T1 (with correct sign)
+
+	/* Duration of each phase */
+	float _T1 = 0.f; // Increasing acceleration
+	float _T2 = 0.f; // Constant acceleration
+	float _T3 = 0.f; // Decreasing acceleration
+
+	float _vel_sp;
+	float _dt = 0.f;
 
 	static constexpr float max_pos_err = 1.f; ///< maximum position error (if above, the position setpoint is locked)
 };

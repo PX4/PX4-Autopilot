@@ -60,6 +60,8 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 	_smoothing[1].setMaxAccel(MPC_ACC_HOR_MAX.get());
 	_smoothing[0].setMaxVel(_constraints.speed_xy);
 	_smoothing[1].setMaxVel(_constraints.speed_xy);
+	_smoothing[0].setDt(_deltatime);
+	_smoothing[1].setDt(_deltatime);
 
 	Vector2f vel_xy = Vector2f(&_velocity(0));
 	float jerk = _jerk_max.get();
@@ -76,10 +78,15 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 
 	for (int i = 0; i < 2; ++i) {
 		_smoothing[i].setMaxJerk(jerk);
+		_smoothing[i].updateDurations(_velocity_setpoint(i));
+	}
+
+	VelocitySmoothing::timeSynchronization(_smoothing, 2);
+
+	for (int i = 0; i < 2; ++i) {
 
 		float smoothed_velocity_setpoint, smoothed_position_setpoint;
-		_smoothing[i].update(_deltatime, _position(i), _velocity_setpoint(i),
-				     smoothed_velocity_setpoint, smoothed_position_setpoint);
+		_smoothing[i].integrate(_position(i), smoothed_velocity_setpoint, smoothed_position_setpoint);
 		_position_setpoint(i) = smoothed_position_setpoint;
 		_velocity_setpoint(i) = smoothed_velocity_setpoint;
 	}
