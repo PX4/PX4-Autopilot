@@ -1504,7 +1504,7 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 		status.noise = rstatus.noise;
 		status.remote_noise = rstatus.remnoise;
 		status.rxerrors = rstatus.rxerrors;
-		status.fixed = rstatus.fixed;
+		status.fix = rstatus.fixed;
 
 		_mavlink->update_radio_status(status);
 

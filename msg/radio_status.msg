@@ -10,4 +10,4 @@ uint8 noise				# background noise level
 uint8 remote_noise			# remote background noise level
 uint16 rxerrors				# receive errors
 
-uint16 fixed				# count of error corrected packets
+uint16 fix				# count of error corrected packets
