@@ -291,25 +291,17 @@ void PositionControl::_velocityController(const float &dt)
 			_thr_sp(1) = thrust_desired_NE(1) / mag * thrust_max_NE;
 		}
 
-		// Get the direction of (r-y) in NE-direction.
-		float direction_NE = Vector2f(vel_err) * Vector2f(_vel_sp);
+		// Use tracking Anti-Windup for NE-direction: during saturation, the integrator is used to unsaturate the output
+		// see Anti-Reset Windup for PID controllers, L.Rundqwist, 1990
+		float arw_gain = 2.f / MPC_XY_VEL_P.get();
 
-		// Apply Anti-Windup in NE-direction.
-		bool stop_integral_NE = (thrust_desired_NE * thrust_desired_NE >= thrust_max_NE * thrust_max_NE &&
-					 direction_NE >= 0.0f);
+		Vector2f vel_err_lim;
+		vel_err_lim(0) = vel_err(0) - (thrust_desired_NE(0) - _thr_sp(0)) * arw_gain;
+		vel_err_lim(1) = vel_err(1) - (thrust_desired_NE(1) - _thr_sp(1)) * arw_gain;
 
-		if (!stop_integral_NE) {
-			_thr_int(0) += vel_err(0) * MPC_XY_VEL_I.get() * dt;
-			_thr_int(1) += vel_err(1) * MPC_XY_VEL_I.get() * dt;
-
-			// magnitude of thrust integral can never exceed maximum throttle in NE
-			float integral_mag_NE = Vector2f(_thr_int).length();
-
-			if (integral_mag_NE > 0.0f && integral_mag_NE > thrust_max_NE) {
-				_thr_int(0) = _thr_int(0) / integral_mag_NE * thrust_max_NE;
-				_thr_int(1) = _thr_int(1) / integral_mag_NE * thrust_max_NE;
-			}
-		}
+		// Update integral
+		_thr_int(0) += MPC_XY_VEL_I.get() * vel_err_lim(0) * dt;
+		_thr_int(1) += MPC_XY_VEL_I.get() * vel_err_lim(1) * dt;
 	}
 }
 
