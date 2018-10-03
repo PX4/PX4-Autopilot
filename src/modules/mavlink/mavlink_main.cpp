@@ -2807,7 +2807,7 @@ Mavlink::display_status()
 			printf("\t  noise:\t%d\n", _rstatus.noise);
 			printf("\t  remote noise:\t%u\n", _rstatus.remote_noise);
 			printf("\t  rx errors:\t%u\n", _rstatus.rxerrors);
-			printf("\t  fixed:\t%u\n", _rstatus.fixed);
+			printf("\t  fixed:\t%u\n", _rstatus.fix);
 			break;
 
 		case telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_USB:
