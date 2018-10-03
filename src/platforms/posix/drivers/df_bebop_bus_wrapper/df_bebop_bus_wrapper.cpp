@@ -432,7 +432,7 @@ void task_main(int argc, char *argv[])
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 		}
 
-		const bool lockdown = _armed.manual_lockdown || _armed.lockdown;
+		const bool lockdown = _armed.manual_lockdown || _armed.lockdown || _armed.force_failsafe;
 
 		// Start the motors if armed but not alreay running
 		if (_armed.armed && !lockdown && !_motors_running) {
