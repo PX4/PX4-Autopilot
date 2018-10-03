@@ -8,8 +8,8 @@ rtps:
       id: 15
     - msg: esc_report
       id: 21
-    - msg: esc_status
-      id: 22
+    #- msg: esc_status
+    #  id: 22
     - msg: estimator_status
       id: 23
     - msg: iridiumsbd_status
