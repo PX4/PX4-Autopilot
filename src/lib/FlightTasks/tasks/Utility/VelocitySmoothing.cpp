@@ -87,6 +87,34 @@ float VelocitySmoothing::computeT1(float accel_prev, float vel_prev, float vel_s
 	return math::max(T1, 0.f);
 }
 
+float VelocitySmoothing::computeT1(float T123, float accel_prev, float vel_prev, float vel_setpoint, float max_jerk)
+{
+	float a = -max_jerk;
+	float b = max_jerk * T123 - accel_prev;
+	float delta = T123 * T123 * max_jerk * max_jerk + 2.f * T123 * accel_prev * max_jerk - accel_prev * accel_prev
+	  + 4.f * max_jerk * (vel_prev - vel_setpoint);
+
+	float sqrt_delta = sqrtf(delta);
+	float denominator_inv = 1.f / (2.f * a);
+	float T1_plus = math::max((-b + sqrt_delta) * denominator_inv, 0.f);
+	float T1_minus = math::max((-b - sqrt_delta) * denominator_inv, 0.f);
+
+	float T3_plus = computeT3(T1_plus, accel_prev, max_jerk);
+	float T3_minus = computeT3(T1_minus, accel_prev, max_jerk);
+
+	float T13_plus = T1_plus + T3_plus;
+	float T13_minus = T1_minus + T3_minus;
+
+	float T1 = 0.f;
+	if (T13_plus > T123) {
+		T1 = T1_minus;
+	} else if (T13_minus > T123){
+		T1 = T1_plus;
+	}
+
+	return T1;
+}
+
 
 float VelocitySmoothing::computeT2(float T1, float T3, float accel_prev, float vel_prev, float vel_setpoint,
 				   float max_jerk)
@@ -97,16 +125,22 @@ float VelocitySmoothing::computeT2(float T1, float T3, float accel_prev, float v
 	return math::max(T2, 0.f);
 }
 
+float VelocitySmoothing::computeT2(float T123, float T1, float T3)
+{
+	float T2 = T123 - T1 - T3;
+	return math::max(T2, 0.f);
+}
+
 float VelocitySmoothing::computeT3(float T1, float accel_prev, float max_jerk)
 {
 	float T3 = accel_prev / max_jerk + T1;
 	return math::max(T3, 0.f);
 }
 
-void VelocitySmoothing::integrateT(float jerk, float accel_prev, float vel_prev, float pos_prev, float dt,
+void VelocitySmoothing::integrateT(float jerk, float accel_prev, float vel_prev, float pos_prev,
 				   float &accel_out, float &vel_out, float &pos_out)
 {
-	accel_out = jerk * dt + accel_prev;
+	accel_out = jerk * _dt + accel_prev;
 
 	if (accel_out > _max_accel) {
 		accel_out = _max_accel;
@@ -115,7 +149,7 @@ void VelocitySmoothing::integrateT(float jerk, float accel_prev, float vel_prev,
 		accel_out = -_max_accel;
 	}
 
-	vel_out = dt * 0.5f * (accel_out + accel_prev) + vel_prev;
+	vel_out = _dt * 0.5f * (accel_out + accel_prev) + vel_prev;
 
 	if (vel_out > _max_vel) {
 		vel_out = _max_vel;
@@ -124,50 +158,68 @@ void VelocitySmoothing::integrateT(float jerk, float accel_prev, float vel_prev,
 		vel_out = -_max_vel;
 	}
 
-	pos_out = dt / 3.f * (vel_out + accel_prev * dt * 0.5f + 2.f * vel_prev) + _pos;
+	pos_out = _dt / 3.f * (vel_out + accel_prev * _dt * 0.5f + 2.f * vel_prev) + _pos;
 }
 
-void VelocitySmoothing::update(float dt, float pos, float vel_setpoint, float &vel_setpoint_smooth,
-			       float &pos_setpoint_smooth)
+void VelocitySmoothing::updateDurations(float vel_setpoint, float T123)
 {
+	float T1, T2, T3;
+
 	/* Depending of the direction, start accelerating positively or negatively */
-	const float max_jerk = (vel_setpoint - _vel > 0.f) ? _max_jerk : -_max_jerk;
+	_max_jerk_T1 = (vel_setpoint - _vel > 0.f) ? _max_jerk : -_max_jerk;
 
 	// compute increasing acceleration time
-	float T1 = computeT1(_accel, _vel, vel_setpoint, max_jerk);
+	if (PX4_ISFINITE(T123)) {
+		T1 = computeT1(T123, _accel, _vel, vel_setpoint, _max_jerk_T1);
+	} else {
+		T1 = computeT1(_accel, _vel, vel_setpoint, _max_jerk_T1);
+	}
 
 	/* Force T1/2/3 to zero if smaller than an epoch to avoid chattering */
-	if (T1 < dt) {
+	if (T1 < _dt) {
 		T1 = 0.f;
 	}
 
 	// compute decreasing acceleration time
-	float T3 = computeT3(T1, _accel, max_jerk);
+	T3 = computeT3(T1, _accel, _max_jerk_T1);
 
-	if (T3 < dt) {
+	if (T3 < _dt) {
 		T3 = 0.f;
 	}
 
 	// compute constant acceleration time
-	float T2 = computeT2(T1, T3, _accel, _vel, vel_setpoint, max_jerk);
+	if (PX4_ISFINITE(T123)) {
+		T2 = computeT2(T123, T1, T3);
+	} else {
+		T2 = computeT2(T1, T3, _accel, _vel, vel_setpoint, _max_jerk_T1);
+	}
 
-	if (T2 < dt) {
+	if (T2 < _dt) {
 		T2 = 0.f;
 	}
 
+	_T1 = T1;
+	_T2 = T2;
+	_T3 = T3;
+	_vel_sp = vel_setpoint;
+}
+
+void VelocitySmoothing::integrate(float pos, float &vel_setpoint_smooth,
+			       float &pos_setpoint_smooth)
+{
 	/* Integrate the trajectory */
 	float accel_new, vel_new, pos_new;
-	integrateT(_jerk, _accel, _vel, _pos, dt, accel_new, vel_new, pos_new);
+	integrateT(_jerk, _accel, _vel, _pos, accel_new, vel_new, pos_new);
 
 	/* Apply correct jerk (min, max or zero) */
-	if (T1 > 0.f) {
-		_jerk = max_jerk;
+	if (_T1 > 0.f) {
+		_jerk = _max_jerk_T1;
 
-	} else if (T2 > 0.f) {
+	} else if (_T2 > 0.f) {
 		_jerk = 0.f;
 
-	} else if (T3 > 0.f) {
-		_jerk = -max_jerk;
+	} else if (_T3 > 0.f) {
+		_jerk = -_max_jerk_T1;
 
 	} else {
 		_jerk = 0.f;
@@ -188,4 +240,23 @@ void VelocitySmoothing::update(float dt, float pos, float vel_setpoint, float &v
 	pos_setpoint_smooth = _pos;
 }
 
+void VelocitySmoothing::timeSynchronization(VelocitySmoothing traj[3], int n_traj)
+{
+	float desired_time = 0.f;
+	int longest_traj_index = 0;
 
+	for (int i = 0; i < n_traj; i++) {
+		const float T123 = traj[i].getTotalTime();
+		if (T123 > desired_time) {
+			desired_time = T123;
+			longest_traj_index = i;
+		}
+	}
+	if (desired_time > FLT_EPSILON) {
+		for (int i = 0; i < n_traj; i++) {
+			if (i != longest_traj_index) {
+				traj[i].updateDurations(traj[i].getVelSp(), desired_time);
+			}
+		}
+	}
+}
