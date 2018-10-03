@@ -217,7 +217,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_P, 0.09f);
  * Non-zero value allows to resist wind.
  *
  * @min 0.0
- * @max 0.1
+ * @max 3.0
  * @decimal 3
  * @group Multicopter Position Control
  */
