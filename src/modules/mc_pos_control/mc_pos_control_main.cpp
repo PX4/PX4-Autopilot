@@ -72,12 +72,6 @@
  */
 extern "C" __EXPORT int mc_pos_control_main(int argc, char *argv[]);
 
-/**
- * During smooth-takeoff, below ALTITUDE_THRESHOLD the control in xy and yaw is turned off.
- * This prevents the vehicle from yawing and moving in xy when still close to ground and in smooth-takoff state.
- */
-static constexpr float ALTITUDE_THRESHOLD = 0.5f;
-
 class MulticopterPositionControl : public ModuleBase<MulticopterPositionControl>, public control::SuperBlock,
 	public ModuleParams
 {
@@ -167,7 +161,8 @@ private:
 	static constexpr int NUM_FAILURE_TRIES = 10;
 	/**< If Flighttask fails, keep 0.2 seconds the current setpoint before going into failsafe land */
 	static constexpr uint64_t LOITER_TIME_BEFORE_DESCEND = 200000;
-
+	/**< During smooth-takeoff, below ALTITUDE_THRESHOLD the yaw-control is turned off ant tilt is limited */
+	static constexpr float ALTITUDE_THRESHOLD = 0.3f;
 
 	/**
 	 * Hysteresis that turns true once vehicle is armed for MPC_IDLE_TKO seconds.
