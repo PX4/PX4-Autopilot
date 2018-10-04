@@ -36,7 +36,6 @@
  */
 
 #include "ManualSmoothingXY.hpp"
-#include "uORB/topics/parameter_update.h"
 #include <mathlib/mathlib.h>
 #include <float.h>
 
