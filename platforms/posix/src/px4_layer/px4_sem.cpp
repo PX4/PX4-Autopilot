@@ -124,7 +124,7 @@ int px4_sem_timedwait(px4_sem_t *s, const struct timespec *abstime)
 	errno = 0;
 
 	if (s->value < 0) {
-		ret = pthread_cond_timedwait(&(s->wait), &(s->lock), abstime);
+		ret = px4_pthread_cond_timedwait(&(s->wait), &(s->lock), abstime);
 
 	} else {
 		ret = 0;
