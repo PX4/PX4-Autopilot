@@ -43,7 +43,7 @@
 
 LidarLite::LidarLite() :
 	_min_distance(LL40LS_MIN_DISTANCE),
-	_max_distance(LL40LS_MAX_DISTANCE),
+	_max_distance(LL40LS_MAX_DISTANCE_V3),
 	_measure_ticks(0)
 {
 }
