@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #
 # UAVCAN DSDL compiler for libuavcan
 #
