@@ -48,7 +48,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
 
-#include <unistd.h> //this is POSIX, used for usleep
+#define gps_usleep px4_usleep
 
 #include <drivers/drv_hrt.h>
 
