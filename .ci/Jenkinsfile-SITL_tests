@@ -77,7 +77,7 @@ pipeline {
         }
       }
 
-    }
+    } // stage Build
 
     stage('ROS Tests') {
       steps {
@@ -138,7 +138,7 @@ pipeline {
           parallel test_nodes
         } // script
       } // steps
-    } // ROS Tests
+    } // stage ROS Tests
 
     stage('Coverage') {
       parallel {
@@ -191,6 +191,7 @@ pipeline {
     } // stage Coverage
 
   } //stages
+
   environment {
     ASAN_OPTIONS = 'detect_stack_use_after_return=1:check_initialization_order=1'
     UBSAN_OPTIONS = 'print_stacktrace=1'
@@ -198,6 +199,7 @@ pipeline {
     CI = true
     CTEST_OUTPUT_ON_FAILURE = 1
   }
+
   options {
     buildDiscarder(logRotator(numToKeepStr: '10', artifactDaysToKeepStr: '30'))
     timeout(time: 60, unit: 'MINUTES')
@@ -210,56 +212,67 @@ def createTestNode(Map test_def) {
       cleanWs()
       docker.image("px4io/px4-dev-ros-kinetic:2018-09-11").inside('-e HOME=${WORKSPACE} --cap-add SYS_PTRACE') {
         stage(test_def.name) {
+          def test_ok = true
+          sh('export')
 
+          if (env.PX4_CMAKE_BUILD_TYPE == 'Coverage') {
+              checkout(scm)
+              unstash 'build_sitl_coverage'
+          }
+
+          unstash('px4_sitl_package')
+          sh('tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2')            
+
+          // run test
           try {
-            sh('export')
-
-            if (env.PX4_CMAKE_BUILD_TYPE == 'Coverage') {
-                checkout(scm)
-                unstash 'build_sitl_coverage'
-            }
-
-            unstash('px4_sitl_package')
-            sh('tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2')
             sh('px4-posix_sitl_default*/px4/test/rostest_px4_run.sh ' + test_def.test + ' mission:=' + test_def.mission + ' vehicle:=' + test_def.vehicle)
 
           } catch (exc) {
             // save all test artifacts for debugging
             archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.ulg, .ros/**/rosunit-*.xml, .ros/**/rostest-*.log')
-            throw (exc)
-
-          } finally {
-
-            if (env.PX4_CMAKE_BUILD_TYPE == 'Coverage') {
-              withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
-                sh 'curl -s https://codecov.io/bash | bash -s - -F sitl_mission_${STAGE_NAME}'
-
-                // upload log to flight review (https://logs.px4.io/) with python code coverage
-                sh('coverage run -p px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
-
-                // process log data (with python code coverage)
-                sh('coverage run -p px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
-
-                // upload python code coverage to codecov.io
-                sh 'curl -s https://codecov.io/bash | bash -s - -X gcov -F sitl_python_${STAGE_NAME}'
-              }
-            }
-
-            // log analysis (non code coverage)
-            if (env.PX4_CMAKE_BUILD_TYPE != 'Coverage') {
-              // upload log to flight review (https://logs.px4.io/)
-              sh('px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
-
-              sh('px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
-            }
-
-            // save test artifacts for debugging
-            archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.pdf, .ros/**/*.csv')
+            test_ok = false
           }
 
-        }
-      }
-      cleanWs()
-    }
-  }
-}
+          // log analysis
+          if (env.PX4_CMAKE_BUILD_TYPE == 'Coverage') {
+            withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
+              sh 'curl -s https://codecov.io/bash | bash -s - -F sitl_mission_${STAGE_NAME}'
+
+              // process log data (with python code coverage)
+              try {
+                sh('coverage run -p px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
+              } catch (exc) {
+                // save log analysis artifacts for debugging
+                archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.pdf, .ros/**/*.csv')
+                test_ok = false
+              }
+
+              // upload log to flight review (https://logs.px4.io/) with python code coverage
+              sh('coverage run -p px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
+
+              // upload python code coverage to codecov.io
+              sh 'curl -s https://codecov.io/bash | bash -s - -X gcov -F sitl_python_${STAGE_NAME}'
+            }
+          } else { // non code coverage
+            // process ekf log data
+            try {
+              sh('px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
+            } catch (exc) {
+              // save log analysis artifacts for debugging
+              archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.pdf, .ros/**/*.csv')
+              test_ok = false
+            }
+
+            // upload log to flight review (https://logs.px4.io/)
+            sh('px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
+          }
+
+          if (!test_ok) {
+            error('ROS Test failed')
+          }
+        } // stage
+        cleanWs()
+      } // docker.image
+    } // node
+  } // return
+} // createTestNode
