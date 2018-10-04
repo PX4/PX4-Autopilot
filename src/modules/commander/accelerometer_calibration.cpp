@@ -441,7 +441,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 	if (res == PX4_OK) {
 		/* if there is a any preflight-check system response, let the barrage of messages through */
-		usleep(200000);
+		px4_usleep(200000);
 
 		calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
 
@@ -450,7 +450,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	}
 
 	/* give this message enough time to propagate */
-	usleep(600000);
+	px4_usleep(600000);
 
 	return res;
 }

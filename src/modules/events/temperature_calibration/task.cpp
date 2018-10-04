@@ -181,7 +181,7 @@ void TemperatureCalibration::task_main()
 	// make sure the system updates the changed parameters
 	param_notify_changes();
 
-	usleep(300000); // wait a bit for the system to apply the parameters
+	px4_usleep(300000); // wait a bit for the system to apply the parameters
 
 	hrt_abstime next_progress_output = hrt_absolute_time() + 1e6;
 
@@ -205,7 +205,7 @@ void TemperatureCalibration::task_main()
 
 		if (ret < 0) {
 			// Poll error, sleep and try again
-			usleep(10000);
+			px4_usleep(10000);
 			continue;
 
 		} else if (ret == 0) {

@@ -67,7 +67,7 @@ int test_rc(int argc, char *argv[])
 	struct input_rc_s rc_input;
 	struct input_rc_s rc_last;
 	orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
-	usleep(100000);
+	px4_usleep(100000);
 
 	/* open PPM input and expect values close to the output values */
 

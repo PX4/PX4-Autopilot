@@ -345,7 +345,7 @@ Mavlink::~Mavlink()
 
 		do {
 			/* wait 20ms */
-			usleep(20000);
+			px4_usleep(20000);
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
@@ -465,7 +465,7 @@ Mavlink::destroy_all_instances()
 		while (inst_to_del->_task_running) {
 			printf(".");
 			fflush(stdout);
-			usleep(10000);
+			px4_usleep(10000);
 			iterations++;
 
 			if (iterations > 1000) {
@@ -701,7 +701,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, bool force_flow_
 	/* back off 1800 ms to avoid running into the USB setup timing */
 	while (_mode == MAVLINK_MODE_CONFIG &&
 	       hrt_absolute_time() < 1800U * 1000U) {
-		usleep(50000);
+		px4_usleep(50000);
 	}
 
 	/* open uart */
@@ -734,7 +734,7 @@ int Mavlink::mavlink_open_uart(int baud, const char *uart_name, bool force_flow_
 				}
 			}
 
-			usleep(100000);
+			px4_usleep(100000);
 			_uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY);
 		}
 
@@ -1457,7 +1457,7 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 	if (!_task_should_exit) {
 		/* wait for previous subscription completion */
 		while (_subscribe_to_stream != nullptr) {
-			usleep(MAIN_LOOP_DELAY / 2);
+			px4_usleep(MAIN_LOOP_DELAY / 2);
 		}
 
 		/* copy stream name */
@@ -1471,7 +1471,7 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 
 		/* wait for subscription */
 		do {
-			usleep(MAIN_LOOP_DELAY / 2);
+			px4_usleep(MAIN_LOOP_DELAY / 2);
 		} while (_subscribe_to_stream != nullptr);
 
 		delete[] s;
@@ -2280,7 +2280,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	while (!_task_should_exit) {
 		/* main loop */
-		usleep(_main_loop_delay);
+		px4_usleep(_main_loop_delay);
 
 		perf_begin(_loop_perf);
 
@@ -2667,28 +2667,28 @@ void Mavlink::check_radio_config()
 
 		if (fs) {
 			/* switch to AT command mode */
-			usleep(1200000);
+			px4_usleep(1200000);
 			fprintf(fs, "+++\n");
-			usleep(1200000);
+			px4_usleep(1200000);
 
 			if (_param_radio_id.get() > 0) {
 				/* set channel */
 				fprintf(fs, "ATS3=%u\n", _param_radio_id.get());
-				usleep(200000);
+				px4_usleep(200000);
 
 			} else {
 				/* reset to factory defaults */
 				fprintf(fs, "AT&F\n");
-				usleep(200000);
+				px4_usleep(200000);
 			}
 
 			/* write config */
 			fprintf(fs, "AT&W");
-			usleep(200000);
+			px4_usleep(200000);
 
 			/* reboot */
 			fprintf(fs, "ATZ");
-			usleep(200000);
+			px4_usleep(200000);
 
 			// XXX NuttX suffers from a bug where
 			// fclose() also closes the fd, not just
@@ -2779,7 +2779,7 @@ Mavlink::start(int argc, char *argv[])
 	unsigned count = 0;
 
 	while (ic == Mavlink::instance_count() && count < limit) {
-		::usleep(sleeptime);
+		px4_usleep(sleeptime);
 		count++;
 	}
 

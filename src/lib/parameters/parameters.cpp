@@ -1280,7 +1280,7 @@ param_import_internal(int fd, bool mark_saved)
 
 	do {
 		result = bson_decoder_next(&decoder);
-		usleep(1);
+		px4_usleep(1);
 
 	} while (result > 0);
 

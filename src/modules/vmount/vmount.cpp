@@ -387,7 +387,7 @@ static int vmount_thread_main(int argc, char *argv[])
 
 		} else {
 			//wait for parameter changes. We still need to wake up regularily to check for thread exit requests
-			usleep(1e6);
+			px4_usleep(1e6);
 		}
 
 		if (test_input && test_input->finished()) {
@@ -478,7 +478,7 @@ int vmount_main(int argc, char *argv[])
 		int counter = 0;
 
 		while (!thread_running && vmount_task >= 0) {
-			usleep(5000);
+			px4_usleep(5000);
 
 			if (++counter >= 100) {
 				break;
@@ -504,7 +504,7 @@ int vmount_main(int argc, char *argv[])
 		thread_should_exit = true;
 
 		while (thread_running) {
-			usleep(100000);
+			px4_usleep(100000);
 		}
 
 		return 0;

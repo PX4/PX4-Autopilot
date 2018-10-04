@@ -725,7 +725,7 @@ void Ekf2::run()
 
 		if (ret < 0) {
 			// Poll error, sleep and try again
-			usleep(10000);
+			px4_usleep(10000);
 			continue;
 
 		} else if (ret == 0) {

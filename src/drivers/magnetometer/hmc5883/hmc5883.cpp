@@ -39,6 +39,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_time.h>
 
 #include <drivers/device/i2c.h>
 
@@ -591,7 +592,7 @@ HMC5883::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(HMC5883_CONVERSION_INTERVAL);
+		px4_usleep(HMC5883_CONVERSION_INTERVAL);
 
 		/* run the collection phase */
 		if (OK != collect()) {

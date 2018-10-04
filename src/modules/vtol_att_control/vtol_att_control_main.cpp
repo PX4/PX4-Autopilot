@@ -120,7 +120,7 @@ VtolAttitudeControl::~VtolAttitudeControl()
 
 		do {
 			/* wait 20ms */
-			usleep(20000);
+			px4_usleep(20000);
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
@@ -590,7 +590,7 @@ void VtolAttitudeControl::task_main()
 		if (pret < 0) {
 			PX4_ERR("poll error %d, %d", pret, errno);
 			/* sleep a bit before next try */
-			usleep(100000);
+			px4_usleep(100000);
 			continue;
 		}
 

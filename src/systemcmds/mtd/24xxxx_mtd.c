@@ -51,6 +51,7 @@
  ************************************************************************************/
 
 #include <px4_config.h>
+#include <px4_time.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -228,7 +229,7 @@ static int at24c_eraseall(FAR struct at24c_dev_s *priv)
 
 		while (I2C_TRANSFER(priv->dev, &msgv[0], 1) < 0) {
 			fwarn("erase stall\n");
-			usleep(10000);
+			px4_usleep(10000);
 		}
 	}
 
@@ -341,7 +342,7 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 			}
 
 			finfo("read stall");
-			usleep(1000);
+			px4_usleep(1000);
 
 			/* We should normally only be here on the first read after
 			 * a write.
@@ -430,7 +431,7 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 			}
 
 			finfo("write stall");
-			usleep(1000);
+			px4_usleep(1000);
 
 			/* We expect to see a number of retries per write cycle as we
 			 * poll for write completion.

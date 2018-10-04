@@ -169,7 +169,7 @@ Radar::~Radar()
 
 		do {
 			/* wait 20ms */
-			usleep(20000);
+			px4_usleep(20000);
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
@@ -436,7 +436,7 @@ Radar::task_main()
 		if (pret < 0) {
 			PX4_DEBUG("radar serial port poll error");
 			// sleep a bit before next try
-			usleep(100000);
+			px4_usleep(100000);
 			continue;
 		}
 

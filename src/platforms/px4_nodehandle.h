@@ -39,6 +39,7 @@
 #pragma once
 
 /* includes for all platforms */
+#include "px4_time.h"
 #include "px4_subscriber.h"
 #include "px4_publisher.h"
 #include "px4_middleware.h"
@@ -274,7 +275,7 @@ public:
 
 			/* Only continue in the loop if the nodehandle has subscriptions */
 			if (_sub_min_interval == nullptr) {
-				usleep(timeout_ms * 1000);
+				px4_usleep(timeout_ms * 1000);
 				continue;
 			}
 

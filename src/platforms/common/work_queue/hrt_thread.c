@@ -217,7 +217,7 @@ static void hrt_work_process()
 
 	/* might sleep less if a signal received and new item was queued */
 	//PX4_INFO("Sleeping for %u usec", next);
-	usleep(next);
+	px4_usleep(next);
 }
 
 /****************************************************************************

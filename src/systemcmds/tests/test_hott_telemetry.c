@@ -43,6 +43,7 @@
  * Included Files
  ****************************************************************************/
 
+#include <px4_time.h>
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_log.h>
@@ -220,11 +221,11 @@ int test_hott_telemetry(int argc, char *argv[])
 			      0x00, 0x00, 0x00, 0x7d, 0x12
 			     };
 
-	usleep(5000);
+	px4_usleep(5000);
 
 	for (unsigned int i = 0; i < sizeof(response); i++) {
 		write(fd, &response[i], 1);
-		usleep(1000);
+		px4_usleep(1000);
 	}
 
 	PX4_INFO("PASS: Response sent to the HoTT receiver device. Voltage should now show 2.5V.");

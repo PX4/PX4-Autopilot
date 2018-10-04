@@ -182,7 +182,7 @@ static void work_process(struct wqueue_s *wqueue, int lock_id)
 	 */
 	work_unlock(lock_id);
 
-	usleep(next);
+	px4_usleep(next);
 }
 
 /****************************************************************************

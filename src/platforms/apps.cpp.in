@@ -1,4 +1,5 @@
 /* definitions of builtin command list - automatically generated, do not edit */
+#include "px4_time.h"
 #include "px4_posix.h"
 #include "px4_log.h"
 
@@ -86,7 +87,7 @@ int sleep_main(int argc, char *argv[])
 
         unsigned long usecs = 1000000UL * atol(argv[1]);
         printf("Sleeping for %s s; (%lu us).\n", argv[1], usecs);
-        usleep(usecs);
+        px4_usleep(usecs);
         return 0;
 }
 

@@ -133,7 +133,7 @@ __EXPORT void board_peripheral_reset(int ms)
 	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
 
 	/* wait for the peripheral rail to reach GND */
-	usleep(ms * 1000);
+	px4_usleep(ms * 1000);
 	warnx("reset done, %d ms", ms);
 
 	/* re-enable power */
@@ -393,7 +393,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif
 
 	/* Ensure the power is on 1 ms before we drive the GPIO pins */
-	usleep(1000);
+	px4_usleep(1000);
 
 	if (OK == determin_hw_version(&hw_version, & hw_revision)) {
 		switch (hw_version) {

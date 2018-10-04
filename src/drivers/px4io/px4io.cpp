@@ -513,7 +513,7 @@ PX4IO::~PX4IO()
 	/* spin waiting for the task to stop */
 	for (unsigned i = 0; (i < 10) && (_task != -1); i++) {
 		/* give it another 100ms */
-		usleep(100000);
+		px4_usleep(100000);
 	}
 
 	/* well, kill it anyway, though this will probably crash */
@@ -606,7 +606,7 @@ PX4IO::init()
 	hrt_abstime start_try_time = hrt_absolute_time();
 
 	do {
-		usleep(2000);
+		px4_usleep(2000);
 		protocol = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
 	} while (protocol == _io_reg_get_error && (hrt_elapsed_time(&start_try_time) < 700U * 1000U));
 
@@ -709,7 +709,7 @@ PX4IO::init()
 			}
 
 			/* wait 10 ms */
-			usleep(10000);
+			px4_usleep(10000);
 
 			/* abort after 5s */
 			if ((hrt_absolute_time() - try_start_time) / 1000 > 3000) {
@@ -757,7 +757,7 @@ PX4IO::init()
 			}
 
 			/* wait 50 ms */
-			usleep(50000);
+			px4_usleep(50000);
 
 			/* abort after 5s */
 			if ((hrt_absolute_time() - try_start_time) / 1000 > 2000) {
@@ -2022,7 +2022,7 @@ PX4IO::print_debug()
 		fds[0].fd = io_fd;
 		fds[0].events = POLLIN;
 
-		usleep(500);
+		px4_usleep(500);
 		int pret = ::poll(fds, sizeof(fds) / sizeof(fds[0]), 0);
 
 		if (pret > 0) {
@@ -2103,7 +2103,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 				ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, total_len / 2);
 
 				if (ret) {
-					usleep(333);
+					px4_usleep(333);
 
 				} else {
 					break;
@@ -2139,7 +2139,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 			ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, (sizeof(px4io_mixdata) + 2) / 2);
 
 			if (ret) {
-				usleep(333);
+				px4_usleep(333);
 
 			} else {
 				break;
@@ -2665,12 +2665,12 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		    arg == DSMX_BIND_PULSES ||
 		    arg == DSMX8_BIND_PULSES) {
 			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down);
-			usleep(500000);
+			px4_usleep(500000);
 			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_out);
 			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
-			usleep(72000);
+			px4_usleep(72000);
 			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_send_pulses | (arg << 4));
-			usleep(50000);
+			px4_usleep(50000);
 			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_reinit_uart);
 
 			ret = OK;
@@ -3190,7 +3190,7 @@ test(void)
 			}
 		}
 
-		usleep(250);
+		px4_usleep(250);
 
 		/* readback servo values */
 		for (unsigned i = 0; i < servo_count; i++) {
@@ -3316,7 +3316,7 @@ lockdown(int argc, char *argv[])
 					}
 				}
 
-				usleep(10000);
+				px4_usleep(10000);
 			}
 
 			if (hrt_elapsed_time(&start) > timeout) {

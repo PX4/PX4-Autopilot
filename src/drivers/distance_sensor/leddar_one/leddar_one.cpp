@@ -357,7 +357,7 @@ int leddar_one::init()
 			return PX4_OK;
 		}
 
-		usleep(1000);
+		px4_usleep(1000);
 	}
 
 	PX4_ERR("No readings from " NAME);
