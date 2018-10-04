@@ -223,7 +223,7 @@ int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool i
 	}
 
 	if (channels_failed) {
-		sleep(2);
+		px4_sleep(2);
 
 		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "%d config error%s for %d RC channel%s.",

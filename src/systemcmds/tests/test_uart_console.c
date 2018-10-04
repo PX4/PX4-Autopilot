@@ -94,7 +94,7 @@ int test_uart_console(int argc, char *argv[])
 		write(uart_usb, sample_uart_usb, sizeof(sample_uart_usb));
 		printf(".");
 		fflush(stdout);
-		sleep(1);
+		px4_sleep(1);
 	}
 
 //	uint64_t start_time = hrt_absolute_time();

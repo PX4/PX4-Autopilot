@@ -840,7 +840,7 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub)
 	while (hrt_elapsed_time(&start) < settle_time * 1000000) {
 		calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG,
 				     (int)(90 * hrt_elapsed_time(&start) / 1e6f / (float)settle_time));
-		sleep(settle_time / 10);
+		px4_sleep(settle_time / 10);
 	}
 
 	start = hrt_absolute_time();
