@@ -101,20 +101,6 @@ PARAM_DEFINE_FLOAT(MPC_THR_MAX, 1.0f);
 PARAM_DEFINE_FLOAT(MPC_MANTHR_MIN, 0.08f);
 
 /**
- * Maximum manual thrust
- *
- * Limit max allowed thrust for Manual mode.
- *
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_MANTHR_MAX, 1.0f);
-
-/**
  * Proportional gain for vertical position error
  *
  * @min 0.0
