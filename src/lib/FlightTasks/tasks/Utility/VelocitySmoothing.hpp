@@ -68,12 +68,12 @@ public:
 	void reset(float accel, float vel, float pos);
 
 	/**
-	 * Compute T1, T2, T3 depending on the current state and velocity setpoint. This should be called on every cycle.
+	 * Compute T1, T2, T3 depending on the current state and velocity setpoint. This should be called on every cycle
+	 * and before integrate().
+	 * @param dt delta time between last updateDurations() call and now [s]
 	 * @param vel_setpoint velocity setpoint input
-	 * @param T123 optional parameter. If set, the total trajectory time will be T123, if not,
-	 * 		the algorithm optimizes for time.
 	 */
-	void updateDurations(float vel_setpoint, float T123 = NAN);
+	void updateDurations(float dt, float vel_setpoint);
 
 	/**
 	 * Generate the trajectory (acceleration, velocity and position) by integrating the current jerk
@@ -93,22 +93,25 @@ public:
 	float getMaxVel() const { return _max_vel; }
 	void setMaxVel(float max_vel) { _max_vel = max_vel; }
 
-	/* Other getters and setters */
-	float getTotalTime() const {return _T1 + _T2 + _T3; }
-	float getVelSp() const {return _vel_sp; }
-
-	void setDt(float dt) {_dt = dt; } // delta time between last update() call and now [s]
-
 	/**
 	 * Synchronize several trajectories to have the same total time. This is required to generate
 	 * straight lines.
 	 * The resulting total time is the one of the longest trajectory.
-	 * @param traj[3] a table of VelocitySmoothing objects
-	 * n_traj the number of trajectories to be synchronized
+	 * @param traj an array of VelocitySmoothing objects
+	 * @param n_traj the number of trajectories to be synchronized
 	 */
-	static void timeSynchronization(VelocitySmoothing traj[3], int n_traj);
+	static void timeSynchronization(VelocitySmoothing *traj, int n_traj);
 
 private:
+	float getTotalTime() const { return _T1 + _T2 + _T3; }
+	float getVelSp() const { return _vel_sp; }
+
+	/**
+	 * Compute T1, T2, T3 depending on the current state and velocity setpoint.
+	 * @param T123 optional parameter. If set, the total trajectory time will be T123, if not,
+	 * 		the algorithm optimizes for time.
+	 */
+	void updateDurations(float T123 = NAN);
 	/**
 	 * Compute increasing acceleration time
 	 */
@@ -136,6 +139,10 @@ private:
 	inline void integrateT(float jerk, float accel_prev, float vel_prev, float pos_prev,
 			       float &accel_out, float &vel_out, float &pos_out);
 
+	/* Inputs */
+	float _vel_sp;
+	float _dt = 0.f;
+
 	/* Constraints */
 	float _max_jerk = 22.f;
 	float _max_accel = 8.f;
@@ -150,12 +157,9 @@ private:
 	float _max_jerk_T1 = 0.f; ///< jerk during phase T1 (with correct sign)
 
 	/* Duration of each phase */
-	float _T1 = 0.f; // Increasing acceleration
-	float _T2 = 0.f; // Constant acceleration
-	float _T3 = 0.f; // Decreasing acceleration
-
-	float _vel_sp;
-	float _dt = 0.f;
+	float _T1 = 0.f; ///< Increasing acceleration [s]
+	float _T2 = 0.f; ///< Constant acceleration [s]
+	float _T3 = 0.f; ///< Decreasing acceleration [s]
 
 	static constexpr float max_pos_err = 1.f; ///< maximum position error (if above, the position setpoint is locked)
 };
