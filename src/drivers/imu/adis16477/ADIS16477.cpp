@@ -60,6 +60,9 @@ static constexpr uint8_t Z_ACCL_OUT = 0x1A; // Output, z-axis accelerometer, hig
 static constexpr uint8_t TEMP_OUT	= 0x1A; // Output, temperature
 static constexpr uint8_t TIME_STAMP	= 0x1A; // Output, time stamp
 
+static constexpr uint8_t FILT_CTRL	= 0x5C;
+static constexpr uint8_t DEC_RATE	= 0x64;
+
 static constexpr uint8_t GLOB_CMD	= 0x68;
 
 static constexpr uint8_t PROD_ID	= 0x72;
@@ -106,6 +109,33 @@ ADIS16477::ADIS16477(int bus, const char *path_accel, const char *path_gyro, uin
 	_accel_scale.y_scale  = 1.0f;
 	_accel_scale.z_offset = 0;
 	_accel_scale.z_scale  = 1.0f;
+
+	const unsigned sample_rate = 1000;
+
+	// set software low pass filter for controllers
+	param_t accel_cut_ph = param_find("IMU_ACCEL_CUTOFF");
+	float accel_cut = ADIS16477_ACCEL_DEFAULT_RATE;
+
+	if (accel_cut_ph != PARAM_INVALID && param_get(accel_cut_ph, &accel_cut) == PX4_OK) {
+		_accel_filter_x.set_cutoff_frequency(sample_rate, accel_cut);
+		_accel_filter_y.set_cutoff_frequency(sample_rate, accel_cut);
+		_accel_filter_z.set_cutoff_frequency(sample_rate, accel_cut);
+
+	} else {
+		PX4_ERR("IMU_ACCEL_CUTOFF param invalid");
+	}
+
+	param_t gyro_cut_ph = param_find("IMU_GYRO_CUTOFF");
+	float gyro_cut = ADIS16477_GYRO_DEFAULT_RATE;
+
+	if (gyro_cut_ph != PARAM_INVALID && param_get(gyro_cut_ph, &gyro_cut) == PX4_OK) {
+		_gyro_filter_x.set_cutoff_frequency(sample_rate, gyro_cut);
+		_gyro_filter_y.set_cutoff_frequency(sample_rate, gyro_cut);
+		_gyro_filter_z.set_cutoff_frequency(sample_rate, gyro_cut);
+
+	} else {
+		PX4_ERR("IMU_GYRO_CUTOFF param invalid");
+	}
 }
 
 ADIS16477::~ADIS16477()
@@ -210,6 +240,12 @@ int ADIS16477::reset()
 
 	// Reset Recovery Time
 	up_mdelay(193);
+
+	// configure digital filter, 16 taps
+	write_reg16(FILT_CTRL, 0x04);
+
+	// configure decimation rate
+	//write_reg16(DEC_RATE, 0x00);
 
 	return OK;
 }
