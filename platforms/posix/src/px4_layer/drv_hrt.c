@@ -50,6 +50,8 @@
 #include <errno.h>
 #include "hrt_work.h"
 
+#define SPEED_FACTOR 1
+
 static struct sq_queue_s	callout_queue;
 
 /* latency histogram */
@@ -67,7 +69,7 @@ static void		hrt_call_reschedule(void);
 static px4_sem_t 	_hrt_lock;
 static struct work_s	_hrt_work;
 #ifndef __PX4_QURT
-static hrt_abstime px4_timestart = 0;
+static hrt_abstime px4_timestart_monotonic = 0;
 #else
 static int32_t dsp_offset = 0;
 #endif
@@ -153,28 +155,8 @@ uint64_t hrt_system_time(void)
 hrt_abstime _hrt_absolute_time_internal(void)
 {
 	struct timespec ts;
-
-#if defined(__PX4_QURT)
-	// Don't use the timestart on the DSP on Snapdragon because we manually
-	// set the px4_timestart using the hrt_set_absolute_time_offset().
-	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
-	return ts_to_abstime(&ts) + dsp_offset;
-
-#elif (defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR))
-	// Don't do any offseting on the Linux side on the Snapdragon.
 	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
 	return ts_to_abstime(&ts);
-
-#else
-
-	if (!px4_timestart) {
-		px4_clock_gettime(CLOCK_MONOTONIC, &ts);
-		px4_timestart = ts_to_abstime(&ts);
-	}
-
-	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
-	return ts_to_abstime(&ts) - px4_timestart;
-#endif
 }
 
 #ifdef __PX4_QURT
@@ -217,7 +199,7 @@ hrt_abstime hrt_absolute_time(void)
 __EXPORT hrt_abstime hrt_reset(void)
 {
 #ifndef __PX4_QURT
-	px4_timestart = 0;
+	px4_timestart_monotonic = 0;
 #endif
 	max_time = 0;
 	return _hrt_absolute_time_internal();
@@ -535,12 +517,10 @@ void	hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callo
 	hrt_call_internal(entry, calltime, 0, callout, arg);
 }
 
-#if 0
 /*
  * Convert absolute time to a timespec.
  */
 void	abstime_to_ts(struct timespec *ts, hrt_abstime abstime);
-#endif
 
 static void
 hrt_call_invoke(void)
@@ -601,3 +581,79 @@ hrt_call_invoke(void)
 	hrt_unlock();
 }
 
+void abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
+{
+	ts->tv_sec = abstime / 1000000;
+	abstime -= ts->tv_sec * 1000000;
+	ts->tv_nsec = abstime * 1000;
+}
+
+int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
+{
+#if defined(__PX4_QURT)
+	// Don't use the timestart on the DSP on Snapdragon because we manually
+	// set the px4_timestart using the hrt_set_absolute_time_offset().
+	return clock_gettime(clk_id, &tp);
+
+#elif defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR)
+	// Don't do any offseting on the Linux side on the Snapdragon.
+	return clock_gettime(clk_id, &tp);
+#else
+	struct timespec actual_tp;
+	const int ret = clock_gettime(clk_id, &actual_tp);
+
+	if (ret != 0) {
+		return ret;
+	}
+
+	const uint64_t actual_usec = ts_to_abstime(&actual_tp);
+
+
+	if (clk_id == CLOCK_MONOTONIC) {
+		if (px4_timestart_monotonic == 0) {
+			px4_timestart_monotonic = actual_usec;
+		}
+
+		abstime_to_ts(tp, (actual_usec - px4_timestart_monotonic) * SPEED_FACTOR);
+
+	} else {
+		abstime_to_ts(tp, actual_usec);
+	}
+
+	//static unsigned counter = 0;
+	//if (counter++ % 1000000 == 0) {
+	//	PX4_INFO("clk_id: %d, actual_tp.tv_sec: %llu, actual_tp.tv_nsec: %llu, px4_timestart: %llu: 0x%x",
+	//		 clk_id, actual_tp.tv_sec, actual_tp.tv_nsec, px4_timestart[clk_id], &px4_timestart[clk_id]);
+	//}
+
+	return 0;
+#endif
+}
+
+int px4_clock_settime(clockid_t clk_id, const struct timespec *tp)
+{
+	// not implemented
+	return 0;
+}
+
+
+int px4_usleep(useconds_t usec)
+{
+	return system_usleep(usec / SPEED_FACTOR);
+}
+
+unsigned int px4_sleep(unsigned int seconds)
+{
+	useconds_t usec = seconds * 1000000;
+	return system_usleep(usec / SPEED_FACTOR);
+}
+
+int px4_pthread_cond_timedwait(pthread_cond_t *cond,
+			       pthread_mutex_t *mutex,
+			       const struct timespec *abstime)
+{
+	struct timespec new_abstime;
+	new_abstime.tv_sec = abstime->tv_sec / SPEED_FACTOR;
+	new_abstime.tv_nsec = abstime->tv_nsec / SPEED_FACTOR;
+	return pthread_cond_timedwait(cond, mutex, &new_abstime);
+}

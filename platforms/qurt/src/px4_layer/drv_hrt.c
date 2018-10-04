@@ -375,12 +375,6 @@ void	hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callo
 	hrt_call_internal(entry, calltime, 0, callout, arg);
 }
 
-#if 0
-/*
- * Convert absolute time to a timespec.
- */
-void	abstime_to_ts(struct timespec *ts, hrt_abstime abstime);
-#endif
 
 static void
 hrt_call_invoke(void)
