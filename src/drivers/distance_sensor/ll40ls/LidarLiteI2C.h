@@ -68,6 +68,8 @@
 #define LL40LS_SW_VERSION         0x4f
 #define LL40LS_SIGNAL_STRENGTH_REG  0x0e
 #define LL40LS_PEAK_STRENGTH_REG  0x0c
+#define LL40LS_UNIT_ID_HIGH 0x16
+#define LL40LS_UNIT_ID_LOW 0x17
 
 #define LL40LS_SIG_COUNT_VAL_REG      0x02        /* Maximum acquisition count register */
 #define LL40LS_SIG_COUNT_VAL_MAX     0xFF        /* Maximum acquisition count max value */
@@ -130,6 +132,7 @@ private:
 	volatile bool       _pause_measurements;
 	uint8_t		_hw_version;
 	uint8_t		_sw_version;
+	uint16_t	_unit_id;
 
 	/**
 	 * LidarLite specific transfer function. This is needed

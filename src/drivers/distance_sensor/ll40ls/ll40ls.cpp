@@ -114,6 +114,7 @@ void start(enum LL40LS_BUS busid, uint8_t rotation)
 
 	if (instance) {
 		PX4_INFO("driver already started");
+		return;
 	}
 
 	if (busid == LL40LS_BUS_PWM) {
@@ -149,7 +150,6 @@ void start(enum LL40LS_BUS busid, uint8_t rotation)
 
 			PX4_ERR("failed to initialize LidarLiteI2C on busnum=%u", bus_options[i].busnum);
 			stop();
-			return;
 		}
 	}
 
