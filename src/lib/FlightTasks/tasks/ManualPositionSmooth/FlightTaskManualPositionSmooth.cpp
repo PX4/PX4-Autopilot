@@ -57,7 +57,7 @@ void FlightTaskManualPositionSmooth::_updateSetpoints()
 	_velocity_setpoint(0) = vel_sp_xy(0);
 	_velocity_setpoint(1) = vel_sp_xy(1);
 
-	/* Check for altitude lock.*/
+	/* Check for xy position lock.*/
 	_updateXYlock();
 
 	/* Smooth velocity in z.*/
