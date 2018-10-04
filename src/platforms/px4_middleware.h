@@ -69,23 +69,4 @@ inline void usleep(uint64_t sleep_interval) { }
  */
 #endif
 
-class Rate
-{
-public:
-	/**
-	 * Construct the Rate object and set rate
-	 * @param rate_hz rate from which sleep time is calculated in Hz
-	 */
-	explicit Rate(unsigned rate_hz) { sleep_interval = 1e6 / rate_hz; }
-
-	/**
-	 * Sleep for 1/rate_hz s
-	 */
-	void sleep() { usleep(sleep_interval); }
-
-private:
-	uint64_t sleep_interval;
-
-};
-
 } // namespace px4
