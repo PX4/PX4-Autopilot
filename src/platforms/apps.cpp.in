@@ -112,7 +112,7 @@ int wait_for_topic(int argc, char *argv[])
 
 	while (orb_exists(&meta, 0) != 0 && (timeout && (elapsed < timeout)))
 	{
-		sleep(1);
+		px4_sleep(1);
 		elapsed += 1;
 	}
 

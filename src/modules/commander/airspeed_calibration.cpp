@@ -60,7 +60,7 @@ static const char *sensor_name = "airspeed";
 
 static void feedback_calibration_failed(orb_advert_t *mavlink_log_pub)
 {
-	sleep(5);
+	px4_sleep(5);
 	calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
 }
 
@@ -284,7 +284,7 @@ normal_return:
 	px4_close(diff_pres_sub);
 
 	// This give a chance for the log messages to go out of the queue before someone else stomps on then
-	sleep(1);
+	px4_sleep(1);
 
 	return result;
 

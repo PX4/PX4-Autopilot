@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#include <px4_time.h>
 #include "PWMSim.hpp"
 
 #include <uORB/topics/multirotor_motor_limits.h>
@@ -196,7 +197,7 @@ PWMSim::run()
 
 		/* this can happen during boot, but after the sleep its likely resolved */
 		if (_poll_fds_num == 0) {
-			sleep(1);
+			px4_sleep(1);
 
 			PX4_DEBUG("no valid fds");
 			continue;

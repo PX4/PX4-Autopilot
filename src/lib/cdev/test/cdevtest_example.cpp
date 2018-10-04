@@ -71,7 +71,7 @@ static int writer_main(int argc, char *argv[])
 	while (!g_exit) {
 		// Wait for 2 seconds
 		PX4_INFO("Writer: Sleeping for 2 sec");
-		ret = sleep(2);
+		ret = px4_sleep(2);
 
 		if (ret < 0) {
 			PX4_INFO("Writer: sleep failed %d %d", ret, errno);
@@ -326,6 +326,6 @@ fail2:
 	g_exit = true;
 	px4_close(fd);
 	PX4_INFO("TEST: waiting for writer to stop");
-	sleep(3);
+	px4_sleep(3);
 	return ret;
 }
