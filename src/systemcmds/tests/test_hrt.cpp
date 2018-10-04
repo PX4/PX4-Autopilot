@@ -191,7 +191,7 @@ int test_hrt(int argc, char *argv[])
 	for (i = 0; i < 10; i++) {
 		prev = hrt_absolute_time();
 		gettimeofday(&tv1, nullptr);
-		usleep(100000);
+		px4_usleep(100000);
 		now = hrt_absolute_time();
 		gettimeofday(&tv2, nullptr);
 		printf("%lu (%lu/%lu), %lu (%lu/%lu), %lu\n",
@@ -201,7 +201,7 @@ int test_hrt(int argc, char *argv[])
 		fflush(stdout);
 	}
 
-	usleep(1000000);
+	px4_usleep(1000000);
 
 	printf("one-second ticks\n");
 
@@ -209,7 +209,7 @@ int test_hrt(int argc, char *argv[])
 		hrt_call_after(&call, 1000000, nullptr, nullptr);
 
 		while (!hrt_called(&call)) {
-			usleep(1000);
+			px4_usleep(1000);
 		}
 
 		printf("tick\n");

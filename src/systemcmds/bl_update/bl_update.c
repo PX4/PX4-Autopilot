@@ -154,7 +154,7 @@ bl_update_main(int argc, char *argv[])
 	}
 
 	PX4_INFO("image validated, erasing bootloader...");
-	usleep(10000);
+	px4_usleep(10000);
 
 	/* prevent other tasks from running while we do this */
 	sched_lock();
@@ -232,7 +232,7 @@ setopt(void)
 	/* program the new option value */
 	*optcr = (*optcr & ~opt_mask) | opt_bits | (1 << 1);
 
-	usleep(1000);
+	px4_usleep(1000);
 
 	if ((*optcr & opt_mask) == opt_bits) {
 		PX4_INFO("option bits set");

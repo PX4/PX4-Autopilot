@@ -42,6 +42,7 @@
 
 #include <px4_config.h>
 #include <px4_log.h>
+#include <px4_time.h>
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/spi.h>
@@ -353,7 +354,7 @@ void
 MPU9250_mag::passthrough_read(uint8_t reg, uint8_t *buf, uint8_t size)
 {
 	set_passthrough(reg, size);
-	usleep(25 + 25 * size); // wait for the value to be read from slave
+	px4_usleep(25 + 25 * size); // wait for the value to be read from slave
 	read_block(AK_MPU_OR_ICM(MPUREG_EXT_SENS_DATA_00, ICMREG_20948_EXT_SLV_SENS_DATA_00), buf, size);
 	_parent->write_reg(AK_MPU_OR_ICM(MPUREG_I2C_SLV0_CTRL, ICMREG_20948_I2C_SLV0_CTRL), 0); // disable new reads
 }
@@ -388,7 +389,7 @@ void
 MPU9250_mag::passthrough_write(uint8_t reg, uint8_t val)
 {
 	set_passthrough(reg, 1, &val);
-	usleep(50); // wait for the value to be written to slave
+	px4_usleep(50); // wait for the value to be written to slave
 	_parent->write_reg(AK_MPU_OR_ICM(MPUREG_I2C_SLV0_CTRL, ICMREG_20948_I2C_SLV0_CTRL), 0); // disable new writes
 }
 
@@ -428,7 +429,7 @@ MPU9250_mag::ak8963_read_adjustments(void)
 	float ak8963_ASA[3];
 
 	write_reg(AK8963REG_CNTL1, AK8963_FUZE_MODE | AK8963_16BIT_ADC);
-	usleep(50);
+	px4_usleep(50);
 
 	if (_interface != nullptr) {
 		_interface->read(AK8963REG_ASAX, response, 3);

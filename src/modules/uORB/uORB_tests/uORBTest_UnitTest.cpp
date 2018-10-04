@@ -455,12 +455,12 @@ int uORBTest::UnitTest::pub_test_multi2_main()
 		}
 	}
 
-	usleep(100 * 1000);
+	px4_usleep(100 * 1000);
 
 	int message_counter = 0, num_messages = 50 * num_instances;
 
 	while (message_counter++ < num_messages) {
-		usleep(2); //make sure the timestamps are different
+		px4_usleep(2); //make sure the timestamps are different
 		orb_advert_t &pub = orb_pub[data_next_idx];
 
 		data_topic.time = hrt_absolute_time();
@@ -472,11 +472,11 @@ int uORBTest::UnitTest::pub_test_multi2_main()
 		data_next_idx = (data_next_idx + 1) % num_instances;
 
 		if (data_next_idx == 0) {
-			usleep(50 * 1000);
+			px4_usleep(50 * 1000);
 		}
 	}
 
-	usleep(100 * 1000);
+	px4_usleep(100 * 1000);
 	_thread_should_exit = true;
 
 	for (int i = 0; i < num_instances; ++i) {
@@ -528,9 +528,9 @@ int uORBTest::UnitTest::test_multi2()
 
 // Relax timing requirement for Darwin CI system
 #ifdef __PX4_DARWIN
-			usleep(10000);
+			px4_usleep(10000);
 #else
-			usleep(1000);
+			px4_usleep(1000);
 #endif
 
 			if (last_time >= msg.time && last_time != 0) {
@@ -767,11 +767,11 @@ int uORBTest::UnitTest::pub_test_queue_main()
 		}
 
 		message_counter += burst_counter;
-		usleep(20 * 1000); //give subscriber a chance to catch up
+		px4_usleep(20 * 1000); //give subscriber a chance to catch up
 	}
 
 	_num_messages_sent = t.val;
-	usleep(100 * 1000);
+	px4_usleep(100 * 1000);
 	_thread_should_exit = true;
 	orb_unadvertise(ptopic);
 

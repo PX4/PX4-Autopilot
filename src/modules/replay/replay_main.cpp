@@ -875,7 +875,7 @@ uint64_t Replay::handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_of
 
 	// if some topics have a timestamp smaller than the log file start, publish them immediately
 	if (cur_time < publish_timestamp && next_file_time > _file_start_time) {
-		usleep(publish_timestamp - cur_time);
+		px4_usleep(publish_timestamp - cur_time);
 	}
 
 	return publish_timestamp;
@@ -948,7 +948,7 @@ bool ReplayEkf2::handleTopicUpdate(Subscription &sub, void *data, std::ifstream 
 
 		// introduce some breaks to make sure the logger can keep up
 		if (++_topic_counter == 50) {
-			usleep(1000);
+			px4_usleep(1000);
 			_topic_counter = 0;
 		}
 

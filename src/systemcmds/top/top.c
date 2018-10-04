@@ -121,7 +121,7 @@ top_main(int argc, char *argv[])
 				}
 			}
 
-			usleep(200000);
+			px4_usleep(200000);
 		}
 
 		curr_time = hrt_absolute_time();

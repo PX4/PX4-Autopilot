@@ -66,6 +66,11 @@
 #define system_exit exit
 #ifdef __PX4_POSIX
 #include <stdlib.h>
+
+#include <unistd.h>
+#define system_usleep usleep
+#pragma GCC poison usleep
+
 #ifdef __cplusplus
 #include <cstdlib>
 #endif
@@ -80,5 +85,11 @@
 #ifdef __cplusplus
 #include <cstdlib>
 #endif
+
+// We don't poison usleep and sleep on NuttX because it is used in dependencies
+// like uavcan and we don't need to fake time on the real system.
+#include <unistd.h>
+#define system_usleep usleep
+
 #pragma GCC poison getenv setenv putenv
 #endif /* __PX4_NUTTX */

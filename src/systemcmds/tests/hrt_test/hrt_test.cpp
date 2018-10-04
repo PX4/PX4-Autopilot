@@ -70,7 +70,7 @@ int HRTTest::main()
 	appState.setRunning(true);
 
 	hrt_abstime t = hrt_absolute_time();
-	usleep(1000000);
+	px4_usleep(1000000);
 	hrt_abstime elt = hrt_elapsed_time(&t);
 	PX4_INFO("Elapsed time %llu in 1 sec (usleep)\n", (unsigned long long)elt);
 	PX4_INFO("Start time %llu\n", (unsigned long long)t);

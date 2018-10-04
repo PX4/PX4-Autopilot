@@ -76,7 +76,7 @@ CameraFeedback::~CameraFeedback()
 
 		do {
 			/* wait 20ms */
-			usleep(20000);
+			px4_usleep(20000);
 
 			/* if we have given up, kill it */
 			if (++i > 50) {

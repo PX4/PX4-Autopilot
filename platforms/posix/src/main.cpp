@@ -61,11 +61,11 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 
+#include <px4_time.h>
 #include <px4_log.h>
 #include <px4_getopt.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
-#include <px4_log.h>
 
 #include "apps.h"
 #include "px4_middleware.h"
@@ -544,7 +544,7 @@ int run_startup_script(const std::string &commands_file, const std::string &abso
 void wait_to_exit()
 {
 	while (!_exit_requested) {
-		usleep(100000);
+		px4_usleep(100000);
 	}
 }
 

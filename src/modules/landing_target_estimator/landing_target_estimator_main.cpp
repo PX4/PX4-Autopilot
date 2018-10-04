@@ -140,7 +140,7 @@ int landing_target_estimator_thread_main(int argc, char *argv[])
 
 	while (!thread_should_exit) {
 		est.update();
-		usleep(1000000 / landing_target_estimator_UPDATE_RATE_HZ);
+		px4_usleep(1000000 / landing_target_estimator_UPDATE_RATE_HZ);
 	}
 
 	PX4_DEBUG("exiting");

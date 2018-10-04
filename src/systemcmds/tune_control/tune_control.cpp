@@ -207,7 +207,7 @@ tune_control_main(int argc, char *argv[])
 				tune_control.silence = (uint32_t)silence;
 				tune_control.strength = (uint8_t)strength;
 				publish_tune_control(tune_control);
-				usleep(duration + silence);
+				px4_usleep(duration + silence);
 				exit_counter++;
 
 				// exit if the loop is doing too many iterations
@@ -237,7 +237,7 @@ tune_control_main(int argc, char *argv[])
 		while (tunes.get_next_tune(frequency, duration, silence, strength) > 0) {
 			PX4_INFO("frequency: %d, duration %d, silence %d, strength%d",
 				 frequency, duration, silence, strength);
-			usleep(500000);
+			px4_usleep(500000);
 			exit_counter++;
 
 			// exit if the loop is doing too many iterations
@@ -256,7 +256,7 @@ tune_control_main(int argc, char *argv[])
 		publish_tune_control(tune_control);
 		// We wait the maximum update interval to ensure
 		// The stop will not be overwritten
-		usleep(tunes.get_maximum_update_interval());
+		px4_usleep(tunes.get_maximum_update_interval());
 
 	}	else {
 		usage();

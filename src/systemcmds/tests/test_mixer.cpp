@@ -451,7 +451,7 @@ bool MixerTest::mixerTest()
 			}
 		}
 
-		usleep(sleep_quantum_us);
+		px4_usleep(sleep_quantum_us);
 		sleepcount++;
 
 		if (sleepcount % 10 == 0) {
@@ -516,7 +516,7 @@ bool MixerTest::mixerTest()
 			}
 		}
 
-		usleep(sleep_quantum_us);
+		px4_usleep(sleep_quantum_us);
 		sleepcount++;
 
 		if (sleepcount % 10 == 0) {
@@ -566,7 +566,7 @@ bool MixerTest::mixerTest()
 			}
 		}
 
-		usleep(sleep_quantum_us);
+		px4_usleep(sleep_quantum_us);
 		sleepcount++;
 
 		if (sleepcount % 10 == 0) {

@@ -234,7 +234,7 @@ Navigator::run()
 		} else if (pret < 0) {
 			/* this is undesirable but not much we can do - might want to flag unhappy status */
 			PX4_ERR("poll error %d, %d", pret, errno);
-			usleep(10000);
+			px4_usleep(10000);
 			continue;
 
 		} else {

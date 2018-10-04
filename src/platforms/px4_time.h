@@ -34,4 +34,6 @@ __END_DECLS
 #define px4_clock_gettime clock_gettime
 #define px4_clock_settime clock_settime
 
+#define px4_usleep system_usleep
+
 #endif

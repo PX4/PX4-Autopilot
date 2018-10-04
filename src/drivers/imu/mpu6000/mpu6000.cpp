@@ -56,6 +56,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_time.h>
 #include <ecl/geo/geo.h>
 
 #include <sys/types.h>
@@ -762,7 +763,7 @@ int MPU6000::reset()
 		}
 
 		perf_count(_reset_retries);
-		usleep(2000);
+		px4_usleep(2000);
 	}
 
 	// Hold off sampling for 30 ms
@@ -775,11 +776,11 @@ int MPU6000::reset()
 		return -EIO;
 	}
 
-	usleep(1000);
+	px4_usleep(1000);
 
 	// SAMPLE RATE
 	_set_sample_rate(_sample_rate);
-	usleep(1000);
+	px4_usleep(1000);
 
 	_set_dlpf_filter(MPU6000_DEFAULT_ONCHIP_FILTER_FREQ);
 
@@ -787,10 +788,10 @@ int MPU6000::reset()
 		_set_icm_acc_dlpf_filter(MPU6000_DEFAULT_ONCHIP_FILTER_FREQ);
 	}
 
-	usleep(1000);
+	px4_usleep(1000);
 	// Gyro scale 2000 deg/s ()
 	write_checked_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
-	usleep(1000);
+	px4_usleep(1000);
 
 	// correct gyro scale factors
 	// scale to rad/s in SI units
@@ -802,13 +803,13 @@ int MPU6000::reset()
 
 	set_accel_range(MPU6000_ACCEL_DEFAULT_RANGE_G);
 
-	usleep(1000);
+	px4_usleep(1000);
 
 	// INT CFG => Interrupt on Data Ready
 	write_checked_reg(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);        // INT: Raw data ready
-	usleep(1000);
+	px4_usleep(1000);
 	write_checked_reg(MPUREG_INT_PIN_CFG, BIT_INT_ANYRD_2CLEAR); // INT: Clear on any read
-	usleep(1000);
+	px4_usleep(1000);
 
 	if (is_icm_device()) {
 		write_checked_reg(MPUREG_ICM_UNDOC1, MPUREG_ICM_UNDOC1_VALUE);
@@ -816,7 +817,7 @@ int MPU6000::reset()
 
 	// Oscillator set
 	// write_reg(MPUREG_PWR_MGMT_1,MPU_CLK_SEL_PLLGYROZ);
-	usleep(1000);
+	px4_usleep(1000);
 	return OK;
 }
 

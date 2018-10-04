@@ -151,7 +151,7 @@ test_mount(int argc, char *argv[])
 				PX4_INFO("\n SUCCESSFULLY PASSED FSYNC'ED WRITES, CONTINUTING WITHOUT FSYNC");
 				fsync(fileno(stdout));
 				fsync(fileno(stderr));
-				usleep(20000);
+				px4_usleep(20000);
 			}
 
 		}
@@ -186,7 +186,7 @@ test_mount(int argc, char *argv[])
 		printf("unpower the system immediately (within 0.5s) when the hash (#) sign appears\n");
 		fsync(fileno(stdout));
 		fsync(fileno(stderr));
-		usleep(50000);
+		px4_usleep(50000);
 
 		for (unsigned a = 0; a < alignments; a++) {
 
@@ -236,7 +236,7 @@ test_mount(int argc, char *argv[])
 			printf(".");
 			fsync(fileno(stdout));
 			fsync(fileno(stderr));
-			usleep(200000);
+			px4_usleep(200000);
 
 			px4_close(fd);
 			fd = px4_open(PX4_STORAGEDIR "/testfile", O_RDONLY);
@@ -282,7 +282,7 @@ test_mount(int argc, char *argv[])
 
 	fsync(fileno(stdout));
 	fsync(fileno(stderr));
-	usleep(20000);
+	px4_usleep(20000);
 
 	close(cmd_fd);
 
@@ -290,7 +290,7 @@ test_mount(int argc, char *argv[])
 	PX4_INFO("Iteration done, rebooting..");
 	fsync(fileno(stdout));
 	fsync(fileno(stderr));
-	usleep(50000);
+	px4_usleep(50000);
 	px4_systemreset(false);
 
 	/* never going to get here */

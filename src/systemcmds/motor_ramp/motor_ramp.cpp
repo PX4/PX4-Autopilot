@@ -273,7 +273,7 @@ int prepare(int fd, unsigned long *max_channels)
 	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, act_sub, &actuators);
 
 	/* wait 50 ms */
-	usleep(50000);
+	px4_usleep(50000);
 
 	/* now expect nothing changed on that topic */
 	bool orb_updated;
@@ -409,7 +409,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 		}
 
 		// rate limit
-		usleep(2000);
+		px4_usleep(2000);
 	}
 
 	if (fd >= 0) {

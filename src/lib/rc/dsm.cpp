@@ -57,7 +57,7 @@
 #include <nuttx/arch.h>
 #define dsm_udelay(arg)    up_udelay(arg)
 #else
-#define dsm_udelay(arg) usleep(arg)
+#define dsm_udelay(arg) px4_usleep(arg)
 #endif
 
 // #define DSM_DEBUG
