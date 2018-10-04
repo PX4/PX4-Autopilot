@@ -70,6 +70,8 @@
 #include <unistd.h>
 #define system_usleep usleep
 #pragma GCC poison usleep
+#define system_sleep sleep
+#pragma GCC poison sleep
 
 #ifdef __cplusplus
 #include <cstdlib>
@@ -90,6 +92,7 @@
 // like uavcan and we don't need to fake time on the real system.
 #include <unistd.h>
 #define system_usleep usleep
+#define system_sleep sleep
 
 #pragma GCC poison getenv setenv putenv
 #endif /* __PX4_NUTTX */

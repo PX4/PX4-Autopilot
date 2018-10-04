@@ -80,7 +80,7 @@ top_main(int argc, char *argv[])
 	if (argc > 1) {
 		if (!strcmp(argv[1], "once")) {
 			print_load(curr_time, 1, &load);
-			sleep(1);
+			px4_sleep(1);
 			print_load(hrt_absolute_time(), 1, &load);
 
 		} else {

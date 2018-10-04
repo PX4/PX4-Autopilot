@@ -40,7 +40,7 @@
  */
 
 #include "hello_example.h"
-
+#include <px4_time.h>
 #include <unistd.h>
 #include <stdio.h>
 
@@ -53,7 +53,7 @@ int HelloExample::main()
 	int i = 0;
 
 	while (!appState.exitRequested() && i < 5) {
-		sleep(2);
+		px4_sleep(2);
 
 		printf("  Doing work...\n");
 		++i;

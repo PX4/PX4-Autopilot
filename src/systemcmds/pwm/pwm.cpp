@@ -752,7 +752,7 @@ err_out_no_test:
 		fds.events = POLLIN;
 
 		PX4_WARN("Running 5 steps. WARNING! Motors will be live in 5 seconds\nPress any key to abort now.");
-		sleep(5);
+		px4_sleep(5);
 
 		if (::ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_ENTER_TEST_MODE) < 0) {
 				PX4_ERR("Failed to Enter pwm test mode");
