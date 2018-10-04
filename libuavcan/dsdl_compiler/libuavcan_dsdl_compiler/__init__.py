@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #
 # UAVCAN DSDL compiler for libuavcan
 #
@@ -39,11 +40,11 @@ def run(source_dirs, include_dirs, output_dir):
     possibly empty list of search directories (containing DSDL definition files that can be referenced from the types
     that are going to be parsed), and the output directory path (possibly nonexistent) where the generated C++
     header files will be stored.
-    
+
     Note that this module features lazy write, i.e. if an output file does already exist and its content is not going
     to change, it will not be overwritten. This feature allows to avoid unnecessary recompilation of dependent object
     files.
-    
+
     Args:
         source_dirs    List of root namespace directories to parse.
         include_dirs   List of root namespace directories with referenced types (possibly empty). This list is
@@ -297,7 +298,10 @@ def make_template_expander(filename):
         def enum_last_value(iterable, start=0):
             it = iter(iterable)
             count = start
-            last = next(it)
+            try:
+                last = next(it)
+            except StopIteration:
+                return
             for val in it:
                 yield count, False, last
                 last = val
