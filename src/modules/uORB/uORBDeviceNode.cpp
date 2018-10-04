@@ -593,7 +593,7 @@ uORB::DeviceNode::appears_updated(SubscriberData *sd)
 
 	/* block if in simulation mode */
 	while (px4_sim_delay_enabled()) {
-		usleep(100);
+		px4_usleep(100);
 	}
 
 	/* assume it doesn't look updated */

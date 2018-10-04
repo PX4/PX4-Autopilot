@@ -246,23 +246,23 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 
 		case calibrate_return_ok:
 			/* if there is a any preflight-check system response, let the barrage of messages through */
-			usleep(200000);
+			px4_usleep(200000);
 
 			calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 100);
-			usleep(20000);
+			px4_usleep(20000);
 			calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
-			usleep(20000);
+			px4_usleep(20000);
 			break;
 
 		default:
 			calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
-			usleep(20000);
+			px4_usleep(20000);
 			break;
 		}
 	}
 
 	/* give this message enough time to propagate */
-	usleep(600000);
+	px4_usleep(600000);
 
 	return result;
 }
@@ -497,7 +497,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 					calibration_log_info(worker_data->mavlink_log_pub,
 							     "[cal] %s side calibration: progress <%u>",
 							     detect_orientation_str(orientation), new_progress);
-					usleep(20000);
+					px4_usleep(20000);
 
 					_last_mag_progress = new_progress;
 				}
@@ -519,7 +519,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 				     detect_orientation_str(orientation));
 
 		worker_data->done_count++;
-		usleep(20000);
+		px4_usleep(20000);
 		calibration_log_info(worker_data->mavlink_log_pub, CAL_QGC_PROGRESS_MSG, progress_percentage(worker_data));
 	}
 
@@ -559,7 +559,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 			calibration_log_info(mavlink_log_pub,
 					     "[cal] %s side done, rotate to a different side",
 					     detect_orientation_str(static_cast<enum detect_orientation_return>(i)));
-			usleep(100000);
+			px4_usleep(100000);
 		}
 	}
 
@@ -891,7 +891,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 						calibration_log_info(mavlink_log_pub, "[cal] mag #%u scale: x:%.2f y:%.2f z:%.2f",
 								     cur_mag, (double)mscale.x_scale, (double)mscale.y_scale, (double)mscale.z_scale);
 #endif
-						usleep(200000);
+						px4_usleep(200000);
 					}
 				}
 			}

@@ -41,6 +41,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 
+#include <px4_time.h>
 #include <px4_log.h>
 #include <px4_tasks.h>
 #include <systemlib/px4_macros.h>
@@ -236,7 +237,7 @@ public:
 
 				do {
 					unlock_module();
-					usleep(20000); // 20 ms
+					px4_usleep(20000); // 20 ms
 					lock_module();
 
 					if (++i > 100 && _task_id != -1) { // wait at most 2 sec
@@ -369,7 +370,7 @@ protected:
 
 		do {
 			/* Wait up to 1s. */
-			usleep(2500);
+			px4_usleep(2500);
 
 		} while (!_object && ++i < 400);
 

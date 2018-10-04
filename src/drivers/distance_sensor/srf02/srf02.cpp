@@ -264,7 +264,7 @@ SRF02::init()
 	}
 
 	// XXX we should find out why we need to wait 200 ms here
-	usleep(200000);
+	px4_usleep(200000);
 
 	/* check for connected rangefinders on each i2c port:
 	   We start from i2c base address (0x70 = 112) and count downwards
@@ -440,7 +440,7 @@ SRF02::read(device::file_t *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(_cycling_rate * 2);
+		px4_usleep(_cycling_rate * 2);
 
 		/* run the collection phase */
 		if (OK != collect()) {

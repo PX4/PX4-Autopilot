@@ -42,6 +42,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_time.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <systemlib/conversions.h>
@@ -436,7 +437,7 @@ int MPU9250::reset()
 	 *
 	 */
 
-	usleep(110000);
+	px4_usleep(110000);
 
 	// Hold off sampling until done (100 MS will be shortened)
 	state = px4_enter_critical_section();

@@ -605,7 +605,7 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 				/* not still, reset still start time */
 				if (t_still != 0) {
 					calibration_log_info(mavlink_log_pub, "[cal] detected motion, hold still...");
-					usleep(200000);
+					px4_usleep(200000);
 					t_still = 0;
 				}
 			}
@@ -739,16 +739,16 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		}
 
 		calibration_log_info(mavlink_log_pub, "[cal] pending:%s", pendingStr);
-		usleep(20000);
+		px4_usleep(20000);
 		calibration_log_info(mavlink_log_pub, "[cal] hold vehicle still on a pending side");
-		usleep(20000);
+		px4_usleep(20000);
 		enum detect_orientation_return orient = detect_orientation(mavlink_log_pub, cancel_sub, sub_accel,
 							lenient_still_position);
 
 		if (orient == DETECT_ORIENTATION_ERROR) {
 			orientation_failures++;
 			calibration_log_info(mavlink_log_pub, "[cal] detected motion, hold still...");
-			usleep(20000);
+			px4_usleep(20000);
 			continue;
 		}
 
@@ -757,14 +757,14 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 			orientation_failures++;
 			set_tune(TONE_NOTIFY_NEGATIVE_TUNE);
 			calibration_log_info(mavlink_log_pub, "[cal] %s side already completed", detect_orientation_str(orient));
-			usleep(20000);
+			px4_usleep(20000);
 			continue;
 		}
 
 		calibration_log_info(mavlink_log_pub, CAL_QGC_ORIENTATION_DETECTED_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 		calibration_log_info(mavlink_log_pub, CAL_QGC_ORIENTATION_DETECTED_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 		orientation_failures = 0;
 
 		// Call worker routine
@@ -775,9 +775,9 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		}
 
 		calibration_log_info(mavlink_log_pub, CAL_QGC_SIDE_DONE_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 		calibration_log_info(mavlink_log_pub, CAL_QGC_SIDE_DONE_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 
 		// Note that this side is complete
 		side_data_collected[orient] = true;
@@ -787,7 +787,7 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 
 		// temporary priority boost for the white blinking led to come trough
 		rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_BLINK_FAST, 3, 1);
-		usleep(200000);
+		px4_usleep(200000);
 	}
 
 	if (sub_accel >= 0) {

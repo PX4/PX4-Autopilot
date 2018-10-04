@@ -133,7 +133,7 @@ static int
 load(const char *devname, const char *fname, bool append)
 {
 	// sleep a while to ensure device has been set up
-	usleep(20000);
+	px4_usleep(20000);
 
 	int dev;
 

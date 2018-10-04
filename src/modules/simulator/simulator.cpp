@@ -220,7 +220,7 @@ extern "C" {
 						break;
 
 					} else {
-						usleep(100000);
+						px4_usleep(100000);
 					}
 				}
 

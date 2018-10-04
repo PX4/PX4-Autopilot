@@ -340,7 +340,7 @@ extern "C" {
 #endif
 
 		while (sim_delay) {
-			usleep(100);
+			px4_usleep(100);
 		}
 
 		PX4_DEBUG("Called px4_poll timeout = %d", timeout);

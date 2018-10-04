@@ -336,7 +336,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 					unsigned usleep_delay = (sysdelay - min_delay) / _realtime_factor;
 
 					// extend by the realtime factor to avoid drift
-					usleep(usleep_delay);
+					px4_usleep(usleep_delay);
 					hrt_stop_delay_delta(exact_delay);
 					px4_sim_stop_delay();
 				}
@@ -838,7 +838,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 		if (pret < 0) {
 			PX4_WARN("simulator mavlink: poll error %d, %d", pret, errno);
 			// sleep a bit before next try
-			usleep(100000);
+			px4_usleep(100000);
 			continue;
 		}
 

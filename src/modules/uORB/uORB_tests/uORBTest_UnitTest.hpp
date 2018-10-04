@@ -162,7 +162,7 @@ int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
 		}
 
 		/* simulate >800 Hz system operation */
-		usleep(1000);
+		px4_usleep(1000);
 	}
 
 	if (pubsub_task < 0) {

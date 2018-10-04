@@ -2638,7 +2638,7 @@ MavlinkReceiver::receive_thread(void *arg)
 	if (_mavlink->get_protocol() == UDP || _mavlink->get_protocol() == TCP) {
 		// make sure mavlink app has booted before we start using the socket
 		while (!_mavlink->boot_complete()) {
-			usleep(100000);
+			px4_usleep(100000);
 		}
 
 		fds[0].fd = _mavlink->get_socket_fd();
@@ -2662,7 +2662,7 @@ MavlinkReceiver::receive_thread(void *arg)
 				/* non-blocking read. read may return negative values */
 				if ((nread = ::read(fds[0].fd, buf, sizeof(buf))) < (ssize_t)character_count) {
 					const unsigned sleeptime = character_count * 1000000 / (_mavlink->get_baudrate() / 10);
-					usleep(sleeptime);
+					px4_usleep(sleeptime);
 				}
 			}
 

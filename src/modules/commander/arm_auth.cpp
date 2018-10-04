@@ -120,7 +120,7 @@ static uint8_t _auth_method_arm_req_check()
 		}
 
 		/* 0.5ms */
-		usleep(500);
+		px4_usleep(500);
 		now = hrt_absolute_time();
 	}
 
