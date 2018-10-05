@@ -17,6 +17,7 @@ uint16 cycle_count         # number of discharge cycles the battery has experien
 uint16 run_time_to_empty   # predicted remaining battery capacity based on the present rate of discharge in min
 uint16 average_time_to_empty   # predicted remaining battery capacity based on the average rate of discharge in min
 uint16 serial_number       # serial number of the battery pack
+uint16[10] voltages_ind #array of voltages if smart battery supports check
 
 
 bool is_powering_off		# Power off event imminent indication, false if unknown
