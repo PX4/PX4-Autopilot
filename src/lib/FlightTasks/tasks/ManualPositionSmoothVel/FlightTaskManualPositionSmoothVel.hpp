@@ -57,9 +57,12 @@ protected:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualPosition,
 					(ParamFloat<px4::params::MPC_JERK_MIN>) _jerk_min, /**< Minimum jerk (velocity-based if > 0) */
-					(ParamFloat<px4::params::MPC_JERK_MAX>) _jerk_max
+					(ParamFloat<px4::params::MPC_JERK_MAX>) _jerk_max,
+					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) MPC_ACC_UP_MAX,
+					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) MPC_ACC_DOWN_MAX
 				       )
 private:
 
 	VelocitySmoothing _smoothing[3]; ///< Smoothing in x, y and z directions
+	matrix::Vector3f _vel_sp_smooth;
 };

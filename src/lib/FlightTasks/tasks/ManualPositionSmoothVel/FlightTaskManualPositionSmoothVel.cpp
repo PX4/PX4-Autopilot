@@ -61,8 +61,18 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 	_smoothing[0].setMaxVel(_constraints.speed_xy);
 	_smoothing[1].setMaxVel(_constraints.speed_xy);
 
+	if (_velocity_setpoint(2) < 0.f) { // up
+		_smoothing[2].setMaxAccel(MPC_ACC_UP_MAX.get());
+		_smoothing[2].setMaxVel(_constraints.speed_up);
+
+	} else { // down
+		_smoothing[2].setMaxAccel(MPC_ACC_DOWN_MAX.get());
+		_smoothing[2].setMaxVel(_constraints.speed_down);
+	}
+
 	Vector2f vel_xy = Vector2f(&_velocity(0));
-	float jerk = _jerk_max.get();
+	float jerk[3] = {_jerk_max.get(), _jerk_max.get(), _jerk_max.get()};
+	float jerk_xy = _jerk_max.get();
 
 	if (_jerk_min.get() > _jerk_max.get()) {
 		_jerk_min.set(0.f);
@@ -70,24 +80,25 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 
 	if (_jerk_min.get() > FLT_EPSILON) {
 		// interpolate between min and max jerk
-		jerk = math::min(_jerk_min.get() + (_jerk_max.get() - _jerk_min.get()) * vel_xy.length() / _constraints.speed_xy,
+		jerk_xy = math::min(_jerk_min.get() + (_jerk_max.get() - _jerk_min.get()) * vel_xy.length() / _constraints.speed_xy,
 				 _jerk_max.get());
 	}
 
-	for (int i = 0; i < 2; ++i) {
-		_smoothing[i].setMaxJerk(jerk);
+	jerk[0] = jerk_xy;
+	jerk[1] = jerk_xy;
+
+	for (int i = 0; i < 3; ++i) {
+		_smoothing[i].setMaxJerk(jerk[i]);
 		_smoothing[i].updateDurations(_deltatime, _velocity_setpoint(i));
 	}
 
-	VelocitySmoothing::timeSynchronization(_smoothing, 2);
+	VelocitySmoothing::timeSynchronization(_smoothing, 2); // Synchronize x and y only
 
-	for (int i = 0; i < 2; ++i) {
-
-		float smoothed_velocity_setpoint, smoothed_position_setpoint;
-		_smoothing[i].integrate(_position(i), smoothed_velocity_setpoint, smoothed_position_setpoint);
+	for (int i = 0; i < 3; ++i) {
+		float smoothed_position_setpoint;
+		_smoothing[i].integrate(_position(i), _vel_sp_smooth(i), smoothed_position_setpoint);
+		//printf("\nTraj %d\tNew total time = %.3f", i, (double)_smoothing[i].getTotalTime());
 		_position_setpoint(i) = smoothed_position_setpoint;
-		_velocity_setpoint(i) = smoothed_velocity_setpoint;
+		_velocity_setpoint(i) = _vel_sp_smooth(i);
 	}
-
-	// TODO: z
 }
