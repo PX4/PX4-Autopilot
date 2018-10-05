@@ -1,7 +1,7 @@
 /************************************************************************************
  * configs/nxphlit-v3/include/board.h
  *
- *   Copyright (C) 2016-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016-2018 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
  *   		  Jordan MacIntyre
  *   		  David Sidrane <david_s5@nscdg.com>
@@ -193,13 +193,13 @@
 #define BOARD_SDHC_SD1MODE_PRESCALER   SDHC_SYSCTL_SDCLKFS_DIV2
 #define BOARD_SDHC_SD1MODE_DIVISOR     SDHC_SYSCTL_DVS_DIV(5)
 
-/* SD normal mode (4-bit): Optimal 25MHz, Actual Actual 168Mhz / (2 * 4) = 21 MHz (with DMA)
+/* SD normal mode (4-bit): Optimal 25MHz, Actual Actual 168Mhz / (2 * 5) = 16.8 (emi test) MHz (with DMA)
  * SD normal mode (4-bit): Optimal 20MHz, Actual 168Mhz / (2 * 5) = 16.8 MHz (no DMA)
  */
 
 #ifdef CONFIG_KINETIS_SDHC_DMA
 #  define BOARD_SDHC_SD4MODE_PRESCALER SDHC_SYSCTL_SDCLKFS_DIV2
-#  define BOARD_SDHC_SD4MODE_DIVISOR   SDHC_SYSCTL_DVS_DIV(4)
+#  define BOARD_SDHC_SD4MODE_DIVISOR   SDHC_SYSCTL_DVS_DIV(5)
 #else
 #  define BOARD_SDHC_SD4MODE_PRESCALER SDHC_SYSCTL_SDCLKFS_DIV2
 #  define BOARD_SDHC_SD4MODE_DIVISOR   SDHC_SYSCTL_DVS_DIV(5)
