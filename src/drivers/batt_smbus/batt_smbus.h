@@ -83,6 +83,10 @@
 #define BATT_SMBUS_MANUFACTURER_NAME                    0x20                    ///< manufacturer name
 #define BATT_SMBUS_MANUFACTURE_DATE                     0x1B                    ///< manufacture date register
 #define BATT_SMBUS_SERIAL_NUMBER                        0x1C                    ///< serial number register
+#define BATT_SMBUS_VOLTAGE_C1                           0x3C                    ///< voltage register for cell 1
+#define BATT_SMBUS_VOLTAGE_C2                           0x3D                    ///< voltage register for cell 2
+#define BATT_SMBUS_VOLTAGE_C3                           0x3E                    ///< voltage register for cell 3
+#define BATT_SMBUS_VOLTAGE_C4                           0x3F                    ///< voltage register for cell 4
 #define BATT_SMBUS_MEASUREMENT_INTERVAL_US              100000                  ///< time in microseconds, measure at 10Hz
 #define BATT_SMBUS_TIMEOUT_US                           1000000                ///< timeout looking for battery 10seconds after startup
 #define BATT_SMBUS_MANUFACTURER_ACCESS                  0x00
@@ -315,6 +319,9 @@ private:
 
 	/** @param _manufacturer_name Name of the battery manufacturer. */
 	char *_manufacturer_name;
+
+    /** @param _cell_count Number of cells reported by checking individual voltages (0 means unknown). */
+    uint8_t _cell_count;
 
 	/* Do not allow copy construction or move assignment of this class. */
 	BATT_SMBUS(const BATT_SMBUS &);
