@@ -70,7 +70,8 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 		_smoothing[2].setMaxVel(_constraints.speed_down);
 	}
 
-	Vector2f vel_xy = Vector2f(&_velocity(0));
+	Vector2f vel_xy_sp = Vector2f(&_velocity_setpoint(0));
+	Vector2f vel_xy_sp_smooth = Vector2f(&_vel_sp_smooth(0));
 	float jerk[3] = {_jerk_max.get(), _jerk_max.get(), _jerk_max.get()};
 	float jerk_xy = _jerk_max.get();
 
@@ -79,9 +80,15 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 	}
 
 	if (_jerk_min.get() > FLT_EPSILON) {
-		// interpolate between min and max jerk
-		jerk_xy = math::min(_jerk_min.get() + (_jerk_max.get() - _jerk_min.get()) * vel_xy.length() / _constraints.speed_xy,
-				 _jerk_max.get());
+		if (vel_xy_sp.length() < FLT_EPSILON) { // Brake
+			jerk_xy = _jerk_min.get() + (_jerk_max.get() - _jerk_min.get());
+
+		} else if (vel_xy_sp.dot(vel_xy_sp_smooth) < -FLT_EPSILON) { // Reverse
+			jerk_xy = _jerk_max.get();
+
+		} else {
+			jerk_xy = _jerk_min.get();
+		}
 	}
 
 	jerk[0] = jerk_xy;
