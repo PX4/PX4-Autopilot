@@ -76,18 +76,20 @@ type_serialize_map = {
 }
 
 type_idl_map = {
+    'bool': 'boolean',
+    'byte': 'octet',
+    'char': 'char',
     'int8': 'octet',
-    'int16': 'short',
-    'int32': 'long',
-    'int64': 'long long',
     'uint8': 'octet',
+    'int16': 'short',
     'uint16': 'unsigned short',
+    'int32': 'long',
     'uint32': 'unsigned long',
+    'int64': 'long long',
     'uint64': 'unsigned long long',
     'float32': 'float',
     'float64': 'double',
-    'bool': 'boolean',
-    'char': 'char',
+    'string': 'string',
 }
 
 msgtype_size_map = {
