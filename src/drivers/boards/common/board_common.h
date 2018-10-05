@@ -665,7 +665,7 @@ typedef enum {
 typedef enum {
 	px4_hw_con_unknown  = 0,
 	px4_hw_con_onboard  = 1,
-	px4_hw_con_conector = 3,
+	px4_hw_con_connector = 3,
 } px4_hw_connection_t;
 
 
@@ -685,7 +685,7 @@ __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id);
 #  define PX4_MFT_HW_SUPPORTED(ID)           (board_query_manifest((ID))->present)
 #  define PX4_MFT_HW_REQUIRED(ID)            (board_query_manifest((ID))->mandatory)
 #  define PX4_MFT_HW_IS_ONBOARD(ID)          (board_query_manifest((ID))->connection == px4_hw_con_onboard)
-#  define PX4_MFT_HW_IS_OFFBOARD(ID)         (board_query_manifest((ID))->connection == px4_hw_con_conector)
+#  define PX4_MFT_HW_IS_OFFBOARD(ID)         (board_query_manifest((ID))->connection == px4_hw_con_connector)
 #  define PX4_MFT_HW_IS_CONNECTION_KNOWN(ID) (board_query_manifest((ID))->connection != px4_hw_con_unknown)
 #elif defined(BOARD_HAS_STATIC_MANIFEST) && BOARD_HAS_STATIC_MANIFEST == 1
 /* Board has a static configuration and will supply what it has */
