@@ -72,11 +72,6 @@ static const px4_hw_mft_item_t hw_mft_list_v0500[] = {
 		.mandatory   = 1,
 		.connection  = px4_hw_con_onboard,
 	},
-	{
-		.present     = 1,
-		.mandatory   = 1,
-		.connection  = 1,
-	},
 };
 
 static const px4_hw_mft_item_t hw_mft_list_v0540[] = {
