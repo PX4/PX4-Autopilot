@@ -57,9 +57,6 @@ rtps:
   - msg: estimator_status
     id: 23
     send: true
-  - msg: iridiumsbd_status
-    id: 30
-    send: true
   - msg: follow_target
     id: 24
   - msg: geofence_result
@@ -72,6 +69,9 @@ rtps:
     id: 28
   - msg: input_rc
     id: 29
+  - msg: iridiumsbd_status
+    id: 30
+    send: true
   - msg: irlock_report
     id: 31
   - msg: landing_target_innovation
