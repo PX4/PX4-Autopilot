@@ -13,7 +13,7 @@ UAVCAN is a lightweight protocol designed for reliable communication in aerospac
 ## Documentation
 
 * [UAVCAN website](http://uavcan.org)
-* [UAVCAN discussion group](https://groups.google.com/forum/#!forum/uavcan)
+* [UAVCAN forum](https://forum.uavcan.org)
 * [Libuavcan overview](http://uavcan.org/Implementations/Libuavcan/)
 * [List of platforms officially supported by libuavcan](http://uavcan.org/Implementations/Libuavcan/Platforms/)
 * [Libuavcan tutorials](http://uavcan.org/Implementations/Libuavcan/Tutorials/)
