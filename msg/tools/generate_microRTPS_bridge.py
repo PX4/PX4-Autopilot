@@ -57,28 +57,63 @@ except ImportError:
 
 def check_rtps_id_uniqueness(classifier):
     """
-    Checks if:
-    1. there are no ID's for different msgs repeated on the map
-    2. the same msg is set to be sent/received and unclassified at the same time
+    Checks if there are no ID's for different msgs repeated on the map
     """
-    msgs_to_use = classifier.msgs_to_send
-    msgs_to_use.update(classifier.msgs_to_receive)
-    msgs_to_ignore = classifier.msgs_to_ignore
 
-    used_ids = msgs_to_use.values()
-    used_ids.sort()
+    repeated_ids = dict()
 
-    repeated_keys = dict()
-    for key, value in msgs_to_use.items():
-        if used_ids.count(value) > 1:
-            repeated_keys.update({key: value})
+    # check if there are repeated ID's on the messages to send
+    for key, value in classifier.msgs_to_send.items():
+        if classifier.msgs_to_send.values().count(value) > 1:
+            repeated_ids.update({key: value})
 
-    if not repeated_keys:
+    # check if there are repeated ID's on the messages to receive
+    for key, value in classifier.msgs_to_receive.items():
+        if classifier.msgs_to_receive.values().count(value) > 1:
+            repeated_ids.update({key: value})
+
+    # check if there are repeated ID's on the messages to ignore
+    for key, value in classifier.msgs_to_ignore.items():
+        if classifier.msgs_to_ignore.values().count(value) > 1:
+            repeated_ids.update({key: value})
+
+    # check if there are repeated IDs between classfied and unclassified msgs
+    # check send and ignore lists
+    send_ignore_common_ids = list(set(classifier.msgs_to_ignore.values(
+    )).intersection(classifier.msgs_to_send.values()))
+    for item in zip(classifier.msgs_to_send.items(), classifier.msgs_to_ignore.items()):
+        for repeated in send_ignore_common_ids:
+            if item[1] == repeated:
+                repeated_ids.update({item[0]: item[1]})
+    for item in classifier.msgs_to_ignore.items():
+        for repeated in send_ignore_common_ids:
+            if item[1] == repeated:
+                repeated_ids.update({item[0]: item[1]})
+
+    # check receive and ignore lists
+    receive_ignore_common_ids = list(set(classifier.msgs_to_ignore.values(
+    )).intersection(classifier.msgs_to_receive.values()))
+    for item in classifier.msgs_to_receive.items():
+        for repeated in receive_ignore_common_ids:
+            if item[1] == repeated:
+                repeated_ids.update({item[0]: item[1]})
+    for item in classifier.msgs_to_ignore.items():
+        for repeated in receive_ignore_common_ids:
+            if item[1] == repeated:
+                repeated_ids.update({item[0]: item[1]})
+
+    all_msgs = classifier.msgs_to_send
+    all_msgs.update(classifier.msgs_to_receive)
+    all_msgs.update(classifier.msgs_to_ignore)
+    all_ids = all_msgs.values()
+    all_ids.sort()
+
+    if not repeated_ids:
         print("All good. RTPS ID's are unique")
     else:
-        raise AssertionError(", ".join('%s' % msgs for msgs in repeated_keys.keys()) +
-                             " have their keys repeated. Please choose from the following pool:\n" +
-                             ", ".join('%d' % id for id in px_generate_uorb_topic_helper.check_available_ids(used_ids)))
+        raise AssertionError(", ".join('%s' % msgs for msgs in repeated_ids.keys()) +
+                             " have their ID's repeated. Please choose from the following pool:\n" +
+                             ", ".join('%d' % id for id in px_generate_uorb_topic_helper.check_available_ids(all_ids)))
 
 
 default_client_out = px_generate_uorb_topic_helper.get_absolute_path(

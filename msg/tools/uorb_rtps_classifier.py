@@ -89,33 +89,36 @@ class Classifier():
     # setters (for class init)
     def set_msgs_to_send(self):
         send = {}
-        for dict in self.msg_id_map['rtps']['send']:
-            send.update({dict['msg']: dict['id']})
+        for dict in self.msg_id_map['rtps']:
+            if 'send' in dict.keys():
+                send.update({dict['msg']: dict['id']})
         return send
 
     def set_msgs_to_receive(self):
         receive = {}
-        for dict in self.msg_id_map['rtps']['receive']:
-            receive.update({dict['msg']: dict['id']})
+        for dict in self.msg_id_map['rtps']:
+            if 'receive' in dict.keys():
+                receive.update({dict['msg']: dict['id']})
         return receive
 
     def set_msgs_to_ignore(self):
         ignore = {}
-        for dict in self.msg_id_map['rtps']['unclassified']:
-            ignore.update({dict['msg']: dict['id']})
+        for dict in self.msg_id_map['rtps']:
+            if ('send' not in dict.keys()) and ('receive' not in dict.keys()):
+                ignore.update({dict['msg']: dict['id']})
         return ignore
 
     def set_msg_files_send(self):
         return [os.path.join(self.msg_folder, msg + ".msg")
-                                for msg in self.msgs_to_send.keys()]
+                for msg in self.msgs_to_send.keys()]
 
     def set_msg_files_receive(self):
         return [os.path.join(self.msg_folder, msg + ".msg")
-                                   for msg in self.msgs_to_receive.keys()]
+                for msg in self.msgs_to_receive.keys()]
 
     def set_msg_files_ignore(self):
         return [os.path.join(self.msg_folder, msg + ".msg")
-                                  for msg in self.msgs_to_ignore.keys()]
+                for msg in self.msgs_to_ignore.keys()]
 
     @staticmethod
     def parse_yaml_msg_id_file(yaml_file):
@@ -154,7 +157,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     msg_folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    classifier = Classifier(os.path.join(msg_folder, args.yaml_file), msg_folder)
+    classifier = Classifier(os.path.join(
+        msg_folder, args.yaml_file), msg_folder)
 
     if args.send:
         if args.path:
