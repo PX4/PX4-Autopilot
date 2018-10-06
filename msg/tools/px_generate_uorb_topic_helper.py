@@ -349,23 +349,6 @@ def print_field_def(field):
                                 array_size, comment))
 
 
-def get_absolute_path(arg_parse_dir):
-    """
-    Get absolute path from dir
-    """
-    root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-    if isinstance(arg_parse_dir, list):
-        dir = arg_parse_dir[0]
-    else:
-        dir = arg_parse_dir
-
-    if dir[0] != '/':
-        dir = root_path + "/" + dir
-
-    return dir
-
-
 def check_available_ids(used_msg_ids_list):
     """
     Checks the available RTPS ID's
