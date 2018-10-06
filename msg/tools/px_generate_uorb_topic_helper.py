@@ -377,18 +377,23 @@ def rtps_message_id(msg_id_map, message):
     """
     Get RTPS ID of uORB message
     """
+    error_msg = ""
+
+    # check if the message has an ID set
+    for dict in msg_id_map[0]['rtps']:
+        if message in dict['msg']:
+            if dict['id'] is not None:
+                return dict['id']
+            else:
+                error_msg = "ID is None!"
+                break
+
+    # create list of the available IDs if it fails to get an ID
     used_ids = list()
-    # check 'send' list
-    for dict in msg_id_map[0]['rtps']['send']:
-        used_ids.append(dict['id'])
-        if message in dict['msg']:
-            return dict['id']
-    # check 'receive' list
-    for dict in msg_id_map[0]['rtps']['receive']:
-        used_ids.append(dict['id'])
-        if message in dict['msg']:
-            return dict['id']
+    for dict in msg_id_map[0]['rtps']:
+        if dict['id'] is not None:
+            used_ids.append(dict['id'])
 
     raise AssertionError(
-        "%s does not have a RTPS ID set in the definition file. Please add an ID from the available pool:\n" % message +
+        "%s %s Please add an ID from the available pool:\n" % (message, error_msg) +
         ", ".join('%d' % id for id in check_available_ids(used_ids)))
