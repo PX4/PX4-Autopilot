@@ -55,6 +55,23 @@ except ImportError:
         "Failed to import yaml. You may need to install it with 'sudo pip install pyyaml'")
 
 
+def get_absolute_path(arg_parse_dir):
+    """
+    Get absolute path from dir
+    """
+    root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    if isinstance(arg_parse_dir, list):
+        dir = arg_parse_dir[0]
+    else:
+        dir = arg_parse_dir
+
+    if dir[0] != '/':
+        dir = root_path + "/" + dir
+
+    return dir
+
+
 def check_rtps_id_uniqueness(classifier):
     """
     Checks if there are no ID's for different msgs repeated on the map
@@ -116,9 +133,9 @@ def check_rtps_id_uniqueness(classifier):
                              ", ".join('%d' % id for id in px_generate_uorb_topic_helper.check_available_ids(all_ids)))
 
 
-default_client_out = px_generate_uorb_topic_helper.get_absolute_path(
+default_client_out = get_absolute_path(
     "src/modules/micrortps_bridge/micrortps_client")
-default_agent_out = px_generate_uorb_topic_helper.get_absolute_path(
+default_agent_out = get_absolute_path(
     "src/modules/micrortps_bridge/micrortps_agent")
 default_uorb_templates_dir = "templates/uorb_microcdr"
 default_urtps_templates_dir = "templates/urtps"
@@ -167,7 +184,7 @@ if len(sys.argv) <= 1:
 
 # Parse arguments
 args = parser.parse_args()
-msg_folder = px_generate_uorb_topic_helper.get_absolute_path(args.msgdir)
+msg_folder = get_absolute_path(args.msgdir)
 package = args.package
 agent = args.agent
 client = args.client
@@ -176,13 +193,13 @@ cmakelists = args.cmakelists
 del_tree = args.del_tree
 px_generate_uorb_topic_files.append_to_include_path(
     {msg_folder}, px_generate_uorb_topic_files.INCL_DEFAULT, package)
-agent_out_dir = px_generate_uorb_topic_helper.get_absolute_path(args.agentdir)
-client_out_dir = px_generate_uorb_topic_helper.get_absolute_path(
+agent_out_dir = get_absolute_path(args.agentdir)
+client_out_dir = get_absolute_path(
     args.clientdir)
 gen_idl = args.gen_idl
 idl_dir = args.idl_dir
 if idl_dir != '':
-    idl_dir = px_generate_uorb_topic_helper.get_absolute_path(args.idl_dir)
+    idl_dir = get_absolute_path(args.idl_dir)
 else:
     idl_dir = os.path.join(agent_out_dir, "idl")
 
@@ -192,11 +209,11 @@ if args.fastrtpsgen is None or args.fastrtpsgen == "":
 else:
     # Path to fastrtpsgen is explicitly specified
     fastrtpsgen_path = os.path.join(
-        px_generate_uorb_topic_helper.get_absolute_path(args.fastrtpsgen), "/fastrtpsgen")
+        get_absolute_path(args.fastrtpsgen), "/fastrtpsgen")
 fastrtpsgen_include = args.fastrtpsgen_include
 if fastrtpsgen_include is not None and fastrtpsgen_include != '':
     fastrtpsgen_include = "-I " + \
-        px_generate_uorb_topic_helper.get_absolute_path(
+        get_absolute_path(
             args.fastrtpsgen_include) + " "
 
 # If nothing specified it's generated both
