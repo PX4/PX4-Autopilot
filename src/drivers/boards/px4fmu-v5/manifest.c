@@ -66,16 +66,14 @@ typedef px4_hw_mft_list_entry_t *px4_hw_mft_list_entry;
 
 static const px4_hw_mft_item_t device_unsupported = {0, 0, 0};
 
+// List of components on a specific board configuration
+// The index of those components is given by the enum (px4_hw_mft_item_id_t)
+// declared in board_common.h
 static const px4_hw_mft_item_t hw_mft_list_v0500[] = {
 	{
 		.present     = 1,
 		.mandatory   = 1,
 		.connection  = px4_hw_con_onboard,
-	},
-	{
-		.present     = 1,
-		.mandatory   = 1,
-		.connection  = 1,
 	},
 };
 
