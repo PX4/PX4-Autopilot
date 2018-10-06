@@ -3,7 +3,7 @@
 # Script to configure control interface
 #
 
-set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
+set OUTPUT_DEV none
 
 if [ $MIXER != none -a $MIXER != skip ]
 then
@@ -75,9 +75,4 @@ then
 	fi
 fi
 
-unset PWM_OUT
-unset PWM_RATE
-unset PWM_MIN
-unset PWM_MAX
-unset FAILSAFE
 unset OUTPUT_DEV
