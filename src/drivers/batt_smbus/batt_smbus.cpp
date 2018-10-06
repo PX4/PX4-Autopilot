@@ -59,8 +59,8 @@ BATT_SMBUS::BATT_SMBUS(device::Device *interface, const char *path) :
 	_crit_thr(0.0f),
 	_emergency_thr(0.0f),
 	_low_thr(0.0f),
-    _manufacturer_name(nullptr),
-    _cell_count(0)
+	_manufacturer_name(nullptr),
+	_cell_count(0)
 {
 }
 
@@ -213,18 +213,20 @@ void BATT_SMBUS::cycle()
 			success = false;
 		}
 
-        //Testing the cell count option
-        //Check if smart battery supports standard
-        if (_cell_count > 0){
-            new_report.cell_count = _cell_count;
-            for (uint8_t j = 0; j < _cell_count; j++) {
-                if (read_word((BATT_SMBUS_VOLTAGE_C1+j), &tmp) == PX4_OK) {
-                   new_report.voltages_ind[j] = tmp;
-                }
-            }
-        } else {
-            new_report.cell_count = 0;
-        }
+		//Testing the cell count option
+		//Check if smart battery reports individual voltages
+		if (_cell_count > 0) {
+			new_report.cell_count = _cell_count;
+
+			for (uint8_t j = 0; j < _cell_count; j++) {
+				if (read_word((BATT_SMBUS_VOLTAGE_C1 + j), &tmp) == PX4_OK) {
+					new_report.voltages_ind[j] = tmp;
+				}
+			}
+
+		} else {
+			new_report.cell_count = 0;
+		}
 
 		// Read remaining capacity.
 		if (read_word(BATT_SMBUS_REMAINING_CAPACITY, &tmp) == PX4_OK) {
@@ -431,18 +433,21 @@ int BATT_SMBUS::get_startup_info()
 		result = PX4_OK;
 	}
 
-    //try for loop with (BATT_SMBUS_VOLTAGE_C1 + i) as address to read individual cell voltages
-    if (read_word(BATT_SMBUS_VOLTAGE_C1, &tmp) == PX4_OK) {
-        _cell_count++;
-        for (uint8_t j = 1; j < 10; j++) { //Though spec only lists 4 cells, query up to 10 because pixhawk mavlink battery messages support it
-            if (read_word((BATT_SMBUS_VOLTAGE_C1+j), &tmp) == PX4_OK) {
-               _cell_count++;
-            }
-        }
-        PX4_INFO("Smart battery has %d cells", _cell_count);
-    } else {
-        PX4_INFO("Smart battery does not report cell voltages");
-    }
+	//Read up to 10 individual cell voltages
+	if (read_word(BATT_SMBUS_VOLTAGE_C1, &tmp) == PX4_OK) {
+		_cell_count++;
+
+		for (uint8_t j = 1; j < 10; j++) {
+			if (read_word((BATT_SMBUS_VOLTAGE_C1 + j), &tmp) == PX4_OK) {
+				_cell_count++;
+			}
+		}
+
+		PX4_INFO("Smart battery has %d cells", _cell_count);
+
+	} else {
+		PX4_INFO("Smart battery does not report cell voltages");
+	}
 
 	// Read battery threshold params on startup.
 	param_get(param_find("BAT_CRIT_THR"), &_crit_thr);

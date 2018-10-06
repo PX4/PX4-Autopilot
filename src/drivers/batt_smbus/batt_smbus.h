@@ -320,8 +320,8 @@ private:
 	/** @param _manufacturer_name Name of the battery manufacturer. */
 	char *_manufacturer_name;
 
-    /** @param _cell_count Number of cells reported by checking individual voltages (0 means unknown). */
-    uint8_t _cell_count;
+	/** @param _cell_count Number of cells reported by checking individual voltages (0 means unknown). */
+	uint8_t _cell_count;
 
 	/* Do not allow copy construction or move assignment of this class. */
 	BATT_SMBUS(const BATT_SMBUS &);
