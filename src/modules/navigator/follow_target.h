@@ -60,7 +60,7 @@
 #include <math.h>
 #include <pthread.h>
 
-bool open_log(pthread_t &log_pthread);
+//bool open_log(pthread_t &log_pthread);
 class FollowTarget : public MissionBlock
 {
 

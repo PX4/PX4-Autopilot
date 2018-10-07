@@ -538,6 +538,7 @@ MavlinkReceiver::handle_message_Chen_Formation_msg(mavlink_message_t *msg)
 		orb_publish(ORB_ID(follow_target), _follow_target_pub,
 				&follow_target_topic);
 	}
+
 }
 void
 MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)

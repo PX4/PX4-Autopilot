@@ -101,7 +101,7 @@ extern bool exit_sd;
 
 bool isFollowerUpdated;
 static uint32_t last_fol_upda_time;
-static void *logwriter_thread_main(void *arg);
+//static void *logwriter_thread_main(void *arg);
 
 
 static uint16_t cm_uint16_from_m_float(float m);
@@ -542,34 +542,40 @@ protected:
 	explicit MavlinkStreamChen_Formation(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_chen_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position))),
 		_chen_time(0),
-		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
+		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position_setpoint))),
 				_pos_time(0)
 	{}
 
 	bool send(const hrt_abstime t)
 	{
 		struct vehicle_global_position_s pos = {};
-		struct vehicle_local_position_s pos_alt = {};
+		struct vehicle_local_position_setpoint_s pos_sp = {};
 		bool updated =
 				_chen_sub->update(&_chen_time, &pos);
-		_pos_sub->update(&_pos_time,&pos_alt);
+		_pos_sub->update(&_pos_time,&pos_sp);
 		if (updated) {
 			mavlink_chen_formation_msg_t msg = {};
 			msg.plane_id = mavlink_system.compid;
 			msg.time_boot_ms = pos.timestamp / 1000;
 			msg.lat = pos.lat * 1e7;
 			msg.lon = pos.lon * 1e7;
-			msg.alt = -pos_alt.z * 100;
+			msg.alt = -pos_sp.z * 100;
 			msg.vx = pos.vel_n*1e2;
 			msg.vy = pos.vel_e*1e2;
 			msg.vz = pos.vel_d*100 ;
 			msg.hdg = _wrap_2pi(pos.yaw)*100;
 			last_fol_upda_time = msg.time_boot_ms;
-			if((isFollowerUpdated||((msg.time_boot_ms-last_fol_upda_time)>1000))||(mavlink_system.compid==1)){
+			if(mavlink_system.compid==1){
 				mavlink_msg_chen_formation_msg_send_struct(_mavlink->get_channel(), &msg);
-				isFollowerUpdated = false;
 			}
 		}
+		FILE *fd;
+		fd = fopen(log_file, "a+");
+		fprintf(fd, "%d\t", (int) (pos.timestamp / 100000));
+		fprintf(fd,
+				"%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t\n",
+				pos.lat,pos.lon,pos.alt,pos_sp.x,pos_sp.y,-pos_sp.z);
+		fclose(fd);
 
 		return true;
 	}
@@ -4281,72 +4287,73 @@ const StreamListItem *streams_list[] = {
 	new StreamListItem(&MavlinkStreamChen_Formation::new_instance, &MavlinkStreamChen_Formation::get_name_static, &MavlinkStreamChen_Formation::get_id_static),
 	nullptr
 };
-static void *logwriter_thread_main(void *arg) {
-	FILE *fd;
-	static uint64_t last_log_time;
-	char path[256];
-	char file[256];
-	bool updated=false;
-	int chen_sd_sub1 = orb_subscribe(ORB_ID(position_setpoint_triplet));
-	int chen_sd_sub2 = orb_subscribe(ORB_ID(vehicle_global_position));
-	while (!updated) {
-		orb_check(chen_sd_sub2, &updated);
-		usleep(20000);
-	}
-	time_t timeSec = time(0);				//1970.01.01
-	struct tm *curTime = localtime(&timeSec);
-	sprintf(path,PX4_ROOTFSDIR"/fs/microsd/log/%04d-%02d-%02d",curTime->tm_year + 2100, curTime->tm_mon + 1, curTime->tm_mday);
-	mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
-	sprintf(file, "%s/main%02d-%02d-%02d.ulg", path, curTime->tm_hour,
-			curTime->tm_min, curTime->tm_sec);
-	fd = fopen(file, "w");
-	if (fd == 0) {
-		return NULL;
-	}
-	fprintf(fd,
-			"time\ttar_lat\ttar_lon\ttar_alt\ttar_vx\ttar_vy\ttar_vz\tlat\tlon\talt\tvx\tvy\tvz\n");
-	fclose(fd);
-	position_setpoint_triplet_s pos_sp_sd;
-	vehicle_global_position_s pos_sd;
-	while (!exit_sd) {
-		if ((hrt_absolute_time() - last_log_time) >= 100000) {
-			fd = fopen(file, "a+");
-			orb_copy(ORB_ID(position_setpoint_triplet), chen_sd_sub1,
-					&pos_sp_sd);
-			orb_copy(ORB_ID(vehicle_global_position), chen_sd_sub2, &pos_sd);
-			last_log_time = hrt_absolute_time();
-			fprintf(fd, "%d\t", (int) (last_log_time / 100000));
-			fprintf(fd,
-					"%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\n",
-					pos_sp_sd.current.lat * 1e7, pos_sp_sd.current.lon * 1e7,
-					pos_sp_sd.current.alt * 1e7, pos_sp_sd.current.vx * 1e7,
-					pos_sp_sd.current.vy * 1e7, pos_sp_sd.current.vz * 1e7,
-					pos_sd.lat * 1e7, pos_sd.lon * 1e7, pos_sd.alt * 1e7,
-					pos_sd.vel_n * 1e7, pos_sd.vel_e * 1e7,
-					-pos_sd.vel_d * 1e7);
-			fclose(fd);
-		}
-		usleep(50000);
-	}
-	return 0;
-}
-bool open_log_main(pthread_t &log_pthread)
-{
-	if(started_sd)
-	{
-		return false;
-	}
-	pthread_attr_t logwriter_attr;
-	pthread_attr_init(&logwriter_attr);
-	pthread_attr_setstacksize(&logwriter_attr, PX4_STACK_ADJUSTED(3000));
-#if !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR)
-	struct sched_param param;
-	(void)pthread_attr_getschedparam(&logwriter_attr, &param);
-	param.sched_priority = SCHED_PRIORITY_DEFAULT - 5;
-	(void)pthread_attr_setschedparam(&logwriter_attr, &param);
-#endif
-	pthread_create(&log_pthread, &logwriter_attr, logwriter_thread_main,nullptr);
-	pthread_attr_destroy(&logwriter_attr);
-	started_sd =true;
-	return true;
-}
+//static void *logwriter_thread_main(void *arg) {
+//	FILE *fd;
+//	static uint64_t last_log_time;
+//	char path[256];
+//	char file[256];
+//	bool updated=false;
+//	int chen_sd_sub1 = orb_subscribe(ORB_ID(position_setpoint_triplet));
+//	int chen_sd_sub2 = orb_subscribe(ORB_ID(vehicle_global_position));
+//	while (!updated) {
+//		orb_check(chen_sd_sub2, &updated);
+//		usleep(20000);
+//	}
+//	time_t timeSec = time(0);				//1970.01.01
+//	struct tm *curTime = localtime(&timeSec);
+//	sprintf(path,PX4_ROOTFSDIR"/fs/microsd/log/%04d-%02d-%02d",curTime->tm_year + 2100, curTime->tm_mon + 1, curTime->tm_mday);
+//	mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
+//	sprintf(file, "%s/main%02d-%02d-%02d.ulg", path, curTime->tm_hour,
+//			curTime->tm_min, curTime->tm_sec);
+//	fd = fopen(file, "w");
+//	if (fd == 0) {
+//		printf("file error\n");
+//		return NULL;
+//	}
+//	fprintf(fd,
+//			"time\ttar_lat\ttar_lon\ttar_alt\ttar_vx\ttar_vy\ttar_vz\tlat\tlon\talt\tvx\tvy\tvz\n");
+//	fclose(fd);
+//	position_setpoint_triplet_s pos_sp_sd;
+//	vehicle_global_position_s pos_sd;
+//	while (!exit_sd) {
+//		if ((hrt_absolute_time() - last_log_time) >= 100000) {
+//			fd = fopen(file, "a+");
+//			orb_copy(ORB_ID(position_setpoint_triplet), chen_sd_sub1,
+//					&pos_sp_sd);
+//			orb_copy(ORB_ID(vehicle_global_position), chen_sd_sub2, &pos_sd);
+//			last_log_time = hrt_absolute_time();
+//			fprintf(fd, "%d\t", (int) (last_log_time / 100000));
+//			fprintf(fd,
+//					"%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\n",
+//					pos_sp_sd.current.lat * 1e7, pos_sp_sd.current.lon * 1e7,
+//					pos_sp_sd.current.alt * 1e7, pos_sp_sd.current.vx * 1e7,
+//					pos_sp_sd.current.vy * 1e7, pos_sp_sd.current.vz * 1e7,
+//					pos_sd.lat * 1e7, pos_sd.lon * 1e7, pos_sd.alt * 1e7,
+//					pos_sd.vel_n * 1e7, pos_sd.vel_e * 1e7,
+//					-pos_sd.vel_d * 1e7);
+//			fclose(fd);
+//		}
+//		usleep(50000);
+//	}
+//	return 0;
+//}
+//bool open_log_main(pthread_t &log_pthread)
+//{
+//	if(started_sd)
+//	{
+//		return false;
+//	}
+//	pthread_attr_t logwriter_attr;
+//	pthread_attr_init(&logwriter_attr);
+//	pthread_attr_setstacksize(&logwriter_attr, PX4_STACK_ADJUSTED(3000));
+//#if !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR)
+//	struct sched_param param;
+//	(void)pthread_attr_getschedparam(&logwriter_attr, &param);
+//	param.sched_priority = SCHED_PRIORITY_DEFAULT - 5;
+//	(void)pthread_attr_setschedparam(&logwriter_attr, &param);
+//#endif
+//	pthread_create(&log_pthread, &logwriter_attr, logwriter_thread_main,nullptr);
+//	pthread_attr_destroy(&logwriter_attr);
+//	started_sd =true;
+//	return true;
+//}

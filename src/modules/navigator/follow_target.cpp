@@ -51,15 +51,15 @@
 #include <uORB/topics/follow_target.h>
 #include <uORB/topics/formation_followers.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/chen_sd_formation.h>
+//#include <uORB/topics/chen_sd_formation.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/math/Limits.hpp>
 #include "follow_target.h"
 #include "navigator.h"
-#include <pthread.h>
+//#include <pthread.h>
 int ischanging=0;
 bool formation_exit;
-chen_sd_formation_s sd_formation;
+//chen_sd_formation_s sd_formation;
 char file_path[256];
 FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
@@ -236,11 +236,6 @@ void FollowTarget::on_active()
 		if (_current_target_motion.timestamp == 0) {
 			_current_target_motion = target_motion;
 		}
-		if(!log_opened)
-		{
-			open_log(log_pthread);
-			log_opened = true;
-		}
 		_current_target_motion.plane_id = target_motion.plane_id;
 		_current_target_motion.timestamp = target_motion.timestamp;
 		_current_target_motion.alt = (double)target_motion.alt+follower.z_offset;
@@ -289,18 +284,18 @@ void FollowTarget::on_active()
 				follower.y_offset * cos(hdg_offset)
 						+ follower.x_offset * sin(hdg_offset),
 				&_current_target_motion.lat, &_current_target_motion.lon);
-		sd_formation.tar_lat = _current_target_motion.lat;
-		sd_formation.tar_lon = _current_target_motion.lon;
-		sd_formation.tar_alt = _current_target_motion.alt;
-		sd_formation.tar_vx = _current_target_motion.vx;
-		sd_formation.tar_vy = _current_target_motion.vy;
-		sd_formation.tar_vz = _current_target_motion.vz;
-		sd_formation.vx = _navigator->get_global_position()->vel_n;
-		sd_formation.vy = _navigator->get_global_position()->vel_e;
-		sd_formation.vz = -_navigator->get_global_position()->vel_d;
-		sd_formation.lat = _navigator->get_global_position()->lat;
-		sd_formation.lon = _navigator->get_global_position()->lon;
-		sd_formation.alt = _navigator->get_global_position()->alt;
+//		sd_formation.tar_lat = _current_target_motion.lat;
+//		sd_formation.tar_lon = _current_target_motion.lon;
+//		sd_formation.tar_alt = _current_target_motion.alt;
+//		sd_formation.tar_vx = _current_target_motion.vx;
+//		sd_formation.tar_vy = _current_target_motion.vy;
+//		sd_formation.tar_vz = _current_target_motion.vz;
+//		sd_formation.vx = _navigator->get_global_position()->vel_n;
+//		sd_formation.vy = _navigator->get_global_position()->vel_e;
+//		sd_formation.vz = -_navigator->get_global_position()->vel_d;
+//		sd_formation.lat = _navigator->get_global_position()->lat;
+//		sd_formation.lon = _navigator->get_global_position()->lon;
+//		sd_formation.alt = _navigator->get_global_position()->alt;
 
 		map_projection_init(&target_ref, _current_target_motion.lat,_current_target_motion.lon );
 		map_projection_project(&target_ref, _navigator->get_global_position()->lat, _navigator->get_global_position()->lon, &_target_distance(0),
@@ -414,7 +409,7 @@ void FollowTarget::on_active()
 					_follow_target_state = TRACK_VELOCITY;
 					ischanging =0;
 				} else if (target_velocity_valid()) {
-					set_follow_target_item(&_mission_item, (double)(_current_target_motion.alt+_current_target_motion.plane_id*ischanging), target_motion_with_offset, _yaw_angle);
+					set_follow_target_item(&_mission_item, (double)(_current_target_motion.alt), target_motion_with_offset, _yaw_angle);
 					// keep the current velocity updated with the target velocity for when it's needed
 					//_current_vel = _est_target_vel;
 
@@ -531,53 +526,53 @@ bool FollowTarget::target_position_valid()
 	// need at least 1 continuous data points for position estimate
 	return (_target_updates >= 1);
 }
-static void *logwriter_thread(void *arg) {
-	FILE *fd;
-	static uint64_t last_log_time;
-	char path[256];
-	char file[256];
-	time_t timeSec = time(0);				//1970.01.01
-	struct tm *curTime = localtime(&timeSec);
-	sprintf(path,PX4_ROOTFSDIR"/fs/microsd/log/%04d-%02d-%02d",curTime->tm_year + 2100, curTime->tm_mon + 1, curTime->tm_mday);
-	mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
-	sprintf(file, "%s/main%02d-%02d-%02d.ulg", path, curTime->tm_hour,
-			curTime->tm_min, curTime->tm_sec);
-	fd = fopen(file, "w");
-	if (fd == 0) {
-		return NULL;
-	}
-	fprintf(fd,
-			"timefollow\ttar_lat\ttar_lon\ttar_alt\ttar_vx\ttar_vy\ttar_vz\tlat\tlon\talt\tvx\tvy\tvz\n");
-	fclose(fd);
-	while (!formation_exit) {
-		if ((hrt_absolute_time() - last_log_time) >= 100000) {
-			fd = fopen(file, "a+");
-			last_log_time = hrt_absolute_time();
-			fprintf(fd, "%d\t", (int) (last_log_time / 100000));
-			fprintf(fd, "%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\n",
-					sd_formation.tar_lat*1e7, sd_formation.tar_lon*1e7,
-					sd_formation.tar_alt*1e7, sd_formation.tar_vx*1e7,
-					sd_formation.tar_vy*1e7, sd_formation.tar_vz*1e7, sd_formation.lat*1e7,
-					sd_formation.lon*1e7, sd_formation.alt*1e7, sd_formation.vx*1e7,
-					sd_formation.vy*1e7, sd_formation.vz*1e7);
-			fclose(fd);
-		}
-		usleep(50000);
-	}
-		return 0;
-}
-bool open_log(pthread_t &log_pthread) {
-	pthread_attr_t logwriter_attr;
-	pthread_attr_init(&logwriter_attr);
-	pthread_attr_setstacksize(&logwriter_attr, PX4_STACK_ADJUSTED(3000));
-#if !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR)
-	struct sched_param param;
-	(void) pthread_attr_getschedparam(&logwriter_attr, &param);
-	param.sched_priority = SCHED_PRIORITY_DEFAULT - 5;
-	(void) pthread_attr_setschedparam(&logwriter_attr, &param);
-#endif
-	pthread_create(&log_pthread, &logwriter_attr, logwriter_thread,
-			nullptr);
-	pthread_attr_destroy(&logwriter_attr);
-	return true;
-}
+//static void *logwriter_thread(void *arg) {
+//	FILE *fd;
+//	static uint64_t last_log_time;
+//	char path[256];
+//	char file[256];
+//	time_t timeSec = time(0);				//1970.01.01
+//	struct tm *curTime = localtime(&timeSec);
+//	sprintf(path,PX4_ROOTFSDIR"/fs/microsd/log/%04d-%02d-%02d",curTime->tm_year + 2100, curTime->tm_mon + 1, curTime->tm_mday);
+//	mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
+//	sprintf(file, "%s/main%02d-%02d-%02d.ulg", path, curTime->tm_hour,
+//			curTime->tm_min, curTime->tm_sec);
+//	fd = fopen(file, "w");
+//	if (fd == 0) {
+//		return NULL;
+//	}
+//	fprintf(fd,
+//			"timefollow\ttar_lat\ttar_lon\ttar_alt\ttar_vx\ttar_vy\ttar_vz\tlat\tlon\talt\tvx\tvy\tvz\n");
+//	fclose(fd);
+//	while (!formation_exit) {
+//		if ((hrt_absolute_time() - last_log_time) >= 100000) {
+//			fd = fopen(file, "a+");
+//			last_log_time = hrt_absolute_time();
+//			fprintf(fd, "%d\t", (int) (last_log_time / 100000));
+//			fprintf(fd, "%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\n",
+//					sd_formation.tar_lat*1e7, sd_formation.tar_lon*1e7,
+//					sd_formation.tar_alt*1e7, sd_formation.tar_vx*1e7,
+//					sd_formation.tar_vy*1e7, sd_formation.tar_vz*1e7, sd_formation.lat*1e7,
+//					sd_formation.lon*1e7, sd_formation.alt*1e7, sd_formation.vx*1e7,
+//					sd_formation.vy*1e7, sd_formation.vz*1e7);
+//			fclose(fd);
+//		}
+//		usleep(50000);
+//	}
+//		return 0;
+//}
+//bool open_log(pthread_t &log_pthread) {
+//	pthread_attr_t logwriter_attr;
+//	pthread_attr_init(&logwriter_attr);
+//	pthread_attr_setstacksize(&logwriter_attr, PX4_STACK_ADJUSTED(3000));
+//#if !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR)
+//	struct sched_param param;
+//	(void) pthread_attr_getschedparam(&logwriter_attr, &param);
+//	param.sched_priority = SCHED_PRIORITY_DEFAULT - 5;
+//	(void) pthread_attr_setschedparam(&logwriter_attr, &param);
+//#endif
+//	pthread_create(&log_pthread, &logwriter_attr, logwriter_thread,
+//			nullptr);
+//	pthread_attr_destroy(&logwriter_attr);
+//	return true;
+//}

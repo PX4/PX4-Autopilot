@@ -699,7 +699,7 @@ MissionBlock::set_follow_target_item(struct mission_item_s *item, double min_cle
 		item->lon = target.lon;
 		if (min_clearance > ( 2.0f)
 				&& (min_clearance < ( 10.0f))) {
-			item->altitude = 5 + home_alt;
+			item->altitude = min_clearance + home_alt;
 		} else if (min_clearance >= ( 10.0f)) {
 			item->altitude = home_alt + 10.0f;
 		} else if (min_clearance <= ( 2.0f)) {
@@ -708,13 +708,13 @@ MissionBlock::set_follow_target_item(struct mission_item_s *item, double min_cle
 			item->altitude = home_alt + preAlt;
 		}
 
-		if (fabs(target.vz) > 0.05) {
-			altChanged = true;
-			preAlt = min_clearance;
-		} else
-		{
-			altChanged = false;
-		}
+//		if (fabs(target.vz) > 0.05) {
+//			altChanged = true;
+//			preAlt = min_clearance;
+//		} else
+//		{
+//			altChanged = false;
+//		}
 
 	//}
 

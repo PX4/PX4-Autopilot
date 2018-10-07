@@ -56,6 +56,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 #include <pthread.h>
+#include <stdio.h>
 #include <systemlib/mavlink_log.h>
 #include <drivers/device/ringbuffer.h>
 
@@ -70,7 +71,9 @@
 #include "mavlink_messages.h"
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
-bool open_log_main(pthread_t &log_pthread);
+//bool open_log_main(pthread_t &log_pthread);
+extern char log_file[256];
+
 enum Protocol {
 	SERIAL = 0,
 	UDP,

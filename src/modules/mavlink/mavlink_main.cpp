@@ -39,6 +39,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 bool exit_sd = false;
+char log_file[256];
 
 #include <px4_config.h>
 #include <px4_defines.h>
@@ -282,7 +283,24 @@ Mavlink::Mavlink() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
 	_txerr_perf(perf_alloc(PC_COUNT, "mavlink_txe"))
 {
-	log_pthread = 0;
+	//log_pthread = 0;
+
+	char path[256];
+	time_t timeSec = time(0);				//1970.01.01
+	struct tm *curTime = localtime(&timeSec);
+	sprintf(path,PX4_ROOTFSDIR"/fs/microsd/log/%04d-%02d-%02d",curTime->tm_year + 2100, curTime->tm_mon + 1, curTime->tm_mday);
+	mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
+	sprintf(log_file, "%s/main%02d-%02d-%02d.ulg", path, curTime->tm_hour,
+			curTime->tm_min, curTime->tm_sec);
+	FILE *fd;
+	fd = fopen(log_file, "w");
+	if (fd == 0) {
+		printf("file error\n");
+	}
+	fprintf(fd,
+			"time\ttar_lat\ttar_lon\ttar_alt\tlat\tlon\talt\n");
+	fclose(fd);
+
 	_instance_id = Mavlink::instance_count();
 
 	/* set channel according to instance id */
@@ -1981,8 +1999,8 @@ Mavlink::task_main(int argc, char *argv[])
 	status_sub->update(&status_time, &status);
 	struct vehicle_command_ack_s command_ack;
 	ack_sub->update(&ack_time, &command_ack);
-	if (mavlink_system.compid == 1)
-		open_log_main(log_pthread);
+//	if (mavlink_system.compid == 1)
+//		open_log_main(log_pthread);
 
 	/* add default streams depending on mode */
 	if (_mode != MAVLINK_MODE_IRIDIUM) {
@@ -2026,8 +2044,9 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAMED_VALUE_FLOAT", 10.0f);
 		configure_stream("VFR_HUD", 4.0f);
 		configure_stream("CAMERA_IMAGE_CAPTURED");*/
+		configure_stream("CHEN_FORMATION", 5.0f);
 		if (mavlink_system.compid == 1) {
-			configure_stream("CHEN_FORMATION", 10.0f);
+
 		} else {
 			//configure_stream("CHEN_FORMATION", 0.3f);
 		}
