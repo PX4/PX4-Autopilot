@@ -39,18 +39,21 @@ ulog = ULog(args.filename, None)
 data = ulog.data_list
 
 # extract data from EKF status message
+estimator_status_data = {}
 try:
     estimator_status_data = ulog.get_dataset('estimator_status').data;
 except (KeyError, IndexError, ValueError) as error:
     print(type(error), "(estimator_status):", error)
 
 # extract data from EKF innovations message
+ekf2_innovations_data = {}
 try:
     ekf2_innovations_data = ulog.get_dataset('ekf2_innovations').data;
 except (KeyError, IndexError, ValueError) as error:
     print(type(error), "(ekf2_innovations):", error)
 
 # extract data from sensor preflight check message
+sensor_preflight_data = {}
 try:
     sensor_preflight_data = ulog.get_dataset('sensor_preflight').data;
 except (KeyError, IndexError, ValueError) as error:
