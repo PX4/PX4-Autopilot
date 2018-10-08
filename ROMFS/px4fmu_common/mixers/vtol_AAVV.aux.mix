@@ -1,0 +1,55 @@
+Aileron/v-tail/throttle VTOL mixer for PX4FMU
+=======================================================
+
+This file defines mixers suitable for controlling a fixed wing aircraft with
+aileron, v-tail (rudder, elevator) and throttle using PX4FMU.
+The configuration assumes the aileron servos are connected to PX4FMU 
+AUX servo output 0 and 1, the tail servos to output 2 and 3, the throttle
+to output 4.
+
+Inputs to the mixer come from channel group 0 (vehicle attitude), channels 0
+(roll), 1 (pitch), 2 (yaw) and 3 (thrust) 4 (flaps) 6 (flaperon).
+
+Aileron mixer (roll + flaperon)
+---------------------------------
+
+This mixer assumes that the aileron servos are set up correctly mechanically;
+depending on the actual configuration it may be necessary to reverse the scaling
+factors (to reverse the servo movement) and adjust the offset, scaling and
+endpoints to suit.
+
+M: 2
+S: 1 0  10000  10000      0 -10000  10000
+S: 1 6  10000  10000      0 -10000  10000
+
+M: 2
+S: 1 0  10000  10000      0 -10000  10000
+S: 1 6 -10000 -10000      0 -10000  10000
+
+
+V-tail mixers
+-------------
+Three scalers total (output, roll, pitch).
+
+On the assumption that the two tail servos are physically reversed, the pitch
+input is inverted between the two servos.
+
+M: 2
+S: 1 2  -7000  -7000      0 -10000  10000
+S: 1 1  -8000  -8000      0 -10000  10000
+
+M: 2
+S: 1 2  -7000  -7000      0 -10000  10000
+S: 1 1   8000   8000      0 -10000  10000
+
+
+# AUX1 channel (select RC channel with RC_MAP_AUX1 param)
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 3 5  10000  10000      0 -10000  10000
+
+# AUX2 channel (select RC channel with RC_MAP_AUX2 param)
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 3 6  10000  10000      0 -10000  10000
+
