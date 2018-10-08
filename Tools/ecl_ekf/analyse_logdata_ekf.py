@@ -323,7 +323,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['beta_innov'], 'b')
         plt.plot(1e-6 * ekf2_innovations['timestamp'], np.sqrt(ekf2_innovations['beta_innov_var']), 'r')
         plt.plot(1e-6 * ekf2_innovations['timestamp'], -np.sqrt(ekf2_innovations['beta_innov_var']), 'r')
-        plt.title('Sythetic Sideslip Innovations')
+        plt.title('Synthetic Sideslip Innovations')
         plt.ylabel('innovation (rad)')
         plt.xlabel('time (sec)')
         plt.grid()
