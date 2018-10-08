@@ -29,7 +29,9 @@ include(ExternalProject)
 # project to build sitl_gazebo if necessary
 ExternalProject_Add(sitl_gazebo
 	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/sitl_gazebo
-	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+		-DSEND_VISION_ESTIMATION_DATA=ON
 	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
 	INSTALL_COMMAND ""
 	DEPENDS
