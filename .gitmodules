@@ -58,3 +58,6 @@
 	path = cmake/configs/uavcan_board_ident
 	url = https://github.com/PX4/uavcan_board_ident.git
 	branch = master
+[submodule "src/platforms/posix/lockstep_scheduler"]
+	path = src/platforms/posix/lockstep_scheduler
+	url = git@github.com:julianoes/lockstep-scheduler.git
