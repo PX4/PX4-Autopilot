@@ -35,6 +35,7 @@
 
 #include "log_writer.h"
 #include "array.h"
+#include "util.h"
 #include <px4_defines.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/Subscription.hpp>
@@ -49,12 +50,6 @@ extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 
 #define TRY_SUBSCRIBE_INTERVAL 1000*1000	// interval in microseconds at which we try to subscribe to a topic
 // if we haven't succeeded before
-
-#ifdef __PX4_NUTTX
-#define LOG_DIR_LEN 64
-#else
-#define LOG_DIR_LEN 256
-#endif
 
 namespace px4
 {
@@ -185,25 +180,10 @@ private:
 	 */
 	int create_log_dir(tm *tt);
 
-	/** recursively remove a directory
-	 * @return 0 on success, <0 otherwise
-	 */
-	int remove_directory(const char *dir);
-
-	static bool file_exist(const char *filename);
-
 	/**
 	 * Get log file name with directory (create it if necessary)
 	 */
 	int get_log_file_name(char *file_name, size_t file_name_size);
-
-	/**
-	 * Check if there is enough free space left on the SD Card.
-	 * It will remove old log files if there is not enough space,
-	 * and if that fails return 1
-	 * @return 0 on success, 1 if not enough space, <0 on error
-	 */
-	int check_free_space();
 
 	void start_log_file();
 
@@ -274,14 +254,6 @@ private:
 	 * @return true if data written, false otherwise (on overflow)
 	 */
 	bool write_message(void *ptr, size_t size);
-
-	/**
-	 * Get the time for log file name
-	 * @param tt returned time
-	 * @param boot_time use time when booted instead of current time
-	 * @return true on success, false otherwise (eg. if no gps)
-	 */
-	bool get_log_time(struct tm *tt, bool boot_time = false);
 
 	/**
 	 * Parse a file containing a list of uORB topics to log, calling add_topic for each

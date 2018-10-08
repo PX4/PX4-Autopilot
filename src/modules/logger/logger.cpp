@@ -49,7 +49,6 @@
 #include <uORB/topics/log_message.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
 #include <drivers/drv_hrt.h>
@@ -63,17 +62,6 @@
 #include <systemlib/mavlink_log.h>
 #include <replay/definitions.hpp>
 #include <version/version.h>
-
-#if defined(__PX4_DARWIN)
-#include <sys/param.h>
-#include <sys/mount.h>
-#else
-#include <sys/statfs.h>
-#endif
-
-typedef decltype(statfs::f_bavail) px4_statfs_buf_f_bavail_t;
-
-#define GPS_EPOCH_SECS ((time_t)1234567890ULL)
 
 //#define DBGPRINT //write status output every few seconds
 
@@ -824,7 +812,13 @@ void Logger::run()
 			}
 		}
 
-		if (check_free_space() == 1) {
+		int32_t max_log_dirs_to_keep = 0;
+
+		if (_log_dirs_max != PARAM_INVALID) {
+			param_get(_log_dirs_max, &max_log_dirs_to_keep);
+		}
+
+		if (util::check_free_space(LOG_ROOT, max_log_dirs_to_keep, _mavlink_log_pub, _sess_dir_index) == 1) {
 			return;
 		}
 	}
@@ -1363,20 +1357,20 @@ int Logger::create_log_dir(tm *tt)
 	return 0;
 }
 
-bool Logger::file_exist(const char *filename)
-{
-	struct stat buffer;
-	return stat(filename, &buffer) == 0;
-}
-
 int Logger::get_log_file_name(char *file_name, size_t file_name_size)
 {
 	tm tt = {};
 	bool time_ok = false;
 
 	if (_log_name_timestamp) {
+		int32_t utc_offset = 0;
+
+		if (_log_utc_offset != PARAM_INVALID) {
+			param_get(_log_utc_offset, &utc_offset);
+		}
+
 		/* use RTC time for log file naming, e.g. /fs/microsd/2014-01-19/19_37_52.ulg */
-		time_ok = get_log_time(&tt, false);
+		time_ok = util::get_log_time(&tt, utc_offset * 60, false);
 	}
 
 	const char *replay_suffix = "";
@@ -1409,7 +1403,7 @@ int Logger::get_log_file_name(char *file_name, size_t file_name_size)
 			snprintf(_log_file_name, sizeof(_log_file_name), "log%03u%s.ulg", file_number, replay_suffix);
 			snprintf(file_name, file_name_size, "%s/%s", _log_dir, _log_file_name);
 
-			if (!file_exist(file_name)) {
+			if (!util::file_exist(file_name)) {
 				break;
 			}
 
@@ -1433,57 +1427,6 @@ void Logger::setReplayFile(const char *file_name)
 	}
 
 	_replay_file_name = strdup(file_name);
-}
-
-bool Logger::get_log_time(struct tm *tt, bool boot_time)
-{
-	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-
-	if (vehicle_gps_position_sub < 0) {
-		return false;
-	}
-
-	/* Get the latest GPS publication */
-	vehicle_gps_position_s gps_pos;
-	time_t utc_time_sec;
-	bool use_clock_time = true;
-
-	if (orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps_pos) == 0) {
-		utc_time_sec = gps_pos.time_utc_usec / 1e6;
-
-		if (gps_pos.fix_type >= 2 && utc_time_sec >= GPS_EPOCH_SECS) {
-			use_clock_time = false;
-		}
-	}
-
-	orb_unsubscribe(vehicle_gps_position_sub);
-
-	if (use_clock_time) {
-		/* take clock time if there's no fix (yet) */
-		struct timespec ts = {};
-		px4_clock_gettime(CLOCK_REALTIME, &ts);
-		utc_time_sec = ts.tv_sec + (ts.tv_nsec / 1e9);
-
-		if (utc_time_sec < GPS_EPOCH_SECS) {
-			return false;
-		}
-	}
-
-	/* strip the time elapsed since boot */
-	if (boot_time) {
-		utc_time_sec -= hrt_absolute_time() / 1e6;
-	}
-
-	int32_t utc_offset = 0;
-
-	if (_log_utc_offset != PARAM_INVALID) {
-		param_get(_log_utc_offset, &utc_offset);
-	}
-
-	/* apply utc offset */
-	utc_time_sec += utc_offset * 60;
-
-	return gmtime_r(&utc_time_sec, tt) != nullptr;
 }
 
 void Logger::start_log_file()
@@ -2051,187 +1994,6 @@ void Logger::write_changed_parameters()
 
 	_writer.unlock();
 	_writer.notify();
-}
-
-int Logger::check_free_space()
-{
-	struct statfs statfs_buf;
-
-	int32_t max_log_dirs_to_keep = 0;
-
-	if (_log_dirs_max != PARAM_INVALID) {
-		param_get(_log_dirs_max, &max_log_dirs_to_keep);
-	}
-
-	if (max_log_dirs_to_keep == 0) {
-		max_log_dirs_to_keep = INT32_MAX;
-	}
-
-	// remove old logs if the free space falls below a threshold
-	do {
-		if (statfs(LOG_ROOT, &statfs_buf) != 0) {
-			return PX4_ERROR;
-		}
-
-		DIR *dp = opendir(LOG_ROOT);
-
-		if (dp == nullptr) {
-			break; // ignore if we cannot access the log directory
-		}
-
-		struct dirent *result = nullptr;
-
-		int num_sess = 0, num_dates = 0;
-
-		// There are 2 directory naming schemes: sess<i> or <year>-<month>-<day>.
-		// For both we find the oldest and then remove the one which has more directories.
-		int year_min = 10000, month_min = 99, day_min = 99, sess_idx_min = 99999999, sess_idx_max = 0;
-
-		while ((result = readdir(dp))) {
-			int year, month, day, sess_idx;
-
-			if (sscanf(result->d_name, "sess%d", &sess_idx) == 1) {
-				++num_sess;
-
-				if (sess_idx > sess_idx_max) {
-					sess_idx_max = sess_idx;
-				}
-
-				if (sess_idx < sess_idx_min) {
-					sess_idx_min = sess_idx;
-				}
-
-			} else if (sscanf(result->d_name, "%d-%d-%d", &year, &month, &day) == 3) {
-				++num_dates;
-
-				if (year < year_min) {
-					year_min = year;
-					month_min = month;
-					day_min = day;
-
-				} else if (year == year_min) {
-					if (month < month_min) {
-						month_min = month;
-						day_min = day;
-
-					} else if (month == month_min) {
-						if (day < day_min) {
-							day_min = day;
-						}
-					}
-				}
-			}
-		}
-
-		closedir(dp);
-
-		_sess_dir_index = sess_idx_max + 1;
-
-
-		uint64_t min_free_bytes = 300ULL * 1024ULL * 1024ULL;
-		uint64_t total_bytes = (uint64_t)statfs_buf.f_blocks * statfs_buf.f_bsize;
-
-		if (total_bytes / 10 < min_free_bytes) { // reduce the minimum if it's larger than 10% of the disk size
-			min_free_bytes = total_bytes / 10;
-		}
-
-		if (num_sess + num_dates <= max_log_dirs_to_keep &&
-		    statfs_buf.f_bavail >= (px4_statfs_buf_f_bavail_t)(min_free_bytes / statfs_buf.f_bsize)) {
-			break; // enough free space and limit not reached
-		}
-
-		if (num_sess == 0 && num_dates == 0) {
-			break; // nothing to delete
-		}
-
-		char directory_to_delete[LOG_DIR_LEN];
-		int n;
-
-		if (num_sess >= num_dates) {
-			n = snprintf(directory_to_delete, sizeof(directory_to_delete), "%s/sess%03u", LOG_ROOT, sess_idx_min);
-
-		} else {
-			n = snprintf(directory_to_delete, sizeof(directory_to_delete), "%s/%04u-%02u-%02u", LOG_ROOT, year_min, month_min,
-				     day_min);
-		}
-
-		if (n >= (int)sizeof(directory_to_delete)) {
-			PX4_ERR("log path too long (%i)", n);
-			break;
-		}
-
-		PX4_INFO("removing log directory %s to get more space (left=%u MiB)", directory_to_delete,
-			 (unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize / 1024U / 1024U));
-
-		if (remove_directory(directory_to_delete)) {
-			PX4_ERR("Failed to delete directory");
-			break;
-		}
-
-	} while (true);
-
-
-	/* use a threshold of 50 MiB: if below, do not start logging */
-	if (statfs_buf.f_bavail < (px4_statfs_buf_f_bavail_t)(50 * 1024 * 1024 / statfs_buf.f_bsize)) {
-		mavlink_log_critical(&_mavlink_log_pub,
-				     "[logger] Not logging; SD almost full: %u MiB",
-				     (unsigned int)(statfs_buf.f_bavail * statfs_buf.f_bsize / 1024U / 1024U));
-		return 1;
-	}
-
-	return PX4_OK;
-}
-
-int Logger::remove_directory(const char *dir)
-{
-	DIR *d = opendir(dir);
-	size_t dir_len = strlen(dir);
-	struct dirent *p;
-	int ret = 0;
-
-	if (!d) {
-		return -1;
-	}
-
-	while (!ret && (p = readdir(d))) {
-		int ret2 = -1;
-		char *buf;
-		size_t len;
-
-		if (!strcmp(p->d_name, ".") || !strcmp(p->d_name, "..")) {
-			continue;
-		}
-
-		len = dir_len + strlen(p->d_name) + 2;
-		buf = new char[len];
-
-		if (buf) {
-			struct stat statbuf;
-
-			snprintf(buf, len, "%s/%s", dir, p->d_name);
-
-			if (!stat(buf, &statbuf)) {
-				if (S_ISDIR(statbuf.st_mode)) {
-					ret2 = remove_directory(buf);
-
-				} else {
-					ret2 = unlink(buf);
-				}
-			}
-
-			delete[] buf;
-		}
-
-		ret = ret2;
-	}
-
-	closedir(d);
-
-	if (!ret) {
-		ret = rmdir(dir);
-	}
-
-	return ret;
 }
 
 void Logger::ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, vehicle_command_s *cmd, uint32_t result)
