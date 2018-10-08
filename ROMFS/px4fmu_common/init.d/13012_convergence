@@ -21,26 +21,19 @@ sh /etc/init.d/rc.vtol_defaults
 
 if [ $AUTOCNF == yes ]
 then
-	param set CBRK_AIRSPD_CHK 162128
+	param set FW_AIRSPD_MIN 14
+	param set FW_AIRSPD_TRIM 20
+	param set FW_AIRSPD_MAX 26
 
-	param set FW_ARSP_MODE 2
+	param set FW_MAN_P_MAX 55
+	param set FW_MAN_R_MAX 55
+	param set FW_R_LIM 55
 
-	param set FW_L1_PERIOD 17
-	param set FW_MAN_R_MAX 50.0
-	param set FW_ACRO_X_MAX   270
-	param set FW_ACRO_Y_MAX   270
-	param set FW_ACRO_Z_MAX   180
-	param set FW_PR_FF    0.5
-	param set FW_PR_P 0.08
-	param set FW_PSP_OFF  5.0
-	param set FW_P_LIM_MAX    30
-	param set FW_P_LIM_MIN    -30
-	param set FW_P_RMAX_NEG   60
-	param set FW_P_RMAX_POS   60
-	param set FW_RR_FF    0.33
-	param set FW_RR_P 0.11
-	param set FW_YR_FF    0.3
-	param set FW_YR_P 0.05
+	param set FW_WR_FF 0.2
+	param set FW_WR_I 0.2
+	param set FW_WR_IMAX 0.8
+	param set FW_WR_P 1
+	param set FW_W_RMAX 0
 
 	param set MC_PITCHRATE_D  0.003
 	param set MC_PITCHRATE_P  0.15
@@ -81,5 +74,8 @@ fi
 set MAV_TYPE 21
 
 set MIXER vtol_convergence
-
 set PWM_OUT 1234
+
+set MIXER_AUX vtol_AAVV
+
+
