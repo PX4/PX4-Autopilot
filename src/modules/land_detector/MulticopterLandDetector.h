@@ -101,7 +101,6 @@ private:
 		param_t maxRotation;
 		param_t minThrottle;
 		param_t hoverThrottle;
-		param_t throttleRange;
 		param_t minManThrottle;
 		param_t freefall_acc_threshold;
 		param_t freefall_trigger_time;
@@ -115,7 +114,6 @@ private:
 		float maxRotation_rad_s;
 		float minThrottle;
 		float hoverThrottle;
-		float throttleRange;
 		float minManThrottle;
 		float freefall_acc_threshold;
 		float freefall_trigger_time;
