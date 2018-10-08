@@ -58,12 +58,14 @@ PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
  * Vertical thrust required to hover.
  * This value is mapped to center stick for manual throttle control.
  * With this value set to the thrust required to hover, transition
- * from manual to ALTCTL mode while hovering will occur with the
+ * from manual to Altitude or Position mode while hovering will occur with the
  * throttle stick near center, which is then interpreted as (near)
  * zero demand for vertical speed.
  *
+ * This parameter is also important for the landing detection to work correctly.
+ *
  * @unit norm
- * @min 0.2
+ * @min 0.1
  * @max 0.8
  * @decimal 2
  * @increment 0.01
