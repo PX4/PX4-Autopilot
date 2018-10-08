@@ -37,7 +37,7 @@ parameters:
                 3: OSD
                 4: Magic
                 5: Config
-                6: Iridium
+                #6: Iridium # as the user does not need to configure this, hide it from the UI
                 7: Minimal
             reboot_required: true
             num_instances: *max_num_config_instances
