@@ -72,6 +72,28 @@ PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
 PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
 
 /**
+ * Thrust curve in Manual Mode
+ *
+ * This parameter defines how the throttle stick input is mapped to commanded thrust
+ * in Manual/Stabilized flight mode.
+ *
+ * In case the default is used ('Rescale to hover thrust'), the stick input is linearly
+ * rescaled, such that a centered stick corresponds to the hover throttle (see MPC_THR_HOVER).
+ *
+ * Select 'No Rescale' to directly map the stick 1:1 to the output. This can be useful
+ * in case the hover thrust is very low and the default would lead to too much distortion
+ * (e.g. if hover thrust is set to 20%, 80% of the upper thrust range is squeezed into the
+ * upper half of the stick range).
+ *
+ * Note: in case MPC_THR_HOVER is set to 50%, the modes 0 and 1 are the same.
+ *
+ * @value 0 Rescale to hover thrust
+ * @value 1 No Rescale
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_THR_CURVE, 0);
+
+/**
  * Maximum thrust in auto thrust control
  *
  * Limit max allowed thrust
