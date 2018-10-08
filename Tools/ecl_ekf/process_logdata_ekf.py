@@ -38,23 +38,14 @@ args = parser.parse_args()
 ulog = ULog(args.filename, None)
 data = ulog.data_list
 
-# extract data from innovations and status messages
-for d in data:
-    if d.name == 'estimator_status':
-        estimator_status_data = d.data
-        print('found estimator_status data')
-for d in data:
-    if d.name == 'ekf2_innovations':
-        ekf2_innovations_data = d.data
-        print('found ekf2_innovation data')
+# extract data from EKF status message
+estimator_status_data = ulog.get_dataset('estimator_status').data;
+
+# extract data from EKF innovations message
+ekf2_innovations_data = ulog.get_dataset('ekf2_innovations').data;
 
 # extract data from sensor preflight check message
-sensor_preflight = {}
-for d in data:
-    if d.name == 'sensor_preflight':
-        sensor_preflight_data = d.data
-        print('found sensor_preflight data')
-
+sensor_preflight_data = ulog.get_dataset('sensor_preflight').data;
 
 if args.check_level_thresholds:
     check_level_dict_filename = args.check_level_thresholds
