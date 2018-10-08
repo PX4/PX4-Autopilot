@@ -789,6 +789,49 @@ const char *Logger::configured_backend_mode() const
 	default: return "several";
 	}
 }
+void Logger::initialize_configured_topics()
+{
+	// get the logging profile
+	SDLogProfileMask sdlog_profile = SDLogProfileMask::DEFAULT;
+
+	if (_sdlog_profile_handle != PARAM_INVALID) {
+		param_get(_sdlog_profile_handle, (int32_t*)&sdlog_profile);
+	}
+	if ((int32_t)sdlog_profile == 0) {
+		PX4_WARN("No logging profile selected. Using default set");
+		sdlog_profile = SDLogProfileMask::DEFAULT;
+	}
+
+	// load appropriate topics for profile
+	// the order matters: if several profiles add the same topic, the logging rate of the last one will be used
+	if (sdlog_profile & SDLogProfileMask::DEFAULT) {
+		add_default_topics();
+	}
+
+	if (sdlog_profile & SDLogProfileMask::ESTIMATOR_REPLAY) {
+		add_estimator_replay_topics();
+	}
+
+	if (sdlog_profile & SDLogProfileMask::THERMAL_CALIBRATION) {
+		add_thermal_calibration_topics();
+	}
+
+	if (sdlog_profile & SDLogProfileMask::SYSTEM_IDENTIFICATION) {
+		add_system_identification_topics();
+	}
+
+	if (sdlog_profile & SDLogProfileMask::HIGH_RATE) {
+		add_high_rate_topics();
+	}
+
+	if (sdlog_profile & SDLogProfileMask::DEBUG_TOPICS) {
+		add_debug_topics();
+	}
+
+	if (sdlog_profile & SDLogProfileMask::SENSOR_COMPARISON) {
+		add_sensor_comparison_topics();
+	}
+}
 
 void Logger::run()
 {
@@ -835,48 +878,7 @@ void Logger::run()
 		PX4_INFO("logging %d topics from logger_topics.txt", ntopics);
 
 	} else {
-
-		// get the logging profile
-		SDLogProfileMask sdlog_profile = SDLogProfileMask::DEFAULT;
-
-		if (_sdlog_profile_handle != PARAM_INVALID) {
-			param_get(_sdlog_profile_handle, (int32_t*)&sdlog_profile);
-		}
-		if ((int32_t)sdlog_profile == 0) {
-			PX4_WARN("No logging profile selected. Using default set");
-			sdlog_profile = SDLogProfileMask::DEFAULT;
-		}
-
-		// load appropriate topics for profile
-		// the order matters: if several profiles add the same topic, the logging rate of the last one will be used
-		if (sdlog_profile & SDLogProfileMask::DEFAULT) {
-			add_default_topics();
-		}
-
-		if (sdlog_profile & SDLogProfileMask::ESTIMATOR_REPLAY) {
-			add_estimator_replay_topics();
-		}
-
-		if (sdlog_profile & SDLogProfileMask::THERMAL_CALIBRATION) {
-			add_thermal_calibration_topics();
-		}
-
-		if (sdlog_profile & SDLogProfileMask::SYSTEM_IDENTIFICATION) {
-			add_system_identification_topics();
-		}
-
-		if (sdlog_profile & SDLogProfileMask::HIGH_RATE) {
-			add_high_rate_topics();
-		}
-
-		if (sdlog_profile & SDLogProfileMask::DEBUG_TOPICS) {
-			add_debug_topics();
-		}
-
-		if (sdlog_profile & SDLogProfileMask::SENSOR_COMPARISON) {
-			add_sensor_comparison_topics();
-		}
-
+		initialize_configured_topics();
 	}
 
 	int vehicle_command_sub = -1;
@@ -978,69 +980,17 @@ void Logger::run()
 	while (!should_exit()) {
 
 		// Start/stop logging when system arm/disarm
-		bool vehicle_status_updated;
-		ret = orb_check(vehicle_status_sub, &vehicle_status_updated);
-
-		if (ret == 0 && vehicle_status_updated) {
-			vehicle_status_s vehicle_status;
-			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
-			bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) || _arm_override;
-
-			if (_was_armed != armed && !_log_until_shutdown) {
-				_was_armed = armed;
-
-				if (armed) {
-
-					if (_should_stop_file_log) { // happens on quick arming after disarm
-						_should_stop_file_log = false;
-						stop_log_file();
-					}
-
-					start_log_file();
-
+		const bool logging_started = check_arming_state(vehicle_status_sub);
+		if (logging_started) {
 #ifdef DBGPRINT
-					timer_start = hrt_absolute_time();
-					total_bytes = 0;
+			timer_start = hrt_absolute_time();
+			total_bytes = 0;
 #endif /* DBGPRINT */
-
-				} else {
-					// delayed stop: we measure the process loads and then stop
-					initialize_load_output(PrintLoadReason::Postflight);
-					_should_stop_file_log = true;
-				}
-			}
 		}
 
-		/* check for logging command from MAVLink */
-		if (vehicle_command_sub != -1) {
-			bool command_updated = false;
-			ret = orb_check(vehicle_command_sub, &command_updated);
-
-			if (ret == 0 && command_updated) {
-				vehicle_command_s command;
-				orb_copy(ORB_ID(vehicle_command), vehicle_command_sub, &command);
-
-				if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
-					if ((int)(command.param1 + 0.5f) != 0) {
-						ack_vehicle_command(vehicle_command_ack_pub, &command,
-								    vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
-
-					} else if (can_start_mavlink_log()) {
-						ack_vehicle_command(vehicle_command_ack_pub, &command,
-								    vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-						start_log_mavlink();
-
-					} else {
-						ack_vehicle_command(vehicle_command_ack_pub, &command,
-								    vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
-					}
-
-				} else if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP) {
-					stop_log_mavlink();
-					ack_vehicle_command(vehicle_command_ack_pub, &command,
-							    vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-				}
-			}
+		/* check for logging command from MAVLink (start/stop streaming) */
+		if (vehicle_command_sub >= 0) {
+			handle_vehicle_command_update(vehicle_command_sub, vehicle_command_ack_pub);
 		}
 
 
@@ -1274,6 +1224,72 @@ void Logger::run()
 	}
 
 	px4_unregister_shutdown_hook(&Logger::request_stop_static);
+}
+
+bool Logger::check_arming_state(int vehicle_status_sub)
+{
+	bool vehicle_status_updated;
+	int ret = orb_check(vehicle_status_sub, &vehicle_status_updated);
+	bool bret = false;
+
+	if (ret == 0 && vehicle_status_updated) {
+		vehicle_status_s vehicle_status;
+		orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
+		bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) || _arm_override;
+
+		if (_was_armed != armed && !_log_until_shutdown) {
+			_was_armed = armed;
+
+			if (armed) {
+
+				if (_should_stop_file_log) { // happens on quick arming after disarm
+					_should_stop_file_log = false;
+					stop_log_file();
+				}
+
+				start_log_file();
+				bret = true;
+
+			} else {
+				// delayed stop: we measure the process loads and then stop
+				initialize_load_output(PrintLoadReason::Postflight);
+				_should_stop_file_log = true;
+			}
+		}
+	}
+	return bret;
+}
+
+void Logger::handle_vehicle_command_update(int vehicle_command_sub, orb_advert_t &vehicle_command_ack_pub)
+{
+	bool command_updated = false;
+	int ret = orb_check(vehicle_command_sub, &command_updated);
+
+	if (ret == 0 && command_updated) {
+		vehicle_command_s command;
+		orb_copy(ORB_ID(vehicle_command), vehicle_command_sub, &command);
+
+		if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
+			if ((int)(command.param1 + 0.5f) != 0) {
+				ack_vehicle_command(vehicle_command_ack_pub, &command,
+						vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
+
+			} else if (can_start_mavlink_log()) {
+				ack_vehicle_command(vehicle_command_ack_pub, &command,
+						vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+				start_log_mavlink();
+
+			} else {
+				ack_vehicle_command(vehicle_command_ack_pub, &command,
+						vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
+			}
+
+		} else if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP) {
+			stop_log_mavlink();
+			ack_vehicle_command(vehicle_command_ack_pub, &command,
+					vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+		}
+	}
 }
 
 bool Logger::write_message(void *ptr, size_t size)

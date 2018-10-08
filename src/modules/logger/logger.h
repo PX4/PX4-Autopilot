@@ -262,6 +262,11 @@ private:
 	 */
 	int add_topics_from_file(const char *fname);
 
+	/**
+	 * Add topic subscriptions based on the _sdlog_profile_handle parameter
+	 */
+	void initialize_configured_topics();
+
 	void add_default_topics();
 	void add_estimator_replay_topics();
 	void add_thermal_calibration_topics();
@@ -270,6 +275,14 @@ private:
 	void add_debug_topics();
 	void add_sensor_comparison_topics();
 
+	/**
+	 * check current arming state and start/stop logging if state changed and according to configured params.
+	 * @param vehicle_status_sub
+	 * @return true if log started
+	 */
+	bool check_arming_state(int vehicle_status_sub);
+
+	void handle_vehicle_command_update(int vehicle_command_sub, orb_advert_t &vehicle_command_ack_pub);
 	void ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, vehicle_command_s *cmd, uint32_t result);
 
 	/**
