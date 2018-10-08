@@ -31,6 +31,13 @@
  *
  ****************************************************************************/
 
+/**
+ * @file SMBus.hpp
+ * SMBus v2.0 protocol implementation.
+ *
+ * @author Jacob Dahl <dahl.jakejacob@gmail.com>
+ */
+
 #include <drivers/device/i2c.h>
 
 #include <string.h>
@@ -68,6 +75,14 @@ public:
 	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
 	 */
 	int read_word(const uint8_t cmd_code, void *data);
+
+	/**
+	 * @brief Sends a write word command.
+	 * @param cmd_code The command code.
+	 * @param data The 2 bytes of data to be transfered.
+	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
+	 */
+	int write_word(const uint8_t cmd_code, void *data);
 
 	/**
 	 * @brief Calculates the PEC from the data.
