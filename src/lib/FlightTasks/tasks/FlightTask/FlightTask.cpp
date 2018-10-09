@@ -44,7 +44,7 @@ bool FlightTask::updateInitialize()
 	_time = (_time_stamp_current - _time_stamp_activate) / 1e6f;
 	_deltatime  = math::min((_time_stamp_current - _time_stamp_last), _timeout) / 1e6f;
 	_time_stamp_last = _time_stamp_current;
-	return _evaluateVehicleLocalPosition();
+	return true;
 }
 
 const vehicle_local_position_setpoint_s FlightTask::getPositionSetpoint()
