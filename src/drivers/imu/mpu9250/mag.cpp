@@ -264,6 +264,10 @@ MPU9250_mag::_measure(struct ak8963_regs data)
 	/* apply user specified rotation */
 	rotate_3f(_parent->_rotation, xraw_f, yraw_f, zraw_f);
 
+	if (_parent->_device_type == MPU_DEVICE_TYPE_ICM20948) {
+		rotate_3f(ROTATION_YAW_270, xraw_f, yraw_f, zraw_f); //offset between accel/gyro and mag on icm20948
+	}
+
 	mrb.x = ((xraw_f * _mag_range_scale * _mag_asa_x) - _mag_scale.x_offset) * _mag_scale.x_scale;
 	mrb.y = ((yraw_f * _mag_range_scale * _mag_asa_y) - _mag_scale.y_offset) * _mag_scale.y_scale;
 	mrb.z = ((zraw_f * _mag_range_scale * _mag_asa_z) - _mag_scale.z_offset) * _mag_scale.z_scale;

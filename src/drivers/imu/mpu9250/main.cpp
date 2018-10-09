@@ -273,8 +273,14 @@ start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external,
 	/*
 	 * Set the poll rate to default, starts automatic data collection.
 	 * Doing this through the mag device for the time being - it's always there, even in magnetometer only mode.
+	 * Using accel device for MPU6500.
 	 */
-	fd = open(bus.magpath, O_RDONLY);
+	if (bus.device_type == MPU_DEVICE_TYPE_MPU6500) {
+		fd = open(bus.accelpath, O_RDONLY);
+
+	} else {
+		fd = open(bus.magpath, O_RDONLY);
+	}
 
 	if (fd < 0) {
 		goto fail;
@@ -323,6 +329,11 @@ start(enum MPU9250_BUS busid, enum Rotation rotation, bool external, bool magnet
 
 		if (busid != MPU9250_BUS_ALL && bus_options[i].busid != busid) {
 			// not the one that is asked for
+			continue;
+		}
+
+		if (bus_options[i].device_type == MPU_DEVICE_TYPE_MPU6500 && magnetometer_only) {
+			// prevent starting MPU6500 in magnetometer only mode
 			continue;
 		}
 
@@ -526,7 +537,7 @@ usage()
 	PX4_INFO("    -S    (spi external bus)");
 	PX4_INFO("    -t    (spi internal bus, 2nd instance)");
 	PX4_INFO("    -R rotation");
-	PX4_INFO("    -M only enable magnetometer, accel/gyro disabled");
+	PX4_INFO("    -M only enable magnetometer, accel/gyro disabled - not av. on MPU6500");
 
 }
 
