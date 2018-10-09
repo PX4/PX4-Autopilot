@@ -675,7 +675,7 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_Y_VMIN, 0.0f);
 /**
 * Roll trim increment at maximum airspeed
 *
-* This increment is added to TRIM_ROLL when airspeed is FW_AIRSP_MAX.
+* This increment is added to TRIM_ROLL when airspeed is FW_AIRSPD_MAX.
  *
  * @group FW Attitude Control
  * @min -0.25
@@ -688,7 +688,7 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_R_VMAX, 0.0f);
 /**
 * Pitch trim increment at maximum airspeed
 *
-* This increment is added to TRIM_PITCH when airspeed is FW_AIRSP_MAX.
+* This increment is added to TRIM_PITCH when airspeed is FW_AIRSPD_MAX.
  *
  * @group FW Attitude Control
  * @min -0.25
@@ -701,7 +701,7 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_P_VMAX, 0.0f);
 /**
 * Yaw trim increment at maximum airspeed
 *
-* This increment is added to TRIM_YAW when airspeed is FW_AIRSP_MAX.
+* This increment is added to TRIM_YAW when airspeed is FW_AIRSPD_MAX.
  *
  * @group FW Attitude Control
  * @min -0.25
