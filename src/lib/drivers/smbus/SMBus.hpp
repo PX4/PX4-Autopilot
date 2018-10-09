@@ -50,7 +50,7 @@ public:
 	 * @param length The number of bytes being written.
 	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
 	 */
-	int block_write(const uint8_t cmd_code, void *data, const uint8_t byte_count);
+	int block_write(const uint8_t cmd_code, void *data, uint8_t byte_count, bool use_pec);
 
 	/**
 	 * @brief Sends a block read command.
@@ -59,7 +59,7 @@ public:
 	 * @param length The number of bytes being read
 	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
 	 */
-	int block_read(const uint8_t cmd_code, void *data, const uint8_t length);
+	int block_read(const uint8_t cmd_code, void *data, const uint8_t length, bool use_pec);
 
 	/**
 	 * @brief Sends a read word command.
