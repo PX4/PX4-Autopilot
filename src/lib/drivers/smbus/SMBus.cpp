@@ -127,14 +127,12 @@ int SMBus::block_write(const uint8_t cmd_code, void *data, uint8_t byte_count, b
 
 			if (i == 10) {
 				PX4_WARN("Block_write failed 10 times");
+				result = -ENODATA;
 			}
-
-		} else {
-			return PX4_OK;
 		}
 	}
 
-	return PX4_ERROR;
+	return result;
 }
 
 uint8_t SMBus::get_pec(uint8_t *buff, const uint8_t len)
