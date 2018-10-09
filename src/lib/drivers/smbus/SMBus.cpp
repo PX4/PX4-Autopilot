@@ -70,32 +70,35 @@ int SMBus::read_word(const uint8_t cmd_code, void *data)
 int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length, bool use_pec)
 {
 	unsigned byte_count = 0;
-	// Length of data (32max). byte_count(1), cmd_code(2), pec(1) (optional)
+	// Length of data (32max). byte_count(1), cmd_code(2) (sometimes), pec(1) (optional)
 	uint8_t rx_data[32 + 4];
 
 	int result = transfer(&cmd_code, 1, (uint8_t *)rx_data, length + 2);
 
 	byte_count = rx_data[0];
 
-	// addr1, addr2, byte_count,
+	// byte_count, data[length], PEC
 	memcpy(data, &rx_data[1], byte_count);
 
-	// addr(wr), cmd_code, addr(r), byte_count, rx_data[]
-	uint8_t device_address = get_device_address();
-	uint8_t full_data_packet[32 + 4] = {};
+	if (use_pec) {
 
-	full_data_packet[0] = (device_address << 1) | 0x00;
-	full_data_packet[1] = cmd_code;
-	full_data_packet[2] = (device_address << 1) | 0x01;
-	full_data_packet[3] = byte_count;
+		// addr(wr), cmd_code, addr(r), byte_count, rx_data[]
+		uint8_t device_address = get_device_address();
+		uint8_t full_data_packet[32 + 4] = {};
 
-	memcpy(&full_data_packet[4], &rx_data[1], byte_count);
+		full_data_packet[0] = (device_address << 1) | 0x00;
+		full_data_packet[1] = cmd_code;
+		full_data_packet[2] = (device_address << 1) | 0x01;
+		full_data_packet[3] = byte_count;
 
-	uint8_t pec = get_pec(full_data_packet, byte_count + 4);
+		memcpy(&full_data_packet[4], &rx_data[1], byte_count);
 
-	// First byte is byte count, followed by data.
-	if (pec != ((uint8_t *)rx_data)[byte_count + 1]) {
-		result = -EINVAL;
+		uint8_t pec = get_pec(full_data_packet, byte_count + 4);
+
+		// First byte is byte count, followed by data.
+		if (pec != ((uint8_t *)rx_data)[byte_count + 1]) {
+			result = -EINVAL;
+		}
 	}
 
 	return result;
