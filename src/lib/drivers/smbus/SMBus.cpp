@@ -59,24 +59,21 @@ int SMBus::read_word(const uint8_t cmd_code, void *data)
 
 		uint8_t pec = get_pec(full_data_packet, sizeof(full_data_packet) / sizeof(full_data_packet[0]));
 
-		if (pec == ((uint8_t *)data)[2]) {
-			return PX4_OK;
-
-		} else {
-			return PX4_ERROR;
+		if (pec != ((uint8_t *)data)[2]) {
+			result = -EINVAL;
 		}
 	}
 
-	return PX4_ERROR;
+	return result;
 }
 
-int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length)
+int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length, bool use_pec)
 {
 	unsigned byte_count = 0;
-	// Length of data (32max). byte_count(1), cmd_code(2), pec(1)
+	// Length of data (32max). byte_count(1), cmd_code(2), pec(1) (optional)
 	uint8_t rx_data[32 + 4];
 
-	transfer(&cmd_code, 1, (uint8_t *)rx_data, length + 2);
+	int result = transfer(&cmd_code, 1, (uint8_t *)rx_data, length + 2);
 
 	byte_count = rx_data[0];
 
@@ -85,7 +82,7 @@ int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length)
 
 	// addr(wr), cmd_code, addr(r), byte_count, rx_data[]
 	uint8_t device_address = get_device_address();
-	uint8_t full_data_packet[32 + 4] = {0};
+	uint8_t full_data_packet[32 + 4] = {};
 
 	full_data_packet[0] = (device_address << 1) | 0x00;
 	full_data_packet[1] = cmd_code;
@@ -98,34 +95,39 @@ int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length)
 
 	// First byte is byte count, followed by data.
 	if (pec != ((uint8_t *)rx_data)[byte_count + 1]) {
-		PX4_INFO("bad PEC from block_read");
-		return PX4_ERROR;
-
-	} else {
-		return PX4_OK;
+		result = -EINVAL;
 	}
+
+	return result;
 }
 
-int SMBus::block_write(const uint8_t cmd_code, void *data, const uint8_t byte_count)
+int SMBus::block_write(const uint8_t cmd_code, void *data, uint8_t byte_count, bool use_pec)
 {
-	// cmd code, byte count, data[byte_count], pec
-	uint8_t buf[byte_count + 2];
+	// cmd code, byte count, data[byte_count], pec (optional)
+	uint8_t buf[32 + 3];
 
 	buf[0] = cmd_code;
 	buf[1] = (uint8_t)byte_count;
 	memcpy(&buf[2], data, byte_count);
 
-	uint8_t pec = get_pec(buf, sizeof(buf));
-	buf[byte_count + 2] = pec;
+	if (use_pec) {
+		uint8_t pec = get_pec(buf, byte_count + 2);
+		buf[byte_count + 2] = pec;
+		byte_count++;
+	}
 
 	unsigned i = 0;
 
 	// If block_write fails, try up to 10 times.
 	while (i < 10) {
-		if (PX4_OK != transfer((uint8_t *)buf, sizeof(buf), nullptr, 0)) {
+		int result = transfer((uint8_t *)buf, byte_count + 2, nullptr, 0);
+
+		if (result != PX4_OK) {
 			i++;
-			PX4_WARN("block_write failed: %d", i);
-			usleep(100000);
+
+			if (i == 10) {
+				PX4_WARN("Block_write failed 10 times");
+			}
 
 		} else {
 			return PX4_OK;
