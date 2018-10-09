@@ -34,6 +34,7 @@
 #pragma once
 
 #include "log_writer.h"
+#include "messages.h"
 #include "array.h"
 #include "util.h"
 #include <px4_defines.h>
@@ -162,6 +163,10 @@ private:
 		Watchdog
 	};
 
+	static constexpr size_t 	MAX_TOPICS_NUM = 64; /**< Maximum number of logged topics */
+	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
+	static constexpr const char	*LOG_ROOT = PX4_STORAGEDIR "/log";
+
 	/**
 	 * Write an ADD_LOGGED_MSG to the log for a all current subscriptions and instances
 	 */
@@ -207,6 +212,10 @@ private:
 	 */
 	void write_header();
 
+	/// Array to store written formats (add some more for nested definitions)
+	using WrittenFormats = Array < const orb_metadata *, MAX_TOPICS_NUM + 10 >;
+
+	void write_format(const orb_metadata &meta, WrittenFormats &written_formats, ulog_message_format_s &msg, int level = 1);
 	void write_formats();
 
 	/**
@@ -295,10 +304,6 @@ private:
 	 */
 	void write_load_output();
 
-
-	static constexpr size_t 	MAX_TOPICS_NUM = 64; /**< Maximum number of logged topics */
-	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
-	static constexpr const char	*LOG_ROOT = PX4_STORAGEDIR "/log";
 
 	uint8_t						*_msg_buffer{nullptr};
 	int						_msg_buffer_len{0};
