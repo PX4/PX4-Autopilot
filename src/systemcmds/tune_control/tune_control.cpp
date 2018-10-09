@@ -80,12 +80,8 @@ https://github.com/PX4/Firmware/blob/master/src/lib/tunes/tune_definition.desc
 ### Examples
 
 Play system tune #2:
-
-    tune_control play -t 2
-
-
+$ tune_control play -t 2
 )DESCR_STR");
-
 
 	PRINT_MODULE_USAGE_NAME("tune_control", "system");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("play","Play system tune, tone, or melody");
