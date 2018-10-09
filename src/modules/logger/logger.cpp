@@ -1627,19 +1627,107 @@ void Logger::write_load_output()
 	_writer.set_need_reliable_transfer(false);
 }
 
+void Logger::write_format(const orb_metadata &meta, WrittenFormats &written_formats, ulog_message_format_s& msg, int level)
+{
+	if (level > 3) {
+		// precaution: limit recursion level. If we land here it's either a bug or nested topic definitions. In the
+		// latter case, increase the maximum level.
+		PX4_ERR("max recursion level reached (%i)", level);
+		return;
+	}
+
+	// Write the current format (we don't need to check if we already added it to written_formats)
+	int format_len = snprintf(msg.format, sizeof(msg.format), "%s:%s", meta.o_name, meta.o_fields);
+	size_t msg_size = sizeof(msg) - sizeof(msg.format) + format_len;
+	msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
+
+	write_message(&msg, msg_size);
+
+	if (!written_formats.push_back(&meta)) {
+		PX4_ERR("Array too small");
+	}
+
+	// Now go through the fields and check for nested type usages.
+	// o_fields looks like this for example: "uint64_t timestamp;uint8_t[5] array;"
+	const char* fmt = meta.o_fields;
+	while (fmt && *fmt) {
+		// extract the type name
+		char type_name[64];
+		const char *space = strchr(fmt, ' ');
+		if (!space) {
+			PX4_ERR("invalid format %s", fmt);
+			break;
+		}
+		const char *array_start = strchr(fmt, '['); // check for an array
+
+		int type_length;
+		if (array_start && array_start < space) {
+			type_length = array_start - fmt;
+		} else {
+			type_length = space - fmt;
+		}
+		if (type_length >= (int)sizeof(type_name)) {
+			PX4_ERR("buf len too small");
+			break;
+		}
+		memcpy(type_name, fmt, type_length);
+		type_name[type_length] = '\0';
+
+		// ignore built-in types
+		if (strcmp(type_name, "int8_t") != 0 &&
+				strcmp(type_name, "uint8_t") != 0 &&
+				strcmp(type_name, "int16_t") != 0 &&
+				strcmp(type_name, "uint16_t") != 0 &&
+				strcmp(type_name, "int16_t") != 0 &&
+				strcmp(type_name, "uint16_t") != 0 &&
+				strcmp(type_name, "int32_t") != 0 &&
+				strcmp(type_name, "uint32_t") != 0 &&
+				strcmp(type_name, "int64_t") != 0 &&
+				strcmp(type_name, "uint64_t") != 0 &&
+				strcmp(type_name, "float") != 0 &&
+				strcmp(type_name, "double") != 0 &&
+				strcmp(type_name, "bool") != 0) {
+
+			// find orb meta for type
+			const orb_metadata *const*topics = orb_get_topics();
+			const orb_metadata *found_topic = nullptr;
+			for (size_t i = 0; i < orb_topics_count(); i++) {
+				if (strcmp(topics[i]->o_name, type_name) == 0) {
+					found_topic = topics[i];
+				}
+			}
+			if (found_topic) {
+				// check if we already wrote the format
+				for (const auto& written_format: written_formats) {
+					if (written_format == found_topic) {
+						found_topic = nullptr;
+						break;
+					}
+				}
+				if (found_topic) {
+					write_format(*found_topic, written_formats, msg, level+1);
+				}
+			} else {
+				PX4_ERR("No definition for topic %s found", fmt);
+			}
+		}
+
+		fmt = strchr(fmt, ';');
+		if (fmt) { ++fmt; }
+	}
+}
+
 void Logger::write_formats()
 {
 	_writer.lock();
-	ulog_message_format_s msg = {};
-	const orb_metadata *const*topics = orb_get_topics();
 
-	//write all known formats
-	for (size_t i = 0; i < orb_topics_count(); i++) {
-		int format_len = snprintf(msg.format, sizeof(msg.format), "%s:%s", topics[i]->o_name, topics[i]->o_fields);
-		size_t msg_size = sizeof(msg) - sizeof(msg.format) + format_len;
-		msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
+	// both of these are large and thus we need to be careful in terms of stack size requirements
+	ulog_message_format_s msg;
+	WrittenFormats written_formats;
 
-		write_message(&msg, msg_size);
+	// write all subscribed formats
+	for (const LoggerSubscription &sub : _subscriptions) {
+		write_format(*sub.metadata, written_formats, msg);
 	}
 
 	_writer.unlock();
