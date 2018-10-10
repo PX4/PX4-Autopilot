@@ -44,7 +44,8 @@ bool FlightTask::updateInitialize()
 	_time = (_time_stamp_current - _time_stamp_activate) / 1e6f;
 	_deltatime  = math::min((_time_stamp_current - _time_stamp_last), _timeout) / 1e6f;
 	_time_stamp_last = _time_stamp_current;
-	return _evaluateVehicleLocalPosition();
+	_evaluateVehicleLocalPosition();
+	return true;
 }
 
 const vehicle_local_position_setpoint_s FlightTask::getPositionSetpoint()
@@ -82,48 +83,40 @@ void FlightTask::_resetSetpoints()
 	_desired_waypoint = FlightTask::empty_trajectory_waypoint;
 }
 
-bool FlightTask::_evaluateVehicleLocalPosition()
+void FlightTask::_evaluateVehicleLocalPosition()
 {
+	_position.setAll(NAN);
+	_velocity.setAll(NAN);
+	_yaw = NAN;
+	_dist_to_bottom = NAN;
+
+	// Only use vehicle-local-position topic fields if the topic is received within a certain timestamp
 	if ((_time_stamp_current - _sub_vehicle_local_position->get().timestamp) < _timeout) {
 
 		// position
 		if (_sub_vehicle_local_position->get().xy_valid) {
 			_position(0) = _sub_vehicle_local_position->get().x;
 			_position(1) = _sub_vehicle_local_position->get().y;
-
-		} else {
-			_position(0) = _position(1) = NAN;
 		}
 
 		if (_sub_vehicle_local_position->get().z_valid) {
 			_position(2) = _sub_vehicle_local_position->get().z;
-
-		} else {
-			_position(2) = NAN;
 		}
 
 		// velocity
 		if (_sub_vehicle_local_position->get().v_xy_valid) {
 			_velocity(0) = _sub_vehicle_local_position->get().vx;
 			_velocity(1) = _sub_vehicle_local_position->get().vy;
-
-		} else {
-			_velocity(0) = _velocity(1) = NAN;
 		}
 
 		if (_sub_vehicle_local_position->get().v_z_valid) {
 			_velocity(2) = _sub_vehicle_local_position->get().vz;
-
-		} else {
-			_velocity(2) = NAN;
 		}
 
 		// yaw
 		_yaw = _sub_vehicle_local_position->get().yaw;
 
 		// distance to bottom
-		_dist_to_bottom = NAN;
-
 		if (_sub_vehicle_local_position->get().dist_bottom_valid
 		    && PX4_ISFINITE(_sub_vehicle_local_position->get().dist_bottom)) {
 			_dist_to_bottom =  _sub_vehicle_local_position->get().dist_bottom;
@@ -134,14 +127,6 @@ bool FlightTask::_evaluateVehicleLocalPosition()
 			globallocalconverter_init(_sub_vehicle_local_position->get().ref_lat, _sub_vehicle_local_position->get().ref_lon,
 						  _sub_vehicle_local_position->get().ref_alt, _sub_vehicle_local_position->get().ref_timestamp);
 		}
-
-		// We don't check here if states are valid or not.
-		// Validity checks are done in the sub-classes.
-		return true;
-
-	} else {
-		_resetSetpoints();
-		return false;
 	}
 }
 
