@@ -55,6 +55,8 @@ class __EXPORT I2C : public CDev
 
 public:
 
+	virtual int	init();
+
 	static int	set_bus_clock(unsigned bus, unsigned clock_hz);
 
 	static unsigned	int	_bus_clocks[BOARD_NUMBER_I2C_BUSES];
@@ -77,8 +79,6 @@ protected:
 	 */
 	I2C(const char *name, const char *devname, int bus, uint16_t address, uint32_t frequency);
 	virtual ~I2C();
-
-	virtual int	init();
 
 	/**
 	 * Check for the presence of the device on the bus.
