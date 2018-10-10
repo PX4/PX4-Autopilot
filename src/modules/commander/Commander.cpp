@@ -102,6 +102,8 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/topics/airspeed.h>
+#include <uORB/topics/sensor_combined.h>
 
 typedef enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED = 1, /* 0b00000001 Reserved for future use. | */
@@ -1245,6 +1247,11 @@ Commander::run()
 	status_flags.condition_power_input_valid = true;
 	status_flags.rc_calibration_valid = true;
 
+	status.aspd_check_failing = false;
+	status.aspd_fault_declared = false;
+	status.aspd_use_inhibit = false;
+	status.aspd_fail_rtl = false;
+
 	get_circuit_breaker_params();
 
 	/* publish initial state */
@@ -1705,6 +1712,7 @@ Commander::run()
 		}
 
 		estimator_check(&status_changed);
+		airspeed_use_check();
 
 		/* Update land detector */
 		orb_check(land_detector_sub, &updated);
@@ -2174,6 +2182,7 @@ Commander::run()
 		// engine failure detection
 		// TODO: move out of commander
 		orb_check(actuator_controls_sub, &updated);
+		actuator_controls_s actuator_controls = {};
 
 		if (updated) {
 			/* Check engine failure
@@ -2182,7 +2191,6 @@ Commander::run()
 			if (!status_flags.circuit_breaker_engaged_enginefailure_check &&
 			    !status.is_rotary_wing && !status.is_vtol && armed.armed) {
 
-				actuator_controls_s actuator_controls = {};
 				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_controls_sub, &actuator_controls);
 
 				const float throttle = actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
@@ -2203,6 +2211,8 @@ Commander::run()
 						PX4_ERR("Engine Failure");
 						set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL, true, true, false, status);
 					}
+				} else {
+					_engine_thrust_high = (throttle > ef_throttle_thres) && (current2throttle > ef_current2throttle_thres);
 				}
 
 			} else {
@@ -4129,6 +4139,164 @@ void Commander::battery_status_check()
 	}
 }
 
+void Commander::airspeed_use_check()
+{
+	// assume airspeed sensor is good before starting FW flight
+	bool valid_flight_condition = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) &&
+			!status.is_rotary_wing &&
+			!land_detector.landed;
+	bool fault_declared = false;
+	bool fault_cleared = false;
+	if (!valid_flight_condition) {
+		_tas_use_inhibit = false;
+		_time_tas_good_declared = hrt_absolute_time();
+		_time_tas_bad_declared = 0;
+		status.aspd_check_failing = false;
+		status.aspd_fault_declared = false;
+		status.aspd_use_inhibit = false;
+		status.aspd_fail_rtl = false;
+		_time_last_airspeed = hrt_absolute_time();
+		_airspeed_fault_type = new(char[7]);
+	} else {
+		// The vehicle is flying so use the status of the airspeed innovation check '_tas_check_fail' in
+		// addition to a sanity check using airspeed and load factor and a missing sensor data check.
+
+		// Check if sensor data is missing - assume a minimum 5Hz data rate.
+		bool data_missing = false;
+		if ((hrt_absolute_time() -_time_last_airspeed) > 200000) {
+			data_missing = true;
+		}
+
+		// Declare data stopped if not received for longer than 1 second
+		bool data_stopped = false;
+		if ((hrt_absolute_time() -_time_last_airspeed) > 1000000) {
+			data_stopped = true;
+		}
+		_time_last_airspeed = hrt_absolute_time();
+
+		// Check if the airpeed reading is lower than physically possible given the load factor
+		_airspeed_sub.update();
+		_airspeed = _airspeed_sub.get();
+		_sensor_combined_sub.update();
+		_sensor_combined = _sensor_combined_sub.get();
+		float max_lift_ratio = _airspeed.indicated_airspeed_m_s /fmaxf(_airspeed_stall.get(),1.0f);
+		max_lift_ratio *= max_lift_ratio;
+		status.load_factor_ratio = 0.95f * status.load_factor_ratio - 0.05f * (_sensor_combined.accelerometer_m_s2[2] / 9.80665f) / max_lift_ratio;
+		status.load_factor_ratio = math::constrain(status.load_factor_ratio, 0.25f, 2.0f);
+		bool load_factor_ratio_fail = status.load_factor_ratio > 1.1f;
+
+		//  Decide if the control loops should be using the airspeed data based on the length of time the
+		// airspeed data has been declared bad
+		if (_tas_check_fail || load_factor_ratio_fail || data_missing) {
+			// either load factor or EKF innovation or missing data test failure can declare the airspeed bad
+			_time_tas_bad_declared = hrt_absolute_time();
+			status.aspd_check_failing = true;
+		} else if (!_tas_check_fail && !load_factor_ratio_fail && !data_missing) {
+			// All checks must pass to declare airspeed good
+			_time_tas_good_declared = hrt_absolute_time();
+			status.aspd_check_failing = false;
+		}
+		if (!_tas_use_inhibit) {
+			// A simultaneous load factor and innovaton check fail makes it more likely that a large
+			// airspeed measurement fault has developed, so a fault should be declared immediately
+			bool both_checks_failed = _tas_check_fail && load_factor_ratio_fail;
+
+			// Because the innovation, load factor and data missing checks are subject to short duration false positives
+			// a timeout period is applied.
+			bool single_check_fail_timeout = (hrt_absolute_time() - _time_tas_good_declared) > 1000000 * (hrt_abstime)_tas_use_stop_delay.get();
+
+			if (data_stopped || both_checks_failed || single_check_fail_timeout) {
+				_tas_use_inhibit = true;
+				fault_declared = true;
+				if (data_stopped || data_missing) {
+					strcpy(_airspeed_fault_type, "MISSING");
+				} else  {
+					strcpy(_airspeed_fault_type, "FAULTY ");
+				}
+			}
+		} else if ((hrt_absolute_time() - _time_tas_bad_declared) > 1000000 * (hrt_abstime)_tas_use_start_delay.get()) {
+			_tas_use_inhibit = false;
+			fault_cleared = true;
+		}
+	}
+
+	// Do actions based on value of COM_ASPD_FS_ACT parameter
+	switch (_airspeed_fail_action.get()) {
+	case 4: // log a message, warn the user, switch to non-airspeed TECS mode, switch to Return mode
+		{
+			if (fault_declared) {
+				status.aspd_fault_declared = true;
+				status.aspd_use_inhibit = true;
+				status.aspd_fail_rtl = true;
+				// let us send the critical message even if already in RTL
+				if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, &internal_state)) {
+					mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA %s - stopping use and returning", _airspeed_fault_type);
+
+				} else {
+					mavlink_log_emergency(&mavlink_log_pub, "AIRSPEED DATA  %s - stopping use, return failed", _airspeed_fault_type);
+				}
+			} else if (fault_cleared) {
+				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA GOOD - restarting use");
+				status.aspd_fault_declared = false;
+				status.aspd_use_inhibit = false;
+				status.aspd_fail_rtl = false;
+			}
+			return;
+		}
+	case 3: // log a message, warn the user, switch to non-airspeed TECS mode
+		{
+			if (fault_declared) {
+				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA  %s  - stopping use", _airspeed_fault_type);
+				status.aspd_fault_declared = true;
+				status.aspd_use_inhibit = true;
+				status.aspd_fail_rtl = false;
+			} else if (fault_cleared) {
+				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA GOOD - restarting use");
+				status.aspd_fault_declared = false;
+				status.aspd_use_inhibit = false;
+				status.aspd_fail_rtl = false;
+			}
+			return;
+		}
+	case 2: // log a message, warn the user
+		{
+			if (fault_declared) {
+				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA %s", _airspeed_fault_type);
+				status.aspd_fault_declared = true;
+				status.aspd_use_inhibit = false;
+				status.aspd_fail_rtl = false;
+			} else if (fault_cleared) {
+				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA GOOD");
+				status.aspd_fault_declared = false;
+				status.aspd_use_inhibit = false;
+				status.aspd_fail_rtl = false;
+			}
+			return;
+		}
+	case 1: // log a message
+		{
+			if (fault_declared) {
+				mavlink_log_info(&mavlink_log_pub, "AIRSPEED DATA %s", _airspeed_fault_type);
+				status.aspd_fault_declared = true;
+				status.aspd_use_inhibit = false;
+				status.aspd_fail_rtl = false;
+			} else if (fault_cleared) {
+				mavlink_log_info(&mavlink_log_pub, "AIRSPEED DATA GOOD");
+				status.aspd_fault_declared = false;
+				status.aspd_use_inhibit = false;
+				status.aspd_fail_rtl = false;
+			}
+			return;
+		}
+	default:
+		// Do nothing
+		status.aspd_fault_declared = false;
+		status.aspd_use_inhibit = false;
+		status.aspd_fail_rtl = true;
+		return;
+	}
+}
+
 void Commander::estimator_check(bool *status_changed)
 {
 	// Check if quality checking of position accuracy and consistency is to be performed
@@ -4211,6 +4379,36 @@ void Commander::estimator_check(bool *status_changed)
 						}
 					}
 				}
+			}
+		}
+
+		// Perform airspeed sensor validity checks
+		bool valid_flight_condition = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) &&
+				!status.is_rotary_wing &&
+				!land_detector.landed;
+		// assume airspeed sensor is good before starting FW flight
+		if (!valid_flight_condition) {
+			_tas_check_fail =  false;
+			_time_last_tas_pass = hrt_absolute_time();
+			_time_last_tas_fail = 0;
+			status.aspd_check_failing = false;
+			status.aspd_fault_declared = false;
+			status.aspd_use_inhibit = false;
+			status.aspd_fail_rtl = false;
+		} else {
+			// Check normalised innovation levels with requirement for continuous data and use of hysteresis
+			// to prevent false triggering.
+			if (estimator_status.tas_test_ratio < 1.0f * _tas_innov_threshold.get()) {
+				_time_last_tas_pass = hrt_absolute_time();
+			}
+			bool nav_data_good = estimator_status.vel_test_ratio < 1.0f && estimator_status.mag_test_ratio < 1.0f;
+			if (estimator_status.tas_test_ratio > 0.7f * _tas_innov_threshold.get() && nav_data_good) {
+				_time_last_tas_fail = hrt_absolute_time();
+			}
+			if (!_tas_check_fail) {
+				_tas_check_fail = (hrt_absolute_time() - _time_last_tas_pass) > TAS_INNOV_FAIL_DELAY;
+			} else {
+				_tas_check_fail = (hrt_absolute_time() - _time_last_tas_fail) < TAS_INNOV_FAIL_DELAY;
 			}
 		}
 	}

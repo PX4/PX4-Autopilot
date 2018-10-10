@@ -57,6 +57,8 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/airspeed.h>
 
 using math::constrain;
 using uORB::Publication;
@@ -105,7 +107,14 @@ private:
 		(ParamInt<px4::params::COM_POS_FS_GAIN>) _failsafe_pos_gain,
 
 		(ParamInt<px4::params::COM_LOW_BAT_ACT>) _low_bat_action,
-		(ParamFloat<px4::params::COM_DISARM_LAND>) _disarm_when_landed_timeout
+		(ParamFloat<px4::params::COM_DISARM_LAND>) _disarm_when_landed_timeout,
+
+		(ParamFloat<px4::params::COM_TAS_FS_INNOV>) _tas_innov_threshold,
+		(ParamInt<px4::params::COM_TAS_FS_T1>) _tas_use_stop_delay,
+		(ParamInt<px4::params::COM_TAS_FS_T2>) _tas_use_start_delay,
+		(ParamInt<px4::params::COM_ASPD_FS_ACT>) _airspeed_fail_action,
+		(ParamFloat<px4::params::COM_ASPD_STALL>) _airspeed_stall
+
 	)
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
@@ -125,6 +134,17 @@ private:
 	hrt_abstime	_time_last_innov_pass{0};	/**< last time velocity or position innovations passed */
 	bool		_nav_test_passed{false};	/**< true if the post takeoff navigation test has passed */
 	bool		_nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
+
+	/* class variables used to check for airspeed sensor failure */
+	bool		_tas_check_fail{false};	/**< true when airspeed innovations have failed consistency checks */
+	hrt_abstime	_time_last_tas_pass{0};		/**< last time innovation checks passed */
+	hrt_abstime	_time_last_tas_fail{0};		/**< last time innovation checks failed */
+	const hrt_abstime TAS_INNOV_FAIL_DELAY = 1_s;	/**< time required for innovation levels to pass or fail (usec) */
+	bool		_tas_use_inhibit{false};	/**< true when the commander has instructed the control loops to not use airspeed data */
+	hrt_abstime	_time_tas_good_declared{0};	/**< time TAS use was started (uSec) */
+	hrt_abstime	_time_tas_bad_declared{0};	/**< time TAS use was stopped (uSec) */
+	hrt_abstime	_time_last_airspeed{0};		/**< time last airspeed measurement was received (uSec) */
+	char		*_airspeed_fault_type = new char[7];
 
 	FailureDetector _failure_detector;
 	bool _failure_detector_termination_printed{false};
@@ -178,10 +198,12 @@ private:
 	} _telemetry[ORB_MULTI_MAX_INSTANCES];
 
 	void estimator_check(bool *status_changed);
+	void airspeed_use_check();
 
 	int _battery_sub{-1};
 	uint8_t _battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	float _battery_current{0.0f};
+	bool _engine_thrust_high = false;
 
 	void battery_status_check();
 
@@ -191,10 +213,16 @@ private:
 	Subscription<mission_result_s>			_mission_result_sub{ORB_ID(mission_result)};
 	Subscription<vehicle_global_position_s>		_global_position_sub{ORB_ID(vehicle_global_position)};
 	Subscription<vehicle_local_position_s>		_local_position_sub{ORB_ID(vehicle_local_position)};
+	Subscription<sensor_combined_s>			_sensor_combined_sub{ORB_ID(sensor_combined)};
+	Subscription<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
 
 	Publication<home_position_s>			_home_pub{ORB_ID(home_position)};
 
 	orb_advert_t					_status_pub{nullptr};
+
+	struct airspeed_s _airspeed = {};
+	struct sensor_combined_s _sensor_combined = {};
+
 };
 
 #endif /* COMMANDER_HPP_ */
