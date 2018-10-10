@@ -768,6 +768,7 @@ MulticopterPositionControl::run()
 			// Publish local position setpoint (for logging only) and attitude setpoint (for attitude controller).
 			publish_local_pos_sp(local_pos_sp);
 
+			_flight_tasks.updateVelocityControllerIO(_control.getVelSp(), thr_sp); // Inform FlightTask about the input and output of the velocity controller
 
 			// Fill attitude setpoint. Attitude is computed from yaw and thrust setpoint.
 			_att_sp = ControlMath::thrustToAttitude(thr_sp, _control.getYawSetpoint());
