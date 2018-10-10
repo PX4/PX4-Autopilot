@@ -77,11 +77,11 @@ public:
 
 	/**
 	 * Generate the trajectory (acceleration, velocity and position) by integrating the current jerk
-	 * @param pos Current vehicle's position (used for position error clamping)
+	 * @param acc_setpoint_smooth returned smoothed acceleration setpoint
 	 * @param vel_setpoint_smooth returned smoothed velocity setpoint
 	 * @param pos_setpoint_smooth returned smoothed position setpoint
 	 */
-	void integrate(float pos, float &vel_setpoint_smooth, float &pos_setpoint_smooth);
+	void integrate(float &accel_setpoint_smooth, float &vel_setpoint_smooth, float &pos_setpoint_smooth);
 
 	/* Get / Set constraints (constraints can be updated at any time) */
 	float getMaxJerk() const { return _max_jerk; }
@@ -92,6 +92,9 @@ public:
 
 	float getMaxVel() const { return _max_vel; }
 	void setMaxVel(float max_vel) { _max_vel = max_vel; }
+
+	void setCurrentVelocity(const float vel) { _vel = vel; }
+	void setCurrentPosition(const float pos) { _pos = pos; }
 
 	/**
 	 * Synchronize several trajectories to have the same total time. This is required to generate
