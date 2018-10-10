@@ -214,7 +214,7 @@ void VelocitySmoothing::updateDurations(float T123)
 	_T3 = T3;
 }
 
-void VelocitySmoothing::integrate(float pos, float &vel_setpoint_smooth,
+void VelocitySmoothing::integrate(float &accel_setpoint_smooth, float &vel_setpoint_smooth,
 				  float &pos_setpoint_smooth)
 {
 	/* Integrate the trajectory */
@@ -238,14 +238,8 @@ void VelocitySmoothing::integrate(float pos, float &vel_setpoint_smooth,
 	_accel = accel_new;
 	_vel = vel_new;
 
-	/* Lock the position setpoint if the error is bigger than some value */
-	float x_err = pos_new - pos;
-
-	if (fabsf(x_err) <= max_pos_err) {
-		_pos = pos_new;
-	} // else: keep last position
-
 	/* set output variables */
+	accel_setpoint_smooth = _accel;
 	vel_setpoint_smooth = _vel;
 	pos_setpoint_smooth = _pos;
 }
