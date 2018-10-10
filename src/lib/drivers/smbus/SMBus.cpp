@@ -36,7 +36,6 @@
 SMBus::SMBus(int bus_num, uint16_t address) :
 	I2C("BATT_SMBUS_I2C", nullptr, bus_num, address, 100000)
 {
-	init();
 }
 
 SMBus::~SMBus()
