@@ -45,6 +45,7 @@
 #include <px4_defines.h>
 #include <px4_getopt.h>
 #include <px4_workqueue.h>
+#include <px4_module.h>
 
 #include <drivers/device/i2c.h>
 
@@ -857,13 +858,32 @@ info()
 static void
 sf1xx_usage()
 {
-	PX4_INFO("usage: sf1xx command [options]");
-	PX4_INFO("options:");
-	PX4_INFO("\t-b --bus i2cbus (%d)", SF1XX_BUS_DEFAULT);
-	PX4_INFO("\t-a --all");
-	PX4_INFO("\t-R --rotation (%d)", distance_sensor_s::ROTATION_DOWNWARD_FACING);
-	PX4_INFO("command:");
-	PX4_INFO("\tstart|stop|test|reset|info");
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+I2C bus driver for Lightware SFxx series LIDAR rangefinders: SF10/a, SF10/b, SF10/c, SF11/c, SF/LW20.
+
+Setup/usage information: https://docs.px4.io/en/sensor/sfxx_lidar.html
+
+### Examples
+
+Attempt to start driver on any bus (start on bus where first sensor found).
+$ sf1xx start -a
+Stop driver
+$ sf1xx stop
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("sf1xx", "driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Attempt to start driver on all I2C buses ([--all])", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 1, 1, 2000, "Start driver on specific I2C bus ([--bus])", true);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 1, 25, "Sensor rotation - downward facing by default ([--rotation])", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reset","Reset driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("info","Print driver information");
+
 }
 
 int
