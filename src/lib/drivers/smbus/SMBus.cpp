@@ -69,33 +69,23 @@ int SMBus::read_word(const uint8_t cmd_code, void *data)
 int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length, bool use_pec)
 {
 	unsigned byte_count = 0;
-	// Length of data (32max). byte_count(1), cmd_code(2) (sometimes), pec(1) (optional)
-	uint8_t rx_data[32 + 4];
+	// addr(wr), cmd_code, addr(r), byte_count, data (32 bytes max), pec
+	uint8_t rx_data[32 + 5];
 
-	int result = transfer(&cmd_code, 1, (uint8_t *)rx_data, length + 2);
+	int result = transfer(&cmd_code, 1, (uint8_t *)&rx_data[3], length + 2);
 
-	byte_count = rx_data[0];
+	uint8_t device_address = get_device_address();
+	rx_data[0] = (device_address << 1) | 0x00;
+	rx_data[1] = cmd_code;
+	rx_data[2] = (device_address << 1) | 0x01;
+	byte_count = rx_data[3];
 
-	// byte_count, data[length], PEC
-	memcpy(data, &rx_data[1], byte_count);
+	memcpy(data, &rx_data[4], byte_count);
 
 	if (use_pec) {
+		uint8_t pec = get_pec(rx_data, byte_count + 4);
 
-		// addr(wr), cmd_code, addr(r), byte_count, rx_data[]
-		uint8_t device_address = get_device_address();
-		uint8_t full_data_packet[32 + 4] = {};
-
-		full_data_packet[0] = (device_address << 1) | 0x00;
-		full_data_packet[1] = cmd_code;
-		full_data_packet[2] = (device_address << 1) | 0x01;
-		full_data_packet[3] = byte_count;
-
-		memcpy(&full_data_packet[4], &rx_data[1], byte_count);
-
-		uint8_t pec = get_pec(full_data_packet, byte_count + 4);
-
-		// First byte is byte count, followed by data.
-		if (pec != ((uint8_t *)rx_data)[byte_count + 1]) {
+		if (pec != rx_data[byte_count + 4]) {
 			result = -EINVAL;
 		}
 	}
@@ -122,20 +112,13 @@ int SMBus::block_write(const uint8_t cmd_code, void *data, uint8_t byte_count, b
 	int result = 0;
 
 	// If block_write fails, try up to 10 times.
-	while (i < 10) {
-		result = transfer((uint8_t *)buf, byte_count + 2, nullptr, 0);
+	while (i < 10 && (result = transfer((uint8_t *)buf, byte_count + 2, nullptr, 0)) != PX4_OK) {
+		i++;
+	}
 
-		if (result != PX4_OK) {
-			i++;
-
-			if (i == 10) {
-				PX4_WARN("Block_write failed 10 times");
-				result = -EINVAL;
-			}
-
-		} else {
-			break;
-		}
+	if (i == 10) {
+		PX4_WARN("Block_write failed 10 times");
+		result = -EINVAL;
 	}
 
 	return result;
