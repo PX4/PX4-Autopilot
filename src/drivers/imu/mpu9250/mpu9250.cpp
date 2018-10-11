@@ -361,8 +361,6 @@ MPU9250::init()
 			_accel_filter_y.set_cutoff_frequency(MPU9250_ACCEL_DEFAULT_RATE, accel_cut);
 			_accel_filter_z.set_cutoff_frequency(MPU9250_ACCEL_DEFAULT_RATE, accel_cut);
 
-		} else {
-			PX4_ERR("IMU_ACCEL_CUTOFF param invalid");
 		}
 
 		param_t gyro_cut_ph = param_find("IMU_GYRO_CUTOFF");
@@ -375,12 +373,16 @@ MPU9250::init()
 			_gyro_filter_y.set_cutoff_frequency(MPU9250_GYRO_DEFAULT_RATE, gyro_cut);
 			_gyro_filter_z.set_cutoff_frequency(MPU9250_GYRO_DEFAULT_RATE, gyro_cut);
 
-		} else {
-			PX4_ERR("IMU_GYRO_CUTOFF param invalid");
 		}
 
 		/* do CDev init for the accel device node */
 		ret = _accel->init();
+
+		/* if probe/setup failed, bail now */
+		if (ret != OK) {
+			DEVICE_DEBUG("accel init failed");
+			return ret;
+		}
 
 		/* do CDev init for the gyro device node */
 		ret = _gyro->init();
@@ -1002,73 +1004,6 @@ MPU9250::gyro_read(struct file *filp, char *buffer, size_t buflen)
 
 	/* return the number of bytes transferred */
 	return (transferred * sizeof(sensor_gyro_s));
-}
-
-int
-MPU9250::accel_ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-
-	case SENSORIOCRESET: {
-			return reset();
-		}
-
-	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
-
-			/* zero would be bad */
-			case 0:
-				return -EINVAL;
-
-			/* set default polling rate */
-			case SENSOR_POLLRATE_DEFAULT:
-				return accel_ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_ACCEL_DEFAULT_RATE);
-
-			/* adjust to a legal polling interval in Hz */
-			default:
-				return _set_pollrate(arg);
-			}
-		}
-
-	case ACCELIOCSSCALE: {
-			/* copy scale, but only if off by a few percent */
-			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
-			float sum = s->x_scale + s->y_scale + s->z_scale;
-
-			if (sum > 2.0f && sum < 4.0f) {
-				memcpy(&_accel_scale, s, sizeof(_accel_scale));
-				return OK;
-
-			} else {
-				return -EINVAL;
-			}
-		}
-
-	default:
-		/* give it to the superclass */
-		return _gyro->ioctl(filp, cmd, arg);
-	}
-}
-
-int
-MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-
-	/* these are shared with the accel side */
-	case SENSORIOCSPOLLRATE:
-	case SENSORIOCRESET:
-		return accel_ioctl(filp, cmd, arg);
-
-	case GYROIOCSSCALE:
-		/* copy scale in */
-		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
-		return OK;
-
-	default:
-		/* give it to the superclass */
-		return _accel->ioctl(filp, cmd, arg);
-	}
 }
 
 int
@@ -1755,6 +1690,7 @@ MPU9250::print_info()
 	perf_print_counter(_good_transfers);
 	perf_print_counter(_reset_retries);
 	perf_print_counter(_duplicates);
+	::printf("temperature: %.1f\n", (double)_last_temperature);
 
 	if (!_magnetometer_only) {
 		_accel_reports->print_info("accel queue");
@@ -1768,7 +1704,6 @@ MPU9250::print_info()
 
 	}
 
-	::printf("temperature: %.1f\n", (double)_last_temperature);
 
 
 }

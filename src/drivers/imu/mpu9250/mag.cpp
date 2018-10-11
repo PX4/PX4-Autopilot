@@ -336,15 +336,31 @@ MPU9250_mag::read(struct file *filp, char *buffer, size_t buflen)
 int
 MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
+	/*
+	 * Repeated in MPU9250_accel::ioctl
+	 * Both accel and mag CDev could be unused in case of magnetometer only mode or MPU6500
+	 */
+
 	switch (cmd) {
 
 	case SENSORIOCRESET:
 		return ak8963_reset();
 
-	case SENSORIOCSPOLLRATE: {
-			/* mag is polled through main driver only */
-			return _parent->accel_ioctl(filp, cmd, arg);
-		}
+    case SENSORIOCSPOLLRATE: {
+        switch (arg) {
+
+        /* zero would be bad */
+        case 0:
+            return -EINVAL;
+
+        case SENSOR_POLLRATE_DEFAULT:
+            return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_ACCEL_DEFAULT_RATE);
+
+        /* adjust to a legal polling interval in Hz */
+        default:
+            return _parent->_set_pollrate(arg);
+        }
+    }
 
 	case MAGIOCSSCALE:
 		/* copy scale in */

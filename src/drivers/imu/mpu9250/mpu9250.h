@@ -396,7 +396,6 @@ public:
 	virtual int		init();
 
 	virtual ssize_t		accel_read(struct file *filp, char *buffer, size_t buflen);
-	virtual int		accel_ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -421,7 +420,6 @@ protected:
 	friend class MPU9250_gyro;
 
 	virtual ssize_t		gyro_read(struct file *filp, char *buffer, size_t buflen);
-	virtual int		gyro_ioctl(struct file *filp, int cmd, unsigned long arg);
 
 private:
 	MPU9250_accel   *_accel;

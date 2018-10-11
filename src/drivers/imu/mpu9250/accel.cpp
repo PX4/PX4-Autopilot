@@ -42,6 +42,7 @@
  */
 
 #include <px4_config.h>
+#include <ecl/geo/geo.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -119,13 +120,49 @@ MPU9250_accel::read(struct file *filp, char *buffer, size_t buflen)
 int
 MPU9250_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
+	/*
+	 * Repeated in MPU9250_mag::ioctl
+	 * Both accel and mag CDev could be unused in case of magnetometer only mode or MPU6500
+	 */
 
 	switch (cmd) {
-	case DEVIOCGDEVICEID:
-		return (int)CDev::ioctl(filp, cmd, arg);
-		break;
+
+	case SENSORIOCRESET: {
+			return _parent->reset();
+		}
+
+	case SENSORIOCSPOLLRATE: {
+			switch (arg) {
+
+			/* zero would be bad */
+			case 0:
+				return -EINVAL;
+
+			case SENSOR_POLLRATE_DEFAULT:
+				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_ACCEL_DEFAULT_RATE);
+
+			/* adjust to a legal polling interval in Hz */
+			default:
+				return _parent->_set_pollrate(arg);
+			}
+		}
+
+	case ACCELIOCSSCALE: {
+			/* copy scale, but only if off by a few percent */
+			DEVICE_DEBUG("I'm on bus %d, type %d", _parent->_interface->get_device_bus(), _parent->_device_type);
+			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
+			float sum = s->x_scale + s->y_scale + s->z_scale;
+
+			if (sum > 2.0f && sum < 4.0f) {
+				memcpy(&_parent->_accel_scale, s, sizeof(_parent->_accel_scale));
+				return OK;
+
+			} else {
+				return -EINVAL;
+			}
+		}
 
 	default:
-		return _parent->accel_ioctl(filp, cmd, arg);
+		return CDev::ioctl(filp, cmd, arg);
 	}
 }

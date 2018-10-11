@@ -121,11 +121,18 @@ MPU9250_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 
 	switch (cmd) {
-	case DEVIOCGDEVICEID:
-		return (int)CDev::ioctl(filp, cmd, arg);
-		break;
+
+	/* these are shared with the accel side */
+	case SENSORIOCSPOLLRATE:
+	case SENSORIOCRESET:
+		return _parent->_accel->ioctl(filp, cmd, arg);
+
+	case GYROIOCSSCALE:
+		/* copy scale in */
+		memcpy(&_parent->_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_parent->_gyro_scale));
+		return OK;
 
 	default:
-		return _parent->gyro_ioctl(filp, cmd, arg);
+		return CDev::ioctl(filp, cmd, arg);
 	}
 }
