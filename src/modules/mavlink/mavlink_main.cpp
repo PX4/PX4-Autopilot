@@ -2044,11 +2044,12 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("NAMED_VALUE_FLOAT", 10.0f);
 		configure_stream("VFR_HUD", 4.0f);
 		configure_stream("CAMERA_IMAGE_CAPTURED");*/
-		configure_stream("CHEN_FORMATION", 5.0f);
-		if (mavlink_system.compid == 1) {
 
+                if (mavlink_system.compid == 1) {
+                    configure_stream("CHEN_FORMATION", 5.0f);
+                    configure_stream("POSITION_TARGET_GLOBAL_INT", 5.0f);
 		} else {
-			//configure_stream("CHEN_FORMATION", 0.3f);
+                        configure_stream("ALTITUDE", 1.0f);
 		}
 		break;
 
@@ -2104,10 +2105,11 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("WIND_COV", 2.0f);
 		configure_stream("SYSTEM_TIME", 1.0f);*/
 
-		if (mavlink_system.compid == 1) {
+                if (mavlink_system.compid == 1) {
+                    configure_stream("POSITION_TARGET_GLOBAL_INT", 5.0f);
 			configure_stream("CHEN_FORMATION",10.0f);
 		} else {
-			//configure_stream("CHEN_FORMATION", 0.3f);
+                        configure_stream("ALTITUDE", 1.0f);
 		}
 
 		break;

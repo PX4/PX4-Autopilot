@@ -697,15 +697,15 @@ MissionBlock::set_follow_target_item(struct mission_item_s *item, double min_cle
 		/* use current target position */
 		item->lat = target.lat;
 		item->lon = target.lon;
-		if (min_clearance > ( 2.0f)
-				&& (min_clearance < ( 10.0f))) {
-			item->altitude = min_clearance + home_alt;
-		} else if (min_clearance >= ( 10.0f)) {
+		if (min_clearance > ( home_alt + 2.0f)
+				&& (min_clearance < ( home_alt + 10.0f))) {
+			item->altitude = min_clearance;
+		} else if (min_clearance >= ( home_alt + 10.0f)) {
 			item->altitude = home_alt + 10.0f;
-		} else if (min_clearance <= ( 2.0f)) {
+		} else if (min_clearance <= ( home_alt + 2.0f)) {
 			item->altitude = home_alt + 2.0f; // if min clearance is bad set it to 8.0 meters (well above the average height of a person)
 		} else {
-			item->altitude = home_alt + preAlt;
+			item->altitude = home_alt + 5;
 		}
 
 //		if (fabs(target.vz) > 0.05) {

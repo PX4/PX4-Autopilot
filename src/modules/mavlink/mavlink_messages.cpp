@@ -542,24 +542,25 @@ protected:
 	explicit MavlinkStreamChen_Formation(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_chen_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position))),
 		_chen_time(0),
-		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position_setpoint))),
+		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(position_setpoint_triplet))),
 				_pos_time(0)
+
 	{}
 
 	bool send(const hrt_abstime t)
 	{
 		struct vehicle_global_position_s pos = {};
-		struct vehicle_local_position_setpoint_s pos_sp = {};
+		struct mavlink_position_target_global_int_t pos_sp = {};
 		bool updated =
 				_chen_sub->update(&_chen_time, &pos);
-		_pos_sub->update(&_pos_time,&pos_sp);
-		if (updated) {
+		bool updated_2 =_pos_sub->update(&_pos_time,&pos_sp);
+		if (updated||updated_2) {
 			mavlink_chen_formation_msg_t msg = {};
 			msg.plane_id = mavlink_system.compid;
 			msg.time_boot_ms = pos.timestamp / 1000;
 			msg.lat = pos.lat * 1e7;
 			msg.lon = pos.lon * 1e7;
-			msg.alt = -pos_sp.z * 100;
+			msg.alt = pos_sp_triplet.current.alt;
 			msg.vx = pos.vel_n*1e2;
 			msg.vy = pos.vel_e*1e2;
 			msg.vz = pos.vel_d*100 ;
