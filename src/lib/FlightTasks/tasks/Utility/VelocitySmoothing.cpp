@@ -237,6 +237,7 @@ void VelocitySmoothing::integrate(float &accel_setpoint_smooth, float &vel_setpo
 
 	_accel = accel_new;
 	_vel = vel_new;
+	_pos = pos_new;
 
 	/* set output variables */
 	accel_setpoint_smooth = _accel;

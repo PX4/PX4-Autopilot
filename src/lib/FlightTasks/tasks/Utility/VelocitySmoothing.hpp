@@ -94,7 +94,9 @@ public:
 	void setMaxVel(float max_vel) { _max_vel = max_vel; }
 
 	void setCurrentVelocity(const float vel) { _vel = vel; }
+	float getCurrentVelocity() const { return _vel; }
 	void setCurrentPosition(const float pos) { _pos = pos; }
+	float getCurrentPosition() const { return _pos; }
 
 	/**
 	 * Synchronize several trajectories to have the same total time. This is required to generate
@@ -105,9 +107,10 @@ public:
 	 */
 	static void timeSynchronization(VelocitySmoothing *traj, int n_traj);
 
-private:
 	float getTotalTime() const { return _T1 + _T2 + _T3; }
 	float getVelSp() const { return _vel_sp; }
+
+private:
 
 	/**
 	 * Compute T1, T2, T3 depending on the current state and velocity setpoint.
