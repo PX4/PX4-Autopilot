@@ -135,14 +135,11 @@ bool FlightTask::_evaluateVehicleLocalPosition()
 						  _sub_vehicle_local_position->get().ref_alt, _sub_vehicle_local_position->get().ref_timestamp);
 		}
 
-		// We don't check here if states are valid or not.
-		// Validity checks are done in the sub-classes.
-		return true;
-
-	} else {
-		_resetSetpoints();
-		return false;
 	}
+
+	// We don't check here if states are valid or not.
+	// Validity checks are done in the sub-classes.
+	return true;
 }
 
 void FlightTask::_setDefaultConstraints()
