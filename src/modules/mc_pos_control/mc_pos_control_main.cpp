@@ -55,6 +55,7 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/obstacle_distance.h>
 
 #include <float.h>
 #include <mathlib/mathlib.h>
@@ -112,6 +113,7 @@ private:
 	int		_local_pos_sub{-1};			/**< vehicle local position */
 	int		_home_pos_sub{-1}; 			/**< home position */
 	int		_traj_wp_avoidance_sub{-1};	/**< trajectory waypoint */
+	int		_range_sensor_sub{-1};	/**< obstacle distances */
 
 	int _task_failure_count{0};         /**< counter for task failures */
 
@@ -128,6 +130,7 @@ private:
 	home_position_s				_home_pos{};			/**< home position */
 	vehicle_trajectory_waypoint_s		_traj_wp_avoidance{};		/**< trajectory waypoint */
 	vehicle_trajectory_waypoint_s		_traj_wp_avoidance_desired{};	/**< desired waypoints, inputs to an obstacle avoidance module */
+	obstacle_distance_s			_obstacle_distance{};	/**< obstacle distances received form a range sensor */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time constant for smooth takeoff ramp */
@@ -444,6 +447,12 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_trajectory_waypoint), _traj_wp_avoidance_sub, &_traj_wp_avoidance);
 	}
+
+	orb_check(_range_sensor_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(obstacle_distance), _range_sensor_sub, &_obstacle_distance);
+	}
 }
 
 void
@@ -552,6 +561,7 @@ MulticopterPositionControl::run()
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 	_traj_wp_avoidance_sub = orb_subscribe(ORB_ID(vehicle_trajectory_waypoint));
+	_range_sensor_sub = orb_subscribe(ORB_ID(obstacle_distance));
 
 	parameters_update(true);
 
