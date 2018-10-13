@@ -53,39 +53,6 @@ class Classifier():
         self.msg_files_receive = self.set_msg_files_receive()
         self.msg_files_ignore = self.set_msg_files_ignore()
 
-    # getters
-    @property
-    def msg_id_map(self):
-        return self.__msg_id_map
-
-    @property
-    def msg_folder(self):
-        return self.__msg_folder
-
-    @property
-    def msgs_to_send(self):
-        return self.__msgs_to_send
-
-    @property
-    def msgs_to_receive(self):
-        return self.__msgs_to_receive
-
-    @property
-    def msgs_to_ignore(self):
-        return self.__msgs_to_ignore
-
-    @property
-    def msg_files_send(self):
-        return self.__msg_files_send
-
-    @property
-    def msg_files_receive(self):
-        return self.__msg_files_receive
-
-    @property
-    def msg_files_ignore(self):
-        return self.__msg_files_ignore
-
     # setters (for class init)
     def set_msgs_to_send(self):
         send = {}
@@ -156,7 +123,9 @@ if __name__ == "__main__":
     # Parse arguments
     args = parser.parse_args()
 
-    msg_folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    msg_folder = args.msgdir
+    if args.msgdir == 'msg':
+        msg_folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     classifier = Classifier(os.path.join(
         msg_folder, args.yaml_file), msg_folder)
 

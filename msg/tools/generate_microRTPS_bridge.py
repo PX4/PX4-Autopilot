@@ -81,18 +81,30 @@ def check_rtps_id_uniqueness(classifier):
 
     # check if there are repeated ID's on the messages to send
     for key, value in classifier.msgs_to_send.items():
-        if classifier.msgs_to_send.values().count(value) > 1:
-            repeated_ids.update({key: value})
+        if sys.version_info[0] < 3:
+            if classifier.msgs_to_send.values().count(value) > 1:
+                repeated_ids.update({key: value})
+        else:
+            if list(classifier.msgs_to_send.values()).count(value) > 1:
+                repeated_ids.update({key: value})
 
     # check if there are repeated ID's on the messages to receive
     for key, value in classifier.msgs_to_receive.items():
-        if classifier.msgs_to_receive.values().count(value) > 1:
-            repeated_ids.update({key: value})
+        if sys.version_info[0] < 3:
+            if classifier.msgs_to_receive.values().count(value) > 1:
+                repeated_ids.update({key: value})
+        else:
+            if list(classifier.msgs_to_receive.values()).count(value) > 1:
+                repeated_ids.update({key: value})
 
     # check if there are repeated ID's on the messages to ignore
     for key, value in classifier.msgs_to_ignore.items():
-        if classifier.msgs_to_ignore.values().count(value) > 1:
-            repeated_ids.update({key: value})
+        if sys.version_info[0] < 3:
+            if classifier.msgs_to_ignore.values().count(value) > 1:
+                repeated_ids.update({key: value})
+        else:
+            if list(classifier.msgs_to_ignore.values()).count(value) > 1:
+                repeated_ids.update({key: value})
 
     # check if there are repeated IDs between classfied and unclassified msgs
     # check send and ignore lists
@@ -122,7 +134,11 @@ def check_rtps_id_uniqueness(classifier):
     all_msgs = classifier.msgs_to_send
     all_msgs.update(classifier.msgs_to_receive)
     all_msgs.update(classifier.msgs_to_ignore)
-    all_ids = all_msgs.values()
+    all_ids = list()
+    if sys.version_info[0] < 3:
+        all_ids = all_msgs.values()
+    else:
+        all_ids = list(all_msgs.values())
     all_ids.sort()
 
     if not repeated_ids:
