@@ -127,6 +127,9 @@ then
 	# External I2C bus
 	hmc5883 -C -X start
 
+	# Possible external compasses
+	ist8310 -C -b 2 start
+
 	# External I2C bus
 	lis3mdl -X start
 
