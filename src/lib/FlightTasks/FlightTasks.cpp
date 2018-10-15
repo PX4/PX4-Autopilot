@@ -47,6 +47,13 @@ const vehicle_constraints_s FlightTasks::getConstraints()
 	}
 }
 
+void FlightTasks::setConstraints(vehicle_constraints_s& constraints)
+{
+	if (isAnyTaskActive()) {
+		_current_task.task->setConstraints(constraints);
+	}
+}
+
 const vehicle_trajectory_waypoint_s FlightTasks::getAvoidanceWaypoint()
 {
 	if (isAnyTaskActive()) {

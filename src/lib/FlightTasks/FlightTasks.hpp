@@ -79,6 +79,11 @@ public:
 	const vehicle_constraints_s getConstraints();
 
 	/**
+	 * Set task dependent constraints
+	 */
+	void setConstraints(vehicle_constraints_s& constraints);
+
+	/**
 	 * Get task avoidance desired waypoints
 	 * @return auto triplets in the mc_pos_control
 	 */

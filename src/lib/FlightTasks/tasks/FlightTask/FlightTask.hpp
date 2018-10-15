@@ -110,6 +110,12 @@ public:
 	const vehicle_constraints_s &getConstraints() { return _constraints; }
 
 	/**
+	 * Set vehicle constraints.
+	 * The constraints can vary with task.
+	 */
+	void setConstraints(vehicle_constraints_s& constraints) { _constraints = constraints; }
+
+	/**
 	 * Get avoidance desired waypoint
 	 * @return desired waypoints
 	 */

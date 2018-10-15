@@ -736,6 +736,7 @@ MulticopterPositionControl::run()
 			//use range sensor to update constraints
 			//TODO: create parameter to switch on and off
 			update_range_constraints(_obstacle_distance, constraints);
+			_flight_tasks.setConstraints(constraints);
 
 
 			// Update states, setpoints and constraints.
