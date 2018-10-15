@@ -98,11 +98,7 @@ To reduce control latency, the module directly polls on the gyro topic published
 
 MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	ModuleParams(nullptr),
-	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
-	_lp_filters_d{
-	{initial_update_rate_hz, 50.f},
-	{initial_update_rate_hz, 50.f},
-	{initial_update_rate_hz, 50.f}} // will be initialized correctly when params are loaded
+	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
 {
 	for (uint8_t i = 0; i < MAX_GYRO_COUNT; i++) {
 		_sensor_gyro_sub[i] = -1;
@@ -161,13 +157,9 @@ MulticopterAttitudeControl::parameters_updated()
 	_rate_d(2) = _yaw_rate_d.get();
 	_rate_ff(2) = _yaw_rate_ff.get();
 
-	if (fabsf(_lp_filters_d[0].get_cutoff_freq() - _d_term_cutoff_freq.get()) > 0.01f) {
-		_lp_filters_d[0].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
-		_lp_filters_d[1].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
-		_lp_filters_d[2].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
-		_lp_filters_d[0].reset(_rates_prev(0));
-		_lp_filters_d[1].reset(_rates_prev(1));
-		_lp_filters_d[2].reset(_rates_prev(2));
+	if (fabsf(_lp_filters_d.get_cutoff_freq() - _d_term_cutoff_freq.get()) > 0.01f) {
+		_lp_filters_d.set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
+		_lp_filters_d.reset(_rates_prev);
 	}
 
 	/* angular rate limits */
@@ -526,10 +518,7 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	Vector3f rates_err = _rates_sp - rates;
 
 	/* apply low-pass filtering to the rates for D-term */
-	Vector3f rates_filtered(
-		_lp_filters_d[0].apply(rates(0)),
-		_lp_filters_d[1].apply(rates(1)),
-		_lp_filters_d[2].apply(rates(2)));
+	Vector3f rates_filtered(_lp_filters_d.apply(rates));
 
 	_att_control = rates_p_scaled.emult(rates_err) +
 		       _rates_int -
@@ -819,9 +808,7 @@ MulticopterAttitudeControl::run()
 					_loop_update_rate_hz = _loop_update_rate_hz * 0.5f + loop_update_rate * 0.5f;
 					dt_accumulator = 0;
 					loop_counter = 0;
-					_lp_filters_d[0].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
-					_lp_filters_d[1].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
-					_lp_filters_d[2].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
+					_lp_filters_d.set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
 				}
 			}
 
