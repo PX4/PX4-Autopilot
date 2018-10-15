@@ -57,15 +57,17 @@ struct batt_smbus_bus_option {
 	uint8_t busnum;
 	BATT_SMBUS      *dev;
 } bus_options[] = {
+#ifdef PX4_I2C_BUS_ONBOARD
+	{ BATT_SMBUS_BUS_I2C_INTERNAL, "/dev/batt_smbus_int", &BATT_SMBUS_I2C_interface, PX4_I2C_BUS_ONBOARD, nullptr },
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION
 	{ BATT_SMBUS_BUS_I2C_EXTERNAL, "/dev/batt_smbus_ext", &BATT_SMBUS_I2C_interface, PX4_I2C_BUS_EXPANSION, nullptr },
+#endif
 #ifdef PX4_I2C_BUS_EXPANSION1
 	{ BATT_SMBUS_BUS_I2C_EXTERNAL, "/dev/batt_smbus_ext1", &BATT_SMBUS_I2C_interface, PX4_I2C_BUS_EXPANSION1, nullptr },
 #endif
 #ifdef PX4_I2C_BUS_EXPANSION2
 	{ BATT_SMBUS_BUS_I2C_EXTERNAL, "/dev/batt_smbus_ext2", &BATT_SMBUS_I2C_interface, PX4_I2C_BUS_EXPANSION2, nullptr },
-#endif
-#ifdef PX4_I2C_BUS_ONBOARD
-	{ BATT_SMBUS_BUS_I2C_INTERNAL, "/dev/batt_smbus_int", &BATT_SMBUS_I2C_interface, PX4_I2C_BUS_ONBOARD, nullptr },
 #endif
 };
 
@@ -304,7 +306,7 @@ batt_smbus_main(int argc, char *argv[])
 	// Jump over start/off/etc and look at options first.
 	while ((ch = px4_getopt(argc, argv, "XIA",&myoptind,&myoptarg)) != EOF) {
 		switch (ch) {
-		case 'X':
+		case 'X': //TODO: add option for starting specific external bus
 			busid = BATT_SMBUS_BUS_I2C_EXTERNAL;
 			break;
 
