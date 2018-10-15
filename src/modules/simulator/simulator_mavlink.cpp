@@ -655,7 +655,6 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&sender_thread_attr, &param);
 
-	/* low priority */
 	param.sched_priority = SCHED_PRIORITY_DEFAULT + 40;
 	(void)pthread_attr_setschedparam(&sender_thread_attr, &param);
 
