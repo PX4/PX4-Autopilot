@@ -118,21 +118,21 @@ public:
 
 	size_t get_total_written_file() const
 	{
-		if (_log_writer_file) { return _log_writer_file->get_total_written(); }
+		if (_log_writer_file) { return _log_writer_file->get_total_written(LogType::Full); }
 
 		return 0;
 	}
 
 	size_t get_buffer_size_file() const
 	{
-		if (_log_writer_file) { return _log_writer_file->get_buffer_size(); }
+		if (_log_writer_file) { return _log_writer_file->get_buffer_size(LogType::Full); }
 
 		return 0;
 	}
 
 	size_t get_buffer_fill_count_file() const
 	{
-		if (_log_writer_file) { return _log_writer_file->get_buffer_fill_count(); }
+		if (_log_writer_file) { return _log_writer_file->get_buffer_fill_count(LogType::Full); }
 
 		return 0;
 	}

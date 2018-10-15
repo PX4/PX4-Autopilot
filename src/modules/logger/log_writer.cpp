@@ -100,7 +100,7 @@ bool LogWriter::is_started() const
 	bool ret = false;
 
 	if (_log_writer_file) {
-		ret = _log_writer_file->is_started();
+		ret = _log_writer_file->is_started(LogType::Full);
 	}
 
 	if (_log_writer_mavlink) {
@@ -113,7 +113,7 @@ bool LogWriter::is_started() const
 bool LogWriter::is_started(Backend query_backend) const
 {
 	if (query_backend == BackendFile && _log_writer_file) {
-		return _log_writer_file->is_started();
+		return _log_writer_file->is_started(LogType::Full);
 	}
 
 	if (query_backend == BackendMavlink && _log_writer_mavlink) {
@@ -126,14 +126,14 @@ bool LogWriter::is_started(Backend query_backend) const
 void LogWriter::start_log_file(const char *filename)
 {
 	if (_log_writer_file) {
-		_log_writer_file->start_log(filename);
+		_log_writer_file->start_log(LogType::Full, filename);
 	}
 }
 
 void LogWriter::stop_log_file()
 {
 	if (_log_writer_file) {
-		_log_writer_file->stop_log();
+		_log_writer_file->stop_log(LogType::Full);
 	}
 }
 
@@ -163,7 +163,7 @@ int LogWriter::write_message(void *ptr, size_t size, uint64_t dropout_start)
 	int ret_file = 0, ret_mavlink = 0;
 
 	if (_log_writer_file_for_write) {
-		ret_file = _log_writer_file_for_write->write_message(ptr, size, dropout_start);
+		ret_file = _log_writer_file_for_write->write_message(LogType::Full, ptr, size, dropout_start);
 	}
 
 	if (_log_writer_mavlink_for_write) {
