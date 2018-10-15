@@ -231,7 +231,8 @@ PWMSim::run()
 		}
 
 		/* can we mix? */
-		if (_armed && _mixers != nullptr) {
+		/* We also publish if not armed, this way we make sure SITL gets feedback. */
+		if (_mixers != nullptr) {
 
 			/* do mixing */
 			unsigned num_outputs = _mixers->mix(&_actuator_outputs.output[0], _num_outputs);
