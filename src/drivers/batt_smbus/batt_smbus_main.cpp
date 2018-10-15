@@ -57,6 +57,12 @@ struct batt_smbus_bus_option {
 	BATT_SMBUS      *dev;
 } bus_options[] = {
 	{ BATT_SMBUS_BUS_I2C_EXTERNAL, "/dev/batt_smbus_ext", &BATT_SMBUS_I2C_interface, PX4_I2C_BUS_EXPANSION, nullptr },
+#ifdef PX4_I2C_BUS_EXPANSION1
+	{ BATT_SMBUS_BUS_I2C_EXTERNAL, "/dev/batt_smbus_ext1", &BATT_SMBUS_I2C_interface, PX4_I2C_BUS_EXPANSION1, nullptr }, //Options not working from nuttx shell for now
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION2
+	{ BATT_SMBUS_BUS_I2C_EXTERNAL, "/dev/batt_smbus_ext2", &BATT_SMBUS_I2C_interface, PX4_I2C_BUS_EXPANSION2, nullptr },
+#endif
 #ifdef PX4_I2C_BUS_ONBOARD
 	{ BATT_SMBUS_BUS_I2C_INTERNAL, "/dev/batt_smbus_int", &BATT_SMBUS_I2C_interface, PX4_I2C_BUS_ONBOARD, nullptr },
 #endif

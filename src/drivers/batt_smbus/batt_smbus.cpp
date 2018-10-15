@@ -59,7 +59,8 @@ BATT_SMBUS::BATT_SMBUS(device::Device *interface, const char *path) :
 	_crit_thr(0.0f),
 	_emergency_thr(0.0f),
 	_low_thr(0.0f),
-	_manufacturer_name(nullptr)
+	_manufacturer_name(nullptr),
+	_cell_count(0)
 {
 }
 
@@ -210,6 +211,21 @@ void BATT_SMBUS::cycle()
 
 		} else {
 			success = false;
+		}
+
+		//Testing the cell count option
+		//Check if smart battery reports individual voltages
+		if (_cell_count > 0) {
+			new_report.cell_count = _cell_count;
+
+			for (uint8_t j = 0; j < _cell_count; j++) {
+				if (read_word((BATT_SMBUS_VOLTAGE_C1 + j), &tmp) == PX4_OK) {
+					new_report.voltages_ind[j] = tmp;
+				}
+			}
+
+		} else {
+			new_report.cell_count = 0;
 		}
 
 		// Read remaining capacity.
@@ -415,6 +431,22 @@ int BATT_SMBUS::get_startup_info()
 	if (read_word(BATT_SMBUS_FULL_CHARGE_CAPACITY, &tmp) == PX4_OK) {
 		_batt_capacity = tmp;
 		result = PX4_OK;
+	}
+
+	//Read up to 10 individual cell voltages
+	if (read_word(BATT_SMBUS_VOLTAGE_C1, &tmp) == PX4_OK) {
+		_cell_count++;
+
+		for (uint8_t j = 1; j < 10; j++) {
+			if (read_word((BATT_SMBUS_VOLTAGE_C1 + j), &tmp) == PX4_OK) {
+				_cell_count++;
+			}
+		}
+
+		PX4_INFO("Smart battery has %d cells", _cell_count);
+
+	} else {
+		PX4_INFO("Smart battery does not report cell voltages");
 	}
 
 	// Read battery threshold params on startup.

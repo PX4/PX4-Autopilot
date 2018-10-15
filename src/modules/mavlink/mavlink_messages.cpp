@@ -598,7 +598,7 @@ protected:
 
 			for (unsigned int i = 0; i < (sizeof(bat_msg.voltages) / sizeof(bat_msg.voltages[0])); i++) {
 				if ((int)i < battery_status.cell_count && battery_status.connected) {
-					bat_msg.voltages[i] = (battery_status.voltage_v / battery_status.cell_count) * 1000.0f;
+					bat_msg.voltages[i] = battery_status.voltages_ind[i] * 1.0f;
 
 				} else {
 					bat_msg.voltages[i] = UINT16_MAX;
