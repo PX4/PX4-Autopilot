@@ -384,19 +384,19 @@ extern "C" {
 
 				// Get the current time
 				struct timespec ts;
-				// FIXME: check if QURT should probably be using CLOCK_MONOTONIC
-				px4_clock_gettime(CLOCK_REALTIME, &ts);
+				// px4_sem_timedwait is implemented using CLOCK_MONOTONIC.
+				px4_clock_gettime(CLOCK_MONOTONIC, &ts);
 
 				// Calculate an absolute time in the future
 				const unsigned billion = (1000 * 1000 * 1000);
-				unsigned tdiff = timeout;
-				uint64_t nsecs = ts.tv_nsec + (tdiff * 1000 * 1000);
+				uint64_t nsecs = ts.tv_nsec + (timeout * 1000 * 1000);
 				ts.tv_sec += nsecs / billion;
 				nsecs -= (nsecs / billion) * billion;
 				ts.tv_nsec = nsecs;
 
 				// Execute a blocking wait for that time in the future
 				errno = 0;
+
 				ret = px4_sem_timedwait(&sem, &ts);
 #ifndef __PX4_DARWIN
 				ret = errno;
