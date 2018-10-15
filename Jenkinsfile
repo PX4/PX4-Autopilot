@@ -132,8 +132,10 @@ pipeline {
           }
           steps {
             sh 'export'
-            sh 'make distclean'
-            sh 'make clang-tidy-quiet'
+            retry (3) {
+              sh 'make distclean'
+              sh 'make clang-tidy-quiet'
+            }
             sh 'make distclean'
           }
         }
