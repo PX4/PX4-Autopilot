@@ -259,6 +259,11 @@ private:
 		      const bool warn);
 
 	/**
+	 * Calculate velocity limits for UAV movement from range sensor data:
+	 * @param obstacle_distance: Array of obstacle distances received from range sensor
+	 */
+	void update_range_constraints(const obstacle_distance_s &obstacle_distances, vehicle_constraints_s &constraints);
+	/**
 	 * Fill desired vehicle_trajectory_waypoint:
 	 * point1: current position, desired velocity
 	 * point2: current triplet only if in auto mode
@@ -728,6 +733,11 @@ MulticopterPositionControl::run()
 				limit_altitude(setpoint);
 			}
 
+			//use range sensor to update constraints
+			//TODO: create parameter to switch on and off
+			update_range_constraints(_obstacle_distance, constraints);
+
+
 			// Update states, setpoints and constraints.
 			_control.updateConstraints(constraints);
 			_control.updateState(_states);
@@ -1107,6 +1117,42 @@ MulticopterPositionControl::update_avoidance_waypoint_desired(PositionControlSta
 
 		publish_avoidance_desired_waypoint();
 	}
+}
+
+void
+MulticopterPositionControl::update_range_constraints(const obstacle_distance_s &obstacle_distance,
+		vehicle_constraints_s &constraints)
+{
+	constraints.velocity_limits[0] = 0.0;
+	constraints.velocity_limits[1] = 0.0;
+	constraints.velocity_limits[2] = 0.0;
+	constraints.velocity_limits[3] = 0.0;
+
+	float max_detection_distance = obstacle_distance.max_distance/100.0; //convert to meters
+	float min_obstacle_distance = 4.0; //TODO: Parametrize
+	float k = constraints.speed_xy/(max_detection_distance - min_obstacle_distance);  //P-gain
+
+	for(int i = 0; i<72; i++){
+
+		//determine if distance bin is valid and contains a valid distance measurement
+		if(obstacle_distance.distances[i] < obstacle_distance.max_distance &&
+				obstacle_distance.distances[i] > obstacle_distance.min_distance && i*obstacle_distance.increment < 360){
+
+			float distance = obstacle_distance.distances[i]/100.0; //convert to meters
+			float angle = i*obstacle_distance.increment * (M_PI/180.0);
+			float vel_lim_x = k * (max_detection_distance - distance) * cos(angle);
+			float vel_lim_y = k * (max_detection_distance - distance) * sin(angle);
+			if(vel_lim_x > 0 && vel_lim_x > constraints.velocity_limits[0]) constraints.velocity_limits[0] = vel_lim_x;
+			if(vel_lim_y > 0 && vel_lim_y > constraints.velocity_limits[1]) constraints.velocity_limits[1] = vel_lim_y;
+			if(vel_lim_x < 0 && -vel_lim_x > constraints.velocity_limits[2]) constraints.velocity_limits[2] = -vel_lim_x;
+			if(vel_lim_y < 0 && -vel_lim_y > constraints.velocity_limits[3]) constraints.velocity_limits[3] = -vel_lim_y;
+		}
+	}
+
+	constraints.velocity_limits[0] = constraints.speed_xy - constraints.velocity_limits[0];
+    constraints.velocity_limits[1] = constraints.speed_xy - constraints.velocity_limits[1];
+	constraints.velocity_limits[2] = constraints.speed_xy - constraints.velocity_limits[2];
+	constraints.velocity_limits[3] = constraints.speed_xy - constraints.velocity_limits[3];
 }
 
 void
