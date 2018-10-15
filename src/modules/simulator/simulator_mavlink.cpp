@@ -49,8 +49,6 @@
 
 #include <limits>
 
-extern "C" __EXPORT hrt_abstime hrt_reset(void);
-
 #define SEND_INTERVAL 	20
 #define UDP_PORT 	14560
 
@@ -79,7 +77,7 @@ using namespace simulator;
 
 void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &msg, unsigned index)
 {
-	msg.time_usec = hrt_absolute_time();
+	msg.time_usec = hrt_absolute_time() + hrt_absolute_time_offset();
 
 	bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
@@ -286,69 +284,27 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			mavlink_hil_sensor_t imu;
 			mavlink_msg_hil_sensor_decode(msg, &imu);
 
-			bool compensation_enabled = (imu.time_usec > 0);
-
 			// set temperature to a decent value
 			imu.temperature = 32.0f;
 
 			struct timespec ts;
-			// clock_gettime(CLOCK_MONOTONIC, &ts);
-			// uint64_t host_time = ts_to_abstime(&ts);
+			abstime_to_ts(&ts, imu.time_usec);
+			px4_clock_settime(CLOCK_MONOTONIC, &ts);
 
-			hrt_abstime curr_sitl_time = hrt_absolute_time();
-			hrt_abstime curr_sim_time = imu.time_usec;
+			hrt_abstime now_us = hrt_absolute_time();
 
-			if (compensation_enabled && _initialized
-			    && _last_sim_timestamp > 0 && _last_sitl_timestamp > 0
-			    && _last_sitl_timestamp < curr_sitl_time
-			    && _last_sim_timestamp < curr_sim_time) {
+#if 0
+			// This is just for to debug missing HIL_SENSOR messages.
+			static hrt_abstime last_time = 0;
+			hrt_abstime diff = now_us - last_time;
+			float step = diff / 4000.0f;
 
-				px4_clock_gettime(CLOCK_MONOTONIC, &ts);
-				uint64_t timestamp = ts_to_abstime(&ts);
-
-				perf_set_elapsed(_perf_sim_delay, timestamp - curr_sim_time);
-				perf_count(_perf_sim_interval);
-
-				int64_t dt_sitl = curr_sitl_time - _last_sitl_timestamp;
-				int64_t dt_sim = curr_sim_time - _last_sim_timestamp;
-
-				double curr_factor = ((double)dt_sim / (double)dt_sitl);
-
-				if (curr_factor < 5.0) {
-					_realtime_factor = _realtime_factor * 0.99 + 0.01 * curr_factor;
-				}
-
-				// calculate how much the system needs to be delayed
-				int64_t sysdelay = dt_sitl - dt_sim;
-
-				unsigned min_delay = 200;
-
-				if (dt_sitl < 1e5
-				    && dt_sim < 1e5
-				    && sysdelay > min_delay + 100) {
-
-					// the correct delay is exactly the scale between
-					// the last two intervals
-					px4_sim_start_delay();
-					hrt_start_delay();
-
-					unsigned exact_delay = sysdelay / _realtime_factor;
-					unsigned usleep_delay = (sysdelay - min_delay) / _realtime_factor;
-
-					// extend by the realtime factor to avoid drift
-					px4_usleep(usleep_delay);
-					hrt_stop_delay_delta(exact_delay);
-					px4_sim_stop_delay();
-				}
+			if (step > 1.1f || step < 0.9f) {
+				PX4_INFO("diff: %llu, step: %.2f", diff, step);
 			}
 
-			hrt_abstime now = hrt_absolute_time();
-
-			_last_sitl_timestamp = curr_sitl_time;
-			_last_sim_timestamp = curr_sim_time;
-
-			// correct timestamp
-			imu.time_usec = now;
+			last_time = now_us;
+#endif
 
 			if (publish) {
 				publish_sensor_topics(&imu);
@@ -363,21 +319,23 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 				bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
-				if (!armed || batt_sim_start == 0 || batt_sim_start > now) {
-					batt_sim_start = now;
+				if (!armed || batt_sim_start == 0 || batt_sim_start > now_us) {
+					batt_sim_start = now_us;
 				}
 
 				float ibatt = -1.0f; // no current sensor in simulation
 				const float minimum_percentage = 0.5f; // change this value if you want to simulate low battery reaction
 
 				/* Simulate the voltage of a linearly draining battery but stop at the minimum percentage */
-				float battery_percentage = (now - batt_sim_start) / discharge_interval_us;
+				float battery_percentage = 1.0f - (now_us - batt_sim_start) / discharge_interval_us;
+
 				battery_percentage = math::min(battery_percentage, minimum_percentage);
 				float vbatt = math::gradual(battery_percentage, 0.f, 1.f, _battery.full_cell_voltage(), _battery.empty_cell_voltage());
 				vbatt *= _battery.cell_count();
 
 				const float throttle = 0.0f; // simulate no throttle compensation to make the estimate predictable
-				_battery.updateBatteryStatus(now, vbatt, ibatt, true, true, 0, throttle, armed, &_battery_status);
+				_battery.updateBatteryStatus(now_us, vbatt, ibatt, true, true, 0, throttle, armed, &_battery_status);
+
 
 				// publish the battery voltage
 				int batt_multi;
@@ -734,17 +692,12 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	PX4_INFO("Waiting for initial data on UDP port %i. Please start the flight simulator to proceed..", udp_port);
 	fflush(stdout);
 
-	uint64_t pstart_time = 0;
-
 	bool no_sim_data = true;
 
 	while (!px4_exit_requested() && no_sim_data) {
 		pret = ::poll(&fds[0], fd_count, 100);
 
 		if (fds[0].revents & POLLIN) {
-			if (pstart_time == 0) {
-				pstart_time = hrt_system_time();
-			}
 
 			len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
 			// send hearbeat
@@ -764,7 +717,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 						// have a message, handle it
 						handle_message(&msg, publish);
 
-						if (msg.msgid != 0 && (hrt_system_time() - pstart_time > 1000000)) {
+						if (msg.msgid != 0) {
 							PX4_INFO("Got initial simulation data, running sim..");
 							no_sim_data = false;
 						}
@@ -778,9 +731,6 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 		return;
 	}
 
-	// reset system time
-	(void)hrt_reset();
-
 	// subscribe to topics
 	for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++) {
 		_actuator_outputs_sub[i] = orb_subscribe_multi(ORB_ID(actuator_outputs), i);
@@ -793,8 +743,6 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	pthread_attr_destroy(&sender_thread_attr);
 
 	mavlink_status_t udp_status = {};
-
-	bool sim_delay = false;
 
 	const unsigned max_wait_ms = 4;
 
@@ -817,21 +765,8 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 
 		//timed out
 		if (pret == 0) {
-			if (!sim_delay) {
-				// we do not want to spam the console by default
-				// PX4_WARN("mavlink sim timeout for %d ms", max_wait_ms);
-				sim_delay = true;
-				px4_sim_start_delay();
-				hrt_start_delay();
-			}
 
 			continue;
-		}
-
-		if (sim_delay) {
-			sim_delay = false;
-			hrt_stop_delay();
-			px4_sim_stop_delay();
 		}
 
 		// this is undesirable but not much we can do

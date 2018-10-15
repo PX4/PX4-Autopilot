@@ -97,6 +97,7 @@
 // We don't poison usleep and sleep on NuttX because it is used in dependencies
 // like uavcan and we don't need to fake time on the real system.
 #include <unistd.h>
+#include <time.h>
 #define system_usleep usleep
 #define system_sleep sleep
 

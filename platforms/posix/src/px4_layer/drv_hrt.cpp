@@ -43,14 +43,13 @@
 #include <px4_workqueue.h>
 #include <px4_tasks.h>
 #include <drivers/drv_hrt.h>
+#include <lockstep_scheduler/lockstep_scheduler.h>
 #include <semaphore.h>
 #include <time.h>
 #include <string.h>
-#include <inttypes.h>
 #include <errno.h>
 #include "hrt_work.h"
 
-#define SPEED_FACTOR 1
 
 static struct sq_queue_s	callout_queue;
 
@@ -73,6 +72,8 @@ static hrt_abstime _delay_interval = 0;
 static hrt_abstime max_time = 0;
 pthread_mutex_t _hrt_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+static LockstepScheduler lockstep_scheduler;
+
 static void
 hrt_call_invoke(void);
 
@@ -80,6 +81,12 @@ static hrt_abstime
 _hrt_absolute_time_internal(void);
 
 __EXPORT hrt_abstime hrt_reset(void);
+
+
+hrt_abstime hrt_absolute_time_offset(void)
+{
+	return px4_timestart_monotonic;
+}
 
 static void hrt_lock(void)
 {
@@ -191,7 +198,7 @@ hrt_abstime hrt_absolute_time(void)
 	return ret;
 }
 
-__EXPORT hrt_abstime hrt_reset(void)
+hrt_abstime hrt_reset(void)
 {
 #ifndef __PX4_QURT
 	px4_timestart_monotonic = 0;
@@ -203,7 +210,7 @@ __EXPORT hrt_abstime hrt_reset(void)
 /*
  * Convert a timespec to absolute time.
  */
-hrt_abstime ts_to_abstime(struct timespec *ts)
+hrt_abstime ts_to_abstime(const struct timespec *ts)
 {
 	hrt_abstime	result;
 
@@ -594,61 +601,62 @@ int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 	// Don't do any offseting on the Linux side on the Snapdragon.
 	return clock_gettime(clk_id, &tp);
 #else
-	struct timespec actual_tp;
-	const int ret = clock_gettime(clk_id, &actual_tp);
-
-	if (ret != 0) {
-		return ret;
-	}
-
-	const uint64_t actual_usec = ts_to_abstime(&actual_tp);
-
 
 	if (clk_id == CLOCK_MONOTONIC) {
-		if (px4_timestart_monotonic == 0) {
-			px4_timestart_monotonic = actual_usec;
-		}
 
-		abstime_to_ts(tp, (actual_usec - px4_timestart_monotonic) * SPEED_FACTOR);
+		const uint64_t abstime = lockstep_scheduler.get_absolute_time();
+		abstime_to_ts(tp, abstime - px4_timestart_monotonic);
+		return 0;
 
 	} else {
-		abstime_to_ts(tp, actual_usec);
+		return system_clock_gettime(clk_id, tp);
 	}
 
-	//static unsigned counter = 0;
-	//if (counter++ % 1000000 == 0) {
-	//	PX4_INFO("clk_id: %d, actual_tp.tv_sec: %llu, actual_tp.tv_nsec: %llu, px4_timestart: %llu: 0x%x",
-	//		 clk_id, actual_tp.tv_sec, actual_tp.tv_nsec, px4_timestart[clk_id], &px4_timestart[clk_id]);
-	//}
-
-	return 0;
 #endif
 }
 
-int px4_clock_settime(clockid_t clk_id, const struct timespec *tp)
+int px4_clock_settime(clockid_t clk_id, const struct timespec *ts)
 {
-	// not implemented
-	return 0;
+	if (clk_id == CLOCK_REALTIME) {
+		return system_clock_settime(clk_id, ts);
+
+	} else {
+		const uint64_t time_us = ts_to_abstime(ts);
+
+		if (px4_timestart_monotonic == 0) {
+			px4_timestart_monotonic = time_us;
+		}
+
+		lockstep_scheduler.set_absolute_time(time_us);
+		return 0;
+	}
 }
 
 
 int px4_usleep(useconds_t usec)
 {
-	return system_usleep(usec / SPEED_FACTOR);
+	if (px4_timestart_monotonic == 0) {
+		// Until the time is set by the simulator, we fallback to the normal
+		// usleep;
+		return system_usleep(usec);
+	}
+
+	const uint64_t time_finished = lockstep_scheduler.get_absolute_time() + usec;
+
+	return lockstep_scheduler.usleep_until(time_finished);
 }
 
 unsigned int px4_sleep(unsigned int seconds)
 {
 	useconds_t usec = seconds * 1000000;
-	return system_usleep(usec / SPEED_FACTOR);
+	return px4_usleep(usec);
 }
 
 int px4_pthread_cond_timedwait(pthread_cond_t *cond,
 			       pthread_mutex_t *mutex,
-			       const struct timespec *abstime)
+			       const struct timespec *ts)
 {
-	struct timespec new_abstime;
-	new_abstime.tv_sec = abstime->tv_sec / SPEED_FACTOR;
-	new_abstime.tv_nsec = abstime->tv_nsec / SPEED_FACTOR;
-	return pthread_cond_timedwait(cond, mutex, &new_abstime);
+	const uint64_t time_us = ts_to_abstime(ts);
+	const uint64_t scheduled = time_us + px4_timestart_monotonic;
+	return lockstep_scheduler.cond_timedwait(cond, mutex, scheduled);
 }
