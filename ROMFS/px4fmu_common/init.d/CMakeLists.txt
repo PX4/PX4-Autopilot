@@ -37,6 +37,7 @@ px4_add_romfs_files(
 	2100_standard_plane
 	2105_maja
 	2106_albatross
+	2200_mini_talon
 	24001_dodeca_cox
 	3000_generic_wing
 	3030_io_camflyer
