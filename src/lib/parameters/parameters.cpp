@@ -1280,7 +1280,8 @@ param_import_internal(int fd, bool mark_saved)
 
 	do {
 		result = bson_decoder_next(&decoder);
-		px4_usleep(1);
+		// FIXME: it's unclear why this usleep is needed in the first place
+		//px4_usleep(1);
 
 	} while (result > 0);
 
