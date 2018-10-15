@@ -40,12 +40,13 @@
 #include <px4_defines.h>
 #include <px4_middleware.h>
 #include <px4_workqueue.h>
+#include <px4_time.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <pthread.h>
 #include <errno.h>
 
-#if defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
+#if defined(__PX4_DARWIN) || defined(__PX4_CYGWIN) || defined(__PX4_POSIX)
 
 #include <px4_posix.h>
 
@@ -132,7 +133,7 @@ int px4_sem_timedwait(px4_sem_t *s, const struct timespec *abstime)
 
 	int err = ret;
 
-	if (err != 0 && err != ETIMEDOUT) {
+	if (err != 0 && errno != ETIMEDOUT) {
 		setbuf(stdout, NULL);
 		setbuf(stderr, NULL);
 		const unsigned NAMELEN = 32;
