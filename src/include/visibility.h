@@ -73,6 +73,9 @@
 #define system_sleep sleep
 #pragma GCC poison sleep
 
+#define system_clock_gettime clock_gettime
+#define system_clock_settime clock_settime
+
 #include <pthread.h>
 #define system_pthread_cond_timedwait pthread_cond_timedwait
 // We can't poison pthread_cond_timedwait because it seems to be used in the
