@@ -114,8 +114,10 @@ void FlightTaskManualPosition::_scaleSticks()
 	_rotateIntoHeadingFrame(vel_sp_xy);
 
 	/*constrain setpoint to not collide with obstacles */
-	vel_sp_xy(0) = math::max(-_constraints.velocity_limits[2], math::min(vel_sp_xy(0), _constraints.velocity_limits[0]));
-	vel_sp_xy(1) = math::max(-_constraints.velocity_limits[3], math::min(vel_sp_xy(1), _constraints.velocity_limits[1]));
+	if(MPC_USE_OBS_SENS.get()){
+		vel_sp_xy(0) = math::max(-_constraints.velocity_limits[2], math::min(vel_sp_xy(0), _constraints.velocity_limits[0]));
+		vel_sp_xy(1) = math::max(-_constraints.velocity_limits[3], math::min(vel_sp_xy(1), _constraints.velocity_limits[1]));
+	}
 
 	_velocity_setpoint(0) = vel_sp_xy(0);
 	_velocity_setpoint(1) = vel_sp_xy(1);

@@ -219,6 +219,8 @@ protected:
 					(ParamFloat<px4::params::MPC_XY_VEL_MAX>) MPC_XY_VEL_MAX,
 					(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) MPC_Z_VEL_MAX_DN,
 					(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) MPC_Z_VEL_MAX_UP,
-					(ParamFloat<px4::params::MPC_TILTMAX_AIR>) MPC_TILTMAX_AIR
-				       )
+					(ParamFloat<px4::params::MPC_TILTMAX_AIR>) MPC_TILTMAX_AIR,
+					(ParamInt<px4::params::MPC_USE_OBS_SENS>) MPC_USE_OBS_SENS,
+					(ParamFloat<px4::params::MPC_MIN_OBS_DIST>) MPC_MIN_OBS_DIST
+					)
 };

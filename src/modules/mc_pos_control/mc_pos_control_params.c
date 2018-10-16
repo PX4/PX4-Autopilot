@@ -682,3 +682,23 @@ PARAM_DEFINE_INT32(MPC_OBS_AVOID, 0);
  * @group Mission
  */
 PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);
+
+/**
+ * Flag to enable the use of a range sensor.
+ *
+ * @boolean
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_USE_OBS_SENS, 0);
+
+/**
+ * Minimum Obstacle Distance at which the vehicle should not get closer
+ *
+ * Only relevant if in Position control and the range sensor is active
+ *
+ * @min 0
+ * @max 15
+ * @unit meters
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_MIN_OBS_DIST, 4.0f);

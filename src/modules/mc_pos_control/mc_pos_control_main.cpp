@@ -143,7 +143,9 @@ private:
 		(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
 		(ParamFloat<px4::params::MPC_IDLE_TKO>) MPC_IDLE_TKO, /**< time constant for smooth takeoff ramp */
 		(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID, /**< enable obstacle avoidance */
-		(ParamFloat<px4::params::MPC_TILTMAX_LND>) MPC_TILTMAX_LND /**< maximum tilt for landing and smooth takeoff */
+		(ParamFloat<px4::params::MPC_TILTMAX_LND>) MPC_TILTMAX_LND, /**< maximum tilt for landing and smooth takeoff */
+		(ParamInt<px4::params::MPC_USE_OBS_SENS>) MPC_USE_OBS_SENS, /**< use range sensor measurements to avoid collision */
+		(ParamFloat<px4::params::MPC_MIN_OBS_DIST>) MPC_MIN_OBS_DIST /**< enable obstacle avoidance */
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
@@ -734,9 +736,10 @@ MulticopterPositionControl::run()
 			}
 
 			//use range sensor to update constraints
-			//TODO: create parameter to switch on and off
-			update_range_constraints(_obstacle_distance, constraints);
-			_flight_tasks.setConstraints(constraints);
+			if(MPC_USE_OBS_SENS.get()){
+				update_range_constraints(_obstacle_distance, constraints);
+				_flight_tasks.setConstraints(constraints);
+			}
 
 
 			// Update states, setpoints and constraints.
@@ -1130,8 +1133,7 @@ MulticopterPositionControl::update_range_constraints(const obstacle_distance_s &
 	constraints.velocity_limits[3] = 0.0;
 
 	float max_detection_distance = obstacle_distance.max_distance/100.0; //convert to meters
-	float min_obstacle_distance = 4.0; //TODO: Parametrize
-	float k = constraints.speed_xy/(max_detection_distance - min_obstacle_distance);  //P-gain
+	float k = constraints.speed_xy/(max_detection_distance - MPC_MIN_OBS_DIST.get());  //P-gain
 
 	for(int i = 0; i<72; i++){
 
