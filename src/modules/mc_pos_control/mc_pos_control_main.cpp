@@ -55,6 +55,7 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/vehicle_attitude.h>
 
 #include <float.h>
 #include <mathlib/mathlib.h>
@@ -112,6 +113,7 @@ private:
 	int		_local_pos_sub{-1};			/**< vehicle local position */
 	int		_home_pos_sub{-1}; 			/**< home position */
 	int		_traj_wp_avoidance_sub{-1};	/**< trajectory waypoint */
+	int		_vehicle_att_sub{-1}; /**< required to get yaw-information */
 
 	int _task_failure_count{0};         /**< counter for task failures */
 
@@ -128,6 +130,7 @@ private:
 	home_position_s				_home_pos{};			/**< home position */
 	vehicle_trajectory_waypoint_s		_traj_wp_avoidance{};		/**< trajectory waypoint */
 	vehicle_trajectory_waypoint_s		_traj_wp_avoidance_desired{};	/**< desired waypoints, inputs to an obstacle avoidance module */
+	vehicle_attitude_s		_v_att {};		/**< vehicle attitude required to get yaw */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time constant for smooth takeoff ramp */
@@ -444,6 +447,12 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_trajectory_waypoint), _traj_wp_avoidance_sub, &_traj_wp_avoidance);
 	}
+
+	orb_check(_vehicle_att_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_attitude),_vehicle_att_sub, &_v_att);
+	}
 }
 
 void
@@ -536,8 +545,12 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 
 	}
 
+	float q_yaw = matrix::Eulerf(matrix::Quatf(_v_att.q)).psi();
+
 	if (PX4_ISFINITE(_local_pos.yaw)) {
 		_states.yaw = _local_pos.yaw;
+	} else if (PX4_ISFINITE(q_yaw)) {
+		_states.yaw = q_yaw;
 	}
 }
 
@@ -552,6 +565,7 @@ MulticopterPositionControl::run()
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 	_traj_wp_avoidance_sub = orb_subscribe(ORB_ID(vehicle_trajectory_waypoint));
+	_vehicle_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 
 	parameters_update(true);
 
