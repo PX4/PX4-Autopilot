@@ -337,7 +337,7 @@ private:
 	/**
 	 * @brief Send the program command to the EEPROM to start the flash process.
 	 */
-	void flash_eeprom();
+	int flash_eeprom();
 
 	/**
 	 * @brief Writes program defined threshold defaults to the register map and checks/writes the EEPROM.
@@ -365,7 +365,7 @@ private:
 	/**
 	 * @brief Commands the device to perform an ultrasonic measurement.
 	 */
-	void take_measurement(const uint8_t mode);
+	int take_measurement(const uint8_t mode);
 
 	/*
 	 * @brief Gets a temperature measurement in degrees C.
@@ -376,7 +376,7 @@ private:
 	/**
 	 * @brief Send the unlock command to the EEPROM to enable reading and writing -- not needed w/ bulk write
 	 */
-	void unlock_eeprom();
+	int unlock_eeprom();
 
 	/**
 	 * @brief Commands the device to publish the measurement results to uORB.
