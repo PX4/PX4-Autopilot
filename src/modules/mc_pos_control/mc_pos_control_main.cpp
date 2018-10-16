@@ -117,6 +117,8 @@ private:
 
 	float _takeoff_speed = -1.f; /**< For flighttask interface used only. It can be thrust or velocity setpoints */
 	float _takeoff_reference_z; /**< Z-position when takeoff was initiated */
+	bool _smooth_velocity_takeoff =
+		false; /**< Smooth velocity takeoff can be initiated either through position or velocity setpoint */
 
 	vehicle_status_s 			_vehicle_status{};		/**< vehicle status */
 	vehicle_land_detected_s 		_vehicle_land_detected{};	/**< vehicle land detected */
@@ -137,7 +139,8 @@ private:
 		(ParamInt<px4::params::MPC_POS_MODE>) MPC_POS_MODE,
 		(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
 		(ParamFloat<px4::params::MPC_IDLE_TKO>) MPC_IDLE_TKO, /**< time constant for smooth takeoff ramp */
-		(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID /**< enable obstacle avoidance */
+		(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID, /**< enable obstacle avoidance */
+		(ParamFloat<px4::params::MPC_TILTMAX_LND>) MPC_TILTMAX_LND /**< maximum tilt for landing and smooth takeoff */
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
@@ -158,7 +161,8 @@ private:
 	static constexpr int NUM_FAILURE_TRIES = 10;
 	/**< If Flighttask fails, keep 0.2 seconds the current setpoint before going into failsafe land */
 	static constexpr uint64_t LOITER_TIME_BEFORE_DESCEND = 200000;
-
+	/**< During smooth-takeoff, below ALTITUDE_THRESHOLD the yaw-control is turned off ant tilt is limited */
+	static constexpr float ALTITUDE_THRESHOLD = 0.3f;
 
 	/**
 	 * Hysteresis that turns true once vehicle is armed for MPC_IDLE_TKO seconds.
@@ -674,14 +678,27 @@ MulticopterPositionControl::run()
 				update_smooth_takeoff(setpoint.z, setpoint.vz);
 			}
 
+			// disable horizontal / yaw control during smooth takeoff and limit maximum speed upwards
 			if (_in_smooth_takeoff) {
+
 				// during smooth takeoff, constrain speed to takeoff speed
 				constraints.speed_up = _takeoff_speed;
-				// disable yaw command
-				setpoint.yaw = setpoint.yawspeed = NAN;
-				// don't control position in xy
-				setpoint.x = setpoint.y = NAN;
-				setpoint.vx = setpoint.vy = 0.0f;
+				// altitude above reference takeoff
+				const float alt_above_tko = -(_states.position(2) - _takeoff_reference_z);
+
+				// disable yaw control when close to ground
+				if (alt_above_tko <= ALTITUDE_THRESHOLD) {
+
+					setpoint.yawspeed = NAN;
+
+					// if there is a valid yaw estimate, just set setpoint to yaw
+					if (PX4_ISFINITE(_states.yaw)) {
+						setpoint.yaw = _states.yaw;
+					}
+
+					// limit tilt during smooth takeoff when still close to ground
+					constraints.tilt = math::radians(MPC_TILTMAX_LND.get());
+				}
 			}
 
 			if (_vehicle_land_detected.landed && !_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
@@ -950,8 +967,10 @@ MulticopterPositionControl::check_for_smooth_takeoff(const float &z_sp, const fl
 		float min_altitude = PX4_ISFINITE(constraints.min_distance_to_ground) ? (constraints.min_distance_to_ground + 0.05f) :
 				     0.2f;
 
-		if ((PX4_ISFINITE(z_sp) && z_sp < _states.position(2) - min_altitude) ||
-		    (PX4_ISFINITE(vz_sp) && vz_sp < math::min(-_tko_speed.get(), -0.6f))) {
+		// takeoff was initiated through velocity setpoint
+		_smooth_velocity_takeoff = PX4_ISFINITE(vz_sp) && vz_sp < math::min(-_tko_speed.get(), -0.6f);
+
+		if ((PX4_ISFINITE(z_sp) && z_sp < _states.position(2) - min_altitude) ||  _smooth_velocity_takeoff) {
 			// There is a position setpoint above current position or velocity setpoint larger than
 			// takeoff speed. Enable smooth takeoff.
 			_in_smooth_takeoff = true;
@@ -975,7 +994,7 @@ MulticopterPositionControl::update_smooth_takeoff(const float &z_sp, const float
 		float desired_tko_speed = -vz_sp;
 
 		// If there is a valid position setpoint, then set the desired speed to the takeoff speed.
-		if (PX4_ISFINITE(z_sp)) {
+		if (!_smooth_velocity_takeoff) {
 			desired_tko_speed = _tko_speed.get();
 		}
 
@@ -984,7 +1003,7 @@ MulticopterPositionControl::update_smooth_takeoff(const float &z_sp, const float
 		_takeoff_speed = math::min(_takeoff_speed, desired_tko_speed);
 
 		// Smooth takeoff is achieved once desired altitude/velocity setpoint is reached.
-		if (PX4_ISFINITE(z_sp)) {
+		if (!_smooth_velocity_takeoff) {
 			_in_smooth_takeoff = _states.position(2) - 0.2f > math::max(z_sp, _takeoff_reference_z - MPC_LAND_ALT2.get());
 
 		} else  {
