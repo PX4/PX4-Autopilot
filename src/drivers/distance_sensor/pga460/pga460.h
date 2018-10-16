@@ -354,7 +354,7 @@ private:
 	/**
 	 * @brief Measurement is read from UART RX buffer and published to the uORB distance sensor topic.
 	 */
-	void request_results();
+	int request_results();
 
 	/**
 	 * @brief Checks the measurement from last report and sets the range distance mode (long range , short range).
