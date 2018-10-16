@@ -77,11 +77,14 @@ public:
 
 	/**
 	 * Generate the trajectory (acceleration, velocity and position) by integrating the current jerk
+	 * @param dt optional integration period. If not given, the integration period provided during updateDuration call is used.
+	 * 	A dt different from the one given during the computation of T1-T3 can be used to fast-forward or slow-down the trajectory.
 	 * @param acc_setpoint_smooth returned smoothed acceleration setpoint
 	 * @param vel_setpoint_smooth returned smoothed velocity setpoint
 	 * @param pos_setpoint_smooth returned smoothed position setpoint
 	 */
 	void integrate(float &accel_setpoint_smooth, float &vel_setpoint_smooth, float &pos_setpoint_smooth);
+	void integrate(float dt, float &accel_setpoint_smooth, float &vel_setpoint_smooth, float &pos_setpoint_smooth);
 
 	/* Get / Set constraints (constraints can be updated at any time) */
 	float getMaxJerk() const { return _max_jerk; }
@@ -142,7 +145,7 @@ private:
 	/**
 	 * Integrate the jerk, acceleration and velocity to get the new setpoints and states.
 	 */
-	inline void integrateT(float jerk, float accel_prev, float vel_prev, float pos_prev,
+	inline void integrateT(float dt, float jerk, float accel_prev, float vel_prev, float pos_prev,
 			       float &accel_out, float &vel_out, float &pos_out);
 
 	/* Inputs */
