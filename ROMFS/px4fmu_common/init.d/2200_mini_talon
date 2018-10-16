@@ -5,10 +5,6 @@
 # @type Plane V-Tail
 # @class Plane
 #
-# The Mini Talon does not have a wheel and
-# no flaps. I leave them here because the mixer
-# computes also wheel and flap controls.
-#
 # @output MAIN1 aileron right
 # @output MAIN2 aileron left
 # @output MAIN3 v-tail right
@@ -47,6 +43,9 @@ then
 	param set PWM_DISARMED 1000
 fi
 
+# The Mini Talon does not have a wheel and
+# no flaps. I leave them here because the mixer
+# computes also wheel and flap controls.
 set MIXER AAVVTWFF_vtail
 
 # use PWM parameters for throttle channel
