@@ -37,10 +37,8 @@
  * Header for a battery monitor connected via SMBus (I2C).
  * Designed for BQ40Z50-R1/R2
  *
- * @author Randy Mackay <rmackay9@yahoo.com>
- * @author Alex Klimaj <alexklimaj@gmail.com>
- * @author Mark Sauder <mcsauder@gmail.com>
  * @author Jacob Dahl <dahl.jakejacob@gmail.com>
+ * @author Alex Klimaj <alexklimaj@gmail.com>
  */
 
 #pragma once
@@ -282,32 +280,34 @@ public:
 	 */
 	int write_flash(uint16_t address, uint8_t *tx_buf, const unsigned length);
 
+	/**
+	 * @brief Reads the cell voltages.
+	 * @return Returns PX4_OK on success or associated read error code on failure.
+	 */
 	int get_cell_voltages();
 
+	/**
+	 * @brief Enables or disables the cell under voltage protection emergency shut off.
+	 */
 	void set_undervoltage_protection(float average_current);
 
 	SMBus *_interface;
 
 private:
 
-	/**
-	 * @brief Static function that is called by worker queue.
-	 */
 	static void cycle_trampoline(void *arg);
 
+	static work_s _work;
+
 	perf_counter_t _cycle;
+
 	float _cell_voltages[4] = {};
 
 	float _max_cell_voltage_delta{0};
+
 	float _min_cell_voltage{0};
 
-	/**
-	 * @brief The loop that continually generates new reports.
-	 */
 	void cycle();
-
-	/** @struct _work Work queue for scheduling reads. */
-	static work_s _work;
 
 	/** @param _last_report Last published report, used for test(). */
 	battery_status_s _last_report = battery_status_s{};

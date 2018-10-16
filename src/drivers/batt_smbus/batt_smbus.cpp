@@ -32,13 +32,13 @@
  ****************************************************************************/
 
 /**
- * @file batt_smbus.cpp
+ * @file batt_smbus.h
  *
- * Driver for a battery monitor connected via SMBus (I2C).
+ * Header for a battery monitor connected via SMBus (I2C).
  * Designed for BQ40Z50-R1/R2
  *
- * @author Alex Klimaj <alexklimaj@gmail.com>
  * @author Jacob Dahl <dahl.jakejacob@gmail.com>
+ * @author Alex Klimaj <alexklimaj@gmail.com>
  */
 
 #include <px4_defines.h>
@@ -134,7 +134,6 @@ int BATT_SMBUS::task_spawn(int argc, char *argv[])
 			SMBus *interface = new SMBus(bus_options[i].busnum, BATT_SMBUS_ADDR);
 			BATT_SMBUS *dev = new BATT_SMBUS(interface, bus_options[i].devpath);
 
-
 			// Successful read of device type, we've found our battery
 			_object = dev;
 			_task_id = task_id_is_work_queue;
@@ -200,7 +199,8 @@ void BATT_SMBUS::cycle()
 
 	new_report.average_current_a = average_current;
 
-	// If current is high, turn under voltage protection off.
+	// If current is high, turn under voltage protection off. This is neccessary to prevent
+	// a battery from cutting off while flying with high current near the end of the packs capacity.
 	set_undervoltage_protection(average_current);
 
 	// Read run time to empty.
@@ -425,32 +425,6 @@ int BATT_SMBUS::get_startup_info()
 		_batt_capacity = full_cap;
 	}
 
-
-
-
-	// if (_interface->read_word(BATT_SMBUS_SERIAL_NUMBER, &tmp) == PX4_OK) {
-	// 	_serial_number = tmp;
-	// 	result = PX4_OK;
-	// }
-
-	// // Read battery capacity on startup.
-	// if (_interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, &tmp) == PX4_OK) {
-	// 	_batt_startup_capacity = tmp;
-	// 	result = PX4_OK;
-	// }
-
-	// // Read battery cycle count on startup.
-	// if (_interface->read_word(BATT_SMBUS_CYCLE_COUNT, &tmp) == PX4_OK) {
-	// 	_cycle_count = tmp;
-	// 	result = PX4_OK;
-	// }
-
-	// // Read battery design capacity on startup.
-	// if (_interface->read_word(BATT_SMBUS_FULL_CHARGE_CAPACITY, &tmp) == PX4_OK) {
-	// 	_batt_capacity = tmp;
-	// 	result = PX4_OK;
-	// }
-
 	if (lifetime_data_flush() == PX4_OK) {
 		if (lifetime_read_block_one() == PX4_OK) {
 			if (_lifetime_max_delta_cell_voltage > BATT_CELL_VOLTAGE_THRESHOLD_FAILED) {
@@ -586,7 +560,6 @@ int BATT_SMBUS::lifetime_read_block_one()
 
 	uint8_t lifetime_block_one[32] = {};
 
-	//
 	if (PX4_OK != manufacturer_read(BATT_SMBUS_LIFETIME_BLOCK_ONE, lifetime_block_one, 32)) {
 		PX4_INFO("Failed to read lifetime block 1.");
 		return PX4_ERROR;
@@ -621,10 +594,10 @@ int BATT_SMBUS::write_flash(uint16_t address, uint8_t *tx_buf, const unsigned le
 
 int BATT_SMBUS::custom_command(int argc, char *argv[])
 {
-	//const char *input = argv[optind];
+	const char *input = argv[0];
 	uint8_t man_name[22];
 	int result = 0;
-	const char *input = argv[0];
+
 	BATT_SMBUS *obj = get_instance();
 
 	if (!strcmp(input, "man_info")) {
