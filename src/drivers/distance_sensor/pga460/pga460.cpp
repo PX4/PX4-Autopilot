@@ -145,7 +145,7 @@ int PGA460::initialize_thresholds()
 	uint8_t checksum = calc_checksum(&settings_buf[1], sizeof(settings_buf) - 2);
 	settings_buf[array_size - 1] = checksum;
 
-	px4_write(_fd, &settings_buf[0], sizeof(settings_buf));
+	::write(_fd, &settings_buf[0], sizeof(settings_buf));
 
 	// Must wait >50us per datasheet.
 	usleep(100);
@@ -167,7 +167,7 @@ uint32_t PGA460::collect_results()
 	int total_bytes = 0;
 
 	do {
-		int ret = px4_read(_fd, buf_rx + total_bytes, sizeof(buf_rx));
+		int ret = ::read(_fd, buf_rx + total_bytes, sizeof(buf_rx));
 
 		total_bytes += ret;
 
@@ -224,7 +224,7 @@ void PGA460::flash_eeprom()
 	uint8_t eeprom_write_buf[5] = {SYNCBYTE, SRW, EE_CNTRL_ADDR, EE_UNLOCK_ST2, 0xFF};
 	uint8_t checksum = calc_checksum(&eeprom_write_buf[1], sizeof(eeprom_write_buf) - 2);
 	eeprom_write_buf[4] = checksum;
-	px4_write(_fd, &eeprom_write_buf[0], sizeof(eeprom_write_buf));
+	::write(_fd, &eeprom_write_buf[0], sizeof(eeprom_write_buf));
 }
 
 float PGA460::get_temperature()
@@ -233,13 +233,13 @@ float PGA460::get_temperature()
 	uint8_t checksum = calc_checksum(&buf_tx[0], 3);
 	buf_tx[3] = checksum;
 
-	px4_write(_fd, &buf_tx[0], sizeof(buf_tx));
+	::write(_fd, &buf_tx[0], sizeof(buf_tx));
 
 	// The pga460 requires a 2ms delay per the datasheet.
 	usleep(5000);
 
 	buf_tx[1] = TNLR;
-	px4_write(_fd, &buf_tx[0], sizeof(buf_tx) - 2);
+	::write(_fd, &buf_tx[0], sizeof(buf_tx) - 2);
 	usleep(10000);
 
 	uint8_t buf_rx[4] = {};
@@ -247,7 +247,7 @@ float PGA460::get_temperature()
 	int total_bytes = 0;
 
 	do {
-		int ret = px4_read(_fd, buf_rx + total_bytes, sizeof(buf_rx));
+		int ret = ::read(_fd, buf_rx + total_bytes, sizeof(buf_rx));
 
 		total_bytes += ret;
 
@@ -503,10 +503,10 @@ int PGA460::read_eeprom()
 	uint8_t buf_rx[array_size + 2] = {};
 
 	// The pga460 responds to this write() call by reporting current eeprom values.
-	ret = px4_write(_fd, &cmd_buf[0], sizeof(cmd_buf));
+	ret = ::write(_fd, &cmd_buf[0], sizeof(cmd_buf));
 
 	if (ret < 0) {
-		PX4_WARN("px4_write() failed.");
+		PX4_WARN("::write() failed.");
 	}
 
 	usleep(10000);
@@ -515,7 +515,7 @@ int PGA460::read_eeprom()
 	int total_bytes = 0;
 
 	do {
-		ret = px4_read(_fd, buf_rx + total_bytes, sizeof(buf_rx));
+		ret = ::read(_fd, buf_rx + total_bytes, sizeof(buf_rx));
 
 		total_bytes += ret;
 
@@ -555,7 +555,7 @@ uint8_t PGA460::read_register(const uint8_t reg)
 	uint8_t checksum = calc_checksum(&buf_tx[1], 2);
 	buf_tx[3] = checksum;
 
-	px4_write(_fd, &buf_tx[0], sizeof(buf_tx));
+	::write(_fd, &buf_tx[0], sizeof(buf_tx));
 	usleep(10000);
 
 	uint8_t buf_rx[3] = {};
@@ -563,7 +563,7 @@ uint8_t PGA460::read_register(const uint8_t reg)
 	int total_bytes = 0;
 
 	do {
-		int ret = px4_read(_fd, buf_rx + total_bytes, sizeof(buf_rx));
+		int ret = ::read(_fd, buf_rx + total_bytes, sizeof(buf_rx));
 
 		total_bytes += ret;
 
@@ -598,7 +598,7 @@ int PGA460::read_threshold_registers()
 
 	uint8_t buf_tx[2] =  {SYNCBYTE, THRBR};
 
-	px4_write(_fd, &buf_tx[0], sizeof(buf_tx));
+	::write(_fd, &buf_tx[0], sizeof(buf_tx));
 	usleep(10000);
 
 	uint8_t buf_rx[array_size + 2] = {};
@@ -606,7 +606,7 @@ int PGA460::read_threshold_registers()
 	int total_bytes = 0;
 
 	do {
-		int ret = px4_read(_fd, buf_rx + total_bytes, sizeof(buf_rx));
+		int ret = ::read(_fd, buf_rx + total_bytes, sizeof(buf_rx));
 
 		total_bytes += ret;
 
@@ -639,7 +639,7 @@ int PGA460::read_threshold_registers()
 void PGA460::request_results()
 {
 	uint8_t buf_tx[2] = {SYNCBYTE, UMR};
-	px4_write(_fd, &buf_tx[0], sizeof(buf_tx));
+	::write(_fd, &buf_tx[0], sizeof(buf_tx));
 	usleep(10000);
 }
 
@@ -704,7 +704,7 @@ void PGA460::take_measurement(const uint8_t mode)
 	uint8_t checksum = calc_checksum(&buf_tx[1], 2);
 	buf_tx[3] = checksum;
 
-	px4_write(_fd, &buf_tx[0], sizeof(buf_tx));
+	::write(_fd, &buf_tx[0], sizeof(buf_tx));
 }
 
 int PGA460::task_spawn(int argc, char *argv[])
@@ -785,7 +785,7 @@ void PGA460::unlock_eeprom()
 	uint8_t eeprom_write_buf[5] = {SYNCBYTE, SRW, EE_CNTRL_ADDR, EE_UNLOCK_ST1, 0xFF};
 	uint8_t checksum = calc_checksum(&eeprom_write_buf[1], sizeof(eeprom_write_buf) - 2);
 	eeprom_write_buf[4] = checksum;
-	px4_write(_fd, &eeprom_write_buf[0], sizeof(eeprom_write_buf));
+	::write(_fd, &eeprom_write_buf[0], sizeof(eeprom_write_buf));
 }
 
 int PGA460::write_eeprom()
@@ -802,7 +802,7 @@ int PGA460::write_eeprom()
 	uint8_t checksum = calc_checksum(&settings_buf[1], sizeof(settings_buf) - 2);
 	settings_buf[45] = checksum;
 
-	px4_write(_fd, &settings_buf[0], sizeof(settings_buf));
+	::write(_fd, &settings_buf[0], sizeof(settings_buf));
 
 	// Needs time, see datasheet timing requirements.
 	usleep(5000);
@@ -839,7 +839,7 @@ int PGA460::write_register(const uint8_t reg, const uint8_t val)
 	uint8_t checksum = calc_checksum(&buf_tx[1], sizeof(buf_tx) - 2);
 	buf_tx[4] = checksum;
 
-	uint8_t ret = px4_write(_fd, &buf_tx[0], sizeof(buf_tx));
+	uint8_t ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
 
 	if (ret != sizeof(buf_tx)) {
 		return PX4_OK;
