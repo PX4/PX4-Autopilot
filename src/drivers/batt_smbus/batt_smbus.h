@@ -43,23 +43,14 @@
 
 #pragma once
 
+#include <drivers/drv_hrt.h>
+#include <ecl/geo/geo.h>
+#include <lib/drivers/smbus/SMBus.hpp>
+#include <mathlib/mathlib.h>
 #include <px4_config.h>
 #include <px4_workqueue.h>
 #include <perf/perf_counter.h>
-
 #include <platforms/px4_module.h>
-
-#include <stdio.h>
-
-#include <string.h>
-#include <ecl/geo/geo.h>
-
-#include <lib/drivers/smbus/SMBus.hpp>
-
-#include <drivers/drv_device.h>
-
-#include <drivers/drv_hrt.h>
-
 #include <uORB/topics/battery_status.h>
 
 #define DATA_BUFFER_SIZE				                32
@@ -70,7 +61,6 @@
 #define BATT_CURRENT_UNDERVOLTAGE_THRESHOLD             5.0f                    ///< Threshold in amps to disable undervoltage protection
 #define BATT_VOLTAGE_UNDERVOLTAGE_THRESHOLD             3.4f                    ///< Threshold in volts to re-enable undervoltage protection
 
-#define BATT_SMBUS_I2C_BUS                              PX4_I2C_BUS_EXPANSION
 #define BATT_SMBUS_CURRENT                              0x0A                    ///< current register
 #define BATT_SMBUS_AVERAGE_CURRENT                      0x0B                    ///< current register
 #define BATT_SMBUS_ADDR                                 0x0B                    ///< Default 7 bit address I2C address. 8 bit = 0x16
