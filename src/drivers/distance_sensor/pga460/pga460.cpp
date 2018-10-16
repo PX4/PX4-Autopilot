@@ -665,11 +665,17 @@ int PGA460::read_threshold_registers()
 	}
 }
 
-void PGA460::request_results()
+int PGA460::request_results()
 {
 	uint8_t buf_tx[2] = {SYNCBYTE, UMR};
-	::write(_fd, &buf_tx[0], sizeof(buf_tx));
+	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
 	usleep(10000);
+
+	if(ret < 0) {
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
 }
 
 void PGA460::run()
