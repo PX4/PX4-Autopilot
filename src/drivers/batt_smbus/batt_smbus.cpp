@@ -41,9 +41,6 @@
  * @author Alex Klimaj <alexklimaj@gmail.com>
  */
 
-#include <px4_defines.h>
-#include <mathlib/mathlib.h>
-
 #include "batt_smbus.h"
 
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
@@ -372,7 +369,7 @@ int BATT_SMBUS::dataflash_write(uint16_t &address, void *data, const unsigned le
 {
 	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
 
-	uint8_t tx_buf[DATA_BUFFER_SIZE + 2] = {0};
+	uint8_t tx_buf[DATA_BUFFER_SIZE + 2] = {};
 
 	tx_buf[0] = ((uint8_t *)&address)[0];
 	tx_buf[1] = ((uint8_t *)&address)[1];
@@ -392,7 +389,7 @@ int BATT_SMBUS::get_startup_info()
 
 	// Try and get battery SBS info.
 	if (_manufacturer_name == nullptr) {
-		char man_name[name_length] = {0};
+		char man_name[name_length] = {};
 		result = manufacturer_name((uint8_t *)man_name, sizeof(man_name));
 
 		if (result != PX4_OK) {
@@ -476,7 +473,7 @@ int BATT_SMBUS::manufacture_date()
 int BATT_SMBUS::manufacturer_name(uint8_t *man_name, const uint8_t length)
 {
 	uint8_t code = BATT_SMBUS_MANUFACTURER_NAME;
-	uint8_t rx_buf[21] = {0};
+	uint8_t rx_buf[21] = {};
 
 	// Returns 21 bytes, add 1 byte for null terminator.
 	int result = _interface->block_read(code, rx_buf, length - 1, true);
@@ -497,7 +494,7 @@ int BATT_SMBUS::manufacturer_read(const uint16_t cmd_code, void *data, const uns
 {
 	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
 
-	uint8_t address[2] = {0};
+	uint8_t address[2] = {};
 	address[0] = ((uint8_t *)&cmd_code)[0];
 	address[1] = ((uint8_t *)&cmd_code)[1];
 
@@ -518,11 +515,11 @@ int BATT_SMBUS::manufacturer_write(const uint16_t cmd_code, void *data, const un
 {
 	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
 
-	uint8_t address[2] = {0};
+	uint8_t address[2] = {};
 	address[0] = ((uint8_t *)&cmd_code)[0];
 	address[1] = ((uint8_t *)&cmd_code)[1];
 
-	uint8_t tx_buf[DATA_BUFFER_SIZE + 2] = {0};
+	uint8_t tx_buf[DATA_BUFFER_SIZE + 2] = {};
 	memcpy(tx_buf, address, 2);
 	memcpy(&tx_buf[2], data, length);
 
@@ -640,7 +637,7 @@ int BATT_SMBUS::custom_command(int argc, char *argv[])
 		if (argv[1] && argv[2]) {
 			uint16_t address = atoi(argv[1]);
 			unsigned length = atoi(argv[2]);
-			uint8_t tx_buf[32] = {0};
+			uint8_t tx_buf[32] = {};
 
 			if (length > 32) {
 				PX4_WARN("Data length out of range: Max 32 bytes");
