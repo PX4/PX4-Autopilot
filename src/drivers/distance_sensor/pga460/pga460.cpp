@@ -145,7 +145,11 @@ int PGA460::initialize_thresholds()
 	uint8_t checksum = calc_checksum(&settings_buf[1], sizeof(settings_buf) - 2);
 	settings_buf[array_size - 1] = checksum;
 
-	::write(_fd, &settings_buf[0], sizeof(settings_buf));
+	int ret = ::write(_fd, &settings_buf[0], sizeof(settings_buf));
+
+	if (ret < 0) {
+		return PX4_ERROR;
+	}
 
 	// Must wait >50us per datasheet.
 	usleep(100);
@@ -218,13 +222,19 @@ float PGA460::calculate_object_distance(uint16_t time_of_flight)
 	return object_distance;
 }
 
-void PGA460::flash_eeprom()
+int PGA460::flash_eeprom()
 {
 	// Send same unlock code with prog bit set to 1.
 	uint8_t eeprom_write_buf[5] = {SYNCBYTE, SRW, EE_CNTRL_ADDR, EE_UNLOCK_ST2, 0xFF};
 	uint8_t checksum = calc_checksum(&eeprom_write_buf[1], sizeof(eeprom_write_buf) - 2);
 	eeprom_write_buf[4] = checksum;
-	::write(_fd, &eeprom_write_buf[0], sizeof(eeprom_write_buf));
+	int ret = ::write(_fd, &eeprom_write_buf[0], sizeof(eeprom_write_buf));
+
+	if (ret < 0) {
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
 }
 
 float PGA460::get_temperature()
@@ -233,13 +243,22 @@ float PGA460::get_temperature()
 	uint8_t checksum = calc_checksum(&buf_tx[0], 3);
 	buf_tx[3] = checksum;
 
-	::write(_fd, &buf_tx[0], sizeof(buf_tx));
+	int result = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
+
+	if (result < 0) {
+		return PX4_ERROR;
+	}
 
 	// The pga460 requires a 2ms delay per the datasheet.
 	usleep(5000);
 
 	buf_tx[1] = TNLR;
-	::write(_fd, &buf_tx[0], sizeof(buf_tx) - 2);
+	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx) - 2);
+
+	if (ret < 0) {
+		return PX4_ERROR;
+	}
+
 	usleep(10000);
 
 	uint8_t buf_rx[4] = {};
@@ -247,7 +266,7 @@ float PGA460::get_temperature()
 	int total_bytes = 0;
 
 	do {
-		int ret = ::read(_fd, buf_rx + total_bytes, sizeof(buf_rx));
+		ret = ::read(_fd, buf_rx + total_bytes, sizeof(buf_rx));
 
 		total_bytes += ret;
 
@@ -506,7 +525,7 @@ int PGA460::read_eeprom()
 	ret = ::write(_fd, &cmd_buf[0], sizeof(cmd_buf));
 
 	if (ret < 0) {
-		PX4_WARN("::write() failed.");
+		return PX4_ERROR;
 	}
 
 	usleep(10000);
@@ -555,7 +574,12 @@ uint8_t PGA460::read_register(const uint8_t reg)
 	uint8_t checksum = calc_checksum(&buf_tx[1], 2);
 	buf_tx[3] = checksum;
 
-	::write(_fd, &buf_tx[0], sizeof(buf_tx));
+	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
+
+	if(ret < 0) {
+		return PX4_ERROR;
+	}
+
 	usleep(10000);
 
 	uint8_t buf_rx[3] = {};
@@ -563,7 +587,7 @@ uint8_t PGA460::read_register(const uint8_t reg)
 	int total_bytes = 0;
 
 	do {
-		int ret = ::read(_fd, buf_rx + total_bytes, sizeof(buf_rx));
+		ret = ::read(_fd, buf_rx + total_bytes, sizeof(buf_rx));
 
 		total_bytes += ret;
 
@@ -598,7 +622,12 @@ int PGA460::read_threshold_registers()
 
 	uint8_t buf_tx[2] =  {SYNCBYTE, THRBR};
 
-	::write(_fd, &buf_tx[0], sizeof(buf_tx));
+	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
+
+	if(ret < 0) {
+		return PX4_ERROR;
+	}
+
 	usleep(10000);
 
 	uint8_t buf_rx[array_size + 2] = {};
@@ -606,7 +635,7 @@ int PGA460::read_threshold_registers()
 	int total_bytes = 0;
 
 	do {
-		int ret = ::read(_fd, buf_rx + total_bytes, sizeof(buf_rx));
+		ret = ::read(_fd, buf_rx + total_bytes, sizeof(buf_rx));
 
 		total_bytes += ret;
 
@@ -697,14 +726,20 @@ uint8_t PGA460::set_range_mode()
 	return _ranging_mode;
 }
 
-void PGA460::take_measurement(const uint8_t mode)
+int PGA460::take_measurement(const uint8_t mode)
 {
 	// Issue a measurement command to detect one object using Preset 1 Burst/Listen.
 	uint8_t buf_tx[4] = {SYNCBYTE, mode, 0x01, 0xFF};
 	uint8_t checksum = calc_checksum(&buf_tx[1], 2);
 	buf_tx[3] = checksum;
 
-	::write(_fd, &buf_tx[0], sizeof(buf_tx));
+	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
+
+	if(ret < 0) {
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
 }
 
 int PGA460::task_spawn(int argc, char *argv[])
@@ -778,14 +813,20 @@ void PGA460::uORB_publish_results(const float object_distance)
 	}
 }
 
-void PGA460::unlock_eeprom()
+int PGA460::unlock_eeprom()
 {
 	// Two step EEPROM unlock -- send unlock code w/ prog bit set to 0.
 	// This might actually be wrapped into command 11 (ee bulk write) but I am not sure.
 	uint8_t eeprom_write_buf[5] = {SYNCBYTE, SRW, EE_CNTRL_ADDR, EE_UNLOCK_ST1, 0xFF};
 	uint8_t checksum = calc_checksum(&eeprom_write_buf[1], sizeof(eeprom_write_buf) - 2);
 	eeprom_write_buf[4] = checksum;
-	::write(_fd, &eeprom_write_buf[0], sizeof(eeprom_write_buf));
+	int ret = ::write(_fd, &eeprom_write_buf[0], sizeof(eeprom_write_buf));
+
+	if(ret < 0) {
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
 }
 
 int PGA460::write_eeprom()
@@ -802,7 +843,11 @@ int PGA460::write_eeprom()
 	uint8_t checksum = calc_checksum(&settings_buf[1], sizeof(settings_buf) - 2);
 	settings_buf[45] = checksum;
 
-	::write(_fd, &settings_buf[0], sizeof(settings_buf));
+	int ret = ::write(_fd, &settings_buf[0], sizeof(settings_buf));
+
+	if(ret < 0) {
+		return PX4_ERROR;
+	}
 
 	// Needs time, see datasheet timing requirements.
 	usleep(5000);
