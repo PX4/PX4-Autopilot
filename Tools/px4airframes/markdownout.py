@@ -30,9 +30,8 @@ class MarkdownTablesOutput():
             # Display an image of the frame
             image_name = group.GetImageName()
             result += '<div>\n'
-            if image_name != 'AirframeUnknown':
-                image_name = image_path + image_name
-                result += '<img src="%s.svg" width="29%%" style="max-height: 180px;"/>\n' % (image_name)
+            image_name = image_path + image_name
+            result += '<img src="%s.svg" width="29%%" style="max-height: 180px;"/>\n' % (image_name)
 
             # check if all outputs are equal for the group: if so, show them
             # only once
