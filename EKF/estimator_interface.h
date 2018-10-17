@@ -175,6 +175,9 @@ public:
 	virtual bool collect_imu(const imuSample &imu) = 0;
 
 	// set delta angle imu data
+	void setIMUData(const imuSample &imu_sample);
+
+	// legacy interface for compatibility (2018-09-14)
 	void setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float (&delta_ang)[3], float (&delta_vel)[3]);
 
 	// set magnetometer data
