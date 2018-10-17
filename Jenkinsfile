@@ -366,8 +366,8 @@ pipeline {
               sh('cp airframes.md Devguide/en/airframes/airframe_reference.md')
               sh('cp parameters.md Devguide/en/advanced/parameter_reference.md')
               sh('cp -R modules/*.md Devguide/en/middleware/')
-              sh('cd Devguide; git checkout -B pr-firmware_metadata_update; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
-              sh('cd Devguide; git push --force origin pr-firmware_metadata_update || true')
+              sh('cd Devguide; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
+              sh('cd Devguide; git push origin master || true')
             }
           }
           when {
@@ -393,8 +393,8 @@ pipeline {
               sh('git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_user_guide.git')
               sh('cp airframes.md px4_user_guide/en/airframes/airframe_reference.md')
               sh('cp parameters.md px4_user_guide/en/advanced_config/parameter_reference.md')
-              sh('cd px4_user_guide; git checkout -B pr-firmware_metadata_update; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
-              sh('cd px4_user_guide; git push --force origin pr-firmware_metadata_update || true')
+              sh('cd px4_user_guide; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
+              sh('cd px4_user_guide; git push origin master || true')
             }
           }
           when {
@@ -420,8 +420,8 @@ pipeline {
               sh('git clone https://${GIT_USER}:${GIT_PASS}@github.com/mavlink/qgroundcontrol.git')
               sh('cp airframes.xml qgroundcontrol/src/AutoPilotPlugins/PX4/AirframeFactMetaData.xml')
               sh('cp parameters.xml qgroundcontrol/src/FirmwarePlugin/PX4/PX4ParameterFactMetaData.xml')
-              sh('cd qgroundcontrol; git checkout -B pr-firmware_metadata_update; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
-              sh('cd qgroundcontrol; git push --force origin pr-firmware_metadata_update || true')
+              sh('cd qgroundcontrol; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
+              sh('cd qgroundcontrol; git push origin master || true')
             }
           }
           when {
