@@ -103,6 +103,7 @@ private:
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub{nullptr};		/**< vehicle local position setpoint publication */
 	orb_advert_t _traj_wp_avoidance_desired_pub{nullptr}; /**< trajectory waypoint desired publication */
+	orb_advert_t _constraints_pub{nullptr};			 /**< constraints publication */
 	orb_advert_t _pub_vehicle_command{nullptr};           /**< vehicle command publication */
 	orb_id_t _attitude_setpoint_id{nullptr};
 
@@ -287,6 +288,11 @@ private:
 	 * Publish desired vehicle_trajectory_waypoint
 	 */
 	void publish_avoidance_desired_waypoint();
+
+	/**
+	 * Publish vehicle constraints
+	 */
+	void publish_constraints(vehicle_constraints_s &constraints);
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -1133,7 +1139,6 @@ MulticopterPositionControl::update_range_constraints(const obstacle_distance_s &
 	constraints.velocity_limits[3] = 0.0;
 
 	float max_detection_distance = obstacle_distance.max_distance/100.0; //convert to meters
-	float k = constraints.speed_xy/(max_detection_distance - MPC_MIN_OBS_DIST.get());  //P-gain
 
 	for(int i = 0; i<72; i++){
 
@@ -1143,19 +1148,17 @@ MulticopterPositionControl::update_range_constraints(const obstacle_distance_s &
 
 			float distance = obstacle_distance.distances[i]/100.0; //convert to meters
 			float angle = i*obstacle_distance.increment * (M_PI/180.0);
-			float vel_lim_x = k * (max_detection_distance - distance) * cos(angle);
-			float vel_lim_y = k * (max_detection_distance - distance) * sin(angle);
+
+			//calculate normalized velocity reductions
+			float vel_lim_x =  (max_detection_distance - distance)/(max_detection_distance - MPC_MIN_OBS_DIST.get()) * cos(angle);
+			float vel_lim_y =  (max_detection_distance - distance)/(max_detection_distance - MPC_MIN_OBS_DIST.get()) * sin(angle);
 			if(vel_lim_x > 0 && vel_lim_x > constraints.velocity_limits[0]) constraints.velocity_limits[0] = vel_lim_x;
 			if(vel_lim_y > 0 && vel_lim_y > constraints.velocity_limits[1]) constraints.velocity_limits[1] = vel_lim_y;
 			if(vel_lim_x < 0 && -vel_lim_x > constraints.velocity_limits[2]) constraints.velocity_limits[2] = -vel_lim_x;
 			if(vel_lim_y < 0 && -vel_lim_y > constraints.velocity_limits[3]) constraints.velocity_limits[3] = -vel_lim_y;
 		}
 	}
-
-	constraints.velocity_limits[0] = constraints.speed_xy - constraints.velocity_limits[0];
-    constraints.velocity_limits[1] = constraints.speed_xy - constraints.velocity_limits[1];
-	constraints.velocity_limits[2] = constraints.speed_xy - constraints.velocity_limits[2];
-	constraints.velocity_limits[3] = constraints.speed_xy - constraints.velocity_limits[3];
+	publish_constraints(constraints);
 }
 
 void
@@ -1197,6 +1200,19 @@ MulticopterPositionControl::publish_avoidance_desired_waypoint()
 	} else {
 		_traj_wp_avoidance_desired_pub = orb_advertise(ORB_ID(vehicle_trajectory_waypoint_desired),
 						 &_traj_wp_avoidance_desired);
+	}
+}
+
+void
+MulticopterPositionControl::publish_constraints(vehicle_constraints_s &constraints)
+{
+	constraints.timestamp = hrt_absolute_time();
+	// publish constraints
+	if (_constraints_pub != nullptr) {
+		orb_publish(ORB_ID(vehicle_constraints), _constraints_pub, &constraints);
+
+	} else {
+		_constraints_pub = orb_advertise(ORB_ID(vehicle_constraints), &constraints);
 	}
 }
 
