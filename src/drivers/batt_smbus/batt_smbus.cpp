@@ -319,10 +319,14 @@ void BATT_SMBUS::set_undervoltage_protection(float average_current)
 			uint8_t protections_a_tmp = BATT_SMBUS_ENABLED_PROTECTIONS_A_CUV_DISABLED;
 			uint16_t address = BATT_SMBUS_ENABLED_PROTECTIONS_A_ADDRESS;
 
+			unseal();
+
 			if (write_flash(address, &protections_a_tmp, 1) == PX4_OK) {
 				_cell_undervoltage_protection_status = 0;
 				PX4_WARN("Disabled CUV");
 			}
+
+			seal();
 		}
 
 	} else {
@@ -332,11 +336,15 @@ void BATT_SMBUS::set_undervoltage_protection(float average_current)
 				uint8_t protections_a_tmp = BATT_SMBUS_ENABLED_PROTECTIONS_A_DEFAULT;
 				uint16_t address = BATT_SMBUS_ENABLED_PROTECTIONS_A_ADDRESS;
 
+				unseal();
+
 				if (write_flash(address, &protections_a_tmp, 1) == PX4_OK) {
 					_cell_undervoltage_protection_status = 1;
 					PX4_WARN("Enabled CUV");
 
 				}
+
+				seal();
 			}
 		}
 	}
