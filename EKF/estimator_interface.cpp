@@ -46,61 +46,53 @@
 #include <mathlib/mathlib.h>
 
 // Accumulate imu data and store to buffer at desired rate
-void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt,
-				    float (&delta_ang)[3], float (&delta_vel)[3])
+void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 {
 	if (!_initialised) {
-		init(time_usec);
+		init(imu_sample.time_us);
 		_initialised = true;
 	}
 
-	const float dt = math::constrain((time_usec - _time_last_imu) / 1e6f, 1.0e-4f, 0.02f);
+	const float dt = math::constrain((imu_sample.time_us - _time_last_imu) / 1e6f, 1.0e-4f, 0.02f);
 
-	_time_last_imu = time_usec;
+	_time_last_imu = imu_sample.time_us;
 
 	if (_time_last_imu > 0) {
 		_dt_imu_avg = 0.8f * _dt_imu_avg + 0.2f * dt;
 	}
 
-	imuSample imu_sample_new;
-	imu_sample_new.delta_ang = Vector3f(delta_ang);
-	imu_sample_new.delta_vel = Vector3f(delta_vel);
-	imu_sample_new.delta_ang_dt = delta_ang_dt * 1e-6f;
-	imu_sample_new.delta_vel_dt = delta_vel_dt * 1e-6f;
-	imu_sample_new.time_us = time_usec;
-
 	// calculate a metric which indicates the amount of coning vibration
-	Vector3f temp = cross_product(imu_sample_new.delta_ang, _delta_ang_prev);
+	Vector3f temp = cross_product(imu_sample.delta_ang, _delta_ang_prev);
 	_vibe_metrics[0] = 0.99f * _vibe_metrics[0] + 0.01f * temp.norm();
 
 	// calculate a metric which indiates the amount of high frequency gyro vibration
-	temp = imu_sample_new.delta_ang - _delta_ang_prev;
-	_delta_ang_prev = imu_sample_new.delta_ang;
+	temp = imu_sample.delta_ang - _delta_ang_prev;
+	_delta_ang_prev = imu_sample.delta_ang;
 	_vibe_metrics[1] = 0.99f * _vibe_metrics[1] + 0.01f * temp.norm();
 
 	// calculate a metric which indicates the amount of high fequency accelerometer vibration
-	temp = imu_sample_new.delta_vel - _delta_vel_prev;
-	_delta_vel_prev = imu_sample_new.delta_vel;
+	temp = imu_sample.delta_vel - _delta_vel_prev;
+	_delta_vel_prev = imu_sample.delta_vel;
 	_vibe_metrics[2] = 0.99f * _vibe_metrics[2] + 0.01f * temp.norm();
 
 	// detect if the vehicle is not moving when on ground
 	if (!_control_status.flags.in_air) {
 		if ((_vibe_metrics[1] * 4.0E4f > _params.is_moving_scaler)
 				|| (_vibe_metrics[2] * 2.1E2f > _params.is_moving_scaler)
-				|| ((imu_sample_new.delta_ang.norm() / dt) > 0.05f * _params.is_moving_scaler)) {
+				|| ((imu_sample.delta_ang.norm() / dt) > 0.05f * _params.is_moving_scaler)) {
 
-			_time_last_move_detect_us = imu_sample_new.time_us;
+			_time_last_move_detect_us = imu_sample.time_us;
 		}
 
-		_vehicle_at_rest = ((imu_sample_new.time_us - _time_last_move_detect_us) > (uint64_t)1E6);
+		_vehicle_at_rest = ((imu_sample.time_us - _time_last_move_detect_us) > (uint64_t)1E6);
 
 	} else {
-		_time_last_move_detect_us = imu_sample_new.time_us;
+		_time_last_move_detect_us = imu_sample.time_us;
 		_vehicle_at_rest = false;
 	}
 
 	// accumulate and down-sample imu data and push to the buffer when new downsampled data becomes available
-	if (collect_imu(imu_sample_new)) {
+	if (collect_imu(imu_sample)) {
 
 		// down-sample the drag specific force data by accumulating and calculating the mean when
 		// sufficient samples have been collected
@@ -119,10 +111,10 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 
 			_drag_sample_count ++;
 			// note acceleration is accumulated as a delta velocity
-			_drag_down_sampled.accelXY(0) += imu_sample_new.delta_vel(0);
-			_drag_down_sampled.accelXY(1) += imu_sample_new.delta_vel(1);
-			_drag_down_sampled.time_us += imu_sample_new.time_us;
-			_drag_sample_time_dt += imu_sample_new.delta_vel_dt;
+			_drag_down_sampled.accelXY(0) += imu_sample.delta_vel(0);
+			_drag_down_sampled.accelXY(1) += imu_sample.delta_vel(1);
+			_drag_down_sampled.time_us += imu_sample.time_us;
+			_drag_sample_time_dt += imu_sample.delta_vel_dt;
 
 			// calculate the downsample ratio for drag specific force data
 			uint8_t min_sample_ratio = (uint8_t) ceilf((float)_imu_buffer_length / _obs_buffer_length);
@@ -149,6 +141,21 @@ void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, u
 			}
 		}
 	}
+}
+
+void EstimatorInterface::setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt,
+				    float (&delta_ang)[3], float (&delta_vel)[3])
+{
+	imuSample imu_sample_new;
+	imu_sample_new.delta_ang = Vector3f(delta_ang);
+	imu_sample_new.delta_vel = Vector3f(delta_vel);
+
+	// convert time from us to secs
+	imu_sample_new.delta_ang_dt = delta_ang_dt / 1e6f;
+	imu_sample_new.delta_vel_dt = delta_vel_dt / 1e6f;
+	imu_sample_new.time_us = time_usec;
+
+	setIMUData(imu_sample_new);
 }
 
 void EstimatorInterface::setMagData(uint64_t time_usec, float (&data)[3])
