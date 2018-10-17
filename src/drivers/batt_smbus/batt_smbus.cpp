@@ -360,7 +360,7 @@ int BATT_SMBUS::dataflash_read(uint16_t &address, void *data)
 
 	// When reading a BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS the first 2 bytes will be the command code
 	// We will remove these since we do not care about the command code.
-	memcpy(data, &((uint8_t *)data)[2], DATA_BUFFER_SIZE);
+	//memcpy(data, &((uint8_t *)data)[2], DATA_BUFFER_SIZE);
 
 	return result;
 }
