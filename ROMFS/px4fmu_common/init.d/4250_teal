@@ -5,17 +5,16 @@
 # @type Quadrotor x
 # @class Copter
 #
+# @board px4fmu-v2 exclude
+# @board px4fmu-v3 exclude
+# @board px4fmu-v4 exclude
+# @board px4fmu-v4pro exclude
+# @board px4fmu-v5 exclude
+#
 # @output MAIN1 motor 1
 # @output MAIN2 motor 2
 # @output MAIN3 motor 3
 # @output MAIN4 motor 4
-# @output MAIN5 feed-through of RC AUX1 channel
-# @output MAIN6 feed-through of RC AUX2 channel
-#
-# @output AUX1 feed-through of RC AUX1 channel
-# @output AUX2 feed-through of RC AUX2 channel
-# @output AUX3 feed-through of RC AUX3 channel
-# @output AUX4 feed-through of RC FLAPS channel
 #
 # @maintainer Jacob Dahl <jacob.dahl@tealdrones.com>
 # @maintainer Alex Klimaj <alex.klimaj@tealdrones.com>
@@ -175,5 +174,4 @@ then
 	# serial comms
 	param set SER_TEL2_BAUD 921600
 
-	param save
 fi
