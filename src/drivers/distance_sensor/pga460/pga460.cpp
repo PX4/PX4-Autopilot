@@ -147,7 +147,7 @@ int PGA460::initialize_thresholds()
 
 	int ret = ::write(_fd, &settings_buf[0], sizeof(settings_buf));
 
-	if (ret < 0) {
+	if (!ret) {
 		return PX4_ERROR;
 	}
 
@@ -230,7 +230,7 @@ int PGA460::flash_eeprom()
 	eeprom_write_buf[4] = checksum;
 	int ret = ::write(_fd, &eeprom_write_buf[0], sizeof(eeprom_write_buf));
 
-	if (ret < 0) {
+	if (!ret) {
 		return PX4_ERROR;
 	}
 
@@ -243,9 +243,9 @@ float PGA460::get_temperature()
 	uint8_t checksum = calc_checksum(&buf_tx[0], 3);
 	buf_tx[3] = checksum;
 
-	int result = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
+	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
 
-	if (result < 0) {
+	if (!ret) {
 		return PX4_ERROR;
 	}
 
@@ -253,9 +253,9 @@ float PGA460::get_temperature()
 	usleep(5000);
 
 	buf_tx[1] = TNLR;
-	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx) - 2);
+	ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx) - 2);
 
-	if (ret < 0) {
+	if (!ret) {
 		return PX4_ERROR;
 	}
 
@@ -524,7 +524,7 @@ int PGA460::read_eeprom()
 	// The pga460 responds to this write() call by reporting current eeprom values.
 	ret = ::write(_fd, &cmd_buf[0], sizeof(cmd_buf));
 
-	if (ret < 0) {
+	if (!ret) {
 		return PX4_ERROR;
 	}
 
@@ -576,7 +576,7 @@ uint8_t PGA460::read_register(const uint8_t reg)
 
 	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
 
-	if(ret < 0) {
+	if(!ret) {
 		return PX4_ERROR;
 	}
 
@@ -624,7 +624,7 @@ int PGA460::read_threshold_registers()
 
 	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
 
-	if(ret < 0) {
+	if(!ret) {
 		return PX4_ERROR;
 	}
 
@@ -671,7 +671,7 @@ int PGA460::request_results()
 	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
 	usleep(10000);
 
-	if(ret < 0) {
+	if(!ret) {
 		return PX4_ERROR;
 	}
 
@@ -741,7 +741,7 @@ int PGA460::take_measurement(const uint8_t mode)
 
 	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
 
-	if(ret < 0) {
+	if(!ret) {
 		return PX4_ERROR;
 	}
 
@@ -828,7 +828,7 @@ int PGA460::unlock_eeprom()
 	eeprom_write_buf[4] = checksum;
 	int ret = ::write(_fd, &eeprom_write_buf[0], sizeof(eeprom_write_buf));
 
-	if(ret < 0) {
+	if(!ret) {
 		return PX4_ERROR;
 	}
 
@@ -851,7 +851,7 @@ int PGA460::write_eeprom()
 
 	int ret = ::write(_fd, &settings_buf[0], sizeof(settings_buf));
 
-	if(ret < 0) {
+	if(!ret) {
 		return PX4_ERROR;
 	}
 
