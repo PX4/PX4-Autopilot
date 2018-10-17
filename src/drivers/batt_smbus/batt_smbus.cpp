@@ -539,9 +539,9 @@ int BATT_SMBUS::unseal()
 int BATT_SMBUS::seal()
 {
 	// See pg95 of bq40z50 technical reference.
-	uint16_t seal = BATT_SMBUS_SEAL;
+	uint16_t reg = BATT_SMBUS_SEAL;
 
-	return manufacturer_write(seal, 0, 0);
+	return manufacturer_write(reg, 0, 0);
 }
 
 int BATT_SMBUS::lifetime_data_flush()
