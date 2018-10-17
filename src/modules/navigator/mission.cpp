@@ -812,6 +812,12 @@ Mission::set_mission_items()
 
 					set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
 
+					/*
+					 * This will make the vehicle proceed directly to the land waypoint in the next stage
+					 * and not attempt to line up with the plotted path first
+					 */
+					_navigator->get_position_setpoint_triplet()->current.valid = false;
+
 					new_work_item_type = WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION;
 				}
 
@@ -1106,7 +1112,8 @@ Mission::do_need_move_to_land()
 		float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
 				  _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
 
-		return d_current > _navigator->get_acceptance_radius();
+		/* using default acceptance radius as a back transition item can result in a FW acceptance radius being returned */
+		return d_current > _navigator->get_default_acceptance_radius();
 	}
 
 	return false;
