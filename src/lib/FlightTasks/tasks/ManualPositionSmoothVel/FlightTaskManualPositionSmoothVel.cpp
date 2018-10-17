@@ -102,13 +102,16 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 	 * is used to set current velocity of the trajectory.
 	 */
 	Vector2f sticks_expo_xy = Vector2f(&_sticks_expo(0));
+
 	if (sticks_expo_xy.length() > FLT_EPSILON) {
 		if (_position_lock_xy_active) {
-			_smoothing[0].setCurrentVelocity(_velocity_setpoint_feedback(0)); // Start the trajectory at the current velocity setpoint
+			_smoothing[0].setCurrentVelocity(_velocity_setpoint_feedback(
+					0)); // Start the trajectory at the current velocity setpoint
 			_smoothing[1].setCurrentVelocity(_velocity_setpoint_feedback(1));
 			_position_setpoint_xy_locked(0) = NAN;
 			_position_setpoint_xy_locked(1) = NAN;
 		}
+
 		_position_lock_xy_active = false;
 	}
 
@@ -130,13 +133,15 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 
 	// Check for position lock transition
 	Vector2f accel_setpoint_xy_smooth = Vector2f(&accel_sp_smooth(0));
+
 	if (vel_xy_sp_smooth.length() < 0.002f &&
-			accel_setpoint_xy_smooth.length() < .2f &&
-			sticks_expo_xy.length() <= FLT_EPSILON) {
+	    accel_setpoint_xy_smooth.length() < .2f &&
+	    sticks_expo_xy.length() <= FLT_EPSILON) {
 		if (!_position_lock_xy_active) {
 			_position_setpoint_xy_locked(0) = pos_sp_smooth(0);
 			_position_setpoint_xy_locked(1) = pos_sp_smooth(1);
 		}
+
 		_position_lock_xy_active = true;
 	}
 
