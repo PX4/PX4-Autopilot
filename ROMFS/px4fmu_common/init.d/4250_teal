@@ -26,7 +26,7 @@ set MIXER quad_x
 set MIXER_AUX none
 set PWM_OUT 1234
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	# battery
 	param set BAT_CAPACITY 2750
