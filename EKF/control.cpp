@@ -548,7 +548,6 @@ void Ekf::controlGpsFusion()
 				// Do not use external vision for yaw if using GPS because yaw needs to be
 				// defined relative to an NED reference frame
 				if (!_control_status.flags.yaw_align || _control_status.flags.ev_yaw || _mag_inhibit_yaw_reset_req) {
-					_control_status.flags.yaw_align = false;
 					_control_status.flags.ev_yaw = false;
 					_control_status.flags.yaw_align = resetMagHeading(_mag_sample_delayed.mag);
 					// Handle the special case where we have not been constraining yaw drift or learning yaw bias due
