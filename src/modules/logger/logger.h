@@ -75,8 +75,8 @@ inline bool operator&(SDLogProfileMask a, SDLogProfileMask b)
 struct LoggerSubscription {
 	int fd[ORB_MULTI_MAX_INSTANCES]; ///< uorb subscription. The first fd is also used to store the interval if
 	/// not subscribed yet (-interval - 1)
-	uint16_t msg_ids[ORB_MULTI_MAX_INSTANCES];
 	const orb_metadata *metadata = nullptr;
+	uint8_t msg_ids[ORB_MULTI_MAX_INSTANCES];
 
 	LoggerSubscription() {}
 
@@ -90,7 +90,7 @@ struct LoggerSubscription {
 		}
 
 		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-			msg_ids[i] = (uint16_t) - 1;
+			msg_ids[i] = (uint8_t) - 1;
 		}
 	}
 };
@@ -330,7 +330,7 @@ private:
 	uint32_t					_log_interval{0};
 	const orb_metadata				*_polling_topic_meta{nullptr}; ///< if non-null, poll on this topic instead of sleeping
 	orb_advert_t					_mavlink_log_pub{nullptr};
-	uint16_t					_next_topic_id{0}; ///< id of next subscribed ulog topic
+	uint8_t						_next_topic_id{0}; ///< id of next subscribed ulog topic
 	char						*_replay_file_name{nullptr};
 	bool						_should_stop_file_log{false}; /**< if true _next_load_print is set and file logging
 											will be stopped after load printing */

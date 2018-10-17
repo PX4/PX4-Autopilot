@@ -1752,7 +1752,12 @@ void Logger::write_add_logged_msg(LoggerSubscription &subscription, int instance
 {
 	ulog_message_add_logged_s msg;
 
-	if (subscription.msg_ids[instance] == (uint16_t) - 1) {
+	if (subscription.msg_ids[instance] == (uint8_t) - 1) {
+		if (_next_topic_id == (uint8_t) - 1) {
+			// if we land here an uint8 is too small -> switch to uint16
+			PX4_ERR("limit for _next_topic_id reached");
+			return;
+		}
 		subscription.msg_ids[instance] = _next_topic_id++;
 	}
 
