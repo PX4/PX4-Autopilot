@@ -217,11 +217,23 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_P, 0.09f);
  * Non-zero value allows to resist wind.
  *
  * @min 0.0
- * @max 0.1
+ * @max 3.0
  * @decimal 3
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_I, 0.02f);
+
+/**
+ * Anti-reset windup gain for horizontal velocity integrator
+ *
+ * Non-zero value enables ARW loop.
+ *
+ * @min -1.0
+ * @max 5.0
+ * @decimal 3
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_XY_VEL_ARW, 3.f);
 
 /**
  * Differential gain for horizontal velocity error. Small values help reduce fast oscillations. If value is too big oscillations will appear again.

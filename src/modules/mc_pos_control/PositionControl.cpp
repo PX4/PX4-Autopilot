@@ -305,25 +305,41 @@ void PositionControl::_velocityController(const float &dt)
 			_thr_sp(1) = thrust_desired_NE(1) / mag * thrust_max_NE;
 		}
 
-		// Get the direction of (r-y) in NE-direction.
-		float direction_NE = Vector2f(vel_err) * Vector2f(_vel_sp);
+		if (MPC_XY_VEL_ARW.get() > FLT_EPSILON) { // Standard anti-reset windup
+			Vector2f vel_err_lim;
+			vel_err_lim(0) = vel_err(0) - (thrust_desired_NE(0) - _thr_sp(0)) * (MPC_XY_VEL_ARW.get());
+			vel_err_lim(1) = vel_err(1) - (thrust_desired_NE(1) - _thr_sp(1)) * (MPC_XY_VEL_ARW.get());
 
-		// Apply Anti-Windup in NE-direction.
-		bool stop_integral_NE = (thrust_desired_NE * thrust_desired_NE >= thrust_max_NE * thrust_max_NE &&
-					 direction_NE >= 0.0f);
+			// Update integral
+			_thr_int(0) += MPC_XY_VEL_I.get() * vel_err_lim(0) * dt;
+			_thr_int(1) += MPC_XY_VEL_I.get() * vel_err_lim(1) * dt;
 
-		if (!stop_integral_NE) {
-			_thr_int(0) += vel_err(0) * MPC_XY_VEL_I.get() * dt;
-			_thr_int(1) += vel_err(1) * MPC_XY_VEL_I.get() * dt;
+		} else if (MPC_XY_VEL_ARW.get() > -0.5f) { // Legacy anti-reset windup
+			// Get the direction of (r-y) in NE-direction.
+			float direction_NE = Vector2f(vel_err) * Vector2f(_vel_sp);
 
-			// magnitude of thrust integral can never exceed maximum throttle in NE
-			float integral_mag_NE = Vector2f(_thr_int).length();
+			// Apply Anti-Windup in NE-direction.
+			bool stop_integral_NE = (thrust_desired_NE * thrust_desired_NE >= thrust_max_NE * thrust_max_NE &&
+						 direction_NE >= 0.0f);
 
-			if (integral_mag_NE > 0.0f && integral_mag_NE > thrust_max_NE) {
-				_thr_int(0) = _thr_int(0) / integral_mag_NE * thrust_max_NE;
-				_thr_int(1) = _thr_int(1) / integral_mag_NE * thrust_max_NE;
+			if (!stop_integral_NE) {
+				_thr_int(0) += vel_err(0) * MPC_XY_VEL_I.get() * dt;
+				_thr_int(1) += vel_err(1) * MPC_XY_VEL_I.get() * dt;
+
+				// magnitude of thrust integral can never exceed maximum throttle in NE
+				float integral_mag_NE = Vector2f(_thr_int).length();
+
+				if (integral_mag_NE > 0.0f && integral_mag_NE > thrust_max_NE) {
+					_thr_int(0) = _thr_int(0) / integral_mag_NE * thrust_max_NE;
+					_thr_int(1) = _thr_int(1) / integral_mag_NE * thrust_max_NE;
+				}
 			}
+
+		} else { // No anti-reset windup
+			_thr_int(0) += MPC_XY_VEL_I.get() * vel_err(0) * dt;
+			_thr_int(1) += MPC_XY_VEL_I.get() * vel_err(1) * dt;
 		}
+
 	}
 }
 
