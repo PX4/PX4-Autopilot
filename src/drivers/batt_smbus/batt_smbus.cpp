@@ -298,7 +298,7 @@ int BATT_SMBUS::get_cell_voltages()
 	_min_cell_voltage = _cell_voltages[0];
 	float max_cell_voltage = _cell_voltages[0];
 
-	for (uint8_t i = 1; i < (sizeof(_cell_voltages) / sizeof(_cell_voltages)); i++) {
+	for (uint8_t i = 1; i < (sizeof(_cell_voltages) / sizeof(_cell_voltages[0])); i++) {
 		_min_cell_voltage = math::min(_min_cell_voltage, _cell_voltages[i]);
 		max_cell_voltage = math::max(_min_cell_voltage, _cell_voltages[i]);
 	}
@@ -521,7 +521,10 @@ int BATT_SMBUS::manufacturer_write(const uint16_t cmd_code, void *data, const un
 
 	uint8_t tx_buf[DATA_BUFFER_SIZE + 2] = {};
 	memcpy(tx_buf, address, 2);
-	memcpy(&tx_buf[2], data, length);
+
+	if (data != nullptr) {
+		memcpy(&tx_buf[2], data, length);
+	}
 
 	int result = _interface->block_write(code, tx_buf, length + 2, false);
 
@@ -541,7 +544,7 @@ int BATT_SMBUS::seal()
 	// See pg95 of bq40z50 technical reference.
 	uint16_t reg = BATT_SMBUS_SEAL;
 
-	return manufacturer_write(reg, 0, 0);
+	return manufacturer_write(reg, nullptr, 0);
 }
 
 int BATT_SMBUS::lifetime_data_flush()
@@ -549,7 +552,7 @@ int BATT_SMBUS::lifetime_data_flush()
 	// See pg95 of bq40z50 technical reference.
 	uint16_t flush = BATT_SMBUS_LIFETIME_FLUSH;
 
-	return manufacturer_write(flush, 0, 0);
+	return manufacturer_write(flush, nullptr, 0);
 }
 
 int BATT_SMBUS::lifetime_read_block_one()
@@ -655,7 +658,6 @@ int BATT_SMBUS::custom_command(int argc, char *argv[])
 				return 1;
 
 			} else {
-				PX4_INFO("wrote to flash");
 				usleep(100000);
 				return 0;
 			}
