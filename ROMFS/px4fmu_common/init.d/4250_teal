@@ -7,7 +7,6 @@
 #
 # @board px4fmu-v2 exclude
 # @board px4fmu-v3 exclude
-# @board px4fmu-v4 exclude
 # @board px4fmu-v4pro exclude
 # @board px4fmu-v5 exclude
 #
