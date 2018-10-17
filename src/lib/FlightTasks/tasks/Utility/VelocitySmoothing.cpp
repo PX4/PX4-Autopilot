@@ -220,7 +220,7 @@ void VelocitySmoothing::integrate(float &accel_setpoint_smooth, float &vel_setpo
 	integrate(_dt, accel_setpoint_smooth, vel_setpoint_smooth, pos_setpoint_smooth);
 }
 
-void VelocitySmoothing::integrate(float dt,float &accel_setpoint_smooth, float &vel_setpoint_smooth,
+void VelocitySmoothing::integrate(float dt, float &accel_setpoint_smooth, float &vel_setpoint_smooth,
 				  float &pos_setpoint_smooth)
 {
 	/* Integrate the trajectory */

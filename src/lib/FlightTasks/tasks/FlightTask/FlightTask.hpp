@@ -147,7 +147,8 @@ public:
 	 */
 	virtual void setYawHandler(WeatherVane *ext_yaw_handler) {};
 
-	void updateVelocityControllerIO(const matrix::Vector3f &vel_sp, const matrix::Vector3f &thrust_sp) {_velocity_setpoint_feedback = vel_sp; _thrust_setpoint_feedback = thrust_sp; }
+	void updateVelocityControllerIO(const matrix::Vector3f &vel_sp,
+					const matrix::Vector3f &thrust_sp) {_velocity_setpoint_feedback = vel_sp; _thrust_setpoint_feedback = thrust_sp; }
 
 protected:
 
