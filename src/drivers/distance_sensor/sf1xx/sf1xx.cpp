@@ -876,9 +876,9 @@ $ sf1xx stop
 
 	PRINT_MODULE_USAGE_NAME("sf1xx", "driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
-	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Attempt to start driver on all I2C buses ([--all])", true);
-	PRINT_MODULE_USAGE_PARAM_INT('b', 1, 1, 2000, "Start driver on specific I2C bus ([--bus])", true);
-	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 1, 25, "Sensor rotation - downward facing by default ([--rotation])", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Attempt to start driver on all I2C buses", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 1, 1, 2000, "Start driver on specific I2C bus", true);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 1, 25, "Sensor rotation - downward facing by default", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("reset","Reset driver");
