@@ -2331,7 +2331,7 @@ Commander::run()
 			}
 
 			/* Set home position altitude to EKF origin height if home is not set and the EKF has a global origin.
-			 * This allows home atitude to be used in the calculation of height above takeoff location when GPS
+			 * This allows home altitude to be used in the calculation of height above takeoff location when GPS
 			 * use has commenced after takeoff. */
 			if (!_home.valid_alt && local_position.z_global) {
 				set_home_position(home_pub, _home, true);
