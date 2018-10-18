@@ -18,7 +18,7 @@ def indent(elem, level=0):
 
 class XMLOutput():
 
-    def __init__(self, groups, board, inject_xml_file_name):
+    def __init__(self, groups, board, inject_xml_file_name, translation_dict=None):
         xml_parameters = ET.Element("parameters")
         xml_version = ET.SubElement(xml_parameters, "version")
         xml_version.text = "3"
@@ -75,8 +75,24 @@ class XMLOutput():
                         xml_value.attrib["index"] = index;
                         xml_value.text = param.GetBitmaskBit(index)
 
+        #Append translations - passed in to init as translation_dict
+        if translation_dict and len(translation_dict)>1: #At least English and one translation
+            xml_localization = ET.SubElement(xml_parameters, "localization")
+            for key, entries in translation_dict.items():
+                if not key == 'en':
+                    #print('DEBUG:key: %s' % key)
+                    locale = ET.SubElement(xml_localization, "locale")
+                    locale.attrib["name"] = key
+                    for string_key in entries:
+                        string_element = ET.SubElement(locale, "strings")
+                        string_element.attrib["original"] = translation_dict['en'][string_key]
+                        string_element.attrib["translated"] = translation_dict[key][string_key]
+        else:
+           print('Warn: No parameter translations found')
+             
         indent(xml_parameters)
         self.xml_document = ET.ElementTree(xml_parameters)
+
 
     def Save(self, filename):
         self.xml_document.write(filename, encoding="UTF-8")
