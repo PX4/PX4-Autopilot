@@ -1133,10 +1133,10 @@ void
 MulticopterPositionControl::update_range_constraints(const obstacle_distance_s &obstacle_distance,
 		vehicle_constraints_s &constraints)
 {
-	constraints.velocity_limits[0] = 0.0;
-	constraints.velocity_limits[1] = 0.0;
-	constraints.velocity_limits[2] = 0.0;
-	constraints.velocity_limits[3] = 0.0;
+	constraints.velocity_limits_x[0] = 0.0;
+	constraints.velocity_limits_x[1] = 0.0;
+	constraints.velocity_limits_y[0] = 0.0;
+	constraints.velocity_limits_y[1] = 0.0;
 
 	float max_detection_distance = obstacle_distance.max_distance/100.0; //convert to meters
 
@@ -1152,10 +1152,10 @@ MulticopterPositionControl::update_range_constraints(const obstacle_distance_s &
 			//calculate normalized velocity reductions
 			float vel_lim_x =  (max_detection_distance - distance)/(max_detection_distance - MPC_OBS_MIN_DIST.get()) * cos(angle);
 			float vel_lim_y =  (max_detection_distance - distance)/(max_detection_distance - MPC_OBS_MIN_DIST.get()) * sin(angle);
-			if(vel_lim_x > 0 && vel_lim_x > constraints.velocity_limits[0]) constraints.velocity_limits[0] = vel_lim_x;
-			if(vel_lim_y > 0 && vel_lim_y > constraints.velocity_limits[1]) constraints.velocity_limits[1] = vel_lim_y;
-			if(vel_lim_x < 0 && -vel_lim_x > constraints.velocity_limits[2]) constraints.velocity_limits[2] = -vel_lim_x;
-			if(vel_lim_y < 0 && -vel_lim_y > constraints.velocity_limits[3]) constraints.velocity_limits[3] = -vel_lim_y;
+			if(vel_lim_x > 0 && vel_lim_x > constraints.velocity_limits_x[0]) constraints.velocity_limits_x[0] = vel_lim_x;
+			if(vel_lim_y > 0 && vel_lim_y > constraints.velocity_limits_y[0]) constraints.velocity_limits_y[0] = vel_lim_y;
+			if(vel_lim_x < 0 && -vel_lim_x > constraints.velocity_limits_x[1]) constraints.velocity_limits_x[1] = -vel_lim_x;
+			if(vel_lim_y < 0 && -vel_lim_y > constraints.velocity_limits_y[1]) constraints.velocity_limits_y[1] = -vel_lim_y;
 		}
 	}
 	publish_constraints(constraints);

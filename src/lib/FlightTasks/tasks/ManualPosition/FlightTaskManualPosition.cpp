@@ -130,20 +130,20 @@ void FlightTaskManualPosition::_scaleSticks()
 		}
 
 		//scale the velocity reductions with the maximum possible velocity along the respective axis
-		_constraints.velocity_limits[0] *= v_max_x;
-		_constraints.velocity_limits[1] *= v_max_y;
-		_constraints.velocity_limits[2] *= v_max_x;
-		_constraints.velocity_limits[3] *= v_max_y;
+		_constraints.velocity_limits_x[0] *= v_max_x;
+		_constraints.velocity_limits_y[0] *= v_max_y;
+		_constraints.velocity_limits_x[1] *= v_max_x;
+		_constraints.velocity_limits_y[1] *= v_max_y;
 
 		//apply the velocity reductions to form velocity limits
-		_constraints.velocity_limits[0] = v_max_x - _constraints.velocity_limits[0];
-		_constraints.velocity_limits[1] = v_max_y - _constraints.velocity_limits[1];
-		_constraints.velocity_limits[2] = v_max_x - _constraints.velocity_limits[2];
-		_constraints.velocity_limits[3] = v_max_y - _constraints.velocity_limits[3];
+		_constraints.velocity_limits_x[0] = v_max_x - _constraints.velocity_limits_x[0];
+		_constraints.velocity_limits_y[0] = v_max_y - _constraints.velocity_limits_y[0];
+		_constraints.velocity_limits_x[1] = v_max_x - _constraints.velocity_limits_x[1];
+		_constraints.velocity_limits_y[1] = v_max_y - _constraints.velocity_limits_y[1];
 
 		//constrain the velocity setpoint to respect the velocity limits
-		vel_sp_xy(0) = math::constrain(vel_sp_xy(0), -_constraints.velocity_limits[2], _constraints.velocity_limits[0]);
-		vel_sp_xy(1) = math::constrain(vel_sp_xy(1), -_constraints.velocity_limits[3], _constraints.velocity_limits[1]);
+		vel_sp_xy(0) = math::constrain(vel_sp_xy(0), -_constraints.velocity_limits_x[1], _constraints.velocity_limits_x[0]);
+		vel_sp_xy(1) = math::constrain(vel_sp_xy(1), -_constraints.velocity_limits_y[1], _constraints.velocity_limits_y[0]);
 	}
 
 	_velocity_setpoint(0) = vel_sp_xy(0);

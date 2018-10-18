@@ -6,7 +6,7 @@ constexpr uint64_t FlightTask::_timeout;
 // First index of empty_setpoint corresponds to time-stamp and requires a finite number.
 const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {NAN, NAN, NAN}};
 
-const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {}, vehicle_constraints_s::GEAR_KEEP, {}};
+const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {}, {}, vehicle_constraints_s::GEAR_KEEP, {}};
 const vehicle_trajectory_waypoint_s FlightTask::empty_trajectory_waypoint = {0, 0, {0, 0, 0, 0, 0, 0, 0},
 	{	{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
 		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
@@ -132,10 +132,10 @@ void FlightTask::_evaluateVehicleLocalPosition()
 
 void FlightTask::_setDefaultConstraints()
 {
-	_constraints.velocity_limits[0] = MPC_XY_VEL_MAX.get();
-	_constraints.velocity_limits[1] = MPC_XY_VEL_MAX.get();
-	_constraints.velocity_limits[2] = MPC_XY_VEL_MAX.get();
-	_constraints.velocity_limits[3] = MPC_XY_VEL_MAX.get();
+	_constraints.velocity_limits_x[0] = MPC_XY_VEL_MAX.get();
+	_constraints.velocity_limits_x[1] = MPC_XY_VEL_MAX.get();
+	_constraints.velocity_limits_y[0] = MPC_XY_VEL_MAX.get();
+	_constraints.velocity_limits_y[1] = MPC_XY_VEL_MAX.get();
 	_constraints.speed_xy = MPC_XY_VEL_MAX.get();
 	_constraints.speed_up = MPC_Z_VEL_MAX_UP.get();
 	_constraints.speed_down = MPC_Z_VEL_MAX_DN.get();

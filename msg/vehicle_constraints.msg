@@ -10,7 +10,8 @@ float32 speed_down	# in meters/sec
 float32 tilt    # in radians [0, PI]
 float32 min_distance_to_ground # in meters
 float32 max_distance_to_ground # in meters
-float32[4] velocity_limits    # maximum velocities determined by range sensor measurements [x positive, y positive, x negative, y negative] direction.
+float32[2] velocity_limits_x   # maximum velocities determined by range sensor measurements [x positive, x negative]
+float32[2] velocity_limits_y   # maximum velocities determined by range sensor measurements [y positive, y negative]
 
 int8 GEAR_DOWN = -1
 int8 GEAR_UP = 1
