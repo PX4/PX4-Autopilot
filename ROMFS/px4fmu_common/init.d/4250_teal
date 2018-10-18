@@ -21,10 +21,8 @@
 
 echo "Executing 4250_teal script."
 
-set VEHICLE_TYPE mc
-set MIXER quad_x
+sh /etc/init.d/4001_quad_x
 set MIXER_AUX none
-set PWM_OUT 1234
 
 if [ $AUTOCNF = yes ]
 then
