@@ -125,7 +125,7 @@ private:
 
 	/* class variables used to check for navigation failure after takeoff */
 	hrt_abstime	_time_at_takeoff{0};		/**< last time we were on the ground */
-	hrt_abstime	_time_last_innov_pass{0};	/**< last time velocity innovations passed */
+	hrt_abstime	_time_last_innov_pass{0};	/**< last time velocity or position innovations passed */
 	bool		_nav_test_passed{false};	/**< true if the post takeoff navigation test has passed */
 	bool		_nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
 
