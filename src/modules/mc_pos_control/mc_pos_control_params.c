@@ -689,7 +689,7 @@ PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);
  * @boolean
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_INT32(MPC_USE_OBS_SENS, 0);
+PARAM_DEFINE_INT32(MPC_OBS_SENS_EN, 0);
 
 /**
  * Minimum Obstacle Distance at which the vehicle should not get closer
@@ -701,4 +701,4 @@ PARAM_DEFINE_INT32(MPC_USE_OBS_SENS, 0);
  * @unit meters
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_MIN_OBS_DIST, 4.0f);
+PARAM_DEFINE_FLOAT(MPC_OBS_MIN_DIST, 4.0f);

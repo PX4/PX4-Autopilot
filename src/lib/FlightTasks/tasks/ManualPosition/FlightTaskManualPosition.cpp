@@ -114,15 +114,17 @@ void FlightTaskManualPosition::_scaleSticks()
 	_rotateIntoHeadingFrame(vel_sp_xy);
 
 	/*constrain setpoint to not collide with obstacles */
-	if(MPC_USE_OBS_SENS.get()){
+	if (MPC_OBS_SENS_EN.get()) {
 
 		// calculate the maximum velocity along x,y axis when moving in the demanded direction
 		float vel_mag = sqrt(vel_sp_xy(0) * vel_sp_xy(0) + vel_sp_xy(1) * vel_sp_xy(1));
 		float v_max_x, v_max_y;
-		if(vel_mag > 0){
-			v_max_x = abs(_constraints.speed_xy/vel_mag * vel_sp_xy(0));
-			v_max_y = abs(_constraints.speed_xy/vel_mag * vel_sp_xy(1));
-		}else{
+
+		if (vel_mag > 0) {
+			v_max_x = abs(_constraints.speed_xy / vel_mag * vel_sp_xy(0));
+			v_max_y = abs(_constraints.speed_xy / vel_mag * vel_sp_xy(1));
+
+		} else {
 			v_max_x = 0.f;
 			v_max_y = 0.f;
 		}
@@ -136,10 +138,10 @@ void FlightTaskManualPosition::_scaleSticks()
 		//apply the velocity reductions to form velocity limits
 		_constraints.velocity_limits[0] = v_max_x - _constraints.velocity_limits[0];
 		_constraints.velocity_limits[1] = v_max_y - _constraints.velocity_limits[1];
-	    _constraints.velocity_limits[2] = v_max_x - _constraints.velocity_limits[2];
-	    _constraints.velocity_limits[3] = v_max_y - _constraints.velocity_limits[3];
+		_constraints.velocity_limits[2] = v_max_x - _constraints.velocity_limits[2];
+		_constraints.velocity_limits[3] = v_max_y - _constraints.velocity_limits[3];
 
-	    //constrain the velocity setpoint to respect the velocity limits
+		//constrain the velocity setpoint to respect the velocity limits
 		vel_sp_xy(0) = math::constrain(vel_sp_xy(0), -_constraints.velocity_limits[2], _constraints.velocity_limits[0]);
 		vel_sp_xy(1) = math::constrain(vel_sp_xy(1), -_constraints.velocity_limits[3], _constraints.velocity_limits[1]);
 	}

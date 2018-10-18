@@ -145,8 +145,8 @@ private:
 		(ParamFloat<px4::params::MPC_IDLE_TKO>) MPC_IDLE_TKO, /**< time constant for smooth takeoff ramp */
 		(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID, /**< enable obstacle avoidance */
 		(ParamFloat<px4::params::MPC_TILTMAX_LND>) MPC_TILTMAX_LND, /**< maximum tilt for landing and smooth takeoff */
-		(ParamInt<px4::params::MPC_USE_OBS_SENS>) MPC_USE_OBS_SENS, /**< use range sensor measurements to avoid collision */
-		(ParamFloat<px4::params::MPC_MIN_OBS_DIST>) MPC_MIN_OBS_DIST /**< enable obstacle avoidance */
+		(ParamInt<px4::params::MPC_OBS_SENS_EN>) MPC_OBS_SENS_EN, /**< use range sensor measurements to avoid collision */
+		(ParamFloat<px4::params::MPC_OBS_MIN_DIST>) MPC_OBS_MIN_DIST /**< enable obstacle avoidance */
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
@@ -742,7 +742,7 @@ MulticopterPositionControl::run()
 			}
 
 			//use range sensor to update constraints
-			if(MPC_USE_OBS_SENS.get()){
+			if(MPC_OBS_SENS_EN.get()){
 				update_range_constraints(_obstacle_distance, constraints);
 				_flight_tasks.setConstraints(constraints);
 			}
@@ -1150,8 +1150,8 @@ MulticopterPositionControl::update_range_constraints(const obstacle_distance_s &
 			float angle = i*obstacle_distance.increment * (M_PI/180.0);
 
 			//calculate normalized velocity reductions
-			float vel_lim_x =  (max_detection_distance - distance)/(max_detection_distance - MPC_MIN_OBS_DIST.get()) * cos(angle);
-			float vel_lim_y =  (max_detection_distance - distance)/(max_detection_distance - MPC_MIN_OBS_DIST.get()) * sin(angle);
+			float vel_lim_x =  (max_detection_distance - distance)/(max_detection_distance - MPC_OBS_MIN_DIST.get()) * cos(angle);
+			float vel_lim_y =  (max_detection_distance - distance)/(max_detection_distance - MPC_OBS_MIN_DIST.get()) * sin(angle);
 			if(vel_lim_x > 0 && vel_lim_x > constraints.velocity_limits[0]) constraints.velocity_limits[0] = vel_lim_x;
 			if(vel_lim_y > 0 && vel_lim_y > constraints.velocity_limits[1]) constraints.velocity_limits[1] = vel_lim_y;
 			if(vel_lim_x < 0 && -vel_lim_x > constraints.velocity_limits[2]) constraints.velocity_limits[2] = -vel_lim_x;

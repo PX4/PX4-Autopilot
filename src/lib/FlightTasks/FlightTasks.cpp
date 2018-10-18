@@ -47,7 +47,7 @@ const vehicle_constraints_s FlightTasks::getConstraints()
 	}
 }
 
-void FlightTasks::setConstraints(vehicle_constraints_s& constraints)
+void FlightTasks::setConstraints(vehicle_constraints_s &constraints)
 {
 	if (isAnyTaskActive()) {
 		_current_task.task->setConstraints(constraints);

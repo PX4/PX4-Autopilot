@@ -81,7 +81,7 @@ public:
 	/**
 	 * Set task dependent constraints
 	 */
-	void setConstraints(vehicle_constraints_s& constraints);
+	void setConstraints(vehicle_constraints_s &constraints);
 
 	/**
 	 * Get task avoidance desired waypoints

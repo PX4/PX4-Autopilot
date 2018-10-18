@@ -113,7 +113,7 @@ public:
 	 * Set vehicle constraints.
 	 * The constraints can vary with task.
 	 */
-	void setConstraints(vehicle_constraints_s& constraints) { _constraints = constraints; }
+	void setConstraints(vehicle_constraints_s &constraints) { _constraints = constraints; }
 
 	/**
 	 * Get avoidance desired waypoint
@@ -220,7 +220,7 @@ protected:
 					(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) MPC_Z_VEL_MAX_DN,
 					(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) MPC_Z_VEL_MAX_UP,
 					(ParamFloat<px4::params::MPC_TILTMAX_AIR>) MPC_TILTMAX_AIR,
-					(ParamInt<px4::params::MPC_USE_OBS_SENS>) MPC_USE_OBS_SENS,
-					(ParamFloat<px4::params::MPC_MIN_OBS_DIST>) MPC_MIN_OBS_DIST
-					)
+					(ParamInt<px4::params::MPC_OBS_SENS_EN>) MPC_OBS_SENS_EN,
+					(ParamFloat<px4::params::MPC_OBS_MIN_DIST>) MPC_OBS_MIN_DIST
+				       )
 };
