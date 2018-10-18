@@ -53,7 +53,7 @@
 #define BOARD_HAS_NO_RESET
 #define BOARD_HAS_NO_BOOTLOADER
 
-#define BOARD_MAX_LEDS 1 // Number external of LED's this board has
+#define BOARD_MAX_LEDS 1 // Number of external LED's this board has
 
 /*
  * I2C busses
