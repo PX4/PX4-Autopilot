@@ -1518,7 +1518,7 @@ void Ekf2::run()
 			{
 				/* Check and save learned magnetometer bias estimates */
 
-				// Check if conditions are OK to for learning of magnetometer bias values
+				// Check if conditions are OK for learning of magnetometer bias values
 				if (!vehicle_land_detected.landed && // not on ground
 				    (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) && // vehicle is armed
 				    !status.filter_fault_flags && // there are no filter faults
