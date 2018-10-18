@@ -31,7 +31,7 @@ Outputs summary plots in a pdf file named <inputfilename>.pdf
 
 """
 
-parser = argparse.ArgumentParser(description='Analyse the sensor_gyro  message data')
+parser = argparse.ArgumentParser(description='Reads in IMU data from a static thermal calibration test and performs a curve fit of gyro, accel and baro bias vs temperature')
 parser.add_argument('filename', metavar='file.ulg', help='ULog input file')
 
 def is_valid_directory(parser, arg):
