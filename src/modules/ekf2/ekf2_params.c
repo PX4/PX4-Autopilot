@@ -520,7 +520,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_ACCLIM, 0.5f);
  *
  * @group EKF2
  * @min 0.0
- * @max 0.5
+ * @max 1.0
  * @unit rad/s
  * @decimal 2
  */
