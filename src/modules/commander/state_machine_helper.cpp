@@ -245,7 +245,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 		      const vehicle_status_flags_s &status_flags, commander_state_s *internal_state)
 {
 	// IMPORTANT: The assumption of callers of this function is that the execution of
-	// this check if essentially "free". Therefore any runtime checking in here has to be
+	// this check is essentially "free". Therefore any runtime checking in here has to be
 	// kept super lightweight. No complex logic or calls on external function should be
 	// implemented here.
 
