@@ -48,7 +48,7 @@
 #define BOARD_HAS_NO_BOOTLOADER
 
 #define BOARD_NUMBER_I2C_BUSES 4
-#define BOARD_MAX_LEDS 1 // Number external of LED's this board has
+#define BOARD_MAX_LEDS 1 // Number of external LED's this board has
 #define PX4_I2C_BUS_LED 1
 #define PX4_I2C_BUS_EXPANSION 1
 
