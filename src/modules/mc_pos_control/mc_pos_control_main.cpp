@@ -1133,12 +1133,12 @@ void
 MulticopterPositionControl::update_range_constraints(const obstacle_distance_s &obstacle_distance,
 		vehicle_constraints_s &constraints)
 {
-	constraints.velocity_limits_x[0] = 0.0;
-	constraints.velocity_limits_x[1] = 0.0;
-	constraints.velocity_limits_y[0] = 0.0;
-	constraints.velocity_limits_y[1] = 0.0;
+	constraints.velocity_limits_x[0] = 0.0f;
+	constraints.velocity_limits_x[1] = 0.0f;
+	constraints.velocity_limits_y[0] = 0.0f;
+	constraints.velocity_limits_y[1] = 0.0f;
 
-	float max_detection_distance = obstacle_distance.max_distance/100.0; //convert to meters
+	float max_detection_distance = obstacle_distance.max_distance/100.0f; //convert to meters
 
 	for(int i = 0; i<72; i++){
 
@@ -1146,7 +1146,7 @@ MulticopterPositionControl::update_range_constraints(const obstacle_distance_s &
 		if(obstacle_distance.distances[i] < obstacle_distance.max_distance &&
 				obstacle_distance.distances[i] > obstacle_distance.min_distance && i*obstacle_distance.increment < 360){
 
-			float distance = obstacle_distance.distances[i]/100.0; //convert to meters
+			float distance = obstacle_distance.distances[i]/100.0f; //convert to meters
 			float angle = i*obstacle_distance.increment * (M_PI/180.0);
 
 			//calculate normalized velocity reductions

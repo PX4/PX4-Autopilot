@@ -120,13 +120,13 @@ void FlightTaskManualPosition::_scaleSticks()
 		float vel_mag = sqrt(vel_sp_xy(0) * vel_sp_xy(0) + vel_sp_xy(1) * vel_sp_xy(1));
 		float v_max_x, v_max_y;
 
-		if (vel_mag > 0) {
+		if (vel_mag > 0.0f) {
 			v_max_x = abs(_constraints.speed_xy / vel_mag * vel_sp_xy(0));
 			v_max_y = abs(_constraints.speed_xy / vel_mag * vel_sp_xy(1));
 
 		} else {
-			v_max_x = 0.f;
-			v_max_y = 0.f;
+			v_max_x = 0.0f;
+			v_max_y = 0.0f;
 		}
 
 		//scale the velocity reductions with the maximum possible velocity along the respective axis
