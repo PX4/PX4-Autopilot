@@ -1,0 +1,174 @@
+#!nsh
+#
+# @name Teal One
+#
+# @type Quadrotor x
+# @class Copter
+#
+# @board px4fmu-v2 exclude
+# @board px4fmu-v3 exclude
+# @board px4fmu-v4pro exclude
+# @board px4fmu-v5 exclude
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+#
+# @maintainer Jacob Dahl <jacob.dahl@tealdrones.com>
+# @maintainer Alex Klimaj <alex.klimaj@tealdrones.com>
+#
+
+echo "Executing 4250_teal script."
+
+sh /etc/init.d/4001_quad_x
+set MIXER_AUX none
+
+if [ $AUTOCNF = yes ]
+then
+	# battery
+	param set BAT_CAPACITY 2750
+	param set BAT_CRIT_THR 0.15
+	param set BAT_EMERGEN_THR 0.075
+	param set BAT_LOW_THR 0.20
+	param set BAT_N_CELLS 4
+	param set BAT_R_INTERNAL 0.06
+	param set BAT_SOURCE 1
+	param set BAT_V_CHARGED 4.15
+	param set BAT_V_DIV 11.1625
+	param set BAT_V_EMPTY 3.65
+	param set BAT_V_OFFS_CURR -0.0045
+
+	# primary accel
+	param set CAL_ACC_PRIME 1442826 #mpu6500
+	#param set CAL_ACC_PRIME 1445386 #mpu9250
+
+	# primary gyro
+	param set CAL_GYRO_PRIME 2360330 #mpu6500
+	#param set CAL_GYRO_PRIME 2362890 #mpu9250
+
+	#primary Mag
+	#param set CAL_MAG_PRIME 265738 #mpu9250
+
+	# sensor calibration
+	param set CAL_MAG0_ROT 0
+	param set CAL_MAG_SIDES 63
+	param set SENS_BOARD_ROT 0
+	param set COM_ARM_MAG 1.5
+	param set COM_ARM_EKF_AB 0.0032
+
+	# circuit breakers
+	param set CBRK_IO_SAFETY 22027
+	param set CBRK_USB_CHK 197848
+
+	# commander
+	param set COM_DISARM_LAND 1
+	param set COM_LOW_BAT_ACT 3
+	param set COM_LOSS_LTR_T 20
+
+	# ekf2
+	param set EKF2_AID_MASK 1
+	param set EKF2_GPS_CHECK 511
+	param set EKF2_GPS_POS_X -0.04
+	param set EKF2_IMU_POS_X -0.06
+	param set EKF2_MIN_RNG 0.07
+	param set EKF2_PCOEF_XN 0.1
+	param set EKF2_PCOEF_XP -0.5
+	param set EKF2_RNG_AID 1
+	param set EKF2_RNG_A_VMAX 20.0
+	param set EKF2_RNG_NOISE 0.2
+
+	# gps
+	param set GPS_UBX_DYNMODEL 7
+
+	# geofence
+	param set GF_ACTION 1
+
+	# land detector
+	param set LNDMC_THR_RANGE 0.50
+	param set LNDMC_XY_VEL_MAX 1.0
+	param set LNDMC_ROT_MAX 50.0
+
+	# mavlink stream configuration
+	param set MAV_1_CONFIG 102
+	param set MAV_1_RATE 20000
+
+	# mc_att_control
+	param set MC_ACRO_P_MAX 360.0
+	param set MC_ACRO_R_MAX 360.0
+	param set MC_ACRO_Y_MAX 360.0
+
+	param set MC_ROLL_P 6.0
+	param set MC_ROLLRATE_P 0.055
+	param set MC_ROLLRATE_I 0.2
+	param set MC_ROLLRATE_D 0.0012
+	param set MC_ROLLRATE_MAX 180.0
+
+	param set MC_PITCHRATE_P 0.06
+	param set MC_PITCHRATE_I 0.2
+	param set MC_PITCHRATE_D 0.0012
+	param set MC_PITCHRATE_MAX 180.0
+
+	param set MC_YAW_P 1.0
+	param set MC_YAWRATE_P 0.08
+	param set MC_YAWRATE_I 0.08
+	param set MC_YAWRATE_D 0.0
+	param set MC_YAWRATE_MAX 180.0
+
+	param set MOT_SLEW_MAX 0.15
+
+	# mc_pos_control
+	param set MPC_ACC_DOWN_MAX 10.0
+	param set MPC_ACC_HOR 10.0
+	param set MPC_ACC_HOR_MAX 15.0
+	param set MPC_ACC_UP_MAX 10.0
+	param set MPC_JERK_MAX 5.0
+	param set MPC_LAND_ALT1 8.0
+	param set MPC_LAND_ALT2 5.0
+	param set MPC_MANTHR_MAX 0.85
+	param set MPC_MANTHR_MIN 0.15
+	param set MPC_MAN_TILT_MAX 45.0
+	param set MPC_MAN_Y_MAX 200.0
+	param set MPC_THR_MAX 0.85
+	param set MPC_THR_MIN 0.15
+	param set MPC_TILTMAX_AIR 45.0
+	param set MPC_TKO_RAMP_T 0.75
+	param set MPC_TKO_SPEED 0.75
+	param set MPC_VEL_MANUAL 26.5
+	param set MPC_XY_CRUISE 15.0
+	param set MPC_XY_P 1.15
+	param set MPC_XY_VEL_P 0.14
+	param set MPC_XY_VEL_I 0.014
+	param set MPC_XY_VEL_D 0.014
+	param set MPC_XY_VEL_MAX 26.5
+	param set MPC_Z_P 0.8
+	param set MPC_TILTMAX_LND 18.0
+
+	param set MPC_Z_VEL_D 0.02
+	param set MPC_Z_VEL_MAX_DN 2.5
+	param set MPC_Z_VEL_MAX_UP 6.0
+
+	# navigator
+	param set NAV_ACC_RAD 2.5
+	param set NAV_RCL_ACT 1
+
+	# pwm control
+	param set PWM_DISARMED 900
+	param set PWM_MAX 1850
+	param set PWM_MIN 1075
+	param set PWM_RATE 400
+
+	# rtl
+	param set RTL_DESCEND_ALT 5
+	param set RTL_LAND_DELAY 5
+	param set RTL_MIN_DIST 7.5
+	param set RTL_RETURN_ALT 25
+
+	# sensors
+	param set SENS_EN_PGA460 1
+	param set SENS_EN_THERMAL 1
+
+	# serial comms
+	param set SER_TEL2_BAUD 921600
+
+fi
