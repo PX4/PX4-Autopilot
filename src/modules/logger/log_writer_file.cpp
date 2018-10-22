@@ -293,12 +293,32 @@ int LogWriterFile::write_message(LogType type, void *ptr, size_t size, uint64_t 
 	if (_need_reliable_transfer) {
 		int ret;
 
-		while ((ret = write(type, ptr, size, dropout_start)) == -1) {
-			unlock();
-			notify();
-			usleep(3000);
-			lock();
+		// if there's a dropout, write it first (because we might split the message)
+		if (dropout_start) {
+			while ((ret = write(type, ptr, 0, dropout_start)) == -1) {
+				unlock();
+				notify();
+				usleep(3000);
+				lock();
+			}
 		}
+
+		uint8_t *uptr = (uint8_t *)ptr;
+
+		do {
+			// Split into several blocks if the data is longer than the write buffer
+			size_t write_size = math::min(size, _buffers[(int)type].buffer_size());
+
+			while ((ret = write(type, uptr, write_size, 0)) == -1) {
+				unlock();
+				notify();
+				usleep(3000);
+				lock();
+			}
+
+			uptr += write_size;
+			size -= write_size;
+		} while (size > 0);
 
 		return ret;
 	}
