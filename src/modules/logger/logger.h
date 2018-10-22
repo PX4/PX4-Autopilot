@@ -354,6 +354,13 @@ private:
 	 */
 	void write_load_output();
 
+	/**
+	 * Regularly print the buffer fill state (only if DBGPRINT is set)
+	 * @param total_bytes total written bytes (to the full file), will be reset on each print
+	 * @param timer_start time since last print
+	 */
+	inline void debug_print_buffer(uint32_t &total_bytes, hrt_abstime &timer_start);
+
 
 	uint8_t						*_msg_buffer{nullptr};
 	int						_msg_buffer_len{0};
