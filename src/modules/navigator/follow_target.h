@@ -98,31 +98,19 @@ private:
 		FOLLOW_FROM_LEFT
 	};
 
-	float _follow_position_matricies[4][9] = {
+	float _follow_position_matricies[3][3] = {
 		{
-			1.0F,  -1.0F, 0.0F,
-			1.0F,   1.0F, 0.0F,
-			0.0F,   0.0F, 1.0F
+			0,0,0
 		}, // follow right
 
 		{
-			-1.0F,  0.0F, 0.0F,
-			0.0F, -1.0F, 0.0F,
-			0.0F,  0.0F, 1.0F
+			-3,-3,0
 		}, // follow behind
 
 		{
-			1.0F,   0.0F, 0.0F,
-			0.0F,   1.0F, 0.0F,
-			0.0F,   0.0F, 1.0F
-		}, // follow front
-
-		{
-			1.0F,   1.0F, 0.0F,
-			-1.0F,   1.0F, 0.0F,
-			0.0F,   0.0F, 1.0F
+			-3,3,0
 		}
-	}; // follow left side
+	};
 
 
 	Navigator *_navigator;

@@ -56,11 +56,6 @@
 #include <lib/mathlib/math/Limits.hpp>
 #include "follow_target.h"
 #include "navigator.h"
-//#include <pthread.h>
-int ischanging=0;
-bool formation_exit;
-//chen_sd_formation_s sd_formation;
-char file_path[256];
 FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
 	MissionBlock(navigator, name),
 	_navigator(navigator),
@@ -91,7 +86,6 @@ FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
 	collision_y(0),
 	hdg_offset(0)
 {
-	formation_exit=false;
 	updateParams();
 	_current_target_motion = {};
 	_previous_target_motion =  {};
@@ -107,7 +101,6 @@ FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
 
 FollowTarget::~FollowTarget()
 {
-	formation_exit=true;
 }
 
 void FollowTarget::on_inactive()
@@ -181,18 +174,10 @@ void FollowTarget::on_active()
 		_current_target_motion.vz = target_motion.vz;
 		_current_target_motion.vx = target_motion.vx;
 		_current_target_motion.vy = target_motion.vy;
-		hdg_offset = ((int)(target_motion.leader_hdg/0.08)) *0.08;
+		hdg_offset = 0;//((int)(target_motion.leader_hdg/0.08)) *0.08;
 	} else if (((current_time - _chen_last_time) / 1000) > TARGET_TIMEOUT_MS && target_velocity_valid()) {
 		reset_target_validity();
 	}
-//	if (follower.offset_to_leader < 2) {
-//		follower.offset_to_leader = 2;
-//		calcu_xy_offset();
-//	}
-//	if (follower.offset_to_leader > MAX_DISTANCE) {
-//		follower.offset_to_leader = MAX_DISTANCE;
-//		calcu_xy_offset();
-//	}
 
 	if(target_position_valid())
 	{
@@ -270,7 +255,6 @@ void FollowTarget::on_active()
 
 				if (_radius_entered == true) {
 					_follow_target_state = TRACK_VELOCITY;
-					ischanging =0;
 				} else if (target_velocity_valid()) {
 					set_follow_target_item(&_mission_item, (double)(_current_target_motion.alt), target_motion_with_offset, _yaw_angle);
 					// keep the current velocity updated with the target velocity for when it's needed

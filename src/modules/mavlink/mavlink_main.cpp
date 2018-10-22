@@ -2045,7 +2045,7 @@ Mavlink::task_main(int argc, char *argv[])
 		configure_stream("VFR_HUD", 4.0f);
 		configure_stream("CAMERA_IMAGE_CAPTURED");*/
 
-                if (mavlink_system.compid == 1) {
+        if (mavlink_system.compid == 1) {
                     configure_stream("CHEN_FORMATION", 5.0f);
                     configure_stream("POSITION_TARGET_GLOBAL_INT", 5.0f);
 		} else {

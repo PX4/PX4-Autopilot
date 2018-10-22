@@ -549,35 +549,52 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
+		static int last_send_time_interval = 0;
+		static double last_lat,last_lon;
+		bool send = false;
+		struct map_projection_reference_s ref;
 		struct vehicle_global_position_s pos = {};
-		struct mavlink_position_target_global_int_t pos_sp = {};
+		struct position_setpoint_triplet_s pos_sp = {};
 		bool updated =
 				_chen_sub->update(&_chen_time, &pos);
 		bool updated_2 =_pos_sub->update(&_pos_time,&pos_sp);
+		last_send_time_interval++;
 		if (updated||updated_2) {
+			if(last_lat <0.01)
+			{
+				last_lat=pos.lat;last_lon = pos.lon;
+			}
 			mavlink_chen_formation_msg_t msg = {};
 			msg.plane_id = mavlink_system.compid;
 			msg.time_boot_ms = pos.timestamp / 1000;
 			msg.lat = pos.lat * 1e7;
 			msg.lon = pos.lon * 1e7;
-			msg.alt = pos_sp_triplet.current.alt;
+			msg.alt = pos_sp.current.alt*100;
 			msg.vx = pos.vel_n*1e2;
 			msg.vy = pos.vel_e*1e2;
 			msg.vz = pos.vel_d*100 ;
 			msg.hdg = _wrap_2pi(pos.yaw)*100;
 			last_fol_upda_time = msg.time_boot_ms;
-			if(mavlink_system.compid==1){
+			//if(mavlink_system.compid==1){
+			float x_change=0,y_change =0;
+			map_projection_init(&ref, last_lat, last_lon);
+			map_projection_project(&ref,  pos.lat,  pos.lon,&x_change,&y_change);
+			if(last_send_time_interval>5||(abs(x_change)+abs(y_change))>last_send_time_interval/5)
+			{
+				last_lat = pos.lat; last_lon = pos.lon;
 				mavlink_msg_chen_formation_msg_send_struct(_mavlink->get_channel(), &msg);
+				last_send_time_interval = 0;
+				send = true;
 			}
 		}
 		FILE *fd;
 		fd = fopen(log_file, "a+");
 		fprintf(fd, "%d\t", (int) (pos.timestamp / 100000));
 		fprintf(fd,
-				"%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t\n",
-				pos.lat,pos.lon,pos.alt,pos_sp.x,pos_sp.y,-pos_sp.z);
+				"%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%d\n",
+				pos.lat,pos.lon,pos.alt,pos_sp.current.lat,pos_sp.current.lon,pos_sp.current.alt,send);
 		fclose(fd);
-
+		send = false;
 		return true;
 	}
 };

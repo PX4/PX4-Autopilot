@@ -517,12 +517,13 @@ MavlinkReceiver::handle_message_Chen_Formation_msg(mavlink_message_t *msg)
 	mavlink_chen_formation_msg_t chen_formation;
 	mavlink_msg_chen_formation_msg_decode(msg, &chen_formation);
 	follow_target_s follow_target_topic = { };
-	if(chen_formation.plane_id!=1)
-		{isFollowerUpdated = true;
+	if(chen_formation.plane_id != mavlink_system.compid-1)
+	{
 		return;
 		}
+
 	follow_target_topic.timestamp = hrt_absolute_time();
-	follow_target_topic.lat =chen_formation.lat * 1e-7;
+	follow_target_topic.lat = chen_formation.lat * 1e-7;
 	follow_target_topic.lon = chen_formation.lon * 1e-7;
 	follow_target_topic.alt = chen_formation.alt* 1e-2;
 	follow_target_topic.vx = chen_formation.vx* 1e-2;
@@ -538,6 +539,7 @@ MavlinkReceiver::handle_message_Chen_Formation_msg(mavlink_message_t *msg)
 		orb_publish(ORB_ID(follow_target), _follow_target_pub,
 				&follow_target_topic);
 	}
+
 
 }
 void
