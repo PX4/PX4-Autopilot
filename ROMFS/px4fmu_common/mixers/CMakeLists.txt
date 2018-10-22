@@ -46,8 +46,6 @@ px4_add_romfs_files(
 	coax.main.mix
 	delta.main.mix
 	deltaquad.main.mix
-	dodeca_bottom_cox.aux.mix
-	dodeca_top_cox.main.mix
 	firefly6.aux.mix
 	firefly6.main.mix
 	FMU_pass.mix
