@@ -1,0 +1,79 @@
+# PX4 .mailmap
+# See this guide for help modifying this file https://github.com/sympy/sympy/wiki/Using-.mailmap
+# Please append your entry
+# Example use of this map:
+#   git log --pretty='%aN <%aE>' | sort | uniq -c | sort -rn | HEAD -10
+
+Alessandro Simovic <alessandro@yuneecresearch.com> alessandro <alessandro@yuneecresearch.com>
+Alessandro Simovic <alessandro@yuneecresearch.com> alessandro <3762382+potaito@users.noreply.github.com>
+Alexandr Kondratev <theg4sh@gmail.com> <theg4sh@gmail.com>
+Amir Melzer <amir.melzer@mavt.ethz.ch> <amir.melzer@mavt.ethz.ch>
+Anthony Lamping <lamping.ap@gmail.com> <lamping.ap@gmail.com>
+Beat Küng <beat-kueng@gmx.net> <beat-kueng@gmx.net>
+Carl Olsson <carlolsson.co@gmail.com> <carlolsson.co@gmail.com>
+Daniel Agar <daniel@agar.ca> <daniel@agar.ca>
+Daniele Pettenuzzo <daniele@px4.io> Daniele Pettenuzzo <dani.pettenuzzo@gmail.com>
+Daniele Pettenuzzo <daniele@px4.io> DanielePettenuzzo <35664507+DanielePettenuzzo@users.noreply.github.com>
+Daniele Pettenuzzo <daniele@px4.io> Daniele Pettenuzzo <35664507+DanielePettenuzzo@users.noreply.github.com>
+Daniele Pettenuzzo <daniele@px4.io> DanielePettenuzzo <daniele@px4.io>
+David Riseborough <drisebor@hotmail.com>
+David Sidrane <david_s5@nscdg.com>
+Dennis Mannhart <dennis@yuneecresearch.com> Dennis Mannhart <dennis.mannhart@gmail.com>
+Dennis Mannhart <dennis@yuneecresearch.com> Dennis Mannhart <dennis@px4.io>
+Elia Tarasov <elias.tarasov@gmail.com>
+Florian Achermann <florian.achermann@mavt.ethz.ch>
+Hamish Willee <hamishwillee@gmail.com>
+Ivo Drescher <ivo.drescher@gmail.com>
+Jake Dahl <jacob.dahl@tealdrones.com>
+Johannes Brand <johannes@auterion.com>
+Joshua Whitehead <josh.whitehead@dornerworks.com>
+Julian Oes <julian@oes.ch> Julian Oes <joes@student.ethz.ch>
+Julien Lecoeur <julien.lecoeur@gmail.com>
+Jun-Tao <jt.li@yuneec.com>
+Karl Schwabe <ksschwabe@gmail.com>
+Lorenz Meier <lorenz@px4.io> Lorenz Meier <lm@inf.ethz.ch>
+Matthias Grob <maetugr@gmail.com>
+Martin Trgina <martin.trgina@belladati.com>
+Martina Rivizzigno <martina@rivizzigno.it>
+Mateusz Sadowski <msadowski90@gmail.com>
+Mohammed Kabir <kabir@uasys.io>
+Oleg Kalachev <okalachev@gmail.com>
+PX4 Jenkins <bot@pixhawk.org>
+Paul Riseborough <p_riseborough@live.com.au>
+Philipp Oettershagen <philipp.oettershagen@mavt.ethz.ch>
+Phillip Kocmoud <phil@itchy.io>
+Roman Bapst <roman@px4.io> Roman Bapst <bapstroman@gmail.com>
+Roman Bapst <roman@px4.io> Roman Bapst <romanbapst@yahoo.de>
+Roman Bapst <roman@px4.io> Roman Bapst <bapstr@ethz.ch>
+Roman Bapst <roman@px4.io> tumbili <roman@px4.io>
+Roman Bapst <roman@px4.io> Roman <romanbapst@gmail.com>
+Roman Bapst <roman@px4.io> Roman <bapstroman@gmail.com>
+Roman Bapst <roman@px4.io> Roman <romanbapst@gmail.com>
+Roman Bapst <roman@px4.io> Roman <bapstr@ethz.ch>
+Roman Bapst <roman@px4.io> tumbili <bapstr@ethz.ch>
+Sander Smeets <sander@droneslab.com>
+Simone Guscetti <simone@yuneecresearch.com> Simone Guscetti <simone@px4.io>
+Simone Guscetti <simone@yuneecresearch.com> Simone Guscetti <simone@yuneecresearch.com>
+Simone Guscetti <simone@yuneecresearch.com> Simone Guscetti <simonegu@student.ethz.ch>
+Simone Guscetti <simone@yuneecresearch.com> Simone Guscetti <simonegu@users.noreply.github.com>
+Sugnan Prabhu <sugnan.prabhu.s@intel.com>
+Nuno Marques <n.marques21@hotmail.com>
+Thomas Stastny <thomas.stastny@mavt.ethz.ch>
+Alex Klimaj <alex.klimaj@tealdrones.com>
+Barza Nisar <nisarb@student.ethz.ch> barzanisar <nisarb@student.ethz.ch>
+Mark Sauder <mcsauder@gmail.com> mcsauder <mcsauder@greypointcorp.com>
+Mark Sauder <mcsauder@gmail.com> mcsauder <mcsauder@gmail.com>
+SungTae Moon <munhoney@gmail.com> stmoon <munhoney@gmail.com>
+Mathieu Bresciani <brescianimathieu@gmail.com>
+Nick Anthony <nickmanthony@hotmail.com>
+Nathan Tsoi <nathan@vertile.com>
+Ritul Jasuja <ritul.jasuja@intel.com> ritul jasuja <ritul.jasuja@intel.com>
+Avinash Reddy Palleti <avinash.reddy.palleti@intel.com> avinash-palleti <avinash.reddy.palleti@intel.com>
+Otávio Pontes <otavio.pontes@intel.com> Otávio <otavio.pontes@intel.com>
+Gustavo Jose de Sousa <gustavo.sousa@intel.com> Gustavo Jose de Sousa <gustavo.sousa@intel.com>
+Jim Wilson <jwilson@qti.qualcomm.com> jwilson <jwilson@qti.qualcomm.com>
+bharathr <bharathr@qti.qualcomm.com> bharathr <bharathr@qti.qualcomm.com>
+Greg Nutt <gnutt@nuttx.org> patacongo <patacongo@7fd9a85b-ad96-42d3-883c-3090e2eb8679>
+Greg Nutt <gnutt@nuttx.org> patacongo <patacongo@42af7a65-404d-4744-a932-0658087f49c3>
+Andreas Antener <antener_a@gmx.ch> Andreas Daniel Antener <antener_a@gmx.ch>
+Andrew Tridgell <andrew@tridgell.net> Andrew Tridgell <tridge@samba.org>

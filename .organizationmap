@@ -1,0 +1,93 @@
+#
+# More information at
+#  http://tracker.ceph.com/projects/ceph/wiki/Ceph_contributors_list_maintenance_guide
+#
+# See .githubmap for GitHub username contributors
+# See .mailmap for name and mail normalization.
+# See .peoplemap for unique list of people
+#
+# To display the 10 organization who contributed
+# most commits to ceph ( requires git >= 1.8.4 ):
+#
+# git log --pretty='%aN <%aE>' | \
+#   git -c mailmap.file=.organizationmap check-mailmap --stdin | \
+#   sort | uniq -c | sort -rn | nl | head -10
+#     1	13235 Auterion <contact@auterion.com>
+#     2	4106 Unaffiliated <no@organization.net>
+#     3	2076 Yuneec Research <contact@yuneecresearch.com>
+#     4	1408 Nuttx <contact@nuttx.org>
+#     5	 977 Anton Babushkin <anton.babushkin@me.com>
+#     6	 811 px4dev <px4@purgatory.org>
+#     7	 720 Qualcomm <contact@qualcomm.com>
+#     8	 421 UAVenture <contact@uaventure.com>
+#     9	 295 James Goppert <james.goppert@gmail.com>
+#    10	 244 Mark Whitehorn <kd0aij@gmail.com>
+Auterion <contact@auterion.com> Lorenz Meier <lorenz@px4.io>
+Auterion <contact@auterion.com> Beat Küng <beat-kueng@gmx.net>
+Auterion <contact@auterion.com> Matthias Grob <maetugr@gmail.com>
+Auterion <contact@auterion.com> Daniele Pettenuzzo <daniele@px4.io>
+Auterion <contact@auterion.com> Roman Bapst <roman@px4.io>
+Auterion <contact@auterion.com> Paul Riseborough <p_riseborough@live.com.au>
+Auterion <contact@auterion.com> Hamish Willee <hamishwillee@gmail.com>
+Auterion <contact@auterion.com> Mathieu Bresciani <brescianimathieu@gmail.com>
+Auterion <contact@auterion.com> Johannes Brand <johannes@auterion.com>
+Auterion <contact@auterion.com> Barza Nisar <nisarb@student.ethz.ch>
+Auterion <contact@auterion.com> Thomas Gubler <thomasgubler@gmail.com>
+BellaDati <contact@belladati.com> Martin Trgina <martin.trgina@belladati.com>
+Copter Express <contact@copterexpress.com> Oleg Kalachev <okalachev@gmail.com>
+Copter Express <contact@copterexpress.com> Elia Tarasov <elias.tarasov@gmail.com>
+Fotokite <contact@fotokite.com> Karl Schwabe <ksschwabe@gmail.com>
+Intel <contact@intel.com> Sugnan Prabhu <sugnan.prabhu.s@intel.com>
+Intel <contact@intel.com> José Roberto de Souza <jose.souza@intel.com>
+Intel <contact@intel.com> Lucas De Marchi <lucas.demarchi@intel.com>
+Intel <contact@intel.com> Avinash Reddy Palleti <avinash.reddy.palleti@intel.com>
+Intel <contact@intel.com> Ritul Jasuja <ritul.jasuja@intel.com>
+Intel <contact@intel.com> Otávio Pontes <otavio.pontes@intel.com>
+Intel <contact@intel.com> Gustavo Jose de Sousa <gustavo.sousa@intel.com>
+Nuttx <contact@nuttx.org> Greg Nutt <gnutt@nuttx.org>
+PX4 Bots <contact@px4.io> PX4 Jenkins <bot@pixhawk.org>
+Qualcomm <contact@qualcomm.com> Mark Charlebois <charlebm@gmail.com>
+Qualcomm <contact@qualcomm.com> Jim Wilson <jwilson@qti.qualcomm.com>
+Qualcomm <contact@qualcomm.com> bharathr <bharathr@qti.qualcomm.com>
+Teal Drones <contact@tealdrones.com> Jake Dahl <jacob.dahl@tealdrones.com>
+Teal Drones <contact@tealdrones.com> Alex Klimaj <alex.klimaj@tealdrones.com>
+Teal Drones <contact@tealdrones.com> Mark Sauder <mcsauder@gmail.com>
+UAVenture <contact@uaventure.com> Andreas Antener <antener_a@gmx.ch>
+Unaffiliated <no@organization.net> Daniel Agar <daniel@agar.ca>
+Unaffiliated <no@organization.net> Florian Achermann <florian.achermann@mavt.ethz.ch>
+Unaffiliated <no@organization.net> Mohammed Kabir <kabir@uasys.io>
+Unaffiliated <no@organization.net> Philipp Oettershagen <philipp.oettershagen@mavt.ethz.ch>
+Unaffiliated <no@organization.net> David Sidrane <david_s5@nscdg.com>
+Unaffiliated <no@organization.net> dw.xiong <1308455330@qq.com>
+Unaffiliated <no@organization.net> githubDLG <oneshot.triplekill@qq.com>
+Unaffiliated <no@organization.net> Anthony Lamping <lamping.ap@gmail.com>
+Unaffiliated <no@organization.net> Nathan Tsoi <nathan@vertile.com>
+Unaffiliated <no@organization.net> Nuno Marques <n.marques21@hotmail.com>
+Unaffiliated <no@organization.net> Julien Lecoeur <julien.lecoeur@gmail.com>
+Unaffiliated <no@organization.net> Nick Anthony <nickmanthony@hotmail.com>
+Unaffiliated <no@organization.net> SungTae Moon <munhoney@gmail.com>
+Unaffiliated <no@organization.net> Ivo Drescher <ivo.drescher@gmail.com>
+Unaffiliated <no@organization.net> Phillip Kocmoud <phil@itchy.io>
+Unaffiliated <no@organization.net> Thomas Stastny <thomas.stastny@mavt.ethz.ch>
+Unaffiliated <no@organization.net> David Riseborough <drisebor@hotmail.com>
+Unaffiliated <no@organization.net> Mateusz Sadowski <msadowski90@gmail.com>
+Unaffiliated <no@organization.net> rolandash <ning.roland@gmail.com>
+Unaffiliated <no@organization.net> Joshua Whitehead <josh.whitehead@dornerworks.com>
+Unaffiliated <no@organization.net> Amir Melzer <amir.melzer@mavt.ethz.ch>
+Unaffiliated <no@organization.net> Alexandr Kondratev <theg4sh@gmail.com>
+Unaffiliated <no@organization.net> Andrew Tridgell <andrew@tridgell.net>
+Anton Babushkin <anton.babushkin@me.com>
+Vertical Technologies <contact@verticaltechnologies.com> Sander Smeets <sander@droneslab.com>
+Wingtra <contact@wingtra.com> Carl Olsson <carlolsson.co@gmail.com>
+Yuneec Research <contact@yuneecresearch.com> Julian Oes <julian@oes.ch>
+Yuneec Research <contact@yuneecresearch.com> Dennis Mannhart <dennis@yuneecresearch.com>
+Yuneec Research <contact@yuneecresearch.com> Alessandro Simovic <alessandro@yuneecresearch.com>
+Yuneec Research <contact@yuneecresearch.com> Simone Guscetti <simone@yuneecresearch.com>
+Yuneec Research <contact@yuneecresearch.com> Martina Rivizzigno <martina@rivizzigno.it>
+Yuneec <contact@yuneec.com> Jun-Tao <jt.li@yuneec.com>
+#
+# Local Variables:
+# compile-command: "git log --pretty='%aN <%aE>' | \
+#   git -c mailmap.file=.organizationmap check-mailmap --stdin | \
+#   sort | uniq -c | sort -rn | nl"
+# End:
