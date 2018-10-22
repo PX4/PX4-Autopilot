@@ -37,3 +37,14 @@ M: 2
 O:        7500    7500    0 -10000  10000
 S: 1 0  -10000  -10000    0 -10000  10000
 S: 1 1  -10000  -10000    0 -10000  10000
+
+# AUX1 channel (select RC channel with RC_MAP_AUX1 param)
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 3 5  10000  10000      0 -10000  10000
+
+# AUX2 channel (select RC channel with RC_MAP_AUX2 param)
+M: 1
+O:      10000  10000      0 -10000  10000
+S: 3 6  10000  10000      0 -10000  10000
+
