@@ -86,7 +86,7 @@ PARAM_DEFINE_INT32(SDLOG_MODE, 0);
  * @reboot_required true
  * @group SD Logging
  */
-PARAM_DEFINE_INT32(SDLOG_MISSION, 0);
+PARAM_DEFINE_INT32(SDLOG_MISSION, 1);
 
 /**
  * Logging topic profile (integer bitmask).
