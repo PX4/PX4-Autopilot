@@ -886,10 +886,6 @@ void Logger::add_mission_topic(const char* name, unsigned interval)
 
 void Logger::run()
 {
-#ifdef DBGPRINT
-	struct mallinfo alloc_info = {};
-#endif /* DBGPRINT */
-
 	PX4_INFO("logger started (mode=%s)", configured_backend_mode());
 
 	if (_writer.backend() & LogWriter::BackendFile) {
@@ -995,10 +991,9 @@ void Logger::run()
 		return;
 	}
 
-#ifdef DBGPRINT
+	/* debug stats */
 	hrt_abstime	timer_start = 0;
 	uint32_t	total_bytes = 0;
-#endif /* DBGPRINT */
 
 	px4_register_shutdown_hook(&Logger::request_stop_static);
 
@@ -1199,23 +1194,7 @@ void Logger::run()
 				next_subscribe_topic_index = 0;
 			}
 
-#ifdef DBGPRINT
-			double deltat = (double)(hrt_absolute_time() - timer_start)  * 1e-6;
-
-			if (deltat > 4.0) {
-				alloc_info = mallinfo();
-				double throughput = total_bytes / deltat;
-				PX4_INFO("%8.1f kB/s, %zu highWater,  %d dropouts, %5.3f sec max, free heap: %d",
-					 throughput / 1.e3, _statistics[0].high_water, _statistics[0].write_dropouts, (double)_statistics[0].max_dropout_duration,
-					 alloc_info.fordblks);
-
-				_statistics[0].high_water = 0;
-				_statistics[0].max_dropout_duration = 0.f;
-				total_bytes = 0;
-				timer_start = hrt_absolute_time();
-			}
-
-#endif /* DBGPRINT */
+			debug_print_buffer(total_bytes, timer_start);
 
 		} else { // not logging
 
@@ -1304,6 +1283,26 @@ void Logger::run()
 	}
 
 	px4_unregister_shutdown_hook(&Logger::request_stop_static);
+}
+
+void Logger::debug_print_buffer(uint32_t &total_bytes, hrt_abstime &timer_start)
+{
+#ifdef DBGPRINT
+	double deltat = (double)(hrt_absolute_time() - timer_start)  * 1e-6;
+
+	if (deltat > 4.0) {
+		struct mallinfo alloc_info = mallinfo();
+		double throughput = total_bytes / deltat;
+		PX4_INFO("%8.1f kB/s, %zu highWater,  %d dropouts, %5.3f sec max, free heap: %d",
+				throughput / 1.e3, _statistics[0].high_water, _statistics[0].write_dropouts,
+				(double)_statistics[0].max_dropout_duration, alloc_info.fordblks);
+
+		_statistics[0].high_water = 0;
+		_statistics[0].max_dropout_duration = 0.f;
+		total_bytes = 0;
+		timer_start = hrt_absolute_time();
+	}
+#endif /* DBGPRINT */
 }
 
 bool Logger::check_arming_state(int vehicle_status_sub, MissionLogType mission_log_type)
