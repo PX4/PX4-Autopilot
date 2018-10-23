@@ -79,6 +79,11 @@ public:
 	virtual bool activate();
 
 	/**
+	 * Call this to reset an active Flight Task
+	 */
+	virtual void reActivate();
+
+	/**
 	 * To be called to adopt parameters from an arrived vehicle command
 	 * @return true if accepted, false if declined
 	 */
