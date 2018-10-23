@@ -70,6 +70,10 @@ BATT_SMBUS::BATT_SMBUS(SMBus *interface, const char *path) :
 	param_set(param_find("BAT_SOURCE"), &battsource);
 
 	_interface->init();
+	// unseal() here to allow an external config script to write to protected flash.
+	// This is neccessary to avoid bus errors due to using standard i2c mode instead of SMbus mode.
+	// The external config script should then seal() the device.
+	unseal();
 }
 
 BATT_SMBUS::~BATT_SMBUS()
@@ -211,10 +215,6 @@ void BATT_SMBUS::cycle()
 	// Read remaining capacity.
 	ret |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, &result);
 
-	if (result > _batt_capacity) {
-		_batt_capacity = result;
-	}
-
 	// Calculate remaining capacity percent with complementary filter.
 	new_report.remaining = 0.8f * _last_report.remaining + 0.2f * (1.0f - (float)((float)(_batt_capacity - result) /
 			       (float)_batt_capacity));
@@ -267,10 +267,25 @@ void BATT_SMBUS::cycle()
 		exit_and_cleanup();
 
 	} else {
+
+		while (_should_suspend) {
+			usleep(200000);
+		}
+
 		// Schedule a fresh cycle call when the measurement is done.
 		work_queue(HPWORK, &_work, (worker_t)&BATT_SMBUS::cycle_trampoline, this,
 			   USEC2TICK(BATT_SMBUS_MEASUREMENT_INTERVAL_US));
 	}
+}
+
+void BATT_SMBUS::suspend()
+{
+	_should_suspend = true;
+}
+
+void BATT_SMBUS::resume()
+{
+	_should_suspend = false;
 }
 
 int BATT_SMBUS::get_cell_voltages()
@@ -319,14 +334,13 @@ void BATT_SMBUS::set_undervoltage_protection(float average_current)
 			uint8_t protections_a_tmp = BATT_SMBUS_ENABLED_PROTECTIONS_A_CUV_DISABLED;
 			uint16_t address = BATT_SMBUS_ENABLED_PROTECTIONS_A_ADDRESS;
 
-			unseal();
-
-			if (write_flash(address, &protections_a_tmp, 1) == PX4_OK) {
+			if (dataflash_write(address, &protections_a_tmp, 1) == PX4_OK) {
 				_cell_undervoltage_protection_status = 0;
 				PX4_WARN("Disabled CUV");
-			}
 
-			seal();
+			} else {
+				PX4_WARN("Failed to disable CUV");
+			}
 		}
 
 	} else {
@@ -336,15 +350,13 @@ void BATT_SMBUS::set_undervoltage_protection(float average_current)
 				uint8_t protections_a_tmp = BATT_SMBUS_ENABLED_PROTECTIONS_A_DEFAULT;
 				uint16_t address = BATT_SMBUS_ENABLED_PROTECTIONS_A_ADDRESS;
 
-				unseal();
-
-				if (write_flash(address, &protections_a_tmp, 1) == PX4_OK) {
+				if (dataflash_write(address, &protections_a_tmp, 1) == PX4_OK) {
 					_cell_undervoltage_protection_status = 1;
 					PX4_WARN("Enabled CUV");
 
+				} else {
+					PX4_WARN("Failed to enable CUV");
 				}
-
-				seal();
 			}
 		}
 	}
@@ -357,7 +369,7 @@ int BATT_SMBUS::dataflash_read(uint16_t &address, void *data)
 	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
 
 	// address is 2 bytes
-	int result = _interface->block_write(code, &address, 2, false);
+	int result = _interface->block_write(code, &address, 2, true);
 
 	if (result != PX4_OK) {
 		return result;
@@ -431,14 +443,14 @@ int BATT_SMBUS::get_startup_info()
 	}
 
 	if (lifetime_data_flush() == PX4_OK) {
+		// Flush needs time to complete, otherwise device is busy. 100ms not enough, 200ms works.
+		usleep(200000);
+
 		if (lifetime_read_block_one() == PX4_OK) {
 			if (_lifetime_max_delta_cell_voltage > BATT_CELL_VOLTAGE_THRESHOLD_FAILED) {
 				PX4_WARN("Battery Damaged Will Not Fly. Lifetime max voltage difference: %4.2f",
 					 (double)_lifetime_max_delta_cell_voltage);
 			}
-
-		} else {
-			PX4_WARN("Failed to read lifetime block 1");
 		}
 
 	} else {
@@ -541,15 +553,19 @@ int BATT_SMBUS::manufacturer_write(const uint16_t cmd_code, void *data, const un
 
 int BATT_SMBUS::unseal()
 {
-	// See pg95 of bq40z50 technical reference.
+	// See bq40z50 technical reference.
 	uint16_t keys[2] = {0x0414, 0x3672};
 
-	return manufacturer_write(keys[0], &keys[1], 2);
+	int ret = _interface->write_word(BATT_SMBUS_MANUFACTURER_ACCESS, &keys[0]);
+
+	ret |= _interface->write_word(BATT_SMBUS_MANUFACTURER_ACCESS, &keys[1]);
+
+	return ret;
 }
 
 int BATT_SMBUS::seal()
 {
-	// See pg95 of bq40z50 technical reference.
+	// See bq40z50 technical reference.
 	uint16_t reg = BATT_SMBUS_SEAL;
 
 	return manufacturer_write(reg, nullptr, 0);
@@ -557,7 +573,6 @@ int BATT_SMBUS::seal()
 
 int BATT_SMBUS::lifetime_data_flush()
 {
-	// See pg95 of bq40z50 technical reference.
 	uint16_t flush = BATT_SMBUS_LIFETIME_FLUSH;
 
 	return manufacturer_write(flush, nullptr, 0);
@@ -579,25 +594,6 @@ int BATT_SMBUS::lifetime_read_block_one()
 	PX4_INFO("Max Cell Delta: %4.2f", (double)_lifetime_max_delta_cell_voltage);
 
 	return PX4_OK;
-}
-
-int BATT_SMBUS::write_flash(uint16_t address, uint8_t *tx_buf, const unsigned length)
-{
-
-	if (length > 32) {
-		PX4_WARN("Data length out of range: Max 32 bytes");
-		return PX4_ERROR;
-	}
-
-	if (PX4_OK != dataflash_write(address, tx_buf, length)) {
-		PX4_INFO("Dataflash write failed: %d", address);
-		usleep(100000);
-		return PX4_ERROR;
-
-	} else {
-		usleep(100000);
-		return PX4_OK;
-	}
 }
 
 int BATT_SMBUS::custom_command(int argc, char *argv[])
@@ -638,6 +634,16 @@ int BATT_SMBUS::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
+	if (!strcmp(input, "suspend")) {
+		obj->suspend();
+		return 0;
+	}
+
+	if (!strcmp(input, "resume")) {
+		obj->resume();
+		return 0;
+	}
+
 	if (!strcmp(input, "serial_num")) {
 		uint16_t serial_num = obj->get_serial_number();
 		PX4_INFO("Serial number: %d", serial_num);
@@ -657,7 +663,7 @@ int BATT_SMBUS::custom_command(int argc, char *argv[])
 
 			// Data needs to be fed in 1 byte (0x01) at a time.
 			for (unsigned i = 0; i < length; i++) {
-				tx_buf[i] = atoi(argv[5 + i]);
+				tx_buf[i] = atoi(argv[3 + i]);
 			}
 
 			if (PX4_OK != obj->dataflash_write(address, tx_buf, length)) {
@@ -703,6 +709,8 @@ $ batt_smbus -X write_flash 19069 2 27 0
 	PRINT_MODULE_USAGE_COMMAND_DESCR("report",  "Prints the last report.");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("unseal", "Unseals the devices flash memory to enable write_flash commands.");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("seal", "Seals the devices flash memory to disbale write_flash commands.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("suspend", "Suspends the driver from rescheduling the cycle.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("resume", "Resumes the driver from suspension.");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("write_flash", "Writes to flash. The device must first be unsealed with the unseal command.");
 	PRINT_MODULE_USAGE_ARG("address", "The address to start writing.", true);

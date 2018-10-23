@@ -262,15 +262,6 @@ public:
 	int lifetime_read_block_one();
 
 	/**
-	 * @brief Reads the lifetime data from block 1.
-	 * @param address Address of the register to write
-	 * @param tx_buf The sent data.
-	 * @param length The number of bytes being written.
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
-	 */
-	int write_flash(uint16_t address, uint8_t *tx_buf, const unsigned length);
-
-	/**
 	 * @brief Reads the cell voltages.
 	 * @return Returns PX4_OK on success or associated read error code on failure.
 	 */
@@ -282,6 +273,10 @@ public:
 	void set_undervoltage_protection(float average_current);
 
 	SMBus *_interface;
+
+	void suspend();
+
+	void resume();
 
 private:
 
@@ -296,6 +291,8 @@ private:
 	float _max_cell_voltage_delta{0};
 
 	float _min_cell_voltage{0};
+
+	bool _should_suspend{false};
 
 	void cycle();
 
