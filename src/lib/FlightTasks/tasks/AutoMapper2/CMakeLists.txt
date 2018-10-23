@@ -31,15 +31,9 @@
 #
 ############################################################################
 
-# add the core Flight tasks that the additional flight tasks depend on
-add_subdirectory(FlightTask)
-add_subdirectory(Utility)
-add_subdirectory(Manual)
-add_subdirectory(Auto)
-add_subdirectory(AutoMapper)
-add_subdirectory(AutoMapper2)
+px4_add_library(FlightTaskAutoMapper2
+	FlightTaskAutoMapper2.cpp
+)
 
-# add all additional flight tasks
-foreach(task ${flight_tasks_all})
-    add_subdirectory(${task})
-endforeach()
+target_link_libraries(FlightTaskAutoMapper2 PUBLIC FlightTaskAuto)
+target_include_directories(FlightTaskAutoMapper2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
