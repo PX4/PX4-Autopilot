@@ -369,8 +369,9 @@ const char *log_type_str(LogType type)
 	return "unknown";
 }
 
-LogWriterFile::LogFileBuffer::LogFileBuffer(size_t buffer_size, perf_counter_t perf_write, perf_counter_t perf_fsync)
-	: _buffer_size(buffer_size), _perf_write(perf_write), _perf_fsync(perf_fsync)
+LogWriterFile::LogFileBuffer::LogFileBuffer(size_t log_buffer_size, perf_counter_t perf_write,
+		perf_counter_t perf_fsync)
+	: _buffer_size(log_buffer_size), _perf_write(perf_write), _perf_fsync(perf_fsync)
 {
 }
 
