@@ -67,21 +67,20 @@ PARAM_DEFINE_INT32(SDLOG_MODE, 0);
 /**
  * Mission Log
  *
- * If enabled, a second mission log file will be written to the SD card.
- * This is a small log file with reduced information content (such as the
- * vehicle position) that for example can be used for flight statistics,
- * regulatory purposes or geotagging.
+ * If enabled, a small additional "mission" log file will be written to the SD card.
+ * The log contains just those messages that are useful for tasks like
+ * generating flight statistics and geotagging.
  *
- * The normal full log file will still be generated and it contains all
- * the data that a mission log contains.
- *
- * The different modes can be used to further reduce the amount of logged data
- * and thus the log file size. Geotagging for instance will only log data
- * required for geotagging.
+ * The different modes can be used to further reduce the logged data
+ * (and thus the log file size). For example, choose geotagging mode to
+ * only log data required for geotagging.
+
+ * Note that the normal/full log is still created, and contains all
+ * the data in the mission log (and more).
  *
  * @value 0 Disabled
- * @value 1 Complete
- * @value 2 Geotagging
+ * @value 1 All mission messages
+ * @value 2 Geotagging messages
  *
  * @reboot_required true
  * @group SD Logging
