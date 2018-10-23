@@ -22,6 +22,7 @@
 #     8	 421 UAVenture <contact@uaventure.com>
 #     9	 295 James Goppert <james.goppert@gmail.com>
 #    10	 244 Mark Whitehorn <kd0aij@gmail.com>
+Aerotenna <contact@aerotenna> David Royer <dave@aerotenna.com>
 Auterion <contact@auterion.com> Lorenz Meier <lorenz@px4.io>
 Auterion <contact@auterion.com> Beat Küng <beat-kueng@gmx.net>
 Auterion <contact@auterion.com> Daniele Pettenuzzo <daniele@px4.io>
@@ -31,10 +32,13 @@ Auterion <contact@auterion.com> Mathieu Bresciani <brescianimathieu@gmail.com>
 Auterion <contact@auterion.com> Johannes Brand <johannes@auterion.com>
 Auterion <contact@auterion.com> Barza Nisar <nisarb@student.ethz.ch>
 Auterion <contact@auterion.com> Thomas Gubler <thomasgubler@gmail.com>
+Auterion <contact@auterion.com> Jonas Vautherin <jonas.vautherin@gmail.com>
 BellaDati <contact@belladati.com> Martin Trgina <martin.trgina@belladati.com>
 Copter Express <contact@copterexpress.com> Oleg Kalachev <okalachev@gmail.com>
 Copter Express <contact@copterexpress.com> Elia Tarasov <elias.tarasov@gmail.com>
-DIU <contact@diu.(none)> Hamish Willee <hamishwillee@gmail.com>
+Auterion <contact@auterion.com> Hamish Willee <hamishwillee@gmail.com>
+Drotek <contact@drotek.com> Kevin Lopez Alvarez <kevin.lopez.alvarez@drotek.com>
+Dronecode <contact@dronecode.com> Ramón Roche <mrpollo@gmail.com>
 ETH Zurich <contact@student.ethz.ch> Florian Achermann <florian.achermann@mavt.ethz.ch>
 ETH Zurich <contact@student.ethz.ch> Philipp Oettershagen <philipp.oettershagen@mavt.ethz.ch>
 ETH Zurich <contact@student.ethz.ch> Thomas Mantel <thomas.mantel@mavt.ethz.ch>
@@ -42,6 +46,7 @@ ETH Zurich <contact@student.ethz.ch> Ivo Drescher <ivo.drescher@gmail.com>
 ETH Zurich <contact@student.ethz.ch> Thomas Stastny <thomas.stastny@mavt.ethz.ch>
 EPFL <contact@epfl.ch> Julien Lecoeur <julien.lecoeur@gmail.com>
 Fotokite <contact@fotokite.com> Karl Schwabe <ksschwabe@gmail.com>
+Impossible Aerospace <contact@impossible.aero> Keenan Johnson <keenan.johnson@gmail.com>
 Intel <contact@intel.com> Sugnan Prabhu <sugnan.prabhu.s@intel.com>
 Intel <contact@intel.com> José Roberto de Souza <jose.souza@intel.com>
 Intel <contact@intel.com> Lucas De Marchi <lucas.demarchi@intel.com>
@@ -49,6 +54,8 @@ Intel <contact@intel.com> Avinash Reddy Palleti <avinash.reddy.palleti@intel.com
 Intel <contact@intel.com> Ritul Jasuja <ritul.jasuja@intel.com>
 Intel <contact@intel.com> Otávio Pontes <otavio.pontes@intel.com>
 Intel <contact@intel.com> Gustavo Jose de Sousa <gustavo.sousa@intel.com>
+Leitwert <contact@leitwert.ch> Simon Laube <simon@leitwert.ch>
+Leitwert <contact@leitwert.ch> Jan Okle <jan@leitwert.ch>
 MIT <contact@mit.edu> Mohammed Kabir <kabir@uasys.io>
 Nuttx <contact@nuttx.org> Greg Nutt <gnutt@nuttx.org>
 PX4 Bots <contact@px4.io> PX4 Jenkins <bot@pixhawk.org>
@@ -76,7 +83,7 @@ Unaffiliated <no@organization.net> Joshua Whitehead <josh.whitehead@dornerworks.
 Unaffiliated <no@organization.net> Amir Melzer <amir.melzer@mavt.ethz.ch>
 Unaffiliated <no@organization.net> Alexandr Kondratev <theg4sh@gmail.com>
 Unaffiliated <no@organization.net> Andrew Tridgell <andrew@tridgell.net>
-Anton Babushkin <anton.babushkin@me.com>
+Unaffiliated <no@organization.net> Don Gagne <don@thegagnes.com>
 Vertical Technologies <contact@verticaltechnologies.com> Sander Smeets <sander@droneslab.com>
 Wingtra <contact@wingtra.com> Carl Olsson <carlolsson.co@gmail.com>
 Wingtra <contact@wingtra.com> Sebastian Verling <sverling@student.ethz.ch>
@@ -86,6 +93,7 @@ Yuneec Research <contact@yuneecresearch.com> Alessandro Simovic <alessandro@yune
 Yuneec Research <contact@yuneecresearch.com> Simone Guscetti <simone@yuneecresearch.com>
 Yuneec Research <contact@yuneecresearch.com> Martina Rivizzigno <martina@rivizzigno.it>
 Yuneec Research <contact@yuneecresearch.com> Matthias Grob <maetugr@gmail.com>
+Yuneec Research <contact@yuneecresearch.com> Christoph Tobler <christoph@yuneecresearch.com>
 Yuneec <contact@yuneec.com> Jun-Tao <jt.li@yuneec.com>
 #
 # Local Variables:
