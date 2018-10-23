@@ -447,12 +447,6 @@ MulticopterPositionControl::poll_subscriptions()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_trajectory_waypoint), _traj_wp_avoidance_sub, &_traj_wp_avoidance);
 	}
-
-	orb_check(_vehicle_att_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_attitude),_vehicle_att_sub, &_v_att);
-	}
 }
 
 void
@@ -545,12 +539,21 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 
 	}
 
-	float q_yaw = matrix::Eulerf(matrix::Quatf(_v_att.q)).psi();
-
 	if (PX4_ISFINITE(_local_pos.yaw)) {
 		_states.yaw = _local_pos.yaw;
-	} else if (PX4_ISFINITE(q_yaw)) {
-		_states.yaw = q_yaw;
+	} else {
+		// Extract the yaw from attitdue. This is required for stabilized, which does
+		// not depend on the local-pos-yaw topic but still requires a valid yaw.
+		// TODO: move Stabilized into the Atttidue controller
+		bool updated = false;
+		orb_check(_vehicle_att_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(vehicle_attitude),_vehicle_att_sub, &_v_att);
+			_states.yaw = matrix::Eulerf(matrix::Quatf(_v_att.q)).psi();
+		} else {
+			_states.yaw = NAN;
+		}
 	}
 }
 
