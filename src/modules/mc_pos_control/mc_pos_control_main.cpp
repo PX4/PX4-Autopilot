@@ -885,7 +885,22 @@ MulticopterPositionControl::start_flight_task()
 
 	} else if (_control_mode.flag_control_auto_enabled) {
 		// Auto relate maneuvers
-		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
+		int error = 0;
+		switch (MPC_POS_MODE.get()) {
+		case 0:
+		case 1:
+		case 2:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
+			break;
+
+		case 3:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLineSmoothVel);
+			break;
+
+		default:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
+			break;
+		}
 
 		if (error != 0) {
 			if (prev_failure_count == 0) {
