@@ -152,7 +152,7 @@ private:
 	class LogFileBuffer
 	{
 	public:
-		LogFileBuffer(size_t buffer_size, perf_counter_t perf_write, perf_counter_t perf_fsync);
+		LogFileBuffer(size_t log_buffer_size, perf_counter_t perf_write, perf_counter_t perf_fsync);
 
 		~LogFileBuffer();
 
