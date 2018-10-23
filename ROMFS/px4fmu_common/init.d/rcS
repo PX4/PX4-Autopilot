@@ -375,17 +375,6 @@ else
 		camera_feedback start
 	fi
 
-	# Camera capture driver
-	if param greater CAM_CAP_FBACK 0
-	then
-		if camera_capture start
-		then
-			set FMU_MODE pwm4
-			set AUX_MODE pwm4
-			camera_capture on
-		fi
-	fi
-
 	#
 	# Check if UAVCAN is enabled, default to it for ESCs.
 	#
@@ -427,6 +416,15 @@ else
 	#       rc.fw_apps, rc.mc_apps, rc.ugv_apps, and rc.vtol_apps.
 	#
 	sh /etc/init.d/rc.vehicle_setup
+
+	# Camera capture driver
+	if param greater CAM_CAP_FBACK 0
+	then
+		if camera_capture start
+		then
+			camera_capture on
+		fi
+	fi
 
 	#
 	# Start the navigator.
