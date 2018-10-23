@@ -51,6 +51,8 @@ lis3mdl::calibrate(struct lis3mdl_bus_option &bus)
 	int ret;
 	const char *path = bus.devpath;
 
+	PX4_INFO("running on bus: %u (%s)", (unsigned)bus.bus_id, bus.devpath);
+
 	int fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
@@ -70,7 +72,7 @@ lis3mdl::calibrate(struct lis3mdl_bus_option &bus)
 int
 lis3mdl::info(struct lis3mdl_bus_option &bus)
 {
-	PX4_WARN("running on bus: %u (%s)\n", (unsigned)bus.bus_id, bus.devpath);
+	PX4_INFO("running on bus: %u (%s)", (unsigned)bus.bus_id, bus.devpath);
 	bus.dev->print_info();
 	return 0;
 }
@@ -169,6 +171,8 @@ lis3mdl::test(struct lis3mdl_bus_option &bus)
 	int ret;
 	const char *path = bus.devpath;
 
+	PX4_INFO("running on bus: %u (%s)", (unsigned)bus.bus_id, bus.devpath);
+
 	int fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
@@ -239,6 +243,8 @@ lis3mdl::reset(struct lis3mdl_bus_option &bus)
 {
 	const char *path = bus.devpath;
 
+	PX4_INFO("running on bus: %u (%s)", (unsigned)bus.bus_id, bus.devpath);
+
 	int fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
@@ -267,6 +273,7 @@ lis3mdl::usage()
 	PX4_WARN("    -R rotation");
 	PX4_WARN("    -C calibrate on start");
 	PX4_WARN("    -X only external bus");
+	PX4_WARN("    -S only spi bus");
 #if (PX4_I2C_BUS_ONBOARD || PX4_SPIDEV_LIS)
 	PX4_WARN("    -I only internal bus");
 #endif
@@ -320,6 +327,7 @@ lis3mdl_main(int argc, char *argv[])
 
 	const char *verb = argv[myoptind];
 	int ret;
+	bool dev_found=false;
 	bool cmd_found=false;
 
 	// Start/load the driver
@@ -331,6 +339,7 @@ lis3mdl_main(int argc, char *argv[])
 				// not the one that is asked for
 				continue;
 			}
+			dev_found=true;
 			// Start/load the driver
 			if (lis3mdl::start(lis3mdl::bus_options[i], rotation) == OK) {
 				if (calibrate) {
@@ -363,6 +372,7 @@ lis3mdl_main(int argc, char *argv[])
 					continue;
 				}
 			}
+			dev_found=true;
 
 			// Stop the driver
 			if (!strcmp(verb, "stop")) {
@@ -395,17 +405,20 @@ lis3mdl_main(int argc, char *argv[])
 				if (lis3mdl::calibrate(lis3mdl::bus_options[i]) == OK) {
 					PX4_INFO("calibration successful");
 				} else {
-					PX4_INFO("calibration failed");
+					PX4_WARN("calibration failed");
 					ret = 1;
 				}
 			}
 		}
 	}
 
-	if(!cmd_found){
-		PX4_INFO("unrecognized command, try 'start', 'test', 'reset', 'calibrate' 'or 'info'");
+	if (!dev_found) {
+		PX4_WARN("no device found, please start driver first");
 		return 1;
-	}else{
+	} else if (!cmd_found) {
+		PX4_WARN("unrecognized command, try 'start', 'test', 'reset', 'calibrate' 'or 'info'");
+		return 1;
+	} else {
 		return ret;
 	}
 }
