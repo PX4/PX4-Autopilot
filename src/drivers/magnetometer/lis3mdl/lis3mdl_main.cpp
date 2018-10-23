@@ -143,6 +143,7 @@ lis3mdl::start(struct lis3mdl_bus_option &bus, Rotation rotation)
 {
 	if (bus.dev == NULL) {
 		return start_bus(bus, rotation);
+
 	} else {
 		// this device is already started
 		return 1;
@@ -157,6 +158,7 @@ lis3mdl::stop(struct lis3mdl_bus_option &bus)
 		delete bus.dev;
 		bus.dev = nullptr;
 		return 0;
+
 	} else {
 		// this device is already stopped
 		return 1;
@@ -327,52 +329,64 @@ lis3mdl_main(int argc, char *argv[])
 
 	const char *verb = argv[myoptind];
 	int ret;
-	bool dev_found=false;
-	bool cmd_found=false;
+	bool dev_found = false;
+	bool cmd_found = false;
 
-	// Start/load the driver
 	if (!strcmp(verb, "start")) {
+		// Start/load the driver
+
 		cmd_found = true;
-		ret=1; // default: failed, will be set to success if one start succeeds
+		ret = 1; // default: failed, will be set to success if one start succeeds
+
 		for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
 			if (bus_id != LIS3MDL_BUS_ALL && bus_id != lis3mdl::bus_options[i].bus_id) {
 				// not the one that is asked for
 				continue;
 			}
-			dev_found=true;
+
+			dev_found = true;
+
 			// Start/load the driver
 			if (lis3mdl::start(lis3mdl::bus_options[i], rotation) == OK) {
 				if (calibrate) {
 					if (lis3mdl::calibrate(lis3mdl::bus_options[i]) != OK) {
 						PX4_WARN("calibration failed");
 						lis3mdl::stop(lis3mdl::bus_options[i]); //Stop, failed
+
 					} else {
 						lis3mdl::init(lis3mdl::bus_options[i]);
 						ret = 0; // one succeed
 					}
+
 				} else {
 					lis3mdl::init(lis3mdl::bus_options[i]);
 					ret = 0; // one succeed
 				}
 			}
 		}
-	// Other commands
-	}else{
+
+	} else {
+		// Other commands
+
 		ret = 0; // default: success, will be set to failed if one action fails
+
 		for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
 			if (bus_id != LIS3MDL_BUS_ALL && bus_id != lis3mdl::bus_options[i].bus_id) {
 				// not the one that is asked for
 				continue;
 			}
+
 			if (lis3mdl::bus_options[i].dev == NULL) {
 				if (bus_id != LIS3MDL_BUS_ALL) {
 					PX4_ERR("bus %u not started", (unsigned)bus_id);
 					return 1;
-				}else{
+
+				} else {
 					continue;
 				}
 			}
-			dev_found=true;
+
+			dev_found = true;
 
 			// Stop the driver
 			if (!strcmp(verb, "stop")) {
@@ -394,7 +408,7 @@ lis3mdl_main(int argc, char *argv[])
 
 			// Print driver information
 			if (!strcmp(verb, "info") ||
-				!strcmp(verb, "status")) {
+			    !strcmp(verb, "status")) {
 				cmd_found = true;
 				ret |= lis3mdl::info(lis3mdl::bus_options[i]);
 			}
@@ -402,8 +416,10 @@ lis3mdl_main(int argc, char *argv[])
 			// Autocalibrate the scaling
 			if (!strcmp(verb, "calibrate")) {
 				cmd_found = true;
+
 				if (lis3mdl::calibrate(lis3mdl::bus_options[i]) == OK) {
 					PX4_INFO("calibration successful");
+
 				} else {
 					PX4_WARN("calibration failed");
 					ret = 1;
@@ -415,9 +431,11 @@ lis3mdl_main(int argc, char *argv[])
 	if (!dev_found) {
 		PX4_WARN("no device found, please start driver first");
 		return 1;
+
 	} else if (!cmd_found) {
 		PX4_WARN("unrecognized command, try 'start', 'test', 'reset', 'calibrate' 'or 'info'");
 		return 1;
+
 	} else {
 		return ret;
 	}
