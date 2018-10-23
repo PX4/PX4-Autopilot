@@ -38,6 +38,11 @@ bool FlightTask::activate()
 	return true;
 }
 
+void FlightTask::reActivate()
+{
+	activate();
+}
+
 bool FlightTask::updateInitialize()
 {
 	_time_stamp_current = hrt_absolute_time();

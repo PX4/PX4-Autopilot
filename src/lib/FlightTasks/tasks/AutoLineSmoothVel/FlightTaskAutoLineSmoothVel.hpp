@@ -50,6 +50,7 @@ public:
 	virtual ~FlightTaskAutoLineSmoothVel() = default;
 
 	bool activate() override;
+	void reActivate() override;
 
 protected:
 
