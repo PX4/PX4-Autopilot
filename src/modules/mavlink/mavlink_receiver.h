@@ -61,6 +61,7 @@
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/obstacle_distance.h>
+#include <uORB/topics/avoidance_status.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/ping.h>
@@ -157,6 +158,7 @@ private:
 	void handle_message_logging_ack(mavlink_message_t *msg);
 	void handle_message_play_tune(mavlink_message_t *msg);
 	void handle_message_obstacle_distance(mavlink_message_t *msg);
+	void handle_message_avoidance_status(mavlink_message_t *msg);
 	void handle_message_trajectory_representation_waypoints(mavlink_message_t *msg);
 	void handle_message_odometry(mavlink_message_t *msg);
 	void handle_message_named_value_float(mavlink_message_t *msg);
@@ -235,6 +237,7 @@ private:
 	orb_advert_t _rc_pub;
 	orb_advert_t _manual_pub;
 	orb_advert_t _obstacle_distance_pub;
+	orb_advert_t _avoidance_status_pub;
 	orb_advert_t _trajectory_waypoint_pub;
 	orb_advert_t _land_detector_pub;
 	orb_advert_t _follow_target_pub;

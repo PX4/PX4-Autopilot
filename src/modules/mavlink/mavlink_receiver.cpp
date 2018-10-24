@@ -150,6 +150,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_rc_pub(nullptr),
 	_manual_pub(nullptr),
 	_obstacle_distance_pub(nullptr),
+	_avoidance_status_pub(nullptr),
 	_trajectory_waypoint_pub(nullptr),
 	_land_detector_pub(nullptr),
 	_follow_target_pub(nullptr),
@@ -326,6 +327,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_OBSTACLE_DISTANCE:
 		handle_message_obstacle_distance(msg);
+		break;
+
+	case MAVLINK_MSG_ID_AVOIDANCE_STATUS:
+		handle_message_avoidance_status(msg);
 		break;
 
 	case MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_WAYPOINTS:
@@ -1961,6 +1966,26 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 			tstatus.component_id = msg->compid;
 		}
 	}
+}
+
+void
+MavlinkReceiver::handle_message_avoidance_status(mavlink_message_t *msg)
+{
+	mavlink_avoidance_status_t mavlink_avoidance_status;
+	mavlink_msg_avoidance_status_decode(msg, &mavlink_avoidance_status);
+
+	avoidance_status_s avoidance_status = {};
+	avoidance_status.timestamp = hrt_absolute_time();
+	avoidance_status.status = mavlink_avoidance_status.status;
+
+	if (_avoidance_status_pub == nullptr) {
+		_avoidance_status_pub = orb_advertise(ORB_ID(avoidance_status), &avoidance_status);
+
+	} else {
+		orb_publish(ORB_ID(avoidance_status), _avoidance_status_pub, &avoidance_status);
+	}
+
+	mavlink_and_console_log_warning(_mavlink->_mavlink_log_pub, "Avoidance failed");
 }
 
 int
