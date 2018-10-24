@@ -87,6 +87,9 @@
 #include "devices/src/mtk.h"
 #include "devices/src/ashtech.h"
 
+#ifdef __PX4_LINUX
+#include <linux/spi/spidev.h>
+#endif /* __PX4_LINUX */
 
 #define TIMEOUT_5HZ 500
 #define RATE_MEASUREMENT_PERIOD 5000000
@@ -608,6 +611,27 @@ GPS::run()
 			PX4_ERR("GPS: failed to open serial port: %s err: %d", _port, errno);
 			return;
 		}
+
+#ifdef __PX4_LINUX
+
+		if (_interface == GPSHelper::Interface::SPI) {
+			int spi_speed = 1000000; // make sure the bus speed is not too high (required on RPi)
+			int status_value = ioctl(_serial_fd, SPI_IOC_WR_MAX_SPEED_HZ, &spi_speed);
+
+			if (status_value < 0) {
+				PX4_ERR("SPI_IOC_WR_MAX_SPEED_HZ failed for %s (%d)", _port, errno);
+				return;
+			}
+
+			status_value = ioctl(_serial_fd, SPI_IOC_RD_MAX_SPEED_HZ, &spi_speed);
+
+			if (status_value < 0) {
+				PX4_ERR("SPI_IOC_RD_MAX_SPEED_HZ failed for %s (%d)", _port, errno);
+				return;
+			}
+		}
+
+#endif /* __PX4_LINUX */
 	}
 
 	param_t handle = param_find("GPS_YAW_OFFSET");
