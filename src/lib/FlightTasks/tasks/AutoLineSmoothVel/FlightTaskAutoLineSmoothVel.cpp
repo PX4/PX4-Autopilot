@@ -119,9 +119,7 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 		Vector2f closest_pt = Vector2f(_prev_wp) + u_prev_to_dest * (prev_to_pos * u_prev_to_dest);
 		Vector2f u_pos_traj_to_dest_xy(Vector2f(pos_traj_to_dest).unit_or_zero());
 
-		float speed_sp_track = _mc_cruise_speed;
-
-		speed_sp_track = Vector2f(pos_traj_to_dest).length() * 0.3f;
+		float speed_sp_track = Vector2f(pos_traj_to_dest).length() * MPC_XY_TRAJ_P.get();
 		speed_sp_track = math::constrain(speed_sp_track, 0.0f, MPC_XY_CRUISE.get());
 		Vector2f velocity_sp_xy = u_pos_traj_to_dest_xy * speed_sp_track;
 
@@ -135,7 +133,7 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 			}
 
 			_velocity_setpoint(i) += (closest_pt(i) - _trajectory[i].getCurrentPosition()) *
-						 0.3f;  // Along-track setpoint + cross-track P controller
+						 MPC_XY_TRAJ_P.get();  // Along-track setpoint + cross-track P controller
 		}
 
 	} else if (!PX4_ISFINITE(_velocity_setpoint(0)) &&
@@ -148,7 +146,7 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 
 	if (PX4_ISFINITE(_position_setpoint(2))) {
 		const float velocity_sp_z = (_position_setpoint(2) - _trajectory[2].getCurrentPosition()) *
-					    0.3f; // Generate a velocity target for the trajectory using a simple P loop
+				       MPC_Z_TRAJ_P.get(); // Generate a velocity target for the trajectory using a simple P loop
 
 		// If available, constrain the velocity using _velocity_setpoint(.)
 		if (PX4_ISFINITE(_velocity_setpoint(2))) {

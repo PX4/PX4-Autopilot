@@ -250,6 +250,26 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 
 /**
+ * Proportional gain for horizontal trajectory position error
+ *
+ * @min 0.1
+ * @max 5.0
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.3f);
+
+/**
+ * Proportional gain for vertical trajectory position error
+ *
+ * @min 0.1
+ * @max 5.0
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_TRAJ_P, 0.3f);
+
+/**
  * Cruise speed when angle prev-current/current-next setpoint
  * is 90 degrees. It should be lower than MPC_XY_CRUISE.
  *
