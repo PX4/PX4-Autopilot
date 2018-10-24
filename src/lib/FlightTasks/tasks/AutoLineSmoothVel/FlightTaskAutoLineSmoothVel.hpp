@@ -60,7 +60,9 @@ protected:
 					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) MPC_ACC_UP_MAX,
 					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) MPC_ACC_DOWN_MAX,
 					(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) MPC_ACC_HOR_MAX,
-					(ParamFloat<px4::params::MPC_JERK_MIN>) MPC_JERK_MIN
+					(ParamFloat<px4::params::MPC_JERK_MIN>) MPC_JERK_MIN,
+					(ParamFloat<px4::params::MPC_XY_TRAJ_P>) MPC_XY_TRAJ_P,
+					(ParamFloat<px4::params::MPC_Z_TRAJ_P>) MPC_Z_TRAJ_P
 				       );
 
 	void _generateSetpoints() override; /**< Generate setpoints along line. */
