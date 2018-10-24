@@ -346,6 +346,7 @@ lis3mdl_main(int argc, char *argv[])
 						lis3mdl::stop(lis3mdl::bus_options[i]); //Stop, failed
 
 					} else {
+						PX4_INFO("calibration successful");
 						lis3mdl::init(lis3mdl::bus_options[i]);
 						ret = 0; // one succeed
 					}
