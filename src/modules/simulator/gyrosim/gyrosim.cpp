@@ -109,20 +109,6 @@ using namespace DriverFramework;
 #define EXTERNAL_BUS 0
 #endif
 
-namespace
-{
-/** Save way to check if float is zero */
-inline bool isZero(const float &val)
-{
-	return abs(val - 0.0f) < FLT_EPSILON;
-}
-
-inline int16_t constrainToInt(float value)
-{
-	return (int16_t)math::constrain(value, (float)INT16_MIN, (float)INT16_MAX);
-}
-}
-
 /*
   the GYROSIM can only handle high SPI bus speeds on the sensor and
   interrupt status registers. All other registers have a maximum 1MHz
@@ -959,13 +945,13 @@ GYROSIM::_measure()
 
 	/* NOTE: Axes have been swapped to match the board a few lines above. */
 
-	if (isZero(_accel_range_scale)) {
+	if (math::isZero(_accel_range_scale)) {
 		_accel_range_scale = FLT_EPSILON;
 	}
 
-	arb.x_raw = constrainToInt(mpu_report.accel_x / _accel_range_scale);
-	arb.y_raw = constrainToInt(mpu_report.accel_y / _accel_range_scale);
-	arb.z_raw = constrainToInt(mpu_report.accel_z / _accel_range_scale);
+	arb.x_raw = math::constrainFloatToInt16(mpu_report.accel_x / _accel_range_scale);
+	arb.y_raw = math::constrainFloatToInt16(mpu_report.accel_y / _accel_range_scale);
+	arb.z_raw = math::constrainFloatToInt16(mpu_report.accel_z / _accel_range_scale);
 
 	arb.scaling = _accel_range_scale;
 
@@ -988,13 +974,13 @@ GYROSIM::_measure()
 	/* fake device ID */
 	arb.device_id = 1376264;
 
-	if (isZero(_gyro_range_scale)) {
+	if (math::isZero(_gyro_range_scale)) {
 		_gyro_range_scale = FLT_EPSILON;
 	}
 
-	grb.x_raw = constrainToInt(mpu_report.gyro_x / _gyro_range_scale);
-	grb.y_raw = constrainToInt(mpu_report.gyro_y / _gyro_range_scale);
-	grb.z_raw = constrainToInt(mpu_report.gyro_z / _gyro_range_scale);
+	grb.x_raw = math::constrainFloatToInt16(mpu_report.gyro_x / _gyro_range_scale);
+	grb.y_raw = math::constrainFloatToInt16(mpu_report.gyro_y / _gyro_range_scale);
+	grb.z_raw = math::constrainFloatToInt16(mpu_report.gyro_z / _gyro_range_scale);
 
 	grb.scaling = _gyro_range_scale;
 
