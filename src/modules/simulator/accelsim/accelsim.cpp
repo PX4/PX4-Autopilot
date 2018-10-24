@@ -82,21 +82,6 @@ extern "C" { __EXPORT int accelsim_main(int argc, char *argv[]); }
 
 using namespace DriverFramework;
 
-namespace
-{
-/** Save way to check if float is zero */
-inline bool isZero(const float &val)
-{
-	return abs(val - 0.0f) < FLT_EPSILON;
-}
-
-inline int16_t constrainToInt(float value)
-{
-	return (int16_t)math::constrain(value, (float)INT16_MIN, (float)INT16_MAX);
-}
-}
-
-
 class ACCELSIM_mag;
 
 class ACCELSIM : public VirtDevObj
@@ -864,13 +849,13 @@ ACCELSIM::_measure()
 	// whether it has had failures
 	accel_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
 
-	if (isZero(_accel_range_scale)) {
+	if (math::isZero(_accel_range_scale)) {
 		_accel_range_scale = FLT_EPSILON;
 	}
 
-	accel_report.x_raw = constrainToInt(raw_accel_report.x / _accel_range_scale);
-	accel_report.y_raw = constrainToInt(raw_accel_report.y / _accel_range_scale);
-	accel_report.z_raw = constrainToInt(raw_accel_report.z / _accel_range_scale);
+	accel_report.x_raw = math::constrainFloatToInt16(raw_accel_report.x / _accel_range_scale);
+	accel_report.y_raw = math::constrainFloatToInt16(raw_accel_report.y / _accel_range_scale);
+	accel_report.z_raw = math::constrainFloatToInt16(raw_accel_report.z / _accel_range_scale);
 
 	accel_report.x = raw_accel_report.x;
 	accel_report.y = raw_accel_report.y;
@@ -944,13 +929,13 @@ ACCELSIM::mag_measure()
 	mag_report.device_id = 196616;
 	mag_report.is_external = false;
 
-	if (isZero(_mag_range_scale)) {
+	if (math::isZero(_mag_range_scale)) {
 		_mag_range_scale = FLT_EPSILON;
 	}
 
-	float xraw_f = constrainToInt(raw_mag_report.x / _mag_range_scale);
-	float yraw_f = constrainToInt(raw_mag_report.y / _mag_range_scale);
-	float zraw_f = constrainToInt(raw_mag_report.z / _mag_range_scale);
+	float xraw_f = math::constrainFloatToInt16(raw_mag_report.x / _mag_range_scale);
+	float yraw_f = math::constrainFloatToInt16(raw_mag_report.y / _mag_range_scale);
+	float zraw_f = math::constrainFloatToInt16(raw_mag_report.z / _mag_range_scale);
 
 	mag_report.x_raw = xraw_f;
 	mag_report.y_raw = yraw_f;
