@@ -32,6 +32,7 @@ set(config_module_list
 	drivers/irlock
 	drivers/mkblctrl
 	drivers/oreoled
+	drivers/pmw3901
 	drivers/pwm_input
 	drivers/pwm_out_sim
 	drivers/px4flow
