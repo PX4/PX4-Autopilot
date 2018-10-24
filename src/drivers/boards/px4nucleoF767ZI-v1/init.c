@@ -77,8 +77,6 @@
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
 
-#include <systemlib/hardfault_log.h>
-
 #include <parameters/param.h>
 
 #include "up_internal.h"
@@ -285,149 +283,21 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		       (hrt_callout)stm32_serial_dma_poll,
 		       NULL);
 
-#if defined(CONFIG_STM32_BBSRAM)
-
-	/* NB. the use of the console requires the hrt running
-	 * to poll the DMA
-	 */
-
-	/* Using Battery Backed Up SRAM */
-
-	int filesizes[CONFIG_STM32_BBSRAM_FILES + 1] = BSRAM_FILE_SIZES;
-
-	stm32_bbsraminitialize(BBSRAM_PATH, filesizes);
-
-#if defined(CONFIG_STM32_SAVE_CRASHDUMP)
-
-	/* Panic Logging in Battery Backed Up Files */
-
-	/*
-	 * In an ideal world, if a fault happens in flight the
-	 * system save it to BBSRAM will then reboot. Upon
-	 * rebooting, the system will log the fault to disk, recover
-	 * the flight state and continue to fly.  But if there is
-	 * a fault on the bench or in the air that prohibit the recovery
-	 * or committing the log to disk, the things are too broken to
-	 * fly. So the question is:
-	 *
-	 * Did we have a hard fault and not make it far enough
-	 * through the boot sequence to commit the fault data to
-	 * the SD card?
-	 */
-
-	/* Do we have an uncommitted hard fault in BBSRAM?
-	 *  - this will be reset after a successful commit to SD
-	 */
-	int hadCrash = hardfault_check_status("boot");
-
-	if (hadCrash == OK) {
-
-		message("[boot] There is a hard fault logged. Hold down the SPACE BAR," \
-			" while booting to halt the system!\n");
-
-		/* Yes. So add one to the boot count - this will be reset after a successful
-		 * commit to SD
-		 */
-
-		int reboots = hardfault_increment_reboot("boot", false);
-
-		/* Also end the misery for a user that holds for a key down on the console */
-
-		int bytesWaiting;
-		ioctl(fileno(stdin), FIONREAD, (unsigned long)((uintptr_t) &bytesWaiting));
-
-		if (reboots > 2 || bytesWaiting != 0) {
-
-			/* Since we can not commit the fault dump to disk. Display it
-			 * to the console.
-			 */
-
-			hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
-
-			message("[boot] There were %d reboots with Hard fault that were not committed to disk - System halted %s\n",
-				reboots,
-				(bytesWaiting == 0 ? "" : " Due to Key Press\n"));
-
-
-			/* For those of you with a debugger set a break point on up_assert and
-			 * then set dbgContinue = 1 and go.
-			 */
-
-			/* Clear any key press that got us here */
-
-			static volatile bool dbgContinue = false;
-			int c = '>';
-
-			while (!dbgContinue) {
-
-				switch (c) {
-
-				case EOF:
-
-
-				case '\n':
-				case '\r':
-				case ' ':
-					continue;
-
-				default:
-
-					putchar(c);
-					putchar('\n');
-
-					switch (c) {
-
-					case 'D':
-					case 'd':
-						hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
-						break;
-
-					case 'C':
-					case 'c':
-						hardfault_rearm("boot");
-						hardfault_increment_reboot("boot", true);
-						break;
-
-					case 'B':
-					case 'b':
-						dbgContinue = true;
-						break;
-
-					default:
-						break;
-					} // Inner Switch
-
-					message("\nEnter B - Continue booting\n" \
-						"Enter C - Clear the fault log\n" \
-						"Enter D - Dump fault log\n\n?>");
-					fflush(stdout);
-
-					if (!dbgContinue) {
-						c = getchar();
-					}
-
-					break;
-
-				} // outer switch
-			} // for
-
-		} // inner if
-	} // outer if
-
-#endif // CONFIG_STM32_SAVE_CRASHDUMP
-#endif // CONFIG_STM32_BBSRAM
-
 	/* initial LED state */
 	drv_led_start();
 	led_off(LED_RED);
 	led_off(LED_GREEN);
 	led_off(LED_BLUE);
 
+	if (board_hardfault_init(2, true) != 0) {
+		led_on(LED_RED);
+	}
+
 #ifdef CONFIG_SPI
 	int ret = stm32_spi_bus_initialize();
 
 	if (ret != OK) {
-		board_autoled_on(LED_RED);
+		led_on(LED_RED);
 		return ret;
 	}
 
@@ -437,7 +307,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	ret = stm32_sdio_initialize();
 
 	if (ret != OK) {
-		board_autoled_on(LED_RED);
+		led_on(LED_RED);
 		return ret;
 	}
 
