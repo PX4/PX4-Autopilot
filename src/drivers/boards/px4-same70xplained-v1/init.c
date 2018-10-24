@@ -78,8 +78,6 @@
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
 
-#include <systemlib/hardfault_log.h>
-
 #include <parameters/param.h>
 
 /****************************************************************************
