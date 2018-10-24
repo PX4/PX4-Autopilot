@@ -1775,9 +1775,16 @@ protected:
 			msg.flags |= UTM_DATA_AVAIL_FLAGS_TIME_VALID;
 		}
 
+#ifndef BOARD_HAS_NO_UUID
+		px4_guid_t px4_guid;
+		board_get_px4_guid(px4_guid);
+		static_assert(sizeof(px4_guid_t) == sizeof(msg.uas_id), "GUID byte length mismatch");
+		memcpy(&msg.uas_id, &px4_guid, sizeof(msg.uas_id));
+		msg.flags |= UTM_DATA_AVAIL_FLAGS_UAS_ID_AVAILABLE;
+#else
 		// TODO Fill ID with something reasonable
 		memset(&msg.uas_id[0], 0, sizeof(msg.uas_id));
-		//msg.flags |= UTM_DATA_AVAIL_FLAGS_UAS_ID_AVAILABLE;
+#endif /* BOARD_HAS_NO_UUID */
 
 		// Handle global position
 		if (_global_pos_time > 0) {
