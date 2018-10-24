@@ -79,6 +79,12 @@ pipeline {
               mission: "VTOL_mission_1",
               vehicle: "tiltrotor"
             ],
+            [
+              name: "avoidance",
+              test: "mavros_posix_test_avoidance.test",
+              mission: "avoidance",
+              vehicle: "iris"
+            ],
 
           ]
 
