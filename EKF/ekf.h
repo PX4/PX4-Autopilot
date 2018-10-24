@@ -474,6 +474,8 @@ private:
 	float _rng_stuck_min_val{0.0f};		///< minimum value for new rng measurement when being stuck
 	float _rng_stuck_max_val{0.0f};		///< maximum value for new rng measurement when being stuck
 
+	float _height_rate_lpf{0.0f};
+
 	// update the real time complementary filter states. This includes the prediction
 	// and the correction step
 	void calculateOutputStates();

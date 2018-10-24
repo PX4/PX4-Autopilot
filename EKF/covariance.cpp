@@ -226,9 +226,13 @@ void Ekf::predictCovariance()
 
 	float wind_vel_sig;
 
+	// Calculate low pass filtered height rate
+	float alpha_height_rate_lpf = 0.1f * dt; // 10 seconds time constant
+	_height_rate_lpf = _height_rate_lpf * (1.0f - alpha_height_rate_lpf) + _state.vel(2) * alpha_height_rate_lpf;
+
 	// Don't continue to grow wind velocity state variances if they are becoming too large or we are not using wind velocity states as this can make the covariance matrix badly conditioned
 	if (_control_status.flags.wind && (P[22][22] + P[23][23]) < sq(_params.initial_wind_uncertainty)) {
-		wind_vel_sig = dt * math::constrain(_params.wind_vel_p_noise, 0.0f, 1.0f);
+		wind_vel_sig = dt * math::constrain(_params.wind_vel_p_noise, 0.0f, 1.0f) * (1.0f + _params.wind_vel_p_noise_scaler * fabsf(_height_rate_lpf));
 
 	} else {
 		wind_vel_sig = 0.0f;
