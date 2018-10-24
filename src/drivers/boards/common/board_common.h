@@ -45,6 +45,7 @@
  ************************************************************************************/
 #include <errno.h>
 #include <stdint.h>
+#include <stdbool.h>
 /************************************************************************************
  * Definitions
  ************************************************************************************/
@@ -1049,5 +1050,29 @@ __EXPORT bool px4_spi_bus_external(int bus);
 
 #endif /* BOARD_HAS_SIMPLE_HW_VERSIONING */
 
+/************************************************************************************
+ * Name: board_hardfault_init
+ *
+ * Description:
+ *   boards may provide a to determine if a hard fault occurred
+ *   call back.
+ *
+ * Input Parameters:
+ *   display_to_console  - one less then the number of boots with an unsaved hard fault.
+ *                         can can occur with displaying the hard fault data to the screen.
+ *                         INT_MAX - Never display.
+ *                         n-1 - n boots with out a save.
+ *
+ *  allow_prompt         - if false will not stop on boot, even if a hardfault has happened
+ *                         and there are characters waiting on STDIN.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success: No hardfaults
+ *    >0       - There is a hardfault logged.
+ *   -EIO      - there is a Problem with the bbsram
+ *   -ENOSPC   - There have been no boots that reset the hard fault count in the last
+ *               32000 resets.
+ */
+int board_hardfault_init(int display_to_console, bool allow_prompt);
 
 #include "board_internal_common.h"
