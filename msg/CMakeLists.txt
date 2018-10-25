@@ -38,13 +38,13 @@ set(msg_files
 	actuator_outputs.msg
 	adc_report.msg
 	airspeed.msg
-	avoidance_status.msg
 	battery_status.msg
 	camera_capture.msg
 	camera_trigger.msg
 	collision_report.msg
 	collision_constraints.msg
 	commander_state.msg
+	companion_status.msg
 	cpuload.msg
 	debug_array.msg
 	debug_key_value.msg
