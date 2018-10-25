@@ -139,6 +139,7 @@ private:
 		(ParamFloat<px4::params::MPC_TKO_SPEED>) _tko_speed,
 		(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude at which speed limit downwards reached minimum speed
 		(ParamInt<px4::params::MPC_POS_MODE>) MPC_POS_MODE,
+		(ParamInt<px4::params::MPC_AUTO_MODE>) MPC_AUTO_MODE,
 		(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
 		(ParamFloat<px4::params::MPC_IDLE_TKO>) MPC_IDLE_TKO, /**< time constant for smooth takeoff ramp */
 		(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID, /**< enable obstacle avoidance */
@@ -895,7 +896,7 @@ MulticopterPositionControl::start_flight_task()
 	} else if (_control_mode.flag_control_auto_enabled) {
 		// Auto relate maneuvers
 		int error = 0;
-		switch (MPC_POS_MODE.get()) {
+		switch (MPC_AUTO_MODE.get()) {
 		case 0:
 		case 1:
 		case 2:
