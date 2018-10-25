@@ -720,6 +720,14 @@ MulticopterAttitudeControl::run()
 			/* copy gyro data */
 			orb_copy(ORB_ID(sensor_gyro), _sensor_gyro_sub[_selected_gyro], &_sensor_gyro);
 
+			/* run the rate controller immediately after a gyro update */
+			if (_v_control_mode.flag_control_rates_enabled) {
+				control_attitude_rates(dt);
+
+				publish_actuator_controls();
+				publish_rate_controller_status();
+			}
+
 			/* check for updates in other topics */
 			vehicle_control_mode_poll();
 			vehicle_status_poll();
@@ -770,13 +778,6 @@ MulticopterAttitudeControl::run()
 						_thrust_sp = _v_rates_sp.thrust;
 					}
 				}
-			}
-
-			if (_v_control_mode.flag_control_rates_enabled) {
-				control_attitude_rates(dt);
-
-				publish_actuator_controls();
-				publish_rate_controller_status();
 			}
 
 			if (_v_control_mode.flag_control_termination_enabled) {
