@@ -703,9 +703,9 @@ MulticopterAttitudeControl::run()
 			float dt = (now - last_run) / 1e6f;
 			last_run = now;
 
-			/* guard against too small (< 2ms) and too large (> 20ms) dt's */
-			if (dt < 0.002f) {
-				dt = 0.002f;
+			/* guard against too small (< 0.2ms) and too large (> 20ms) dt's */
+			if (dt < 0.0002f) {
+				dt = 0.0002f;
 
 			} else if (dt > 0.02f) {
 				dt = 0.02f;
