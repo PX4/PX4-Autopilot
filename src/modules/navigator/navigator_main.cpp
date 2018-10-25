@@ -319,6 +319,7 @@ Navigator::run()
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 				rep->current.cruising_speed = get_cruising_speed();
 				rep->current.cruising_throttle = get_cruising_throttle();
+				rep->current.acceptance_radius = get_acceptance_radius();
 
 				// Go on and check which changes had been requested
 				if (PX4_ISFINITE(cmd.param4)) {
