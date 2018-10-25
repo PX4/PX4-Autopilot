@@ -572,8 +572,8 @@ PMW3901::collect()
 	readMotionCount(delta_x_raw, delta_y_raw);
 
 
-	delta_x = - delta_x_raw / 500.0f;		// proportional factor + convert from pixels to radians
-	delta_y = - delta_y_raw / 500.0f;		// proportional factor + convert from pixels to radians
+	delta_x = - delta_y_raw / 500.0f;		// proportional factor + convert from pixels to radians
+	delta_y = delta_x_raw / 500.0f;		// proportional factor + convert from pixels to radians
 
 	struct optical_flow_s report;
 
