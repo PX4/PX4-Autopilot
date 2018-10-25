@@ -573,6 +573,69 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 }
 
 void
+MulticopterAttitudeControl::publish_rates_setpoint()
+{
+	_v_rates_sp.roll = _rates_sp(0);
+	_v_rates_sp.pitch = _rates_sp(1);
+	_v_rates_sp.yaw = _rates_sp(2);
+	_v_rates_sp.thrust = _thrust_sp;
+	_v_rates_sp.timestamp = hrt_absolute_time();
+
+	if (_v_rates_sp_pub != nullptr) {
+		orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
+
+	} else if (_rates_sp_id) {
+		_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
+	}
+
+}
+
+void
+MulticopterAttitudeControl::publish_rate_controller_status()
+{
+	rate_ctrl_status_s rate_ctrl_status;
+	rate_ctrl_status.timestamp = hrt_absolute_time();
+	rate_ctrl_status.rollspeed = _rates_prev(0);
+	rate_ctrl_status.pitchspeed = _rates_prev(1);
+	rate_ctrl_status.yawspeed = _rates_prev(2);
+	rate_ctrl_status.rollspeed_integ = _rates_int(0);
+	rate_ctrl_status.pitchspeed_integ = _rates_int(1);
+	rate_ctrl_status.yawspeed_integ = _rates_int(2);
+
+	int instance;
+	orb_publish_auto(ORB_ID(rate_ctrl_status), &_controller_status_pub, &rate_ctrl_status, &instance, ORB_PRIO_DEFAULT);
+}
+
+void
+MulticopterAttitudeControl::publish_actuator_controls()
+{
+	_actuators.control[0] = (PX4_ISFINITE(_att_control(0))) ? _att_control(0) : 0.0f;
+	_actuators.control[1] = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
+	_actuators.control[2] = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
+	_actuators.control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
+	_actuators.control[7] = _v_att_sp.landing_gear;
+	_actuators.timestamp = hrt_absolute_time();
+	_actuators.timestamp_sample = _sensor_gyro.timestamp;
+
+	/* scale effort by battery status */
+	if (_bat_scale_en.get() && _battery_status.scale > 0.0f) {
+		for (int i = 0; i < 4; i++) {
+			_actuators.control[i] *= _battery_status.scale;
+		}
+	}
+
+	if (!_actuators_0_circuit_breaker_enabled) {
+		if (_actuators_0_pub != nullptr) {
+
+			orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
+
+		} else if (_actuators_id) {
+			_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
+		}
+	}
+}
+
+void
 MulticopterAttitudeControl::run()
 {
 
@@ -676,20 +739,7 @@ MulticopterAttitudeControl::run()
 			if (_v_control_mode.flag_control_attitude_enabled) {
 
 				control_attitude(dt);
-
-				/* publish attitude rates setpoint */
-				_v_rates_sp.roll = _rates_sp(0);
-				_v_rates_sp.pitch = _rates_sp(1);
-				_v_rates_sp.yaw = _rates_sp(2);
-				_v_rates_sp.thrust = _thrust_sp;
-				_v_rates_sp.timestamp = hrt_absolute_time();
-
-				if (_v_rates_sp_pub != nullptr) {
-					orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
-
-				} else if (_rates_sp_id) {
-					_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
-				}
+				publish_rates_setpoint();
 
 			} else {
 				/* attitude controller disabled, poll rates setpoint topic */
@@ -701,20 +751,7 @@ MulticopterAttitudeControl::run()
 							math::superexpo(_manual_control_sp.r, _acro_expo_y.get(), _acro_superexpo_y.get()));
 					_rates_sp = man_rate_sp.emult(_acro_rate_max);
 					_thrust_sp = _manual_control_sp.z;
-
-					/* publish attitude rates setpoint */
-					_v_rates_sp.roll = _rates_sp(0);
-					_v_rates_sp.pitch = _rates_sp(1);
-					_v_rates_sp.yaw = _rates_sp(2);
-					_v_rates_sp.thrust = _thrust_sp;
-					_v_rates_sp.timestamp = hrt_absolute_time();
-
-					if (_v_rates_sp_pub != nullptr) {
-						orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
-
-					} else if (_rates_sp_id) {
-						_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
-					}
+					publish_rates_setpoint();
 
 				} else {
 					/* attitude controller disabled, poll rates setpoint topic */
@@ -729,45 +766,8 @@ MulticopterAttitudeControl::run()
 			if (_v_control_mode.flag_control_rates_enabled) {
 				control_attitude_rates(dt);
 
-				/* publish actuator controls */
-				_actuators.control[0] = (PX4_ISFINITE(_att_control(0))) ? _att_control(0) : 0.0f;
-				_actuators.control[1] = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
-				_actuators.control[2] = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
-				_actuators.control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
-				_actuators.control[7] = _v_att_sp.landing_gear;
-				_actuators.timestamp = hrt_absolute_time();
-				_actuators.timestamp_sample = _sensor_gyro.timestamp;
-
-				/* scale effort by battery status */
-				if (_bat_scale_en.get() && _battery_status.scale > 0.0f) {
-					for (int i = 0; i < 4; i++) {
-						_actuators.control[i] *= _battery_status.scale;
-					}
-				}
-
-				if (!_actuators_0_circuit_breaker_enabled) {
-					if (_actuators_0_pub != nullptr) {
-
-						orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
-
-					} else if (_actuators_id) {
-						_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
-					}
-
-				}
-
-				/* publish controller status */
-				rate_ctrl_status_s rate_ctrl_status;
-				rate_ctrl_status.timestamp = hrt_absolute_time();
-				rate_ctrl_status.rollspeed = _rates_prev(0);
-				rate_ctrl_status.pitchspeed = _rates_prev(1);
-				rate_ctrl_status.yawspeed = _rates_prev(2);
-				rate_ctrl_status.rollspeed_integ = _rates_int(0);
-				rate_ctrl_status.pitchspeed_integ = _rates_int(1);
-				rate_ctrl_status.yawspeed_integ = _rates_int(2);
-
-				int instance;
-				orb_publish_auto(ORB_ID(rate_ctrl_status), &_controller_status_pub, &rate_ctrl_status, &instance, ORB_PRIO_DEFAULT);
+				publish_actuator_controls();
+				publish_rate_controller_status();
 			}
 
 			if (_v_control_mode.flag_control_termination_enabled) {
@@ -777,24 +777,7 @@ MulticopterAttitudeControl::run()
 					_rates_int.zero();
 					_thrust_sp = 0.0f;
 					_att_control.zero();
-
-					/* publish actuator controls */
-					_actuators.control[0] = 0.0f;
-					_actuators.control[1] = 0.0f;
-					_actuators.control[2] = 0.0f;
-					_actuators.control[3] = 0.0f;
-					_actuators.timestamp = hrt_absolute_time();
-					_actuators.timestamp_sample = _sensor_gyro.timestamp;
-
-					if (!_actuators_0_circuit_breaker_enabled) {
-						if (_actuators_0_pub != nullptr) {
-
-							orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
-
-						} else if (_actuators_id) {
-							_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
-						}
-					}
+					publish_actuator_controls();
 				}
 			}
 
