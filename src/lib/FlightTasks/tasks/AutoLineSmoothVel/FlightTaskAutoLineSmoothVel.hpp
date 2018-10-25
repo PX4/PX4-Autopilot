@@ -70,6 +70,7 @@ protected:
 
 	inline float constrain_one_side(float val, float constrain);
 	void _generateHeadingAlongTrack(); /**< Generates heading along track. */
+	void _updateTrajConstraints();
 	void _prepareSetpoints(); /**< Generate velocity target points for the trajectory generator. */
 	void _generateTrajectory();
 	VelocitySmoothing _trajectory[3]; ///< Trajectories in x, y and z directions

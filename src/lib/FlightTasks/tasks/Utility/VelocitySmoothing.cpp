@@ -52,6 +52,31 @@ void VelocitySmoothing::reset(float accel, float vel, float pos)
 	_pos = pos;
 }
 
+float VelocitySmoothing::saturateT1ForAccel(float accel_prev, float max_jerk, float T1)
+{
+	/* Check maximum acceleration, saturate and recompute T1 if needed */
+	float accel_T1 = accel_prev + max_jerk * T1;
+	float T1_new = T1;
+
+	if (accel_T1 > _max_accel) {
+		T1_new = (_max_accel - accel_prev) / max_jerk;
+
+	} else if (accel_T1 < -_max_accel) {
+		T1_new = (-_max_accel - accel_prev) / max_jerk;
+	}
+
+	return T1_new;
+}
+
+float VelocitySmoothing::recomputeMaxJerk(float accel_prev, float max_jerk, float T1)
+{
+	/* If T1 is smaller than dt, it means that the jerk is too large to reach the
+	 * desired acceleration with a bang-bang signal => recompute the maximum jerk
+	 */
+	float accel_T1 = accel_prev + max_jerk * T1;
+	return (accel_T1 - accel_prev) / T1;
+}
+
 float VelocitySmoothing::computeT1(float accel_prev, float vel_prev, float vel_setpoint, float max_jerk)
 {
 	float b = 2.f * accel_prev / max_jerk;
@@ -59,6 +84,7 @@ float VelocitySmoothing::computeT1(float accel_prev, float vel_prev, float vel_s
 	float delta = b * b - 4.f * c;
 
 	if (delta < 0.f) {
+		// Solution is not real
 		return 0.f;
 	}
 
@@ -68,20 +94,12 @@ float VelocitySmoothing::computeT1(float accel_prev, float vel_prev, float vel_s
 
 	float T1 = math::max(math::max(T1_plus, T1_minus), 0.f);
 
-//	if (T1 < FLT_EPSILON) {
-//		// debug
-//		printf("No feasible solution found, set T1 = 0\n");
-//		printf("T1_plus = %.3f T1_minus = %.3f\n", (double) T1_plus, (double) T1_minus);
-//	}
+	T1 = saturateT1ForAccel(accel_prev, max_jerk, T1);
 
-	/* Check maximum acceleration, saturate and recompute T1 if needed */
-	float a1 = accel_prev + max_jerk * T1;
-
-	if (a1 > _max_accel) {
-		T1 = (_max_accel - accel_prev) / max_jerk;
-
-	} else if (a1 < -_max_accel) {
-		T1 = (-_max_accel - accel_prev) / max_jerk;
+	if ((T1 > FLT_EPSILON) &&
+	    (T1 < _dt)) {
+		_max_jerk_T1 = recomputeMaxJerk(accel_prev, max_jerk, T1);
+		T1 = _dt;
 	}
 
 	return math::max(T1, 0.f);
@@ -114,6 +132,14 @@ float VelocitySmoothing::computeT1(float T123, float accel_prev, float vel_prev,
 		T1 = T1_plus;
 	}
 
+	T1 = saturateT1ForAccel(accel_prev, max_jerk, T1);
+
+	if ((T1 > FLT_EPSILON) &&
+	    (T1 < _dt)) {
+		_max_jerk_T1 = recomputeMaxJerk(accel_prev, max_jerk, T1);
+		T1 = _dt;
+	}
+
 	return T1;
 }
 
@@ -144,6 +170,7 @@ void VelocitySmoothing::integrateT(float dt, float jerk, float accel_prev, float
 {
 	accel_out = jerk * dt + accel_prev;
 
+	// Paranoid check, should never be outside the saturations
 	if (accel_out > _max_accel) {
 		accel_out = _max_accel;
 
@@ -153,6 +180,7 @@ void VelocitySmoothing::integrateT(float dt, float jerk, float accel_prev, float
 
 	vel_out = dt * 0.5f * (accel_out + accel_prev) + vel_prev;
 
+	// Paranoid check, should never be outside the saturations
 	if (vel_out > _max_vel) {
 		vel_out = _max_vel;
 
@@ -217,29 +245,40 @@ void VelocitySmoothing::updateDurations(float T123)
 void VelocitySmoothing::integrate(float &accel_setpoint_smooth, float &vel_setpoint_smooth,
 				  float &pos_setpoint_smooth)
 {
-	integrate(_dt, accel_setpoint_smooth, vel_setpoint_smooth, pos_setpoint_smooth);
+	integrate(_dt, 1.f, accel_setpoint_smooth, vel_setpoint_smooth, pos_setpoint_smooth);
 }
 
-void VelocitySmoothing::integrate(float dt, float &accel_setpoint_smooth, float &vel_setpoint_smooth,
+void VelocitySmoothing::integrate(float dt, float integration_scale_factor, float &accel_setpoint_smooth,
+				  float &vel_setpoint_smooth,
 				  float &pos_setpoint_smooth)
 {
-	/* Integrate the trajectory */
-	float accel_new, vel_new, pos_new;
-	integrateT(dt, _jerk, _accel, _vel, _pos, accel_new, vel_new, pos_new);
-
 	/* Apply correct jerk (min, max or zero) */
-	if (_T1 > 0.f) {
+	if (_T1 > FLT_EPSILON) {
 		_jerk = _max_jerk_T1;
 
-	} else if (_T2 > 0.f) {
+		if (_T1 < dt) {
+			// _T1 was supposed to be _dt, however, now, dt is bogger than _dt. We have to reduce the jerk to avoid an acceleration overshoot.
+			_jerk *= _dt / dt; // Keep the same area _dt * _jerk = dt * jerk_new
+		}
+
+	} else if (_T2 > FLT_EPSILON) {
 		_jerk = 0.f;
 
-	} else if (_T3 > 0.f) {
+	} else if (_T3 > FLT_EPSILON) {
 		_jerk = -_max_jerk_T1;
+
+		if (_T3 < dt) {
+			// Same as for _T1 < dt above
+			_jerk *= _dt / dt;
+		}
 
 	} else {
 		_jerk = 0.f;
 	}
+
+	/* Integrate the trajectory */
+	float accel_new, vel_new, pos_new;
+	integrateT(dt * integration_scale_factor, _jerk, _accel, _vel, _pos, accel_new, vel_new, pos_new);
 
 	_accel = accel_new;
 	_vel = vel_new;

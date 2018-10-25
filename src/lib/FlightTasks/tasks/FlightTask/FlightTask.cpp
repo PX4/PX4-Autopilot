@@ -4,7 +4,7 @@
 
 constexpr uint64_t FlightTask::_timeout;
 // First index of empty_setpoint corresponds to time-stamp and requires a finite number.
-const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {NAN, NAN, NAN}};
+const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {NAN, NAN, NAN}};
 
 const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, vehicle_constraints_s::GEAR_KEEP, {}};
 const vehicle_trajectory_waypoint_s FlightTask::empty_trajectory_waypoint = {0, 0, {0, 0, 0, 0, 0, 0, 0},
@@ -71,6 +71,10 @@ const vehicle_local_position_setpoint_s FlightTask::getPositionSetpoint()
 	vehicle_local_position_setpoint.acc_y = _acceleration_setpoint(1);
 	vehicle_local_position_setpoint.acc_z = _acceleration_setpoint(2);
 
+	vehicle_local_position_setpoint.jerk_x = _jerk_setpoint(0);
+	vehicle_local_position_setpoint.jerk_y = _jerk_setpoint(1);
+	vehicle_local_position_setpoint.jerk_z = _jerk_setpoint(2);
+
 	_thrust_setpoint.copyTo(vehicle_local_position_setpoint.thrust);
 	vehicle_local_position_setpoint.yaw = _yaw_setpoint;
 	vehicle_local_position_setpoint.yawspeed = _yawspeed_setpoint;
@@ -83,6 +87,7 @@ void FlightTask::_resetSetpoints()
 	_position_setpoint.setAll(NAN);
 	_velocity_setpoint.setAll(NAN);
 	_acceleration_setpoint.setAll(NAN);
+	_jerk_setpoint.setAll(NAN);
 	_thrust_setpoint.setAll(NAN);
 	_yaw_setpoint = _yawspeed_setpoint = NAN;
 	_desired_waypoint = FlightTask::empty_trajectory_waypoint;
