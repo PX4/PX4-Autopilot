@@ -277,6 +277,10 @@
 #define GPIO_SPI1_CS_BARO                GPIO_SPI1_CS_PD7  /* MS5611    MS5611  */
 #define GPIO_SPI1_CS_HMC                 GPIO_SPI1_CS_PC1  /* HMC5983   Removed */
 
+/*  SPI1 External Bus */
+#define PX4_SPI_BUS_EXPANSION 			1
+#define PX4_SPIDEV_EXPANSION_2      	PX4_MK_SPI_SEL(PX4_SPI_BUS_EXPANSION, 1) 		// OPTICAL FLOW BREAKOUT
+
 /* N.B. bus moves from SPI1 to SPI4 */
 #define GPIO_SPI4_GYRO_EXT_CS            GPIO_SPI4_CS_PC13
 #define GPIO_SPI4_BARO_EXT_CS            GPIO_SPI4_CS_PC14
