@@ -84,7 +84,8 @@ public:
 	 * @param pos_setpoint_smooth returned smoothed position setpoint
 	 */
 	void integrate(float &accel_setpoint_smooth, float &vel_setpoint_smooth, float &pos_setpoint_smooth);
-	void integrate(float dt, float &accel_setpoint_smooth, float &vel_setpoint_smooth, float &pos_setpoint_smooth);
+	void integrate(float dt, float integration_scale_factor, float &accel_setpoint_smooth, float &vel_setpoint_smooth,
+		       float &pos_setpoint_smooth);
 
 	/* Get / Set constraints (constraints can be updated at any time) */
 	float getMaxJerk() const { return _max_jerk; }
@@ -96,6 +97,9 @@ public:
 	float getMaxVel() const { return _max_vel; }
 	void setMaxVel(float max_vel) { _max_vel = max_vel; }
 
+	float getCurrentJerk() const { return _jerk; }
+	void setCurrentAcceleration(const float accel) { _accel = accel; }
+	float getCurrentAcceleration() const { return _accel; }
 	void setCurrentVelocity(const float vel) { _vel = vel; }
 	float getCurrentVelocity() const { return _vel; }
 	void setCurrentPosition(const float pos) { _pos = pos; }
@@ -129,6 +133,8 @@ private:
 	 * Compute increasing acceleration time using total time constraint
 	 */
 	inline float computeT1(float T123, float accel_prev, float vel_prev, float vel_setpoint, float max_jerk);
+	inline float saturateT1ForAccel(float accel_prev, float max_jerk, float T1);
+	inline float recomputeMaxJerk(float accel_prev, float max_jerk, float T1);
 	/**
 	 * Compute constant acceleration time
 	 */
@@ -150,7 +156,7 @@ private:
 
 	/* Inputs */
 	float _vel_sp;
-	float _dt = 0.f;
+	float _dt = 1.f;
 
 	/* Constraints */
 	float _max_jerk = 22.f;
@@ -158,10 +164,10 @@ private:
 	float _max_vel = 6.f;
 
 	/* State (previous setpoints) */
-	float _jerk;
-	float _accel;
-	float _vel;
-	float _pos;
+	float _jerk = 0.f;
+	float _accel = 0.f;
+	float _vel = 0.f;
+	float _pos = 0.f;
 
 	float _max_jerk_T1 = 0.f; ///< jerk during phase T1 (with correct sign)
 

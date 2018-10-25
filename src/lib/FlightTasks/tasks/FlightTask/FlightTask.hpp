@@ -196,11 +196,12 @@ protected:
 	 * If more than one type of setpoint is set, then order of control is a as follow: position, velocity,
 	 * acceleration, thrust. The exception is _position_setpoint together with _velocity_setpoint, where the
 	 * _velocity_setpoint is used as feedforward.
-	 * _acceleration_setpoint is currently not supported.
+	 * _acceleration_setpoint and _jerk_setpoint are currently not supported.
 	 */
 	matrix::Vector3f _position_setpoint;
 	matrix::Vector3f _velocity_setpoint;
 	matrix::Vector3f _acceleration_setpoint;
+	matrix::Vector3f _jerk_setpoint;
 	matrix::Vector3f _thrust_setpoint;
 	float _yaw_setpoint;
 	float _yawspeed_setpoint;
