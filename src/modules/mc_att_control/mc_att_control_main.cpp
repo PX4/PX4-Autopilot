@@ -219,7 +219,7 @@ MulticopterAttitudeControl::vehicle_control_mode_poll()
 	}
 }
 
-void
+bool
 MulticopterAttitudeControl::vehicle_manual_poll()
 {
 	bool updated;
@@ -229,7 +229,9 @@ MulticopterAttitudeControl::vehicle_manual_poll()
 
 	if (updated) {
 		orb_copy(ORB_ID(manual_control_setpoint), _manual_control_sp_sub, &_manual_control_sp);
+		return true;
 	}
+	return false;
 }
 
 void
@@ -244,7 +246,7 @@ MulticopterAttitudeControl::vehicle_attitude_setpoint_poll()
 	}
 }
 
-void
+bool
 MulticopterAttitudeControl::vehicle_rates_setpoint_poll()
 {
 	/* check if there is a new setpoint */
@@ -253,7 +255,9 @@ MulticopterAttitudeControl::vehicle_rates_setpoint_poll()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_sub, &_v_rates_sp);
+		return true;
 	}
+	return false;
 }
 
 void
@@ -307,7 +311,7 @@ MulticopterAttitudeControl::battery_status_poll()
 	}
 }
 
-void
+bool
 MulticopterAttitudeControl::vehicle_attitude_poll()
 {
 	/* check if there is a new message */
@@ -316,7 +320,9 @@ MulticopterAttitudeControl::vehicle_attitude_poll()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_attitude), _v_att_sub, &_v_att);
+		return true;
 	}
+	return false;
 }
 
 void
@@ -368,7 +374,7 @@ MulticopterAttitudeControl::vehicle_land_detected_poll()
  * Output: '_rates_sp' vector, '_thrust_sp'
  */
 void
-MulticopterAttitudeControl::control_attitude(float dt)
+MulticopterAttitudeControl::control_attitude()
 {
 	vehicle_attitude_setpoint_poll();
 	_thrust_sp = _v_att_sp.thrust;
@@ -715,16 +721,15 @@ MulticopterAttitudeControl::run()
 			orb_copy(ORB_ID(sensor_gyro), _sensor_gyro_sub[_selected_gyro], &_sensor_gyro);
 
 			/* check for updates in other topics */
-			parameter_update_poll();
 			vehicle_control_mode_poll();
-			vehicle_manual_poll();
 			vehicle_status_poll();
 			vehicle_motor_limits_poll();
 			battery_status_poll();
-			vehicle_attitude_poll();
 			sensor_correction_poll();
 			sensor_bias_poll();
 			vehicle_land_detected_poll();
+			const bool manual_control_updated = vehicle_manual_poll();
+			const bool attitude_updated = vehicle_attitude_poll();
 
 			/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
 			 * or roll (yaw can rotate 360 in normal att control).  If both are true don't
@@ -737,29 +742,33 @@ MulticopterAttitudeControl::run()
 			}
 
 			if (_v_control_mode.flag_control_attitude_enabled) {
-
-				control_attitude(dt);
-				publish_rates_setpoint();
+				if (attitude_updated) {
+					control_attitude();
+					publish_rates_setpoint();
+				}
 
 			} else {
 				/* attitude controller disabled, poll rates setpoint topic */
 				if (_v_control_mode.flag_control_manual_enabled) {
-					/* manual rates control - ACRO mode */
-					Vector3f man_rate_sp(
-							math::superexpo(_manual_control_sp.y, _acro_expo_rp.get(), _acro_superexpo_rp.get()),
-							math::superexpo(-_manual_control_sp.x, _acro_expo_rp.get(), _acro_superexpo_rp.get()),
-							math::superexpo(_manual_control_sp.r, _acro_expo_y.get(), _acro_superexpo_y.get()));
-					_rates_sp = man_rate_sp.emult(_acro_rate_max);
-					_thrust_sp = _manual_control_sp.z;
-					publish_rates_setpoint();
+					if (manual_control_updated) {
+						/* manual rates control - ACRO mode */
+						Vector3f man_rate_sp(
+								math::superexpo(_manual_control_sp.y, _acro_expo_rp.get(), _acro_superexpo_rp.get()),
+								math::superexpo(-_manual_control_sp.x, _acro_expo_rp.get(), _acro_superexpo_rp.get()),
+								math::superexpo(_manual_control_sp.r, _acro_expo_y.get(), _acro_superexpo_y.get()));
+						_rates_sp = man_rate_sp.emult(_acro_rate_max);
+						_thrust_sp = _manual_control_sp.z;
+						publish_rates_setpoint();
+					}
 
 				} else {
 					/* attitude controller disabled, poll rates setpoint topic */
-					vehicle_rates_setpoint_poll();
-					_rates_sp(0) = _v_rates_sp.roll;
-					_rates_sp(1) = _v_rates_sp.pitch;
-					_rates_sp(2) = _v_rates_sp.yaw;
-					_thrust_sp = _v_rates_sp.thrust;
+					if (vehicle_rates_setpoint_poll()) {
+						_rates_sp(0) = _v_rates_sp.roll;
+						_rates_sp(1) = _v_rates_sp.pitch;
+						_rates_sp(2) = _v_rates_sp.yaw;
+						_thrust_sp = _v_rates_sp.thrust;
+					}
 				}
 			}
 
@@ -772,7 +781,6 @@ MulticopterAttitudeControl::run()
 
 			if (_v_control_mode.flag_control_termination_enabled) {
 				if (!_vehicle_status.is_vtol) {
-
 					_rates_sp.zero();
 					_rates_int.zero();
 					_thrust_sp = 0.0f;
@@ -795,6 +803,7 @@ MulticopterAttitudeControl::run()
 				}
 			}
 
+			parameter_update_poll();
 		}
 
 		perf_end(_loop_perf);
