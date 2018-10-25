@@ -75,7 +75,6 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 	}
 
 	Vector2f vel_xy_sp = Vector2f(&_velocity_setpoint(0));
-	Vector2f vel_xy_sp_smooth = Vector2f(&_vel_sp_smooth(0));
 	float jerk[3] = {_jerk_max.get(), _jerk_max.get(), _jerk_max.get()};
 	float jerk_xy = _jerk_max.get();
 
@@ -126,22 +125,20 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 	Vector3f accel_sp_smooth;
 
 	for (int i = 0; i < 3; ++i) {
-		_smoothing[i].setCurrentPosition(_position(i));
+		if (!_position_lock_xy_active) {
+			_smoothing[i].setCurrentPosition(_position(i));
+		}
+
 		_smoothing[i].integrate(accel_sp_smooth(i), _vel_sp_smooth(i), pos_sp_smooth(i));
 		_velocity_setpoint(i) = _vel_sp_smooth(i); // Feedforward
 	}
 
 	// Check for position lock transition
-	Vector2f accel_setpoint_xy_smooth = Vector2f(&accel_sp_smooth(0));
-
-	if (vel_xy_sp_smooth.length() < 0.002f &&
-	    accel_setpoint_xy_smooth.length() < .2f &&
+	if (Vector2f(_vel_sp_smooth).length() < 0.01f &&
+	    Vector2f(accel_sp_smooth).length() < .2f &&
 	    sticks_expo_xy.length() <= FLT_EPSILON) {
-		if (!_position_lock_xy_active) {
-			_position_setpoint_xy_locked(0) = pos_sp_smooth(0);
-			_position_setpoint_xy_locked(1) = pos_sp_smooth(1);
-		}
-
+		_position_setpoint_xy_locked(0) = pos_sp_smooth(0);
+		_position_setpoint_xy_locked(1) = pos_sp_smooth(1);
 		_position_lock_xy_active = true;
 	}
 
