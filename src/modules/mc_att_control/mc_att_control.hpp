@@ -110,6 +110,10 @@ private:
 	void		vehicle_rates_setpoint_poll();
 	void		vehicle_status_poll();
 
+	void		publish_actuator_controls();
+	void		publish_rates_setpoint();
+	void		publish_rate_controller_status();
+
 	/**
 	 * Attitude controller.
 	 */
