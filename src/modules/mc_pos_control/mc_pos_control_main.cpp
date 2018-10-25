@@ -100,6 +100,7 @@ private:
 	bool 		_in_smooth_takeoff = false; 		/**<true if takeoff ramp is applied */
 
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
+	orb_advert_t	_traj_sp_pub{nullptr};		/**< trajectory setpoints publication */
 	orb_advert_t	_local_pos_sp_pub{nullptr};		/**< vehicle local position setpoint publication */
 	orb_advert_t _traj_wp_avoidance_desired_pub{nullptr}; /**< trajectory waypoint desired publication */
 	orb_advert_t _pub_vehicle_command{nullptr};           /**< vehicle command publication */
@@ -217,6 +218,12 @@ private:
 	 * This is only required for logging.
 	 */
 	void publish_local_pos_sp(const vehicle_local_position_setpoint_s &local_pos_sp);
+
+	/**
+	 * Publish local position setpoint.
+	 * This is only required for logging.
+	 */
+	void publish_trajectory_sp(const vehicle_local_position_setpoint_s &traj);
 
 	/**
 	 * Checks if smooth takeoff is initiated.
@@ -751,6 +758,8 @@ MulticopterPositionControl::run()
 				limit_thrust_during_landing(thr_sp);
 			}
 
+			publish_trajectory_sp(setpoint);
+
 			// Fill local position, velocity and thrust setpoint.
 			vehicle_local_position_setpoint_s local_pos_sp{};
 			local_pos_sp.timestamp = hrt_absolute_time();
@@ -1201,6 +1210,18 @@ MulticopterPositionControl::publish_attitude()
 
 	} else if (_attitude_setpoint_id) {
 		_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
+	}
+}
+
+void
+MulticopterPositionControl::publish_trajectory_sp(const vehicle_local_position_setpoint_s &traj)
+{
+	// publish trajectory
+	if (_traj_sp_pub != nullptr) {
+		orb_publish(ORB_ID(trajectory_setpoint), _traj_sp_pub, &traj);
+
+	} else {
+		_traj_sp_pub = orb_advertise(ORB_ID(trajectory_setpoint), &traj);
 	}
 }
 

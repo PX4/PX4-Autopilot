@@ -49,6 +49,8 @@ bool FlightTaskAutoLineSmoothVel::activate()
 		_trajectory[i].reset(0.f, _velocity(i), _position(i));
 	}
 
+	_updateTrajConstraints();
+
 	return ret;
 }
 
@@ -121,15 +123,15 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 
 		float speed_sp_track = Vector2f(pos_traj_to_dest).length() * MPC_XY_TRAJ_P.get();
 		speed_sp_track = math::constrain(speed_sp_track, 0.0f, MPC_XY_CRUISE.get());
-		Vector2f velocity_sp_xy = u_pos_traj_to_dest_xy * speed_sp_track;
+		Vector2f vel_sp_xy = u_pos_traj_to_dest_xy * speed_sp_track;
 
 		for (int i = 0; i < 2; i++) {
 			// If available, constrain the velocity using _velocity_setpoint(.)
 			if (PX4_ISFINITE(_velocity_setpoint(i))) {
-				_velocity_setpoint(i) = constrain_one_side(velocity_sp_xy(i), _velocity_setpoint(i));
+				_velocity_setpoint(i) = constrain_one_side(vel_sp_xy(i), _velocity_setpoint(i));
 
 			} else {
-				_velocity_setpoint(i) = velocity_sp_xy(i);
+				_velocity_setpoint(i) = vel_sp_xy(i);
 			}
 
 			_velocity_setpoint(i) += (closest_pt(i) - _trajectory[i].getCurrentPosition()) *
@@ -145,15 +147,15 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 	}
 
 	if (PX4_ISFINITE(_position_setpoint(2))) {
-		const float velocity_sp_z = (_position_setpoint(2) - _trajectory[2].getCurrentPosition()) *
+		const float vel_sp_z = (_position_setpoint(2) - _trajectory[2].getCurrentPosition()) *
 				       MPC_Z_TRAJ_P.get(); // Generate a velocity target for the trajectory using a simple P loop
 
 		// If available, constrain the velocity using _velocity_setpoint(.)
 		if (PX4_ISFINITE(_velocity_setpoint(2))) {
-			_velocity_setpoint(2) = constrain_one_side(velocity_sp_z, _velocity_setpoint(2));
+			_velocity_setpoint(2) = constrain_one_side(vel_sp_z, _velocity_setpoint(2));
 
 		} else {
-			_velocity_setpoint(2) = velocity_sp_z;
+			_velocity_setpoint(2) = vel_sp_z;
 		}
 
 	} else if (!PX4_ISFINITE(_velocity_setpoint(2))) {
@@ -162,7 +164,7 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 	}
 }
 
-void FlightTaskAutoLineSmoothVel::_generateTrajectory()
+void FlightTaskAutoLineSmoothVel::_updateTrajConstraints()
 {
 	// Update the constraints of the trajectories
 	_trajectory[0].setMaxAccel(MPC_ACC_HOR_MAX.get()); // TODO : Should be computed using heading
@@ -181,13 +183,10 @@ void FlightTaskAutoLineSmoothVel::_generateTrajectory()
 		_trajectory[2].setMaxAccel(MPC_ACC_DOWN_MAX.get());
 		_trajectory[2].setMaxVel(MPC_Z_VEL_MAX_DN.get());
 	}
+}
 
-	for (int i = 0; i < 3; ++i) {
-		_trajectory[i].updateDurations(_deltatime, _velocity_setpoint(i));
-	}
-
-	VelocitySmoothing::timeSynchronization(_trajectory, 2); // Synchronize x and y only
-
+void FlightTaskAutoLineSmoothVel::_generateTrajectory()
+{
 	/* Slow down the trajectory by decreasing the integration time based on the position error.
 	 * This is only performed when the drone is behind the trajectory
 	 */
@@ -204,9 +203,26 @@ void FlightTaskAutoLineSmoothVel::_generateTrajectory()
 		time_stretch = 1.f;
 	}
 
-	Vector3f accel_sp_smooth; // Dummy variable
+	Vector3f jerk_sp_smooth;
+	Vector3f accel_sp_smooth;
+	Vector3f vel_sp_smooth;
+	Vector3f pos_sp_smooth;
 
 	for (int i = 0; i < 3; ++i) {
-		_trajectory[i].integrate(_deltatime * time_stretch, accel_sp_smooth(i), _velocity_setpoint(i), _position_setpoint(i));
+		_trajectory[i].integrate(_deltatime, time_stretch, accel_sp_smooth(i), vel_sp_smooth(i), pos_sp_smooth(i));
+		jerk_sp_smooth(i) = _trajectory[i].getCurrentJerk();
 	}
+
+	_updateTrajConstraints();
+
+	for (int i = 0; i < 3; ++i) {
+		_trajectory[i].updateDurations(_deltatime, _velocity_setpoint(i));
+	}
+
+	VelocitySmoothing::timeSynchronization(_trajectory, 2); // Synchronize x and y only
+
+	_jerk_setpoint = jerk_sp_smooth;
+	_acceleration_setpoint = accel_sp_smooth;
+	_velocity_setpoint = vel_sp_smooth;
+	_position_setpoint = pos_sp_smooth;
 }
