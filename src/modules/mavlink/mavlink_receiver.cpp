@@ -1978,7 +1978,8 @@ MavlinkReceiver::handle_message_companion_status(mavlink_message_t *msg)
 	companion_status_s companion_status = {};
 	companion_status.timestamp = hrt_absolute_time();
 	companion_status.state = mavlink_companion_status.state;
-	companion_status.source = mavlink_companion_status.source;
+	companion_status.type = mavlink_companion_status.type;
+	companion_status.pid = mavlink_companion_status.pid;
 
 	if (_companion_status_pub == nullptr) {
 		_companion_status_pub = orb_advertise(ORB_ID(companion_status), &companion_status);
@@ -1995,7 +1996,7 @@ MavlinkReceiver::handle_message_companion_status(mavlink_message_t *msg)
 		_mavlink->send_statustext_emergency("abort");
 	}else if(companion_status.state == 3){
 		_mavlink->send_statustext_emergency("not ready");
-	}else if(companion_status.state == 2){
+	}else if(companion_status.state == 4){
 		_mavlink->send_statustext_emergency("camera fail");
 	}
 
