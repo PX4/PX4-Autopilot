@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,54 +31,59 @@
  *
  ****************************************************************************/
 
-/// @file	LowPassFilter.h
-/// @brief	A class to implement a second order low pass filter
-/// Author: Leonard Hall <LeonardTHall@gmail.com>
-/// Adapted for PX4 by Andrew Tridgell
-
 #pragma once
 
-namespace math
+#include <stdint.h>
+#include <time.h>
+
+#include <uORB/uORB.h>
+
+#ifdef __PX4_NUTTX
+#define LOG_DIR_LEN 64
+#else
+#define LOG_DIR_LEN 256
+#endif
+
+namespace px4
 {
-class __EXPORT LowPassFilter2p
+namespace logger
 {
-public:
+namespace util
+{
 
-	LowPassFilter2p(float sample_freq, float cutoff_freq)
-	{
-		// set initial parameters
-		set_cutoff_frequency(sample_freq, cutoff_freq);
-	}
+/**
+ * Recursively remove a directory
+ * @return 0 on success, <0 otherwise
+ */
+int remove_directory(const char *dir);
 
-	// Change filter parameters
-	void set_cutoff_frequency(float sample_freq, float cutoff_freq);
+/**
+ * check if a file exists
+ */
+bool file_exist(const char *filename);
 
-	/**
-	 * Add a new raw value to the filter
-	 *
-	 * @return retrieve the filtered result
-	 */
-	float apply(float sample);
+/**
+ * Check if there is enough free space left on the SD Card.
+ * It will remove old log files if there is not enough space,
+ * and if that fails return 1, and send a user message
+ * @param log_root_dir log root directory: it's expected to contain directories in the form of sess%i or %d-%d-%d (year, month, day)
+ * @param max_log_dirs_to_keep maximum log directories to keep (set to 0 for unlimited)
+ * @param mavlink_log_pub
+ * @param sess_dir_index output argument: will be set to the next free directory sess%i index.
+ * @return 0 on success, 1 if not enough space, <0 on error
+ */
+int check_free_space(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb_advert_t &mavlink_log_pub,
+		     int &sess_dir_index);
 
-	// Return the cutoff frequency
-	float get_cutoff_freq() const { return _cutoff_freq; }
+/**
+ * Get the time for log file name
+ * @param tt returned time
+ * @param utc_offset_sec UTC time offset [s]
+ * @param boot_time use time when booted instead of current time
+ * @return true on success, false otherwise (eg. if no gps)
+ */
+bool get_log_time(struct tm *tt, int utc_offset_sec = 0, bool boot_time = false);
 
-	// Reset the filter state to this value
-	float reset(float sample);
-
-private:
-
-	float _cutoff_freq{0.0f};
-
-	float _a1{0.0f};
-	float _a2{0.0f};
-
-	float _b0{0.0f};
-	float _b1{0.0f};
-	float _b2{0.0f};
-
-	float _delay_element_1{0.0f};	// buffered sample -1
-	float _delay_element_2{0.0f};	// buffered sample -2
-};
-
-} // namespace math
+} //namespace util
+} //namespace logger
+} //namespace px4

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,54 +31,61 @@
  *
  ****************************************************************************/
 
-/// @file	LowPassFilter.h
-/// @brief	A class to implement a second order low pass filter
-/// Author: Leonard Hall <LeonardTHall@gmail.com>
-/// Adapted for PX4 by Andrew Tridgell
+#include "LowPassFilter2pVector3f.hpp"
 
-#pragma once
+#include <px4_defines.h>
+
+#include <cmath>
 
 namespace math
 {
-class __EXPORT LowPassFilter2p
-{
-public:
 
-	LowPassFilter2p(float sample_freq, float cutoff_freq)
-	{
-		// set initial parameters
-		set_cutoff_frequency(sample_freq, cutoff_freq);
+void LowPassFilter2pVector3f::set_cutoff_frequency(float sample_freq, float cutoff_freq)
+{
+	_cutoff_freq = cutoff_freq;
+
+	// reset delay elements on filter change
+	_delay_element_1.zero();
+	_delay_element_2.zero();
+
+	if (_cutoff_freq <= 0.0f) {
+		// no filtering
+		_b0 = 1.0f;
+		_b1 = 0.0f;
+		_b2 = 0.0f;
+
+		_a1 = 0.0f;
+		_a2 = 0.0f;
+
+		return;
 	}
 
-	// Change filter parameters
-	void set_cutoff_frequency(float sample_freq, float cutoff_freq);
+	const float fr = sample_freq / _cutoff_freq;
+	const float ohm = tanf(M_PI_F / fr);
+	const float c = 1.0f + 2.0f * cosf(M_PI_F / 4.0f) * ohm + ohm * ohm;
 
-	/**
-	 * Add a new raw value to the filter
-	 *
-	 * @return retrieve the filtered result
-	 */
-	float apply(float sample);
+	_b0 = ohm * ohm / c;
+	_b1 = 2.0f * _b0;
+	_b2 = _b0;
 
-	// Return the cutoff frequency
-	float get_cutoff_freq() const { return _cutoff_freq; }
+	_a1 = 2.0f * (ohm * ohm - 1.0f) / c;
+	_a2 = (1.0f - 2.0f * cosf(M_PI_F / 4.0f) * ohm + ohm * ohm) / c;
+}
 
-	// Reset the filter state to this value
-	float reset(float sample);
+matrix::Vector3f LowPassFilter2pVector3f::reset(const matrix::Vector3f &sample)
+{
+	const matrix::Vector3f dval = sample / (_b0 + _b1 + _b2);
 
-private:
+	if (PX4_ISFINITE(dval(0)) && PX4_ISFINITE(dval(1)) && PX4_ISFINITE(dval(2))) {
+		_delay_element_1 = dval;
+		_delay_element_2 = dval;
 
-	float _cutoff_freq{0.0f};
+	} else {
+		_delay_element_1 = sample;
+		_delay_element_2 = sample;
+	}
 
-	float _a1{0.0f};
-	float _a2{0.0f};
-
-	float _b0{0.0f};
-	float _b1{0.0f};
-	float _b2{0.0f};
-
-	float _delay_element_1{0.0f};	// buffered sample -1
-	float _delay_element_2{0.0f};	// buffered sample -2
-};
+	return apply(sample);
+}
 
 } // namespace math

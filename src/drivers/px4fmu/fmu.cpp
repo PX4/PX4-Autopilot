@@ -1835,10 +1835,14 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	/* FALLTHROUGH */
 	case PWM_SERVO_SET(5):
+		if (_mode < MODE_6PWM) {
+			ret = -EINVAL;
+			break;
+		}
 
 	/* FALLTHROUGH */
 	case PWM_SERVO_SET(4):
-		if (_mode < MODE_6PWM) {
+		if (_mode < MODE_5PWM1CAP) {
 			ret = -EINVAL;
 			break;
 		}
@@ -1901,8 +1905,13 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	/* FALLTHROUGH */
 	case PWM_SERVO_GET(5):
-	case PWM_SERVO_GET(4):
 		if (_mode < MODE_6PWM) {
+			ret = -EINVAL;
+			break;
+		}
+
+	case PWM_SERVO_GET(4):
+		if (_mode < MODE_5PWM1CAP) {
 			ret = -EINVAL;
 			break;
 		}

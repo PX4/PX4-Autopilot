@@ -132,7 +132,7 @@ private:
 	 * Update the internal state estimate for a blended GPS solution that is a weighted average of the phsyical
 	 * receiver solutions. This internal state cannot be used directly by estimators because if physical receivers
 	 * have significant position differences, variation in receiver estimated accuracy will cause undesirable
-	 * variation in the position soution.
+	 * variation in the position solution.
 	*/
 	bool blend_gps_data();
 
@@ -1518,7 +1518,7 @@ void Ekf2::run()
 			{
 				/* Check and save learned magnetometer bias estimates */
 
-				// Check if conditions are OK to for learning of magnetometer bias values
+				// Check if conditions are OK for learning of magnetometer bias values
 				if (!vehicle_land_detected.landed && // not on ground
 				    (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) && // vehicle is armed
 				    !status.filter_fault_flags && // there are no filter faults
@@ -2038,7 +2038,7 @@ bool Ekf2::blend_gps_data()
  * Update the internal state estimate for a blended GPS solution that is a weighted average of the phsyical receiver solutions
  * with weights are calculated in calc_gps_blend_weights(). This internal state cannot be used directly by estimators
  * because if physical receivers have significant position differences,  variation in receiver estimated accuracy will
- * cause undesirable variation in the position soution.
+ * cause undesirable variation in the position solution.
 */
 void Ekf2::update_gps_blend_states()
 {

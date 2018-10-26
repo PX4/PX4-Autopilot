@@ -62,7 +62,6 @@ set(config_module_list
 	# modules/fw_att_control
 	modules/mc_att_control
 	modules/mc_pos_control
-	modules/vtol_att_control # FIXME: only required for params needed by Navigator
 
 	#
 	# Logging

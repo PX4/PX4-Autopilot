@@ -703,7 +703,7 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 					_last_sensor_data[uorb_index].timestamp = gyro_report.timestamp - 1000;
 				}
 
-				// approximate the  delta time using the difference in gyro data time stamps
+				// approximate the delta time using the difference in gyro data time stamps
 				_last_sensor_data[uorb_index].gyro_integral_dt =
 					(gyro_report.timestamp - _last_sensor_data[uorb_index].timestamp);
 			}

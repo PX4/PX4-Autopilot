@@ -59,12 +59,33 @@ PARAM_DEFINE_INT32(SDLOG_UTC_OFFSET, 0);
  * @value 1 from boot until disarm
  * @value 2 from boot until shutdown
  *
- * @min 0
- * @max 2
  * @reboot_required true
  * @group SD Logging
  */
 PARAM_DEFINE_INT32(SDLOG_MODE, 0);
+
+/**
+ * Mission Log
+ *
+ * If enabled, a small additional "mission" log file will be written to the SD card.
+ * The log contains just those messages that are useful for tasks like
+ * generating flight statistics and geotagging.
+ *
+ * The different modes can be used to further reduce the logged data
+ * (and thus the log file size). For example, choose geotagging mode to
+ * only log data required for geotagging.
+
+ * Note that the normal/full log is still created, and contains all
+ * the data in the mission log (and more).
+ *
+ * @value 0 Disabled
+ * @value 1 All mission messages
+ * @value 2 Geotagging messages
+ *
+ * @reboot_required true
+ * @group SD Logging
+ */
+PARAM_DEFINE_INT32(SDLOG_MISSION, 1);
 
 /**
  * Logging topic profile (integer bitmask).
@@ -110,6 +131,8 @@ PARAM_DEFINE_INT32(SDLOG_PROFILE, 3);
  *
  * If this is set to 0, old directories will only be removed if the free space falls below
  * the minimum.
+ *
+ * Note: this does not apply to mission log files.
  *
  * @min 0
  * @max 1000

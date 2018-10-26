@@ -345,6 +345,9 @@ then
 
 	# Possible internal compass
 	ist8310 -C -b 5 start
+
+	# Possible pmw3901 optical flow sensor
+	pmw3901 start
 fi
 
 if ver hwcmp PX4_SAME70XPLAINED_V1

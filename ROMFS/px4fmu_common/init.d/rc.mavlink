@@ -20,7 +20,7 @@ fi
 if ver hwcmp AV_X_V1
 then
 	# AV-X: start MAVLink to companion (connected to TX2)
-	mavlink start -d /dev/ttyS5 -r 80000 -b 921600 -m onboard
+	mavlink start -d /dev/ttyS5 -r 20000 -b 460800 -m onboard
 
 	# AV-X: start MAVLink UDP port 14570
 	mavlink start -x -u 14570

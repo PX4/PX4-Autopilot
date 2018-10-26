@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,20 +31,21 @@
  *
  ****************************************************************************/
 
-/// @file	LowPassFilter.h
-/// @brief	A class to implement a second order low pass filter
-/// Author: Leonard Hall <LeonardTHall@gmail.com>
-/// Adapted for PX4 by Andrew Tridgell
+/// @file	LowPassFilter2pVector3f.hpp
+/// @brief	A class to implement a second order low pass filter on a Vector3f
+/// Based on LowPassFilter2p.hpp by Leonard Hall <LeonardTHall@gmail.com>
 
 #pragma once
 
+#include <matrix/math.hpp>
+
 namespace math
 {
-class __EXPORT LowPassFilter2p
+class LowPassFilter2pVector3f
 {
 public:
 
-	LowPassFilter2p(float sample_freq, float cutoff_freq)
+	LowPassFilter2pVector3f(float sample_freq, float cutoff_freq)
 	{
 		// set initial parameters
 		set_cutoff_frequency(sample_freq, cutoff_freq);
@@ -58,13 +59,23 @@ public:
 	 *
 	 * @return retrieve the filtered result
 	 */
-	float apply(float sample);
+	inline matrix::Vector3f apply(const matrix::Vector3f &sample)
+	{
+		// do the filtering
+		const matrix::Vector3f delay_element_0{sample - _delay_element_1 *_a1 - _delay_element_2 * _a2};
+		const matrix::Vector3f output{delay_element_0 *_b0 + _delay_element_1 *_b1 + _delay_element_2 * _b2};
+
+		_delay_element_2 = _delay_element_1;
+		_delay_element_1 = delay_element_0;
+
+		return output;
+	}
 
 	// Return the cutoff frequency
 	float get_cutoff_freq() const { return _cutoff_freq; }
 
 	// Reset the filter state to this value
-	float reset(float sample);
+	matrix::Vector3f reset(const matrix::Vector3f &sample);
 
 private:
 
@@ -77,8 +88,8 @@ private:
 	float _b1{0.0f};
 	float _b2{0.0f};
 
-	float _delay_element_1{0.0f};	// buffered sample -1
-	float _delay_element_2{0.0f};	// buffered sample -2
+	matrix::Vector3f _delay_element_1{0.0f, 0.0f, 0.0f};	// buffered sample -1
+	matrix::Vector3f _delay_element_2{0.0f, 0.0f, 0.0f};	// buffered sample -2
 };
 
 } // namespace math
