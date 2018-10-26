@@ -49,6 +49,7 @@ bool FlightTaskAutoLineSmoothVel::activate()
 		_trajectory[i].reset(0.f, _velocity(i), _position(i));
 	}
 
+	_yaw_sp_prev = _yaw;
 	_updateTrajConstraints();
 
 	return ret;
@@ -71,21 +72,37 @@ void FlightTaskAutoLineSmoothVel::_setDefaultConstraints()
 
 void FlightTaskAutoLineSmoothVel::_generateSetpoints()
 {
-	if (!PX4_ISFINITE(_yaw_setpoint)) {
-		// no valid heading -> set heading along track
-		// TODO: Generate heading along trajectory velocity vector
-		_generateHeadingAlongTrack();
-	}
-
 	_prepareSetpoints();
 	_generateTrajectory();
+
+	if (!PX4_ISFINITE(_yaw_setpoint)) {
+		// no valid heading -> generate heading in this flight task
+		_generateHeading();
+	}
 }
 
-void FlightTaskAutoLineSmoothVel::_generateHeadingAlongTrack()
+void FlightTaskAutoLineSmoothVel::_generateHeading()
 {
-	Vector2f prev_to_dest(_target - _prev_wp);
-	_compute_heading_from_2D_vector(_yaw_setpoint, prev_to_dest);
+	// Generate heading along trajectory if possible, otherwise hold the previous yaw setpoint
+	if (!_generateHeadingAlongTraj()) {
+		_yaw_setpoint = _yaw_sp_prev;
+	}
 
+	_yaw_sp_prev = _yaw_setpoint;
+}
+
+bool FlightTaskAutoLineSmoothVel::_generateHeadingAlongTraj()
+{
+	bool res = false;
+	Vector2f vel_sp_xy(_velocity_setpoint);
+
+	if (vel_sp_xy.length() > .01f) {
+		// Generate heading from velocity vector, only if it is long enough
+		_compute_heading_from_2D_vector(_yaw_setpoint, vel_sp_xy);
+		res = true;
+	}
+
+	return res;
 }
 
 /* Constrain some value vith a constrain depending on the sign of the constrain
