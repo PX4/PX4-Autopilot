@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2016, 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,12 +33,11 @@
 /**
  * @file server.h
  *
- * The server (also called daemon) opens a pipe for clients to write to.
+ * The server (also called daemon) opens a socket for clients to connect to.
  *
- * Once a client connects it will send a command as well as a unique ID.
+ * Once a client connects it will send a command and close its side of the connection.
  * The server will return the stdout of the executing command, as well as the return
- * value to the client on a client specific pipe.
- * The client specific pipe are idenified by the unique ID of the client.
+ * value to the client.
  *
  * There should only every be one server running, therefore the static instance.
  * The Singleton implementation is not complete, but it should be obvious not
@@ -46,6 +45,7 @@
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Beat Küng <beat-kueng@gmx.net>
+ * @author Mara Bos <m-ou.se@m-ou.se>
  */
 #pragma once
 
@@ -54,7 +54,7 @@
 #include <pthread.h>
 #include <map>
 
-#include "pipe_protocol.h"
+#include "sock_protocol.h"
 
 
 namespace px4_daemon
@@ -74,11 +74,10 @@ public:
 	 */
 	int start();
 
-
 	struct CmdThreadSpecificData {
-		int pipe_fd; // pipe fd to send data to descriptor
+		int fd; // fd to send stdout to
 		bool is_atty; // whether file descriptor refers to a terminal
-		client_recv_packet_s packet;
+		char buffer[1024];
 	};
 
 	static bool is_running()
@@ -92,17 +91,7 @@ public:
 	}
 private:
 	static void *_server_main_trampoline(void *arg);
-	void _server_main(void *arg);
-
-	void _parse_client_send_packet(const client_send_packet_s &packet);
-	void _execute_cmd_packet(const client_send_packet_s &packet);
-	void _kill_cmd_packet(const client_send_packet_s &packet);
-	void _cleanup_thread(const uint64_t client_uuid);
-
-	/**
-	 * Like _cleanup_thread(), but does not take the mutex
-	 */
-	void __cleanup_thread(const uint64_t client_uuid);
+	void _server_main();
 
 	void _lock()
 	{
@@ -114,28 +103,19 @@ private:
 		pthread_mutex_unlock(&_mutex);
 	}
 
-
-	static void _send_retval(const int pipe_fd, const int retval, const uint64_t client_uuid);
-
-	struct RunCmdArgs {
-		char cmd[sizeof(client_send_packet_s::payload.execute_msg.cmd)];
-		uint64_t client_uuid;
-		bool is_atty;
-		int pipe_fd;
-	};
-
-	static void *_run_cmd(void *arg);
+	static void *_handle_client(void *arg);
+	static void _cleanup(int fd);
 
 	pthread_t _server_main_pthread;
 
-	std::map<pthread_t, int> _pthread_to_pipe_fd;
-	std::map<uint64_t, pthread_t> _client_uuid_to_pthread;
-	pthread_mutex_t _mutex; ///< protects access to _pthread_to_pipe_fd and _client_uuid_to_pthread
+	std::map<int, pthread_t> _fd_to_thread;
+	pthread_mutex_t _mutex; ///< Protects _fd_to_thread.
 
 	pthread_key_t _key;
 
 	int _instance_id; ///< instance ID for running multiple instances of the px4 server
 
+	int _fd;
 
 	static void _pthread_key_destructor(void *arg);
 
