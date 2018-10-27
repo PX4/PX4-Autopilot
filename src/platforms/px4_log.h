@@ -141,8 +141,15 @@ __BEGIN_DECLS
 __EXPORT extern const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT extern const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT extern void px4_backtrace(void);
-__EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...);
-__EXPORT void px4_log_raw(int level, const char *fmt, ...);
+__EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...)
+__attribute__((format(printf, 3, 4)));
+__EXPORT void px4_log_raw(int level, const char *fmt, ...)
+__attribute__((format(printf, 2, 3)));
+
+#if __GNUC__
+// Allow empty format strings.
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
+#endif
 
 __END_DECLS
 
