@@ -170,7 +170,7 @@ MissionFeasibilityChecker::checkGeofence(const mission_s &mission, float home_al
 
 			if (MissionBlock::item_contains_position(missionitem) && !_navigator->get_geofence().check(missionitem)) {
 
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence violation for waypoint %d", i + 1);
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence violation for waypoint %zu", i + 1);
 				return false;
 			}
 		}
@@ -200,11 +200,11 @@ MissionFeasibilityChecker::checkHomePositionAltitude(const mission_s &mission, f
 			_navigator->get_mission_result()->warning = true;
 
 			if (throw_error) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: No home pos, WP %d uses rel alt", i + 1);
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: No home pos, WP %zu uses rel alt", i + 1);
 				return false;
 
 			} else	{
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Warning: No home pos, WP %d uses rel alt", i + 1);
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Warning: No home pos, WP %zu uses rel alt", i + 1);
 				return true;
 			}
 		}
@@ -217,11 +217,11 @@ MissionFeasibilityChecker::checkHomePositionAltitude(const mission_s &mission, f
 			_navigator->get_mission_result()->warning = true;
 
 			if (throw_error) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Waypoint %d below home", i + 1);
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Waypoint %zu below home", i + 1);
 				return false;
 
 			} else	{
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Warning: Waypoint %d below home", i + 1);
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Warning: Waypoint %zu below home", i + 1);
 				return true;
 			}
 		}

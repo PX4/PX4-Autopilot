@@ -367,21 +367,13 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 			PX4_INFO_RAW("\033[H"); // move cursor home and clear screen
 			PX4_INFO_RAW(CLEAR_LINE "update: 1s, num topics: %i\n", num_topics);
-#ifdef __PX4_NUTTX
-			PX4_INFO_RAW(CLEAR_LINE "%*-s INST #SUB #MSG #LOST #QSIZE\n", (int)max_topic_name_length - 2, "TOPIC NAME");
-#else
-			PX4_INFO_RAW(CLEAR_LINE "%*s INST #SUB #MSG #LOST #QSIZE\n", -(int)max_topic_name_length + 2, "TOPIC NAME");
-#endif
+			PX4_INFO_RAW(CLEAR_LINE "%-*s INST #SUB #MSG #LOST #QSIZE\n", (int)max_topic_name_length - 2, "TOPIC NAME");
 			cur_node = first_node;
 
 			while (cur_node) {
 
 				if (!print_active_only || cur_node->pub_msg_delta > 0) {
-#ifdef __PX4_NUTTX
-					PX4_INFO_RAW(CLEAR_LINE "%*-s %2i %4i %4i %5i %i\n", (int)max_topic_name_length,
-#else
-					PX4_INFO_RAW(CLEAR_LINE "%*s %2i %4i %4i %5i %i\n", -(int)max_topic_name_length,
-#endif
+					PX4_INFO_RAW(CLEAR_LINE "%-*s %2i %4i %4i %5i %i\n", (int)max_topic_name_length,
 						     cur_node->node->get_meta()->o_name, (int)cur_node->instance,
 						     (int)cur_node->node->subscriber_count(), cur_node->pub_msg_delta,
 						     (int)cur_node->lost_msg_delta, cur_node->node->get_queue_size());

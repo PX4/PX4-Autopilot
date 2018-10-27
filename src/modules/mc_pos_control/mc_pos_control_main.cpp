@@ -351,7 +351,7 @@ MulticopterPositionControl::warn_rate_limited(const char *string)
 	hrt_abstime now = hrt_absolute_time();
 
 	if (now - _last_warn > 200000) {
-		PX4_WARN(string);
+		PX4_WARN("%s", string);
 		_last_warn = now;
 	}
 }

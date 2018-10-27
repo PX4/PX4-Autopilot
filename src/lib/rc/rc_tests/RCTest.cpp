@@ -122,7 +122,7 @@ bool RCTest::crsfTest()
 			}
 
 			if (expected_num_channels != num_values) {
-				PX4_ERR("File line: ", line_counter);
+				PX4_ERR("File line: %d", line_counter);
 				ut_compare("Unexpected number of decoded channels", expected_num_channels, num_values);
 			}
 

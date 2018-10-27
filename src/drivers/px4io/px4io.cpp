@@ -3182,7 +3182,7 @@ test(void)
 		ret = write(fd, servos, sizeof(servos));
 
 		if (ret != (int)sizeof(servos)) {
-			err(1, "error writing PWM servo data, wrote %lu got %d", sizeof(servos), ret);
+			err(1, "error writing PWM servo data, wrote %zu got %d", sizeof(servos), ret);
 		}
 
 		if (direction > 0) {

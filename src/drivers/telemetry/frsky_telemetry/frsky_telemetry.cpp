@@ -778,19 +778,19 @@ int frsky_telemetry_main(int argc, char *argv[])
 			case SPORT:
 				PX4_INFO("running: SPORT");
 				PX4_INFO("port: %s", device_name);
-				PX4_INFO("packets sent: %d", sentPackets);
+				PX4_INFO("packets sent: %ld", sentPackets);
 				break;
 
 			case SPORT_SINGLE_WIRE:
 				PX4_INFO("running: SPORT (single wire)");
 				PX4_INFO("port: %s", device_name);
-				PX4_INFO("packets sent: %d", sentPackets);
+				PX4_INFO("packets sent: %ld", sentPackets);
 				break;
 
 			case DTYPE:
 				PX4_INFO("running: DTYPE");
 				PX4_INFO("port: %s", device_name);
-				PX4_INFO("packets sent: %d", sentPackets);
+				PX4_INFO("packets sent: %ld", sentPackets);
 				break;
 			}
 

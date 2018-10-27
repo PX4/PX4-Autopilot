@@ -307,7 +307,7 @@ static calibrate_return check_calibration_result(float offset_x, float offset_y,
 	for (unsigned i = 0; i < num_finite; ++i) {
 		if (!PX4_ISFINITE(must_be_finite[i])) {
 			calibration_log_emergency(mavlink_log_pub,
-							"ERROR: Retry calibration (sphere NaN, #%u)", cur_mag);
+							"ERROR: Retry calibration (sphere NaN, #%zu)", cur_mag);
 			return calibrate_return_error;
 		}
 	}

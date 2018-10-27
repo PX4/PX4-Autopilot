@@ -1271,20 +1271,20 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 void
 Mavlink::send_statustext_info(const char *string)
 {
-	mavlink_log_info(&_mavlink_log_pub, string);
+	mavlink_log_info(&_mavlink_log_pub, "%s", string);
 }
 
 void
 Mavlink::send_statustext_critical(const char *string)
 {
-	mavlink_log_critical(&_mavlink_log_pub, string);
-	PX4_ERR(string);
+	mavlink_log_critical(&_mavlink_log_pub, "%s", string);
+	PX4_ERR("%s", string);
 }
 
 void
 Mavlink::send_statustext_emergency(const char *string)
 {
-	mavlink_log_emergency(&_mavlink_log_pub, string);
+	mavlink_log_emergency(&_mavlink_log_pub, "%s", string);
 }
 
 void Mavlink::send_autopilot_capabilites()

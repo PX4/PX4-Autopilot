@@ -638,7 +638,7 @@ BottleDrop::task_main()
 
 					float approach_direction = get_bearing_to_next_waypoint(flight_vector_s.lat, flight_vector_s.lon, flight_vector_e.lat,
 								   flight_vector_e.lon);
-					mavlink_log_critical(&_mavlink_log_pub, "position set, approach heading: %u", (unsigned)distance_real,
+					mavlink_log_critical(&_mavlink_log_pub, "position set, approach heading: %u",
 							     (unsigned)math::degrees(approach_direction + M_PI_F));
 
 					_drop_state = DROP_STATE_TARGET_SET;
