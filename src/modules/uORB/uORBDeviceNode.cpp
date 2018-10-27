@@ -760,7 +760,7 @@ int16_t uORB::DeviceNode::process_received_message(int32_t length, uint8_t *data
 	int16_t ret = -1;
 
 	if (length != (int32_t)(_meta->o_size)) {
-		PX4_ERR("Received DataLength[%d] != ExpectedLen[%d]", _meta->o_name, (int)length, (int)_meta->o_size);
+		PX4_ERR("Received '%s' with DataLength[%d] != ExpectedLen[%d]", _meta->o_name, (int)length, (int)_meta->o_size);
 		return PX4_ERROR;
 	}
 
