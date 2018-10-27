@@ -128,7 +128,7 @@ int start(enum BATT_SMBUS_BUS busid)
 
 		if (busid == BATT_SMBUS_BUS_ALL && bus_options[i].dev != nullptr) {
 			// This device is already started.
-			PX4_INFO("Smart battery %d already started", bus_options[i].dev);
+			PX4_INFO("Smart battery %p already started", bus_options[i].dev);
 			continue;
 		}
 

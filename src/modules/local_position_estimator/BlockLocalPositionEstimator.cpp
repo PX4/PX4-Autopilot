@@ -222,13 +222,13 @@ void BlockLocalPositionEstimator::update()
 				    s->get().orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING &&
 				    _sub_lidar == nullptr) {
 					_sub_lidar = s;
-					mavlink_and_console_log_info(&mavlink_log_pub, "%sDownward-facing Lidar detected with ID %i", msg_label, i);
+					mavlink_and_console_log_info(&mavlink_log_pub, "%sDownward-facing Lidar detected with ID %zu", msg_label, i);
 
 				} else if (s->get().type == distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND &&
 					   s->get().orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING &&
 					   _sub_sonar == nullptr) {
 					_sub_sonar = s;
-					mavlink_and_console_log_info(&mavlink_log_pub, "%sDownward-facing Sonar detected with ID %i", msg_label, i);
+					mavlink_and_console_log_info(&mavlink_log_pub, "%sDownward-facing Sonar detected with ID %zu", msg_label, i);
 				}
 			}
 		}
@@ -373,7 +373,7 @@ void BlockLocalPositionEstimator::update()
 		// don't want it to take too long
 		if (!PX4_ISFINITE(_x(i))) {
 			reinit_x = true;
-			mavlink_and_console_log_info(&mavlink_log_pub, "%sreinit x, x(%d) not finite", msg_label, i);
+			mavlink_and_console_log_info(&mavlink_log_pub, "%sreinit x, x(%zu) not finite", msg_label, i);
 			break;
 		}
 	}
@@ -393,7 +393,7 @@ void BlockLocalPositionEstimator::update()
 		for (size_t j = 0; j <= i; j++) {
 			if (!PX4_ISFINITE(_P(i, j))) {
 				mavlink_and_console_log_info(&mavlink_log_pub,
-							     "%sreinit P (%d, %d) not finite", msg_label, i, j);
+							     "%sreinit P (%zu, %zu) not finite", msg_label, i, j);
 				reinit_P = true;
 			}
 
@@ -401,7 +401,7 @@ void BlockLocalPositionEstimator::update()
 				// make sure diagonal elements are positive
 				if (_P(i, i) <= 0) {
 					mavlink_and_console_log_info(&mavlink_log_pub,
-								     "%sreinit P (%d, %d) negative", msg_label, i, j);
+								     "%sreinit P (%zu, %zu) negative", msg_label, i, j);
 					reinit_P = true;
 				}
 

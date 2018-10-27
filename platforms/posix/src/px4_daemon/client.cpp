@@ -293,7 +293,7 @@ Client::_stdout_msg_packet(const client_recv_packet_s &packet)
 		return 0;
 
 	} else {
-		PX4_ERR("payload size wrong (%i > %i)", packet.header.payload_length, sizeof(packet.payload.stdout_msg.text));
+		PX4_ERR("payload size wrong (%i > %zu)", packet.header.payload_length, sizeof(packet.payload.stdout_msg.text));
 		return -1;
 	}
 }

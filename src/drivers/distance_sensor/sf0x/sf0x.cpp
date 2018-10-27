@@ -853,7 +853,7 @@ test()
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			PX4_ERR("read failed: got %d vs exp. %d", sz, sizeof(report));
+			PX4_ERR("read failed: got %zi vs exp. %zu", sz, sizeof(report));
 			break;
 		}
 
