@@ -813,6 +813,27 @@ MulticopterPositionControl::start_flight_task()
 	bool task_failure = false;
 	int prev_failure_count = _task_failure_count;
 
+	if (!_vehicle_status.is_rotary_wing) {
+		_flight_tasks.switchTask(FlightTaskIndex::None);
+		return;
+	}
+
+	if (_vehicle_status.in_transition_mode) {
+		int error = _flight_tasks.switchTask(FlightTaskIndex::Transition);
+
+		if (error != 0) {
+			PX4_WARN("Follow-Me activation failed with error: %s", _flight_tasks.errorToString(error));
+			task_failure = true;
+			_task_failure_count++;
+
+		} else {
+			// we want to be in this mode, reset the failure count
+			_task_failure_count = 0;
+		}
+
+		return;
+	}
+
 	// offboard
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD
 	    && (_control_mode.flag_control_altitude_enabled ||
