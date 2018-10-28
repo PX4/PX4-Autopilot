@@ -47,7 +47,7 @@ public:
 	FlightTaskTransition() = default;
 
 	virtual ~FlightTaskTransition() = default;
-	bool activate();
+	bool activate() override;
 	bool updateInitialize() override;
 	bool update() override;
 
