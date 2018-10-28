@@ -31,7 +31,7 @@ int main()
     TEST(isEqual(B_colslice, B_check_colslice));
 
     // Test slicing both
-    Matrix<float, 3, 2> B_bothslice(A.slice<2, 2>(1, 1));
+    Matrix<float, 2, 2> B_bothslice(A.slice<2, 2>(1, 1));
     float data_check_bothslice[4] = {
         5, 6,
         8, 10
