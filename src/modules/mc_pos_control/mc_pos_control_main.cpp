@@ -95,6 +95,9 @@ public:
 	/** @see ModuleBase::run() */
 	void run() override;
 
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
+
 private:
 
 	bool 		_in_smooth_takeoff = false; 		/**<true if takeoff ramp is applied */
@@ -554,6 +557,17 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 
 	}
 
+}
+
+int
+MulticopterPositionControl::print_status()
+{
+	if (_flight_tasks.isAnyTaskActive()) {
+		PX4_INFO("Running, active flight task: %i", _flight_tasks.getActiveTask());
+	} else {
+		PX4_INFO("Running, no flight task active");
+	}
+	return 0;
 }
 
 void
