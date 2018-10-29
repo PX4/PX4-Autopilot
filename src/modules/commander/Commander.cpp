@@ -51,6 +51,7 @@
 #include "baro_calibration.h"
 #include "calibration_routines.h"
 #include "commander_helper.h"
+#include "companion_status.h"
 #include "esc_calibration.h"
 #include "gyro_calibration.h"
 #include "mag_calibration.h"
@@ -86,6 +87,7 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/companion_status.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
@@ -1188,6 +1190,7 @@ Commander::run()
 	param_t _param_arm_mission_required = param_find("COM_ARM_MIS_REQ");
 	param_t _param_flight_uuid = param_find("COM_FLIGHT_UUID");
 	param_t _param_takeoff_finished_action = param_find("COM_TAKEOFF_ACT");
+	param_t _param_mpc_obs_avoid = param_find("MPC_OBS_AVOID");
 
 	param_t _param_fmode_1 = param_find("COM_FLTMODE1");
 	param_t _param_fmode_2 = param_find("COM_FLTMODE2");
@@ -1427,6 +1430,11 @@ Commander::run()
 	while (!should_exit()) {
 
 		transition_result_t arming_ret = TRANSITION_NOT_CHANGED;
+
+		//check companion computer processes
+		int32_t obs_avoid;
+		param_get(_param_mpc_obs_avoid, &obs_avoid); // avoidance parameter
+		_companion_status.check_companion_status(&mavlink_log_pub, obs_avoid);
 
 		/* update parameters */
 		bool params_updated = false;

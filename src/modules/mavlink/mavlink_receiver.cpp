@@ -1987,20 +1987,6 @@ MavlinkReceiver::handle_message_companion_status(mavlink_message_t *msg)
 	} else {
 		orb_publish(ORB_ID(companion_status), _companion_status_pub, &companion_status);
 	}
-
-	if(companion_status.state == 0){
-		_mavlink->send_statustext_emergency("all ok");
-	}else if(companion_status.state == 1){
-		_mavlink->send_statustext_emergency("timeout");
-	}else if(companion_status.state == 2){
-		_mavlink->send_statustext_emergency("abort");
-	}else if(companion_status.state == 3){
-		_mavlink->send_statustext_emergency("not ready");
-	}else if(companion_status.state == 4){
-		_mavlink->send_statustext_emergency("camera fail");
-	}
-
-
 }
 
 int
