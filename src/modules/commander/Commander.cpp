@@ -2211,8 +2211,6 @@ Commander::run()
 						PX4_ERR("Engine Failure");
 						set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL, true, true, false, status);
 					}
-				} else {
-					_engine_thrust_high = (throttle > ef_throttle_thres) && (current2throttle > ef_current2throttle_thres);
 				}
 
 			} else {

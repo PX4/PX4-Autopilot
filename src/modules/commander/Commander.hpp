@@ -203,7 +203,6 @@ private:
 	int _battery_sub{-1};
 	uint8_t _battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	float _battery_current{0.0f};
-	bool _engine_thrust_high = false;
 
 	void battery_status_check();
 
