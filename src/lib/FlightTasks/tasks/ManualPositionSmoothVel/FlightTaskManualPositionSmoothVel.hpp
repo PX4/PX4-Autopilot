@@ -50,6 +50,7 @@ public:
 	virtual ~FlightTaskManualPositionSmoothVel() = default;
 
 	bool activate() override;
+	void reActivate() override;
 
 protected:
 
@@ -63,6 +64,8 @@ protected:
 				       )
 private:
 
+	enum class Axes {XY, XYZ};
+	void reset(Axes axes);
 	VelocitySmoothing _smoothing[3]; ///< Smoothing in x, y and z directions
 	matrix::Vector3f _vel_sp_smooth;
 	bool _position_lock_xy_active{false};

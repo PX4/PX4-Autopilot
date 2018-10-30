@@ -42,16 +42,42 @@ bool FlightTaskManualPositionSmoothVel::activate()
 {
 	bool ret = FlightTaskManualPosition::activate();
 
+	reset(Axes::XYZ);
+
+	return ret;
+}
+
+void FlightTaskManualPositionSmoothVel::reActivate()
+{
+	reset(Axes::XY);
+}
+
+void FlightTaskManualPositionSmoothVel::reset(Axes axes)
+{
+	int count;
+
+	switch (axes) {
+	case Axes::XY:
+		count = 2;
+		break;
+
+	case Axes::XYZ:
+		count = 3;
+		break;
+
+	default:
+		count = 0;
+		break;
+	}
+
 	// TODO: get current accel
-	for (int i = 0; i < 3; ++i) {
+	for (int i = 0; i < count; ++i) {
 		_smoothing[i].reset(0.f, _velocity(i), _position(i));
 	}
 
 	_position_lock_xy_active = false;
 	_position_setpoint_xy_locked(0) = NAN;
 	_position_setpoint_xy_locked(1) = NAN;
-
-	return ret;
 }
 
 void FlightTaskManualPositionSmoothVel::_updateSetpoints()
