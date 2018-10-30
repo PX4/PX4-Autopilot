@@ -12,6 +12,8 @@ catkin init
 catkin build local_planner --cmake-args -DCMAKE_BUILD_TYPE=Release
 
 source ${PX4_SRC_DIR}/catkin_ws/devel/setup.bash
+source /usr/share/gazebo/setup.sh
+
 export CATKIN_SETUP_UTIL_ARGS=--extend
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:${PX4_SRC_DIR}/catkin_ws/src/avoidance/sim/models
 
