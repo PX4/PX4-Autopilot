@@ -14,7 +14,7 @@ FlightTestInput::FlightTestInput(const char *name) :
     _standard_deviation(this, "SD")
 {
 }
-
+//test
 void
 FlightTestInput::update()
 {
@@ -73,10 +73,11 @@ FlightTestInput::update()
 
 	case TEST_INPUT_RUNNING:
 
-        if ((switch_was_on && switch_on) // manual switch still on
-			   && _enabled.get() // enabled
-			  ) {
-
+        //if ((switch_was_on && switch_on) // manual switch still on
+        //       && _enabled.get() // enabled
+        //      ) {
+        if ( _enabled.get() // enabled
+              ) {
 			// increment time
 			_time_running += dt;
 
