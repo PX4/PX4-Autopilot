@@ -45,6 +45,7 @@
 #include "SubscriptionArray.hpp"
 #include "FlightTasks_generated.hpp"
 #include <lib/WeatherVane/WeatherVane.hpp>
+#include <lib/CollisionAvoidance/CollisionAvoidance.hpp>
 
 #include <new>
 
@@ -130,6 +131,11 @@ public:
 	 * Sets an external yaw handler. The active flight task can use the yaw handler to implement a different yaw control strategy.
 	 */
 	void setYawHandler(WeatherVane *ext_yaw_handler) {_current_task.task->setYawHandler(ext_yaw_handler);}
+
+	/**
+	 * Sets an external collision avoidance. The active flight task can use the the collision avoidance to modify the setpoint.
+	 */
+	void setCollisionAvoidance(CollisionAvoidance *ext_collision_avoidance) {_current_task.task->setCollisionAvoidance(ext_collision_avoidance);}
 
 	/**
 	 *   This method will re-activate current task.
