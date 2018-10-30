@@ -1,0 +1,22 @@
+NOTES FOR FUSION OF MEASUREMENTS USING AUTOCODE FRAGMENTS
+
+The auto-code for the fusion of the various measurements provides in most cases the observation Jacobian and Kalman gain matrix for that observation. 
+Where no Kalman gain is provided, it will need to be calculated using the usual K = P*transpose(H)/(H*P*transpose(H) + R) where:
+
+K = Kalman Gain matrix
+H = observation partial derivative matrix (observaton Jacobian)
+R = observation variance
+(H*P*transpose(H) + R) is the innovation variance (always a scalar)
+
+When the observation is a vector, it is always assumed that the errors in the vectors are uncorelated to each other and the observations are fused 
+sequentially, so no matrix inversion is required.
+
+It is important that maximum useage of the sparsity in the H matrix be taken advantage of. If a sparse math library is available it could be used, 
+otherwise the matrix operations should need unrolled with inclusion of conditional statements to improve efficiency. Examples of this technique can 
+be found in the existing att_pos_ekf_estimator library
+
+NOTES FOR COVARIANCE PREDICTION
+
+Only expression for the upper diagonal is provided. The values will need to be copied across to the lower diagnal elements assuming symmetry
+Process noise for time invariant states, eg Gyro bias, has not been included in the auto-code. The process noise variance for these states will 
+need to be added in a separate operation.

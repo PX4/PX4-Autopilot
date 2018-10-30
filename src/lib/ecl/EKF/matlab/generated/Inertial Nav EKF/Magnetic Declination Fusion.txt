@@ -1,0 +1,67 @@
+/* 
+Autocode for fusion of a magnetic declination estimate where the innovation is given by 
+
+innovation = atanf(magMeasEarthFrameEast/magMeasEarthFrameNorth) - declinationAngle;
+
+magMeasEarthFrameEast and magMeasEarthFrameNorth are obtained by rotating the magnetometer measurements from body frame to earth frame.
+declinationAngle is the estimated declination as that location
+
+This fusion method is used to constrain the rotation of the earth field vector when there are no earth relative measurements 
+(e.g. using optical flow without GPS, or when the vehicle is stationary) to provide an absolute yaw reference. In this situation the presence of yaw gyro errors
+can cause the magnetic declination of the earth field estimates to slowly rotate.
+
+Divide by zero protection and protection against a badly conditioned covariance matrix must be included.
+*/
+
+// Calculate intermediate variable
+float t2 = magE*magE;
+float t3 = magN*magN;
+float t4 = t2+t3;
+float t5 = P[16][16]*t2;
+float t6 = P[17][17]*t3;
+float t7 = t2*t2;
+float t8 = R_DECL*t7;
+float t9 = t3*t3;
+float t10 = R_DECL*t9;
+float t11 = R_DECL*t2*t3*2.0f;
+float t14 = P[16][17]*magE*magN;
+float t15 = P[17][16]*magE*magN;
+float t12 = t5+t6+t8+t10+t11-t14-t15;
+float t13 = 1.0f / t12;
+float t16 = magE;
+float t17 = magN;
+float t18 = t16*t16;
+float t19 = t17*t17;
+float t20 = t18+t19;
+float t21 = 1.0f/t20;
+
+// Calculate the observation Jacobian
+// Note only 2 terms are non-zero which can be used in matrix operations for calculation of Kalman gains and covariance update to significantly reduce cost
+H_DECL[16] = -t16*t21;
+H_DECL[17] = t17*t21;
+
+// Calculate the Kalman gains
+Kfusion[0] = -t4*t13*(P[0][16]*magE-P[0][17]*magN);
+Kfusion[1] = -t4*t13*(P[1][16]*magE-P[1][17]*magN);
+Kfusion[2] = -t4*t13*(P[2][16]*magE-P[2][17]*magN);
+Kfusion[3] = -t4*t13*(P[3][16]*magE-P[3][17]*magN);
+Kfusion[4] = -t4*t13*(P[4][16]*magE-P[4][17]*magN);
+Kfusion[5] = -t4*t13*(P[5][16]*magE-P[5][17]*magN);
+Kfusion[6] = -t4*t13*(P[6][16]*magE-P[6][17]*magN);
+Kfusion[7] = -t4*t13*(P[7][16]*magE-P[7][17]*magN);
+Kfusion[8] = -t4*t13*(P[8][16]*magE-P[8][17]*magN);
+Kfusion[9] = -t4*t13*(P[9][16]*magE-P[9][17]*magN);
+Kfusion[10] = -t4*t13*(P[10][16]*magE-P[10][17]*magN);
+Kfusion[11] = -t4*t13*(P[11][16]*magE-P[11][17]*magN);
+Kfusion[12] = -t4*t13*(P[12][16]*magE-P[12][17]*magN);
+Kfusion[13] = -t4*t13*(P[13][16]*magE-P[13][17]*magN);
+Kfusion[14] = -t4*t13*(P[14][16]*magE-P[14][17]*magN);
+Kfusion[15] = -t4*t13*(P[15][16]*magE-P[15][17]*magN);
+Kfusion[16] = -t4*t13*(P[16][16]*magE-P[16][17]*magN);
+Kfusion[17] = -t4*t13*(P[17][16]*magE-P[17][17]*magN);
+Kfusion[18] = -t4*t13*(P[18][16]*magE-P[18][17]*magN);
+Kfusion[19] = -t4*t13*(P[19][16]*magE-P[19][17]*magN);
+Kfusion[20] = -t4*t13*(P[20][16]*magE-P[20][17]*magN);
+Kfusion[21] = -t4*t13*(P[21][16]*magE-P[21][17]*magN);
+Kfusion[22] = -t4*t13*(P[22][16]*magE-P[22][17]*magN);
+Kfusion[23] = -t4*t13*(P[23][16]*magE-P[23][17]*magN);
