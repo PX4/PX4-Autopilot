@@ -4219,6 +4219,9 @@ void Commander::airspeed_use_check()
 	}
 
 	// Do actions based on value of COM_ASPD_FS_ACT parameter
+	status.aspd_fault_declared = false;
+	status.aspd_use_inhibit = false;
+	status.aspd_fail_rtl = false;
 	switch (_airspeed_fail_action.get()) {
 	case 4: // log a message, warn the user, switch to non-airspeed TECS mode, switch to Return mode
 		{
@@ -4235,9 +4238,6 @@ void Commander::airspeed_use_check()
 				}
 			} else if (fault_cleared) {
 				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA GOOD - restarting use");
-				status.aspd_fault_declared = false;
-				status.aspd_use_inhibit = false;
-				status.aspd_fail_rtl = false;
 			}
 			return;
 		}
@@ -4247,12 +4247,8 @@ void Commander::airspeed_use_check()
 				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA  %s  - stopping use", _airspeed_fault_type);
 				status.aspd_fault_declared = true;
 				status.aspd_use_inhibit = true;
-				status.aspd_fail_rtl = false;
 			} else if (fault_cleared) {
 				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA GOOD - restarting use");
-				status.aspd_fault_declared = false;
-				status.aspd_use_inhibit = false;
-				status.aspd_fail_rtl = false;
 			}
 			return;
 		}
@@ -4261,13 +4257,8 @@ void Commander::airspeed_use_check()
 			if (fault_declared) {
 				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA %s", _airspeed_fault_type);
 				status.aspd_fault_declared = true;
-				status.aspd_use_inhibit = false;
-				status.aspd_fail_rtl = false;
 			} else if (fault_cleared) {
 				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA GOOD");
-				status.aspd_fault_declared = false;
-				status.aspd_use_inhibit = false;
-				status.aspd_fail_rtl = false;
 			}
 			return;
 		}
@@ -4276,21 +4267,13 @@ void Commander::airspeed_use_check()
 			if (fault_declared) {
 				mavlink_log_info(&mavlink_log_pub, "AIRSPEED DATA %s", _airspeed_fault_type);
 				status.aspd_fault_declared = true;
-				status.aspd_use_inhibit = false;
-				status.aspd_fail_rtl = false;
 			} else if (fault_cleared) {
 				mavlink_log_info(&mavlink_log_pub, "AIRSPEED DATA GOOD");
-				status.aspd_fault_declared = false;
-				status.aspd_use_inhibit = false;
-				status.aspd_fail_rtl = false;
 			}
 			return;
 		}
 	default:
 		// Do nothing
-		status.aspd_fault_declared = false;
-		status.aspd_use_inhibit = false;
-		status.aspd_fail_rtl = true;
 		return;
 	}
 }
