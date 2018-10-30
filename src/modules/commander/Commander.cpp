@@ -2182,7 +2182,6 @@ Commander::run()
 		// engine failure detection
 		// TODO: move out of commander
 		orb_check(actuator_controls_sub, &updated);
-		actuator_controls_s actuator_controls = {};
 
 		if (updated) {
 			/* Check engine failure
@@ -2191,6 +2190,7 @@ Commander::run()
 			if (!status_flags.circuit_breaker_engaged_enginefailure_check &&
 			    !status.is_rotary_wing && !status.is_vtol && armed.armed) {
 
+				actuator_controls_s actuator_controls = {};
 				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_controls_sub, &actuator_controls);
 
 				const float throttle = actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
