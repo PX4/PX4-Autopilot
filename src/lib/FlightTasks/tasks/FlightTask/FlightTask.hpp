@@ -52,6 +52,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <lib/WeatherVane/WeatherVane.hpp>
+#include <lib/CollisionAvoidance/CollisionAvoidance.hpp>
 #include "SubscriptionArray.hpp"
 
 class FlightTask : public ModuleParams
@@ -146,6 +147,12 @@ public:
 	 * This method does nothing, each flighttask which wants to use the yaw handler needs to override this method.
 	 */
 	virtual void setYawHandler(WeatherVane *ext_yaw_handler) {};
+
+	/**
+	 * Sets an external collision avoidance which can be used by any flight task to implement a different setpoint
+	 * This method does nothing, each flighttask which wants to use the collision avoidance needs to override this method.
+	 */
+	virtual void setCollisionAvoidance(CollisionAvoidance *ext_collision_avoidance) {};
 
 protected:
 

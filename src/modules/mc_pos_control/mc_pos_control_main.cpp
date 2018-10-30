@@ -47,6 +47,7 @@
 #include <commander/px4_custom_mode.h>
 
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -64,6 +65,7 @@
 
 #include <lib/FlightTasks/FlightTasks.hpp>
 #include <lib/WeatherVane/WeatherVane.hpp>
+#include <lib/CollisionAvoidance/CollisionAvoidance.hpp>
 #include "PositionControl.hpp"
 #include "Utility/ControlMath.hpp"
 
@@ -112,6 +114,7 @@ private:
 	int		_local_pos_sub{-1};			/**< vehicle local position */
 	int		_home_pos_sub{-1}; 			/**< home position */
 	int		_traj_wp_avoidance_sub{-1};	/**< trajectory waypoint */
+	int		_range_sensor_sub{-1};	    /**< obstacle distances */
 
 	int _task_failure_count{0};         /**< counter for task failures */
 
@@ -128,6 +131,7 @@ private:
 	home_position_s				_home_pos{};			/**< home position */
 	vehicle_trajectory_waypoint_s		_traj_wp_avoidance{};		/**< trajectory waypoint */
 	vehicle_trajectory_waypoint_s		_traj_wp_avoidance_desired{};	/**< desired waypoints, inputs to an obstacle avoidance module */
+	obstacle_distance_s			_obstacle_distance{};	/**< obstacle distances received form a range sensor */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time constant for smooth takeoff ramp */
@@ -175,6 +179,7 @@ private:
 	systemlib::Hysteresis _failsafe_land_hysteresis{false}; /**< becomes true if task did not update correctly for LOITER_TIME_BEFORE_DESCEND */
 
 	WeatherVane *_wv_controller{nullptr};
+	CollisionAvoidance *_ca_controller{nullptr};
 
 	/**
 	 * Update our local parameter cache.
@@ -343,6 +348,9 @@ MulticopterPositionControl::~MulticopterPositionControl()
 	if (_wv_controller != nullptr) {
 		delete _wv_controller;
 	}
+	if (_ca_controller != nullptr) {
+		delete _ca_controller;
+	}
 }
 
 void
@@ -413,6 +421,10 @@ MulticopterPositionControl::poll_subscriptions()
 		if (_wv_controller == nullptr && _vehicle_status.is_vtol) {
 			_wv_controller = new WeatherVane();
 		}
+		// if the vehicle is a rotary wing, enable collision avoidance capabilities
+		if (_ca_controller == nullptr && _vehicle_status.is_rotary_wing) {
+			_ca_controller = new CollisionAvoidance();
+		}
 	}
 
 	orb_check(_vehicle_land_detected_sub, &updated);
@@ -443,6 +455,12 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_trajectory_waypoint), _traj_wp_avoidance_sub, &_traj_wp_avoidance);
+	}
+
+	orb_check(_range_sensor_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(obstacle_distance), _range_sensor_sub, &_obstacle_distance);
 	}
 }
 
@@ -552,6 +570,7 @@ MulticopterPositionControl::run()
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 	_traj_wp_avoidance_sub = orb_subscribe(ORB_ID(vehicle_trajectory_waypoint));
+	_range_sensor_sub = orb_subscribe(ORB_ID(obstacle_distance));
 
 	parameters_update(true);
 
@@ -614,6 +633,20 @@ MulticopterPositionControl::run()
 			_wv_controller->update(matrix::Quatf(_att_sp.q_d), _local_pos.yaw);
 		}
 
+		// activate the collision avoidance if required. If activated a flighttask can use it modify the setpoint
+		if (_ca_controller != nullptr) {
+
+			// in manual mode we just want to use weathervane if position is controlled as well
+			if (_ca_controller->collision_avoidance_enabled()) {
+				_ca_controller->activate();
+
+			} else {
+				_ca_controller->deactivate();
+			}
+
+			_ca_controller->update(_obstacle_distance);
+		}
+
 		if (_control_mode.flag_armed) {
 			// as soon vehicle is armed check for flighttask
 			start_flight_task();
@@ -635,6 +668,7 @@ MulticopterPositionControl::run()
 			vehicle_local_position_setpoint_s setpoint;
 
 			_flight_tasks.setYawHandler(_wv_controller);
+			_flight_tasks.setCollisionAvoidance(_ca_controller);
 
 			// update task
 			if (!_flight_tasks.update()) {
