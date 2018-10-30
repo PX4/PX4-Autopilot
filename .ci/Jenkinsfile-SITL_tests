@@ -83,7 +83,8 @@ pipeline {
               name: "avoidance",
               test: "mavros_posix_test_avoidance.test",
               mission: "avoidance",
-              vehicle: "iris"
+              vehicle: "iris",
+              run_script: "rostest_avoidance_run.sh"
             ],
 
           ]
@@ -117,6 +118,7 @@ def createTestNode(Map test_def) {
       cleanWs()
       docker.image("px4io/px4-dev-ros-kinetic:2019-03-08").inside('-e HOME=${WORKSPACE}') {
         stage(test_def.name) {
+          def run_script = test_def.get('run_script', 'rostest_px4_run.sh')
           def test_ok = true
           sh('export')
 
