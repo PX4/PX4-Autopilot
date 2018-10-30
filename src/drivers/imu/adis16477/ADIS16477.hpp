@@ -44,20 +44,17 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <mathlib/math/filter/LowPassFilter2pVector3f.hpp>
 #include <drivers/device/integrator.h>
 #include <lib/conversion/rotation.h>
 #include <perf/perf_counter.h>
 #include <ecl/geo/geo.h>
 
-#define ADIS16477_GYRO_DEFAULT_RATE					250
-#define ADIS16477_GYRO_DEFAULT_DRIVER_FILTER_FREQ	30
+#define ADIS16477_GYRO_DEFAULT_RATE			1000
+#define ADIS16477_GYRO_DEFAULT_DRIVER_FILTER_FREQ	80
 
-#define ADIS16477_ACCEL_DEFAULT_RATE				250
+#define ADIS16477_ACCEL_DEFAULT_RATE			1000
 #define ADIS16477_ACCEL_DEFAULT_DRIVER_FILTER_FREQ	30
-
-#define ADIS16477_ACCEL_MAX_OUTPUT_RATE              1221
-#define ADIS16477_GYRO_MAX_OUTPUT_RATE               1221
 
 class ADIS16477_gyro;
 
@@ -86,7 +83,7 @@ private:
 	uint16_t			_product{0};	/** product code */
 
 	struct hrt_call		_call {};
-	unsigned			_call_interval{0};
+	unsigned		_call_interval{1000};
 
 	struct gyro_calibration_s	_gyro_scale {};
 
@@ -105,21 +102,18 @@ private:
 	int					_accel_orb_class_instance{-1};
 	int					_accel_class_instance{-1};
 
-	unsigned			_sample_rate{100};
+	unsigned			_sample_rate{1000};
 
 	perf_counter_t		_sample_perf;
+	perf_counter_t		_sample_interval_perf;
+
 	perf_counter_t		_bad_transfers;
 
-	math::LowPassFilter2p	_gyro_filter_x{ADIS16477_GYRO_DEFAULT_RATE, ADIS16477_GYRO_DEFAULT_DRIVER_FILTER_FREQ};
-	math::LowPassFilter2p	_gyro_filter_y{ADIS16477_GYRO_DEFAULT_RATE, ADIS16477_GYRO_DEFAULT_DRIVER_FILTER_FREQ};
-	math::LowPassFilter2p	_gyro_filter_z{ADIS16477_GYRO_DEFAULT_RATE, ADIS16477_GYRO_DEFAULT_DRIVER_FILTER_FREQ};
+	math::LowPassFilter2pVector3f	_gyro_filter{ADIS16477_GYRO_DEFAULT_RATE, ADIS16477_GYRO_DEFAULT_DRIVER_FILTER_FREQ};
+	math::LowPassFilter2pVector3f	_accel_filter{ADIS16477_ACCEL_DEFAULT_RATE, ADIS16477_ACCEL_DEFAULT_DRIVER_FILTER_FREQ};
 
-	math::LowPassFilter2p	_accel_filter_x{ADIS16477_ACCEL_DEFAULT_RATE, ADIS16477_ACCEL_DEFAULT_DRIVER_FILTER_FREQ};
-	math::LowPassFilter2p	_accel_filter_y{ADIS16477_ACCEL_DEFAULT_RATE, ADIS16477_ACCEL_DEFAULT_DRIVER_FILTER_FREQ};
-	math::LowPassFilter2p	_accel_filter_z{ADIS16477_ACCEL_DEFAULT_RATE, ADIS16477_ACCEL_DEFAULT_DRIVER_FILTER_FREQ};
-
-	Integrator			_accel_int{1000000 / ADIS16477_ACCEL_MAX_OUTPUT_RATE, false};
-	Integrator			_gyro_int{1000000 / ADIS16477_GYRO_MAX_OUTPUT_RATE, true};
+	Integrator			_accel_int{4000, false};
+	Integrator			_gyro_int{4000, true};
 
 	enum Rotation		_rotation;
 
@@ -173,13 +167,15 @@ private:
 	 */
 	static void		measure_trampoline(void *arg);
 
+	static int		data_ready_interrupt(int irq, void *context, void *arg);
+
 	/**
 	 * Fetch measurements from the sensor and update the report buffers.
 	 */
 	int			measure();
 
-	bool			publish_accel(const ADISReport &report);
-	bool			publish_gyro(const ADISReport &report);
+	void			publish_accel(const hrt_abstime &t, const ADISReport &report);
+	void			publish_gyro(const hrt_abstime &t, const ADISReport &report);
 
 	uint16_t		read_reg16(uint8_t reg);
 
@@ -187,27 +183,8 @@ private:
 	void			write_reg16(uint8_t reg, uint16_t value);
 
 	// ADIS16477 onboard self test
-	bool 			self_test();
-
-	/*
-	  set low pass filter frequency
-	 */
-	void _set_dlpf_filter(uint16_t frequency_hz);
-
-	/*
-	  set IMU to factory default
-	 */
-	void _set_factory_default();
-
-	/*
-	  set sample rate (approximate) - 1kHz to 5Hz
-	*/
-	void _set_sample_rate(uint16_t desired_sample_rate_hz);
-
-	/*
-	  set the gyroscope dynamic range
-	*/
-	void _set_gyro_dyn_range(uint16_t desired_gyro_dyn_range);
+	bool 			self_test_memory();
+	bool 			self_test_sensor();
 
 	ADIS16477(const ADIS16477 &);
 	ADIS16477 operator=(const ADIS16477 &);

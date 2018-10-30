@@ -61,19 +61,18 @@ static constexpr uint8_t TEMP_OUT	= 0x1A; // Output, temperature
 static constexpr uint8_t TIME_STAMP	= 0x1A; // Output, time stamp
 
 static constexpr uint8_t FILT_CTRL	= 0x5C;
+static constexpr uint8_t RANG_MDL	= 0x5E;
+static constexpr uint8_t MSC_CTRL	= 0x60;
+
 static constexpr uint8_t DEC_RATE	= 0x64;
 
 static constexpr uint8_t GLOB_CMD	= 0x68;
 
 static constexpr uint8_t PROD_ID	= 0x72;
 
-static constexpr uint16_t PROD_ID_ADIS16477 = 0x405D; /* ADIS16477 Identification, device number  */
+static constexpr uint16_t PROD_ID_ADIS16477 = 0x405D; // ADIS16477 Identification, device number
 
 static constexpr int T_STALL = 16;
-
-#define GYROINITIALSENSITIVITY		250
-#define ACCELINITIALSENSITIVITY		(1.0f / 1200.0f)
-#define ACCELDYNAMICRANGE		18.0f
 
 using namespace time_literals;
 
@@ -81,9 +80,13 @@ ADIS16477::ADIS16477(int bus, const char *path_accel, const char *path_gyro, uin
 	SPI("ADIS16477", path_accel, bus, device, SPIDEV_MODE3, 1000000),
 	_gyro(new ADIS16477_gyro(this, path_gyro)),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adis16477_read")),
+	_sample_interval_perf(perf_alloc(PC_INTERVAL, "adis16477_read_int")),
 	_bad_transfers(perf_alloc(PC_COUNT, "adis16477_bad_transfers")),
 	_rotation(rotation)
 {
+
+	//_debug_enabled = true;
+
 #ifdef GPIO_SPI1_RESET_ADIS16477
 	// ADIS16477 configure reset
 	px4_arch_configgpio(GPIO_SPI1_RESET_ADIS16477);
@@ -94,44 +97,22 @@ ADIS16477::ADIS16477(int bus, const char *path_accel, const char *path_gyro, uin
 	_gyro->_device_id.devid = _device_id.devid;
 	_gyro->_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_ADIS16477;
 
-	// default gyro scale factors
-	_gyro_scale.x_offset = 0;
-	_gyro_scale.x_scale  = 1.0f;
-	_gyro_scale.y_offset = 0;
-	_gyro_scale.y_scale  = 1.0f;
-	_gyro_scale.z_offset = 0;
-	_gyro_scale.z_scale  = 1.0f;
-
-	// default accel scale factors
-	_accel_scale.x_offset = 0;
-	_accel_scale.x_scale  = 1.0f;
-	_accel_scale.y_offset = 0;
-	_accel_scale.y_scale  = 1.0f;
-	_accel_scale.z_offset = 0;
-	_accel_scale.z_scale  = 1.0f;
-
-	const unsigned sample_rate = 1000;
-
 	// set software low pass filter for controllers
-	param_t accel_cut_ph = param_find("IMU_ACCEL_CUTOFF");
-	float accel_cut = ADIS16477_ACCEL_DEFAULT_RATE;
+	const param_t accel_cut_ph = param_find("IMU_ACCEL_CUTOFF");
+	float accel_cut = ADIS16477_ACCEL_DEFAULT_DRIVER_FILTER_FREQ;
 
 	if (accel_cut_ph != PARAM_INVALID && param_get(accel_cut_ph, &accel_cut) == PX4_OK) {
-		_accel_filter_x.set_cutoff_frequency(sample_rate, accel_cut);
-		_accel_filter_y.set_cutoff_frequency(sample_rate, accel_cut);
-		_accel_filter_z.set_cutoff_frequency(sample_rate, accel_cut);
+		_accel_filter.set_cutoff_frequency(_sample_rate, accel_cut);
 
 	} else {
 		PX4_ERR("IMU_ACCEL_CUTOFF param invalid");
 	}
 
-	param_t gyro_cut_ph = param_find("IMU_GYRO_CUTOFF");
-	float gyro_cut = ADIS16477_GYRO_DEFAULT_RATE;
+	const param_t gyro_cut_ph = param_find("IMU_GYRO_CUTOFF");
+	float gyro_cut = ADIS16477_GYRO_DEFAULT_DRIVER_FILTER_FREQ;
 
 	if (gyro_cut_ph != PARAM_INVALID && param_get(gyro_cut_ph, &gyro_cut) == PX4_OK) {
-		_gyro_filter_x.set_cutoff_frequency(sample_rate, gyro_cut);
-		_gyro_filter_y.set_cutoff_frequency(sample_rate, gyro_cut);
-		_gyro_filter_z.set_cutoff_frequency(sample_rate, gyro_cut);
+		_gyro_filter.set_cutoff_frequency(_sample_rate, gyro_cut);
 
 	} else {
 		PX4_ERR("IMU_GYRO_CUTOFF param invalid");
@@ -152,6 +133,7 @@ ADIS16477::~ADIS16477()
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
+	perf_free(_sample_interval_perf);
 	perf_free(_bad_transfers);
 }
 
@@ -216,6 +198,10 @@ ADIS16477::init()
 		PX4_ERR("ADVERT FAIL");
 	}
 
+	if (ret == PX4_OK) {
+		start();
+	}
+
 	return ret;
 }
 
@@ -232,20 +218,72 @@ int ADIS16477::reset()
 
 	px4_arch_gpiowrite(GPIO_SPI1_RESET_ADIS16477, 1);
 #else
-	// reset (global command bit 7)
-	uint8_t value[2] = {};
-	value[0] = (1 << 7);
-	write_reg16(GLOB_CMD, (uint16_t)value[0]);
+	{
+		// reset (global command bit 7)
+		uint8_t value[2] = {};
+		value[0] = (1 << 7);
+		write_reg16(GLOB_CMD, (uint16_t)value[0]);
+	}
 #endif /* GPIO_SPI1_RESET_ADIS16477 */
 
 	// Reset Recovery Time
 	up_mdelay(193);
 
-	// configure digital filter, 16 taps
-	write_reg16(FILT_CTRL, 0x04);
 
-	// configure decimation rate
-	//write_reg16(DEC_RATE, 0x00);
+	{
+		// Factory Calibration Restore (global command bit 1)
+		//uint8_t value[2] = {};
+		//value[0] = (1 << 1);
+		//write_reg16(GLOB_CMD, (uint16_t)value[0]);
+		//up_mdelay(142); // Factory Calibration Restore Time
+	}
+
+	{
+		static constexpr uint16_t MSC_CTRL_DEFAULT = 0x00C1;
+
+		// Verify default MSC_CTRL setting
+		const uint16_t msc_ctrl = read_reg16(MSC_CTRL);
+
+		up_udelay(100);
+
+		if (msc_ctrl != MSC_CTRL_DEFAULT) {
+			PX4_ERR("invalid setup, MSC_CTRL=%#X", msc_ctrl);
+			return PX4_ERROR;
+		}
+	}
+
+	{
+		// Bartlett Window FIR Filter
+		static constexpr uint16_t FILT_CTRL_SETUP = 0x0004; // (disabled: 0x0000, 2 taps: 0x0001, 16 taps: 0x0004)
+
+		write_reg16(FILT_CTRL, FILT_CTRL_SETUP);
+
+		up_udelay(100);
+
+		const uint16_t filt_ctrl = read_reg16(FILT_CTRL);
+
+		if (filt_ctrl != FILT_CTRL_SETUP) {
+			PX4_ERR("invalid setup, FILT_CTRL=%#X", filt_ctrl);
+			return PX4_ERROR;
+		}
+	}
+
+	{
+		// Decimation Filter
+		//  set for 1000 samples per second
+		static constexpr uint16_t DEC_RATE_SETUP = 0x0001;
+
+		write_reg16(DEC_RATE, DEC_RATE_SETUP);
+
+		up_udelay(100);
+
+		const uint16_t dec_rate = read_reg16(DEC_RATE);
+
+		if (dec_rate != DEC_RATE_SETUP) {
+			PX4_ERR("invalid setup, DEC_RATE=%#X", dec_rate);
+			return PX4_ERROR;
+		}
+	}
 
 	return OK;
 }
@@ -255,79 +293,71 @@ ADIS16477::probe()
 {
 	DEVICE_DEBUG("probe");
 
-	reset();
-
 	// read product id (5 attempts)
 	for (int i = 0; i < 5; i++) {
+
+		if (reset() != PX4_OK) {
+			continue;
+		}
+
 		_product = read_reg16(PROD_ID);
 
 		if (_product == PROD_ID_ADIS16477) {
-			DEVICE_DEBUG("PRODUCT: %X", _product);
+			DEVICE_DEBUG("PRODUCT: %#X", _product);
 
-			if (self_test()) {
+			if (self_test_memory() && self_test_sensor()) {
 				return PX4_OK;
 
 			} else {
 				PX4_ERR("probe attempt %d: self test failed, resetting", i);
-				reset();
 			}
 
 		} else {
 			PX4_ERR("probe attempt %d: read product id failed, resetting", i);
-			reset();
 		}
 	}
 
 	return -EIO;
 }
 
-/* set sample rate for both accel and gyro */
-void
-ADIS16477::_set_sample_rate(uint16_t desired_sample_rate_hz)
-{
-
-}
-
-/* set the DLPF FIR filter tap. This affects both accelerometer and gyroscope. */
-void
-ADIS16477::_set_dlpf_filter(uint16_t desired_filter_tap)
-{
-	//modify_reg16(ADIS16477_SENS_AVG, 0x0007, desired_filter_tap);
-
-	/* Verify data write on the IMU */
-
-	//if ((read_reg16(ADIS16477_SENS_AVG) & 0x0007) != desired_filter_tap) {
-	//	DEVICE_DEBUG("failed to set IMU filter");
-	//}
-}
-
-/* set IMU to factory defaults. */
-void
-ADIS16477::_set_factory_default()
-{
-	//write_reg16(ADIS16477_GLOB_CMD, 0x02);
-}
-
-/* set the gyroscope dynamic range */
-void
-ADIS16477::_set_gyro_dyn_range(uint16_t desired_gyro_dyn_range)
-{
-}
-
 bool
-ADIS16477::self_test()
+ADIS16477::self_test_memory()
 {
-	DEVICE_DEBUG("self test");
+	DEVICE_DEBUG("self test memory");
 
-	// self test (global command bit 2)
+	// self test (global command bit 4)
 	uint8_t value[2] = {};
-	value[0] = (1 << 2);
+	value[0] = (1 << 4);
 	write_reg16(GLOB_CMD, (uint16_t)value[0]);
+	up_mdelay(32); // Flash Memory Test Time
 
 	// read DIAG_STAT to check result
 	uint16_t diag_stat = read_reg16(DIAG_STAT);
 
 	if (diag_stat != 0) {
+		PX4_ERR("DIAG_STAT: %#X", diag_stat);
+		return false;
+	}
+
+	return true;
+}
+
+bool
+ADIS16477::self_test_sensor()
+{
+	PX4_DEBUG("self test sensor");
+
+	// self test (global command bit 2)
+	uint8_t value[2] = {};
+	value[0] = (1 << 2);
+	write_reg16(GLOB_CMD, (uint16_t)value[0]);
+	up_mdelay(14); // Self Test Time
+
+	// read DIAG_STAT to check result
+	uint16_t diag_stat = read_reg16(DIAG_STAT);
+
+	if (diag_stat != 0) {
+		PX4_ERR("DIAG_STAT: %#X", diag_stat);
 		return false;
 	}
 
@@ -341,68 +371,11 @@ ADIS16477::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCRESET:
 		return reset();
 
-	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
-
-			/* zero would be bad */
-			case 0:
-				return -EINVAL;
-
-			/* set default polling rate */
-			case SENSOR_POLLRATE_DEFAULT:
-				return ioctl(filp, SENSORIOCSPOLLRATE, ADIS16477_ACCEL_DEFAULT_RATE);
-
-			/* adjust to a legal polling interval in Hz */
-			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_call_interval == 0);
-
-					/* convert hz to hrt interval via microseconds */
-					unsigned ticks = 1000000 / arg;
-
-					/* check against maximum sane rate */
-					if (ticks < 1000) {
-						return -EINVAL;
-					}
-
-					// adjust filters
-					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
-					float sample_rate = 1.0e6f / ticks;
-					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-
-					float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
-					_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
-					_gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
-					_gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
-
-					/* update interval for next measurement */
-					/* XXX this is a bit shady, but no other way to adjust... */
-					_call.period = _call_interval = ticks;
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-					}
-
-					return OK;
-				}
-			}
-		}
-
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
-			float sum = s->x_scale + s->y_scale + s->z_scale;
-
-			if (sum > 2.0f && sum < 4.0f) {
-				memcpy(&_accel_scale, s, sizeof(_accel_scale));
-				return OK;
-
-			} else {
-				return -EINVAL;
-			}
+			memcpy(&_accel_scale, s, sizeof(_accel_scale));
+			return OK;
 		}
 
 	default:
@@ -417,7 +390,6 @@ ADIS16477::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 	switch (cmd) {
 
 	/* these are shared with the accel side */
-	case SENSORIOCSPOLLRATE:
 	case SENSORIOCRESET:
 		return ioctl(filp, cmd, arg);
 
@@ -472,19 +444,38 @@ ADIS16477::write_reg16(uint8_t reg, uint16_t value)
 void
 ADIS16477::start()
 {
+#ifdef GPIO_SPI1_DRDY1_ADIS16477
+	// setup data ready on rising edge
+	px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ADIS16477, true, false, true, &ADIS16477::data_ready_interrupt, this);
+#else
 	/* make sure we are stopped first */
-	uint32_t last_call_interval = _call_interval;
 	stop();
-	_call_interval = last_call_interval;
 
 	/* start polling at the specified rate */
 	hrt_call_every(&_call, 1000, _call_interval, (hrt_callout)&ADIS16477::measure_trampoline, this);
+#endif
 }
 
 void
 ADIS16477::stop()
 {
+#ifdef GPIO_SPI1_DRDY1_ADIS16477
+	// stop data ready
+	px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ADIS16477, false, false, false, nullptr, nullptr);
+#else
 	hrt_cancel(&_call);
+#endif
+}
+
+int
+ADIS16477::data_ready_interrupt(int irq, void *context, void *arg)
+{
+	ADIS16477 *dev = reinterpret_cast<ADIS16477 *>(arg);
+
+	/* make another measurement */
+	dev->measure();
+
+	return PX4_OK;
 }
 
 void
@@ -500,6 +491,7 @@ int
 ADIS16477::measure()
 {
 	perf_begin(_sample_perf);
+	perf_count(_sample_interval_perf);
 
 	// Fetch the full set of measurements from the ADIS16477 in one pass (burst read).
 	ADISReport adis_report;
@@ -508,7 +500,10 @@ ADIS16477::measure()
 	// ADIS16477 burst report should be 176 bits
 	static_assert(sizeof(adis_report) == (176 / 8), "ADIS16477 report not 176 bits");
 
+	const hrt_abstime t = hrt_absolute_time();
+
 	if (OK != transferhword((uint16_t *)&adis_report, ((uint16_t *)&adis_report), sizeof(adis_report) / sizeof(uint16_t))) {
+		perf_count(_bad_transfers);
 		perf_end(_sample_perf);
 		return -EIO;
 	}
@@ -533,41 +528,31 @@ ADIS16477::measure()
 	}
 
 	if (adis_report.checksum != checksum) {
-		DEVICE_DEBUG("adis_report.checksum: %X vs calculated: %X", adis_report.checksum, checksum);
-		perf_event_count(_bad_transfers);
+		PX4_DEBUG("adis_report.checksum: %#X vs calculated: %#X", adis_report.checksum, checksum);
+		perf_count(_bad_transfers);
 		perf_end(_sample_perf);
 		return -EIO;
 	}
 
 	// Check all Status/Error Flag Indicators (DIAG_STAT)
 	if (adis_report.diag_stat != 0) {
-		perf_event_count(_bad_transfers);
+		PX4_DEBUG("DIAG_STAT: %#X", adis_report.diag_stat);
+		perf_count(_bad_transfers);
 		perf_end(_sample_perf);
 		return -EIO;
 	}
 
-	publish_gyro(adis_report);
-	publish_accel(adis_report);
+	publish_accel(t, adis_report);
+	publish_gyro(t, adis_report);
 
 	/* stop measuring */
 	perf_end(_sample_perf);
 	return OK;
 }
 
-bool
-ADIS16477::publish_accel(const ADISReport &report)
+void
+ADIS16477::publish_accel(const hrt_abstime &t, const ADISReport &report)
 {
-	sensor_accel_s arb = {};
-	arb.timestamp = hrt_absolute_time();
-	arb.device_id = _device_id.devid;
-	arb.error_count = perf_event_count(_bad_transfers);
-
-	// raw sensor readings
-	arb.x_raw = report.accel_x;
-	arb.y_raw = report.accel_y;
-	arb.z_raw = report.accel_z;
-	arb.scaling = _accel_range_scale;
-
 	float xraw_f = report.accel_x * _accel_range_scale;
 	float yraw_f = report.accel_y * _accel_range_scale;
 	float zraw_f = report.accel_z * _accel_range_scale;
@@ -575,47 +560,48 @@ ADIS16477::publish_accel(const ADISReport &report)
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
-	float x_in_new = (xraw_f - _accel_scale.x_offset) * _accel_scale.x_scale;
-	float y_in_new = (yraw_f - _accel_scale.y_offset) * _accel_scale.y_scale;
-	float z_in_new = (zraw_f - _accel_scale.z_offset) * _accel_scale.z_scale;
+	const float x_in_new = (xraw_f - _accel_scale.x_offset) * _accel_scale.x_scale;
+	const float y_in_new = (yraw_f - _accel_scale.y_offset) * _accel_scale.y_scale;
+	const float z_in_new = (zraw_f - _accel_scale.z_offset) * _accel_scale.z_scale;
 
-	arb.x = _accel_filter_x.apply(x_in_new);
-	arb.y = _accel_filter_y.apply(y_in_new);
-	arb.z = _accel_filter_z.apply(z_in_new);
+	const matrix::Vector3f aval(x_in_new, y_in_new, z_in_new);
 
-	matrix::Vector3f aval(x_in_new, y_in_new, z_in_new);
+	const matrix::Vector3f val_filt = _accel_filter.apply(aval);
+
+	sensor_accel_s arb{};
 	matrix::Vector3f aval_integrated;
 
-	bool accel_notify = _accel_int.put(arb.timestamp, aval, aval_integrated, arb.integral_dt);
-	arb.x_integral = aval_integrated(0);
-	arb.y_integral = aval_integrated(1);
-	arb.z_integral = aval_integrated(2);
+	if (_accel_int.put(t, aval, aval_integrated, arb.integral_dt)) {
+		arb.timestamp = t;
 
-	/* Temperature report: */
-	// temperature 1 LSB = 0.1°C
-	arb.temperature = report.temp * 0.1;
+		arb.device_id = _device_id.devid;
+		arb.error_count = perf_event_count(_bad_transfers);
 
-	if (accel_notify) {
+		// raw sensor readings
+		arb.x_raw = report.accel_x;
+		arb.y_raw = report.accel_y;
+		arb.z_raw = report.accel_z;
+		arb.scaling = _accel_range_scale;
+
+		arb.x = val_filt(0);
+		arb.y = val_filt(1);
+		arb.z = val_filt(2);
+
+		arb.x_integral = aval_integrated(0);
+		arb.y_integral = aval_integrated(1);
+		arb.z_integral = aval_integrated(2);
+
+		/* Temperature report: */
+		// temperature 1 LSB = 0.1°C
+		arb.temperature = report.temp * 0.1;
+
 		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
 	}
-
-	return accel_notify;
 }
 
-bool
-ADIS16477::publish_gyro(const ADISReport &report)
+void
+ADIS16477::publish_gyro(const hrt_abstime &t, const ADISReport &report)
 {
-	sensor_gyro_s grb = {};
-	grb.timestamp = hrt_absolute_time();
-	grb.device_id = _gyro->_device_id.devid;
-	grb.error_count = perf_event_count(_bad_transfers);
-
-	/* Gyro report: */
-	grb.scaling = math::radians(_gyro_range_scale);
-	grb.x_raw = report.gyro_x;
-	grb.y_raw = report.gyro_y;
-	grb.z_raw = report.gyro_z;
-
 	// ADIS16477-2BMLZ scale factory
 	float xraw_f = report.gyro_x;
 	float yraw_f = report.gyro_y;
@@ -624,38 +610,49 @@ ADIS16477::publish_gyro(const ADISReport &report)
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
-	float x_gyro_in_new = (math::radians(xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	float y_gyro_in_new = (math::radians(yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	float z_gyro_in_new = (math::radians(zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+	const float x_gyro_in_new = (math::radians(xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
+	const float y_gyro_in_new = (math::radians(yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
+	const float z_gyro_in_new = (math::radians(zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
 
-	grb.x = _gyro_filter_x.apply(x_gyro_in_new);
-	grb.y = _gyro_filter_y.apply(y_gyro_in_new);
-	grb.z = _gyro_filter_z.apply(z_gyro_in_new);
+	const matrix::Vector3f gval(x_gyro_in_new, y_gyro_in_new, z_gyro_in_new);
 
-	matrix::Vector3f gval(x_gyro_in_new, y_gyro_in_new, z_gyro_in_new);
+	const matrix::Vector3f gval_filt = _gyro_filter.apply(gval);
+
+	sensor_gyro_s grb{};
 	matrix::Vector3f gval_integrated;
 
-	bool gyro_notify = _gyro_int.put(grb.timestamp, gval, gval_integrated, grb.integral_dt);
-	grb.x_integral = gval_integrated(0);
-	grb.y_integral = gval_integrated(1);
-	grb.z_integral = gval_integrated(2);
+	if (_gyro_int.put(t, gval, gval_integrated, grb.integral_dt)) {
+		grb.timestamp = t;
 
-	/* Temperature report: */
-	// temperature 1 LSB = 0.1°C
-	grb.temperature = report.temp * 0.1f;
+		grb.device_id = _gyro->_device_id.devid;
+		grb.error_count = perf_event_count(_bad_transfers);
 
-	if (gyro_notify) {
+		/* Gyro report: */
+		grb.scaling = math::radians(_gyro_range_scale);
+		grb.x_raw = report.gyro_x;
+		grb.y_raw = report.gyro_y;
+		grb.z_raw = report.gyro_z;
+
+		grb.x = gval_filt(0);
+		grb.y = gval_filt(1);
+		grb.z = gval_filt(2);
+
+		grb.x_integral = gval_integrated(0);
+		grb.y_integral = gval_integrated(1);
+		grb.z_integral = gval_integrated(2);
+
+		/* Temperature report: */
+		// temperature 1 LSB = 0.1°C
+		grb.temperature = report.temp * 0.1f;
+
 		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
 	}
-
-	return gyro_notify;
 }
 
 void
 ADIS16477::print_info()
 {
 	perf_print_counter(_sample_perf);
+	perf_print_counter(_sample_interval_perf);
 	perf_print_counter(_bad_transfers);
-
-	PX4_INFO("DEVICE ID:\nACCEL:\t%d\nGYRO:\t%d\n\n", _device_id.devid, _gyro->_device_id.devid);
 }

@@ -57,8 +57,6 @@ void	usage();
 void
 start(enum Rotation rotation)
 {
-	int fd = -1;
-
 	if (g_dev != nullptr)
 		/* if already started, the still command succeeded */
 	{
@@ -78,22 +76,10 @@ start(enum Rotation rotation)
 		goto fail;
 	}
 
-	if (OK != (g_dev)->init()) {
+	if (OK != g_dev->init()) {
 		goto fail;
 	}
 
-	/* set the poll rate to default, starts automatic data collection */
-	fd = px4_open(ADIS16477_DEVICE_PATH_ACCEL, O_RDONLY);
-
-	if (fd < 0) {
-		goto fail;
-	}
-
-	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		goto fail;
-	}
-
-	px4_close(fd);
 	exit(0);
 fail:
 
@@ -173,10 +159,6 @@ reset()
 
 	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0) {
 		err(1, "driver reset failed");
-	}
-
-	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
 	}
 
 	px4_close(fd);
