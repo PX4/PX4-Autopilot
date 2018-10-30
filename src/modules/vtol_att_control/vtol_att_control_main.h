@@ -183,9 +183,11 @@ private:
 		param_t fw_alt_err;
 		param_t fw_qc_max_pitch;
 		param_t fw_qc_max_roll;
+		param_t fw_pitch_trim;
 		param_t front_trans_time_openloop;
 		param_t front_trans_time_min;
 		param_t front_trans_duration;
+		param_t front_trans_pitch_sp_p1;
 		param_t back_trans_duration;
 		param_t transition_airspeed;
 		param_t front_trans_throttle;

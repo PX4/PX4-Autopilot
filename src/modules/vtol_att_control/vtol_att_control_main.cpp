@@ -75,8 +75,9 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.fw_qc_max_roll = param_find("VT_FW_QC_R");
 	_params_handles.front_trans_time_openloop = param_find("VT_F_TR_OL_TM");
 	_params_handles.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
-
+	_params_handles.fw_pitch_trim = param_find("VT_FW_PITCH_TRIM");
 	_params_handles.front_trans_duration = param_find("VT_F_TRANS_DUR");
+	_params_handles.front_trans_pitch_sp_p1 = param_find("VT_F_TRANS_PIT_SP_P1");
 	_params_handles.back_trans_duration = param_find("VT_B_TRANS_DUR");
 	_params_handles.transition_airspeed = param_find("VT_ARSP_TRANS");
 	_params_handles.front_trans_throttle = param_find("VT_F_TRANS_THR");
@@ -453,6 +454,10 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.fw_min_alt, &v);
 	_params.fw_min_alt = v;
 
+	/* vtol pitch trim for fw mode */
+	param_get(_params_handles.fw_pitch_trim, &v);
+	_params.fw_pitch_trim = v;
+
 	/* maximum negative altitude error for FW mode (Adaptive QuadChute) */
 	param_get(_params_handles.fw_alt_err, &v);
 	_params.fw_alt_err = v;
@@ -478,6 +483,7 @@ VtolAttitudeControl::parameters_update()
 
 
 	param_get(_params_handles.front_trans_duration, &_params.front_trans_duration);
+	param_get(_params_handles.front_trans_pitch_sp_p1, &_params.front_trans_pitch_sp_p1);
 	param_get(_params_handles.back_trans_duration, &_params.back_trans_duration);
 	param_get(_params_handles.transition_airspeed, &_params.transition_airspeed);
 	param_get(_params_handles.front_trans_throttle, &_params.front_trans_throttle);

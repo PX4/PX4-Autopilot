@@ -54,11 +54,13 @@ struct Params {
 	bool elevons_mc_lock;		// lock elevons in multicopter mode
 	float fw_min_alt;			// minimum relative altitude for FW mode (QuadChute)
 	float fw_alt_err;			// maximum negative altitude error for FW mode (Adaptive QuadChute)
+	float fw_pitch_trim;		// trim for neutral elevon position in fw mode
 	float fw_qc_max_pitch;		// maximum pitch angle FW mode (QuadChute)
 	float fw_qc_max_roll;		// maximum roll angle FW mode (QuadChute)
 	float front_trans_time_openloop;
 	float front_trans_time_min;
 	float front_trans_duration;
+	float front_trans_pitch_sp_p1;
 	float back_trans_duration;
 	float transition_airspeed;
 	float front_trans_throttle;

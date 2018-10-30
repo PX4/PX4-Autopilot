@@ -1,0 +1,8 @@
+1. warnx()
+2. Matrix.hpp的改动是什么意思？pitch roll yaw顺序？
+3. quaternion.hpp
+3. quaternion线性化的目的？
+
+4. fw_pos_control_l1_main：use manual input?
+
+5. tailsitter auto-mission done: fw_att_control_main: in STABILIZED mode we need to generate the attitude setpoint()?

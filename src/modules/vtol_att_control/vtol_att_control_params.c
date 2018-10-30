@@ -108,7 +108,12 @@ PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK, 1);
  * @decimal 2
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
+PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 3.5f);
+
+/**
+ * the pitch setpoint at the end of the front transition
+ */
+PARAM_DEFINE_FLOAT(VT_F_TRANS_PITSP, 1.2f);
 
 /**
  * Duration of a back transition
@@ -123,6 +128,19 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 4.0f);
+
+/**
+ * Fixed wing pitch trim
+ *
+ * This parameter allows to adjust the neutral elevon position in fixed wing mode.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @increment 0.01
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_FW_PITCH_TRIM, 0.0f);
 
 /**
  * Target throttle value for the transition to fixed wing flight.
