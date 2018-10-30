@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,29 +37,12 @@
  * I2C interface for MS5611
  */
 
-/* XXX trim includes */
-#include <px4_config.h>
-#include <px4_defines.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <assert.h>
-#include <errno.h>
-#include <unistd.h>
-
-#include <arch/board/board.h>
-
 #include <drivers/device/i2c.h>
 
 #include "ms5611.h"
 
-#include "board_config.h"
-
 #define MS5611_ADDRESS_1		0x76	/* address select pins pulled high (PX4FMU series v1.6+) */
 #define MS5611_ADDRESS_2		0x77    /* address select pins pulled low (PX4FMU prototypes) */
-
-
 
 device::Device *MS5611_i2c_interface(ms5611::prom_u &prom_buf);
 
@@ -69,37 +52,24 @@ public:
 	MS5611_I2C(uint8_t bus, ms5611::prom_u &prom_buf);
 	virtual ~MS5611_I2C() = default;
 
-	virtual int	read(unsigned offset, void *data, unsigned count);
-	virtual int	ioctl(unsigned operation, unsigned &arg);
+	virtual int	read(unsigned address, void *data, unsigned count) override;
+	virtual int write(unsigned address, void *data, unsigned count) override;
+
 
 protected:
-	virtual int	probe();
+	virtual int	probe() override;
 
 private:
 	ms5611::prom_u	&_prom;
 
-	int		_probe_address(uint8_t address);
-
-	/**
-	 * Send a reset command to the MS5611.
-	 *
-	 * This is required after any bus reset.
-	 */
-	int		_reset();
-
-	/**
-	 * Send a measure command to the MS5611.
-	 *
-	 * @param addr		Which address to use for the measure operation.
-	 */
-	int		_measure(unsigned addr);
+	int		probe_address(uint8_t address);
 
 	/**
 	 * Read the MS5611 PROM
 	 *
 	 * @return		PX4_OK if the PROM reads successfully.
 	 */
-	int		_read_prom();
+	int		read_prom();
 
 };
 
@@ -139,25 +109,13 @@ MS5611_I2C::read(unsigned offset, void *data, unsigned count)
 	return ret;
 }
 
-int
-MS5611_I2C::ioctl(unsigned operation, unsigned &arg)
+int MS5611_I2C::write(unsigned address, void *data, unsigned count)
 {
-	int ret;
+	uint8_t cmd = address;
+	// @TODO: If we need to write data, append this to the send buffer (cmd)
+	int result = transfer(&cmd, count, nullptr, 0);
 
-	switch (operation) {
-	case IOCTL_RESET:
-		ret = _reset();
-		break;
-
-	case IOCTL_MEASURE:
-		ret = _measure(arg);
-		break;
-
-	default:
-		ret = EINVAL;
-	}
-
-	return ret;
+	return result;
 }
 
 int
@@ -165,8 +123,8 @@ MS5611_I2C::probe()
 {
 	_retries = 10;
 
-	if ((PX4_OK == _probe_address(MS5611_ADDRESS_1)) ||
-	    (PX4_OK == _probe_address(MS5611_ADDRESS_2))) {
+	if ((PX4_OK == probe_address(MS5611_ADDRESS_1)) ||
+	    (PX4_OK == probe_address(MS5611_ADDRESS_2))) {
 		/*
 		 * Disable retries; we may enable them selectively in some cases,
 		 * but the device gets confused if we retry some of the commands.
@@ -179,18 +137,13 @@ MS5611_I2C::probe()
 }
 
 int
-MS5611_I2C::_probe_address(uint8_t address)
+MS5611_I2C::probe_address(uint8_t address)
 {
 	/* select the address we are going to try */
 	set_device_address(address);
 
-	/* send reset command */
-	if (PX4_OK != _reset()) {
-		return -EIO;
-	}
-
 	/* read PROM */
-	if (PX4_OK != _read_prom()) {
+	if (PX4_OK != read_prom()) {
 		return -EIO;
 	}
 
@@ -198,35 +151,7 @@ MS5611_I2C::_probe_address(uint8_t address)
 }
 
 int
-MS5611_I2C::_reset()
-{
-	unsigned	old_retrycount = _retries;
-	uint8_t		cmd = ADDR_RESET_CMD;
-	int		result;
-
-	/* bump the retry count */
-	_retries = 10;
-	result = transfer(&cmd, 1, nullptr, 0);
-	_retries = old_retrycount;
-
-	return result;
-}
-
-int
-MS5611_I2C::_measure(unsigned addr)
-{
-	/*
-	 * Disable retries on this command; we can't know whether failure
-	 * means the device did or did not see the command.
-	 */
-	_retries = 0;
-
-	uint8_t cmd = addr;
-	return transfer(&cmd, 1, nullptr, 0);
-}
-
-int
-MS5611_I2C::_read_prom()
+MS5611_I2C::read_prom()
 {
 	uint8_t		prom_buf[2];
 	union {

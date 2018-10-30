@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,22 +37,9 @@
  * SPI interface for MS5611
  */
 
-/* XXX trim includes */
-#include <px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <assert.h>
-#include <errno.h>
-#include <unistd.h>
-
-#include <arch/board/board.h>
-
 #include <drivers/device/spi.h>
 
 #include "ms5611.h"
-#include "board_config.h"
 
 /* SPI protocol address bits */
 #define DIR_READ			(1<<7)
@@ -70,39 +57,39 @@ public:
 	virtual ~MS5611_SPI() = default;
 
 	virtual int	init();
-	virtual int	read(unsigned offset, void *data, unsigned count);
-	virtual int	ioctl(unsigned operation, unsigned &arg);
-
-private:
-	ms5611::prom_u	&_prom;
+	virtual int	read(unsigned address, void *data, unsigned count) override;
+	virtual int write(unsigned address, void *data, unsigned count) override;
 
 	/**
 	 * Send a reset command to the MS5611.
 	 *
 	 * This is required after any bus reset.
 	 */
-	int		_reset();
+	int		reset();
 
 	/**
 	 * Send a measure command to the MS5611.
 	 *
 	 * @param addr		Which address to use for the measure operation.
 	 */
-	int		_measure(unsigned addr);
+	int		measure(unsigned addr);
+
+private:
+	ms5611::prom_u	&_prom;
 
 	/**
 	 * Read the MS5611 PROM
 	 *
 	 * @return		OK if the PROM reads successfully.
 	 */
-	int		_read_prom();
+	int		read_prom();
 
 	/**
 	 * Read a 16-bit register value.
 	 *
 	 * @param reg		The register to read.
 	 */
-	uint16_t	_reg16(unsigned reg);
+	uint16_t	reg16(unsigned reg);
 
 	/**
 	 * Wrapper around transfer() that prevents interrupt-context transfers
@@ -110,7 +97,7 @@ private:
 	 * that are polled from interrupt context (or we may be pre-empted)
 	 * so we need to guarantee that transfers complete without interruption.
 	 */
-	int		_transfer(uint8_t *send, uint8_t *recv, unsigned len);
+	// int		transfer(uint8_t *send, uint8_t *recv, unsigned len);
 };
 
 device::Device *
@@ -154,7 +141,7 @@ MS5611_SPI::init()
 	}
 
 	/* send reset command */
-	ret = _reset();
+	ret = reset();
 
 	if (ret != OK) {
 		PX4_DEBUG("reset failed");
@@ -162,7 +149,7 @@ MS5611_SPI::init()
 	}
 
 	/* read PROM */
-	ret = _read_prom();
+	ret = read_prom();
 
 	if (ret != OK) {
 		PX4_DEBUG("prom readout failed");
@@ -183,7 +170,7 @@ MS5611_SPI::read(unsigned offset, void *data, unsigned count)
 	uint8_t buf[4] = { 0 | DIR_WRITE, 0, 0, 0 };
 
 	/* read the most recent measurement */
-	int ret = _transfer(&buf[0], &buf[0], sizeof(buf));
+	int ret = transfer(&buf[0], &buf[0], sizeof(buf));
 
 	if (ret == OK) {
 		/* fetch the raw value */
@@ -198,51 +185,31 @@ MS5611_SPI::read(unsigned offset, void *data, unsigned count)
 	return ret;
 }
 
-int
-MS5611_SPI::ioctl(unsigned operation, unsigned &arg)
+int MS5611_SPI::write(unsigned address, void *data, unsigned count)
 {
-	int ret;
+	uint8_t cmd = address | DIR_WRITE;
 
-	switch (operation) {
-	case IOCTL_RESET:
-		ret = _reset();
-		break;
-
-	case IOCTL_MEASURE:
-		ret = _measure(arg);
-		break;
-
-	default:
-		ret = EINVAL;
-	}
-
-	if (ret != OK) {
-		errno = ret;
-		return -1;
-	}
-
-	return 0;
+	return transfer(&cmd, (uint8_t *)data, count);
 }
 
 int
-MS5611_SPI::_reset()
+MS5611_SPI::reset()
 {
 	uint8_t cmd = ADDR_RESET_CMD | DIR_WRITE;
 
-	return  _transfer(&cmd, nullptr, 1);
+	return  transfer(&cmd, nullptr, 1);
 }
 
 int
-MS5611_SPI::_measure(unsigned addr)
+MS5611_SPI::measure(unsigned addr)
 {
 	uint8_t cmd = addr | DIR_WRITE;
 
-	return _transfer(&cmd, nullptr, 1);
+	return transfer(&cmd, nullptr, 1);
 }
 
-
 int
-MS5611_SPI::_read_prom()
+MS5611_SPI::read_prom()
 {
 	/*
 	 * Wait for PROM contents to be in the device (2.8 ms) in the case we are
@@ -255,7 +222,7 @@ MS5611_SPI::_read_prom()
 
 	for (int i = 0; i < 8; i++) {
 		uint8_t cmd = (ADDR_PROM_SETUP + (i * 2));
-		_prom.c[i] = _reg16(cmd);
+		_prom.c[i] = reg16(cmd);
 
 		if (_prom.c[i] != 0) {
 			all_zero = false;
@@ -280,19 +247,19 @@ MS5611_SPI::_read_prom()
 }
 
 uint16_t
-MS5611_SPI::_reg16(unsigned reg)
+MS5611_SPI::reg16(unsigned reg)
 {
 	uint8_t cmd[3] = { (uint8_t)(reg | DIR_READ), 0, 0 };
 
-	_transfer(cmd, cmd, sizeof(cmd));
+	transfer(cmd, cmd, sizeof(cmd));
 
 	return (uint16_t)(cmd[1] << 8) | cmd[2];
 }
 
-int
-MS5611_SPI::_transfer(uint8_t *send, uint8_t *recv, unsigned len)
-{
-	return transfer(send, recv, len);
-}
+// int
+// MS5611_SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
+// {
+// 	return transfer(send, recv, len);
+// }
 
 #endif /* PX4_SPIDEV_BARO || PX4_SPIDEV_EXT_BARO */

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,36 +36,19 @@
  * Driver for the MS5611 and MS6507 barometric pressure sensor connected via I2C or SPI.
  */
 
-#include <px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
-
-#include <arch/board/board.h>
-#include <board_config.h>
-
 #include <drivers/device/device.h>
 #include <drivers/drv_baro.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/ringbuffer.h>
 
+#include <nuttx/wqueue.h>
+
 #include <perf/perf_counter.h>
-#include <systemlib/err.h>
 #include <platforms/px4_getopt.h>
+#include <px4_config.h>
+
+#include <string.h>
+#include <sys/types.h>
 
 #include "ms5611.h"
 
@@ -199,6 +182,8 @@ protected:
 	 * at the next interval.
 	 */
 	void			cycle();
+
+	void reset();
 
 	/**
 	 * Static trampoline from the workq context; because we don't have a
@@ -459,6 +444,19 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 	return ret;
 }
 
+void MS5611::reset()
+{
+	int ret = -1;
+	unsigned i = 0;
+
+	// Try up to 10 times
+	while (ret != PX4_OK && i < 10) {
+		ret = _interface->write(ADDR_RESET_CMD, nullptr, 1);
+		i++;
+		PX4_INFO("Reset: %d", i);
+	}
+}
+
 int
 MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
@@ -560,7 +558,6 @@ void
 MS5611::cycle()
 {
 	int ret;
-	unsigned dummy;
 
 	/* collection phase? */
 	if (_collect_phase) {
@@ -580,7 +577,8 @@ MS5611::cycle()
 			}
 
 			/* issue a reset command to the sensor */
-			_interface->ioctl(IOCTL_RESET, dummy);
+			reset();
+
 			/* reset the collection state machine and try again - we need
 			 * to wait 2.8 ms after issuing the sensor reset command
 			 * according to the MS5611 datasheet
@@ -616,7 +614,7 @@ MS5611::cycle()
 
 	if (ret != OK) {
 		/* issue a reset command to the sensor */
-		_interface->ioctl(IOCTL_RESET, dummy);
+		reset();
 		/* reset the collection state machine and try again */
 		start_cycle();
 		return;
@@ -648,7 +646,7 @@ MS5611::measure()
 	/*
 	 * Send the command to begin measuring.
 	 */
-	ret = _interface->ioctl(IOCTL_MEASURE, addr);
+	ret = _interface->write(addr, nullptr, 1);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
