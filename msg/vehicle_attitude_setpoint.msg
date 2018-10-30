@@ -1,6 +1,4 @@
 uint64 timestamp		# time since system start (microseconds)
-int8 LANDING_GEAR_UP = 1	# landing gear up
-int8 LANDING_GEAR_DOWN = -1	# landing gear down
 
 float32 roll_body		# body angle in NED frame (can be NaN for FW)
 float32 pitch_body		# body angle in NED frame (can be NaN for FW)
@@ -26,7 +24,5 @@ uint8 apply_flaps       	# flap config specifier
 uint8 FLAPS_OFF = 0     	# no flaps
 uint8 FLAPS_LAND = 1    	# landing config flaps
 uint8 FLAPS_TAKEOFF = 2 	# take-off config flaps
-
-float32 landing_gear
 
 # TOPICS vehicle_attitude_setpoint mc_virtual_attitude_setpoint fw_virtual_attitude_setpoint
