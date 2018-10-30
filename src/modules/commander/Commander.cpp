@@ -4163,13 +4163,13 @@ void Commander::airspeed_use_check()
 
 		// Check if sensor data is missing - assume a minimum 5Hz data rate.
 		bool data_missing = false;
-		if ((hrt_absolute_time() -_time_last_airspeed) > 200000) {
+		if ((hrt_absolute_time() -_time_last_airspeed) > 200_ms) {
 			data_missing = true;
 		}
 
 		// Declare data stopped if not received for longer than 1 second
 		bool data_stopped = false;
-		if ((hrt_absolute_time() -_time_last_airspeed) > 1000000) {
+		if ((hrt_absolute_time() -_time_last_airspeed) > 1_s) {
 			data_stopped = true;
 		}
 		_time_last_airspeed = hrt_absolute_time();
@@ -4203,7 +4203,7 @@ void Commander::airspeed_use_check()
 
 			// Because the innovation, load factor and data missing checks are subject to short duration false positives
 			// a timeout period is applied.
-			bool single_check_fail_timeout = (hrt_absolute_time() - _time_tas_good_declared) > 1000000 * (hrt_abstime)_tas_use_stop_delay.get();
+			bool single_check_fail_timeout = (hrt_absolute_time() - _time_tas_good_declared) > 1_s * (hrt_abstime)_tas_use_stop_delay.get();
 
 			if (data_stopped || both_checks_failed || single_check_fail_timeout) {
 				_tas_use_inhibit = true;
@@ -4214,7 +4214,7 @@ void Commander::airspeed_use_check()
 					strcpy(_airspeed_fault_type, "FAULTY ");
 				}
 			}
-		} else if ((hrt_absolute_time() - _time_tas_bad_declared) > 1000000 * (hrt_abstime)_tas_use_start_delay.get()) {
+		} else if ((hrt_absolute_time() - _time_tas_bad_declared) > 1_s * (hrt_abstime)_tas_use_start_delay.get()) {
 			_tas_use_inhibit = false;
 			fault_cleared = true;
 		}
