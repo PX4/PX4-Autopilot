@@ -4177,11 +4177,11 @@ void Commander::airspeed_use_check()
 		// Check if the airpeed reading is lower than physically possible given the load factor
 		_airspeed_sub.update();
 		_airspeed = _airspeed_sub.get();
-		_sensor_combined_sub.update();
-		_sensor_combined = _sensor_combined_sub.get();
+		_sensor_bias_sub.update();
+		_sensor_bias = _sensor_bias_sub.get();
 		float max_lift_ratio = _airspeed.indicated_airspeed_m_s /fmaxf(_airspeed_stall.get(),1.0f);
 		max_lift_ratio *= max_lift_ratio;
-		status.load_factor_ratio = 0.95f * status.load_factor_ratio - 0.05f * (_sensor_combined.accelerometer_m_s2[2] / 9.80665f) / max_lift_ratio;
+		status.load_factor_ratio = 0.95f * status.load_factor_ratio + 0.05f * (fabsf(_sensor_bias.accel_z) / 9.80665f) / max_lift_ratio;
 		status.load_factor_ratio = math::constrain(status.load_factor_ratio, 0.25f, 2.0f);
 		bool load_factor_ratio_fail = status.load_factor_ratio > 1.1f;
 

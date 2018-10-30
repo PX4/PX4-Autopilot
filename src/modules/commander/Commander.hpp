@@ -57,7 +57,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/airspeed.h>
 
 using math::constrain;
@@ -213,7 +213,7 @@ private:
 	Subscription<mission_result_s>			_mission_result_sub{ORB_ID(mission_result)};
 	Subscription<vehicle_global_position_s>		_global_position_sub{ORB_ID(vehicle_global_position)};
 	Subscription<vehicle_local_position_s>		_local_position_sub{ORB_ID(vehicle_local_position)};
-	Subscription<sensor_combined_s>			_sensor_combined_sub{ORB_ID(sensor_combined)};
+	Subscription<sensor_bias_s>			_sensor_bias_sub{ORB_ID(sensor_bias)};
 	Subscription<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
 
 	Publication<home_position_s>			_home_pub{ORB_ID(home_position)};
@@ -221,7 +221,7 @@ private:
 	orb_advert_t					_status_pub{nullptr};
 
 	struct airspeed_s _airspeed = {};
-	struct sensor_combined_s _sensor_combined = {};
+	struct sensor_bias_s _sensor_bias = {};
 
 };
 
