@@ -163,6 +163,8 @@ private:
 
 	/** Timeout in us for trajectory data to get considered invalid */
 	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500000;
+	/** Timeout in us for range sensor data to get considered invalid */
+	static constexpr uint64_t RANGE_STREAM_TIMEOUT_US = 500000;
 	/**< number of tries before switching to a failsafe flight task */
 	static constexpr int NUM_FAILURE_TRIES = 10;
 	/**< If Flighttask fails, keep 0.2 seconds the current setpoint before going into failsafe land */
@@ -1138,24 +1140,27 @@ MulticopterPositionControl::update_range_constraints(const obstacle_distance_s &
 	constraints.velocity_limits_y[0] = 0.0f;
 	constraints.velocity_limits_y[1] = 0.0f;
 
-	float max_detection_distance = obstacle_distance.max_distance/100.0f; //convert to meters
+	if(hrt_elapsed_time((hrt_abstime *)&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US){
 
-	for(int i = 0; i<72; i++){
+		float max_detection_distance = obstacle_distance.max_distance/100.0f; //convert to meters
 
-		//determine if distance bin is valid and contains a valid distance measurement
-		if(obstacle_distance.distances[i] < obstacle_distance.max_distance &&
-				obstacle_distance.distances[i] > obstacle_distance.min_distance && i*obstacle_distance.increment < 360){
+		for(int i = 0; i<72; i++){
 
-			float distance = obstacle_distance.distances[i]/100.0f; //convert to meters
-			float angle = i*obstacle_distance.increment * (M_PI/180.0);
+			//determine if distance bin is valid and contains a valid distance measurement
+			if(obstacle_distance.distances[i] < obstacle_distance.max_distance &&
+					obstacle_distance.distances[i] > obstacle_distance.min_distance && i*obstacle_distance.increment < 360){
 
-			//calculate normalized velocity reductions
-			float vel_lim_x =  (max_detection_distance - distance)/(max_detection_distance - MPC_OBS_MIN_DIST.get()) * cos(angle);
-			float vel_lim_y =  (max_detection_distance - distance)/(max_detection_distance - MPC_OBS_MIN_DIST.get()) * sin(angle);
-			if(vel_lim_x > 0 && vel_lim_x > constraints.velocity_limits_x[0]) constraints.velocity_limits_x[0] = vel_lim_x;
-			if(vel_lim_y > 0 && vel_lim_y > constraints.velocity_limits_y[0]) constraints.velocity_limits_y[0] = vel_lim_y;
-			if(vel_lim_x < 0 && -vel_lim_x > constraints.velocity_limits_x[1]) constraints.velocity_limits_x[1] = -vel_lim_x;
-			if(vel_lim_y < 0 && -vel_lim_y > constraints.velocity_limits_y[1]) constraints.velocity_limits_y[1] = -vel_lim_y;
+				float distance = obstacle_distance.distances[i]/100.0f; //convert to meters
+				float angle = i*obstacle_distance.increment * (M_PI/180.0);
+
+				//calculate normalized velocity reductions
+				float vel_lim_x =  (max_detection_distance - distance)/(max_detection_distance - MPC_OBS_MIN_DIST.get()) * cos(angle);
+				float vel_lim_y =  (max_detection_distance - distance)/(max_detection_distance - MPC_OBS_MIN_DIST.get()) * sin(angle);
+				if(vel_lim_x > 0 && vel_lim_x > constraints.velocity_limits_x[0]) constraints.velocity_limits_x[0] = vel_lim_x;
+				if(vel_lim_y > 0 && vel_lim_y > constraints.velocity_limits_y[0]) constraints.velocity_limits_y[0] = vel_lim_y;
+				if(vel_lim_x < 0 && -vel_lim_x > constraints.velocity_limits_x[1]) constraints.velocity_limits_x[1] = -vel_lim_x;
+				if(vel_lim_y < 0 && -vel_lim_y > constraints.velocity_limits_y[1]) constraints.velocity_limits_y[1] = -vel_lim_y;
+			}
 		}
 	}
 	publish_constraints(constraints);
