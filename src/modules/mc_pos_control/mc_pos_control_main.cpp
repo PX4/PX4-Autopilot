@@ -55,6 +55,7 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/landing_gear.h>
 
 #include <float.h>
 #include <mathlib/mathlib.h>
@@ -110,6 +111,7 @@ private:
 	orb_advert_t _traj_wp_avoidance_desired_pub{nullptr}; /**< trajectory waypoint desired publication */
 	orb_advert_t _pub_vehicle_command{nullptr};           /**< vehicle command publication */
 	orb_id_t _attitude_setpoint_id{nullptr};
+	orb_advert_t	_landing_gear_pub{nullptr};
 
 	int		_vehicle_status_sub{-1};		/**< vehicle status subscription */
 	int		_vehicle_land_detected_sub{-1};	/**< vehicle land detected subscription */
@@ -135,6 +137,7 @@ private:
 	home_position_s				_home_pos{};			/**< home position */
 	vehicle_trajectory_waypoint_s		_traj_wp_avoidance{};		/**< trajectory waypoint */
 	vehicle_trajectory_waypoint_s		_traj_wp_avoidance_desired{};	/**< desired waypoints, inputs to an obstacle avoidance module */
+	landing_gear_s _landing_gear_state{};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time constant for smooth takeoff ramp */
@@ -593,7 +596,15 @@ MulticopterPositionControl::run()
 	poll_subscriptions();
 
 	// Let's be safe and have the landing gear down by default
-	_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
+	_landing_gear_state.landing_gear = landing_gear_s::LANDING_GEAR_DOWN;
+	_landing_gear_state.timestamp = hrt_absolute_time();
+
+	if (_landing_gear_pub != nullptr) {
+		orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear_state);
+
+	} else {
+		_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear_state);
+	}
 
 	// setup file descriptor to poll the local position as loop wakeup source
 	px4_pollfd_struct_t poll_fd = {.fd = _local_pos_sub};
@@ -792,22 +803,31 @@ MulticopterPositionControl::run()
 			_att_sp.fw_control_yaw = false;
 			_att_sp.apply_flaps = false;
 
-			if (!constraints.landing_gear) {
-				if (constraints.landing_gear == vehicle_constraints_s::GEAR_UP) {
-					_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_UP;
-				}
-
-				if (constraints.landing_gear == vehicle_constraints_s::GEAR_DOWN) {
-					_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
-				}
-			}
-
 			// publish attitude setpoint
 			// Note: this requires review. The reason for not sending
 			// an attitude setpoint is because for non-flighttask modes
 			// the attitude septoint should come from another source, otherwise
 			// they might conflict with each other such as in offboard attitude control.
 			publish_attitude();
+
+			if (!constraints.landing_gear) {
+				if (constraints.landing_gear == vehicle_constraints_s::GEAR_UP) {
+					_landing_gear_state.landing_gear = landing_gear_s::LANDING_GEAR_UP;
+				}
+
+				if (constraints.landing_gear == vehicle_constraints_s::GEAR_DOWN) {
+					_landing_gear_state.landing_gear = landing_gear_s::LANDING_GEAR_DOWN;
+				}
+			}
+
+			_landing_gear_state.timestamp = hrt_absolute_time();
+
+			if (_landing_gear_pub != nullptr) {
+				orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear_state);
+
+			} else {
+				_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear_state);
+			}
 
 		} else {
 			// no flighttask is active: set attitude setpoint to idle

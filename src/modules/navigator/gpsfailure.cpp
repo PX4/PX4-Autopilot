@@ -46,6 +46,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <mathlib/mathlib.h>
 
 using matrix::Eulerf;

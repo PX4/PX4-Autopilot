@@ -56,6 +56,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/landing_gear.h>
 
 /**
  * Multicopter attitude control app start / stop handling function
@@ -109,6 +110,7 @@ private:
 	void		vehicle_motor_limits_poll();
 	bool		vehicle_rates_setpoint_poll();
 	void		vehicle_status_poll();
+	void 		landing_gear_state_poll();
 
 	void		publish_actuator_controls();
 	void		publish_rates_setpoint();
@@ -157,6 +159,7 @@ private:
 	int		_sensor_correction_sub{-1};	/**< sensor thermal correction subscription */
 	int		_sensor_bias_sub{-1};		/**< sensor in-run bias correction subscription */
 	int		_vehicle_land_detected_sub{-1};	/**< vehicle land detected subscription */
+	int		_landing_gear_sub{-1};
 
 	unsigned _gyro_count{1};
 	int _selected_gyro{0};
@@ -165,6 +168,7 @@ private:
 	orb_advert_t	_actuators_0_pub{nullptr};		/**< attitude actuator controls publication */
 	orb_advert_t	_controller_status_pub{nullptr};	/**< controller status publication */
 	orb_advert_t	_vehicle_attitude_setpoint_pub{nullptr};
+	orb_advert_t	_landing_gear_pub{nullptr};
 
 	orb_id_t _actuators_id{nullptr};	/**< pointer to correct actuator controls0 uORB metadata structure */
 
@@ -182,6 +186,7 @@ private:
 	struct sensor_correction_s		_sensor_correction {};	/**< sensor thermal corrections */
 	struct sensor_bias_s			_sensor_bias {};	/**< sensor in-run bias corrections */
 	struct vehicle_land_detected_s		_vehicle_land_detected {};
+	struct landing_gear_s 			_landing_gear_state {};
 
 	MultirotorMixer::saturation_status _saturation_status{};
 
