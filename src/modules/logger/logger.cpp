@@ -622,6 +622,7 @@ void Logger::add_default_topics()
 	add_topic("battery_status", 500);
 	add_topic("camera_capture");
 	add_topic("camera_trigger");
+	add_topic("collision_constraints");
 	add_topic("cpuload");
 	add_topic("distance_sensor", 100);
 	add_topic("ekf2_innovations", 200);
@@ -633,6 +634,7 @@ void Logger::add_default_topics()
 	add_topic("manual_control_setpoint", 200);
 	add_topic("mission");
 	add_topic("mission_result");
+	add_topic("obstacle_distance");
 	add_topic("optical_flow", 50);
 	add_topic("position_setpoint_triplet", 200);
 	add_topic("radio_status");

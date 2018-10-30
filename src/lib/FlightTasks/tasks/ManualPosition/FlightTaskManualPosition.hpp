@@ -56,6 +56,12 @@ public:
 	 */
 	void setYawHandler(WeatherVane *yaw_handler) override { _weathervane_yaw_handler = yaw_handler; }
 
+	/**
+	 * Sets an external collision avoidance which can be used to modify setpoints
+	 */
+	void setCollisionAvoidance(CollisionAvoidance *ext_collision_avoidance) override {_ext_collision_avoidance = ext_collision_avoidance;}
+
+
 protected:
 	void _updateXYlock(); /**< applies position lock based on stick and velocity */
 	void _updateSetpoints() override;
@@ -74,4 +80,5 @@ private:
 	WeatherVane *_weathervane_yaw_handler =
 		nullptr;	/**< external weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
 
+	CollisionAvoidance *_ext_collision_avoidance = nullptr;	/**< external collision avoidance library*/
 };

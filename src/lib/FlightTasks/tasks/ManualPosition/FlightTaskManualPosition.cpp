@@ -113,6 +113,12 @@ void FlightTaskManualPosition::_scaleSticks()
 
 	/* Rotate setpoint into local frame. */
 	_rotateIntoHeadingFrame(vel_sp_xy);
+
+	//collision avoidance
+	if (_ext_collision_avoidance != nullptr && _ext_collision_avoidance->is_active()) {
+		_ext_collision_avoidance->modifySetpoint(vel_sp_xy, _constraints.speed_xy);
+	}
+
 	_velocity_setpoint(0) = vel_sp_xy(0);
 	_velocity_setpoint(1) = vel_sp_xy(1);
 }
