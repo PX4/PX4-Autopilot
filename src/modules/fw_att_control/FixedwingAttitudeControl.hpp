@@ -142,6 +142,7 @@ private:
 		float p_tc;
 		float p_p;
 		float p_i;
+		float p_d;
 		float p_ff;
 		float p_rmax_pos;
 		float p_rmax_neg;
@@ -214,6 +215,7 @@ private:
 		param_t p_tc;
 		param_t p_p;
 		param_t p_i;
+		param_t p_d;
 		param_t p_ff;
 		param_t p_rmax_pos;
 		param_t p_rmax_neg;

@@ -112,6 +112,12 @@ PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
 PARAM_DEFINE_FLOAT(FW_PR_I, 0.02f);
 
 /**
+ * Pitch rate differential gain.
+ *
+ */
+PARAM_DEFINE_FLOAT(FW_PR_D, 0.005f);
+
+/**
  * Maximum positive / up pitch rate.
  *
  * This limits the maximum pitch up angular rate the controller will output (in

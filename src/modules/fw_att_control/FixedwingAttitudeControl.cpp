@@ -54,6 +54,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.p_tc = param_find("FW_P_TC");
 	_parameter_handles.p_p = param_find("FW_PR_P");
 	_parameter_handles.p_i = param_find("FW_PR_I");
+	_parameter_handles.p_d = param_find("FW_PR_D");
 	_parameter_handles.p_ff = param_find("FW_PR_FF");
 	_parameter_handles.p_rmax_pos = param_find("FW_P_RMAX_POS");
 	_parameter_handles.p_rmax_neg = param_find("FW_P_RMAX_NEG");
@@ -168,6 +169,7 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.p_tc, &(_parameters.p_tc));
 	param_get(_parameter_handles.p_p, &(_parameters.p_p));
 	param_get(_parameter_handles.p_i, &(_parameters.p_i));
+	param_get(_parameter_handles.p_i, &(_parameters.p_d));
 	param_get(_parameter_handles.p_ff, &(_parameters.p_ff));
 	param_get(_parameter_handles.p_rmax_pos, &(_parameters.p_rmax_pos));
 	param_get(_parameter_handles.p_rmax_neg, &(_parameters.p_rmax_neg));
@@ -253,6 +255,7 @@ FixedwingAttitudeControl::parameters_update()
 	_pitch_ctrl.set_time_constant(_parameters.p_tc);
 	_pitch_ctrl.set_k_p(_parameters.p_p);
 	_pitch_ctrl.set_k_i(_parameters.p_i);
+	_pitch_ctrl.set_k_d(_parameters.p_d);
 	_pitch_ctrl.set_k_ff(_parameters.p_ff);
 	_pitch_ctrl.set_integrator_max(_parameters.p_integrator_max);
 

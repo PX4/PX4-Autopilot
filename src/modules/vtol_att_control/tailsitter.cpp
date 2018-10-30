@@ -133,6 +133,8 @@ void Tailsitter::update_vtol_state()
 				bool airspeed_condition_satisfied = _airspeed->indicated_airspeed_m_s >= _params->transition_airspeed;
 				airspeed_condition_satisfied |= _params->airspeed_disabled;
 
+				_vtol_schedule.fw_start = hrt_absolute_time();
+
 				// check if we have reached airspeed  and pitch angle to switch to TRANSITION P2 mode
 				if ((airspeed_condition_satisfied && pitch <= PITCH_TRANSITION_FRONT_P1) || can_transition_on_ground()) {
 					_vtol_schedule.flight_mode = FW_MODE;
@@ -282,6 +284,8 @@ void Tailsitter::update_fw_state()
 */
 void Tailsitter::fill_actuator_outputs()
 {
+	float time_since_fw_start = 0.0f;
+	float smooth_fw_start = 0.0f;
 	_actuators_out_0->timestamp = hrt_absolute_time();
 	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
 
@@ -312,11 +316,14 @@ void Tailsitter::fill_actuator_outputs()
 		break;
 
 	case FIXED_WING:
-		// in fixed wing mode we use engines only for providing thrust, no moments are generated
+		// at the start of the fw mode, the control output of pitch is smoothed from the end of transition
+		time_since_fw_start = (float)(hrt_absolute_time() - _vtol_schedule.fw_start) * 1e-6f;
+		smooth_fw_start = math::constrain(time_since_fw_start / 0.5f, 0.0f, 1.0f);
+
 		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] =
 			_actuators_fw_in->control[actuator_controls_s::INDEX_YAW];
 		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH];
+			_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + (1.0f - smooth_fw_start) * 0.0f;
 		_actuators_out_0->control[actuator_controls_s::INDEX_YAW] =
 			-_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
 		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
@@ -343,6 +350,8 @@ void Tailsitter::fill_actuator_outputs()
 				_mc_yaw_weight;
 		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
 			_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
+
+		_vtol_schedule.ctrl_out_trans_end = _actuators_out_0->control[actuator_controls_s::INDEX_PITCH];
 
 		// NOTE: There is no mistake in the line below, multicopter yaw axis is controlled by elevon roll actuation!
 		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = -_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL]

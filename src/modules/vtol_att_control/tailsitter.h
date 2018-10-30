@@ -81,7 +81,9 @@ private:
 	};
 
 	struct {
-		vtol_mode flight_mode;			/**< vtol flight mode, defined by enum vtol_mode */
+		vtol_mode   flight_mode;	    /**< vtol flight mode, defined by enum vtol_mode */
+		float       ctrl_out_trans_end; /**< MC controller output at the end of front transition */
+		hrt_abstime fw_start;           /**< absoulte time at which fw mode started, this time will be used to smooth the controller output */
 		hrt_abstime transition_start;	/**< absoulte time at which front transition started */
 	} _vtol_schedule;
 
