@@ -470,7 +470,8 @@ void FixedwingAttitudeControl::get_airspeed_and_scaling(float &airspeed, float &
 {
 	const bool airspeed_valid = PX4_ISFINITE(_airspeed_sub.get().indicated_airspeed_m_s)
 				    && (_airspeed_sub.get().indicated_airspeed_m_s > 0.0f)
-				    && (hrt_elapsed_time(&_airspeed_sub.get().timestamp) < 1e6);
+				    && (hrt_elapsed_time(&_airspeed_sub.get().timestamp) < 1e6)
+					&& !_vehicle_status.aspd_use_inhibit;
 
 	if (!_parameters.airspeed_disabled && airspeed_valid) {
 		/* prevent numerical drama by requiring 0.5 m/s minimal speed */
