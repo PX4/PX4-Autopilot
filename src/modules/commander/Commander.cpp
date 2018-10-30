@@ -4223,16 +4223,23 @@ void Commander::airspeed_use_check()
 	status.aspd_use_inhibit = false;
 	status.aspd_fail_rtl = false;
 	switch (_airspeed_fail_action.get()) {
-	case 4: // log a message, warn the user, switch to non-airspeed TECS mode, switch to Return mode
+	case 4: // log a message, warn the user, switch to non-airspeed TECS mode, switch to Return mode if not in a pilot controlled mode.
 		{
 			if (fault_declared) {
 				status.aspd_fault_declared = true;
 				status.aspd_use_inhibit = true;
-				status.aspd_fail_rtl = true;
-				// let us send the critical message even if already in RTL
-				if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, &internal_state)) {
+				if ((internal_state.main_state == commander_state_s::MAIN_STATE_MANUAL)
+						|| (internal_state.main_state == commander_state_s::MAIN_STATE_ACRO)
+						|| (internal_state.main_state == commander_state_s::MAIN_STATE_STAB)
+						|| (internal_state.main_state == commander_state_s::MAIN_STATE_ALTCTL)
+						|| (internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL)
+						|| (internal_state.main_state == commander_state_s::MAIN_STATE_RATTITUDE)) {
+					// don't RTL if pilot is in control
+					mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA  %s - stopping use", _airspeed_fault_type);
+				} else if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, &internal_state)) {
+					// the critical message even if already in RTL
+					status.aspd_fail_rtl = true;
 					mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA %s - stopping use and returning", _airspeed_fault_type);
-
 				} else {
 					mavlink_log_emergency(&mavlink_log_pub, "AIRSPEED DATA  %s - stopping use, return failed", _airspeed_fault_type);
 				}
