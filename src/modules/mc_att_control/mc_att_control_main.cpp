@@ -376,6 +376,17 @@ MulticopterAttitudeControl::vehicle_land_detected_poll()
 
 }
 
+void
+MulticopterAttitudeControl::landing_gear_state_poll()
+{
+	bool updated;
+	orb_check(_landing_gear_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(landing_gear), _landing_gear_sub, &_landing_gear_state);
+	}
+}
+
 float
 MulticopterAttitudeControl::throttle_curve(float throttle_stick_input)
 {
@@ -404,9 +415,9 @@ MulticopterAttitudeControl::get_landing_gear_state()
 	if (_vehicle_land_detected.landed) {
 		_gear_state_initialized = false;
 	}
-	float landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN; // default to down
+	float landing_gear = landing_gear_s::LANDING_GEAR_DOWN; // default to down
 	if (_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON && _gear_state_initialized) {
-		landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_UP;
+		landing_gear = landing_gear_s::LANDING_GEAR_UP;
 
 	} else if (_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
 		// Switching the gear off does put it into a safe defined state
@@ -420,6 +431,7 @@ void
 MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_sp)
 {
 	vehicle_attitude_setpoint_s attitude_setpoint{};
+	landing_gear_s landing_gear{};
 	const float yaw = Eulerf(Quatf(_v_att.q)).psi();
 
 	/* reset yaw setpoint to current position if needed */
@@ -508,9 +520,11 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 
 	attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_sp.z);
 
-	attitude_setpoint.landing_gear = get_landing_gear_state();
-	attitude_setpoint.timestamp = hrt_absolute_time();
+	_landing_gear_state.landing_gear = get_landing_gear_state();
+
+	attitude_setpoint.timestamp = landing_gear.timestamp = hrt_absolute_time();
 	orb_publish_auto(ORB_ID(vehicle_attitude_setpoint), &_vehicle_attitude_setpoint_pub, &attitude_setpoint, nullptr, ORB_PRIO_DEFAULT);
+	orb_publish_auto(ORB_ID(landing_gear), &_landing_gear_pub, &attitude_setpoint, nullptr, ORB_PRIO_DEFAULT);
 }
 
 /**
@@ -759,7 +773,7 @@ MulticopterAttitudeControl::publish_actuator_controls()
 	_actuators.control[1] = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
 	_actuators.control[2] = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
 	_actuators.control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
-	_actuators.control[7] = _v_att_sp.landing_gear;
+	_actuators.control[7] = _landing_gear_state.landing_gear;
 	_actuators.timestamp = hrt_absolute_time();
 	_actuators.timestamp_sample = _sensor_gyro.timestamp;
 
@@ -805,6 +819,7 @@ MulticopterAttitudeControl::run()
 	_sensor_correction_sub = orb_subscribe(ORB_ID(sensor_correction));
 	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
+	_landing_gear_sub =  orb_subscribe(ORB_ID(landing_gear));
 
 	/* wakeup source: gyro data from sensor selected by the sensor app */
 	px4_pollfd_struct_t poll_fds = {};
@@ -873,6 +888,7 @@ MulticopterAttitudeControl::run()
 			sensor_correction_poll();
 			sensor_bias_poll();
 			vehicle_land_detected_poll();
+			landing_gear_state_poll();
 			const bool manual_control_updated = vehicle_manual_poll();
 			const bool attitude_updated = vehicle_attitude_poll();
 			attitude_dt += dt;
@@ -982,6 +998,7 @@ MulticopterAttitudeControl::run()
 	orb_unsubscribe(_sensor_correction_sub);
 	orb_unsubscribe(_sensor_bias_sub);
 	orb_unsubscribe(_vehicle_land_detected_sub);
+	orb_unsubscribe(_landing_gear_sub);
 }
 
 int MulticopterAttitudeControl::task_spawn(int argc, char *argv[])
