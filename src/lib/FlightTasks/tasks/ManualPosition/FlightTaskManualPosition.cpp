@@ -142,8 +142,17 @@ void FlightTaskManualPosition::_scaleSticks()
 		_constraints.velocity_limits_y[1] = v_max_y - _constraints.velocity_limits_y[1];
 
 		//constrain the velocity setpoint to respect the velocity limits
-		vel_sp_xy(0) = math::constrain(vel_sp_xy(0), -_constraints.velocity_limits_x[1], _constraints.velocity_limits_x[0]);
-		vel_sp_xy(1) = math::constrain(vel_sp_xy(1), -_constraints.velocity_limits_y[1], _constraints.velocity_limits_y[0]);
+		Vector2f vel_sp_xy_new = vel_sp_xy;
+		vel_sp_xy_new(0) = math::constrain(vel_sp_xy(0), -_constraints.velocity_limits_x[1], _constraints.velocity_limits_x[0]);
+		vel_sp_xy_new(1) = math::constrain(vel_sp_xy(1), -_constraints.velocity_limits_y[1], _constraints.velocity_limits_y[0]);
+
+		//warn user if collision avoidance starts to interfere
+		bool interfering = (vel_sp_xy_new(0) < 0.95f * vel_sp_xy(0) || vel_sp_xy_new(0) > 1.05f * vel_sp_xy(0) || vel_sp_xy_new(1) < 0.95f * vel_sp_xy(1) || vel_sp_xy_new(1) > 1.05f * vel_sp_xy(1));
+		if(interfering && (interfering != _avoidance_interfering)){
+			PX4_INFO_RAW("AVOIDANCE STARTS INTERFERING\n");
+		}
+		_avoidance_interfering = interfering;
+		vel_sp_xy = vel_sp_xy_new;
 	}
 
 	_velocity_setpoint(0) = vel_sp_xy(0);
