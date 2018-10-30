@@ -14,7 +14,7 @@ FlightTestInput::FlightTestInput(const char *name) :
     _standard_deviation(this, "SD")
 {
 }
-//test
+
 void
 FlightTestInput::update()
 {
