@@ -29,11 +29,14 @@ FlightTestInput::update()
 	// check vehicle status for changes to publication state
 	_vehicle_status_sub.update();
 
-	const bool switch_was_on =
-		true; //(_manual_control_setpoint_sub.get().fti_switch == manual_control_setpoint_s::SWITCH_POS_ON);
+#ifdef CONFIG_ARCH_BOARD_SITL
+	const bool switch_was_on = true;
+	const bool switch_on = true;
+#else
+	const bool switch_was_on = (_manual_control_setpoint_sub.get().fti_switch == manual_control_setpoint_s::SWITCH_POS_ON);
 	_manual_control_setpoint_sub.update();
-	const bool switch_on =
-		true; //(_manual_control_setpoint_sub.get().fti_switch == manual_control_setpoint_s::SWITCH_POS_ON);
+	const bool switch_on = (_manual_control_setpoint_sub.get().fti_switch == manual_control_setpoint_s::SWITCH_POS_ON);
+#endif
 
 	const bool was_enabled = _enabled.get();
 	_enabled.update();
