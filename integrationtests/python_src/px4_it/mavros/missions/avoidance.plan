@@ -1,6 +1,11 @@
 {
     "fileType": "Plan",
     "geoFence": {
+        "circles": [
+        ],
+        "polygons": [
+        ],
+        "version": 2
     },
     "groundStation": "QGroundControl",
     "mission": {
@@ -9,6 +14,9 @@
         "hoverSpeed": 5,
         "items": [
             {
+                "AMSLAltAboveTerrain": null,
+                "Altitude": 3,
+                "AltitudeMode": 0,
                 "autoContinue": true,
                 "command": 22,
                 "doJumpId": 1,
@@ -25,6 +33,9 @@
                 "type": "SimpleItem"
             },
             {
+                "AMSLAltAboveTerrain": null,
+                "Altitude": 3,
+                "AltitudeMode": 0,
                 "autoContinue": true,
                 "command": 16,
                 "doJumpId": 2,
@@ -34,17 +45,36 @@
                     0,
                     0,
                     null,
-                    47.39774557119683,
-                    8.545792374696958,
+                    47.3977428945147,
+                    8.545867506377846,
                     3
+                ],
+                "type": "SimpleItem"
+            },
+            {
+                "AMSLAltAboveTerrain": null,
+                "Altitude": 0,
+                "AltitudeMode": 0,
+                "autoContinue": true,
+                "command": 21,
+                "doJumpId": 3,
+                "frame": 3,
+                "params": [
+                    25,
+                    0,
+                    0,
+                    null,
+                    47.397740564979635,
+                    8.545876861212832,
+                    0
                 ],
                 "type": "SimpleItem"
             }
         ],
         "plannedHomePosition": [
-            47.3977419,
+            47.3977418,
             8.5455938,
-            489
+            487.999
         ],
         "vehicleType": 2,
         "version": 2
@@ -52,7 +82,7 @@
     "rallyPoints": {
         "points": [
         ],
-        "version": 1
+        "version": 2
     },
     "version": 1
 }
