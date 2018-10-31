@@ -58,3 +58,6 @@
 	path = cmake/configs/uavcan_board_ident
 	url = https://github.com/PX4/uavcan_board_ident.git
 	branch = master
+[submodule "Tools/Maneuvers"]
+	path = Tools/Maneuvers
+	url = https://github.com/Stifael/px4maneuvers.git
