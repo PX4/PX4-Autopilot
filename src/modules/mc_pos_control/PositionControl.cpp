@@ -263,7 +263,7 @@ void PositionControl::_velocityController(const float &dt)
 	// Saturate thrust setpoint in D-direction.
 	_thr_sp(2) = math::constrain(thrust_desired_D, uMin, uMax);
 
-	if (PX4_ISFINITE(_thr_sp(0)) + PX4_ISFINITE(_thr_sp(1))) {
+	if (PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1))) {
 		// Thrust set-point in NE-direction is already provided. Only
 		// scaling by the maximum tilt is required.
 		float thr_xy_max = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);
