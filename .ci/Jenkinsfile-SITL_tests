@@ -83,7 +83,7 @@ pipeline {
               name: "avoidance",
               test: "mavros_posix_test_avoidance.test",
               mission: "avoidance",
-              vehicle: "iris",
+              vehicle: "iris_obs_avoid",
               run_script: "rostest_avoidance_run.sh"
             ],
 

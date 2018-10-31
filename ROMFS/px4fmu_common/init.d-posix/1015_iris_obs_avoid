@@ -1,0 +1,13 @@
+#!nsh
+#
+# @name 3DR Iris Quadrotor SITL (Obstacle Avoidance)
+#
+# @type Quadrotor Wide
+#
+ 
+sh /etc/init.d-posix/10016_iris
+
+if [ $AUTOCNF = yes ]
+then
+	param set MPC_OBS_AVOID 1
+fi
