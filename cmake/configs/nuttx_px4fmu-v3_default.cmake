@@ -83,6 +83,11 @@ set(config_module_list
 	modules/uORB/uORB_tests
 	systemcmds/tests
 
+        #
+        # Enord Compass difference Test
+        #
+        modules/compas_differ
+
 	#
 	# General system control
 	#
@@ -129,36 +134,6 @@ set(config_module_list
 	modules/dataman
 
 	#
-	# OBC challenge
-	#
-	examples/bottle_drop
-
-	#
-	# Rover apps
-	#
-	examples/rover_steering_control
-
-	#
-	# Segway
-	#
-	examples/segway
-
-	#
 	# Demo apps
-	#
-
-	# Tutorial code from
-	# https://px4.io/dev/px4_simple_app
-	examples/px4_simple_app
-
-	# Tutorial code from
-	# https://px4.io/dev/debug_values
-	examples/px4_mavlink_debug
-
-	# Tutorial code from
-	# https://px4.io/dev/example_fixedwing_control
-	examples/fixedwing_control
-
-	# Hardware test
-	examples/hwtest
+	#        
 )
