@@ -41,16 +41,10 @@
 
 #pragma once
 
-#include <string.h>
-#include <getopt.h>
-#include <parameters/param.h>
-
 #include <px4_workqueue.h>
 #include <px4_module.h>
 #include <px4_module_params.h>
-
 #include <px4_config.h>
-#include <px4_log.h>
 #include <px4_getopt.h>
 
 #include <uORB/uORB.h>
