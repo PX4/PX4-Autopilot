@@ -10,8 +10,8 @@ FlightTestInput::FlightTestInput(const char *name) :
 	_enabled(this, "EN"),
 	_dwell_time(this, "TIME"),
 	_bias(this, "BIAS"),
-    _amplitude(this, "AMP"),
-    _standard_deviation(this, "SD")
+	_amplitude(this, "AMP"),
+	_standard_deviation(this, "SD")
 {
 }
 
@@ -73,9 +73,9 @@ FlightTestInput::update()
 
 	case TEST_INPUT_RUNNING:
 
-        if ((switch_was_on && switch_on) // manual switch still on
-			   && _enabled.get() // enabled
-			  ) {
+		if ((switch_was_on && switch_on) // manual switch still on
+		    && _enabled.get() // enabled
+		   ) {
 
 			// increment time
 			_time_running += dt;
@@ -105,7 +105,7 @@ float FlightTestInput::AWGN_generate()
 	int p = 1;
 
 	while (p > 0) {
-        temp2 = (rand() / ((float)RAND_MAX));//need to add _standard_deviation.get()
+		temp2 = (rand() / ((float)RAND_MAX));//need to add _standard_deviation.get()
 
 		if (temp2 == 0.0f) {
 			// temp2 is >= (RAND_MAX / 2)

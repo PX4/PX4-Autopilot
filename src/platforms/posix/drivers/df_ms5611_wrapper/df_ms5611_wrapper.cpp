@@ -96,7 +96,7 @@ private:
 
 	perf_counter_t		_baro_sample_perf;
 
-    FlightTestInput _fti_baro{"FTI_BARO"};
+	FlightTestInput _fti_baro{"FTI_BARO"};
 
 };
 
@@ -148,8 +148,8 @@ int DfMS5611Wrapper::stop()
 
 int DfMS5611Wrapper::_publish(struct baro_sensor_data &data)
 {
-    // Noise inject
-    _fti_baro.inject(data.pressure_pa);
+	// Noise inject
+	_fti_baro.inject(data.pressure_pa);
 
 
 	perf_begin(_baro_sample_perf);
