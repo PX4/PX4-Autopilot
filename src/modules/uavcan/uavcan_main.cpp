@@ -55,6 +55,8 @@
 #include <arch/board/board.h>
 #include <arch/chip/chip.h>
 
+#include <matrix/math.hpp>
+#include <mathlib/mathlib.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/parameter_update.h>
 
@@ -81,6 +83,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_node_mutex(),
 	_esc_controller(_node),
 	_hardpoint_controller(_node),
+    _enord_esc_controller(_node),
 	_time_sync_master(_node),
 	_time_sync_slave(_node),
 	_node_status_monitor(_node),
@@ -96,6 +99,13 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_control_topics[1] = ORB_ID(actuator_controls_1);
 	_control_topics[2] = ORB_ID(actuator_controls_2);
 	_control_topics[3] = ORB_ID(actuator_controls_3);
+
+        ///> ENORD ESC
+        _channel_value = -99;
+        _rc_channels_sub = -1;
+        _vehicle_attitude_sub = -1;
+        _vehicle_local_position_sub = -1;
+        ///< ENORD ESC
 
 	int res = pthread_mutex_init(&_node_mutex, nullptr);
 
@@ -141,6 +151,11 @@ UavcanNode::~UavcanNode()
 	(void)orb_unsubscribe(_armed_sub);
 	(void)orb_unsubscribe(_test_motor_sub);
 	(void)orb_unsubscribe(_actuator_direct_sub);
+	
+     ///> ENORD ESC
+    (void)orb_unsubscribe(_rc_channels_sub);
+    (void)orb_unsubscribe(_vehicle_local_position_sub);
+    (void)orb_unsubscribe(_vehicle_attitude_sub);
 
 	// Removing the sensor bridges
 	auto br = _sensor_bridges.getHead();
@@ -663,6 +678,12 @@ int UavcanNode::init(uavcan::NodeID node_id)
 	if (ret < 0) {
 		return ret;
 	}
+	
+	// Enord ESC
+	ret = _enord_esc_controller.init();
+        if (ret < 0) {
+            return ret;
+        }
 
 	// Sensor bridges
 	IUavcanSensorBridge::make_all(_node, _sensor_bridges);
@@ -772,6 +793,10 @@ int UavcanNode::run()
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
 	_actuator_direct_sub = orb_subscribe(ORB_ID(actuator_direct));
+	
+    _rc_channels_sub = orb_subscribe(ORB_ID(rc_channels));
+    _vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+    _vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 
 	memset(&_outputs, 0, sizeof(_outputs));
 
@@ -978,6 +1003,25 @@ int UavcanNode::run()
 				}
 			}
 		}
+		
+		///> ENORD ESC
+                struct  rc_channels_s                 _rc_channels;
+                struct  vehicle_local_position_s       pos;
+//              struct  vehicle_attitude_s             att;
+
+                orb_copy(ORB_ID(rc_channels), _rc_channels_sub, &_rc_channels);
+                orb_copy(ORB_ID(vehicle_local_position), _vehicle_local_position_sub, &pos);
+//              orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &att);
+
+                _enord_esc_controller._switch_value = (int)_rc_channels.channels[6];
+                _enord_esc_controller._roll_value = _rc_channels.channels[1];
+
+                // later gps info test need...
+                double ground_speed = sqrtf(pos.vx * pos.vx + pos.vy * pos.vy);
+                float _altitude = 0.0f;
+
+                _enord_esc_controller.update_outputs(ground_speed, _altitude);
+                ///< ENORD ESC
 
 
 		// Check motor test state

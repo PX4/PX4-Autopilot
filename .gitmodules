@@ -6,6 +6,7 @@
 	path = src/modules/uavcan/libuavcan
 	url = https://github.com/UAVCAN/libuavcan.git
 	branch = master
+	ignore = untracked
 [submodule "msg/tools/genmsg"]
 	path = msg/tools/genmsg
 	url = https://github.com/ros/genmsg.git
