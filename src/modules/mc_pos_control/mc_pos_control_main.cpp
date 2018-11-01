@@ -691,6 +691,7 @@ MulticopterPositionControl::run()
 			update_avoidance_waypoint_desired(_states, setpoint);
 
 			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
+			landing_gear_s gear = _flight_tasks.getGear();
 
 			// check if all local states are valid and map accordingly
 			set_vehicle_states(setpoint.vz);
@@ -732,7 +733,7 @@ MulticopterPositionControl::run()
 				setpoint.vx = setpoint.vy = setpoint.vz = NAN;
 				setpoint.yawspeed = NAN;
 				setpoint.yaw = _states.yaw;
-				constraints.landing_gear = vehicle_constraints_s::GEAR_KEEP;
+				gear.landing_gear = landing_gear_s::GEAR_KEEP;
 				// reactivate the task which will reset the setpoint to current state
 				_flight_tasks.reActivate();
 			}
@@ -801,11 +802,11 @@ MulticopterPositionControl::run()
 			// they might conflict with each other such as in offboard attitude control.
 			publish_attitude();
 
-			// if theres any change in landing gear setpoint publish it
-			if (_old_landing_gear_position != constraints.landing_gear
-				&& constraints.landing_gear != vehicle_constraints_s::GEAR_KEEP) {
+			// if there's any change in landing gear setpoint publish it
+			if (gear.landing_gear != _old_landing_gear_position
+				&& gear.landing_gear != landing_gear_s::GEAR_KEEP) {
 
-				_landing_gear.landing_gear = constraints.landing_gear;
+				_landing_gear.landing_gear = gear.landing_gear;
 				_landing_gear.timestamp = hrt_absolute_time();
 
 				if (_landing_gear_pub != nullptr) {
@@ -816,7 +817,7 @@ MulticopterPositionControl::run()
 				}
 			}
 
-			_old_landing_gear_position = constraints.landing_gear;
+			_old_landing_gear_position = gear.landing_gear;
 
 		} else {
 			// no flighttask is active: set attitude setpoint to idle

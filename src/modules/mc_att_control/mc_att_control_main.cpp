@@ -415,9 +415,9 @@ MulticopterAttitudeControl::get_landing_gear_state()
 	if (_vehicle_land_detected.landed) {
 		_gear_state_initialized = false;
 	}
-	float landing_gear = landing_gear_s::LANDING_GEAR_DOWN; // default to down
+	float landing_gear = landing_gear_s::GEAR_DOWN; // default to down
 	if (_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON && _gear_state_initialized) {
-		landing_gear = landing_gear_s::LANDING_GEAR_UP;
+		landing_gear = landing_gear_s::GEAR_UP;
 
 	} else if (_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
 		// Switching the gear off does put it into a safe defined state
