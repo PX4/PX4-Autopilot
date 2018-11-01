@@ -99,6 +99,10 @@ LIS3MDL::~LIS3MDL()
 	/* make sure we are truly inactive */
 	stop();
 
+	if (_mag_topic != nullptr) {
+		orb_unadvertise(_mag_topic);
+	}
+
 	if (_reports != nullptr) {
 		delete _reports;
 	}
