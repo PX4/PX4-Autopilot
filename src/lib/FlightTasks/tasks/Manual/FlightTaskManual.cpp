@@ -91,7 +91,7 @@ bool FlightTaskManual::_evaluateSticks()
 		// until he toggles the switch to avoid retracting the gear immediately on takeoff.
 		int8_t gear_switch = _sub_manual_control_setpoint->get().gear_switch;
 
-		if (!_constraints.landing_gear) {
+		if (!_gear.landing_gear) {
 			if (gear_switch == manual_control_setpoint_s::SWITCH_POS_OFF) {
 				_applyGearSwitch(gear_switch);
 			}
@@ -112,7 +112,7 @@ bool FlightTaskManual::_evaluateSticks()
 		/* Timeout: set all sticks to zero */
 		_sticks.zero();
 		_sticks_expo.zero();
-		_constraints.landing_gear = vehicle_constraints_s::GEAR_KEEP;
+		_gear.landing_gear = landing_gear_s::GEAR_KEEP;
 		return false;
 	}
 }
@@ -120,10 +120,10 @@ bool FlightTaskManual::_evaluateSticks()
 void FlightTaskManual::_applyGearSwitch(uint8_t gswitch)
 {
 	if (gswitch == manual_control_setpoint_s::SWITCH_POS_OFF) {
-		_constraints.landing_gear = vehicle_constraints_s::GEAR_DOWN;
+		_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 	}
 
 	if (gswitch == manual_control_setpoint_s::SWITCH_POS_ON) {
-		_constraints.landing_gear = vehicle_constraints_s::GEAR_UP;
+		_gear.landing_gear = landing_gear_s::GEAR_UP;
 	}
 }
