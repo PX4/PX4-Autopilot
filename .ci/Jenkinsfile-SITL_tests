@@ -80,7 +80,7 @@ pipeline {
               vehicle: "tiltrotor"
             ],
             [
-              name: "avoidance",
+              name: "MC_avoidance",
               test: "mavros_posix_test_avoidance.test",
               mission: "avoidance",
               vehicle: "iris_obs_avoid",
