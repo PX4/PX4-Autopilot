@@ -47,6 +47,16 @@ const vehicle_constraints_s FlightTasks::getConstraints()
 	}
 }
 
+const landing_gear_s FlightTasks::getGear()
+{
+	if (isAnyTaskActive()) {
+		return _current_task.task->getGear();
+
+	} else {
+		return FlightTask::landing_gear_default_keep;
+	}
+}
+
 const vehicle_trajectory_waypoint_s FlightTasks::getAvoidanceWaypoint()
 {
 	if (isAnyTaskActive()) {
