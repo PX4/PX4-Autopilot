@@ -14,239 +14,211 @@ rtps:
     send: true
   - msg: battery_status
     id: 6
-    send: true
   - msg: camera_capture
     id: 7
   - msg: camera_trigger
     id: 8
-    receive: true
   - msg: collision_report
     id: 9
   - msg: commander_state
     id: 10
   - msg: cpuload
     id: 11
-  - msg: debug_key_value
+  - msg: debug_array
     id: 12
-    receive: true
-  - msg: debug_value
+  - msg: debug_key_value
     id: 13
-    receive: true
-  - msg: debug_vect
+  - msg: debug_value
     id: 14
+  - msg: debug_vect
+    id: 15
     receive: true
   - msg: differential_pressure
-    id: 15
-    send: true
-  - msg: distance_sensor
     id: 16
-  - msg: ekf2_innovations
+  - msg: distance_sensor
     id: 17
-  - msg: ekf2_timestamps
+  - msg: ekf2_innovations
     id: 18
-  - msg: ekf_gps_drift
+  - msg: ekf2_timestamps
     id: 19
-  - msg: ekf_gps_position
+  - msg: ekf_gps_drift
     id: 20
-  - msg: esc_report
+  - msg: ekf_gps_position
     id: 21
-    send: true
-  - msg: esc_status
+  - msg: esc_report
     id: 22
-    send: true
-  - msg: estimator_status
+  - msg: esc_status
     id: 23
-    send: true
-  - msg: follow_target
+  - msg: estimator_status
     id: 24
-  - msg: geofence_result
+  - msg: follow_target
     id: 25
-  - msg: gps_dump
+  - msg: geofence_result
     id: 26
-  - msg: gps_inject_data
+  - msg: gps_dump
     id: 27
-  - msg: home_position
+  - msg: gps_inject_data
     id: 28
-  - msg: input_rc
+  - msg: home_position
     id: 29
-  - msg: iridiumsbd_status
+  - msg: input_rc
     id: 30
-    send: true
-  - msg: irlock_report
+  - msg: iridiumsbd_status
     id: 31
-  - msg: landing_target_innovation
+  - msg: irlock_report
     id: 32
-  - msg: landing_target_pose
+  - msg: landing_target_innovation
     id: 33
-  - msg: led_control
+  - msg: landing_target_pose
     id: 34
-  - msg: log_message
+  - msg: led_control
     id: 35
-  - msg: manual_control_setpoint
+  - msg: log_message
     id: 36
-  - msg: mavlink_log
+  - msg: manual_control_setpoint
     id: 37
-  - msg: mission
+  - msg: mavlink_log
     id: 38
-  - msg: mission_result
+  - msg: mission
     id: 39
-  - msg: mount_orientation
+  - msg: mission_result
     id: 40
-  - msg: multirotor_motor_limit
+  - msg: mount_orientation
     id: 41
-  - msg: obstacle_distance
+  - msg: multirotor_motor_limit
     id: 42
-    receive: true
-  - msg: offboard_control_mode
+  - msg: obstacle_distance
     id: 43
-  - msg: optical_flow
+  - msg: offboard_control_mode
     id: 44
+  - msg: optical_flow
+    id: 45
     receive: true
   - msg: parameter_update
-    id: 45
-  - msg: ping
     id: 46
-  - msg: position_controller_landing_status
+  - msg: ping
     id: 47
-  - msg: position_controller_status
+  - msg: position_controller_landing_status
     id: 48
-  - msg: position_setpoint
+  - msg: position_controller_status
     id: 49
-  - msg: position_setpoint_triplet
+  - msg: position_setpoint
     id: 50
-  - msg: power_button_state
+  - msg: position_setpoint_triplet
     id: 51
-  - msg: pwm_input
+  - msg: power_button_state
     id: 52
-  - msg: qshell_req
+  - msg: pwm_input
     id: 53
-  - msg: qshell_retval
+  - msg: qshell_req
     id: 54
-  - msg: radio_status
+  - msg: qshell_retval
     id: 55
-    send: true
-  - msg: rate_ctrl_status
+  - msg: radio_status
     id: 56
-    send: true
-  - msg: rc_channels
+  - msg: rate_ctrl_status
     id: 57
-  - msg: rc_parameter_map
+  - msg: rc_channels
     id: 58
-  - msg: safety
+  - msg: rc_parameter_map
     id: 59
-  - msg: satellite_info
+  - msg: safety
     id: 60
-    send: true
-  - msg: sensor_accel
+  - msg: satellite_info
     id: 61
-    send: true
-  - msg: sensor_baro
+  - msg: sensor_accel
     id: 62
-    send: true
-  - msg: sensor_bias
+  - msg: sensor_baro
     id: 63
     send: true
-  - msg: sensor_combined
+  - msg: sensor_bias
     id: 64
-    send: true
-  - msg: sensor_correction
+  - msg: sensor_combined
     id: 65
     send: true
-  - msg: sensor_gyro
+  - msg: sensor_correction
     id: 66
-    send: true
-  - msg: sensor_mag
+  - msg: sensor_gyro
     id: 67
-    send: true
-  - msg: sensor_preflight
+  - msg: sensor_mag
     id: 68
-    send: true
-  - msg: sensor_selection
+  - msg: sensor_preflight
     id: 69
-    send: true
-  - msg: servorail_status
+  - msg: sensor_selection
     id: 70
     send: true
-  - msg: subsystem_info
+  - msg: servorail_status
     id: 71
-    send: true
-  - msg: system_power
+  - msg: subsystem_info
     id: 72
-  - msg: task_stack_info
+  - msg: system_power
     id: 73
-  - msg: tecs_status
+  - msg: task_stack_info
     id: 74
-    send: true
-  - msg: telemetry_status
+  - msg: tecs_status
     id: 75
-    send: true
-  - msg: test_motor
+  - msg: telemetry_status
     id: 76
-  - msg: timesync_status
+  - msg: test_motor
     id: 77
-  - msg: trajectory_waypoint
+  - msg: timesync_status
     id: 78
-  - msg: transponder_report
+  - msg: trajectory_waypoint
     id: 79
-    send: true
-  - msg: tune_control
+  - msg: transponder_report
     id: 80
-  - msg: uavcan_parameter_request
+  - msg: tune_control
     id: 81
-  - msg: uavcan_parameter_value
+  - msg: uavcan_parameter_request
     id: 82
-  - msg: ulog_stream
+  - msg: uavcan_parameter_value
     id: 83
-  - msg: ulog_stream_ack
+  - msg: ulog_stream
     id: 84
-  - msg: vehicle_air_data
+  - msg: ulog_stream_ack
     id: 85
-  - msg: vehicle_attitude
+  - msg: vehicle_air_data
     id: 86
-  - msg: vehicle_attitude_setpoint
+  - msg: vehicle_attitude
     id: 87
-  - msg: vehicle_command
+  - msg: vehicle_attitude_setpoint
     id: 88
-  - msg: vehicle_command_ack
+  - msg: vehicle_command
     id: 89
-  - msg: vehicle_constraint
+  - msg: vehicle_command_ack
     id: 90
-  - msg: vehicle_control_mode
+  - msg: vehicle_constraint
     id: 91
-  - msg: vehicle_global_position
+  - msg: vehicle_control_mode
     id: 92
-    send: true
-  - msg: vehicle_gps_position
+  - msg: vehicle_global_position
     id: 93
-    send: true
-  - msg: vehicle_land_detected
+  - msg: vehicle_gps_position
     id: 94
-    send: true
-  - msg: vehicle_local_position
+  - msg: vehicle_land_detected
     id: 95
-  - msg: vehicle_local_position_setpoint
+  - msg: vehicle_local_position
     id: 96
-  - msg: vehicle_magnetometer
+  - msg: vehicle_local_position_setpoint
     id: 97
-  - msg: vehicle_odometry
+  - msg: vehicle_magnetometer
     id: 98
-    send: true
-  - msg: vehicle_rates_setpoint
+  - msg: vehicle_odometry
     id: 99
-  - msg: vehicle_roi
+  - msg: vehicle_rates_setpoint
     id: 100
-  - msg: vehicle_status
+  - msg: vehicle_roi
     id: 101
-    send: true
-  - msg: vehicle_status_flags
+  - msg: vehicle_status
     id: 102
-  - msg: vehicle_trajectory_waypoint
+  - msg: vehicle_status_flags
     id: 103
-  - msg: vtol_vehicle_status
+  - msg: vehicle_trajectory_waypoint
     id: 104
-    send: true
-  - msg: wind_estimate
+  - msg: vtol_vehicle_status
     id: 105
+  - msg: wind_estimate
+    id: 106
   # multi topics
   - msg: actuator_control0
     id: 120
@@ -274,10 +246,10 @@ rtps:
     id: 131
   # - msg: vehicle_mocap_odometry
   #   id: 132
-  #   receive: true
+  #
   # - msg: vehicle_visual_odometry
   #   id: 133
-  #   receive: true
+  #
   - msg: mc_virtual_rates_setpoint
     id: 134
   - msg: fw_virtual_rates_setpoint
