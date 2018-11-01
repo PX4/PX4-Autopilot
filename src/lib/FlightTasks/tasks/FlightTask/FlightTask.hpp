@@ -45,6 +45,7 @@
 #include <drivers/drv_hrt.h>
 #include <matrix/matrix/math.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/landing_gear.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
@@ -115,6 +116,13 @@ public:
 	const vehicle_constraints_s &getConstraints() { return _constraints; }
 
 	/**
+	 * Get landing gear position.
+	 * The constraints can vary with task.
+	 * @return landing gear
+	 */
+	const landing_gear_s &getGear() { return _gear; }
+
+	/**
 	 * Get avoidance desired waypoint
 	 * @return desired waypoints
 	 */
@@ -131,6 +139,11 @@ public:
 	 * All constraints are set to NAN.
 	 */
 	static const vehicle_constraints_s empty_constraints;
+
+	/**
+	 * default landing gear state
+	 */
+	static const landing_gear_s landing_gear_default_keep;
 
 	/**
 	 * Empty desired waypoints.
@@ -214,6 +227,8 @@ protected:
 	 * The constraints can vary with tasks.
 	 */
 	vehicle_constraints_s _constraints{};
+
+	landing_gear_s _gear{};
 
 	/**
 	 * Desired waypoints.
