@@ -30,16 +30,16 @@
         <arg name="respawn_mavros" value="true"/>
     </include>
     <!-- Transformation Publishers -->
-    <arg name="mavros_transformation" default="0" />
-    <node pkg="tf" type="static_transform_publisher" name="tf_90_deg"
-          args="0 0 0 $(arg mavros_transformation) 0 0 world local_origin 10"/>
     <node pkg="tf" type="static_transform_publisher" name="tf_depth_camera"
           args="0 0 0 -1.57 0 -1.57 fcu camera_link 10"/>
     <!-- Launch Local Planner -->
+    <rosparam command="load" file="$(find local_planner)/cfg/params.yaml"/>
+    <arg name="pointcloud_topics" default="[/camera/depth/points]"/>
     <node name="local_planner_node" pkg="local_planner" type="local_planner_node" output="screen">
         <param name="goal_x_param" value="17" />
         <param name="goal_y_param" value="15"/>
         <param name="goal_z_param" value="3" />
+        <rosparam param="pointcloud_topics" subst_value="True">$(arg pointcloud_topics)</rosparam>
     </node>
     <!-- ROStest -->
     <test test-name="$(arg mission)" pkg="px4" type="mission_test.py" time-limit="300.0" args="$(arg mission).plan"/>
