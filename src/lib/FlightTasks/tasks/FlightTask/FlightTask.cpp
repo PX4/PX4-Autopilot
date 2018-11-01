@@ -6,7 +6,8 @@ constexpr uint64_t FlightTask::_timeout;
 // First index of empty_setpoint corresponds to time-stamp and requires a finite number.
 const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {NAN, NAN, NAN}};
 
-const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, vehicle_constraints_s::GEAR_KEEP, {}};
+const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {}};
+const landing_gear_s FlightTask::landing_gear_default_keep = {0, landing_gear_s::GEAR_KEEP, {}};
 const vehicle_trajectory_waypoint_s FlightTask::empty_trajectory_waypoint = {0, 0, {0, 0, 0, 0, 0, 0, 0},
 	{	{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
 		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
@@ -148,7 +149,6 @@ void FlightTask::_setDefaultConstraints()
 	_constraints.speed_up = MPC_Z_VEL_MAX_UP.get();
 	_constraints.speed_down = MPC_Z_VEL_MAX_DN.get();
 	_constraints.tilt = math::radians(MPC_TILTMAX_AIR.get());
-	_constraints.landing_gear = vehicle_constraints_s::GEAR_KEEP;
 	_constraints.min_distance_to_ground = NAN;
 	_constraints.max_distance_to_ground = NAN;
 }
