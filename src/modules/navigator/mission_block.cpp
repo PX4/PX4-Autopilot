@@ -493,7 +493,8 @@ MissionBlock::get_time_inside(const mission_item_s &item) const
 bool
 MissionBlock::item_contains_position(const mission_item_s &item)
 {
-	return item.nav_cmd == NAV_CMD_WAYPOINT ||
+	return item.nav_cmd == NAV_CMD_VELOCITY ||
+	       item.nav_cmd == NAV_CMD_WAYPOINT ||
 	       item.nav_cmd == NAV_CMD_LOITER_UNLIMITED ||
 	       item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
 	       item.nav_cmd == NAV_CMD_LAND ||
@@ -578,6 +579,10 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	case NAV_CMD_LOITER_TIME_LIMIT:
 	case NAV_CMD_LOITER_UNLIMITED:
 		sp->type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+		break;
+
+	case NAV_CMD_VELOCITY:
+		sp->type = position_setpoint_s::SETPOINT_TYPE_VELOCITY;
 		break;
 
 	default:
