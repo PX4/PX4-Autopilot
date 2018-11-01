@@ -139,6 +139,8 @@ private:
 	vehicle_trajectory_waypoint_s		_traj_wp_avoidance_desired{};	/**< desired waypoints, inputs to an obstacle avoidance module */
 	landing_gear_s _landing_gear_state{};
 
+	int8_t		_old_landing_gear_position;
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time constant for smooth takeoff ramp */
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _vel_max_up,
@@ -810,24 +812,23 @@ MulticopterPositionControl::run()
 			// they might conflict with each other such as in offboard attitude control.
 			publish_attitude();
 
-			if (!constraints.landing_gear) {
-				if (constraints.landing_gear == vehicle_constraints_s::GEAR_UP) {
-					_landing_gear_state.landing_gear = landing_gear_s::LANDING_GEAR_UP;
-				}
+			if (_old_landing_gear_position != constraints.landing_gear) {
+				_landing_gear_state.landing_gear =
+					(constraints.landing_gear == vehicle_constraints_s::GEAR_UP) ?
+					landing_gear_s::LANDING_GEAR_UP :
+					landing_gear_s::LANDING_GEAR_DOWN;
 
-				if (constraints.landing_gear == vehicle_constraints_s::GEAR_DOWN) {
-					_landing_gear_state.landing_gear = landing_gear_s::LANDING_GEAR_DOWN;
+				_landing_gear_state.timestamp = hrt_absolute_time();
+
+				if (_landing_gear_pub != nullptr) {
+					orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear_state);
+
+				} else {
+					_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear_state);
 				}
 			}
 
-			_landing_gear_state.timestamp = hrt_absolute_time();
-
-			if (_landing_gear_pub != nullptr) {
-				orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear_state);
-
-			} else {
-				_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear_state);
-			}
+			_old_landing_gear_position = constraints.landing_gear;
 
 		} else {
 			// no flighttask is active: set attitude setpoint to idle
