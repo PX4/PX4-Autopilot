@@ -633,7 +633,7 @@ MulticopterPositionControl::run()
 			_wv_controller->update(matrix::Quatf(_att_sp.q_d), _local_pos.yaw);
 		}
 
-		// activate the collision avoidance if required. If activated a flighttask can use it modify the setpoint
+		// activate/deactivate the collision avoidance based on MPC_COL_AVOID parameter
 		if (_ca_controller != nullptr) {
 
 			// in manual mode we just want to use weathervane if position is controlled as well
