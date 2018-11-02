@@ -137,7 +137,7 @@ private:
 	home_position_s				_home_pos{};			/**< home position */
 	vehicle_trajectory_waypoint_s		_traj_wp_avoidance{};		/**< trajectory waypoint */
 	vehicle_trajectory_waypoint_s		_traj_wp_avoidance_desired{};	/**< desired waypoints, inputs to an obstacle avoidance module */
-	landing_gear_s _landing_gear_state{};
+	landing_gear_s _landing_gear{};
 
 	int8_t		_old_landing_gear_position;
 
@@ -597,17 +597,6 @@ MulticopterPositionControl::run()
 	parameters_update(true);
 	poll_subscriptions();
 
-	// Let's be safe and have the landing gear down by default
-	_landing_gear_state.landing_gear = landing_gear_s::LANDING_GEAR_DOWN;
-	_landing_gear_state.timestamp = hrt_absolute_time();
-
-	if (_landing_gear_pub != nullptr) {
-		orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear_state);
-
-	} else {
-		_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear_state);
-	}
-
 	// setup file descriptor to poll the local position as loop wakeup source
 	px4_pollfd_struct_t poll_fd = {.fd = _local_pos_sub};
 	poll_fd.events = POLLIN;
@@ -816,14 +805,14 @@ MulticopterPositionControl::run()
 			if (_old_landing_gear_position != constraints.landing_gear
 				&& constraints.landing_gear != vehicle_constraints_s::GEAR_KEEP) {
 
-				_landing_gear_state.landing_gear = constraints.landing_gear;
-				_landing_gear_state.timestamp = hrt_absolute_time();
+				_landing_gear.landing_gear = constraints.landing_gear;
+				_landing_gear.timestamp = hrt_absolute_time();
 
 				if (_landing_gear_pub != nullptr) {
-					orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear_state);
+					orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear);
 
 				} else {
-					_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear_state);
+					_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear);
 				}
 			}
 

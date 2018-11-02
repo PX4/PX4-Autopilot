@@ -383,7 +383,7 @@ MulticopterAttitudeControl::landing_gear_state_poll()
 	orb_check(_landing_gear_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(landing_gear), _landing_gear_sub, &_landing_gear_state);
+		orb_copy(ORB_ID(landing_gear), _landing_gear_sub, &_landing_gear);
 	}
 }
 
@@ -520,7 +520,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 
 	attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_sp.z);
 
-	_landing_gear_state.landing_gear = get_landing_gear_state();
+	_landing_gear.landing_gear = get_landing_gear_state();
 
 	attitude_setpoint.timestamp = landing_gear.timestamp = hrt_absolute_time();
 	orb_publish_auto(ORB_ID(vehicle_attitude_setpoint), &_vehicle_attitude_setpoint_pub, &attitude_setpoint, nullptr, ORB_PRIO_DEFAULT);
@@ -773,7 +773,7 @@ MulticopterAttitudeControl::publish_actuator_controls()
 	_actuators.control[1] = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
 	_actuators.control[2] = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
 	_actuators.control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
-	_actuators.control[7] = (float)_landing_gear_state.landing_gear;
+	_actuators.control[7] = (float)_landing_gear.landing_gear;
 	_actuators.timestamp = hrt_absolute_time();
 	_actuators.timestamp_sample = _sensor_gyro.timestamp;
 
@@ -819,7 +819,7 @@ MulticopterAttitudeControl::run()
 	_sensor_correction_sub = orb_subscribe(ORB_ID(sensor_correction));
 	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-	_landing_gear_sub =  orb_subscribe(ORB_ID(landing_gear));
+	_landing_gear_sub = orb_subscribe(ORB_ID(landing_gear));
 
 	/* wakeup source: gyro data from sensor selected by the sensor app */
 	px4_pollfd_struct_t poll_fds = {};
