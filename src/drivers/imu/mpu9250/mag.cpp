@@ -298,15 +298,6 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				/*
-				 * TODO: investigate being able to stop
-				 *       the continuous sampling
-				 */
-				//stop();
-				return OK;
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;

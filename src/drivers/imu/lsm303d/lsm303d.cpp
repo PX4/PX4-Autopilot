@@ -816,12 +816,6 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_call_accel_interval = 0;
-				return OK;
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
@@ -914,12 +908,6 @@ LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
-
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_call_mag_interval = 0;
-				return OK;
 
 			/* zero would be bad */
 			case 0:

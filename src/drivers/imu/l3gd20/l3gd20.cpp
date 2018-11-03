@@ -576,12 +576,6 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_call_interval = 0;
-				return OK;
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
@@ -1202,11 +1196,6 @@ test()
 
 	if (fd_gyro < 0) {
 		err(1, "%s open failed", L3GD20_DEVICE_PATH);
-	}
-
-	/* reset to manual polling */
-	if (ioctl(fd_gyro, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
-		err(1, "reset to manual polling");
 	}
 
 	/* do a simple demand read */
