@@ -212,13 +212,6 @@ Airspeed::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case AIRSPEEDIOCGSCALE: {
-			struct airspeed_scale *s = (struct airspeed_scale *)arg;
-			s->offset_pa = _diff_pres_offset;
-			s->scale = 1.0f;
-			return OK;
-		}
-
 	default:
 		/* give it to the superclass */
 		return I2C::ioctl(filp, cmd, arg);
