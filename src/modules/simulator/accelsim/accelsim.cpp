@@ -672,9 +672,6 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 	case MAGIOCSRANGE:
 		return mag_set_range(arg);
 
-	case MAGIOCGRANGE:
-		return _mag_range_ga;
-
 	case MAGIOCGEXTERNAL:
 		/* Even if this sensor is on the "external" SPI bus
 		 * it is still fixed to the autopilot assembly,

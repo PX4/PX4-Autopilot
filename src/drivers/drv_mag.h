@@ -78,9 +78,6 @@ struct mag_calibration_s {
 /** set the measurement range to handle (at least) arg Gauss */
 #define MAGIOCSRANGE		_MAGIOC(6)
 
-/** return the current mag measurement range in Gauss */
-#define MAGIOCGRANGE		_MAGIOC(7)
-
 /** perform self-calibration, update scale factors to canonical units */
 #define MAGIOCCALIBRATE		_MAGIOC(8)
 

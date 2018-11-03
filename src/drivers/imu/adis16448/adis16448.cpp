@@ -1167,9 +1167,6 @@ ADIS16448::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 		memcpy((struct mag_calibration_s *) arg, &_mag_scale, sizeof(_mag_scale));
 		return OK;
 
-	case MAGIOCGRANGE:
-		return (unsigned long)(_mag_range_mgauss);
-
 	default:
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);
