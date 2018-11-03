@@ -718,9 +718,6 @@ GYROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 			}
 		}
 
-	case ACCELIOCGRANGE:
-		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
-
 	default:
 		/* give it to the superclass */
 		return VirtDevObj::devIOCTL(cmd, arg);

@@ -432,9 +432,6 @@ BMI055_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case ACCELIOCGRANGE:
-		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
-
 	default:
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);
