@@ -911,10 +911,6 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case ACCELIOCSRANGE:
-		/* arg needs to be in G */
-		return accel_set_range(arg);
-
 	case ACCELIOCGRANGE:
 		/* convert to m/s^2 and return rounded in G */
 		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
@@ -1821,10 +1817,6 @@ start(bool external_bus, enum Rotation rotation, unsigned range)
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		goto fail;
-	}
-
-	if (ioctl(fd, ACCELIOCSRANGE, range) < 0) {
 		goto fail;
 	}
 

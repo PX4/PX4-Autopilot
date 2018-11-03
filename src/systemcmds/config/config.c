@@ -332,16 +332,6 @@ do_accel(int argc, char *argv[])
 				return 1;
 			}
 
-		} else if (argc == 3 && !strcmp(argv[0], "range")) {
-
-			/* set the range to i G */
-			ret = ioctl(fd, ACCELIOCSRANGE, strtoul(argv[2], NULL, 0));
-
-			if (ret) {
-				PX4_ERR("range could not be set");
-				return 1;
-			}
-
 		} else {
 			print_usage();
 			return 1;
