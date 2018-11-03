@@ -1025,7 +1025,7 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 
 	/* accelerometer */
 	{
-		struct accel_report accel = {};
+		sensor_accel_s accel = {};
 
 		accel.timestamp = timestamp;
 		accel.x_raw = imu->xacc / (CONSTANTS_ONE_G / 1000.0f);

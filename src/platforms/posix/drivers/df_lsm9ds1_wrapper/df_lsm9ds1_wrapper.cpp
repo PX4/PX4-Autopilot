@@ -239,7 +239,7 @@ DfLsm9ds1Wrapper::~DfLsm9ds1Wrapper()
 int DfLsm9ds1Wrapper::start()
 {
 	// TODO: don't publish garbage here
-	accel_report accel_report = {};
+	sensor_accel_s accel_report = {};
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &accel_report,
 					   &_accel_orb_class_instance, ORB_PRIO_DEFAULT);
 

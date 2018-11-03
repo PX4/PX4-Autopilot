@@ -617,7 +617,7 @@ LSM303D::init()
 	}
 
 	/* allocate basic report buffers */
-	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
 
 	if (_accel_reports == nullptr) {
 		goto out;
@@ -654,7 +654,7 @@ LSM303D::init()
 	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct accel_report arp;
+	sensor_accel_s arp;
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */
@@ -731,8 +731,8 @@ LSM303D::probe()
 ssize_t
 LSM303D::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct accel_report);
-	accel_report *arb = reinterpret_cast<accel_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_accel_s);
+	sensor_accel_s *arb = reinterpret_cast<sensor_accel_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -1370,7 +1370,7 @@ LSM303D::measure()
 	} raw_accel_report;
 #pragma pack(pop)
 
-	accel_report accel_report;
+	sensor_accel_s accel_report;
 
 	/* start the performance counter */
 	perf_begin(_accel_sample_perf);
@@ -1845,7 +1845,7 @@ void
 test()
 {
 	int fd_accel = -1;
-	struct accel_report accel_report;
+	sensor_accel_s accel_report;
 	ssize_t sz;
 	int ret;
 
@@ -1857,9 +1857,9 @@ test()
 	}
 
 	/* do a simple demand read */
-	sz = read(fd_accel, &accel_report, sizeof(accel_report));
+	sz = read(fd_accel, &accel_report, sizeof(sensor_accel_s));
 
-	if (sz != sizeof(accel_report)) {
+	if (sz != sizeof(sensor_accel_s)) {
 		err(1, "immediate read failed");
 	}
 
