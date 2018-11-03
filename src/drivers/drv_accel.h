@@ -76,7 +76,4 @@ struct accel_calibration_s {
 /** set the accel scaling constants to the structure pointed to by (arg) */
 #define ACCELIOCSSCALE		_ACCELIOC(5)
 
-/** determine if hardware is external or onboard */
-#define ACCELIOCGEXTERNAL	_ACCELIOC(12)
-
 #endif /* _DRV_ACCEL_H */

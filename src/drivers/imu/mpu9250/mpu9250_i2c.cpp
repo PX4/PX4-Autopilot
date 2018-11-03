@@ -97,10 +97,6 @@ MPU9250_I2C::ioctl(unsigned operation, unsigned &arg)
 	int ret = PX4_ERROR;
 
 	switch (operation) {
-
-	case ACCELIOCGEXTERNAL:
-		return external();
-
 	case DEVIOCGDEVICEID:
 		return CDev::ioctl(nullptr, operation, arg);
 

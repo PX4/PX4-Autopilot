@@ -130,12 +130,6 @@ MPU9250_SPI::ioctl(unsigned operation, unsigned &arg)
 	int ret;
 
 	switch (operation) {
-
-	case ACCELIOCGEXTERNAL:
-		external();
-
-	/* FALLTHROUGH */
-
 	case DEVIOCGDEVICEID:
 		return CDev::ioctl(nullptr, operation, arg);
 
