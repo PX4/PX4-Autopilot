@@ -904,8 +904,7 @@ MPU6000::probe()
 void
 MPU6000::_set_sample_rate(unsigned desired_sample_rate_hz)
 {
-	if (desired_sample_rate_hz == 0 ||
-	    desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT) {
+	if (desired_sample_rate_hz == 0) {
 		desired_sample_rate_hz = MPU6000_GYRO_DEFAULT_RATE;
 	}
 

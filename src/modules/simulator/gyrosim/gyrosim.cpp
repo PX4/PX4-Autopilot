@@ -510,8 +510,7 @@ GYROSIM::_set_sample_rate(unsigned desired_sample_rate_hz)
 {
 	PX4_DEBUG("_set_sample_rate %u Hz", desired_sample_rate_hz);
 
-	if (desired_sample_rate_hz == 0 ||
-	    desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT) {
+	if (desired_sample_rate_hz == 0) {
 		desired_sample_rate_hz = GYROSIM_GYRO_DEFAULT_RATE;
 	}
 

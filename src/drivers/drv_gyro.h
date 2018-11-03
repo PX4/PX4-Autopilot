@@ -71,8 +71,6 @@ struct gyro_calibration_s {
 #define _GYROIOCBASE		(0x2300)
 #define _GYROIOC(_n)		(_PX4_IOC(_GYROIOCBASE, _n))
 
-#define GYRO_SAMPLERATE_DEFAULT    1000003	/**< default sample rate */
-
 /** set the gyro scaling constants to (arg) */
 #define GYROIOCSSCALE		_GYROIOC(4)
 
