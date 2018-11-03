@@ -449,10 +449,6 @@ RM3100::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 		/* field measurement range cannot be configured for this sensor (8 Gauss) */
 		return OK;
 
-	case MAGIOCGRANGE:
-		/* field measurement range cannot be configured for this sensor (8 Gauss) */
-		return 8;
-
 	case MAGIOCSSCALE:
 		/* set new scale factors */
 		memcpy(&_scale, (struct mag_calibration_s *)arg, sizeof(_scale));
