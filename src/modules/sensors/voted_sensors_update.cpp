@@ -179,7 +179,7 @@ void VotedSensorsUpdate::parameters_update()
 
 		if (topic_instance < _accel.subscription_count) {
 			// valid subscription, so get the driver id by getting the published sensor data
-			struct accel_report report;
+			sensor_accel_s report;
 
 			if (orb_copy(ORB_ID(sensor_accel), _accel.subscription[topic_instance], &report) == 0) {
 				int temp = _temperature_compensation.set_sensor_id_accel(report.device_id, topic_instance);
@@ -545,7 +545,7 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 		orb_check(_accel.subscription[uorb_index], &accel_updated);
 
 		if (accel_updated) {
-			struct accel_report accel_report;
+			sensor_accel_s accel_report;
 
 			int ret = orb_copy(ORB_ID(sensor_accel), _accel.subscription[uorb_index], &accel_report);
 

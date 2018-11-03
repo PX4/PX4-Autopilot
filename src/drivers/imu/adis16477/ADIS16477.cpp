@@ -200,7 +200,7 @@ ADIS16477::init()
 	measure();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	accel_report arp = {};
+	sensor_accel_s arp = {};
 
 	/* measurement will have generated a report, publish */
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp, &_accel_orb_class_instance, ORB_PRIO_MAX);
@@ -593,7 +593,7 @@ ADIS16477::measure()
 bool
 ADIS16477::publish_accel(const ADISReport &report)
 {
-	accel_report arb = {};
+	sensor_accel_s arb = {};
 	arb.timestamp = hrt_absolute_time();
 	arb.device_id = _device_id.devid;
 	arb.error_count = perf_event_count(_bad_transfers);

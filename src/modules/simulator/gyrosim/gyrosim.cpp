@@ -363,7 +363,7 @@ GYROSIM::init()
 	PX4_DEBUG("init");
 	int ret = 1;
 
-	struct accel_report arp = {};
+	sensor_accel_s arp = {};
 
 	struct gyro_report grp = {};
 
@@ -376,7 +376,7 @@ GYROSIM::init()
 	}
 
 	/* allocate basic report buffers */
-	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
 
 	if (_accel_reports == nullptr) {
 		PX4_WARN("_accel_reports creation failed");
@@ -536,7 +536,7 @@ GYROSIM::_set_sample_rate(unsigned desired_sample_rate_hz)
 ssize_t
 GYROSIM::devRead(void *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(accel_report);
+	unsigned count = buflen / sizeof(sensor_accel_s);
 
 	/* buffer must be large enough */
 	if (count < 1) {
@@ -557,7 +557,7 @@ GYROSIM::devRead(void *buffer, size_t buflen)
 	perf_count(_accel_reads);
 
 	/* copy reports out of our buffer to the caller */
-	accel_report *arp = reinterpret_cast<accel_report *>(buffer);
+	sensor_accel_s *arp = reinterpret_cast<sensor_accel_s *>(buffer);
 	int transferred = 0;
 
 	while (count--) {
@@ -570,7 +570,7 @@ GYROSIM::devRead(void *buffer, size_t buflen)
 	}
 
 	/* return the number of bytes transferred */
-	return (transferred * sizeof(accel_report));
+	return (transferred * sizeof(sensor_accel_s));
 }
 
 int
@@ -893,7 +893,7 @@ GYROSIM::_measure()
 	/*
 	 * Report buffers.
 	 */
-	accel_report	arb = {};
+	sensor_accel_s	arb = {};
 	gyro_report	grb = {};
 
 	// for now use local time but this should be the timestamp of the simulator
@@ -1175,7 +1175,7 @@ test()
 {
 	const char *path_accel = MPU_DEVICE_PATH_ACCEL;
 	const char *path_gyro  = MPU_DEVICE_PATH_GYRO;
-	accel_report a_report;
+	sensor_accel_s a_report;
 	gyro_report g_report;
 	ssize_t sz;
 

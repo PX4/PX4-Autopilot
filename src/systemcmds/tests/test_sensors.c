@@ -90,7 +90,7 @@ accel(int argc, char *argv[], const char *path)
 	fflush(stdout);
 
 	int		fd;
-	struct accel_report buf;
+	struct sensor_accel_s buf;
 	int		ret;
 
 	fd = px4_open(path, O_RDONLY);

@@ -603,7 +603,7 @@ ADIS16448::init()
 		goto out;
 	}
 
-	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
 
 	if (_accel_reports == nullptr) {
 		goto out;
@@ -665,7 +665,7 @@ ADIS16448::init()
 	measure();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct accel_report arp;
+	sensor_accel_s arp;
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */
@@ -841,7 +841,7 @@ ADIS16448::_set_gyro_dyn_range(uint16_t desired_gyro_dyn_range)
 ssize_t
 ADIS16448::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(accel_report);
+	unsigned count = buflen / sizeof(sensor_accel_s);
 
 	/* buffer must be large enough */
 	if (count < 1) {
@@ -862,7 +862,7 @@ ADIS16448::read(struct file *filp, char *buffer, size_t buflen)
 	perf_count(_accel_reads);
 
 	/* copy reports out of our buffer to the caller */
-	accel_report *arp = reinterpret_cast<accel_report *>(buffer);
+	sensor_accel_s *arp = reinterpret_cast<sensor_accel_s *>(buffer);
 	int transferred = 0;
 
 	while (count--) {
@@ -875,7 +875,7 @@ ADIS16448::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* return the number of bytes transferred */
-	return (transferred * sizeof(accel_report));
+	return (transferred * sizeof(sensor_accel_s));
 }
 
 int
@@ -1353,7 +1353,7 @@ ADIS16448::measure()
 	/*
 	 * Report buffers.
 	 */
-	accel_report	arb;
+	sensor_accel_s	arb;
 	gyro_report		grb;
 	mag_report		mrb;
 
@@ -1750,7 +1750,7 @@ fail:
 void
 test()
 {
-	accel_report a_report;
+	sensor_accel_s a_report{};
 	gyro_report  g_report;
 	mag_report 	 m_report;
 
