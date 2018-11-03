@@ -114,7 +114,7 @@ void
 test()
 {
 	sensor_accel_s a_report{};
-	gyro_report  g_report;
+	sensor_gyro_s g_report{};
 
 	ssize_t sz;
 

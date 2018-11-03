@@ -122,7 +122,7 @@ test(bool external_bus)
 	const char *path_accel = external_bus ? BMI160_DEVICE_PATH_ACCEL_EXT : BMI160_DEVICE_PATH_ACCEL;
 	const char *path_gyro  = external_bus ? BMI160_DEVICE_PATH_GYRO_EXT : BMI160_DEVICE_PATH_GYRO;
 	sensor_accel_s a_report{};
-	gyro_report g_report;
+	sensor_gyro_s g_report{};
 	ssize_t sz;
 
 	/* get the driver */

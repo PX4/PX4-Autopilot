@@ -363,7 +363,7 @@ GYROSIM::init()
 
 	sensor_accel_s arp = {};
 
-	struct gyro_report grp = {};
+	sensor_gyro_s grp = {};
 
 	ret = VirtDevObj::init();
 
@@ -381,7 +381,7 @@ GYROSIM::init()
 		goto out;
 	}
 
-	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
+	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_gyro_s));
 
 	if (_gyro_reports == nullptr) {
 		PX4_WARN("_gyro_reports creation failed");
@@ -584,7 +584,7 @@ GYROSIM::self_test()
 ssize_t
 GYROSIM::gyro_read(void *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(gyro_report);
+	unsigned count = buflen / sizeof(sensor_gyro_s);
 
 	/* buffer must be large enough */
 	if (count < 1) {
@@ -605,7 +605,7 @@ GYROSIM::gyro_read(void *buffer, size_t buflen)
 	perf_count(_gyro_reads);
 
 	/* copy reports out of our buffer to the caller */
-	gyro_report *grp = reinterpret_cast<gyro_report *>(buffer);
+	sensor_gyro_s *grp = reinterpret_cast<sensor_gyro_s *>(buffer);
 	int transferred = 0;
 
 	while (count--) {
@@ -618,7 +618,7 @@ GYROSIM::gyro_read(void *buffer, size_t buflen)
 	}
 
 	/* return the number of bytes transferred */
-	return (transferred * sizeof(gyro_report));
+	return (transferred * sizeof(sensor_gyro_s));
 }
 
 int
@@ -869,7 +869,7 @@ GYROSIM::_measure()
 	 * Report buffers.
 	 */
 	sensor_accel_s	arb = {};
-	gyro_report	grb = {};
+	sensor_gyro_s	grb = {};
 
 	// for now use local time but this should be the timestamp of the simulator
 	grb.timestamp = hrt_absolute_time();
@@ -1151,7 +1151,7 @@ test()
 	const char *path_accel = MPU_DEVICE_PATH_ACCEL;
 	const char *path_gyro  = MPU_DEVICE_PATH_GYRO;
 	sensor_accel_s a_report;
-	gyro_report g_report;
+	sensor_gyro_s g_report;
 	ssize_t sz;
 
 	/* get the driver */
