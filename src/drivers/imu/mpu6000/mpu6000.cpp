@@ -909,8 +909,7 @@ void
 MPU6000::_set_sample_rate(unsigned desired_sample_rate_hz)
 {
 	if (desired_sample_rate_hz == 0 ||
-	    desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT ||
-	    desired_sample_rate_hz == ACCEL_SAMPLERATE_DEFAULT) {
+	    desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT) {
 		desired_sample_rate_hz = MPU6000_GYRO_DEFAULT_RATE;
 	}
 
@@ -1366,10 +1365,6 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			return OK;
 		}
-
-	case ACCELIOCSSAMPLERATE:
-		_set_sample_rate(arg);
-		return OK;
 
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */

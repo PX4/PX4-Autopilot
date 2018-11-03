@@ -882,9 +882,6 @@ FXOS8701CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 		reset();
 		return OK;
 
-	case ACCELIOCSSAMPLERATE:
-		return accel_set_samplerate(arg);
-
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
@@ -1137,7 +1134,7 @@ FXOS8701CQ::accel_set_samplerate(unsigned frequency)
 
 	uint8_t  active      = read_reg(FXOS8701CQ_CTRL_REG1) & CTRL_REG1_ACTIVE;
 
-	if (frequency == 0 || frequency == ACCEL_SAMPLERATE_DEFAULT) {
+	if (frequency == 0) {
 		frequency = FXOS8701C_ACCEL_DEFAULT_RATE;
 	}
 

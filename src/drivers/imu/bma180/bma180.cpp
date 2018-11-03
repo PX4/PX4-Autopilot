@@ -473,9 +473,6 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 		/* XXX implement */
 		return -EINVAL;
 
-	case ACCELIOCSSAMPLERATE:	/* sensor sample rate is not (really) adjustable */
-		return -EINVAL;
-
 	case ACCELIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_accel_scale, (struct accel_calibration_s *) arg, sizeof(_accel_scale));
