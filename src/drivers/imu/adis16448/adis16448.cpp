@@ -1086,9 +1086,6 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case ACCELIOCTYPE:
-		return (ADIS16448_Product);
-
 	default:
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);

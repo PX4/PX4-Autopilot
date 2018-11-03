@@ -85,7 +85,4 @@ struct accel_calibration_s {
 /** determine if hardware is external or onboard */
 #define ACCELIOCGEXTERNAL	_ACCELIOC(12)
 
-/** get the current accel type */
-#define ACCELIOCTYPE		_ACCELIOC(13)
-
 #endif /* _DRV_ACCEL_H */
