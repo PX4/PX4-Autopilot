@@ -82,9 +82,6 @@ struct accel_calibration_s {
 /** set the accel scaling constants to the structure pointed to by (arg) */
 #define ACCELIOCSSCALE		_ACCELIOC(5)
 
-/** get the accel scaling constants into the structure pointed to by (arg) */
-#define ACCELIOCGSCALE		_ACCELIOC(6)
-
 /** set the accel measurement range to handle at least (arg) g */
 #define ACCELIOCSRANGE		_ACCELIOC(7)
 
