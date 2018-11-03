@@ -279,7 +279,7 @@ int
 LPS22HB::collect()
 {
 	perf_begin(_sample_perf);
-	struct baro_report new_report;
+	sensor_baro_s new_report;
 
 	/* get measurements from the device : MSB enables register address auto-increment */
 #pragma pack(push, 1)

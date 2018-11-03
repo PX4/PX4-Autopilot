@@ -155,7 +155,7 @@ int DfBmp280Wrapper::_publish(struct baro_sensor_data &data)
 {
 	perf_begin(_baro_sample_perf);
 
-	baro_report baro_report = {};
+	sensor_baro_s baro_report = {};
 	baro_report.timestamp   = hrt_absolute_time();
 	baro_report.error_count = data.error_counter;
 

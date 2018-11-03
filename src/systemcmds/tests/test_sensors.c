@@ -230,7 +230,7 @@ baro(int argc, char *argv[], const char *path)
 	fflush(stdout);
 
 	int		fd;
-	struct baro_report buf;
+	struct sensor_baro_s buf;
 	int		ret;
 
 	fd = px4_open(path, O_RDONLY);

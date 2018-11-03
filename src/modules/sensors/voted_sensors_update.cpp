@@ -202,7 +202,7 @@ void VotedSensorsUpdate::parameters_update()
 
 		if (topic_instance < _baro.subscription_count) {
 			// valid subscription, so get the driver id by getting the published sensor data
-			struct baro_report report;
+			sensor_baro_s report;
 
 			if (orb_copy(ORB_ID(sensor_baro), _baro.subscription[topic_instance], &report) == 0) {
 				int temp = _temperature_compensation.set_sensor_id_baro(report.device_id, topic_instance);
@@ -813,7 +813,7 @@ void VotedSensorsUpdate::baro_poll(vehicle_air_data_s &airdata)
 		orb_check(_baro.subscription[uorb_index], &baro_updated);
 
 		if (baro_updated) {
-			struct baro_report baro_report;
+			sensor_baro_s baro_report;
 
 			int ret = orb_copy(ORB_ID(sensor_baro), _baro.subscription[uorb_index], &baro_report);
 

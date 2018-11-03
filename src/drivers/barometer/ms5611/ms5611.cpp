@@ -295,7 +295,7 @@ MS5611::init()
 	/* register alternate interfaces if we have to */
 	_class_instance = register_class_devname(BARO_BASE_DEVICE_PATH);
 
-	struct baro_report brp;
+	sensor_baro_s brp;
 	/* do a first measurement cycle to populate reports with valid data */
 	_measure_phase = 0;
 	_reports->flush();
@@ -390,8 +390,8 @@ out:
 ssize_t
 MS5611::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct baro_report);
-	struct baro_report *brp = reinterpret_cast<struct baro_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_baro_s);
+	sensor_baro_s *brp = reinterpret_cast<sensor_baro_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -698,7 +698,7 @@ MS5611::collect()
 
 	perf_begin(_sample_perf);
 
-	struct baro_report report;
+	sensor_baro_s report;
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
@@ -1023,7 +1023,7 @@ void
 test(enum MS5611_BUS busid)
 {
 	struct ms5611_bus_option &bus = find_bus(busid);
-	struct baro_report report;
+	sensor_baro_s report;
 	ssize_t sz;
 	int ret;
 
