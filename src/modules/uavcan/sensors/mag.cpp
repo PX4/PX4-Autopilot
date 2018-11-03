@@ -119,7 +119,6 @@ int UavcanMagnetometerBridge::ioctl(struct file *filp, int cmd, unsigned long ar
 		}
 
 	case MAGIOCCALIBRATE:
-	case MAGIOCGSAMPLERATE:
 	case MAGIOCSRANGE:
 	case MAGIOCGRANGE:
 	case MAGIOCEXSTRAP: {

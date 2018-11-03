@@ -1157,9 +1157,6 @@ ADIS16448::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case MAGIOCGSAMPLERATE:
-		return _sample_rate;
-
 	case MAGIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_mag_scale, (struct mag_calibration_s *) arg, sizeof(_mag_scale));

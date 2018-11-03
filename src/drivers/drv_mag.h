@@ -69,9 +69,6 @@ struct mag_calibration_s {
 #define _MAGIOCBASE		(0x2400)
 #define _MAGIOC(_n)		(_PX4_IOC(_MAGIOCBASE, _n))
 
-/** return the mag internal sample rate in Hz */
-#define MAGIOCGSAMPLERATE	_MAGIOC(1)
-
 /** set the mag scaling constants to the structure pointed to by (arg) */
 #define MAGIOCSSCALE		_MAGIOC(4)
 
