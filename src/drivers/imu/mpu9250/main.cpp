@@ -317,7 +317,7 @@ test(enum MPU9250_BUS busid)
 {
 	struct mpu9250_bus_option &bus = find_bus(busid);
 	sensor_accel_s a_report{};
-	gyro_report g_report;
+	sensor_gyro_s g_report{};
 	mag_report m_report;
 	ssize_t sz;
 

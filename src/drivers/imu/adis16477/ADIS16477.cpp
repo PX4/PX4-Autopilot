@@ -209,7 +209,7 @@ ADIS16477::init()
 		PX4_ERR("ADVERT FAIL");
 	}
 
-	gyro_report grp = {};
+	sensor_gyro_s grp = {};
 	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp, &_gyro->_gyro_orb_class_instance, ORB_PRIO_MAX);
 
 	if (_gyro->_gyro_topic == nullptr) {
@@ -622,7 +622,7 @@ ADIS16477::publish_accel(const ADISReport &report)
 bool
 ADIS16477::publish_gyro(const ADISReport &report)
 {
-	gyro_report grb = {};
+	sensor_gyro_s grb = {};
 	grb.timestamp = hrt_absolute_time();
 	grb.device_id = _gyro->_device_id.devid;
 	grb.error_count = perf_event_count(_bad_transfers);

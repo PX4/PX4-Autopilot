@@ -396,7 +396,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		int poll_ret = px4_poll(fds, fd_count, 1000);
 
 		if (poll_ret > 0) {
-			struct gyro_report gyro;
+			sensor_gyro_s gyro{};
 			orb_copy(ORB_ID(sensor_gyro), sub_gyro, &gyro);
 
 			/* ensure we have a valid first timestamp */

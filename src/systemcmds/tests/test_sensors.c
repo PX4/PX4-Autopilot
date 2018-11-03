@@ -140,7 +140,7 @@ gyro(int argc, char *argv[], const char *path)
 	fflush(stdout);
 
 	int		fd;
-	struct gyro_report buf;
+	struct sensor_gyro_s buf;
 	int		ret;
 
 	fd = px4_open(path, O_RDONLY);
