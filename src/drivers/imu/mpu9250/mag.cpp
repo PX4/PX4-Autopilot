@@ -353,18 +353,6 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCGSAMPLERATE:
 		return MPU9250_AK8963_SAMPLE_RATE;
 
-	case MAGIOCSSAMPLERATE:
-
-		/*
-		 * We don't currently support any means of changing
-		 * the sampling rate of the mag
-		 */
-		if (MPU9250_AK8963_SAMPLE_RATE != arg) {
-			return -EINVAL;
-		}
-
-		return OK;
-
 	case MAGIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_mag_scale, (struct mag_scale *) arg, sizeof(_mag_scale));

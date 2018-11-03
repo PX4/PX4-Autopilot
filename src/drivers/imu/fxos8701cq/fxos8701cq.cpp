@@ -983,9 +983,6 @@ FXOS8701CQ::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 		reset();
 		return OK;
 
-	case MAGIOCSSAMPLERATE:
-		return mag_set_samplerate(arg);
-
 	case MAGIOCGSAMPLERATE:
 		return _mag_samplerate;
 

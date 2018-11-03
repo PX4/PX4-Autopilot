@@ -223,17 +223,7 @@ do_mag(int argc, char *argv[])
 
 		int ret;
 
-		if (argc == 3 && !strcmp(argv[0], "sampling")) {
-
-			/* set the mag internal sampling rate up to at least i Hz */
-			ret = ioctl(fd, MAGIOCSSAMPLERATE, strtoul(argv[2], NULL, 0));
-
-			if (ret) {
-				PX4_ERR("sampling rate could not be set");
-				return 1;
-			}
-
-		} else if (argc == 3 && !strcmp(argv[0], "rate")) {
+		if (argc == 3 && !strcmp(argv[0], "rate")) {
 
 			/* set the driver to poll at i Hz */
 			ret = ioctl(fd, SENSORIOCSPOLLRATE, strtoul(argv[2], NULL, 0));
