@@ -1177,9 +1177,6 @@ ADIS16448::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCGRANGE:
 		return (unsigned long)(_mag_range_mgauss);
 
-	case MAGIOCTYPE:
-		return (ADIS16448_Product);
-
 	default:
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);
