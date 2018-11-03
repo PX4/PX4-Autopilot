@@ -375,13 +375,6 @@ BMP280::ioctl(struct file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case SENSORIOCGPOLLRATE:
-		if (_report_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (USEC_PER_SEC / USEC_PER_TICK / _report_ticks);
-
 	case SENSORIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
 			if ((arg < 1) || (arg > 100)) {
