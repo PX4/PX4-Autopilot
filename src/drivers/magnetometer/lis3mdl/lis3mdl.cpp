@@ -587,9 +587,6 @@ LIS3MDL::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 	case MAGIOCSRANGE:
 		return set_range(arg);
 
-	case MAGIOCGRANGE:
-		return _range_ga;
-
 	case MAGIOCSSCALE:
 		/* set new scale factors */
 		memcpy(&_scale, (struct mag_calibration_s *)arg, sizeof(_scale));
