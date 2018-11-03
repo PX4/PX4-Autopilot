@@ -126,12 +126,6 @@
  */
 #define SENSORIOCSPOLLRATE	_SENSORIOC(0)
 
-/**
- * Return the driver's approximate polling rate in Hz, or one of the
- * SENSOR_POLLRATE values.
- */
-#define SENSORIOCGPOLLRATE	_SENSORIOC(1)
-
 #define SENSOR_POLLRATE_MANUAL		1000000	/**< poll when read */
 #define SENSOR_POLLRATE_MAX		1000002	/**< poll at device maximum rate */
 #define SENSOR_POLLRATE_DEFAULT		1000003	/**< poll at driver normal rate */

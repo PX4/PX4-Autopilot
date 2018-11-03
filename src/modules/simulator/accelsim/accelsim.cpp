@@ -541,13 +541,6 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCGPOLLRATE:
-		if (m_sample_interval_usecs == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return 1000000 / m_sample_interval_usecs;
-
 	case SENSORIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
 			if ((ul_arg < 1) || (ul_arg > 100)) {
@@ -634,13 +627,6 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 				}
 			}
 		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_mag->m_sample_interval_usecs == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return 1000000 / _mag->m_sample_interval_usecs;
 
 	case SENSORIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
