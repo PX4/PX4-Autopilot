@@ -1129,9 +1129,6 @@ ADIS16448::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
 		return OK;
 
-	case GYROIOCTYPE:
-		return (ADIS16448_Product);
-
 	default:
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);
