@@ -308,10 +308,6 @@ LSM303AGR::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCRESET:
 		return reset();
 
-	case MAGIOCGSAMPLERATE:
-		/* same as pollrate because device is in single measurement mode*/
-		return 1000000 / TICK2USEC(_measure_ticks);
-
 	case MAGIOCSSCALE:
 		/* set new scale factors */
 		memcpy(&_mag_scale, (struct mag_calibration_s *)arg, sizeof(_mag_scale));

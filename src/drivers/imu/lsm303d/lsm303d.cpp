@@ -994,9 +994,6 @@ LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 		reset();
 		return OK;
 
-	case MAGIOCGSAMPLERATE:
-		return _mag_samplerate;
-
 	case MAGIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_mag_scale, (struct mag_calibration_s *) arg, sizeof(_mag_scale));

@@ -248,7 +248,6 @@ do_mag(int argc, char *argv[])
 			return 1;
 		}
 
-		int srate = ioctl(fd, MAGIOCGSAMPLERATE, 0);
 		int prate = ioctl(fd, SENSORIOCGPOLLRATE, 0);
 		int range = ioctl(fd, MAGIOCGRANGE, 0);
 		int id = ioctl(fd, DEVIOCGDEVICEID, 0);
@@ -256,8 +255,8 @@ do_mag(int argc, char *argv[])
 
 		param_get(param_find("CAL_MAG0_ID"), &(calibration_id));
 
-		PX4_INFO("mag: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d Ga",
-			 id, calibration_id, srate, prate, range);
+		PX4_INFO("mag: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tread rate:\t%d Hz\n\trange:\t%d Ga",
+			 id, calibration_id, prate, range);
 
 		close(fd);
 	}

@@ -659,9 +659,6 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 		// Nothing to do for simulator
 		return OK;
 
-	case MAGIOCGSAMPLERATE:
-		return _mag_samplerate;
-
 	case MAGIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_mag_scale, (struct mag_calibration_s *) arg, sizeof(_mag_scale));
