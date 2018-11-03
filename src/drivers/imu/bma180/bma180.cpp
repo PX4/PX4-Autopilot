@@ -406,9 +406,6 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 				_call_interval = 0;
 				return OK;
 
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
