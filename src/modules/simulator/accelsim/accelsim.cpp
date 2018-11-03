@@ -497,12 +497,6 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (ul_arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				m_sample_interval_usecs = 0;
-				return OK;
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
@@ -587,12 +581,6 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
-
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				_mag->stop();
-				_mag->m_sample_interval_usecs = 0;
-				return OK;
 
 			/* zero would be bad */
 			case 0:

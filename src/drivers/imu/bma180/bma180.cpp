@@ -400,12 +400,6 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_call_interval = 0;
-				return OK;
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
@@ -795,14 +789,11 @@ test()
 	/* get the driver */
 	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
 
-	if (fd < 0)
+	if (fd < 0) {
 		err(1, "%s open failed (try 'bma180 start' if the driver is not running)",
 		    ACCEL_DEVICE_PATH);
-
-	/* reset to manual polling */
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
-		err(1, "reset to manual polling");
 	}
+
 
 	/* do a simple demand read */
 	sz = read(fd, &a_report, sizeof(a_report));

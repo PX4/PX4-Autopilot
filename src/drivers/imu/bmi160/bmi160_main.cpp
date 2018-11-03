@@ -139,11 +139,6 @@ test(bool external_bus)
 		err(1, "%s open failed", path_gyro);
 	}
 
-	/* reset to manual polling */
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
-		err(1, "reset to manual polling");
-	}
-
 	/* do a simple demand read */
 	sz = read(fd, &a_report, sizeof(a_report));
 
