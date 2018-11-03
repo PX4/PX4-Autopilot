@@ -597,7 +597,7 @@ ADIS16448::init()
 	}
 
 	/* allocate basic report buffers */
-	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
+	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_gyro_s));
 
 	if (_gyro_reports == nullptr) {
 		goto out;
@@ -676,7 +676,7 @@ ADIS16448::init()
 		warnx("ADVERT FAIL");
 	}
 
-	struct gyro_report grp;
+	sensor_gyro_s grp;
 
 	_gyro_reports->get(&grp);
 
@@ -892,7 +892,7 @@ ADIS16448::self_test()
 ssize_t
 ADIS16448::gyro_read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(gyro_report);
+	unsigned count = buflen / sizeof(sensor_gyro_s);
 
 	/* buffer must be large enough */
 	if (count < 1) {
@@ -913,7 +913,7 @@ ADIS16448::gyro_read(struct file *filp, char *buffer, size_t buflen)
 	perf_count(_gyro_reads);
 
 	/* copy reports out of our buffer to the caller */
-	gyro_report *grp = reinterpret_cast<gyro_report *>(buffer);
+	sensor_gyro_s *grp = reinterpret_cast<sensor_gyro_s *>(buffer);
 	int transferred = 0;
 
 	while (count--) {
@@ -926,7 +926,7 @@ ADIS16448::gyro_read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* return the number of bytes transferred */
-	return (transferred * sizeof(gyro_report));
+	return (transferred * sizeof(sensor_gyro_s));
 }
 
 ssize_t
@@ -1332,7 +1332,7 @@ ADIS16448::measure()
 	 * Report buffers.
 	 */
 	sensor_accel_s	arb;
-	gyro_report		grb;
+	sensor_gyro_s	grb;
 	mag_report		mrb;
 
 	grb.timestamp = arb.timestamp = mrb.timestamp = hrt_absolute_time();
@@ -1729,7 +1729,7 @@ void
 test()
 {
 	sensor_accel_s a_report{};
-	gyro_report  g_report;
+	sensor_gyro_s g_report{};
 	mag_report 	 m_report;
 
 	ssize_t sz;

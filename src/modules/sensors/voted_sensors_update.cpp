@@ -155,7 +155,7 @@ void VotedSensorsUpdate::parameters_update()
 
 		if (topic_instance < _gyro.subscription_count) {
 			// valid subscription, so get the driver id by getting the published sensor data
-			struct gyro_report report;
+			sensor_gyro_s report;
 
 			if (orb_copy(ORB_ID(sensor_gyro), _gyro.subscription[topic_instance], &report) == 0) {
 				int temp = _temperature_compensation.set_sensor_id_gyro(report.device_id, topic_instance);
@@ -652,7 +652,7 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 		orb_check(_gyro.subscription[uorb_index], &gyro_updated);
 
 		if (gyro_updated) {
-			struct gyro_report gyro_report;
+			sensor_gyro_s gyro_report;
 
 			int ret = orb_copy(ORB_ID(sensor_gyro), _gyro.subscription[uorb_index], &gyro_report);
 
