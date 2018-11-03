@@ -190,12 +190,6 @@ lis3mdl::test(struct lis3mdl_bus_option &bus)
 		return PX4_ERROR;
 	}
 
-	/* set the queue depth to 5 */
-	if (ioctl(fd, SENSORIOCSQUEUEDEPTH, 10) != OK) {
-		PX4_WARN("failed to set queue depth");
-		return PX4_ERROR;
-	}
-
 	/* start the sensor polling at 2Hz */
 	if (ioctl(fd, SENSORIOCSPOLLRATE, 2) != OK) {
 		PX4_WARN("failed to set 2Hz poll rate");

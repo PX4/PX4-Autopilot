@@ -532,19 +532,6 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((ul_arg < 1) || (ul_arg > 100)) {
-				return -EINVAL;
-			}
-
-			if (!_accel_reports->resize(ul_arg)) {
-				return -ENOMEM;
-			}
-
-			return OK;
-		}
-
 	case SENSORIOCRESET:
 		// Nothing to do for simulator
 		return OK;
@@ -610,19 +597,6 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 					return OK;
 				}
 			}
-		}
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			if (!_mag_reports->resize(arg)) {
-				return -ENOMEM;
-			}
-
-			return OK;
 		}
 
 	case SENSORIOCRESET:
