@@ -894,9 +894,6 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 		reset();
 		return OK;
 
-	case ACCELIOCSSAMPLERATE:
-		return accel_set_samplerate(arg);
-
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
@@ -1214,7 +1211,7 @@ LSM303D::accel_set_samplerate(unsigned frequency)
 	uint8_t setbits = 0;
 	uint8_t clearbits = REG1_RATE_BITS_A;
 
-	if (frequency == 0 || frequency == ACCEL_SAMPLERATE_DEFAULT) {
+	if (frequency == 0) {
 		frequency = 1600;
 	}
 

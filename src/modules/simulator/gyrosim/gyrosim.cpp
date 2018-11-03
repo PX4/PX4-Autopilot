@@ -513,8 +513,7 @@ GYROSIM::_set_sample_rate(unsigned desired_sample_rate_hz)
 	PX4_DEBUG("_set_sample_rate %u Hz", desired_sample_rate_hz);
 
 	if (desired_sample_rate_hz == 0 ||
-	    desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT ||
-	    desired_sample_rate_hz == ACCEL_SAMPLERATE_DEFAULT) {
+	    desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT) {
 		desired_sample_rate_hz = GYROSIM_GYRO_DEFAULT_RATE;
 	}
 
@@ -699,10 +698,6 @@ GYROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 
 			return OK;
 		}
-
-	case ACCELIOCSSAMPLERATE:
-		_set_sample_rate(arg);
-		return OK;
 
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */

@@ -73,12 +73,6 @@ struct accel_calibration_s {
 #define _ACCELIOCBASE		(0x2100)
 #define _ACCELIOC(_n)		(_PX4_IOC(_ACCELIOCBASE, _n))
 
-
-/** set the accel internal sample rate to at least (arg) Hz */
-#define ACCELIOCSSAMPLERATE	_ACCELIOC(0)
-
-#define ACCEL_SAMPLERATE_DEFAULT    1000003	/**< default sample rate */
-
 /** set the accel scaling constants to the structure pointed to by (arg) */
 #define ACCELIOCSSCALE		_ACCELIOC(5)
 
