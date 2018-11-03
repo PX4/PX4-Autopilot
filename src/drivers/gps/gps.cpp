@@ -50,6 +50,7 @@
 
 
 #include <fcntl.h>
+#include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <stdint.h>
@@ -74,7 +75,6 @@
 #include <matrix/math.hpp>
 #include <systemlib/err.h>
 #include <parameters/param.h>
-#include <drivers/drv_gps.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
@@ -94,6 +94,12 @@
 #define TIMEOUT_5HZ 500
 #define RATE_MEASUREMENT_PERIOD 5000000
 
+typedef enum {
+	GPS_DRIVER_MODE_NONE = 0,
+	GPS_DRIVER_MODE_UBX,
+	GPS_DRIVER_MODE_MTK,
+	GPS_DRIVER_MODE_ASHTECH
+} gps_driver_mode_t;
 
 /* struct for dynamic allocation of satellite info data */
 struct GPS_Sat_Info {
