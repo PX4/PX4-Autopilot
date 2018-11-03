@@ -661,9 +661,6 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case GYROIOCSSAMPLERATE:
 		return set_samplerate(arg);
 
-	case GYROIOCGSAMPLERATE:
-		return _current_rate;
-
 	case GYROIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));

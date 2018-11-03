@@ -76,9 +76,6 @@ struct gyro_calibration_s {
 
 #define GYRO_SAMPLERATE_DEFAULT    1000003	/**< default sample rate */
 
-/** return the gyro internal sample rate in Hz */
-#define GYROIOCGSAMPLERATE	_GYROIOC(1)
-
 /** set the gyro scaling constants to (arg) */
 #define GYROIOCSSCALE		_GYROIOC(4)
 
