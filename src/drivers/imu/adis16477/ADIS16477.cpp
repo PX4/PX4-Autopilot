@@ -438,10 +438,6 @@ ADIS16477::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCRESET:
 		return ioctl(filp, cmd, arg);
 
-	case GYROIOCSSAMPLERATE:
-		_set_sample_rate(arg);
-		return OK;
-
 	case GYROIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
