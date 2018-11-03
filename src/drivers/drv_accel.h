@@ -79,9 +79,6 @@ struct accel_calibration_s {
 
 #define ACCEL_SAMPLERATE_DEFAULT    1000003	/**< default sample rate */
 
-/** return the accel internal sample rate in Hz */
-#define ACCELIOCGSAMPLERATE	_ACCELIOC(1)
-
 /** set the accel scaling constants to the structure pointed to by (arg) */
 #define ACCELIOCSSCALE		_ACCELIOC(5)
 

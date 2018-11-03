@@ -569,9 +569,6 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 		// No need to set internal sampling rate for simulator
 		return OK;
 
-	case ACCELIOCGSAMPLERATE:
-		return _accel_samplerate;
-
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;

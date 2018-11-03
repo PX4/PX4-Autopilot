@@ -651,9 +651,6 @@ BMI160::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case ACCELIOCGSAMPLERATE:
-		return _accel_sample_rate;
-
 	case ACCELIOCSSAMPLERATE:
 		return accel_set_sample_rate(arg);
 

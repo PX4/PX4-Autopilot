@@ -407,9 +407,6 @@ ADIS16477::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 		return 1000000 / _call_interval;
 
-	case ACCELIOCGSAMPLERATE:
-		return _sample_rate;
-
 	case ACCELIOCSSAMPLERATE:
 		_set_sample_rate(arg);
 		return OK;
