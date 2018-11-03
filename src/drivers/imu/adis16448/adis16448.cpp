@@ -1086,9 +1086,6 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case ACCELIOCSRANGE:
-		return -EINVAL;
-
 	case ACCELIOCGRANGE:
 		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
 

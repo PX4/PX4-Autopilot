@@ -1385,9 +1385,6 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case ACCELIOCSRANGE:
-		return set_accel_range(arg);
-
 	case ACCELIOCGRANGE:
 		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
 
@@ -2134,8 +2131,8 @@ struct mpu6000_bus_option {
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
 
-void	start(enum MPU6000_BUS busid, enum Rotation rotation, int range, int device_type);
-bool 	start_bus(struct mpu6000_bus_option &bus, enum Rotation rotation, int range, int device_type);
+void	start(enum MPU6000_BUS busid, enum Rotation rotation, int device_type);
+bool 	start_bus(struct mpu6000_bus_option &bus, enum Rotation rotation, int device_type);
 void	stop(enum MPU6000_BUS busid);
 void	test(enum MPU6000_BUS busid);
 static struct mpu6000_bus_option &find_bus(enum MPU6000_BUS busid);
@@ -2165,7 +2162,7 @@ struct mpu6000_bus_option &find_bus(enum MPU6000_BUS busid)
  * start driver for a specific bus option
  */
 bool
-start_bus(struct mpu6000_bus_option &bus, enum Rotation rotation, int range, int device_type)
+start_bus(struct mpu6000_bus_option &bus, enum Rotation rotation, int device_type)
 {
 	int fd = -1;
 
@@ -2210,10 +2207,6 @@ start_bus(struct mpu6000_bus_option &bus, enum Rotation rotation, int range, int
 		goto fail;
 	}
 
-	if (ioctl(fd, ACCELIOCSRANGE, range) < 0) {
-		goto fail;
-	}
-
 	close(fd);
 
 	return true;
@@ -2239,7 +2232,7 @@ fail:
  * or failed to detect the sensor.
  */
 void
-start(enum MPU6000_BUS busid, enum Rotation rotation, int range, int device_type)
+start(enum MPU6000_BUS busid, enum Rotation rotation, int device_type)
 {
 
 	bool started = false;
@@ -2260,7 +2253,7 @@ start(enum MPU6000_BUS busid, enum Rotation rotation, int range, int device_type
 			continue;
 		}
 
-		started |= start_bus(bus_options[i], rotation, range, device_type);
+		started |= start_bus(bus_options[i], rotation, device_type);
 	}
 
 	exit(started ? 0 : 1);
@@ -2464,7 +2457,6 @@ usage()
 	warnx("    -z internal2 SPI bus");
 	warnx("    -T 6000|20608|20602 (default 6000)");
 	warnx("    -R rotation");
-	warnx("    -a accel range (in g)");
 }
 
 } // namespace
@@ -2479,7 +2471,6 @@ mpu6000_main(int argc, char *argv[])
 	enum MPU6000_BUS busid = MPU6000_BUS_ALL;
 	int device_type = MPU_DEVICE_TYPE_MPU6000;
 	enum Rotation rotation = ROTATION_NONE;
-	int accel_range = MPU6000_ACCEL_DEFAULT_RANGE_G;
 
 	while ((ch = px4_getopt(argc, argv, "T:XISsZzR:a:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
@@ -2515,10 +2506,6 @@ mpu6000_main(int argc, char *argv[])
 			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
-		case 'a':
-			accel_range = atoi(myoptarg);
-			break;
-
 		default:
 			mpu6000::usage();
 			return 0;
@@ -2536,7 +2523,7 @@ mpu6000_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(verb, "start")) {
-		mpu6000::start(busid, rotation, accel_range, device_type);
+		mpu6000::start(busid, rotation, device_type);
 	}
 
 	if (!strcmp(verb, "stop")) {

@@ -583,10 +583,6 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 			}
 		}
 
-	case ACCELIOCSRANGE:
-		/* arg needs to be in G */
-		return accel_set_range(ul_arg);
-
 	case ACCELIOCGRANGE:
 		/* convert to m/s^2 and return rounded in G */
 		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
