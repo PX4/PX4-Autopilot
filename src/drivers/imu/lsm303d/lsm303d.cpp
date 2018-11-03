@@ -822,9 +822,6 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 				_call_accel_interval = 0;
 				return OK;
 
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
@@ -949,9 +946,6 @@ LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 				stop();
 				_call_mag_interval = 0;
 				return OK;
-
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
 
 			/* zero would be bad */
 			case 0:
