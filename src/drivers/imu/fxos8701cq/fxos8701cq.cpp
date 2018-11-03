@@ -885,9 +885,6 @@ FXOS8701CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case ACCELIOCSSAMPLERATE:
 		return accel_set_samplerate(arg);
 
-	case ACCELIOCGSAMPLERATE:
-		return _accel_samplerate;
-
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
