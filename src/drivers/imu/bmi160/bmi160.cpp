@@ -700,9 +700,6 @@ BMI160::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case GYROIOCSSAMPLERATE:
-		return gyro_set_sample_rate(arg);
-
 	case GYROIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
