@@ -755,11 +755,6 @@ GYROSIM::gyro_ioctl(unsigned long cmd, unsigned long arg)
 		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
 		return OK;
 
-	case GYROIOCGSCALE:
-		/* copy scale out */
-		memcpy((struct gyro_calibration_s *) arg, &_gyro_scale, sizeof(_gyro_scale));
-		return OK;
-
 	case GYROIOCSRANGE:
 		/* XXX not implemented */
 		// XXX change these two values on set:
