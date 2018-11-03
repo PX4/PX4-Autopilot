@@ -481,9 +481,6 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 		memcpy(&_accel_scale, (struct accel_calibration_s *) arg, sizeof(_accel_scale));
 		return OK;
 
-	case ACCELIOCGRANGE:
-		return _current_range;
-
 	default:
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);
