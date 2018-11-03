@@ -373,11 +373,7 @@ private:
 	 *
 	 * @return true if the sensor is not on the main MCU board
 	 */
-	bool			is_external()
-	{
-		unsigned dummy;
-		return _interface->ioctl(ACCELIOCGEXTERNAL, dummy);
-	}
+	bool			is_external() { return _interface->external(); }
 
 	/**
 	 * Measurement self test
@@ -1263,8 +1259,6 @@ MPU6000::gyro_read(struct file *filp, char *buffer, size_t buflen)
 int
 MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-	unsigned dummy = arg;
-
 	switch (cmd) {
 
 	case SENSORIOCRESET:
@@ -1379,9 +1373,6 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 		}
-
-	case ACCELIOCGEXTERNAL:
-		return _interface->ioctl(cmd, dummy);
 
 	default:
 		/* give it to the superclass */
