@@ -552,8 +552,7 @@ MPU9250::probe()
 void
 MPU9250::_set_sample_rate(unsigned desired_sample_rate_hz)
 {
-	if (desired_sample_rate_hz == 0 ||
-	    desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT) {
+	if (desired_sample_rate_hz == 0) {
 		desired_sample_rate_hz = MPU9250_GYRO_DEFAULT_RATE;
 	}
 
