@@ -445,10 +445,6 @@ RM3100::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 	case SENSORIOCRESET:
 		return reset();
 
-	case MAGIOCGSAMPLERATE:
-		/* same as pollrate because device is in single measurement mode*/
-		return 1000000 / TICK2USEC(_measure_ticks);
-
 	case MAGIOCSRANGE:
 		/* field measurement range cannot be configured for this sensor (8 Gauss) */
 		return OK;

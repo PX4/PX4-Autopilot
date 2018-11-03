@@ -677,10 +677,6 @@ IST8310::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCRESET:
 		return reset();
 
-	case MAGIOCGSAMPLERATE:
-		/* same as pollrate because device is in single measurement mode*/
-		return 1000000 / TICK2USEC(_measure_ticks);
-
 	case MAGIOCEXSTRAP:
 		return set_selftest(arg);
 
