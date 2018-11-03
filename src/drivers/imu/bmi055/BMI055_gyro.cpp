@@ -410,11 +410,6 @@ BMI055_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
 		return OK;
 
-	case GYROIOCGSCALE:
-		/* copy scale out */
-		memcpy((struct gyro_calibration_s *) arg, &_gyro_scale, sizeof(_gyro_scale));
-		return OK;
-
 	case GYROIOCSRANGE:
 		return set_gyro_range(arg);
 
