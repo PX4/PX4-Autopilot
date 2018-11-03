@@ -344,7 +344,6 @@ BMP280::ioctl(struct file *filp, int cmd, unsigned long arg)
 				_report_ticks = 0;
 				return OK;
 
-			case SENSOR_POLLRATE_EXTERNAL:
 			case 0:
 				return -EINVAL;
 

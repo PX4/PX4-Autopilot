@@ -307,9 +307,6 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 				//stop();
 				return OK;
 
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
