@@ -874,7 +874,7 @@ FXAS21002C::set_samplerate(unsigned frequency)
 
 	unsigned last_rate = _current_rate;
 
-	if (frequency == 0 || frequency == GYRO_SAMPLERATE_DEFAULT) {
+	if (frequency == 0) {
 		frequency = FXAS21002C_DEFAULT_RATE;
 	}
 
