@@ -69,7 +69,6 @@
 #include <conversion/rotation.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_px4flow.h>
 #include <drivers/drv_range_finder.h>
 #include <drivers/device/ringbuffer.h>
 
@@ -78,6 +77,8 @@
 #include <uORB/topics/distance_sensor.h>
 
 #include <board_config.h>
+
+#define PX4FLOW0_DEVICE_PATH	"/dev/px4flow0"
 
 /* Configuration Constants */
 #define I2C_FLOW_ADDRESS_DEFAULT    0x42	///< 7-bit address. 8-bit address is 0x84, range 0x42 - 0x49
