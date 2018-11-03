@@ -580,8 +580,7 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				if (_is_l3g4200d) {
 					return ioctl(filp, SENSORIOCSPOLLRATE, L3G4200D_DEFAULT_RATE);
