@@ -139,13 +139,12 @@ void test(bool external_bus)
 	fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
-		PX4_ERR("%s open failed (try 'bmm150 start' if the driver is not running)",
-			path);
+		PX4_ERR("%s open failed (try 'bmm150 start' if the driver is not running)", path);
 		exit(1);
 	}
 
-	/* reset to Max polling rate*/
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX) < 0) {
+	/* reset to default polling rate*/
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		PX4_ERR("reset to Max polling rate");
 		exit(1);
 	}
@@ -730,8 +729,7 @@ BMM150::ioctl(struct file *filp, int cmd, unsigned long arg)
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				return ioctl(filp, SENSORIOCSPOLLRATE, BMM150_MAX_DATA_RATE);
 

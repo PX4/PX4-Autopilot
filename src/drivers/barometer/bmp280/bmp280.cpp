@@ -342,9 +342,6 @@ BMP280::ioctl(struct file *filp, int cmd, unsigned long arg)
 			case 0:
 				return -EINVAL;
 
-			case SENSOR_POLLRATE_MAX:
-
-			/* FALLTHROUGH */
 			case SENSOR_POLLRATE_DEFAULT:
 				ticks = _max_mesure_ticks;
 

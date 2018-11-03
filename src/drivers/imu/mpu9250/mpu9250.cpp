@@ -739,10 +739,7 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
-				return ioctl(filp, SENSORIOCSPOLLRATE, 1000);
-
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_ACCEL_DEFAULT_RATE);
 

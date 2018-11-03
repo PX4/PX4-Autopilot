@@ -637,10 +637,7 @@ GYROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
-				return devIOCTL(SENSORIOCSPOLLRATE, 1000);
-
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				return devIOCTL(SENSORIOCSPOLLRATE, GYROSIM_ACCEL_DEFAULT_RATE);
 
