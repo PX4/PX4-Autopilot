@@ -667,19 +667,6 @@ GYROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			if (!_accel_reports->resize(arg)) {
-				return -ENOMEM;
-			}
-
-			return OK;
-		}
-
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
@@ -709,19 +696,6 @@ GYROSIM::gyro_ioctl(unsigned long cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE:
 	case SENSORIOCRESET:
 		return devIOCTL(cmd, arg);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			if (!_gyro_reports->resize(arg)) {
-				return -ENOMEM;
-			}
-
-			return OK;
-		}
 
 	case GYROIOCSSCALE:
 		/* copy scale in */

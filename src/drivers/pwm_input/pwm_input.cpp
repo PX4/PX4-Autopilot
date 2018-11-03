@@ -437,24 +437,6 @@ int
 PWMIN::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 500)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
 	case SENSORIOCRESET:
 		/* user has asked for the timer to be reset. This may
 		 * be needed if the pin was used for a different

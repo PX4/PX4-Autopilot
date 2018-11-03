@@ -129,14 +129,6 @@
 #define SENSOR_POLLRATE_DEFAULT		1000003	/**< poll at driver normal rate */
 
 /**
- * Set the internal queue depth to (arg) entries, must be at least 1
- *
- * This sets the upper bound on the number of readings that can be
- * read from the driver.
- */
-#define SENSORIOCSQUEUEDEPTH	_SENSORIOC(2)
-
-/**
  * Reset the sensor to its default configuration
  */
 #define SENSORIOCRESET		_SENSORIOC(4)

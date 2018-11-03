@@ -642,24 +642,6 @@ IST8310::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
 	case SENSORIOCRESET:
 		return reset();
 
@@ -1327,16 +1309,6 @@ test(enum IST8310_BUS busid)
 	/* check if mag is onboard or external */
 	if ((ret = ioctl(fd, MAGIOCGEXTERNAL, 0)) < 0) {
 		errx(1, "failed to get if mag is onboard or external");
-	}
-
-	/* set the queue depth to 5 */
-	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
-		errx(1, "failed to set queue depth");
-	}
-
-	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
 	}
 
 	/* read the sensor 5x and report each value */
