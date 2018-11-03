@@ -82,9 +82,6 @@ struct accel_calibration_s {
 /** set the accel scaling constants to the structure pointed to by (arg) */
 #define ACCELIOCSSCALE		_ACCELIOC(5)
 
-/** get the current accel measurement range in g */
-#define ACCELIOCGRANGE		_ACCELIOC(8)
-
 /** determine if hardware is external or onboard */
 #define ACCELIOCGEXTERNAL	_ACCELIOC(12)
 

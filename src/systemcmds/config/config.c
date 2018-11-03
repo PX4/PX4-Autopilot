@@ -338,14 +338,13 @@ do_accel(int argc, char *argv[])
 		}
 
 		int prate = ioctl(fd, SENSORIOCGPOLLRATE, 0);
-		int range = ioctl(fd, ACCELIOCGRANGE, 0);
 		int id = ioctl(fd, DEVIOCGDEVICEID, 0);
 		int32_t calibration_id = 0;
 
 		param_get(param_find("CAL_ACC0_ID"), &(calibration_id));
 
-		PX4_INFO("accel: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tread rate:\t%d Hz\n\trange:\t%d G",
-			 id, calibration_id, prate, range);
+		PX4_INFO("accel: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tread rate:\t%d Hz",
+			 id, calibration_id, prate);
 
 		close(fd);
 	}
