@@ -102,10 +102,6 @@ MPU6000_I2C::ioctl(unsigned operation, unsigned &arg)
 	int ret;
 
 	switch (operation) {
-
-	case ACCELIOCGEXTERNAL:
-		return external();
-
 	case DEVIOCGDEVICEID:
 		return CDev::ioctl(nullptr, operation, arg);
 
