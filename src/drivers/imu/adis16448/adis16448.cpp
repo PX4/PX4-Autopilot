@@ -1068,10 +1068,6 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case ACCELIOCSSAMPLERATE:
-		_set_sample_rate(arg);
-		return OK;
-
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
