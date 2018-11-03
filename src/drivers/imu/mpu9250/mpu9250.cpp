@@ -875,9 +875,6 @@ MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case GYROIOCGSAMPLERATE:
-		return _sample_rate;
-
 	case GYROIOCSSAMPLERATE:
 		_set_sample_rate(arg);
 		return OK;

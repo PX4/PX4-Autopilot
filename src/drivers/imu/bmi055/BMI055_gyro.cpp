@@ -399,9 +399,6 @@ BMI055_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case GYROIOCGSAMPLERATE:
-		return _gyro_sample_rate;
-
 	case GYROIOCSSAMPLERATE:
 		return gyro_set_sample_rate(arg);
 
