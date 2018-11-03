@@ -899,10 +899,6 @@ FXOS8701CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case ACCELIOCSRANGE:
-		/* arg needs to be in G */
-		return accel_set_range(arg);
-
 	case ACCELIOCGRANGE:
 		/* convert to m/s^2 and return rounded in G */
 		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
@@ -1677,7 +1673,7 @@ namespace fxos8701cq
 
 FXOS8701CQ	*g_dev;
 
-void	start(bool external_bus, enum Rotation rotation, unsigned range);
+void	start(bool external_bus, enum Rotation rotation);
 void	test();
 void	reset();
 void	info();
@@ -1693,7 +1689,7 @@ void	test_error();
  * up and running or failed to detect the sensor.
  */
 void
-start(bool external_bus, enum Rotation rotation, unsigned range)
+start(bool external_bus, enum Rotation rotation)
 {
 	int fd;
 
@@ -1732,10 +1728,6 @@ start(bool external_bus, enum Rotation rotation, unsigned range)
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		goto fail;
-	}
-
-	if (ioctl(fd, ACCELIOCSRANGE, range) < 0) {
 		goto fail;
 	}
 
@@ -1987,7 +1979,6 @@ usage()
 	PX4_INFO("options:");
 	PX4_INFO("    -X    (external bus)");
 	PX4_INFO("    -R rotation");
-	PX4_INFO("    -a range in ga 2,4,8");
 }
 
 } // namespace
@@ -1998,7 +1989,6 @@ fxos8701cq_main(int argc, char *argv[])
 	bool external_bus = false;
 	int ch;
 	enum Rotation rotation = ROTATION_NONE;
-	int accel_range = 8;
 
 	int myoptind = 1;
 	const char *myoptarg = NULL;
@@ -2011,10 +2001,6 @@ fxos8701cq_main(int argc, char *argv[])
 
 		case 'R':
 			rotation = (enum Rotation)atoi(myoptarg);
-			break;
-
-		case 'a':
-			accel_range = atoi(myoptarg);
 			break;
 
 		default:
@@ -2030,7 +2016,7 @@ fxos8701cq_main(int argc, char *argv[])
 
 	 */
 	if (!strcmp(verb, "start")) {
-		fxos8701cq::start(external_bus, rotation, accel_range);
+		fxos8701cq::start(external_bus, rotation);
 	}
 
 	/*
