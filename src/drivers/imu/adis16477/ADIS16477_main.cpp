@@ -113,7 +113,7 @@ fail:
 void
 test()
 {
-	accel_report a_report;
+	sensor_accel_s a_report{};
 	gyro_report  g_report;
 
 	ssize_t sz;

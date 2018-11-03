@@ -321,7 +321,7 @@ ACCELSIM::init()
 	int ret = -1;
 
 	struct mag_report mrp = {};
-	struct accel_report arp = {};
+	sensor_accel_s arp = {};
 
 	/* do SIM init first */
 	if (VirtDevObj::init() != 0) {
@@ -330,7 +330,7 @@ ACCELSIM::init()
 	}
 
 	/* allocate basic report buffers */
-	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
 
 	if (_accel_reports == nullptr) {
 		goto out;
@@ -410,8 +410,8 @@ ACCELSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 ssize_t
 ACCELSIM::devRead(void *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct accel_report);
-	accel_report *arb = reinterpret_cast<accel_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_accel_s);
+	sensor_accel_s *arb = reinterpret_cast<sensor_accel_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -781,7 +781,7 @@ ACCELSIM::_measure()
 	} raw_accel_report;
 #pragma pack(pop)
 
-	accel_report accel_report = {};
+	sensor_accel_s accel_report = {};
 
 	/* start the performance counter */
 	perf_begin(_accel_sample_perf);
