@@ -437,24 +437,6 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 2) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
 	case SENSORIOCRESET:
 		/* XXX implement */
 		return -EINVAL;

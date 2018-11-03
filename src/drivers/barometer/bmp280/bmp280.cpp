@@ -372,23 +372,6 @@ BMP280::ioctl(struct file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-			return OK;
-		}
-
 	case SENSORIOCRESET:
 		/*
 		 * Since we are initialized, we do not need to do anything, since the
@@ -722,18 +705,6 @@ test(enum BMP280_BUS busid)
 	}
 
 	print_message(report);
-
-	/* set the queue depth to 10 */
-	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
-		PX4_ERR("failed to set queue depth");
-		exit(1);
-	}
-
-	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		PX4_ERR("failed to set 2Hz poll rate");
-		exit(1);
-	}
 
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {
