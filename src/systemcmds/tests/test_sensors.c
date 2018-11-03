@@ -76,8 +76,8 @@ struct {
 } sensors[] = {
 	{"accel0",	"/dev/accel0",	accel},
 	{"accel1",	"/dev/accel1",	accel},
-	{"gyro0",	GYRO0_DEVICE_PATH,	gyro},
-	{"gyro1",	GYRO1_DEVICE_PATH,	gyro},
+	{"gyro0",	"/dev/gyro0",	gyro},
+	{"gyro1",	"/dev/gyro1",	gyro},
 	{"mag0",	MAG0_DEVICE_PATH,	mag},
 	{"baro0",	BARO0_DEVICE_PATH,	baro},
 	{NULL, NULL, NULL}

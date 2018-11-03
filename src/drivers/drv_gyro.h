@@ -47,9 +47,6 @@
 #include "drv_orb_dev.h"
 
 #define GYRO_BASE_DEVICE_PATH	"/dev/gyro"
-#define GYRO0_DEVICE_PATH	"/dev/gyro0"
-#define GYRO1_DEVICE_PATH	"/dev/gyro1"
-#define GYRO2_DEVICE_PATH	"/dev/gyro2"
 
 #include <uORB/topics/sensor_gyro.h>
 #define gyro_report sensor_gyro_s
