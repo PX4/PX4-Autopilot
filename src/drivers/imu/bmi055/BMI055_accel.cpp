@@ -334,10 +334,7 @@ BMI055_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
-				return ioctl(filp, SENSORIOCSPOLLRATE, BMI055_ACCEL_MAX_RATE);
-
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				// Polling at the highest frequency. We may get duplicate values on the sensors
 				return ioctl(filp, SENSORIOCSPOLLRATE, BMI055_ACCEL_DEFAULT_RATE);

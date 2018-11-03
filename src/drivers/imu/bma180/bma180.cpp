@@ -405,8 +405,7 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				/* With internal low pass filters enabled, 250 Hz is sufficient */
 				return ioctl(filp, SENSORIOCSPOLLRATE, 250);
