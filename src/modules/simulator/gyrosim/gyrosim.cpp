@@ -160,7 +160,6 @@ private:
 
 	struct gyro_calibration_s	_gyro_scale;
 	float			_gyro_range_scale;
-	float			_gyro_range_rad_s;
 
 	perf_counter_t		_accel_reads;
 	perf_counter_t		_gyro_reads;
@@ -298,7 +297,6 @@ GYROSIM::GYROSIM(const char *path_accel, const char *path_gyro, enum Rotation ro
 	_gyro_reports(nullptr),
 	_gyro_scale{},
 	_gyro_range_scale(0.0f),
-	_gyro_range_rad_s(0.0f),
 	_accel_reads(perf_alloc(PC_COUNT, "gyrosim_accel_read")),
 	_gyro_reads(perf_alloc(PC_COUNT, "gyrosim_gyro_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "gyrosim_read")),
@@ -754,9 +752,6 @@ GYROSIM::gyro_ioctl(unsigned long cmd, unsigned long arg)
 		/* copy scale in */
 		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
 		return OK;
-
-	case GYROIOCGRANGE:
-		return (unsigned long)(_gyro_range_rad_s * 180.0f / M_PI_F + 0.5f);
 
 	default:
 		/* give it to the superclass */

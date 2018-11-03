@@ -82,9 +82,6 @@ struct gyro_calibration_s {
 /** set the gyro scaling constants to (arg) */
 #define GYROIOCSSCALE		_GYROIOC(4)
 
-/** get the current gyro measurement range in degrees per second */
-#define GYROIOCGRANGE		_GYROIOC(7)
-
 /** get the current gyro type */
 #define GYROIOCTYPE			_GYROIOC(13)
 

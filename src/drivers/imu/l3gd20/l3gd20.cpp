@@ -669,10 +669,6 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
 		return OK;
 
-	case GYROIOCGRANGE:
-		/* convert to dps and round */
-		return (unsigned long)(_gyro_range_rad_s * 180.0f / M_PI_F + 0.5f);
-
 	default:
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);
