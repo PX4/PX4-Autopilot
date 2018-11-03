@@ -263,7 +263,7 @@ MPL3115A2::init()
 	/* register alternate interfaces if we have to */
 	_class_instance = register_class_devname(BARO_BASE_DEVICE_PATH);
 
-	struct baro_report brp;
+	sensor_baro_s brp;
 	_reports->flush();
 
 	while (true) {
@@ -323,8 +323,8 @@ out:
 ssize_t
 MPL3115A2::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct baro_report);
-	struct baro_report *brp = reinterpret_cast<struct baro_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_baro_s);
+	sensor_baro_s *brp = reinterpret_cast<sensor_baro_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -619,7 +619,7 @@ MPL3115A2::collect()
 		return -EAGAIN;
 	}
 
-	struct baro_report report;
+	sensor_baro_s report;
 
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
@@ -820,7 +820,7 @@ void
 test(enum MPL3115A2_BUS busid)
 {
 	struct mpl3115a2_bus_option &bus = find_bus(busid);
-	struct baro_report report;
+	sensor_baro_s report;
 	ssize_t sz;
 	int ret;
 
