@@ -342,11 +342,6 @@ test(enum MPU9250_BUS busid)
 		err(1, "%s open failed", bus.magpath);
 	}
 
-	/* reset to manual polling */
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
-		err(1, "reset to manual polling");
-	}
-
 	/* do a simple demand read */
 	sz = read(fd, &a_report, sizeof(a_report));
 

@@ -633,12 +633,6 @@ GYROSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_call_interval = 0;
-				return OK;
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
@@ -1161,12 +1155,6 @@ test()
 
 	if (!h_gyro.isValid()) {
 		PX4_ERR("%s open failed", path_gyro);
-		return 1;
-	}
-
-	/* reset to manual polling */
-	if (h_accel.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
-		PX4_ERR("reset to manual polling");
 		return 1;
 	}
 

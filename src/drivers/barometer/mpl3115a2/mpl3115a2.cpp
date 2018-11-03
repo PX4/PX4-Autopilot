@@ -392,12 +392,6 @@ MPL3115A2::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop_cycle();
-				_measure_ticks = 0;
-				return OK;
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
