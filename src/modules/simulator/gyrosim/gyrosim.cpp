@@ -741,9 +741,6 @@ GYROSIM::gyro_ioctl(unsigned long cmd, unsigned long arg)
 			return OK;
 		}
 
-	case GYROIOCGSAMPLERATE:
-		return 1e6 / m_sample_interval_usecs;
-
 	case GYROIOCSSAMPLERATE:
 		_set_sample_rate(arg);
 		return OK;
