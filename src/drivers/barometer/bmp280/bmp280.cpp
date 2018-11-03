@@ -339,11 +339,6 @@ BMP280::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			switch (arg) {
 
-			case SENSOR_POLLRATE_MANUAL:
-				stop_cycle();
-				_report_ticks = 0;
-				return OK;
-
 			case 0:
 				return -EINVAL;
 
