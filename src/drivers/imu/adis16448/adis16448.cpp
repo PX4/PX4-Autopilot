@@ -1086,11 +1086,6 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case ACCELIOCGSCALE:
-		/* copy scale out */
-		memcpy((struct accel_calibration_s *) arg, &_accel_scale, sizeof(_accel_scale));
-		return OK;
-
 	case ACCELIOCSRANGE:
 		return -EINVAL;
 

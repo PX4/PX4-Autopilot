@@ -907,11 +907,6 @@ FXOS8701CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 		/* convert to m/s^2 and return rounded in G */
 		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
 
-	case ACCELIOCGSCALE:
-		/* copy scale out */
-		memcpy((struct accel_calibration_s *) arg, &_accel_scale, sizeof(_accel_scale));
-		return OK;
-
 	default:
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);
