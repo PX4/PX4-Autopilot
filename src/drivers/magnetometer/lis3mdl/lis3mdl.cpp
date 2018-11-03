@@ -584,10 +584,6 @@ LIS3MDL::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 	case SENSORIOCRESET:
 		return reset();
 
-	case MAGIOCSSAMPLERATE:
-		/* same as pollrate because device is in single measurement mode*/
-		return ioctl(file_pointer, SENSORIOCSPOLLRATE, arg);
-
 	case MAGIOCGSAMPLERATE:
 		/* same as pollrate because device is in single measurement mode*/
 		return 1000000 / TICK2USEC(_measure_ticks);

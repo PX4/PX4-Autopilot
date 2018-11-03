@@ -659,10 +659,6 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 		// Nothing to do for simulator
 		return OK;
 
-	case MAGIOCSSAMPLERATE:
-		// No need to set internal sampling rate for simulator
-		return OK;
-
 	case MAGIOCGSAMPLERATE:
 		return _mag_samplerate;
 
