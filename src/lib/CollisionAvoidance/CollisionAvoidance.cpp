@@ -88,6 +88,18 @@ void CollisionAvoidance::publish_constraints(const Vector2f &original_setpoint, 
 
 }
 
+void CollisionAvoidance::update(const obstacle_distance_s &distance_measurements) {
+	// activate/deactivate the collision avoidance based on MPC_COL_AVOID parameter
+	if (collision_avoidance_enabled()) {
+		activate();
+
+	} else {
+		deactivate();
+	}
+
+	_obstacle_distance = distance_measurements;
+}
+
 void CollisionAvoidance::update_range_constraints()
 {
 	if (hrt_elapsed_time((hrt_abstime *)&_obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US) {
