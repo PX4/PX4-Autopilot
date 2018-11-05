@@ -150,7 +150,7 @@ public:
 	 * Sets an external yaw handler which can be used by any flight task to implement a different yaw control strategy.
 	 * This method does nothing, each flighttask which wants to use the yaw handler needs to override this method.
 	 */
-	virtual void setYawHandler(WeatherVane *ext_yaw_handler) {};
+	virtual void setYawHandler(WeatherVane *ext_yaw_handler) {}
 
 	void updateVelocityControllerIO(const matrix::Vector3f &vel_sp,
 					const matrix::Vector3f &thrust_sp) {_velocity_setpoint_feedback = vel_sp; _thrust_setpoint_feedback = thrust_sp; }
@@ -166,7 +166,7 @@ protected:
 	 */
 	void _resetSetpoints();
 
-	/*
+	/**
 	 * Check and update local position
 	 */
 	void _evaluateVehicleLocalPosition();
