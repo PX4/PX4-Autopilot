@@ -41,6 +41,7 @@
 #pragma once
 
 #include "FlightTaskManualAltitude.hpp"
+#include <lib/CollisionAvoidance/CollisionAvoidance.hpp>
 
 class FlightTaskManualPosition : public FlightTaskManualAltitude
 {
@@ -48,13 +49,9 @@ public:
 	FlightTaskManualPosition() = default;
 
 	virtual ~FlightTaskManualPosition() = default;
+	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 	bool activate() override;
 	bool updateInitialize() override;
-
-	/**
-	 * Sets an external collision avoidance which can be used to modify setpoints
-	 */
-	void setCollisionAvoidance(CollisionAvoidance *ext_collision_avoidance) override {_ext_collision_avoidance = ext_collision_avoidance;}
 
 protected:
 	void _updateXYlock(); /**< applies position lock based on stick and velocity */
@@ -70,5 +67,5 @@ protected:
 private:
 	float _velocity_scale{0.0f}; //scales the stick input to velocity
 	uint8_t _reset_counter{0}; /**< counter for estimator resets in xy-direction */
-	CollisionAvoidance *_ext_collision_avoidance = nullptr;	/**< external collision avoidance library*/
+	CollisionAvoidance _collision_avoidance;	/**< collision avoidance setpoint amendment */
 };

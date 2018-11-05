@@ -53,6 +53,7 @@
 using uORB::Publication;
 #include <uORB/uORB.h>
 #include <systemlib/mavlink_log.h>
+#include <lib/FlightTasks/tasks/FlightTask/SubscriptionArray.hpp>
 
 using namespace matrix;
 using namespace time_literals;
@@ -64,6 +65,12 @@ public:
 
 	~CollisionAvoidance() = default;
 
+	/**
+	 * Initialize the uORB subscriptions using an array
+	 * @return true on success, false on error
+	 */
+	bool initializeSubscriptions(SubscriptionArray &subscription_array);
+
 	void activate() {_is_active = true;}
 
 	void deactivate() {_is_active = false;}
@@ -72,7 +79,7 @@ public:
 
 	bool collision_avoidance_enabled() { return MPC_COL_AVOID.get(); }
 
-	void update(const obstacle_distance_s &distance_measurements);
+	void update();
 
 	void update_range_constraints();
 
@@ -84,13 +91,13 @@ public:
 
 private:
 
-	obstacle_distance_s			_obstacle_distance{};	/**< obstacle distances received form a range sensor */
-
 	bool _is_active = true;
 	bool _interfering = false;		/**< states if the collision avoidance interferes with the user input */
 
 	orb_advert_t _constraints_pub{nullptr};		/**< constraints publication */
 	orb_advert_t _mavlink_log_pub = nullptr;	 	/**< Mavlink log uORB handle */
+
+	uORB::Subscription<obstacle_distance_s> *_sub_obstacle_distance{nullptr}; /**< obstacle distances received form a range sensor */
 
 	static constexpr uint64_t RANGE_STREAM_TIMEOUT_US = 500000;
 	static constexpr uint64_t MESSAGE_THROTTLE_US = 5_s;
