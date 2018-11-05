@@ -103,6 +103,7 @@ protected:
 
 	State _current_state{State::none};
 	float _target_acceptance_radius = 0.0f; /**< Acceptances radius of the target */
+	bool _deploy_gear = false;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) MPC_XY_CRUISE,
