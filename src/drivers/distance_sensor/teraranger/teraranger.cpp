@@ -469,10 +469,6 @@ TERARANGER::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
-
 	default:
 		/* give it to the superclass */
 		return I2C::ioctl(filp, cmd, arg);

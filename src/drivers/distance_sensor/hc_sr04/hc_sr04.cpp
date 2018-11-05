@@ -395,10 +395,6 @@ HC_SR04::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
-
 	default:
 		/* give it to the superclass */
 		return CDev::ioctl(filp, cmd, arg);
