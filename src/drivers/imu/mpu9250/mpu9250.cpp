@@ -255,8 +255,7 @@ MPU9250::init()
 {
 
 #if defined(USE_I2C)
-	unsigned dummy;
-	use_i2c(_interface->ioctl(MPUIOCGIS_I2C, dummy));
+	use_i2c(_interface->get_device_bus_type() == Device::DeviceBusType_I2C);
 #endif
 
 	/*
