@@ -21,7 +21,7 @@ FlightTestInput::update()
 	float dt = 0.0f;
 
 	if (_last_update > 0) {
-		dt = hrt_elapsed_time(&_last_update) / 1e-6;
+		dt = hrt_elapsed_time(&_last_update) / 1e6f;
 	}
 
 	_last_update = hrt_absolute_time();
@@ -83,8 +83,9 @@ FlightTestInput::update()
 			// increment time
 			_time_running += dt;
 
-		} else if (_time_running >= _dwell_time.get()) {
-			_state = TEST_INPUT_COMPLETE;
+			if (_time_running >= _dwell_time.get()) {
+				_state = TEST_INPUT_COMPLETE;
+			}
 
 		} else {
 			mavlink_log_critical(&_mavlink_log_pub, "Flight test input %s aborted", _name);
