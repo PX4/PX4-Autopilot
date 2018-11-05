@@ -1003,25 +1003,6 @@ MulticopterPositionControl::start_flight_task()
 		}
 	}
 
-	// manual stabilized control
-	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL
-	    ||  _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_STAB || task_failure) {
-		should_disable_task = false;
-		int error = _flight_tasks.switchTask(FlightTaskIndex::ManualStabilized);
-
-		if (error != 0) {
-			if (prev_failure_count == 0) {
-				PX4_WARN("Stabilized-Ctrl failed with error: %s", _flight_tasks.errorToString(error));
-			}
-			task_failure = true;
-			_task_failure_count++;
-
-		} else {
-			check_failure(task_failure, vehicle_status_s::NAVIGATION_STATE_STAB);
-			task_failure = false;
-		}
-	}
-
 	// check task failure
 	if (task_failure) {
 
