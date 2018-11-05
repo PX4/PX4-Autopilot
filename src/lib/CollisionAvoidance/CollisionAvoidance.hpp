@@ -72,7 +72,7 @@ public:
 
 	bool collision_avoidance_enabled() { return MPC_COL_AVOID.get(); }
 
-	void update(const obstacle_distance_s &distance_measurements) {_obstacle_distance = distance_measurements;}
+	void update(const obstacle_distance_s &distance_measurements);
 
 	void update_range_constraints();
 
