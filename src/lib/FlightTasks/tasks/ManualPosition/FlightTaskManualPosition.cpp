@@ -53,9 +53,10 @@ bool FlightTaskManualPosition::updateInitialize()
 
 bool FlightTaskManualPosition::activate()
 {
-
 	// all requirements from altitude-mode still have to hold
 	bool ret = FlightTaskManualAltitude::activate();
+
+	_constraints.tilt = math::radians(MPC_TILTMAX_AIR.get());
 
 	// set task specific constraint
 	if (_constraints.speed_xy >= MPC_VEL_MANUAL.get()) {
