@@ -224,6 +224,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 	if (triplet_update || (_current_state != previous_state)) {
 		_updateInternalWaypoints();
 		_updateAvoidanceWaypoints();
+		_deploy_gear = _sub_triplet_setpoint->get().current.deploy_gear;
 	}
 
 	if (MPC_OBS_AVOID.get() && _sub_vehicle_status->get().is_rotary_wing) {
