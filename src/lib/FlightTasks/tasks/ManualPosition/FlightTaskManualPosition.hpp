@@ -41,6 +41,7 @@
 #pragma once
 
 #include "FlightTaskManualAltitude.hpp"
+#include <lib/CollisionAvoidance/CollisionAvoidance.hpp>
 
 class FlightTaskManualPosition : public FlightTaskManualAltitude
 {
@@ -48,6 +49,7 @@ public:
 	FlightTaskManualPosition() = default;
 
 	virtual ~FlightTaskManualPosition() = default;
+	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 	bool activate() override;
 	bool updateInitialize() override;
 
@@ -55,11 +57,6 @@ public:
 	 * Sets an external yaw handler which can be used to implement a different yaw control strategy.
 	 */
 	void setYawHandler(WeatherVane *yaw_handler) override { _weathervane_yaw_handler = yaw_handler; }
-
-	/**
-	 * Sets an external collision avoidance which can be used to modify setpoints
-	 */
-	void setCollisionAvoidance(CollisionAvoidance *ext_collision_avoidance) override {_ext_collision_avoidance = ext_collision_avoidance;}
 
 
 protected:
@@ -80,5 +77,5 @@ private:
 	WeatherVane *_weathervane_yaw_handler =
 		nullptr;	/**< external weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
 
-	CollisionAvoidance *_ext_collision_avoidance = nullptr;	/**< external collision avoidance library*/
+	CollisionAvoidance _collision_avoidance;	/**< collision avoidance setpoint amendment */
 };
