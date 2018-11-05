@@ -150,7 +150,7 @@ private:
 
 	FlightTasks _flight_tasks; /**< class that generates position controller tracking setpoints*/
 	PositionControl _control; /**< class that handles the core PID position controller */
-	PositionControlStates _states; /**< structure that contains required state information for position control */
+	PositionControlStates _states{}; /**< structure that contains required state information for position control */
 
 	hrt_abstime _last_warn = 0; /**< timer when the last warn message was sent out */
 
