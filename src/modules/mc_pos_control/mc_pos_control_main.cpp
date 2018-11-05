@@ -437,7 +437,7 @@ MulticopterPositionControl::poll_subscriptions()
 	orb_check(_att_sub, &updated);
 
 	if (updated) {
-		vehicle_attitude_s att{};
+		vehicle_attitude_s att;
 		if (orb_copy(ORB_ID(vehicle_attitude), _att_sub, &att) == PX4_OK && PX4_ISFINITE(att.q[0])) {
 			_states.yaw = Eulerf(Quatf(att.q)).psi();
 		}
