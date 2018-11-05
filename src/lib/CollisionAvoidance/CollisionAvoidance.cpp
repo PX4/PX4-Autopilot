@@ -165,7 +165,7 @@ void CollisionAvoidance::modifySetpoint(Vector2f &original_setpoint, const float
 				      || new_setpoint(1) > 1.05f * original_setpoint(1));
 
 	if (currently_interfering && (currently_interfering != _interfering)) {
-		mavlink_log_critical(&_mavlink_log_pub, "Collision Avoidance starts interfering");
+		mavlink_log_critical(&_mavlink_log_pub, "Collision Warning");
 	}
 
 	_interfering = currently_interfering;
