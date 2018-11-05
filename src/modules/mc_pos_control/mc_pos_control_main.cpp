@@ -633,8 +633,8 @@ MulticopterPositionControl::run()
 		if (_wv_controller != nullptr) {
 
 			// in manual mode we just want to use weathervane if position is controlled as well
-			if (_wv_controller->weathervane_enabled() && !(_control_mode.flag_control_manual_enabled
-					&& !_control_mode.flag_control_position_enabled)) {
+			if (_wv_controller->weathervane_enabled() && (!_control_mode.flag_control_manual_enabled
+					|| _control_mode.flag_control_position_enabled)) {
 				_wv_controller->activate();
 
 			} else {
