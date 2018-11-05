@@ -381,10 +381,6 @@ PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
-
 	default:
 		/* give it to the superclass */
 		return I2C::ioctl(filp, cmd, arg);
