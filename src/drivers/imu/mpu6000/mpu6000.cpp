@@ -133,6 +133,7 @@ class MPU6000 : public device::CDev
 public:
 	MPU6000(device::Device *interface, const char *path_accel, const char *path_gyro, enum Rotation rotation,
 		int device_type);
+
 	virtual ~MPU6000();
 
 	virtual int		init();
@@ -605,17 +606,13 @@ MPU6000::init()
 {
 
 #if defined(USE_I2C)
-	unsigned dummy;
-	use_i2c(_interface->ioctl(MPUIOCGIS_I2C, dummy));
+	use_i2c(_interface->get_device_bus_type() == Device::DeviceBusType_I2C);
 #endif
 
-
 	/* probe again to get our settings that are based on the device type */
-
 	int ret = probe();
 
 	/* if probe failed, bail now */
-
 	if (ret != OK) {
 
 		DEVICE_DEBUG("CDev init failed");
@@ -1380,7 +1377,6 @@ MPU6000::read_reg16(unsigned reg)
 	uint8_t buf[2];
 
 	// general register transfer at low clock speed
-
 	_interface->read(MPU6000_LOW_SPEED_OP(reg), &buf, arraySize(buf));
 	return (uint16_t)(buf[0] << 8) | buf[1];
 }
@@ -1389,7 +1385,6 @@ int
 MPU6000::write_reg(unsigned reg, uint8_t value)
 {
 	// general register transfer at low clock speed
-
 	return _interface->write(MPU6000_LOW_SPEED_OP(reg), &value, 1);
 }
 
@@ -1495,7 +1490,6 @@ MPU6000::start()
 void
 MPU6000::stop()
 {
-
 	if (!is_i2c()) {
 		hrt_cancel(&_call);
 
