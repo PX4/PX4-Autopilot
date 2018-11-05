@@ -46,6 +46,15 @@ CollisionAvoidance::CollisionAvoidance() :
 
 }
 
+bool CollisionAvoidance::initializeSubscriptions(SubscriptionArray &subscription_array)
+{
+	if (!subscription_array.get(ORB_ID(obstacle_distance), _sub_obstacle_distance)) {
+		return false;
+	}
+
+	return true;
+}
+
 void CollisionAvoidance::reset_constraints()
 {
 
@@ -88,7 +97,8 @@ void CollisionAvoidance::publish_constraints(const Vector2f &original_setpoint, 
 
 }
 
-void CollisionAvoidance::update(const obstacle_distance_s &distance_measurements) {
+void CollisionAvoidance::update()
+{
 	// activate/deactivate the collision avoidance based on MPC_COL_AVOID parameter
 	if (collision_avoidance_enabled()) {
 		activate();
@@ -96,21 +106,21 @@ void CollisionAvoidance::update(const obstacle_distance_s &distance_measurements
 	} else {
 		deactivate();
 	}
-
-	_obstacle_distance = distance_measurements;
 }
 
 void CollisionAvoidance::update_range_constraints()
 {
-	if (hrt_elapsed_time((hrt_abstime *)&_obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US) {
-		float max_detection_distance = _obstacle_distance.max_distance / 100.0f; //convert to meters
+	obstacle_distance_s obstacle_distance = _sub_obstacle_distance->get();
+
+	if (hrt_elapsed_time(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US) {
+		float max_detection_distance = obstacle_distance.max_distance / 100.0f; //convert to meters
 
 		for (int i = 0; i < 72; i++) {
 			//determine if distance bin is valid and contains a valid distance measurement
-			if (_obstacle_distance.distances[i] < _obstacle_distance.max_distance &&
-			    _obstacle_distance.distances[i] > _obstacle_distance.min_distance && i * _obstacle_distance.increment < 360) {
-				float distance = _obstacle_distance.distances[i] / 100.0f; //convert to meters
-				float angle = i * _obstacle_distance.increment * (M_PI / 180.0);
+			if (obstacle_distance.distances[i] < obstacle_distance.max_distance &&
+			    obstacle_distance.distances[i] > obstacle_distance.min_distance && i * obstacle_distance.increment < 360) {
+				float distance = obstacle_distance.distances[i] / 100.0f; //convert to meters
+				float angle = i * obstacle_distance.increment * (M_PI / 180.0);
 				//calculate normalized velocity reductions
 				float vel_lim_x = (max_detection_distance - distance) / (max_detection_distance - MPC_COL_AVOID_D.get()) * cos(angle);
 				float vel_lim_y = (max_detection_distance - distance) / (max_detection_distance - MPC_COL_AVOID_D.get()) * sin(angle);
@@ -133,7 +143,7 @@ void CollisionAvoidance::update_range_constraints()
 
 void CollisionAvoidance::modifySetpoint(Vector2f &original_setpoint, const float max_speed)
 {
-
+	update();
 	reset_constraints();
 
 	//calculate movement constraints based on range data
