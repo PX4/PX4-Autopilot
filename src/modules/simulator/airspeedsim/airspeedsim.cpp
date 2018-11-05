@@ -216,10 +216,6 @@ AirspeedSim::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
-
 	case AIRSPEEDIOCSSCALE: {
 			struct airspeed_scale *s = (struct airspeed_scale *)arg;
 			_diff_pres_offset = s->offset_pa;
