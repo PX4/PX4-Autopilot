@@ -386,6 +386,12 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			manual.r = math::constrain(_filter_yaw.apply(manual.r), -1.f, 1.f);
 			manual.z = math::constrain(_filter_throttle.apply(manual.z), 0.f, 1.f);
 
+
+			_fti_roll.inject(manual.y);
+			_fti_pitch.inject(manual.x);
+			_fti_yaw.inject(manual.r);
+			_fti_throttle.inject(manual.z);
+
 			if (_parameters.rc_map_flightmode > 0) {
 
 				/* the number of valid slots equals the index of the max marker minus one */
