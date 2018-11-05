@@ -36,6 +36,7 @@ bool FlightTask::activate()
 	_setDefaultConstraints();
 	_time_stamp_activate = hrt_absolute_time();
 	_heading_reset_counter = _sub_attitude->get().quat_reset_counter;
+	_gear = landing_gear_default_keep;
 	return true;
 }
 
