@@ -586,14 +586,7 @@ MulticopterAttitudeControl::publish_rates_setpoint()
 	_v_rates_sp.yaw = _rates_sp(2);
 	_v_rates_sp.thrust = _thrust_sp;
 	_v_rates_sp.timestamp = hrt_absolute_time();
-
-	if (_v_rates_sp_pub != nullptr) {
-		orb_publish(_rates_sp_id, _v_rates_sp_pub, &_v_rates_sp);
-
-	} else if (_rates_sp_id) {
-		_v_rates_sp_pub = orb_advertise(_rates_sp_id, &_v_rates_sp);
-	}
-
+	orb_publish_auto(_rates_sp_id, &_v_rates_sp_pub, &_v_rates_sp, nullptr, ORB_PRIO_DEFAULT);
 }
 
 void
@@ -607,9 +600,7 @@ MulticopterAttitudeControl::publish_rate_controller_status()
 	rate_ctrl_status.rollspeed_integ = _rates_int(0);
 	rate_ctrl_status.pitchspeed_integ = _rates_int(1);
 	rate_ctrl_status.yawspeed_integ = _rates_int(2);
-
-	int instance;
-	orb_publish_auto(ORB_ID(rate_ctrl_status), &_controller_status_pub, &rate_ctrl_status, &instance, ORB_PRIO_DEFAULT);
+	orb_publish_auto(ORB_ID(rate_ctrl_status), &_controller_status_pub, &rate_ctrl_status, nullptr, ORB_PRIO_DEFAULT);
 }
 
 void
@@ -631,13 +622,7 @@ MulticopterAttitudeControl::publish_actuator_controls()
 	}
 
 	if (!_actuators_0_circuit_breaker_enabled) {
-		if (_actuators_0_pub != nullptr) {
-
-			orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
-
-		} else if (_actuators_id) {
-			_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
-		}
+		orb_publish_auto(_actuators_id, &_actuators_0_pub, &_actuators, nullptr, ORB_PRIO_DEFAULT);
 	}
 }
 
