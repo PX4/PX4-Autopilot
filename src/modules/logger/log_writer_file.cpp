@@ -257,8 +257,10 @@ void LogWriterFile::run()
 						buffer.close_file();
 					}
 
-				} else if (call_fsync) {
+				} else if (call_fsync && buffer._should_run) {
+					pthread_mutex_unlock(&_mtx);
 					buffer.fsync();
+					pthread_mutex_lock(&_mtx);
 
 				} else if (available == 0 && !buffer._should_run) {
 					buffer.close_file();
