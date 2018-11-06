@@ -65,6 +65,8 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
+#define GPIO_TRIG_AVX /* PD14 */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTD|GPIO_PIN14)
+
 class CameraCapture
 {
 public:
@@ -149,6 +151,8 @@ private:
 
 	// Low-rate command handling loop
 	static void		cycle_trampoline(void *arg);
+
+	static int		gpio_interrupt_routine(int irq, void *context, void *arg);
 
 };
 struct work_s CameraCapture::_work;

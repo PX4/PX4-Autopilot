@@ -101,7 +101,29 @@ CameraCapture::capture_callback(uint32_t chan_index,
 	/* post message to the ring */
 	_trig_buffer->put(&trigger);
 
-	work_queue(LPWORK, &_work, (worker_t)&CameraCapture::publish_trigger_trampoline, this, 0);
+	work_queue(HPWORK, &_work, (worker_t)&CameraCapture::publish_trigger_trampoline, this, 0);
+}
+
+int
+CameraCapture::gpio_interrupt_routine(int irq, void *context, void *arg)
+{
+	CameraCapture *dev = reinterpret_cast<CameraCapture *>(arg);
+
+	struct _trig_s trigger;
+
+	trigger.chan_index = 0;
+	trigger.edge_time = hrt_absolute_time();
+	trigger.edge_state = 0;
+	trigger.overflow = 0;
+
+	/* post message to the ring */
+	dev->_trig_buffer->put(&trigger);
+
+	// work_queue(HPWORK, &_work, (worker_t)&CameraCapture::publish_trigger_trampoline, this, 0);
+	dev->publish_trigger();
+
+	return PX4_OK;
+
 }
 
 void
@@ -225,61 +247,63 @@ CameraCapture::cycle()
 
 	}
 
-	work_queue(LPWORK, &_work, (worker_t)&CameraCapture::cycle_trampoline, camera_capture::g_camera_capture,
+	work_queue(HPWORK, &_work, (worker_t)&CameraCapture::cycle_trampoline, camera_capture::g_camera_capture,
 		   USEC2TICK(100000)); // 100ms
 }
 
 void
 CameraCapture::set_capture_control(bool enabled)
 {
-	int fd = -1;
-	fd = ::open(PX4FMU_DEVICE_PATH, O_RDWR);
+	// int fd = -1;
+	// fd = ::open(PX4FMU_DEVICE_PATH, O_RDWR);
 
-	if (fd < 0) {
-		PX4_ERR("open fail");
-		return;
-	}
+	// if (fd < 0) {
+	// 	PX4_ERR("open fail");
+	// 	return;
+	// }
 
-	input_capture_config_t conf;
-	conf.channel = 5; // FMU chan 6
-	conf.filter = 0;
-	conf.edge = _camera_capture_edge ? Rising : Falling;
-	conf.callback = NULL;
-	conf.context = NULL;
+	// input_capture_config_t conf;
+	// conf.channel = 5; // FMU chan 6
+	// conf.filter = 0;
+	// conf.edge = _camera_capture_edge ? Rising : Falling;
+	// conf.callback = NULL;
+	// conf.context = NULL;
 
-	if (enabled) {
+	// if (enabled) {
 
-		conf.callback = &CameraCapture::capture_trampoline;
-		conf.context = this;
+	// conf.callback = &CameraCapture::capture_trampoline;
+	// conf.context = this;
 
-		unsigned int capture_count = 0;
+	// unsigned int capture_count = 0;
 
-		if (::ioctl(fd, INPUT_CAP_GET_COUNT, (unsigned long)&capture_count) != 0) {
-			PX4_INFO("Not in a capture mode");
-			unsigned long mode = PWM_SERVO_MODE_5PWM1CAP;
+	// if (::ioctl(fd, INPUT_CAP_GET_COUNT, (unsigned long)&capture_count) != 0) {
+	// 	PX4_INFO("Not in a capture mode");
+	// 	unsigned long mode = PWM_SERVO_MODE_4PWM;
 
-			if (::ioctl(fd, PWM_SERVO_SET_MODE, mode) == 0) {
-				PX4_INFO("Mode changed to 5PWM1CAP");
+	// if (::ioctl(fd, PWM_SERVO_SET_MODE, mode) == 0) {
+	// 	PX4_INFO("Mode changed to 4PWM");
 
-			} else {
-				PX4_ERR("Mode NOT changed to 4PWM2CAP");
-				goto err_out;
-			}
-		}
-	}
+	// } else {
+	// 	PX4_ERR("Mode NOT changed to 4PWM2CAP");
+	// 	goto err_out;
+	// }
+	// }
+	// }
 
-	if (::ioctl(fd, INPUT_CAP_SET_CALLBACK, (unsigned long)&conf) == 0) {
-		_capture_enabled = enabled;
+	px4_arch_gpiosetevent(GPIO_TRIG_AVX, true, false, true, &CameraCapture::gpio_interrupt_routine);
 
-	} else {
-		PX4_ERR("Unable to set capture callback for chan %u\n", conf.channel);
-		_capture_enabled = false;
-		goto err_out;
-	}
+	// if (::ioctl(fd, INPUT_CAP_SET_CALLBACK, (unsigned long)&conf) == 0) {
+	// 	_capture_enabled = enabled;
+
+	// } else {
+	// 	PX4_ERR("Unable to set capture callback for chan %u\n", conf.channel);
+	// 	_capture_enabled = false;
+	// 	goto err_out;
+	// }
 
 	reset_statistics(false);
-err_out:
-	::close(fd);
+// err_out:
+// 	::close(fd);
 	return;
 }
 
@@ -296,6 +320,8 @@ CameraCapture::reset_statistics(bool reset_seq)
 int
 CameraCapture::start()
 {
+
+
 	/* allocate basic report buffers */
 	_trig_buffer = new ringbuffer::RingBuffer(2, sizeof(_trig_s));
 
@@ -304,7 +330,7 @@ CameraCapture::start()
 	}
 
 	// start to monitor at low rates for capture control commands
-	work_queue(LPWORK, &_work, (worker_t)&CameraCapture::cycle_trampoline, this,
+	work_queue(HPWORK, &_work, (worker_t)&CameraCapture::cycle_trampoline, this,
 		   USEC2TICK(1)); // TODO : is this low rate??!
 
 	return PX4_OK;
@@ -314,7 +340,7 @@ void
 CameraCapture::stop()
 {
 
-	work_cancel(LPWORK, &_work);
+	work_cancel(HPWORK, &_work);
 
 	if (camera_capture::g_camera_capture != nullptr) {
 		delete (camera_capture::g_camera_capture);
