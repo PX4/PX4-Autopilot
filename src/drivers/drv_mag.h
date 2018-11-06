@@ -69,12 +69,6 @@ struct mag_calibration_s {
 #define _MAGIOCBASE		(0x2400)
 #define _MAGIOC(_n)		(_PX4_IOC(_MAGIOCBASE, _n))
 
-/** set the mag internal sample rate to at least (arg) Hz */
-#define MAGIOCSSAMPLERATE	_MAGIOC(0)
-
-/** return the mag internal sample rate in Hz */
-#define MAGIOCGSAMPLERATE	_MAGIOC(1)
-
 /** set the mag scaling constants to the structure pointed to by (arg) */
 #define MAGIOCSSCALE		_MAGIOC(4)
 
@@ -83,9 +77,6 @@ struct mag_calibration_s {
 
 /** set the measurement range to handle (at least) arg Gauss */
 #define MAGIOCSRANGE		_MAGIOC(6)
-
-/** return the current mag measurement range in Gauss */
-#define MAGIOCGRANGE		_MAGIOC(7)
 
 /** perform self-calibration, update scale factors to canonical units */
 #define MAGIOCCALIBRATE		_MAGIOC(8)
@@ -98,8 +89,5 @@ struct mag_calibration_s {
 
 /** enable/disable temperature compensation */
 #define MAGIOCSTEMPCOMP		_MAGIOC(12)
-
-/** get the current mag type */
-#define MAGIOCTYPE			_MAGIOC(13)
 
 #endif /* _DRV_MAG_H */

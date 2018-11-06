@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,24 +32,26 @@
  ****************************************************************************/
 
 /**
- * @file drv_gps.h
+ * @file FlightTaskTransition.hpp
  *
- * GPS driver interface.
+ * Flight task for automatic VTOL transitions between hover and forward flight and vice versa.
  */
 
 #pragma once
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+#include "FlightTask.hpp"
 
-#include "board_config.h"
+class FlightTaskTransition : public FlightTask
+{
+public:
+	FlightTaskTransition() = default;
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
+	virtual ~FlightTaskTransition() = default;
+	bool activate() override;
+	bool updateInitialize() override;
+	bool update() override;
 
-typedef enum {
-	GPS_DRIVER_MODE_NONE = 0,
-	GPS_DRIVER_MODE_UBX,
-	GPS_DRIVER_MODE_MTK,
-	GPS_DRIVER_MODE_ASHTECH
-} gps_driver_mode_t;
+private:
+	float _transition_altitude = 0.0f;
+	float _transition_yaw = 0.0f;
+};

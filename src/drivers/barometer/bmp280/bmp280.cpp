@@ -202,7 +202,7 @@ BMP280::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(baro_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_baro_s));
 
 	if (_reports == nullptr) {
 		PX4_ERR("can't get memory for reports");
@@ -249,7 +249,7 @@ BMP280::init()
 	_fcal.p9 = _cal->p9 * powf(2, -35);
 
 	/* do a first measurement cycle to populate reports with valid data */
-	struct baro_report brp;
+	sensor_baro_s brp;
 	_reports->flush();
 
 	if (measure()) {
@@ -279,8 +279,8 @@ BMP280::init()
 ssize_t
 BMP280::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct baro_report);
-	struct baro_report *brp = reinterpret_cast<struct baro_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_baro_s);
+	sensor_baro_s *brp = reinterpret_cast<sensor_baro_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -339,18 +339,9 @@ BMP280::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			switch (arg) {
 
-			case SENSOR_POLLRATE_MANUAL:
-				stop_cycle();
-				_report_ticks = 0;
-				return OK;
-
-			case SENSOR_POLLRATE_EXTERNAL:
 			case 0:
 				return -EINVAL;
 
-			case SENSOR_POLLRATE_MAX:
-
-			/* FALLTHROUGH */
 			case SENSOR_POLLRATE_DEFAULT:
 				ticks = _max_mesure_ticks;
 
@@ -379,30 +370,6 @@ BMP280::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 
 			break;
-		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_report_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (USEC_PER_SEC / USEC_PER_TICK / _report_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-			return OK;
 		}
 
 	case SENSORIOCRESET:
@@ -498,7 +465,7 @@ BMP280::collect()
 
 	perf_begin(_sample_perf);
 
-	struct baro_report report;
+	sensor_baro_s report;
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
@@ -716,7 +683,7 @@ void
 test(enum BMP280_BUS busid)
 {
 	struct bmp280_bus_option &bus = find_bus(busid);
-	struct baro_report report;
+	sensor_baro_s report;
 	ssize_t sz;
 	int ret;
 
@@ -738,18 +705,6 @@ test(enum BMP280_BUS busid)
 	}
 
 	print_message(report);
-
-	/* set the queue depth to 10 */
-	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
-		PX4_ERR("failed to set queue depth");
-		exit(1);
-	}
-
-	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		PX4_ERR("failed to set 2Hz poll rate");
-		exit(1);
-	}
 
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {

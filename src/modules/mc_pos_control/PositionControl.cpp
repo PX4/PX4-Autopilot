@@ -99,12 +99,15 @@ void PositionControl::generateThrustYawSetpoint(const float dt)
 
 bool PositionControl::_interfaceMapping()
 {
-	// if noting is valid, then apply failsafe landing
+	// if nothing is valid, then apply failsafe landing
 	bool failsafe = false;
 
 	// Respects FlightTask interface, where NAN-set-points are of no interest
-	// and do not require control. A valide position and velocity setpoint will
+	// and do not require control. A valid position and velocity setpoint will
 	// be mapped to a desired position setpoint with a feed-forward term.
+	// States and setpoints which are integrals of the reference setpoint are set to 0.
+	// For instance: reference is velocity-setpoint -> position and position-setpoint = 0
+	//               reference is thrust-setpoint -> position, velocity, position-/velocity-setpoint = 0
 	for (int i = 0; i <= 2; i++) {
 
 		if (PX4_ISFINITE(_pos_sp(i))) {
@@ -116,7 +119,7 @@ bool PositionControl::_interfaceMapping()
 			}
 
 			// thrust setpoint is not supported in position control
-			_thr_sp(i) = 0.0f;
+			_thr_sp(i) = NAN;
 
 			// to run position control, we require valid position and velocity
 			if (!PX4_ISFINITE(_pos(i)) || !PX4_ISFINITE(_vel(i))) {
@@ -126,17 +129,11 @@ bool PositionControl::_interfaceMapping()
 		} else if (PX4_ISFINITE(_vel_sp(i))) {
 
 			// Velocity controller is active without position control.
-			// Set the desired position set-point equal to current position
-			// such that error is zero.
-			if (PX4_ISFINITE(_pos(i))) {
-				_pos_sp(i) = _pos(i);
+			// Set integral states and setpoints to 0
+			_pos_sp(i) = _pos(i) = 0.0f;
 
-			} else {
-				_pos_sp(i) = _pos(i) = 0.0f;
-			}
-
-			// thrust setpoint is not supported in position control
-			_thr_sp(i) = 0.0f;
+			// thrust setpoint is not supported in velocity control
+			_thr_sp(i) = NAN;
 
 			// to run velocity control, we require valid velocity
 			if (!PX4_ISFINITE(_vel(i))) {
@@ -146,20 +143,9 @@ bool PositionControl::_interfaceMapping()
 		} else if (PX4_ISFINITE(_thr_sp(i))) {
 
 			// Thrust setpoint was generated from sticks directly.
-			// Set all other set-points equal MC states.
-			if (PX4_ISFINITE(_pos(i))) {
-				_pos_sp(i) = _pos(i);
-
-			} else {
-				_pos_sp(i) = _pos(i) = 0.0f;
-			}
-
-			if (PX4_ISFINITE(_vel(i))) {
-				_vel_sp(i) = _vel(i);
-
-			} else {
-				_vel_sp(i) = _vel(i) = 0.0f;
-			}
+			// Set all integral states and setpoints to 0
+			_pos_sp(i) = _pos(i) = 0.0f;
+			_vel_sp(i) = _vel(i) = 0.0f;
 
 			// Reset the Integral term.
 			_thr_int(i) = 0.0f;
@@ -277,7 +263,7 @@ void PositionControl::_velocityController(const float &dt)
 	// Saturate thrust setpoint in D-direction.
 	_thr_sp(2) = math::constrain(thrust_desired_D, uMin, uMax);
 
-	if (fabsf(_thr_sp(0)) + fabsf(_thr_sp(1))  > FLT_EPSILON) {
+	if (PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1))) {
 		// Thrust set-point in NE-direction is already provided. Only
 		// scaling by the maximum tilt is required.
 		float thr_xy_max = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);

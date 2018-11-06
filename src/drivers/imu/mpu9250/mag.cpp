@@ -298,26 +298,11 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				/*
-				 * TODO: investigate being able to stop
-				 *       the continuous sampling
-				 */
-				//stop();
-				return OK;
-
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
-				return ioctl(filp, SENSORIOCSPOLLRATE, 100);
-
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_AK8963_SAMPLE_RATE);
 
@@ -331,42 +316,6 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 				}
 			}
 		}
-
-	case SENSORIOCGPOLLRATE:
-		return MPU9250_AK8963_SAMPLE_RATE;
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_mag_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
-	case MAGIOCGSAMPLERATE:
-		return MPU9250_AK8963_SAMPLE_RATE;
-
-	case MAGIOCSSAMPLERATE:
-
-		/*
-		 * We don't currently support any means of changing
-		 * the sampling rate of the mag
-		 */
-		if (MPU9250_AK8963_SAMPLE_RATE != arg) {
-			return -EINVAL;
-		}
-
-		return OK;
 
 	case MAGIOCSSCALE:
 		/* copy scale in */

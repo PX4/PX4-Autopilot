@@ -182,18 +182,6 @@ rm3100::test(RM3100_BUS bus_id)
 		return 1;
 	}
 
-	/* set the queue depth to 5 */
-	if (ioctl(fd, SENSORIOCSQUEUEDEPTH, 10) != OK) {
-		PX4_WARN("failed to set queue depth");
-		return 1;
-	}
-
-	/* start the sensor polling at 2Hz */
-	if (ioctl(fd, SENSORIOCSPOLLRATE, 2) != OK) {
-		PX4_WARN("failed to set 2Hz poll rate");
-		return 1;
-	}
-
 	struct pollfd fds;
 
 	/* read the sensor 5x and report each value */

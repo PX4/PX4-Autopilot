@@ -225,22 +225,17 @@ test(bool external_bus, enum sensor_type sensor)
 {
 	const char *path_accel = external_bus ? BMI055_DEVICE_PATH_ACCEL_EXT : BMI055_DEVICE_PATH_ACCEL;
 	const char *path_gyro  = external_bus ? BMI055_DEVICE_PATH_GYRO_EXT : BMI055_DEVICE_PATH_GYRO;
-	accel_report a_report;
-	gyro_report g_report;
+	sensor_accel_s a_report{};
+	sensor_gyro_s g_report{};
 	ssize_t sz;
 
 	if (sensor == BMI055_ACCEL) {
 		/* get the accel driver */
 		int fd_acc = open(path_accel, O_RDONLY);
 
-		if (fd_acc < 0)
+		if (fd_acc < 0) {
 			err(1, "%s Accel file open failed (try 'bmi055 -A start')",
 			    path_accel);
-
-
-		/* reset to manual polling */
-		if (ioctl(fd_acc, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
-			err(1, "accel reset to manual polling");
 		}
 
 		/* do a simple demand read */
@@ -268,11 +263,6 @@ test(bool external_bus, enum sensor_type sensor)
 
 		if (fd_gyr < 0) {
 			err(1, "%s Gyro file open failed (try 'bmi055 -G start')", path_gyro);
-		}
-
-		/* reset to manual polling */
-		if (ioctl(fd_gyr, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
-			err(1, "gyro reset to manual polling");
 		}
 
 		/* do a simple demand read */

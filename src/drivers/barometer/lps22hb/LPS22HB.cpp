@@ -106,21 +106,11 @@ LPS22HB::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -162,13 +152,6 @@ LPS22HB::ioctl(struct file *filp, int cmd, unsigned long arg)
 				}
 			}
 		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (1000 / _measure_ticks);
 
 	case SENSORIOCRESET:
 		return reset();
@@ -282,7 +265,7 @@ int
 LPS22HB::collect()
 {
 	perf_begin(_sample_perf);
-	struct baro_report new_report;
+	sensor_baro_s new_report;
 
 	/* get measurements from the device : MSB enables register address auto-increment */
 #pragma pack(push, 1)

@@ -366,13 +366,6 @@ VL53LXX::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					return OK;
 				}
 
-			case SENSOR_POLLRATE_MANUAL: {
-
-					stop();
-					_measure_ticks = 0;
-					return OK;
-				}
-
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */

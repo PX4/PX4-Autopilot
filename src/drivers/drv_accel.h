@@ -47,12 +47,8 @@
 #include "drv_orb_dev.h"
 
 #define ACCEL_BASE_DEVICE_PATH	"/dev/accel"
-#define ACCEL0_DEVICE_PATH	"/dev/accel0"
-#define ACCEL1_DEVICE_PATH	"/dev/accel1"
-#define ACCEL2_DEVICE_PATH	"/dev/accel2"
 
 #include <uORB/topics/sensor_accel.h>
-#define accel_report sensor_accel_s
 
 /** accel scaling factors; Vout = Vscale * (Vin + Voffset) */
 struct accel_calibration_s {
@@ -73,31 +69,7 @@ struct accel_calibration_s {
 #define _ACCELIOCBASE		(0x2100)
 #define _ACCELIOC(_n)		(_PX4_IOC(_ACCELIOCBASE, _n))
 
-
-/** set the accel internal sample rate to at least (arg) Hz */
-#define ACCELIOCSSAMPLERATE	_ACCELIOC(0)
-
-#define ACCEL_SAMPLERATE_DEFAULT    1000003	/**< default sample rate */
-
-/** return the accel internal sample rate in Hz */
-#define ACCELIOCGSAMPLERATE	_ACCELIOC(1)
-
 /** set the accel scaling constants to the structure pointed to by (arg) */
 #define ACCELIOCSSCALE		_ACCELIOC(5)
-
-/** get the accel scaling constants into the structure pointed to by (arg) */
-#define ACCELIOCGSCALE		_ACCELIOC(6)
-
-/** set the accel measurement range to handle at least (arg) g */
-#define ACCELIOCSRANGE		_ACCELIOC(7)
-
-/** get the current accel measurement range in g */
-#define ACCELIOCGRANGE		_ACCELIOC(8)
-
-/** determine if hardware is external or onboard */
-#define ACCELIOCGEXTERNAL	_ACCELIOC(12)
-
-/** get the current accel type */
-#define ACCELIOCTYPE		_ACCELIOC(13)
 
 #endif /* _DRV_ACCEL_H */
