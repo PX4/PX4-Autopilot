@@ -90,6 +90,11 @@ void FlightTask::_evaluateVehicleLocalPosition()
 	_yaw = NAN;
 	_dist_to_bottom = NAN;
 
+	if ((_time_stamp_current - _sub_attitude->get().timestamp) < _timeout) {
+		// yaw
+		_yaw = matrix::Eulerf(matrix::Quatf(_sub_attitude->get().q)).psi();
+	}
+
 	// Only use vehicle-local-position topic fields if the topic is received within a certain timestamp
 	if ((_time_stamp_current - _sub_vehicle_local_position->get().timestamp) < _timeout) {
 
@@ -112,9 +117,6 @@ void FlightTask::_evaluateVehicleLocalPosition()
 		if (_sub_vehicle_local_position->get().v_z_valid) {
 			_velocity(2) = _sub_vehicle_local_position->get().vz;
 		}
-
-		// yaw
-		_yaw = _sub_vehicle_local_position->get().yaw;
 
 		// distance to bottom
 		if (_sub_vehicle_local_position->get().dist_bottom_valid
