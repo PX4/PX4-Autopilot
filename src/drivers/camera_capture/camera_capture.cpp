@@ -119,8 +119,7 @@ CameraCapture::gpio_interrupt_routine(int irq, void *context, void *arg)
 	/* post message to the ring */
 	dev->_trig_buffer->put(&trigger);
 
-	// work_queue(HPWORK, &_work, (worker_t)&CameraCapture::publish_trigger_trampoline, this, 0);
-	dev->publish_trigger();
+	work_queue(HPWORK, &_work, (worker_t)&CameraCapture::publish_trigger_trampoline, dev, 0);
 
 	return PX4_OK;
 
@@ -290,10 +289,10 @@ CameraCapture::set_capture_control(bool enabled)
 	// }
 	// }
 
-	px4_arch_gpiosetevent(GPIO_TRIG_AVX, true, false, true, &CameraCapture::gpio_interrupt_routine);
+	px4_arch_gpiosetevent(GPIO_TRIG_AVX, true, false, true, &CameraCapture::gpio_interrupt_routine, this);
 
 	// if (::ioctl(fd, INPUT_CAP_SET_CALLBACK, (unsigned long)&conf) == 0) {
-	// 	_capture_enabled = enabled;
+	_capture_enabled = enabled;
 
 	// } else {
 	// 	PX4_ERR("Unable to set capture callback for chan %u\n", conf.channel);
