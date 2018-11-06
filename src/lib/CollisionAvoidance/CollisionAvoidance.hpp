@@ -63,7 +63,7 @@ class CollisionAvoidance : public ModuleParams
 public:
 	CollisionAvoidance();
 
-	~CollisionAvoidance() = default;
+	~CollisionAvoidance();
 
 	/**
 	 * Initialize the uORB subscriptions using an array
