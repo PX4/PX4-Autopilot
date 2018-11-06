@@ -39,7 +39,7 @@ bool yaw_valid			# true if yaw setpoint valid
 float32 yawspeed		# yawspeed (only for multirotors, in rad/s)
 bool yawspeed_valid		# true if yawspeed setpoint valid
 
-bool deploy_gear		# deploy landing gear
+int8 landing_gear		# landing gear: see definition of the states in landing_gear.msg
 
 float32 loiter_radius		# loiter radius (only for fixed wing), in m
 int8 loiter_direction		# loiter direction: 1 = CW, -1 = CCW
