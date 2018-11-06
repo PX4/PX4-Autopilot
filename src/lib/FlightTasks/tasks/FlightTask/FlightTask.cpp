@@ -118,9 +118,6 @@ void FlightTask::_evaluateVehicleLocalPosition()
 			_velocity(2) = _sub_vehicle_local_position->get().vz;
 		}
 
-		// yaw
-		_yaw = _sub_vehicle_local_position->get().yaw;
-
 		// distance to bottom
 		if (_sub_vehicle_local_position->get().dist_bottom_valid
 		    && PX4_ISFINITE(_sub_vehicle_local_position->get().dist_bottom)) {
