@@ -46,6 +46,16 @@ CollisionAvoidance::CollisionAvoidance() :
 
 }
 
+CollisionAvoidance::~CollisionAvoidance(){
+	//unadvertise publishers
+	if (_constraints_pub != nullptr) {
+		orb_unadvertise(_constraints_pub);
+	}
+	if (_mavlink_log_pub != nullptr) {
+		orb_unadvertise(_mavlink_log_pub);
+	}
+}
+
 bool CollisionAvoidance::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
 	if (!subscription_array.get(ORB_ID(obstacle_distance), _sub_obstacle_distance)) {
