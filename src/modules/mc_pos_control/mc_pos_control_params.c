@@ -744,7 +744,7 @@ PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);
  * @boolean
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_INT32(MPC_COL_AVOID, 0);
+PARAM_DEFINE_INT32(MPC_COL_PREV, 0);
 
 /**
  * Minimum distance the vehicle should keep to all obstacles
@@ -756,4 +756,4 @@ PARAM_DEFINE_INT32(MPC_COL_AVOID, 0);
  * @unit meters
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_COL_AVOID_D, 4.0f);
+PARAM_DEFINE_FLOAT(MPC_COL_PREV_D, 4.0f);

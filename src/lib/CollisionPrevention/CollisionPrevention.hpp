@@ -32,10 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file CollisionAvoidance.hpp
+ * @file CollisionPrevention.hpp
  * @author Tanja Baumann <tanja@auterion.com>
  *
- * CollisionAvoidance controller.
+ * CollisionPrevention controller.
  *
  */
 
@@ -58,12 +58,12 @@ using uORB::Publication;
 using namespace matrix;
 using namespace time_literals;
 
-class CollisionAvoidance : public ModuleParams
+class CollisionPrevention : public ModuleParams
 {
 public:
-	CollisionAvoidance();
+	CollisionPrevention();
 
-	~CollisionAvoidance();
+	~CollisionPrevention();
 
 	/**
 	 * Initialize the uORB subscriptions using an array
@@ -77,7 +77,7 @@ public:
 
 	bool is_active() {return _is_active;}
 
-	bool collision_avoidance_enabled() { return MPC_COL_AVOID.get(); }
+	bool collision_prevention_enabled() { return MPC_COL_PREV.get(); }
 
 	void update();
 
@@ -92,7 +92,7 @@ public:
 private:
 
 	bool _is_active = true;
-	bool _interfering = false;		/**< states if the collision avoidance interferes with the user input */
+	bool _interfering = false;		/**< states if the collision prevention interferes with the user input */
 
 	orb_advert_t _constraints_pub{nullptr};		/**< constraints publication */
 	orb_advert_t _mavlink_log_pub = nullptr;	 	/**< Mavlink log uORB handle */
@@ -110,8 +110,8 @@ private:
 	Vector2f _move_constraints_y;
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::MPC_COL_AVOID>) MPC_COL_AVOID, /**< use range sensor measurements to avoid collision */
-		(ParamFloat<px4::params::MPC_COL_AVOID_D>) MPC_COL_AVOID_D /**< collision avoidance keep minimum distance */
+		(ParamInt<px4::params::MPC_COL_PREV>) MPC_COL_PREV, /**< use range sensor measurements to prevent collision */
+		(ParamFloat<px4::params::MPC_COL_PREV_D>) MPC_COL_PREV_D /**< collision prevention keep minimum distance */
 	)
 
 };
