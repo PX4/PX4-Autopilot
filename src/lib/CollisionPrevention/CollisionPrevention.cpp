@@ -32,31 +32,33 @@
  ****************************************************************************/
 
 /**
- * @file CollisionAvoidance.cpp
- * CollisionAvoidance controller.
+ * @file CollisionPrevention.cpp
+ * CollisionPrevention controller.
  *
  */
 
-#include "CollisionAvoidance.hpp"
+#include <CollisionPrevention/CollisionPrevention.hpp>
 
 
-CollisionAvoidance::CollisionAvoidance() :
+CollisionPrevention::CollisionPrevention() :
 	ModuleParams(nullptr)
 {
 
 }
 
-CollisionAvoidance::~CollisionAvoidance(){
+CollisionPrevention::~CollisionPrevention()
+{
 	//unadvertise publishers
 	if (_constraints_pub != nullptr) {
 		orb_unadvertise(_constraints_pub);
 	}
+
 	if (_mavlink_log_pub != nullptr) {
 		orb_unadvertise(_mavlink_log_pub);
 	}
 }
 
-bool CollisionAvoidance::initializeSubscriptions(SubscriptionArray &subscription_array)
+bool CollisionPrevention::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
 	if (!subscription_array.get(ORB_ID(obstacle_distance), _sub_obstacle_distance)) {
 		return false;
@@ -65,7 +67,7 @@ bool CollisionAvoidance::initializeSubscriptions(SubscriptionArray &subscription
 	return true;
 }
 
-void CollisionAvoidance::reset_constraints()
+void CollisionPrevention::reset_constraints()
 {
 
 	_move_constraints_x_normalized(0) = 0.0f;  //normalized constraint in negative x-direction
@@ -80,7 +82,7 @@ void CollisionAvoidance::reset_constraints()
 
 }
 
-void CollisionAvoidance::publish_constraints(const Vector2f &original_setpoint, const Vector2f &adapted_setpoint)
+void CollisionPrevention::publish_constraints(const Vector2f &original_setpoint, const Vector2f &adapted_setpoint)
 {
 
 	collision_constraints_s	constraints;	/**< collision constraints message */
@@ -107,10 +109,10 @@ void CollisionAvoidance::publish_constraints(const Vector2f &original_setpoint, 
 
 }
 
-void CollisionAvoidance::update()
+void CollisionPrevention::update()
 {
-	// activate/deactivate the collision avoidance based on MPC_COL_AVOID parameter
-	if (collision_avoidance_enabled()) {
+	// activate/deactivate the collision prevention based on MPC_COL_PREV parameter
+	if (collision_prevention_enabled()) {
 		activate();
 
 	} else {
@@ -118,7 +120,7 @@ void CollisionAvoidance::update()
 	}
 }
 
-void CollisionAvoidance::update_range_constraints()
+void CollisionPrevention::update_range_constraints()
 {
 	obstacle_distance_s obstacle_distance = _sub_obstacle_distance->get();
 
@@ -132,8 +134,8 @@ void CollisionAvoidance::update_range_constraints()
 				float distance = obstacle_distance.distances[i] / 100.0f; //convert to meters
 				float angle = i * obstacle_distance.increment * (M_PI / 180.0);
 				//calculate normalized velocity reductions
-				float vel_lim_x = (max_detection_distance - distance) / (max_detection_distance - MPC_COL_AVOID_D.get()) * cos(angle);
-				float vel_lim_y = (max_detection_distance - distance) / (max_detection_distance - MPC_COL_AVOID_D.get()) * sin(angle);
+				float vel_lim_x = (max_detection_distance - distance) / (max_detection_distance - MPC_COL_PREV_D.get()) * cos(angle);
+				float vel_lim_y = (max_detection_distance - distance) / (max_detection_distance - MPC_COL_PREV_D.get()) * sin(angle);
 
 				if (vel_lim_x > 0 && vel_lim_x > _move_constraints_x_normalized(1)) { _move_constraints_x_normalized(1) = vel_lim_x; }
 
@@ -151,7 +153,7 @@ void CollisionAvoidance::update_range_constraints()
 	}
 }
 
-void CollisionAvoidance::modifySetpoint(Vector2f &original_setpoint, const float max_speed)
+void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const float max_speed)
 {
 	update();
 	reset_constraints();
@@ -191,7 +193,7 @@ void CollisionAvoidance::modifySetpoint(Vector2f &original_setpoint, const float
 	new_setpoint(0) = math::constrain(original_setpoint(0), -_move_constraints_x(0), _move_constraints_x(1));
 	new_setpoint(1) = math::constrain(original_setpoint(1), -_move_constraints_y(0), _move_constraints_y(1));
 
-	//warn user if collision avoidance starts to interfere
+	//warn user if collision prevention starts to interfere
 	bool currently_interfering = (new_setpoint(0) < 0.95f * original_setpoint(0)
 				      || new_setpoint(0) > 1.05f * original_setpoint(0) || new_setpoint(1) < 0.95f * original_setpoint(1)
 				      || new_setpoint(1) > 1.05f * original_setpoint(1));
