@@ -31,4 +31,4 @@
 #
 ############################################################################
 
-px4_add_library(CollisionAvoidance CollisionAvoidance.cpp)
+px4_add_library(CollisionPrevention CollisionPrevention.cpp)

@@ -47,7 +47,7 @@ bool FlightTaskManualPosition::initializeSubscriptions(SubscriptionArray &subscr
 		return false;
 	}
 
-	if (!_collision_avoidance.initializeSubscriptions(subscription_array)) {
+	if (!_collision_prevention.initializeSubscriptions(subscription_array)) {
 		return false;
 	}
 
@@ -127,9 +127,9 @@ void FlightTaskManualPosition::_scaleSticks()
 	/* Rotate setpoint into local frame. */
 	_rotateIntoHeadingFrame(vel_sp_xy);
 
-	// collision avoidance
-	if (_collision_avoidance.is_active()) {
-		_collision_avoidance.modifySetpoint(vel_sp_xy, _constraints.speed_xy);
+	// collision prevention
+	if (_collision_prevention.is_active()) {
+		_collision_prevention.modifySetpoint(vel_sp_xy, _constraints.speed_xy);
 	}
 
 	_velocity_setpoint(0) = vel_sp_xy(0);
