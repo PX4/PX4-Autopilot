@@ -51,7 +51,7 @@
 #include "baro_calibration.h"
 #include "calibration_routines.h"
 #include "commander_helper.h"
-#include "companion_status.h"
+#include "companion_process_status.h"
 #include "esc_calibration.h"
 #include "gyro_calibration.h"
 #include "mag_calibration.h"
@@ -87,7 +87,7 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/companion_status.h>
+#include <uORB/topics/companion_process_status.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
@@ -1434,7 +1434,7 @@ Commander::run()
 		//check companion computer processes
 		int32_t obs_avoid;
 		param_get(_param_mpc_obs_avoid, &obs_avoid); // avoidance parameter
-		_companion_status.check_companion_status(&mavlink_log_pub, obs_avoid);
+		_companion_process_status.check_companion_process_status(&mavlink_log_pub, obs_avoid);
 
 		/* update parameters */
 		bool params_updated = false;

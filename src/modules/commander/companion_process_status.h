@@ -32,16 +32,16 @@
  ****************************************************************************/
 
 /**
- * @file companion_status.h
+ * @file companion_process_status.h
  * Routine to determine health of companion processes
  */
 
-#ifndef COMPANION_STATUS_H_
-#define COMPANION_STATUS_H_
+#ifndef COMPANION_PROCESS_STATUS_H_
+#define COMPANION_PROCESS_STATUS_H_
 
 #include <stdint.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/companion_status.h>
+#include <uORB/topics/companion_process_status.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_time.h>
@@ -59,15 +59,15 @@ using uORB::Subscription;
 using namespace time_literals;
 
 
-class Companion_Status
+class Companion_Process_Status
 {
 
 private:
-	Subscription<companion_status_s>	_companion_status_sub{ORB_ID(companion_status)};
-	companion_status_s					_companion_status{};								/**< current status message */
-	companion_status_s					_companion_status_history[10]{};					/**< last status message of each process*/
-	companion_status_s					_companion_status_first_registration[10]{};			/**< first status message of each process */
-	int									_required_processes[3]{0};							/**< index corresponds to process type (see _companion_types).
+	Subscription<companion_process_status_s>	_companion_process_status_sub{ORB_ID(companion_process_status)};
+	companion_process_status_s					_companion_process_status{};								/**< current status message */
+	companion_process_status_s					_companion_process_status_history[10]{};					/**< last status message of each process*/
+	companion_process_status_s					_companion_process_status_first_registration[10]{};			/**< first status message of each process */
+	int									_required_processes[3]{0};							/**< index corresponds to process type (see _companion_process_types).
 																							value corresponds to number of required processes of that type*/
 	hrt_abstime 						_time_zero;											/**< time of object construction*/
 	hrt_abstime 						_time_message;										/**< time when last message was printed*/
@@ -77,8 +77,8 @@ private:
 	const hrt_abstime					NO_SIGNAL_TIMEOUT = 15_s;	/**< timeout if no signal is received. counter starts when class object is created */
 	const hrt_abstime 					THROTTLE_MESSAGES = 5_s;	/**< time interval on which messages are published */
 
-	const char *_companion_types[3] = {"GENERIC", "AVOIDANCE", "VIO"};
-	const char *_companion_states[5] = {"HEALTHY", "TIMEOUT", "ABORT", "STARTING", "COMPONENT_FAIL"};
+	const char *_companion_process_types[3] = {"GENERIC", "AVOIDANCE", "VIO"};
+	const char *_companion_process_states[5] = {"HEALTHY", "TIMEOUT", "ABORT", "STARTING", "COMPONENT_FAIL"};
 
 
 	void poll_subscriptions();
@@ -87,8 +87,8 @@ private:
 
 public:
 
-	Companion_Status();
-	void check_companion_status(orb_advert_t *mav_log_pub, int32_t use_obs_avoid);
+	Companion_Process_Status();
+	void check_companion_process_status(orb_advert_t *mav_log_pub, int32_t use_obs_avoid);
 };
 
-#endif /* COMPANION_STATUS_H_ */
+#endif /* COMPANION_PROCESS_STATUS_H_ */

@@ -47,7 +47,7 @@ px4_add_module(
 		calibration_routines.cpp
 		Commander.cpp
 		commander_helper.cpp
-		companion_status.cpp
+		companion_process_status.cpp
 		esc_calibration.cpp
 		gyro_calibration.cpp
 		health_flag_helper.cpp

@@ -32,32 +32,32 @@
  ****************************************************************************/
 
 /**
- * @file companion_status.cpp
+ * @file companion_process_status.cpp
  * Monitor health status of companion processes
  */
 
-#include "companion_status.h"
 #include <drivers/drv_hrt.h>
+#include "companion_process_status.h"
 
 static orb_advert_t *mavlink_log_pub;
 
 
-Companion_Status::Companion_Status(){
+Companion_Process_Status::Companion_Process_Status(){
 
 	//initialize time
 	_time_zero = hrt_absolute_time();
 	_time_message = hrt_absolute_time();
 }
 
-void Companion_Status::poll_subscriptions(){
+void Companion_Process_Status::poll_subscriptions(){
 
-    if (_companion_status_sub.update()) {
-		_companion_status = _companion_status_sub.get();
+    if (_companion_process_status_sub.update()) {
+		_companion_process_status = _companion_process_status_sub.get();
 		_new_status_received = true;
 	}
 }
 
-void Companion_Status::determine_required_processes(int32_t use_obs_avoid){
+void Companion_Process_Status::determine_required_processes(int32_t use_obs_avoid){
 
 	//reset required processes
 	for(int i = 0; i<3; i++){
@@ -71,21 +71,21 @@ void Companion_Status::determine_required_processes(int32_t use_obs_avoid){
 
 }
 
-void Companion_Status::determine_action(){
+void Companion_Process_Status::determine_action(){
 
 	bool reported_before = false;
-	companion_status_s last_status;
+	companion_process_status_s last_status;
 	int process_number = 11;
 
 	if(_new_status_received){
-		const char* message_type = _companion_types[_companion_status.type];
-		const char* message_state = _companion_states[_companion_status.state];
+		const char* message_type = _companion_process_types[_companion_process_status.type];
+		const char* message_state = _companion_process_states[_companion_process_status.state];
 
 		//find last status of same process
 		for(int i = 0; i<10; i++){
-			if(_companion_status_history[i].pid == _companion_status.pid){
-				last_status = _companion_status_history[i];
-				_companion_status_history[i] = _companion_status;
+			if(_companion_process_status_history[i].pid == _companion_process_status.pid){
+				last_status = _companion_process_status_history[i];
+				_companion_process_status_history[i] = _companion_process_status;
 				process_number = i;
 				reported_before = true;
 			}
@@ -93,17 +93,17 @@ void Companion_Status::determine_action(){
 
 		if(!reported_before){
 			for(int i = 0; i<10; i++){
-				if(_companion_status_history[i].pid == 0  && !reported_before){
-					_companion_status_history[i] = _companion_status;
+				if(_companion_process_status_history[i].pid == 0  && !reported_before){
+					_companion_process_status_history[i] = _companion_process_status;
 					reported_before = true;
 					process_number = i;
 				}
 			}
 		}else{
-			if((last_status.state != _companion_status.state)){
-				if (_companion_status.state == companion_status_s::COMPANION_STATE_STARTING){
-					_companion_status_first_registration[process_number] = _companion_status;
-				}else if(_companion_status.state == companion_status_s::COMPANION_STATE_HEALTHY){
+			if((last_status.state != _companion_process_status.state)){
+				if (_companion_process_status.state == companion_process_status_s::COMPANION_PROCESS_STATE_STARTING){
+					_companion_process_status_first_registration[process_number] = _companion_process_status;
+				}else if(_companion_process_status.state == companion_process_status_s::COMPANION_PROCESS_STATE_HEALTHY){
 					mavlink_log_info(mavlink_log_pub, "companion process %s is ready\n", message_type);
 				}else{
 					mavlink_log_critical(mavlink_log_pub, "companion process %s %s\n", message_type, message_state);
@@ -113,8 +113,8 @@ void Companion_Status::determine_action(){
 
 
 		//check for timeouts in starting up
-		if(_companion_status.state == companion_status_s::COMPANION_STATE_STARTING &&
-				_companion_status.timestamp - _companion_status_first_registration[process_number].timestamp > STARTUP_TIMEOUT){
+		if(_companion_process_status.state == companion_process_status_s::COMPANION_PROCESS_STATE_STARTING &&
+				_companion_process_status.timestamp - _companion_process_status_first_registration[process_number].timestamp > STARTUP_TIMEOUT){
 			mavlink_log_critical(mavlink_log_pub,"companion process %s taking too long to start\n", message_type);
 		}
 		_new_status_received = false;
@@ -125,25 +125,25 @@ void Companion_Status::determine_action(){
 		for(int j = 0; j < 3; j++){
 			int processes_found = 0;
 			for(int i = 0; i<10; i++){
-				if(_companion_status_history[i].type == j && _companion_status_history[i].pid != 0){
+				if(_companion_process_status_history[i].type == j && _companion_process_status_history[i].pid != 0){
 					processes_found ++;
 				}
 			}
 			if(processes_found < _required_processes[j] && hrt_absolute_time() - _time_zero > NO_SIGNAL_TIMEOUT){
-				mavlink_log_critical(mavlink_log_pub, "%s did not start\n", _companion_types[j]);
+				mavlink_log_critical(mavlink_log_pub, "%s did not start\n", _companion_process_types[j]);
 				_time_message = hrt_absolute_time();
 			}
 		}
 		for(int i = 0; i<10; i++){
-			if(_companion_status_history[i].pid != 0 && _companion_status_history[i].timestamp + NO_SIGNAL_TIMEOUT < hrt_absolute_time()){
-				mavlink_log_critical(mavlink_log_pub, "%s process died\n", _companion_types[_companion_status_history[i].type]);
+			if(_companion_process_status_history[i].pid != 0 && _companion_process_status_history[i].timestamp + NO_SIGNAL_TIMEOUT < hrt_absolute_time()){
+				mavlink_log_critical(mavlink_log_pub, "%s process died\n", _companion_process_types[_companion_process_status_history[i].type]);
 				_time_message = hrt_absolute_time();
 			}
 		}
 	}
 }
 
-void Companion_Status::check_companion_status(orb_advert_t *mav_log_pub, int32_t use_obs_avoid){
+void Companion_Process_Status::check_companion_process_status(orb_advert_t *mav_log_pub, int32_t use_obs_avoid){
 	mavlink_log_pub = mav_log_pub;
 	determine_required_processes(use_obs_avoid);
 	poll_subscriptions();

@@ -150,7 +150,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_rc_pub(nullptr),
 	_manual_pub(nullptr),
 	_obstacle_distance_pub(nullptr),
-	_companion_status_pub(nullptr),
+	_companion_process_status_pub(nullptr),
 	_trajectory_waypoint_pub(nullptr),
 	_land_detector_pub(nullptr),
 	_follow_target_pub(nullptr),
@@ -329,8 +329,8 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_obstacle_distance(msg);
 		break;
 
-	case MAVLINK_MSG_ID_COMPANION_STATUS:
-		handle_message_companion_status(msg);
+	case MAVLINK_MSG_ID_COMPANION_PROCESS_STATUS:
+		handle_message_companion_process_status(msg);
 		break;
 
 	case MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_WAYPOINTS:
@@ -1970,22 +1970,22 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 }
 
 void
-MavlinkReceiver::handle_message_companion_status(mavlink_message_t *msg)
+MavlinkReceiver::handle_message_companion_process_status(mavlink_message_t *msg)
 {
-	mavlink_companion_status_t mavlink_companion_status;
-	mavlink_msg_companion_status_decode(msg, &mavlink_companion_status);
+	mavlink_companion_process_status_t mavlink_companion_process_status;
+	mavlink_msg_companion_process_status_decode(msg, &mavlink_companion_process_status);
 
-	companion_status_s companion_status = {};
-	companion_status.timestamp = hrt_absolute_time();
-	companion_status.state = mavlink_companion_status.state;
-	companion_status.type = mavlink_companion_status.type;
-	companion_status.pid = mavlink_companion_status.pid;
+	companion_process_status_s companion_process_status = {};
+	companion_process_status.timestamp = hrt_absolute_time();
+	companion_process_status.state = mavlink_companion_process_status.state;
+	companion_process_status.type = mavlink_companion_process_status.type;
+	companion_process_status.pid = mavlink_companion_process_status.pid;
 
-	if (_companion_status_pub == nullptr) {
-		_companion_status_pub = orb_advertise(ORB_ID(companion_status), &companion_status);
+	if (_companion_process_status_pub == nullptr) {
+		_companion_process_status_pub = orb_advertise(ORB_ID(companion_process_status), &companion_process_status);
 
 	} else {
-		orb_publish(ORB_ID(companion_status), _companion_status_pub, &companion_status);
+		orb_publish(ORB_ID(companion_process_status), _companion_process_status_pub, &companion_process_status);
 	}
 }
 

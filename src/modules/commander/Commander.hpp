@@ -36,7 +36,7 @@
 
 #include "state_machine_helper.h"
 #include "failure_detector/FailureDetector.hpp"
-#include "companion_status.h"
+#include "companion_process_status.h"
 
 #include <lib/controllib/blocks.hpp>
 #include <lib/mathlib/mathlib.h>
@@ -138,7 +138,7 @@ private:
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd, actuator_armed_s *armed,
 			    orb_advert_t *command_ack_pub, bool *changed);
 
-	Companion_Status _companion_status;
+	Companion_Process_Status _companion_process_status;
 
 	bool set_home_position();
 	bool set_home_position_alt_only();
