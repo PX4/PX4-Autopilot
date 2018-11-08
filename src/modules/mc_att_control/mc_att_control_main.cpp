@@ -523,6 +523,7 @@ MulticopterAttitudeControl::control_attitude()
 {
 	vehicle_attitude_setpoint_poll();
 
+	// physical thrust axis is the negative of body z axis
 	_thrust_sp = -_v_att_sp.thrust_z;
 
 	/* prepare yaw weight from the ratio between roll/pitch and yaw gains */
