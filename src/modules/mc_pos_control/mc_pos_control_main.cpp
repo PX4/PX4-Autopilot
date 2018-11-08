@@ -827,7 +827,7 @@ MulticopterPositionControl::run()
 			matrix::Quatf q_sp = matrix::Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
 			q_sp.copyTo(_att_sp.q_d);
 			_att_sp.q_d_valid = true;
-			_att_sp.thrust = 0.0f;
+			_att_sp.thrust_z = 0.0f;
 		}
 	}
 
