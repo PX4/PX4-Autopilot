@@ -47,6 +47,8 @@
 #define PITCH_TRANSITION_FRONT_P1 -1.1f	// pitch angle to switch to TRANSITION_P2
 #define PITCH_TRANSITION_BACK -0.25f	// pitch angle to switch to MC
 
+using namespace matrix;
+
 Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 	VtolType(attc)
 {
@@ -84,7 +86,7 @@ void Tailsitter::update_vtol_state()
 	 * For the backtransition the pitch is controlled in MC mode again and switches to full MC control reaching the sufficient pitch angle.
 	*/
 
-	matrix::Eulerf euler = matrix::Quatf(_v_att->q);
+	Eulerf euler = Quatf(_v_att->q);
 	float pitch = euler.theta();
 
 	if (!_attc->is_fixed_wing_requested()) {
@@ -181,26 +183,26 @@ void Tailsitter::update_transition_state()
 
 		if (_vtol_schedule.flight_mode == TRANSITION_BACK) {
 			// calculate rotation axis for transition.
-			_q_trans_start = matrix::Quatf(_v_att->q);
-			matrix::Vector3f z = -_q_trans_start.dcm_z();
-			_trans_rot_axis = z.cross(matrix::Vector3f(0, 0, -1));
+			_q_trans_start = Quatf(_v_att->q);
+			Vector3f z = -_q_trans_start.dcm_z();
+			_trans_rot_axis = z.cross(Vector3f(0, 0, -1));
 
 			// as heading setpoint we choose the heading given by the direction the vehicle points
 			float yaw_sp = atan2f(z(1), z(0));
 
 			// the intial attitude setpoint for a backtransition is a combination of the current fw pitch setpoint,
 			// the yaw setpoint and zero roll since we want wings level transition
-			_q_trans_start = matrix::Eulerf(0.0f, _fw_virtual_att_sp->pitch_body, yaw_sp);
+			_q_trans_start = Eulerf(0.0f, _fw_virtual_att_sp->pitch_body, yaw_sp);
 
 			// attitude during transitions are controlled by mc attitude control so rotate the desired attitude to the
 			// multirotor frame
-			_q_trans_start = _q_trans_start * matrix::Quatf(matrix::Eulerf(0, -M_PI_2_F, 0));
+			_q_trans_start = _q_trans_start * Quatf(Eulerf(0, -M_PI_2_F, 0));
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P1) {
 			// initial attitude setpoint for the transition should be with wings level
-			_q_trans_start = matrix::Eulerf(0.0f, _mc_virtual_att_sp->pitch_body, _mc_virtual_att_sp->yaw_body);
-			matrix::Vector3f x = matrix::Dcmf(matrix::Quatf(_v_att->q)) * matrix::Vector3f(1, 0, 0);
-			_trans_rot_axis = -x.cross(matrix::Vector3f(0, 0, -1));
+			_q_trans_start = Eulerf(0.0f, _mc_virtual_att_sp->pitch_body, _mc_virtual_att_sp->yaw_body);
+			Vector3f x = Dcmf(Quatf(_v_att->q)) * Vector3f(1, 0, 0);
+			_trans_rot_axis = -x.cross(Vector3f(0, 0, -1));
 		}
 
 		_q_trans_sp = _q_trans_start;
@@ -215,8 +217,8 @@ void Tailsitter::update_transition_state()
 		const float trans_pitch_rate = M_PI_2_F / _params->front_trans_duration;
 
 		if (tilt < M_PI_2_F - _params_tailsitter.fw_pitch_sp_offset) {
-			_q_trans_sp = matrix::Quatf(matrix::AxisAnglef(_trans_rot_axis,
-						    time_since_trans_start * trans_pitch_rate)) * _q_trans_start;
+			_q_trans_sp = Quatf(AxisAnglef(_trans_rot_axis,
+						       time_since_trans_start * trans_pitch_rate)) * _q_trans_start;
 		}
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_BACK) {
@@ -228,8 +230,8 @@ void Tailsitter::update_transition_state()
 		}
 
 		if (tilt > 0.01f) {
-			_q_trans_sp = matrix::Quatf(matrix::AxisAnglef(_trans_rot_axis,
-						    time_since_trans_start * trans_pitch_rate)) * _q_trans_start;
+			_q_trans_sp = Quatf(AxisAnglef(_trans_rot_axis,
+						       time_since_trans_start * trans_pitch_rate)) * _q_trans_start;
 		}
 	}
 
@@ -240,7 +242,7 @@ void Tailsitter::update_transition_state()
 	_mc_yaw_weight = 1.0f;
 
 	_v_att_sp->timestamp = hrt_absolute_time();
-	matrix::Eulerf euler_sp(_q_trans_sp);
+	Eulerf euler_sp(_q_trans_sp);
 	_v_att_sp->roll_body = euler_sp.phi();
 	_v_att_sp->pitch_body = euler_sp.theta();
 	_v_att_sp->yaw_body = euler_sp.psi();
