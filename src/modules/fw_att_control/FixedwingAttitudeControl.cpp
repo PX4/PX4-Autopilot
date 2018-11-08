@@ -270,7 +270,6 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 	bool manual_updated;
 	orb_check(_manual_sub, &manual_updated);
 
-	// only update manual if in a manual mode
 	if (_vcontrol_mode.flag_control_manual_enabled && manual_updated && !_vehicle_status.is_rotary_wing) {
 
 		// Always copy the new manual setpoint, even if it wasn't updated, to fill the _actuators with valid values
@@ -399,7 +398,9 @@ FixedwingAttitudeControl::vehicle_status_poll()
 	if (vehicle_status_updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
 
-		// if VTOL listen to rate setpoints only
+		// if VTOL and not in fixed wing mode we should only control body-rates which are published
+		// by the multicoper attitude controller. Therefore, modify the control mode to achieve rate
+		// control only
 		if (_vehicle_status.is_vtol) {
 			if (_vehicle_status.is_rotary_wing) {
 				_vcontrol_mode.flag_control_attitude_enabled = false;
