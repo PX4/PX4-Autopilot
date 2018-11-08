@@ -932,6 +932,7 @@ MulticopterAttitudeControl::run()
 				if (!_vehicle_status.is_vtol) {
 					_rates_sp.zero();
 					_rates_int.zero();
+					_thrust_sp = 0.0f;
 					_att_control.zero();
 					publish_actuator_controls();
 				}
