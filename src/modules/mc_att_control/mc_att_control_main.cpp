@@ -606,7 +606,7 @@ Vector3f
 MulticopterAttitudeControl::pid_attenuations(float tpa_breakpoint, float tpa_rate)
 {
 	/* throttle pid attenuation factor */
-	float tpa = 1.0f - tpa_rate * (fabsf(-_v_rates_sp.thrust_z) - tpa_breakpoint) / (1.0f - tpa_breakpoint);
+	float tpa = 1.0f - tpa_rate * (fabsf(_thrust_sp) - tpa_breakpoint) / (1.0f - tpa_breakpoint);
 	tpa = fmaxf(TPA_RATE_LOWER_LIMIT, fminf(1.0f, tpa));
 
 	Vector3f pidAttenuationPerAxis;
