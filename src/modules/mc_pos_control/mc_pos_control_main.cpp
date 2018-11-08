@@ -659,7 +659,7 @@ MulticopterPositionControl::run()
 		}
 
 		// check if any task is active
-		if (_flight_tasks.isAnyTaskActive()) {
+		if (_flight_tasks.isAnyTaskActive() && _vehicle_status.is_rotary_wing) {
 
 			// setpoints from flighttask
 			vehicle_local_position_setpoint_s setpoint;
@@ -827,7 +827,7 @@ MulticopterPositionControl::run()
 			matrix::Quatf q_sp = matrix::Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
 			q_sp.copyTo(_att_sp.q_d);
 			_att_sp.q_d_valid = true;
-			_att_sp.thrust = 0.0f;
+			_att_sp.thrust_z = 0.0f;
 		}
 	}
 
@@ -948,7 +948,8 @@ MulticopterPositionControl::start_flight_task()
 	}
 
 	// manual position control
-	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL || task_failure) {
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL
+	    || task_failure) {
 
 		should_disable_task = false;
 		int error = 0;

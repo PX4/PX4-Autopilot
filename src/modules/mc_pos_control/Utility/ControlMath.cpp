@@ -103,7 +103,7 @@ vehicle_attitude_setpoint_s thrustToAttitude(const Vector3f &thr_sp, const float
 	Eulerf euler = R_sp;
 	att_sp.roll_body = euler(0);
 	att_sp.pitch_body = euler(1);
-	att_sp.thrust = thr_sp.length();
+	att_sp.thrust_z = -thr_sp.length();
 
 	return att_sp;
 }

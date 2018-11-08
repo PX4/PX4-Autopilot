@@ -166,7 +166,6 @@ private:
 	orb_advert_t	_controller_status_pub{nullptr};	/**< controller status publication */
 	orb_advert_t	_vehicle_attitude_setpoint_pub{nullptr};
 
-	orb_id_t _rates_sp_id{nullptr};		/**< pointer to correct rates setpoint uORB metadata structure */
 	orb_id_t _actuators_id{nullptr};	/**< pointer to correct actuator controls0 uORB metadata structure */
 
 	bool		_actuators_0_circuit_breaker_enabled{false};	/**< circuit breaker to suppress output */
@@ -196,7 +195,7 @@ private:
 	matrix::Vector3f _rates_prev_filtered;		/**< angular rates on previous step (low-pass filtered) */
 	matrix::Vector3f _rates_sp;			/**< angular rates setpoint */
 	matrix::Vector3f _rates_int;			/**< angular rates integral error */
-	float _thrust_sp;				/**< thrust setpoint */
+	float _thrust_sp;			/**< thrust setpoint */
 	matrix::Vector3f _att_control;			/**< attitude control vector */
 
 	matrix::Dcmf _board_rotation;			/**< rotation matrix for the orientation that the board is mounted */
