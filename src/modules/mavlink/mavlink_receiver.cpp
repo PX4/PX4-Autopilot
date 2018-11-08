@@ -1447,8 +1447,11 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						att_sp.yaw_sp_move_rate = 0.0f;
 					}
 
+					// TODO: We assume offboard is only used for multicopters which produce thrust along the
+					// body z axis. If we want to support fixed wing as well we need to handle it differently here, e.g.
+					// in that case we should assign att_sp.thrust_x
 					if (!_offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
-						att_sp.thrust_x = set_attitude_target.thrust;
+						att_sp.thrust_z = -set_attitude_target.thrust;
 					}
 
 					if (_att_sp_pub == nullptr) {

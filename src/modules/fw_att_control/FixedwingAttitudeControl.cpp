@@ -348,7 +348,7 @@ FixedwingAttitudeControl::vehicle_attitude_setpoint_poll()
 	orb_check(_att_sp_sub, &att_sp_updated);
 
 	if (att_sp_updated) {
-		if (orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp)) {
+		if (orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp) == 0) {
 			_rates_sp.thrust_x = _att_sp.thrust_x;
 			_rates_sp.thrust_y = _att_sp.thrust_y;
 			_rates_sp.thrust_z = _att_sp.thrust_z;
@@ -462,8 +462,7 @@ float FixedwingAttitudeControl::get_airspeed_scaling(float airspeed)
 	 *
 	 * Forcing the scaling to this value allows reasonable handheld tests.
 	 */
-	return _parameters.airspeed_trim / ((airspeed < _parameters.airspeed_min) ? _parameters.airspeed_min :
-					    airspeed);
+	return _parameters.airspeed_trim / math::max(airspeed, _parameters.airspeed_min);
 }
 
 void FixedwingAttitudeControl::run()
