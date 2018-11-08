@@ -12,6 +12,8 @@ float32 yaw_sp_move_rate	# rad/s (commanded by user)
 float32[4] q_d			# Desired quaternion for quaternion control
 bool q_d_valid			# Set to true if quaternion vector is valid
 
+# For clarification: For multicopters thrust_x and thrust_y are usually 0 and thrust_z is the negative throttle demand.
+# For fixed wings thrust_x is the throttle demand and thrust_y, thrust_z will usually be zero.
 float32 thrust_x					# Throttle command in body x direction [-1,1]
 float32 thrust_y					# Throttle command in body y direction [-1,1]
 float32 thrust_z					# Throttle command in body z direction [-1,1]
