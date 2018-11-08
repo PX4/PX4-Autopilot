@@ -12,7 +12,9 @@ float32 yaw_sp_move_rate	# rad/s (commanded by user)
 float32[4] q_d			# Desired quaternion for quaternion control
 bool q_d_valid			# Set to true if quaternion vector is valid
 
-float32 thrust			# Thrust in Newton the power system should generate
+float32 thrust_x					# Throttle command in body x direction [-1,1]
+float32 thrust_y					# Throttle command in body y direction [-1,1]
+float32 thrust_z					# Throttle command in body z direction [-1,1]
 
 bool roll_reset_integral	# Reset roll integral part (navigation logic change)
 bool pitch_reset_integral	# Reset pitch integral part (navigation logic change)
