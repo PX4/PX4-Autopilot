@@ -51,7 +51,7 @@ bool FlightTaskManualAltitude::updateInitialize()
 bool FlightTaskManualAltitude::activate()
 {
 	bool ret = FlightTaskManual::activate();
-	_yaw_setpoint = _yaw;
+	_yaw_setpoint = NAN;
 	_yawspeed_setpoint = 0.0f;
 	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, NAN); // altitude is controlled from position/velocity
 	_position_setpoint(2) = _position(2);
@@ -82,11 +82,9 @@ bool FlightTaskManualAltitude::activate()
 
 void FlightTaskManualAltitude::_scaleSticks()
 {
-	/* Scale sticks to yaw and thrust using
-	 * linear scale for yaw and piecewise linear map for thrust. */
+	// Use sticks input with deadzone and exponential curve for vertical velocity and yawspeed
 	_yawspeed_setpoint = _sticks_expo(3) * math::radians(MPC_MAN_Y_MAX.get());
 
-	// scale horizontal velocity with expo curve stick input
 	const float vel_max_z = (_sticks(2) > 0.0f) ? _constraints.speed_down : _constraints.speed_up;
 	_velocity_setpoint(2) = vel_max_z * _sticks_expo(2);
 }
