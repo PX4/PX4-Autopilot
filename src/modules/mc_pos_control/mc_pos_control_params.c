@@ -334,7 +334,7 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.0f);
  *
  * @unit deg
  * @min 0.0
- * @max 90.0
+ * @max 180.0
  * @decimal 1
  * @group Multicopter Position Control
  */
@@ -568,7 +568,7 @@ PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 8.0f);
 PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);
 
 /**
- * Manual control stick exponential curve sensitivity attenuation with small velocity setpoints
+ * Manual position control stick exponential curve sensitivity
  *
  * The higher the value the less sensitivity the stick has around zero
  * while still reaching the maximum value with full stick deflection.
