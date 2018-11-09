@@ -848,6 +848,7 @@ MulticopterPositionControl::start_flight_task()
 	bool should_disable_task = true;
 	int prev_failure_count = _task_failure_count;
 
+	// Do not run any flight task for VTOLs in fixed-wing mode
 	if (!_vehicle_status.is_rotary_wing) {
 		_flight_tasks.switchTask(FlightTaskIndex::None);
 		return;
@@ -858,7 +859,9 @@ MulticopterPositionControl::start_flight_task()
 		int error = _flight_tasks.switchTask(FlightTaskIndex::Transition);
 
 		if (error != 0) {
-			PX4_WARN("Follow-Me activation failed with error: %s", _flight_tasks.errorToString(error));
+			if (prev_failure_count == 0) {
+				PX4_WARN("Transition activation failed with error: %s", _flight_tasks.errorToString(error));
+			}
 			task_failure = true;
 			_task_failure_count++;
 
