@@ -50,11 +50,6 @@ public:
 	bool updateInitialize() override;
 	bool update() override;
 
-	/**
-	 * Sets an external yaw handler which can be used to implement a different yaw control strategy.
-	 */
-	void setYawHandler(WeatherVane *ext_yaw_handler) override { _ext_yaw_handler = ext_yaw_handler; }
-
 protected:
 	void _updateHeadingSetpoints(); /**< sets yaw or yaw speed */
 	virtual void _updateSetpoints(); /**< updates all setpoints */
@@ -100,9 +95,6 @@ private:
 
 	void _respectMaxAltitude();
 
-
-	WeatherVane *_ext_yaw_handler =
-		nullptr;	/**< external weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
 
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
 	float _max_speed_up = 10.0f;
