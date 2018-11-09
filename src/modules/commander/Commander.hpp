@@ -37,16 +37,16 @@
 #include "state_machine_helper.h"
 #include "failure_detector/FailureDetector.hpp"
 
-#include <controllib/blocks.hpp>
+#include <lib/controllib/blocks.hpp>
+#include <lib/mathlib/mathlib.h>
 #include <px4_module.h>
 #include <px4_module_params.h>
-#include <mathlib/mathlib.h>
+#include <systemlib/hysteresis/hysteresis.h>
 
 // publications
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
@@ -56,6 +56,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
+#include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_command.h>
@@ -72,6 +73,7 @@ class Commander : public ModuleBase<Commander>, public ModuleParams
 {
 public:
 	Commander();
+	~Commander();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -132,10 +134,11 @@ private:
 	FailureDetector _failure_detector;
 	bool _failure_detector_termination_printed{false};
 
-	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd,
-			    actuator_armed_s *armed, home_position_s *home, orb_advert_t *home_pub, orb_advert_t *command_ack_pub, bool *changed);
+	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd, actuator_armed_s *armed,
+			    orb_advert_t *command_ack_pub, bool *changed);
 
-	bool set_home_position(orb_advert_t &homePub, home_position_s &home, bool set_alt_only_to_lpos_ref);
+	bool set_home_position();
+	bool set_home_position_alt_only();
 
 	// Set the main system state based on RC and override device inputs
 	transition_result_t set_main_state(const vehicle_status_s &status, bool *changed);
@@ -146,7 +149,8 @@ private:
 	// Set the system main state based on the current RC inputs
 	transition_result_t set_main_state_rc(const vehicle_status_s &status, bool *changed);
 
-	void check_valid(const hrt_abstime &timestamp, const hrt_abstime &timeout, const bool valid_in, bool *valid_out, bool *changed);
+	void check_valid(const hrt_abstime &timestamp, const hrt_abstime &timeout, const bool valid_in, bool *valid_out,
+			 bool *changed);
 
 	bool check_posvel_validity(const bool data_valid, const float data_accuracy, const float required_accuracy,
 				   const hrt_abstime &data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us, bool *valid_state,
@@ -192,6 +196,10 @@ private:
 	Subscription<mission_result_s>			_mission_result_sub{ORB_ID(mission_result)};
 	Subscription<vehicle_global_position_s>		_global_position_sub{ORB_ID(vehicle_global_position)};
 	Subscription<vehicle_local_position_s>		_local_position_sub{ORB_ID(vehicle_local_position)};
+
+	Publication<home_position_s>			_home_pub{ORB_ID(home_position)};
+
+	orb_advert_t					_status_pub{nullptr};
 };
 
 #endif /* COMMANDER_HPP_ */
