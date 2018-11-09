@@ -320,7 +320,8 @@ MavlinkParametersManager::send(const hrt_abstime t)
 	int i = 0;
 
 	// Send while burst is not exceeded, we still have buffer space and still something to send
-	while ((i++ < max_num_to_send) && (_mavlink->get_free_tx_buf() >= get_size()) && send_params());
+	while ((i++ < max_num_to_send) && (_mavlink->get_free_tx_buf() >= get_size()) && _mavlink->check_tx_rate()
+	       && send_params());
 }
 
 bool

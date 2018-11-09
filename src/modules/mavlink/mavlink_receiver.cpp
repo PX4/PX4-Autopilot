@@ -2741,7 +2741,7 @@ MavlinkReceiver::receive_thread(void *arg)
 			}
 		}
 
-		hrt_abstime t = hrt_absolute_time();
+		const hrt_abstime t = hrt_absolute_time();
 
 		if (t - last_send_update > timeout * 1000) {
 			_mission_manager.check_active_mission();

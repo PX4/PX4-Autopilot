@@ -260,6 +260,13 @@ public:
 	 */
 	unsigned		get_free_tx_buf();
 
+	/**
+	 * Check if the transmit data rate has been exceeded
+	 *
+	 * @return true if the transmit rate is within the current allowable data rate
+	 */
+	bool			check_tx_rate() const;
+
 	static int		start_helper(int argc, char *argv[]);
 
 	/**
@@ -467,7 +474,7 @@ public:
 
 	bool			is_usb_uart() { return _is_usb_uart; }
 
-	int			get_data_rate()		{ return _datarate; }
+	int			get_data_rate() const { return _datarate; }
 	void			set_data_rate(int rate) { if (rate > 0) { _datarate = rate; } }
 
 	unsigned		get_main_loop_delay() const { return _main_loop_delay; }
@@ -593,10 +600,10 @@ private:
 	int32_t			_protocol_version_switch;
 	int32_t			_protocol_version;
 
-	unsigned		_bytes_tx;
-	unsigned		_bytes_txerr;
-	unsigned		_bytes_rx;
-	uint64_t		_bytes_timestamp;
+	unsigned		_bytes_tx{0};
+	unsigned		_bytes_txerr{0};
+	unsigned		_bytes_rx{0};
+	uint64_t		_bytes_timestamp{0};
 
 #if defined(CONFIG_NET) || defined(__PX4_POSIX)
 	struct sockaddr_in _myaddr;

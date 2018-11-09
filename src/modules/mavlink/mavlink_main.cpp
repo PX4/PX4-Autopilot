@@ -245,10 +245,6 @@ Mavlink::Mavlink() :
 	_mavlink_start_time(0),
 	_protocol_version_switch(-1),
 	_protocol_version(0),
-	_bytes_tx(0),
-	_bytes_txerr(0),
-	_bytes_rx(0),
-	_bytes_timestamp(0),
 #if defined(CONFIG_NET) || defined(__PX4_POSIX)
 	_myaddr {},
 	_src_addr{},
@@ -2552,20 +2548,19 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		/* update TX/RX rates*/
-		if (t > _bytes_timestamp + 1000000) {
-			if (_bytes_timestamp != 0) {
-				const float dt = (t - _bytes_timestamp) / 1000.0f;
+		const uint64_t elapsed = hrt_elapsed_time(&_bytes_timestamp);
 
-				_tstatus.rate_tx = _bytes_tx / dt;
-				_tstatus.rate_txerr = _bytes_txerr / dt;
-				_tstatus.rate_rx = _bytes_rx / dt;
+		if (elapsed >= 1_s) {
+			const float dt = elapsed / 1000.0f;
 
-				_bytes_tx = 0;
-				_bytes_txerr = 0;
-				_bytes_rx = 0;
-			}
+			_tstatus.rate_tx = _bytes_tx / dt;
+			_tstatus.rate_txerr = _bytes_txerr / dt;
+			_tstatus.rate_rx = _bytes_rx / dt;
 
-			_bytes_timestamp = t;
+			_bytes_tx = 0;
+			_bytes_txerr = 0;
+			_bytes_rx = 0;
+			_bytes_timestamp = hrt_absolute_time();
 		}
 
 		// publish status at 1 Hz, or sooner if HEARTBEAT has updated
@@ -2659,6 +2654,14 @@ void Mavlink::publish_telemetry_status()
 	_tstatus.timestamp = hrt_absolute_time();
 	int instance;
 	orb_publish_auto(ORB_ID(telemetry_status), &_telem_status_pub, &_tstatus, &instance, ORB_PRIO_DEFAULT);
+}
+
+bool Mavlink::check_tx_rate() const
+{
+	const float dt = hrt_elapsed_time(&_bytes_timestamp) / 1e6f;
+	const float rate = _bytes_tx / dt;
+
+	return (rate < (_datarate * _rate_mult));
 }
 
 void Mavlink::check_radio_config()
