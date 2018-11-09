@@ -1707,12 +1707,16 @@ Mavlink::update_rate_mult()
 void
 Mavlink::update_radio_status(const radio_status_s &radio_status)
 {
-	_rstatus = radio_status;
 	set_telemetry_status_type(telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_3DR_RADIO);
 
 	/* check hardware limits */
 	_radio_status_available = true;
 	_radio_status_critical = (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE);
+
+	// radio rx errors indicate a significant problem, drop rate as a precaution
+	if (radio_status.rxerrors > _rstatus.rxerrors) {
+		_radio_status_mult *= 0.50f;
+	}
 
 	if (radio_status.txbuf < RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE) {
 		/* this indicates link congestion, reduce rate by 20% */
@@ -1726,6 +1730,8 @@ Mavlink::update_radio_status(const radio_status_s &radio_status)
 		/* this indicates spare bandwidth, increase by 2.5% */
 		_radio_status_mult *= 1.025f;
 	}
+
+	_rstatus = radio_status;
 }
 
 int
