@@ -48,7 +48,7 @@
  * @decimal 1
  * @group Camera Capture
  */
-PARAM_DEFINE_FLOAT(CAM_CAP_DELAY, 1.0f);
+PARAM_DEFINE_FLOAT(CAM_CAP_DELAY, 0.0f);
 
 /**
  * Camera capture feedback
@@ -67,7 +67,8 @@ PARAM_DEFINE_INT32(CAM_CAP_FBACK, 0);
  * Change time measurement
  *
  * @value 0 Get absolute timestamp
- * @value 1 Get timestamp of mid exposure
+ * @value 1 Get timestamp of mid exposure (active high)
+ * @value 2 Get timestamp of mid exposure (active low)
  *
  * @group Camera Control
  * @reboot_required true

@@ -57,14 +57,15 @@ CameraCapture::CameraCapture() :
 	_camera_capture_mode(0),
 	_camera_capture_edge(0),
 	_capture_seq(0),
-	_last_fall_time(0),
+	_last_trig_begin_time(0),
 	_last_exposure_time(0),
 	_capture_overflows(0)
 {
 
 	memset(&_work, 0, sizeof(_work));
+	memset(&_work_publisher, 0, sizeof(_work_publisher));
 
-	// Parameters
+	// Capture Parameters
 	_p_strobe_delay = param_find("CAM_CAP_DELAY");
 	param_get(_p_strobe_delay, &_strobe_delay);
 
@@ -101,7 +102,7 @@ CameraCapture::capture_callback(uint32_t chan_index,
 	/* post message to the ring */
 	_trig_buffer->put(&trigger);
 
-	work_queue(LPWORK, &_work, (worker_t)&CameraCapture::publish_trigger_trampoline, this, 0);
+	work_queue(HPWORK, &_work_publisher, (worker_t)&CameraCapture::publish_trigger_trampoline, this, 0);
 }
 
 void
@@ -116,39 +117,64 @@ void
 CameraCapture::publish_trigger()
 {
 	struct _trig_s trig;
+	bool publish = false;
 
-	_trig_buffer->get(&trig);
-
-	if (_last_fall_time > 0) {
-
-		struct camera_trigger_s	trigger {};
-
-		if (_camera_capture_mode == 0) {
-			trigger.timestamp = trig.edge_time;
-
-		} else {
-			trigger.timestamp = trig.edge_time - ((trig.edge_time - _last_fall_time) / 2);	// Get timestamp of mid-exposure
-		}
-
-		trigger.seq = _capture_seq++;
-		trigger.feedback = true;
-
-		if (_trigger_pub == nullptr) {
-
-			_trigger_pub = orb_advertise(ORB_ID(camera_trigger_feedback), &trigger);
-
-		} else {
-
-			orb_publish(ORB_ID(camera_trigger_feedback), _trigger_pub, &trigger);
-		}
-
-		_last_exposure_time = trig.edge_time - _last_fall_time;
+	if (!_trig_buffer->get(&trig)) {
+		return;
 	}
 
-	// Timestamp and compensate for strobe delay
-	_last_fall_time = trig.edge_time - uint64_t(1000 * _strobe_delay);
+	struct camera_trigger_s	trigger {};
 
+	// MODES 1 and 2 are not fully tested
+	if (_camera_capture_mode == 0) {
+		trigger.timestamp = trig.edge_time - uint64_t(1000 * _strobe_delay);
+		trigger.seq = _capture_seq++;
+		_last_trig_time = trigger.timestamp;
+		publish = true;
+
+	} else if (_camera_capture_mode == 1) { // Get timestamp of mid-exposure (active high)
+		if (trig.edge_state == 1) {
+			_last_trig_begin_time = trig.edge_time - uint64_t(1000 * _strobe_delay);
+
+		} else if (trig.edge_state == 0 && _last_trig_begin_time > 0) {
+			trigger.timestamp = trig.edge_time - ((trig.edge_time - _last_trig_begin_time) / 2);
+			trigger.seq = _capture_seq++;
+			_last_exposure_time = trig.edge_time - _last_trig_begin_time;
+			_last_trig_time = trigger.timestamp;
+			publish = true;
+			_capture_seq++;
+		}
+
+	} else { // Get timestamp of mid-exposure (active low)
+		if (trig.edge_state == 0) {
+			_last_trig_begin_time = trig.edge_time - uint64_t(1000 * _strobe_delay);
+
+		} else if (trig.edge_state == 1 && _last_trig_begin_time > 0) {
+			trigger.timestamp = trig.edge_time - ((trig.edge_time - _last_trig_begin_time) / 2);
+			trigger.seq = _capture_seq++;
+			_last_exposure_time = trig.edge_time - _last_trig_begin_time;
+			_last_trig_time = trigger.timestamp;
+			publish = true;
+		}
+
+	}
+
+	trigger.feedback = true;
 	_capture_overflows = trig.overflow;
+
+	if (!publish) {
+		return;
+	}
+
+	if (_trigger_pub == nullptr) {
+
+		_trigger_pub = orb_advertise(ORB_ID(camera_trigger_feedback), &trigger);
+
+	} else {
+
+		orb_publish(ORB_ID(camera_trigger_feedback), _trigger_pub, &trigger);
+	}
+
 }
 
 void
@@ -233,6 +259,7 @@ void
 CameraCapture::set_capture_control(bool enabled)
 {
 	int fd = -1;
+
 	fd = ::open(PX4FMU_DEVICE_PATH, O_RDWR);
 
 	if (fd < 0) {
@@ -243,7 +270,14 @@ CameraCapture::set_capture_control(bool enabled)
 	input_capture_config_t conf;
 	conf.channel = 5; // FMU chan 6
 	conf.filter = 0;
-	conf.edge = _camera_capture_edge ? Rising : Falling;
+
+	if (_camera_capture_mode == 0) {
+		conf.edge = _camera_capture_edge ? Rising : Falling;
+
+	} else {
+		conf.edge = Both;
+	}
+
 	conf.callback = NULL;
 	conf.context = NULL;
 
@@ -256,13 +290,14 @@ CameraCapture::set_capture_control(bool enabled)
 
 		if (::ioctl(fd, INPUT_CAP_GET_COUNT, (unsigned long)&capture_count) != 0) {
 			PX4_INFO("Not in a capture mode");
-			unsigned long mode = PWM_SERVO_MODE_5PWM1CAP;
+
+			unsigned long mode = PWM_SERVO_MODE_4PWM2CAP;
 
 			if (::ioctl(fd, PWM_SERVO_SET_MODE, mode) == 0) {
-				PX4_INFO("Mode changed to 5PWM1CAP");
+				PX4_INFO("Mode changed to 4PWM2CAP");
 
 			} else {
-				PX4_ERR("Mode NOT changed to 4PWM2CAP");
+				PX4_ERR("Mode NOT changed to 4PWM2CAP!");
 				goto err_out;
 			}
 		}
@@ -288,8 +323,9 @@ CameraCapture::reset_statistics(bool reset_seq)
 {
 	if (reset_seq) { _capture_seq = 0; }
 
-	_last_fall_time = 0;
+	_last_trig_begin_time = 0;
 	_last_exposure_time = 0;
+	_last_trig_time = 0;
 	_capture_overflows = 0;
 }
 
@@ -305,7 +341,7 @@ CameraCapture::start()
 
 	// start to monitor at low rates for capture control commands
 	work_queue(LPWORK, &_work, (worker_t)&CameraCapture::cycle_trampoline, this,
-		   USEC2TICK(1)); // TODO : is this low rate??!
+		   USEC2TICK(1));
 
 	return PX4_OK;
 }
@@ -315,6 +351,7 @@ CameraCapture::stop()
 {
 
 	work_cancel(LPWORK, &_work);
+	work_cancel(HPWORK, &_work_publisher);
 
 	if (camera_capture::g_camera_capture != nullptr) {
 		delete (camera_capture::g_camera_capture);
@@ -326,8 +363,12 @@ CameraCapture::status()
 {
 	PX4_INFO("Capture enabled : %s", _capture_enabled ? "YES" : "NO");
 	PX4_INFO("Frame sequence : %u", _capture_seq);
-	PX4_INFO("Last fall timestamp : %llu", _last_fall_time);
-	PX4_INFO("Last exposure time : %0.2f ms", double(_last_exposure_time) / 1000.0);
+	PX4_INFO("Last trigger timestamp : %llu", _last_trig_time);
+
+	if (_camera_capture_mode != 0) {
+		PX4_INFO("Last exposure time : %0.2f ms", double(_last_exposure_time) / 1000.0);
+	}
+
 	PX4_INFO("Number of overflows : %u", _capture_overflows);
 }
 
