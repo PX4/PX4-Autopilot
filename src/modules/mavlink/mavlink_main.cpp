@@ -233,9 +233,7 @@ Mavlink::Mavlink() :
 	_uart_fd(-1),
 	_baudrate(57600),
 	_datarate(1000),
-	_rate_mult(1.0f),
 	_mavlink_param_queue_index(0),
-	mavlink_link_termination_allowed(false),
 	_subscribe_to_stream(nullptr),
 	_subscribe_to_stream_rate(0.0f),
 	_udp_initialised(false),
@@ -974,6 +972,14 @@ Mavlink::should_send_bytes(unsigned packet_len)
 		}
 	}
 
+	const float dt = hrt_elapsed_time(&_bytes_timestamp) / 1e6f;
+	const float rate = (_bytes_tx + packet_len) / dt;
+
+	if (rate > (get_allowable_data_rate())) {
+		count_txerrbytes(packet_len);
+		return false;
+	}
+
 	return true;
 }
 
@@ -990,10 +996,6 @@ Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 
 	if (_mavlink_start_time == 0) {
 		_mavlink_start_time = _last_write_try_time;
-	}
-
-	if (!should_send_bytes(packet_len)) {
-		return;
 	}
 
 	size_t ret = -1;
@@ -1669,39 +1671,15 @@ Mavlink::update_rate_mult()
 	}
 
 	/* scale up and down as the link permits */
-	float bandwidth_mult = (float)(_datarate * mavlink_ulog_streaming_rate_inv - const_rate) / rate;
+	float bandwidth_mult = (float)(get_allowable_data_rate() * mavlink_ulog_streaming_rate_inv - const_rate) / rate;
 
 	/* if we do not have flow control, limit to the set data rate */
 	if (!get_flow_control_enabled()) {
-		bandwidth_mult = fminf(1.0f, bandwidth_mult);
+		bandwidth_mult = math::constrain(bandwidth_mult, 0.0f, 1.0f);
 	}
-
-	float hardware_mult = 1.0f;
-
-	/* scale down if we have a TX err rate suggesting link congestion */
-	if (_tstatus.rate_txerr > 0.0f && !_radio_status_critical) {
-		hardware_mult = (_tstatus.rate_tx) / (_tstatus.rate_tx + _tstatus.rate_txerr);
-
-	} else if (_radio_status_available) {
-
-		// check for RADIO_STATUS timeout and reset
-		if (hrt_elapsed_time(&_rstatus.timestamp) > 5_s) {
-			PX4_ERR("instance %d: RADIO_STATUS timeout", _instance_id);
-			set_telemetry_status_type(telemetry_status_s::TELEMETRY_STATUS_RADIO_TYPE_GENERIC);
-
-			_radio_status_available = false;
-			_radio_status_critical = false;
-			_radio_status_mult = 1.0f;
-		}
-
-		hardware_mult *= _radio_status_mult;
-	}
-
-	/* pick the minimum from bandwidth mult and hardware mult as limit */
-	_rate_mult = fminf(bandwidth_mult, hardware_mult);
 
 	/* ensure the rate multiplier never drops below 5% so that something is always sent */
-	_rate_mult = math::constrain(_rate_mult, 0.05f, 1.0f);
+	_rate_mult = math::constrain(bandwidth_mult * get_error_rate_mult(), 0.05f, 1.0f);
 }
 
 void
@@ -1711,25 +1689,26 @@ Mavlink::update_radio_status(const radio_status_s &radio_status)
 
 	/* check hardware limits */
 	_radio_status_available = true;
-	_radio_status_critical = (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE);
 
 	// radio rx errors indicate a significant problem, drop rate as a precaution
 	if (radio_status.rxerrors > _rstatus.rxerrors) {
-		_radio_status_mult *= 0.50f;
+		_error_rate_mult *= 0.50f;
 	}
 
 	if (radio_status.txbuf < RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE) {
 		/* this indicates link congestion, reduce rate by 20% */
-		_radio_status_mult *= 0.80f;
+		_error_rate_mult *= 0.80f;
 
 	} else if (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE) {
 		/* this indicates link congestion, reduce rate by 2.5% */
-		_radio_status_mult *= 0.975f;
+		_error_rate_mult *= 0.975f;
 
 	} else if (radio_status.txbuf > RADIO_BUFFER_HALF_PERCENTAGE) {
 		/* this indicates spare bandwidth, increase by 2.5% */
-		_radio_status_mult *= 1.025f;
+		_error_rate_mult *= 1.025f;
 	}
+
+	_error_rate_mult = math::constrain(_error_rate_mult, 0.01f, 1.0f);
 
 	_rstatus = radio_status;
 }
@@ -2069,10 +2048,6 @@ Mavlink::task_main(int argc, char *argv[])
 			break;
 #endif
 
-//		case 'e':
-//			mavlink_link_termination_allowed = true;
-//			break;
-
 		case 'm': {
 
 				int mode;
@@ -2292,8 +2267,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 		hrt_abstime t = hrt_absolute_time();
 
-		update_rate_mult();
-
 		if (param_sub->update(&param_time, nullptr)) {
 			mavlink_update_parameters();
 
@@ -2486,6 +2459,8 @@ Mavlink::task_main(int argc, char *argv[])
 			_subscribe_to_stream = nullptr;
 		}
 
+		update_rate_mult();
+
 		/* update streams */
 		MavlinkStream *stream;
 		LL_FOREACH(_streams, stream) {
@@ -2562,6 +2537,20 @@ Mavlink::task_main(int argc, char *argv[])
 			_tstatus.rate_tx = _bytes_tx / dt;
 			_tstatus.rate_txerr = _bytes_txerr / dt;
 			_tstatus.rate_rx = _bytes_rx / dt;
+
+			// gradually increase data rate if there were no errors
+			if (_bytes_txerr == 0) {
+				_error_rate_mult += 0.05f;
+
+			} else {
+				const float rate = static_cast<float>(_bytes_tx) / static_cast<float>(_bytes_tx + _bytes_txerr);
+
+				if (PX4_ISFINITE(rate)) {
+					_error_rate_mult *= rate;
+				}
+			}
+
+			_error_rate_mult = math::constrain(_error_rate_mult, 0.05f, 1.0f);
 
 			_bytes_tx = 0;
 			_bytes_txerr = 0;
@@ -2640,8 +2629,10 @@ void Mavlink::publish_telemetry_status()
 	// many fields are populated in place
 
 	_tstatus.mode = _mode;
-	_tstatus.data_rate = _datarate;
-	_tstatus.rate_multiplier = _rate_mult;
+	_tstatus.data_rate = get_data_rate();
+	_tstatus.current_data_rate = get_allowable_data_rate();
+	_tstatus.data_rate_multiplier = get_rate_mult();
+	_tstatus.error_rate_multiplier = get_error_rate_mult();
 	_tstatus.flow_control = get_flow_control_enabled();
 	_tstatus.ftp = ftp_enabled();
 	_tstatus.forwarding = get_forwarding_on();
@@ -2660,14 +2651,6 @@ void Mavlink::publish_telemetry_status()
 	_tstatus.timestamp = hrt_absolute_time();
 	int instance;
 	orb_publish_auto(ORB_ID(telemetry_status), &_telem_status_pub, &_tstatus, &instance, ORB_PRIO_DEFAULT);
-}
-
-bool Mavlink::check_tx_rate() const
-{
-	const float dt = hrt_elapsed_time(&_bytes_timestamp) / 1e6f;
-	const float rate = _bytes_tx / dt;
-
-	return (rate < (_datarate * _rate_mult));
 }
 
 void Mavlink::check_radio_config()
@@ -2846,8 +2829,8 @@ Mavlink::display_status()
 	printf("\trates:\n");
 	printf("\t  tx: %.3f kB/s\n", (double)_tstatus.rate_tx);
 	printf("\t  txerr: %.3f kB/s\n", (double)_tstatus.rate_txerr);
-	printf("\t  tx rate mult: %.3f\n", (double)_rate_mult);
-	printf("\t  tx rate max: %i B/s\n", _datarate);
+	printf("\t  tx rate mult: %.3f\n", (double)get_rate_mult());
+	printf("\t  tx rate max: %i B/s\n", get_data_rate());
 	printf("\t  rx: %.3f kB/s\n", (double)_tstatus.rate_rx);
 
 	if (_mavlink_ulog) {

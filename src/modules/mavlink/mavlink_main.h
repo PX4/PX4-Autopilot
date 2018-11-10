@@ -59,11 +59,11 @@
 #include <net/if.h>
 #endif
 
-#include <parameters/param.h>
+#include <lib/parameters/param.h>
 #include <perf/perf_counter.h>
-#include <pthread.h>
 #include <systemlib/mavlink_log.h>
 #include <drivers/device/ringbuffer.h>
+#include <lib/mathlib/mathlib.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
@@ -260,13 +260,6 @@ public:
 	 */
 	unsigned		get_free_tx_buf();
 
-	/**
-	 * Check if the transmit data rate has been exceeded
-	 *
-	 * @return true if the transmit rate is within the current allowable data rate
-	 */
-	bool			check_tx_rate() const;
-
 	static int		start_helper(int argc, char *argv[]);
 
 	/**
@@ -401,6 +394,7 @@ public:
 	MavlinkStream 		*get_streams() const { return _streams; }
 
 	float			get_rate_mult() const { return _rate_mult; }
+	float			get_error_rate_mult() const { return _error_rate_mult; }
 
 	float			get_baudrate() { return _baudrate; }
 
@@ -409,6 +403,7 @@ public:
 	bool			get_has_received_messages() { return _received_messages; }
 	void			set_wait_to_transmit(bool wait) { _wait_to_transmit = wait; }
 	bool			get_wait_to_transmit() { return _wait_to_transmit; }
+
 	bool			should_transmit() { return (_transmitting_enabled && _boot_complete && (!_wait_to_transmit || (_wait_to_transmit && _received_messages))); }
 
 	bool			message_buffer_write(const void *ptr, int size);
@@ -475,6 +470,8 @@ public:
 	bool			is_usb_uart() { return _is_usb_uart; }
 
 	int			get_data_rate() const { return _datarate; }
+	int			get_allowable_data_rate() const { return _datarate * _error_rate_mult; }
+
 	void			set_data_rate(int rate) { if (rate > 0) { _datarate = rate; } }
 
 	unsigned		get_main_loop_delay() const { return _main_loop_delay; }
@@ -574,11 +571,11 @@ private:
 
 	int			_baudrate;
 	int			_datarate;		///< data rate for normal streams (attitude, position, etc.)
-	float			_rate_mult;
+
+	float			_rate_mult{1.0f};
+	float			_error_rate_mult{1.0f};
 
 	bool			_radio_status_available{false};
-	bool			_radio_status_critical{false};
-	float			_radio_status_mult{1.0f};
 
 	/**
 	 * If the queue index is not at 0, the queue sending
@@ -586,8 +583,6 @@ private:
 	 * to len - 1, the end of the param list.
 	 */
 	unsigned int		_mavlink_param_queue_index;
-
-	bool			mavlink_link_termination_allowed;
 
 	char 			*_subscribe_to_stream;
 	float			_subscribe_to_stream_rate;  ///< rate of stream to subscribe to (0=disable, -1=unlimited, -2=default)

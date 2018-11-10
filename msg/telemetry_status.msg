@@ -24,8 +24,10 @@ bool ftp
 uint8 streams
 
 float32 data_rate
+float32 current_data_rate
 
-float32 rate_multiplier
+float32 data_rate_multiplier
+float32 error_rate_multiplier
 
 float32 rate_rx
 
