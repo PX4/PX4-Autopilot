@@ -293,7 +293,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 					_att_sp.pitch_body = -_manual.x * _parameters.man_pitch_max + _parameters.pitchsp_offset_rad;
 					_att_sp.pitch_body = math::constrain(_att_sp.pitch_body, -_parameters.man_pitch_max, _parameters.man_pitch_max);
 					_att_sp.yaw_body = 0.0f;
-					_att_sp.thrust_x = _manual.z;
+					_att_sp.thrust_body[0] = _manual.z;
 
 					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
 					q.copyTo(_att_sp.q_d);
@@ -316,7 +316,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 					_rates_sp.roll = _manual.y * _parameters.acro_max_x_rate_rad;
 					_rates_sp.pitch = -_manual.x * _parameters.acro_max_y_rate_rad;
 					_rates_sp.yaw = _manual.r * _parameters.acro_max_z_rate_rad;
-					_rates_sp.thrust_x = _manual.z;
+					_rates_sp.thrust_body[0] = _manual.z;
 
 					if (_rate_sp_pub != nullptr) {
 						/* publish the attitude rates setpoint */
@@ -349,9 +349,9 @@ FixedwingAttitudeControl::vehicle_attitude_setpoint_poll()
 
 	if (att_sp_updated) {
 		if (orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp) == 0) {
-			_rates_sp.thrust_x = _att_sp.thrust_x;
-			_rates_sp.thrust_y = _att_sp.thrust_y;
-			_rates_sp.thrust_z = _att_sp.thrust_z;
+			_rates_sp.thrust_body[0] = _att_sp.thrust_body[0];
+			_rates_sp.thrust_body[1] = _att_sp.thrust_body[1];
+			_rates_sp.thrust_body[2] = _att_sp.thrust_body[2];
 		}
 	}
 }
@@ -801,8 +801,8 @@ void FixedwingAttitudeControl::run()
 						}
 
 						/* throttle passed through if it is finite and if no engine failure was detected */
-						_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(_att_sp.thrust_x)
-								&& !_vehicle_status.engine_failure) ? _att_sp.thrust_x : 0.0f;
+						_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(_att_sp.thrust_body[0])
+								&& !_vehicle_status.engine_failure) ? _att_sp.thrust_body[0] : 0.0f;
 
 						/* scale effort by battery status */
 						if (_parameters.bat_scale_en &&
@@ -863,7 +863,8 @@ void FixedwingAttitudeControl::run()
 					float yaw_u = _yaw_ctrl.control_bodyrate(control_input);
 					_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + trim_yaw : trim_yaw;
 
-					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(_rates_sp.thrust_x) ? _rates_sp.thrust_x : 0.0f;
+					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ?
+							_rates_sp.thrust_body[0] : 0.0f;
 				}
 
 				rate_ctrl_status_s rate_ctrl_status;

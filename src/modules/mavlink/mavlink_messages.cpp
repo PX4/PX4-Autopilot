@@ -3138,7 +3138,7 @@ protected:
 			msg.body_pitch_rate = att_rates_sp.pitch;
 			msg.body_yaw_rate = att_rates_sp.yaw;
 
-			msg.thrust = att_sp.thrust_x;
+			msg.thrust = att_sp.thrust_body[0];
 
 			mavlink_msg_attitude_target_send_struct(_mavlink->get_channel(), &msg);
 
