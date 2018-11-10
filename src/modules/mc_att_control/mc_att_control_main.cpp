@@ -377,7 +377,7 @@ MulticopterAttitudeControl::control_attitude()
 	vehicle_attitude_setpoint_poll();
 
 	// physical thrust axis is the negative of body z axis
-	_thrust_sp = -_v_att_sp.thrust_z;
+	_thrust_sp = -_v_att_sp.thrust_body[2];
 
 	/* prepare yaw weight from the ratio between roll/pitch and yaw gains */
 	Vector3f attitude_gain = _attitude_p;
@@ -584,9 +584,9 @@ MulticopterAttitudeControl::publish_rates_setpoint()
 	_v_rates_sp.roll = _rates_sp(0);
 	_v_rates_sp.pitch = _rates_sp(1);
 	_v_rates_sp.yaw = _rates_sp(2);
-	_v_rates_sp.thrust_x = 0;
-	_v_rates_sp.thrust_y = 0;
-	_v_rates_sp.thrust_z = -_thrust_sp;
+	_v_rates_sp.thrust_body[0] = 0;
+	_v_rates_sp.thrust_body[1] = 0;
+	_v_rates_sp.thrust_body[2] = -_thrust_sp;
 	_v_rates_sp.timestamp = hrt_absolute_time();
 
 	if (_v_rates_sp_pub != nullptr) {
@@ -777,7 +777,7 @@ MulticopterAttitudeControl::run()
 						_rates_sp(0) = _v_rates_sp.roll;
 						_rates_sp(1) = _v_rates_sp.pitch;
 						_rates_sp(2) = _v_rates_sp.yaw;
-						_thrust_sp = -_v_rates_sp.thrust_z;
+						_thrust_sp = -_v_rates_sp.thrust_body[2];
 					}
 				}
 			}

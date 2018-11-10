@@ -235,7 +235,7 @@ void Tailsitter::update_transition_state()
 		}
 	}
 
-	_v_att_sp->thrust_z = _mc_virtual_att_sp->thrust_z;
+	_v_att_sp->thrust_body[2] = _mc_virtual_att_sp->thrust_body[2];
 
 	_mc_roll_weight = 1.0f;
 	_mc_pitch_weight = 1.0f;
@@ -252,7 +252,7 @@ void Tailsitter::update_transition_state()
 void Tailsitter::waiting_on_tecs()
 {
 	// copy the last trust value from the front transition
-	_v_att_sp->thrust_x = _thrust_transition;
+	_v_att_sp->thrust_body[0] = _thrust_transition;
 }
 
 void Tailsitter::update_fw_state()
