@@ -104,6 +104,7 @@ public:
 
 
 	static struct work_s	_work;
+	static struct work_s	_work_publisher;
 
 private:
 
@@ -136,8 +137,9 @@ private:
 
 	// Signal capture statistics
 	uint32_t		_capture_seq;
-	hrt_abstime		_last_fall_time;
+	hrt_abstime		_last_trig_begin_time;
 	hrt_abstime		_last_exposure_time;
+	hrt_abstime		_last_trig_time;
 	uint32_t 		_capture_overflows;
 
 	// Signal capture callback
@@ -152,3 +154,4 @@ private:
 
 };
 struct work_s CameraCapture::_work;
+struct work_s CameraCapture::_work_publisher;
