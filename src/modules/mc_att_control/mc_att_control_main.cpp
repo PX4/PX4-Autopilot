@@ -613,6 +613,14 @@ MulticopterAttitudeControl::run()
 	}
 
 	_sensor_correction_sub = orb_subscribe(ORB_ID(sensor_correction));
+
+	// sensor correction topic is not being published regularly and we might have missed the first update.
+	// so copy it once initially so that we have the latest data. In future this will not be needed anymore as the
+	// behavior of the orb_check function will change
+	if (_sensor_correction_sub > 0) {
+		orb_copy(ORB_ID(sensor_correction), _sensor_correction_sub, &_sensor_correction);
+	}
+
 	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
 
 	/* wakeup source: gyro data from sensor selected by the sensor app */
