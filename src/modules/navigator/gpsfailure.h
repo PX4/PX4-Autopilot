@@ -73,6 +73,7 @@ private:
 	hrt_abstime _timestamp_activation{0}; //*< timestamp when this mode was activated */
 
 	orb_advert_t	_att_sp_pub{nullptr};
+	orb_advert_t	_thrust_sp_pub{nullptr};
 
 	/**
 	 * Set the GPSF item

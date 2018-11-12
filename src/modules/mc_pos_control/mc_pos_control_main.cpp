@@ -49,6 +49,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -100,11 +101,14 @@ private:
 	bool 		_in_smooth_takeoff = false; 		/**<true if takeoff ramp is applied */
 
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
+	orb_advert_t	_thrust_sp_pub{nullptr};			/**< thrust setpoint publication */
 	orb_advert_t	_traj_sp_pub{nullptr};		/**< trajectory setpoints publication */
 	orb_advert_t	_local_pos_sp_pub{nullptr};		/**< vehicle local position setpoint publication */
 	orb_advert_t _traj_wp_avoidance_desired_pub{nullptr}; /**< trajectory waypoint desired publication */
 	orb_advert_t _pub_vehicle_command{nullptr};           /**< vehicle command publication */
+
 	orb_id_t _attitude_setpoint_id{nullptr};
+	orb_id_t _thrust_setpoint_id{nullptr};
 
 	int		_vehicle_status_sub{-1};		/**< vehicle status subscription */
 	int		_vehicle_land_detected_sub{-1};	/**< vehicle land detected subscription */
@@ -412,15 +416,17 @@ MulticopterPositionControl::poll_subscriptions()
 		if (!_attitude_setpoint_id) {
 			if (_vehicle_status.is_vtol) {
 				_attitude_setpoint_id = ORB_ID(mc_virtual_attitude_setpoint);
+				_thrust_setpoint_id = ORB_ID(mc_virtual_thrust_setpoint);
+
+				// if vehicle is a VTOL we want to enable weathervane capabilities
+				if (_wv_controller == nullptr) {
+					_wv_controller = new WeatherVane();
+				}
 
 			} else {
 				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
+				_attitude_setpoint_id = ORB_ID(vehicle_thrust_setpoint);
 			}
-		}
-
-		// if vehicle is a VTOL we want to enable weathervane capabilities
-		if (_wv_controller == nullptr && _vehicle_status.is_vtol) {
-			_wv_controller = new WeatherVane();
 		}
 	}
 
@@ -803,6 +809,17 @@ MulticopterPositionControl::run()
 			// they might conflict with each other such as in offboard attitude control.
 			publish_attitude();
 
+			vehicle_thrust_setpoint_s thrust_sp{};
+			thrust_sp.thrust_body[2] = -thr_sp.length();
+			thrust_sp.timestamp = hrt_absolute_time();
+
+			if (_thrust_sp_pub != nullptr) {
+				orb_publish(_thrust_setpoint_id, _thrust_sp_pub, &thrust_sp);
+
+			} else if (_thrust_setpoint_id) {
+				_thrust_sp_pub = orb_advertise(_thrust_setpoint_id, &thrust_sp);
+			}
+
 		} else {
 			// no flighttask is active: set attitude setpoint to idle
 			_att_sp.roll_body = _att_sp.pitch_body = 0.0f;
@@ -813,7 +830,6 @@ MulticopterPositionControl::run()
 			matrix::Quatf q_sp = matrix::Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
 			q_sp.copyTo(_att_sp.q_d);
 			_att_sp.q_d_valid = true;
-			_att_sp.thrust_body[2] = 0.0f;
 		}
 	}
 

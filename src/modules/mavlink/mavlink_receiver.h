@@ -73,6 +73,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -226,6 +227,7 @@ private:
 	orb_advert_t _offboard_control_mode_pub;
 	orb_advert_t _actuator_controls_pubs[4];
 	orb_advert_t _att_sp_pub;
+	orb_advert_t _thrust_sp_pub;
 	orb_advert_t _rates_sp_pub;
 	orb_advert_t _pos_sp_triplet_pub;
 	orb_advert_t _mocap_odometry_pub;

@@ -95,6 +95,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/mount_orientation.h>
@@ -3098,6 +3099,7 @@ public:
 
 private:
 	MavlinkOrbSubscription *_att_sp_sub;
+	MavlinkOrbSubscription *_thrust_sp_sub;
 	MavlinkOrbSubscription *_att_rates_sp_sub;
 
 	uint64_t _att_sp_time;
@@ -3109,6 +3111,7 @@ private:
 protected:
 	explicit MavlinkStreamAttitudeTarget(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_att_sp_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude_setpoint))),
+		_thrust_sp_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_thrust_setpoint))),
 		_att_rates_sp_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_rates_setpoint))),
 		_att_sp_time(0)
 	{}
@@ -3118,9 +3121,10 @@ protected:
 		vehicle_attitude_setpoint_s att_sp;
 
 		if (_att_sp_sub->update(&_att_sp_time, &att_sp)) {
-
 			vehicle_rates_setpoint_s att_rates_sp = {};
+			vehicle_thrust_setpoint_s thrust_sp{};
 			_att_rates_sp_sub->update(&att_rates_sp);
+			_thrust_sp_sub->update(&thrust_sp);
 
 			mavlink_attitude_target_t msg = {};
 
@@ -3138,7 +3142,7 @@ protected:
 			msg.body_pitch_rate = att_rates_sp.pitch;
 			msg.body_yaw_rate = att_rates_sp.yaw;
 
-			msg.thrust = att_sp.thrust_body[0];
+			msg.thrust = thrust_sp.thrust_body[0];
 
 			mavlink_msg_attitude_target_send_struct(_mavlink->get_channel(), &msg);
 

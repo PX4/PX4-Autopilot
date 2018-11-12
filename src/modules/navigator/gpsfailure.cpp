@@ -46,6 +46,8 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <mathlib/mathlib.h>
 
 using matrix::Eulerf;
@@ -86,7 +88,10 @@ GpsFailure::on_active()
 			att_sp.timestamp = hrt_absolute_time();
 			att_sp.roll_body = math::radians(_param_openlooploiter_roll.get());
 			att_sp.pitch_body = math::radians(_param_openlooploiter_pitch.get());
-			att_sp.thrust_body[0] = _param_openlooploiter_thrust.get();
+
+			vehicle_thrust_setpoint_s thrust_sp = {};
+			thrust_sp.timestamp = att_sp.timestamp;
+			thrust_sp.thrust_body[0] = _param_openlooploiter_thrust.get();
 
 			Quatf q(Eulerf(att_sp.roll_body, att_sp.pitch_body, 0.0f));
 			q.copyTo(att_sp.q_d);
@@ -99,6 +104,15 @@ GpsFailure::on_active()
 			} else {
 				/* advertise and publish */
 				_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
+			}
+
+			if (_thrust_sp_pub != nullptr) {
+				/* publish att sp*/
+				orb_publish(ORB_ID(vehicle_thrust_setpoint), _thrust_sp_pub, &thrust_sp);
+
+			} else {
+				/* advertise and publish */
+				_thrust_sp_pub = orb_advertise(ORB_ID(vehicle_thrust_setpoint), &thrust_sp);
 			}
 
 			/* Measure time */

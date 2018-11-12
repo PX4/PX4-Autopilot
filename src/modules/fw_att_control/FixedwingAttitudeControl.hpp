@@ -55,6 +55,7 @@
 #include <uORB/topics/rate_ctrl_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -98,7 +99,8 @@ private:
 
 	int		_att_sub{-1};				/**< vehicle attitude */
 	int		_att_sp_sub{-1};			/**< vehicle attitude setpoint */
-	int		_rates_sp_sub{-1};			/**< vehicle attitude setpoint */
+	int		_thrust_sp_sub{-1};			/**< vehicle thrust setpoint */
+	int		_rates_sp_sub{-1};			/**< vehicle rates setpoint */
 	int		_battery_status_sub{-1};		/**< battery status subscription */
 	int		_global_pos_sub{-1};			/**< global position subscription */
 	int		_manual_sub{-1};			/**< notification of manual control updates */
@@ -112,15 +114,18 @@ private:
 	orb_advert_t	_actuators_0_pub{nullptr};		/**< actuator control group 0 setpoint */
 	orb_advert_t	_actuators_2_pub{nullptr};		/**< actuator control group 1 setpoint (Airframe) */
 	orb_advert_t	_rate_ctrl_status_pub{nullptr};		/**< rate controller status publication */
+	orb_advert_t	_thrust_sp_pub{nullptr};		/**< thrust setpoint point */
 
 	orb_id_t _actuators_id{nullptr};	// pointer to correct actuator controls0 uORB metadata structure
 	orb_id_t _attitude_setpoint_id{nullptr};
+	orb_id_t _thrust_setpoint_id{nullptr};
 
 	actuator_controls_s			_actuators {};		/**< actuator control inputs */
 	actuator_controls_s			_actuators_airframe {};	/**< actuator control inputs */
 	manual_control_setpoint_s		_manual {};		/**< r/c channel data */
 	vehicle_attitude_s			_att {};		/**< vehicle attitude setpoint */
 	vehicle_attitude_setpoint_s		_att_sp {};		/**< vehicle attitude setpoint */
+	vehicle_thrust_setpoint_s		_thrust_sp {};		/**< vehicle attitude setpoint */
 	vehicle_control_mode_s			_vcontrol_mode {};	/**< vehicle control mode */
 	vehicle_global_position_s		_global_pos {};		/**< global position */
 	vehicle_rates_setpoint_s		_rates_sp {};		/* attitude rates setpoint */
@@ -297,6 +302,7 @@ private:
 	void		vehicle_control_mode_poll();
 	void		vehicle_manual_poll();
 	void		vehicle_attitude_setpoint_poll();
+	void		vehicle_thrust_setpoint_poll();
 	void		vehicle_rates_setpoint_poll();
 	void		global_pos_poll();
 	void		vehicle_status_poll();

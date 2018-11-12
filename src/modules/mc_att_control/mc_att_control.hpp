@@ -52,6 +52,7 @@
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
@@ -104,6 +105,7 @@ private:
 	void		sensor_correction_poll();
 	bool		vehicle_attitude_poll();
 	void		vehicle_attitude_setpoint_poll();
+	void		vehicle_thrust_setpoint_poll();
 	void		vehicle_control_mode_poll();
 	bool		vehicle_manual_poll();
 	void		vehicle_motor_limits_poll();
@@ -112,6 +114,7 @@ private:
 
 	void		publish_actuator_controls();
 	void		publish_rates_setpoint();
+	void		publish_thrust_setpoint();
 	void		publish_rate_controller_status();
 
 	/**
@@ -132,6 +135,7 @@ private:
 
 	int		_v_att_sub{-1};			/**< vehicle attitude subscription */
 	int		_v_att_sp_sub{-1};		/**< vehicle attitude setpoint subscription */
+	int		_v_thrust_sp_sub{-1};		/**< vehicle thrust setpoint subscription */
 	int		_v_rates_sp_sub{-1};		/**< vehicle rates setpoint subscription */
 	int		_v_control_mode_sub{-1};	/**< vehicle control mode subscription */
 	int		_params_sub{-1};		/**< parameter updates subscription */
@@ -148,6 +152,7 @@ private:
 	int _selected_gyro{0};
 
 	orb_advert_t	_v_rates_sp_pub{nullptr};		/**< rate setpoint publication */
+	orb_advert_t	_v_thrust_sp_pub{nullptr};		/**< thrust setpoint publication */
 	orb_advert_t	_actuators_0_pub{nullptr};		/**< attitude actuator controls publication */
 	orb_advert_t	_controller_status_pub{nullptr};	/**< controller status publication */
 
@@ -180,8 +185,8 @@ private:
 	matrix::Vector3f _rates_prev_filtered;		/**< angular rates on previous step (low-pass filtered) */
 	matrix::Vector3f _rates_sp;			/**< angular rates setpoint */
 	matrix::Vector3f _rates_int;			/**< angular rates integral error */
-	float _thrust_sp;			/**< thrust setpoint */
 	matrix::Vector3f _att_control;			/**< attitude control vector */
+	float		_thrust_sp{0.0f};		/**< thrust setpoint */
 
 	matrix::Dcmf _board_rotation;			/**< rotation matrix for the orientation that the board is mounted */
 

@@ -40,7 +40,7 @@
  */
 extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[]);
 
-static constexpr float _airspeed_numerical_min =
+static const float _airspeed_numerical_min =
 	0.5f; /**< lowest airspeed we will ever use to prevent numerical problems */
 
 FixedwingAttitudeControl::FixedwingAttitudeControl() :
@@ -51,6 +51,9 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fwa_nani")),
 	_nonfinite_output_perf(perf_alloc(PC_COUNT, "fwa_nano"))
 {
+	// check if VTOL first
+	vehicle_status_poll();
+
 	_parameter_handles.p_tc = param_find("FW_P_TC");
 	_parameter_handles.p_p = param_find("FW_PR_P");
 	_parameter_handles.p_i = param_find("FW_PR_I");
@@ -123,10 +126,35 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	/* fetch initial parameter values */
 	parameters_update();
+
+	// subscriptions
+	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
+	_thrust_sp_sub = orb_subscribe(ORB_ID(vehicle_thrust_setpoint));
+	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
+	_params_sub = orb_subscribe(ORB_ID(parameter_update));
+	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
+	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
+	_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 }
 
 FixedwingAttitudeControl::~FixedwingAttitudeControl()
 {
+	orb_unsubscribe(_att_sub);
+	orb_unsubscribe(_att_sp_sub);
+	orb_unsubscribe(_thrust_sp_sub);
+	orb_unsubscribe(_vcontrol_mode_sub);
+	orb_unsubscribe(_params_sub);
+	orb_unsubscribe(_manual_sub);
+	orb_unsubscribe(_global_pos_sub);
+	orb_unsubscribe(_vehicle_status_sub);
+	orb_unsubscribe(_vehicle_land_detected_sub);
+	orb_unsubscribe(_battery_status_sub);
+	orb_unsubscribe(_rates_sp_sub);
+
 	perf_free(_loop_perf);
 	perf_free(_nonfinite_input_perf);
 	perf_free(_nonfinite_output_perf);
@@ -135,7 +163,6 @@ FixedwingAttitudeControl::~FixedwingAttitudeControl()
 int
 FixedwingAttitudeControl::parameters_update()
 {
-
 	int32_t tmp = 0;
 	param_get(_parameter_handles.p_tc, &(_parameters.p_tc));
 	param_get(_parameter_handles.p_p, &(_parameters.p_p));
@@ -254,12 +281,12 @@ FixedwingAttitudeControl::parameters_update()
 void
 FixedwingAttitudeControl::vehicle_control_mode_poll()
 {
-	bool vcontrol_mode_updated;
+	bool updated = false;
 
 	/* Check if vehicle control mode has changed */
-	orb_check(_vcontrol_mode_sub, &vcontrol_mode_updated);
+	orb_check(_vcontrol_mode_sub, &updated);
 
-	if (vcontrol_mode_updated) {
+	if (updated) {
 		orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &_vcontrol_mode);
 	}
 }
@@ -267,7 +294,7 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 void
 FixedwingAttitudeControl::vehicle_manual_poll()
 {
-	bool manual_updated;
+	bool manual_updated = false;
 	orb_check(_manual_sub, &manual_updated);
 
 	if (_vcontrol_mode.flag_control_manual_enabled && manual_updated && !_vehicle_status.is_rotary_wing) {
@@ -293,7 +320,6 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 					_att_sp.pitch_body = -_manual.x * _parameters.man_pitch_max + _parameters.pitchsp_offset_rad;
 					_att_sp.pitch_body = math::constrain(_att_sp.pitch_body, -_parameters.man_pitch_max, _parameters.man_pitch_max);
 					_att_sp.yaw_body = 0.0f;
-					_att_sp.thrust_body[0] = _manual.z;
 
 					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
 					q.copyTo(_att_sp.q_d);
@@ -308,6 +334,18 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 						_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 					}
 
+					_thrust_sp.thrust_body[0] = _manual.z;
+					_thrust_sp.timestamp = hrt_absolute_time();
+
+					if (_thrust_sp_pub != nullptr) {
+						/* publish the attitude rates setpoint */
+						orb_publish(_thrust_setpoint_id, _thrust_sp_pub, &_thrust_sp);
+
+					} else if (_thrust_setpoint_id) {
+						/* advertise the attitude rates setpoint */
+						_thrust_sp_pub = orb_advertise(_thrust_setpoint_id, &_thrust_sp);
+					}
+
 				} else if (_vcontrol_mode.flag_control_rates_enabled &&
 					   !_vcontrol_mode.flag_control_attitude_enabled) {
 
@@ -316,7 +354,6 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 					_rates_sp.roll = _manual.y * _parameters.acro_max_x_rate_rad;
 					_rates_sp.pitch = -_manual.x * _parameters.acro_max_y_rate_rad;
 					_rates_sp.yaw = _manual.r * _parameters.acro_max_z_rate_rad;
-					_rates_sp.thrust_body[0] = _manual.z;
 
 					if (_rate_sp_pub != nullptr) {
 						/* publish the attitude rates setpoint */
@@ -325,6 +362,18 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 					} else {
 						/* advertise the attitude rates setpoint */
 						_rate_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_rates_sp);
+					}
+
+					_thrust_sp.thrust_body[0] = _manual.z;
+					_thrust_sp.timestamp = hrt_absolute_time();
+
+					if (_thrust_sp_pub != nullptr) {
+						/* publish the attitude rates setpoint */
+						orb_publish(_thrust_setpoint_id, _thrust_sp_pub, &_thrust_sp);
+
+					} else if (_thrust_setpoint_id) {
+						/* advertise the attitude rates setpoint */
+						_thrust_sp_pub = orb_advertise(_thrust_setpoint_id, &_thrust_sp);
 					}
 
 				} else {
@@ -348,11 +397,18 @@ FixedwingAttitudeControl::vehicle_attitude_setpoint_poll()
 	orb_check(_att_sp_sub, &att_sp_updated);
 
 	if (att_sp_updated) {
-		if (orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp) == 0) {
-			_rates_sp.thrust_body[0] = _att_sp.thrust_body[0];
-			_rates_sp.thrust_body[1] = _att_sp.thrust_body[1];
-			_rates_sp.thrust_body[2] = _att_sp.thrust_body[2];
-		}
+		orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp);
+	}
+}
+
+void
+FixedwingAttitudeControl::vehicle_thrust_setpoint_poll()
+{
+	bool updated = false;
+	orb_check(_thrust_sp_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_thrust_setpoint), _thrust_sp_sub, &_thrust_sp);
 	}
 }
 
@@ -371,8 +427,6 @@ FixedwingAttitudeControl::vehicle_rates_setpoint_poll()
 			_rates_sp.roll = -_rates_sp.yaw;
 			_rates_sp.yaw = tmp;
 		}
-
-
 	}
 }
 
@@ -413,6 +467,7 @@ FixedwingAttitudeControl::vehicle_status_poll()
 			if (_vehicle_status.is_vtol) {
 				_actuators_id = ORB_ID(actuator_controls_virtual_fw);
 				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
+				_thrust_setpoint_id = ORB_ID(fw_virtual_thrust_setpoint);
 
 				_parameter_handles.vtol_type = param_find("VT_TYPE");
 				_parameter_handles.vtol_airspeed_rule = param_find("VT_AIRSPD_RULE");
@@ -422,6 +477,7 @@ FixedwingAttitudeControl::vehicle_status_poll()
 			} else {
 				_actuators_id = ORB_ID(actuator_controls_0);
 				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
+				_thrust_setpoint_id = ORB_ID(vehicle_thrust_setpoint);
 			}
 		}
 	}
@@ -467,29 +523,6 @@ float FixedwingAttitudeControl::get_airspeed_scaling(float airspeed)
 
 void FixedwingAttitudeControl::run()
 {
-	/*
-	 * do subscriptions
-	 */
-	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
-	_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
-
-	parameters_update();
-
-	/* get an initial update for all sensor and status data */
-	vehicle_attitude_setpoint_poll();
-	vehicle_control_mode_poll();
-	vehicle_manual_poll();
-	vehicle_status_poll();
-	vehicle_land_detected_poll();
-
 	// set initial maximum body rate setpoints
 	_roll_ctrl.set_max_rate(_parameters.acro_max_x_rate_rad);
 	_pitch_ctrl.set_max_rate_pos(_parameters.acro_max_y_rate_rad);
@@ -598,6 +631,7 @@ void FixedwingAttitudeControl::run()
 
 			_airspeed_sub.update();
 			vehicle_attitude_setpoint_poll();
+			vehicle_thrust_setpoint_poll();
 			vehicle_control_mode_poll();
 			vehicle_manual_poll();
 			global_pos_poll();
@@ -801,8 +835,8 @@ void FixedwingAttitudeControl::run()
 						}
 
 						/* throttle passed through if it is finite and if no engine failure was detected */
-						_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(_att_sp.thrust_body[0])
-								&& !_vehicle_status.engine_failure) ? _att_sp.thrust_body[0] : 0.0f;
+						_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(_thrust_sp.thrust_body[0])
+								&& !_vehicle_status.engine_failure) ? _thrust_sp.thrust_body[0] : 0.0f;
 
 						/* scale effort by battery status */
 						if (_parameters.bat_scale_en &&
@@ -863,8 +897,8 @@ void FixedwingAttitudeControl::run()
 					float yaw_u = _yaw_ctrl.control_bodyrate(control_input);
 					_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + trim_yaw : trim_yaw;
 
-					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ?
-							_rates_sp.thrust_body[0] : 0.0f;
+					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(_thrust_sp.thrust_body[0]) ?
+							_thrust_sp.thrust_body[0] : 0.0f;
 				}
 
 				rate_ctrl_status_s rate_ctrl_status;

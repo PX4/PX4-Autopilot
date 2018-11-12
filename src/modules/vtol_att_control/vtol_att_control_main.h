@@ -69,6 +69,7 @@
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -105,9 +106,15 @@ public:
 	struct position_setpoint_triplet_s		*get_pos_sp_triplet() {return &_pos_sp_triplet;}
 	struct tecs_status_s 				*get_tecs_status() {return &_tecs_status;}
 	struct vehicle_attitude_s 			*get_att() {return &_v_att;}
+
 	struct vehicle_attitude_setpoint_s		*get_att_sp() {return &_v_att_sp;}
 	struct vehicle_attitude_setpoint_s 		*get_fw_virtual_att_sp() {return &_fw_virtual_att_sp;}
 	struct vehicle_attitude_setpoint_s 		*get_mc_virtual_att_sp() {return &_mc_virtual_att_sp;}
+
+	struct vehicle_thrust_setpoint_s		*get_thrust_sp() {return &_v_thrust_sp;}
+	struct vehicle_thrust_setpoint_s 		*get_fw_virtual_thrust_sp() {return &_fw_virtual_thrust_sp;}
+	struct vehicle_thrust_setpoint_s 		*get_mc_virtual_thrust_sp() {return &_mc_virtual_thrust_sp;}
+
 	struct vehicle_control_mode_s 			*get_control_mode() {return &_v_control_mode;}
 	struct vehicle_land_detected_s			*get_land_detected() {return &_land_detected;}
 	struct vehicle_local_position_s 		*get_local_pos() {return &_local_pos;}
@@ -126,24 +133,30 @@ private:
 	int	_actuator_inputs_fw{-1};	//topic on which the fw_att_controller publishes actuator inputs
 	int	_actuator_inputs_mc{-1};	//topic on which the mc_att_controller publishes actuator inputs
 	int	_airspeed_sub{-1};			// airspeed subscription
-	int	_fw_virtual_att_sp_sub{-1};
 	int	_land_detected_sub{-1};
 	int	_local_pos_sp_sub{-1};			// setpoint subscription
 	int	_local_pos_sub{-1};			// sensor subscription
 	int	_manual_control_sp_sub{-1};	//manual control setpoint subscription
-	int	_mc_virtual_att_sp_sub{-1};
 	int	_params_sub{-1};			//parameter updates subscription
 	int	_pos_sp_triplet_sub{-1};			// local position setpoint subscription
 	int	_tecs_status_sub{-1};
-	int	_v_att_sp_sub{-1};			//vehicle attitude setpoint subscription
 	int	_v_att_sub{-1};				//vehicle attitude subscription
 	int	_v_control_mode_sub{-1};	//vehicle control mode subscription
 	int	_vehicle_cmd_sub{-1};
+
+	int	_v_att_sp_sub{-1};			//vehicle attitude setpoint subscription
+	int	_mc_virtual_att_sp_sub{-1};
+	int	_fw_virtual_att_sp_sub{-1};
+
+	int	_v_thrust_sp_sub{-1};			//vehicle attitude setpoint subscription
+	int	_mc_virtual_thrust_sp_sub{-1};
+	int	_fw_virtual_thrust_sp_sub{-1};
 
 	//handlers for publishers
 	orb_advert_t	_actuators_0_pub{nullptr};		//input for the mixer (roll,pitch,yaw,thrust)
 	orb_advert_t	_mavlink_log_pub{nullptr};	// mavlink log uORB handle
 	orb_advert_t	_v_att_sp_pub{nullptr};
+	orb_advert_t	_v_thrust_sp_pub{nullptr};
 	orb_advert_t	_v_cmd_ack_pub{nullptr};
 	orb_advert_t	_vtol_vehicle_status_pub{nullptr};
 	orb_advert_t 	_actuators_1_pub{nullptr};
@@ -153,6 +166,10 @@ private:
 	vehicle_attitude_setpoint_s		_v_att_sp{};			//vehicle attitude setpoint
 	vehicle_attitude_setpoint_s 		_fw_virtual_att_sp{};	// virtual fw attitude setpoint
 	vehicle_attitude_setpoint_s 		_mc_virtual_att_sp{};	// virtual mc attitude setpoint
+
+	vehicle_thrust_setpoint_s		_v_thrust_sp{};			//vehicle attitude setpoint
+	vehicle_thrust_setpoint_s 		_fw_virtual_thrust_sp{};	// virtual fw attitude setpoint
+	vehicle_thrust_setpoint_s 		_mc_virtual_thrust_sp{};	// virtual mc attitude setpoint
 
 	actuator_controls_s			_actuators_fw_in{};	//actuator controls from fw_att_control
 	actuator_controls_s			_actuators_mc_in{};	//actuator controls from mc_att_control
@@ -220,8 +237,13 @@ private:
 	void		vehicle_manual_poll();			//Check for changes in manual inputs.
 	void 		actuator_controls_fw_poll();	//Check for changes in fw_attitude_control output
 	void 		actuator_controls_mc_poll();	//Check for changes in mc_attitude_control output
+
 	void 		fw_virtual_att_sp_poll();
 	void 		mc_virtual_att_sp_poll();
+
+	//void 		fw_virtual_thrust_sp_poll();
+	void 		mc_virtual_thrust_sp_poll();
+
 	void 		pos_sp_triplet_poll();		// Check for changes in position setpoint values
 	void 		vehicle_airspeed_poll();		// Check for changes in airspeed
 	void 		vehicle_local_pos_poll();		// Check for changes in sensor values

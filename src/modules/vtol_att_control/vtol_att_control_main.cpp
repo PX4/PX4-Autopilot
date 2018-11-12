@@ -287,6 +287,21 @@ VtolAttitudeControl::mc_virtual_att_sp_poll()
 }
 
 /**
+* Check for mc virtual thrust setpoint updates.
+*/
+void
+VtolAttitudeControl::mc_virtual_thrust_sp_poll()
+{
+	bool updated = false;
+
+	orb_check(_mc_virtual_thrust_sp_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(mc_virtual_thrust_setpoint), _mc_virtual_thrust_sp_sub, &_mc_virtual_thrust_sp);
+	}
+}
+
+/**
 * Check for fw virtual attitude setpoint updates.
 */
 void
@@ -527,6 +542,11 @@ void VtolAttitudeControl::task_main()
 	_v_att_sp_sub          = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_mc_virtual_att_sp_sub = orb_subscribe(ORB_ID(mc_virtual_attitude_setpoint));
 	_fw_virtual_att_sp_sub = orb_subscribe(ORB_ID(fw_virtual_attitude_setpoint));
+
+	_v_thrust_sp_sub          = orb_subscribe(ORB_ID(vehicle_thrust_setpoint));
+	_mc_virtual_thrust_sp_sub = orb_subscribe(ORB_ID(mc_virtual_thrust_setpoint));
+	_fw_virtual_thrust_sp_sub = orb_subscribe(ORB_ID(fw_virtual_thrust_setpoint));
+
 	_v_att_sub             = orb_subscribe(ORB_ID(vehicle_attitude));
 	_v_control_mode_sub    = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub            = orb_subscribe(ORB_ID(parameter_update));
@@ -630,6 +650,7 @@ void VtolAttitudeControl::task_main()
 		if (_vtol_type->get_mode() == ROTARY_WING) {
 
 			mc_virtual_att_sp_poll();
+			mc_virtual_thrust_sp_poll();
 
 			// vehicle is in rotary wing mode
 			_vtol_vehicle_status.vtol_in_rw_mode = true;
@@ -653,7 +674,9 @@ void VtolAttitudeControl::task_main()
 		} else if (_vtol_type->get_mode() == TRANSITION_TO_MC || _vtol_type->get_mode() == TRANSITION_TO_FW) {
 
 			mc_virtual_att_sp_poll();
+			mc_virtual_thrust_sp_poll();
 			fw_virtual_att_sp_poll();
+			//fw_virtual_thrust_sp_poll();
 
 			// vehicle is doing a transition
 			_vtol_vehicle_status.vtol_in_trans_mode = true;
@@ -677,6 +700,15 @@ void VtolAttitudeControl::task_main()
 			} else {
 				/* advertise and publish */
 				_v_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_v_att_sp);
+			}
+
+			if (_v_thrust_sp_pub != nullptr) {
+				/* publish the thrust setpoint */
+				orb_publish(ORB_ID(vehicle_thrust_setpoint), _v_thrust_sp_pub, &_v_thrust_sp);
+
+			} else {
+				/* advertise and publish */
+				_v_thrust_sp_pub = orb_advertise(ORB_ID(vehicle_thrust_setpoint), &_v_thrust_sp);
 			}
 
 			if (_actuators_0_pub != nullptr) {

@@ -261,7 +261,7 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 			_att_sp.roll_body = 0.0f;
 			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = 0.0f;
-			_att_sp.thrust_body[0] = 0.0f;
+			_thrust_sp.thrust_body[0] = 0.0f;
 
 		} else if ((pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION)
 			   || (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
@@ -272,7 +272,7 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
 			_att_sp.fw_control_yaw = true;
-			_att_sp.thrust_body[0] = mission_throttle;
+			_thrust_sp.thrust_body[0] = mission_throttle;
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
@@ -284,7 +284,7 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
 			_att_sp.fw_control_yaw = true;
-			_att_sp.thrust_body[0] = 0.0f;
+			_thrust_sp.thrust_body[0] = 0.0f;
 		}
 
 		if (was_circle_mode && !_gnd_control.circle_mode()) {
@@ -299,7 +299,7 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 		_att_sp.pitch_body = 0.0f;
 		_att_sp.yaw_body = 0.0f;
 		_att_sp.fw_control_yaw = true;
-		_att_sp.thrust_body[0] = 0.0f;
+		_thrust_sp.thrust_body[0] = 0.0f;
 
 		/* do not publish the setpoint */
 		setpoint = false;
@@ -403,6 +403,7 @@ GroundRoverPositionControl::task_main()
 			 */
 			if (control_position(current_position, ground_speed, _pos_sp_triplet)) {
 				_att_sp.timestamp = hrt_absolute_time();
+				_thrust_sp.timestamp = _att_sp.timestamp;
 
 				Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
 				q.copyTo(_att_sp.q_d);
@@ -421,6 +422,16 @@ GroundRoverPositionControl::task_main()
 					} else {
 						/* advertise and publish */
 						_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
+					}
+
+					/* lazily publish the setpoint only once available */
+					if (_thrust_sp_pub != nullptr) {
+						/* publish the attitude setpoint */
+						orb_publish(ORB_ID(vehicle_thrust_setpoint), _thrust_sp_pub, &_thrust_sp);
+
+					} else {
+						/* advertise and publish */
+						_thrust_sp_pub = orb_advertise(ORB_ID(vehicle_thrust_setpoint), &_thrust_sp);
 					}
 
 					/* XXX check if radius makes sense here */

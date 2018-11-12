@@ -57,6 +57,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -123,8 +124,9 @@ static void usage(const char *reason);
  * @param att_sp The current attitude setpoint - the values the system would like to reach.
  * @param att The current attitude. The controller should make the attitude match the setpoint
  */
-void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
-		      struct actuator_controls_s *actuators);
+void control_attitude(const vehicle_attitude_setpoint_s *att_sp, const vehicle_thrust_setpoint_s *thrust_sp,
+		      const struct vehicle_attitude_s *att, actuator_controls_s *actuators);
+
 
 /* Variables */
 static bool thread_should_exit = false;		/**< Daemon exit flag */
@@ -148,8 +150,8 @@ int parameters_update(const struct param_handles *h, struct params *p)
 	return OK;
 }
 
-void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
-		      struct actuator_controls_s *actuators)
+void control_attitude(const vehicle_attitude_setpoint_s *att_sp, const vehicle_thrust_setpoint_s *thrust_sp,
+		      const struct vehicle_attitude_s *att, actuator_controls_s *actuators)
 {
 	/*
 	 * The PX4 architecture provides a mixer outside of the controller.
@@ -182,7 +184,7 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
 	actuators->control[2] = yaw_err * pp.yaw_p;
 
 	/* copy throttle */
-	actuators->control[3] = att_sp->thrust_body[0];
+	actuators->control[3] = -thrust_sp->thrust_body[0];
 
 	actuators->timestamp = hrt_absolute_time();
 }
@@ -233,6 +235,9 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 	memset(&att, 0, sizeof(att));
 	struct vehicle_attitude_setpoint_s att_sp;
 	memset(&att_sp, 0, sizeof(att_sp));
+
+	vehicle_thrust_setpoint_s thrust_sp{};
+
 	struct vehicle_global_position_s global_pos;
 	memset(&global_pos, 0, sizeof(global_pos));
 	struct manual_control_setpoint_s manual_sp;
@@ -252,8 +257,6 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 		actuators.control[i] = 0.0f;
 	}
 
-	struct vehicle_attitude_setpoint_s _att_sp = {};
-
 	/*
 	 * Advertise that this controller will publish actuator
 	 * control values and the rate setpoint
@@ -262,27 +265,19 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 
 	/* subscribe to topics. */
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-
 	int global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-
 	int manual_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-
 	int vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
-
 	int att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-
+	int thrust_sp_sub = orb_subscribe(ORB_ID(vehicle_thrust_setpoint));
 	int param_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	/* Setup of loop */
 
 	struct pollfd fds[2];
-
 	fds[0].fd = param_sub;
-
 	fds[0].events = POLLIN;
-
 	fds[1].fd = att_sub;
-
 	fds[1].events = POLLIN;
 
 	while (!thread_should_exit) {
@@ -325,22 +320,31 @@ int rover_steering_control_thread_main(int argc, char *argv[])
 
 
 				/* Check if there is a new position measurement or position setpoint */
-				bool pos_updated;
+				bool pos_updated = false;
 				orb_check(global_pos_sub, &pos_updated);
-				bool att_sp_updated;
+
+				bool att_sp_updated = false;
 				orb_check(att_sp_sub, &att_sp_updated);
-				bool manual_sp_updated;
+
+				bool thrust_sp_updated = false;
+				orb_check(thrust_sp_sub, &thrust_sp_updated);
+
+				bool manual_sp_updated = false;;
 				orb_check(manual_sp_sub, &manual_sp_updated);
 
 				/* get a local copy of attitude */
 				orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 
 				if (att_sp_updated) {
-					orb_copy(ORB_ID(vehicle_attitude_setpoint), att_sp_sub, &_att_sp);
+					orb_copy(ORB_ID(vehicle_attitude_setpoint), att_sp_sub, &att_sp);
+				}
+
+				if (thrust_sp_updated) {
+					orb_copy(ORB_ID(vehicle_thrust_setpoint), thrust_sp_sub, &thrust_sp);
 				}
 
 				/* control attitude / heading */
-				control_attitude(&_att_sp, &att, &actuators);
+				control_attitude(&att_sp, &thrust_sp, &att, &actuators);
 
 				if (manual_sp_updated)
 					/* get the RC (or otherwise user based) input */

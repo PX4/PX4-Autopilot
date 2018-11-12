@@ -163,6 +163,17 @@ GroundRoverAttitudeControl::vehicle_attitude_setpoint_poll()
 }
 
 void
+GroundRoverAttitudeControl::vehicle_thrust_setpoint_poll()
+{
+	bool updated = false;
+	orb_check(_thrust_sp_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(vehicle_thrust_setpoint), _thrust_sp_sub, &_thrust_sp);
+	}
+}
+
+void
 GroundRoverAttitudeControl::battery_status_poll()
 {
 	/* check if there is a new message */
@@ -185,6 +196,7 @@ void
 GroundRoverAttitudeControl::task_main()
 {
 	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
+	_thrust_sp_sub = orb_subscribe(ORB_ID(vehicle_thrust_setpoint));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -303,7 +315,7 @@ GroundRoverAttitudeControl::task_main()
 					}
 
 					/* throttle passed through if it is finite and if no engine failure was detected */
-					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _att_sp.thrust_body[0];
+					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _thrust_sp.thrust_body[0];
 
 					/* scale effort by battery status */
 					if (_parameters.bat_scale_en && _battery_status.scale > 0.0f &&

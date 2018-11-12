@@ -1451,7 +1451,16 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					// body z axis. If we want to support fixed wing as well we need to handle it differently here, e.g.
 					// in that case we should assign att_sp.thrust_body[0]
 					if (!_offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
-						att_sp.thrust_body[2] = -set_attitude_target.thrust;
+						vehicle_thrust_setpoint_s thrust_sp = {};
+						thrust_sp.timestamp = att_sp.timestamp;
+						thrust_sp.thrust_body[2] = -set_attitude_target.thrust;
+
+						if (_thrust_sp_pub == nullptr) {
+							_thrust_sp_pub = orb_advertise(ORB_ID(vehicle_thrust_setpoint), &thrust_sp);
+
+						} else {
+							orb_publish(ORB_ID(vehicle_thrust_setpoint), _thrust_sp_pub, &thrust_sp);
+						}
 					}
 
 					if (_att_sp_pub == nullptr) {
@@ -1475,7 +1484,16 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					}
 
 					if (!_offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
-						rates_sp.thrust_body[2] = -set_attitude_target.thrust;
+						vehicle_thrust_setpoint_s thrust_sp = {};
+						thrust_sp.timestamp = rates_sp.timestamp;
+						thrust_sp.thrust_body[2] = -set_attitude_target.thrust;
+
+						if (_thrust_sp_pub == nullptr) {
+							_thrust_sp_pub = orb_advertise(ORB_ID(vehicle_thrust_setpoint), &thrust_sp);
+
+						} else {
+							orb_publish(ORB_ID(vehicle_thrust_setpoint), _thrust_sp_pub, &thrust_sp);
+						}
 					}
 
 					if (_rates_sp_pub == nullptr) {

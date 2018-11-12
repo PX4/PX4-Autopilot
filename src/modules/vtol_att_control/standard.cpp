@@ -229,6 +229,7 @@ void Standard::update_transition_state()
 
 	// copy virtual attitude setpoint to real attitude setpoint
 	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+	memcpy(_v_thrust_sp, _mc_virtual_thrust_sp, sizeof(vehicle_thrust_setpoint_s));
 
 	if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
 		if (_params_standard.pusher_ramp_dt <= 0.0f) {
@@ -472,5 +473,5 @@ void
 Standard::waiting_on_tecs()
 {
 	// keep thrust from transition
-	_v_att_sp->thrust_body[0] = _pusher_throttle;
+	_v_thrust_sp->thrust_body[0] = _pusher_throttle;
 };

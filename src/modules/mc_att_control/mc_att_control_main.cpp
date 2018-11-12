@@ -246,6 +246,21 @@ MulticopterAttitudeControl::vehicle_attitude_setpoint_poll()
 	}
 }
 
+void
+MulticopterAttitudeControl::vehicle_thrust_setpoint_poll()
+{
+	/* check if there is a new setpoint */
+	bool updated = false;
+	orb_check(_v_thrust_sp_sub, &updated);
+
+	if (updated) {
+		vehicle_thrust_setpoint_s thrust_sp;
+		if (orb_copy(ORB_ID(vehicle_thrust_setpoint), _v_thrust_sp_sub, &thrust_sp) == PX4_OK) {
+			_thrust_sp = -thrust_sp.thrust_body[2];
+		}
+	}
+}
+
 bool
 MulticopterAttitudeControl::vehicle_rates_setpoint_poll()
 {
@@ -369,15 +384,13 @@ MulticopterAttitudeControl::vehicle_land_detected_poll()
 /**
  * Attitude controller.
  * Input: 'vehicle_attitude_setpoint' topics (depending on mode)
- * Output: '_rates_sp' vector, '_thrust_sp'
+ * Output: '_rates_sp' vector
  */
 void
 MulticopterAttitudeControl::control_attitude()
 {
 	vehicle_attitude_setpoint_poll();
-
-	// physical thrust axis is the negative of body z axis
-	_thrust_sp = -_v_att_sp.thrust_body[2];
+	vehicle_thrust_setpoint_poll();
 
 	/* prepare yaw weight from the ratio between roll/pitch and yaw gains */
 	Vector3f attitude_gain = _attitude_p;
@@ -473,7 +486,7 @@ MulticopterAttitudeControl::pid_attenuations(float tpa_breakpoint, float tpa_rat
 
 /*
  * Attitude rates controller.
- * Input: '_rates_sp' vector, '_thrust_sp'
+ * Input: '_rates_sp' vector
  * Output: '_att_control' vector
  */
 void
@@ -584,9 +597,6 @@ MulticopterAttitudeControl::publish_rates_setpoint()
 	_v_rates_sp.roll = _rates_sp(0);
 	_v_rates_sp.pitch = _rates_sp(1);
 	_v_rates_sp.yaw = _rates_sp(2);
-	_v_rates_sp.thrust_body[0] = 0;
-	_v_rates_sp.thrust_body[1] = 0;
-	_v_rates_sp.thrust_body[2] = -_thrust_sp;
 	_v_rates_sp.timestamp = hrt_absolute_time();
 
 	if (_v_rates_sp_pub != nullptr) {
@@ -595,7 +605,22 @@ MulticopterAttitudeControl::publish_rates_setpoint()
 	} else {
 		_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_v_rates_sp);
 	}
+}
 
+void
+MulticopterAttitudeControl::publish_thrust_setpoint()
+{
+	vehicle_thrust_setpoint_s thrust_sp{};
+
+	thrust_sp.thrust_body[2] = _thrust_sp;
+	thrust_sp.timestamp = hrt_absolute_time();
+
+	if (_v_thrust_sp_pub != nullptr) {
+		orb_publish(ORB_ID(vehicle_thrust_setpoint), _v_thrust_sp_pub, &thrust_sp);
+
+	} else {
+		_v_thrust_sp_pub = orb_advertise(ORB_ID(vehicle_thrust_setpoint), &thrust_sp);
+	}
 }
 
 void
@@ -769,6 +794,7 @@ MulticopterAttitudeControl::run()
 						_rates_sp = man_rate_sp.emult(_acro_rate_max);
 						_thrust_sp = _manual_control_sp.z;
 						publish_rates_setpoint();
+						publish_thrust_setpoint();
 					}
 
 				} else {
@@ -777,8 +803,8 @@ MulticopterAttitudeControl::run()
 						_rates_sp(0) = _v_rates_sp.roll;
 						_rates_sp(1) = _v_rates_sp.pitch;
 						_rates_sp(2) = _v_rates_sp.yaw;
-						_thrust_sp = -_v_rates_sp.thrust_body[2];
 					}
+					vehicle_thrust_setpoint_poll();
 				}
 			}
 

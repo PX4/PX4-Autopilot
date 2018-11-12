@@ -51,9 +51,15 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_vtol_mode(ROTARY_WING)
 {
 	_v_att = _attc->get_att();
+
 	_v_att_sp = _attc->get_att_sp();
 	_mc_virtual_att_sp = _attc->get_mc_virtual_att_sp();
 	_fw_virtual_att_sp = _attc->get_fw_virtual_att_sp();
+
+	_v_thrust_sp = _attc->get_thrust_sp();
+	_mc_virtual_thrust_sp = _attc->get_mc_virtual_thrust_sp();
+	//_fw_virtual_thrust_sp = _attc->get_fw_virtual_thrust_sp();
+
 	_v_control_mode = _attc->get_control_mode();
 	_vtol_vehicle_status = _attc->get_vtol_vehicle_status();
 	_actuators_out_0 = _attc->get_actuators_out0();

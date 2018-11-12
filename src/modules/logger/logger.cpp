@@ -641,8 +641,8 @@ void Logger::add_default_topics()
 	add_topic("sensor_preflight", 200);
 	add_topic("system_power", 500);
 	add_topic("tecs_status", 200);
-	add_topic("trajectory_setpoint");
 	add_topic("telemetry_status");
+	add_topic("trajectory_setpoint");
 	add_topic("vehicle_air_data", 200);
 	add_topic("vehicle_attitude", 30);
 	add_topic("vehicle_attitude_setpoint", 100);
@@ -656,6 +656,7 @@ void Logger::add_default_topics()
 	add_topic("vehicle_rates_setpoint", 30);
 	add_topic("vehicle_status", 200);
 	add_topic("vehicle_status_flags");
+	add_topic("vehicle_thrust_setpoint", 100);
 	add_topic("vehicle_trajectory_waypoint", 200);
 	add_topic("vehicle_trajectory_waypoint_desired", 200);
 	add_topic("vehicle_vision_attitude");
@@ -669,11 +670,13 @@ void Logger::add_default_topics()
 	add_topic("actuator_controls_virtual_mc");
 	add_topic("commander_state");
 	add_topic("fw_virtual_attitude_setpoint");
+	add_topic("fw_virtual_thrust_setpoint");
 	add_topic("mc_virtual_attitude_setpoint");
+	add_topic("mc_virtual_thrust_setpoint");
 	add_topic("multirotor_motor_limits");
-	add_topic("position_controller_status");
-	add_topic("position_controller_landingstatus");
 	add_topic("offboard_control_mode");
+	add_topic("position_controller_landingstatus");
+	add_topic("position_controller_status");
 	add_topic("time_offset");
 	add_topic("vehicle_attitude_groundtruth", 10);
 	add_topic("vehicle_global_position_groundtruth", 100);

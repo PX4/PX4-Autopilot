@@ -333,6 +333,7 @@ FixedwingPositionControl::vehicle_status_poll()
 		if (_attitude_setpoint_id == nullptr) {
 			if (_vehicle_status.is_vtol) {
 				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
+				_thrust_setpoint_id = ORB_ID(fw_virtual_thrust_setpoint);
 
 				_parameter_handles.airspeed_trans = param_find("VT_ARSP_TRANS");
 				_parameter_handles.vtol_type = param_find("VT_TYPE");
@@ -341,6 +342,7 @@ FixedwingPositionControl::vehicle_status_poll()
 
 			} else {
 				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
+				_thrust_setpoint_id = ORB_ID(vehicle_thrust_setpoint);
 			}
 		}
 	}
@@ -857,6 +859,8 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 		_tecs.reset_state();
 	}
 
+	float thrust_sp = 0.0f;
+
 	if (_control_mode.flag_control_auto_enabled && pos_sp_curr.valid) {
 		/* AUTONOMOUS FLIGHT */
 
@@ -916,7 +920,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 		}
 
 		if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
-			_att_sp.thrust_body[0] = 0.0f;
+			thrust_sp = 0.0f;
 			_att_sp.roll_body = 0.0f;
 			_att_sp.pitch_body = 0.0f;
 
@@ -1185,30 +1189,45 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 		/* making sure again that the correct thrust is used,
 		 * without depending on library calls for safety reasons.
 		   the pre-takeoff throttle and the idle throttle normally map to the same parameter. */
-		_att_sp.thrust_body[0] = _parameters.throttle_idle;
+		thrust_sp = _parameters.throttle_idle;
 
 	} else if (_control_mode_current == FW_POSCTRL_MODE_AUTO &&
 		   pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 		   _runway_takeoff.runwayTakeoffEnabled()) {
 
-		_att_sp.thrust_body[0] = _runway_takeoff.getThrottle(min(get_tecs_thrust(), throttle_max));
+		thrust_sp = _runway_takeoff.getThrottle(min(get_tecs_thrust(), throttle_max));
 
 	} else if (_control_mode_current == FW_POSCTRL_MODE_AUTO &&
 		   pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 
-		_att_sp.thrust_body[0] = 0.0f;
+		thrust_sp = 0.0f;
 
 	} else if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
-		_att_sp.thrust_body[0] = min(_att_sp.thrust_body[0], _parameters.throttle_max);
+		thrust_sp = min(thrust_sp, _parameters.throttle_max);
 
 	} else {
 		/* Copy thrust and pitch values from tecs */
 		if (_vehicle_land_detected.landed) {
 			// when we are landed state we want the motor to spin at idle speed
-			_att_sp.thrust_body[0] = min(_parameters.throttle_idle, throttle_max);
+			thrust_sp = min(_parameters.throttle_idle, throttle_max);
 
 		} else {
-			_att_sp.thrust_body[0] = min(get_tecs_thrust(), throttle_max);
+			thrust_sp = min(get_tecs_thrust(), throttle_max);
+		}
+	}
+
+	// publish thrust setpoint changes
+	if (thrust_sp - _thrust_sp.thrust_body[0] > FLT_EPSILON) {
+		_thrust_sp.timestamp = hrt_absolute_time();
+		_thrust_sp.thrust_body[0] = thrust_sp;
+
+		if (_thrust_sp_pub != nullptr) {
+			/* publish the attitude setpoint */
+			orb_publish(_thrust_setpoint_id, _thrust_sp_pub, &_thrust_sp);
+
+		} else if (_thrust_setpoint_id != nullptr) {
+			/* advertise and publish */
+			_thrust_sp_pub = orb_advertise(_thrust_setpoint_id, &_thrust_sp);
 		}
 	}
 

@@ -58,6 +58,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/uORB.h>
@@ -81,6 +82,7 @@ private:
 	int		_control_task{-1};			/**< task handle */
 
 	int		_att_sp_sub{-1};			/**< vehicle attitude setpoint */
+	int		_thrust_sp_sub{-1};			/**< vehicle thrust setpoint */
 	int		_battery_status_sub{-1};		/**< battery status subscription */
 	int		_att_sub{-1};		/**< control state subscription */
 	int		_manual_sub{-1};			/**< notification of manual control updates */
@@ -94,6 +96,7 @@ private:
 	manual_control_setpoint_s		_manual {};		/**< r/c channel data */
 	vehicle_attitude_s				_att {};	/**< control state */
 	vehicle_attitude_setpoint_s		_att_sp {};		/**< vehicle attitude setpoint */
+	vehicle_thrust_setpoint_s		_thrust_sp {};		/**< vehicle thrust setpoint */
 	vehicle_control_mode_s			_vcontrol_mode {};		/**< vehicle control mode */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
@@ -135,6 +138,7 @@ private:
 	void		vehicle_control_mode_poll();
 	void		manual_control_setpoint_poll();
 	void		vehicle_attitude_setpoint_poll();
+	void		vehicle_thrust_setpoint_poll();
 	void		battery_status_poll();
 
 	static int	task_main_trampoline(int argc, char *argv[]);

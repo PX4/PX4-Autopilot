@@ -235,24 +235,28 @@ void Tailsitter::update_transition_state()
 		}
 	}
 
-	_v_att_sp->thrust_body[2] = _mc_virtual_att_sp->thrust_body[2];
+	_v_thrust_sp->thrust_body[2] = _mc_virtual_thrust_sp->thrust_body[2];
 
 	_mc_roll_weight = 1.0f;
 	_mc_pitch_weight = 1.0f;
 	_mc_yaw_weight = 1.0f;
 
 	_v_att_sp->timestamp = hrt_absolute_time();
-	Eulerf euler_sp(_q_trans_sp);
+	_v_thrust_sp->timestamp = _v_att_sp->timestamp;
+
+	_q_trans_sp.copyTo(_v_att_sp->q_d);
+	_v_att_sp->q_d_valid = true;
+
+	const Eulerf euler_sp(_q_trans_sp);
 	_v_att_sp->roll_body = euler_sp.phi();
 	_v_att_sp->pitch_body = euler_sp.theta();
 	_v_att_sp->yaw_body = euler_sp.psi();
-	memcpy(&_v_att_sp->q_d[0], &_q_trans_sp._data[0], sizeof(_v_att_sp->q_d));
 }
 
 void Tailsitter::waiting_on_tecs()
 {
 	// copy the last trust value from the front transition
-	_v_att_sp->thrust_body[0] = _thrust_transition;
+	_v_thrust_sp->thrust_body[0] = _thrust_transition;
 }
 
 void Tailsitter::update_fw_state()

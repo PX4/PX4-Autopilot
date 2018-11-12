@@ -174,9 +174,14 @@ protected:
 	mode _vtol_mode;
 
 	struct vehicle_attitude_s		*_v_att;				//vehicle attitude
+
 	struct vehicle_attitude_setpoint_s	*_v_att_sp;			//vehicle attitude setpoint
 	struct vehicle_attitude_setpoint_s *_mc_virtual_att_sp;	// virtual mc attitude setpoint
 	struct vehicle_attitude_setpoint_s *_fw_virtual_att_sp;	// virtual fw attitude setpoint
+
+	struct vehicle_thrust_setpoint_s	*_v_thrust_sp;			//vehicle thrust setpoint
+	struct vehicle_thrust_setpoint_s	*_mc_virtual_thrust_sp;	// virtual mc attitude setpoint
+
 	struct vehicle_control_mode_s		*_v_control_mode;	//vehicle control mode
 	struct vtol_vehicle_status_s 		*_vtol_vehicle_status;
 	struct actuator_controls_s			*_actuators_out_0;			//actuator controls going to the mc mixer

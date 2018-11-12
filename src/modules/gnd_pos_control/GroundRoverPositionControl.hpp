@@ -61,6 +61,7 @@
 #include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/uORB.h>
@@ -93,6 +94,7 @@ public:
 
 private:
 	orb_advert_t	_attitude_sp_pub{nullptr};		/**< attitude setpoint */
+	orb_advert_t	_thrust_sp_pub{nullptr};		/**< thrust setpoint */
 	orb_advert_t	_pos_ctrl_status_pub{nullptr};		/**< navigation capabilities publication */
 
 	bool		_task_should_exit{false};		/**< if true, sensor task should exit */
@@ -107,6 +109,7 @@ private:
 	manual_control_setpoint_s		_manual{};			/**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
 	vehicle_attitude_setpoint_s		_att_sp{};			/**< vehicle attitude setpoint */
+	vehicle_thrust_setpoint_s		_thrust_sp{};			/**< vehicle thrust setpoint */
 	vehicle_control_mode_s			_control_mode{};			/**< control mode */
 	vehicle_global_position_s		_global_pos{};			/**< global vehicle position */
 

@@ -50,7 +50,9 @@ vehicle_attitude_setpoint_s thrustToAttitude(const Vector3f &thr_sp, const float
 	att_sp.yaw_body = yaw_sp;
 
 	// desired body_z axis = -normalize(thrust_vector)
-	Vector3f body_x, body_y, body_z;
+	Vector3f body_x;
+	Vector3f body_y;
+	Vector3f body_z;
 
 	if (thr_sp.length() > 0.00001f) {
 		body_z = -thr_sp.normalized();
@@ -62,7 +64,7 @@ vehicle_attitude_setpoint_s thrustToAttitude(const Vector3f &thr_sp, const float
 	}
 
 	// vector of desired yaw direction in XY plane, rotated by PI/2
-	Vector3f y_C(-sinf(att_sp.yaw_body), cosf(att_sp.yaw_body), 0.0f);
+	const Vector3f y_C(-sinf(att_sp.yaw_body), cosf(att_sp.yaw_body), 0.0f);
 
 	if (fabsf(body_z(2)) > 0.000001f) {
 		// desired body_x axis, orthogonal to body_z
@@ -103,7 +105,6 @@ vehicle_attitude_setpoint_s thrustToAttitude(const Vector3f &thr_sp, const float
 	Eulerf euler = R_sp;
 	att_sp.roll_body = euler(0);
 	att_sp.pitch_body = euler(1);
-	att_sp.thrust_body[2] = -thr_sp.length();
 
 	return att_sp;
 }
