@@ -126,7 +126,7 @@ float FlightTestInput::AWGN_generate()
 
 	float temp1 = cosf((2.0f * M_PI_F) * rand() / ((float)RAND_MAX));
 
-	float result = sqrtf(-2.0f * logf(temp2)) * temp1;
+        float result = (sqrtf(-2.0f * logf(temp2)) * temp1) * _standard_deviation.get();
 
 	return result;
 }

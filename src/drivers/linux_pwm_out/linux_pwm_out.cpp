@@ -346,6 +346,13 @@ void task_main(int argc, char *argv[])
 			/* do mixing */
 			_outputs.noutputs = _mixer_group->mix(_outputs.output, actuator_outputs_s::NUM_ACTUATOR_OUTPUTS);
 
+                        // Noise inject
+
+                        fti_PWM1.inject(_outputs.output[0]);
+                        fti_PWM2.inject(_outputs.output[1]);
+                        fti_PWM3.inject(_outputs.output[2]);
+                        fti_PWM4.inject(_outputs.output[3]);
+
 			/* disable unused ports by setting their output to NaN */
 			for (size_t i = _outputs.noutputs; i < _outputs.NUM_ACTUATOR_OUTPUTS; i++) {
 				_outputs.output[i] = NAN;
@@ -375,26 +382,6 @@ void task_main(int argc, char *argv[])
 				       _outputs.output,
 				       pwm,
 				       &_pwm_limit);
-
-
-			// Noise inject
-			float tmpinject;
-
-			tmpinject = pwm[0];
-			fti_PWM1.inject(tmpinject);
-			pwm[0] = tmpinject;
-
-			tmpinject = pwm[1];
-			fti_PWM2.inject(tmpinject);
-			pwm[1] = tmpinject;
-
-			tmpinject = pwm[2];
-			fti_PWM3.inject(tmpinject);
-			pwm[2] = tmpinject;
-
-			tmpinject = pwm[3];
-			fti_PWM4.inject(tmpinject);
-			pwm[3] = tmpinject;
 
 
 			if (_armed.lockdown || _armed.manual_lockdown) {
