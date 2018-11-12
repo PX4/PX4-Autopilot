@@ -588,9 +588,6 @@ MulticopterPositionControl::run()
 	// get an initial update for all sensor and status data
 	poll_subscriptions();
 
-	// We really need to know from the beginning if we're landed or in-air.
-	orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
-
 	hrt_abstime t_prev = 0;
 
 	// Let's be safe and have the landing gear down by default
