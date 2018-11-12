@@ -43,7 +43,6 @@
 #include "mavlink_mission.h"
 #include "mavlink_main.h"
 
-#include <float.h>
 #include <lib/ecl/geo/geo.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
@@ -1336,21 +1335,9 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->time_inside = mavlink_mission_item->param1;
 			mission_item->loiter_radius = mavlink_mission_item->param3;
 			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0);
-
-			// The spec says:
-			// Forward moving aircraft this sets exit xtrack location:
-			// 0 for center of loiter wp, 1 for exit location.
-			// Else, this is desired yaw angle.
-			//
-			// Therefore, we don't touch yaw by setting it NAN for these two cases.
-			if (fabsf(mavlink_mission_item->param4 - 0.0f) < FLT_EPSILON ||
-			    fabsf(mavlink_mission_item->param4 - 1.0f) < FLT_EPSILON) {
-				mission_item->yaw = NAN;
-
-			} else {
-				mission_item->yaw = wrap_pi(math::radians(mavlink_mission_item->param4 * M_DEG_TO_RAD_F));
-			}
-
+			// Yaw is only valid for multicopter but we set it always because
+			// it's just ignored for fixedwing.
+			mission_item->yaw = wrap_pi(math::radians(mavlink_mission_item->param4));
 			break;
 
 		case MAV_CMD_NAV_LAND:
