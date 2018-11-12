@@ -258,7 +258,7 @@ void Standard::update_transition_state()
 
 		// ramp up FW_PSP_OFF
 		_v_att_sp->pitch_body = _params_standard.pitch_setpoint_offset * (1.0f - mc_weight);
-		Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
+		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
 		_v_att_sp->q_d_valid = true;
 
@@ -274,7 +274,7 @@ void Standard::update_transition_state()
 
 		// maintain FW_PSP_OFF
 		_v_att_sp->pitch_body = _params_standard.pitch_setpoint_offset;
-		Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
+		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
 		_v_att_sp->q_d_valid = true;
 
@@ -330,10 +330,10 @@ void Standard::update_mc_state()
 		return;
 	}
 
-	Dcmf R(Quatf(_v_att->q));
-	Dcmf R_sp(Quatf(_v_att_sp->q_d));
-	Eulerf euler(R);
-	Eulerf euler_sp(R_sp);
+	const Dcmf R(Quatf(_v_att->q));
+	const Dcmf R_sp(Quatf(_v_att_sp->q_d));
+	const Eulerf euler(R);
+	const Eulerf euler_sp(R_sp);
 	_pusher_throttle = 0.0f;
 
 	// direction of desired body z axis represented in earth frame
@@ -362,25 +362,25 @@ void Standard::update_mc_state()
 		float pitch_new = 0.0f;
 
 		// create corrected desired body z axis in heading frame
-		Dcmf R_tmp = Eulerf(roll_new, pitch_new, 0.0f);
+		const Dcmf R_tmp = Eulerf(roll_new, pitch_new, 0.0f);
 		Vector3f tilt_new(R_tmp(0, 2), R_tmp(1, 2), R_tmp(2, 2));
 
 		// rotate the vector into a new frame which is rotated in z by the desired heading
 		// with respect to the earh frame.
 		const float yaw_error = wrap_pi(euler_sp(2) - euler(2));
-		Dcmf R_yaw_correction = Eulerf(0.0f, 0.0f, -yaw_error);
+		const Dcmf R_yaw_correction = Eulerf(0.0f, 0.0f, -yaw_error);
 		tilt_new = R_yaw_correction * tilt_new;
 
 		// now extract roll and pitch setpoints
 		_v_att_sp->pitch_body = atan2f(tilt_new(0), tilt_new(2));
 		_v_att_sp->roll_body = -asinf(tilt_new(1));
-		R_sp = Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, euler_sp(2));
-		Quatf q_sp(R_sp);
+
+		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, euler_sp(2)));
 		q_sp.copyTo(_v_att_sp->q_d);
+		_v_att_sp->q_d_valid = true;
 	}
 
 	_pusher_throttle = _pusher_throttle < 0.0f ? 0.0f : _pusher_throttle;
-
 }
 
 void Standard::update_fw_state()
