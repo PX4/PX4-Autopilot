@@ -140,7 +140,7 @@ private:
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _vel_max_down,
 		(ParamFloat<px4::params::MPC_LAND_SPEED>) _land_speed,
 		(ParamFloat<px4::params::MPC_TKO_SPEED>) _tko_speed,
-		(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude at which speed limit downwards reached minimum speed
+		(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, /**< downwards speed limited below this altitude */
 		(ParamInt<px4::params::MPC_POS_MODE>) MPC_POS_MODE,
 		(ParamInt<px4::params::MPC_AUTO_MODE>) MPC_AUTO_MODE,
 		(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
@@ -153,15 +153,15 @@ private:
 	control::BlockDerivative _vel_y_deriv; /**< velocity derivative in y */
 	control::BlockDerivative _vel_z_deriv; /**< velocity derivative in z */
 
-	FlightTasks _flight_tasks; /**< class that generates position controller tracking setpoints*/
-	PositionControl _control; /**< class that handles the core PID position controller */
-	PositionControlStates _states{}; /**< structure that contains required state information for position control */
+	FlightTasks _flight_tasks; /**< class generating position controller setpoints depending on vehicle task */
+	PositionControl _control; /**< class for core PID position control */
+	PositionControlStates _states{}; /**< structure containing vehicle state information for position control */
 
 	hrt_abstime _last_warn = 0; /**< timer when the last warn message was sent out */
 
 	bool _in_failsafe = false; /**< true if failsafe was entered within current cycle */
 
-	/** Timeout in us for trajectory data to get considered invalid */
+	/**< Timeout in us for trajectory data to get considered invalid */
 	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500000;
 	/**< number of tries before switching to a failsafe flight task */
 	static constexpr int NUM_FAILURE_TRIES = 10;
@@ -187,12 +187,12 @@ private:
 	 * Parameter update can be forced when argument is true.
 	 * @param force forces parameter update.
 	 */
-	int		parameters_update(bool force);
+	int parameters_update(bool force);
 
 	/**
 	 * Check for changes in subscribed topics.
 	 */
-	void		poll_subscriptions();
+	void poll_subscriptions();
 
 	/**
 	 * Check for validity of positon/velocity states.
