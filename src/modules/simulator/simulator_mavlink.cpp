@@ -2,7 +2,7 @@
  *
  *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
  *   Copyright (c) 2016 Anton Matosov. All rights reserved.
- *   Copyright (c) 2018 PX4 Pro Dev Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,6 +32,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 #include <termios.h>
 #include <px4_log.h>
 #include <px4_time.h>
@@ -43,14 +44,12 @@
 #include <drivers/drv_pwm_output.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <pthread.h>
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
 
 #include <limits>
-
-#define SEND_INTERVAL 	20
-#define UDP_PORT 	14560
 
 #ifdef ENABLE_UART_RC_INPUT
 #ifndef B460800
@@ -65,12 +64,12 @@ static int openUart(const char *uart_name, int baud);
 #endif
 
 static int _fd;
-static unsigned char _buf[1024];
-sockaddr_in _srcaddr;
-static socklen_t _addrlen = sizeof(_srcaddr);
+static unsigned char _buf[2048];
+static sockaddr_in _srcaddr;
+static unsigned _addrlen = sizeof(_srcaddr);
 static hrt_abstime batt_sim_start = 0;
 
-const unsigned mode_flag_armed = 128; // following MAVLink spec
+const unsigned mode_flag_armed = 128;
 const unsigned mode_flag_custom = 1;
 
 using namespace simulator;
@@ -175,11 +174,13 @@ void Simulator::send_controls()
 		}
 
 		mavlink_hil_actuator_controls_t hil_act_control = {};
+		hil_act_control.time_usec = _actuators[i].timestamp + hrt_absolute_time_offset();
+
 		mavlink_message_t message = {};
 		pack_actuator_message(hil_act_control, i);
 		mavlink_msg_hil_actuator_controls_encode(0, 200, &message, &hil_act_control);
-		send_mavlink_message(message);
 
+		send_mavlink_message(message);
 	}
 }
 
@@ -260,7 +261,7 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 void Simulator::update_gps(mavlink_hil_gps_t *gps_sim)
 {
 	RawGPSData gps = {};
-	gps.timestamp = gps_sim->time_usec;
+	gps.timestamp = hrt_absolute_time();
 	gps.lat = gps_sim->lat;
 	gps.lon = gps_sim->lon;
 	gps.alt = gps_sim->alt;
@@ -300,7 +301,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			float step = diff / 4000.0f;
 
 			if (step > 1.1f || step < 0.9f) {
-				PX4_INFO("diff: %llu, step: %.2f", diff, step);
+				PX4_INFO("time_usec: %llu, diff: %llu, step: %.2f", now_us, diff, step);
 			}
 
 			last_time = now_us;
@@ -506,11 +507,9 @@ void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
 	uint8_t  buf[MAVLINK_MAX_PACKET_LEN];
 	uint16_t bufLen = 0;
 
-	// convery mavlink message to raw data
 	bufLen = mavlink_msg_to_send_buffer(buf, &aMsg);
 
-	// send data
-	ssize_t len = sendto(_fd, buf, bufLen, 0, (struct sockaddr *)&_srcaddr, _addrlen);
+	ssize_t len = sendto(_fd, buf, bufLen, 0, (struct sockaddr *)&_srcaddr, sizeof(_srcaddr));
 
 	if (len <= 0) {
 		PX4_WARN("Failed sending mavlink message");
@@ -546,37 +545,42 @@ void *Simulator::sending_trampoline(void * /*unused*/)
 
 void Simulator::send()
 {
-	px4_pollfd_struct_t fds[1] = {};
-	fds[0].fd = _actuator_outputs_sub[0];
-	fds[0].events = POLLIN;
-
-
-	// set the threads name
 #ifdef __PX4_DARWIN
 	pthread_setname_np("sim_send");
 #else
 	pthread_setname_np(pthread_self(), "sim_send");
 #endif
 
-	int pret;
+	// Before starting, we ought to send a heartbeat to initiate the SITL
+	// simulator to start sending sensor data which will set the time and
+	// get everything rolling.
+	// Without this, we get stuck at px4_poll which waits for a time update.
+	send_heartbeat();
+
+	// We then send the controls once which will notify the SITL simulator
+	// that our time is 0.
+	send_controls();
+
+	px4_pollfd_struct_t fds[1] = {};
+	fds[0].fd = _actuator_outputs_sub[0];
+	fds[0].events = POLLIN;
 
 	while (true) {
-		// wait for up to 100ms for data
-		pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		// Wait for up to 100ms for data.
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
-		// timed out
 		if (pret == 0) {
+			// Timed out, try again.
 			continue;
 		}
 
-		// this is undesirable but not much we can do
 		if (pret < 0) {
-			PX4_WARN("poll error %d, %d", pret, errno);
+			PX4_ERR("poll error %s", strerror(errno));
 			continue;
 		}
 
 		if (fds[0].revents & POLLIN) {
-			// got new data to read, update all topics
+			// Got new data to read, update all topics.
 			parameters_update(false);
 			poll_topics();
 			send_controls();
@@ -584,9 +588,30 @@ void Simulator::send()
 	}
 }
 
+void Simulator::request_hil_state_quaternion()
+{
+	mavlink_command_long_t cmd_long = {};
+	mavlink_message_t message = {};
+	cmd_long.command = MAV_CMD_SET_MESSAGE_INTERVAL;
+	cmd_long.param1 = MAVLINK_MSG_ID_HIL_STATE_QUATERNION;
+	cmd_long.param2 = 5e3;
+	mavlink_msg_command_long_encode(0, 50, &message, &cmd_long);
+	send_mavlink_message(message);
+}
+
+void Simulator::send_heartbeat()
+{
+	mavlink_heartbeat_t hb = {};
+	mavlink_message_t message = {};
+	hb.autopilot = 12;
+	hb.base_mode |= (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 128 : 0;
+	mavlink_msg_heartbeat_encode(0, 50, &message, &hb);
+	send_mavlink_message(message);
+}
+
 void Simulator::initializeSensorData()
 {
-	// write sensor data to memory so that drivers can copy data from there
+	// Write sensor data to memory so that drivers can copy data from there.
 	RawMPUData mpu = {};
 	mpu.accel_z = CONSTANTS_ONE_G;
 
@@ -616,38 +641,79 @@ void Simulator::initializeSensorData()
 	write_airspeed_data(&airspeed);
 }
 
-void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
+void Simulator::pollForMAVLinkMessages(bool publish, InternetProtocol ip, int port)
 {
-	// set the threads name
 #ifdef __PX4_DARWIN
 	pthread_setname_np("sim_rcv");
 #else
 	pthread_setname_np(pthread_self(), "sim_rcv");
 #endif
 
-	// udp socket data
-	struct sockaddr_in _myaddr;
-
-	// try to setup udp socket for communcation with simulator
-	memset((char *)&_myaddr, 0, sizeof(_myaddr));
+	struct sockaddr_in _myaddr {};
 	_myaddr.sin_family = AF_INET;
 	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	_myaddr.sin_port = htons(udp_port);
+	_myaddr.sin_port = htons(port);
 
-	if ((_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		PX4_ERR("create socket failed (%i)", errno);
-		return;
+	if (ip == InternetProtocol::UDP) {
+
+		if ((_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+			PX4_ERR("Creating UDP socket failed: %s", strerror(errno));
+			return;
+		}
+
+		if (bind(_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
+			PX4_ERR("bind for UDP port %i failed (%i)", port, errno);
+			return;
+		}
+
+		PX4_INFO("Waiting for simulator to connect on UDP port %u", port);
+
+		while (true) {
+			// Once we receive something, we're most probably good and can carry on.
+			int len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
+
+			if (len > 0) {
+				break;
+
+			} else {
+				system_sleep(1);
+			}
+		}
+
+		PX4_INFO("Simulator connected on UDP port %u.", port);
+
+	} else {
+		if ((_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+			PX4_ERR("Creating TCP socket failed: %s", strerror(errno));
+			return;
+		}
+
+		PX4_INFO("Waiting for simulator to connect on TCP port %u", port);
+
+		while (true) {
+			int ret = connect(_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr));
+
+			if (ret == 0) {
+				break;
+
+			} else {
+				system_sleep(1);
+			}
+		}
+
+		PX4_INFO("Simulator connected on TCP port %u.", port);
+
+		int yes = 1;
+		int result = setsockopt(_fd, IPPROTO_TCP, TCP_NODELAY, (char *) &yes, sizeof(int));
+
+		if (result != 0) {
+			PX4_ERR("setsockopt failed: %s", strerror(errno));
+		}
 	}
 
-	if (bind(_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
-		PX4_ERR("bind for UDP port %i failed (%i)", udp_port, errno);
-		return;
-	}
-
-	// create a thread for sending data to the simulator
+	// Create a thread for sending data to the simulator.
 	pthread_t sender_thread;
 
-	// initialize threads
 	pthread_attr_t sender_thread_attr;
 	pthread_attr_init(&sender_thread_attr);
 	pthread_attr_setstacksize(&sender_thread_attr, PX4_STACK_ADJUSTED(4000));
@@ -655,7 +721,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&sender_thread_attr, &param);
 
-	param.sched_priority = SCHED_PRIORITY_DEFAULT + 40;
+	param.sched_priority = SCHED_PRIORITY_DEFAULT;
 	(void)pthread_attr_setschedparam(&sender_thread_attr, &param);
 
 	struct pollfd fds[2];
@@ -683,53 +749,6 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 
 #endif
 
-	int len = 0;
-
-	// wait for first data from simulator and respond with first controls
-	// this is important for the UDP communication to work
-	int pret = -1;
-	PX4_INFO("Waiting for initial data on UDP port %i. Please start the flight simulator to proceed..", udp_port);
-	fflush(stdout);
-
-	bool no_sim_data = true;
-
-	while (!px4_exit_requested() && no_sim_data) {
-		pret = ::poll(&fds[0], fd_count, 100);
-
-		if (fds[0].revents & POLLIN) {
-
-			len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
-			// send hearbeat
-			mavlink_heartbeat_t hb = {};
-			mavlink_message_t message = {};
-			hb.autopilot = 12;
-			hb.base_mode |= (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 128 : 0;
-			mavlink_msg_heartbeat_encode(0, 50, &message, &hb);
-			send_mavlink_message(message);
-
-			if (len > 0) {
-				mavlink_message_t msg;
-				mavlink_status_t udp_status = {};
-
-				for (int i = 0; i < len; i++) {
-					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &udp_status)) {
-						// have a message, handle it
-						handle_message(&msg, publish);
-
-						if (msg.msgid != 0) {
-							PX4_INFO("Got initial simulation data, running sim..");
-							no_sim_data = false;
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if (px4_exit_requested()) {
-		return;
-	}
-
 	// subscribe to topics
 	for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++) {
 		_actuator_outputs_sub[i] = orb_subscribe_multi(ORB_ID(actuator_outputs), i);
@@ -741,51 +760,37 @@ void Simulator::pollForMAVLinkMessages(bool publish, int udp_port)
 	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, nullptr);
 	pthread_attr_destroy(&sender_thread_attr);
 
-	mavlink_status_t udp_status = {};
+	mavlink_status_t mavlink_status = {};
 
-	const unsigned max_wait_ms = 4;
-
-	//send MAV_CMD_SET_MESSAGE_INTERVAL for HIL_STATE_QUATERNION ground truth
-	mavlink_command_long_t cmd_long = {};
-	mavlink_message_t message = {};
-	cmd_long.command = MAV_CMD_SET_MESSAGE_INTERVAL;
-	cmd_long.param1 = MAVLINK_MSG_ID_HIL_STATE_QUATERNION;
-	cmd_long.param2 = 5e3;
-	mavlink_msg_command_long_encode(0, 50, &message, &cmd_long);
-	send_mavlink_message(message);
-
+	// Request HIL_STATE_QUATERNION for ground truth.
+	request_hil_state_quaternion();
 
 	_initialized = true;
 
-	// wait for new mavlink messages to arrive
 	while (true) {
 
-		pret = ::poll(&fds[0], fd_count, max_wait_ms);
+		// wait for new mavlink messages to arrive
+		int pret = ::poll(&fds[0], fd_count, 4);
 
-		//timed out
 		if (pret == 0) {
-
+			// Timed out.
 			continue;
 		}
 
-		// this is undesirable but not much we can do
 		if (pret < 0) {
 			PX4_WARN("simulator mavlink: poll error %d, %d", pret, errno);
-			// sleep a bit before next try
-			px4_usleep(100000);
 			continue;
 		}
 
-		// got data from simulator
 		if (fds[0].revents & POLLIN) {
-			len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
+
+			int len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
 
 			if (len > 0) {
 				mavlink_message_t msg;
 
 				for (int i = 0; i < len; i++) {
-					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &udp_status)) {
-						// have a message, handle it
+					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &mavlink_status)) {
 						handle_message(&msg, publish);
 					}
 				}
@@ -867,8 +872,7 @@ int openUart(const char *uart_name, int baud)
 	case 921600: speed = B921600; break;
 
 	default:
-		warnx("ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600\t\n115200\n230400\n460800\n921600\n",
-		      baud);
+		PX4_ERR("Unsupported baudrate: %d", baud);
 		return -EINVAL;
 	}
 
@@ -918,7 +922,6 @@ int openUart(const char *uart_name, int baud)
 
 int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 {
-
 	uint64_t timestamp = hrt_absolute_time();
 
 	if ((imu->fields_updated & 0x1FFF) != 0x1FFF) {

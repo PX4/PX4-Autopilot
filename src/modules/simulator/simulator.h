@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
- *   Copyright (c) 2018 PX4 Pro Dev Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,9 +32,12 @@
  *
  ****************************************************************************/
 
+
 /**
  * @file simulator.h
- * A device simulator
+ *
+ * This module interfaces via MAVLink to a software in the loop simulator (SITL)
+ * such as jMAVSim or Gazebo.
  */
 
 #pragma once
@@ -65,10 +68,10 @@
 #include <v2.0/mavlink_types.h>
 #include <v2.0/common/mavlink.h>
 #include <lib/ecl/geo/geo.h>
+
 namespace simulator
 {
 
-// FIXME - what is the endianness of these on actual device?
 #pragma pack(push, 1)
 struct RawAccelData {
 	float temperature;
@@ -187,7 +190,8 @@ protected:
 	RType _buf[2];
 };
 
-};
+} // namespace simulator
+
 
 class Simulator : public ModuleParams
 {
@@ -381,10 +385,17 @@ private:
 
 	)
 
+	enum class InternetProtocol {
+		TCP,
+		UDP
+	};
+
 	void poll_topics();
 	void handle_message(mavlink_message_t *msg, bool publish);
 	void send_controls();
-	void pollForMAVLinkMessages(bool publish, int udp_port);
+	void send_heartbeat();
+	void request_hil_state_quaternion();
+	void pollForMAVLinkMessages(bool publish, InternetProtocol ip, int port);
 
 	void pack_actuator_message(mavlink_hil_actuator_controls_t &actuator_msg, unsigned index);
 	void send_mavlink_message(const mavlink_message_t &aMsg);
