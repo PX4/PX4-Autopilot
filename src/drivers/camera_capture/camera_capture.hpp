@@ -106,6 +106,7 @@ public:
 
 
 	static struct work_s	_work;
+	static struct work_s	_work_publisher;
 
 private:
 
@@ -125,6 +126,8 @@ private:
 		uint32_t edge_state;
 		uint32_t overflow;
 	};
+
+	struct _trig_s _trigger;
 
 	ringbuffer::RingBuffer *_trig_buffer;
 
@@ -156,3 +159,4 @@ private:
 
 };
 struct work_s CameraCapture::_work;
+struct work_s CameraCapture::_work_publisher;

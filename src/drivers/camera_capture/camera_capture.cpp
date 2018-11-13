@@ -63,6 +63,7 @@ CameraCapture::CameraCapture() :
 {
 
 	memset(&_work, 0, sizeof(_work));
+	memset(&_work_publisher, 0, sizeof(_work_publisher));
 
 	// Parameters
 	_p_strobe_delay = param_find("CAM_CAP_DELAY");
@@ -91,17 +92,12 @@ CameraCapture::capture_callback(uint32_t chan_index,
 				hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
 
-	struct _trig_s trigger;
+	_trigger.chan_index = chan_index;
+	_trigger.edge_time = edge_time;
+	_trigger.edge_state = edge_state;
+	_trigger.overflow = overflow;
 
-	trigger.chan_index = chan_index;
-	trigger.edge_time = edge_time;
-	trigger.edge_state = edge_state;
-	trigger.overflow = overflow;
-
-	/* post message to the ring */
-	_trig_buffer->put(&trigger);
-
-	work_queue(HPWORK, &_work, (worker_t)&CameraCapture::publish_trigger_trampoline, this, 0);
+	work_queue(HPWORK, &_work_publisher, (worker_t)&CameraCapture::publish_trigger_trampoline, this, 0);
 }
 
 int
@@ -109,17 +105,12 @@ CameraCapture::gpio_interrupt_routine(int irq, void *context, void *arg)
 {
 	CameraCapture *dev = reinterpret_cast<CameraCapture *>(arg);
 
-	struct _trig_s trigger;
+	dev->_trigger.chan_index = 0;
+	dev->_trigger.edge_time = hrt_absolute_time();
+	dev->_trigger.edge_state = 0;
+	dev->_trigger.overflow = 0;
 
-	trigger.chan_index = 0;
-	trigger.edge_time = hrt_absolute_time();
-	trigger.edge_state = 0;
-	trigger.overflow = 0;
-
-	/* post message to the ring */
-	dev->_trig_buffer->put(&trigger);
-
-	work_queue(HPWORK, &_work, (worker_t)&CameraCapture::publish_trigger_trampoline, dev, 0);
+	work_queue(HPWORK, &_work_publisher, (worker_t)&CameraCapture::publish_trigger_trampoline, dev, 0);
 
 	return PX4_OK;
 
@@ -136,19 +127,16 @@ CameraCapture::publish_trigger_trampoline(void *arg)
 void
 CameraCapture::publish_trigger()
 {
-	struct _trig_s trig;
-
-	_trig_buffer->get(&trig);
 
 	if (_last_fall_time > 0) {
 
 		struct camera_trigger_s	trigger {};
 
 		if (_camera_capture_mode == 0) {
-			trigger.timestamp = trig.edge_time;
+			trigger.timestamp = _trigger.edge_time;
 
 		} else {
-			trigger.timestamp = trig.edge_time - ((trig.edge_time - _last_fall_time) / 2);	// Get timestamp of mid-exposure
+			trigger.timestamp = _trigger.edge_time - ((_trigger.edge_time - _last_fall_time) / 2);	// Get timestamp of mid-exposure
 		}
 
 		trigger.seq = _capture_seq++;
@@ -163,13 +151,13 @@ CameraCapture::publish_trigger()
 			orb_publish(ORB_ID(camera_trigger_feedback), _trigger_pub, &trigger);
 		}
 
-		_last_exposure_time = trig.edge_time - _last_fall_time;
+		_last_exposure_time = _trigger.edge_time - _last_fall_time;
 	}
 
 	// Timestamp and compensate for strobe delay
-	_last_fall_time = trig.edge_time - uint64_t(1000 * _strobe_delay);
+	_last_fall_time = _trigger.edge_time - uint64_t(1000 * _strobe_delay);
 
-	_capture_overflows = trig.overflow;
+	_capture_overflows = _trigger.overflow;
 }
 
 void
