@@ -947,6 +947,7 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 		sensor_gyro_s gyro = {};
 
 		gyro.timestamp = timestamp;
+		gyro.device_id = 2293768;
 		gyro.x_raw = imu->xgyro * 1000.0f;
 		gyro.y_raw = imu->ygyro * 1000.0f;
 		gyro.z_raw = imu->zgyro * 1000.0f;
@@ -965,6 +966,7 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 		sensor_accel_s accel = {};
 
 		accel.timestamp = timestamp;
+		accel.device_id = 1376264;
 		accel.x_raw = imu->xacc / (CONSTANTS_ONE_G / 1000.0f);
 		accel.y_raw = imu->yacc / (CONSTANTS_ONE_G / 1000.0f);
 		accel.z_raw = imu->zacc / (CONSTANTS_ONE_G / 1000.0f);
@@ -983,6 +985,7 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 		struct mag_report mag = {};
 
 		mag.timestamp = timestamp;
+		mag.device_id = 196616;
 		mag.x_raw = imu->xmag * 1000.0f;
 		mag.y_raw = imu->ymag * 1000.0f;
 		mag.z_raw = imu->zmag * 1000.0f;
@@ -1001,6 +1004,7 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 		sensor_baro_s baro = {};
 
 		baro.timestamp = timestamp;
+		baro.device_id = 478459;
 		baro.pressure = imu->abs_pressure;
 		baro.temperature = imu->temperature;
 
