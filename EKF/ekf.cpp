@@ -257,6 +257,8 @@ bool Ekf::initialiseFilter()
 		Vector3f mag_init = _mag_filt_state;
 
 		// calculate the initial magnetic field and yaw alignment
+		// Get the magnetic declination
+		calcMagDeclination();
 		_control_status.flags.yaw_align = resetMagHeading(mag_init);
 
 		if (_control_status.flags.rng_hgt) {
