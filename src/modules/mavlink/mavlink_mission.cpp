@@ -1624,7 +1624,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 
 		case MAV_CMD_NAV_VTOL_TAKEOFF:
 		case MAV_CMD_NAV_VTOL_LAND:
-			mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
+			mavlink_mission_item->param4 = math::degrees(mission_item->yaw);
 			break;
 
 		case MAV_CMD_NAV_FENCE_RETURN_POINT:
