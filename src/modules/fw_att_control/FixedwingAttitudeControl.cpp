@@ -40,9 +40,6 @@
  */
 extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[]);
 
-static constexpr float _airspeed_numerical_min =
-	0.5f; /**< lowest airspeed we will ever use to prevent numerical problems */
-
 FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_airspeed_sub(ORB_ID(airspeed)),
 
