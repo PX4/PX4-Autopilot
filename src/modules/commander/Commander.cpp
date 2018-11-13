@@ -3537,7 +3537,6 @@ void *commander_low_prio_loop(void *arg)
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[1];
 
-	/* use the gyro to pace output - XXX BROKEN if we are using the L3GD20 */
 	fds[0].fd = cmd_sub;
 	fds[0].events = POLLIN;
 
