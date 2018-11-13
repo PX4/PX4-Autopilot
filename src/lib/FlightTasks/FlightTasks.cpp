@@ -53,7 +53,7 @@ const landing_gear_s FlightTasks::getGear()
 		return _current_task.task->getGear();
 
 	} else {
-		return FlightTask::landing_gear_default_keep;
+		return FlightTask::empty_landing_gear_default_keep;
 	}
 }
 
