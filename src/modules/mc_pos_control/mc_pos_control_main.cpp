@@ -67,6 +67,8 @@
 #include "PositionControl.hpp"
 #include "Utility/ControlMath.hpp"
 
+using namespace time_literals;
+
 /**
  * Multicopter position control app start / stop handling function
  */
@@ -573,7 +575,9 @@ MulticopterPositionControl::print_status()
 void
 MulticopterPositionControl::run()
 {
-	// do subscriptions
+	hrt_abstime _time_stamp_last_loop = hrt_absolute_time(); // time stamp of last loop iteration
+
+	// initialize all subscriptions
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -583,12 +587,9 @@ MulticopterPositionControl::run()
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 	_traj_wp_avoidance_sub = orb_subscribe(ORB_ID(vehicle_trajectory_waypoint));
 
+	// get initial values for all parameters and subscribtions
 	parameters_update(true);
-
-	// get an initial update for all sensor and status data
 	poll_subscriptions();
-
-	hrt_abstime t_prev = 0;
 
 	// Let's be safe and have the landing gear down by default
 	_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
@@ -607,15 +608,12 @@ MulticopterPositionControl::run()
 		}
 
 		poll_subscriptions();
-
 		parameters_update(false);
 
-		hrt_abstime t = hrt_absolute_time();
-		const float dt = t_prev != 0 ? (t - t_prev) / 1e6f : 0.004f;
-		t_prev = t;
-
-		// set dt for control blocks
-		setDt(dt);
+		// measure _dt the time difference since the last loop iteration in seconds
+		const hrt_abstime _time_stamp_current = hrt_absolute_time();
+		setDt((_time_stamp_current - _time_stamp_last_loop) / 1e6f);
+		_time_stamp_last_loop = _time_stamp_current;
 
 		const bool was_in_failsafe = _in_failsafe;
 		_in_failsafe = false;
