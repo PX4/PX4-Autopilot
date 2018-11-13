@@ -339,6 +339,7 @@ private:
 	bool _mag_inhibit_yaw_reset_req{false};	///< true when magnetomer inhibit has been active for long enough to require a yaw reset when conditons improve.
 	float _last_static_yaw{0.0f};		///< last yaw angle recorded when on ground motion checks were passing (rad)
 	bool _vehicle_at_rest_prev{false};	///< true when the vehicle was at rest the previous time the status was checked
+	bool _mag_yaw_reset_req{false};		///< true when a reset of the yaw using the magnetomer data has been requested
 
 	float P[_k_num_states][_k_num_states] {};	///< state covariance matrix
 

@@ -1356,6 +1356,13 @@ void Ekf::controlMagFusion()
 	// check for new magnetometer data that has fallen behind the fusion time horizon
 	// If we are using external vision data for heading then no magnetometer fusion is used
 	if (!_control_status.flags.ev_yaw && _mag_data_ready) {
+		// perform a yaw reset if requested by other functions
+		if (_mag_yaw_reset_req) {
+			if (!_mag_use_inhibit ) {
+				resetMagHeading(_mag_sample_delayed.mag);
+			}
+			_mag_yaw_reset_req = false;
+		}
 
 		// Determine if we should use simple magnetic heading fusion which works better when there are large external disturbances
 		// or the more accurate 3-axis fusion

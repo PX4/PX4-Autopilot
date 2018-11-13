@@ -545,6 +545,11 @@ bool Ekf::realignYawGPS()
 // Reset heading and magnetic field states
 bool Ekf::resetMagHeading(Vector3f &mag_init)
 {
+	// don't reseet twice on the same frame
+	if (_imu_sample_delayed.time_us == _flt_mag_align_start_time) {
+		return true;
+	}
+
 	if (_params.mag_fusion_type >= MAG_FUSE_TYPE_NONE) {
 		// do not use the magnetomer and deactivate magnetic field states
 		zeroRows(P, 16, 21);
@@ -701,50 +706,49 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 	delta_ang_error(1) = scalar * q_error(2);
 	delta_ang_error(2) = scalar * q_error(3);
 
+	// update quaternion states
+	_state.quat_nominal = quat_after_reset;
 
-	// update the quaternion state estimates and corresponding covariances only if the change in angle has been large
+	// record the state change
+	_state_reset_status.quat_change = q_error;
+
+	// update transformation matrix from body to world frame using the current estimate
+	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
+
+	// reset the rotation from the EV to EKF frame of reference if it is being used
+	if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS) && !_control_status.flags.ev_yaw) {
+		resetExtVisRotMat();
+	}
+
+	// update the yaw angle variance using the variance of the measurement
+	if (!_control_status.flags.ev_yaw) {
+		// using error estimate from external vision data
+		angle_err_var_vec(2) = sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f));
+
+	} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_AUTOFW) {
+		// using magnetic heading tuning parameter
+		angle_err_var_vec(2) = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
+	}
+
+	// update the covariances only if the change in angle has been large to avoid unnecessary
+	// manipulation of the covariance matrix that can temporarily reduce filter performance
 	if (delta_ang_error.norm() > math::radians(15.0f)) {
-		// update quaternion states
-		_state.quat_nominal = quat_after_reset;
-
-		// record the state change
-		_state_reset_status.quat_change = q_error;
-
-		// update transformation matrix from body to world frame using the current estimate
-		_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
-
-		// reset the rotation from the EV to EKF frame of reference if it is being used
-		if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS) && !_control_status.flags.ev_yaw) {
-			resetExtVisRotMat();
-		}
-
-		// update the yaw angle variance using the variance of the measurement
-		if (!_control_status.flags.ev_yaw) {
-			// using error estimate from external vision data
-			angle_err_var_vec(2) = sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f));
-
-		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_AUTOFW) {
-			// using magnetic heading tuning parameter
-			angle_err_var_vec(2) = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
-		}
-
 		// reset the quaternion covariances using the rotation vector variances
 		initialiseQuatCovariances(angle_err_var_vec);
-
-		// add the reset amount to the output observer buffered data
-		for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
-			// Note q1 *= q2 is equivalent to q1 = q2 * q1
-			_output_buffer[i].quat_nominal *= _state_reset_status.quat_change;
-		}
-
-		// apply the change in attitude quaternion to our newest quaternion estimate
-		// which was already taken out from the output buffer
-		_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
-
-		// capture the reset event
-		_state_reset_status.quat_counter++;
-
 	}
+
+	// add the reset amount to the output observer buffered data
+	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
+		// Note q1 *= q2 is equivalent to q1 = q2 * q1
+		_output_buffer[i].quat_nominal *= _state_reset_status.quat_change;
+	}
+
+	// apply the change in attitude quaternion to our newest quaternion estimate
+	// which was already taken out from the output buffer
+	_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
+
+	// capture the reset event
+	_state_reset_status.quat_counter++;
 
 	return true;
 }
