@@ -1,6 +1,11 @@
 # Build version
 version: "{build}"
 
+environment:
+  matrix:
+    - PX4_CONFIG: posix_sitl_default
+    - PX4_CONFIG: nuttx_px4fmu-v4_default
+
 branches:
   only:
   - master
@@ -33,9 +38,7 @@ build_script:
 # fetch all submodules in parallel
 - call bash --login -c "cd $repopath && git submodule update --init --recursive --jobs=10"
 # make SITL
-- call bash --login -c "cd $repopath && make posix"
-# make pixracer to check NuttX build
-- call bash --login -c "cd $repopath && make px4fmu-v4_default"
+- call bash --login -c "cd $repopath && make ${PX4_CONFIG}"
 
 # Note: using bash --login is important
 # because otherwise certain things (like python; import numpy) do not work
