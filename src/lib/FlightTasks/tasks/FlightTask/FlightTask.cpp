@@ -7,7 +7,7 @@ constexpr uint64_t FlightTask::_timeout;
 const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {NAN, NAN, NAN}};
 
 const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {}};
-const landing_gear_s FlightTask::landing_gear_default_keep = {0, landing_gear_s::GEAR_KEEP, {}};
+const landing_gear_s FlightTask::empty_landing_gear_default_keep = {0, landing_gear_s::GEAR_KEEP, {}};
 const vehicle_trajectory_waypoint_s FlightTask::empty_trajectory_waypoint = {0, 0, {0, 0, 0, 0, 0, 0, 0},
 	{	{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
 		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
@@ -36,7 +36,7 @@ bool FlightTask::activate()
 	_setDefaultConstraints();
 	_time_stamp_activate = hrt_absolute_time();
 	_heading_reset_counter = _sub_attitude->get().quat_reset_counter;
-	_gear = landing_gear_default_keep;
+	_gear = empty_landing_gear_default_keep;
 	return true;
 }
 
