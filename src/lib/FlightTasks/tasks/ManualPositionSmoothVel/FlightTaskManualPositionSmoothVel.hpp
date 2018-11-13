@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,24 +32,42 @@
  ****************************************************************************/
 
 /**
- * @file drv_gps.h
+ * @file FlightTaskManualPositionSmoothVel.hpp
  *
- * GPS driver interface.
+ * Flight task for smooth manual controlled position.
  */
 
 #pragma once
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+#include "FlightTaskManualPosition.hpp"
+#include "VelocitySmoothing.hpp"
 
-#include "board_config.h"
+class FlightTaskManualPositionSmoothVel : public FlightTaskManualPosition
+{
+public:
+	FlightTaskManualPositionSmoothVel() = default;
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
+	virtual ~FlightTaskManualPositionSmoothVel() = default;
 
-typedef enum {
-	GPS_DRIVER_MODE_NONE = 0,
-	GPS_DRIVER_MODE_UBX,
-	GPS_DRIVER_MODE_MTK,
-	GPS_DRIVER_MODE_ASHTECH
-} gps_driver_mode_t;
+	bool activate() override;
+	void reActivate() override;
+
+protected:
+
+	virtual void _updateSetpoints() override;
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualPosition,
+					(ParamFloat<px4::params::MPC_JERK_MIN>) _jerk_min, /**< Minimum jerk (velocity-based if > 0) */
+					(ParamFloat<px4::params::MPC_JERK_MAX>) _jerk_max,
+					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) MPC_ACC_UP_MAX,
+					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) MPC_ACC_DOWN_MAX
+				       )
+private:
+
+	enum class Axes {XY, XYZ};
+	void reset(Axes axes);
+	VelocitySmoothing _smoothing[3]; ///< Smoothing in x, y and z directions
+	matrix::Vector3f _vel_sp_smooth;
+	bool _position_lock_xy_active{false};
+	matrix::Vector2f _position_setpoint_xy_locked;
+};

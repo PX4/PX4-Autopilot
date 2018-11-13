@@ -250,6 +250,26 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 
 /**
+ * Proportional gain for horizontal trajectory position error
+ *
+ * @min 0.1
+ * @max 5.0
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.3f);
+
+/**
+ * Proportional gain for vertical trajectory position error
+ *
+ * @min 0.1
+ * @max 5.0
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_TRAJ_P, 0.3f);
+
+/**
  * Cruise speed when angle prev-current/current-next setpoint
  * is 90 degrees. It should be lower than MPC_XY_CRUISE.
  *
@@ -314,7 +334,7 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.0f);
  *
  * @unit deg
  * @min 0.0
- * @max 90.0
+ * @max 180.0
  * @decimal 1
  * @group Multicopter Position Control
  */
@@ -483,33 +503,47 @@ PARAM_DEFINE_FLOAT(MPC_ACC_UP_MAX, 10.0f);
 PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 10.0f);
 
 /**
- * Maximum jerk in manual controlled mode for BRAKING to zero.
- * If this value is below MPC_JERK_MIN, the acceleration limit in xy and z
- * is MPC_ACC_HOR_MAX and MPC_ACC_UP_MAX respectively instantaneously when the
- * user demands brake (=zero stick input).
- * Otherwise the acceleration limit increases from current acceleration limit
- * towards MPC_ACC_HOR_MAX/MPC_ACC_UP_MAX with jerk limit
+ * Maximum jerk limit
  *
- * @unit m/s/s/s
- * @min 0.0
- * @max 15.0
- * @increment 1
- * @decimal 2
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 0.0f);
-
-/**
- * Minimum jerk in manual controlled mode for BRAKING to zero
+ * Limit the maximum jerk of the vehicle (how fast the acceleration can change).
+ * A lower value leads to smoother vehicle motions, but it also limits its
+ * agility (how fast it can change directions or break).
+ *
+ * Setting this to the maximum value essentially disables the limit.
+ *
+ * Note: this is only used when MPC_POS_MODE is set to a smoothing mode.
  *
  * @unit m/s/s/s
  * @min 0.5
- * @max 10.0
+ * @max 500.0
  * @increment 1
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 1.0f);
+PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 20.0f);
+
+/**
+ * Velocity-based jerk limit
+ *
+ * If this is not zero, a velocity-based maximum jerk limit is used: the applied
+ * jerk limit linearly increases with the vehicle's velocity between
+ * MPC_JERK_MIN (zero velocity) and MPC_JERK_MAX (maximum velocity).
+ *
+ * This means that the vehicle's motions are smooth for low velocities, but
+ * still allows fast direction changes or breaking at higher velocities.
+ *
+ * Set this to zero to use a fixed maximum jerk limit (MPC_JERK_MAX).
+ *
+ * Note: this is only used when MPC_POS_MODE is set to a smoothing mode.
+ *
+ * @unit m/s/s/s
+ * @min 0
+ * @max 30.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 8.0f);
 
 /**
  * Altitude control mode.
@@ -534,7 +568,7 @@ PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 1.0f);
 PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);
 
 /**
- * Manual control stick exponential curve sensitivity attenuation with small velocity setpoints
+ * Manual position control stick exponential curve sensitivity
  *
  * The higher the value the less sensitivity the stick has around zero
  * while still reaching the maximum value with full stick deflection.
@@ -633,15 +667,36 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
  * 	 and jerk limits.
  * 2 Sport mode that is the same Default position control but with velocity limits set to
  * 	 the maximum allowed speeds (MPC_XY_VEL_MAX)
+ * 3 Smooth position control with maximum acceleration and jerk limits (different algorithm
+ *   than 1).
  *
- * @min 0
- * @max 2
  * @value 0 Default position control
  * @value 1 Smooth position control
  * @value 2 Sport position control
+ * @value 3 Smooth position control (Velocity)
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_POS_MODE, 1);
+
+/**
+ * Auto sub-mode.
+ *
+ * The supported sub-modes are:
+ * 0 Direct line tracking, no smoothing
+ *
+ * 1 Not used
+ *
+ * 2 Not used
+ *
+ * 3 Jerk-limited trajectory
+ *
+ * @value 0 Default line tracking
+ * @value 1 N/A
+ * @value 2 N/A
+ * @value 3 Jerk-limited trajectory
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_AUTO_MODE, 3);
 
 /**
  * Delay from idle state to arming state.

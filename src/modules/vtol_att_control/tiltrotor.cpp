@@ -124,7 +124,9 @@ void Tiltrotor::update_vtol_state()
 			break;
 
 		case TRANSITION_BACK:
-			if (_tilt_control <= _params_tiltrotor.tilt_mc) {
+			float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
+
+			if (_tilt_control <= _params_tiltrotor.tilt_mc && time_since_trans_start > _params->back_trans_duration) {
 				_vtol_schedule.flight_mode = MC_MODE;
 			}
 
@@ -303,18 +305,28 @@ void Tiltrotor::update_transition_state()
 		// tilt rotors back
 		if (_tilt_control > _params_tiltrotor.tilt_mc) {
 			_tilt_control = _params_tiltrotor.tilt_fw -
-					fabsf(_params_tiltrotor.tilt_fw - _params_tiltrotor.tilt_mc) * time_since_trans_start / _params->back_trans_duration;
+					fabsf(_params_tiltrotor.tilt_fw - _params_tiltrotor.tilt_mc) * time_since_trans_start / 1.0f;
 		}
 
-		// set zero throttle for backtransition otherwise unwanted moments will be created
-		_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
+		_mc_yaw_weight = 1.0f;
 
-		_mc_roll_weight = 0.0f;
+		// while we quickly rotate back the motors keep throttle at idle
+		if (time_since_trans_start < 1.0f) {
+			_mc_throttle_weight = 0.0f;
+			_mc_roll_weight = 0.0f;
+			_mc_pitch_weight = 0.0f;
 
+		} else {
+			_mc_roll_weight = 1.0f;
+			_mc_pitch_weight = 1.0f;
+			// slowly ramp up throttle to avoid step inputs
+			_mc_throttle_weight = (time_since_trans_start - 1.0f) / 1.0f;
+		}
 	}
 
 	_mc_roll_weight = math::constrain(_mc_roll_weight, 0.0f, 1.0f);
 	_mc_yaw_weight = math::constrain(_mc_yaw_weight, 0.0f, 1.0f);
+	_mc_throttle_weight = math::constrain(_mc_throttle_weight, 0.0f, 1.0f);
 
 	// copy virtual attitude setpoint to real attitude setpoint (we use multicopter att sp)
 	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
@@ -353,7 +365,7 @@ void Tiltrotor::fill_actuator_outputs()
 
 	} else {
 		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
-			_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
+			_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
 	}
 
 	_actuators_out_1->timestamp = hrt_absolute_time();

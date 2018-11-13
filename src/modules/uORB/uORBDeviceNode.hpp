@@ -184,21 +184,23 @@ protected:
 
 private:
 	struct UpdateIntervalData {
-		unsigned  interval; /**< if nonzero minimum interval between updates */
 		struct hrt_call update_call;  /**< deferred wakeup call if update_period is nonzero */
 #ifndef __PX4_NUTTX
 		uint64_t last_update; /**< time at which the last update was provided, used when update_interval is nonzero */
 #endif
+		unsigned  interval; /**< if nonzero minimum interval between updates */
+		bool update_reported;
 	};
 	struct SubscriberData {
 		~SubscriberData() { if (update_interval) { delete (update_interval); } }
 
 		unsigned  generation; /**< last generation the subscriber has seen */
-		int   flags; /**< lowest 8 bits: priority of publisher, 9. bit: update_reported bit */
 		UpdateIntervalData *update_interval; /**< if null, no update interval */
 
-		bool update_reported() const { return flags & (1 << 8); }
-		void set_update_reported(bool update_reported_flag) { flags = (flags & ~(1 << 8)) | (((int)update_reported_flag) << 8); }
+		// these flags are only used if update_interval != null
+		bool update_reported() const { return update_interval ? update_interval->update_reported : false; }
+		void set_update_reported(bool update_reported_flag)
+		{ if (update_interval) { update_interval->update_reported = update_reported_flag; } }
 	};
 
 	const struct orb_metadata *_meta; /**< object metadata information */

@@ -140,7 +140,7 @@ ManualSmoothingXY::_setStateAcceleration(const Vector2f &vel_sp, const Vector2f 
 				// very slow at low speed.
 				_jerk_state_dependent = 1e6f; // default
 
-				if (_jerk_max.get() > _jerk_min.get()) {
+				if (_jerk_max.get() > _jerk_min.get() && _jerk_min.get() > FLT_EPSILON) {
 
 					_jerk_state_dependent = math::min((_jerk_max.get() - _jerk_min.get())
 									  / _vel_max * vel.length() + _jerk_min.get(), _jerk_max.get());

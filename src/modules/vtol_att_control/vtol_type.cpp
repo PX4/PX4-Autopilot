@@ -124,6 +124,7 @@ void VtolType::update_mc_state()
 	_mc_roll_weight = 1.0f;
 	_mc_pitch_weight = 1.0f;
 	_mc_yaw_weight = 1.0f;
+	_mc_throttle_weight = 1.0f;
 }
 
 void VtolType::update_fw_state()

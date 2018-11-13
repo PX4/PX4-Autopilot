@@ -230,24 +230,6 @@ ok:
 int LidarLiteI2C::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			ATOMIC_ENTER;
-
-			if (!_reports->resize(arg)) {
-				ATOMIC_LEAVE;
-				return -ENOMEM;
-			}
-
-			ATOMIC_LEAVE;
-
-			return OK;
-		}
-
 	default: {
 			int result = LidarLite::ioctl(filp, cmd, arg);
 

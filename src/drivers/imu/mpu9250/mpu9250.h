@@ -490,11 +490,7 @@ private:
 	 *
 	 * @return true if the sensor is not on the main MCU board
 	 */
-	bool			is_external()
-	{
-		unsigned dummy;
-		return _interface->ioctl(ACCELIOCGEXTERNAL, dummy);
-	}
+	bool			is_external() { return _interface->external(); }
 
 	/**
 	 * Measurement self test

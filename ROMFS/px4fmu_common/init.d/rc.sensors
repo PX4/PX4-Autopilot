@@ -127,6 +127,9 @@ then
 	# External I2C bus
 	hmc5883 -C -X start
 
+	# Possible external compasses
+	ist8310 -C -b 2 start
+
 	# External I2C bus
 	lis3mdl -X start
 
@@ -134,7 +137,7 @@ then
 	mpl3115a2 -X start
 
 	# Internal SPI (accel + mag)
-	fxos8701cq start -a 8 -R 0
+	fxos8701cq start -R 0
 
 	# Internal SPI (gyro)
 	fxas21002c start -R 0

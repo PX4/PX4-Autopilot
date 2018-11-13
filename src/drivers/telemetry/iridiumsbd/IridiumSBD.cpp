@@ -47,11 +47,11 @@
 #include <systemlib/err.h>
 #include <parameters/param.h>
 
-#include "drivers/drv_iridiumsbd.h"
-
 static constexpr const char *satcom_state_string[4] = {"STANDBY", "SIGNAL CHECK", "SBD SESSION", "TEST"};
 
 #define VERBOSE_INFO(...) if (_verbose) { PX4_INFO(__VA_ARGS__); }
+
+#define IRIDIUMSBD_DEVICE_PATH	"/dev/iridium"
 
 IridiumSBD *IridiumSBD::instance;
 int IridiumSBD::task_handle;

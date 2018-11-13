@@ -479,7 +479,7 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 		for(unsigned i = 0; i < orb_accel_count && !found_cur_accel; i++) {
 			worker_data.subs[cur_accel] = orb_subscribe_multi(ORB_ID(sensor_accel), i);
 
-			struct accel_report report = {};
+			sensor_accel_s report = {};
 			orb_copy(ORB_ID(sensor_accel), worker_data.subs[cur_accel], &report);
 
 #ifdef __PX4_NUTTX
@@ -538,7 +538,7 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 	for (unsigned i = 0; i < max_accel_sens; i++) {
 		if (worker_data.subs[i] >= 0) {
 			/* figure out which sensors were active */
-			struct accel_report arp = {};
+			sensor_accel_s arp = {};
 			(void)orb_copy(ORB_ID(sensor_accel), worker_data.subs[i], &arp);
 			if (arp.timestamp != 0 && timestamps[i] != arp.timestamp) {
 				(*active_sensors)++;
@@ -626,7 +626,7 @@ calibrate_return read_accelerometer_avg(int sensor_correction_sub, int (&subs)[m
 
 				if (changed) {
 
-					struct accel_report arp;
+					sensor_accel_s arp;
 					orb_copy(ORB_ID(sensor_accel), subs[s], &arp);
 
 					// Apply thermal offset corrections in sensor/board frame

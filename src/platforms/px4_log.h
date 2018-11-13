@@ -168,11 +168,6 @@ __END_DECLS
 #define __px4__log_printcond(cond, ...)	    if (cond) printf(__VA_ARGS__)
 #define __px4__log_printline(level, ...)    printf(__VA_ARGS__)
 
-
-#ifndef MODULE_NAME
-#define MODULE_NAME "Unknown"
-#endif
-
 #define __px4__log_timestamp_fmt	"%-10" PRIu64 " "
 #define __px4__log_timestamp_arg 	,hrt_absolute_time()
 #define __px4__log_level_fmt		"%-5s "

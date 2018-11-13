@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,29 +32,35 @@
  ****************************************************************************/
 
 /**
- * @file PX4Flow driver interface.
+ * @file FlightTaskTranstion.cpp
  */
 
-#ifndef _DRV_PX4FLOW_H
-#define _DRV_PX4FLOW_H
+#include "FlightTaskTransition.hpp"
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+bool FlightTaskTransition::updateInitialize()
+{
+	return FlightTask::updateInitialize();
+}
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
+bool FlightTaskTransition::activate()
+{
+	// transition at the current altitude and current yaw at the time of activation
+	// it would be better to use the last setpoint from the previous running flighttask but that interface
+	// is not available
+	_transition_altitude = _position(2);
+	_transition_yaw = _yaw;
+	return FlightTask::activate();
+}
 
-#define PX4FLOW0_DEVICE_PATH	"/dev/px4flow0"
+bool FlightTaskTransition::update()
+{
+	// level wings during the transition, altitude should be controlled
+	_thrust_setpoint(0) = _thrust_setpoint(1) = 0.0f;
+	_thrust_setpoint(2) = NAN;
+	_position_setpoint *= NAN;
+	_velocity_setpoint *= NAN;
+	_position_setpoint(2) = _transition_altitude;
 
-/*
- * ioctl() definitions
- *
- * px4flow drivers also implement the generic sensor driver
- * interfaces from drv_sensor.h
- */
-
-#define _PX4FLOWIOCBASE			(0x7700)
-#define __PX4FLOWIOC(_n)		(_IOC(_PX4FLOWIOCBASE, _n))
-
-
-#endif /* _DRV_PX4FLOW_H */
+	_yaw_setpoint = _transition_yaw;
+	return true;
+}

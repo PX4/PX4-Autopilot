@@ -53,14 +53,14 @@
  * of the size
  */
 enum class WaypointType : int {
-	position = 0,
-	velocity,
-	loiter,
-	takeoff,
-	land,
-	idle,
-	offboard, // only part of this structure due to legacy reason. It is not used within the Auto flighttasks
-	follow_target
+	position = position_setpoint_s::SETPOINT_TYPE_POSITION,
+	velocity = position_setpoint_s::SETPOINT_TYPE_VELOCITY,
+	loiter = position_setpoint_s::SETPOINT_TYPE_LOITER,
+	takeoff = position_setpoint_s::SETPOINT_TYPE_TAKEOFF,
+	land = position_setpoint_s::SETPOINT_TYPE_LAND,
+	idle = position_setpoint_s::SETPOINT_TYPE_IDLE,
+	offboard = position_setpoint_s::SETPOINT_TYPE_OFFBOARD, // only part of this structure due to legacy reason. It is not used within the Auto flighttasks
+	follow_target = position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET,
 };
 
 enum class State {

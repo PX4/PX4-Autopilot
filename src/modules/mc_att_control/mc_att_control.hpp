@@ -102,18 +102,36 @@ private:
 	void		sensor_bias_poll();
 	void		vehicle_land_detected_poll();
 	void		sensor_correction_poll();
-	void		vehicle_attitude_poll();
+	bool		vehicle_attitude_poll();
 	void		vehicle_attitude_setpoint_poll();
 	void		vehicle_control_mode_poll();
-	void		vehicle_manual_poll();
+	bool		vehicle_manual_poll();
 	void		vehicle_motor_limits_poll();
-	void		vehicle_rates_setpoint_poll();
+	bool		vehicle_rates_setpoint_poll();
 	void		vehicle_status_poll();
+
+	void		publish_actuator_controls();
+	void		publish_rates_setpoint();
+	void		publish_rate_controller_status();
+
+	float		throttle_curve(float throttle_stick_input);
+
+	/**
+	 * Generate & publish an attitude setpoint from stick inputs
+	 */
+	void		generate_attitude_setpoint(float dt, bool reset_yaw_sp);
+
+	/**
+	 * Get the landing gear state based on the manual control switch position
+	 * @return vehicle_attitude_setpoint_s::LANDING_GEAR_UP or vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN
+	 */
+	float		get_landing_gear_state();
+
 
 	/**
 	 * Attitude controller.
 	 */
-	void		control_attitude(float dt);
+	void		control_attitude();
 
 	/**
 	 * Attitude rates controller.
@@ -146,6 +164,7 @@ private:
 	orb_advert_t	_v_rates_sp_pub{nullptr};		/**< rate setpoint publication */
 	orb_advert_t	_actuators_0_pub{nullptr};		/**< attitude actuator controls publication */
 	orb_advert_t	_controller_status_pub{nullptr};	/**< controller status publication */
+	orb_advert_t	_vehicle_attitude_setpoint_pub{nullptr};
 
 	orb_id_t _rates_sp_id{nullptr};		/**< pointer to correct rates setpoint uORB metadata structure */
 	orb_id_t _actuators_id{nullptr};	/**< pointer to correct actuator controls0 uORB metadata structure */
@@ -182,6 +201,9 @@ private:
 
 	matrix::Dcmf _board_rotation;			/**< rotation matrix for the orientation that the board is mounted */
 
+	float _man_yaw_sp{0.f};				/**< current yaw setpoint in manual mode */
+	bool _gear_state_initialized{false};		/**< true if the gear state has been initialized */
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MC_ROLL_P>) _roll_p,
 		(ParamFloat<px4::params::MC_ROLLRATE_P>) _roll_rate_p,
@@ -217,6 +239,7 @@ private:
 		(ParamFloat<px4::params::MC_PITCHRATE_MAX>) _pitch_rate_max,
 		(ParamFloat<px4::params::MC_YAWRATE_MAX>) _yaw_rate_max,
 		(ParamFloat<px4::params::MC_YAWRAUTO_MAX>) _yaw_auto_max,
+		(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _yaw_rate_scaling,			/**< scaling factor from stick to yaw rate */
 
 		(ParamFloat<px4::params::MC_ACRO_R_MAX>) _acro_roll_max,
 		(ParamFloat<px4::params::MC_ACRO_P_MAX>) _acro_pitch_max,
@@ -234,7 +257,14 @@ private:
 
 		(ParamFloat<px4::params::SENS_BOARD_X_OFF>) _board_offset_x,
 		(ParamFloat<px4::params::SENS_BOARD_Y_OFF>) _board_offset_y,
-		(ParamFloat<px4::params::SENS_BOARD_Z_OFF>) _board_offset_z
+		(ParamFloat<px4::params::SENS_BOARD_Z_OFF>) _board_offset_z,
+
+		/* Stabilized mode params */
+		(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _man_tilt_max_deg,			/**< maximum tilt allowed for manual flight */
+		(ParamFloat<px4::params::MPC_MANTHR_MIN>) _man_throttle_min,			/**< minimum throttle for stabilized */
+		(ParamFloat<px4::params::MPC_THR_MAX>) _throttle_max,				/**< maximum throttle for stabilized */
+		(ParamFloat<px4::params::MPC_THR_HOVER>) _throttle_hover,			/**< throttle at which vehicle is at hover equilibrium */
+		(ParamInt<px4::params::MPC_THR_CURVE>) _throttle_curve				/**< throttle curve behavior */
 	)
 
 	matrix::Vector3f _attitude_p;		/**< P gain for attitude control */
@@ -247,6 +277,7 @@ private:
 	matrix::Vector3f _mc_rate_max;		/**< attitude rate limits in stabilized modes */
 	matrix::Vector3f _auto_rate_max;	/**< attitude rate limits in auto modes */
 	matrix::Vector3f _acro_rate_max;	/**< max attitude rates in acro mode */
+	float _man_tilt_max;			/**< maximum tilt allowed for manual flight [rad] */
 
 };
 

@@ -527,7 +527,7 @@ FXAS21002C::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_gyro_s));
 
 	if (_reports == nullptr) {
 		return PX4_ERROR;
@@ -541,7 +541,7 @@ FXAS21002C::init()
 	_class_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct gyro_report grp;
+	sensor_gyro_s grp;
 	_reports->get(&grp);
 
 	/* measurement will have generated a report, publish */
@@ -608,8 +608,8 @@ FXAS21002C::probe()
 ssize_t
 FXAS21002C::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct gyro_report);
-	struct gyro_report *gbuf = reinterpret_cast<struct gyro_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_gyro_s);
+	sensor_gyro_s *gbuf = reinterpret_cast<sensor_gyro_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -656,21 +656,11 @@ FXAS21002C::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_call_interval = 0;
-				return OK;
-
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				return ioctl(filp, SENSORIOCSPOLLRATE, FXAS21002C_DEFAULT_RATE);
 
@@ -708,58 +698,14 @@ FXAS21002C::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCGPOLLRATE:
-		if (_call_interval == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return 1000000 / _call_interval;
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
 	case SENSORIOCRESET:
 		reset();
 		return OK;
-
-	case GYROIOCSSAMPLERATE:
-		return set_samplerate(arg);
-
-	case GYROIOCGSAMPLERATE:
-		return _current_rate;
 
 	case GYROIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
 		return OK;
-
-	case GYROIOCGSCALE:
-		/* copy scale out */
-		memcpy((struct gyro_calibration_s *) arg, &_gyro_scale, sizeof(_gyro_scale));
-		return OK;
-
-	case GYROIOCSRANGE:
-		/* arg should be in dps */
-		return set_range(arg);
-
-	case GYROIOCGRANGE:
-		/* convert to dps and round */
-		return (unsigned long)(_gyro_range_rad_s * 180.0f / M_PI_F + 0.5f);
 
 	default:
 		/* give it to the superclass */
@@ -896,7 +842,7 @@ FXAS21002C::set_samplerate(unsigned frequency)
 
 	unsigned last_rate = _current_rate;
 
-	if (frequency == 0 || frequency == GYRO_SAMPLERATE_DEFAULT) {
+	if (frequency == 0) {
 		frequency = FXAS21002C_DEFAULT_RATE;
 	}
 
@@ -1064,7 +1010,7 @@ FXAS21002C::measure()
 	} raw_gyro_report;
 #pragma pack(pop)
 
-	struct gyro_report gyro_report;
+	sensor_gyro_s gyro_report;
 
 	/* start the performance counter */
 	perf_begin(_sample_perf);
@@ -1332,7 +1278,7 @@ void
 test()
 {
 	int fd_gyro = -1;
-	struct gyro_report g_report;
+	sensor_gyro_s g_report{};
 	ssize_t sz;
 
 	/* get the driver */
@@ -1340,11 +1286,6 @@ test()
 
 	if (fd_gyro < 0) {
 		err(1, "%s open failed", FXAS21002C_DEVICE_PATH_GYRO);
-	}
-
-	/* reset to manual polling */
-	if (ioctl(fd_gyro, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
-		err(1, "reset to manual polling");
 	}
 
 	/* do a simple demand read */

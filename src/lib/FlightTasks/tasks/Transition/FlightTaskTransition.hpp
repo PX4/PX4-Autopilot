@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,34 +32,26 @@
  ****************************************************************************/
 
 /**
- * @file drv_irlock.h
+ * @file FlightTaskTransition.hpp
  *
- * IR-Lock device API
- **/
+ * Flight task for automatic VTOL transitions between hover and forward flight and vice versa.
+ */
 
 #pragma once
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+#include "FlightTask.hpp"
 
-#include "drv_sensor.h" // include sensor driver interfaces
+class FlightTaskTransition : public FlightTask
+{
+public:
+	FlightTaskTransition() = default;
 
-#define IRLOCK_BASE_DEVICE_PATH	"/dev/irlock"
-#define IRLOCK0_DEVICE_PATH	"/dev/irlock0"
+	virtual ~FlightTaskTransition() = default;
+	bool activate() override;
+	bool updateInitialize() override;
+	bool update() override;
 
-#define IRLOCK_OBJECTS_MAX	5	/** up to 5 objects can be detected/reported **/
-
-struct irlock_target_s {
-	uint16_t signature;	/** target signature **/
-	float pos_x;	/** x-axis distance from center of image to center of target in units of tan(theta) **/
-	float pos_y;	/** y-axis distance from center of image to center of target in units of tan(theta) **/
-	float size_x;	/** size of target along x-axis in units of tan(theta) **/
-	float size_y;	/** size of target along y-axis in units of tan(theta) **/
-};
-
-/** irlock_s structure returned from read calls **/
-struct irlock_s {
-	uint64_t timestamp; /** microseconds since system start **/
-	uint8_t num_targets;
-	struct irlock_target_s targets[IRLOCK_OBJECTS_MAX];
+private:
+	float _transition_altitude = 0.0f;
+	float _transition_yaw = 0.0f;
 };

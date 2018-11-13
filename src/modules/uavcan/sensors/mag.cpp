@@ -100,9 +100,6 @@ ssize_t UavcanMagnetometerBridge::read(struct file *filp, char *buffer, size_t b
 int UavcanMagnetometerBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
-	case SENSORIOCSQUEUEDEPTH: {
-			return OK;			// Pretend that this stuff is supported to keep APM happy
-		}
 
 	case MAGIOCSSCALE: {
 			std::memcpy(&_scale, reinterpret_cast<const void *>(arg), sizeof(_scale));
@@ -118,14 +115,8 @@ int UavcanMagnetometerBridge::ioctl(struct file *filp, int cmd, unsigned long ar
 			return 1;           // declare it external rise it's priority and to allow for correct orientation compensation
 		}
 
-	case MAGIOCSSAMPLERATE: {
-			return 0;           // Pretend that this stuff is supported to keep the sensor app happy
-		}
-
 	case MAGIOCCALIBRATE:
-	case MAGIOCGSAMPLERATE:
 	case MAGIOCSRANGE:
-	case MAGIOCGRANGE:
 	case MAGIOCEXSTRAP: {
 			return -EINVAL;
 		}
