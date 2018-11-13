@@ -631,6 +631,11 @@ Sensors::run()
 		int pret = px4_poll(&poll_fds, 1, 50);
 
 		/* if pret == 0 it timed out - periodic check for should_exit(), etc. */
+		if (pret == 0) {
+			continue;
+		}
+
+
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
@@ -642,7 +647,6 @@ Sensors::run()
 			}
 
 			px4_usleep(1000);
-
 			continue;
 		}
 
