@@ -522,30 +522,4 @@ extern "C" {
 		pthread_mutex_unlock(&devmutex);
 	}
 
-	void px4_enable_sim_lockstep()
-	{
-		px4_sem_init(&lockstep_sem, 0, 0);
-
-		// lockstep_sem use case is a signal
-		px4_sem_setprotocol(&lockstep_sem, SEM_PRIO_NONE);
-
-		sim_lockstep = true;
-		sim_delay = false;
-	}
-
-	void px4_sim_start_delay()
-	{
-		sim_delay = true;
-	}
-
-	void px4_sim_stop_delay()
-	{
-		sim_delay = false;
-	}
-
-	bool px4_sim_delay_enabled()
-	{
-		return sim_delay;
-	}
-
 } // extern "C"
