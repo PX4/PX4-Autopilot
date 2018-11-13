@@ -50,7 +50,7 @@
 
 #include "server.h"
 #include <px4_daemon/server_io.h>
-#include "pipe_protocol.h"
+#include "sock_protocol.h"
 
 
 using namespace px4_daemon;
@@ -84,10 +84,8 @@ int get_stdout_pipe_buffer(char **buffer, unsigned *max_length, bool *is_atty)
 
 #endif
 
-	client_recv_packet_s *packet = &thread_data_ptr->packet;
-
-	*buffer = (char *)packet->payload.stdout_msg.text;
-	*max_length = sizeof(packet->payload.stdout_msg.text);
+	*buffer = thread_data_ptr->buffer;
+	*max_length = sizeof(thread_data_ptr->buffer);
 	*is_atty = thread_data_ptr->is_atty;
 
 	return 0;
@@ -95,8 +93,6 @@ int get_stdout_pipe_buffer(char **buffer, unsigned *max_length, bool *is_atty)
 
 int send_stdout_pipe_buffer(unsigned buffer_length)
 {
-	assert(buffer_length <= sizeof(client_recv_packet_s::payload.stdout_msg.text));
-
 	Server::CmdThreadSpecificData *thread_data_ptr;
 
 	if (!Server::is_running()) {
@@ -108,25 +104,9 @@ int send_stdout_pipe_buffer(unsigned buffer_length)
 		return -1;
 	}
 
-	client_recv_packet_s *packet = &thread_data_ptr->packet;
-	packet->header.payload_length = buffer_length;
+	int bytes_sent = write(thread_data_ptr->fd, thread_data_ptr->buffer, buffer_length);
 
-	int pipe_fd = thread_data_ptr->pipe_fd;
-	int bytes_to_send = get_client_recv_packet_length(packet);
-
-	// Check if we can write first by writing 0 bytes.
-	// If we don't do this, we'll get SIGPIPE and be very unhappy
-	// because the whole process will go down.
-	int ret = write(pipe_fd, nullptr, 0);
-
-	if (ret == 0 && errno == EPIPE) {
-		printf("Error: can't write to closed pipe, giving up.\n");
-		pthread_exit(nullptr);
-	}
-
-	int bytes_sent = write(pipe_fd, packet, bytes_to_send);
-
-	if (bytes_sent != bytes_to_send) {
+	if (bytes_sent != (int)buffer_length) {
 		printf("write fail\n");
 		return -1;
 	}
