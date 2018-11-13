@@ -472,15 +472,29 @@ FixedwingAttitudeControl::vehicle_land_detected_poll()
 	}
 }
 
-float FixedwingAttitudeControl::get_airspeed_scaling(float airspeed)
+void FixedwingAttitudeControl::get_airspeed_and_scaling(float &airspeed, float &airspeed_scaling)
 {
-	// check if we have special airspeed rules for vtol
-	if (_vehicle_status.is_vtol && _parameters.vtol_airspeed_rule > 0) {
+	const bool airspeed_valid = PX4_ISFINITE(_airspeed_sub.get().indicated_airspeed_m_s)
+				    && (_airspeed_sub.get().indicated_airspeed_m_s > 0.0f)
+				    && (hrt_elapsed_time(&_airspeed_sub.get().timestamp) < 1e6);
 
-		// always use minimum airspeed during hover
-		if (_parameters.vtol_airspeed_rule == 1 && _vehicle_status.is_rotary_wing &&
-		    !_vehicle_status.in_transition_mode) {
-			airspeed = _airspeed_numerical_min;
+	if (!_parameters.airspeed_disabled && airspeed_valid) {
+		/* prevent numerical drama by requiring 0.5 m/s minimal speed */
+		airspeed = math::max(0.5f, _airspeed_sub.get().indicated_airspeed_m_s);
+
+	} else {
+		// if no airspeed measurement is available out best guess is to use the trim airspeed
+		airspeed = _parameters.airspeed_trim;
+
+		// VTOL: if we have no airspeed available and we are in hover mode then assume the lowest airspeed possible
+		// this assumption is good as long as the vehicle is not hovering in a headwind which is much larger
+		// than the minimum airspeed
+		if (_vehicle_status.is_vtol && _vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
+			airspeed = _parameters.airspeed_min;
+		}
+
+		if (!airspeed_valid) {
+			perf_count(_nonfinite_input_perf);
 		}
 	}
 
@@ -491,7 +505,7 @@ float FixedwingAttitudeControl::get_airspeed_scaling(float airspeed)
 	 *
 	 * Forcing the scaling to this value allows reasonable handheld tests.
 	 */
-	return _parameters.airspeed_trim / math::max(airspeed, _parameters.airspeed_min);
+	airspeed_scaling = _parameters.airspeed_trim / math::max(airspeed, _parameters.airspeed_min);
 }
 
 void FixedwingAttitudeControl::run()
@@ -629,27 +643,9 @@ void FixedwingAttitudeControl::run()
 			/* decide if in stabilized or full manual control */
 			if (_vcontrol_mode.flag_control_rates_enabled) {
 
-				/* scale around tuning airspeed */
 				float airspeed;
-
-				/* if airspeed is non-finite or not valid or if we are asked not to control it, we assume the normal average speed */
-				const bool airspeed_valid = PX4_ISFINITE(_airspeed_sub.get().indicated_airspeed_m_s)
-							    && (_airspeed_sub.get().indicated_airspeed_m_s > 0.0f)
-							    && (hrt_elapsed_time(&_airspeed_sub.get().timestamp) < 1e6);
-
-				if (!_parameters.airspeed_disabled && airspeed_valid) {
-					/* prevent numerical drama by requiring 0.5 m/s minimal speed */
-					airspeed = math::max(_airspeed_numerical_min, _airspeed_sub.get().indicated_airspeed_m_s);
-
-				} else {
-					airspeed = _parameters.airspeed_trim;
-
-					if (!airspeed_valid) {
-						perf_count(_nonfinite_input_perf);
-					}
-				}
-
-				float airspeed_scaling = get_airspeed_scaling(airspeed);
+				float airspeed_scaling;
+				get_airspeed_and_scaling(airspeed, airspeed_scaling);
 
 				/* Use min airspeed to calculate ground speed scaling region.
 				 * Don't scale below gspd_scaling_trim

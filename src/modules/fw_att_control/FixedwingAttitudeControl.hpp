@@ -298,5 +298,5 @@ private:
 	void		global_pos_poll();
 	void		vehicle_status_poll();
 	void		vehicle_land_detected_poll();
-	float 		get_airspeed_scaling(float airspeed);
+	void 		get_airspeed_and_scaling(float &airspeed, float &airspeed_scaling);
 };
