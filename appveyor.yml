@@ -32,12 +32,12 @@ install:
 # because otherwise the install begins but non-blocking and the result cannot be used just after
 
 build_script:
+
 # setup the environmental variables to work within the installed cygwin toolchain
 - call C:\PX4\toolchain\setup-environment-variables.bat x
+
 # safe the repopath for switching to it in cygwin bash
 - for /f %%i in ('cygpath -u %%CD%%') do set repopath=%%i
-# fetch all submodules in parallel
-- call bash --login -c "cd $repopath && git submodule update --init --recursive --jobs=10"
 
 # clear ccache stats for posix build
 - call bash --login -c "ccache -z"
