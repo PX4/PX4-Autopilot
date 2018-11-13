@@ -125,6 +125,8 @@ private:
 		uint32_t overflow;
 	};
 
+	struct _trig_s _trigger;
+
 	ringbuffer::RingBuffer *_trig_buffer;
 
 	// Parameters
