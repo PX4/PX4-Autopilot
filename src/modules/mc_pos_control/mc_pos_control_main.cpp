@@ -593,21 +593,16 @@ MulticopterPositionControl::run()
 	// Let's be safe and have the landing gear down by default
 	_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
 
-	// wakeup source
-	px4_pollfd_struct_t fds[1];
-
-	fds[0].fd = _local_pos_sub;
-	fds[0].events = POLLIN;
+	// setup file descriptor to poll the local position as loop wakeup source
+	px4_pollfd_struct_t poll_fd = {.fd = _local_pos_sub, .events = POLLIN};
 
 	while (!should_exit()) {
-		// wait for up to 20ms for data
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 20);
-
-		// pret == 0: go through the loop anyway to copy manual input at 50 Hz.
-
+		// poll for new data on the local position state topic (wait for up to 20ms)
+		const int poll_return = px4_poll(&poll_fd, 1, 20);
+		// poll_return == 0: go through the loop anyway to copy manual input at 50 Hz
 		// this is undesirable but not much we can do
-		if (pret < 0) {
-			PX4_ERR("poll error %d, %d", pret, errno);
+		if (poll_return < 0) {
+			PX4_ERR("poll error: %d, %s", poll_return, strerror(errno));
 			continue;
 		}
 
