@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,45 +31,18 @@
  *
  ****************************************************************************/
 /**
- * @file pipe_protocol.cpp
+ * @file sock_protocol.h
  *
- * @author Julian Oes <julian@oes.ch>
- * @author Beat Küng <beat-kueng@gmx.net>
+ * @author Mara Bos <m-ou.se@m-ou.se>
  */
+#pragma once
 
-#include <stdint.h>
-#include <stdio.h>
-#include <inttypes.h>
-
-#include "pipe_protocol.h"
-
-static const char CLIENT_SEND_PIPE_PATH[] = "/tmp/px4_client_send_pipe-";
-static const char CLIENT_RECV_PIPE_PATH[] = "/tmp/px4_client_recv_pipe";
-
+#include <string>
 
 namespace px4_daemon
 {
 
-
-unsigned get_client_send_packet_length(const client_send_packet_s *packet)
-{
-	return sizeof(client_send_packet_s) - sizeof(packet->payload) + packet->header.payload_length;
-}
-
-unsigned get_client_recv_packet_length(const client_recv_packet_s *packet)
-{
-	return sizeof(client_recv_packet_s) - sizeof(packet->payload) + packet->header.payload_length;
-}
-
-int get_client_recv_pipe_path(const uint64_t uuid, char *path, const size_t path_len)
-{
-	return snprintf(path, path_len, "%s-%016" PRIx64, CLIENT_RECV_PIPE_PATH, uuid);
-}
-
-std::string get_client_send_pipe_path(int instance_id)
-{
-	return std::string(CLIENT_SEND_PIPE_PATH) + std::to_string(instance_id);
-}
+std::string get_socket_path(int instance_id);
 
 } // namespace px4_daemon
 
