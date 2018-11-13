@@ -412,6 +412,9 @@ MulticopterPositionControl::parameters_update(bool force)
 void
 MulticopterPositionControl::poll_subscriptions()
 {
+	// This is polled for, so all we need to do is a copy now.
+	orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+
 	bool updated;
 
 	orb_check(_vehicle_status_sub, &updated);
@@ -445,12 +448,6 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
-	}
-
-	orb_check(_local_pos_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 	}
 
 	orb_check(_att_sub, &updated);
