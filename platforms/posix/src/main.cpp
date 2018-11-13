@@ -596,11 +596,6 @@ bool is_already_running(int instance)
 	return false;
 }
 
-bool px4_exit_requested(void)
-{
-	return _exit_requested;
-}
-
 bool file_exists(const std::string &name)
 {
 	struct stat buffer;

@@ -136,8 +136,6 @@ __EXPORT const char 	*px4_get_topic_names(unsigned int *handle);
  */
 __EXPORT uint64_t	hrt_system_time(void);
 
-__EXPORT bool		px4_exit_requested(void);
-
 
 #endif
 
