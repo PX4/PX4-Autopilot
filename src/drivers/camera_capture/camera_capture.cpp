@@ -92,15 +92,10 @@ CameraCapture::capture_callback(uint32_t chan_index,
 				hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
 
-	struct _trig_s trigger;
-
-	trigger.chan_index = chan_index;
-	trigger.edge_time = edge_time;
-	trigger.edge_state = edge_state;
-	trigger.overflow = overflow;
-
-	/* post message to the ring */
-	_trig_buffer->put(&trigger);
+	_trigger.chan_index = chan_index;
+	_trigger.edge_time = edge_time;
+	_trigger.edge_state = edge_state;
+	_trigger.overflow = overflow;
 
 	work_queue(HPWORK, &_work_publisher, (worker_t)&CameraCapture::publish_trigger_trampoline, this, 0);
 }
@@ -116,43 +111,38 @@ CameraCapture::publish_trigger_trampoline(void *arg)
 void
 CameraCapture::publish_trigger()
 {
-	struct _trig_s trig;
 	bool publish = false;
-
-	if (!_trig_buffer->get(&trig)) {
-		return;
-	}
 
 	struct camera_trigger_s	trigger {};
 
 	// MODES 1 and 2 are not fully tested
 	if (_camera_capture_mode == 0) {
-		trigger.timestamp = trig.edge_time - uint64_t(1000 * _strobe_delay);
+		trigger.timestamp = _trigger.edge_time - uint64_t(1000 * _strobe_delay);
 		trigger.seq = _capture_seq++;
 		_last_trig_time = trigger.timestamp;
 		publish = true;
 
 	} else if (_camera_capture_mode == 1) { // Get timestamp of mid-exposure (active high)
-		if (trig.edge_state == 1) {
-			_last_trig_begin_time = trig.edge_time - uint64_t(1000 * _strobe_delay);
+		if (_trigger.edge_state == 1) {
+			_last_trig_begin_time = _trigger.edge_time - uint64_t(1000 * _strobe_delay);
 
-		} else if (trig.edge_state == 0 && _last_trig_begin_time > 0) {
-			trigger.timestamp = trig.edge_time - ((trig.edge_time - _last_trig_begin_time) / 2);
+		} else if (_trigger.edge_state == 0 && _last_trig_begin_time > 0) {
+			trigger.timestamp = _trigger.edge_time - ((_trigger.edge_time - _last_trig_begin_time) / 2);
 			trigger.seq = _capture_seq++;
-			_last_exposure_time = trig.edge_time - _last_trig_begin_time;
+			_last_exposure_time = _trigger.edge_time - _last_trig_begin_time;
 			_last_trig_time = trigger.timestamp;
 			publish = true;
 			_capture_seq++;
 		}
 
 	} else { // Get timestamp of mid-exposure (active low)
-		if (trig.edge_state == 0) {
-			_last_trig_begin_time = trig.edge_time - uint64_t(1000 * _strobe_delay);
+		if (_trigger.edge_state == 0) {
+			_last_trig_begin_time = _trigger.edge_time - uint64_t(1000 * _strobe_delay);
 
-		} else if (trig.edge_state == 1 && _last_trig_begin_time > 0) {
-			trigger.timestamp = trig.edge_time - ((trig.edge_time - _last_trig_begin_time) / 2);
+		} else if (_trigger.edge_state == 1 && _last_trig_begin_time > 0) {
+			trigger.timestamp = _trigger.edge_time - ((_trigger.edge_time - _last_trig_begin_time) / 2);
 			trigger.seq = _capture_seq++;
-			_last_exposure_time = trig.edge_time - _last_trig_begin_time;
+			_last_exposure_time = _trigger.edge_time - _last_trig_begin_time;
 			_last_trig_time = trigger.timestamp;
 			publish = true;
 		}
@@ -160,7 +150,7 @@ CameraCapture::publish_trigger()
 	}
 
 	trigger.feedback = true;
-	_capture_overflows = trig.overflow;
+	_capture_overflows = _trigger.overflow;
 
 	if (!publish) {
 		return;
