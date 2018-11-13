@@ -196,6 +196,8 @@ extern "C" {
 				const unsigned NAMELEN = 32;
 				char thread_name[NAMELEN] = {};
 
+				PX4_WARN("%s: exceeded maximum number of file descriptors, accessing %s",
+					 thread_name, path);
 #ifndef __PX4_QURT
 				int nret = pthread_getname_np(pthread_self(), thread_name, NAMELEN);
 
@@ -206,8 +208,6 @@ extern "C" {
 				PX4_BACKTRACE();
 #endif
 
-				PX4_WARN("%s: exceeded maximum number of file descriptors, accessing %s",
-					 thread_name, path);
 				ret = -ENOENT;
 			}
 
