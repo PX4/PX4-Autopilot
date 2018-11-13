@@ -115,7 +115,7 @@ struct RawAirspeedData {
 
 #pragma pack(push, 1)
 struct RawGPSData {
-	int64_t timestamp;
+	uint64_t timestamp;
 	int32_t lat;
 	int32_t lon;
 	int32_t alt;

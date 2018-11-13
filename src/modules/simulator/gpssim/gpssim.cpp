@@ -270,7 +270,7 @@ GPSSIM::receive(int timeout)
 	simulator::RawGPSData gps;
 	sim->getGPSSample((uint8_t *)&gps, sizeof(gps));
 
-	static int64_t timestamp_last = 0;
+	static uint64_t timestamp_last = 0;
 
 	if (gps.timestamp != timestamp_last) {
 		_report_gps_pos.timestamp = hrt_absolute_time();
