@@ -155,6 +155,7 @@ Client::_listen()
 
 			} else {
 				// Missing return value at end of stream. Stream was abruptly ended.
+				PX4_ERR("stream abruptly ended");
 				return -1;
 			}
 

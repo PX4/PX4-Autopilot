@@ -107,7 +107,7 @@ int send_stdout_pipe_buffer(unsigned buffer_length)
 	int bytes_sent = write(thread_data_ptr->fd, thread_data_ptr->buffer, buffer_length);
 
 	if (bytes_sent != (int)buffer_length) {
-		printf("write fail\n");
+		printf("write fail: %s", strerror(errno));
 		return -1;
 	}
 

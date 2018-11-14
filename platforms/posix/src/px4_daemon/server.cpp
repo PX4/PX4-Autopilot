@@ -259,7 +259,7 @@ void
 	char buf[2] = {0, (char)retval};
 
 	if (write(fd, buf, sizeof buf) < 0) {
-		// Don't care it went wrong, as we're cleaning up anyway.
+		PX4_ERR("write failed: %s", strerror(errno));
 	}
 
 	_cleanup(fd);
