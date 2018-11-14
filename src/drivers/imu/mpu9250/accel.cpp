@@ -72,10 +72,7 @@
 
 MPU9250_accel::MPU9250_accel(MPU9250 *parent, const char *path) :
 	CDev("MPU9250_accel", path),
-	_parent(parent),
-	_accel_topic(nullptr),
-	_accel_orb_class_instance(-1),
-	_accel_class_instance(-1)
+	_parent(parent)
 {
 }
 
@@ -89,10 +86,8 @@ MPU9250_accel::~MPU9250_accel()
 int
 MPU9250_accel::init()
 {
-	int ret;
-
 	// do base class init
-	ret = CDev::init();
+	int ret = CDev::init();
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
@@ -111,12 +106,6 @@ MPU9250_accel::parent_poll_notify()
 	poll_notify(POLLIN);
 }
 
-ssize_t
-MPU9250_accel::read(struct file *filp, char *buffer, size_t buflen)
-{
-	return _parent->accel_read(filp, buffer, buflen);
-}
-
 int
 MPU9250_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
@@ -126,7 +115,6 @@ MPU9250_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 	 */
 
 	switch (cmd) {
-
 	case SENSORIOCRESET: {
 			return _parent->reset();
 		}
@@ -148,18 +136,9 @@ MPU9250_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 		}
 
 	case ACCELIOCSSCALE: {
-			/* copy scale, but only if off by a few percent */
-			DEVICE_DEBUG("I'm on bus %d, type %d", _parent->_interface->get_device_bus(), _parent->_device_type);
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
-			float sum = s->x_scale + s->y_scale + s->z_scale;
-
-			if (sum > 2.0f && sum < 4.0f) {
-				memcpy(&_parent->_accel_scale, s, sizeof(_parent->_accel_scale));
-				return OK;
-
-			} else {
-				return -EINVAL;
-			}
+			memcpy(&_parent->_accel_scale, s, sizeof(_parent->_accel_scale));
+			return OK;
 		}
 
 	default:

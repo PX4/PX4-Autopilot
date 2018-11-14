@@ -44,7 +44,6 @@ public:
 	MPU9250_accel(MPU9250 *parent, const char *path);
 	~MPU9250_accel();
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	virtual int		init();
@@ -56,11 +55,9 @@ protected:
 
 private:
 	MPU9250			*_parent;
-	orb_advert_t		_accel_topic;
-	int			_accel_orb_class_instance;
-	int			_accel_class_instance;
 
-	/* do not allow to copy this class due to pointer data members */
-	MPU9250_accel(const MPU9250_accel &);
-	MPU9250_accel operator=(const MPU9250_accel &);
+	orb_advert_t		_accel_topic{nullptr};
+	int			_accel_orb_class_instance{-1};
+	int			_accel_class_instance{-1};
+
 };

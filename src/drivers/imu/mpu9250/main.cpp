@@ -118,7 +118,6 @@
 /** driver 'main' command */
 extern "C" { __EXPORT int mpu9250_main(int argc, char *argv[]); }
 
-
 enum MPU9250_BUS {
 	MPU9250_BUS_ALL = 0,
 	MPU9250_BUS_I2C_INTERNAL,
@@ -127,7 +126,6 @@ enum MPU9250_BUS {
 	MPU9250_BUS_SPI_INTERNAL2,
 	MPU9250_BUS_SPI_EXTERNAL
 };
-
 
 /**
  * Local functions in support of the shell command.
@@ -191,11 +189,8 @@ void	start(enum MPU9250_BUS busid, enum Rotation rotation, bool external_bus, bo
 bool	start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external_bus, bool magnetometer_only);
 struct mpu9250_bus_option &find_bus(enum MPU9250_BUS busid);
 void	stop(enum MPU9250_BUS busid);
-void	test(enum MPU9250_BUS busid);
 void	reset(enum MPU9250_BUS busid);
 void	info(enum MPU9250_BUS busid);
-void	regdump(enum MPU9250_BUS busid);
-void	testerror(enum MPU9250_BUS busid);
 void	usage();
 
 /**
@@ -365,86 +360,6 @@ stop(enum MPU9250_BUS busid)
 }
 
 /**
- * Perform some basic functional tests on the driver;
- * make sure we can collect data from the sensor in polled
- * and automatic modes.
- */
-void
-test(enum MPU9250_BUS busid)
-{
-	struct mpu9250_bus_option &bus = find_bus(busid);
-	sensor_accel_s a_report{};
-	sensor_gyro_s g_report{};
-	mag_report m_report;
-	ssize_t sz;
-
-	/* get the driver */
-	int fd = open(bus.accelpath, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "%s open failed (try 'm start')", bus.accelpath);
-	}
-
-	/* get the driver */
-	int fd_gyro = open(bus.gyropath, O_RDONLY);
-
-	if (fd_gyro < 0) {
-		err(1, "%s open failed", bus.gyropath);
-	}
-
-	/* get the driver */
-	int fd_mag = open(bus.magpath, O_RDONLY);
-
-	if (fd_mag < 0) {
-		err(1, "%s open failed", bus.magpath);
-	}
-
-	/* do a simple demand read */
-	sz = read(fd, &a_report, sizeof(a_report));
-
-	if (sz != sizeof(a_report)) {
-		warnx("ret: %d, expected: %d", sz, sizeof(a_report));
-		err(1, "immediate acc read failed");
-	}
-
-	print_message(a_report);
-
-	/* do a simple demand read */
-	sz = read(fd_gyro, &g_report, sizeof(g_report));
-
-	if (sz != sizeof(g_report)) {
-		warnx("ret: %d, expected: %d", sz, sizeof(g_report));
-		err(1, "immediate gyro read failed");
-	}
-
-	print_message(g_report);
-
-	/* do a simple demand read */
-	sz = read(fd_mag, &m_report, sizeof(m_report));
-
-	if (sz != sizeof(m_report)) {
-		warnx("ret: %d, expected: %d", sz, sizeof(m_report));
-		err(1, "immediate mag read failed");
-	}
-
-	print_message(m_report);
-
-	/* reset to default polling */
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "reset to default polling");
-	}
-
-	close(fd);
-	close(fd_gyro);
-	close(fd_mag);
-
-	/* XXX add poll-rate tests here too */
-
-	reset(busid);
-	errx(0, "PASS");
-}
-
-/**
  * Reset the driver.
  */
 void
@@ -489,43 +404,6 @@ info(enum MPU9250_BUS busid)
 	exit(0);
 }
 
-/**
- * Dump the register information
- */
-void
-regdump(enum MPU9250_BUS busid)
-{
-	struct mpu9250_bus_option &bus = find_bus(busid);
-
-
-	if (bus.dev == nullptr) {
-		errx(1, "driver not running");
-	}
-
-	printf("regdump @ %p\n", bus.dev);
-	bus.dev->print_registers();
-
-	exit(0);
-}
-
-/**
- * deliberately produce an error to test recovery
- */
-void
-testerror(enum MPU9250_BUS busid)
-{
-	struct mpu9250_bus_option &bus = find_bus(busid);
-
-
-	if (bus.dev == nullptr) {
-		errx(1, "driver not running");
-	}
-
-	bus.dev->test_error();
-
-	exit(0);
-}
-
 void
 usage()
 {
@@ -538,7 +416,6 @@ usage()
 	PX4_INFO("    -t    (spi internal bus, 2nd instance)");
 	PX4_INFO("    -R rotation");
 	PX4_INFO("    -M only enable magnetometer, accel/gyro disabled - not av. on MPU6500");
-
 }
 
 } // namespace
@@ -610,13 +487,6 @@ mpu9250_main(int argc, char *argv[])
 	}
 
 	/*
-	 * Test the driver/device.
-	 */
-	if (!strcmp(verb, "test")) {
-		mpu9250::test(busid);
-	}
-
-	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(verb, "reset")) {
@@ -628,17 +498,6 @@ mpu9250_main(int argc, char *argv[])
 	 */
 	if (!strcmp(verb, "info")) {
 		mpu9250::info(busid);
-	}
-
-	/*
-	 * Print register information.
-	 */
-	if (!strcmp(verb, "regdump")) {
-		mpu9250::regdump(busid);
-	}
-
-	if (!strcmp(verb, "testerror")) {
-		mpu9250::testerror(busid);
 	}
 
 	mpu9250::usage();

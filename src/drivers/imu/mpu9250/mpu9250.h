@@ -391,35 +391,24 @@ public:
 		enum Rotation rotation,
 		int device_type,
 		bool magnetometer_only);
+
 	virtual ~MPU9250();
 
 	virtual int		init();
-
-	virtual ssize_t		accel_read(struct file *filp, char *buffer, size_t buflen);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
 	void			print_info();
 
-	void			print_registers();
-
-	// deliberately cause a sensor error
-	void 			test_error();
-
 protected:
 	device::Device *_interface;
-
-	const char  *_name;
-	bool        _debug_enabled{false};
 
 	virtual int		probe();
 
 	friend class MPU9250_accel;
 	friend class MPU9250_mag;
 	friend class MPU9250_gyro;
-
-	virtual ssize_t		gyro_read(struct file *filp, char *buffer, size_t buflen);
 
 private:
 	MPU9250_accel   *_accel;
@@ -436,11 +425,11 @@ private:
 	 * SPI bus based device use hrt
 	 * I2C bus needs to use work queue
 	 */
-	work_s			_work;
+	work_s			_work{};
 #endif
 	bool 			_use_hrt;
 
-	struct hrt_call		_call;
+	struct hrt_call		_call {};
 	unsigned		_call_interval;
 
 	ringbuffer::RingBuffer	*_accel_reports;
@@ -680,13 +669,6 @@ private:
 	 * @return true if the sensor is not on the main MCU board
 	 */
 	bool			is_external() { return _interface->external(); }
-
-	/**
-	 * Measurement self test
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int 			self_test();
 
 	/*
 	  set low pass filter frequency

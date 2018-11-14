@@ -42,40 +42,18 @@
  */
 
 #include <px4_config.h>
-#include <ecl/geo/geo.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
+#include <lib/ecl/geo/geo.h>
+#include <lib/perf/perf_counter.h>
 #include <systemlib/conversions.h>
 #include <systemlib/px4_macros.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/clock.h>
-
-#include <board_config.h>
 #include <drivers/drv_hrt.h>
-
 #include <drivers/device/spi.h>
 #include <drivers/device/ringbuffer.h>
 #include <drivers/device/integrator.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
 
 #include "mag.h"
@@ -136,7 +114,6 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 		 int device_type,
 		 bool magnetometer_only) :
 	_interface(interface),
-	_name("MPU9250"),
 	_accel(magnetometer_only ? nullptr : new MPU9250_accel(this, path_accel)),
 	_gyro(magnetometer_only ? nullptr : new MPU9250_gyro(this, path_gyro)),
 	_mag(new MPU9250_mag(this, mag_interface, path_mag)),
@@ -191,9 +168,6 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_last_accel_data{},
 	_got_duplicate(false)
 {
-	// disable debug() calls
-	_debug_enabled = false;
-
 	if (_accel != nullptr) {
 		/* Set device parameters and make sure parameters of the bus device are adopted */
 		_accel->_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU9250;
@@ -237,11 +211,6 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_gyro_scale.y_scale  = 1.0f;
 	_gyro_scale.z_offset = 0;
 	_gyro_scale.z_scale  = 1.0f;
-
-	memset(&_call, 0, sizeof(_call));
-#if defined(USE_I2C)
-	memset(&_work, 0, sizeof(_work));
-#endif
 }
 
 MPU9250::~MPU9250()
@@ -307,7 +276,7 @@ MPU9250::init()
 	int ret = probe();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("MPU9250 probe failed");
+		PX4_DEBUG("MPU9250 probe failed");
 		return ret;
 	}
 
@@ -380,7 +349,7 @@ MPU9250::init()
 
 		/* if probe/setup failed, bail now */
 		if (ret != OK) {
-			DEVICE_DEBUG("accel init failed");
+			PX4_DEBUG("accel init failed");
 			return ret;
 		}
 
@@ -389,7 +358,7 @@ MPU9250::init()
 
 		/* if probe/setup failed, bail now */
 		if (ret != OK) {
-			DEVICE_DEBUG("gyro init failed");
+			PX4_DEBUG("gyro init failed");
 			return ret;
 		}
 	}
@@ -412,15 +381,14 @@ MPU9250::init()
 
 		/* if probe/setup failed, bail now */
 		if (ret != OK) {
-			DEVICE_DEBUG("mag init failed");
+			PX4_DEBUG("mag init failed");
 			return ret;
 		}
-
 
 		ret = _mag->ak8963_reset();
 
 		if (ret != OK) {
-			DEVICE_DEBUG("mag reset failed");
+			PX4_DEBUG("mag reset failed");
 			return ret;
 		}
 	}
@@ -652,7 +620,7 @@ MPU9250::probe()
 	_checked_bad[0] = _whoami;
 
 	if (ret != OK) {
-		DEVICE_DEBUG("unexpected whoami 0x%02x", _whoami);
+		PX4_DEBUG("unexpected whoami 0x%02x", _whoami);
 	}
 
 	return ret;
@@ -766,7 +734,6 @@ void
 MPU9250::_set_dlpf_filter(uint16_t frequency_hz)
 {
 	uint8_t filter;
-
 
 	switch (_device_type) {
 	case MPU_DEVICE_TYPE_MPU9250:
@@ -900,112 +867,6 @@ MPU9250::_set_dlpf_filter(uint16_t frequency_hz)
 	}
 }
 
-ssize_t
-MPU9250::accel_read(struct file *filp, char *buffer, size_t buflen)
-{
-	unsigned count = buflen / sizeof(sensor_accel_s);
-
-	/* buffer must be large enough */
-	if (count < 1) {
-		return -ENOSPC;
-	}
-
-	/* if automatic measurement is not enabled, get a fresh measurement into the buffer */
-	if (_call_interval == 0) {
-		_accel_reports->flush();
-		measure();
-	}
-
-	/* if no data, error (we could block here) */
-	if (_accel_reports->empty()) {
-		return -EAGAIN;
-	}
-
-	perf_count(_accel_reads);
-
-	/* copy reports out of our buffer to the caller */
-	sensor_accel_s *arp = reinterpret_cast<sensor_accel_s *>(buffer);
-	int transferred = 0;
-
-	while (count--) {
-		if (!_accel_reports->get(arp)) {
-			break;
-		}
-
-		transferred++;
-		arp++;
-	}
-
-	/* return the number of bytes transferred */
-	return (transferred * sizeof(sensor_accel_s));
-}
-
-int
-MPU9250::self_test()
-{
-	if (perf_event_count(_sample_perf) == 0) {
-		measure();
-	}
-
-	/* return 0 on success, 1 else */
-	return (perf_event_count(_sample_perf) > 0) ? 0 : 1;
-}
-
-/*
-  deliberately trigger an error in the sensor to trigger recovery
- */
-void
-MPU9250::test_error()
-{
-	// deliberately trigger an error. This was noticed during
-	// development as a handy way to test the reset logic
-	uint8_t data[16];
-	memset(data, 0, sizeof(data));
-	_interface->read(MPU9250_SET_SPEED(MPUREG_INT_STATUS, MPU9250_LOW_BUS_SPEED), data, sizeof(data));
-	::printf("error triggered\n");
-	print_registers();
-}
-
-ssize_t
-MPU9250::gyro_read(struct file *filp, char *buffer, size_t buflen)
-{
-	unsigned count = buflen / sizeof(sensor_gyro_s);
-
-	/* buffer must be large enough */
-	if (count < 1) {
-		return -ENOSPC;
-	}
-
-	/* if automatic measurement is not enabled, get a fresh measurement into the buffer */
-	if (_call_interval == 0) {
-		_gyro_reports->flush();
-		measure();
-	}
-
-	/* if no data, error (we could block here) */
-	if (_gyro_reports->empty()) {
-		return -EAGAIN;
-	}
-
-	perf_count(_gyro_reads);
-
-	/* copy reports out of our buffer to the caller */
-	sensor_gyro_s *grp = reinterpret_cast<sensor_gyro_s *>(buffer);
-	int transferred = 0;
-
-	while (count--) {
-		if (!_gyro_reports->get(grp)) {
-			break;
-		}
-
-		transferred++;
-		grp++;
-	}
-
-	/* return the number of bytes transferred */
-	return (transferred * sizeof(sensor_gyro_s));
-}
-
 int
 MPU9250::select_register_bank(uint8_t bank)
 {
@@ -1045,7 +906,7 @@ MPU9250::select_register_bank(uint8_t bank)
 	_selected_bank = bank;
 
 	if (bank != buf) {
-		DEVICE_DEBUG("SELECT FAILED %d %d %d %d", retries, _selected_bank, bank, buf);
+		PX4_DEBUG("SELECT FAILED %d %d %d %d", retries, _selected_bank, bank, buf);
 		return PX4_ERROR;
 
 	} else {
@@ -1610,8 +1471,6 @@ MPU9250::measure()
 
 		arb.scaling = _accel_range_scale;
 
-
-
 		arb.temperature = _last_temperature;
 
 		/* return device ID */
@@ -1696,31 +1555,5 @@ MPU9250::print_info()
 		_accel_reports->print_info("accel queue");
 		_gyro_reports->print_info("gyro queue");
 		_mag->_mag_reports->print_info("mag queue");
-
-		float accel_cut = _accel_filter_x.get_cutoff_freq();
-		::printf("accel cutoff set to %10.2f Hz\n", double(accel_cut));
-		float gyro_cut = _gyro_filter_x.get_cutoff_freq();
-		::printf("gyro cutoff set to %10.2f Hz\n", double(gyro_cut));
-
 	}
-
-
-
-}
-
-void
-MPU9250::print_registers()
-{
-	printf("MPU9250 registers\n");
-
-	for (uint8_t reg = 0; reg <= 126; reg++) {
-		uint8_t v = read_reg(reg);
-		printf("%02x:%02x ", (unsigned)reg, (unsigned)v);
-
-		if (reg % 13 == 0) {
-			printf("\n");
-		}
-	}
-
-	printf("\n");
 }

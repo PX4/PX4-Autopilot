@@ -42,27 +42,15 @@
 
 #include <px4_config.h>
 #include <px4_log.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <stdio.h>
-
-#include <perf/perf_counter.h>
-
-#include <board_config.h>
+#include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
-
 #include <drivers/device/spi.h>
 #include <drivers/device/ringbuffer.h>
 #include <drivers/device/integrator.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
 
 #include "mag.h"
@@ -290,49 +278,6 @@ MPU9250_mag::_measure(struct ak8963_regs data)
 	}
 }
 
-ssize_t
-MPU9250_mag::read(struct file *filp, char *buffer, size_t buflen)
-{
-	unsigned count = buflen / sizeof(mag_report);
-
-	/* buffer must be large enough */
-	if (count < 1) {
-		return -ENOSPC;
-	}
-
-	/* if automatic measurement is not enabled, get a fresh measurement into the buffer */
-	if (_parent->_call_interval == 0) {
-		_mag_reports->flush();
-		/* TODO: this won't work as getting valid magnetometer
-		 *       data requires more than one measure cycle
-		 */
-		_parent->measure();
-	}
-
-	/* if no data, error (we could block here) */
-	if (_mag_reports->empty()) {
-		return -EAGAIN;
-	}
-
-	perf_count(_mag_reads);
-
-	/* copy reports out of our buffer to the caller */
-	mag_report *mrp = reinterpret_cast<mag_report *>(buffer);
-	int transferred = 0;
-
-	while (count--) {
-		if (!_mag_reports->get(mrp)) {
-			break;
-		}
-
-		transferred++;
-		mrp++;
-	}
-
-	/* return the number of bytes transferred */
-	return (transferred * sizeof(mag_report));
-}
-
 int
 MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
@@ -428,7 +373,6 @@ MPU9250_mag::read_reg(unsigned int reg)
 	return buf;
 }
 
-
 bool
 MPU9250_mag::ak8963_check_id(uint8_t &deviceid)
 {
@@ -448,8 +392,6 @@ MPU9250_mag::passthrough_write(uint8_t reg, uint8_t val)
 	_parent->write_reg(AK_MPU_OR_ICM(MPUREG_I2C_SLV0_CTRL, ICMREG_20948_I2C_SLV0_CTRL), 0); // disable new writes
 }
 
-
-
 void
 MPU9250_mag::write_reg(unsigned reg, uint8_t value)
 {
@@ -462,14 +404,10 @@ MPU9250_mag::write_reg(unsigned reg, uint8_t value)
 	}
 }
 
-
-
-
 int
 MPU9250_mag::ak8963_reset(void)
 {
 	// First initialize it to use the bus
-
 	int rv = ak8963_setup();
 
 	if (rv == OK) {
@@ -481,7 +419,6 @@ MPU9250_mag::ak8963_reset(void)
 	}
 
 	return rv;
-
 }
 
 bool
