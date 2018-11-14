@@ -545,7 +545,7 @@ bool Ekf::realignYawGPS()
 // Reset heading and magnetic field states
 bool Ekf::resetMagHeading(Vector3f &mag_init)
 {
-	// don't reseet twice on the same frame
+	// prevent a reset being performed more than once on the same frame
 	if (_imu_sample_delayed.time_us == _flt_mag_align_start_time) {
 		return true;
 	}
