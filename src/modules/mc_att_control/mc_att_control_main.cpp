@@ -735,7 +735,7 @@ MulticopterAttitudeControl::publish_rates_setpoint()
 	_v_rates_sp.thrust_body[1] = 0.0f;
 	_v_rates_sp.thrust_body[2] = -_thrust_sp;
 	_v_rates_sp.timestamp = hrt_absolute_time();
-	orb_publish_auto(_rates_sp_id, &_v_rates_sp_pub, &_v_rates_sp, nullptr, ORB_PRIO_DEFAULT);
+	orb_publish_auto(ORB_ID(vehicle_rates_setpoint), &_v_rates_sp_pub, &_v_rates_sp, nullptr, ORB_PRIO_DEFAULT);
 }
 
 void
