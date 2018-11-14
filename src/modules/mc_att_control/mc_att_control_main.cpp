@@ -506,7 +506,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	q_sp.copyTo(attitude_setpoint.q_d);
 	attitude_setpoint.q_d_valid = true;
 
-	attitude_setpoint.thrust = throttle_curve(_manual_control_sp.z);
+	attitude_setpoint.thrust_body[2] = throttle_curve(_manual_control_sp.z);
 
 	attitude_setpoint.landing_gear = get_landing_gear_state();
 	attitude_setpoint.timestamp = hrt_absolute_time();
