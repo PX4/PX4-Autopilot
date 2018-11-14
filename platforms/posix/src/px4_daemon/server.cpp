@@ -135,14 +135,11 @@ Server::_server_main()
 		return;
 	}
 
-	// The list of file descriptors to watch.
-	std::vector<pollfd> poll_fds;
-
 	// Watch the listening socket for incoming connections.
-	poll_fds.push_back(pollfd {_fd, POLLIN, 0});
+	pollfd poll_fd {_fd, POLLIN, 0};
 
 	while (true) {
-		int n_ready = poll(poll_fds.data(), poll_fds.size(), -1);
+		int n_ready = poll(&poll_fd, 1, -1);
 
 		if (n_ready < 0) {
 			PX4_ERR("poll() failed: %s", strerror(errno));
@@ -152,7 +149,7 @@ Server::_server_main()
 		_lock();
 
 		// Handle any new connections.
-		if (poll_fds[0].revents & POLLIN) {
+		if (poll_fd.revents & POLLIN) {
 			--n_ready;
 			int client = accept(_fd, nullptr, nullptr);
 
@@ -174,30 +171,6 @@ Server::_server_main()
 			} else {
 				// We won't join the thread, so detach to automatically release resources at its end
 				pthread_detach(*thread);
-			}
-
-			// Start listening for the client hanging up.
-			poll_fds.push_back(pollfd {client, POLLHUP, 0});
-		}
-
-		// Handle any closed connections.
-		for (size_t i = 1; n_ready > 0 && i < poll_fds.size();) {
-			if (poll_fds[i].revents) {
-				--n_ready;
-				auto thread = _fd_to_thread.find(poll_fds[i].fd);
-
-				if (thread != _fd_to_thread.end()) {
-					// Thread is still running, so we cancel it.
-					// TODO: use a more graceful exit method to avoid resource leaks
-					pthread_cancel(thread->second);
-					_fd_to_thread.erase(thread);
-				}
-
-				close(poll_fds[i].fd);
-				poll_fds.erase(poll_fds.begin() + i);
-
-			} else {
-				++i;
 			}
 		}
 
@@ -273,13 +246,8 @@ Server::_cleanup(int fd)
 	_instance->_fd_to_thread.erase(fd);
 	_instance->_unlock();
 
-	// We can't close() the fd here, since the main thread is probably
-	// polling for it: close()ing it causes a race condition.
-	// So, we only call shutdown(), which causes the main thread to register a
-	// 'POLLHUP', such that the main thread can close() it for us.
-	// We already removed this thread from _fd_to_thread, so there is no risk
-	// of the main thread trying to cancel this thread after it already exited.
 	shutdown(fd, SHUT_RDWR);
+	close(fd);
 }
 
 } //namespace px4_daemon
