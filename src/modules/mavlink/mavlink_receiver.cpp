@@ -329,10 +329,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_obstacle_distance(msg);
 		break;
 
-	case MAVLINK_MSG_ID_COMPANION_PROCESS_STATUS:
-		handle_message_companion_process_status(msg);
-		break;
-
 	case MAVLINK_MSG_ID_TRAJECTORY_REPRESENTATION_WAYPOINTS:
 		handle_message_trajectory_representation_waypoints(msg);
 		break;
@@ -1966,26 +1962,21 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 			tstatus.system_id = msg->sysid;
 			tstatus.component_id = msg->compid;
 		}
-	}
-}
 
-void
-MavlinkReceiver::handle_message_companion_process_status(mavlink_message_t *msg)
-{
-	mavlink_companion_process_status_t mavlink_companion_process_status;
-	mavlink_msg_companion_process_status_decode(msg, &mavlink_companion_process_status);
+		/* handle avoidance heartbeats */
+		if (hb.type == MAV_TYPE_SUBMARINE) {  //missuse submarine type for avoidance
 
-	companion_process_status_s companion_process_status = {};
-	companion_process_status.timestamp = hrt_absolute_time();
-	companion_process_status.state = mavlink_companion_process_status.state;
-	companion_process_status.type = mavlink_companion_process_status.type;
-	companion_process_status.pid = mavlink_companion_process_status.pid;
-
-	if (_companion_process_status_pub == nullptr) {
-		_companion_process_status_pub = orb_advertise(ORB_ID(companion_process_status), &companion_process_status);
-
-	} else {
-		orb_publish(ORB_ID(companion_process_status), _companion_process_status_pub, &companion_process_status);
+			companion_process_status_s companion_process_status = {};
+			companion_process_status.timestamp = hrt_absolute_time();
+			companion_process_status.state = hb.system_status;
+			companion_process_status.type = 1;  //COMPANION_PROCESS_TYPE = AVOIDANCE
+			companion_process_status.pid = 5;
+			if (_companion_process_status_pub == nullptr) {
+				_companion_process_status_pub = orb_advertise(ORB_ID(companion_process_status), &companion_process_status);
+			} else {
+				orb_publish(ORB_ID(companion_process_status), _companion_process_status_pub, &companion_process_status);
+			}
+		}
 	}
 }
 
