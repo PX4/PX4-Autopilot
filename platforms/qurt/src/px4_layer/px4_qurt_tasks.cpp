@@ -149,7 +149,6 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	taskdata = (pthdata_t *)malloc(structsize + len);
 
 	if (taskdata == nullptr) {
-		debug("could not allocate memory for task data");
 		return -ENOMEM;			
 	}
 
