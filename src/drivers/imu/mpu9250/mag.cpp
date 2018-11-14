@@ -346,21 +346,21 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCRESET:
 		return ak8963_reset();
 
-    case SENSORIOCSPOLLRATE: {
-        switch (arg) {
+	case SENSORIOCSPOLLRATE: {
+			switch (arg) {
 
-        /* zero would be bad */
-        case 0:
-            return -EINVAL;
+			/* zero would be bad */
+			case 0:
+				return -EINVAL;
 
-        case SENSOR_POLLRATE_DEFAULT:
-            return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_ACCEL_DEFAULT_RATE);
+			case SENSOR_POLLRATE_DEFAULT:
+				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_ACCEL_DEFAULT_RATE);
 
-        /* adjust to a legal polling interval in Hz */
-        default:
-            return _parent->_set_pollrate(arg);
-        }
-    }
+			/* adjust to a legal polling interval in Hz */
+			default:
+				return _parent->_set_pollrate(arg);
+			}
+		}
 
 	case MAGIOCSSCALE:
 		/* copy scale in */
