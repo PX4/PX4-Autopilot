@@ -144,6 +144,12 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
 	// not safe to pass stack data to the thread creation
 	pthdata_t *taskdata = (pthdata_t *)malloc(structsize + len);
+	
+	if (taskdata == nullptr) {
+		debug("could not allocate memory for task data");
+		return -ENOMEM;			
+	}
+
 	memset(taskdata, 0, structsize + len);
 	unsigned long offset = ((unsigned long)taskdata) + structsize;
 
