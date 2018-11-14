@@ -389,21 +389,10 @@ extern "C" {
 				nsecs -= (nsecs / billion) * billion;
 				ts.tv_nsec = nsecs;
 
-				// Execute a blocking wait for that time in the future
-				errno = 0;
-
 				ret = px4_sem_timedwait(&sem, &ts);
-#ifndef __PX4_DARWIN
-				ret = errno;
-#endif
 
-				// Ensure ret is negative on failure
-				if (ret > 0) {
-					ret = -ret;
-				}
-
-				if (ret && ret != -ETIMEDOUT) {
-					PX4_WARN("%s: px4_poll() sem error", thread_name);
+				if (ret && errno != ETIMEDOUT) {
+					PX4_WARN("%s: px4_poll() sem error: %s", thread_name, strerror(errno));
 				}
 
 			} else if (timeout < 0) {
