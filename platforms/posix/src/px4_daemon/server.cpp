@@ -220,14 +220,15 @@ void
 		cmd.resize(n + 1024);
 		ssize_t n_read = read(fd, &cmd[n], cmd.size() - n);
 
-		if (n_read < 0) {
+		if (n_read <= 0) {
 			_cleanup(fd);
 			return nullptr;
 		}
 
 		cmd.resize(n + n_read);
 
-		if (n_read == 0) {
+		// Command ends in 0x00 (no tty) or 0x01 (tty).
+		if (!cmd.empty() && cmd.back() < 2) {
 			break;
 		}
 	}

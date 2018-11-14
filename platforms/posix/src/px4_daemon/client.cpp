@@ -124,12 +124,6 @@ Client::_send_cmds(const int argc, const char **argv)
 		buf += n_sent;
 	}
 
-	// Let the server know we're done writing.
-	if (shutdown(_fd, SHUT_WR) < 0) {
-		PX4_ERR("shutdown() failed: %s", strerror(errno));
-		return -1;
-	}
-
 	return 0;
 }
 
