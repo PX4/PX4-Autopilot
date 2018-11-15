@@ -683,20 +683,22 @@ void Simulator::pollForMAVLinkMessages(bool publish, InternetProtocol ip, int po
 		PX4_INFO("Simulator connected on UDP port %u.", port);
 
 	} else {
-		if ((_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-			PX4_ERR("Creating TCP socket failed: %s", strerror(errno));
-			return;
-		}
 
 		PX4_INFO("Waiting for simulator to connect on TCP port %u", port);
 
 		while (true) {
+			if ((_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+				PX4_ERR("Creating TCP socket failed: %s", strerror(errno));
+				return;
+			}
+
 			int ret = connect(_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr));
 
 			if (ret == 0) {
 				break;
 
 			} else {
+				close(_fd);
 				system_sleep(1);
 			}
 		}
