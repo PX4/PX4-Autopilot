@@ -595,7 +595,8 @@ MulticopterPositionControl::run()
 	_att_sp.landing_gear = vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN;
 
 	// setup file descriptor to poll the local position as loop wakeup source
-	px4_pollfd_struct_t poll_fd = {.fd = _local_pos_sub, .events = POLLIN};
+	px4_pollfd_struct_t poll_fd = {.fd = _local_pos_sub};
+	poll_fd.events = POLLIN;
 
 	while (!should_exit()) {
 		// poll for new data on the local position state topic (wait for up to 20ms)
