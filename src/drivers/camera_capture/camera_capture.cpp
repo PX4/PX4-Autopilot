@@ -158,11 +158,11 @@ CameraCapture::publish_trigger()
 
 	if (_trigger_pub == nullptr) {
 
-		_trigger_pub = orb_advertise(ORB_ID(camera_trigger_feedback), &trigger);
+		_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
 
 	} else {
 
-		orb_publish(ORB_ID(camera_trigger_feedback), _trigger_pub, &trigger);
+		orb_publish(ORB_ID(camera_trigger), _trigger_pub, &trigger);
 	}
 
 }
