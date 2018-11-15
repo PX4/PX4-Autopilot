@@ -101,8 +101,12 @@
 // like uavcan and we don't need to fake time on the real system.
 #include <unistd.h>
 #include <time.h>
+
 #define system_usleep usleep
 #define system_sleep sleep
+
+#define system_clock_gettime clock_gettime
+#define system_clock_settime clock_settime
 
 #pragma GCC poison getenv setenv putenv
 #endif /* __PX4_NUTTX */
