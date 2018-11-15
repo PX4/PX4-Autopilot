@@ -653,13 +653,13 @@ void Logger::add_default_topics()
 	add_topic("vehicle_local_position", 100);
 	add_topic("vehicle_local_position_setpoint", 100);
 	add_topic("vehicle_magnetometer", 200);
-	add_topic("vehicle_mocap_odometry");
+	add_topic("vehicle_mocap_odometry", 30);
 	add_topic("vehicle_rates_setpoint", 30);
 	add_topic("vehicle_status", 200);
 	add_topic("vehicle_status_flags");
 	add_topic("vehicle_trajectory_waypoint", 200);
 	add_topic("vehicle_trajectory_waypoint_desired", 200);
-	add_topic("vehicle_visual_odometry");
+	add_topic("vehicle_visual_odometry", 30);
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("wind_estimate", 200);
 
