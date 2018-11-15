@@ -3,7 +3,7 @@
 #include "gpio.h"
 #include <cstring>
 
-constexpr uint32_t CameraInterfaceGPIO::_gpios[6];
+constexpr uint32_t CameraInterfaceGPIO::_gpios[TRIGGER_OUT_CHANNELS];
 
 CameraInterfaceGPIO::CameraInterfaceGPIO():
 	CameraInterface(),
@@ -50,9 +50,17 @@ void CameraInterfaceGPIO::trigger(bool trigger_on_true)
 
 void CameraInterfaceGPIO::info()
 {
+
+#if defined(TRIGGER_OUT_CHANNELS) && TRIGGER_OUT_CHANNELS <= 6
 	PX4_INFO("GPIO trigger mode, pins enabled : [%d][%d][%d][%d][%d][%d], polarity : %s",
 		 _pins[5], _pins[4], _pins[3], _pins[2], _pins[1], _pins[0],
 		 _trigger_invert ? "ACTIVE_LOW" : "ACTIVE_HIGH");
+#else
+	PX4_INFO("GPIO trigger mode, pins enabled : [%d][%d][%d][%d][%d][%d][%d][%d], polarity : %s",
+		 _pins[7], _pins[6], _pins[5], _pins[4], _pins[3], _pins[2], _pins[1], _pins[0],
+		 _trigger_invert ? "ACTIVE_LOW" : "ACTIVE_HIGH");
+#endif
+
 }
 
 #endif /* ifdef __PX4_NUTTX */

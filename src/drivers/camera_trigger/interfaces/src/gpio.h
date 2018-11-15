@@ -30,13 +30,17 @@ private:
 
 	bool _trigger_invert;
 
-	static constexpr uint32_t _gpios[6] = {
+	static constexpr uint32_t _gpios[TRIGGER_OUT_CHANNELS] = {
 		GPIO_GPIO0_OUTPUT,
 		GPIO_GPIO1_OUTPUT,
 		GPIO_GPIO2_OUTPUT,
 		GPIO_GPIO3_OUTPUT,
 		GPIO_GPIO4_OUTPUT,
-		GPIO_GPIO5_OUTPUT
+		GPIO_GPIO5_OUTPUT,
+#if defined(TRIGGER_OUT_CHANNELS) && TRIGGER_OUT_CHANNELS > 6
+		GPIO_GPIO6_OUTPUT,
+		GPIO_GPIO7_OUTPUT,
+#endif
 	};
 
 	uint32_t _triggers[arraySize(_gpios)];
