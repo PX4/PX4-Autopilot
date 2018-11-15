@@ -214,7 +214,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_P, 0.09f);
 /**
  * Integral gain for horizontal velocity error
  *
- * Non-zero value allows to resist wind.
+ * Non-zero value allows to eliminate steady state errors in the presence of disturbances like wind.
  *
  * @min 0.0
  * @max 3.0
