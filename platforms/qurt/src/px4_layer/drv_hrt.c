@@ -39,6 +39,7 @@
 
 #include <px4_defines.h>
 #include <px4_workqueue.h>
+#include <perf_counter.h>
 #include <drivers/drv_hrt.h>
 #include <semaphore.h>
 #include <time.h>
@@ -48,12 +49,6 @@
 #include <stdio.h>
 
 static struct sq_queue_s	callout_queue;
-
-/* latency histogram */
-#define LATENCY_BUCKET_COUNT 8
-__EXPORT const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
-__EXPORT const uint16_t	latency_buckets[LATENCY_BUCKET_COUNT] = { 1, 2, 5, 10, 20, 50, 100, 1000 };
-__EXPORT uint32_t	latency_counters[LATENCY_BUCKET_COUNT + 1];
 
 static void		hrt_call_reschedule(void);
 
