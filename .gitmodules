@@ -60,4 +60,4 @@
 	branch = master
 [submodule "src/platforms/posix/lockstep_scheduler"]
 	path = src/platforms/posix/lockstep_scheduler
-	url = git@github.com:julianoes/lockstep-scheduler.git
+	url = https://github.com/julianoes/lockstep-scheduler.git
