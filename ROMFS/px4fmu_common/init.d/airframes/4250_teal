@@ -171,10 +171,6 @@ then
 	param set RTL_MIN_DIST 7.5
 	param set RTL_RETURN_ALT 25
 
-	# sensors
-	param set SENS_EN_PGA460 1
-	param set SENS_EN_THERMAL 1
-
 	# calibration
 	param set CAL_ACC0_EN 1
 	param set CAL_ACC1_EN 0
