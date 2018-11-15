@@ -48,6 +48,7 @@
 
 #include <px4_config.h>
 #include <systemlib/px4_macros.h>
+#include <lib/perf/perf_counter.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
