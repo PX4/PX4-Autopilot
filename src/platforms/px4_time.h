@@ -5,7 +5,6 @@
 #include <pthread.h>
 
 #if defined(__PX4_APPLE_LEGACY)
-// TODO: check if this is required
 #define clockid_t unsigned
 #endif
 
