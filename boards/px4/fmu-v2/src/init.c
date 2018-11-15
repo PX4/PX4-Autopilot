@@ -47,6 +47,7 @@
 
 #include <px4_config.h>
 #include <px4_tasks.h>
+#include <px4_time.h>
 
 #include <stdbool.h>
 #include <stdio.h>
