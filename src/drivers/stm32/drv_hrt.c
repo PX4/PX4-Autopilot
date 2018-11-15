@@ -61,6 +61,7 @@
 
 #include <board_config.h>
 #include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
 
 
 #include "stm32_gpio.h"
@@ -254,13 +255,6 @@ static uint16_t			latency_baseline;
 
 /* timer count at interrupt (for latency purposes) */
 static uint16_t			latency_actual;
-
-/* latency histogram */
-#define LATENCY_BUCKET_COUNT 8
-__EXPORT const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
-__EXPORT const uint16_t	latency_buckets[LATENCY_BUCKET_COUNT] = { 1, 2, 5, 10, 20, 50, 100, 1000 };
-__EXPORT uint32_t		latency_counters[LATENCY_BUCKET_COUNT + 1];
-
 
 /* timer-specific functions */
 static void		hrt_tim_init(void);

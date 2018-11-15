@@ -44,13 +44,6 @@
 __EXPORT int perf_main(int argc, char *argv[]);
 
 
-/* latency histogram */
-#define LATENCY_BUCKET_COUNT 8
-__EXPORT const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
-__EXPORT const uint16_t	latency_buckets[LATENCY_BUCKET_COUNT] = { 1, 2, 5, 10, 20, 50, 100, 1000 };
-__EXPORT uint32_t	latency_counters[LATENCY_BUCKET_COUNT + 1];
-
-
 static void print_usage(void)
 {
 	PRINT_MODULE_DESCRIPTION("Tool to print performance counters");
