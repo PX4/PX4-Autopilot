@@ -106,18 +106,6 @@ void CollisionPrevention::publish_constraints(const Vector2f &original_setpoint,
 	} else {
 		_constraints_pub = orb_advertise(ORB_ID(collision_constraints), &constraints);
 	}
-
-}
-
-void CollisionPrevention::update()
-{
-	// activate/deactivate the collision prevention based on MPC_COL_PREV parameter
-	if (collision_prevention_enabled()) {
-		activate();
-
-	} else {
-		deactivate();
-	}
 }
 
 void CollisionPrevention::update_range_constraints()
@@ -155,7 +143,6 @@ void CollisionPrevention::update_range_constraints()
 
 void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const float max_speed)
 {
-	update();
 	reset_constraints();
 
 	//calculate movement constraints based on range data
