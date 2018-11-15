@@ -173,8 +173,6 @@ int main(int argc, char **argv)
 		argv[0] += path_length + strlen(prefix);
 
 		px4_daemon::Client client(instance);
-		client.generate_uuid();
-		client.register_sig_handler();
 		return client.process_args(argc, (const char **)argv);
 
 	} else {

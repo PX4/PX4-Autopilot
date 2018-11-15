@@ -53,9 +53,10 @@ bool FlightTaskManualPosition::updateInitialize()
 
 bool FlightTaskManualPosition::activate()
 {
-
 	// all requirements from altitude-mode still have to hold
 	bool ret = FlightTaskManualAltitude::activate();
+
+	_constraints.tilt = math::radians(MPC_TILTMAX_AIR.get());
 
 	// set task specific constraint
 	if (_constraints.speed_xy >= MPC_VEL_MANUAL.get()) {
@@ -146,6 +147,13 @@ void FlightTaskManualPosition::_updateXYlock()
 void FlightTaskManualPosition::_updateSetpoints()
 {
 	FlightTaskManualAltitude::_updateSetpoints(); // needed to get yaw and setpoints in z-direction
+
+	// check if an external yaw handler is active and if yes, let it update the yaw setpoints
+	if (_weathervane_yaw_handler != nullptr && _weathervane_yaw_handler->is_active()) {
+		_yaw_setpoint = NAN;
+		_yawspeed_setpoint += _weathervane_yaw_handler->get_weathervane_yawrate();
+	}
+
 	_thrust_setpoint.setAll(NAN); // don't require any thrust setpoints
 	_updateXYlock(); // check for position lock
 }
