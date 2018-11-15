@@ -193,6 +193,9 @@ fi
 # Do not start frsky_telemetry on port ttyS6 by default, PGA460 lives there.
 param set TEL_FRSKY_CONFIG 500
 
+# We want to make sure these always start
+param set SENS_EN_PGA460 1
+param set SENS_EN_THERMAL 1
 param set SENS_EN_BATT 1
 
 mpu9250 -s -R 14 start
