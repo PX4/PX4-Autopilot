@@ -31,6 +31,7 @@ pipeline {
                     sh('ccache -z')
                     sh('make posix_sitl_default')
                     sh('ccache -s')
+                    sh('make tests')
                   }
                   catch (exc) {
                     throw (exc)
