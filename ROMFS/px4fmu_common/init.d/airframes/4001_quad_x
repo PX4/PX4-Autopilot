@@ -20,8 +20,6 @@
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #
 
-echo "boop"
-
 sh /etc/init.d/rc.mc_defaults
 
 set MIXER quad_x

@@ -44,10 +44,6 @@ then
 	param set BAT_V_EMPTY 3.65
 	param set BAT_V_OFFS_CURR -0.0045
 
-	# primary accel and gyro
-	param set CAL_ACC_PRIME 1442826 #mpu6500
-	param set CAL_GYRO_PRIME 2360330 #mpu6500
-
 	# sensor calibration
 	param set CAL_MAG0_ROT 0
 	param set CAL_MAG_SIDES 63
@@ -131,7 +127,7 @@ then
 
 	param set MPC_MANTHR_MAX 0.85
 	param set MPC_MANTHR_MIN 0.15
-	param set MPC_THR_MAX 0.85
+	param set MPC_THR_MAX 0.85 # Full throttle can trip over current protection on BMS.
 	param set MPC_THR_MIN 0.15
 
 	param set MPC_VEL_MANUAL 26.5
@@ -155,7 +151,7 @@ then
 	param set MPC_Z_VEL_P 0.25 # default 0.2
 	param set MPC_Z_VEL_I 0.085 # default 0.02
 	param set MPC_Z_VEL_D 0.02 # default 0.0
-	param set MPC_Z_VEL_MAX_UP 20.0 # Documentation says limit is 8.0, but does not seem to be enforced in code. Set high for Blast Off.
+	param set MPC_Z_VEL_MAX_UP 20.0 # Documentation says limit is 8.0, but does not seem to be enforced in code.
 	param set MPC_Z_VEL_MAX_DN 2.5 # Probably could go lower than 2.5.
 	#### CONTROLLER ###
 
@@ -164,10 +160,16 @@ then
 	param set NAV_RCL_ACT 1 # RC loss failsafe behavior -- hold mode.
 
 	# pwm control
+	# param set PWM_DISARMED 900
+	# param set PWM_MAX 1850
+	# param set PWM_MIN 1075
+	# param set PWM_RATE 400
+
+	# Oneshot125
 	param set PWM_DISARMED 900
 	param set PWM_MAX 1850
 	param set PWM_MIN 1075
-	param set PWM_RATE 400
+	param set PWM_RATE 0
 
 	# rtl
 	param set RTL_DESCEND_ALT 5
@@ -182,11 +184,21 @@ then
 	# calibration
 	param set CAL_ACC0_EN 1
 	param set CAL_ACC1_EN 0
+	param set CAL_ACC_PRIME 1442826 #mpu6500
+
 	param set CAL_GYRO0_EN 1
 	param set CAL_GYRO1_EN 0
-	param set CAL_ACC_PRIME 1442826
-	param set CAL_GYRO_PRIME 2360330
+	param set CAL_GYRO_PRIME 2360330 #mpu6500
+
+	param set CAL_MAG0_EN 1
+	param set CAL_MAG1_EN 0
+	param set CAL_MAG_PRIME 265738
 
 fi
 
-batt_smbus start -X
+param set TEL_FRSKY_CONFIG 500
+
+param set SENS_EN_BATT 1
+
+mpu9250 -s -R 14 start
+mpu9250 -t -R 14 start
