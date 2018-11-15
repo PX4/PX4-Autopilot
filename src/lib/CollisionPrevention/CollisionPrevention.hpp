@@ -71,13 +71,7 @@ public:
 	 */
 	bool initializeSubscriptions(SubscriptionArray &subscription_array);
 
-	void activate() {_is_active = true;}
-
-	void deactivate() {_is_active = false;}
-
-	bool is_active() {return _is_active;}
-
-	bool collision_prevention_enabled() { return MPC_COL_PREV.get(); }
+	bool is_active() {return MPC_COL_PREV.get();}
 
 	void update();
 
