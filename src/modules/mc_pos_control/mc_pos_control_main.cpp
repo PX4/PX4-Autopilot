@@ -575,7 +575,7 @@ MulticopterPositionControl::print_status()
 void
 MulticopterPositionControl::run()
 {
-	hrt_abstime _time_stamp_last_loop = hrt_absolute_time(); // time stamp of last loop iteration
+	hrt_abstime time_stamp_last_loop = hrt_absolute_time(); // time stamp of last loop iteration
 
 	// initialize all subscriptions
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
@@ -611,9 +611,9 @@ MulticopterPositionControl::run()
 		parameters_update(false);
 
 		// measure _dt the time difference since the last loop iteration in seconds
-		const hrt_abstime _time_stamp_current = hrt_absolute_time();
-		setDt((_time_stamp_current - _time_stamp_last_loop) / 1e6f);
-		_time_stamp_last_loop = _time_stamp_current;
+		const hrt_abstime time_stamp_current = hrt_absolute_time();
+		setDt((time_stamp_current - time_stamp_last_loop) / 1e6f);
+		time_stamp_last_loop = time_stamp_current;
 
 		const bool was_in_failsafe = _in_failsafe;
 		_in_failsafe = false;
