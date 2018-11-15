@@ -1817,7 +1817,7 @@ protected:
 				msg.flags |= UTM_DATA_AVAIL_FLAGS_VERTICAL_VELO_AVAILABLE;
 			}
 
-			msg.vel_acc = sqrtf(evh * evh + evv * evv) * 1000.0f;
+			msg.vel_acc = sqrtf(evh * evh + evv * evv) * 100.0f;
 
 			if (_local_position.dist_bottom_valid) {
 				msg.relative_alt = _local_position.dist_bottom * 1000.0f;
