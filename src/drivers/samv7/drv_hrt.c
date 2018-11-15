@@ -653,7 +653,7 @@ hrt_absolute_time(void)
  * Convert a timespec to absolute time
  */
 hrt_abstime
-ts_to_abstime(struct timespec *ts)
+ts_to_abstime(const struct timespec *ts)
 {
 	hrt_abstime	result;
 
