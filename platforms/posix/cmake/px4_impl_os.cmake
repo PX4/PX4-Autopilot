@@ -45,8 +45,7 @@
 #		* px4_os_prebuild_targets
 #
 
-include(common/px4_base)
-list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake/posix)
+include(px4_base)
 
 # This makes it possible to dynamically load code which depends on symbols
 # inside the px4 executable.
@@ -155,9 +154,7 @@ function(px4_posix_generate_alias)
 			)
 		endif()
 	endforeach()
-	configure_file(${PX4_SOURCE_DIR}/platforms/posix/src/px4-alias.sh_in
-		${OUT}
-	)
+	configure_file(${PX4_SOURCE_DIR}/platforms/posix/src/px4-alias.sh_in ${OUT})
 endfunction()
 
 
@@ -198,6 +195,7 @@ function(px4_posix_generate_symlinks)
 				set(${property} ${${property}_DEFAULT})
 			endif()
 		endforeach()
+
 		if (MAIN)
 			set(ln_name "${PREFIX}${MAIN}")
 			add_custom_command(TARGET ${TARGET}
@@ -262,7 +260,7 @@ function(px4_os_add_flags)
 		ARGN ${ARGN})
 
 	px4_add_common_flags(
-		BOARD ${BOARD}
+		BOARD ${PX4_BOARD}
 		C_FLAGS ${C_FLAGS}
 		CXX_FLAGS ${CXX_FLAGS}
 		OPTIMIZATION_FLAGS ${OPTIMIZATION_FLAGS}
@@ -292,8 +290,8 @@ function(px4_os_add_flags)
 			message(FATAL_ERROR "PX4 Firmware requires XCode 8 or newer on Mac OS. Version installed on this system: ${CMAKE_CXX_COMPILER_VERSION}")
 		endif()
 
-		EXEC_PROGRAM(uname ARGS -v  OUTPUT_VARIABLE DARWIN_VERSION)
-		STRING(REGEX MATCH "[0-9]+" DARWIN_VERSION ${DARWIN_VERSION})
+		execute_process(COMMAND uname -v OUTPUT_VARIABLE DARWIN_VERSION)
+		string(REGEX MATCH "[0-9]+" DARWIN_VERSION ${DARWIN_VERSION})
 		# message(STATUS "PX4 Darwin Version: ${DARWIN_VERSION}")
 		if (DARWIN_VERSION LESS 16)
 			add_definitions(
@@ -318,7 +316,7 @@ function(px4_os_add_flags)
 	endif()
 
 	# This block sets added_c_flags (appends to others).
-	if ("${BOARD}" STREQUAL "eagle")
+	if ("${PX4_BOARD}" STREQUAL "eagle")
 
 		if ("$ENV{HEXAGON_ARM_SYSROOT}" STREQUAL "")
 			message(FATAL_ERROR "HEXAGON_ARM_SYSROOT not set")
@@ -339,7 +337,7 @@ function(px4_os_add_flags)
 			--sysroot=${HEXAGON_ARM_SYSROOT}
 			)
 	# This block sets added_c_flags (appends to others).
-	elseif ("${BOARD}" STREQUAL "excelsior")
+	elseif ("${PX4_BOARD}" STREQUAL "excelsior")
 
 		if ("$ENV{HEXAGON_ARM_SYSROOT}" STREQUAL "")
 			message(FATAL_ERROR "HEXAGON_ARM_SYSROOT not set")
@@ -359,7 +357,14 @@ function(px4_os_add_flags)
 			${excelsior_flags}
 			)
 
-	elseif ("${BOARD}" STREQUAL "rpi")
+	elseif ("${PX4_BOARD}" STREQUAL "rpi")
+
+		add_definitions(
+			-D__PX4_POSIX_RPI
+			-D__DF_LINUX # For DriverFramework
+			-D__DF_RPI # For DriverFramework
+		)
+
 		set(RPI_COMPILE_FLAGS -mcpu=cortex-a53 -mfpu=neon -mfloat-abi=hard)
 		list(APPEND added_c_flags ${RPI_COMPILE_FLAGS})
 		list(APPEND added_cxx_flags ${RPI_COMPILE_FLAGS})
@@ -387,11 +392,41 @@ function(px4_os_add_flags)
 				-L${CXX_COMPILER_PATH}/arm-linux-gnueabihf/libc/usr/lib
 			)
 		ENDIF()
-	elseif ("${BOARD}" STREQUAL "bebop")
+	elseif ("${PX4_BOARD}" STREQUAL "bebop")
+
+		add_definitions(
+			-D__PX4_POSIX_BEBOP
+			-D__DF_LINUX # Define needed DriverFramework
+			-D__DF_BEBOP # Define needed DriverFramework
+		)
+
 		# TODO: Wmissing-field-initializers ignored on older toolchain, can be removed eventually
 		list(APPEND added_cxx_flags -Wno-missing-field-initializers)
-		
-	elseif ("${BOARD}" STREQUAL "bbblue")
+
+	elseif ("${PX4_BOARD}" MATCHES "ocpoc")
+
+		add_definitions(
+			-D__PX4_POSIX_OCPOC
+			-D__DF_LINUX # For DriverFramework
+			-D__DF_OCPOC # For DriverFramework
+			-D__PX4_POSIX
+		)
+
+	elseif ("${PX4_BOARD}" STREQUAL "bbblue")
+
+		add_definitions(
+			-D__PX4_POSIX_BBBLUE
+			-D__PX4_POSIX
+			-D__DF_LINUX        # For DriverFramework
+			-D__DF_BBBLUE       # For DriverFramework
+			-DRC_AUTOPILOT_EXT  # Enable extensions in Robotics Cape Library
+			#-DDEBUG_BUILD
+
+			#optional __DF_BBBLUE_USE_RC_BMP280_IMP
+			-D__DF_BBBLUE_USE_RC_BMP280_IMP
+			-D__PX4_BBBLUE_DEFAULT_MAVLINK_WIFI="wlan"
+		)
+
 		set(BBBLUE_COMPILE_FLAGS -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=hard -mtune=cortex-a8)
 		list(APPEND added_c_flags   ${BBBLUE_COMPILE_FLAGS})
 		list(APPEND added_cxx_flags ${BBBLUE_COMPILE_FLAGS})
@@ -414,7 +449,6 @@ function(px4_os_add_flags)
 	# output
 	foreach(var ${inout_vars})
 		string(TOLOWER ${var} lower_var)
-		#message(STATUS "posix: set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
 		set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)
 	endforeach()
 
@@ -433,7 +467,7 @@ endfunction()
 #			)
 #
 #	Input:
-#		BOARD 		: board
+#		BOARD		: board
 #
 #	Output:
 #		OUT	: the target list
@@ -445,9 +479,10 @@ function(px4_os_prebuild_targets)
 	px4_parse_function_args(
 			NAME px4_os_prebuild_targets
 			ONE_VALUE OUT BOARD
-			REQUIRED OUT BOARD
+			REQUIRED OUT
 			ARGN ${ARGN})
 
-	add_library(${OUT} INTERFACE)
-	add_dependencies(${OUT} DEPENDS uorb_headers)
+	add_library(prebuild_targets INTERFACE)
+	add_dependencies(prebuild_targets DEPENDS uorb_headers)
+
 endfunction()

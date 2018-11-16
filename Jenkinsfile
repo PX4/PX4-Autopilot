@@ -62,12 +62,12 @@ pipeline {
             sh 'make distclean'
             sh 'ccache -z'
             sh 'git fetch --tags'
-            sh 'make nuttx_px4fmu-v2_default'
-            sh 'make nuttx_px4fmu-v2_default bloaty_symbols'
-            sh 'make nuttx_px4fmu-v2_default bloaty_compileunits'
-            sh 'make nuttx_px4fmu-v2_default bloaty_inlines'
-            sh 'make nuttx_px4fmu-v2_default bloaty_templates'
-            sh 'make nuttx_px4fmu-v2_default bloaty_compare_master'
+            sh 'make px4fmu-v2_default'
+            sh 'make px4fmu-v2_default bloaty_symbols'
+            sh 'make px4fmu-v2_default bloaty_compileunits'
+            sh 'make px4fmu-v2_default bloaty_inlines'
+            sh 'make px4fmu-v2_default bloaty_templates'
+            sh 'make px4fmu-v2_default bloaty_compare_master'
             sh 'make sizes'
             sh 'ccache -s'
           }
@@ -90,12 +90,12 @@ pipeline {
             sh 'make distclean'
             sh 'ccache -z'
             sh 'git fetch --tags'
-            sh 'make nuttx_px4fmu-v5_default'
-            sh 'make nuttx_px4fmu-v5_default bloaty_symbols'
-            sh 'make nuttx_px4fmu-v5_default bloaty_compileunits'
-            sh 'make nuttx_px4fmu-v5_default bloaty_inlines'
-            sh 'make nuttx_px4fmu-v5_default bloaty_templates'
-            sh 'make nuttx_px4fmu-v5_default bloaty_compare_master'
+            sh 'make px4fmu-v5_default'
+            sh 'make px4fmu-v5_default bloaty_symbols'
+            sh 'make px4fmu-v5_default bloaty_compileunits'
+            sh 'make px4fmu-v5_default bloaty_inlines'
+            sh 'make px4fmu-v5_default bloaty_templates'
+            sh 'make px4fmu-v5_default bloaty_compare_master'
             sh 'make sizes'
             sh 'ccache -s'
           }
@@ -272,7 +272,7 @@ pipeline {
           steps {
             sh 'make distclean'
             sh 'make airframe_metadata'
-            dir('build/posix_sitl_default/docs') {
+            dir('build/px4sitl_default/docs') {
               archiveArtifacts(artifacts: 'airframes.md, airframes.xml')
               stash includes: 'airframes.md, airframes.xml', name: 'metadata_airframes'
             }
@@ -291,7 +291,7 @@ pipeline {
           steps {
             sh 'make distclean'
             sh 'make parameters_metadata'
-            dir('build/posix_sitl_default/docs') {
+            dir('build/px4sitl_default/docs') {
               archiveArtifacts(artifacts: 'parameters.md, parameters.xml')
               stash includes: 'parameters.md, parameters.xml', name: 'metadata_parameters'
             }
@@ -310,7 +310,7 @@ pipeline {
           steps {
             sh 'make distclean'
             sh 'make module_documentation'
-            dir('build/posix_sitl_default/docs') {
+            dir('build/px4sitl_default/docs') {
               archiveArtifacts(artifacts: 'modules/*.md')
               stash includes: 'modules/*.md', name: 'metadata_module_documentation'
             }
@@ -334,8 +334,8 @@ pipeline {
             sh 'make distclean'
             sh 'make uorb_graphs'
             dir('Tools/uorb_graph') {
-              archiveArtifacts(artifacts: 'graph_sitl.json')
-              stash includes: 'graph_sitl.json', name: 'uorb_graph'
+              archiveArtifacts(artifacts: 'graph_px4sitl.json')
+              stash includes: 'graph_px4sitl.json', name: 'uorb_graph'
             }
           }
           post {

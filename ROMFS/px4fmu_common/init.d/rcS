@@ -71,7 +71,7 @@ set FEXTRAS /fs/microsd/etc/extras.txt
 set FRC /fs/microsd/etc/rc.txt
 set FMU_ARGS ""
 set FMU_MODE pwm
-set IOFW "/etc/extras/px4io-v2.bin"
+set IOFW "/etc/extras/px4io-v2_default.bin"
 set IO_PRESENT no
 set LOG_FILE /fs/microsd/bootlog.txt
 set MAV_TYPE none
@@ -367,7 +367,7 @@ else
 
 	#
 	# Check if PX4IO present and update firmware if needed.
-	# Assumption IOFW set to firware file and IO_PRESENT = no
+	# Assumption IOFW set to firmware file and IO_PRESENT = no
 	#
 
 	if [ -f $IOFW ]

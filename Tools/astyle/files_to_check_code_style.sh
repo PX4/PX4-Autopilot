@@ -10,7 +10,6 @@ fi
 
 exec find src platforms \
     -path platforms/nuttx/NuttX -prune -o \
-    -path platforms/nuttx/nuttx-configs -prune -o \
     -path src/lib/DriverFramework -prune -o \
     -path src/lib/ecl -prune -o \
     -path src/lib/matrix -prune -o \

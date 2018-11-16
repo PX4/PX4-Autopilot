@@ -1,0 +1,120 @@
+############################################################################
+# nuttx-configs/Make.defs
+#
+#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+include $(TOPDIR)/.config
+include $(TOPDIR)/tools/Config.mk
+
+CC = ${CMAKE_C_COMPILER}
+CXX = ${CMAKE_CXX_COMPILER}
+CPP = ${CMAKE_C_COMPILER} -E
+LD = ${CMAKE_LD}
+AR = ${CMAKE_AR} rcs
+NM = ${CMAKE_NM}
+OBJCOPY = ${CMAKE_OBJCOPY}
+OBJDUMP = ${CMAKE_OBJDUMP}
+
+# Include paths with Cygwin path conversion
+ifneq (, $(findstring CYGWIN, $(shell uname)))
+  WINTOOL = y
+  ARCHINCLUDES = -I. -isystem "$(shell cygpath -w $(TOPDIR)/include)"
+  ARCHXXINCLUDES = $(ARCHINCLUDES) -isystem "$(shell cygpath -w $(TOPDIR)/include/cxx)"
+else
+  ARCHINCLUDES = -I. -isystem $(TOPDIR)/include
+  ARCHXXINCLUDES = $(ARCHINCLUDES) -isystem $(TOPDIR)/include/cxx
+endif
+
+# Windows toolchain (MSYS & Cygwin) symbolic link handling
+ifeq ($(WINTOOL),y)
+  DIRLINK = $(TOPDIR)/tools/copydir.sh
+  DIRUNLINK = $(TOPDIR)/tools/unlink.sh
+  MKDEP = $(TOPDIR)/tools/mknulldeps.sh
+endif
+
+FLAGS = -Os -g2 \
+	-fdata-sections \
+	-ffunction-sections \
+	-fno-builtin-printf \
+	-fno-common \
+	-fno-strength-reduce \
+	-fno-strict-aliasing \
+	-fomit-frame-pointer \
+	-Wall \
+	-Werror \
+	-Wextra \
+	-Wlogical-op \
+	-Wno-cpp \
+	-Wno-format-truncation \
+	-Wno-maybe-uninitialized \
+	-Wno-missing-field-initializers \
+	-Wno-sign-compare \
+	-Wno-type-limits \
+	-Wno-unused-parameter \
+	-Wpointer-arith
+
+# enable precise stack overflow tracking
+ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
+	FLAGS += -finstrument-functions -ffixed-r10
+endif
+
+CFLAGS = $(ARCHINCLUDES) \
+	-std=gnu99 \
+	${CMAKE_C_FLAGS} \
+	$(FLAGS) \
+	-Wno-bad-function-cast \
+	-Wno-float-equal \
+	-Wno-implicit-fallthrough \
+	-Wno-implicit-function-declaration \
+	-Wno-logical-op \
+	-Wno-missing-declarations \
+	-Wno-missing-field-initializers \
+	-Wno-missing-prototypes \
+	-Wno-nested-externs \
+	-Wno-nonnull-compare \
+	-Wno-old-style-declaration \
+	-Wno-sign-compare \
+	-Wno-type-limits
+
+CXXFLAGS = $(ARCHXXINCLUDES) \
+	-std=gnu++11 \
+	${CMAKE_CXX_FLAGS} \
+	$(FLAGS) \
+	-fcheck-new \
+	-fno-builtin \
+	-fno-exceptions \
+	-fno-rtti \
+	-Wno-double-promotion \
+	-Wno-missing-declarations
+
+AFLAGS = $(CFLAGS) -D__ASSEMBLY__

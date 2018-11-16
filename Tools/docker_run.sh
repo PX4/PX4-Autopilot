@@ -5,14 +5,14 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 	if [[ $@ =~ .*px4fmu.* ]]; then
 		# nuttx-px4fmu-v{1,2,3,4,5}
 		PX4_DOCKER_REPO="px4io/px4-dev-nuttx:2018-11-22"
-	elif [[ $@ =~ .*rpi.* ]] || [[ $@ =~ .*bebop.* ]]; then
+	elif [[ $@ =~ .*navio2.* ]] || [[ $@ =~ .*raspberry.* ]] || [[ $@ =~ .*bebop.* ]]; then
 		# posix_rpi_cross, posix_bebop_default
 		PX4_DOCKER_REPO="px4io/px4-dev-raspi:2018-11-22"
 	elif [[ $@ =~ .*eagle.* ]] || [[ $@ =~ .*excelsior.* ]]; then
 		# eagle, excelsior
 		PX4_DOCKER_REPO="lorenzmeier/px4-dev-snapdragon:2018-09-12"
 	elif [[ $@ =~ .*ocpoc.* ]]; then
-		# posix_ocpoc_ubuntu
+		# aerotennaocpoc_ubuntu
 		PX4_DOCKER_REPO="px4io/px4-dev-armhf:2018-11-22"
 	elif [[ $@ =~ .*clang.* ]] || [[ $@ =~ .*scan-build.* ]]; then	
 		# clang tools

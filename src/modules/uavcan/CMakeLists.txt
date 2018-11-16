@@ -35,21 +35,22 @@ px4_add_git_submodule(TARGET git_uavcan PATH "libuavcan")
 
 set(UAVCAN_USE_CPP03 ON CACHE BOOL "uavcan cpp03")
 
-# The default is the stm32
-if(NOT UAVCAN_PLATFORM)
-	set(UAVCAN_PLATFORM stm32 CACHE STRING "uavcan platform")
-endif()
+if(CONFIG_ARCH_CHIP)
 
-# The default timer the 5
-if(NOT UAVCAN_TIMER)
-	set(UAVCAN_TIMER 5)
+	if (${CONFIG_ARCH_CHIP} MATCHES "kinetis")
+		set(UAVCAN_PLATFORM "kinetis")
+		set(UAVCAN_TIMER 1)
+	elseif (${CONFIG_ARCH_CHIP} MATCHES "stm32")
+		set(UAVCAN_PLATFORM "stm32")
+		set(UAVCAN_TIMER 5) # The default timer the 5
+	endif()
 endif()
 
 if(NOT config_uavcan_num_ifaces)
 	message(FATAL_ERROR "config_uavcan_num_ifaces not set")
 endif()
 
-string(TOUPPER "${OS}" OS_UPPER)
+string(TOUPPER "${PX4_PLATFORM}" OS_UPPER)
 string(TOUPPER "${UAVCAN_PLATFORM}" UAVCAN_PLATFORM_UPPER)
 add_definitions(
 		-DUAVCAN_CPP_VERSION=UAVCAN_CPP03
