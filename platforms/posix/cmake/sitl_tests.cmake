@@ -76,8 +76,22 @@ add_test(NAME mavlink
 
 set_tests_properties(mavlink PROPERTIES FAIL_REGULAR_EXPRESSION "mavlink FAILED")
 set_tests_properties(mavlink PROPERTIES PASS_REGULAR_EXPRESSION "mavlink PASSED")
-
 sanitizer_fail_test_on_error(mavlink)
+
+# Shutdown test
+add_test(NAME shutdown
+	COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
+		$<TARGET_FILE:px4>
+		none
+		none
+		test_shutdown
+		${PX4_SOURCE_DIR}
+		${PX4_BINARY_DIR}
+	WORKING_DIRECTORY ${SITL_WORKING_DIR})
+
+#set_tests_properties(shutdown PROPERTIES FAIL_REGULAR_EXPRESSION "shutdown FAILED")
+set_tests_properties(shutdown PROPERTIES PASS_REGULAR_EXPRESSION "Shutting down")
+sanitizer_fail_test_on_error(shutdown)
 
 # run arbitrary commands
 set(test_cmds
