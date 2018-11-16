@@ -74,9 +74,6 @@ then
 	param set EKF2_RNG_NOISE 0.2 # Measurement noise for range finder fusion.
 	param set EKF2_MIN_RNG 0.07 # Minimum valid range for the range finder.
 
-	# serial comms
-	param set SER_TEL2_BAUD 921600
-
 	# gps
 	param set GPS_UBX_DYNMODEL 7
 
@@ -87,9 +84,16 @@ then
 	param set LNDMC_XY_VEL_MAX 1.0
 	param set LNDMC_ROT_MAX 50.0 # This is set high because we have lots of vibrations while in contact with ground.
 
+	# serial comms
+	param set SER_TEL1_BAUD 921600
+	param set SER_TEL2_BAUD 921600
+
 	# mavlink stream configuration
-	param set MAV_1_CONFIG 102 # TELEM 2
-	param set MAV_1_RATE 20000 # 20 KB/s
+	param set MAV_0_CONFIG 101 # TEL1 ttyS1
+	param set MAV_0_RATE 20000
+
+	param set MAV_1_CONFIG 102 # TEL2 ttyS2
+	param set MAV_1_RATE 20000
 
 	# mc_att_control
 	param set MC_ACRO_P_MAX 360.0
