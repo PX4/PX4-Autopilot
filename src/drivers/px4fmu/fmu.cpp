@@ -64,8 +64,6 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_status.h>
 
 #define SCHEDULE_INTERVAL	2000	/**< The schedule interval in usec (500 Hz) */
 
