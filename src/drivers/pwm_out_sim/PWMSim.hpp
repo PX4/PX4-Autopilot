@@ -51,6 +51,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_control_mode.h>
 
 class PWMSim : public device::CDev, public ModuleBase<PWMSim>
 {
@@ -110,6 +111,8 @@ private:
 	unsigned	_poll_fds_num{0};
 
 	int		_armed_sub{-1};
+	int     _v_control_mode_sub{-1};
+	struct vehicle_control_mode_s _v_control_mode;
 
 	actuator_outputs_s _actuator_outputs = {};
 	orb_advert_t	_outputs_pub{nullptr};

@@ -69,6 +69,7 @@
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/safety.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -230,6 +231,7 @@ private:
 	int		_vehicle_cmd_sub;
 	int		_armed_sub;
 	int		_param_sub;
+	int 	_v_control_mode_sub;
 	int		_adc_sub;
 	struct rc_input_values	_rc_in;
 	float		_analog_rc_rssi_volt;
@@ -261,6 +263,7 @@ private:
 
 	static pwm_limit_t	_pwm_limit;
 	static actuator_armed_s	_armed;
+	static struct vehicle_control_mode_s _v_control_mode;
 	uint16_t	_failsafe_pwm[_max_actuators];
 	uint16_t	_disarmed_pwm[_max_actuators];
 	uint16_t	_min_pwm[_max_actuators];
@@ -356,6 +359,7 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_vehicle_cmd_sub(-1),
 	_armed_sub(-1),
 	_param_sub(-1),
+	_v_control_mode_sub(-1),
 	_adc_sub(-1),
 	_rc_in{},
 	_analog_rc_rssi_volt(-1.0f),
@@ -447,6 +451,8 @@ PX4FMU::~PX4FMU()
 
 	orb_unsubscribe(_armed_sub);
 	orb_unsubscribe(_param_sub);
+	orb_unsubscribe(_v_control_mode_sub);
+	orb_unsubscribe(_adc_sub);
 
 	orb_unadvertise(_to_input_rc);
 	orb_unadvertise(_outputs_pub);
@@ -498,6 +504,7 @@ PX4FMU::init()
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_param_sub = orb_subscribe(ORB_ID(parameter_update));
+	_v_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_adc_sub = orb_subscribe(ORB_ID(adc_report));
 
 	/* initialize PWM limit lib */
@@ -1300,9 +1307,15 @@ PX4FMU::cycle()
 					_mixers->set_thrust_factor(_thr_mdl_fac);
 				}
 
-				/* do mixing */
 				float outputs[_max_actuators];
 				const unsigned mixed_num_outputs = _mixers->mix(outputs, _num_outputs);
+				/* Check if we want to override mixer */
+				if (_v_control_mode.flag_control_motor_output_enabled) {
+					for (size_t i = 0; i < mixed_num_outputs; i++) {
+						/* Feed the input directly to the motors, range [-1,1] */
+						outputs[i] = _controls[i]; 
+					} 
+				}
 
 				/* the PWM limit call takes care of out of band errors, NaN and constrains */
 				uint16_t pwm_limited[MAX_ACTUATORS];
@@ -1421,8 +1434,19 @@ PX4FMU::cycle()
 		}
 
 #endif
-		/* check arming state */
+		/* check control mode state */
 		bool updated = false;
+
+		/* Update control mode to check for direct motor drive 
+		   Check if vehicle control mode has changed */
+		orb_check(_v_control_mode_sub, &updated);
+
+		if (updated) {
+			orb_copy(ORB_ID(vehicle_control_mode), _v_control_mode_sub, &_v_control_mode);
+		}
+
+		/* check arming state */
+		updated = false;
 		orb_check(_armed_sub, &updated);
 
 		if (updated) {

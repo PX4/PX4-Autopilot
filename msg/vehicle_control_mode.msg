@@ -9,6 +9,7 @@ bool flag_external_manual_override_ok		# external override non-fatal for system.
 bool flag_system_hil_enabled
 
 bool flag_control_manual_enabled		# true if manual input is mixed in
+bool flag_control_motor_output_enabled	# true if direct motor input is requested from offboard
 bool flag_control_auto_enabled			# true if onboard autopilot should act
 bool flag_control_offboard_enabled		# true if offboard control should be used
 bool flag_control_rates_enabled			# true if rates are stabilized

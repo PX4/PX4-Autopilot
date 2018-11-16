@@ -1036,6 +1036,12 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 		offboard_control_mode.ignore_velocity           = true;
 		offboard_control_mode.ignore_acceleration_force = true;
 
+		if (set_actuator_control_target.group_mlx == 99) {
+			offboard_control_mode.ignore_mixed_outputs = true;
+		} else {
+			offboard_control_mode.ignore_mixed_outputs = false;
+		}
+
 		offboard_control_mode.timestamp = hrt_absolute_time();
 
 		if (_offboard_control_mode_pub == nullptr) {

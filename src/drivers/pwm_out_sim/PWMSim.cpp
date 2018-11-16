@@ -160,6 +160,7 @@ PWMSim::run()
 	_current_update_rate = 0;
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+	_v_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 
 	/* advertise the mixed control outputs, insist on the first group output */
 	_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_actuator_outputs);
@@ -239,6 +240,15 @@ PWMSim::run()
 			unsigned num_outputs = _mixers->mix(&_actuator_outputs.output[0], _num_outputs);
 			_actuator_outputs.noutputs = num_outputs;
 
+
+			/* Check if we want to override mixer */
+			if (_v_control_mode.flag_control_motor_output_enabled) {
+				for (size_t i = 0; i < num_outputs; i++) {
+					/* Feed the input directly to the motors, range [-1,1] */
+					_actuator_outputs.output[i] = _controls->control[i]; 
+				} 
+			}
+
 			/* disable unused ports by setting their output to NaN */
 			for (size_t i = 0; i < sizeof(_actuator_outputs.output) / sizeof(_actuator_outputs.output[0]); i++) {
 				if (i >= num_outputs) {
@@ -304,11 +314,21 @@ PWMSim::run()
 			}
 		}
 
-		/* how about an arming update? */
+
 		bool updated;
 
-		orb_check(_armed_sub, &updated);
+		/* Update control mode to check for direct motor drive 
+		Check if vehicle control mode has changed */
+		orb_check(_v_control_mode_sub, &updated);
 
+		if (updated) {
+		    orb_copy(ORB_ID(vehicle_control_mode), _v_control_mode_sub, &_v_control_mode);
+		}
+
+		/* how about an arming update? */
+		updated = false;
+
+		orb_check(_armed_sub, &updated);
 		if (updated) {
 			actuator_armed_s aa = {};
 
@@ -338,6 +358,7 @@ PWMSim::run()
 	}
 
 	orb_unsubscribe(_armed_sub);
+	orb_unsubscribe(_v_control_mode_sub);
 	orb_unsubscribe(params_sub);
 }
 
