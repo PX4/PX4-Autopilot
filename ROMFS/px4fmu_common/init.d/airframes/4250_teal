@@ -131,7 +131,7 @@ then
 	param set MPC_THR_MIN 0.15
 
 	param set MPC_VEL_MANUAL 26.5
-	param set MPC_XY_CRUISE 15.0 3 # RTL speed, it was too fast and scaring people.
+	param set MPC_XY_CRUISE 15.0 # RTL speed, it was too fast and scaring people.
 
 	param set MPC_MAN_Y_MAX 200.0 # Max manual yaw rate.
 
