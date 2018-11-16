@@ -73,10 +73,6 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
 
-#ifdef HRT_PPM_CHANNEL
-# include <systemlib/ppm_decode.h>
-#endif
-
 #define SCHEDULE_INTERVAL	2000	/**< The schedule interval in usec (500 Hz) */
 
 static constexpr uint8_t CYCLE_COUNT = 10; /* safety switch must be held for 1 second to activate */
@@ -263,7 +259,7 @@ private:
 
 	static pwm_limit_t	_pwm_limit;
 	static actuator_armed_s	_armed;
-	static struct vehicle_control_mode_s _v_control_mode;
+	struct vehicle_control_mode_s _v_control_mode;
 	uint16_t	_failsafe_pwm[_max_actuators];
 	uint16_t	_disarmed_pwm[_max_actuators];
 	uint16_t	_min_pwm[_max_actuators];
@@ -1313,7 +1309,7 @@ PX4FMU::cycle()
 				if (_v_control_mode.flag_control_motor_output_enabled) {
 					for (size_t i = 0; i < mixed_num_outputs; i++) {
 						/* Feed the input directly to the motors, range [-1,1] */
-						outputs[i] = _controls[i]; 
+						outputs[i] = _controls->control[i]; 
 					} 
 				}
 
