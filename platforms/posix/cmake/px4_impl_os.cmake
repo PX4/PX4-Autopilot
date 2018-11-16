@@ -45,8 +45,7 @@
 #		* px4_os_prebuild_targets
 #
 
-include(common/px4_base)
-list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake/posix)
+include(px4_base)
 
 #=============================================================================
 #
@@ -150,9 +149,7 @@ function(px4_posix_generate_alias)
 			)
 		endif()
 	endforeach()
-	configure_file(${PX4_SOURCE_DIR}/platforms/posix/src/px4-alias.sh_in
-		${OUT}
-	)
+	configure_file(${PX4_SOURCE_DIR}/platforms/posix/src/px4-alias.sh_in ${OUT})
 endfunction()
 
 
@@ -193,6 +190,7 @@ function(px4_posix_generate_symlinks)
 				set(${property} ${${property}_DEFAULT})
 			endif()
 		endforeach()
+
 		if (MAIN)
 			set(ln_name "${PREFIX}${MAIN}")
 			add_custom_command(TARGET ${TARGET}
@@ -287,8 +285,8 @@ function(px4_os_add_flags)
 			message(FATAL_ERROR "PX4 Firmware requires XCode 8 or newer on Mac OS. Version installed on this system: ${CMAKE_CXX_COMPILER_VERSION}")
 		endif()
 
-		EXEC_PROGRAM(uname ARGS -v  OUTPUT_VARIABLE DARWIN_VERSION)
-		STRING(REGEX MATCH "[0-9]+" DARWIN_VERSION ${DARWIN_VERSION})
+		execute_process(COMMAND uname ARGS -v OUTPUT_VARIABLE DARWIN_VERSION)
+		string(REGEX MATCH "[0-9]+" DARWIN_VERSION ${DARWIN_VERSION})
 		# message(STATUS "PX4 Darwin Version: ${DARWIN_VERSION}")
 		if (DARWIN_VERSION LESS 16)
 			add_definitions(
@@ -355,6 +353,13 @@ function(px4_os_add_flags)
 			)
 
 	elseif ("${BOARD}" STREQUAL "rpi")
+
+		add_definitions(
+			-D__PX4_POSIX_RPI
+			-D__DF_LINUX # For DriverFramework
+			-D__DF_RPI # For DriverFramework
+		)
+
 		set(RPI_COMPILE_FLAGS -mcpu=cortex-a53 -mfpu=neon -mfloat-abi=hard)
 		list(APPEND added_c_flags ${RPI_COMPILE_FLAGS})
 		list(APPEND added_cxx_flags ${RPI_COMPILE_FLAGS})
@@ -383,6 +388,13 @@ function(px4_os_add_flags)
 			)
 		ENDIF()
 	elseif ("${BOARD}" STREQUAL "bebop")
+
+		add_definitions(
+			-D__PX4_POSIX_BEBOP
+			-D__DF_LINUX # Define needed DriverFramework
+			-D__DF_BEBOP # Define needed DriverFramework
+		)
+
 		# TODO: Wmissing-field-initializers ignored on older toolchain, can be removed eventually
 		list(APPEND added_cxx_flags -Wno-missing-field-initializers)
 		
@@ -428,7 +440,7 @@ endfunction()
 #			)
 #
 #	Input:
-#		BOARD 		: board
+#		BOARD		: board
 #
 #	Output:
 #		OUT	: the target list
@@ -440,9 +452,10 @@ function(px4_os_prebuild_targets)
 	px4_parse_function_args(
 			NAME px4_os_prebuild_targets
 			ONE_VALUE OUT BOARD
-			REQUIRED OUT BOARD
+			REQUIRED OUT
 			ARGN ${ARGN})
 
-	add_library(${OUT} INTERFACE)
-	add_dependencies(${OUT} DEPENDS uorb_headers)
+	add_library(prebuild_targets INTERFACE)
+	add_dependencies(prebuild_targets DEPENDS uorb_headers)
+
 endfunction()

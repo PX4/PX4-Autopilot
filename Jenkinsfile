@@ -50,7 +50,7 @@ pipeline {
           }
         }
 
-        stage('Bloaty px4fmu-v2') {
+        stage('Bloaty px4_fmu-v2') {
           agent {
             docker {
               image 'px4io/px4-dev-nuttx:2018-09-11'
@@ -62,12 +62,12 @@ pipeline {
             sh 'make distclean'
             sh 'ccache -z'
             sh 'git fetch --tags'
-            sh 'make nuttx_px4fmu-v2_default'
-            sh 'make nuttx_px4fmu-v2_default bloaty_symbols'
-            sh 'make nuttx_px4fmu-v2_default bloaty_compileunits'
-            sh 'make nuttx_px4fmu-v2_default bloaty_inlines'
-            sh 'make nuttx_px4fmu-v2_default bloaty_templates'
-            sh 'make nuttx_px4fmu-v2_default bloaty_compare_master'
+            sh 'make nuttx_px4_fmu-v2_default'
+            sh 'make nuttx_px4_fmu-v2_default bloaty_symbols'
+            sh 'make nuttx_px4_fmu-v2_default bloaty_compileunits'
+            sh 'make nuttx_px4_fmu-v2_default bloaty_inlines'
+            sh 'make nuttx_px4_fmu-v2_default bloaty_templates'
+            sh 'make nuttx_px4_fmu-v2_default bloaty_compare_master'
             sh 'make sizes'
             sh 'ccache -s'
           }
@@ -78,7 +78,7 @@ pipeline {
           }
         }
 
-        stage('Bloaty px4fmu-v5') {
+        stage('Bloaty px4_fmu-v5') {
           agent {
             docker {
               image 'px4io/px4-dev-nuttx:2018-09-11'
@@ -90,12 +90,12 @@ pipeline {
             sh 'make distclean'
             sh 'ccache -z'
             sh 'git fetch --tags'
-            sh 'make nuttx_px4fmu-v5_default'
-            sh 'make nuttx_px4fmu-v5_default bloaty_symbols'
-            sh 'make nuttx_px4fmu-v5_default bloaty_compileunits'
-            sh 'make nuttx_px4fmu-v5_default bloaty_inlines'
-            sh 'make nuttx_px4fmu-v5_default bloaty_templates'
-            sh 'make nuttx_px4fmu-v5_default bloaty_compare_master'
+            sh 'make nuttx_px4_fmu-v5_default'
+            sh 'make nuttx_px4_fmu-v5_default bloaty_symbols'
+            sh 'make nuttx_px4_fmu-v5_default bloaty_compileunits'
+            sh 'make nuttx_px4_fmu-v5_default bloaty_inlines'
+            sh 'make nuttx_px4_fmu-v5_default bloaty_templates'
+            sh 'make nuttx_px4_fmu-v5_default bloaty_compare_master'
             sh 'make sizes'
             sh 'ccache -s'
           }

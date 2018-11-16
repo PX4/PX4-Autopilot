@@ -104,12 +104,12 @@ cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 
-list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake)
 
 #=============================================================================
 # git
 #
-include(common/px4_git)
+include(px4_git)
 
 execute_process(
 	COMMAND git describe --always --tags
@@ -132,13 +132,77 @@ define_property(GLOBAL PROPERTY PX4_MODULE_PATHS
 # configuration
 #
 
-set(CONFIG "posix_sitl_default" CACHE STRING "desired configuration")
+set(config_module_list)
+set(config_df_driver_list)
 
-string(REPLACE "_" ";" config_args ${CONFIG})
-list(GET config_args 0 OS)
-list(GET config_args 1 BOARD)
-list(GET config_args 2 LABEL)
+# find PX4 config
+#  look for in tree board config that matches CONFIG input
+if(NOT PX4_CONFIG_FILE)
 
+	file(GLOB_RECURSE board_configs
+		RELATIVE "${PX4_SOURCE_DIR}/boards"
+		"boards/*.cmake"
+		)
+
+	set(PX4_CONFIGS ${board_configs} CACHE STRINGS "PX4 board configs" FORCE)
+
+	foreach(filename ${board_configs})
+		# parse input CONFIG into components to match with existing in tree configs
+		#  the platform prefix (eg nuttx_) is historical, and removed if present
+		string(REPLACE ".cmake" "" filename_stripped ${filename})
+		string(REPLACE "/" ";" config ${filename_stripped})
+		list(LENGTH config config_len)
+
+		if(${config_len} EQUAL 3)
+
+			# <VENDOR>_<MODEL>_<LABEL> (eg px4_fmu-v2_default)
+			# <VENDOR>_<MODEL>_default (eg px4_fmu-v2) # allow skipping label if "default"
+			list(GET config 0 vendor)
+			list(GET config 1 model)
+			list(GET config 2 label)
+
+			if ((${CONFIG} MATCHES "${vendor}_${model}_${label}") OR # match full vendor, model, label
+			    ((${label} STREQUAL "default") AND (${CONFIG} MATCHES "${vendor}_${model}")) # default label can be omitted
+			)
+				set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
+				break()
+			endif()
+
+
+			# LEGACY form
+			# <OS>_<BOARD>_<LABEL> (eg nuttx_px4fmu-v2_default)
+			set(board "${vendor}${model}")
+			string(REGEX REPLACE "^nuttx_|^posix_|^qurt_" "" config_no_os ${CONFIG}) # ignore OS prefix
+
+			if ((${config_no_os} MATCHES "${board}_${label}"))
+				set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
+				break()
+			endif()
+
+
+			# LEGACY form special case to ease board layout transition (2018-11-18)
+			#  match board with model and label only: eg sitl_default -> px4_sitl_default
+			if ((${config_no_os} MATCHES "${model}_${label}"))
+				set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
+				break()
+			endif()
+
+		endif()
+
+	endforeach()
+endif()
+
+if(NOT PX4_CONFIG_FILE)
+	message(FATAL_ERROR "PX4 config file not set, try one of ${PX4_CONFIGS}")
+endif()
+
+message(STATUS "PX4 config file: ${PX4_CONFIG_FILE}")
+include(px4_add_board)
+include(${PX4_CONFIG_FILE})
+message(STATUS "PX4 config: ${VENDOR} ${MODEL} ${LABEL}")
+message(STATUS "PX4 platform: ${OS}")
+
+# external modules
 set(EXTERNAL_MODULES_LOCATION "" CACHE STRING "External modules source location")
 
 if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
@@ -148,7 +212,6 @@ endif()
 set_property(GLOBAL PROPERTY PX4_MODULE_CONFIG_FILES)
 
 include(platforms/${OS}/cmake/px4_impl_os.cmake)
-include(configs/${CONFIG})
 list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${OS}/cmake)
 
 # CMake build type (Debug Release RelWithDebInfo MinSizeRel Coverage)
@@ -166,9 +229,8 @@ set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebIn
 
 #=============================================================================
 
-message(STATUS "PX4 VERSION: ${PX4_GIT_TAG}")
-message(STATUS "CONFIG: ${CONFIG}")
-message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "PX4 version: ${PX4_GIT_TAG}")
+message(STATUS "cmake build type: ${CMAKE_BUILD_TYPE}")
 
 #=============================================================================
 # project definition
@@ -196,8 +258,8 @@ endif()
 # Setup install paths
 if (${OS} STREQUAL "posix")
 
-	include(common/coverage)
-	include(common/sanitizers)
+	include(coverage)
+	include(sanitizers)
 
 	# Define GNU standard installation directories
 	include(GNUInstallDirs)
@@ -216,17 +278,11 @@ endif()
 set(px4_required_interface
 	px4_os_prebuild_targets
 	px4_os_add_flags
+	px4_add_board
 	)
 foreach(cmd ${px4_required_interface})
 	if (NOT COMMAND ${cmd})
 		message(FATAL_ERROR "${CONFIG} must implement ${cmd}")
-	endif()
-endforeach()
-
-set(px4_required_config config_module_list)
-foreach(conf ${px4_required_config})
-	if (NOT DEFINED ${conf})
-		message(FATAL_ERROR "cmake/${CONFIG} must define ${conf}")
 	endif()
 endforeach()
 
@@ -277,38 +333,6 @@ else()
 endif()
 
 #=============================================================================
-# check required toolchain variables
-#
-
-set(required_variables CMAKE_C_COMPILER_ID CMAKE_CXX_COMPILER_ID)
-foreach(var ${required_variables})
-	if (NOT ${var})
-		message(FATAL_ERROR "Toolchain/config must define ${var}")
-	endif()
-endforeach()
-
-# print full c compiler version
-execute_process(COMMAND ${CMAKE_C_COMPILER} --version
-		OUTPUT_VARIABLE c_compiler_version
-		OUTPUT_STRIP_TRAILING_WHITESPACE
-		)
-STRING(REGEX MATCH "[^\n]*" c_compiler_version_short ${c_compiler_version})
-message(STATUS "C compiler: ${c_compiler_version_short}")
-
-# print full c++ compiler version
-execute_process(COMMAND ${CMAKE_CXX_COMPILER} --version
-		OUTPUT_VARIABLE cxx_compiler_version
-		OUTPUT_STRIP_TRAILING_WHITESPACE
-		)
-STRING(REGEX MATCH "[^\n]*" cxx_compiler_version_short ${cxx_compiler_version})
-message(STATUS "C++ compiler: ${cxx_compiler_version_short}")
-
-#=============================================================================
-# external libraries
-#
-px4_os_prebuild_targets(OUT prebuild_targets BOARD ${BOARD})
-
-#=============================================================================
 # build flags
 #
 px4_os_add_flags(
@@ -328,7 +352,7 @@ px4_join(OUT CMAKE_CXX_FLAGS LIST "${CMAKE_CXX_FLAGS};${cxx_flags};${optimizatio
 #=============================================================================
 # message, and airframe generation
 #
-include(common/px4_metadata)
+include(px4_metadata)
 
 add_subdirectory(msg EXCLUDE_FROM_ALL)
 
@@ -401,20 +425,6 @@ target_link_libraries(parameters_interface INTERFACE parameters)
 add_subdirectory(platforms/${OS})
 
 #=============================================================================
-# generate custom target to print for all executable and module cmake targets
-#
-if (all_posix_cmake_targets)
-	list(SORT all_posix_cmake_targets)
-	px4_join(OUT posix_cmake_target_list LIST ${all_posix_cmake_targets} GLUE "\\n")
-	add_custom_target(list_cmake_targets
-		COMMAND sh -c "printf \"${posix_cmake_target_list}\\n\""
-		COMMENT "List of cmake targets that can be matched by PX4_NO_OPTIMIZATION:"
-		VERBATIM
-		)
-endif()
-
-
-#=============================================================================
 # uORB graph generation: add a custom target 'uorb_graph'
 #
 set(uorb_graph_config ${BOARD})
@@ -471,10 +481,10 @@ endif()
 add_custom_target(metadata_airframes
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/docs
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
-		-v -a ${PX4_SOURCE_DIR}//ROMFS/px4fmu_common/init.d
+		-v -a ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d
 		--markdown ${PX4_BINARY_DIR}/docs/airframes.md
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
-		-v -a ${PX4_SOURCE_DIR}//ROMFS/px4fmu_common/init.d
+		-v -a ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d
 		--xml ${PX4_BINARY_DIR}/docs/airframes.xml
 	COMMENT "Generating full airframe metadata (markdown and xml)"
 	USES_TERMINAL

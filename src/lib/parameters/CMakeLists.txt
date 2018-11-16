@@ -39,6 +39,7 @@ endif()
 
 # get full path for each module
 get_property(module_list GLOBAL PROPERTY PX4_MODULE_PATHS)
+
 if (DISABLE_PARAMS_MODULE_SCOPING)
 	# search all directories with .c files (potentially containing parameters)
 	file(GLOB_RECURSE new_list
@@ -49,18 +50,21 @@ if (DISABLE_PARAMS_MODULE_SCOPING)
 		get_filename_component(dir_path ${file_path} PATH)
 		list(APPEND module_list "${dir_path}")
 	endforeach()
-	list(REMOVE_DUPLICATES module_list)
 else()
-	foreach(module ${config_module_list})
+	foreach(module ${module_list})
+
 		# include all subdirectories as well
-		file(GLOB children RELATIVE ${PX4_SOURCE_DIR}/src/${module} ${PX4_SOURCE_DIR}/src/${module}/*)
+		file(GLOB_RECURSE children
+			LIST_DIRECTORIES true
+			RELATIVE ${module}
+			${module}/*)
+
 		foreach(child ${children})
-			if(IS_DIRECTORY ${PX4_SOURCE_DIR}/src/${module}/${child})
-				list(APPEND module_list ${PX4_SOURCE_DIR}/src/${module}/${child})
+
+			if(IS_DIRECTORY ${module}/${child})
+				list(APPEND module_list ${module}/${child})
 			endif()
 		endforeach()
-
-		list(APPEND module_list ${PX4_SOURCE_DIR}/src/${module})
 	endforeach()
 
 	list(APPEND module_list ${external_module_paths})
@@ -137,7 +141,7 @@ if(${OS} STREQUAL "nuttx")
 endif()
 
 # TODO: find a better way to do this
-if (NOT "${CONFIG}" MATCHES "px4io")
+if (NOT "${BOARD}" MATCHES "px4io")
 	add_library(parameters
 		${SRCS}
 		px4_parameters.c

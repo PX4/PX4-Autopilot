@@ -55,7 +55,7 @@ if (("${BOARD}" STREQUAL "eagle") OR ("${BOARD}" STREQUAL "excelsior"))
 		)
 
 else()
-	px4_add_executable(px4
+	add_executable(px4
 		src/main.cpp
 		apps.cpp
 		)
@@ -101,7 +101,7 @@ px4_posix_generate_symlinks(
 	TARGET px4
 )
 
-if ("${BOARD}" STREQUAL "rpi")
+if ("${BOARD}" MATCHES "rpi")
 	add_custom_target(upload
 		COMMAND rsync -arh --progress ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${PX4_SOURCE_DIR}/posix-configs/rpi/*.config ${PX4_SOURCE_DIR}/ROMFS pi@"$ENV{AUTOPILOT_HOST}":/home/pi
 		DEPENDS px4
@@ -109,7 +109,7 @@ if ("${BOARD}" STREQUAL "rpi")
 		USES_TERMINAL
 		)
 
-elseif ("${BOARD}" STREQUAL "bbblue")
+elseif ("${BOARD}" MATCHES "bbblue")
 	target_link_libraries(px4 PRIVATE robotcontrol)
 
 	add_custom_target(upload
@@ -119,7 +119,7 @@ elseif ("${BOARD}" STREQUAL "bbblue")
 		USES_TERMINAL
 		)
 
-elseif ("${BOARD}" STREQUAL "bebop")
+elseif ("${BOARD}" MATCHES "bebop")
 
 	add_custom_target(upload
 		COMMAND ${PX4_SOURCE_DIR}/Tools/adb_upload_to_bebop.sh ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/. /data/ftp/internal_000
@@ -128,7 +128,7 @@ elseif ("${BOARD}" STREQUAL "bebop")
 		USES_TERMINAL
 		)
 
-elseif ("${BOARD}" STREQUAL "sitl")
+elseif ("${BOARD}" MATCHES "sitl")
 
 	include(sitl_target)
 	if(BUILD_TESTING)

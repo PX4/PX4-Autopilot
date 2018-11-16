@@ -3,6 +3,7 @@
 #include <systemlib/err.h>
 
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <drivers/drv_hrt.h>
