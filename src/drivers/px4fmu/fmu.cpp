@@ -1205,12 +1205,13 @@ PX4FMU::cycle()
 
 				float outputs[_max_actuators];
 				const unsigned mixed_num_outputs = _mixers->mix(outputs, _num_outputs);
+
 				/* Check if we want to override mixer */
 				if (_v_control_mode.flag_control_motor_output_enabled) {
 					for (size_t i = 0; i < mixed_num_outputs; i++) {
 						/* Feed the input directly to the motors, range [-1,1] */
-						outputs[i] = _controls->control[i]; 
-					} 
+						outputs[i] = _controls->control[i];
+					}
 				}
 
 				/* the PWM limit call takes care of out of band errors, NaN and constrains */
@@ -1343,7 +1344,7 @@ PX4FMU::cycle()
 		/* check control mode state */
 		updated = false;
 
-		/* Update control mode to check for direct motor drive 
+		/* Update control mode to check for direct motor drive
 		   Check if vehicle control mode has changed */
 		orb_check(_v_control_mode_sub, &updated);
 
@@ -1353,7 +1354,7 @@ PX4FMU::cycle()
 
 		/* check arming state */
 		updated = false;
-    
+
 		/* check arming state */
 		orb_check(_armed_sub, &updated);
 
