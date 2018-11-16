@@ -321,7 +321,6 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_armed_sub(-1),
 	_param_sub(-1),
 	_v_control_mode_sub(-1),
-	_adc_sub(-1),
 	_safety_sub(-1),
 	_outputs_pub(nullptr),
 	_num_outputs(0),
