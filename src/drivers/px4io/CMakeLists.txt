@@ -49,20 +49,20 @@ px4_add_module(
 # include the px4io binary in ROMFS
 message(STATUS "Building and including ${config_io_board}")
 
-set(fw_io_exe "${PX4_SOURCE_DIR}/build/nuttx_${config_io_board}_default/nuttx_${config_io_board}_default.elf")
-set(fw_io_bin "${PX4_BINARY_DIR}/romfs_extras/${config_io_board}.bin" CACHE FILEPATH "px4io binary path")
+include(ExternalProject)
+ExternalProject_Add(px4io_firmware
+	SOURCE_DIR ${CMAKE_SOURCE_DIR}
+	DOWNLOAD_COMMAND ""
+	UPDATE_COMMAND ""
+	CMAKE_ARGS -DCONFIG=${config_io_board}
+	INSTALL_COMMAND ""
+	USES_TERMINAL_BUILD true
+)
 
-file(GLOB_RECURSE px4io_driver_files ${PX4_SOURCE_DIR}/src/drivers/boards/${config_io_board}/*)
-file(GLOB_RECURSE px4io_config_files ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/configs/${config_io_board}/*)
-file(GLOB_RECURSE px4io_firmware_files ${PX4_SOURCE_DIR}/src/modules/px4iofirmware/*)
-file(GLOB_RECURSE px4io_rc_files ${PX4_SOURCE_DIR}/src/lib/rc/*)
-add_custom_command(OUTPUT ${fw_io_exe}
-	COMMAND make --no-print-directory nuttx_${config_io_board}_default
-	DEPENDS ${px4io_driver_files} ${px4io_config_files} ${px4io_firmware_files} ${px4io_rc_files}
-	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-	COMMENT "Building ${config_io_board}"
-	USES_TERMINAL
-	)
+ExternalProject_Get_Property(px4io_firmware BINARY_DIR)
+
+set(fw_io_exe "${BINARY_DIR}/${config_io_board}.elf")
+set(fw_io_bin "${PX4_BINARY_DIR}/romfs_extras/${config_io_board}.bin" CACHE FILEPATH "px4io binary path")
 
 file(RELATIVE_PATH fw_io_exe_relative ${CMAKE_CURRENT_BINARY_DIR} ${fw_io_exe})
 file(RELATIVE_PATH fw_io_bin_relative ${CMAKE_CURRENT_BINARY_DIR} ${fw_io_bin})
@@ -70,7 +70,7 @@ file(RELATIVE_PATH fw_io_bin_relative ${CMAKE_CURRENT_BINARY_DIR} ${fw_io_bin})
 add_custom_command(OUTPUT ${fw_io_bin}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/romfs_extras
 	COMMAND ${CMAKE_OBJCOPY} -O binary ${fw_io_exe_relative} ${fw_io_bin_relative}
-	DEPENDS ${fw_io_exe}
+	DEPENDS px4io_firmware
 	COMMENT "Copying ${config_io_board} to ROMFS extras"
 	)
 add_custom_target(copy_px4io_bin DEPENDS ${fw_io_bin})

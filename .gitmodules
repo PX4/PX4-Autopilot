@@ -34,8 +34,8 @@
 	path = src/lib/ecl
 	url = https://github.com/PX4/ecl.git
 	branch = master
-[submodule "cmake/cmake_hexagon"]
-	path = cmake/cmake_hexagon
+[submodule "boards/atlflight/cmake_hexagon"]
+	path = boards/atlflight/cmake_hexagon
 	url = https://github.com/ATLFlight/cmake_hexagon.git
 	branch = master
 [submodule "src/drivers/gps/devices"]

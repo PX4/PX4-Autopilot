@@ -18,10 +18,10 @@ pipeline {
             sh 'make distclean'
             sh 'ccache -z'
             sh 'git fetch --tags'
-            sh 'make nuttx_px4fmu-v2_test'
+            sh 'make px4fmu-v2_test'
             sh 'make sizes'
             sh 'ccache -s'
-            stash includes: 'build/nuttx_px4fmu-v2_test/nuttx_px4fmu-v2_test.elf', name: 'px4fmu-v2_test'
+            stash includes: 'build/px4fmu-v2_test/px4fmu-v2_test.elf', name: 'px4fmu-v2_test'
             stash includes: 'Tools/HIL/monitor_firmware_upload.py, Tools/HIL/run_tests.py', name: 'scripts-px4fmu-v2'
           }
           post {
@@ -43,10 +43,10 @@ pipeline {
             sh 'make distclean'
             sh 'ccache -z'
             sh 'git fetch --tags'
-            sh 'make nuttx_px4fmu-v4_stackcheck'
+            sh 'make px4fmu-v4_stackcheck'
             sh 'make sizes'
             sh 'ccache -s'
-            stash includes: 'build/nuttx_px4fmu-v4_stackcheck/nuttx_px4fmu-v4_stackcheck.elf', name: 'px4fmu-v4_stackcheck'
+            stash includes: 'build/px4fmu-v4_stackcheck/px4fmu-v4_stackcheck.elf', name: 'px4fmu-v4_stackcheck'
             stash includes: 'Tools/HIL/monitor_firmware_upload.py, Tools/HIL/run_tests.py', name: 'scripts-px4fmu-v4'
           }
           post {
@@ -82,7 +82,7 @@ pipeline {
                       -ex "attach 1" \
                       -ex "load" \
                       -ex "kill" \
-                      build/nuttx_px4fmu-v2_test/nuttx_px4fmu-v2_test.elf
+                      build/px4fmu-v2_test/px4fmu-v2_test.elf
                 '''
                 sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *Black_Magic_Probe_*-if02` --baudrate 57600'
                 sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *Black_Magic_Probe_*-if02`'
@@ -116,7 +116,7 @@ pipeline {
                       -ex "attach 1" \
                       -ex "load" \
                       -ex "kill" \
-                      build/nuttx_px4fmu-v4_stackcheck/nuttx_px4fmu-v4_stackcheck.elf
+                      build/px4fmu-v4_stackcheck/px4fmu-v4_stackcheck.elf
                 '''
                 sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *Black_Magic_Probe_*-if02` --baudrate 57600'
                 sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *Black_Magic_Probe_*-if02`'
