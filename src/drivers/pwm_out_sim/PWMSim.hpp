@@ -112,6 +112,7 @@ private:
 
 	actuator_outputs_s _actuator_outputs = {};
 	orb_advert_t	_outputs_pub{nullptr};
+	orb_advert_t	_mixer_status{nullptr};
 
 	unsigned	_num_outputs{0};
 
