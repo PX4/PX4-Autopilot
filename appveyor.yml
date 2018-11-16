@@ -1,6 +1,13 @@
 # Build version
 version: "{build}"
 
+environment:
+  matrix:
+    - PX4_CONFIG: posix_sitl_default
+      CCACHE_DISABLE: 1
+    - PX4_CONFIG: nuttx_px4fmu-v4_default
+      CCACHE_DISABLE: 1
+
 branches:
   only:
   - master
@@ -30,16 +37,15 @@ install:
 # because otherwise the install begins but non-blocking and the result cannot be used just after
 
 build_script:
+
 # setup the environmental variables to work within the installed cygwin toolchain
 - call C:\PX4\toolchain\setup-environment-variables.bat x
+
 # safe the repopath for switching to it in cygwin bash
 - for /f %%i in ('cygpath -u %%CD%%') do set repopath=%%i
-# fetch all submodules in parallel
-- call bash --login -c "cd $repopath && git submodule -q update --init --recursive --jobs=10"
+
 # make SITL
-- call bash --login -c "cd $repopath && make posix"
-# make pixracer to check NuttX build
-- call bash --login -c "cd $repopath && make px4fmu-v4_default"
+- call bash --login -c "cd $repopath && make ${PX4_CONFIG}"
 
 # Note: using bash --login is important
 # because otherwise certain things (like python; import numpy) do not work
