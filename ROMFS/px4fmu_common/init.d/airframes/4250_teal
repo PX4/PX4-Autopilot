@@ -90,10 +90,10 @@ then
 
 	# mavlink stream configuration
 	param set MAV_0_CONFIG 101 # TEL1 ttyS1
-	param set MAV_0_RATE 20000
+	param set MAV_0_RATE 800000
 
 	param set MAV_1_CONFIG 102 # TEL2 ttyS2
-	param set MAV_1_RATE 20000
+	param set MAV_1_RATE 800000
 
 	# mc_att_control
 	param set MC_ACRO_P_MAX 360.0
