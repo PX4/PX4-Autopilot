@@ -33,6 +33,8 @@
 
 #include "PWMSim.hpp"
 
+#include <uORB/topics/multirotor_motor_limits.h>
+
 PWMSim::PWMSim() :
 	CDev(PWM_OUTPUT0_DEVICE_PATH),
 	_perf_control_latency(perf_alloc(PC_ELAPSED, "pwm_out_sim control latency"))
@@ -283,6 +285,19 @@ PWMSim::run()
 				for (size_t i = 0; i < num_outputs; i++) {
 					_actuator_outputs.output[i] = 0.0;
 				}
+			}
+
+			/* publish mixer status */
+			MultirotorMixer::saturation_status saturation_status;
+			saturation_status.value = _mixers->get_saturation_status();
+
+			if (saturation_status.flags.valid) {
+				multirotor_motor_limits_s motor_limits;
+				motor_limits.timestamp = hrt_absolute_time();
+				motor_limits.saturation_status = saturation_status.value;
+
+				int instance;
+				orb_publish_auto(ORB_ID(multirotor_motor_limits), &_mixer_status, &motor_limits, &instance, ORB_PRIO_DEFAULT);
 			}
 
 			/* and publish for anyone that cares to see */
