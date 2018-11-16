@@ -149,7 +149,7 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	taskdata = (pthdata_t *)malloc(structsize + len);
 
 	if (taskdata == nullptr) {
-		return -ENOMEM;			
+		return -ENOMEM;
 	}
 
 	offset = ((unsigned long)taskdata) + structsize;
