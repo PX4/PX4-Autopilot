@@ -33,7 +33,7 @@
 
 set(EXTRA_DEPENDS)
 if("${CONFIG_SHMEM}" STREQUAL "1")
-	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PX4_SOURCE_DIR}/cmake/cmake_hexagon")
+	list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/boards/atlflight/cmake_hexagon")
 	include(hexagon_sdk)
 	include_directories(${HEXAGON_SDK_INCLUDES})
 	include_directories(${PX4_BINARY_DIR}/platforms/posix)

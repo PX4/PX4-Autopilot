@@ -36,7 +36,7 @@ px4_add_git_submodule(TARGET git_uavcan PATH "../uavcan/libuavcan")
 set(UAVCAN_USE_CPP03 ON CACHE BOOL "uavcan cpp03")
 set(UAVCAN_PLATFORM stm32 CACHE STRING "uavcan platform")
 
-string(TOUPPER "${OS}" OS_UPPER)
+string(TOUPPER "${PX4_PLATFORM}" OS_UPPER)
 add_definitions(
 		-DUAVCAN_CPP_VERSION=UAVCAN_CPP03
 		-DUAVCAN_MAX_NETWORK_SIZE_HINT=16

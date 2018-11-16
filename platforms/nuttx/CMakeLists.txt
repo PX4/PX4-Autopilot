@@ -35,9 +35,7 @@ include(cygwin_cygpath)
 
 add_subdirectory(src)
 
-if (NOT FW_NAME)
-	set(FW_NAME ${CONFIG}.elf)
-endif()
+set(FW_NAME ${PX4_BOARD_VENDOR}${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf)
 
 add_executable(${FW_NAME} ${PX4_SOURCE_DIR}/src/platforms/empty.c)
 add_dependencies(${FW_NAME} git_nuttx nuttx_build)
@@ -66,10 +64,6 @@ if (CONFIG_NET)
 	target_link_libraries(nuttx_fs INTERFACE nuttx_net)
 endif()
 
-if (NOT LD_SCRIPT)
-	set(LD_SCRIPT ld.script)
-endif()
-
 file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_DIR})
 
 # only in the cygwin environment: convert absolute linker script path to mixed windows (C:/...)
@@ -95,7 +89,7 @@ target_link_libraries(${FW_NAME} PRIVATE
 	-fno-exceptions
 	-fno-rtti
 
-	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx/configs/${BOARD}/scripts/${LD_SCRIPT}
+	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx/configs/${PX4_BOARD}/scripts/ld.script
 	-Wl,-Map=${CONFIG}.map
 	-Wl,--warn-common
 	-Wl,--gc-sections
@@ -123,31 +117,29 @@ string(REPLACE "nuttx_" "" fw_name_short ${FW_NAME})
 set(fw_file ${PX4_BINARY_DIR}/${fw_name_short})
 string(REPLACE ".elf" ".px4" fw_file ${fw_file})
 
-add_custom_command(OUTPUT ${PX4_BINARY_DIR_REL}/${BOARD}.bin
-	COMMAND ${OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_DIR_REL}/${BOARD}.bin
+add_custom_command(OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_BOARD}.bin
+	COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_DIR_REL}/${PX4_BOARD}.bin
 	DEPENDS ${FW_NAME}
 	)
 
-if (NOT FW_PROTOTYPE)
-	set(FW_PROTOTYPE ${BOARD})
-endif()
+set(FW_PROTOTYPE ${PX4_BOARD_VENDOR}${PX4_BOARD_MODEL})
 
 if (TARGET parameters_xml AND TARGET airframes_xml)
 	add_custom_command(OUTPUT ${fw_file}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_mkfw.py
-			--prototype ${PX4_SOURCE_DIR}/platforms/nuttx/Images/${FW_PROTOTYPE}.prototype
+			--prototype ${PX4_SOURCE_DIR}/boards/${PX4_BOARD_VENDOR}/${PX4_BOARD_MODEL}/firmware.prototype
 			--git_identity ${PX4_SOURCE_DIR}
 			--parameter_xml ${PX4_BINARY_DIR}/parameters.xml
 			--airframe_xml ${PX4_BINARY_DIR}/airframes.xml
-			--image ${PX4_BINARY_DIR}/${BOARD}.bin > ${fw_file}
-		DEPENDS ${PX4_BINARY_DIR}/${BOARD}.bin parameters_xml airframes_xml
+			--image ${PX4_BINARY_DIR}/${PX4_BOARD}.bin > ${fw_file}
+		DEPENDS ${PX4_BINARY_DIR}/${PX4_BOARD}.bin parameters_xml airframes_xml
 		COMMENT "Creating ${fw_file}"
 		)
 
 	add_custom_target(px4 ALL DEPENDS ${fw_file})
 
 	# upload helper
-	if (${BOARD} STREQUAL "aerofc-v1")
+	if (${PX4_BOARD} STREQUAL "aerofc-v1")
 		
 		# TODO: should be set only in aero config
 		add_custom_target(upload
@@ -289,7 +281,7 @@ if (BLOATY_PROGRAM)
 
 	# bloaty compare with last master build
 	add_custom_target(bloaty_compare_master
-		COMMAND wget --no-verbose https://s3.amazonaws.com/px4-travis/Firmware/master/${FW_NAME} -O master_${FW_NAME}
+		COMMAND wget --no-verbose https://s3.amazonaws.com/px4-travis/Firmware/master/nuttx_${FW_NAME} -O master_${FW_NAME}
 		COMMAND ${BLOATY_PROGRAM} -d symbols -n 50 -C full -s vm $<TARGET_FILE:${FW_NAME}> -- master_${FW_NAME}
 		DEPENDS ${FW_NAME}
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
@@ -353,7 +345,7 @@ if(black_magic_probe_path)
 		)
 
 	add_custom_target(blackmagic_console
-		COMMAND screen -t "${BOARD} console" ${black_magic_probe_console_path} 57600 8N1
+		COMMAND screen -t "${PX4_BOARD} console" ${black_magic_probe_console_path} 57600 8N1
 		USES_TERMINAL
 		)
 

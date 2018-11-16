@@ -53,11 +53,11 @@ endif
 # make px4fmu-v2_default test 		(builds and tests)
 #
 # This tells cmake to build the nuttx px4fmu-v2 default config in the
-# directory build/nuttx_px4fmu-v2_default and then call make
+# directory build/px4fmu-v2_default and then call make
 # in that directory with the target upload.
 
 #  explicity set default build target
-all: posix_sitl_default
+all: px4sitl_default
 
 # Parsing
 # --------------------------------------------------------------------
@@ -156,10 +156,11 @@ define colorecho
 +@echo -e '${COLOR_BLUE}${1} ${NO_COLOR}'
 endef
 
-# Get a list of all config targets cmake/configs/*.cmake
-ALL_CONFIG_TARGETS := $(basename $(shell find "$(SRC_DIR)"/cmake/configs -maxdepth 1 ! -name '*_common*' ! -name '*_sdflight_*' -name '*.cmake' -print | sed  -e 's:^.*/::' | sort))
-# Strip off leading nuttx_
-NUTTX_CONFIG_TARGETS := $(patsubst nuttx_%,%,$(filter nuttx_%,$(ALL_CONFIG_TARGETS)))
+# Get a list of all config targets boards/*/*.cmake
+ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 ! -name '*common*' ! -name '*sdflight*' -name '*.cmake' -print | sed -e 's/boards\///' | sed -e 's/\.cmake//' | sed -e 's/\///' | sed -e 's/\//_/g'  | sort)
+
+# Strip off default
+CONFIG_TARGETS_DEFAULT := $(patsubst %_default,%,$(filter %_default,$(ALL_CONFIG_TARGETS)))
 
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
@@ -177,22 +178,26 @@ $(NUTTX_CONFIG_TARGETS):
 
 all_nuttx_targets: $(NUTTX_CONFIG_TARGETS)
 
-posix: posix_sitl_default
-broadcast: posix_sitl_broadcast
+$(CONFIG_TARGETS_DEFAULT):
+	$(call cmake-build,$@_default)
+
+all_default_targets: $(CONFIG_TARGETS_DEFAULT)
+
+posix: px4sitl_default
+posix_sitl_default: px4sitl_default
 
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
-.PHONY: all posix broadcast all_nuttx_targets
+.PHONY: all posix posix_sitl_default all_nuttx_targets all_default_targets
 
 # Multi- config targets.
-eagle_default: posix_eagle_default qurt_eagle_default
-eagle_rtps: posix_eagle_rtps qurt_eagle_default
-eagle_legacy_default: posix_eagle_legacy qurt_eagle_legacy
-excelsior_default: posix_excelsior_default qurt_excelsior_default
-excelsior_rtps: posix_excelsior_rtps qurt_excelsior_default
-excelsior_legacy_default: posix_excelsior_legacy qurt_excelsior_legacy
+eagle_default: atlflighteagle_default atlflighteagle_qurt-default
+eagle_rtps: atlflighteagle_rtps atlflighteagle_qurt-rtps
 
-.PHONY: eagle_default eagle_rtps eagle_legacy_default
-.PHONY: excelsior_default excelsior_rtps excelsior_legacy_default
+excelsior_default: atlflightexcelsior_default atlflightexcelsior_qurt-default
+excelsior_rtps: atlflightexcelsior_rtps atlflightexcelsior_qurt-rtps
+
+.PHONY: eagle_default eagle_rtps
+.PHONY: excelsior_default excelsior_rtps
 
 # Other targets
 # --------------------------------------------------------------------
@@ -213,23 +218,23 @@ px4fmu_firmware: \
 	sizes
 
 misc_qgc_extra_firmware: \
-	check_aerocore2_default \
-	check_aerofc-v1_default \
-	check_auav-x21_default \
-	check_crazyflie_default \
-	check_mindpx-v2_default \
+	check_gumstixaerocore2_default \
+	check_intelaerofc-v1_default \
+	check_auavx21_default \
+	check_bitcrazecrazyflie_default \
+	check_airmindmindpx-v2_default \
 	check_px4fmu-v2_lpe \
 	sizes
 
 # Other NuttX firmware
 alt_firmware: \
 	check_nxphlite-v3_default \
-	check_px4-same70xplained-v1_default \
-	check_px4-stm32f4discovery_default \
+	check_atmelsame70xplained_default \
+	check_stm32f4discovery_default \
 	check_px4cannode-v1_default \
 	check_px4esc-v1_default \
-	check_px4nucleoF767ZI-v1_default \
-	check_s2740vc-v1_default \
+	check_stmnucleo-F767ZI_default \
+	check_thiemars2740vc-v1_default \
 	sizes
 
 # builds with RTPS
@@ -237,7 +242,7 @@ check_rtps: \
 	check_px4fmu-v3_rtps \
 	check_px4fmu-v4_rtps \
 	check_px4fmu-v4pro_rtps \
-	check_posix_sitl_rtps \
+	check_px4sitl_rtps \
 	sizes
 
 .PHONY: sizes check quick_check check_rtps uorb_graphs
@@ -443,4 +448,4 @@ help:
 
 # Print a list of all config targets.
 list_config_targets:
-	@for targ in $(patsubst nuttx_%,[nuttx_]%,$(ALL_CONFIG_TARGETS)); do echo $$targ; done
+	@for targ in $(patsubst %_default,%[_default],$(ALL_CONFIG_TARGETS)); do echo $$targ; done

@@ -21,7 +21,7 @@ px4_posix_generate_alias(
 	PREFIX ${PX4_SHELL_COMMAND_PREFIX}
 )
 
-if (("${BOARD}" STREQUAL "eagle") OR ("${BOARD}" STREQUAL "excelsior"))
+if (("${PX4_BOARD}" STREQUAL "atlflighteagle") OR ("${PX4_BOARD}" STREQUAL "atlflightexcelsior"))
 	include(fastrpc)
 	include(linux_app)
 
@@ -55,7 +55,7 @@ if (("${BOARD}" STREQUAL "eagle") OR ("${BOARD}" STREQUAL "excelsior"))
 		)
 
 else()
-	px4_add_executable(px4
+	add_executable(px4
 		src/main.cpp
 		apps.cpp
 		)
@@ -101,7 +101,7 @@ px4_posix_generate_symlinks(
 	TARGET px4
 )
 
-if ("${BOARD}" STREQUAL "rpi")
+if (("${PX4_BOARD}" MATCHES "raspberrypi") OR ("${PX4_BOARD}" MATCHES "navio2"))
 	add_custom_target(upload
 		COMMAND rsync -arh --progress ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${PX4_SOURCE_DIR}/posix-configs/rpi/*.config ${PX4_SOURCE_DIR}/ROMFS pi@"$ENV{AUTOPILOT_HOST}":/home/pi
 		DEPENDS px4
@@ -109,7 +109,7 @@ if ("${BOARD}" STREQUAL "rpi")
 		USES_TERMINAL
 		)
 
-elseif ("${BOARD}" STREQUAL "bbblue")
+elseif ("${PX4_BOARD}" MATCHES "bbblue")
 	target_link_libraries(px4 PRIVATE robotcontrol)
 
 	add_custom_target(upload
@@ -119,7 +119,7 @@ elseif ("${BOARD}" STREQUAL "bbblue")
 		USES_TERMINAL
 		)
 
-elseif ("${BOARD}" STREQUAL "bebop")
+elseif ("${PX4_BOARD}" MATCHES "bebop")
 
 	add_custom_target(upload
 		COMMAND ${PX4_SOURCE_DIR}/Tools/adb_upload_to_bebop.sh ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/. /data/ftp/internal_000
@@ -128,7 +128,7 @@ elseif ("${BOARD}" STREQUAL "bebop")
 		USES_TERMINAL
 		)
 
-elseif ("${BOARD}" STREQUAL "sitl")
+elseif ("${PX4_BOARD}" MATCHES "sitl")
 
 	include(sitl_target)
 	if(BUILD_TESTING)
@@ -178,9 +178,9 @@ elseif ("${BOARD}" STREQUAL "sitl")
 	# sitl_gazebo built plugins
 	install(
 		DIRECTORY
-			${PROJECT_SOURCE_DIR}/build/posix_sitl_default/build_gazebo
+			${PROJECT_SOURCE_DIR}/build/px4sitl_default/build_gazebo
 		DESTINATION
-			${PROJECT_NAME}/build/posix_sitl_default
+			${PROJECT_NAME}/build/px4sitl_default
 		FILES_MATCHING
 			PATTERN "CMakeFiles" EXCLUDE
 			PATTERN "*.so"
@@ -203,15 +203,5 @@ elseif ("${BOARD}" STREQUAL "sitl")
 		DESTINATION
 			${PROJECT_NAME}/Tools/sitl_gazebo
 		)
-
-elseif (("${BOARD}" STREQUAL "eagle") OR ("${BOARD}" STREQUAL "excelsior"))
-
-	# package all libs?
-	#install(
-	#	FILES
-	#		$ENV{HEXAGON_ARM_SYSROOT}/usr/lib/libadsprpc.so
-	#	DESTINATION
-	#		lib
-	#	)
 
 endif()

@@ -18,8 +18,8 @@ pipeline {
             snapdragon: "lorenzmeier/px4-dev-snapdragon:2018-09-12"
           ]
 
-          // MAC OSX posix_sitl_default
-          build_nodes["posix_sitl_default (OSX)"] = {
+          // MAC OSX px4sitl_default
+          build_nodes["px4sitl_default (OSX)"] = {
             node("mac") {
               withEnv(["CCACHE_BASEDIR=${pwd()}"]) {
                 stage("sitl (OSX)") {
@@ -28,7 +28,7 @@ pipeline {
                     sh('export')
                     sh('make distclean')
                     sh('ccache -z')
-                    sh('make posix_sitl_default')
+                    sh('make px4sitl_default')
                     sh('ccache -s')
                     sh('make tests')
                   }
@@ -43,7 +43,7 @@ pipeline {
             }
           }
 
-          // MAC OSX nuttx_px4fmu-v4pro_default
+          // MAC OSX px4fmu-v4pro_default
           build_nodes["px4fmu-v4pro_default (OSX)"] = {
             node("mac") {
               withEnv(["CCACHE_BASEDIR=${pwd()}"]) {
@@ -53,7 +53,7 @@ pipeline {
                     sh('export')
                     sh('make distclean')
                     sh('ccache -z')
-                    sh('make nuttx_px4fmu-v4pro_default')
+                    sh('make px4fmu-v4pro_default')
                     sh('ccache -s')
                   }
                   catch (exc) {
@@ -69,46 +69,46 @@ pipeline {
 
           // docker builds:
           def arch_builds = [
-            target: ["posix_sitl_default"],
+            target: ["px4sitl_default"],
             image: docker_images.arch,
             archive: false
           ]
 
           def armhf_builds = [
-            target: ["posix_ocpoc_ubuntu"],
+            target: ["aerotennaocpoc_ubuntu"],
             image: docker_images.armhf,
             archive: false
           ]
 
           def base_builds = [
-            target: ["posix_sitl_rtps"],
+            target: ["px4sitl_rtps"],
             image: docker_images.base,
             archive: false
           ]
 
           def nuttx_builds_archive = [
             target: ["px4fmu-v2_default", "px4fmu-v3_default", "px4fmu-v4_default", "px4fmu-v4pro_default", "px4fmu-v5_default", "px4fmu-v5_rtps", "px4fmu-v5_stackcheck",
-                     "aerofc-v1_default", "aerocore2_default", "auav-x21_default", "av-x-v1_default", "crazyflie_default", "mindpx-v2_default",
-                     "nxphlite-v3_default", "omnibus-f4sd_default"],
+                     "intelaerofc-v1_default", "gumstixaerocore2_default", "auavx21_default", "avx-v1_default", "bitcrazecrazyflie_default", "airmindmindpx-v2_default",
+                     "nxphlite-v3_default", "omnibusf4sd_default"],
             image: docker_images.nuttx,
             archive: true
           ]
 
           def nuttx_builds_other = [
-            target: ["px4-same70xplained-v1_default", "px4-stm32f4discovery_default", "px4cannode-v1_default",
-                     "px4esc-v1_default", "px4nucleoF767ZI-v1_default", "s2740vc-v1_default"],
+            target: ["atmelsame70xplained_default", "stm32f4discovery_default", "px4cannode-v1_default",
+                     "px4esc-v1_default", "stmnucleo-F767ZI_default", "thiemars2740vc-v1_default"],
             image: docker_images.nuttx,
             archive: false
           ]
 
           def rpi_builds = [
-            target: ["posix_rpi_cross", "posix_bebop_default"],
+            target: ["emlidnavio2_cross", "parrotbebop_default"],
             image: docker_images.rpi,
             archive: false
           ]
 
           def snapdragon_builds = [
-            target: ["qurt_eagle_default", "posix_eagle_default"],
+            target: ["atlflighteagle_qurt-default", "atlflighteagle_default"],
             image: docker_images.snapdragon,
             archive: false
           ]
