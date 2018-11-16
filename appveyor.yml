@@ -8,6 +8,8 @@ environment:
     - PX4_CONFIG: nuttx_px4fmu-v4_default
       CCACHE_DISABLE: 1
 
+clone_depth: 200
+
 branches:
   only:
   - master
