@@ -150,6 +150,9 @@ __EXPORT void board_peripheral_reset(int ms)
 __EXPORT void
 stm32_boardinitialize(void)
 {
+	/* configure LEDs */
+	board_autoled_initialize();
+
 	/* configure ADC pins */
 
 	stm32_configgpio(GPIO_ADC1_IN10);	/* used by battery sense */
@@ -163,11 +166,14 @@ stm32_boardinitialize(void)
 	/* configure spektrum power controller gpio */
 	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
 
+	/* configure CAN interface */
+
+	stm32_configgpio(GPIO_CAN1_RX);
+	stm32_configgpio(GPIO_CAN1_TX);
+
 	/* configure SPI interfaces */
 	stm32_spiinitialize();
 
-	/* configure LEDs */
-	board_autoled_initialize();
 }
 
 /****************************************************************************
@@ -257,7 +263,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (!spi3) {
 		message("[boot] FAILED to initialize SPI port 3\n");
-		board_autoled_on(LED_AMBER);
+		led_on(LED_AMBER);
 		return -ENODEV;
 	}
 
@@ -276,7 +282,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (!spi4) {
 		message("[boot] FAILED to initialize SPI port 4\n");
-		board_autoled_on(LED_AMBER);
+		led_on(LED_AMBER);
 		return -ENODEV;
 	}
 

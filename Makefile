@@ -114,16 +114,39 @@ endif
 
 ifdef PX4_CMAKE_BUILD_TYPE
 	CMAKE_ARGS += -DCMAKE_BUILD_TYPE=${PX4_CMAKE_BUILD_TYPE}
+else
+
+	# Address Sanitizer
+	ifdef PX4_ASAN
+		CMAKE_ARGS += -DCMAKE_BUILD_TYPE=AddressSanitizer
+	endif
+
+	# Memory Sanitizer
+	ifdef PX4_MSAN
+		CMAKE_ARGS += -DCMAKE_BUILD_TYPE=MemorySanitizer
+	endif
+
+	# Thread Sanitizer
+	ifdef PX4_TSAN
+		CMAKE_ARGS += -DCMAKE_BUILD_TYPE=ThreadSanitizer
+	endif
+
+	# Undefined Behavior Sanitizer
+	ifdef PX4_UBSAN
+		CMAKE_ARGS += -DCMAKE_BUILD_TYPE=UndefinedBehaviorSanitizer
+	endif
+
 endif
 
 # Functions
 # --------------------------------------------------------------------
 # describe how to build a cmake config
 define cmake-build
-+@$(eval BUILD_DIR = $(SRC_DIR)/build/$@$(BUILD_DIR_SUFFIX))
++@$(eval PX4_CONFIG = $(1))
++@$(eval BUILD_DIR = $(SRC_DIR)/build/$(PX4_CONFIG)$(BUILD_DIR_SUFFIX))
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
-+@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(2) -G"$(PX4_CMAKE_GENERATOR)" $(CMAKE_ARGS) -DCONFIG=$(1) || (rm -rf $(BUILD_DIR)); fi
-+@(cd $(BUILD_DIR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
++@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(SRC_DIR) -G"$(PX4_CMAKE_GENERATOR)" $(CMAKE_ARGS) -DCONFIG=$(PX4_CONFIG) || (rm -rf $(BUILD_DIR)); fi
++@$(PX4_MAKE) -C $(BUILD_DIR) $(PX4_MAKE_ARGS) $(ARGS)
 endef
 
 COLOR_BLUE = \033[0;94m
@@ -144,13 +167,13 @@ NUTTX_CONFIG_TARGETS := $(patsubst nuttx_%,%,$(filter nuttx_%,$(ALL_CONFIG_TARGE
 
 # All targets.
 $(ALL_CONFIG_TARGETS):
-	$(call cmake-build,$@,$(SRC_DIR))
+	$(call cmake-build,$@)
 
 # Abbreviated config targets.
 
 # nuttx_ is left off by default; provide a rule to allow that.
 $(NUTTX_CONFIG_TARGETS):
-	$(call cmake-build,nuttx_$@,$(SRC_DIR))
+	$(call cmake-build,nuttx_$@)
 
 all_nuttx_targets: $(NUTTX_CONFIG_TARGETS)
 
@@ -196,7 +219,6 @@ misc_qgc_extra_firmware: \
 	check_crazyflie_default \
 	check_mindpx-v2_default \
 	check_px4fmu-v2_lpe \
-	check_tap-v1_default \
 	sizes
 
 # Other NuttX firmware
@@ -249,20 +271,24 @@ coverity_scan: posix_sitl_default
 
 # Documentation
 # --------------------------------------------------------------------
-.PHONY: parameters_metadata airframe_metadata module_documentation px4_metadata
+.PHONY: parameters_metadata airframe_metadata module_documentation px4_metadata doxygen
 
 parameters_metadata:
-	@python $(SRC_DIR)/src/lib/parameters/px_process_params.py -s `find $(SRC_DIR)/src -maxdepth 4 -type d` --inject-xml $(SRC_DIR)/src/lib/parameters/parameters_injected.xml --markdown
-	@python $(SRC_DIR)/src/lib/parameters/px_process_params.py -s `find $(SRC_DIR)/src -maxdepth 4 -type d` --inject-xml $(SRC_DIR)/src/lib/parameters/parameters_injected.xml --xml
+	@$(MAKE) --no-print-directory posix_sitl_default metadata_parameters
 
 airframe_metadata:
-	@python $(SRC_DIR)/Tools/px_process_airframes.py -v -a $(SRC_DIR)/ROMFS/px4fmu_common/init.d --markdown
-	@python $(SRC_DIR)/Tools/px_process_airframes.py -v -a $(SRC_DIR)/ROMFS/px4fmu_common/init.d --xml
+	@$(MAKE) --no-print-directory posix_sitl_default metadata_airframes
 
 module_documentation:
-	@python $(SRC_DIR)/Tools/px_process_module_doc.py -v --markdown $(SRC_DIR)/modules --src-path $(SRC_DIR)/src
+	@$(MAKE) --no-print-directory posix_sitl_default metadata_module_documentation
 
 px4_metadata: parameters_metadata airframe_metadata module_documentation
+
+doxygen:
+	@mkdir -p $(SRC_DIR)/build/doxygen
+	@cd $(SRC_DIR)/build/doxygen && cmake $(SRC_DIR) $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=posix_sitl_default -DBUILD_DOXYGEN=ON
+	@$(PX4_MAKE) -C $(SRC_DIR)/build/doxygen
+	@touch $(SRC_DIR)/build/doxygen/Documentation/.nojekyll
 
 # Astyle
 # --------------------------------------------------------------------
@@ -279,7 +305,7 @@ format:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard rostest
+.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard rostest python_coverage
 
 tests:
 	@$(MAKE) --no-print-directory posix_sitl_default test_results \
@@ -288,11 +314,6 @@ tests:
 
 tests_coverage:
 	@$(MAKE) clean
-	@$(MAKE) --no-print-directory posix_sitl_default PX4_CMAKE_BUILD_TYPE=Coverage
-	@$(MAKE) --no-print-directory posix_sitl_default sitl_gazebo PX4_CMAKE_BUILD_TYPE=Coverage
-	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_tests_missions.test
-	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test
-	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_tests_offboard_posctl.test
 	@$(MAKE) --no-print-directory posix_sitl_default test_coverage_genhtml PX4_CMAKE_BUILD_TYPE=Coverage
 	@echo "Open $(SRC_DIR)/build/posix_sitl_default/coverage-html/index.html to see coverage"
 
@@ -306,16 +327,27 @@ tests_mission_coverage:
 	@$(MAKE) clean
 	@$(MAKE) --no-print-directory posix_sitl_default PX4_CMAKE_BUILD_TYPE=Coverage
 	@$(MAKE) --no-print-directory posix_sitl_default sitl_gazebo PX4_CMAKE_BUILD_TYPE=Coverage
-	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=vtol_new_1 vehicle:=standard_vtol
+	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=VTOL_mission_1 vehicle:=standard_vtol
 	@$(MAKE) --no-print-directory posix_sitl_default generate_coverage
 
 tests_offboard: rostest
 	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test
 	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_tests_offboard_posctl.test
 
+python_coverage:
+	@mkdir -p $(SRC_DIR)/build/python_coverage
+	@cd $(SRC_DIR)/build/python_coverage && cmake $(SRC_DIR) $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=posix_sitl_default -DPYTHON_COVERAGE=ON
+	@$(PX4_MAKE) -C $(SRC_DIR)/build/python_coverage
+	@$(PX4_MAKE) -C $(SRC_DIR)/build/python_coverage metadata_airframes
+	@$(PX4_MAKE) -C $(SRC_DIR)/build/python_coverage metadata_parameters
+	#@$(PX4_MAKE) -C $(SRC_DIR)/build/python_coverage module_documentation # TODO: fix within coverage.py
+	@coverage combine `find . -name .coverage\*`
+	@coverage report -m
+
 # static analyzers (scan-build, clang-tidy, cppcheck)
 # --------------------------------------------------------------------
-.PHONY: scan-build posix_sitl_default-clang clang-tidy clang-tidy-fix clang-tidy-quiet cppcheck
+.PHONY: scan-build posix_sitl_default-clang clang-tidy clang-tidy-fix clang-tidy-quiet
+.PHONY: cppcheck shellcheck_all validate_module_configs
 
 scan-build:
 	@export CCC_CC=clang
@@ -349,6 +381,13 @@ cppcheck: posix_sitl_default
 	@mkdir -p $(SRC_DIR)/build/cppcheck
 	@cppcheck -i$(SRC_DIR)/src/examples --enable=performance --std=c++11 --std=c99 --std=posix --project=$(SRC_DIR)/build/posix_sitl_default/compile_commands.json --xml-version=2 2> $(SRC_DIR)/build/cppcheck/cppcheck-result.xml > /dev/null
 	@cppcheck-htmlreport --source-encoding=ascii --file=$(SRC_DIR)/build/cppcheck/cppcheck-result.xml --report-dir=$(SRC_DIR)/build/cppcheck --source-dir=$(SRC_DIR)/src/
+
+shellcheck_all:
+	@$(SRC_DIR)/Tools/run-shellcheck.sh $(SRC_DIR)/ROMFS/px4fmu_common/
+	@make px4fmu-v2_default shellcheck
+
+validate_module_configs:
+	@find $(SRC_DIR)/src/modules $(SRC_DIR)/src/drivers $(SRC_DIR)/src/lib -name *.yaml -type f -print0 | xargs -0 $(SRC_DIR)/Tools/validate_yaml.py --schema-file $(SRC_DIR)/validation/module_schema.yaml
 
 # Cleanup
 # --------------------------------------------------------------------

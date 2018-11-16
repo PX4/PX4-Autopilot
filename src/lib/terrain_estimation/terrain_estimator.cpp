@@ -62,7 +62,7 @@ void TerrainEstimator::predict(float dt, const struct vehicle_attitude_s *attitu
 			       const struct distance_sensor_s *distance)
 {
 	matrix::Dcmf R_att = matrix::Quatf(attitude->q);
-	matrix::Vector<float, 3> a(&sensor->accelerometer_m_s2[0]);
+	matrix::Vector3f a{sensor->accelerometer_m_s2[0], sensor->accelerometer_m_s2[1], sensor->accelerometer_m_s2[2]};
 	matrix::Vector<float, 3> u;
 	u = R_att * a;
 	_u_z = u(2) + CONSTANTS_ONE_G; // compensate for gravity

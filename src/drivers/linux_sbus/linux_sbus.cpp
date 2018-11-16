@@ -104,7 +104,7 @@ int RcInput::start(char *device, int channels)
 {
 	int result = 0;
 	strcpy(_device, device);
-	PX4_WARN("Device %s , channels: %d \n", device, channels);
+	PX4_INFO("Device %s , channels: %d \n", device, channels);
 	_channels = channels;
 	result = init();
 
@@ -231,6 +231,7 @@ void RcInput::_measure(void)
 	_data.rc_failsafe = (_sbusData[23] & (1 << 3)) ? true : false;
 	_data.rc_lost = (_sbusData[23] & (1 << 2)) ? true : false;
 	_data.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SBUS;
+
 	orb_publish(ORB_ID(input_rc), _rcinput_pub, &_data);
 }
 //---------------------------------------------------------------------------------------------------------//

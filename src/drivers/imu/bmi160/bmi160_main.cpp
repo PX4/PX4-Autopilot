@@ -2,6 +2,7 @@
 #include "bmi160.hpp"
 
 #include <board_config.h>
+#include <px4_getopt.h>
 
 /** driver 'main' command */
 extern "C" { __EXPORT int bmi160_main(int argc, char *argv[]); }
@@ -120,8 +121,8 @@ test(bool external_bus)
 {
 	const char *path_accel = external_bus ? BMI160_DEVICE_PATH_ACCEL_EXT : BMI160_DEVICE_PATH_ACCEL;
 	const char *path_gyro  = external_bus ? BMI160_DEVICE_PATH_GYRO_EXT : BMI160_DEVICE_PATH_GYRO;
-	accel_report a_report;
-	gyro_report g_report;
+	sensor_accel_s a_report{};
+	sensor_gyro_s g_report{};
 	ssize_t sz;
 
 	/* get the driver */
@@ -136,11 +137,6 @@ test(bool external_bus)
 
 	if (fd_gyro < 0) {
 		err(1, "%s open failed", path_gyro);
-	}
-
-	/* reset to manual polling */
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
-		err(1, "reset to manual polling");
 	}
 
 	/* do a simple demand read */
@@ -271,32 +267,37 @@ usage()
 int
 bmi160_main(int argc, char *argv[])
 {
-	bool external_bus = false;
+	int myoptind = 1;
 	int ch;
+	const char *myoptarg = nullptr;
+	bool external_bus = false;
 	enum Rotation rotation = ROTATION_NONE;
 
-	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XR:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XR:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			external_bus = true;
 			break;
 
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		default:
 			bmi160::usage();
-			exit(0);
+			return 0;
 		}
 	}
 
-	const char *verb = argv[optind];
+	if (myoptind >= argc) {
+		bmi160::usage();
+		return -1;
+	}
+
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
-
 	 */
 	if (!strcmp(verb, "start")) {
 		bmi160::start(external_bus, rotation);
@@ -339,5 +340,5 @@ bmi160_main(int argc, char *argv[])
 	}
 
 	bmi160::usage();
-	exit(1);
+	return -1;
 }

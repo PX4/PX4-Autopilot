@@ -65,22 +65,9 @@ HelicopterMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 	int s[5];
 	int used;
 
-	/* enforce that the mixer ends with space or a new line */
-	for (int i = buflen - 1; i >= 0; i--) {
-		if (buf[i] == '\0') {
-			continue;
-		}
-
-		/* require a space or newline at the end of the buffer, fail on printable chars */
-		if (buf[i] == ' ' || buf[i] == '\n' || buf[i] == '\r') {
-			/* found a line ending or space, so no split symbols / numbers. good. */
-			break;
-
-		} else {
-			debug("simple parser rejected: No newline / space at end of buf. (#%d/%d: 0x%02x)", i, buflen - 1, buf[i]);
-			return nullptr;
-		}
-
+	/* enforce that the mixer ends with a new line */
+	if (!string_well_formed(buf, buflen)) {
+		return nullptr;
 	}
 
 	if (sscanf(buf, "H: %u%n", &swash_plate_servo_count, &used) != 1) {

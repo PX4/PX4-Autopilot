@@ -41,9 +41,6 @@
  * @author Julian Oes <julian@px4.io>
  */
 
-#include <px4_config.h>
-#include <parameters/param.h>
-
 /**
  * Roll trim
  *
@@ -281,18 +278,17 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
  * automatically disarmed in case a landing situation has been detected during this period.
  *
  * The vehicle will also auto-disarm right after arming if it has not even flown, however the time
- * will be longer by a factor of 5.
+ * will always be 10 seconds such that the pilot has enough time to take off.
  *
- * A value of zero means that automatic disarming is disabled.
+ * A negative value means that automatic disarming triggered by landing detection is disabled.
  *
  * @group Commander
- * @min 0
+ * @min -1
  * @max 20
  * @unit s
- * @decimal 0
- * @increment 1
+ * @decimal 2
  */
-PARAM_DEFINE_INT32(COM_DISARM_LAND, 0);
+PARAM_DEFINE_FLOAT(COM_DISARM_LAND, -1.0f);
 
 /**
  * Allow arming without GPS
@@ -339,7 +335,7 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
  * See COM_OBL_ACT and COM_OBL_RC_ACT to configure action.
  *
  * @group Commander
- * @unit second
+ * @unit s
  * @min 0
  * @max 60
  * @increment 1
@@ -744,7 +740,7 @@ PARAM_DEFINE_FLOAT(COM_POS_FS_EPV, 10);
  *
  * This is the horizontal velocity error (EVH) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
  *
- * @unit m
+ * @unit m/s
  * @group Commander
  */
 PARAM_DEFINE_FLOAT(COM_VEL_FS_EVH, 1);

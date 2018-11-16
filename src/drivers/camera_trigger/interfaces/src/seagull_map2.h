@@ -18,7 +18,7 @@ public:
 	CameraInterfaceSeagull();
 	virtual ~CameraInterfaceSeagull();
 
-	void trigger(bool enable);
+	void trigger(bool trigger_on_true);
 
 	void send_keep_alive(bool enable);
 

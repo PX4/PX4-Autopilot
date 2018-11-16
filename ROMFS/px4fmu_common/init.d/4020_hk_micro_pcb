@@ -17,7 +17,7 @@
 
 sh /etc/init.d/4001_quad_x
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set MC_ROLL_P 7.0
 	param set MC_ROLLRATE_P 0.1
@@ -31,5 +31,6 @@ then
 	param set MC_YAWRATE_P 0.2
 	param set MC_YAWRATE_I 0.1
 	param set MC_YAWRATE_D 0.0
+
 	param set PWM_MIN 1200
 fi

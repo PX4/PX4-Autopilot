@@ -79,10 +79,10 @@ static uint32_t g_ledmap[] = {
 
 #  define xlat(p) (p)
 static uint32_t g_ledmap[] = {
-	GPIO_nLED_BLUE,    // Indexed by LED_BLUE
-	GPIO_nLED_RED,     // Indexed by LED_RED, LED_AMBER
-	GPIO_nSAFETY_SWITCH_LED_OUT,  // Indexed by LED_SAFETY
-	GPIO_nLED_GREEN,   // Indexed by LED_GREEN
+	GPIO_nLED_BLUE,                     // Indexed by LED_BLUE
+	GPIO_nLED_RED,                      // Indexed by LED_RED, LED_AMBER
+	GPIO_nSAFETY_SWITCH_LED_OUT_INIT,   // Indexed by LED_SAFETY (defaulted to an input)
+	GPIO_nLED_GREEN,                    // Indexed by LED_GREEN
 };
 
 #endif
@@ -90,6 +90,10 @@ static uint32_t g_ledmap[] = {
 __EXPORT void led_init(void)
 {
 	/* Configure LED GPIOs for output */
+	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
+		g_ledmap[2] = GPIO_nSAFETY_SWITCH_LED_OUT;
+	}
+
 	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
 		stm32_configgpio(g_ledmap[l]);
 	}
@@ -104,8 +108,8 @@ static void phy_set_led(int led, bool state)
 
 static bool phy_get_led(int led)
 {
-
-	return stm32_gpioread(g_ledmap[led]);
+	/* If Low it is on */
+	return !stm32_gpioread(g_ledmap[led]);
 }
 
 __EXPORT void led_on(int led)
@@ -120,7 +124,6 @@ __EXPORT void led_off(int led)
 
 __EXPORT void led_toggle(int led)
 {
-
 	phy_set_led(xlat(led), !phy_get_led(xlat(led)));
 }
 

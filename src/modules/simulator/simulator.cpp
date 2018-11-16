@@ -142,7 +142,7 @@ void Simulator::parameters_update(bool force)
 int Simulator::start(int argc, char *argv[])
 {
 	int ret = 0;
-	int udp_port = 0;
+	int udp_port = 14560;
 	_instance = new Simulator();
 
 	if (_instance) {

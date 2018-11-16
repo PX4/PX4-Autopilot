@@ -61,7 +61,6 @@
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 
 #include <board_config.h>
 

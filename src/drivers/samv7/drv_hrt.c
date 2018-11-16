@@ -347,7 +347,7 @@ hrt_tim_init(void)
 	ret = sam_tc_clockselect(frequency, &cmr, &actual);
 
 	if (ret < 0) {
-		PX4_PANIC("ERROR: Failed no divisor can be found (%d),for timer channel %d\n", ret, HRT_TIMER_CHANNEL);
+		printf("ERROR: Failed no divisor can be found (%d),for timer channel %d\n", ret, HRT_TIMER_CHANNEL);
 		return;
 	}
 
@@ -386,7 +386,7 @@ hrt_tim_init(void)
 	hrt_tch = sam_tc_allocate(HRT_TIMER_CHANNEL, cmr);
 
 	if (!hrt_tch) {
-		PX4_PANIC("ERROR: Failed to allocate timer channel %d\n", HRT_TIMER_CHANNEL);
+		printf("ERROR: Failed to allocate timer channel %d\n", HRT_TIMER_CHANNEL);
 		return;
 	}
 

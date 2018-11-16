@@ -67,9 +67,8 @@ class HMC5883_I2C : public device::I2C
 {
 public:
 	HMC5883_I2C(int bus);
-	virtual ~HMC5883_I2C();
+	virtual ~HMC5883_I2C() = default;
 
-	virtual int	init();
 	virtual int	read(unsigned address, void *data, unsigned count);
 	virtual int	write(unsigned address, void *data, unsigned count);
 
@@ -90,17 +89,6 @@ HMC5883_I2C::HMC5883_I2C(int bus) :
 	I2C("HMC5883_I2C", nullptr, bus, HMC5883L_ADDRESS, 400000)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;
-}
-
-HMC5883_I2C::~HMC5883_I2C()
-{
-}
-
-int
-HMC5883_I2C::init()
-{
-	/* this will call probe() */
-	return I2C::init();
 }
 
 int

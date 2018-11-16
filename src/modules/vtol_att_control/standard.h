@@ -55,7 +55,7 @@ class Standard : public VtolType
 public:
 
 	Standard(VtolAttitudeControl *_att_controller);
-	~Standard();
+	~Standard() = default;
 
 	virtual void update_vtol_state();
 	virtual void update_transition_state();

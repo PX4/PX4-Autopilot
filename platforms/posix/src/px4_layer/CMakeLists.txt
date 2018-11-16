@@ -38,10 +38,9 @@ if("${CONFIG_SHMEM}" STREQUAL "1")
 	include_directories(${HEXAGON_SDK_INCLUDES})
 	include_directories(${PX4_BINARY_DIR}/platforms/posix)
 	list(APPEND SHMEM_SRCS
-		shmem_posix.c
+		shmem_posix.cpp
 	)
-	# TODO: This didn't seem to be tracked correctly from posix_eagle_release.cmake
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCONFIG_SHMEM")
+	add_definitions(-DCONFIG_SHMEM=1)
 	set(EXTRA_DEPENDS generate_px4muorb_stubs)
 endif()
 
@@ -53,7 +52,9 @@ add_library(px4_layer
 	drv_hrt.c
 	${SHMEM_SRCS}
 )
+target_compile_definitions(px4_layer PRIVATE MODULE_NAME="px4")
 target_link_libraries(px4_layer PRIVATE work_queue)
+target_link_libraries(px4_layer PRIVATE px4_daemon)
 
 if (EXTRA_DEPENDS)
 	add_dependencies(px4_layer ${EXTRA_DEPENDS})

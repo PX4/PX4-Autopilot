@@ -72,14 +72,19 @@ static uint16_t rc_value_override = 0;
 static unsigned _rssi_adc_counts = 0;
 #endif
 
+/* receive signal strenght indicator (RSSI). 0 = no connection, 100 (RC_INPUT_RSSI_MAX): perfect connection */
+/* Note: this is static because RC-provided telemetry does not occur every tick */
+static uint16_t _rssi = 0;
+
 bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool *sumd_updated)
 {
 	perf_begin(c_gather_dsm);
 	uint8_t n_bytes = 0;
 	uint8_t *bytes;
 	bool dsm_11_bit;
+	int8_t spektrum_rssi;
 	*dsm_updated = dsm_input(_dsm_fd, r_raw_rc_values, &r_raw_rc_count, &dsm_11_bit, &n_bytes, &bytes,
-				 PX4IO_RC_INPUT_CHANNELS);
+				 &spektrum_rssi, PX4IO_RC_INPUT_CHANNELS);
 
 	if (*dsm_updated) {
 
@@ -93,6 +98,13 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
 		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
 
+		if (spektrum_rssi >= 0 && spektrum_rssi <= 100) {
+
+			/* ensure ADC RSSI is disabled */
+			r_setup_features &= ~(PX4IO_P_SETUP_FEATURES_ADC_RSSI);
+
+			*rssi = spektrum_rssi;
+		}
 	}
 
 	perf_end(c_gather_dsm);
@@ -201,9 +213,6 @@ controls_tick()
 	 * other.  Don't do that.
 	 */
 
-	/* receive signal strenght indicator (RSSI). 0 = no connection, 255: perfect connection */
-	uint16_t rssi = 0;
-
 #ifdef ADC_RSSI
 
 	if (r_setup_features & PX4IO_P_SETUP_FEATURES_ADC_RSSI) {
@@ -215,10 +224,10 @@ controls_tick()
 			/* use 1:1 scaling on 3.3V, 12-Bit ADC input */
 			unsigned mV = _rssi_adc_counts * 3300 / 4095;
 			/* scale to 0..100 (RC_INPUT_RSSI_MAX == 100) */
-			rssi = (mV * RC_INPUT_RSSI_MAX / 3300);
+			_rssi = (mV * RC_INPUT_RSSI_MAX / 3300);
 
-			if (rssi > RC_INPUT_RSSI_MAX) {
-				rssi = RC_INPUT_RSSI_MAX;
+			if (_rssi > RC_INPUT_RSSI_MAX) {
+				_rssi = RC_INPUT_RSSI_MAX;
 			}
 		}
 	}
@@ -227,7 +236,7 @@ controls_tick()
 
 	/* zero RSSI if signal is lost */
 	if (!(r_raw_rc_flags & (PX4IO_P_RAW_RC_FLAGS_RC_OK))) {
-		rssi = 0;
+		_rssi = 0;
 	}
 
 	perf_begin(c_gather_sbus);
@@ -258,7 +267,7 @@ controls_tick()
 
 		/* set RSSI to an emulated value if ADC RSSI is off */
 		if (!(r_setup_features & PX4IO_P_SETUP_FEATURES_ADC_RSSI)) {
-			rssi = sbus_rssi;
+			_rssi = sbus_rssi;
 		}
 
 	}
@@ -287,7 +296,7 @@ controls_tick()
 	if (!((r_status_flags & PX4IO_P_STATUS_FLAGS_RC_SBUS) || (r_status_flags & PX4IO_P_STATUS_FLAGS_RC_PPM))) {
 		perf_begin(c_gather_dsm);
 
-		(void)dsm_port_input(&rssi, &dsm_updated, &st24_updated, &sumd_updated);
+		(void)dsm_port_input(&_rssi, &dsm_updated, &st24_updated, &sumd_updated);
 
 		if (dsm_updated) {
 			PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_RC_DSM);
@@ -310,7 +319,7 @@ controls_tick()
 	}
 
 	/* store RSSI */
-	r_page_raw_rc_input[PX4IO_P_RAW_RC_NRSSI] = rssi;
+	r_page_raw_rc_input[PX4IO_P_RAW_RC_NRSSI] = _rssi;
 
 	/*
 	 * In some cases we may have received a frame, but input has still

@@ -34,3 +34,4 @@
 add_subdirectory(airspeed)
 add_subdirectory(device)
 add_subdirectory(led)
+add_subdirectory(smbus)

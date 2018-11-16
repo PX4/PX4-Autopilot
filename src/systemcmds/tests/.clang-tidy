@@ -52,6 +52,7 @@ Checks:          '*
 		,-misc-unused-parameters
 		,-modernize-deprecated-headers
 		,-modernize-loop-convert
+		,-modernize-pass-by-value
 		,-modernize-use-auto
 		,-modernize-use-bool-literals
 		,-modernize-use-default-member-init

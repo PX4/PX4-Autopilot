@@ -55,7 +55,6 @@
 #include <systemlib/mavlink_log.h>
 #include <parameters/param.h>
 #include <systemlib/err.h>
-#include <systemlib/airspeed.h>
 
 static const char *sensor_name = "airspeed";
 
@@ -144,7 +143,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 			/* any differential pressure failure a reason to abort */
 			if (diff_pres.error_count != 0) {
-				calibration_log_critical(mavlink_log_pub, "[cal] Airspeed sensor is reporting errors (%llu)", diff_pres.error_count);
+				calibration_log_critical(mavlink_log_pub, "[cal] Airspeed sensor is reporting errors (%" PRIu64 ")", diff_pres.error_count);
 				calibration_log_critical(mavlink_log_pub, "[cal] Check your wiring before trying again");
 				feedback_calibration_failed(mavlink_log_pub);
 				goto error_return;
@@ -225,8 +224,8 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 					break;
 				} else {
 					/* do not allow negative values */
-					calibration_log_info(mavlink_log_pub, "[cal] Negative pressure difference detected (%d Pa)", (int)diff_pres.differential_pressure_filtered_pa);
-					calibration_log_info(mavlink_log_pub, "[cal] Swap static and dynamic ports!");
+					calibration_log_critical(mavlink_log_pub, "[cal] Negative pressure difference detected (%d Pa)", (int)diff_pres.differential_pressure_filtered_pa);
+					calibration_log_critical(mavlink_log_pub, "[cal] Swap static and dynamic ports!");
 
 					/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
 					diff_pres_offset = 0.0f;

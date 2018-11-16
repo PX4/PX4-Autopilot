@@ -51,26 +51,31 @@ if(NOT IS_DIRECTORY "${git_dir_path}")
 	message(FATAL_ERROR "${git_dir_path} is not a directory")
 endif()
 
-set(px4_git_ver_header ${PX4_BINARY_DIR}/build_git_version.h)
+set(px4_git_ver_header ${CMAKE_CURRENT_BINARY_DIR}/build_git_version.h)
 add_custom_command(OUTPUT ${px4_git_ver_header}
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_update_git_header.py ${px4_git_ver_header} > ${PX4_BINARY_DIR}/git_header.log
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_update_git_header.py ${px4_git_ver_header} > ${CMAKE_CURRENT_BINARY_DIR}/git_header.log
 	DEPENDS
 		${CMAKE_CURRENT_SOURCE_DIR}/px_update_git_header.py
 		${git_dir_path}/HEAD
 		${git_dir_path}/index
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-	COMMENT "Generating git hash header"
+	COMMENT "Generating git version header"
 	)
 set_source_files_properties(${px4_git_ver_header} PROPERTIES GENERATED TRUE)
 add_custom_target(ver_gen ALL DEPENDS ${px4_git_ver_header})
 
+add_library(git_ver INTERFACE)
+target_include_directories(git_ver INTERFACE ${CMAKE_CURRENT_BINARY_DIR})
+add_dependencies(git_ver ver_gen)
+
 # The URL for the elf file for crash logging
+set(BUILD_URI "localhost")
 if (DEFINED ENV{BUILD_URI})
 	set(BUILD_URI $ENV{BUILD_URI})
-else()
-	set(BUILD_URI "localhost")
 endif()
 
-add_definitions(-DBUILD_URI=${BUILD_URI})
-
-px4_add_library(version version.c ${px4_git_ver_header})
+add_library(version version.c)
+target_compile_definitions(version PRIVATE BUILD_URI=${BUILD_URI})
+target_link_libraries(version PRIVATE git_ver)
+target_link_libraries(version PRIVATE drivers_board)
+add_dependencies(version prebuild_targets)

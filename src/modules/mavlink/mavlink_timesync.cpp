@@ -42,17 +42,10 @@
 #include "mavlink_main.h"
 
 MavlinkTimesync::MavlinkTimesync(Mavlink *mavlink) :
-	_timesync_status_pub(nullptr),
-	_sequence(0),
-	_time_offset(0.0),
-	_time_skew(0.0),
-	_filter_alpha(ALPHA_GAIN_INITIAL),
-	_filter_beta(BETA_GAIN_INITIAL),
-	_high_deviation_count(0),
-	_high_rtt_count(0),
 	_mavlink(mavlink)
 {
 }
+
 MavlinkTimesync::~MavlinkTimesync()
 {
 	if (_timesync_status_pub) {
@@ -114,10 +107,10 @@ MavlinkTimesync::handle_message(const mavlink_message_t *msg)
 						// Filter gain scheduling
 						if (!sync_converged()) {
 							// Interpolate with a sigmoid function
-							float progress = ((float)_sequence) / CONVERGENCE_WINDOW;
-							float p = 1.0f - expf(0.5f * (1.0f - 1.0f / (1.0f - progress)));
-							_filter_alpha = p * (float)ALPHA_GAIN_FINAL + (1.0f - p) * (float)ALPHA_GAIN_INITIAL;
-							_filter_beta = p * (float)BETA_GAIN_FINAL + (1.0f - p) * (float)BETA_GAIN_INITIAL;
+							double progress = (double)_sequence / (double)CONVERGENCE_WINDOW;
+							double p = 1.0 - exp(0.5 * (1.0 - 1.0 / (1.0 - progress)));
+							_filter_alpha = p * ALPHA_GAIN_FINAL + (1.0 - p) * ALPHA_GAIN_INITIAL;
+							_filter_beta = p * BETA_GAIN_FINAL + (1.0 - p) * BETA_GAIN_INITIAL;
 
 						} else {
 							_filter_alpha = ALPHA_GAIN_FINAL;

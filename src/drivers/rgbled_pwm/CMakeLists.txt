@@ -34,6 +34,8 @@
 px4_add_module(
 	MODULE drivers__rgbled_pwm
 	MAIN rgbled_pwm
+	STACK_MAIN
+		1500
 	SRCS
 		rgbled_pwm.cpp
 	DEPENDS

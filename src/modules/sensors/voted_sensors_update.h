@@ -58,6 +58,7 @@
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_magnetometer.h>
+#include <uORB/topics/subsystem_info.h>
 
 #include <DevMgr.hpp>
 
@@ -205,7 +206,7 @@ private:
 	 * Check & handle failover of a sensor
 	 * @return true if a switch occured (could be for a non-critical reason)
 	 */
-	bool check_failover(SensorData &sensor, const char *sensor_name);
+	bool check_failover(SensorData &sensor, const char *sensor_name, const uint64_t type);
 
 	/**
 	 * Apply a gyro calibration.
@@ -271,6 +272,10 @@ private:
 	struct sensor_selection_s _selection = {}; /**< struct containing the sensor selection to be published to the uORB*/
 	orb_advert_t _sensor_selection_pub = nullptr; /**< handle to the sensor selection uORB topic */
 	bool _selection_changed = false; /**< true when a sensor selection has changed and not been published */
+
+	/* subsystem info publication */
+	struct subsystem_info_s _info;
+	orb_advert_t _info_pub = nullptr;
 
 	uint32_t _accel_device_id[SENSOR_COUNT_MAX] = {}; /**< accel driver device id for each uorb instance */
 	uint32_t _baro_device_id[SENSOR_COUNT_MAX] = {};

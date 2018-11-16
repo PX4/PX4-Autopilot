@@ -49,8 +49,8 @@
 #include <stdbool.h>
 #include <poll.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <px4_workqueue.h>
-#include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
@@ -483,20 +483,12 @@ CameraTrigger::stop()
 void
 CameraTrigger::test()
 {
-	struct vehicle_command_s cmd = {
-		.timestamp = hrt_absolute_time(),
-		.param5 = 1.0f,
-		.param6 = 0.0f,
-		.param1 = 0.0f,
-		.param2 = 0.0f,
-		.param3 = 0.0f,
-		.param4 = 0.0f,
-		.param7 = 0.0f,
-		.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL
-	};
+	vehicle_command_s vcmd = {};
+	vcmd.timestamp = hrt_absolute_time();
+	vcmd.param5 = 1.0;
+	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
 
-	orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-	(void)orb_unadvertise(pub);
+	orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 }
 
 void
@@ -722,16 +714,12 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 	// Command ACK handling
 	if (updated && need_ack) {
-		vehicle_command_ack_s command_ack = {
-			.timestamp = 0,
-			.result_param2 = 0,
-			.command = cmd.command,
-			.result = (uint8_t)cmd_result,
-			.from_external = false,
-			.result_param1 = 0,
-			.target_system = cmd.source_system,
-			.target_component = cmd.source_component
-		};
+		vehicle_command_ack_s command_ack = {};
+		command_ack.timestamp = hrt_absolute_time();
+		command_ack.command = cmd.command;
+		command_ack.result = (uint8_t)cmd_result;
+		command_ack.target_system = cmd.source_system;
+		command_ack.target_component = cmd.source_component;
 
 		if (trig->_cmd_ack_pub == nullptr) {
 			trig->_cmd_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
@@ -739,7 +727,6 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 		} else {
 			orb_publish(ORB_ID(vehicle_command_ack), trig->_cmd_ack_pub, &command_ack);
-
 		}
 	}
 
@@ -898,4 +885,3 @@ int camera_trigger_main(int argc, char *argv[])
 
 	return 0;
 }
-

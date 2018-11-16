@@ -23,8 +23,12 @@ set MIXER blade130
 
 #set PWM_OUT 1234
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
+	param set ATT_BIAS_MAX 0.0
+
+	param set CBRK_IO_SAFETY 22027
+
 	param set MC_ROLL_P 5.0
 	param set MC_ROLLRATE_P 0.0
 	param set MC_ROLLRATE_I 0.0
@@ -39,19 +43,14 @@ then
 	param set MC_YAWRATE_P 0.1
 	param set MC_YAWRATE_I 0.0
 	param set MC_YAWRATE_D 0.0
-	param set MC_YAW_FF 0.0
 	param set MC_ROLLRATE_MAX 720.0
 	param set MC_PITCHRATE_MAX 720.0
 	param set MC_YAWRATE_MAX 400.0
 	param set MC_ACRO_R_MAX 360.0
 	param set MC_ACRO_P_MAX 360.0
 
-	param set PWM_MIN 1075
-
 	param set MPC_THR_MIN 0.06
 	param set MPC_MANTHR_MIN 0.06
 
-	param set ATT_BIAS_MAX 0.0
-
-	param set CBRK_IO_SAFETY 22027
+	param set PWM_MIN 1075
 fi

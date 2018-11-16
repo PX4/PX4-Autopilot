@@ -94,7 +94,19 @@ public:
 	bool landing();
 
 	uint16_t get_land_start_index() const { return _land_start_index; }
+	bool get_land_start_available() const { return _land_start_available; }
+	bool get_mission_finished() const { return _mission_type == MISSION_TYPE_NONE; }
+	bool get_mission_changed() const { return _mission_changed ; }
+	bool get_mission_waypoints_changed() const { return _mission_waypoints_changed ; }
 
+	void set_closest_item_as_current();
+
+	/**
+	 * Set a new mission mode and handle the switching between the different modes
+	 *
+	 * For a list of the different modes refer to mission_result.msg
+	 */
+	void set_execution_mode(const uint8_t mode);
 private:
 
 	/**
@@ -130,7 +142,7 @@ private:
 	/**
 	 * Copies position from setpoint if valid, otherwise copies current position
 	 */
-	void copy_positon_if_valid(struct mission_item_s *mission_item, struct position_setpoint_s *setpoint);
+	void copy_position_if_valid(struct mission_item_s *mission_item, struct position_setpoint_s *setpoint);
 
 	/**
 	 * Create mission item to align towards next waypoint
@@ -162,16 +174,14 @@ private:
 	 */
 	void do_abort_landing();
 
-	float get_absolute_altitude_for_item(struct mission_item_s &mission_item);
-
 	/**
 	 * Read the current and the next mission item. The next mission item read is the
 	 * next mission item that contains a position.
 	 *
 	 * @return true if current mission item available
 	 */
-	bool prepare_mission_items(mission_item_s *mission_item, mission_item_s *next_position_mission_item,
-				   bool *has_next_position_item);
+	bool prepare_mission_items(mission_item_s *mission_item,
+				   mission_item_s *next_position_mission_item, bool *has_next_position_item);
 
 	/**
 	 * Read current (offset == 0) or a specific (offset > 0) mission item
@@ -179,7 +189,7 @@ private:
 	 *
 	 * @return true if successful
 	 */
-	bool read_mission_item(int offset, mission_item_s *mission_item);
+	bool read_mission_item(int offset, struct mission_item_s *mission_item);
 
 	/**
 	 * Save current offboard mission state to dataman
@@ -206,7 +216,6 @@ private:
 	 */
 	void check_mission_valid(bool force);
 
-
 	/**
 	 * Reset offboard mission
 	 */
@@ -227,11 +236,17 @@ private:
 	 */
 	bool find_offboard_land_start();
 
+	/**
+	 * Return the index of the closest offboard mission item to the current global position.
+	 */
+	int32_t index_closest_mission_item() const;
+
+	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_dist_1wp,
 		(ParamFloat<px4::params::MIS_DIST_WPS>) _param_dist_between_wps,
 		(ParamInt<px4::params::MIS_ALTMODE>) _param_altmode,
-		(ParamInt<px4::params::MIS_YAWMODE>) _param_yawmode,
 		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mnt_yaw_ctl
 	)
 
@@ -253,6 +268,8 @@ private:
 	bool _inited{false};
 	bool _home_inited{false};
 	bool _need_mission_reset{false};
+	bool _mission_waypoints_changed{false};
+	bool _mission_changed{false}; /** < true if the mission changed since the mission mode was active */
 
 	float _min_current_sp_distance_xy{FLT_MAX}; /**< minimum distance which was achieved to the current waypoint  */
 
@@ -269,4 +286,7 @@ private:
 		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION,
 		WORK_ITEM_TYPE_PRECISION_LAND
 	} _work_item_type{WORK_ITEM_TYPE_DEFAULT};	/**< current type of work to do (sub mission item) */
+
+	uint8_t _mission_execution_mode{mission_result_s::MISSION_EXECUTION_MODE_NORMAL};	/**< the current mode of how the mission is executed,look at mission_result.msg for the definition */
+	bool _execution_mode_changed{false};
 };

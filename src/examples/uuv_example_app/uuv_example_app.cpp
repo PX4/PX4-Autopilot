@@ -54,10 +54,10 @@
 #include <parameters/param.h>
 #include <systemlib/err.h>
 #include <perf/perf_counter.h>
-#include <systemlib/systemlib.h>
-#include <systemlib/circuit_breaker.h>
+
 // internal libraries
 #include <lib/mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <lib/ecl/geo/geo.h>
 
 // Include uORB and the required topics for this app
@@ -88,10 +88,11 @@ int uuv_example_app_main(int argc, char *argv[])
 	orb_advert_t act_pub = orb_advertise(ORB_ID(actuator_controls_0), &act);
 
 	/* one could wait for multiple topics with this technique, just using one here */
-	px4_pollfd_struct_t fds[] = {
-		{ .fd = sensor_sub_fd,   .events = POLLIN },
-		{ .fd = vehicle_attitude_sub_fd,   .events = POLLIN },
-	};
+	px4_pollfd_struct_t fds[2] = {};
+	fds[0].fd = sensor_sub_fd;
+	fds[0].events = POLLIN;
+	fds[1].fd = vehicle_attitude_sub_fd;
+	fds[1].events = POLLIN;
 
 	int error_counter = 0;
 

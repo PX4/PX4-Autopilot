@@ -63,3 +63,26 @@ PARAM_DEFINE_INT32(GPS_DUMP_COMM, 0);
  * @group GPS
  */
 PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
+
+
+/**
+ * Heading/Yaw offset for dual antenna GPS
+ *
+ * Heading offset angle for dual antenna GPS setups that support heading estimation.
+ * (currently only for the Trimble MB-Two).
+ *
+ * Set this to 0 if the antennas are parallel to the forward-facing direction of the vehicle and the first antenna is in
+ * front. The offset angle increases counterclockwise.
+ *
+ * Set this to 90 if the first antenna is placed on the right side and the second on the left side of the vehicle.
+ *
+ * @min 0
+ * @max 360
+ * @unit deg
+ * @reboot_required true
+ * @decimal 0
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
+

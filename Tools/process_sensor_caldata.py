@@ -15,24 +15,23 @@ Data can be gathered using the following sequence:
 
 1) Power up the board and set the TC_A_ENABLE, TC_B_ENABLE and TC_G_ENABLE parameters to 1
 2) Set all CAL_GYR and CAL_ACC parameters to defaults
-3) Set the SYS_LOGGER parameter to 1 to use the new system logger
-4) Set the SDLOG_MODE parameter to 2, and SDLOG_PROFILE parameter to 4 to enable logging of sensor data for calibration and power off
-5) Cold soak the board for 30 minutes
-6) Move to a warm dry, still air, constant pressure environment.
-7) Apply power for 45 minutes, keeping the board still.
-8) Remove power and extract the .ulog file
-9) Open a terminal window in the Firmware/Tools directory and run the python calibration script script file: 'python process_sensor_caldata.py <full path name to .ulog file>
-10) Power the board, connect QGC and load the parameter from the generated .params file onto the board using QGC. Due to the number of parameters, loading them may take some time.
-11) TODO - we need a way for user to reliably tell when parameters have all been changed and saved.
-12) After parameters have finished loading, set SDLOG_MODE and SDLOG_PROFILE to their respective values prior to step 4) and remove power.
-13) Power the board and perform a normal gyro and accelerometer sensor calibration using QGC. The board must be repowered after this step before flying due to large parameter changes and the thermal compensation parameters only being read on startup.
+3) Set the parameter SDLOG_MODE to 2, and SDLOG_PROFILE "Thermal calibration" bit (2) to enable logging of sensor data for calibration and power off
+4) Cold soak the board for 30 minutes
+5) Move to a warm dry, still air, constant pressure environment.
+6) Apply power for 45 minutes, keeping the board still.
+7) Remove power and extract the .ulog file
+8) Open a terminal window in the Firmware/Tools directory and run the python calibration script script file: 'python process_sensor_caldata.py <full path name to .ulog file>
+9) Power the board, connect QGC and load the parameter from the generated .params file onto the board using QGC. Due to the number of parameters, loading them may take some time.
+10) TODO - we need a way for user to reliably tell when parameters have all been changed and saved.
+11) After parameters have finished loading, set SDLOG_MODE and SDLOG_PROFILE to their respective values prior to step 4) and remove power.
+12) Power the board and perform a normal gyro and accelerometer sensor calibration using QGC. The board must be repowered after this step before flying due to large parameter changes and the thermal compensation parameters only being read on startup.
 
 Outputs thermal compensation parameters in a file named <inputfilename>.params which can be loaded onto the board using QGroundControl
 Outputs summary plots in a pdf file named <inputfilename>.pdf
 
 """
 
-parser = argparse.ArgumentParser(description='Analyse the sensor_gyro  message data')
+parser = argparse.ArgumentParser(description='Reads in IMU data from a static thermal calibration test and performs a curve fit of gyro, accel and baro bias vs temperature')
 parser.add_argument('filename', metavar='file.ulg', help='ULog input file')
 
 def is_valid_directory(parser, arg):

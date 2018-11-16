@@ -60,6 +60,8 @@ class __EXPORT I2C : public CDev
 
 public:
 
+	virtual int	init();
+
 protected:
 	/**
 	 * The number of times a read or write operation will be retried on
@@ -78,8 +80,6 @@ protected:
 	 */
 	I2C(const char *name, const char *devname, int bus, uint16_t address, uint32_t frequency = 0);
 	virtual ~I2C();
-
-	virtual int	init();
 
 	/**
 	 * Check for the presence of the device on the bus.

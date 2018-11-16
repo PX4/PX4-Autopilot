@@ -59,7 +59,6 @@
 #include <math.h>
 #include <unistd.h>
 
-#include <systemlib/airspeed.h>
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
@@ -71,7 +70,6 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
-#include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/system_power.h>
 
 #include "airspeedsim.h"
@@ -200,7 +198,7 @@ MEASAirspeedSim::collect()
 	report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw);
 	report.differential_pressure_raw_pa = diff_press_pa_raw;
 
-	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
+	if (_airspeed_pub != nullptr) {
 		/* publish it */
 		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
 	}
@@ -258,7 +256,7 @@ MEASAirspeedSim::cycle()
 	ret = measure();
 
 	if (OK != ret) {
-		DEVICE_DEBUG("measure error");
+		PX4_ERR("measure error");
 	}
 
 	_sensor_ok = (ret == OK);

@@ -14,6 +14,9 @@ parser.add_argument("directory_path")
 parser.add_argument('-o', '--overwrite', action='store_true',
                     help='Whether to overwrite an already analysed file. If a file with .pdf extension exists for a .ulg'
                          'file, the log file will be skipped from analysis unless this flag has been set.')
+parser.add_argument('--no-sensor-safety-margin', action='store_true',
+                    help='Whether to not cut-off 5s after take-off and 5s before landing '
+                         '(for certain sensors that might be influence by proximity to ground).')
 
 def is_valid_directory(parser, arg):
     if os.path.isdir(arg):
@@ -26,8 +29,8 @@ args = parser.parse_args()
 ulog_directory = args.directory_path
 print("\n"+"analysing the .ulg files in "+ulog_directory)
 
-# get all the ulog files found in the specified directory
-ulog_files = glob.glob(os.path.join(ulog_directory, '*.ulg'))
+# get all the ulog files found in the specified directory and in subdirectories
+ulog_files = glob.glob(os.path.join(ulog_directory, '**/*.ulg'), recursive=True)
 
 # remove the files already analysed unless the overwrite flag was specified. A ulog file is consired to be analysed if
 # a corresponding .pdf file exists.'
@@ -37,5 +40,8 @@ if not args.overwrite:
 
 # analyse all ulog files
 for ulog_file in ulog_files:
-    print("\n"+"loading "+ulog_file +" for analysis")
-    os.system("python process_logdata_ekf.py '{}'".format(ulog_file))
+    print("\n"+"loading " + ulog_file + " for analysis")
+    if args.no_sensor_safety_margin:
+        os.system("python process_logdata_ekf.py {} --no-sensor-safety-margin".format(ulog_file))
+    else:
+        os.system("python process_logdata_ekf.py {}".format(ulog_file))

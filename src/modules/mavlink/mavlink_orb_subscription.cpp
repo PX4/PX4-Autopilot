@@ -50,13 +50,8 @@
 #include <uORB/uORB.h>
 
 MavlinkOrbSubscription::MavlinkOrbSubscription(const orb_id_t topic, int instance) :
-	next(nullptr),
 	_topic(topic),
-	_fd(-1),
-	_instance(instance),
-	_published(false),
-	_subscribe_from_beginning(false),
-	_last_pub_check(0)
+	_instance(instance)
 {
 }
 
@@ -85,6 +80,10 @@ MavlinkOrbSubscription::update(uint64_t *time, void *data)
 	// TODO this is NOT atomic operation, we can get data newer than time
 	// if topic was published between orb_stat and orb_copy calls.
 
+	if (!is_published()) {
+		return false;
+	}
+
 	uint64_t time_topic;
 
 	if (orb_stat(_fd, &time_topic)) {
@@ -92,15 +91,11 @@ MavlinkOrbSubscription::update(uint64_t *time, void *data)
 		time_topic = 0;
 	}
 
-	if (update(data)) {
-		/* data copied successfully */
-
-		if (time_topic == 0 || (time_topic != *time)) {
+	if (time_topic == 0 || (time_topic != *time)) {
+		if (orb_copy(_topic, _fd, data) == PX4_OK) {
+			/* data copied successfully */
 			*time = time_topic;
 			return true;
-
-		} else {
-			return false;
 		}
 	}
 
@@ -124,21 +119,13 @@ MavlinkOrbSubscription::update(void *data)
 bool
 MavlinkOrbSubscription::update_if_changed(void *data)
 {
-	bool prevpub = _published;
-
 	if (!is_published()) {
 		return false;
 	}
 
 	bool updated;
 
-	if (orb_check(_fd, &updated)) {
-		return false;
-	}
-
-	// If we didn't update and this topic did not change
-	// its publication status then nothing really changed
-	if (!updated && prevpub == _published) {
+	if (orb_check(_fd, &updated) || !updated) {
 		return false;
 	}
 
@@ -165,7 +152,7 @@ MavlinkOrbSubscription::is_published()
 	// We don't want to subscribe to anything that does not exist
 	// in order to save memory and file descriptors.
 	// However, for some topics like vehicle_command_ack, we want to subscribe
-	// from the beginning in order not to miss the first publish respective advertise.
+	// from the beginning in order not to miss or delay the first publish respective advertise.
 	if (!_subscribe_from_beginning && orb_exists(_topic, _instance)) {
 		return false;
 	}
@@ -179,15 +166,6 @@ MavlinkOrbSubscription::is_published()
 
 	if (updated) {
 		_published = true;
-	}
-
-	// topic may have been last published before we subscribed
-	uint64_t time_topic = 0;
-
-	if (!_published && orb_stat(_fd, &time_topic) == PX4_OK) {
-		if (time_topic != 0) {
-			_published = true;
-		}
 	}
 
 	return _published;

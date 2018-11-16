@@ -52,7 +52,7 @@ void CameraInterfaceSeagull::setup()
 	PX4_ERR("Bad pin configuration - Seagull MAP2 requires 2 consecutive pins for control.");
 }
 
-void CameraInterfaceSeagull::trigger(bool enable)
+void CameraInterfaceSeagull::trigger(bool trigger_on_true)
 {
 
 	if (!_camera_is_on) {
@@ -62,7 +62,7 @@ void CameraInterfaceSeagull::trigger(bool enable)
 	for (unsigned i = 0; i < arraySize(_pins); i = i + 2) {
 		if (_pins[i] >= 0 && _pins[i + 1] >= 0) {
 			// Set channel 1 to shoot or neutral levels
-			up_pwm_trigger_set(_pins[i + 1], enable ? PWM_1_CAMERA_INSTANT_SHOOT : PWM_CAMERA_NEUTRAL);
+			up_pwm_trigger_set(_pins[i + 1], trigger_on_true ? PWM_1_CAMERA_INSTANT_SHOOT : PWM_CAMERA_NEUTRAL);
 		}
 	}
 }

@@ -20,7 +20,7 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	# TODO tune roll/pitch separately
 	param set MC_ROLL_P 7.0

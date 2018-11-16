@@ -182,9 +182,9 @@ function(px4_os_add_flags)
 	)
 
 	include_directories(
-		${PX4_BINARY_DIR}/NuttX/nuttx/arch/arm/src/armv7-m
-		${PX4_BINARY_DIR}/NuttX/nuttx/arch/arm/src/chip
-		${PX4_BINARY_DIR}/NuttX/nuttx/arch/arm/src/common
+		${PX4_BINARY_DIR}/NuttX/nuttx/arch/${CONFIG_ARCH}/src/${CONFIG_ARCH_FAMILY}
+		${PX4_BINARY_DIR}/NuttX/nuttx/arch/${CONFIG_ARCH}/src/chip
+		${PX4_BINARY_DIR}/NuttX/nuttx/arch/${CONFIG_ARCH}/src/common
 
 		${PX4_BINARY_DIR}/NuttX/apps/include
 		)
@@ -194,8 +194,8 @@ function(px4_os_add_flags)
 		-D__DF_NUTTX
 		)
 
-
-	if("${config_nuttx_hw_stack_check_${BOARD}}" STREQUAL "y")
+	if("${CONFIG_ARMV7M_STACKCHECK}" STREQUAL "y")
+		message(STATUS "NuttX Stack Checking (CONFIG_ARMV7M_STACKCHECK) enabled")
 		set(instrument_flags
 			-finstrument-functions
 			-ffixed-r10
@@ -226,7 +226,6 @@ endfunction()
 #
 #	Input:
 #		BOARD		: board
-#		THREADS		: number of threads for building
 #
 #	Output:
 #		OUT	: the target list
@@ -237,7 +236,7 @@ endfunction()
 function(px4_os_prebuild_targets)
 	px4_parse_function_args(
 			NAME px4_os_prebuild_targets
-			ONE_VALUE OUT BOARD THREADS
+			ONE_VALUE OUT BOARD
 			REQUIRED OUT BOARD
 			ARGN ${ARGN})
 
@@ -246,7 +245,7 @@ function(px4_os_prebuild_targets)
 	add_dependencies(${OUT} DEPENDS nuttx_context uorb_headers)
 
 	# parse nuttx config options for cmake
-	file(STRINGS ${PX4_SOURCE_DIR}/platforms/nuttx/nuttx-configs/${BOARD}/nsh/defconfig ConfigContents)
+	file(STRINGS ${PX4_SOURCE_DIR}/platforms/nuttx/nuttx-configs/${BOARD}/${nuttx_config_type}/defconfig ConfigContents)
 	foreach(NameAndValue ${ConfigContents})
 		# Strip leading spaces
 		string(REGEX REPLACE "^[ ]+" "" NameAndValue ${NameAndValue})
@@ -309,6 +308,11 @@ function(px4_nuttx_configure)
 	endif()
 	set(CMAKE_SYSTEM_PROCESSOR ${CMAKE_SYSTEM_PROCESSOR} CACHE INTERNAL "system processor" FORCE)
 	set(CMAKE_TOOLCHAIN_FILE ${PX4_SOURCE_DIR}/cmake/toolchains/Toolchain-arm-none-eabi.cmake CACHE INTERNAL "toolchain file" FORCE)
+
+	if (CONFIG)
+		set(nuttx_config_type ${CONFIG})
+		set(nuttx_config_type ${nuttx_config_type} PARENT_SCOPE)
+	endif()
 
 	# ROMFS
 	if("${ROMFS}" STREQUAL "y")

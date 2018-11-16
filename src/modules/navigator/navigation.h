@@ -126,7 +126,7 @@ enum NAV_FRAME {
 /**
  * Global position setpoint in WGS84 coordinates.
  *
- * This is the position the MAV is heading towards. If it of type loiter,
+ * This is the position the MAV is heading towards. If it is of type loiter,
  * the MAV is circling around it with the given loiter radius in meters.
  *
  * Corresponds to one of the DM_KEY_WAYPOINTS_OFFBOARD_* dataman items

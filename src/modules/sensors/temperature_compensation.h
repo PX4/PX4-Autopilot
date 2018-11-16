@@ -44,6 +44,7 @@
 
 #include <parameters/param.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 
 #include "common.h"
 
@@ -67,7 +68,7 @@ class TemperatureCompensation
 public:
 
 	/** (re)load the parameters. Make sure to call this on startup as well */
-	int parameters_update();
+	int parameters_update(bool hil_enabled = false);
 
 	/** supply information which device_id matches a specific uORB topic_instance
 	 *  (needed if a system has multiple sensors of the same type)

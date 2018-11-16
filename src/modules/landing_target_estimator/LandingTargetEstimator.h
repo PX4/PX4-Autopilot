@@ -67,7 +67,7 @@ class LandingTargetEstimator
 public:
 
 	LandingTargetEstimator();
-	virtual ~LandingTargetEstimator();
+	virtual ~LandingTargetEstimator() = default;
 
 	/*
 	 * Get new measurements and update the state estimate

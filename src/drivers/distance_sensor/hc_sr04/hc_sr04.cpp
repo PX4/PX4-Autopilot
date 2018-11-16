@@ -64,7 +64,6 @@
 #include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/distance_sensor.h>
 
 #define SR04_MAX_RANGEFINDERS 6
@@ -73,7 +72,6 @@
 /* Configuration Constants */
 #define SR04_DEVICE_PATH	"/dev/hc_sr04"
 
-#define SUBSYSTEM_TYPE_RANGEFINDER 131072
 /* Device limits */
 #define SR04_MIN_DISTANCE 	(0.10f)
 #define SR04_MAX_DISTANCE 	(4.00f)
@@ -85,7 +83,7 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class HC_SR04 : public device::CDev
+class HC_SR04 : public cdev::CDev
 {
 public:
 	HC_SR04(unsigned sonars = 6);
@@ -108,7 +106,7 @@ protected:
 private:
 	float				_min_distance;
 	float				_max_distance;
-	work_s				_work;
+	work_s				_work{};
 	ringbuffer::RingBuffer	*_reports;
 	bool				_sensor_ok;
 	int					_measure_ticks;
@@ -203,7 +201,7 @@ extern "C"  __EXPORT int hc_sr04_main(int argc, char *argv[]);
 static int sonar_isr(int irq, void *context);
 
 HC_SR04::HC_SR04(unsigned sonars) :
-	CDev("HC_SR04", SR04_DEVICE_PATH, 0),
+	CDev(SR04_DEVICE_PATH, 0),
 	_min_distance(SR04_MIN_DISTANCE),
 	_max_distance(SR04_MAX_DISTANCE),
 	_reports(nullptr),
@@ -224,11 +222,6 @@ HC_SR04::HC_SR04(unsigned sonars) :
 	_status(0)
 
 {
-	/* enable debug() calls */
-	_debug_enabled = false;
-
-	/* work_cancel in the dtor will explode if we don't do this... */
-	memset(&_work, 0, sizeof(_work));
 }
 
 HC_SR04::~HC_SR04()
@@ -276,7 +269,7 @@ HC_SR04::init()
 				 &_orb_class_instance, ORB_PRIO_LOW);
 
 	if (_distance_sensor_topic == nullptr) {
-		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+		PX4_ERR("failed to create distance_sensor object");
 	}
 
 	/* init echo port : */
@@ -292,7 +285,7 @@ HC_SR04::init()
 	_cycling_rate = SR04_CONVERSION_INTERVAL;
 
 	/* show the connected sonars in terminal */
-	DEVICE_DEBUG("Number of sonars set: %d", _sonars);
+	PX4_DEBUG("Number of sonars set: %d", _sonars);
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
@@ -355,21 +348,11 @@ HC_SR04::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -411,35 +394,6 @@ HC_SR04::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				}
 			}
 		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (1000 / _measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			ATOMIC_ENTER;
-
-			if (!_reports->resize(arg)) {
-				ATOMIC_LEAVE;
-				return -ENOMEM;
-			}
-
-			ATOMIC_LEAVE;
-
-			return OK;
-		}
-
-	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
 
 	default:
 		/* give it to the superclass */
@@ -535,7 +489,7 @@ HC_SR04::collect()
 
 	/* read from the sensor */
 	if (_status != 2) {
-		DEVICE_DEBUG("erro sonar %d ,status=%d", _cycle_counter, _status);
+		PX4_DEBUG("erro sonar %d ,status=%d", _cycle_counter, _status);
 		px4_arch_gpiosetevent(_gpio_tab[_cycle_counter].echo_port, true, true, false, nullptr);
 		perf_end(_sample_perf);
 		return (ret);
@@ -623,25 +577,6 @@ HC_SR04::start()
 		   (worker_t)&HC_SR04::cycle_trampoline,
 		   this,
 		   USEC2TICK(_cycling_rate));
-
-
-	/* notify about state change */
-	struct subsystem_info_s info = {};
-	info.present = true;
-	info.enabled = true;
-	info.ok = true;
-	info.subsystem_type = SUBSYSTEM_TYPE_RANGEFINDER;
-
-	static orb_advert_t pub = nullptr;
-
-	if (pub != nullptr) {
-		orb_publish(ORB_ID(subsystem_info), pub, &info);
-
-
-	} else {
-		pub = orb_advertise(ORB_ID(subsystem_info), &info);
-
-	}
 }
 
 void
@@ -666,7 +601,7 @@ HC_SR04::cycle()
 	/*_circle_count 计录当前sonar　*/
 	/* perform collection */
 	if (OK != collect()) {
-		DEVICE_DEBUG("collection error");
+		PX4_DEBUG("collection error");
 	}
 
 	/* change to next sonar */
@@ -678,7 +613,7 @@ HC_SR04::cycle()
 
 	/* 测量next sonar */
 	if (OK != measure()) {
-		DEVICE_DEBUG("measure error sonar adress %d", _cycle_counter);
+		PX4_DEBUG("measure error sonar adress %d", _cycle_counter);
 	}
 
 

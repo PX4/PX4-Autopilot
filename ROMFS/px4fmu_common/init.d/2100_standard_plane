@@ -21,10 +21,13 @@
 
 sh /etc/init.d/rc.fw_defaults
 
+if [ $AUTOCNF = yes ]
+then
+	param set PWM_AUX_RATE 50
+	param set PWM_RATE 50
+fi
+
 set MIXER AETRFG
 
-set PWM_RATE 50
-set PWM_AUX_RATE 50
-
-# rate must be set by group (see pwm info)
-# throttle is in the same group as servos
+# Rate must be set by group (see pwm info).
+# Throttle is in the same group as servos.

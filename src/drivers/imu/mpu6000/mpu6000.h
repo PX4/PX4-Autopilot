@@ -57,6 +57,8 @@
 #define MPU_DEVICE_PATH_GYRO_EXT	"/dev/mpu6000_gyro_ext"
 #define MPU_DEVICE_PATH_ACCEL_EXT1	"/dev/mpu6000_accel_ext1"
 #define MPU_DEVICE_PATH_GYRO_EXT1	"/dev/mpu6000_gyro_ext1"
+#define MPU_DEVICE_PATH_ACCEL_EXT2	"/dev/mpu6000_accel_ext2"
+#define MPU_DEVICE_PATH_GYRO_EXT2	"/dev/mpu6000_gyro_ext2"
 
 #define ICM20602_DEVICE_PATH_ACCEL		"/dev/icm20602_accel"
 #define ICM20602_DEVICE_PATH_GYRO		"/dev/icm20602_gyro"
@@ -211,14 +213,6 @@
 #define MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ		30
 
 #define MPU6000_DEFAULT_ONCHIP_FILTER_FREQ			98
-
-#ifdef PX4_SPI_BUS_EXT
-#define EXTERNAL_BUS PX4_SPI_BUS_EXT
-#else
-#define EXTERNAL_BUS 0
-#endif
-
-#define MPUIOCGIS_I2C	(unsigned)(DEVIOCGDEVICEID+100)
 
 #pragma pack(push, 1)
 /**

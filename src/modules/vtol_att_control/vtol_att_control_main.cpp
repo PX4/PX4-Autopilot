@@ -87,11 +87,6 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.mpc_xy_cruise = param_find("MPC_XY_CRUISE");
 	_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
 
-
-	_params_handles.wv_takeoff = param_find("VT_WV_TKO_EN");
-	_params_handles.wv_land = param_find("VT_WV_LND_EN");
-	_params_handles.wv_loiter = param_find("VT_WV_LTR_EN");
-
 	/* fetch initial parameter values */
 	parameters_update();
 
@@ -363,16 +358,12 @@ VtolAttitudeControl::handle_command()
 		// This might not be optimal but is better than no response at all.
 
 		if (_vehicle_cmd.from_external) {
-			vehicle_command_ack_s command_ack = {
-				.timestamp = hrt_absolute_time(),
-				.result_param2 = 0,
-				.command = _vehicle_cmd.command,
-				.result = (uint8_t)vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED,
-				.from_external = false,
-				.result_param1 = 0,
-				.target_system = _vehicle_cmd.source_system,
-				.target_component = _vehicle_cmd.source_component
-			};
+			vehicle_command_ack_s command_ack = {};
+			command_ack.timestamp = hrt_absolute_time();
+			command_ack.command = _vehicle_cmd.command;
+			command_ack.result = (uint8_t)vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+			command_ack.target_system = _vehicle_cmd.source_system;
+			command_ack.target_component = _vehicle_cmd.source_component;
 
 			if (_v_cmd_ack_pub == nullptr) {
 				_v_cmd_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
@@ -380,7 +371,6 @@ VtolAttitudeControl::handle_command()
 
 			} else {
 				orb_publish(ORB_ID(vehicle_command_ack), _v_cmd_ack_pub, &command_ack);
-
 			}
 		}
 	}
@@ -483,16 +473,6 @@ VtolAttitudeControl::parameters_update()
 	 */
 	_params.front_trans_time_min = math::min(_params.front_trans_time_openloop * 0.9f,
 				       _params.front_trans_time_min);
-
-	/* weathervane */
-	param_get(_params_handles.wv_takeoff, &l);
-	_params.wv_takeoff = (l == 1);
-
-	param_get(_params_handles.wv_loiter, &l);
-	_params.wv_loiter = (l == 1);
-
-	param_get(_params_handles.wv_land, &l);
-	_params.wv_land = (l == 1);
 
 
 	param_get(_params_handles.front_trans_duration, &_params.front_trans_duration);

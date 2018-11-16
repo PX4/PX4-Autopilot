@@ -45,10 +45,12 @@
 #include "navigator.h"
 
 #include <drivers/drv_pwm_output.h>
-#include <fw_pos_control_l1/Landingslope.hpp>
 #include <lib/ecl/geo/geo.h>
-#include <mathlib/mathlib.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/landing_slope/Landingslope.hpp>
 #include <systemlib/mavlink_log.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/position_controller_landing_status.h>
 
 bool
 MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
@@ -168,7 +170,7 @@ MissionFeasibilityChecker::checkGeofence(const mission_s &mission, float home_al
 
 			if (MissionBlock::item_contains_position(missionitem) && !_navigator->get_geofence().check(missionitem)) {
 
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence violation for waypoint %d", i + 1);
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence violation for waypoint %zu", i + 1);
 				return false;
 			}
 		}
@@ -198,11 +200,11 @@ MissionFeasibilityChecker::checkHomePositionAltitude(const mission_s &mission, f
 			_navigator->get_mission_result()->warning = true;
 
 			if (throw_error) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: No home pos, WP %d uses rel alt", i + 1);
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: No home pos, WP %zu uses rel alt", i + 1);
 				return false;
 
 			} else	{
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Warning: No home pos, WP %d uses rel alt", i + 1);
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Warning: No home pos, WP %zu uses rel alt", i + 1);
 				return true;
 			}
 		}
@@ -215,11 +217,11 @@ MissionFeasibilityChecker::checkHomePositionAltitude(const mission_s &mission, f
 			_navigator->get_mission_result()->warning = true;
 
 			if (throw_error) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Waypoint %d below home", i + 1);
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Waypoint %zu below home", i + 1);
 				return false;
 
 			} else	{
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Warning: Waypoint %d below home", i + 1);
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Warning: Waypoint %zu below home", i + 1);
 				return true;
 			}
 		}
@@ -395,24 +397,27 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 
 				if (MissionBlock::item_contains_position(missionitem_previous)) {
 
-					const bool fw_status_valid = (_navigator->get_fw_pos_ctrl_status()->timestamp > 0);
+					uORB::Subscription<position_controller_landing_status_s> landing_status{ORB_ID(position_controller_landing_status)};
+					landing_status.forcedUpdate();
+
+					const bool landing_status_valid = (landing_status.get().timestamp > 0);
 					const float wp_distance = get_distance_to_next_waypoint(missionitem_previous.lat, missionitem_previous.lon,
 								  missionitem.lat, missionitem.lon);
 
-					if (fw_status_valid && (wp_distance > _navigator->get_fw_pos_ctrl_status()->landing_flare_length)) {
+					if (landing_status_valid && (wp_distance > landing_status.get().flare_length)) {
 						/* Last wp is before flare region */
 
 						const float delta_altitude = missionitem.altitude - missionitem_previous.altitude;
 
 						if (delta_altitude < 0) {
 
-							const float horizontal_slope_displacement = _navigator->get_fw_pos_ctrl_status()->landing_horizontal_slope_displacement;
-							const float slope_angle_rad = _navigator->get_fw_pos_ctrl_status()->landing_slope_angle_rad;
+							const float horizontal_slope_displacement = landing_status.get().horizontal_slope_displacement;
+							const float slope_angle_rad = landing_status.get().slope_angle_rad;
 							const float slope_alt_req = Landingslope::getLandingSlopeAbsoluteAltitude(wp_distance, missionitem.altitude,
 										    horizontal_slope_displacement, slope_angle_rad);
 
-							if (missionitem_previous.altitude > slope_alt_req) {
-								/* Landing waypoint is above altitude of slope at the given waypoint distance */
+							if (missionitem_previous.altitude > slope_alt_req + 1.0f) {
+								/* Landing waypoint is above altitude of slope at the given waypoint distance (with small tolerance for floating point discrepancies) */
 								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: adjust landing approach.");
 
 								const float wp_distance_req = Landingslope::getLandingSlopeWPDistance(missionitem_previous.altitude,
@@ -497,14 +502,6 @@ MissionFeasibilityChecker::checkDistanceToFirstWaypoint(const mission_s &mission
 
 		if (dist_to_1wp < max_distance) {
 
-			if (dist_to_1wp > ((max_distance * 2) / 3)) {
-				/* allow at 2/3 distance, but warn */
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-						     "First waypoint far away: %d meters.", (int)dist_to_1wp);
-
-				_navigator->get_mission_result()->warning = true;
-			}
-
 			return true;
 
 		} else {
@@ -530,8 +527,8 @@ MissionFeasibilityChecker::checkDistancesBetweenWaypoints(const mission_s &missi
 		return true;
 	}
 
-	double last_lat = NAN;
-	double last_lon = NAN;
+	double last_lat = (double)NAN;
+	double last_lon = (double)NAN;
 
 	/* Go through all waypoints */
 	for (size_t i = 0; i < mission.count; i++) {
@@ -557,17 +554,7 @@ MissionFeasibilityChecker::checkDistancesBetweenWaypoints(const mission_s &missi
 					mission_item.lat, mission_item.lon,
 					last_lat, last_lon);
 
-			if (dist_between_waypoints < max_distance) {
-
-				if (dist_between_waypoints > ((max_distance * 2) / 3)) {
-					/* allow at 2/3 distance, but warn */
-					mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-							     "Distance between waypoints very far: %d meters.", (int)dist_between_waypoints);
-
-					_navigator->get_mission_result()->warning = true;
-				}
-
-			} else {
+			if (dist_between_waypoints > max_distance) {
 				/* item is too far from home */
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
 						     "Distance between waypoints too far: %d meters, %d max.",

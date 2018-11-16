@@ -34,7 +34,6 @@
  * @file hwtest.c
  *
  * Simple output test.
- * @ref Documentation https://pixhawk.org/dev/examples/write_output
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */

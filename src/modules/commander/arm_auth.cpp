@@ -78,23 +78,15 @@ static uint8_t (*arm_check_method[ARM_AUTH_METHOD_LAST])() = {
 
 static void arm_auth_request_msg_send()
 {
-	struct vehicle_command_s cmd = {
-		.timestamp = 0,
-		.param5 = 0,
-		.param6 = 0,
-		.param1 = 0,
-		.param2 = 0,
-		.param3 = 0,
-		.param4 = 0,
-		.param7 = 0,
-		.command = vehicle_command_s::VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST,
-		.target_system = arm_parameters.authorizer_system_id
-	};
+	vehicle_command_s vcmd = {};
+	vcmd.timestamp = hrt_absolute_time();
+	vcmd.command = vehicle_command_s::VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST;
+	vcmd.target_system = arm_parameters.authorizer_system_id;
 
 	if (handle_vehicle_command_pub == nullptr) {
-		handle_vehicle_command_pub = orb_advertise(ORB_ID(vehicle_command), &cmd);
+		handle_vehicle_command_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
 	} else {
-		orb_publish(ORB_ID(vehicle_command), handle_vehicle_command_pub, &cmd);
+		orb_publish(ORB_ID(vehicle_command), handle_vehicle_command_pub, &vcmd);
 	}
 }
 

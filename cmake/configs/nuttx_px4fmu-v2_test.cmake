@@ -20,7 +20,6 @@ set(config_module_list
 	#drivers/camera_trigger
 	#drivers/frsky_telemetry
 	drivers/gps
-	#drivers/hott
 	#drivers/iridiumsbd
 	#drivers/irlock
 	drivers/imu/l3gd20
@@ -81,7 +80,6 @@ set(config_module_list
 	#lib/rc/rc_tests
 	modules/commander/commander_tests
 	modules/mavlink/mavlink_tests
-	modules/mc_pos_control/mc_pos_control_tests
 	modules/uORB/uORB_tests
 	systemcmds/tests
 
@@ -123,7 +121,6 @@ set(config_module_list
 	# Logging
 	#
 	#modules/logger
-	#modules/sdlog2
 
 	#
 	# Library modules

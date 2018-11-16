@@ -36,22 +36,25 @@ px4_add_module(
 	STACK_MAIN 4096
 	STACK_MAX 2450
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
 	SRCS
-		commander.cpp
-		state_machine_helper.cpp
-		commander_helper.cpp
-		calibration_routines.cpp
 		accelerometer_calibration.cpp
-		gyro_calibration.cpp
-		mag_calibration.cpp
-		baro_calibration.cpp
-		rc_calibration.cpp
 		airspeed_calibration.cpp
-		esc_calibration.cpp
-		PreflightCheck.cpp
 		arm_auth.cpp
+		baro_calibration.cpp
+		calibration_routines.cpp
+		Commander.cpp
+		commander_helper.cpp
+		esc_calibration.cpp
+		gyro_calibration.cpp
+		health_flag_helper.cpp
+		mag_calibration.cpp
+		PreflightCheck.cpp
+		rc_calibration.cpp
+		rc_check.cpp
+		state_machine_helper.cpp
+		failure_detector/FailureDetector.cpp
 	DEPENDS
+		circuit_breaker
 		df_driver_framework
 		git_ecl
 		ecl_geo

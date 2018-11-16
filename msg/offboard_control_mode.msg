@@ -1,5 +1,7 @@
 # Off-board control mode
 
+uint64 timestamp		# time since system start (microseconds)
+
 bool ignore_thrust
 bool ignore_attitude
 bool ignore_bodyrate

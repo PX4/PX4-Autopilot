@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,13 +34,11 @@
 /**
  * @file mpl3115a2.cpp
  *
- * FIXME!: This is stubberd out driver for the NXP MPL3115A2
- * it has bogus code in it and is just being used to verify
- * the i2C buss and WHOAMI
- *
  * Driver for the MPL3115A2 barometric pressure sensor connected via I2C.
  */
 
+#include <lib/cdev/CDev.hpp>
+#include <drivers/device/Device.hpp>
 #include <px4_config.h>
 #include <px4_log.h>
 
@@ -104,7 +102,7 @@ enum MPL3115A2_BUS {
 #define MPL3115A2_BARO_DEVICE_PATH_EXT  "/dev/mpl3115a2_ext"
 #define MPL3115A2_BARO_DEVICE_PATH_INT  "/dev/mpl3115a2_int"
 
-class MPL3115A2 : public device::CDev
+class MPL3115A2 : public cdev::CDev
 {
 public:
 	MPL3115A2(device::Device *interface, const char *path);
@@ -121,7 +119,7 @@ public:
 	void			print_info();
 
 protected:
-	Device			*_interface;
+	device::Device			*_interface;
 
 	struct work_s		_work;
 	unsigned		_measure_ticks;
@@ -199,7 +197,7 @@ protected:
 extern "C" __EXPORT int mpl3115a2_main(int argc, char *argv[]);
 
 MPL3115A2::MPL3115A2(device::Device *interface, const char *path) :
-	CDev("MPL3115A2", path),
+	CDev(path),
 	_interface(interface),
 	_measure_ticks(0),
 	_reports(nullptr),
@@ -216,11 +214,7 @@ MPL3115A2::MPL3115A2(device::Device *interface, const char *path) :
 	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
 
-	// set the device type from the interface
-	_device_id.devid_s.bus_type = _interface->get_device_bus_type();
-	_device_id.devid_s.bus = _interface->get_device_bus();
-	_device_id.devid_s.address = _interface->get_device_address();
-	_device_id.devid_s.devtype = DRV_BARO_DEVTYPE_MPL3115A2;
+	_interface->set_device_type(DRV_BARO_DEVTYPE_MPL3115A2);
 }
 
 MPL3115A2::~MPL3115A2()
@@ -253,7 +247,7 @@ MPL3115A2::init()
 	ret = CDev::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("CDev init failed");
+		PX4_DEBUG("CDev init failed");
 		goto out;
 	}
 
@@ -261,7 +255,7 @@ MPL3115A2::init()
 	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_baro_s));
 
 	if (_reports == nullptr) {
-		DEVICE_DEBUG("can't get memory for reports");
+		PX4_DEBUG("can't get memory for reports");
 		ret = -ENOMEM;
 		goto out;
 	}
@@ -269,7 +263,7 @@ MPL3115A2::init()
 	/* register alternate interfaces if we have to */
 	_class_instance = register_class_devname(BARO_BASE_DEVICE_PATH);
 
-	struct baro_report brp;
+	sensor_baro_s brp;
 	_reports->flush();
 
 	while (true) {
@@ -308,12 +302,12 @@ MPL3115A2::init()
 		// DEVICE_LOG("altitude (%u) = %.2f", _device_type, (double)brp.altitude);
 
 		/* ensure correct devid */
-		brp.device_id = _device_id.devid;
+		brp.device_id = _interface->get_device_id();
 
 		ret = OK;
 
 		_baro_topic = orb_advertise_multi(ORB_ID(sensor_baro), &brp,
-						  &_orb_class_instance, (external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
+						  &_orb_class_instance, (_interface->external()) ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT);
 
 		if (_baro_topic == nullptr) {
 			warnx("failed to create sensor_baro publication");
@@ -329,8 +323,8 @@ out:
 ssize_t
 MPL3115A2::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct baro_report);
-	struct baro_report *brp = reinterpret_cast<struct baro_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_baro_s);
+	sensor_baro_s *brp = reinterpret_cast<sensor_baro_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -398,21 +392,11 @@ MPL3115A2::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop_cycle();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -452,30 +436,6 @@ MPL3115A2::ioctl(struct file *filp, int cmd, unsigned long arg)
 					return OK;
 				}
 			}
-		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (1000 / _measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-			return OK;
 		}
 
 	case SENSORIOCRESET: {
@@ -628,7 +588,7 @@ MPL3115A2::collect()
 		return -EAGAIN;
 	}
 
-	struct baro_report report;
+	sensor_baro_s report;
 
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
@@ -644,21 +604,17 @@ MPL3115A2::collect()
 		return ret;
 	}
 
-
 	_T = (float) reading.temperature.b[1] + ((float)(reading.temperature.b[0]) / 16.0f);
-
 	_P = (float)(reading.pressure.q >> 8) + ((float)(reading.pressure.b[0]) / 4.0f);
 
 	report.temperature = _T;
 	report.pressure = _P / 100.0f;		/* convert to millibar */
 
 	/* return device ID */
-	report.device_id = _device_id.devid;
-
-	/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
+	report.device_id = _interface->get_device_id();
 
 	/* publish it */
-	if (!(_pub_blocked) && _baro_topic != nullptr) {
+	if (_baro_topic != nullptr) {
 		/* publish it */
 		orb_publish(ORB_ID(sensor_baro), _baro_topic, &report);
 	}
@@ -713,6 +669,12 @@ struct mpl3115a2_bus_option {
 #endif
 #ifdef PX4_I2C_BUS_EXPANSION
 	{ MPL3115A2_BUS_I2C_EXTERNAL, "/dev/mpl3115a2_ext", &MPL3115A2_i2c_interface, PX4_I2C_BUS_EXPANSION, NULL },
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION1
+	{ MPL3115A2_BUS_I2C_EXTERNAL, "/dev/mpl3115a2_ext1", &MPL3115A2_i2c_interface, PX4_I2C_BUS_EXPANSION1, NULL },
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION2
+	{ MPL3115A2_BUS_I2C_EXTERNAL, "/dev/mpl3115a2_ext2", &MPL3115A2_i2c_interface, PX4_I2C_BUS_EXPANSION2, NULL },
 #endif
 };
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
@@ -827,7 +789,7 @@ void
 test(enum MPL3115A2_BUS busid)
 {
 	struct mpl3115a2_bus_option &bus = find_bus(busid);
-	struct baro_report report;
+	sensor_baro_s report;
 	ssize_t sz;
 	int ret;
 
@@ -847,16 +809,6 @@ test(enum MPL3115A2_BUS busid)
 	}
 
 	print_message(report);
-
-	/* set the queue depth to 10 */
-	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
-		errx(1, "failed to set queue depth");
-	}
-
-	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
-	}
 
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {

@@ -58,6 +58,11 @@ enum FIRMWARE_TYPE {
 	FIRMWARE_TYPE_RELEASE = 255
 };
 
+const char *px4_build_uri(void)
+{
+	return STRINGIFY(BUILD_URI);
+}
+
 uint32_t version_tag_to_number(const char *tag)
 {
 	uint32_t version_number = 0;
@@ -340,14 +345,28 @@ uint64_t px4_firmware_version_binary(void)
 	return PX4_GIT_VERSION_BINARY;
 }
 
+const char *px4_ecl_lib_version_string(void)
+{
+#ifdef ECL_LIB_GIT_VERSION_STRING
+	return ECL_LIB_GIT_VERSION_STRING;
+#else
+	return NULL;
+#endif
+}
+
+#ifdef MAVLINK_LIB_GIT_VERSION_BINARY
 uint64_t px4_mavlink_lib_version_binary(void)
 {
 	return MAVLINK_LIB_GIT_VERSION_BINARY;
 }
+#endif /* MAVLINK_LIB_GIT_VERSION_BINARY */
 
 uint64_t px4_os_version_binary(void)
 {
-	//TODO: get NuttX version via git tag
+#ifdef NUTTX_GIT_VERSION_BINARY
+	return NUTTX_GIT_VERSION_BINARY;
+#else
 	return 0;
+#endif
 }
 

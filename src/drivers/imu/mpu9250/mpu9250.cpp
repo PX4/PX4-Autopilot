@@ -57,7 +57,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <getopt.h>
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
@@ -256,8 +255,7 @@ MPU9250::init()
 {
 
 #if defined(USE_I2C)
-	unsigned dummy;
-	use_i2c(_interface->ioctl(MPUIOCGIS_I2C, dummy));
+	use_i2c(_interface->get_device_bus_type() == Device::DeviceBusType_I2C);
 #endif
 
 	/*
@@ -289,14 +287,14 @@ MPU9250::init()
 	}
 
 	/* allocate basic report buffers */
-	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
 	ret = -ENOMEM;
 
 	if (_accel_reports == nullptr) {
 		return ret;
 	}
 
-	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
+	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_gyro_s));
 
 	if (_gyro_reports == nullptr) {
 		return ret;
@@ -327,8 +325,6 @@ MPU9250::init()
 	float accel_cut = MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ;
 
 	if (accel_cut_ph != PARAM_INVALID && (param_get(accel_cut_ph, &accel_cut) == PX4_OK)) {
-		PX4_INFO("accel cutoff set to %.2f Hz", double(accel_cut));
-
 		_accel_filter_x.set_cutoff_frequency(MPU9250_ACCEL_DEFAULT_RATE, accel_cut);
 		_accel_filter_y.set_cutoff_frequency(MPU9250_ACCEL_DEFAULT_RATE, accel_cut);
 		_accel_filter_z.set_cutoff_frequency(MPU9250_ACCEL_DEFAULT_RATE, accel_cut);
@@ -341,8 +337,6 @@ MPU9250::init()
 	float gyro_cut = MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ;
 
 	if (gyro_cut_ph != PARAM_INVALID && (param_get(gyro_cut_ph, &gyro_cut) == PX4_OK)) {
-		PX4_INFO("gyro cutoff set to %.2f Hz", double(gyro_cut));
-
 		_gyro_filter_x.set_cutoff_frequency(MPU9250_GYRO_DEFAULT_RATE, gyro_cut);
 		_gyro_filter_y.set_cutoff_frequency(MPU9250_GYRO_DEFAULT_RATE, gyro_cut);
 		_gyro_filter_z.set_cutoff_frequency(MPU9250_GYRO_DEFAULT_RATE, gyro_cut);
@@ -395,7 +389,7 @@ MPU9250::init()
 	measure();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct accel_report arp;
+	sensor_accel_s arp;
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */
@@ -408,7 +402,7 @@ MPU9250::init()
 	}
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct gyro_report grp;
+	sensor_gyro_s grp;
 	_gyro_reports->get(&grp);
 
 	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
@@ -557,9 +551,7 @@ MPU9250::probe()
 void
 MPU9250::_set_sample_rate(unsigned desired_sample_rate_hz)
 {
-	if (desired_sample_rate_hz == 0 ||
-	    desired_sample_rate_hz == GYRO_SAMPLERATE_DEFAULT ||
-	    desired_sample_rate_hz == ACCEL_SAMPLERATE_DEFAULT) {
+	if (desired_sample_rate_hz == 0) {
 		desired_sample_rate_hz = MPU9250_GYRO_DEFAULT_RATE;
 	}
 
@@ -627,7 +619,7 @@ MPU9250::_set_dlpf_filter(uint16_t frequency_hz)
 ssize_t
 MPU9250::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(accel_report);
+	unsigned count = buflen / sizeof(sensor_accel_s);
 
 	/* buffer must be large enough */
 	if (count < 1) {
@@ -648,7 +640,7 @@ MPU9250::read(struct file *filp, char *buffer, size_t buflen)
 	perf_count(_accel_reads);
 
 	/* copy reports out of our buffer to the caller */
-	accel_report *arp = reinterpret_cast<accel_report *>(buffer);
+	sensor_accel_s *arp = reinterpret_cast<sensor_accel_s *>(buffer);
 	int transferred = 0;
 
 	while (count--) {
@@ -661,7 +653,7 @@ MPU9250::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* return the number of bytes transferred */
-	return (transferred * sizeof(accel_report));
+	return (transferred * sizeof(sensor_accel_s));
 }
 
 int
@@ -673,65 +665,6 @@ MPU9250::self_test()
 
 	/* return 0 on success, 1 else */
 	return (perf_event_count(_sample_perf) > 0) ? 0 : 1;
-}
-
-int
-MPU9250::accel_self_test()
-{
-	if (self_test()) {
-		return 1;
-	}
-
-	return 0;
-}
-
-int
-MPU9250::gyro_self_test()
-{
-	if (self_test()) {
-		return 1;
-	}
-
-	/*
-	 * Maximum deviation of 20 degrees, according to
-	 * http://www.invensense.com/mems/gyro/documents/PS-MPU-9250A-00v3.4.pdf
-	 * Section 6.1, initial ZRO tolerance
-	 */
-	const float max_offset = 0.34f;
-	/* 30% scale error is chosen to catch completely faulty units but
-	 * to let some slight scale error pass. Requires a rate table or correlation
-	 * with mag rotations + data fit to
-	 * calibrate properly and is not done by default.
-	 */
-	const float max_scale = 0.3f;
-
-	/* evaluate gyro offsets, complain if offset -> zero or larger than 20 dps. */
-	if (fabsf(_gyro_scale.x_offset) > max_offset) {
-		return 1;
-	}
-
-	/* evaluate gyro scale, complain if off by more than 30% */
-	if (fabsf(_gyro_scale.x_scale - 1.0f) > max_scale) {
-		return 1;
-	}
-
-	if (fabsf(_gyro_scale.y_offset) > max_offset) {
-		return 1;
-	}
-
-	if (fabsf(_gyro_scale.y_scale - 1.0f) > max_scale) {
-		return 1;
-	}
-
-	if (fabsf(_gyro_scale.z_offset) > max_offset) {
-		return 1;
-	}
-
-	if (fabsf(_gyro_scale.z_scale - 1.0f) > max_scale) {
-		return 1;
-	}
-
-	return 0;
 }
 
 /*
@@ -752,7 +685,7 @@ MPU9250::test_error()
 ssize_t
 MPU9250::gyro_read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(gyro_report);
+	unsigned count = buflen / sizeof(sensor_gyro_s);
 
 	/* buffer must be large enough */
 	if (count < 1) {
@@ -773,7 +706,7 @@ MPU9250::gyro_read(struct file *filp, char *buffer, size_t buflen)
 	perf_count(_gyro_reads);
 
 	/* copy reports out of our buffer to the caller */
-	gyro_report *grp = reinterpret_cast<gyro_report *>(buffer);
+	sensor_gyro_s *grp = reinterpret_cast<sensor_gyro_s *>(buffer);
 	int transferred = 0;
 
 	while (count--) {
@@ -786,7 +719,7 @@ MPU9250::gyro_read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* return the number of bytes transferred */
-	return (transferred * sizeof(gyro_report));
+	return (transferred * sizeof(sensor_gyro_s));
 }
 
 int
@@ -801,23 +734,11 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_call_interval = 0;
-				return OK;
-
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
-				return ioctl(filp, SENSORIOCSPOLLRATE, 1000);
-
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_ACCEL_DEFAULT_RATE);
 
@@ -869,38 +790,6 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCGPOLLRATE:
-		if (_call_interval == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return 1000000 / _call_interval;
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_accel_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
-	case ACCELIOCGSAMPLERATE:
-		return _sample_rate;
-
-	case ACCELIOCSSAMPLERATE:
-		_set_sample_rate(arg);
-		return OK;
-
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
@@ -915,20 +804,6 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case ACCELIOCGSCALE:
-		/* copy scale out */
-		memcpy((struct accel_calibration_s *) arg, &_accel_scale, sizeof(_accel_scale));
-		return OK;
-
-	case ACCELIOCSRANGE:
-		return set_accel_range(arg);
-
-	case ACCELIOCGRANGE:
-		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
-
-	case ACCELIOCSELFTEST:
-		return accel_self_test();
-
 	default:
 		/* give it to the superclass */
 		return CDev::ioctl(filp, cmd, arg);
@@ -942,57 +817,13 @@ MPU9250::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	/* these are shared with the accel side */
 	case SENSORIOCSPOLLRATE:
-	case SENSORIOCGPOLLRATE:
 	case SENSORIOCRESET:
 		return ioctl(filp, cmd, arg);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_gyro_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
-	case GYROIOCGSAMPLERATE:
-		return _sample_rate;
-
-	case GYROIOCSSAMPLERATE:
-		_set_sample_rate(arg);
-		return OK;
 
 	case GYROIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
 		return OK;
-
-	case GYROIOCGSCALE:
-		/* copy scale out */
-		memcpy((struct gyro_calibration_s *) arg, &_gyro_scale, sizeof(_gyro_scale));
-		return OK;
-
-	case GYROIOCSRANGE:
-		/* XXX not implemented */
-		// XXX change these two values on set:
-		// _gyro_range_scale = xx
-		// _gyro_range_rad_s = xx
-		return -EINVAL;
-
-	case GYROIOCGRANGE:
-		return (unsigned long)(_gyro_range_rad_s * 180.0f / M_PI_F + 0.5f);
-
-	case GYROIOCSELFTEST:
-		return gyro_self_test();
 
 	default:
 		/* give it to the superclass */
@@ -1379,8 +1210,8 @@ MPU9250::measure()
 	/*
 	 * Report buffers.
 	 */
-	accel_report		arb;
-	gyro_report		grb;
+	sensor_accel_s arb{};
+	sensor_gyro_s grb{};
 
 	/*
 	 * Adjust and scale results to m/s^2.
@@ -1438,11 +1269,9 @@ MPU9250::measure()
 	arb.z_integral = aval_integrated(2);
 
 	arb.scaling = _accel_range_scale;
-	arb.range_m_s2 = _accel_range_m_s2;
 
 	_last_temperature = (report.temp) / 361.0f + 35.0f;
 
-	arb.temperature_raw = report.temp;
 	arb.temperature = _last_temperature;
 
 	/* return device ID */
@@ -1476,9 +1305,7 @@ MPU9250::measure()
 	grb.z_integral = gval_integrated(2);
 
 	grb.scaling = _gyro_range_scale;
-	grb.range_rad_s = _gyro_range_rad_s;
 
-	grb.temperature_raw = report.temp;
 	grb.temperature = _last_temperature;
 
 	/* return device ID */
@@ -1544,11 +1371,6 @@ MPU9250::print_info()
 		}
 	}
 
-	::printf("temperature: %.1f\n", (double)_last_temperature);
-	float accel_cut = _accel_filter_x.get_cutoff_freq();
-	::printf("accel cutoff set to %10.2f Hz\n", double(accel_cut));
-	float gyro_cut = _gyro_filter_x.get_cutoff_freq();
-	::printf("gyro cutoff set to %10.2f Hz\n", double(gyro_cut));
 }
 
 void

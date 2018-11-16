@@ -76,9 +76,7 @@
 #include <systemlib/cpuload.h>
 #include <perf/perf_counter.h>
 
-#include <systemlib/hardfault_log.h>
 
-#include <systemlib/systemlib.h>
 #include <parameters/param.h>
 
 /****************************************************************************
@@ -119,6 +117,39 @@ __END_DECLS
 /****************************************************************************
  * Protected Functions
  ****************************************************************************/
+/************************************************************************************
+ * Name: board_on_reset
+ *
+ * Description:
+ * Optionally provided function called on entry to board_system_reset
+ * It should perform any house keeping prior to the rest.
+ *
+ * status - 1 if resetting to boot loader
+ *          0 if just resetting
+ *
+ ************************************************************************************/
+__EXPORT void board_on_reset(int status)
+{
+	/* configure the GPIO pins to outputs and keep them low */
+	stm32_configgpio(GPIO_GPIO0_OUTPUT);
+	stm32_configgpio(GPIO_GPIO1_OUTPUT);
+	stm32_configgpio(GPIO_GPIO2_OUTPUT);
+	stm32_configgpio(GPIO_GPIO3_OUTPUT);
+	stm32_configgpio(GPIO_GPIO4_OUTPUT);
+	stm32_configgpio(GPIO_GPIO5_OUTPUT);
+	stm32_configgpio(GPIO_GPIO6_OUTPUT);
+	stm32_configgpio(GPIO_GPIO7_OUTPUT);
+
+	/**
+	 * On resets invoked from system (not boot) insure we establish a low
+	 * output state (discharge the pins) on PWM pins before they become inputs.
+	 */
+
+	if (status >= 0) {
+		up_mdelay(400);
+	}
+}
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -135,34 +166,33 @@ __END_DECLS
 __EXPORT void
 stm32_boardinitialize(void)
 {
+	// Reset all PWM to Low outputs.
+
+	board_on_reset(-1);
+
 	/* configure LEDs */
 
 	board_autoled_initialize();
 
 	/* configure ADC pins */
 
-	px4_arch_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
-	px4_arch_configgpio(GPIO_ADC1_IN10);	/* BATT_CURRENT_SENS */
-	px4_arch_configgpio(GPIO_ADC1_IN12);	/* BATT_VOLTAGE_SENS */
-	px4_arch_configgpio(GPIO_ADC1_IN11);	/* RSSI analog in */
-	px4_arch_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
-	px4_arch_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
-	px4_arch_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
+	stm32_configgpio(GPIO_ADC1_IN4);	/* VDD_5V_SENS */
+	stm32_configgpio(GPIO_ADC1_IN10);	/* BATT_CURRENT_SENS */
+	stm32_configgpio(GPIO_ADC1_IN12);	/* BATT_VOLTAGE_SENS */
+	stm32_configgpio(GPIO_ADC1_IN11);	/* RSSI analog in */
+	stm32_configgpio(GPIO_ADC1_IN13);	/* FMU_AUX_ADC_1 */
+	stm32_configgpio(GPIO_ADC1_IN14);	/* FMU_AUX_ADC_2 */
+	stm32_configgpio(GPIO_ADC1_IN15);	/* PRESSURE_SENS */
 
 	/* configure power supply control/sense pins */
 
-	px4_arch_configgpio(GPIO_SBUS_INV);
-	px4_arch_configgpio(GPIO_FRSKY_INV);
+	stm32_configgpio(GPIO_SBUS_INV);
+	stm32_configgpio(GPIO_FRSKY_INV);
 
-	/* configure the GPIO pins to outputs and keep them low */
-	px4_arch_configgpio(GPIO_GPIO0_OUTPUT);
-	px4_arch_configgpio(GPIO_GPIO1_OUTPUT);
-	px4_arch_configgpio(GPIO_GPIO2_OUTPUT);
-	px4_arch_configgpio(GPIO_GPIO3_OUTPUT);
-	px4_arch_configgpio(GPIO_GPIO4_OUTPUT);
-	px4_arch_configgpio(GPIO_GPIO5_OUTPUT);
-	px4_arch_configgpio(GPIO_GPIO6_OUTPUT);
-	px4_arch_configgpio(GPIO_GPIO7_OUTPUT);
+	/* configure CAN interface */
+
+	stm32_configgpio(GPIO_CAN1_RX);
+	stm32_configgpio(GPIO_CAN1_TX);
 
 	/* configure SPI interfaces */
 
@@ -257,141 +287,13 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		       (hrt_callout)stm32_serial_dma_poll,
 		       NULL);
 
-#if defined(CONFIG_STM32_BBSRAM)
-
-	/* NB. the use of the console requires the hrt running
-	 * to poll the DMA
-	 */
-
-	/* Using Battery Backed Up SRAM */
-
-	int filesizes[CONFIG_STM32_BBSRAM_FILES + 1] = BSRAM_FILE_SIZES;
-
-	stm32_bbsraminitialize(BBSRAM_PATH, filesizes);
-
-#if defined(CONFIG_STM32_SAVE_CRASHDUMP)
-
-	/* Panic Logging in Battery Backed Up Files */
-
-	/*
-	 * In an ideal world, if a fault happens in flight the
-	 * system save it to BBSRAM will then reboot. Upon
-	 * rebooting, the system will log the fault to disk, recover
-	 * the flight state and continue to fly.  But if there is
-	 * a fault on the bench or in the air that prohibit the recovery
-	 * or committing the log to disk, the things are too broken to
-	 * fly. So the question is:
-	 *
-	 * Did we have a hard fault and not make it far enough
-	 * through the boot sequence to commit the fault data to
-	 * the SD card?
-	 */
-
-	/* Do we have an uncommitted hard fault in BBSRAM?
-	 *  - this will be reset after a successful commit to SD
-	 */
-	int hadCrash = hardfault_check_status("boot");
-
-	if (hadCrash == OK) {
-
-		message("[boot] There is a hard fault logged. Hold down the SPACE BAR," \
-			" while booting to halt the system!\n");
-
-		/* Yes. So add one to the boot count - this will be reset after a successful
-		 * commit to SD
-		 */
-
-		int reboots = hardfault_increment_reboot("boot", false);
-
-		/* Also end the misery for a user that holds for a key down on the console */
-
-		int bytesWaiting;
-		ioctl(fileno(stdin), FIONREAD, (unsigned long)((uintptr_t) &bytesWaiting));
-
-		if (reboots > 2 || bytesWaiting != 0) {
-
-			/* Since we can not commit the fault dump to disk. Display it
-			 * to the console.
-			 */
-
-			hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
-
-			message("[boot] There were %d reboots with Hard fault that were not committed to disk - System halted %s\n",
-				reboots,
-				(bytesWaiting == 0 ? "" : " Due to Key Press\n"));
-
-
-			/* For those of you with a debugger set a break point on up_assert and
-			 * then set dbgContinue = 1 and go.
-			 */
-
-			/* Clear any key press that got us here */
-
-			static volatile bool dbgContinue = false;
-			int c = '>';
-
-			while (!dbgContinue) {
-
-				switch (c) {
-
-				case EOF:
-
-
-				case '\n':
-				case '\r':
-				case ' ':
-					continue;
-
-				default:
-
-					putchar(c);
-					putchar('\n');
-
-					switch (c) {
-
-					case 'D':
-					case 'd':
-						hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
-						break;
-
-					case 'C':
-					case 'c':
-						hardfault_rearm("boot");
-						hardfault_increment_reboot("boot", true);
-						break;
-
-					case 'B':
-					case 'b':
-						dbgContinue = true;
-						break;
-
-					default:
-						break;
-					} // Inner Switch
-
-					message("\nEnter B - Continue booting\n" \
-						"Enter C - Clear the fault log\n" \
-						"Enter D - Dump fault log\n\n?>");
-					fflush(stdout);
-
-					if (!dbgContinue) {
-						c = getchar();
-					}
-
-					break;
-
-				} // outer switch
-			} // for
-
-		} // inner if
-	} // outer if
-
-#endif // CONFIG_STM32_SAVE_CRASHDUMP
-#endif // CONFIG_STM32_BBSRAM
-
 	/* initial LED state */
 	drv_led_start();
 	led_off(LED_AMBER);
+
+	if (board_hardfault_init(2, true) != 0) {
+		led_on(LED_AMBER);
+	}
 
 	/* Configure SPI-based devices */
 

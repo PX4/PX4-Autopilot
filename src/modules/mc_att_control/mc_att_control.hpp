@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 #include <lib/mixer/mixer.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <mathlib/math/filter/LowPassFilter2pVector3f.hpp>
 #include <matrix/matrix/math.hpp>
 #include <perf/perf_counter.h>
 #include <px4_config.h>
@@ -55,6 +55,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_land_detected.h>
 
 /**
  * Multicopter attitude control app start / stop handling function
@@ -99,19 +100,38 @@ private:
 	void		battery_status_poll();
 	void		parameter_update_poll();
 	void		sensor_bias_poll();
+	void		vehicle_land_detected_poll();
 	void		sensor_correction_poll();
-	void		vehicle_attitude_poll();
+	bool		vehicle_attitude_poll();
 	void		vehicle_attitude_setpoint_poll();
 	void		vehicle_control_mode_poll();
-	void		vehicle_manual_poll();
+	bool		vehicle_manual_poll();
 	void		vehicle_motor_limits_poll();
-	void		vehicle_rates_setpoint_poll();
+	bool		vehicle_rates_setpoint_poll();
 	void		vehicle_status_poll();
+
+	void		publish_actuator_controls();
+	void		publish_rates_setpoint();
+	void		publish_rate_controller_status();
+
+	float		throttle_curve(float throttle_stick_input);
+
+	/**
+	 * Generate & publish an attitude setpoint from stick inputs
+	 */
+	void		generate_attitude_setpoint(float dt, bool reset_yaw_sp);
+
+	/**
+	 * Get the landing gear state based on the manual control switch position
+	 * @return vehicle_attitude_setpoint_s::LANDING_GEAR_UP or vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN
+	 */
+	float		get_landing_gear_state();
+
 
 	/**
 	 * Attitude controller.
 	 */
-	void		control_attitude(float dt);
+	void		control_attitude();
 
 	/**
 	 * Attitude rates controller.
@@ -136,6 +156,7 @@ private:
 	int		_sensor_gyro_sub[MAX_GYRO_COUNT];	/**< gyro data subscription */
 	int		_sensor_correction_sub{-1};	/**< sensor thermal correction subscription */
 	int		_sensor_bias_sub{-1};		/**< sensor in-run bias correction subscription */
+	int		_vehicle_land_detected_sub{-1};	/**< vehicle land detected subscription */
 
 	unsigned _gyro_count{1};
 	int _selected_gyro{0};
@@ -143,6 +164,7 @@ private:
 	orb_advert_t	_v_rates_sp_pub{nullptr};		/**< rate setpoint publication */
 	orb_advert_t	_actuators_0_pub{nullptr};		/**< attitude actuator controls publication */
 	orb_advert_t	_controller_status_pub{nullptr};	/**< controller status publication */
+	orb_advert_t	_vehicle_attitude_setpoint_pub{nullptr};
 
 	orb_id_t _rates_sp_id{nullptr};		/**< pointer to correct rates setpoint uORB metadata structure */
 	orb_id_t _actuators_id{nullptr};	/**< pointer to correct actuator controls0 uORB metadata structure */
@@ -160,12 +182,13 @@ private:
 	struct sensor_gyro_s			_sensor_gyro {};	/**< gyro data before thermal correctons and ekf bias estimates are applied */
 	struct sensor_correction_s		_sensor_correction {};	/**< sensor thermal corrections */
 	struct sensor_bias_s			_sensor_bias {};	/**< sensor in-run bias corrections */
+	struct vehicle_land_detected_s		_vehicle_land_detected {};
 
 	MultirotorMixer::saturation_status _saturation_status{};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	math::LowPassFilter2p _lp_filters_d[3];                      /**< low-pass filters for D-term (roll, pitch & yaw) */
+	math::LowPassFilter2pVector3f _lp_filters_d{initial_update_rate_hz, 50.f};	/**< low-pass filters for D-term (roll, pitch & yaw) */
 	static constexpr const float initial_update_rate_hz = 250.f; /**< loop update rate used for initialization */
 	float _loop_update_rate_hz{initial_update_rate_hz};          /**< current rate-controller loop update rate in [Hz] */
 
@@ -177,6 +200,9 @@ private:
 	matrix::Vector3f _att_control;			/**< attitude control vector */
 
 	matrix::Dcmf _board_rotation;			/**< rotation matrix for the orientation that the board is mounted */
+
+	float _man_yaw_sp{0.f};				/**< current yaw setpoint in manual mode */
+	bool _gear_state_initialized{false};		/**< true if the gear state has been initialized */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MC_ROLL_P>) _roll_p,
@@ -200,8 +226,6 @@ private:
 		(ParamFloat<px4::params::MC_YAWRATE_D>) _yaw_rate_d,
 		(ParamFloat<px4::params::MC_YAWRATE_FF>) _yaw_rate_ff,
 
-		(ParamFloat<px4::params::MC_YAW_FF>) _yaw_ff,					/**< yaw control feed-forward */
-
 		(ParamFloat<px4::params::MC_DTERM_CUTOFF>) _d_term_cutoff_freq,			/**< Cutoff frequency for the D-term filter */
 
 		(ParamFloat<px4::params::MC_TPA_BREAK_P>) _tpa_breakpoint_p,			/**< Throttle PID Attenuation breakpoint */
@@ -215,6 +239,7 @@ private:
 		(ParamFloat<px4::params::MC_PITCHRATE_MAX>) _pitch_rate_max,
 		(ParamFloat<px4::params::MC_YAWRATE_MAX>) _yaw_rate_max,
 		(ParamFloat<px4::params::MC_YAWRAUTO_MAX>) _yaw_auto_max,
+		(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _yaw_rate_scaling,			/**< scaling factor from stick to yaw rate */
 
 		(ParamFloat<px4::params::MC_ACRO_R_MAX>) _acro_roll_max,
 		(ParamFloat<px4::params::MC_ACRO_P_MAX>) _acro_pitch_max,
@@ -234,7 +259,12 @@ private:
 		(ParamFloat<px4::params::SENS_BOARD_Y_OFF>) _board_offset_y,
 		(ParamFloat<px4::params::SENS_BOARD_Z_OFF>) _board_offset_z,
 
-		(ParamFloat<px4::params::VT_WV_YAWR_SCL>) _vtol_wv_yaw_rate_scale		/**< Scale value [0, 1] for yaw rate setpoint  */
+		/* Stabilized mode params */
+		(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _man_tilt_max_deg,			/**< maximum tilt allowed for manual flight */
+		(ParamFloat<px4::params::MPC_MANTHR_MIN>) _man_throttle_min,			/**< minimum throttle for stabilized */
+		(ParamFloat<px4::params::MPC_THR_MAX>) _throttle_max,				/**< maximum throttle for stabilized */
+		(ParamFloat<px4::params::MPC_THR_HOVER>) _throttle_hover,			/**< throttle at which vehicle is at hover equilibrium */
+		(ParamInt<px4::params::MPC_THR_CURVE>) _throttle_curve				/**< throttle curve behavior */
 	)
 
 	matrix::Vector3f _attitude_p;		/**< P gain for attitude control */
@@ -247,6 +277,7 @@ private:
 	matrix::Vector3f _mc_rate_max;		/**< attitude rate limits in stabilized modes */
 	matrix::Vector3f _auto_rate_max;	/**< attitude rate limits in auto modes */
 	matrix::Vector3f _acro_rate_max;	/**< max attitude rates in acro mode */
+	float _man_tilt_max;			/**< maximum tilt allowed for manual flight [rad] */
 
 };
 

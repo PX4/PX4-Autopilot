@@ -269,47 +269,47 @@
  * The following definitions are used to access individual LEDs.
  */
 
- /* LED index values for use with board_userled() */
+/* LED index values for use with board_userled() */
 
- #define BOARD_LED1        0
- #define BOARD_LED2        1
- #define BOARD_LED3        2
- #define BOARD_NLEDS       3
+#define BOARD_LED1        0
+#define BOARD_LED2        1
+#define BOARD_LED3        2
+#define BOARD_NLEDS       3
 
- #define BOARD_LED_RED     BOARD_LED1
- #define BOARD_LED_GREEN   BOARD_LED2
- #define BOARD_LED_BLUE    BOARD_LED3
+#define BOARD_LED_RED     BOARD_LED1
+#define BOARD_LED_GREEN   BOARD_LED2
+#define BOARD_LED_BLUE    BOARD_LED3
 
- /* LED bits for use with board_userled_all() */
+/* LED bits for use with board_userled_all() */
 
- #define BOARD_LED1_BIT    (1 << BOARD_LED1)
- #define BOARD_LED2_BIT    (1 << BOARD_LED2)
- #define BOARD_LED3_BIT    (1 << BOARD_LED3)
+#define BOARD_LED1_BIT    (1 << BOARD_LED1)
+#define BOARD_LED2_BIT    (1 << BOARD_LED2)
+#define BOARD_LED3_BIT    (1 << BOARD_LED3)
 
- /* If CONFIG_ARCH_LEDS is defined, the usage by the board port is defined in
-  * include/board.h and src/stm32_leds.c. The LEDs are used to encode OS-related
-  * events as follows:
-  *
-  *
-  *   SYMBOL                     Meaning                      LED state
-  *                                                        Red   Green Blue
-  *   ----------------------  --------------------------  ------ ------ ----*/
+/* If CONFIG_ARCH_LEDS is defined, the usage by the board port is defined in
+ * include/board.h and src/stm32_leds.c. The LEDs are used to encode OS-related
+ * events as follows:
+ *
+ *
+ *   SYMBOL                     Meaning                      LED state
+ *                                                        Red   Green Blue
+ *   ----------------------  --------------------------  ------ ------ ----*/
 
- #define LED_STARTED        0 /* NuttX has been started   OFF    OFF   OFF  */
- #define LED_HEAPALLOCATE   1 /* Heap has been allocated  OFF    OFF   ON   */
- #define LED_IRQSENABLED    2 /* Interrupts enabled       OFF    ON    OFF  */
- #define LED_STACKCREATED   3 /* Idle stack created       OFF    ON    ON   */
- #define LED_INIRQ          4 /* In an interrupt          N/C    N/C   GLOW */
- #define LED_SIGNAL         5 /* In a signal handler      N/C    GLOW  N/C  */
- #define LED_ASSERTION      6 /* An assertion failed      GLOW   N/C   GLOW */
- #define LED_PANIC          7 /* The system has crashed   Blink  OFF   N/C  */
- #define LED_IDLE           8 /* MCU is is sleep mode     ON     OFF   OFF  */
+#define LED_STARTED        0 /* NuttX has been started   OFF    OFF   OFF  */
+#define LED_HEAPALLOCATE   1 /* Heap has been allocated  OFF    OFF   ON   */
+#define LED_IRQSENABLED    2 /* Interrupts enabled       OFF    ON    OFF  */
+#define LED_STACKCREATED   3 /* Idle stack created       OFF    ON    ON   */
+#define LED_INIRQ          4 /* In an interrupt          N/C    N/C   GLOW */
+#define LED_SIGNAL         5 /* In a signal handler      N/C    GLOW  N/C  */
+#define LED_ASSERTION      6 /* An assertion failed      GLOW   N/C   GLOW */
+#define LED_PANIC          7 /* The system has crashed   Blink  OFF   N/C  */
+#define LED_IDLE           8 /* MCU is is sleep mode     ON     OFF   OFF  */
 
- /* Thus if the Green LED is statically on, NuttX has successfully booted and
-  * is, apparently, running normally.  If the Red LED is flashing at
-  * approximately 2Hz, then a fatal error has been detected and the system
-  * has halted.
-  */
+/* Thus if the Green LED is statically on, NuttX has successfully booted and
+ * is, apparently, running normally.  If the Red LED is flashing at
+ * approximately 2Hz, then a fatal error has been detected and the system
+ * has halted.
+ */
 
 
 /* Alternate function pin selections ************************************************/
@@ -348,7 +348,7 @@
 /*
  * CAN
  *
- * CAN1 is routed to the onboard transceiver.
+ * CAN1 and CAN2 is routed to the onboard transceiver.
  */
 #define GPIO_CAN1_RX	GPIO_CAN1_RX_3
 #define GPIO_CAN1_TX	GPIO_CAN1_TX_3
@@ -405,14 +405,14 @@
 # define PROBE_6  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN14)
 
 # define PROBE_INIT(mask) \
-  do { \
-    if ((mask)& PROBE_N(1)) { stm32_configgpio(PROBE_1); } \
-    if ((mask)& PROBE_N(2)) { stm32_configgpio(PROBE_2); } \
-    if ((mask)& PROBE_N(3)) { stm32_configgpio(PROBE_3); } \
-    if ((mask)& PROBE_N(4)) { stm32_configgpio(PROBE_4); } \
-    if ((mask)& PROBE_N(5)) { stm32_configgpio(PROBE_5); } \
-    if ((mask)& PROBE_N(6)) { stm32_configgpio(PROBE_6); } \
-  } while(0)
+	do { \
+		if ((mask)& PROBE_N(1)) { stm32_configgpio(PROBE_1); } \
+		if ((mask)& PROBE_N(2)) { stm32_configgpio(PROBE_2); } \
+		if ((mask)& PROBE_N(3)) { stm32_configgpio(PROBE_3); } \
+		if ((mask)& PROBE_N(4)) { stm32_configgpio(PROBE_4); } \
+		if ((mask)& PROBE_N(5)) { stm32_configgpio(PROBE_5); } \
+		if ((mask)& PROBE_N(6)) { stm32_configgpio(PROBE_6); } \
+	} while(0)
 
 # define PROBE(n,s)  do {stm32_gpiowrite(PROBE_##n,(s));}while(0)
 # define PROBE_MARK(n) PROBE(n,false);PROBE(n,true)

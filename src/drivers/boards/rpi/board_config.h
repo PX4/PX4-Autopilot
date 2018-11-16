@@ -39,8 +39,8 @@
 
 #pragma once
 
-#define BOARD_OVERRIDE_UUID "RPIID       " // must be of length 12 (PX4_CPU_UUID_BYTE_LENGTH)
-#define BOARD_OVERRIDE_MFGUID BOARD_OVERRIDE_UUID
+#define BOARD_OVERRIDE_UUID "RPIID00000000000" // must be of length 16
+#define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_RPI
 
 #define BOARD_NAME "RPI"
 
@@ -53,7 +53,7 @@
 #define BOARD_HAS_NO_RESET
 #define BOARD_HAS_NO_BOOTLOADER
 
-#define BOARD_MAX_LEDS 1 // Number external of LED's this board has
+#define BOARD_MAX_LEDS 1 // Number of external LED's this board has
 
 /*
  * I2C busses

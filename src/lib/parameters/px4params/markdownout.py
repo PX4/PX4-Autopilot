@@ -4,20 +4,10 @@ import codecs
 class MarkdownTablesOutput():
     def __init__(self, groups):
         result = ("# Parameter Reference\n"
-                  "> **Note** **This list is auto-generated from the source code** and contains the most recent parameter documentation.\n"
+                  "> **Note** **This list is auto-generated from the source code** (using `make parameters_metadata`) and contains the most recent parameter documentation.\n"
                   "\n")
         for group in groups:
             result += '## %s\n\n' % group.GetName()
-            
-            #Check if scope (module where parameter is defined) is the same for all parameters in the group. 
-            # If so then display just once about the table. 
-            scope_set = set()
-            for param in group.GetParams():
-                scope_set.add(param.GetFieldValue("scope"))
-            if len(scope_set)==1:
-                result+='\nThe module where these parameters are defined is: *%s*.\n\n' %  list(scope_set)[0]
-            
-            
             result += '<table style="width: 100%; table-layout:fixed; font-size:1.5rem; overflow: auto; display:block;">\n'
             result += ' <colgroup><col style="width: 23%"><col style="width: 46%"><col style="width: 11%"><col style="width: 11%"><col style="width: 9%"></colgroup>\n'
             result += ' <thead>\n'
@@ -63,13 +53,6 @@ class MarkdownTablesOutput():
 
                 if reboot_required:
                     reboot_required='<p><b>Reboot required:</b> %s</p>\n' % reboot_required
-                
-                scope=''
-                if not len(scope_set)==1 or len(scope_set)==0:
-                    scope = param.GetFieldValue("scope") or ''
-                    if scope:
-                        scope='<p><b>Module:</b> %s</p>\n' % scope
-
 
                 enum_codes=param.GetEnumCodes() or '' # Gets numerical values for parameter.
                 enum_output=''
@@ -93,7 +76,7 @@ class MarkdownTablesOutput():
                     bitmask_output+='</ul>\n'
 
                     
-                result += '<tr>\n <td style="vertical-align: top;">%s (%s)</td>\n <td style="vertical-align: top;"><p>%s</p>%s %s %s %s %s</td>\n <td style="vertical-align: top;">%s</td>\n <td style="vertical-align: top;">%s </td>\n <td style="vertical-align: top;">%s</td>\n</tr>\n' % (code,type,name, long_desc, enum_output, bitmask_output, reboot_required, scope, max_min_combined,def_val,unit)
+                result += '<tr>\n <td style="vertical-align: top;">%s (%s)</td>\n <td style="vertical-align: top;"><p>%s</p>%s %s %s %s</td>\n <td style="vertical-align: top;">%s</td>\n <td style="vertical-align: top;">%s </td>\n <td style="vertical-align: top;">%s</td>\n</tr>\n' % (code, type, name, long_desc, enum_output, bitmask_output, reboot_required, max_min_combined, def_val, unit)
 
             #Close the table.
             result += '</tbody></table>\n\n'

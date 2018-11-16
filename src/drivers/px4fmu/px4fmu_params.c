@@ -32,163 +32,24 @@
  ****************************************************************************/
 
 /**
- * Invert direction of aux output channel 1
+ * Motor Ordering
  *
- * Enable to invert the channel.
+ * Determines the motor ordering. This can be used for example in combination with
+ * a 4-in-1 ESC that assumes a motor ordering which is different from PX4.
  *
- * @boolean
+ * ONLY supported for Quads.
+ * ONLY supported for fmu output (Pixracer or Omnibus F4).
+ *
+ * When changing this, make sure to test the motor response without props first.
+ *
+ * @value 0 PX4
+ * @value 1 Betaflight / Cleanflight
+ *
+ * @min 0
+ * @max 1
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_AUX_REV1, 0);
-
-/**
- * Invert direction of aux output channel 2
- *
- * Enable to invert the channel.
- *
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_AUX_REV2, 0);
-
-/**
- * Invert direction of aux output channel 3
- *
- * Enable to invert the channel.
- *
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_AUX_REV3, 0);
-
-/**
- * Invert direction of aux output channel 4
- *
- * Enable to invert the channel.
- *
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_AUX_REV4, 0);
-
-/**
- * Invert direction of aux output channel 5
- *
- * Enable to invert the channel.
- *
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_AUX_REV5, 0);
-
-/**
- * Invert direction of aux output channel 6
- *
- * Enable to invert the channel.
- *
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_AUX_REV6, 0);
-
-/**
- * Trim value for FMU PWM output channel 1
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_AUX_TRIM1, 0);
-
-/**
- * Trim value for FMU PWM output channel 2
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_AUX_TRIM2, 0);
-
-/**
- * Trim value for FMU PWM output channel 3
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_AUX_TRIM3, 0);
-
-/**
- * Trim value for FMU PWM output channel 4
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_AUX_TRIM4, 0);
-
-/**
- * Trim value for FMU PWM output channel 5
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_AUX_TRIM5, 0);
-
-/**
- * Trim value for FMU PWM output channel 6
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_AUX_TRIM6, 0);
-
-/**
- * Thrust to PWM model parameter
- *
- * Parameter used to model the relationship between static thrust and motor
- * input PWM. Model is: thrust = (1-factor)*PWM + factor * PWM^2
- *
- * @min 0.0
- * @max 1.0
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(THR_MDL_FAC, 0.0f);
-
-/**
- * Minimum motor rise time (slew rate limit).
- *
- * Minimum time allowed for the motor input signal to pass through
- * a range of 1000 PWM units. A value x means that the motor signal
- * can only go from 1000 to 2000 PWM in maximum x seconds.
- *
- * Zero means that slew rate limiting is disabled.
- *
- * @min 0.0
- * @unit s/(1000*PWM)
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(MOT_SLEW_MAX, 0.0f);
+PARAM_DEFINE_INT32(MOT_ORDERING, 0);
 
 /**
  * Run the FMU as a task to reduce latency
@@ -204,4 +65,4 @@ PARAM_DEFINE_FLOAT(MOT_SLEW_MAX, 0.0f);
  * @reboot_required true
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_FMU_TASK, 0);
+PARAM_DEFINE_INT32(SYS_FMU_TASK, 1);

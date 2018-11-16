@@ -432,7 +432,7 @@ int DfMPU6050Wrapper::_publish(struct imu_sensor_data &data)
 	uint64_t now = hrt_absolute_time();
 
 	matrix::Vector3f vec_integrated_unused;
-	uint64_t integral_dt_unused;
+	uint32_t integral_dt_unused;
 
 	matrix::Vector3f accel_val(data.accel_m_s2_x, data.accel_m_s2_y, data.accel_m_s2_z);
 
@@ -488,18 +488,16 @@ int DfMPU6050Wrapper::_publish(struct imu_sensor_data &data)
 
 	perf_begin(_publish_perf);
 
-	accel_report accel_report = {};
-	gyro_report gyro_report = {};
+	sensor_accel_s accel_report = {};
+	sensor_gyro_s gyro_report = {};
 
 	accel_report.timestamp = gyro_report.timestamp = hrt_absolute_time();
 
 	// TODO: get these right
 	gyro_report.scaling = -1.0f;
-	gyro_report.range_rad_s = -1.0f;
 	gyro_report.device_id = m_id.dev_id;
 
 	accel_report.scaling = -1.0f;
-	accel_report.range_m_s2 = -1.0f;
 	accel_report.device_id = m_id.dev_id;
 
 	// TODO: remove these (or get the values)

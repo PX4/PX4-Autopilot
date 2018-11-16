@@ -52,27 +52,24 @@
 #include <string.h>
 #include <fcntl.h>
 #include <poll.h>
-#include <errno.h>
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
 #include <vector>
 
 #include <perf/perf_counter.h>
-#include <systemlib/err.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
 #include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/distance_sensor.h>
 
 #include <board_config.h>
 
 /* Configuration Constants */
-#define SRF02_BUS 		PX4_I2C_BUS_EXPANSION
+#define SRF02_BUS_DEFAULT		PX4_I2C_BUS_EXPANSION
 #define SRF02_BASEADDR 	0x70 /* 7-bit address. 8-bit address is 0xE0 */
 #define SRF02_DEVICE_PATH	"/dev/srf02"
 
@@ -97,7 +94,7 @@
 class SRF02 : public device::I2C
 {
 public:
-	SRF02(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING, int bus = SRF02_BUS,
+	SRF02(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING, int bus = SRF02_BUS_DEFAULT,
 	      int address = SRF02_BASEADDR);
 	virtual ~SRF02();
 
@@ -118,7 +115,7 @@ private:
 	uint8_t _rotation;
 	float				_min_distance;
 	float				_max_distance;
-	work_s				_work;
+	work_s				_work{};
 	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
 	int				_measure_ticks;
@@ -213,11 +210,6 @@ SRF02::SRF02(uint8_t rotation, int bus, int address) :
 	_index_counter(0) 	/* initialising temp sonar i2c address to zero */
 
 {
-	/* enable debug() calls */
-	_debug_enabled = false;
-
-	/* work_cancel in the dtor will explode if we don't do this... */
-	memset(&_work, 0, sizeof(_work));
 }
 
 SRF02::~SRF02()
@@ -268,7 +260,7 @@ SRF02::init()
 				 &_orb_class_instance, ORB_PRIO_LOW);
 
 	if (_distance_sensor_topic == nullptr) {
-		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+		PX4_ERR("failed to create distance_sensor object");
 	}
 
 	// XXX we should find out why we need to wait 200 ms here
@@ -284,7 +276,7 @@ SRF02::init()
 
 		if (ret2 == 0) { /* sonar is present -> store address_index in array */
 			addr_ind.push_back(_index_counter);
-			DEVICE_DEBUG("sonar added");
+			PX4_DEBUG("sonar added");
 			_latest_sonar_measurements.push_back(200);
 		}
 	}
@@ -302,10 +294,10 @@ SRF02::init()
 
 	/* show the connected sonars in terminal */
 	for (unsigned i = 0; i < addr_ind.size(); i++) {
-		DEVICE_LOG("sonar %d with address %d added", (i + 1), addr_ind[i]);
+		PX4_DEBUG("sonar %d with address %d added", (i + 1), addr_ind[i]);
 	}
 
-	DEVICE_DEBUG("Number of sonars connected: %zu", addr_ind.size());
+	PX4_DEBUG("Number of sonars connected: %zu", addr_ind.size());
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
@@ -352,21 +344,11 @@ SRF02::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -408,35 +390,6 @@ SRF02::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				}
 			}
 		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (1000 / _measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			ATOMIC_ENTER;
-
-			if (!_reports->resize(arg)) {
-				ATOMIC_LEAVE;
-				return -ENOMEM;
-			}
-
-			ATOMIC_LEAVE;
-
-			return OK;
-		}
-
-	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
 
 	default:
 		/* give it to the superclass */
@@ -522,7 +475,7 @@ SRF02::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		DEVICE_DEBUG("i2c::transfer returned %d", ret);
+		PX4_DEBUG("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -545,7 +498,7 @@ SRF02::collect()
 	ret = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret < 0) {
-		DEVICE_DEBUG("error reading from sensor: %d", ret);
+		PX4_DEBUG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
@@ -562,6 +515,7 @@ SRF02::collect()
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
 	report.covariance = 0.0f;
+	report.signal_quality = -1;
 	/* TODO: set proper ID */
 	report.id = 0;
 
@@ -591,24 +545,6 @@ SRF02::start()
 
 	/* schedule a cycle to start things */
 	work_queue(HPWORK, &_work, (worker_t)&SRF02::cycle_trampoline, this, 5);
-
-	/* notify about state change */
-	struct subsystem_info_s info = {};
-	info.present = true;
-	info.enabled = true;
-	info.ok = true;
-	info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_RANGEFINDER;
-
-	static orb_advert_t pub = nullptr;
-
-	if (pub != nullptr) {
-		orb_publish(ORB_ID(subsystem_info), pub, &info);
-
-
-	} else {
-		pub = orb_advertise(ORB_ID(subsystem_info), &info);
-
-	}
 }
 
 void
@@ -636,7 +572,7 @@ SRF02::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			DEVICE_DEBUG("collection error");
+			PX4_DEBUG("collection error");
 			/* if error restart the measurement state machine */
 			start();
 			return;
@@ -675,7 +611,7 @@ SRF02::cycle()
 
 	/* Perform measurement */
 	if (OK != measure()) {
-		DEVICE_DEBUG("measure error sonar adress %d", _index_counter);
+		PX4_DEBUG("measure error sonar adress %d", _index_counter);
 	}
 
 	/* next phase is collection */
@@ -707,26 +643,57 @@ namespace srf02
 
 SRF02	*g_dev;
 
-void	start(uint8_t rotation);
-void	stop();
-void	test();
-void	reset();
-void	info();
+int 	start(uint8_t rotation);
+int 	start_bus(uint8_t rotation, int i2c_bus);
+int 	stop();
+int 	test();
+int 	reset();
+int 	info();
 
 /**
- * Start the driver.
+ *
+ * Attempt to start driver on all available I2C busses.
+ *
+ * This function will return as soon as the first sensor
+ * is detected on one of the available busses or if no
+ * sensors are detected.
+ *
  */
-void
+int
 start(uint8_t rotation)
 {
-	int fd;
+	if (g_dev != nullptr) {
+		PX4_ERR("already started");
+		return PX4_ERROR;
+	}
+
+	for (unsigned i = 0; i < NUM_I2C_BUS_OPTIONS; i++) {
+		if (start_bus(rotation, i2c_bus_options[i]) == PX4_OK) {
+			return PX4_OK;
+		}
+	}
+
+	return PX4_ERROR;
+}
+
+/**
+ * Start the driver on a specific bus.
+ *
+ * This function only returns if the sensor is up and running
+ * or could not be detected successfully.
+ */
+int
+start_bus(uint8_t rotation, int i2c_bus)
+{
+	int fd = -1;
 
 	if (g_dev != nullptr) {
-		errx(1, "already started");
+		PX4_ERR("already started");
+		return PX4_ERROR;
 	}
 
 	/* create the driver */
-	g_dev = new SRF02(rotation, SRF02_BUS);
+	g_dev = new SRF02(rotation, i2c_bus);
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -737,7 +704,7 @@ start(uint8_t rotation)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(SRF02_DEVICE_PATH, O_RDONLY);
+	fd = px4_open(SRF02_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
@@ -747,32 +714,39 @@ start(uint8_t rotation)
 		goto fail;
 	}
 
-	exit(0);
+	px4_close(fd);
+	return PX4_OK;
 
 fail:
+
+	if (fd >= 0) {
+		px4_close(fd);
+	}
 
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	return PX4_ERROR;
 }
 
 /**
  * Stop the driver
  */
-void stop()
+int
+stop()
 {
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
 
 	} else {
-		errx(1, "driver not running");
+		PX4_ERR("driver not running");
+		return PX4_ERROR;
 	}
 
-	exit(0);
+	return PX4_OK;
 }
 
 /**
@@ -780,31 +754,34 @@ void stop()
  * make sure we can collect data from the sensor in polled
  * and automatic modes.
  */
-void
+int
 test()
 {
 	struct distance_sensor_s report;
 	ssize_t sz;
 	int ret;
 
-	int fd = open(SRF02_DEVICE_PATH, O_RDONLY);
+	int fd = px4_open(SRF02_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'srf02 start' if the driver is not running", SRF02_DEVICE_PATH);
+		PX4_ERR("%s open failed (try 'srf02 start' if the driver is not running)", SRF02_DEVICE_PATH);
+		return PX4_ERROR;
 	}
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		err(1, "immediate read failed");
+		PX4_ERR("immediate read failed");
+		return PX4_ERROR;
 	}
 
 	print_message(report);
 
 	/* start the sensor polling at 2Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
+		PX4_ERR("failed to set 2Hz poll rate");
+		return PX4_ERROR;
 	}
 
 	/* read the sensor 5x and report each value */
@@ -817,14 +794,16 @@ test()
 		ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			errx(1, "timed out waiting for sensor data");
+			PX4_ERR("timed out waiting for sensor data");
+			return PX4_ERROR;
 		}
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			err(1, "periodic read failed");
+			PX4_ERR("periodic read failed");
+			return PX4_ERROR;
 		}
 
 		print_message(report);
@@ -832,110 +811,149 @@ test()
 
 	/* reset the sensor polling to default rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		errx(1, "failed to set default poll rate");
+		PX4_ERR("failed to set default poll rate");
+		return PX4_ERROR;
 	}
 
-	errx(0, "PASS");
+	PX4_INFO("PASS");
+	return PX4_OK;
 }
 
 /**
  * Reset the driver.
  */
-void
+int
 reset()
 {
-	int fd = open(SRF02_DEVICE_PATH, O_RDONLY);
+	int fd = px4_open(SRF02_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "failed ");
+		PX4_ERR("failed");
+		return PX4_ERROR;
 	}
 
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
+		PX4_ERR("driver reset failed");
+		return PX4_ERROR;
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
+		PX4_ERR("driver poll restart failed");
+		return PX4_ERROR;
 	}
 
-	exit(0);
+	px4_close(fd);
+	return PX4_OK;
 }
 
 /**
  * Print a little info about the driver.
  */
-void
+int
 info()
 {
 	if (g_dev == nullptr) {
-		errx(1, "driver not running");
+		PX4_ERR("driver not running");
+		return PX4_ERROR;
 	}
 
 	printf("state @ %p\n", g_dev);
 	g_dev->print_info();
 
-	exit(0);
+	return PX4_OK;
 }
 
 } /* namespace */
 
+
+static void
+srf02_usage()
+{
+	PX4_INFO("usage: srf02 command [options]");
+	PX4_INFO("options:");
+	PX4_INFO("\t-b --bus i2cbus (%d)", SRF02_BUS_DEFAULT);
+	PX4_INFO("\t-a --all");
+	PX4_INFO("\t-R --rotation (%d)", distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	PX4_INFO("command:");
+	PX4_INFO("\tstart|stop|test|reset|info");
+}
+
 int
 srf02_main(int argc, char *argv[])
 {
-	// check for optional arguments
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	bool start_all = false;
 
+	int i2c_bus = SRF02_BUS_DEFAULT;
 
-	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "ab:R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
 			rotation = (uint8_t)atoi(myoptarg);
-			PX4_INFO("Setting distance sensor orientation to %d", (int)rotation);
+			break;
+
+		case 'b':
+			i2c_bus = atoi(myoptarg);
+			break;
+
+		case 'a':
+			start_all = true;
 			break;
 
 		default:
 			PX4_WARN("Unknown option!");
+			goto out_error;
 		}
+	}
+
+	if (myoptind >= argc) {
+		goto out_error;
 	}
 
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		srf02::start(rotation);
+		if (start_all) {
+			return srf02::start(rotation);
+
+		} else {
+			return srf02::start_bus(rotation, i2c_bus);
+		}
 	}
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[myoptind], "stop")) {
-		srf02::stop();
+		return srf02::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[myoptind], "test")) {
-		srf02::test();
+		return srf02::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[myoptind], "reset")) {
-		srf02::reset();
+		return srf02::reset();
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
-		srf02::info();
+		return srf02::info();
 	}
 
-	PX4_ERR("unrecognized command, try 'start', 'test', 'reset' or 'info'");
+out_error:
+	srf02_usage();
 	return PX4_ERROR;
 }

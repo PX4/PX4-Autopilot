@@ -42,6 +42,7 @@
 
 #include <stdint.h>
 #include <sys/ioctl.h>
+#include <uORB/topics/input_rc.h>
 
 #include "drv_orb_dev.h"
 
@@ -76,9 +77,6 @@
  * Maximum deadzone value
  */
 #define RC_INPUT_MAX_DEADZONE_US	500
-
-#include <uORB/topics/input_rc.h>
-#define rc_input_values input_rc_s
 
 /**
  * Input signal type, value is a control position from zero to 100

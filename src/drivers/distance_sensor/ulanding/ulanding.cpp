@@ -99,7 +99,7 @@ namespace ulanding
 
 extern "C" __EXPORT int ulanding_radar_main(int argc, char *argv[]);
 
-class Radar : public device::CDev
+class Radar : public cdev::CDev
 {
 public:
 	Radar(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING, const char *port = RADAR_DEFAULT_PORT);
@@ -120,7 +120,7 @@ private:
 
 	unsigned 	_head;
 	unsigned 	_tail;
-	uint8_t 	_buf[BUF_LEN];
+	uint8_t 	_buf[BUF_LEN] {};
 
 	static int task_main_trampoline(int argc, char *argv[]);
 	void task_main();
@@ -136,7 +136,7 @@ Radar	*g_dev;
 }
 
 Radar::Radar(uint8_t rotation, const char *port) :
-	CDev("Radar", RANGE_FINDER0_DEVICE_PATH),
+	CDev(RANGE_FINDER0_DEVICE_PATH),
 	_rotation(rotation),
 	_task_should_exit(false),
 	_task_handle(-1),
@@ -151,11 +151,6 @@ Radar::Radar(uint8_t rotation, const char *port) :
 	strncpy(_port, port, sizeof(_port));
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
-
-	// disable debug() calls
-	_debug_enabled = false;
-
-	memset(&_buf[0], 0, sizeof(_buf));
 }
 
 Radar::~Radar()
@@ -289,7 +284,7 @@ Radar::init()
 					 &_orb_class_instance, ORB_PRIO_HIGH);
 
 		if (_distance_sensor_topic == nullptr) {
-			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+			PX4_ERR("failed to create distance_sensor object");
 			ret = 1;
 			break;
 		}
@@ -312,7 +307,7 @@ Radar::start()
 	ASSERT(_task_handle == -1);
 
 	/* start the task */
-	_task_handle = px4_task_spawn_cmd("radar",
+	_task_handle = px4_task_spawn_cmd("ulanding_radar",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_MAX - 30,
 					  800,

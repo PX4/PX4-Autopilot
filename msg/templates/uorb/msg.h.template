@@ -15,6 +15,7 @@
 @#  - md5sum (String) MD5Sum of the .msg specification
 @#  - search_path (dict) search paths for genmsg
 @#  - topics (List of String) multi-topic names
+@#  - ids (List) list of all RTPS msg ids
 @###############################################
 /****************************************************************************
  *
@@ -57,6 +58,7 @@ import gencpp
 from px_generate_uorb_topic_helper import * # this is in Tools/
 
 uorb_struct = '%s_s'%spec.short_name
+uorb_struct_upper = spec.short_name.upper()
 topic_name = spec.short_name
 }@
 
@@ -83,7 +85,7 @@ for field in spec.parsed_fields():
 @# Constants c style
 #ifndef __cplusplus
 @[for constant in spec.constants]@
-#define @(constant.name) @(int(constant.val))
+#define @(uorb_struct_upper)_@(constant.name) @(int(constant.val))
 @[end for]
 #endif
 
@@ -109,8 +111,6 @@ struct __EXPORT @(uorb_struct) {
 #else
 struct @(uorb_struct) {
 #endif
-@# timestamp at the beginning of each topic is required for logger
-	uint64_t timestamp; // required for logger
 @print_parsed_fields()
 
 #ifdef __cplusplus

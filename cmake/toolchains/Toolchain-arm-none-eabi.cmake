@@ -7,7 +7,6 @@
 # C_COMPILER
 # CMAKE_SYSTEM_NAME
 # CMAKE_SYSTEM_VERSION
-# GENROMFS
 # LINKER_FLAGS
 # CMAKE_EXE_LINKER_FLAGS
 # CMAKE_FIND_ROOT_PATH
@@ -54,31 +53,13 @@ foreach(tool gdb gdbtui)
 	endif()
 endforeach()
 
-# os tools
-foreach(tool echo patch grep rm mkdir nm genromfs cp touch make unzip)
-	string(TOUPPER ${tool} TOOL)
-	find_program(${TOOL} ${tool})
-	if(NOT ${TOOL})
-		message(FATAL_ERROR "could not find ${tool}")
-	endif()
-endforeach()
-
-# optional os tools
-foreach(tool ddd)
-	string(TOUPPER ${tool} TOOL)
-	find_program(${TOOL} ${tool})
-	if(NOT ${TOOL})
-		#message(STATUS "could not find ${tool}")
-	endif()
-endforeach()
-
 set(cpu_flags)
 if (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m7")
-	set(cpu_flags "-mcpu=cortex-m7 -mthumb -mfpu=fpv5-sp-d16 -mfloat-abi=hard")
+	set(cpu_flags "-mcpu=cortex-m7 -mthumb -mfpu=fpv5-d16 -mfloat-abi=hard")
 elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m4")
-	set(cpu_flags "-mcpu=cortex-m4 -mthumb -march=armv7e-m -mfpu=fpv4-sp-d16 -mfloat-abi=hard")
+	set(cpu_flags "-mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard")
 elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "cortex-m3")
-	set(cpu_flags "-mcpu=cortex-m3 -mthumb -march=armv7-m")
+	set(cpu_flags "-mcpu=cortex-m3 -mthumb")
 else ()
 	message(FATAL_ERROR "Processor not recognised in toolchain file")
 endif()

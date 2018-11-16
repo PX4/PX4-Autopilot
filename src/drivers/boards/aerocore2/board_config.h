@@ -62,9 +62,6 @@
 
 #define BOARD_HAS_CONTROL_STATUS_LEDS	1
 
-/* GPS */
-#define GPS_DEFAULT_UART_PORT	"/dev/ttyS0"
-
 /* Power muxes */
 /* LOW=battery HIGH=USB */
 #define GPIO_POWER_MUX_SENSE	(GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN5)
@@ -186,8 +183,7 @@
 /* spektrum satellite receiver input */
 #define GPIO_SPEKTRUM_PWR_EN	(GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN15)
 #define SPEKTRUM_POWER(_on_true)	px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (_on_true))
-#define RC_SERIAL_PORT		"/dev/ttyS4"
-#define INVERT_RC_INPUT(_s)	while(0)
+#define RC_SERIAL_PORT		"/dev/ttyS4" /* No HW invert support */
 #define GPIO_PPM_IN		0
 #define GPIO_RC_OUT		0
 #define SPEKTRUM_RX_AS_GPIO_OUTPUT()	px4_arch_configgpio(GPIO_RC_OUT)

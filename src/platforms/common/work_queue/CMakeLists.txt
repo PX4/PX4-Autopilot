@@ -50,6 +50,7 @@ if (NOT "${OS}" MATCHES "nuttx")
 		work_queue.c
 		work_thread.c
 	)
+	target_compile_definitions(work_queue PRIVATE MODULE_NAME="work_queue")
 	add_dependencies(work_queue prebuild_targets)
 
 endif()

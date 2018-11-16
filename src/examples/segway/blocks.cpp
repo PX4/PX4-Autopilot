@@ -39,6 +39,9 @@
 
 #include "blocks.hpp"
 #include <lib/ecl/geo/geo.h>
+#include <matrix/math.hpp>
+
+using matrix::wrap_2pi;
 
 namespace control
 {
@@ -50,8 +53,6 @@ BlockWaypointGuidance::BlockWaypointGuidance(SuperBlock *parent, const char *nam
 	_psiCmd(0)
 {
 }
-
-BlockWaypointGuidance::~BlockWaypointGuidance() = default;;
 
 void BlockWaypointGuidance::update(
 	const vehicle_global_position_s &pos,
@@ -77,8 +78,8 @@ void BlockWaypointGuidance::update(
 			     missionCmd.lat,
 			     missionCmd.lon);
 
-	_psiCmd = _wrap_2pi(psiTrack -
-			    _xtYawLimit.update(_xt2Yaw.update(xtrackError.distance)));
+	_psiCmd = wrap_2pi(psiTrack -
+			   _xtYawLimit.update(_xt2Yaw.update(xtrackError.distance)));
 }
 
 BlockUorbEnabledAutopilot::BlockUorbEnabledAutopilot(SuperBlock *parent, const char *name) :

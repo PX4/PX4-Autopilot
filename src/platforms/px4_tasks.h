@@ -114,9 +114,9 @@ typedef struct {
 // which typically runs at a slower rate
 #define SCHED_PRIORITY_ATTITUDE_CONTROL		(SCHED_PRIORITY_MAX - 4)
 
-// Actuator outputs should run before right after the attitude controller
-// updated
-#define SCHED_PRIORITY_ACTUATOR_OUTPUTS		(SCHED_PRIORITY_MAX - 4)
+// Actuator outputs should run as soon as the rate controller publishes
+// the actuator controls topic
+#define SCHED_PRIORITY_ACTUATOR_OUTPUTS		(SCHED_PRIORITY_MAX - 3)
 
 // Position controllers typically are in a blocking wait on estimator data
 // so when new sensor data is available they will run last. Keeping them

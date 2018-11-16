@@ -31,8 +31,7 @@
  *
  ****************************************************************************/
 
-#ifndef DRIVERS_PWM_OUT_SIM_PWMSIM_HPP_
-#define DRIVERS_PWM_OUT_SIM_PWMSIM_HPP_
+#pragma once
 
 #include <string.h>
 
@@ -53,7 +52,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_control_mode.h>
 
-class PWMSim : public device::CDev, public ModuleBase<PWMSim>
+class PWMSim : public cdev::CDev, public ModuleBase<PWMSim>
 {
 	static constexpr uint32_t PWM_SIM_DISARMED_MAGIC = 900;
 	static constexpr uint32_t PWM_SIM_FAILSAFE_MAGIC = 600;
@@ -105,7 +104,7 @@ private:
 	int 		_update_rate{400};
 	int 		_current_update_rate{0};
 
-	int			_control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {};
+	int			_control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
 	px4_pollfd_struct_t	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {};
 	unsigned	_poll_fds_num{0};
@@ -145,4 +144,3 @@ private:
 	void 	update_params();
 };
 
-#endif /* DRIVERS_PWM_OUT_SIM_PWMSIM_HPP_ */

@@ -40,6 +40,7 @@
 #include "mixer.h"
 
 #include <cfloat>
+#include <cstring>
 
 #include <mathlib/mathlib.h>
 

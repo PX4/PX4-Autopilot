@@ -246,11 +246,7 @@ static px4_sem_t g_sys_state_mutex_mission;
 static px4_sem_t g_sys_state_mutex_fence;
 
 /* The data manager store file handle and file name */
-#if defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR)
-static const char *default_device_path = PX4_ROOTFSDIR"/dataman";
-#else
-static const char *default_device_path = PX4_ROOTFSDIR"/fs/microsd/dataman";
-#endif
+static const char *default_device_path = PX4_STORAGEDIR "/dataman";
 static char *k_data_manager_device_path = nullptr;
 
 #if defined(FLASH_BASED_DATAMAN)
@@ -808,7 +804,7 @@ static int  _ram_restart(dm_reset_reason reason)
 static int
 _file_restart(dm_reset_reason reason)
 {
-	unsigned offset = 0;
+	int offset = 0;
 	int result = 0;
 	/* We need to scan the entire file and invalidate and data that should not persist after the last reset */
 
@@ -1031,7 +1027,7 @@ _ram_flash_flush()
 		return;
 	}
 
-	const size_t len = (dm_operations_data.ram_flash.data_end - dm_operations_data.ram_flash.data) + 1;
+	const ssize_t len = (dm_operations_data.ram_flash.data_end - dm_operations_data.ram_flash.data) + 1;
 	ret = up_progmem_write(k_dataman_flash_sector->address, dm_operations_data.ram_flash.data, len);
 
 	if (ret < len) {

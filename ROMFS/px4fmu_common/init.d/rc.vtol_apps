@@ -1,14 +1,14 @@
 #!nsh
 #
-# Standard apps for vtol:
-# att & pos estimator, att & pos control.
+# Standard apps for vtol: Attitude/Position estimator, Attitude/Position control.
 #
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
+###############################################################################
+#                       Begin Estimator group selection                       #
+###############################################################################
 
-#---------------------------------------
-# Estimator group selction
-#
 # INAV (deprecated)
 if param compare SYS_MC_EST_GROUP 0
 then
@@ -37,7 +37,10 @@ if param compare SYS_MC_EST_GROUP 2
 then
 	ekf2 start
 fi
-#---------------------------------------
+
+###############################################################################
+#                        End Estimator group selection                        #
+###############################################################################
 
 
 vtol_att_control start
@@ -52,7 +55,3 @@ fw_pos_control_l1 start
 #
 land_detector start vtol
 
-#
-# Start Wind and Airspeed Scale Estimator
-#
-#wind_estimator start

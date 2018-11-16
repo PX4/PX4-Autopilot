@@ -117,17 +117,9 @@
  */
 
 /*
- * GPS
- */
-#define GPS_DEFAULT_UART_PORT	"/dev/ttyS5"
-
-/*
  * RC Serial port
  */
-#define RC_SERIAL_PORT		"/dev/ttyS2"
-/* No invert support */
-#define INVERT_RC_INPUT(_invert_true)		while(0)
-
+#define RC_SERIAL_PORT		"/dev/ttyS2" /* No HW invert support */
 /*
  * High-resolution timer
  */

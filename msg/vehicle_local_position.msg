@@ -1,5 +1,7 @@
 # Fused local position in NED.
 
+uint64 timestamp			# time since system start (microseconds)
+
 bool xy_valid				# true if x and y are valid
 bool z_valid				# true if z is valid
 bool v_xy_valid				# true if vy and vy are valid
@@ -35,7 +37,7 @@ float32 ay        # East velocity derivative in NED earth-fixed frame, (metres/s
 float32 az        # Down velocity derivative in NED earth-fixed frame, (metres/sec^2)
 
 # Heading
-float32 yaw				# Euler yaw angle transforming the tangent plane relative to NED earth-fixed frame, -PI..+PI,  (radians) 
+float32 yaw				# Euler yaw angle transforming the tangent plane relative to NED earth-fixed frame, -PI..+PI,  (radians)
 
 # Position of reference point (local NED frame origin) in global (GPS / WGS84) frame
 bool xy_global				# true if position (x, y) has a valid global reference (ref_lat, ref_lon)
@@ -56,7 +58,9 @@ float32 evh				# Standard deviation of horizontal velocity error, (metres/sec)
 float32 evv				# Standard deviation of horizontal velocity error, (metres/sec)
 
 # estimator specified vehicle limits
-float32 vxy_max				# maximum horizontal speed - set to 0 when not applicable (metres/sec)
-bool limit_hagl				# true when the height above ground needs to be limited to observe optical flow focus and range finder limits
+float32 vxy_max				# maximum horizontal speed - set to 0 when limiting not required (meters/sec)
+float32 vz_max				# maximum vertical speed - set to 0 when limiting not required (meters/sec)
+float32 hagl_min			# minimum height above ground level - set to 0 when limiting not required (meters)
+float32 hagl_max			# maximum height above ground level - set to 0 when limiting not required (meters)
 
-# TOPICS vehicle_local_position vehicle_local_position_groundtruth vehicle_vision_position
+# TOPICS vehicle_local_position vehicle_local_position_groundtruth

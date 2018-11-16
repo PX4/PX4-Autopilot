@@ -47,7 +47,7 @@
 #include <mathlib/mathlib.h>
 
 #include <uORB/topics/rc_parameter_map.h>
-
+#include <uORB/topics/input_rc.h>
 
 namespace sensors
 {
@@ -143,6 +143,7 @@ struct Parameters {
 	float battery_v_div;
 	float battery_a_per_v;
 	int32_t battery_source;
+	int32_t battery_adc_channel;
 
 	float baro_qnh;
 
@@ -223,6 +224,7 @@ struct ParameterHandles {
 	param_t battery_v_div;
 	param_t battery_a_per_v;
 	param_t battery_source;
+	param_t battery_adc_channel;
 
 	param_t board_rotation;
 

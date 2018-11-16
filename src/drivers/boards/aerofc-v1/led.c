@@ -33,9 +33,9 @@
  ****************************************************************************/
 
 /**
- * @file tap-v1_led.c
+ * @file led.c
  *
- * TAP_V1 LED backend.
+ * AEROFC_V1 LED backend.
  */
 
 #include <px4_config.h>

@@ -130,11 +130,6 @@ union udid {
 
 __BEGIN_DECLS
 
-/**
- *   s
- */
-//__EXPORT float calc_indicated_airspeed(float differential_pressure);
-
 __EXPORT void F_unlock(void);
 __EXPORT void F_lock(void);
 __EXPORT int val_read(void *dest, volatile const void *src, int bytes);

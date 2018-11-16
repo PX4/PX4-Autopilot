@@ -40,10 +40,11 @@
 
 #pragma once
 
-#include <mathlib/mathlib.h>
-
 #include "navigator_mode.h"
 #include "mission_block.h"
+
+#include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 
 #include <px4_module_params.h>
 #include <uORB/topics/follow_target.h>

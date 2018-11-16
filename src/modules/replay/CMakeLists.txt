@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE modules__replay
 	MAIN replay
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
 	STACK_MAIN 1000
 	STACK_MAX 4000
 	SRCS

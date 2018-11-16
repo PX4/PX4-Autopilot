@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,105 +34,180 @@
 /**
  * @file PositionControl.hpp
  *
- * @inputs: position-, velocity-, acceleration-, thrust-setpoints
- * @outputs: thrust vector
- *
+ * A cascaded position controller for position/velocity control only.
  */
 
 #include <matrix/matrix/math.hpp>
 
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <parameters/param.h>
-
+#include <uORB/topics/vehicle_constraints.h>
+#include <px4_module_params.h>
 #pragma once
 
-/* Constraints based on mode:
- * Eventually this structure should be part of local position message
- */
-namespace Controller
-{
-struct Constraints {
-	float tilt_max;
+struct PositionControlStates {
+	matrix::Vector3f position;
+	matrix::Vector3f velocity;
+	matrix::Vector3f acceleration;
+	float yaw;
 };
-}
 
-class PositionControl
+/**
+ * 	Core Position-Control for MC.
+ * 	This class contains P-controller for position and
+ * 	PID-controller for velocity.
+ * 	Inputs:
+ * 		vehicle position/velocity/yaw
+ * 		desired set-point position/velocity/thrust/yaw/yaw-speed
+ * 		constraints that are stricter than global limits
+ * 	Output
+ * 		thrust vector and a yaw-setpoint
+ *
+ * 	If there is a position and a velocity set-point present, then
+ * 	the velocity set-point is used as feed-forward. If feed-forward is
+ * 	active, then the velocity component of the P-controller output has
+ * 	priority over the feed-forward component.
+ *
+ * 	A setpoint that is NAN is considered as not set.
+ */
+class PositionControl : public ModuleParams
 {
 public:
-	PositionControl();
 
-	~PositionControl() {};
+	PositionControl(ModuleParams *parent);
+	~PositionControl() = default;
 
-	void updateState(const struct vehicle_local_position_s state, const matrix::Vector3f &vel_dot);
-	void updateSetpoint(struct vehicle_local_position_setpoint_s setpoint);
-	void updateConstraints(const Controller::Constraints &constraints);
-	void generateThrustYawSetpoint(const float &dt);
+	/**
+	 *	Overwrites certain parameters.
+	 *	Overwrites are required for unit-conversion.
+	 *	This method should only be called if parameters
+	 *	have been updated.
+	 */
+	void overwriteParams();
 
-	matrix::Vector3f getThrustSetpoint() {return _thr_sp;}
-	float getYawSetpoint() { return _yaw_sp;}
-	float getYawspeedSetpoint() {return _yawspeed_sp;}
-	matrix::Vector3f getVelSp() {return _vel_sp;}
-	matrix::Vector3f getPosSp() {return _pos_sp;}
+	/**
+	 * Update the current vehicle state.
+	 * @param PositionControlStates structure
+	 */
+	void updateState(const PositionControlStates &states);
+
+	/**
+	 * Update the desired setpoints.
+	 * @param setpoint a vehicle_local_position_setpoint_s structure
+	 * @return true if setpoint has updated correctly
+	 */
+	bool updateSetpoint(const vehicle_local_position_setpoint_s &setpoint);
+
+	/**
+	 * Set constraints that are stricter than the global limits.
+	 * @param constraints a PositionControl structure with supported constraints
+	 */
+	void updateConstraints(const vehicle_constraints_s &constraints);
+
+	/**
+	 * Apply P-position and PID-velocity controller that updates the member
+	 * thrust, yaw- and yawspeed-setpoints.
+	 * @see _thr_sp
+	 * @see _yaw_sp
+	 * @see _yawspeed_sp
+	 * @param dt the delta-time
+	 */
+	void generateThrustYawSetpoint(const float dt);
+
+	/**
+	 * 	Set the integral term in xy to 0.
+	 * 	@see _thr_int
+	 */
+	void resetIntegralXY() { _thr_int(0) = _thr_int(1) = 0.0f; }
+
+	/**
+	 * 	Set the integral term in z to 0.
+	 * 	@see _thr_int
+	 */
+	void resetIntegralZ() { _thr_int(2) = 0.0f; }
+
+	/**
+	 * 	Get the
+	 * 	@see _thr_sp
+	 * 	@return The thrust set-point member.
+	 */
+	const matrix::Vector3f &getThrustSetpoint() { return _thr_sp; }
+
+	/**
+	 * 	Get the
+	 * 	@see _yaw_sp
+	 * 	@return The yaw set-point member.
+	 */
+	const float &getYawSetpoint() { return _yaw_sp; }
+
+	/**
+	 * 	Get the
+	 * 	@see _yawspeed_sp
+	 * 	@return The yawspeed set-point member.
+	 */
+	const float &getYawspeedSetpoint() { return _yawspeed_sp; }
+
+	/**
+	 * 	Get the
+	 * 	@see _vel_sp
+	 * 	@return The velocity set-point member.
+	 */
+	const matrix::Vector3f &getVelSp() { return _vel_sp; }
+
+	/**
+	 * 	Get the
+	 * 	@see _pos_sp
+	 * 	@return The position set-point member.
+	 */
+	const matrix::Vector3f &getPosSp() { return _pos_sp; }
+
+protected:
+
+	void updateParams() override;
 
 private:
+	/**
+	 * Maps setpoints to internal-setpoints.
+	 * @return true if mapping succeeded.
+	 */
+	bool _interfaceMapping();
 
-	/* States */
-	matrix::Vector3f _pos{};
-	matrix::Vector3f _vel{};
-	matrix::Vector3f _vel_dot{};
-	matrix::Vector3f _acc{};
-	float _yaw{0.0f};
+	void _positionController(); /** applies the P-position-controller */
+	void _velocityController(const float &dt); /** applies the PID-velocity-controller */
 
-	/* Setpoints */
-	matrix::Vector3f _pos_sp{};
-	matrix::Vector3f _vel_sp{};
-	matrix::Vector3f _acc_sp{};
-	matrix::Vector3f _thr_sp{};
-	float _yaw_sp{};
-	float _yawspeed_sp{};
+	matrix::Vector3f _pos{}; /**< MC position */
+	matrix::Vector3f _vel{}; /**< MC velocity */
+	matrix::Vector3f _vel_dot{}; /**< MC velocity derivative */
+	matrix::Vector3f _acc{}; /**< MC acceleration */
+	float _yaw{0.0f}; /**< MC yaw */
+	matrix::Vector3f _pos_sp{}; /**< desired position */
+	matrix::Vector3f _vel_sp{}; /**< desired velocity */
+	matrix::Vector3f _acc_sp{}; /**< desired acceleration: not supported yet */
+	matrix::Vector3f _thr_sp{}; /**< desired thrust */
+	float _yaw_sp{}; /**< desired yaw */
+	float _yawspeed_sp{}; /** desired yaw-speed */
+	matrix::Vector3f _thr_int{}; /**< thrust integral term */
+	vehicle_constraints_s _constraints{}; /**< variable constraints */
+	bool _skip_controller{false}; /**< skips position/velocity controller. true for stabilized mode */
 
-	/* Other variables */
-	matrix::Vector3f _thr_int{};
-	Controller::Constraints _constraints{};
-
-	/* Parameter handles */
-	int _parameter_sub{-1};
-	param_t _Pz_h{PARAM_INVALID};
-	param_t _Pvz_h{PARAM_INVALID};
-	param_t _Ivz_h{PARAM_INVALID};
-	param_t _Dvz_h{PARAM_INVALID};
-	param_t _Pxy_h{PARAM_INVALID};
-	param_t _Pvxy_h{PARAM_INVALID};
-	param_t _Ivxy_h{PARAM_INVALID};
-	param_t _Dvxy_h{PARAM_INVALID};
-	param_t _VelMaxXY_h{PARAM_INVALID};
-	param_t _VelMaxZdown_h{PARAM_INVALID};
-	param_t _VelMaxZup_h{PARAM_INVALID};
-	param_t _ThrHover_h{PARAM_INVALID};
-	param_t _ThrMax_h{PARAM_INVALID};
-	param_t _ThrMin_h{PARAM_INVALID};
-
-	/* Parameters */
-	matrix::Vector3f Pp, Pv, Iv, Dv = matrix::Vector3f{0.0f, 0.0f, 0.0f};
-	float _VelMaxXY{};
-	struct DirectionD {
-		float up;
-		float down;
-	};
-	DirectionD _VelMaxZ;
-	struct Limits {
-		float max;
-		float min;
-	};
-	Limits _ThrustLimit;
-	float _ThrHover{0.5f};
-	bool _skipController{false};
-
-	/* Helper methods */
-	void _interfaceMapping();
-	void _positionController();
-	void _velocityController(const float &dt);
-	void _updateParams();
-	void _setParams();
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::MPC_THR_MAX>) MPC_THR_MAX,
+		(ParamFloat<px4::params::MPC_THR_HOVER>) MPC_THR_HOVER,
+		(ParamFloat<px4::params::MPC_THR_MIN>) MPC_THR_MIN,
+		(ParamFloat<px4::params::MPC_MANTHR_MIN>) MPC_MANTHR_MIN,
+		(ParamFloat<px4::params::MPC_XY_VEL_MAX>) MPC_XY_VEL_MAX,
+		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) MPC_Z_VEL_MAX_DN,
+		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) MPC_Z_VEL_MAX_UP,
+		(ParamFloat<px4::params::MPC_TILTMAX_AIR>)
+		MPC_TILTMAX_AIR_rad, // maximum tilt for any position controlled mode in radians
+		(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) MPC_MAN_TILT_MAX_rad, // maximum til for stabilized/altitude mode in radians
+		(ParamFloat<px4::params::MPC_Z_P>) MPC_Z_P,
+		(ParamFloat<px4::params::MPC_Z_VEL_P>) MPC_Z_VEL_P,
+		(ParamFloat<px4::params::MPC_Z_VEL_I>) MPC_Z_VEL_I,
+		(ParamFloat<px4::params::MPC_Z_VEL_D>) MPC_Z_VEL_D,
+		(ParamFloat<px4::params::MPC_XY_P>) MPC_XY_P,
+		(ParamFloat<px4::params::MPC_XY_VEL_P>) MPC_XY_VEL_P,
+		(ParamFloat<px4::params::MPC_XY_VEL_I>) MPC_XY_VEL_I,
+		(ParamFloat<px4::params::MPC_XY_VEL_D>) MPC_XY_VEL_D
+	)
 };

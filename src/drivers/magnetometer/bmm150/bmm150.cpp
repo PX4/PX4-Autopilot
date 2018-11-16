@@ -37,6 +37,7 @@
  */
 
 #include "bmm150.hpp"
+#include <px4_getopt.h>
 
 /** driver 'main' command */
 extern "C" { __EXPORT int bmm150_main(int argc, char *argv[]); }
@@ -138,13 +139,12 @@ void test(bool external_bus)
 	fd = open(path, O_RDONLY);
 
 	if (fd < 0) {
-		PX4_ERR("%s open failed (try 'bmm150 start' if the driver is not running)",
-			path);
+		PX4_ERR("%s open failed (try 'bmm150 start' if the driver is not running)", path);
 		exit(1);
 	}
 
-	/* reset to Max polling rate*/
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX) < 0) {
+	/* reset to default polling rate*/
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		PX4_ERR("reset to Max polling rate");
 		exit(1);
 	}
@@ -725,21 +725,11 @@ BMM150::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_call_interval = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				return ioctl(filp, SENSORIOCSPOLLRATE, BMM150_MAX_DATA_RATE);
 
@@ -769,31 +759,6 @@ BMM150::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCGPOLLRATE:
-		if (_call_interval == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return 1000000 / _call_interval;
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
 	case SENSORIOCRESET:
 		return reset();
 
@@ -807,21 +772,6 @@ BMM150::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return OK;
 
 	case MAGIOCEXSTRAP:
-		return OK;
-
-	case MAGIOCSELFTEST:
-		return OK;
-
-	case MAGIOCSSAMPLERATE:
-		return ioctl(filp, SENSORIOCSPOLLRATE, arg);
-
-	case MAGIOCGSAMPLERATE:
-		return 1000000 / _call_interval;
-
-	case MAGIOCSRANGE:
-		return OK;
-
-	case MAGIOCGRANGE:
 		return OK;
 
 	default:
@@ -1128,28 +1078,34 @@ BMM150::print_registers()
 int
 bmm150_main(int argc, char *argv[])
 {
-	bool external_bus = false;
+	int myoptind = 1;
 	int ch;
+	const char *myoptarg = nullptr;
+	bool external_bus = false;
 	enum Rotation rotation = ROTATION_NONE;
 
-	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XR:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XR:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			external_bus = true;
 			break;
 
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		default:
 			bmm150::usage();
-			exit(0);
+			return 0;
 		}
 	}
 
-	const char *verb = argv[optind];
+	if (myoptind >= argc) {
+		bmm150::usage();
+		return -1;
+	}
+
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
@@ -1189,5 +1145,5 @@ bmm150_main(int argc, char *argv[])
 
 
 	bmm150::usage();
-	exit(1);
+	return -1;
 }

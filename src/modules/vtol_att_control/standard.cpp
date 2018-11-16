@@ -46,6 +46,8 @@
 
 #include <float.h>
 
+using matrix::wrap_pi;
+
 Standard::Standard(VtolAttitudeControl *attc) :
 	VtolType(attc),
 	_pusher_throttle(0.0f),
@@ -69,8 +71,6 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.reverse_output = param_find("VT_B_REV_OUT");
 	_params_handles_standard.reverse_delay = param_find("VT_B_REV_DEL");
 }
-
-Standard::~Standard() = default;
 
 void
 Standard::parameters_update()
@@ -245,8 +245,10 @@ void Standard::update_transition_state()
 
 		// do blending of mc and fw controls if a blending airspeed has been provided and the minimum transition time has passed
 		if (_airspeed_trans_blend_margin > 0.0f &&
+		    _airspeed->indicated_airspeed_m_s > 0.0f &&
 		    _airspeed->indicated_airspeed_m_s >= _params->airspeed_blend &&
 		    time_since_trans_start > _params->front_trans_time_min) {
+
 			mc_weight = 1.0f - fabsf(_airspeed->indicated_airspeed_m_s - _params->airspeed_blend) /
 				    _airspeed_trans_blend_margin;
 			// time based blending when no airspeed sensor is set
@@ -368,7 +370,7 @@ void Standard::update_mc_state()
 
 		// rotate the vector into a new frame which is rotated in z by the desired heading
 		// with respect to the earh frame.
-		float yaw_error = matrix::wrap_pi(euler_sp(2) - euler(2));
+		const float yaw_error = wrap_pi(euler_sp(2) - euler(2));
 		matrix::Dcmf R_yaw_correction = matrix::Eulerf(0.0f, 0.0f, -yaw_error);
 		tilt_new = R_yaw_correction * tilt_new;
 

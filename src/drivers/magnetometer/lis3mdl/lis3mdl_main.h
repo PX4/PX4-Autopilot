@@ -54,6 +54,12 @@ struct lis3mdl_bus_option {
 #ifdef PX4_I2C_BUS_EXPANSION
 	{ LIS3MDL_BUS_I2C_EXTERNAL, "/dev/lis3mdl_ext", &LIS3MDL_I2C_interface, PX4_I2C_BUS_EXPANSION, NULL },
 #endif /* PX4_I2C_BUS_EXPANSION */
+#ifdef PX4_I2C_BUS_EXPANSION1
+	{ LIS3MDL_BUS_I2C_EXTERNAL, "/dev/lis3mdl_ext1", &LIS3MDL_I2C_interface, PX4_I2C_BUS_EXPANSION1, NULL },
+#endif /* PX4_I2C_BUS_EXPANSION1 */
+#ifdef PX4_I2C_BUS_EXPANSION2
+	{ LIS3MDL_BUS_I2C_EXTERNAL, "/dev/lis3mdl_ext2", &LIS3MDL_I2C_interface, PX4_I2C_BUS_EXPANSION2, NULL },
+#endif /* PX4_I2C_BUS_EXPANSION2 */
 #ifdef PX4_I2C_BUS_ONBOARD
 	{ LIS3MDL_BUS_I2C_INTERNAL, "/dev/lis3mdl_int", &LIS3MDL_I2C_interface, PX4_I2C_BUS_ONBOARD, NULL },
 #endif /* PX4_I2C_BUS_ONBOARD */
@@ -61,11 +67,6 @@ struct lis3mdl_bus_option {
 	{ LIS3MDL_BUS_SPI, "/dev/lis3mdl_spi", &LIS3MDL_SPI_interface, PX4_SPI_BUS_SENSORS, NULL },
 #endif /* PX4_SPIDEV_LIS */
 };
-
-/**
- * @brief Finds a bus structure for a bus_id
- */
-lis3mdl_bus_option &find_bus(LIS3MDL_BUS bus_id);
 
 /**
  * @brief Calibrate and self test. Self test feature cannot be used to calculate scale.
@@ -79,45 +80,45 @@ lis3mdl_bus_option &find_bus(LIS3MDL_BUS bus_id);
  *       field. According to ST datasheet, those values must stay between thresholds in order
  *       to pass the self test.
  */
-int calibrate(LIS3MDL_BUS bus_id);
+int calibrate(struct lis3mdl_bus_option &bus);
 
 /**
  * @brief Prints info about the driver.
  */
-int info(LIS3MDL_BUS bus_id);
+int info(struct lis3mdl_bus_option &bus);
 
 /**
  * @brief Initializes the driver -- sets defaults and starts a cycle
  */
-bool init(LIS3MDL_BUS bus_id);
+int init(struct lis3mdl_bus_option &bus);
 
 /**
  * @brief Resets the driver.
  */
-bool reset(LIS3MDL_BUS bus_id);
+int reset(struct lis3mdl_bus_option &bus);
 
 /**
  * @brief Starts the driver for a specific bus option
  */
-bool start_bus(struct lis3mdl_bus_option &bus, Rotation rotation);
+int start_bus(struct lis3mdl_bus_option &bus, Rotation rotation);
 
 /**
  * @brief Starts the driver. This function call only returns once the driver
  *        is either successfully up and running or failed to start.
  */
-int start(LIS3MDL_BUS bus_id, Rotation rotation);
+int start(struct lis3mdl_bus_option &bus, Rotation rotation);
 
 /**
  * @brief Stop the driver.
  */
-int stop();
+int stop(struct lis3mdl_bus_option &bus);
 
 /**
  * @brief Perform some basic functional tests on the driver;
  * 	  make sure we can collect data from the sensor in polled
  * 	  and automatic modes.
  */
-bool test(LIS3MDL_BUS bus_id);
+int test(struct lis3mdl_bus_option &bus);
 
 /**
  * @brief Prints info about the driver argument usage.

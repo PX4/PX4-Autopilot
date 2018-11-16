@@ -239,7 +239,7 @@ DfLsm9ds1Wrapper::~DfLsm9ds1Wrapper()
 int DfLsm9ds1Wrapper::start()
 {
 	// TODO: don't publish garbage here
-	accel_report accel_report = {};
+	sensor_accel_s accel_report = {};
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &accel_report,
 					   &_accel_orb_class_instance, ORB_PRIO_DEFAULT);
 
@@ -249,7 +249,7 @@ int DfLsm9ds1Wrapper::start()
 	}
 
 	// TODO: don't publish garbage here
-	gyro_report gyro_report = {};
+	sensor_gyro_s gyro_report = {};
 	_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &gyro_report,
 					  &_gyro_orb_class_instance, ORB_PRIO_DEFAULT);
 
@@ -570,7 +570,7 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 	}
 
 	matrix::Vector3f vec_integrated_unused;
-	uint64_t integral_dt_unused;
+	uint32_t integral_dt_unused;
 	matrix::Vector3f accel_val(data.accel_m_s2_x,
 				   data.accel_m_s2_y,
 				   data.accel_m_s2_z);
@@ -618,8 +618,8 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 
 	perf_begin(_publish_perf);
 
-	accel_report accel_report = {};
-	gyro_report gyro_report = {};
+	sensor_accel_s accel_report = {};
+	sensor_gyro_s gyro_report = {};
 	mag_report mag_report = {};
 
 	accel_report.timestamp = gyro_report.timestamp = hrt_absolute_time();
@@ -628,16 +628,13 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 
 	// TODO: get these right
 	gyro_report.scaling = -1.0f;
-	gyro_report.range_rad_s = -1.0f;
 	gyro_report.device_id = m_id.dev_id;
 
 	accel_report.scaling = -1.0f;
-	accel_report.range_m_s2 = -1.0f;
 	accel_report.device_id = m_id.dev_id;
 
 	if (_mag_enabled) {
 		mag_report.scaling = -1.0f;
-		mag_report.range_ga = -1.0f;
 		mag_report.device_id = m_id.dev_id;
 	}
 

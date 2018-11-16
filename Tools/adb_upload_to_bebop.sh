@@ -1,9 +1,12 @@
 #!/bin/bash
 
+BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SRC_DIR="$BASEDIR/../"
+
 if [ -z ${BEBOP_IP+x} ]; then 
   ip=192.168.42.1
   echo "\$BEBOP_IP is not set (use default: $ip)"
-else 
+else
   ip=$BEBOP_IP
   echo "\$BEBOP_IP is set to $ip"
 fi
@@ -42,13 +45,23 @@ if [[ $adb_return == "" ]]; then
     restart_px4=true
 fi
 
-../Tools/adb_upload.sh $@
+# upload PX4
+$BASEDIR/adb_upload.sh $@
+
+# upload mixer and config files
+echo "Uploading mixer and config files to /home/root"
+adb push $SRC_DIR/ROMFS/px4fmu_common/mixers/bebop.main.mix /home/root
+adb push $SRC_DIR/posix-configs/bebop/px4.config /home/root
 
 # restart the process after uploading
 if [ "$restart_px4" = true ]; then
     echo "Restarting PX4 process"
     adb shell /etc/init.d/rcS_mode_default 2>/dev/null 1>/dev/null &
 fi
+
+# make sure all buffered blocks are written to disk
+echo "Syncing FS..."
+adb shell sync
 
 echo "Disconnecting from Bebop"
 adb disconnect

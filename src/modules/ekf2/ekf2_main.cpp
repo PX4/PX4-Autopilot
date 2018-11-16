@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,8 +41,9 @@
 #include <cfloat>
 
 #include <drivers/drv_hrt.h>
-#include <ecl/EKF/ekf.h>
-#include <mathlib/mathlib.h>
+#include <lib/ecl/EKF/ekf.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_defines.h>
 #include <px4_module.h>
 #include <px4_module_params.h>
@@ -54,24 +55,37 @@
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_innovations.h>
 #include <uORB/topics/ekf2_timestamps.h>
+#include <uORB/topics/ekf_gps_position.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/ekf_gps_drift.h>
+#include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_selection.h>
+#include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_magnetometer.h>
+#include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
-#include <uORB/topics/landing_target_pose.h>
-#include <uORB/topics/vehicle_air_data.h>
-#include <uORB/topics/vehicle_magnetometer.h>
+
+// defines used to specify the mask position for use of different accuracy metrics in the GPS blending algorithm
+#define BLEND_MASK_USE_SPD_ACC      1
+#define BLEND_MASK_USE_HPOS_ACC     2
+#define BLEND_MASK_USE_VPOS_ACC     4
+
+// define max number of GPS receivers supported and 0 base instance used to access virtual 'blended' GPS solution
+#define GPS_MAX_RECEIVERS 2
+#define GPS_BLENDED_INSTANCE 2
 
 using math::constrain;
+using namespace time_literals;
 
 extern "C" __EXPORT int ekf2_main(int argc, char *argv[]);
 
@@ -107,10 +121,44 @@ private:
 
 	template<typename Param>
 	void update_mag_bias(Param &mag_bias_param, int axis_index);
-
+	template<typename Param>
+	bool update_mag_decl(Param &mag_decl_param);
+	bool publish_attitude(const sensor_combined_s &sensors, const hrt_abstime &now);
 	bool publish_wind_estimate(const hrt_abstime &timestamp);
 
 	const Vector3f get_vel_body_wind();
+
+	/*
+	 * Update the internal state estimate for a blended GPS solution that is a weighted average of the phsyical
+	 * receiver solutions. This internal state cannot be used directly by estimators because if physical receivers
+	 * have significant position differences, variation in receiver estimated accuracy will cause undesirable
+	 * variation in the position solution.
+	*/
+	bool blend_gps_data();
+
+	/*
+	 * Calculate internal states used to blend GPS data from multiple receivers using weightings calculated
+	 * by calc_blend_weights()
+	 * States are written to _gps_state and _gps_blended_state class variables
+	 */
+	void update_gps_blend_states();
+
+	/*
+	 * The location in _gps_blended_state will move around as the relative accuracy changes.
+	 * To mitigate this effect a low-pass filtered offset from each GPS location to the blended location is
+	 * calculated.
+	*/
+	void update_gps_offsets();
+
+	/*
+	 * Apply the steady state physical receiver offsets calculated by update_gps_offsets().
+	*/
+	void apply_gps_offsets();
+
+	/*
+	 Calculate GPS output that is a blend of the offset corrected physical receiver data
+	*/
+	void calc_gps_blend_output();
 
 	bool 	_replay_mode = false;			///< true when we use replay data from a log
 
@@ -119,6 +167,9 @@ private:
 	uint64_t _start_time_us = 0;		///< system time at EKF start (uSec)
 	int64_t _last_time_slip_us = 0;		///< Last time slip (uSec)
 
+	perf_counter_t _perf_update_data;
+	perf_counter_t _perf_ekf_update;
+
 	// Initialise time stamps used to send sensor data to the EKF and for logging
 	uint8_t _invalid_mag_id_count = 0;	///< number of times an invalid magnetomer device ID has been detected
 
@@ -126,8 +177,7 @@ private:
 	float _mag_data_sum[3] = {};			///< summed magnetometer readings (Gauss)
 	uint64_t _mag_time_sum_ms = 0;		///< summed magnetoemter time stamps (mSec)
 	uint8_t _mag_sample_count = 0;		///< number of magnetometer measurements summed during downsampling
-	uint32_t _mag_time_ms_last_used =
-		0;	///< time stamp of the last averaged magnetometer measurement sent to the EKF (mSec)
+	int32_t _mag_time_ms_last_used = 0;	///< time stamp of the last averaged magnetometer measurement sent to the EKF (mSec)
 
 	// Used to down sample barometer data
 	float _balt_data_sum = 0.0f;			///< summed pressure altitude readings (m)
@@ -143,6 +193,9 @@ private:
 	float _last_valid_mag_cal[3] = {};	///< last valid XYZ magnetometer bias estimates (mGauss)
 	bool _valid_cal_available[3] = {};	///< true when an unsaved valid calibration for the XYZ magnetometer bias is available
 	float _last_valid_variance[3] = {};	///< variances for the last valid magnetometer XYZ bias estimates (mGauss**2)
+
+	// Used to control saving of mag declination to be used on next startup
+	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
 
 	// Used to filter velocity innovations during pre-flight checks
 	bool _preflt_horiz_fail = false;	///< true if preflight horizontal innovation checks are failed
@@ -165,11 +218,34 @@ private:
 	const float _vel_innov_spike_lim = 2.0f * _vel_innov_test_lim;	///< preflight velocity innovation spike limit (m/sec)
 	const float _hgt_innov_spike_lim = 2.0f * _hgt_innov_test_lim;	///< preflight position innovation spike limit (m)
 
+	// set pose/velocity as invalid if standard deviation is bigger than max_std_dev
+	// TODO: the user should be allowed to set these values by a parameter
+	static constexpr float ep_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated position
+	static constexpr float eo_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated orientation
+	//static constexpr float ev_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated velocity
+
+	// GPS blending and switching
+	gps_message _gps_state[GPS_MAX_RECEIVERS] {}; ///< internal state data for the physical GPS
+	gps_message _gps_blended_state{};		///< internal state data for the blended GPS
+	gps_message _gps_output[GPS_MAX_RECEIVERS + 1] {}; ///< output state data for the physical and blended GPS
+	Vector2f _NE_pos_offset_m[GPS_MAX_RECEIVERS] = {}; ///< Filtered North,East position offset from GPS instance to blended solution in _output_state.location (m)
+	float _hgt_offset_mm[GPS_MAX_RECEIVERS] = {};	///< Filtered height offset from GPS instance relative to blended solution in _output_state.location (mm)
+	Vector3f _blended_antenna_offset = {};		///< blended antenna offset
+	float _blend_weights[GPS_MAX_RECEIVERS] = {};	///< blend weight for each GPS. The blend weights must sum to 1.0 across all instances.
+	uint64_t _time_prev_us[GPS_MAX_RECEIVERS] = {};	///< the previous value of time_us for that GPS instance - used to detect new data.
+	uint8_t _gps_best_index = 0;			///< index of the physical receiver with the lowest reported error
+	uint8_t _gps_select_index = 0;			///< 0 = GPS1, 1 = GPS2, 2 = blended
+	uint8_t _gps_time_ref_index =
+		0;		///< index of the receiver that is used as the timing reference for the blending update
+	uint8_t _gps_oldest_index = 0;			///< index of the physical receiver with the oldest data
+	uint8_t _gps_newest_index = 0;			///< index of the physical receiver with the newest data
+	uint8_t _gps_slowest_index = 0;			///< index of the physical receiver with the slowest update rate
+	float _gps_dt[GPS_MAX_RECEIVERS] = {};		///< average time step in seconds.
+	bool  _gps_new_output_data = false;		///< true if there is new output data for the EKF
+
 	int _airdata_sub{-1};
 	int _airspeed_sub{-1};
-	int _ev_att_sub{-1};
-	int _ev_pos_sub{-1};
-	int _gps_sub{-1};
+	int _ev_odom_sub{-1};
 	int _landing_target_pose_sub{-1};
 	int _magnetometer_sub{-1};
 	int _optical_flow_sub{-1};
@@ -180,15 +256,21 @@ private:
 	int _vehicle_land_detected_sub{-1};
 
 	// because we can have several distance sensor instances with different orientations
-	int _range_finder_subs[ORB_MULTI_MAX_INSTANCES];
+	int _range_finder_subs[ORB_MULTI_MAX_INSTANCES] {};
 	int _range_finder_sub_index = -1; // index for downward-facing range finder subscription
+
+	// because we can have multiple GPS instances
+	int _gps_subs[GPS_MAX_RECEIVERS] {};
+	int _gps_orb_instance{-1};
 
 	orb_advert_t _att_pub{nullptr};
 	orb_advert_t _wind_pub{nullptr};
 	orb_advert_t _estimator_status_pub{nullptr};
+	orb_advert_t _ekf_gps_drift_pub{nullptr};
 	orb_advert_t _estimator_innovations_pub{nullptr};
 	orb_advert_t _ekf2_timestamps_pub{nullptr};
 	orb_advert_t _sensor_bias_pub{nullptr};
+	orb_advert_t _blended_gps_pub{nullptr};
 
 	uORB::Publication<vehicle_local_position_s> _vehicle_local_position_pub;
 	uORB::Publication<vehicle_global_position_s> _vehicle_global_position_pub;
@@ -199,7 +281,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamExtInt<px4::params::EKF2_MIN_OBS_DT>)
-		_obs_dt_min_ms,	///< Maximmum time delay of any sensor used to increse buffer length to handle large timing jitter (mSec)
+		_obs_dt_min_ms,	///< Maximum time delay of any sensor used to increase buffer length to handle large timing jitter (mSec)
 		(ParamExtFloat<px4::params::EKF2_MAG_DELAY>)
 		_mag_delay_ms,	///< magnetometer measurement delay relative to the IMU (mSec)
 		(ParamExtFloat<px4::params::EKF2_BARO_DELAY>)
@@ -322,7 +404,6 @@ private:
 		(ParamExtInt<px4::params::EKF2_OF_QMIN>) _flow_qual_min,	///< minimum acceptable quality integer from  the flow sensor
 		(ParamExtFloat<px4::params::EKF2_OF_GATE>)
 		_flow_innov_gate,	///< optical flow fusion innovation consistency gate size (STD)
-		(ParamExtFloat<px4::params::EKF2_OF_RMAX>) _flow_rate_max,	///< maximum valid optical flow rate (rad/sec)
 
 		// sensor positions in body frame
 		(ParamExtFloat<px4::params::EKF2_IMU_POS_X>) _imu_pos_x,		///< X position of IMU in body frame (m)
@@ -340,9 +421,9 @@ private:
 		_flow_pos_y,	///< Y position of optical flow sensor focal point in body frame (m)
 		(ParamExtFloat<px4::params::EKF2_OF_POS_Z>)
 		_flow_pos_z,	///< Z position of optical flow sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_EV_POS_X>) _ev_pos_x,		///< X position of VI sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_EV_POS_Y>) _ev_pos_y,		///< Y position of VI sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_EV_POS_Z>) _ev_pos_z,		///< Z position of VI sensor focal point in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_EV_POS_X>) _ev_odom_x,		///< X position of VI sensor focal point in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_EV_POS_Y>) _ev_odom_y,		///< Y position of VI sensor focal point in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_EV_POS_Z>) _ev_odom_z,		///< Z position of VI sensor focal point in body frame (m)
 
 		// control of airspeed and sideslip fusion
 		(ParamFloat<px4::params::EKF2_ARSP_THR>)
@@ -397,13 +478,26 @@ private:
 		(ParamFloat<px4::params::EKF2_PCOEF_Y>)
 		_K_pstatic_coef_y,	///< static pressure position error coefficient along the Y body axis
 		(ParamFloat<px4::params::EKF2_PCOEF_Z>)
-		_K_pstatic_coef_z	///< static pressure position error coefficient along the Z body axis
+		_K_pstatic_coef_z,	///< static pressure position error coefficient along the Z body axis
+
+		// GPS blending
+		(ParamInt<px4::params::EKF2_GPS_MASK>)
+		_gps_blend_mask,	///< mask defining when GPS accuracy metrics are used to calculate the blend ratio
+		(ParamFloat<px4::params::EKF2_GPS_TAU>)
+		_gps_blend_tau,		///< time constant controlling how rapidly the offset used to bring GPS solutions together is allowed to change (sec)
+
+		// Test used to determine if the vehicle is static or moving
+		(ParamExtFloat<px4::params::EKF2_MOVE_TEST>)
+		_is_moving_scaler	///< scaling applied to IMU data thresholds used to determine if the vehicle is static or moving.
+
 	)
 
 };
 
 Ekf2::Ekf2():
 	ModuleParams(nullptr),
+	_perf_update_data(perf_alloc_once(PC_ELAPSED, "EKF2 data acquisition")),
+	_perf_ekf_update(perf_alloc_once(PC_ELAPSED, "EKF2 update")),
 	_vehicle_local_position_pub(ORB_ID(vehicle_local_position)),
 	_vehicle_global_position_pub(ORB_ID(vehicle_global_position)),
 	_params(_ekf.getParamHandle()),
@@ -470,7 +564,6 @@ Ekf2::Ekf2():
 	_flow_noise_qual_min(_params->flow_noise_qual_min),
 	_flow_qual_min(_params->flow_qual_min),
 	_flow_innov_gate(_params->flow_innov_gate),
-	_flow_rate_max(_params->flow_rate_max),
 	_imu_pos_x(_params->imu_pos_body(0)),
 	_imu_pos_y(_params->imu_pos_body(1)),
 	_imu_pos_z(_params->imu_pos_body(2)),
@@ -483,9 +576,9 @@ Ekf2::Ekf2():
 	_flow_pos_x(_params->flow_pos_body(0)),
 	_flow_pos_y(_params->flow_pos_body(1)),
 	_flow_pos_z(_params->flow_pos_body(2)),
-	_ev_pos_x(_params->ev_pos_body(0)),
-	_ev_pos_y(_params->ev_pos_body(1)),
-	_ev_pos_z(_params->ev_pos_body(2)),
+	_ev_odom_x(_params->ev_pos_body(0)),
+	_ev_odom_y(_params->ev_pos_body(1)),
+	_ev_odom_z(_params->ev_pos_body(2)),
 	_tau_vel(_params->vel_Tau),
 	_tau_pos(_params->pos_Tau),
 	_gyr_bias_init(_params->switch_on_gyro_bias),
@@ -497,13 +590,12 @@ Ekf2::Ekf2():
 	_acc_bias_learn_tc(_params->acc_bias_learn_tc),
 	_drag_noise(_params->drag_noise),
 	_bcoef_x(_params->bcoef_x),
-	_bcoef_y(_params->bcoef_y)
+	_bcoef_y(_params->bcoef_y),
+	_is_moving_scaler(_params->is_moving_scaler)
 {
 	_airdata_sub = orb_subscribe(ORB_ID(vehicle_air_data));
 	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
-	_ev_att_sub = orb_subscribe(ORB_ID(vehicle_vision_attitude));
-	_ev_pos_sub = orb_subscribe(ORB_ID(vehicle_vision_position));
-	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	_ev_odom_sub = orb_subscribe(ORB_ID(vehicle_visual_odometry));
 	_landing_target_pose_sub = orb_subscribe(ORB_ID(landing_target_pose));
 	_magnetometer_sub = orb_subscribe(ORB_ID(vehicle_magnetometer));
 	_optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
@@ -512,6 +604,10 @@ Ekf2::Ekf2():
 	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
 	_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
+
+	for (unsigned i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		_gps_subs[i] = orb_subscribe_multi(ORB_ID(vehicle_gps_position), i);
+	}
 
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		_range_finder_subs[i] = orb_subscribe_multi(ORB_ID(distance_sensor), i);
@@ -523,11 +619,12 @@ Ekf2::Ekf2():
 
 Ekf2::~Ekf2()
 {
+	perf_free(_perf_update_data);
+	perf_free(_perf_ekf_update);
+
 	orb_unsubscribe(_airdata_sub);
 	orb_unsubscribe(_airspeed_sub);
-	orb_unsubscribe(_ev_att_sub);
-	orb_unsubscribe(_ev_pos_sub);
-	orb_unsubscribe(_gps_sub);
+	orb_unsubscribe(_ev_odom_sub);
 	orb_unsubscribe(_landing_target_pose_sub);
 	orb_unsubscribe(_magnetometer_sub);
 	orb_unsubscribe(_optical_flow_sub);
@@ -539,15 +636,23 @@ Ekf2::~Ekf2()
 
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		orb_unsubscribe(_range_finder_subs[i]);
-		_range_finder_subs[i] = -1;
+	}
+
+	for (unsigned i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		orb_unsubscribe(_gps_subs[i]);
 	}
 }
 
 int Ekf2::print_status()
 {
-	PX4_INFO("local position OK %s", (_ekf.local_position_is_valid()) ? "yes" : "no");
-	PX4_INFO("global position OK %s", (_ekf.global_position_is_valid()) ? "yes" : "no");
+	PX4_INFO("local position: %s", (_ekf.local_position_is_valid()) ? "valid" : "invalid");
+	PX4_INFO("global position: %s", (_ekf.global_position_is_valid()) ? "valid" : "invalid");
+
 	PX4_INFO("time slip: %" PRId64 " us", _last_time_slip_us);
+
+	perf_print_counter(_perf_update_data);
+	perf_print_counter(_perf_ekf_update);
+
 	return 0;
 }
 
@@ -568,6 +673,21 @@ void Ekf2::update_mag_bias(Param &mag_bias_param, int axis_index)
 
 		_valid_cal_available[axis_index] = false;
 	}
+}
+
+template<typename Param>
+bool Ekf2::update_mag_decl(Param &mag_decl_param)
+{
+	// update stored declination value
+	float declination_deg;
+
+	if (_ekf.get_mag_decl_deg(&declination_deg)) {
+		mag_decl_param.set(declination_deg);
+		mag_decl_param.commit_no_notification();
+		return true;
+	}
+
+	return false;
 }
 
 void Ekf2::run()
@@ -604,6 +724,8 @@ void Ekf2::run()
 			continue;
 		}
 
+		perf_begin(_perf_update_data);
+
 		bool params_updated = false;
 		orb_check(_params_sub, &params_updated);
 
@@ -626,8 +748,7 @@ void Ekf2::run()
 		ekf2_timestamps.optical_flow_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 		ekf2_timestamps.vehicle_air_data_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 		ekf2_timestamps.vehicle_magnetometer_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
-		ekf2_timestamps.vision_attitude_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
-		ekf2_timestamps.vision_position_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
+		ekf2_timestamps.visual_odometry_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 
 		// update all other topics if they have new data
 
@@ -698,6 +819,9 @@ void Ekf2::run()
 
 		_ekf.setIMUData(now, sensors.gyro_integral_dt, sensors.accelerometer_integral_dt, gyro_integral, accel_integral);
 
+		// publish attitude immediately (uses quaternion from output predictor)
+		publish_attitude(sensors, now);
+
 		// read mag data
 		bool magnetometer_updated = false;
 		orb_check(_magnetometer_sub, &magnetometer_updated);
@@ -710,7 +834,7 @@ void Ekf2::run()
 				// Do not reset parmameters when armed to prevent potential time slips casued by parameter set
 				// and notification events
 				// Check if there has been a persistant change in magnetometer ID
-				if (sensor_selection.mag_device_id != 0 && sensor_selection.mag_device_id != _mag_bias_id.get()) {
+				if (sensor_selection.mag_device_id != 0 && sensor_selection.mag_device_id != (uint32_t)_mag_bias_id.get()) {
 					if (_invalid_mag_id_count < 200) {
 						_invalid_mag_id_count++;
 					}
@@ -745,9 +869,9 @@ void Ekf2::run()
 				_mag_data_sum[0] += magnetometer.magnetometer_ga[0];
 				_mag_data_sum[1] += magnetometer.magnetometer_ga[1];
 				_mag_data_sum[2] += magnetometer.magnetometer_ga[2];
-				uint32_t mag_time_ms = _mag_time_sum_ms / _mag_sample_count;
+				int32_t mag_time_ms = _mag_time_sum_ms / _mag_sample_count;
 
-				if (mag_time_ms - _mag_time_ms_last_used > _params->sensor_interval_min_ms) {
+				if ((mag_time_ms - _mag_time_ms_last_used) > _params->sensor_interval_min_ms) {
 					const float mag_sample_count_inv = 1.0f / _mag_sample_count;
 					// calculate mean of measurements and correct for learned bias offsets
 					float mag_data_avg_ga[3] = {_mag_data_sum[0] *mag_sample_count_inv - _mag_bias_x.get(),
@@ -829,35 +953,140 @@ void Ekf2::run()
 			}
 		}
 
-		// read gps data if available
-		bool gps_updated = false;
-		orb_check(_gps_sub, &gps_updated);
+		// read gps1 data if available
+		bool gps1_updated = false;
+		orb_check(_gps_subs[0], &gps1_updated);
 
-		if (gps_updated) {
+		if (gps1_updated) {
 			vehicle_gps_position_s gps;
 
-			if (orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &gps) == PX4_OK) {
-				struct gps_message gps_msg;
-				gps_msg.time_usec = gps.timestamp;
-				gps_msg.lat = gps.lat;
-				gps_msg.lon = gps.lon;
-				gps_msg.alt = gps.alt;
-				gps_msg.fix_type = gps.fix_type;
-				gps_msg.eph = gps.eph;
-				gps_msg.epv = gps.epv;
-				gps_msg.sacc = gps.s_variance_m_s;
-				gps_msg.vel_m_s = gps.vel_m_s;
-				gps_msg.vel_ned[0] = gps.vel_n_m_s;
-				gps_msg.vel_ned[1] = gps.vel_e_m_s;
-				gps_msg.vel_ned[2] = gps.vel_d_m_s;
-				gps_msg.vel_ned_valid = gps.vel_ned_valid;
-				gps_msg.nsats = gps.satellites_used;
+			if (orb_copy(ORB_ID(vehicle_gps_position), _gps_subs[0], &gps) == PX4_OK) {
+				_gps_state[0].time_usec = gps.timestamp;
+				_gps_state[0].lat = gps.lat;
+				_gps_state[0].lon = gps.lon;
+				_gps_state[0].alt = gps.alt;
+				_gps_state[0].yaw = gps.heading;
+				_gps_state[0].yaw_offset = gps.heading_offset;
+				_gps_state[0].fix_type = gps.fix_type;
+				_gps_state[0].eph = gps.eph;
+				_gps_state[0].epv = gps.epv;
+				_gps_state[0].sacc = gps.s_variance_m_s;
+				_gps_state[0].vel_m_s = gps.vel_m_s;
+				_gps_state[0].vel_ned[0] = gps.vel_n_m_s;
+				_gps_state[0].vel_ned[1] = gps.vel_e_m_s;
+				_gps_state[0].vel_ned[2] = gps.vel_d_m_s;
+				_gps_state[0].vel_ned_valid = gps.vel_ned_valid;
+				_gps_state[0].nsats = gps.satellites_used;
 				//TODO: add gdop to gps topic
-				gps_msg.gdop = 0.0f;
-
-				_ekf.setGpsData(gps.timestamp, &gps_msg);
+				_gps_state[0].gdop = 0.0f;
 
 				ekf2_timestamps.gps_timestamp_rel = (int16_t)((int64_t)gps.timestamp / 100 - (int64_t)ekf2_timestamps.timestamp / 100);
+			}
+		}
+
+		// check for second GPS receiver data
+		bool gps2_updated = false;
+		orb_check(_gps_subs[1], &gps2_updated);
+
+		if (gps2_updated) {
+			vehicle_gps_position_s gps;
+
+			if (orb_copy(ORB_ID(vehicle_gps_position), _gps_subs[1], &gps) == PX4_OK) {
+				_gps_state[1].time_usec = gps.timestamp;
+				_gps_state[1].lat = gps.lat;
+				_gps_state[1].lon = gps.lon;
+				_gps_state[1].alt = gps.alt;
+				_gps_state[1].yaw = gps.heading;
+				_gps_state[1].yaw_offset = gps.heading_offset;
+				_gps_state[1].fix_type = gps.fix_type;
+				_gps_state[1].eph = gps.eph;
+				_gps_state[1].epv = gps.epv;
+				_gps_state[1].sacc = gps.s_variance_m_s;
+				_gps_state[1].vel_m_s = gps.vel_m_s;
+				_gps_state[1].vel_ned[0] = gps.vel_n_m_s;
+				_gps_state[1].vel_ned[1] = gps.vel_e_m_s;
+				_gps_state[1].vel_ned[2] = gps.vel_d_m_s;
+				_gps_state[1].vel_ned_valid = gps.vel_ned_valid;
+				_gps_state[1].nsats = gps.satellites_used;
+				//TODO: add gdop to gps topic
+				_gps_state[1].gdop = 0.0f;
+			}
+		}
+
+		if ((_gps_blend_mask.get() == 0) && gps1_updated) {
+			// When GPS blending is disabled we always use the first receiver instance
+			_ekf.setGpsData(_gps_state[0].time_usec, &_gps_state[0]);
+
+		} else if ((_gps_blend_mask.get() > 0) && (gps1_updated || gps2_updated)) {
+			// blend dual receivers if available
+
+			// calculate blending weights
+			if (!blend_gps_data()) {
+				// handle case where the blended states cannot be updated
+				if (_gps_state[0].fix_type > _gps_state[1].fix_type) {
+					// GPS 1 has the best fix status so use that
+					_gps_select_index = 0;
+
+				} else if (_gps_state[1].fix_type > _gps_state[0].fix_type) {
+					// GPS 2 has the best fix status so use that
+					_gps_select_index = 1;
+
+				} else if (_gps_select_index == 2) {
+					// use last receiver we received data from
+					if (gps1_updated) {
+						_gps_select_index = 0;
+
+					} else if (gps2_updated) {
+						_gps_select_index = 1;
+					}
+				}
+
+				// Only use selected receiver data if it has been updated
+				if ((gps1_updated && _gps_select_index == 0) || (gps2_updated && _gps_select_index == 1)) {
+					_gps_new_output_data = true;
+
+				} else {
+					_gps_new_output_data = false;
+				}
+			}
+
+			if (_gps_new_output_data) {
+				// correct the _gps_state data for steady state offsets and write to _gps_output
+				apply_gps_offsets();
+
+				// calculate a blended output from the offset corrected receiver data
+				if (_gps_select_index == 2) {
+					calc_gps_blend_output();
+				}
+
+				// write selected GPS to EKF
+				_ekf.setGpsData(_gps_output[_gps_select_index].time_usec, &_gps_output[_gps_select_index]);
+
+				// log blended solution as a third GPS instance
+				ekf_gps_position_s gps;
+				gps.timestamp = _gps_output[_gps_select_index].time_usec;
+				gps.lat = _gps_output[_gps_select_index].lat;
+				gps.lon = _gps_output[_gps_select_index].lon;
+				gps.alt = _gps_output[_gps_select_index].alt;
+				gps.fix_type = _gps_output[_gps_select_index].fix_type;
+				gps.eph = _gps_output[_gps_select_index].eph;
+				gps.epv = _gps_output[_gps_select_index].epv;
+				gps.s_variance_m_s = _gps_output[_gps_select_index].sacc;
+				gps.vel_m_s = _gps_output[_gps_select_index].vel_m_s;
+				gps.vel_n_m_s = _gps_output[_gps_select_index].vel_ned[0];
+				gps.vel_e_m_s = _gps_output[_gps_select_index].vel_ned[1];
+				gps.vel_d_m_s = _gps_output[_gps_select_index].vel_ned[2];
+				gps.vel_ned_valid = _gps_output[_gps_select_index].vel_ned_valid;
+				gps.satellites_used = _gps_output[_gps_select_index].nsats;
+				gps.heading = _gps_output[_gps_select_index].yaw;
+				gps.heading_offset = _gps_output[_gps_select_index].yaw_offset;
+				gps.selected = _gps_select_index;
+
+				// Publish to the EKF blended GPS topic
+				orb_publish_auto(ORB_ID(ekf_gps_position), &_blended_gps_pub, &gps, &_gps_orb_instance, ORB_PRIO_LOW);
+
+				// clear flag to avoid re-use of the same data
+				_gps_new_output_data = false;
 			}
 		}
 
@@ -903,6 +1132,10 @@ void Ekf2::run()
 					_ekf.setOpticalFlowData(optical_flow.timestamp, &flow);
 				}
 
+				// Save sensor limits reported by the optical flow sensor
+				_ekf.set_optical_flow_limits(optical_flow.max_flow_rate, optical_flow.min_ground_distance,
+							     optical_flow.max_ground_distance);
+
 				ekf2_timestamps.optical_flow_timestamp_rel = (int16_t)((int64_t)optical_flow.timestamp / 100 -
 						(int64_t)ekf2_timestamps.timestamp / 100);
 			}
@@ -917,9 +1150,9 @@ void Ekf2::run()
 				distance_sensor_s range_finder;
 
 				if (orb_copy(ORB_ID(distance_sensor), _range_finder_subs[_range_finder_sub_index], &range_finder) == PX4_OK) {
-					// check if distance sensor is within working boundaries
-					if (range_finder.min_distance >= range_finder.current_distance ||
-					    range_finder.max_distance <= range_finder.current_distance) {
+					// check distance sensor data quality
+					// TODO - move this check inside the ecl library
+					if (range_finder.signal_quality == 0) {
 						// use rng_gnd_clearance if on ground
 						if (_ekf.get_in_air_status()) {
 							range_finder_updated = false;
@@ -929,7 +1162,10 @@ void Ekf2::run()
 						}
 					}
 
-					_ekf.setRangeData(range_finder.timestamp, range_finder.current_distance);
+					if (range_finder_updated) { _ekf.setRangeData(range_finder.timestamp, range_finder.current_distance); }
+
+					// Save sensor limits reported by the rangefinder
+					_ekf.set_rangefinder_limits(range_finder.min_distance, range_finder.max_distance);
 
 					ekf2_timestamps.distance_sensor_timestamp_rel = (int16_t)((int64_t)range_finder.timestamp / 100 -
 							(int64_t)ekf2_timestamps.timestamp / 100);
@@ -942,39 +1178,57 @@ void Ekf2::run()
 
 		// get external vision data
 		// if error estimates are unavailable, use parameter defined defaults
-		bool vision_position_updated = false;
-		bool vision_attitude_updated = false;
-		orb_check(_ev_pos_sub, &vision_position_updated);
-		orb_check(_ev_att_sub, &vision_attitude_updated);
+		bool visual_odometry_updated = false;
+		orb_check(_ev_odom_sub, &visual_odometry_updated);
 
-		if (vision_position_updated || vision_attitude_updated) {
-			// copy both attitude & position if either updated, we need both to fill a single ext_vision_message
-			vehicle_attitude_s ev_att = {};
-			orb_copy(ORB_ID(vehicle_vision_attitude), _ev_att_sub, &ev_att);
-
-			vehicle_local_position_s ev_pos = {};
-			orb_copy(ORB_ID(vehicle_vision_position), _ev_pos_sub, &ev_pos);
+		if (visual_odometry_updated) {
+			// copy both attitude & position, we need both to fill a single ext_vision_message
+			vehicle_odometry_s ev_odom;
+			orb_copy(ORB_ID(vehicle_visual_odometry), _ev_odom_sub, &ev_odom);
 
 			ext_vision_message ev_data;
-			ev_data.posNED(0) = ev_pos.x;
-			ev_data.posNED(1) = ev_pos.y;
-			ev_data.posNED(2) = ev_pos.z;
-			matrix::Quatf q(ev_att.q);
-			ev_data.quat = q;
 
-			// position measurement error from parameters. TODO : use covariances from topic
-			ev_data.posErr = fmaxf(_ev_pos_noise.get(), fmaxf(ev_pos.eph, ev_pos.epv));
-			ev_data.angErr = _ev_ang_noise.get();
+			// check for valid position data
+			if (PX4_ISFINITE(ev_odom.x) && PX4_ISFINITE(ev_odom.y) && PX4_ISFINITE(ev_odom.z)) {
+				ev_data.posNED(0) = ev_odom.x;
+				ev_data.posNED(1) = ev_odom.y;
+				ev_data.posNED(2) = ev_odom.z;
 
-			// only set data if all positions and velocities are valid
-			if (ev_pos.xy_valid && ev_pos.z_valid && ev_pos.v_xy_valid && ev_pos.v_z_valid) {
-				// use timestamp from external computer, clocks are synchronized when using MAVROS
-				_ekf.setExtVisionData(vision_position_updated ? ev_pos.timestamp : ev_att.timestamp, &ev_data);
+				// position measurement error from parameters
+				if (PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_X_VARIANCE])) {
+					ev_data.posErr = fmaxf(_ev_pos_noise.get(), sqrtf(fmaxf(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_X_VARIANCE],
+							       ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Y_VARIANCE])));
+					ev_data.hgtErr = fmaxf(_ev_pos_noise.get(), sqrtf(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Z_VARIANCE]));
+
+				} else {
+					ev_data.posErr = _ev_pos_noise.get();
+					ev_data.hgtErr = _ev_pos_noise.get();
+				}
 			}
 
-			ekf2_timestamps.vision_position_timestamp_rel = (int16_t)((int64_t)ev_pos.timestamp / 100 -
-					(int64_t)ekf2_timestamps.timestamp / 100);
-			ekf2_timestamps.vision_attitude_timestamp_rel = (int16_t)((int64_t)ev_att.timestamp / 100 -
+			// check for valid orientation data
+			if (PX4_ISFINITE(ev_odom.q[0])) {
+				ev_data.quat = matrix::Quatf(ev_odom.q);
+
+				// orientation measurement error from parameters
+				if (PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_ROLL_VARIANCE])) {
+					ev_data.angErr = fmaxf(_ev_ang_noise.get(),
+							       sqrtf(fmaxf(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_ROLL_VARIANCE],
+									   fmaxf(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_PITCH_VARIANCE],
+											   ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE]))));
+
+				} else {
+					ev_data.angErr = _ev_ang_noise.get();
+				}
+			}
+
+			// only set data if all positions and orientation are valid
+			if (ev_data.posErr < ep_max_std_dev && ev_data.angErr < eo_max_std_dev) {
+				// use timestamp from external computer, clocks are synchronized when using MAVROS
+				_ekf.setExtVisionData(ev_odom.timestamp, &ev_data);
+			}
+
+			ekf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)ev_odom.timestamp / 100 -
 					(int64_t)ekf2_timestamps.timestamp / 100);
 		}
 
@@ -1005,196 +1259,188 @@ void Ekf2::run()
 			}
 		}
 
+		perf_end(_perf_update_data);
+
 		// run the EKF update and output
+		perf_begin(_perf_ekf_update);
 		const bool updated = _ekf.update();
+		perf_end(_perf_ekf_update);
+
+		// integrate time to monitor time slippage
+		if (_start_time_us == 0) {
+			_start_time_us = now;
+			_last_time_slip_us = 0;
+
+		} else if (_start_time_us > 0) {
+			_integrated_time_us += sensors.gyro_integral_dt;
+			_last_time_slip_us = (now - _start_time_us) - _integrated_time_us;
+		}
 
 		if (updated) {
 
-			// integrate time to monitor time slippage
-			if (_start_time_us == 0) {
-				_start_time_us = now;
-				_last_time_slip_us = 0;
+			filter_control_status_u control_status;
+			_ekf.get_control_mode(&control_status.value);
 
-			} else if (_start_time_us > 0) {
-				_integrated_time_us += sensors.gyro_integral_dt;
-				_last_time_slip_us = (now - _start_time_us) - _integrated_time_us;
-			}
+			// only publish position after successful alignment
+			if (control_status.flags.tilt_align) {
+				// generate vehicle local position data
+				vehicle_local_position_s &lpos = _vehicle_local_position_pub.get();
 
-			matrix::Quatf q;
-			_ekf.copy_quaternion(q.data());
+				lpos.timestamp = now;
 
-			// In-run bias estimates
-			float gyro_bias[3];
-			_ekf.get_gyro_bias(gyro_bias);
+				// Position of body origin in local NED frame
+				float position[3];
+				_ekf.get_position(position);
+				const float lpos_x_prev = lpos.x;
+				const float lpos_y_prev = lpos.y;
+				lpos.x = (_ekf.local_position_is_valid()) ? position[0] : 0.0f;
+				lpos.y = (_ekf.local_position_is_valid()) ? position[1] : 0.0f;
+				lpos.z = position[2];
 
-			{
-				// generate vehicle attitude quaternion data
-				vehicle_attitude_s att;
-				att.timestamp = now;
+				// Velocity of body origin in local NED frame (m/s)
+				float velocity[3];
+				_ekf.get_velocity(velocity);
+				lpos.vx = velocity[0];
+				lpos.vy = velocity[1];
+				lpos.vz = velocity[2];
 
-				q.copyTo(att.q);
-				_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);
+				// vertical position time derivative (m/s)
+				_ekf.get_pos_d_deriv(&lpos.z_deriv);
 
-				att.rollspeed = sensors.gyro_rad[0] - gyro_bias[0];
-				att.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
-				att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
+				// Acceleration of body origin in local NED frame
+				float vel_deriv[3];
+				_ekf.get_vel_deriv_ned(vel_deriv);
+				lpos.ax = vel_deriv[0];
+				lpos.ay = vel_deriv[1];
+				lpos.az = vel_deriv[2];
 
-				// publish vehicle attitude data
-				if (_att_pub == nullptr) {
-					_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
+				// TODO: better status reporting
+				lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
+				lpos.z_valid = !_preflt_vert_fail;
+				lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
+				lpos.v_z_valid = !_preflt_vert_fail;
 
-				} else {
-					orb_publish(ORB_ID(vehicle_attitude), _att_pub, &att);
-				}
-			}
+				// Position of local NED origin in GPS / WGS84 frame
+				map_projection_reference_s ekf_origin;
+				uint64_t origin_time;
 
-			// generate vehicle local position data
-			vehicle_local_position_s &lpos = _vehicle_local_position_pub.get();
+				// true if position (x,y,z) has a valid WGS-84 global reference (ref_lat, ref_lon, alt)
+				const bool ekf_origin_valid = _ekf.get_ekf_origin(&origin_time, &ekf_origin, &lpos.ref_alt);
+				lpos.xy_global = ekf_origin_valid;
+				lpos.z_global = ekf_origin_valid;
 
-			lpos.timestamp = now;
-
-			// Position of body origin in local NED frame
-			float position[3];
-			_ekf.get_position(position);
-			const float lpos_x_prev = lpos.x;
-			const float lpos_y_prev = lpos.y;
-			lpos.x = (_ekf.local_position_is_valid()) ? position[0] : 0.0f;
-			lpos.y = (_ekf.local_position_is_valid()) ? position[1] : 0.0f;
-			lpos.z = position[2];
-
-			// Velocity of body origin in local NED frame (m/s)
-			float velocity[3];
-			_ekf.get_velocity(velocity);
-			lpos.vx = velocity[0];
-			lpos.vy = velocity[1];
-			lpos.vz = velocity[2];
-
-			// vertical position time derivative (m/s)
-			_ekf.get_pos_d_deriv(&lpos.z_deriv);
-
-			// Acceleration of body origin in local NED frame
-			float vel_deriv[3];
-			_ekf.get_vel_deriv_ned(vel_deriv);
-			lpos.ax = vel_deriv[0];
-			lpos.ay = vel_deriv[1];
-			lpos.az = vel_deriv[2];
-
-			// TODO: better status reporting
-			lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
-			lpos.z_valid = !_preflt_vert_fail;
-			lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
-			lpos.v_z_valid = !_preflt_vert_fail;
-
-			// Position of local NED origin in GPS / WGS84 frame
-			map_projection_reference_s ekf_origin;
-			uint64_t origin_time;
-
-			// true if position (x,y,z) has a valid WGS-84 global reference (ref_lat, ref_lon, alt)
-			const bool ekf_origin_valid = _ekf.get_ekf_origin(&origin_time, &ekf_origin, &lpos.ref_alt);
-			lpos.xy_global = ekf_origin_valid;
-			lpos.z_global = ekf_origin_valid;
-
-			if (ekf_origin_valid && (origin_time > lpos.ref_timestamp)) {
-				lpos.ref_timestamp = origin_time;
-				lpos.ref_lat = ekf_origin.lat_rad * 180.0 / M_PI; // Reference point latitude in degrees
-				lpos.ref_lon = ekf_origin.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
-			}
-
-			// The rotation of the tangent plane vs. geographical north
-			matrix::Eulerf euler(q);
-			lpos.yaw = euler.psi();
-
-			lpos.dist_bottom_valid = _ekf.get_terrain_valid();
-
-			float terrain_vpos;
-			_ekf.get_terrain_vert_pos(&terrain_vpos);
-			lpos.dist_bottom = terrain_vpos - lpos.z; // Distance to bottom surface (ground) in meters
-
-			// constrain the distance to ground to _rng_gnd_clearance
-			if (lpos.dist_bottom < _rng_gnd_clearance.get()) {
-				lpos.dist_bottom = _rng_gnd_clearance.get();
-			}
-
-			lpos.dist_bottom_rate = -lpos.vz; // Distance to bottom surface (ground) change rate
-
-			_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
-			_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv);
-
-			// get state reset information of position and velocity
-			_ekf.get_posD_reset(&lpos.delta_z, &lpos.z_reset_counter);
-			_ekf.get_velD_reset(&lpos.delta_vz, &lpos.vz_reset_counter);
-			_ekf.get_posNE_reset(&lpos.delta_xy[0], &lpos.xy_reset_counter);
-			_ekf.get_velNE_reset(&lpos.delta_vxy[0], &lpos.vxy_reset_counter);
-
-			// get control limit information
-			_ekf.get_ekf_ctrl_limits(&lpos.vxy_max, &lpos.limit_hagl);
-
-			// convert NaN to zero
-			if (!PX4_ISFINITE(lpos.vxy_max)) {
-				lpos.vxy_max = 0.0f;
-			}
-
-			// publish vehicle local position data
-			_vehicle_local_position_pub.update();
-
-			if (_ekf.global_position_is_valid() && !_preflt_fail) {
-				// generate and publish global position data
-				vehicle_global_position_s &global_pos = _vehicle_global_position_pub.get();
-
-				global_pos.timestamp = now;
-
-				if (fabsf(lpos_x_prev - lpos.x) > FLT_EPSILON || fabsf(lpos_y_prev - lpos.y) > FLT_EPSILON) {
-					map_projection_reproject(&ekf_origin, lpos.x, lpos.y, &global_pos.lat, &global_pos.lon);
+				if (ekf_origin_valid && (origin_time > lpos.ref_timestamp)) {
+					lpos.ref_timestamp = origin_time;
+					lpos.ref_lat = ekf_origin.lat_rad * 180.0 / M_PI; // Reference point latitude in degrees
+					lpos.ref_lon = ekf_origin.lon_rad * 180.0 / M_PI; // Reference point longitude in degrees
 				}
 
-				global_pos.lat_lon_reset_counter = lpos.xy_reset_counter;
+				// The rotation of the tangent plane vs. geographical north
+				matrix::Quatf q;
+				_ekf.copy_quaternion(q.data());
 
-				global_pos.alt = -lpos.z + lpos.ref_alt; // Altitude AMSL in meters
+				lpos.yaw = matrix::Eulerf(q).psi();
 
-				// global altitude has opposite sign of local down position
-				global_pos.delta_alt = -lpos.delta_z;
+				lpos.dist_bottom_valid = _ekf.get_terrain_valid();
 
-				global_pos.vel_n = lpos.vx; // Ground north velocity, m/s
-				global_pos.vel_e = lpos.vy; // Ground east velocity, m/s
-				global_pos.vel_d = lpos.vz; // Ground downside velocity, m/s
+				float terrain_vpos;
+				_ekf.get_terrain_vert_pos(&terrain_vpos);
+				lpos.dist_bottom = terrain_vpos - lpos.z; // Distance to bottom surface (ground) in meters
 
-				global_pos.yaw = lpos.yaw; // Yaw in radians -PI..+PI.
-
-				_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
-
-				global_pos.dead_reckoning = _ekf.inertial_dead_reckoning();
-
-				global_pos.terrain_alt_valid = lpos.dist_bottom_valid;
-
-				if (global_pos.terrain_alt_valid) {
-					global_pos.terrain_alt = lpos.ref_alt - terrain_vpos; // Terrain altitude in m, WGS84
-
-				} else {
-					global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84
+				// constrain the distance to ground to _rng_gnd_clearance
+				if (lpos.dist_bottom < _rng_gnd_clearance.get()) {
+					lpos.dist_bottom = _rng_gnd_clearance.get();
 				}
 
-				global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
+				lpos.dist_bottom_rate = -lpos.vz; // Distance to bottom surface (ground) change rate
 
-				_vehicle_global_position_pub.update();
+				_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
+				_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv);
+
+				// get state reset information of position and velocity
+				_ekf.get_posD_reset(&lpos.delta_z, &lpos.z_reset_counter);
+				_ekf.get_velD_reset(&lpos.delta_vz, &lpos.vz_reset_counter);
+				_ekf.get_posNE_reset(&lpos.delta_xy[0], &lpos.xy_reset_counter);
+				_ekf.get_velNE_reset(&lpos.delta_vxy[0], &lpos.vxy_reset_counter);
+
+				// get control limit information
+				_ekf.get_ekf_ctrl_limits(&lpos.vxy_max, &lpos.vz_max, &lpos.hagl_min, &lpos.hagl_max);
+
+				// convert NaN to INFINITY
+				if (!PX4_ISFINITE(lpos.vxy_max)) {
+					lpos.vxy_max = INFINITY;
+				}
+
+				if (!PX4_ISFINITE(lpos.vz_max)) {
+					lpos.vz_max = INFINITY;
+				}
+
+				if (!PX4_ISFINITE(lpos.hagl_min)) {
+					lpos.hagl_min = INFINITY;
+				}
+
+				if (!PX4_ISFINITE(lpos.hagl_max)) {
+					lpos.hagl_max = INFINITY;
+				}
+
+				// publish vehicle local position data
+				_vehicle_local_position_pub.update();
+
+				if (_ekf.global_position_is_valid() && !_preflt_fail) {
+					// generate and publish global position data
+					vehicle_global_position_s &global_pos = _vehicle_global_position_pub.get();
+
+					global_pos.timestamp = now;
+
+					if (fabsf(lpos_x_prev - lpos.x) > FLT_EPSILON || fabsf(lpos_y_prev - lpos.y) > FLT_EPSILON) {
+						map_projection_reproject(&ekf_origin, lpos.x, lpos.y, &global_pos.lat, &global_pos.lon);
+					}
+
+					global_pos.lat_lon_reset_counter = lpos.xy_reset_counter;
+
+					global_pos.alt = -lpos.z + lpos.ref_alt; // Altitude AMSL in meters
+
+					// global altitude has opposite sign of local down position
+					global_pos.delta_alt = -lpos.delta_z;
+
+					global_pos.vel_n = lpos.vx; // Ground north velocity, m/s
+					global_pos.vel_e = lpos.vy; // Ground east velocity, m/s
+					global_pos.vel_d = lpos.vz; // Ground downside velocity, m/s
+
+					global_pos.yaw = lpos.yaw; // Yaw in radians -PI..+PI.
+
+					_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
+
+					global_pos.terrain_alt_valid = lpos.dist_bottom_valid;
+
+					if (global_pos.terrain_alt_valid) {
+						global_pos.terrain_alt = lpos.ref_alt - terrain_vpos; // Terrain altitude in m, WGS84
+
+					} else {
+						global_pos.terrain_alt = 0.0f; // Terrain altitude in m, WGS84
+					}
+
+					global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
+
+					_vehicle_global_position_pub.update();
+				}
 			}
 
 			{
 				// publish all corrected sensor readings and bias estimates after mag calibration is updated above
-				float accel_bias[3];
-				_ekf.get_accel_bias(accel_bias);
-
 				sensor_bias_s bias;
 
 				bias.timestamp = now;
 
-				bias.accel_x = sensors.accelerometer_m_s2[0] - accel_bias[0];
-				bias.accel_y = sensors.accelerometer_m_s2[1] - accel_bias[1];
-				bias.accel_z = sensors.accelerometer_m_s2[2] - accel_bias[2];
-
+				// In-run bias estimates
+				float gyro_bias[3];
+				_ekf.get_gyro_bias(gyro_bias);
 				bias.gyro_x_bias = gyro_bias[0];
 				bias.gyro_y_bias = gyro_bias[1];
 				bias.gyro_z_bias = gyro_bias[2];
 
+				float accel_bias[3];
+				_ekf.get_accel_bias(accel_bias);
 				bias.accel_x_bias = accel_bias[0];
 				bias.accel_y_bias = accel_bias[1];
 				bias.accel_z_bias = accel_bias[2];
@@ -1203,6 +1449,11 @@ void Ekf2::run()
 				bias.mag_y_bias = _last_valid_mag_cal[1];
 				bias.mag_z_bias = _last_valid_mag_cal[2];
 
+				// TODO: remove from sensor_bias?
+				bias.accel_x = sensors.accelerometer_m_s2[0] - accel_bias[0];
+				bias.accel_y = sensors.accelerometer_m_s2[1] - accel_bias[1];
+				bias.accel_z = sensors.accelerometer_m_s2[2] - accel_bias[2];
+
 				if (_sensor_bias_pub == nullptr) {
 					_sensor_bias_pub = orb_advertise(ORB_ID(sensor_bias), &bias);
 
@@ -1210,47 +1461,68 @@ void Ekf2::run()
 					orb_publish(ORB_ID(sensor_bias), _sensor_bias_pub, &bias);
 				}
 			}
-		}
 
-		// publish estimator status
-		estimator_status_s status;
-		status.timestamp = now;
-		_ekf.get_state_delayed(status.states);
-		_ekf.get_covariances(status.covariances);
-		_ekf.get_gps_check_status(&status.gps_check_fail_flags);
-		_ekf.get_control_mode(&status.control_mode_flags);
-		_ekf.get_filter_fault_status(&status.filter_fault_flags);
-		_ekf.get_innovation_test_status(&status.innovation_check_flags, &status.mag_test_ratio,
-						&status.vel_test_ratio, &status.pos_test_ratio,
-						&status.hgt_test_ratio, &status.tas_test_ratio,
-						&status.hagl_test_ratio, &status.beta_test_ratio);
+			// publish estimator status
+			estimator_status_s status;
+			status.timestamp = now;
+			_ekf.get_state_delayed(status.states);
+			status.n_states = 24;
+			_ekf.get_covariances(status.covariances);
+			_ekf.get_gps_check_status(&status.gps_check_fail_flags);
+			// only report enabled GPS check failures (the param indexes are shifted by 1 bit, because they don't include
+			// the GPS Fix bit, which is always checked)
+			status.gps_check_fail_flags &= ((uint16_t)_params->gps_check_mask << 1) | 1;
+			status.control_mode_flags = control_status.value;
+			_ekf.get_filter_fault_status(&status.filter_fault_flags);
+			_ekf.get_innovation_test_status(&status.innovation_check_flags, &status.mag_test_ratio,
+							&status.vel_test_ratio, &status.pos_test_ratio,
+							&status.hgt_test_ratio, &status.tas_test_ratio,
+							&status.hagl_test_ratio, &status.beta_test_ratio);
 
-		status.pos_horiz_accuracy = _vehicle_local_position_pub.get().eph;
-		status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;
-		_ekf.get_ekf_soln_status(&status.solution_status_flags);
-		_ekf.get_imu_vibe_metrics(status.vibe);
-		status.time_slip = _last_time_slip_us / 1e6f;
-		status.nan_flags = 0.0f; // unused
-		status.health_flags = 0.0f; // unused
-		status.timeout_flags = 0.0f; // unused
-		status.pre_flt_fail = _preflt_fail;
+			status.pos_horiz_accuracy = _vehicle_local_position_pub.get().eph;
+			status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;
+			_ekf.get_ekf_soln_status(&status.solution_status_flags);
+			_ekf.get_imu_vibe_metrics(status.vibe);
+			status.time_slip = _last_time_slip_us / 1e6f;
+			status.health_flags = 0.0f; // unused
+			status.timeout_flags = 0.0f; // unused
+			status.pre_flt_fail = _preflt_fail;
 
-		if (_estimator_status_pub == nullptr) {
-			_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
+			if (_estimator_status_pub == nullptr) {
+				_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
 
-		} else {
-			orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
-		}
+			} else {
+				orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
+			}
 
-		if (updated) {
+			// publish GPS drift data only when updated to minimise overhead
+			float gps_drift[3];
+			bool blocked;
+
+			if (_ekf.get_gps_drift_metrics(gps_drift, &blocked)) {
+				ekf_gps_drift_s drift_data;
+				drift_data.timestamp = now;
+				drift_data.hpos_drift_rate = gps_drift[0];
+				drift_data.vpos_drift_rate = gps_drift[1];
+				drift_data.hspd = gps_drift[2];
+				drift_data.blocked = blocked;
+
+				if (_ekf_gps_drift_pub == nullptr) {
+					_ekf_gps_drift_pub = orb_advertise(ORB_ID(ekf_gps_drift), &drift_data);
+
+				} else {
+					orb_publish(ORB_ID(ekf_gps_drift), _ekf_gps_drift_pub, &drift_data);
+				}
+			}
+
 			{
 				/* Check and save learned magnetometer bias estimates */
 
-				// Check if conditions are OK to for learning of magnetometer bias values
+				// Check if conditions are OK for learning of magnetometer bias values
 				if (!vehicle_land_detected.landed && // not on ground
 				    (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) && // vehicle is armed
-				    (status.filter_fault_flags == 0) && // there are no filter faults
-				    (status.control_mode_flags & (1 << 5))) { // the EKF is operating in the correct mode
+				    !status.filter_fault_flags && // there are no filter faults
+				    control_status.flags.mag_3D) { // the EKF is operating in the correct mode
 
 					if (_last_magcal_us == 0) {
 						_last_magcal_us = now;
@@ -1271,7 +1543,7 @@ void Ekf2::run()
 				}
 
 				// Start checking mag bias estimates when we have accumulated sufficient calibration time
-				if (_total_cal_time_us > 120 * 1000 * 1000ULL) {
+				if (_total_cal_time_us > 120_s) {
 					// we have sufficient accumulated valid flight time to form a reliable bias estimate
 					// check that the state variance for each axis is within a range indicating filter convergence
 					const float max_var_allowed = 100.0f * _mag_bias_saved_variance.get();
@@ -1300,7 +1572,7 @@ void Ekf2::run()
 				// Check and save the last valid calibration when we are disarmed
 				if ((vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
 				    && (status.filter_fault_flags == 0)
-				    && (sensor_selection.mag_device_id == _mag_bias_id.get())) {
+				    && (sensor_selection.mag_device_id == (uint32_t)_mag_bias_id.get())) {
 
 					update_mag_bias(_mag_bias_x, 0);
 					update_mag_bias(_mag_bias_y, 1);
@@ -1310,7 +1582,12 @@ void Ekf2::run()
 					_total_cal_time_us = 0;
 				}
 
-				publish_wind_estimate(now);
+			}
+
+			publish_wind_estimate(now);
+
+			if (!_mag_decl_saved && (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)) {
+				_mag_decl_saved = update_mag_decl(_mag_declination_deg);
 			}
 
 			{
@@ -1354,24 +1631,24 @@ void Ekf2::run()
 
 					// set the max allowed yaw innovaton depending on whether we are not aiding navigation using
 					// observations in the NE reference frame.
-					filter_control_status_u _ekf_control_mask;
-					_ekf.get_control_mode(&_ekf_control_mask.value);
-					bool doing_ne_aiding = _ekf_control_mask.flags.gps ||  _ekf_control_mask.flags.ev_pos;
+					bool doing_ne_aiding = control_status.flags.gps ||  control_status.flags.ev_pos;
 
 					float yaw_test_limit;
 
-					if (doing_ne_aiding) {
-						// use a smaller tolerance when doing NE inertial frame aiding
+					if (doing_ne_aiding && vehicle_status.is_rotary_wing) {
+						// use a smaller tolerance when doing NE inertial frame aiding as a rotary wing
+						// vehicle which cannot use GPS course to realign heading in flight
 						yaw_test_limit = _nav_yaw_innov_test_lim;
 
 					} else {
-						// use a larger tolerance when not doing NE inertial frame aiding
+						// use a larger tolerance when not doing NE inertial frame aiding or
+						// if a fixed wing vehicle which can realign heading using GPS course
 						yaw_test_limit = _yaw_innov_test_lim;
 					}
 
-					// filter the yaw innovations using a decaying envelope filter to prevent innovation sign changes due to angle wrapping allowinging large innvoations to pass checks after filtering.
-					_yaw_innov_magnitude_lpf = fmaxf(beta * _yaw_innov_magnitude_lpf,
-									 fminf(fabsf(innovations.heading_innov), 2.0f * yaw_test_limit));
+					// filter the yaw innovations
+					_yaw_innov_magnitude_lpf = beta * _yaw_innov_magnitude_lpf + alpha * constrain(innovations.heading_innov,
+								   -2.0f * yaw_test_limit, 2.0f * yaw_test_limit);
 
 					_hgt_innov_lpf = beta * _hgt_innov_lpf + alpha * constrain(innovations.vel_pos_innov[5], -_hgt_innov_spike_lim,
 							 _hgt_innov_spike_lim);
@@ -1408,18 +1685,6 @@ void Ekf2::run()
 				}
 			}
 
-		} else if (_replay_mode) {
-			// in replay mode we have to tell the replay module not to wait for an update
-			// we do this by publishing an attitude with zero timestamp
-			vehicle_attitude_s att;
-			att.timestamp = now;
-
-			if (_att_pub == nullptr) {
-				_att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
-
-			} else {
-				orb_publish(ORB_ID(vehicle_attitude), _att_pub, &att);
-			}
 		}
 
 		// publish ekf2_timestamps
@@ -1453,10 +1718,44 @@ int Ekf2::getRangeSubIndex(const int *subs)
 	return -1;
 }
 
+bool Ekf2::publish_attitude(const sensor_combined_s &sensors, const hrt_abstime &now)
+{
+	if (_ekf.attitude_valid()) {
+		// generate vehicle attitude quaternion data
+		vehicle_attitude_s att;
+		att.timestamp = now;
+
+		const Quatf q{_ekf.calculate_quaternion()};
+		q.copyTo(att.q);
+
+		_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);
+
+		// In-run bias estimates
+		float gyro_bias[3];
+		_ekf.get_gyro_bias(gyro_bias);
+		att.rollspeed = sensors.gyro_rad[0] - gyro_bias[0];
+		att.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
+		att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
+
+		int instance;
+		orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &instance, ORB_PRIO_HIGH);
+
+		return true;
+
+	}  else if (_replay_mode) {
+		// in replay mode we have to tell the replay module not to wait for an update
+		// we do this by publishing an attitude with zero timestamp
+		vehicle_attitude_s att = {};
+
+		int instance;
+		orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &instance, ORB_PRIO_HIGH);
+	}
+
+	return false;
+}
+
 bool Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
 {
-	bool published = false;
-
 	if (_ekf.get_wind_status()) {
 		float velNE_wind[2];
 		_ekf.get_wind_velocity(velNE_wind);
@@ -1472,17 +1771,13 @@ bool Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
 		wind_estimate.variance_north = wind_var[0];
 		wind_estimate.variance_east = wind_var[1];
 
-		if (_wind_pub == nullptr) {
-			_wind_pub = orb_advertise(ORB_ID(wind_estimate), &wind_estimate);
+		int instance;
+		orb_publish_auto(ORB_ID(wind_estimate), &_wind_pub, &wind_estimate, &instance, ORB_PRIO_DEFAULT);
 
-		} else {
-			orb_publish(ORB_ID(wind_estimate), _wind_pub, &wind_estimate);
-		}
-
-		published = true;
+		return true;
 	}
 
-	return published;
+	return false;
 }
 
 const Vector3f Ekf2::get_vel_body_wind()
@@ -1505,6 +1800,558 @@ const Vector3f Ekf2::get_vel_body_wind()
 
 	return R_to_body * v_wind_comp;
 }
+
+bool Ekf2::blend_gps_data()
+{
+	// zero the blend weights
+	memset(&_blend_weights, 0, sizeof(_blend_weights));
+
+	/*
+	 * If both receivers have the same update rate, use the oldest non-zero time.
+	 * If two receivers with different update rates are used, use the slowest.
+	 * If time difference is excessive, use newest to prevent a disconnected receiver
+	 * from blocking updates.
+	 */
+
+	// Calculate the time step for each receiver with some filtering to reduce the effects of jitter
+	// Find the largest and smallest time step.
+	float dt_max = 0.0f;
+	float dt_min = 0.3f;
+
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		float raw_dt = 0.001f * (float)(_gps_state[i].time_usec - _time_prev_us[i]);
+
+		if (raw_dt > 0.0f && raw_dt < 0.3f) {
+			_gps_dt[i] = 0.1f * raw_dt + 0.9f * _gps_dt[i];
+		}
+
+		if (_gps_dt[i] > dt_max) {
+			dt_max = _gps_dt[i];
+			_gps_slowest_index = i;
+		}
+
+		if (_gps_dt[i] < dt_min) {
+			dt_min = _gps_dt[i];
+		}
+	}
+
+	// Find the receiver that is last be updated
+	uint64_t max_us = 0; // newest non-zero system time of arrival of a GPS message
+	uint64_t min_us = -1; // oldest non-zero system time of arrival of a GPS message
+
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		// Find largest and smallest times
+		if (_gps_state[i].time_usec > max_us) {
+			max_us = _gps_state[i].time_usec;
+			_gps_newest_index = i;
+		}
+
+		if ((_gps_state[i].time_usec < min_us) && (_gps_state[i].time_usec > 0)) {
+			min_us = _gps_state[i].time_usec;
+			_gps_oldest_index = i;
+		}
+	}
+
+	if ((max_us - min_us) > 300000) {
+		// A receiver has timed out so fall out of blending
+		return false;
+	}
+
+	/*
+	 * If the largest dt is less than 20% greater than the smallest, then we have  receivers
+	 * running at the same rate then we wait until we have two messages with an arrival time
+	 * difference that is less than 50% of the smallest time step and use the time stamp from
+	 * the newest data.
+	 * Else we have two receivers at different update rates and use the slowest receiver
+	 * as the timing reference.
+	 */
+
+	if ((dt_max - dt_min) < 0.2f * dt_min) {
+		// both receivers assumed to be running at the same rate
+		if ((max_us - min_us) < (uint64_t)(5e5f * dt_min)) {
+			// data arrival within a short time window enables the two measurements to be blended
+			_gps_time_ref_index = _gps_newest_index;
+			_gps_new_output_data = true;
+		}
+
+	} else {
+		// both receivers running at different rates
+		_gps_time_ref_index = _gps_slowest_index;
+
+		if (_gps_state[_gps_time_ref_index].time_usec > _time_prev_us[_gps_time_ref_index]) {
+			// blend data at the rate of the slower receiver
+			_gps_new_output_data = true;
+		}
+	}
+
+	if (_gps_new_output_data) {
+		_gps_blended_state.time_usec = _gps_state[_gps_time_ref_index].time_usec;
+
+		// calculate the sum squared speed accuracy across all GPS sensors
+		float speed_accuracy_sum_sq = 0.0f;
+
+		if (_gps_blend_mask.get() & BLEND_MASK_USE_SPD_ACC) {
+			for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+				if (_gps_state[i].fix_type >= 3 && _gps_state[i].sacc > 0.0f) {
+					speed_accuracy_sum_sq += _gps_state[i].sacc * _gps_state[i].sacc;
+
+				} else {
+					// not all receivers support this metric so set it to zero and don't use it
+					speed_accuracy_sum_sq = 0.0f;
+					break;
+				}
+			}
+		}
+
+		// calculate the sum squared horizontal position accuracy across all GPS sensors
+		float horizontal_accuracy_sum_sq = 0.0f;
+
+		if (_gps_blend_mask.get() & BLEND_MASK_USE_HPOS_ACC) {
+			for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+				if (_gps_state[i].fix_type >= 2 && _gps_state[i].eph > 0.0f) {
+					horizontal_accuracy_sum_sq += _gps_state[i].eph * _gps_state[i].eph;
+
+				} else {
+					// not all receivers support this metric so set it to zero and don't use it
+					horizontal_accuracy_sum_sq = 0.0f;
+					break;
+				}
+			}
+		}
+
+		// calculate the sum squared vertical position accuracy across all GPS sensors
+		float vertical_accuracy_sum_sq = 0.0f;
+
+		if (_gps_blend_mask.get() & BLEND_MASK_USE_VPOS_ACC) {
+			for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+				if (_gps_state[i].fix_type >= 3 && _gps_state[i].epv > 0.0f) {
+					vertical_accuracy_sum_sq += _gps_state[i].epv * _gps_state[i].epv;
+
+				} else {
+					// not all receivers support this metric so set it to zero and don't use it
+					vertical_accuracy_sum_sq = 0.0f;
+					break;
+				}
+			}
+		}
+
+		// Check if we can do blending using reported accuracy
+		bool can_do_blending = (horizontal_accuracy_sum_sq > 0.0f || vertical_accuracy_sum_sq > 0.0f
+					|| speed_accuracy_sum_sq > 0.0f);
+
+		// if we can't do blending using reported accuracy, return false and hard switch logic will be used instead
+		if (!can_do_blending) {
+			return false;
+		}
+
+		float sum_of_all_weights = 0.0f;
+
+		// calculate a weighting using the reported speed accuracy
+		float spd_blend_weights[GPS_MAX_RECEIVERS] = {};
+
+		if (speed_accuracy_sum_sq > 0.0f && (_gps_blend_mask.get() & BLEND_MASK_USE_SPD_ACC)) {
+			// calculate the weights using the inverse of the variances
+			float sum_of_spd_weights = 0.0f;
+
+			for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+				if (_gps_state[i].fix_type >= 3 && _gps_state[i].sacc >= 0.001f) {
+					spd_blend_weights[i] = 1.0f / (_gps_state[i].sacc * _gps_state[i].sacc);
+					sum_of_spd_weights += spd_blend_weights[i];
+				}
+			}
+
+			// normalise the weights
+			if (sum_of_spd_weights > 0.0f) {
+				for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+					spd_blend_weights[i] = spd_blend_weights[i] / sum_of_spd_weights;
+				}
+
+				sum_of_all_weights += 1.0f;
+			}
+		}
+
+		// calculate a weighting using the reported horizontal position
+		float hpos_blend_weights[GPS_MAX_RECEIVERS] = {};
+
+		if (horizontal_accuracy_sum_sq > 0.0f && (_gps_blend_mask.get() & BLEND_MASK_USE_HPOS_ACC)) {
+			// calculate the weights using the inverse of the variances
+			float sum_of_hpos_weights = 0.0f;
+
+			for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+				if (_gps_state[i].fix_type >= 2 && _gps_state[i].eph >= 0.001f) {
+					hpos_blend_weights[i] = horizontal_accuracy_sum_sq / (_gps_state[i].eph * _gps_state[i].eph);
+					sum_of_hpos_weights += hpos_blend_weights[i];
+				}
+			}
+
+			// normalise the weights
+			if (sum_of_hpos_weights > 0.0f) {
+				for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+					hpos_blend_weights[i] = hpos_blend_weights[i] / sum_of_hpos_weights;
+				}
+
+				sum_of_all_weights += 1.0f;
+			}
+		}
+
+		// calculate a weighting using the reported vertical position accuracy
+		float vpos_blend_weights[GPS_MAX_RECEIVERS] = {};
+
+		if (vertical_accuracy_sum_sq > 0.0f && (_gps_blend_mask.get() & BLEND_MASK_USE_VPOS_ACC)) {
+			// calculate the weights using the inverse of the variances
+			float sum_of_vpos_weights = 0.0f;
+
+			for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+				if (_gps_state[i].fix_type >= 3 && _gps_state[i].epv >= 0.001f) {
+					vpos_blend_weights[i] = vertical_accuracy_sum_sq / (_gps_state[i].epv * _gps_state[i].epv);
+					sum_of_vpos_weights += vpos_blend_weights[i];
+				}
+			}
+
+			// normalise the weights
+			if (sum_of_vpos_weights > 0.0f) {
+				for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+					vpos_blend_weights[i] = vpos_blend_weights[i] / sum_of_vpos_weights;
+				}
+
+				sum_of_all_weights += 1.0f;
+			};
+		}
+
+		// calculate an overall weight
+		for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+			_blend_weights[i] = (hpos_blend_weights[i] + vpos_blend_weights[i] + spd_blend_weights[i]) / sum_of_all_weights;
+		}
+
+		// With updated weights we can calculate a blended GPS solution and
+		// offsets for each physical receiver
+		update_gps_blend_states();
+		update_gps_offsets();
+		_gps_select_index = 2;
+
+	}
+
+	return true;
+}
+
+/*
+ * Update the internal state estimate for a blended GPS solution that is a weighted average of the phsyical receiver solutions
+ * with weights are calculated in calc_gps_blend_weights(). This internal state cannot be used directly by estimators
+ * because if physical receivers have significant position differences,  variation in receiver estimated accuracy will
+ * cause undesirable variation in the position solution.
+*/
+void Ekf2::update_gps_blend_states()
+{
+	// initialise the blended states so we can accumulate the results using the weightings for each GPS receiver.
+	_gps_blended_state.time_usec = 0;
+	_gps_blended_state.lat = 0;
+	_gps_blended_state.lon = 0;
+	_gps_blended_state.alt = 0;
+	_gps_blended_state.fix_type = 0;
+	_gps_blended_state.eph = FLT_MAX;
+	_gps_blended_state.epv = FLT_MAX;
+	_gps_blended_state.sacc = FLT_MAX;
+	_gps_blended_state.vel_m_s = 0.0f;
+	_gps_blended_state.vel_ned[0] = 0.0f;
+	_gps_blended_state.vel_ned[1] = 0.0f;
+	_gps_blended_state.vel_ned[2] = 0.0f;
+	_gps_blended_state.vel_ned_valid = true;
+	_gps_blended_state.nsats = 0;
+	_gps_blended_state.gdop = FLT_MAX;
+
+	_blended_antenna_offset.zero();
+
+	// combine the the GPS states into a blended solution using the weights calculated in calc_blend_weights()
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		// blend the timing data
+		_gps_blended_state.time_usec += (uint64_t)((double)_gps_state[i].time_usec * (double)_blend_weights[i]);
+
+		// use the highest status
+		if (_gps_state[i].fix_type > _gps_blended_state.fix_type) {
+			_gps_blended_state.fix_type = _gps_state[i].fix_type;
+		}
+
+		// calculate a blended average speed and velocity vector
+		_gps_blended_state.vel_m_s += _gps_state[i].vel_m_s * _blend_weights[i];
+		_gps_blended_state.vel_ned[0] += _gps_state[i].vel_ned[0] * _blend_weights[i];
+		_gps_blended_state.vel_ned[1] += _gps_state[i].vel_ned[1] * _blend_weights[i];
+		_gps_blended_state.vel_ned[2] += _gps_state[i].vel_ned[2] * _blend_weights[i];
+
+		// Assume blended error magnitude, DOP and sat count is equal to the best value from contributing receivers
+		// If any receiver contributing has an invalid velocity, then report blended velocity as invalid
+		if (_blend_weights[i] > 0.0f) {
+
+			if (_gps_state[i].eph > 0.0f
+			    && _gps_state[i].eph < _gps_blended_state.eph) {
+				_gps_blended_state.eph = _gps_state[i].eph;
+			}
+
+			if (_gps_state[i].epv > 0.0f
+			    && _gps_state[i].epv < _gps_blended_state.epv) {
+				_gps_blended_state.epv = _gps_state[i].epv;
+			}
+
+			if (_gps_state[i].sacc > 0.0f
+			    && _gps_state[i].sacc < _gps_blended_state.sacc) {
+				_gps_blended_state.sacc = _gps_state[i].sacc;
+			}
+
+			if (_gps_state[i].gdop > 0
+			    && _gps_state[i].gdop < _gps_blended_state.gdop) {
+				_gps_blended_state.gdop = _gps_state[i].gdop;
+			}
+
+			if (_gps_state[i].nsats > 0
+			    && _gps_state[i].nsats > _gps_blended_state.nsats) {
+				_gps_blended_state.nsats = _gps_state[i].nsats;
+			}
+
+			if (!_gps_state[i].vel_ned_valid) {
+				_gps_blended_state.vel_ned_valid = false;
+			}
+
+		}
+
+		// TODO read parameters for individual GPS antenna positions and blend
+		// Vector3f temp_antenna_offset = _antenna_offset[i];
+		// temp_antenna_offset *= _blend_weights[i];
+		// _blended_antenna_offset += temp_antenna_offset;
+
+	}
+
+	/*
+	 * Calculate the instantaneous weighted average location using  available GPS instances and store in  _gps_state.
+	 * This is statistically the most likely location, but may not be stable enough for direct use by the EKF.
+	*/
+
+	// Use the GPS with the highest weighting as the reference position
+	float best_weight = 0.0f;
+
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		if (_blend_weights[i] > best_weight) {
+			best_weight = _blend_weights[i];
+			_gps_best_index = i;
+			_gps_blended_state.lat = _gps_state[i].lat;
+			_gps_blended_state.lon = _gps_state[i].lon;
+			_gps_blended_state.alt = _gps_state[i].alt;
+		}
+	}
+
+	// Convert each GPS position to a local NEU offset relative to the reference position
+	Vector2f blended_NE_offset_m;
+	blended_NE_offset_m.zero();
+	float blended_alt_offset_mm = 0.0f;
+
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		if ((_blend_weights[i] > 0.0f) && (i != _gps_best_index)) {
+			// calculate the horizontal offset
+			Vector2f horiz_offset{};
+			get_vector_to_next_waypoint((_gps_blended_state.lat / 1.0e7),
+						    (_gps_blended_state.lon / 1.0e7), (_gps_state[i].lat / 1.0e7), (_gps_state[i].lon / 1.0e7),
+						    &horiz_offset(0), &horiz_offset(1));
+
+			// sum weighted offsets
+			blended_NE_offset_m += horiz_offset * _blend_weights[i];
+
+			// calculate vertical offset
+			float vert_offset = (float)(_gps_state[i].alt - _gps_blended_state.alt);
+
+			// sum weighted offsets
+			blended_alt_offset_mm += vert_offset * _blend_weights[i];
+		}
+	}
+
+	// Add the sum of weighted offsets to the reference position to obtain the blended position
+	double lat_deg_now = (double)_gps_blended_state.lat * 1.0e-7;
+	double lon_deg_now = (double)_gps_blended_state.lon * 1.0e-7;
+	double lat_deg_res, lon_deg_res;
+	add_vector_to_global_position(lat_deg_now, lon_deg_now, blended_NE_offset_m(0), blended_NE_offset_m(1), &lat_deg_res,
+				      &lon_deg_res);
+	_gps_blended_state.lat = (int32_t)(1.0E7 * lat_deg_res);
+	_gps_blended_state.lon = (int32_t)(1.0E7 * lon_deg_res);
+	_gps_blended_state.alt += (int32_t)blended_alt_offset_mm;
+
+	// Take GPS heading from the highest weighted receiver that is publishing a valid .heading value
+	uint8_t gps_best_yaw_index = 0;
+	best_weight = 0.0f;
+
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		if (PX4_ISFINITE(_gps_state[i].yaw) && (_blend_weights[i] > best_weight)) {
+			best_weight = _blend_weights[i];
+			gps_best_yaw_index = i;
+		}
+	}
+
+	_gps_blended_state.yaw = _gps_state[gps_best_yaw_index].yaw;
+	_gps_blended_state.yaw_offset = _gps_state[gps_best_yaw_index].yaw_offset;
+}
+
+/*
+ * The location in _gps_blended_state will move around as the relative accuracy changes.
+ * To mitigate this effect a low-pass filtered offset from each GPS location to the blended location is
+ * calculated.
+*/
+void Ekf2::update_gps_offsets()
+{
+
+	// Calculate filter coefficients to be applied to the offsets for each GPS position and height offset
+	// Increase the filter time constant proportional to the inverse of the weighting
+	// A weighting of 1 will make the offset adjust the slowest, a weighting of 0 will make it adjust with zero filtering
+	float alpha[GPS_MAX_RECEIVERS] = {};
+	float omega_lpf = 1.0f / fmaxf(_gps_blend_tau.get(), 1.0f);
+
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		if (_gps_state[i].time_usec - _time_prev_us[i] > 0) {
+			// calculate the filter coefficient that achieves the time constant specified by the user adjustable parameter
+			float min_alpha = constrain(omega_lpf * 1e-6f * (float)(_gps_state[i].time_usec - _time_prev_us[i]),
+						    0.0f, 1.0f);
+
+			// scale the filter coefficient so that time constant is inversely proprtional to weighting
+			if (_blend_weights[i] > min_alpha) {
+				alpha[i] = min_alpha / _blend_weights[i];
+
+			} else {
+				alpha[i] = 1.0f;
+			}
+
+			_time_prev_us[i] = _gps_state[i].time_usec;
+		}
+	}
+
+	// Calculate a filtered position delta for each GPS relative to the blended solution state
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		Vector2f offset;
+		get_vector_to_next_waypoint((_gps_state[i].lat / 1.0e7), (_gps_state[i].lon / 1.0e7),
+					    (_gps_blended_state.lat / 1.0e7), (_gps_blended_state.lon / 1.0e7), &offset(0), &offset(1));
+		_NE_pos_offset_m[i] = offset * alpha[i] + _NE_pos_offset_m[i] * (1.0f - alpha[i]);
+		_hgt_offset_mm[i] = (float)(_gps_blended_state.alt - _gps_state[i].alt) *  alpha[i] +
+				    _hgt_offset_mm[i] * (1.0f - alpha[i]);
+	}
+
+	// calculate offset limits from the largest difference between receivers
+	Vector2f max_ne_offset{};
+	float max_alt_offset = 0;
+
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		for (uint8_t j = i; j < GPS_MAX_RECEIVERS; j++) {
+			if (i != j) {
+				Vector2f offset;
+				get_vector_to_next_waypoint((_gps_state[i].lat / 1.0e7), (_gps_state[i].lon / 1.0e7),
+							    (_gps_state[j].lat / 1.0e7), (_gps_state[j].lon / 1.0e7), &offset(0), &offset(1));
+				max_ne_offset(0) = fmaxf(max_ne_offset(0), fabsf(offset(0)));
+				max_ne_offset(1) = fmaxf(max_ne_offset(1), fabsf(offset(1)));
+				max_alt_offset = fmaxf(max_alt_offset, fabsf((float)(_gps_state[i].alt - _gps_state[j].alt)));
+			}
+		}
+	}
+
+	// apply offset limits
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		_NE_pos_offset_m[i](0) = constrain(_NE_pos_offset_m[i](0), -max_ne_offset(0), max_ne_offset(0));
+		_NE_pos_offset_m[i](1) = constrain(_NE_pos_offset_m[i](1), -max_ne_offset(1), max_ne_offset(1));
+		_hgt_offset_mm[i] = constrain(_hgt_offset_mm[i], -max_alt_offset, max_alt_offset);
+	}
+
+}
+
+
+/*
+ * Apply the steady state physical receiver offsets calculated by update_gps_offsets().
+*/
+void Ekf2::apply_gps_offsets()
+{
+	// calculate offset corrected output for each physical GPS.
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		// Add the sum of weighted offsets to the reference position to obtain the blended position
+		double lat_deg_now = (double)_gps_state[i].lat * 1.0e-7;
+		double lon_deg_now = (double)_gps_state[i].lon * 1.0e-7;
+		double lat_deg_res, lon_deg_res;
+		add_vector_to_global_position(lat_deg_now, lon_deg_now, _NE_pos_offset_m[i](0), _NE_pos_offset_m[i](1), &lat_deg_res,
+					      &lon_deg_res);
+		_gps_output[i].lat = (int32_t)(1.0E7 * lat_deg_res);
+		_gps_output[i].lon = (int32_t)(1.0E7 * lon_deg_res);
+		_gps_output[i].alt = _gps_state[i].alt + (int32_t)_hgt_offset_mm[i];
+
+		// other receiver data is used uncorrected
+		_gps_output[i].time_usec	= _gps_state[i].time_usec;
+		_gps_output[i].fix_type		= _gps_state[i].fix_type;
+		_gps_output[i].vel_m_s		= _gps_state[i].vel_m_s;
+		_gps_output[i].vel_ned[0]	= _gps_state[i].vel_ned[0];
+		_gps_output[i].vel_ned[1]	= _gps_state[i].vel_ned[1];
+		_gps_output[i].vel_ned[2]	= _gps_state[i].vel_ned[2];
+		_gps_output[i].eph		= _gps_state[i].eph;
+		_gps_output[i].epv		= _gps_state[i].epv;
+		_gps_output[i].sacc		= _gps_state[i].sacc;
+		_gps_output[i].gdop		= _gps_state[i].gdop;
+		_gps_output[i].nsats		= _gps_state[i].nsats;
+		_gps_output[i].vel_ned_valid	= _gps_state[i].vel_ned_valid;
+		_gps_output[i].yaw		= _gps_state[i].yaw;
+		_gps_output[i].yaw_offset	= _gps_state[i].yaw_offset;
+
+	}
+}
+
+/*
+ Calculate GPS output that is a blend of the offset corrected physical receiver data
+*/
+void Ekf2::calc_gps_blend_output()
+{
+	// Convert each GPS position to a local NEU offset relative to the reference position
+	// which is defined as the positon of the blended solution calculated from non offset corrected data
+	Vector2f blended_NE_offset_m;
+	blended_NE_offset_m.zero();
+	float blended_alt_offset_mm = 0.0f;
+
+	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		if (_blend_weights[i] > 0.0f) {
+			// calculate the horizontal offset
+			Vector2f horiz_offset{};
+			get_vector_to_next_waypoint((_gps_blended_state.lat / 1.0e7),
+						    (_gps_blended_state.lon / 1.0e7),
+						    (_gps_output[i].lat / 1.0e7),
+						    (_gps_output[i].lon / 1.0e7),
+						    &horiz_offset(0),
+						    &horiz_offset(1));
+
+			// sum weighted offsets
+			blended_NE_offset_m += horiz_offset * _blend_weights[i];
+
+			// calculate vertical offset
+			float vert_offset = (float)(_gps_output[i].alt - _gps_blended_state.alt);
+
+			// sum weighted offsets
+			blended_alt_offset_mm += vert_offset * _blend_weights[i];
+		}
+	}
+
+	// Add the sum of weighted offsets to the reference position to obtain the blended position
+	double lat_deg_now = (double)_gps_blended_state.lat * 1.0e-7;
+	double lon_deg_now = (double)_gps_blended_state.lon * 1.0e-7;
+	double lat_deg_res, lon_deg_res;
+	add_vector_to_global_position(lat_deg_now, lon_deg_now, blended_NE_offset_m(0), blended_NE_offset_m(1), &lat_deg_res,
+				      &lon_deg_res);
+	_gps_output[GPS_BLENDED_INSTANCE].lat = (int32_t)(1.0E7 * lat_deg_res);
+	_gps_output[GPS_BLENDED_INSTANCE].lon = (int32_t)(1.0E7 * lon_deg_res);
+	_gps_output[GPS_BLENDED_INSTANCE].alt = _gps_blended_state.alt + (int32_t)blended_alt_offset_mm;
+
+	// Copy remaining data from internal states to output
+	_gps_output[GPS_BLENDED_INSTANCE].time_usec	= _gps_blended_state.time_usec;
+	_gps_output[GPS_BLENDED_INSTANCE].fix_type	= _gps_blended_state.fix_type;
+	_gps_output[GPS_BLENDED_INSTANCE].vel_m_s	= _gps_blended_state.vel_m_s;
+	_gps_output[GPS_BLENDED_INSTANCE].vel_ned[0]	= _gps_blended_state.vel_ned[0];
+	_gps_output[GPS_BLENDED_INSTANCE].vel_ned[1]	= _gps_blended_state.vel_ned[1];
+	_gps_output[GPS_BLENDED_INSTANCE].vel_ned[2]	= _gps_blended_state.vel_ned[2];
+	_gps_output[GPS_BLENDED_INSTANCE].eph		= _gps_blended_state.eph;
+	_gps_output[GPS_BLENDED_INSTANCE].epv		= _gps_blended_state.epv;
+	_gps_output[GPS_BLENDED_INSTANCE].sacc		= _gps_blended_state.sacc;
+	_gps_output[GPS_BLENDED_INSTANCE].gdop		= _gps_blended_state.gdop;
+	_gps_output[GPS_BLENDED_INSTANCE].nsats		= _gps_blended_state.nsats;
+	_gps_output[GPS_BLENDED_INSTANCE].vel_ned_valid	= _gps_blended_state.vel_ned_valid;
+	_gps_output[GPS_BLENDED_INSTANCE].yaw		= _gps_blended_state.yaw;
+	_gps_output[GPS_BLENDED_INSTANCE].yaw_offset	= _gps_blended_state.yaw_offset;
+
+}
+
 
 Ekf2 *Ekf2::instantiate(int argc, char *argv[])
 {

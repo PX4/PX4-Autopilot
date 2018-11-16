@@ -379,6 +379,9 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	report.hdop = msg.pdop;
 	report.vdop = msg.pdop;
 
+	report.heading = NAN;
+	report.heading_offset = NAN;
+
 	// Publish to a multi-topic
 	int32_t gps_orb_instance;
 	orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_pub, &report, &gps_orb_instance,

@@ -40,20 +40,36 @@ if(NOT FASTRTPSGEN)
 	message(FATAL_ERROR "Unable to find fastrtpsgen")
 endif()
 
-set(config_rtps_send_topics
-   sensor_combined
-   )
+if (EXISTS "${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_message_ids.yaml")
 
-set(config_rtps_receive_topics
-   sensor_baro
-   optical_flow
-   )
+  set(config_rtps_send_topics)
+	execute_process(
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_classifier.py -s
+		OUTPUT_VARIABLE config_rtps_send_topics
+	)
+
+	STRING(REGEX REPLACE ", " ";" config_rtps_send_topics "${config_rtps_send_topics}")
+	STRING(REGEX REPLACE "\n" "" config_rtps_send_topics "${config_rtps_send_topics}")
+
+	set(config_rtps_receive_topics)
+	execute_process(
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_classifier.py -r
+		OUTPUT_VARIABLE config_rtps_receive_topics
+	)
+
+	STRING(REGEX REPLACE ", " ";" config_rtps_receive_topics "${config_rtps_receive_topics}")
+	STRING(REGEX REPLACE "\n" "" config_rtps_receive_topics "${config_rtps_receive_topics}")
+
+endif()
 
 if (FASTRTPSGEN AND (config_rtps_send_topics OR config_rtps_receive_topics))
 	option(GENERATE_RTPS_BRIDGE "enable RTPS and microCDR" ON)
 endif()
 
 if (GENERATE_RTPS_BRIDGE)
+
+	# temporarily set to OFF
+	option(CHECK_ENDIANNESS OFF)
 
 	add_subdirectory(micrortps_client)
 
@@ -71,6 +87,7 @@ if (GENERATE_RTPS_BRIDGE)
 	set(uorb_sources_microcdr)
 
 	# send topic files
+	message(STATUS "RTPS send: ${config_rtps_send_topics}")
 	set(send_topic_files)
 	foreach(topic ${config_rtps_send_topics})
 		list(APPEND send_topic_files ${PX4_SOURCE_DIR}/msg/${topic}.msg)
@@ -79,6 +96,7 @@ if (GENERATE_RTPS_BRIDGE)
 	endforeach()
 
 	# receive topic files
+	message(STATUS "RTPS receive: ${config_rtps_receive_topics}")
 	set(receive_topic_files)
 	foreach(topic ${config_rtps_receive_topics})
 		list(APPEND receive_topic_files ${PX4_SOURCE_DIR}/msg/${topic}.msg)
@@ -125,15 +143,16 @@ if (GENERATE_RTPS_BRIDGE)
 	add_dependencies(uorb_msgs_microcdr
 		uorb_headers_microcdr_gen
 		git_micro_cdr
-		lib__micro-CDR
+		microcdr
 	)
-
-	target_link_libraries(uorb_msgs_microcdr PRIVATE lib__micro-CDR)
 
 	# microCDR
 	target_include_directories(uorb_msgs_microcdr
 		PUBLIC
 			${CMAKE_CURRENT_SOURCE_DIR}/micro-CDR/include
+			${CMAKE_CURRENT_BINARY_DIR}/micro-CDR/include
 			${CMAKE_CURRENT_BINARY_DIR}/micro-CDR/include/microcdr
 	)
+
+	target_link_libraries(uorb_msgs_microcdr PRIVATE microcdr)
 endif()

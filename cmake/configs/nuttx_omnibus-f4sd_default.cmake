@@ -1,7 +1,10 @@
 
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
 
-set(config_uavcan_num_ifaces 1)
+# user-configurable UART ports
+set(board_serial_ports
+	TEL2:/dev/ttyS1
+	URT6:/dev/ttyS2)
 
 set(config_module_list
 	#
@@ -18,28 +21,21 @@ set(config_module_list
 	#drivers/blinkm
 	#drivers/camera_trigger
 	drivers/gps
-	#drivers/irlock
-	#drivers/mkblctrl
-	#drivers/oreoled
-	#drivers/pca9685
-	#drivers/pwm_input
 	drivers/px4flow
 	drivers/px4fmu
+	drivers/rc_input
 	drivers/rgbled
 	drivers/stm32
-	#drivers/stm32/adc
+	drivers/stm32/adc
 	#drivers/stm32/tone_alarm
-	#drivers/tap_esc
-	#drivers/vmount
 	modules/sensors
 
 	#
 	# System commands
 	#
-	systemcmds/bl_update
+	#systemcmds/bl_update
 	systemcmds/config
-	#systemcmds/dumpfile
-	#systemcmds/esc_calib
+	systemcmds/esc_calib
 	systemcmds/hardfault_log
 	systemcmds/led_control
 	systemcmds/mixer
@@ -50,7 +46,7 @@ set(config_module_list
 	systemcmds/perf
 	systemcmds/pwm
 	systemcmds/reboot
-	#systemcmds/sd_bench
+	systemcmds/sd_bench
 	systemcmds/top
 	systemcmds/topic_listener
 	systemcmds/tune_control
@@ -80,7 +76,6 @@ set(config_module_list
 	modules/load_mon
 	modules/mavlink
 	modules/navigator
-	#modules/uavcan
 
 	#
 	# Estimation modules
@@ -89,25 +84,23 @@ set(config_module_list
 	modules/ekf2
 	modules/landing_target_estimator
 	modules/local_position_estimator
-	#modules/position_estimator_inav
-	modules/wind_estimator
+	#modules/wind_estimator
 
 	#
 	# Vehicle Control
 	#
-	modules/fw_att_control
-	modules/fw_pos_control_l1
-	modules/gnd_att_control
-	modules/gnd_pos_control
+	#modules/fw_att_control
+	#modules/fw_pos_control_l1
+	#modules/gnd_att_control
+	#modules/gnd_pos_control
 	modules/mc_att_control
 	modules/mc_pos_control
-	modules/vtol_att_control
+	#modules/vtol_att_control
 
 	#
 	# Logging
 	#
 	modules/logger
-	modules/sdlog2
 
 	#
 	# Library modules

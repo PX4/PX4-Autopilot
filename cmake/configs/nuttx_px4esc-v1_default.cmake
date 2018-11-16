@@ -27,7 +27,7 @@ add_definitions(
 )
 
 px4_nuttx_make_uavcan_bootloadable(BOARD ${BOARD}
-	BIN ${PX4_BINARY_DIR}/platforms/nuttx/px4esc-v1.bin
+	BIN ${PX4_BINARY_DIR}/px4esc-v1.bin
 	HWNAME ${uavcanblid_name}
 	HW_MAJOR ${uavcanblid_hw_version_major}
 	HW_MINOR ${uavcanblid_hw_version_minor}

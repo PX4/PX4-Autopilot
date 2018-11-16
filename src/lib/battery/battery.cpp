@@ -41,6 +41,7 @@
 
 #include "battery.h"
 #include <mathlib/mathlib.h>
+#include <cstring>
 
 Battery::Battery() :
 	ModuleParams(nullptr),

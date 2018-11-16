@@ -490,11 +490,7 @@ private:
 	 *
 	 * @return true if the sensor is not on the main MCU board
 	 */
-	bool			is_external()
-	{
-		unsigned dummy;
-		return _interface->ioctl(ACCELIOCGEXTERNAL, dummy);
-	}
+	bool			is_external() { return _interface->external(); }
 
 	/**
 	 * Measurement self test
@@ -502,20 +498,6 @@ private:
 	 * @return 0 on success, 1 on failure
 	 */
 	int 			self_test();
-
-	/**
-	 * Accel self test
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int 			accel_self_test();
-
-	/**
-	 * Gyro self test
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int 			gyro_self_test();
 
 	/*
 	  set low pass filter frequency

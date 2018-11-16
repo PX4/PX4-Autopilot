@@ -134,7 +134,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
 
 				/* Whatever the value is, we're being told to stop sending */
-				if (strncmp(name, "_HASH_CHECK", sizeof(name)) == 0) {
+				if (strncmp(name, "_HASH_CHECK", sizeof(name)) == 0 && _mavlink->hash_check_enabled()) {
 					_send_all_index = -1;
 					/* No other action taken, return */
 					return;
@@ -149,15 +149,9 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					_mavlink->send_statustext_info(buf);
 
 				} else {
-					// Load current value before setting it
-					float curr_val;
-					param_get(param, &curr_val);
+					// According to the mavlink spec we should always acknowledge a write operation.
 					param_set(param, &(set.param_value));
-
-					// Check if the parameter changed. If it didn't change, send current value back
-					if (!(fabsf(curr_val - set.param_value) > 0.0f)) {
-						send_param(param);
-					}
+					send_param(param);
 				}
 			}
 
@@ -422,7 +416,8 @@ MavlinkParametersManager::send_uavcan()
 		orb_copy(ORB_ID(uavcan_parameter_value), _uavcan_parameter_value_sub, &value);
 
 		// Check if we received a matching parameter, drop it from the list and request the next
-		if (value.param_index == _uavcan_open_request_list->req.param_index
+		if (_uavcan_open_request_list != nullptr
+		    && value.param_index == _uavcan_open_request_list->req.param_index
 		    && value.node_id == _uavcan_open_request_list->req.node_id) {
 			dequeue_uavcan_request();
 			request_next_uavcan_parameter();

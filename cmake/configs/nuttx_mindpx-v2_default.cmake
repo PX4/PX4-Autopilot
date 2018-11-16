@@ -1,6 +1,12 @@
 
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
 
+# user-configurable UART ports
+set(board_serial_ports
+	GPS1:/dev/ttyS3
+	TEL1:/dev/ttyS1
+	TEL2:/dev/ttyS2)
+
 set(config_uavcan_num_ifaces 1)
 
 set(config_module_list
@@ -17,7 +23,6 @@ set(config_module_list
 	drivers/blinkm
 	drivers/camera_trigger
 	drivers/gps
-	#drivers/hott
 	drivers/imu/l3gd20
 	drivers/imu/lsm303d
 	#drivers/mkblctrl
@@ -29,6 +34,7 @@ set(config_module_list
 	drivers/px4flow
 	drivers/px4fmu
 	drivers/rgbled
+	drivers/rc_input
 	#drivers/rgbled_pwm
 	drivers/stm32
 	drivers/stm32/adc
@@ -65,7 +71,6 @@ set(config_module_list
 	drivers/distance_sensor/sf0x/sf0x_tests
 	drivers/test_ppm
 	modules/commander/commander_tests
-	modules/mc_pos_control/mc_pos_control_tests
 	lib/controllib/controllib_test
 	modules/mavlink/mavlink_tests
 	modules/uORB/uORB_tests
@@ -107,7 +112,6 @@ set(config_module_list
 	#
 	# Logging
 	#
-	modules/sdlog2
 	modules/logger
 
 	#

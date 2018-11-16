@@ -40,10 +40,8 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_workqueue.h>
-#include <systemlib/airspeed.h>
 #include <perf/perf_counter.h>
 #include <uORB/topics/differential_pressure.h>
-#include <uORB/topics/subsystem_info.h>
 #include <uORB/uORB.h>
 
 /* Default I2C bus */
@@ -75,22 +73,14 @@ protected:
 	virtual int	measure() = 0;
 	virtual int	collect() = 0;
 
-	/**
-	 * Update the subsystem status
-	 */
-	void update_status();
-
 	work_s			_work;
 	bool			_sensor_ok;
-	bool			_last_published_sensor_ok;
-	uint32_t		_measure_ticks;
+	int				_measure_ticks;
 	bool			_collect_phase;
 	float			_diff_pres_offset;
 
 	orb_advert_t		_airspeed_pub;
 	int			_airspeed_orb_class_instance;
-
-	orb_advert_t		_subsys_pub;
 
 	int			_class_instance;
 

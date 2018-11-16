@@ -40,7 +40,6 @@
 #pragma once
 
 #include <float.h>
-#include <getopt.h>
 
 #include <drivers/device/i2c.h>
 #include <drivers/device/ringbuffer.h>
@@ -63,7 +62,7 @@
 /* Max measurement rate is 80Hz */
 #define LIS3MDL_CONVERSION_INTERVAL     (1000000 / 80)  /* 12,500 microseconds */
 
-#define NUM_BUS_OPTIONS                 (sizeof(bus_options)/sizeof(bus_options[0]))
+#define NUM_BUS_OPTIONS                 (sizeof(lis3mdl::bus_options)/sizeof(lis3mdl::bus_options[0]))
 
 #define ADDR_WHO_AM_I                   0x0f
 #define ID_WHO_AM_I                     0x3d
@@ -199,13 +198,6 @@ private:
 	 * Collect the result of the most recent measurement.
 	 */
 	int collect();
-
-	/**
-	 * Check the current calibration and update device status
-	 *
-	 * @return 0 if calibration is ok, 1 else
-	 */
-	int check_calibration();
 
 	/**
 	* Check the current scale calibration

@@ -50,7 +50,7 @@
 
 #include "protocol.h"
 
-#include <systemlib/pwm_limit/pwm_limit.h>
+#include <pwm_limit/pwm_limit.h>
 
 /*
  hotfix: we are critically short of memory in px4io and this is the
@@ -154,6 +154,7 @@ struct sys_state_s {
 extern struct sys_state_s system_state;
 extern float dt;
 extern bool update_mc_thrust_param;
+extern bool update_trims;
 
 /*
  * PWM limit structure

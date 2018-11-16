@@ -1,7 +1,13 @@
 
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
 
-set(config_uavcan_num_ifaces 2)
+set(config_uavcan_num_ifaces 1)
+
+# user-configurable UART ports
+set(board_serial_ports
+	GPS1:/dev/ttyS0
+	TEL1:/dev/ttyS1
+	TEL2:/dev/ttyS2)
 
 set(config_module_list
 	#
@@ -24,6 +30,7 @@ set(config_module_list
 	modules/sensors
 	#drivers/pwm_input
 	#drivers/camera_trigger
+	drivers/rc_input
 
 	#
 	# System commands
@@ -91,7 +98,6 @@ set(config_module_list
 	# Logging
 	#
 	modules/logger
-	#modules/sdlog2
 
 	#
 	# Library modules

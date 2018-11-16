@@ -31,17 +31,90 @@
 #
 ############################################################################
 
-px4_add_library(flight_tasks
-	tasks/FlightTask.cpp
-	tasks/FlightTaskManual.cpp
-	tasks/FlightTaskManualStabilized.cpp
-	tasks/FlightTaskOrbit.cpp
-	tasks/FlightTaskManualAltitude.cpp
-	tasks/FlightTaskManualAltitudeSmooth.cpp
-	tasks/FlightTaskManualPosition.cpp
-	tasks/FlightTaskManualPositionSmooth.cpp
-	tasks/Utility/ManualSmoothingZ.cpp
-	tasks/Utility/ManualSmoothingXY.cpp
-	SubscriptionArray.cpp
-	FlightTasks.cpp
+###########################################
+# Prepare flight tasks
+###########################################
+
+# add upstream flight tasks (they are being handled differently from the core inside the python script)
+list(APPEND flight_tasks_to_add
+	Orbit
 )
+# remove possible duplicates
+list(REMOVE_DUPLICATES flight_tasks_to_add)
+
+# remove flight tasks depending on target
+if(flight_tasks_to_remove)
+	list(REMOVE_ITEM flight_tasks_to_add
+		${flight_tasks_to_remove}
+	)
+endif()
+
+# add core flight tasks to list
+list(APPEND flight_tasks_all
+	ManualAltitude
+	ManualAltitudeSmooth
+	ManualPosition
+	ManualPositionSmooth
+	ManualPositionSmoothVel
+	Sport
+	AutoLine
+	AutoLineSmoothVel
+	AutoFollowMe
+	Offboard
+	Failsafe
+	Transition
+	${flight_tasks_to_add}
+)
+
+# set the files to be generated
+set(files_to_generate
+	FlightTasks_generated.hpp
+	FlightTasks_generated.cpp
+)
+
+# generate files needed for Flight Tasks
+set(python_args
+	-t ${flight_tasks_all}
+	-i ${CMAKE_CURRENT_SOURCE_DIR}/Templates
+	-o ${CMAKE_CURRENT_BINARY_DIR}
+	-f ${files_to_generate}
+)
+
+# add the additional tasks for the python script (if there are any)
+if(flight_tasks_to_add)
+	list(APPEND python_args
+		-s ${flight_tasks_to_add}
+	)
+endif()
+
+# generate the files using the python script and template
+add_custom_command(
+	OUTPUT
+		${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.hpp
+		${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.cpp
+	COMMAND ${PYTHON_EXECUTABLE} generate_flight_tasks.py
+		${python_args}
+	COMMENT "Generating Flight Tasks"
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	VERBATIM
+)
+
+###########################################
+# Create Flight Tasks Library
+###########################################
+
+px4_add_library(FlightTasks
+	FlightTasks.cpp
+	FlightTasks_generated.cpp
+)
+
+# add directories to target
+target_include_directories(FlightTasks PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+
+# add all flight task dependencies
+foreach(task ${flight_tasks_all})
+	target_link_libraries(FlightTasks PUBLIC FlightTask${task})
+endforeach()
+
+# add subdirectory containing all tasks
+add_subdirectory(tasks)

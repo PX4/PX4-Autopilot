@@ -72,11 +72,11 @@ using namespace vmount;
 static volatile bool thread_should_exit = false;
 static volatile bool thread_running = false;
 
-static constexpr unsigned input_objs_len_max = 3;
+static constexpr int input_objs_len_max = 3;
 
 struct ThreadData {
 	InputBase *input_objs[input_objs_len_max] = {nullptr, nullptr, nullptr};
-	unsigned input_objs_len = 0;
+	int input_objs_len = 0;
 	OutputBase *output_obj = nullptr;
 };
 static volatile ThreadData *g_thread_data = nullptr;

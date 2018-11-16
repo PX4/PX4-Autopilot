@@ -53,31 +53,23 @@
 #include <string.h>
 #include <fcntl.h>
 #include <poll.h>
-#include <errno.h>
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
 
 #include <perf/perf_counter.h>
-#include <systemlib/err.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
 #include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/obstacle_distance.h>
 
 #include <board_config.h>
 
 /* Configuration Constants */
-#ifdef PX4_I2C_BUS_EXPANSION
-#define VL53LXX_BUS PX4_I2C_BUS_EXPANSION
-#else
-#define VL53LXX_BUS 0
-#endif
+#define VL53LXX_BUS_DEFAULT PX4_I2C_BUS_EXPANSION
 
 #define VL53LXX_BASEADDR 0b0101001 // 7-bit address
 #define VL53LXX_DEVICE_PATH "/dev/vl53lxx"
@@ -117,7 +109,7 @@ class VL53LXX : public device::I2C
 {
 public:
 	VL53LXX(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING,
-		int bus = VL53LXX_BUS, int address = VL53LXX_BASEADDR);
+		int bus = VL53LXX_BUS_DEFAULT, int address = VL53LXX_BASEADDR);
 
 	virtual ~VL53LXX();
 
@@ -149,7 +141,6 @@ private:
 	int _orb_class_instance;
 
 	orb_advert_t _distance_sensor_topic;
-	orb_advert_t _subsystem_pub;
 
 	perf_counter_t _sample_perf;
 	perf_counter_t _comms_errors;
@@ -214,9 +205,9 @@ VL53LXX::VL53LXX(uint8_t rotation, int bus, int address) :
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
-	_subsystem_pub(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "vl53lxx_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "vl53lxx_com_err"))
+	_comms_errors(perf_alloc(PC_COUNT, "vl53lxx_com_err")),
+	_stop_variable(0)
 {
 	// up the retries since the device misses the first measure attempts
 	I2C::_retries = 3;
@@ -375,13 +366,6 @@ VL53LXX::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					return OK;
 				}
 
-			case SENSOR_POLLRATE_MANUAL: {
-
-					stop();
-					_measure_ticks = 0;
-					return OK;
-				}
-
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
@@ -479,7 +463,6 @@ VL53LXX::readRegister(uint8_t reg_address, uint8_t &value)
 	ret = transfer(&reg_address, sizeof(reg_address), nullptr, 0);
 
 	if (OK != ret) {
-		DEVICE_LOG("i2c::transfer returned %d", ret);
 		perf_count(_comms_errors);
 		return ret;
 	}
@@ -488,7 +471,6 @@ VL53LXX::readRegister(uint8_t reg_address, uint8_t &value)
 	ret = transfer(nullptr, 0, &value, 1);
 
 	if (OK != ret) {
-		DEVICE_LOG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		return ret;
 	}
@@ -507,7 +489,7 @@ VL53LXX::readRegisterMulti(uint8_t reg_address, uint8_t *value, uint8_t length)
 	ret = transfer(&reg_address, 1, nullptr, 0);
 
 	if (OK != ret) {
-		DEVICE_LOG("i2c::transfer returned %d", ret);
+		perf_count(_comms_errors);
 		return ret;
 	}
 
@@ -515,7 +497,6 @@ VL53LXX::readRegisterMulti(uint8_t reg_address, uint8_t *value, uint8_t length)
 	ret = transfer(nullptr, 0, &value[0], length);
 
 	if (OK != ret) {
-		DEVICE_LOG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		return ret;
 	}
@@ -538,7 +519,6 @@ VL53LXX::writeRegister(uint8_t reg_address, uint8_t value)
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		DEVICE_LOG("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -568,7 +548,6 @@ VL53LXX::writeRegisterMulti(uint8_t reg_address, uint8_t *value,
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		DEVICE_LOG("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -689,6 +668,7 @@ VL53LXX::collect()
 	report.min_distance = VL53LXX_MIN_RANGING_DISTANCE;
 	report.max_distance = VL53LXX_MAX_RANGING_DISTANCE;
 	report.covariance = 0.0f;
+	report.signal_quality = -1;
 
 	/* TODO: set proper ID */
 	report.id = 0;
@@ -720,22 +700,6 @@ VL53LXX::start()
 
 	/* schedule a cycle to start things */
 	work_queue(LPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this, USEC2TICK(VL53LXX_US));
-
-	/* notify about state change */
-	struct subsystem_info_s info = {};
-
-	info.timestamp = hrt_absolute_time();
-	info.present = true;
-	info.enabled = true;
-	info.ok = true;
-	info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_RANGEFINDER;
-
-	if (_subsystem_pub != nullptr) {
-		orb_publish(ORB_ID(subsystem_info), _subsystem_pub, &info);
-
-	} else {
-		_subsystem_pub = orb_advertise(ORB_ID(subsystem_info), &info);
-	}
 }
 
 
@@ -997,26 +961,56 @@ namespace vl53lxx
 
 VL53LXX	*g_dev;
 
-void	start(uint8_t rotation);
-void	stop();
-void	test();
-void	info();
+int 	start(uint8_t rotation);
+int 	start_bus(uint8_t rotation, int i2c_bus);
+int 	stop();
+int 	test();
+int 	info();
 
 /**
- * Start the driver.
+ *
+ * Attempt to start driver on all available I2C busses.
+ *
+ * This function will return as soon as the first sensor
+ * is detected on one of the available busses or if no
+ * sensors are detected.
+ *
  */
-void
+int
 start(uint8_t rotation)
 {
-	int fd;
+	if (g_dev != nullptr) {
+		PX4_ERR("already started");
+		return PX4_ERROR;
+	}
+
+	for (unsigned i = 0; i < NUM_I2C_BUS_OPTIONS; i++) {
+		if (start_bus(rotation, i2c_bus_options[i]) == PX4_OK) {
+			return PX4_OK;
+		}
+	}
+
+	return PX4_ERROR;
+}
+
+/**
+ * Start the driver on a specific bus.
+ *
+ * This function only returns if the sensor is up and running
+ * or could not be detected successfully.
+ */
+int
+start_bus(uint8_t rotation, int i2c_bus)
+{
+	int fd = -1;
 
 	if (g_dev != nullptr) {
-		errx(1, "already started");
+		PX4_ERR("already started");
+		return PX4_ERROR;
 	}
 
 	/* create the driver */
-	g_dev = new VL53LXX(rotation, VL53LXX_BUS);
-
+	g_dev = new VL53LXX(rotation, i2c_bus);
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -1027,7 +1021,7 @@ start(uint8_t rotation)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = open(VL53LXX_DEVICE_PATH, O_RDONLY);
+	fd = px4_open(VL53LXX_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
@@ -1037,32 +1031,39 @@ start(uint8_t rotation)
 		goto fail;
 	}
 
-	exit(0);
+	px4_close(fd);
+	return PX4_OK;
 
 fail:
+
+	if (fd >= 0) {
+		px4_close(fd);
+	}
 
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	return PX4_ERROR;
 }
 
 /**
  * Stop the driver
  */
-void stop()
+int
+stop()
 {
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
 
 	} else {
-		errx(1, "driver not running");
+		PX4_ERR("driver not running");
+		return PX4_ERROR;
 	}
 
-	exit(0);
+	return PX4_OK;
 }
 
 /**
@@ -1070,91 +1071,135 @@ void stop()
  * make sure we can collect data from the sensor in polled
  * and automatic modes.
  */
-void
+int
 test()
 {
 	struct distance_sensor_s report;
 	ssize_t sz;
 
-	int fd = open(VL53LXX_DEVICE_PATH, O_RDONLY);
+	int fd = px4_open(VL53LXX_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'vl53lxx start' if the driver is not running)", VL53LXX_DEVICE_PATH);
+		PX4_ERR("%s open failed (try 'vl53lxx start' if the driver is not running)", VL53LXX_DEVICE_PATH);
+		return PX4_ERROR;
 	}
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		PX4_ERR("ret: %d, expected: %d", sz, sizeof(report));
-		err(1, "immediate acc read failed");
+		PX4_ERR("immediate read failed");
+		return PX4_ERROR;
 	}
 
 	print_message(report);
 
-	errx(0, "PASS");
+	px4_close(fd);
+
+	PX4_INFO("PASS");
+	return PX4_OK;
 }
 
 
 /**
  * Print a little info about the driver.
  */
-void
+int
 info()
 {
 	if (g_dev == nullptr) {
-		errx(1, "driver not running");
+		PX4_ERR("driver not running");
+		return PX4_ERROR;
 	}
 
 	printf("state @ %p\n", g_dev);
 	g_dev->print_info();
 
-	exit(0);
+	return PX4_OK;
 }
 
 } // namespace vl53lxx
 
 
+static void
+vl53lxx_usage()
+{
+	PX4_INFO("usage: vl53lxx command [options]");
+	PX4_INFO("options:");
+	PX4_INFO("\t-b --bus i2cbus (%d)", VL53LXX_BUS_DEFAULT);
+	PX4_INFO("\t-a --all");
+	PX4_INFO("\t-R --rotation (%d)", distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	PX4_INFO("command:");
+	PX4_INFO("\tstart|stop|test|info");
+}
+
+
 int
 vl53lxx_main(int argc, char *argv[])
 {
+	int ch;
 	int myoptind = 1;
+	const char *myoptarg = nullptr;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	bool start_all = false;
 
-	if (argc < 2) {
-		goto out;
+	int i2c_bus = VL53LXX_BUS_DEFAULT;
+
+	while ((ch = px4_getopt(argc, argv, "ab:R:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'R':
+			rotation = (uint8_t)atoi(myoptarg);
+			break;
+
+		case 'b':
+			i2c_bus = atoi(myoptarg);
+			break;
+
+		case 'a':
+			start_all = true;
+			break;
+
+		default:
+			PX4_WARN("Unknown option!");
+			goto out_error;
+		}
 	}
 
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		vl53lxx::start(rotation);
+		if (start_all) {
+			return vl53lxx::start(rotation);
+
+		} else {
+			return vl53lxx::start_bus(rotation, i2c_bus);
+		}
 	}
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[myoptind], "stop")) {
-		vl53lxx::stop();
+		return vl53lxx::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[myoptind], "test")) {
-		vl53lxx::test();
+		return vl53lxx::test();
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
-		vl53lxx::info();
+		return vl53lxx::info();
 	}
 
-out:
+out_error:
 
-	PX4_ERR("unrecognized command, try 'start', 'test', or 'info'");
+	vl53lxx_usage();
 	return PX4_ERROR;
 }

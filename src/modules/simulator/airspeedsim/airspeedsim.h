@@ -57,7 +57,6 @@
 #include <px4_workqueue.h>
 #include <arch/board/board.h>
 
-#include <systemlib/airspeed.h>
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
@@ -65,11 +64,10 @@
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/ringbuffer.h>
-#include <drivers/device/device.h>
+#include <lib/cdev/CDev.hpp>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>
-#include <uORB/topics/subsystem_info.h>
 
 /* Default I2C bus */
 #define PX4_I2C_BUS_DEFAULT		PX4_I2C_BUS_EXPANSION
@@ -78,7 +76,7 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class __EXPORT AirspeedSim : public device::CDev
+class __EXPORT AirspeedSim : public cdev::CDev
 {
 public:
 	AirspeedSim(int bus, int address, unsigned conversion_interval, const char *path);
@@ -86,8 +84,8 @@ public:
 
 	virtual int	init();
 
-	virtual ssize_t	read(device::file_t *filp, char *buffer, size_t buflen);
-	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual ssize_t	read(cdev::file_t *filp, char *buffer, size_t buflen);
+	virtual int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -117,24 +115,17 @@ protected:
 	virtual int	transfer(const uint8_t *send, unsigned send_len,
 				 uint8_t *recv, unsigned recv_len);
 
-	/**
-	 * Update the subsystem status
-	 */
-	void update_status();
-
-	struct work_s			_work;
+	struct work_s			_work {};
 	bool			_sensor_ok;
-	bool			_last_published_sensor_ok;
-	unsigned			_measure_ticks;
+	int			_measure_ticks;
 	bool			_collect_phase;
 	float			_diff_pres_offset;
 
 	orb_advert_t		_airspeed_pub;
-	orb_advert_t		_subsys_pub;
 
 	int			_class_instance;
 
-	unsigned		_conversion_interval;
+	int		_conversion_interval;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;

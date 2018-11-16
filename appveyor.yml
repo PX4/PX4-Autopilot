@@ -1,0 +1,46 @@
+# Build version
+version: "{build}"
+
+branches:
+  only:
+  - master
+  - beta
+  - stable
+
+# Build worker image (build VM template)
+image: Visual Studio 2017
+
+# build platform, i.e. Win32 (instead of x86), x64, Any CPU. This setting is optional.
+platform:
+- x64
+
+# scripts that are called at very beginning, before repo cloning
+init:
+- ver
+
+install:
+- ps: if (-not (Test-Path C:\Toolchain.msi)) {Invoke-WebRequest https://s3-us-west-2.amazonaws.com/px4-tools/PX4+Windows+Cygwin+Toolchain/PX4+Windows+Cygwin+Toolchain+0.4.msi -OutFile C:\Toolchain.msi}
+- start /wait msiexec /i C:\Toolchain.msi /quiet /qn /norestart /log C:\install.log
+
+# Note: using start /wait is important
+# because otherwise the install begins but non-blocking and the result cannot be used just after
+
+build_script:
+# setup the environmental variables to work within the installed cygwin toolchain
+- call C:\PX4\toolchain\setup-environment-variables.bat x
+# safe the repopath for switching to it in cygwin bash
+- for /f %%i in ('cygpath -u %%CD%%') do set repopath=%%i
+# fetch all submodules in parallel
+- call bash --login -c "cd $repopath && git submodule update --init --recursive --jobs=10"
+# make SITL
+- call bash --login -c "cd $repopath && make posix"
+# make pixracer to check NuttX build
+- call bash --login -c "cd $repopath && make px4fmu-v4_default"
+
+# Note: using bash --login is important
+# because otherwise certain things (like python; import numpy) do not work
+
+cache:
+# cache toolchain installation file to avoid downloading it from AWS S3 each time
+# it's ~496MB < 1GB free limit for build caches
+- C:\Toolchain.msi -> appveyor.yml

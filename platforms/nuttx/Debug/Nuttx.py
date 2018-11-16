@@ -81,7 +81,7 @@ class NX_register_set(object):
 			self.regs['LR']         = self.mon_reg_call('lr')
 			self.regs['R15']        = self.mon_reg_call('r15')
 			self.regs['PC']         = self.mon_reg_call('pc')
-			self.regs['XPSR']       = self.mon_reg_call('xPSR')
+			#self.regs['XPSR']       = self.mon_reg_call('xPSR')
 		else:
 			for key in self.v7em_regmap.keys():
 				self.regs[key] = int(xcpt_regs[self.v7em_regmap[key]])
@@ -91,11 +91,11 @@ class NX_register_set(object):
 		register is the register as a string e.g. 'pc'
 		return integer containing the value of the register
 		"""
-		str_to_eval = "mon reg "+register
+		str_to_eval = "info registers "+register
 		resp = gdb.execute(str_to_eval,to_string = True)
-		content = resp.split()[-1];
+		content = resp.split()[-1]
 		try:
-			return int(content,16)
+			return int(content)
 		except:
 			return 0
 

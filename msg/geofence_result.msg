@@ -1,3 +1,4 @@
+uint64 timestamp			    # time since system start (microseconds)
 uint8 GF_ACTION_NONE = 0                    # no action on geofence violation
 uint8 GF_ACTION_WARN = 1                    # critical mavlink message
 uint8 GF_ACTION_LOITER = 2                  # switch to AUTO|LOITER

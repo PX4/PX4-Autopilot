@@ -38,7 +38,6 @@ px4_add_module(
 	MAIN mavlink_tests
 	STACK_MAIN 5000
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
 		-DMAVLINK_FTP_UNIT_TEST
 		#-DMAVLINK_FTP_DEBUG
 		-DMavlinkStream=MavlinkStreamTest
@@ -48,7 +47,4 @@ px4_add_module(
 		mavlink_ftp_test.cpp
 		../mavlink_stream.cpp
 		../mavlink_ftp.cpp
-		../mavlink.c
-	DEPENDS
 	)
-

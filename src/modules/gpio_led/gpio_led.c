@@ -49,7 +49,6 @@
 #include <px4_log.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
-#include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
@@ -138,7 +137,7 @@ This module is responsible for drving a single LED on one of the FMU AUX pins.
 It listens on the vehicle_status and battery_status topics and provides visual annunciation on the LED.
 
 ### Implementation
-The module runs on the work queue. It schedules at a fixed frequency or 5 Hz
+The module runs on the work queue. It schedules at a fixed frequency of 5 Hz
 
 ### Examples
 It is started with:
@@ -304,8 +303,8 @@ void gpio_led_cycle(FAR void *arg)
 	/* select pattern for current vehiclestatus */
 	int pattern = 0;
 
-	if (priv->vehicle_status.arming_state == ARMING_STATE_ARMED) {
-		if (priv->battery_status.warning == BATTERY_WARNING_NONE
+	if (priv->vehicle_status.arming_state == VEHICLE_STATUS_ARMING_STATE_ARMED) {
+		if (priv->battery_status.warning == BATTERY_STATUS_BATTERY_WARNING_NONE
 		    && !priv->vehicle_status.failsafe) {
 			pattern = 0x3f;	// ****** solid (armed)
 
@@ -313,10 +312,10 @@ void gpio_led_cycle(FAR void *arg)
 			pattern = 0x3e;	// *****_ slow blink (armed, battery low or failsafe)
 		}
 
-	} else if (priv->vehicle_status.arming_state == ARMING_STATE_STANDBY) {
+	} else if (priv->vehicle_status.arming_state == VEHICLE_STATUS_ARMING_STATE_STANDBY) {
 		pattern = 0x38;	// ***___ slow blink (disarmed, ready)
 
-	} else if (priv->vehicle_status.arming_state == ARMING_STATE_STANDBY_ERROR) {
+	} else if (priv->vehicle_status.arming_state == VEHICLE_STATUS_ARMING_STATE_STANDBY_ERROR) {
 		pattern = 0x28;	// *_*___ slow double blink (disarmed, error)
 
 	}

@@ -127,20 +127,18 @@ void task_main(int argc, char *argv[])
 
 		bool dsm_11_bit;
 		unsigned frame_drops;
+		int8_t dsm_rssi;
 
 		// parse new data
 		bool rc_updated = dsm_parse(now, rx_buf, newbytes, &raw_rc_values[0], &raw_rc_count,
-					    &dsm_11_bit, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
+					    &dsm_11_bit, &frame_drops, &dsm_rssi, input_rc_s::RC_INPUT_MAX_CHANNELS);
 		UNUSED(dsm_11_bit);
 
 		if (rc_updated) {
 
 			input_rc_s input_rc = {};
 
-			// We don't know RSSI.
-			const int rssi = -1;
-
-			fill_input_rc(raw_rc_count, raw_rc_values, now, false, false, frame_drops, rssi,
+			fill_input_rc(raw_rc_count, raw_rc_values, now, false, false, frame_drops, dsm_rssi,
 				      input_rc);
 
 			if (rc_pub == nullptr) {

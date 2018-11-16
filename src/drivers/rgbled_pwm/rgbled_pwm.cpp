@@ -58,7 +58,6 @@
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 
 #include <board_config.h>
 
@@ -87,7 +86,6 @@ private:
 	uint8_t			_r;
 	uint8_t			_g;
 	uint8_t			_b;
-	float			_brightness;
 
 	volatile bool		_running;
 	volatile bool		_should_run;
@@ -120,7 +118,6 @@ RGBLED_PWM::RGBLED_PWM() :
 	_r(0),
 	_g(0),
 	_b(0),
-	_brightness(1.0f),
 	_running(false),
 	_should_run(true)
 {
@@ -210,42 +207,42 @@ RGBLED_PWM::led()
 	LedControlData led_control_data;
 
 	if (_led_controller.update(led_control_data) == 1) {
+		uint8_t brightness = led_control_data.leds[0].brightness;
+
 		switch (led_control_data.leds[0].color) {
 		case led_control_s::COLOR_RED:
-			_r = 255; _g = 0; _b = 0;
+			_r = brightness; _g = 0; _b = 0;
 			break;
 
 		case led_control_s::COLOR_GREEN:
-			_r = 0; _g = 255; _b = 0;
+			_r = 0; _g = brightness; _b = 0;
 			break;
 
 		case led_control_s::COLOR_BLUE:
-			_r = 0; _g = 0; _b = 255;
+			_r = 0; _g = 0; _b = brightness;
 			break;
 
 		case led_control_s::COLOR_AMBER: //make it the same as yellow
 		case led_control_s::COLOR_YELLOW:
-			_r = 255; _g = 255; _b = 0;
+			_r = brightness; _g = brightness; _b = 0;
 			break;
 
 		case led_control_s::COLOR_PURPLE:
-			_r = 255; _g = 0; _b = 255;
+			_r = brightness; _g = 0; _b = brightness;
 			break;
 
 		case led_control_s::COLOR_CYAN:
-			_r = 0; _g = 255; _b = 255;
+			_r = 0; _g = brightness; _b = brightness;
 			break;
 
 		case led_control_s::COLOR_WHITE:
-			_r = 255; _g = 255; _b = 255;
+			_r = brightness; _g = brightness; _b = brightness;
 			break;
 
 		default: // led_control_s::COLOR_OFF
 			_r = 0; _g = 0; _b = 0;
 			break;
 		}
-
-		_brightness = (float)led_control_data.leds[0].brightness / 255.f;
 
 		send_led_rgb();
 	}

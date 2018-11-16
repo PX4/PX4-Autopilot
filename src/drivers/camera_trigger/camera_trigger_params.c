@@ -115,6 +115,9 @@ PARAM_DEFINE_INT32(TRIG_MODE, 0);
  * Selects which pin is used, ranges from 1 to 6 (AUX1-AUX6 on px4fmu-v2 and the rail
  * pins on px4fmu-v4). The PWM interface takes two pins per camera, while relay
  * triggers on every pin individually. Example: Value 56 would trigger on pins 5 and 6.
+ * For GPIO mode Pin 6 will be triggered followed by 5. With a value of 65 pin 5 will
+ * be triggered followed by 6. Pins may be non contiguous. I.E. 16 or 61.
+ * In GPIO mode the delay pin to pin is < .2 uS.
  *
  * @min 1
  * @max 123456

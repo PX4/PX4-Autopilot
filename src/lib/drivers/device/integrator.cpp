@@ -41,25 +41,17 @@
  */
 
 #include "integrator.h"
+
 #include <drivers/drv_hrt.h>
 
 Integrator::Integrator(uint64_t auto_reset_interval, bool coning_compensation) :
 	_auto_reset_interval(auto_reset_interval),
-	_last_integration_time(0),
-	_last_reset_time(0),
-	_alpha(0.0f, 0.0f, 0.0f),
-	_last_alpha(0.0f, 0.0f, 0.0f),
-	_beta(0.0f, 0.0f, 0.0f),
-	_last_val(0.0f, 0.0f, 0.0f),
-	_last_delta_alpha(0.0f, 0.0f, 0.0f),
 	_coning_comp_on(coning_compensation)
 {
 }
 
-Integrator::~Integrator() = default;
-
 bool
-Integrator::put(uint64_t timestamp, matrix::Vector3f &val, matrix::Vector3f &integral, uint64_t &integral_dt)
+Integrator::put(uint64_t timestamp, matrix::Vector3f &val, matrix::Vector3f &integral, uint32_t &integral_dt)
 {
 	if (_last_integration_time == 0) {
 		/* this is the first item in the integrator */
@@ -123,7 +115,7 @@ Integrator::put(uint64_t timestamp, matrix::Vector3f &val, matrix::Vector3f &int
 
 bool
 Integrator::put_with_interval(unsigned interval_us, matrix::Vector3f &val, matrix::Vector3f &integral,
-			      uint64_t &integral_dt)
+			      uint32_t &integral_dt)
 {
 	if (_last_integration_time == 0) {
 		/* this is the first item in the integrator */
@@ -142,7 +134,7 @@ Integrator::put_with_interval(unsigned interval_us, matrix::Vector3f &val, matri
 }
 
 matrix::Vector3f
-Integrator::get(bool reset, uint64_t &integral_dt)
+Integrator::get(bool reset, uint32_t &integral_dt)
 {
 	matrix::Vector3f val = _alpha;
 
@@ -154,7 +146,7 @@ Integrator::get(bool reset, uint64_t &integral_dt)
 }
 
 matrix::Vector3f
-Integrator::get_and_filtered(bool reset, uint64_t &integral_dt, matrix::Vector3f &filtered_val)
+Integrator::get_and_filtered(bool reset, uint32_t &integral_dt, matrix::Vector3f &filtered_val)
 {
 	// Do the usual get with reset first but don't return yet.
 	matrix::Vector3f ret_integral = get(reset, integral_dt);
@@ -168,18 +160,13 @@ Integrator::get_and_filtered(bool reset, uint64_t &integral_dt, matrix::Vector3f
 }
 
 void
-Integrator::_reset(uint64_t &integral_dt)
+Integrator::_reset(uint32_t &integral_dt)
 {
-	_alpha(0) = 0.0f;
-	_alpha(1) = 0.0f;
-	_alpha(2) = 0.0f;
-	_last_alpha(0) = 0.0f;
-	_last_alpha(1) = 0.0f;
-	_last_alpha(2) = 0.0f;
-	_beta(0) = 0.0f;
-	_beta(1) = 0.0f;
-	_beta(2) = 0.0f;
+	_alpha.zero();
+	_last_alpha.zero();
+	_beta.zero();
 
 	integral_dt = (_last_integration_time - _last_reset_time);
+
 	_last_reset_time = _last_integration_time;
 }

@@ -87,13 +87,12 @@ static struct channel_handler_entry {
 	void			  *context;
 } channel_handlers[MAX_TIMER_IO_CHANNELS];
 
-
-
 static void input_capture_chan_handler(void *context, const io_timers_t *timer, uint32_t chan_index,
 				       const timer_io_channels_t *chan,
 				       hrt_abstime isrs_time, uint16_t isrs_rcnt)
 {
 }
+
 static void input_capture_bind(unsigned channel, capture_callback_t callback, void *context)
 {
 	irqstate_t flags = enter_critical_section();

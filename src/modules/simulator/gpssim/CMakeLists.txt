@@ -35,6 +35,7 @@ px4_add_module(
 	MODULE drivers__gpssim
 	MAIN gpssim
 	COMPILE_FLAGS
+		-Wno-double-promotion
 	SRCS
 		gpssim.cpp
 	DEPENDS

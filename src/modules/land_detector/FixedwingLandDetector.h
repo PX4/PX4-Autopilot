@@ -77,14 +77,14 @@ private:
 		param_t maxVelocity;
 		param_t maxClimbRate;
 		param_t maxAirSpeed;
-		param_t maxIntVelocity;
+		param_t maxXYAccel;
 	} _paramHandle{};
 
 	struct {
 		float maxVelocity;
 		float maxClimbRate;
 		float maxAirSpeed;
-		float maxIntVelocity;
+		float maxXYAccel;
 	} _params{};
 
 	int _airspeedSub{-1};

@@ -41,6 +41,7 @@
 
 #include <px4_config.h>
 #include <px4_getopt.h>
+#include <px4_cli.h>
 #include <px4_module.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
@@ -74,7 +75,7 @@ static void usage(const char *name)
 
 	PRINT_MODULE_USAGE_PARAM_STRING('t', "UART", "UART|UDP", "Transport protocol", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyACM0", "<file:dev>", "Select Serial Device", true);
-	PRINT_MODULE_USAGE_PARAM_INT('b', 460800, 9600, 3000000, "Baudrate", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 460800, 9600, 3000000, "Baudrate (can also be p:<param_name>)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', 1, 1, 1000, "Poll timeout for UART in ms", true);
 	PRINT_MODULE_USAGE_PARAM_INT('u', 0, 0, 10000,
 				     "Interval in ms to limit the update rate of all sent topics (0=unlimited)", true);
@@ -90,10 +91,12 @@ static void usage(const char *name)
 
 baudtype getbaudrate(const char *valstr)
 {
-	uint32_t baudval = strtoul(valstr, nullptr, 10);
+	int baudval;
 
-	for (unsigned int i = 1; i < sizeof(baudlist) / sizeof(baudtype); i++) {
-		if (baudlist[i].val == baudval) { return baudlist[i]; }
+	if (px4_get_parameter_value(valstr, baudval) == 0) {
+		for (unsigned int i = 1; i < sizeof(baudlist) / sizeof(baudtype); i++) {
+			if (baudlist[i].val == (unsigned)baudval) { return baudlist[i]; }
+		}
 	}
 
 	return baudlist[0];

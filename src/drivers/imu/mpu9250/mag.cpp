@@ -225,7 +225,6 @@ MPU9250_mag::_measure(struct ak8963_regs data)
 	mrb.x = ((xraw_f * _mag_range_scale * _mag_asa_x) - _mag_scale.x_offset) * _mag_scale.x_scale;
 	mrb.y = ((yraw_f * _mag_range_scale * _mag_asa_y) - _mag_scale.y_offset) * _mag_scale.y_scale;
 	mrb.z = ((zraw_f * _mag_range_scale * _mag_asa_z) - _mag_scale.z_offset) * _mag_scale.z_scale;
-	mrb.range_ga = 48.0f;
 	mrb.scaling = _mag_range_scale;
 	mrb.temperature = _parent->_last_temperature;
 	mrb.device_id = _parent->_mag->_device_id.devid;
@@ -299,26 +298,11 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				/*
-				 * TODO: investigate being able to stop
-				 *       the continuous sampling
-				 */
-				//stop();
-				return OK;
-
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
-				return ioctl(filp, SENSORIOCSPOLLRATE, 100);
-
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_AK8963_SAMPLE_RATE);
 
@@ -333,42 +317,6 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCGPOLLRATE:
-		return MPU9250_AK8963_SAMPLE_RATE;
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_mag_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
-	case MAGIOCGSAMPLERATE:
-		return MPU9250_AK8963_SAMPLE_RATE;
-
-	case MAGIOCSSAMPLERATE:
-
-		/*
-		 * We don't currently support any means of changing
-		 * the sampling rate of the mag
-		 */
-		if (MPU9250_AK8963_SAMPLE_RATE != arg) {
-			return -EINVAL;
-		}
-
-		return OK;
-
 	case MAGIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_mag_scale, (struct mag_scale *) arg, sizeof(_mag_scale));
@@ -379,36 +327,9 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 		memcpy((struct mag_scale *) arg, &_mag_scale, sizeof(_mag_scale));
 		return OK;
 
-	case MAGIOCSRANGE:
-		return -EINVAL;
-
-	case MAGIOCGRANGE:
-		return 48; // fixed full scale measurement range of +/- 4800 uT == 48 Gauss
-
-	case MAGIOCSELFTEST:
-		return self_test();
-
-#ifdef MAGIOCSHWLOWPASS
-
-	case MAGIOCSHWLOWPASS:
-		return -EINVAL;
-#endif
-
-#ifdef MAGIOCGHWLOWPASS
-
-	case MAGIOCGHWLOWPASS:
-		return -EINVAL;
-#endif
-
 	default:
 		return (int)CDev::ioctl(filp, cmd, arg);
 	}
-}
-
-int
-MPU9250_mag::self_test(void)
-{
-	return 0;
 }
 
 void

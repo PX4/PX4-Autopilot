@@ -38,6 +38,9 @@
 #include <px4_log.h>
 #include <drivers/drv_hrt.h>
 
+namespace events
+{
+
 struct work_s SendEvent::_work = {};
 
 // Run it at 30 Hz.
@@ -63,9 +66,26 @@ int SendEvent::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-SendEvent::SendEvent()
-	: _status_display(_subscriber_handler)
+SendEvent::SendEvent() : ModuleParams(nullptr)
 {
+	if (_param_status_display.get()) {
+		_status_display = new status::StatusDisplay(_subscriber_handler);
+	}
+
+	if (_param_rc_loss.get()) {
+		_rc_loss_alarm = new rc_loss::RC_Loss_Alarm(_subscriber_handler);
+	}
+}
+
+SendEvent::~SendEvent()
+{
+	if (_status_display != nullptr) {
+		delete _status_display;
+	}
+
+	if (_rc_loss_alarm != nullptr) {
+		delete _rc_loss_alarm;
+	}
 }
 
 int SendEvent::start()
@@ -74,10 +94,10 @@ int SendEvent::start()
 		return 0;
 	}
 
-	// subscribe to the topics
+	// Subscribe to the topics.
 	_subscriber_handler.subscribe();
 
-	// Kick off the cycling. We can call it directly because we're already in the work queue context
+	// Kick off the cycling. We can call it directly because we're already in the work queue context.
 	cycle();
 
 	return 0;
@@ -96,8 +116,7 @@ void SendEvent::initialize_trampoline(void *arg)
 	_object = send_event;
 }
 
-void
-SendEvent::cycle_trampoline(void *arg)
+void SendEvent::cycle_trampoline(void *arg)
 {
 	SendEvent *obj = reinterpret_cast<SendEvent *>(arg);
 
@@ -116,7 +135,13 @@ void SendEvent::cycle()
 
 	process_commands();
 
-	_status_display.process();
+	if (_status_display != nullptr) {
+		_status_display->process();
+	}
+
+	if (_rc_loss_alarm != nullptr) {
+		_rc_loss_alarm->process();
+	}
 
 	work_queue(LPWORK, &_work, (worker_t)&SendEvent::cycle_trampoline, this,
 		   USEC2TICK(SEND_EVENT_INTERVAL_US));
@@ -168,16 +193,12 @@ void SendEvent::process_commands()
 void SendEvent::answer_command(const vehicle_command_s &cmd, unsigned result)
 {
 	/* publish ACK */
-	struct vehicle_command_ack_s command_ack = {
-		.timestamp = hrt_absolute_time(),
-		.result_param2 = 0,
-		.command = cmd.command,
-		.result = (uint8_t)result,
-		.from_external = false,
-		.result_param1 = 0,
-		.target_system = cmd.source_system,
-		.target_component = cmd.source_component
-	};
+	vehicle_command_ack_s command_ack = {};
+	command_ack.timestamp = hrt_absolute_time();
+	command_ack.command = cmd.command;
+	command_ack.result = (uint8_t)result;
+	command_ack.target_system = cmd.source_system;
+	command_ack.target_component = cmd.source_component;
 
 	if (_command_ack_pub != nullptr) {
 		orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
@@ -187,8 +208,6 @@ void SendEvent::answer_command(const vehicle_command_s &cmd, unsigned result)
 						       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
 	}
 }
-
-
 
 int SendEvent::print_usage(const char *reason)
 {
@@ -200,7 +219,7 @@ int SendEvent::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 Background process running periodically on the LP work queue to perform housekeeping tasks.
-It is currently only responsible for temperature calibration.
+It is currently only responsible for temperature calibration and tone alarm on RC Loss.
 
 The tasks can be started via CLI or uORB topics (vehicle_command from MAVLink, etc.).
 )DESCR_STR");
@@ -215,13 +234,6 @@ The tasks can be started via CLI or uORB topics (vehicle_command from MAVLink, e
 
 	return 0;
 }
-
-
-int send_event_main(int argc, char *argv[])
-{
-	return SendEvent::main(argc, argv);
-}
-
 
 int SendEvent::custom_command(int argc, char *argv[])
 {
@@ -261,20 +273,18 @@ int SendEvent::custom_command(int argc, char *argv[])
 			}
 		}
 
-		struct vehicle_command_s cmd = {
-			.timestamp = 0,
-			.param5 = (float)((accel_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN),
-			.param6 = NAN,
-			.param1 = (float)((gyro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN),
-			.param2 = NAN,
-			.param3 = NAN,
-			.param4 = NAN,
-			.param7 = (float)((baro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN),
-			.command = vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION
-		};
+		vehicle_command_s vcmd = {};
+		vcmd.timestamp = hrt_absolute_time();
+		vcmd.param1 = (float)((gyro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
+		vcmd.param2 = NAN;
+		vcmd.param3 = NAN;
+		vcmd.param4 = NAN;
+		vcmd.param5 = ((accel_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : (double)NAN);
+		vcmd.param6 = (double)NAN;
+		vcmd.param7 = (float)((baro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
+		vcmd.command = vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION;
 
-		orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &cmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-		(void)orb_unadvertise(h);
+		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
 
 	} else {
 		print_usage("unrecognized command");
@@ -282,3 +292,10 @@ int SendEvent::custom_command(int argc, char *argv[])
 
 	return 0;
 }
+
+int send_event_main(int argc, char *argv[])
+{
+	return SendEvent::main(argc, argv);
+}
+
+} /* namespace events */

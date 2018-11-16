@@ -108,6 +108,11 @@ protected:
 	void set_idle_item(struct mission_item_s *item);
 
 	/**
+	 * Set vtol transition item
+	 */
+	void set_vtol_transition_item(struct mission_item_s *item, const uint8_t new_mode);
+
+	/**
 	 * General function used to adjust the mission item based on vehicle specific limitations
 	 */
 	void	mission_apply_limitation(mission_item_s &item);
@@ -115,6 +120,8 @@ protected:
 	void issue_command(const mission_item_s &item);
 
 	float get_time_inside(const struct mission_item_s &item);
+
+	float get_absolute_altitude_for_item(struct mission_item_s &mission_item) const;
 
 	mission_item_s _mission_item{};
 

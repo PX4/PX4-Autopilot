@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
 def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_levels,
-                plot=False, output_plot_filename=None):
+                plot=False, output_plot_filename=None, late_start_early_ending=True):
 
     if plot:
         # create summary plots
@@ -323,7 +323,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.plot(1e-6 * ekf2_innovations['timestamp'], ekf2_innovations['beta_innov'], 'b')
         plt.plot(1e-6 * ekf2_innovations['timestamp'], np.sqrt(ekf2_innovations['beta_innov_var']), 'r')
         plt.plot(1e-6 * ekf2_innovations['timestamp'], -np.sqrt(ekf2_innovations['beta_innov_var']), 'r')
-        plt.title('Sythetic Sideslip Innovations')
+        plt.title('Synthetic Sideslip Innovations')
         plt.ylabel('innovation (rad)')
         plt.xlabel('time (sec)')
         plt.grid()
@@ -502,6 +502,11 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
     using_evpos = ((2 ** 12 & estimator_status['control_mode_flags']) > 0) * 1
     using_evyaw = ((2 ** 13 & estimator_status['control_mode_flags']) > 0) * 1
     using_evhgt = ((2 ** 14 & estimator_status['control_mode_flags']) > 0) * 1
+
+    # define flags for starting and finishing in air
+    b_starts_in_air = False
+    b_finishes_in_air = False
+
     # calculate in-air transition time
     if (np.amin(airborne) < 0.5) and (np.amax(airborne) > 0.5):
         in_air_transtion_time_arg = np.argmax(np.diff(airborne))
@@ -509,6 +514,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
     elif (np.amax(airborne) > 0.5):
         in_air_transition_time = np.amin(status_time)
         print('log starts while in-air at ' + str(round(in_air_transition_time, 1)) + ' sec')
+        b_starts_in_air = True
     else:
         in_air_transition_time = float('NaN')
         print('always on ground')
@@ -519,6 +525,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
     elif (np.amax(airborne) > 0.5):
         on_ground_transition_time = np.amax(status_time)
         print('log finishes while in-air at ' + str(round(on_ground_transition_time, 1)) + ' sec')
+        b_finishes_in_air = True
     else:
         on_ground_transition_time = float('NaN')
         print('always on ground')
@@ -710,9 +717,10 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
     # 5 - true if the Z magnetometer observation has been rejected
     # 6 - true if the yaw observation has been rejected
     # 7 - true if the airspeed observation has been rejected
-    # 8 - true if the height above ground observation has been rejected
-    # 9 - true if the X optical flow observation has been rejected
-    # 10 - true if the Y optical flow observation has been rejected
+    # 8 - true if synthetic sideslip observation has been rejected
+    # 9 - true if the height above ground observation has been rejected
+    # 10 - true if the X optical flow observation has been rejected
+    # 11 - true if the Y optical flow observation has been rejected
     vel_innov_fail = ((2 ** 0 & estimator_status['innovation_check_flags']) > 0) * 1
     posh_innov_fail = ((2 ** 1 & estimator_status['innovation_check_flags']) > 0) * 1
     posv_innov_fail = ((2 ** 2 & estimator_status['innovation_check_flags']) > 0) * 1
@@ -721,14 +729,15 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
     magz_innov_fail = ((2 ** 5 & estimator_status['innovation_check_flags']) > 0) * 1
     yaw_innov_fail = ((2 ** 6 & estimator_status['innovation_check_flags']) > 0) * 1
     tas_innov_fail = ((2 ** 7 & estimator_status['innovation_check_flags']) > 0) * 1
-    hagl_innov_fail = ((2 ** 8 & estimator_status['innovation_check_flags']) > 0) * 1
-    ofx_innov_fail = ((2 ** 9 & estimator_status['innovation_check_flags']) > 0) * 1
-    ofy_innov_fail = ((2 ** 10 & estimator_status['innovation_check_flags']) > 0) * 1
+    sli_innov_fail = ((2 ** 8 & estimator_status['innovation_check_flags']) > 0) * 1
+    hagl_innov_fail = ((2 ** 9 & estimator_status['innovation_check_flags']) > 0) * 1
+    ofx_innov_fail = ((2 ** 10 & estimator_status['innovation_check_flags']) > 0) * 1
+    ofy_innov_fail = ((2 ** 11 & estimator_status['innovation_check_flags']) > 0) * 1
 
     if plot:
         # plot innovation_check_flags summary
         plt.figure(11, figsize=(20, 13))
-        plt.subplot(5, 1, 1)
+        plt.subplot(6, 1, 1)
         plt.title('EKF Innovation Test Fails')
         plt.plot(status_time, vel_innov_fail, 'b', label='vel NED')
         plt.plot(status_time, posh_innov_fail, 'r', label='pos NE')
@@ -736,14 +745,14 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.ylabel('failed')
         plt.legend(loc='upper left')
         plt.grid()
-        plt.subplot(5, 1, 2)
+        plt.subplot(6, 1, 2)
         plt.plot(status_time, posv_innov_fail, 'b', label='hgt absolute')
         plt.plot(status_time, hagl_innov_fail, 'r', label='hgt above ground')
         plt.ylim(-0.1, 1.1)
         plt.ylabel('failed')
         plt.legend(loc='upper left')
         plt.grid()
-        plt.subplot(5, 1, 3)
+        plt.subplot(6, 1, 3)
         plt.plot(status_time, magx_innov_fail, 'b', label='mag_x')
         plt.plot(status_time, magy_innov_fail, 'r', label='mag_y')
         plt.plot(status_time, magz_innov_fail, 'g', label='mag_z')
@@ -752,13 +761,19 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.ylim(-0.1, 1.1)
         plt.ylabel('failed')
         plt.grid()
-        plt.subplot(5, 1, 4)
+        plt.subplot(6, 1, 4)
         plt.plot(status_time, tas_innov_fail, 'b', label='airspeed')
         plt.ylim(-0.1, 1.1)
         plt.ylabel('failed')
         plt.legend(loc='upper left')
         plt.grid()
-        plt.subplot(5, 1, 5)
+        plt.subplot(6, 1, 5)
+        plt.plot(status_time, sli_innov_fail, 'b', label='sideslip')
+        plt.ylim(-0.1, 1.1)
+        plt.ylabel('failed')
+        plt.legend(loc='upper left')
+        plt.grid()
+        plt.subplot(6, 1, 6)
         plt.plot(status_time, ofx_innov_fail, 'b', label='flow X')
         plt.plot(status_time, ofy_innov_fail, 'r', label='flow Y')
         plt.ylim(-0.1, 1.1)
@@ -770,26 +785,29 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.close(11)
         # gps_check_fail_flags summary
         plt.figure(12, figsize=(20, 13))
-        # 0 : minimum required sat count fail
-        # 1 : minimum required GDoP fail
-        # 2 : maximum allowed horizontal position error fail
-        # 3 : maximum allowed vertical position error fail
-        # 4 : maximum allowed speed error fail
-        # 5 : maximum allowed horizontal position drift fail
-        # 6 : maximum allowed vertical position drift fail
-        # 7 : maximum allowed horizontal speed fail
-        # 8 : maximum allowed vertical velocity discrepancy fail
-        nsat_fail = ((2 ** 0 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        gdop_fail = ((2 ** 1 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        herr_fail = ((2 ** 2 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        verr_fail = ((2 ** 3 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        serr_fail = ((2 ** 4 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        hdrift_fail = ((2 ** 5 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        vdrift_fail = ((2 ** 6 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        hspd_fail = ((2 ** 7 & estimator_status['gps_check_fail_flags']) > 0) * 1
-        veld_diff_fail = ((2 ** 8 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        # 0 : insufficient fix type (no 3D solution)
+        # 1 : minimum required sat count fail
+        # 2 : minimum required GDoP fail
+        # 3 : maximum allowed horizontal position error fail
+        # 4 : maximum allowed vertical position error fail
+        # 5 : maximum allowed speed error fail
+        # 6 : maximum allowed horizontal position drift fail
+        # 7 : maximum allowed vertical position drift fail
+        # 8 : maximum allowed horizontal speed fail
+        # 9 : maximum allowed vertical velocity discrepancy fail
+        gfix_fail = ((2 ** 0 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        nsat_fail = ((2 ** 1 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        gdop_fail = ((2 ** 2 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        herr_fail = ((2 ** 3 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        verr_fail = ((2 ** 4 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        serr_fail = ((2 ** 5 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        hdrift_fail = ((2 ** 6 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        vdrift_fail = ((2 ** 7 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        hspd_fail = ((2 ** 8 & estimator_status['gps_check_fail_flags']) > 0) * 1
+        veld_diff_fail = ((2 ** 9 & estimator_status['gps_check_fail_flags']) > 0) * 1
         plt.subplot(2, 1, 1)
         plt.title('GPS Direct Output Check Failures')
+        plt.plot(status_time, gfix_fail, 'k', label='fix type')
         plt.plot(status_time, nsat_fail, 'b', label='N sats')
         plt.plot(status_time, gdop_fail, 'r', label='GDOP')
         plt.plot(status_time, herr_fail, 'g', label='horiz pos error')
@@ -947,7 +965,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.xlabel('time (sec)')
         plt.grid()
         plt.subplot(3, 1, 2)
-        inclination = rad2deg * np.arcsin(estimator_status['states[18]'] / strength)
+        inclination = rad2deg * np.arcsin(estimator_status['states[18]'] / np.maximum(strength, np.finfo(np.float32).eps) )
         plt.plot(1e-6 * estimator_status['timestamp'], inclination, 'b')
         plt.ylabel('inclination (deg)')
         plt.xlabel('time (sec)')
@@ -997,22 +1015,27 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         plt.close("all")
 
     # Do some automated analysis of the status data
-    # find a late/early index range from 5 sec after in_air_transtion_time to 5 sec before on-ground transition time for mag and optical flow checks to avoid false positives
-    # this can be used to prevent false positives for sensors adversely affected by close proximity to the ground
-    late_start_index = np.amin(np.where(status_time > (in_air_transition_time + 5.0)))
-    early_end_index = np.amax(np.where(status_time < (on_ground_transition_time - 5.0)))
-    num_valid_values_trimmed = (early_end_index - late_start_index + 1)
     # normal index range is defined by the flight duration
     start_index = np.amin(np.where(status_time > in_air_transition_time))
-    end_index = np.amax(np.where(status_time < on_ground_transition_time))
+    end_index = np.amax(np.where(status_time <= on_ground_transition_time))
     num_valid_values = (end_index - start_index + 1)
+    # find a late/early index range from 5 sec after in_air_transtion_time to 5 sec before on-ground transition time for mag and optical flow checks to avoid false positives
+    # this can be used to prevent false positives for sensors adversely affected by close proximity to the ground
+    # don't do this if the log starts or finishes in air or if it is shut off by flag
+    late_start_index = np.amin(np.where(status_time > (in_air_transition_time + 5.0)))\
+        if (late_start_early_ending and not b_starts_in_air) else start_index
+    early_end_index = np.amax(np.where(status_time <= (on_ground_transition_time - 5.0))) \
+        if (late_start_early_ending and not b_finishes_in_air) else end_index
+    num_valid_values_trimmed = (early_end_index - late_start_index + 1)
     # also find the start and finish indexes for the innovation data
-    innov_late_start_index = np.amin(np.where(innov_time > (in_air_transition_time + 5.0)))
-    innov_early_end_index = np.amax(np.where(innov_time < (on_ground_transition_time - 5.0)))
-    innov_num_valid_values_trimmed = (innov_early_end_index - innov_late_start_index + 1)
     innov_start_index = np.amin(np.where(innov_time > in_air_transition_time))
-    innov_end_index = np.amax(np.where(innov_time < on_ground_transition_time))
+    innov_end_index = np.amax(np.where(innov_time <= on_ground_transition_time))
     innov_num_valid_values = (innov_end_index - innov_start_index + 1)
+    innov_late_start_index = np.amin(np.where(innov_time > (in_air_transition_time + 5.0))) \
+        if (late_start_early_ending and not b_starts_in_air) else innov_start_index
+    innov_early_end_index = np.amax(np.where(innov_time <= (on_ground_transition_time - 5.0))) \
+        if (late_start_early_ending and not b_finishes_in_air) else innov_end_index
+    innov_num_valid_values_trimmed = (innov_early_end_index - innov_late_start_index + 1)
     # define dictionary of test results and descriptions
     test_results = {
         'master_status': ['Pass',
@@ -1033,8 +1056,16 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
                               'Airspeed sensor check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
         'imu_sensor_status': ['Pass',
                               'IMU sensor check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
+        'imu_vibration_check': ['Pass',
+                              'IMU vibration check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
+        'imu_bias_check': ['Pass',
+                              'IMU bias check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
+        'imu_output_predictor_check': ['Pass',
+                              'IMU output predictor check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
         'flow_sensor_status': ['Pass',
                                'Optical Flow sensor check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
+        'filter_fault_status': ['Pass',
+                               'Internal Filter check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
         'mag_percentage_red': [float('NaN'),
                                'The percentage of in-flight consolidated magnetic field sensor innovation consistency test values > 1.0.'],
         'mag_percentage_amber': [float('NaN'),
@@ -1135,108 +1166,108 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
     }
     # generate test metadata
     # reduction of innovation message data
-    if (innov_early_end_index > (innov_late_start_index + 100)):
+    if (innov_early_end_index > (innov_late_start_index + 50)):
         # Output Observer Tracking Errors
         test_results['output_obs_ang_err_median'][0] = np.median(
-            ekf2_innovations['output_tracking_error[0]'][innov_late_start_index:innov_early_end_index])
+            ekf2_innovations['output_tracking_error[0]'][innov_late_start_index:innov_early_end_index + 1])
         test_results['output_obs_vel_err_median'][0] = np.median(
-            ekf2_innovations['output_tracking_error[1]'][innov_late_start_index:innov_early_end_index])
+            ekf2_innovations['output_tracking_error[1]'][innov_late_start_index:innov_early_end_index + 1])
         test_results['output_obs_pos_err_median'][0] = np.median(
-            ekf2_innovations['output_tracking_error[2]'][innov_late_start_index:innov_early_end_index])
+            ekf2_innovations['output_tracking_error[2]'][innov_late_start_index:innov_early_end_index + 1])
     # reduction of status message data
-    if (early_end_index > (late_start_index + 100)):
+    if (early_end_index > (late_start_index + 50)):
         # IMU vibration checks
         temp = np.amax(estimator_status['vibe[0]'][late_start_index:early_end_index])
         if (temp > 0.0):
             test_results['imu_coning_peak'][0] = temp
-            test_results['imu_coning_mean'][0] = np.mean(estimator_status['vibe[0]'][late_start_index:early_end_index])
+            test_results['imu_coning_mean'][0] = np.mean(estimator_status['vibe[0]'][late_start_index:early_end_index + 1])
         temp = np.amax(estimator_status['vibe[1]'][late_start_index:early_end_index])
         if (temp > 0.0):
             test_results['imu_hfdang_peak'][0] = temp
-            test_results['imu_hfdang_mean'][0] = np.mean(estimator_status['vibe[1]'][late_start_index:early_end_index])
+            test_results['imu_hfdang_mean'][0] = np.mean(estimator_status['vibe[1]'][late_start_index:early_end_index + 1])
         temp = np.amax(estimator_status['vibe[2]'][late_start_index:early_end_index])
         if (temp > 0.0):
             test_results['imu_hfdvel_peak'][0] = temp
-            test_results['imu_hfdvel_mean'][0] = np.mean(estimator_status['vibe[2]'][late_start_index:early_end_index])
+            test_results['imu_hfdvel_mean'][0] = np.mean(estimator_status['vibe[2]'][late_start_index:early_end_index + 1])
 
         # Magnetometer Sensor Checks
         if (np.amax(yaw_aligned) > 0.5):
-            mag_num_red = (estimator_status['mag_test_ratio'][start_index:end_index] > 1.0).sum()
-            mag_num_amber = (estimator_status['mag_test_ratio'][start_index:end_index] > 0.5).sum() - mag_num_red
+            mag_num_red = (estimator_status['mag_test_ratio'][start_index:end_index + 1] > 1.0).sum()
+            mag_num_amber = (estimator_status['mag_test_ratio'][start_index:end_index + 1] > 0.5).sum() - mag_num_red
             test_results['mag_percentage_red'][0] = 100.0 * mag_num_red / num_valid_values_trimmed
             test_results['mag_percentage_amber'][0] = 100.0 * mag_num_amber / num_valid_values_trimmed
             test_results['mag_test_max'][0] = np.amax(
-                estimator_status['mag_test_ratio'][late_start_index:early_end_index])
+                estimator_status['mag_test_ratio'][late_start_index:early_end_index + 1])
             test_results['mag_test_mean'][0] = np.mean(estimator_status['mag_test_ratio'][start_index:end_index])
             test_results['magx_fail_percentage'][0] = 100.0 * (
-                    magx_innov_fail[late_start_index:early_end_index] > 0.5).sum() / num_valid_values_trimmed
+                    magx_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
             test_results['magy_fail_percentage'][0] = 100.0 * (
-                    magy_innov_fail[late_start_index:early_end_index] > 0.5).sum() / num_valid_values_trimmed
+                    magy_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
             test_results['magz_fail_percentage'][0] = 100.0 * (
-                    magz_innov_fail[late_start_index:early_end_index] > 0.5).sum() / num_valid_values_trimmed
+                    magz_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
             test_results['yaw_fail_percentage'][0] = 100.0 * (
-                    yaw_innov_fail[late_start_index:early_end_index] > 0.5).sum() / num_valid_values_trimmed
+                    yaw_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
 
         # Velocity Sensor Checks
         if (np.amax(using_gps) > 0.5):
-            vel_num_red = (estimator_status['vel_test_ratio'][start_index:end_index] > 1.0).sum()
-            vel_num_amber = (estimator_status['vel_test_ratio'][start_index:end_index] > 0.5).sum() - vel_num_red
+            vel_num_red = (estimator_status['vel_test_ratio'][start_index:end_index + 1] > 1.0).sum()
+            vel_num_amber = (estimator_status['vel_test_ratio'][start_index:end_index + 1] > 0.5).sum() - vel_num_red
             test_results['vel_percentage_red'][0] = 100.0 * vel_num_red / num_valid_values
             test_results['vel_percentage_amber'][0] = 100.0 * vel_num_amber / num_valid_values
-            test_results['vel_test_max'][0] = np.amax(estimator_status['vel_test_ratio'][start_index:end_index])
-            test_results['vel_test_mean'][0] = np.mean(estimator_status['vel_test_ratio'][start_index:end_index])
+            test_results['vel_test_max'][0] = np.amax(estimator_status['vel_test_ratio'][start_index:end_index + 1])
+            test_results['vel_test_mean'][0] = np.mean(estimator_status['vel_test_ratio'][start_index:end_index + 1])
             test_results['vel_fail_percentage'][0] = 100.0 * (
-                    vel_innov_fail[start_index:end_index] > 0.5).sum() / num_valid_values
+                    vel_innov_fail[start_index:end_index + 1] > 0.5).sum() / num_valid_values
 
         # Position Sensor Checks
         if ((np.amax(using_gps) > 0.5) or (np.amax(using_evpos) > 0.5)):
-            pos_num_red = (estimator_status['pos_test_ratio'][start_index:end_index] > 1.0).sum()
-            pos_num_amber = (estimator_status['pos_test_ratio'][start_index:end_index] > 0.5).sum() - pos_num_red
+            pos_num_red = (estimator_status['pos_test_ratio'][start_index:end_index + 1] > 1.0).sum()
+            pos_num_amber = (estimator_status['pos_test_ratio'][start_index:end_index + 1] > 0.5).sum() - pos_num_red
             test_results['pos_percentage_red'][0] = 100.0 * pos_num_red / num_valid_values
             test_results['pos_percentage_amber'][0] = 100.0 * pos_num_amber / num_valid_values
-            test_results['pos_test_max'][0] = np.amax(estimator_status['pos_test_ratio'][start_index:end_index])
-            test_results['pos_test_mean'][0] = np.mean(estimator_status['pos_test_ratio'][start_index:end_index])
+            test_results['pos_test_max'][0] = np.amax(estimator_status['pos_test_ratio'][start_index:end_index + 1])
+            test_results['pos_test_mean'][0] = np.mean(estimator_status['pos_test_ratio'][start_index:end_index + 1])
             test_results['pos_fail_percentage'][0] = 100.0 * (
-                    posh_innov_fail[start_index:end_index] > 0.5).sum() / num_valid_values
+                    posh_innov_fail[start_index:end_index + 1] > 0.5).sum() / num_valid_values
 
         # Height Sensor Checks
-        hgt_num_red = (estimator_status['hgt_test_ratio'][late_start_index:early_end_index] > 1.0).sum()
-        hgt_num_amber = (estimator_status['hgt_test_ratio'][late_start_index:early_end_index] > 0.5).sum() - hgt_num_red
+        hgt_num_red = (estimator_status['hgt_test_ratio'][late_start_index:early_end_index + 1] > 1.0).sum()
+        hgt_num_amber = (estimator_status['hgt_test_ratio'][late_start_index:early_end_index + 1] > 0.5).sum() - hgt_num_red
         test_results['hgt_percentage_red'][0] = 100.0 * hgt_num_red / num_valid_values_trimmed
         test_results['hgt_percentage_amber'][0] = 100.0 * hgt_num_amber / num_valid_values_trimmed
-        test_results['hgt_test_max'][0] = np.amax(estimator_status['hgt_test_ratio'][late_start_index:early_end_index])
-        test_results['hgt_test_mean'][0] = np.mean(estimator_status['hgt_test_ratio'][late_start_index:early_end_index])
+        test_results['hgt_test_max'][0] = np.amax(estimator_status['hgt_test_ratio'][late_start_index:early_end_index + 1])
+        test_results['hgt_test_mean'][0] = np.mean(estimator_status['hgt_test_ratio'][late_start_index:early_end_index + 1])
         test_results['hgt_fail_percentage'][0] = 100.0 * (
-                posv_innov_fail[late_start_index:early_end_index] > 0.5).sum() / num_valid_values_trimmed
+                posv_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
 
         # Airspeed Sensor Checks
         if (tas_test_max > 0.0):
-            tas_num_red = (estimator_status['tas_test_ratio'][start_index:end_index] > 1.0).sum()
-            tas_num_amber = (estimator_status['tas_test_ratio'][start_index:end_index] > 0.5).sum() - tas_num_red
+            tas_num_red = (estimator_status['tas_test_ratio'][start_index:end_index + 1] > 1.0).sum()
+            tas_num_amber = (estimator_status['tas_test_ratio'][start_index:end_index + 1] > 0.5).sum() - tas_num_red
             test_results['tas_percentage_red'][0] = 100.0 * tas_num_red / num_valid_values
             test_results['tas_percentage_amber'][0] = 100.0 * tas_num_amber / num_valid_values
-            test_results['tas_test_max'][0] = np.amax(estimator_status['tas_test_ratio'][start_index:end_index])
-            test_results['tas_test_mean'][0] = np.mean(estimator_status['tas_test_ratio'][start_index:end_index])
+            test_results['tas_test_max'][0] = np.amax(estimator_status['tas_test_ratio'][start_index:end_index + 1])
+            test_results['tas_test_mean'][0] = np.mean(estimator_status['tas_test_ratio'][start_index:end_index + 1])
             test_results['tas_fail_percentage'][0] = 100.0 * (
-                    tas_innov_fail[start_index:end_index] > 0.5).sum() / num_valid_values
+                    tas_innov_fail[start_index:end_index + 1] > 0.5).sum() / num_valid_values
 
         # HAGL Sensor Checks
         if (hagl_test_max > 0.0):
-            hagl_num_red = (estimator_status['hagl_test_ratio'][start_index:end_index] > 1.0).sum()
-            hagl_num_amber = (estimator_status['hagl_test_ratio'][start_index:end_index] > 0.5).sum() - hagl_num_red
+            hagl_num_red = (estimator_status['hagl_test_ratio'][start_index:end_index + 1] > 1.0).sum()
+            hagl_num_amber = (estimator_status['hagl_test_ratio'][start_index:end_index + 1] > 0.5).sum() - hagl_num_red
             test_results['hagl_percentage_red'][0] = 100.0 * hagl_num_red / num_valid_values
             test_results['hagl_percentage_amber'][0] = 100.0 * hagl_num_amber / num_valid_values
-            test_results['hagl_test_max'][0] = np.amax(estimator_status['hagl_test_ratio'][start_index:end_index])
-            test_results['hagl_test_mean'][0] = np.mean(estimator_status['hagl_test_ratio'][start_index:end_index])
+            test_results['hagl_test_max'][0] = np.amax(estimator_status['hagl_test_ratio'][start_index:end_index + 1])
+            test_results['hagl_test_mean'][0] = np.mean(estimator_status['hagl_test_ratio'][start_index:end_index + 1])
             test_results['hagl_fail_percentage'][0] = 100.0 * (
-                    hagl_innov_fail[start_index:end_index] > 0.5).sum() / num_valid_values
+                    hagl_innov_fail[start_index:end_index + 1] > 0.5).sum() / num_valid_values
 
         # optical flow sensor checks
         if (np.amax(using_optflow) > 0.5):
             test_results['ofx_fail_percentage'][0] = 100.0 * (
-                    ofx_innov_fail[late_start_index:early_end_index] > 0.5).sum() / num_valid_values_trimmed
+                    ofx_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
             test_results['ofy_fail_percentage'][0] = 100.0 * (
-                    ofy_innov_fail[late_start_index:early_end_index] > 0.5).sum() / num_valid_values_trimmed
+                    ofy_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
 
         # IMU bias checks
         test_results['imu_dang_bias_median'][0] = (np.median(estimator_status['states[10]']) ** 2 + np.median(
@@ -1272,22 +1303,36 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         test_results['tas_sensor_status'][0] = 'Warning'
     # check for IMU sensor warnings
     if ((test_results.get('imu_coning_peak')[0] > check_levels.get('imu_coning_peak_warn')) or
-            (test_results.get('imu_coning_mean')[0] > check_levels.get('imu_coning_mean_warn')) or
-            (test_results.get('imu_hfdang_peak')[0] > check_levels.get('imu_hfdang_peak_warn')) or
-            (test_results.get('imu_hfdang_mean')[0] > check_levels.get('imu_hfdang_mean_warn')) or
-            (test_results.get('imu_hfdvel_peak')[0] > check_levels.get('imu_hfdvel_peak_warn')) or
+            (test_results.get('imu_coning_mean')[0] > check_levels.get('imu_coning_mean_warn'))):
+        test_results['master_status'][0] = 'Warning'
+        test_results['imu_sensor_status'][0] = 'Warning'
+        test_results['imu_vibration_check'][0] = 'Warning'
+        print('IMU gyro coning check warning.')
+    if ((test_results.get('imu_hfdang_peak')[0] > check_levels.get('imu_hfdang_peak_warn')) or
+            (test_results.get('imu_hfdang_mean')[0] > check_levels.get('imu_hfdang_mean_warn'))):
+        test_results['master_status'][0] = 'Warning'
+        test_results['imu_sensor_status'][0] = 'Warning'
+        test_results['imu_vibration_check'][0] = 'Warning'
+        print('IMU gyro vibration check warning.')
+    if ((test_results.get('imu_hfdvel_peak')[0] > check_levels.get('imu_hfdvel_peak_warn')) or
             (test_results.get('imu_hfdvel_mean')[0] > check_levels.get('imu_hfdvel_mean_warn'))):
         test_results['master_status'][0] = 'Warning'
-        test_results['imu_sensor_status'][0] = 'Warning - Vibration'
+        test_results['imu_sensor_status'][0] = 'Warning'
+        test_results['imu_vibration_check'][0] = 'Warning'
+        print('IMU accel vibration check warning.')
     if ((test_results.get('imu_dang_bias_median')[0] > check_levels.get('imu_dang_bias_median_warn')) or
             (test_results.get('imu_dvel_bias_median')[0] > check_levels.get('imu_dvel_bias_median_warn'))):
         test_results['master_status'][0] = 'Warning'
-        test_results['imu_sensor_status'][0] = 'Warning - Bias'
+        test_results['imu_sensor_status'][0] = 'Warning'
+        test_results['imu_bias_check'][0] = 'Warning'
+        print('IMU bias check warning.')
     if ((test_results.get('output_obs_ang_err_median')[0] > check_levels.get('obs_ang_err_median_warn')) or
             (test_results.get('output_obs_vel_err_median')[0] > check_levels.get('obs_vel_err_median_warn')) or
             (test_results.get('output_obs_pos_err_median')[0] > check_levels.get('obs_pos_err_median_warn'))):
         test_results['master_status'][0] = 'Warning'
-        test_results['imu_sensor_status'][0] = 'Warning - Output Predictor'
+        test_results['imu_sensor_status'][0] = 'Warning'
+        test_results['imu_output_predictor_check'][0] = 'Warning'
+        print('IMU output predictor check warning.')
     # check for failures
     if ((test_results.get('magx_fail_percentage')[0] > check_levels.get('mag_fail_pct')) or
             (test_results.get('magy_fail_percentage')[0] > check_levels.get('mag_fail_pct')) or
@@ -1295,33 +1340,41 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
             (test_results.get('mag_percentage_amber')[0] > check_levels.get('mag_amber_fail_pct'))):
         test_results['master_status'][0] = 'Fail'
         test_results['mag_sensor_status'][0] = 'Fail'
+        print('Magnetometer sensor check failure.')
     if (test_results.get('yaw_fail_percentage')[0] > check_levels.get('yaw_fail_pct')):
         test_results['master_status'][0] = 'Fail'
         test_results['yaw_sensor_status'][0] = 'Fail'
+        print('Yaw sensor check failure.')
     if ((test_results.get('vel_fail_percentage')[0] > check_levels.get('vel_fail_pct')) or
             (test_results.get('vel_percentage_amber')[0] > check_levels.get('vel_amber_fail_pct'))):
         test_results['master_status'][0] = 'Fail'
         test_results['vel_sensor_status'][0] = 'Fail'
+        print('Velocity sensor check failure.')
     if ((test_results.get('pos_fail_percentage')[0] > check_levels.get('pos_fail_pct')) or
             (test_results.get('pos_percentage_amber')[0] > check_levels.get('pos_amber_fail_pct'))):
         test_results['master_status'][0] = 'Fail'
         test_results['pos_sensor_status'][0] = 'Fail'
+        print('Position sensor check failure.')
     if ((test_results.get('hgt_fail_percentage')[0] > check_levels.get('hgt_fail_pct')) or
             (test_results.get('hgt_percentage_amber')[0] > check_levels.get('hgt_amber_fail_pct'))):
         test_results['master_status'][0] = 'Fail'
         test_results['hgt_sensor_status'][0] = 'Fail'
+        print('Height sensor check failure.')
     if ((test_results.get('tas_fail_percentage')[0] > check_levels.get('tas_fail_pct')) or
             (test_results.get('tas_percentage_amber')[0] > check_levels.get('tas_amber_fail_pct'))):
         test_results['master_status'][0] = 'Fail'
         test_results['tas_sensor_status'][0] = 'Fail'
+        print('Airspeed sensor check failure.')
     if ((test_results.get('hagl_fail_percentage')[0] > check_levels.get('hagl_fail_pct')) or
             (test_results.get('hagl_percentage_amber')[0] > check_levels.get('hagl_amber_fail_pct'))):
         test_results['master_status'][0] = 'Fail'
         test_results['hagl_sensor_status'][0] = 'Fail'
+        print('Height above ground sensor check failure.')
     if ((test_results.get('ofx_fail_percentage')[0] > check_levels.get('flow_fail_pct')) or
             (test_results.get('ofy_fail_percentage')[0] > check_levels.get('flow_fail_pct'))):
         test_results['master_status'][0] = 'Fail'
         test_results['flow_sensor_status'][0] = 'Fail'
+        print('Optical flow sensor check failure.')
     if (test_results.get('filter_faults_max')[0] > 0):
         test_results['master_status'][0] = 'Fail'
         test_results['filter_fault_status'][0] = 'Fail'

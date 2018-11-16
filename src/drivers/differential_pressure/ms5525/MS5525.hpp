@@ -41,7 +41,6 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <px4_config.h>
 #include <sys/types.h>
-#include <systemlib/airspeed.h>
 #include <perf/perf_counter.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/uORB.h>
@@ -54,7 +53,7 @@ static constexpr const char PATH_MS5525[] = "/dev/ms5525";
 /* Measurement rate is 100Hz */
 static constexpr unsigned MEAS_RATE = 100;
 static constexpr float MEAS_DRIVER_FILTER_FREQ = 1.2f;
-static constexpr uint64_t CONVERSION_INTERVAL = (1000000 / MEAS_RATE); /* microseconds */
+static constexpr int64_t CONVERSION_INTERVAL = (1000000 / MEAS_RATE); /* microseconds */
 
 class MS5525 : public Airspeed
 {

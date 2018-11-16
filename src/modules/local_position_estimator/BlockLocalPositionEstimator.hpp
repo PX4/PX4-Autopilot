@@ -1,6 +1,7 @@
 #pragma once
 
 #include <px4_posix.h>
+#include <drivers/drv_hrt.h>
 #include <px4_module_params.h>
 #include <controllib/blocks.hpp>
 #include <mathlib/mathlib.h>
@@ -21,9 +22,9 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/vehicle_odometry.h>
 
 // uORB Publications
 #include <uORB/Publication.hpp>
@@ -251,8 +252,8 @@ private:
 	uORB::Subscription<sensor_combined_s> _sub_sensor;
 	uORB::Subscription<parameter_update_s> _sub_param_update;
 	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
-	uORB::Subscription<vehicle_local_position_s> _sub_vision_pos;
-	uORB::Subscription<att_pos_mocap_s> _sub_mocap;
+	uORB::Subscription<vehicle_odometry_s> _sub_visual_odom;
+	uORB::Subscription<vehicle_odometry_s> _sub_mocap_odom;
 	uORB::Subscription<distance_sensor_s> _sub_dist0;
 	uORB::Subscription<distance_sensor_s> _sub_dist1;
 	uORB::Subscription<distance_sensor_s> _sub_dist2;
@@ -411,13 +412,31 @@ private:
 	bool _landUpdated;
 	bool _baroUpdated;
 
+	// sensor validation flags
+	bool _vision_xy_valid;
+	bool _vision_z_valid;
+	bool _mocap_xy_valid;
+	bool _mocap_z_valid;
+
+	// sensor std deviations
+	float _vision_eph;
+	float _vision_epv;
+	float _mocap_eph;
+	float _mocap_epv;
+
+	// local to global coversion related variables
+	bool _is_global_cov_init;
+	uint64_t _global_ref_timestamp;
+	double _ref_lat;
+	double _ref_lon;
+	float _ref_alt;
+
 	// state space
 	Vector<float, n_x>  _x;	// state vector
 	Vector<float, n_u>  _u;	// input vector
 	Matrix<float, n_x, n_x>  _P;	// state covariance matrix
 
 	matrix::Dcm<float> _R_att;
-	Vector3f _eul;
 
 	Matrix<float, n_x, n_x>  _A;	// dynamics matrix
 	Matrix<float, n_x, n_u>  _B;	// input matrix

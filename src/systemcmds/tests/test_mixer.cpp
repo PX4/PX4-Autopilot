@@ -42,8 +42,8 @@
 #include <string.h>
 
 #include <px4_config.h>
-#include <lib/mixer/mixer.h>
-#include <systemlib/pwm_limit/pwm_limit.h>
+#include <mixer/mixer.h>
+#include <pwm_limit/pwm_limit.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
 #include <px4iofirmware/mixer.h>
@@ -79,8 +79,8 @@ static bool should_prearm = false;
 #endif
 
 #if defined(CONFIG_ARCH_BOARD_SITL)
-#define MIXER_PATH(_file)  "ROMFS/px4fmu_test/mixers/"#_file
-#define MIXER_ONBOARD_PATH "ROMFS/px4fmu_common/mixers"
+#define MIXER_PATH(_file)  "etc/mixers/"#_file
+#define MIXER_ONBOARD_PATH "etc/mixers"
 #else
 #define MIXER_ONBOARD_PATH "/etc/mixers"
 #define MIXER_PATH(_file) MIXER_ONBOARD_PATH"/"#_file
@@ -199,6 +199,7 @@ bool MixerTest::loadAllTest()
 
 				if (snprintf(buf, PATH_MAX, "%s/%s", MIXER_ONBOARD_PATH, result->d_name) >= PATH_MAX) {
 					PX4_ERR("mixer path too long %s", result->d_name);
+					closedir(dp);
 					return false;
 				}
 
@@ -206,6 +207,7 @@ bool MixerTest::loadAllTest()
 
 				if (!ret) {
 					PX4_ERR("Error testing mixer %s", buf);
+					closedir(dp);
 					return false;
 				}
 			}

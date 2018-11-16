@@ -181,7 +181,7 @@ function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra)
 
 	add_custom_command(OUTPUT ${NUTTX_DIR}/${nuttx_lib_dir}/lib${nuttx_lib}.a
 		COMMAND find ${nuttx_lib_dir} -type f -name *.o -delete
-		COMMAND make -C ${nuttx_lib_dir} ${nuttx_build_options} --no-print-directory lib${nuttx_lib}.a TOPDIR=${NUTTX_DIR} KERNEL=${kernel} EXTRADEFINES=${extra} ${nuttx_build_output}
+		COMMAND make -C ${nuttx_lib_dir} ${nuttx_build_options} --no-print-directory all TOPDIR=${NUTTX_DIR} KERNEL=${kernel} EXTRADEFINES=${extra} ${nuttx_build_output}
 		DEPENDS ${nuttx_lib_files} nuttx_context
 		WORKING_DIRECTORY ${NUTTX_DIR}
 		${nuttx_build_uses_terminal}

@@ -28,6 +28,7 @@ else()
 endif()
 
 set(CONFIG_SHMEM "1")
+add_definitions(-DORB_COMMUNICATOR)
 
 set(config_module_list
 	drivers/blinkm
@@ -40,6 +41,7 @@ set(config_module_list
 	systemcmds/led_control
 	systemcmds/mixer
 	systemcmds/ver
+	systemcmds/shutdown
 	systemcmds/topic_listener
 	systemcmds/tune_control
 
@@ -57,7 +59,6 @@ set(config_module_list
 	modules/muorb/krait
 	modules/sensors
 	modules/dataman
-	modules/sdlog2
 	modules/logger
 	modules/simulator
 	modules/commander

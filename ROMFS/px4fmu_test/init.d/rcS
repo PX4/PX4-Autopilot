@@ -24,15 +24,15 @@ fi
 # Try to mount the microSD card.
 #
 mount -t vfat /dev/mmcsd0 /fs/microsd
-if [ $? == 0 ]
+if [ $? = 0 ]
 then
 	echo "[i] card mounted at /fs/microsd"
 	# Start playing the startup tune
-	tone_alarm start
+	tune_control play -t 1
 else
 	echo "[i] no microSD card found"
 	# Play SOS
-	tone_alarm error
+	tune_control play -t 2
 fi
 
 #
@@ -79,22 +79,22 @@ then
 	echo "PX4IO CRC OK"
 else
 	echo "PX4IO CRC failure"
-	tone_alarm MBABGP
+	tune_control play -t  18
 	if px4io forceupdate 14662 $io_file
 	then
 		if px4io start
 		then
 			echo "PX4IO restart OK"
-			tone_alarm MSPAA
+			tune_control play -t  19
 		else
 			echo "PX4IO restart failed"
-			tone_alarm MNGGG
+			tune_control play -t  20
 			set unit_test_failure 1
 			set unit_test_failure_list "${unit_test_failure_list} px4io_flash"
 		fi
 	else
 		echo "PX4IO update failed"
-		tone_alarm MNGGG
+		tune_control play -t  20
 		set unit_test_failure 1
 		set unit_test_failure_list "${unit_test_failure_list} px4io_flash"
 	fi

@@ -72,7 +72,6 @@
 #include <parameters/param.h>
 
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-#include <systemlib/systemlib.h>
 #endif
 
 # if defined(FLASH_BASED_PARAMS)

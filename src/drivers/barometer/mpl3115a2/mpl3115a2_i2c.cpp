@@ -64,7 +64,7 @@ class MPL3115A2_I2C : public device::I2C
 {
 public:
 	MPL3115A2_I2C(uint8_t bus);
-	virtual ~MPL3115A2_I2C();
+	virtual ~MPL3115A2_I2C() = default;
 
 	virtual int	init();
 	virtual int	read(unsigned offset, void *data, unsigned count);
@@ -96,10 +96,6 @@ MPL3115A2_i2c_interface(uint8_t busnum)
 
 MPL3115A2_I2C::MPL3115A2_I2C(uint8_t bus) :
 	I2C("MPL3115A2_I2C", nullptr, bus, 0, 400000)
-{
-}
-
-MPL3115A2_I2C::~MPL3115A2_I2C()
 {
 }
 

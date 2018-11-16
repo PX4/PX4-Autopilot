@@ -1,7 +1,14 @@
 
 px4_nuttx_configure(HWCLASS m4 CONFIG nsh ROMFS y ROMFSROOT px4fmu_common)
 
-set(config_uavcan_num_ifaces 1)
+set(UAVCAN_PLATFORM kinetis CACHE STRING "uavcan platform")
+set(UAVCAN_TIMER 1)
+set(config_uavcan_num_ifaces 2)
+
+# user-configurable UART ports
+set(board_serial_ports
+	GPS1:/dev/ttyS3
+	TEL1:/dev/ttyS4)
 
 set(config_module_list
 	#
@@ -32,6 +39,7 @@ set(config_module_list
 	drivers/pwm_out_sim
 	drivers/px4flow
 	drivers/px4fmu
+	drivers/rc_input
 	drivers/rgbled
 	drivers/rgbled_pwm
 	drivers/tap_esc
@@ -49,6 +57,7 @@ set(config_module_list
 	systemcmds/led_control
 	systemcmds/mixer
 	systemcmds/motor_ramp
+	systemcmds/motor_test
 	systemcmds/mtd
 	systemcmds/nshterm
 	systemcmds/param
@@ -71,7 +80,6 @@ set(config_module_list
 	modules/commander/commander_tests
 	lib/controllib/controllib_test
 	modules/mavlink/mavlink_tests
-	modules/mc_pos_control/mc_pos_control_tests
 	modules/uORB/uORB_tests
 	systemcmds/tests
 
@@ -85,7 +93,7 @@ set(config_module_list
 	modules/load_mon
 	modules/mavlink
 	modules/navigator
-#NO UAVCAN YET	modules/uavcan
+	modules/uavcan
 	modules/camera_feedback
 
 	#
@@ -93,9 +101,10 @@ set(config_module_list
 	#
 	modules/attitude_estimator_q
 	modules/ekf2
-	modules/local_position_estimator
 	modules/landing_target_estimator
+	modules/local_position_estimator
 	modules/position_estimator_inav
+	modules/wind_estimator
 
 	#
 	# Vehicle Control
@@ -112,7 +121,6 @@ set(config_module_list
 	# Logging
 	#
 	modules/logger
-	modules/sdlog2
 
 	#
 	# Library modules

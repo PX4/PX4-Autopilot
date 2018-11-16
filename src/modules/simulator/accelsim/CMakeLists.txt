@@ -34,6 +34,8 @@
 px4_add_module(
 	MODULE drivers__accelsim
 	MAIN accelsim
+	COMPILE_FLAGS
+		-Wno-double-promotion
 	SRCS
 		accelsim.cpp
 	DEPENDS

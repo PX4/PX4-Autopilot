@@ -93,10 +93,7 @@ static inline int px4_board_hw_revision(void)
 /**
  * get the build URI (used for crash logging)
  */
-static inline const char *px4_build_uri(void)
-{
-	return STRINGIFY(BUILD_URI);
-}
+const char *px4_build_uri(void);
 
 /**
  * Convert a version tag string to a number
@@ -177,11 +174,15 @@ __EXPORT const char *px4_firmware_version_string(void);
  */
 __EXPORT const char *px4_firmware_git_branch(void);
 
-
 /**
  * Firmware version in binary form (first part of the git tag)
  */
 __EXPORT uint64_t px4_firmware_version_binary(void);
+
+/**
+ * ECL lib version as human readable string (git tag)
+ */
+__EXPORT const char *px4_ecl_lib_version_string(void);
 
 /**
  * MAVLink lib version in binary form (first part of the git tag)

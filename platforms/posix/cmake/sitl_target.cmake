@@ -3,14 +3,13 @@ file(MAKE_DIRECTORY ${SITL_WORKING_DIR})
 
 # add a symlink to the logs dir to make it easier to find them
 add_custom_command(OUTPUT ${PX4_BINARY_DIR}/logs
-		COMMAND ${CMAKE_COMMAND} -E create_symlink ${SITL_WORKING_DIR}/rootfs/fs/microsd/log logs
+		COMMAND ${CMAKE_COMMAND} -E create_symlink ${SITL_WORKING_DIR}/rootfs/log logs
 		WORKING_DIRECTORY ${PX4_BINARY_DIR})
 add_custom_target(logs_symlink DEPENDS ${PX4_BINARY_DIR}/logs)
 
 add_custom_target(run_config
 		COMMAND Tools/sitl_run.sh
 			$<TARGET_FILE:px4>
-			${config_sitl_rcS_dir}
 			${config_sitl_debugger}
 			${config_sitl_viewer}
 			${config_sitl_model}
@@ -30,7 +29,9 @@ include(ExternalProject)
 # project to build sitl_gazebo if necessary
 ExternalProject_Add(sitl_gazebo
 	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/sitl_gazebo
-	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+	CMAKE_ARGS
+		-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+		-DSEND_VISION_ESTIMATION_DATA=ON
 	BINARY_DIR ${PX4_BINARY_DIR}/build_gazebo
 	INSTALL_COMMAND ""
 	DEPENDS
@@ -45,9 +46,9 @@ ExternalProject_Add_Step(sitl_gazebo forceconfigure
 	)
 
 # create targets for each viewer/model/debugger combination
-set(viewers none jmavsim gazebo replay)
+set(viewers none jmavsim gazebo)
 set(debuggers none ide gdb lldb ddd valgrind callgrind)
-set(models none iris iris_opt_flow iris_rplidar iris_irlock standard_vtol plane solo tailsitter typhoon_h480 rover hippocampus tiltrotor)
+set(models none shell iris iris_opt_flow iris_vision iris_rplidar iris_irlock standard_vtol plane solo tailsitter typhoon_h480 rover hippocampus tiltrotor)
 set(all_posix_vmd_make_targets)
 foreach(viewer ${viewers})
 	foreach(debugger ${debuggers})
@@ -69,7 +70,6 @@ foreach(viewer ${viewers})
 			add_custom_target(${_targ_name}
 					COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
 						$<TARGET_FILE:px4>
-						${config_sitl_rcS_dir}
 						${debugger}
 						${viewer}
 						${model}

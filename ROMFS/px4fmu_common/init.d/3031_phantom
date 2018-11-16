@@ -2,7 +2,7 @@
 #
 # @name Phantom FPV Flying Wing
 #
-# @url https://pixhawk.org/platforms/planes/z-84_wing_wing
+# @url https://docs.px4.io/en/frames_plane/wing_wing_z84.html
 #
 # @type Flying Wing
 # @class Plane
@@ -20,7 +20,7 @@
 
 sh /etc/init.d/rc.fw_defaults
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set FW_AIRSPD_MIN 13
 	param set FW_AIRSPD_TRIM 15
@@ -40,6 +40,9 @@ then
 	param set FW_RR_P 0.08
 	param set FW_R_LIM 50
 	param set FW_R_RMAX 50
+
+	param set PWM_DISARMED 1000
+
 	# Bottom of bay and nominal zero-pitch attitude differ
 	# the payload bay is pitched up about 7 degrees
 	param set SENS_BOARD_Y_OFF 7.0
@@ -49,4 +52,3 @@ set MIXER phantom
 
 # Provide ESC a constant 1000 us pulse
 set PWM_OUT 4
-set PWM_DISARMED 1000

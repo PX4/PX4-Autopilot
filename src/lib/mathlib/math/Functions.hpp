@@ -51,7 +51,7 @@ int sign(T val)
 	return (T(0) < val) - (val < T(0));
 }
 
-// Type-safe signum function with zero treted as positive
+// Type-safe signum function with zero treated as positive
 template<typename T>
 int signNoZero(T val)
 {

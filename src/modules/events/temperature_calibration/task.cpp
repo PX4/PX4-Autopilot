@@ -87,7 +87,7 @@ public:
 
 	void		task_main();
 
-	void exit() { _force_task_exit = true; }
+	void exit_task() { _force_task_exit = true; }
 
 private:
 	void publish_led_control(led_control_s &led_control);
@@ -217,7 +217,7 @@ void TemperatureCalibration::task_main()
 		if (!_gyro) {
 			sensor_gyro_s gyro_data;
 
-			for (int i = 0; i < num_gyro; ++i) {
+			for (unsigned i = 0; i < num_gyro; ++i) {
 				orb_copy(ORB_ID(sensor_gyro), gyro_sub[i], &gyro_data);
 			}
 		}

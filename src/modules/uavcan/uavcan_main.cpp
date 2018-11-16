@@ -49,10 +49,8 @@
 #include <cstring>
 #include <fcntl.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 #include <parameters/param.h>
 #include <lib/mixer/mixer.h>
-#include <systemlib/board_serial.h>
 #include <version/version.h>
 #include <arch/board/board.h>
 #include <arch/chip/chip.h>
@@ -78,7 +76,7 @@
  */
 UavcanNode *UavcanNode::_instance;
 UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
-	CDev("uavcan", UAVCAN_DEVICE_PATH),
+	CDev(UAVCAN_DEVICE_PATH),
 	_node(can_driver, system_clock, _pool_allocator),
 	_node_mutex(),
 	_esc_controller(_node),
@@ -98,6 +96,10 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_control_topics[1] = ORB_ID(actuator_controls_1);
 	_control_topics[2] = ORB_ID(actuator_controls_2);
 	_control_topics[3] = ORB_ID(actuator_controls_3);
+
+	for (int i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN; ++i) {
+		_control_subs[i] = -1;
+	}
 
 	int res = pthread_mutex_init(&_node_mutex, nullptr);
 
@@ -532,24 +534,6 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	}
 
 	/*
-	 * GPIO config.
-	 * Forced pull up on CAN2 is required for Pixhawk v1 where the second interface lacks a transceiver.
-	 * If no transceiver is connected, the RX pin will float, occasionally causing CAN controller to
-	 * fail during initialization.
-	 */
-#if defined(GPIO_CAN1_RX)
-	px4_arch_configgpio(GPIO_CAN1_RX);
-	px4_arch_configgpio(GPIO_CAN1_TX);
-#endif
-#if defined(GPIO_CAN2_RX)
-	px4_arch_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
-	px4_arch_configgpio(GPIO_CAN2_TX);
-#endif
-#if !defined(GPIO_CAN1_RX) &&  !defined(GPIO_CAN2_RX)
-# error  "Need to define GPIO_CAN1_RX and/or GPIO_CAN2_RX"
-#endif
-
-	/*
 	 * CAN driver init
 	 * Note that we instantiate and initialize CanInitHelper only once, because the STM32's bxCAN driver
 	 * shipped with libuavcan does not support deinitialization.
@@ -576,7 +560,7 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	/*
 	 * Node init
 	 */
-	_instance = new UavcanNode(can->driver, uavcan_stm32::SystemClock::instance());
+	_instance = new UavcanNode(can->driver, UAVCAN_DRIVER::SystemClock::instance());
 
 	if (_instance == nullptr) {
 		PX4_ERR("Out of memory");
@@ -789,20 +773,20 @@ int UavcanNode::run()
 	}
 
 	/* When we have a system wide notion of time update (i.e the transition from the initial
-	 * System RTC setting to the GPS) we would call uavcan_stm32::clock::setUtc() when that
+	 * System RTC setting to the GPS) we would call UAVCAN_DRIVER::clock::setUtc() when that
 	 * happens, but for now we use adjustUtc with a correction of the hrt so that the
 	 * time bases are the same
 	 */
-	uavcan_stm32::clock::adjustUtc(uavcan::UtcDuration::fromUSec(hrt_absolute_time()));
+	UAVCAN_DRIVER::clock::adjustUtc(uavcan::UtcDuration::fromUSec(hrt_absolute_time()));
 	_master_timer.setCallback(TimerCallback(this, &UavcanNode::handle_time_sync));
 	_master_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000));
 
 	_node_status_monitor.start();
 
-	const int busevent_fd = ::open(uavcan_stm32::BusEvent::DevName, 0);
+	const int busevent_fd = ::open(UAVCAN_DRIVER::BusEvent::DevName, 0);
 
 	if (busevent_fd < 0) {
-		PX4_ERR("Failed to open %s", uavcan_stm32::BusEvent::DevName);
+		PX4_ERR("Failed to open %s", UAVCAN_DRIVER::BusEvent::DevName);
 		_task_should_exit = true;
 	}
 
@@ -882,7 +866,7 @@ int UavcanNode::run()
 
 		// this would be bad...
 		if (poll_ret < 0) {
-			DEVICE_LOG("poll error %d", errno);
+			PX4_ERR("poll error %d", errno);
 			continue;
 
 		} else {
@@ -890,7 +874,7 @@ int UavcanNode::run()
 			bool controls_updated = false;
 
 			for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-				if (_control_subs[i] > 0) {
+				if (_control_subs[i] >= 0) {
 					if (_poll_fds[_poll_ids[i]].revents & POLLIN) {
 						controls_updated = true;
 						orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
@@ -1039,7 +1023,7 @@ UavcanNode::teardown()
 	px4_sem_post(&_server_command_sem);
 
 	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (_control_subs[i] > 0) {
+		if (_control_subs[i] >= 0) {
 			orb_unsubscribe(_control_subs[i]);
 			_control_subs[i] = -1;
 		}
@@ -1076,7 +1060,7 @@ UavcanNode::subscribe()
 			_control_subs[i] = -1;
 		}
 
-		if (_control_subs[i] > 0) {
+		if (_control_subs[i] >= 0) {
 			_poll_ids[i] = add_poll_fd(_control_subs[i]);
 		}
 	}

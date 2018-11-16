@@ -48,12 +48,12 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
-#include <lib/mixer/mixer.h>
-#include <lib/mixer/mixer_load.h>
-#include <lib/mixer/mixer_multirotor_normalized.generated.h>
+#include <mixer/mixer.h>
+#include <mixer/mixer_load.h>
+#include <mixer/mixer_multirotor_normalized.generated.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
-#include <systemlib/pwm_limit/pwm_limit.h>
+#include <pwm_limit/pwm_limit.h>
 #include <dev_fs_lib_pwm.h>
 
 /*

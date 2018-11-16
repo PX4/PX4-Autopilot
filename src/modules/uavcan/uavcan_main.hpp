@@ -44,7 +44,7 @@
 
 #include <px4_config.h>
 
-#include <uavcan_stm32/uavcan_stm32.hpp>
+#include "uavcan_driver.hpp"
 #include <uavcan/helpers/heap_based_pool_allocator.hpp>
 #include <uavcan/protocol/global_time_sync_master.hpp>
 #include <uavcan/protocol/global_time_sync_slave.hpp>
@@ -77,7 +77,7 @@
 /**
  * A UAVCAN node.
  */
-class UavcanNode : public device::CDev
+class UavcanNode : public cdev::CDev
 {
 	static constexpr unsigned MaxBitRatePerSec	= 1000000;
 	static constexpr unsigned bitPerFrame		= 148;
@@ -103,7 +103,7 @@ class UavcanNode : public device::CDev
 	static constexpr unsigned StackSize		= 2400;
 
 public:
-	typedef uavcan_stm32::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
+	typedef UAVCAN_DRIVER::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
 	enum eServerAction {None, Start, Stop, CheckFW, Busy};
 
 	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
@@ -195,7 +195,7 @@ private:
 	ITxQueueInjector		*_tx_injector;
 	uint32_t			_groups_required = 0;
 	uint32_t			_groups_subscribed = 0;
-	int				_control_subs[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
+	int				_control_subs[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
 	actuator_controls_s		_controls[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
 	orb_id_t			_control_topics[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
 	pollfd				_poll_fds[UAVCAN_NUM_POLL_FDS] = {};

@@ -33,7 +33,7 @@
  ****************************************************************************/
 
 /*
- * @file tap-v1_timer_config.c
+ * @file timer_config.c
  *
  * Configuration data for the stm32 pwm_servo, input capture and pwm input driver.
  *

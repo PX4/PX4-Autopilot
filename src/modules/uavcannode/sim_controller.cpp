@@ -35,7 +35,6 @@
 #include <px4_config.h>
 
 #include <syslog.h>
-#include <systemlib/systemlib.h>
 
 #include "sim_controller.hpp"
 #include <uavcan/equipment/esc/RawCommand.hpp>

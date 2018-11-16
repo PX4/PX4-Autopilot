@@ -48,8 +48,9 @@
 
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 #include <parameters/param.h>
-#include <systemlib/pid/pid.h>
+#include <pid/pid.h>
 #include <perf/perf_counter.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>

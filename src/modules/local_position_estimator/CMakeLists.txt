@@ -34,7 +34,7 @@ px4_add_module(
 	MODULE modules__local_position_estimator
 	MAIN local_position_estimator
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
+		-Wno-double-promotion # TODO: fix in Matrix library Vector::pow()
 	STACK_MAIN 5700
 	STACK_MAX 13000
 	SRCS

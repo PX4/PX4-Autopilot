@@ -112,7 +112,7 @@ Author: Siddharth Bharat Purohit
 #define PF_DEBUG(fmt, ...)
 #endif
 
-template<size_t _forder>
+template<int _forder>
 class polyfitter
 {
 public:
@@ -131,7 +131,7 @@ public:
 
 		IVTV = _VTV.I();
 
-		for (unsigned i = 0; i < _forder; i++) {
+		for (int i = 0; i < _forder; i++) {
 			for (int j = 0; j < _forder; j++) {
 				PF_DEBUG("%.10f ", (double)IVTV(i, j));
 			}
@@ -139,7 +139,7 @@ public:
 			PF_DEBUG("\n");
 		}
 
-		for (unsigned i = 0; i < _forder; i++) {
+		for (int i = 0; i < _forder; i++) {
 			res[i] = 0.0;
 
 			for (int j = 0; j < _forder; j++) {
@@ -161,7 +161,7 @@ private:
 		double temp = 1.0;
 		PF_DEBUG("O %.6f\n", (double)x);
 
-		for (int8_t i = _forder - 1; i >= 0; i--) {
+		for (int i = _forder - 1; i >= 0; i--) {
 			_VTY(i) += y * temp;
 			temp *= x;
 			PF_DEBUG("%.6f ", (double)_VTY(i));
@@ -172,10 +172,10 @@ private:
 
 	void update_VTV(double x)
 	{
-		double temp = 1.0f;
+		double temp = 1.0;
 		int8_t z;
 
-		for (unsigned i = 0; i < _forder; i++) {
+		for (int i = 0; i < _forder; i++) {
 			for (int j = 0; j < _forder; j++) {
 				PF_DEBUG("%.10f ", (double)_VTV(i, j));
 			}
@@ -183,7 +183,7 @@ private:
 			PF_DEBUG("\n");
 		}
 
-		for (int8_t i = 2 * _forder - 2; i >= 0; i--) {
+		for (int i = 2 * _forder - 2; i >= 0; i--) {
 			if (i < _forder) {
 				z = 0.0f;
 
@@ -192,8 +192,8 @@ private:
 			}
 
 			for (int j = i - z; j >= z; j--) {
-				unsigned row = j;
-				unsigned col = i - j;
+				int row = j;
+				int col = i - j;
 				_VTV(row, col) += (double)temp;
 			}
 

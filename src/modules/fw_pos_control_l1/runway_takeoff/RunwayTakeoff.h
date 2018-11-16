@@ -49,6 +49,7 @@
 #include <px4_module_params.h>
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 
 namespace runwaytakeoff
 {

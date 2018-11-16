@@ -235,7 +235,6 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 	struct vehicle_status_flags_s status_flags = {};
 	struct safety_s         safety = {};
 	struct actuator_armed_s armed = {};
-	struct battery_status_s battery = {};
 
     size_t cArmingTransitionTests = sizeof(rgArmingTransitionTests) / sizeof(rgArmingTransitionTests[0]);
     for (size_t i=0; i<cArmingTransitionTests; i++) {
@@ -255,7 +254,7 @@ bool StateMachineHelperTest::armingStateTransitionTest()
         armed.ready_to_arm = test->current_state.ready_to_arm;
 
         // Attempt transition
-        transition_result_t result = arming_state_transition(&status, battery, safety, test->requested_state, &armed,
+        transition_result_t result = arming_state_transition(&status, safety, test->requested_state, &armed,
 				false /* no pre-arm checks */,
 				nullptr /* no mavlink_log_pub */,
 				&status_flags,

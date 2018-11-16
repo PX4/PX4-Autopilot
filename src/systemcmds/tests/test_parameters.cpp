@@ -312,7 +312,7 @@ bool ParameterTest::exportImportAll()
 	static constexpr float MAGIC_FLOAT_VAL = 0.217828f;
 
 	// backup current parameters
-	const char *param_file_name = PX4_ROOTFSDIR "/fs/microsd/param_backup";
+	const char *param_file_name = PX4_STORAGEDIR "/param_backup";
 	int fd = open(param_file_name, O_WRONLY | O_CREAT, PX4_O_MODE_666);
 
 	if (fd < 0) {
@@ -478,6 +478,12 @@ bool ParameterTest::exportImportAll()
 
 	if (result < 0) {
 		PX4_ERR("importing from '%s' failed (%i)", param_file_name, result);
+		return false;
+	}
+
+	// save
+	if (param_save_default() != PX4_OK) {
+		PX4_ERR("param_save_default failed");
 		return false;
 	}
 

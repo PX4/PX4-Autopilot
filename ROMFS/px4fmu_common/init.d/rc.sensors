@@ -2,15 +2,20 @@
 #
 # Standard startup script for sensor drivers.
 #
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
 
-if ver hwcmp AEROFC_V1 OMNIBUS_F4SD
+set BOARD_FMUV3 0
+
+
+###############################################################################
+#               Begin Setup for board specific configurations.                #
+###############################################################################
+
+if ! ver hwcmp AEROFC_V1 OMNIBUS_F4SD
 then
-	# Aero FC uses separate driver
-else
-	if ver hwcmp CRAZYFLIE
+	if ! ver hwcmp CRAZYFLIE
 	then
-		# Crazyflie uses separate driver
-	else
 		# Configure all I2C buses to 100 KHz as they
 		# are all external or slow
 		fmu i2c 1 100000
@@ -40,16 +45,23 @@ else
 	adc start
 fi
 
-if ver hwcmp NXPHLITE_V3
+if ver hwcmp AEROFC_V1
 then
-	# Internal I2C (baro)
-	mpl3115a2 -I start
+	ms5611 -T 0 start
+	mpu9250 -s -R 14 start
 
-	# Internal SPI (accel + mag)
-	fxos8701cq start -a 8 -R 0
+	# Possible external compasses
+	hmc5883 -X start
 
-	# Internal SPI (gyro)
-	fxas21002c start -R 0
+	ist8310 -C -b 1 -R 4 start
+	aerofc_adc start
+	ll40ls start i2c
+fi
+
+if ver hwcmp AEROCORE2
+then
+	l3gd20 -R 12 start
+	lsm303d start
 fi
 
 if ver hwcmp AUAV_X21
@@ -68,14 +80,91 @@ then
 	mpu9250 -R 2 start
 fi
 
+if ver hwcmp AV_X_V1
+then
+	adis16477 -R 8 start
+
+	#adis16497 start
+
+	lps22hb -S start
+
+	lsm303agr -R 4 start
+
+	ms4525_airspeed -T 4515 -b 3 start
+
+fi
+
+if ver hwcmp CRAZYFLIE
+then
+	# Onboard I2C
+	mpu9250 -R 12 start
+
+	# I2C bypass of mpu
+	lps25h start
+
+	# Optical flow deck
+	vl53lxx start
+	pmw3901 start
+
+fi
+
+if ver hwcmp MINDPX_V2
+then
+	# External I2C bus
+	hmc5883 -C -T -X start
+
+	# Internal I2C bus
+	hmc5883 -C -T -I -R 12 start
+
+	mpu6000 -s -R 8 start
+	mpu9250 -s -R 8 start
+	lsm303d -R 10 start
+	l3gd20 -R 14 start
+fi
+
+if ver hwcmp NXPHLITE_V3
+then
+	# External I2C bus
+	hmc5883 -C -X start
+
+	# Possible external compasses
+	ist8310 -C -b 2 start
+
+	# External I2C bus
+	lis3mdl -X start
+
+	# Onboard I2C (baro) but an external bus on V3 RC15
+	mpl3115a2 -X start
+
+	# Internal SPI (accel + mag)
+	fxos8701cq start -R 0
+
+	# Internal SPI (gyro)
+	fxas21002c start -R 0
+fi
+
+if ver hwcmp OMNIBUS_F4SD
+then
+	if ! mpu6000 -R 12 -s start
+	then
+		# some boards such as the Hobbywing XRotor F4 G2 use the ICM-20602
+		mpu6000 -R 12 -T 20602 -s start
+	fi
+
+	# Possible external compasses
+	hmc5883 -X start
+
+	bmp280 start
+
+	adc start
+fi
+
 if ver hwcmp PX4FMU_V2
 then
-	# V2 build hwtypecmp is always false
-	set BOARD_FMUV3 0
-
 	# External I2C bus
 	hmc5883 -C -T -X start
 	lis3mdl -X start
+	ist8310 -C start
 
 	# Internal I2C bus
 	hmc5883 -C -T -I -R 4 start
@@ -132,7 +221,7 @@ then
 		# external LSM303D is rotated 270 degrees yaw
 		lsm303d -X -R 6 start
 
-		if [ $BOARD_FMUV3 == 20 ]
+		if [ $BOARD_FMUV3 = 20 ]
 		then
 			# v2.0 internal MPU6000 is rotated 180 deg roll, 270 deg yaw
 			mpu6000 -R 14 start
@@ -141,41 +230,29 @@ then
 			hmc5883 -C -T -S -R 8 start
 		fi
 
-		if [ $BOARD_FMUV3 == 21 ]
+		if [ $BOARD_FMUV3 = 21 ]
 		then
 			# v2.1 internal MPU9250 is rotated 180 deg roll, 270 deg yaw
 			mpu9250 -R 14 start
 		fi
 
 	else
-		# $BOARD_FMUV3 == 0 -> FMUv2
+		# $BOARD_FMUV3 = 0 -> FMUv2
 
 		mpu6000 start
 
 		# As we will use the external mag and the ICM-20608-G
 		# V2 build hwtypecmp is always false
 		# V3 build hwtypecmp supports V2|V2M|V30
-		if ver hwtypecmp V2M
+		if ! ver hwtypecmp V2M
 		then
-			# On the PixhawkMini the mpu9250 has been disabled due to HW errata
-		else
 			mpu9250 start
+		# else: On the PixhawkMini the mpu9250 has been disabled due to HW errata
 		fi
 
 		l3gd20 start
 		lsm303d start
 	fi
-
-	unset BOARD_FMUV3
-fi
-
-if ver hwcmp PX4_SAME70XPLAINED_V1
-then
-	# External I2C bus
-	hmc5883 -C -T -X start
-
-	# Internal SPI bus mpu9250 is rotated 90 deg yaw
-	mpu9250 -R 2 start
 fi
 
 if ver hwcmp PX4FMU_V4
@@ -188,14 +265,12 @@ then
 	# expansion i2c used for BMM150 rotated by 90deg
 	bmm150 -R 2 start
 
-	if hmc5883 -C -T -S -R 2 start
+	# hmc5883 internal SPI bus is rotated 90 deg yaw
+	if ! hmc5883 -C -T -S -R 2 start
 	then
-		# hmc5883 internal SPI bus is rotated 90 deg yaw
-	else
-		if lis3mdl start
+		# lis3mdl internal SPI bus is rotated 90 deg yaw
+		if ! lis3mdl start
 		then
-			# lis3mdl internal SPI bus is rotated 90 deg yaw
-		else
 			# BMI055 gyro internal SPI bus
 			bmi055 -G start
 		fi
@@ -205,14 +280,12 @@ then
 	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
 	# will prevent the incorrect driver from a successful initialization.
 
-	if mpu6000 -R 2 -T 20602 start
+	# ICM20602 internal SPI bus ICM-20608-G is rotated 90 deg yaw
+	if ! mpu6000 -R 2 -T 20602 start
 	then
-		# ICM20602 internal SPI bus ICM-20608-G is rotated 90 deg yaw
-	else
-		if mpu6000 -R 2 -T 20608 start
+		# ICM20608 internal SPI bus ICM-20602-G is rotated 90 deg yaw
+		if ! mpu6000 -R 2 -T 20608 start
 		then
-			# ICM20608 internal SPI bus ICM-20602-G is rotated 90 deg yaw
-		else
 			# BMI055 accel internal SPI bus
 			bmi055 -A start
 		fi
@@ -222,64 +295,12 @@ then
 	# chip select pin. There are different boards with either one of them and the WHO_AM_I register
 	# will prevent the incorrect driver from a successful initialization.
 
-	if mpu9250 -R 2 start
+	# mpu9250 internal SPI bus mpu9250 is rotated 90 deg yaw
+	if ! mpu9250 -R 2 start
 	then
-		# mpu9250 internal SPI bus mpu9250 is rotated 90 deg yaw
-	else
 		# BMI160 internal SPI bus
 		bmi160 start
 	fi
-fi
-
-if ver hwcmp MINDPX_V2
-then
-	# External I2C bus
-	hmc5883 -C -T -X start
-
-	# Internal I2C bus
-	hmc5883 -C -T -I -R 12 start
-
-	mpu6000 -s -R 8 start
-	mpu9250 -s -R 8 start
-	lsm303d -R 10 start
-	l3gd20 -R 14 start
-fi
-
-if ver hwcmp CRAZYFLIE
-then
-	# Onboard I2C
-	mpu9250 -R 12 start
-
-	# I2C bypass of mpu
-	lps25h start
-
-	# Optical flow deck
-	vl53lxx start
-	pmw3901 start
-
-fi
-
-if ver hwcmp AEROFC_V1
-then
-	ms5611 -T 0 start
-	mpu9250 -s -R 14 start
-
-	# Possible external compasses
-	hmc5883 -X start
-
-	ist8310 -C -b 1 -R 4 start
-	aerofc_adc start
-	ll40ls start i2c
-fi
-
-if ver hwcmp OMNIBUS_F4SD
-then
-	mpu6000 -R 12 -s start
-
-	# Possible external compasses
-	hmc5883 -X start
-
-	bmp280 start
 fi
 
 if ver hwcmp PX4FMU_V4PRO
@@ -298,6 +319,9 @@ then
 
 	# Possible external compasses
 	hmc5883 -C -T -X start
+
+	#RM3100
+	rm3100 start
 fi
 
 if ver hwcmp PX4FMU_V5
@@ -319,56 +343,54 @@ then
 	hmc5883 -C -T -X start
 
 	# Possible external compasses
-
 	ist8310 -C -b 1 start
 	ist8310 -C -b 2 start
 
 	# Possible internal compass
 	ist8310 -C -b 5 start
+
+	# Possible pmw3901 optical flow sensor
+	pmw3901 start
 fi
 
-if ver hwcmp AEROCORE2
+if ver hwcmp PX4_SAME70XPLAINED_V1
 then
-	l3gd20 -R 12 start
-	lsm303d start
+	# External I2C bus
+	hmc5883 -C -T -X start
+
+	# Internal SPI bus mpu9250 is rotated 90 deg yaw
+	mpu9250 -R 2 start
 fi
 
-#
-# Optional drivers
-#
+###############################################################################
+#                 End Setup for board specific configurations.                #
+###############################################################################
 
-if [ ${VEHICLE_TYPE} == fw -o ${VEHICLE_TYPE} == vtol ]
+###############################################################################
+#                           Begin Optional drivers                            #
+###############################################################################
+
+if [ ${VEHICLE_TYPE} = fw -o ${VEHICLE_TYPE} = vtol ]
 then
 	if param compare CBRK_AIRSPD_CHK 0
 	then
-		if sdp3x_airspeed start
-		then
-		else
-			sdp3x_airspeed start -b 2
-		fi
+		sdp3x_airspeed start -a
 
 		# Pixhawk 2.1 has a MS5611 on I2C which gets wrongly
 		# detected as MS5525 because the chip manufacturer was so
 		# clever to assign the same I2C address and skip a WHO_AM_I
 		# register.
-		if [ $BOARD_FMUV3 == 21 ]
+		if [ $BOARD_FMUV3 = 21 ]
 		then
 			ms5525_airspeed start -b 2
 		else
-			ms5525_airspeed start
+			ms5525_airspeed start -a
 		fi
 
-		if ms4525_airspeed start
-		then
-		else
-			ms4525_airspeed start -b 2
-		fi
+		ms4525_airspeed start -a
 
-		if ets_airspeed start
-		then
-		else
-			ets_airspeed start -b 1
-		fi
+		ets_airspeed start -a
+
 	fi
 fi
 
@@ -387,72 +409,41 @@ then
 	ll40ls start i2c
 fi
 
-# lightware serial lidar sensor
-if param greater SENS_EN_SF0X 0
-then
-	sf0x start
-fi
-
-# lightware i2c lidar sensor
-if param greater SENS_EN_SF1XX 0
-then
-	sf1xx start
-fi
-
 # mb12xx sonar sensor
 if param greater SENS_EN_MB12XX 0
 then
-	mb12xx start
+	mb12xx start -a
 fi
 
-# teraranger one tof sensor
+# pga460 sonar sensor
+if param greater SENS_EN_PGA460 0
+then
+	pga460 start
+fi
+
+# Lightware i2c lidar sensor
+if param greater SENS_EN_SF1XX 0
+then
+	sf1xx start -a
+fi
+
+# Heater driver for temperature regulated IMUs.
+if param compare SENS_EN_THERMAL 1
+then
+	heater start
+fi
+
+# Teraranger one tof sensor
 if param greater SENS_EN_TRANGER 0
 then
-	teraranger start
+	teraranger start -a
 fi
 
-# Benewake TFMini
-if param greater SENS_EN_TFMINI 0
-then
-	if ver hwcmp PX4FMU_V2 PX4FMU_V4PRO
-	then
-		# start the driver on serial 4/5
-		tfmini start -d /dev/ttyS6
-	else
-		if ver hwcmp AEROFC_V1
-		then
-			# start the driver on telemetry
-			tfmini start -d /dev/ttyS3
-		else
-			if param compare SYS_COMPANION 0
-			then
-				# start on default mavlink companion device
-				tfmini start -d /dev/ttyS2
-			fi
-		fi
-	fi
-fi
+###############################################################################
+#                            End Optional drivers                             #
+###############################################################################
 
-# LeddarOne
-if param greater SENS_EN_LEDDAR1 0
-then
-	if ver hwcmp PX4FMU_V2 PX4FMU_V4PRO
-	then
-		# start the driver on serial 4/5
-		leddar_one -d /dev/ttyS6 start
-	fi
-	if ver hwcmp AEROFC_V1
-	then
-		# start the driver on telemetry
-		leddar_one -d /dev/ttyS3 start
-	else
-		if param compare SYS_COMPANION 0
-		then
-			# start on default mavlink companion device
-			leddar_one -d /dev/ttyS2 start
-		fi
-	fi
-fi
+unset BOARD_FMUV3
 
 # Wait 20 ms for sensors (because we need to wait for the HRT and work queue callbacks to fire)
 usleep 20000

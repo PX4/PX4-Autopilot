@@ -50,7 +50,9 @@
 #include <math.h>
 #include <float.h>
 
-#define PX4_EPOCH_SECS 1234567890ULL
+using namespace time_literals;
+
+static constexpr time_t PX4_EPOCH_SECS = 1234567890ULL;
 
 // Filter gains
 //
@@ -62,10 +64,10 @@
 // tighter estimation of the skew (derivative), but will negatively affect how fast the
 // filter reacts to clock skewing (e.g cause by temperature changes to the oscillator).
 // Larger values will cause large-amplitude oscillations.
-#define ALPHA_GAIN_INITIAL 				0.05
-#define BETA_GAIN_INITIAL 				0.05
-#define ALPHA_GAIN_FINAL 				0.003
-#define BETA_GAIN_FINAL 				0.003
+static constexpr double ALPHA_GAIN_INITIAL = 0.05;
+static constexpr double BETA_GAIN_INITIAL = 0.05;
+static constexpr double ALPHA_GAIN_FINAL = 0.003;
+static constexpr double BETA_GAIN_FINAL = 0.003;
 
 // Filter gain scheduling
 //
@@ -73,7 +75,7 @@
 // exhanged timesync packets is less than CONVERGENCE_WINDOW. A lower value will
 // allow the timesync to converge faster, but with potentially less accurate initial
 // offset and skew estimates.
-#define CONVERGENCE_WINDOW 				500
+static constexpr uint32_t CONVERGENCE_WINDOW = 500;
 
 // Outlier rejection and filter reset
 //
@@ -85,10 +87,10 @@
 // of such events in a row will reset the filter. This usually happens only due to a time jump
 // on the remote system.
 // TODO : automatically determine these using ping statistics?
-#define MAX_RTT_SAMPLE 					10000ULL 	// 10ms
-#define MAX_DEVIATION_SAMPLE 			100000ULL 	// 100ms
-#define MAX_CONSECUTIVE_HIGH_RTT 		5
-#define MAX_CONSECUTIVE_HIGH_DEVIATION 	5
+static constexpr uint64_t MAX_RTT_SAMPLE = 10_ms;
+static constexpr uint64_t MAX_DEVIATION_SAMPLE = 100_ms;
+static constexpr uint32_t MAX_CONSECUTIVE_HIGH_RTT = 5;
+static constexpr uint32_t MAX_CONSECUTIVE_HIGH_DEVIATION = 5;
 
 class Mavlink;
 
@@ -130,21 +132,21 @@ protected:
 	 */
 	void reset_filter();
 
-	orb_advert_t _timesync_status_pub;
+	orb_advert_t _timesync_status_pub{nullptr};
 
-	uint32_t _sequence;
+	uint32_t _sequence{0};
 
 	// Timesync statistics
-	double _time_offset;
-	double _time_skew;
+	double _time_offset{0};
+	double _time_skew{0};
 
 	// Filter parameters
-	double _filter_alpha;
-	double _filter_beta;
+	double _filter_alpha{ALPHA_GAIN_INITIAL};
+	double _filter_beta{BETA_GAIN_INITIAL};
 
 	// Outlier rejection and filter reset
-	uint32_t _high_deviation_count;
-	uint32_t _high_rtt_count;
+	uint32_t _high_deviation_count{0};
+	uint32_t _high_rtt_count{0};
 
-	Mavlink *_mavlink;
+	Mavlink *const _mavlink;
 };

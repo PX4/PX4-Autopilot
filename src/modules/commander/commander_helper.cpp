@@ -279,7 +279,7 @@ int led_init()
 	led_control.timestamp = hrt_absolute_time();
 	led_control_pub = orb_advertise_queue(ORB_ID(led_control), &led_control, LED_UORB_QUEUE_LENGTH);
 
-#ifndef CONFIG_ARCH_BOARD_RPI
+#if !defined(CONFIG_ARCH_BOARD_RPI) && !defined(CONFIG_ARCH_BOARD_BBBLUE)
 	/* first open normal LEDs */
 	DevMgr::getHandle(LED0_DEVICE_PATH, h_leds);
 
@@ -287,6 +287,9 @@ int led_init()
 		PX4_WARN("LED: getHandle fail\n");
 		return PX4_ERROR;
 	}
+
+	/* the green LED is only available on FMUv5 */
+	(void)h_leds.ioctl(LED_ON, LED_GREEN);
 
 	/* the blue LED is only available on AeroCore but not FMUv2 */
 	(void)h_leds.ioctl(LED_ON, LED_BLUE);
@@ -310,7 +313,7 @@ int led_init()
 void led_deinit()
 {
 	orb_unadvertise(led_control_pub);
-#ifndef CONFIG_ARCH_BOARD_RPI
+#if !defined(CONFIG_ARCH_BOARD_RPI) && !defined(CONFIG_ARCH_BOARD_BBBLUE)
 	DevMgr::releaseHandle(h_leds);
 #endif
 }
@@ -340,6 +343,7 @@ void rgbled_set_color_and_mode(uint8_t color, uint8_t mode, uint8_t blinks, uint
 	orb_publish(ORB_ID(led_control), led_control_pub, &led_control);
 }
 
-void rgbled_set_color_and_mode(uint8_t color, uint8_t mode){
+void rgbled_set_color_and_mode(uint8_t color, uint8_t mode)
+{
 	rgbled_set_color_and_mode(color, mode, 0, 0);
 }

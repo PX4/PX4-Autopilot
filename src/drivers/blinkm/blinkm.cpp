@@ -112,7 +112,6 @@
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 
 #include <board_config.h>
 
@@ -136,7 +135,7 @@ class BlinkM : public device::I2C
 {
 public:
 	BlinkM(int bus, int blinkm);
-	virtual ~BlinkM();
+	virtual ~BlinkM() = default;
 
 
 	virtual int		init();
@@ -310,10 +309,6 @@ BlinkM::BlinkM(int bus, int blinkm) :
 	num_of_used_sats(0)
 {
 	memset(&_work, 0, sizeof(_work));
-}
-
-BlinkM::~BlinkM()
-{
 }
 
 int

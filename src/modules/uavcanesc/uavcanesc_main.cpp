@@ -42,10 +42,8 @@
 #include <cstring>
 #include <fcntl.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 #include <parameters/param.h>
 #include <lib/mixer/mixer.h>
-#include <systemlib/board_serial.h>
 #include <version/version.h>
 #include <arch/board/board.h>
 #include <arch/chip/chip.h>
@@ -88,7 +86,7 @@ boot_app_shared_section app_descriptor_t AppDescriptor = {
 UavcanEsc *UavcanEsc::_instance;
 
 UavcanEsc::UavcanEsc(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock) :
-	CDev("uavcanesc", UAVCAN_DEVICE_PATH),
+	CDev(UAVCAN_DEVICE_PATH),
 	active_bitrate(0),
 	_node(can_driver, system_clock),
 	_node_mutex(),
@@ -137,18 +135,6 @@ int UavcanEsc::start(uavcan::NodeID node_id, uint32_t bitrate)
 		return -1;
 	}
 
-	/*
-	 * GPIO config.
-	 * Forced pull up on CAN2 is required for Pixhawk v1 where the second interface lacks a transceiver.
-	 * If no transceiver is connected, the RX pin will float, occasionally causing CAN controller to
-	 * fail during initialization.
-	 */
-	px4_arch_configgpio(GPIO_CAN1_RX);
-	px4_arch_configgpio(GPIO_CAN1_TX);
-#if defined(GPIO_CAN2_RX)
-	px4_arch_configgpio(GPIO_CAN2_RX | GPIO_PULLUP);
-	px4_arch_configgpio(GPIO_CAN2_TX);
-#endif
 	/*
 	 * CAN driver init
 	 */

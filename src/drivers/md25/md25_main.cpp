@@ -51,7 +51,6 @@
 #include <string.h>
 #include <math.h>
 
-#include <systemlib/systemlib.h>
 #include <parameters/param.h>
 
 #include <arch/board/board.h>
