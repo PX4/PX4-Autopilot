@@ -40,6 +40,7 @@
 #include <limits>
 #include <dirent.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <px4_config.h>
 #include <mixer/mixer.h>

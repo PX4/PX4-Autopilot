@@ -40,6 +40,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <string>
@@ -141,6 +142,10 @@ Server::_server_main()
 	// Watch the listening socket for incoming connections.
 	poll_fds.push_back(pollfd {_fd, POLLIN, 0});
 
+	// The list of FILE pointers that we'll need to fclose().
+	// stdouts[i] corresponds to poll_fds[i+1].
+	std::vector<FILE *> stdouts;
+
 	while (true) {
 		int n_ready = poll(poll_fds.data(), poll_fds.size(), -1);
 
@@ -162,22 +167,36 @@ Server::_server_main()
 				return;
 			}
 
-			// Start a new thread to handle the client.
-			pthread_t *thread = &_fd_to_thread[client];
-			ret = pthread_create(thread, nullptr, Server::_handle_client, (void *)(intptr_t)client);
+			FILE *thread_stdout = fdopen(client, "w");
 
-			if (ret != 0) {
-				PX4_ERR("could not start pthread (%i)", ret);
-				_fd_to_thread.erase(client);
+			if (thread_stdout == nullptr) {
+				PX4_ERR("could not open stdout for new thread");
 				close(client);
 
 			} else {
-				// We won't join the thread, so detach to automatically release resources at its end
-				pthread_detach(*thread);
-			}
+				// Set stream to line buffered.
+				setvbuf(thread_stdout, nullptr, _IOLBF, BUFSIZ);
 
-			// Start listening for the client hanging up.
-			poll_fds.push_back(pollfd {client, POLLHUP, 0});
+				// Start a new thread to handle the client.
+				pthread_t *thread = &_fd_to_thread[client];
+				ret = pthread_create(thread, nullptr, Server::_handle_client, thread_stdout);
+
+				if (ret != 0) {
+					PX4_ERR("could not start pthread (%i)", ret);
+					_fd_to_thread.erase(client);
+					fclose(thread_stdout);
+
+				} else {
+					// We won't join the thread, so detach to automatically release resources at its end
+					pthread_detach(*thread);
+
+					// Start listening for the client hanging up.
+					poll_fds.push_back(pollfd {client, POLLHUP, 0});
+
+					// Remember the FILE *, so we can fclose() it later.
+					stdouts.push_back(thread_stdout);
+				}
+			}
 		}
 
 		// Handle any closed connections.
@@ -193,7 +212,8 @@ Server::_server_main()
 					_fd_to_thread.erase(thread);
 				}
 
-				close(poll_fds[i].fd);
+				fclose(stdouts[i - 1]);
+				stdouts.erase(stdouts.begin() + i - 1);
 				poll_fds.erase(poll_fds.begin() + i);
 
 			} else {
@@ -210,7 +230,8 @@ Server::_server_main()
 void
 *Server::_handle_client(void *arg)
 {
-	int fd = (int)(intptr_t)arg;
+	FILE *out = (FILE *)arg;
+	int fd = fileno(out);
 
 	// Read until the end of the incoming stream.
 	std::string cmd;
@@ -247,7 +268,7 @@ void
 
 	if ((thread_data_ptr = (CmdThreadSpecificData *)pthread_getspecific(_instance->_key)) == nullptr) {
 		thread_data_ptr = new CmdThreadSpecificData;
-		thread_data_ptr->fd = fd;
+		thread_data_ptr->thread_stdout = out;
 		thread_data_ptr->is_atty = isatty;
 
 		(void)pthread_setspecific(_instance->_key, (void *)thread_data_ptr);
@@ -259,9 +280,12 @@ void
 	// Report return value.
 	char buf[2] = {0, (char)retval};
 
-	if (write(fd, buf, sizeof buf) < 0) {
+	if (fwrite(buf, sizeof buf, 1, out) != 1) {
 		// Don't care it went wrong, as we're cleaning up anyway.
 	}
+
+	// Flush the FILE*'s buffer before we shut down the connection.
+	fflush(out);
 
 	_cleanup(fd);
 	return nullptr;
