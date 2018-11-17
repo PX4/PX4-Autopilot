@@ -37,6 +37,7 @@
 #include "../uORB.h"
 #include <px4_time.h>
 #include <px4_tasks.h>
+#include <unistd.h>
 
 struct orb_test {
 	int val;

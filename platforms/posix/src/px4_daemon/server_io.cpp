@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2016-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,8 +35,10 @@
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Beat Küng <beat-kueng@gmx.net>
+ * @author Mara Bos <m-ou.se@m-ou.se>
  */
 
+#include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <string>
@@ -56,21 +58,19 @@
 using namespace px4_daemon;
 
 
-int get_stdout_pipe_buffer(char **buffer, unsigned *max_length, bool *is_atty)
+FILE *get_stdout(bool *isatty_)
 {
-	// The thread specific data won't be initialized if the server is not running.
 	Server::CmdThreadSpecificData *thread_data_ptr;
-
-	if (!Server::is_running()) {
-		return -1;
-	}
 
 	// If we are not in a thread that has been started by a client, we don't
 	// have any thread specific data set and we won't have a pipe to write
 	// stdout to.
-	if ((thread_data_ptr = (Server::CmdThreadSpecificData *)pthread_getspecific(
+	if (!Server::is_running() ||
+	    (thread_data_ptr = (Server::CmdThreadSpecificData *)pthread_getspecific(
 				       Server::get_pthread_key())) == nullptr) {
-		return -1;
+		if (isatty_) { *isatty_ = isatty(1); }
+
+		return stdout;
 	}
 
 #ifdef __PX4_POSIX_EAGLE
@@ -79,37 +79,20 @@ int get_stdout_pipe_buffer(char **buffer, unsigned *max_length, bool *is_atty)
 	// even though the pthread_key has been created.
 	// We can catch this using the check below but we have no clue why this happens.
 	if (thread_data_ptr == (void *)0x1) {
-		return -1;
+		if (isatty_) { *isatty_ = isatty(1); }
+
+		return stdout;
 	}
 
 #endif
 
-	*buffer = thread_data_ptr->buffer;
-	*max_length = sizeof(thread_data_ptr->buffer);
-	*is_atty = thread_data_ptr->is_atty;
+	if (thread_data_ptr->thread_stdout == nullptr) {
+		if (isatty_) { *isatty_ = isatty(1); }
 
-	return 0;
-}
-
-int send_stdout_pipe_buffer(unsigned buffer_length)
-{
-	Server::CmdThreadSpecificData *thread_data_ptr;
-
-	if (!Server::is_running()) {
-		return -1;
+		return stdout;
 	}
 
-	if ((thread_data_ptr = (Server::CmdThreadSpecificData *)pthread_getspecific(
-				       Server::get_pthread_key())) == nullptr) {
-		return -1;
-	}
+	if (isatty_) { *isatty_ = thread_data_ptr->is_atty; }
 
-	int bytes_sent = write(thread_data_ptr->fd, thread_data_ptr->buffer, buffer_length);
-
-	if (bytes_sent != (int)buffer_length) {
-		printf("write fail\n");
-		return -1;
-	}
-
-	return 0;
+	return thread_data_ptr->thread_stdout;
 }

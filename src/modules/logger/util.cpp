@@ -37,6 +37,7 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include <uORB/topics/vehicle_gps_position.h>
 

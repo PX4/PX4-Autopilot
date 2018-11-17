@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <px4_log.h>
@@ -95,77 +96,37 @@ void px4_backtrace()
 
 __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...)
 {
+	FILE *out = stdout;
+	bool use_color = true;
 
 #ifdef __PX4_POSIX
-	char *buffer;
-	unsigned max_length;
-	bool is_atty = false;
-
-	if (get_stdout_pipe_buffer(&buffer, &max_length, &is_atty) == 0) {
-		if (level >= _PX4_LOG_LEVEL_INFO) {
-
-			unsigned pos = 0;
-
-			if (is_atty) { pos += snprintf(buffer + pos, max_length - pos, "%s", __px4_log_level_color[level]); }
-
-			if (pos >= max_length) { return; }
-
-			pos += snprintf(buffer + pos, max_length - pos, __px4__log_level_fmt __px4__log_level_arg(level));
-
-			if (pos >= max_length) { return; }
-
-			if (is_atty) { pos += snprintf(buffer + pos, max_length - pos, "%s", PX4_ANSI_COLOR_GRAY); }
-
-			if (pos >= max_length) { return; }
-
-			pos += snprintf(buffer + pos, max_length - pos, __px4__log_modulename_pfmt, moduleName);
-			va_list argptr;
-
-			if (pos >= max_length) { return; }
-
-			if (is_atty) { pos += snprintf(buffer + pos, max_length - pos, "%s", __px4_log_level_color[level]); }
-
-			if (pos >= max_length) { return; }
-
-			va_start(argptr, fmt);
-			pos += vsnprintf(buffer + pos, max_length - pos, fmt, argptr);
-
-			if (pos >= max_length) { return; }
-
-			va_end(argptr);
-			pos += snprintf(buffer + pos, max_length - pos, "\n");
-
-			if (pos >= max_length) { return; }
-
-			if (is_atty) { pos += snprintf(buffer + pos, max_length - pos, "%s", PX4_ANSI_COLOR_RESET); }
-
-			if (pos >= max_length) { return; }
-
-			// +1 for the terminating 0 char.
-			send_stdout_pipe_buffer(pos + 1);
-		}
-
-	} else {
+	out = get_stdout(&use_color);
 #endif
 
-		if (level >= _PX4_LOG_LEVEL_INFO) {
-			PX4_LOG_COLOR_START
-			printf(__px4__log_level_fmt __px4__log_level_arg(level));
-			PX4_LOG_COLOR_MODULE
-			printf(__px4__log_modulename_pfmt, moduleName);
-			PX4_LOG_COLOR_MESSAGE
-			va_list argptr;
-			va_start(argptr, fmt);
-			vprintf(fmt, argptr);
-			va_end(argptr);
-			PX4_LOG_COLOR_END
-			printf("\n");
-		}
+#ifndef PX4_LOG_COLORIZED_OUTPUT
+	use_color = false;
+#endif
 
-#ifdef __PX4_POSIX
+	if (level >= _PX4_LOG_LEVEL_INFO) {
+		if (use_color) { fputs(__px4_log_level_color[level], out); }
+
+		fprintf(out, __px4__log_level_fmt __px4__log_level_arg(level));
+
+		if (use_color) { fputs(PX4_ANSI_COLOR_GRAY, out); }
+
+		fprintf(out, __px4__log_modulename_pfmt, moduleName);
+
+		if (use_color) { fputs(__px4_log_level_color[level], out); }
+
+		va_list argptr;
+		va_start(argptr, fmt);
+		vfprintf(out, fmt, argptr);
+		va_end(argptr);
+
+		if (use_color) { fputs(PX4_ANSI_COLOR_RESET, out); }
+
+		fputc('\n', out);
 	}
-
-#endif
 
 	/* publish an orb log message */
 	if (level >= _PX4_LOG_LEVEL_WARN && orb_log_message_pub) { //only publish important messages
@@ -201,52 +162,25 @@ __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *
 
 __EXPORT void px4_log_raw(int level, const char *fmt, ...)
 {
+	FILE *out = stdout;
+	bool use_color = true;
 
 #ifdef __PX4_POSIX
-	char *buffer;
-	unsigned max_length;
-	bool is_atty = false;
-
-	if (get_stdout_pipe_buffer(&buffer, &max_length, &is_atty) == 0) {
-		if (level >= _PX4_LOG_LEVEL_INFO) {
-
-			unsigned pos = 0;
-
-			va_list argptr;
-
-			if (is_atty) { pos += snprintf(buffer + pos, max_length - pos, "%s", __px4_log_level_color[level]); }
-
-			if (pos >= max_length) { return; }
-
-			va_start(argptr, fmt);
-			pos += vsnprintf(buffer + pos, max_length - pos, fmt, argptr);
-			va_end(argptr);
-
-			if (pos >= max_length) { return; }
-
-			if (is_atty) { pos += snprintf(buffer + pos, max_length - pos, "%s", PX4_ANSI_COLOR_RESET); }
-
-			if (pos >= max_length) { return; }
-
-			// +1 for the terminating 0 char.
-			send_stdout_pipe_buffer(pos + 1);
-		}
-
-	} else {
+	out = get_stdout(&use_color);
 #endif
 
-		if (level >= _PX4_LOG_LEVEL_INFO) {
-			PX4_LOG_COLOR_START
-			PX4_LOG_COLOR_MESSAGE
-			va_list argptr;
-			va_start(argptr, fmt);
-			vprintf(fmt, argptr);
-			va_end(argptr);
-			PX4_LOG_COLOR_END
-		}
+#ifndef PX4_LOG_COLORIZED_OUTPUT
+	use_color = false;
+#endif
 
-#ifdef __PX4_POSIX
+	if (level >= _PX4_LOG_LEVEL_INFO) {
+		if (use_color) { fputs(__px4_log_level_color[level], out); }
+
+		va_list argptr;
+		va_start(argptr, fmt);
+		vfprintf(out, fmt, argptr);
+		va_end(argptr);
+
+		if (use_color) { fputs(PX4_ANSI_COLOR_RESET, out); }
 	}
-
-#endif
 }
