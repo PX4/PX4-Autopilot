@@ -24,6 +24,7 @@ set(config_module_list
 	#systemcmds/bl_update
 	#systemcmds/config
 	#systemcmds/dumpfile
+	systemcmds/dyn
 	systemcmds/esc_calib
 	systemcmds/led_control
 	systemcmds/mixer
