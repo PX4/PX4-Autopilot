@@ -34,6 +34,7 @@ set(config_module_list
 	# System commands
 	#
 	systemcmds/param
+	systemcmds/dyn
 	systemcmds/led_control
 	systemcmds/mixer
 	systemcmds/ver

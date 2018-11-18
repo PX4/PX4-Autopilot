@@ -163,6 +163,7 @@ endfunction()
 #			[ SRCS <list> ]
 #			[ MODULE_CONFIG <list> ]
 #			[ EXTERNAL ]
+#			[ DYNAMIC ]
 #			)
 #
 #	Input:
@@ -178,10 +179,12 @@ endfunction()
 #		INCLUDES		: include directories
 #		DEPENDS			: targets which this module depends on
 #		EXTERNAL		: flag to indicate that this module is out-of-tree
+#		DYNAMIC			: don't compile into the px4 binary, but build a separate dynamically loadable module (posix)
 #		UNITY_BUILD		: merge all source files and build this module as a single compilation unit
 #
 #	Output:
 #		Static library with name matching MODULE.
+#		(Or a shared library when DYNAMIC is specified.)
 #
 #	Example:
 #		px4_add_module(MODULE test
@@ -198,7 +201,7 @@ function(px4_add_module)
 		NAME px4_add_module
 		ONE_VALUE MODULE MAIN STACK STACK_MAIN STACK_MAX PRIORITY
 		MULTI_VALUE COMPILE_FLAGS LINK_FLAGS SRCS INCLUDES DEPENDS MODULE_CONFIG
-		OPTIONS EXTERNAL UNITY_BUILD
+		OPTIONS EXTERNAL DYNAMIC UNITY_BUILD
 		REQUIRED MODULE MAIN
 		ARGN ${ARGN})
 
@@ -226,16 +229,30 @@ function(px4_add_module)
 
 		add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_unity.cpp)
 		target_include_directories(${MODULE} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+	elseif(DYNAMIC AND MAIN AND (${OS} STREQUAL "posix"))
+		add_library(${MODULE} SHARED ${SRCS})
+		target_compile_definitions(${MODULE} PRIVATE ${MAIN}_main=px4_module_main)
+		set_target_properties(${MODULE} PROPERTIES
+			PREFIX ""
+			SUFFIX ".px4mod"
+			)
+		target_link_libraries(${MODULE} PRIVATE px4)
+		if(APPLE)
+			# Postpone resolving symbols until loading time, which is the default on most systems, but not Mac.
+			set_target_properties(${MODULE} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+		endif()
 	else()
 		add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${SRCS})
 	endif()
 
 	# all modules can potentially use parameters and uORB
 	add_dependencies(${MODULE} uorb_headers)
-	target_link_libraries(${MODULE} PRIVATE prebuild_targets parameters_interface platforms__common px4_layer systemlib)
 
-	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES ${MODULE})
-	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
+	if(NOT DYNAMIC)
+		target_link_libraries(${MODULE} PRIVATE prebuild_targets parameters_interface platforms__common px4_layer systemlib)
+		set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES ${MODULE})
+		set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
+	endif()
 
 	px4_add_optimization_flags_for_target(${MODULE})
 
