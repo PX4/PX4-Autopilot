@@ -70,16 +70,11 @@ bool CollisionPrevention::initializeSubscriptions(SubscriptionArray &subscriptio
 void CollisionPrevention::reset_constraints()
 {
 
-	_move_constraints_x_normalized(0) = 0.0f;  //normalized constraint in negative x-direction
-	_move_constraints_x_normalized(1) = 0.0f;  //normalized constraint in positive x-direction
-	_move_constraints_y_normalized(0) = 0.0f;  //normalized constraint in negative y-direction
-	_move_constraints_y_normalized(1) = 0.0f;  //normalized constraint in positive y-direction
+	_move_constraints_x_normalized.zero();  //normalized constraint in x-direction
+	_move_constraints_y_normalized.zero();  //normalized constraint in y-direction
 
-	_move_constraints_x(0) = 0.0f;  //constraint in negative x-direction
-	_move_constraints_x(1) = 0.0f;  //constraint in positive x-direction
-	_move_constraints_y(0) = 0.0f;  //constraint in negative y-direction
-	_move_constraints_y(1) = 0.0f;  //constraint in positive y-direction
-
+	_move_constraints_x.zero();  //constraint in x-direction
+	_move_constraints_y.zero();  //constraint in y-direction
 }
 
 void CollisionPrevention::publish_constraints(const Vector2f &original_setpoint, const Vector2f &adapted_setpoint)
@@ -164,10 +159,8 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 	}
 
 	//scale the velocity reductions with the maximum possible velocity along the respective axis
-	_move_constraints_x(0) *= v_max_x;
-	_move_constraints_x(1) *= v_max_x;
-	_move_constraints_y(0) *= v_max_y;
-	_move_constraints_y(1) *= v_max_y;
+	_move_constraints_x *= v_max_x;
+	_move_constraints_y *= v_max_y;
 
 	//apply the velocity reductions to form velocity limits
 	_move_constraints_x(0) = v_max_x - _move_constraints_x(0);
