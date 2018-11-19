@@ -792,18 +792,20 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 					static float last_vision_y = 0.0f;
 					static float last_vision_z = 0.0f;
 
-					vision_xy_valid = PX4_ISFINITE(visual_odom.pose_covariance[visual_odom.COVARIANCE_MATRIX_X_VARIANCE]) ? sqrtf(fmaxf(
-								  visual_odom.pose_covariance[visual_odom.COVARIANCE_MATRIX_X_VARIANCE],
-								  visual_odom.pose_covariance[visual_odom.COVARIANCE_MATRIX_Y_VARIANCE])) > ep_max_std_dev : true;
-					vision_z_valid = PX4_ISFINITE(visual_odom.pose_covariance[visual_odom.COVARIANCE_MATRIX_X_VARIANCE]) ?
-							 visual_odom.pose_covariance[visual_odom.COVARIANCE_MATRIX_Z_VARIANCE] > ep_max_std_dev :
-							 true;
-					vision_vxy_valid = PX4_ISFINITE(visual_odom.velocity_covariance[visual_odom.COVARIANCE_MATRIX_VX_VARIANCE]) ? sqrtf(
+					vision_xy_valid = PX4_ISFINITE(visual_odom.x)
+							  && (PX4_ISFINITE(visual_odom.pose_covariance[visual_odom.COVARIANCE_MATRIX_X_VARIANCE]) ? sqrtf(fmaxf(
+									  visual_odom.pose_covariance[visual_odom.COVARIANCE_MATRIX_X_VARIANCE],
+									  visual_odom.pose_covariance[visual_odom.COVARIANCE_MATRIX_Y_VARIANCE])) <= ep_max_std_dev : true);
+					vision_z_valid = PX4_ISFINITE(visual_odom.z)
+							 && (PX4_ISFINITE(visual_odom.pose_covariance[visual_odom.COVARIANCE_MATRIX_X_VARIANCE]) ?
+							     visual_odom.pose_covariance[visual_odom.COVARIANCE_MATRIX_Z_VARIANCE] <= ep_max_std_dev : true);
+					vision_vxy_valid = PX4_ISFINITE(visual_odom.vx)
+							   && PX4_ISFINITE(visual_odom.velocity_covariance[visual_odom.COVARIANCE_MATRIX_VX_VARIANCE]) ? sqrtf(
 								   fmaxf(visual_odom.velocity_covariance[visual_odom.COVARIANCE_MATRIX_VX_VARIANCE],
-									 visual_odom.velocity_covariance[visual_odom.COVARIANCE_MATRIX_VY_VARIANCE])) > ev_max_std_dev : true;
-					vision_vz_valid = PX4_ISFINITE(visual_odom.velocity_covariance[visual_odom.COVARIANCE_MATRIX_VX_VARIANCE]) ?
-							  visual_odom.velocity_covariance[visual_odom.COVARIANCE_MATRIX_VZ_VARIANCE] >
-							  ep_max_std_dev : true;
+									 visual_odom.velocity_covariance[visual_odom.COVARIANCE_MATRIX_VY_VARIANCE])) <= ev_max_std_dev : true;
+					vision_vz_valid = PX4_ISFINITE(visual_odom.vz)
+							  && (PX4_ISFINITE(visual_odom.velocity_covariance[visual_odom.COVARIANCE_MATRIX_VX_VARIANCE]) ?
+							      visual_odom.velocity_covariance[visual_odom.COVARIANCE_MATRIX_VZ_VARIANCE] <= ep_max_std_dev : true);
 
 					/* reset position estimate on first vision update */
 					if (vision_xy_valid) {
@@ -917,12 +919,13 @@ int position_estimator_inav_thread_main(int argc, char *argv[])
 			if (updated) {
 				orb_copy(ORB_ID(vehicle_mocap_odometry), mocap_position_sub, &mocap);
 
-				mocap_xy_valid = (PX4_ISFINITE(mocap.pose_covariance[mocap.COVARIANCE_MATRIX_X_VARIANCE]) ? sqrtf(fmaxf(
-							  mocap.pose_covariance[mocap.COVARIANCE_MATRIX_X_VARIANCE],
-							  mocap.pose_covariance[mocap.COVARIANCE_MATRIX_Y_VARIANCE])) > ep_max_std_dev : true) ? false : true;
-				mocap_z_valid = (PX4_ISFINITE(mocap.pose_covariance[mocap.COVARIANCE_MATRIX_X_VARIANCE]) ?
-						 mocap.pose_covariance[mocap.COVARIANCE_MATRIX_Z_VARIANCE] > ep_max_std_dev : true) ? false :
-						true;
+				mocap_xy_valid = PX4_ISFINITE(mocap.x)
+						 && (PX4_ISFINITE(mocap.pose_covariance[mocap.COVARIANCE_MATRIX_X_VARIANCE]) ? sqrtf(fmaxf(
+								 mocap.pose_covariance[mocap.COVARIANCE_MATRIX_X_VARIANCE],
+								 mocap.pose_covariance[mocap.COVARIANCE_MATRIX_Y_VARIANCE])) <= ep_max_std_dev : true);
+				mocap_z_valid = PX4_ISFINITE(mocap.z)
+						&& (PX4_ISFINITE(mocap.pose_covariance[mocap.COVARIANCE_MATRIX_X_VARIANCE]) ?
+						    mocap.pose_covariance[mocap.COVARIANCE_MATRIX_Z_VARIANCE] <= ep_max_std_dev : true);
 
 				if (!params.disable_mocap) {
 					/* reset position estimate on first mocap update */
