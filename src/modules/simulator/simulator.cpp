@@ -50,7 +50,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <drivers/drv_board_led.h>
 
 #include "simulator.h"
 
@@ -147,7 +146,6 @@ int Simulator::start(int argc, char *argv[])
 	_instance = new Simulator();
 
 	if (_instance) {
-		drv_led_start();
 
 		if (argc == 5 && strcmp(argv[3], "-u") == 0) {
 			_instance->set_ip(InternetProtocol::UDP);

@@ -80,6 +80,7 @@ target_link_libraries(nuttx_arch
 
 target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
 target_link_libraries(nuttx_cxx INTERFACE nuttx_c)
+target_link_libraries(nuttx_fs INTERFACE nuttx_sched)
 
 target_link_libraries(px4 PRIVATE
 
@@ -104,7 +105,10 @@ target_link_libraries(px4 PRIVATE
 	)
 
 target_link_libraries(px4 PRIVATE ${module_libraries})
-target_link_libraries(px4 PRIVATE modules__uORB)
+# TODO: find a better way to do this
+if (NOT "${CONFIG}" MATCHES "px4io")
+	target_link_libraries(px4 PRIVATE modules__uORB)
+endif()
 
 if (config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)

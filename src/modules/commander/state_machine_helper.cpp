@@ -45,6 +45,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <systemlib/mavlink_log.h>
 #include <drivers/drv_hrt.h>
+#include <px4_log.h>
 
 #include "state_machine_helper.h"
 #include "commander_helper.h"

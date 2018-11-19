@@ -70,7 +70,6 @@
 #include <arch/board/board.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
 
 #include <systemlib/px4_macros.h>
 #include <systemlib/cpuload.h>
@@ -288,7 +287,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		       NULL);
 
 	/* initial LED state */
-	drv_led_start();
+	led_init();
 	led_off(LED_AMBER);
 
 	if (board_hardfault_init(2, true) != 0) {

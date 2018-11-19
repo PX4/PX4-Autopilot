@@ -35,3 +35,11 @@ px4_add_library(drivers_board
 	init.c
 	timer_config.c
 )
+
+target_link_libraries(drivers_board
+	PRIVATE
+		nuttx_apps # up_cxxinitialize
+		nuttx_arch # sdio
+		nuttx_drivers # sdio
+		parameters # param_init
+	)

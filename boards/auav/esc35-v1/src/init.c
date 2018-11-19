@@ -66,7 +66,6 @@
 #include <arch/board/board.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
 
 #include <systemlib/cpuload.h>
 #include <parameters/param.h>

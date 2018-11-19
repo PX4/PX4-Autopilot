@@ -62,7 +62,7 @@ __END_DECLS
 
 static uint32_t g_ledmap[] = {
 	GPIO_LED_BLUE_L,  // Indexed by LED_BLUE
-	GPIO_LED_RED_R,   // Indexed by LED_RED, LED_AMBER
+	GPIO_LED_RED_R,   // Indexed by LED_RED
 	0,				  // Indexed by LED_SAFETY
 	GPIO_LED_GREEN_R, // Indexed by LED_GREEN
 	GPIO_LED_RED_L,   // Indexed by LED_TX

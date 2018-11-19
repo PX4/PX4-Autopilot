@@ -76,6 +76,7 @@ px4_add_module(
 		resources.cpp
 		uavcannode_params.c
 	DEPENDS
+		cdev
 		drivers_bootloaders
 		git_uavcan
 		version

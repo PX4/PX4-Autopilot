@@ -94,6 +94,7 @@ px4_add_module(
 		sensors/baro.cpp
 
 	DEPENDS
+		cdev
 		mixer
 		version
 

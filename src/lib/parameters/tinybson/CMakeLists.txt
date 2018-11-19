@@ -35,3 +35,7 @@ add_library(tinybson tinybson.cpp)
 target_compile_definitions(tinybson PRIVATE -DMODULE_NAME="tinybson")
 target_compile_options(tinybson PRIVATE -Wno-sign-compare) # TODO: fix this
 add_dependencies(tinybson prebuild_targets)
+
+if("${OS}" MATCHES "nuttx")
+	target_link_libraries(tinybson PRIVATE nuttx_fs)
+endif()

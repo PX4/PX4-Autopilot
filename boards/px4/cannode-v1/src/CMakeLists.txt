@@ -44,6 +44,5 @@ target_link_libraries(drivers_board
 		nuttx_apps # up_cxxinitialize
 		nuttx_arch # sdio
 		nuttx_drivers # sdio
-		drivers__led # drv_led_start
 		parameters # param_init
 	)

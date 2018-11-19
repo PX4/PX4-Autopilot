@@ -63,13 +63,12 @@ __END_DECLS
 __EXPORT void led_init()
 {
 	/* Configure LED1 GPIO for output */
-
 	stm32_configgpio(GPIO_LED1);
 }
 
 __EXPORT void led_on(int led)
 {
-	if (led == 1) {
+	if (led == LED_AMBER) {
 		/* Pull down to switch on */
 		stm32_gpiowrite(GPIO_LED1, false);
 	}
@@ -77,7 +76,7 @@ __EXPORT void led_on(int led)
 
 __EXPORT void led_off(int led)
 {
-	if (led == 1) {
+	if (led == LED_AMBER) {
 		/* Pull up to switch off */
 		stm32_gpiowrite(GPIO_LED1, true);
 	}
@@ -85,7 +84,7 @@ __EXPORT void led_off(int led)
 
 __EXPORT void led_toggle(int led)
 {
-	if (led == 1) {
+	if (led == LED_AMBER) {
 		if (stm32_gpioread(GPIO_LED1)) {
 			stm32_gpiowrite(GPIO_LED1, false);
 

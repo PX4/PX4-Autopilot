@@ -76,6 +76,7 @@ px4_add_module(
 		led.cpp
 		uavcanesc_params.c
 	DEPENDS
+		cdev
 		drivers_bootloaders
 		git_uavcan
 		version

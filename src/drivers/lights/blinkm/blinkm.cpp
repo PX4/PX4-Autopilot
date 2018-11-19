@@ -168,29 +168,29 @@ private:
 		MORSE_CODE
 	};
 
-	enum ledColors {
-		LED_OFF,
-		LED_RED,
-		LED_ORANGE,
-		LED_YELLOW,
-		LED_PURPLE,
-		LED_GREEN,
-		LED_BLUE,
-		LED_CYAN,
-		LED_WHITE,
-		LED_AMBER
+	enum class ledColors {
+		OFF,
+		RED,
+		ORANGE,
+		YELLOW,
+		PURPLE,
+		GREEN,
+		BLUE,
+		CYAN,
+		WHITE,
+		AMBER
 	};
 
 	work_s			_work;
 
-	int led_color_1;
-	int led_color_2;
-	int led_color_3;
-	int led_color_4;
-	int led_color_5;
-	int led_color_6;
-	int led_color_7;
-	int led_color_8;
+	ledColors led_color_1;
+	ledColors led_color_2;
+	ledColors led_color_3;
+	ledColors led_color_4;
+	ledColors led_color_5;
+	ledColors led_color_6;
+	ledColors led_color_7;
+	ledColors led_color_8;
 	int led_blink;
 
 	bool systemstate_run;
@@ -204,7 +204,7 @@ private:
 
 	int num_of_cells;
 	int detected_cells_runcount;
-	int t_led_color[8];
+	ledColors t_led_color[8] {};
 	int t_led_blink;
 	int led_thread_runcount;
 	int led_interval;
@@ -215,7 +215,7 @@ private:
 
 	int num_of_used_sats;
 
-	void 			setLEDColor(int ledcolor);
+	void 			setLEDColor(ledColors ledcolor);
 	static void		led_trampoline(void *arg);
 	void			led();
 
@@ -281,14 +281,14 @@ BlinkM::BlinkM(int bus, int blinkm) :
 	    , 100000
 #endif
 	   ),
-	led_color_1(LED_OFF),
-	led_color_2(LED_OFF),
-	led_color_3(LED_OFF),
-	led_color_4(LED_OFF),
-	led_color_5(LED_OFF),
-	led_color_6(LED_OFF),
-	led_color_7(LED_OFF),
-	led_color_8(LED_OFF),
+	led_color_1(ledColors::OFF),
+	led_color_2(ledColors::OFF),
+	led_color_3(ledColors::OFF),
+	led_color_4(ledColors::OFF),
+	led_color_5(ledColors::OFF),
+	led_color_6(ledColors::OFF),
+	led_color_7(ledColors::OFF),
+	led_color_8(ledColors::OFF),
 	led_blink(LED_NOBLINK),
 	systemstate_run(false),
 	vehicle_status_sub_fd(-1),
@@ -299,7 +299,6 @@ BlinkM::BlinkM(int bus, int blinkm) :
 	safety_sub_fd(-1),
 	num_of_cells(0),
 	detected_cells_runcount(0),
-	t_led_color{0},
 	t_led_blink(0),
 	led_thread_runcount(0),
 	led_interval(1000),
@@ -454,31 +453,31 @@ BlinkM::led()
 	if (led_thread_ready == true) {
 		if (!detected_cells_blinked) {
 			if (num_of_cells > 0) {
-				t_led_color[0] = LED_PURPLE;
+				t_led_color[0] = ledColors::PURPLE;
 			}
 
 			if (num_of_cells > 1) {
-				t_led_color[1] = LED_PURPLE;
+				t_led_color[1] = ledColors::PURPLE;
 			}
 
 			if (num_of_cells > 2) {
-				t_led_color[2] = LED_PURPLE;
+				t_led_color[2] = ledColors::PURPLE;
 			}
 
 			if (num_of_cells > 3) {
-				t_led_color[3] = LED_PURPLE;
+				t_led_color[3] = ledColors::PURPLE;
 			}
 
 			if (num_of_cells > 4) {
-				t_led_color[4] = LED_PURPLE;
+				t_led_color[4] = ledColors::PURPLE;
 			}
 
 			if (num_of_cells > 5) {
-				t_led_color[5] = LED_PURPLE;
+				t_led_color[5] = ledColors::PURPLE;
 			}
 
-			t_led_color[6] = LED_OFF;
-			t_led_color[7] = LED_OFF;
+			t_led_color[6] = ledColors::OFF;
+			t_led_color[7] = ledColors::OFF;
 			t_led_blink = LED_BLINK;
 
 		} else {
@@ -498,7 +497,7 @@ BlinkM::led()
 
 	if (led_thread_runcount & 1) {
 		if (t_led_blink) {
-			setLEDColor(LED_OFF);
+			setLEDColor(ledColors::OFF);
 		}
 
 		led_interval = LED_OFFTIME;
@@ -623,38 +622,38 @@ BlinkM::led()
 			} else {
 				if (battery_status.warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
 					/* LED Pattern for battery critical alerting */
-					led_color_1 = LED_RED;
-					led_color_2 = LED_RED;
-					led_color_3 = LED_RED;
-					led_color_4 = LED_RED;
-					led_color_5 = LED_RED;
-					led_color_6 = LED_RED;
-					led_color_7 = LED_RED;
-					led_color_8 = LED_RED;
+					led_color_1 = ledColors::RED;
+					led_color_2 = ledColors::RED;
+					led_color_3 = ledColors::RED;
+					led_color_4 = ledColors::RED;
+					led_color_5 = ledColors::RED;
+					led_color_6 = ledColors::RED;
+					led_color_7 = ledColors::RED;
+					led_color_8 = ledColors::RED;
 					led_blink = LED_BLINK;
 
 				} else if (vehicle_status_raw.rc_signal_lost) {
 					/* LED Pattern for FAILSAFE */
-					led_color_1 = LED_BLUE;
-					led_color_2 = LED_BLUE;
-					led_color_3 = LED_BLUE;
-					led_color_4 = LED_BLUE;
-					led_color_5 = LED_BLUE;
-					led_color_6 = LED_BLUE;
-					led_color_7 = LED_BLUE;
-					led_color_8 = LED_BLUE;
+					led_color_1 = ledColors::BLUE;
+					led_color_2 = ledColors::BLUE;
+					led_color_3 = ledColors::BLUE;
+					led_color_4 = ledColors::BLUE;
+					led_color_5 = ledColors::BLUE;
+					led_color_6 = ledColors::BLUE;
+					led_color_7 = ledColors::BLUE;
+					led_color_8 = ledColors::BLUE;
 					led_blink = LED_BLINK;
 
 				} else if (battery_status.warning == battery_status_s::BATTERY_WARNING_LOW) {
 					/* LED Pattern for battery low warning */
-					led_color_1 = LED_YELLOW;
-					led_color_2 = LED_YELLOW;
-					led_color_3 = LED_YELLOW;
-					led_color_4 = LED_YELLOW;
-					led_color_5 = LED_YELLOW;
-					led_color_6 = LED_YELLOW;
-					led_color_7 = LED_YELLOW;
-					led_color_8 = LED_YELLOW;
+					led_color_1 = ledColors::YELLOW;
+					led_color_2 = ledColors::YELLOW;
+					led_color_3 = ledColors::YELLOW;
+					led_color_4 = ledColors::YELLOW;
+					led_color_5 = ledColors::YELLOW;
+					led_color_6 = ledColors::YELLOW;
+					led_color_7 = ledColors::YELLOW;
+					led_color_8 = ledColors::YELLOW;
 					led_blink = LED_BLINK;
 
 				} else {
@@ -663,57 +662,57 @@ BlinkM::led()
 					if (actuator_armed.armed == false) {
 						/* system not armed */
 						if (safety.safety_off) {
-							led_color_1 = LED_ORANGE;
-							led_color_2 = LED_ORANGE;
-							led_color_3 = LED_ORANGE;
-							led_color_4 = LED_ORANGE;
-							led_color_5 = LED_ORANGE;
-							led_color_6 = LED_ORANGE;
-							led_color_7 = LED_ORANGE;
-							led_color_8 = LED_ORANGE;
+							led_color_1 = ledColors::ORANGE;
+							led_color_2 = ledColors::ORANGE;
+							led_color_3 = ledColors::ORANGE;
+							led_color_4 = ledColors::ORANGE;
+							led_color_5 = ledColors::ORANGE;
+							led_color_6 = ledColors::ORANGE;
+							led_color_7 = ledColors::ORANGE;
+							led_color_8 = ledColors::ORANGE;
 							led_blink = LED_BLINK;
 
 						} else {
-							led_color_1 = LED_CYAN;
-							led_color_2 = LED_CYAN;
-							led_color_3 = LED_CYAN;
-							led_color_4 = LED_CYAN;
-							led_color_5 = LED_CYAN;
-							led_color_6 = LED_CYAN;
-							led_color_7 = LED_CYAN;
-							led_color_8 = LED_CYAN;
+							led_color_1 = ledColors::CYAN;
+							led_color_2 = ledColors::CYAN;
+							led_color_3 = ledColors::CYAN;
+							led_color_4 = ledColors::CYAN;
+							led_color_5 = ledColors::CYAN;
+							led_color_6 = ledColors::CYAN;
+							led_color_7 = ledColors::CYAN;
+							led_color_8 = ledColors::CYAN;
 							led_blink = LED_NOBLINK;
 						}
 
 					} else {
 						/* armed system - initial led pattern */
-						led_color_1 = LED_RED;
-						led_color_2 = LED_RED;
-						led_color_3 = LED_RED;
-						led_color_4 = LED_OFF;
-						led_color_5 = LED_OFF;
-						led_color_6 = LED_OFF;
-						led_color_7 = LED_OFF;
-						led_color_8 = LED_OFF;
+						led_color_1 = ledColors::RED;
+						led_color_2 = ledColors::RED;
+						led_color_3 = ledColors::RED;
+						led_color_4 = ledColors::OFF;
+						led_color_5 = ledColors::OFF;
+						led_color_6 = ledColors::OFF;
+						led_color_7 = ledColors::OFF;
+						led_color_8 = ledColors::OFF;
 						led_blink = LED_BLINK;
 
 						if (new_data_vehicle_control_mode || no_data_vehicle_control_mode < 3) {
 
 							/* indicate main control state */
 							if (vehicle_control_mode.flag_control_auto_enabled) {
-								led_color_4 = LED_BLUE;
+								led_color_4 = ledColors::BLUE;
 
 							} else if (vehicle_control_mode.flag_control_position_enabled) {
-								led_color_4 = LED_GREEN;
+								led_color_4 = ledColors::GREEN;
 
 							} else if (vehicle_control_mode.flag_control_altitude_enabled) {
-								led_color_4 = LED_YELLOW;
+								led_color_4 = ledColors::YELLOW;
 
 							} else if (vehicle_control_mode.flag_control_manual_enabled) {
-								led_color_4 = LED_WHITE;
+								led_color_4 = ledColors::WHITE;
 
 							} else {
-								led_color_4 = LED_OFF;
+								led_color_4 = ledColors::OFF;
 							}
 
 							led_color_5 = led_color_4;
@@ -722,23 +721,23 @@ BlinkM::led()
 						if (new_data_vehicle_gps_position || no_data_vehicle_gps_position < 3) {
 							/* handling used satus */
 							if (num_of_used_sats >= 7) {
-								led_color_1 = LED_OFF;
-								led_color_2 = LED_OFF;
-								led_color_3 = LED_OFF;
+								led_color_1 = ledColors::OFF;
+								led_color_2 = ledColors::OFF;
+								led_color_3 = ledColors::OFF;
 
 							} else if (num_of_used_sats == 6) {
-								led_color_2 = LED_OFF;
-								led_color_3 = LED_OFF;
+								led_color_2 = ledColors::OFF;
+								led_color_3 = ledColors::OFF;
 
 							} else if (num_of_used_sats == 5) {
-								led_color_3 = LED_OFF;
+								led_color_3 = ledColors::OFF;
 							}
 
 						} else {
 							/* no vehicle_gps_position data */
-							led_color_1 = LED_WHITE;
-							led_color_2 = LED_WHITE;
-							led_color_3 = LED_WHITE;
+							led_color_1 = ledColors::WHITE;
+							led_color_2 = ledColors::WHITE;
+							led_color_3 = ledColors::WHITE;
 
 						}
 
@@ -748,16 +747,15 @@ BlinkM::led()
 
 		} else {
 			/* LED Pattern for general Error - no vehicle_status can retrieved */
-			led_color_1 = LED_WHITE;
-			led_color_2 = LED_WHITE;
-			led_color_3 = LED_WHITE;
-			led_color_4 = LED_WHITE;
-			led_color_5 = LED_WHITE;
-			led_color_6 = LED_WHITE;
-			led_color_7 = LED_WHITE;
-			led_color_8 = LED_WHITE;
+			led_color_1 = ledColors::WHITE;
+			led_color_2 = ledColors::WHITE;
+			led_color_3 = ledColors::WHITE;
+			led_color_4 = ledColors::WHITE;
+			led_color_5 = ledColors::WHITE;
+			led_color_6 = ledColors::WHITE;
+			led_color_7 = ledColors::WHITE;
+			led_color_8 = ledColors::WHITE;
 			led_blink = LED_BLINK;
-
 		}
 
 		/*
@@ -798,46 +796,46 @@ BlinkM::led()
 	}
 }
 
-void BlinkM::setLEDColor(int ledcolor)
+void BlinkM::setLEDColor(ledColors ledcolor)
 {
 	switch (ledcolor) {
-	case LED_OFF:	// off
+	case ledColors::OFF:	// off
 		set_rgb(0, 0, 0);
 		break;
 
-	case LED_RED:	// red
+	case ledColors::RED:	// red
 		set_rgb(255, 0, 0);
 		break;
 
-	case LED_ORANGE:	// orange
+	case ledColors::ORANGE:	// orange
 		set_rgb(255, 150, 0);
 		break;
 
-	case LED_YELLOW:	// yellow
+	case ledColors::YELLOW:	// yellow
 		set_rgb(200, 200, 0);
 		break;
 
-	case LED_PURPLE:	// purple
+	case ledColors::PURPLE:	// purple
 		set_rgb(255, 0, 255);
 		break;
 
-	case LED_GREEN:	// green
+	case ledColors::GREEN:	// green
 		set_rgb(0, 255, 0);
 		break;
 
-	case LED_BLUE:	// blue
+	case ledColors::BLUE:	// blue
 		set_rgb(0, 0, 255);
 		break;
 
-	case LED_CYAN:	// cyan
+	case ledColors::CYAN:	// cyan
 		set_rgb(0, 128, 128);
 		break;
 
-	case LED_WHITE:	// white
+	case ledColors::WHITE:	// white
 		set_rgb(255, 255, 255);
 		break;
 
-	case LED_AMBER:	// amber
+	case ledColors::AMBER:	// amber
 		set_rgb(255, 65, 0);
 		break;
 	}

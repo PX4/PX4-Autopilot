@@ -42,6 +42,7 @@
 
 #include "../state_machine_helper.h"
 #include <unit_test.h>
+#include <px4_log.h>
 
 class StateMachineHelperTest : public UnitTest
 {

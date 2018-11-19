@@ -47,6 +47,7 @@
 
 #include <px4_config.h>
 #include <px4_tasks.h>
+#include <px4_time.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -69,7 +70,6 @@
 #include <arch/board/board.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
 
 #include <systemlib/px4_macros.h>
 #include <systemlib/cpuload.h>
@@ -133,7 +133,7 @@ __EXPORT void board_peripheral_reset(int ms)
 	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
 
 	/* wait for the peripheral rail to reach GND */
-	usleep(ms * 1000);
+	px4_usleep(ms * 1000);
 	warnx("reset done, %d ms", ms);
 
 	/* re-enable power */
@@ -393,7 +393,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif
 
 	/* Ensure the power is on 1 ms before we drive the GPIO pins */
-	usleep(1000);
+	px4_usleep(1000);
 
 	if (OK == determin_hw_version(&hw_version, & hw_revision)) {
 		switch (hw_version) {
@@ -487,7 +487,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		       NULL);
 
 	/* initial LED state */
-	drv_led_start();
+	led_init();
 	led_off(LED_AMBER);
 
 	if (board_hardfault_init(2, true) != 0) {

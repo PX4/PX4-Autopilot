@@ -127,6 +127,11 @@
 #define GPIO_LED3       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_PORTA | GPIO_PIN1 | GPIO_OUTPUT_CLEAR)
 #define GPIO_LED_BLUE  GPIO_LED3
 
+/* LED map index */
+#define LED_RED    0
+#define LED_GREEN  1
+#define LED_BLUE   2
+
 __BEGIN_DECLS
 
 /************************************************************************************

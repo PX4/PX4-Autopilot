@@ -41,6 +41,7 @@
  * Included Files
  ************************************************************************************/
 
+#include <px4_time.h>
 #include <px4_config.h>
 
 #include <stdint.h>
@@ -420,7 +421,7 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 0);
 
 	/* wait for the sensor rail to reach GND */
-	usleep(ms * 1000);
+	px4_usleep(ms * 1000);
 	warnx("reset done, %d ms", ms);
 
 	/* re-enable power */
@@ -429,7 +430,7 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
 
 	/* wait a bit before starting SPI, different times didn't influence results */
-	usleep(100);
+	px4_usleep(100);
 
 	/* reconfigure the SPI pins */
 	stm32_configgpio(GPIO_SPI1_SCK);

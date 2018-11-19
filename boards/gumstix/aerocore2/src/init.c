@@ -66,7 +66,6 @@
 #include <arch/board/board.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
 
 #include <systemlib/cpuload.h>
 #include <perf/perf_counter.h>
@@ -254,8 +253,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		       NULL);
 
 	/* initial LED state */
-	drv_led_start();
-	led_off(LED_AMBER);
+	led_init();
+	led_off(LED_RED);
 
 	/* Configure SPI-based devices */
 
@@ -263,7 +262,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (!spi3) {
 		message("[boot] FAILED to initialize SPI port 3\n");
-		led_on(LED_AMBER);
+		led_on(LED_RED);
 		return -ENODEV;
 	}
 
@@ -282,7 +281,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (!spi4) {
 		message("[boot] FAILED to initialize SPI port 4\n");
-		led_on(LED_AMBER);
+		led_on(LED_RED);
 		return -ENODEV;
 	}
 

@@ -47,7 +47,6 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <drivers/drv_led.h>
-#include <drivers/drv_board_led.h>
 
 
 bool is_multirotor(const struct vehicle_status_s *current_status);
@@ -70,11 +69,8 @@ void tune_failsafe(bool use_buzzer);
 int blink_msg_state();
 
 /* methods to control the onboard LED(s) */
-int led_init(void);
-void led_deinit(void);
-int led_toggle(int led);
-int led_on(int led);
-int led_off(int led);
+void commander_led_init();
+void commander_led_deinit();
 
 /**
  * set the LED color & mode

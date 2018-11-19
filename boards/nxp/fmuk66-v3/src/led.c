@@ -63,10 +63,10 @@ __END_DECLS
 
 
 static uint32_t g_ledmap[] = {
-	0,      // Indexed by LED_BLUE
-	GPIO_LED_1,       // Indexed by LED_RED, LED_AMBER
+	0,                // Indexed by LED_BLUE
+	GPIO_LED_1,       // Indexed by LED_AMBER
 	GPIO_LED_SAFETY,  // Indexed by LED_SAFETY
-	GPIO_LED_2,     // Indexed by LED_GREEN
+	GPIO_LED_2,       // Indexed by LED_GREEN
 };
 
 __EXPORT void led_init(void)
@@ -82,7 +82,6 @@ __EXPORT void led_init(void)
 static void phy_set_led(int led, bool state)
 {
 	/* Drive High to switch on */
-
 	if (g_ledmap[led] != 0) {
 		kinetis_gpiowrite(g_ledmap[led], state);
 	}
@@ -90,7 +89,6 @@ static void phy_set_led(int led, bool state)
 
 static bool phy_get_led(int led)
 {
-
 	if (g_ledmap[led] != 0) {
 		return kinetis_gpioread(g_ledmap[led]);
 	}

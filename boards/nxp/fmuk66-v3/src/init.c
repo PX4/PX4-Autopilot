@@ -70,7 +70,6 @@
 #include <arch/board/board.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
 
 #include <systemlib/px4_macros.h>
 #include <systemlib/cpuload.h>
@@ -328,15 +327,15 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif
 
 	/* initial LED state */
-	drv_led_start();
-	led_off(LED_RED);
+	led_init();
+	led_off(LED_AMBER);
+	led_off(LED_SAFETY);
 	led_off(LED_GREEN);
-	led_off(LED_BLUE);
 
 	int ret = fmuk66_sdhc_initialize();
 
 	if (ret != OK) {
-		board_autoled_on(LED_RED);
+		board_autoled_on(LED_AMBER);
 		return ret;
 	}
 
@@ -352,7 +351,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	ret = fmuk66_spi_bus_initialize();
 
 	if (ret != OK) {
-		board_autoled_on(LED_RED);
+		board_autoled_on(LED_AMBER);
 		return ret;
 	}
 

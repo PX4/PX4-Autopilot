@@ -49,7 +49,6 @@
 
 #include <arch/board/board.h>
 
-#include <drivers/drv_board_led.h>
 #include <drivers/drv_hrt.h>
 #include <semaphore.h>
 

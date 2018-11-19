@@ -63,14 +63,13 @@ __END_DECLS
 __EXPORT void board_autoled_initialize(void)
 {
 	/* Configure LED1 GPIO for output */
-
 	stm32_configgpio(GPIO_LED1);
 }
 
 __EXPORT void board_autoled_on(int led)
 
 {
-	if (led == 1) {
+	if (led == LED_RED) {
 		/* Pull down to switch on */
 		stm32_gpiowrite(GPIO_LED1, false);
 	}
@@ -79,7 +78,7 @@ __EXPORT void board_autoled_on(int led)
 __EXPORT void board_autoled_off(int led)
 
 {
-	if (led == 1) {
+	if (led == LED_RED) {
 		/* Pull up to switch off */
 		stm32_gpiowrite(GPIO_LED1, true);
 	}
@@ -87,7 +86,7 @@ __EXPORT void board_autoled_off(int led)
 
 __EXPORT void led_toggle(int led)
 {
-	if (led == 1) {
+	if (led == LED_RED) {
 		if (stm32_gpioread(GPIO_LED1)) {
 			stm32_gpiowrite(GPIO_LED1, false);
 

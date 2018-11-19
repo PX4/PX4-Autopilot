@@ -97,7 +97,11 @@ __BEGIN_DECLS
 
 #define GPIO_LED1     (GPIO_OUTPUT | GPIO_CFG_DEFAULT | GPIO_OUTPUT_SET | GPIO_PORT_PIOC | GPIO_PIN8)
 #define GPIO_LED_RED GPIO_LED1
-#define BOARD_OVERLOAD_LED     LED_RED
+
+/* LED map index */
+#define LED_AMBER    1
+
+#define BOARD_OVERLOAD_LED     LED_AMBER
 
 /* Buttons
  *

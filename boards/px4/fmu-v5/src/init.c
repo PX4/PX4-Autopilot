@@ -72,7 +72,6 @@
 #include <arch/board/board.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
 
 #include <systemlib/px4_macros.h>
 #include <systemlib/cpuload.h>
@@ -329,7 +328,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 
 	/* initial LED state */
-	drv_led_start();
+	led_init();
 	led_off(LED_RED);
 	led_on(LED_GREEN); // Indicate Power.
 	led_off(LED_BLUE);

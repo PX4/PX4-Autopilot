@@ -61,6 +61,7 @@
 #include "health_flag_helper.h"
 
 /* PX4 headers */
+#include <px4_config.h>
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
@@ -1211,9 +1212,7 @@ Commander::run()
 	pthread_t commander_low_prio_thread;
 
 	/* initialize */
-	if (led_init() != OK) {
-		PX4_WARN("LED init failed");
-	}
+	commander_led_init();
 
 	if (buzzer_init() != OK) {
 		PX4_WARN("Buzzer init failed");
@@ -2572,7 +2571,7 @@ Commander::run()
 	rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_OFF);
 
 	/* close fds */
-	led_deinit();
+	commander_led_deinit();
 	buzzer_deinit();
 	orb_unsubscribe(sp_man_sub);
 	orb_unsubscribe(offboard_control_mode_sub);
@@ -2693,7 +2692,6 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 
 	last_overload = overload;
 
-#if !defined(CONFIG_ARCH_LEDS) && defined(BOARD_HAS_CONTROL_STATUS_LEDS)
 
 	/* this runs at around 20Hz, full cycle is 16 ticks = 10/16Hz */
 	if (actuator_armed->armed) {
@@ -2728,7 +2726,6 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 		}
 	}
 
-#endif
 
 	/* give system warnings on error LED */
 	if (overload) {

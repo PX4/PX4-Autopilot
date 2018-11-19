@@ -46,6 +46,4 @@ px4_add_module(
 		temperature_calibration/baro.cpp
 		temperature_calibration/gyro.cpp
 		temperature_calibration/task.cpp
-	DEPENDS
-		modules__uORB
 	)

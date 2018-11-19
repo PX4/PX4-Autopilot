@@ -37,7 +37,5 @@ px4_add_module(
 	STACK_MAIN 1024
 	SRCS
 		module.cpp
-	DEPENDS
-		modules__uORB
 	)
 

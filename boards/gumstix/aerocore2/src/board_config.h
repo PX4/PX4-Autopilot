@@ -60,7 +60,11 @@
 #define GPIO_LED_BLUE	0
 #define GPIO_LED_SAFETY 0
 
-#define BOARD_HAS_CONTROL_STATUS_LEDS	1
+/* LED map index */
+#define LED_BLUE   0
+#define LED_RED    1
+#define LED_SAFETY 2
+#define LED_GREEN  3
 
 /* Power muxes */
 /* LOW=battery HIGH=USB */

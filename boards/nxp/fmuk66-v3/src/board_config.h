@@ -72,7 +72,12 @@ __BEGIN_DECLS
 #define GPIO_LED_1             (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTD | PIN13)
 #define GPIO_LED_2             (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTD | PIN14)
 
-#define BOARD_HAS_CONTROL_STATUS_LEDS 1 // Use D9 and D10
+/* LED map index */
+#define LED_AMBER    1
+#define LED_SAFETY   2
+#define LED_GREEN    3
+
+// Use D9 and D10
 #define BOARD_OVERLOAD_LED     LED_AMBER
 #define BOARD_ARMED_STATE_LED  LED_GREEN
 

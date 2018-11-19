@@ -69,7 +69,6 @@
 #include <arch/board/board.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
 
 #include <systemlib/px4_macros.h>
 #include <systemlib/cpuload.h>
@@ -308,7 +307,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		       NULL);
 
 	/* initial LED state */
-	drv_led_start();
+	led_init();
 	led_off(LED_BLUE);
 
 	if (board_hardfault_init(2, true) != 0) {
@@ -388,12 +387,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (result != OK) {
 		message("[boot] FAILED to init params in FLASH %d\n", result);
-		led_on(LED_AMBER);
 		return -ENODEV;
 	}
 
 #endif
-
 
 	return OK;
 }

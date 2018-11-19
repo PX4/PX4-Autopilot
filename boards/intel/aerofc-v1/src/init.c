@@ -65,7 +65,6 @@
 #include <arch/board/board.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_board_led.h>
 
 #include <dataman/dataman.h>
 
@@ -218,8 +217,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 
 	/* initial LED state */
-	drv_led_start();
-	led_off(LED_AMBER);
+	led_init();
+	led_off(LED_RED);
 	led_off(LED_BLUE);
 
 	/*
@@ -251,7 +250,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (result != OK) {
 		message("[boot] FAILED to init params in FLASH %d\n", result);
-		led_on(LED_AMBER);
+		led_on(LED_RED);
 		return -ENODEV;
 	}
 

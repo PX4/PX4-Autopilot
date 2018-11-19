@@ -3,7 +3,6 @@
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <ecl/geo_lookup/geo_mag_declination.h>
-#include <px4iofirmware/px4io.h>
 #include <systemlib/err.h>
 #include <lib/mixer/mixer.h>
 
