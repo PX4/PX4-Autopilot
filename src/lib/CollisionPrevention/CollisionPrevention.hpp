@@ -55,13 +55,10 @@ using uORB::Publication;
 #include <systemlib/mavlink_log.h>
 #include <lib/FlightTasks/tasks/FlightTask/SubscriptionArray.hpp>
 
-using namespace matrix;
-using namespace time_literals;
-
 class CollisionPrevention : public ModuleParams
 {
 public:
-	CollisionPrevention();
+	CollisionPrevention(ModuleParams *parent);
 
 	~CollisionPrevention();
 
@@ -71,17 +68,9 @@ public:
 	 */
 	bool initializeSubscriptions(SubscriptionArray &subscription_array);
 
-	bool is_active() {return MPC_COL_PREV.get();}
+	bool is_active() {return MPC_COL_PREV_D.get() > 0 ;}
 
-	void update();
-
-	void update_range_constraints();
-
-	void reset_constraints();
-
-	void publish_constraints(const Vector2f &original_setpoint, const Vector2f &adapted_setpoint);
-
-	void modifySetpoint(Vector2f &original_setpoint, const float max_speed);
+	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed);
 
 private:
 
@@ -94,18 +83,25 @@ private:
 	uORB::Subscription<obstacle_distance_s> *_sub_obstacle_distance{nullptr}; /**< obstacle distances received form a range sensor */
 
 	static constexpr uint64_t RANGE_STREAM_TIMEOUT_US = 500000;
-	static constexpr uint64_t MESSAGE_THROTTLE_US = 5_s;
+	static constexpr uint64_t MESSAGE_THROTTLE_US = 5000000;
 
 	hrt_abstime _last_message;
 
-	Vector2f _move_constraints_x_normalized;
-	Vector2f _move_constraints_y_normalized;
-	Vector2f _move_constraints_x;
-	Vector2f _move_constraints_y;
+	matrix::Vector2f _move_constraints_x_normalized;
+	matrix::Vector2f _move_constraints_y_normalized;
+	matrix::Vector2f _move_constraints_x;
+	matrix::Vector2f _move_constraints_y;
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::MPC_COL_PREV>) MPC_COL_PREV, /**< use range sensor measurements to prevent collision */
 		(ParamFloat<px4::params::MPC_COL_PREV_D>) MPC_COL_PREV_D /**< collision prevention keep minimum distance */
 	)
+
+	void update();
+
+	void update_range_constraints();
+
+	void reset_constraints();
+
+	void publish_constraints(const matrix::Vector2f &original_setpoint, const matrix::Vector2f &adapted_setpoint);
 
 };

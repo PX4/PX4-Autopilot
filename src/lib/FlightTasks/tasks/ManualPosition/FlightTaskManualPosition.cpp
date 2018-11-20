@@ -41,6 +41,11 @@
 
 using namespace matrix;
 
+FlightTaskManualPosition::FlightTaskManualPosition() : _collision_prevention(this)
+{
+
+}
+
 bool FlightTaskManualPosition::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
 	if (!FlightTaskManualAltitude::initializeSubscriptions(subscription_array)) {
