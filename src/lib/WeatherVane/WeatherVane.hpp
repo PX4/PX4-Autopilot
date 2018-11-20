@@ -45,6 +45,11 @@
 #include <px4_module_params.h>
 #include <matrix/matrix/math.hpp>
 
+#define MASK_MAN_EN 		(1<<0)	// weathervane enabled for manual position control
+#define MASK_AUTO_TK_EN 	(1<<1)	// weathervane enabled for takeoff in auto mode
+#define MASK_AUTO_LND_EN 	(1<<2)	// weathervane enabled for landing in auto mode
+#define MASK_AUTO_LTR_EN 	(1<<3)	// weathervane enabled for loiter in auto mode
+
 class WeatherVane : public ModuleParams
 {
 public:
@@ -52,13 +57,9 @@ public:
 
 	~WeatherVane() = default;
 
-	void activate() {_is_active = true;}
+	bool should_run_in_manual();
 
-	void deactivate() {_is_active = false;}
-
-	bool is_active() {return _is_active;}
-
-	bool weathervane_enabled() { return _wv_enabled.get(); }
+	bool should_run_in_mission(uint8_t type);
 
 	void update(const matrix::Quatf &q_sp_prev, float yaw);
 
@@ -70,10 +71,8 @@ private:
 	matrix::Dcmf _R_sp_prev;	// previous attitude setpoint rotation matrix
 	float _yaw = 0.0f;			// current yaw angle
 
-	bool _is_active = true;
-
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::WV_EN>) _wv_enabled,
+		(ParamInt<px4::params::WV_CONFIG>) _wv_config,
 		(ParamFloat<px4::params::WV_ROLL_MIN>) _wv_min_roll,
 		(ParamFloat<px4::params::WV_GAIN>) _wv_gain,
 		(ParamFloat<px4::params::WV_YRATE_MAX>) _wv_max_yaw_rate

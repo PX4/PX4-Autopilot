@@ -44,8 +44,15 @@
  *
  * @boolean
  * @group Multicopter Position Control
+ * @min 0
+ * @max 15
+ * @bit 0 Manual position control.
+ * @bit 1 Mission general.
+ * @bit 1 Mission takeoff.
+ * @bit 2 Mission landing.
+ * @bit 3 Mission loiter.
  */
-PARAM_DEFINE_INT32(WV_EN, 0);
+PARAM_DEFINE_INT32(WV_CONFIG, 15);
 
 /**
  * Weather-vane roll angle to yawrate.
