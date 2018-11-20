@@ -38,13 +38,6 @@ int main()
         TEST(fabs(array_A[i] - array_row[i]) < eps);
     }
 
-    // Matrix copyTo with a pointer
-    A.copyToRaw(static_cast <float *> (array_A));
-    float array_row_p[6] = {1, 2, 3, 4, 5, 6};
-    for (size_t i = 0; i < 6; i++) {
-        TEST(fabs(array_A[i] - array_row_p[i]) < eps);
-    }
-
     // Matrix copyToColumnMajor
     A.copyToColumnMajor(array_A);
     float array_column[6] = {1, 4, 2, 5, 3, 6};

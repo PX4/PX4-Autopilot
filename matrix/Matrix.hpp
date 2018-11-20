@@ -87,11 +87,6 @@ public:
         memcpy(dst, _data, sizeof(dst));
     }
 
-    void copyToRaw(Type *dst) const
-    {
-        memcpy(dst, _data, sizeof(_data));
-    }
-
     void copyToColumnMajor(Type (&dst)[M*N]) const
     {
         const Matrix<Type, M, N> &self = *this;
