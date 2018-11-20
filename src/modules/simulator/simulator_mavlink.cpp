@@ -670,7 +670,8 @@ void Simulator::pollForMAVLinkMessages(bool publish, InternetProtocol ip, int po
 
 		while (true) {
 			// Once we receive something, we're most probably good and can carry on.
-			int len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
+			int len = recvfrom(_fd, _buf, sizeof(_buf), 0,
+					   (struct sockaddr *)&_srcaddr, (socklen_t *)&_addrlen);
 
 			if (len > 0) {
 				break;
@@ -786,7 +787,8 @@ void Simulator::pollForMAVLinkMessages(bool publish, InternetProtocol ip, int po
 
 		if (fds[0].revents & POLLIN) {
 
-			int len = recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, &_addrlen);
+			int len = recvfrom(_fd, _buf, sizeof(_buf), 0,
+					   (struct sockaddr *)&_srcaddr, (socklen_t *)&_addrlen);
 
 			if (len > 0) {
 				mavlink_message_t msg;
