@@ -6,7 +6,7 @@
 #include <pthread.h>
 
 #if defined(__PX4_APPLE_LEGACY)
-#define clockid_t unsigned
+#define clockid_t int
 #endif
 
 #if defined(__PX4_POSIX_SITL) || defined(__PX4_QURT)
