@@ -93,9 +93,9 @@ int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *loc
 int LockstepScheduler::usleep_until(uint64_t time_us)
 {
     pthread_mutex_t lock;
-    pthread_mutex_init(&lock, NULL);
+    pthread_mutex_init(&lock, nullptr);
     pthread_cond_t cond;
-    pthread_cond_init(&cond, NULL);
+    pthread_cond_init(&cond, nullptr);
 
     pthread_mutex_lock(&lock);
 
