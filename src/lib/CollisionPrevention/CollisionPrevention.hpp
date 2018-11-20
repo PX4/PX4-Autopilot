@@ -49,8 +49,6 @@
 #include <mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/mavlink_log.h>
-#include <uORB/Publication.hpp>
-using uORB::Publication;
 #include <uORB/uORB.h>
 #include <systemlib/mavlink_log.h>
 #include <lib/FlightTasks/tasks/FlightTask/SubscriptionArray.hpp>
@@ -68,7 +66,7 @@ public:
 	 */
 	bool initializeSubscriptions(SubscriptionArray &subscription_array);
 
-	bool is_active() {return MPC_COL_PREV_D.get() > 0 ;}
+	bool is_active() { return MPC_COL_PREV_D.get() > 0; }
 
 	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed);
 
