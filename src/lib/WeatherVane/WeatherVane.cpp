@@ -39,6 +39,7 @@
 
 #include "WeatherVane.hpp"
 #include <mathlib/mathlib.h>
+#include <uORB/topics/position_setpoint.h>
 
 
 WeatherVane::WeatherVane() :
@@ -46,6 +47,45 @@ WeatherVane::WeatherVane() :
 {
 	_R_sp_prev = matrix::Dcmf();
 }
+
+bool WeatherVane::should_run_in_manual()
+{
+	return (bool)(_wv_config.get() & MASK_MAN_EN);
+}
+
+bool WeatherVane::should_run_in_mission(uint8_t position_setpoint_type)
+{
+	bool active = true;
+
+	switch (position_setpoint_type) {
+	case position_setpoint_s::SETPOINT_TYPE_TAKEOFF:
+		if ((_wv_config.get() & MASK_AUTO_TK_EN) == 0) {
+			active = false;
+		}
+
+		break;
+
+	case position_setpoint_s::SETPOINT_TYPE_LAND:
+		if ((_wv_config.get() & MASK_AUTO_LND_EN) == 0) {
+			active = false;
+		}
+
+		break;
+
+	case position_setpoint_s::SETPOINT_TYPE_LOITER:
+		if ((_wv_config.get() & MASK_AUTO_LTR_EN) == 0) {
+			active = false;
+		}
+
+		break;
+
+	default:
+		break;
+	}
+
+	return active;
+}
+
 
 void WeatherVane::update(const matrix::Quatf &q_sp_prev, float yaw)
 {

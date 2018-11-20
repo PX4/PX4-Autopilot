@@ -198,7 +198,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 	}
 
 	// set heading
-	if (_ext_yaw_handler != nullptr && _ext_yaw_handler->is_active()) {
+	if (_ext_yaw_handler != nullptr && _ext_yaw_handler->should_run_in_mission(_sub_triplet_setpoint->get().current.type)) {
 		_yaw_setpoint = _yaw;
 		_yawspeed_setpoint = _ext_yaw_handler->get_weathervane_yawrate();
 

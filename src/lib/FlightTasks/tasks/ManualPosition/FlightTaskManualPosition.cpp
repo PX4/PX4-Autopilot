@@ -173,7 +173,7 @@ void FlightTaskManualPosition::_updateSetpoints()
 	FlightTaskManualAltitude::_updateSetpoints(); // needed to get yaw and setpoints in z-direction
 
 	// check if an external yaw handler is active and if yes, let it update the yaw setpoints
-	if (_weathervane_yaw_handler != nullptr && _weathervane_yaw_handler->is_active()) {
+	if (_weathervane_yaw_handler != nullptr && _weathervane_yaw_handler->should_run_in_manual()) {
 		_yaw_setpoint = NAN;
 		_yawspeed_setpoint += _weathervane_yaw_handler->get_weathervane_yawrate();
 	}
