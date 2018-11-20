@@ -89,10 +89,10 @@ then
 	param set SER_TEL2_BAUD 921600
 
 	# mavlink stream configuration
-	param set MAV_0_CONFIG 101 # TEL1 ttyS1
+	param set MAV_0_CONFIG 0 # TEL1 ttyS1 -- disabled. TX1 FTDI UART has issues.
 	param set MAV_0_RATE 800000
 
-	param set MAV_1_CONFIG 102 # TEL2 ttyS2
+	param set MAV_1_CONFIG 102 # TEL2 ttyS2 -- Primary MAVLINK stream to companion computer.
 	param set MAV_1_RATE 800000
 
 	# mc_att_control
