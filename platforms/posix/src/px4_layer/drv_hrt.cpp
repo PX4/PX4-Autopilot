@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012 - 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file drv_hrt.c
+ * @file drv_hrt.cpp
  *
  * High-resolution timer with callouts and timekeeping.
  */
@@ -43,49 +43,53 @@
 #include <px4_workqueue.h>
 #include <px4_tasks.h>
 #include <drivers/drv_hrt.h>
-#include <lockstep_scheduler/lockstep_scheduler.h>
 #include <semaphore.h>
 #include <time.h>
 #include <string.h>
 #include <errno.h>
 #include "hrt_work.h"
 
-
-static struct sq_queue_s	callout_queue;
-
-
-static void		hrt_call_reschedule(void);
+#if defined(__PX4_POSIX_SITL)
+#include <lockstep_scheduler/lockstep_scheduler.h>
+#endif
 
 // Intervals in usec
-#define HRT_INTERVAL_MIN	50
-#define HRT_INTERVAL_MAX	50000000
+static constexpr unsigned HRT_INTERVAL_MIN = 50;
+static constexpr unsigned HRT_INTERVAL_MAX = 50000000;
 
+static struct sq_queue_s	callout_queue;
 static px4_sem_t 	_hrt_lock;
 static struct work_s	_hrt_work;
+
 #ifndef __PX4_QURT
 static hrt_abstime px4_timestart_monotonic = 0;
 #else
 static int32_t dsp_offset = 0;
 #endif
+
 static hrt_abstime _start_delay_time = 0;
 static hrt_abstime _delay_interval = 0;
 static hrt_abstime max_time = 0;
-pthread_mutex_t _hrt_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t _hrt_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+#if defined(__PX4_POSIX_SITL)
 static LockstepScheduler lockstep_scheduler;
+#endif
 
-static void
-hrt_call_invoke(void);
 
-static hrt_abstime
-_hrt_absolute_time_internal(void);
-
+hrt_abstime hrt_absolute_time_offset(void);
+static void hrt_call_reschedule(void);
+static void hrt_call_invoke(void);
+static hrt_abstime _hrt_absolute_time_internal(void);
 __EXPORT hrt_abstime hrt_reset(void);
-
 
 hrt_abstime hrt_absolute_time_offset(void)
 {
+#ifndef __PX4_QURT
 	return px4_timestart_monotonic;
+#else
+	return 0;
+#endif
 }
 
 static void hrt_lock(void)
@@ -590,18 +594,9 @@ void abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
 	ts->tv_nsec = abstime * 1000;
 }
 
+#if defined(__PX4_POSIX_SITL)
 int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
-#if defined(__PX4_QURT)
-	// Don't use the timestart on the DSP on Snapdragon because we manually
-	// set the px4_timestart using the hrt_set_absolute_time_offset().
-	return clock_gettime(clk_id, &tp);
-
-#elif defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR)
-	// Don't do any offseting on the Linux side on the Snapdragon.
-	return clock_gettime(clk_id, &tp);
-#else
-
 	if (clk_id == CLOCK_MONOTONIC) {
 
 		const uint64_t abstime = lockstep_scheduler.get_absolute_time();
@@ -611,8 +606,6 @@ int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 	} else {
 		return system_clock_gettime(clk_id, tp);
 	}
-
-#endif
 }
 
 int px4_clock_settime(clockid_t clk_id, const struct timespec *ts)
@@ -660,3 +653,4 @@ int px4_pthread_cond_timedwait(pthread_cond_t *cond,
 	const uint64_t scheduled = time_us + px4_timestart_monotonic;
 	return lockstep_scheduler.cond_timedwait(cond, mutex, scheduled);
 }
+#endif

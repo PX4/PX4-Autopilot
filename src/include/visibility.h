@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -64,10 +64,12 @@
  * still needs to be used, thus we remap system_exit to exit.
  */
 #define system_exit exit
-#ifdef __PX4_POSIX
-#include <stdlib.h>
 
+#if defined(__PX4_POSIX_SITL)
+
+#include <stdlib.h>
 #include <unistd.h>
+
 #define system_usleep usleep
 #pragma GCC poison usleep
 #define system_sleep sleep
@@ -81,18 +83,13 @@
 // We can't poison pthread_cond_timedwait because it seems to be used in the
 // <string> include.
 
-
 #ifdef __cplusplus
 #include <cstdlib>
 #endif
 #pragma GCC poison exit
-#endif
 
-#ifdef __PX4_NUTTX
-/* On NuttX we call clearenv() so we cannot use getenv() and others (see px4_task_spawn_cmd() in px4_nuttx_tasks.c).
- * We need to include the headers declaring getenv() before the pragma, otherwise it will trigger a poison error.
- */
 #include <stdlib.h>
+
 #ifdef __cplusplus
 #include <cstdlib>
 #endif
@@ -102,11 +99,25 @@
 #include <unistd.h>
 #include <time.h>
 
+#else // defined(__PX4_POSIX_SITL)
+
 #define system_usleep usleep
 #define system_sleep sleep
-
 #define system_clock_gettime clock_gettime
 #define system_clock_settime clock_settime
+#define system_pthread_cond_timedwait pthread_cond_timedwait
 
+#endif
+
+
+#if defined(__PX4_NUTTX)
+/* On NuttX we call clearenv() so we cannot use getenv() and others (see
+ * px4_task_spawn_cmd() in px4_nuttx_tasks.c).
+ * We need to include the headers declaring getenv() before the pragma,
+ * otherwise it will trigger a poison error.  */
+#include <stdlib.h>
+#ifdef __cplusplus
+#include <cstdlib>
+#endif
 #pragma GCC poison getenv setenv putenv
-#endif /* __PX4_NUTTX */
+#endif // defined(__PX4_NUTTX)
