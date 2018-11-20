@@ -40,6 +40,7 @@
 #pragma once
 
 #include <px4_defines.h>
+#include <px4_time.h>
 
 #define GPS_INFO(...) PX4_INFO(__VA_ARGS__)
 #define GPS_WARN(...) PX4_WARN(__VA_ARGS__)

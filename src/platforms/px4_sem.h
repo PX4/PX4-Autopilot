@@ -50,7 +50,7 @@
 #define sem_setprotocol(s,p)
 #endif
 
-#if defined(__PX4_DARWIN) || defined(__PX4_CYGWIN) || defined(__PX4_POSIX)
+#if (defined(__PX4_DARWIN) || defined(__PX4_CYGWIN) || defined(__PX4_POSIX)) && !defined(__PX4_QURT)
 
 __BEGIN_DECLS
 
@@ -71,24 +71,36 @@ __EXPORT int		px4_sem_destroy(px4_sem_t *s);
 
 __END_DECLS
 
-#else
+//#elif defined(__PX4_QURT)
 
-__BEGIN_DECLS
+//typedef sem_t px4_sem_t;
+
+//#define px4_sem_init		sem_init
+//#define px4_sem_setprotocol sem_setprotocol
+//#define px4_sem_wait		sem_wait
+//#define px4_sem_trywait	sem_trywait
+//#define px4_sem_post		sem_post
+//#define px4_sem_getvalue	sem_getvalue
+//#define px4_sem_destroy		sem_destroy
+
+#else
 
 typedef sem_t px4_sem_t;
 
+__BEGIN_DECLS
+
 #define px4_sem_init		sem_init
-#define px4_sem_setprotocol sem_setprotocol
+#define px4_sem_setprotocol	sem_setprotocol
 #define px4_sem_wait		sem_wait
-#define px4_sem_trywait	sem_trywait
+#define px4_sem_trywait		sem_trywait
 #define px4_sem_post		sem_post
 #define px4_sem_getvalue	sem_getvalue
 #define px4_sem_destroy		sem_destroy
 
-#ifdef __PX4_QURT
+#if defined(__PX4_QURT)
 __EXPORT int		px4_sem_timedwait(px4_sem_t *sem, const struct timespec *abstime);
 #else
-#define px4_sem_timedwait	 sem_timedwait
+#define px4_sem_timedwait	sem_timedwait
 #endif
 
 __END_DECLS
