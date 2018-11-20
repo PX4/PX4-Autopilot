@@ -38,10 +38,12 @@
  */
 
 #include <CollisionPrevention/CollisionPrevention.hpp>
+using namespace matrix;
+using namespace time_literals;
 
 
-CollisionPrevention::CollisionPrevention() :
-	ModuleParams(nullptr)
+CollisionPrevention::CollisionPrevention(ModuleParams *parent) :
+	ModuleParams(parent)
 {
 
 }
@@ -105,17 +107,20 @@ void CollisionPrevention::publish_constraints(const Vector2f &original_setpoint,
 
 void CollisionPrevention::update_range_constraints()
 {
-	obstacle_distance_s obstacle_distance = _sub_obstacle_distance->get();
+	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance->get();
 
 	if (hrt_elapsed_time(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US) {
 		float max_detection_distance = obstacle_distance.max_distance / 100.0f; //convert to meters
 
-		for (int i = 0; i < 72; i++) {
+		int distances_array_size = sizeof(obstacle_distance.distances) / sizeof(obstacle_distance.distances[0]);
+
+		for (int i = 0; i < distances_array_size; i++) {
 			//determine if distance bin is valid and contains a valid distance measurement
 			if (obstacle_distance.distances[i] < obstacle_distance.max_distance &&
 			    obstacle_distance.distances[i] > obstacle_distance.min_distance && i * obstacle_distance.increment < 360) {
 				float distance = obstacle_distance.distances[i] / 100.0f; //convert to meters
-				float angle = i * obstacle_distance.increment * (M_PI / 180.0);
+				float angle = math::radians((float)i * obstacle_distance.increment);
+
 				//calculate normalized velocity reductions
 				float vel_lim_x = (max_detection_distance - distance) / (max_detection_distance - MPC_COL_PREV_D.get()) * cos(angle);
 				float vel_lim_y = (max_detection_distance - distance) / (max_detection_distance - MPC_COL_PREV_D.get()) * sin(angle);
@@ -146,7 +151,7 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 	_move_constraints_y = _move_constraints_y_normalized;
 
 	// calculate the maximum velocity along x,y axis when moving in the demanded direction
-	float vel_mag = sqrt(original_setpoint(0) * original_setpoint(0) + original_setpoint(1) * original_setpoint(1));
+	float vel_mag = original_setpoint.norm();
 	float v_max_x, v_max_y;
 
 	if (vel_mag > 0.0f) {
@@ -169,7 +174,7 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 	_move_constraints_y(1) = v_max_y - _move_constraints_y(1);
 
 	//constrain the velocity setpoint to respect the velocity limits
-	Vector2f new_setpoint = original_setpoint;
+	Vector2f new_setpoint;
 	new_setpoint(0) = math::constrain(original_setpoint(0), -_move_constraints_x(0), _move_constraints_x(1));
 	new_setpoint(1) = math::constrain(original_setpoint(1), -_move_constraints_y(0), _move_constraints_y(1));
 

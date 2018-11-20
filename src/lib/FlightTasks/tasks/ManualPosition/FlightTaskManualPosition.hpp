@@ -46,7 +46,7 @@
 class FlightTaskManualPosition : public FlightTaskManualAltitude
 {
 public:
-	FlightTaskManualPosition() = default;
+	FlightTaskManualPosition();
 
 	virtual ~FlightTaskManualPosition() = default;
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
