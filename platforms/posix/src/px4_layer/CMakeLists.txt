@@ -59,6 +59,7 @@ target_link_libraries(px4_layer PRIVATE px4_daemon)
 if(LOCKSTEP_SCHEDULER_NEEDED)
 	target_link_libraries(px4_layer PRIVATE lockstep_scheduler)
 	include_directories(${PX4_SOURCE_DIR}/src/platforms/posix/lockstep_scheduler/include)
+	px4_add_git_submodule(TARGET git_lockstep_scheduler PATH "${PX4_SOURCE_DIR}/src/platforms/posix/lockstep_scheduler")
 endif()
 
 
