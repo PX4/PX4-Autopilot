@@ -40,21 +40,13 @@
  */
 
 /**
- * Flag to enable the use of a MAVLink range sensor for collision avoidance.
- *
- * @boolean
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_INT32(MPC_COL_PREV, 0);
-
-/**
  * Minimum distance the vehicle should keep to all obstacles
  *
- * Only used in Position mode when collision avoidance is active (see MPC_COL_AVOID).
+ * Only used in Position mode. Collision avoidace is disable by setting this parameter to a negative value
  *
- * @min 0
+ * @min -1
  * @max 15
  * @unit meters
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_COL_PREV_D, 4.0f);
+PARAM_DEFINE_FLOAT(MPC_COL_PREV_D, -1.0f);
