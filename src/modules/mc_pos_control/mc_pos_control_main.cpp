@@ -604,14 +604,14 @@ MulticopterPositionControl::run()
 		// poll_return == 0: go through the loop anyway to copy manual input at 50 Hz
 		// this is undesirable but not much we can do
 		if (poll_return < 0) {
-			PX4_ERR("poll error: %d, %s", poll_return, strerror(errno));
+			PX4_ERR("poll error %d %d", poll_return, errno);
 			continue;
 		}
 
 		poll_subscriptions();
 		parameters_update(false);
 
-		// measure _dt the time difference since the last loop iteration in seconds
+		// set _dt in controllib Block - the time difference since the last loop iteration in seconds
 		const hrt_abstime time_stamp_current = hrt_absolute_time();
 		setDt((time_stamp_current - time_stamp_last_loop) / 1e6f);
 		time_stamp_last_loop = time_stamp_current;
