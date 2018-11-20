@@ -42,7 +42,7 @@
 /**
  * Minimum distance the vehicle should keep to all obstacles
  *
- * Only used in Position mode. Collision avoidace is disable by setting this parameter to a negative value
+ * Only used in Position mode. Collision avoidace is disabled by setting this parameter to a negative value
  *
  * @min -1
  * @max 15
