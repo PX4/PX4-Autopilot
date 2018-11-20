@@ -46,7 +46,7 @@
 #include <pthread.h>
 #include <errno.h>
 
-#if defined(__PX4_DARWIN) || defined(__PX4_CYGWIN) || defined(__PX4_POSIX)
+#if (defined(__PX4_DARWIN) || defined(__PX4_CYGWIN) || defined(__PX4_POSIX)) && !defined(__PX4_QURT)
 
 #include <px4_posix.h>
 

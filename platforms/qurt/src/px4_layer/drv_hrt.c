@@ -39,7 +39,6 @@
 
 #include <px4_defines.h>
 #include <px4_workqueue.h>
-#include <perf_counter.h>
 #include <drivers/drv_hrt.h>
 #include <semaphore.h>
 #include <time.h>
