@@ -55,8 +55,8 @@ int px4_sem_init(px4_sem_t *s, int pshared, unsigned value)
 	// We do not used the process shared arg
 	(void)pshared;
 	s->value = value;
-	pthread_cond_init(&(s->wait), NULL);
-	pthread_mutex_init(&(s->lock), NULL);
+	pthread_cond_init(&(s->wait), nullptr);
+	pthread_mutex_init(&(s->lock), nullptr);
 
 	return 0;
 }
@@ -134,8 +134,8 @@ int px4_sem_timedwait(px4_sem_t *s, const struct timespec *abstime)
 	int err = ret;
 
 	if (err != 0 && errno != ETIMEDOUT) {
-		setbuf(stdout, NULL);
-		setbuf(stderr, NULL);
+		setbuf(stdout, nullptr);
+		setbuf(stderr, nullptr);
 		const unsigned NAMELEN = 32;
 		char thread_name[NAMELEN] = {};
 		(void)pthread_getname_np(pthread_self(), thread_name, NAMELEN);
