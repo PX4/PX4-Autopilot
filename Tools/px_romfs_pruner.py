@@ -49,6 +49,7 @@ from __future__ import print_function
 import argparse
 import re
 import os
+import io
 
 
 def main():
@@ -88,7 +89,7 @@ def main():
             # read file line by line
             pruned_content = ""
             board_excluded = False
-            with open(file_path, "rU") as f:
+            with io.open(file_path, "r", newline=None) as f:
                 for line in f:
                     if re.search(r'\b{0} exclude\b'.format(args.board),line):
                         board_excluded = True;
