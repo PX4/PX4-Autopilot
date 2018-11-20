@@ -59,15 +59,8 @@ void Companion_Process_Status::poll_subscriptions(){
 
 void Companion_Process_Status::determine_required_processes(int32_t use_obs_avoid){
 
-	//reset required processes
-	for(int i = 0; i<3; i++){
-		_required_processes[i] = 0;
-	}
-
 	//determine required processes from parameters
-	if(use_obs_avoid){
-		_required_processes[1] = 1;
-	}
+	_avoidance_required = use_obs_avoid;
 
 }
 
@@ -75,35 +68,38 @@ void Companion_Process_Status::determine_action(){
 
 	bool reported_before = false;
 	companion_process_status_s last_status;
-	int process_number = 11;
+	_process_type = UNDEFINED;
 
 	if(_new_status_received){
-		const char* message_type = _companion_process_types[_companion_process_status.type];
+		//data for obstacle avoidance is at array location 0, data for VIO at location 1
+		if(_companion_process_status.component == 196){
+			_process_type = AVOIDANCE;
+		}else if(_companion_process_status.component == 197){
+			_process_type = VIO;
+		}
+		//TODO FIX message strings
+		const char* message_type = _companion_process_types[_process_type];
 		const char* message_state = _companion_process_states[_companion_process_status.state];
 
 		//find last status of same process
-		for(int i = 0; i<10; i++){
-			if(_companion_process_status_history[i].pid == _companion_process_status.pid){
-				last_status = _companion_process_status_history[i];
-				_companion_process_status_history[i] = _companion_process_status;
-				process_number = i;
+		PX4_INFO_RAW("companion process history type %.4f\n ",(double)_companion_process_status_history[_process_type].component);
+		PX4_INFO_RAW("companion process history status %.4f\n ",(double)_companion_process_status_history[_process_type].state);
+
+		if(_companion_process_status_history[_process_type].component != 196 && _companion_process_status_history[_process_type].component != 197){
+				_companion_process_status_history[_process_type] = _companion_process_status;
+				reported_before = false;
+		}else{
+				last_status = _companion_process_status_history[_process_type];
+				_companion_process_status_history[_process_type] = _companion_process_status;
 				reported_before = true;
-			}
 		}
 
-		if(!reported_before){
-			for(int i = 0; i<10; i++){
-				if(_companion_process_status_history[i].pid == 0  && !reported_before){
-					_companion_process_status_history[i] = _companion_process_status;
-					reported_before = true;
-					process_number = i;
-				}
-			}
-		}else{
+
+		if(reported_before){
 			if((last_status.state != _companion_process_status.state)){
-				if (_companion_process_status.state == companion_process_status_s::COMPANION_PROCESS_STATE_STARTING){
-					_companion_process_status_first_registration[process_number] = _companion_process_status;
-				}else if(_companion_process_status.state == companion_process_status_s::COMPANION_PROCESS_STATE_HEALTHY){
+				if (_companion_process_status.state == companion_process_status_s::MAV_STATE_BOOT){
+					_companion_process_status_first_registration[_process_type] = _companion_process_status;
+				}else if(_companion_process_status.state == companion_process_status_s::MAV_STATE_ACTIVE){
 					mavlink_log_info(mavlink_log_pub, "companion process %s is ready\n", message_type);
 				}else{
 					mavlink_log_critical(mavlink_log_pub, "companion process %s %s\n", message_type, message_state);
@@ -111,10 +107,9 @@ void Companion_Process_Status::determine_action(){
 			}
 		}
 
-
 		//check for timeouts in starting up
-		if(_companion_process_status.state == companion_process_status_s::COMPANION_PROCESS_STATE_STARTING &&
-				_companion_process_status.timestamp - _companion_process_status_first_registration[process_number].timestamp > STARTUP_TIMEOUT){
+		if(_companion_process_status.state == companion_process_status_s::MAV_STATE_BOOT &&
+				_companion_process_status.timestamp - _companion_process_status_first_registration[_process_type].timestamp > STARTUP_TIMEOUT){
 			mavlink_log_critical(mavlink_log_pub,"companion process %s taking too long to start\n", message_type);
 		}
 		_new_status_received = false;
@@ -122,23 +117,32 @@ void Companion_Process_Status::determine_action(){
 
 	//check if required processes are missing
 	if(_time_message + THROTTLE_MESSAGES < hrt_absolute_time()){
-		for(int j = 0; j < 3; j++){
-			int processes_found = 0;
-			for(int i = 0; i<10; i++){
-				if(_companion_process_status_history[i].type == j && _companion_process_status_history[i].pid != 0){
-					processes_found ++;
-				}
-			}
-			if(processes_found < _required_processes[j] && hrt_absolute_time() - _time_zero > NO_SIGNAL_TIMEOUT){
-				mavlink_log_critical(mavlink_log_pub, "%s did not start\n", _companion_process_types[j]);
-				_time_message = hrt_absolute_time();
-			}
+		bool message_sent = false;
+
+		if(_avoidance_required && _companion_process_status_history[ProcessType::AVOIDANCE].component != 196 && hrt_absolute_time() - _time_zero > NO_SIGNAL_TIMEOUT){
+			mavlink_log_critical(mavlink_log_pub, "Obstacle avoidance did not start\n");
+			message_sent = true;
 		}
-		for(int i = 0; i<10; i++){
-			if(_companion_process_status_history[i].pid != 0 && _companion_process_status_history[i].timestamp + NO_SIGNAL_TIMEOUT < hrt_absolute_time()){
-				mavlink_log_critical(mavlink_log_pub, "%s process died\n", _companion_process_types[_companion_process_status_history[i].type]);
-				_time_message = hrt_absolute_time();
-			}
+
+
+		if(_avoidance_required && _companion_process_status_history[ProcessType::AVOIDANCE].component == 196 && _companion_process_status_history[ProcessType::AVOIDANCE].timestamp + NO_SIGNAL_TIMEOUT < hrt_absolute_time()){
+			mavlink_log_critical(mavlink_log_pub, "Obstacle avoidance process died\n");
+			message_sent = true;
+		}
+
+		if(_vio_required && _companion_process_status_history[ProcessType::VIO].component != 197 && hrt_absolute_time() - _time_zero > NO_SIGNAL_TIMEOUT){
+			mavlink_log_critical(mavlink_log_pub, "VIO process did not start\n");
+			message_sent = true;
+		}
+
+
+		if(_vio_required && _companion_process_status_history[ProcessType::VIO].component == 197 && _companion_process_status_history[ProcessType::VIO].timestamp + NO_SIGNAL_TIMEOUT < hrt_absolute_time()){
+			mavlink_log_critical(mavlink_log_pub, "VIO process died\n");
+			message_sent = true;
+		}
+
+		if(message_sent){
+			_time_message = hrt_absolute_time();
 		}
 	}
 }

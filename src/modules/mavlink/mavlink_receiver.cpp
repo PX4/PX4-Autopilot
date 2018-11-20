@@ -1964,13 +1964,14 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 		}
 
 		/* handle avoidance heartbeats */
-		if (hb.type == MAV_TYPE_SUBMARINE) {  //missuse submarine type for avoidance
+		if (hb.type == MAV_TYPE_ONBOARD_CONTROLLER && msg->compid == MAV_COMP_ID_OBSTACLE_AVOIDANCE) {
 
+			PX4_INFO_RAW("mavlink receiver got a heartbeat of the avoidance with status %f\n ", (double)hb.system_status);
 			companion_process_status_s companion_process_status = {};
 			companion_process_status.timestamp = hrt_absolute_time();
 			companion_process_status.state = hb.system_status;
-			companion_process_status.type = 1;  //COMPANION_PROCESS_TYPE = AVOIDANCE
-			companion_process_status.pid = 5;
+			companion_process_status.component = msg->compid;
+
 			if (_companion_process_status_pub == nullptr) {
 				_companion_process_status_pub = orb_advertise(ORB_ID(companion_process_status), &companion_process_status);
 			} else {

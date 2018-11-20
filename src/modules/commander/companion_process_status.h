@@ -58,6 +58,8 @@
 using uORB::Subscription;
 using namespace time_literals;
 
+enum ProcessType {UNDEFINED, AVOIDANCE, VIO};
+
 
 class Companion_Process_Status
 {
@@ -65,10 +67,14 @@ class Companion_Process_Status
 private:
 	Subscription<companion_process_status_s>	_companion_process_status_sub{ORB_ID(companion_process_status)};
 	companion_process_status_s					_companion_process_status{};								/**< current status message */
-	companion_process_status_s					_companion_process_status_history[10]{};					/**< last status message of each process*/
-	companion_process_status_s					_companion_process_status_first_registration[10]{};			/**< first status message of each process */
-	int									_required_processes[3]{0};							/**< index corresponds to process type (see _companion_process_types).
-																							value corresponds to number of required processes of that type*/
+	companion_process_status_s					_companion_process_status_history[3]{};					/**< last status message of each process*/
+	companion_process_status_s					_companion_process_status_first_registration[3]{};			/**< first status message of each process */
+
+	bool _avoidance_required = false;
+	bool _vio_required = false;
+	ProcessType _process_type;
+
+
 	hrt_abstime 						_time_zero;											/**< time of object construction*/
 	hrt_abstime 						_time_message;										/**< time when last message was printed*/
 	bool 								_new_status_received = false;
@@ -77,8 +83,8 @@ private:
 	const hrt_abstime					NO_SIGNAL_TIMEOUT = 15_s;	/**< timeout if no signal is received. counter starts when class object is created */
 	const hrt_abstime 					THROTTLE_MESSAGES = 5_s;	/**< time interval on which messages are published */
 
-	const char *_companion_process_types[3] = {"GENERIC", "AVOIDANCE", "VIO"};
-	const char *_companion_process_states[5] = {"HEALTHY", "TIMEOUT", "ABORT", "STARTING", "COMPONENT_FAIL"};
+	const char *_companion_process_types[3] = {"UNDEFINED", "AVOIDANCE", "VIO"};
+	const char *_companion_process_states[9] = {"UNINITIALIZED", "STARTING", "CALIBRATING", "STANDBY", "ACTIVE", "TIMEOUT", "EMERGENCY", "POWEROFF", "ABORTING"};
 
 
 	void poll_subscriptions();
