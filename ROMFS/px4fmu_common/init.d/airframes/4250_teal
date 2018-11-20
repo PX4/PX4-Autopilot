@@ -58,7 +58,6 @@ then
 	# commander
 	param set COM_DISARM_LAND 0.1 # default -1 (disabled)
 	param set COM_LOW_BAT_ACT 3 # Return mode at critically low level, Land mode at current position if reaching dangerously low levels.
-	param set COM_LOSS_LTR_T 20 # Custom parameter specific to Teal build. Timeout from RC loss to trigger an RTL.
 
 	# ekf2
 	param set EKF2_AID_MASK 1
@@ -191,7 +190,7 @@ then
 fi
 
 # Do not start frsky_telemetry on port ttyS6 by default, PGA460 lives there.
-param set TEL_FRSKY_CONFIG 500
+param set TEL_FRSKY_CONFIG 500 # 500 is in arbitrary unused number.
 
 # We want to make sure these always start
 param set SENS_EN_PGA460 1
