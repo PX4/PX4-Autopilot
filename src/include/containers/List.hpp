@@ -40,37 +40,23 @@
 #pragma once
 
 template<class T>
-class __EXPORT ListNode
+class ListNode
 {
 public:
-	ListNode() : _sibling() {}
-	virtual ~ListNode() = default;
-
-	// no copy, assignment, move, move assignment
-	ListNode(const ListNode &) = delete;
-	ListNode &operator=(const ListNode &) = delete;
-	ListNode(ListNode &&) = delete;
-	ListNode &operator=(ListNode &&) = delete;
 
 	void setSibling(T sibling) { _sibling = sibling; }
-	const T getSibling() { return _sibling; }
+	const T getSibling() const { return _sibling; }
 
 protected:
-	T _sibling;
+
+	T _sibling{nullptr};
+
 };
 
 template<class T>
-class __EXPORT List
+class List
 {
 public:
-	List() : _head() {}
-	virtual ~List() = default;
-
-	// no copy, assignment, move, move assignment
-	List(const List &) = delete;
-	List &operator=(const List &) = delete;
-	List(List &&) = delete;
-	List &operator=(List &&) = delete;
 
 	void add(T newNode)
 	{
@@ -78,8 +64,9 @@ public:
 		_head = newNode;
 	}
 
-	const T getHead() { return _head; }
+	const T getHead() const { return _head; }
 
 protected:
-	T _head;
+
+	T _head{nullptr};
 };
