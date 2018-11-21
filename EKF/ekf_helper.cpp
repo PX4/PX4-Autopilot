@@ -591,7 +591,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 
 		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_AUTOFW) {
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
-			Vector3f mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
+			Vector3f mag_earth_pred = R_to_earth * mag_init;
 			// the angle of the projection onto the horizontal gives the yaw angle
 			euler321(2) = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
 
@@ -649,7 +649,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 
 		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_AUTOFW) {
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
-			Vector3f mag_earth_pred = R_to_earth * _mag_sample_delayed.mag;
+			Vector3f mag_earth_pred = R_to_earth * mag_init;
 			// the angle of the projection onto the horizontal gives the yaw angle
 			euler312(0) = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
 
