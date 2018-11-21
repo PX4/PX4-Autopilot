@@ -38,6 +38,8 @@
 
 #include <lib/cdev/CDev.hpp>
 
+#include <containers/List.hpp>
+
 namespace uORB
 {
 class DeviceNode;
@@ -48,10 +50,11 @@ class Manager;
 /**
  * Per-object device instance.
  */
-class uORB::DeviceNode : public cdev::CDev
+class uORB::DeviceNode : public cdev::CDev, public ListNode<uORB::DeviceNode *>
 {
 public:
-	DeviceNode(const struct orb_metadata *meta, const char *path, int priority, unsigned int queue_size = 1);
+	DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path, uint8_t priority,
+		   uint8_t queue_size = 1);
 	~DeviceNode();
 
 	// no copy, assignment, move, move assignment
@@ -175,11 +178,19 @@ public:
 	 */
 	bool print_statistics(bool reset);
 
-	unsigned int get_queue_size() const { return _queue_size; }
+	uint8_t get_queue_size() const { return _queue_size; }
+
 	int8_t subscriber_count() const { return _subscriber_count; }
+
 	uint32_t lost_message_count() const { return _lost_messages; }
-	unsigned int published_message_count() const { return _generation; }
-	const struct orb_metadata *get_meta() const { return _meta; }
+
+	unsigned published_message_count() const { return _generation; }
+
+	const orb_metadata *get_meta() const { return _meta; }
+
+	const char *get_name() const { return _meta->o_name; }
+
+	uint8_t get_instance() const { return _instance; }
 
 	int get_priority() const { return _priority; }
 	void set_priority(uint8_t priority) { _priority = priority; }
@@ -211,7 +222,8 @@ private:
 		{ if (update_interval) { update_interval->update_reported = update_reported_flag; } }
 	};
 
-	const struct orb_metadata *_meta; /**< object metadata information */
+	const orb_metadata *_meta; /**< object metadata information */
+	const uint8_t _instance; /**< orb multi instance identifier */
 	uint8_t     *_data{nullptr};   /**< allocated object buffer */
 	hrt_abstime   _last_update{0}; /**< time the object was last updated */
 	volatile unsigned   _generation{0};  /**< object generation count */
@@ -220,19 +232,14 @@ private:
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
 	int8_t _subscriber_count{0};
 
+	px4_task_t _publisher{0}; /**< if nonzero, current publisher. Only used inside the advertise call.
+						We allow one publisher to have an open file descriptor at the same time. */
+
+	// statistics
+	uint32_t _lost_messages = 0; /**< nr of lost messages for all subscribers. If two subscribers lose the same
+					message, it is counted as two. */
+
 	inline static SubscriberData    *filp_to_sd(cdev::file_t *filp);
-
-#ifdef __PX4_NUTTX
-	pid_t     _publisher {0}; /**< if nonzero, current publisher. Only used inside the advertise call.
-					We allow one publisher to have an open file descriptor at the same time. */
-#else
-	px4_task_t     _publisher {0}; /**< if nonzero, current publisher. Only used inside the advertise call.
-					We allow one publisher to have an open file descriptor at the same time. */
-#endif
-
-	//statistics
-	uint32_t _lost_messages = 0; ///< nr of lost messages for all subscribers. If two subscribers lose the same
-	///message, it is counted as two.
 
 	/**
 	 * Perform a deferred update for a rate-limited subscriber.
