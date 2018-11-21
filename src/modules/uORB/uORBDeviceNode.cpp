@@ -53,10 +53,12 @@ uORB::DeviceNode::SubscriberData *uORB::DeviceNode::filp_to_sd(cdev::file_t *fil
 	return (SubscriberData *)(filp->f_priv);
 }
 
-uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const char *path, int priority, unsigned int queue_size) :
+uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path,
+			     uint8_t priority, uint8_t queue_size) :
 	CDev(path),
 	_meta(meta),
-	_priority((uint8_t)priority),
+	_instance(instance),
+	_priority(priority),
 	_queue_size(queue_size)
 {
 }
