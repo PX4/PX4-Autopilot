@@ -98,7 +98,7 @@ else
 	PX4_MAKE_ARGS = -j$(j) --no-print-directory
 endif
 
-SRC_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+SRC_DIR := $(shell dirname "$(realpath $(lastword $(MAKEFILE_LIST)))")
 
 # check if replay env variable is set & set build dir accordingly
 ifdef replay
@@ -143,9 +143,9 @@ endif
 # describe how to build a cmake config
 define cmake-build
 +@$(eval PX4_CONFIG = $(1))
-+@$(eval BUILD_DIR = $(SRC_DIR)/build/$(PX4_CONFIG)$(BUILD_DIR_SUFFIX))
++@$(eval BUILD_DIR = "$(SRC_DIR)"/build/$(PX4_CONFIG)$(BUILD_DIR_SUFFIX))
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
-+@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(SRC_DIR) -G"$(PX4_CMAKE_GENERATOR)" $(CMAKE_ARGS) -DCONFIG=$(PX4_CONFIG) || (rm -rf $(BUILD_DIR)); fi
++@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake "$(SRC_DIR)" -G"$(PX4_CMAKE_GENERATOR)" $(CMAKE_ARGS) -DCONFIG=$(PX4_CONFIG) || (rm -rf $(BUILD_DIR)); fi
 +@$(PX4_MAKE) -C $(BUILD_DIR) $(PX4_MAKE_ARGS) $(ARGS)
 endef
 
@@ -157,7 +157,7 @@ define colorecho
 endef
 
 # Get a list of all config targets cmake/configs/*.cmake
-ALL_CONFIG_TARGETS := $(basename $(shell find "$(SRC_DIR)/cmake/configs" -maxdepth 1 ! -name '*_common*' ! -name '*_sdflight_*' -name '*.cmake' -print | sed  -e 's:^.*/::' | sort))
+ALL_CONFIG_TARGETS := $(basename $(shell find "$(SRC_DIR)"/cmake/configs -maxdepth 1 ! -name '*_common*' ! -name '*_sdflight_*' -name '*.cmake' -print | sed  -e 's:^.*/::' | sort))
 # Strip off leading nuttx_
 NUTTX_CONFIG_TARGETS := $(patsubst nuttx_%,%,$(filter nuttx_%,$(ALL_CONFIG_TARGETS)))
 
@@ -285,10 +285,10 @@ module_documentation:
 px4_metadata: parameters_metadata airframe_metadata module_documentation
 
 doxygen:
-	@mkdir -p $(SRC_DIR)/build/doxygen
-	@cd $(SRC_DIR)/build/doxygen && cmake $(SRC_DIR) $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=posix_sitl_default -DBUILD_DOXYGEN=ON
-	@$(PX4_MAKE) -C $(SRC_DIR)/build/doxygen
-	@touch $(SRC_DIR)/build/doxygen/Documentation/.nojekyll
+	@mkdir -p "$(SRC_DIR)"/build/doxygen
+	@cd "$(SRC_DIR)"/build/doxygen && cmake "$(SRC_DIR)" $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=posix_sitl_default -DBUILD_DOXYGEN=ON
+	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/doxygen
+	@touch "$(SRC_DIR)"/build/doxygen/Documentation/.nojekyll
 
 # Astyle
 # --------------------------------------------------------------------
@@ -296,12 +296,12 @@ doxygen:
 
 check_format:
 	$(call colorecho,'Checking formatting with astyle')
-	@$(SRC_DIR)/Tools/astyle/check_code_style_all.sh
-	@cd $(SRC_DIR) && git diff --check
+	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh
+	@cd "$(SRC_DIR)" && git diff --check
 
 format:
 	$(call colorecho,'Formatting with astyle')
-	@$(SRC_DIR)/Tools/astyle/check_code_style_all.sh --fix
+	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh --fix
 
 # Testing
 # --------------------------------------------------------------------
@@ -315,32 +315,32 @@ tests:
 tests_coverage:
 	@$(MAKE) clean
 	@$(MAKE) --no-print-directory posix_sitl_default test_coverage_genhtml PX4_CMAKE_BUILD_TYPE=Coverage
-	@echo "Open $(SRC_DIR)/build/posix_sitl_default/coverage-html/index.html to see coverage"
+	@echo "Open "$(SRC_DIR)"/build/posix_sitl_default/coverage-html/index.html to see coverage"
 
 rostest: posix_sitl_default
 	@$(MAKE) --no-print-directory posix_sitl_default sitl_gazebo
 
 tests_mission: rostest
-	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_tests_missions.test
+	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_missions.test
 
 tests_mission_coverage:
 	@$(MAKE) clean
 	@$(MAKE) --no-print-directory posix_sitl_default PX4_CMAKE_BUILD_TYPE=Coverage
 	@$(MAKE) --no-print-directory posix_sitl_default sitl_gazebo PX4_CMAKE_BUILD_TYPE=Coverage
-	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=VTOL_mission_1 vehicle:=standard_vtol
+	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_test_mission.test mission:=VTOL_mission_1 vehicle:=standard_vtol
 	@$(MAKE) --no-print-directory posix_sitl_default generate_coverage
 
 tests_offboard: rostest
-	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test
-	@$(SRC_DIR)/test/rostest_px4_run.sh mavros_posix_tests_offboard_posctl.test
+	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test
+	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_offboard_posctl.test
 
 python_coverage:
-	@mkdir -p $(SRC_DIR)/build/python_coverage
-	@cd $(SRC_DIR)/build/python_coverage && cmake $(SRC_DIR) $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=posix_sitl_default -DPYTHON_COVERAGE=ON
-	@$(PX4_MAKE) -C $(SRC_DIR)/build/python_coverage
-	@$(PX4_MAKE) -C $(SRC_DIR)/build/python_coverage metadata_airframes
-	@$(PX4_MAKE) -C $(SRC_DIR)/build/python_coverage metadata_parameters
-	#@$(PX4_MAKE) -C $(SRC_DIR)/build/python_coverage module_documentation # TODO: fix within coverage.py
+	@mkdir -p "$(SRC_DIR)"/build/python_coverage
+	@cd "$(SRC_DIR)"/build/python_coverage && cmake "$(SRC_DIR)" $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=posix_sitl_default -DPYTHON_COVERAGE=ON
+	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/python_coverage
+	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/python_coverage metadata_airframes
+	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/python_coverage metadata_parameters
+	#@$(PX4_MAKE) -C "$(SRC_DIR)"/build/python_coverage module_documentation # TODO: fix within coverage.py
 	@coverage combine `find . -name .coverage\*`
 	@coverage report -m
 
@@ -352,49 +352,49 @@ python_coverage:
 scan-build:
 	@export CCC_CC=clang
 	@export CCC_CXX=clang++
-	@rm -rf $(SRC_DIR)/build/posix_sitl_default-scan-build
-	@rm -rf $(SRC_DIR)/build/scan-build/report_latest
-	@mkdir -p $(SRC_DIR)/build/posix_sitl_default-scan-build
-	@cd $(SRC_DIR)/build/posix_sitl_default-scan-build && scan-build cmake $(SRC_DIR) -GNinja -DCONFIG=posix_sitl_default
-	@scan-build -o $(SRC_DIR)/build/scan-build cmake --build $(SRC_DIR)/build/posix_sitl_default-scan-build
-	@find $(SRC_DIR)/build/scan-build -maxdepth 1 -mindepth 1 -type d -exec cp -r "{}" $(SRC_DIR)/build/scan-build/report_latest \;
+	@rm -rf "$(SRC_DIR)"/build/posix_sitl_default-scan-build
+	@rm -rf "$(SRC_DIR)"/build/scan-build/report_latest
+	@mkdir -p "$(SRC_DIR)"/build/posix_sitl_default-scan-build
+	@cd "$(SRC_DIR)"/build/posix_sitl_default-scan-build && scan-build cmake "$(SRC_DIR)" -GNinja -DCONFIG=posix_sitl_default
+	@scan-build -o "$(SRC_DIR)"/build/scan-build cmake --build "$(SRC_DIR)"/build/posix_sitl_default-scan-build
+	@find "$(SRC_DIR)"/build/scan-build -maxdepth 1 -mindepth 1 -type d -exec cp -r "{}" "$(SRC_DIR)"/build/scan-build/report_latest \;
 
 posix_sitl_default-clang:
-	@mkdir -p $(SRC_DIR)/build/posix_sitl_default-clang
-	@cd $(SRC_DIR)/build/posix_sitl_default-clang && cmake $(SRC_DIR) $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=posix_sitl_default -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-	@$(PX4_MAKE) -C $(SRC_DIR)/build/posix_sitl_default-clang
+	@mkdir -p "$(SRC_DIR)"/build/posix_sitl_default-clang
+	@cd "$(SRC_DIR)"/build/posix_sitl_default-clang && cmake "$(SRC_DIR)" $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=posix_sitl_default -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/posix_sitl_default-clang
 
 clang-tidy: posix_sitl_default-clang
-	@cd $(SRC_DIR)/build/posix_sitl_default-clang && $(SRC_DIR)/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -p .
+	@cd "$(SRC_DIR)"/build/posix_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -p .
 
 # to automatically fix a single check at a time, eg modernize-redundant-void-arg
 #  % run-clang-tidy-4.0.py -fix -j4 -checks=-\*,modernize-redundant-void-arg -p .
 clang-tidy-fix: posix_sitl_default-clang
-	@cd $(SRC_DIR)/build/posix_sitl_default-clang && $(SRC_DIR)/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -fix -p .
+	@cd "$(SRC_DIR)"/build/posix_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -fix -p .
 
 # modified version of run-clang-tidy.py to return error codes and only output relevant results
 clang-tidy-quiet: posix_sitl_default-clang
-	@cd $(SRC_DIR)/build/posix_sitl_default-clang && $(SRC_DIR)/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -p .
+	@cd "$(SRC_DIR)"/build/posix_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -p .
 
 # TODO: Fix cppcheck errors then try --enable=warning,performance,portability,style,unusedFunction or --enable=all
 cppcheck: posix_sitl_default
-	@mkdir -p $(SRC_DIR)/build/cppcheck
-	@cppcheck -i$(SRC_DIR)/src/examples --enable=performance --std=c++11 --std=c99 --std=posix --project=$(SRC_DIR)/build/posix_sitl_default/compile_commands.json --xml-version=2 2> $(SRC_DIR)/build/cppcheck/cppcheck-result.xml > /dev/null
-	@cppcheck-htmlreport --source-encoding=ascii --file=$(SRC_DIR)/build/cppcheck/cppcheck-result.xml --report-dir=$(SRC_DIR)/build/cppcheck --source-dir=$(SRC_DIR)/src/
+	@mkdir -p "$(SRC_DIR)"/build/cppcheck
+	@cppcheck -i"$(SRC_DIR)"/src/examples --enable=performance --std=c++11 --std=c99 --std=posix --project="$(SRC_DIR)"/build/posix_sitl_default/compile_commands.json --xml-version=2 2> "$(SRC_DIR)"/build/cppcheck/cppcheck-result.xml > /dev/null
+	@cppcheck-htmlreport --source-encoding=ascii --file="$(SRC_DIR)"/build/cppcheck/cppcheck-result.xml --report-dir="$(SRC_DIR)"/build/cppcheck --source-dir="$(SRC_DIR)"/src/
 
 shellcheck_all:
-	@$(SRC_DIR)/Tools/run-shellcheck.sh $(SRC_DIR)/ROMFS/px4fmu_common/
+	@"$(SRC_DIR)"/Tools/run-shellcheck.sh "$(SRC_DIR)"/ROMFS/px4fmu_common/
 	@make px4fmu-v2_default shellcheck
 
 validate_module_configs:
-	@find $(SRC_DIR)/src/modules $(SRC_DIR)/src/drivers $(SRC_DIR)/src/lib -name *.yaml -type f -print0 | xargs -0 $(SRC_DIR)/Tools/validate_yaml.py --schema-file $(SRC_DIR)/validation/module_schema.yaml
+	@find "$(SRC_DIR)"/src/modules "$(SRC_DIR)"/src/drivers "$(SRC_DIR)"/src/lib -name *.yaml -type f -print0 | xargs -0 "$(SRC_DIR)"/Tools/validate_yaml.py --schema-file "$(SRC_DIR)"/validation/module_schema.yaml
 
 # Cleanup
 # --------------------------------------------------------------------
 .PHONY: clean submodulesclean submodulesupdate gazeboclean distclean
 
 clean:
-	@rm -rf $(SRC_DIR)/build
+	@rm -rf "$(SRC_DIR)"/build
 
 submodulesclean:
 	@git submodule foreach --quiet --recursive git clean -ff -x -d
