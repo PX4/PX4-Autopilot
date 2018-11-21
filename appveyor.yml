@@ -40,6 +40,8 @@ build_script:
 - call bash --login -c "cd $repopath && make posix"
 # make pixracer to check NuttX build
 - call bash --login -c "cd $repopath && make px4fmu-v4_default"
+# run tests
+- call bash --login -c "cd $repopath && make tests"
 
 # Note: using bash --login is important
 # because otherwise certain things (like python; import numpy) do not work
