@@ -1,5 +1,6 @@
 # Build version
 version: "{build}"
+clone_depth: 1
 
 branches:
   only:
@@ -35,7 +36,7 @@ build_script:
 # safe the repopath for switching to it in cygwin bash
 - for /f %%i in ('cygpath -u %%CD%%') do set repopath=%%i
 # fetch all submodules in parallel
-- call bash --login -c "cd $repopath && git submodule -q update --init --recursive --jobs=10"
+- call bash --login -c "cd $repopath && git submodule -q update --init --recursive --depth=50 --jobs=10"
 # make SITL
 - call bash --login -c "cd $repopath && make posix"
 # make pixracer to check NuttX build
