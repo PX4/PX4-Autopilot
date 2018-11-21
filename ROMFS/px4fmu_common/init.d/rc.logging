@@ -17,7 +17,7 @@ fi
 #               Begin Setup for board specific configurations.                #
 ###############################################################################
 
-if ver hwcmp PX4FMU_V5
+if ver hwcmp PX4FMU_V5 AV_X_V1
 then
 	set LOGGER_BUF 64
 fi
