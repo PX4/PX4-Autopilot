@@ -243,6 +243,8 @@ else
 		fi
 	fi
 
+	rgbled_ncp5623c start
+	
 	#
 	# FMUv5 may have both PWM I2C RGB LED support.
 	#
