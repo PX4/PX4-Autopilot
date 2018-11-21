@@ -49,8 +49,6 @@ if (CMAKE_SYSTEM_NAME STREQUAL "CYGWIN")
 	)
 endif()
 
-message("${tests}")
-
 foreach(test_name ${tests})
 	configure_file(${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_template.in ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_${test_name}_generated)
 
