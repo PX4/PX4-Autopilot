@@ -150,11 +150,11 @@ RGBLED_NPC5623C::~RGBLED_NPC5623C()
 
 int RGBLED_NPC5623C::write(uint8_t reg, uint8_t data)
 {
-    uint8_t msg[1] = { 0x00 };
-    msg[0] = ((reg & 0xe0) | (data & 0x1f));
+	uint8_t msg[1] = { 0x00 };
+	msg[0] = ((reg & 0xe0) | (data & 0x1f));
 
 	int ret = transfer(&msg[0], 1, nullptr, 0);
-    return ret;
+	return ret;
 }
 
 int
@@ -170,7 +170,7 @@ RGBLED_NPC5623C::init()
 	update_params();
 
 	_running = true;
-	work_queue(LPWORK, &_work, (worker_t)&RGBLED_NPC5623C::led_trampoline, this, 0);	
+	work_queue(LPWORK, &_work, (worker_t)&RGBLED_NPC5623C::led_trampoline, this, 0);
 	return OK;
 }
 
@@ -287,7 +287,7 @@ int
 RGBLED_NPC5623C::send_led_rgb()
 {
 
-    uint8_t msg[7] = {0x20, 0x70, 0x40, 0x70, 0x60, 0x70, 0x80};
+	uint8_t msg[7] = {0x20, 0x70, 0x40, 0x70, 0x60, 0x70, 0x80};
 	uint8_t brightness = 0x1f * _max_brightness;
 
 	msg[0] = NCP5623_LED_CURRENT | (brightness & 0x1f);
@@ -307,9 +307,11 @@ RGBLED_NPC5623C::update_params()
 	param_get(param_find("NCP5623C_MAXBRT"), &maxbrt);
 	maxbrt = maxbrt > 31 ? 31 : maxbrt;
 	maxbrt = maxbrt <  0 ?  0 : maxbrt;
+
 	if (maxbrt == 0) {
 		maxbrt = 1;
 	}
+
 	_max_brightness = maxbrt / 31.0f;
 }
 
@@ -383,6 +385,7 @@ rgbled_ncp5623c_main(int argc, char *argv[])
 				i2cdevice = PX4_I2C_BUS_LED;
 			}
 		}
+
 		if (g_rgbled == nullptr) {
 			g_rgbled = new RGBLED_NPC5623C(i2cdevice, rgbledadr);
 
