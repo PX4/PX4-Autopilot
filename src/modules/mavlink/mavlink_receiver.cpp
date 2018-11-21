@@ -1964,9 +1964,9 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 		}
 
 		/* handle avoidance heartbeats */
-		if (hb.type == MAV_TYPE_ONBOARD_CONTROLLER && msg->compid == MAV_COMP_ID_OBSTACLE_AVOIDANCE) {
+		if (hb.type == MAV_TYPE_ONBOARD_CONTROLLER && (msg->compid == MAV_COMP_ID_OBSTACLE_AVOIDANCE
+				|| msg->compid == MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY)) {
 
-			PX4_INFO_RAW("mavlink receiver got a heartbeat of the avoidance with status %f\n ", (double)hb.system_status);
 			companion_process_status_s companion_process_status = {};
 			companion_process_status.timestamp = hrt_absolute_time();
 			companion_process_status.state = hb.system_status;
@@ -1974,6 +1974,7 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 			if (_companion_process_status_pub == nullptr) {
 				_companion_process_status_pub = orb_advertise(ORB_ID(companion_process_status), &companion_process_status);
+
 			} else {
 				orb_publish(ORB_ID(companion_process_status), _companion_process_status_pub, &companion_process_status);
 			}

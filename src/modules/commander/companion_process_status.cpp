@@ -38,6 +38,7 @@
 
 #include <drivers/drv_hrt.h>
 #include "companion_process_status.h"
+using uORB::Subscription;
 
 static orb_advert_t *mavlink_log_pub;
 
@@ -72,20 +73,18 @@ void Companion_Process_Status::determine_action(){
 
 	if(_new_status_received){
 		//data for obstacle avoidance is at array location 0, data for VIO at location 1
-		if(_companion_process_status.component == 196){
+		if(_companion_process_status.component == MAV_COMP_ID_OBSTACLE_AVOIDANCE){
 			_process_type = AVOIDANCE;
-		}else if(_companion_process_status.component == 197){
+		}else if(_companion_process_status.component == MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY){
 			_process_type = VIO;
 		}
-		//TODO FIX message strings
+
+		 //strings for QGC output
 		const char* message_type = _companion_process_types[_process_type];
 		const char* message_state = _companion_process_states[_companion_process_status.state];
 
 		//find last status of same process
-		PX4_INFO_RAW("companion process history type %.4f\n ",(double)_companion_process_status_history[_process_type].component);
-		PX4_INFO_RAW("companion process history status %.4f\n ",(double)_companion_process_status_history[_process_type].state);
-
-		if(_companion_process_status_history[_process_type].component != 196 && _companion_process_status_history[_process_type].component != 197){
+		if(_companion_process_status_history[_process_type].component != MAV_COMP_ID_OBSTACLE_AVOIDANCE && _companion_process_status_history[_process_type].component != MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY){
 				_companion_process_status_history[_process_type] = _companion_process_status;
 				reported_before = false;
 		}else{
@@ -119,24 +118,24 @@ void Companion_Process_Status::determine_action(){
 	if(_time_message + THROTTLE_MESSAGES < hrt_absolute_time()){
 		bool message_sent = false;
 
-		if(_avoidance_required && _companion_process_status_history[ProcessType::AVOIDANCE].component != 196 && hrt_absolute_time() - _time_zero > NO_SIGNAL_TIMEOUT){
+		if(_avoidance_required && _companion_process_status_history[ProcessType::AVOIDANCE].component != MAV_COMP_ID_OBSTACLE_AVOIDANCE && hrt_absolute_time() - _time_zero > NO_SIGNAL_TIMEOUT){
 			mavlink_log_critical(mavlink_log_pub, "Obstacle avoidance did not start\n");
 			message_sent = true;
 		}
 
 
-		if(_avoidance_required && _companion_process_status_history[ProcessType::AVOIDANCE].component == 196 && _companion_process_status_history[ProcessType::AVOIDANCE].timestamp + NO_SIGNAL_TIMEOUT < hrt_absolute_time()){
+		if(_avoidance_required && _companion_process_status_history[ProcessType::AVOIDANCE].component == MAV_COMP_ID_OBSTACLE_AVOIDANCE && _companion_process_status_history[ProcessType::AVOIDANCE].timestamp + NO_SIGNAL_TIMEOUT < hrt_absolute_time()){
 			mavlink_log_critical(mavlink_log_pub, "Obstacle avoidance process died\n");
 			message_sent = true;
 		}
 
-		if(_vio_required && _companion_process_status_history[ProcessType::VIO].component != 197 && hrt_absolute_time() - _time_zero > NO_SIGNAL_TIMEOUT){
+		if(_vio_required && _companion_process_status_history[ProcessType::VIO].component != MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY && hrt_absolute_time() - _time_zero > NO_SIGNAL_TIMEOUT){
 			mavlink_log_critical(mavlink_log_pub, "VIO process did not start\n");
 			message_sent = true;
 		}
 
 
-		if(_vio_required && _companion_process_status_history[ProcessType::VIO].component == 197 && _companion_process_status_history[ProcessType::VIO].timestamp + NO_SIGNAL_TIMEOUT < hrt_absolute_time()){
+		if(_vio_required && _companion_process_status_history[ProcessType::VIO].component == MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY && _companion_process_status_history[ProcessType::VIO].timestamp + NO_SIGNAL_TIMEOUT < hrt_absolute_time()){
 			mavlink_log_critical(mavlink_log_pub, "VIO process died\n");
 			message_sent = true;
 		}

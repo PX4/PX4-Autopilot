@@ -55,17 +55,15 @@
 #include <systemlib/mavlink_log.h>
 #include <cstring>
 
-using uORB::Subscription;
-using namespace time_literals;
-
-enum ProcessType {UNDEFINED, AVOIDANCE, VIO};
+enum ProcessType {UNDEFINED, AVOIDANCE, VIO};  //used as indexes for _companion_process_status arrays
+enum MAV_COMPONENT {MAV_COMP_ID_OBSTACLE_AVOIDANCE = 196, MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY = 197};  //see mavlink::common::MAV_COMPONENT
 
 
 class Companion_Process_Status
 {
 
 private:
-	Subscription<companion_process_status_s>	_companion_process_status_sub{ORB_ID(companion_process_status)};
+	uORB::Subscription<companion_process_status_s>	_companion_process_status_sub{ORB_ID(companion_process_status)};
 	companion_process_status_s					_companion_process_status{};								/**< current status message */
 	companion_process_status_s					_companion_process_status_history[3]{};					/**< last status message of each process*/
 	companion_process_status_s					_companion_process_status_first_registration[3]{};			/**< first status message of each process */
@@ -79,9 +77,9 @@ private:
 	hrt_abstime 						_time_message;										/**< time when last message was printed*/
 	bool 								_new_status_received = false;
 
-	const hrt_abstime 					STARTUP_TIMEOUT = 15_s;		/**< timeout for starting the companion process. counter starts when first message of starting is received */
-	const hrt_abstime					NO_SIGNAL_TIMEOUT = 15_s;	/**< timeout if no signal is received. counter starts when class object is created */
-	const hrt_abstime 					THROTTLE_MESSAGES = 5_s;	/**< time interval on which messages are published */
+	const hrt_abstime 					STARTUP_TIMEOUT = 15000000;		/**< timeout for starting the companion process. counter starts when first message of starting is received */
+	const hrt_abstime					NO_SIGNAL_TIMEOUT = 150000000;	/**< timeout if no signal is received. counter starts when class object is created */
+	const hrt_abstime 					THROTTLE_MESSAGES = 5000000;	/**< time interval on which messages are published */
 
 	const char *_companion_process_types[3] = {"UNDEFINED", "AVOIDANCE", "VIO"};
 	const char *_companion_process_states[9] = {"UNINITIALIZED", "STARTING", "CALIBRATING", "STANDBY", "ACTIVE", "TIMEOUT", "EMERGENCY", "POWEROFF", "ABORTING"};
