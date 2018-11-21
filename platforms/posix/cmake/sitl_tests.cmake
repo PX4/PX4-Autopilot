@@ -43,6 +43,14 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	)
 endif()
 
+if (CMAKE_SYSTEM_NAME STREQUAL "CYGWIN")
+	list(REMOVE_ITEM tests
+		uorb
+	)
+endif()
+
+message("${tests}")
+
 foreach(test_name ${tests})
 	configure_file(${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_template.in ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_${test_name}_generated)
 
