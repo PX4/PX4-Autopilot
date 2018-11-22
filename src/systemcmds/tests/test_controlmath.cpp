@@ -37,7 +37,7 @@ bool ControlMathTest::testThrAttMapping()
 	ut_assert_true(att.roll_body < SIGMA_SINGLE_OP);
 	ut_assert_true(att.pitch_body < SIGMA_SINGLE_OP);
 	ut_assert_true(att.yaw_body < SIGMA_SINGLE_OP);
-	ut_assert_true(att.thrust - 1.0f < SIGMA_SINGLE_OP);
+	ut_assert_true(-att.thrust_body[2] - 1.0f < SIGMA_SINGLE_OP);
 
 	/* expected: same as before but with 90 yaw
 	 * reason: only yaw changed
@@ -47,7 +47,7 @@ bool ControlMathTest::testThrAttMapping()
 	ut_assert_true(att.roll_body < SIGMA_SINGLE_OP);
 	ut_assert_true(att.pitch_body < SIGMA_SINGLE_OP);
 	ut_assert_true(att.yaw_body - M_PI_2_F < SIGMA_SINGLE_OP);
-	ut_assert_true(att.thrust - 1.0f < SIGMA_SINGLE_OP);
+	ut_assert_true(-att.thrust_body[2] - 1.0f < SIGMA_SINGLE_OP);
 
 	/* expected: same as before but roll 180
 	 * reason: thrust points straight down and order Euler
@@ -58,7 +58,7 @@ bool ControlMathTest::testThrAttMapping()
 	ut_assert_true(fabsf(att.roll_body) - M_PI_F < SIGMA_SINGLE_OP);
 	ut_assert_true(fabsf(att.pitch_body) < SIGMA_SINGLE_OP);
 	ut_assert_true(att.yaw_body - M_PI_2_F < SIGMA_SINGLE_OP);
-	ut_assert_true(att.thrust - 1.0f < SIGMA_SINGLE_OP);
+	ut_assert_true(-att.thrust_body[2] - 1.0f < SIGMA_SINGLE_OP);
 
 	/* TODO: find a good way to test it */
 
