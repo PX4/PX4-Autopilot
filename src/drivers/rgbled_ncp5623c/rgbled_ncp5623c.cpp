@@ -122,7 +122,7 @@ void rgbled_ncp5623c_usage();
 extern "C" __EXPORT int rgbled_ncp5623c_main(int argc, char *argv[]);
 
 RGBLED_NPC5623C::RGBLED_NPC5623C(int bus, int rgbled) :
-	I2C("rgbled_ncp5623c", RGBLED_NCP5623C_DEVICE_PATH, bus, rgbled
+	I2C("rgbled1", RGBLED1_DEVICE_PATH, bus, rgbled
 #ifdef __PX4_NUTTX
 	    , 100000 /* maximum speed supported */
 #endif
