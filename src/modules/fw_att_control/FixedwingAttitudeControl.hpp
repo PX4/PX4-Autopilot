@@ -202,7 +202,6 @@ private:
 		float rattitude_thres;
 
 		int32_t vtol_type;			/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
-		int32_t vtol_airspeed_rule;
 
 		int32_t bat_scale_en;			/**< Battery scaling enabled */
 		bool airspeed_disabled;
@@ -272,7 +271,6 @@ private:
 		param_t rattitude_thres;
 
 		param_t vtol_type;
-		param_t vtol_airspeed_rule;
 
 		param_t bat_scale_en;
 		param_t airspeed_mode;
