@@ -119,7 +119,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	// initialize to invalid VTOL type
 	_parameters.vtol_type = -1;
-	_parameters.vtol_airspeed_rule = 0;
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -241,7 +240,6 @@ FixedwingAttitudeControl::parameters_update()
 
 	if (_vehicle_status.is_vtol) {
 		param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
-		param_get(_parameter_handles.vtol_airspeed_rule, &_parameters.vtol_airspeed_rule);
 	}
 
 	param_get(_parameter_handles.bat_scale_en, &_parameters.bat_scale_en);
@@ -439,7 +437,6 @@ FixedwingAttitudeControl::vehicle_status_poll()
 				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
 
 				_parameter_handles.vtol_type = param_find("VT_TYPE");
-				_parameter_handles.vtol_airspeed_rule = param_find("VT_AIRSPD_RULE");
 
 				parameters_update();
 
