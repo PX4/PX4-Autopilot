@@ -308,7 +308,7 @@ void
 RGBLED_NPC5623C::update_params()
 {
 	int32_t maxbrt = 31;
-	param_get(param_find("NCP5623C_MAXBRT"), &maxbrt);
+	param_get(param_find("LED_RGB1_MAXBRT"), &maxbrt);
 	maxbrt = maxbrt > 31 ? 31 : maxbrt;
 	maxbrt = maxbrt <  0 ?  0 : maxbrt;
 
