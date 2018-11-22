@@ -78,6 +78,7 @@ px4_add_module(
 	DEPENDS
 		drivers_bootloaders
 		git_uavcan
+		version
 
 		# within libuavcan
 		libuavcan_dsdlc

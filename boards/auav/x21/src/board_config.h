@@ -203,8 +203,6 @@
 #define PWMIN_TIMER_CHANNEL	2
 #define GPIO_PWM_IN		GPIO_TIM4_CH2IN_2
 
-#define BOARD_NAME "AUAV_X21"
-
 /* By Providing BOARD_ADC_USB_CONNECTED this board support the ADC
  * system_power interface, and therefore provides the true logic
  * GPIO BOARD_ADC_xxxx macros.
