@@ -4,7 +4,7 @@ px4_add_git_submodule(TARGET git_nuttx PATH "nuttx")
 px4_add_git_submodule(TARGET git_nuttx_apps PATH "apps")
 
 if(NOT PX4_BOARD)
-	message(FATAL_ERROR "PX4_BOARD must be set (eg px4fmu-v2)")
+	message(FATAL_ERROR "PX4_BOARD must be set (eg px4_fmu-v2)")
 endif()
 
 project(NuttX_${PX4_BOARD} LANGUAGES ASM C CXX)

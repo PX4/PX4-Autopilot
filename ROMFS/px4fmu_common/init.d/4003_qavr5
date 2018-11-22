@@ -5,7 +5,7 @@
 # @type Quadrotor x
 # @class Copter
 #
-# @board px4fmu-v2 exclude
+# @board px4_fmu-v2 exclude
 #
 # @maintainer James Goppert <james.goppert@gmail.com>
 #

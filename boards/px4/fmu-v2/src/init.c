@@ -440,7 +440,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 		default:
 
-			/* questionable px4fmu-v2 hardware, try forcing regular FMUv2 (not much else we can do) */
+			/* questionable px4_fmu-v2 hardware, try forcing regular FMUv2 (not much else we can do) */
 
 			message("\nbad version detected, forcing to fmu-v2");
 			hw_version = HW_VER_FMUV2_STATE;

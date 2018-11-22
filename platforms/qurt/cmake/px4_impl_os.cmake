@@ -227,7 +227,7 @@ endfunction()
 #		OUT	: the target list
 #
 #	Example:
-#		px4_os_prebuild_targets(OUT target_list BOARD px4fmu-v2)
+#		px4_os_prebuild_targets(OUT target_list BOARD px4_fmu-v2)
 #
 function(px4_os_prebuild_targets)
 	px4_parse_function_args(

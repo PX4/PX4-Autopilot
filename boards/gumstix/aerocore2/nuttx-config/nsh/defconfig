@@ -673,8 +673,8 @@ CONFIG_RAM_SIZE=262144
 #
 # Board Selection
 #
-CONFIG_ARCH_BOARD_AEROCORE2=y
-CONFIG_ARCH_BOARD="gumstixaerocore2"
+CONFIG_ARCH_BOARD_GUMSTIX_AEROCORE2=y
+CONFIG_ARCH_BOARD="gumstix_aerocore2"
 
 #
 # Custom Board Configuration

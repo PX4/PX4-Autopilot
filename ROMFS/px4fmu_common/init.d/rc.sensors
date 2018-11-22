@@ -14,7 +14,7 @@ set BOARD_FMUV3 0
 
 if ! ver hwcmp AEROFC_V1 OMNIBUS_F4SD
 then
-	if ! ver hwcmp CRAZYFLIE
+	if ! ver hwcmp BITCRAZE_CRAZYFLIE
 	then
 		# Configure all I2C buses to 100 KHz as they
 		# are all external or slow
@@ -22,7 +22,7 @@ then
 		fmu i2c 2 100000
 	fi
 
-	if ver hwcmp PX4FMU_V4
+	if ver hwcmp PX4_FMU_V4
 	then
 		# We know there are sketchy boards out there
 		# as chinese companies produce Pixracers without
@@ -45,7 +45,7 @@ then
 	adc start
 fi
 
-if ver hwcmp AEROFC_V1
+if ver hwcmp INTEL_AEROFC_V1
 then
 	ms5611 -T 0 start
 	mpu9250 -s -R 14 start
@@ -58,7 +58,7 @@ then
 	ll40ls start i2c
 fi
 
-if ver hwcmp AEROCORE2
+if ver hwcmp GUMSTIX_AEROCORE2
 then
 	l3gd20 -R 12 start
 	lsm303d start
@@ -94,7 +94,7 @@ then
 
 fi
 
-if ver hwcmp CRAZYFLIE
+if ver hwcmp BITCRAZE_CRAZYFLIE
 then
 	# Onboard I2C
 	mpu9250 -R 12 start
@@ -108,7 +108,7 @@ then
 
 fi
 
-if ver hwcmp MINDPX_V2
+if ver hwcmp AIRMIND_MINDPX_V2
 then
 	# External I2C bus
 	hmc5883 -C -T -X start
@@ -122,7 +122,7 @@ then
 	l3gd20 -R 14 start
 fi
 
-if ver hwcmp NXPHLITE_V3
+if ver hwcmp NXP_HLITE_V3
 then
 	# External I2C bus
 	hmc5883 -C -X start
@@ -159,7 +159,7 @@ then
 	adc start
 fi
 
-if ver hwcmp PX4FMU_V2
+if ver hwcmp PX4_FMU_V2
 then
 	# External I2C bus
 	hmc5883 -C -T -X start
@@ -255,7 +255,7 @@ then
 	fi
 fi
 
-if ver hwcmp PX4FMU_V4
+if ver hwcmp PX4_FMU_V4
 then
 	# External I2C bus
 	hmc5883 -C -T -X start
@@ -303,7 +303,7 @@ then
 	fi
 fi
 
-if ver hwcmp PX4FMU_V4PRO
+if ver hwcmp PX4_FMU_V4PRO
 then
 	# Internal SPI bus ICM-20608-G
 	mpu6000 -R 2 -T 20608 start
@@ -324,7 +324,7 @@ then
 	rm3100 start
 fi
 
-if ver hwcmp PX4FMU_V5
+if ver hwcmp PX4_FMU_V5
 then
 
 	# Internal SPI bus ICM-20602
@@ -353,7 +353,7 @@ then
 	pmw3901 start
 fi
 
-if ver hwcmp PX4_SAME70XPLAINED_V1
+if ver hwcmp ATMEL_SAME70XPLAINED_V1
 then
 	# External I2C bus
 	hmc5883 -C -T -X start

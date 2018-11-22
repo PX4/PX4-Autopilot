@@ -315,7 +315,7 @@ ADC::_tick()
 void
 ADC::update_system_power(void)
 {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+#ifdef CONFIG_ARCH_BOARD_PX4_FMU_V2
 	system_power_s system_power;
 	system_power.timestamp = hrt_absolute_time();
 
@@ -348,7 +348,7 @@ ADC::update_system_power(void)
 		_to_system_power = orb_advertise(ORB_ID(system_power), &system_power);
 	}
 
-#endif // CONFIG_ARCH_BOARD_PX4FMU_V2
+#endif // CONFIG_ARCH_BOARD_PX4_FMU_V2
 }
 
 uint16_t

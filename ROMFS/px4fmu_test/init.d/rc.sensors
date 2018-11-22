@@ -21,7 +21,7 @@ if adc start
 then
 fi
 
-if ver hwcmp PX4FMU_V2
+if ver hwcmp PX4_FMU_V2
 then
 	# External I2C bus
 	if hmc5883 -C -T -X start
@@ -82,7 +82,7 @@ then
 	fi
 fi
 
-if ver hwcmp PX4FMU_V4
+if ver hwcmp PX4_FMU_V4
 then
 	# External I2C bus
 	if hmc5883 -C -T -X start
@@ -109,7 +109,7 @@ then
 	fi
 fi
 
-if ver hwcmp MINDPX_V2
+if ver hwcmp AIRMIND_MINDPX_V2
 then
 	# External I2C bus
 	if hmc5883 -C -T -X start

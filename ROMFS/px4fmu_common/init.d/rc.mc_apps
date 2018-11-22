@@ -26,7 +26,7 @@ if param compare SYS_MC_EST_GROUP 1
 then
 	#
 	# Try to start LPE. If it fails, start EKF2 as a default.
-	# Unfortunately we do not build it on px4fmu-v2 due to a limited flash.
+	# Unfortunately we do not build it on px4_fmu-v2 due to a limited flash.
 	#
 	if attitude_estimator_q start
 	then

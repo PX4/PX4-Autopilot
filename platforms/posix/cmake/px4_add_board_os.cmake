@@ -62,7 +62,7 @@ include(px4_base)
 #
 #	Example:
 #		px4_add_board_os(
-#			BOARD px4fmu-v2_default
+#			BOARD px4_fmu-v2_default
 #			OS nuttx
 #			)
 #

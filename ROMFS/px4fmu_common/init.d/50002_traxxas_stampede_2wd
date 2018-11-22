@@ -12,7 +12,7 @@
 #
 # @maintainer Marco Zorzi
 #
-# @board px4fmu-v2 exclude
+# @board px4_fmu-v2 exclude
 #
 
 sh /etc/init.d/rc.ugv_defaults

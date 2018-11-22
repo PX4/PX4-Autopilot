@@ -43,7 +43,7 @@ build_script:
 # make SITL
 - call bash --login -c "cd $repopath && make posix"
 # make pixracer to check NuttX build
-- call bash --login -c "cd $repopath && make px4fmu-v4_default"
+- call bash --login -c "cd $repopath && make px4_fmu-v4_default"
 # run tests
 - call bash --login -c "cd $repopath && make tests"
 

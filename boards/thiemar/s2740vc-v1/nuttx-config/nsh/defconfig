@@ -567,8 +567,8 @@ CONFIG_RAM_SIZE=16384
 #
 # Board Selection
 #
-CONFIG_ARCH_BOARD_S2740VC_V1=y
-CONFIG_ARCH_BOARD="thiemars2740vc-v1"
+CONFIG_ARCH_BOARD_THIEMAR_S2740VC_V1=y
+CONFIG_ARCH_BOARD="thiemar_s2740vc-v1"
 
 #
 # Custom Board Configuration

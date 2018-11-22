@@ -61,7 +61,7 @@ flags = [
 'c++',
 '-undef', # get rid of standard definitions to allow us to include arm math header
 '-I', os.path.join(os.path.expanduser("~"),'gcc-arm-none-eabi-4_7-2013q3/arm-none-eabi/include'),
-'-I', 'Build/px4io-v2_default.build/nuttx-export/include/',
+'-I', 'Build/px4_io-v2_default.build/nuttx-export/include/',
 '-I', './NuttX/nuttx/arch/arm/include',
 '-include', './src/include/visibility.h',
 '-I', './src',

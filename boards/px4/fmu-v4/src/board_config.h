@@ -306,7 +306,7 @@
 #define SPEKTRUM_RX_AS_UART()       /* Can be left as uart */
 #define SPEKTRUM_OUT(_one_true)      px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
-#define    BOARD_NAME "PX4FMU_V4"
+#define    BOARD_NAME "PX4_FMU_V4"
 
 /**
  * By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)

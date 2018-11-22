@@ -364,7 +364,7 @@ endfunction()
 #
 #	Example:
 #		px4_add_common_flags(
-#			BOARD px4fmu-v2
+#			BOARD px4_fmu-v2
 #			C_FLAGS CMAKE_C_FLAGS
 #			CXX_FLAGS CMAKE_CXX_FLAGS
 #			OPTIMIZATION_FLAGS optimization_flags

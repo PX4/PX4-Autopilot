@@ -567,8 +567,8 @@ CONFIG_RAM_SIZE=8192
 #
 # Board Selection
 #
-CONFIG_ARCH_BOARD_PX4IO_V2=y
-CONFIG_ARCH_BOARD="px4io-v2"
+CONFIG_ARCH_BOARD_PX4_IO_V2=y
+CONFIG_ARCH_BOARD="px4_io-v2"
 
 #
 # Custom Board Configuration

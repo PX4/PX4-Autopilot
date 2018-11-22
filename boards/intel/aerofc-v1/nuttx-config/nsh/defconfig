@@ -670,8 +670,8 @@ CONFIG_RAM_SIZE=262144
 #
 # Board Selection
 #
-CONFIG_ARCH_BOARD_AEROFC_V1=y
-CONFIG_ARCH_BOARD="intelaerofc-v1"
+CONFIG_ARCH_BOARD_INTEL_AEROFC_V1=y
+CONFIG_ARCH_BOARD="intel_aerofc-v1"
 
 #
 # Common Board Options

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4cannode_buttons.c
+ * @file px4_cannode_buttons.c
  *
  * PX4CANNODE- Buttons
  */

@@ -1,5 +1,5 @@
 /****************************************************************************
- * nuttx-configs/px4cannode-v1/scripts/ld.script
+ * nuttx-configs/px4_cannode-v1/scripts/ld.script
  *
  *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
