@@ -2008,7 +2008,7 @@ PX4IO::io_reg_modify(uint8_t page, uint8_t offset, uint16_t clearbits, uint16_t 
 int
 PX4IO::print_debug()
 {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+#ifdef CONFIG_ARCH_BOARD_PX4_FMU_V2
 	int io_fd = -1;
 
 	if (io_fd <= 0) {

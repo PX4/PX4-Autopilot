@@ -18,8 +18,8 @@ pipeline {
             snapdragon: "lorenzmeier/px4-dev-snapdragon:2018-09-12"
           ]
 
-          // MAC OSX px4sitl_default
-          build_nodes["px4sitl_default (OSX)"] = {
+          // MAC OSX px4_sitl_default
+          build_nodes["px4_sitl_default (OSX)"] = {
             node("mac") {
               withEnv(["CCACHE_BASEDIR=${pwd()}"]) {
                 stage("sitl (OSX)") {
@@ -28,7 +28,7 @@ pipeline {
                     sh('export')
                     sh('make distclean')
                     sh('ccache -z')
-                    sh('make px4sitl_default')
+                    sh('make px4_sitl_default')
                     sh('ccache -s')
                     sh('make tests')
                   }
@@ -43,17 +43,17 @@ pipeline {
             }
           }
 
-          // MAC OSX px4fmu-v4pro_default
-          build_nodes["px4fmu-v4pro_default (OSX)"] = {
+          // MAC OSX px4_fmu-v4pro_default
+          build_nodes["px4_fmu-v4pro_default (OSX)"] = {
             node("mac") {
               withEnv(["CCACHE_BASEDIR=${pwd()}"]) {
-                stage("px4fmu-v4pro (OSX)") {
+                stage("px4_fmu-v4pro (OSX)") {
                   try {
                     checkout(scm)
                     sh('export')
                     sh('make distclean')
                     sh('ccache -z')
-                    sh('make px4fmu-v4pro_default')
+                    sh('make px4_fmu-v4pro_default')
                     sh('ccache -s')
                   }
                   catch (exc) {
@@ -69,46 +69,46 @@ pipeline {
 
           // docker builds:
           def arch_builds = [
-            target: ["px4sitl_default"],
+            target: ["px4_sitl_default"],
             image: docker_images.arch,
             archive: false
           ]
 
           def armhf_builds = [
-            target: ["aerotennaocpoc_ubuntu"],
+            target: ["aerotenna_ocpoc_ubuntu"],
             image: docker_images.armhf,
             archive: false
           ]
 
           def base_builds = [
-            target: ["px4sitl_rtps"],
+            target: ["px4_sitl_rtps"],
             image: docker_images.base,
             archive: false
           ]
 
           def nuttx_builds_archive = [
-            target: ["px4fmu-v2_default", "px4fmu-v3_default", "px4fmu-v4_default", "px4fmu-v4pro_default", "px4fmu-v5_default", "px4fmu-v5_rtps", "px4fmu-v5_stackcheck",
-                     "intelaerofc-v1_default", "gumstixaerocore2_default", "auavx21_default", "avx-v1_default", "bitcrazecrazyflie_default", "airmindmindpx-v2_default",
-                     "nxphlite-v3_default", "omnibusf4sd_default"],
+            target: ["px4_fmu-v2_default", "px4_fmu-v3_default", "px4_fmu-v4_default", "px4_fmu-v4pro_default", "px4_fmu-v5_default", "px4_fmu-v5_rtps", "px4_fmu-v5_stackcheck",
+                     "intel_aerofc-v1_default", "gumstix_aerocore2_default", "auav_x21_default", "av_x-v1_default", "bitcraze_crazyflie_default", "airmind_mindpx-v2_default",
+                     "nxp_hlite-v3_default", "omnibus_f4sd_default"],
             image: docker_images.nuttx,
             archive: true
           ]
 
           def nuttx_builds_other = [
-            target: ["atmelsame70xplained_default", "stm32f4discovery_default", "px4cannode-v1_default",
-                     "px4esc-v1_default", "stmnucleo-F767ZI_default", "thiemars2740vc-v1_default"],
+            target: ["atmel_same70xplained_default", "stm_32f4discovery_default", "px4_cannode-v1_default",
+                     "px4_esc-v1_default", "stm_nucleo-F767ZI_default", "thiemar_s2740vc-v1_default"],
             image: docker_images.nuttx,
             archive: false
           ]
 
           def rpi_builds = [
-            target: ["emlidnavio2_cross", "parrotbebop_default"],
+            target: ["emlid_navio2_cross", "parrot_bebop_default"],
             image: docker_images.rpi,
             archive: false
           ]
 
           def snapdragon_builds = [
-            target: ["atlflighteagle_qurt-default", "atlflighteagle_default"],
+            target: ["atlflight_eagle_qurt-default", "atlflight_eagle_default"],
             image: docker_images.snapdragon,
             archive: false
           ]

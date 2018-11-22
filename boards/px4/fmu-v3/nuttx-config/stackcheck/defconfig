@@ -687,8 +687,8 @@ CONFIG_RAM_SIZE=262144
 #
 # Board Selection
 #
-CONFIG_ARCH_BOARD_PX4FMU_V3=y
-CONFIG_ARCH_BOARD="px4fmu-v3"
+CONFIG_ARCH_BOARD_PX4_FMU_V3=y
+CONFIG_ARCH_BOARD="px4_fmu-v3"
 
 #
 # Custom Board Configuration

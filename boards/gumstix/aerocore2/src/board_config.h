@@ -200,7 +200,7 @@
 #define HRT_TIMER		8	/* use timer8 for the HRT */
 #define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
 
-#define BOARD_NAME "AEROCORE2"
+#define BOARD_NAME "GUMSTIX_AEROCORE2"
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 

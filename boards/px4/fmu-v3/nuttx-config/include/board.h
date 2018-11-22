@@ -1,5 +1,5 @@
 /************************************************************************************
- * nuttx-configs/px4fmu-v3/include/board.h
+ * nuttx-configs/px4_fmu-v3/include/board.h
  * include/arch/board/board.h
  *
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.

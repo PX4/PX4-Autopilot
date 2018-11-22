@@ -652,8 +652,8 @@ CONFIG_RAM_SIZE=196608
 #
 # Board Selection
 #
-CONFIG_ARCH_BOARD_CRAZYFLIE=y
-CONFIG_ARCH_BOARD="bitcrazecrazyflie"
+CONFIG_ARCH_BOARD_BITCRAZE_CRAZYFLIE=y
+CONFIG_ARCH_BOARD="bitcraze_crazyflie"
 
 #
 # Custom Board Configuration

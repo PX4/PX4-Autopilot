@@ -21,7 +21,7 @@ px4_posix_generate_alias(
 	PREFIX ${PX4_SHELL_COMMAND_PREFIX}
 )
 
-if (("${PX4_BOARD}" STREQUAL "atlflighteagle") OR ("${PX4_BOARD}" STREQUAL "atlflightexcelsior"))
+if (("${PX4_BOARD}" STREQUAL "atlflight_eagle") OR ("${PX4_BOARD}" STREQUAL "atlflight_excelsior"))
 	include(fastrpc)
 	include(linux_app)
 
@@ -109,7 +109,7 @@ if (("${PX4_BOARD}" MATCHES "raspberrypi") OR ("${PX4_BOARD}" MATCHES "navio2"))
 		USES_TERMINAL
 		)
 
-elseif ("${PX4_BOARD}" MATCHES "bbblue")
+elseif ("${PX4_BOARD}" MATCHES "beaglebone_blue")
 	target_link_libraries(px4 PRIVATE robotcontrol)
 
 	add_custom_target(upload
@@ -178,9 +178,9 @@ elseif ("${PX4_BOARD}" MATCHES "sitl")
 	# sitl_gazebo built plugins
 	install(
 		DIRECTORY
-			${PROJECT_SOURCE_DIR}/build/px4sitl_default/build_gazebo
+			${PROJECT_SOURCE_DIR}/build/px4_sitl_default/build_gazebo
 		DESTINATION
-			${PROJECT_NAME}/build/px4sitl_default
+			${PROJECT_NAME}/build/px4_sitl_default
 		FILES_MATCHING
 			PATTERN "CMakeFiles" EXCLUDE
 			PATTERN "*.so"

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4cannode_init.c
+ * @file px4_cannode_init.c
  *
  * PX4CANNODE-specific early startup code.  This file implements the
  * board_app_initialize() function that is called early by nsh during startup.

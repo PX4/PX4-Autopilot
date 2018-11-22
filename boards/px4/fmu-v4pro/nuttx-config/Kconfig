@@ -3,7 +3,7 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-if ARCH_BOARD_PX4FMU_V4PRO
+if ARCH_BOARD_PX4_FMU_V4PRO
 
 config BOARD_HAS_PROBES
 	bool "Board provides GPIO or other Hardware for signaling to timing analyze."

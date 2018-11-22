@@ -574,8 +574,8 @@ CONFIG_RAM_SIZE=20480
 #
 # Board Selection
 #
-CONFIG_ARCH_BOARD_PX4CANNODE_V1=y
-CONFIG_ARCH_BOARD="px4cannode-v1"
+CONFIG_ARCH_BOARD_PX4_CANNODE_V1=y
+CONFIG_ARCH_BOARD="px4_cannode-v1"
 
 #
 # Custom Board Configuration

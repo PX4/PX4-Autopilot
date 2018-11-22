@@ -533,8 +533,8 @@ CONFIG_RAM_SIZE=376832
 #
 # Board Selection
 #
-CONFIG_ARCH_BOARD_AVX_V1=y
-CONFIG_ARCH_BOARD="avx-v1"
+CONFIG_ARCH_BOARD_AV_X_V1=y
+CONFIG_ARCH_BOARD="av_x-v1"
 
 #
 # Common Board Options

@@ -559,8 +559,8 @@ CONFIG_RAM_SIZE=131072
 #
 # Board Selection
 #
-CONFIG_ARCH_BOARD_AUAVESC35_V1=y
-CONFIG_ARCH_BOARD="auavesc35-v1"
+CONFIG_ARCH_BOARD_AUAV_ESC35_V1=y
+CONFIG_ARCH_BOARD="auav_esc35-v1"
 
 #
 # Custom Board Configuration

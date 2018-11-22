@@ -81,7 +81,7 @@
 #define HRT_TIMER		8	/* use timer8 for the HRT */
 #define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
 
-#define BOARD_NAME "PX4_STM32F4DISCOVERY"
+#define BOARD_NAME "STM_32F4DISCOVERY"
 
 __BEGIN_DECLS
 

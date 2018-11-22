@@ -5,13 +5,13 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-if ! ver hwcmp AEROFC_V1
+if ! ver hwcmp INTEL_AEROFC_V1
 then
 	# Start MAVLink on the USB port
 	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 fi
 
-if ver hwcmp PX4FMU_V4
+if ver hwcmp PX4_FMU_V4
 then
 	# Pixracer: start MAVLink on Wifi (ESP8266 port)
 	mavlink start -r 20000 -b 921600 -d /dev/ttyS0

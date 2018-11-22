@@ -255,7 +255,7 @@
 #  else
 /*  Use PX4IO FW search paths defaults based on version */
 #    if BOARD_USES_PX4IO_VERSION == 2
-#      define PX4IO_FW_SEARCH_PATHS {"/etc/extras/px4io-v2_default.bin", "/fs/microsd/px4io2.bin", "/fs/microsd/px4io.bin", nullptr }
+#      define PX4IO_FW_SEARCH_PATHS {"/etc/extras/px4_io-v2_default.bin", "/fs/microsd/px4io2.bin", "/fs/microsd/px4io.bin", nullptr }
 #    endif
 #  endif
 #endif

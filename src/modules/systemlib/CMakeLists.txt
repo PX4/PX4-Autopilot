@@ -51,7 +51,7 @@ else()
 endif()
 
 # TODO: find a better way to do this
-if (NOT "${PX4_BOARD}" MATCHES "px4io")
+if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 	px4_add_library(systemlib ${SRCS})
 else()
 	add_library(systemlib ${PX4_SOURCE_DIR}/src/platforms/empty.c)

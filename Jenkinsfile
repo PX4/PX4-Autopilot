@@ -50,7 +50,7 @@ pipeline {
           }
         }
 
-        stage('Bloaty px4fmu-v2') {
+        stage('Bloaty px4_fmu-v2') {
           agent {
             docker {
               image 'px4io/px4-dev-nuttx:2018-11-22'
@@ -62,12 +62,12 @@ pipeline {
             sh 'make distclean'
             sh 'ccache -z'
             sh 'git fetch --tags'
-            sh 'make px4fmu-v2_default'
-            sh 'make px4fmu-v2_default bloaty_symbols'
-            sh 'make px4fmu-v2_default bloaty_compileunits'
-            sh 'make px4fmu-v2_default bloaty_inlines'
-            sh 'make px4fmu-v2_default bloaty_templates'
-            sh 'make px4fmu-v2_default bloaty_compare_master'
+            sh 'make px4_fmu-v2_default'
+            sh 'make px4_fmu-v2_default bloaty_symbols'
+            sh 'make px4_fmu-v2_default bloaty_compileunits'
+            sh 'make px4_fmu-v2_default bloaty_inlines'
+            sh 'make px4_fmu-v2_default bloaty_templates'
+            sh 'make px4_fmu-v2_default bloaty_compare_master'
             sh 'make sizes'
             sh 'ccache -s'
           }
@@ -78,7 +78,7 @@ pipeline {
           }
         }
 
-        stage('Bloaty px4fmu-v5') {
+        stage('Bloaty px4_fmu-v5') {
           agent {
             docker {
               image 'px4io/px4-dev-nuttx:2018-11-22'
@@ -90,12 +90,12 @@ pipeline {
             sh 'make distclean'
             sh 'ccache -z'
             sh 'git fetch --tags'
-            sh 'make px4fmu-v5_default'
-            sh 'make px4fmu-v5_default bloaty_symbols'
-            sh 'make px4fmu-v5_default bloaty_compileunits'
-            sh 'make px4fmu-v5_default bloaty_inlines'
-            sh 'make px4fmu-v5_default bloaty_templates'
-            sh 'make px4fmu-v5_default bloaty_compare_master'
+            sh 'make px4_fmu-v5_default'
+            sh 'make px4_fmu-v5_default bloaty_symbols'
+            sh 'make px4_fmu-v5_default bloaty_compileunits'
+            sh 'make px4_fmu-v5_default bloaty_inlines'
+            sh 'make px4_fmu-v5_default bloaty_templates'
+            sh 'make px4_fmu-v5_default bloaty_compare_master'
             sh 'make sizes'
             sh 'ccache -s'
           }
@@ -211,7 +211,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'make px4fmu-v2_default stack_check'
+            sh 'make px4_fmu-v2_default stack_check'
           }
           post {
             always {
@@ -272,7 +272,7 @@ pipeline {
           steps {
             sh 'make distclean'
             sh 'make airframe_metadata'
-            dir('build/px4sitl_default/docs') {
+            dir('build/px4_sitl_default/docs') {
               archiveArtifacts(artifacts: 'airframes.md, airframes.xml')
               stash includes: 'airframes.md, airframes.xml', name: 'metadata_airframes'
             }
@@ -291,7 +291,7 @@ pipeline {
           steps {
             sh 'make distclean'
             sh 'make parameters_metadata'
-            dir('build/px4sitl_default/docs') {
+            dir('build/px4_sitl_default/docs') {
               archiveArtifacts(artifacts: 'parameters.md, parameters.xml')
               stash includes: 'parameters.md, parameters.xml', name: 'metadata_parameters'
             }
@@ -310,7 +310,7 @@ pipeline {
           steps {
             sh 'make distclean'
             sh 'make module_documentation'
-            dir('build/px4sitl_default/docs') {
+            dir('build/px4_sitl_default/docs') {
               archiveArtifacts(artifacts: 'modules/*.md')
               stash includes: 'modules/*.md', name: 'metadata_module_documentation'
             }
@@ -334,8 +334,8 @@ pipeline {
             sh 'make distclean'
             sh 'make uorb_graphs'
             dir('Tools/uorb_graph') {
-              archiveArtifacts(artifacts: 'graph_px4sitl.json')
-              stash includes: 'graph_px4sitl.json', name: 'uorb_graph'
+              archiveArtifacts(artifacts: 'graph_px4_sitl.json')
+              stash includes: 'graph_px4_sitl.json', name: 'uorb_graph'
             }
           }
           post {

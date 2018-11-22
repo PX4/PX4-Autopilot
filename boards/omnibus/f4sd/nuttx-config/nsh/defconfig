@@ -662,8 +662,8 @@ CONFIG_RAM_SIZE=196608
 #
 # Board Selection
 #
-CONFIG_ARCH_BOARD_OMNIBUSF4SD=y
-CONFIG_ARCH_BOARD="omnibusf4sd"
+CONFIG_ARCH_BOARD_OMNIBUS_F4SD=y
+CONFIG_ARCH_BOARD="omnibus_f4sd"
 
 #
 # Custom Board Configuration
