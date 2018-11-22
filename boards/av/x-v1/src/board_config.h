@@ -337,8 +337,6 @@
 #  warning SDIO initialization cannot be perfomed on the IDLE thread
 #endif
 
-#define	BOARD_NAME "AV_X_V1"
-
 /* AV-X_V1 never powers off the Servo rail */
 
 #define BOARD_ADC_SERVO_VALID     (1)

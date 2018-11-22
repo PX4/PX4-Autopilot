@@ -602,8 +602,6 @@
 #  warning SDIO initialization cannot be perfomed on the IDLE thread
 #endif
 
-#define  BOARD_NAME "PX4_FMU_V5"
-
 /* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
  * this board support the ADC system_power interface, and therefore
  * provides the true logic GPIO BOARD_ADC_xxxx macros.

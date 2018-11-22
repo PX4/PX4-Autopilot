@@ -391,9 +391,6 @@ __BEGIN_DECLS
 #define PWMIN_TIMER_CHANNEL	2
 #define GPIO_PWM_IN		GPIO_FTM0_CH2IN
 
-#define BOARD_NAME "NXP_HLITE_V3"
-
-
 /* Define True logic Power Control in arch agnostic form */
 
 #define VDD_ETH_EN(on_true)                px4_arch_gpiowrite(nGPIO_ETHERNET_P_EN, !(on_true))

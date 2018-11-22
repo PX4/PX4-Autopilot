@@ -80,8 +80,6 @@
 			 GPIO_PORTB | GPIO_PIN6 | GPIO_OUTPUT_CLEAR)
 
 
-#define BOARD_NAME "THIEMAR_S2740VC_V1"
-
 __BEGIN_DECLS
 
 /************************************************************************************

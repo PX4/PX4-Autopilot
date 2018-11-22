@@ -75,7 +75,16 @@ if (DEFINED ENV{BUILD_URI})
 endif()
 
 add_library(version version.c)
-target_compile_definitions(version PRIVATE BUILD_URI=${BUILD_URI})
+
+string(TOUPPER "${PX4_BOARD}" PX4_BOARD_NAME)
+
+target_compile_definitions(version
+	PUBLIC
+		PX4_BOARD_NAME="${PX4_BOARD_NAME}"
+	PRIVATE
+		BUILD_URI=${BUILD_URI}
+	)
+
 target_link_libraries(version PRIVATE git_ver)
 target_link_libraries(version PRIVATE drivers_board)
 add_dependencies(version prebuild_targets)
