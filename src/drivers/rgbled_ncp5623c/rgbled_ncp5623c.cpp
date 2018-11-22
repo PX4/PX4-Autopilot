@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,9 +32,11 @@
  ****************************************************************************/
 
 /**
- * @file rgbled.cpp
+ * @file rgbled_ncp5623c.cpp
  *
  * Driver for the onboard RGB LED controller (NCP5623C) connected via I2C.
+ *
+ * @author CUAVcaijie <caijie@cuav.net>
  */
 
 #include <px4_config.h>
@@ -64,15 +66,15 @@
 
 #include "uORB/topics/parameter_update.h"
 
-#define ADDR				 0x39	    /**< I2C adress of NCP5623C */
+#define ADDR			0x39	/**< I2C adress of NCP5623C */
 
-#define NCP5623_LED_CURRENT  0x20    // Current register
-#define NCP5623_LED_PWM0     0x40    // pwm0 register
-#define NCP5623_LED_PWM1     0x60    // pwm1 register
-#define NCP5623_LED_PWM2     0x80    // pwm2 register
+#define NCP5623_LED_CURRENT	0x20	/**< Current register */
+#define NCP5623_LED_PWM0	0x40	/**< pwm0 register */
+#define NCP5623_LED_PWM1	0x60	/**< pwm1 register */
+#define NCP5623_LED_PWM2	0x80	/**< pwm2 register */
 
-#define NCP5623_LED_BRIGHT  0x1f    // full brightness
-#define NCP5623_LED_OFF     0x00    // off
+#define NCP5623_LED_BRIGHT	0x1f	/**< full brightness */
+#define NCP5623_LED_OFF		0x00	/**< off */
 
 
 class RGBLED_NPC5623C : public device::I2C
@@ -104,9 +106,9 @@ private:
 	void			led();
 
 	int			send_led_rgb();
-	void		update_params();
+	void			update_params();
 
-	int write(uint8_t reg, uint8_t data);
+	int			write(uint8_t reg, uint8_t data);
 };
 
 /* for now, we only support one RGBLED */
@@ -148,12 +150,14 @@ RGBLED_NPC5623C::~RGBLED_NPC5623C()
 	}
 }
 
-int RGBLED_NPC5623C::write(uint8_t reg, uint8_t data)
+int
+RGBLED_NPC5623C::write(uint8_t reg, uint8_t data)
 {
 	uint8_t msg[1] = { 0x00 };
 	msg[0] = ((reg & 0xe0) | (data & 0x1f));
 
 	int ret = transfer(&msg[0], 1, nullptr, 0);
+
 	return ret;
 }
 
@@ -171,6 +175,7 @@ RGBLED_NPC5623C::init()
 
 	_running = true;
 	work_queue(LPWORK, &_work, (worker_t)&RGBLED_NPC5623C::led_trampoline, this, 0);
+
 	return OK;
 }
 
@@ -181,6 +186,7 @@ RGBLED_NPC5623C::probe()
 
 	return write(NCP5623_LED_CURRENT, 0x00);
 }
+
 void
 RGBLED_NPC5623C::led_trampoline(void *arg)
 {
@@ -296,9 +302,7 @@ RGBLED_NPC5623C::send_led_rgb()
 	msg[6] = NCP5623_LED_PWM2 | (uint8_t(_b * _brightness) & 0x1f);
 
 	return transfer(&msg[0], 7, nullptr, 0);
-	return 0;
 }
-
 
 void
 RGBLED_NPC5623C::update_params()
