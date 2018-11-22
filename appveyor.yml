@@ -41,7 +41,7 @@ build_script:
 # fetch all submodules in parallel
 - call bash --login -c "cd $repopath && git submodule -q update --init --recursive --jobs=10"
 # make SITL
-- call bash --login -c "cd $repopath && make posix"
+- call bash --login -c "cd $repopath && make px4_sitl_default"
 # make pixracer to check NuttX build
 - call bash --login -c "cd $repopath && make px4_fmu-v4_default"
 # run tests
