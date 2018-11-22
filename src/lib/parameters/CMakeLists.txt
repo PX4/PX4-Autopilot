@@ -125,7 +125,7 @@ if(${PX4_PLATFORM} STREQUAL "nuttx")
 endif()
 
 # TODO: find a better way to do this
-if (NOT "${PX4_BOARD}" MATCHES "px4io")
+if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 	add_library(parameters
 		${SRCS}
 		px4_parameters.c

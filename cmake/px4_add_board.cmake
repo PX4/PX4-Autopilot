@@ -62,7 +62,7 @@ include(px4_base)
 #
 #	Example:
 #		px4_add_board(
-#			BOARD px4fmu-v2_default
+#			BOARD px4_fmu-v2_default
 #			OS nuttx
 #			)
 #
@@ -107,7 +107,7 @@ function(px4_add_board)
 	if(BOARD_OVERRIDE)
 		set(PX4_BOARD ${BOARD_OVERRIDE} CACHE STRING "PX4 board" FORCE)
 	else()
-		set(PX4_BOARD ${VENDOR}${MODEL} CACHE STRING "PX4 board" FORCE)
+		set(PX4_BOARD ${VENDOR}_${MODEL} CACHE STRING "PX4 board" FORCE)
 	endif()
 
 	if(LABEL)

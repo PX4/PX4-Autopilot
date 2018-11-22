@@ -71,7 +71,7 @@ set FEXTRAS /fs/microsd/etc/extras.txt
 set FRC /fs/microsd/etc/rc.txt
 set FMU_ARGS ""
 set FMU_MODE pwm
-set IOFW "/etc/extras/px4io-v2_default.bin"
+set IOFW "/etc/extras/px4_io-v2_default.bin"
 set IO_PRESENT no
 set LOG_FILE /fs/microsd/bootlog.txt
 set MAV_TYPE none
@@ -160,7 +160,7 @@ else
 fi
 
 # AEROCORE2 shouldn't have an sd card and CF2 may optionally have an sd card.
-if ! ver hwcmp CRAZYFLIE AEROCORE2
+if ! ver hwcmp BITCRAZE_CRAZYFLIE GUMSTIX_AEROCORE2
 then
 	# Run no SD alarm.
 	if [ $LOG_FILE = /dev/null ]
@@ -214,7 +214,7 @@ else
 	#
 	# Bootloader upgrade
 	#
-	if ver hwcmp PX4FMU_V2
+	if ver hwcmp PX4_FMU_V2
 	then
 		set BL_FILE /etc/extras/px4fmuv3_bl.bin
 		if [ -f $BL_FILE ]
@@ -275,12 +275,12 @@ else
 	#               Begin setup for board specific configurations.                #
 	###############################################################################
 
-	if ver hwcmp AEROCORE2
+	if ver hwcmp GUMSTIX_AEROCORE2
 	then
 		set DATAMAN_OPT "-f /fs/mtd_dataman"
 	fi
 
-	if ver hwcmp AEROFC_V1
+	if ver hwcmp INTEL_AEROFC_V1
 	then
 		if param compare SYS_AUTOSTART 0
 		then
@@ -294,7 +294,7 @@ else
 		set DATAMAN_OPT -i
 	fi
 
-	if ver hwcmp CRAZYFLIE
+	if ver hwcmp BITCRAZE_CRAZYFLIE
 	then
 		if param compare SYS_AUTOSTART 0
 		then
@@ -303,7 +303,7 @@ else
 		fi
 	fi
 
-	if ver hwcmp NXPHLITE_V3
+	if ver hwcmp NXP_HLITE_V3
 	then
 		param set SYS_FMU_TASK 1
 	fi
@@ -340,13 +340,13 @@ else
 	if [ $AUTOCNF = yes ]
 	then
 		# Run FMU as task on Pixracer and on boards with enough RAM.
-		if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO PX4FMU_V5
+		if ver hwcmp PX4_FMU_V4 PX4_FMU_V4PRO PX4_FMU_V5
 		then
 			param set SYS_FMU_TASK 1
 		fi
 
 		# Disable safety switch by default on Pixracer and OmnibusF4SD.
-		if ver hwcmp PX4FMU_V4 OMNIBUS_F4SD
+		if ver hwcmp PX4_FMU_V4 OMNIBUS_F4SD
 		then
 			param set CBRK_IO_SAFETY 22027
 		fi
@@ -515,7 +515,7 @@ else
 	#
 	sh /etc/init.d/rc.serial
 
-	if ver hwcmp PX4FMU_V4
+	if ver hwcmp PX4_FMU_V4
 	then
 		# Run FrSky Telemetry on Pixracer on the FrSky port if not enabled already
 		if param compare TEL_FRSKY_CONFIG 0
@@ -565,7 +565,7 @@ else
 	#
 	# Launch the flow sensor as a background task.
 	#
-	if ver hwcmp PX4FMU_V2 PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2 PX4FMU_V5 OMNIBUS_F4SD
+	if ver hwcmp PX4_FMU_V2 PX4_FMU_V4 PX4_FMU_V4PRO AIRMIND_MINDPX_V2 PX4_FMU_V5 OMNIBUS_F4SD
 	then
 		px4flow start &
 	fi

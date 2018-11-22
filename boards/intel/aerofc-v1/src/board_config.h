@@ -129,7 +129,7 @@
 #define HRT_TIMER		3	/* use timer3 for the HRT */
 #define HRT_TIMER_CHANNEL	4	/* use capture/compare channel */
 
-#define	BOARD_NAME "AEROFC_V1"
+#define	BOARD_NAME "INTEL_AEROFC_V1"
 
 #define  FLASH_BASED_PARAMS
 #define  FLASH_BASED_DATAMAN

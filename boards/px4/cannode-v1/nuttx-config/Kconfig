@@ -3,7 +3,7 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-if CONFIG_ARCH_BOARD_PX4CANNODE_V1
+if CONFIG_ARCH_BOARD_PX4_CANNODE_V1
 
 config BOARD_HAS_PROBES
 	bool "Board provides GPIO or other Hardware for signaling to timing analyze."

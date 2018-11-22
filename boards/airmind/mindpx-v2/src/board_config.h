@@ -293,7 +293,7 @@
 #define SPEKTRUM_RX_AS_UART()         px4_arch_configgpio(GPIO_USART1_RX)
 #define SPEKTRUM_OUT(_one_true)       px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
-#define BOARD_NAME "MINDPX_V2"
+#define BOARD_NAME "AIRMIND_MINDPX_V2"
 
 /* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
  * this board support the ADC system_power interface, and therefore

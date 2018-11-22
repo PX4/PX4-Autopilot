@@ -132,7 +132,7 @@ define_property(GLOBAL PROPERTY PX4_MODULE_PATHS
 # configuration
 #
 
-set(CONFIG "px4sitl_default" CACHE STRING "desired configuration")
+set(CONFIG "px4_sitl_default" CACHE STRING "desired configuration")
 
 set(config_module_list)
 set(config_df_driver_list)
@@ -173,8 +173,8 @@ if(NOT PX4_CONFIG_FILE)
 				break()
 			endif()
 
-			# <BOARD>_<LABEL> (eg px4fmu-v2_default)
-			# <BOARD>_default (eg px4fmu-v2) # allow skipping label if "default"
+			# <BOARD>_<LABEL> (eg px4_fmu-v2_default)
+			# <BOARD>_default (eg px4_fmu-v2) # allow skipping label if "default"
 			if ((${CONFIG} MATCHES "${board}_${label}") OR # match full board, label
 			    ((${label} STREQUAL "default") AND (${CONFIG} STREQUAL "${board}")) # default label can be omitted
 			)
@@ -184,7 +184,7 @@ if(NOT PX4_CONFIG_FILE)
 
 
 			# LEGACY form
-			# <OS>_<BOARD>_<LABEL> (eg nuttx_px4fmu-v2_default)
+			# <OS>_<BOARD>_<LABEL> (eg nuttx_px4_fmu-v2_default)
 			string(REGEX REPLACE "^nuttx_|^posix_|^qurt_" "" config_no_os ${CONFIG}) # ignore OS prefix
 
 			if ((${config_no_os} MATCHES "${board}_${label}"))
@@ -212,7 +212,7 @@ endif()
 message(STATUS "PX4 config file: ${PX4_CONFIG_FILE}")
 include(px4_add_board)
 include(${PX4_CONFIG_FILE})
-message(STATUS "PX4 config: ${PX4_BOARD_VENDOR} ${PX4_BOARD_MODEL} ${PX4_BOARD_LABEL}")
+message(STATUS "PX4 config: ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}")
 message(STATUS "PX4 platform: ${PX4_PLATFORM}")
 
 # external modules

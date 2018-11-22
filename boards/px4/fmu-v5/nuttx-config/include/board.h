@@ -1,5 +1,5 @@
 /************************************************************************************
- * nuttx-configs/px4fmu-v5/include/board.h
+ * nuttx-configs/px4_fmu-v5/include/board.h
  *
  *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
  *   Authors: David Sidrane <david_s5@nscdg.com>
@@ -32,8 +32,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ************************************************************************************/
-#ifndef __NUTTX_CONFIG_PX4FMU_V5_INCLUDE_BOARD_H
-#define __NUTTX_CONFIG_PX4FMU_V5_INCLUDE_BOARD_H
+#ifndef __NUTTX_CONFIG_PX4_FMU_V5_INCLUDE_BOARD_H
+#define __NUTTX_CONFIG_PX4_FMU_V5_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -53,7 +53,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The px4fmu-v5  board provides the following clock sources:
+/* The px4_fmu-v5  board provides the following clock sources:
  *
  *   X301: 16 MHz crystal for HSE
  *
@@ -271,7 +271,7 @@
 #define BOARD_FLASH_WAITSTATES 7
 
 /* LED definitions ******************************************************************/
-/* The px4fmu-v5 board has numerous LEDs but only three, LED_GREEN a Green LED, LED_BLUE
+/* The px4_fmu-v5 board has numerous LEDs but only three, LED_GREEN a Green LED, LED_BLUE
  * a Blue LED and LED_RED a Red LED, that can be controlled by software.
  *
  * If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any way.
@@ -570,4 +570,4 @@ void stm32_boardinitialize(void);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif  /*__NUTTX_CONFIG_PX4FMU_V5_INCLUDE_BOARD_H  */
+#endif  /*__NUTTX_CONFIG_PX4_FMU_V5_INCLUDE_BOARD_H  */

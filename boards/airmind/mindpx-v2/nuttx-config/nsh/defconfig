@@ -687,8 +687,8 @@ CONFIG_RAM_SIZE=262144
 #
 # Board Selection
 #
-CONFIG_ARCH_BOARD_MINDPX_V2=y
-CONFIG_ARCH_BOARD="airmindmindpx-v2"
+CONFIG_ARCH_BOARD_AIRMIND_MINDPX_V2=y
+CONFIG_ARCH_BOARD="airmind_mindpx-v2"
 
 #
 # Custom Board Configuration

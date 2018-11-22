@@ -25,8 +25,8 @@ add_definitions(
 
 include(px4_make_uavcan_bootloader)
 px4_make_uavcan_bootloadable(
-	BOARD px4cannode-v1
-	BIN ${PX4_BINARY_DIR}/px4cannode-v1.bin
+	BOARD px4_cannode-v1
+	BIN ${PX4_BINARY_DIR}/px4_cannode-v1.bin
 	HWNAME ${uavcanblid_name}
 	HW_MAJOR ${uavcanblid_hw_version_major}
 	HW_MINOR ${uavcanblid_hw_version_minor}

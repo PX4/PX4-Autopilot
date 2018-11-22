@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4cannode_led.c
+ * @file px4_cannode_led.c
  *
  * PX4ESC LED backend.
  */

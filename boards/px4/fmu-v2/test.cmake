@@ -7,7 +7,7 @@ px4_add_board(
 	ARCH cortex-m4
 	ROMFS
 	ROMFSROOT px4fmu_test
-	IO px4io-v2_default
+	IO px4_io-v2_default
 	TESTING
 	#UAVCAN_INTERFACES 2
 

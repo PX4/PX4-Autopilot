@@ -450,7 +450,7 @@
 #define PWMIN_TIMER_CHANNEL	2
 #define GPIO_PWM_IN		GPIO_TIM4_CH2IN_2
 
-#define BOARD_NAME "PX4FMU_V2"
+#define BOARD_NAME "PX4_FMU_V2"
 
 /* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
  * this board support the ADC system_power interface, and therefore

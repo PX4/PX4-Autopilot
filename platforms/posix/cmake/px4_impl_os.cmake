@@ -403,7 +403,7 @@ function(px4_os_add_flags)
 		# TODO: Wmissing-field-initializers ignored on older toolchain, can be removed eventually
 		list(APPEND added_cxx_flags -Wno-missing-field-initializers)
 
-	elseif ("${PX4_BOARD}" MATCHES "ocpoc")
+	elseif ("${PX4_BOARD}" MATCHES "aerotenna_ocpoc")
 
 		add_definitions(
 			-D__PX4_POSIX_OCPOC
@@ -412,7 +412,7 @@ function(px4_os_add_flags)
 			-D__PX4_POSIX
 		)
 
-	elseif ("${PX4_BOARD}" STREQUAL "bbblue")
+	elseif ("${PX4_BOARD}" STREQUAL "beaglebone_blue")
 
 		add_definitions(
 			-D__PX4_POSIX_BBBLUE
@@ -473,7 +473,7 @@ endfunction()
 #		OUT	: the target list
 #
 #	Example:
-#		px4_os_prebuild_targets(OUT target_list BOARD px4fmu-v2)
+#		px4_os_prebuild_targets(OUT target_list BOARD px4_fmu-v2)
 #
 function(px4_os_prebuild_targets)
 	px4_parse_function_args(

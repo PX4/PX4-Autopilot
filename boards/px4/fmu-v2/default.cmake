@@ -8,7 +8,7 @@ px4_add_board(
 	ROMFS
 	ROMFSROOT px4fmu_common
 	BOOTLOADER ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/extras/px4fmuv3_bl.bin
-	IO px4io-v2_default
+	IO px4_io-v2_default
 	#TESTING
 	CONSTRAINED_FLASH
 	#UAVCAN_INTERFACES 2

@@ -1,5 +1,5 @@
 /************************************************************************************
- * configs/px4fmu-v4pro/include/board.h
+ * configs/px4_fmu-v4pro/include/board.h
  * include/arch/board/board.h
  *
  *   Copyright (C) 2009, 2016 Gregory Nutt. All rights reserved.
@@ -261,7 +261,7 @@
 #define BOARD_FLASH_WAITSTATES 5
 
 /* LED definitions ******************************************************************/
-/* The px4fmu-v4pro board has numerous LEDs.
+/* The px4_fmu-v4pro board has numerous LEDs.
  *  FMU_LED_RED, FMU_LED_GREEN & FMU_LED_BLUE are directly connected and
  * can be controlled by software.
  *

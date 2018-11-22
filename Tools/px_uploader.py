@@ -642,14 +642,14 @@ class uploader(object):
                                        % (self.fw_maxsize, fw.property('image_maxsize')))
         else:
             # If we're still on bootloader v4 on a Pixhawk, we don't know if we
-            # have the silicon errata and therefore need to flash px4fmu-v2
-            # with 1MB flash or if it supports px4fmu-v3 with 2MB flash.
+            # have the silicon errata and therefore need to flash px4_fmu-v2
+            # with 1MB flash or if it supports px4_fmu-v3 with 2MB flash.
             if fw.property('board_id') == 9 \
                     and fw.property('image_size') > 1032192 \
                     and not force:
                 raise RuntimeError("\nThe Board uses bootloader revision 4 and can therefore not determine\n"
-                                   "if flashing more than 1 MB (px4fmu-v3_default) is safe, chances are\n"
-                                   "high that it is not safe! If unsure, use px4fmu-v2_default.\n"
+                                   "if flashing more than 1 MB (px4_fmu-v3_default) is safe, chances are\n"
+                                   "high that it is not safe! If unsure, use px4_fmu-v2_default.\n"
                                    "\n"
                                    "If you know you that the board does not have the silicon errata, use\n"
                                    "this script with --force, or update the bootloader. If you are invoking\n"
