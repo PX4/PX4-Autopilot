@@ -134,8 +134,6 @@
 			 GPIO_PORTA | GPIO_PIN1 | GPIO_OUTPUT_CLEAR)
 #define GPIO_LED_BLUE  GPIO_LED3
 
-#define BOARD_NAME "AUAV_ESC35_V1"
-
 __BEGIN_DECLS
 
 /************************************************************************************

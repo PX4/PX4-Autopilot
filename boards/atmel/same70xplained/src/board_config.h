@@ -300,8 +300,6 @@ __BEGIN_DECLS
 #define GPIO_PWM_IN		GPIO_TIM4_CH2IN_2
 #endif
 
-#define BOARD_NAME "ATMEL_SAME70XPLAINED"
-
 /*
  * By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
  * this board support the ADC system_power interface, and therefore

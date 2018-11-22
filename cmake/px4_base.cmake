@@ -233,6 +233,20 @@ function(px4_add_module)
 
 		add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_unity.cpp)
 		target_include_directories(${MODULE} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+		if(DEPENDS)
+			# using target_link_libraries for dependencies provides linking
+			#  as well as interface include and libraries
+			foreach(dep ${DEPENDS})
+				get_target_property(dep_type ${dep} TYPE)
+				if (${dep_type} STREQUAL "STATIC_LIBRARY")
+					target_link_libraries(${MODULE}_original PRIVATE ${dep})
+				else()
+					add_dependencies(${MODULE}_original ${dep})
+				endif()
+			endforeach()
+		endif()
+
 	elseif(DYNAMIC AND MAIN AND (${OS} STREQUAL "posix"))
 		add_library(${MODULE} SHARED ${SRCS})
 		target_compile_definitions(${MODULE} PRIVATE ${MAIN}_main=px4_module_main)

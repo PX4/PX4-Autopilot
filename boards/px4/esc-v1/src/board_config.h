@@ -216,8 +216,6 @@
 #define GPIO_TEST1   (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
 		      GPIO_PORTD | GPIO_PIN2 | GPIO_OUTPUT_CLEAR)
 
-#define BOARD_NAME "PX4_ESC_V1"
-
 __BEGIN_DECLS
 
 /************************************************************************************

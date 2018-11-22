@@ -95,6 +95,7 @@ px4_add_module(
 
 	DEPENDS
 		mixer
+		version
 
 		git_uavcan
 

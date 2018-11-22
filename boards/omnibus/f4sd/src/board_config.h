@@ -252,8 +252,6 @@
 //#define SPEKTRUM_RX_AS_UART()         px4_arch_configgpio(GPIO_USART1_RX)
 //#define SPEKTRUM_OUT(_one_true)       px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
-#define BOARD_NAME "OMNIBUS_F4SD"
-
 #define BOARD_HAS_PWM    DIRECT_PWM_OUTPUT_CHANNELS
 
 #define BOARD_FMU_GPIO_TAB { \
