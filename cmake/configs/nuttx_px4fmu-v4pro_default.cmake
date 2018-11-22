@@ -39,6 +39,7 @@ set(config_module_list
 	drivers/px4fmu
 	drivers/px4io
 	drivers/rgbled
+	drivers/rgbled_ncp5623c
 	drivers/stm32
 	drivers/stm32/adc
 	drivers/stm32/tone_alarm
