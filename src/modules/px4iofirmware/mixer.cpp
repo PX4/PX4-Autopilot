@@ -259,7 +259,7 @@ mixer_tick(void)
 	/*
 	 * Update air-mode parameter
 	 */
-	mixer_group.set_airmode(REG_TO_BOOL(r_setup_airmode));
+	mixer_group.set_airmode((Mixer::Airmode)REG_TO_SIGNED(r_setup_airmode));
 
 
 	/*
