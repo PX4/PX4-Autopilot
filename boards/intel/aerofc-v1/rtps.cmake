@@ -4,6 +4,7 @@ px4_add_board(
 	VENDOR intel
 	MODEL aerofc-v1
 	LABEL rtsp
+	TOOLCHAIN arm-none-eabi
 	ARCH cortex-m4
 	ROMFS
 	ROMFSROOT px4fmu_common

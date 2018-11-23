@@ -3,6 +3,7 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR gumstix
 	MODEL aerocore2
+	TOOLCHAIN arm-none-eabi
 	ARCH cortex-m4
 	ROMFS
 	ROMFSROOT px4fmu_common

@@ -6,6 +6,7 @@ px4_add_board(
 	VENDOR px4
 	MODEL fmu-v3
 	LABEL stackcheck
+	TOOLCHAIN arm-none-eabi
 	ARCH cortex-m4
 	ROMFS
 	ROMFSROOT px4fmu_common

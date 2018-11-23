@@ -4,7 +4,7 @@ px4_add_board(
 	MODEL bebop
 	PLATFORM posix
 	ARCH cortex-a53
-	TOOLCHAIN Toolchain-arm-linux-gnueabihf
+	TOOLCHAIN arm-linux-gnueabihf
 
 	DRIVERS
 		gps

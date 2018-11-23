@@ -40,6 +40,7 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR px4
 	MODEL esc-v1
+	TOOLCHAIN arm-none-eabi
 	ARCH cortex-m4
 
 	DRIVERS

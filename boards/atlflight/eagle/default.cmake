@@ -3,7 +3,10 @@
 
 include(px4_git)
 px4_add_git_submodule(TARGET git_cmake_hexagon PATH "${PX4_SOURCE_DIR}/boards/atlflight/cmake_hexagon")
-list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/boards/atlflight/cmake_hexagon")
+list(APPEND CMAKE_MODULE_PATH
+	"${PX4_SOURCE_DIR}/boards/atlflight/cmake_hexagon"
+	"${PX4_SOURCE_DIR}/boards/atlflight/cmake_hexagon/toolchain"
+	)
 
 # Get $QC_SOC_TARGET from environment if existing.
 if (DEFINED ENV{QC_SOC_TARGET})
@@ -32,8 +35,7 @@ px4_add_board(
 	MODEL eagle
 	LABEL default
 	TESTING
-	TOOLCHAIN
-		toolchain/Toolchain-arm-linux-gnueabihf
+	TOOLCHAIN arm-linux-gnueabihf
 
 	DRIVERS
 		#barometer # all available barometer drivers

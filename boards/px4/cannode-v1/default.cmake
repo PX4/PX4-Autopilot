@@ -38,6 +38,7 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR px4
 	MODEL cannode-v1
+	TOOLCHAIN arm-none-eabi
 	ARCH cortex-m3
 
 	DRIVERS

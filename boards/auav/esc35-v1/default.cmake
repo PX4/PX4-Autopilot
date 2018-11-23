@@ -40,6 +40,7 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR auav
 	MODEL esc35-v1
+	TOOLCHAIN arm-none-eabi
 	ARCH cortex-m4
 
 	DRIVERS
