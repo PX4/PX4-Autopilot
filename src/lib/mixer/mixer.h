@@ -140,6 +140,12 @@
 class __EXPORT Mixer
 {
 public:
+	enum class Airmode : int32_t {
+		disabled = 0,
+		roll_pitch = 1,
+		roll_pitch_yaw = 2
+	};
+
 	/** next mixer in a list */
 	Mixer				*_next;
 
@@ -223,7 +229,7 @@ public:
 	 *
 	 * @param[in]  airmode   Select airmode type (0 = disabled, 1 = roll/pitch, 2 = roll/pitch/yaw)
 	 */
-	virtual void set_airmode(int32_t airmode) {};
+	virtual void set_airmode(Airmode airmode) {};
 
 protected:
 	/** client-supplied callback used when fetching control values */
@@ -419,7 +425,7 @@ public:
 	 */
 	void	set_thrust_factor(float val) override;
 
-	void 	set_airmode(int32_t airmode) override;
+	void 	set_airmode(Airmode airmode) override;
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */
@@ -667,7 +673,7 @@ public:
 	 */
 	void			set_thrust_factor(float val) override { _thrust_factor = val; }
 
-	void 			set_airmode(int32_t airmode) override;
+	void 			set_airmode(Airmode airmode) override;
 
 	union saturation_status {
 		struct {
@@ -694,7 +700,7 @@ private:
 	float 				_delta_out_max;
 	float 				_thrust_factor;
 
-	uint32_t			_airmode;
+	Airmode				_airmode;
 
 	void update_saturation_status(unsigned index, bool clipping_high, bool clipping_low);
 	saturation_status _saturation_status;
