@@ -134,6 +134,7 @@ define_property(GLOBAL PROPERTY PX4_MODULE_PATHS
 
 set(CONFIG "px4_sitl_default" CACHE STRING "desired configuration")
 
+include(px4_add_module)
 set(config_module_list)
 set(config_df_driver_list)
 
@@ -421,7 +422,10 @@ endif()
 # subdirectories
 #
 add_library(parameters_interface INTERFACE)
+
+include(px4_add_library)
 add_subdirectory(src/lib EXCLUDE_FROM_ALL)
+
 add_subdirectory(src/platforms/common EXCLUDE_FROM_ALL)
 add_subdirectory(src/modules/systemlib EXCLUDE_FROM_ALL) # TODO: split into libraries in platform layer
 add_subdirectory(src/modules/uORB EXCLUDE_FROM_ALL) # TODO: platform layer
