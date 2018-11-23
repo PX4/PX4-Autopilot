@@ -304,9 +304,9 @@ public:
 	MixerGroup(ControlCallback control_cb, uintptr_t cb_handle);
 	~MixerGroup();
 
-	virtual unsigned		mix(float *outputs, unsigned space);
-	virtual uint16_t		get_saturation_status(void);
-	virtual void			groups_required(uint32_t &groups);
+	unsigned		mix(float *outputs, unsigned space) override;
+	uint16_t		get_saturation_status(void) override;
+	void			groups_required(uint32_t &groups) override;
 
 	/**
 	 * Add a mixer to the group.
@@ -392,7 +392,7 @@ public:
 	 * @param[in]  delta_out_max  Maximum delta output.
 	 *
 	 */
-	virtual void 			set_max_delta_out_once(float delta_out_max);
+	void 			set_max_delta_out_once(float delta_out_max) override;
 
 	/*
 	 * Invoke the set_offset method of each mixer in the group
@@ -400,14 +400,14 @@ public:
 	 */
 	unsigned set_trims(int16_t *v, unsigned n);
 
-	unsigned set_trim(float trim)
+	unsigned set_trim(float trim) override
 	{
 		return 0;
 	}
 
 	unsigned get_trims(int16_t *values);
 
-	unsigned get_trim(float *trim)
+	unsigned get_trim(float *trim) override
 	{
 		return 0;
 	}
@@ -417,9 +417,9 @@ public:
 	 *
 	 * @param[in]  val   The value
 	 */
-	virtual void	set_thrust_factor(float val);
+	void	set_thrust_factor(float val) override;
 
-	virtual void 	set_airmode(uint32_t airmode);
+	void 	set_airmode(int32_t airmode) override;
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */
@@ -455,16 +455,15 @@ public:
 	 */
 	static NullMixer		*from_text(const char *buf, unsigned &buflen);
 
-	virtual unsigned		mix(float *outputs, unsigned space);
-	virtual uint16_t		get_saturation_status(void);
-	virtual void			groups_required(uint32_t &groups);
-	virtual void 			set_offset(float trim) {}
-	unsigned set_trim(float trim)
+	unsigned		mix(float *outputs, unsigned space) override;
+	uint16_t		get_saturation_status(void) override;
+	void			groups_required(uint32_t &groups) override;
+	unsigned set_trim(float trim) override
 	{
 		return 1;
 	}
 
-	unsigned get_trim(float *trim)
+	unsigned get_trim(float *trim) override
 	{
 		return 1;
 	}
@@ -528,9 +527,9 @@ public:
 	static SimpleMixer		*pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, unsigned input, uint16_t min,
 			uint16_t mid, uint16_t max);
 
-	virtual unsigned		mix(float *outputs, unsigned space);
-	virtual uint16_t		get_saturation_status(void);
-	virtual void			groups_required(uint32_t &groups);
+	unsigned		mix(float *outputs, unsigned space) override;
+	uint16_t		get_saturation_status(void) override;
+	void			groups_required(uint32_t &groups) override;
 
 	/**
 	 * Check that the mixer configuration as loaded is sensible.
@@ -542,9 +541,9 @@ public:
 	 */
 	int				check();
 
-	unsigned set_trim(float trim);
+	unsigned set_trim(float trim) override;
 
-	unsigned get_trim(float *trim);
+	unsigned get_trim(float *trim) override;
 
 protected:
 
@@ -635,9 +634,9 @@ public:
 	static MultirotorMixer		*from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf,
 			unsigned &buflen);
 
-	virtual unsigned		mix(float *outputs, unsigned space);
-	virtual uint16_t		get_saturation_status(void);
-	virtual void			groups_required(uint32_t &groups);
+	unsigned		mix(float *outputs, unsigned space) override;
+	uint16_t		get_saturation_status(void) override;
+	void			groups_required(uint32_t &groups) override;
 
 	/**
 	 * @brief      Update slew rate parameter. This tells the multicopter mixer
@@ -649,14 +648,14 @@ public:
 	 * @param[in]  delta_out_max  Maximum delta output.
 	 *
 	 */
-	virtual void 			set_max_delta_out_once(float delta_out_max) { _delta_out_max = delta_out_max; }
+	void 			set_max_delta_out_once(float delta_out_max) override { _delta_out_max = delta_out_max; }
 
-	unsigned set_trim(float trim)
+	unsigned set_trim(float trim) override
 	{
 		return _rotor_count;
 	}
 
-	unsigned get_trim(float *trim)
+	unsigned get_trim(float *trim) override
 	{
 		return _rotor_count;
 	}
@@ -666,9 +665,9 @@ public:
 	 *
 	 * @param[in]  val   The value
 	 */
-	virtual void			set_thrust_factor(float val) {_thrust_factor = val;}
+	void			set_thrust_factor(float val) override { _thrust_factor = val; }
 
-	virtual void 			set_airmode(uint32_t airmode);
+	void 			set_airmode(int32_t airmode) override;
 
 	union saturation_status {
 		struct {
@@ -771,17 +770,17 @@ public:
 	static HelicopterMixer		*from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf,
 			unsigned &buflen);
 
-	virtual unsigned		mix(float *outputs, unsigned space);
-	virtual void			groups_required(uint32_t &groups);
+	unsigned		mix(float *outputs, unsigned space) override;
+	void			groups_required(uint32_t &groups) override;
 
-	virtual uint16_t		get_saturation_status(void) { return 0; }
+	uint16_t		get_saturation_status(void) override { return 0; }
 
-	unsigned set_trim(float trim)
+	unsigned set_trim(float trim) override
 	{
 		return 4;
 	}
 
-	unsigned get_trim(float *trim)
+	unsigned get_trim(float *trim) override
 	{
 		return 4;
 	}
