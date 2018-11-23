@@ -152,4 +152,3 @@ void Companion_Process_Status::check_companion_process_status(orb_advert_t *mav_
 	poll_subscriptions();
 	determine_action();
 }
-

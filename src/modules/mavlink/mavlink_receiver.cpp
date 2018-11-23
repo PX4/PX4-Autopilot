@@ -1963,7 +1963,7 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 			tstatus.component_id = msg->compid;
 		}
 
-		/* handle avoidance heartbeats */
+		/* handle companion process heartbeats */
 		if (hb.type == MAV_TYPE_ONBOARD_CONTROLLER && (msg->compid == MAV_COMP_ID_OBSTACLE_AVOIDANCE
 				|| msg->compid == MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY)) {
 
