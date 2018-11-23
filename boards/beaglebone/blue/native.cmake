@@ -4,7 +4,6 @@ px4_add_board(
 	MODEL blue
 	LABEL native
 	PLATFORM posix
-	TOOLCHAIN Toolchain-native
 	TESTING
 
 	DRIVERS

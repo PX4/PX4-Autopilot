@@ -3,6 +3,7 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR airmind
 	MODEL mindpx-v2
+	TOOLCHAIN arm-none-eabi
 	ARCH cortex-m4
 	ROMFS
 	ROMFSROOT px4fmu_common

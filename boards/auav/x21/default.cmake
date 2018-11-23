@@ -4,6 +4,7 @@ px4_add_board(
 	VENDOR auav
 	MODEL x21
 	LABEL default
+	TOOLCHAIN arm-none-eabi
 	ARCH cortex-m4
 	ROMFS
 	ROMFSROOT px4fmu_common
