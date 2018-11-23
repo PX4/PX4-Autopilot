@@ -4,7 +4,7 @@ px4_add_board(
 	MODEL ocpoc
 	LABEL ubuntu
 	PLATFORM posix
-	PROCESSOR cortex-a9
+	ARCHITECTURE cortex-a9
 	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
 

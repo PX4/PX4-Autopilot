@@ -4,7 +4,7 @@ px4_add_board(
 	MODEL raspberrypi
 	LABEL cross
 	PLATFORM posix
-	PROCESSOR cortex-a53
+	ARCHITECTURE cortex-a53
 	TOOLCHAIN Toolchain-arm-linux-gnueabihf
 	TESTING
 

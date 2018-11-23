@@ -38,7 +38,6 @@
 # 	utility functions
 #
 #		* px4_parse_function_args
-#		* px4_join
 #
 
 include(CMakeParseArguments)
@@ -111,40 +110,6 @@ function(px4_parse_function_args)
 		set(${arg} ${OUT_${arg}} PARENT_SCOPE)
 	endforeach()
 
-endfunction()
-
-
-#=============================================================================
-#
-#	px4_join
-#
-#	This function joins a list with a given separator. If list is not
-#	passed, or is sent "", this will return the empty string.
-#
-#	Usage:
-#		px4_join(OUT ${OUT} [ LIST ${LIST} ] GLUE ${GLUE})
-#
-#	Input:
-#		LIST		: list to join
-#		GLUE		: separator to use
-#
-#	Output:
-#		OUT			: joined list
-#
-#	Example:
-#		px4_join(OUT test_join LIST a b c GLUE ";")
-#		test_join would then be:
-#			"a;b;c"
-#
-function(px4_join)
-	px4_parse_function_args(
-		NAME px4_join
-		ONE_VALUE OUT GLUE
-		MULTI_VALUE LIST
-		REQUIRED GLUE OUT
-		ARGN ${ARGN})
-	string (REPLACE ";" "${GLUE}" _TMP_STR "${LIST}")
-	set(${OUT} ${_TMP_STR} PARENT_SCOPE)
 endfunction()
 
 

@@ -4,7 +4,7 @@ px4_add_board(
 	VENDOR av
 	MODEL x-v1
 	TOOLCHAIN arm-none-eabi
-	PROCESSOR cortex-m7
+	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
 	TESTING
 	UAVCAN_INTERFACES 2

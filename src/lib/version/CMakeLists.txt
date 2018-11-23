@@ -76,8 +76,6 @@ endif()
 
 add_library(version version.c)
 
-string(TOUPPER "${PX4_BOARD}" PX4_BOARD_NAME)
-
 target_compile_definitions(version
 	PUBLIC
 		PX4_BOARD_NAME="${PX4_BOARD_NAME}"

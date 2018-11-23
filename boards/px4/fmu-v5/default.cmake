@@ -4,7 +4,7 @@ px4_add_board(
 	VENDOR px4
 	MODEL fmu-v5
 	TOOLCHAIN arm-none-eabi
-	PROCESSOR cortex-m7
+	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
 	TESTING

@@ -145,6 +145,7 @@ if (GENERATE_RTPS_BRIDGE)
 		git_micro_cdr
 		microcdr
 	)
+	add_dependencies(microcdr prebuild_targets)
 
 	# microCDR
 	target_include_directories(uorb_msgs_microcdr

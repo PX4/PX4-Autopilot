@@ -4,7 +4,7 @@ px4_add_board(
 	VENDOR airmind
 	MODEL mindpx-v2
 	TOOLCHAIN arm-none-eabi
-	PROCESSOR cortex-m4
+	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
 	TESTING
 	UAVCAN_INTERFACES 1

@@ -25,9 +25,17 @@ set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
 set(CONFIG_SHMEM "1")
 add_definitions(-DORB_COMMUNICATOR)
 
-# This definition allows to differentiate if this just the usual POSIX build
-# or if it is for the Snapdragon.
-add_definitions(-D__PX4_POSIX_EXCELSIOR)
+# atlflight toolchain doesn't properly set the compiler, so these aren't set automatically
+add_compile_options($<$<COMPILE_LANGUAGE:C>:-std=gnu99>)
+add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-std=gnu++11>)
+
+add_definitions(
+	-D__PX4_POSIX_EXCELSIOR
+	-D__PX4_LINUX
+
+	# For DriverFramework
+	-D__DF_LINUX
+)
 
 px4_add_board(
 	PLATFORM posix

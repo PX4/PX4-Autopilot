@@ -212,13 +212,6 @@ function(px4_add_module)
 		endforeach()
 	endif()
 
-	# join list variables to get ready to send to compiler
-	foreach(prop LINK_FLAGS)
-		if(${prop})
-			px4_join(OUT ${prop} LIST ${${prop}} GLUE " ")
-		endif()
-	endforeach()
-
 	foreach (prop LINK_FLAGS STACK_MAIN MAIN PRIORITY)
 		if (${prop})
 			set_target_properties(${MODULE} PROPERTIES ${prop} ${${prop}})

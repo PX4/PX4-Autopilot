@@ -9,8 +9,6 @@ add_subdirectory(src)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes")
-
 get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
 px4_qurt_generate_builtin_commands(
@@ -19,6 +17,8 @@ px4_qurt_generate_builtin_commands(
 )
 
 FASTRPC_STUB_GEN(px4muorb.idl)
+
+add_definitions(-D__QAIC_SKEL_EXPORT=__EXPORT)
 
 # Enable build without HexagonSDK to check link dependencies
 if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
@@ -36,6 +36,7 @@ if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 	)
 
 	target_link_libraries(px4 PRIVATE ${module_libraries} ${df_driver_libs})
+
 else()
 	# Generate the DSP lib and stubs but not the apps side executable
 	# The Apps side executable is generated via the posix_eagle_xxxx target

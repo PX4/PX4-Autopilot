@@ -4,7 +4,7 @@ px4_add_board(
 	VENDOR stm
 	MODEL 32f4discovery
 	TOOLCHAIN arm-none-eabi
-	PROCESSOR cortex-m4
+	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
 	#TESTING
 
