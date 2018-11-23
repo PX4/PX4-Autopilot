@@ -32,7 +32,7 @@ px4_add_board(
 	VENDOR thiemar
 	MODEL s2740vc-v1
 	TOOLCHAIN arm-none-eabi
-	ARCH cortex-m4
+	PROCESSOR cortex-m4
 
 	DRIVERS
 		bootloaders

@@ -41,7 +41,7 @@ px4_add_board(
 	VENDOR px4
 	MODEL esc-v1
 	TOOLCHAIN arm-none-eabi
-	ARCH cortex-m4
+	PROCESSOR cortex-m4
 
 	DRIVERS
 		bootloaders

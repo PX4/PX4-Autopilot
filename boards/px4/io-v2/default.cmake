@@ -4,7 +4,7 @@ px4_add_board(
 	VENDOR px4
 	MODEL io-v2
 	TOOLCHAIN arm-none-eabi
-	ARCH cortex-m3
+	PROCESSOR cortex-m3
 	DRIVERS
 		stm32
 	MODULES

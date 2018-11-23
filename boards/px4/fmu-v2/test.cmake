@@ -5,8 +5,7 @@ px4_add_board(
 	MODEL fmu-v2
 	LABEL test
 	TOOLCHAIN arm-none-eabi
-	ARCH cortex-m4
-	ROMFS
+	PROCESSOR cortex-m4
 	ROMFSROOT px4fmu_test
 	IO px4_io-v2_default
 	TESTING

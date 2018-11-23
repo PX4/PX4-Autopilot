@@ -4,7 +4,7 @@ px4_add_board(
 	MODEL navio2
 	LABEL cross
 	PLATFORM posix
-	ARCH cortex-a53
+	PROCESSOR cortex-a53
 	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
 
