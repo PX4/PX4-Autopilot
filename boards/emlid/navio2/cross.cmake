@@ -5,7 +5,7 @@ px4_add_board(
 	LABEL cross
 	PLATFORM posix
 	ARCH cortex-a53
-	TOOLCHAIN Toolchain-arm-linux-gnueabihf
+	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
 
 	DRIVERS

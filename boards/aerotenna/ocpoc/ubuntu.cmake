@@ -5,7 +5,7 @@ px4_add_board(
 	LABEL ubuntu
 	PLATFORM posix
 	ARCH cortex-a9
-	TOOLCHAIN Toolchain-arm-linux-gnueabihf
+	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
 
 	DRIVERS

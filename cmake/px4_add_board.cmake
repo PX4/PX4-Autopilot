@@ -1,6 +1,6 @@
 ############################################################################
 #
-# Copyright (c) 2017 PX4 Development Team. All rights reserved.
+# Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,15 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-#=============================================================================
-#
-#	Defined functions in this file
-#
-# 	utility functions
-#
-#		* px4_add_board
-#
 
 include(px4_base)
 
@@ -128,7 +119,7 @@ function(px4_add_board)
 	endif()
 
 	if(TOOLCHAIN)
-		set(CMAKE_TOOLCHAIN_FILE ${TOOLCHAIN} CACHE INTERNAL "toolchain file" FORCE)
+		set(CMAKE_TOOLCHAIN_FILE Toolchain-${TOOLCHAIN} CACHE INTERNAL "toolchain file" FORCE)
 	endif()
 
 	if(BOOTLOADER)
@@ -139,10 +130,40 @@ function(px4_add_board)
 		set(board_serial_ports ${SERIAL_PORTS} PARENT_SCOPE)
 	endif()
 
-	include(px4_add_board_os)
-	px4_add_board_os(${ARGV})
+	# ROMFS
+	if(ROMFS)
+		if (PX4_PLATFORM MATCHES "NuttX" AND NOT DEFINED ROMFSROOT)
+			set(config_romfs_root px4fmu_common)
+		else()
+			set(config_romfs_root ${ROMFSROOT})
+		endif()
+		set(config_romfs_root ${config_romfs_root} CACHE INTERNAL "ROMFS root" FORCE)
+	endif()
+
+	# IO board (placed in ROMFS)
+	if(IO)
+		set(config_io_board ${IO} CACHE INTERNAL "IO" FORCE)
+	endif()
+
+	if(UAVCAN_INTERFACES)
+		set(config_uavcan_num_ifaces ${UAVCAN_INTERFACES} CACHE INTERNAL "UAVCAN interfaces" FORCE)
+	endif()
+
+	# OPTIONS
+
+	if(CONSTRAINED_FLASH)
+		set(px4_constrained_flash_build "1" CACHE INTERNAL "constrained flash build" FORCE)
+	endif()
+
+	if(TESTING)
+		set(PX4_TESTING "1" CACHE INTERNAL "testing enabled" FORCE)
+	endif()
+
+	include(px4_impl_os)
+	px4_os_prebuild_targets(OUT prebuild_targets BOARD ${PX4_BOARD})
 
 
+	###########################################################################
 	# Modules (includes drivers, examples, modules, systemcmds)
 	set(config_module_list)
 
@@ -186,15 +207,5 @@ function(px4_add_board)
 	include_directories(${CMAKE_CURRENT_LIST_DIR}/src)
 
 	set(config_module_list ${config_module_list} PARENT_SCOPE)
-
-	# OPTIONS
-	
-	if(CONSTRAINED_FLASH)
-		set(px4_constrained_flash_build "1" CACHE INTERNAL "constrained flash build" FORCE)
-	endif()
-
-	if(TESTING)
-		set(PX4_TESTING "1" CACHE INTERNAL "testing enabled" FORCE)
-	endif()
 
 endfunction()
