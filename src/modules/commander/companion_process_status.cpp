@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -79,10 +79,6 @@ void Companion_Process_Status::determine_action(){
 			_process_type = VIO;
 		}
 
-		 //strings for QGC output
-		const char* message_type = _companion_process_types[_process_type];
-		const char* message_state = _companion_process_states[_companion_process_status.state];
-
 		//find last status of same process
 		if(_companion_process_status_history[_process_type].component != MAV_COMP_ID_OBSTACLE_AVOIDANCE && _companion_process_status_history[_process_type].component != MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY){
 				_companion_process_status_history[_process_type] = _companion_process_status;
@@ -99,9 +95,9 @@ void Companion_Process_Status::determine_action(){
 				if (_companion_process_status.state == companion_process_status_s::MAV_STATE_BOOT){
 					_companion_process_status_first_registration[_process_type] = _companion_process_status;
 				}else if(_companion_process_status.state == companion_process_status_s::MAV_STATE_ACTIVE){
-					mavlink_log_info(mavlink_log_pub, "companion process %s is ready\n", message_type);
+					mavlink_log_info(mavlink_log_pub, "companion process %s is ready\n", toString(_process_type));
 				}else{
-					mavlink_log_critical(mavlink_log_pub, "companion process %s %s\n", message_type, message_state);
+					mavlink_log_critical(mavlink_log_pub, "companion process %s %s\n", toString(_process_type), toString((MAV_STATE)_companion_process_status.state));
 				}
 			}
 		}
@@ -109,7 +105,7 @@ void Companion_Process_Status::determine_action(){
 		//check for timeouts in starting up
 		if(_companion_process_status.state == companion_process_status_s::MAV_STATE_BOOT &&
 				_companion_process_status.timestamp - _companion_process_status_first_registration[_process_type].timestamp > STARTUP_TIMEOUT){
-			mavlink_log_critical(mavlink_log_pub,"companion process %s taking too long to start\n", message_type);
+			mavlink_log_critical(mavlink_log_pub,"companion process %s taking too long to start\n", toString(_process_type));
 		}
 		_new_status_received = false;
 	}
@@ -151,4 +147,30 @@ void Companion_Process_Status::check_companion_process_status(orb_advert_t *mav_
 	determine_required_processes(use_obs_avoid);
 	poll_subscriptions();
 	determine_action();
+}
+
+const char* Companion_Process_Status::toString(ProcessType type){
+	switch (type)
+	{
+		case UNDEFINED: return "UNDEFINED";
+	    case AVOIDANCE: return "AVOIDANCE";
+	    case VIO: return "VIO";
+	    default: return "[Unknown process type]";
+	}
+}
+
+const char* Companion_Process_Status::toString(MAV_STATE state){
+	switch (state)
+	{
+		case UNINITIALIZED: return "UNINITIALIZED";
+	    case STARTING: return "STARTING";
+	    case CALIBRATING: return "CALIBRATING";
+	    case STANDBY: return "STANDBY";
+	    case ACTIVE: return "ACTIVE";
+	    case TIMEOUT: return "TIMEOUT";
+	    case EMERGENCY: return "EMERGENCY";
+	    case POWEROFF: return "POWEROFF";
+	    case ABORTING: return "ABORTING";
+	    default: return "[Unknown process type]";
+	}
 }

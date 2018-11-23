@@ -1,6 +1,6 @@
-uint64 timestamp			# time since system start (microseconds)
-uint8 state        		# See enum COMPANION_PROCESS_STATE
-uint8 component         # See enum MAV_COMPONENT
+uint64 timestamp	# time since system start (microseconds)
+uint8 state		# See enum COMPANION_PROCESS_STATE
+uint8 component	# See enum MAV_COMPONENT
 
 uint8 MAV_STATE_UNINIT = 0
 uint8 MAV_STATE_BOOT = 1

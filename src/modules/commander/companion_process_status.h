@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -89,13 +89,11 @@ private:
 	const hrt_abstime NO_SIGNAL_TIMEOUT = 150000000;	/**< timeout if no signal is received. counter starts when class object is created */
 	const hrt_abstime THROTTLE_MESSAGES = 5000000;	/**< time interval on which messages are published */
 
-	const char *_companion_process_types[3] = {"UNDEFINED", "AVOIDANCE", "VIO"};
-	const char *_companion_process_states[9] = {"UNINITIALIZED", "STARTING", "CALIBRATING", "STANDBY", "ACTIVE", "TIMEOUT", "EMERGENCY", "POWEROFF", "ABORTING"};
-
-
 	void poll_subscriptions();
 	void determine_required_processes(int32_t use_obs_avoid);
 	void determine_action();
+	const char* toString(ProcessType type);
+	const char* toString(MAV_STATE state);
 
 public:
 
