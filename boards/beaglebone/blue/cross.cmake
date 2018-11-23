@@ -4,7 +4,7 @@ px4_add_board(
 	MODEL blue
 	LABEL cross
 	PLATFORM posix
-	ARCH cortex-a8
+	PROCESSOR cortex-a8
 	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
 

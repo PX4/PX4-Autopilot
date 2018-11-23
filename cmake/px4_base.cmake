@@ -157,7 +157,7 @@ endfunction()
 #
 #	Usage:
 #		px4_add_module(MODULE <string>
-#			[ MAIN <string> ]
+#			MAIN <string>
 #			[ STACK <string> ] !!!!!DEPRECATED, USE STACK_MAIN INSTEAD!!!!!!!!!
 #			[ STACK_MAIN <string> ]
 #			[ STACK_MAX <string> ]
@@ -172,7 +172,7 @@ endfunction()
 #
 #	Input:
 #		MODULE			: unique name of module
-#		MAIN			: entry point, if not given, assumed to be library
+#		MAIN			: entry point
 #		STACK			: deprecated use stack main instead
 #		STACK_MAIN		: size of stack for main function
 #		STACK_MAX		: maximum stack size of any frame
@@ -555,7 +555,7 @@ function(px4_add_common_flags)
 	string(REPLACE "-" "_" board_config ${board_upper})
 
 	add_definitions(
-		-DCONFIG_ARCH_BOARD_${board_config}
+		-DCONFIG_PROCESSOR_BOARD_${board_config}
 		-D__STDC_FORMAT_MACROS
 		)
 

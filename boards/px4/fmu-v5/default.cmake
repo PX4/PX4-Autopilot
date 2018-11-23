@@ -3,9 +3,8 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR px4
 	MODEL fmu-v5
-	LABEL default
-	ARCH cortex-m7
-	ROMFS
+	TOOLCHAIN arm-none-eabi
+	PROCESSOR cortex-m7
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
 	TESTING
