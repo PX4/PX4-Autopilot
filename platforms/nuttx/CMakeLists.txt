@@ -90,7 +90,7 @@ target_link_libraries(${FW_NAME} PRIVATE
 	-fno-rtti
 
 	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx/configs/${PX4_BOARD}/scripts/ld.script
-	-Wl,-Map=${CONFIG}.map
+	-Wl,-Map=${PX4_CONFIG}.map
 	-Wl,--warn-common
 	-Wl,--gc-sections
 
@@ -195,7 +195,7 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 				endforeach()
 			endif()
 
-			px4_join(OUT serial_ports LIST "${serial_ports}" GLUE ",")
+			string(REPLACE ";" "," serial_ports "${serial_ports}")
 
 			add_custom_target(upload
 				COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --port ${serial_ports} ${fw_file}

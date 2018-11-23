@@ -4,7 +4,7 @@ px4_add_board(
 	VENDOR auav
 	MODEL x21
 	TOOLCHAIN arm-none-eabi
-	PROCESSOR cortex-m4
+	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
 	TESTING

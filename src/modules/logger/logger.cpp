@@ -665,7 +665,7 @@ void Logger::add_default_topics()
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("wind_estimate", 200);
 
-#ifdef CONFIG_ARCH_BOARD_SITL
+#ifdef CONFIG_ARCH_BOARD_PX4_SITL
 	add_topic("actuator_armed");
 	add_topic("actuator_controls_virtual_fw");
 	add_topic("actuator_controls_virtual_mc");
@@ -681,7 +681,7 @@ void Logger::add_default_topics()
 	add_topic("vehicle_global_position_groundtruth", 100);
 	add_topic("vehicle_local_position_groundtruth", 100);
 	add_topic("vehicle_roi");
-#endif
+#endif /* CONFIG_ARCH_BOARD_PX4_SITL */
 }
 
 void Logger::add_high_rate_topics()

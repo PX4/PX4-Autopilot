@@ -5,7 +5,7 @@ px4_add_board(
 	MODEL fmu-v4
 	LABEL stackcheck
 	TOOLCHAIN arm-none-eabi
-	PROCESSOR cortex-m4
+	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
 	TESTING
 	#UAVCAN_INTERFACES 1

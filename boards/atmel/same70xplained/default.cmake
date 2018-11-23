@@ -4,7 +4,7 @@ px4_add_board(
 	VENDOR atmel
 	MODEL same70xplained
 	TOOLCHAIN arm-none-eabi
-	PROCESSOR cortex-m7
+	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
 	TESTING
 	#UAVCAN_INTERFACES 1

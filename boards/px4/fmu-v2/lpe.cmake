@@ -5,7 +5,7 @@ px4_add_board(
 	MODEL fmu-v2
 	LABEL lpe
 	TOOLCHAIN arm-none-eabi
-	PROCESSOR cortex-m4
+	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
 	BOOTLOADER ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/extras/px4fmuv3_bl.bin
 	IO px4_io-v2_default

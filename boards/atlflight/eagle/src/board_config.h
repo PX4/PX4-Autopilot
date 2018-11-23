@@ -47,8 +47,6 @@
 
 #define BOARD_NUMBER_BRICKS     0
 
-#define CONFIG_ARCH_BOARD_SITL 1
-
 /*
  * I2C busses
  */

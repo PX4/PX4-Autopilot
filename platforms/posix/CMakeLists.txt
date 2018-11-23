@@ -21,13 +21,12 @@ px4_posix_generate_alias(
 	PREFIX ${PX4_SHELL_COMMAND_PREFIX}
 )
 
-if (("${PX4_BOARD}" STREQUAL "atlflight_eagle") OR ("${PX4_BOARD}" STREQUAL "atlflight_excelsior"))
+if (("${PX4_BOARD}" MATCHES "atlflight_eagle") OR ("${PX4_BOARD}" MATCHES "atlflight_excelsior"))
 	include(fastrpc)
 	include(linux_app)
 
 	FASTRPC_STUB_GEN(../qurt/px4muorb.idl)
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes -Wno-missing-declarations")
 	LINUX_APP(
 		APP_NAME px4
 		IDL_NAME px4muorb

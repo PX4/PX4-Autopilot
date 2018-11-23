@@ -15,10 +15,10 @@
 #include <lib/rc/sumd.h>
 #include <lib/rc/crsf.h>
 
-#if !defined(CONFIG_ARCH_BOARD_SITL)
-#define TEST_DATA_PATH "/fs/microsd"
-#else
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
 #define TEST_DATA_PATH "./test_data/"
+#else
+#define TEST_DATA_PATH "/fs/microsd"
 #endif
 
 extern "C" __EXPORT int rc_tests_main(int argc, char *argv[]);

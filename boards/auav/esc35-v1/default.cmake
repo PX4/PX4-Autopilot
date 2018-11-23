@@ -41,7 +41,7 @@ px4_add_board(
 	VENDOR auav
 	MODEL esc35-v1
 	TOOLCHAIN arm-none-eabi
-	PROCESSOR cortex-m4
+	ARCHITECTURE cortex-m4
 
 	DRIVERS
 		bootloaders

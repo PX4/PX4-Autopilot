@@ -3,7 +3,7 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-if ARCH_BOARD_NXPHLITE_V3
+if ARCH_BOARD_NXP_HLITE_V3
 config NXPHLITE_SDHC_AUTOMOUNT
 	bool "SDHC automounter"
 	default n

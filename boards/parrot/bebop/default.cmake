@@ -3,7 +3,7 @@ px4_add_board(
 	VENDOR parrot
 	MODEL bebop
 	PLATFORM posix
-	PROCESSOR cortex-a53
+	ARCHITECTURE cortex-a53
 	TOOLCHAIN arm-linux-gnueabihf
 
 	DRIVERS

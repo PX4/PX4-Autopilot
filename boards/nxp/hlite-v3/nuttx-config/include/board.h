@@ -35,8 +35,8 @@
  *
  ************************************************************************************/
 
-#ifndef __CONFIG_NXPHLITE_V3_INCLUDE_BOARD_H
-#define __CONFIG_NXPHLITE_V3_INCLUDE_BOARD_H
+#ifndef __CONFIG_NXP_HLITE_V3_INCLUDE_BOARD_H
+#define __CONFIG_NXP_HLITE_V3_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -556,4 +556,4 @@ void kinetis_boardinitialize(void);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif  /* __CONFIG_NXPHLITE_V23_INCLUDE_BOARD_H */
+#endif  /* __CONFIG_NXP_HLITE_V3_INCLUDE_BOARD_H */

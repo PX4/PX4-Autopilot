@@ -4,7 +4,7 @@ px4_add_board(
 	VENDOR gumstix
 	MODEL aerocore2
 	TOOLCHAIN arm-none-eabi
-	PROCESSOR cortex-m4
+	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
 	UAVCAN_INTERFACES 1
 

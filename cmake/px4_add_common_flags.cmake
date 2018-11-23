@@ -40,49 +40,27 @@ include(px4_base)
 #	Set the default build flags.
 #
 #	Usage:
-#		px4_add_common_flags(
-#			BOARD <in-string>
-#			C_FLAGS <inout-variable>
-#			CXX_FLAGS <inout-variable>
-#			OPTIMIZATION_FLAGS <inout-variable>
-#			EXE_LINKER_FLAGS <inout-variable>
-#			INCLUDE_DIRS <inout-variable>
-#			LINK_DIRS <inout-variable>
-#			DEFINITIONS <inout-variable>)
-#
-#	Input:
-#		BOARD					: board
-#
-#	Input/Output: (appends to existing variable)
-#		C_FLAGS					: c compile flags variable
-#		CXX_FLAGS				: c++ compile flags variable
-#		OPTIMIZATION_FLAGS			: optimization compile flags variable
-#		EXE_LINKER_FLAGS			: executable linker flags variable
-#		INCLUDE_DIRS				: include directories
-#		LINK_DIRS				: link directories
-#		DEFINITIONS				: definitions
-#
-#	Example:
-#		px4_add_common_flags(
-#			BOARD px4_fmu-v2
-#			C_FLAGS CMAKE_C_FLAGS
-#			CXX_FLAGS CMAKE_CXX_FLAGS
-#			OPTIMIZATION_FLAGS optimization_flags
-#			EXE_LINKER_FLAG CMAKE_EXE_LINKER_FLAGS
-#			INCLUDES <list>)
+#		px4_add_common_flags()
 #
 function(px4_add_common_flags)
 
-	set(inout_vars
-		C_FLAGS CXX_FLAGS OPTIMIZATION_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
+	add_compile_options(
+		-g # always build debug symbols
 
-	px4_parse_function_args(
-		NAME px4_add_common_flags
-		ONE_VALUE ${inout_vars} BOARD
-		REQUIRED ${inout_vars}
-		ARGN ${ARGN})
+		# optimization options
+		-fdata-sections
+		-ffunction-sections
+		-fomit-frame-pointer
+		-funsafe-math-optimizations
 
-	set(warnings
+		-fno-strict-aliasing
+		-fno-math-errno
+
+		# visibility
+		-fvisibility=hidden
+		-include visibility.h
+
+		# Warnings
 		-Wall
 		-Wextra
 		-Werror
@@ -95,132 +73,95 @@ function(px4_add_common_flags)
 		-Wformat-security
 		-Winit-self
 		-Wlogical-op
-		-Wmissing-declarations
 		-Wpointer-arith
 		-Wshadow
 		-Wuninitialized
 		-Wunknown-pragmas
 		-Wunused-variable
 
+		# disabled warnings
 		-Wno-implicit-fallthrough # set appropriate level and update
 		-Wno-missing-field-initializers
 		-Wno-missing-include-dirs # TODO: fix and enable
 		-Wno-unused-parameter
 		)
 
-	if (${CMAKE_C_COMPILER_ID} MATCHES ".*Clang.*")
+	# compiler specific flags
+	if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+
+		# force color for clang (needed for clang + ccache)
+		add_compile_options(-fcolor-diagnostics)
+
 		# QuRT 6.4.X compiler identifies as Clang but does not support this option
-		if (NOT ${PX4_PLATFORM} STREQUAL "qurt")
-			list(APPEND warnings
+		if (NOT "${PX4_PLATFORM}" STREQUAL "qurt")
+			add_compile_options(
 				-Qunused-arguments
-				-Wno-unused-const-variable
-				-Wno-varargs
+
 				-Wno-address-of-packed-member
 				-Wno-unknown-warning-option
-				-Wunused-but-set-variable
+				-Wno-unused-const-variable
+				-Wno-varargs
 			)
 		endif()
-	else()
-		list(APPEND warnings
-			-Wunused-but-set-variable
-			-Wformat=1
-		)
-	endif()
 
-	set(_optimization_flags
-		-fno-strict-aliasing
-		-fomit-frame-pointer
+	elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 
-		-fno-math-errno
-		-funsafe-math-optimizations
+		if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
+			# force color for gcc > 4.9
+			add_compile_options(-fdiagnostics-color=always)
+		endif()
 
-		-ffunction-sections
-		-fdata-sections
-		)
-
-	set(c_warnings
-		-Wbad-function-cast
-		-Wstrict-prototypes
-		-Wmissing-prototypes
-		-Wnested-externs
-		)
-
-	set(c_compile_flags
-		-g
-		-std=gnu99
-		-fno-common
-		)
-
-	set(cxx_warnings
-		-Wno-overloaded-virtual # TODO: fix and remove
-		-Wreorder
-		)
-
-	set(cxx_compile_flags
-		-g
-		-fno-exceptions
-		-fno-rtti
-		-std=gnu++11
-		-fno-threadsafe-statics
-		-DCONFIG_WCHAR_BUILTIN
-		-D__CUSTOM_FILE_IO__
-		)
-
-	# regular Clang or AppleClang
-	if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-		# force color for clang (needed for clang + ccache)
-		list(APPEND _optimization_flags
-			-fcolor-diagnostics
-		)
-	else()
-		list(APPEND _optimization_flags
-			-fno-strength-reduce
+		add_compile_options(
 			-fno-builtin-printf
+			-fno-strength-reduce
+
+			-Wformat=1
+			-Wunused-but-set-variable
+
+			-Wno-format-truncation # TODO: fix
 		)
 
 		# -fcheck-new is a no-op for Clang in general
 		# and has no effect, but can generate a compile
 		# error for some OS
-		list(APPEND cxx_compile_flags
-			-fcheck-new
-		)
+		add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fcheck-new>)
+
+	elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+	  message(FATAL_ERROR "Intel compiler not yet supported")
+	elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+	  message(FATAL_ERROR "MS compiler not yet supported")
 	endif()
 
-	if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-		if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
-			# force color for gcc > 4.9
-			list(APPEND _optimization_flags
-				-fdiagnostics-color=always
-			)
-		endif()
+	# C only flags
+	set(c_flags)
+	list(APPEND c_flags
+		-fno-common
 
-		list(APPEND cxx_warnings
-			-Wno-format-truncation # TODO: fix
-		)
-	endif()
+		-Wbad-function-cast
+		-Wnested-externs
+		-Wstrict-prototypes
+	)
+	foreach(flag ${c_flags})
+		add_compile_options($<$<COMPILE_LANGUAGE:C>:${flag}>)
+	endforeach()
 
-	set(visibility_flags
-		-fvisibility=hidden
-		-include visibility.h
-		)
 
-	set(added_c_flags
-		${c_compile_flags}
-		${warnings}
-		${c_warnings}
-		${visibility_flags}
-		)
+	# CXX only flags
+	set(cxx_flags)
+	list(APPEND cxx_flags
+		-fno-exceptions
+		-fno-rtti
+		-fno-threadsafe-statics
 
-	set(added_cxx_flags
-		${cxx_compile_flags}
-		${warnings}
-		${cxx_warnings}
-		${visibility_flags}
-		)
+		-Wreorder
 
-	set(added_optimization_flags
-		${_optimization_flags}
-		)
+		# disabled warnings
+		-Wno-overloaded-virtual # TODO: fix and remove
+	)
+	foreach(flag ${cxx_flags})
+		add_compile_options($<$<COMPILE_LANGUAGE:CXX>:${flag}>)
+	endforeach()
+
 
 	include_directories(
 		${PX4_BINARY_DIR}
@@ -237,19 +178,10 @@ function(px4_add_common_flags)
 		${PX4_SOURCE_DIR}/src/platforms
 		)
 
-	string(TOUPPER ${PX4_BOARD} board_upper)
-	string(REPLACE "-" "_" board_config ${board_upper})
-
 	add_definitions(
-		-DCONFIG_ARCH_BOARD_${board_config}
+		-DCONFIG_ARCH_BOARD_${PX4_BOARD_NAME}
+		-D__CUSTOM_FILE_IO__
 		-D__STDC_FORMAT_MACROS
 		)
-
-	# output
-	foreach(var ${inout_vars})
-		string(TOLOWER ${var} lower_var)
-		set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)
-		#message(STATUS "set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
-	endforeach()
 
 endfunction()

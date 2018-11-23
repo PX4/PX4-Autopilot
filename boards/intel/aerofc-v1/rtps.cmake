@@ -5,7 +5,7 @@ px4_add_board(
 	MODEL aerofc-v1
 	LABEL rtsp
 	TOOLCHAIN arm-none-eabi
-	PROCESSOR cortex-m4
+	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
 
 	SERIAL_PORTS
