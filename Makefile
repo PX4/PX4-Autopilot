@@ -266,7 +266,7 @@ sizes:
 check: check_px4_sitl_default px4fmu_firmware misc_qgc_extra_firmware alt_firmware tests check_format
 
 # quick_check builds a single nuttx and posix target, runs testing, and checks the style
-quick_check: check_px4_sitl_default check_px4_fmu-v4pro_default tests check_format
+quick_check: check_px4_sitl_default check_px4_fmu-v5_default tests check_format
 
 check_%:
 	@echo
