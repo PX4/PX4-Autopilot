@@ -55,6 +55,7 @@ set(config_module_list
 	systemcmds/tests
 
 	platforms/posix/tests/hello
+	platforms/posix/tests/dyn_hello
 	platforms/posix/tests/hrt_test
 	platforms/posix/tests/vcdev_test
 
