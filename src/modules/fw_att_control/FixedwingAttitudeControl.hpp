@@ -197,6 +197,7 @@ private:
 
 		float flaps_scale;			/**< Scale factor for flaps */
 		float flaps_takeoff_scale;		/**< Scale factor for flaps on take-off */
+		float flaps_land_scale;			/**< Scale factor for flaps on landing */
 		float flaperon_scale;			/**< Scale factor for flaperons */
 
 		float rattitude_thres;
@@ -266,6 +267,7 @@ private:
 
 		param_t flaps_scale;
 		param_t flaps_takeoff_scale;
+		param_t flaps_land_scale;
 		param_t flaperon_scale;
 
 		param_t rattitude_thres;

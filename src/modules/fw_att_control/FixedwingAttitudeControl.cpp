@@ -110,6 +110,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	_parameter_handles.flaps_scale = param_find("FW_FLAPS_SCL");
 	_parameter_handles.flaps_takeoff_scale = param_find("FW_FLAPS_TO_SCL");
+	_parameter_handles.flaps_land_scale = param_find("FW_FLAPS_LND_SCL");
 	_parameter_handles.flaperon_scale = param_find("FW_FLAPERON_SCL");
 
 	_parameter_handles.rattitude_thres = param_find("FW_RATT_TH");
@@ -234,6 +235,7 @@ FixedwingAttitudeControl::parameters_update()
 
 	param_get(_parameter_handles.flaps_scale, &_parameters.flaps_scale);
 	param_get(_parameter_handles.flaps_takeoff_scale, &_parameters.flaps_takeoff_scale);
+	param_get(_parameter_handles.flaps_land_scale, &_parameters.flaps_land_scale);
 	param_get(_parameter_handles.flaperon_scale, &_parameters.flaperon_scale);
 
 	param_get(_parameter_handles.rattitude_thres, &_parameters.rattitude_thres);
@@ -929,7 +931,8 @@ void FixedwingAttitudeControl::control_flaps(const float dt)
 		case vehicle_attitude_setpoint_s::FLAPS_OFF : flap_control = 0.0f; // no flaps
 			break;
 
-		case vehicle_attitude_setpoint_s::FLAPS_LAND : flap_control = 1.0f * _parameters.flaps_scale; // landing flaps
+		case vehicle_attitude_setpoint_s::FLAPS_LAND : flap_control = 1.0f * _parameters.flaps_scale *
+					_parameters.flaps_land_scale; // landing flaps
 			break;
 
 		case vehicle_attitude_setpoint_s::FLAPS_TAKEOFF : flap_control = 1.0f * _parameters.flaps_scale *
