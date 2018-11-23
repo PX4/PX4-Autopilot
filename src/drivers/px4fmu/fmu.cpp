@@ -237,7 +237,7 @@ private:
 
 	float _mot_t_max;	///< maximum rise time for motor (slew rate limiting)
 	float _thr_mdl_fac;	///< thrust to pwm modelling factor
-	int32_t _airmode;	///< multicopter air-mode
+	Mixer::Airmode _airmode;	///< multicopter air-mode
 	MotorOrdering _motor_ordering;
 
 	perf_counter_t	_perf_control_latency;
@@ -321,7 +321,7 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_to_mixer_status(nullptr),
 	_mot_t_max(0.0f),
 	_thr_mdl_fac(0.0f),
-	_airmode(0),
+	_airmode(Mixer::Airmode::disabled),
 	_motor_ordering(MotorOrdering::PX4),
 	_perf_control_latency(perf_alloc(PC_ELAPSED, "fmu control latency"))
 {

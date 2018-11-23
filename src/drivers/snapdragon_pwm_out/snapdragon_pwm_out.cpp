@@ -138,7 +138,7 @@ static void subscribe();
 
 static void task_main(int argc, char *argv[]);
 
-static void update_params(int32_t &airmode);
+static void update_params(Mixer::Airmode &airmode);
 
 int initialize_mixer(const char *mixer_filename);
 
@@ -162,7 +162,7 @@ int mixer_control_callback(uintptr_t handle,
 	return 0;
 }
 
-void update_params(int32_t &airmode)
+void update_params(Mixer::Airmode &airmode)
 {
 	// multicopter air-mode
 	param_t param_handle = param_find("MC_AIRMODE");
@@ -355,7 +355,7 @@ void task_main(int argc, char *argv[])
 	// subscribe and set up polling
 	subscribe();
 
-	int32_t airmode = 0;
+	Mixer::Airmode airmode = Mixer::Airmode::disabled;
 	update_params(airmode);
 	int params_sub = orb_subscribe(ORB_ID(parameter_update));
 
