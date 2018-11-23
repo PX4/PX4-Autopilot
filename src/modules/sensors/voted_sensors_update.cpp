@@ -1022,7 +1022,7 @@ void VotedSensorsUpdate::print_status()
 bool
 VotedSensorsUpdate::apply_gyro_calibration(DevHandle &h, const struct gyro_calibration_s *gcal, const int device_id)
 {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP) && !defined(__PX4_POSIX_BBBLUE)
+#if defined(__PX4_NUTTX)
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
 	return !h.ioctl(GYROIOCSSCALE, (long unsigned int)gcal);
@@ -1036,7 +1036,7 @@ VotedSensorsUpdate::apply_gyro_calibration(DevHandle &h, const struct gyro_calib
 bool
 VotedSensorsUpdate::apply_accel_calibration(DevHandle &h, const struct accel_calibration_s *acal, const int device_id)
 {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP) && !defined(__PX4_POSIX_BBBLUE)
+#if defined(__PX4_NUTTX)
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
 	return !h.ioctl(ACCELIOCSSCALE, (long unsigned int)acal);
@@ -1050,7 +1050,7 @@ VotedSensorsUpdate::apply_accel_calibration(DevHandle &h, const struct accel_cal
 bool
 VotedSensorsUpdate::apply_mag_calibration(DevHandle &h, const struct mag_calibration_s *mcal, const int device_id)
 {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX)
+#if defined(__PX4_NUTTX)
 
 	if (!h.isValid()) {
 		return false;

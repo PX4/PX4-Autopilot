@@ -39,7 +39,7 @@ px4_add_board(
 	VENDOR px4
 	MODEL cannode-v1
 	TOOLCHAIN arm-none-eabi
-	PROCESSOR cortex-m3
+	ARCHITECTURE cortex-m3
 
 	DRIVERS
 		bootloaders
