@@ -94,6 +94,7 @@ function(px4_os_add_flags)
 		REQUIRED ${inout_vars}
 		ARGN ${ARGN})
 
+	include(px4_add_common_flags)
 	px4_add_common_flags(
 		BOARD ${PX4_BOARD}
 		C_FLAGS ${C_FLAGS}
