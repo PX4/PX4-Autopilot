@@ -3,10 +3,8 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR px4
 	MODEL fmu-v2
-	LABEL default
 	TOOLCHAIN arm-none-eabi
-	ARCH cortex-m4
-	ROMFS
+	PROCESSOR cortex-m4
 	ROMFSROOT px4fmu_common
 	BOOTLOADER ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/extras/px4fmuv3_bl.bin
 	IO px4_io-v2_default

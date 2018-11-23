@@ -3,8 +3,8 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR stm
 	MODEL nucleo-F767ZI
-	ARCH cortex-m7
-	ROMFS
+	TOOLCHAIN arm-none-eabi
+	PROCESSOR cortex-m7
 	ROMFSROOT px4fmu_common
 	TESTING
 	#UAVCAN_INTERFACES 2

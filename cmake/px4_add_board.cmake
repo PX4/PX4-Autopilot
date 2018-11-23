@@ -40,21 +40,91 @@ include(px4_base)
 #	This function creates a PX4 board.
 #
 #	Usage:
-#		px4_add_module(
-#			BOARD <string>
-#			OS <string>
-#			[ TOOLCHAIN ] <string>
+#		px4_add_board(
+#			PLATFORM <string>
+#			VENDOR <string>
+#			MODEL <string>
+#			[ LABEL <string> ]
+#			[ TOOLCHAIN <string> ]
+#			[ PROCESSOR <string> ]
+#			[ ROMFSROOT <string> ]
+#			[ IO <string> ]
+#			[ BOOTLOADER <string> ]
+#			[ UAVCAN_INTERFACES <string> ]
+#			[ DRIVERS <list> ]
+#			[ MODULES <list> ]
+#			[ SYSTEMCMDS <list> ]
+#			[ EXAMPLES <list> ]
+#			[ SERIAL_PORTS <list> ]
+#			[ DF_DRIVERS <list> ]
+#			[ CONSTRAINED_FLASH ]
+#			[ TESTING ]
 #			)
 #
 #	Input:
-#		BOARD		: name of board
-#		OS			: posix, nuttx, qurt
+#		PLATFORM		: PX4 platform name (posix, nuttx, qurt)
+#		VENDOR			: name of board vendor/manufacturer/brand/etc
+#		MODEL			: name of board model
+#		LABEL			: optional label, set to default if not specified
+#		TOOLCHAIN		: cmake toolchain
+#		PROCESSOR		: name of the CPU CMake is building for (used by the toolchain)
+#		ROMFSROOT		: relative path to the ROMFS root directory (currently NuttX only)
+#		IO			: name of IO board to be built and included in the ROMFS (requires a valid ROMFSROOT)
+#		BOOTLOADER		: bootloader file to include for flashing via bl_update (currently NuttX only)
+#		UAVCAN_INTERFACES	: number of interfaces for UAVCAN
+#		DRIVERS			: list of drivers to build for this board (relative to src/drivers)
+#		MODULES			: list of modules to build for this board (relative to src/modules)
+#		SYSTEMCMDS		: list of system commands to build for this board (relative to src/systemcmds)
+#		EXAMPLES		: list of example modules to build for this board (relative to src/examples)
+#		SERIAL_PORTS		: mapping of user configurable serial ports and param facing name
+#		DF_DRIVERS		: list of DriverFramework device drivers (includes DriverFramework driver and wrapper)
+#		CONSTRAINED_FLASH	: flag to enable constrained flash options (eg limit init script status text)
+#		TESTING			: flag to enable automatic inclusion of PX4 testing modules
 #
 #
 #	Example:
 #		px4_add_board(
-#			BOARD px4_fmu-v2_default
-#			OS nuttx
+#			PLATFORM nuttx
+#			VENDOR px4
+#			MODEL fmu-v5
+#			TOOLCHAIN arm-none-eabi
+#			PROCESSOR cortex-m7
+#			ROMFSROOT px4fmu_common
+#			IO px4_io-v2_default
+#			SERIAL_PORTS
+#				GPS1:/dev/ttyS0
+#				TEL1:/dev/ttyS1
+#				TEL2:/dev/ttyS2
+#				TEL4:/dev/ttyS3
+#			DRIVERS
+#				barometer/ms5611
+#				gps
+#				imu/bmi055
+#				imu/mpu6000
+#				magnetometer/ist8310
+#				px4fmu
+#				px4io
+#				rgbled
+#			MODULES
+#				commander
+#				ekf2
+#				land_detector
+#				mavlink
+#				mc_att_control
+#				mc_pos_control
+#				navigator
+#				sensors
+#			MODULES
+#				mixer
+#				mtd
+#				param
+#				perf
+#				pwm
+#				reboot
+#				shutdown
+#				top
+#				topic_listener
+#				tune_control
 #			)
 #
 function(px4_add_board)
@@ -62,13 +132,12 @@ function(px4_add_board)
 	px4_parse_function_args(
 		NAME px4_add_board
 		ONE_VALUE
+			PLATFORM
 			VENDOR
 			MODEL
 			LABEL
-			BOARD_OVERRIDE
-			PLATFORM
 			TOOLCHAIN
-			ARCH
+			PROCESSOR
 			ROMFSROOT
 			IO
 			BOOTLOADER
@@ -79,10 +148,9 @@ function(px4_add_board)
 			SYSTEMCMDS
 			EXAMPLES
 			SERIAL_PORTS
-			DF_DRIVERS # DriverFramework drivers
+			DF_DRIVERS
 		OPTIONS
 			CONSTRAINED_FLASH
-			ROMFS
 			TESTING
 		REQUIRED
 			PLATFORM
@@ -109,13 +177,10 @@ function(px4_add_board)
 
 	# set OS, and append specific platform module path
 	set(PX4_PLATFORM ${PLATFORM} CACHE STRING "PX4 board OS" FORCE)
+	list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake)
 
-	list(APPEND CMAKE_MODULE_PATH
-		${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake
-		)
-
-	if(ARCH)
-		set(CMAKE_SYSTEM_PROCESSOR ${ARCH} CACHE INTERNAL "system processor" FORCE)
+	if(PROCESSOR)
+		set(CMAKE_SYSTEM_PROCESSOR ${PROCESSOR} CACHE INTERNAL "system processor" FORCE)
 	endif()
 
 	if(TOOLCHAIN)
@@ -131,18 +196,13 @@ function(px4_add_board)
 	endif()
 
 	# ROMFS
-	if(ROMFS)
-		if (PX4_PLATFORM MATCHES "NuttX" AND NOT DEFINED ROMFSROOT)
-			set(config_romfs_root px4fmu_common)
-		else()
-			set(config_romfs_root ${ROMFSROOT})
-		endif()
-		set(config_romfs_root ${config_romfs_root} CACHE INTERNAL "ROMFS root" FORCE)
-	endif()
+	if(ROMFSROOT)
+		set(config_romfs_root ${ROMFSROOT} CACHE INTERNAL "ROMFS root" FORCE)
 
-	# IO board (placed in ROMFS)
-	if(IO)
-		set(config_io_board ${IO} CACHE INTERNAL "IO" FORCE)
+		# IO board (placed in ROMFS)
+		if(IO)
+			set(config_io_board ${IO} CACHE INTERNAL "IO" FORCE)
+		endif()
 	endif()
 
 	if(UAVCAN_INTERFACES)

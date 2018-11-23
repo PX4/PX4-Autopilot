@@ -3,8 +3,8 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR av
 	MODEL x-v1
-	ARCH cortex-m7
-	ROMFS
+	TOOLCHAIN arm-none-eabi
+	PROCESSOR cortex-m7
 	ROMFSROOT px4fmu_common
 	TESTING
 	UAVCAN_INTERFACES 2

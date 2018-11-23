@@ -4,8 +4,8 @@ px4_add_board(
 	VENDOR px4
 	MODEL fmu-v5
 	LABEL stackcheck
-	ARCH cortex-m7
-	ROMFS
+	TOOLCHAIN arm-none-eabi
+	PROCESSOR cortex-m7
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
 	TESTING
@@ -29,7 +29,10 @@ px4_add_board(
 		#imu # all available imu drivers
 		imu/adis16448
 		imu/bmi055
+		#imu/bmi160
+		#imu/bma180
 		imu/mpu6000
+		#imu/mpu9250
 		irlock
 		magnetometer # all available magnetometer drivers
 		#md25
