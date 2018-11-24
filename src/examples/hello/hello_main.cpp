@@ -37,9 +37,11 @@
  *
  * @author Mark Charlebois <charlebm@gmail.com>
  */
+
+#include "hello_example.h"
+
 #include <px4_middleware.h>
 #include <px4_app.h>
-#include "hello_example.h"
 #include <stdio.h>
 
 int PX4_MAIN(int argc, char **argv)

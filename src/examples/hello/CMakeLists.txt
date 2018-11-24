@@ -30,12 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE platforms__posix__tests__hello
+	MODULE examples__hello
 	MAIN hello
+	COMPILE_FLAGS
 	SRCS
 		hello_main.cpp
-		hello_start_posix.cpp
+		hello_start.cpp
 		hello_example.cpp
 	DEPENDS
 	)
