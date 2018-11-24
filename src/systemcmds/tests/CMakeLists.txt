@@ -103,3 +103,5 @@ px4_add_module(
 		pwm_limit
 		version
 	)
+
+add_subdirectory(hrt_test)

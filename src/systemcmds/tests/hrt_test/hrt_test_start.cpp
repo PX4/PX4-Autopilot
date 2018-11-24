@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ * Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,24 +32,64 @@
  ****************************************************************************/
 
 /**
- * @file hrt_test_main.cpp
- * Example for Linux
+ * @file hrt_test_start_posix.cpp
  *
- * @author Mark Charlebois <charlebm@gmail.com>
+ * @author Mark Charlebois <mcharleb@gmail.com>
  */
-#include <px4_middleware.h>
-#include <px4_app.h>
 #include "hrt_test.h"
+
 #include <stdio.h>
+#include <string.h>
+#include <sched.h>
 
-int PX4_MAIN(int argc, char **argv)
+#include <px4_log.h>
+#include <px4_app.h>
+#include <px4_tasks.h>
+
+static int daemon_task;             /* Handle of deamon task / thread */
+
+extern "C" __EXPORT int hrt_test_main(int argc, char *argv[]);
+int hrt_test_main(int argc, char *argv[])
 {
-	px4::init(argc, argv, "hrt_test");
+	if (argc < 2) {
+		PX4_WARN("usage: hrt_test_main {start|stop|status}\n");
+		return 1;
+	}
 
-	printf("starting\n");
-	HRTTest test;
-	test.main();
+	if (!strcmp(argv[1], "start")) {
 
-	printf("goodbye\n");
-	return 0;
+		if (HRTTest::appState.isRunning()) {
+			PX4_INFO("already running\n");
+			/* this is not an error */
+			return 0;
+		}
+
+		daemon_task = px4_task_spawn_cmd("hrttest",
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 5,
+						 2000,
+						 PX4_MAIN,
+						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
+
+		return 0;
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		HRTTest::appState.requestExit();
+		return 0;
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (HRTTest::appState.isRunning()) {
+			PX4_INFO("is running\n");
+
+		} else {
+			PX4_INFO("not started\n");
+		}
+
+		return 0;
+	}
+
+	PX4_WARN("usage: hrttest_main {start|stop|status}\n");
+	return 1;
 }
