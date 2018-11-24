@@ -31,7 +31,6 @@ px4_add_board(
 		fw_pos_control_l1
 		gnd_att_control
 		gnd_pos_control
-		#gpio_led
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -43,6 +42,7 @@ px4_add_board(
 		micrortps_bridge
 		navigator
 		position_estimator_inav
+		replay
 		sensors
 		simulator
 		#uavcan
