@@ -50,37 +50,21 @@ WeatherVane::WeatherVane() :
 
 bool WeatherVane::should_run_in_manual()
 {
-	return (bool)(_wv_config.get() & MASK_MAN_EN);
+	return (bool)(_wv_config.get() & MASK_EN);
 }
 
 bool WeatherVane::should_run_in_mission(uint8_t position_setpoint_type)
 {
-	bool active = true;
+	bool active;
 
-	switch (position_setpoint_type) {
-	case position_setpoint_s::SETPOINT_TYPE_TAKEOFF:
-		if ((_wv_config.get() & MASK_AUTO_TK_EN) == 0) {
-			active = false;
-		}
+	// weathervane is active for the following two cases:
+	// 1) vehicle is doing an auto takeoff and weathervane auto takeoff bit is set
+	// 2) vehicle is not doing an auto takeoff and the general weathervane enable bit is set
+	if (position_setpoint_type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+		active = (bool)(_wv_config.get() & MASK_AUTO_TK_EN);
 
-		break;
-
-	case position_setpoint_s::SETPOINT_TYPE_LAND:
-		if ((_wv_config.get() & MASK_AUTO_LND_EN) == 0) {
-			active = false;
-		}
-
-		break;
-
-	case position_setpoint_s::SETPOINT_TYPE_LOITER:
-		if ((_wv_config.get() & MASK_AUTO_LTR_EN) == 0) {
-			active = false;
-		}
-
-		break;
-
-	default:
-		break;
+	} else {
+		active = (bool)(_wv_config.get() & MASK_EN);
 	}
 
 	return active;

@@ -45,10 +45,8 @@
 #include <px4_module_params.h>
 #include <matrix/matrix/math.hpp>
 
-#define MASK_MAN_EN 		(1<<0)	// weathervane enabled for manual position control
+#define MASK_EN 			(1<<0)	// weathervane enabled
 #define MASK_AUTO_TK_EN 	(1<<1)	// weathervane enabled for takeoff in auto mode
-#define MASK_AUTO_LND_EN 	(1<<2)	// weathervane enabled for landing in auto mode
-#define MASK_AUTO_LTR_EN 	(1<<3)	// weathervane enabled for loiter in auto mode
 
 class WeatherVane : public ModuleParams
 {
