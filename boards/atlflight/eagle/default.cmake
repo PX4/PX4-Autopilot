@@ -63,6 +63,7 @@ px4_add_board(
 
 	MODULES
 		muorb/krait
+		muorb/test
 
 		attitude_estimator_q
 		camera_feedback
