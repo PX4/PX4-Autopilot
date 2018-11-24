@@ -30,12 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE platforms__posix__tests__vcdev_test
-	MAIN vcdev_test
+	MODULE lib__cdev__test__cdev_test
+	MAIN cdev_test
 	SRCS
-		vcdevtest_main.cpp
-		vcdevtest_start_posix.cpp
-		vcdevtest_example.cpp
+		cdevtest_example.cpp
+		cdevtest_main.cpp
+		cdevtest_start.cpp
 	DEPENDS
+		cdev
 	)
