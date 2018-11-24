@@ -31,7 +31,7 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE platforms__posix__tests__muorb
+	MODULE modules__muorb__test__muorb_test
 	MAIN muorb_test
 	SRCS
 		muorb_test_main.cpp
