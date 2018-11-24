@@ -73,9 +73,10 @@ private:
 }
 
 // Task/process based build
-#if defined(__PX4_ROS) || defined(__PX4_NUTTX)
+#if defined(__PX4_ROS)
 
 // Thread based build
+
 #else
 
 #ifdef PX4_MAIN

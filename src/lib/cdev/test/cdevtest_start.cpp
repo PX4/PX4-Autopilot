@@ -32,30 +32,65 @@
  ****************************************************************************/
 
 /**
- * @file vcdevtest_example.h
- * Example app for Linux
+ * @file cdevtest_start.cpp
  *
- * @author Mark Charlebois <charlebm@gmail.com>
+ * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @author Mark Charlebois <mcharleb@gmail.com>
  */
-#pragma once
+#include "cdevtest_example.h"
 
 #include <px4_app.h>
+#include <px4_tasks.h>
+#include <stdio.h>
+#include <string.h>
 
-class VCDevNode;
+static int daemon_task;             /* Handle of deamon task / thread */
 
-class VCDevExample
+//using namespace px4;
+
+extern "C" __EXPORT int cdev_test_main(int argc, char *argv[]);
+int cdev_test_main(int argc, char *argv[])
 {
-public:
-	VCDevExample() : _node(0) {}
 
-	~VCDevExample();
+	if (argc < 2) {
+		printf("usage: cdevtest {start|stop|status}\n");
+		return 1;
+	}
 
-	int main();
+	if (!strcmp(argv[1], "start")) {
 
-	static px4::AppState appState; /* track requests to terminate app */
+		if (CDevExample::appState.isRunning()) {
+			printf("already running\n");
+			/* this is not an error */
+			return 0;
+		}
 
-private:
-	int do_poll(int fd, int timeout, int iterations, int delayms_after_poll);
+		daemon_task = px4_task_spawn_cmd("cdevtest",
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 5,
+						 2000,
+						 PX4_MAIN,
+						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
 
-	VCDevNode *_node;
-};
+		return 0;
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		CDevExample::appState.requestExit();
+		return 0;
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (CDevExample::appState.isRunning()) {
+			printf("is running\n");
+
+		} else {
+			printf("not started\n");
+		}
+
+		return 0;
+	}
+
+	printf("usage: cdevtest_main {start|stop|status}\n");
+	return 1;
+}
