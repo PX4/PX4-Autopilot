@@ -8,6 +8,7 @@ program="$3"
 model="$4"
 src_path="$5"
 build_path="$6"
+# The rest of the arguments are files to copy into the working dir.
 
 echo SITL ARGS
 
@@ -57,6 +58,11 @@ pkill -x px4_$model || true
 
 cp $src_path/Tools/posix_lldbinit $rootfs/.lldbinit
 cp $src_path/Tools/posix.gdbinit $rootfs/.gdbinit
+
+shift 6
+for file in "$@"; do
+	cp "$file" $rootfs/
+done
 
 SIM_PID=0
 

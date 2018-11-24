@@ -48,6 +48,11 @@
 include(common/px4_base)
 list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake/posix)
 
+# This makes it possible to dynamically load code which depends on symbols
+# inside the px4 executable.
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_ENABLE_EXPORTS ON)
+
 #=============================================================================
 #
 #	px4_posix_generate_builtin_commands

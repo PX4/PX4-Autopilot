@@ -49,6 +49,7 @@
  */
 #pragma once
 
+#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <pthread.h>
@@ -75,9 +76,8 @@ public:
 	int start();
 
 	struct CmdThreadSpecificData {
-		int fd; // fd to send stdout to
+		FILE *thread_stdout; // stdout of this thread
 		bool is_atty; // whether file descriptor refers to a terminal
-		char buffer[1024];
 	};
 
 	static bool is_running()

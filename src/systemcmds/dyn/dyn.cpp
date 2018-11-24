@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,41 +32,60 @@
  ****************************************************************************/
 
 /**
- * @file List.hpp
+ * @file dyn.cpp
  *
- * A linked list.
+ * @author Mara Bos <m-ou.se@m-ou.se>
  */
 
-#pragma once
+#include <dlfcn.h>
 
-template<class T>
-class ListNode
+#include <px4_module.h>
+#include <px4_log.h>
+
+static void usage();
+
+extern "C" {
+	__EXPORT int dyn_main(int argc, char *argv[]);
+}
+
+static void usage()
 {
-public:
+	PRINT_MODULE_DESCRIPTION(
+		R"(
+### Description
+Load and run a dynamic PX4 module, which was not compiled into the PX4 binary.
 
-	void setSibling(T sibling) { _sibling = sibling; }
-	const T getSibling() const { return _sibling; }
+### Example
+$ dyn ./hello.px4mod start
 
-protected:
+)");
+	PRINT_MODULE_USAGE_NAME_SIMPLE("dyn", "command");
+	PRINT_MODULE_USAGE_ARG("<file>", "File containing the module", false);
+	PRINT_MODULE_USAGE_ARG("arguments...", "Arguments to the module", true);
+}
 
-	T _sibling{nullptr};
-
-};
-
-template<class T>
-class List
-{
-public:
-
-	void add(T newNode)
-	{
-		newNode->setSibling(getHead());
-		_head = newNode;
+int dyn_main(int argc, char *argv[]) {
+	if (argc < 2) {
+		usage();
+		return 1;
 	}
 
-	const T getHead() const { return _head; }
+	void *handle = dlopen(argv[1], RTLD_NOW);
 
-protected:
+	if (!handle) {
+		PX4_ERR("%s", dlerror());
+		return 1;
+	}
 
-	T _head{nullptr};
-};
+	void *main_address = dlsym(handle, "px4_module_main");
+
+	if (!main_address) {
+		PX4_ERR("%s", dlerror());
+		dlclose(handle);
+		return 1;
+	}
+
+	auto main_function = (int (*)(int, char **))main_address;
+
+	return main_function(argc - 1, argv + 1);
+}

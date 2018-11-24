@@ -43,6 +43,12 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	)
 endif()
 
+if (CMAKE_SYSTEM_NAME STREQUAL "CYGWIN")
+	list(REMOVE_ITEM tests
+		uorb
+	)
+endif()
+
 foreach(test_name ${tests})
 	configure_file(${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_template.in ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_${test_name}_generated)
 
@@ -93,6 +99,20 @@ add_test(NAME shutdown
 set_tests_properties(shutdown PROPERTIES PASS_REGULAR_EXPRESSION "Shutting down")
 sanitizer_fail_test_on_error(shutdown)
 
+# Dynamic module loading test
+add_test(NAME dyn
+	COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
+		$<TARGET_FILE:px4>
+		none
+		none
+		test_dyn_hello
+		${PX4_SOURCE_DIR}
+		${PX4_BINARY_DIR}
+		$<TARGET_FILE:platforms__posix__tests__dyn_hello>
+	WORKING_DIRECTORY ${SITL_WORKING_DIR})
+set_tests_properties(dyn PROPERTIES PASS_REGULAR_EXPRESSION "1: PASSED")
+sanitizer_fail_test_on_error(dyn)
+
 # run arbitrary commands
 set(test_cmds
 	hello
@@ -121,7 +141,7 @@ endforeach()
 
 add_custom_target(test_results
 		COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -T Test
-		DEPENDS px4
+		DEPENDS px4 platforms__posix__tests__dyn_hello
 		USES_TERMINAL
 		COMMENT "Running tests in sitl"
 		WORKING_DIRECTORY ${PX4_BINARY_DIR})
