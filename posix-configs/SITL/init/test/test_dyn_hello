@@ -3,6 +3,6 @@
 # (px4-alias.sh is expected to be in the PATH)
 . px4-alias.sh
 
-dyn ./platforms__posix__tests__dyn_hello.px4mod PASSED
+dyn ./examples__dyn_hello.px4mod PASSED
 
 shutdown
