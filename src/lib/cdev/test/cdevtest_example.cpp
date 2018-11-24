@@ -33,23 +33,24 @@
  ****************************************************************************/
 
 /**
- * @file vcdevtest_example.cpp
+ * @file cdevtest_example.cpp
  * Example for Linux
  *
  * @author Mark Charlebois <charlebm@gmail.com>
  */
 
+#include "cdevtest_example.h"
+
 #include <px4_tasks.h>
 #include <px4_time.h>
-#include "vcdevtest_example.h"
 #include <drivers/drv_device.h>
 #include <lib/cdev/CDev.hpp>
 #include <unistd.h>
 #include <stdio.h>
 
-px4::AppState VCDevExample::appState;
+px4::AppState CDevExample::appState;
 
-#define TESTDEV "/dev/vdevtest"
+#define TESTDEV "/dev/cdevtest"
 
 static bool g_exit = false;
 
@@ -60,8 +61,8 @@ static int writer_main(int argc, char *argv[])
 	int fd = px4_open(TESTDEV, PX4_F_WRONLY);
 
 	if (fd < 0) {
-		PX4_INFO("Writer: Open failed %d %d", fd, px4_errno);
-		return -px4_errno;
+		PX4_INFO("Writer: Open failed %d", fd);
+		return PX4_ERROR;
 	}
 
 	int ret = 0;
@@ -97,15 +98,15 @@ public:
 	size_t _read_offset;
 };
 
-class VCDevNode : public cdev::CDev
+class CDevNode : public cdev::CDev
 {
 public:
-	VCDevNode() :
+	CDevNode() :
 		CDev(TESTDEV),
 		_is_open_for_write(false),
 		_write_offset(0) {}
 
-	~VCDevNode() = default;
+	~CDevNode() = default;
 
 	virtual int open(cdev::file_t *handlep);
 	virtual int close(cdev::file_t *handlep);
@@ -117,7 +118,7 @@ private:
 	char     _buf[1000];
 };
 
-int VCDevNode::open(cdev::file_t *handlep)
+int CDevNode::open(cdev::file_t *handlep)
 {
 	// Only allow one writer
 	if (_is_open_for_write && (handlep->f_oflags & PX4_F_WRONLY)) {
@@ -140,7 +141,7 @@ int VCDevNode::open(cdev::file_t *handlep)
 	return 0;
 }
 
-int VCDevNode::close(cdev::file_t *handlep)
+int CDevNode::close(cdev::file_t *handlep)
 {
 	delete (PrivData *)handlep->f_priv;
 	handlep->f_priv = nullptr;
@@ -154,7 +155,7 @@ int VCDevNode::close(cdev::file_t *handlep)
 	return 0;
 }
 
-ssize_t VCDevNode::write(cdev::file_t *handlep, const char *buffer, size_t buflen)
+ssize_t CDevNode::write(cdev::file_t *handlep, const char *buffer, size_t buflen)
 {
 	for (size_t i = 0; i < buflen && _write_offset < 1000; i++) {
 		_buf[_write_offset] = buffer[i];
@@ -167,7 +168,7 @@ ssize_t VCDevNode::write(cdev::file_t *handlep, const char *buffer, size_t bufle
 	return buflen;
 }
 
-ssize_t VCDevNode::read(cdev::file_t *handlep, char *buffer, size_t buflen)
+ssize_t CDevNode::read(cdev::file_t *handlep, char *buffer, size_t buflen)
 {
 	PrivData *p = (PrivData *)handlep->f_priv;
 	ssize_t chars_read = 0;
@@ -182,7 +183,7 @@ ssize_t VCDevNode::read(cdev::file_t *handlep, char *buffer, size_t buflen)
 	return chars_read;
 }
 
-VCDevExample::~VCDevExample()
+CDevExample::~CDevExample()
 {
 	if (_node) {
 		delete _node;
@@ -190,28 +191,7 @@ VCDevExample::~VCDevExample()
 	}
 }
 
-static int test_pub_block(int fd, unsigned long blocked)
-{
-	int ret = px4_ioctl(fd, DEVIOCSPUBBLOCK, blocked);
-
-	if (ret < 0) {
-		PX4_INFO("ioctl PX4_DEVIOCSPUBBLOCK failed %d %d", ret, px4_errno);
-		return -px4_errno;
-	}
-
-	ret = px4_ioctl(fd, DEVIOCGPUBBLOCK, 0);
-
-	if (ret < 0) {
-		PX4_INFO("ioctl PX4_DEVIOCGPUBBLOCK failed %d %d", ret, px4_errno);
-		return -px4_errno;
-	}
-
-	PX4_INFO("pub_blocked = %d %s", ret, (unsigned long)ret == blocked ? "PASS" : "FAIL");
-
-	return 0;
-}
-
-int VCDevExample::do_poll(int fd, int timeout, int iterations, int delayms_after_poll)
+int CDevExample::do_poll(int fd, int timeout, int iterations, int delayms_after_poll)
 {
 	int pollret, readret;
 	int loop_count = 0;
@@ -229,7 +209,7 @@ int VCDevExample::do_poll(int fd, int timeout, int iterations, int delayms_after
 		pollret = px4_poll(fds, 1, timeout);
 
 		if (pollret < 0) {
-			PX4_ERR("Reader: px4_poll failed %d %d FAIL", pollret, px4_errno);
+			PX4_ERR("Reader: px4_poll failed %d FAIL", pollret);
 			goto fail;
 		}
 
@@ -264,41 +244,28 @@ int VCDevExample::do_poll(int fd, int timeout, int iterations, int delayms_after
 fail:
 	return 1;
 }
-int VCDevExample::main()
+int CDevExample::main()
 {
 	appState.setRunning(true);
 
-	_node = new VCDevNode();
+	_node = new CDevNode();
 
 	if (_node == nullptr) {
-		PX4_INFO("Failed to allocate VCDevNode");
+		PX4_INFO("Failed to allocate CDevNode");
 		return -ENOMEM;
 	}
 
 	if (_node->init() != PX4_OK) {
-		PX4_INFO("Failed to init VCDevNode");
+		PX4_INFO("Failed to init CDevNode");
 		return 1;
 	}
 
 	int fd = px4_open(TESTDEV, PX4_F_RDONLY);
 
 	if (fd < 0) {
-		PX4_INFO("Open failed %d %d", fd, px4_errno);
-		return -px4_errno;
+		PX4_INFO("Open failed %d", fd);
+		return PX4_ERROR;
 	}
-
-	int ret = test_pub_block(fd, 1);
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	ret = test_pub_block(fd, 0);
-
-	if (ret < 0) {
-		return ret;
-	}
-
 
 	// Start a task that will write something in 4 seconds
 	(void)px4_task_spawn_cmd("writer",
@@ -308,7 +275,7 @@ int VCDevExample::main()
 				 writer_main,
 				 (char *const *)nullptr);
 
-	ret = 0;
+	int ret = 0;
 
 	PX4_INFO("TEST: BLOCKING POLL ---------------");
 

@@ -32,24 +32,30 @@
  ****************************************************************************/
 
 /**
- * @file vcdevtest_main.cpp
- * Example for Linux
+ * @file vcdevtest_example.h
+ * Example app for Linux
  *
  * @author Mark Charlebois <charlebm@gmail.com>
  */
-#include <px4_middleware.h>
+#pragma once
+
 #include <px4_app.h>
-#include "vcdevtest_example.h"
-#include <stdio.h>
 
-int PX4_MAIN(int argc, char **argv)
+class CDevNode;
+
+class CDevExample
 {
-	px4::init(argc, argv, "vcdevtest");
+public:
+	CDevExample() : _node(0) {}
 
-	printf("vcdevtest\n");
-	VCDevExample vcdevtest;
-	vcdevtest.main();
+	~CDevExample();
 
-	printf("goodbye\n");
-	return 0;
-}
+	int main();
+
+	static px4::AppState appState; /* track requests to terminate app */
+
+private:
+	int do_poll(int fd, int timeout, int iterations, int delayms_after_poll);
+
+	CDevNode *_node;
+};
