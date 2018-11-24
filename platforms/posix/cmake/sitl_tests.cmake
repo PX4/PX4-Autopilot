@@ -115,7 +115,6 @@ sanitizer_fail_test_on_error(shutdown)
 
 # run arbitrary commands
 set(test_cmds
-	hello
 	hrt_test
 	cdev_test
 	wqueue_test
