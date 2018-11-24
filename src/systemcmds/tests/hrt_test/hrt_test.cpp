@@ -1,6 +1,7 @@
+
 /****************************************************************************
  *
- * Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,62 +33,63 @@
  ****************************************************************************/
 
 /**
- * @file hrt_test_start_posix.cpp
+ * @file hrt_test.cpp
+ * Test High Resolution Timers in Linux
  *
- * @author Mark Charlebois <mcharleb@gmail.com>
+ * @author Mark Charlebois <charlebm@gmail.com>
  */
+
 #include "hrt_test.h"
+
+#include <drivers/drv_hrt.h>
 #include <px4_log.h>
-#include <px4_app.h>
-#include <px4_tasks.h>
+#include <px4_time.h>
+
+#include <unistd.h>
 #include <stdio.h>
-#include <string.h>
-#include <sched.h>
+#include <cstring>
 
-static int daemon_task;             /* Handle of deamon task / thread */
+px4::AppState HRTTest::appState;
 
-extern "C" __EXPORT int hrt_test_main(int argc, char *argv[]);
-int hrt_test_main(int argc, char *argv[])
+static struct hrt_call t1;
+static int update_interval = 1;
+
+static void timer_expired(void *arg)
 {
-	if (argc < 2) {
-		PX4_WARN("usage: hrt_test_main {start|stop|status}\n");
-		return 1;
+	static int i = 0;
+	PX4_INFO("Test\n");
+
+	if (i < 5) {
+		i++;
+		hrt_call_after(&t1, update_interval, timer_expired, (void *)nullptr);
 	}
+}
 
-	if (!strcmp(argv[1], "start")) {
+int HRTTest::main()
+{
+	appState.setRunning(true);
 
-		if (HRTTest::appState.isRunning()) {
-			PX4_INFO("already running\n");
-			/* this is not an error */
-			return 0;
-		}
+	hrt_abstime t = hrt_absolute_time();
+	usleep(1000000);
+	hrt_abstime elt = hrt_elapsed_time(&t);
+	PX4_INFO("Elapsed time %llu in 1 sec (usleep)\n", (unsigned long long)elt);
+	PX4_INFO("Start time %llu\n", (unsigned long long)t);
 
-		daemon_task = px4_task_spawn_cmd("hrttest",
-						 SCHED_DEFAULT,
-						 SCHED_PRIORITY_MAX - 5,
-						 2000,
-						 PX4_MAIN,
-						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
+	t = hrt_absolute_time();
+	sleep(1);
+	elt = hrt_elapsed_time(&t);
+	PX4_INFO("Elapsed time %llu in 1 sec (sleep)\n", (unsigned long long)elt);
+	PX4_INFO("Start time %llu\n", (unsigned long long)t);
 
-		return 0;
-	}
+	memset(&t1, 0, sizeof(t1));
 
-	if (!strcmp(argv[1], "stop")) {
-		HRTTest::appState.requestExit();
-		return 0;
-	}
+	PX4_INFO("HRT_CALL %d\n", hrt_called(&t1));
 
-	if (!strcmp(argv[1], "status")) {
-		if (HRTTest::appState.isRunning()) {
-			PX4_INFO("is running\n");
+	hrt_call_after(&t1, update_interval, timer_expired, (void *)nullptr);
+	sleep(2);
+	PX4_INFO("HRT_CALL - %d\n", hrt_called(&t1));
+	hrt_cancel(&t1);
+	PX4_INFO("HRT_CALL + %d\n", hrt_called(&t1));
 
-		} else {
-			PX4_INFO("not started\n");
-		}
-
-		return 0;
-	}
-
-	PX4_WARN("usage: hrttest_main {start|stop|status}\n");
-	return 1;
+	return 0;
 }

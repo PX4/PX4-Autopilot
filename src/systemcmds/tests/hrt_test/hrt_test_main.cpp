@@ -1,4 +1,3 @@
-
 /****************************************************************************
  *
  *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
@@ -33,61 +32,27 @@
  ****************************************************************************/
 
 /**
- * @file hrt_test.cpp
- * Test High Resolution Timers in Linux
+ * @file hrt_test_main.cpp
+ * Example for Linux
  *
  * @author Mark Charlebois <charlebm@gmail.com>
  */
 
-#include "px4_log.h"
-#include <px4_time.h>
-#include <drivers/drv_hrt.h>
 #include "hrt_test.h"
-#include <unistd.h>
+
 #include <stdio.h>
-#include <cstring>
 
-px4::AppState HRTTest::appState;
+#include <px4_middleware.h>
+#include <px4_app.h>
 
-static struct hrt_call t1;
-static int update_interval = 1;
-
-static void timer_expired(void *arg)
+int PX4_MAIN(int argc, char **argv)
 {
-	static int i = 0;
-	PX4_INFO("Test\n");
+	px4::init(argc, argv, "hrt_test");
 
-	if (i < 5) {
-		i++;
-		hrt_call_after(&t1, update_interval, timer_expired, (void *)nullptr);
-	}
-}
+	printf("starting\n");
+	HRTTest test;
+	test.main();
 
-int HRTTest::main()
-{
-	appState.setRunning(true);
-
-	hrt_abstime t = hrt_absolute_time();
-	usleep(1000000);
-	hrt_abstime elt = hrt_elapsed_time(&t);
-	PX4_INFO("Elapsed time %llu in 1 sec (usleep)\n", (unsigned long long)elt);
-	PX4_INFO("Start time %llu\n", (unsigned long long)t);
-
-	t = hrt_absolute_time();
-	sleep(1);
-	elt = hrt_elapsed_time(&t);
-	PX4_INFO("Elapsed time %llu in 1 sec (sleep)\n", (unsigned long long)elt);
-	PX4_INFO("Start time %llu\n", (unsigned long long)t);
-
-	memset(&t1, 0, sizeof(t1));
-
-	PX4_INFO("HRT_CALL %d\n", hrt_called(&t1));
-
-	hrt_call_after(&t1, update_interval, timer_expired, (void *)nullptr);
-	sleep(2);
-	PX4_INFO("HRT_CALL - %d\n", hrt_called(&t1));
-	hrt_cancel(&t1);
-	PX4_INFO("HRT_CALL + %d\n", hrt_called(&t1));
-
+	printf("goodbye\n");
 	return 0;
 }

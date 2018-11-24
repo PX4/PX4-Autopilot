@@ -31,11 +31,11 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE platforms__posix__tests__hrt_test
+	MODULE systemcmds__tests__hrt_test
 	MAIN hrt_test
 	SRCS
 		hrt_test_main.cpp
-		hrt_test_start_posix.cpp
+		hrt_test_start.cpp
 		hrt_test.cpp
 	DEPENDS
 	)
