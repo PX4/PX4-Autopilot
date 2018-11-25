@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,33 +31,26 @@
  *
  ****************************************************************************/
 
-/**
- * @file drv_led.h
+/*
+ * @file rgbled_ncp5623c_params.c
  *
- * Led device API to control the external LED(s) via uORB interface
+ * Parameters defined by the RBG led driver
+ *
+ * @author CUAVcaijie <caijie@cuav.net>
  */
 
-#pragma once
 
+#include <px4_config.h>
+#include <parameters/param.h>
 
-#include <uORB/topics/led_control.h>
+/**
+ * RGB Led brightness limit
+ *
+ * Set to 0 to disable, 1 for minimum brightness up to 31 (max)
+ *
+ * @min 0
+ * @max 31
+ * @group System
+ */
+PARAM_DEFINE_INT32(LED_RGB1_MAXBRT, 31);
 
-#include <board_config.h>
-
-// allow the board to override the number (or maxiumum number) of LED's it has
-#ifndef BOARD_MAX_LEDS
-#define BOARD_MAX_LEDS 4
-#endif
-
-#if BOARD_MAX_LEDS > 8 // because led_mask is uint8_t
-#error "BOARD_MAX_LEDS too large. You need to change the led_mask type in the led_control uorb topic (and where it's used)"
-#endif
-
-
-// set the queue size to the number of LED's, so that each led can be controlled individually
-static const int LED_UORB_QUEUE_LENGTH = BOARD_MAX_LEDS;
-
-// Legacy paths - 2 are need to allow both pwm and i2c drviers to co-exist
-#define RGBLED0_DEVICE_PATH "/dev/rgbled0"         // Primary RGB LED on i2c
-#define RGBLED1_DEVICE_PATH "/dev/rgbled1"	   // Primary RGB LED(NCP5623C) on i2c
-#define RGBLED_PWM0_DEVICE_PATH "/dev/rgbled_pwm0" // Secondary RGB LED on PWM
