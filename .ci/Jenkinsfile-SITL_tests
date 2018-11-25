@@ -146,7 +146,7 @@ pipeline {
         stage('code coverage (python)') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2018-09-11'
+              image 'px4io/px4-dev-base:2018-11-22'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw --cap-add SYS_PTRACE'
             }
           }
@@ -169,7 +169,7 @@ pipeline {
         stage('unit tests') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2018-09-11'
+              image 'px4io/px4-dev-base:2018-11-22'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw --cap-add SYS_PTRACE'
             }
           }
