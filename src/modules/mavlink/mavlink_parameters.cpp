@@ -134,8 +134,12 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
 
 				/* Whatever the value is, we're being told to stop sending */
-				if (strncmp(name, "_HASH_CHECK", sizeof(name)) == 0 && _mavlink->hash_check_enabled()) {
-					_send_all_index = -1;
+				if (strncmp(name, "_HASH_CHECK", sizeof(name)) == 0) {
+
+					if (_mavlink->hash_check_enabled()) {
+						_send_all_index = -1;
+					}
+
 					/* No other action taken, return */
 					return;
 				}
