@@ -9,12 +9,11 @@ pipeline {
         script {
           def build_nodes = [:]
           def docker_images = [
-            arch: "px4io/px4-dev-base-archlinux:2018-09-11",
+            arch: "px4io/px4-dev-base-archlinux:2018-11-22",
             armhf: "px4io/px4-dev-armhf:2018-09-11",
-            base: "px4io/px4-dev-base:2018-09-11",
-            clang: "px4io/px4-dev-clang:2018-09-11",
+            base: "px4io/px4-dev-base:2018-11-22",
             nuttx: "px4io/px4-dev-nuttx:2018-09-11",
-            ros: "px4io/px4-dev-ros:2018-09-11",
+            ros: "px4io/px4-dev-ros:2018-11-22",
             rpi: "px4io/px4-dev-raspi:2018-09-11",
             snapdragon: "lorenzmeier/px4-dev-snapdragon:2018-09-12"
           ]
@@ -135,7 +134,7 @@ pipeline {
     // TODO: actually upload artifacts to S3
     stage('S3 Upload') {
       agent {
-        docker { image 'px4io/px4-dev-base:2018-09-11' }
+        docker { image 'px4io/px4-dev-base:2018-11-22' }
       }
       options {
             skipDefaultCheckout()
