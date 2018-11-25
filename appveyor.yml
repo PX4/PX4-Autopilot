@@ -1,5 +1,7 @@
 # Build version
 version: "{build}"
+# shallow clone the main repo
+clone_depth: 1
 
 branches:
   only:
