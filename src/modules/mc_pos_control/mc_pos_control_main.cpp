@@ -301,6 +301,7 @@ private:
 	 * check if task should be switched because of failsafe
 	 */
 	void check_failure(bool task_failure, uint8_t nav_state);
+
 	/**
 	 * send vehicle command to inform commander about failsafe
 	 */
@@ -994,6 +995,10 @@ MulticopterPositionControl::start_flight_task()
 			check_failure(task_failure, vehicle_status_s::NAVIGATION_STATE_ALTCTL);
 			task_failure = false;
 		}
+	}
+
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT) {
+		should_disable_task = false;
 	}
 
 	// check task failure
