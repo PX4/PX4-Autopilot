@@ -1029,6 +1029,11 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 		}
 		break;
 
+	case vehicle_command_s::VEHICLE_CMD_DO_ORBIT:
+		// Switch to orbit state and let the orbit task handle the command further
+		main_state_transition(*status_local, commander_state_s::MAIN_STATE_ORBIT, status_flags, &internal_state);
+		break;
+
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_2:
@@ -1060,7 +1065,6 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_LOCATION:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET:
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE:
-	case vehicle_command_s::VEHICLE_CMD_DO_ORBIT:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -3398,6 +3402,20 @@ set_control_mode()
 		control_mode.flag_control_altitude_enabled = (!offboard_control_mode.ignore_velocity ||
 				!offboard_control_mode.ignore_position) && !control_mode.flag_control_acceleration_enabled;
 
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_ORBIT:
+		control_mode.flag_control_manual_enabled = false;
+		control_mode.flag_control_auto_enabled = false;
+		control_mode.flag_control_rates_enabled = true;
+		control_mode.flag_control_attitude_enabled = true;
+		control_mode.flag_control_rattitude_enabled = false;
+		control_mode.flag_control_altitude_enabled = true;
+		control_mode.flag_control_climb_rate_enabled = true;
+		control_mode.flag_control_position_enabled = !status.in_transition_mode;
+		control_mode.flag_control_velocity_enabled = !status.in_transition_mode;
+		control_mode.flag_control_acceleration_enabled = false;
+		control_mode.flag_control_termination_enabled = false;
 		break;
 
 	default:

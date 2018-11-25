@@ -294,8 +294,9 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 		break;
 
 	case commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET:
+	case commander_state_s::MAIN_STATE_ORBIT:
 
-		/* FOLLOW only implemented in MC */
+		/* Follow and orbit only implemented for multicopter */
 		if (status.is_rotary_wing) {
 			ret = TRANSITION_CHANGED;
 		}
@@ -584,6 +585,19 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET;
 		}
 
+		break;
+
+	case commander_state_s::MAIN_STATE_ORBIT:
+		/* require local position */
+		if (status->engine_failure) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
+
+		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false)) {
+			// nothing to do - everything done in check_invalid_pos_nav_state
+
+		} else {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_ORBIT;
+		}
 		break;
 
 	case commander_state_s::MAIN_STATE_AUTO_TAKEOFF:
