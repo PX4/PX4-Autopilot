@@ -22,7 +22,7 @@ install:
 # if the toolchain wasn't restored from build cache download and install it
 - ps: >-
     if (-not (Test-Path C:\PX4)) {
-        Invoke-WebRequest https://s3-us-west-2.amazonaws.com/px4-tools/PX4+Windows+Cygwin+Toolchain/PX4+Windows+Cygwin+Toolchain+0.4.msi -OutFile C:\Toolchain.msi
+        Invoke-WebRequest https://s3-us-west-2.amazonaws.com/px4-tools/PX4+Windows+Cygwin+Toolchain/PX4+Windows+Cygwin+Toolchain+0.5.msi -OutFile C:\Toolchain.msi
         Start-Process -Wait msiexec -ArgumentList '/I C:\Toolchain.msi /quiet /qn /norestart /log C:\install.log'
     }
 
@@ -30,8 +30,10 @@ install:
 # because otherwise the install begins but non-blocking and the result cannot be used just after
 
 build_script:
+# FIXME Temporary we need to create the home folder because it's not contained in installer 0.5 and CI fails if it doesn't exist
+- mkdir C:\PX4\home
 # setup the environmental variables to work within the installed cygwin toolchain
-- call C:\PX4\toolchain\setup-environment-variables.bat x
+- call C:\PX4\toolchain\scripts\setup-environment.bat x
 # safe the repopath for switching to it in cygwin bash
 - for /f %%i in ('cygpath -u %%CD%%') do set repopath=%%i
 # fetch all submodules in parallel
