@@ -76,17 +76,23 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.front_trans_time_openloop = param_find("VT_F_TR_OL_TM");
 	_params_handles.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
 	_params_handles.fw_pitch_trim = param_find("VT_FW_PITCH_TRIM");
-	_params_handles.front_trans_duration = param_find("VT_F_TRANS_DUR");
-	_params_handles.front_trans_pitch_sp_p1 = param_find("VT_F_TRANS_PIT_SP_P1");
+	_params_handles.front_trans_duration = param_find("F_TRANS_DUR");
+	_params_handles.front_trans_pitch_sp_p1 = param_find("F_TRANS_PIT_SP");
 	_params_handles.back_trans_duration = param_find("VT_B_TRANS_DUR");
 	_params_handles.transition_airspeed = param_find("VT_ARSP_TRANS");
-	_params_handles.front_trans_throttle = param_find("VT_F_TRANS_THR");
+	_params_handles.front_trans_throttle = param_find("F_TRANS_THR");
 	_params_handles.back_trans_throttle = param_find("VT_B_TRANS_THR");
 	_params_handles.airspeed_blend = param_find("VT_ARSP_BLEND");
 	_params_handles.airspeed_mode = param_find("FW_ARSP_MODE");
 	_params_handles.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
 	_params_handles.mpc_xy_cruise = param_find("MPC_XY_CRUISE");
 	_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
+	_params_handles.vt_sweep_type = param_find("VT_SWEEP_TYPE");
+	_params_handles.vt_sweep_amp = param_find("VT_SWEEP_AMP");
+
+	_params_handles.wv_takeoff = param_find("VT_WV_TKO_EN");
+	_params_handles.wv_land = param_find("VT_WV_LND_EN");
+	_params_handles.wv_loiter = param_find("VT_WV_LTR_EN");
 	_params_handles.diff_thrust = param_find("VT_FW_DIFTHR_EN");
 	_params_handles.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
 
@@ -470,9 +476,14 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.fw_qc_max_roll, &l);
 	_params.fw_qc_max_roll = l;
 
+	param_get(_params_handles.vt_sweep_type, &l);
+	_params.vt_sweep_type = l;
+
 	param_get(_params_handles.front_trans_time_openloop, &_params.front_trans_time_openloop);
 
 	param_get(_params_handles.front_trans_time_min, &_params.front_trans_time_min);
+
+	param_get(_params_handles.vt_sweep_amp, &_params.vt_sweep_amp);
 
 	/*
 	 * Minimum transition time can be maximum 90 percent of the open loop transition time,

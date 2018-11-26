@@ -615,7 +615,7 @@ bool Logger::try_to_subscribe_topic(LoggerSubscription &sub, int multi_instance)
 void Logger::add_default_topics()
 {
 	// Note: try to avoid setting the interval where possible, as it increases RAM usage
-	add_topic("actuator_controls_0", 100);
+	add_topic("actuator_controls_0", 0);
 	add_topic("actuator_controls_1", 100);
 	add_topic("actuator_outputs", 100);
 	add_topic("airspeed", 200);
@@ -629,7 +629,13 @@ void Logger::add_default_topics()
 	add_topic("esc_status", 250);
 	add_topic("estimator_status", 200);
 	add_topic("home_position");
+<<<<<<< HEAD
 	add_topic("input_rc", 200);
+=======
+	add_topic("input_rc", 0);
+	add_topic("iridiumsbd_status");
+	add_topic("landing_target_pose");
+>>>>>>> change some parameters for trans and fw controller
 	add_topic("manual_control_setpoint", 200);
 	add_topic("mission");
 	add_topic("mission_result");
@@ -643,18 +649,28 @@ void Logger::add_default_topics()
 	add_topic("tecs_status", 200);
 	add_topic("trajectory_setpoint", 200);
 	add_topic("telemetry_status");
+<<<<<<< HEAD
 	add_topic("vehicle_air_data", 200);
 	add_topic("vehicle_attitude", 30);
 	add_topic("vehicle_attitude_setpoint", 100);
+=======
+	add_topic("vehicle_attitude", 0);
+	add_topic("vehicle_attitude_setpoint", 0);
+>>>>>>> change some parameters for trans and fw controller
 	add_topic("vehicle_command");
 	add_topic("vehicle_global_position", 200);
 	add_topic("vehicle_gps_position");
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_local_position", 100);
 	add_topic("vehicle_local_position_setpoint", 100);
+<<<<<<< HEAD
 	add_topic("vehicle_magnetometer", 200);
 	add_topic("vehicle_rates_setpoint", 30);
 	add_topic("vehicle_status", 200);
+=======
+	add_topic("vehicle_rates_setpoint", 0);
+	add_topic("vehicle_status", 0);
+>>>>>>> change some parameters for trans and fw controller
 	add_topic("vehicle_status_flags");
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("wind_estimate", 200);

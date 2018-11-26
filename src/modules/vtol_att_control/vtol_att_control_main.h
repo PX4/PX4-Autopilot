@@ -197,6 +197,8 @@ private:
 		param_t front_trans_timeout;
 		param_t mpc_xy_cruise;
 		param_t fw_motors_off;
+		param_t vt_sweep_type;
+		param_t vt_sweep_amp;
 		param_t diff_thrust;
 		param_t diff_thrust_scale;
 	} _params_handles{};

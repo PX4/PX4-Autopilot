@@ -44,7 +44,7 @@
 
 #define ARSP_YAW_CTRL_DISABLE 4.0f	// airspeed at which we stop controlling yaw during a front transition
 #define THROTTLE_TRANSITION_MAX 0.25f	// maximum added thrust above last value in transition
-#define PITCH_TRANSITION_FRONT_P1 -1.46f	// pitch angle to switch to TRANSITION_P2
+#define PITCH_TRANSITION_FRONT_P1 (-_params->front_trans_pitch_sp_p1)	// pitch angle to switch to TRANSITION_P2
 #define PITCH_TRANSITION_BACK -0.25f	// pitch angle to switch to MC
 
 using namespace matrix;
@@ -61,8 +61,9 @@ Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 
 	_flag_was_in_trans_mode = false;
 
-	_params_handles_tailsitter.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
-	_params_handles_tailsitter.fw_pitch_sp_offset = param_find("FW_PSP_OFF");
+	_params_handles_tailsitter.front_trans_dur_p2 = param_find("F_TRANS_DUR_P2");
+}
+
 }
 
 void
@@ -74,8 +75,6 @@ Tailsitter::parameters_update()
 	param_get(_params_handles_tailsitter.front_trans_dur_p2, &v);
 	_params_tailsitter.front_trans_dur_p2 = v;
 
-	param_get(_params_handles_tailsitter.fw_pitch_sp_offset, &v);
-	_params_tailsitter.fw_pitch_sp_offset = math::radians(v);
 }
 
 void Tailsitter::update_vtol_state()
@@ -87,6 +86,7 @@ void Tailsitter::update_vtol_state()
 	*/
 
 	Eulerf euler = Quatf(_v_att->q);
+	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
 	float pitch = euler.theta();
 
 	if (!_attc->is_fixed_wing_requested()) {
@@ -135,8 +135,8 @@ void Tailsitter::update_vtol_state()
 
 				_vtol_schedule.fw_start = hrt_absolute_time();
 
-				// check if we have reached airspeed  and pitch angle to switch to TRANSITION P2 mode
-				if ((airspeed_condition_satisfied && pitch <= PITCH_TRANSITION_FRONT_P1) || can_transition_on_ground()) {
+				// check if we have reached airspeed  and the transition time is over the setpoint to switch to TRANSITION P2 mode
+				if ((airspeed_condition_satisfied && (time_since_trans_start >= (_params->front_trans_duration + _params_tailsitter.front_trans_dur_p2))) || can_transition_on_ground()) {
 					_vtol_schedule.flight_mode = FW_MODE;
 				}
 
@@ -192,17 +192,15 @@ void Tailsitter::update_transition_state()
 			// as heading setpoint we choose the heading given by the direction the vehicle points
 			float yaw_sp = atan2f(z(1), z(0));
 
-<<<<<<< HEAD
 			// the intial attitude setpoint for a backtransition is a combination of the current fw pitch setpoint,
 			// the yaw setpoint and zero roll since we want wings level transition
 			_q_trans_start = Eulerf(0.0f, _fw_virtual_att_sp->pitch_body, yaw_sp);
-=======
+
 		// create time dependant pitch angle set point + 0.2 rad overlap over the switch value
 		_v_att_sp->pitch_body = _pitch_transition_start	- fabsf(PITCH_TRANSITION_FRONT_P1 - _pitch_transition_start) *
 					time_since_trans_start / _params->front_trans_duration;
-		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, PITCH_TRANSITION_FRONT_P1 - 0.1f,
+		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, PITCH_TRANSITION_FRONT_P1,
 							_pitch_transition_start);
->>>>>>> fix the pitch vibration problem
 
 			// attitude during transitions are controlled by mc attitude control so rotate the desired attitude to the
 			// multirotor frame
@@ -285,7 +283,13 @@ void Tailsitter::update_fw_state()
 void Tailsitter::fill_actuator_outputs()
 {
 	float time_since_fw_start = 0.0f;
+	float time_since_sweep = 0.0f;
+	float sweep_signal_phase = 0.0f;
+	float sweep_signal = 0.0f;
 	float smooth_fw_start = 0.0f;
+	float sweep_min_frequency = 0.5f;
+	float sweep_max_frequency = 20.0f;
+	float overall_time = 150.0f;
 	_actuators_out_0->timestamp = hrt_absolute_time();
 	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
 
@@ -313,6 +317,23 @@ void Tailsitter::fill_actuator_outputs()
 				_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];	//pitch elevon
 		}
 
+		switch (_params->vt_sweep_type){
+		case NO_SWEEP:
+			_vtol_schedule.sweep_start = hrt_absolute_time();
+			break;
+		case PITCH_RATE:
+			time_since_sweep = (float)(hrt_absolute_time() - _vtol_schedule.sweep_start) * 1e-6f;
+			sweep_signal_phase = sweep_min_frequency * time_since_sweep + 0.0187f * (sweep_max_frequency - sweep_min_frequency) * (overall_time / 4.0f * powf(2.7183f, (4.0f * time_since_sweep / overall_time)) - time_since_sweep);
+			sweep_signal = (float)(_params->vt_sweep_amp) * sinf(sweep_signal_phase);
+			_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] + sweep_signal;
+			break;
+	    case ROLL_RATE:
+	    	time_since_sweep = (float)(hrt_absolute_time() - _vtol_schedule.sweep_start) * 1e-6f;
+			sweep_signal_phase = sweep_min_frequency * time_since_sweep + 0.0187f * (sweep_max_frequency - sweep_min_frequency) * (overall_time / 4.0f * powf(2.7183f, (4.0f * time_since_sweep / overall_time)) - time_since_sweep);
+			sweep_signal = (float)(_params->vt_sweep_amp) * sinf(sweep_signal_phase);
+			_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL] + sweep_signal;
+			break;
+		}
 		break;
 
 	case FIXED_WING:
@@ -323,11 +344,11 @@ void Tailsitter::fill_actuator_outputs()
 		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] =
 			_actuators_fw_in->control[actuator_controls_s::INDEX_YAW];
 		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + (1.0f - smooth_fw_start) * 0.0f;
+			_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + (1.0f - smooth_fw_start) * 0.0f + _params->fw_pitch_trim;
 		_actuators_out_0->control[actuator_controls_s::INDEX_YAW] =
 			-_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
 		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
+			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE]* smooth_fw_start + _params->front_trans_throttle * (1.0f - smooth_fw_start);
 
 		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
 			-_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];	// roll elevon

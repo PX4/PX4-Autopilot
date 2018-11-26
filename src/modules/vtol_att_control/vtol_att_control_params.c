@@ -97,6 +97,28 @@ PARAM_DEFINE_INT32(VT_TYPE, 0);
 PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK, 1);
 
 /**
+ * Choose the channel put in the sweep signal
+ *
+ * 0: no sweep signal
+ * 1: pitch rate
+ * 2: roll rate
+ * 3: yaw rate
+ *
+ * @boolean
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_SWEEP_TYPE, 0);
+
+/**
+ * Set the amlitute of the sweep signal
+ *
+ *
+ * @boolean
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_SWEEP_AMP, 0.2f);
+
+/**
  * Duration of a front transition
  *
  * Time in seconds used for a transition
@@ -108,12 +130,21 @@ PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK, 1);
  * @decimal 2
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 3.5f);
+PARAM_DEFINE_FLOAT(F_TRANS_DUR, 2.5f);
 
 /**
- * the pitch setpoint at the end of the front transition
+ * the target pitch at the end of front trans
+ *
+ * @unit rad
  */
-PARAM_DEFINE_FLOAT(VT_F_TRANS_PITSP, 1.2f);
+PARAM_DEFINE_FLOAT(F_TRANS_PIT_SP, 1.45f);
+
+/**
+ * the flight time when pitch setpoint get the MAX (level flight) in the front transition stage
+ *
+ * @unit second
+ */
+PARAM_DEFINE_FLOAT(F_TRANS_LEVEL_T, 0.5f);
 
 /**
  * Duration of a back transition
@@ -153,7 +184,7 @@ PARAM_DEFINE_FLOAT(VT_FW_PITCH_TRIM, 0.0f);
  * @decimal 3
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_F_TRANS_THR, 1.0f);
+PARAM_DEFINE_FLOAT(F_TRANS_THR, 0.7f);
 
 /**
  * Target throttle value for the transition to hover flight.
@@ -170,7 +201,7 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_THR, 1.0f);
  * @decimal 2
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_B_TRANS_THR, 0.0f);
+PARAM_DEFINE_FLOAT(VT_B_TRANS_THR, 0.5f);
 
 /**
  * Approximate deceleration during back transition
@@ -213,7 +244,7 @@ PARAM_DEFINE_FLOAT(VT_ARSP_BLEND, 8.0f);
  * @decimal 2
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);
+PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 13.0f);
 
 /**
  * Front transition timeout
