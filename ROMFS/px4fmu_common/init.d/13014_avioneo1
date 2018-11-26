@@ -1,0 +1,37 @@
+#!nsh
+#
+# @name avioneo proto 1/3 v1
+#
+# @type VTOL Duo Tilt Wings
+# @class VTOL
+#
+# @output MAIN1 motors right
+# @output MAIN2 motors left
+# @output MAIN3 empty
+# @output MAIN4 empty
+# @output MAIN5 Tilt servo
+# @output MAIN6 Foil elevator
+# @output MAIN7 Elevon right
+# @output MAIN8 Elevon left
+#
+#
+# @maintainer Yves - Joan <yc@avioneo.com>
+#
+
+sh /etc/init.d/rc.vtol_defaults
+
+if [ $AUTOCNF == yes ]
+then
+
+
+param set VT_IDLE_PWM_MC  1080
+param set VT_ELEV_MC_LOCK 0
+param set VT_MOT_COUNT 2
+param set VT_TYPE 0
+fi
+
+set MIXER vtol_avioneo1
+
+set PWM_OUT 1234
+
+set MAV_TYPE 19
