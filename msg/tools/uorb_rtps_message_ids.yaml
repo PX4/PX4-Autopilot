@@ -219,6 +219,8 @@ rtps:
     id: 105
   - msg: wind_estimate
     id: 106
+  - msg: companion_process_status
+    id: 107
   # multi topics
   - msg: actuator_control0
     id: 120
