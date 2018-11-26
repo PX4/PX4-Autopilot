@@ -74,7 +74,7 @@ class ParameterGroup(object):
             return "VTOLQuadRotorTailSitter"
         elif (self.name == "VTOL Tiltrotor"):
             return "VTOLTiltRotor"
-        elif (self.name == "VTOL Penta Tiltwing"):
+        elif (self.name == "VTOL Penta Tiltwings"):
             return "avioneo"
         elif (self.name == "Coaxial Helicopter"):
             return "HelicopterCoaxial"
@@ -88,7 +88,6 @@ class ParameterGroup(object):
             return "YMinus"
         elif (self.name == "Tricopter Y+"):
             return "YPlus"
-
         elif (self.name == "Rover"):
             return "Rover"
         elif (self.name == "Boat"):
