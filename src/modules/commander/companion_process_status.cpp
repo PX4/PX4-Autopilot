@@ -38,7 +38,6 @@
 
 #include <drivers/drv_hrt.h>
 #include "companion_process_status.h"
-using uORB::Subscription;
 
 static orb_advert_t *mavlink_log_pub;
 
