@@ -62,4 +62,8 @@ protected:
 	void _generateHeadingAlongTrack(); /**< Generates heading along track. */
 	void _generateAltitudeSetpoints(); /**< Generate velocity and position setpoints for following line along z. */
 	void _generateXYsetpoints(); /**< Generate velocity and position setpoints for following line along xy. */
+
+private:
+	void _setSpeedAtTarget(); /**< Sets desiered speed at target */
+	float _speed_at_target = 0.0f;
 };
