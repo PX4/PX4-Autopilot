@@ -260,6 +260,7 @@ then
 	# External I2C bus
 	hmc5883 -C -T -X start
 	lis3mdl -X start
+	ist8310 start
 	bmp280 -I start
 
 	# expansion i2c used for BMM150 rotated by 90deg
