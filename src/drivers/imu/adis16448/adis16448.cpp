@@ -597,13 +597,13 @@ ADIS16448::init()
 	}
 
 	/* allocate basic report buffers */
-	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
+	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_gyro_s));
 
 	if (_gyro_reports == nullptr) {
 		goto out;
 	}
 
-	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
 
 	if (_accel_reports == nullptr) {
 		goto out;
@@ -665,7 +665,7 @@ ADIS16448::init()
 	measure();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct accel_report arp;
+	sensor_accel_s arp;
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */
@@ -676,7 +676,7 @@ ADIS16448::init()
 		warnx("ADVERT FAIL");
 	}
 
-	struct gyro_report grp;
+	sensor_gyro_s grp;
 
 	_gyro_reports->get(&grp);
 
@@ -841,7 +841,7 @@ ADIS16448::_set_gyro_dyn_range(uint16_t desired_gyro_dyn_range)
 ssize_t
 ADIS16448::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(accel_report);
+	unsigned count = buflen / sizeof(sensor_accel_s);
 
 	/* buffer must be large enough */
 	if (count < 1) {
@@ -862,7 +862,7 @@ ADIS16448::read(struct file *filp, char *buffer, size_t buflen)
 	perf_count(_accel_reads);
 
 	/* copy reports out of our buffer to the caller */
-	accel_report *arp = reinterpret_cast<accel_report *>(buffer);
+	sensor_accel_s *arp = reinterpret_cast<sensor_accel_s *>(buffer);
 	int transferred = 0;
 
 	while (count--) {
@@ -875,7 +875,7 @@ ADIS16448::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* return the number of bytes transferred */
-	return (transferred * sizeof(accel_report));
+	return (transferred * sizeof(sensor_accel_s));
 }
 
 int
@@ -892,7 +892,7 @@ ADIS16448::self_test()
 ssize_t
 ADIS16448::gyro_read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(gyro_report);
+	unsigned count = buflen / sizeof(sensor_gyro_s);
 
 	/* buffer must be large enough */
 	if (count < 1) {
@@ -913,7 +913,7 @@ ADIS16448::gyro_read(struct file *filp, char *buffer, size_t buflen)
 	perf_count(_gyro_reads);
 
 	/* copy reports out of our buffer to the caller */
-	gyro_report *grp = reinterpret_cast<gyro_report *>(buffer);
+	sensor_gyro_s *grp = reinterpret_cast<sensor_gyro_s *>(buffer);
 	int transferred = 0;
 
 	while (count--) {
@@ -926,7 +926,7 @@ ADIS16448::gyro_read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* return the number of bytes transferred */
-	return (transferred * sizeof(gyro_report));
+	return (transferred * sizeof(sensor_gyro_s));
 }
 
 ssize_t
@@ -980,23 +980,11 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_call_interval = 0;
-				return OK;
-
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
-				return ioctl(filp, SENSORIOCSPOLLRATE, 1000);
-
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				return ioctl(filp, SENSORIOCSPOLLRATE, ADIS16448_ACCEL_DEFAULT_RATE);
 
@@ -1046,38 +1034,6 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCGPOLLRATE:
-		if (_call_interval == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return 1000000 / _call_interval;
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_accel_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
-	case ACCELIOCGSAMPLERATE:
-		return _sample_rate;
-
-	case ACCELIOCSSAMPLERATE:
-		_set_sample_rate(arg);
-		return OK;
-
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
@@ -1092,20 +1048,6 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case ACCELIOCGSCALE:
-		/* copy scale out */
-		memcpy((struct accel_calibration_s *) arg, &_accel_scale, sizeof(_accel_scale));
-		return OK;
-
-	case ACCELIOCSRANGE:
-		return -EINVAL;
-
-	case ACCELIOCGRANGE:
-		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
-
-	case ACCELIOCTYPE:
-		return (ADIS16448_Product);
-
 	default:
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);
@@ -1119,54 +1061,13 @@ ADIS16448::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	/* these are shared with the accel side */
 	case SENSORIOCSPOLLRATE:
-	case SENSORIOCGPOLLRATE:
 	case SENSORIOCRESET:
 		return ioctl(filp, cmd, arg);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_gyro_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
-	case GYROIOCGSAMPLERATE:
-		return _sample_rate;
-
-	case GYROIOCSSAMPLERATE:
-		_set_sample_rate(arg);
-		return OK;
 
 	case GYROIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
 		return OK;
-
-	case GYROIOCGSCALE:
-		/* copy scale out */
-		memcpy((struct gyro_calibration_s *) arg, &_gyro_scale, sizeof(_gyro_scale));
-		return OK;
-
-	case GYROIOCSRANGE:
-		_set_gyro_dyn_range(arg);
-		return OK;
-
-	case GYROIOCGRANGE:
-		return (unsigned long)(_gyro_range_rad_s * 180.0f / M_PI_F + 0.5f);
-
-	case GYROIOCTYPE:
-		return (ADIS16448_Product);
 
 	default:
 		/* give it to the superclass */
@@ -1181,34 +1082,8 @@ ADIS16448::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	/* these are shared with the accel side */
 	case SENSORIOCSPOLLRATE:
-	case SENSORIOCGPOLLRATE:
 	case SENSORIOCRESET:
 		return ioctl(filp, cmd, arg);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_mag_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
-	case MAGIOCGSAMPLERATE:
-		return _sample_rate;
-
-	case MAGIOCSSAMPLERATE:
-		_set_sample_rate(arg);
-		return OK;
 
 	case MAGIOCSSCALE:
 		/* copy scale in */
@@ -1219,12 +1094,6 @@ ADIS16448::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 		/* copy scale out */
 		memcpy((struct mag_calibration_s *) arg, &_mag_scale, sizeof(_mag_scale));
 		return OK;
-
-	case MAGIOCGRANGE:
-		return (unsigned long)(_mag_range_mgauss);
-
-	case MAGIOCTYPE:
-		return (ADIS16448_Product);
 
 	default:
 		/* give it to the superclass */
@@ -1377,8 +1246,8 @@ ADIS16448::measure()
 	/*
 	 * Report buffers.
 	 */
-	accel_report	arb;
-	gyro_report		grb;
+	sensor_accel_s	arb;
+	sensor_gyro_s	grb;
 	mag_report		mrb;
 
 	grb.timestamp = arb.timestamp = mrb.timestamp = hrt_absolute_time();
@@ -1774,8 +1643,8 @@ fail:
 void
 test()
 {
-	accel_report a_report;
-	gyro_report  g_report;
+	sensor_accel_s a_report{};
+	sensor_gyro_s g_report{};
 	mag_report 	 m_report;
 
 	ssize_t sz;

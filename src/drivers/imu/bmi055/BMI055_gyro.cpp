@@ -114,7 +114,7 @@ BMI055_gyro::init()
 	}
 
 	/* allocate basic report buffers */
-	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(gyro_report));
+	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_gyro_s));
 
 	if (_gyro_reports == nullptr) {
 		goto out;
@@ -144,7 +144,7 @@ BMI055_gyro::init()
 	measure();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct gyro_report grp;
+	sensor_gyro_s grp;
 	_gyro_reports->get(&grp);
 
 	_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
@@ -270,7 +270,7 @@ BMI055_gyro::test_error()
 ssize_t
 BMI055_gyro::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(gyro_report);
+	unsigned count = buflen / sizeof(sensor_gyro_s);
 
 	/* buffer must be large enough */
 	if (count < 1) {
@@ -289,7 +289,7 @@ BMI055_gyro::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* copy reports out of our buffer to the caller */
-	gyro_report *grp = reinterpret_cast<gyro_report *>(buffer);
+	sensor_gyro_s *grp = reinterpret_cast<sensor_gyro_s *>(buffer);
 	int transferred = 0;
 
 	while (count--) {
@@ -302,7 +302,7 @@ BMI055_gyro::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* return the number of bytes transferred */
-	return (transferred * sizeof(gyro_report));
+	return (transferred * sizeof(sensor_gyro_s));
 }
 
 int
@@ -316,23 +316,11 @@ BMI055_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_call_interval = 0;
-				return OK;
-
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
-				return ioctl(filp, SENSORIOCSPOLLRATE, BMI055_GYRO_MAX_RATE);
-
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				return ioctl(filp, SENSORIOCSPOLLRATE, BMI055_GYRO_DEFAULT_RATE);
 
@@ -377,52 +365,10 @@ BMI055_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCGPOLLRATE:
-		if (_call_interval == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return 1000000 / _call_interval;
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_gyro_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
-	case GYROIOCGSAMPLERATE:
-		return _gyro_sample_rate;
-
-	case GYROIOCSSAMPLERATE:
-		return gyro_set_sample_rate(arg);
-
 	case GYROIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
 		return OK;
-
-	case GYROIOCGSCALE:
-		/* copy scale out */
-		memcpy((struct gyro_calibration_s *) arg, &_gyro_scale, sizeof(_gyro_scale));
-		return OK;
-
-	case GYROIOCSRANGE:
-		return set_gyro_range(arg);
-
-	case GYROIOCGRANGE:
-		return (unsigned long)(_gyro_range_rad_s * 180.0f / M_PI_F + 0.5f);
 
 	default:
 		/* give it to the superclass */
@@ -644,7 +590,7 @@ BMI055_gyro::measure()
 	/*
 	 * Report buffers.
 	 */
-	gyro_report grb;
+	sensor_gyro_s grb;
 
 	grb.timestamp = hrt_absolute_time();
 

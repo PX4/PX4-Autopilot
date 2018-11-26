@@ -57,7 +57,6 @@
 #include <px4_tasks.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/device.h>
-#include <drivers/drv_gps.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>

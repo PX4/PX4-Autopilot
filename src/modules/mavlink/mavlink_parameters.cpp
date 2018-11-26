@@ -134,8 +134,12 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
 
 				/* Whatever the value is, we're being told to stop sending */
-				if (strncmp(name, "_HASH_CHECK", sizeof(name)) == 0 && _mavlink->hash_check_enabled()) {
-					_send_all_index = -1;
+				if (strncmp(name, "_HASH_CHECK", sizeof(name)) == 0) {
+
+					if (_mavlink->hash_check_enabled()) {
+						_send_all_index = -1;
+					}
+
 					/* No other action taken, return */
 					return;
 				}
@@ -149,15 +153,9 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					_mavlink->send_statustext_info(buf);
 
 				} else {
-					// Load current value before setting it
-					float curr_val;
-					param_get(param, &curr_val);
+					// According to the mavlink spec we should always acknowledge a write operation.
 					param_set(param, &(set.param_value));
-
-					// Check if the parameter changed. If it didn't change, send current value back
-					if (!(fabsf(curr_val - set.param_value) > 0.0f)) {
-						send_param(param);
-					}
+					send_param(param);
 				}
 			}
 

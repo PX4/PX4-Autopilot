@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2016, 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,15 +35,18 @@
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Beat Küng <beat-kueng@gmx.net>
+ * @author Mara Bos <m-ou.se@m-ou.se>
  */
 
 #include <errno.h>
 #include <stdio.h>
 #include <fcntl.h>
-#include <signal.h>
+#include <string.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/un.h>
+#include <unistd.h>
 
 #include <string>
 
@@ -53,60 +56,33 @@
 namespace px4_daemon
 {
 
-
-namespace client
-{
-static Client *_instance;
-}
-
 Client::Client(int instance_id) :
-	_uuid(0),
-	_client_send_pipe_fd(-1),
+	_fd(-1),
 	_instance_id(instance_id)
-{
-	client::_instance = this;
-}
-
-Client::~Client()
-{
-	client::_instance = nullptr;
-}
-
-int
-Client::generate_uuid()
-{
-	int rand_fd = open("/dev/urandom", O_RDONLY);
-
-	if (rand_fd < 0) {
-		PX4_ERR("open urandom");
-		return rand_fd;
-	}
-
-	int ret = 0;
-
-	int rand_read = read(rand_fd, &_uuid, sizeof(_uuid));
-
-	if (rand_read != sizeof(_uuid)) {
-		PX4_ERR("rand read fail");
-		ret = -errno;
-	}
-
-	close(rand_fd);
-	return ret;
-}
+{}
 
 int
 Client::process_args(const int argc, const char **argv)
 {
-	// Prepare return pipe first to avoid a race.
-	int ret = _prepare_recv_pipe();
+	std::string sock_path = get_socket_path(_instance_id);
 
-	if (ret != 0) {
-		PX4_ERR("Could not prepare recv pipe");
-		return -2;
+	_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+
+	if (_fd < 0) {
+		PX4_ERR("error creating socket");
+		return -1;
 	}
 
-	ret = _send_cmds(argc, argv);
+	sockaddr_un addr = {};
+	addr.sun_family = AF_UNIX;
+	strncpy(addr.sun_path, sock_path.c_str(), sizeof(addr.sun_path) - 1);
+
+	if (connect(_fd, (sockaddr *)&addr, sizeof(addr)) < 0) {
+		PX4_ERR("error connecting to socket");
+		return -1;
+	}
+
+	int ret = _send_cmds(argc, argv);
 
 	if (ret != 0) {
 		PX4_ERR("Could not send commands");
@@ -116,70 +92,37 @@ Client::process_args(const int argc, const char **argv)
 	return _listen();
 }
 
-
-int
-Client::_prepare_recv_pipe()
-{
-	int ret = get_client_recv_pipe_path(_uuid, _recv_pipe_path, sizeof(_recv_pipe_path));
-
-	if (ret < 0) {
-		PX4_ERR("failed to assemble path");
-		return ret;
-	}
-
-	ret = mkfifo(_recv_pipe_path, 0666);
-
-	if (ret < 0) {
-		PX4_ERR("pipe %s already exists, errno: %d, %s", _recv_pipe_path, errno, strerror(errno));
-		return ret;
-	}
-
-	return 0;
-}
-
 int
 Client::_send_cmds(const int argc, const char **argv)
 {
-	// Send the command to server.
-	client_send_packet_s packet;
-	packet.header.msg_id = client_send_packet_s::message_header_s::e_msg_id::EXECUTE;
-	packet.header.client_uuid = _uuid;
-	packet.payload.execute_msg.is_atty = isatty(STDOUT_FILENO);
-
-	// Concat arguments to send them.
 	std::string cmd_buf;
 
 	for (int i = 0; i < argc; ++i) {
 		cmd_buf += argv[i];
 
 		if (i + 1 != argc) {
+			// TODO: Use '\0' as argument separator (and parse this server-side as well),
+			// so (quoted) whitespace within arguments doesn't get lost.
 			cmd_buf += " ";
 		}
 	}
 
-	if (cmd_buf.size() >= sizeof(packet.payload.execute_msg.cmd)) {
-		PX4_ERR("commmand too long");
-		return -1;
-	}
+	// Last byte is 'isatty'.
+	cmd_buf.push_back(isatty(STDOUT_FILENO));
 
-	strcpy((char *)packet.payload.execute_msg.cmd, cmd_buf.c_str());
+	size_t n = cmd_buf.size();
+	const char *buf = cmd_buf.data();
 
-	// The size is +1 because we want to include the null termination.
-	packet.header.payload_length = cmd_buf.size() + 1 + sizeof(packet.payload.execute_msg.is_atty);
+	while (n > 0) {
+		int n_sent = write(_fd, buf, n);
 
-	_client_send_pipe_fd = open(get_client_send_pipe_path(_instance_id).c_str(), O_WRONLY);
+		if (n_sent < 0) {
+			PX4_ERR("write() failed: %s", strerror(errno));
+			return -1;
+		}
 
-	if (_client_send_pipe_fd < 0) {
-		PX4_ERR("pipe open fail (%i)", errno);
-		return _client_send_pipe_fd;
-	}
-
-	int bytes_to_send = get_client_send_packet_length(&packet);
-	int bytes_sent = write(_client_send_pipe_fd, &packet, bytes_to_send);
-
-	if (bytes_sent != bytes_to_send) {
-		PX4_ERR("write fail (%i)", errno);
-		return bytes_sent;
+		n -= n_sent;
+		buf += n_sent;
 	}
 
 	return 0;
@@ -188,159 +131,57 @@ Client::_send_cmds(const int argc, const char **argv)
 int
 Client::_listen()
 {
-	int client_recv_pipe_fd = open(_recv_pipe_path, O_RDONLY);
+	char buffer[1024];
+	int n_buffer_used = 0;
 
-	if (client_recv_pipe_fd < 0) {
-		PX4_ERR("open failed, errno: %d, %s", errno, strerror(errno));
-	}
+	// The response ends in {0, retval}. So when we detect a 0, or a 0 followed
+	// by another byte, we don't output it yet, until we know whether it was
+	// the end of the stream or not.
+	while (true) {
+		int n_read = read(_fd, buffer + n_buffer_used, sizeof buffer - n_buffer_used);
 
-	bool exit_loop = false;
-	int exit_arg = 0;
+		if (n_read < 0) {
+			PX4_ERR("unable to read from socket");
+			return -1;
 
-	while (!exit_loop) {
+		} else if (n_read == 0) {
+			if (n_buffer_used == 2) {
+				return buffer[1];
 
-		// We only read as much as we need, otherwise we might get out of
-		// sync with packets.
-		client_recv_packet_s packet_recv;
-		int bytes_read = read(client_recv_pipe_fd, &packet_recv, sizeof(client_recv_packet_s::header));
-
-		if (bytes_read > 0) {
-
-			// Using the header we can determine how big the payload is.
-			int payload_to_read = sizeof(packet_recv)
-					      - sizeof(packet_recv.header)
-					      - sizeof(packet_recv.payload)
-					      + packet_recv.header.payload_length;
-
-			// Again, we only read as much as we need because otherwise we need
-			// hold a buffer and parse it.
-			bytes_read = read(client_recv_pipe_fd, ((uint8_t *)&packet_recv) + bytes_read, payload_to_read);
-
-			if (bytes_read > 0) {
-
-				int retval = 0;
-				bool should_exit = false;
-
-				int parse_ret = _parse_client_recv_packet(packet_recv, retval, should_exit);
-
-				if (parse_ret != 0) {
-					PX4_ERR("retval could not be parsed");
-					exit_arg = -1;
-
-				} else {
-					exit_arg = retval;
-				}
-
-				exit_loop = should_exit;
-
-			} else if (bytes_read == 0) {
-				exit_arg = 0;
-				exit_loop = true;
+			} else {
+				// Missing return value at end of stream. Stream was abruptly ended.
+				return -1;
 			}
 
-		} else if (bytes_read == 0) {
-			// 0 means the pipe has been closed by all clients.
-			exit_arg = 0;
-			exit_loop = true;
+		} else {
+			n_read += n_buffer_used;
+
+			if (n_read >= 2 && buffer[n_read - 2] == 0) {
+				// If the buffer ends in {0, retval}, keep it.
+				fwrite(buffer, n_read - 2, 1, stdout);
+				buffer[0] = 0;
+				buffer[1] = buffer[n_read - 1];
+				n_buffer_used = 2;
+
+			} else if (n_read >= 1 && buffer[n_read - 1] == 0) {
+				// If the buffer ends in a 0-byte, keep it.
+				fwrite(buffer, n_read - 1, 1, stdout);
+				buffer[0] = 0;
+				n_buffer_used = 1;
+
+			} else {
+				fwrite(buffer, n_read, 1, stdout);
+				n_buffer_used = 0;
+			}
 		}
 	}
-
-	close(_client_send_pipe_fd);
-	return exit_arg;
 }
 
-int
-Client::_parse_client_recv_packet(const client_recv_packet_s &packet, int &retval, bool &should_exit)
+Client::~Client()
 {
-	switch (packet.header.msg_id) {
-	case client_recv_packet_s::message_header_s::e_msg_id::RETVAL:
-
-		should_exit = true;
-		return _retval_cmd_packet(packet, retval);
-
-	case client_recv_packet_s::message_header_s::e_msg_id::STDOUT:
-
-		should_exit = false;
-		return _stdout_msg_packet(packet);
-
-	default:
-		should_exit = true;
-		PX4_ERR("recv msg_id not handled: %d", (int)packet.header.msg_id);
-		return -1;
-	}
-}
-
-int
-Client::_retval_cmd_packet(const client_recv_packet_s &packet, int &retval)
-{
-	if (packet.header.payload_length == sizeof(packet.payload.retval_msg.retval)) {
-		retval = packet.payload.retval_msg.retval;
-		return 0;
-
-	} else {
-		PX4_ERR("payload size wrong");
-		return -1;
-	}
-}
-
-int
-Client::_stdout_msg_packet(const client_recv_packet_s &packet)
-{
-	if (packet.header.payload_length <= sizeof(packet.payload.stdout_msg.text)) {
-
-		printf("%s", packet.payload.stdout_msg.text);
-
-		return 0;
-
-	} else {
-		PX4_ERR("payload size wrong (%i > %i)", packet.header.payload_length, sizeof(packet.payload.stdout_msg.text));
-		return -1;
-	}
-}
-
-void
-Client::register_sig_handler()
-{
-	// Register handlers for Ctrl+C to kill the thread if something hangs.
-	struct sigaction sig_int {};
-	sig_int.sa_handler = Client::_static_sig_handler;
-
-	// Without the flag SA_RESTART, we can't use open() after Ctrl+C has
-	// been pressed, and we can't wait for the return value from the
-	// cancelled command.
-	sig_int.sa_flags = SA_RESTART;
-	sigaction(SIGINT, &sig_int, nullptr);
-	sigaction(SIGTERM, &sig_int, nullptr);
-}
-
-void
-Client::_static_sig_handler(int sig_num)
-{
-	client::_instance->_sig_handler(sig_num);
-}
-
-void
-Client::_sig_handler(int sig_num)
-{
-	client_send_packet_s packet;
-	packet.header.msg_id = client_send_packet_s::message_header_s::e_msg_id::KILL;
-	packet.header.client_uuid = _uuid;
-	packet.payload.kill_msg.cmd_id = sig_num;
-	packet.header.payload_length = sizeof(packet.payload.kill_msg.cmd_id);
-
-	if (_client_send_pipe_fd < 0) {
-		PX4_ERR("pipe open fail");
-		system_exit(-1);
-	}
-
-	int bytes_to_send = get_client_send_packet_length(&packet);
-	int bytes_sent = write(_client_send_pipe_fd, &packet, bytes_to_send);
-
-	if (bytes_sent != bytes_to_send) {
-		PX4_ERR("write fail");
-		system_exit(-1);
+	if (_fd >= 0) {
+		close(_fd);
 	}
 }
 
 } // namespace px4_daemon
-

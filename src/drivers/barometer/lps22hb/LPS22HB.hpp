@@ -115,7 +115,7 @@ private:
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
 
-	baro_report	_last_report{};           /**< used for info() */
+	sensor_baro_s	_last_report{};           /**< used for info() */
 
 	/**
 	 * Initialise the automatic measurement state machine and start it.

@@ -1,4 +1,5 @@
 #include <unit_test.h>
+#include <unistd.h>
 
 #include <systemlib/hysteresis/hysteresis.h>
 

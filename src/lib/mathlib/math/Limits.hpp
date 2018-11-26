@@ -40,6 +40,7 @@
 #pragma once
 
 #include <platforms/px4_defines.h>
+#include <float.h>
 
 //this should be defined in stdint.h, but seems to be missing in the ARM toolchain (5.2.0)
 #ifndef UINT64_C
@@ -72,6 +73,14 @@ constexpr const _Tp &constrain(const _Tp &val, const _Tp &min_val, const _Tp &ma
 	return (val < min_val) ? min_val : ((val > max_val) ? max_val : val);
 }
 
+/** Constrain float values to valid values for int16_t.
+ * Invalid values are just clipped to be in the range for int16_t. */
+inline int16_t constrainFloatToInt16(float value)
+{
+	return (int16_t)math::constrain(value, (float)INT16_MIN, (float)INT16_MAX);
+}
+
+
 template<typename _Tp>
 inline constexpr bool isInRange(const _Tp &val, const _Tp &min_val, const _Tp &max_val)
 {
@@ -88,6 +97,18 @@ template<typename T>
 constexpr T degrees(const T radians)
 {
 	return radians * (static_cast<T>(180) / static_cast<T>(M_PI));
+}
+
+/** Save way to check if float is zero */
+inline bool isZero(const float val)
+{
+	return fabsf(val - 0.0f) < FLT_EPSILON;
+}
+
+/** Save way to check if double is zero */
+inline bool isZero(const double val)
+{
+	return fabs(val - 0.0) < DBL_EPSILON;
 }
 
 }

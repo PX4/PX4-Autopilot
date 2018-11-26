@@ -10,6 +10,8 @@
 
 #include <cstdlib>
 
+#define MODULE_NAME "px4"
+
 extern "C" {
 
 ${builtin_apps_decl_string}

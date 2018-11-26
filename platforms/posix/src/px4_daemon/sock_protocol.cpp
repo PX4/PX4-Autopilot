@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,36 +30,22 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file drv_irlock.h
+ * @file sock_protocol.cpp
  *
- * IR-Lock device API
- **/
+ * @author Mara Bos <m-ou.se@m-ou.se>
+ */
 
-#pragma once
+#include "sock_protocol.h"
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+namespace px4_daemon
+{
 
-#include "drv_sensor.h" // include sensor driver interfaces
+std::string get_socket_path(int instance_id)
+{
+	// TODO: Use /var/run/px4/$instance/sock (or /var/run/user/$UID/... for non-root).
+	return "/tmp/px4-sock-" + std::to_string(instance_id);
+}
 
-#define IRLOCK_BASE_DEVICE_PATH	"/dev/irlock"
-#define IRLOCK0_DEVICE_PATH	"/dev/irlock0"
+} // namespace px4_daemon
 
-#define IRLOCK_OBJECTS_MAX	5	/** up to 5 objects can be detected/reported **/
-
-struct irlock_target_s {
-	uint16_t signature;	/** target signature **/
-	float pos_x;	/** x-axis distance from center of image to center of target in units of tan(theta) **/
-	float pos_y;	/** y-axis distance from center of image to center of target in units of tan(theta) **/
-	float size_x;	/** size of target along x-axis in units of tan(theta) **/
-	float size_y;	/** size of target along y-axis in units of tan(theta) **/
-};
-
-/** irlock_s structure returned from read calls **/
-struct irlock_s {
-	uint64_t timestamp; /** microseconds since system start **/
-	uint8_t num_targets;
-	struct irlock_target_s targets[IRLOCK_OBJECTS_MAX];
-};

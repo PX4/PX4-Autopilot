@@ -307,7 +307,7 @@ static calibrate_return check_calibration_result(float offset_x, float offset_y,
 	for (unsigned i = 0; i < num_finite; ++i) {
 		if (!PX4_ISFINITE(must_be_finite[i])) {
 			calibration_log_emergency(mavlink_log_pub,
-							"ERROR: Retry calibration (sphere NaN, #%u)", cur_mag);
+							"ERROR: Retry calibration (sphere NaN, #%zu)", cur_mag);
 			return calibrate_return_error;
 		}
 	}
@@ -396,7 +396,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		int poll_ret = px4_poll(fds, fd_count, 1000);
 
 		if (poll_ret > 0) {
-			struct gyro_report gyro;
+			sensor_gyro_s gyro{};
 			orb_copy(ORB_ID(sensor_gyro), sub_gyro, &gyro);
 
 			/* ensure we have a valid first timestamp */

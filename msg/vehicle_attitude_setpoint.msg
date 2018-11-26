@@ -2,9 +2,9 @@ uint64 timestamp		# time since system start (microseconds)
 int8 LANDING_GEAR_UP = 1	# landing gear up
 int8 LANDING_GEAR_DOWN = -1	# landing gear down
 
-float32 roll_body		# body angle in NED frame
-float32 pitch_body		# body angle in NED frame
-float32 yaw_body		# body angle in NED frame
+float32 roll_body		# body angle in NED frame (can be NaN for FW)
+float32 pitch_body		# body angle in NED frame (can be NaN for FW)
+float32 yaw_body		# body angle in NED frame (can be NaN for FW)
 
 float32 yaw_sp_move_rate	# rad/s (commanded by user)
 
@@ -12,7 +12,9 @@ float32 yaw_sp_move_rate	# rad/s (commanded by user)
 float32[4] q_d			# Desired quaternion for quaternion control
 bool q_d_valid			# Set to true if quaternion vector is valid
 
-float32 thrust			# Thrust in Newton the power system should generate
+# For clarification: For multicopters thrust_body[0] and thrust[1] are usually 0 and thrust[2] is the negative throttle demand.
+# For fixed wings thrust_x is the throttle demand and thrust_y, thrust_z will usually be zero.
+float32[3] thrust_body		# Normalized thrust command in body NED frame [-1,1]
 
 bool roll_reset_integral	# Reset roll integral part (navigation logic change)
 bool pitch_reset_integral	# Reset pitch integral part (navigation logic change)

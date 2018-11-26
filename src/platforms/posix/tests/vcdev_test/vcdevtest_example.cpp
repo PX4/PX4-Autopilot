@@ -120,7 +120,7 @@ private:
 int VCDevNode::open(cdev::file_t *handlep)
 {
 	// Only allow one writer
-	if (_is_open_for_write && (handlep->flags & PX4_F_WRONLY)) {
+	if (_is_open_for_write && (handlep->f_oflags & PX4_F_WRONLY)) {
 		errno = EBUSY;
 		return -1;
 	}
@@ -131,9 +131,9 @@ int VCDevNode::open(cdev::file_t *handlep)
 		return ret;
 	}
 
-	handlep->priv = new PrivData;
+	handlep->f_priv = new PrivData;
 
-	if (_is_open_for_write && (handlep->flags & PX4_F_WRONLY)) {
+	if (_is_open_for_write && (handlep->f_oflags & PX4_F_WRONLY)) {
 		_is_open_for_write = true;
 	}
 
@@ -142,12 +142,12 @@ int VCDevNode::open(cdev::file_t *handlep)
 
 int VCDevNode::close(cdev::file_t *handlep)
 {
-	delete (PrivData *)handlep->priv;
-	handlep->priv = nullptr;
+	delete (PrivData *)handlep->f_priv;
+	handlep->f_priv = nullptr;
 	CDev::close(handlep);
 
 	// Enable a new writer of the device is re-opened for write
-	if ((handlep->flags & PX4_F_WRONLY) && _is_open_for_write) {
+	if ((handlep->f_oflags & PX4_F_WRONLY) && _is_open_for_write) {
 		_is_open_for_write = false;
 	}
 
@@ -169,7 +169,7 @@ ssize_t VCDevNode::write(cdev::file_t *handlep, const char *buffer, size_t bufle
 
 ssize_t VCDevNode::read(cdev::file_t *handlep, char *buffer, size_t buflen)
 {
-	PrivData *p = (PrivData *)handlep->priv;
+	PrivData *p = (PrivData *)handlep->f_priv;
 	ssize_t chars_read = 0;
 	PX4_INFO("read %zu write %zu", p->_read_offset, _write_offset);
 

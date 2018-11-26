@@ -75,6 +75,7 @@
 #include "px4_daemon/server.h"
 #include "px4_daemon/pxh.h"
 
+#define MODULE_NAME "px4"
 
 static const char *LOCK_FILE_PATH = "/tmp/px4_lock";
 
@@ -172,8 +173,6 @@ int main(int argc, char **argv)
 		argv[0] += path_length + strlen(prefix);
 
 		px4_daemon::Client client(instance);
-		client.generate_uuid();
-		client.register_sig_handler();
 		return client.process_args(argc, (const char **)argv);
 
 	} else {

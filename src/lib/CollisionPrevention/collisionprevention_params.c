@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,70 +30,23 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file pipe_protocol.h
+ * @file collisionprevention_params.c
  *
- * @author Julian Oes <julian@oes.ch>
- * @author Beat Küng <beat-kueng@gmx.net>
+ * Parameters defined by the collisionprevention lib.
+ *
+ * @author Tanja Baumann <tanja@auterion.com>
  */
-#pragma once
 
-#include <stdint.h>
-#include <string>
-
-namespace px4_daemon
-{
-
-static const unsigned RECV_PIPE_PATH_LEN = 64;
-
-// The packet size is no more than 512 bytes, because that is the minimum guaranteed size
-// for a pipe to avoid interleaving of messages when multiple clients write at the same time
-// (atomic writes).
-struct client_send_packet_s {
-	struct message_header_s {
-		uint64_t client_uuid;
-		enum class e_msg_id : int {
-			EXECUTE,
-			KILL
-		} msg_id;
-		unsigned payload_length;
-	} header;
-
-	union {
-		struct execute_msg_s {
-			uint8_t is_atty;
-			uint8_t cmd[512 - sizeof(message_header_s) - sizeof(uint8_t)];
-		} execute_msg;
-		struct kill_msg_s {
-			int cmd_id;
-		} kill_msg;
-	} payload;
-};
-
-// We have per client receiver a pipe with the uuid in its file path.
-struct client_recv_packet_s {
-	struct message_header_s {
-		enum class e_msg_id : int {
-			RETVAL,
-			STDOUT
-		} msg_id;
-		unsigned payload_length;
-	} header;
-
-	union {
-		struct retval_msg_s {
-			int retval;
-		} retval_msg;
-		struct stdout_msg_s {
-			uint8_t text[512 - sizeof(message_header_s)]; ///< null-terminated string (payload_length includes the null)
-		} stdout_msg;
-	} payload;
-};
-
-unsigned get_client_send_packet_length(const client_send_packet_s *packet);
-unsigned get_client_recv_packet_length(const client_recv_packet_s *packet);
-int get_client_recv_pipe_path(const uint64_t uuid, char *path, const size_t path_len);
-std::string get_client_send_pipe_path(int instance_id);
-
-} // namespace px4_daemon
-
+/**
+ * Minimum distance the vehicle should keep to all obstacles
+ *
+ * Only used in Position mode. Collision avoidace is disabled by setting this parameter to a negative value
+ *
+ * @min -1
+ * @max 15
+ * @unit meters
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_COL_PREV_D, -1.0f);

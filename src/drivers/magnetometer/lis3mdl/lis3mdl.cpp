@@ -99,6 +99,10 @@ LIS3MDL::~LIS3MDL()
 	/* make sure we are truly inactive */
 	stop();
 
+	if (_mag_topic != nullptr) {
+		orb_unadvertise(_mag_topic);
+	}
+
 	if (_reports != nullptr) {
 		delete _reports;
 	}
@@ -513,12 +517,6 @@ LIS3MDL::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return PX4_OK;
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
@@ -559,40 +557,11 @@ LIS3MDL::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return PX4_OK;
-		}
-
 	case SENSORIOCRESET:
 		return reset();
 
-	case MAGIOCSSAMPLERATE:
-		/* same as pollrate because device is in single measurement mode*/
-		return ioctl(file_pointer, SENSORIOCSPOLLRATE, arg);
-
-	case MAGIOCGSAMPLERATE:
-		/* same as pollrate because device is in single measurement mode*/
-		return 1000000 / TICK2USEC(_measure_ticks);
-
 	case MAGIOCSRANGE:
 		return set_range(arg);
-
-	case MAGIOCGRANGE:
-		return _range_ga;
 
 	case MAGIOCSSCALE:
 		/* set new scale factors */

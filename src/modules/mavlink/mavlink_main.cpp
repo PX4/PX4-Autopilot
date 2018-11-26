@@ -1271,20 +1271,20 @@ Mavlink::handle_message(const mavlink_message_t *msg)
 void
 Mavlink::send_statustext_info(const char *string)
 {
-	mavlink_log_info(&_mavlink_log_pub, string);
+	mavlink_log_info(&_mavlink_log_pub, "%s", string);
 }
 
 void
 Mavlink::send_statustext_critical(const char *string)
 {
-	mavlink_log_critical(&_mavlink_log_pub, string);
-	PX4_ERR(string);
+	mavlink_log_critical(&_mavlink_log_pub, "%s", string);
+	PX4_ERR("%s", string);
 }
 
 void
 Mavlink::send_statustext_emergency(const char *string)
 {
-	mavlink_log_emergency(&_mavlink_log_pub, string);
+	mavlink_log_emergency(&_mavlink_log_pub, "%s", string);
 }
 
 void Mavlink::send_autopilot_capabilites()
@@ -1773,6 +1773,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream_local("SYS_STATUS", 1.0f);
 		configure_stream_local("TRAJECTORY_REPRESENTATION_WAYPOINTS", 5.0f);
+		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
 		configure_stream_local("VFR_HUD", 4.0f);
 		configure_stream_local("VISION_POSITION_ESTIMATE", 1.0f);
 		configure_stream_local("WIND_COV", 1.0f);
@@ -1814,6 +1815,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("SYSTEM_TIME", 1.0f);
 		configure_stream_local("TIMESYNC", 10.0f);
 		configure_stream_local("TRAJECTORY_REPRESENTATION_WAYPOINTS", 5.0f);
+		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
 		configure_stream_local("VFR_HUD", 10.0f);
 		configure_stream_local("VISION_POSITION_ESTIMATE", 10.0f);
 		configure_stream_local("WIND_COV", 10.0f);
@@ -1878,6 +1880,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("SYS_STATUS", 1.0f);
 		configure_stream_local("SYSTEM_TIME", 1.0f);
 		configure_stream_local("TIMESYNC", 10.0f);
+		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
 		configure_stream_local("VFR_HUD", 20.0f);
 		configure_stream_local("VISION_POSITION_ESTIMATE", 10.0f);
 		configure_stream_local("WIND_COV", 10.0f);

@@ -30,12 +30,12 @@ set(config_module_list
 	#drivers/camera_trigger
 	#drivers/differential_pressure/ets
 	drivers/differential_pressure/ms4525
-	drivers/differential_pressure/ms5525
+	#drivers/differential_pressure/ms5525
 	#drivers/differential_pressure/sdp3x
 	drivers/distance_sensor/ll40ls
 	#drivers/distance_sensor/mb12xx
 	drivers/distance_sensor/sf0x
-	drivers/distance_sensor/sf1xx
+	#drivers/distance_sensor/sf1xx
 	#drivers/distance_sensor/srf02
 	#drivers/distance_sensor/teraranger
 	#drivers/distance_sensor/tfmini
@@ -56,7 +56,7 @@ set(config_module_list
 	#drivers/mkblctrl
 	#drivers/oreoled
 	#drivers/protocol_splitter
-	drivers/pwm_input
+	#drivers/pwm_input
 	#drivers/pwm_out_sim
 	drivers/px4flow
 	drivers/px4fmu

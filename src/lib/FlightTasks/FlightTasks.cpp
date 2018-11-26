@@ -133,7 +133,7 @@ const char *FlightTasks::errorToString(const int error)
 void FlightTasks::reActivate()
 {
 	if (_current_task.task) {
-		_current_task.task->activate();
+		_current_task.task->reActivate();
 	}
 }
 

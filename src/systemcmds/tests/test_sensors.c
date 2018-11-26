@@ -74,10 +74,10 @@ struct {
 	const char	*path;
 	int	(* test)(int argc, char *argv[], const char *path);
 } sensors[] = {
-	{"accel0",	ACCEL0_DEVICE_PATH,	accel},
-	{"accel1",	ACCEL1_DEVICE_PATH,	accel},
-	{"gyro0",	GYRO0_DEVICE_PATH,	gyro},
-	{"gyro1",	GYRO1_DEVICE_PATH,	gyro},
+	{"accel0",	"/dev/accel0",	accel},
+	{"accel1",	"/dev/accel1",	accel},
+	{"gyro0",	"/dev/gyro0",	gyro},
+	{"gyro1",	"/dev/gyro1",	gyro},
 	{"mag0",	MAG0_DEVICE_PATH,	mag},
 	{"baro0",	BARO0_DEVICE_PATH,	baro},
 	{NULL, NULL, NULL}
@@ -90,7 +90,7 @@ accel(int argc, char *argv[], const char *path)
 	fflush(stdout);
 
 	int		fd;
-	struct accel_report buf;
+	struct sensor_accel_s buf;
 	int		ret;
 
 	fd = px4_open(path, O_RDONLY);
@@ -140,7 +140,7 @@ gyro(int argc, char *argv[], const char *path)
 	fflush(stdout);
 
 	int		fd;
-	struct gyro_report buf;
+	struct sensor_gyro_s buf;
 	int		ret;
 
 	fd = px4_open(path, O_RDONLY);
@@ -230,7 +230,7 @@ baro(int argc, char *argv[], const char *path)
 	fflush(stdout);
 
 	int		fd;
-	struct baro_report buf;
+	struct sensor_baro_s buf;
 	int		ret;
 
 	fd = px4_open(path, O_RDONLY);

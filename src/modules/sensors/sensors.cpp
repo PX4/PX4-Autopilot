@@ -66,7 +66,6 @@
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_adc.h>
 #include <drivers/drv_airspeed.h>
-#include <drivers/drv_px4flow.h>
 
 #include <airspeed/airspeed.h>
 #include <parameters/param.h>

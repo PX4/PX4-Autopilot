@@ -263,7 +263,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (!spi3) {
 		message("[boot] FAILED to initialize SPI port 3\n");
-		board_autoled_on(LED_AMBER);
+		led_on(LED_AMBER);
 		return -ENODEV;
 	}
 
@@ -282,7 +282,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (!spi4) {
 		message("[boot] FAILED to initialize SPI port 4\n");
-		board_autoled_on(LED_AMBER);
+		led_on(LED_AMBER);
 		return -ENODEV;
 	}
 

@@ -325,21 +325,11 @@ SF0X::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -381,35 +371,6 @@ SF0X::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				}
 			}
 		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (1000 / _measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			ATOMIC_ENTER;
-
-			if (!_reports->resize(arg)) {
-				ATOMIC_LEAVE;
-				return -ENOMEM;
-			}
-
-			ATOMIC_LEAVE;
-
-			return OK;
-		}
-
-	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
 
 	default:
 		/* give it to the superclass */
@@ -853,7 +814,7 @@ test()
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			PX4_ERR("read failed: got %d vs exp. %d", sz, sizeof(report));
+			PX4_ERR("read failed: got %zi vs exp. %zu", sz, sizeof(report));
 			break;
 		}
 

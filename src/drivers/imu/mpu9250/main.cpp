@@ -316,8 +316,8 @@ void
 test(enum MPU9250_BUS busid)
 {
 	struct mpu9250_bus_option &bus = find_bus(busid);
-	accel_report a_report;
-	gyro_report g_report;
+	sensor_accel_s a_report{};
+	sensor_gyro_s g_report{};
 	mag_report m_report;
 	ssize_t sz;
 
@@ -340,11 +340,6 @@ test(enum MPU9250_BUS busid)
 
 	if (fd_mag < 0) {
 		err(1, "%s open failed", bus.magpath);
-	}
-
-	/* reset to manual polling */
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
-		err(1, "reset to manual polling");
 	}
 
 	/* do a simple demand read */

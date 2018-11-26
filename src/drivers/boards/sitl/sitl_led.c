@@ -40,6 +40,7 @@
 #include <px4_config.h>
 #include <px4_log.h>
 #include <stdbool.h>
+#include <systemlib/px4_macros.h>
 
 __BEGIN_DECLS
 extern void led_init(void);
@@ -48,7 +49,7 @@ extern void led_off(int led);
 extern void led_toggle(int led);
 __END_DECLS
 
-static bool _led_state[2] = { false, false };
+static bool _led_state[] = { false, false, false, false };
 
 __EXPORT void led_init()
 {
@@ -57,7 +58,7 @@ __EXPORT void led_init()
 
 __EXPORT void led_on(int led)
 {
-	if (led == 1 || led == 0) {
+	if ((unsigned int)led < arraySize(_led_state)) {
 		PX4_DEBUG("LED%d_ON", led);
 		_led_state[led] = true;
 	}
@@ -65,7 +66,7 @@ __EXPORT void led_on(int led)
 
 __EXPORT void led_off(int led)
 {
-	if (led == 1 || led == 0) {
+	if ((unsigned int)led < arraySize(_led_state)) {
 		PX4_DEBUG("LED%d_OFF", led);
 		_led_state[led] = false;
 	}
@@ -73,7 +74,7 @@ __EXPORT void led_off(int led)
 
 __EXPORT void led_toggle(int led)
 {
-	if (led == 1 || led == 0) {
+	if ((unsigned int)led < arraySize(_led_state)) {
 		_led_state[led] = !_led_state[led];
 		PX4_DEBUG("LED%d_TOGGLE: %s", led, _led_state[led] ? "ON" : "OFF");
 

@@ -37,29 +37,13 @@
  * I2C interface for AK8963
  */
 
-/* XXX trim includes */
 #include <px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <assert.h>
-#include <debug.h>
-#include <errno.h>
-#include <unistd.h>
-
-#include <arch/board/board.h>
-
 #include <drivers/device/i2c.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_device.h>
 
 #include "mpu9250.h"
 #include "mag.h"
-
-#include "board_config.h"
-
 
 #ifdef USE_I2C
 
@@ -69,18 +53,15 @@ class AK8963_I2C : public device::I2C
 {
 public:
 	AK8963_I2C(int bus);
-	virtual ~AK8963_I2C() = default;
+	~AK8963_I2C() override = default;
 
-	virtual int	read(unsigned address, void *data, unsigned count);
-	virtual int	write(unsigned address, void *data, unsigned count);
-
-	virtual int	ioctl(unsigned operation, unsigned &arg);
+	int	read(unsigned address, void *data, unsigned count) override;
+	int	write(unsigned address, void *data, unsigned count) override;
 
 protected:
-	virtual int	probe();
+	int	probe() override;
 
 };
-
 
 device::Device *
 AK8963_I2C_interface(int bus, bool external_bus)
@@ -92,29 +73,6 @@ AK8963_I2C::AK8963_I2C(int bus) :
 	I2C("AK8963_I2C", nullptr, bus, AK8963_I2C_ADDR, 400000)
 {
 	_device_id.devid_s.devtype =  DRV_MAG_DEVTYPE_MPU9250;
-}
-
-int
-AK8963_I2C::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	switch (operation) {
-
-	case ACCELIOCGEXTERNAL:
-		return external();
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	case MPUIOCGIS_I2C:
-		return 1;
-
-	default:
-		ret = -EINVAL;
-	}
-
-	return ret;
 }
 
 int
@@ -137,7 +95,6 @@ AK8963_I2C::read(unsigned reg_speed, void *data, unsigned count)
 	uint8_t cmd = MPU9250_REG(reg_speed);
 	return transfer(&cmd, 1, (uint8_t *)data, count);
 }
-
 
 int
 AK8963_I2C::probe()

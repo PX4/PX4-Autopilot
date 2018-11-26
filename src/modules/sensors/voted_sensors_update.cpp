@@ -155,7 +155,7 @@ void VotedSensorsUpdate::parameters_update()
 
 		if (topic_instance < _gyro.subscription_count) {
 			// valid subscription, so get the driver id by getting the published sensor data
-			struct gyro_report report;
+			sensor_gyro_s report;
 
 			if (orb_copy(ORB_ID(sensor_gyro), _gyro.subscription[topic_instance], &report) == 0) {
 				int temp = _temperature_compensation.set_sensor_id_gyro(report.device_id, topic_instance);
@@ -179,7 +179,7 @@ void VotedSensorsUpdate::parameters_update()
 
 		if (topic_instance < _accel.subscription_count) {
 			// valid subscription, so get the driver id by getting the published sensor data
-			struct accel_report report;
+			sensor_accel_s report;
 
 			if (orb_copy(ORB_ID(sensor_accel), _accel.subscription[topic_instance], &report) == 0) {
 				int temp = _temperature_compensation.set_sensor_id_accel(report.device_id, topic_instance);
@@ -202,7 +202,7 @@ void VotedSensorsUpdate::parameters_update()
 
 		if (topic_instance < _baro.subscription_count) {
 			// valid subscription, so get the driver id by getting the published sensor data
-			struct baro_report report;
+			sensor_baro_s report;
 
 			if (orb_copy(ORB_ID(sensor_baro), _baro.subscription[topic_instance], &report) == 0) {
 				int temp = _temperature_compensation.set_sensor_id_baro(report.device_id, topic_instance);
@@ -545,7 +545,7 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 		orb_check(_accel.subscription[uorb_index], &accel_updated);
 
 		if (accel_updated) {
-			struct accel_report accel_report;
+			sensor_accel_s accel_report;
 
 			int ret = orb_copy(ORB_ID(sensor_accel), _accel.subscription[uorb_index], &accel_report);
 
@@ -652,7 +652,7 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 		orb_check(_gyro.subscription[uorb_index], &gyro_updated);
 
 		if (gyro_updated) {
-			struct gyro_report gyro_report;
+			sensor_gyro_s gyro_report;
 
 			int ret = orb_copy(ORB_ID(sensor_gyro), _gyro.subscription[uorb_index], &gyro_report);
 
@@ -813,7 +813,7 @@ void VotedSensorsUpdate::baro_poll(vehicle_air_data_s &airdata)
 		orb_check(_baro.subscription[uorb_index], &baro_updated);
 
 		if (baro_updated) {
-			struct baro_report baro_report;
+			sensor_baro_s baro_report;
 
 			int ret = orb_copy(ORB_ID(sensor_baro), _baro.subscription[uorb_index], &baro_report);
 

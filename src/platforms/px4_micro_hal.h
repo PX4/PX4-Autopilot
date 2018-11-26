@@ -142,7 +142,7 @@ __BEGIN_DECLS
 #    define px4_arch_unconfiggpio(pinset)           stm32_unconfiggpio(pinset)
 #    define px4_arch_gpioread(pinset)               stm32_gpioread(pinset)
 #    define px4_arch_gpiowrite(pinset, value)       stm32_gpiowrite(pinset, value)
-#    define px4_arch_gpiosetevent(pinset,r,f,e,fp)  stm32_gpiosetevent(pinset,r,f, e,fp)
+#    define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  stm32_gpiosetevent(pinset,r,f,e,fp,a)
 #endif // defined(CONFIG_ARCH_CHIP_STM32) || defined(CONFIG_ARCH_CHIP_STM32F7)
 
 #if defined(CONFIG_ARCH_CHIP_KINETIS)
@@ -213,7 +213,10 @@ __BEGIN_DECLS
 #    define px4_arch_unconfiggpio(pinset)
 #    define px4_arch_gpioread(pinset)               kinetis_gpioread(pinset)
 #    define px4_arch_gpiowrite(pinset, value)       kinetis_gpiowrite(pinset, value)
-#    define px4_arch_gpiosetevent(pinset,r,f,e,fp)  kinetis_gpiosetevent(pinset,r,f, e,fp)
+
+/* kinetis_gpiosetevent is not implemented and will need to be added */
+
+#    define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  kinetis_gpiosetevent(pinset,r,f,e,fp,a)
 #  endif
 
 #  if defined(CONFIG_ARCH_CHIP_SAMV7)
@@ -275,7 +278,10 @@ __BEGIN_DECLS
 #    define px4_arch_unconfiggpio(pinset)           sam_unconfiggpio(pinset)
 #    define px4_arch_gpioread(pinset)               sam_gpioread(pinset)
 #    define px4_arch_gpiowrite(pinset, value)       sam_gpiowrite(pinset, value)
-#    define px4_arch_gpiosetevent(pinset,r,f,e,fp)  sam_gpiosetevent(pinset,r,f, e,fp)
+
+/* sam_gpiosetevent is not implemented and will need to be added */
+
+#    define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  sam_gpiosetevent(pinset,r,f,e,a)
 #  endif
 
 #include <arch/board/board.h>

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,30 +31,59 @@
  *
  ****************************************************************************/
 
-/**
- * @file PX4Flow driver interface.
- */
-
-#ifndef _DRV_PX4FLOW_H
-#define _DRV_PX4FLOW_H
+#pragma once
 
 #include <stdint.h>
-#include <sys/ioctl.h>
+#include <time.h>
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
+#include <uORB/uORB.h>
 
-#define PX4FLOW0_DEVICE_PATH	"/dev/px4flow0"
+#ifdef __PX4_NUTTX
+#define LOG_DIR_LEN 64
+#else
+#define LOG_DIR_LEN 256
+#endif
 
-/*
- * ioctl() definitions
- *
- * px4flow drivers also implement the generic sensor driver
- * interfaces from drv_sensor.h
+namespace px4
+{
+namespace logger
+{
+namespace util
+{
+
+/**
+ * Recursively remove a directory
+ * @return 0 on success, <0 otherwise
  */
+int remove_directory(const char *dir);
 
-#define _PX4FLOWIOCBASE			(0x7700)
-#define __PX4FLOWIOC(_n)		(_IOC(_PX4FLOWIOCBASE, _n))
+/**
+ * check if a file exists
+ */
+bool file_exist(const char *filename);
 
+/**
+ * Check if there is enough free space left on the SD Card.
+ * It will remove old log files if there is not enough space,
+ * and if that fails return 1, and send a user message
+ * @param log_root_dir log root directory: it's expected to contain directories in the form of sess%i or %d-%d-%d (year, month, day)
+ * @param max_log_dirs_to_keep maximum log directories to keep (set to 0 for unlimited)
+ * @param mavlink_log_pub
+ * @param sess_dir_index output argument: will be set to the next free directory sess%i index.
+ * @return 0 on success, 1 if not enough space, <0 on error
+ */
+int check_free_space(const char *log_root_dir, int32_t max_log_dirs_to_keep, orb_advert_t &mavlink_log_pub,
+		     int &sess_dir_index);
 
-#endif /* _DRV_PX4FLOW_H */
+/**
+ * Get the time for log file name
+ * @param tt returned time
+ * @param utc_offset_sec UTC time offset [s]
+ * @param boot_time use time when booted instead of current time
+ * @return true on success, false otherwise (eg. if no gps)
+ */
+bool get_log_time(struct tm *tt, int utc_offset_sec = 0, bool boot_time = false);
+
+} //namespace util
+} //namespace logger
+} //namespace px4

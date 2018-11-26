@@ -85,6 +85,7 @@
 /* LEDs */
 
 #define GPIO_LED1		(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN12)
+#define BOARD_OVERLOAD_LED LED_AMBER
 
 /*
  *  Define the ability to shut off off the sensor signals

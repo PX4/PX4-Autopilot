@@ -8,6 +8,7 @@ program="$3"
 model="$4"
 src_path="$5"
 build_path="$6"
+# The rest of the arguments are files to copy into the working dir.
 
 echo SITL ARGS
 
@@ -55,15 +56,20 @@ pkill -x gazebo || true
 pkill -x px4 || true
 pkill -x px4_$model || true
 
-cp $src_path/Tools/posix_lldbinit $rootfs/.lldbinit
-cp $src_path/Tools/posix.gdbinit $rootfs/.gdbinit
+cp "$src_path/Tools/posix_lldbinit" "$rootfs/.lldbinit"
+cp "$src_path/Tools/posix.gdbinit" "$rootfs/.gdbinit"
+
+shift 6
+for file in "$@"; do
+	cp "$file" $rootfs/
+done
 
 SIM_PID=0
 
 if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]
 then
 	# Start Java simulator
-	$src_path/Tools/jmavsim_run.sh -r 500 &
+	"$src_path"/Tools/jmavsim_run.sh -r 500 &
 	SIM_PID=`echo $!`
 elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]
 then
@@ -72,9 +78,9 @@ then
 		if  [[ -z "$DONT_RUN" ]]
 		then
 			# Set the plugin path so Gazebo finds our model and sim
-			source $src_path/Tools/setup_gazebo.bash ${src_path} ${build_path}
+			source "$src_path/Tools/setup_gazebo.bash" "${src_path}" "${build_path}"
 
-			gzserver --verbose ${src_path}/Tools/sitl_gazebo/worlds/${model}.world &
+			gzserver --verbose "${src_path}/Tools/sitl_gazebo/worlds/${model}.world" &
 			SIM_PID=`echo $!`
 
 			if [[ -n "$HEADLESS" ]]; then
@@ -99,9 +105,9 @@ pushd "$rootfs" >/dev/null
 set +e
 
 if [[ ${model} == test_* ]] || [[ ${model} == *_generated ]]; then
-	sitl_command="$sitl_bin $no_pxh $src_path/ROMFS/px4fmu_test -s ${src_path}/posix-configs/SITL/init/test/${model} -t $src_path/test_data"
+	sitl_command="\"$sitl_bin\" $no_pxh \"$src_path\"/ROMFS/px4fmu_test -s \"${src_path}\"/posix-configs/SITL/init/test/${model} -t \"$src_path\"/test_data"
 else
-	sitl_command="$sitl_bin $no_pxh $src_path/ROMFS/px4fmu_common -s etc/init.d-posix/rcS -t $src_path/test_data"
+	sitl_command="\"$sitl_bin\" $no_pxh \"$src_path\"/ROMFS/px4fmu_common -s etc/init.d-posix/rcS -t \"$src_path\"/test_data"
 fi
 
 echo SITL COMMAND: $sitl_command

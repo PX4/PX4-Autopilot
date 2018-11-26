@@ -1447,8 +1447,11 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						att_sp.yaw_sp_move_rate = 0.0f;
 					}
 
+					// TODO: We assume offboard is only used for multicopters which produce thrust along the
+					// body z axis. If we want to support fixed wing as well we need to handle it differently here, e.g.
+					// in that case we should assign att_sp.thrust_body[0]
 					if (!_offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
-						att_sp.thrust = set_attitude_target.thrust;
+						att_sp.thrust_body[2] = -set_attitude_target.thrust;
 					}
 
 					if (_att_sp_pub == nullptr) {
@@ -1472,7 +1475,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					}
 
 					if (!_offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
-						rates_sp.thrust = set_attitude_target.thrust;
+						rates_sp.thrust_body[2] = -set_attitude_target.thrust;
 					}
 
 					if (_rates_sp_pub == nullptr) {
@@ -2047,7 +2050,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* gyro */
 	{
-		struct gyro_report gyro = {};
+		sensor_gyro_s gyro = {};
 
 		gyro.timestamp = timestamp;
 		gyro.x_raw = imu.xgyro * 1000.0f;
@@ -2068,7 +2071,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* accelerometer */
 	{
-		struct accel_report accel = {};
+		sensor_accel_s accel = {};
 
 		accel.timestamp = timestamp;
 		accel.x_raw = imu.xacc / (CONSTANTS_ONE_G / 1000.0f);
@@ -2110,7 +2113,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	/* baro */
 	{
-		struct baro_report baro = {};
+		sensor_baro_s baro = {};
 
 		baro.timestamp = timestamp;
 		baro.pressure = imu.abs_pressure;
@@ -2469,7 +2472,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 	/* accelerometer */
 	{
-		struct accel_report accel = {};
+		sensor_accel_s accel = {};
 
 		accel.timestamp = timestamp;
 		accel.x_raw = hil_state.xacc / CONSTANTS_ONE_G * 1e3f;

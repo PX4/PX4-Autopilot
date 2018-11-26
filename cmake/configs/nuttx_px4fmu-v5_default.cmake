@@ -32,6 +32,7 @@ set(config_module_list
 	drivers/irlock
 	drivers/mkblctrl
 	drivers/oreoled
+	drivers/pmw3901
 	drivers/pwm_input
 	drivers/pwm_out_sim
 	drivers/px4flow
@@ -39,6 +40,7 @@ set(config_module_list
 	drivers/px4io
 	drivers/rc_input
 	drivers/rgbled
+	drivers/rgbled_ncp5623c
 	#drivers/rgbled_pwm # Enable to put the three leds into PWM RGB mode
 	drivers/stm32
 	drivers/stm32/adc

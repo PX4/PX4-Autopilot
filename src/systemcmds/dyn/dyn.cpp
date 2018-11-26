@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,46 +30,62 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file pipe_protocol.cpp
+ * @file dyn.cpp
  *
- * @author Julian Oes <julian@oes.ch>
- * @author Beat Küng <beat-kueng@gmx.net>
+ * @author Mara Bos <m-ou.se@m-ou.se>
  */
 
-#include <stdint.h>
-#include <stdio.h>
-#include <inttypes.h>
+#include <dlfcn.h>
 
-#include "pipe_protocol.h"
+#include <px4_module.h>
+#include <px4_log.h>
 
-static const char CLIENT_SEND_PIPE_PATH[] = "/tmp/px4_client_send_pipe-";
-static const char CLIENT_RECV_PIPE_PATH[] = "/tmp/px4_client_recv_pipe";
+static void usage();
 
-
-namespace px4_daemon
-{
-
-
-unsigned get_client_send_packet_length(const client_send_packet_s *packet)
-{
-	return sizeof(client_send_packet_s) - sizeof(packet->payload) + packet->header.payload_length;
+extern "C" {
+	__EXPORT int dyn_main(int argc, char *argv[]);
 }
 
-unsigned get_client_recv_packet_length(const client_recv_packet_s *packet)
+static void usage()
 {
-	return sizeof(client_recv_packet_s) - sizeof(packet->payload) + packet->header.payload_length;
+	PRINT_MODULE_DESCRIPTION(
+		R"(
+### Description
+Load and run a dynamic PX4 module, which was not compiled into the PX4 binary.
+
+### Example
+$ dyn ./hello.px4mod start
+
+)");
+	PRINT_MODULE_USAGE_NAME_SIMPLE("dyn", "command");
+	PRINT_MODULE_USAGE_ARG("<file>", "File containing the module", false);
+	PRINT_MODULE_USAGE_ARG("arguments...", "Arguments to the module", true);
 }
 
-int get_client_recv_pipe_path(const uint64_t uuid, char *path, const size_t path_len)
-{
-	return snprintf(path, path_len, "%s-%016" PRIx64, CLIENT_RECV_PIPE_PATH, uuid);
+int dyn_main(int argc, char *argv[]) {
+	if (argc < 2) {
+		usage();
+		return 1;
+	}
+
+	void *handle = dlopen(argv[1], RTLD_NOW);
+
+	if (!handle) {
+		PX4_ERR("%s", dlerror());
+		return 1;
+	}
+
+	void *main_address = dlsym(handle, "px4_module_main");
+
+	if (!main_address) {
+		PX4_ERR("%s", dlerror());
+		dlclose(handle);
+		return 1;
+	}
+
+	auto main_function = (int (*)(int, char **))main_address;
+
+	return main_function(argc - 1, argv + 1);
 }
-
-std::string get_client_send_pipe_path(int instance_id)
-{
-	return std::string(CLIENT_SEND_PIPE_PATH) + std::to_string(instance_id);
-}
-
-} // namespace px4_daemon
-

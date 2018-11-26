@@ -50,7 +50,7 @@ void LowPassFilter2p::set_cutoff_frequency(float sample_freq, float cutoff_freq)
 
 	if (_cutoff_freq <= 0.0f) {
 		// no filtering
-		_b0 = 0.0f;
+		_b0 = 1.0f;
 		_b1 = 0.0f;
 		_b2 = 0.0f;
 

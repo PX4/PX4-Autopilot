@@ -376,8 +376,8 @@ out:
 ssize_t
 LPS25H::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct baro_report);
-	struct baro_report *brp = reinterpret_cast<struct baro_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_baro_s);
+	sensor_baro_s *brp = reinterpret_cast<sensor_baro_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -425,7 +425,7 @@ LPS25H::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		if (_reports->get(brp)) {
-			ret = sizeof(struct baro_report);
+			ret = sizeof(sensor_baro_s);
 		}
 	} while (0);
 
@@ -441,21 +441,11 @@ LPS25H::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -495,30 +485,6 @@ LPS25H::ioctl(struct file *filp, int cmd, unsigned long arg)
 					return OK;
 				}
 			}
-		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (1000 / _measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-			return OK;
 		}
 
 	case SENSORIOCRESET:
@@ -661,7 +627,7 @@ LPS25H::collect()
 	int	ret;
 
 	perf_begin(_sample_perf);
-	struct baro_report new_report;
+	sensor_baro_s new_report;
 	bool sensor_is_onboard = false;
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
@@ -892,7 +858,7 @@ void
 test(enum LPS25H_BUS busid)
 {
 	struct lps25h_bus_option &bus = find_bus(busid);
-	struct baro_report report;
+	sensor_baro_s report;
 	ssize_t sz;
 	int ret;
 
@@ -912,16 +878,6 @@ test(enum LPS25H_BUS busid)
 	}
 
 	print_message(report);
-
-	/* set the queue depth to 10 */
-	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
-		errx(1, "failed to set queue depth");
-	}
-
-	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
-	}
 
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {

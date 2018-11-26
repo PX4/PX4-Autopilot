@@ -45,7 +45,7 @@ UavcanBarometerBridge::UavcanBarometerBridge(uavcan::INode &node) :
 	UavcanCDevSensorBridgeBase("uavcan_baro", "/dev/uavcan/baro", BARO_BASE_DEVICE_PATH, ORB_ID(sensor_baro)),
 	_sub_air_pressure_data(node),
 	_sub_air_temperature_data(node),
-	_reports(2, sizeof(baro_report))
+	_reports(2, sizeof(sensor_baro_s))
 { }
 
 int UavcanBarometerBridge::init()
@@ -75,8 +75,8 @@ int UavcanBarometerBridge::init()
 
 ssize_t UavcanBarometerBridge::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct baro_report);
-	struct baro_report *baro_buf = reinterpret_cast<struct baro_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_baro_s);
+	sensor_baro_s *baro_buf = reinterpret_cast<sensor_baro_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -103,24 +103,6 @@ int UavcanBarometerBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports.resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
 	default: {
 			return CDev::ioctl(filp, cmd, arg);
 		}
@@ -136,7 +118,7 @@ void UavcanBarometerBridge::air_temperature_sub_cb(const
 void UavcanBarometerBridge::air_pressure_sub_cb(const
 		uavcan::ReceivedDataStructure<uavcan::equipment::air_data::StaticPressure> &msg)
 {
-	baro_report report;
+	sensor_baro_s report{};
 
 	/*
 	 * FIXME HACK

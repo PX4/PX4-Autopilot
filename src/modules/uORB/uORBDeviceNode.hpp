@@ -38,6 +38,8 @@
 
 #include <lib/cdev/CDev.hpp>
 
+#include <containers/List.hpp>
+
 namespace uORB
 {
 class DeviceNode;
@@ -48,22 +50,29 @@ class Manager;
 /**
  * Per-object device instance.
  */
-class uORB::DeviceNode : public cdev::CDev
+class uORB::DeviceNode : public cdev::CDev, public ListNode<uORB::DeviceNode *>
 {
 public:
-	DeviceNode(const struct orb_metadata *meta, const char *path, int priority, unsigned int queue_size = 1);
+	DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path, uint8_t priority,
+		   uint8_t queue_size = 1);
 	~DeviceNode();
+
+	// no copy, assignment, move, move assignment
+	DeviceNode(const DeviceNode &) = delete;
+	DeviceNode &operator=(const DeviceNode &) = delete;
+	DeviceNode(DeviceNode &&) = delete;
+	DeviceNode &operator=(DeviceNode &&) = delete;
 
 	/**
 	 * Method to create a subscriber instance and return the struct
 	 * pointing to the subscriber as a file pointer.
 	 */
-	virtual int open(cdev::file_t *filp);
+	int open(cdev::file_t *filp) override;
 
 	/**
 	 * Method to close a subscriber for this topic.
 	 */
-	virtual int   close(cdev::file_t *filp);
+	int close(cdev::file_t *filp) override;
 
 	/**
 	 * reads data from a subscriber node to the buffer provided.
@@ -76,7 +85,7 @@ public:
 	 * @return
 	 *   ssize_t the number of bytes read.
 	 */
-	virtual ssize_t   read(cdev::file_t *filp, char *buffer, size_t buflen);
+	ssize_t read(cdev::file_t *filp, char *buffer, size_t buflen) override;
 
 	/**
 	 * writes the published data to the internal buffer to be read by
@@ -90,12 +99,12 @@ public:
 	 * @return ssize_t
 	 *   The number of bytes that are written
 	 */
-	virtual ssize_t   write(cdev::file_t *filp, const char *buffer, size_t buflen);
+	ssize_t write(cdev::file_t *filp, const char *buffer, size_t buflen) override;
 
 	/**
 	 * IOCTL control for the subscriber.
 	 */
-	virtual int   ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
+	int ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
 
 	/**
 	 * Method to publish a data to this node.
@@ -169,39 +178,52 @@ public:
 	 */
 	bool print_statistics(bool reset);
 
-	unsigned int get_queue_size() const { return _queue_size; }
+	uint8_t get_queue_size() const { return _queue_size; }
+
 	int8_t subscriber_count() const { return _subscriber_count; }
+
 	uint32_t lost_message_count() const { return _lost_messages; }
-	unsigned int published_message_count() const { return _generation; }
-	const struct orb_metadata *get_meta() const { return _meta; }
+
+	unsigned published_message_count() const { return _generation; }
+
+	const orb_metadata *get_meta() const { return _meta; }
+
+	const char *get_name() const { return _meta->o_name; }
+
+	uint8_t get_instance() const { return _instance; }
 
 	int get_priority() const { return _priority; }
 	void set_priority(uint8_t priority) { _priority = priority; }
 
 protected:
-	virtual pollevent_t poll_state(cdev::file_t *filp);
-	virtual void poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events);
+
+	pollevent_t poll_state(cdev::file_t *filp) override;
+
+	void poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events) override;
 
 private:
 	struct UpdateIntervalData {
-		unsigned  interval; /**< if nonzero minimum interval between updates */
 		struct hrt_call update_call;  /**< deferred wakeup call if update_period is nonzero */
 #ifndef __PX4_NUTTX
 		uint64_t last_update; /**< time at which the last update was provided, used when update_interval is nonzero */
 #endif
+		unsigned  interval; /**< if nonzero minimum interval between updates */
+		bool update_reported;
 	};
 	struct SubscriberData {
 		~SubscriberData() { if (update_interval) { delete (update_interval); } }
 
 		unsigned  generation; /**< last generation the subscriber has seen */
-		int   flags; /**< lowest 8 bits: priority of publisher, 9. bit: update_reported bit */
 		UpdateIntervalData *update_interval; /**< if null, no update interval */
 
-		bool update_reported() const { return flags & (1 << 8); }
-		void set_update_reported(bool update_reported_flag) { flags = (flags & ~(1 << 8)) | (((int)update_reported_flag) << 8); }
+		// these flags are only used if update_interval != null
+		bool update_reported() const { return update_interval ? update_interval->update_reported : false; }
+		void set_update_reported(bool update_reported_flag)
+		{ if (update_interval) { update_interval->update_reported = update_reported_flag; } }
 	};
 
-	const struct orb_metadata *_meta; /**< object metadata information */
+	const orb_metadata *_meta; /**< object metadata information */
+	const uint8_t _instance; /**< orb multi instance identifier */
 	uint8_t     *_data{nullptr};   /**< allocated object buffer */
 	hrt_abstime   _last_update{0}; /**< time the object was last updated */
 	volatile unsigned   _generation{0};  /**< object generation count */
@@ -210,19 +232,14 @@ private:
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
 	int8_t _subscriber_count{0};
 
+	px4_task_t _publisher{0}; /**< if nonzero, current publisher. Only used inside the advertise call.
+						We allow one publisher to have an open file descriptor at the same time. */
+
+	// statistics
+	uint32_t _lost_messages = 0; /**< nr of lost messages for all subscribers. If two subscribers lose the same
+					message, it is counted as two. */
+
 	inline static SubscriberData    *filp_to_sd(cdev::file_t *filp);
-
-#ifdef __PX4_NUTTX
-	pid_t     _publisher {0}; /**< if nonzero, current publisher. Only used inside the advertise call.
-					We allow one publisher to have an open file descriptor at the same time. */
-#else
-	px4_task_t     _publisher {0}; /**< if nonzero, current publisher. Only used inside the advertise call.
-					We allow one publisher to have an open file descriptor at the same time. */
-#endif
-
-	//statistics
-	uint32_t _lost_messages = 0; ///< nr of lost messages for all subscribers. If two subscribers lose the same
-	///message, it is counted as two.
 
 	/**
 	 * Perform a deferred update for a rate-limited subscriber.
@@ -246,8 +263,4 @@ private:
 	 */
 	bool      appears_updated(SubscriberData *sd);
 
-
-	// disable copy and assignment operators
-	DeviceNode(const DeviceNode &);
-	DeviceNode &operator=(const DeviceNode &);
 };
