@@ -4028,6 +4028,12 @@ void Commander::estimator_check(bool *status_changed)
 	if (_estimator_status_sub.update()) {
 		const estimator_status_s& estimator_status = _estimator_status_sub.get();
 
+		// Check for a magnetomer fault and notify the user
+		if (!_mag_sensor_failed && (estimator_status.control_mode_flags & (1 << estimator_status_s::CS_MAG_FAULT))) {
+			_mag_sensor_failed = true;
+			mavlink_log_critical(&mavlink_log_pub, "Stopping compass use, check calibration on landing");
+		}
+
 		// Set the allowable position uncertainty based on combination of flight and estimator state
 		// When we are in a operator demanded position control mode and are solely reliant on optical flow, do not check position error because it will gradually increase throughout flight and the operator will compensate for the drift
 		const bool reliant_on_opt_flow = ((estimator_status.control_mode_flags & (1 << estimator_status_s::CS_OPT_FLOW))
