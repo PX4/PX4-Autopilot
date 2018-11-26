@@ -145,6 +145,7 @@ private:
 	hrt_abstime	_time_tas_bad_declared{0};	/**< time TAS use was stopped (uSec) */
 	hrt_abstime	_time_last_airspeed{0};		/**< time last airspeed measurement was received (uSec) */
 	char		*_airspeed_fault_type = new char[7];
+	float		_load_factor_ratio{0.5f};	/**< ratio of maximum load factor predicted by stall speed to measured load factor */
 
 	FailureDetector _failure_detector;
 	bool _failure_detector_termination_printed{false};

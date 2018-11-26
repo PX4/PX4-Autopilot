@@ -4155,6 +4155,7 @@ void Commander::airspeed_use_check()
 		status.aspd_fail_rtl = false;
 		_time_last_airspeed = hrt_absolute_time();
 		_airspeed_fault_type = new(char[7]);
+		_load_factor_ratio = 0.5f;
 	} else {
 		// The vehicle is flying so use the status of the airspeed innovation check '_tas_check_fail' in
 		// addition to a sanity check using airspeed and load factor and a missing sensor data check.
@@ -4179,9 +4180,10 @@ void Commander::airspeed_use_check()
 		_sensor_bias = _sensor_bias_sub.get();
 		float max_lift_ratio = fmaxf(_airspeed.indicated_airspeed_m_s, 0.7f) / fmaxf(_airspeed_stall.get(), 1.0f);
 		max_lift_ratio *= max_lift_ratio;
-		status.load_factor_ratio = 0.95f * status.load_factor_ratio + 0.05f * (fabsf(_sensor_bias.accel_z) / 9.80665f) / max_lift_ratio;
-		status.load_factor_ratio = math::constrain(status.load_factor_ratio, 0.25f, 2.0f);
-		bool load_factor_ratio_fail = status.load_factor_ratio > 1.1f;
+		_load_factor_ratio = 0.95f * _load_factor_ratio + 0.05f * (fabsf(_sensor_bias.accel_z) / 9.80665f) / max_lift_ratio;
+		_load_factor_ratio = math::constrain(_load_factor_ratio, 0.25f, 2.0f);
+		bool load_factor_ratio_fail = _load_factor_ratio > 1.1f;
+		status.load_factor_ratio = _load_factor_ratio;
 
 		//  Decide if the control loops should be using the airspeed data based on the length of time the
 		// airspeed data has been declared bad
