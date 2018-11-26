@@ -153,9 +153,9 @@ const char* Companion_Process_Status::toString(ProcessType type){
 	switch (type)
 	{
 		case UNDEFINED: return "UNDEFINED";
-	    case AVOIDANCE: return "AVOIDANCE";
-	    case VIO: return "VIO";
-	    default: return "[Unknown process type]";
+		case AVOIDANCE: return "AVOIDANCE";
+		case VIO: return "VIO";
+		default: return "[Unknown process type]";
 	}
 }
 
@@ -163,14 +163,14 @@ const char* Companion_Process_Status::toString(MAV_STATE state){
 	switch (state)
 	{
 		case UNINITIALIZED: return "UNINITIALIZED";
-	    case STARTING: return "STARTING";
-	    case CALIBRATING: return "CALIBRATING";
-	    case STANDBY: return "STANDBY";
-	    case ACTIVE: return "ACTIVE";
-	    case TIMEOUT: return "TIMEOUT";
-	    case EMERGENCY: return "EMERGENCY";
-	    case POWEROFF: return "POWEROFF";
-	    case ABORTING: return "ABORTING";
-	    default: return "[Unknown process type]";
+		case STARTING: return "STARTING";
+		case CALIBRATING: return "CALIBRATING";
+		case STANDBY: return "STANDBY";
+		case ACTIVE: return "ACTIVE";
+		case TIMEOUT: return "TIMEOUT";
+		case EMERGENCY: return "EMERGENCY";
+		case POWEROFF: return "POWEROFF";
+		case ABORTING: return "ABORTING";
+		default: return "[Unknown process type]";
 	}
 }
