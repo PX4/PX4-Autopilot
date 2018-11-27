@@ -127,7 +127,7 @@ def createTestNode(Map test_def) {
 
           // run test
           try {
-            sh('px4-px4_sitl_default*/px4/test/rostest_px4_run.sh ' + test_def.test + ' mission:=' + test_def.mission + ' vehicle:=' + test_def.vehicle)
+            sh('px4-px4_sitl_default*/px4/test/' + run_script + ' ' + test_def.test + ' mission:=' + test_def.mission + ' vehicle:=' + test_def.vehicle)
 
           } catch (exc) {
             // save all test artifacts for debugging
