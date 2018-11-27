@@ -1,7 +1,7 @@
 #!/bin/bash
 
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-echo $script_dir
+
 if [[ $1 == "-h" ]]; then
     echo "Usage: maneuver [maneuver-name]"
     exit 1
@@ -27,7 +27,7 @@ fi
 
 files=$build_dir/maneuvers/*
 input=$build_dir/maneuvers/$1
-# check if requeste maneuver exists
+# check if requested maneuver exists
 for f in $files
 do
     if [[ -x $f && ! -d $f && $f == $input ]]; then
