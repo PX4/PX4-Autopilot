@@ -86,7 +86,7 @@ private:
 	bool _new_status_received = false;
 
 	const hrt_abstime STARTUP_TIMEOUT = 15000000;	/**< timeout for starting the companion process. counter starts when first message of starting is received */
-	const hrt_abstime NO_SIGNAL_TIMEOUT = 150000000;	/**< timeout if no signal is received. counter starts when class object is created */
+	const hrt_abstime NO_SIGNAL_TIMEOUT = 15000000;	/**< timeout if no signal is received. counter starts when class object is created */
 	const hrt_abstime THROTTLE_MESSAGES = 5000000;	/**< time interval on which messages are published */
 
 	void poll_subscriptions();
