@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016, 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file nxphlite_init.c
+ * @file init.c
  *
- * NXPHLITEV1v2-specific early startup code.  This file implements the
+ * NXP fmuk66-v3 specific early startup code.  This file implements the
  * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
@@ -234,7 +234,7 @@ kinetis_boardinitialize(void)
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
 	board_gpio_init(gpio, arraySize(gpio));
 
-	nxphlite_timer_initialize();
+	fmuk66_timer_initialize();
 
 	/* Power on Spektrum */
 
@@ -274,7 +274,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* configure SPI interfaces */
 
-	nxphlite_spidev_initialize();
+	fmuk66_spidev_initialize();
 
 	VDD_ETH_EN(true);
 
@@ -333,7 +333,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	led_off(LED_GREEN);
 	led_off(LED_BLUE);
 
-	int ret = nxphlite_sdhc_initialize();
+	int ret = fmuk66_sdhc_initialize();
 
 	if (ret != OK) {
 		board_autoled_on(LED_RED);
@@ -343,13 +343,13 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #ifdef HAVE_AUTOMOUNTER
 	/* Initialize the auto-mounter */
 
-	nxphlite_automount_initialize();
+	fmuk66_automount_initialize();
 #endif
 
 	/* Configure SPI-based devices */
 
 #ifdef CONFIG_SPI
-	ret = nxphlite_spi_bus_initialize();
+	ret = fmuk66_spi_bus_initialize();
 
 	if (ret != OK) {
 		board_autoled_on(LED_RED);

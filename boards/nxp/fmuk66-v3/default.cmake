@@ -2,7 +2,7 @@
 px4_add_board(
 	PLATFORM nuttx
 	VENDOR nxp
-	MODEL hlite-v3
+	MODEL fmuk66-v3
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common

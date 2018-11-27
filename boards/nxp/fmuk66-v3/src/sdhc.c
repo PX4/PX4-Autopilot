@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016-2018 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
  *            David Sidrane <david_s5@nscdg.com>
  *
@@ -82,7 +82,7 @@
  ****************************************************************************/
 /* This structure holds static information unique to one SDHC peripheral */
 
-struct nxphlite_sdhc_state_s {
+struct fmuk66_sdhc_state_s {
 	struct sdio_dev_s *sdhc;    /* R/W device handle */
 	bool inserted;              /* TRUE: card is inserted */
 };
@@ -93,17 +93,17 @@ struct nxphlite_sdhc_state_s {
 
 /* HSCMI device state */
 
-static struct nxphlite_sdhc_state_s g_sdhc;
+static struct fmuk66_sdhc_state_s g_sdhc;
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nxphlite_mediachange
+ * Name: fmuk66_mediachange
  ****************************************************************************/
 
-static void nxphlite_mediachange(struct nxphlite_sdhc_state_s *sdhc)
+static void fmuk66_mediachange(struct fmuk66_sdhc_state_s *sdhc)
 {
 	bool inserted;
 
@@ -124,23 +124,23 @@ static void nxphlite_mediachange(struct nxphlite_sdhc_state_s *sdhc)
 		sdhc->inserted = inserted;
 		sdhc_mediachange(sdhc->sdhc, inserted);
 
-#ifdef CONFIG_NXPHLITE_SDHC_AUTOMOUNT
+#ifdef CONFIG_FMUK66_SDHC_AUTOMOUNT
 		/* Let the automounter know about the insertion event */
 
-		nxphlite_automount_event(nxphlite_cardinserted());
+		fmuk66_automount_event(fmuk66_cardinserted());
 #endif
 	}
 }
 
 /****************************************************************************
- * Name: nxphlite_cdinterrupt
+ * Name: fmuk66_cdinterrupt
  ****************************************************************************/
 
-static int nxphlite_cdinterrupt(int irq, FAR void *context, FAR void *args)
+static int fmuk66_cdinterrupt(int irq, FAR void *context, FAR void *args)
 {
-	/* All of the work is done by nxphlite_mediachange() */
+	/* All of the work is done by fmuk66_mediachange() */
 
-	nxphlite_mediachange((struct nxphlite_sdhc_state_s *) args);
+	fmuk66_mediachange((struct fmuk66_sdhc_state_s *) args);
 	return OK;
 }
 
@@ -149,17 +149,17 @@ static int nxphlite_cdinterrupt(int irq, FAR void *context, FAR void *args)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nxphlite_sdhc_initialize
+ * Name: fmuk66_sdhc_initialize
  *
  * Description:
  *   Inititialize the SDHC SD card slot
  *
  ****************************************************************************/
 
-int nxphlite_sdhc_initialize(void)
+int fmuk66_sdhc_initialize(void)
 {
 	int ret;
-	struct nxphlite_sdhc_state_s   *sdhc = &g_sdhc;
+	struct fmuk66_sdhc_state_s   *sdhc = &g_sdhc;
 	/* Configure GPIO pins */
 
 	VDD_3V3_SD_CARD_EN(true);
@@ -168,7 +168,7 @@ int nxphlite_sdhc_initialize(void)
 
 	/* Attached the card detect interrupt (but don't enable it yet) */
 
-	kinetis_pinirqattach(GPIO_SD_CARDDETECT, nxphlite_cdinterrupt, sdhc);
+	kinetis_pinirqattach(GPIO_SD_CARDDETECT, fmuk66_cdinterrupt, sdhc);
 
 	/* Configure the write protect GPIO -- None */
 
@@ -199,7 +199,7 @@ int nxphlite_sdhc_initialize(void)
 
 	/* Handle the initial card state */
 
-	nxphlite_mediachange(sdhc);
+	fmuk66_mediachange(sdhc);
 
 	/* Enable CD interrupts to handle subsequent media changes */
 
@@ -208,7 +208,7 @@ int nxphlite_sdhc_initialize(void)
 }
 
 /****************************************************************************
- * Name: nxphlite_cardinserted
+ * Name: fmuk66_cardinserted
  *
  * Description:
  *   Check if a card is inserted into the SDHC slot
@@ -216,7 +216,7 @@ int nxphlite_sdhc_initialize(void)
  ****************************************************************************/
 
 #ifdef HAVE_AUTOMOUNTER
-bool nxphlite_cardinserted(void)
+bool fmuk66_cardinserted(void)
 {
 	bool inserted;
 
@@ -231,7 +231,7 @@ bool nxphlite_cardinserted(void)
 #endif
 
 /****************************************************************************
- * Name: nxphlite_writeprotected
+ * Name: fmuk66_writeprotected
  *
  * Description:
  *   Check if a card is inserted into the SDHC slot
@@ -239,7 +239,7 @@ bool nxphlite_cardinserted(void)
  ****************************************************************************/
 
 #ifdef HAVE_AUTOMOUNTER
-bool nxphlite_writeprotected(void)
+bool fmuk66_writeprotected(void)
 {
 	/* There are no write protect pins */
 
