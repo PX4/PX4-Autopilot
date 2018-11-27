@@ -29,7 +29,7 @@ param set VT_MOT_COUNT 5
 param set VT_TYPE 1
 fi
 
-set MIXER vtol_avioneo2
+set MIXER vtol_avioneo
 
 set PWM_OUT 12345
 
