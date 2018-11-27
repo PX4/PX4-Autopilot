@@ -73,7 +73,7 @@ class CompanionProcessStatus
 
 public:
 	CompanionProcessStatus();
-	void check_companion_process_status(orb_advert_t *mav_log_pub, int32_t use_obs_avoid);
+	void check_companion_process_status(orb_advert_t *mav_log_pub);
 
 private:
 	uORB::Subscription<companion_process_status_s> _companion_process_status_sub{ORB_ID(companion_process_status)};
@@ -94,7 +94,7 @@ private:
 	static constexpr hrt_abstime THROTTLE_MESSAGES = 5_s;	/**< time interval on which messages are published */
 
 	void poll_subscriptions();
-	void determine_required_processes(int32_t use_obs_avoid);
+	void determine_required_processes();
 	void determine_action();
 	const char* toString(ProcessType type);
 	const char* toString(MAV_STATE state);

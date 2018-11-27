@@ -56,10 +56,11 @@ void CompanionProcessStatus::poll_subscriptions(){
 	}
 }
 
-void CompanionProcessStatus::determine_required_processes(int32_t use_obs_avoid){
+void CompanionProcessStatus::determine_required_processes(){
 
 	//determine required processes from parameters
-	_avoidance_required = use_obs_avoid;
+	param_t _param_mpc_obs_avoid = param_find("MPC_OBS_AVOID");
+	param_get(_param_mpc_obs_avoid, &_avoidance_required);
 
 }
 
@@ -141,9 +142,9 @@ void CompanionProcessStatus::determine_action(){
 	}
 }
 
-void CompanionProcessStatus::check_companion_process_status(orb_advert_t *mav_log_pub, int32_t use_obs_avoid){
+void CompanionProcessStatus::check_companion_process_status(orb_advert_t *mav_log_pub){
 	mavlink_log_pub = mav_log_pub;
-	determine_required_processes(use_obs_avoid);
+	determine_required_processes();
 	poll_subscriptions();
 	determine_action();
 }
