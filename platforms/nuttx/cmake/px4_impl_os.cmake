@@ -64,6 +64,9 @@ function(px4_os_add_flags)
 		${PX4_BINARY_DIR}/NuttX/apps/include
 		)
 
+	# NuttX's disables inline below C99 (comiler.h), but __STDC_VERSION__ isn't set for C++
+	add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-D__STDC_VERSION__=199901L>)
+
 	add_definitions(
 		-D__PX4_NUTTX
 		-D__DF_NUTTX
