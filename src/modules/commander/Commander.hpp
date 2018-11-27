@@ -98,6 +98,17 @@ public:
 private:
 
 	DEFINE_PARAMETERS(
+
+		(ParamInt<px4::params::NAV_DLL_ACT>) _datalink_loss_action,
+		(ParamInt<px4::params::COM_DL_LOSS_T>) _datalink_loss_threshold,
+		(ParamInt<px4::params::COM_DL_REG_T>) _datalink_regain_threshold,
+
+		(ParamInt<px4::params::COM_HLDL_LOSS_T>) _high_latency_datalink_loss_threshold,
+		(ParamInt<px4::params::COM_HLDL_REG_T>) _high_latency_datalink_regain_threshold,
+
+		(ParamInt<px4::params::NAV_RCL_ACT>) _rc_loss_action,
+		(ParamFloat<px4::params::COM_RC_LOSS_T>) _rc_loss_threshold,
+
 		(ParamFloat<px4::params::COM_HOME_H_T>) _home_eph_threshold,
 		(ParamFloat<px4::params::COM_HOME_V_T>) _home_epv_threshold,
 
@@ -161,26 +172,20 @@ private:
 	void mission_init();
 
 	/**
-	 * Update the telemetry status and the corresponding status variables.
-	 * Perform system checks when new telemetry link connected.
-	 */
-	void poll_telemetry_status();
-
-	/**
 	 * Checks the status of all available data links and handles switching between different system telemetry states.
 	 */
-	void data_link_checks(int32_t highlatencydatalink_loss_timeout, int32_t highlatencydatalink_regain_timeout,
-			      int32_t datalink_loss_timeout, int32_t datalink_regain_timeout, bool *status_changed);
+	void		data_link_check(bool &status_changed);
+	int		_telemetry_status_sub[ORB_MULTI_MAX_INSTANCES] {};
 
-	// telemetry variables
-	struct telemetry_data {
-		int subscriber = -1;
-		uint64_t last_heartbeat = 0u;
-		uint64_t last_dl_loss = 0u;
-		bool preflight_checks_reported = false;
-		bool lost = true;
-		bool high_latency = false;
-	} _telemetry[ORB_MULTI_MAX_INSTANCES];
+	uint64_t	_datalink_last_heartbeat_gcs{0};
+	uint64_t	_datalink_lost{0};
+
+	uint64_t	_datalink_last_heartbeat_onboard_controller{0};
+	uint64_t	_onboard_controller_lost{0};
+
+	int			_iridiumsbd_status_sub{-1};
+	uint64_t	_high_latency_datalink_heartbeat{0};
+	uint64_t	_high_latency_datalink_lost{0};
 
 	void estimator_check(bool *status_changed);
 
@@ -192,7 +197,6 @@ private:
 
 	// Subscriptions
 	Subscription<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
-	Subscription<iridiumsbd_status_s> 		_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	Subscription<mission_result_s>			_mission_result_sub{ORB_ID(mission_result)};
 	Subscription<vehicle_global_position_s>		_global_position_sub{ORB_ID(vehicle_global_position)};
 	Subscription<vehicle_local_position_s>		_local_position_sub{ORB_ID(vehicle_local_position)};

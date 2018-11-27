@@ -834,48 +834,63 @@ void set_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
 			     uint8_t auto_recovery_nav_state)
 {
 	// do the best you can according to the action set
-	if (link_loss_act == link_loss_actions_t::AUTO_RECOVER
-	    && status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
-		status->nav_state = auto_recovery_nav_state;
 
-	} else if (link_loss_act == link_loss_actions_t::AUTO_LOITER && status_flags.condition_global_position_valid) {
-		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
-
-	} else if (link_loss_act == link_loss_actions_t::AUTO_RTL
-		   && status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
-
-		main_state_transition(*status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, internal_state);
-		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
-
-	} else if (link_loss_act == link_loss_actions_t::AUTO_LAND && status_flags.condition_local_position_valid) {
-		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
-
-	} else if (link_loss_act == link_loss_actions_t::TERMINATE) {
-		status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
-		armed->force_failsafe = true;
-
-	} else if (link_loss_act == link_loss_actions_t::LOCKDOWN) {
-		armed->lockdown = true;
-
-		// do the best you can according to the current state
-
-	} else if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
-		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
-
-	} else if (status_flags.condition_local_position_valid) {
-		status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
-
-	} else if (status_flags.condition_local_altitude_valid) {
-		if (status->is_rotary_wing) {
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-
-		} else {
-			// TODO: FW position controller doesn't run without condition_global_position_valid
-			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
+	switch (link_loss_act) {
+	case (link_loss_actions_t::DISABLED):
+	case (link_loss_actions_t::AUTO_RECOVER):
+		if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
+			status->nav_state = auto_recovery_nav_state;
+			return;
 		}
 
-	} else {
+	// FALLTHROUGH
+	case (link_loss_actions_t::AUTO_RTL):
+		if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
+			main_state_transition(*status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, internal_state);
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+			return;
+		}
+
+	// FALLTHROUGH
+	case (link_loss_actions_t::AUTO_LOITER):
+		if (status_flags.condition_global_position_valid) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+			return;
+		}
+
+	// FALLTHROUGH
+	case (link_loss_actions_t::AUTO_LAND):
+		if (status_flags.condition_global_position_valid) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+			return;
+
+		} else {
+			if (status->is_rotary_wing) {
+				if (status_flags.condition_local_position_valid) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+					return;
+
+				} else if (status_flags.condition_local_altitude_valid) {
+					status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+					return;
+				}
+
+			} else {
+				// TODO: FW position controller doesn't run without condition_global_position_valid
+				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
+				return;
+			}
+		}
+
+	// FALLTHROUGH
+	case (link_loss_actions_t::TERMINATE):
 		status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+		armed->force_failsafe = true;
+		break;
+
+	case (link_loss_actions_t::LOCKDOWN):
+		armed->lockdown = true;
+		break;
 	}
 }
 
