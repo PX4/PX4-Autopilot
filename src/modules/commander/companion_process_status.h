@@ -36,17 +36,18 @@
  * Routine to determine health of companion processes
  */
 
-#ifndef COMPANION_PROCESS_STATUS_H_
-#define COMPANION_PROCESS_STATUS_H_
+#pragma once
 
 #include <uORB/topics/companion_process_status.h>
 #include <uORB/Subscription.hpp>
 #include <systemlib/mavlink_log.h>
 
+using namespace time_literals;
+
 enum class ProcessType {	//used as indexes for _companion_process_status arrays
-	Undefined,
 	Avoidance,
-	VIO
+	VIO,
+	Count
 };
 
 enum class MAV_COMPONENT {	//see mavlink::common::MAV_COMPONENT
@@ -67,14 +68,17 @@ enum class MAV_STATE {	//strings used for user notifications
 };
 
 
-class Companion_Process_Status
+class CompanionProcessStatus
 {
+
+public:
+	CompanionProcessStatus();
+	void check_companion_process_status(orb_advert_t *mav_log_pub, int32_t use_obs_avoid);
 
 private:
 	uORB::Subscription<companion_process_status_s> _companion_process_status_sub{ORB_ID(companion_process_status)};
-	companion_process_status_s _companion_process_status{};	/**< current status message */
-	companion_process_status_s _companion_process_status_history[3]{};	/**< last status message of each process*/
-	companion_process_status_s _companion_process_status_first_registration[3]{};	/**< first status message of each process */
+	companion_process_status_s _companion_process_status_history[(int)ProcessType::Count]{};	/**< last status message of each process*/
+	int _first_registration_time[(int)ProcessType::Count]{};	/**< time at which a process reported for the first time */
 
 	bool _avoidance_required = false;
 	bool _vio_required = false;
@@ -85,20 +89,13 @@ private:
 	hrt_abstime _time_message;	/**< time when last message was printed*/
 	bool _new_status_received = false;
 
-	const hrt_abstime STARTUP_TIMEOUT = 15000000;	/**< timeout for starting the companion process. counter starts when first message of starting is received */
-	const hrt_abstime NO_SIGNAL_TIMEOUT = 15000000;	/**< timeout if no signal is received. counter starts when class object is created */
-	const hrt_abstime THROTTLE_MESSAGES = 5000000;	/**< time interval on which messages are published */
+	static constexpr hrt_abstime STARTUP_TIMEOUT = 15_s;	/**< timeout for starting the companion process. counter starts when first message of starting is received */
+	static constexpr hrt_abstime NO_SIGNAL_TIMEOUT = 15_s;	/**< timeout if no signal is received. counter starts when class object is created */
+	static constexpr hrt_abstime THROTTLE_MESSAGES = 5_s;	/**< time interval on which messages are published */
 
 	void poll_subscriptions();
 	void determine_required_processes(int32_t use_obs_avoid);
 	void determine_action();
 	const char* toString(ProcessType type);
 	const char* toString(MAV_STATE state);
-
-public:
-
-	Companion_Process_Status();
-	void check_companion_process_status(orb_advert_t *mav_log_pub, int32_t use_obs_avoid);
 };
-
-#endif /* COMPANION_PROCESS_STATUS_H_ */

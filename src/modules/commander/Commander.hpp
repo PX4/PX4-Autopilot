@@ -138,7 +138,7 @@ private:
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd, actuator_armed_s *armed,
 			    orb_advert_t *command_ack_pub, bool *changed);
 
-	Companion_Process_Status _companion_process_status;
+	CompanionProcessStatus _companion_process_status;
 
 	bool set_home_position();
 	bool set_home_position_alt_only();
