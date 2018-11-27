@@ -173,9 +173,11 @@ const T gradual(const T &value, const T &x_low, const T &x_high, const T &y_low,
  * @param Y_max maximum output at X = 0
  */
 template<typename T>
-const T expontialFromLimits(const T &X, const T &Y_min, const T &Y_mid, const T &Y_max)
+const T expontialFromLimits(const T &X_in, const T &Y_min, const T &Y_mid, const T &Y_max)
 {
 	T SIGMA_NORM = (T)0.001;
+	// constrain X_in to the range of 0 and 2
+	T X = math::constrain(X_in, (T)0, (T)2);
 	// If Y_mid is exactly in the middle, then just apply linear approach.
 	bool use_linear_approach = false;
 
