@@ -33,7 +33,7 @@ install:
 
 build_script:
 # FIXME Temporary we need to create the home folder because it's not contained in installer 0.5 and CI fails if it doesn't exist
-- mkdir C:\PX4\home
+- if not exist "C:\PX4\home" mkdir C:\PX4\home
 # setup the environmental variables to work within the installed cygwin toolchain
 - call C:\PX4\toolchain\scripts\setup-environment.bat x
 # safe the repopath for switching to it in cygwin bash
