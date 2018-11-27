@@ -62,6 +62,7 @@ uint8 system_id			# system id, contains MAVLink's system ID field
 uint8 component_id			# subsystem / component id, contains MAVLink's component ID field
 
 bool is_rotary_wing			# True if system is in rotary wing configuration, so for a VTOL this is only true while flying as a multicopter
+
 bool is_vtol				# True if the system is VTOL capable
 bool vtol_fw_permanent_stab		# True if VTOL should stabilize attitude for fw in manual mode
 bool in_transition_mode			# True if VTOL is doing a transition
@@ -71,10 +72,13 @@ bool rc_signal_lost				# true if RC reception lost
 uint8 rc_input_mode				# set to 1 to disable the RC input, 2 to enable manual control to RC in mapping.
 
 bool data_link_lost				# datalink to GCS lost
-bool high_latency_data_link_active 		# all low latency datalinks to GCS lost
 uint8 data_link_lost_counter			# counts unique data link lost events
+
+bool high_latency_data_link_lost 			# all low latency datalinks to GCS lost
+
 bool engine_failure				# Set to true if an engine failure is detected
 bool mission_failure				# Set to true if mission could not continue/finish
+
 uint8 failure_detector_status			# Bitmask containing FailureDetector status [0, 0, 0, 0, 0, FAILURE_ALT, FAILURE_PITCH, FAILURE_ROLL]
 
 # see SYS_STATUS mavlink message for the following
