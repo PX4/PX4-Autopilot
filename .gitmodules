@@ -61,3 +61,6 @@
 [submodule "Tools/Maneuvers"]
 	path = Tools/Maneuvers
 	url = https://github.com/Stifael/px4maneuvers.git
+[submodule "Tools/ulogtests"]
+	path = Tools/ulogtests
+	url = https://github.com/Stifael/px4ulogtests.git
