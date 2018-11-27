@@ -3964,6 +3964,7 @@ void Commander::data_link_check(bool &status_changed)
 			_avoidance_system_lost = true;
 			mavlink_log_critical(&mavlink_log_pub, "Avoidance system lost");
 		}
+	}
 
 		//if status changed
 		if (_avoidance_system_status_change) {
