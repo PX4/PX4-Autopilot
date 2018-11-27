@@ -68,23 +68,23 @@ void Companion_Process_Status::determine_action(){
 
 	bool reported_before = false;
 	companion_process_status_s last_status;
-	_process_type = UNDEFINED;
+	_process_type = ProcessType::Undefined;
 
 	if(_new_status_received){
 		//data for obstacle avoidance is at array location 0, data for VIO at location 1
-		if(_companion_process_status.component == MAV_COMP_ID_OBSTACLE_AVOIDANCE){
-			_process_type = AVOIDANCE;
-		}else if(_companion_process_status.component == MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY){
-			_process_type = VIO;
+		if(_companion_process_status.component == (int)MAV_COMPONENT::MAV_COMP_ID_OBSTACLE_AVOIDANCE){
+			_process_type = ProcessType::Avoidance;
+		}else if(_companion_process_status.component == (int)MAV_COMPONENT::MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY){
+			_process_type = ProcessType::VIO;
 		}
 
 		//find last status of same process
-		if(_companion_process_status_history[_process_type].component != MAV_COMP_ID_OBSTACLE_AVOIDANCE && _companion_process_status_history[_process_type].component != MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY){
-				_companion_process_status_history[_process_type] = _companion_process_status;
+		if(_companion_process_status_history[(int)_process_type].component != (int)MAV_COMPONENT::MAV_COMP_ID_OBSTACLE_AVOIDANCE && _companion_process_status_history[(int)_process_type].component != (int)MAV_COMPONENT::MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY){
+				_companion_process_status_history[(int)_process_type] = _companion_process_status;
 				reported_before = false;
 		}else{
-				last_status = _companion_process_status_history[_process_type];
-				_companion_process_status_history[_process_type] = _companion_process_status;
+				last_status = _companion_process_status_history[(int)_process_type];
+				_companion_process_status_history[(int)_process_type] = _companion_process_status;
 				reported_before = true;
 		}
 
@@ -92,7 +92,7 @@ void Companion_Process_Status::determine_action(){
 		if(reported_before){
 			if((last_status.state != _companion_process_status.state)){
 				if (_companion_process_status.state == companion_process_status_s::MAV_STATE_BOOT){
-					_companion_process_status_first_registration[_process_type] = _companion_process_status;
+					_companion_process_status_first_registration[(int)_process_type] = _companion_process_status;
 				}else if(_companion_process_status.state == companion_process_status_s::MAV_STATE_ACTIVE){
 					mavlink_log_info(mavlink_log_pub, "companion process %s is ready\n", toString(_process_type));
 				}else{
@@ -103,7 +103,7 @@ void Companion_Process_Status::determine_action(){
 
 		//check for timeouts in starting up
 		if(_companion_process_status.state == companion_process_status_s::MAV_STATE_BOOT &&
-				_companion_process_status.timestamp - _companion_process_status_first_registration[_process_type].timestamp > STARTUP_TIMEOUT){
+				_companion_process_status.timestamp - _companion_process_status_first_registration[(int)_process_type].timestamp > STARTUP_TIMEOUT){
 			mavlink_log_critical(mavlink_log_pub,"companion process %s taking too long to start\n", toString(_process_type));
 		}
 		_new_status_received = false;
@@ -113,24 +113,24 @@ void Companion_Process_Status::determine_action(){
 	if(_time_message + THROTTLE_MESSAGES < hrt_absolute_time()){
 		bool message_sent = false;
 
-		if(_avoidance_required && _companion_process_status_history[ProcessType::AVOIDANCE].component != MAV_COMP_ID_OBSTACLE_AVOIDANCE && hrt_absolute_time() - _time_zero > NO_SIGNAL_TIMEOUT){
+		if(_avoidance_required && _companion_process_status_history[(int)ProcessType::Avoidance].component != (int)MAV_COMPONENT::MAV_COMP_ID_OBSTACLE_AVOIDANCE && hrt_absolute_time() - _time_zero > NO_SIGNAL_TIMEOUT){
 			mavlink_log_critical(mavlink_log_pub, "Obstacle avoidance did not start\n");
 			message_sent = true;
 		}
 
 
-		if(_avoidance_required && _companion_process_status_history[ProcessType::AVOIDANCE].component == MAV_COMP_ID_OBSTACLE_AVOIDANCE && _companion_process_status_history[ProcessType::AVOIDANCE].timestamp + NO_SIGNAL_TIMEOUT < hrt_absolute_time()){
+		if(_avoidance_required && _companion_process_status_history[(int)ProcessType::Avoidance].component == (int)MAV_COMPONENT::MAV_COMP_ID_OBSTACLE_AVOIDANCE && _companion_process_status_history[(int)ProcessType::Avoidance].timestamp + NO_SIGNAL_TIMEOUT < hrt_absolute_time()){
 			mavlink_log_critical(mavlink_log_pub, "Obstacle avoidance process died\n");
 			message_sent = true;
 		}
 
-		if(_vio_required && _companion_process_status_history[ProcessType::VIO].component != MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY && hrt_absolute_time() - _time_zero > NO_SIGNAL_TIMEOUT){
+		if(_vio_required && _companion_process_status_history[(int)ProcessType::VIO].component != (int)MAV_COMPONENT::MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY && hrt_absolute_time() - _time_zero > NO_SIGNAL_TIMEOUT){
 			mavlink_log_critical(mavlink_log_pub, "VIO process did not start\n");
 			message_sent = true;
 		}
 
 
-		if(_vio_required && _companion_process_status_history[ProcessType::VIO].component == MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY && _companion_process_status_history[ProcessType::VIO].timestamp + NO_SIGNAL_TIMEOUT < hrt_absolute_time()){
+		if(_vio_required && _companion_process_status_history[(int)ProcessType::VIO].component == (int)MAV_COMPONENT::MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY && _companion_process_status_history[(int)ProcessType::VIO].timestamp + NO_SIGNAL_TIMEOUT < hrt_absolute_time()){
 			mavlink_log_critical(mavlink_log_pub, "VIO process died\n");
 			message_sent = true;
 		}
@@ -151,9 +151,9 @@ void Companion_Process_Status::check_companion_process_status(orb_advert_t *mav_
 const char* Companion_Process_Status::toString(ProcessType type){
 	switch (type)
 	{
-		case UNDEFINED: return "UNDEFINED";
-		case AVOIDANCE: return "AVOIDANCE";
-		case VIO: return "VIO";
+		case ProcessType::Undefined: return "UNDEFINED";
+		case ProcessType::Avoidance: return "AVOIDANCE";
+		case ProcessType::VIO: return "VIO";
 		default: return "[Unknown process type]";
 	}
 }
@@ -161,15 +161,15 @@ const char* Companion_Process_Status::toString(ProcessType type){
 const char* Companion_Process_Status::toString(MAV_STATE state){
 	switch (state)
 	{
-		case UNINITIALIZED: return "UNINITIALIZED";
-		case STARTING: return "STARTING";
-		case CALIBRATING: return "CALIBRATING";
-		case STANDBY: return "STANDBY";
-		case ACTIVE: return "ACTIVE";
-		case TIMEOUT: return "TIMEOUT";
-		case EMERGENCY: return "EMERGENCY";
-		case POWEROFF: return "POWEROFF";
-		case ABORTING: return "ABORTING";
+		case MAV_STATE::UNINITIALIZED: return "UNINITIALIZED";
+		case MAV_STATE::STARTING: return "STARTING";
+		case MAV_STATE::CALIBRATING: return "CALIBRATING";
+		case MAV_STATE::STANDBY: return "STANDBY";
+		case MAV_STATE::ACTIVE: return "ACTIVE";
+		case MAV_STATE::TIMEOUT: return "TIMEOUT";
+		case MAV_STATE::EMERGENCY: return "EMERGENCY";
+		case MAV_STATE::POWEROFF: return "POWEROFF";
+		case MAV_STATE::ABORTING: return "ABORTING";
 		default: return "[Unknown process type]";
 	}
 }

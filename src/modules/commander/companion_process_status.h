@@ -43,18 +43,18 @@
 #include <uORB/Subscription.hpp>
 #include <systemlib/mavlink_log.h>
 
-enum ProcessType {	//used as indexes for _companion_process_status arrays
-	UNDEFINED,
-	AVOIDANCE,
+enum class ProcessType {	//used as indexes for _companion_process_status arrays
+	Undefined,
+	Avoidance,
 	VIO
 };
 
-enum MAV_COMPONENT {	//see mavlink::common::MAV_COMPONENT
+enum class MAV_COMPONENT {	//see mavlink::common::MAV_COMPONENT
 	MAV_COMP_ID_OBSTACLE_AVOIDANCE = 196,
 	MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY = 197
 };
 
-enum MAV_STATE {	//strings used for user notifications
+enum class MAV_STATE {	//strings used for user notifications
 	UNINITIALIZED,
 	STARTING,
 	CALIBRATING,
