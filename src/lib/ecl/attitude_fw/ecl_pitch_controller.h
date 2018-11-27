@@ -50,6 +50,7 @@
 #define ECL_PITCH_CONTROLLER_H
 
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 
 #include "ecl_controller.h"
 

@@ -94,6 +94,11 @@ void ECL_Controller::set_k_ff(float k_ff)
 	_k_ff = k_ff;
 }
 
+void ECL_Controller::set_d_term_lp_fre(float d_term_lp_fre)
+{
+	_d_term_lp_fre = d_term_lp_fre;
+}
+
 void ECL_Controller::set_integrator_max(float max)
 {
 	_integrator_max = max;

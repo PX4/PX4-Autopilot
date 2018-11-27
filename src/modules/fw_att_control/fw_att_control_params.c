@@ -109,13 +109,19 @@ PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
  * @increment 0.005
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_I, 0.02f);
+PARAM_DEFINE_FLOAT(FW_PR_I, 0.006f);
 
 /**
  * Pitch rate differential gain.
  *
  */
 PARAM_DEFINE_FLOAT(FW_PR_D, 0.005f);
+
+/**
+ * the cut-off frequency of Pitch rate controller D term.
+ *
+ */
+PARAM_DEFINE_FLOAT(FW_PR_D_CUTOFF, 25.0f);
 
 /**
  * Maximum positive / up pitch rate.

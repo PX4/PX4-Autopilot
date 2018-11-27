@@ -42,14 +42,22 @@ extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[]);
 
 FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_airspeed_sub(ORB_ID(airspeed)),
+	_lp_filters_d{
+		{initial_update_rate_hz, 50.f},
+		{initial_update_rate_hz, 50.f},
+		{initial_update_rate_hz, 50.f}}, // will be initialized correctly when params are loaded
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fwa_dt")),
 	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fwa_nani")),
 	_nonfinite_output_perf(perf_alloc(PC_COUNT, "fwa_nano"))
 {
-	// check if VTOL first
+    // check if VTOL first
 	vehicle_status_poll();
+
+	/* initiate the rate filter data */
+	rates_prev.zero();
+	rates_prev_filtered.zero();
 
 	_parameter_handles.p_tc = param_find("FW_P_TC");
 	_parameter_handles.p_p = param_find("FW_PR_P");
@@ -59,6 +67,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.p_rmax_pos = param_find("FW_P_RMAX_POS");
 	_parameter_handles.p_rmax_neg = param_find("FW_P_RMAX_NEG");
 	_parameter_handles.p_integrator_max = param_find("FW_PR_IMAX");
+	_parameter_handles.d_term_lp_fre = param_find("FW_PR_D_CUTOFF");
 
 	_parameter_handles.r_tc = param_find("FW_R_TC");
 	_parameter_handles.r_p = param_find("FW_RR_P");
@@ -169,8 +178,9 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.p_tc, &(_parameters.p_tc));
 	param_get(_parameter_handles.p_p, &(_parameters.p_p));
 	param_get(_parameter_handles.p_i, &(_parameters.p_i));
-	param_get(_parameter_handles.p_i, &(_parameters.p_d));
+	param_get(_parameter_handles.p_d, &(_parameters.p_d));
 	param_get(_parameter_handles.p_ff, &(_parameters.p_ff));
+	param_get(_parameter_handles.d_term_lp_fre, &(_parameters.d_term_lp_fre));
 	param_get(_parameter_handles.p_rmax_pos, &(_parameters.p_rmax_pos));
 	param_get(_parameter_handles.p_rmax_neg, &(_parameters.p_rmax_neg));
 	param_get(_parameter_handles.p_integrator_max, &(_parameters.p_integrator_max));
@@ -257,6 +267,7 @@ FixedwingAttitudeControl::parameters_update()
 	_pitch_ctrl.set_k_i(_parameters.p_i);
 	_pitch_ctrl.set_k_d(_parameters.p_d);
 	_pitch_ctrl.set_k_ff(_parameters.p_ff);
+	_pitch_ctrl.set_d_term_lp_fre(_parameters.d_term_lp_fre);
 	_pitch_ctrl.set_integrator_max(_parameters.p_integrator_max);
 
 	/* roll control parameters */
@@ -490,6 +501,7 @@ void FixedwingAttitudeControl::get_airspeed_and_scaling(float &airspeed, float &
 			airspeed = _parameters.airspeed_min;
 		}
 
+
 		if (!airspeed_valid) {
 			perf_count(_nonfinite_input_perf);
 		}
@@ -507,12 +519,27 @@ void FixedwingAttitudeControl::get_airspeed_and_scaling(float &airspeed, float &
 
 void FixedwingAttitudeControl::run()
 {
+	matrix::Vector3f rates;
+
+	if (fabsf(_lp_filters_d[0].get_cutoff_freq() - _parameters.d_term_lp_fre) > 0.01f) {
+		_lp_filters_d[0].set_cutoff_frequency(_loop_update_rate_hz, _parameters.d_term_lp_fre);
+		_lp_filters_d[1].set_cutoff_frequency(_loop_update_rate_hz, _parameters.d_term_lp_fre);
+		_lp_filters_d[2].set_cutoff_frequency(_loop_update_rate_hz, _parameters.d_term_lp_fre);
+		_lp_filters_d[0].reset(rates_prev(0));
+		_lp_filters_d[1].reset(rates_prev(1));
+		_lp_filters_d[2].reset(rates_prev(2));
+	}
+
 	/* wakeup source */
 	px4_pollfd_struct_t fds[1];
 
 	/* Setup of loop */
 	fds[0].fd = _att_sub;
 	fds[0].events = POLLIN;
+
+	const hrt_abstime task_start = hrt_absolute_time();
+	float dt_accumulator = 0.f;
+	int loop_counter = 0;
 
 	while (!should_exit()) {
 
@@ -637,6 +664,22 @@ void FixedwingAttitudeControl::run()
 
 			control_flaps(deltaT);
 
+			/* calculate loop update rate while disarmed or at least a few times (updating the filter is expensive) */
+			if (!_vcontrol_mode.flag_armed || (hrt_absolute_time() - task_start) < 3300000) {
+				dt_accumulator += deltaT;
+				++loop_counter;
+
+				if (dt_accumulator > 1.f) {
+					const float loop_update_rate = (float)loop_counter / dt_accumulator;
+					_loop_update_rate_hz = _loop_update_rate_hz * 0.5f + loop_update_rate * 0.5f;
+					dt_accumulator = 0;
+					loop_counter = 0;
+					_lp_filters_d[0].set_cutoff_frequency(_loop_update_rate_hz, _parameters.d_term_lp_fre);
+					_lp_filters_d[1].set_cutoff_frequency(_loop_update_rate_hz, _parameters.d_term_lp_fre);
+					_lp_filters_d[2].set_cutoff_frequency(_loop_update_rate_hz, _parameters.d_term_lp_fre);
+				}
+			}
+
 			/* decide if in stabilized or full manual control */
 			if (_vcontrol_mode.flag_control_rates_enabled) {
 
@@ -678,6 +721,20 @@ void FixedwingAttitudeControl::run()
 					_wheel_ctrl.reset_integrator();
 				}
 
+				float roll_sp = _att_sp.roll_body;
+				float pitch_sp = _att_sp.pitch_body;
+				float yaw_sp = _att_sp.yaw_body;
+
+				/* apply low-pass filtering to the rates for D-term */
+				rates(0) = _att.pitchspeed;
+				rates(1) = _att.rollspeed;
+				rates(2) = _att.yawspeed;
+
+				matrix::Vector3f rates_filtered(
+					_lp_filters_d[0].apply(rates(0)),
+					_lp_filters_d[1].apply(rates(1)),
+					_lp_filters_d[2].apply(rates(2)));
+
 				/* Prepare data for attitude controllers */
 				struct ECL_ControlData control_input = {};
 				control_input.roll = euler_angles.phi();
@@ -686,6 +743,8 @@ void FixedwingAttitudeControl::run()
 				control_input.body_x_rate = _att.rollspeed;
 				control_input.body_y_rate = _att.pitchspeed;
 				control_input.body_z_rate = _att.yawspeed;
+				control_input.rates_filtered = rates_filtered;
+				control_input.rates_prev_filtered = rates_prev_filtered;
 				control_input.roll_setpoint = _att_sp.roll_body;
 				control_input.pitch_setpoint = _att_sp.pitch_body;
 				control_input.yaw_setpoint = _att_sp.yaw_body;
@@ -859,6 +918,10 @@ void FixedwingAttitudeControl::run()
 					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ?
 							_rates_sp.thrust_body[0] : 0.0f;
 				}
+
+
+				rates_prev = rates;
+				rates_prev_filtered = rates_filtered;
 
 				rate_ctrl_status_s rate_ctrl_status;
 				rate_ctrl_status.timestamp = hrt_absolute_time();

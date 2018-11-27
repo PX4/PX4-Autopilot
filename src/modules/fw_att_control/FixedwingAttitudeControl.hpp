@@ -39,6 +39,7 @@
 #include <ecl/attitude_fw/ecl_yaw_controller.h>
 #include <lib/ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <matrix/math.hpp>
 #include <px4_config.h>
 #include <px4_defines.h>
@@ -123,7 +124,14 @@ private:
 	vehicle_rates_setpoint_s		_rates_sp {};		/* attitude rates setpoint */
 	vehicle_status_s			_vehicle_status {};	/**< vehicle status */
 
+	matrix::Vector3f rates_prev;			/**< angular rates on previous step */
+	matrix::Vector3f rates_prev_filtered;		/**< angular rates on previous step (low-pass filtered) */
+
 	Subscription<airspeed_s>			_airspeed_sub;
+
+	math::LowPassFilter2p _lp_filters_d[3];                      /**< low-pass filters for D-term (pitch roll & yaw) */
+	static constexpr const float initial_update_rate_hz = 250.f; /**< loop update rate used for initialization */
+	float _loop_update_rate_hz{initial_update_rate_hz};          /**< current rate-controller loop update rate in [Hz] */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
@@ -159,8 +167,9 @@ private:
 		float y_integrator_max;
 		float roll_to_yaw_ff;
 		float y_rmax;
+		float d_term_lp_fre;
 
-		bool w_en;
+		bool  w_en;
 		float w_p;
 		float w_i;
 		float w_ff;
@@ -232,6 +241,7 @@ private:
 		param_t y_integrator_max;
 		param_t roll_to_yaw_ff;
 		param_t y_rmax;
+		param_t d_term_lp_fre;
 
 		param_t w_en;
 		param_t w_p;

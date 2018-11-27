@@ -100,6 +100,12 @@ float ECL_PitchController::control_bodyrate(const struct ECL_ControlData &ctl_da
 
 	_rate_error = _bodyrate_setpoint - ctl_data.body_y_rate;
 
+	float _rate_error_d = 0.0f;
+
+	_rate_error_d = (ctl_data.rates_filtered(0) - ctl_data.rates_prev_filtered(0));
+
+	_rate_error_last = _rate_error;
+
 	if (!lock_integrator && _k_i > 0.0f) {
 
 		float id = _rate_error * dt * ctl_data.scaler;
@@ -122,7 +128,8 @@ float ECL_PitchController::control_bodyrate(const struct ECL_ControlData &ctl_da
 
 	/* Apply PI rate controller and store non-limited output */
 	_last_output = _bodyrate_setpoint * _k_ff * ctl_data.scaler +
-		       _rate_error * _k_p * ctl_data.scaler * ctl_data.scaler
+		       _rate_error * _k_p * ctl_data.scaler * ctl_data.scaler -
+		       _rate_error_d * _k_d * ctl_data.scaler * ctl_data.scaler +
 		       + _integrator;  //scaler is proportional to 1/airspeed
 
 	return math::constrain(_last_output, -1.0f, 1.0f);

@@ -49,6 +49,9 @@
 #pragma once
 
 #include <ecl.h>
+#include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
+#include <matrix/Vector3.hpp>
 
 struct ECL_ControlData {
 	float roll;
@@ -69,6 +72,8 @@ struct ECL_ControlData {
 	float scaler;
 	float groundspeed;
 	float groundspeed_scaler;
+	matrix::Vector3f rates_filtered;
+	matrix::Vector3f rates_prev_filtered;
 	bool lock_integrator;
 };
 
@@ -87,6 +92,7 @@ public:
 	void set_k_p(float k_p);
 	void set_k_i(float k_i);
 	void set_k_ff(float k_ff);
+	void set_d_term_lp_fre(float d_fre);
 	void set_integrator_max(float max);
 	void set_max_rate(float max_rate);
 	void set_bodyrate_setpoint(float rate);
@@ -105,6 +111,7 @@ protected:
 	float _k_p;
 	float _k_i;
 	float _k_ff;
+	float _d_term_lp_fre;
 	float _integrator_max;
 	float _max_rate;
 	float _last_output;
