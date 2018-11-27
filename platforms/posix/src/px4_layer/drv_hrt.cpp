@@ -641,8 +641,16 @@ int px4_usleep(useconds_t usec)
 
 unsigned int px4_sleep(unsigned int seconds)
 {
-	useconds_t usec = seconds * 1000000;
-	return px4_usleep(usec);
+	if (px4_timestart_monotonic == 0) {
+		// Until the time is set by the simulator, we fallback to the normal
+		// sleep;
+		return system_sleep(seconds);
+	}
+
+	const uint64_t time_finished = lockstep_scheduler.get_absolute_time() +
+				       ((uint64_t)seconds * 1000000);
+
+	return lockstep_scheduler.usleep_until(time_finished);
 }
 
 int px4_pthread_cond_timedwait(pthread_cond_t *cond,
