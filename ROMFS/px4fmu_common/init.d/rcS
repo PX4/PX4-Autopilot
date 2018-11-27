@@ -49,7 +49,7 @@ set +e
 
 #------------------------------------------------------------------------------
 #
-# UART mapping on NXPhlitev3:
+# UART mapping on NXP FMUK66-v3:
 #
 # LPUART0		/dev/ttyS0		P16 CONSOLE
 # UART0			/dev/ttyS1		P7  IR
@@ -303,7 +303,7 @@ else
 		fi
 	fi
 
-	if ver hwcmp NXP_HLITE_V3
+	if ver hwcmp NXP_FMUK66_V3
 	then
 		param set SYS_FMU_TASK 1
 	fi
