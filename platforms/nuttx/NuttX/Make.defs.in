@@ -115,6 +115,7 @@ CXXFLAGS = $(ARCHXXINCLUDES) \
 	-fno-builtin \
 	-fno-exceptions \
 	-fno-rtti \
+	-nostdinc++ \
 	-Wno-double-promotion \
 	-Wno-missing-declarations
 

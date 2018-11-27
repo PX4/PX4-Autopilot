@@ -32,10 +32,8 @@ file(GLOB_RECURSE copy_apps_files
 	LIST_DIRECTORIES false
 	${CMAKE_CURRENT_SOURCE_DIR}/apps/*)
 
-set(NUTTX_DIR ${CMAKE_CURRENT_BINARY_DIR}/nuttx)
 set(NUTTX_CONFIG_DIR ${PX4_BOARD_DIR}/nuttx-config)
 
-set(NUTTX_CONFIGS_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/nuttx-configs)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Make.defs.in ${NUTTX_DIR}/Make.defs)
 
 # copy nuttx to build directory
@@ -61,24 +59,79 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
 	)
 set(APPS_DIR ${CMAKE_CURRENT_BINARY_DIR}/apps)
 
+# If the board provides a Kconfig Use it or create an empty one
+if(EXISTS ${NUTTX_CONFIG_DIR}/Kconfig)
+	add_custom_command(
+		OUTPUT ${NUTTX_DIR}/configs/dummy/Kconfig
+		COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/Kconfig ${NUTTX_DIR}/configs/dummy/Kconfig
+		DEPENDS
+			${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
+			${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
+		)
+else()
+	add_custom_command(
+		OUTPUT ${NUTTX_DIR}/configs/dummy/Kconfig
+		COMMAND ${CMAKE_COMMAND} -E touch ${NUTTX_DIR}/configs/dummy/Kconfig
+		DEPENDS
+			${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
+			${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
+		)
+endif()
+
 # copy PX4 board config into nuttx
-add_custom_command(
-	OUTPUT ${NUTTX_DIR}/.config
-	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig ${NUTTX_DIR}/.config
-	COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/include/nuttx/config.h
-	COMMAND ${CMAKE_COMMAND} -E remove_directory ${NUTTX_DIR}/configs/${PX4_BOARD}
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${NUTTX_CONFIG_DIR}/ ${NUTTX_DIR}/configs/${PX4_BOARD}/
-	COMMAND ${CMAKE_COMMAND} -E make_directory ${NUTTX_DIR}/configs/${PX4_BOARD}/src
-	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/nsh_romfsimg.h ${NUTTX_DIR}/configs/${PX4_BOARD}/include
-	DEPENDS
-		${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
-		${NUTTX_CONFIG_DIR}/include/board.h
-		${NUTTX_CONFIG_DIR}/scripts/ld.script
-		${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
-		${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
-	WORKING_DIRECTORY ${NUTTX_DIR}/tools
-	COMMENT "Copying NuttX config ${NUTTX_CONFIG} and configuring"
-	)
+file(STRINGS ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig config_expanded REGEX "# Automatically generated file; DO NOT EDIT.")
+
+if ("x${config_expanded}" STREQUAL "x")
+	# copy PX4 board Compressed config into nuttx and inflate it
+	add_custom_command(
+		OUTPUT
+			${NUTTX_DIR}/.config
+			${NUTTX_DIR}/arch/arm/include/math.h
+		COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig ${NUTTX_DIR}/.config
+		COMMAND kconfig-tweak --set-str CONFIG_APPS_DIR "../apps"
+		COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/include/nuttx/config.h
+		COMMAND ${CMAKE_COMMAND} -E remove_directory ${NUTTX_DIR}/configs/${PX4_BOARD}
+		COMMAND ${CMAKE_COMMAND} -E copy_directory ${NUTTX_CONFIG_DIR}/ ${CMAKE_CURRENT_BINARY_DIR}/nuttx-config
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/nuttx-config/src
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/math.h ${NUTTX_DIR}/arch/arm/include/ # copy arm math.h into NuttX source
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/nsh_romfsimg.h ${CMAKE_CURRENT_BINARY_DIR}/nuttx-config/include/
+		COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD_CUSTOM=y olddefconfig
+		DEPENDS
+			${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
+			${NUTTX_CONFIG_DIR}/include/board.h
+			${NUTTX_CONFIG_DIR}/scripts/ld.script
+			${NUTTX_DIR}/configs/dummy/Kconfig
+			${CMAKE_CURRENT_SOURCE_DIR}/math.h
+			${CMAKE_CURRENT_SOURCE_DIR}/nsh_romfsimg.h
+		WORKING_DIRECTORY ${NUTTX_DIR}
+		COMMENT "Copying NuttX config ${NUTTX_CONFIG} and configuring"
+		)
+else()
+	# copy PX4 board config into nuttx
+	add_custom_command(
+		OUTPUT
+			${NUTTX_DIR}/.config
+			${NUTTX_DIR}/arch/arm/include/math.h
+		COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig ${NUTTX_DIR}/.config
+		COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/include/nuttx/config.h
+		COMMAND ${CMAKE_COMMAND} -E remove_directory ${NUTTX_DIR}/configs/${PX4_BOARD}
+		COMMAND ${CMAKE_COMMAND} -E copy_directory ${NUTTX_CONFIG_DIR}/ ${CMAKE_CURRENT_BINARY_DIR}/nuttx-config
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/nuttx-config/src
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/math.h ${NUTTX_DIR}/arch/arm/include/ # copy arm math.h into NuttX source
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/nsh_romfsimg.h ${CMAKE_CURRENT_BINARY_DIR}/nuttx-config/include/
+		DEPENDS
+			${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
+			${NUTTX_CONFIG_DIR}/include/board.h
+			${NUTTX_CONFIG_DIR}/scripts/ld.script
+			${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
+			${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
+			${NUTTX_DIR}/configs/dummy/Kconfig
+			${CMAKE_CURRENT_SOURCE_DIR}/math.h
+			${CMAKE_CURRENT_SOURCE_DIR}/nsh_romfsimg.h
+		WORKING_DIRECTORY ${NUTTX_DIR}
+		COMMENT "Copying NuttX uncompressed config ${NUTTX_CONFIG} and configuring"
+		)
+endif()
 
 # verbose build settings (V=1 or VERBOSE=1)
 option(PX4_NUTTX_VERBOSE "PX4 NuttX verbose build" off)
@@ -196,8 +249,8 @@ add_nuttx_dir(configs configs y -D__KERNEL__)
 add_nuttx_dir(drivers drivers y -D__KERNEL__)
 add_nuttx_dir(fs fs y -D__KERNEL__)
 add_nuttx_dir(sched sched y -D__KERNEL__)
-add_nuttx_dir(c libc n "")
-add_nuttx_dir(cxx libxx n "")
+add_nuttx_dir(c libs/libc n "")
+add_nuttx_dir(xx libs/libxx n "")
 add_nuttx_dir(mm mm n "")
 
 if (CONFIG_NET)
@@ -208,18 +261,27 @@ endif()
 add_custom_target(oldconfig
 	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=${PX4_BOARD} oldconfig
 	COMMAND cp ${NUTTX_DIR}/.config ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
-	COMMAND ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/tools/nuttx_defconf_tool.sh ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
 	DEPENDS ${NUTTX_DIR}/.config
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	COMMENT "Running NuttX make oldconfig for ${NUTTX_CONFIG}"
 	USES_TERMINAL
 	)
 
+# olddefconfig helper
+add_custom_target(olddefconfig
+	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=${PX4_BOARD} olddefconfig
+	COMMAND cp ${NUTTX_DIR}/.config ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
+	DEPENDS ${NUTTX_DIR}/.config
+	WORKING_DIRECTORY ${NUTTX_DIR}
+	COMMENT "Running NuttX make olddefconfig for ${NUTTX_CONFIG}"
+	USES_TERMINAL
+	)
+
+
 # menuconfig helper
 add_custom_target(menuconfig
 	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=${PX4_BOARD} menuconfig
 	COMMAND cp ${NUTTX_DIR}/.config ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
-	COMMAND cd ${PX4_SOURCE_DIR} && platforms/nuttx/NuttX/tools/nuttx_defconf_tool.sh ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
 	DEPENDS ${NUTTX_DIR}/.config
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	COMMENT "Running NuttX make menuconfig for ${NUTTX_CONFIG}"
@@ -235,3 +297,46 @@ add_custom_target(qconfig
 	COMMENT "Running NuttX make qconfig for ${NUTTX_CONFIG}"
 	USES_TERMINAL
 	)
+
+# savedefconfig helper needs apps Kconfig
+add_custom_target(apps_kconfig
+	COMMAND
+		TOPDIR=${NUTTX_APPS_DIR} make ${nuttx_build_options} --no-print-directory -C platform board TOPDIR="${NUTTX_DIR}" APPDIR="${NUTTX_APPS_DIR}"
+	COMMAND
+		TOPDIR=${NUTTX_APPS_DIR} make ${nuttx_build_options} --no-print-directory Kconfig ${nuttx_build_output}
+	DEPENDS
+		${NUTTX_DIR}/configs/dummy/Kconfig
+	WORKING_DIRECTORY ${NUTTX_APPS_DIR}
+	COMMENT "Running Kconfig Build on Apps"
+)
+
+# savedefconfig helper
+add_custom_target(savedefconfig
+	COMMAND
+		APPSDIR=${NUTTX_APPS_DIR} kconfig-conf --savedefconfig defconfig.tmp ${NUTTX_DIR}/Kconfig
+	COMMAND
+		sed -i -e "/CONFIG_APPS_DIR=/d" defconfig.tmp			# remove CONFIG_APPS_DIR
+	COMMAND
+		grep "CONFIG_ARCH=" .config >> defconfig.tmp || true		# preserve CONFIG_ARCH=
+	COMMAND
+		grep "^CONFIG_ARCH_CHIP_" .config >> defconfig.tmp || true	# preserve CONFIG_ARCH_CHIP_
+	COMMAND
+		grep "^CONFIG_ARCH_CHIP=" .config >> defconfig.tmp || true	#  PX4 Build preserve CONFIG_ARCH_CHIP=
+	COMMAND
+		grep "^CONFIG_ARCH_FAMILY=" .config >> defconfig.tmp || true	# PX4 Build preserve CONFIG_ARCH_FAMILY
+	COMMAND
+		grep "CONFIG_ARCH_BOARD=" .config >> defconfig.tmp || true	# preserve CONFIG_ARCH_BOARD
+	COMMAND
+		grep "^CONFIG_ARCH_CUSTOM" .config >> defconfig.tmp || true	# preserve CONFIG_ARCH_CUSTOM
+	COMMAND
+		cat defconfig.tmp | LC_ALL=C sort | uniq > defconfig.updated	# sort and save back to original defconfig
+	COMMAND
+		${CMAKE_COMMAND} -E copy_if_different defconfig.updated ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
+	COMMAND
+		${CMAKE_COMMAND} -E remove -f defconfig.tmp defconfig.updated			# cleanup
+	DEPENDS
+		apps_kconfig
+		${NUTTX_DIR}/.config
+	COMMENT "Compressing .config and saving back to ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig"
+	WORKING_DIRECTORY ${NUTTX_DIR}
+)
