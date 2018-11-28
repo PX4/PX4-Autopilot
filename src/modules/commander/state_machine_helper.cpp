@@ -126,7 +126,8 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 		if (fRunPreArmChecks && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
 		    && !hil_enabled) {
 
-			preflight_check_ret = Preflight::preflightCheck(mavlink_log_pub, *status, *status_flags, checkGNSS, true, true, time_since_boot);
+			preflight_check_ret = Preflight::preflightCheck(mavlink_log_pub, *status, *status_flags, checkGNSS, true, true,
+					      time_since_boot);
 
 			if (preflight_check_ret) {
 				status_flags->condition_system_sensors_initialized = true;
@@ -137,13 +138,15 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 
 		/* re-run the pre-flight check as long as sensors are failing */
 		if (!status_flags->condition_system_sensors_initialized
-			&& fRunPreArmChecks
-			&& ((new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) || (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY))
-			&& !hil_enabled) {
+		    && fRunPreArmChecks
+		    && ((new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+			|| (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY))
+		    && !hil_enabled) {
 
 			if ((last_preflight_check == 0) || (hrt_elapsed_time(&last_preflight_check) > 1000 * 1000)) {
 
-				status_flags->condition_system_sensors_initialized = Preflight::preflightCheck(mavlink_log_pub, *status, *status_flags, checkGNSS, false, false, time_since_boot);
+				status_flags->condition_system_sensors_initialized = Preflight::preflightCheck(mavlink_log_pub, *status, *status_flags,
+						checkGNSS, false, false, time_since_boot);
 
 				last_preflight_check = hrt_absolute_time();
 			}
@@ -205,7 +208,8 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 		// Finish up the state transition
 		if (valid_transition) {
 			armed->armed = (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-			armed->ready_to_arm = (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) || (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY);
+			armed->ready_to_arm = (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+					      || (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY);
 			ret = TRANSITION_CHANGED;
 			status->arming_state = new_arming_state;
 
@@ -972,11 +976,13 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 			break;
 
 		case LOW_BAT_ACTION::RETURN:
-			// FALLTHROUGH
+
+		// FALLTHROUGH
 		case LOW_BAT_ACTION::RETURN_OR_LAND:
 
 			// let us send the critical message even if already in RTL
-			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, internal_state)) {
+			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags,
+					internal_state)) {
 				mavlink_log_critical(mavlink_log_pub, "%s, RETURNING", battery_critical);
 
 			} else {
@@ -986,7 +992,8 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 			break;
 
 		case LOW_BAT_ACTION::LAND:
-			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, internal_state)) {
+			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags,
+					internal_state)) {
 				mavlink_log_critical(mavlink_log_pub, "%s, LANDING AT CURRENT POSITION", battery_critical);
 
 			} else {
@@ -1008,7 +1015,8 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 			break;
 
 		case LOW_BAT_ACTION::RETURN:
-			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, internal_state)) {
+			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags,
+					internal_state)) {
 				mavlink_log_emergency(mavlink_log_pub, "%s, RETURNING", battery_dangerous);
 
 			} else {
@@ -1018,9 +1026,11 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 			break;
 
 		case LOW_BAT_ACTION::RETURN_OR_LAND:
-			// FALLTHROUGH
+
+		// FALLTHROUGH
 		case LOW_BAT_ACTION::LAND:
-			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, internal_state)) {
+			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags,
+					internal_state)) {
 				mavlink_log_emergency(mavlink_log_pub, "%s, LANDING IMMEDIATELY", battery_dangerous);
 
 			} else {
