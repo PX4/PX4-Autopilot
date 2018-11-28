@@ -1,0 +1,16 @@
+# Penta Avioneo eVTOL duo coax C/R on dif tiltwings + light1/10 front pitch turbine v2 (1/2 main)
+
+# Control Group #0 is for Vertical flight control
+# Control Group #1 is for Forward flight control (VTOL/alternate)
+# Index 0.Roll 1.Pitch 2.Yaw 3.Throttle 4.Aux
+
+Motor mixer
+------------
+Inline// Duo Multirotors (Should control 03 in#0 /23 in#1)
+Channel 1 connects to the MAIN1 motors right top
+Channel 2 connects to the MAIN2 motors right bottom
+Channel 3 connects to the MAIN3 motors left top
+Channel 4 connects to the MAIN4 motors left bottom
+Channel 5 connects to the MAIN5 front turbine
+
+R: 5A 10000 10000 10000 0
