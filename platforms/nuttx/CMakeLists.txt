@@ -282,7 +282,7 @@ if (BLOATY_PROGRAM)
 	# bloaty compare with last master build
 	add_custom_target(bloaty_compare_master
 		#COMMAND wget --no-verbose https://s3.amazonaws.com/px4-travis/Firmware/master/${FW_NAME} -O master_${FW_NAME}
-		COMMAND wget --no-verbose https://s3.amazonaws.com/px4-travis/Firmware/master/nuttx_${PX4_BOARD_VENDOR}${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf -O master_${FW_NAME}
+		COMMAND wget --no-verbose https://s3.amazonaws.com/px4-travis/Firmware/master/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf -O master_${FW_NAME}
 		COMMAND ${BLOATY_PROGRAM} -d symbols -n 50 -C full -s vm $<TARGET_FILE:${FW_NAME}> -- master_${FW_NAME}
 		DEPENDS ${FW_NAME}
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
