@@ -130,7 +130,6 @@ private:
 	hrt_abstime	_time_last_innov_pass{0};	/**< last time velocity or position innovations passed */
 	bool		_nav_test_passed{false};	/**< true if the post takeoff navigation test has passed */
 	bool		_nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
-	bool		_mag_sensor_failed{false};	/**< true if the magnetometer has been declared faulty */
 
 	FailureDetector _failure_detector;
 	bool _failure_detector_termination_printed{false};
