@@ -1,0 +1,28 @@
+# Penta Avioneo eVTOL duo coax C/R on dif tiltwings + light1/10 front pitch turbine v2 (2/2 aux)
+
+# Control Group #0 is for Vertical flight control
+# Control Group #1 is for Forward flight control (VTOL/alternate)
+# Index 0.Roll 1.Pitch 2.Yaw 3.Throttle 4.Aux
+
+Tilt servo mixer AUX1
+---------------------------
+M: 1
+S: 1 4      0 -20000  10000 -10000  10000
+
+Elevon mixers AUX2 & AUX3
+-------------
+M: 2
+O:       10000  10000 0 -10000  10000
+S: 0 2  -10000 -10000 0 -10000  10000
+S: 1 0  -10000 -10000 0 -10000  10000
+
+M: 2
+O:       10000  10000 0 -10000  10000
+S: 0 2  -10000 -10000 0 -10000  10000
+S: 1 0  -10000 -10000 0 -10000  10000
+
+Foil Elevator AUX4
+---------------------------
+M: 2
+S: 0 1   10000  10000  0 -10000  10000
+S: 1 1   10000  10000  0 -10000  10000
