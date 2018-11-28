@@ -122,7 +122,7 @@ then
 	l3gd20 -R 14 start
 fi
 
-if ver hwcmp NXP_HLITE_V3
+if ver hwcmp NXP_FMUK66_V3
 then
 	# External I2C bus
 	hmc5883 -C -X start

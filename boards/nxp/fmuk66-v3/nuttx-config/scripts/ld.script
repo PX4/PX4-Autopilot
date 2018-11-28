@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/nxphlite-v3/scripts/flash.ld
+ * configs/nxp_fmuk66-v3/scripts/flash.ld
  *
  *   Copyright (C) 2016, 2017 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>

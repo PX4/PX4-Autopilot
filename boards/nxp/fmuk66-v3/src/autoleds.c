@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016-2018 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
  *            David Sidrane <david_s5@nscdg.com>
  *
@@ -34,9 +34,9 @@
  *
  ****************************************************************************/
 /*
- * This module shaol be used during board bring up of Nuttx.
+ * This module shall be used during board bring up of Nuttx.
  *
- * The NXPHlite-v3 has a separate Red, Green and Blue LEDs driven by the K66
+ * The NXP FMUK66-V3 has a separate Red, Green and Blue LEDs driven by the K66
  * as follows:
  *
  *   LED    K66
@@ -46,7 +46,7 @@
  *   BLUE   CMP0_IN2/ FB_AD7 / I2S0_MCLK/ FTM3_CH4/ ADC1_SE4b/ PTC8
  *
  * If CONFIG_ARCH_LEDs is defined, then NuttX will control the LED on board
- * the NXPhlite-v3.  The following definitions describe how NuttX controls
+ * the NXP fmuk66-v3.  The following definitions describe how NuttX controls
  * the LEDs:
  *
  *   SYMBOL                Meaning                 LED state

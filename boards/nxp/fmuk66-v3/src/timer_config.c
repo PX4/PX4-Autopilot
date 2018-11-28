@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2016, 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file nxphlite_timer_config.c
+ * @file timer_config.c
  *
  * Configuration data for the kinetis pwm_servo, input capture and pwm input driver.
  *
@@ -217,7 +217,7 @@ __EXPORT const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNEL
 #endif
 
 
-__EXPORT void nxphlite_timer_initialize(void)
+__EXPORT void fmuk66_timer_initialize(void)
 {
 
 

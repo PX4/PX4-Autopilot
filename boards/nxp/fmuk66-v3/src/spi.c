@@ -1,6 +1,6 @@
 /************************************************************************************
  *
- *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016, 2018 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
  *            David Sidrane <david_s5@nscdg.com>
  *
@@ -160,14 +160,14 @@ __EXPORT void board_spi_reset(int ms)
 }
 
 /************************************************************************************
- * Name: nxphlite_spidev_initialize
+ * Name: fmuk66_spidev_initialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the NXPHlite-v3 board.
+ *   Called to configure SPI chip select GPIO pins for the NXP FMUK66-V3 board.
  *
  ************************************************************************************/
 
-void nxphlite_spidev_initialize(void)
+void fmuk66_spidev_initialize(void)
 {
 	board_spi_reset(10);
 
@@ -194,14 +194,14 @@ void nxphlite_spidev_initialize(void)
  * Name: kinetis_spi_bus_initialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the NXPHLITEV1 board.
+ *   Called to configure SPI chip select GPIO pins for the NXP FMUK66 v3 board.
  *
  ************************************************************************************/
 static struct spi_dev_s *spi_sensors;
 static struct spi_dev_s *spi_memory;
 static struct spi_dev_s *spi_ext;
 
-__EXPORT int nxphlite_spi_bus_initialize(void)
+__EXPORT int fmuk66_spi_bus_initialize(void)
 {
 	/* Configure SPI-based devices */
 
