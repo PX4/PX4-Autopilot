@@ -115,8 +115,8 @@
 #define GPIO_SPI1_CS1_EXT    		/* PB4  */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN4)
 #define GPIO_SPI1_CS2_EXT    		/* PB5  */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN5)
 
-#define PX4_FLOW_BUS_CS_GPIO					{ GPIO_SPI1_CS0_EXT, GPIO_SPI1_CS1_EXT, GPIO_SPI1_CS2_EXT }
-
+//#define PX4_FLOW_BUS_CS_GPIO					{ GPIO_SPI1_CS0_EXT, GPIO_SPI1_CS1_EXT, GPIO_SPI1_CS2_EXT }
+#define PX4_FLOW_BUS_CS_GPIO					{ GPIO_SPI1_CS0_EXT }
 /* SPI1 Devices */
 #define PX4_SPIDEV_EXPANSION_1      			PX4_MK_SPI_SEL(PX4_SPI_BUS_EXPANSION, 0)		// SD CARD BREAKOUT
 #define PX4_SPIDEV_EXPANSION_2      			PX4_MK_SPI_SEL(PX4_SPI_BUS_EXPANSION, 1) 		// OPTICAL FLOW BREAKOUT
@@ -179,13 +179,21 @@
 #define GPIO_TIM2_CH4OUT	GPIO_TIM2_CH4OUT_2
 #define GPIO_TIM2_CH1OUT	GPIO_TIM2_CH1OUT_2
 #define GPIO_TIM4_CH4OUT	GPIO_TIM4_CH4OUT_1
-#define DIRECT_PWM_OUTPUT_CHANNELS	4
+#define DIRECT_PWM_OUTPUT_CHANNELS	6
 
 #define GPIO_TIM2_CH2IN		GPIO_TIM2_CH2IN_1
 #define GPIO_TIM2_CH4IN		GPIO_TIM2_CH4IN_2
 #define GPIO_TIM2_CH1IN		GPIO_TIM2_CH1IN_2
 #define GPIO_TIM4_CH4IN		GPIO_TIM4_CH4IN_1
 
+/*
+ * PWM IN
+ * Sonar distance sensor input
+ * Pins: PB5 : TIM3_CH2
+ */
+#define PWMIN_TIMER         3
+#define PWMIN_TIMER_CHANNEL 2
+#define GPIO_PWM_IN GPIO_TIM3_CH2IN_2 // GPIO_TIME3_CH1IN_2 // GPIO_TIM10_CH1IN_1
 
 /* This board overrides the defaults by providing
  * PX4_PWM_ALTERNATE_RANGES and a replacement set of
@@ -196,7 +204,7 @@
 /* PWM directly wired to transistor. Duty cycle directly corresponds to power
  * So we need to override the defaults
  */
-
+/*
 #define PX4_PWM_ALTERNATE_RANGES
 #define PWM_LOWEST_MIN 0
 #define PWM_MOTOR_OFF	0
@@ -206,7 +214,7 @@
 #define PWM_DEFAULT_MAX 255
 #define PWM_LOWEST_MAX 255
 #define PWM_DEFAULT_TRIM 1500
-
+*/
 
 /* High-resolution timer */
 #define HRT_TIMER		8	/* use timer8 for the HRT */

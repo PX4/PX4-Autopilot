@@ -496,7 +496,7 @@ PARAM_DEFINE_INT32(PWM_MAIN_FAIL8, -1);
  * @unit us
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_DIS1, -1);
+PARAM_DEFINE_INT32(PWM_MAIN_DIS1, 900);	//-1);
 
 /**
  * Set the disarmed PWM for the main 2 output
@@ -511,7 +511,7 @@ PARAM_DEFINE_INT32(PWM_MAIN_DIS1, -1);
  * @unit us
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_DIS2, -1);
+PARAM_DEFINE_INT32(PWM_MAIN_DIS2, 900);	//-1);
 
 /**
  * Set the disarmed PWM for the main 3 output
@@ -526,7 +526,7 @@ PARAM_DEFINE_INT32(PWM_MAIN_DIS2, -1);
  * @unit us
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_DIS3, -1);
+PARAM_DEFINE_INT32(PWM_MAIN_DIS3, 900);	// -1);
 
 /**
  * Set the disarmed PWM for the main 4 output
@@ -541,7 +541,7 @@ PARAM_DEFINE_INT32(PWM_MAIN_DIS3, -1);
  * @unit us
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_DIS4, -1);
+PARAM_DEFINE_INT32(PWM_MAIN_DIS4, 900);	// -1);
 
 /**
  * Set the disarmed PWM for the main 5 output
@@ -556,7 +556,7 @@ PARAM_DEFINE_INT32(PWM_MAIN_DIS4, -1);
  * @unit us
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_DIS5, -1);
+PARAM_DEFINE_INT32(PWM_MAIN_DIS5, 900);	//	-1);
 
 /**
  * Set the disarmed PWM for the main 6 output
@@ -571,7 +571,7 @@ PARAM_DEFINE_INT32(PWM_MAIN_DIS5, -1);
  * @unit us
  * @group PWM Outputs
  */
-PARAM_DEFINE_INT32(PWM_MAIN_DIS6, -1);
+PARAM_DEFINE_INT32(PWM_MAIN_DIS6, 900);	// -1);
 
 /**
  * Set the disarmed PWM for the main 7 output

@@ -56,8 +56,8 @@
  * so that the prescale is set to 0
  */
 
-#define TIM2_CLKIN 1000000
-#define TIM4_CLKIN 1000000
+#define TIM2_CLKIN 84000000	//1000000
+#define TIM4_CLKIN 84000000	//1000000
 
 __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 	{

@@ -38,6 +38,9 @@
  * Driver for the pmw3901 optical flow sensor connected via SPI.
  */
 
+//#define FLOW_SUM
+//#define CRAZYFLIE
+
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_getopt.h>
@@ -80,13 +83,21 @@
 
 /* Configuration Constants */
 #ifdef PX4_SPI_BUS_EXPANSION
+#ifdef CRAZYFLIE
+#define PMW3901_BUS PX4_SPI_BUS_EXPANSION
+#else
 #define PMW3901_BUS PX4_SPI_BUS_EXT
+#endif
 #else
 #define PMW3901_BUS 0
 #endif
 
 #ifdef PX4_SPIDEV_EXPANSION_2
+#ifdef CRAZYFLIE
+#define PMW3901_SPIDEV PX4_SPIDEV_EXPANSION_2
+#else
 #define PMW3901_SPIDEV PX4_SPIDEV_EXT_MPU
+#endif
 #else
 #define PMW3901_SPIDEV 0
 #endif
@@ -145,8 +156,11 @@ private:
 	uint64_t _previous_collect_timestamp;
 
 	enum Rotation _yaw_rotation;
-
-
+#ifdef FLOW_SUM
+	int _flow_sum_x = 0;
+	int _flow_sum_y = 0;
+	uint64_t _flow_dt_sum_usec = 0;
+#endif
 	/**
 	* Initialise the automatic measurement state machine and start it.
 	*
@@ -568,13 +582,27 @@ PMW3901::collect()
 	uint64_t dt_flow = timestamp - _previous_collect_timestamp;
 	_previous_collect_timestamp = timestamp;
 
+#ifdef FLOW_SUM
+	_flow_dt_sum_usec += dt_flow;
 
 	readMotionCount(delta_x_raw, delta_y_raw);
 
+	_flow_sum_x += delta_x_raw;
+	_flow_sum_y += delta_y_raw;
 
-	delta_x = - delta_y_raw / 500.0f;		// proportional factor + convert from pixels to radians
-	delta_y = delta_x_raw / 500.0f;		// proportional factor + convert from pixels to radians
+	if (_flow_dt_sum_usec < 45000) {
 
+		return ret;
+	}
+
+	delta_x = (float)-_flow_sum_x / 500.0f;		// proportional factor + convert from pixels to radians
+	delta_y = (float)-_flow_sum_y / 500.0f;		// proportional factor + convert from pixels to radians
+#else
+	readMotionCount(delta_x_raw, delta_y_raw);
+
+	delta_x = - delta_x_raw / 500.0f;		// proportional factor + convert from pixels to radians
+	delta_y = - delta_y_raw / 500.0f;		// proportional factor + convert from pixels to radians
+#endif
 	struct optical_flow_s report;
 
 	report.timestamp = timestamp;
@@ -586,10 +614,13 @@ PMW3901::collect()
 	float zeroval = 0.0f;
 	rotate_3f(_yaw_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval);
 	rotate_3f(_yaw_rotation, report.gyro_x_rate_integral, report.gyro_y_rate_integral, report.gyro_z_rate_integral);
-
+#ifdef FLOW_SUM
+	report.frame_count_since_last_readout = 4;				//microseconds
+	report.integration_timespan = _flow_dt_sum_usec; 		//microseconds
+#else
 	report.frame_count_since_last_readout = 1;				//microseconds
 	report.integration_timespan = dt_flow; 		//microseconds
-
+#endif
 	report.sensor_id = 0;
 
 	// This sensor doesn't provide any quality metric. However if the sensor is unable to calculate the optical flow it will
@@ -611,6 +642,11 @@ PMW3901::collect()
 	report.min_ground_distance = 0.1f; // Datasheet: 80mm
 	report.max_ground_distance = 5.0f; // Datasheet: infinity
 
+#ifdef FLOW_SUM
+	_flow_dt_sum_usec = 0;
+	_flow_sum_x = 0;
+	_flow_sum_y = 0;
+#endif
 
 	if (_optical_flow_pub == nullptr) {
 

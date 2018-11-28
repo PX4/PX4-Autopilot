@@ -61,7 +61,7 @@ then
 	param set PWM_MAX 255
 
 	# Run the motors at 328.125 kHz (recommended)
-	param set PWM_RATE 3921
+	param set PWM_RATE 400
 
 	param set SDLOG_PROFILE 1
 

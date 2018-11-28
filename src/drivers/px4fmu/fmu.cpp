@@ -1227,8 +1227,15 @@ PX4FMU::cycle()
 				/* output to the servos */
 				if (_pwm_initialized && !_test_mode) {
 					for (size_t i = 0; i < mixed_num_outputs; i++) {
+						if( pwm_limited[i] < 900 ) {
+							pwm_limited[i] = 900;
+						}
 						up_pwm_servo_set(i, pwm_limited[i]);
 					}
+				} else {
+					for( size_t i = 0; i < mixed_num_outputs; i++ ) {
+						up_pwm_servo_set(i, 900);
+					 }
 				}
 
 				/* Trigger all timer's channels in Oneshot mode to fire

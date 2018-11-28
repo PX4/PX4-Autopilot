@@ -1121,9 +1121,15 @@ void Ekf2::run()
 				flow.flowdata(0) = optical_flow.pixel_flow_x_integral;
 				flow.flowdata(1) = optical_flow.pixel_flow_y_integral;
 				flow.quality = optical_flow.quality;
+#if 0
 				flow.gyrodata(0) = optical_flow.gyro_x_rate_integral;
 				flow.gyrodata(1) = optical_flow.gyro_y_rate_integral;
 				flow.gyrodata(2) = optical_flow.gyro_z_rate_integral;
+#else
+				flow.gyrodata(0) = gyro_integral[0];
+				flow.gyrodata(1) = gyro_integral[1];
+				flow.gyrodata(2) = gyro_integral[2];
+#endif
 				flow.dt = optical_flow.integration_timespan;
 
 				if (PX4_ISFINITE(optical_flow.pixel_flow_y_integral) &&
