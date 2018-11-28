@@ -919,13 +919,7 @@ MulticopterPositionControl::start_flight_task()
 		should_disable_task = false;
 		int error = 0;
 		switch (MPC_AUTO_MODE.get()) {
-		case 0:
 		case 1:
-		case 2:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
-			break;
-
-		case 3:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLineSmoothVel);
 			break;
 
@@ -965,7 +959,6 @@ MulticopterPositionControl::start_flight_task()
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmoothVel);
 			break;
 
-		case 0:
 		default:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPosition);
 			break;
@@ -994,9 +987,6 @@ MulticopterPositionControl::start_flight_task()
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitudeSmooth);
 			break;
 
-		case 0:
-		case 2:
-		case 3:
 		default:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitude);
 			break;
