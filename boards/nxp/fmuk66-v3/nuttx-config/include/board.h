@@ -1,7 +1,7 @@
 /************************************************************************************
- * configs/nxphlit-v3/include/board.h
+ * configs/nxp/fmuk66-v3/include/board.h
  *
- *   Copyright (C) 2016-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016-2018 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
  *   		  Jordan MacIntyre
  *   		  David Sidrane <david_s5@nscdg.com>
@@ -35,8 +35,8 @@
  *
  ************************************************************************************/
 
-#ifndef __CONFIG_NXP_HLITE_V3_INCLUDE_BOARD_H
-#define __CONFIG_NXP_HLITE_V3_INCLUDE_BOARD_H
+#ifndef __CONFIG_NXP_FMUK66_V3_INCLUDE_BOARD_H
+#define __CONFIG_NXP_FMUK66_V3_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -54,11 +54,11 @@
  * Pre-processor Definitions
  ************************************************************************************/
 /*
- *  The NXPHlite-v3 is populated with a MK66FN2M0VLQ18 has 2 MiB of FLASH and
+ *  The FMUK66-v3 is populated with a MK66FN2M0VLQ18 has 2 MiB of FLASH and
  *  256 KiB of SRAM.
  */
 /* Clocking *************************************************************************/
-/* The NXPHlite-v3 uses a 16MHz external powered Oscillator.  The Kinetis MCU startup
+/* The NXP FMUK66-V3 uses a 16MHz external powered Oscillator.  The Kinetis MCU startup
  * from an internal digitally-controlled oscillator (DCO). Nuttx will enable the main
  * external oscillator EXTAL0. The external oscillator can range from
  * 32.768 KHz up to 50 MHz. The default external source for the MCG oscillator inputs
@@ -172,7 +172,7 @@
 
 /* SDHC pull-up resistors **********************************************************/
 
-/* There are external pull-ups on the NXPhlite
+/* There are external pull-ups on the NXP fmuk66-v3
  * So enable we do not them.
  */
 
@@ -207,7 +207,7 @@
 
 
 /* LED definitions ******************************************************************/
-/* The NXPHlite-v3 has a separate Red, Green and Blue LEDs driven by the K66 as
+/* The NXP FMUK66-V3 has a separate Red, Green and Blue LEDs driven by the K66 as
  * follows:
  *
  *   LED    K66
@@ -234,7 +234,7 @@
 #define BOARD_LED_B_BIT   (1 << BOARD_LED_B)
 
 /* If CONFIG_ARCH_LEDs is defined, then NuttX will control the LED on board
- * the NXPHlite-v3.  The following definitions describe how NuttX controls
+ * the NXP FMUK66-V3.  The following definitions describe how NuttX controls
  * the LEDs:
  *
  *   SYMBOL                Meaning                      LED state
@@ -556,4 +556,4 @@ void kinetis_boardinitialize(void);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif  /* __CONFIG_NXP_HLITE_V3_INCLUDE_BOARD_H */
+#endif  /* __CONFIG_NXP_FMUK66_V3_INCLUDE_BOARD_H */

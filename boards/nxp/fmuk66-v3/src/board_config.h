@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * nxphlite-v3 internal definitions
+ * NXP fmuk66-v3 internal definitions
  */
 
 #pragma once
@@ -53,7 +53,7 @@ __BEGIN_DECLS
 #include <chip/kinetis_pinmux.h>
 #include <arch/board/board.h>
 
-/* NXPHLITE GPIOs ***********************************************************************************/
+/* FMUK66 GPIOs ***********************************************************************************/
 /* LEDs */
 /* An RGB LED is connected through GPIO as shown below:
  * TBD (no makring on schematic)
@@ -103,7 +103,7 @@ __BEGIN_DECLS
 
 /*
  *
- * NXPhlite-v3 has separate RC_IN
+ * NXP fmuk66-v3 has separate RC_IN
  *
  * GPIO PPM_IN on PTA9 PIN_TPM1_CH1 and PCT3 USART1 RX
  * SPEKTRUM_RX (it's TX or RX in Bind) on PCT3 USART1 RX
@@ -162,7 +162,7 @@ __BEGIN_DECLS
 #define GPIO_LED_SAFETY         (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTC | PIN0)
 #define GPIO_BTN_SAFETY         (GPIO_PULLUP | PIN_PORTE | PIN28)
 
-/* NXPHlite-v3 GPIOs ****************************************************************/
+/* NXP FMUK66-V3 GPIOs ****************************************************************/
 
 /*	SDHC
  *
@@ -508,10 +508,10 @@ __BEGIN_DECLS
 #define HAVE_AUTOMOUNTER 1
 #if !defined(CONFIG_FS_AUTOMOUNTER) || !defined(HAVE_MMCSD)
 #  undef HAVE_AUTOMOUNTER
-#  undef CONFIG_NXPHLITE_SDHC_AUTOMOUNT
+#  undef CONFIG_FMUK66_SDHC_AUTOMOUNT
 #endif
 
-#ifndef CONFIG_NXPHLITE_SDHC_AUTOMOUNT
+#ifndef CONFIG_FMUK66_SDHC_AUTOMOUNT
 #  undef HAVE_AUTOMOUNTER
 #endif
 
@@ -519,24 +519,24 @@ __BEGIN_DECLS
 
 #ifdef HAVE_AUTOMOUNTER
 
-#  ifndef CONFIG_NXPHLITE_SDHC_AUTOMOUNT_FSTYPE
-#    define CONFIG_NXPHLITE_SDHC_AUTOMOUNT_FSTYPE "vfat"
+#  ifndef CONFIG_FMUK66_SDHC_AUTOMOUNT_FSTYPE
+#    define CONFIG_FMUK66_SDHC_AUTOMOUNT_FSTYPE "vfat"
 #  endif
 
-#  ifndef CONFIG_NXPHLITE_SDHC_AUTOMOUNT_BLKDEV
-#    define CONFIG_NXPHLITE_SDHC_AUTOMOUNT_BLKDEV "/dev/mmcds0"
+#  ifndef CONFIG_FMUK66_SDHC_AUTOMOUNT_BLKDEV
+#    define CONFIG_FMUK66_SDHC_AUTOMOUNT_BLKDEV "/dev/mmcds0"
 #  endif
 
-#  ifndef CONFIG_NXPHLITE_SDHC_AUTOMOUNT_MOUNTPOINT
-#    define CONFIG_NXPHLITE_SDHC_AUTOMOUNT_MOUNTPOINT "/mnt/sdcard"
+#  ifndef CONFIG_FMUK66_SDHC_AUTOMOUNT_MOUNTPOINT
+#    define CONFIG_FMUK66_SDHC_AUTOMOUNT_MOUNTPOINT "/mnt/sdcard"
 #  endif
 
-#  ifndef CONFIG_NXPHLITE_SDHC_AUTOMOUNT_DDELAY
-#    define CONFIG_NXPHLITE_SDHC_AUTOMOUNT_DDELAY 1000
+#  ifndef CONFIG_FMUK66_SDHC_AUTOMOUNT_DDELAY
+#    define CONFIG_FMUK66_SDHC_AUTOMOUNT_DDELAY 1000
 #  endif
 
-#  ifndef CONFIG_NXPHLITE_SDHC_AUTOMOUNT_UDELAY
-#    define CONFIG_NXPHLITE_SDHC_AUTOMOUNT_UDELAY 2000
+#  ifndef CONFIG_FMUK66_SDHC_AUTOMOUNT_UDELAY
+#    define CONFIG_FMUK66_SDHC_AUTOMOUNT_UDELAY 2000
 #  endif
 #endif /* HAVE_AUTOMOUNTER */
 
@@ -553,24 +553,24 @@ __BEGIN_DECLS
  ************************************************************************************/
 
 /************************************************************************************
- * Name: nxphlite_spidev_initialize
+ * Name: fmuk66_spidev_initialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the NXPHlite-v3 board.
+ *   Called to configure SPI chip select GPIO pins for the NXP FMUK66-V3 board.
  *
  ************************************************************************************/
 
-void nxphlite_spidev_initialize(void);
+void fmuk66_spidev_initialize(void);
 
 /************************************************************************************
- * Name: nxphlite_spi_bus_initialize
+ * Name: fmuk66_spi_bus_initialize
  *
  * Description:
  *   Called to configure SPI Buses.
  *
  ************************************************************************************/
 
-int  nxphlite_spi_bus_initialize(void);
+int  fmuk66_spi_bus_initialize(void);
 
 /****************************************************************************************************
  * Name: board_spi_reset board_peripheral_reset
@@ -583,7 +583,7 @@ void board_spi_reset(int ms);
 void board_peripheral_reset(int ms);
 
 /************************************************************************************
- * Name: nxphlite_bringup
+ * Name: fmuk66_bringup
  *
  * Description:
  *   Bring up board features
@@ -591,21 +591,21 @@ void board_peripheral_reset(int ms);
  ************************************************************************************/
 
 #if defined(CONFIG_LIB_BOARDCTL) || defined(CONFIG_BOARD_INITIALIZE)
-int nxphlite_bringup(void);
+int fmuk66_bringup(void);
 #endif
 
 /****************************************************************************
- * Name: nxphlite_sdhc_initialize
+ * Name: fmuk66_sdhc_initialize
  *
  * Description:
  *   Inititialize the SDHC SD card slot
  *
  ****************************************************************************/
 
-int nxphlite_sdhc_initialize(void);
+int fmuk66_sdhc_initialize(void);
 
 /************************************************************************************
- * Name: nxphlite_cardinserted
+ * Name: fmuk66_cardinserted
  *
  * Description:
  *   Check if a card is inserted into the SDHC slot
@@ -613,13 +613,13 @@ int nxphlite_sdhc_initialize(void);
  ************************************************************************************/
 
 #ifdef HAVE_AUTOMOUNTER
-bool nxphlite_cardinserted(void);
+bool fmuk66_cardinserted(void);
 #else
-#  define nxphlite_cardinserted() (false)
+#  define fmuk66_cardinserted() (false)
 #endif
 
 /************************************************************************************
- * Name: nxphlite_writeprotected
+ * Name: fmuk66_writeprotected
  *
  * Description:
  *   Check if the card in the MMC/SD slot is write protected
@@ -627,13 +627,13 @@ bool nxphlite_cardinserted(void);
  ************************************************************************************/
 
 #ifdef HAVE_AUTOMOUNTER
-bool nxphlite_writeprotected(void);
+bool fmuk66_writeprotected(void);
 #else
-#  define nxphlite_writeprotected() (false)
+#  define fmuk66_writeprotected() (false)
 #endif
 
 /************************************************************************************
- * Name:  nxphlite_automount_initialize
+ * Name:  fmuk66_automount_initialize
  *
  * Description:
  *   Configure auto-mounter for the configured SDHC slot
@@ -647,11 +647,11 @@ bool nxphlite_writeprotected(void);
  ************************************************************************************/
 
 #ifdef HAVE_AUTOMOUNTER
-void nxphlite_automount_initialize(void);
+void fmuk66_automount_initialize(void);
 #endif
 
 /************************************************************************************
- * Name:  nxphlite_automount_event
+ * Name:  fmuk66_automount_event
  *
  * Description:
  *   The SDHC card detection logic has detected an insertion or removal event.  It
@@ -671,18 +671,18 @@ void nxphlite_automount_initialize(void);
  ************************************************************************************/
 
 #ifdef HAVE_AUTOMOUNTER
-void nxphlite_automount_event(bool inserted);
+void fmuk66_automount_event(bool inserted);
 #endif
 
 /************************************************************************************
- * Name: nxphlite_timer_initialize
+ * Name: fmuk66_timer_initialize
  *
  * Description:
  *   Called to configure the FTM to provide 1 Mhz
  *
  ************************************************************************************/
 
-void nxphlite_timer_initialize(void);
+void fmuk66_timer_initialize(void);
 
 #include <drivers/boards/common/board_common.h>
 
