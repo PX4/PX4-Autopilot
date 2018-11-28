@@ -94,8 +94,7 @@ px4_add_romfs_files(
 	13010_claire
 	13012_convergence
 	13013_deltaquad
-	13014_avioneo1
-	13015_avioneo2
+	13015_avioneo
 	14001_tri_y_yaw+
 	14002_tri_y_yaw-
 	15001_coax_heli

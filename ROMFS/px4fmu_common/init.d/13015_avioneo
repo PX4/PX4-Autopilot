@@ -2,7 +2,7 @@
 #
 # @name Penta Avioneo eVTOL duo coax C/R on dif tiltwings + light1/10 front pitch turbine
 #
-# @type VTOL Penta Tilt Wings
+# @type VTOL Penta Tiltwings
 # @class VTOL
 #
 # @output MAIN1 motors right top
