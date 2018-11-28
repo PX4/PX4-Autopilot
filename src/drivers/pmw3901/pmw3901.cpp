@@ -185,7 +185,7 @@ private:
 	int writeRegister(unsigned reg, uint8_t data);
 
 	int sensorInit();
-	int readMotionCount(int16_t &deltaX, int16_t &deltaY);
+	int readMotionCount(int16_t &deltaX, int16_t &deltaY, uint8_t &squal);
 
 	/**
 	* Static trampoline from the workq context; because we don't have a
@@ -574,19 +574,19 @@ PMW3901::collect()
 {
 	int ret = OK;
 	int16_t delta_x_raw, delta_y_raw;
+	uint8_t squal;
 	float delta_x, delta_y;
 
 	perf_begin(_sample_perf);
 
 	uint64_t timestamp = hrt_absolute_time();
 	uint64_t dt_flow = timestamp - _previous_collect_timestamp;
+
 	_previous_collect_timestamp = timestamp;
+	readMotionCount(delta_x_raw, delta_y_raw, squal);
 
 #ifdef FLOW_SUM
 	_flow_dt_sum_usec += dt_flow;
-
-	readMotionCount(delta_x_raw, delta_y_raw);
-
 	_flow_sum_x += delta_x_raw;
 	_flow_sum_y += delta_y_raw;
 
@@ -598,11 +598,10 @@ PMW3901::collect()
 	delta_x = (float)-_flow_sum_x / 500.0f;		// proportional factor + convert from pixels to radians
 	delta_y = (float)-_flow_sum_y / 500.0f;		// proportional factor + convert from pixels to radians
 #else
-	readMotionCount(delta_x_raw, delta_y_raw);
-
 	delta_x = - delta_x_raw / 500.0f;		// proportional factor + convert from pixels to radians
 	delta_y = - delta_y_raw / 500.0f;		// proportional factor + convert from pixels to radians
 #endif
+
 	struct optical_flow_s report;
 
 	report.timestamp = timestamp;
@@ -611,18 +610,18 @@ PMW3901::collect()
 	report.pixel_flow_y_integral = static_cast<float>(delta_y);
 
 	// rotate measurements in yaw from sensor frame to body frame according to parameter SENS_FLOW_ROT
-	float zeroval = 0.0f;
-	rotate_3f(_yaw_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval);
-	rotate_3f(_yaw_rotation, report.gyro_x_rate_integral, report.gyro_y_rate_integral, report.gyro_z_rate_integral);
+	//float zeroval = 0.0f;
+	//rotate_3f(_yaw_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval);
+	//rotate_3f(_yaw_rotation, report.gyro_x_rate_integral, report.gyro_y_rate_integral, report.gyro_z_rate_integral);
 #ifdef FLOW_SUM
 	report.frame_count_since_last_readout = 4;				//microseconds
 	report.integration_timespan = _flow_dt_sum_usec; 		//microseconds
 #else
 	report.frame_count_since_last_readout = 1;				//microseconds
-	report.integration_timespan = dt_flow; 		//microseconds
+	report.integration_timespan = dt_flow; 					//microseconds
 #endif
 	report.sensor_id = 0;
-
+#if 0
 	// This sensor doesn't provide any quality metric. However if the sensor is unable to calculate the optical flow it will
 	// output 0 for the delta. Hence, we set the measurement to "invalid" (quality = 0) if the values are smaller than FLT_EPSILON
 	if (fabsf(report.pixel_flow_x_integral) < FLT_EPSILON && fabsf(report.pixel_flow_y_integral) < FLT_EPSILON) {
@@ -631,6 +630,9 @@ PMW3901::collect()
 	} else {
 		report.quality = 255;
 	}
+#else
+	report.quality = squal;
+#endif
 
 	/* No gyro on this board */
 	report.gyro_x_rate_integral = NAN;
@@ -671,15 +673,15 @@ PMW3901::collect()
 
 
 int
-PMW3901::readMotionCount(int16_t &deltaX, int16_t &deltaY)
+PMW3901::readMotionCount(int16_t &deltaX, int16_t &deltaY, uint8_t &squal)
 {
 	int ret;
 
-	uint8_t data[10] = { DIR_READ(0x02), 0, DIR_READ(0x03), 0, DIR_READ(0x04), 0,
-			     DIR_READ(0x05), 0, DIR_READ(0x06), 0
+	uint8_t data[12] = { DIR_READ(0x02), 0, DIR_READ(0x03), 0, DIR_READ(0x04), 0,
+			     DIR_READ(0x05), 0, DIR_READ(0x06), 0, DIR_READ(0x07), 0
 			   };
 
-	ret = transfer(&data[0], &data[0], 10);
+	ret = transfer(&data[0], &data[0], 12);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -689,6 +691,7 @@ PMW3901::readMotionCount(int16_t &deltaX, int16_t &deltaY)
 
 	deltaX = ((int16_t)data[5] << 8) | data[3];
 	deltaY = ((int16_t)data[9] << 8) | data[7];
+	squal = data[11];	// Added for surface quality
 
 	ret = OK;
 
