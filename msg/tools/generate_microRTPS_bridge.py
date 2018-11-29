@@ -221,11 +221,11 @@ else:
 
 if args.fastrtpsgen is None or args.fastrtpsgen == "":
     # Assume fastrtpsgen is in PATH
-    fastrtpsgen_path = "fastrtpsgen"
+    fastrtpsgen_path = 'fastrtpsgen'
 else:
     # Path to fastrtpsgen is explicitly specified
     fastrtpsgen_path = os.path.join(
-        get_absolute_path(args.fastrtpsgen), "/fastrtpsgen")
+        get_absolute_path(args.fastrtpsgen), 'fastrtpsgen')
 fastrtpsgen_include = args.fastrtpsgen_include
 if fastrtpsgen_include is not None and fastrtpsgen_include != '':
     fastrtpsgen_include = "-I " + \
