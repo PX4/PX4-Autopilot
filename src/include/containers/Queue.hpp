@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,70 +31,57 @@
  *
  ****************************************************************************/
 
-/**
- * @file List.hpp
- *
- * A linked list.
- */
-
 #pragma once
 
 template<class T>
-class ListNode
-{
-public:
-
-	void setSibling(T sibling) { _sibling = sibling; }
-	const T getSibling() const { return _sibling; }
-
-protected:
-
-	T _sibling{nullptr};
-
+struct QueueNode {
+	T next{nullptr};
 };
 
 template<class T>
-class List
+class Queue
 {
 public:
 
-	void add(T newNode)
-	{
-		newNode->setSibling(getHead());
-		_head = newNode;
-	}
+	bool empty() const { return _head == nullptr; }
 
-	bool remove(T removeNode)
+	T front() const { return _head; }
+	T back() const { return _tail; }
+
+	void push(T newNode)
 	{
-		// base case
-		if (removeNode == _head) {
-			_head = nullptr;
-			return true;
+		if (_head == nullptr) {
+			_head = newNode;
 		}
 
-		for (T node = _head; node != nullptr; node = node->getSibling()) {
-			// is sibling the node to remove?
-			if (node->getSibling() == removeNode) {
-				// replace sibling
-				if (node->getSibling() != nullptr) {
-					node->setSibling(node->getSibling()->getSibling());
+		if (_tail != nullptr) {
+			_tail->next = newNode;
+		}
 
-				} else {
-					node->setSibling(nullptr);
-				}
+		_tail = newNode;
+	}
 
-				return true;
+	T pop()
+	{
+		T ret = _head;
+
+		if (!empty()) {
+			if (_head != _tail) {
+				_head = _head->next;
+
+			} else {
+				// only one item left
+				_head = nullptr;
+				_tail = nullptr;
 			}
 		}
 
-		return false;
+		return ret;
 	}
-
-	const T getHead() const { return _head; }
-
-	bool empty() const { return _head == nullptr; }
 
 protected:
 
 	T _head{nullptr};
+	T _tail{nullptr};
+
 };

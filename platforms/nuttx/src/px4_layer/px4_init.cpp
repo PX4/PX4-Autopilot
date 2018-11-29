@@ -37,6 +37,7 @@
 #include <px4_defines.h>
 #include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
+#include <px4_work_queue/WorkQueueManager.hpp>
 #include <systemlib/cpuload.h>
 
 #include <fcntl.h>
@@ -103,6 +104,8 @@ int px4_platform_init(void)
 #ifdef CONFIG_SCHED_INSTRUMENTATION
 	cpuload_initialize_once();
 #endif
+
+	px4::work_queue_manager_start();
 
 	return PX4_OK;
 }

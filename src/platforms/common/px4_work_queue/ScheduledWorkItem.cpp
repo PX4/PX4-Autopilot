@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,70 +31,35 @@
  *
  ****************************************************************************/
 
-/**
- * @file List.hpp
- *
- * A linked list.
- */
+#include "ScheduledWorkItem.hpp"
 
-#pragma once
-
-template<class T>
-class ListNode
+namespace px4
 {
-public:
 
-	void setSibling(T sibling) { _sibling = sibling; }
-	const T getSibling() const { return _sibling; }
-
-protected:
-
-	T _sibling{nullptr};
-
-};
-
-template<class T>
-class List
+ScheduledWorkItem::~ScheduledWorkItem()
 {
-public:
+	ScheduleClear();
+}
 
-	void add(T newNode)
-	{
-		newNode->setSibling(getHead());
-		_head = newNode;
-	}
+void ScheduledWorkItem::schedule_trampoline(void *arg)
+{
+	ScheduledWorkItem *dev = reinterpret_cast<ScheduledWorkItem *>(arg);
+	dev->ScheduleNow();
+}
 
-	bool remove(T removeNode)
-	{
-		// base case
-		if (removeNode == _head) {
-			_head = nullptr;
-			return true;
-		}
+void ScheduledWorkItem::ScheduleDelayed(uint32_t delay_us)
+{
+	hrt_call_after(&_call, delay_us, (hrt_callout)&ScheduledWorkItem::schedule_trampoline, this);
+}
 
-		for (T node = _head; node != nullptr; node = node->getSibling()) {
-			// is sibling the node to remove?
-			if (node->getSibling() == removeNode) {
-				// replace sibling
-				if (node->getSibling() != nullptr) {
-					node->setSibling(node->getSibling()->getSibling());
+void ScheduledWorkItem::ScheduleOnInterval(uint32_t interval_us, uint32_t delay_us)
+{
+	hrt_call_every(&_call, delay_us, interval_us, (hrt_callout)&ScheduledWorkItem::schedule_trampoline, this);
+}
 
-				} else {
-					node->setSibling(nullptr);
-				}
+void ScheduledWorkItem::ScheduleClear()
+{
+	hrt_cancel(&_call);
+}
 
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	const T getHead() const { return _head; }
-
-	bool empty() const { return _head == nullptr; }
-
-protected:
-
-	T _head{nullptr};
-};
+} // namespace px4

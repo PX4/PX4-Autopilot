@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,70 +31,84 @@
  *
  ****************************************************************************/
 
-/**
- * @file List.hpp
- *
- * A linked list.
- */
+#include "WorkItem.hpp"
 
-#pragma once
+#include "WorkQueue.hpp"
+#include "WorkQueueManager.hpp"
 
-template<class T>
-class ListNode
+#include <px4_log.h>
+#include <drivers/drv_hrt.h>
+
+namespace px4
 {
-public:
 
-	void setSibling(T sibling) { _sibling = sibling; }
-	const T getSibling() const { return _sibling; }
-
-protected:
-
-	T _sibling{nullptr};
-
-};
-
-template<class T>
-class List
+WorkItem::WorkItem(const wq_config &config)
 {
-public:
+#if WQ_ITEM_PERF
+	_perf_cycle_time = perf_alloc(PC_ELAPSED, "wq_cycle_run_time");
+	_perf_latency = perf_alloc(PC_ELAPSED, "wq_run_latency");
+	_perf_interval = perf_alloc(PC_INTERVAL, "wq_run_interval");
+#endif /* WQ_ITEM_PERF */
 
-	void add(T newNode)
-	{
-		newNode->setSibling(getHead());
-		_head = newNode;
+	if (!Init(config)) {
+		PX4_ERR("init fail");
+	}
+}
+
+WorkItem::~WorkItem()
+{
+#if WQ_ITEM_PERF
+	perf_free(_perf_cycle_time);
+	perf_free(_perf_latency);
+	perf_free(_perf_interval);
+#endif /* WQ_ITEM_PERF */
+}
+
+bool WorkItem::Init(const wq_config &config)
+{
+	px4::WorkQueue *wq = work_queue_create(config);
+
+	if (wq != nullptr) {
+		_wq = wq;
+
+		return true;
 	}
 
-	bool remove(T removeNode)
-	{
-		// base case
-		if (removeNode == _head) {
-			_head = nullptr;
-			return true;
-		}
+	return false;
+}
 
-		for (T node = _head; node != nullptr; node = node->getSibling()) {
-			// is sibling the node to remove?
-			if (node->getSibling() == removeNode) {
-				// replace sibling
-				if (node->getSibling() != nullptr) {
-					node->setSibling(node->getSibling()->getSibling());
-
-				} else {
-					node->setSibling(nullptr);
-				}
-
-				return true;
-			}
-		}
-
-		return false;
+void WorkItem::ScheduleNow()
+{
+	if (_wq != nullptr && !_queued) {
+		_queued = true;
+		_wq->Add(this);
 	}
-
-	const T getHead() const { return _head; }
-
-	bool empty() const { return _head == nullptr; }
-
-protected:
-
-	T _head{nullptr};
 };
+
+void WorkItem::pre_run()
+{
+	_queued = false;
+#if WQ_ITEM_PERF
+	perf_set_elapsed(_perf_latency, hrt_elapsed_time(&_qtime));
+	perf_count(_perf_interval);
+	perf_begin(_perf_cycle_time);
+#endif /* WQ_ITEM_PERF */
+}
+
+void WorkItem::post_run()
+{
+#if WQ_ITEM_PERF
+	perf_end(_perf_cycle_time);
+#endif /* WQ_ITEM_PERF */
+}
+
+#if WQ_ITEM_PERF
+void WorkItem::print_status() const
+{
+	perf_print_counter(_perf_cycle_time);
+	perf_print_counter(_perf_interval);
+	perf_print_counter(_perf_latency);
+}
+#endif /* WQ_ITEM_PERF */
+
+} // namespace px4

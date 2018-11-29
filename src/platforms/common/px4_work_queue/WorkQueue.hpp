@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,70 +31,68 @@
  *
  ****************************************************************************/
 
-/**
- * @file List.hpp
- *
- * A linked list.
- */
-
 #pragma once
 
-template<class T>
-class ListNode
+#include "WorkQueueManager.hpp"
+
+#include <containers/List.hpp>
+#include <containers/Queue.hpp>
+#include <lib/perf/perf_counter.h>
+#include <px4_defines.h>
+#include <px4_sem.h>
+#include <px4_tasks.h>
+
+namespace px4
 {
+
+class WorkItem;
+
+class WorkQueue : public ListNode<WorkQueue *>
+{
+
 public:
 
-	void setSibling(T sibling) { _sibling = sibling; }
-	const T getSibling() const { return _sibling; }
+	WorkQueue(const wq_config &wq_config);
+	~WorkQueue();
 
-protected:
+	const char *get_name() { return _config.name; }
 
-	T _sibling{nullptr};
+	void Add(WorkItem *item);
+
+	// TODO: need helpers to handle clean shutdown - remove and clear?
+	//void remove(WorkItem *item);
+	//void clear();
+
+	void Run();
+
+	void request_stop() { _should_exit = true; }
+
+	void print_status();
+
+private:
+
+	bool should_exit() const { return _should_exit; }
+
+	const wq_config &_config;
+
+#ifdef __PX4_NUTTX
+	void work_lock() { _flags = enter_critical_section(); }
+	void work_unlock() { leave_critical_section(_flags); }
+	irqstate_t _flags;
+#else
+	void work_lock() { px4_sem_wait(&_qlock); }
+	void work_unlock() { px4_sem_post(&_qlock); }
+	px4_sem_t _qlock;
+#endif
+
+	px4_sem_t _process_lock;
+
+	Queue<WorkItem *>	_q;
+
+	perf_counter_t	_perf_latency;
+
+	bool	_should_exit{false};
 
 };
 
-template<class T>
-class List
-{
-public:
-
-	void add(T newNode)
-	{
-		newNode->setSibling(getHead());
-		_head = newNode;
-	}
-
-	bool remove(T removeNode)
-	{
-		// base case
-		if (removeNode == _head) {
-			_head = nullptr;
-			return true;
-		}
-
-		for (T node = _head; node != nullptr; node = node->getSibling()) {
-			// is sibling the node to remove?
-			if (node->getSibling() == removeNode) {
-				// replace sibling
-				if (node->getSibling() != nullptr) {
-					node->setSibling(node->getSibling()->getSibling());
-
-				} else {
-					node->setSibling(nullptr);
-				}
-
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	const T getHead() const { return _head; }
-
-	bool empty() const { return _head == nullptr; }
-
-protected:
-
-	T _head{nullptr};
-};
+} // namespace px4

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,70 +31,85 @@
  *
  ****************************************************************************/
 
-/**
- * @file List.hpp
- *
- * A linked list.
- */
-
 #pragma once
 
-template<class T>
-class ListNode
+#include <stdint.h>
+
+namespace px4
 {
-public:
 
-	void setSibling(T sibling) { _sibling = sibling; }
-	const T getSibling() const { return _sibling; }
+class WorkQueue; // forward declaration
 
-protected:
-
-	T _sibling{nullptr};
-
+struct wq_config {
+	const char *name;
+	uint16_t stacksize;
+	int8_t priority; // relative to max
 };
 
-template<class T>
-class List
-{
-public:
+// work queues
+enum PX4_WQS {
+	// SPI devices
+	SPI1 = 0,
+	SPI2,
 
-	void add(T newNode)
-	{
-		newNode->setSibling(getHead());
-		_head = newNode;
-	}
+	// PX4 controllers
+	rate_ctrl,
 
-	bool remove(T removeNode)
-	{
-		// base case
-		if (removeNode == _head) {
-			_head = nullptr;
-			return true;
-		}
+	// I2C devices
+	I2C1,
+	I2C2,
 
-		for (T node = _head; node != nullptr; node = node->getSibling()) {
-			// is sibling the node to remove?
-			if (node->getSibling() == removeNode) {
-				// replace sibling
-				if (node->getSibling() != nullptr) {
-					node->setSibling(node->getSibling()->getSibling());
+	// PX4 misc
+	hp_default,
 
-				} else {
-					node->setSibling(nullptr);
-				}
-
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	const T getHead() const { return _head; }
-
-	bool empty() const { return _head == nullptr; }
-
-protected:
-
-	T _head{nullptr};
+	// testing
+	test1,
+	test2,
 };
+
+// TODO: set priorities appropriately for linux, macos, qurt (unify with px4_tasks.h)
+static constexpr wq_config wq_configurations[] = {
+	[SPI1] = { "wq:SPI1", 1200, 0 },
+	[SPI2] = { "wq:SPI2", 1200, -1 },
+
+	[rate_ctrl] = { "wq:rate_ctrl", 1500, -2 },  // highest priority after primary IMU (SPI1), TODO:
+
+	[I2C1] = { "wq:I2C1", 1200, -2 },
+	[I2C2] = { "wq:I2C2", 1200, -3 },
+
+	[hp_default] = { "wq:hp_default", 1500, -4 },
+
+	[test1] = { "wq:test1", 800, 0 },
+	[test2] = { "wq:test2", 800, 0 },
+};
+
+
+
+/**
+ * Start the work queue manager task.
+ */
+int work_queue_manager_start();
+
+/**
+ * Stop the work queue manager task.
+ */
+int work_queue_manager_stop();
+
+/**
+ * Create (or find) a work queue with a particular configuration.
+ *
+ * @param new_wq		The work queue configuration (see WorkQueueManager.hpp).
+ * @return		A pointer to the WorkQueue, or nullptr on failure.
+ */
+WorkQueue *work_queue_create(const wq_config &new_wq);
+
+/**
+ * Map a PX4 driver device id to a work queue (by sensor bus).
+ *
+ * @param device_id		The PX4 driver's device id.
+ * @return		A work queue configuration.
+ */
+const wq_config &device_bus_to_wq(uint32_t device_id);
+
+
+} // namespace px4

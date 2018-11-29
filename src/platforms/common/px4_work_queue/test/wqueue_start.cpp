@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,70 +31,60 @@
  *
  ****************************************************************************/
 
-/**
- * @file List.hpp
- *
- * A linked list.
- */
+#include "wqueue_test.h"
 
-#pragma once
+#include <px4_app.h>
+#include <px4_log.h>
+#include <px4_tasks.h>
+#include <stdio.h>
+#include <string.h>
+#include <sched.h>
 
-template<class T>
-class ListNode
+static int daemon_task;             /* Handle of deamon task / thread */
+
+extern "C" __EXPORT int wqueue_test_main(int argc, char *argv[]);
+int wqueue_test_main(int argc, char *argv[])
 {
-public:
 
-	void setSibling(T sibling) { _sibling = sibling; }
-	const T getSibling() const { return _sibling; }
-
-protected:
-
-	T _sibling{nullptr};
-
-};
-
-template<class T>
-class List
-{
-public:
-
-	void add(T newNode)
-	{
-		newNode->setSibling(getHead());
-		_head = newNode;
+	if (argc < 2) {
+		PX4_INFO("usage: wqueue_test {start|stop|status}\n");
+		return 1;
 	}
 
-	bool remove(T removeNode)
-	{
-		// base case
-		if (removeNode == _head) {
-			_head = nullptr;
-			return true;
+	if (!strcmp(argv[1], "start")) {
+
+		if (WQueueTest::appState.isRunning()) {
+			PX4_INFO("already running\n");
+			/* this is not an error */
+			return 0;
 		}
 
-		for (T node = _head; node != nullptr; node = node->getSibling()) {
-			// is sibling the node to remove?
-			if (node->getSibling() == removeNode) {
-				// replace sibling
-				if (node->getSibling() != nullptr) {
-					node->setSibling(node->getSibling()->getSibling());
+		daemon_task = px4_task_spawn_cmd("wqueue",
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 5,
+						 2000,
+						 PX4_MAIN,
+						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
 
-				} else {
-					node->setSibling(nullptr);
-				}
-
-				return true;
-			}
-		}
-
-		return false;
+		return 0;
 	}
 
-	const T getHead() const { return _head; }
+	if (!strcmp(argv[1], "stop")) {
+		WQueueTest::appState.requestExit();
+		return 0;
+	}
 
-	bool empty() const { return _head == nullptr; }
+	if (!strcmp(argv[1], "status")) {
+		if (WQueueTest::appState.isRunning()) {
+			PX4_INFO("is running\n");
 
-protected:
+		} else {
+			PX4_INFO("not started\n");
+		}
 
-	T _head{nullptr};
-};
+		return 0;
+	}
+
+	PX4_INFO("usage: wqueue_test {start|stop|status}\n");
+	return 1;
+}

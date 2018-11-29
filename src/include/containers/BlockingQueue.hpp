@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,70 +31,83 @@
  *
  ****************************************************************************/
 
-/**
- * @file List.hpp
- *
- * A linked list.
- */
-
 #pragma once
 
-template<class T>
-class ListNode
+#include <pthread.h>
+#include <px4_sem.h>
+
+#include <px4_log.h>
+
+template<class T, size_t N>
+class BlockingQueue
 {
 public:
 
-	void setSibling(T sibling) { _sibling = sibling; }
-	const T getSibling() const { return _sibling; }
-
-protected:
-
-	T _sibling{nullptr};
-
-};
-
-template<class T>
-class List
-{
-public:
-
-	void add(T newNode)
+	BlockingQueue()
 	{
-		newNode->setSibling(getHead());
-		_head = newNode;
+		pthread_mutex_init(&_mutex, nullptr);
+		pthread_cond_init(&_cv, nullptr);
 	}
 
-	bool remove(T removeNode)
+	~BlockingQueue()
 	{
-		// base case
-		if (removeNode == _head) {
-			_head = nullptr;
-			return true;
-		}
-
-		for (T node = _head; node != nullptr; node = node->getSibling()) {
-			// is sibling the node to remove?
-			if (node->getSibling() == removeNode) {
-				// replace sibling
-				if (node->getSibling() != nullptr) {
-					node->setSibling(node->getSibling()->getSibling());
-
-				} else {
-					node->setSibling(nullptr);
-				}
-
-				return true;
-			}
-		}
-
-		return false;
+		pthread_mutex_destroy(&_mutex);
+		pthread_cond_destroy(&_cv);
 	}
 
-	const T getHead() const { return _head; }
+	bool empty() const { return _count == 0; }
+	bool full() const { return _count == N; }
 
-	bool empty() const { return _head == nullptr; }
+	bool push(T newItem)
+	{
+		pthread_mutex_lock(&_mutex);
 
-protected:
+		if (full()) {
+			pthread_mutex_unlock(&_mutex);
+			return false;
+		}
 
-	T _head{nullptr};
+		const bool was_empty = empty();
+
+		_data[_tail] = newItem;
+		_tail = (_tail + 1) % N;
+		_count++;
+
+		pthread_mutex_unlock(&_mutex);
+
+		if (was_empty) {
+			pthread_cond_signal(&_cv);
+		}
+
+		return true;
+	}
+
+	T pop()
+	{
+		pthread_mutex_lock(&_mutex);
+
+		if (empty()) {
+			pthread_cond_wait(&_cv, &_mutex);
+		}
+
+		T ret = _data[_head];
+		_head = (_head + 1) % N;
+		_count--;
+
+		pthread_mutex_unlock(&_mutex);
+
+		return ret;
+	}
+
+private:
+
+	pthread_mutex_t _mutex;
+	pthread_cond_t _cv;
+
+	T _data[N];
+	size_t _count{0};
+
+	size_t _head{0};
+	size_t _tail{0};
+
 };

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,70 +31,64 @@
  *
  ****************************************************************************/
 
-/**
- * @file List.hpp
- *
- * A linked list.
- */
-
 #pragma once
 
-template<class T>
-class ListNode
+
+#include "WorkQueueManager.hpp"
+
+#include <containers/List.hpp>
+#include <containers/Queue.hpp>
+#include <lib/perf/perf_counter.h>
+#include <px4_defines.h>
+#include <drivers/drv_hrt.h>
+
+#define WQ_ITEM_PERF 0
+
+namespace px4
 {
+
+class WorkQueue; // forward declaration
+struct wq_config;
+
+class WorkItem : public ListNode<WorkItem *>, public QueueNode<WorkItem *>
+{
+
 public:
 
-	void setSibling(T sibling) { _sibling = sibling; }
-	const T getSibling() const { return _sibling; }
+	WorkItem(const wq_config &config);
+	virtual ~WorkItem();
+
+	bool Init(const wq_config &config);
+
+	void ScheduleNow();
+
+	virtual void Run() = 0;
+
+	void pre_run();
+	void post_run();
+
+#if WQ_ITEM_PERF
+	void print_status() const;
+#endif /* WQ_ITEM_PERF */
+
+	void set_queued_time() { _qtime = hrt_absolute_time(); }
+	const uint64_t &queued_time() { return _qtime; }
 
 protected:
 
-	T _sibling{nullptr};
+	uint64_t	_qtime{0};       // time work was queued
 
+private:
+
+	WorkQueue	*_wq{nullptr};
+
+	volatile bool	_queued{false};	// only allow a single item to be queued at a time
+
+#if WQ_ITEM_PERF
+	perf_counter_t	_perf_cycle_time;
+	perf_counter_t	_perf_interval;
+	perf_counter_t	_perf_latency;
+#endif /* WQ_ITEM_PERF */
 };
 
-template<class T>
-class List
-{
-public:
-
-	void add(T newNode)
-	{
-		newNode->setSibling(getHead());
-		_head = newNode;
-	}
-
-	bool remove(T removeNode)
-	{
-		// base case
-		if (removeNode == _head) {
-			_head = nullptr;
-			return true;
-		}
-
-		for (T node = _head; node != nullptr; node = node->getSibling()) {
-			// is sibling the node to remove?
-			if (node->getSibling() == removeNode) {
-				// replace sibling
-				if (node->getSibling() != nullptr) {
-					node->setSibling(node->getSibling()->getSibling());
-
-				} else {
-					node->setSibling(nullptr);
-				}
-
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	const T getHead() const { return _head; }
-
-	bool empty() const { return _head == nullptr; }
-
-protected:
-
-	T _head{nullptr};
-};
+} // namespace px4
