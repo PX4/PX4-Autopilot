@@ -1896,6 +1896,13 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 			tstatus.remote_component_id = msg->compid;
 			tstatus.remote_type = hb.type;
 			tstatus.remote_system_status = hb.system_status;
+
+			if (_telem_status_pub == nullptr) {
+				_telem_status_pub = orb_advertise(ORB_ID(telemetry_status), &tstatus);
+
+			} else {
+				orb_publish(ORB_ID(telemetry_status), _telem_status_pub, &tstatus);
+			}
 		}
 
 	}
