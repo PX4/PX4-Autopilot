@@ -33,6 +33,9 @@
 
 include(cygwin_cygpath)
 
+set(NUTTX_DIR ${PX4_BINARY_DIR}/NuttX/nuttx)
+set(NUTTX_APPS_DIR ${PX4_BINARY_DIR}/NuttX/apps)
+
 add_subdirectory(src)
 
 add_executable(px4 ${PX4_SOURCE_DIR}/src/platforms/empty.c)
@@ -86,11 +89,12 @@ target_link_libraries(px4 PRIVATE
 	-nostartfiles
 	-nodefaultlibs
 	-nostdlib
+	-nostdinc++
 
 	-fno-exceptions
 	-fno-rtti
 
-	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx/configs/${PX4_BOARD}/scripts/ld.script
+	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx-config/scripts/ld.script
 	-Wl,-Map=${PX4_CONFIG}.map
 	-Wl,--warn-common
 	-Wl,--gc-sections
