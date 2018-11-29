@@ -31,81 +31,65 @@
  *
  ****************************************************************************/
 
-#include "px4_init.h"
+#pragma once
 
-#include <px4_config.h>
+#include "WorkQueueManager.hpp"
+
+#include <containers/List.hpp>
+#include <containers/IntrusiveQueue.hpp>
+#include <px4_atomic.h>
 #include <px4_defines.h>
-#include <drivers/drv_hrt.h>
-#include <lib/parameters/param.h>
-#include <px4_work_queue/WorkQueueManager.hpp>
-#include <systemlib/cpuload.h>
+#include <px4_sem.h>
+#include <px4_tasks.h>
 
-#include <fcntl.h>
-
-
-#include "platform/cxxinitialize.h"
-
-int px4_platform_init(void)
+namespace px4
 {
 
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-	/* run C++ ctors before we go any further */
-	up_cxxinitialize();
+class WorkItem;
 
-#	if defined(CONFIG_SYSTEM_NSH_CXXINITIALIZE)
-#  		error CONFIG_SYSTEM_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
-#	endif
+class WorkQueue : public ListNode<WorkQueue *>
+{
+public:
+	explicit WorkQueue(const wq_config_t &wq_config);
+	WorkQueue() = delete;
 
+	~WorkQueue();
+
+	const char *get_name() { return _config.name; }
+
+	void Add(WorkItem *item);
+
+	// TODO: need helpers to handle clean shutdown - remove and clear?
+	//void remove(WorkItem *item);
+	//void clear();
+
+	void Run();
+
+	void request_stop() { _should_exit.store(true); }
+
+	void print_status();
+
+private:
+
+	bool should_exit() const { return _should_exit.load(); }
+
+#ifdef __PX4_NUTTX
+	// In NuttX work can be enqueued from an ISR
+	void work_lock() { _flags = enter_critical_section(); }
+	void work_unlock() { leave_critical_section(_flags); }
+	irqstate_t _flags;
 #else
-#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
+	void work_lock() { px4_sem_wait(&_qlock); }
+	void work_unlock() { px4_sem_post(&_qlock); }
+	px4_sem_t _qlock;
 #endif
 
+	IntrusiveQueue<WorkItem *>	_q;
+	px4_sem_t		_process_lock;
 
-#if !defined(CONFIG_DEV_CONSOLE) && defined(CONFIG_DEV_NULL)
+	px4::atomic_bool	_should_exit{false};
+	const wq_config_t	&_config;
 
-	/* Support running nsh on a board with out a console
-	 * Without this the assumption that the fd 0..2 are
-	 * std{in..err} will be wrong. NSH will read/write to the
-	 * fd it opens for the init script or nested scripts assigned
-	 * to fd 0..2.
-	 *
-	 */
+};
 
-	int fd = open("/dev/null", O_RDWR);
-
-	if (fd == 0) {
-		/* Successfully opened /dev/null as stdin (fd == 0) */
-
-		(void)fs_dupfd2(0, 1);
-		(void)fs_dupfd2(0, 2);
-		(void)fs_fdopen(0, O_RDONLY,         NULL);
-		(void)fs_fdopen(1, O_WROK | O_CREAT, NULL);
-		(void)fs_fdopen(2, O_WROK | O_CREAT, NULL);
-
-	} else {
-		/* We failed to open /dev/null OR for some reason, we opened
-		 * it and got some file descriptor other than 0.
-		 */
-
-		if (fd > 0) {
-			(void)close(fd);
-		}
-
-		return -ENFILE;
-	}
-
-#endif
-
-	hrt_init();
-
-	param_init();
-
-	/* configure CPU load estimation */
-#ifdef CONFIG_SCHED_INSTRUMENTATION
-	cpuload_initialize_once();
-#endif
-
-	px4::WorkQueueManagerStart();
-
-	return PX4_OK;
-}
+} // namespace px4

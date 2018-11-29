@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,22 +31,14 @@
 #
 ############################################################################
 
-# skip for px4_layer support on an IO board
-if (NOT ${PX4_BOARD} MATCHES "px4_io")
-
-	add_library(px4_layer
-		px4_nuttx_tasks.c
-		px4_nuttx_impl.cpp
-		px4_init.cpp
+px4_add_module(
+	MODULE lib__work_queue__test__wqueue_test
+	MAIN wqueue_test
+	SRCS
+		wqueue_main.cpp
+		wqueue_scheduled_test.cpp
+		wqueue_start.cpp
+		wqueue_test.cpp
+	DEPENDS
+		px4_work_queue
 	)
-	target_link_libraries(px4_layer
-		PRIVATE
-			nuttx_apps # up_cxxinitialize
-			nuttx_sched
-			drivers_boards_common_arch
-			px4_work_queue
-		)
-else()
-	add_library(px4_layer ${PX4_SOURCE_DIR}/src/platforms/empty.c)
-endif()
-add_dependencies(px4_layer prebuild_targets)
