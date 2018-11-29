@@ -44,6 +44,6 @@
 
 #include <uORB/topics/actuator_armed.h>
 
-int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s* armed);
+int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s *armed);
 
 #endif

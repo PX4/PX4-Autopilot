@@ -800,14 +800,17 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 int calibrate_cancel_subscribe()
 {
 	int vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+
 	if (vehicle_command_sub >= 0) {
 		// make sure we won't read any old messages
 		struct vehicle_command_s cmd;
 		bool update;
+
 		while (orb_check(vehicle_command_sub, &update) == 0 && update) {
 			orb_copy(ORB_ID(vehicle_command), vehicle_command_sub, &cmd);
 		}
 	}
+
 	return vehicle_command_sub;
 }
 
@@ -847,12 +850,12 @@ bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, int cancel_sub)
 		// ignore internal commands, such as VEHICLE_CMD_DO_MOUNT_CONTROL from vmount
 		if (cmd.from_external) {
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION &&
-					(int)cmd.param1 == 0 &&
-					(int)cmd.param2 == 0 &&
-					(int)cmd.param3 == 0 &&
-					(int)cmd.param4 == 0 &&
-					(int)cmd.param5 == 0 &&
-					(int)cmd.param6 == 0) {
+			    (int)cmd.param1 == 0 &&
+			    (int)cmd.param2 == 0 &&
+			    (int)cmd.param3 == 0 &&
+			    (int)cmd.param4 == 0 &&
+			    (int)cmd.param5 == 0 &&
+			    (int)cmd.param6 == 0) {
 				calibrate_answer_command(mavlink_log_pub, cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 				mavlink_log_critical(mavlink_log_pub, CAL_QGC_CANCELLED_MSG);
 				return true;

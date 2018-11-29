@@ -474,7 +474,8 @@ static bool powerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, 
 					success = false;
 
 					if (report_fail) {
-						mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Avionics Power low: %6.2f Volt", (double)avionics_power_rail_voltage);
+						mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Avionics Power low: %6.2f Volt",
+								     (double)avionics_power_rail_voltage);
 					}
 
 				} else if (avionics_power_rail_voltage < 4.9f) {
@@ -610,44 +611,59 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 			if (report_fail) {
 				// Only report the first failure to avoid spamming
 				const char *message = nullptr;
+
 				if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_GPS_FIX)) {
 					message = "Preflight%s: GPS fix too low";
+
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT)) {
 					message = "Preflight%s: not enough GPS Satellites";
+
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_GDOP)) {
 					message = "Preflight%s: GPS GDoP too low";
+
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR)) {
 					message = "Preflight%s: GPS Horizontal Pos Error too high";
+
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_ERR)) {
 					message = "Preflight%s: GPS Vertical Pos Error too high";
+
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_SPD_ERR)) {
 					message = "Preflight%s: GPS Speed Accuracy too low";
+
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_DRIFT)) {
 					message = "Preflight%s: GPS Horizontal Pos Drift too high";
+
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_DRIFT)) {
 					message = "Preflight%s: GPS Vertical Pos Drift too high";
+
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_SPD_ERR)) {
 					message = "Preflight%s: GPS Hor Speed Drift too high";
+
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_VERT_SPD_ERR)) {
 					message = "Preflight%s: GPS Vert Speed Drift too high";
+
 				} else {
 					if (!ekf_gps_fusion) {
 						// Likely cause unknown
 						message = "Preflight%s: Estimator not using GPS";
 						gps_present = false;
+
 					} else {
 						// if we land here there was a new flag added and the code not updated. Show a generic message.
 						message = "Preflight%s: Poor GPS Quality";
 					}
 				}
+
 				if (message) {
 					if (enforce_gps_required) {
 						mavlink_log_critical(mavlink_log_pub, message, " Fail");
+
 					} else {
 						mavlink_log_warning(mavlink_log_pub, message, "");
 					}
 				}
 			}
+
 			gps_success = false;
 
 			if (enforce_gps_required) {
@@ -690,7 +706,8 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 		checkAirspeed = true;
 	}
 
-	reportFailures = (reportFailures && status_flags.condition_system_hotplug_timeout && !status_flags.condition_calibration_enabled);
+	reportFailures = (reportFailures && status_flags.condition_system_hotplug_timeout
+			  && !status_flags.condition_calibration_enabled);
 
 	bool failed = false;
 
@@ -902,7 +919,8 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 		} else {
 			// The calibration is fine, but only set the overall health state to true if the signal is not currently lost
 			status_flags.rc_calibration_valid = true;
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, status_flags.rc_signal_found_once, true, !status.rc_signal_lost, status);
+			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, status_flags.rc_signal_found_once, true,
+					 !status.rc_signal_lost, status);
 		}
 	}
 
