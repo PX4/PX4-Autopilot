@@ -96,6 +96,7 @@ target_link_libraries(px4 PRIVATE
 	-Wl,--gc-sections
 
 	-Wl,--start-group
+	drivers_boards_common_arch
 	${nuttx_libs}
 	-Wl,--end-group
 

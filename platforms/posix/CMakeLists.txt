@@ -62,6 +62,10 @@ else()
 			${df_driver_libs}
 			df_driver_framework
 			pthread m
+			
+			# horrible circular dependencies that need to be teased apart
+			px4_layer
+			px4_platform
 	)
 
 	if (NOT APPLE)
