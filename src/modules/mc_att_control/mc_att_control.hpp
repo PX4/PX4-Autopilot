@@ -269,7 +269,9 @@ private:
 		(ParamFloat<px4::params::MPC_MANTHR_MIN>) _man_throttle_min,			/**< minimum throttle for stabilized */
 		(ParamFloat<px4::params::MPC_THR_MAX>) _throttle_max,				/**< maximum throttle for stabilized */
 		(ParamFloat<px4::params::MPC_THR_HOVER>) _throttle_hover,			/**< throttle at which vehicle is at hover equilibrium */
-		(ParamInt<px4::params::MPC_THR_CURVE>) _throttle_curve				/**< throttle curve behavior */
+		(ParamInt<px4::params::MPC_THR_CURVE>) _throttle_curve,				/**< throttle curve behavior */
+
+		(ParamInt<px4::params::MC_AIRMODE>) _airmode
 	)
 
 	matrix::Vector3f _attitude_p;		/**< P gain for attitude control */
