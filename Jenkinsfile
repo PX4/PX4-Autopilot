@@ -6,7 +6,7 @@ pipeline {
 
       parallel {
 
-        stage('Catkin') {
+        stage('Catkin build on ROS workspace') {
           agent {
             docker {
               image 'px4io/px4-dev-ros:2018-11-22'
@@ -35,7 +35,7 @@ pipeline {
           }
         }
 
-        stage('Colcon') {
+        stage('Colcon build on ROS2 workspace') {
           agent {
             docker {
               image 'px4io/px4-dev-ros2-bouncy:2018-11-22'
