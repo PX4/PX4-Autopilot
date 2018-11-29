@@ -31,12 +31,10 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE platforms__posix__drivers__tonealrmsim
+	MODULE drivers__tone_alarm_sim
 	MAIN tone_alarm
-	COMPILE_FLAGS
 	SRCS
 		tone_alarm.cpp
 	DEPENDS
 		git_driverframework
 	)
-

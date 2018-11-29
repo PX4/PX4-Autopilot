@@ -37,39 +37,16 @@
  * timer HW
  */
 
+#include <circuit_breaker/circuit_breaker.h>
+#include <drivers/device/device.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_tone_alarm.h>
+#include <lib/cdev/CDev.hpp>
+#include <lib/tunes/tunes.h>
 #include <px4_config.h>
 #include <px4_posix.h>
-
-#include <drivers/device/device.h>
-#include <drivers/drv_tone_alarm.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <math.h>
-#include <ctype.h>
-
-#include <board_config.h>
-#include <drivers/drv_hrt.h>
-
-#include <systemlib/err.h>
-#include <circuit_breaker/circuit_breaker.h>
-
 #include <px4_workqueue.h>
-
-#include <lib/tunes/tunes.h>
-#include <uORB/uORB.h>
 #include <uORB/topics/tune_control.h>
-
-#include "VirtDevObj.hpp"
-
-using namespace DriverFramework;
 
 #if !defined(UNUSED)
 #  define UNUSED(a) ((void)(a))
@@ -77,7 +54,7 @@ using namespace DriverFramework;
 
 #define CBRK_BUZZER_KEY 782097
 
-class ToneAlarm : public VirtDevObj
+class ToneAlarm : public cdev::CDev
 {
 public:
 	ToneAlarm();
@@ -141,7 +118,7 @@ extern "C" __EXPORT int tone_alarm_main(int argc, char *argv[]);
 
 
 ToneAlarm::ToneAlarm() :
-	VirtDevObj("tone_alarm", TONEALARM0_DEVICE_PATH, nullptr, 0),
+	CDev(TONEALARM0_DEVICE_PATH),
 	_running(false),
 	_should_run(true),
 	_play_tone(false),
@@ -164,9 +141,7 @@ ToneAlarm::~ToneAlarm()
 
 int ToneAlarm::init()
 {
-	int ret;
-
-	ret = VirtDevObj::init();
+	int ret = CDev::init();
 
 	if (ret != OK) {
 		return ret;
