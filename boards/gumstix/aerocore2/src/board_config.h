@@ -202,9 +202,6 @@
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 
-#define BOARD_FMU_GPIO_TAB { \
-		{0,  0,                       0}, }
-
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 

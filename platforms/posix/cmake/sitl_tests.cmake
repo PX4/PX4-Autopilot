@@ -13,7 +13,6 @@ set(tests
 	dataman
 	file2
 	float
-	gpio
 	hrt
 	hysteresis
 	int

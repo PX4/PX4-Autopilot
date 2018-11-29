@@ -63,7 +63,6 @@
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_sbus.h>
-#include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 
@@ -448,6 +447,8 @@ namespace
 {
 PX4IO	*g_dev = nullptr;
 }
+
+#define PX4IO_DEVICE_PATH	"/dev/px4io"
 
 PX4IO::PX4IO(device::Device *interface) :
 	CDev(PX4IO_DEVICE_PATH),
@@ -2747,19 +2748,6 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 	case PWM_SERVO_SET_MODE:
 		ret = (arg == PWM_SERVO_ENTER_TEST_MODE || PWM_SERVO_EXIT_TEST_MODE) ? 0 : -EINVAL;
-		break;
-
-	case GPIO_RESET: {
-			ret = -EINVAL;
-			break;
-		}
-
-	case GPIO_SET:
-		ret = -EINVAL;
-		break;
-
-	case GPIO_CLEAR:
-		ret = -EINVAL;
 		break;
 
 	case MIXERIOCGETOUTPUTCOUNT:

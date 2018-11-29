@@ -62,7 +62,6 @@ extern int	test_dataman(int argc, char *argv[]);
 extern int	test_file(int argc, char *argv[]);
 extern int	test_file2(int argc, char *argv[]);
 extern int	test_float(int argc, char *argv[]);
-extern int	test_gpio(int argc, char *argv[]);
 extern int	test_hott_telemetry(int argc, char *argv[]);
 extern int	test_hrt(int argc, char *argv[]);
 extern int	test_int(int argc, char *argv[]);
