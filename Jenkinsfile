@@ -18,7 +18,6 @@ pipeline {
             sh '''#!/bin/bash -l
               echo $0;
               mkdir -p catkin_ws/src;
-              cp -R . catkin_ws/src/Firmware
               cd catkin_ws;
               source /opt/ros/melodic/setup.bash;
               catkin init;
@@ -33,6 +32,34 @@ pipeline {
           }
           options {
             checkoutToSubdirectory('catkin_ws/src/Firmware')
+          }
+        }
+
+        stage('Colcon') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ros2-bouncy:2018-11-22'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+            }
+          }
+          steps {
+            sh 'ls -l'
+            sh '''#!/bin/bash -l
+              echo $0;
+              unset ROS_DISTRO;
+              mkdir -p colcon_ws/src;
+              cd colcon_ws;
+              source /opt/ros/bouncy/setup.sh;
+              colcon build --event-handlers console_direct+ --symlink-install;
+            '''
+          }
+          post {
+            always {
+              sh 'rm -rf colcon_ws'
+            }
+          }
+          options {
+            checkoutToSubdirectory('colcon_ws/src/Firmware')
           }
         }
 
