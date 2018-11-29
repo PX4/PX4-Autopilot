@@ -438,7 +438,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	if (reset_yaw_sp) {
 		_man_yaw_sp = yaw;
 
-	} else if (_manual_control_sp.z > 0.05f) {
+	} else if (_manual_control_sp.z > 0.05f || _airmode.get() == (int32_t)Mixer::Airmode::roll_pitch_yaw) {
 
 		const float yaw_rate = math::radians(_yaw_rate_scaling.get());
 		attitude_setpoint.yaw_sp_move_rate = _manual_control_sp.r * yaw_rate;
