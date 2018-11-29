@@ -1,5 +1,7 @@
 # Penta Avioneo eVTOL duo coax C/R on dif tiltwings + light1/10 front pitch turbine v2 (1/2 main)
 
+# @board px4_fmu-v2 exclude
+
 # Control Group #0 is for Vertical flight control
 # Control Group #1 is for Forward flight control (VTOL/alternate)
 # Index 0.Roll 1.Pitch 2.Yaw 3.Throttle 4.Aux

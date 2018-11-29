@@ -5,6 +5,8 @@
 # @type VTOL Penta Tiltwings
 # @class VTOL
 #
+# @board px4_fmu-v2 exclude
+#
 # @output MAIN1 motors right top
 # @output MAIN2 motors right bottom
 # @output MAIN3 motors left top
