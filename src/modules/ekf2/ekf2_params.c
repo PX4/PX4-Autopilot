@@ -539,6 +539,16 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_YAWLIM, 0.25f);
 PARAM_DEFINE_FLOAT(EKF2_BARO_GATE, 5.0f);
 
 /**
+ * Boolean determining if barometer deadzone near ground should be accounted.
+ *
+ * A value of 1 indicates that deadzone is active
+ *
+ * @group EKF2
+ * @boolean
+ */
+PARAM_DEFINE_INT32(EKF2_GND_EFF_EN, 0);
+
+/**
  * Gate size for GPS horizontal position fusion
  *
  * Sets the number of standard deviations used by the innovation consistency test.
