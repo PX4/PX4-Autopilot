@@ -42,7 +42,6 @@ set(srcs
 	test_file.c
 	test_file2.c
 	test_float.cpp
-	test_gpio.c
 	test_hott_telemetry.c
 	test_hrt.cpp
 	test_hysteresis.cpp

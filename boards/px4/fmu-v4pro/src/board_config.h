@@ -332,45 +332,6 @@
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 
-#define BOARD_FMU_GPIO_TAB { \
-		{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,       0}, \
-		{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,       0}, \
-		{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,       0}, \
-		{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,       0}, \
-		{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,       0}, \
-		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,       0}, \
-		{0,                      GPIO_VDD_3V3_SENSORS_EN, 0}, \
-		{0,                      GPIO_VDD_3V3_PERIPH_EN,  0}, \
-		{GPIO_nVDD_BRICK1_VALID, 0,                       0}, \
-		{GPIO_nVDD_BRICK2_VALID, 0,                       0}, \
-		{GPIO_nVDD_USB_VALID,    0,                       0}, \
-		{GPIO_VDD_5V_HIPOWER_OC, 0,                       0}, \
-		{GPIO_VDD_5V_PERIPH_OC,  0,                       0}, }
-
-/*
- * GPIO numbers.
- *
- * There are no alternate functions on this board.
- */
-#define GPIO_SERVO_1           (1<<0)  /**< servo 1 output */
-#define GPIO_SERVO_2           (1<<1)  /**< servo 2 output */
-#define GPIO_SERVO_3           (1<<2)  /**< servo 3 output */
-#define GPIO_SERVO_4           (1<<3)  /**< servo 4 output */
-#define GPIO_SERVO_5           (1<<4)  /**< servo 5 output */
-#define GPIO_SERVO_6           (1<<5)  /**< servo 6 output */
-
-#define GPIO_3V3_SENSORS_EN    (1<<6)  /**< PE3  - GPIO_VDD_3V3_SENSORS_EN */
-#define GPIO_3V3_PERIPH_EN     (1<<7)  /**< PC5  - GPIO_VDD_3V3_PERIPH_EN  */
-
-#define GPIO_BRICK1_VALID      (1<<8)  /**< PB5  - GPIO_nVDD_BRICK1_VALID */
-#define GPIO_BRICK2_VALID      (1<<9)  /**< PG5  - GPIO_nVDD_BRICK2_VALID */
-#define GPIO_USB_VBUS_VALID    (1<<10) /**< PC0  - GPIO_nVDD_USB_VALID */
-
-#define GPIO_5V_HIPOWER_OC     (1<<11) /**< PF3  - !GPIO_VDD_5V_RC_OC */
-#define GPIO_5V_PERIPH_OC      (1<<12) /**< PE10 - !GPIO_VDD_5V_PERIPH_OC */
-
-
-
 /* This board provides a DMA pool and APIs */
 
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
