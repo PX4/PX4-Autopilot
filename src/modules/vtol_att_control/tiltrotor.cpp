@@ -48,7 +48,7 @@ Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 	VtolType(attc)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
-	_vtol_schedule.transition_start = 0;
+	_vtol_schedule.f_trans_start_t = 0;
 
 	_mc_roll_weight = 1.0f;
 	_mc_pitch_weight = 1.0f;
@@ -101,7 +101,7 @@ void Tiltrotor::update_vtol_state()
 
 		case FW_MODE:
 			_vtol_schedule.flight_mode 	= TRANSITION_BACK;
-			_vtol_schedule.transition_start = hrt_absolute_time();
+			_vtol_schedule.f_trans_start_t = hrt_absolute_time();
 			break;
 
 		case TRANSITION_FRONT_P1:
@@ -130,7 +130,7 @@ void Tiltrotor::update_vtol_state()
 		case MC_MODE:
 			// initialise a front transition
 			_vtol_schedule.flight_mode 	= TRANSITION_FRONT_P1;
-			_vtol_schedule.transition_start = hrt_absolute_time();
+			_vtol_schedule.f_trans_start_t = hrt_absolute_time();
 			break;
 
 		case FW_MODE:
@@ -140,7 +140,7 @@ void Tiltrotor::update_vtol_state()
 				// allow switch if we are not armed for the sake of bench testing
 				bool transition_to_p2 = can_transition_on_ground();
 
-				float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
+				float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
 
 				// check if we have reached airspeed to switch to fw mode
 				transition_to_p2 |= !_params->airspeed_disabled &&
@@ -154,7 +154,7 @@ void Tiltrotor::update_vtol_state()
 
 				if (transition_to_p2) {
 					_vtol_schedule.flight_mode = TRANSITION_FRONT_P2;
-					_vtol_schedule.transition_start = hrt_absolute_time();
+					_vtol_schedule.f_trans_start_t = hrt_absolute_time();
 				}
 
 				break;
@@ -218,7 +218,7 @@ void Tiltrotor::update_transition_state()
 {
 	VtolType::update_transition_state();
 
-	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
+	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
 
 	if (!_flag_was_in_trans_mode) {
 		// save desired heading for transition and last thrust value

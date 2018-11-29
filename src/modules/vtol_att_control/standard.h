@@ -95,7 +95,7 @@ private:
 
 	struct {
 		vtol_mode flight_mode;			// indicates in which mode the vehicle is in
-		hrt_abstime transition_start;	// at what time did we start a transition (front- or backtransition)
+		hrt_abstime f_trans_start_t;	// at what time did we start a transition (front- or backtransition)
 	} _vtol_schedule;
 
 	float _pusher_throttle{0.0f};

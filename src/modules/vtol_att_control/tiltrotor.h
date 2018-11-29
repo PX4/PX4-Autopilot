@@ -92,7 +92,7 @@ private:
 
 	struct {
 		vtol_mode flight_mode;			/**< vtol flight mode, defined by enum vtol_mode */
-		hrt_abstime transition_start;	/**< absoulte time at which front transition started */
+		hrt_abstime f_trans_start_t;	/**< absoulte time at which front transition started */
 	} _vtol_schedule;
 
 	float _tilt_control{0.0f};		/**< actuator value for the tilt servo */

@@ -18,7 +18,7 @@ set(config_module_list
 	#drivers/imu/bmi160
 	#drivers/barometer/bmp280
 	#drivers/bst
-	drivers/camera_trigger
+	#drivers/camera_trigger
 	#drivers/frsky_telemetry
 	drivers/gps
 	#drivers/hott
@@ -97,7 +97,7 @@ set(config_module_list
 	#
 	# General system control
 	#
-	modules/camera_feedback
+	#modules/camera_feedback
 	modules/commander
 	modules/events
 	#modules/gpio_led

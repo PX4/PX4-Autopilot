@@ -52,7 +52,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	VtolType(attc)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
-	_vtol_schedule.transition_start = 0;
+	_vtol_schedule.f_trans_start_t = 0;
 	_pusher_active = false;
 
 	_mc_roll_weight = 1.0f;
@@ -113,7 +113,7 @@ void Standard::update_vtol_state()
 	 */
 
 	float mc_weight = _mc_roll_weight;
-	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
+	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
 
 	if (!_attc->is_fixed_wing_requested()) {
 
@@ -137,7 +137,7 @@ void Standard::update_vtol_state()
 			} else {
 				// Regular backtransition
 				_vtol_schedule.flight_mode = TRANSITION_TO_MC;
-				_vtol_schedule.transition_start = hrt_absolute_time();
+				_vtol_schedule.f_trans_start_t = hrt_absolute_time();
 				_reverse_output = _params_standard.reverse_output;
 
 			}
@@ -172,7 +172,7 @@ void Standard::update_vtol_state()
 			/* NOTE: The failsafe transition to fixed-wing was removed because it can result in an
 			 * unsafe flying state. */
 			_vtol_schedule.flight_mode = TRANSITION_TO_FW;
-			_vtol_schedule.transition_start = hrt_absolute_time();
+			_vtol_schedule.f_trans_start_t = hrt_absolute_time();
 
 		} else if (_vtol_schedule.flight_mode == FW_MODE) {
 			// in fw mode
@@ -223,7 +223,7 @@ void Standard::update_vtol_state()
 void Standard::update_transition_state()
 {
 	float mc_weight = 1.0f;
-	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
+	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
 
 	VtolType::update_transition_state();
 

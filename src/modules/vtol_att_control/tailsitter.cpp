@@ -41,11 +41,23 @@
 
 #include "tailsitter.h"
 #include "vtol_att_control_main.h"
+#include <systemlib/mavlink_log.h>
 
-#define ARSP_YAW_CTRL_DISABLE 4.0f	// airspeed at which we stop controlling yaw during a front transition
-#define THROTTLE_TRANSITION_MAX 0.25f	// maximum added thrust above last value in transition
+#ifndef M_PI
+#define M_PI (3.14159265f)
+#endif
+
+#define RAD_TO_DEG(x) ((x) / 3.14159265f * 180.0f)
+#define DEG_TO_RAD(x) ((x) / 180.0f * 3.14159265f)
+
+#define MC_HOVER_THR              0.47f
+
+#define ARSP_YAW_CTRL_DISABLE     4.0f	// airspeed at which we stop controlling yaw during a front transition
+#define THROTTLE_TRANSITION_MAX   0.25f	// maximum added thrust above last value in transition
 #define PITCH_TRANSITION_FRONT_P1 (-_params->front_trans_pitch_sp_p1)	// pitch angle to switch to TRANSITION_P2
-#define PITCH_TRANSITION_BACK -0.25f	// pitch angle to switch to MC
+#define PITCH_TRANSITION_BACK     -0.25f	// pitch angle to switch to MC
+
+//static orb_advert_t mavlink_log_pub = nullptr;
 
 using namespace matrix;
 
@@ -53,7 +65,7 @@ Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 	VtolType(attc)
 {
 	_vtol_schedule.flight_mode = MC_MODE;
-	_vtol_schedule.transition_start = 0;
+	_vtol_schedule.f_trans_start_t = 0.0f;
 
 	_mc_roll_weight = 1.0f;
 	_mc_pitch_weight = 1.0f;
@@ -86,30 +98,33 @@ void Tailsitter::update_vtol_state()
 	*/
 
 	Eulerf euler = Quatf(_v_att->q);
-	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
+	float time_since_f_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
+	float time_since_b_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.b_trans_start_t) * 1e-6f;
 	float pitch = euler.theta();
 
 	if (!_attc->is_fixed_wing_requested()) {
 
 		switch (_vtol_schedule.flight_mode) { // user switchig to MC mode
 		case MC_MODE:
+			_vtol_schedule.b_trans_start_t = hrt_absolute_time();
 			break;
 
 		case FW_MODE:
 			_vtol_schedule.flight_mode 	= TRANSITION_BACK;
-			_vtol_schedule.transition_start = hrt_absolute_time();
+			_vtol_schedule.b_trans_start_t = hrt_absolute_time();
 			break;
 
 		case TRANSITION_FRONT_P1:
 			// failsafe into multicopter mode
 			_vtol_schedule.flight_mode = MC_MODE;
+			_vtol_schedule.b_trans_start_t = hrt_absolute_time();
 			break;
 
 		case TRANSITION_BACK:
 			float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
 
 			// check if we have reached pitch angle to switch to MC mode
-			if (pitch >= PITCH_TRANSITION_BACK) {
+			if (pitch >= PITCH_TRANSITION_BACK && time_since_b_trans_start >= 1.0f) {
 				_vtol_schedule.flight_mode = MC_MODE;
 			}
 
@@ -122,7 +137,7 @@ void Tailsitter::update_vtol_state()
 		case MC_MODE:
 			// initialise a front transition
 			_vtol_schedule.flight_mode 	= TRANSITION_FRONT_P1;
-			_vtol_schedule.transition_start = hrt_absolute_time();
+			_vtol_schedule.f_trans_start_t = hrt_absolute_time();
 			break;
 
 		case FW_MODE:
@@ -136,7 +151,7 @@ void Tailsitter::update_vtol_state()
 				_vtol_schedule.fw_start = hrt_absolute_time();
 
 				// check if we have reached airspeed  and the transition time is over the setpoint to switch to TRANSITION P2 mode
-				if ((airspeed_condition_satisfied && (time_since_trans_start >= (_params->front_trans_duration + _params_tailsitter.front_trans_dur_p2))) || can_transition_on_ground()) {
+				if ((airspeed_condition_satisfied && (time_since_f_trans_start >= (_params->front_trans_duration + _params_tailsitter.front_trans_dur_p2))) || can_transition_on_ground()) {
 					_vtol_schedule.flight_mode = FW_MODE;
 				}
 
@@ -176,9 +191,101 @@ void Tailsitter::update_vtol_state()
 	}
 }
 
+/***
+ *	calculate the thrust feedforward cmd based on the vertical acceleration cmd, horizontal velocity, pitch angle and ang-of-attack
+ *	@input: vertical acceleration cmd (up is positive)
+ *			horizontal velocity
+ *			pitch angle
+ *			ang-of-attack
+ *	@output: thrust feedforward cmd
+ ***/
+float Tailsitter::thr_from_acc_cmd(float vert_acc_cmd, float airspeed, float pitch_ang, float aoa)
+{
+	float thr_ff_cmd   = 0.0f;
+
+	/* calculate the aerodynamic lift force */
+	float lift          = 0.0f;
+	float ang_of_attack = 0.0f;
+
+	ang_of_attack = math::constrain(aoa, - DEG_TO_RAD(89.9f), DEG_TO_RAD(89.9f));
+
+	if (fabsf(ang_of_attack) < DEG_TO_RAD(30.0f))
+	{
+		lift = 0.5f * 1.237f * airspeed * airspeed * 0.1407f * (1.58f + 4.0f * ang_of_attack) / (2.0f * 9.8f);
+	}
+	else if (fabsf(ang_of_attack) >= DEG_TO_RAD(30.0f))
+	{
+		lift = 0.5f * 1.237f * airspeed * airspeed * 0.1407f * (2.1033f - 0.0351f * (ang_of_attack - DEG_TO_RAD(30.0f))) / (2.0f * 9.8f);
+	}
+	else
+	{
+		lift = 0.0f;
+	}
+
+	lift = lift * MC_HOVER_THR;
+
+	if(fabsf(pitch_ang) < DEG_TO_RAD(89.9f))
+	{
+		thr_ff_cmd = (MC_HOVER_THR - lift + vert_acc_cmd) / cosf(pitch_ang);
+	}
+	else
+	{
+		thr_ff_cmd = MC_HOVER_THR;
+	}
+
+	thr_ff_cmd = math::constrain(thr_ff_cmd, 0.1f, 0.9f);
+
+	return thr_ff_cmd;
+}
+
+/***
+ *	calculate the thrust cmd with feedforward and feedback control
+ *	@input: 
+ *	@output:
+ ***/
+void Tailsitter::control_altitude()
+{
+	float dt           = 0.01f;
+	float alt_kp       = 0.8f;
+	float vert_vel_kp  = 0.08f;
+	float vert_vel_ki  = 0.05;
+	float vert_vel_sp  = 0.0f;
+	float vert_vel_err = 0.0f;
+
+	/* calculate the feedforward thrust cmd */
+	matrix::Eulerf euler = matrix::Quatf(_v_att->q);
+	float pitch          = euler.theta();
+	float ang_of_attack  = DEG_TO_RAD(90.0f) - pitch;
+	float horiz_vel      = sqrtf((_local_pos->vx * _local_pos->vx) + (_local_pos->vy * _local_pos->vy));
+
+	float thrust_ffd     = thr_from_acc_cmd(0.0f, horiz_vel, pitch, ang_of_attack);
+	//thrust_ffd           = _params->front_trans_throttle;
+
+	/* calculate the feedback thrust cmd */
+	vert_vel_sp          = (_alt_sp - _local_pos->z) * alt_kp;
+	vert_vel_sp          = math::constrain(vert_vel_sp, -2.5f, 2.5f);
+	vert_vel_err         = -(vert_vel_sp - _local_pos->vz);
+
+	_vert_i_term        += vert_vel_err * dt * vert_vel_ki;
+	_vert_i_term         = math::constrain(_vert_i_term, -0.2f, 0.2f);
+
+	float thrust_fdb     = vert_vel_err * vert_vel_kp + _vert_i_term;
+
+/*
+	static int ii = 1;
+	//ii++;
+	if ((ii % 10) == 0) 
+	{
+		mavlink_log_critical(&mavlink_log_pub, "ffd:%.2f fdb:%.2f", (double)(thrust_ffd), (double)(thrust_fdb));
+	}
+*/
+	_v_att_sp->thrust    = thrust_ffd + thrust_fdb;
+	_v_att_sp->thrust    = math::constrain(_v_att_sp->thrust, 0.2f, 0.8f);
+}
+
 void Tailsitter::update_transition_state()
 {
-	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
+	float time_since_f_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
 
 	if (!_flag_was_in_trans_mode) {
 		_flag_was_in_trans_mode = true;
@@ -198,7 +305,7 @@ void Tailsitter::update_transition_state()
 
 		// create time dependant pitch angle set point + 0.2 rad overlap over the switch value
 		_v_att_sp->pitch_body = _pitch_transition_start	- fabsf(PITCH_TRANSITION_FRONT_P1 - _pitch_transition_start) *
-					time_since_trans_start / _params->front_trans_duration;
+					time_since_f_trans_start / _params->front_trans_duration;
 		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, PITCH_TRANSITION_FRONT_P1,
 							_pitch_transition_start);
 

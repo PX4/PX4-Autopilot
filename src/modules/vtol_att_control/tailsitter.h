@@ -47,6 +47,7 @@
 #include <parameters/param.h>
 #include <drivers/drv_hrt.h>
 #include <matrix/matrix/math.hpp>
+#include <uORB/topics/vehicle_local_position.h>
 
 class Tailsitter : public VtolType
 {
@@ -60,6 +61,9 @@ public:
 	void update_fw_state() override;
 	void fill_actuator_outputs() override;
 	void waiting_on_tecs() override;
+
+	void control_altitude();
+	virtual float thr_from_acc_cmd(float vert_acc_cmd, float airspeed, float pitch_ang, float aoa);
 
 private:
 
@@ -92,7 +96,8 @@ private:
 		float       ctrl_out_trans_end; /**< MC controller output at the end of front transition */
 		hrt_abstime fw_start;           /**< absoulte time at which fw mode started, this time will be used to smooth the controller output */
 		hrt_abstime sweep_start;
-		hrt_abstime transition_start;	/**< absoulte time at which front transition started */
+		hrt_abstime f_trans_start_t;	/**< absoulte time at which front transition started */
+		hrt_abstime b_trans_start_t;
 	} _vtol_schedule;
 
 	matrix::Quatf _q_trans_start;
