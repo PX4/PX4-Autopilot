@@ -116,7 +116,9 @@ private:
 		(ParamInt<px4::params::COM_POS_FS_GAIN>) _failsafe_pos_gain,
 
 		(ParamInt<px4::params::COM_LOW_BAT_ACT>) _low_bat_action,
-		(ParamFloat<px4::params::COM_DISARM_LAND>) _disarm_when_landed_timeout
+		(ParamFloat<px4::params::COM_DISARM_LAND>) _disarm_when_landed_timeout,
+
+		(ParamInt<px4::params::MPC_OBS_AVOID>) _obs_avoid
 	)
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
@@ -178,7 +180,13 @@ private:
 	uint64_t	_datalink_last_heartbeat_onboard_controller{0};
 	uint64_t	_onboard_controller_lost{0};
 
-	int		_iridiumsbd_status_sub{-1};
+	uint64_t	_datalink_last_heartbeat_avoidance_system{0};
+	uint64_t	_avoidance_system_lost{0};
+	uint64_t	_avoidance_system_not_started{0};
+	bool		_avoidance_system_status_change{0};
+	uint64_t	_datalink_last_status_avoidance_system{9};
+
+	int			_iridiumsbd_status_sub{-1};
 	uint64_t	_high_latency_datalink_heartbeat{0};
 	uint64_t	_high_latency_datalink_lost{0};
 
