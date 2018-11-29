@@ -1526,6 +1526,13 @@ Commander::run()
 
 			param_get(_param_takeoff_finished_action, &takeoff_complete_act);
 
+			/* check for unsafe Airmode settings: yaw airmode requires the use of an arming switch */
+			if (_airmode.get() == 2 && _rc_map_arm_switch.get() == 0) {
+				_airmode.set(1); // change to roll/pitch airmode
+				_airmode.commit();
+				mavlink_log_critical(&mavlink_log_pub, "Yaw Airmode requires the use of an Arm Switch")
+			}
+
 			param_init_forced = false;
 		}
 
