@@ -645,11 +645,11 @@ static sector_descriptor_t *get_sector_info(flash_entry_header_t *current)
 static int erase_sector(sector_descriptor_t *sm, flash_entry_header_t *pf)
 {
 	int rv = 0;
-	ssize_t page = up_progmem_getpage((size_t)pf);
+	ssize_t block = up_progmem_getpage((size_t)pf);
 
-	if (page > 0 && page == sm->page) {
+	if (block > 0 && block == sm->page) {
 		last_erased = sm->page;
-		ssize_t size = up_progmem_erasepage(page);
+		ssize_t size = up_progmem_eraseblock(block);
 
 		if (size < 0 || size != (ssize_t)sm->size) {
 			rv = size;

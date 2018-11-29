@@ -162,7 +162,7 @@ bl_update_main(int argc, char *argv[])
 	const size_t page = 0;
 	uint8_t *base = (uint8_t *) PX4_FLASH_BASE;
 
-	ssize_t size = up_progmem_erasepage(page);
+	ssize_t size = up_progmem_eraseblock(page);
 
 	if (size != BL_FILE_SIZE_LIMIT)
 	{
