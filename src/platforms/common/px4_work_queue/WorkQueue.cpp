@@ -31,81 +31,80 @@
  *
  ****************************************************************************/
 
-#include "px4_init.h"
+#include "WorkQueue.hpp"
+#include "WorkItem.hpp"
 
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <string.h>
+
+#include <px4_tasks.h>
+#include <px4_time.h>
 #include <drivers/drv_hrt.h>
-#include <lib/parameters/param.h>
-#include <px4_work_queue/WorkQueueManager.hpp>
-#include <systemlib/cpuload.h>
 
-#include <fcntl.h>
-
-
-#include "platform/cxxinitialize.h"
-
-int px4_platform_init(void)
+namespace px4
 {
 
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-	/* run C++ ctors before we go any further */
-	up_cxxinitialize();
-
-#	if defined(CONFIG_SYSTEM_NSH_CXXINITIALIZE)
-#  		error CONFIG_SYSTEM_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
-#	endif
-
-#else
-#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
+WorkQueue::WorkQueue(const wq_config_t &config) :
+	_config(config)
+{
+	// set the threads name
+#ifdef __PX4_DARWIN
+	pthread_setname_np(_config.name);
+#elif !defined(__PX4_QURT)
+	pthread_setname_np(pthread_self(), _config.name);
 #endif
 
+#ifndef __PX4_NUTTX
+	px4_sem_init(&_qlock, 0, 1);
+#endif /* __PX4_NUTTX */
 
-#if !defined(CONFIG_DEV_CONSOLE) && defined(CONFIG_DEV_NULL)
+	px4_sem_init(&_process_lock, 0, 0);
+	px4_sem_setprotocol(&_process_lock, SEM_PRIO_NONE);
+}
 
-	/* Support running nsh on a board with out a console
-	 * Without this the assumption that the fd 0..2 are
-	 * std{in..err} will be wrong. NSH will read/write to the
-	 * fd it opens for the init script or nested scripts assigned
-	 * to fd 0..2.
-	 *
-	 */
+WorkQueue::~WorkQueue()
+{
+	work_lock();
+	px4_sem_destroy(&_process_lock);
+	work_unlock();
 
-	int fd = open("/dev/null", O_RDWR);
+#ifndef __PX4_NUTTX
+	px4_sem_destroy(&_qlock);
+#endif /* __PX4_NUTTX */
+}
 
-	if (fd == 0) {
-		/* Successfully opened /dev/null as stdin (fd == 0) */
+void WorkQueue::Add(WorkItem *item)
+{
+	work_lock();
+	_q.push(item);
+	work_unlock();
 
-		(void)fs_dupfd2(0, 1);
-		(void)fs_dupfd2(0, 2);
-		(void)fs_fdopen(0, O_RDONLY,         NULL);
-		(void)fs_fdopen(1, O_WROK | O_CREAT, NULL);
-		(void)fs_fdopen(2, O_WROK | O_CREAT, NULL);
+	// Wake up the worker thread
+	px4_sem_post(&_process_lock);
+}
 
-	} else {
-		/* We failed to open /dev/null OR for some reason, we opened
-		 * it and got some file descriptor other than 0.
-		 */
+void WorkQueue::Run()
+{
+	while (!should_exit()) {
+		px4_sem_wait(&_process_lock);
 
-		if (fd > 0) {
-			(void)close(fd);
+		work_lock();
+
+		// process queued work
+		while (!_q.empty()) {
+			WorkItem *work = _q.pop();
+
+			work_unlock(); // unlock work queue to run (item may requeue itself)
+			work->Run();
+			work_lock(); // re-lock
 		}
 
-		return -ENFILE;
+		work_unlock();
 	}
-
-#endif
-
-	hrt_init();
-
-	param_init();
-
-	/* configure CPU load estimation */
-#ifdef CONFIG_SCHED_INSTRUMENTATION
-	cpuload_initialize_once();
-#endif
-
-	px4::WorkQueueManagerStart();
-
-	return PX4_OK;
 }
+
+void WorkQueue::print_status()
+{
+	PX4_INFO("WorkQueue: %s running", get_name());
+}
+
+} // namespace px4
