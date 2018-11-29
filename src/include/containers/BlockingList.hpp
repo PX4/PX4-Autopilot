@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,42 +32,54 @@
  ****************************************************************************/
 
 /**
- * @file List.hpp
+ * @file BlockingList.hpp
  *
- * An intrusive linked list.
+ * A blocking intrusive linked list.
  */
 
 #pragma once
 
+#include <pthread.h>
 #include <stdlib.h>
 
+#include "LockGuard.hpp"
+
 template<class T>
-class ListNode
+class BlockingListNode
 {
 public:
 
-	void setSibling(T sibling) { _list_node_sibling = sibling; }
-	const T getSibling() const { return _list_node_sibling; }
+	void setSibling(T sibling) { _blocking_list_node_sibling = sibling; }
+	const T getSibling() const { return _blocking_list_node_sibling; }
 
 protected:
 
-	T _list_node_sibling{nullptr};
+	T _blocking_list_node_sibling{nullptr};
 
 };
 
 template<class T>
-class List
+class BlockingList
 {
 public:
 
+	~BlockingList()
+	{
+		pthread_mutex_destroy(&_mutex);
+		pthread_cond_destroy(&_cv);
+	}
+
 	void add(T newNode)
 	{
+		LockGuard lg{_mutex};
 		newNode->setSibling(getHead());
 		_head = newNode;
 	}
 
 	bool remove(T removeNode)
 	{
+		LockGuard lg{_mutex};
+
 		// base case
 		if (removeNode == _head) {
 			_head = nullptr;
@@ -118,6 +130,7 @@ public:
 
 	size_t size() const
 	{
+		LockGuard lg{_mutex};
 		size_t sz = 0;
 
 		for (auto node = getHead(); node != nullptr; node = node->getSibling()) {
@@ -137,6 +150,7 @@ public:
 
 	void clear()
 	{
+		LockGuard lg{_mutex};
 		auto node = getHead();
 
 		while (node != nullptr) {
@@ -148,7 +162,12 @@ public:
 		_head = nullptr;
 	}
 
-protected:
+	LockGuard getLockGuard() { return LockGuard{_mutex}; }
+
+private:
+
+	pthread_mutex_t	_mutex = PTHREAD_MUTEX_INITIALIZER;
+	pthread_cond_t	_cv = PTHREAD_COND_INITIALIZER;
 
 	T _head{nullptr};
 };

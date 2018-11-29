@@ -25,7 +25,7 @@ mavlink start -x -u 14556 -r 2000000
 mavlink boot_complete
 
 @cmd_name@ start
-sleep 1
+sleep 3
 @cmd_name@ start
 sleep 1
 @cmd_name@ stop

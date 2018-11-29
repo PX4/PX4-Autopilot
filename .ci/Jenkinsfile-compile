@@ -43,7 +43,7 @@ pipeline {
           ]
 
           def nuttx_builds_other = [
-            target: ["px4_cannode-v1_default", "px4_esc-v1_default", "thiemar_s2740vc-v1_default"],
+            target: ["px4_esc-v1_default", "thiemar_s2740vc-v1_default"],
             image: docker_images.nuttx,
             archive: false
           ]
