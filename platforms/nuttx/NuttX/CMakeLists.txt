@@ -67,9 +67,9 @@ add_custom_command(
 	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig ${NUTTX_DIR}/.config
 	COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/include/nuttx/config.h
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${NUTTX_DIR}/configs/${PX4_BOARD}
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${NUTTX_CONFIG_DIR}/ ${NUTTX_DIR}/configs/${PX4_BOARD}/
-	COMMAND ${CMAKE_COMMAND} -E make_directory ${NUTTX_DIR}/configs/${PX4_BOARD}/src
-	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/nsh_romfsimg.h ${NUTTX_DIR}/configs/${PX4_BOARD}/include
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${NUTTX_CONFIG_DIR}/ ${CMAKE_CURRENT_BINARY_DIR}/nuttx-config
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/nuttx-config/src
+	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/nsh_romfsimg.h ${CMAKE_CURRENT_BINARY_DIR}/nuttx-config/include/
 	DEPENDS
 		${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
 		${NUTTX_CONFIG_DIR}/include/board.h
