@@ -1882,8 +1882,8 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 		mavlink_heartbeat_t hb;
 		mavlink_msg_heartbeat_decode(msg, &hb);
 
-		// ignore own heartbeats
-		if ((msg->sysid != mavlink_system.sysid) && (msg->compid != mavlink_system.compid)) {
+		/* ignore own heartbeats, accept only heartbeats from GCS */
+		if (msg->sysid != mavlink_system.sysid || hb.type == MAV_TYPE_ONBOARD_CONTROLLER) {
 
 			telemetry_status_s &tstatus = _mavlink->get_telemetry_status();
 
@@ -1895,6 +1895,13 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 			tstatus.remote_component_id = msg->compid;
 			tstatus.remote_type = hb.type;
 			tstatus.remote_system_status = hb.system_status;
+
+			if (_telem_status_pub == nullptr) {
+				_telem_status_pub = orb_advertise(ORB_ID(telemetry_status), &tstatus);
+
+			} else {
+				orb_publish(ORB_ID(telemetry_status), _telem_status_pub, &tstatus);
+			}
 		}
 	}
 }
