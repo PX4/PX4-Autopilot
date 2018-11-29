@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,21 +31,59 @@
  *
  ****************************************************************************/
 
-#include "px4_init.h"
+#pragma once
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <drivers/drv_hrt.h>
-#include <lib/parameters/param.h>
-#include <px4_work_queue/WorkQueueManager.hpp>
+#include <px4_sem.h>
 
-int px4_platform_init(void)
+#include "LockGuard.hpp"
+
+template<class T, size_t N>
+class BlockingQueue
 {
-	hrt_init();
+public:
 
-	param_init();
+	BlockingQueue()
+	{
+		px4_sem_init(&_sem_head, 0, N);
+		px4_sem_init(&_sem_tail, 0, 0);
+	}
 
-	px4::WorkQueueManagerStart();
+	~BlockingQueue()
+	{
+		px4_sem_destroy(&_sem_head);
+		px4_sem_destroy(&_sem_tail);
+	}
 
-	return PX4_OK;
-}
+	void push(T newItem)
+	{
+		px4_sem_wait(&_sem_head);
+
+		_data[_tail] = newItem;
+		_tail = (_tail + 1) % N;
+
+		px4_sem_post(&_sem_tail);
+	}
+
+	T pop()
+	{
+		px4_sem_wait(&_sem_tail);
+
+		T ret = _data[_head];
+		_head = (_head + 1) % N;
+
+		px4_sem_post(&_sem_head);
+
+		return ret;
+	}
+
+private:
+
+	px4_sem_t	_sem_head;
+	px4_sem_t	_sem_tail;
+
+	T _data[N];
+
+	size_t _head{0};
+	size_t _tail{0};
+
+};

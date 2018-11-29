@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,21 +31,24 @@
  *
  ****************************************************************************/
 
-#include "px4_init.h"
+#pragma once
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <drivers/drv_hrt.h>
-#include <lib/parameters/param.h>
-#include <px4_work_queue/WorkQueueManager.hpp>
+#include <pthread.h>
 
-int px4_platform_init(void)
+class LockGuard
 {
-	hrt_init();
+public:
+	explicit LockGuard(pthread_mutex_t &mutex) :
+		_mutex(mutex)
+	{
+		pthread_mutex_lock(&_mutex);
+	}
 
-	param_init();
+	~LockGuard()
+	{
+		pthread_mutex_unlock(&_mutex);
+	}
 
-	px4::WorkQueueManagerStart();
-
-	return PX4_OK;
-}
+private:
+	pthread_mutex_t &_mutex;
+};
