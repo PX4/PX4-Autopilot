@@ -31,81 +31,60 @@
  *
  ****************************************************************************/
 
-#include "px4_init.h"
+#include "wqueue_test.h"
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <drivers/drv_hrt.h>
-#include <lib/parameters/param.h>
-#include <px4_work_queue/WorkQueueManager.hpp>
-#include <systemlib/cpuload.h>
+#include <px4_app.h>
+#include <px4_log.h>
+#include <px4_tasks.h>
+#include <stdio.h>
+#include <string.h>
+#include <sched.h>
 
-#include <fcntl.h>
+static int daemon_task = -1;             /* Handle of daemon task / thread */
 
-
-#include "platform/cxxinitialize.h"
-
-int px4_platform_init(void)
+extern "C" __EXPORT int wqueue_test_main(int argc, char *argv[]);
+int wqueue_test_main(int argc, char *argv[])
 {
 
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-	/* run C++ ctors before we go any further */
-	up_cxxinitialize();
-
-#	if defined(CONFIG_SYSTEM_NSH_CXXINITIALIZE)
-#  		error CONFIG_SYSTEM_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
-#	endif
-
-#else
-#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
-#endif
-
-
-#if !defined(CONFIG_DEV_CONSOLE) && defined(CONFIG_DEV_NULL)
-
-	/* Support running nsh on a board with out a console
-	 * Without this the assumption that the fd 0..2 are
-	 * std{in..err} will be wrong. NSH will read/write to the
-	 * fd it opens for the init script or nested scripts assigned
-	 * to fd 0..2.
-	 *
-	 */
-
-	int fd = open("/dev/null", O_RDWR);
-
-	if (fd == 0) {
-		/* Successfully opened /dev/null as stdin (fd == 0) */
-
-		(void)fs_dupfd2(0, 1);
-		(void)fs_dupfd2(0, 2);
-		(void)fs_fdopen(0, O_RDONLY,         NULL);
-		(void)fs_fdopen(1, O_WROK | O_CREAT, NULL);
-		(void)fs_fdopen(2, O_WROK | O_CREAT, NULL);
-
-	} else {
-		/* We failed to open /dev/null OR for some reason, we opened
-		 * it and got some file descriptor other than 0.
-		 */
-
-		if (fd > 0) {
-			(void)close(fd);
-		}
-
-		return -ENFILE;
+	if (argc < 2) {
+		PX4_INFO("usage: wqueue_test {start|stop|status}\n");
+		return 1;
 	}
 
-#endif
+	if (!strcmp(argv[1], "start")) {
 
-	hrt_init();
+		if (WQueueTest::appState.isRunning()) {
+			PX4_INFO("already running\n");
+			/* this is not an error */
+			return 0;
+		}
 
-	param_init();
+		daemon_task = px4_task_spawn_cmd("wqueue",
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 5,
+						 2000,
+						 PX4_MAIN,
+						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
 
-	/* configure CPU load estimation */
-#ifdef CONFIG_SCHED_INSTRUMENTATION
-	cpuload_initialize_once();
-#endif
+		return 0;
+	}
 
-	px4::WorkQueueManagerStart();
+	if (!strcmp(argv[1], "stop")) {
+		WQueueTest::appState.requestExit();
+		return 0;
+	}
 
-	return PX4_OK;
+	if (!strcmp(argv[1], "status")) {
+		if (WQueueTest::appState.isRunning()) {
+			PX4_INFO("is running\n");
+
+		} else {
+			PX4_INFO("not started\n");
+		}
+
+		return 0;
+	}
+
+	PX4_INFO("usage: wqueue_test {start|stop|status}\n");
+	return 1;
 }

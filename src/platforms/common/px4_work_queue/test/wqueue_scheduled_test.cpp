@@ -31,81 +31,50 @@
  *
  ****************************************************************************/
 
-#include "px4_init.h"
+#include "wqueue_scheduled_test.h"
 
-#include <px4_config.h>
-#include <px4_defines.h>
 #include <drivers/drv_hrt.h>
-#include <lib/parameters/param.h>
-#include <px4_work_queue/WorkQueueManager.hpp>
-#include <systemlib/cpuload.h>
+#include <px4_log.h>
+#include <px4_time.h>
 
-#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <inttypes.h>
 
+using namespace px4;
 
-#include "platform/cxxinitialize.h"
+AppState WQueueScheduledTest::appState;
 
-int px4_platform_init(void)
+void WQueueScheduledTest::Run()
 {
+	//PX4_INFO("iter: %d elapsed: %" PRId64 " us", _iter, hrt_elapsed_time(&_qtime));
 
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-	/* run C++ ctors before we go any further */
-	up_cxxinitialize();
-
-#	if defined(CONFIG_SYSTEM_NSH_CXXINITIALIZE)
-#  		error CONFIG_SYSTEM_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
-#	endif
-
-#else
-#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
-#endif
-
-
-#if !defined(CONFIG_DEV_CONSOLE) && defined(CONFIG_DEV_NULL)
-
-	/* Support running nsh on a board with out a console
-	 * Without this the assumption that the fd 0..2 are
-	 * std{in..err} will be wrong. NSH will read/write to the
-	 * fd it opens for the init script or nested scripts assigned
-	 * to fd 0..2.
-	 *
-	 */
-
-	int fd = open("/dev/null", O_RDWR);
-
-	if (fd == 0) {
-		/* Successfully opened /dev/null as stdin (fd == 0) */
-
-		(void)fs_dupfd2(0, 1);
-		(void)fs_dupfd2(0, 2);
-		(void)fs_fdopen(0, O_RDONLY,         NULL);
-		(void)fs_fdopen(1, O_WROK | O_CREAT, NULL);
-		(void)fs_fdopen(2, O_WROK | O_CREAT, NULL);
-
-	} else {
-		/* We failed to open /dev/null OR for some reason, we opened
-		 * it and got some file descriptor other than 0.
-		 */
-
-		if (fd > 0) {
-			(void)close(fd);
-		}
-
-		return -ENFILE;
+	if (_iter > 1000) {
+		appState.requestExit();
 	}
 
-#endif
+	_iter++;
+}
 
-	hrt_init();
+int WQueueScheduledTest::main()
+{
+	appState.setRunning(true);
 
-	param_init();
+	_iter = 0;
 
-	/* configure CPU load estimation */
-#ifdef CONFIG_SCHED_INSTRUMENTATION
-	cpuload_initialize_once();
-#endif
+	// Put work in the work queue
+	ScheduleOnInterval(4000);
 
-	px4::WorkQueueManagerStart();
+	// Wait for work to finsh
+	while (!appState.exitRequested()) {
+		px4_usleep(10000);
+	}
 
-	return PX4_OK;
+	PX4_INFO("WQueueScheduledTest finished");
+
+	//print_status();
+
+	px4_sleep(2);
+
+	return 0;
 }
