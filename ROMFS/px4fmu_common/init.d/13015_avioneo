@@ -23,7 +23,7 @@
 
 sh /etc/init.d/rc.vtol_defaults
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 param set VT_IDLE_PWM_MC  1150
 param set VT_ELEV_MC_LOCK 0
