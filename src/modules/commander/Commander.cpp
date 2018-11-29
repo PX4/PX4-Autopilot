@@ -3903,7 +3903,18 @@ void Commander::data_link_check(bool &status_changed)
 
 				case (telemetry_status_s::MAV_TYPE_ONBOARD_CONTROLLER):
 					_datalink_last_heartbeat_onboard_controller = telemetry.heartbeat_time;
-					// TODO: FYI @baumanta
+					_onboard_controller_lost = false;
+
+					if (telemetry.remote_component_id == telemetry_status_s::COMPONENT_ID_OBSTACLE_AVOIDANCE) {
+						if (telemetry.heartbeat_time != _datalink_last_heartbeat_avoidance_system) {
+							_avoidance_system_status_change = _datalink_last_status_avoidance_system != telemetry.remote_system_status;
+						}
+
+						_datalink_last_heartbeat_avoidance_system = telemetry.heartbeat_time;
+						_datalink_last_status_avoidance_system = telemetry.remote_system_status;
+						_avoidance_system_lost = false;
+					}
+
 					break;
 				}
 			}
@@ -3935,6 +3946,46 @@ void Commander::data_link_check(bool &status_changed)
 		_onboard_controller_lost = hrt_absolute_time();
 		mavlink_log_critical(&mavlink_log_pub, "ONBOARD CONTROLLER LOST");
 	}
+
+	// AVOIDANCE SYSTEM state check (only if it is enabled)
+	if (_obs_avoid.get()) {
+
+		//if avoidance never started
+		if (_datalink_last_heartbeat_avoidance_system == 0 && hrt_elapsed_time(&_avoidance_system_not_started) > 5_s) {
+			_avoidance_system_not_started = hrt_absolute_time();
+			mavlink_log_critical(&mavlink_log_pub, "AVOIDANCE SYSTEM DID NOT START");
+		}
+
+		//if heartbeats stop
+		if ((_datalink_last_heartbeat_avoidance_system > 0)
+		    && (hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > 5_s) &&
+		    (hrt_elapsed_time(&_avoidance_system_lost) > 5_s)) {
+			_avoidance_system_lost = hrt_absolute_time();
+			mavlink_log_critical(&mavlink_log_pub, "AVOIDANCE SYSTEM LOST");
+		}
+
+		//if status changed
+		if (_avoidance_system_status_change) {
+			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_BOOT) {
+				mavlink_log_info(&mavlink_log_pub, "AVOIDANCE SYSTEM STARTING");
+			}
+
+			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_ACTIVE) {
+				mavlink_log_info(&mavlink_log_pub, "AVOIDANCE SYSTEM HEALTHY");
+			}
+
+			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_CRITICAL) {
+				mavlink_log_critical(&mavlink_log_pub, "AVOIDANCE SYSTEM TIMEOUT");
+			}
+
+			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_FLIGHT_TERMINATION) {
+				mavlink_log_critical(&mavlink_log_pub, "AVOIDANCE SYSTEM ABORT");
+			}
+
+			_avoidance_system_status_change = false;
+		}
+	}
+
 
 	// high latency data link loss failsafe
 	if (hrt_elapsed_time(&_high_latency_datalink_heartbeat) > (_high_latency_datalink_loss_threshold.get() * 1_s)) {
