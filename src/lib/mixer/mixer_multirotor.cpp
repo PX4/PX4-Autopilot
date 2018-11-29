@@ -41,6 +41,7 @@
 
 #include <cfloat>
 #include <cstring>
+#include <cstdio>
 
 #include <mathlib/mathlib.h>
 
