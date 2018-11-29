@@ -39,6 +39,7 @@
 #include <float.h>
 #include <mathlib/mathlib.h>
 #include "Utility/ControlMath.hpp"
+#include <px4_defines.h>
 
 using namespace matrix;
 

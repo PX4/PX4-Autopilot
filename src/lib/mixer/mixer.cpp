@@ -39,6 +39,7 @@
 
 #include "mixer.h"
 
+#include <math.h>
 #include <cstring>
 #include <ctype.h>
 

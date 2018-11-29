@@ -38,6 +38,7 @@
  */
 
 #include "mixer.h"
+#include <stdio.h>
 
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)

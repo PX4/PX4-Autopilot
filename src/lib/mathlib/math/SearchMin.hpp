@@ -40,8 +40,6 @@
 
 #pragma once
 
-#include <platforms/px4_defines.h>
-
 namespace math
 {
 static constexpr double GOLDEN_RATIO = 1.6180339887; //(sqrt(5)+1)/2

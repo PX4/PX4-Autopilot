@@ -36,6 +36,7 @@
 #include <cstdio>
 #include <float.h>
 #include <math.h>
+#include <px4_defines.h>
 
 #include <mathlib/mathlib.h>
 
