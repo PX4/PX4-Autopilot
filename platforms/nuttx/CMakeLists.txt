@@ -52,7 +52,7 @@ list(APPEND nuttx_libs
 	nuttx_binfmt
 	nuttx_c
 	nuttx_configs
-	nuttx_cxx
+	nuttx_xx
 	nuttx_drivers
 	nuttx_fs
 	nuttx_mm
@@ -79,7 +79,7 @@ target_link_libraries(nuttx_arch
 )
 
 target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
-target_link_libraries(nuttx_cxx INTERFACE nuttx_c)
+target_link_libraries(nuttx_xx INTERFACE nuttx_c)
 
 target_link_libraries(px4 PRIVATE
 
