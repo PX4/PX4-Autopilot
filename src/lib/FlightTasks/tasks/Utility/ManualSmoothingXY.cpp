@@ -38,6 +38,7 @@
 #include "ManualSmoothingXY.hpp"
 #include <mathlib/mathlib.h>
 #include <float.h>
+#include <px4_defines.h>
 
 using namespace matrix;
 

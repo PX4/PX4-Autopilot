@@ -59,6 +59,7 @@
 #include <uORB/topics/parameter_update.h>
 
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_mixer.h>
 #include <drivers/drv_pwm_output.h>
 
 #include "uavcan_module.hpp"

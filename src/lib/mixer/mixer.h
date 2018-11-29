@@ -125,19 +125,41 @@
  */
 
 
-#ifndef _SYSTEMLIB_MIXER_MIXER_H
-#define _SYSTEMLIB_MIXER_MIXER_H value
+#pragma once
 
-#include <px4_config.h>
-#include "drivers/drv_mixer.h"
+#include <stdint.h>
 
-#include "mixer_load.h"
+/** simple channel scaler */
+struct mixer_scaler_s {
+	float			negative_scale;
+	float			positive_scale;
+	float			offset;
+	float			min_output;
+	float			max_output;
+};
+
+/** mixer input */
+struct mixer_control_s {
+	uint8_t			control_group;	/**< group from which the input reads */
+	uint8_t			control_index;	/**< index within the control group */
+	struct mixer_scaler_s 	scaler;		/**< scaling applied to the input before use */
+};
+
+/** simple mixer */
+struct mixer_simple_s {
+	uint8_t			control_count;	/**< number of inputs */
+	struct mixer_scaler_s	output_scaler;	/**< scaling for the output */
+	struct mixer_control_s	controls[0];	/**< actual size of the array is set by control_count */
+};
+
+#define MIXER_SIMPLE_SIZE(_icount)	(sizeof(struct mixer_simple_s) + (_icount) * sizeof(struct mixer_control_s))
+
 
 /**
  * Abstract class defining a mixer mixing zero or more inputs to
  * one or more outputs.
  */
-class __EXPORT Mixer
+class Mixer
 {
 public:
 	enum class Airmode : int32_t {
@@ -304,7 +326,7 @@ private:
  * Group of mixers, built up from single mixers and processed
  * in order when mixing.
  */
-class __EXPORT MixerGroup : public Mixer
+class MixerGroup : public Mixer
 {
 public:
 	MixerGroup(ControlCallback control_cb, uintptr_t cb_handle);
@@ -440,7 +462,7 @@ private:
  *
  * Used as a placeholder for output channels that are unassigned in groups.
  */
-class __EXPORT NullMixer : public Mixer
+class NullMixer : public Mixer
 {
 public:
 	NullMixer();
@@ -481,7 +503,7 @@ public:
  *
  * Collects zero or more inputs and mixes them to a single output.
  */
-class __EXPORT SimpleMixer : public Mixer
+class SimpleMixer : public Mixer
 {
 public:
 	/**
@@ -582,7 +604,7 @@ enum class MultirotorGeometry : MultirotorGeometryUnderlyingType;
  * Collects four inputs (roll, pitch, yaw, thrust) and mixes them to
  * a set of outputs based on the configured geometry.
  */
-class __EXPORT MultirotorMixer : public Mixer
+class MultirotorMixer : public Mixer
 {
 public:
 	/**
@@ -813,7 +835,7 @@ struct mixer_heli_s {
  * Collects four inputs (roll, pitch, yaw, thrust) and mixes them to servo commands
  * for swash plate tilting and throttle- and pitch curves.
  */
-class __EXPORT HelicopterMixer : public Mixer
+class HelicopterMixer : public Mixer
 {
 public:
 	/**
@@ -870,5 +892,3 @@ private:
 	HelicopterMixer(const HelicopterMixer &);
 	HelicopterMixer operator=(const HelicopterMixer &);
 };
-
-#endif

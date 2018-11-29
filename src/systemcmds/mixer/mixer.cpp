@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mixer.c
+ * @file mixer.cpp
  *
  * Mixer utility.
  */
@@ -48,7 +48,9 @@
 #include <errno.h>
 #include <ctype.h>
 
+#include <drivers/drv_mixer.h>
 #include <lib/mixer/mixer.h>
+#include <lib/mixer/mixer_load.h>
 #include <uORB/topics/actuator_controls.h>
 
 /**

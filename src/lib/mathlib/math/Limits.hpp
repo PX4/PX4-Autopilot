@@ -39,8 +39,13 @@
 
 #pragma once
 
-#include <platforms/px4_defines.h>
 #include <float.h>
+#include <math.h>
+#include <stdint.h>
+
+#ifndef MATH_PI
+#define MATH_PI		3.141592653589793238462643383280
+#endif
 
 //this should be defined in stdint.h, but seems to be missing in the ARM toolchain (5.2.0)
 #ifndef UINT64_C
@@ -90,13 +95,13 @@ inline constexpr bool isInRange(const _Tp &val, const _Tp &min_val, const _Tp &m
 template<typename T>
 constexpr T radians(const T degrees)
 {
-	return degrees * (static_cast<T>(M_PI) / static_cast<T>(180));
+	return degrees * (static_cast<T>(MATH_PI) / static_cast<T>(180));
 }
 
 template<typename T>
 constexpr T degrees(const T radians)
 {
-	return radians * (static_cast<T>(180) / static_cast<T>(M_PI));
+	return radians * (static_cast<T>(180) / static_cast<T>(MATH_PI));
 }
 
 /** Save way to check if float is zero */
