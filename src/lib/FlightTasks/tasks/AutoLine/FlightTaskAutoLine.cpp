@@ -60,7 +60,7 @@ void FlightTaskAutoLine::_setSpeedAtTarget()
 	_speed_at_target = 0.0f;
 
 	if (Vector2f(&(_target - _next_wp)(0)).length() > 0.001f &&
-	    (Vector2f(&(_target - _prev_wp)(0)).length() > NAV_ACC_RAD.get())) {
+	    (Vector2f(&(_target - _prev_wp)(0)).length() > _target_acceptance_radius)) {
 		// angle = cos(x) + 1.0
 		angle =
 			Vector2f(&(_target - _prev_wp)(0)).unit_or_zero()
