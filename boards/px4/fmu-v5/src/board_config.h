@@ -645,61 +645,6 @@
 
 #define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
-#define BOARD_FMU_GPIO_TAB { \
-		{GPIO_GPIO0_INPUT,       GPIO_GPIO0_OUTPUT,              0}, \
-		{GPIO_GPIO1_INPUT,       GPIO_GPIO1_OUTPUT,              0}, \
-		{GPIO_GPIO2_INPUT,       GPIO_GPIO2_OUTPUT,              0}, \
-		{GPIO_GPIO3_INPUT,       GPIO_GPIO3_OUTPUT,              0}, \
-		{GPIO_GPIO4_INPUT,       GPIO_GPIO4_OUTPUT,              0}, \
-		{GPIO_GPIO5_INPUT,       GPIO_GPIO5_OUTPUT,              0}, \
-		{GPIO_GPIO6_INPUT,       GPIO_GPIO6_OUTPUT,              0}, \
-		{GPIO_GPIO7_INPUT,       GPIO_GPIO7_OUTPUT,              0}, \
-		{GPIO_nPOWER_IN_A,       0,                              0}, \
-		{GPIO_nPOWER_IN_B,       0,                              0}, \
-		{GPIO_nPOWER_IN_C,       0,                              0}, \
-		{0,                      GPIO_xVDD_5V_PERIPH_EN,         0}, \
-		{GPIO_nVDD_5V_PERIPH_OC, 0,                              0}, \
-		{0,                      GPIO_nVDD_5V_HIPOWER_EN,        0}, \
-		{GPIO_nVDD_5V_HIPOWER_OC,0,                              0}, \
-		{0,                      GPIO_VDD_3V3_SENSORS_EN,        0}, \
-		{0,                      GPIO_VDD_3V3_SPEKTRUM_POWER_EN, 0}, \
-		{0,                      GPIO_VDD_5V_RC_EN,              0}, \
-		{0,                      GPIO_VDD_5V_WIFI_EN,            0}, \
-		{0,                      GPIO_VDD_3V3_SD_CARD_EN,        0}, \
-		{0,                      GPIO_HW_REV_DRIVE,              0}, \
-		{0,                      GPIO_HW_VER_DRIVE,              0}, \
-	}
-
-/*
- * GPIO numbers.
- *
- * There are no alternate functions on this board.
- */
-#define GPIO_SERVO_1                (1<<0)   /**< servo 1 output */
-#define GPIO_SERVO_2                (1<<1)   /**< servo 2 output */
-#define GPIO_SERVO_3                (1<<2)   /**< servo 3 output */
-#define GPIO_SERVO_4                (1<<3)   /**< servo 4 output */
-#define GPIO_SERVO_5                (1<<4)   /**< servo 5 output */
-#define GPIO_SERVO_6                (1<<5)   /**< servo 6 output */
-#define GPIO_SERVO_7                (1<<6)   /**< servo 7 output */
-#define GPIO_SERVO_8                (1<<7)   /**< servo 8 output */
-
-#define GPIO_nPOWER_INPUT_A         (1<<8)   /**<PG1 GPIO_nPOWER_IN_A */
-#define GPIO_nPOWER_INPUT_B         (1<<9)   /**<PG2 GPIO_nPOWER_IN_B */
-#define GPIO_nPOWER_INPUT_C         (1<<10)  /**<PG3 GPIO_nPOWER_IN_C */
-
-#define GPIO_PERIPH_5V_POWER_EN     (1<<11)  /**< PG4  - GPIO_nVDD_5V_PERIPH_EN */
-#define GPIO_PERIPH_5V_POWER_OC     (1<<12)  /**< PE15 - GPIO_nVDD_5V_PERIPH_OC */
-#define GPIO_PERIPH_5V_HIPOWER_EN   (1<<13)  /**< PF12 - GPIO_nVDD_5V_HIPOWER_EN */
-#define GPIO_PERIPH_5V_HIPOWER_OC   (1<<14)  /**< PG13 - GPIO_nVDD_5V_HIPOWER_OC */
-#define GPIO_3V3_SENSORS_EN         (1<<15)  /**< PE3  - VDD_3V3_SENSORS_EN */
-#define GPIO_SPEKTRUM_POWER         (1<<16)  /**< PE4  - GPIO_VDD_3V3_SPEKTRUM_POWER_EN */
-#define GPIO_RC_POWER_EN            (1<<17)  /**< PG5  - GPIO_VDD_5V_RC_EN        */
-#define GPIO_WIFI_POWER_EN          (1<<18)  /**< PG6  - GPIO_VDD_5V_WIFI_EN      */
-#define GPIO_SD_CARD_POWER_EN       (1<<19)  /**< PG7  - GPIO_VDD_3V3_SD_CARD_EN */
-#define GPIO_HW_REV_DRIVE_EN        (1<<20)  /**< PH14 - GPIO_HW_REV_DRIVE */
-#define GPIO_HW_VER_DRIVE_EN        (1<<21)  /**< PG0  - GPIO_HW_VER_DRIVE */
-
 /* This board provides a DMA pool and APIs */
 
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120

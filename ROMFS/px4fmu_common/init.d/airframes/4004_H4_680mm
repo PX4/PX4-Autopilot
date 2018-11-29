@@ -25,6 +25,3 @@ fi
 
 # Start FrSky telemetry on SERIAL4 (ttyS6, designated "SERIAL4/5" on the case)
 frsky_telemetry start -d /dev/ttyS6
-
-# GPIO LED
-gpio_led start -p 6
