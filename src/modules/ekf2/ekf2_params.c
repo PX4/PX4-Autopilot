@@ -549,6 +549,19 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_GATE, 5.0f);
 PARAM_DEFINE_INT32(EKF2_GND_EFF_EN, 0);
 
 /**
+ * Baro deadzone range for height fusion
+ *
+ * Sets the value of deadzone applied to negative baro innovations when ground effect compensation is active
+ *
+ * @group EKF2
+ * @min 0.5
+ * @max 10.0
+ * @unit M
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_GND_EFF_DZ, 5.0f);
+
+/**
  * Gate size for GPS horizontal position fusion
  *
  * Sets the number of standard deviations used by the innovation consistency test.
