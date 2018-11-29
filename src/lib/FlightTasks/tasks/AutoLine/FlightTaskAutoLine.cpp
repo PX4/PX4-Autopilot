@@ -155,6 +155,9 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 				// accelerate towards target
 				speed_sp_track = acc_max * _deltatime + speed_sp_prev_track;
 			}
+
+			// ensure that desired speed does not exceed speed at threshold
+			speed_sp_track = math::min(speed_threshold, speed_sp_track);
 		}
 
 		speed_sp_track = math::constrain(speed_sp_track, 0.0f, _mc_cruise_speed);
