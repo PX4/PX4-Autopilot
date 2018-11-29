@@ -919,13 +919,7 @@ MulticopterPositionControl::start_flight_task()
 		should_disable_task = false;
 		int error = 0;
 		switch (MPC_AUTO_MODE.get()) {
-		case 0:
 		case 1:
-		case 2:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
-			break;
-
-		case 3:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLineSmoothVel);
 			break;
 
@@ -949,15 +943,10 @@ MulticopterPositionControl::start_flight_task()
 
 	// manual position control
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL || task_failure) {
-
 		should_disable_task = false;
 		int error = 0;
 
 		switch (MPC_POS_MODE.get()) {
-		case 0:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPosition);
-			break;
-
 		case 1:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmooth);
 			break;
@@ -991,7 +980,17 @@ MulticopterPositionControl::start_flight_task()
 	// manual altitude control
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL || task_failure) {
 		should_disable_task = false;
-		int error = _flight_tasks.switchTask(FlightTaskIndex::ManualAltitude);
+		int error = 0;
+
+		switch (MPC_POS_MODE.get()) {
+		case 1:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitudeSmooth);
+			break;
+
+		default:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitude);
+			break;
+		}
 
 		if (error != 0) {
 			if (prev_failure_count == 0) {

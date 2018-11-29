@@ -85,6 +85,7 @@ static void arm_auth_request_msg_send()
 
 	if (handle_vehicle_command_pub == nullptr) {
 		handle_vehicle_command_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+
 	} else {
 		orb_publish(ORB_ID(vehicle_command), handle_vehicle_command_pub, &vcmd);
 	}
@@ -96,8 +97,10 @@ static uint8_t _auth_method_arm_req_check()
 	case ARM_AUTH_IDLE:
 		/* no authentication in process? handle bellow */
 		break;
+
 	case ARM_AUTH_MISSION_APPROVED:
 		return vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+
 	default:
 		return vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
 	}
@@ -127,12 +130,13 @@ static uint8_t _auth_method_arm_req_check()
 		state = ARM_AUTH_IDLE;
 		mavlink_log_critical(mavlink_log_pub, "Arm auth: No response");
 		break;
+
 	default:
 		break;
 	}
 
 	return state == ARM_AUTH_MISSION_APPROVED ?
-			vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+	       vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
 }
 
 static uint8_t _auth_method_two_arm_check()
@@ -141,11 +145,14 @@ static uint8_t _auth_method_two_arm_check()
 	case ARM_AUTH_IDLE:
 		/* no authentication in process? handle bellow */
 		break;
+
 	case ARM_AUTH_MISSION_APPROVED:
 		return vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+
 	case ARM_AUTH_WAITING_AUTH:
 	case ARM_AUTH_WAITING_AUTH_WITH_ACK:
 		return vehicle_command_ack_s::VEHICLE_RESULT_TEMPORARILY_REJECTED;
+
 	default:
 		return vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
 	}
@@ -174,7 +181,7 @@ uint8_t arm_auth_check()
 void arm_auth_update(hrt_abstime now, bool param_update)
 {
 	if (param_update) {
-		param_get(param_arm_parameters, (int32_t*)&arm_parameters);
+		param_get(param_arm_parameters, (int32_t *)&arm_parameters);
 	}
 
 	switch (state) {
@@ -182,11 +189,14 @@ void arm_auth_update(hrt_abstime now, bool param_update)
 	case ARM_AUTH_WAITING_AUTH_WITH_ACK:
 		/* handle bellow */
 		break;
+
 	case ARM_AUTH_MISSION_APPROVED:
 		if (now > auth_timeout) {
 			state = ARM_AUTH_IDLE;
 		}
+
 		return;
+
 	case ARM_AUTH_IDLE:
 	default:
 		return;
@@ -199,50 +209,60 @@ void arm_auth_update(hrt_abstime now, bool param_update)
 	bool updated = false;
 
 	orb_check(command_ack_sub, &updated);
+
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_command_ack), command_ack_sub, &command_ack);
 	}
 
 	if (updated
-			&& command_ack.command == vehicle_command_s::VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST
-			&& command_ack.target_system == *system_id) {
+	    && command_ack.command == vehicle_command_s::VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST
+	    && command_ack.target_system == *system_id) {
 		switch (command_ack.result) {
 		case vehicle_command_ack_s::VEHICLE_RESULT_IN_PROGRESS:
 			state = ARM_AUTH_WAITING_AUTH_WITH_ACK;
 			break;
+
 		case vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED:
 			mavlink_log_critical(mavlink_log_pub,
-					"Arm auth: Authorized for the next %u seconds",
-					command_ack.result_param2);
+					     "Arm auth: Authorized for the next %u seconds",
+					     command_ack.result_param2);
 			state = ARM_AUTH_MISSION_APPROVED;
 			auth_timeout = now + (command_ack.result_param2 * 1000000);
 			return;
+
 		case vehicle_command_ack_s::VEHICLE_RESULT_TEMPORARILY_REJECTED:
 			mavlink_log_critical(mavlink_log_pub, "Arm auth: Temporarily rejected");
 			state = ARM_AUTH_IDLE;
 			return;
+
 		case vehicle_command_ack_s::VEHICLE_RESULT_DENIED:
 		default:
 			switch (command_ack.result_param1) {
 			case vehicle_command_ack_s::ARM_AUTH_DENIED_REASON_NONE:
 				/* Authorizer will send reason to ground station */
 				break;
+
 			case vehicle_command_ack_s::ARM_AUTH_DENIED_REASON_INVALID_WAYPOINT:
 				mavlink_log_critical(mavlink_log_pub, "Arm auth: Denied, waypoint %i have a invalid value", command_ack.result_param2);
 				break;
+
 			case vehicle_command_ack_s::ARM_AUTH_DENIED_REASON_TIMEOUT:
 				mavlink_log_critical(mavlink_log_pub, "Arm auth: Denied by timeout in authorizer");
 				break;
+
 			case vehicle_command_ack_s::ARM_AUTH_DENIED_REASON_AIRSPACE_IN_USE:
 				mavlink_log_critical(mavlink_log_pub, "Arm auth: Denied because airspace is in use");
 				break;
+
 			case vehicle_command_ack_s::ARM_AUTH_DENIED_REASON_BAD_WEATHER:
 				mavlink_log_critical(mavlink_log_pub, "Arm auth: Denied because of bad weather");
 				break;
+
 			case vehicle_command_ack_s::ARM_AUTH_DENIED_REASON_GENERIC:
 			default:
 				mavlink_log_critical(mavlink_log_pub, "Arm auth: Denied");
 			}
+
 			state = ARM_AUTH_IDLE;
 			return;
 		}

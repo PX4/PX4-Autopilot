@@ -681,22 +681,11 @@ PARAM_DEFINE_INT32(MPC_POS_MODE, 1);
 /**
  * Auto sub-mode.
  *
- * The supported sub-modes are:
- * 0 Direct line tracking, no smoothing
- *
- * 1 Not used
- *
- * 2 Not used
- *
- * 3 Jerk-limited trajectory
- *
  * @value 0 Default line tracking
- * @value 1 N/A
- * @value 2 N/A
- * @value 3 Jerk-limited trajectory
+ * @value 1 Jerk-limited trajectory
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_INT32(MPC_AUTO_MODE, 3);
+PARAM_DEFINE_INT32(MPC_AUTO_MODE, 1);
 
 /**
  * Delay from idle state to arming state.

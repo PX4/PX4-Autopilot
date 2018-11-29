@@ -13,7 +13,6 @@ exec find src platforms \
     -path src/lib/DriverFramework -prune -o \
     -path src/lib/ecl -prune -o \
     -path src/lib/matrix -prune -o \
-    -path src/modules/commander -prune -o \
     -path src/modules/micrortps_bridge/micro-CDR -prune -o \
     -path src/modules/systemlib/uthash -prune -o \
     -path src/modules/uavcan/libuavcan -prune -o \
