@@ -20,7 +20,7 @@ position  = [-0.02, 0.975, -0.165]
 direction = "CW"
 
 [[rotors]]
-name      = "3-rear_left_up"
+name      = "3-rear_left_top"
 position  = [-0.02, -0.975, -0.2]
 
 [[rotors]]
