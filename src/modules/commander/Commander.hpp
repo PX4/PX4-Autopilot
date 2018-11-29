@@ -110,7 +110,10 @@ private:
 		(ParamInt<px4::params::COM_POS_FS_GAIN>) _failsafe_pos_gain,
 
 		(ParamInt<px4::params::COM_LOW_BAT_ACT>) _low_bat_action,
-		(ParamFloat<px4::params::COM_DISARM_LAND>) _disarm_when_landed_timeout
+		(ParamFloat<px4::params::COM_DISARM_LAND>) _disarm_when_landed_timeout,
+
+		(ParamInt<px4::params::MC_AIRMODE>) _airmode,
+		(ParamInt<px4::params::RC_MAP_ARM_SW>) _rc_map_arm_switch
 	)
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
