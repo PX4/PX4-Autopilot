@@ -114,7 +114,7 @@ function(px4_os_prebuild_targets)
 	endif()
 
 	add_library(prebuild_targets INTERFACE)
-	target_link_libraries(prebuild_targets INTERFACE nuttx_cxx nuttx_c nuttx_fs nuttx_mm nuttx_sched m gcc)
+	target_link_libraries(prebuild_targets INTERFACE nuttx_xx nuttx_c nuttx_fs nuttx_mm nuttx_sched m gcc)
 	add_dependencies(prebuild_targets DEPENDS nuttx_context uorb_headers)
 
 	# parse nuttx config options for cmake
