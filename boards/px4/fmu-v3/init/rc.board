@@ -37,7 +37,8 @@ unset BL_FILE
 
 if [ $AUTOCNF = yes ]
 then
-	param set SYS_FMU_TASK 1
+
+
 fi
 
 

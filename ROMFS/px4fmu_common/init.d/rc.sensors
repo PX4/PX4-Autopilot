@@ -37,22 +37,6 @@ then
 	lsm303d start
 fi
 
-if ver hwcmp AUAV_X21
-then
-	# External I2C bus
-	hmc5883 -C -T -X start
-	lis3mdl -X start
-
-	# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
-	mpu6000 -R 2 -T 20608 start
-
-	# Internal SPI bus ICM-20602-G is rotated 90 deg yaw
-	mpu6000 -R 2 -T 20602 start
-
-	# Internal SPI bus mpu9250 is rotated 90 deg yaw
-	mpu9250 -R 2 start
-fi
-
 if ver hwcmp BITCRAZE_CRAZYFLIE
 then
 	# Onboard I2C
