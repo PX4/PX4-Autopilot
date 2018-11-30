@@ -24,7 +24,8 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
 }@
 /****************************************************************************
  *
- * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+ * Copyright (c) 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+ * Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -62,7 +63,7 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
 #include <ctime>
 #include <pthread.h>
 
-#include <microcdr/microcdr.h>
+#include <ucdr/microcdr.h>
 #include <px4_time.h>
 #include <uORB/uORB.h>
 
@@ -91,10 +92,10 @@ void* send(void* /*unused*/)
     orb_set_interval(fds[@(idx)], _options.update_time_ms);
 @[end for]@
 
-    // MicroBuffer to serialized using the user defined buffer
-    MicroBuffer MicroBufferWriter;
+    // ucdrBuffer to serialize using the user defined buffer
+    ucdrBuffer writer;
     header_length=transport_node->get_header_length();
-    init_micro_buffer(&MicroBufferWriter, (uint8_t*)&data_buffer[header_length], BUFFER_SIZE - header_length);
+    ucdr_init_buffer(&writer, (uint8_t*)&data_buffer[header_length], BUFFER_SIZE - header_length);
 
     struct timespec begin;
     px4_clock_gettime(CLOCK_REALTIME, &begin);
@@ -111,7 +112,7 @@ void* send(void* /*unused*/)
             // copy raw data into local buffer
             if (orb_copy(ORB_ID(@(topic)), fds[@(idx)], &data) == 0) {
                 /* payload is shifted by header length to make room for header*/
-                serialize_@(topic)(&MicroBufferWriter, &data, &data_buffer[header_length], &length);
+                serialize_@(topic)(&writer, &data, &data_buffer[header_length], &length);
 
                 if (0 < (read = transport_node->write((char)@(rtps_message_id(ids, topic)), data_buffer, length)))
                 {
@@ -165,9 +166,9 @@ void micrortps_start_topics(struct timespec &begin, int &total_read, uint32_t &r
     orb_advert_t @(topic)_pub = nullptr;
 @[end for]@
 
-    // MicroBuffer to deserialized using the user defined buffer
-    MicroBuffer MicroBufferReader;
-    init_micro_buffer(&MicroBufferReader, (uint8_t*)data_buffer, BUFFER_SIZE);
+    // ucdrBuffer to deserialize using the user defined buffer
+    ucdrBuffer reader;
+    ucdr_init_buffer(&reader, (uint8_t*)data_buffer, BUFFER_SIZE);
 @[end if]@
 
     px4_clock_gettime(CLOCK_REALTIME, &begin);
@@ -191,7 +192,7 @@ void micrortps_start_topics(struct timespec &begin, int &total_read, uint32_t &r
 
                 case @(rtps_message_id(ids, topic)):
                 {
-                    deserialize_@(topic)(&MicroBufferReader, &@(topic)_data, data_buffer);
+                    deserialize_@(topic)(&reader, &@(topic)_data, data_buffer);
                     if (!@(topic)_pub) {
                         @(topic)_pub = orb_advertise(ORB_ID(@(topic)), &@(topic)_data);
                     } else {
