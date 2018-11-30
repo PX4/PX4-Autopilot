@@ -339,13 +339,13 @@ else
 	if [ $AUTOCNF = yes ]
 	then
 		# Run FMU as task on Pixracer and on boards with enough RAM.
-		if ver hwcmp PX4_FMU_V4 PX4_FMU_V4PRO PX4_FMU_V5
+		if ver hwcmp PX4_FMU_V4PRO PX4_FMU_V5
 		then
 			param set SYS_FMU_TASK 1
 		fi
 
-		# Disable safety switch by default on Pixracer and OmnibusF4SD.
-		if ver hwcmp PX4_FMU_V4 OMNIBUS_F4SD
+		# Disable safety switch by default on OmnibusF4SD.
+		if ver hwcmp OMNIBUS_F4SD
 		then
 			param set CBRK_IO_SAFETY 22027
 		fi
@@ -513,15 +513,6 @@ else
 	# Note: rc.serial is auto-generated from Tools/serial/generate_config.py
 	#
 	sh /etc/init.d/rc.serial
-
-	if ver hwcmp PX4_FMU_V4
-	then
-		# Run FrSky Telemetry on Pixracer on the FrSky port if not enabled already
-		if param compare TEL_FRSKY_CONFIG 0
-		then
-			frsky_telemetry start -d /dev/ttyS6 -t 15
-		fi
-	fi
 
 	#
 	# Configure vehicle type specific parameters.
