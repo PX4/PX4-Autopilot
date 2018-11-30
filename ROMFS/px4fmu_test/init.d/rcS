@@ -5,6 +5,8 @@
 set +e
 set unit_test_failure 0
 
+set BOARD_RC /etc/init.d/rc.board
+
 uorb start
 
 if rgbled start
@@ -59,6 +61,15 @@ then
 	echo "[param] Loaded: $PARAM_FILE"
 else
 	echo "[param] FAILED loading $PARAM_FILE"
+fi
+
+#
+# run boards rc.board if available
+#
+if [ -f $BOARD_RC ]
+then
+	echo "Board init: ${BOARD_RC}"
+	sh $BOARD_RC
 fi
 
 if [ -f /etc/extras/px4_io-v2_default.bin ]
