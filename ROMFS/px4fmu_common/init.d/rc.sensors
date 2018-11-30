@@ -5,10 +5,6 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-###############################################################################
-#               Begin Setup for board specific configurations.                #
-###############################################################################
-
 if ! ver hwcmp AEROFC_V1 OMNIBUS_F4SD
 then
 	if ! ver hwcmp BITCRAZE_CRAZYFLIE
@@ -30,19 +26,6 @@ then
 
 	adc start
 fi
-
-if ver hwcmp ATMEL_SAME70XPLAINED_V1
-then
-	# External I2C bus
-	hmc5883 -C -T -X start
-
-	# Internal SPI bus mpu9250 is rotated 90 deg yaw
-	mpu9250 -R 2 start
-fi
-
-###############################################################################
-#                 End Setup for board specific configurations.                #
-###############################################################################
 
 ###############################################################################
 #                           Begin Optional drivers                            #
