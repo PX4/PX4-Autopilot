@@ -31,19 +31,6 @@ then
 	adc start
 fi
 
-if ver hwcmp INTEL_AEROFC_V1
-then
-	ms5611 -T 0 start
-	mpu9250 -s -R 14 start
-
-	# Possible external compasses
-	hmc5883 -X start
-
-	ist8310 -C -b 1 -R 4 start
-	aerofc_adc start
-	ll40ls start i2c
-fi
-
 if ver hwcmp GUMSTIX_AEROCORE2
 then
 	l3gd20 -R 12 start
