@@ -462,14 +462,6 @@ else
 	fi
 
 	#
-	# Launch the flow sensor as a background task.
-	#
-	if ver hwcmp PX4_FMU_V4 AIRMIND_MINDPX_V2
-	then
-		px4flow start &
-	fi
-
-	#
 	# Start any custom addons.
 	#
 	if [ -f $FEXTRAS ]
