@@ -6,7 +6,7 @@ set(board_serial_ports
 	GPS1:/dev/ttyS3
 	TEL1:/dev/ttyS1
 	TEL2:/dev/ttyS2
-	TEL3:/dev/ttyS0)
+	TEL4:/dev/ttyS0)
 
 set(config_uavcan_num_ifaces 1)
 
