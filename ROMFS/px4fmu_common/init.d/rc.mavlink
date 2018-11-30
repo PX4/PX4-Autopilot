@@ -11,7 +11,6 @@ then
 	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 fi
 
-#
 # SYS_COMPANION transition support. Can be removed after the next release (currently at 1.8.0)
 #
 if param compare SYS_COMPANION 319200
