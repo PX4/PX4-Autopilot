@@ -5,7 +5,6 @@
 #
 
 set LOGGER_ARGS ""
-set LOGGER_BUF  14
 
 if param greater UAVCAN_ENABLE 1
 then
@@ -17,7 +16,7 @@ fi
 #               Begin Setup for board specific configurations.                #
 ###############################################################################
 
-if ver hwcmp PX4_FMU_V5 AV_X_V1
+if ver hwcmp AV_X_V1
 then
 	set LOGGER_BUF 64
 fi
@@ -44,4 +43,3 @@ fi
 logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
 
 unset LOGGER_ARGS
-unset LOGGER_BUF
