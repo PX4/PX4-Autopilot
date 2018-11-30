@@ -172,25 +172,35 @@ __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 	}
 };
 
+#if defined(BOARD_HAS_LED_PWM) || defined(BOARD_HAS_UI_LED_PWM)
 __EXPORT const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
-	{
-		.base 				= STM32_TIM3_BASE,
-		.clock_register 	= STM32_RCC_APB1ENR,
-		.clock_bit 			= RCC_APB1ENR_TIM3EN,
-		.clock_freq 		= STM32_APB1_TIM3_CLKIN,
-		.vectorno 			=  0,
-		.first_channel_index = 0,
-		.last_channel_index = 2,
-	},
+#  if defined(BOARD_HAS_UI_LED_PWM)
 	{
 		.base 				= STM32_TIM5_BASE,
 		.clock_register 	= STM32_RCC_APB1ENR,
 		.clock_bit 			= RCC_APB1ENR_TIM5EN,
 		.clock_freq 		= STM32_APB1_TIM5_CLKIN,
 		.vectorno 			=  0,
-		.first_channel_index = 3,
-		.last_channel_index = 5,
-	}
+		.first_channel_index = 0,
+		.last_channel_index = 2,
+	},
+#  endif
+#  if defined(BOARD_HAS_LED_PWM) && !defined(BOARD_HAS_CONTROL_STATUS_LEDS)
+  {
+    .base         = STM32_TIM3_BASE,
+    .clock_register   = STM32_RCC_APB1ENR,
+    .clock_bit      = RCC_APB1ENR_TIM3EN,
+    .clock_freq     = STM32_APB1_TIM3_CLKIN,
+    .vectorno       =  0,
+#  if defined(BOARD_HAS_UI_LED_PWM)
+    .first_channel_index = 3,
+    .last_channel_index = 5,
+#  else
+    .first_channel_index = 0,
+    .last_channel_index = 2,
+#  endif
+  },
+#  endif
 };
 
 /* Support driving active low (preferred) or active high LED
@@ -221,70 +231,87 @@ __EXPORT const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
 #endif
 
 __EXPORT const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
-	{
-		.gpio_out = DRIVE_TYPE(LED_TIM3_CH4OUT),
-		.gpio_in  = 0,
-		.timer_index = 0,
-		.timer_channel = 4,
-		.masks = POLARITY(4),
-	},
-	{
-		.gpio_out = DRIVE_TYPE(LED_TIM3_CH1OUT),
-		.gpio_in  = 0,
-		.timer_index = 0,
-		.timer_channel = 1,
-		.masks = POLARITY(1),
-	},
-	{
-		.gpio_out = DRIVE_TYPE(LED_TIM3_CH2OUT),
-		.gpio_in  = 0,
-		.timer_index = 0,
-		.timer_channel = 2,
-		.masks = POLARITY(2),
-	},
-#if defined(BOARD_UI_LED_SWAP_RG)
+#  if defined(BOARD_HAS_UI_LED_PWM)
+#    if defined(BOARD_UI_LED_SWAP_RG)
 	{
 		.gpio_out = UI_DRIVE_TYPE(UI_LED_TIM5_CH2OUT),
 		.gpio_in  = 0,
-		.timer_index = 1,
+		.timer_index = 0,
 		.timer_channel = 2,
 		.masks = UI_POLARITY(2),
 	},
 	{
 		.gpio_out = UI_DRIVE_TYPE(UI_LED_TIM5_CH1OUT),
 		.gpio_in  = 0,
-		.timer_index = 1,
+		.timer_index = 0,
 		.timer_channel = 1,
 		.masks = UI_POLARITY(1),
 	},
 	{
 		.gpio_out = UI_DRIVE_TYPE(UI_LED_TIM5_CH3OUT),
 		.gpio_in  = 0,
-		.timer_index = 1,
+		.timer_index = 0,
 		.timer_channel = 3,
 		.masks = UI_POLARITY(3),
 	},
-#else
+#    else
 	{
 		.gpio_out = UI_DRIVE_TYPE(UI_LED_TIM5_CH1OUT),
 		.gpio_in  = 0,
-		.timer_index = 1,
+		.timer_index = 0,
 		.timer_channel = 1,
 		.masks = UI_POLARITY(1),
 	},
 	{
 		.gpio_out = UI_DRIVE_TYPE(UI_LED_TIM5_CH2OUT),
 		.gpio_in  = 0,
-		.timer_index = 1,
+		.timer_index = 0,
 		.timer_channel = 2,
 		.masks = UI_POLARITY(2),
 	},
 	{
 		.gpio_out = UI_DRIVE_TYPE(UI_LED_TIM5_CH3OUT),
 		.gpio_in  = 0,
-		.timer_index = 1,
+		.timer_index = 0,
 		.timer_channel = 3,
 		.masks = UI_POLARITY(3),
-	}
-#endif
+	},
+#    endif
+#  endif
+#  if defined(BOARD_HAS_LED_PWM) && !defined(BOARD_HAS_CONTROL_STATUS_LEDS)
+  {
+    .gpio_out = DRIVE_TYPE(LED_TIM3_CH4OUT),
+    .gpio_in  = 0,
+#  if defined(BOARD_HAS_UI_LED_PWM)
+    .timer_index = 1,
+#  else
+    .timer_index = 0,
+#  endif
+    .timer_channel = 4,
+    .masks = POLARITY(4),
+  },
+  {
+    .gpio_out = DRIVE_TYPE(LED_TIM3_CH1OUT),
+    .gpio_in  = 0,
+#  if defined(BOARD_HAS_UI_LED_PWM)
+    .timer_index = 1,
+#  else
+    .timer_index = 0,
+#  endif
+    .timer_channel = 1,
+    .masks = POLARITY(1),
+  },
+  {
+    .gpio_out = DRIVE_TYPE(LED_TIM3_CH2OUT),
+    .gpio_in  = 0,
+#  if defined(BOARD_HAS_UI_LED_PWM)
+    .timer_index = 1,
+#  else
+    .timer_index = 0,
+#  endif
+    .timer_channel = 2,
+    .masks = POLARITY(2),
+  },
+#  endif
 };
+#endif // BOARD_HAS_LED_PWM || BOARD_HAS_UI_LED_PWM
