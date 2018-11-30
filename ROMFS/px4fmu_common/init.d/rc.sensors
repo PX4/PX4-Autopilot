@@ -31,12 +31,6 @@ then
 	adc start
 fi
 
-if ver hwcmp GUMSTIX_AEROCORE2
-then
-	l3gd20 -R 12 start
-	lsm303d start
-fi
-
 if ver hwcmp BITCRAZE_CRAZYFLIE
 then
 	# Onboard I2C
