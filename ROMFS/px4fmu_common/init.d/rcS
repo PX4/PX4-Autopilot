@@ -23,16 +23,6 @@ set +e
 # USART6        /dev/ttyS2      URT6
 #
 
-#------------------------------------------------------------------------------
-#
-# UART mapping on NXP FMUK66-v3:
-#
-# LPUART0		/dev/ttyS0		P16 CONSOLE
-# UART0			/dev/ttyS1		P7  IR
-# UART1			/dev/ttyS2		P14-3, P15-2 RC input
-# UART2			/dev/ttyS3		P3 GPS
-# UART4			/dev/ttyS3		P10 TELEM1 (flow control)
-
 #
 # Set default paramter values.
 # Do not add intra word spaces
@@ -267,11 +257,6 @@ else
 			param set SYS_AUTOSTART 4900
 			set AUTOCNF yes
 		fi
-	fi
-
-	if ver hwcmp NXP_FMUK66_V3
-	then
-		param set SYS_FMU_TASK 1
 	fi
 
 	###############################################################################
