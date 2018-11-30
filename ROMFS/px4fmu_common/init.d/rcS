@@ -225,11 +225,6 @@ else
 		sh $BOARD_RC
 	fi
 
-	if ver hwcmp GUMSTIX_AEROCORE2
-	then
-		set DATAMAN_OPT "-f /fs/mtd_dataman"
-	fi
-
 	if ver hwcmp BITCRAZE_CRAZYFLIE
 	then
 		if param compare SYS_AUTOSTART 0
