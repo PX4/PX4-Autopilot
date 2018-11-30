@@ -27,18 +27,6 @@ set +e
 #
 #------------------------------------------------------------------------------
 #
-# UART mapping on FMUv5:
-#
-# UART1         /dev/ttyS0      GPS
-# USART2        /dev/ttyS1      TELEM1 (flow control)
-# USART3        /dev/ttyS2      TELEM2 (flow control)
-# UART4         /dev/ttyS3      TELEM4
-# USART6        /dev/ttyS4      TELEM3 (flow control)
-# UART7         /dev/ttyS5
-# UART8         /dev/ttyS6      CONSOLE
-#
-#------------------------------------------------------------------------------
-#
 # UART mapping on OMNIBUSF4SD:
 #
 # USART1        /dev/ttyS0      SerialRX
@@ -63,6 +51,7 @@ set +e
 # it wastes flash
 #
 set AUX_MODE pwm
+set BOARD_RC /etc/init.d/rc.board
 set DATAMAN_OPT ""
 set FAILSAFE none
 set FAILSAFE_AUX none
@@ -74,6 +63,7 @@ set FMU_MODE pwm
 set IOFW "/etc/extras/px4_io-v2_default.bin"
 set IO_PRESENT no
 set LOG_FILE /fs/microsd/bootlog.txt
+set LOGGER_BUF  14
 set MAV_TYPE none
 set MIXER none
 set MIXER_AUX none
@@ -274,6 +264,15 @@ else
 	###############################################################################
 	#               Begin setup for board specific configurations.                #
 	###############################################################################
+
+	#
+	# run boards rc.board if available
+	#
+	if [ -f $BOARD_RC ]
+	then
+		echo "Board init: ${BOARD_RC}"
+		sh $BOARD_RC
+	fi
 
 	if ver hwcmp GUMSTIX_AEROCORE2
 	then
@@ -565,7 +564,7 @@ else
 	#
 	# Launch the flow sensor as a background task.
 	#
-	if ver hwcmp PX4_FMU_V2 PX4_FMU_V4 PX4_FMU_V4PRO AIRMIND_MINDPX_V2 PX4_FMU_V5 OMNIBUS_F4SD
+	if ver hwcmp PX4_FMU_V2 PX4_FMU_V4 PX4_FMU_V4PRO AIRMIND_MINDPX_V2 OMNIBUS_F4SD
 	then
 		px4flow start &
 	fi
@@ -598,6 +597,7 @@ unset FMU_MODE
 unset IOFW
 unset IO_PRESENT
 unset LOG_FILE
+unset LOGGER_BUF
 unset MAV_TYPE
 unset MIXER
 unset MIXER_AUX
