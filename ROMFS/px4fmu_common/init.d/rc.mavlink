@@ -11,12 +11,6 @@ then
 	mavlink start -r 800000 -d /dev/ttyACM0 -m config -x
 fi
 
-if ver hwcmp PX4_FMU_V4
-then
-	# Pixracer: start MAVLink on Wifi (ESP8266 port)
-	mavlink start -r 20000 -b 921600 -d /dev/ttyS0
-fi
-
 if ver hwcmp AV_X_V1
 then
 	# AV-X: start MAVLink to companion (connected to TX2)
