@@ -1,7 +1,4 @@
 # Penta Avioneo eVTOL duo mixer (1/2 main)
-#
-# @board px4_fmu-v2 exclude
-#
 
 Motor mixer
 ------------------
