@@ -33,6 +33,7 @@ set FMU_MODE pwm
 set IOFW "/etc/extras/px4_io-v2_default.bin"
 set IO_PRESENT no
 set LOG_FILE /fs/microsd/bootlog.txt
+set LOGGER_ARGS ""
 set LOGGER_BUF  14
 set MAV_TYPE none
 set MIXER none
@@ -142,6 +143,7 @@ else
 	# Waypoint storage.
 	# REBOOTWORK this needs to start in parallel.
 	#
+	# TODO: fix board override $DATAMAN_OPT
 	dataman start $DATAMAN_OPT
 
 	#
@@ -226,20 +228,6 @@ else
 	if ver hwcmp GUMSTIX_AEROCORE2
 	then
 		set DATAMAN_OPT "-f /fs/mtd_dataman"
-	fi
-
-	if ver hwcmp INTEL_AEROFC_V1
-	then
-		if param compare SYS_AUTOSTART 0
-		then
-			set AUTOCNF yes
-		fi
-
-		# We don't allow changing AUTOSTART as it doesn't work in
-		# other configurations.
-		param set SYS_AUTOSTART 4070
-
-		set DATAMAN_OPT -i
 	fi
 
 	if ver hwcmp BITCRAZE_CRAZYFLIE
@@ -509,6 +497,7 @@ unset FMU_MODE
 unset IOFW
 unset IO_PRESENT
 unset LOG_FILE
+unset LOGGER_ARGS
 unset LOGGER_BUF
 unset MAV_TYPE
 unset MIXER

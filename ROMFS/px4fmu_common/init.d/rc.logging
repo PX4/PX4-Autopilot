@@ -4,8 +4,6 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-set LOGGER_ARGS ""
-
 if param greater UAVCAN_ENABLE 1
 then
 	# Reduce logger buffer to free up some RAM for UAVCAN servers.
@@ -26,11 +24,4 @@ then
 	set LOGGER_ARGS "-f"
 fi
 
-if ver hwcmp INTEL_AEROFC_V1
-then
-	set LOGGER_ARGS "-m mavlink"
-fi
-
 logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
-
-unset LOGGER_ARGS
