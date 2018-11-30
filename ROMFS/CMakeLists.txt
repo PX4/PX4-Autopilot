@@ -126,6 +126,20 @@ if(config_bl_file)
 		)
 endif()
 
+if(EXISTS "${PX4_BOARD_DIR}/init/rc.board")
+	add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rc.board
+		COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BOARD_DIR}/init/rc.board ${romfs_gen_root_dir}/init.d/rc.board
+		DEPENDS
+			${PX4_BOARD_DIR}/init/rc.board
+			${romfs_gen_root_dir}/init.d/rcS
+		COMMENT "ROMFS: copying rc.board"
+		)
+
+	list(APPEND extras_dependencies
+		${romfs_gen_root_dir}/init.d/rc.board
+		)
+endif()
+
 add_custom_command(OUTPUT romfs_extras.stamp
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${romfs_gen_root_dir}/extras/
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/romfs_extras/
