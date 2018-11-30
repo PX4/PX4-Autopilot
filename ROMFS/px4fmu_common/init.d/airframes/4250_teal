@@ -56,8 +56,9 @@ then
 	param set CBRK_USB_CHK 197848
 
 	# commander
-	param set COM_DISARM_LAND 0.1 # default -1 (disabled)
-	param set COM_LOW_BAT_ACT 3 # Return mode at critically low level, Land mode at current position if reaching dangerously low levels.
+	param set COM_DISARM_LAND 0.1
+	# Return mode at critically low level, Land mode at current position if reaching dangerously low levels.
+	param set COM_LOW_BAT_ACT 3
 
 	# ekf2
 	param set EKF2_AID_MASK 1
@@ -65,33 +66,36 @@ then
 	param set EKF2_GPS_CHECK 511
 	param set EKF2_GPS_POS_X -0.04
 	param set EKF2_IMU_POS_X -0.06
-
-	param set EKF2_PCOEF_XN 0.1 # Static pressure position error coefficient for the negative X axis.
-	param set EKF2_PCOEF_XP -0.5 # Static pressure position error coefficient for the positive X axis.
+	param set EKF2_PCOEF_XN 0.1
+	param set EKF2_PCOEF_XP -0.5
 	param set EKF2_RNG_AID 1
-	param set EKF2_RNG_A_VMAX 20.0 # Maximum horizontal velocity allowed for range aid mode.
-	param set EKF2_RNG_NOISE 0.2 # Measurement noise for range finder fusion.
-	param set EKF2_MIN_RNG 0.07 # Minimum valid range for the range finder.
+	param set EKF2_RNG_A_VMAX 20.0
+	param set EKF2_RNG_NOISE 0.2
+	param set EKF2_MIN_RNG 0.07
 
 	# gps
 	param set GPS_UBX_DYNMODEL 7
 
 	# geofence
-	param set GF_ACTION 1 # Geofence violation action -- Warning.
+	# Geofence violation action -- Warning.
+	param set GF_ACTION 1
 
 	# land detector
 	param set LNDMC_XY_VEL_MAX 1.0
-	param set LNDMC_ROT_MAX 50.0 # This is set high because we have lots of vibrations while in contact with ground.
+	# This is set high because we have lots of vibrations while in contact with ground.
+	param set LNDMC_ROT_MAX 50.0
 
 	# serial comms
 	param set SER_TEL1_BAUD 921600
 	param set SER_TEL2_BAUD 921600
 
 	# mavlink stream configuration
-	param set MAV_0_CONFIG 0 # TEL1 ttyS1 -- disabled. TX1 FTDI UART has issues.
+	# TEL1 ttyS1 -- disabled. TX1 FTDI UART has issues.
+	param set MAV_0_CONFIG 0
 	param set MAV_0_RATE 800000
 
-	param set MAV_1_CONFIG 102 # TEL2 ttyS2 -- Primary MAVLINK stream to companion computer.
+	# TEL2 ttyS2 -- Primary MAVLINK stream to companion computer.
+	param set MAV_1_CONFIG 102
 	param set MAV_1_RATE 800000
 
 	# mc_att_control
@@ -117,26 +121,29 @@ then
 	param set MC_YAWRATE_D 0.0
 	param set MC_YAWRATE_MAX 180.0
 
-	param set MOT_SLEW_MAX 0.15 # Set to reduce voltage transients as seen by battery management system.
+	# Set to reduce voltage transients as seen by battery management system.
+	param set MOT_SLEW_MAX 0.15
 
 	#### CONTROLLER ###
 	param set MPC_LAND_ALT1 8.0
 	param set MPC_LAND_ALT2 5.0
-	param set MPC_TKO_RAMP_T 0.75 # Position control smooth takeoff ramp time constant.
-	param set MPC_TKO_SPEED 0.75 # Takeoff climb rate.
+	param set MPC_TKO_RAMP_T 0.75
+	param set MPC_TKO_SPEED 0.75
 	param set MPC_TILTMAX_LND 18.0
 	param set MPC_TILTMAX_AIR 45.0
 	param set MPC_MAN_TILT_MAX 45.0
 
 	param set MPC_MANTHR_MAX 0.85
 	param set MPC_MANTHR_MIN 0.15
-	param set MPC_THR_MAX 0.85 # Full throttle can trip over current protection on BMS.
+	# Full throttle can trip over current protection on BMS.
+	param set MPC_THR_MAX 0.85
 	param set MPC_THR_MIN 0.15
 
 	param set MPC_VEL_MANUAL 26.5
-	param set MPC_XY_CRUISE 15.0 # RTL speed, it was too fast and scaring people.
+	# RTL speed, it was too fast and scaring people.
+	param set MPC_XY_CRUISE 15.0
 
-	param set MPC_MAN_Y_MAX 200.0 # Max manual yaw rate.
+	param set MPC_MAN_Y_MAX 200.0
 
 	param set MPC_JERK_MAX 5.0
 	param set MPC_ACC_UP_MAX 10.0
@@ -150,23 +157,26 @@ then
 	param set MPC_XY_VEL_D 0.014
 	param set MPC_XY_VEL_MAX 26.5
 
-	param set MPC_Z_P 0.85 # default 1.0
-	param set MPC_Z_VEL_P 0.25 # default 0.2
-	param set MPC_Z_VEL_I 0.085 # default 0.02
-	param set MPC_Z_VEL_D 0.02 # default 0.0
-	param set MPC_Z_VEL_MAX_UP 20.0 # Documentation says limit is 8.0, but does not seem to be enforced in code.
-	param set MPC_Z_VEL_MAX_DN 2.5 # Probably could go lower than 2.5.
+	param set MPC_Z_P 0.85
+	param set MPC_Z_VEL_P 0.25
+	param set MPC_Z_VEL_I 0.085
+	param set MPC_Z_VEL_D 0.02
+	# Documentation says limit is 8.0, but does not seem to be enforced in code.
+	param set MPC_Z_VEL_MAX_UP 20.0
+	param set MPC_Z_VEL_MAX_DN 2.5
 	#### CONTROLLER ###
 
 	# navigator
-	param set NAV_ACC_RAD 2.5 # Acceptance radius for waypoint navigation.
-	param set NAV_RCL_ACT 1 # RC loss failsafe behavior -- hold mode.
+	param set NAV_ACC_RAD 2.5
+	# RC loss failsafe behavior -- hold mode.
+	param set NAV_RCL_ACT 1
 
 	# pwm control
 	param set PWM_DISARMED 900
 	param set PWM_MAX 1850
 	param set PWM_MIN 1075
-	param set PWM_RATE 0 # Oneshot125
+	# Oneshot125
+	param set PWM_RATE 0
 
 	# rtl
 	param set RTL_DESCEND_ALT 5
@@ -177,11 +187,13 @@ then
 	# calibration
 	param set CAL_ACC0_EN 1
 	param set CAL_ACC1_EN 0
-	param set CAL_ACC_PRIME 1442826 #mpu6500
+	#mpu6500
+	param set CAL_ACC_PRIME 1442826
 
 	param set CAL_GYRO0_EN 1
 	param set CAL_GYRO1_EN 0
-	param set CAL_GYRO_PRIME 2360330 #mpu6500
+	#mpu6500
+	param set CAL_GYRO_PRIME 2360330
 
 	param set CAL_MAG0_EN 1
 	param set CAL_MAG1_EN 0
@@ -189,9 +201,8 @@ then
 
 fi
 
-# Do not start frsky_telemetry on port ttyS6 by default, PGA460 lives there.
-param set TEL_FRSKY_CONFIG 500 # 500 is in arbitrary unused number.
-
+# Do not start frsky_telemetry on port ttyS6 by default, PGA460 lives there. 500 is in arbitrary unused number.
+param set TEL_FRSKY_CONFIG 500
 # We want to make sure these always start
 param set SENS_EN_PGA460 1
 param set SENS_EN_THERMAL 1
