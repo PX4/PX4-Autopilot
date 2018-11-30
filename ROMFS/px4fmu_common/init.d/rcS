@@ -225,15 +225,6 @@ else
 		sh $BOARD_RC
 	fi
 
-	if ver hwcmp BITCRAZE_CRAZYFLIE
-	then
-		if param compare SYS_AUTOSTART 0
-		then
-			param set SYS_AUTOSTART 4900
-			set AUTOCNF yes
-		fi
-	fi
-
 	###############################################################################
 	#                 End Setup for board specific configurations.                #
 	###############################################################################

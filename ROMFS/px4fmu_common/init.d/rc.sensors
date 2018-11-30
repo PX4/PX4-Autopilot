@@ -31,20 +31,6 @@ then
 	adc start
 fi
 
-if ver hwcmp BITCRAZE_CRAZYFLIE
-then
-	# Onboard I2C
-	mpu9250 -R 12 start
-
-	# I2C bypass of mpu
-	lps25h start
-
-	# Optical flow deck
-	vl53lxx start
-	pmw3901 start
-
-fi
-
 if ver hwcmp ATMEL_SAME70XPLAINED_V1
 then
 	# External I2C bus
