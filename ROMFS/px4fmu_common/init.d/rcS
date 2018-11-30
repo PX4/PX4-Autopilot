@@ -15,10 +15,9 @@ set +e
 #
 #------------------------------------------------------------------------------
 #
-# UART mapping on FMUv2/3/4:
+# UART mapping on FMUv2/3:
 #
-# UART1         /dev/ttyS0      IO debug (except v4, there ttyS0 is the wifi,
-#                                         v4pro: TELEM3)
+# UART1         /dev/ttyS0      IO debug
 # USART2        /dev/ttyS1      TELEM1 (flow control)
 # USART3        /dev/ttyS2      TELEM2 (flow control)
 # UART4
@@ -338,11 +337,6 @@ else
 	#
 	if [ $AUTOCNF = yes ]
 	then
-		# Run FMU as task on Pixracer and on boards with enough RAM.
-		if ver hwcmp PX4_FMU_V4PRO PX4_FMU_V5
-		then
-			param set SYS_FMU_TASK 1
-		fi
 
 		# Disable safety switch by default on OmnibusF4SD.
 		if ver hwcmp OMNIBUS_F4SD
@@ -555,7 +549,7 @@ else
 	#
 	# Launch the flow sensor as a background task.
 	#
-	if ver hwcmp PX4_FMU_V2 PX4_FMU_V4 PX4_FMU_V4PRO AIRMIND_MINDPX_V2 OMNIBUS_F4SD
+	if ver hwcmp PX4_FMU_V2 PX4_FMU_V4 AIRMIND_MINDPX_V2 OMNIBUS_F4SD
 	then
 		px4flow start &
 	fi
