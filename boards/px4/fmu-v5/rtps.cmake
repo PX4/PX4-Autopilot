@@ -50,7 +50,7 @@ px4_add_board(
 		rc_input
 		rgbled
 		rgbled_ncp5623c
-		rgbled_pwm
+		#rgbled_pwm # Enable to put the three leds into PWM RGB mode
 		roboclaw
 		stm32
 		stm32/adc
