@@ -1,0 +1,46 @@
+#!nsh
+#
+# PX4 FMUv4pro specific board init
+#
+#------------------------------------------------------------------------------
+#
+# UART mapping on FMUv4pro:
+#
+# UART1         /dev/ttyS0      TELEM3
+# USART2        /dev/ttyS1      TELEM1 (flow control)
+# USART3        /dev/ttyS2      TELEM2 (flow control)
+# UART4         /dev/ttyS3      TELEM4
+# USART6        /dev/ttyS4      TELEM3 (flow control)
+# UART7         /dev/ttyS5
+# UART8         /dev/ttyS6      CONSOLE
+#
+#------------------------------------------------------------------------------
+#
+
+if [ $AUTOCNF = yes ]
+then
+	param set SYS_FMU_TASK 1
+fi
+
+set LOGGER_BUF 64
+
+
+# Internal SPI bus ICM-20608-G
+mpu6000 -R 2 -T 20608 start
+
+# Internal SPI bus ICM-20602
+mpu6000 -R 2 -T 20602 start
+
+# Internal SPI bus mpu9250
+mpu9250 -R 2 start
+
+# Internal SPI bus
+lis3mdl -R 0 start
+
+# Possible external compasses
+hmc5883 -C -T -X start
+
+# RM3100
+rm3100 start
+
+px4flow start &
