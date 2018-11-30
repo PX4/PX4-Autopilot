@@ -51,20 +51,6 @@ then
 
 fi
 
-if ver hwcmp AIRMIND_MINDPX_V2
-then
-	# External I2C bus
-	hmc5883 -C -T -X start
-
-	# Internal I2C bus
-	hmc5883 -C -T -I -R 12 start
-
-	mpu6000 -s -R 8 start
-	mpu9250 -s -R 8 start
-	lsm303d -R 10 start
-	l3gd20 -R 14 start
-fi
-
 if ver hwcmp ATMEL_SAME70XPLAINED_V1
 then
 	# External I2C bus

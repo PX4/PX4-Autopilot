@@ -21,31 +21,6 @@ if adc start
 then
 fi
 
-if ver hwcmp AIRMIND_MINDPX_V2
-then
-	# External I2C bus
-	if hmc5883 -C -T -X start
-	then
-	fi
-
-	# Internal I2C bus
-	if hmc5883 -C -T -I -R 12 start
-	then
-	fi
-
-	if mpu9250 -s -R 8 start
-	then
-	fi
-
-	if lsm303d -R 10 start
-	then
-	fi
-
-	if l3gd20 -R 14 start
-	then
-	fi
-fi
-
 if sdp3x_airspeed start
 then
 fi
