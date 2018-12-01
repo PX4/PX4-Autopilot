@@ -31,7 +31,9 @@
 #
 ############################################################################
 
-px4_add_git_submodule(TARGET git_uavcan PATH "../uavcan/libuavcan")
+set(LIBUAVCAN_DIR ${PX4_SOURCE_DIR}/src/drivers/uavcan/libuavcan)
+
+px4_add_git_submodule(TARGET git_uavcan PATH ${LIBUAVCAN_DIR})
 
 set(UAVCAN_USE_CPP03 ON CACHE BOOL "uavcan cpp03")
 set(UAVCAN_PLATFORM stm32 CACHE STRING "uavcan platform")
@@ -50,8 +52,6 @@ add_definitions(
 		-DUAVCAN_USE_EXTERNAL_SNPRINT
 		)
 
-set(LIBUAVCAN_DIR ${PX4_SOURCE_DIR}/src/modules/uavcan/libuavcan)
-
 add_subdirectory(${LIBUAVCAN_DIR} uavcanesc_libuavcan)
 add_dependencies(uavcan prebuild_targets)
 
@@ -62,7 +62,6 @@ include_directories(${LIBUAVCAN_DIR}/libuavcan_drivers/posix/include)
 include_directories(${LIBUAVCAN_DIR}/libuavcan_drivers/stm32/driver/include)
 
 include_directories(${PX4_SOURCE_DIR}/src/drivers/bootloaders)
-
 
 px4_add_module(
 	MODULE modules__uavcanesc
@@ -86,3 +85,6 @@ px4_add_module(
 		uavcan
 		uavcan_stm32_driver
 	)
+
+add_subdirectory(commands)
+add_subdirectory(nshterm)
