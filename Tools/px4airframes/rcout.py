@@ -30,7 +30,7 @@ class RCOutput():
                     "# 14000 ..  14999       Tri Y\n"
                     ""
                     ""
-                    "cd /etc/init.d/airframes\n"
+                    "cd /etc/init.d/airframes || return\n"
                     "\n")
         for group in groups:
             result += "# GROUP: %s\n\n" % group.GetName()
