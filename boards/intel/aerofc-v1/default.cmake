@@ -13,7 +13,6 @@ px4_add_board(
 		TEL2:/dev/ttyS1
 
 	DRIVERS
-		aerofc_adc
 		barometer/ms5611
 		#camera_trigger
 		#differential_pressure # all available differential pressure drivers

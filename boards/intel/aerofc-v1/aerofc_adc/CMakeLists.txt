@@ -37,4 +37,5 @@ px4_add_module(
 	SRCS
 		aerofc_adc.cpp
 	DEPENDS
+		drivers__device
 	)
