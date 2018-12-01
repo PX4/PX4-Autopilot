@@ -21,7 +21,6 @@ px4_add_board(
 		#telemetry # all available telemetry drivers
 		vmount
 
-		linux_gpio
 		linux_pwm_out
 		linux_sbus
 		rpi_rc_in

@@ -32,7 +32,7 @@
  ****************************************************************************/
 #pragma once
 
-#include <drivers/linux_gpio/linux_gpio.h>
+#include <lib/drivers/linux_gpio/linux_gpio.h>
 #include <DevObj.hpp>
 
 #include <lib/led/led.h>
