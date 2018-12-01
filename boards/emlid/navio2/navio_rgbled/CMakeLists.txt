@@ -31,8 +31,14 @@
 #
 ############################################################################
 
-px4_add_library(drivers__linux_gpio
-	linux_gpio.cpp
+px4_add_module(
+	MODULE drivers__navio_rgbled
+	MAIN navio_rgbled
+	SRCS
+		navio_rgbled.cpp
+	DEPENDS
+		led
+		linux_gpio
 	)
 
 #add_subdirectory(test)
