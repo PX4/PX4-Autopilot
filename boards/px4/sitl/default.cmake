@@ -18,7 +18,6 @@ px4_add_board(
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
 		tone_alarm_sim
-		vmount
 
 	MODULES
 		attitude_estimator_q
@@ -45,6 +44,7 @@ px4_add_board(
 		sensors
 		simulator
 		#uavcan
+		vmount
 		vtol_att_control
 		wind_estimator
 

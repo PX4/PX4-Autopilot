@@ -75,6 +75,7 @@ px4_add_board(
 		mc_pos_control
 		position_estimator_inav
 		sensors
+		vmount
 		vtol_att_control
 		wind_estimator
 
