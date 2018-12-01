@@ -438,19 +438,8 @@
 #define GPIO_I2C1_SCL GPIO_I2C1_SCL_2       /* PB8[CN12-3]   */
 #define GPIO_I2C1_SDA GPIO_I2C1_SDA_2       /* PB9[CN12-5]   */
 
-#define GPIO_I2C1_SCL_GPIO                  (GPIO_OUTPUT     | \
-                                             GPIO_OPENDRAIN  | \
-                                             GPIO_SPEED_50MHz| \
-                                             GPIO_OUTPUT_SET | \
-                                             GPIO_PORTB      | \
-                                             GPIO_PIN8)
-
-#define GPIO_I2C1_SDA_GPIO                  (GPIO_OUTPUT     | \
-                                             GPIO_OPENDRAIN  | \
-                                             GPIO_SPEED_50MHz| \
-                                             GPIO_OUTPUT_SET | \
-                                             GPIO_PORTB      | \
-                                             GPIO_PIN9)
+#define GPIO_I2C1_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN8)
+#define GPIO_I2C1_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN9)
 
 /* PF1 can not be used on Morpho connector without SB mods. */
 #if defined(CONFIG_STM32F7_I2C2)
@@ -459,36 +448,14 @@
 #define GPIO_I2C2_SCL GPIO_I2C2_SCL_2       /* PF1[CN11-51]  */
 #define GPIO_I2C2_SDA GPIO_I2C2_SDA_2       /* PF0[CN11-53]  */
 
-#define GPIO_I2C2_SCL_GPIO                  (GPIO_OUTPUT     | \
-                                             GPIO_OPENDRAIN  | \
-                                             GPIO_SPEED_50MHz| \
-                                             GPIO_OUTPUT_SET | \
-                                             GPIO_PORTF      | \
-                                             GPIO_PIN1)
-
-#define GPIO_I2C2_SDA_GPIO                  (GPIO_OUTPUT     | \
-                                             GPIO_OPENDRAIN  | \
-                                             GPIO_SPEED_50MHz| \
-                                             GPIO_OUTPUT_SET | \
-                                             GPIO_PORTF      | \
-                                             GPIO_PIN0)
+#define GPIO_I2C2_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET |GPIO_PORTF | GPIO_PIN1)
+#define GPIO_I2C2_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET |GPIO_PORTF | GPIO_PIN0)
 
 #define GPIO_I2C4_SCL GPIO_I2C4_SCL_2       /* PF14[CN12-50] */
 #define GPIO_I2C4_SDA GPIO_I2C4_SDA_2       /* PF15[CN12-60] */
 
-#define GPIO_I2C4_SCL_GPIO                  (GPIO_OUTPUT     | \
-                                             GPIO_OPENDRAIN  | \
-                                             GPIO_SPEED_50MHz| \
-                                             GPIO_OUTPUT_SET | \
-                                             GPIO_PORTF      | \
-                                             GPIO_PIN14)
-
-#define GPIO_I2C4_SDA_GPIO                  (GPIO_OUTPUT     | \
-                                             GPIO_OPENDRAIN  | \
-                                             GPIO_SPEED_50MHz| \
-                                             GPIO_OUTPUT_SET | \
-                                             GPIO_PORTF      | \
-                                             GPIO_PIN14)
+#define GPIO_I2C4_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTF | GPIO_PIN14)
+#define GPIO_I2C4_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTF | GPIO_PIN14)
 
 /* SDMMC1
  *
@@ -550,14 +517,14 @@
 # define PROBE_6    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN14) /* PD14[CN12-46] */
 
 # define PROBE_INIT(mask) \
-    do { \
-        if ((mask)& PROBE_N(1)) { stm32_configgpio(PROBE_1); } \
-        if ((mask)& PROBE_N(2)) { stm32_configgpio(PROBE_2); } \
-        if ((mask)& PROBE_N(3)) { stm32_configgpio(PROBE_3); } \
-        if ((mask)& PROBE_N(4)) { stm32_configgpio(PROBE_4); } \
-        if ((mask)& PROBE_N(5)) { stm32_configgpio(PROBE_5); } \
-        if ((mask)& PROBE_N(6)) { stm32_configgpio(PROBE_6); } \
-    } while(0)
+	do { \
+		if ((mask)& PROBE_N(1)) { stm32_configgpio(PROBE_1); } \
+		if ((mask)& PROBE_N(2)) { stm32_configgpio(PROBE_2); } \
+		if ((mask)& PROBE_N(3)) { stm32_configgpio(PROBE_3); } \
+		if ((mask)& PROBE_N(4)) { stm32_configgpio(PROBE_4); } \
+		if ((mask)& PROBE_N(5)) { stm32_configgpio(PROBE_5); } \
+		if ((mask)& PROBE_N(6)) { stm32_configgpio(PROBE_6); } \
+	} while(0)
 
 # define PROBE(n,s)  do {stm32_gpiowrite(PROBE_##n,(s));}while(0)
 # define PROBE_MARK(n) PROBE(n,false);PROBE(n,true)
