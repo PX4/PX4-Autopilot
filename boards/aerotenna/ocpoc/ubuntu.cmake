@@ -19,7 +19,6 @@ px4_add_board(
 		linux_sbus
 		#imu # all available imu drivers
 		#magnetometer # all available magnetometer drivers
-		ocpoc_adc
 		rgbled
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
