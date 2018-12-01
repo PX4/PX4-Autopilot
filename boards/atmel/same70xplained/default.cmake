@@ -40,12 +40,12 @@ px4_add_board(
 		px4fmu
 		#rc_input
 		samv7
+		#samv7/adc # WIP
 		samv7/tone_alarm
 		tap_esc
 		telemetry # all available telemetry drivers
 		#test_ppm
-		vmount
-		#WIP samv7/adc
+		#uavcan
 
 	MODULES
 		attitude_estimator_q
@@ -70,6 +70,7 @@ px4_add_board(
 		position_estimator_inav
 		sensors
 		#WIP uavcan
+		vmount
 		vtol_att_control
 		wind_estimator
 
