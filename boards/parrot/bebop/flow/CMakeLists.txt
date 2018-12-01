@@ -31,11 +31,11 @@
 #
 ############################################################################
 
-include_directories(../../../../lib/DriverFramework/drivers)
-
 px4_add_module(
-	MODULE platforms__posix__drivers__bebop_flow
+	MODULE drivers__bebop_flow
 	MAIN bebop_flow
+	INCLUDES
+		${PX4_SOURCE_DIR}/src/lib/DriverFramework/drivers
 	SRCS
 		bebop_flow.cpp
 		video_device.cpp

@@ -62,8 +62,8 @@ else()
 	target_link_libraries(px4
 		PRIVATE
 			${module_libraries}
-			df_driver_framework
 			${df_driver_libs}
+			df_driver_framework
 			pthread m
 	)
 
