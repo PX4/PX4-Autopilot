@@ -172,7 +172,7 @@
  * UARTs.
  *
  */
- /* E_TX2 / E_RX2 */
+/* E_TX2 / E_RX2 */
 #define GPIO_USART2_RX	GPIO_USART2_RX_1
 #define GPIO_USART2_TX	GPIO_USART2_TX_1
 

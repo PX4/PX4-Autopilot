@@ -75,11 +75,9 @@
  *  PA[01] PA1/USART2_RTS/ADC1/TIM2_CH2                     15       D3(LED2)
  */
 
-#define GPIO_LED1       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-			 GPIO_PORTA | GPIO_PIN5 | GPIO_OUTPUT_CLEAR)
+#define GPIO_LED1       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | GPIO_PORTA | GPIO_PIN5 | GPIO_OUTPUT_CLEAR)
 #define GPIO_LED_GREEN  GPIO_LED1
-#define GPIO_LED2       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-			 GPIO_PORTA | GPIO_PIN1 | GPIO_OUTPUT_CLEAR)
+#define GPIO_LED2       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | GPIO_PORTA | GPIO_PIN1 | GPIO_OUTPUT_CLEAR)
 #define GPIO_LED_YELLOW GPIO_LED2
 
 /* BUTTON ***************************************************************************
@@ -92,8 +90,7 @@
  *
  */
 
-#define BUTTON_BOOT0n   (GPIO_INPUT | GPIO_CNF_INFLOAT | GPIO_PORTC | GPIO_PIN9 | \
-			 GPIO_EXTI)
+#define BUTTON_BOOT0n   (GPIO_INPUT | GPIO_CNF_INFLOAT | GPIO_PORTC | GPIO_PIN9 | GPIO_EXTI)
 #define IRQBUTTON       BUTTON_BOOT0_BIT
 
 /* USBs *****************************************************************************
@@ -108,8 +105,7 @@
  */
 
 #define GPIO_USB_VBUS    (GPIO_INPUT | GPIO_CNF_INFLOAT | GPIO_PORTC | GPIO_PIN11)
-#define GPIO_USB_PULLUPn (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-			  GPIO_PORTC | GPIO_PIN12 | GPIO_OUTPUT_SET)
+#define GPIO_USB_PULLUPn (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | GPIO_PORTC | GPIO_PIN12 | GPIO_OUTPUT_SET)
 
 /* SPI ***************************************************************************
  *
@@ -121,12 +117,10 @@
  *  PD[02] PD2/TIM3_ETR                                     54       D25(MMC_CS)
  */
 
-#define GPIO_SPI1_SSn (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-		       GPIO_PORTC | GPIO_PIN9 | GPIO_OUTPUT_SET)
+#define GPIO_SPI1_SSn (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | GPIO_PORTC | GPIO_PIN9 | GPIO_OUTPUT_SET)
 #define USER_CSn      GPIO_SPI1_SSn
 
-#define GPIO_SPI2_SSn (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-		       GPIO_PORTD | GPIO_PIN2 | GPIO_OUTPUT_SET)
+#define GPIO_SPI2_SSn (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | GPIO_PORTD | GPIO_PIN2 | GPIO_OUTPUT_SET)
 #define MMCSD_CSn     GPIO_SPI2_SSn
 
 /* CAN ***************************************************************************
@@ -140,8 +134,7 @@
  *  PC[13] PC13/ANTI_TAMP                                   2        D21(CAN_CTRL)
  */
 
-#define GPIO_CAN_CTRL (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
-		       GPIO_PORTC | GPIO_PIN13 | GPIO_OUTPUT_CLEAR)
+#define GPIO_CAN_CTRL (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | GPIO_PORTC | GPIO_PIN13 | GPIO_OUTPUT_CLEAR)
 
 __BEGIN_DECLS
 

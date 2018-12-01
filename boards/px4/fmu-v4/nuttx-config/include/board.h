@@ -286,14 +286,14 @@
 # define PROBE_6  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN14)
 
 # define PROBE_INIT(mask) \
-  do { \
-    if ((mask)& PROBE_N(1)) { stm32_configgpio(PROBE_1); } \
-    if ((mask)& PROBE_N(2)) { stm32_configgpio(PROBE_2); } \
-    if ((mask)& PROBE_N(3)) { stm32_configgpio(PROBE_3); } \
-    if ((mask)& PROBE_N(4)) { stm32_configgpio(PROBE_4); } \
-    if ((mask)& PROBE_N(5)) { stm32_configgpio(PROBE_5); } \
-    if ((mask)& PROBE_N(6)) { stm32_configgpio(PROBE_6); } \
-  } while(0)
+	do { \
+		if ((mask)& PROBE_N(1)) { stm32_configgpio(PROBE_1); } \
+		if ((mask)& PROBE_N(2)) { stm32_configgpio(PROBE_2); } \
+		if ((mask)& PROBE_N(3)) { stm32_configgpio(PROBE_3); } \
+		if ((mask)& PROBE_N(4)) { stm32_configgpio(PROBE_4); } \
+		if ((mask)& PROBE_N(5)) { stm32_configgpio(PROBE_5); } \
+		if ((mask)& PROBE_N(6)) { stm32_configgpio(PROBE_6); } \
+	} while(0)
 
 # define PROBE(n,s)  do {stm32_gpiowrite(PROBE_##n,(s));}while(0)
 # define PROBE_MARK(n) PROBE(n,false);PROBE(n,true)

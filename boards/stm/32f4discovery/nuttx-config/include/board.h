@@ -215,7 +215,7 @@
 
 /* UART6:
  *
- * The STM32F4 Discovery has no on-board serial devices, PC6 (TX) and PC7 (RX) 
+ * The STM32F4 Discovery has no on-board serial devices, PC6 (TX) and PC7 (RX)
  * for connection to an external serial device.
  */
 
@@ -224,7 +224,7 @@
 
 /* USART6 require a RX DMA configuration */
 #define DMAMAP_USART6_RX DMAMAP_USART6_RX_1
- 
+
 /* SPI - There is a MEMS device on SPI1 using these pins: */
 
 #define GPIO_SPI1_MISO GPIO_SPI1_MISO_1

@@ -366,53 +366,20 @@
 #define GPIO_I2C2_SCL GPIO_I2C2_SCL_2       /* PF1 */
 #define GPIO_I2C2_SDA GPIO_I2C2_SDA_2       /* PF0 */
 
-#define GPIO_I2C2_SCL_GPIO                  (GPIO_OUTPUT     | \
-                                             GPIO_OPENDRAIN  | \
-                                             GPIO_SPEED_50MHz| \
-                                             GPIO_OUTPUT_SET | \
-                                             GPIO_PORTF      | \
-                                             GPIO_PIN1)
-
-#define GPIO_I2C2_SDA_GPIO                  (GPIO_OUTPUT     | \
-                                             GPIO_OPENDRAIN  | \
-                                             GPIO_SPEED_50MHz| \
-                                             GPIO_OUTPUT_SET | \
-                                             GPIO_PORTF      | \
-                                             GPIO_PIN0)
+#define GPIO_I2C2_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET |GPIO_PORTF | GPIO_PIN1)
+#define GPIO_I2C2_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET |GPIO_PORTF | GPIO_PIN0)
 
 #define GPIO_I2C3_SCL GPIO_I2C3_SCL_2       /* PH7 */
 #define GPIO_I2C3_SDA GPIO_I2C3_SDA_2       /* PH8 */
 
-#define GPIO_I2C3_SCL_GPIO                  (GPIO_OUTPUT     | \
-                                             GPIO_OPENDRAIN  | \
-                                             GPIO_SPEED_50MHz| \
-                                             GPIO_OUTPUT_SET | \
-                                             GPIO_PORTH      | \
-                                             GPIO_PIN7)
-
-#define GPIO_I2C3_SDA_GPIO                  (GPIO_OUTPUT     | \
-                                             GPIO_OPENDRAIN  | \
-                                             GPIO_SPEED_50MHz| \
-                                             GPIO_OUTPUT_SET | \
-                                             GPIO_PORTH      | \
-                                             GPIO_PIN8)
+#define GPIO_I2C3_SCL_GPIO                  (GPIO_OUTPUT |GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTH | GPIO_PIN7)
+#define GPIO_I2C3_SDA_GPIO                  (GPIO_OUTPUT |GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTH | GPIO_PIN8)
 
 #define GPIO_I2C4_SCL GPIO_I2C4_SCL_2       /* PF14 */
 #define GPIO_I2C4_SDA GPIO_I2C4_SDA_2       /* PF15 */
 
-#define GPIO_I2C4_SCL_GPIO                  (GPIO_OUTPUT     | \
-                                             GPIO_OPENDRAIN  | \
-                                             GPIO_SPEED_50MHz| \
-                                             GPIO_OUTPUT_SET | \
-                                             GPIO_PORTF      | \
-                                             GPIO_PIN14)
-
-#define GPIO_I2C4_SDA_GPIO                  (GPIO_OUTPUT     | \
-                                             GPIO_OPENDRAIN  | \
-                                             GPIO_SPEED_50MHz| \
-                                             GPIO_OUTPUT_SET | \
-                                             GPIO_PORTF      | \
-                                             GPIO_PIN15)
+#define GPIO_I2C4_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTF | GPIO_PIN14)
+#define GPIO_I2C4_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTF | GPIO_PIN15)
 
 /* SDMMC1
  *
