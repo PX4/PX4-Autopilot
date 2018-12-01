@@ -413,6 +413,10 @@ add_subdirectory(src/modules/systemlib EXCLUDE_FROM_ALL) # TODO: split into libr
 add_subdirectory(src/modules/uORB EXCLUDE_FROM_ALL) # TODO: platform layer
 add_subdirectory(src/drivers/boards EXCLUDE_FROM_ALL)
 
+if(EXISTS "${PX4_BOARD_DIR}/CMakeLists.txt")
+	add_subdirectory(${PX4_BOARD_DIR})
+endif()
+
 foreach(module ${config_module_list})
 	add_subdirectory(src/${module})
 endforeach()
