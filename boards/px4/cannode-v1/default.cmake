@@ -44,9 +44,9 @@ px4_add_board(
 	DRIVERS
 		bootloaders
 		stm32
+		uavcannode
 
 	MODULES
-		uavcannode
 
 	SYSTEMCMDS
 		config

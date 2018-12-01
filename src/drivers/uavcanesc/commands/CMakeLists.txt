@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,59 +31,8 @@
 #
 ############################################################################
 
-px4_add_git_submodule(TARGET git_uavcan PATH "../uavcan/libuavcan")
-
-set(UAVCAN_USE_CPP03 ON CACHE BOOL "uavcan cpp03")
-set(UAVCAN_PLATFORM stm32 CACHE STRING "uavcan platform")
-
-string(TOUPPER "${PX4_PLATFORM}" OS_UPPER)
-add_definitions(
-		-DUAVCAN_CPP_VERSION=UAVCAN_CPP03
-		-DUAVCAN_MAX_NETWORK_SIZE_HINT=16
-		-DUAVCAN_MEM_POOL_BLOCK_SIZE=48
-		-DUAVCAN_NO_ASSERTIONS
-		-DUAVCAN_PLATFORM=stm32
-		-DUAVCAN_STM32_${OS_UPPER}=1
-		-DUAVCAN_STM32_NUM_IFACES=1
-		-DUAVCAN_STM32_TIMER_NUMBER=2
-		-DUAVCAN_USE_CPP03=ON
-		-DUAVCAN_USE_EXTERNAL_SNPRINT
-		)
-
-set(LIBUAVCAN_DIR ${PX4_SOURCE_DIR}/src/modules/uavcan/libuavcan)
-
-add_subdirectory(${LIBUAVCAN_DIR} uavcannode_libuavcan)
-add_dependencies(uavcan prebuild_targets)
-
-px4_add_module(
-	MODULE modules__uavcannode
-	MAIN uavcannode
-	STACK_MAIN 1048
-	INCLUDES
-		${LIBUAVCAN_DIR}/libuavcan/include
-		${LIBUAVCAN_DIR}/libuavcan/include/dsdlc_generated
-		${LIBUAVCAN_DIR}/libuavcan_drivers/posix/include
-		${LIBUAVCAN_DIR}/libuavcan_drivers/stm32/driver/include
-	COMPILE_FLAGS
-		-Wframe-larger-than=1500
-		-Wno-deprecated-declarations
-		-O3
-	SRCS
-		uavcannode_main.cpp
-		indication_controller.cpp
-		sim_controller.cpp
-		led.cpp
-		resources.cpp
-		uavcannode_params.c
-	DEPENDS
-		drivers_bootloaders
-		git_uavcan
-		version
-
-		# within libuavcan
-		libuavcan_dsdlc
-		uavcan
-		uavcan_stm32_driver
-	)
-
-set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES uavcan_stm32_driver)
+add_subdirectory(cfg)
+add_subdirectory(dc)
+add_subdirectory(rpm)
+add_subdirectory(selftest)
+add_subdirectory(stat)

@@ -46,15 +46,9 @@ px4_add_board(
 	DRIVERS
 		bootloaders
 		stm32
+		uavcanesc
 
 	MODULES
-		uavcanesc
-		uavcanesc/nshterm
-		uavcanesc/commands/cfg
-		uavcanesc/commands/selftest
-		uavcanesc/commands/dc
-		uavcanesc/commands/rpm
-		uavcanesc/commands/stat
 
 	SYSTEMCMDS
 		config

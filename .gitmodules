@@ -2,8 +2,8 @@
 	path = mavlink/include/mavlink/v2.0
 	url = https://github.com/mavlink/c_library_v2.git
 	branch = master
-[submodule "src/modules/uavcan/libuavcan"]
-	path = src/modules/uavcan/libuavcan
+[submodule "src/drivers/uavcan/libuavcan"]
+	path = src/drivers/uavcan/libuavcan
 	url = https://github.com/UAVCAN/libuavcan.git
 	branch = master
 [submodule "msg/tools/genmsg"]
