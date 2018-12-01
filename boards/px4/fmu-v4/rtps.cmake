@@ -18,7 +18,6 @@ px4_add_board(
 	DRIVERS
 		barometer # all available barometer drivers
 		batt_smbus
-		blinkm
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
@@ -26,9 +25,12 @@ px4_add_board(
 		heater
 		imu # all available imu drivers
 		irlock
+		lights/blinkm
+		lights/oreoled
+		lights/rgbled
+		lights/rgbled_ncp5623c
 		magnetometer # all available magnetometer drivers
 		mkblctrl
-		oreoled
 		pca9685
 		protocol_splitter
 		pwm_input
@@ -36,8 +38,6 @@ px4_add_board(
 		px4flow
 		px4fmu
 		rc_input
-		rgbled
-		rgbled_ncp5623c
 		stm32
 		stm32/adc
 		stm32/tone_alarm

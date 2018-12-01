@@ -12,20 +12,22 @@ px4_add_board(
 	DRIVERS
 		barometer # all available barometer drivers
 		batt_smbus
-		blinkm
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
 		#heater
-		#imu # all available imu drivers
 		imu/adis16448
+		#imu # all available imu drivers
 		imu/mpu6000
 		irlock
+		lights/blinkm
+		lights/oreoled
+		lights/rgbled
+		#lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		#md25
 		mkblctrl
-		oreoled
 		pca8574
 		pca9685
 		#pmw3901
@@ -35,8 +37,6 @@ px4_add_board(
 		px4flow
 		px4fmu
 		rc_input
-		rgbled
-		#rgbled_pwm
 		roboclaw
 		stm32
 		stm32/adc

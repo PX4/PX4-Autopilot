@@ -15,11 +15,11 @@ px4_add_board(
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
+		#imu # all available imu drivers
+		lights/rgbled
 		linux_pwm_out
 		linux_sbus
-		#imu # all available imu drivers
 		#magnetometer # all available magnetometer drivers
-		rgbled
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
 		vmount
