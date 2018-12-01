@@ -17,7 +17,7 @@ px4_add_board(
 		ak8963
 		bebop_bus
 		bebop_rangefinder
-		#bebop_flow
+		mt9v117
 
 	MODULES
 		attitude_estimator_q
