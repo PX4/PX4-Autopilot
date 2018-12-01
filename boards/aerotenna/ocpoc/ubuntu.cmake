@@ -22,7 +22,6 @@ px4_add_board(
 		#magnetometer # all available magnetometer drivers
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
-		vmount
 
 	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
 		mpu9250
@@ -53,6 +52,7 @@ px4_add_board(
 		sensors
 		#simulator
 		#uavcan
+		vmount
 		vtol_att_control
 		wind_estimator
 

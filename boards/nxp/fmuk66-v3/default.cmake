@@ -47,7 +47,6 @@ px4_add_board(
 		tap_esc
 		telemetry # all available telemetry drivers
 		#test_ppm # NOT Portable YET
-		vmount
 
 	MODULES
 		attitude_estimator_q
@@ -72,6 +71,7 @@ px4_add_board(
 		position_estimator_inav
 		sensors
 		uavcan
+		vmount
 		vtol_att_control
 		wind_estimator
 
