@@ -31,7 +31,8 @@
  *
  ****************************************************************************/
 
-#include <drivers/linux_gpio/linux_gpio.h>
+#include "linux_gpio.h"
+
 #include <px4_posix.h>
 #include <sys/types.h>
 #include <sys/stat.h>
