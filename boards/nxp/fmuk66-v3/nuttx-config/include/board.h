@@ -132,9 +132,7 @@
 
 #define BOARD_SIM_CLKDIV2_USBFRAC     2
 #define BOARD_SIM_CLKDIV2_USBDIV      7
-#define BOARD_SIM_CLKDIV2_FREQ        (BOARD_SOPT2_FREQ / \
-                                       BOARD_SIM_CLKDIV2_USBDIV * \
-                                       BOARD_SIM_CLKDIV2_USBFRAC)
+#define BOARD_SIM_CLKDIV2_FREQ        (BOARD_SOPT2_FREQ / BOARD_SIM_CLKDIV2_USBDIV * BOARD_SIM_CLKDIV2_USBFRAC)
 #define BOARD_USB_CLKSRC               SIM_SOPT2_USBSRC
 #define BOARD_USB_FREQ                 BOARD_SIM_CLKDIV2_FREQ
 
@@ -147,9 +145,7 @@
 
 #define BOARD_SIM_CLKDIV3_PLLFLLFRAC  1
 #define BOARD_SIM_CLKDIV3_PLLFLLDIV   2
-#define BOARD_SIM_CLKDIV3_FREQ        (BOARD_SOPT2_FREQ / \
-                                       BOARD_SIM_CLKDIV3_PLLFLLDIV * \
-                                       BOARD_SIM_CLKDIV3_PLLFLLFRAC)
+#define BOARD_SIM_CLKDIV3_FREQ        (BOARD_SOPT2_FREQ / BOARD_SIM_CLKDIV3_PLLFLLDIV * BOARD_SIM_CLKDIV3_PLLFLLFRAC)
 
 #define BOARD_LPUART0_CLKSRC           SIM_SOPT2_LPUARTSRC_MCGCLK
 #define BOARD_LPUART0_FREQ             BOARD_SIM_CLKDIV3_FREQ
@@ -502,14 +498,14 @@
 # define PROBE_6  (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTE | PIN12)
 
 # define PROBE_INIT(mask) \
-  do { \
-    if ((mask)& PROBE_N(1)) { kinetis_pinconfig(PROBE_1); } \
-    if ((mask)& PROBE_N(2)) { kinetis_pinconfig(PROBE_2); } \
-    if ((mask)& PROBE_N(3)) { kinetis_pinconfig(PROBE_3); } \
-    if ((mask)& PROBE_N(4)) { kinetis_pinconfig(PROBE_4); } \
-    if ((mask)& PROBE_N(5)) { kinetis_pinconfig(PROBE_5); } \
-    if ((mask)& PROBE_N(6)) { kinetis_pinconfig(PROBE_6); } \
-  } while(0)
+	do { \
+		if ((mask)& PROBE_N(1)) { kinetis_pinconfig(PROBE_1); } \
+		if ((mask)& PROBE_N(2)) { kinetis_pinconfig(PROBE_2); } \
+		if ((mask)& PROBE_N(3)) { kinetis_pinconfig(PROBE_3); } \
+		if ((mask)& PROBE_N(4)) { kinetis_pinconfig(PROBE_4); } \
+		if ((mask)& PROBE_N(5)) { kinetis_pinconfig(PROBE_5); } \
+		if ((mask)& PROBE_N(6)) { kinetis_pinconfig(PROBE_6); } \
+	} while(0)
 
 # define PROBE(n,s)  do {kinetis_gpiowrite(PROBE_##n,(s));}while(0)
 # define PROBE_MARK(n) PROBE(n,false);PROBE(n,true)

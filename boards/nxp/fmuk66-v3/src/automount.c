@@ -84,8 +84,7 @@ struct fmuk66_automount_config_s {
  * Private Function Prototypes
  ************************************************************************************/
 
-static int  fmuk66_attach(FAR const struct automount_lower_s *lower,
-			    automount_handler_t isr, FAR void *arg);
+static int  fmuk66_attach(FAR const struct automount_lower_s *lower, automount_handler_t isr, FAR void *arg);
 static void fmuk66_enable(FAR const struct automount_lower_s *lower, bool enable);
 static bool fmuk66_inserted(FAR const struct automount_lower_s *lower);
 
@@ -129,8 +128,7 @@ static const struct fmuk66_automount_config_s g_sdhc_config = {
  *
  ************************************************************************************/
 
-static int fmuk66_attach(FAR const struct automount_lower_s *lower,
-			   automount_handler_t isr, FAR void *arg)
+static int fmuk66_attach(FAR const struct automount_lower_s *lower, automount_handler_t isr, FAR void *arg)
 {
 	FAR const struct fmuk66_automount_config_s *config;
 	FAR struct fmuk66_automount_state_s *state;
