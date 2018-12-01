@@ -62,7 +62,7 @@ static int	mixer_callback(uintptr_t handle,
 			       uint8_t control_index,
 			       float &control);
 
-const unsigned output_max = 8;
+static const unsigned output_max = 8;
 static float actuator_controls[output_max];
 static bool should_prearm = false;
 
