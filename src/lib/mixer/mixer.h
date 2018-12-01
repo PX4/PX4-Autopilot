@@ -641,6 +641,20 @@ public:
 			float pitch_scale,
 			float yaw_scale,
 			float idle_speed);
+
+	/**
+	 * Constructor (for testing).
+	 *
+	 * @param control_cb		Callback invoked to read inputs.
+	 * @param cb_handle		Passed to control_cb.
+	 * @param rotors		control allocation matrix
+	 * @param rotor_count		length of rotors
+	 */
+	MultirotorMixer(ControlCallback control_cb,
+			uintptr_t cb_handle,
+			Rotor *rotors,
+			unsigned rotor_count);
+
 	~MultirotorMixer();
 
 	/**
