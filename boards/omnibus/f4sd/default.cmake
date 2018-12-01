@@ -15,7 +15,6 @@ px4_add_board(
 		#barometer # all available barometer drivers
 		barometer/bmp280
 		#batt_smbus
-		#blinkm
 		#camera_trigger
 		#differential_pressure # all available differential pressure drivers
 		#distance_sensor # all available distance sensor drivers
@@ -24,17 +23,18 @@ px4_add_board(
 		#imu # all available imu drivers
 		imu/mpu6000
 		#irlock
+		#lights/blinkm
+		#lights/oreoled
+		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		#mkblctrl
-		#oreoled
 		#pca9685
 		#pwm_input
 		#pwm_out_sim
 		px4flow
 		px4fmu
 		rc_input
-		rgbled
 		stm32
 		stm32/adc
 		#stm32/tone_alarm

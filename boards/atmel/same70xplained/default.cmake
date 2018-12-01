@@ -17,35 +17,35 @@ px4_add_board(
 	DRIVERS
 		barometer # all available barometer drivers
 		batt_smbus
-		blinkm
 		#camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
 		#heater
 		#imu # all available imu drivers
+		imu/l3gd20
+		imu/lsm303d
 		imu/mpu6000
 		imu/mpu9250
-		imu/lsm303d
-		imu/l3gd20
 		irlock
+		lights/blinkm
+		lights/oreoled
+		lights/rgbled
 		magnetometer # all available magnetometer drivers
 		mkblctrl
-		oreoled
 		pca9685
 		#pwm_input
 		pwm_out_sim
 		px4flow
 		px4fmu
 		#rc_input
-		rgbled
 		samv7
-		#WIP samv7/adc
 		samv7/tone_alarm
 		tap_esc
 		telemetry # all available telemetry drivers
 		#test_ppm
 		vmount
+		#WIP samv7/adc
 
 	MODULES
 		attitude_estimator_q
