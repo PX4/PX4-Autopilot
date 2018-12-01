@@ -21,10 +21,8 @@ px4_add_board(
 		#telemetry # all available telemetry drivers
 		vmount
 
-		linux_gpio
 		linux_pwm_out
 		linux_sbus
-		bbblue_adc
 
 	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
 		mpu9250
