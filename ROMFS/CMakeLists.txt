@@ -188,6 +188,7 @@ set_target_properties(romfs PROPERTIES LINKER_LANGUAGE C)
 find_program(SHELLCHECK_PATH shellcheck)
 
 if(SHELLCHECK_PATH)
+
 	# TODO: fix SC2086, SC2166
 	add_custom_target(shellcheck
 		COMMAND ${SHELLCHECK_PATH} --shell=sh
@@ -195,7 +196,7 @@ if(SHELLCHECK_PATH)
 			--exclude=SC2086 # SC2086: Double quote to prevent globbing and word splitting.
 			--exclude=SC2166 # SC2166: Prefer [ p ] || [ q ] as [ p -o q ] is not well defined.
 			--exclude=SC2154 # SC2154: <var> is referenced but not assigned (NuttX uses different asssignment)
-			init.d/*
+			`find ${romfs_gen_root_dir}/init.d -type f`
 		DEPENDS ${romfs_gen_root_dir}/init.d/rc.autostart
 		WORKING_DIRECTORY ${romfs_gen_root_dir}
 		USES_TERMINAL
