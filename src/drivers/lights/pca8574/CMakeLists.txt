@@ -38,4 +38,3 @@ px4_add_module(
 		pca8574.cpp
 	DEPENDS
 	)
-
