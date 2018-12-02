@@ -395,6 +395,7 @@ pipeline {
               sh('cp -R modules/*.md Devguide/en/middleware/')
               sh('cd Devguide; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
               sh('cd Devguide; git push origin master || true')
+              sh('rm -rf Devguide')
             }
           }
           when {
@@ -422,6 +423,7 @@ pipeline {
               sh('cp parameters.md px4_user_guide/en/advanced_config/parameter_reference.md')
               sh('cd px4_user_guide; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
               sh('cd px4_user_guide; git push origin master || true')
+              sh('rm -rf px4_user_guide')
             }
           }
           when {
@@ -449,6 +451,7 @@ pipeline {
               sh('cp parameters.xml qgroundcontrol/src/FirmwarePlugin/PX4/PX4ParameterFactMetaData.xml')
               sh('cd qgroundcontrol; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
               sh('cd qgroundcontrol; git push origin master || true')
+              sh('rm -rf qgroundcontrol')
             }
           }
           when {
