@@ -42,7 +42,7 @@ px4_add_board(
 		magnetometer # all available magnetometer drivers
 		#md25
 		mkblctrl
-		pca8574
+		lights/pca8574
 		pca9685
 		#pmw3901
 		protocol_splitter

@@ -38,7 +38,7 @@ px4_add_board(
 		#md25
 		mkblctrl
 		lights/oreoled
-		pca8574
+		lights/pca8574
 		pca9685
 		pmw3901
 		protocol_splitter
