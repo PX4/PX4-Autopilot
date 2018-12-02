@@ -75,7 +75,8 @@ void Ekf::fuseOptFlow()
 	Vector3f pos_offset_body = _params.flow_pos_body - _params.imu_pos_body;
 
 	// calculate the velocity of the sensor reelative to the imu in body frame
-	Vector3f vel_rel_imu_body = cross_product(_flow_sample_delayed.gyroXYZ / _flow_sample_delayed.dt, pos_offset_body);
+	// Note: _flow_sample_delayed.gyroXYZ is the negative of the body angular velocity, thus use minus sign
+	Vector3f vel_rel_imu_body = cross_product(-_flow_sample_delayed.gyroXYZ / _flow_sample_delayed.dt, pos_offset_body);
 
 	// calculate the velocity of the sensor in the earth frame
 	Vector3f vel_rel_earth = _state.vel + _R_to_earth * vel_rel_imu_body;
