@@ -66,7 +66,7 @@ PARAM_DEFINE_FLOAT(VT_FWD_THRUST_SC, 0.0f);
 /**
  * Back transition MC motor ramp up time
  *
- * This sets the duration during wich the MC motors ramp up to the commanded thrust during the back transition stage.
+ * This sets the duration during which the MC motors ramp up to the commanded thrust during the back transition stage.
  *
  * @unit s
  * @min 0.0
