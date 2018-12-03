@@ -77,8 +77,8 @@ public:
 
 private:
 	uORB::Subscription<companion_process_status_s> _companion_process_status_sub{ORB_ID(companion_process_status)};
-	companion_process_status_s _companion_process_status_history[(int)ProcessType::Count]{};	/**< last status message of each process*/
-	int _first_registration_time[(int)ProcessType::Count]{};	/**< time at which a process reported for the first time */
+	companion_process_status_s _companion_process_status_history[(int)ProcessType::Count] {};	/**< last status message of each process*/
+	int _first_registration_time[(int)ProcessType::Count] {};	/**< time at which a process reported for the first time */
 
 	bool _avoidance_required = false;
 	bool _vio_required = false;
@@ -89,13 +89,15 @@ private:
 	hrt_abstime _time_message;	/**< time when last message was printed*/
 	bool _new_status_received = false;
 
-	static constexpr hrt_abstime STARTUP_TIMEOUT = 15_s;	/**< timeout for starting the companion process. counter starts when first message of starting is received */
-	static constexpr hrt_abstime NO_SIGNAL_TIMEOUT = 15_s;	/**< timeout if no signal is received. counter starts when class object is created */
+	static constexpr hrt_abstime STARTUP_TIMEOUT =
+		15_s;	/**< timeout for starting the companion process. counter starts when first message of starting is received */
+	static constexpr hrt_abstime NO_SIGNAL_TIMEOUT =
+		15_s;	/**< timeout if no signal is received. counter starts when class object is created */
 	static constexpr hrt_abstime THROTTLE_MESSAGES = 5_s;	/**< time interval on which messages are published */
 
 	void poll_subscriptions();
 	void determine_required_processes();
 	void determine_action();
-	const char* toString(ProcessType type);
-	const char* toString(MAV_STATE state);
+	const char *toString(ProcessType type);
+	const char *toString(MAV_STATE state);
 };
