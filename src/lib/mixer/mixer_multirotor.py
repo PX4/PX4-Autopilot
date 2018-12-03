@@ -368,6 +368,8 @@ else:
 u_new_sat = np.maximum(u_new, np.matlib.zeros(u.size).T)
 u_new_sat = np.minimum(u_new_sat, np.matlib.ones(u.size).T)
 
+np.set_printoptions(suppress=True)
+
 # Display some results
 print("u = \n{}\n".format(u))
 print("u_new = \n{}\n".format(u_new))
