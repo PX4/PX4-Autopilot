@@ -196,6 +196,7 @@ if(SHELLCHECK_PATH)
 			--exclude=SC2086 # SC2086: Double quote to prevent globbing and word splitting.
 			--exclude=SC2166 # SC2166: Prefer [ p ] || [ q ] as [ p -o q ] is not well defined.
 			--exclude=SC2154 # SC2154: <var> is referenced but not assigned (NuttX uses different asssignment)
+			--exclude=SC2164 # SC2164: Use 'cd ... || exit' or 'cd ... || return' in case cd fails.
 			`find ${romfs_gen_root_dir}/init.d -type f`
 		DEPENDS ${romfs_gen_root_dir}/init.d/rc.autostart
 		WORKING_DIRECTORY ${romfs_gen_root_dir}
