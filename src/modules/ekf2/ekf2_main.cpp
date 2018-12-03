@@ -337,7 +337,7 @@ private:
 		(ParamExtFloat<px4::params::EKF2_BARO_GATE>)
 		_baro_innov_gate,	///< barometric height innovation consistency gate size (STD)
 		(ParamInt<px4::params::EKF2_GND_EFF_EN>)
-		_enableGndEff,	///< Controls barometric deadzone fusion, 0 disables, 1 enables
+		_enable_gnd_effect,	///< Controls barometric deadzone fusion, 0 disables, 1 enables
 		(ParamExtFloat<px4::params::EKF2_GND_EFF_DZ>)
 		_gnd_effect_deadzone,	///< barometric deadzone range for negative innovations (m)
 		(ParamExtFloat<px4::params::EKF2_GPS_P_GATE>)
@@ -928,7 +928,7 @@ void Ekf2::run()
 					float balt_data_avg = _balt_data_sum / (float)_balt_sample_count;
 
 					_ekf.set_air_density(airdata.rho);
-					_ekf.set_gnd_effect_flag(_enableGndEff.get());
+					_ekf.set_gnd_effect_flag(_enable_gnd_effect.get());
 
 					// calculate static pressure error = Pmeas - Ptruth
 					// model position error sensitivity as a body fixed ellipse with different scale in the positive and negtive X direction
