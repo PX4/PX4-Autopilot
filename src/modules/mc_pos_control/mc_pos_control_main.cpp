@@ -102,7 +102,7 @@ public:
 
 private:
 
-	bool 		_in_smooth_takeoff = false; 		/**<true if takeoff ramp is applied */
+	bool 		_in_smooth_takeoff = false; 		/**< true if takeoff ramp is applied */
 
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
 	orb_advert_t	_traj_sp_pub{nullptr};		/**< trajectory setpoints publication */
@@ -163,13 +163,13 @@ private:
 
 	bool _in_failsafe = false; /**< true if failsafe was entered within current cycle */
 
-	/**< Timeout in us for trajectory data to get considered invalid */
+	/** Timeout in us for trajectory data to get considered invalid */
 	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500000;
-	/**< number of tries before switching to a failsafe flight task */
+	/** number of tries before switching to a failsafe flight task */
 	static constexpr int NUM_FAILURE_TRIES = 10;
-	/**< If Flighttask fails, keep 0.2 seconds the current setpoint before going into failsafe land */
+	/** If Flighttask fails, keep 0.2 seconds the current setpoint before going into failsafe land */
 	static constexpr uint64_t LOITER_TIME_BEFORE_DESCEND = 200000;
-	/**< During smooth-takeoff, below ALTITUDE_THRESHOLD the yaw-control is turned off ant tilt is limited */
+	/** During smooth-takeoff, below ALTITUDE_THRESHOLD the yaw-control is turned off ant tilt is limited */
 	static constexpr float ALTITUDE_THRESHOLD = 0.3f;
 
 	/**
