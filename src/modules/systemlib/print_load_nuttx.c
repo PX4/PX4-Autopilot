@@ -48,6 +48,10 @@
 
 #if defined(CONFIG_SCHED_INSTRUMENTATION)
 
+#if !defined(CONFIG_TASK_NAME_SIZE)
+#error print_load_nuttx requires CONFIG_TASK_NAME_SIZE
+#endif
+
 extern struct system_load_s system_load;
 
 #define CL "\033[K" // clear line
