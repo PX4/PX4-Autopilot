@@ -21,7 +21,10 @@
 
 echo "Executing 4250_teal script."
 
-sh /etc/init.d/4001_quad_x
+sh /etc/init.d/rc.mc_defaults
+
+set MIXER quad_x
+set PWM_OUT 1234
 set MIXER_AUX none
 
 if [ $AUTOCNF = yes ]
