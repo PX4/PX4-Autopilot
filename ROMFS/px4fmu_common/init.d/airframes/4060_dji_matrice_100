@@ -26,8 +26,8 @@ then
 	param set MC_PITCHRATE_I 0.05
 	param set MC_PITCHRATE_D 0.001
 	param set MC_YAWRATE_P 0.2
-	param set MC_YAWRATE_I 0.0
-	param set MC_YAWRATE_D 0.0
+	param set MC_YAWRATE_I 0
+	param set MC_YAWRATE_D 0
 
 	param set PWM_MIN 1200
 fi

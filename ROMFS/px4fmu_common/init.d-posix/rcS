@@ -128,7 +128,7 @@ then
 	param set MC_ROLLRATE_P 0.2
 
 	param set MPC_ALT_MODE 0
-	param set MPC_HOLD_MAX_Z 2.0
+	param set MPC_HOLD_MAX_Z 2
 	param set MPC_Z_VEL_I 0.15
 	param set MPC_Z_VEL_P 0.6
 	param set MPC_XY_P 0.8
@@ -136,16 +136,16 @@ then
 	param set MPC_XY_VEL_I 0.02
 	param set MPC_XY_VEL_D 0.016
 
-	param set MPC_JERK_MIN 10.0
-	param set MPC_JERK_MAX 20.0
-	param set MPC_ACC_HOR_MAX 3.0
+	param set MPC_JERK_MIN 10
+	param set MPC_JERK_MAX 20
+	param set MPC_ACC_HOR_MAX 3
 
-	param set NAV_ACC_RAD 2.0
+	param set NAV_ACC_RAD 2
 	param set NAV_DLL_ACT 2
 
-	param set RTL_DESCEND_ALT 5.0
+	param set RTL_DESCEND_ALT 5
 	param set RTL_LAND_DELAY 5
-	param set RTL_RETURN_ALT 30.0
+	param set RTL_RETURN_ALT 30
 
 	param set SDLOG_DIRS_MAX 7
 	param set SENS_BOARD_ROT 0

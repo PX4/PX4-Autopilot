@@ -14,11 +14,11 @@ then
 	param set EKF2_EV_DELAY 5
 
 	# INAV: trust more on the vision input
-	param set INAV_W_XY_VIS_P 9.0
-	param set INAV_W_Z_VIS_P 7.0
-	param set INAV_W_XY_GPS_P 0.0
-	param set INAV_W_XY_GPS_V 0.0
-	param set INAV_W_Z_GPS_P 0.0
+	param set INAV_W_XY_VIS_P 9
+	param set INAV_W_Z_VIS_P 7
+	param set INAV_W_XY_GPS_P 0
+	param set INAV_W_XY_GPS_V 0
+	param set INAV_W_Z_GPS_P 0
 
 	# LPE: Vision + baro
 	param set LPE_FUSION 132
