@@ -45,7 +45,7 @@ then
 
 	# Bottom of bay and nominal zero-pitch attitude differ
 	# the payload bay is pitched up about 7 degrees
-	param set SENS_BOARD_Y_OFF 7.0
+	param set SENS_BOARD_Y_OFF 7
 fi
 
 set MIXER phantom

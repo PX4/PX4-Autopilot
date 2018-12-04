@@ -1,4 +1,4 @@
-Tilt-Quadrotor mixer for PX4FMU (1/2) V2.0
+Tilt-Quadrotor mixer for PX4FMU (1/2) V2
 ===========================
 
 This file defines the main outputs mixer for a Tilt-quadrotor in the + configuration.

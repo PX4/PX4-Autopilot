@@ -1,6 +1,6 @@
 #!nsh
 #
-# @name Crazyflie 2.0
+# @name Crazyflie 2
 #
 # @board px4_fmu-v2 exclude
 # @board px4_fmu-v3 exclude
@@ -28,7 +28,7 @@ then
 	param set CBRK_USB_CHK 197848
 	param set COM_RC_IN_MODE 1
 
-	param set EKF2_ABL_LIM 2.0
+	param set EKF2_ABL_LIM 2
 	param set EKF2_AID_MASK 3
 	param set EKF2_HGT_MODE 2
 	param set EKF2_MAG_TYPE 1
@@ -47,10 +47,10 @@ then
 	param set MC_ROLLRATE_I 0.2
 	param set MC_ROLLRATE_P 0.07
 	param set MC_ROLL_P 6.5
-	param set MC_YAW_P 3.0
+	param set MC_YAW_P 3
 
 	param set MPC_THR_HOVER 0.7
-	param set MPC_THR_MAX 1.0
+	param set MPC_THR_MAX 1
 	param set MPC_Z_P 1.5
 	param set MPC_Z_VEL_I 0.3
 	param set MPC_Z_VEL_P 0.4
