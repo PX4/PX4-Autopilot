@@ -14,7 +14,7 @@ if [ $AUTOCNF = yes ]
 then
 	param set BAT_N_CELLS 3
 
-	param set COM_DISARM_LAND 5.0
+	param set COM_DISARM_LAND 5
 	param set COM_RC_IN_MODE 1
 
 	param set EKF2_AID_MASK 1
@@ -36,9 +36,9 @@ then
 	param set MIS_YAW_TMT 10
 
 	param set MPC_ACC_HOR_MAX 2
-	param set MPC_ACC_HOR_MAX 2.0
+	param set MPC_ACC_HOR_MAX 2
 	param set MPC_THR_MIN 0.1
-	param set MPC_TKO_SPEED 1.0
+	param set MPC_TKO_SPEED 1
 	param set MPC_XY_P 0.8
 	param set MPC_XY_VEL_D 0.005
 	param set MPC_XY_VEL_I 0.2
@@ -47,13 +47,13 @@ then
 	param set MPC_Z_VEL_MAX_DN 1.5
 	param set MPC_Z_VEL_P 0.6
 
-	param set NAV_ACC_RAD 5.0
+	param set NAV_ACC_RAD 5
 	param set NAV_DLL_ACT 2
 	param set NAV_LOITER_RAD 80
 
-	param set RTL_DESCEND_ALT 10.0
+	param set RTL_DESCEND_ALT 10
 	param set RTL_LAND_DELAY 0
-	param set RTL_RETURN_ALT 30.0
+	param set RTL_RETURN_ALT 30
 
 	param set SDLOG_DIRS_MAX 7
 	param set SYS_MC_EST_GROUP 2

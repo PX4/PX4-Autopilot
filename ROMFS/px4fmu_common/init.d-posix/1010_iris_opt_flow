@@ -16,10 +16,10 @@ then
 
 	# INAV
 	param set INAV_LIDAR_EST 1
-	param set INAV_W_XY_FLOW 1.0
-	param set INAV_W_XY_GPS_P 0.0
-	param set INAV_W_XY_GPS_V 0.0
-	param set INAV_W_Z_GPS_P 0.0
+	param set INAV_W_XY_FLOW 1
+	param set INAV_W_XY_GPS_P 0
+	param set INAV_W_XY_GPS_V 0
+	param set INAV_W_Z_GPS_P 0
 
 	# LPE: Flow-only mode
 	param set LPE_FUSION 242

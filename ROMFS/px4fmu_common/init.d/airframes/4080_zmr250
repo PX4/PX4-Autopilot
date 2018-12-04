@@ -31,14 +31,14 @@ then
 	param set MC_PITCHRATE_I 0.2
 	param set MC_PITCHRATE_D 0.0017
 
-	param set MC_YAW_P 1.0
+	param set MC_YAW_P 1
 	param set MC_YAWRATE_P 0.15
 	param set MC_YAWRATE_I 0.2
-	param set MC_YAWRATE_D 0.0
+	param set MC_YAWRATE_D 0
 
-	param set MC_ACRO_R_MAX 1000.0
-	param set MC_ACRO_P_MAX 1000.0
-	param set MC_ACRO_Y_MAX 1000.0
+	param set MC_ACRO_R_MAX 1000
+	param set MC_ACRO_P_MAX 1000
+	param set MC_ACRO_Y_MAX 1000
 
 	param set MC_TPA_BREAK_P 0.5
 	param set MC_TPA_BREAK_D 0.7
