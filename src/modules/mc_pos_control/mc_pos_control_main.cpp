@@ -164,11 +164,11 @@ private:
 	bool _in_failsafe = false; /**< true if failsafe was entered within current cycle */
 
 	/** Timeout in us for trajectory data to get considered invalid */
-	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500000;
+	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500_ms;
 	/** number of tries before switching to a failsafe flight task */
 	static constexpr int NUM_FAILURE_TRIES = 10;
 	/** If Flighttask fails, keep 0.2 seconds the current setpoint before going into failsafe land */
-	static constexpr uint64_t LOITER_TIME_BEFORE_DESCEND = 200000;
+	static constexpr uint64_t LOITER_TIME_BEFORE_DESCEND = 200_ms;
 	/** During smooth-takeoff, below ALTITUDE_THRESHOLD the yaw-control is turned off ant tilt is limited */
 	static constexpr float ALTITUDE_THRESHOLD = 0.3f;
 
@@ -364,7 +364,7 @@ MulticopterPositionControl::warn_rate_limited(const char *string)
 {
 	hrt_abstime now = hrt_absolute_time();
 
-	if (now - _last_warn > 200000) {
+	if (now - _last_warn > 200_ms) {
 		PX4_WARN("%s", string);
 		_last_warn = now;
 	}
@@ -393,7 +393,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		_land_speed.set(math::min(_land_speed.get(), _vel_max_down.get()));
 
 		// set trigger time for arm hysteresis
-		_arm_hysteresis.set_hysteresis_time_from(false, (int)(MPC_IDLE_TKO.get() * 1000000.0f));
+		_arm_hysteresis.set_hysteresis_time_from(false, (int)(MPC_IDLE_TKO.get() * (float)1_s));
 
 		if (_wv_controller != nullptr) {
 			_wv_controller->update_parameters();
