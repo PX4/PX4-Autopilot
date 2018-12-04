@@ -75,6 +75,7 @@
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/optical_flow.h>
+#include <uORB/topics/orbit_status.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_combined.h>
@@ -4767,6 +4768,75 @@ protected:
 	}
 };
 
+class MavlinkStreamOrbitStatus : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamOrbitStatus::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "ORBIT_EXECUTION_STATUS";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_ORBIT_EXECUTION_STATUS;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamOrbitStatus(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_ORBIT_EXECUTION_STATUS_LEN +
+		       MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_sub;
+	uint64_t _orbit_status_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamOrbitStatus(MavlinkStreamOrbitStatus &);
+	MavlinkStreamOrbitStatus &operator = (const MavlinkStreamOrbitStatus &);
+
+protected:
+	explicit MavlinkStreamOrbitStatus(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_sub(_mavlink->add_orb_subscription(ORB_ID(orbit_status))),
+		_orbit_status_time(0)
+	{}
+
+	bool send(const hrt_abstime t)
+	{
+		struct orbit_status_s _orbit_status;
+
+		if (_sub->update(&_orbit_status_time, &_orbit_status)) {
+			mavlink_orbit_execution_status_t _msg_orbit_execution_status;
+
+			_msg_orbit_execution_status.time_usec = _orbit_status.timestamp;
+			_msg_orbit_execution_status.radius = _orbit_status.radius;
+			_msg_orbit_execution_status.frame  = _orbit_status.frame;
+			_msg_orbit_execution_status.x = _orbit_status.x;
+			_msg_orbit_execution_status.y = _orbit_status.y;
+			_msg_orbit_execution_status.z = _orbit_status.z;
+
+			mavlink_msg_orbit_execution_status_send_struct(_mavlink->get_channel(), &_msg_orbit_execution_status);
+		}
+
+		return true;
+	}
+};
+
 static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static, &MavlinkStreamHeartbeat::get_id_static),
 	StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static, &MavlinkStreamStatustext::get_id_static),
@@ -4824,7 +4894,8 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamMountOrientation::new_instance, &MavlinkStreamMountOrientation::get_name_static, &MavlinkStreamMountOrientation::get_id_static),
 	StreamListItem(&MavlinkStreamHighLatency2::new_instance, &MavlinkStreamHighLatency2::get_name_static, &MavlinkStreamHighLatency2::get_id_static),
 	StreamListItem(&MavlinkStreamGroundTruth::new_instance, &MavlinkStreamGroundTruth::get_name_static, &MavlinkStreamGroundTruth::get_id_static),
-	StreamListItem(&MavlinkStreamPing::new_instance, &MavlinkStreamPing::get_name_static, &MavlinkStreamPing::get_id_static)
+	StreamListItem(&MavlinkStreamPing::new_instance, &MavlinkStreamPing::get_name_static, &MavlinkStreamPing::get_id_static),
+	StreamListItem(&MavlinkStreamOrbitStatus::new_instance, &MavlinkStreamOrbitStatus::get_name_static, &MavlinkStreamOrbitStatus::get_id_static)
 };
 
 const char *get_stream_name(const uint16_t msg_id)
