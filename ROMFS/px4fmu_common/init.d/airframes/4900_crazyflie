@@ -14,7 +14,10 @@
 #
 # @maintainer Dennis Shtatov <densht@gmail.com>
 #
-sh /etc/init.d/4001_quad_x
+sh /etc/init.d/rc.mc_defaults
+
+set MIXER quad_x
+set PWM_OUT 1234
 if [ $AUTOCNF = yes ]
 then
 	param set BAT_N_CELLS 1
