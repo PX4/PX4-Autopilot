@@ -31,18 +31,35 @@
 #
 ############################################################################
 
-add_subdirectory(navio_adc)
-add_subdirectory(navio_rgbled)
-add_subdirectory(navio_sysfs_rc_in)
+add_subdirectory(bbblue_adc)
 
 
 ############################################################################
 # Upload
 ############################################################################
 
-add_custom_target(upload
-	COMMAND rsync -arh --progress ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${PX4_SOURCE_DIR}/posix-configs/rpi/*.config ${PX4_SOURCE_DIR}/ROMFS pi@"$ENV{AUTOPILOT_HOST}":/home/pi
-	DEPENDS px4
-	COMMENT "uploading px4"
-	USES_TERMINAL
+if("${PX4_PLATFORM}" MATCHES "qurt")
+
+	add_custom_target(upload
+		COMMAND
+			${PX4_SOURCE_DIR}/Tools/adb_upload.sh
+				${CMAKE_CURRENT_BINARY_DIR}/libpx4.so ${CMAKE_CURRENT_BINARY_DIR}/libpx4muorb_skel.so ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/px4.config	# source
+				/usr/share/data/adsp	# destination
+		DEPENDS px4 px4muorb_skel
+		COMMENT "uploading px4"
+		USES_TERMINAL
 	)
+
+else()
+
+	add_custom_target(upload
+		COMMAND
+			${CMAKE_CURRENT_SOURCE_DIR}/scripts/adb_upload.sh
+				${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config # source
+				/home/linaro	# destination
+		DEPENDS px4
+		COMMENT "uploading px4"
+		USES_TERMINAL
+		)
+
+endif()

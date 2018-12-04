@@ -32,3 +32,15 @@
 ############################################################################
 
 add_subdirectory(flow)
+
+
+############################################################################
+# Upload
+############################################################################
+
+add_custom_target(upload
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/adb_upload_to_bebop.sh ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/. /data/ftp/internal_000
+	DEPENDS px4
+	COMMENT "uploading px4"
+	USES_TERMINAL
+	)
