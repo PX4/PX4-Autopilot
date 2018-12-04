@@ -46,13 +46,6 @@ if (("${PX4_BOARD}" MATCHES "atlflight_eagle") OR ("${PX4_BOARD}" MATCHES "atlfl
 			-Wl,--end-group
 		)
 
-	add_custom_target(upload
-		COMMAND ${PX4_SOURCE_DIR}/Tools/adb_upload.sh ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config /home/linaro
-		DEPENDS px4
-		COMMENT "uploading px4"
-		USES_TERMINAL
-		)
-
 else()
 	add_executable(px4
 		src/main.cpp
@@ -100,32 +93,15 @@ px4_posix_generate_symlinks(
 	TARGET px4
 )
 
-if (("${PX4_BOARD}" MATCHES "raspberrypi") OR ("${PX4_BOARD}" MATCHES "navio2"))
-	add_custom_target(upload
-		COMMAND rsync -arh --progress ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${PX4_SOURCE_DIR}/posix-configs/rpi/*.config ${PX4_SOURCE_DIR}/ROMFS pi@"$ENV{AUTOPILOT_HOST}":/home/pi
-		DEPENDS px4
-		COMMENT "uploading px4"
-		USES_TERMINAL
-		)
 
-elseif ("${PX4_BOARD}" MATCHES "beaglebone_blue")
+# board defined upload helper
+if(EXISTS "${PX4_BOARD_DIR}/cmake/upload.cmake")
+	include(${PX4_BOARD_DIR}/cmake/upload.cmake)
+endif()
+
+
+if ("${PX4_BOARD}" MATCHES "beaglebone_blue")
 	target_link_libraries(px4 PRIVATE robotcontrol)
-
-	add_custom_target(upload
-		COMMAND rsync -arh --progress ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${PX4_SOURCE_DIR}/posix-configs/bbblue/*.config ${PX4_SOURCE_DIR}/ROMFS debian@BBBluePX4:/home/debian/px4
-		DEPENDS px4
-		COMMENT "uploading px4 and data files"
-		USES_TERMINAL
-		)
-
-elseif ("${PX4_BOARD}" MATCHES "bebop")
-
-	add_custom_target(upload
-		COMMAND ${PX4_SOURCE_DIR}/Tools/adb_upload_to_bebop.sh ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/. /data/ftp/internal_000
-		DEPENDS px4
-		COMMENT "uploading px4"
-		USES_TERMINAL
-		)
 
 elseif ("${PX4_BOARD}" MATCHES "sitl")
 
