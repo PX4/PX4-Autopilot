@@ -42,12 +42,14 @@
 #pragma once
 
 #include "FlightTaskManualAltitudeSmooth.hpp"
+#include <uORB/uORB.h>
+#include <uORB/topics/orbit_status.h>
 
 class FlightTaskOrbit : public FlightTaskManualAltitudeSmooth
 {
 public:
 	FlightTaskOrbit();
-	virtual ~FlightTaskOrbit() = default;
+	virtual ~FlightTaskOrbit();
 
 	bool applyCommandParameters(const vehicle_command_s &command) override;
 	bool activate() override;
@@ -89,4 +91,7 @@ private:
 	const float _radius_max = 100.f;
 	const float _velocity_max = 10.f;
 	const float _acceleration_max = 2.f;
+
+	orb_advert_t _orbit_status_pub = nullptr;
+	orbit_status_s _orbit_status = {};
 };
