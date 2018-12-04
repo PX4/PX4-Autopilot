@@ -66,6 +66,12 @@ bool CollisionPrevention::initializeSubscriptions(SubscriptionArray &subscriptio
 		return false;
 	}
 
+	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		if (!subscription_array.get(ORB_ID(distance_sensor), _sub_distance_sensor[i], i)) {
+			return false;
+		}
+	}
+
 	return true;
 }
 
@@ -105,21 +111,83 @@ void CollisionPrevention::publish_constraints(const Vector2f &original_setpoint,
 	}
 }
 
+void CollisionPrevention::update_distance_sensor(obstacle_distance_s &obstacle_distance)
+{
+	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		const distance_sensor_s &distance_sensor = _sub_distance_sensor[i]->get();
+
+		// consider only instaces with updated data and orientations useful for collision prevention
+		if ((hrt_elapsed_time(&distance_sensor.timestamp) < RANGE_STREAM_TIMEOUT_US) && (
+			    (distance_sensor.orientation == distance_sensor_s::ROTATION_FORWARD_FACING) ||
+			    (distance_sensor.orientation == distance_sensor_s::ROTATION_RIGHT_FACING) ||
+			    (distance_sensor.orientation == distance_sensor_s::ROTATION_LEFT_FACING) ||
+			    (distance_sensor.orientation == distance_sensor_s::ROTATION_BACKWARD_FACING))) {
+
+			obstacle_distance.timestamp = distance_sensor.timestamp;
+			obstacle_distance.max_distance = distance_sensor.max_distance * 100.0f; // convert to cm
+			obstacle_distance.min_distance = distance_sensor.min_distance * 100.0f; // convert to cm
+
+			if (!(obstacle_distance.increment > 0.0f)) {
+				obstacle_distance.increment = 5.0f;
+			}
+
+			for (unsigned int k = 0; k < sizeof(obstacle_distance.distances) / sizeof(obstacle_distance.distances[0]); ++k) {
+				obstacle_distance.distances[k] = UINT16_MAX;
+			}
+
+			// init offset for sensor orientation distance_sensor_s::ROTATION_FORWARD_FACING
+			float offset = 0.0f;
+
+			switch (distance_sensor.orientation) {
+			case distance_sensor_s::ROTATION_RIGHT_FACING:
+				offset = M_PI_F / 2.0f;
+				break;
+
+			case distance_sensor_s::ROTATION_LEFT_FACING:
+				offset = -M_PI_F / 2.0f;
+				break;
+
+			case distance_sensor_s::ROTATION_BACKWARD_FACING:
+				offset = M_PI_F;
+				break;
+			}
+
+			// covert the sensor orientation from body to local frame
+			float sensor_orientation = math::degrees(wrap_pi(_yaw + offset));
+
+			// covert orientation from range [-180, 180] to [0, 360]
+			if ((sensor_orientation <= FLT_EPSILON) || (sensor_orientation >= 180.0f)) {
+				sensor_orientation += 360.0f;
+			}
+
+			// array resolution defined by the increment, index 0 is always local north
+			const int index = (int)floorf(sensor_orientation / (float)obstacle_distance.increment);
+
+			obstacle_distance.distances[index] = 100.0f * distance_sensor.current_distance; // convert to cm
+		}
+	}
+}
+
 void CollisionPrevention::update_range_constraints()
 {
 	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance->get();
 
-	if (hrt_elapsed_time(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US) {
-		float max_detection_distance = obstacle_distance.max_distance / 100.0f; //convert to meters
+	if (!_sub_obstacle_distance->updated()) {
+		obstacle_distance_s fused_distance = obstacle_distance;
+		update_distance_sensor(fused_distance);
+	}
 
-		int distances_array_size = sizeof(obstacle_distance.distances) / sizeof(obstacle_distance.distances[0]);
+	if (hrt_elapsed_time(&fused_distance.timestamp) < RANGE_STREAM_TIMEOUT_US) {
+		float max_detection_distance = fused_distance.max_distance / 100.0f; //convert to meters
+
+		int distances_array_size = sizeof(fused_distance.distances) / sizeof(fused_distance.distances[0]);
 
 		for (int i = 0; i < distances_array_size; i++) {
 			//determine if distance bin is valid and contains a valid distance measurement
-			if (obstacle_distance.distances[i] < obstacle_distance.max_distance &&
-			    obstacle_distance.distances[i] > obstacle_distance.min_distance && i * obstacle_distance.increment < 360) {
-				float distance = obstacle_distance.distances[i] / 100.0f; //convert to meters
-				float angle = math::radians((float)i * obstacle_distance.increment);
+			if (fused_distance.distances[i] < fused_distance.max_distance &&
+			    fused_distance.distances[i] > fused_distance.min_distance && i * fused_distance.increment < 360) {
+				float distance = fused_distance.distances[i] / 100.0f; //convert to meters
+				float angle = math::radians((float)i * fused_distance.increment);
 
 				//calculate normalized velocity reductions
 				float vel_lim_x = (max_detection_distance - distance) / (max_detection_distance - _param_mpc_col_prev_d.get()) * cos(
@@ -143,8 +211,9 @@ void CollisionPrevention::update_range_constraints()
 	}
 }
 
-void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const float max_speed)
+void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const float max_speed, const float yaw)
 {
+	_yaw = yaw;
 	reset_constraints();
 
 	//calculate movement constraints based on range data
