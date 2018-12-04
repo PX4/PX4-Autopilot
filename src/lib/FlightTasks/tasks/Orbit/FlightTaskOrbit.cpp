@@ -46,6 +46,11 @@ FlightTaskOrbit::FlightTaskOrbit()
 	_sticks_data_required = false;
 }
 
+FlightTaskOrbit::~FlightTaskOrbit()
+{
+	orb_unadvertise(_orbit_status_pub);
+}
+
 bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 {
 	bool ret = true;
@@ -164,6 +169,20 @@ bool FlightTaskOrbit::update()
 	_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
 	// yawspeed feed-forward because we know the necessary angular rate
 	_yawspeed_setpoint = _v / _r;
+
+	// publish telemetry
+	_orbit_status.radius = _r;
+	_orbit_status.frame = 6;  // MAV_FRAME_GLOBAL_RELATIVE_ALT_INT
+	_orbit_status.x = _center(0);
+	_orbit_status.y = _center(1);
+	_orbit_status.z = _center(2);
+
+	if (_orbit_status_pub == nullptr) {
+		_orbit_status_pub = orb_advertise(ORB_ID(orbit_status), &_orbit_status);
+
+	} else {
+		orb_publish(ORB_ID(orbit_status), _orbit_status_pub, &_orbit_status);
+	}
 
 	return true;
 }
