@@ -2,43 +2,58 @@
         "version": "0.2.0",
         "configurations": [
             {
-                "name": "(lldb) Launch",
+                "name": "(gdb) Launch (shell)",
                 "type": "cppdbg",
                 "request": "launch",
                 "program": "${command:cmake.launchTargetPath}",
-                "args": [],
+                "args": [
+                    "${workspaceFolder}/ROMFS/px4fmu_common",
+                    "-s", "etc/init.d-posix/rcS",
+                    "-t", "${workspaceFolder}/test_data"
+                ],
                 "stopAtEntry": false,
-                "cwd": "${workspaceFolder}",
-                "environment": [],
-                "externalConsole": true,
-                "MIMode": "lldb",
-            },
-            {
-                "name": "(gdb) Launch",
-                "type": "cppdbg",
-                "request": "launch",
-                // Resolved by CMake Tools:
-                "program": "${command:cmake.launchTargetPath}",
-                "args": [],
-                "stopAtEntry": false,
-                "cwd": "${workspaceFolder}",
-                "externalConsole": true,
+                "cwd": "${workspaceFolder}/build/px4_sitl_default/tmp",
+                "environment": [{"name": "PX4_SIM_MODEL", "value": "shell"}],
+                "externalConsole": false,
                 "MIMode": "gdb",
                 "setupCommands": [
                     {
                         "description": "Enable pretty-printing for gdb",
                         "text": "-enable-pretty-printing",
-                        "ignoreFailures": true
+
+                        "ignoreFailures": true,
+
+                        "text": "handle SIGCONT nostop noprint nopass",
                     }
                 ]
-            }
+            },
             {
-                "cwd": "${workspaceRoot}",
-                "executable": "${command:cmake.launchTargetPath}",
-                "name": "Debug Microcontroller",
+                "name": "(gdb) Launch (jmavsim iris)",
+                "type": "cppdbg",
                 "request": "launch",
-                "type": "cortex-debug",
-                "servertype": "jlink"
+                "program": "${command:cmake.launchTargetPath}",
+                "args": [
+                    "${workspaceFolder}/ROMFS/px4fmu_common",
+                    "-s", "etc/init.d-posix/rcS",
+                    "-t", "${workspaceFolder}/test_data"
+                ],
+                "stopAtEntry": false,
+                "cwd": "${workspaceFolder}/build/px4_sitl_default/tmp",
+                "environment": [{"name": "PX4_SIM_MODEL", "value": "iris"}],
+                "externalConsole": false,
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+
+                        "ignoreFailures": true,
+
+                        "text": "handle SIGCONT nostop noprint nopass",
+
+                    }
+                ],
+                "preLaunchTask": "jmavsim"
             },
         ]
     }

@@ -6,11 +6,16 @@
         {
             "label": "jmavsim",
             "type": "shell",
-            "command": "make posix_sitl_default jmavsim",
-            "group": {
-                "kind": "build",
-                "isDefault": true
+            "command": "Tools/jmavsim_run.sh",
+            "isBackground": true,
+            "args": ["-r", "500"],
+            "options": {
+                "cwd": "${workspaceRoot}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
             }
-        }
+        },
     ]
 }
