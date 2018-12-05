@@ -63,7 +63,7 @@
 #define MPU9250_LOW_SPI_BUS_SPEED	1000*1000
 #define MPU9250_HIGH_SPI_BUS_SPEED	20*1000*1000
 
-device::Device *MPU9250_SPI_interface(int bus, uint32_t cs, bool external_bus);
+device::Device *MPU9250_SPI_interface(int bus, int device_type, uint32_t cs, bool external_bus);
 
 class MPU9250_SPI : public device::SPI
 {
@@ -84,7 +84,7 @@ private:
 };
 
 device::Device *
-MPU9250_SPI_interface(int bus, uint32_t cs, bool external_bus)
+MPU9250_SPI_interface(int bus, int device_type, uint32_t cs, bool external_bus)
 {
 	device::Device *interface = nullptr;
 

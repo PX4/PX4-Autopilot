@@ -31,83 +31,33 @@
  *
  ****************************************************************************/
 
+#pragma once
+
+class MPU9250;
+
 /**
- * @file gyro.cpp
- *
- * Driver for the Invensense mpu9250 connected via SPI.
- *
- * @author Andrew Tridgell
- *
- * based on the mpu6000 driver
+ * Helper class implementing the accel driver node.
  */
-
-#include <px4_config.h>
-#include <lib/perf/perf_counter.h>
-#include <drivers/device/spi.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/drv_mag.h>
-#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
-#include <lib/conversion/rotation.h>
-
-#include "mag.h"
-#include "gyro.h"
-#include "mpu9250.h"
-
-MPU9250_gyro::MPU9250_gyro(MPU9250 *parent, const char *path) :
-	CDev("MPU9250_gyro", path),
-	_parent(parent)
+class MPU9250_accel : public device::CDev
 {
-}
+public:
+	MPU9250_accel(MPU9250 *parent, const char *path);
+	~MPU9250_accel();
 
-MPU9250_gyro::~MPU9250_gyro()
-{
-	if (_gyro_class_instance != -1) {
-		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _gyro_class_instance);
-	}
-}
+	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
-int
-MPU9250_gyro::init()
-{
-	// do base class init
-	int ret = CDev::init();
+	virtual int		init();
 
-	/* if probe/setup failed, bail now */
-	if (ret != OK) {
-		DEVICE_DEBUG("gyro init failed");
-		return ret;
-	}
+protected:
+	friend class MPU9250;
 
-	_gyro_class_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
+	void			parent_poll_notify();
 
-	return ret;
-}
+private:
+	MPU9250			*_parent;
 
-void
-MPU9250_gyro::parent_poll_notify()
-{
-	poll_notify(POLLIN);
-}
+	orb_advert_t		_accel_topic{nullptr};
+	int			_accel_orb_class_instance{-1};
+	int			_accel_class_instance{-1};
 
-int
-MPU9250_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-
-	/* these are shared with the accel side */
-	case SENSORIOCSPOLLRATE:
-	case SENSORIOCRESET:
-		return _parent->_accel->ioctl(filp, cmd, arg);
-
-	case GYROIOCSSCALE:
-		/* copy scale in */
-		memcpy(&_parent->_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_parent->_gyro_scale));
-		return OK;
-
-	default:
-		return CDev::ioctl(filp, cmd, arg);
-	}
-}
+};
