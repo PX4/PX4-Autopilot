@@ -693,7 +693,15 @@ void Simulator::pollForMAVLinkMessages(bool publish, InternetProtocol ip, int po
 				return;
 			}
 
-			int ret = connect(_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr));
+			int yes = 1;
+			int ret = setsockopt(_fd, IPPROTO_TCP, TCP_NODELAY, (char *) &yes, sizeof(int));
+
+			if (ret != 0) {
+				PX4_ERR("setsockopt failed: %s", strerror(errno));
+			}
+
+			socklen_t myaddr_len = sizeof(_myaddr);
+			ret = connect(_fd, (struct sockaddr *)&_myaddr, myaddr_len);
 
 			if (ret == 0) {
 				break;
@@ -706,12 +714,6 @@ void Simulator::pollForMAVLinkMessages(bool publish, InternetProtocol ip, int po
 
 		PX4_INFO("Simulator connected on TCP port %u.", port);
 
-		int yes = 1;
-		int result = setsockopt(_fd, IPPROTO_TCP, TCP_NODELAY, (char *) &yes, sizeof(int));
-
-		if (result != 0) {
-			PX4_ERR("setsockopt failed: %s", strerror(errno));
-		}
 	}
 
 	// Create a thread for sending data to the simulator.
