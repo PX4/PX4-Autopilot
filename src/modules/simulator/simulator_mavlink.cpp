@@ -512,7 +512,7 @@ void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
 	ssize_t len = sendto(_fd, buf, bufLen, 0, (struct sockaddr *)&_srcaddr, sizeof(_srcaddr));
 
 	if (len <= 0) {
-		PX4_WARN("Failed sending mavlink message");
+		PX4_WARN("Failed sending mavlink message: %s", strerror(errno));
 	}
 }
 
@@ -896,7 +896,7 @@ int openUart(const char *uart_name, int baud)
 
 	/* Back up the original uart configuration to restore it after exit */
 	if ((termios_state = tcgetattr(uart_fd, &uart_config)) < 0) {
-		warnx("ERR GET CONF %s: %d\n", uart_name, termios_state);
+		PX4_ERR("tcgetattr failed for %s: %s\n", uart_name, strerror(errno));
 		::close(uart_fd);
 		return -1;
 	}
@@ -906,7 +906,7 @@ int openUart(const char *uart_name, int baud)
 
 	/* Set baud rate */
 	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-		warnx("ERR SET BAUD %s: %d\n", uart_name, termios_state);
+		PX4_ERR("cfsetispeed or cfsetospeed failed for %s: %s\n", uart_name, strerror(errno));
 		::close(uart_fd);
 		return -1;
 	}
@@ -915,7 +915,7 @@ int openUart(const char *uart_name, int baud)
 	cfmakeraw(&uart_config);
 
 	if ((termios_state = tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERR SET CONF %s\n", uart_name);
+		PX4_ERR("tcsetattr failed for %s: %s\n", uart_name, strerror(errno));
 		::close(uart_fd);
 		return -1;
 	}
