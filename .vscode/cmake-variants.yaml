@@ -1,0 +1,33 @@
+CONFIG:
+  default: posix_sitl_default
+  choices:
+    posix_sitl_default:
+      short: sitl
+      buildType: RelWithDebInfo
+      settings:
+        CONFIG: posix_sitl_default
+    nuttx_px4fmu-v2_default:
+      short: px4fmu-v2
+      buildType: MinRelSize
+      settings:
+        CONFIG: nuttx_px4fmu-v2_default
+    nuttx_px4fmu-v3_default:
+      short: px4fmu-v3
+      buildType: MinRelSize
+      settings:
+        CONFIG: nuttx_px4fmu-v3_default
+    nuttx_px4fmu-v4_default:
+      short: px4fmu-v4
+      buildType: MinRelSize
+      settings:
+        CONFIG: nuttx_px4fmu-v4_default
+    nuttx_px4fmu-v4pro_default:
+      short: px4fmu-v4pro
+      buildType: MinRelSize
+      settings:
+        CONFIG: nuttx_px4fmu-v4pro_default
+    nuttx_px4fmu-v5_default:
+      short: px4fmu-v5
+      buildType: MinRelSize
+      settings:
+        CONFIG: nuttx_px4fmu-v5_default
