@@ -775,7 +775,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, InternetProtocol ip, int po
 	while (true) {
 
 		// wait for new mavlink messages to arrive
-		int pret = ::poll(&fds[0], fd_count, 4);
+		int pret = ::poll(&fds[0], fd_count, 1000);
 
 		if (pret == 0) {
 			// Timed out.
