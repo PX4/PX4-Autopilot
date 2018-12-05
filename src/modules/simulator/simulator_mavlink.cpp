@@ -901,9 +901,6 @@ int openUart(const char *uart_name, int baud)
 		return -1;
 	}
 
-	/* Fill the struct for the new configuration */
-	tcgetattr(uart_fd, &uart_config);
-
 	/* Set baud rate */
 	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
 		PX4_ERR("cfsetispeed or cfsetospeed failed for %s: %s\n", uart_name, strerror(errno));
