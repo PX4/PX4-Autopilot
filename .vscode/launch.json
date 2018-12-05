@@ -28,6 +28,27 @@
                 ]
             },
             {
+                "name": "(lldb) Launch (shell)",
+                "type": "cppdbg",
+                "request": "launch",
+                "program": "${command:cmake.launchTargetPath}",
+                "args": [
+                    "${workspaceFolder}/ROMFS/px4fmu_common",
+                    "-s", "etc/init.d-posix/rcS",
+                    "-t", "${workspaceFolder}/test_data"
+                ],
+                "stopAtEntry": false,
+                "cwd": "${workspaceFolder}/build/px4_sitl_default/tmp",
+                "environment": [{"name": "PX4_SIM_MODEL", "value": "shell"}],
+                "externalConsole": true,
+                "MIMode": "lldb",
+                "setupCommands": [
+                    {
+                        "text": "pro hand -p true -s false -n false SIGCONT",
+                    }
+                ]
+            },
+            {
                 "name": "(gdb) Launch (jmavsim iris)",
                 "type": "cppdbg",
                 "request": "launch",
@@ -54,6 +75,28 @@
                     }
                 ],
                 "preLaunchTask": "jmavsim"
+            },
+            {
+                "name": "(lldb) Launch (jmavsim iris)",
+                "type": "cppdbg",
+                "request": "launch",
+                "program": "${command:cmake.launchTargetPath}",
+                "args": [
+                    "${workspaceFolder}/ROMFS/px4fmu_common",
+                    "-s", "etc/init.d-posix/rcS",
+                    "-t", "${workspaceFolder}/test_data"
+                ],
+                "stopAtEntry": false,
+                "cwd": "${workspaceFolder}/build/px4_sitl_default/tmp",
+                "environment": [{"name": "PX4_SIM_MODEL", "value": "iris"}],
+                "externalConsole": true,
+                "MIMode": "lldb",
+                "preLaunchTask": "jmavsim",
+                "setupCommands": [
+                    {
+                        "text": "pro hand -p true -s false -n false SIGCONT",
+                    }
+                ]
             },
             {
                 "name": "(jlink) px4_fmu-v2",
