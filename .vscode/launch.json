@@ -1,0 +1,44 @@
+{
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "(lldb) Launch",
+                "type": "cppdbg",
+                "request": "launch",
+                "program": "${command:cmake.launchTargetPath}",
+                "args": [],
+                "stopAtEntry": false,
+                "cwd": "${workspaceFolder}",
+                "environment": [],
+                "externalConsole": true,
+                "MIMode": "lldb",
+            },
+            {
+                "name": "(gdb) Launch",
+                "type": "cppdbg",
+                "request": "launch",
+                // Resolved by CMake Tools:
+                "program": "${command:cmake.launchTargetPath}",
+                "args": [],
+                "stopAtEntry": false,
+                "cwd": "${workspaceFolder}",
+                "externalConsole": true,
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    }
+                ]
+            }
+            {
+                "cwd": "${workspaceRoot}",
+                "executable": "${command:cmake.launchTargetPath}",
+                "name": "Debug Microcontroller",
+                "request": "launch",
+                "type": "cortex-debug",
+                "servertype": "jlink"
+            },
+        ]
+    }
