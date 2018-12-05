@@ -1,10 +1,6 @@
 [
         {
-                "name": "arm-none-eabi-gcc",
-                "toolchainFile": "cmake/toolchains/Toolchain-arm-none-eabi.cmake"
-        },
-        {
-                "name": "native",
-                "toolchainFile": "cmake/toolchains/Toolchain-native.cmake"
+                "name": "PX4 default",
+                "preferredGenerator": "Ninja"
         }
 ]

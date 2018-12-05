@@ -5,4 +5,6 @@
         "C_Cpp.default.cppStandard": "c++11",
         "C_Cpp.default.cStandard": "c99",
         "cmake.buildDirectory": "${workspaceRoot}/build/${variant:CONFIG}",
+        "cmake.autoRestartBuild": true,
+        "cmake.configureOnOpen": true,
 }
