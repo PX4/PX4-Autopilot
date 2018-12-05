@@ -38,6 +38,7 @@
 #include "FlightTaskOrbit.hpp"
 #include <mathlib/mathlib.h>
 #include <lib/ecl/geo/geo.h>
+#include <uORB/topics/orbit_status.h>
 
 using namespace matrix;
 
@@ -89,6 +90,28 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 	}
 
 	return ret;
+}
+
+bool FlightTaskOrbit::sendTelemetry()
+{
+	orbit_status_s _orbit_status = {};
+	_orbit_status.timestamp = hrt_absolute_time();
+	_orbit_status.radius = _r;
+	_orbit_status.frame = 0; // MAV_FRAME::MAV_FRAME_GLOBAL
+
+	if (globallocalconverter_toglobal(_center(0), _center(1), _position_setpoint(2),  &_orbit_status.x, &_orbit_status.y,
+					  &_orbit_status.z)) {
+		return false; // don't send the message if the transformation failed
+	}
+
+	if (_orbit_status_pub == nullptr) {
+		_orbit_status_pub = orb_advertise(ORB_ID(orbit_status), &_orbit_status);
+
+	} else {
+		orb_publish(ORB_ID(orbit_status), _orbit_status_pub, &_orbit_status);
+	}
+
+	return true;
 }
 
 bool FlightTaskOrbit::setRadius(const float r)
@@ -171,18 +194,7 @@ bool FlightTaskOrbit::update()
 	_yawspeed_setpoint = _v / _r;
 
 	// publish telemetry
-	_orbit_status.radius = _r;
-	_orbit_status.frame = 6;  // MAV_FRAME_GLOBAL_RELATIVE_ALT_INT
-	_orbit_status.x = _center(0);
-	_orbit_status.y = _center(1);
-	_orbit_status.z = _center(2);
-
-	if (_orbit_status_pub == nullptr) {
-		_orbit_status_pub = orb_advertise(ORB_ID(orbit_status), &_orbit_status);
-
-	} else {
-		orb_publish(ORB_ID(orbit_status), _orbit_status_pub, &_orbit_status);
-	}
+	sendTelemetry();
 
 	return true;
 }

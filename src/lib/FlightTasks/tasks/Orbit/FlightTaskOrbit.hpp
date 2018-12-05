@@ -43,7 +43,6 @@
 
 #include "FlightTaskManualAltitudeSmooth.hpp"
 #include <uORB/uORB.h>
-#include <uORB/topics/orbit_status.h>
 
 class FlightTaskOrbit : public FlightTaskManualAltitudeSmooth
 {
@@ -66,6 +65,11 @@ public:
 	bool checkAcceleration(float r, float v, float a);
 
 protected:
+	/**
+	 * Send out telemetry information for the log and MAVLink.
+	 * @return true on success, false on error
+	 */
+	bool sendTelemetry();
 
 	/**
 	 * Change the radius of the circle.
@@ -93,5 +97,4 @@ private:
 	const float _acceleration_max = 2.f;
 
 	orb_advert_t _orbit_status_pub = nullptr;
-	orbit_status_s _orbit_status = {};
 };

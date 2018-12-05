@@ -4826,8 +4826,8 @@ protected:
 			_msg_orbit_execution_status.time_usec = _orbit_status.timestamp;
 			_msg_orbit_execution_status.radius = _orbit_status.radius;
 			_msg_orbit_execution_status.frame  = _orbit_status.frame;
-			_msg_orbit_execution_status.x = _orbit_status.x;
-			_msg_orbit_execution_status.y = _orbit_status.y;
+			_msg_orbit_execution_status.x = _orbit_status.x * 1e7;
+			_msg_orbit_execution_status.y = _orbit_status.y * 1e7;
 			_msg_orbit_execution_status.z = _orbit_status.z;
 
 			mavlink_msg_orbit_execution_status_send_struct(_mavlink->get_channel(), &_msg_orbit_execution_status);
