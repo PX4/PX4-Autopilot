@@ -55,6 +55,11 @@ then
 	fi
 fi
 
+if param compare SENS_EN_BATT 1
+then
+	batt_smbus start -X
+fi
+
 # Sensors on the PWM interface bank
 if param compare SENS_EN_LL40LS 1
 then
