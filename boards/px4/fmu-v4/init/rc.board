@@ -44,7 +44,7 @@ bmp280 -I start
 # expansion i2c used for BMM150 rotated by 90deg
 bmm150 -R 2 start
 
-# For Teal airframe
+# For Teal One airframe
 if param compare SYS_AUTOSTART 4250
 then
 	mpu9250 -s -R 14 start
