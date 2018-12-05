@@ -301,7 +301,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			float step = diff / 4000.0f;
 
 			if (step > 1.1f || step < 0.9f) {
-				PX4_INFO("time_usec: %llu, diff: %llu, step: %.2f", now_us, diff, step);
+				PX4_INFO("time_usec: %lu, diff: %lu, step: %.2f", now_us, diff, step);
 			}
 
 			last_time = now_us;
