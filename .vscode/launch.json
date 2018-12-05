@@ -55,5 +55,18 @@
                 ],
                 "preLaunchTask": "jmavsim"
             },
+            {
+                "name": "(jlink) px4_fmu-v2",
+                "cwd": "${workspaceRoot}",
+                "executable": "${workspaceRoot}/build/px4_fmu-v2_default/px4_fmu-v2_default.elf",
+                "request": "launch",
+                "type": "cortex-debug",
+                "servertype": "jlink",
+                "device": "STM32F427VI",
+                //"svdFile": "",
+                "interface": "swd",
+                "ipAddress": null,
+                "serialNumber": null
+            },
         ]
     }
