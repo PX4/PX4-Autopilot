@@ -201,9 +201,11 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_SBUS_INV);
 	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
 
+#ifndef CONFIG_STM32_SPI4
 	stm32_configgpio(GPIO_8266_GPIO0);
 	stm32_configgpio(GPIO_8266_PD);
 	stm32_configgpio(GPIO_8266_RST);
+#endif /* !CONFIG_STM32_SPI4 */
 
 	// Safety - led on in led driver.
 	stm32_configgpio(GPIO_BTN_SAFETY);
@@ -211,7 +213,11 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_PPM_IN);
 
 	// Configure SPI all interfaces GPIO.
+#ifdef CONFIG_STM32_SPI4
+	stm32_spiinitialize(PX4_SPI_BUS_RAMTRON | PX4_SPI_BUS_SENSORS | PX4_SPI_BUS_EXTERNAL);
+#else
 	stm32_spiinitialize(PX4_SPI_BUS_RAMTRON | PX4_SPI_BUS_SENSORS);
+#endif
 
 	// Configure heater GPIO.
 	stm32_configgpio(GPIO_HEATER_INPUT);
@@ -245,6 +251,10 @@ stm32_boardinitialize(void)
 
 static struct spi_dev_s *spi1;
 static struct spi_dev_s *spi2;
+#ifdef CONFIG_STM32_SPI4
+static struct spi_dev_s *spi4;
+#endif /* CONFIG_STM32_SPI4 */
+
 static struct sdio_dev_s *sdio;
 
 __EXPORT int board_app_initialize(uintptr_t arg)
@@ -328,6 +338,22 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_FLASH(0), false);
 	SPI_SELECT(spi2, PX4_SPIDEV_BARO, false);
+
+#ifdef CONFIG_STM32_SPI4
+	// Get the SPI port 4.
+	spi4 = stm32_spibus_initialize(4);
+
+	if (!spi4) {
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 4\n");
+		led_on(LED_RED);
+		return -ENODEV;
+	}
+
+	SPI_SETFREQUENCY(spi4, 20 * 1000 * 1000);
+	SPI_SETBITS(spi4, 8);
+	SPI_SETMODE(spi4, SPIDEV_MODE3);
+	SPI_SELECT(spi4, PX4_SPIDEV_EXTERNAL, false);
+#endif /* CONFIG_STM32_SPI4 */
 
 #ifdef CONFIG_MMCSD
 

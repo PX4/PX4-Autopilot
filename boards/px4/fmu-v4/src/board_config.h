@@ -105,6 +105,11 @@
 #define GPIO_SPI2_CS_MS5611          (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN7)
 #define GPIO_SPI2_CS_FRAM            (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
 
+/* Define the Chip Selects for SPI4. */
+#ifdef CONFIG_STM32_SPI4
+# define GPIO_SPI4_CS_1         (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN8)  //ESP_RTS_PIN
+#endif /* CONFIG_STM32_SPI4 */
+
 /* There are no DRDY on SPI 2. */
 
 /**
@@ -128,6 +133,13 @@
 #define GPIO_DRDY_OFF_PORTC_PIN14    _PIN_OFF(GPIO_DRDY_PORTC_PIN14)
 #define GPIO_DRDY_OFF_PORTE_PIN12    _PIN_OFF(GPIO_DRDY_PORTE_PIN12)
 
+/* SPI 4 bus off. */
+#ifdef CONFIG_STM32_SPI4
+# define GPIO_SPI4_SCK_OFF            _PIN_OFF(GPIO_SPI4_SCK)
+# define GPIO_SPI4_MISO_OFF           _PIN_OFF(GPIO_SPI4_MISO)
+# define GPIO_SPI4_MOSI_OFF           _PIN_OFF(GPIO_SPI4_MOSI)
+#endif /* CONFIG_STM32_SPI4 */
+
 /**
  * N.B we do not have control over the SPI 2 buss powered devices
  * so the the ms5611 is not resetable.
@@ -135,6 +147,9 @@
 #define PX4_SPI_BUS_SENSORS          1
 #define PX4_SPI_BUS_RAMTRON          2
 #define PX4_SPI_BUS_BARO             PX4_SPI_BUS_RAMTRON
+#ifdef CONFIG_STM32_SPI4
+# define PX4_SPI_BUS_EXTERNAL         4
+#endif /* CONFIG_STM32_SPI4 */
 
 /* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
 #define PX4_SPIDEV_GYRO              PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
@@ -157,6 +172,10 @@
  * PX4_MK_SPI_SEL  differentiate by adding in PX4_SPI_DEVICE_ID.
  */
 #define PX4_SPIDEV_BARO             PX4_MK_SPI_SEL(PX4_SPI_BUS_BARO, 3)
+
+#ifdef CONFIG_STM32_SPI4
+# define PX4_SPIDEV_EXTERNAL         PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL, 1)
+#endif /* CONFIG_STM32_SPI4 */
 
 /* I2C busses. */
 #define PX4_I2C_BUS_EXPANSION        1
