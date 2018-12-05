@@ -6,6 +6,7 @@
         "github.vscode-pull-request-github",
         "chiehyu.vscode-astyle",
         "marus25.cortex-debug",
+        "ms-python.python",
         "vector-of-bool.cmake-tools"
     ]
 }
