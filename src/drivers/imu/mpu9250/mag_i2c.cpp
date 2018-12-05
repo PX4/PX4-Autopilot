@@ -102,7 +102,7 @@ AK8963_I2C::probe()
 	uint8_t whoami = 0;
 	uint8_t expected = AK8963_DEVICE_ID;
 
-	if (read(AK8963REG_WIA, &whoami, 1)) {
+	if (PX4_OK != read(AK8963REG_WIA, &whoami, 1)) {
 		return -EIO;
 	}
 

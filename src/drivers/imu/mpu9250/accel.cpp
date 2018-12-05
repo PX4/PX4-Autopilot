@@ -42,70 +42,104 @@
  */
 
 #include <px4_config.h>
-#include <lib/perf/perf_counter.h>
+#include <ecl/geo/geo.h>
+
+#include <sys/types.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <stdio.h>
+
+#include <perf/perf_counter.h>
+
+#include <board_config.h>
+#include <drivers/drv_hrt.h>
+
 #include <drivers/device/spi.h>
 #include <drivers/device/ringbuffer.h>
 #include <drivers/device/integrator.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
-#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
 
 #include "mag.h"
 #include "gyro.h"
 #include "mpu9250.h"
 
-MPU9250_gyro::MPU9250_gyro(MPU9250 *parent, const char *path) :
-	CDev("MPU9250_gyro", path),
+MPU9250_accel::MPU9250_accel(MPU9250 *parent, const char *path) :
+	CDev("MPU9250_accel", path),
 	_parent(parent)
 {
 }
 
-MPU9250_gyro::~MPU9250_gyro()
+MPU9250_accel::~MPU9250_accel()
 {
-	if (_gyro_class_instance != -1) {
-		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _gyro_class_instance);
+	if (_accel_class_instance != -1) {
+		unregister_class_devname(ACCEL_BASE_DEVICE_PATH, _accel_class_instance);
 	}
 }
 
 int
-MPU9250_gyro::init()
+MPU9250_accel::init()
 {
 	// do base class init
 	int ret = CDev::init();
 
 	/* if probe/setup failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("gyro init failed");
+		DEVICE_DEBUG("accel init failed");
 		return ret;
 	}
 
-	_gyro_class_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
+	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 
 	return ret;
 }
 
 void
-MPU9250_gyro::parent_poll_notify()
+MPU9250_accel::parent_poll_notify()
 {
 	poll_notify(POLLIN);
 }
 
 int
-MPU9250_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
+MPU9250_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
+	/*
+	 * Repeated in MPU9250_mag::ioctl
+	 * Both accel and mag CDev could be unused in case of magnetometer only mode or MPU6500
+	 */
+
 	switch (cmd) {
+	case SENSORIOCRESET: {
+			return _parent->reset();
+		}
 
-	/* these are shared with the accel side */
-	case SENSORIOCSPOLLRATE:
-	case SENSORIOCRESET:
-		return _parent->_accel->ioctl(filp, cmd, arg);
+	case SENSORIOCSPOLLRATE: {
+			switch (arg) {
 
-	case GYROIOCSSCALE:
-		/* copy scale in */
-		memcpy(&_parent->_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_parent->_gyro_scale));
-		return OK;
+			/* zero would be bad */
+			case 0:
+				return -EINVAL;
+
+			case SENSOR_POLLRATE_DEFAULT:
+				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_ACCEL_DEFAULT_RATE);
+
+			/* adjust to a legal polling interval in Hz */
+			default:
+				return _parent->_set_pollrate(arg);
+			}
+		}
+
+	case ACCELIOCSSCALE: {
+			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
+			memcpy(&_parent->_accel_scale, s, sizeof(_parent->_accel_scale));
+			return OK;
+		}
 
 	default:
 		return CDev::ioctl(filp, cmd, arg);
