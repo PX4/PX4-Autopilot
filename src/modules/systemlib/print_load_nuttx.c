@@ -52,6 +52,10 @@
 #error print_load_nuttx requires CONFIG_TASK_NAME_SIZE
 #endif
 
+#if !defined(CONFIG_STACK_COLORATION)
+#error print_load_nuttx requires CONFIG_STACK_COLORATION
+#endif
+
 extern struct system_load_s system_load;
 
 #define CL "\033[K" // clear line
