@@ -106,6 +106,6 @@ private:
 
 	void publish_constraints(const matrix::Vector2f &original_setpoint, const matrix::Vector2f &adapted_setpoint);
 
-	void update_distance_sensor(obstacle_distance_s &obstacle_distance);
+	obstacle_distance_s update_distance_sensor();
 
 };

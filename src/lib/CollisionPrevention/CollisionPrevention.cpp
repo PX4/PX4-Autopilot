@@ -111,8 +111,10 @@ void CollisionPrevention::publish_constraints(const Vector2f &original_setpoint,
 	}
 }
 
-void CollisionPrevention::update_distance_sensor(obstacle_distance_s &obstacle_distance)
+obstacle_distance_s CollisionPrevention::update_distance_sensor()
 {
+	obstacle_distance_s obstacle_distance = {};
+
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		const distance_sensor_s &distance_sensor = _sub_distance_sensor[i]->get();
 
@@ -166,28 +168,31 @@ void CollisionPrevention::update_distance_sensor(obstacle_distance_s &obstacle_d
 			obstacle_distance.distances[index] = 100.0f * distance_sensor.current_distance; // convert to cm
 		}
 	}
+
+	return obstacle_distance;
 }
 
 void CollisionPrevention::update_range_constraints()
 {
 	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance->get();
+	obstacle_distance_s distance_data = obstacle_distance;
 
+	// if there aren't distance data from offboard on obstacle_distance, check for onboard sensors on distance_sensor
 	if (!_sub_obstacle_distance->updated()) {
-		obstacle_distance_s fused_distance = obstacle_distance;
-		update_distance_sensor(fused_distance);
+		distance_data = update_distance_sensor();
 	}
 
-	if (hrt_elapsed_time(&fused_distance.timestamp) < RANGE_STREAM_TIMEOUT_US) {
-		float max_detection_distance = fused_distance.max_distance / 100.0f; //convert to meters
+	if (hrt_elapsed_time(&distance_data.timestamp) < RANGE_STREAM_TIMEOUT_US) {
+		float max_detection_distance = distance_data.max_distance / 100.0f; //convert to meters
 
-		int distances_array_size = sizeof(fused_distance.distances) / sizeof(fused_distance.distances[0]);
+		int distances_array_size = sizeof(distance_data.distances) / sizeof(distance_data.distances[0]);
 
 		for (int i = 0; i < distances_array_size; i++) {
 			//determine if distance bin is valid and contains a valid distance measurement
-			if (fused_distance.distances[i] < fused_distance.max_distance &&
-			    fused_distance.distances[i] > fused_distance.min_distance && i * fused_distance.increment < 360) {
-				float distance = fused_distance.distances[i] / 100.0f; //convert to meters
-				float angle = math::radians((float)i * fused_distance.increment);
+			if (distance_data.distances[i] < distance_data.max_distance &&
+			    distance_data.distances[i] > distance_data.min_distance && i * distance_data.increment < 360) {
+				float distance = distance_data.distances[i] / 100.0f; //convert to meters
+				float angle = math::radians((float)i * distance_data.increment);
 
 				//calculate normalized velocity reductions
 				float vel_lim_x = (max_detection_distance - distance) / (max_detection_distance - _param_mpc_col_prev_d.get()) * cos(
