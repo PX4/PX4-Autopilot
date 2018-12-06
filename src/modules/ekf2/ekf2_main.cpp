@@ -619,6 +619,9 @@ Ekf2::Ekf2():
 	_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
+	// hack to disable GPS using RC switch
+	_rc_channels_sub = orb_subscribe(ORB_ID(rc_channels));
+
 	for (unsigned i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		_gps_subs[i] = orb_subscribe_multi(ORB_ID(vehicle_gps_position), i);
 	}
@@ -647,6 +650,9 @@ Ekf2::~Ekf2()
 	orb_unsubscribe(_sensors_sub);
 	orb_unsubscribe(_status_sub);
 	orb_unsubscribe(_vehicle_land_detected_sub);
+
+	// hack to disable GPS using RC switch
+	orb_unsubscribe(_rc_channels_sub);
 
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		orb_unsubscribe(_range_finder_subs[i]);
