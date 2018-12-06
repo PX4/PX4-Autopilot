@@ -1777,7 +1777,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("VFR_HUD", 4.0f);
 		configure_stream_local("VISION_POSITION_ESTIMATE", 1.0f);
 		configure_stream_local("WIND_COV", 1.0f);
-		configure_stream_local("ORBIT_EXECUTION_STATUS", 10.f);
+		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -1820,7 +1820,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("VFR_HUD", 10.0f);
 		configure_stream_local("VISION_POSITION_ESTIMATE", 10.0f);
 		configure_stream_local("WIND_COV", 10.0f);
-		configure_stream_local("ORBIT_EXECUTION_STATUS", 10.f);
+		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.f);
 		break;
 
 	case MAVLINK_MODE_OSD:
@@ -1886,7 +1886,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("VFR_HUD", 20.0f);
 		configure_stream_local("VISION_POSITION_ESTIMATE", 10.0f);
 		configure_stream_local("WIND_COV", 10.0f);
-		configure_stream_local("ORBIT_EXECUTION_STATUS", 10.f);
+		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.f);
 		break;
 
 	case MAVLINK_MODE_IRIDIUM:
