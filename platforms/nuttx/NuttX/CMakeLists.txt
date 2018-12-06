@@ -208,7 +208,6 @@ endif()
 add_custom_target(oldconfig
 	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=${PX4_BOARD} oldconfig
 	COMMAND cp ${NUTTX_DIR}/.config ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
-	COMMAND ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/tools/nuttx_defconf_tool.sh ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
 	DEPENDS ${NUTTX_DIR}/.config
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	COMMENT "Running NuttX make oldconfig for ${NUTTX_CONFIG}"
@@ -219,7 +218,6 @@ add_custom_target(oldconfig
 add_custom_target(menuconfig
 	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=${PX4_BOARD} menuconfig
 	COMMAND cp ${NUTTX_DIR}/.config ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
-	COMMAND cd ${PX4_SOURCE_DIR} && platforms/nuttx/NuttX/tools/nuttx_defconf_tool.sh ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
 	DEPENDS ${NUTTX_DIR}/.config
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	COMMENT "Running NuttX make menuconfig for ${NUTTX_CONFIG}"
