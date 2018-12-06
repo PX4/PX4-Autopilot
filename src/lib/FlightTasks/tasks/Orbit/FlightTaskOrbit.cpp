@@ -55,6 +55,8 @@ FlightTaskOrbit::~FlightTaskOrbit()
 bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 {
 	bool ret = true;
+	// save previous velocity and roatation direction
+	float v = fabsf(_v);
 	bool clockwise = _v > 0;
 
 	// commanded radius
@@ -66,9 +68,10 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 
 	// commanded velocity, take sign of radius as rotation direction
 	if (PX4_ISFINITE(command.param2)) {
-		const float v = command.param2 * (clockwise ? 1.f : -1.f);
-		ret = ret && setVelocity(v);
+		v = command.param2;
 	}
+
+	ret = ret && setVelocity(v * (clockwise ? 1.f : -1.f));
 
 	// TODO: apply x,y / z independently in geo library
 	// commanded center coordinates
