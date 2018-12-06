@@ -42,8 +42,8 @@ if("${PX4_PLATFORM}" MATCHES "qurt")
 
 	add_custom_target(upload
 		COMMAND
-			${PX4_SOURCE_DIR}/Tools/adb_upload.sh
-				${CMAKE_CURRENT_BINARY_DIR}/libpx4.so ${CMAKE_CURRENT_BINARY_DIR}/libpx4muorb_skel.so ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/px4.config	# source
+			${CMAKE_CURRENT_SOURCE_DIR}/scripts/adb_upload.sh
+				${PX4_BINARY_DIR}/platforms/qurt/libpx4.so ${PX4_BINARY_DIR}/platforms/qurt/libpx4muorb_skel.so ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/px4.config	# source
 				/usr/share/data/adsp	# destination
 		DEPENDS px4 px4muorb_skel
 		COMMENT "uploading px4"
@@ -55,7 +55,7 @@ else()
 	add_custom_target(upload
 		COMMAND
 			${CMAKE_CURRENT_SOURCE_DIR}/scripts/adb_upload.sh
-				${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config # source
+				${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config # source
 				/home/linaro	# destination
 		DEPENDS px4
 		COMMENT "uploading px4"
