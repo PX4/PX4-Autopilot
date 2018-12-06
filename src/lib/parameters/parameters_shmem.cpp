@@ -325,7 +325,7 @@ param_compare_values(const void *a, const void *b)
  * @return			The structure holding the modified value, or
  *				nullptr if the parameter has not been modified.
  */
-static param_wbuf_s *
+param_wbuf_s *
 param_find_changed(param_t param)
 {
 	param_wbuf_s	*s = nullptr;
