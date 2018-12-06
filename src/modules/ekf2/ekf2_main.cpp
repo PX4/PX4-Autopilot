@@ -74,6 +74,7 @@
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
+#include <uORB/topics/rc_channels.h>
 
 // defines used to specify the mask position for use of different accuracy metrics in the GPS blending algorithm
 #define BLEND_MASK_USE_SPD_ACC      1
@@ -263,6 +264,10 @@ private:
 	int _sensors_sub{-1};
 	int _status_sub{-1};
 	int _vehicle_land_detected_sub{-1};
+
+	// hack to disable GPS via RC switch
+	int _rc_channels_sub{-1};
+	bool _gps_use_inhibit = false; // true when RC switch setting has disabled GPS
 
 	// because we can have several distance sensor instances with different orientations
 	int _range_finder_subs[ORB_MULTI_MAX_INSTANCES] {};
@@ -962,6 +967,16 @@ void Ekf2::run()
 			}
 		}
 
+		// hack to disable GPS via RC switch
+		bool rc_channels_updated = false;
+		orb_check(_rc_channels_sub, &rc_channels_updated);
+		if (rc_channels_updated) {
+			rc_channels_s rc_channels;
+			if (orb_copy(ORB_ID(rc_channels), _rc_channels_sub, &rc_channels)) {
+				_gps_use_inhibit = rc_channels.channels[rc_channels.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_1]] > 0.5f;
+			}
+		}
+
 		// read gps1 data if available
 		bool gps1_updated = false;
 		orb_check(_gps_subs[0], &gps1_updated);
@@ -976,7 +991,14 @@ void Ekf2::run()
 				_gps_state[0].alt = gps.alt;
 				_gps_state[0].yaw = gps.heading;
 				_gps_state[0].yaw_offset = gps.heading_offset;
-				_gps_state[0].fix_type = gps.fix_type;
+
+				// hack to disable GPS via RC switch
+				if (_gps_use_inhibit) {
+					_gps_state[0].fix_type = 0;
+				} else {
+					_gps_state[0].fix_type = gps.fix_type;
+				}
+
 				_gps_state[0].eph = gps.eph;
 				_gps_state[0].epv = gps.epv;
 				_gps_state[0].sacc = gps.s_variance_m_s;
@@ -1008,7 +1030,14 @@ void Ekf2::run()
 				_gps_state[1].alt = gps.alt;
 				_gps_state[1].yaw = gps.heading;
 				_gps_state[1].yaw_offset = gps.heading_offset;
-				_gps_state[1].fix_type = gps.fix_type;
+
+				// hack to disable GPS via RC switch
+				if (_gps_use_inhibit) {
+					_gps_state[1].fix_type = 0;
+				} else {
+					_gps_state[1].fix_type = gps.fix_type;
+				}
+
 				_gps_state[1].eph = gps.eph;
 				_gps_state[1].epv = gps.epv;
 				_gps_state[1].sacc = gps.s_variance_m_s;
