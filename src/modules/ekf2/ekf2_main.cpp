@@ -973,7 +973,14 @@ void Ekf2::run()
 		if (rc_channels_updated) {
 			rc_channels_s rc_channels;
 			if (orb_copy(ORB_ID(rc_channels), _rc_channels_sub, &rc_channels)) {
-				_gps_use_inhibit = rc_channels.channels[rc_channels.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_1]] > 0.5f;
+				bool switch_high = rc_channels.channels[rc_channels.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_1]] > 0.5f;
+				if (switch_high && !_gps_use_inhibit) {
+					_gps_use_inhibit = true;
+					PX4_WARN("GPS Inhibit");
+				} else if (!switch_high && _gps_use_inhibit) {
+					_gps_use_inhibit = false;
+					PX4_WARN("GPS Uninhibit");
+				}
 			}
 		}
 
