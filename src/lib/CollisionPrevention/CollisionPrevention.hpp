@@ -70,7 +70,7 @@ public:
 
 	bool is_active() { return _param_mpc_col_prev_d.get() > 0; }
 
-	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed, const float yaw);
+	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed);
 
 private:
 
@@ -93,8 +93,6 @@ private:
 	matrix::Vector2f _move_constraints_y_normalized;
 	matrix::Vector2f _move_constraints_x;
 	matrix::Vector2f _move_constraints_y;
-
-	float _yaw;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_COL_PREV_D>) _param_mpc_col_prev_d /**< collision prevention keep minimum distance */

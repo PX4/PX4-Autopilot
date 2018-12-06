@@ -157,7 +157,8 @@ obstacle_distance_s CollisionPrevention::update_distance_sensor()
 			}
 
 			// convert the sensor orientation from body to local frame
-			float sensor_orientation = math::degrees(wrap_pi(_yaw + offset));
+			float sensor_orientation = math::degrees(wrap_pi(matrix::Eulerf(matrix::Quatf(_sub_vehicle_attitude->get().q)).psi() +
+						   offset));
 
 			// convert orientation from range [-180, 180] to [0, 360]
 			if ((sensor_orientation <= FLT_EPSILON) || (sensor_orientation >= 180.0f)) {
@@ -220,9 +221,8 @@ void CollisionPrevention::update_range_constraints()
 	}
 }
 
-void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const float max_speed, const float yaw)
+void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const float max_speed)
 {
-	_yaw = yaw;
 	reset_constraints();
 
 	//calculate movement constraints based on range data
