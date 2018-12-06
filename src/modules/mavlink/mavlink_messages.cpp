@@ -186,6 +186,14 @@ void get_mavlink_navigation_mode(const struct vehicle_status_s *const status, ui
 		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
 		break;
 
+	case vehicle_status_s::NAVIGATION_STATE_ORBIT:
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED
+				      | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
+		custom_mode->sub_mode = PX4_CUSTOM_SUB_MODE_POSCTL_ORBIT;
+		break;
+
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 		*mavlink_base_mode |= auto_mode_flags;
 		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
