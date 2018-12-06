@@ -156,10 +156,10 @@ obstacle_distance_s CollisionPrevention::update_distance_sensor()
 				break;
 			}
 
-			// covert the sensor orientation from body to local frame
+			// convert the sensor orientation from body to local frame
 			float sensor_orientation = math::degrees(wrap_pi(_yaw + offset));
 
-			// covert orientation from range [-180, 180] to [0, 360]
+			// convert orientation from range [-180, 180] to [0, 360]
 			if ((sensor_orientation <= FLT_EPSILON) || (sensor_orientation >= 180.0f)) {
 				sensor_orientation += 360.0f;
 			}

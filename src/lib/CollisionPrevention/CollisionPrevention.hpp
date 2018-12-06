@@ -79,9 +79,9 @@ private:
 	orb_advert_t _constraints_pub{nullptr};		/**< constraints publication */
 	orb_advert_t _mavlink_log_pub{nullptr};	 	/**< Mavlink log uORB handle */
 
-	uORB::Subscription<obstacle_distance_s> *_sub_obstacle_distance{nullptr}; /**< obstacle distances received form offboard */
+	uORB::Subscription<obstacle_distance_s> *_sub_obstacle_distance{nullptr}; /**< obstacle distances received from offboard */
 	uORB::Subscription<distance_sensor_s>
-	*_sub_distance_sensor[ORB_MULTI_MAX_INSTANCES]; /**< distance sensor data received form onboard */
+	*_sub_distance_sensor[ORB_MULTI_MAX_INSTANCES]; /**< distance sensor data received from onboard */
 	uORB::Subscription<vehicle_attitude_s> *_sub_vehicle_attitude{nullptr}; /**< vehicle attitude subscription */
 
 	static constexpr uint64_t RANGE_STREAM_TIMEOUT_US = 500000;
