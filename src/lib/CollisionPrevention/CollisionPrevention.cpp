@@ -72,6 +72,10 @@ bool CollisionPrevention::initializeSubscriptions(SubscriptionArray &subscriptio
 		}
 	}
 
+	if (!subscription_array.get(ORB_ID(vehicle_attitude), _sub_vehicle_attitude)) {
+		return false;
+	}
+
 	return true;
 }
 
@@ -128,11 +132,9 @@ obstacle_distance_s CollisionPrevention::update_distance_sensor()
 			obstacle_distance.timestamp = distance_sensor.timestamp;
 			obstacle_distance.max_distance = distance_sensor.max_distance * 100.0f; // convert to cm
 			obstacle_distance.min_distance = distance_sensor.min_distance * 100.0f; // convert to cm
+			obstacle_distance.increment = 5;
 
-			if (!(obstacle_distance.increment > 0.0f)) {
-				obstacle_distance.increment = 5.0f;
-			}
-
+			// init array of distance measuraments
 			for (unsigned int k = 0; k < sizeof(obstacle_distance.distances) / sizeof(obstacle_distance.distances[0]); ++k) {
 				obstacle_distance.distances[k] = UINT16_MAX;
 			}
@@ -165,7 +167,9 @@ obstacle_distance_s CollisionPrevention::update_distance_sensor()
 			// array resolution defined by the increment, index 0 is always local north
 			const int index = (int)floorf(sensor_orientation / (float)obstacle_distance.increment);
 
-			obstacle_distance.distances[index] = 100.0f * distance_sensor.current_distance; // convert to cm
+			// compensate measurement for vehicle tilt and convert to cm
+			obstacle_distance.distances[index] = 100.0f * distance_sensor.current_distance * cosf(matrix::Eulerf(matrix::Quatf(
+					_sub_vehicle_attitude->get().q)).theta());
 		}
 	}
 

@@ -47,6 +47,7 @@
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/collision_constraints.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/mavlink_log.h>
@@ -78,9 +79,10 @@ private:
 	orb_advert_t _constraints_pub{nullptr};		/**< constraints publication */
 	orb_advert_t _mavlink_log_pub{nullptr};	 	/**< Mavlink log uORB handle */
 
-	uORB::Subscription<obstacle_distance_s> *_sub_obstacle_distance{nullptr}; /**< obstacle distances received form a range sensor */
-	uORB::Subscription<distance_sensor_s> *_sub_distance_sensor[ORB_MULTI_MAX_INSTANCES];
-
+	uORB::Subscription<obstacle_distance_s> *_sub_obstacle_distance{nullptr}; /**< obstacle distances received form offboard */
+	uORB::Subscription<distance_sensor_s>
+	*_sub_distance_sensor[ORB_MULTI_MAX_INSTANCES]; /**< distance sensor data received form onboard */
+	uORB::Subscription<vehicle_attitude_s> *_sub_vehicle_attitude{nullptr}; /**< vehicle attitude subscription */
 
 	static constexpr uint64_t RANGE_STREAM_TIMEOUT_US = 500000;
 	static constexpr uint64_t MESSAGE_THROTTLE_US = 5000000;
