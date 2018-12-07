@@ -5,6 +5,10 @@ import os
 import subprocess
 import signal
 import sys
+import argparse
+
+parser = argparse.ArgumentParser(description='Runs maneuver, simulation and tests based on yaml file')
+parser.add_argument('px4dir', help='PX4 src directory')
 
 class ProcessWrapper(mp.Process):
     def __init__(self, cmds, env=None):
@@ -12,11 +16,10 @@ class ProcessWrapper(mp.Process):
         self.exit = mp.Event()
         self.cmds = cmds
         self.env = env
-        self.cwd = os.path.dirname(os.path.realpath(__file__)) + '/../..'
 
     def run(self):
         signal.signal(signal.SIGINT, signal.SIG_IGN)
-        p = subprocess.Popen(self.cmds, env=self.env, cwd=self.cwd)
+        p = subprocess.Popen(self.cmds, env=self.env)
         while (not self.exit.is_set()) and (p.poll() is None):
             pass
         p.terminate()
@@ -39,20 +42,20 @@ if __name__ == '__main__':
     ##############
     ### Simulation
     ##############
+    args = parser.parse_args()
 
     # fork method
     mp.set_start_method('fork')
 
     # read yaml
     world = 'iris'
-    gui = True
     sim = 'gazebo'
     maneuver = 'mission'
     headless = False
     start_script='rcS'
 
-    # path of script
-    px4_src_dir = os.path.dirname(os.path.realpath(__file__))  + '/../..'
+    # path to px4-src directory
+    px4_src_dir = args.px4dir
 
     # define processes
     global p_maneuver, p_server, p_gui, p_px4
@@ -65,7 +68,7 @@ if __name__ == '__main__':
     cmds = ['gzclient']
     p_gui = ProcessWrapper(cmds)
 
-    cmds = ['{0}/build/px4_sitl_default/bin/px4'.format(px4_src_dir), '-s', '{0}/etc/init.d-posix/{1}'.format(px4_src_dir, start_script)]
+    cmds = ['{0}/build/px4_sitl_default/bin/px4'.format(px4_src_dir), '{0}/ROMFS/px4fmu_common'.format(px4_src_dir), '-s', 'etc/init.d-posix/{0}'.format(start_script)]
     env = os.environ.copy()
     env['PX4_SIM_MODEL'] = world
     p_px4 = ProcessWrapper(cmds, env)
@@ -109,7 +112,7 @@ if __name__ == '__main__':
     ################
     ### log-Analysis
     ################
-    logdir= px4_src_dir+'/log/'
+    logdir= os.getcwd()+'/log/'
     newest_dir= logdir + max(os.listdir(logdir), key=lambda x: os.stat(logdir+x).st_mtime) + '/'
     newest_log=newest_dir + max(os.listdir(newest_dir), key=lambda x: os.stat(newest_dir+x).st_mtime)
 
@@ -119,3 +122,4 @@ if __name__ == '__main__':
     while p_test.poll() is None:
         pass
     p_test.terminate()
+    print("test finished")
