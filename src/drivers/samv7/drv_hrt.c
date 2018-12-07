@@ -62,6 +62,7 @@
 
 #include <board_config.h>
 #include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
 
 #include "chip.h"
 #include "up_internal.h"
