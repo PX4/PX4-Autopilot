@@ -10,7 +10,7 @@ def GetTranslations(filename=''):
 
     dir_path = dirname(realpath(__file__))
     translation_path = dir_path.split('Firmware/')[0]+'Firmware/translations/'
-    #print("DEBUG:Loading translation files from: %s" % translation_path)
+    print("DEBUG:Loading translation files from: %s" % translation_path)
     translation_files = [f for f in listdir(translation_path) if isfile(join(translation_path, f))]
 
     # Get english dict
