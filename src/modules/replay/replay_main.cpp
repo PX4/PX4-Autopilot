@@ -74,6 +74,8 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_odometry.h>
 
+#include <uORB/topics/manual_control_setpoint.h>
+
 #include "replay.hpp"
 
 #define PARAMS_OVERRIDE_FILE PX4_ROOTFSDIR "/replay_params.txt"
@@ -969,7 +971,7 @@ bool ReplayEkf2::handleTopicUpdate(Subscription &sub, void *data, std::ifstream 
 		return true;
 
 	} else if (sub.orb_meta == ORB_ID(vehicle_status) || sub.orb_meta == ORB_ID(vehicle_land_detected)
-		   || sub.orb_meta == ORB_ID(vehicle_gps_position)) {
+		   || sub.orb_meta == ORB_ID(vehicle_gps_position) || sub.orb_meta == ORB_ID(manual_control_setpoint)) {
 		return publishTopic(sub, data);
 	} // else: do not publish
 
@@ -1008,7 +1010,7 @@ void ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 	// the main loop should only handle publication of the following topics, the sensor topics are
 	// handled separately in publishEkf2Topics()
 	sub.ignored = sub.orb_meta != ORB_ID(ekf2_timestamps) && sub.orb_meta != ORB_ID(vehicle_status)
-		      && sub.orb_meta != ORB_ID(vehicle_land_detected) &&
+		      && sub.orb_meta != ORB_ID(vehicle_land_detected) && sub.orb_meta != ORB_ID(manual_control_setpoint) &&
 		      (sub.orb_meta != ORB_ID(vehicle_gps_position) || sub.multi_id == 0);
 }
 

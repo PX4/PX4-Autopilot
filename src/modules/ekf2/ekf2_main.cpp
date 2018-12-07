@@ -76,6 +76,8 @@
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/rc_channels.h>
 
+#include <uORB/topics/manual_control_setpoint.h>
+
 // defines used to specify the mask position for use of different accuracy metrics in the GPS blending algorithm
 #define BLEND_MASK_USE_SPD_ACC      1
 #define BLEND_MASK_USE_HPOS_ACC     2
@@ -266,7 +268,7 @@ private:
 	int _vehicle_land_detected_sub{-1};
 
 	// hack to disable GPS via RC switch
-	int _rc_channels_sub{-1};
+	int _manual_control_setpoint_sub{-1};
 	bool _gps_use_inhibit = false; // true when RC switch setting has disabled GPS
 
 	// because we can have several distance sensor instances with different orientations
@@ -620,7 +622,7 @@ Ekf2::Ekf2():
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 
 	// hack to disable GPS using RC switch
-	_rc_channels_sub = orb_subscribe(ORB_ID(rc_channels));
+	_manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	for (unsigned i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		_gps_subs[i] = orb_subscribe_multi(ORB_ID(vehicle_gps_position), i);
@@ -652,7 +654,7 @@ Ekf2::~Ekf2()
 	orb_unsubscribe(_vehicle_land_detected_sub);
 
 	// hack to disable GPS using RC switch
-	orb_unsubscribe(_rc_channels_sub);
+	orb_unsubscribe(_manual_control_setpoint_sub);
 
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		orb_unsubscribe(_range_finder_subs[i]);
@@ -667,6 +669,7 @@ int Ekf2::print_status()
 {
 	PX4_INFO("local position: %s", (_ekf.local_position_is_valid()) ? "valid" : "invalid");
 	PX4_INFO("global position: %s", (_ekf.global_position_is_valid()) ? "valid" : "invalid");
+	PX4_INFO("GPS Inhibited: %d", _gps_use_inhibit);
 
 	PX4_INFO("time slip: %" PRId64 " us", _last_time_slip_us);
 
@@ -972,22 +975,26 @@ void Ekf2::run()
 						(int64_t)ekf2_timestamps.timestamp / 100);
 			}
 		}
-
+		
 		// hack to disable GPS via RC switch
-		bool rc_channels_updated = false;
-		orb_check(_rc_channels_sub, &rc_channels_updated);
-		if (rc_channels_updated) {
-			rc_channels_s rc_channels;
-			if (orb_copy(ORB_ID(rc_channels), _rc_channels_sub, &rc_channels)) {
-				bool switch_high = rc_channels.channels[rc_channels.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_1]] > 0.5f;
-				if (switch_high && !_gps_use_inhibit) {
-					_gps_use_inhibit = true;
-					PX4_WARN("GPS Inhibit");
-				} else if (!switch_high && _gps_use_inhibit) {
-					_gps_use_inhibit = false;
-					PX4_WARN("GPS Uninhibit");
-				}
+		bool manual_control_setpoint_updated = false;
+		orb_check(_manual_control_setpoint_sub, &manual_control_setpoint_updated);
+		if (manual_control_setpoint_updated) {
+			
+			manual_control_setpoint_s manual_control_setpoint;
+
+			orb_copy(ORB_ID(manual_control_setpoint), _manual_control_setpoint_sub, &manual_control_setpoint);
+				
+			bool switch_high = manual_control_setpoint.aux1 > 0.0f;
+			
+			if (switch_high && !_gps_use_inhibit) {
+				_gps_use_inhibit = true;
+				PX4_WARN("GPS Inhibit");
+			} else if (!switch_high && _gps_use_inhibit) {
+				_gps_use_inhibit = false;
+				PX4_WARN("GPS Uninhibit");
 			}
+			
 		}
 
 		// read gps1 data if available
