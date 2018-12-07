@@ -261,7 +261,7 @@ function(px4_add_board)
 		foreach(driver ${DF_DRIVERS})
 			list(APPEND config_df_driver_list ${driver})
 
-			if(EXISTS "${PX4_SOUCE_DIR}/platforms/posix/drivers/df_${driver}_wrapper")
+			if(EXISTS "${PX4_SOURCE_DIR}/src/platforms/posix/drivers/df_${driver}_wrapper")
 				list(APPEND config_module_list platforms/posix/drivers/df_${driver}_wrapper)
 			endif()
 		endforeach()
