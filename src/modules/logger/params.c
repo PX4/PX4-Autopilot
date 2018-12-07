@@ -105,9 +105,10 @@ PARAM_DEFINE_INT32(SDLOG_MISSION, 1);
  * 4 : Full rates for analysis of fast maneuvers (RC, attitude, rates and actuators)
  * 5 : Debugging topics (debug_*.msg topics, for custom code)
  * 6 : Topics for sensor comparison (low rate raw IMU, Baro and Magnetomer data)
+ * 7 : Topics for computer vision and collision avoidance
  *
  * @min 0
- * @max 127
+ * @max 255
  * @bit 0 Default set (general log analysis)
  * @bit 1 Estimator replay (EKF2)
  * @bit 2 Thermal calibration
@@ -115,6 +116,7 @@ PARAM_DEFINE_INT32(SDLOG_MISSION, 1);
  * @bit 4 High rate
  * @bit 5 Debug
  * @bit 6 Sensor comparison
+ * @bit 7 Computer Vision and Avoidance
  * @reboot_required true
  * @group SD Logging
  */
