@@ -336,9 +336,15 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint
 
 #endif /* BOARD_CRASHDUMP_RESET_ONLY */
 
-#if defined(CONFIG_BOARD_RESET_ON_CRASH)
-	board_reset(0);
-#endif
+	/* All boards need to do a reset here!
+	 *
+	 * Since we needed a chunk of ram to save the complete
+	 * context in and have corrupted it.  We can not allow
+	 * the OS to run again. We used &_sdata which is the lowest memory
+	 * and it could be used by the OS.
+	*/
+
+	board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
 }
 
 #endif /* CONFIG_BOARD_CRASHDUMP */
