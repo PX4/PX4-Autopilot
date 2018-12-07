@@ -1,4 +1,8 @@
 #!/bin/bash
 
-source "/home/dennis/src/PX4/Firmware/Tools/setup_gazebo.bash" "/home/dennis/src/PX4/Firmware/" "/home/dennis/src/PX4/Firmware/build/px4_sitl_default"
-./run_tests.py
+
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+px4_dir=${script_dir}/../..
+
+source "${px4_dir}/Tools/setup_gazebo.bash" "${px4_dir}" "${px4_dir}/build/px4_sitl_default"
+${script_dir}/run_tests.py
