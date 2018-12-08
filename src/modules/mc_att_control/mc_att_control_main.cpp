@@ -51,6 +51,7 @@
 #include <circuit_breaker/circuit_breaker.h>
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
+#include <vtol_att_control/vtol_type.h>
 
 #define TPA_RATE_LOWER_LIMIT 0.05f
 
@@ -891,10 +892,12 @@ MulticopterAttitudeControl::run()
 			if (_v_control_mode.flag_control_attitude_enabled && _vehicle_status.is_rotary_wing) {
 				if (attitude_updated) {
 					// Generate the attitude setpoint from stick inputs if we are in Manual/Stabilized mode
+					// For Tailsitters doing transitions the attitude setpoint is generated in tailsitter.cpp
 					if (_v_control_mode.flag_control_manual_enabled &&
 							!_v_control_mode.flag_control_altitude_enabled &&
 							!_v_control_mode.flag_control_velocity_enabled &&
-							!_v_control_mode.flag_control_position_enabled) {
+							!_v_control_mode.flag_control_position_enabled &&
+							!(_vtol_type.get() == vtol_type::TAILSITTER && _vehicle_status.in_transition_mode)) {
 						generate_attitude_setpoint(attitude_dt, reset_yaw_sp);
 						attitude_setpoint_generated = true;
 					}
