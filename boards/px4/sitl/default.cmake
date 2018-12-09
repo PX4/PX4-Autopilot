@@ -98,5 +98,4 @@ if(REPLAY_FILE)
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 endif()
 
-add_definitions(-D__PX4_POSIX_SITL)
-set(LOCKSTEP_SCHEDULER_NEEDED yes)
+set(ENABLE_LOCKSTEP_SCHEDULER yes)
