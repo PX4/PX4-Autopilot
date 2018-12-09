@@ -49,7 +49,7 @@
 #include <errno.h>
 #include "hrt_work.h"
 
-#if defined(__PX4_POSIX_SITL)
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 #include <lockstep_scheduler/lockstep_scheduler.h>
 #endif
 
@@ -72,7 +72,7 @@ static hrt_abstime _delay_interval = 0;
 static hrt_abstime max_time = 0;
 static pthread_mutex_t _hrt_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-#if defined(__PX4_POSIX_SITL)
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 static LockstepScheduler lockstep_scheduler;
 #endif
 
@@ -594,7 +594,7 @@ void abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
 	ts->tv_nsec = abstime * 1000;
 }
 
-#if defined(__PX4_POSIX_SITL)
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
 	if (clk_id == CLOCK_MONOTONIC) {

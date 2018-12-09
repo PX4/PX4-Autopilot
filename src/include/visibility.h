@@ -65,7 +65,7 @@
  */
 #define system_exit exit
 
-#if defined(__PX4_POSIX_SITL)
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -99,7 +99,7 @@
 #include <unistd.h>
 #include <time.h>
 
-#else // defined(__PX4_POSIX_SITL)
+#else // defined(ENABLE_LOCKSTEP_SCHEDULER)
 
 #define system_usleep usleep
 #define system_sleep sleep

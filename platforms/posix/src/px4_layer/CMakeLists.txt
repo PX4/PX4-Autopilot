@@ -56,7 +56,7 @@ target_compile_definitions(px4_layer PRIVATE MODULE_NAME="px4")
 target_link_libraries(px4_layer PRIVATE work_queue)
 target_link_libraries(px4_layer PRIVATE px4_daemon)
 
-if(LOCKSTEP_SCHEDULER_NEEDED)
+if(ENABLE_LOCKSTEP_SCHEDULER)
 	target_link_libraries(px4_layer PRIVATE lockstep_scheduler)
 	include_directories(${PX4_SOURCE_DIR}/platforms/posix/src/lockstep_scheduler/include)
 endif()
