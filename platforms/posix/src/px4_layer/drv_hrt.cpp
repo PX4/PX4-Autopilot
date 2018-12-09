@@ -594,20 +594,29 @@ void abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
 	ts->tv_nsec = abstime * 1000;
 }
 
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
 	if (clk_id == CLOCK_MONOTONIC) {
-
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 		const uint64_t abstime = lockstep_scheduler.get_absolute_time();
 		abstime_to_ts(tp, abstime - px4_timestart_monotonic);
 		return 0;
+#else // defined(ENABLE_LOCKSTEP_SCHEDULER)
+#if defined(__PX4_DARWIN)
+		// We don't have CLOCK_MONOTONIC on macOS, so we just have to
+		// resort back to CLOCK_REALTIME here.
+		return system_clock_gettime(CLOCK_REALTIME, tp);
+#else // defined(__PX4_DARWIN)
+		return system_clock_gettime(clk_id, tp);
+#endif // defined(__PX4_DARWIN)
+#endif // defined(ENABLE_LOCKSTEP_SCHEDULER)
 
 	} else {
 		return system_clock_gettime(clk_id, tp);
 	}
 }
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 int px4_clock_settime(clockid_t clk_id, const struct timespec *ts)
 {
 	if (clk_id == CLOCK_REALTIME) {
