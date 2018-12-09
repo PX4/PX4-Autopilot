@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-if (LOCKSTEP_SCHEDULER_NEEDED)
+if (ENABLE_LOCKSTEP_SCHEDULER)
 	add_subdirectory(lockstep_scheduler)
 endif()
 
