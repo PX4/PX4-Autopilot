@@ -182,7 +182,7 @@ sh "$autostart_file"
 
 dataman start
 replay tryapplyparams
-simulator start -s -t $simulator_tcp_port
+simulator start -s -c $simulator_tcp_port
 tone_alarm start
 gyrosim start
 accelsim start

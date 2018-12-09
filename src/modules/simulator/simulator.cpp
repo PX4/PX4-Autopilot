@@ -157,7 +157,7 @@ int Simulator::start(int argc, char *argv[])
 			port = atoi(argv[4]);
 		}
 
-		if (argc == 5 && strcmp(argv[3], "-t") == 0) {
+		if (argc == 5 && strcmp(argv[3], "-c") == 0) {
 			ip = InternetProtocol::TCP;
 			port = atoi(argv[4]);
 		}
@@ -175,6 +175,7 @@ int Simulator::start(int argc, char *argv[])
 
 		} else {
 			_instance->initializeSensorData();
+			_instance->_initialized = true;
 		}
 
 		return 0;
@@ -187,11 +188,12 @@ int Simulator::start(int argc, char *argv[])
 
 static void usage()
 {
-	PX4_WARN("Usage: simulator {start -[sp] [-u udp_port / -t tcp_port] |stop}");
+	PX4_WARN("Usage: simulator {start -[spt] [-u udp_port / -c tcp_port] |stop}");
 	PX4_WARN("Simulate raw sensors:     simulator start -s");
 	PX4_WARN("Publish sensors combined: simulator start -p");
 	PX4_WARN("Connect using UDP: simulator start -u udp_port");
-	PX4_WARN("Connect using TCP: simulator start -t tcp_port");
+	PX4_WARN("Connect using TCP: simulator start -c tcp_port");
+	PX4_WARN("Dummy unit test data:     simulator start -t");
 }
 
 __BEGIN_DECLS
@@ -202,27 +204,35 @@ extern "C" {
 
 	int simulator_main(int argc, char *argv[])
 	{
-		if (argc == 5 && strcmp(argv[1], "start") == 0) {
+		if (argc > 2 && strcmp(argv[1], "start") == 0) {
+			if (strcmp(argv[2], "-s") == 0 ||
+			    strcmp(argv[2], "-p") == 0 ||
+			    strcmp(argv[2], "-t") == 0) {
 
-			if (g_sim_task >= 0) {
-				PX4_WARN("Simulator already started");
-				return 0;
-			}
-
-			g_sim_task = px4_task_spawn_cmd("simulator",
-							SCHED_DEFAULT,
-							SCHED_PRIORITY_DEFAULT,
-							1500,
-							Simulator::start,
-							argv);
-
-			while (true) {
-				if (Simulator::getInstance() && Simulator::getInstance()->isInitialized()) {
-					break;
-
-				} else {
-					system_sleep(1);
+				if (g_sim_task >= 0) {
+					PX4_WARN("Simulator already started");
+					return 0;
 				}
+
+				g_sim_task = px4_task_spawn_cmd("simulator",
+								SCHED_DEFAULT,
+								SCHED_PRIORITY_DEFAULT,
+								1500,
+								Simulator::start,
+								argv);
+
+				while (true) {
+					if (Simulator::getInstance() && Simulator::getInstance()->isInitialized()) {
+						break;
+
+					} else {
+						system_sleep(1);
+					}
+				}
+
+			} else {
+				usage();
+				return 1;
 			}
 
 		} else if (argc == 2 && strcmp(argv[1], "stop") == 0) {
