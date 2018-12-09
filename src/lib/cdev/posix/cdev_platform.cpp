@@ -379,7 +379,8 @@ extern "C" {
 
 				// Get the current time
 				struct timespec ts;
-				// px4_sem_timedwait is implemented using CLOCK_MONOTONIC.
+				// px4_sem_timedwait is implemented using CLOCK_MONOTONIC,
+				// at least for lockstep, on Qurt and on Linux.
 				px4_clock_gettime(CLOCK_MONOTONIC, &ts);
 
 				// Calculate an absolute time in the future

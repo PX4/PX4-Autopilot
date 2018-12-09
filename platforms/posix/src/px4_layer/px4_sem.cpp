@@ -58,6 +58,12 @@ int px4_sem_init(px4_sem_t *s, int pshared, unsigned value)
 	pthread_cond_init(&(s->wait), nullptr);
 	pthread_mutex_init(&(s->lock), nullptr);
 
+	// We want to use CLOCK_MONOTONIC if possible.
+	pthread_condattr_t attr;
+	pthread_condattr_init(&attr);
+	pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
+	pthread_cond_init(&(s->wait), &attr);
+
 	return 0;
 }
 
