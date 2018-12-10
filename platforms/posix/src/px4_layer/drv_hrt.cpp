@@ -594,6 +594,7 @@ void abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
 	ts->tv_nsec = abstime * 1000;
 }
 
+#if !defined(__PX4_QURT)
 int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
 	if (clk_id == CLOCK_MONOTONIC) {
@@ -615,6 +616,7 @@ int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 		return system_clock_gettime(clk_id, tp);
 	}
 }
+#endif // !defined(__PX4_QURT)
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 int px4_clock_settime(clockid_t clk_id, const struct timespec *ts)
