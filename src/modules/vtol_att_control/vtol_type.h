@@ -149,9 +149,9 @@ public:
 
 	/**
 	 * Special handling opportunity for the time right after transition to FW
-	 * before TECS is running.
+	 * before TECS is running. By default this does nothing, vtol sub-classes can override it.
 	 */
-	virtual void waiting_on_tecs() {}
+	void waiting_on_tecs() {}
 
 	/**
 	 * Checks for fixed-wing failsafe condition and issues abort request if needed.

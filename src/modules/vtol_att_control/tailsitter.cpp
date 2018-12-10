@@ -200,7 +200,7 @@ void Tailsitter::update_transition_state()
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P1) {
 			// initial attitude setpoint for the transition should be with wings level
-			_q_trans_start = Eulerf(0.0f, _mc_virtual_att_sp->pitch_body, _mc_virtual_att_sp->yaw_body);
+			_q_trans_start = Eulerf(0.0f, Eulerf(Quatf(_v_att->q)).theta(), Eulerf(Quatf(_v_att->q)).psi());
 			Vector3f x = Dcmf(Quatf(_v_att->q)) * Vector3f(1, 0, 0);
 			_trans_rot_axis = -x.cross(Vector3f(0, 0, -1));
 		}

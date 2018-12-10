@@ -250,6 +250,7 @@ private:
 
 	float _asp_after_transition{0.0f};
 	bool _was_in_transition{false};
+	float _transition_alt_sp_tecs{0.0f}; 		///< altitude sp for TECS during front transition, applies to standard vtol and tiltrotors
 
 	// estimator reset counters
 	uint8_t _pos_reset_counter{0};				///< captures the number of times the estimator has reset the horizontal position

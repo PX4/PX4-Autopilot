@@ -231,14 +231,28 @@ void Standard::update_transition_state()
 	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 
 	if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
-		if (_params_standard.pusher_ramp_dt <= 0.0f) {
-			// just set the final target throttle value
-			_pusher_throttle = _params->front_trans_throttle;
 
-		} else if (_pusher_throttle <= _params->front_trans_throttle) {
-			// ramp up throttle to the target throttle value
-			_pusher_throttle = _params->front_trans_throttle * time_since_trans_start / _params_standard.pusher_ramp_dt;
+		if (_v_control_mode->flag_control_altitude_enabled) {
+			matrix::Quatf q_sp(matrix::Eulerf(_fw_virtual_att_sp->roll_body, _fw_virtual_att_sp->pitch_body,
+							  _mc_virtual_att_sp->yaw_body));
+			q_sp.copyTo(_v_att_sp->q_d);
+			_v_att_sp->yaw_body = _mc_virtual_att_sp->yaw_body;
+			_pusher_throttle = _fw_virtual_att_sp->thrust_body[0];
+
+		} else {
+			if (_params_standard.pusher_ramp_dt <= 0.0f) {
+				// just set the final target throttle value
+				_pusher_throttle = _params->front_trans_throttle;
+
+			} else if (_pusher_throttle <= _params->front_trans_throttle) {
+				// ramp up throttle to the target throttle value
+				_pusher_throttle = _params->front_trans_throttle * time_since_trans_start / _params_standard.pusher_ramp_dt;
+			}
 		}
+
+		_v_att_sp->thrust_body[0] = _pusher_throttle;
+		_v_att_sp->thrust_body[1] = 0.0f;
+		_v_att_sp->thrust_body[2] = _mc_virtual_att_sp->thrust_body[2];
 
 		// do blending of mc and fw controls if a blending airspeed has been provided and the minimum transition time has passed
 		if (_airspeed_trans_blend_margin > 0.0f &&
@@ -255,12 +269,6 @@ void Standard::update_transition_state()
 			mc_weight = math::constrain(2.0f * mc_weight, 0.0f, 1.0f);
 
 		}
-
-		// ramp up FW_PSP_OFF
-		_v_att_sp->pitch_body = _params_standard.pitch_setpoint_offset * (1.0f - mc_weight);
-		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
-		q_sp.copyTo(_v_att_sp->q_d);
-		_v_att_sp->q_d_valid = true;
 
 		// check front transition timeout
 		if (_params->front_trans_timeout > FLT_EPSILON) {
@@ -297,6 +305,8 @@ void Standard::update_transition_state()
 		if (_motor_state != ENABLED) {
 			_motor_state = set_motor_state(_motor_state, ENABLED);
 		}
+
+		_v_att_sp->thrust_body[0] = _pusher_throttle;
 	}
 
 	mc_weight = math::constrain(mc_weight, 0.0f, 1.0f);
@@ -425,8 +435,7 @@ void Standard::fill_actuator_outputs()
 		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
 			_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH];
 		// yaw
-		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_YAW];
+		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = _actuators_fw_in->control[actuator_controls_s::INDEX_YAW];
 
 		_actuators_out_1->control[actuator_controls_s::INDEX_AIRBRAKES] = _reverse_output;
 
@@ -467,10 +476,3 @@ void Standard::fill_actuator_outputs()
 
 
 }
-
-void
-Standard::waiting_on_tecs()
-{
-	// keep thrust from transition
-	_v_att_sp->thrust_body[0] = _pusher_throttle;
-};

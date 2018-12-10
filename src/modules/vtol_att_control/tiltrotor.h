@@ -57,7 +57,6 @@ public:
 	void fill_actuator_outputs() override;
 	void update_mc_state() override;
 	void update_fw_state() override;
-	void waiting_on_tecs() override;
 
 private:
 

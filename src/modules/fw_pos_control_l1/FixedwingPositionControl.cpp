@@ -561,6 +561,10 @@ FixedwingPositionControl::tecs_status_publish()
 	case TECS::ECL_TECS_MODE_CLIMBOUT:
 		t.mode = tecs_status_s::TECS_MODE_CLIMBOUT;
 		break;
+
+	case TECS::ECL_TECS_MODE_VTOL_FRONT_TRANSITION:
+		t.mode = tecs_status_s::TECS_MODE_VTOL_FRONT_TRANSITION;
+		break;
 	}
 
 	t.altitude_sp = _tecs.hgt_setpoint_adj();
@@ -1925,12 +1929,13 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 	// do not run TECS if we are not in air
 	bool run_tecs = !_vehicle_land_detected.landed;
 
-	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
-	// (it should also not run during VTOL blending because airspeed is too low still)
+
 	if (_vehicle_status.is_vtol) {
-		if (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode) {
-			run_tecs = false;
-		}
+		// run TECS during transitions
+		run_tecs &= (!_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode);
+
+		// for tailsitters we don't want TECS do run during transitions
+		run_tecs &= !(_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.in_transition_mode);
 
 		if (_vehicle_status.in_transition_mode) {
 			// we're in transition
@@ -2027,6 +2032,18 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 				throttle_cruise = constrain(throttle_cruise * scale, throttle_min + 0.01f, throttle_max - 0.01f);
 			}
 		}
+	}
+
+	if (_vehicle_status.in_transition_to_fw && !_tecs.in_front_transition()) {
+		_tecs.activate_front_transition();
+		_transition_alt_sp_tecs = alt_sp;
+
+	} else if (!_vehicle_status.in_transition_to_fw && _tecs.in_front_transition()) {
+		_tecs.deactivate_front_transition();
+	}
+
+	if (_tecs.in_front_transition()) {
+		alt_sp = _transition_alt_sp_tecs;
 	}
 
 	_tecs.update_pitch_throttle(_R_nb, pitch_for_tecs,
