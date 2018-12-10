@@ -10,6 +10,7 @@ import yaml
 
 parser = argparse.ArgumentParser(description='Runs maneuver, simulation and tests based on yaml file')
 parser.add_argument('px4dir', help='PX4 src directory')
+parser.add_argument('maneuver_name', help='Name of the maneuver that we want to start. Also: Name of the yaml file that belongs to the maneuver')
 
 class ProcessWrapper(mp.Process):
     def __init__(self, cmds, env=None):
@@ -49,14 +50,12 @@ if __name__ == '__main__':
     mp.set_start_method('fork')
 
     # read yaml
-    dir_path = os.path.dirname(__file__)
-    yaml_file = open(dir_path + "/test_config.yml", "r")
+    yaml_file = open(os.path.dirname(__file__) + '/' + args.maneuver_name + '.yml', 'r')
     config = yaml.load(yaml_file)
 
     deactivate_tests = config['deactivate_tests']
     simulation_setup = config['simulation_setup']
 
-    maneuver = simulation_setup['maneuver']
     world = simulation_setup['world']
     sim = simulation_setup['sim']
     headless = simulation_setup['headless']
@@ -67,7 +66,7 @@ if __name__ == '__main__':
 
     # define processes
     global p_maneuver, p_server, p_gui, p_px4
-    cmds = ['{0}/Tools/Maneuvers/build/maneuvers/{1}'.format(px4_src_dir, maneuver), 'udp://:14540']
+    cmds = ['{0}/Tools/Maneuvers/build/maneuvers/{1}'.format(px4_src_dir, args.maneuver_name), 'udp://:14540']
     p_maneuver = ProcessWrapper(cmds)
 
     cmds = ['gzserver', '{0}/Tools/sitl_gazebo/worlds/{1}.world'.format(px4_src_dir, world)]
@@ -116,6 +115,7 @@ if __name__ == '__main__':
     print("Simulation closed")
     p_px4.join()
     print("PX4 closed")
+
 
     ################
     ### log-Analysis
