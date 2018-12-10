@@ -59,7 +59,7 @@ public:
 	void update_transition_state() override;
 	void update_fw_state() override;
 	void fill_actuator_outputs() override;
-	void waiting_on_tecs() override;
+	void waiting_on_tecs();
 
 private:
 

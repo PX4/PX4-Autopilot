@@ -226,6 +226,16 @@ void Tiltrotor::update_transition_state()
 	}
 
 	if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P1) {
+		// copy virtual attitude setpoint to real attitude setpoint (we use multicopter att sp)
+		memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+		matrix::Quatf q_sp(matrix::Eulerf(_fw_virtual_att_sp->roll_body, _fw_virtual_att_sp->pitch_body,
+						  _mc_virtual_att_sp->yaw_body));
+		_v_att_sp->yaw_body = _mc_virtual_att_sp->yaw_body;
+		q_sp.copyTo(_v_att_sp->q_d);
+
+		_v_att_sp->thrust_body[0] = _fw_virtual_att_sp->thrust_body[0];
+		_v_att_sp->thrust_body[2] = _mc_virtual_att_sp->thrust_body[2];
+
 		// for the first part of the transition the rear rotors are enabled
 		if (_motor_state != ENABLED) {
 			_motor_state = set_motor_state(_motor_state, ENABLED);
@@ -264,6 +274,15 @@ void Tiltrotor::update_transition_state()
 		_thrust_transition = -_mc_virtual_att_sp->thrust_body[2];
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P2) {
+		// copy virtual attitude setpoint to real attitude setpoint (we use multicopter att sp)
+		memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+		matrix::Quatf q_sp(matrix::Eulerf(_fw_virtual_att_sp->roll_body, _fw_virtual_att_sp->pitch_body,
+						  _mc_virtual_att_sp->yaw_body));
+		_v_att_sp->yaw_body = _mc_virtual_att_sp->yaw_body;
+		q_sp.copyTo(_v_att_sp->q_d);
+
+		_v_att_sp->thrust_body[0] = _fw_virtual_att_sp->thrust_body[0];
+		_v_att_sp->thrust_body[2] = _mc_virtual_att_sp->thrust_body[2];
 		// the plane is ready to go into fixed wing mode, tilt the rotors forward completely
 		_tilt_control = _params_tiltrotor.tilt_transition +
 				fabsf(_params_tiltrotor.tilt_fw - _params_tiltrotor.tilt_transition) * time_since_trans_start /
@@ -283,6 +302,8 @@ void Tiltrotor::update_transition_state()
 		_thrust_transition = -_mc_virtual_att_sp->thrust_body[2];
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_BACK) {
+		memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+
 		if (_motor_state != ENABLED) {
 			_motor_state = set_motor_state(_motor_state, ENABLED);
 		}
@@ -318,15 +339,6 @@ void Tiltrotor::update_transition_state()
 	_mc_roll_weight = math::constrain(_mc_roll_weight, 0.0f, 1.0f);
 	_mc_yaw_weight = math::constrain(_mc_yaw_weight, 0.0f, 1.0f);
 	_mc_throttle_weight = math::constrain(_mc_throttle_weight, 0.0f, 1.0f);
-
-	// copy virtual attitude setpoint to real attitude setpoint (we use multicopter att sp)
-	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
-}
-
-void Tiltrotor::waiting_on_tecs()
-{
-	// keep multicopter thrust until we get data from TECS
-	_v_att_sp->thrust_body[0] = _thrust_transition;
 }
 
 /**
