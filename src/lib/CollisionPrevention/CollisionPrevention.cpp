@@ -123,16 +123,14 @@ obstacle_distance_s CollisionPrevention::update_distance_sensor()
 		const distance_sensor_s &distance_sensor = _sub_distance_sensor[i]->get();
 
 		// consider only instaces with updated data and orientations useful for collision prevention
-		if ((hrt_elapsed_time(&distance_sensor.timestamp) < RANGE_STREAM_TIMEOUT_US) && (
-			    (distance_sensor.orientation == distance_sensor_s::ROTATION_FORWARD_FACING) ||
-			    (distance_sensor.orientation == distance_sensor_s::ROTATION_RIGHT_FACING) ||
-			    (distance_sensor.orientation == distance_sensor_s::ROTATION_LEFT_FACING) ||
-			    (distance_sensor.orientation == distance_sensor_s::ROTATION_BACKWARD_FACING))) {
+		if ((hrt_elapsed_time(&distance_sensor.timestamp) < RANGE_STREAM_TIMEOUT_US) &&
+			(distance_sensor.orientation != distance_sensor_s::ROTATION_DOWNWARD_FACING) &&
+			(distance_sensor.orientation != distance_sensor_s::ROTATION_UPWARD_FACING)) {
 
 			obstacle_distance.timestamp = distance_sensor.timestamp;
-			obstacle_distance.max_distance = distance_sensor.max_distance * 100.0f; // convert to cm
-			obstacle_distance.min_distance = distance_sensor.min_distance * 100.0f; // convert to cm
-			obstacle_distance.increment = 5;
+			obstacle_distance.max_distance = distance_sensor.max_distance * 100; // convert to cm
+			obstacle_distance.min_distance = distance_sensor.min_distance * 100; // convert to cm
+			obstacle_distance.increment = (unsigned int)round(math::degrees(distance_sensor.h_fov));
 
 			// init array of distance measuraments
 			for (unsigned int k = 0; k < sizeof(obstacle_distance.distances) / sizeof(obstacle_distance.distances[0]); ++k) {
@@ -154,6 +152,9 @@ obstacle_distance_s CollisionPrevention::update_distance_sensor()
 			case distance_sensor_s::ROTATION_BACKWARD_FACING:
 				offset = M_PI_F;
 				break;
+			case distance_sensor_s::ROTATION_CUSTOM:
+				offset = matrix::Eulerf(matrix::Quatf(distance_sensor.q)).psi();
+				break;
 			}
 
 			// convert the sensor orientation from body to local frame
@@ -169,7 +170,7 @@ obstacle_distance_s CollisionPrevention::update_distance_sensor()
 			const int index = (int)floorf(sensor_orientation / (float)obstacle_distance.increment);
 
 			// compensate measurement for vehicle tilt and convert to cm
-			obstacle_distance.distances[index] = 100.0f * distance_sensor.current_distance * cosf(matrix::Eulerf(matrix::Quatf(
+			obstacle_distance.distances[index] = 100 * distance_sensor.current_distance * cosf(matrix::Eulerf(matrix::Quatf(
 					_sub_vehicle_attitude->get().q)).theta());
 		}
 	}
