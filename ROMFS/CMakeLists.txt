@@ -163,30 +163,23 @@ add_custom_command(OUTPUT romfs_pruned.stamp
 	COMMENT "ROMFS: pruning"
 	)
 
-# create romfs.img
-find_program(GENROMFS genromfs)
-if(NOT GENROMFS)
-    message(FATAL_ERROR "genromfs not found")
-endif()
-add_custom_command(OUTPUT romfs.img romfs.txt
-	COMMAND ${CMAKE_COMMAND} -E remove -f romfs.img romfs.txt
-	COMMAND ${GENROMFS} -f romfs.img -d ${romfs_gen_root_dir} -V "NSHInitVol" -v > romfs.txt 2>&1
-	DEPENDS
-		romfs_pruned.stamp
-	COMMENT "ROMFS: generating image"
-	)
+if("${CONFIG_FS_CROMFS}" STREQUAL "y")
+	add_custom_command(
+		OUTPUT
+			${CMAKE_BINARY_DIR}/gencromfs
+		COMMAND
+			 make --no-print-directory --silent -f Makefile.host gencromfs
+	    COMMAND ${CMAKE_COMMAND} -E copy gencromfs ${CMAKE_BINARY_DIR}/gencromfs
+		DEPENDS ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/tools/gencromfs.c
+		WORKING_DIRECTORY ${NUTTX_DIR}/tools
+		)
 
-if(CONFIG_FS_CROMFS)
-	#TODO:build gencromfs tool from nuttx and path to it.
-	find_program(GENCROMFS gencromfs)
-	if(NOT GENCROMFS)
-		message(FATAL_ERROR "gencromfs not found")
-	endif()
 	# create nsh_romfsimg.c
 	add_custom_command(OUTPUT nsh_romfsimg.c
 		COMMAND ${CMAKE_COMMAND} -E remove -f nsh_romfsimg.c
-		COMMAND ${GENCROMFS} ${romfs_gen_root_dir}  nsh_romfsimg.c
+		COMMAND ${CMAKE_BINARY_DIR}/gencromfs ${romfs_gen_root_dir}  nsh_romfsimg.c
 		DEPENDS
+			${CMAKE_BINARY_DIR}/gencromfs
 			${romfs_gen_root_dir}/init.d/rcS
 			${romfs_gen_root_dir}/init.d/rc.autostart
 			romfs_extras.stamp
@@ -195,18 +188,16 @@ if(CONFIG_FS_CROMFS)
 		)
 
 else()
+	# create romfs.img
 	find_program(GENROMFS genromfs)
 	if(NOT GENROMFS)
-		message(FATAL_ERROR "genromfs not found")
+	    message(FATAL_ERROR "genromfs not found")
 	endif()
-	# create romfs.img
 	add_custom_command(OUTPUT romfs.img romfs.txt
 		COMMAND ${CMAKE_COMMAND} -E remove -f romfs.img romfs.txt
 		COMMAND ${GENROMFS} -f romfs.img -d ${romfs_gen_root_dir} -V "NSHInitVol" -v > romfs.txt 2>&1
 		DEPENDS
-			${romfs_gen_root_dir}/init.d/rcS
-			${romfs_gen_root_dir}/init.d/rc.autostart
-			romfs_extras.stamp
+			romfs_pruned.stamp
 		COMMENT "ROMFS: generating image"
 		)
 
