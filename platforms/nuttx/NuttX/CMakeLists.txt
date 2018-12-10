@@ -32,7 +32,6 @@ file(GLOB_RECURSE copy_apps_files
 	LIST_DIRECTORIES false
 	${CMAKE_CURRENT_SOURCE_DIR}/apps/*)
 
-set(NUTTX_DIR ${CMAKE_CURRENT_BINARY_DIR}/nuttx)
 set(NUTTX_CONFIG_DIR ${PX4_BOARD_DIR}/nuttx-config)
 
 set(NUTTX_CONFIGS_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/nuttx-configs)
