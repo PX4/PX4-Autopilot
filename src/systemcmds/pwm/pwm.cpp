@@ -116,9 +116,12 @@ $ pwm test -c 13 -p 1200
 	PRINT_MODULE_USAGE_COMMAND_DESCR("disarm", "Disarm output");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("info", "Print current configuration of all channels");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("forcefail", "Force Failsafe mode");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("forcefail", "Force Failsafe mode. "
+                                         "PWM outputs are set to failsafe values.");
 	PRINT_MODULE_USAGE_ARG("on|off", "Turn on or off", false);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("terminatefail", "Force Termination Failsafe mode");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("terminatefail", "Enable Termination Failsafe mode. "
+                                         "While this is true, "
+                                         "any failsafe that occurs will be unrecoverable (even if recovery conditions are met).");
 	PRINT_MODULE_USAGE_ARG("on|off", "Turn on or off", false);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("rate", "Configure PWM rates");
