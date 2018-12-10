@@ -33,6 +33,8 @@
 
 include(cygwin_cygpath)
 
+set(NUTTX_DIR ${PX4_BINARY_DIR}/NuttX/nuttx)
+
 add_subdirectory(src)
 
 add_executable(px4 ${PX4_SOURCE_DIR}/src/platforms/empty.c)
