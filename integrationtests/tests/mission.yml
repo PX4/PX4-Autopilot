@@ -2,11 +2,10 @@
 
 
 simulation_setup:
-    maneuver: 'mission'
     world: 'iris'
     sim: 'gazebo'
     headless: True
     start_script: 'rcS'
 
-deactivate_tests: # All tests that are NOT listed here are started
-    - test_rtl
+deactivate_tests: # All tests listed here will NOT be run
+    # - test_rtl
