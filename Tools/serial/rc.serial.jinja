@@ -22,9 +22,13 @@ fi
 
 {% endfor %}
 
+{% for serial_device in serial_devices -%}
+unset PRT_{{ serial_device.tag }}_
+{% endfor %}
 unset i
 unset SERIAL_DEV
 unset PRT
 unset PRT_F
 unset BAUD_PARAM
+unset MAV_ARGS
 
