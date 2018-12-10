@@ -2,6 +2,7 @@
 
 
 simulation_setup:
+    maneuver: 'mission'
     world: 'iris'
     sim: 'gazebo'
     headless: True

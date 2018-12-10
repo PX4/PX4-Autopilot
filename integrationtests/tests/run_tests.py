@@ -54,14 +54,13 @@ if __name__ == '__main__':
     config = yaml.load(yaml_file)
 
     deactivate_tests = config['deactivate_tests']
-
     simulation_setup = config['simulation_setup']
+
+    maneuver = simulation_setup['maneuver']
     world = simulation_setup['world']
     sim = simulation_setup['sim']
     headless = simulation_setup['headless']
     start_script = simulation_setup['start_script']
-
-    maneuver = 'mission'
 
     # path to px4-src directory
     px4_src_dir = args.px4dir
