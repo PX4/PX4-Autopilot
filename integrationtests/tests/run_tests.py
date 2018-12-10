@@ -6,6 +6,7 @@ import subprocess
 import signal
 import sys
 import argparse
+import yaml
 
 parser = argparse.ArgumentParser(description='Runs maneuver, simulation and tests based on yaml file')
 parser.add_argument('px4dir', help='PX4 src directory')
@@ -48,11 +49,19 @@ if __name__ == '__main__':
     mp.set_start_method('fork')
 
     # read yaml
-    world = 'iris'
-    sim = 'gazebo'
+    dir_path = os.path.dirname(__file__)
+    yaml_file = open(dir_path + "/test_config.yml", "r")
+    config = yaml.load(yaml_file)
+
+    deactivate_tests = config['deactivate_tests']
+
+    simulation_setup = config['simulation_setup']
+    world = simulation_setup['world']
+    sim = simulation_setup['sim']
+    headless = simulation_setup['headless']
+    start_script = simulation_setup['start_script']
+
     maneuver = 'mission'
-    headless = False
-    start_script='rcS'
 
     # path to px4-src directory
     px4_src_dir = args.px4dir
@@ -116,9 +125,19 @@ if __name__ == '__main__':
     newest_dir= logdir + max(os.listdir(logdir), key=lambda x: os.stat(logdir+x).st_mtime) + '/'
     newest_log=newest_dir + max(os.listdir(newest_dir), key=lambda x: os.stat(newest_dir+x).st_mtime)
 
-    # run all general tests
+    # run all general tests except for those that are deselected in the yaml file
+    if deactivate_tests is not None:
+        deselected_tests = '-k'
+        for index, test in enumerate(deactivate_tests):
+            if index == 0:
+                deselected_tests = deselected_tests + ' not ' + test
+            else:
+                deselected_tests = deselected_tests + ' and not ' + test 
+    else:
+        deselected_tests = ''
+
     testfile = px4_src_dir+'/Tools/ulogtests/tests/test_general.py'
-    p_test = subprocess.Popen(['py.test', '-s', testfile, '--filepath={0}'.format(newest_log)])
+    p_test = subprocess.Popen(['py.test', '-s', deselected_tests, testfile, '--filepath={0}'.format(newest_log)])
     while p_test.poll() is None:
         pass
     p_test.terminate()
