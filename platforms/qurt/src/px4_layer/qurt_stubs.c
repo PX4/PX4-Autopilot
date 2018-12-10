@@ -119,8 +119,6 @@ void __cxa_pure_virtual()
 	block_indefinite();
 }
 
-#ifdef __PX4_QURT_EAGLE_APQ8074
-
 float _Stof(const char *p0, char **p1, long p2)
 {
 	PX4_WARN("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
@@ -155,5 +153,3 @@ void *bsearch(const void *key, const void *ptr, size_t count, size_t size, int (
 
 	return NULL;
 }
-
-#endif

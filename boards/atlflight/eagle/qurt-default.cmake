@@ -10,7 +10,6 @@ if (DEFINED ENV{QC_SOC_TARGET})
 else()
 	set(QC_SOC_TARGET "APQ8074")
 endif()
-add_definitions(-D__PX4_QURT_EAGLE_${QC_SOC_TARGET})
 
 include(px4_git)
 px4_add_git_submodule(TARGET git_cmake_hexagon PATH "${PX4_SOURCE_DIR}/boards/atlflight/cmake_hexagon")
