@@ -608,7 +608,8 @@ MulticopterPositionControl::run()
 	poll_subscriptions();
 
 	// setup file descriptor to poll the local position as loop wakeup source
-	px4_pollfd_struct_t poll_fd = {.fd = _local_pos_sub};
+	px4_pollfd_struct_t poll_fd = {};
+	poll_fd.fd = _local_pos_sub;
 	poll_fd.events = POLLIN;
 
 	while (!should_exit()) {
