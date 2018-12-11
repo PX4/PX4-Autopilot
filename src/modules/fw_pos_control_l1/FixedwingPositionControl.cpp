@@ -788,6 +788,10 @@ FixedwingPositionControl::in_takeoff_situation()
 void
 FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitch_limit_min)
 {
+	if (_vehicle_status.is_vtol) {
+		return;
+	}
+
 	/* demand "climbout_diff" m above ground if user switched into this mode during takeoff */
 	if (in_takeoff_situation()) {
 		*hold_altitude = _takeoff_ground_alt + _parameters.climbout_diff;
