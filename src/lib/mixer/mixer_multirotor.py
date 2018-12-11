@@ -92,7 +92,10 @@ def mix_yaw(m_sp, u, P, u_min, u_max):
     u_r_dot = P[:,2]
     u_pp = minimize_sat(u_p, u_min, u_max+0.15, u_r_dot)
     u_T = P[:, 3]
-    u_ppp = minimize_sat(u_pp, -1000, u_max, u_T)
+    u_ppp = minimize_sat(u_pp, 0, u_max, u_T)
+    # reduce thrust only
+    if (u_ppp > (u_pp)).any():
+        u_ppp = u_pp
     return u_ppp
 
 def airmode_rp(m_sp, P, u_min, u_max):
