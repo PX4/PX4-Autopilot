@@ -232,3 +232,42 @@ add_custom_target(qconfig
 	COMMENT "Running NuttX make qconfig for ${NUTTX_CONFIG}"
 	USES_TERMINAL
 	)
+
+# savedefconfig helper needs apps Kconfig
+add_custom_target(apps_kconfig
+	COMMAND
+		TOPDIR=${NUTTX_APPS_DIR} make ${nuttx_build_options} --no-print-directory Kconfig ${nuttx_build_output}
+	WORKING_DIRECTORY ${NUTTX_APPS_DIR}
+	COMMENT "Running Kconfig Build on Apps"
+)
+
+# savedefconfig helper
+add_custom_target(savedefconfig
+	COMMAND
+		APPSDIR=${NUTTX_APPS_DIR} kconfig-conf --savedefconfig defconfig.tmp ${NUTTX_DIR}/Kconfig
+	COMMAND
+		APPSDIR=${NUTTX_APPS_DIR} kconfig-conf --savedefconfig defconfig.tmp ${NUTTX_DIR}/Kconfig
+	COMMAND
+		sed -i -e "/CONFIG_APPS_DIR=/d" defconfig.tmp			# remove CONFIG_APPS_DIR
+	COMMAND
+		grep "CONFIG_ARCH=" .config >> defconfig.tmp || true		# preserve CONFIG_ARCH=
+	COMMAND
+		grep "^CONFIG_ARCH_CHIP_" .config >> defconfig.tmp || true	# preserve CONFIG_ARCH_CHIP_
+	COMMAND
+		grep "CONFIG_ARCH_BOARD=" .config >> defconfig.tmp || true	# preserve CONFIG_ARCH_BOARD
+	COMMAND
+		grep "^CONFIG_ARCH_CUSTOM" .config >> defconfig.tmp || true	# preserve CONFIG_ARCH_CUSTOM
+	COMMAND
+		#sed -i -e "/^#/d" defconfig.tmp					# remove commented lines
+	COMMAND
+		cat defconfig.tmp | LC_ALL=C sort | uniq > defconfig.updated	# sort and save back to original defconfig
+	COMMAND
+		${CMAKE_COMMAND} -E copy_if_different defconfig.updated ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
+	COMMAND
+		${CMAKE_COMMAND} -E remove -f defconfig.tmp defconfig.updated			# cleanup
+	DEPENDS
+		apps_kconfig
+		${NUTTX_DIR}/.config
+	COMMENT "Compressing .config and saving back to ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig"
+	WORKING_DIRECTORY ${NUTTX_DIR}
+)
