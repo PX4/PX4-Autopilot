@@ -34,6 +34,7 @@
 include(cygwin_cygpath)
 
 set(NUTTX_DIR ${PX4_BINARY_DIR}/NuttX/nuttx)
+set(NUTTX_APPS_DIR ${PX4_BINARY_DIR}/NuttX/apps)
 
 add_subdirectory(src)
 
