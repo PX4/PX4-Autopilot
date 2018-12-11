@@ -86,10 +86,10 @@ def main():
                              " (default FILENAME: parameters.md)")
     parser.add_argument("-t", "--translation_xml",
                         nargs='?',
-                        const="parameters_en.md",
+                        const="parameter_strings.xml",
                         metavar="FILENAME",
                         help="Create translation string file"
-                             " (default FILENAME: parameters_en.md)")
+                             " (default FILENAME: parameter_strings.xml)")
     parser.add_argument('-v', '--verbose',
                         action='store_true',
                         help="verbose output")
@@ -135,6 +135,7 @@ def main():
                     print("OVERRIDING {:s} to {:s}!!!!!".format(name, val))
 
 
+
     # Load current translation info from Firmware/translations
     lang_translations = translationscanner.GetTranslations()
 
@@ -155,14 +156,15 @@ def main():
         cur_dir = os.path.dirname(os.path.realpath(__file__))
         out = xmltranslationout.XMLOutput(param_groups, args.board,
                                os.path.join(cur_dir, args.inject_xml))
+        #print("DEBUG:translation_xml: %s" % args.translation_xml)
         out.Save(args.translation_xml)
 
     # Output to Markdown/HTML tables
     if args.markdown:
-        out = markdownout.MarkdownTablesOutput(param_groups)
-        if args.markdown:
+        if args.verbose:
             print("Creating markdown file " + args.markdown)
-            out.Save(args.markdown)
+        out = markdownout.MarkdownTablesOutput(param_groups)
+        out.Save(args.markdown)
 
     #print("All done!")
 

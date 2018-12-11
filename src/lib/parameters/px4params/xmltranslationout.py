@@ -1,5 +1,6 @@
 import xml.etree.ElementTree as ET
 import codecs
+import os
 
 def indent(elem, level=0):
     i = "\n" + level*"  "
@@ -108,6 +109,11 @@ class XMLOutput():
         self.xml_document = ET.ElementTree(xml_parameters)
 
     def Save(self, filename):
+        # Create target directory & all intermediate directories if don't exists
+        dirname=filename.rsplit('/',1)[0]
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+
         self.xml_document.write(filename, encoding="UTF-8")
         # Add doctype (Clunky, but not possible to avoid in ElementTree)
         f=open(filename, "r")

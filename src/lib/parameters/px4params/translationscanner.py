@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 #import os 
 from os import listdir
-from os.path import isfile, join, dirname, realpath
+from os.path import isfile, join, dirname, realpath, exists
 
 
 def GetTranslations(filename=''):
@@ -9,8 +9,10 @@ def GetTranslations(filename=''):
     # Get path to translation path
 
     dir_path = dirname(realpath(__file__))
-    translation_path = dir_path.split('Firmware/')[0]+'Firmware/translations/'
-    print("DEBUG:Loading translation files from: %s" % translation_path)
+    translation_path = dir_path.rsplit('/',1)[0]+'/translations/'
+    if not exists(translation_path):
+        #print("DEBUG: Translation direcory not found: %s" % translation_path)
+        return None
     translation_files = [f for f in listdir(translation_path) if isfile(join(translation_path, f))]
 
     # Get english dict
