@@ -68,7 +68,7 @@ if __name__ == '__main__':
     cmds = ['gzclient']
     p_gui = ProcessWrapper(cmds)
 
-    cmds = ['{0}/build/px4_sitl_default/bin/px4'.format(px4_src_dir), '{0}/ROMFS/px4fmu_common'.format(px4_src_dir), '-s', 'etc/init.d-posix/{0}'.format(start_script)]
+    cmds = ['{0}/build/px4_sitl_default/bin/px4'.format(px4_src_dir), '{0}/ROMFS/px4fmu_common'.format(px4_src_dir), '-s', 'etc/init.d-posix/{0}'.format(start_script), '-d']
     env = os.environ.copy()
     env['PX4_SIM_MODEL'] = world
     p_px4 = ProcessWrapper(cmds, env)
