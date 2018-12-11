@@ -188,20 +188,20 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 		       s[3] / 10000.0f);
 }
 
-float MultirotorMixer::compute_desaturation_gain(const float *delta_outputs, const float *outputs,
+float MultirotorMixer::compute_desaturation_gain(const float *desaturation_vector, const float *outputs,
 		saturation_status &sat_status, float min_output, float max_output) const
 {
 	float k_min = 0.f;
 	float k_max = 0.f;
 
 	for (unsigned i = 0; i < _rotor_count; i++) {
-		// Avoid division by zero. If delta_outputs[i] is zero, there's nothing we can do to unsaturate anyway
-		if (fabsf(delta_outputs[i]) < FLT_EPSILON) {
+		// Avoid division by zero. If desaturation_vector[i] is zero, there's nothing we can do to unsaturate anyway
+		if (fabsf(desaturation_vector[i]) < FLT_EPSILON) {
 			continue;
 		}
 
 		if (outputs[i] < min_output) {
-			float k = (min_output - outputs[i]) / delta_outputs[i];
+			float k = (min_output - outputs[i]) / desaturation_vector[i];
 
 			if (k < k_min) { k_min = k; }
 
@@ -211,7 +211,7 @@ float MultirotorMixer::compute_desaturation_gain(const float *delta_outputs, con
 		}
 
 		if (outputs[i] > max_output) {
-			float k = (max_output - outputs[i]) / delta_outputs[i];
+			float k = (max_output - outputs[i]) / desaturation_vector[i];
 
 			if (k < k_min) { k_min = k; }
 
@@ -225,26 +225,27 @@ float MultirotorMixer::compute_desaturation_gain(const float *delta_outputs, con
 	return k_min + k_max;
 }
 
-void MultirotorMixer::minimize_saturation(const float *delta_outputs, float *outputs, saturation_status &sat_status,
+void MultirotorMixer::minimize_saturation(const float *desaturation_vector, float *outputs,
+		saturation_status &sat_status,
 		float min_output, float max_output, bool reduce_only) const
 {
-	float k1 = compute_desaturation_gain(delta_outputs, outputs, sat_status, min_output, max_output);
+	float k1 = compute_desaturation_gain(desaturation_vector, outputs, sat_status, min_output, max_output);
 
 	if (reduce_only && k1 > 0.f) {
 		return;
 	}
 
 	for (unsigned i = 0; i < _rotor_count; i++) {
-		outputs[i] += k1 * delta_outputs[i];
+		outputs[i] += k1 * desaturation_vector[i];
 	}
 
 	// Compute the desaturation gain again based on the updated outputs.
 	// In most cases it will be zero. It won't be if max(outputs) - min(outputs) > max_output - min_output.
 	// In that case adding 0.5 of the gain will equilibrate saturations.
-	float k2 = 0.5f * compute_desaturation_gain(delta_outputs, outputs, sat_status, min_output, max_output);
+	float k2 = 0.5f * compute_desaturation_gain(desaturation_vector, outputs, sat_status, min_output, max_output);
 
 	for (unsigned i = 0; i < _rotor_count; i++) {
-		outputs[i] += k2 * delta_outputs[i];
+		outputs[i] += k2 * desaturation_vector[i];
 	}
 }
 
