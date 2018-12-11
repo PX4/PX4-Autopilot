@@ -176,7 +176,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'make px4_sitl_test test_results_junit'
+            sh 'make px4_sitl_default test_results_junit'
             withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
               sh 'curl -s https://codecov.io/bash | bash -s - -F unittest'
             }
