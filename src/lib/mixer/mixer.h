@@ -648,7 +648,7 @@ public:
 	 * @param control_cb		Callback invoked to read inputs.
 	 * @param cb_handle		Passed to control_cb.
 	 * @param rotors		control allocation matrix
-	 * @param rotor_count		length of rotors
+	 * @param rotor_count		length of rotors array (= number of motors)
 	 */
 	MultirotorMixer(ControlCallback control_cb,
 			uintptr_t cb_handle,
@@ -730,34 +730,34 @@ public:
 
 private:
 	/**
-	 * Computes the gain k by which delta_outputs has to be multiplied
+	 * Computes the gain k by which desaturation_vector has to be multiplied
 	 * in order to unsaturate the output that has the greatest saturation.
 	 * @see also minimize_saturation().
 	 *
 	 * @return desaturation gain
 	 */
-	float compute_desaturation_gain(const float *delta_outputs, const float *outputs, saturation_status &sat_status,
+	float compute_desaturation_gain(const float *desaturation_vector, const float *outputs, saturation_status &sat_status,
 					float min_output, float max_output) const;
 
 	/**
-	 * Minimize the saturation of the actuators by adding or substracting a fraction of delta_outputs.
-	 * delta_outputs is the vector that added to the output outputs, modifies the thrust or angular
+	 * Minimize the saturation of the actuators by adding or substracting a fraction of desaturation_vector.
+	 * desaturation_vector is the vector that added to the output outputs, modifies the thrust or angular
 	 * acceleration on a specific axis.
-	 * For example, if delta_outputs is given to slide along the vertical thrust axis (thrust_scale), the
+	 * For example, if desaturation_vector is given to slide along the vertical thrust axis (thrust_scale), the
 	 * saturation will be minimized by shifting the vertical thrust setpoint, without changing the
 	 * roll/pitch/yaw accelerations.
 	 *
 	 * Note that as we only slide along the given axis, in extreme cases outputs can still contain values
 	 * outside of [min_output, max_output].
 	 *
-	 * @param delta_outputs vector that is added to the outputs, e.g. thrust_scale
+	 * @param desaturation_vector vector that is added to the outputs, e.g. thrust_scale
 	 * @param outputs output vector that is modified
 	 * @param sat_status saturation status output
 	 * @param min_output minimum desired value in outputs
 	 * @param max_output maximum desired value in outputs
-	 * @param reduce_only if true, only allow to reduce (substract) a fraction of delta_outputs
+	 * @param reduce_only if true, only allow to reduce (substract) a fraction of desaturation_vector
 	 */
-	void minimize_saturation(const float *delta_outputs, float *outputs, saturation_status &sat_status,
+	void minimize_saturation(const float *desaturation_vector, float *outputs, saturation_status &sat_status,
 				 float min_output = 0.f, float max_output = 1.f, bool reduce_only = false) const;
 
 	/**
