@@ -79,7 +79,7 @@ bool CollisionPrevention::initializeSubscriptions(SubscriptionArray &subscriptio
 	return true;
 }
 
-void CollisionPrevention::reset_constraints()
+void CollisionPrevention::_resetConstraints()
 {
 
 	_move_constraints_x_normalized.zero();  //normalized constraint in x-direction
@@ -89,7 +89,7 @@ void CollisionPrevention::reset_constraints()
 	_move_constraints_y.zero();  //constraint in y-direction
 }
 
-void CollisionPrevention::publish_constraints(const Vector2f &original_setpoint, const Vector2f &adapted_setpoint)
+void CollisionPrevention::_publishConstraints(const Vector2f &original_setpoint, const Vector2f &adapted_setpoint)
 {
 
 	collision_constraints_s	constraints;	/**< collision constraints message */
@@ -115,7 +115,7 @@ void CollisionPrevention::publish_constraints(const Vector2f &original_setpoint,
 	}
 }
 
-void CollisionPrevention::update_distance_sensor(obstacle_distance_s &obstacle_distance)
+void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle_distance)
 {
 
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
@@ -176,14 +176,14 @@ void CollisionPrevention::update_distance_sensor(obstacle_distance_s &obstacle_d
 
 }
 
-void CollisionPrevention::update_range_constraints()
+void CollisionPrevention::_updateRangeConstraints()
 {
 	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance->get();
 	obstacle_distance_s distance_data = obstacle_distance;
 
 	// if there aren't distance data from offboard on obstacle_distance, check for onboard sensors on distance_sensor
 	if (!_sub_obstacle_distance->updated()) {
-		update_distance_sensor(distance_data);
+		_updateDistanceSensor(distance_data);
 	}
 
 	if (hrt_elapsed_time(&distance_data.timestamp) < RANGE_STREAM_TIMEOUT_US) {
@@ -222,10 +222,10 @@ void CollisionPrevention::update_range_constraints()
 
 void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const float max_speed)
 {
-	reset_constraints();
+	_resetConstraints();
 
 	//calculate movement constraints based on range data
-	update_range_constraints();
+	_updateRangeConstraints();
 
 	//clamp constraints to be in [0,1]. Constraints > 1 occur if the vehicle is closer than _param_mpc_col_prev_d to the obstacle.
 	//they would lead to the vehicle being pushed back from the obstacle which we do not yet support
@@ -257,6 +257,6 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 
 	_interfering = currently_interfering;
 
-	publish_constraints(original_setpoint, new_setpoint);
+	_publishConstraints(original_setpoint, new_setpoint);
 	original_setpoint = new_setpoint;
 }

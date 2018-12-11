@@ -133,7 +133,7 @@ void FlightTaskManualPosition::_scaleSticks()
 	_rotateIntoHeadingFrame(vel_sp_xy);
 
 	// collision prevention
-	if (_collision_prevention.is_active()) {
+	if (_collision_prevention.isActive()) {
 		_collision_prevention.modifySetpoint(vel_sp_xy, _constraints.speed_xy);
 	}
 
