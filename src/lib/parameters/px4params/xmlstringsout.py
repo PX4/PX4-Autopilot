@@ -1,3 +1,7 @@
+#
+# Export all parameter strings for translation into key/value file.
+#
+
 import xml.etree.ElementTree as ET
 import codecs
 import os

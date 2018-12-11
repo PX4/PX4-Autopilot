@@ -47,7 +47,7 @@ from __future__ import print_function
 import sys
 import os
 import argparse
-from px4params import srcscanner, srcparser, xmlout, xmltranslationout, markdownout, translationscanner
+from px4params import srcscanner, srcparser, xmlout, xmlstringsout, markdownout, translationscanner
 
 import re
 import json
@@ -154,7 +154,7 @@ def main():
         if args.verbose:
             print("Creating translation string XML file " + args.translation_xml)
         cur_dir = os.path.dirname(os.path.realpath(__file__))
-        out = xmltranslationout.XMLOutput(param_groups, args.board,
+        out = xmlstringsout.XMLOutput(param_groups, args.board,
                                os.path.join(cur_dir, args.inject_xml))
         #print("DEBUG:translation_xml: %s" % args.translation_xml)
         out.Save(args.translation_xml)
