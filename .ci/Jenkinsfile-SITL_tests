@@ -48,7 +48,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make px4_sitl_test test_results_junit'
-            junit 'build/px4_sitl_default/JUnitTestResults.xml'
+            junit 'build/px4_sitl_test/JUnitTestResults.xml'
           }
         }
 
