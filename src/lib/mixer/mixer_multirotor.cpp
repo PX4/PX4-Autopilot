@@ -339,7 +339,8 @@ void MultirotorMixer::mix_yaw(float yaw, float *outputs)
 		_tmp_array[i] = _rotors[i].thrust_scale;
 	}
 
-	minimize_saturation(_tmp_array, outputs, _saturation_status, -1000.f);
+	// reduce thrust only
+	minimize_saturation(_tmp_array, outputs, _saturation_status, 0.f, 1.f, true);
 }
 
 unsigned
