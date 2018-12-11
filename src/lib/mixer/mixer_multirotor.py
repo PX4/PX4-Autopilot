@@ -22,23 +22,23 @@ import subprocess
 # mixing algorithms
 # --------------------------------------------------
 
-def compute_desaturation_gain(u, u_min, u_max, delta_u):
+def compute_desaturation_gain(u, u_min, u_max, desaturation_vector):
     """
-    Computes the gain k by which delta_u has to be multiplied
+    Computes the gain k by which desaturation_vector has to be multiplied
     in order to unsaturate the output that has the greatest saturation
     """
     d_u_sat_plus = u_max - u
     d_u_sat_minus = u_min - u
     k = np.zeros(u.size*2)
     for i in range(u.size):
-        if abs(delta_u[i]) < 0.000001:
+        if abs(desaturation_vector[i]) < 0.000001:
             # avoid division by zero
             continue
 
         if d_u_sat_minus[i] > 0.0:
-            k[2*i] = d_u_sat_minus[i] / delta_u[i]
+            k[2*i] = d_u_sat_minus[i] / desaturation_vector[i]
         if d_u_sat_plus[i] < 0.0:
-            k[2*i+1] = d_u_sat_plus[i] / delta_u[i]
+            k[2*i+1] = d_u_sat_plus[i] / desaturation_vector[i]
 
     k_min = min(k)
     k_max = max(k)
@@ -48,31 +48,31 @@ def compute_desaturation_gain(u, u_min, u_max, delta_u):
     return k
 
 
-def minimize_sat(u, u_min, u_max, delta_u):
+def minimize_sat(u, u_min, u_max, desaturation_vector):
     """
     Minimize the saturation of the actuators by
-    adding or substracting a fraction of delta_u.
-    Delta_u is the vector that added to the output u,
+    adding or substracting a fraction of desaturation_vector.
+    desaturation_vector is the vector that added to the output u,
     modifies the thrust or angular acceleration on a
     specific axis.
-    For example, if delta_u is given
+    For example, if desaturation_vector is given
     to slide along the vertical thrust axis, the saturation will
     be minimized by shifting the vertical thrust setpoint,
     without changing the roll/pitch/yaw accelerations.
     """
-    k_1 = compute_desaturation_gain(u, u_min, u_max, delta_u)
-    u_1 = u + k_1 * delta_u # Try to unsaturate
+    k_1 = compute_desaturation_gain(u, u_min, u_max, desaturation_vector)
+    u_1 = u + k_1 * desaturation_vector # Try to unsaturate
 
 
     # Compute the desaturation gain again based on the updated outputs.
     # In most cases it will be zero. It won't be if max(outputs) - min(outputs)
     # > max_output - min_output.
     # In that case adding 0.5 of the gain will equilibrate saturations.
-    k_2 = compute_desaturation_gain(u_1, u_min, u_max, delta_u)
+    k_2 = compute_desaturation_gain(u_1, u_min, u_max, desaturation_vector)
 
     k_opt = k_1 + 0.5 * k_2
 
-    u_prime = u + k_opt * delta_u
+    u_prime = u + k_opt * desaturation_vector
     return u_prime
 
 def mix_yaw(m_sp, u, P, u_min, u_max):
