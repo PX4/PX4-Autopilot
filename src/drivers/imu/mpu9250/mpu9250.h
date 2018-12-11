@@ -57,14 +57,6 @@
 #include "gyro.h"
 
 
-/* List of supported device types */
-enum MPU_DEVICE_TYPE {
-	MPU_DEVICE_TYPE_MPU9250	= 9250,
-	MPU_DEVICE_TYPE_MPU6500 = 6500,
-	MPU_DEVICE_TYPE_ICM20948 = 20948
-};
-
-
 #if defined(PX4_I2C_OBDEV_MPU9250) || defined(PX4_I2C_BUS_EXPANSION)
 #  define USE_I2C
 #endif
@@ -311,7 +303,7 @@ enum MPU_DEVICE_TYPE {
 
 
 
-#define MPU_OR_ICM(m,i)					((_device_type==MPU_DEVICE_TYPE_ICM20948) ? i : m)
+#define MPU_OR_ICM(m,i)					((_whoami==ICM_WHOAMI_20948) ? i : m)
 
 
 #pragma pack(push, 1)
@@ -373,11 +365,11 @@ struct MPUReport {
 #  define MPU9250_LOW_SPEED_OP(r)			((r) &~MPU9250_HIGH_BUS_SPEED)
 
 /* interface factories */
-extern device::Device *MPU9250_SPI_interface(int bus, int device_type, uint32_t cs, bool external_bus);
-extern device::Device *MPU9250_I2C_interface(int bus, int device_type, uint32_t address, bool external_bus);
-extern int MPU9250_probe(device::Device *dev, int device_type);
+extern device::Device *MPU9250_SPI_interface(int bus, uint32_t cs, bool external_bus);
+extern device::Device *MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus);
+extern int MPU9250_probe(device::Device *dev);
 
-typedef device::Device *(*MPU9250_constructor)(int, int, uint32_t, bool);
+typedef device::Device *(*MPU9250_constructor)(int, uint32_t, bool);
 
 class MPU9250_mag;
 class MPU9250_accel;
@@ -389,7 +381,6 @@ public:
 	MPU9250(device::Device *interface, device::Device *mag_interface, const char *path_accel, const char *path_gyro,
 		const char *path_mag,
 		enum Rotation rotation,
-		int device_type,
 		bool magnetometer_only);
 
 	virtual ~MPU9250();
@@ -403,6 +394,7 @@ public:
 
 protected:
 	device::Device *_interface;
+	uint8_t			_whoami;	/** whoami result */
 
 	virtual int		probe();
 
@@ -414,8 +406,6 @@ private:
 	MPU9250_accel   *_accel;
 	MPU9250_gyro	*_gyro;
 	MPU9250_mag     *_mag;
-	uint8_t			_whoami;	/** whoami result */
-	int 			_device_type;
 	uint8_t 		_selected_bank;			/* Remember selected memory bank to avoid polling / setting on each read/write */
 	bool
 	_magnetometer_only;     /* To disable accel and gyro reporting if only magnetometer is used (e.g. as external magnetometer) */
