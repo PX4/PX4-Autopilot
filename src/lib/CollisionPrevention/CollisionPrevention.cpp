@@ -115,9 +115,8 @@ void CollisionPrevention::publish_constraints(const Vector2f &original_setpoint,
 	}
 }
 
-obstacle_distance_s CollisionPrevention::update_distance_sensor()
+void CollisionPrevention::update_distance_sensor(obstacle_distance_s &obstacle_distance)
 {
-	obstacle_distance_s obstacle_distance = {};
 
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		const distance_sensor_s &distance_sensor = _sub_distance_sensor[i]->get();
@@ -153,12 +152,12 @@ obstacle_distance_s CollisionPrevention::update_distance_sensor()
 				offset = M_PI_F;
 				break;
 			case distance_sensor_s::ROTATION_CUSTOM:
-				offset = matrix::Eulerf(matrix::Quatf(distance_sensor.q)).psi();
+				offset = Eulerf(Quatf(distance_sensor.q)).psi();
 				break;
 			}
 
 			// convert the sensor orientation from body to local frame
-			float sensor_orientation = math::degrees(wrap_pi(matrix::Eulerf(matrix::Quatf(_sub_vehicle_attitude->get().q)).psi() +
+			float sensor_orientation = math::degrees(wrap_pi(Eulerf(Quatf(_sub_vehicle_attitude->get().q)).psi() +
 						   offset));
 
 			// convert orientation from range [-180, 180] to [0, 360]
@@ -170,12 +169,11 @@ obstacle_distance_s CollisionPrevention::update_distance_sensor()
 			const int index = (int)floorf(sensor_orientation / (float)obstacle_distance.increment);
 
 			// compensate measurement for vehicle tilt and convert to cm
-			obstacle_distance.distances[index] = 100 * distance_sensor.current_distance * cosf(matrix::Eulerf(matrix::Quatf(
+			obstacle_distance.distances[index] = 100 * distance_sensor.current_distance * cosf(Eulerf(Quatf(
 					_sub_vehicle_attitude->get().q)).theta());
 		}
 	}
 
-	return obstacle_distance;
 }
 
 void CollisionPrevention::update_range_constraints()
@@ -185,7 +183,7 @@ void CollisionPrevention::update_range_constraints()
 
 	// if there aren't distance data from offboard on obstacle_distance, check for onboard sensors on distance_sensor
 	if (!_sub_obstacle_distance->updated()) {
-		distance_data = update_distance_sensor();
+		update_distance_sensor(distance_data);
 	}
 
 	if (hrt_elapsed_time(&distance_data.timestamp) < RANGE_STREAM_TIMEOUT_US) {
