@@ -484,7 +484,7 @@ file(GLOB_RECURSE yaml_config_files ${PX4_SOURCE_DIR}/src/modules/*.yaml
 	${PX4_SOURCE_DIR}/src/drivers/*.yaml ${PX4_SOURCE_DIR}/src/lib/*.yaml)
 add_custom_target(metadata_parameters
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/docs
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_SOURCE_DIR}/translations
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_SOURCE_DIR}/translations
 	COMMAND ${PYTHON_EXECUTABLE}
 	${PX4_SOURCE_DIR}/Tools/serial/generate_config.py --all-ports --params-file ${PX4_SOURCE_DIR}/src/generated_serial_params.c --config-files ${yaml_config_files}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/src/lib/parameters/px_process_params.py

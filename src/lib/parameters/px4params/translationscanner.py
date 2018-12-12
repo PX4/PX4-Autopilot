@@ -44,7 +44,7 @@ def GetTranslations(filename=''):
                 key = entry.attrib['key']
                 entry_text = entry.text
                 # Only add string if it has changed from English
-                if not entry_text == lang_translations['en'][key]:
+                if key in lang_translations['en'] and not lang_translations['en'][key] == entry_text:
                     lang_dict[key]=entry_text
         lang_translations[lang_key] = lang_dict
     return lang_translations
