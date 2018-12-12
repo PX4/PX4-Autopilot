@@ -1428,6 +1428,9 @@ Commander::run()
 
 	arm_auth_init(&mavlink_log_pub, &status.system_id);
 
+	// run preflight immediately to find all relevant parameters, but don't report
+	preflight_check(false);
+
 	while (!should_exit()) {
 
 		transition_result_t arming_ret = TRANSITION_NOT_CHANGED;
