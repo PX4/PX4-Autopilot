@@ -121,19 +121,27 @@ void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle_di
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		const distance_sensor_s &distance_sensor = _sub_distance_sensor[i]->get();
 
-		// consider only instaces with updated data and orientations useful for collision prevention
+		// consider only instaces with updated, valid data and orientations useful for collision prevention
 		if ((hrt_elapsed_time(&distance_sensor.timestamp) < RANGE_STREAM_TIMEOUT_US) &&
-			(distance_sensor.orientation != distance_sensor_s::ROTATION_DOWNWARD_FACING) &&
-			(distance_sensor.orientation != distance_sensor_s::ROTATION_UPWARD_FACING)) {
+		    (distance_sensor.orientation != distance_sensor_s::ROTATION_DOWNWARD_FACING) &&
+		    (distance_sensor.orientation != distance_sensor_s::ROTATION_UPWARD_FACING) &&
+		    (distance_sensor.current_distance > distance_sensor.min_distance) &&
+		    (distance_sensor.current_distance < distance_sensor.max_distance)) {
 
-			obstacle_distance.timestamp = distance_sensor.timestamp;
-			obstacle_distance.max_distance = distance_sensor.max_distance * 100; // convert to cm
-			obstacle_distance.min_distance = distance_sensor.min_distance * 100; // convert to cm
-			obstacle_distance.increment = (unsigned int)round(math::degrees(distance_sensor.h_fov));
+			if (obstacle_distance.increment > 0) {
+				// obstacle distance has already data from offboard
+				obstacle_distance.timestamp = math::min(obstacle_distance.timestamp, distance_sensor.timestamp);
+				obstacle_distance.max_distance = math::max((int)obstacle_distance.max_distance,
+								 (int)distance_sensor.max_distance * 100);
+				obstacle_distance.min_distance = math::min((int)obstacle_distance.min_distance,
+								 (int)distance_sensor.min_distance * 100);
 
-			// init array of distance measuraments
-			for (unsigned int k = 0; k < sizeof(obstacle_distance.distances) / sizeof(obstacle_distance.distances[0]); ++k) {
-				obstacle_distance.distances[k] = UINT16_MAX;
+			} else {
+				obstacle_distance.timestamp = distance_sensor.timestamp;
+				obstacle_distance.max_distance = distance_sensor.max_distance * 100; // convert to cm
+				obstacle_distance.min_distance = distance_sensor.min_distance * 100; // convert to cm
+				obstacle_distance.increment = 5; // smaller increment possible to lower fov discretization error
+				memset(&obstacle_distance.distances[0], UINT16_MAX, sizeof(obstacle_distance.distances));
 			}
 
 			// init offset for sensor orientation distance_sensor_s::ROTATION_FORWARD_FACING
@@ -151,6 +159,7 @@ void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle_di
 			case distance_sensor_s::ROTATION_BACKWARD_FACING:
 				offset = M_PI_F;
 				break;
+
 			case distance_sensor_s::ROTATION_CUSTOM:
 				offset = Eulerf(Quatf(distance_sensor.q)).psi();
 				break;
@@ -165,26 +174,36 @@ void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle_di
 				sensor_orientation += 360.0f;
 			}
 
-			// array resolution defined by the increment, index 0 is always local north
-			const int index = (int)floorf(sensor_orientation / (float)obstacle_distance.increment);
+			// calculate the field of view boundary bin indices
+			const int lower_bound = (int)floor(sensor_orientation - (math::degrees(distance_sensor.h_fov / 2.0f))) /
+						(float)obstacle_distance.increment;
+			const int upper_bound = (int)floor(sensor_orientation + (math::degrees(distance_sensor.h_fov / 2.0f))) /
+						(float)obstacle_distance.increment;
 
-			// compensate measurement for vehicle tilt and convert to cm
-			obstacle_distance.distances[index] = 100 * distance_sensor.current_distance * cosf(Eulerf(Quatf(
-					_sub_vehicle_attitude->get().q)).theta());
+			for (int bin = lower_bound; bin <= upper_bound; ++bin) {
+				int wrap_bin = bin;
+
+				if (wrap_bin < 0) {
+					// wrap bin index around the array
+					wrap_bin = (360 / obstacle_distance.increment) + bin;
+				}
+
+				// compensate measurement for vehicle tilt and convert to cm
+				obstacle_distance.distances[wrap_bin] = math::min((int)obstacle_distance.distances[wrap_bin],
+									(int)(100 * distance_sensor.current_distance * cosf(Eulerf(Quatf(_sub_vehicle_attitude->get().q)).theta())));
+			}
 		}
 	}
-
 }
+
 
 void CollisionPrevention::_updateRangeConstraints()
 {
 	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance->get();
 	obstacle_distance_s distance_data = obstacle_distance;
 
-	// if there aren't distance data from offboard on obstacle_distance, check for onboard sensors on distance_sensor
-	if (!_sub_obstacle_distance->updated()) {
-		_updateDistanceSensor(distance_data);
-	}
+	// incorporate distance data from offboard on obstacle_distance with onboard sensors on distance_sensor
+	_updateDistanceSensor(distance_data);
 
 	if (hrt_elapsed_time(&distance_data.timestamp) < RANGE_STREAM_TIMEOUT_US) {
 		float max_detection_distance = distance_data.max_distance / 100.0f; //convert to meters
