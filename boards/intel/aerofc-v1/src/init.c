@@ -172,7 +172,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* the interruption subsystem is not initialized when stm32_boardinitialize() is called */
 	stm32_gpiosetevent(GPIO_FORCE_BOOTLOADER, true, false, false, _bootloader_force_pin_callback, NULL);
 
-
 	px4_platform_init();
 
 	/* set up the serial DMA polling */

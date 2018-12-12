@@ -154,7 +154,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	int result = OK;
 
-
 	px4_platform_init();
 
 	/* set up the serial DMA polling */
