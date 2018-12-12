@@ -237,8 +237,6 @@ static struct spi_dev_s *spi3;
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
-
-
 	px4_platform_init();
 
 	/* configure the DMA allocator */

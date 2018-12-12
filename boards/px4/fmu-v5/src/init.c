@@ -217,7 +217,7 @@ __EXPORT void board_on_reset(int status)
 #ifdef CONFIG_BOARDCTL_FINALINIT
 int board_app_finalinitialize(uintptr_t arg)
 {
-    return 0;
+	return 0;
 }
 #endif
 
