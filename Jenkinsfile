@@ -19,11 +19,17 @@ pipeline {
               echo $0;
               mkdir -p catkin_ws/src;
               cd catkin_ws;
+              // ln -s Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
               source /opt/ros/melodic/setup.bash;
               catkin init;
-              source devel/setup.bash;
               catkin build -j$(nproc) -l$(nproc);
             '''
+            // test if the binary was correctly installed and runs using 'mavros_posix_silt.launch'
+            //sh '''#!/bin/bash -l
+            //  echo $0;
+            //  source catkin_ws/devel/setup.bash;
+            //  rostest px4 pub_test.launch;
+            //'''
           }
           post {
             always {
@@ -49,6 +55,7 @@ pipeline {
               unset ROS_DISTRO;
               mkdir -p colcon_ws/src;
               cd colcon_ws;
+              // ln -s Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
               source /opt/ros/bouncy/setup.sh;
               colcon build --event-handlers console_direct+ --symlink-install;
             '''
