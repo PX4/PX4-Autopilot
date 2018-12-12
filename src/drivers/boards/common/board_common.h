@@ -45,6 +45,7 @@
  ************************************************************************************/
 #include <errno.h>
 #include <stdint.h>
+#include <stdbool.h>
 /************************************************************************************
  * Definitions
  ************************************************************************************/
@@ -231,27 +232,22 @@
 #define BOARD_BATTERY2_A_PER_V 0.0f
 #endif
 
-/* Conditional use of FMU GPIO
- * If the board use the PX4FMU driver and the board provides
- * BOARD_FMU_GPIO_TAB then we publish the logical BOARD_HAS_FMU_GPIO
- */
-#if defined(BOARD_FMU_GPIO_TAB)
-#  define BOARD_HAS_FMU_GPIO
-#endif
-
 /* Conditional use of PX4 PIO is Used to determine if the board
  * has a PX4IO processor.
  * We then publish the logical BOARD_USES_PX4IO
  */
 #if defined(BOARD_USES_PX4IO_VERSION)
 #  define BOARD_USES_PX4IO	1
+#  if defined(BOARD_HAS_STATIC_MANIFEST) && BOARD_HAS_STATIC_MANIFEST == 1
+#     define PX4_MFT_HW_SUPPORTED_PX4_MFT_PX4IO 1
+#  endif
 /*  Allow a board_config to override the PX4IO FW search paths */
 #  if defined(BOARD_PX4IO_FW_SEARCH_PATHS)
 #    define PX4IO_FW_SEARCH_PATHS BOARD_PX4IO_FW_SEARCH_PATHS
 #  else
 /*  Use PX4IO FW search paths defaults based on version */
 #    if BOARD_USES_PX4IO_VERSION == 2
-#      define PX4IO_FW_SEARCH_PATHS {"/etc/extras/px4io-v2.bin", "/fs/microsd/px4io2.bin", "/fs/microsd/px4io.bin", nullptr }
+#      define PX4IO_FW_SEARCH_PATHS {"/etc/extras/px4_io-v2_default.bin","/fs/microsd/px4_io-v2_default.bin", "/fs/microsd/px4io2.bin", nullptr }
 #    endif
 #  endif
 #endif
@@ -280,11 +276,45 @@
 #  define HW_VER_FMUV2           HW_VER_SIMPLE(HW_VER_FMUV2_STATE)
 #  define HW_VER_FMUV3           HW_VER_SIMPLE(HW_VER_FMUV3_STATE)
 #  define HW_VER_FMUV2MINI       HW_VER_SIMPLE(HW_VER_FMUV2MINI_STATE)
+#  define HW_VER_FMUV2X          HW_VER_SIMPLE(HW_VER_FMUV2X_STATE)
 #endif
 
 #if defined(BOARD_HAS_HW_VERSIONING)
 #  define BOARD_HAS_VERSIONING 1
 #endif
+
+/* Default LED logical to color mapping */
+
+#if defined(BOARD_OVERLOAD_LED)
+#  define BOARD_OVERLOAD_LED_TOGGLE() led_toggle(BOARD_OVERLOAD_LED)
+#  define BOARD_OVERLOAD_LED_OFF()    led_off(BOARD_OVERLOAD_LED)
+#else
+#  define BOARD_OVERLOAD_LED_TOGGLE()
+#  define BOARD_OVERLOAD_LED_OFF()
+#endif
+
+#if defined(BOARD_HAS_CONTROL_STATUS_LEDS)
+
+#  if defined(BOARD_ARMED_LED)
+#    define BOARD_ARMED_LED_TOGGLE() led_toggle(BOARD_ARMED_LED)
+#    define BOARD_ARMED_LED_OFF()    led_off(BOARD_ARMED_LED)
+#    define BOARD_ARMED_LED_ON()     led_on(BOARD_ARMED_LED)
+#  else
+#    define BOARD_ARMED_LED_TOGGLE()
+#    define BOARD_ARMED_LED_OFF()
+#    define BOARD_ARMED_LED_ON()
+#  endif
+
+#  if defined(BOARD_ARMED_STATE_LED)
+#    define BOARD_ARMED_STATE_LED_TOGGLE() led_toggle(BOARD_ARMED_STATE_LED)
+#    define BOARD_ARMED_STATE_LED_OFF()    led_off(BOARD_ARMED_STATE_LED)
+#    define BOARD_ARMED_STATE_LED_ON()     led_on(BOARD_ARMED_STATE_LED)
+#  else
+#    define BOARD_ARMED_STATE_LED_TOGGLE()
+#    define BOARD_ARMED_STATE_LED_OFF()
+#    define BOARD_ARMED_STATE_LED_ON()
+#  endif
+#endif //
 
 /************************************************************************************
  * Public Data
@@ -316,6 +346,32 @@ typedef enum board_power_button_state_notification_e {
 /* board call back signature  */
 
 typedef int (*power_button_state_notification_t)(board_power_button_state_notification_e request);
+
+/*  PX4_SOC_ARCH_ID is monotonic ordinal number assigned by PX4 to a chip
+ *  architecture. The 2 bytes are used to create a globally unique ID when
+ *  prepended to a padded Soc ID.
+ */
+
+
+typedef enum PX4_SOC_ARCH_ID_t {
+
+	PX4_SOC_ARCH_ID_UNUSED         =  0x0000,
+
+	PX4_SOC_ARCH_ID_STM32F4        =  0x0001,
+	PX4_SOC_ARCH_ID_STM32F7        =  0x0002,
+	PX4_SOC_ARCH_ID_KINETISK66     =  0x0003,
+	PX4_SOC_ARCH_ID_SAMV7          =  0x0004,
+
+	PX4_SOC_ARCH_ID_EAGLE          =  0x1001,
+	PX4_SOC_ARCH_ID_QURT           =  0x1002,
+	PX4_SOC_ARCH_ID_OCPOC          =  0x1003,
+	PX4_SOC_ARCH_ID_RPI            =  0x1004,
+	PX4_SOC_ARCH_ID_SIM            =  0x1005,
+	PX4_SOC_ARCH_ID_SITL           =  0x1006,
+	PX4_SOC_ARCH_ID_BEBOP          =  0x1007,
+	PX4_SOC_ARCH_ID_BBBLUE         =  0x1008,
+
+} PX4_SOC_ARCH_ID_t;
 
 
 /* UUID
@@ -385,6 +441,34 @@ typedef uint8_t px4_guid_t[PX4_GUID_BYTE_LENGTH];
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
+__BEGIN_DECLS
+
+/* Provide an interface for determining if a board supports single wire */
+
+/************************************************************************************
+ * Name: board_supports_single_wire
+ *
+ * Description:
+ *   A board may provide serial ports that supports single wire.
+ *   This interface will call into the board support code to determine
+ *   if the interface is available at runtime, on this version of the
+ *   hardware.
+ *
+ * Input Parameters:
+ *   uxart_base - the base address of the UxART.
+ *
+ * Returned Value:
+ *   true the hardware supports this interface.
+ *   false if not.
+ *
+ ************************************************************************************/
+
+#if !defined(BOARD_HAS_SINGLE_WIRE)
+#  define board_supports_single_wire(_uxart_base) false
+#else
+__EXPORT bool board_supports_single_wire(uint32_t uxart_base);
+#endif
+
 
 /* Provide an interface for reading the connected state of VBUS */
 
@@ -476,10 +560,34 @@ __EXPORT int board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16
  *   None
  *
  ************************************************************************************/
-#if defined(INVERT_RC_INPUT)
-#  if !defined(GPIO_SBUS_INV)
-__EXPORT void board_rc_input(bool invert_on);
-#  endif
+
+/* Provide an interface for Inversion of serial data
+ *
+ * Case 1:Board does provide UxART based inversion
+ *    Use it, and it will define RC_UXART_BASE
+ *
+ * Case 1:Board does provide GPIO inversion
+ *    Use it and let board determine active state
+ *    Define RC_UXART_BASE as empty
+ *
+ * Case 3:Board does not provide any inversions
+ *    Default to nop
+ *    Define RC_UXART_BASE as empty
+ */
+
+#if defined(RC_UXART_BASE)
+__EXPORT void board_rc_input(bool invert_on, uint32_t uxart_base);
+#  define INVERT_RC_INPUT(_invert_true, _rc_uxart) board_rc_input((_invert_true), (_rc_uxart));
+#endif
+
+#if defined(BOARD_INVERT_RC_INPUT)
+#  define INVERT_RC_INPUT BOARD_INVERT_RC_INPUT
+#  define RC_UXART_BASE 0
+#endif
+
+#if !defined(INVERT_RC_INPUT)
+#  define INVERT_RC_INPUT(_invert_true, _na) while(0)
+#  define RC_UXART_BASE 0
 #endif
 
 /************************************************************************************
@@ -562,7 +670,69 @@ __EXPORT int board_set_bootload_mode(board_reset_e mode);
 #endif
 
 /************************************************************************************
- * Name: board_get_hw_type
+ * Name: board_query_manifest
+ *
+ * Description:
+ *   Optional returns manifest item.
+ *
+ * Input Parameters:
+ *   manifest_id - the ID for the manifest item to retrieve
+ *
+ * Returned Value:
+ *   0 - item is not in manifest => assume legacy operations
+ *   pointer to a manifest item
+ *
+ ************************************************************************************/
+
+typedef enum {
+	PX4_MFT_PX4IO = 0,
+} px4_hw_mft_item_id_t;
+
+typedef enum {
+	px4_hw_con_unknown  = 0,
+	px4_hw_con_onboard  = 1,
+	px4_hw_con_connector = 3,
+} px4_hw_connection_t;
+
+
+typedef struct {
+	unsigned int present:    1;   /* 1 if this board have this item */
+	unsigned int mandatory:  1;   /* 1 if this item has to be present and working */
+	unsigned int connection: 2;   /* See px4_hw_connection_t */
+} px4_hw_mft_item_t;
+
+typedef const px4_hw_mft_item_t  *px4_hw_mft_item;
+#define px4_hw_mft_uninitialized (px4_hw_mft_item) -1
+#define px4_hw_mft_unsupported   (px4_hw_mft_item) 0
+
+#if defined(BOARD_HAS_VERSIONING)
+__EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id);
+
+#  define PX4_MFT_HW_SUPPORTED(ID)           (board_query_manifest((ID))->present)
+#  define PX4_MFT_HW_REQUIRED(ID)            (board_query_manifest((ID))->mandatory)
+#  define PX4_MFT_HW_IS_ONBOARD(ID)          (board_query_manifest((ID))->connection == px4_hw_con_onboard)
+#  define PX4_MFT_HW_IS_OFFBOARD(ID)         (board_query_manifest((ID))->connection == px4_hw_con_connector)
+#  define PX4_MFT_HW_IS_CONNECTION_KNOWN(ID) (board_query_manifest((ID))->connection != px4_hw_con_unknown)
+#elif defined(BOARD_HAS_STATIC_MANIFEST) && BOARD_HAS_STATIC_MANIFEST == 1
+/* Board has a static configuration and will supply what it has */
+#  define PX4_MFT_HW_SUPPORTED(ID)           PX4_MFT_HW_SUPPORTED_##ID
+#  define PX4_MFT_HW_REQUIRED(ID)            PX4_MFT_HW_REQUIRED_##ID
+#  define PX4_MFT_HW_IS_ONBOARD(ID)          PX4_MFT_HW_IS_ONBOARD_##ID
+#  define PX4_MFT_HW_IS_OFFBOARD(ID)         PX4_MFT_HW_IS_OFFBOARD_##ID
+#  define PX4_MFT_HW_IS_CONNECTION_KNOWN(ID) PX4_MFT_HW_IS_CONNECTION_KNOWN_##ID
+#  define board_query_manifest(_na)          px4_hw_mft_unsupported
+#else
+/* Default are Not Supported */
+#  define PX4_MFT_HW_SUPPORTED(ID)           (0)
+#  define PX4_MFT_HW_REQUIRED(ID)            (0)
+#  define PX4_MFT_HW_IS_ONBOARD(ID)          (0)
+#  define PX4_MFT_HW_IS_OFFBOARD(ID)         (0)
+#  define PX4_MFT_HW_IS_CONNECTION_KNOWN(ID) (0)
+#  define board_query_manifest(_na)          px4_hw_mft_unsupported
+#endif
+
+/************************************************************************************
+ * Name: board_get_hw_type_name
  *
  * Description:
  *   Optional returns a 0 terminated string defining the HW type.
@@ -625,7 +795,6 @@ __EXPORT int board_get_hw_revision(void);
 #define board_get_hw_revision() (-1)
 #endif
 
-#if !defined(BOARD_OVERRIDE_UUID)
 /************************************************************************************
  * Name: board_get_uuid DEPRICATED use board_get_px4_guid
  *
@@ -701,15 +870,13 @@ __EXPORT void board_get_uuid32(uuid_uint32_t uuid_words); // DEPRICATED use boar
 __EXPORT int board_get_uuid32_formated(char *format_buffer, int size,
 				       const char *format,
 				       const char *seperator); // DEPRICATED use board_get_px4_guid_formated
-#endif // !defined(BOARD_OVERRIDE_UUID)
 
-#if !defined(BOARD_OVERRIDE_MFGUID)
 /************************************************************************************
  * Name: board_get_mfguid
  *
  * Description:
  *   All boards either provide a way to retrieve a manufactures Unique ID or
- *   define BOARD_OVERRIDE_MFGUID.
+ *   define BOARD_OVERRIDE_UUID.
  *    The MFGUID is returned as an array of bytes in
  *    MSD @ index 0 - LSD @ index PX4_CPU_MFGUID_BYTE_LENGTH-1
  *
@@ -744,15 +911,13 @@ int board_get_mfguid(mfguid_t mfgid);
  ************************************************************************************/
 
 int board_get_mfguid_formated(char *format_buffer, int size); // DEPRICATED use board_get_px4_guid_formated
-#endif // !defined(BOARD_OVERRIDE_MFGUID)
 
-#if !defined(BOARD_OVERRIDE_PX4_GUID)
 /************************************************************************************
  * Name: board_get_px4_guid
  *
  * Description:
  *   All boards either provide a way to retrieve a PX4 Globally unique ID or
- *   define BOARD_OVERRIDE_PX4_GUID.
+ *   define BOARD_OVERRIDE_UUID.
  *
  *   The form of the GUID is as follows:
  *  offset:0         1         2         -           17
@@ -807,7 +972,6 @@ int board_get_px4_guid(px4_guid_t guid);
  ************************************************************************************/
 
 int board_get_px4_guid_formated(char *format_buffer, int size);
-#endif // !defined(BOARD_OVERRIDE_PX4_GUID)
 
 /************************************************************************************
  * Name: board_mcu_version
@@ -870,6 +1034,7 @@ int board_shutdown(void);
 static inline int board_register_power_state_notification_cb(power_button_state_notification_t cb) { return 0; }
 static inline int board_shutdown(void) { return -EINVAL; }
 #endif
+__END_DECLS
 
 /************************************************************************************
  * Name: px4_i2c_bus_external
@@ -910,5 +1075,29 @@ __EXPORT bool px4_spi_bus_external(int bus);
 
 #endif /* BOARD_HAS_SIMPLE_HW_VERSIONING */
 
+/************************************************************************************
+ * Name: board_hardfault_init
+ *
+ * Description:
+ *   boards may provide a to determine if a hard fault occurred
+ *   call back.
+ *
+ * Input Parameters:
+ *   display_to_console  - one less then the number of boots with an unsaved hard fault.
+ *                         can can occur with displaying the hard fault data to the screen.
+ *                         INT_MAX - Never display.
+ *                         n-1 - n boots with out a save.
+ *
+ *  allow_prompt         - if false will not stop on boot, even if a hardfault has happened
+ *                         and there are characters waiting on STDIN.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success: No hardfaults
+ *    >0       - There is a hardfault logged.
+ *   -EIO      - there is a Problem with the bbsram
+ *   -ENOSPC   - There have been no boots that reset the hard fault count in the last
+ *               32000 resets.
+ */
+int board_hardfault_init(int display_to_console, bool allow_prompt);
 
 #include "board_internal_common.h"

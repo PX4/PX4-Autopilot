@@ -1,0 +1,101 @@
+#!nsh
+#
+# PX4 FMUv4 specific board init
+#
+#------------------------------------------------------------------------------
+#
+# UART mapping on FMUv5:
+#
+# UART1         /dev/ttyS0      wifi
+# USART2        /dev/ttyS1      TELEM1 (flow control)
+# USART3        /dev/ttyS2      TELEM2 (flow control)
+# UART4
+# UART7                         CONSOLE
+# UART8         /dev/ttyS6      SERIAL4/TELEM4
+#
+#------------------------------------------------------------------------------
+#
+
+# We know there are sketchy boards out there
+# as chinese companies produce Pixracers without
+# fully understanding the critical parts of the
+# schematic and BOM, leading to sensor brownouts
+# on boot. Original Pixracers following the
+# open hardware design do not require this.
+fmu sensor_reset 50
+
+if [ $AUTOCNF = yes ]
+then
+	# Disable safety switch by default
+	param set CBRK_IO_SAFETY 22027
+
+	param set SYS_FMU_TASK 1
+fi
+
+set MIXER_AUX none
+
+
+# External I2C bus
+hmc5883 -C -T -X start
+lis3mdl -X start
+ist8310 start
+bmp280 -I start
+
+# expansion i2c used for BMM150 rotated by 90deg
+bmm150 -R 2 start
+
+# For Teal One airframe
+if param compare SYS_AUTOSTART 4250
+then
+	mpu9250 -s -R 14 start
+	mpu9250 -t -R 14 start
+fi
+
+# hmc5883 internal SPI bus is rotated 90 deg yaw
+if ! hmc5883 -C -T -S -R 2 start
+then
+	# lis3mdl internal SPI bus is rotated 90 deg yaw
+	if ! lis3mdl start
+	then
+		# BMI055 gyro internal SPI bus
+		bmi055 -G start
+	fi
+fi
+
+# Start either ICM2060X or BMI055. They are both connected to the same SPI bus and use the same
+# chip select pin. There are different boards with either one of them and the WHO_AM_I register
+# will prevent the incorrect driver from a successful initialization.
+
+# ICM20602 internal SPI bus ICM-20608-G is rotated 90 deg yaw
+if ! mpu6000 -R 2 -T 20602 start
+then
+	# ICM20608 internal SPI bus ICM-20602-G is rotated 90 deg yaw
+	if ! mpu6000 -R 2 -T 20608 start
+	then
+		# BMI055 accel internal SPI bus
+		bmi055 -A start
+	fi
+fi
+
+# Start either MPU9250 or BMI160. They are both connected to the same SPI bus and use the same
+# chip select pin. There are different boards with either one of them and the WHO_AM_I register
+# will prevent the incorrect driver from a successful initialization.
+
+# mpu9250 internal SPI bus mpu9250 is rotated 90 deg yaw
+if ! mpu9250 -R 2 start
+then
+	# BMI160 internal SPI bus
+	bmi160 start
+fi
+
+
+# Pixracer: start MAVLink on Wifi (ESP8266 port)
+mavlink start -r 20000 -b 921600 -d /dev/ttyS0
+
+# Run FrSky Telemetry on Pixracer on the FrSky port if not enabled already
+if param compare TEL_FRSKY_CONFIG 0
+then
+	frsky_telemetry start -d /dev/ttyS6 -t 15
+fi
+
+px4flow start &

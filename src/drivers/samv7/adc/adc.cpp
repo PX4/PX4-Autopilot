@@ -99,7 +99,7 @@
 # define rCCR		REG(STM32_ADC_CCR_OFFSET)
 #endif
 
-class ADC : public device::CDev
+class ADC : public cdev::CDev
 {
 public:
 	ADC(uint32_t channels);
@@ -145,7 +145,7 @@ private:
 };
 
 ADC::ADC(uint32_t channels) :
-	CDev("adc", ADC0_DEVICE_PATH),
+	CDev(ADC0_DEVICE_PATH),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_channel_count(0),
 	_samples(nullptr),
@@ -315,7 +315,7 @@ ADC::_tick()
 void
 ADC::update_system_power(void)
 {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+#ifdef CONFIG_ARCH_BOARD_PX4_FMU_V2
 	system_power_s system_power;
 	system_power.timestamp = hrt_absolute_time();
 
@@ -348,7 +348,7 @@ ADC::update_system_power(void)
 		_to_system_power = orb_advertise(ORB_ID(system_power), &system_power);
 	}
 
-#endif // CONFIG_ARCH_BOARD_PX4FMU_V2
+#endif // CONFIG_ARCH_BOARD_PX4_FMU_V2
 }
 
 uint16_t

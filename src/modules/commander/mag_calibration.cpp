@@ -118,16 +118,21 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 	//  sensor calibration and will be invalidated by a new sensor calibration
 	(void)sprintf(str, "EKF2_MAGBIAS_X");
 	result = param_set_no_notification(param_find(str), &mscale_null.x_offset);
+
 	if (result != PX4_OK) {
 		PX4_ERR("unable to reset %s", str);
 	}
+
 	(void)sprintf(str, "EKF2_MAGBIAS_Y");
 	result = param_set_no_notification(param_find(str), &mscale_null.y_offset);
+
 	if (result != PX4_OK) {
 		PX4_ERR("unable to reset %s", str);
 	}
+
 	(void)sprintf(str, "EKF2_MAGBIAS_Z");
 	result = param_set_no_notification(param_find(str), &mscale_null.z_offset);
+
 	if (result != PX4_OK) {
 		PX4_ERR("unable to reset %s", str);
 	}
@@ -289,45 +294,49 @@ static unsigned progress_percentage(mag_worker_data_t *worker_data)
 // Returns calibrate_return_error if any parameter is not finite
 // Logs if parameters are out of range
 static calibrate_return check_calibration_result(float offset_x, float offset_y, float offset_z,
-				float sphere_radius,
-				float diag_x, float diag_y, float diag_z,
-				float offdiag_x, float offdiag_y, float offdiag_z,
-				orb_advert_t *mavlink_log_pub, size_t cur_mag)
+		float sphere_radius,
+		float diag_x, float diag_y, float diag_z,
+		float offdiag_x, float offdiag_y, float offdiag_z,
+		orb_advert_t *mavlink_log_pub, size_t cur_mag)
 {
 	float must_be_finite[] = {offset_x, offset_y, offset_z,
-							  sphere_radius,
-							  diag_x, diag_y, diag_z,
-							  offdiag_x, offdiag_y, offdiag_z};
+				  sphere_radius,
+				  diag_x, diag_y, diag_z,
+				  offdiag_x, offdiag_y, offdiag_z
+				 };
 
 	float should_be_not_huge[] = {offset_x, offset_y, offset_z};
 	float should_be_positive[] = {sphere_radius, diag_x, diag_y, diag_z};
 
 	// Make sure every parameter is finite
 	const int num_finite = sizeof(must_be_finite) / sizeof(*must_be_finite);
+
 	for (unsigned i = 0; i < num_finite; ++i) {
 		if (!PX4_ISFINITE(must_be_finite[i])) {
 			calibration_log_emergency(mavlink_log_pub,
-							"ERROR: Retry calibration (sphere NaN, #%u)", cur_mag);
+						  "ERROR: Retry calibration (sphere NaN, #%zu)", cur_mag);
 			return calibrate_return_error;
 		}
 	}
 
 	// Notify if offsets are too large
 	const int num_not_huge = sizeof(should_be_not_huge) / sizeof(*should_be_not_huge);
+
 	for (unsigned i = 0; i < num_not_huge; ++i) {
 		if (fabsf(should_be_not_huge[i]) > MAG_MAX_OFFSET_LEN) {
 			calibration_log_critical(mavlink_log_pub, "Warning: %s mag with large offsets",
-							(internal[cur_mag]) ? "autopilot, internal" : "GPS unit, external");
+						 (internal[cur_mag]) ? "autopilot, internal" : "GPS unit, external");
 			break;
 		}
 	}
 
 	// Notify if a parameter which should be positive is non-positive
 	const int num_positive = sizeof(should_be_positive) / sizeof(*should_be_positive);
+
 	for (unsigned i = 0; i < num_positive; ++i) {
 		if (should_be_positive[i] <= 0.0f) {
 			calibration_log_critical(mavlink_log_pub, "Warning: %s mag with non-positive scale",
-							(internal[cur_mag]) ? "autopilot, internal" : "GPS unit, external");
+						 (internal[cur_mag]) ? "autopilot, internal" : "GPS unit, external");
 			break;
 		}
 	}
@@ -396,7 +405,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		int poll_ret = px4_poll(fds, fd_count, 1000);
 
 		if (poll_ret > 0) {
-			struct gyro_report gyro;
+			sensor_gyro_s gyro{};
 			orb_copy(ORB_ID(sensor_gyro), sub_gyro, &gyro);
 
 			/* ensure we have a valid first timestamp */
@@ -597,7 +606,8 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 
 			// Lock in to correct ORB instance
 			bool found_cur_mag = false;
-			for(unsigned i = 0; i < orb_mag_count && !found_cur_mag; i++) {
+
+			for (unsigned i = 0; i < orb_mag_count && !found_cur_mag; i++) {
 				worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), i);
 
 				struct mag_report report;
@@ -612,6 +622,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 				if (report.device_id == (uint32_t)device_ids[cur_mag]) {
 					// Device IDs match, correct ORB instance for this mag
 					found_cur_mag = true;
+
 				} else {
 					orb_unsubscribe(worker_data.sub_mag[cur_mag]);
 				}
@@ -625,7 +636,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 #endif
 			}
 
-			if(!found_cur_mag) {
+			if (!found_cur_mag) {
 				calibration_log_critical(mavlink_log_pub, "Mag #%u (ID %u) no matching uORB devid", cur_mag, device_ids[cur_mag]);
 				result = calibrate_return_error;
 				break;
@@ -724,10 +735,10 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 							    &offdiag_x[cur_mag], &offdiag_y[cur_mag], &offdiag_z[cur_mag]);
 
 				result = check_calibration_result(sphere_x[cur_mag], sphere_y[cur_mag], sphere_z[cur_mag],
-							    sphere_radius[cur_mag],
-							    diag_x[cur_mag], diag_y[cur_mag], diag_z[cur_mag],
-							    offdiag_x[cur_mag], offdiag_y[cur_mag], offdiag_z[cur_mag],
-							    mavlink_log_pub, cur_mag);
+								  sphere_radius[cur_mag],
+								  diag_x[cur_mag], diag_y[cur_mag], diag_z[cur_mag],
+								  offdiag_x[cur_mag], offdiag_y[cur_mag], offdiag_z[cur_mag],
+								  mavlink_log_pub, cur_mag);
 
 				if (result == calibrate_return_error) {
 					break;

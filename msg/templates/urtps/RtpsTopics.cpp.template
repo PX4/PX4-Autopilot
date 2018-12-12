@@ -7,15 +7,16 @@
 @#
 @# Context:
 @#  - msgs (List) list of all msg files
+@#  - ids (List) list of all RTPS msg ids
 @###############################################
 @{
+import os
+
 import genmsg.msgs
 import gencpp
 from px_generate_uorb_topic_helper import * # this is in Tools/
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
-from uorb_rtps_message_ids import * # this is in Tools/
 
-topic_names = [single_spec.short_name for single_spec in spec]
 send_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
 recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
 }@
@@ -88,7 +89,7 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
     switch (topic_ID)
     {
 @[for topic in send_topics]@
-        case @(message_id(topic)): // @(topic)
+        case @(rtps_message_id(ids, topic)): // @(topic)
         {
             @(topic)_ st;
             eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, len);
@@ -116,7 +117,7 @@ bool RtpsTopics::hasMsg(uint8_t *topic_ID)
         switch (_sub_topics[_next_sub_idx])
         {
 @[for topic in recv_topics]@
-            case @(message_id(topic)): if (_@(topic)_sub.hasMsg()) *topic_ID = @(message_id(topic)); break;
+            case @(rtps_message_id(ids, topic)): if (_@(topic)_sub.hasMsg()) *topic_ID = @(rtps_message_id(ids, topic)); break;
 @[end for]@
             default:
                 printf("Unexpected topic ID to check hasMsg\n");
@@ -140,7 +141,7 @@ bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
     switch (topic_ID)
     {
 @[for topic in recv_topics]@
-        case @(message_id(topic)): // @(topic)
+        case @(rtps_message_id(ids, topic)): // @(topic)
             if (_@(topic)_sub.hasMsg())
             {
                 @(topic)_ msg = _@(topic)_sub.getMsg();

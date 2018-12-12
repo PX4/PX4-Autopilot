@@ -225,7 +225,7 @@
 #define TIMEOUT_POLL 300000 /* reset after no response over this time in microseconds [0.3s] */
 #define TIMEOUT_READ 200000 /* don't reset if the last read is back more than this time in microseconds [0.2s] */
 
-class PWMIN : device::CDev
+class PWMIN : cdev::CDev
 {
 public:
 	PWMIN();
@@ -271,7 +271,7 @@ static void pwmin_usage(void);
 static PWMIN *g_dev;
 
 PWMIN::PWMIN() :
-	CDev("pwmin", PWMIN0_DEVICE_PATH),
+	CDev(PWMIN0_DEVICE_PATH),
 	_error_count(0),
 	_pulses_captured(0),
 	_last_period(0),
@@ -437,24 +437,6 @@ int
 PWMIN::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 500)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
 	case SENSORIOCRESET:
 		/* user has asked for the timer to be reset. This may
 		 * be needed if the pin was used for a different

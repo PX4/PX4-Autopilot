@@ -60,17 +60,22 @@ static constexpr uint8_t Z_ACCL_OUT = 0x1A; // Output, z-axis accelerometer, hig
 static constexpr uint8_t TEMP_OUT	= 0x1A; // Output, temperature
 static constexpr uint8_t TIME_STAMP	= 0x1A; // Output, time stamp
 
+static constexpr uint8_t FILT_CTRL	= 0x5C;
+static constexpr uint8_t DEC_RATE	= 0x64;
+
 static constexpr uint8_t GLOB_CMD	= 0x68;
 
 static constexpr uint8_t PROD_ID	= 0x72;
 
-#define PROD_ID_ADIS16477	0x405D /* ADIS16477 Identification, device number  */
+static constexpr uint16_t PROD_ID_ADIS16477 = 0x405D; /* ADIS16477 Identification, device number  */
 
-#define T_STALL				200
+static constexpr int T_STALL = 16;
 
 #define GYROINITIALSENSITIVITY		250
 #define ACCELINITIALSENSITIVITY		(1.0f / 1200.0f)
 #define ACCELDYNAMICRANGE		18.0f
+
+using namespace time_literals;
 
 ADIS16477::ADIS16477(int bus, const char *path_accel, const char *path_gyro, uint32_t device, enum Rotation rotation) :
 	SPI("ADIS16477", path_accel, bus, device, SPIDEV_MODE3, 1000000),
@@ -80,11 +85,8 @@ ADIS16477::ADIS16477(int bus, const char *path_accel, const char *path_gyro, uin
 	_rotation(rotation)
 {
 #ifdef GPIO_SPI1_RESET_ADIS16477
-	// ADIS16477 reset pin
-	stm32_configgpio(GPIO_SPI1_RESET_ADIS16477);
-	stm32_gpiowrite(GPIO_SPI1_RESET_ADIS16477, false);
-	up_mdelay(10);
-	stm32_gpiowrite(GPIO_SPI1_RESET_ADIS16477, true);
+	// ADIS16477 configure reset
+	px4_arch_configgpio(GPIO_SPI1_RESET_ADIS16477);
 #endif /* GPIO_SPI1_RESET_ADIS16477 */
 
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_ADIS16477;
@@ -107,6 +109,33 @@ ADIS16477::ADIS16477(int bus, const char *path_accel, const char *path_gyro, uin
 	_accel_scale.y_scale  = 1.0f;
 	_accel_scale.z_offset = 0;
 	_accel_scale.z_scale  = 1.0f;
+
+	const unsigned sample_rate = 1000;
+
+	// set software low pass filter for controllers
+	param_t accel_cut_ph = param_find("IMU_ACCEL_CUTOFF");
+	float accel_cut = ADIS16477_ACCEL_DEFAULT_RATE;
+
+	if (accel_cut_ph != PARAM_INVALID && param_get(accel_cut_ph, &accel_cut) == PX4_OK) {
+		_accel_filter_x.set_cutoff_frequency(sample_rate, accel_cut);
+		_accel_filter_y.set_cutoff_frequency(sample_rate, accel_cut);
+		_accel_filter_z.set_cutoff_frequency(sample_rate, accel_cut);
+
+	} else {
+		PX4_ERR("IMU_ACCEL_CUTOFF param invalid");
+	}
+
+	param_t gyro_cut_ph = param_find("IMU_GYRO_CUTOFF");
+	float gyro_cut = ADIS16477_GYRO_DEFAULT_RATE;
+
+	if (gyro_cut_ph != PARAM_INVALID && param_get(gyro_cut_ph, &gyro_cut) == PX4_OK) {
+		_gyro_filter_x.set_cutoff_frequency(sample_rate, gyro_cut);
+		_gyro_filter_y.set_cutoff_frequency(sample_rate, gyro_cut);
+		_gyro_filter_z.set_cutoff_frequency(sample_rate, gyro_cut);
+
+	} else {
+		PX4_ERR("IMU_GYRO_CUTOFF param invalid");
+	}
 }
 
 ADIS16477::~ADIS16477()
@@ -129,6 +158,11 @@ ADIS16477::~ADIS16477()
 int
 ADIS16477::init()
 {
+	if (hrt_absolute_time() < 252_ms) {
+		// power-on startup time (if needed)
+		up_mdelay(252);
+	}
+
 	/* do SPI init (and probe) first */
 	if (SPI::init() != OK) {
 		/* if probe/setup failed, bail now */
@@ -136,24 +170,19 @@ ADIS16477::init()
 		return PX4_ERROR;
 	}
 
-	if (reset() != OK) {
-		PX4_ERR("reset failed");
-		return PX4_ERROR;
-	}
-
 	/* Initialize offsets and scales */
-	_gyro_scale.x_offset = 0;
+	_gyro_scale.x_offset = 0.0f;
 	_gyro_scale.x_scale  = 1.0f;
-	_gyro_scale.y_offset = 0;
+	_gyro_scale.y_offset = 0.0f;
 	_gyro_scale.y_scale  = 1.0f;
-	_gyro_scale.z_offset = 0;
+	_gyro_scale.z_offset = 0.0f;
 	_gyro_scale.z_scale  = 1.0f;
 
-	_accel_scale.x_offset = 0;
+	_accel_scale.x_offset = 0.0f;
 	_accel_scale.x_scale  = 1.0f;
-	_accel_scale.y_offset = 0;
+	_accel_scale.y_offset = 0.0f;
 	_accel_scale.y_scale  = 1.0f;
-	_accel_scale.z_offset = 0;
+	_accel_scale.z_offset = 0.0f;
 	_accel_scale.z_scale  = 1.0f;
 
 	/* do CDev init for the gyro device node, keep it optional */
@@ -171,7 +200,7 @@ ADIS16477::init()
 	measure();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	accel_report arp = {};
+	sensor_accel_s arp = {};
 
 	/* measurement will have generated a report, publish */
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp, &_accel_orb_class_instance, ORB_PRIO_MAX);
@@ -180,7 +209,7 @@ ADIS16477::init()
 		PX4_ERR("ADVERT FAIL");
 	}
 
-	gyro_report grp = {};
+	sensor_gyro_s grp = {};
 	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp, &_gyro->_gyro_orb_class_instance, ORB_PRIO_MAX);
 
 	if (_gyro->_gyro_topic == nullptr) {
@@ -192,14 +221,31 @@ ADIS16477::init()
 
 int ADIS16477::reset()
 {
-	// reset
+	DEVICE_DEBUG("resetting");
 
-	uint8_t cmd[2] = { 0xE8, 0x80 };
-	transfer(cmd, cmd, sizeof(cmd));
+#ifdef GPIO_SPI1_RESET_ADIS16477
+	// ADIS16477 reset
+	px4_arch_gpiowrite(GPIO_SPI1_RESET_ADIS16477, 0);
 
-	cmd[0] = 0xE9;
-	cmd[1] = 0x00;
-	transfer(cmd, cmd, sizeof(cmd));
+	// The RST line must be in a low state for at least 10 μs to ensure a proper reset initiation and recovery.
+	up_udelay(10);
+
+	px4_arch_gpiowrite(GPIO_SPI1_RESET_ADIS16477, 1);
+#else
+	// reset (global command bit 7)
+	uint8_t value[2] = {};
+	value[0] = (1 << 7);
+	write_reg16(GLOB_CMD, (uint16_t)value[0]);
+#endif /* GPIO_SPI1_RESET_ADIS16477 */
+
+	// Reset Recovery Time
+	up_mdelay(193);
+
+	// configure digital filter, 16 taps
+	write_reg16(FILT_CTRL, 0x04);
+
+	// configure decimation rate
+	//write_reg16(DEC_RATE, 0x00);
 
 	return OK;
 }
@@ -207,41 +253,31 @@ int ADIS16477::reset()
 int
 ADIS16477::probe()
 {
+	DEVICE_DEBUG("probe");
+
 	reset();
 
-	// why?
-	for (int i = 0; i < 255; i++) {
-		read_reg(i);
-		up_udelay(T_STALL);
-	}
-
-	for (int i = 0; i < 25; i++) {
-		_product = read_reg(PROD_ID);
+	// read product id (5 attempts)
+	for (int i = 0; i < 5; i++) {
+		_product = read_reg16(PROD_ID);
 
 		if (_product == PROD_ID_ADIS16477) {
-			PX4_INFO("PRODUCT: %X", _product);
-			return PX4_OK;
-		}
+			DEVICE_DEBUG("PRODUCT: %X", _product);
 
-		up_udelay(T_STALL);
+			if (self_test()) {
+				return PX4_OK;
+
+			} else {
+				PX4_ERR("probe attempt %d: self test failed, resetting", i);
+				reset();
+			}
+
+		} else {
+			PX4_ERR("probe attempt %d: read product id failed, resetting", i);
+			reset();
+		}
 	}
 
-	// settling time
-	up_udelay(50000);
-
-	for (int i = 0; i < 25; i++) {
-		_product = read_reg(PROD_ID + 1);
-
-		if (_product == PROD_ID_ADIS16477) {
-			PX4_INFO("PRODUCT: %X", _product);
-			return PX4_OK;
-		}
-
-		DEVICE_DEBUG("PROD_ID attempt 0x73 %d", i);
-		up_udelay(T_STALL);
-	}
-
-	DEVICE_DEBUG("unexpected ID 0x%02x", _product);
 	return -EIO;
 }
 
@@ -278,15 +314,24 @@ ADIS16477::_set_gyro_dyn_range(uint16_t desired_gyro_dyn_range)
 {
 }
 
-int
+bool
 ADIS16477::self_test()
 {
-	if (perf_event_count(_sample_perf) == 0) {
-		measure();
+	DEVICE_DEBUG("self test");
+
+	// self test (global command bit 2)
+	uint8_t value[2] = {};
+	value[0] = (1 << 2);
+	write_reg16(GLOB_CMD, (uint16_t)value[0]);
+
+	// read DIAG_STAT to check result
+	uint16_t diag_stat = read_reg16(DIAG_STAT);
+
+	if (diag_stat != 0) {
+		return false;
 	}
 
-	/* return 0 on success, 1 else */
-	return (perf_event_count(_sample_perf) > 0) ? 0 : 1;
+	return true;
 }
 
 int
@@ -299,23 +344,11 @@ ADIS16477::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_call_interval = 0;
-				return OK;
-
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
-				return ioctl(filp, SENSORIOCSPOLLRATE, 1000);
-
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				return ioctl(filp, SENSORIOCSPOLLRATE, ADIS16477_ACCEL_DEFAULT_RATE);
 
@@ -358,20 +391,6 @@ ADIS16477::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCGPOLLRATE:
-		if (_call_interval == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return 1000000 / _call_interval;
-
-	case ACCELIOCGSAMPLERATE:
-		return _sample_rate;
-
-	case ACCELIOCSSAMPLERATE:
-		_set_sample_rate(arg);
-		return OK;
-
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
@@ -386,17 +405,6 @@ ADIS16477::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case ACCELIOCGSCALE:
-		/* copy scale out */
-		memcpy((struct accel_calibration_s *) arg, &_accel_scale, sizeof(_accel_scale));
-		return OK;
-
-	case ACCELIOCSRANGE:
-		return -EINVAL;
-
-	case ACCELIOCGRANGE:
-		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
-
 	default:
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);
@@ -410,33 +418,13 @@ ADIS16477::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	/* these are shared with the accel side */
 	case SENSORIOCSPOLLRATE:
-	case SENSORIOCGPOLLRATE:
 	case SENSORIOCRESET:
 		return ioctl(filp, cmd, arg);
-
-	case GYROIOCGSAMPLERATE:
-		return _sample_rate;
-
-	case GYROIOCSSAMPLERATE:
-		_set_sample_rate(arg);
-		return OK;
 
 	case GYROIOCSSCALE:
 		/* copy scale in */
 		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
 		return OK;
-
-	case GYROIOCGSCALE:
-		/* copy scale out */
-		memcpy((struct gyro_calibration_s *) arg, &_gyro_scale, sizeof(_gyro_scale));
-		return OK;
-
-	case GYROIOCSRANGE:
-		_set_gyro_dyn_range(arg);
-		return OK;
-
-	case GYROIOCGRANGE:
-		return (unsigned long)(_gyro_range_rad_s * 180.0f / M_PI_F + 0.5f);
 
 	default:
 		/* give it to the superclass */
@@ -445,13 +433,17 @@ ADIS16477::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 uint16_t
-ADIS16477::read_reg(uint8_t reg)
+ADIS16477::read_reg16(uint8_t reg)
 {
-	uint8_t cmd[2] = { reg, 0 };
-	transfer(cmd, cmd, sizeof(cmd));
+	uint16_t cmd[1];
 
-	// return cmd[0] + cmd[1]
-	return (cmd[0] << 8) + cmd[1];
+	cmd[0] = ((reg | DIR_READ) << 8) & 0xff00;
+	transferhword(cmd, nullptr, 1);
+	up_udelay(T_STALL);
+	transferhword(nullptr, cmd, 1);
+	up_udelay(T_STALL);
+
+	return cmd[0];
 }
 
 void
@@ -461,6 +453,20 @@ ADIS16477::write_reg(uint8_t reg, uint8_t val)
 	cmd[0] = reg | 0x8;
 	cmd[1] = val;
 	transfer(cmd, cmd, sizeof(cmd));
+}
+
+void
+ADIS16477::write_reg16(uint8_t reg, uint16_t value)
+{
+	uint16_t cmd[2];
+
+	cmd[0] = ((reg | DIR_WRITE) << 8) | (0x00ff & value);
+	cmd[1] = (((reg + 0x1) | DIR_WRITE) << 8) | ((0xff00 & value) >> 8);
+
+	transferhword(cmd, nullptr, 1);
+	up_udelay(T_STALL);
+	transferhword(cmd + 1, nullptr, 1);
+	up_udelay(T_STALL);
 }
 
 void
@@ -527,7 +533,7 @@ ADIS16477::measure()
 	}
 
 	if (adis_report.checksum != checksum) {
-		PX4_ERR("adis_report.checksum: %X vs calculated: %X", adis_report.checksum, checksum);
+		DEVICE_DEBUG("adis_report.checksum: %X vs calculated: %X", adis_report.checksum, checksum);
 		perf_event_count(_bad_transfers);
 		perf_end(_sample_perf);
 		return -EIO;
@@ -551,7 +557,7 @@ ADIS16477::measure()
 bool
 ADIS16477::publish_accel(const ADISReport &report)
 {
-	accel_report arb = {};
+	sensor_accel_s arb = {};
 	arb.timestamp = hrt_absolute_time();
 	arb.device_id = _device_id.devid;
 	arb.error_count = perf_event_count(_bad_transfers);
@@ -561,7 +567,6 @@ ADIS16477::publish_accel(const ADISReport &report)
 	arb.y_raw = report.accel_y;
 	arb.z_raw = report.accel_z;
 	arb.scaling = _accel_range_scale;
-	arb.range_m_s2 = _accel_range_m_s2;
 
 	float xraw_f = report.accel_x * _accel_range_scale;
 	float yraw_f = report.accel_y * _accel_range_scale;
@@ -588,7 +593,6 @@ ADIS16477::publish_accel(const ADISReport &report)
 
 	/* Temperature report: */
 	// temperature 1 LSB = 0.1°C
-	arb.temperature_raw = report.temp;
 	arb.temperature = report.temp * 0.1;
 
 	if (accel_notify) {
@@ -601,14 +605,13 @@ ADIS16477::publish_accel(const ADISReport &report)
 bool
 ADIS16477::publish_gyro(const ADISReport &report)
 {
-	gyro_report grb = {};
+	sensor_gyro_s grb = {};
 	grb.timestamp = hrt_absolute_time();
 	grb.device_id = _gyro->_device_id.devid;
 	grb.error_count = perf_event_count(_bad_transfers);
 
 	/* Gyro report: */
 	grb.scaling = math::radians(_gyro_range_scale);
-	grb.range_rad_s = _gyro_range_rad_s;
 	grb.x_raw = report.gyro_x;
 	grb.y_raw = report.gyro_y;
 	grb.z_raw = report.gyro_z;
@@ -639,7 +642,6 @@ ADIS16477::publish_gyro(const ADISReport &report)
 
 	/* Temperature report: */
 	// temperature 1 LSB = 0.1°C
-	grb.temperature_raw = report.temp;
 	grb.temperature = report.temp * 0.1f;
 
 	if (gyro_notify) {

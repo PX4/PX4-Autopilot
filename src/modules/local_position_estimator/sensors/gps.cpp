@@ -113,9 +113,9 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	if (gpsMeasure(y_global) != OK) { return; }
 
 	// gps measurement in local frame
-	double  lat = y_global(Y_gps_x);
-	double  lon = y_global(Y_gps_y);
-	float  alt = y_global(Y_gps_z);
+	double lat = y_global(Y_gps_x);
+	double lon = y_global(Y_gps_y);
+	float alt = y_global(Y_gps_z);
 	float px = 0;
 	float py = 0;
 	float pz = -(alt - _gpsAltOrigin);
@@ -189,7 +189,7 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	Matrix<float, n_y_gps, n_y_gps> S = C * _P * C.transpose() + R;
 
 	// publish innovations
-	for (int i = 0; i < 6; i++) {
+	for (size_t i = 0; i < 6; i++) {
 		_pub_innov.get().vel_pos_innov[i] = r(i);
 		_pub_innov.get().vel_pos_innov_var[i] = S(i, i);
 	}

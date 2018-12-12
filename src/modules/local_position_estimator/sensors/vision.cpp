@@ -14,6 +14,10 @@ static const uint32_t		REQ_VISION_INIT_COUNT = 1;
 // set the timeout to 0.5 seconds
 static const uint32_t		VISION_TIMEOUT = 500000;	// 0.5 s
 
+// set pose/velocity as invalid if standard deviation is bigger than EP_MAX_STD_DEV
+// TODO: the user should be allowed to set these values by a parameter
+static constexpr float 	EP_MAX_STD_DEV = 100.0f;
+
 void BlockLocalPositionEstimator::visionInit()
 {
 	// measure
@@ -37,11 +41,16 @@ void BlockLocalPositionEstimator::visionInit()
 		_sensorTimeout &= ~SENSOR_VISION;
 		_sensorFault &= ~SENSOR_VISION;
 
-		if (!_map_ref.init_done && _sub_vision_pos.get().xy_global) {
+		// get reference for global position
+		globallocalconverter_getref(&_ref_lat, &_ref_lon, &_ref_alt);
+		_global_ref_timestamp = _timeStamp;
+		_is_global_cov_init = globallocalconverter_initialized();
+
+		if (!_map_ref.init_done && _is_global_cov_init) {
 			// initialize global origin using the visual estimator reference
 			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] global origin init (vision) : lat %6.2f lon %6.2f alt %5.1f m",
-						     double(_sub_vision_pos.get().ref_lat), double(_sub_vision_pos.get().ref_lon), double(_sub_vision_pos.get().ref_alt));
-			map_projection_init(&_map_ref, _sub_vision_pos.get().ref_lat, _sub_vision_pos.get().ref_lon);
+						     double(_ref_lat), double(_ref_lon), double(_ref_alt));
+			map_projection_init(&_map_ref, _ref_lat, _ref_lon);
 			// set timestamp when origin was set to current time
 			_time_origin = _timeStamp;
 		}
@@ -49,20 +58,51 @@ void BlockLocalPositionEstimator::visionInit()
 		if (!_altOriginInitialized) {
 			_altOriginInitialized = true;
 			_altOriginGlobal = true;
-			_altOrigin = _sub_vision_pos.get().z_global ? _sub_vision_pos.get().ref_alt : 0.0f;
+			_altOrigin = globallocalconverter_initialized() ? _ref_alt : 0.0f;
 		}
 	}
 }
 
 int BlockLocalPositionEstimator::visionMeasure(Vector<float, n_y_vision> &y)
 {
-	y.setZero();
-	y(Y_vision_x) = _sub_vision_pos.get().x;
-	y(Y_vision_y) = _sub_vision_pos.get().y;
-	y(Y_vision_z) = _sub_vision_pos.get().z;
-	_visionStats.update(y);
-	_time_last_vision_p = _sub_vision_pos.get().timestamp;
-	return OK;
+	uint8_t x_variance = _sub_visual_odom.get().COVARIANCE_MATRIX_X_VARIANCE;
+	uint8_t y_variance = _sub_visual_odom.get().COVARIANCE_MATRIX_Y_VARIANCE;
+	uint8_t z_variance = _sub_visual_odom.get().COVARIANCE_MATRIX_Z_VARIANCE;
+
+	if (PX4_ISFINITE(_sub_visual_odom.get().pose_covariance[x_variance])) {
+		// check if the vision data is valid based on the covariances
+		_vision_eph = sqrtf(fmaxf(_sub_visual_odom.get().pose_covariance[x_variance],
+					  _sub_visual_odom.get().pose_covariance[y_variance]));
+		_vision_epv = sqrtf(_sub_visual_odom.get().pose_covariance[z_variance]);
+		_vision_xy_valid = _vision_eph <= EP_MAX_STD_DEV;
+		_vision_z_valid = _vision_epv <= EP_MAX_STD_DEV;
+
+	} else {
+		// if we don't have covariances, assume every reading
+		_vision_xy_valid = true;
+		_vision_z_valid = true;
+	}
+
+	if (!_vision_xy_valid || !_vision_z_valid) {
+		_time_last_vision_p = _sub_visual_odom.get().timestamp;
+		return -1;
+
+	} else {
+		_time_last_vision_p = _sub_visual_odom.get().timestamp;
+
+		if (PX4_ISFINITE(_sub_visual_odom.get().x)) {
+			y.setZero();
+			y(Y_vision_x) = _sub_visual_odom.get().x;
+			y(Y_vision_y) = _sub_visual_odom.get().y;
+			y(Y_vision_z) = _sub_visual_odom.get().z;
+			_visionStats.update(y);
+
+			return OK;
+
+		} else {
+			return -1;
+		}
+	}
 }
 
 void BlockLocalPositionEstimator::visionCorrect()
@@ -70,7 +110,10 @@ void BlockLocalPositionEstimator::visionCorrect()
 	// measure
 	Vector<float, n_y_vision> y;
 
-	if (visionMeasure(y) != OK) { return; }
+	if (visionMeasure(y) != OK) {
+		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] vision data invalid. eph: %f epv: %f", _vision_eph, _vision_epv);
+		return;
+	}
 
 	// vision measurement matrix, measures position
 	Matrix<float, n_y_vision, n_x> C;
@@ -83,18 +126,18 @@ void BlockLocalPositionEstimator::visionCorrect()
 	Matrix<float, n_y_vision, n_y_vision> R;
 	R.setZero();
 
-	// use error estimates from vision topic if available
-	if (_sub_vision_pos.get().eph > _vision_xy_stddev.get()) {
-		R(Y_vision_x, Y_vision_x) = _sub_vision_pos.get().eph * _sub_vision_pos.get().eph;
-		R(Y_vision_y, Y_vision_y) = _sub_vision_pos.get().eph * _sub_vision_pos.get().eph;
+	// use std dev from vision data if available
+	if (_vision_eph > _vision_xy_stddev.get()) {
+		R(Y_vision_x, Y_vision_x) = _vision_eph * _vision_eph;
+		R(Y_vision_y, Y_vision_y) = _vision_eph * _vision_eph;
 
 	} else {
 		R(Y_vision_x, Y_vision_x) = _vision_xy_stddev.get() * _vision_xy_stddev.get();
 		R(Y_vision_y, Y_vision_y) = _vision_xy_stddev.get() * _vision_xy_stddev.get();
 	}
 
-	if (_sub_vision_pos.get().epv > _vision_z_stddev.get()) {
-		R(Y_vision_z, Y_vision_z) = _sub_vision_pos.get().epv * _sub_vision_pos.get().epv;
+	if (_vision_epv > _vision_z_stddev.get()) {
+		R(Y_vision_z, Y_vision_z) = _vision_epv * _vision_epv;
 
 	} else {
 		R(Y_vision_z, Y_vision_z) = _vision_z_stddev.get() * _vision_z_stddev.get();
@@ -103,20 +146,33 @@ void BlockLocalPositionEstimator::visionCorrect()
 	// vision delayed x
 	uint8_t i_hist = 0;
 
-	float vision_delay = (_timeStamp - _sub_vision_pos.get().timestamp) * 1e-6f;	// measurement delay in seconds
+	float vision_delay = (_timeStamp - _sub_visual_odom.get().timestamp) * 1e-6f;	// measurement delay in seconds
 
 	if (vision_delay < 0.0f) { vision_delay = 0.0f; }
 
 	// use auto-calculated delay from measurement if parameter is set to zero
-	if (getDelayPeriods(_vision_delay.get() > 0.0f ? _vision_delay.get() : vision_delay, &i_hist)  < 0) { return; }
-
-	//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] vision delay : %0.2f ms", double(vision_delay * 1000.0f));
+	if (getDelayPeriods(_vision_delay.get() > 0.0f ? _vision_delay.get() : vision_delay, &i_hist) < 0) { return; }
 
 	Vector<float, n_x> x0 = _xDelay.get(i_hist);
 
 	// residual
-	Matrix<float, n_y_vision, n_y_vision> S_I = inv<float, n_y_vision>((C * _P * C.transpose()) + R);
 	Matrix<float, n_y_vision, 1> r = y - C * x0;
+	// residual covariance
+	Matrix<float, n_y_vision, n_y_vision> S = C * _P * C.transpose() + R;
+
+	// publish innovations
+	for (size_t i = 0; i < 3; i++) {
+		_pub_innov.get().vel_pos_innov[i] = r(i, 0);
+		_pub_innov.get().vel_pos_innov_var[i] = S(i, i);
+	}
+
+	for (size_t i = 3; i < 6; i++) {
+		_pub_innov.get().vel_pos_innov[i] = 0;
+		_pub_innov.get().vel_pos_innov_var[i] = 1;
+	}
+
+	// residual covariance, (inverse)
+	Matrix<float, n_y_vision, n_y_vision> S_I = inv<float, n_y_vision>(S);
 
 	// fault detection
 	float beta = (r.transpose() * (S_I * r))(0, 0);

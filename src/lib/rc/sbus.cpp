@@ -218,7 +218,9 @@ sbus_config(int sbus_fd, bool singlewire)
 		tcsetattr(sbus_fd, TCSANOW, &t);
 
 		if (singlewire) {
-			/* only defined in configs capable of IOCTL */
+			/* only defined in configs capable of IOCTL
+			 * Note It is never turned off
+			 */
 #ifdef TIOCSSINGLEWIRE
 			ioctl(sbus_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
 #endif

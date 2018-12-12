@@ -63,7 +63,7 @@ def usage():
 	msg = """
 Usage: Tools/decode_backtrace.py <builddir>
 
-This will load the symbols for <builddir>/src/firmware/posix/px4
+This will load the symbols for <builddir>/bin/px4
 The user just needs to copy and paste the backtrace into the terminal
 where decode_backtrace.py is running.
 
@@ -75,7 +75,7 @@ func = []
 
 # Load the symbols from the binary
 def load_symbol_map():
-	output = subprocess.check_output(["nm", "-p", "-C", os.sys.argv[1]+"/src/firmware/posix/px4"])
+	output = subprocess.check_output(["nm", "-p", "-C", os.sys.argv[1]+"/bin/px4"])
 	data = output.split("\n")
 	data.sort()
 

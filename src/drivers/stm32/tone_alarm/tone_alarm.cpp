@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013, 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013, 2016, 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,59 +31,10 @@
  *
  ****************************************************************************/
 
-/**
- * Driver for the PX4 audio alarm port, /dev/tone_alarm.
- *
- * The tone_alarm driver supports a set of predefined "alarm"
- * tunes and one user-supplied tune.
- *
- * The TONE_SET_ALARM ioctl can be used to select a predefined
- * alarm tune, from 1 - <TBD>.  Selecting tune zero silences
- * the alarm.
- *
- * Tunes follow the syntax of the Microsoft GWBasic/QBasic PLAY
- * statement, with some exceptions and extensions.
- *
- * From Wikibooks:
- *
- * PLAY "[string expression]"
- *
- * Used to play notes and a score ... The tones are indicated by letters A through G.
- * Accidentals are indicated with a "+" or "#" (for sharp) or "-" (for flat)
- * immediately after the note letter. See this example:
- *
- *   PLAY "C C# C C#"
- *
- * Whitespaces are ignored inside the string expression. There are also codes that
- * set the duration, octave and tempo. They are all case-insensitive. PLAY executes
- * the commands or notes the order in which they appear in the string. Any indicators
- * that change the properties are effective for the notes following that indicator.
- *
- * Ln     Sets the duration (length) of the notes. The variable n does not indicate an actual duration
- *        amount but rather a note type; L1 - whole note, L2 - half note, L4 - quarter note, etc.
- *        (L8, L16, L32, L64, ...). By default, n = 4.
- *        For triplets and quintets, use L3, L6, L12, ... and L5, L10, L20, ... series respectively.
- *        The shorthand notation of length is also provided for a note. For example, "L4 CDE L8 FG L4 AB"
- *        can be shortened to "L4 CDE F8G8 AB". F and G play as eighth notes while others play as quarter notes.
- * On     Sets the current octave. Valid values for n are 0 through 6. An octave begins with C and ends with B.
- *        Remember that C- is equivalent to B.
- * < >    Changes the current octave respectively down or up one level.
- * Nn     Plays a specified note in the seven-octave range. Valid values are from 0 to 84. (0 is a pause.)
- *        Cannot use with sharp and flat. Cannot use with the shorthand notation neither.
- * MN     Stand for Music Normal. Note duration is 7/8ths of the length indicated by Ln. It is the default mode.
- * ML     Stand for Music Legato. Note duration is full length of that indicated by Ln.
- * MS     Stand for Music Staccato. Note duration is 3/4ths of the length indicated by Ln.
- * Pn     Causes a silence (pause) for the length of note indicated (same as Ln).
- * Tn     Sets the number of "L4"s per minute (tempo). Valid values are from 32 to 255. The default value is T120.
- * .      When placed after a note, it causes the duration of the note to be 3/2 of the set duration.
- *        This is how to get "dotted" notes. "L4 C#." would play C sharp as a dotted quarter note.
- *        It can be used for a pause as well.
- *
- * Extensions/variations:
- *
- * MB MF  The MF command causes the tune to play once and then stop. The MB command causes the
- *        tune to repeat when it ends.
- *
+/*
+ * Low Level Driver for the PX4 audio alarm port. Subscribes to
+ * tune_control and plays notes on this architecture specific
+ * timer HW
  */
 
 #include <px4_config.h>
@@ -299,7 +250,7 @@
 
 #define CBRK_BUZZER_KEY 782097
 
-class ToneAlarm : public device::CDev
+class ToneAlarm : public cdev::CDev
 {
 public:
 	ToneAlarm();
@@ -361,7 +312,7 @@ extern "C" __EXPORT int tone_alarm_main(int argc, char *argv[]);
 
 
 ToneAlarm::ToneAlarm() :
-	CDev("tone_alarm", TONEALARM0_DEVICE_PATH),
+	CDev(TONEALARM0_DEVICE_PATH),
 	_running(false),
 	_should_run(true),
 	_play_tone(false),
@@ -429,7 +380,7 @@ int ToneAlarm::init()
 	/* make sure the timer is running */
 	rCR1 = GTIM_CR1_CEN;
 
-	DEVICE_DEBUG("ready");
+	PX4_DEBUG("ready");
 
 	_running = true;
 	work_queue(HPWORK, &_work, (worker_t)&ToneAlarm::next_trampoline, this, 0);
@@ -525,16 +476,11 @@ void ToneAlarm::next_note()
 
 	if (updated) {
 		orb_copy(ORB_ID(tune_control), _tune_control_sub, &_tune);
-
-		if (_tunes.set_control(_tune) == 0) {
-			_play_tone = true;
-
-		} else {
-			_play_tone = false;
-		}
+		_play_tone = _tunes.set_control(_tune) == 0;
 	}
 
-	unsigned frequency = 0, duration = 0;
+	unsigned frequency = 0;
+	unsigned duration = 0;
 
 	if (_play_tone) {
 		_play_tone = false;
@@ -600,7 +546,7 @@ int tone_alarm_main(int argc, char *argv[])
 		if (!strcmp(argv1, "start")) {
 			if (g_dev != nullptr) {
 				PX4_ERR("already started");
-				exit(1);
+				return 1;
 			}
 
 			if (g_dev == nullptr) {
@@ -608,33 +554,33 @@ int tone_alarm_main(int argc, char *argv[])
 
 				if (g_dev == nullptr) {
 					PX4_ERR("couldn't allocate the ToneAlarm driver");
-					exit(1);
+					return 1;
 				}
 
 				if (OK != g_dev->init()) {
 					delete g_dev;
 					g_dev = nullptr;
 					PX4_ERR("ToneAlarm init failed");
-					exit(1);
+					return 1;
 				}
 			}
 
-			exit(0);
+			return 0;
 		}
 
 		if (!strcmp(argv1, "stop")) {
 			delete g_dev;
 			g_dev = nullptr;
-			exit(0);
+			return 0;
 		}
 
 		if (!strcmp(argv1, "status")) {
 			g_dev->status();
-			exit(0);
+			return 0;
 		}
 
 	}
 
 	tone_alarm_usage();
-	exit(0);
+	return 0;
 }

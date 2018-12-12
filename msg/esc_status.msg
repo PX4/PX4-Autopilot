@@ -1,3 +1,4 @@
+uint64 timestamp					# time since system start (microseconds)
 uint8 CONNECTED_ESC_MAX = 8				# The number of ESCs supported. Current (Q2/2013) we support 8 ESCs
 
 uint8 ESC_VENDOR_GENERIC = 0				# generic ESC

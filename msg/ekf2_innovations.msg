@@ -1,10 +1,11 @@
-float32[6] vel_pos_innov  # velocity and position innovations
-float32[3] mag_innov 	# earth magnetic field innovations
-float32 heading_innov 	# heading innovation
-float32 airspeed_innov	# airspeed innovation
-float32 beta_innov	# synthetic sideslip innovation
-float32[2] flow_innov   # flow innovation
-float32 hagl_innov      # innovation from the terrain estimator for the height above ground level measurement  (m)
+uint64 timestamp		# time since system start (microseconds)
+float32[6] vel_pos_innov	# velocity and position innovations
+float32[3] mag_innov 		# earth magnetic field innovations
+float32 heading_innov 		# heading innovation
+float32 airspeed_innov		# airspeed innovation
+float32 beta_innov		# synthetic sideslip innovation
+float32[2] flow_innov   	# flow innovation
+float32 hagl_innov      	# innovation from the terrain estimator for the height above ground level measurement  (m)
 float32[6] vel_pos_innov_var 	# velocity and position innovation variances
 float32[3] mag_innov_var	# earth magnetic field innovation variance
 float32 heading_innov_var 	# heading innovation variance

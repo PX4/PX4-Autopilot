@@ -116,7 +116,7 @@ BMI055_accel::init()
 	}
 
 	/* allocate basic report buffers */
-	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
 
 	if (_accel_reports == nullptr) {
 		goto out;
@@ -139,7 +139,7 @@ BMI055_accel::init()
 	measure();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct accel_report arp;
+	sensor_accel_s arp;
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */
@@ -262,7 +262,7 @@ BMI055_accel::accel_set_sample_rate(float frequency)
 ssize_t
 BMI055_accel::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(accel_report);
+	unsigned count = buflen / sizeof(sensor_accel_s);
 
 	/* buffer must be large enough */
 	if (count < 1) {
@@ -281,7 +281,7 @@ BMI055_accel::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* copy reports out of our buffer to the caller */
-	accel_report *arp = reinterpret_cast<accel_report *>(buffer);
+	sensor_accel_s *arp = reinterpret_cast<sensor_accel_s *>(buffer);
 	int transferred = 0;
 
 	while (count--) {
@@ -294,7 +294,7 @@ BMI055_accel::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* return the number of bytes transferred */
-	return (transferred * sizeof(accel_report));
+	return (transferred * sizeof(sensor_accel_s));
 }
 
 int
@@ -306,41 +306,6 @@ BMI055_accel::self_test()
 
 	/* return 0 on success, 1 else */
 	return (perf_event_count(_sample_perf) > 0) ? 0 : 1;
-}
-
-int
-BMI055_accel::accel_self_test()
-{
-	if (self_test()) {
-		return 1;
-	}
-
-	/* inspect accel offsets */
-	if (fabsf(_accel_scale.x_offset) < 0.000001f) {
-		return 1;
-	}
-
-	if (fabsf(_accel_scale.x_scale - 1.0f) > 0.4f || fabsf(_accel_scale.x_scale - 1.0f) < 0.000001f) {
-		return 1;
-	}
-
-	if (fabsf(_accel_scale.y_offset) < 0.000001f) {
-		return 1;
-	}
-
-	if (fabsf(_accel_scale.y_scale - 1.0f) > 0.4f || fabsf(_accel_scale.y_scale - 1.0f) < 0.000001f) {
-		return 1;
-	}
-
-	if (fabsf(_accel_scale.z_offset) < 0.000001f) {
-		return 1;
-	}
-
-	if (fabsf(_accel_scale.z_scale - 1.0f) > 0.4f || fabsf(_accel_scale.z_scale - 1.0f) < 0.000001f) {
-		return 1;
-	}
-
-	return 0;
 }
 
 /*
@@ -365,23 +330,11 @@ BMI055_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_call_interval = 0;
-				return OK;
-
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
-				return ioctl(filp, SENSORIOCSPOLLRATE, BMI055_ACCEL_MAX_RATE);
-
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				// Polling at the highest frequency. We may get duplicate values on the sensors
 				return ioctl(filp, SENSORIOCSPOLLRATE, BMI055_ACCEL_DEFAULT_RATE);
@@ -428,37 +381,6 @@ BMI055_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCGPOLLRATE:
-		if (_call_interval == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return 1000000 / _call_interval;
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_accel_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
-	case ACCELIOCGSAMPLERATE:
-		return _accel_sample_rate;
-
-	case ACCELIOCSSAMPLERATE:
-		return accel_set_sample_rate(arg);
-
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
@@ -472,20 +394,6 @@ BMI055_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 		}
-
-	case ACCELIOCGSCALE:
-		/* copy scale out */
-		memcpy((struct accel_calibration_s *) arg, &_accel_scale, sizeof(_accel_scale));
-		return OK;
-
-	case ACCELIOCSRANGE:
-		return set_accel_range(arg);
-
-	case ACCELIOCGRANGE:
-		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
-
-	case ACCELIOCSELFTEST:
-		return accel_self_test();
 
 	default:
 		/* give it to the superclass */
@@ -729,7 +637,7 @@ BMI055_accel::measure()
 	/*
 	 * Report buffers.
 	 */
-	accel_report arb;
+	sensor_accel_s arb;
 
 	arb.timestamp = hrt_absolute_time();
 
@@ -779,11 +687,9 @@ BMI055_accel::measure()
 	arb.z_integral = aval_integrated(2);
 
 	arb.scaling = _accel_range_scale;
-	arb.range_m_s2 = _accel_range_m_s2;
 
 	_last_temperature = 23 + report.temp * 1.0f / 512.0f;
 
-	arb.temperature_raw = report.temp;
 	arb.temperature = _last_temperature;
 	arb.device_id = _device_id.devid;
 

@@ -60,6 +60,18 @@ LandDetector::LandDetector() :
 LandDetector::~LandDetector()
 {
 	perf_free(_cycle_perf);
+
+	if (_armingSub >= 0) {
+		orb_unsubscribe(_armingSub);
+	}
+
+	if (_parameterSub >= 0) {
+		orb_unsubscribe(_parameterSub);
+	}
+
+	if (_landDetectedPub) {
+		orb_unadvertise(_landDetectedPub);
+	}
 }
 
 int LandDetector::start()
@@ -93,6 +105,7 @@ void LandDetector::_cycle()
 
 		// Initialize uORB topics.
 		_armingSub = orb_subscribe(ORB_ID(actuator_armed));
+		_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 		_initialize_topics();
 
 		_check_params(true);

@@ -15,6 +15,7 @@
 @#  - md5sum (String) MD5Sum of the .msg specification
 @#  - search_path (dict) search paths for genmsg
 @#  - topics (List of String) multi-topic names
+@#  - ids (List) list of all RTPS msg ids
 @###############################################
 /****************************************************************************
  *
@@ -61,14 +62,15 @@ topic_name = spec.short_name
 
 sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
 struct_size, padding_end_size = add_padding_bytes(sorted_fields, search_path)
-topic_fields = ["uint64_t timestamp"]+["%s %s" % (convert_type(field.type), field.name) for field in sorted_fields]
+topic_fields = ["%s %s" % (convert_type(field.type), field.name) for field in sorted_fields]
 }@
 
 #include <cinttypes>
-#include <cstdio>
+#include <px4_log.h>
 #include <px4_defines.h>
 #include <uORB/topics/@(topic_name).h>
 #include <drivers/drv_hrt.h>
+#include <lib/drivers/device/Device.hpp>
 
 @# join all msg files in one line e.g: "float[3] position;float[3] velocity;bool armed"
 @# This is used for the logger
@@ -80,14 +82,9 @@ ORB_DEFINE(@multi_topic, struct @uorb_struct, @(struct_size-padding_end_size), _
 
 void print_message(const @uorb_struct& message)
 {
-	printf(" @(uorb_struct)\n");
-	printf("\ttimestamp: %" PRIu64, message.timestamp);
-	if (message.timestamp != 0) {
-		printf(" (%.6f seconds ago)\n", hrt_elapsed_time(&message.timestamp) / 1e6);
-	} else {
-		printf("\n");
-	}
+	PX4_INFO_RAW(" @(uorb_struct)\n");
 @[for field in sorted_fields]@
 	@( print_field(field) )@
 @[end for]@
+
 }

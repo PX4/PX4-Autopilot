@@ -63,7 +63,7 @@ const char *parser_state[] = {
 };
 #endif
 
-int tfmini_parser(char c, char *parserbuf, unsigned *parserbuf_index, enum TFMINI_PARSE_STATE *state, float *dist)
+int tfmini_parse(char c, char *parserbuf, unsigned *parserbuf_index, enum TFMINI_PARSE_STATE *state, float *dist)
 {
 	int ret = -1;
 	//char *end;

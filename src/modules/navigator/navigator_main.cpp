@@ -46,26 +46,24 @@
 #include "navigator.h"
 
 #include <cfloat>
-#include <sys/ioctl.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
-#include <mathlib/mathlib.h>
+#include <lib/mathlib/mathlib.h>
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <systemlib/mavlink_log.h>
-#include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
+#include <uORB/topics/position_controller_landing_status.h>
+#include <uORB/topics/transponder_report.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/transponder_report.h>
 #include <uORB/uORB.h>
 
 /**
@@ -76,6 +74,8 @@
 extern "C" __EXPORT int navigator_main(int argc, char *argv[]);
 
 #define GEOFENCE_CHECK_INTERVAL 200000
+
+using namespace time_literals;
 
 namespace navigator
 {
@@ -110,6 +110,9 @@ Navigator::Navigator() :
 	_navigation_mode_array[8] = &_land;
 	_navigation_mode_array[9] = &_precland;
 	_navigation_mode_array[10] = &_follow_target;
+
+	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
+	_handle_reverse_delay = param_find("VT_B_REV_DEL");
 }
 
 void
@@ -142,17 +145,6 @@ Navigator::home_position_update(bool force)
 }
 
 void
-Navigator::fw_pos_ctrl_status_update(bool force)
-{
-	bool updated = false;
-	orb_check(_fw_pos_ctrl_status_sub, &updated);
-
-	if (updated || force) {
-		orb_copy(ORB_ID(fw_pos_ctrl_status), _fw_pos_ctrl_status_sub, &_fw_pos_ctrl_status);
-	}
-}
-
-void
 Navigator::vehicle_status_update()
 {
 	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK) {
@@ -173,6 +165,14 @@ Navigator::params_update()
 	parameter_update_s param_update;
 	orb_copy(ORB_ID(parameter_update), _param_update_sub, &param_update);
 	updateParams();
+
+	if (_handle_back_trans_dec_mss != PARAM_INVALID) {
+		param_get(_handle_back_trans_dec_mss, &_param_back_trans_dec_mss);
+	}
+
+	if (_handle_reverse_delay != PARAM_INVALID) {
+		param_get(_handle_reverse_delay, &_param_reverse_delay);
+	}
 }
 
 void
@@ -193,7 +193,7 @@ Navigator::run()
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	_fw_pos_ctrl_status_sub = orb_subscribe(ORB_ID(fw_pos_ctrl_status));
+	_pos_ctrl_landing_status_sub = orb_subscribe(ORB_ID(position_controller_landing_status));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
@@ -209,7 +209,6 @@ Navigator::run()
 	local_position_update();
 	gps_position_update();
 	home_position_update(true);
-	fw_pos_ctrl_status_update(true);
 	params_update();
 
 	/* wakeup source(s) */
@@ -293,11 +292,7 @@ Navigator::run()
 		}
 
 		/* navigation capabilities updated */
-		orb_check(_fw_pos_ctrl_status_sub, &updated);
-
-		if (updated) {
-			fw_pos_ctrl_status_update();
-		}
+		_position_controller_status_sub.update();
 
 		/* home position updated */
 		orb_check(_home_pos_sub, &updated);
@@ -333,15 +328,26 @@ Navigator::run()
 				rep->current.loiter_radius = get_loiter_radius();
 				rep->current.loiter_direction = 1;
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
-				rep->current.cruising_speed = get_cruising_speed();
+
+				// If no argument for ground speed, use default value.
+				if (cmd.param1 <= 0 || !PX4_ISFINITE(cmd.param1)) {
+					rep->current.cruising_speed = get_cruising_speed();
+
+				} else {
+					rep->current.cruising_speed = cmd.param1;
+				}
+
 				rep->current.cruising_throttle = get_cruising_throttle();
+				rep->current.acceptance_radius = get_acceptance_radius();
 
 				// Go on and check which changes had been requested
 				if (PX4_ISFINITE(cmd.param4)) {
 					rep->current.yaw = cmd.param4;
+					rep->current.yaw_valid = true;
 
 				} else {
 					rep->current.yaw = NAN;
+					rep->current.yaw_valid = false;
 				}
 
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
@@ -762,14 +768,11 @@ Navigator::run()
 		}
 
 		if (_pos_sp_triplet_updated) {
-			_pos_sp_triplet.timestamp = hrt_absolute_time();
 			publish_position_setpoint_triplet();
-			_pos_sp_triplet_updated = false;
 		}
 
 		if (_mission_result_updated) {
 			publish_mission_result();
-			_mission_result_updated = false;
 		}
 
 		perf_end(_loop_perf);
@@ -778,7 +781,7 @@ Navigator::run()
 	orb_unsubscribe(_global_pos_sub);
 	orb_unsubscribe(_local_pos_sub);
 	orb_unsubscribe(_gps_pos_sub);
-	orb_unsubscribe(_fw_pos_ctrl_status_sub);
+	orb_unsubscribe(_pos_ctrl_landing_status_sub);
 	orb_unsubscribe(_vstatus_sub);
 	orb_unsubscribe(_land_detected_sub);
 	orb_unsubscribe(_home_pos_sub);
@@ -827,10 +830,12 @@ Navigator::print_status()
 void
 Navigator::publish_position_setpoint_triplet()
 {
-	/* do not publish an empty triplet */
+	// do not publish an invalid setpoint
 	if (!_pos_sp_triplet.current.valid) {
 		return;
 	}
+
+	_pos_sp_triplet.timestamp = hrt_absolute_time();
 
 	/* lazily publish the position setpoint triplet only once available */
 	if (_pos_sp_triplet_pub != nullptr) {
@@ -839,6 +844,8 @@ Navigator::publish_position_setpoint_triplet()
 	} else {
 		_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet), &_pos_sp_triplet);
 	}
+
+	_pos_sp_triplet_updated = false;
 }
 
 float
@@ -854,14 +861,38 @@ Navigator::get_acceptance_radius()
 }
 
 float
-Navigator::get_altitude_acceptance_radius()
+Navigator::get_default_altitude_acceptance_radius()
 {
 	if (!get_vstatus()->is_rotary_wing) {
 		return _param_fw_alt_acceptance_radius.get();
 
 	} else {
-		return _param_mc_alt_acceptance_radius.get();
+		float alt_acceptance_radius = _param_mc_alt_acceptance_radius.get();
+
+		const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
+
+		if ((pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp)
+		    && pos_ctrl_status.altitude_acceptance > alt_acceptance_radius) {
+			alt_acceptance_radius = pos_ctrl_status.altitude_acceptance;
+		}
+
+		return alt_acceptance_radius;
 	}
+}
+
+float
+Navigator::get_altitude_acceptance_radius()
+{
+	if (!get_vstatus()->is_rotary_wing) {
+		const position_setpoint_s &next_sp = get_position_setpoint_triplet()->next;
+
+		if (next_sp.type == position_setpoint_s::SETPOINT_TYPE_LAND && next_sp.valid) {
+			// Use separate (tighter) altitude acceptance for clean altitude starting point before landing
+			return _param_fw_alt_lnd_acceptance_radius.get();
+		}
+	}
+
+	return get_default_altitude_acceptance_radius();
 }
 
 float
@@ -934,13 +965,30 @@ Navigator::get_acceptance_radius(float mission_item_radius)
 	// when in fixed wing mode
 	// this might need locking against a commanded transition
 	// so that a stale _vstatus doesn't trigger an accepted mission item.
-	if (!_vstatus.is_rotary_wing && !_vstatus.in_transition_mode) {
-		if ((hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) < 5000000) && (_fw_pos_ctrl_status.turn_distance > radius)) {
-			radius = _fw_pos_ctrl_status.turn_distance;
-		}
+
+	const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
+
+	if ((pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp) && pos_ctrl_status.acceptance_radius > radius) {
+		radius = pos_ctrl_status.acceptance_radius;
 	}
 
 	return radius;
+}
+
+float
+Navigator::get_yaw_acceptance(float mission_item_yaw)
+{
+	float yaw = mission_item_yaw;
+
+	const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
+
+	// if yaw_acceptance from position controller is NaN overwrite the mission item yaw such that
+	// the waypoint can be reached from any direction
+	if ((pos_ctrl_status.timestamp > _pos_sp_triplet.timestamp) && !PX4_ISFINITE(pos_ctrl_status.yaw_acceptance)) {
+		yaw = pos_ctrl_status.yaw_acceptance;
+	}
+
+	return yaw;
 }
 
 void
@@ -967,7 +1015,7 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 
 	transponder_report_s tr = {};
 	tr.timestamp = hrt_absolute_time();
-	tr.ICAO_address = 1234;
+	tr.icao_address = 1234;
 	tr.lat = lat; // Latitude, expressed as degrees
 	tr.lon = lon; // Longitude, expressed as degrees
 	tr.altitude_type = 0;
@@ -1099,15 +1147,24 @@ void Navigator::check_traffic()
 bool
 Navigator::abort_landing()
 {
+	// only abort if currently landing and position controller status updated
 	bool should_abort = false;
 
-	if (!_vstatus.is_rotary_wing && !_vstatus.in_transition_mode) {
-		if (hrt_elapsed_time(&_fw_pos_ctrl_status.timestamp) < 1000000) {
+	if (_pos_sp_triplet.current.valid
+	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
-			if (get_position_setpoint_triplet()->current.valid
-			    && get_position_setpoint_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+		bool updated = false;
 
-				should_abort = _fw_pos_ctrl_status.abort_landing;
+		orb_check(_pos_ctrl_landing_status_sub, &updated);
+
+		if (updated) {
+			position_controller_landing_status_s landing_status = {};
+
+			// landing status from position controller must be newer than navigator's last position setpoint
+			if (orb_copy(ORB_ID(position_controller_landing_status), _pos_ctrl_landing_status_sub, &landing_status) == PX4_OK) {
+				if (landing_status.timestamp > _pos_sp_triplet.timestamp) {
+					should_abort = landing_status.abort_landing;
+				}
 			}
 		}
 	}
@@ -1199,6 +1256,8 @@ Navigator::publish_mission_result()
 	_mission_result.item_do_jump_changed = false;
 	_mission_result.item_changed_index = 0;
 	_mission_result.item_do_jump_remaining = 0;
+
+	_mission_result_updated = false;
 }
 
 void

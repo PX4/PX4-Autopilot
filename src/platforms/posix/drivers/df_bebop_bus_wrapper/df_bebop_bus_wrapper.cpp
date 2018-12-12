@@ -432,14 +432,16 @@ void task_main(int argc, char *argv[])
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 		}
 
+		const bool lockdown = _armed.manual_lockdown || _armed.lockdown || _armed.force_failsafe;
+
 		// Start the motors if armed but not alreay running
-		if (_armed.armed && !_motors_running) {
+		if (_armed.armed && !lockdown && !_motors_running) {
 			g_dev->start_motors();
 			_motors_running = true;
 		}
 
-		// Stop motors if not armed but running
-		if (!_armed.armed && _motors_running) {
+		// Stop motors if not armed or killed, but running
+		if ((!_armed.armed || lockdown) && _motors_running) {
 			g_dev->stop_motors();
 			_motors_running = false;
 		}

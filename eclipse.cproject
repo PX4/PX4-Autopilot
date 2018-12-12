@@ -34,8 +34,8 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/uORB/topics}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/build/posix_sitl_default/&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/build/posix_sitl_default/src/modules/systemlib/param&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/build/px4_sitl_default/&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/build/px4_sitl_default/src/modules/systemlib/param&quot;"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.1050909243" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="__PX4_POSIX=1"/>
@@ -55,8 +55,8 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/uORB/topics}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/build/posix_sitl_default/&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/build/posix_sitl_default/src/modules/systemlib/param&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/build/px4_sitl_default/&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/build/px4_sitl_default/src/modules/systemlib/param&quot;"/>
 								</option>
 								<option id="gnu.c.compiler.option.preprocessor.def.symbols.734675451" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="__PX4_POSIX=1"/>
@@ -83,8 +83,8 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/uORB/topics}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/build/posix_sitl_default/&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/build/posix_sitl_default/src/modules/systemlib/param&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/build/px4_sitl_default/&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${git_work_tree}/build/px4_sitl_default/src/modules/systemlib/param&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.674673703" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -110,17 +110,17 @@
 	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets">
 		<buildTargets>
-			<target name="px4fmu-v2_default" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+			<target name="px4_fmu-v2_default" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>make</buildCommand>
-				<buildTarget>px4fmu-v2_default</buildTarget>
+				<buildTarget>px4_fmu-v2_default</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>
 				<runAllBuilders>true</runAllBuilders>
 			</target>
-			<target name="px4fmu-v4_default" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+			<target name="px4_fmu-v4_default" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>make</buildCommand>
 				<buildArguments/>
-				<buildTarget>px4fmu-v4_default</buildTarget>
+				<buildTarget>px4_fmu-v4_default</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>
 				<runAllBuilders>true</runAllBuilders>
@@ -132,10 +132,10 @@
 				<useDefaultCommand>true</useDefaultCommand>
 				<runAllBuilders>true</runAllBuilders>
 			</target>
-			<target name="posix_sitl_default" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+			<target name="px4_sitl_default" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>make</buildCommand>
 				<buildArguments/>
-				<buildTarget>posix_sitl_default</buildTarget>
+				<buildTarget>px4_sitl_default</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>
 				<runAllBuilders>true</runAllBuilders>

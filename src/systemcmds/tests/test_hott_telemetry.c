@@ -43,12 +43,12 @@
  * Included Files
  ****************************************************************************/
 
-#include <drivers/drv_gpio.h>
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_log.h>
+#include <px4_posix.h>
+#include <sys/ioctl.h>
 #include <sys/types.h>
-#include <systemlib/err.h>
 
 #include <errno.h>
 #include <fcntl.h>

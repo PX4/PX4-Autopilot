@@ -87,7 +87,7 @@ public:
 
 	void		task_main();
 
-	void exit() { _force_task_exit = true; }
+	void exit_task() { _force_task_exit = true; }
 
 private:
 	void publish_led_control(led_control_s &led_control);

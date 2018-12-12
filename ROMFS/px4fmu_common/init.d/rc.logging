@@ -1,10 +1,18 @@
 #!nsh
-# Logging
+# Standard startup script for logging.
 #
-# Standard startup script for logging
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-set LOGGER_ARGS ""
+if param greater UAVCAN_ENABLE 1
+then
+	# Reduce logger buffer to free up some RAM for UAVCAN servers.
+	set LOGGER_BUF 6
+fi
+
+###############################################################################
+#                 End Setup for board specific configurations.                #
+###############################################################################
 
 if param compare SDLOG_MODE 1
 then
@@ -16,12 +24,4 @@ then
 	set LOGGER_ARGS "-f"
 fi
 
-if ver hwcmp AEROFC_V1
-then
-	set LOGGER_ARGS "-m mavlink"
-fi
-
 logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
-
-unset LOGGER_ARGS
-unset LOGGER_BUF

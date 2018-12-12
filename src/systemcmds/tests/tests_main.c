@@ -96,19 +96,18 @@ const struct {
 #ifndef __PX4_NUTTX
 	{"mavlink",		mavlink_tests_main,	0},
 #endif
-	{"mc_pos_control",	mc_pos_control_tests_main,	0},
 	{"sf0x",		sf0x_tests_main,	0},
 	{"uorb",		uorb_tests_main,	0},
 	{"hysteresis",		test_hysteresis,	0},
 
 	{"mixer",		test_mixer,	OPT_NOJIGTEST},
 	{"autodeclination",	test_autodeclination,	0},
+	{"bezier",		test_bezierQuad, 0},
 	{"bson",		test_bson,	0},
 	{"conv",		test_conv, 0},
 	{"dataman",		test_dataman, OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"file2",		test_file2,	OPT_NOJIGTEST},
 	{"float",		test_float,	0},
-	{"gpio",		test_gpio,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"hott_telemetry",	test_hott_telemetry,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"hrt",			test_hrt,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"int",			test_int,	0},
@@ -126,6 +125,7 @@ const struct {
 	{"ppm",			test_ppm,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"ppm_loopback",	test_ppm_loopback,	OPT_NOALLTEST},
 	{"rc",			test_rc,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"search_min",	test_search_min, 0},
 	{"servo",		test_servo,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"sleep",		test_sleep,	OPT_NOJIGTEST},
 	{"tone",		test_tone,	0},

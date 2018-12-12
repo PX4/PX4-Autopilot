@@ -311,13 +311,6 @@ private:
 	float			meas_to_float(uint8_t in[2]);
 
 	/**
-	 * Check the current calibration and update device status
-	 *
-	 * @return 0 if calibration is ok, 1 else
-	 */
-	int 			check_calibration();
-
-	/**
 	* Check the current scale calibration
 	*
 	* @return 0 if scale calibration is ok, 1 else
@@ -623,21 +616,11 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -679,53 +662,15 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return 1000000 / TICK2USEC(_measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
 	case SENSORIOCRESET:
 		return reset();
-
-	case MAGIOCSSAMPLERATE:
-		/* same as pollrate because device is in single measurement mode*/
-		return ioctl(filp, SENSORIOCSPOLLRATE, arg);
-
-	case MAGIOCGSAMPLERATE:
-		/* same as pollrate because device is in single measurement mode*/
-		return 1000000 / TICK2USEC(_measure_ticks);
 
 	case MAGIOCSRANGE:
 		return set_range(arg);
 
-	case MAGIOCGRANGE:
-		return _range_ga;
-
 	case MAGIOCSSCALE:
 		/* set new scale factors */
 		memcpy(&_scale, (struct mag_calibration_s *)arg, sizeof(_scale));
-		/* check calibration, but not actually return an error */
-		(void)check_calibration();
 		return 0;
 
 	case MAGIOCGSCALE:
@@ -738,9 +683,6 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case MAGIOCEXSTRAP:
 		return set_excitement(arg);
-
-	case MAGIOCSELFTEST:
-		return check_calibration();
 
 	case MAGIOCGEXTERNAL:
 		DEVICE_DEBUG("MAGIOCGEXTERNAL in main driver");
@@ -891,7 +833,6 @@ HMC5883::collect()
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	new_report.timestamp = hrt_absolute_time();
 	new_report.error_count = perf_event_count(_comms_errors);
-	new_report.range_ga = _range_ga;
 	new_report.scaling = _range_scale;
 	new_report.device_id = _device_id.devid;
 
@@ -1272,19 +1213,6 @@ int HMC5883::check_offset()
 	return !offset_valid;
 }
 
-int HMC5883::check_calibration()
-{
-	bool offset_valid = (check_offset() == OK);
-	bool scale_valid  = (check_scale() == OK);
-
-	if (_calibrated != (offset_valid && scale_valid)) {
-		_calibrated = (offset_valid && scale_valid);
-	}
-
-	/* return 0 if calibrated, 1 else */
-	return (!_calibrated);
-}
-
 int HMC5883::set_excitement(unsigned enable)
 {
 	int ret;
@@ -1601,16 +1529,6 @@ test(enum HMC5883_BUS busid)
 	}
 
 	warnx("device active: %s", ret ? "external" : "onboard");
-
-	/* set the queue depth to 5 */
-	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
-		errx(1, "failed to set queue depth");
-	}
-
-	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
-	}
 
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {

@@ -40,6 +40,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_log.h>
 #include <px4_module.h>
 #include <px4_posix.h>
 
@@ -72,7 +73,7 @@ enum COMPARE_OPERATOR {
 #ifdef __PX4_QURT
 #define PARAM_PRINT PX4_INFO
 #else
-#define PARAM_PRINT printf
+#define PARAM_PRINT PX4_INFO_RAW
 #endif
 
 static int 	do_save(const char *param_file_name);
@@ -80,11 +81,13 @@ static int	do_save_default();
 static int 	do_load(const char *param_file_name);
 static int	do_import(const char *param_file_name);
 static int	do_show(const char *search_string, bool only_changed);
+static int	do_show_quiet(const char *param_name);
 static int	do_show_index(const char *index, bool used_index);
 static void	do_show_print(void *arg, param_t param);
 static int	do_set(const char *name, const char *val, bool fail_on_not_found);
 static int	do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OPERATOR cmd_op);
 static int 	do_reset(const char *excludes[], int num_excludes);
+static int 	do_touch(const char *params[], int num_params);
 static int	do_reset_nostart(const char *excludes[], int num_excludes);
 static int	do_find(const char *name);
 
@@ -124,6 +127,7 @@ $ reboot
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("show", "Show parameter values");
 	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Show only changed params", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('q', "quiet mode, print only param value (name needs to be exact)", true);
 	PRINT_MODULE_USAGE_ARG("<filter>", "Filter by param name (wildcard at end allowed, eg. sys_*)", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("set", "Set parameter to a value");
@@ -136,6 +140,9 @@ $ reboot
 	PRINT_MODULE_USAGE_COMMAND_DESCR("greater",
 					 "Compare a param with a value. Command will succeed if param is greater than the value");
 	PRINT_MODULE_USAGE_ARG("<param_name> <value>", "Parameter name and value to compare", false);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("touch", "Mark a parameter as used");
+	PRINT_MODULE_USAGE_ARG("<param_name1> [<param_name2>]", "Parameter name (one or more)", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset params to default");
 	PRINT_MODULE_USAGE_ARG("<exclude1> [<exclude2>]", "Do not reset matching params (wildcard at end allowed)", true);
@@ -213,6 +220,10 @@ param_main(int argc, char *argv[])
 						return do_show(nullptr, true);
 					}
 
+				} else if (!strcmp(argv[2], "-q")) {
+					if (argc >= 4) {
+						return do_show_quiet(argv[3]);
+					}
 				} else {
 					return do_show(argv[2], false);
 				}
@@ -265,6 +276,15 @@ param_main(int argc, char *argv[])
 
 			} else {
 				return do_reset(nullptr, 0);
+			}
+		}
+
+		if (!strcmp(argv[1], "touch")) {
+			if (argc >= 3) {
+				return do_touch((const char **) &argv[2], argc - 2);
+			} else {
+				PX4_ERR("not enough arguments.");
+				return 1;
 			}
 		}
 
@@ -416,6 +436,39 @@ do_show(const char *search_string, bool only_changed)
 	PARAM_PRINT("Symbols: x = used, + = saved, * = unsaved\n");
 	param_foreach(do_show_print, (char *)search_string, only_changed, false);
 	PARAM_PRINT("\n %u parameters total, %u used.\n", param_count(), param_count_used());
+
+	return 0;
+}
+static int
+do_show_quiet(const char *param_name)
+{
+	param_t param = param_find_no_notification(param_name);
+	int32_t ii;
+	float ff;
+	// Print only the param value (can be used in scripts)
+
+	if (param == PARAM_INVALID) {
+		return 1;
+	}
+
+	switch (param_type(param)) {
+	case PARAM_TYPE_INT32:
+		if (!param_get(param, &ii)) {
+			PARAM_PRINT("%ld", (long)ii);
+		}
+
+		break;
+
+	case PARAM_TYPE_FLOAT:
+		if (!param_get(param, &ff)) {
+			PARAM_PRINT("%4.4f", (double)ff);
+		}
+
+		break;
+
+	default:
+		return 1;
+	}
 
 	return 0;
 }
@@ -716,6 +769,17 @@ do_reset(const char *excludes[], int num_excludes)
 		param_reset_all();
 	}
 
+	return 0;
+}
+
+static int
+do_touch(const char *params[], int num_params)
+{
+	for (int i = 0; i < num_params; ++i) {
+		if (param_find(params[i]) == PARAM_INVALID) {
+			PX4_ERR("param %s not found", params[i]);
+		}
+	}
 	return 0;
 }
 

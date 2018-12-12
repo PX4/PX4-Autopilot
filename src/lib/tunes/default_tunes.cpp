@@ -37,25 +37,19 @@
 
 #include "tunes.h"
 
-// initialise default tunes
+#define PX4_DEFINE_TUNE(ordinal,name,tune,interruptable) tune,
+// Initialize default tunes
 const char *const Tunes::_default_tunes[] = {
-	"", // empty to align with the index
-	"MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc", // startup tune
-	"MBT200a8a8a8PaaaP", // ERROR tone
-	"MFT200e8a8a", // Notify Positive tone
-	"MFT200e8e", // Notify Neutral tone
-	"MFT200e8c8e8c8e8c8", // Notify Negative tone
-	"MNT75L1O2G", //arming warning
-	"MBNT100a8", //battery warning slow
-	"MBNT255a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8", //battery warning fast
-	"MFT255L4AAAL1F#", //gps warning slow
-	"MFT255L4<<<BAP", // arming failure tune
-	"MFT255L16agagagag", // parachute release
-	"MFT255L8ddd#d#eeff", // ekf warning
-	"MFT255L4gf#fed#d", // baro warning
-	"MFT100a8", // single beep
-	"MFT100L4>G#6A#6B#4", // home set tune
+#include "tune_definition.desc"
 };
+#undef PX4_DEFINE_TUNE
+
+#define PX4_DEFINE_TUNE(ordinal,name,tune,interruptable) interruptable,
+// Initialize default tunes
+const bool Tunes::_default_tunes_interruptable[] = {
+#include "tune_definition.desc"
+};
+#undef PX4_DEFINE_TUNE
 
 // set default_tunes array size
 const unsigned int Tunes::_default_tunes_size =  sizeof(_default_tunes) / sizeof(_default_tunes[0]);

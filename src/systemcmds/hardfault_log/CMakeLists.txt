@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE systemcmds__hardfault_log
 	MAIN hardfault_log
-	STACK_MAIN 2048
+	STACK_MAIN 2100
 	COMPILE_FLAGS
 	SRCS
 		hardfault_log.c

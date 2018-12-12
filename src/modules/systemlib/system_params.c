@@ -109,23 +109,24 @@ PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
 PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 2);
 
 /**
- * TELEM2 as companion computer link
+ * TELEM2 as companion computer link (deprecated)
  *
- * CHANGING THIS VALUE REQUIRES A RESTART. Configures the baud rate of the TELEM2 connector as
- * companion computer interface.
+ * This parameter is deprecated. Do not change it, use the more generic serial
+ * configuration parameters instead.
  *
  * @value 0 Disabled
  * @value 10 FrSky Telemetry
  * @value 20 Crazyflie (Syslink)
  * @value 921600 Companion Link (921600 baud, 8N1)
  * @value 57600 Companion Link (57600 baud, 8N1)
+ * @value 1500000 Companion Link (1500000 baud, 8N1)
  * @value 157600 OSD (57600 baud, 8N1)
  * @value 257600 Command Receiver (57600 baud, 8N1)
  * @value 319200 Normal Telemetry (19200 baud, 8N1)
  * @value 338400 Normal Telemetry (38400 baud, 8N1)
  * @value 357600 Normal Telemetry (57600 baud, 8N1)
  * @value 3115200 Normal Telemetry (115200 baud, 8N1)
- * @value 419200 Iridium Telemetry (19200 baud, 8N1)
+ * @value 4115200 Iridium Telemetry (115200 baud, 8N1)
  * @value 519200 Minimal Telemetry (19200 baud, 8N1)
  * @value 538400 Minimal Telemetry (38400 baud, 8N1)
  * @value 557600 Minimal Telemetry (57600 baud, 8N1)
@@ -138,7 +139,7 @@ PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 2);
  * @reboot_required true
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_COMPANION, 157600);
+PARAM_DEFINE_INT32(SYS_COMPANION, 0);
 
 /**
  * Parameter version
@@ -266,3 +267,25 @@ PARAM_DEFINE_INT32(SYS_HAS_MAG, 1);
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_HAS_BARO, 1);
+
+/**
+ * Bootloader update
+ *
+ * If enabled, update the bootloader on the next boot.
+ *
+ * WARNING: do not cut the power during an update process, otherwise you will
+ * have to recover using some alternative method (e.g. JTAG).
+ *
+ * Instructions:
+ * - Insert an SD card
+ * - Enable this parameter
+ * - Reboot the board (plug the power or send a reboot command)
+ * - Wait until the board comes back up (or at least 2 minutes)
+ * - If it does not come back, check the file bootlog.txt on the SD card
+ *
+ * @boolean
+ * @reboot_required true
+ *
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_BL_UPDATE, 0);

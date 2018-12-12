@@ -115,7 +115,7 @@ private:
 	uint8_t _rotation;
 	float				_min_distance;
 	float				_max_distance;
-	work_s				_work;
+	work_s				_work{};
 	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
 	int				_measure_ticks;
@@ -210,11 +210,6 @@ MB12XX::MB12XX(uint8_t rotation, int bus, int address) :
 	_index_counter(0) 	/* initialising temp sonar i2c address to zero */
 
 {
-	/* enable debug() calls */
-	_debug_enabled = false;
-
-	/* work_cancel in the dtor will explode if we don't do this... */
-	memset(&_work, 0, sizeof(_work));
 }
 
 MB12XX::~MB12XX()
@@ -265,7 +260,7 @@ MB12XX::init()
 				 &_orb_class_instance, ORB_PRIO_LOW);
 
 	if (_distance_sensor_topic == nullptr) {
-		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+		PX4_ERR("failed to create distance_sensor object");
 	}
 
 	// XXX we should find out why we need to wait 200 ms here
@@ -281,7 +276,7 @@ MB12XX::init()
 
 		if (ret2 == 0) { /* sonar is present -> store address_index in array */
 			addr_ind.push_back(_index_counter);
-			DEVICE_DEBUG("sonar added");
+			PX4_DEBUG("sonar added");
 			_latest_sonar_measurements.push_back(200);
 		}
 	}
@@ -299,10 +294,10 @@ MB12XX::init()
 
 	/* show the connected sonars in terminal */
 	for (unsigned i = 0; i < addr_ind.size(); i++) {
-		DEVICE_LOG("sonar %d with address %d added", (i + 1), addr_ind[i]);
+		PX4_DEBUG("sonar %d with address %d added", (i + 1), addr_ind[i]);
 	}
 
-	DEVICE_DEBUG("Number of sonars connected: %lu", addr_ind.size());
+	PX4_DEBUG("Number of sonars connected: %lu", addr_ind.size());
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
@@ -349,21 +344,11 @@ MB12XX::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -405,35 +390,6 @@ MB12XX::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				}
 			}
 		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (1000 / _measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			ATOMIC_ENTER;
-
-			if (!_reports->resize(arg)) {
-				ATOMIC_LEAVE;
-				return -ENOMEM;
-			}
-
-			ATOMIC_LEAVE;
-
-			return OK;
-		}
-
-	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
 
 	default:
 		/* give it to the superclass */
@@ -517,7 +473,7 @@ MB12XX::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		DEVICE_DEBUG("i2c::transfer returned %d", ret);
+		PX4_DEBUG("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -539,7 +495,7 @@ MB12XX::collect()
 	ret = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret < 0) {
-		DEVICE_DEBUG("error reading from sensor: %d", ret);
+		PX4_DEBUG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
@@ -556,6 +512,7 @@ MB12XX::collect()
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
 	report.covariance = 0.0f;
+	report.signal_quality = -1;
 	/* TODO: set proper ID */
 	report.id = 0;
 
@@ -612,7 +569,7 @@ MB12XX::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			DEVICE_DEBUG("collection error");
+			PX4_DEBUG("collection error");
 			/* if error restart the measurement state machine */
 			start();
 			return;
@@ -651,7 +608,7 @@ MB12XX::cycle()
 
 	/* Perform measurement */
 	if (OK != measure()) {
-		DEVICE_DEBUG("measure error sonar adress %d", _index_counter);
+		PX4_DEBUG("measure error sonar adress %d", _index_counter);
 	}
 
 	/* next phase is collection */

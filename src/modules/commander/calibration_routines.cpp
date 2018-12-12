@@ -417,13 +417,13 @@ int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[], floa
 		ellipsoid_jacob[1] = 1.0f * (((*offdiag_x * A) + (*diag_y    * B) + (*offdiag_z * C)) / length);
 		ellipsoid_jacob[2] = 1.0f * (((*offdiag_y * A) + (*offdiag_z * B) + (*diag_z    * C)) / length);
 		// 3-5: partial derivative (diag offset wrt fitness fn) fn operated on sample
-		ellipsoid_jacob[3] = -1.0f * ((x[k] + *offset_x) * A) / length;
-		ellipsoid_jacob[4] = -1.0f * ((y[k] + *offset_y) * B) / length;
-		ellipsoid_jacob[5] = -1.0f * ((z[k] + *offset_z) * C) / length;
+		ellipsoid_jacob[3] = -1.0f * ((x[k] - *offset_x) * A) / length;
+		ellipsoid_jacob[4] = -1.0f * ((y[k] - *offset_y) * B) / length;
+		ellipsoid_jacob[5] = -1.0f * ((z[k] - *offset_z) * C) / length;
 		// 6-8: partial derivative (off-diag offset wrt fitness fn) fn operated on sample
-		ellipsoid_jacob[6] = -1.0f * (((y[k] + *offset_y) * A) + ((x[k] + *offset_x) * B)) / length;
-		ellipsoid_jacob[7] = -1.0f * (((z[k] + *offset_z) * A) + ((x[k] + *offset_x) * C)) / length;
-		ellipsoid_jacob[8] = -1.0f * (((z[k] + *offset_z) * B) + ((y[k] + *offset_y) * C)) / length;
+		ellipsoid_jacob[6] = -1.0f * (((y[k] - *offset_y) * A) + ((x[k] - *offset_x) * B)) / length;
+		ellipsoid_jacob[7] = -1.0f * (((z[k] - *offset_z) * A) + ((x[k] - *offset_x) * C)) / length;
+		ellipsoid_jacob[8] = -1.0f * (((z[k] - *offset_z) * B) + ((y[k] - *offset_y) * C)) / length;
 
 		for (uint8_t i = 0; i < 9; i++) {
 			// compute JTJ
@@ -800,14 +800,17 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 int calibrate_cancel_subscribe()
 {
 	int vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+
 	if (vehicle_command_sub >= 0) {
 		// make sure we won't read any old messages
 		struct vehicle_command_s cmd;
 		bool update;
+
 		while (orb_check(vehicle_command_sub, &update) == 0 && update) {
 			orb_copy(ORB_ID(vehicle_command), vehicle_command_sub, &cmd);
 		}
 	}
+
 	return vehicle_command_sub;
 }
 
@@ -847,12 +850,12 @@ bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, int cancel_sub)
 		// ignore internal commands, such as VEHICLE_CMD_DO_MOUNT_CONTROL from vmount
 		if (cmd.from_external) {
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION &&
-					(int)cmd.param1 == 0 &&
-					(int)cmd.param2 == 0 &&
-					(int)cmd.param3 == 0 &&
-					(int)cmd.param4 == 0 &&
-					(int)cmd.param5 == 0 &&
-					(int)cmd.param6 == 0) {
+			    (int)cmd.param1 == 0 &&
+			    (int)cmd.param2 == 0 &&
+			    (int)cmd.param3 == 0 &&
+			    (int)cmd.param4 == 0 &&
+			    (int)cmd.param5 == 0 &&
+			    (int)cmd.param6 == 0) {
 				calibrate_answer_command(mavlink_log_pub, cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 				mavlink_log_critical(mavlink_log_pub, CAL_QGC_CANCELLED_MSG);
 				return true;

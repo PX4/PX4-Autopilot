@@ -66,6 +66,38 @@
 #define AK8963_16BIT_ADC        0x10
 #define AK8963_14BIT_ADC        0x00
 #define AK8963_RESET            0x01
+#define AK8963_HOFL             0x08
+
+/* ak09916 deviating register addresses and bit definitions */
+
+#define AK09916_DEVICE_ID_A		0x48	// same as AK8963
+#define AK09916_DEVICE_ID_B		0x09	// additional ID byte ("INFO" on AK9063 without content specification.)
+
+#define AK09916REG_HXL        0x11
+#define AK09916REG_HXH        0x12
+#define AK09916REG_HYL        0x13
+#define AK09916REG_HYH        0x14
+#define AK09916REG_HZL        0x15
+#define AK09916REG_HZH        0x16
+#define AK09916REG_ST1        0x10
+#define AK09916REG_ST2        0x18
+#define AK09916REG_CNTL2          0x31
+#define AK09916REG_CNTL3          0x32
+
+
+#define AK09916_CNTL2_POWERDOWN_MODE            0x00
+#define AK09916_CNTL2_SINGLE_MODE               0x01 /* default */
+#define AK09916_CNTL2_CONTINOUS_MODE_10HZ       0x02
+#define AK09916_CNTL2_CONTINOUS_MODE_20HZ       0x04
+#define AK09916_CNTL2_CONTINOUS_MODE_50HZ       0x06
+#define AK09916_CNTL2_CONTINOUS_MODE_100HZ      0x08
+#define AK09916_CNTL2_SELFTEST_MODE             0x10
+#define AK09916_CNTL3_SRST                      0x01
+#define AK09916_ST1_DRDY                        0x01
+#define AK09916_ST1_DOR                         0x02
+
+
+#define AK_MPU_OR_ICM(m,i)					((_parent->_device_type==MPU_DEVICE_TYPE_MPU9250) ? (m) : (i))
 
 
 
@@ -81,6 +113,18 @@ struct ak8963_regs {
 };
 #pragma pack(pop)
 
+#pragma pack(push, 1)
+struct ak09916_regs {
+	uint8_t st1;
+	int16_t x;
+	int16_t y;
+	int16_t z;
+	uint8_t tmps;
+	uint8_t st2;
+};
+#pragma pack(pop)
+
+
 extern device::Device *AK8963_I2C_interface(int bus, bool external_bus);
 
 typedef device::Device *(*MPU9250_mag_constructor)(int, bool);
@@ -95,7 +139,6 @@ public:
 	MPU9250_mag(MPU9250 *parent, device::Device *interface, const char *path);
 	~MPU9250_mag();
 
-	virtual ssize_t read(struct file *filp, char *buffer, size_t buflen);
 	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
 	virtual int init();
 
@@ -121,14 +164,10 @@ protected:
 	/* Update the state with prefetched data (internally called by the regular measure() )*/
 	void _measure(struct ak8963_regs data);
 
-
 	uint8_t read_reg(unsigned reg);
 	void write_reg(unsigned reg, uint8_t value);
 
-
 	bool is_passthrough() { return _interface == nullptr; }
-
-	int self_test(void);
 
 private:
 	MPU9250 *_parent;

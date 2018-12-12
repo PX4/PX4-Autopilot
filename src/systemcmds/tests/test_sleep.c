@@ -1,5 +1,4 @@
 /****************************************************************************
- * px4/sensors/test_gpio.c
  *
  *  Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *

@@ -119,7 +119,7 @@ private:
 	uint8_t _rotation;
 	float				_min_distance;
 	float				_max_distance;
-	work_s				_work;
+	work_s				_work{};
 	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
 	uint8_t				_valid;
@@ -244,12 +244,6 @@ TERARANGER::TERARANGER(uint8_t rotation, int bus, int address) :
 {
 	// up the retries since the device misses the first measure attempts
 	I2C::_retries = 3;
-
-	// enable debug() calls
-	_debug_enabled = false;
-
-	// work_cancel in the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
 }
 
 TERARANGER::~TERARANGER()
@@ -280,7 +274,7 @@ TERARANGER::init()
 
 	switch (hw_model) {
 	case 0: /* Disabled */
-		DEVICE_LOG("Disabled");
+		PX4_WARN("Disabled");
 		return ret;
 
 	case 1: /* Autodetect */
@@ -341,7 +335,7 @@ TERARANGER::init()
 		break;
 
 	default:
-		DEVICE_LOG("invalid HW model %d.", hw_model);
+		PX4_ERR("invalid HW model %d.", hw_model);
 		return ret;
 	}
 
@@ -364,7 +358,7 @@ TERARANGER::init()
 					 &_orb_class_instance, ORB_PRIO_LOW);
 
 		if (_distance_sensor_topic == nullptr) {
-			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+			PX4_ERR("failed to create distance_sensor object");
 		}
 	}
 
@@ -389,9 +383,9 @@ TERARANGER::probe()
 		}
 	}
 
-	DEVICE_DEBUG("WHO_AM_I byte mismatch 0x%02x should be 0x%02x\n",
-		     (unsigned)who_am_i,
-		     TERARANGER_WHO_AM_I_REG_VAL);
+	PX4_DEBUG("WHO_AM_I byte mismatch 0x%02x should be 0x%02x\n",
+		  (unsigned)who_am_i,
+		  TERARANGER_WHO_AM_I_REG_VAL);
 
 	// not found on any address
 	return -EIO;
@@ -429,21 +423,11 @@ TERARANGER::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -484,35 +468,6 @@ TERARANGER::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				}
 			}
 		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (1000 / _measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			ATOMIC_ENTER;
-
-			if (!_reports->resize(arg)) {
-				ATOMIC_LEAVE;
-				return -ENOMEM;
-			}
-
-			ATOMIC_LEAVE;
-
-			return OK;
-		}
-
-	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
 
 	default:
 		/* give it to the superclass */
@@ -593,7 +548,7 @@ TERARANGER::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		DEVICE_LOG("i2c::transfer returned %d", ret);
+		PX4_DEBUG("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -615,7 +570,7 @@ TERARANGER::collect()
 	ret = transfer(nullptr, 0, &val[0], 3);
 
 	if (ret < 0) {
-		DEVICE_LOG("error reading from sensor: %d", ret);
+		PX4_DEBUG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
@@ -633,6 +588,7 @@ TERARANGER::collect()
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
 	report.covariance = 0.0f;
+	report.signal_quality = -1;
 	/* TODO: set proper ID */
 	report.id = 0;
 
@@ -689,7 +645,7 @@ TERARANGER::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			DEVICE_LOG("collection error");
+			PX4_DEBUG("collection error");
 			/* restart the measurement state machine */
 			start();
 			return;
@@ -715,7 +671,7 @@ TERARANGER::cycle()
 
 	/* measurement phase */
 	if (OK != measure()) {
-		DEVICE_LOG("measure error");
+		PX4_DEBUG("measure error");
 	}
 
 	/* next phase is collection */

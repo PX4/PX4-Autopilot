@@ -44,6 +44,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <px4_module.h>
+
 #include <lib/tunes/tunes.h>
 #include <uORB/topics/tune_control.h>
 
@@ -62,18 +64,36 @@ extern "C" {
 static void
 usage()
 {
-	PX4_INFO(
-		"External tune control for testing. Usage:\n"
-		"tune_control play [-t <default tunes>] [-f <frequency>] [-d <duration>] [-s <strength>] [-m < melody>]\n"
-		"\n"
-		"\t-t <defualt tunes>\tPlay the default (1...15) (default=1)\n"
-		"\t-f <frequency>\t\tFrequency from 0-20kHz\n"
-		"\t-d <duration>\t\tDuration of the tone in us\n"
-		"\t-s <strength>\t\tStrength of the tone between 0-100\n"
-		"\t-m <melody>\t\tMelody in a string form ex: \"MFT200e8a8a\"\n"
-		"\n"
-		"tune_control stop \t\tStops playback, useful for repeated tunes\n"
-	);
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+Command-line tool to control & test the (external) tunes.
+
+Tunes are used to provide audible notification and warnings (e.g. when the system arms, gets position lock, etc.).
+The tool requires that a driver is running that can handle the tune_control uorb topic.
+
+Information about the tune format and predefined system tunes can be found here:
+https://github.com/PX4/Firmware/blob/master/src/lib/tunes/tune_definition.desc
+
+### Examples
+
+Play system tune #2:
+$ tune_control play -t 2
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("tune_control", "system");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("play","Play system tune, tone, or melody");
+        PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 21, "Play predefined system tune", true);
+        PRINT_MODULE_USAGE_PARAM_INT('f', 0, 0, 22, "Frequency of tone in Hz (0-22kHz)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('d', 1, 1, 21, "Duration of tone in us", true);
+	PRINT_MODULE_USAGE_PARAM_INT('s', 40, 0, 100, "Strength of tone (0-100)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('m', nullptr,  R"(<string> - e.g. "MFT200e8a8a")",
+					 "Melody in string form", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("libtest","Test library");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop playback (use for repeated tunes)");
+
 }
 
 static void publish_tune_control(tune_control_s &tune_control)
@@ -81,7 +101,8 @@ static void publish_tune_control(tune_control_s &tune_control)
 	tune_control.timestamp = hrt_absolute_time();
 
 	if (tune_control_pub == nullptr) {
-		tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+		// We have a minimum of 3 so that tune, stop, tune will fit
+		tune_control_pub = orb_advertise_queue(ORB_ID(tune_control), &tune_control, 3);
 
 	} else {
 		orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
@@ -233,6 +254,9 @@ tune_control_main(int argc, char *argv[])
 		tune_control.silence = 0;
 		tune_control.tune_override = true;
 		publish_tune_control(tune_control);
+		// We wait the maximum update interval to ensure
+		// The stop will not be overwritten
+		usleep(tunes.get_maximum_update_interval());
 
 	}	else {
 		usage();

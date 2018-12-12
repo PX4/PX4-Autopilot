@@ -60,6 +60,15 @@ MavlinkULog::MavlinkULog(int datarate, float max_rate_factor, uint8_t target_sys
 
 	if (_ulog_stream_sub < 0) {
 		PX4_ERR("orb_subscribe failed (%i)", errno);
+
+	} else {
+		// make sure we won't read any old messages
+		struct ulog_stream_s stream_msg;
+		bool update;
+
+		while (orb_check(_ulog_stream_sub, &update) == 0 && update) {
+			orb_copy(ORB_ID(ulog_stream), _ulog_stream_sub, &stream_msg);
+		}
 	}
 
 	_waiting_for_initial_ack = true;
@@ -264,7 +273,7 @@ void MavlinkULog::publish_ack(uint16_t sequence)
 	ack.sequence = sequence;
 
 	if (_ulog_stream_ack_pub == nullptr) {
-		_ulog_stream_ack_pub = orb_advertise_queue(ORB_ID(ulog_stream_ack), &ack, 3);
+		_ulog_stream_ack_pub = orb_advertise(ORB_ID(ulog_stream_ack), &ack);
 
 	} else {
 		orb_publish(ORB_ID(ulog_stream_ack), _ulog_stream_ack_pub, &ack);

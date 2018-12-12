@@ -1,12 +1,7 @@
-
-						# is set whenever the writing thread stores new data
-
-bool flag_armed
+uint64 timestamp		# time since system start (microseconds)
+bool flag_armed			# is set whenever the writing thread stores new data
 
 bool flag_external_manual_override_ok		# external override non-fatal for system. Only true for fixed wing
-
-# XXX needs yet to be set by state machine helper
-bool flag_system_hil_enabled
 
 bool flag_control_manual_enabled		# true if manual input is mixed in
 bool flag_control_auto_enabled			# true if onboard autopilot should act

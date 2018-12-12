@@ -134,7 +134,7 @@ int test_ppm_loopback(int argc, char *argv[])
 	/* give driver 10 ms to propagate */
 
 	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
-	struct rc_input_values	rc_input;
+	struct input_rc_s rc_input;
 	orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
 	usleep(100000);
 
@@ -151,7 +151,7 @@ int test_ppm_loopback(int argc, char *argv[])
 
 
 
-		// struct rc_input_values rc;
+		// struct input_rc_s rc;
 		// result = read(ppm_fd, &rc, sizeof(rc));
 
 		// if (result != sizeof(rc)) {

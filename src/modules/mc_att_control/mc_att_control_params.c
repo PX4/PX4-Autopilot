@@ -264,19 +264,6 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
 PARAM_DEFINE_FLOAT(MC_YAWRATE_FF, 0.0f);
 
 /**
- * Yaw feed forward
- *
- * Feed forward weight for manual yaw control. 0 will give slow responce and no overshot, 1 - fast responce and big overshot.
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_YAW_FF, 0.5f);
-
-/**
  * Max roll rate
  *
  * Limit for roll rate in manual and auto modes (except acro).

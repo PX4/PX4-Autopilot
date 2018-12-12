@@ -69,13 +69,20 @@ target_include_directories(git_ver INTERFACE ${CMAKE_CURRENT_BINARY_DIR})
 add_dependencies(git_ver ver_gen)
 
 # The URL for the elf file for crash logging
+set(BUILD_URI "localhost")
 if (DEFINED ENV{BUILD_URI})
 	set(BUILD_URI $ENV{BUILD_URI})
-else()
-	set(BUILD_URI "localhost")
 endif()
 
 add_library(version version.c)
-target_compile_definitions(version PRIVATE BUILD_URI=${BUILD_URI})
+
+target_compile_definitions(version
+	PUBLIC
+		PX4_BOARD_NAME="${PX4_BOARD_NAME}"
+	PRIVATE
+		BUILD_URI=${BUILD_URI}
+	)
+
 target_link_libraries(version PRIVATE git_ver)
+target_link_libraries(version PRIVATE drivers_board)
 add_dependencies(version prebuild_targets)

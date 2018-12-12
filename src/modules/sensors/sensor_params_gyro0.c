@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +34,7 @@
 /**
  * ID of the Gyro that the calibration is for.
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_GYRO0_ID, 0);
@@ -42,6 +43,7 @@ PARAM_DEFINE_INT32(CAL_GYRO0_ID, 0);
  * Gyro 0 enabled
  *
  * @boolean
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_GYRO0_EN, 1);
@@ -49,6 +51,7 @@ PARAM_DEFINE_INT32(CAL_GYRO0_EN, 1);
 /**
  * Gyro X-axis offset
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_GYRO0_XOFF, 0.0f);
@@ -56,6 +59,7 @@ PARAM_DEFINE_FLOAT(CAL_GYRO0_XOFF, 0.0f);
 /**
  * Gyro Y-axis offset
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_GYRO0_YOFF, 0.0f);
@@ -63,6 +67,7 @@ PARAM_DEFINE_FLOAT(CAL_GYRO0_YOFF, 0.0f);
 /**
  * Gyro Z-axis offset
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_GYRO0_ZOFF, 0.0f);
@@ -70,6 +75,7 @@ PARAM_DEFINE_FLOAT(CAL_GYRO0_ZOFF, 0.0f);
 /**
  * Gyro X-axis scaling factor
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_GYRO0_XSCALE, 1.0f);
@@ -77,6 +83,7 @@ PARAM_DEFINE_FLOAT(CAL_GYRO0_XSCALE, 1.0f);
 /**
  * Gyro Y-axis scaling factor
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_GYRO0_YSCALE, 1.0f);
@@ -84,6 +91,7 @@ PARAM_DEFINE_FLOAT(CAL_GYRO0_YSCALE, 1.0f);
 /**
  * Gyro Z-axis scaling factor
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_GYRO0_ZSCALE, 1.0f);

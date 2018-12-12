@@ -75,7 +75,6 @@ MulticopterLandDetector::MulticopterLandDetector()
 	_paramHandle.maxRotation = param_find("LNDMC_ROT_MAX");
 	_paramHandle.maxVelocity = param_find("LNDMC_XY_VEL_MAX");
 	_paramHandle.maxClimbRate = param_find("LNDMC_Z_VEL_MAX");
-	_paramHandle.throttleRange = param_find("LNDMC_THR_RANGE");
 	_paramHandle.minThrottle = param_find("MPC_THR_MIN");
 	_paramHandle.hoverThrottle = param_find("MPC_THR_HOVER");
 	_paramHandle.minManThrottle = param_find("MPC_MANTHR_MIN");
@@ -97,7 +96,6 @@ void MulticopterLandDetector::_initialize_topics()
 	_vehicleLocalPositionSetpointSub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	_attitudeSub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_actuatorsSub = orb_subscribe(ORB_ID(actuator_controls_0));
-	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
 	_vehicle_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_battery_sub = orb_subscribe(ORB_ID(battery_status));
@@ -122,7 +120,6 @@ void MulticopterLandDetector::_update_params()
 	_params.maxRotation_rad_s = math::radians(_params.maxRotation_rad_s);
 	param_get(_paramHandle.minThrottle, &_params.minThrottle);
 	param_get(_paramHandle.hoverThrottle, &_params.hoverThrottle);
-	param_get(_paramHandle.throttleRange, &_params.throttleRange);
 	param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
 	param_get(_paramHandle.freefall_acc_threshold, &_params.freefall_acc_threshold);
 	param_get(_paramHandle.freefall_trigger_time, &_params.freefall_trigger_time);
@@ -321,10 +318,10 @@ bool MulticopterLandDetector::_has_low_thrust()
 bool MulticopterLandDetector::_has_minimal_thrust()
 {
 	// 10% of throttle range between min and hover once we entered ground contact
-	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * _params.throttleRange;
+	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * 0.1f;
 
 	// Determine the system min throttle based on flight mode
-	if (!_control_mode.flag_control_altitude_enabled) {
+	if (!_control_mode.flag_control_climb_rate_enabled) {
 		sys_min_throttle = (_params.minManThrottle + 0.01f);
 	}
 

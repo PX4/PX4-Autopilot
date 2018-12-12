@@ -31,21 +31,12 @@
 #
 ############################################################################
 
-# this includes the generated topics directory
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
-set(SRCS uORB_tests_main.cpp)
-
-if(NOT ${OS} STREQUAL "qurt")
-	list(APPEND SRCS uORBTest_UnitTest.cpp)
-endif()
-
 px4_add_module(
 	MODULE modules__uORB__uORB_tests
 	MAIN uorb_tests
 	STACK_MAIN 2048
-	COMPILE_FLAGS
-	SRCS ${SRCS}
-	DEPENDS
+	PRIORITY "SCHED_PRIORITY_MAX"
+	SRCS
+		uORB_tests_main.cpp
+		uORBTest_UnitTest.cpp
 	)
-

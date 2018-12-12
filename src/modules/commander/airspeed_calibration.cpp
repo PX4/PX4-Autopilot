@@ -107,6 +107,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 		/* only warn if analog scaling is zero */
 		float analog_scaling = 0.0f;
 		param_get(param_find("SENS_DPRES_ANSC"), &(analog_scaling));
+
 		if (fabsf(analog_scaling) < 0.1f) {
 			calibration_log_critical(mavlink_log_pub, "[cal] No airspeed sensor found");
 			goto error_return;
@@ -143,7 +144,8 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 			/* any differential pressure failure a reason to abort */
 			if (diff_pres.error_count != 0) {
-				calibration_log_critical(mavlink_log_pub, "[cal] Airspeed sensor is reporting errors (%llu)", diff_pres.error_count);
+				calibration_log_critical(mavlink_log_pub, "[cal] Airspeed sensor is reporting errors (%" PRIu64 ")",
+							 diff_pres.error_count);
 				calibration_log_critical(mavlink_log_pub, "[cal] Check your wiring before trying again");
 				feedback_calibration_failed(mavlink_log_pub);
 				goto error_return;
@@ -166,6 +168,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 		int fd_scale = px4_open(AIRSPEED0_DEVICE_PATH, 0);
 		airscale.offset_pa = diff_pres_offset;
+
 		if (fd_scale > 0) {
 			if (PX4_OK != px4_ioctl(fd_scale, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
 				calibration_log_critical(mavlink_log_pub, "[cal] airspeed offset update failed");
@@ -220,15 +223,19 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 			if (fabsf(diff_pres.differential_pressure_filtered_pa) > 50.0f) {
 				if (diff_pres.differential_pressure_filtered_pa > 0) {
-					calibration_log_info(mavlink_log_pub, "[cal] Positive pressure: OK (%d Pa)", (int)diff_pres.differential_pressure_filtered_pa);
+					calibration_log_info(mavlink_log_pub, "[cal] Positive pressure: OK (%d Pa)",
+							     (int)diff_pres.differential_pressure_filtered_pa);
 					break;
+
 				} else {
 					/* do not allow negative values */
-					calibration_log_critical(mavlink_log_pub, "[cal] Negative pressure difference detected (%d Pa)", (int)diff_pres.differential_pressure_filtered_pa);
+					calibration_log_critical(mavlink_log_pub, "[cal] Negative pressure difference detected (%d Pa)",
+								 (int)diff_pres.differential_pressure_filtered_pa);
 					calibration_log_critical(mavlink_log_pub, "[cal] Swap static and dynamic ports!");
 
 					/* the user setup is wrong, wipe the calibration to force a proper re-calibration */
 					diff_pres_offset = 0.0f;
+
 					if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
 						calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, 1);
 						goto error_return;
@@ -244,9 +251,11 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 			}
 
 			if (calibration_counter % 500 == 0) {
-				calibration_log_info(mavlink_log_pub, "[cal] Create air pressure! (got %d, wanted: 50 Pa)", (int)diff_pres.differential_pressure_filtered_pa);
+				calibration_log_info(mavlink_log_pub, "[cal] Create air pressure! (got %d, wanted: 50 Pa)",
+						     (int)diff_pres.differential_pressure_filtered_pa);
 				tune_neutral(true);
 			}
+
 			calibration_counter++;
 
 		} else if (poll_ret == 0) {

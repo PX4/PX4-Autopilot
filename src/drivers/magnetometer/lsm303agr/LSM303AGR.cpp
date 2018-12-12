@@ -48,8 +48,6 @@
 #define DIR_WRITE				(0<<7)
 #define ADDR_INCREMENT			(1<<6)
 
-#define LSM303AGR_DEVICE_PATH_MAG	"/dev/lsm303agr_mag"
-
 /* Max measurement rate is 100Hz */
 #define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
 
@@ -62,8 +60,6 @@ static constexpr uint8_t LSM303AGR_WHO_AM_I_M = 0x40;
   due to other timers
  */
 #define LSM303AGR_TIMER_REDUCTION				200
-
-extern "C" { __EXPORT int lsm303agr_main(int argc, char *argv[]); }
 
 LSM303AGR::LSM303AGR(int bus, const char *path, uint32_t device, enum Rotation rotation) :
 	SPI("LSM303AGR", path, bus, device, SPIDEV_MODE3, 8 * 1000 * 1000),
@@ -249,21 +245,11 @@ LSM303AGR::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -305,23 +291,8 @@ LSM303AGR::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return 1000000 / TICK2USEC(_measure_ticks);
-
 	case SENSORIOCRESET:
 		return reset();
-
-	case MAGIOCSSAMPLERATE:
-		/* same as pollrate because device is in single measurement mode*/
-		return ioctl(filp, SENSORIOCSPOLLRATE, arg);
-
-	case MAGIOCGSAMPLERATE:
-		/* same as pollrate because device is in single measurement mode*/
-		return 1000000 / TICK2USEC(_measure_ticks);
 
 	case MAGIOCSSCALE:
 		/* set new scale factors */
@@ -335,7 +306,6 @@ LSM303AGR::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return 0;
 
 	case MAGIOCGEXTERNAL:
-		DEVICE_DEBUG("MAGIOCGEXTERNAL in main driver");
 		return external();
 
 	default:
@@ -467,10 +437,10 @@ LSM303AGR::collect()
 		mag_report mag_report = {};
 		mag_report.timestamp = hrt_absolute_time();
 
-		// no auto increment for mag
+		// switch to right hand coordinate system in place
 		mag_report.x_raw = read_reg(OUTX_L_REG_M) + (read_reg(OUTX_H_REG_M) << 8);
 		mag_report.y_raw = read_reg(OUTY_L_REG_M) + (read_reg(OUTY_H_REG_M) << 8);
-		mag_report.z_raw = read_reg(OUTZ_L_REG_M) + (read_reg(OUTZ_H_REG_M) << 8);
+		mag_report.z_raw = -(read_reg(OUTZ_L_REG_M) + (read_reg(OUTZ_H_REG_M) << 8));
 
 		float xraw_f = mag_report.x_raw;
 		float yraw_f = mag_report.y_raw;
@@ -479,11 +449,10 @@ LSM303AGR::collect()
 		/* apply user specified rotation */
 		rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 
-		mag_report.x = ((xraw_f) - _mag_scale.x_offset) * _mag_scale.x_scale;
-		mag_report.y = ((yraw_f) - _mag_scale.y_offset) * _mag_scale.y_scale;
-		mag_report.z = ((zraw_f) - _mag_scale.z_offset) * _mag_scale.z_scale;
-		mag_report.scaling = 1.0f;
-		mag_report.range_ga = (float)_mag_range_ga;
+		mag_report.x = ((xraw_f * _mag_range_scale) - _mag_scale.x_offset) * _mag_scale.x_scale;
+		mag_report.y = ((yraw_f * _mag_range_scale) - _mag_scale.y_offset) * _mag_scale.y_scale;
+		mag_report.z = ((zraw_f * _mag_range_scale) - _mag_scale.z_offset) * _mag_scale.z_scale;
+		mag_report.scaling = _mag_range_scale;
 		mag_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
 
 		/* remember the temperature. The datasheet isn't clear, but it
@@ -523,135 +492,4 @@ LSM303AGR::print_info()
 	perf_print_counter(_mag_sample_perf);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_bad_values);
-}
-
-/**
- * Local functions in support of the shell command.
- */
-namespace lsm303agr
-{
-
-LSM303AGR	*g_dev;
-
-void	start(enum Rotation rotation);
-void	info();
-void	usage();
-
-/**
- * Start the driver.
- *
- * This function call only returns once the driver is
- * up and running or failed to detect the sensor.
- */
-void
-start(enum Rotation rotation)
-{
-	int fd_mag = -1;
-
-	if (g_dev != nullptr) {
-		errx(0, "already started");
-	}
-
-	/* create the driver */
-#if defined(PX4_SPIDEV_LSM303A_M) && defined(PX4_SPIDEV_LSM303A_X)
-	g_dev = new LSM303AGR(PX4_SPI_BUS_SENSOR5, LSM303AGR_DEVICE_PATH_MAG, PX4_SPIDEV_LSM303A_M, rotation);
-#else
-	errx(0, "External SPI not available");
-#endif
-
-	if (g_dev == nullptr) {
-		PX4_ERR("alloc failed");
-		goto fail;
-	}
-
-	if (OK != g_dev->init()) {
-		goto fail;
-	}
-
-	fd_mag = px4_open(LSM303AGR_DEVICE_PATH_MAG, O_RDONLY);
-
-	/* don't fail if open cannot be opened */
-	if (0 <= fd_mag) {
-		if (px4_ioctl(fd_mag, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-			goto fail;
-		}
-	}
-
-	px4_close(fd_mag);
-
-	exit(0);
-fail:
-
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
-	}
-
-	errx(1, "driver start failed");
-}
-
-/**
- * Print a little info about the driver.
- */
-void
-info()
-{
-	if (g_dev == nullptr) {
-		errx(1, "driver not running\n");
-	}
-
-	printf("state @ %p\n", g_dev);
-	g_dev->print_info();
-
-	exit(0);
-}
-
-void
-usage()
-{
-	PX4_INFO("missing command: try 'start', 'info', 'reset'");
-	PX4_INFO("options:");
-	PX4_INFO("    -X    (external bus)");
-	PX4_INFO("    -R rotation");
-}
-
-} // namespace
-
-int
-lsm303agr_main(int argc, char *argv[])
-{
-	int ch;
-	enum Rotation rotation = ROTATION_NONE;
-
-	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XR:a:")) != EOF) {
-		switch (ch) {
-		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
-			break;
-
-		default:
-			lsm303agr::usage();
-			exit(0);
-		}
-	}
-
-	const char *verb = argv[optind];
-
-	/*
-	 * Start/load the driver.
-
-	 */
-	if (!strcmp(verb, "start")) {
-		lsm303agr::start(rotation);
-	}
-
-	/*
-	 * Print driver information.
-	 */
-	if (!strcmp(verb, "info")) {
-		lsm303agr::info();
-	}
-
-	errx(1, "unrecognized command, try 'start', 'info'");
 }

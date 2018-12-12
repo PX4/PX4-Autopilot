@@ -58,6 +58,11 @@ enum FIRMWARE_TYPE {
 	FIRMWARE_TYPE_RELEASE = 255
 };
 
+const char *px4_build_uri(void)
+{
+	return STRINGIFY(BUILD_URI);
+}
+
 uint32_t version_tag_to_number(const char *tag)
 {
 	uint32_t version_number = 0;

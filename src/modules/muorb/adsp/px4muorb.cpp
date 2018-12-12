@@ -47,12 +47,8 @@
 
 __BEGIN_DECLS
 extern int dspal_main(int argc, char *argv[]);
-extern struct shmem_info *shmem_info_p;
-extern int get_shmem_lock(const char *caller_file_name, int caller_line_number);
-extern void release_shmem_lock(const char *caller_file_name,
-			       int caller_line_number);
-extern void init_shared_memory(void);
 __END_DECLS
+
 int px4muorb_orb_initialize()
 {
 	HAP_power_request(100, 100, 1000);

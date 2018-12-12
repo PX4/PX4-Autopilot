@@ -81,6 +81,18 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
 #define mavlink_log_info(_pub, _text, ...)	mavlink_vasprintf(_MSG_PRIO_INFO, _pub, _text, ##__VA_ARGS__);
 
 /**
+ * Send a mavlink warning message and print to console.
+ *
+ * @param _pub		Pointer to the uORB advert;
+ * @param _text		The text to log;
+ */
+#define mavlink_log_warning(_pub, _text, ...) \
+	do { \
+		mavlink_vasprintf(_MSG_PRIO_WARNING, _pub, _text, ##__VA_ARGS__); \
+		PX4_WARN(_text, ##__VA_ARGS__); \
+	} while(0);
+
+/**
  * Send a mavlink emergency message and print to console.
  *
  * @param _pub		Pointer to the uORB advert;

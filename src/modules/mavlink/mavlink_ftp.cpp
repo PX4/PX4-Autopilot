@@ -663,7 +663,7 @@ MavlinkFTP::_workTruncateFile(PayloadHeader *payload)
 
 	// emulate truncate(_work_buffer1, payload->offset) by
 	// copying to temp and overwrite with O_TRUNC flag (NuttX does not support truncate()).
-	const char temp_file[] = PX4_ROOTFSDIR"/fs/microsd/.trunc.tmp";
+	const char temp_file[] = PX4_STORAGEDIR"/.trunc.tmp";
 
 	struct stat st;
 

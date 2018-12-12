@@ -1,0 +1,115 @@
+{
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "(gdb) Launch (shell)",
+                "type": "cppdbg",
+                "request": "launch",
+                "program": "${command:cmake.launchTargetPath}",
+                "args": [
+                    "${workspaceFolder}/ROMFS/px4fmu_common",
+                    "-s", "etc/init.d-posix/rcS",
+                    "-t", "${workspaceFolder}/test_data"
+                ],
+                "stopAtEntry": false,
+                "cwd": "${workspaceFolder}/build/px4_sitl_default/tmp",
+                "environment": [{"name": "PX4_SIM_MODEL", "value": "shell"}],
+                "externalConsole": false,
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+
+                        "ignoreFailures": true,
+
+                        "text": "handle SIGCONT nostop noprint nopass",
+                    }
+                ]
+            },
+            {
+                "name": "(lldb) Launch (shell)",
+                "type": "cppdbg",
+                "request": "launch",
+                "program": "${command:cmake.launchTargetPath}",
+                "args": [
+                    "${workspaceFolder}/ROMFS/px4fmu_common",
+                    "-s", "etc/init.d-posix/rcS",
+                    "-t", "${workspaceFolder}/test_data"
+                ],
+                "stopAtEntry": false,
+                "cwd": "${workspaceFolder}/build/px4_sitl_default/tmp",
+                "environment": [{"name": "PX4_SIM_MODEL", "value": "shell"}],
+                "externalConsole": true,
+                "MIMode": "lldb",
+                "setupCommands": [
+                    {
+                        "text": "pro hand -p true -s false -n false SIGCONT",
+                    }
+                ]
+            },
+            {
+                "name": "(gdb) Launch (jmavsim iris)",
+                "type": "cppdbg",
+                "request": "launch",
+                "program": "${command:cmake.launchTargetPath}",
+                "args": [
+                    "${workspaceFolder}/ROMFS/px4fmu_common",
+                    "-s", "etc/init.d-posix/rcS",
+                    "-t", "${workspaceFolder}/test_data"
+                ],
+                "stopAtEntry": false,
+                "cwd": "${workspaceFolder}/build/px4_sitl_default/tmp",
+                "environment": [{"name": "PX4_SIM_MODEL", "value": "iris"}],
+                "externalConsole": false,
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+
+                        "ignoreFailures": true,
+
+                        "text": "handle SIGCONT nostop noprint nopass",
+
+                    }
+                ],
+                "preLaunchTask": "jmavsim"
+            },
+            {
+                "name": "(lldb) Launch (jmavsim iris)",
+                "type": "cppdbg",
+                "request": "launch",
+                "program": "${command:cmake.launchTargetPath}",
+                "args": [
+                    "${workspaceFolder}/ROMFS/px4fmu_common",
+                    "-s", "etc/init.d-posix/rcS",
+                    "-t", "${workspaceFolder}/test_data"
+                ],
+                "stopAtEntry": false,
+                "cwd": "${workspaceFolder}/build/px4_sitl_default/tmp",
+                "environment": [{"name": "PX4_SIM_MODEL", "value": "iris"}],
+                "externalConsole": true,
+                "MIMode": "lldb",
+                "preLaunchTask": "jmavsim",
+                "setupCommands": [
+                    {
+                        "text": "pro hand -p true -s false -n false SIGCONT",
+                    }
+                ]
+            },
+            {
+                "name": "(jlink) px4_fmu-v2",
+                "cwd": "${workspaceRoot}",
+                "executable": "${workspaceRoot}/build/px4_fmu-v2_default/px4_fmu-v2_default.elf",
+                "request": "launch",
+                "type": "cortex-debug",
+                "servertype": "jlink",
+                "device": "STM32F427VI",
+                //"svdFile": "",
+                "interface": "swd",
+                "ipAddress": null,
+                "serialNumber": null
+            },
+        ]
+    }

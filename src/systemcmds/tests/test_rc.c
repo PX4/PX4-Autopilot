@@ -61,12 +61,11 @@
 
 int test_rc(int argc, char *argv[])
 {
-
 	int _rc_sub = orb_subscribe(ORB_ID(input_rc));
 
 	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
-	struct rc_input_values	rc_input;
-	struct rc_input_values	rc_last;
+	struct input_rc_s rc_input;
+	struct input_rc_s rc_last;
 	orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
 	usleep(100000);
 

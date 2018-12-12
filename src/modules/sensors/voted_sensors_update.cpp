@@ -148,14 +148,14 @@ void VotedSensorsUpdate::parameters_update()
 	 */
 
 	/* temperature compensation */
-	_temperature_compensation.parameters_update();
+	_temperature_compensation.parameters_update(_hil_enabled);
 
 	/* gyro */
 	for (int topic_instance = 0; topic_instance < GYRO_COUNT_MAX; ++topic_instance) {
 
 		if (topic_instance < _gyro.subscription_count) {
 			// valid subscription, so get the driver id by getting the published sensor data
-			struct gyro_report report;
+			sensor_gyro_s report;
 
 			if (orb_copy(ORB_ID(sensor_gyro), _gyro.subscription[topic_instance], &report) == 0) {
 				int temp = _temperature_compensation.set_sensor_id_gyro(report.device_id, topic_instance);
@@ -179,7 +179,7 @@ void VotedSensorsUpdate::parameters_update()
 
 		if (topic_instance < _accel.subscription_count) {
 			// valid subscription, so get the driver id by getting the published sensor data
-			struct accel_report report;
+			sensor_accel_s report;
 
 			if (orb_copy(ORB_ID(sensor_accel), _accel.subscription[topic_instance], &report) == 0) {
 				int temp = _temperature_compensation.set_sensor_id_accel(report.device_id, topic_instance);
@@ -202,7 +202,7 @@ void VotedSensorsUpdate::parameters_update()
 
 		if (topic_instance < _baro.subscription_count) {
 			// valid subscription, so get the driver id by getting the published sensor data
-			struct baro_report report;
+			sensor_baro_s report;
 
 			if (orb_copy(ORB_ID(sensor_baro), _baro.subscription[topic_instance], &report) == 0) {
 				int temp = _temperature_compensation.set_sensor_id_baro(report.device_id, topic_instance);
@@ -544,13 +544,17 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 		bool accel_updated;
 		orb_check(_accel.subscription[uorb_index], &accel_updated);
 
-		if (accel_updated && _accel.enabled[uorb_index]) {
-			struct accel_report accel_report;
+		if (accel_updated) {
+			sensor_accel_s accel_report;
 
 			int ret = orb_copy(ORB_ID(sensor_accel), _accel.subscription[uorb_index], &accel_report);
 
 			if (ret != PX4_OK || accel_report.timestamp == 0) {
 				continue; //ignore invalid data
+			}
+
+			if (!_accel.enabled[uorb_index]) {
+				continue;
 			}
 
 			// First publication with data
@@ -598,11 +602,9 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 			}
 
 			// handle temperature compensation
-			if (!_hil_enabled) {
-				if (_temperature_compensation.apply_corrections_accel(uorb_index, accel_data, accel_report.temperature,
-						offsets[uorb_index], scales[uorb_index]) == 2) {
-					_corrections_changed = true;
-				}
+			if (_temperature_compensation.apply_corrections_accel(uorb_index, accel_data, accel_report.temperature,
+					offsets[uorb_index], scales[uorb_index]) == 2) {
+				_corrections_changed = true;
 			}
 
 			// rotate corrected measurements from sensor to body frame
@@ -649,13 +651,17 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 		bool gyro_updated;
 		orb_check(_gyro.subscription[uorb_index], &gyro_updated);
 
-		if (gyro_updated && _gyro.enabled[uorb_index]) {
-			struct gyro_report gyro_report;
+		if (gyro_updated) {
+			sensor_gyro_s gyro_report;
 
 			int ret = orb_copy(ORB_ID(sensor_gyro), _gyro.subscription[uorb_index], &gyro_report);
 
 			if (ret != PX4_OK || gyro_report.timestamp == 0) {
 				continue; //ignore invalid data
+			}
+
+			if (!_gyro.enabled[uorb_index]) {
+				continue;
 			}
 
 			// First publication with data
@@ -697,17 +703,15 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 					_last_sensor_data[uorb_index].timestamp = gyro_report.timestamp - 1000;
 				}
 
-				// approximate the  delta time using the difference in gyro data time stamps
+				// approximate the delta time using the difference in gyro data time stamps
 				_last_sensor_data[uorb_index].gyro_integral_dt =
 					(gyro_report.timestamp - _last_sensor_data[uorb_index].timestamp);
 			}
 
 			// handle temperature compensation
-			if (!_hil_enabled) {
-				if (_temperature_compensation.apply_corrections_gyro(uorb_index, gyro_rate, gyro_report.temperature,
-						offsets[uorb_index], scales[uorb_index]) == 2) {
-					_corrections_changed = true;
-				}
+			if (_temperature_compensation.apply_corrections_gyro(uorb_index, gyro_rate, gyro_report.temperature,
+					offsets[uorb_index], scales[uorb_index]) == 2) {
+				_corrections_changed = true;
 			}
 
 			// rotate corrected measurements from sensor to body frame
@@ -752,13 +756,17 @@ void VotedSensorsUpdate::mag_poll(vehicle_magnetometer_s &magnetometer)
 		bool mag_updated;
 		orb_check(_mag.subscription[uorb_index], &mag_updated);
 
-		if (mag_updated && _mag.enabled[uorb_index]) {
+		if (mag_updated) {
 			struct mag_report mag_report;
 
 			int ret = orb_copy(ORB_ID(sensor_mag), _mag.subscription[uorb_index], &mag_report);
 
 			if (ret != PX4_OK || mag_report.timestamp == 0) {
 				continue; //ignore invalid data
+			}
+
+			if (!_mag.enabled[uorb_index]) {
+				continue;
 			}
 
 			// First publication with data
@@ -805,7 +813,7 @@ void VotedSensorsUpdate::baro_poll(vehicle_air_data_s &airdata)
 		orb_check(_baro.subscription[uorb_index], &baro_updated);
 
 		if (baro_updated) {
-			struct baro_report baro_report;
+			sensor_baro_s baro_report;
 
 			int ret = orb_copy(ORB_ID(sensor_baro), _baro.subscription[uorb_index], &baro_report);
 
@@ -817,11 +825,9 @@ void VotedSensorsUpdate::baro_poll(vehicle_air_data_s &airdata)
 			float corrected_pressure = 100.0f * baro_report.pressure;
 
 			// handle temperature compensation
-			if (!_hil_enabled) {
-				if (_temperature_compensation.apply_corrections_baro(uorb_index, corrected_pressure, baro_report.temperature,
-						offsets[uorb_index], scales[uorb_index]) == 2) {
-					_corrections_changed = true;
-				}
+			if (_temperature_compensation.apply_corrections_baro(uorb_index, corrected_pressure, baro_report.temperature,
+					offsets[uorb_index], scales[uorb_index]) == 2) {
+				_corrections_changed = true;
 			}
 
 			// First publication with data
@@ -972,14 +978,15 @@ bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_n
 void VotedSensorsUpdate::init_sensor_class(const struct orb_metadata *meta, SensorData &sensor_data,
 		uint8_t sensor_count_max)
 {
-	unsigned group_count = orb_group_count(meta);
+	int max_sensor_index = -1;
 
-	if (group_count > sensor_count_max) {
-		PX4_WARN("Detected %u %s sensors, but will only use %u", group_count, meta->o_name, sensor_count_max);
-		group_count = sensor_count_max;
-	}
+	for (unsigned i = 0; i < sensor_count_max; i++) {
+		if (orb_exists(meta, i) != 0) {
+			continue;
+		}
 
-	for (unsigned i = 0; i < group_count; i++) {
+		max_sensor_index = i;
+
 		if (sensor_data.subscription[i] < 0) {
 			sensor_data.subscription[i] = orb_subscribe_multi(meta, i);
 
@@ -992,7 +999,10 @@ void VotedSensorsUpdate::init_sensor_class(const struct orb_metadata *meta, Sens
 		}
 	}
 
-	sensor_data.subscription_count = group_count;
+	// never decrease the sensor count, as we could end up with mismatching validators
+	if (max_sensor_index + 1 > sensor_data.subscription_count) {
+		sensor_data.subscription_count = max_sensor_index + 1;
+	}
 }
 
 void VotedSensorsUpdate::print_status()
@@ -1012,7 +1022,7 @@ void VotedSensorsUpdate::print_status()
 bool
 VotedSensorsUpdate::apply_gyro_calibration(DevHandle &h, const struct gyro_calibration_s *gcal, const int device_id)
 {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#if defined(__PX4_NUTTX)
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
 	return !h.ioctl(GYROIOCSSCALE, (long unsigned int)gcal);
@@ -1026,7 +1036,7 @@ VotedSensorsUpdate::apply_gyro_calibration(DevHandle &h, const struct gyro_calib
 bool
 VotedSensorsUpdate::apply_accel_calibration(DevHandle &h, const struct accel_calibration_s *acal, const int device_id)
 {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP)
+#if defined(__PX4_NUTTX)
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
 	return !h.ioctl(ACCELIOCSSCALE, (long unsigned int)acal);
@@ -1040,7 +1050,7 @@ VotedSensorsUpdate::apply_accel_calibration(DevHandle &h, const struct accel_cal
 bool
 VotedSensorsUpdate::apply_mag_calibration(DevHandle &h, const struct mag_calibration_s *mcal, const int device_id)
 {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX)
+#if defined(__PX4_NUTTX)
 
 	if (!h.isValid()) {
 		return false;
@@ -1064,7 +1074,7 @@ void VotedSensorsUpdate::sensors_poll(sensor_combined_s &raw, vehicle_air_data_s
 	baro_poll(airdata);
 
 	// publish sensor corrections if necessary
-	if (!_hil_enabled && _corrections_changed) {
+	if (_corrections_changed) {
 		_corrections.timestamp = hrt_absolute_time();
 
 		if (_sensor_correction_pub == nullptr) {

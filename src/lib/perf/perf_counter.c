@@ -608,7 +608,7 @@ perf_print_latency(int fd)
 	dprintf(fd, "bucket [us] : events\n");
 
 	for (int i = 0; i < latency_bucket_count; i++) {
-		printf("       %4i : %li\n", latency_buckets[i], (long int)latency_counters[i]);
+		dprintf(fd, "       %4i : %li\n", latency_buckets[i], (long int)latency_counters[i]);
 	}
 
 	// print the overflow bucket value

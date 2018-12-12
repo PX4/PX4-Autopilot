@@ -47,15 +47,6 @@
 #include <systemlib/px4_macros.h>
 #include <stdint.h>
 
-/* The preferred method for publishing a board name is to
- * define it in board_config.h as BOARD_NAME
- */
-
-#ifndef BOARD_NAME
-#  error "board_config.h must define BOARD_NAME"
-#endif
-
-
 __BEGIN_DECLS
 
 /**
@@ -63,7 +54,7 @@ __BEGIN_DECLS
  */
 static inline const char *px4_board_name(void)
 {
-	return BOARD_NAME;
+	return PX4_BOARD_NAME;
 }
 
 /**
@@ -93,10 +84,7 @@ static inline int px4_board_hw_revision(void)
 /**
  * get the build URI (used for crash logging)
  */
-static inline const char *px4_build_uri(void)
-{
-	return STRINGIFY(BUILD_URI);
-}
+const char *px4_build_uri(void);
 
 /**
  * Convert a version tag string to a number

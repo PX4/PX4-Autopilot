@@ -1,3 +1,4 @@
+uint64 timestamp		# time since system start (microseconds)
 
 # rates used by the controller
 float32 rollspeed		# Bias corrected angular velocity about X body axis in rad/s

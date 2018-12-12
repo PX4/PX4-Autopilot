@@ -15,6 +15,7 @@
 @#  - md5sum (String) MD5Sum of the .msg specification
 @#  - search_path (dict) search paths for genmsg
 @#  - topics (List of String) multi-topic names
+@#  - ids (List) list of all RTPS msg ids
 @###############################################
 /****************************************************************************
  *
@@ -110,8 +111,6 @@ struct __EXPORT @(uorb_struct) {
 #else
 struct @(uorb_struct) {
 #endif
-@# timestamp at the beginning of each topic is required for logger
-	uint64_t timestamp; // required for logger
 @print_parsed_fields()
 
 #ifdef __cplusplus

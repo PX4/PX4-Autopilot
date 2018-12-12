@@ -32,7 +32,7 @@
 ############################################################################
 
 # skip for px4_layer support on an IO board
-if (NOT ${BOARD} MATCHES "px4io")
+if (NOT ${PX4_BOARD} MATCHES "px4_io")
 
 	add_library(px4_layer
 		px4_nuttx_tasks.c

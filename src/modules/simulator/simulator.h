@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2018 PX4 Pro Dev Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,7 +44,9 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/irlock_report.h>
@@ -244,16 +247,13 @@ private:
 		_gyro_pub(nullptr),
 		_mag_pub(nullptr),
 		_flow_pub(nullptr),
-		_vision_position_pub(nullptr),
-		_vision_attitude_pub(nullptr),
+		_visual_odometry_pub(nullptr),
 		_dist_pub(nullptr),
 		_battery_pub(nullptr),
 		_param_sub(-1),
 		_initialized(false),
 		_realtime_factor(1.0),
-		_system_type(0)
 #ifndef __PX4_QURT
-		,
 		_rc_channels_pub(nullptr),
 		_attitude_pub(nullptr),
 		_gpos_pub(nullptr),
@@ -275,11 +275,6 @@ private:
 		_vehicle_status{}
 #endif
 	{
-		// We need to know the type for the correct mapping from
-		// actuator controls to the hil actuator message.
-		param_t param_system_type = param_find("MAV_TYPE");
-		param_get(param_system_type, &_system_type);
-
 		for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++)
 		{
 			_actuator_outputs_sub[i] = -1;
@@ -330,8 +325,7 @@ private:
 	orb_advert_t _gyro_pub;
 	orb_advert_t _mag_pub;
 	orb_advert_t _flow_pub;
-	orb_advert_t _vision_position_pub;
-	orb_advert_t _vision_attitude_pub;
+	orb_advert_t _visual_odometry_pub;
 	orb_advert_t _dist_pub;
 	orb_advert_t _battery_pub;
 	orb_advert_t _irlock_report_pub;
@@ -347,13 +341,10 @@ private:
 	Battery _battery;
 	battery_status_s _battery_status{};
 
-	// For param MAV_TYPE
-	int32_t _system_type;
-
 	// class methods
 	int publish_sensor_topics(mavlink_hil_sensor_t *imu);
 	int publish_flow_topic(mavlink_hil_optical_flow_t *flow);
-	int publish_ev_topic(mavlink_vision_position_estimate_t *ev_mavlink);
+	int publish_odometry_topic(mavlink_message_t *odom_mavlink);
 	int publish_distance_topic(mavlink_distance_sensor_t *dist);
 
 #ifndef __PX4_QURT
@@ -378,14 +369,16 @@ private:
 	uint64_t _hil_ref_timestamp;
 
 	// uORB data containers
-	struct rc_input_values _rc_input;
+	struct input_rc_s _rc_input;
 	struct actuator_outputs_s _actuators[ORB_MULTI_MAX_INSTANCES];
 	struct vehicle_attitude_s _attitude;
 	struct manual_control_setpoint_s _manual;
 	struct vehicle_status_s _vehicle_status;
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _battery_drain_interval_s ///< battery drain interval
+		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _battery_drain_interval_s, ///< battery drain interval
+		(ParamInt<px4::params::MAV_TYPE>) _param_system_type
+
 	)
 
 	void poll_topics();

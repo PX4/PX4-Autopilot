@@ -43,7 +43,7 @@ PARAM_DEFINE_INT32(CAL_ACC0_ID, 0);
  * Accelerometer 0 enabled
  *
  * @boolean
- * @category developer
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_ACC0_EN, 1);

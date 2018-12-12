@@ -98,7 +98,6 @@ private:
 	int			_main_task;				/**< handle for task */
 
 	int			_trigger_sub;
-	int			_lpos_sub;
 	int			_gpos_sub;
 	int			_att_sub;
 
@@ -113,6 +112,6 @@ private:
 	/**
 	 * Shim for calling task_main from task_create.
 	 */
-	static void	task_main_trampoline(int argc, char *argv[]);
+	static int	task_main_trampoline(int argc, char *argv[]);
 
 };

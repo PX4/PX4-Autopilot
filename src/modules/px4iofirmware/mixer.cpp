@@ -249,10 +249,12 @@ mixer_tick(void)
 	}
 
 	/*
-	 * Set simple mixer trim values
-	 * (there should be a "dirty" flag to indicate that r_page_servo_control_trim has changed)
+	 * Set simple mixer trim values. If the OK flag is set the mixer is fully loaded.
 	 */
-	mixer_group.set_trims(r_page_servo_control_trim, PX4IO_SERVO_COUNT);
+	if (update_trims && r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK) {
+		update_trims = false;
+		mixer_group.set_trims(r_page_servo_control_trim, PX4IO_SERVO_COUNT);
+	}
 
 	/*
 	 * Update air-mode parameter
@@ -289,7 +291,6 @@ mixer_tick(void)
 			mixer_group.set_max_delta_out_once(delta_out_max);
 		}
 
-		/* mix */
 		/* update parameter for mc thrust model if it updated */
 		if (update_mc_thrust_param) {
 			mixer_group.set_thrust_factor(REG_TO_FLOAT(r_setup_thr_fac));
@@ -550,6 +551,10 @@ mixer_handle_text(const void *buffer, size_t length)
 
 	/* disable mixing, will be enabled once load is complete */
 	PX4_ATOMIC_MODIFY_CLEAR(r_status_flags, PX4IO_P_STATUS_FLAGS_MIXER_OK);
+
+	/* set the update flags to dirty so we reload those values after a mixer change */
+	update_trims = true;
+	update_mc_thrust_param = true;
 
 	/* abort if we're in the mixer - the caller is expected to retry */
 	if (in_mixer) {

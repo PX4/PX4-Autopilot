@@ -150,9 +150,6 @@ protected:
 	orb_advert_t _landDetectedPub{nullptr};
 	vehicle_land_detected_s _landDetected{};
 
-	int _parameterSub{-1};
-	int _armingSub{-1};
-
 	LandDetectionState _state{LandDetectionState::LANDED};
 
 	systemlib::Hysteresis _freefall_hysteresis{false};
@@ -181,6 +178,9 @@ private:
 	perf_counter_t	_cycle_perf;
 
 	bool _previous_arming_state{false}; ///< stores the previous _arming.armed state
+
+	int _parameterSub{-1};
+	int _armingSub{-1};
 };
 
 

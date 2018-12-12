@@ -35,8 +35,10 @@
 #define _uORBManager_hpp_
 
 #include "uORBCommon.hpp"
-#include "uORBDevices.hpp"
+#include "uORBDeviceMaster.hpp"
+
 #include <stdint.h>
+
 #ifdef __PX4_NUTTX
 #include "ORBSet.hpp"
 #else
@@ -186,6 +188,9 @@ public:
 	 * in order to wait for updates to a topic, as well as topic_read,
 	 * orb_check and orb_stat.
 	 *
+	 * If there were any publications of the topic prior to the subscription,
+	 * an orb_check right after orb_subscribe will return true.
+	 *
 	 * Subscription will succeed even if the topic has not been advertised;
 	 * in this case the topic will have a timestamp of zero, it will never
 	 * signal a poll() event, checking will always return false and it cannot
@@ -212,6 +217,9 @@ public:
 	 * The returned value is a file descriptor that can be passed to poll()
 	 * in order to wait for updates to a topic, as well as topic_read,
 	 * orb_check and orb_stat.
+	 *
+	 * If there were any publications of the topic prior to the subscription,
+	 * an orb_check right after orb_subscribe_multi will return true.
 	 *
 	 * Subscription will succeed even if the topic has not been advertised;
 	 * in this case the topic will have a timestamp of zero, it will never
@@ -390,7 +398,7 @@ private: // class methods
 	 * Handles creation of the object and the initial publication for
 	 * advertisers.
 	 */
-	int node_open(const struct orb_metadata *meta, const void *data, bool advertiser, int *instance = nullptr,
+	int node_open(const struct orb_metadata *meta, bool advertiser, int *instance = nullptr,
 		      int priority = ORB_PRIO_DEFAULT);
 
 private: // data members

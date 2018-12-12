@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <poll.h>
+#include <lib/cdev/CDev.hpp>
 
 ORB_DEFINE(orb_test, struct orb_test, sizeof(orb_test), "ORB_TEST:int val;hrt_abstime time;");
 ORB_DEFINE(orb_multitest, struct orb_test, sizeof(orb_test), "ORB_MULTITEST:int val;hrt_abstime time;");
@@ -88,9 +89,12 @@ int uORBTest::UnitTest::pubsublatency_main()
 
 	const unsigned maxruns = 1000;
 	unsigned timingsgroup = 0;
+	int current_value = t.val;
+	int num_missed = 0;
 
 	// timings has to be on the heap to keep frame size below 2048 bytes
 	unsigned *timings = new unsigned[maxruns];
+	unsigned timing_min = 9999999, timing_max = 0;
 
 	for (unsigned i = 0; i < maxruns; i++) {
 		/* wait for up to 500ms for data */
@@ -110,13 +114,24 @@ int uORBTest::UnitTest::pubsublatency_main()
 		}
 
 		if (pret < 0) {
-			warn("poll error %d, %d", pret, errno);
+			PX4_ERR("poll error %d, %d", pret, errno);
 			continue;
 		}
 
-		hrt_abstime elt = hrt_elapsed_time(&t.time);
+		num_missed += t.val - current_value - 1;
+		current_value = t.val;
+
+		unsigned elt = (unsigned)hrt_elapsed_time(&t.time);
 		latency_integral += elt;
 		timings[i] = elt;
+
+		if (elt > timing_max) {
+			timing_max = elt;
+		}
+
+		if (elt < timing_min) {
+			timing_min = elt;
+		}
 	}
 
 	orb_unsubscribe(test_multi_sub);
@@ -125,11 +140,11 @@ int uORBTest::UnitTest::pubsublatency_main()
 
 	if (pubsubtest_print) {
 		char fname[32];
-		sprintf(fname, PX4_ROOTFSDIR"/fs/microsd/timings%u.txt", timingsgroup);
+		sprintf(fname, PX4_STORAGEDIR"/uorb_timings%u.txt", timingsgroup);
 		FILE *f = fopen(fname, "w");
 
 		if (f == nullptr) {
-			warnx("Error opening file!\n");
+			PX4_ERR("Error opening file!");
 			delete[] timings;
 			return PX4_ERROR;
 		}
@@ -141,9 +156,22 @@ int uORBTest::UnitTest::pubsublatency_main()
 		fclose(f);
 	}
 
+
+	float std_dev = 0.f;
+	float mean = latency_integral / maxruns;
+
+	for (unsigned i = 0; i < maxruns; i++) {
+		float diff = (float)timings[i] - mean;
+		std_dev += diff * diff;
+	}
+
 	delete[] timings;
 
-	warnx("mean: %8.4f us", static_cast<double>(latency_integral / maxruns));
+	PX4_INFO("mean:    %8.4f us", static_cast<double>(mean));
+	PX4_INFO("std dev: %8.4f us", static_cast<double>(sqrtf(std_dev / (maxruns - 1))));
+	PX4_INFO("min:     %3i us", timing_min);
+	PX4_INFO("max:     %3i us", timing_max);
+	PX4_INFO("missed topic updates: %i", num_missed);
 
 	pubsubtest_passed = true;
 
@@ -252,7 +280,7 @@ int uORBTest::UnitTest::test_single()
 		return test_fail("advertise failed: %d", errno);
 	}
 
-	test_note("publish handle 0x%08x", ptopic);
+	test_note("publish handle %p", ptopic);
 	sfd = orb_subscribe(ORB_ID(orb_test));
 
 	if (sfd < 0) {
@@ -478,7 +506,7 @@ int uORBTest::UnitTest::test_multi2()
 	int pubsub_task = px4_task_spawn_cmd("uorb_test_multi",
 					     SCHED_DEFAULT,
 					     SCHED_PRIORITY_MAX - 5,
-					     1500,
+					     2000,
 					     (px4_main_t)&uORBTest::UnitTest::pub_test_multi2_entry,
 					     args);
 

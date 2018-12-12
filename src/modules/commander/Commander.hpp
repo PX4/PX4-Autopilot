@@ -35,17 +35,18 @@
 #define COMMANDER_HPP_
 
 #include "state_machine_helper.h"
+#include "failure_detector/FailureDetector.hpp"
 
-#include <controllib/blocks.hpp>
+#include <lib/controllib/blocks.hpp>
+#include <lib/mathlib/mathlib.h>
 #include <px4_module.h>
 #include <px4_module_params.h>
-#include <mathlib/mathlib.h>
+#include <systemlib/hysteresis/hysteresis.h>
 
 // publications
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
@@ -53,7 +54,9 @@
 
 // subscriptions
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
+#include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_command.h>
@@ -70,6 +73,7 @@ class Commander : public ModuleBase<Commander>, public ModuleParams
 {
 public:
 	Commander();
+	~Commander();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -103,7 +107,10 @@ private:
 
 		(ParamInt<px4::params::COM_POS_FS_DELAY>) _failsafe_pos_delay,
 		(ParamInt<px4::params::COM_POS_FS_PROB>) _failsafe_pos_probation,
-		(ParamInt<px4::params::COM_POS_FS_GAIN>) _failsafe_pos_gain
+		(ParamInt<px4::params::COM_POS_FS_GAIN>) _failsafe_pos_gain,
+
+		(ParamInt<px4::params::COM_LOW_BAT_ACT>) _low_bat_action,
+		(ParamFloat<px4::params::COM_DISARM_LAND>) _disarm_when_landed_timeout
 	)
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
@@ -118,10 +125,20 @@ private:
 	hrt_abstime	_lpos_probation_time_us = POSVEL_PROBATION_MIN;
 	hrt_abstime	_lvel_probation_time_us = POSVEL_PROBATION_MIN;
 
-	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd,
-			    actuator_armed_s *armed, home_position_s *home, orb_advert_t *home_pub, orb_advert_t *command_ack_pub, bool *changed);
+	/* class variables used to check for navigation failure after takeoff */
+	hrt_abstime	_time_at_takeoff{0};		/**< last time we were on the ground */
+	hrt_abstime	_time_last_innov_pass{0};	/**< last time velocity or position innovations passed */
+	bool		_nav_test_passed{false};	/**< true if the post takeoff navigation test has passed */
+	bool		_nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
 
-	bool set_home_position(orb_advert_t &homePub, home_position_s &home, bool set_alt_only_to_lpos_ref);
+	FailureDetector _failure_detector;
+	bool _failure_detector_termination_printed{false};
+
+	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd, actuator_armed_s *armed,
+			    orb_advert_t *command_ack_pub, bool *changed);
+
+	bool set_home_position();
+	bool set_home_position_alt_only();
 
 	// Set the main system state based on RC and override device inputs
 	transition_result_t set_main_state(const vehicle_status_s &status, bool *changed);
@@ -132,12 +149,8 @@ private:
 	// Set the system main state based on the current RC inputs
 	transition_result_t set_main_state_rc(const vehicle_status_s &status, bool *changed);
 
-	// Set the main system state based on RC and override device inputs
-	transition_result_t set_main_state(vehicle_status_s *status, bool *changed);
-	transition_result_t set_main_state_override_on(vehicle_status_s *status, bool *changed);
-	transition_result_t set_main_state_rc(vehicle_status_s *status, bool *changed);
-
-	void check_valid(const hrt_abstime &timestamp, const hrt_abstime &timeout, const bool valid_in, bool *valid_out, bool *changed);
+	void check_valid(const hrt_abstime &timestamp, const hrt_abstime &timeout, const bool valid_in, bool *valid_out,
+			 bool *changed);
 
 	bool check_posvel_validity(const bool data_valid, const float data_accuracy, const float required_accuracy,
 				   const hrt_abstime &data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us, bool *valid_state,
@@ -169,11 +182,24 @@ private:
 		bool high_latency = false;
 	} _telemetry[ORB_MULTI_MAX_INSTANCES];
 
+	void estimator_check(bool *status_changed);
+
+	int _battery_sub{-1};
+	uint8_t _battery_warning{battery_status_s::BATTERY_WARNING_NONE};
+	float _battery_current{0.0f};
+
+	void battery_status_check();
+
 	// Subscriptions
-	Subscription<mission_result_s>			_mission_result_sub;
-	Subscription<vehicle_global_position_s>		_global_position_sub;
-	Subscription<vehicle_local_position_s>		_local_position_sub;
-	Subscription<iridiumsbd_status_s> 		_iridiumsbd_status_sub;
+	Subscription<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
+	Subscription<iridiumsbd_status_s> 		_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
+	Subscription<mission_result_s>			_mission_result_sub{ORB_ID(mission_result)};
+	Subscription<vehicle_global_position_s>		_global_position_sub{ORB_ID(vehicle_global_position)};
+	Subscription<vehicle_local_position_s>		_local_position_sub{ORB_ID(vehicle_local_position)};
+
+	Publication<home_position_s>			_home_pub{ORB_ID(home_position)};
+
+	orb_advert_t					_status_pub{nullptr};
 };
 
 #endif /* COMMANDER_HPP_ */

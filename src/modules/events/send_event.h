@@ -48,55 +48,101 @@ namespace events
 
 extern "C" __EXPORT int send_event_main(int argc, char *argv[]);
 
+/** @class SendEvent The SendEvent class manages the RC loss audible alarm, LED status display, and thermal calibration. */
 class SendEvent : public ModuleBase<SendEvent>, public ModuleParams
 {
 public:
+
 	SendEvent();
+
 	~SendEvent();
 
 	/**
-	 * Initialize class in the same context as the work queue. And start the background listener.
-	 * @return 0 if successful, <0 on error */
-	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
+	 * @see ModuleBase
+	 * @brief Recognizes custom startup commands, called from the main() function entry.
+	 * @param argc The task argument count.
+	 * @param argc Pointer to the task argument variable array.
+	 * @return Returns 0 iff successful, otherwise < 0 on error.
+	 */
 	static int custom_command(int argc, char *argv[]);
 
-	/** @see ModuleBase */
+	/**
+	 * @see ModuleBase
+	 * @brief Prints usage options to the console.
+	 * @param reason The requested usage reason for printing to console.
+	 * @return Returns 0 iff successful, -1 otherwise.
+	 */
 	static int print_usage(const char *reason = nullptr);
+
+	/**
+	 * @brief Spawns and initializes the class in the same context as the
+	 *        work queue and starts the background listener.
+	 * @param argc The input argument count.
+	 * @param argv Pointer to the input argument array.
+	 * @return Returns 0 iff successful, -1 otherwise.
+	 */
+	static int task_spawn(int argc, char *argv[]);
 
 private:
 
-	/** Start background listening for commands
-	 *
-	 * @return 0 if successful, <0 on error. */
-	int start();
-
-
-	/** Trampoline for initialisation. */
-	static void initialize_trampoline(void *arg);
-	/** Trampoline for the work queue. */
-	static void cycle_trampoline(void *arg);
-
-	/** call process_commands() and schedule the next cycle. */
-	void cycle();
-
-	/** check for new commands and process them. */
-	void process_commands();
-
-	/** return an ACK to a vehicle_command */
+	/**
+	 * @brief Returns an ACK to a vehicle_command.
+	 * @param cmd The vehicle command struct being referenced.
+	 * @param result The command acknowledgement result.
+	 */
 	void answer_command(const vehicle_command_s &cmd, unsigned result);
 
+	/**
+	 * @brief Process cycle trampoline for the work queue.
+	 * @param arg Pointer to the task startup arguments.
+	 */
+	static void cycle_trampoline(void *arg);
+
+	/**
+	 * @brief Calls process_commands() and schedules the next cycle.
+	 */
+	void cycle();
+
+	/**
+	 * @brief Trampoline for initialisation.
+	 * @param arg Pointer to the task startup arguments.
+	 */
+	static void initialize_trampoline(void *arg);
+
+	/**
+	 * @brief Checks for new commands and processes them.
+	 */
+	void process_commands();
+
+	/**
+	 * @brief Starts background task listening for commands.
+	 * @return Returns 0 iff successful, otherwise < 0 on error.
+	 */
+	int start();
+
+	/** @struct _work The work queue struct. */
 	static struct work_s _work;
+
+	/** @var _subscriber_handler The uORB subscriber handler. */
 	SubscriberHandler _subscriber_handler;
+
+	/** @var _status_display Pointer to the status display object. */
 	status::StatusDisplay *_status_display = nullptr;
+
+	/** @var _rc_loss_alarm Pointer to the RC loss alarm object. */
 	rc_loss::RC_Loss_Alarm *_rc_loss_alarm = nullptr;
+
+	/** @var _command_ack_pub The command ackowledgement topic. */
 	orb_advert_t _command_ack_pub = nullptr;
 
+	/** @note Declare local parameters using defined parameters. */
 	DEFINE_PARAMETERS(
+		/** @var _param_status_display Parameter to enable/disable the LED status display. */
 		(ParamBool<px4::params::EV_TSK_STAT_DIS>) _param_status_display,
+
+		/** @var _param_rc_loss The RC comms loss status flag. */
 		(ParamBool<px4::params::EV_TSK_RC_LOSS>) _param_rc_loss
 	)
 };
 
-} /* namespace events */
+} // namespace events

@@ -154,6 +154,7 @@ struct sys_state_s {
 extern struct sys_state_s system_state;
 extern float dt;
 extern bool update_mc_thrust_param;
+extern bool update_trims;
 
 /*
  * PWM limit structure

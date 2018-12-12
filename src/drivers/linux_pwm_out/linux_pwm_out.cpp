@@ -58,6 +58,7 @@
 #include "navio_sysfs.h"
 #include "PCA9685.h"
 #include "ocpoc_mmap.h"
+#include "bbblue_pwm_rc.h"
 
 namespace linux_pwm_out
 {
@@ -232,6 +233,13 @@ void task_main(int argc, char *argv[])
 	} else if (strcmp(_protocol, "ocpoc_mmap") == 0) {
 		PX4_INFO("Starting PWM output in ocpoc_mmap mode");
 		pwm_out = new OcpocMmapPWMOut(_max_num_outputs);
+
+#ifdef __DF_BBBLUE
+
+	} else if (strcmp(_protocol, "bbblue_rc") == 0) {
+		PX4_INFO("Starting PWM output in bbblue_rc mode");
+		pwm_out = new BBBlueRcPWMOut(_max_num_outputs);
+#endif
 
 	} else { /* navio */
 		PX4_INFO("Starting PWM output in Navio mode");
@@ -493,7 +501,7 @@ void usage()
 	PX4_INFO("                       (default /sys/class/pwm/pwmchip0)");
 	PX4_INFO("       -m mixerfile : path to mixerfile");
 	PX4_INFO("                       (default ROMFS/px4fmu_common/mixers/quad_x.main.mix)");
-	PX4_INFO("       -p protocol : driver output protocol (navio|pca9685|ocpoc_mmap)");
+	PX4_INFO("       -p protocol : driver output protocol (navio|pca9685|ocpoc_mmap|bbblue_rc)");
 	PX4_INFO("                       (default is navio)");
 	PX4_INFO("       -n num_outputs : maximum number of outputs the driver should use");
 	PX4_INFO("                       (default is 8)");

@@ -71,7 +71,6 @@ unsigned int sleep(unsigned int sec)
 }
 
 extern void hrt_init(void);
-extern void init_params();
 
 #if 0
 void qurt_log(const char *fmt, ...)
@@ -108,9 +107,6 @@ void init_once(void)
 	hrt_work_queue_init();
 	hrt_init();
 	param_init();
-
-	/* Shared memory param sync*/
-	init_params();
 }
 
 void init(int argc, char *argv[], const char *app_name)

@@ -1,0 +1,57 @@
+# Build version
+version: "{build}"
+# shallow clone the main repo
+clone_depth: 1
+
+branches:
+  only:
+  - master
+  - beta
+  - stable
+
+# Build worker image (build VM template)
+image: Visual Studio 2017
+
+# build platform, i.e. Win32 (instead of x86), x64, Any CPU. This setting is optional.
+platform:
+- x64
+
+# scripts that are called at very beginning, before repo cloning
+init:
+- ver
+
+install:
+# if the toolchain wasn't restored from build cache download and install it
+- ps: >-
+    if (-not (Test-Path C:\PX4)) {
+        Invoke-WebRequest https://s3-us-west-2.amazonaws.com/px4-tools/PX4+Windows+Cygwin+Toolchain/PX4+Windows+Cygwin+Toolchain+0.5.msi -OutFile C:\Toolchain.msi
+        Start-Process -Wait msiexec -ArgumentList '/I C:\Toolchain.msi /quiet /qn /norestart /log C:\install.log'
+    }
+
+# Note: using Start-Process -Wait is important
+# because otherwise the install begins but non-blocking and the result cannot be used just after
+
+build_script:
+# FIXME Temporary we need to create the home folder because it's not contained in installer 0.5 and CI fails if it doesn't exist
+- if not exist "C:\PX4\home" mkdir C:\PX4\home
+# setup the environmental variables to work within the installed cygwin toolchain
+- call C:\PX4\toolchain\scripts\setup-environment.bat x
+# safe the repopath for switching to it in cygwin bash
+- for /f %%i in ('cygpath -u %%CD%%') do set repopath=%%i
+# fetch all submodules in parallel
+- call bash --login -c "cd $repopath && git submodule -q update --init --recursive --jobs=10"
+# make SITL
+- call bash --login -c "cd $repopath && make px4_sitl_default"
+# make pixracer to check NuttX build
+- call bash --login -c "cd $repopath && make px4_fmu-v4_default"
+# run tests
+- call bash --login -c "cd $repopath && make tests"
+
+# Note: using bash --login is important
+# because otherwise certain things (like python; import numpy) do not work
+
+cache:
+# cache the entire toolchain installation folder to avoid
+# downloading it from AWS S3 and installing the MSI each time
+# it's ~1.8GB > 1GB free limit for build caches
+- C:\PX4 -> appveyor.yml

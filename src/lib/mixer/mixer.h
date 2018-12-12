@@ -461,12 +461,12 @@ public:
 	virtual void 			set_offset(float trim) {}
 	unsigned set_trim(float trim)
 	{
-		return 0;
+		return 1;
 	}
 
 	unsigned get_trim(float *trim)
 	{
-		return 0;
+		return 1;
 	}
 
 };
@@ -783,7 +783,7 @@ public:
 
 	unsigned get_trim(float *trim)
 	{
-		return 0;
+		return 4;
 	}
 
 private:

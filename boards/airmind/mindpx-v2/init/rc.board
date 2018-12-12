@@ -1,0 +1,49 @@
+#!nsh
+#
+# Airmind Mindpx-v2 specific board init
+#
+#------------------------------------------------------------------------------
+#
+# UART mapping:
+#
+# UART1         /dev/ttyS0      wifi
+# USART2        /dev/ttyS1      TELEM1 (flow control)
+# USART3        /dev/ttyS2      TELEM2 (flow control)
+# UART4
+# UART7                         CONSOLE
+# UART8         /dev/ttyS6      SERIAL4/TELEM4
+#
+#------------------------------------------------------------------------------
+#
+
+# We know there are sketchy boards out there
+# as chinese companies produce Pixracers without
+# fully understanding the critical parts of the
+# schematic and BOM, leading to sensor brownouts
+# on boot. Original Pixracers following the
+# open hardware design do not require this.
+fmu sensor_reset 50
+
+if [ $AUTOCNF = yes ]
+then
+	# Disable safety switch by default
+	param set CBRK_IO_SAFETY 22027
+
+	param set SYS_FMU_TASK 1
+fi
+
+set MIXER_AUX none
+
+
+# External I2C bus
+hmc5883 -C -T -X start
+
+# Internal I2C bus
+hmc5883 -C -T -I -R 12 start
+
+mpu6000 -s -R 8 start
+mpu9250 -s -R 8 start
+lsm303d -R 10 start
+l3gd20 -R 14 start
+
+px4flow start &

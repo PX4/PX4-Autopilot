@@ -48,12 +48,12 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/collision_report.h>
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/debug_value.h>
 #include <uORB/topics/debug_vect.h>
+#include <uORB/topics/debug_array.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/follow_target.h>
 #include <uORB/topics/gps_inject_data.h>
@@ -79,6 +79,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -134,8 +135,6 @@ private:
 	void handle_message_att_pos_mocap(mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
 	void handle_message_gps_global_origin(mavlink_message_t *msg);
-	void handle_message_attitude_quaternion_cov(mavlink_message_t *msg);
-	void handle_message_local_position_ned_cov(mavlink_message_t *msg);
 	void handle_message_set_position_target_local_ned(mavlink_message_t *msg);
 	void handle_message_set_actuator_control_target(mavlink_message_t *msg);
 	void handle_message_set_attitude_target(mavlink_message_t *msg);
@@ -158,10 +157,12 @@ private:
 	void handle_message_logging_ack(mavlink_message_t *msg);
 	void handle_message_play_tune(mavlink_message_t *msg);
 	void handle_message_obstacle_distance(mavlink_message_t *msg);
-	void handle_message_trajectory(mavlink_message_t *msg);
+	void handle_message_trajectory_representation_waypoints(mavlink_message_t *msg);
+	void handle_message_odometry(mavlink_message_t *msg);
 	void handle_message_named_value_float(mavlink_message_t *msg);
 	void handle_message_debug(mavlink_message_t *msg);
 	void handle_message_debug_vect(mavlink_message_t *msg);
+	void handle_message_debug_float_array(mavlink_message_t *msg);
 
 	void *receive_thread(void *arg);
 
@@ -203,6 +204,7 @@ private:
 	MavlinkTimesync		_mavlink_timesync;
 
 	mavlink_status_t _status; ///< receiver status, used for mavlink_parse_char()
+	struct vehicle_attitude_s _att;
 	struct vehicle_local_position_s _hil_local_pos;
 	struct vehicle_land_detected_s _hil_land_detector;
 	struct vehicle_control_mode_s _control_mode;
@@ -222,14 +224,13 @@ private:
 	orb_advert_t _flow_distance_sensor_pub;
 	orb_advert_t _distance_sensor_pub;
 	orb_advert_t _offboard_control_mode_pub;
-	orb_advert_t _actuator_controls_pub;
+	orb_advert_t _actuator_controls_pubs[4];
 	orb_advert_t _att_sp_pub;
 	orb_advert_t _rates_sp_pub;
 	orb_advert_t _pos_sp_triplet_pub;
-	orb_advert_t _att_pos_mocap_pub;
-	orb_advert_t _vision_position_pub;
-	orb_advert_t _vision_attitude_pub;
-	orb_advert_t _telemetry_status_pub;
+	orb_advert_t _mocap_odometry_pub;
+	orb_advert_t _visual_odometry_pub;
+	orb_advert_t _radio_status_pub;
 	orb_advert_t _ping_pub;
 	orb_advert_t _rc_pub;
 	orb_advert_t _manual_pub;
@@ -243,11 +244,13 @@ private:
 	orb_advert_t _debug_key_value_pub;
 	orb_advert_t _debug_value_pub;
 	orb_advert_t _debug_vect_pub;
+	orb_advert_t _debug_array_pub;
 	static const int _gps_inject_data_queue_size = 6;
 	orb_advert_t _gps_inject_data_pub;
 	orb_advert_t _command_ack_pub;
 	int _control_mode_sub;
 	int _actuator_armed_sub;
+	int _vehicle_attitude_sub;
 	uint64_t _global_ref_timestamp;
 	int _hil_frames;
 	uint64_t _old_timestamp;
@@ -265,6 +268,10 @@ private:
 	param_t _p_bat_emergen_thr;
 	param_t _p_bat_crit_thr;
 	param_t _p_bat_low_thr;
+	param_t _p_flow_rot;
+	param_t _p_flow_maxr;
+	param_t _p_flow_minhgt;
+	param_t _p_flow_maxhgt;
 
 	MavlinkReceiver(const MavlinkReceiver &) = delete;
 	MavlinkReceiver operator=(const MavlinkReceiver &) = delete;

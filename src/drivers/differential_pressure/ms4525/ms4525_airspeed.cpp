@@ -69,7 +69,13 @@
 
 #include <drivers/airspeed/airspeed.h>
 
+enum MS_DEVICE_TYPE {
+	DEVICE_TYPE_MS4515	= 4515,
+	DEVICE_TYPE_MS4525	= 4525
+};
+
 /* I2C bus address is 1010001x */
+#define I2C_ADDRESS_MS4515DO	0x46
 #define I2C_ADDRESS_MS4525DO	0x28	/**< 7-bit address. Depends on the order code (this is for code "I") */
 #define PATH_MS4525		"/dev/ms4525"
 
@@ -97,15 +103,15 @@ protected:
 	virtual int	measure();
 	virtual int	collect();
 
-	math::LowPassFilter2p	_filter;
+	math::LowPassFilter2p	_filter{MEAS_RATE, MEAS_DRIVER_FILTER_FREQ};
 
 	/**
 	 * Correct for 5V rail voltage variations
 	 */
 	void voltage_correction(float &diff_pres_pa, float &temperature);
 
-	int _t_system_power;
-	struct system_power_s system_power;
+	int _t_system_power{-1};
+	system_power_s system_power{};
 };
 
 /*
@@ -113,11 +119,7 @@ protected:
  */
 extern "C" __EXPORT int ms4525_airspeed_main(int argc, char *argv[]);
 
-MEASAirspeed::MEASAirspeed(int bus, int address, const char *path) : Airspeed(bus, address,
-			CONVERSION_INTERVAL, path),
-	_filter(MEAS_RATE, MEAS_DRIVER_FILTER_FREQ),
-	_t_system_power(-1),
-	system_power{}
+MEASAirspeed::MEASAirspeed(int bus, int address, const char *path) : Airspeed(bus, address, CONVERSION_INTERVAL, path)
 {
 	_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_MS4525;
 }
@@ -125,13 +127,9 @@ MEASAirspeed::MEASAirspeed(int bus, int address, const char *path) : Airspeed(bu
 int
 MEASAirspeed::measure()
 {
-	int ret;
-
-	/*
-	 * Send the command to begin a measurement.
-	 */
+	// Send the command to begin a measurement.
 	uint8_t cmd = 0;
-	ret = transfer(&cmd, 1, nullptr, 0);
+	int ret = transfer(&cmd, 1, nullptr, 0);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -143,15 +141,12 @@ MEASAirspeed::measure()
 int
 MEASAirspeed::collect()
 {
-	int	ret = -EIO;
-
 	/* read from the sensor */
 	uint8_t val[4] = {0, 0, 0, 0};
 
-
 	perf_begin(_sample_perf);
 
-	ret = transfer(nullptr, 0, &val[0], 4);
+	int ret = transfer(nullptr, 0, &val[0], 4);
 
 	if (ret < 0) {
 		perf_count(_comms_errors);
@@ -327,7 +322,7 @@ MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
 		orb_copy(ORB_ID(system_power), _t_system_power, &system_power);
 	}
 
-	if (system_power.voltage5V_v < 3.0f || system_power.voltage5V_v > 6.0f) {
+	if (system_power.voltage5v_v < 3.0f || system_power.voltage5v_v > 6.0f) {
 		// not valid, skip correction
 		return;
 	}
@@ -336,7 +331,7 @@ MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
 	/*
 	  apply a piecewise linear correction, flattening at 0.5V from 5V
 	 */
-	float voltage_diff = system_power.voltage5V_v - 5.0f;
+	float voltage_diff = system_power.voltage5v_v - 5.0f;
 
 	if (voltage_diff > 0.5f) {
 		voltage_diff = 0.5f;
@@ -352,7 +347,7 @@ MEASAirspeed::voltage_correction(float &diff_press_pa, float &temperature)
 	  the temperature masurement varies as well
 	 */
 	const float temp_slope = 0.887f;
-	voltage_diff = system_power.voltage5V_v - 5.0f;
+	voltage_diff = system_power.voltage5v_v - 5.0f;
 
 	if (voltage_diff > 0.5f) {
 		voltage_diff = 0.5f;
@@ -375,7 +370,7 @@ namespace meas_airspeed
 MEASAirspeed	*g_dev = nullptr;
 
 int start();
-int start_bus(int i2c_bus);
+int start_bus(int i2c_bus, int address);
 int stop();
 int reset();
 
@@ -391,7 +386,7 @@ int
 start()
 {
 	for (unsigned i = 0; i < NUM_I2C_BUS_OPTIONS; i++) {
-		if (start_bus(i2c_bus_options[i]) == PX4_OK) {
+		if (start_bus(i2c_bus_options[i], I2C_ADDRESS_MS4525DO) == PX4_OK) {
 			return PX4_OK;
 		}
 	}
@@ -407,7 +402,7 @@ start()
  * or failed to detect the sensor.
  */
 int
-start_bus(int i2c_bus)
+start_bus(int i2c_bus, int address)
 {
 	int fd;
 
@@ -417,7 +412,7 @@ start_bus(int i2c_bus)
 	}
 
 	/* create the driver, try the MS4525DO first */
-	g_dev = new MEASAirspeed(i2c_bus, I2C_ADDRESS_MS4525DO, PATH_MS4525);
+	g_dev = new MEASAirspeed(i2c_bus, address, PATH_MS4525);
 
 	/* check if the MS4525DO was instantiated */
 	if (g_dev == nullptr) {
@@ -501,7 +496,7 @@ reset()
 static void
 meas_airspeed_usage()
 {
-	PX4_INFO("usage: meas_airspeed command [options]");
+	PX4_INFO("usage: ms4525 command [options]");
 	PX4_INFO("options:");
 	PX4_INFO("\t-b --bus i2cbus (%d)", PX4_I2C_BUS_DEFAULT);
 	PX4_INFO("\t-a --all");
@@ -518,9 +513,11 @@ ms4525_airspeed_main(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 
+	int device_type = DEVICE_TYPE_MS4525;
+
 	bool start_all = false;
 
-	while ((ch = px4_getopt(argc, argv, "ab:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "ab:T:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			i2c_bus = atoi(myoptarg);
@@ -528,6 +525,10 @@ ms4525_airspeed_main(int argc, char *argv[])
 
 		case 'a':
 			start_all = true;
+			break;
+
+		case 'T':
+			device_type = atoi(myoptarg);
 			break;
 
 		default:
@@ -548,10 +549,12 @@ ms4525_airspeed_main(int argc, char *argv[])
 		if (start_all) {
 			return meas_airspeed::start();
 
-		} else {
-			return meas_airspeed::start_bus(i2c_bus);
-		}
+		} else if (device_type == DEVICE_TYPE_MS4515) {
+			return meas_airspeed::start_bus(i2c_bus, I2C_ADDRESS_MS4515DO);
 
+		} else if (device_type == DEVICE_TYPE_MS4525) {
+			return meas_airspeed::start_bus(i2c_bus, I2C_ADDRESS_MS4525DO);
+		}
 	}
 
 	/*

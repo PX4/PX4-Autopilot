@@ -1,0 +1,124 @@
+
+# The Eagle board is the first generation Snapdragon Flight board by Qualcomm.
+
+include(px4_git)
+px4_add_git_submodule(TARGET git_cmake_hexagon PATH "${PX4_SOURCE_DIR}/boards/atlflight/cmake_hexagon")
+list(APPEND CMAKE_MODULE_PATH
+	"${PX4_SOURCE_DIR}/boards/atlflight/cmake_hexagon"
+	"${PX4_SOURCE_DIR}/boards/atlflight/cmake_hexagon/toolchain"
+	)
+
+# Get $QC_SOC_TARGET from environment if existing.
+if (DEFINED ENV{QC_SOC_TARGET})
+	set(QC_SOC_TARGET $ENV{QC_SOC_TARGET})
+else()
+	set(QC_SOC_TARGET "APQ8074")
+endif()
+
+# Disable the creation of the parameters.xml file by scanning individual
+# source files, and scan all source files.  This will create a parameters.xml
+# file that contains all possible parameters, even if the associated module
+# is not used.  This is necessary for parameter synchronization between the
+# ARM and DSP processors.
+set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
+
+set(CONFIG_SHMEM "1")
+add_definitions(-DORB_COMMUNICATOR)
+
+# atlflight toolchain doesn't properly set the compiler, so these aren't set automatically
+add_compile_options($<$<COMPILE_LANGUAGE:C>:-std=gnu99>)
+add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-std=gnu++11>)
+
+add_definitions(
+	-D__PX4_POSIX_EAGLE
+	-D__PX4_LINUX
+
+	# For DriverFramework
+	-D__DF_LINUX
+)
+
+px4_add_board(
+	PLATFORM posix
+	VENDOR atlflight
+	MODEL eagle
+	LABEL default
+	#TESTING
+	TOOLCHAIN arm-linux-gnueabihf
+
+	DRIVERS
+		#barometer # all available barometer drivers
+		batt_smbus
+		camera_trigger
+		differential_pressure # all available differential pressure drivers
+		distance_sensor # all available distance sensor drivers
+		gps
+		#imu # all available imu drivers
+		lights/rgbled
+		linux_sbus
+		#magnetometer # all available magnetometer drivers
+		pwm_out_sim
+		qshell/posix
+		#telemetry # all available telemetry drivers
+
+	MODULES
+		muorb/krait
+		muorb/test
+
+		attitude_estimator_q
+		camera_feedback
+		commander
+		dataman
+		ekf2
+		events
+		fw_att_control
+		fw_pos_control_l1
+		gnd_att_control
+		gnd_pos_control
+		land_detector
+		landing_target_estimator
+		load_mon
+		local_position_estimator
+		logger
+		mavlink
+		mc_att_control
+		mc_pos_control
+		navigator
+		position_estimator_inav
+		sensors
+		simulator
+		vmount
+		vtol_att_control
+		wind_estimator
+
+	SYSTEMCMDS
+		#bl_update
+		#config
+		#dumpfile
+		esc_calib
+		#hardfault_log
+		led_control
+		mixer
+		motor_ramp
+		#mtd
+		#nshterm
+		param
+		perf
+		pwm
+		reboot
+		sd_bench
+		shutdown
+		#tests # tests and test runner
+		top
+		topic_listener
+		tune_control
+		ver
+
+	EXAMPLES
+		#bottle_drop # OBC challenge
+		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		#hwtest # Hardware test
+		#px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
+		#px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app
+		#rover_steering_control # Rover example app
+		#segway
+	)

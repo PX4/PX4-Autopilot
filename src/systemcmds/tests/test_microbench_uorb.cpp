@@ -35,6 +35,7 @@
 
 #include <time.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include <drivers/drv_hrt.h>
 #include <perf/perf_counter.h>
@@ -126,7 +127,6 @@ void MicroBenchORB::reset()
 	lpos.dist_bottom_valid = rand();
 
 	gyro.timestamp = rand();
-	gyro.temperature_raw = rand();
 }
 
 ut_declare_test_c(test_microbench_uorb, MicroBenchORB)

@@ -247,7 +247,6 @@ private:
 		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_dist_1wp,
 		(ParamFloat<px4::params::MIS_DIST_WPS>) _param_dist_between_wps,
 		(ParamInt<px4::params::MIS_ALTMODE>) _param_altmode,
-		(ParamInt<px4::params::MIS_YAWMODE>) _param_yawmode,
 		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mnt_yaw_ctl
 	)
 

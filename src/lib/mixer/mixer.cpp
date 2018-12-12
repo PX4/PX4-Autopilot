@@ -189,7 +189,7 @@ unsigned
 NullMixer::mix(float *outputs, unsigned space)
 {
 	if (space > 0) {
-		*outputs = 0.0f;
+		*outputs = NAN;
 		return 1;
 	}
 

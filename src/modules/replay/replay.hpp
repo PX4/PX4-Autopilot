@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,9 +58,9 @@ namespace px4
 class Replay : public ModuleBase<Replay>
 {
 public:
-	Replay() {}
+	Replay() = default;
 
-	virtual ~Replay() {}
+	virtual ~Replay();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -205,7 +205,7 @@ protected:
 	 */
 	bool nextDataMessage(std::ifstream &file, Subscription &subscription, int msg_id);
 
-	std::vector<Subscription> _subscriptions;
+	std::vector<Subscription *> _subscriptions;
 	std::vector<uint8_t> _read_buffer;
 
 private:
@@ -315,8 +315,7 @@ private:
 	uint16_t _sensor_combined_msg_id = msg_id_invalid;
 	uint16_t _vehicle_air_data_msg_id = msg_id_invalid;
 	uint16_t _vehicle_magnetometer_msg_id = msg_id_invalid;
-	uint16_t _vehicle_vision_attitude_msg_id = msg_id_invalid;
-	uint16_t _vehicle_vision_position_msg_id = msg_id_invalid;
+	uint16_t _vehicle_visual_odometry_msg_id = msg_id_invalid;
 
 	int _topic_counter = 0;
 };
