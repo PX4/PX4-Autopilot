@@ -212,12 +212,22 @@ else
 		fi
 	fi
 
+	#
+	# Set parameters and env variables for selected AUTOSTART.
+	#
+	if ! param compare SYS_AUTOSTART 0
+	then
+		sh /etc/init.d/rc.autostart
+	fi
+
 	###############################################################################
 	#               Begin setup for board specific configurations.                #
 	###############################################################################
 
 	#
-	# run boards rc.board if available
+	# run boards rc.board if available.
+	# This comes after rc.autostart, so that rc.board can use parameters that
+	# are set in the frame-specific autoconf section.
 	#
 	if [ -f $BOARD_RC ]
 	then
@@ -235,14 +245,6 @@ else
 	fi
 
 	#
-	# Set parameters and env variables for selected AUTOSTART.
-	#
-	if ! param compare SYS_AUTOSTART 0
-	then
-		sh /etc/init.d/rc.autostart
-	fi
-
-	#
 	# Override parameters from user configuration file.
 	#
 	if [ -f $FCONFIG ]
@@ -252,7 +254,7 @@ else
 	fi
 
 	#
-	# If autoconfig parameter was set, reset it and save parameters.
+	# If autoconfig parameter was set, reset it.
 	#
 	if [ $AUTOCNF = yes ]
 	then
@@ -263,7 +265,6 @@ else
 	# Check if PX4IO present and update firmware if needed.
 	# Assumption IOFW set to firmware file and IO_PRESENT = no
 	#
-
 	if [ -f $IOFW ]
 	then
 		# Check for the mini using build with px4io fw file
