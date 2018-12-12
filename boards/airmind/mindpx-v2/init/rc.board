@@ -32,8 +32,6 @@ then
 	param set SYS_FMU_TASK 1
 fi
 
-set MIXER_AUX none
-
 
 # Start sensor drivers if not in HIL mode
 if param compare SYS_HITL 0

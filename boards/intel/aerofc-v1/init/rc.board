@@ -32,7 +32,6 @@ fi
 
 set DATAMAN_OPT -i
 set LOGGER_ARGS "-m mavlink"
-set MIXER_AUX none
 
 
 # Start sensor drivers if not in HIL mode

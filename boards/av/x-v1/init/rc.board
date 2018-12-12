@@ -10,7 +10,6 @@ then
 fi
 
 set LOGGER_BUF 64
-set MIXER_AUX none
 
 
 # Start sensor drivers if not in HIL mode
