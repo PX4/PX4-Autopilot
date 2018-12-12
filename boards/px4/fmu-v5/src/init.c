@@ -221,7 +221,7 @@ __EXPORT void board_on_reset(int status)
 #ifdef CONFIG_BOARDCTL_FINALINIT
 int board_app_finalinitialize(uintptr_t arg)
 {
-    return 0;
+	return 0;
 }
 #endif
 
@@ -303,8 +303,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	up_cxxinitialize();
 
-#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
-#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
+#	if defined(CONFIG_SYSTEM_NSH_CXXINITIALIZE)
+#  		error CONFIG_SYSTEM_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
 #	endif
 
 #else
