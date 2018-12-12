@@ -253,7 +253,9 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 
 	RawAirspeedData airspeed = {};
 	airspeed.temperature = imu->temperature;
-	airspeed.diff_pressure = imu->diff_pressure + 0.001f * (hrt_absolute_time() & 0x01);
+	// FIXME: diff_pressure needs some noise to pass preflight checks, so we just take the
+	//        noise from the gyro.
+	airspeed.diff_pressure = imu->diff_pressure + ((imu->ygyro > 0) ? 0.001f : 0.0f);
 
 	write_airspeed_data(&airspeed);
 }
