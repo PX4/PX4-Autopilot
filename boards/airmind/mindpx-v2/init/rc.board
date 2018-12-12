@@ -35,15 +35,19 @@ fi
 set MIXER_AUX none
 
 
-# External I2C bus
-hmc5883 -C -T -X start
+# Start sensor drivers if not in HIL mode
+if param compare SYS_HITL 0
+then
+	# External I2C bus
+	hmc5883 -C -T -X start
 
-# Internal I2C bus
-hmc5883 -C -T -I -R 12 start
+	# Internal I2C bus
+	hmc5883 -C -T -I -R 12 start
 
-mpu6000 -s -R 8 start
-mpu9250 -s -R 8 start
-lsm303d -R 10 start
-l3gd20 -R 14 start
+	mpu6000 -s -R 8 start
+	mpu9250 -s -R 8 start
+	lsm303d -R 10 start
+	l3gd20 -R 14 start
 
-px4flow start &
+	px4flow start &
+fi

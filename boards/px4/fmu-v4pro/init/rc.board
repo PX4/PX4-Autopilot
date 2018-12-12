@@ -25,22 +25,26 @@ fi
 set LOGGER_BUF 64
 
 
-# Internal SPI bus ICM-20608-G
-mpu6000 -R 2 -T 20608 start
+# Start sensor drivers if not in HIL mode
+if param compare SYS_HITL 0
+then
+	# Internal SPI bus ICM-20608-G
+	mpu6000 -R 2 -T 20608 start
 
-# Internal SPI bus ICM-20602
-mpu6000 -R 2 -T 20602 start
+	# Internal SPI bus ICM-20602
+	mpu6000 -R 2 -T 20602 start
 
-# Internal SPI bus mpu9250
-mpu9250 -R 2 start
+	# Internal SPI bus mpu9250
+	mpu9250 -R 2 start
 
-# Internal SPI bus
-lis3mdl -R 0 start
+	# Internal SPI bus
+	lis3mdl -R 0 start
 
-# Possible external compasses
-hmc5883 -C -T -X start
+	# Possible external compasses
+	hmc5883 -C -T -X start
 
-# RM3100
-rm3100 start
+	# RM3100
+	rm3100 start
 
-px4flow start &
+	px4flow start &
+fi

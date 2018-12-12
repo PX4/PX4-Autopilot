@@ -35,13 +35,17 @@ set LOGGER_ARGS "-m mavlink"
 set MIXER_AUX none
 
 
-ms5611 -T 0 start
-mpu9250 -s -R 14 start
+# Start sensor drivers if not in HIL mode
+if param compare SYS_HITL 0
+then
+	ms5611 -T 0 start
+	mpu9250 -s -R 14 start
 
-# Possible external compasses
-hmc5883 -X start
+	# Possible external compasses
+	hmc5883 -X start
 
-ist8310 -C -b 1 -R 4 start
-aerofc_adc start
+	ist8310 -C -b 1 -R 4 start
+	aerofc_adc start
 
-ll40ls start i2c
+	ll40ls start i2c
+fi

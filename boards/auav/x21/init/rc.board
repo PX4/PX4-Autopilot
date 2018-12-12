@@ -24,18 +24,22 @@ then
 fi
 
 
-# External I2C bus
-hmc5883 -C -T -X start
-lis3mdl -X start
-ist8310 -C start
+# Start sensor drivers if not in HIL mode
+if param compare SYS_HITL 0
+then
+	# External I2C bus
+	hmc5883 -C -T -X start
+	lis3mdl -X start
+	ist8310 -C start
 
-# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
-mpu6000 -R 2 -T 20608 start
+	# Internal SPI bus ICM-20608-G is rotated 90 deg yaw
+	mpu6000 -R 2 -T 20608 start
 
-# Internal SPI bus ICM-20602-G is rotated 90 deg yaw
-mpu6000 -R 2 -T 20602 start
+	# Internal SPI bus ICM-20602-G is rotated 90 deg yaw
+	mpu6000 -R 2 -T 20602 start
 
-# Internal SPI bus mpu9250 is rotated 90 deg yaw
-mpu9250 -R 2 start
+	# Internal SPI bus mpu9250 is rotated 90 deg yaw
+	mpu9250 -R 2 start
 
-px4flow start &
+	px4flow start &
+fi

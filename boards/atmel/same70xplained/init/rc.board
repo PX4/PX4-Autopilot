@@ -10,8 +10,12 @@ then
 
 fi
 
-# External I2C bus
-hmc5883 -C -T -X start
+# Start sensor drivers if not in HIL mode
+if param compare SYS_HITL 0
+then
+	# External I2C bus
+	hmc5883 -C -T -X start
 
-# Internal SPI bus mpu9250 is rotated 90 deg yaw
-mpu9250 -R 2 start
+	# Internal SPI bus mpu9250 is rotated 90 deg yaw
+	mpu9250 -R 2 start
+fi
