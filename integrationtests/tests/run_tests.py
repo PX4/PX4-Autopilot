@@ -50,7 +50,7 @@ if __name__ == '__main__':
     mp.set_start_method('fork')
 
     # read yaml
-    yaml_file = open(os.path.dirname(__file__) + '/' + args.maneuver_name + '.yml', 'r')
+    yaml_file = open(os.path.dirname(__file__) + '/configs/' + args.maneuver_name + '.yml', 'r')
     config = yaml.load(yaml_file)
 
     deactivate_tests = config['deactivate_tests']
@@ -99,7 +99,7 @@ if __name__ == '__main__':
     while p_maneuver.is_alive():
 
         # server or px4 not running anymore: close eveything
-        if not p_server.is_alive(): #or not p_px4.is_alive():
+        if not p_server.is_alive() or not p_px4.is_alive():
             p_maneuver.exit.set()
 
     # maneuver is not running anymore: close everything
@@ -116,7 +116,6 @@ if __name__ == '__main__':
     p_px4.join()
     print("PX4 closed")
 
-
     ################
     ### log-Analysis
     ################
@@ -125,15 +124,18 @@ if __name__ == '__main__':
     newest_log=newest_dir + max(os.listdir(newest_dir), key=lambda x: os.stat(newest_dir+x).st_mtime)
 
     # run all general tests except for those that are deselected in the yaml file
+    deselected_tests = ''
     if deactivate_tests is not None:
         deselected_tests = '-k'
-        for index, test in enumerate(deactivate_tests):
-            if index == 0:
-                deselected_tests = deselected_tests + ' not ' + test
-            else:
-                deselected_tests = deselected_tests + ' and not ' + test 
-    else:
-        deselected_tests = ''
+        for ind, test_struct in enumerate(deactivate_tests):
+            if ind != 0:
+                deselected_tests += ' and'
+
+            deselected_tests += ' not (' + test_struct['TestClass']
+            if 'TestMethod' in test_struct and test_struct['TestMethod'] is not None:
+                for t in test_struct['TestMethod']:
+                    deselected_tests += ' and '+ t
+            deselected_tests += ')'
 
     testfile = px4_src_dir+'/Tools/ulogtests/tests/test_general.py'
     p_test = subprocess.Popen(['py.test', '-s', deselected_tests, testfile, '--filepath={0}'.format(newest_log)])

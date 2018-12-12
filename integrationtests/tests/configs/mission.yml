@@ -1,0 +1,19 @@
+# Contains parameters that are needed to start simulation, maneuvers and tests
+simulation_setup:
+    world: 'iris'
+    sim: 'gazebo'
+    headless: True
+    start_script: 'rcS'
+
+# All tests listed here will NOT be run
+# To deactivate an entire class of test:
+# - Test[NameOfClass]
+# To deactivate a specific test
+# - Test[NameOfClass]
+#   - test_[nameOfTest]
+deactivate_tests:
+    - TestClass: TestRTLHeight
+      TestMethod:
+        - test_rtl
+    #- TestClass: TestAttitude
+    #  TestMethod:
