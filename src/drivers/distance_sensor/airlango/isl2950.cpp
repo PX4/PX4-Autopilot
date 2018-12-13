@@ -362,23 +362,53 @@ ISL2950::collect()
   perf_begin(_sample_perf);
 
   /* clear buffer if last read was too long ago */
-  //int64_t read_elapsed = hrt_elapsed_time(&_last_read);
+  int64_t read_elapsed = hrt_elapsed_time(&_last_read);
 
   // ----------------------- LANBAO SPECIFIC ---------------------------
-  //printf("enter ISL2950::collect() - reads from serial");
-    uint8_t buffer[50];
-    int bytes_available = 0;
-  //  int bytes_processed = 0;
-    int bytes_read = 0;
-  //  bool full_frame;
-bytes_read = bytes_read;
 
-    bytes_read = ::read(_fd, buffer + bytes_available, 50 - bytes_available);
-    printf("read() returns %02X %02X %02X %02X \n", buffer[0], buffer[1],buffer[2],buffer[3] );
+  uint8_t buffer[50];
+  int bytes_available = 0;
+  int bytes_processed = 0;
+  int bytes_read = 0;
+  bool full_frame;
+  int distance_mm = -1.0f;
+
+  bytes_read = ::read(_fd, buffer + bytes_available, 50 - bytes_available);
+  //printf("read() returns %02X %02X %02X %02X \n", buffer[0], buffer[1],buffer[2],buffer[3] );
 
 
   //--------------------------------------------------------------------
+  if (bytes_read < 0) {
+  		PX4_ERR("isl2950 - read() error: %d \n", bytes_read);
+  		perf_count(_comms_errors);
+  		perf_end(_sample_perf);
 
+  		/* only throw an error if we time out */
+  		if (read_elapsed > (_conversion_interval * 2)) {
+  			return bytes_read;
+
+  		} else {
+  			return -EAGAIN;
+  		}
+
+  } else if (bytes_read == 0) {
+  	return -EAGAIN;                         // SF0X drivers
+                                       // LANBAO driver
+  	}
+
+  bytes_available += bytes_read;
+
+  // parse the buffer data
+    full_frame = false;
+    bytes_processed = isl2950_parser(buffer, bytes_available, &full_frame,&distance_mm);
+    bytes_processed = bytes_processed;
+  //printf("isl2950_parser() processed %d bytes, full_frame %d \n", bytes_processed, full_frame);
+  if (full_frame) {
+    printf("Measured Distance %d \n",distance_mm*100);
+  }
+
+
+// ---------------------------- END EDIT
 	_last_read = hrt_absolute_time();
 	ret = OK;
 
