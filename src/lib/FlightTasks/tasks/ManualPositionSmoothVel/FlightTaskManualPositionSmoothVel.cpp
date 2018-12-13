@@ -147,6 +147,16 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 
 	VelocitySmoothing::timeSynchronization(_smoothing, 2); // Synchronize x and y only
 
+	if (_position_lock_xy_active) {
+		// Check if a reset event has happened.
+		if (_sub_vehicle_local_position->get().xy_reset_counter != _reset_counter) {
+			// Reset the XY axes
+			_smoothing[0].setCurrentPosition(_position(0));
+			_smoothing[1].setCurrentPosition(_position(1));
+			_reset_counter = _sub_vehicle_local_position->get().xy_reset_counter;
+		}
+	}
+
 	Vector3f pos_sp_smooth;
 	Vector3f accel_sp_smooth;
 
