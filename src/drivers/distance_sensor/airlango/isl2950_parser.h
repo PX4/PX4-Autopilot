@@ -40,6 +40,27 @@
 
 #pragma once
 
+// frame start delimiter
+#define TOF_SFD1      0xA5
+#define TOF_SFD2      0x5A
+
+typedef enum {
+  TFS_NOT_STARTED = 0,
+  TFS_GOT_SFD1,
+  TFS_GOT_SFD2,
+  TFS_GOT_DATA1,
+  TFS_GOT_DATA2,
+  TFS_GOT_CHECKSUM1,
+  TFS_GOT_CHECKSUM2,
+} TofFramingState;
+
+enum IslWorkingMode {
+  KEEP_HEIGHT = 0,
+  NUM_WORKING_MODE
+};
+
+
+// SF0X STYLE
 enum ISL2950_PARSE_STATE {
 	ISL2950_PARSE_STATE0_UNSYNC = 0,
 	ISL2950_PARSE_STATE1_SYNC,
@@ -50,4 +71,5 @@ enum ISL2950_PARSE_STATE {
 	ISL2950_PARSE_STATE6_GOT_CARRIAGE_RETURN
 };
 
-int isl2950_parser(char c, char *parserbuf, unsigned *parserbuf_index, enum ISL2950_PARSE_STATE *state, float *dist);
+
+int isl2950_parser(const uint8_t* buffer, int length, bool* full_frame, int* dist);
