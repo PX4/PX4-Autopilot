@@ -55,8 +55,25 @@ void PositionControl::updateState(const PositionControlStates &states)
 	_vel_dot = states.acceleration;
 }
 
+void PositionControl::_setCtrlFlagTrue()
+{
+	for (int i = 0; i <= 2; i++) {
+		_ctrl_pos[i] = _ctrl_vel[i] = true;
+	}
+}
+
+void PositionControl::_setCtrlFlagFalse()
+{
+	for (int i = 0; i <= 2; i++) {
+		_ctrl_pos[i] = _ctrl_vel[i] = false;
+	}
+}
+
 bool PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &setpoint)
 {
+	// Only for logging purpose: by default we use the entire position-velocity control-loop pipeline
+	_setCtrlFlagTrue();
+
 	_pos_sp = Vector3f(setpoint.x, setpoint.y, setpoint.z);
 	_vel_sp = Vector3f(setpoint.vx, setpoint.vy, setpoint.vz);
 	_acc_sp = Vector3f(setpoint.acc_x, setpoint.acc_y, setpoint.acc_z);
@@ -67,8 +84,8 @@ bool PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &se
 
 	// If full manual is required (thrust already generated), don't run position/velocity
 	// controller and just return thrust.
-	_skip_controller = PX4_ISFINITE(setpoint.thrust[0]) && PX4_ISFINITE(setpoint.thrust[1])
-			   && PX4_ISFINITE(setpoint.thrust[2]);
+	_skip_controller = PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1))
+			   && PX4_ISFINITE(_thr_sp(2));
 
 	return mapping_succeeded;
 }
@@ -76,6 +93,7 @@ bool PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &se
 void PositionControl::generateThrustYawSetpoint(const float dt)
 {
 	if (_skip_controller) {
+
 		// Already received a valid thrust set-point.
 		// Limit the thrust vector.
 		float thr_mag = _thr_sp.length();
@@ -132,6 +150,7 @@ bool PositionControl::_interfaceMapping()
 			// Velocity controller is active without position control.
 			// Set integral states and setpoints to 0
 			_pos_sp(i) = _pos(i) = 0.0f;
+			_ctrl_pos[i] = false; // position control-loop is not used
 
 			// thrust setpoint is not supported in velocity control
 			_thr_sp(i) = NAN;
@@ -147,6 +166,7 @@ bool PositionControl::_interfaceMapping()
 			// Set all integral states and setpoints to 0
 			_pos_sp(i) = _pos(i) = 0.0f;
 			_vel_sp(i) = _vel(i) = 0.0f;
+			_ctrl_pos[i] = _ctrl_vel[i] = false; // position/velocity control loop is not used
 
 			// Reset the Integral term.
 			_thr_int(i) = 0.0f;
@@ -192,6 +212,8 @@ bool PositionControl::_interfaceMapping()
 		// throttle down such that vehicle goes down with
 		// 70% of throttle range between min and hover
 		_thr_sp(2) = -(MPC_THR_MIN.get() + (MPC_THR_HOVER.get() - MPC_THR_MIN.get()) * 0.7f);
+		// position and velocity control-loop is not used (note: only for logging purpose)
+		_setCtrlFlagFalse(); // position/velocity control-loop is not used
 	}
 
 	return !(failsafe);
@@ -215,7 +237,6 @@ void PositionControl::_positionController()
 
 void PositionControl::_velocityController(const float &dt)
 {
-
 	// Generate desired thrust setpoint.
 	// PID
 	// u_des = P(vel_err) + D(vel_err_dot) + I(vel_integral)
