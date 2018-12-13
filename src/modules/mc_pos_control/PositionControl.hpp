@@ -69,6 +69,8 @@ struct PositionControlStates {
  * 	priority over the feed-forward component.
  *
  * 	A setpoint that is NAN is considered as not set.
+ * 	If there is a position/velocity- and thrust-setpoint present, then
+ *  the thrust-setpoint is ommitted and recomputed from position-velocity-PID-loop.
  */
 class PositionControl : public ModuleParams
 {
@@ -150,16 +152,44 @@ public:
 	/**
 	 * 	Get the
 	 * 	@see _vel_sp
-	 * 	@return The velocity set-point member.
+	 * 	@return The velocity set-point that was executed in the control-loop. Nan if velocity control-loop was skipped.
 	 */
-	const matrix::Vector3f &getVelSp() { return _vel_sp; }
+	const matrix::Vector3f getVelSp()
+	{
+		matrix::Vector3f vel_sp{};
+
+		for (int i = 0; i <= 2; i++) {
+			if (_ctrl_vel[i]) {
+				vel_sp(i) = _vel_sp(i);
+
+			} else {
+				vel_sp(i) = NAN;
+			}
+		}
+
+		return vel_sp;
+	}
 
 	/**
 	 * 	Get the
 	 * 	@see _pos_sp
-	 * 	@return The position set-point member.
+	 * 	@return The position set-point that was executed in the control-loop. Nan if the position control-loop was skipped.
 	 */
-	const matrix::Vector3f &getPosSp() { return _pos_sp; }
+	const matrix::Vector3f getPosSp()
+	{
+		matrix::Vector3f pos_sp{};
+
+		for (int i = 0; i <= 2; i++) {
+			if (_ctrl_pos[i]) {
+				pos_sp(i) = _pos_sp(i);
+
+			} else {
+				pos_sp(i) = NAN;
+			}
+		}
+
+		return pos_sp;
+	}
 
 protected:
 
@@ -174,6 +204,8 @@ private:
 
 	void _positionController(); /** applies the P-position-controller */
 	void _velocityController(const float &dt); /** applies the PID-velocity-controller */
+	void _setCtrlFlagTrue(); /**< set control-loop flags to true (only required for logging) */
+	void _setCtrlFlagFalse(); /**< set control-loop flags to false (only required for logging) */
 
 	matrix::Vector3f _pos{}; /**< MC position */
 	matrix::Vector3f _vel{}; /**< MC velocity */
@@ -189,6 +221,8 @@ private:
 	matrix::Vector3f _thr_int{}; /**< thrust integral term */
 	vehicle_constraints_s _constraints{}; /**< variable constraints */
 	bool _skip_controller{false}; /**< skips position/velocity controller. true for stabilized mode */
+	bool _ctrl_pos[3] = {true, true, true}; /**< True if the control-loop for position was used */
+	bool _ctrl_vel[3] = {true, true, true}; /**< True if the control-loop for velocity was used */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_THR_MAX>) MPC_THR_MAX,
