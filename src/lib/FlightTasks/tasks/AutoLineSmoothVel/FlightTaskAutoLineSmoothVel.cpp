@@ -123,6 +123,14 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 	// that one is used as a velocity limit.
 	// If the position setpoints are set to NAN, the values in the velocity setpoints are used as velocity targets: nothing to do here.
 
+	// Check if a reset event has happened.
+	if (_sub_vehicle_local_position->get().xy_reset_counter != _reset_counter) {
+		// Reset the XY axes
+		_trajectory[0].setCurrentPosition(_position(0));
+		_trajectory[1].setCurrentPosition(_position(1));
+		_reset_counter = _sub_vehicle_local_position->get().xy_reset_counter;
+	}
+
 	if (PX4_ISFINITE(_position_setpoint(0)) &&
 	    PX4_ISFINITE(_position_setpoint(1))) {
 		// Use position setpoints to generate velocity setpoints
