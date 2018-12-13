@@ -184,6 +184,19 @@ int fmuk66_sdhc_initialize(void)
 		return -ENODEV;
 	}
 
+//   Testing done on SanDISK HC all failed sd_bench with Drive/Slew other than default and _PIN_OUTPUT_FAST|_PIN_OUTPUT_HIGHDRIVE
+//	_PIN_OUTPUT_FAST|_PIN_OUTPUT_HIGHDRIVE    Square noisy, pass SanDISK HC
+//  _PIN_OUTPUT_FAST|_PIN_OUTPUT_LOWDRIVE     Square noisy, pass SanDISK HC
+//  _PIN_OUTPUT_HIGHDRIVE|_PIN_OUTPUT_SLOW    sinusoidal fail SanDISK HC pass SanDISK HC1
+//  _PIN_OUTPUT_LOWDRIVE|_PIN_OUTPUT_SLOW     sinusoidal fail SanDISK HC pass SanDISK HC1
+//                       _PIN_OUTPUT_SLOW     sinusoidal fail SanDISK HC pass SanDISK HC1
+
+	// This up dating of the driver setting is for EMI issue with GPS and FCC
+	// With this setting the clock is sinusoidal N.B. sd_bench fails on SanDISK HC, but
+	// Passes SanDISK **HC1** - use HC1 or Kingston cards!
+
+	kinetis_pinconfig(PIN_SDHC0_DCLK | _PIN_OUTPUT_HIGHDRIVE | _PIN_OUTPUT_SLOW);
+
 	/* Now bind the SDHC interface to the MMC/SD driver */
 
 	mcinfo("Bind SDHC to the MMC/SD driver, minor=%d\n", CONFIG_NSH_MMCSDMINOR);
