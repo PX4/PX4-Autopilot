@@ -61,6 +61,8 @@
 
 #define BOARD_OVERLOAD_LED     LED_BLUE
 
+#define  FLASH_BASED_PARAMS
+
 /*
  * ADC channels
  *
