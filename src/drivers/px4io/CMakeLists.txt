@@ -56,7 +56,9 @@ ExternalProject_Add(px4io_firmware
 	UPDATE_COMMAND ""
 	CMAKE_ARGS -DCONFIG=${config_io_board}
 	INSTALL_COMMAND ""
+	BUILD_BYPRODUCTS px4_io-v2_default.elf
 	USES_TERMINAL_BUILD true
+	#BUILD_ALWAYS true
 )
 
 ExternalProject_Get_Property(px4io_firmware BINARY_DIR)
@@ -67,10 +69,11 @@ set(fw_io_bin "${PX4_BINARY_DIR}/romfs_extras/${config_io_board}.bin" CACHE FILE
 file(RELATIVE_PATH fw_io_exe_relative ${CMAKE_CURRENT_BINARY_DIR} ${fw_io_exe})
 file(RELATIVE_PATH fw_io_bin_relative ${CMAKE_CURRENT_BINARY_DIR} ${fw_io_bin})
 
-add_custom_command(OUTPUT ${fw_io_bin}
+add_custom_command(OUTPUT ${config_io_board}.bin ${fw_io_bin}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/romfs_extras
-	COMMAND ${CMAKE_OBJCOPY} -O binary ${fw_io_exe_relative} ${fw_io_bin_relative}
-	DEPENDS px4io_firmware
+	COMMAND ${CMAKE_OBJCOPY} -O binary ${fw_io_exe} ${config_io_board}.bin
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${config_io_board}.bin ${PX4_BINARY_DIR}/romfs_extras/${config_io_board}.bin
+	DEPENDS px4io_firmware px4_io-v2_default.elf
 	COMMENT "Copying ${config_io_board} to ROMFS extras"
 	)
 add_custom_target(copy_px4io_bin DEPENDS ${fw_io_bin})
