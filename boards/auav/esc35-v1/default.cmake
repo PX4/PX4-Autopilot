@@ -27,8 +27,8 @@ add_definitions(
 
 include(px4_make_uavcan_bootloader)
 px4_make_uavcan_bootloadable(
-	BOARD auavesc35
-	BIN ${PX4_BINARY_DIR}/auavesc35-v1.bin
+	BOARD auav_esc35-v1
+	BIN ${PX4_BINARY_DIR}/auav_esc35-v1.bin
 	HWNAME ${uavcanblid_name}
 	HW_MAJOR ${uavcanblid_hw_version_major}
 	HW_MINOR ${uavcanblid_hw_version_minor}
