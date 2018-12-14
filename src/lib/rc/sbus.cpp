@@ -654,9 +654,9 @@ sbus_decode(uint64_t frame_time, uint8_t *frame, uint16_t *values, uint16_t *num
 		chancount = 18;
 
 		/* channel 17 (index 16) */
-		values[16] = (((frame[SBUS_FLAGS_BYTE] & (1 << 0)) > 0) ? 1 : 0) * 1000 + 998;
+		values[16] = ((frame[SBUS_FLAGS_BYTE] & (1 << 0)) ? 1000 : 0) + 998;
 		/* channel 18 (index 17) */
-		values[17] = (((frame[SBUS_FLAGS_BYTE] & (1 << 1)) > 0) ? 1 : 0) * 1000 + 998;
+		values[17] = ((frame[SBUS_FLAGS_BYTE] & (1 << 1)) ? 1000 : 0) + 998;
 	}
 
 	/* note the number of channels decoded */
