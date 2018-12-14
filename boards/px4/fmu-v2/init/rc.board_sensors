@@ -1,45 +1,7 @@
-#!nsh
+#!/bin/sh
 #
-# PX4 FMUv2 specific board init
-#
+# PX4 FMUv2 specific board sensors init
 #------------------------------------------------------------------------------
-#
-# UART mapping on FMUv2:
-#
-# UART1         /dev/ttyS0      IO debug
-# USART2        /dev/ttyS1      TELEM1 (flow control)
-# USART3        /dev/ttyS2      TELEM2 (flow control)
-# UART4
-# UART7                         CONSOLE
-# UART8         /dev/ttyS6      SERIAL4/TELEM4
-#
-#------------------------------------------------------------------------------
-#
-
-#
-# Bootloader upgrade
-#
-set BL_FILE /etc/extras/px4fmuv3_bl.bin
-if [ -f $BL_FILE ]
-then
-	if param compare SYS_BL_UPDATE 1
-	then
-		param set SYS_BL_UPDATE 0
-		param save
-		echo "BL update..." >> $LOG_FILE
-		bl_update $BL_FILE
-		echo "BL update done" >> $LOG_FILE
-		reboot
-	fi
-fi
-unset BL_FILE
-
-
-if [ $AUTOCNF = yes ]
-then
-	param set SYS_FMU_TASK 1
-fi
-
 
 # External I2C bus
 hmc5883 -C -T -X start

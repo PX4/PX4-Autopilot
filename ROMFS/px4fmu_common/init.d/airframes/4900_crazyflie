@@ -70,8 +70,6 @@ then
 
 	param set SENS_FLOW_MINRNG 0.05
 
-	param set SYS_FMU_TASK 1
-
 fi
 
 set PWM_DISARMED none
