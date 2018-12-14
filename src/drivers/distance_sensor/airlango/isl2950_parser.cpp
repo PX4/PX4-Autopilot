@@ -184,7 +184,7 @@ int isl2950_parser(const uint8_t* buffer, int length, bool* full_frame, int* dis
       // Here, reset state to `NOT-STARTED` no matter crc ok or not
       state = TFS_NOT_STARTED;
       if (b == (crc16 & 0xFF)) {
-        printf("Checksum verified \n");
+      //printf("Checksum verified \n");
         *dist = (frame_data[TOF_DISTANCE_MSB_POS] << 8) | frame_data[TOF_DISTANCE_LSB_POS];
         *full_frame = true;
         return bytes_processed;

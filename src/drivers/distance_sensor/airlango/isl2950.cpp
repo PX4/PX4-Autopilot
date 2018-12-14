@@ -79,6 +79,8 @@
 // designated serial port on Pixhawk
  #define ISL2950_DEFAULT_PORT		"/dev/ttyS1" // Its baudrate is 115200
  // #define LANBAO_DEFAULT_BAUDRATE      115200
+ // normal conversion wait time
+ #define ISL2950_CONVERSION_INTERVAL 50*1000UL /* 50ms */
 
 
  class ISL2950 : public cdev::CDev
@@ -138,6 +140,16 @@
 	void				stop();
 
   /**
+	* Set the min and max distance thresholds if you want the end points of the sensors
+	* range to be brought in at all, otherwise it will use the defaults SF0X_MIN_DISTANCE
+	* and SF0X_MAX_DISTANCE
+	*/
+	void				set_minimum_distance(float min);
+	void				set_maximum_distance(float max);
+	float				get_minimum_distance();
+	float				get_maximum_distance();
+
+  /**
   	* Perform a poll cycle; collect from the previous measurement
   	* and start a new one.
   	*/
@@ -170,9 +182,9 @@
   ISL2950::ISL2950(const char *port, uint8_t rotation) :
 	CDev(RANGE_FINDER0_DEVICE_PATH),
 	_rotation(rotation),
-	_min_distance(0.30f),
+	_min_distance(0.10f),
 	_max_distance(40.0f),
-	_conversion_interval(83334),
+	_conversion_interval(ISL2950_CONVERSION_INTERVAL),
 	_reports(nullptr),
 	_measure_ticks(0),
 	_collect_phase(false),
@@ -255,6 +267,30 @@ do { /* create a scope to handle exit conditions using break */
   	} while (0);
 
   	return ret;
+}
+
+void
+ISL2950::set_minimum_distance(float min)
+{
+	_min_distance = min;
+}
+
+void
+ISL2950::set_maximum_distance(float max)
+{
+	_max_distance = max;
+}
+
+float
+ISL2950::get_minimum_distance()
+{
+	return _min_distance;
+}
+
+float
+ISL2950::get_maximum_distance()
+{
+	return _max_distance;
 }
 
 int
@@ -396,24 +432,53 @@ ISL2950::collect()
                                        // LANBAO driver
   	}
 
+  _last_read = hrt_absolute_time();
+
   bytes_available += bytes_read;
 
   // parse the buffer data
     full_frame = false;
     bytes_processed = isl2950_parser(buffer, bytes_available, &full_frame,&distance_mm);
-    bytes_processed = bytes_processed;
   //printf("isl2950_parser() processed %d bytes, full_frame %d \n", bytes_processed, full_frame);
+
+  // discard the processed bytes and move the buffer content to the head
+  bytes_available -= bytes_processed;
+  memcpy(buffer, buffer + bytes_processed, bytes_available);
+
   if (full_frame) {
-    printf("Measured Distance %d \n",distance_mm*100);
+    printf("Measured Distance %d mm\n",distance_mm);
   }
 
+  else if (!full_frame) {
+    return -EAGAIN;
 
-// ---------------------------- END EDIT
-	_last_read = hrt_absolute_time();
-	ret = OK;
+  }
 
-	perf_end(_sample_perf);
-	return ret;
+  struct distance_sensor_s report;
+
+  	report.timestamp = hrt_absolute_time();
+  	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+  	report.orientation = _rotation;
+  	report.current_distance = distance_mm /1000.f;        //  To meters
+  	report.min_distance = get_minimum_distance();
+  	report.max_distance = get_maximum_distance();
+  	report.covariance = 0.0f;
+  	report.signal_quality = -1;
+  	/* TODO: set proper ID */
+  	report.id = 0;
+
+  	/* publish it */
+  	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
+
+  	_reports->force(&report);
+
+  	/* notify anyone waiting for data */
+  	poll_notify(POLLIN);
+
+  	ret = OK;
+
+  	perf_end(_sample_perf);
+  	return ret;
 }
 
 void
@@ -486,6 +551,8 @@ ISL2950::cycle()
 		}
 	}
 
+
+
 	/* collection phase? */
 	if (_collect_phase) {
 
@@ -494,11 +561,7 @@ ISL2950::cycle()
 
 		if (collect_ret == -EAGAIN) {
 			/* reschedule to grab the missing bits, time to transmit 8 bytes @ 9600 bps */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&ISL2950::cycle_trampoline,
-				   this,
-				   USEC2TICK(1042 * 8));
+			work_queue(HPWORK,&_work,(worker_t)&ISL2950::cycle_trampoline,this,USEC2TICK(1042 * 8));
 			return;
 		}
 
