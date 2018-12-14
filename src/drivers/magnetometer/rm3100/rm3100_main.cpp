@@ -73,7 +73,7 @@ rm3100::init(RM3100_BUS bus_id)
 		return false;
 
 	} else {
-		PX4_INFO("Poll rate set to max (146 Hz)");
+		PX4_INFO("Poll rate set to 100 Hz");
 	}
 
 	close(fd);
