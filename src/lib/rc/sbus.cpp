@@ -52,6 +52,8 @@
 #include "common_rc.h"
 #include <drivers/drv_hrt.h>
 
+using namespace time_literals;
+
 #define SBUS_DEBUG_LEVEL 	0 /* Set debug output level */
 
 #if defined(__PX4_POSIX_OCPOC)
@@ -280,8 +282,21 @@ bool
 sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_failsafe, bool *sbus_frame_drop,
 	   uint16_t max_channels)
 {
-	int		ret = 1;
-	hrt_abstime	now;
+	/*
+	 * Fetch bytes, but no more than we would need to complete
+	 * a complete frame.
+	 */
+	uint8_t buf[SBUS_FRAME_SIZE * 2];
+
+	int ret = read(sbus_fd, &buf[0], SBUS_FRAME_SIZE);
+
+	/* if the read failed for any reason, just give up here */
+	if (ret < 1) {
+		return false;
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+#ifdef __PX4_NUTTX /* limit time-based hardening to RTOS's where we have reliable timing */
 
 	/*
 	 * The S.BUS protocol doesn't provide reliable framing,
@@ -298,32 +313,30 @@ sbus_input(int sbus_fd, uint16_t *values, uint16_t *num_values, bool *sbus_fails
 	 * provides a degree of protection. Of course, it would be better
 	 * if we didn't drop bytes...
 	 */
-	now = hrt_absolute_time();
+	if (now - last_rx_time > 3_ms) {
+		if (partial_frame_count > 0) {
+			partial_frame_count = 0;
+			sbus_decode_state = SBUS2_DECODE_STATE_DESYNC;
+#if defined(SBUS_DEBUG_LEVEL) && SBUS_DEBUG_LEVEL > 0
+			printf("SBUS: RESET (TIME LIM)\n");
+#endif
+		}
+	}
 
-	/*
-	 * Fetch bytes, but no more than we would need to complete
-	 * a complete frame.
-	 */
-	uint8_t buf[SBUS_FRAME_SIZE * 2];
-	bool sbus_decoded = false;
-
-	ret = read(sbus_fd, &buf[0], SBUS_FRAME_SIZE);
-
-	/* if the read failed for any reason, just give up here */
-	if (ret < 1) {
+	if (partial_frame_count == 0 && buf[0] != SBUS_START_SYMBOL) {
+		/* don't bother going through the buffer if we don't get the
+		 * expected start symbol as a first byte */
+		sbus_decode_state = SBUS2_DECODE_STATE_DESYNC;
 		return false;
 	}
+
+#endif /* __PX4_NUTTX */
 
 	/*
 	 * Try to decode something with what we got
 	 */
-	if (sbus_parse(now, &buf[0], ret, values, num_values, sbus_failsafe,
-		       sbus_frame_drop, &sbus_frame_drops, max_channels)) {
-
-		sbus_decoded = true;
-	}
-
-	return sbus_decoded;
+	return sbus_parse(now, &buf[0], ret, values, num_values, sbus_failsafe,
+			  sbus_frame_drop, &sbus_frame_drops, max_channels);
 }
 
 bool
