@@ -1,14 +1,8 @@
-#!nsh
+#!/bin/sh
 #
-# Atmel SAM E70 Xplained specific board init
-#
+# Atmel SAM E70 Xplained specific board sensors init
 #------------------------------------------------------------------------------
-#
 
-if [ $AUTOCNF = yes ]
-then
-
-fi
 
 # External I2C bus
 hmc5883 -C -T -X start

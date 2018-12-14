@@ -1,20 +1,7 @@
-#!nsh
+#!/bin/sh
 #
-# PX4 FMUv4 specific board init
-#
+# PX4 FMUv4 specific board sensors init
 #------------------------------------------------------------------------------
-#
-# UART mapping on FMUv5:
-#
-# UART1         /dev/ttyS0      wifi
-# USART2        /dev/ttyS1      TELEM1 (flow control)
-# USART3        /dev/ttyS2      TELEM2 (flow control)
-# UART4
-# UART7                         CONSOLE
-# UART8         /dev/ttyS6      SERIAL4/TELEM4
-#
-#------------------------------------------------------------------------------
-#
 
 # We know there are sketchy boards out there
 # as chinese companies produce Pixracers without
@@ -23,16 +10,6 @@
 # on boot. Original Pixracers following the
 # open hardware design do not require this.
 fmu sensor_reset 50
-
-if [ $AUTOCNF = yes ]
-then
-	# Disable safety switch by default
-	param set CBRK_IO_SAFETY 22027
-
-	param set SYS_FMU_TASK 1
-fi
-
-set MIXER_AUX none
 
 
 # External I2C bus
@@ -86,19 +63,4 @@ if ! mpu9250 -R 2 start
 then
 	# BMI160 internal SPI bus
 	bmi160 start
-fi
-
-
-# Pixracer: start MAVLink on Wifi (ESP8266 port). Except for the TealOne airframe.
-if param compare SYS_AUTOSTART 4250
-then
-else
-	mavlink start -r 20000 -b 921600 -d /dev/ttyS0
-fi
-
-
-# Run FrSky Telemetry on Pixracer on the FrSky port if not enabled already
-if param compare TEL_FRSKY_CONFIG 0
-then
-	frsky_telemetry start -d /dev/ttyS6 -t 15
 fi

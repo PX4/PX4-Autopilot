@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# AUAV/mRO x21 specific board defaults
+#------------------------------------------------------------------------------
+
+
+if [ $AUTOCNF = yes ]
+then
+	param set SYS_FMU_TASK 0
+fi
