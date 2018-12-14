@@ -245,6 +245,7 @@ alt_firmware: \
 	check_stm_32f4discovery_default \
 	check_px4_cannode-v1_default \
 	check_px4_esc-v1_default \
+	check_auav_esc35-v1_default \
 	check_stm_nucleo-F767ZI_default \
 	check_thiemar_s2740vc-v1_default \
 	sizes
