@@ -55,6 +55,8 @@
 #include <nuttx/compiler.h>
 #include <nuttx/progmem.h>
 
+#if defined(CONFIG_ARCH_HAVE_PROGMEM)
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -1116,3 +1118,4 @@ __EXPORT void test(void)
 	free(buffer);
 }
 #endif /* FLASH_UNIT_TEST */
+#endif /* CONFIG_ARCH_HAVE_PROGMEM */
