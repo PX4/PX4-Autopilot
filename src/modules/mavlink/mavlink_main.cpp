@@ -941,7 +941,7 @@ Mavlink::find_broadcast_address()
 	struct ifconf ifconf;
 	int ret;
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if defined(__APPLE__) && defined(__MACH__) || defined(__CYGWIN__)
 	// On Mac, we can't determine the required buffer
 	// size in advance, so we just use what tends to work.
 	ifconf.ifc_len = 1024;
