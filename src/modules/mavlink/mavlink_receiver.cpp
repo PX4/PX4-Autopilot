@@ -160,6 +160,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_debug_value_pub(nullptr),
 	_debug_vect_pub(nullptr),
 	_debug_array_pub(nullptr),
+	_telem_status_pub(nullptr),
 	_gps_inject_data_pub(nullptr),
 	_command_ack_pub(nullptr),
 	_control_mode_sub(orb_subscribe(ORB_ID(vehicle_control_mode))),
