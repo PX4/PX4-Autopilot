@@ -43,6 +43,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <lib/ecl/geo/geo.h>
+#include <px4_defines.h>
 #include <unistd.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>

@@ -79,6 +79,77 @@ add_custom_command(
 	WORKING_DIRECTORY ${NUTTX_DIR}/tools
 	COMMENT "Copying NuttX config ${NUTTX_CONFIG} and configuring"
 	)
+	
+# determine toolchain sysroot
+execute_process(
+	COMMAND ${CMAKE_C_COMPILER} --print-sysroot
+	OUTPUT_VARIABLE GCC_SYSROOT
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# copy newlib math.h into include
+# remove includes sys/reent.h and sys/cdefs.h
+add_custom_command(
+	OUTPUT
+		${NUTTX_DIR}/include/math.h
+	COMMAND
+		cp ${GCC_SYSROOT}/include/math.h ${NUTTX_DIR}/include/
+	COMMAND
+		sed -i 's@\#include \<sys/reent.h\>@@' ${NUTTX_DIR}/include/math.h
+	COMMAND
+		sed -i 's@\#include \<sys/cdefs.h\>@@' ${NUTTX_DIR}/include/math.h
+	DEPENDS ${NUTTX_DIR}/.config
+)
+
+# copy the unmodified newlib headers
+set(newlib_headers)
+list(APPEND newlib_headers
+	_ansi.h
+	_newlib_version.h
+	getopt.h
+	newlib.h
+	sys/_types.h
+	sys/config.h
+	sys/features.h
+)
+
+set(newlib_header_deps)
+foreach(h ${newlib_headers})
+	add_custom_command(
+		OUTPUT ${NUTTX_DIR}/include/${h}
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${GCC_SYSROOT}/include/${h} ${NUTTX_DIR}/include/${h}
+		DEPENDS ${NUTTX_DIR}/include/math.h
+		COMMENT "copying newlib ${h} into buildroot"
+	)
+	list(APPEND newlib_header_deps ${NUTTX_DIR}/include/${h})
+endforeach()
+
+# machine/ieeefp.h
+add_custom_command(
+	OUTPUT ${NUTTX_DIR}/include/machine/ieeefp.h
+	COMMAND mkdir -p ${NUTTX_DIR}/include/machine
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${GCC_SYSROOT}/include/machine/ieeefp.h ${NUTTX_DIR}/include/machine/ieeefp.h
+	DEPENDS ${NUTTX_DIR}/.config
+	COMMENT "copying newlib machine/ieeefp.h into buildroot"
+)
+list(APPEND newlib_header_deps ${NUTTX_DIR}/include/machine/ieeefp.h)
+
+# TODO: what's the proper way to find this in GCC?
+set(newlib_headers_alt)
+list(APPEND newlib_headers_alt
+	float.h
+	stdarg.h
+)
+foreach(h ${newlib_headers_alt})
+	add_custom_command(
+		OUTPUT ${NUTTX_DIR}/include/${h}
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${GCC_SYSROOT}/../lib/gcc/arm-none-eabi/7.2.1/include/${h} ${NUTTX_DIR}/include/${h}
+		DEPENDS ${NUTTX_DIR}/include/math.h
+		COMMENT "copying newlib ${h} into buildroot"
+	)
+	list(APPEND newlib_header_deps ${NUTTX_DIR}/include/${h})
+endforeach()
+
 
 # verbose build settings (V=1 or VERBOSE=1)
 option(PX4_NUTTX_VERBOSE "PX4 NuttX verbose build" off)
@@ -101,7 +172,10 @@ endif()
 # context
 add_custom_command(OUTPUT ${NUTTX_DIR}/include/nuttx/version.h ${NUTTX_DIR}/include/nuttx/config.h
 	COMMAND make ${nuttx_build_options} --no-print-directory context ${nuttx_build_output}
-	DEPENDS ${NUTTX_DIR}/.config
+	DEPENDS
+		${NUTTX_DIR}/.config
+		${NUTTX_DIR}/include/math.h
+		${newlib_header_deps}
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	${nuttx_build_uses_terminal}
 	)

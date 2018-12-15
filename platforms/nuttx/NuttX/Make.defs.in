@@ -63,6 +63,8 @@ ifeq ($(WINTOOL),y)
 endif
 
 FLAGS = -Os -g2 \
+	-nostdlib \
+	-nostdinc \
 	-fdata-sections \
 	-ffunction-sections \
 	-fno-builtin-printf \
@@ -108,6 +110,7 @@ CFLAGS = $(ARCHINCLUDES) \
 
 CXXFLAGS = $(ARCHXXINCLUDES) \
 	-std=gnu++11 \
+	-nostdinc++ \
 	${CMAKE_CXX_FLAGS} \
 	$(FLAGS) \
 	-fcheck-new \

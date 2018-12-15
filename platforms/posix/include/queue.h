@@ -42,11 +42,7 @@
 
 #include <sys/types.h>
 
-#ifdef __cplusplus
-#include <cstddef>	// NULL
-#else
-#include <stddef.h>	// NULL
-#endif
+#include <stddef.h>
 
 /************************************************************************
  * Pre-processor Definitions

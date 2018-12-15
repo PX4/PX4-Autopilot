@@ -330,9 +330,9 @@ PCA9685::i2cpwm()
 					     (double)_actuator_controls.control[i]);
 
 				if (new_value != _current_values[i] &&
-				    isfinite(new_value) &&
 				    new_value >= PCA9685_PWMMIN &&
 				    new_value <= PCA9685_PWMMAX) {
+
 					/* This value was updated, send the command to adjust the PWM value */
 					setPin(i, new_value);
 					_current_values[i] = new_value;

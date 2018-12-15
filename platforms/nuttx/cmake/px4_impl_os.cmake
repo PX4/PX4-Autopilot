@@ -68,6 +68,15 @@ function(px4_os_add_flags)
 		-D__PX4_NUTTX
 		-D__DF_NUTTX
 		)
+		
+	add_compile_options(
+		-nostartfiles
+		-nodefaultlibs
+		-nostdlib
+
+		#-nostdinc
+		#-nostdinc++
+	)
 
 	if("${CONFIG_ARMV7M_STACKCHECK}" STREQUAL "y")
 		message(STATUS "NuttX Stack Checking (CONFIG_ARMV7M_STACKCHECK) enabled")

@@ -50,6 +50,7 @@
 #include <lib/ecl/geo/geo.h>
 #include <stdbool.h>
 #include <math.h>
+#include <px4_defines.h>
 
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_combined.h>

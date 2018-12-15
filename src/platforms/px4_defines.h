@@ -61,13 +61,6 @@
 /* Wrapper for rotation matrices stored in arrays */
 #define PX4_R(_array, _x, _y) PX4_ARRAY2D(_array, 3, _x, _y)
 
-/* Define a usable PX4_ISFINITE. Note that PX4_ISFINITE is ONLY used in C++ files,
- * therefore, by default, we want to use std::isfinite. */
-#ifdef __cplusplus
-#include <cmath>
-#define PX4_ISFINITE(x) std::isfinite(x)
-#endif
-
 #if defined(__PX4_ROS)
 /****************************************************************************
  * Building for running within the ROS environment.
@@ -132,24 +125,21 @@ typedef param_t px4_param_t;
 
 // Workaround for broken NuttX math.h.
 #ifdef __cplusplus
-#include <cmath>
-#undef isfinite
 template<typename T>
-inline bool isfinite(T __y)
-{
-	int __cy = fpclassify(__y);
-	return __cy != FP_INFINITE && __cy != FP_NAN;
-}
-namespace std
-{
-using ::isfinite;
-}
+constexpr bool PX4_ISFINITE(T __y) { return __builtin_isfinite(__y); }
 #endif // __cplusplus
 
 #elif defined(__PX4_POSIX)
 /****************************************************************************
  * POSIX Specific defines
  ****************************************************************************/
+
+/* Define a usable PX4_ISFINITE. Note that PX4_ISFINITE is ONLY used in C++ files,
+ * therefore, by default, we want to use std::isfinite. */
+#ifdef __cplusplus
+#include <cmath>
+#define PX4_ISFINITE(x) std::isfinite(x)
+#endif
 
 // Flag is meaningless on Linux
 #ifndef O_BINARY
@@ -214,34 +204,23 @@ __END_DECLS
 #define ERROR -1
 #define MAX_RAND 32767
 
-/* Math macro's for float literals. Do not use M_PI et al as they aren't
- * defined (neither C nor the C++ standard define math constants) */
-#define M_E_F			2.71828183f
-#define M_LOG2E_F		1.44269504f
-#define M_LOG10E_F		0.43429448f
-#define M_LN2_F			0.69314718f
-#define M_LN10_F		2.30258509f
-#define M_PI_F			3.14159265f
-#define M_TWOPI_F		6.28318531f
-#define M_PI_2_F		1.57079632f
-#define M_PI_4_F		0.78539816f
-#define M_3PI_4_F		2.35619449f
-#define M_SQRTPI_F		1.77245385f
-#define M_1_PI_F		0.31830989f
-#define M_2_PI_F		0.63661977f
-#define M_2_SQRTPI_F		1.12837917f
-#define M_DEG_TO_RAD_F		0.0174532925f
-#define M_RAD_TO_DEG_F		57.2957795f
-#define M_SQRT2_F		1.41421356f
-#define M_SQRT1_2_F		0.70710678f
-#define M_LN2LO_F		1.90821484E-10f
-#define M_LN2HI_F		0.69314718f
-#define M_SQRT3_F		1.73205081f
-#define M_IVLN10_F		0.43429448f	// 1 / log(10)
-#define M_LOG2_E_F		0.69314718f
-#define M_INVLN2_F		1.44269504f	// 1 / log(2)
-
-#define M_DEG_TO_RAD 		0.017453292519943295
-#define M_RAD_TO_DEG 		57.295779513082323
 
 #endif // defined(__PX4_ROS) || defined(__PX4_POSIX)
+
+#define M_DEG_TO_RAD 		0.017453292519943295
+#define M_DEG_TO_RAD_F		((float)M_DEG_TO_RAD)
+
+#define M_RAD_TO_DEG 		57.295779513082323
+#define M_RAD_TO_DEG_F		((float)M_RAD_TO_DEG)
+
+
+#include <math.h>
+#define M_PI_F ((float)M_PI)
+#define M_PI_2_F ((float)M_PI_2)
+#define M_SQRT1_2_F ((float)M_SQRT1_2)
+
+#ifndef M_TWOPI
+# define M_TWOPI (2 * M_PI)
+#endif
+
+#define M_TWOPI_F ((float)M_TWOPI)
