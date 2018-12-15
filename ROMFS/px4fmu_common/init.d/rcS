@@ -80,11 +80,6 @@ ver all
 uorb start
 
 #
-# Start the tone_alarm driver.
-#
-tone_alarm start
-
-#
 # Try to mount the microSD card.
 #
 # REBOOTWORK this needs to start after the flight control loop.
@@ -172,6 +167,13 @@ else
 	then
 		param reset
 	fi
+
+	#
+	# Start the tone_alarm driver.
+	# Needs to be started after the parameters are loaded (for CBRK_BUZZER).
+	# Note that this will still play the already published startup tone.
+	#
+	tone_alarm start
 
 	#
 	# Start system state indicator.
