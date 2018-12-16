@@ -43,7 +43,7 @@
 #include <parameters/param.h>
 
 /**
- * Empty cell voltage (5C load)
+ * Empty cell voltage (nominal load)
  *
  * Defines the voltage where a single cell of the battery is considered empty.
  * The voltage should be chosen before the steep dropoff to 2.8V. A typical
@@ -59,10 +59,10 @@
 PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.5f);
 
 /**
- * Full cell voltage (5C load)
+ * Full cell voltage (nominal load)
  *
  * Defines the voltage where a single cell of the battery is considered full
- * under a mild load. This will never be the nominal voltage of 4.2V
+ * under nominal load. This will never be the nominal voltage of 4.2V
  *
  * @group Battery Calibration
  * @unit V

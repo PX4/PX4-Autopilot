@@ -230,10 +230,4 @@ Battery::computeScale()
 
 	_scale = _param_bat_v_charged.get() / bat_v;
 
-	if (_scale > 1.3f) { // Allow at most 30% compensation
-		_scale = 1.3f;
-
-	} else if (!PX4_ISFINITE(_scale) || _scale < 1.f) { // Shouldn't ever be more than the power at full battery
-		_scale = 1.f;
-	}
 }
