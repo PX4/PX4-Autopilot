@@ -25,7 +25,7 @@ fw_pos_control_l1 start
 #
 # Start Land Detector
 #
-land_detector start fixedwing
+land_detector start flapwing
 
 #
 # Start Wind and Airspeed Scale Estimator

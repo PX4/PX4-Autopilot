@@ -46,6 +46,7 @@
 #include <px4_tasks.h>
 
 #include "FixedwingLandDetector.h"
+#include "FlapwingLandDetector.h"
 #include "MulticopterLandDetector.h"
 #include "RoverLandDetector.h"
 #include "VtolLandDetector.h"
@@ -79,7 +80,10 @@ int LandDetector::task_spawn(int argc, char *argv[])
 	} else if (strcmp(argv[1], "ugv") == 0) {
 		obj = new RoverLandDetector();
 
-	} else {
+    } else if (strcmp(argv[1], "flapwing") == 0) {
+        obj = new FlapwingLandDetector();
+
+    } else {
 		print_usage("unknown mode");
 		return -1;
 	}
