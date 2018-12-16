@@ -194,7 +194,7 @@ public:
     {
         Quaternion &q = *this;
         Vector3<Type> cr = src.cross(dst);
-        float dt = src.dot(dst);
+        const float dt = src.dot(dst);
         /* If the two vectors are parallel, cross product is zero
          * If they point opposite, the dot product is negative */
         if (cr.norm() < eps && dt < 0) {
@@ -216,7 +216,7 @@ public:
             cr = src.cross(cr);
         } else {
             /* Half-Way Quaternion Solution */
-            q(0) = src.dot(dst) + sqrt(src.norm_squared() * dst.norm_squared());
+            q(0) = dt + sqrt(src.norm_squared() * dst.norm_squared());
         }
         q(1) = cr(0);
         q(2) = cr(1);
