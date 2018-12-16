@@ -42,7 +42,6 @@ set(srcs
 	test_file.c
 	test_file2.c
 	test_float.cpp
-	test_gpio.c
 	test_hott_telemetry.c
 	test_hrt.cpp
 	test_hysteresis.cpp
@@ -75,7 +74,7 @@ set(srcs
 	tests_main.c
 	)
 
-if(${OS} STREQUAL "nuttx")
+if(${PX4_PLATFORM} STREQUAL "nuttx")
 	list(APPEND srcs
 		test_time.c
 		test_uart_break.c
@@ -101,4 +100,7 @@ px4_add_module(
 		git_ecl
 		ecl_geo_lookup # TODO: move this
 		pwm_limit
+		version
 	)
+
+add_subdirectory(hrt_test)

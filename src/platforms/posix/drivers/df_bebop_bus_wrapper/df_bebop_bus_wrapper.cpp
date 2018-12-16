@@ -54,6 +54,7 @@
 #include <uORB/topics/esc_status.h>
 
 #include <lib/mixer/mixer.h>
+#include <lib/mixer/mixer_load.h>
 #include <battery/battery.h>
 
 #include <bebop_bus/BebopBus.hpp>

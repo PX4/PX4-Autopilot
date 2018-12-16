@@ -5,7 +5,11 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+# When building with catkin, do not change CMAKE_RUNTIME_OUTPUT_DIR from
+# CMAKE_CURRENT_BINARY_DIR ''./platforms/posix' to './bin'
+if (NOT CATKIN_DEVEL_PREFIX)
+	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+endif()
 
 set(PX4_SHELL_COMMAND_PREFIX "px4-")
 
@@ -21,13 +25,12 @@ px4_posix_generate_alias(
 	PREFIX ${PX4_SHELL_COMMAND_PREFIX}
 )
 
-if (("${BOARD}" STREQUAL "eagle") OR ("${BOARD}" STREQUAL "excelsior"))
+if (("${PX4_BOARD}" MATCHES "atlflight_eagle") OR ("${PX4_BOARD}" MATCHES "atlflight_excelsior"))
 	include(fastrpc)
 	include(linux_app)
 
 	FASTRPC_STUB_GEN(../qurt/px4muorb.idl)
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-prototypes -Wno-missing-declarations")
 	LINUX_APP(
 		APP_NAME px4
 		IDL_NAME px4muorb
@@ -47,15 +50,8 @@ if (("${BOARD}" STREQUAL "eagle") OR ("${BOARD}" STREQUAL "excelsior"))
 			-Wl,--end-group
 		)
 
-	add_custom_target(upload
-		COMMAND ${PX4_SOURCE_DIR}/Tools/adb_upload.sh ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/mainapp.config /home/linaro
-		DEPENDS px4
-		COMMENT "uploading px4"
-		USES_TERMINAL
-		)
-
 else()
-	px4_add_executable(px4
+	add_executable(px4
 		src/main.cpp
 		apps.cpp
 		)
@@ -63,8 +59,8 @@ else()
 	target_link_libraries(px4
 		PRIVATE
 			${module_libraries}
-			df_driver_framework
 			${df_driver_libs}
+			df_driver_framework
 			pthread m
 	)
 
@@ -101,34 +97,17 @@ px4_posix_generate_symlinks(
 	TARGET px4
 )
 
-if ("${BOARD}" STREQUAL "rpi")
-	add_custom_target(upload
-		COMMAND rsync -arh --progress ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${PX4_SOURCE_DIR}/posix-configs/rpi/*.config ${PX4_SOURCE_DIR}/ROMFS pi@"$ENV{AUTOPILOT_HOST}":/home/pi
-		DEPENDS px4
-		COMMENT "uploading px4"
-		USES_TERMINAL
-		)
 
-elseif ("${BOARD}" STREQUAL "bbblue")
+# board defined upload helper
+if(EXISTS "${PX4_BOARD_DIR}/cmake/upload.cmake")
+	include(${PX4_BOARD_DIR}/cmake/upload.cmake)
+endif()
+
+
+if ("${PX4_BOARD}" MATCHES "beaglebone_blue")
 	target_link_libraries(px4 PRIVATE robotcontrol)
 
-	add_custom_target(upload
-		COMMAND rsync -arh --progress ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} ${PX4_SOURCE_DIR}/posix-configs/bbblue/*.config ${PX4_SOURCE_DIR}/ROMFS debian@BBBluePX4:/home/debian/px4
-		DEPENDS px4
-		COMMENT "uploading px4 and data files"
-		USES_TERMINAL
-		)
-
-elseif ("${BOARD}" STREQUAL "bebop")
-
-	add_custom_target(upload
-		COMMAND ${PX4_SOURCE_DIR}/Tools/adb_upload_to_bebop.sh ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/. /data/ftp/internal_000
-		DEPENDS px4
-		COMMENT "uploading px4"
-		USES_TERMINAL
-		)
-
-elseif ("${BOARD}" STREQUAL "sitl")
+elseif ("${PX4_BOARD}" MATCHES "sitl")
 
 	include(sitl_target)
 	if(BUILD_TESTING)
@@ -178,9 +157,9 @@ elseif ("${BOARD}" STREQUAL "sitl")
 	# sitl_gazebo built plugins
 	install(
 		DIRECTORY
-			${PROJECT_SOURCE_DIR}/build/posix_sitl_default/build_gazebo
+			${PROJECT_SOURCE_DIR}/build/px4_sitl_default/build_gazebo
 		DESTINATION
-			${PROJECT_NAME}/build/posix_sitl_default
+			${PROJECT_NAME}/build/px4_sitl_default
 		FILES_MATCHING
 			PATTERN "CMakeFiles" EXCLUDE
 			PATTERN "*.so"
@@ -203,15 +182,5 @@ elseif ("${BOARD}" STREQUAL "sitl")
 		DESTINATION
 			${PROJECT_NAME}/Tools/sitl_gazebo
 		)
-
-elseif (("${BOARD}" STREQUAL "eagle") OR ("${BOARD}" STREQUAL "excelsior"))
-
-	# package all libs?
-	#install(
-	#	FILES
-	#		$ENV{HEXAGON_ARM_SYSROOT}/usr/lib/libadsprpc.so
-	#	DESTINATION
-	#		lib
-	#	)
 
 endif()

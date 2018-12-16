@@ -2,8 +2,8 @@
 	path = mavlink/include/mavlink/v2.0
 	url = https://github.com/mavlink/c_library_v2.git
 	branch = master
-[submodule "src/modules/uavcan/libuavcan"]
-	path = src/modules/uavcan/libuavcan
+[submodule "src/drivers/uavcan/libuavcan"]
+	path = src/drivers/uavcan/libuavcan
 	url = https://github.com/UAVCAN/libuavcan.git
 	branch = master
 [submodule "msg/tools/genmsg"]
@@ -34,8 +34,8 @@
 	path = src/lib/ecl
 	url = https://github.com/PX4/ecl.git
 	branch = master
-[submodule "cmake/cmake_hexagon"]
-	path = cmake/cmake_hexagon
+[submodule "boards/atlflight/cmake_hexagon"]
+	path = boards/atlflight/cmake_hexagon
 	url = https://github.com/ATLFlight/cmake_hexagon.git
 	branch = master
 [submodule "src/drivers/gps/devices"]

@@ -51,18 +51,11 @@
 
 static atomic_word_t mem_lock;
 
-int mem_fd;
-unsigned char *map_base, *virt_addr;
-struct shmem_info *shmem_info_p;
-int get_shmem_lock(const char *caller_file_name, int caller_line_number);
-void release_shmem_lock(const char *caller_file_name, int caller_line_number);
-void init_shared_memory();
-void copy_params_to_shmem(param_info_s *);
-void update_to_shmem(param_t param, union param_value_u value);
-int update_from_shmem(param_t param, union param_value_u *value);
-void update_index_from_shmem();
-uint64_t update_from_shmem_prev_time = 0, update_from_shmem_current_time = 0;
+static unsigned char *map_base, *virt_addr;
+static uint64_t update_from_shmem_prev_time = 0, update_from_shmem_current_time = 0;
 static unsigned char krait_changed_index[MAX_SHMEM_PARAMS / 8 + 1];
+
+struct shmem_info *shmem_info_p;
 
 // Small helper to get log2 for ints
 static unsigned log2_for_int(unsigned v)

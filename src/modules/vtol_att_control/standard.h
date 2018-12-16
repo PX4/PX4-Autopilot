@@ -55,14 +55,14 @@ class Standard : public VtolType
 public:
 
 	Standard(VtolAttitudeControl *_att_controller);
-	~Standard() = default;
+	~Standard() override = default;
 
-	virtual void update_vtol_state();
-	virtual void update_transition_state();
-	virtual void update_fw_state();
-	virtual void update_mc_state();
-	virtual void fill_actuator_outputs();
-	virtual void waiting_on_tecs();
+	void update_vtol_state() override;
+	void update_transition_state() override;
+	void update_fw_state() override;
+	void update_mc_state() override;
+	void fill_actuator_outputs() override;
+	void waiting_on_tecs() override;
 
 private:
 
@@ -98,10 +98,10 @@ private:
 		hrt_abstime transition_start;	// at what time did we start a transition (front- or backtransition)
 	} _vtol_schedule;
 
-	float _pusher_throttle;
-	float _reverse_output;
-	float _airspeed_trans_blend_margin;
+	float _pusher_throttle{0.0f};
+	float _reverse_output{0.0f};
+	float _airspeed_trans_blend_margin{0.0f};
 
-	virtual void parameters_update();
+	void parameters_update() override;
 };
 #endif

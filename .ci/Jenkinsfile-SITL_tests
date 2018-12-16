@@ -30,7 +30,7 @@ pipeline {
             sh('make distclean')
             sh "ccache -z"
             sh "git fetch --tags"
-            sh('make posix_sitl_default')
+            sh('make px4_sitl_default')
             sh "ccache -s"
           }
         }
@@ -47,8 +47,8 @@ pipeline {
         stage('unit tests') {
           steps {
             sh 'export'
-            sh 'make posix_sitl_default test_results_junit'
-            junit 'build/posix_sitl_default/JUnitTestResults.xml'
+            sh 'make px4_sitl_default test_results_junit'
+            junit 'build/px4_sitl_default/JUnitTestResults.xml'
           }
         }
 
@@ -56,7 +56,7 @@ pipeline {
           steps {
             sh 'export'
             sh "ccache -z"
-            sh('make posix_sitl_default sitl_gazebo')
+            sh('make px4_sitl_default sitl_gazebo')
             sh "ccache -s"
           }
         }
@@ -64,8 +64,8 @@ pipeline {
         stage('package') {
           steps {
             sh 'export'
-            sh('make posix_sitl_default package')
-            stash(name: "px4_sitl_package", includes: "build/posix_sitl_default/*.bz2")
+            sh('make px4_sitl_default package')
+            stash(name: "px4_sitl_package", includes: "build/px4_sitl_default/*.bz2")
           }
         }
 
@@ -146,7 +146,7 @@ pipeline {
         stage('code coverage (python)') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2018-09-11'
+              image 'px4io/px4-dev-base:2018-11-22'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw --cap-add SYS_PTRACE'
             }
           }
@@ -169,14 +169,14 @@ pipeline {
         stage('unit tests') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2018-09-11'
+              image 'px4io/px4-dev-base:2018-11-22'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw --cap-add SYS_PTRACE'
             }
           }
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'make posix_sitl_default test_results_junit'
+            sh 'make px4_sitl_default test_results_junit'
             withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
               sh 'curl -s https://codecov.io/bash | bash -s - -F unittest'
             }
@@ -201,7 +201,7 @@ pipeline {
   }
 
   options {
-    buildDiscarder(logRotator(numToKeepStr: '10', artifactDaysToKeepStr: '30'))
+    buildDiscarder(logRotator(numToKeepStr: '5', artifactDaysToKeepStr: '30'))
     timeout(time: 60, unit: 'MINUTES')
   }
 } // pipeline
@@ -221,11 +221,11 @@ def createTestNode(Map test_def) {
           }
 
           unstash('px4_sitl_package')
-          sh('tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2')            
+          sh('tar -xjpvf build/px4_sitl_default/px4-px4_sitl_default*.bz2')
 
           // run test
           try {
-            sh('px4-posix_sitl_default*/px4/test/rostest_px4_run.sh ' + test_def.test + ' mission:=' + test_def.mission + ' vehicle:=' + test_def.vehicle)
+            sh('px4-px4_sitl_default*/px4/test/rostest_px4_run.sh ' + test_def.test + ' mission:=' + test_def.mission + ' vehicle:=' + test_def.vehicle)
 
           } catch (exc) {
             // save all test artifacts for debugging
@@ -240,7 +240,7 @@ def createTestNode(Map test_def) {
 
               // process log data (with python code coverage)
               try {
-                sh('coverage run -p px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
+                sh('coverage run -p px4-px4_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
               } catch (exc) {
                 // save log analysis artifacts for debugging
                 archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.pdf, .ros/**/*.csv')
@@ -249,7 +249,7 @@ def createTestNode(Map test_def) {
               }
 
               // upload log to flight review (https://logs.px4.io/) with python code coverage
-              sh('coverage run -p px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
+              sh('coverage run -p px4-px4_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
 
               // upload python code coverage to codecov.io
               sh 'curl -s https://codecov.io/bash | bash -s - -X gcov -F sitl_python_${STAGE_NAME}'
@@ -257,7 +257,7 @@ def createTestNode(Map test_def) {
           } else { // non code coverage
             // process ekf log data
             try {
-              sh('px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
+              sh('px4-px4_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
             } catch (exc) {
               // save log analysis artifacts for debugging
               archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.pdf, .ros/**/*.csv')
@@ -266,7 +266,7 @@ def createTestNode(Map test_def) {
             }
 
             // upload log to flight review (https://logs.px4.io/)
-            sh('px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
+            sh('px4-px4_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
           }
 
           if (!test_ok) {

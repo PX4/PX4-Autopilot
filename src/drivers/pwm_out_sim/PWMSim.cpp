@@ -33,6 +33,8 @@
 
 #include "PWMSim.hpp"
 
+#include <uORB/topics/multirotor_motor_limits.h>
+
 PWMSim::PWMSim() :
 	CDev(PWM_OUTPUT0_DEVICE_PATH),
 	_perf_control_latency(perf_alloc(PC_ELAPSED, "pwm_out_sim control latency"))
@@ -144,9 +146,7 @@ void PWMSim::update_params()
 	param_t param_handle = param_find("MC_AIRMODE");
 
 	if (param_handle != PARAM_INVALID) {
-		int32_t val;
-		param_get(param_handle, &val);
-		_airmode = val > 0;
+		param_get(param_handle, &_airmode);
 	}
 }
 
@@ -157,6 +157,9 @@ PWMSim::run()
 	_current_update_rate = 0;
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+
+	/* advertise the mixed control outputs, insist on the first group output */
+	_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_actuator_outputs);
 
 	update_params();
 	int params_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -282,10 +285,22 @@ PWMSim::run()
 				}
 			}
 
+			/* publish mixer status */
+			MultirotorMixer::saturation_status saturation_status;
+			saturation_status.value = _mixers->get_saturation_status();
+
+			if (saturation_status.flags.valid) {
+				multirotor_motor_limits_s motor_limits;
+				motor_limits.timestamp = hrt_absolute_time();
+				motor_limits.saturation_status = saturation_status.value;
+
+				int instance;
+				orb_publish_auto(ORB_ID(multirotor_motor_limits), &_mixer_status, &motor_limits, &instance, ORB_PRIO_DEFAULT);
+			}
+
 			/* and publish for anyone that cares to see */
 			_actuator_outputs.timestamp = hrt_absolute_time();
-			int instance;
-			orb_publish_auto(ORB_ID(actuator_outputs), &_outputs_pub, &_actuator_outputs, &instance, ORB_PRIO_DEFAULT);
+			orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_actuator_outputs);
 
 			// use first valid timestamp_sample for latency tracking
 			for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {

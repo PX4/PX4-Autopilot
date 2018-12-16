@@ -6,10 +6,10 @@ pipeline {
 
       parallel {
 
-        stage('Catkin') {
+        stage('Catkin build on ROS workspace') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2018-09-24'
+              image 'px4io/px4-dev-ros:2018-11-22'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -18,13 +18,18 @@ pipeline {
             sh '''#!/bin/bash -l
               echo $0;
               mkdir -p catkin_ws/src;
-              cp -R . catkin_ws/src/Firmware
               cd catkin_ws;
+              // ln -s Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
               source /opt/ros/melodic/setup.bash;
               catkin init;
-              source devel/setup.bash;
               catkin build -j$(nproc) -l$(nproc);
             '''
+            // test if the binary was correctly installed and runs using 'mavros_posix_silt.launch'
+            //sh '''#!/bin/bash -l
+            //  echo $0;
+            //  source catkin_ws/devel/setup.bash;
+            //  rostest px4 pub_test.launch;
+            //'''
           }
           post {
             always {
@@ -36,9 +41,38 @@ pipeline {
           }
         }
 
+        stage('Colcon build on ROS2 workspace') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ros2-bouncy:2018-11-22'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+            }
+          }
+          steps {
+            sh 'ls -l'
+            sh '''#!/bin/bash -l
+              echo $0;
+              unset ROS_DISTRO;
+              mkdir -p colcon_ws/src;
+              cd colcon_ws;
+              // ln -s Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
+              source /opt/ros/bouncy/setup.sh;
+              colcon build --event-handlers console_direct+ --symlink-install;
+            '''
+          }
+          post {
+            always {
+              sh 'rm -rf colcon_ws'
+            }
+          }
+          options {
+            checkoutToSubdirectory('colcon_ws/src/Firmware')
+          }
+        }
+
         stage('Style check') {
           agent {
-            docker { image 'px4io/px4-dev-base:2018-09-11' }
+            docker { image 'px4io/px4-dev-base:2018-11-22' }
           }
           steps {
             sh 'make check_format'
@@ -50,10 +84,10 @@ pipeline {
           }
         }
 
-        stage('Bloaty px4fmu-v2') {
+        stage('Bloaty px4_fmu-v2') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2018-09-11'
+              image 'px4io/px4-dev-nuttx:2018-11-22'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -62,12 +96,12 @@ pipeline {
             sh 'make distclean'
             sh 'ccache -z'
             sh 'git fetch --tags'
-            sh 'make nuttx_px4fmu-v2_default'
-            sh 'make nuttx_px4fmu-v2_default bloaty_symbols'
-            sh 'make nuttx_px4fmu-v2_default bloaty_compileunits'
-            sh 'make nuttx_px4fmu-v2_default bloaty_inlines'
-            sh 'make nuttx_px4fmu-v2_default bloaty_templates'
-            sh 'make nuttx_px4fmu-v2_default bloaty_compare_master'
+            sh 'make px4_fmu-v2_default'
+            sh 'make px4_fmu-v2_default bloaty_symbols'
+            sh 'make px4_fmu-v2_default bloaty_compileunits'
+            sh 'make px4_fmu-v2_default bloaty_inlines'
+            sh 'make px4_fmu-v2_default bloaty_templates'
+            sh 'make px4_fmu-v2_default bloaty_compare_master'
             sh 'make sizes'
             sh 'ccache -s'
           }
@@ -78,10 +112,10 @@ pipeline {
           }
         }
 
-        stage('Bloaty px4fmu-v5') {
+        stage('Bloaty px4_fmu-v5') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2018-09-11'
+              image 'px4io/px4-dev-nuttx:2018-11-22'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -90,12 +124,12 @@ pipeline {
             sh 'make distclean'
             sh 'ccache -z'
             sh 'git fetch --tags'
-            sh 'make nuttx_px4fmu-v5_default'
-            sh 'make nuttx_px4fmu-v5_default bloaty_symbols'
-            sh 'make nuttx_px4fmu-v5_default bloaty_compileunits'
-            sh 'make nuttx_px4fmu-v5_default bloaty_inlines'
-            sh 'make nuttx_px4fmu-v5_default bloaty_templates'
-            sh 'make nuttx_px4fmu-v5_default bloaty_compare_master'
+            sh 'make px4_fmu-v5_default'
+            sh 'make px4_fmu-v5_default bloaty_symbols'
+            sh 'make px4_fmu-v5_default bloaty_compileunits'
+            sh 'make px4_fmu-v5_default bloaty_inlines'
+            sh 'make px4_fmu-v5_default bloaty_templates'
+            sh 'make px4_fmu-v5_default bloaty_compare_master'
             sh 'make sizes'
             sh 'ccache -s'
           }
@@ -109,7 +143,7 @@ pipeline {
         stage('Clang analyzer') {
           agent {
             docker {
-              image 'px4io/px4-dev-clang:2018-09-11'
+              image 'px4io/px4-dev-clang:2018-11-22'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -167,7 +201,7 @@ pipeline {
         stage('Cppcheck') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2018-09-11'
+              image 'px4io/px4-dev-base:2018-11-22'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -204,14 +238,14 @@ pipeline {
         stage('Check stack') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2018-09-11'
+              image 'px4io/px4-dev-nuttx:2018-11-22'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'make px4fmu-v2_default stack_check'
+            sh 'make px4_fmu-v2_default stack_check'
           }
           post {
             always {
@@ -223,7 +257,7 @@ pipeline {
         stage('ShellCheck') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2018-09-11'
+              image 'px4io/px4-dev-nuttx:2018-11-22'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -242,7 +276,7 @@ pipeline {
         stage('Module config validation') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2018-09-11'
+              image 'px4io/px4-dev-base:2018-11-22'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -267,12 +301,12 @@ pipeline {
 
         stage('Airframe') {
           agent {
-            docker { image 'px4io/px4-dev-base:2018-09-11' }
+            docker { image 'px4io/px4-dev-base:2018-11-22' }
           }
           steps {
             sh 'make distclean'
             sh 'make airframe_metadata'
-            dir('build/posix_sitl_default/docs') {
+            dir('build/px4_sitl_default/docs') {
               archiveArtifacts(artifacts: 'airframes.md, airframes.xml')
               stash includes: 'airframes.md, airframes.xml', name: 'metadata_airframes'
             }
@@ -286,12 +320,12 @@ pipeline {
 
         stage('Parameter') {
           agent {
-            docker { image 'px4io/px4-dev-base:2018-09-11' }
+            docker { image 'px4io/px4-dev-base:2018-11-22' }
           }
           steps {
             sh 'make distclean'
             sh 'make parameters_metadata'
-            dir('build/posix_sitl_default/docs') {
+            dir('build/px4_sitl_default/docs') {
               archiveArtifacts(artifacts: 'parameters.md, parameters.xml')
               stash includes: 'parameters.md, parameters.xml', name: 'metadata_parameters'
             }
@@ -305,12 +339,12 @@ pipeline {
 
         stage('Module') {
           agent {
-            docker { image 'px4io/px4-dev-base:2018-09-11' }
+            docker { image 'px4io/px4-dev-base:2018-11-22' }
           }
           steps {
             sh 'make distclean'
             sh 'make module_documentation'
-            dir('build/posix_sitl_default/docs') {
+            dir('build/px4_sitl_default/docs') {
               archiveArtifacts(artifacts: 'modules/*.md')
               stash includes: 'modules/*.md', name: 'metadata_module_documentation'
             }
@@ -325,7 +359,7 @@ pipeline {
         stage('uORB graphs') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2018-09-11'
+              image 'px4io/px4-dev-nuttx:2018-11-22'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -334,8 +368,8 @@ pipeline {
             sh 'make distclean'
             sh 'make uorb_graphs'
             dir('Tools/uorb_graph') {
-              archiveArtifacts(artifacts: 'graph_sitl.json')
-              stash includes: 'graph_sitl.json', name: 'uorb_graph'
+              archiveArtifacts(artifacts: 'graph_px4_sitl.json')
+              stash includes: 'graph_px4_sitl.json', name: 'uorb_graph'
             }
           }
           post {
@@ -354,7 +388,7 @@ pipeline {
 
         stage('Devguide') {
           agent {
-            docker { image 'px4io/px4-dev-base:2018-09-11' }
+            docker { image 'px4io/px4-dev-base:2018-11-22' }
           }
           steps {
             sh('export')
@@ -368,6 +402,7 @@ pipeline {
               sh('cp -R modules/*.md Devguide/en/middleware/')
               sh('cd Devguide; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
               sh('cd Devguide; git push origin master || true')
+              sh('rm -rf Devguide')
             }
           }
           when {
@@ -383,7 +418,7 @@ pipeline {
 
         stage('Userguide') {
           agent {
-            docker { image 'px4io/px4-dev-base:2018-09-11' }
+            docker { image 'px4io/px4-dev-base:2018-11-22' }
           }
           steps {
             sh('export')
@@ -395,6 +430,7 @@ pipeline {
               sh('cp parameters.md px4_user_guide/en/advanced_config/parameter_reference.md')
               sh('cd px4_user_guide; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
               sh('cd px4_user_guide; git push origin master || true')
+              sh('rm -rf px4_user_guide')
             }
           }
           when {
@@ -410,7 +446,7 @@ pipeline {
 
         stage('QGroundControl') {
           agent {
-            docker { image 'px4io/px4-dev-base:2018-09-11' }
+            docker { image 'px4io/px4-dev-base:2018-11-22' }
           }
           steps {
             sh('export')
@@ -422,6 +458,7 @@ pipeline {
               sh('cp parameters.xml qgroundcontrol/src/FirmwarePlugin/PX4/PX4ParameterFactMetaData.xml')
               sh('cd qgroundcontrol; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
               sh('cd qgroundcontrol; git push origin master || true')
+              sh('rm -rf qgroundcontrol')
             }
           }
           when {
@@ -437,7 +474,7 @@ pipeline {
 
         stage('S3') {
           agent {
-            docker { image 'px4io/px4-dev-base:2018-09-11' }
+            docker { image 'px4io/px4-dev-base:2018-11-22' }
           }
           steps {
             sh('export')
@@ -474,7 +511,7 @@ pipeline {
     GIT_COMMITTER_NAME = "PX4BuildBot"
   }
   options {
-    buildDiscarder(logRotator(numToKeepStr: '10', artifactDaysToKeepStr: '30'))
+    buildDiscarder(logRotator(numToKeepStr: '5', artifactDaysToKeepStr: '30'))
     timeout(time: 60, unit: 'MINUTES')
   }
 }

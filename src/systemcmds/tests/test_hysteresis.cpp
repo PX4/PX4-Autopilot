@@ -1,4 +1,5 @@
 #include <unit_test.h>
+#include <unistd.h>
 
 #include <systemlib/hysteresis/hysteresis.h>
 
@@ -16,8 +17,8 @@ private:
 	bool _change_after_multiple_sets();
 	bool _take_change_back();
 
-	// The CI system for Mac OS is not very fast
-#ifdef __PX4_DARWIN
+	// timing on MacOS and Cygwin isn't great
+#if defined(__PX4_DARWIN) ||  defined(__PX4_CYGWIN)
 	static const int f = 10;
 #else
 	static const int f = 1;

@@ -77,7 +77,7 @@ do
     shift
 done
 
-[[ -z "$elf" ]] && die "Please specify the ELF file location, e.g.: build/nuttx_px4fmu-v4_default/nuttx_px4fmu-v4_default.elf"
+[[ -z "$elf" ]] && die "Please specify the ELF file location, e.g.: build/px4_fmu-v4_default/px4_fmu-v4_default.elf"
 
 #
 # Temporary files

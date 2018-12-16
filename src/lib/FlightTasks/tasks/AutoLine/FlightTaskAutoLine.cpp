@@ -53,6 +53,24 @@ void FlightTaskAutoLine::_generateSetpoints()
 	_generateXYsetpoints();
 }
 
+void FlightTaskAutoLine::_setSpeedAtTarget()
+{
+	// angle goes from 0 to 2 with 0 = large angle, 2 = small angle:   0 = PI ; 2 = PI*0
+	float angle = 2.0f; // minimum angle
+	_speed_at_target = 0.0f;
+
+	if (Vector2f(&(_target - _next_wp)(0)).length() > 0.001f &&
+	    (Vector2f(&(_target - _prev_wp)(0)).length() > _target_acceptance_radius)) {
+		// angle = cos(x) + 1.0
+		angle =
+			Vector2f(&(_target - _prev_wp)(0)).unit_or_zero()
+			* Vector2f(&(_target - _next_wp)(0)).unit_or_zero()
+			+ 1.0f;
+		_speed_at_target = math::expontialFromLimits(angle, 0.0f, MPC_CRUISE_90.get(), _mc_cruise_speed);
+	}
+}
+
+
 void FlightTaskAutoLine::_generateHeadingAlongTrack()
 {
 	Vector2f prev_to_dest(_target - _prev_wp);
@@ -62,18 +80,22 @@ void FlightTaskAutoLine::_generateHeadingAlongTrack()
 
 void FlightTaskAutoLine::_generateXYsetpoints()
 {
+	_setSpeedAtTarget();
 	Vector2f pos_sp_to_dest(_target - _position_setpoint);
 	const bool has_reached_altitude = fabsf(_target(2) - _position(2)) < _target_acceptance_radius;
 
 	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < _target_acceptance_radius) ||
 	    (!has_reached_altitude && pos_sp_to_dest.length() < _target_acceptance_radius)) {
 
-		// Vehicle reached target in xy and no passing required. Lock position */
+		// Vehicle reached target in xy and no passing required. Lock position
 		_position_setpoint(0) = _target(0);
 		_position_setpoint(1) = _target(1);
 		_velocity_setpoint(0) = _velocity_setpoint(1) = 0.0f;
 
 	} else {
+		// Vehicle needs to pass waypoint
+		// Ensure that vehicle never gets stuck because of too low target-speed
+		_speed_at_target = math::max(_speed_at_target, 0.5f);
 
 		// Get various path specific vectors. */
 		Vector2f u_prev_to_dest = Vector2f(_target - _prev_wp).unit_or_zero();
@@ -155,6 +177,9 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 				// accelerate towards target
 				speed_sp_track = acc_max * _deltatime + speed_sp_prev_track;
 			}
+
+			// ensure that desired speed does not exceed speed at threshold
+			speed_sp_track = math::min(speed_threshold, speed_sp_track);
 		}
 
 		speed_sp_track = math::constrain(speed_sp_track, 0.0f, _mc_cruise_speed);

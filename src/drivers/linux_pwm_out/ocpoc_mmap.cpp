@@ -37,6 +37,7 @@
 
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 using namespace linux_pwm_out;
 

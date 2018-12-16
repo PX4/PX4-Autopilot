@@ -120,24 +120,10 @@ int size_param_changed_storage_bytes = 0;
 const int bits_per_allocation_unit  = (sizeof(*param_changed_storage) * 8);
 
 //#define ENABLE_SHMEM_DEBUG
-
-extern int get_shmem_lock(const char *caller_file_name, int caller_line_number);
-extern void release_shmem_lock(const char *caller_file_name, int caller_line_number);
-
 static void init_params();
-extern void init_shared_memory();
-
-extern void copy_params_to_shmem(const param_info_s *param_info_base);
-
-extern struct shmem_info *shmem_info_p;
-uint64_t sync_other_prev_time = 0, sync_other_current_time = 0;
-
-extern void update_to_shmem(param_t param, union param_value_u value);
-extern int update_from_shmem(param_t param, union param_value_u *value);
-extern void update_index_from_shmem();
 
 static int param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes);
-unsigned char set_called_from_get = 0;
+static unsigned char set_called_from_get = 0;
 
 static int param_import_done =
 	0; /*at startup, params are loaded from file, if present. we dont want to send notifications that time since muorb is not ready*/
@@ -325,7 +311,7 @@ param_compare_values(const void *a, const void *b)
  * @return			The structure holding the modified value, or
  *				nullptr if the parameter has not been modified.
  */
-static param_wbuf_s *
+param_wbuf_s *
 param_find_changed(param_t param)
 {
 	param_wbuf_s	*s = nullptr;

@@ -6,10 +6,10 @@ pipeline {
 
       parallel {
 
-        stage('px4fmu-v2') {
+        stage('px4_fmu-v2') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2018-09-11'
+              image 'px4io/px4-dev-nuttx:2018-11-22'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -18,11 +18,11 @@ pipeline {
             sh 'make distclean'
             sh 'ccache -z'
             sh 'git fetch --tags'
-            sh 'make nuttx_px4fmu-v2_test'
+            sh 'make px4_fmu-v2_test'
             sh 'make sizes'
             sh 'ccache -s'
-            stash includes: 'build/nuttx_px4fmu-v2_test/nuttx_px4fmu-v2_test.elf', name: 'px4fmu-v2_test'
-            stash includes: 'Tools/HIL/monitor_firmware_upload.py, Tools/HIL/run_tests.py', name: 'scripts-px4fmu-v2'
+            stash includes: 'build/px4_fmu-v2_test/px4_fmu-v2_test.elf', name: 'px4_fmu-v2_test'
+            stash includes: 'Tools/HIL/monitor_firmware_upload.py, Tools/HIL/run_tests.py', name: 'scripts-px4_fmu-v2'
           }
           post {
             always {
@@ -31,10 +31,10 @@ pipeline {
           }
         }
 
-        stage('px4fmu-v4 (stackcheck)') {
+        stage('px4_fmu-v4 (stackcheck)') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2018-09-11'
+              image 'px4io/px4-dev-nuttx:2018-11-22'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -43,11 +43,11 @@ pipeline {
             sh 'make distclean'
             sh 'ccache -z'
             sh 'git fetch --tags'
-            sh 'make nuttx_px4fmu-v4_stackcheck'
+            sh 'make px4_fmu-v4_stackcheck'
             sh 'make sizes'
             sh 'ccache -s'
-            stash includes: 'build/nuttx_px4fmu-v4_stackcheck/nuttx_px4fmu-v4_stackcheck.elf', name: 'px4fmu-v4_stackcheck'
-            stash includes: 'Tools/HIL/monitor_firmware_upload.py, Tools/HIL/run_tests.py', name: 'scripts-px4fmu-v4'
+            stash includes: 'build/px4_fmu-v4_stackcheck/px4_fmu-v4_stackcheck.elf', name: 'px4_fmu-v4_stackcheck'
+            stash includes: 'Tools/HIL/monitor_firmware_upload.py, Tools/HIL/run_tests.py', name: 'scripts-px4_fmu-v4'
           }
           post {
             always {
@@ -63,7 +63,7 @@ pipeline {
 
       parallel {
 
-        stage('px4fmu-v2') {
+        stage('px4_fmu-v2') {
           agent {
             label 'px4fmu-v2'
           }
@@ -72,8 +72,8 @@ pipeline {
               try {
                 sh 'export'
                 sh 'find /dev/serial'
-                unstash 'scripts-px4fmu-v2'
-                unstash 'px4fmu-v2_test'
+                unstash 'scripts-px4_fmu-v2'
+                unstash 'px4_fmu-v2_test'
                 sh ''' gdb -nx --batch \
                       -ex "target extended-remote `find /dev/serial -name *Black_Magic_Probe_*-if00`" \
                       -ex "monitor version" \
@@ -82,7 +82,7 @@ pipeline {
                       -ex "attach 1" \
                       -ex "load" \
                       -ex "kill" \
-                      build/nuttx_px4fmu-v2_test/nuttx_px4fmu-v2_test.elf
+                      build/px4_fmu-v2_test/px4_fmu-v2_test.elf
                 '''
                 sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *Black_Magic_Probe_*-if02` --baudrate 57600'
                 sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *Black_Magic_Probe_*-if02`'
@@ -97,7 +97,7 @@ pipeline {
           }
         }
 
-        stage('px4fmu-v4') {
+        stage('px4_fmu-v4') {
           agent {
             label 'px4fmu-v4'
           }
@@ -106,8 +106,8 @@ pipeline {
               try {
                 sh 'export'
                 sh 'find /dev/serial'
-                unstash 'scripts-px4fmu-v4'
-                unstash 'px4fmu-v4_stackcheck'
+                unstash 'scripts-px4_fmu-v4'
+                unstash 'px4_fmu-v4_stackcheck'
                 sh ''' gdb -nx --batch \
                       -ex "target extended-remote `find /dev/serial -name *Black_Magic_Probe_*-if00`" \
                       -ex "monitor version" \
@@ -116,7 +116,7 @@ pipeline {
                       -ex "attach 1" \
                       -ex "load" \
                       -ex "kill" \
-                      build/nuttx_px4fmu-v4_stackcheck/nuttx_px4fmu-v4_stackcheck.elf
+                      build/px4_fmu-v4_stackcheck/px4_fmu-v4_stackcheck.elf
                 '''
                 sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *Black_Magic_Probe_*-if02` --baudrate 57600'
                 sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *Black_Magic_Probe_*-if02`'
@@ -140,7 +140,7 @@ pipeline {
     CI = true
   }
   options {
-    buildDiscarder(logRotator(numToKeepStr: '10', artifactDaysToKeepStr: '30'))
+    buildDiscarder(logRotator(numToKeepStr: '5', artifactDaysToKeepStr: '30'))
     timeout(time: 60, unit: 'MINUTES')
   }
 }

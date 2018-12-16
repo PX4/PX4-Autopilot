@@ -94,10 +94,11 @@ bool is_multirotor(const struct vehicle_status_s *current_status)
 bool is_rotary_wing(const struct vehicle_status_s *current_status)
 {
 	return is_multirotor(current_status) || (current_status->system_type == VEHICLE_TYPE_HELICOPTER)
-		   || (current_status->system_type == VEHICLE_TYPE_COAXIAL);
+	       || (current_status->system_type == VEHICLE_TYPE_COAXIAL);
 }
 
-bool is_vtol(const struct vehicle_status_s * current_status) {
+bool is_vtol(const struct vehicle_status_s *current_status)
+{
 	return (current_status->system_type == VEHICLE_TYPE_VTOL_DUOROTOR ||
 		current_status->system_type == VEHICLE_TYPE_VTOL_QUADROTOR ||
 		current_status->system_type == VEHICLE_TYPE_VTOL_TILTROTOR ||
@@ -279,7 +280,6 @@ int led_init()
 	led_control.timestamp = hrt_absolute_time();
 	led_control_pub = orb_advertise_queue(ORB_ID(led_control), &led_control, LED_UORB_QUEUE_LENGTH);
 
-#if !defined(CONFIG_ARCH_BOARD_RPI) && !defined(CONFIG_ARCH_BOARD_BBBLUE)
 	/* first open normal LEDs */
 	DevMgr::getHandle(LED0_DEVICE_PATH, h_leds);
 
@@ -305,7 +305,6 @@ int led_init()
 
 	/* switch amber off */
 	led_off(LED_AMBER);
-#endif
 
 	return 0;
 }
@@ -313,9 +312,7 @@ int led_init()
 void led_deinit()
 {
 	orb_unadvertise(led_control_pub);
-#if !defined(CONFIG_ARCH_BOARD_RPI) && !defined(CONFIG_ARCH_BOARD_BBBLUE)
 	DevMgr::releaseHandle(h_leds);
-#endif
 }
 
 int led_toggle(int led)

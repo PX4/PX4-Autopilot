@@ -224,6 +224,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 	if (triplet_update || (_current_state != previous_state)) {
 		_updateInternalWaypoints();
 		_updateAvoidanceWaypoints();
+		_mission_gear = _sub_triplet_setpoint->get().current.landing_gear;
 	}
 
 	if (MPC_OBS_AVOID.get() && _sub_vehicle_status->get().is_rotary_wing) {
@@ -462,102 +463,34 @@ void FlightTaskAuto::_updateInternalWaypoints()
 	// 1. The vehicle already passed the target -> go straight to target
 	// 2. The vehicle is more than cruise speed in front of previous waypoint -> go straight to previous waypoint
 	// 3. The vehicle is more than cruise speed from track -> go straight to closest point on track
-	//
-	// If a new target is available, then the speed at the target is computed from the angle previous-target-next.
-
 	switch (_current_state) {
-
-	case State::target_behind: {
-			_target = _triplet_target;
-			_prev_wp = _position;
-			_next_wp = _triplet_next_wp;
-			//_current_state = State::target_behind;
-
-			float angle = 2.0f;
-			_speed_at_target = 0.0f;
-
-			// angle = cos(x) + 1.0
-			// angle goes from 0 to 2 with 0 = large angle, 2 = small angle:   0 = PI ; 2 = PI*0
-
-			if (Vector2f(_target - _next_wp).length() > 0.001f &&
-			    (Vector2f(_target - _prev_wp).length() >  _target_acceptance_radius)) {
-
-				angle = Vector2f(_target - _prev_wp).unit_or_zero()
-					* Vector2f(_target - _next_wp).unit_or_zero()
-					+ 1.0f;
-				_speed_at_target = _getVelocityFromAngle(angle);
-			}
-		}
+	case State::target_behind:
+		_target = _triplet_target;
+		_prev_wp = _position;
+		_next_wp = _triplet_next_wp;
 		break;
 
-	case State::previous_infront: {
-			_next_wp = _triplet_target;
-			_target = _triplet_prev_wp;
-			_target_acceptance_radius = _sub_triplet_setpoint->get().previous.acceptance_radius;
-			_prev_wp = _position;
-
-			float angle = 2.0f;
-			_speed_at_target = 0.0f;
-
-			// angle = cos(x) + 1.0
-			// angle goes from 0 to 2 with 0 = large angle, 2 = small angle:   0 = PI ; 2 = PI*0
-			if (Vector2f(_target - _next_wp).length() > 0.001f &&
-			    (Vector2f(_target - _prev_wp).length() > _target_acceptance_radius)) {
-
-				angle = Vector2f(_target - _prev_wp).unit_or_zero()
-					* Vector2f(_target - _next_wp).unit_or_zero()
-					+ 1.0f;
-				_speed_at_target = _getVelocityFromAngle(angle);
-			}
-		}
+	case State::previous_infront:
+		_next_wp = _triplet_target;
+		_target = _triplet_prev_wp;
+		_prev_wp = _position;
 		break;
 
-	case State::offtrack: {
-			_next_wp = _triplet_target;
-			_target = Vector3f(_closest_pt(0), _closest_pt(1), _triplet_target(2));
-			_prev_wp = _position;
-
-			float angle = 2.0f;
-			_speed_at_target = 0.0f;
-
-			// angle = cos(x) + 1.0
-			// angle goes from 0 to 2 with 0 = large angle, 2 = small angle:   0 = PI ; 2 = PI*0
-			if (Vector2f(_target - _next_wp).length() > 0.001f &&
-			    (Vector2f(_target - _prev_wp).length() > _target_acceptance_radius)) {
-
-				angle = Vector2f(_target - _prev_wp).unit_or_zero()
-					* Vector2f(_target - _next_wp).unit_or_zero()
-					+ 1.0f;
-				_speed_at_target = _getVelocityFromAngle(angle);
-			}
-		}
+	case State::offtrack:
+		_next_wp = _triplet_target;
+		_target = matrix::Vector3f(_closest_pt(0), _closest_pt(1), _triplet_target(2));
+		_prev_wp = _position;
 		break;
 
-	case State::none: {
-			_target = _triplet_target;
-			_prev_wp = _triplet_prev_wp;
-			_next_wp = _triplet_next_wp;
-
-			float angle = 2.0f;
-			_speed_at_target = 0.0f;
-
-			// angle = cos(x) + 1.0
-			// angle goes from 0 to 2 with 0 = large angle, 2 = small angle:   0 = PI ; 2 = PI*0
-			if (Vector2f(_target - _next_wp).length() > 0.001f &&
-			    (Vector2f(_target - _prev_wp).length() > _target_acceptance_radius)) {
-
-				angle =
-					Vector2f(_target - _prev_wp).unit_or_zero()
-					* Vector2f(_target - _next_wp).unit_or_zero()
-					+ 1.0f;
-				_speed_at_target = _getVelocityFromAngle(angle);
-			}
-
-			break;
-		}
+	case State::none:
+		_target = _triplet_target;
+		_prev_wp = _triplet_prev_wp;
+		_next_wp = _triplet_next_wp;
+		break;
 
 	default:
 		break;
+
 	}
 }
 
@@ -575,63 +508,4 @@ bool FlightTaskAuto::_compute_heading_from_2D_vector(float &heading, Vector2f v)
 
 	// heading unknown and therefore do not change heading
 	return false;
-}
-
-
-float FlightTaskAuto::_getVelocityFromAngle(const float angle)
-{
-	// minimum cruise speed when passing waypoint
-	float min_cruise_speed = 0.0f;
-
-	// make sure that cruise speed is larger than minimum
-	if ((_mc_cruise_speed - min_cruise_speed) < SIGMA_NORM) {
-		return _mc_cruise_speed;
-	}
-
-	// Middle cruise speed is a number between maximum cruising speed and minimum cruising speed and corresponds to speed at angle of 90degrees.
-	// It needs to be always larger than minimum cruise speed.
-	float middle_cruise_speed = MPC_CRUISE_90.get();
-
-	if ((middle_cruise_speed - min_cruise_speed) < SIGMA_NORM) {
-		middle_cruise_speed = min_cruise_speed + SIGMA_NORM;
-	}
-
-	if ((_mc_cruise_speed - middle_cruise_speed) < SIGMA_NORM) {
-		middle_cruise_speed = (_mc_cruise_speed + min_cruise_speed) * 0.5f;
-	}
-
-	// If middle cruise speed is exactly in the middle, then compute speed linearly.
-	bool use_linear_approach = false;
-
-	if (((_mc_cruise_speed + min_cruise_speed) * 0.5f) - middle_cruise_speed < SIGMA_NORM) {
-		use_linear_approach = true;
-	}
-
-	// compute speed sp at target
-	float speed_close;
-
-	if (use_linear_approach) {
-
-		// velocity close to target adjusted to angle:
-		// vel_close =  m*x+q
-		float slope = -(_mc_cruise_speed - min_cruise_speed) / 2.0f;
-		speed_close = slope * angle + _mc_cruise_speed;
-
-	} else {
-
-		// Speed close to target adjusted to angle x.
-		// speed_close = a *b ^x + c; where at angle x = 0 -> speed_close = cruise; angle x = 1 -> speed_close = middle_cruise_speed (this means that at 90degrees
-		// the velocity at target is middle_cruise_speed);
-		// angle x = 2 -> speed_close = min_cruising_speed
-
-		// from maximum cruise speed, minimum cruise speed and middle cruise speed compute constants a, b and c
-		float a = -((middle_cruise_speed - _mc_cruise_speed) * (middle_cruise_speed - _mc_cruise_speed))
-			  / (2.0f * middle_cruise_speed - _mc_cruise_speed - min_cruise_speed);
-		float c = _mc_cruise_speed - a;
-		float b = (middle_cruise_speed - c) / a;
-		speed_close = a * powf(b, angle) + c;
-	}
-
-	// speed_close needs to be in between max and min
-	return math::constrain(speed_close, min_cruise_speed, _mc_cruise_speed);
 }

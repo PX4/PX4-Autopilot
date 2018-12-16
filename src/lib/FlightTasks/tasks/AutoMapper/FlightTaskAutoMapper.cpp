@@ -89,7 +89,7 @@ bool FlightTaskAutoMapper::update()
 	// during mission and reposition, raise the landing gears but only
 	// if altitude is high enough
 	if (_highEnoughForLandingGear()) {
-		_constraints.landing_gear = vehicle_constraints_s::GEAR_UP;
+		_gear.landing_gear = _mission_gear;
 	}
 
 	// update previous type
@@ -103,7 +103,6 @@ void FlightTaskAutoMapper::_reset()
 	// Set setpoints equal current state.
 	_velocity_setpoint = _velocity;
 	_position_setpoint = _position;
-	_speed_at_target = 0.0f;
 }
 
 void FlightTaskAutoMapper::_generateIdleSetpoints()
@@ -122,7 +121,7 @@ void FlightTaskAutoMapper::_generateLandSetpoints()
 	// set constraints
 	_constraints.tilt = MPC_TILTMAX_LND.get();
 	_constraints.speed_down = MPC_LAND_SPEED.get();
-	_constraints.landing_gear = vehicle_constraints_s::GEAR_DOWN;
+	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 }
 
 void FlightTaskAutoMapper::_generateTakeoffSetpoints()
@@ -135,7 +134,7 @@ void FlightTaskAutoMapper::_generateTakeoffSetpoints()
 	_constraints.speed_up = math::gradual(_alt_above_ground, MPC_LAND_ALT2.get(),
 					      MPC_LAND_ALT1.get(), MPC_TKO_SPEED.get(), _constraints.speed_up);
 
-	_constraints.landing_gear = vehicle_constraints_s::GEAR_DOWN;
+	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 }
 
 void FlightTaskAutoMapper::_generateVelocitySetpoints()

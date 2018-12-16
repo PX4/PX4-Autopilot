@@ -45,8 +45,7 @@
 #		* px4_os_prebuild_targets
 #
 
-include(common/px4_base)
-list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake/posix)
+include(px4_base)
 
 #=============================================================================
 #
@@ -150,9 +149,7 @@ function(px4_posix_generate_alias)
 			)
 		endif()
 	endforeach()
-	configure_file(${PX4_SOURCE_DIR}/platforms/posix/src/px4-alias.sh_in
-		${OUT}
-	)
+	configure_file(${PX4_SOURCE_DIR}/platforms/posix/src/px4-alias.sh_in ${OUT})
 endfunction()
 
 
@@ -193,6 +190,7 @@ function(px4_posix_generate_symlinks)
 				set(${property} ${${property}_DEFAULT})
 			endif()
 		endforeach()
+
 		if (MAIN)
 			set(ln_name "${PREFIX}${MAIN}")
 			add_custom_command(TARGET ${TARGET}
@@ -212,63 +210,9 @@ endfunction()
 #	Set the posix build flags.
 #
 #	Usage:
-#		px4_os_add_flags(
-#			C_FLAGS <inout-variable>
-#			CXX_FLAGS <inout-variable>
-#			OPTIMIZATION_FLAGS <inout-variable>
-#			EXE_LINKER_FLAGS <inout-variable>
-#			INCLUDE_DIRS <inout-variable>
-#			LINK_DIRS <inout-variable>
-#			DEFINITIONS <inout-variable>)
-#
-#	Input:
-#		BOARD					: flags depend on board/posix config
-#
-#	Input/Output: (appends to existing variable)
-#		C_FLAGS					: c compile flags variable
-#		CXX_FLAGS				: c++ compile flags variable
-#		OPTIMIZATION_FLAGS			: optimization compile flags variable
-#		EXE_LINKER_FLAGS			: executable linker flags variable
-#		INCLUDE_DIRS				: include directories
-#		LINK_DIRS				: link directories
-#		DEFINITIONS				: definitions
-#
-#	Note that EXE_LINKER_FLAGS is not suitable for adding libraries because
-#	these flags are added before any of the object files and static libraries.
-#	Add libraries in src/firmware/posix/CMakeLists.txt.
-#
-#	Example:
-#		px4_os_add_flags(
-#			C_FLAGS CMAKE_C_FLAGS
-#			CXX_FLAGS CMAKE_CXX_FLAGS
-#			OPTIMIZATION_FLAGS optimization_flags
-#			EXE_LINKER_FLAG CMAKE_EXE_LINKER_FLAGS
-#			INCLUDES <list>)
+#		px4_os_add_flags()
 #
 function(px4_os_add_flags)
-
-	set(inout_vars
-		C_FLAGS CXX_FLAGS OPTIMIZATION_FLAGS EXE_LINKER_FLAGS INCLUDE_DIRS LINK_DIRS DEFINITIONS)
-
-	px4_parse_function_args(
-		NAME px4_os_add_flags
-		ONE_VALUE ${inout_vars} BOARD
-		REQUIRED ${inout_vars} BOARD
-		ARGN ${ARGN})
-
-	px4_add_common_flags(
-		BOARD ${BOARD}
-		C_FLAGS ${C_FLAGS}
-		CXX_FLAGS ${CXX_FLAGS}
-		OPTIMIZATION_FLAGS ${OPTIMIZATION_FLAGS}
-		EXE_LINKER_FLAGS ${EXE_LINKER_FLAGS}
-		INCLUDE_DIRS ${INCLUDE_DIRS}
-		LINK_DIRS ${LINK_DIRS}
-		DEFINITIONS ${DEFINITIONS})
-
-	set(added_c_flags)
-	set(added_cxx_flags)
-	set(added_exe_linker_flags)
 
 	add_definitions(
 		-D__PX4_POSIX
@@ -277,141 +221,107 @@ function(px4_os_add_flags)
 		
 	include_directories(platforms/posix/include)
 
-	if(UNIX AND APPLE)
-		add_definitions(
-			-D__PX4_DARWIN
-			-D__DF_DARWIN
-			)
+	if ("${PX4_BOARD}" MATCHES "sitl")
 
-		if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0)
-			message(FATAL_ERROR "PX4 Firmware requires XCode 8 or newer on Mac OS. Version installed on this system: ${CMAKE_CXX_COMPILER_VERSION}")
-		endif()
-
-		EXEC_PROGRAM(uname ARGS -v  OUTPUT_VARIABLE DARWIN_VERSION)
-		STRING(REGEX MATCH "[0-9]+" DARWIN_VERSION ${DARWIN_VERSION})
-		# message(STATUS "PX4 Darwin Version: ${DARWIN_VERSION}")
-		if (DARWIN_VERSION LESS 16)
+		if(UNIX AND APPLE)
 			add_definitions(
-				-DCLOCK_MONOTONIC=1
-				-DCLOCK_REALTIME=0
-				-D__PX4_APPLE_LEGACY
+				-D__PX4_DARWIN
+				-D__DF_DARWIN
+				)
+
+			if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0)
+				message(FATAL_ERROR "PX4 Firmware requires XCode 8 or newer on Mac OS. Version installed on this system: ${CMAKE_CXX_COMPILER_VERSION}")
+			endif()
+
+			execute_process(COMMAND uname -v OUTPUT_VARIABLE DARWIN_VERSION)
+			string(REGEX MATCH "[0-9]+" DARWIN_VERSION ${DARWIN_VERSION})
+			# message(STATUS "PX4 Darwin Version: ${DARWIN_VERSION}")
+			if (DARWIN_VERSION LESS 16)
+				add_definitions(
+					-DCLOCK_MONOTONIC=1
+					-DCLOCK_REALTIME=0
+					-D__PX4_APPLE_LEGACY
+					)
+			endif()
+
+		elseif(CYGWIN)
+			add_definitions(
+				-D__PX4_CYGWIN
+				-D_GNU_SOURCE
+				-D__USE_LINUX_IOCTL_DEFS
+				-U__CUSTOM_FILE_IO__
+				)
+		else()
+			add_definitions(
+				-D__PX4_LINUX
+				-D__DF_LINUX
 				)
 		endif()
 
-	elseif(CYGWIN)
-		add_definitions(
-			-D__PX4_CYGWIN
-			-D_GNU_SOURCE
-			-D__USE_LINUX_IOCTL_DEFS
-			-U __CUSTOM_FILE_IO__
-			)
-	else()
+	elseif (("${PX4_BOARD}" MATCHES "navio2") OR ("${PX4_BOARD}" MATCHES "raspberrypi"))
+
+		#TODO: move to board support
+
 		add_definitions(
 			-D__PX4_LINUX
+
+			# For DriverFramework
 			-D__DF_LINUX
-			)
-	endif()
+			-D__DF_RPI
+		)
 
-	# This block sets added_c_flags (appends to others).
-	if ("${BOARD}" STREQUAL "eagle")
+	elseif ("${PX4_BOARD}" MATCHES "bebop")
 
-		if ("$ENV{HEXAGON_ARM_SYSROOT}" STREQUAL "")
-			message(FATAL_ERROR "HEXAGON_ARM_SYSROOT not set")
-		else()
-			set(HEXAGON_ARM_SYSROOT $ENV{HEXAGON_ARM_SYSROOT})
-		endif()
+		#TODO: move to board support
 
-		# Add the toolchain specific flags
-		list(APPEND added_c_flags --sysroot=${HEXAGON_ARM_SYSROOT})
-		list(APPEND added_cxx_flags --sysroot=${HEXAGON_ARM_SYSROOT})
+		add_definitions(
+			-D__PX4_LINUX
+			-D__PX4_POSIX_BEBOP # TODO: remove
 
-		# TODO: Wmissing-field-initializers ignored on older toolchain, can be removed eventually
-		list(APPEND added_cxx_flags -Wno-missing-field-initializers)
+			# For DriverFramework
+			-D__DF_LINUX
+			-D__DF_BEBOP
+		)
 
-		list(APPEND added_exe_linker_flags
-			-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/usr/lib
-			-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib
-			--sysroot=${HEXAGON_ARM_SYSROOT}
-			)
-	# This block sets added_c_flags (appends to others).
-	elseif ("${BOARD}" STREQUAL "excelsior")
+	elseif ("${PX4_BOARD}" MATCHES "aerotenna_ocpoc")
 
-		if ("$ENV{HEXAGON_ARM_SYSROOT}" STREQUAL "")
-			message(FATAL_ERROR "HEXAGON_ARM_SYSROOT not set")
-		else()
-			set(HEXAGON_ARM_SYSROOT $ENV{HEXAGON_ARM_SYSROOT})
-		endif()
-		
-		set(excelsior_flags --sysroot=${HEXAGON_ARM_SYSROOT}/lib32-apq8096 -mfloat-abi=softfp -mfpu=neon -mthumb-interwork)
+		#TODO: move to board support
 
-		# Add the toolchain specific flags
-		list(APPEND added_c_flags ${excelsior_flags})
-		list(APPEND added_cxx_flags ${excelsior_flags})
+		add_definitions(
+			-D__PX4_LINUX
+			-D__PX4_POSIX_OCPOC # TODO: remove
 
-		list(APPEND added_exe_linker_flags
-			-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib32-apq8096/usr/lib
-			-Wl,-rpath-link,${HEXAGON_ARM_SYSROOT}/lib32-apq8096/lib
-			${excelsior_flags}
-			)
+			# For DriverFramework
+			-D__DF_LINUX
+			-D__DF_OCPOC
+		)
 
-	elseif ("${BOARD}" STREQUAL "rpi")
-		set(RPI_COMPILE_FLAGS -mcpu=cortex-a53 -mfpu=neon -mfloat-abi=hard)
-		list(APPEND added_c_flags ${RPI_COMPILE_FLAGS})
-		list(APPEND added_cxx_flags ${RPI_COMPILE_FLAGS})
+	elseif ("${PX4_BOARD}" MATCHES "beaglebone_blue")
+		#TODO: move to board support
+		add_definitions(
+			-D__PX4_LINUX
+			-D__PX4_POSIX_BBBLUE # TODO: remove
 
-		# TODO: Wmissing-field-initializers ignored on older toolchain, can be removed eventually
-		list(APPEND added_cxx_flags -Wno-missing-field-initializers)
+			# For DriverFramework
+			-D__DF_LINUX
+			-D__DF_BBBLUE
+			-D__DF_BBBLUE_USE_RC_BMP280_IMP # optional
 
-		find_program(CXX_COMPILER_PATH ${CMAKE_CXX_COMPILER})
-
-		GET_FILENAME_COMPONENT(CXX_COMPILER_PATH ${CXX_COMPILER_PATH} DIRECTORY)
-		GET_FILENAME_COMPONENT(CXX_COMPILER_PATH "${CXX_COMPILER_PATH}/../" ABSOLUTE)
-
-		IF ("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
-			set(CLANG_COMPILE_FLAGS
-				--target=arm-pc-linux-gnueabihf
-				-ccc-gcc-name arm-linux-gnueabihf-gcc
-				--sysroot=${CXX_COMPILER_PATH}/arm-linux-gnueabihf/libc
-				-I${CXX_COMPILER_PATH}/arm-linux-gnueabihf/libc/usr/include/
-			)
-
-			list(APPEND added_c_flags ${CLANG_COMPILE_FLAGS})
-			list(APPEND added_cxx_flags ${CLANG_COMPILE_FLAGS})
-			list(APPEND added_exe_linker_flags ${POSIX_CMAKE_EXE_LINKER_FLAGS} ${CLANG_COMPILE_FLAGS}
-				-B${CXX_COMPILER_PATH}/arm-linux-gnueabihf/libc/usr/lib
-				-L${CXX_COMPILER_PATH}/arm-linux-gnueabihf/libc/usr/lib
-			)
-		ENDIF()
-	elseif ("${BOARD}" STREQUAL "bebop")
-		# TODO: Wmissing-field-initializers ignored on older toolchain, can be removed eventually
-		list(APPEND added_cxx_flags -Wno-missing-field-initializers)
-		
-	elseif ("${BOARD}" STREQUAL "bbblue")
-		set(BBBLUE_COMPILE_FLAGS -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=hard -mtune=cortex-a8)
-		list(APPEND added_c_flags   ${BBBLUE_COMPILE_FLAGS})
-		list(APPEND added_cxx_flags ${BBBLUE_COMPILE_FLAGS})
+			-DRC_AUTOPILOT_EXT  # Enable extensions in Robotics Cape Library, TODO: remove
+		)
 
 		set(LIBROBOTCONTROL_INSTALL_DIR $ENV{LIBROBOTCONTROL_INSTALL_DIR})
 
-		# TODO: Wmissing-field-initializers ignored on older toolchain, can be removed eventually
-		#
 		# On cross compile host system and native build system:
 		#   a) select and define LIBROBOTCONTROL_INSTALL_DIR environment variable so that 
 		#      other unwanted headers will not be included
 		#   b) install robotcontrol.h and rc/* into $LIBROBOTCONTROL_INSTALL_DIR/include
 		#   c) install pre-built native (ARM) version of librobotcontrol.* into $LIBROBOTCONTROL_INSTALL_DIR/lib
-		list(APPEND added_cxx_flags -I${LIBROBOTCONTROL_INSTALL_DIR}/include -Wno-missing-field-initializers)
-		list(APPEND added_c_flags   -I${LIBROBOTCONTROL_INSTALL_DIR}/include)
-		
-		list(APPEND added_exe_linker_flags -L${LIBROBOTCONTROL_INSTALL_DIR}/lib)
-	endif()
+		add_compile_options(-I${LIBROBOTCONTROL_INSTALL_DIR}/include)
 
-	# output
-	foreach(var ${inout_vars})
-		string(TOLOWER ${var} lower_var)
-		#message(STATUS "posix: set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)")
-		set(${${var}} ${${${var}}} ${added_${lower_var}} PARENT_SCOPE)
-	endforeach()
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${LIBROBOTCONTROL_INSTALL_DIR}/lib")
+
+	endif()
 
 endfunction()
 
@@ -428,21 +338,22 @@ endfunction()
 #			)
 #
 #	Input:
-#		BOARD 		: board
+#		BOARD		: board
 #
 #	Output:
 #		OUT	: the target list
 #
 #	Example:
-#		px4_os_prebuild_targets(OUT target_list BOARD px4fmu-v2)
+#		px4_os_prebuild_targets(OUT target_list BOARD px4_fmu-v2)
 #
 function(px4_os_prebuild_targets)
 	px4_parse_function_args(
 			NAME px4_os_prebuild_targets
 			ONE_VALUE OUT BOARD
-			REQUIRED OUT BOARD
+			REQUIRED OUT
 			ARGN ${ARGN})
 
-	add_library(${OUT} INTERFACE)
-	add_dependencies(${OUT} DEPENDS uorb_headers)
+	add_library(prebuild_targets INTERFACE)
+	add_dependencies(prebuild_targets DEPENDS uorb_headers)
+
 endfunction()

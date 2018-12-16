@@ -108,7 +108,6 @@ const struct {
 	{"dataman",		test_dataman, OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"file2",		test_file2,	OPT_NOJIGTEST},
 	{"float",		test_float,	0},
-	{"gpio",		test_gpio,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"hott_telemetry",	test_hott_telemetry,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"hrt",			test_hrt,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"int",			test_int,	0},

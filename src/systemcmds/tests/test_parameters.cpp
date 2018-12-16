@@ -2,6 +2,7 @@
 
 #include <px4_defines.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 class ParameterTest : public UnitTest
 {

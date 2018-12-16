@@ -40,7 +40,7 @@ set(SRCS
 	otp.c
 	)
 
-if(${OS} STREQUAL "nuttx")
+if(${PX4_PLATFORM} STREQUAL "nuttx")
 	list(APPEND SRCS
 		print_load_nuttx.c
 		)
@@ -51,7 +51,7 @@ else()
 endif()
 
 # TODO: find a better way to do this
-if (NOT "${CONFIG}" MATCHES "px4io")
+if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 	px4_add_library(systemlib ${SRCS})
 else()
 	add_library(systemlib ${PX4_SOURCE_DIR}/src/platforms/empty.c)

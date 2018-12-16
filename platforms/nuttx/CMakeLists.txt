@@ -35,12 +35,10 @@ include(cygwin_cygpath)
 
 add_subdirectory(src)
 
-if (NOT FW_NAME)
-	set(FW_NAME ${CONFIG}.elf)
-endif()
-
-add_executable(${FW_NAME} ${PX4_SOURCE_DIR}/src/platforms/empty.c)
-add_dependencies(${FW_NAME} git_nuttx nuttx_build)
+add_executable(px4 ${PX4_SOURCE_DIR}/src/platforms/empty.c)
+set(FW_NAME ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf)
+set_target_properties(px4 PROPERTIES OUTPUT_NAME ${FW_NAME})
+add_dependencies(px4 git_nuttx nuttx_build)
 
 get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
@@ -66,10 +64,6 @@ if (CONFIG_NET)
 	target_link_libraries(nuttx_fs INTERFACE nuttx_net)
 endif()
 
-if (NOT LD_SCRIPT)
-	set(LD_SCRIPT ld.script)
-endif()
-
 file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_DIR})
 
 # only in the cygwin environment: convert absolute linker script path to mixed windows (C:/...)
@@ -87,7 +81,7 @@ target_link_libraries(nuttx_arch
 target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
 target_link_libraries(nuttx_cxx INTERFACE nuttx_c)
 
-target_link_libraries(${FW_NAME} PRIVATE
+target_link_libraries(px4 PRIVATE
 
 	-nodefaultlibs
 	-nostdlib
@@ -95,8 +89,8 @@ target_link_libraries(${FW_NAME} PRIVATE
 	-fno-exceptions
 	-fno-rtti
 
-	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx/configs/${BOARD}/scripts/${LD_SCRIPT}
-	-Wl,-Map=${CONFIG}.map
+	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx/configs/${PX4_BOARD}/scripts/ld.script
+	-Wl,-Map=${PX4_CONFIG}.map
 	-Wl,--warn-common
 	-Wl,--gc-sections
 
@@ -107,142 +101,129 @@ target_link_libraries(${FW_NAME} PRIVATE
 	m
 	)
 
-target_link_libraries(${FW_NAME} PRIVATE ${module_libraries})
-target_link_libraries(${FW_NAME} PRIVATE modules__uORB)
+target_link_libraries(px4 PRIVATE ${module_libraries})
+target_link_libraries(px4 PRIVATE modules__uORB)
 
 if (config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
-	target_link_libraries(${FW_NAME} PRIVATE romfs)
+	target_link_libraries(px4 PRIVATE romfs)
 endif()
 
-# create px4 file (combined firmware and metadata)
-# for historical reasons we name the final output binary without nuttx_
-set(fw_name_short)
-string(REPLACE "nuttx_" "" fw_name_short ${FW_NAME})
-
-set(fw_file ${PX4_BINARY_DIR}/${fw_name_short})
-string(REPLACE ".elf" ".px4" fw_file ${fw_file})
-
-add_custom_command(OUTPUT ${PX4_BINARY_DIR_REL}/${BOARD}.bin
-	COMMAND ${OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_DIR_REL}/${BOARD}.bin
-	DEPENDS ${FW_NAME}
+add_custom_command(OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_BOARD}.bin
+	COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_DIR_REL}/${PX4_BOARD}.bin
+	DEPENDS px4
 	)
 
-if (NOT FW_PROTOTYPE)
-	set(FW_PROTOTYPE ${BOARD})
-endif()
-
+# create .px4 with parameter and airframe metadata
 if (TARGET parameters_xml AND TARGET airframes_xml)
-	add_custom_command(OUTPUT ${fw_file}
-		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_mkfw.py
-			--prototype ${PX4_SOURCE_DIR}/platforms/nuttx/Images/${FW_PROTOTYPE}.prototype
-			--git_identity ${PX4_SOURCE_DIR}
-			--parameter_xml ${PX4_BINARY_DIR}/parameters.xml
-			--airframe_xml ${PX4_BINARY_DIR}/airframes.xml
-			--image ${PX4_BINARY_DIR}/${BOARD}.bin > ${fw_file}
-		DEPENDS ${PX4_BINARY_DIR}/${BOARD}.bin parameters_xml airframes_xml
-		COMMENT "Creating ${fw_file}"
+
+	string(REPLACE ".elf" ".px4" fw_package ${FW_NAME})
+
+	add_custom_command(OUTPUT ${fw_package}
+		COMMAND
+			${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_mkfw.py
+				--prototype ${PX4_SOURCE_DIR}/boards/${PX4_BOARD_VENDOR}/${PX4_BOARD_MODEL}/firmware.prototype
+				--git_identity ${PX4_SOURCE_DIR}
+				--parameter_xml ${PX4_BINARY_DIR}/parameters.xml
+				--airframe_xml ${PX4_BINARY_DIR}/airframes.xml
+				--image ${PX4_BINARY_DIR}/${PX4_BOARD}.bin > ${fw_package}
+		DEPENDS
+			${PX4_BINARY_DIR}/${PX4_BOARD}.bin
+			airframes_xml
+			parameters_xml
+		COMMENT "Creating ${fw_package}"
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		)
 
-	add_custom_target(px4 ALL DEPENDS ${fw_file})
+	add_custom_target(px4_package ALL DEPENDS ${fw_package})
 
 	# upload helper
-	if (${BOARD} STREQUAL "aerofc-v1")
-		
-		# TODO: should be set only in aero config
-		add_custom_target(upload
-			COMMAND ${PX4_SOURCE_DIR}/Tools/aero_upload.sh ${fw_file}
-			DEPENDS ${fw_file}
-			COMMENT "uploading px4"
-			USES_TERMINAL
-		)
-	else()
+	# create upload target helper if NuttX USB CDCACM is present
+	if (CONFIG_CDCACM)
 
-		# create upload target helper if NuttX USB CDCACM is present
-		if (CONFIG_CDCACM)
+		# NuttX CDCACM vendor and product strings
+		set(vendorstr_underscore)
+		set(productstr_underscore)
+		string(REPLACE " " "_" vendorstr_underscore ${CONFIG_CDCACM_VENDORSTR})
+		string(REPLACE " " "_" productstr_underscore ${CONFIG_CDCACM_PRODUCTSTR})
 
-			# NuttX CDCACM vendor and product strings
-			set(vendorstr_underscore)
-			set(productstr_underscore)
-			string(REPLACE " " "_" vendorstr_underscore ${CONFIG_CDCACM_VENDORSTR})
-			string(REPLACE " " "_" productstr_underscore ${CONFIG_CDCACM_PRODUCTSTR})
+		set(serial_ports)
+		if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
 
-			set(serial_ports)
-			if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
+			set(px4_usb_path "${vendorstr_underscore}_${productstr_underscore}")
 
-				set(px4_usb_path "${vendorstr_underscore}_${productstr_underscore}")
+			list(APPEND serial_ports
+				# NuttX vendor + product string
+				/dev/serial/by-id/*-${px4_usb_path}*
 
-				list(APPEND serial_ports
-					# NuttX vendor + product string
-					/dev/serial/by-id/*-${px4_usb_path}*
+				# Bootloader
+				/dev/serial/by-id/*PX4_BL* # typical bootloader USB device string
+				/dev/serial/by-id/*BL_FMU*
 
-					# Bootloader
-					/dev/serial/by-id/*PX4_BL* # typical bootloader USB device string
-					/dev/serial/by-id/*BL_FMU*
+				# TODO: handle these per board
+				/dev/serial/by-id/usb-The_Autopilot*
+				/dev/serial/by-id/usb-Bitcraze*
+				/dev/serial/by-id/pci-Bitcraze*
+				/dev/serial/by-id/usb-Gumstix*
 
-					# TODO: handle these per board
-					/dev/serial/by-id/usb-The_Autopilot*
-					/dev/serial/by-id/usb-Bitcraze*
-					/dev/serial/by-id/pci-Bitcraze*
-					/dev/serial/by-id/usb-Gumstix*
-
-					)
-
-			elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
-				list(APPEND serial_ports
-					/dev/tty.usbmodemPX*,/dev/tty.usbmodem*
-					)
-			elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "CYGWIN")
-				list(APPEND serial_ports
-					/dev/ttyS*
-					)
-			elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Windows")
-				foreach(port RANGE 32 0)
-					list(APPEND serial_ports
-						"COM${port}")
-				endforeach()
-			endif()
-
-			px4_join(OUT serial_ports LIST "${serial_ports}" GLUE ",")
-
-			add_custom_target(upload
-				COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --port ${serial_ports} ${fw_file}
-				DEPENDS ${fw_file}
-				COMMENT "uploading px4"
-				VERBATIM
-				USES_TERMINAL
 				)
 
-			add_custom_target(force-upload
-				COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --force --port ${serial_ports} ${fw_file}
-				DEPENDS ${fw_file}
-				COMMENT "uploading px4 with --force"
-				VERBATIM
-				USES_TERMINAL
+		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
+			list(APPEND serial_ports
+				/dev/tty.usbmodemPX*,/dev/tty.usbmodem*
 				)
+		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "CYGWIN")
+			list(APPEND serial_ports
+				/dev/ttyS*
+				)
+		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Windows")
+			foreach(port RANGE 32 0)
+				list(APPEND serial_ports
+					"COM${port}")
+			endforeach()
 		endif()
 
+		string(REPLACE ";" "," serial_ports "${serial_ports}")
+
+		add_custom_target(upload
+			COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --port ${serial_ports} ${fw_package}
+			DEPENDS ${fw_package}
+			COMMENT "uploading px4"
+			VERBATIM
+			USES_TERMINAL
+			WORKING_DIRECTORY ${PX4_BINARY_DIR}
+			)
+
+		add_custom_target(force-upload
+			COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --force --port ${serial_ports} ${fw_package}
+			DEPENDS ${fw_package}
+			COMMENT "uploading px4 with --force"
+			VERBATIM
+			USES_TERMINAL
+			WORKING_DIRECTORY ${PX4_BINARY_DIR}
+			)
 	endif()
+
 endif()
 
 # print size
 add_custom_target(size
-	COMMAND size ${FW_NAME}
-	DEPENDS ${FW_NAME}
+	COMMAND size $<TARGET_FILE:px4>
+	DEPENDS px4
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	USES_TERMINAL
 	)
 
 # print weak symbols
 add_custom_target(weak_symbols
-	COMMAND ${CMAKE_NM} $<TARGET_FILE:${FW_NAME}> | ${GREP} " w " | cat
-	DEPENDS ${FW_NAME}
+	COMMAND ${CMAKE_NM} $<TARGET_FILE:px4> | ${GREP} " w " | cat
+	DEPENDS px4
 	VERBATIM
 	USES_TERMINAL
 	)
 
 add_custom_target(stack_check
-	COMMAND ${CMAKE_COMMAND} -E make_directory stack_usage && ${CMAKE_OBJDUMP} -d $<TARGET_FILE:${FW_NAME}> | ${PX4_SOURCE_DIR}/Tools/stack_usage/checkstack.pl arm 0 > stack_usage/checkstack_output.txt 2> stack_usage/checkstack_errors.txt
+	COMMAND ${CMAKE_COMMAND} -E make_directory stack_usage && ${CMAKE_OBJDUMP} -d $<TARGET_FILE:px4> | ${PX4_SOURCE_DIR}/Tools/stack_usage/checkstack.pl arm 0 > stack_usage/checkstack_output.txt 2> stack_usage/checkstack_errors.txt
 	COMMAND ${CMAKE_COMMAND} -E echo ""
 	COMMAND ${CMAKE_COMMAND} -E echo ""
 	COMMAND ${CMAKE_COMMAND} -E echo "Top 50:"
@@ -252,7 +233,7 @@ add_custom_target(stack_check
 	COMMAND ${CMAKE_COMMAND} -E echo "Symbols with 'run', 'task', 'thread', 'main', 'update':"
 	COMMAND ${CMAKE_COMMAND} -E echo "--------------------------------------------------------------------------------"
     COMMAND cat stack_usage/checkstack_output.txt | c++filt | grep -E 'run|task|thread|main|update'
-	DEPENDS ${FW_NAME}
+	DEPENDS px4
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	VERBATIM
 	)
@@ -261,37 +242,38 @@ find_program(BLOATY_PROGRAM bloaty)
 if (BLOATY_PROGRAM)
 	# bloaty symbols
 	add_custom_target(bloaty_symbols
-		COMMAND ${BLOATY_PROGRAM} -d symbols -C full -n 50 -s vm $<TARGET_FILE:${FW_NAME}>
-		DEPENDS ${FW_NAME}
+		COMMAND ${BLOATY_PROGRAM} -d symbols -C full -n 50 -s vm $<TARGET_FILE:px4>
+		DEPENDS px4
 		USES_TERMINAL
 		)
 
 	# bloaty compilation units
 	add_custom_target(bloaty_compileunits
-		COMMAND ${BLOATY_PROGRAM} -d compileunits -C full -n 50 -s vm $<TARGET_FILE:${FW_NAME}>
-		DEPENDS ${FW_NAME}
+		COMMAND ${BLOATY_PROGRAM} -d compileunits -C full -n 50 -s vm $<TARGET_FILE:px4>
+		DEPENDS px4
 		USES_TERMINAL
 		)
 
 	# bloaty templates
 	add_custom_target(bloaty_templates
-		COMMAND ${BLOATY_PROGRAM} -d shortsymbols,fullsymbols -n 50 $<TARGET_FILE:${FW_NAME}>
-		DEPENDS ${FW_NAME}
+		COMMAND ${BLOATY_PROGRAM} -d shortsymbols,fullsymbols -n 50 $<TARGET_FILE:px4>
+		DEPENDS px4
 		USES_TERMINAL
 		)
 
 	# bloaty inlines
 	add_custom_target(bloaty_inlines
-		COMMAND ${BLOATY_PROGRAM} -d inlines -C full -n 50 $<TARGET_FILE:${FW_NAME}>
-		DEPENDS ${FW_NAME}
+		COMMAND ${BLOATY_PROGRAM} -d inlines -C full -n 50 $<TARGET_FILE:px4>
+		DEPENDS px4
 		USES_TERMINAL
 		)
 
 	# bloaty compare with last master build
 	add_custom_target(bloaty_compare_master
-		COMMAND wget --no-verbose https://s3.amazonaws.com/px4-travis/Firmware/master/${FW_NAME} -O master_${FW_NAME}
-		COMMAND ${BLOATY_PROGRAM} -d symbols -n 50 -C full -s vm $<TARGET_FILE:${FW_NAME}> -- master_${FW_NAME}
-		DEPENDS ${FW_NAME}
+		#COMMAND wget --no-verbose https://s3.amazonaws.com/px4-travis/Firmware/master/${FW_NAME} -O master_${FW_NAME}
+		COMMAND wget --no-verbose https://s3.amazonaws.com/px4-travis/Firmware/master/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf -O master_${FW_NAME}
+		COMMAND ${BLOATY_PROGRAM} -d symbols -n 50 -C full -s vm $<TARGET_FILE:px4> -- master_${FW_NAME}
+		DEPENDS px4
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		VERBATIM
 		USES_TERMINAL
@@ -303,8 +285,8 @@ endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/gdbinit.in ${PX4_BINARY_DIR}/.gdbinit)
 
 add_custom_target(debug
-	COMMAND ${GDB} -iex 'set auto-load safe-path ${PX4_BINARY_DIR}' $<TARGET_FILE:${FW_NAME}>
-	DEPENDS ${FW_NAME} ${PX4_BINARY_DIR}/.gdbinit
+	COMMAND ${GDB} -iex 'set auto-load safe-path ${PX4_BINARY_DIR}' $<TARGET_FILE:px4>
+	DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	USES_TERMINAL
 	)
@@ -330,8 +312,8 @@ if(black_magic_probe_path)
 			-ex 'attach 1'
 			-ex 'load'
 			-ex 'run'
-			$<TARGET_FILE:${FW_NAME}>
-		DEPENDS ${FW_NAME} ${PX4_BINARY_DIR}/.gdbinit
+			$<TARGET_FILE:px4>
+		DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		USES_TERMINAL
 		)
@@ -345,15 +327,15 @@ if(black_magic_probe_path)
 			-ex 'attach 1'
 			-ex 'load'
 			-ex 'kill'
-			$<TARGET_FILE:${FW_NAME}>
-		DEPENDS ${FW_NAME}
+			$<TARGET_FILE:px4>
+		DEPENDS px4
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 		USES_TERMINAL
 		COMMENT "Uploading with Black Magic Probe"
 		)
 
 	add_custom_target(blackmagic_console
-		COMMAND screen -t "${BOARD} console" ${black_magic_probe_console_path} 57600 8N1
+		COMMAND screen -t "${PX4_BOARD} console" ${black_magic_probe_console_path} 57600 8N1
 		USES_TERMINAL
 		)
 
@@ -367,8 +349,8 @@ add_custom_target(jlink_upload
 		-ex 'monitor reset'
 		-ex 'load'
 		-ex 'kill'
-		$<TARGET_FILE:${FW_NAME}>
-	DEPENDS ${FW_NAME} ${PX4_BINARY_DIR}/.gdbinit
+		$<TARGET_FILE:px4>
+	DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	USES_TERMINAL
 	)
@@ -382,8 +364,8 @@ add_custom_target(jlink_debug
 		-ex 'load'
 		-ex 'monitor reset'
 		-ex 'continue'
-		$<TARGET_FILE:${FW_NAME}>
-	DEPENDS ${FW_NAME} ${PX4_BINARY_DIR}/.gdbinit
+		$<TARGET_FILE:px4>
+	DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	USES_TERMINAL
 	)
@@ -402,8 +384,8 @@ ExternalProject_Add(FlameGraph
 
 add_custom_target(profile
 	COMMAND ${CMAKE_COMMAND} -E env PATH="${PX4_BINARY_DIR}/external/Source/FlameGraph:$ENV{PATH}"
-		${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh --elf=$<TARGET_FILE:${FW_NAME}> --nsamples=10000
-	DEPENDS ${FW_NAME} ${PX4_SOURCE_DIR}/platforms/nuttx/Debug/poor-mans-profiler.sh FlameGraph
+		${CMAKE_CURRENT_SOURCE_DIR}/Debug/poor-mans-profiler.sh --elf=$<TARGET_FILE:px4> --nsamples=10000
+	DEPENDS px4 ${CMAKE_CURRENT_SOURCE_DIR}/Debug/poor-mans-profiler.sh FlameGraph
 	USES_TERMINAL
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	)

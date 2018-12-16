@@ -35,6 +35,7 @@
 
 #include <time.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include <drivers/drv_hrt.h>
 #include <perf/perf_counter.h>

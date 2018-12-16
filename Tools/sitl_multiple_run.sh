@@ -1,6 +1,6 @@
 #!/bin/bash
 # run multiple instances of the 'px4' binary, but w/o starting the simulator.
-# It assumes px4 is already built, with 'make posix_sitl_default'
+# It assumes px4 is already built, with 'make px4_sitl_default'
 
 # The simulator is expected to send to UDP port 14560+i for i in [0, N-1]
 # For example jmavsim can be run like this:
@@ -12,7 +12,7 @@ sitl_num=2
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 src_path="$SCRIPT_DIR/.."
 
-build_path=${src_path}/build/posix_sitl_default
+build_path=${src_path}/build/px4_sitl_default
 
 echo "killing running instances"
 pkill -x px4 || true

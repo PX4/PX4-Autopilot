@@ -102,9 +102,8 @@ protected:
 	uORB::Subscription<home_position_s> *_sub_home_position{nullptr};
 
 	State _current_state{State::none};
-
-	float _speed_at_target = 0.0f; /**< Desired velocity at target. */
 	float _target_acceptance_radius = 0.0f; /**< Acceptances radius of the target */
+	int _mission_gear = landing_gear_s::GEAR_KEEP;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) MPC_XY_CRUISE,
@@ -140,7 +139,6 @@ private:
 	bool _evaluateTriplets(); /**< Checks and sets triplets. */
 	bool _isFinite(const position_setpoint_s &sp); /**< Checks if all waypoint triplets are finite. */
 	bool _evaluateGlobalReference(); /**< Check is global reference is available. */
-	float _getVelocityFromAngle(const float angle); /**< Computes the speed at target depending on angle. */
 	State _getCurrentState(); /**< Computes the current vehicle state based on the vehicle position and navigator triplets. */
 	void _set_heading_from_mode(); /**< @see  MPC_YAW_MODE */
 	void _checkAvoidanceProgress();

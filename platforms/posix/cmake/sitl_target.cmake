@@ -1,11 +1,14 @@
 set(SITL_WORKING_DIR ${PX4_BINARY_DIR}/tmp)
 file(MAKE_DIRECTORY ${SITL_WORKING_DIR})
+file(MAKE_DIRECTORY ${SITL_WORKING_DIR}/rootfs)
 
 # add a symlink to the logs dir to make it easier to find them
 add_custom_command(OUTPUT ${PX4_BINARY_DIR}/logs
 		COMMAND ${CMAKE_COMMAND} -E create_symlink ${SITL_WORKING_DIR}/rootfs/log logs
 		WORKING_DIRECTORY ${PX4_BINARY_DIR})
 add_custom_target(logs_symlink DEPENDS ${PX4_BINARY_DIR}/logs)
+
+add_dependencies(px4 logs_symlink)
 
 add_custom_target(run_config
 		COMMAND Tools/sitl_run.sh
@@ -90,9 +93,10 @@ foreach(viewer ${viewers})
 	endforeach()
 endforeach()
 
-px4_join(OUT posix_vmd_make_target_list LIST ${all_posix_vmd_make_targets} GLUE "\\n")
+string(REPLACE ";" "," posix_vmd_make_target_list "${all_posix_vmd_make_targets}")
+
 add_custom_target(list_vmd_make_targets
 	COMMAND sh -c "printf \"${posix_vmd_make_target_list}\\n\""
-	COMMENT "List of acceptable '${CONFIG}' <viewer_model_debugger> targets:"
+	COMMENT "List of acceptable '${PX4_BOARD}' <viewer_model_debugger> targets:"
 	VERBATIM
 	)

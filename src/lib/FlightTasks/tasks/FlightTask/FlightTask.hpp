@@ -45,6 +45,7 @@
 #include <drivers/drv_hrt.h>
 #include <matrix/matrix/math.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/landing_gear.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
@@ -115,6 +116,13 @@ public:
 	const vehicle_constraints_s &getConstraints() { return _constraints; }
 
 	/**
+	 * Get landing gear position.
+	 * The constraints can vary with task.
+	 * @return landing gear
+	 */
+	const landing_gear_s &getGear() { return _gear; }
+
+	/**
 	 * Get avoidance desired waypoint
 	 * @return desired waypoints
 	 */
@@ -131,6 +139,11 @@ public:
 	 * All constraints are set to NAN.
 	 */
 	static const vehicle_constraints_s empty_constraints;
+
+	/**
+	 * default landing gear state
+	 */
+	static const landing_gear_s empty_landing_gear_default_keep;
 
 	/**
 	 * Empty desired waypoints.
@@ -150,7 +163,7 @@ public:
 	 * Sets an external yaw handler which can be used by any flight task to implement a different yaw control strategy.
 	 * This method does nothing, each flighttask which wants to use the yaw handler needs to override this method.
 	 */
-	virtual void setYawHandler(WeatherVane *ext_yaw_handler) {};
+	virtual void setYawHandler(WeatherVane *ext_yaw_handler) {}
 
 	void updateVelocityControllerIO(const matrix::Vector3f &vel_sp,
 					const matrix::Vector3f &thrust_sp) {_velocity_setpoint_feedback = vel_sp; _thrust_setpoint_feedback = thrust_sp; }
@@ -166,7 +179,7 @@ protected:
 	 */
 	void _resetSetpoints();
 
-	/*
+	/**
 	 * Check and update local position
 	 */
 	void _evaluateVehicleLocalPosition();
@@ -214,6 +227,8 @@ protected:
 	 * The constraints can vary with tasks.
 	 */
 	vehicle_constraints_s _constraints{};
+
+	landing_gear_s _gear{};
 
 	/**
 	 * Desired waypoints.

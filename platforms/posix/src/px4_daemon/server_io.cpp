@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2016-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,8 +35,10 @@
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Beat Küng <beat-kueng@gmx.net>
+ * @author Mara Bos <m-ou.se@m-ou.se>
  */
 
+#include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <string>
@@ -50,27 +52,25 @@
 
 #include "server.h"
 #include <px4_daemon/server_io.h>
-#include "pipe_protocol.h"
+#include "sock_protocol.h"
 
 
 using namespace px4_daemon;
 
 
-int get_stdout_pipe_buffer(char **buffer, unsigned *max_length, bool *is_atty)
+FILE *get_stdout(bool *isatty_)
 {
-	// The thread specific data won't be initialized if the server is not running.
 	Server::CmdThreadSpecificData *thread_data_ptr;
-
-	if (!Server::is_running()) {
-		return -1;
-	}
 
 	// If we are not in a thread that has been started by a client, we don't
 	// have any thread specific data set and we won't have a pipe to write
 	// stdout to.
-	if ((thread_data_ptr = (Server::CmdThreadSpecificData *)pthread_getspecific(
+	if (!Server::is_running() ||
+	    (thread_data_ptr = (Server::CmdThreadSpecificData *)pthread_getspecific(
 				       Server::get_pthread_key())) == nullptr) {
-		return -1;
+		if (isatty_) { *isatty_ = isatty(1); }
+
+		return stdout;
 	}
 
 #ifdef __PX4_POSIX_EAGLE
@@ -79,57 +79,20 @@ int get_stdout_pipe_buffer(char **buffer, unsigned *max_length, bool *is_atty)
 	// even though the pthread_key has been created.
 	// We can catch this using the check below but we have no clue why this happens.
 	if (thread_data_ptr == (void *)0x1) {
-		return -1;
+		if (isatty_) { *isatty_ = isatty(1); }
+
+		return stdout;
 	}
 
 #endif
 
-	client_recv_packet_s *packet = &thread_data_ptr->packet;
+	if (thread_data_ptr->thread_stdout == nullptr) {
+		if (isatty_) { *isatty_ = isatty(1); }
 
-	*buffer = (char *)packet->payload.stdout_msg.text;
-	*max_length = sizeof(packet->payload.stdout_msg.text);
-	*is_atty = thread_data_ptr->is_atty;
-
-	return 0;
-}
-
-int send_stdout_pipe_buffer(unsigned buffer_length)
-{
-	assert(buffer_length <= sizeof(client_recv_packet_s::payload.stdout_msg.text));
-
-	Server::CmdThreadSpecificData *thread_data_ptr;
-
-	if (!Server::is_running()) {
-		return -1;
+		return stdout;
 	}
 
-	if ((thread_data_ptr = (Server::CmdThreadSpecificData *)pthread_getspecific(
-				       Server::get_pthread_key())) == nullptr) {
-		return -1;
-	}
+	if (isatty_) { *isatty_ = thread_data_ptr->is_atty; }
 
-	client_recv_packet_s *packet = &thread_data_ptr->packet;
-	packet->header.payload_length = buffer_length;
-
-	int pipe_fd = thread_data_ptr->pipe_fd;
-	int bytes_to_send = get_client_recv_packet_length(packet);
-
-	// Check if we can write first by writing 0 bytes.
-	// If we don't do this, we'll get SIGPIPE and be very unhappy
-	// because the whole process will go down.
-	int ret = write(pipe_fd, nullptr, 0);
-
-	if (ret == 0 && errno == EPIPE) {
-		printf("Error: can't write to closed pipe, giving up.\n");
-		pthread_exit(nullptr);
-	}
-
-	int bytes_sent = write(pipe_fd, packet, bytes_to_send);
-
-	if (bytes_sent != bytes_to_send) {
-		printf("write fail\n");
-		return -1;
-	}
-
-	return 0;
+	return thread_data_ptr->thread_stdout;
 }
