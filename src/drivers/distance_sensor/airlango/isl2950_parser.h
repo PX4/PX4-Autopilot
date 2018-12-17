@@ -40,11 +40,12 @@
 
 #pragma once
 
+#include <stdint.h>
 // frame start delimiter
 #define TOF_SFD1      0xA5
 #define TOF_SFD2      0x5A
 
-typedef enum {
+/*typedef enum {
   TFS_NOT_STARTED = 0,
   TFS_GOT_SFD1,
   TFS_GOT_SFD2,
@@ -52,7 +53,17 @@ typedef enum {
   TFS_GOT_DATA2,
   TFS_GOT_CHECKSUM1,
   TFS_GOT_CHECKSUM2,
-} TofFramingState;
+} TofFramingState;*/
+
+enum ISL2950_PARSE_STATE {
+  TFS_NOT_STARTED = 0,
+  TFS_GOT_SFD1,
+  TFS_GOT_SFD2,
+  TFS_GOT_DATA1,
+  TFS_GOT_DATA2,
+  TFS_GOT_CHECKSUM1,
+  TFS_GOT_CHECKSUM2,
+};
 
 enum IslWorkingMode {
   KEEP_HEIGHT = 0,
@@ -61,7 +72,7 @@ enum IslWorkingMode {
 
 
 // SF0X STYLE
-enum ISL2950_PARSE_STATE {
+/*enum ISL2950_PARSE_STATE {
 	ISL2950_PARSE_STATE0_UNSYNC = 0,
 	ISL2950_PARSE_STATE1_SYNC,
 	ISL2950_PARSE_STATE2_GOT_DIGIT0,
@@ -69,7 +80,7 @@ enum ISL2950_PARSE_STATE {
 	ISL2950_PARSE_STATE4_GOT_DIGIT1,
 	ISL2950_PARSE_STATE5_GOT_DIGIT2,
 	ISL2950_PARSE_STATE6_GOT_CARRIAGE_RETURN
-};
+};*/
 
 
-int isl2950_parser(const uint8_t* buffer, int length, bool* full_frame, int* dist);
+int isl2950_parser(uint8_t c, uint8_t *parserbuf,enum ISL2950_PARSE_STATE *state,uint16_t *crc16, int *dist);

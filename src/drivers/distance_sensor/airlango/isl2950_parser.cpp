@@ -33,7 +33,8 @@
 
 /**
  * @file isl2950_parser.cpp
- * @author Claudio Micheli claudio@auterion.com
+ * @author Claudio Micheli
+ *         claudio@auterion.com
  *
  */
 
@@ -100,6 +101,7 @@ static const UCHAR aucCRCLo[] = {
   0x41, 0x81, 0x80, 0x40
 };
 
+
 // TOF frame format
 //
 //   1B     1B      1B              1B            2B
@@ -109,9 +111,7 @@ static const UCHAR aucCRCLo[] = {
 const static int TOF_DISTANCE_MSB_POS   = 2;
 const static int TOF_DISTANCE_LSB_POS   = 3;
 const static int TOF_CRC_CALC_DATA_LEN  = 4;
-static unsigned char frame_data[TOF_CRC_CALC_DATA_LEN] = {
-  TOF_SFD1, TOF_SFD2, 0, 0
-};
+
 
 USHORT usMBCRC16(UCHAR* pucFrame, USHORT usLen) {
   UCHAR ucCRCHi = 0xFF;
@@ -125,79 +125,81 @@ USHORT usMBCRC16(UCHAR* pucFrame, USHORT usLen) {
   return (USHORT)(ucCRCHi << 8 | ucCRCLo);
 }
 
-int isl2950_parser(const uint8_t* buffer, int length, bool* full_frame, int* dist)
+int isl2950_parser(uint8_t c, uint8_t *parserbuf, ISL2950_PARSE_STATE *state, uint16_t *crc16, int *dist)
 {
-  static TofFramingState state = TFS_NOT_STARTED;
-  static uint16_t crc16 = 0;
-  int bytes_processed = 0;
+  int ret = -1;
+//  int bytes_processed = 0;
 
-  while (bytes_processed < length) {
-    uint8_t b = buffer[bytes_processed++];
+
+//    uint8_t b = buffer[bytes_processed++];    // Can be removed
 //    printf("parse byte 0x%02X \n", b);
 
-    switch (state) {
+    switch (*state) {
     case TFS_NOT_STARTED:
-      if (b == TOF_SFD1) {
-        state = TFS_GOT_SFD1;
-  //      printf("Got SFD1 \n");
+      if (c == TOF_SFD1) {
+        *state = TFS_GOT_SFD1;
+        //printf("Got SFD1 \n");
       }
       break;
 
     case TFS_GOT_SFD1:
-      if (b == TOF_SFD2) {
-        state = TFS_GOT_SFD2;
-//        printf("Got SFD2 \n");
-      } else if (b == TOF_SFD1) {
-        state = TFS_GOT_SFD1;
+      if (c == TOF_SFD2) {
+          *state = TFS_GOT_SFD2;
+         //printf("Got SFD2 \n");
+      }
+      // @NOTE (claudio@auterion.com): Strange thing, if second byte is wrong we skip all the frame !!
+      else if (c == TOF_SFD1) {
+        *state = TFS_GOT_SFD1;
 //        printf("Discard previous SFD1, Got new SFD1 \n");
       } else {
-        state = TFS_NOT_STARTED;
+        *state = TFS_NOT_STARTED;
       }
       break;
 
     case TFS_GOT_SFD2:
-      frame_data[TOF_DISTANCE_MSB_POS] = b;
-      state = TFS_GOT_DATA1;
-//      printf("Got DATA1 0x%02X \n", b);
+      *state = TFS_GOT_DATA1;
+      parserbuf[TOF_DISTANCE_MSB_POS] = c;                  // MSB Data
+      //printf("Got DATA1 0x%02X \n", c);
       break;
 
     case TFS_GOT_DATA1:
-      frame_data[TOF_DISTANCE_LSB_POS] = b;
-      state = TFS_GOT_DATA2;
-//      printf("Got DATA2 0x%02X \n", b);
+      *state = TFS_GOT_DATA2;
+      parserbuf[TOF_DISTANCE_LSB_POS] = c;                  // LSB Data
+      //printf("Got DATA2 0x%02X \n", c);
       // do crc calculation
-      crc16 = usMBCRC16(frame_data, TOF_CRC_CALC_DATA_LEN);
+      *crc16 = usMBCRC16(parserbuf, TOF_CRC_CALC_DATA_LEN);
       // convert endian
-      crc16 = (crc16 >> 8) | (crc16 << 8);
+      *crc16 = (*crc16 >> 8) | (*crc16 << 8);
       break;
 
     case TFS_GOT_DATA2:
-      if (b == (crc16 >> 8)) {
-        state = TFS_GOT_CHECKSUM1;
+      if (c == (*crc16 >> 8)) {
+        *state = TFS_GOT_CHECKSUM1;
       } else {
-//        printf("Checksum invalid on high byte: 0x%02X, calculated: 0x%04X \n",b, crc16);
-        state = TFS_NOT_STARTED;
+        printf("Checksum invalid on high byte: 0x%02X, calculated: 0x%04X \n",c, *crc16);
+        //*state = TFS_NOT_STARTED;
+        *state = TFS_GOT_CHECKSUM1; // Forcing to print the value anyway
       }
       break;
 
     case TFS_GOT_CHECKSUM1:
       // Here, reset state to `NOT-STARTED` no matter crc ok or not
-      state = TFS_NOT_STARTED;
-      if (b == (crc16 & 0xFF)) {
+      *state = TFS_NOT_STARTED;
+      /*if (c == (*crc16 & 0xFF)) {
       //printf("Checksum verified \n");
-        *dist = (frame_data[TOF_DISTANCE_MSB_POS] << 8) | frame_data[TOF_DISTANCE_LSB_POS];
-        *full_frame = true;
-        return bytes_processed;
-      } else {
-        printf("Checksum invalidon low byte: 0x%02X, calculated: 0x%04X \n",b, crc16);
-      }
+        *dist = (parserbuf[TOF_DISTANCE_MSB_POS] << 8) | parserbuf[TOF_DISTANCE_LSB_POS];
+        return OK;
+      }*/
+      *dist = (parserbuf[TOF_DISTANCE_MSB_POS] << 8) | parserbuf[TOF_DISTANCE_LSB_POS];
+      return OK;
+
       break;
 
     default:
       printf("This should never happen. \n");
       break;
     }
-  }
+
   // SOME STUFFS
-  return bytes_processed;
+  return ret;
 }
