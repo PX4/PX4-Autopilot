@@ -35,7 +35,7 @@
  * @file landbao15L2950.cpp
  * @author Claudio Micheli <claudio@auterion.com>
  *
- * Driver for the Lanbao ISL2950
+ * Driver for the ISL2950
  */
 
  #include <px4_config.h>
@@ -399,46 +399,39 @@ int
 ISL2950::collect()
 {
   int bytes_read = 0;
-  int bytes_available = 0;
 
   int distance_mm = -1.0f;
   bool full_frame = false;
-  bool stop_serial_read = false;
+
 
   perf_begin(_sample_perf);
 
-  /* clear buffer if last read was too long ago */
-  int64_t read_elapsed = hrt_absolute_time();
-  read_elapsed = read_elapsed - _last_read;
 
   /* the buffer for read chars is buflen minus null termination */
 	uint8_t readbuf[sizeof(_linebuf)];
 	unsigned readlen = sizeof(readbuf);
 
-  while ((!stop_serial_read)) {
+
     /* read from the sensor (uart buffer) */
     bytes_read = ::read(_fd, &readbuf[0], readlen);
 
     if (bytes_read < 0) {
-      stop_serial_read = true;
   		PX4_DEBUG("read err: %d \n", bytes_read);
   		perf_count(_comms_errors);
   		perf_end(_sample_perf);
 
     } else if (bytes_read > 0){
       _last_read = hrt_absolute_time();
-      bytes_available += bytes_read;
 
-      //printf("Got a buffer with %d bytes,read %d \n", bytes_available,bytes_read);
         for (int i = 0; i < bytes_read; i++) {
           if (OK == isl2950_parser(readbuf[i],_frame_data, &_parse_state,&_crc16, &distance_mm)){
-            stop_serial_read = true;
+
             full_frame = true;
           }
         }
 
     }
-  }
+
 
   if (!full_frame) {
 		return -EAGAIN;
@@ -472,86 +465,6 @@ ISL2950::collect()
 	perf_end(_sample_perf);
 	return bytes_read;
 
-
-
-  // ----------------------- LANBAO SPECIFIC ---------------------------
-/*
-  uint8_t buffer[50];
-  int bytes_available = 0;
-  int bytes_processed = 0;
-  int bytes_read = 0;
-
-  int distance_mm = -1.0f;
-  bytes_read = ::read(_fd, buffer + bytes_available, 50 - bytes_available);
-  //printf("read() returns %02X %02X %02X %02X \n", buffer[0], buffer[1],buffer[2],buffer[3] );
-
-  //--------------------------------------------------------------------
-  if (bytes_read < 0) {
-  		PX4_ERR("isl2950 - read() error: %d \n", bytes_read);
-  		perf_count(_comms_errors);
-  		perf_end(_sample_perf);
-
-  	// only throw an error if we time out
-  		if (read_elapsed > (_conversion_interval * 2)) {
-        printf("read elapsed %d , conversion interval %d",read_elapsed,_conversion_interval * 2);
-  			return bytes_read;
-
-  		} else {
-        printf("EAGAIN",read_elapsed,_conversion_interval * 2);
-  			return -EAGAIN;
-  		}
-
-  } else if (bytes_read == 0) {
-  	return OK;                         // If we dont read any bites we simply exit from collecting
-  	}
-
-  _last_read = hrt_absolute_time();
-
-  bytes_available += bytes_read;
-
-  // parse the buffer data
-    full_frame = false;
-
-    bytes_processed = isl2950_parser(buffer, bytes_available, &full_frame,&distance_mm);
-    tempo = tempo - hrt_absolute_time();
-  //printf("isl2950_parser() processed %d bytes, full_frame %d \n", bytes_processed, full_frame);
-
-  // discard the processed bytes and move the buffer content to the head
-  bytes_available -= bytes_processed;
-  memcpy(buffer, buffer + bytes_processed, bytes_available);
-
-  if (full_frame) {
-    printf("Measured Distance %d mm\n",distance_mm);
-  }
-
-  else if (!full_frame) {     // If the frame is not valid we avoid publishing it
-    return OK;
-  }
-
-  struct distance_sensor_s report;
-
-  	report.timestamp = hrt_absolute_time();
-  	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
-  	report.orientation = _rotation;
-  	report.current_distance = distance_mm/1000;        //  To meters
-  	report.min_distance = get_minimum_distance();
-  	report.max_distance = get_maximum_distance();
-  	report.covariance = 0.0f;
-  	report.signal_quality = -1;
-  	// TODO: set proper ID
-  	report.id = 0;
-
-  	// publish it
-  	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
-
-  	_reports->force(&report);
-
-  	// notify anyone waiting for data
-  	poll_notify(POLLIN);
-
-    printf("tempo %d \n",tempo);
-  	perf_end(_sample_perf);
-  	return OK; */
 }
 
 void
@@ -623,44 +536,20 @@ ISL2950::cycle()
 			PX4_ERR("baud %d ATTR", termios_state);
 		}
 	}
-    //printf("COLLECT \n");
+
 		/* perform collection */
 		int collect_ret = collect();
 
 		if (collect_ret == -EAGAIN) {
-			/* reschedule to grab the missing bits, time to transmit 8 bytes @ 9600 bps */
-			work_queue(HPWORK,&_work,(worker_t)&ISL2950::cycle_trampoline,this,USEC2TICK(1042 * 8));
+
+			/* We are missing bytes to complete the packet, re-cycle at 1ms */
+			work_queue(HPWORK,&_work,(worker_t)&ISL2950::cycle_trampoline,this,USEC2TICK(500LL));
 			return;
 		}
 
 
-  // ------------------- DISABLED CHECKING OF CONSECUTIVE FAIL
-  //  if (OK != collect_ret) {
-
-			/* we know the sensor needs about four seconds to initialize */
-	//		if (hrt_absolute_time() > 1 * 1000 * 1000LL && _consecutive_fail_count < 5) {
-	//			PX4_ERR("collection error #%u", _consecutive_fail_count);
-	//		}
-
-	//		_consecutive_fail_count++;
-
-			/* restart the measurement state machine */
-	//		start();
-	//		return;
-
-	//	} else {
-			/* apparently success */
-	//		_consecutive_fail_count = 0;
-	//	}
-  // ------------------- DISABLED CHECKING OF CONSECUTIVE FAIL
-
-
-	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&ISL2950::cycle_trampoline,
-		   this,
-		   USEC2TICK(_conversion_interval));
+	/* schedule a fresh cycle call when a complete packet has been received */
+	work_queue(HPWORK,&_work,(worker_t)&ISL2950::cycle_trampoline,this,USEC2TICK(_conversion_interval));
 }
 
 void
