@@ -135,7 +135,6 @@ if __name__ == '__main__':
             deselected_tests += ')'
 
     testfile = px4_src_dir+'/integrationtests/tests/ulogtests/tests/test_general.py'
-
     logdir= os.getcwd()+'/log/'
     log_folders = os.listdir(logdir)
 
@@ -144,8 +143,7 @@ if __name__ == '__main__':
 
         for log_name in log_files:
             full_path_to_log = logdir + folder + '/' + log_name
-            print('Run tests against the following log file:')
-            print(full_path_to_log)
+            print('\n Run tests against the following log file: ' + folder + '/' + log_name + '\n')
             p_test = subprocess.Popen(['py.test', '-s', deselected_tests, testfile, '--filepath={0}'.format(full_path_to_log)])
             while p_test.poll() is None:
                 pass
