@@ -117,19 +117,18 @@ bool FlightTaskOrbit::sendTelemetry()
 	return true;
 }
 
-bool FlightTaskOrbit::setRadius(const float r)
+bool FlightTaskOrbit::setRadius(float r)
 {
-	if (math::isInRange(r, _radius_min, _radius_max)) {
-		// small radius is more important than high velocity for safety
-		if (!checkAcceleration(r, _v, _acceleration_max)) {
-			_v = math::sign(_v) * sqrtf(_acceleration_max * r);
-		}
+	// clip the radius to be within range
+	r = math::constrain(r, _radius_min, _radius_max);
 
-		_r = r;
-		return true;
+	// small radius is more important than high velocity for safety
+	if (!checkAcceleration(r, _v, _acceleration_max)) {
+		_v = math::sign(_v) * sqrtf(_acceleration_max * r);
 	}
 
-	return false;
+	_r = r;
+	return true;
 }
 
 bool FlightTaskOrbit::setVelocity(const float v)
