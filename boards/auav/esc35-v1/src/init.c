@@ -221,3 +221,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint8_t *filename, int lineno)
 {
 }
+
+__EXPORT int fsync(int fd)
+{
+	return 0;
+}
