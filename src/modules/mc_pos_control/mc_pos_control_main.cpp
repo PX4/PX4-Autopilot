@@ -70,6 +70,12 @@
 
 using namespace time_literals;
 
+enum class ObstacleAvoidanceStatus {
+	INACTIVE = 0,
+	ACTIVE,
+	FAILSAFE
+};
+
 /**
  * Multicopter position control app start / stop handling function
  */
@@ -102,12 +108,6 @@ public:
 	int print_status() override;
 
 private:
-
-	enum class ObstacleAvoidanceStatus {
-		INACTIVE = 0,
-		ACTIVE,
-		FAILSAFE
-	};
 
 	bool 		_in_smooth_takeoff = false; 		/**< true if takeoff ramp is applied */
 
@@ -173,6 +173,7 @@ private:
 	hrt_abstime _last_warn = 0; /**< timer when the last warn message was sent out */
 
 	bool _in_failsafe = false; /**< true if failsafe was entered within current cycle */
+	bool _force_failsafe = false; /**< true if transition to failsafe is necessary */
 
 	/** Timeout in us for trajectory data to get considered invalid */
 	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500_ms;
@@ -268,7 +269,7 @@ private:
 	 * Start flightasks based on navigation state.
 	 * This methods activates a task based on the navigation state.
 	 */
-	void start_flight_task();
+	void start_flight_task(bool force_failsafe);
 
 	/**
 	 * Failsafe.
@@ -646,7 +647,8 @@ MulticopterPositionControl::run()
 
 		if (_control_mode.flag_armed) {
 			// as soon vehicle is armed check for flighttask
-			start_flight_task();
+			start_flight_task(_force_failsafe);
+			_force_failsafe = false;
 			// arm hysteresis prevents vehicle to takeoff
 			// before propeller reached idle speed.
 			_arm_hysteresis.set_state_and_update(true);
@@ -753,19 +755,14 @@ MulticopterPositionControl::run()
 			_control.updateState(_states);
 
 			// adjust setpoints based on avoidance
-			switch(use_obstacle_avoidance() {
+			switch(use_obstacle_avoidance()) {
 			case ObstacleAvoidanceStatus::INACTIVE:
 				break;
 			case ObstacleAvoidanceStatus::ACTIVE:
 				execute_avoidance_waypoint(setpoint);
 				break;
 			case ObstacleAvoidanceStatus::FAILSAFE:
-				int error = _flight_tasks.switchTask(FlightTaskIndex::Failsafe);
-
-				if (error != 0) {
-					// No task was activated.
-					_flight_tasks.switchTask(FlightTaskIndex::None);
-				}
+				_force_failsafe = true;
 				break;
 			}
 
@@ -861,175 +858,177 @@ MulticopterPositionControl::run()
 }
 
 void
-MulticopterPositionControl::start_flight_task()
+MulticopterPositionControl::start_flight_task(bool force_failsafe)
 {
 	bool task_failure = false;
 	bool should_disable_task = true;
 	int prev_failure_count = _task_failure_count;
 
-	// Do not run any flight task for VTOLs in fixed-wing mode
-	if (!_vehicle_status.is_rotary_wing) {
-		_flight_tasks.switchTask(FlightTaskIndex::None);
-		return;
-	}
+	if(!force_failsafe){
+		// Do not run any flight task for VTOLs in fixed-wing mode
+		if (!_vehicle_status.is_rotary_wing) {
+			_flight_tasks.switchTask(FlightTaskIndex::None);
+			return;
+		}
 
-	if (_vehicle_status.in_transition_mode) {
-		should_disable_task = false;
-		int error = _flight_tasks.switchTask(FlightTaskIndex::Transition);
+		if (_vehicle_status.in_transition_mode) {
+			should_disable_task = false;
+			int error = _flight_tasks.switchTask(FlightTaskIndex::Transition);
 
-		if (error != 0) {
-			if (prev_failure_count == 0) {
-				PX4_WARN("Transition activation failed with error: %s", _flight_tasks.errorToString(error));
+			if (error != 0) {
+				if (prev_failure_count == 0) {
+					PX4_WARN("Transition activation failed with error: %s", _flight_tasks.errorToString(error));
+				}
+				task_failure = true;
+				_task_failure_count++;
+
+			} else {
+				// we want to be in this mode, reset the failure count
+				_task_failure_count = 0;
 			}
-			task_failure = true;
-			_task_failure_count++;
 
-		} else {
-			// we want to be in this mode, reset the failure count
-			_task_failure_count = 0;
+			return;
 		}
 
-		return;
-	}
+		// offboard
+		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD
+			&& (_control_mode.flag_control_altitude_enabled ||
+			_control_mode.flag_control_position_enabled ||
+			_control_mode.flag_control_climb_rate_enabled ||
+			_control_mode.flag_control_velocity_enabled ||
+			_control_mode.flag_control_acceleration_enabled)) {
 
-	// offboard
-	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD
-	    && (_control_mode.flag_control_altitude_enabled ||
-		_control_mode.flag_control_position_enabled ||
-		_control_mode.flag_control_climb_rate_enabled ||
-		_control_mode.flag_control_velocity_enabled ||
-		_control_mode.flag_control_acceleration_enabled)) {
+			should_disable_task = false;
+			int error = _flight_tasks.switchTask(FlightTaskIndex::Offboard);
 
-		should_disable_task = false;
-		int error = _flight_tasks.switchTask(FlightTaskIndex::Offboard);
+			if (error != 0) {
+				if (prev_failure_count == 0) {
+					PX4_WARN("Offboard activation failed with error: %s", _flight_tasks.errorToString(error));
+				}
+				task_failure = true;
+				_task_failure_count++;
 
-		if (error != 0) {
-			if (prev_failure_count == 0) {
-				PX4_WARN("Offboard activation failed with error: %s", _flight_tasks.errorToString(error));
+			} else {
+				// we want to be in this mode, reset the failure count
+				_task_failure_count = 0;
 			}
-			task_failure = true;
-			_task_failure_count++;
-
-		} else {
-			// we want to be in this mode, reset the failure count
-			_task_failure_count = 0;
 		}
-	}
 
-	// Auto-follow me
-	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) {
-		should_disable_task = false;
-		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe);
+		// Auto-follow me
+		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) {
+			should_disable_task = false;
+			int error = _flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe);
 
-		if (error != 0) {
-			if (prev_failure_count == 0) {
-				PX4_WARN("Follow-Me activation failed with error: %s", _flight_tasks.errorToString(error));
+			if (error != 0) {
+				if (prev_failure_count == 0) {
+					PX4_WARN("Follow-Me activation failed with error: %s", _flight_tasks.errorToString(error));
+				}
+				task_failure = true;
+				_task_failure_count++;
+
+			} else {
+				// we want to be in this mode, reset the failure count
+				_task_failure_count = 0;
 			}
-			task_failure = true;
-			_task_failure_count++;
 
-		} else {
-			// we want to be in this mode, reset the failure count
-			_task_failure_count = 0;
-		}
+		} else if (_control_mode.flag_control_auto_enabled) {
+			// Auto related maneuvers
+			should_disable_task = false;
+			int error = 0;
+			switch (MPC_AUTO_MODE.get()) {
+			case 1:
+				error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLineSmoothVel);
+				break;
 
-	} else if (_control_mode.flag_control_auto_enabled) {
-		// Auto related maneuvers
-		should_disable_task = false;
-		int error = 0;
-		switch (MPC_AUTO_MODE.get()) {
-		case 1:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLineSmoothVel);
-			break;
-
-		default:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
-			break;
-		}
-
-		if (error != 0) {
-			if (prev_failure_count == 0) {
-				PX4_WARN("Auto activation failed with error: %s", _flight_tasks.errorToString(error));
+			default:
+				error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
+				break;
 			}
-			task_failure = true;
-			_task_failure_count++;
 
-		} else {
-			// we want to be in this mode, reset the failure count
-			_task_failure_count = 0;
-		}
-	}
+			if (error != 0) {
+				if (prev_failure_count == 0) {
+					PX4_WARN("Auto activation failed with error: %s", _flight_tasks.errorToString(error));
+				}
+				task_failure = true;
+				_task_failure_count++;
 
-	// manual position control
-	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL || task_failure) {
-		should_disable_task = false;
-		int error = 0;
-
-		switch (MPC_POS_MODE.get()) {
-		case 1:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmooth);
-			break;
-
-		case 2:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::Sport);
-			break;
-
-		case 3:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmoothVel);
-			break;
-
-		default:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPosition);
-			break;
-		}
-
-		if (error != 0) {
-			if (prev_failure_count == 0) {
-				PX4_WARN("Position-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
+			} else {
+				// we want to be in this mode, reset the failure count
+				_task_failure_count = 0;
 			}
-			task_failure = true;
-			_task_failure_count++;
-
-		} else {
-			check_failure(task_failure, vehicle_status_s::NAVIGATION_STATE_POSCTL);
-			task_failure = false;
-		}
-	}
-
-	// manual altitude control
-	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL || task_failure) {
-		should_disable_task = false;
-		int error = 0;
-
-		switch (MPC_POS_MODE.get()) {
-		case 1:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitudeSmooth);
-			break;
-
-		default:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitude);
-			break;
 		}
 
-		if (error != 0) {
-			if (prev_failure_count == 0) {
-				PX4_WARN("Altitude-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
+		// manual position control
+		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL || task_failure) {
+			should_disable_task = false;
+			int error = 0;
+
+			switch (MPC_POS_MODE.get()) {
+			case 1:
+				error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmooth);
+				break;
+
+			case 2:
+				error =  _flight_tasks.switchTask(FlightTaskIndex::Sport);
+				break;
+
+			case 3:
+				error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmoothVel);
+				break;
+
+			default:
+				error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPosition);
+				break;
 			}
-			task_failure = true;
-			_task_failure_count++;
 
-		} else {
-			check_failure(task_failure, vehicle_status_s::NAVIGATION_STATE_ALTCTL);
-			task_failure = false;
+			if (error != 0) {
+				if (prev_failure_count == 0) {
+					PX4_WARN("Position-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
+				}
+				task_failure = true;
+				_task_failure_count++;
+
+			} else {
+				check_failure(task_failure, vehicle_status_s::NAVIGATION_STATE_POSCTL);
+				task_failure = false;
+			}
 		}
-	}
 
-	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT) {
-		should_disable_task = false;
+		// manual altitude control
+		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL || task_failure) {
+			should_disable_task = false;
+			int error = 0;
+
+			switch (MPC_POS_MODE.get()) {
+			case 1:
+				error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitudeSmooth);
+				break;
+
+			default:
+				error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitude);
+				break;
+			}
+
+			if (error != 0) {
+				if (prev_failure_count == 0) {
+					PX4_WARN("Altitude-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
+				}
+				task_failure = true;
+				_task_failure_count++;
+
+			} else {
+				check_failure(task_failure, vehicle_status_s::NAVIGATION_STATE_ALTCTL);
+				task_failure = false;
+			}
+		}
+
+		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT) {
+			should_disable_task = false;
+		}
 	}
 
 	// check task failure
-	if (task_failure) {
+	if (task_failure || force_failsafe) {
 
 		// for some reason no flighttask was able to start.
 		// go into failsafe flighttask
@@ -1212,13 +1211,11 @@ MulticopterPositionControl::use_obstacle_avoidance()
 {
 	ObstacleAvoidanceStatus ret;
 	/* check that external obstacle avoidance is sending data and that the first point is valid */
-	if (MPC_OBS_AVOID.get()) {
+	if (MPC_OBS_AVOID.get() && ((_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) ||
+		    (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL))) {
 		if ((hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) < TRAJECTORY_STREAM_TIMEOUT_US)
-			&& (_traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true)
-			&& ((_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) ||
-			    (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL))) {
+			&& (_traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true)) {
 			ret = ObstacleAvoidanceStatus::ACTIVE;
-
 		} else {
 			ret = ObstacleAvoidanceStatus::FAILSAFE;
 		}
