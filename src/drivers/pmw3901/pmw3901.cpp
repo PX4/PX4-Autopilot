@@ -74,8 +74,6 @@
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/sensor_gyro.h>
-
 #include <board_config.h>
 
 /* Configuration Constants */
@@ -575,7 +573,9 @@ PMW3901::collect()
 	_flow_sum_x += delta_x_raw;
 	_flow_sum_y += delta_y_raw;
 
-	if (_flow_dt_sum_usec < 45000) {
+
+	
+	if (_flow_dt_sum_usec < 15000) {
 
 		return ret;
 	}
@@ -617,7 +617,7 @@ PMW3901::collect()
 	// set (conservative) specs according to datasheet
 	report.max_flow_rate = 5.0f;       // Datasheet: 7.4 rad/s
 	report.min_ground_distance = 0.1f; // Datasheet: 80mm
-	report.max_ground_distance = 5.0f; // Datasheet: infinity
+	report.max_ground_distance = 30.0f; // Datasheet: infinity
 
 	_flow_dt_sum_usec = 0;
 	_flow_sum_x = 0;
@@ -677,7 +677,7 @@ PMW3901::start()
 {
 	/* reset the report ring and state machine */
 	_reports->flush();
-
+	//_sensor_combined_sub= orb_subscribe(ORB_ID(sensor_combined));
 	/* schedule a cycle to start things */
 	work_queue(LPWORK, &_work, (worker_t)&PMW3901::cycle_trampoline, this, USEC2TICK(PMW3901_US));
 
@@ -689,7 +689,7 @@ PMW3901::start()
 	info.enabled = true;
 	info.ok = true;
 	info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_OPTICALFLOW;
-
+	//_sensor_combined_sub= orb_subscribe(ORB_ID(sensor_combined));
 	if (_subsystem_pub != nullptr) {
 		orb_publish(ORB_ID(subsystem_info), _subsystem_pub, &info);
 
