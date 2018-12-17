@@ -4110,7 +4110,6 @@ protected:
 		vehicle_status_s status;
 
 		if (_status_sub->update(&status)) {
-
 			mavlink_command_long_t msg = {};
 
 			msg.target_system = 0;
@@ -4185,7 +4184,6 @@ protected:
 		distance_sensor_s dist_sensor;
 
 		if (_distance_sensor_sub->update(&_dist_sensor_time, &dist_sensor)) {
-
 			mavlink_distance_sensor_t msg = {};
 
 			msg.time_boot_ms = dist_sensor.timestamp / 1000; /* us to ms */
@@ -4520,7 +4518,6 @@ protected:
 		wind_estimate_s wind_estimate;
 
 		if (_wind_estimate_sub->update(&_wind_estimate_time, &wind_estimate)) {
-
 			mavlink_wind_cov_t msg = {};
 
 			msg.time_usec = wind_estimate.timestamp;
@@ -4600,7 +4597,6 @@ protected:
 		struct mount_orientation_s mount_orientation;
 
 		if (_mount_orientation_sub->update(&_mount_orientation_time, &mount_orientation)) {
-
 			mavlink_mount_orientation_t msg = {};
 
 			msg.roll = math::degrees(mount_orientation.attitude_euler_angle[0]);
@@ -4670,14 +4666,12 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-
 		vehicle_attitude_s att = {};
 		vehicle_global_position_s gpos = {};
 		bool att_updated = _att_sub->update(&_att_time, &att);
 		bool gpos_updated = _gpos_sub->update(&_gpos_time, &gpos);
 
 		if (att_updated || gpos_updated) {
-
 			mavlink_hil_state_quaternion_t msg = {};
 
 			// vehicle_attitude -> hil_state_quaternion
@@ -4829,7 +4823,7 @@ protected:
 		struct orbit_status_s _orbit_status;
 
 		if (_sub->update(&_orbit_status_time, &_orbit_status)) {
-			mavlink_orbit_execution_status_t _msg_orbit_execution_status;
+			mavlink_orbit_execution_status_t _msg_orbit_execution_status = {};
 
 			_msg_orbit_execution_status.time_usec = _orbit_status.timestamp;
 			_msg_orbit_execution_status.radius = _orbit_status.radius;
