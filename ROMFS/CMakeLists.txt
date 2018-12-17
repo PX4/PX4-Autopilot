@@ -70,7 +70,7 @@ endfunction()
 add_subdirectory(${romfs_src_dir})
 
 # directory setup
-# copy all romfs files, process airframes, prune comments
+# copy all romfs files, process airframes
 get_property(romfs_cmake_files GLOBAL PROPERTY PX4_ROMFS_CMAKE_FILES)
 get_property(romfs_copy_files GLOBAL PROPERTY PX4_ROMFS_FILES)
 get_property(module_config_files GLOBAL PROPERTY PX4_MODULE_CONFIG_FILES)
@@ -92,17 +92,14 @@ add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rcS ${romfs_gen_root_dir}
 		--rc-dir ${romfs_gen_root_dir}/init.d
 		--serial-ports ${board_serial_ports} ${added_arguments}
 		--config-files ${module_config_files} #--verbose
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
-		--folder ${romfs_gen_root_dir} --board ${PX4_BOARD}
 	DEPENDS
 		${jinja_templates}
 		${module_config_files}
 		${romfs_cmake_files}
 		${romfs_copy_files}
 		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
-		${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
 		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
-	COMMENT "ROMFS: copying, generating airframes, pruning"
+	COMMENT "ROMFS: copying, generating airframes"
 	)
 
 # copy extras into ROMFS
@@ -152,6 +149,17 @@ add_custom_command(OUTPUT romfs_extras.stamp
 	COMMENT "ROMFS: copying extras"
 	)
 
+add_custom_command(OUTPUT romfs_pruned.stamp
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
+		--folder ${romfs_gen_root_dir} --board ${PX4_BOARD}
+	DEPENDS
+		${romfs_gen_root_dir}/init.d/rcS
+		${romfs_gen_root_dir}/init.d/rc.autostart
+		romfs_extras.stamp
+		${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
+	COMMENT "ROMFS: pruning"
+	)
+
 # create romfs.img
 find_program(GENROMFS genromfs)
 if(NOT GENROMFS)
@@ -161,9 +169,7 @@ add_custom_command(OUTPUT romfs.img romfs.txt
 	COMMAND ${CMAKE_COMMAND} -E remove -f romfs.img romfs.txt
 	COMMAND ${GENROMFS} -f romfs.img -d ${romfs_gen_root_dir} -V "NSHInitVol" -v > romfs.txt 2>&1
 	DEPENDS
-		${romfs_gen_root_dir}/init.d/rcS
-		${romfs_gen_root_dir}/init.d/rc.autostart
-		romfs_extras.stamp
+		romfs_pruned.stamp
 	COMMENT "ROMFS: generating image"
 	)
 
