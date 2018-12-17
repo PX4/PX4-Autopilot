@@ -139,9 +139,6 @@ if __name__ == '__main__':
 
     testfile = px4_src_dir+'/integrationtests/tests/ulogtests/tests/test_general.py'
 
-    print(deselected_tests)
-    print(testfile)
-
     p_test = subprocess.Popen(['py.test', '-s', deselected_tests, testfile, '--filepath={0}'.format(newest_log)])
     while p_test.poll() is None:
         pass
