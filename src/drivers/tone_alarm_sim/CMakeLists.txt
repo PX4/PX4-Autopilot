@@ -30,11 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE drivers__tone_alarm_sim
+	MODULE drivers__tone_alarm
 	MAIN tone_alarm
 	SRCS
-		tone_alarm.cpp
+		tone_alarm_sim.cpp
+		../tone_alarm/tone_alarm.cpp
 	DEPENDS
 		git_driverframework
 	)

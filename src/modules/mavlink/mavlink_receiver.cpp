@@ -1696,7 +1696,7 @@ MavlinkReceiver::handle_message_play_tune(mavlink_message_t *msg)
 	     play_tune.target_component == 0)) {
 
 		if (*tune == 'M') {
-			int fd = px4_open(TONEALARM0_DEVICE_PATH, PX4_F_WRONLY);
+			int fd = px4_open(TONE_ALARM0_DEVICE_PATH, PX4_F_WRONLY);
 
 			if (fd >= 0) {
 				px4_write(fd, tune, strlen(tune) + 1);

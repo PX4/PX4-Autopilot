@@ -41,8 +41,8 @@
 #include <math.h>
 #include <ctype.h>
 
-#define TUNE_ERROR -1
-#define TUNE_STOP 0
+#define TUNE_ERROR   -1
+#define TUNE_STOP     0
 #define TUNE_CONTINUE 1
 
 #define BEAT_TIME_CONVERSION_MS (60 * 1000 * 4)
@@ -53,11 +53,11 @@
 const uint8_t Tunes::_note_tab[] = {9, 11, 0, 2, 4, 5, 7};
 
 Tunes::Tunes(unsigned default_tempo, unsigned default_octave, unsigned default_note_length,
-	     NoteMode default_mode):
-	_default_tempo(default_tempo),
+	     NoteMode default_note_mode):
 	_default_note_length(default_note_length),
-	_default_mode(default_mode),
-	_default_octave(default_octave)
+	_default_note_mode(default_note_mode),
+	_default_octave(default_octave),
+	_default_tempo(default_tempo)
 {
 	reset(false);
 }
@@ -81,7 +81,7 @@ void Tunes::reset(bool repeat_flag)
 	// reset music parameter
 	_tempo = _default_tempo;
 	_note_length = _default_note_length;
-	_note_mode = _default_mode;
+	_note_mode = _default_note_mode;
 	_octave = _default_octave;
 }
 

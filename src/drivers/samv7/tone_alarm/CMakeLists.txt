@@ -35,7 +35,8 @@ px4_add_module(
 	MODULE drivers__tone_alarm
 	MAIN tone_alarm
 	SRCS
-		tone_alarm.cpp
+		tone_alarm_samv7.cpp
+		../../tone_alarm/tone_alarm.cpp
 	DEPENDS
 		circuit_breaker
 		tunes

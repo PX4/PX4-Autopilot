@@ -41,12 +41,12 @@
 #include <uORB/topics/tune_control.h>
 #include "tune_definition.h"
 
-#define TUNE_MAX_UPDATE_INTERVAL_US 100000
-
-#define TUNE_DEFAULT_TEMPO 120
-#define TUNE_DEFAULT_OCTAVE 4
 #define TUNE_DEFAULT_NOTE_LENGTH 4
+#define TUNE_DEFAULT_OCTAVE 4
+#define TUNE_DEFAULT_TEMPO 120
+
 #define TUNE_MAX_STRENGTH 100
+#define TUNE_MAX_UPDATE_INTERVAL_US 100000
 
 
 /**
@@ -126,31 +126,6 @@ public:
 	unsigned int get_maximum_update_interval() {return (unsigned int)TUNE_MAX_UPDATE_INTERVAL_US;}
 
 private:
-	static const char *const _default_tunes[];
-	static const bool _default_tunes_interruptable[];
-	static const uint8_t _note_tab[];
-	static const unsigned int _default_tunes_size;
-	int _current_tune_id = static_cast<int>(TuneID::NONE);
-	bool _repeat = false;	     ///< if true, tune restarts at end
-	const char *_tune = nullptr; ///< current tune string
-	const char *_next = nullptr; ///< next note in the string
-	const char *_tune_start_ptr = nullptr; ///< pointer to repeat tune
-
-	unsigned _tempo;
-	unsigned _note_length;
-	NoteMode _note_mode;
-	unsigned _octave;
-
-	unsigned _default_tempo;
-	unsigned _default_note_length;
-	NoteMode _default_mode;
-	unsigned _default_octave;
-
-	unsigned _frequency;
-	unsigned _duration;
-	unsigned _silence;
-	uint8_t _strength;
-	bool _using_custom_msg = false;
 
 	/**
 	 * Convert note to frequency
@@ -209,5 +184,33 @@ private:
 	 * (re)-starting a tune.
 	 */
 	void reset(bool repeat_flag);
+
+	static const char *const _default_tunes[];
+	static const bool _default_tunes_interruptable[];
+	static const uint8_t _note_tab[];
+	static const unsigned int _default_tunes_size;
+
+	const char *_tune           = nullptr; ///< current tune string
+	const char *_next           = nullptr; ///< next note in the string
+	const char *_tune_start_ptr = nullptr; ///< pointer to repeat tune
+
+	int _current_tune_id = static_cast<int>(TuneID::NONE);
+	bool _repeat = false; ///< if true, tune restarts at end
+
+	unsigned int _default_note_length = TUNE_DEFAULT_NOTE_LENGTH;
+	NoteMode     _default_note_mode   = NoteMode::NORMAL;
+	unsigned int _default_octave      = TUNE_DEFAULT_OCTAVE;
+	unsigned int _default_tempo       = TUNE_DEFAULT_TEMPO;
+
+	unsigned int _note_length = TUNE_DEFAULT_NOTE_LENGTH;
+	NoteMode     _note_mode   = NoteMode::NORMAL;
+	unsigned int _octave      = TUNE_DEFAULT_OCTAVE;
+	unsigned int _tempo       = TUNE_DEFAULT_TEMPO;
+
+	unsigned int _duration  = 0;
+	unsigned int _frequency = 0;
+	unsigned int _silence   = 0;
+	uint8_t      _strength  = 0;
+	bool         _using_custom_msg = false;
 
 };
