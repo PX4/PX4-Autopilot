@@ -103,6 +103,12 @@ public:
 
 private:
 
+	enum class ObstacleAvoidanceStatus {
+		INACTIVE = 0,
+		ACTIVE,
+		FAILSAFE
+	};
+
 	bool 		_in_smooth_takeoff = false; 		/**< true if takeoff ramp is applied */
 
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
@@ -285,7 +291,7 @@ private:
 	/**
 	 * Check whether or not use the obstacle avoidance waypoint
 	 */
-	bool use_obstacle_avoidance();
+	ObstacleAvoidanceStatus use_obstacle_avoidance();
 
 	/**
 	 * Overwrite setpoint with waypoint coming from obstacle avoidance
@@ -747,8 +753,20 @@ MulticopterPositionControl::run()
 			_control.updateState(_states);
 
 			// adjust setpoints based on avoidance
-			if (use_obstacle_avoidance()) {
+			switch(use_obstacle_avoidance() {
+			case ObstacleAvoidanceStatus::INACTIVE:
+				break;
+			case ObstacleAvoidanceStatus::ACTIVE:
 				execute_avoidance_waypoint(setpoint);
+				break;
+			case ObstacleAvoidanceStatus::FAILSAFE:
+				int error = _flight_tasks.switchTask(FlightTaskIndex::Failsafe);
+
+				if (error != 0) {
+					// No task was activated.
+					_flight_tasks.switchTask(FlightTaskIndex::None);
+				}
+				break;
 			}
 
 			// update position controller setpoints
@@ -1189,15 +1207,27 @@ MulticopterPositionControl::execute_avoidance_waypoint(vehicle_local_position_se
 	Vector3f(NAN, NAN, NAN).copyTo(setpoint.thrust);
 }
 
-bool
+ObstacleAvoidanceStatus
 MulticopterPositionControl::use_obstacle_avoidance()
 {
+	ObstacleAvoidanceStatus ret;
 	/* check that external obstacle avoidance is sending data and that the first point is valid */
-	return (MPC_OBS_AVOID.get()
-		&& (hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) < TRAJECTORY_STREAM_TIMEOUT_US)
-		&& (_traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true)
-		&& ((_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) ||
-		    (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)));
+	if (MPC_OBS_AVOID.get()) {
+		if ((hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) < TRAJECTORY_STREAM_TIMEOUT_US)
+			&& (_traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true)
+			&& ((_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) ||
+			    (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL))) {
+			ret = ObstacleAvoidanceStatus::ACTIVE;
+
+		} else {
+			ret = ObstacleAvoidanceStatus::FAILSAFE;
+		}
+
+	} else {
+		ret = ObstacleAvoidanceStatus::INACTIVE;
+	}
+
+	return ret;
 }
 
 void
