@@ -16,7 +16,7 @@ px4_add_board(
 		GPS1:/dev/ttyS3
 		TEL1:/dev/ttyS1
 		TEL2:/dev/ttyS2
-		TEL4:/dev/ttyS0
+		TEL4:/dev/ttyS6
 
 	DRIVERS
 		#barometer # all available barometer drivers
