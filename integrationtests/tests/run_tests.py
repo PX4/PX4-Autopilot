@@ -119,9 +119,6 @@ if __name__ == '__main__':
     ################
     ### log-Analysis
     ################
-    logdir= os.getcwd()+'/log/'
-    newest_dir= logdir + max(os.listdir(logdir), key=lambda x: os.stat(logdir+x).st_mtime) + '/'
-    newest_log=newest_dir + max(os.listdir(newest_dir), key=lambda x: os.stat(newest_dir+x).st_mtime)
 
     # run all general tests except for those that are deselected in the yaml file
     deselected_tests = ''
@@ -139,8 +136,19 @@ if __name__ == '__main__':
 
     testfile = px4_src_dir+'/integrationtests/tests/ulogtests/tests/test_general.py'
 
-    p_test = subprocess.Popen(['py.test', '-s', deselected_tests, testfile, '--filepath={0}'.format(newest_log)])
-    while p_test.poll() is None:
-        pass
-    p_test.terminate()
+    logdir= os.getcwd()+'/log/'
+    log_folders = os.listdir(logdir)
+
+    for folder in log_folders:
+        log_files = os.listdir(logdir + folder)
+
+        for log_name in log_files:
+            full_path_to_log = logdir + folder + '/' + log_name
+            print('Run tests against the following log file:')
+            print(full_path_to_log)
+            p_test = subprocess.Popen(['py.test', '-s', deselected_tests, testfile, '--filepath={0}'.format(full_path_to_log)])
+            while p_test.poll() is None:
+                pass
+            p_test.terminate()
+
     print("test finished")
