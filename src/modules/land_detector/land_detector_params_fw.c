@@ -43,7 +43,7 @@
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDFW_VEL_XY_MAX, 5.0f);
+PARAM_DEFINE_FLOAT(LNDFW_VEL_XY_MAX, 3.0f);
 
 /**
  * Fixedwing max climb rate
@@ -51,13 +51,13 @@ PARAM_DEFINE_FLOAT(LNDFW_VEL_XY_MAX, 5.0f);
  * Maximum vertical velocity allowed in the landed state (m/s up and down)
  *
  * @unit m/s
- * @min 5
+ * @min 1
  * @max 20
  * @decimal 1
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 10.0f);
+PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 1.0f);
 
 /**
  * Fixedwing max short-term velocity
@@ -71,7 +71,7 @@ PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 10.0f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDFW_VELI_MAX, 8.0f);
+PARAM_DEFINE_FLOAT(LNDFW_VELI_MAX, 2.0f);
 
 /**
  * Airspeed max
@@ -85,4 +85,4 @@ PARAM_DEFINE_FLOAT(LNDFW_VELI_MAX, 8.0f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDFW_AIRSPD_MAX, 8.00f);
+PARAM_DEFINE_FLOAT(LNDFW_AIRSPD_MAX, 4.00f);

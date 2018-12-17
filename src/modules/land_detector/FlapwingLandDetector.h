@@ -46,6 +46,7 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 #include "LandDetector.h"
 
@@ -90,15 +91,18 @@ private:
         int _airspeedSub{-1};
         int _sensor_bias_sub{-1};
         int _local_pos_sub{-1};
+        int _manual_sub{-1};
 
         airspeed_s _airspeed{};
         sensor_bias_s _sensors{};
         vehicle_local_position_s _local_pos{};
+        manual_control_setpoint_s _manual{};
 
         float _velocity_xy_filtered{0.0f};
         float _velocity_z_filtered{0.0f};
         float _airspeed_filtered{0.0f};
         float _accel_horz_lp{0.0f};
+        float _manual_throttle{0.0f};
 };
 
 } // namespace land_detector

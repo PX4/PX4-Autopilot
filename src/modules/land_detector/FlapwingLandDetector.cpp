@@ -67,6 +67,7 @@ void FlapwingLandDetector::_initialize_topics()
         _airspeedSub = orb_subscribe(ORB_ID(airspeed));
         _local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
         _sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
+        _manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 }
 
 void FlapwingLandDetector::_update_topics()
@@ -74,6 +75,7 @@ void FlapwingLandDetector::_update_topics()
         _orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
         _orb_update(ORB_ID(sensor_bias), _sensor_bias_sub, &_sensors);
         _orb_update(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+        _orb_update(ORB_ID(manual_control_setpoint), _manual_sub, &_manual);
 }
 
 void FlapwingLandDetector::_update_params()
@@ -126,11 +128,13 @@ bool FlapwingLandDetector::_get_landed_state()
                                             _sensors.accel_y * _sensors.accel_y);
                 _accel_horz_lp = _accel_horz_lp * 0.8f + acc_hor * 0.18f;
 
+                _manual_throttle = _manual.z;
                 // crude land detector for Flapwing
                 landDetected = _velocity_xy_filtered < _params.maxVelocity
                                && _velocity_z_filtered < _params.maxClimbRate
                                && _airspeed_filtered < _params.maxAirSpeed
-                               && _accel_horz_lp < _params.maxIntVelocity;
+                               && _accel_horz_lp < _params.maxIntVelocity
+                               && _manual_throttle < 0.15f;
 
         } else {
                 // Control state topic has timed out and we need to assume we're landed.
