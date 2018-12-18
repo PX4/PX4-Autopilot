@@ -118,3 +118,8 @@ px4_add_board(
 		#rover_steering_control # Rover example app
 		#segway
 	)
+
+# remove optional flight task features from fmu-v2 to save flash memory
+list(APPEND flight_tasks_to_remove
+		Orbit
+	)
