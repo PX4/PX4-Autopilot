@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # @name Intel Aero Ready to Fly Drone
 #

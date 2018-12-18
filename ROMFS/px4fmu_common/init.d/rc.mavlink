@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # MAVLink startup script.
 #

@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # Standard apps for multirotors. Attitude/Position estimator, Attitude/Position control.
 #

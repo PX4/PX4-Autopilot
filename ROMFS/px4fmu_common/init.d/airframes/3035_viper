@@ -1,5 +1,4 @@
-#
-#!nsh
+#!/bin/sh
 #
 # @name Viper
 #

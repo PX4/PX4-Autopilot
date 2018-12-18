@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # @name Generic 250 Racer
 #

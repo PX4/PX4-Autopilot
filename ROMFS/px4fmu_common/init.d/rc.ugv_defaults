@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # UGV default parameters.
 #

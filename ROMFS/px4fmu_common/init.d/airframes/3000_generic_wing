@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # @name Generic Flying Wing
 #
