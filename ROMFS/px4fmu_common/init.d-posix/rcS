@@ -45,7 +45,7 @@ else
 	REQUESTED_AUTOSTART=$(ls "$SCRIPT_DIR" | sed -n 's/^\([0-9][0-9]*\)_'${PX4_SIM_MODEL}'$/\1/p')
 	if [ -z "$REQUESTED_AUTOSTART" ]; then
 		echo "Error: Unknown model '$PX4_SIM_MODEL'"
-		exit -1
+		exit 1
 	fi
 fi
 
@@ -174,7 +174,7 @@ do
 done
 if [ ! -e "$autostart_file" ]; then
 	echo "Error: no autostart file found ($autostart_file)"
-	exit -1
+	exit 1
 fi
 
 sh "$autostart_file"
