@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # @name FX-79 Buffalo Flying Wing
 #

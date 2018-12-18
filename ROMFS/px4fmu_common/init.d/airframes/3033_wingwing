@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # @name Wing Wing (aka Z-84) Flying Wing
 #

@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # PX4IO interface init script.
 #

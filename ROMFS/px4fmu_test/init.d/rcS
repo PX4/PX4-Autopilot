@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # PX4FMU startup script for test hackery.
 #
