@@ -575,7 +575,7 @@ PMW3901::collect()
 	_flow_sum_x += delta_x_raw;
 	_flow_sum_y += delta_y_raw;
 
-	if (_flow_dt_sum_usec < 45000) {
+	if (_flow_dt_sum_usec < 15000) {
 
 		return ret;
 	}
@@ -617,7 +617,7 @@ PMW3901::collect()
 	// set (conservative) specs according to datasheet
 	report.max_flow_rate = 5.0f;       // Datasheet: 7.4 rad/s
 	report.min_ground_distance = 0.1f; // Datasheet: 80mm
-	report.max_ground_distance = 5.0f; // Datasheet: infinity
+	report.max_ground_distance = 30.0f; // Datasheet: infinity
 
 	_flow_dt_sum_usec = 0;
 	_flow_sum_x = 0;
