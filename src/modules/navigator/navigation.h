@@ -153,11 +153,20 @@ struct mission_item_s {
 				float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
 				float circle_radius;		/**< geofence circle radius in meters (only used for NAV_CMD_NAV_FENCE_CIRCLE*) */
 			};
-			float acceptance_radius;		/**< default radius in which the mission is accepted as reached in meters */
-			float loiter_radius;			/**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
-			float yaw;				/**< in radians NED -PI..+PI, NAN means don't change yaw		*/
-			float ___lat_float;			/**< padding */
-			float ___lon_float;			/**< padding */
+			float yaw;					/**< in radians NED -PI..+PI, NAN means don't change yaw		*/
+			float acceptance_radius;	/**< default radius in which the mission is accepted as reached in meters */
+			union {
+				struct {
+					float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
+					float ___lat_float;			/**< padding */
+					float ___lon_float;			/**< padding */
+				};
+				struct {
+					float vx;
+					float vy;
+					float vz;
+				};
+			};
 			float altitude;				/**< altitude in meters	(AMSL)			*/
 		};
 		float params[7];				/**< array to store mission command values for MAV_FRAME_MISSION ***/

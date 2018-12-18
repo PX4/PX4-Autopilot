@@ -144,10 +144,9 @@ void FlightTaskAutoMapper2::_prepareTakeoffSetpoints()
 
 void FlightTaskAutoMapper2::_prepareVelocitySetpoints()
 {
-	// XY Velocity waypoint
-	// TODO : Rewiew that. What is the expected behavior?
+	// XY Velocity waypoint with altitude, ignore xy target
 	_position_setpoint = Vector3f(NAN, NAN, _target(2));
-	_velocity_setpoint = Vector3f(0.f, 0.f, NAN);
+	_velocity_setpoint = _target_velocity;
 	_yaw_setpoint = _yaw;
 }
 

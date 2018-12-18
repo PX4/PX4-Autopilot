@@ -123,6 +123,10 @@ AMS::set_ams_item()
 		_mission_item.altitude = _altitude;
 		_mission_item.altitude_is_relative = false;
 
+		_mission_item.vx = 0.f;
+		_mission_item.vy = 0.f;
+		_mission_item.vz = _param_ams_descend_vel.get();
+
 		_mission_item.yaw = NAN;
 
 		_mission_item.acceptance_radius = 100.f;
@@ -138,6 +142,8 @@ AMS::set_ams_item()
 		break;
 
 	case AMSState::LOITER:
+		_latitude = gpos.lat;
+		_longitude = gpos.lon;
 		_mission_item.lat = _latitude;
 		_mission_item.lon = _longitude;
 		_mission_item.altitude = _altitude;

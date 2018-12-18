@@ -582,6 +582,11 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		break;
 
 	case NAV_CMD_VELOCITY:
+		sp->vx = item.vx;
+		sp->vy = item.vy;
+		sp->vz = item.vz;
+		sp->velocity_valid = true;
+		sp->alt_valid = true;
 		sp->type = position_setpoint_s::SETPOINT_TYPE_VELOCITY;
 		break;
 

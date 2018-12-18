@@ -195,7 +195,10 @@ bool FlightTaskAuto::_evaluateTriplets()
 		} else {
 			_triplet_next_wp = _triplet_target;
 		}
+
 	}
+
+	_target_velocity = _getTargetVelocity();
 
 	// set heading
 	if (_ext_yaw_handler != nullptr && _ext_yaw_handler->is_active()) {
@@ -411,20 +414,19 @@ void FlightTaskAuto::_setDefaultConstraints()
 	}
 }
 
-Vector2f FlightTaskAuto::_getTargetVelocityXY()
+Vector3f FlightTaskAuto::_getTargetVelocity()
 {
 	// guard against any bad velocity values
 	const float vx = _sub_triplet_setpoint->get().current.vx;
 	const float vy = _sub_triplet_setpoint->get().current.vy;
-	bool velocity_valid = PX4_ISFINITE(vx) && PX4_ISFINITE(vy) &&
-			      _sub_triplet_setpoint->get().current.velocity_valid;
+	const float vz = _sub_triplet_setpoint->get().current.vz;
+	bool velocity_valid = _sub_triplet_setpoint->get().current.velocity_valid;
 
 	if (velocity_valid) {
-		return Vector2f(vx, vy);
+		return Vector3f(vx, vy, vz);
 
 	} else {
-		// just return zero speed
-		return Vector2f{};
+		return Vector3f(NAN, NAN, NAN);
 	}
 }
 
@@ -439,7 +441,11 @@ State FlightTaskAuto::_getCurrentState()
 
 	State return_state = State::none;
 
-	if (u_prev_to_target * pos_to_target < 0.0f) {
+	if (_type == WaypointType::velocity) {
+		// We are not currently targeting a xy position
+		return_state = State::none;
+
+	} else if (u_prev_to_target * pos_to_target < 0.0f) {
 		// Target is behind.
 		return_state = State::target_behind;
 

@@ -458,8 +458,10 @@ int commander_main(int argc, char *argv[])
 
 			} else if (!strcmp(argv[2], "auto:rtl")) {
 				new_main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
+
 			} else if (!strcmp(argv[2], "auto:ams")) {
 				new_main_state = commander_state_s::MAIN_STATE_AUTO_AMS;
+
 			} else if (!strcmp(argv[2], "acro")) {
 				new_main_state = commander_state_s::MAIN_STATE_ACRO;
 
@@ -981,7 +983,8 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 	case vehicle_command_s::VEHICLE_CMD_NAV_AMS: {
 			/* switch to AMS which ends the mission */
-			if (TRANSITION_CHANGED == main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_AMS, status_flags, &internal_state)) {
+			if (TRANSITION_CHANGED == main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_AMS, status_flags,
+					&internal_state)) {
 				mavlink_and_console_log_info(&mavlink_log_pub, "Auto Maneuver System engaged");
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
