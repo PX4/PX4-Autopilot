@@ -351,8 +351,8 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 
 	// Allocate the required buffer size if not previously done
 	// Do not retry if allocation has failed previously
-	if (_flow_buffer.get_length() < _obs_buffer_length) {
-		_flow_buffer_fail = !_flow_buffer.allocate(_obs_buffer_length);
+	if (_flow_buffer.get_length() < _imu_buffer_length) {
+		_flow_buffer_fail = !_flow_buffer.allocate(_imu_buffer_length);
 
 		if (_flow_buffer_fail) {
 			ECL_ERR("EKF optical flow buffer allocation failed");
