@@ -63,4 +63,4 @@
 	url = https://github.com/Stifael/px4maneuvers.git
 [submodule "integrationtests/tests/ulogtests/external/uloganalysis"]
 	path = integrationtests/tests/ulogtests/external/uloganalysis
-	url = git@github.com:Stifael/uloganalysis.git
+	url = https://github.com/Stifael/uloganalysis.git
