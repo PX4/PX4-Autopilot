@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # @name Spedix S250AQ
 # @url https://docs.px4.io/en/framebuild_multicopter/spedix_s250_pixracer.html

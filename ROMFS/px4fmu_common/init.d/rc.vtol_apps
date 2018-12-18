@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # Standard apps for vtol: Attitude/Position estimator, Attitude/Position control.
 #

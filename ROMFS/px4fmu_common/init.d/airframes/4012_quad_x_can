@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # @name F450-sized quadrotor with CAN
 #

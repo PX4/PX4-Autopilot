@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # @name Skywalker X5 Flying Wing
 #

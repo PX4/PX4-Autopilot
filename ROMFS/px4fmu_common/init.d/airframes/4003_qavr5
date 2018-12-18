@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # @name Lumenier QAV-R (raceblade) 5" arms
 #

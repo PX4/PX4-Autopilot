@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # Script to configure control interfaces.
 #

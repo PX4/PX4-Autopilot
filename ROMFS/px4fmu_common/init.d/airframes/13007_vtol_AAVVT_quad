@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # @name Generic AAVVT v-tail plane airframe with Quad VTOL.
 #
