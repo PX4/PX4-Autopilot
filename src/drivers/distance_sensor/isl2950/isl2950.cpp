@@ -112,19 +112,18 @@
    bool				_collect_phase;
    int				_fd;
    uint8_t			_linebuf[20];
-   unsigned			_linebuf_index;
+   uint8_t    _residual_bytes;
+   uint8_t   _cycle_counter;
 
    enum ISL2950_PARSE_STATE		_parse_state;
    unsigned char _frame_data[4];
    uint16_t     _crc16;
+   int         _distance_mm;
 
-   hrt_abstime			_last_read;
    int				_class_instance;
    int				_orb_class_instance;
 
    orb_advert_t			_distance_sensor_topic;
-
-   unsigned			_consecutive_fail_count;
 
    perf_counter_t			_sample_perf;
    perf_counter_t			_comms_errors;
@@ -185,22 +184,22 @@
   ISL2950::ISL2950(const char *port, uint8_t rotation) :
 	CDev(RANGE_FINDER0_DEVICE_PATH),
 	_rotation(rotation),
-	_min_distance(0.10f),
+	_min_distance(0.14f),
 	_max_distance(40.0f),
 	_conversion_interval(ISL2950_CONVERSION_INTERVAL),
 	_reports(nullptr),
 	_measure_ticks(0),
 	_collect_phase(false),
 	_fd(-1),
-	_linebuf_index(0),
+  _residual_bytes(0),
+  _cycle_counter(0),
 	_parse_state(TFS_NOT_STARTED),
   _frame_data{TOF_SFD1, TOF_SFD2, 0, 0},
   _crc16(0),
-	_last_read(0),
+  _distance_mm(-1),
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
-	_consecutive_fail_count(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "isl2950_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "isl2950_com_err"))
   {
@@ -399,21 +398,18 @@ int
 ISL2950::collect()
 {
   int bytes_read = 0;
+  int bytes_processed = 0;
 
-  int distance_mm = -1.0f;
-  bool full_frame = false;
+  bool crc_valid = false;
 
 
   perf_begin(_sample_perf);
 
 
-  /* the buffer for read chars is buflen minus null termination */
-	uint8_t readbuf[sizeof(_linebuf)];
-	unsigned readlen = sizeof(readbuf);
-
+   printf("residual bytes %d \n",_residual_bytes);
 
     /* read from the sensor (uart buffer) */
-    bytes_read = ::read(_fd, &readbuf[0], readlen);
+    bytes_read = ::read(_fd, &_linebuf[_residual_bytes], 20 - _residual_bytes);
 
     if (bytes_read < 0) {
   		PX4_DEBUG("read err: %d \n", bytes_read);
@@ -421,30 +417,37 @@ ISL2950::collect()
   		perf_end(_sample_perf);
 
     } else if (bytes_read > 0){
-      _last_read = hrt_absolute_time();
-
-        for (int i = 0; i < bytes_read; i++) {
-          if (OK == isl2950_parser(readbuf[i],_frame_data, &_parse_state,&_crc16, &distance_mm)){
-
-            full_frame = true;
+         printf("Bytes read: %d \n",bytes_read);
+        _residual_bytes += bytes_read;
+        while ((bytes_processed < _residual_bytes) && (!crc_valid))
+        {
+            printf("In the cycle, processing  byte %d \n",bytes_processed);
+          if (OK == isl2950_parser(_linebuf[bytes_processed],_frame_data, &_parse_state,&_crc16, &_distance_mm)){
+            crc_valid = true;
           }
+          bytes_processed++;
         }
-
     }
+  _residual_bytes -= bytes_processed;
+    printf("Bytes read: %d Bytes Processed: %d Residual: %d \n",bytes_read,bytes_processed,_residual_bytes);
+  if (_residual_bytes > 0) {
+      printf("copy from %d to %d \n",bytes_processed,bytes_read);
+    memmove(&_linebuf[0], &_linebuf[bytes_processed], bytes_read);
+  }
 
-
-  if (!full_frame) {
+  if (!crc_valid) {
 		return -EAGAIN;
 	}
 
-  printf("val (int): %d, raw: 0x%08X, valid: %s \n", distance_mm, _frame_data, ((full_frame) ? "OK" : "NO"));
+
+  printf("val (int): %d, raw: 0x%08X, valid: %s \n", _distance_mm, _frame_data, ((crc_valid) ? "OK" : "NO"));
 
 	struct distance_sensor_s report;
 
 	report.timestamp = hrt_absolute_time();
 	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 	report.orientation = _rotation;
-	report.current_distance = distance_mm/1000.0f;
+	report.current_distance = _distance_mm/1000.0f;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
 	report.covariance = 0.0f;
@@ -463,7 +466,13 @@ ISL2950::collect()
 	bytes_read = OK;
 
 	perf_end(_sample_perf);
-	return bytes_read;
+
+  /* ENABLE THIS IF YOU WANT TO PRINT OLD VALUES WHILE CRC CHECK IS WRONG
+  if (!crc_valid) {
+  		return -EAGAIN;
+  	}
+  else return OK; */
+  return OK;
 
 }
 
@@ -541,15 +550,16 @@ ISL2950::cycle()
 		int collect_ret = collect();
 
 		if (collect_ret == -EAGAIN) {
-
+      _cycle_counter++;
 			/* We are missing bytes to complete the packet, re-cycle at 1ms */
-			work_queue(HPWORK,&_work,(worker_t)&ISL2950::cycle_trampoline,this,USEC2TICK(500LL));
+			work_queue(HPWORK,&_work,(worker_t)&ISL2950::cycle_trampoline,this,USEC2TICK(1000LL));
 			return;
 		}
 
 
 	/* schedule a fresh cycle call when a complete packet has been received */
-	work_queue(HPWORK,&_work,(worker_t)&ISL2950::cycle_trampoline,this,USEC2TICK(_conversion_interval));
+	work_queue(HPWORK,&_work,(worker_t)&ISL2950::cycle_trampoline,this,USEC2TICK(_conversion_interval - _cycle_counter * 1000LL));
+  _cycle_counter = 0;
 }
 
 void
