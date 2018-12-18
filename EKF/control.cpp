@@ -676,6 +676,11 @@ void Ekf::controlGpsFusion()
 	} else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)10e6)) {
 		_control_status.flags.gps = false;
 		ECL_WARN("EKF GPS data stopped");
+	}  else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)1e6) && (_control_status.flags.opt_flow || _control_status.flags.ev_pos)) {
+		// Handle the case where we are fusing another position source along GPS, 
+		// stop waiting for GPS after 1 s of lost signal
+		_control_status.flags.gps = false;
+		ECL_WARN("EKF GPS data stopped, using only EV or OF");
 	}
 }
 
