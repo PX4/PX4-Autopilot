@@ -69,7 +69,7 @@ public:
 	void on_activation() override;
 	void on_active() override;
 
-	AMSType ams_type() const {return static_cast<AMSType>(_param_ams_type.get());};
+	AMSType ams_type() const {return static_cast<AMSType>(AMS_TYPE.get());};
 
 private:
 	/**
@@ -82,8 +82,8 @@ private:
 	 */
 	void advance_ams();
 
-	int ams_alt() const {return _param_ams_descend_alt.get();};
-	int ams_vel() const {return _param_ams_descend_vel.get();};
+	int ams_alt() const {return AMS_DESCEND_ALT.get();};
+	int ams_vel() const {return AMS_DESCEND_VEL.get();};
 
 	enum class AMSState {
 		NONE = 0,
@@ -102,8 +102,8 @@ private:
 	float _altitude{0.0f};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::AMS_DESCEND_ALT>) _param_ams_descend_alt,
-		(ParamFloat<px4::params::AMS_DESCEND_VEL>) _param_ams_descend_vel,
-		(ParamInt<px4::params::AMS_TYPE>) _param_ams_type
+		(ParamFloat<px4::params::AMS_DESCEND_ALT>) AMS_DESCEND_ALT,
+		(ParamFloat<px4::params::AMS_DESCEND_VEL>) AMS_DESCEND_VEL,
+		(ParamInt<px4::params::AMS_TYPE>) AMS_TYPE
 	)
 };

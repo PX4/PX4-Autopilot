@@ -46,7 +46,7 @@
 /**
  * AMS velocity
  *
- * Downward target velocity during emergency descend phase
+ * Downward target velocity during the emergency descent phase
  *
  * @unit m/s
  * @min 1

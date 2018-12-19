@@ -79,7 +79,7 @@ AMS::on_active()
 		const vehicle_local_position_s &local_pos = *_navigator->get_local_position();
 
 		if (local_pos.dist_bottom_valid) {
-			if (local_pos.dist_bottom <= _param_ams_descend_alt.get()) {
+			if (local_pos.dist_bottom <= AMS_DESCEND_ALT.get()) {
 				fast_forward = true;
 			}
 		}
@@ -105,7 +105,7 @@ AMS::set_ams_item()
 
 	// Compute the loiter altitude. Above ground if data is valid; above home otherwise
 	const float altitude_above_ground = local_pos.dist_bottom_valid ? local_pos.dist_bottom : 0.0f;
-	const float loiter_altitude = math::min(home.alt + altitude_above_ground + _param_ams_descend_alt.get(), gpos.alt);
+	const float loiter_altitude = math::min(home.alt + altitude_above_ground + AMS_DESCEND_ALT.get(), gpos.alt);
 
 	switch (_ams_state) {
 	case AMSState::TRANSITION_TO_MC:
@@ -125,7 +125,7 @@ AMS::set_ams_item()
 
 		_mission_item.vx = 0.f;
 		_mission_item.vy = 0.f;
-		_mission_item.vz = _param_ams_descend_vel.get();
+		_mission_item.vz = AMS_DESCEND_VEL.get();
 
 		_mission_item.yaw = NAN;
 
