@@ -39,8 +39,9 @@ HOSTNAME=${AERO_HOSTNAME:-intel-aero.local}
 SCRIPT_DIR=$(dirname $(realpath ${BASH_SOURCE[0]}))
 
 target=$USER@$HOSTNAME
-firmware=$1
-px_uploader=${SCRIPT_DIR}/px_uploader.py
+
+px_uploader=$1
+firmware=$2
 
 echo "Copying files to Aero board ($target)..."
 scp $firmware $px_uploader $target:
