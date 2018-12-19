@@ -169,30 +169,30 @@ int isl2950_parser(uint8_t c, uint8_t *parserbuf, ISL2950_PARSE_STATE *state, ui
       *crc16 = (*crc16 >> 8) | (*crc16 << 8);
       break;
 
-    /* @NOTE (claudio@auterion.com) : Since data that not pass this crc check seems to be valid anyway, it will be published discard the bad high CRC*/
+
     case TFS_GOT_DATA2:
       if (c == (*crc16 >> 8)) {
         *state = TFS_GOT_CHECKSUM1;
-        //*dist = (parserbuf[TOF_DISTANCE_MSB_POS] << 8) | parserbuf[TOF_DISTANCE_LSB_POS];
-        //return OK;
       }
       else {
-         printf("Checksum invalid on high byte: 0x%02X, calculated: 0x%04X \n",c, *crc16);
+        // printf("Checksum invalid on high byte: 0x%02X, calculated: 0x%04X \n",c, *crc16);
         *state = TFS_NOT_STARTED;
-        //*state = TFS_GOT_CHECKSUM1; // Forcing to print the value anyway
+
       }
       break;
 
-      case TFS_GOT_CHECKSUM1:
+    case TFS_GOT_CHECKSUM1:
       // Here, reset state to `NOT-STARTED` no matter crc ok or not
       *state = TFS_NOT_STARTED;
       if (c == (*crc16 & 0xFF)) {
-       printf("Checksum verified \n");
+      // printf("Checksum verified \n");
         *dist = (parserbuf[TOF_DISTANCE_MSB_POS] << 8) | parserbuf[TOF_DISTANCE_LSB_POS];
         return OK;
-      } else {
-        //printf("Checksum invalidon low byte: 0x%02X, calculated: 0x%04X \n",c, *crc16);
       }
+      /*else {
+        printf("Checksum not verified \n");
+        //printf("Checksum invalidon low byte: 0x%02X, calculated: 0x%04X \n",c, *crc16);
+      }*/
       break;
 
     default:
