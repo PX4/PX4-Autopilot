@@ -39,6 +39,7 @@ parameters:
                 5: Config
                 #6: Iridium # as the user does not need to configure this, hide it from the UI
                 7: Minimal
+                8: External Vision
             reboot_required: true
             num_instances: *max_num_config_instances
             default: [0, 2, 0]
