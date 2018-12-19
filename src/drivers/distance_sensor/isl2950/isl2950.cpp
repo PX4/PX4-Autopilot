@@ -80,7 +80,7 @@
  #define ISL2950_DEFAULT_PORT		"/dev/ttyS1" // Its baudrate is 115200
 
  // normal conversion wait time
- #define ISL2950_CONVERSION_INTERVAL 100*1000UL/* 100ms */
+ #define ISL2950_CONVERSION_INTERVAL 50*1000UL/* 100ms */
 
 
  class ISL2950 : public cdev::CDev
@@ -108,11 +108,9 @@
    int         	_conversion_interval;
    work_s				_work{};
    ringbuffer::RingBuffer		*_reports;
-   int				_measure_ticks;
    bool				_collect_phase;
    int				_fd;
-   uint8_t			_linebuf[20];
-   uint8_t    _residual_bytes;
+   uint8_t			_linebuf[25];
    uint8_t   _cycle_counter;
 
    enum ISL2950_PARSE_STATE		_parse_state;
@@ -156,7 +154,6 @@
   	* and start a new one.
   	*/
   	void				cycle();
-  	int				measure();
   	int				collect();
   	/**
   	* Static trampoline from the workq context; because we don't have a
@@ -188,10 +185,8 @@
 	_max_distance(40.0f),
 	_conversion_interval(ISL2950_CONVERSION_INTERVAL),
 	_reports(nullptr),
-	_measure_ticks(0),
 	_collect_phase(false),
 	_fd(-1),
-  _residual_bytes(0),
   _cycle_counter(0),
 	_parse_state(TFS_NOT_STARTED),
   _frame_data{TOF_SFD1, TOF_SFD2, 0, 0},
@@ -311,25 +306,12 @@ ISL2950::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
-					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
-
-					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(_conversion_interval);
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-					}
-
+					start();
 					return OK;
 				}
 
 			/* adjust to a legal polling interval in Hz */
 			default: {
-
-					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
 
 					/* convert hz to tick interval via microseconds */
 					int ticks = USEC2TICK(1000000 / arg);
@@ -339,13 +321,8 @@ ISL2950::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 						return -EINVAL;
 					}
 
-					/* update interval for next measurement */
-					_measure_ticks = ticks;
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
 						start();
-					}
+
 
 					return OK;
 				}
@@ -367,28 +344,6 @@ ISL2950::read(device::file_t *filp, char *buffer, size_t buflen)
 }*/
 
 int
-ISL2950::measure()
-{
-	int ret;
-
-	/*
-	 * Send the command to begin a measurement.
-	 */
-	char cmd = ISL2950_TAKE_RANGE_REG;
-	ret = ::write(_fd, &cmd, 1);
-
-	if (ret != sizeof(cmd)) {
-		perf_count(_comms_errors);
-		printf("write fail %d", ret);
-		return ret;
-	}
-
-	ret = OK;
-
-	return ret;
-}
-
-int
 
 /*
  * Method: collect()
@@ -399,17 +354,16 @@ ISL2950::collect()
 {
   int bytes_read = 0;
   int bytes_processed = 0;
-
+  int i = 0;
   bool crc_valid = false;
 
 
   perf_begin(_sample_perf);
 
 
-   printf("residual bytes %d \n",_residual_bytes);
-
     /* read from the sensor (uart buffer) */
-    bytes_read = ::read(_fd, &_linebuf[_residual_bytes], 20 - _residual_bytes);
+    bytes_read = ::read(_fd, &_linebuf[0], sizeof(_linebuf));
+
 
     if (bytes_read < 0) {
   		PX4_DEBUG("read err: %d \n", bytes_read);
@@ -417,30 +371,35 @@ ISL2950::collect()
   		perf_end(_sample_perf);
 
     } else if (bytes_read > 0){
-         printf("Bytes read: %d \n",bytes_read);
-        _residual_bytes += bytes_read;
-        while ((bytes_processed < _residual_bytes) && (!crc_valid))
-        {
-            printf("In the cycle, processing  byte %d \n",bytes_processed);
-          if (OK == isl2950_parser(_linebuf[bytes_processed],_frame_data, &_parse_state,&_crc16, &_distance_mm)){
-            crc_valid = true;
-          }
-          bytes_processed++;
+    //     printf("Bytes read: %d \n",bytes_read);
+         i = bytes_read - 6 ;
+         while ((i >=0) && (!crc_valid))
+         {
+           if (_linebuf[i] == TOF_SFD1) {
+             bytes_processed = i;
+             while ((bytes_processed < bytes_read) && (!crc_valid))
+             {
+            //    printf("In the cycle, processing  byte %d, 0x%02X \n",bytes_processed, _linebuf[bytes_processed]);
+                if (OK == isl2950_parser(_linebuf[bytes_processed],_frame_data, &_parse_state,&_crc16, &_distance_mm)){
+                    crc_valid = true;
+                }
+                bytes_processed++;
+             }
+           _parse_state = TFS_NOT_STARTED;
+
+         }
+         // else {printf("Starting frame wrong. Index: %d value 0x%02X \n",i,_linebuf[i]);}
+         i--;
         }
+
     }
-  _residual_bytes -= bytes_processed;
-    printf("Bytes read: %d Bytes Processed: %d Residual: %d \n",bytes_read,bytes_processed,_residual_bytes);
-  if (_residual_bytes > 0) {
-      printf("copy from %d to %d \n",bytes_processed,bytes_read);
-    memmove(&_linebuf[0], &_linebuf[bytes_processed], bytes_read);
-  }
 
   if (!crc_valid) {
 		return -EAGAIN;
 	}
 
 
-  printf("val (int): %d, raw: 0x%08X, valid: %s \n", _distance_mm, _frame_data, ((crc_valid) ? "OK" : "NO"));
+  //printf("val (int): %d, raw: 0x%08X, valid: %s \n", _distance_mm, _frame_data, ((crc_valid) ? "OK" : "NO"));
 
 	struct distance_sensor_s report;
 
@@ -506,7 +465,7 @@ ISL2950::cycle_trampoline(void *arg)
 void
 ISL2950::cycle()
 {
-  PX4_DEBUG("ISL2950::cycle() - in the cycle");
+  //PX4_DEBUG("ISL2950::cycle() - in the cycle");
 	/* fds initialized? */
 	if (_fd < 0) {
 		/* open fd */
@@ -552,13 +511,14 @@ ISL2950::cycle()
 		if (collect_ret == -EAGAIN) {
       _cycle_counter++;
 			/* We are missing bytes to complete the packet, re-cycle at 1ms */
-			work_queue(HPWORK,&_work,(worker_t)&ISL2950::cycle_trampoline,this,USEC2TICK(1000LL));
-			return;
+		//	work_queue(HPWORK,&_work,(worker_t)&ISL2950::cycle_trampoline,this,USEC2TICK(1000LL));
+		//	return;
 		}
 
 
 	/* schedule a fresh cycle call when a complete packet has been received */
-	work_queue(HPWORK,&_work,(worker_t)&ISL2950::cycle_trampoline,this,USEC2TICK(_conversion_interval - _cycle_counter * 1000LL));
+	//work_queue(HPWORK,&_work,(worker_t)&ISL2950::cycle_trampoline,this,USEC2TICK(_conversion_interval - _cycle_counter * 1000LL));
+  work_queue(HPWORK,&_work,(worker_t)&ISL2950::cycle_trampoline,this,USEC2TICK(_conversion_interval));
   _cycle_counter = 0;
 }
 
@@ -567,7 +527,6 @@ ISL2950::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %d ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
 }
 
