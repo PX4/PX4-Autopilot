@@ -811,3 +811,12 @@ PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
  * @group Mission
  */
 PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
+
+/**
+ * Flag to enable obstacle avoidance
+ * Temporary Parameter to enable interface testing
+ *
+ * @boolean
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(COM_OBS_AVOID, 0);

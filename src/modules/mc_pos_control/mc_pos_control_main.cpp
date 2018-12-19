@@ -160,7 +160,7 @@ private:
 		(ParamInt<px4::params::MPC_AUTO_MODE>) MPC_AUTO_MODE,
 		(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
 		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) MPC_SPOOLUP_TIME, /**< time to let motors spool up after arming */
-		(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID, /**< enable obstacle avoidance */
+		(ParamInt<px4::params::COM_OBS_AVOID>) COM_OBS_AVOID, /**< enable obstacle avoidance */
 		(ParamFloat<px4::params::MPC_TILTMAX_LND>) MPC_TILTMAX_LND /**< maximum tilt for landing and smooth takeoff */
 	);
 
@@ -1141,7 +1141,7 @@ void
 MulticopterPositionControl::update_avoidance_waypoint_desired(PositionControlStates &states,
 		vehicle_local_position_setpoint_s &setpoint)
 {
-	if (MPC_OBS_AVOID.get()) {
+	if (COM_OBS_AVOID.get()) {
 		_traj_wp_avoidance_desired = _flight_tasks.getAvoidanceWaypoint();
 		_traj_wp_avoidance_desired.timestamp = hrt_absolute_time();
 		_traj_wp_avoidance_desired.type = vehicle_trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
@@ -1193,7 +1193,7 @@ MulticopterPositionControl::reset_setpoint_to_nan(vehicle_local_position_setpoin
 bool
 MulticopterPositionControl::use_obstacle_avoidance()
 {
-	if (MPC_OBS_AVOID.get()) {
+	if (COM_OBS_AVOID.get()) {
 		const bool avoidance_data_timeout = hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) > TRAJECTORY_STREAM_TIMEOUT_US;
 		const bool avoidance_point_valid = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true;
 		const bool in_mission = _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
