@@ -227,7 +227,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_mission_gear = _sub_triplet_setpoint->get().current.landing_gear;
 	}
 
-	if (MPC_OBS_AVOID.get() && _sub_vehicle_status->get().is_rotary_wing) {
+	if (COM_OBS_AVOID.get() && _sub_vehicle_status->get().is_rotary_wing) {
 		_checkAvoidanceProgress();
 	}
 

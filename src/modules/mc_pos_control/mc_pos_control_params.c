@@ -705,16 +705,7 @@ PARAM_DEFINE_INT32(MPC_AUTO_MODE, 1);
 PARAM_DEFINE_FLOAT(MPC_SPOOLUP_TIME, 0.0f);
 
 /**
- * Flag to enable obstacle avoidance
- * Temporary Parameter to enable interface testing
- *
- * @boolean
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_INT32(MPC_OBS_AVOID, 0);
-
-/**
- * Yaw mode
+ * Yaw mode.
  *
  * Specifies the heading in Auto.
  *
@@ -727,4 +718,3 @@ PARAM_DEFINE_INT32(MPC_OBS_AVOID, 0);
  * @group Mission
  */
 PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);
-
