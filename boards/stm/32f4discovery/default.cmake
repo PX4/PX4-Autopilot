@@ -55,8 +55,8 @@ px4_add_board(
 		logger
 		mavlink
 		#mc_att_control
-		mc_pos_control
-		navigator
+		#mc_pos_control
+		#navigator
 		position_estimator_inav
 		#sensors
 		#vmount
