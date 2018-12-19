@@ -27,7 +27,8 @@ then
 	param set MPC_XY_VEL_D 0.005
 	param set MPC_XY_VEL_I 0.2
 	param set MPC_XY_VEL_P 0.15
-	param set MPC_Z_VEL_MAX_DN 1.5
+	param set MPC_Z_VEL_DN 1.5
+	param set MPC_Z_VEL_MAX_DN 1.6
 
 	param set NAV_ACC_RAD 5
 	param set NAV_LOITER_RAD 80

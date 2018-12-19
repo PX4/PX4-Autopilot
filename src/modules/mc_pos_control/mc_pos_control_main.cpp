@@ -153,6 +153,7 @@ private:
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time constant for smooth takeoff ramp */
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _vel_max_up,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _vel_max_down,
+		(ParamFloat<px4::params::MPC_Z_VEL_DN>) MPC_Z_VEL_DN,
 		(ParamFloat<px4::params::MPC_LAND_SPEED>) _land_speed,
 		(ParamFloat<px4::params::MPC_TKO_SPEED>) _tko_speed,
 		(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, /**< downwards speed limited below this altitude */
@@ -403,6 +404,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		// initialize vectors from params and enforce constraints
 		_tko_speed.set(math::min(_tko_speed.get(), _vel_max_up.get()));
 		_land_speed.set(math::min(_land_speed.get(), _vel_max_down.get()));
+		MPC_Z_VEL_DN.set(math::min(MPC_Z_VEL_DN.get(), _vel_max_down.get()));
 
 		// set trigger time for takeoff delay
 		_spoolup_time_hysteresis.set_hysteresis_time_from(false, (int)(MPC_SPOOLUP_TIME.get() * (float)1_s));

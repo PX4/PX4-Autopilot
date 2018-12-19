@@ -160,7 +160,7 @@ float StraightLine::getMaxVel()
 	}
 
 	// calculate the maximal vertical velocity
-	float max_vel_vert_directional = u_orig_to_target(2) < 0 ? MPC_Z_VEL_MAX_UP.get() : MPC_Z_VEL_MAX_DN.get();
+	float max_vel_vert_directional = u_orig_to_target(2) < 0 ? MPC_Z_VEL_MAX_UP.get() : MPC_Z_VEL_DN.get();
 	float max_vel_vert = max_vel_vert_directional;
 
 	if (fabs(u_orig_to_target(2)) > FLT_EPSILON) {

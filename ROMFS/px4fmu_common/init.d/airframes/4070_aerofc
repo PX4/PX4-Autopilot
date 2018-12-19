@@ -60,7 +60,8 @@ then
 	param set MPC_XY_VEL_P 0.1500
 	param set MPC_Z_P 1.5000
 	param set MPC_Z_VEL_I 0.1500
-	param set MPC_Z_VEL_MAX_DN 4.0000
+	param set MPC_Z_VEL_DN 4.0000
+	param set MPC_Z_VEL_MAX_DN 4.2000
 	param set MPC_Z_VEL_MAX_UP 5.0000
 	param set MPC_Z_VEL_P 0.8000
 

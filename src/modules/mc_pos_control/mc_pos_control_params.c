@@ -180,16 +180,31 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_D, 0.0f);
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.0f);
 
 /**
- * Maximum vertical descent velocity
+ * Vertical descent velocity
  *
- * Maximum vertical velocity in AUTO mode and endpoint for stabilized modes (ALTCTRL, POSCTRL).
+ * Vertical velocity in AUTO mode and endpoint for stabilized modes (ALTCTRL, POSCTRL).
  *
  * @unit m/s
  * @min 0.5
  * @max 4.0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.0f);
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_DN, 1.0f);
+
+/**
+ * Maximum vertical descent velocity
+ *
+ * Maximum vertical velocity used to saturate the input of the velocity controller when the drone is descending.
+ * This is the maximum velocity that the drone can safely achieve and should be at least 10% greater than the
+ * desired descent velocity.
+ * To define the desired descent velocity during normal operation, see @MPC_Z_VEL_DN .
+ *
+ * @unit m/s
+ * @min 0.5
+ * @max 6.0
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.1f);
 
 /**
  * Proportional gain for horizontal position error

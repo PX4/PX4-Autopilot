@@ -225,7 +225,7 @@ void PositionControl::_positionController()
 	_vel_sp(0) = vel_sp_xy(0);
 	_vel_sp(1) = vel_sp_xy(1);
 	// Constrain velocity in z-direction.
-	_vel_sp(2) = math::constrain(_vel_sp(2), -_constraints.speed_up, _constraints.speed_down);
+	_vel_sp(2) = math::constrain(_vel_sp(2), -MPC_Z_VEL_MAX_UP.get(), MPC_Z_VEL_MAX_DN.get());
 }
 
 void PositionControl::_velocityController(const float &dt)
@@ -336,8 +336,8 @@ void PositionControl::updateConstraints(const vehicle_constraints_s &constraints
 		_constraints.speed_up = MPC_Z_VEL_MAX_UP.get();
 	}
 
-	if (!PX4_ISFINITE(constraints.speed_down) || !(constraints.speed_down < MPC_Z_VEL_MAX_DN.get())) {
-		_constraints.speed_down = MPC_Z_VEL_MAX_DN.get();
+	if (!PX4_ISFINITE(constraints.speed_down) || !(constraints.speed_down < MPC_Z_VEL_DN.get())) {
+		_constraints.speed_down = MPC_Z_VEL_DN.get();
 	}
 
 	if (!PX4_ISFINITE(constraints.speed_xy) || !(constraints.speed_xy < MPC_XY_VEL_MAX.get())) {

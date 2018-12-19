@@ -104,7 +104,8 @@ then
 	param set MPC_TILTMAX_LND 35
 	param set MPC_Z_VEL_MAX 1.5
 	param set MPC_Z_VEL_MAX_UP 1.5
-	param set MPC_Z_VEL_MAX_DN 1.5
+	param set MPC_Z_VEL_DN 1.5
+	param set MPC_Z_VEL_MAX_DN 1.6
 	param set MPC_HOLD_MAX_XY 0.5
 	param set MPC_HOLD_MAX_Z 0.5
 	param set MPC_TKO_RAMP_T 0.8

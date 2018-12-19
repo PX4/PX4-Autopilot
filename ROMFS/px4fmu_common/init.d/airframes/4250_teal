@@ -162,7 +162,8 @@ then
 	param set MPC_Z_VEL_D 0.02
 	# Documentation says limit is 8.0, but does not seem to be enforced in code.
 	param set MPC_Z_VEL_MAX_UP 20
-	param set MPC_Z_VEL_MAX_DN 2.5
+	param set MPC_Z_VEL_DN 2.5
+	param set MPC_Z_VEL_MAX_DN 2.6
 	#### CONTROLLER ###
 
 	# navigator

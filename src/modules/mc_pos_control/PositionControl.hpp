@@ -229,6 +229,7 @@ private:
 		(ParamFloat<px4::params::MPC_THR_MIN>) MPC_THR_MIN,
 		(ParamFloat<px4::params::MPC_MANTHR_MIN>) MPC_MANTHR_MIN,
 		(ParamFloat<px4::params::MPC_XY_VEL_MAX>) MPC_XY_VEL_MAX,
+		(ParamFloat<px4::params::MPC_Z_VEL_DN>) MPC_Z_VEL_DN,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) MPC_Z_VEL_MAX_DN,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) MPC_Z_VEL_MAX_UP,
 		(ParamFloat<px4::params::MPC_TILTMAX_AIR>)
