@@ -2437,8 +2437,8 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *_est_sub;
-	uint64_t _est_time;
+	MavlinkOrbSubscription *_pos_sub;
+	uint64_t _pos_time;
 
 	/* do not allow top copying this class */
 	MavlinkStreamLocalPositionNEDCOV(MavlinkStreamLocalPositionNEDCOV &) = delete;
@@ -2446,34 +2446,34 @@ private:
 
 protected:
 	explicit MavlinkStreamLocalPositionNEDCOV(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_est_sub(_mavlink->add_orb_subscription(ORB_ID(estimator_status))),
-		_est_time(0)
+		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
+		_pos_time(0)
 	{}
 
 	bool send(const hrt_abstime t)
 	{
-		struct estimator_status_s est = {};
+		vehicle_local_position_s pos;
 
-		if (_est_sub->update(&_est_time, &est)) {
+		if (_pos_sub->update(&_pos_time, &pos)) {
 			mavlink_local_position_ned_cov_t msg = {};
 
-			msg.time_usec = est.timestamp;
-			msg.x = est.states[0];
-			msg.y = est.states[1];
-			msg.z = est.states[2];
-			msg.vx = est.states[3];
-			msg.vy = est.states[4];
-			msg.vz = est.states[5];
-			msg.ax = est.states[6];
-			msg.ay = est.states[7];
-			msg.az = est.states[8];
+			msg.time_usec = pos.timestamp;
+			msg.x = pos.x;
+			msg.y = pos.y;
+			msg.z = pos.z;
+			msg.vx = pos.vx;
+			msg.vy = pos.vy;
+			msg.vz = pos.vz;
+			msg.ax = pos.ax;
+			msg.ay = pos.ay;
+			msg.az = pos.az;
 
-			for (int i = 0; i < 9; i++) {
-				msg.covariance[i] = est.covariances[i];
-			}
-
-			msg.covariance[10] = est.health_flags;
-			msg.covariance[11] = est.timeout_flags;
+			msg.covariance[0] = pos.eph * pos.eph; // x
+			msg.covariance[9] = msg.covariance[0]; // y
+			msg.covariance[17] = pos.epv * pos.epv; // z
+			msg.covariance[24] = pos.evh * pos.evh; // vx
+			msg.covariance[30] = msg.covariance[24]; // vy
+			msg.covariance[35] = pos.evv * pos.evv; // vz
 
 			mavlink_msg_local_position_ned_cov_send_struct(_mavlink->get_channel(), &msg);
 
