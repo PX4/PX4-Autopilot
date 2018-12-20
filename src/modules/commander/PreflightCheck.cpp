@@ -679,7 +679,7 @@ static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s
 	bool success = true;
 
 	if (!prearm) {
-		// Ignore power check after arming.
+		// Ignore failure detector check after arming.
 		return true;
 
 	} else {
