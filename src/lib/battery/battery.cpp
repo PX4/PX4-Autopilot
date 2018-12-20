@@ -228,5 +228,5 @@ Battery::computeScale()
 	// reusing capacity calculation to get single cell voltage before drop
 	const float bat_v = _param_bat_v_empty.get() + (voltage_range * _remaining_voltage);
 
-	_scale = _param_bat_v_charged.get() / bat_v;
+        _scale = _param_bat_v_charged.get() / bat_v;
 }
