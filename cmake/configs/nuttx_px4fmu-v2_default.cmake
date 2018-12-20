@@ -161,6 +161,8 @@ set(config_module_list
 	# Tutorial code from
 	# https://px4.io/dev/px4_simple_app
         examples/px4_simple_app
+        examples/px4_daemon_app
+        examples/get_land_state
 
 	# Tutorial code from
 	# https://px4.io/dev/debug_values
@@ -172,4 +174,7 @@ set(config_module_list
 
 	# Hardware test
         examples/hwtest
+
+        #land data
+        examples/land_data
 )

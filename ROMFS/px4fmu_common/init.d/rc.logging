@@ -6,7 +6,7 @@
 
 if param compare SYS_LOGGER 0
 then
-	sdlog2 start -r 100 -a -b 9 -t
+        sdlog2 start -r 200 -a -b 9 -t
 else
 	set LOGGER_ARGS ""
 

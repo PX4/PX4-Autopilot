@@ -102,7 +102,7 @@ bool FlapwingLandDetector::_get_landed_state()
         }
 
         bool landDetected = false;
-
+        bool flyDetected = false;
         if (hrt_elapsed_time(&_local_pos.timestamp) < 500 * 1000) {
 
                 // horizontal velocity
@@ -119,8 +119,8 @@ bool FlapwingLandDetector::_get_landed_state()
                 if (PX4_ISFINITE(val)) {
                         _velocity_z_filtered = val;
                 }
-
-                _airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed.true_airspeed_m_s;
+                if(fabs(_airspeed.true_airspeed_m_s)<100)
+                    _airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed.true_airspeed_m_s;
 
                 // a leaking lowpass prevents biases from building up, but
                 // gives a mostly correct response for short impulses
@@ -130,14 +130,19 @@ bool FlapwingLandDetector::_get_landed_state()
 
                 _manual_throttle = _manual.z;
                 // crude land detector for Flapwing
-                landDetected = _velocity_xy_filtered < _params.maxVelocity
-                               && _velocity_z_filtered < _params.maxClimbRate
-                               && _airspeed_filtered < _params.maxAirSpeed
-                               && _accel_horz_lp < _params.maxIntVelocity
-                               && _manual_throttle < 0.15f;
+                flyDetected = (_velocity_xy_filtered > 1.3f
+                               || _velocity_z_filtered > 0.6f
+                               || _airspeed_filtered > 4.0f
+                               || _accel_horz_lp > 10.0f)
+                               && _manual_throttle > 0.15f;
+                landDetected  =! flyDetected;
 
         } else {
                 // Control state topic has timed out and we need to assume we're landed.
+                _velocity_xy_filtered = 0;
+                _velocity_z_filtered = 0;
+                _airspeed_filtered = 0;
+                _accel_horz_lp = 0;
                 landDetected = true;
         }
 

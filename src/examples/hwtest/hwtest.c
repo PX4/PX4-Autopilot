@@ -93,7 +93,7 @@ int ex_hwtest_main(int argc, char *argv[])
 		while (hrt_absolute_time() - stime < 1000000) {
 			for (int i = 0; i != 2; i++) {
 				if (count <= 5) {
-					actuators.control[i] = -1.0f;
+                    actuators.control[i] = 1.0f;
 
 				} else if (count <= 10) {
 					actuators.control[i] = -0.7f;

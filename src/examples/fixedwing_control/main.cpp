@@ -410,6 +410,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 				/* publish rates */
 				orb_publish(ORB_ID(vehicle_rates_setpoint), rates_pub, &rates_sp);
 
+                control_attitude(&att_sp, &att, &rates_sp, &actuators);
 				/* sanity check and publish actuator outputs */
 				if (PX4_ISFINITE(actuators.control[0]) &&
 				    PX4_ISFINITE(actuators.control[1]) &&
