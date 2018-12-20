@@ -72,6 +72,7 @@ px4_add_romfs_files(
 	4030_3dr_solo
 	4031_3dr_quad
 	4040_reaper
+	4041_beta75x
 	4050_generic_250
 	4051_s250aq
 	4060_dji_matrice_100
