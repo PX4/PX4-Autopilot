@@ -274,7 +274,7 @@ void FlightTaskManualAltitude::_respectGroundSlowdown()
 	if (PX4_ISFINITE(_dist_to_bottom)) {
 		dist_to_ground = _dist_to_bottom;
 
-	} else if (PX4_ISFINITE(_sub_home_position->get().valid_alt)) {
+	} else if (_sub_home_position->get().valid_alt) {
 		dist_to_ground = -(_position(2) - _sub_home_position->get().z);
 	}
 
