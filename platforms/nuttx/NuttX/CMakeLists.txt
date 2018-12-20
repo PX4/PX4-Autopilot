@@ -41,6 +41,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Make.defs.in ${NUTTX_DIR}/Make.defs)
 file(RELATIVE_PATH CP_SRC ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/nuttx)
 file(RELATIVE_PATH CP_DST ${CMAKE_SOURCE_DIR} ${PX4_BINARY_DIR}/NuttX)
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
+	COMMAND ${CMAKE_COMMAND} -E remove_directory ${CP_DST}/nuttx/configs/dummy
 	COMMAND ${cp_cmd} ${cp_opts} ${CP_SRC} ${CP_DST}
 	COMMAND cmake -E touch ${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
 	DEPENDS ${copy_nuttx_files} git_nuttx
@@ -61,6 +62,27 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
 set(APPS_DIR ${CMAKE_CURRENT_BINARY_DIR}/apps)
 
 # copy PX4 board config into nuttx
+
+if(EXISTS ${NUTTX_CONFIG_DIR}/Kconfig)
+	add_custom_command(
+		OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nuttx_kconfig.stamp
+		COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/Kconfig ${NUTTX_DIR}/configs/dummy/Kconfig
+		COMMAND cmake -E touch ${CMAKE_CURRENT_BINARY_DIR}/nuttx_kconfig.stamp
+		DEPENDS
+			${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
+			${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
+		)
+else()
+	add_custom_command(
+		OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nuttx_kconfig.stamp
+		COMMAND ${CMAKE_COMMAND} -E touch ${NUTTX_DIR}/configs/dummy/Kconfig
+		COMMAND cmake -E touch ${CMAKE_CURRENT_BINARY_DIR}/nuttx_kconfig.stamp
+		DEPENDS
+			${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
+			${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
+		)
+endif()
+
 add_custom_command(
 	OUTPUT ${NUTTX_DIR}/.config
 	COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig ${NUTTX_DIR}/.config
@@ -75,6 +97,7 @@ add_custom_command(
 		${NUTTX_CONFIG_DIR}/scripts/ld.script
 		${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
 		${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
+		${CMAKE_CURRENT_BINARY_DIR}/nuttx_kconfig.stamp
 	WORKING_DIRECTORY ${NUTTX_DIR}/tools
 	COMMENT "Copying NuttX config ${NUTTX_CONFIG} and configuring"
 	)
@@ -236,15 +259,16 @@ add_custom_target(qconfig
 # savedefconfig helper needs apps Kconfig
 add_custom_target(apps_kconfig
 	COMMAND
+		TOPDIR=${NUTTX_APPS_DIR} make ${nuttx_build_options} --no-print-directory -C platform board TOPDIR="${NUTTX_DIR}" APPDIR="${NUTTX_APPS_DIR}"
+	COMMAND
 		TOPDIR=${NUTTX_APPS_DIR} make ${nuttx_build_options} --no-print-directory Kconfig ${nuttx_build_output}
+	DEPENDS ${NUTTX_DIR}/.config
 	WORKING_DIRECTORY ${NUTTX_APPS_DIR}
 	COMMENT "Running Kconfig Build on Apps"
 )
 
 # savedefconfig helper
 add_custom_target(savedefconfig
-	COMMAND
-		APPSDIR=${NUTTX_APPS_DIR} kconfig-conf --savedefconfig defconfig.tmp ${NUTTX_DIR}/Kconfig
 	COMMAND
 		APPSDIR=${NUTTX_APPS_DIR} kconfig-conf --savedefconfig defconfig.tmp ${NUTTX_DIR}/Kconfig
 	COMMAND
@@ -257,8 +281,6 @@ add_custom_target(savedefconfig
 		grep "CONFIG_ARCH_BOARD=" .config >> defconfig.tmp || true	# preserve CONFIG_ARCH_BOARD
 	COMMAND
 		grep "^CONFIG_ARCH_CUSTOM" .config >> defconfig.tmp || true	# preserve CONFIG_ARCH_CUSTOM
-	COMMAND
-		#sed -i -e "/^#/d" defconfig.tmp					# remove commented lines
 	COMMAND
 		cat defconfig.tmp | LC_ALL=C sort | uniq > defconfig.updated	# sort and save back to original defconfig
 	COMMAND
