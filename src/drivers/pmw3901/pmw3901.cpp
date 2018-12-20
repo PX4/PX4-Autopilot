@@ -679,7 +679,7 @@ PMW3901::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(LPWORK, &_work, (worker_t)&PMW3901::cycle_trampoline, this, USEC2TICK(PMW3901_US));
+	work_queue(HPWORK, &_work, (worker_t)&PMW3901::cycle_trampoline, this, USEC2TICK(PMW3901_US));
 
 	/* notify about state change */
 	struct subsystem_info_s info = {};
@@ -718,7 +718,7 @@ PMW3901::cycle()
 	collect();
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(LPWORK,
+	work_queue(HPWORK,
 		   &_work,
 		   (worker_t)&PMW3901::cycle_trampoline,
 		   this,
