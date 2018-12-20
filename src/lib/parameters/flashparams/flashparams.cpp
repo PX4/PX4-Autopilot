@@ -353,9 +353,9 @@ out:
 	return result;
 }
 
-int flash_param_save()
+int flash_param_save(bool only_unsaved)
 {
-	return param_export_internal(false);
+	return param_export_internal(only_unsaved);
 }
 
 int flash_param_load()
@@ -366,5 +366,5 @@ int flash_param_load()
 
 int flash_param_import()
 {
-	return -1;
+	return param_import_internal(false);
 }
