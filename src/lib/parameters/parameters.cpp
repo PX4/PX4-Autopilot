@@ -69,9 +69,14 @@
 
 #if defined(FLASH_BASED_PARAMS)
 #include "flashparams/flashparams.h"
+static const char *param_default_file = nullptr; // nullptr means to store to FLASH
+#else
+inline static int flash_param_save(bool only_unsaved) { return -1; }
+inline static int flash_param_load() { return -1; }
+inline static int flash_param_import() { return -1; }
+static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
 #endif
 
-static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
 static char *param_user_file = nullptr;
 
 #ifdef __PX4_QURT
@@ -921,6 +926,11 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 int
 param_set_default_file(const char *filename)
 {
+#ifdef FLASH_BASED_PARAMS
+	// the default for flash-based params is always the FLASH
+	(void)filename;
+#else
+
 	if (param_user_file != nullptr) {
 		// we assume this is not in use by some other thread
 		free(param_user_file);
@@ -930,6 +940,8 @@ param_set_default_file(const char *filename)
 	if (filename) {
 		param_user_file = strdup(filename);
 	}
+
+#endif /* FLASH_BASED_PARAMS */
 
 	return 0;
 }
@@ -944,9 +956,15 @@ int
 param_save_default()
 {
 	int res = PX4_ERROR;
-#if !defined(FLASH_BASED_PARAMS)
 
 	const char *filename = param_get_default_file();
+
+	if (!filename) {
+		param_lock_writer();
+		res = flash_param_save(false);
+		param_unlock_writer();
+		return res;
+	}
 
 	/* write parameters to temp file */
 	int fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
@@ -973,11 +991,6 @@ param_save_default()
 	}
 
 	PARAM_CLOSE(fd);
-#else
-	param_lock_writer();
-	res = flash_param_save();
-	param_unlock_writer();
-#endif
 
 	return res;
 }
@@ -989,13 +1002,18 @@ int
 param_load_default()
 {
 	int res = 0;
-#if !defined(FLASH_BASED_PARAMS)
-	int fd_load = PARAM_OPEN(param_get_default_file(), O_RDONLY);
+	const char *filename = param_get_default_file();
+
+	if (!filename) {
+		return flash_param_load();
+	}
+
+	int fd_load = PARAM_OPEN(filename, O_RDONLY);
 
 	if (fd_load < 0) {
 		/* no parameter file is OK, otherwise this is an error */
 		if (errno != ENOENT) {
-			PX4_ERR("open '%s' for reading failed", param_get_default_file());
+			PX4_ERR("open '%s' for reading failed", filename);
 			return -1;
 		}
 
@@ -1006,25 +1024,29 @@ param_load_default()
 	PARAM_CLOSE(fd_load);
 
 	if (result != 0) {
-		PX4_ERR("error reading parameters from '%s'", param_get_default_file());
+		PX4_ERR("error reading parameters from '%s'", filename);
 		return -2;
 	}
 
-#else
-	// no need for locking
-	res = flash_param_load();
-#endif
 	return res;
 }
 
 int
 param_export(int fd, bool only_unsaved)
 {
+	int	result = -1;
 	perf_begin(param_export_perf);
 
-	param_wbuf_s *s = nullptr;
-	int	result = -1;
+	if (fd < 0) {
+		param_lock_writer();
+		// flash_param_save() will take the shutdown lock
+		result = flash_param_save(only_unsaved);
+		param_unlock_writer();
+		perf_end(param_export_perf);
+		return result;
+	}
 
+	param_wbuf_s *s = nullptr;
 	struct bson_encoder_s encoder;
 
 	int shutdown_lock_ret = px4_shutdown_lock();
@@ -1289,18 +1311,20 @@ param_import_internal(int fd, bool mark_saved)
 int
 param_import(int fd)
 {
-#if !defined(FLASH_BASED_PARAMS)
+	if (fd < 0) {
+		return flash_param_import();
+	}
+
 	return param_import_internal(fd, false);
-#else
-	(void)fd; // unused
-	// no need for locking here
-	return flash_param_import();
-#endif
 }
 
 int
 param_load(int fd)
 {
+	if (fd < 0) {
+		return flash_param_load();
+	}
+
 	param_reset_all_internal(false);
 	return param_import_internal(fd, true);
 }
