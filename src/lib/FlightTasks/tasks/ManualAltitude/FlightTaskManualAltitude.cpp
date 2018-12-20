@@ -41,6 +41,20 @@
 
 using namespace matrix;
 
+bool FlightTaskManualAltitude::initializeSubscriptions(SubscriptionArray &subscription_array)
+{
+	if (!FlightTaskManual::initializeSubscriptions(subscription_array)) {
+		return false;
+	}
+
+	if (!subscription_array.get(ORB_ID(home_position), _sub_home_position)) {
+		return false;
+	}
+
+	return true;
+}
+
+
 bool FlightTaskManualAltitude::updateInitialize()
 {
 	bool ret = FlightTaskManual::updateInitialize();
@@ -252,6 +266,26 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 	}
 }
 
+void FlightTaskManualAltitude::_respectGroundSlowdown()
+{
+	float dist_to_ground = NAN;
+
+	// if there is a valid distance to bottom or vertical distance to home
+	if (PX4_ISFINITE(_dist_to_bottom)) {
+		dist_to_ground = _dist_to_bottom;
+
+	} else if (PX4_ISFINITE(_sub_home_position->get().valid_alt)) {
+		dist_to_ground = -_position(2) + _sub_home_position->get().z;
+	}
+
+	// adjust downwards speed gradually within the altitudes MPC_LAND_ALT1 and MPC_LAND_ALT2
+	if (PX4_ISFINITE(dist_to_ground)) {
+		_constraints.speed_down = math::gradual(dist_to_ground,
+							MPC_LAND_ALT2.get(), MPC_LAND_ALT1.get(),
+							MPC_LAND_SPEED.get(), _constraints.speed_down);
+	}
+}
+
 void FlightTaskManualAltitude::_rotateIntoHeadingFrame(Vector2f &v)
 {
 	float yaw_rotate = PX4_ISFINITE(_yaw_setpoint) ? _yaw_setpoint : _yaw;
@@ -311,6 +345,7 @@ bool FlightTaskManualAltitude::update()
 {
 	_scaleSticks();
 	_updateSetpoints();
+	_respectGroundSlowdown();
 
 	return true;
 }
