@@ -46,7 +46,12 @@
  * FailureDetector Max Roll
  *
  * Maximum roll angle before FailureDetector triggers the attitude_failure flag
- * Does not affect the behavior of the vehicle for now; only for logging
+ * If flight termination is enabled (@CBRK_FLIGHTTERM set to zero), the autopilot
+ * will terminate the flight and set all the outputs to their failsafe value
+ * as soon as the attitude_failure flag is set.
+ *
+ * Setting this parameter to 0 disables the check
+ *
  * @min 0
  * @max 180
  * @unit degrees
@@ -58,7 +63,12 @@ PARAM_DEFINE_INT32(FD_FAIL_R, 60);
  * FailureDetector Max Pitch
  *
  * Maximum pitch angle before FailureDetector triggers the attitude_failure flag
- * Does not affect the behavior of the vehicle for now; only for logging
+ * If flight termination is enabled (@CBRK_FLIGHTTERM set to zero), the autopilot
+ * will terminate the flight and set all the outputs to their failsafe value
+ * as soon as the attitude_failure flag is set.
+ *
+ * Setting this parameter to 0 disables the check
+ *
  * @min 0
  * @max 180
  * @unit degrees
