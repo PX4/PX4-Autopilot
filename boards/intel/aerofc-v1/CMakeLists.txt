@@ -41,7 +41,7 @@ add_subdirectory(aerofc_adc)
 
 add_custom_target(upload
 	COMMAND
-		${CMAKE_CURRENT_SOURCE_DIR}/scripts/aero_upload.sh ${PX4_SOURCE_DIR}/Tools/px_uploader.py $<TARGET_FILE:px4>
+		${CMAKE_CURRENT_SOURCE_DIR}/scripts/aero_upload.sh ${PX4_SOURCE_DIR}/Tools/px_uploader.py ${fw_package}
 	DEPENDS px4
 	COMMENT "uploading px4"
 	USES_TERMINAL
