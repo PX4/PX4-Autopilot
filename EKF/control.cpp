@@ -215,6 +215,10 @@ void Ekf::controlExternalVisionFusion()
 
 				// calculate initial quaternion states for the ekf
 				_state.quat_nominal = Quatf(euler_init);
+				uncorrelateQuatStates();
+
+				// adjust the quaternion covariances estimated yaw error
+				increaseQuatYawErrVariance(sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f)));
 
 				// calculate the amount that the quaternion has changed by
 				_state_reset_status.quat_change = quat_before_reset.inversed() * _state.quat_nominal;

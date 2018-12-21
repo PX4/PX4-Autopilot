@@ -385,14 +385,11 @@ bool Ekf::resetGpsAntYaw()
 		delta_ang_error(1) = scalar * q_error(2);
 		delta_ang_error(2) = scalar * q_error(3);
 
-		// calculate the variance for the rotation estimate expressed as a rotation vector
-		// this will be used later to reset the quaternion state covariances
-		Vector3f angle_err_var_vec = calcRotVecVariances();
-
 		// update the quaternion state estimates and corresponding covariances only if the change in angle has been large or the yaw is not yet aligned
 		if (delta_ang_error.norm() > math::radians(15.0f) || !_control_status.flags.yaw_align) {
 			// update quaternion states
 			_state.quat_nominal = quat_after_reset;
+			uncorrelateQuatStates();
 
 			// record the state change
 			_state_reset_status.quat_change = q_error;
@@ -406,10 +403,7 @@ bool Ekf::resetGpsAntYaw()
 			}
 
 			// update the yaw angle variance using the variance of the measurement
-			angle_err_var_vec(2) = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
-
-			// reset the quaternion covariances using the rotation vector variances
-			initialiseQuatCovariances(angle_err_var_vec);
+			increaseQuatYawErrVariance(sq(fmaxf(_params.mag_heading_noise, 1.0e-2f)));
 
 			// add the reset amount to the output observer buffered data
 			for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
