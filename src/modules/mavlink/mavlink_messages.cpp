@@ -2402,88 +2402,6 @@ protected:
 	}
 };
 
-
-class MavlinkStreamLocalPositionNEDCOV : public MavlinkStream
-{
-public:
-	const char *get_name() const
-	{
-		return MavlinkStreamLocalPositionNEDCOV::get_name_static();
-	}
-
-	static const char *get_name_static()
-	{
-		return "LOCAL_POSITION_NED_COV";
-	}
-
-	static uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_LOCAL_POSITION_NED_COV;
-	}
-
-	uint16_t get_id()
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamLocalPositionNEDCOV(mavlink);
-	}
-
-	unsigned get_size()
-	{
-		return MAVLINK_MSG_ID_LOCAL_POSITION_NED_COV_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-	}
-
-private:
-	MavlinkOrbSubscription *_est_sub;
-	uint64_t _est_time;
-
-	/* do not allow top copying this class */
-	MavlinkStreamLocalPositionNEDCOV(MavlinkStreamLocalPositionNEDCOV &) = delete;
-	MavlinkStreamLocalPositionNEDCOV &operator = (const MavlinkStreamLocalPositionNEDCOV &) = delete;
-
-protected:
-	explicit MavlinkStreamLocalPositionNEDCOV(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_est_sub(_mavlink->add_orb_subscription(ORB_ID(estimator_status))),
-		_est_time(0)
-	{}
-
-	bool send(const hrt_abstime t)
-	{
-		struct estimator_status_s est = {};
-
-		if (_est_sub->update(&_est_time, &est)) {
-			mavlink_local_position_ned_cov_t msg = {};
-
-			msg.time_usec = est.timestamp;
-			msg.x = est.states[0];
-			msg.y = est.states[1];
-			msg.z = est.states[2];
-			msg.vx = est.states[3];
-			msg.vy = est.states[4];
-			msg.vz = est.states[5];
-			msg.ax = est.states[6];
-			msg.ay = est.states[7];
-			msg.az = est.states[8];
-
-			for (int i = 0; i < 9; i++) {
-				msg.covariance[i] = est.covariances[i];
-			}
-
-			msg.covariance[10] = est.health_flags;
-			msg.covariance[11] = est.timeout_flags;
-
-			mavlink_msg_local_position_ned_cov_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-		}
-
-		return false;
-	}
-};
-
 class MavlinkStreamEstimatorStatus : public MavlinkStream
 {
 public:
@@ -4858,7 +4776,6 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamGlobalPositionInt::new_instance, &MavlinkStreamGlobalPositionInt::get_name_static, &MavlinkStreamGlobalPositionInt::get_id_static),
 	StreamListItem(&MavlinkStreamLocalPositionNED::new_instance, &MavlinkStreamLocalPositionNED::get_name_static, &MavlinkStreamLocalPositionNED::get_id_static),
 	StreamListItem(&MavlinkStreamVisionPositionEstimate::new_instance, &MavlinkStreamVisionPositionEstimate::get_name_static, &MavlinkStreamVisionPositionEstimate::get_id_static),
-	StreamListItem(&MavlinkStreamLocalPositionNEDCOV::new_instance, &MavlinkStreamLocalPositionNEDCOV::get_name_static, &MavlinkStreamLocalPositionNEDCOV::get_id_static),
 	StreamListItem(&MavlinkStreamEstimatorStatus::new_instance, &MavlinkStreamEstimatorStatus::get_name_static, &MavlinkStreamEstimatorStatus::get_id_static),
 	StreamListItem(&MavlinkStreamAttPosMocap::new_instance, &MavlinkStreamAttPosMocap::get_name_static, &MavlinkStreamAttPosMocap::get_id_static),
 	StreamListItem(&MavlinkStreamHomePosition::new_instance, &MavlinkStreamHomePosition::get_name_static, &MavlinkStreamHomePosition::get_id_static),
