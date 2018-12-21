@@ -2331,6 +2331,121 @@ protected:
 	}
 };
 
+class MavlinkStreamOdometry : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamOdometry::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "ODOMETRY";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_ODOMETRY;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamOdometry(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_ODOMETRY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_odom_sub;
+	uint64_t _odom_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamOdometry(MavlinkStreamOdometry &);
+	MavlinkStreamOdometry &operator = (const MavlinkStreamOdometry &);
+
+protected:
+	explicit MavlinkStreamOdometry(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_odom_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_odometry))),
+		_odom_time(0)
+	{}
+
+	bool send(const hrt_abstime t)
+	{
+		vehicle_odometry_s odom;
+
+		if (_odom_sub->update(&_odom_time, &odom)) {
+			mavlink_odometry_t msg = {};
+
+			msg.time_usec = odom.timestamp;
+
+			msg.frame_id = MAV_FRAME_ESTIM_NED;
+			msg.child_frame_id = MAV_FRAME_BODY_NED;
+
+			// Current position
+			msg.x = odom.x;
+			msg.y = odom.y;
+			msg.z = odom.z;
+
+			// Current orientation
+			msg.q[0] = odom.q[0];
+			msg.q[1] = odom.q[1];
+			msg.q[2] = odom.q[2];
+			msg.q[3] = odom.q[3];
+
+			// Local NED to body-NED Dcm matrix
+			matrix::Dcmf Rlb(matrix::Quatf(odom.q));
+
+			// Rotate linear and angular velocity from local NED to body-NED frame
+			matrix::Vector3f linvel_body(Rlb * matrix::Vector3f(odom.vx, odom.vy, odom.vz));
+
+			// Current linear velocity
+			msg.vx = linvel_body(0);
+			msg.vy = linvel_body(1);
+			msg.vz = linvel_body(2);
+
+			// Current body rates
+			msg.rollspeed = odom.rollspeed;
+			msg.pitchspeed = odom.pitchspeed;
+			msg.yawspeed = odom.yawspeed;
+
+			// get the covariance matrix size
+			const size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
+			const size_t VEL_URT_SIZE = sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
+			static_assert(POS_URT_SIZE == (sizeof(msg.pose_covariance) / sizeof(msg.pose_covariance[0])),
+				      "Odometry Pose Covariance matrix URT array size mismatch");
+			static_assert(VEL_URT_SIZE == (sizeof(msg.twist_covariance) / sizeof(msg.twist_covariance[0])),
+				      "Odometry Velocity Covariance matrix URT array size mismatch");
+
+			// copy pose covariances
+			for (size_t i = 0; i < POS_URT_SIZE; i++) {
+				msg.pose_covariance[i] = odom.pose_covariance[i];
+			}
+
+			// copy velocity covariances
+			//TODO: Apply rotation matrix to transform from body-fixed NED to earth-fixed NED frame
+			for (size_t i = 0; i < VEL_URT_SIZE; i++) {
+				msg.twist_covariance[i] = odom.velocity_covariance[i];
+			}
+
+			mavlink_msg_odometry_send_struct(_mavlink->get_channel(), &msg);
+
+			return true;
+		}
+
+		return false;
+
+	}
+};
+
 class MavlinkStreamLocalPositionNED : public MavlinkStream
 {
 public:
@@ -4776,6 +4891,7 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamGlobalPositionInt::new_instance, &MavlinkStreamGlobalPositionInt::get_name_static, &MavlinkStreamGlobalPositionInt::get_id_static),
 	StreamListItem(&MavlinkStreamLocalPositionNED::new_instance, &MavlinkStreamLocalPositionNED::get_name_static, &MavlinkStreamLocalPositionNED::get_id_static),
 	StreamListItem(&MavlinkStreamVisionPositionEstimate::new_instance, &MavlinkStreamVisionPositionEstimate::get_name_static, &MavlinkStreamVisionPositionEstimate::get_id_static),
+	StreamListItem(&MavlinkStreamOdometry::new_instance, &MavlinkStreamOdometry::get_name_static, &MavlinkStreamOdometry::get_id_static),
 	StreamListItem(&MavlinkStreamEstimatorStatus::new_instance, &MavlinkStreamEstimatorStatus::get_name_static, &MavlinkStreamEstimatorStatus::get_id_static),
 	StreamListItem(&MavlinkStreamAttPosMocap::new_instance, &MavlinkStreamAttPosMocap::get_name_static, &MavlinkStreamAttPosMocap::get_id_static),
 	StreamListItem(&MavlinkStreamHomePosition::new_instance, &MavlinkStreamHomePosition::get_name_static, &MavlinkStreamHomePosition::get_id_static),
