@@ -648,6 +648,7 @@ void BlockLocalPositionEstimator::publishOdom()
 	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
 	    && PX4_ISFINITE(_x(X_vz))) {
 		_pub_odom.get().timestamp = _timeStamp;
+		_pub_odom.get().local_frame = _pub_odom.get().LOCAL_FRAME_NED;
 
 		// position
 		_pub_odom.get().x = xLP(X_x);	// north

@@ -1305,6 +1305,8 @@ void Ekf2::run()
 				lpos.timestamp = now;
 				odom.timestamp = lpos.timestamp;
 
+				odom.local_frame = odom.LOCAL_FRAME_NED;
+
 				// Position of body origin in local NED frame
 				float position[3];
 				_ekf.get_position(position);
