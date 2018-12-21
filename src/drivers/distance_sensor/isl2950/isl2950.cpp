@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,10 +32,13 @@
  ****************************************************************************/
 
 /**
- * @file landbao15L2950.cpp
+ * @file isl2950.cpp
  * @author Claudio Micheli <claudio@auterion.com>
  *
- * Driver for the ISL2950
+ * Driver for the Lanbao PSK-CM8JL65-CC5 distance sensor.
+ * Make sure to disable MAVLINK messages (MAV_0_CONFIG PARAMETER)
+ * on the serial port you connect the sensor,i.e TELEM1.
+ *
  */
 
  #include <px4_config.h>
@@ -46,13 +49,9 @@
  #include <stdint.h>
  #include <stdlib.h>
  #include <stdbool.h>
- #include <semaphore.h>
  #include <string.h>
- #include <fcntl.h>
  #include <poll.h>
- #include <errno.h>
  #include <stdio.h>
- #include <math.h>
  #include <unistd.h>
  #include <termios.h>
 
@@ -76,24 +75,25 @@
 
 #define ISL2950_TAKE_RANGE_REG		'd'
 
-// designated serial port on Pixhawk
- #define ISL2950_DEFAULT_PORT		"/dev/ttyS1" // Its baudrate is 115200
+// designated serial port on Pixhawk (TELEM1)
+#define ISL2950_DEFAULT_PORT		"/dev/ttyS1" // Its baudrate is 115200
 
- // normal conversion wait time
- #define ISL2950_CONVERSION_INTERVAL 50*1000UL/* 100ms */
+// normal conversion wait time
+#define ISL2950_CONVERSION_INTERVAL 50*1000UL/* 50ms */
 
 
  class ISL2950 : public cdev::CDev
  {
  public:
-    // Constructor
-   	ISL2950(const char *port = ISL2950_DEFAULT_PORT, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
-    // Virtual destructor
-    virtual ~ISL2950();
 
-    virtual int init();
-  //virtual ssize_t			read(device::file_t *filp, char *buffer, size_t buflen);
-    virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
+   // Constructor
+   ISL2950(const char *port = ISL2950_DEFAULT_PORT, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+
+   // Virtual destructor
+   virtual ~ISL2950();
+
+   virtual int  init();
+   virtual int  ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
     /**
   	* Diagnostics - print some basic information about the driver.
@@ -101,30 +101,30 @@
   	void				print_info();
 
  private:
-   char 				_port[20];
-   uint8_t _rotation;
-   float				_min_distance;
-   float				_max_distance;
-   int         	_conversion_interval;
-   work_s				_work{};
-   ringbuffer::RingBuffer		*_reports;
-   bool				_collect_phase;
-   int				_fd;
-   uint8_t			_linebuf[25];
-   uint8_t   _cycle_counter;
 
-   enum ISL2950_PARSE_STATE		_parse_state;
-   unsigned char _frame_data[4];
-   uint16_t     _crc16;
-   int         _distance_mm;
+   char 				             _port[20];
+   uint8_t                   _rotation;
+   float				             _min_distance;
+   float				             _max_distance;
+   int         	             _conversion_interval;
+   work_s				             _work{};
+   ringbuffer::RingBuffer	  *_reports;
+   int				               _fd;
+   uint8_t			             _linebuf[25];
+   uint8_t                   _cycle_counter;
 
-   int				_class_instance;
-   int				_orb_class_instance;
+   enum ISL2950_PARSE_STATE	 _parse_state;
+   unsigned char             _frame_data[4];
+   uint16_t                  _crc16;
+   int                       _distance_mm;
 
-   orb_advert_t			_distance_sensor_topic;
+   int				               _class_instance;
+   int				               _orb_class_instance;
 
-   perf_counter_t			_sample_perf;
-   perf_counter_t			_comms_errors;
+   orb_advert_t			         _distance_sensor_topic;
+
+   perf_counter_t			       _sample_perf;
+   perf_counter_t			       _comms_errors;
 
    /**
 	* Initialise the automatic measurement state machine and start it.
@@ -132,40 +132,36 @@
 	* @note This function is called at open and error time.  It might make sense
 	*       to make it more aggressive about resetting the bus in case of errors.
 	*/
-	void				start();
+	 void				start();
 
-	/**
-	* Stop the automatic measurement state machine.
-	*/
-	void				stop();
+	 /**
+	 * Stop the automatic measurement state machine.
+	 */
+	 void				stop();
 
-  /**
-	* Set the min and max distance thresholds if you want the end points of the sensors
-	* range to be brought in at all, otherwise it will use the defaults SF0X_MIN_DISTANCE
-	* and SF0X_MAX_DISTANCE
-	*/
-	void				set_minimum_distance(float min);
-	void				set_maximum_distance(float max);
-	float				get_minimum_distance();
-	float				get_maximum_distance();
+   /**
+	 * Set the min and max distance thresholds.
+  */
+	 void				set_minimum_distance(float min);
+	 void				set_maximum_distance(float max);
+	 float			get_minimum_distance();
+	 float			get_maximum_distance();
 
-  /**
-  	* Perform a poll cycle; collect from the previous measurement
-  	* and start a new one.
-  	*/
-  	void				cycle();
-  	int				collect();
-  	/**
-  	* Static trampoline from the workq context; because we don't have a
-  	* generic workq wrapper yet.
-  	*
-  	* @param arg		Instance pointer for the driver that is polling.
-  	*/
-  	static void			cycle_trampoline(void *arg);
-
+   /**
+   * Perform a reading cycle; collect from the previous measurement
+   * and start a new one.
+   */
+   void				cycle();
+   int				collect();
+   /**
+   * Static trampoline from the workq context; because we don't have a
+   * generic workq wrapper yet.
+   *
+   * @param arg		Instance pointer for the driver that is polling.
+   */
+   static void			cycle_trampoline(void *arg);
 
   };
-
 
   /*
    * Driver 'main' command.
@@ -181,15 +177,14 @@
   ISL2950::ISL2950(const char *port, uint8_t rotation) :
 	CDev(RANGE_FINDER0_DEVICE_PATH),
 	_rotation(rotation),
-	_min_distance(0.14f),
-	_max_distance(40.0f),
+	_min_distance(0.10f),
+	_max_distance(9.0f),
 	_conversion_interval(ISL2950_CONVERSION_INTERVAL),
 	_reports(nullptr),
-	_collect_phase(false),
 	_fd(-1),
   _cycle_counter(0),
-	_parse_state(TFS_NOT_STARTED),
-  _frame_data{TOF_SFD1, TOF_SFD2, 0, 0},
+	_parse_state(STATE0_WAITING_FRAME),
+  _frame_data{START_FRAME_DIGIT1, START_FRAME_DIGIT2, 0, 0},
   _crc16(0),
   _distance_mm(-1),
 	_class_instance(-1),
@@ -335,20 +330,12 @@ ISL2950::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	}
 }
 
-/*
-ssize_t
-ISL2950::read(device::file_t *filp, char *buffer, size_t buflen)
-{
-  // SOME STUFFS
-
-}*/
-
 int
 
 /*
  * Method: collect()
  *
- * This method reads data  from serial UART and places it into a buffer
+ * This method reads data from serial UART and places it into a buffer
 */
 ISL2950::collect()
 {
@@ -375,7 +362,7 @@ ISL2950::collect()
          i = bytes_read - 6 ;
          while ((i >=0) && (!crc_valid))
          {
-           if (_linebuf[i] == TOF_SFD1) {
+           if (_linebuf[i] == START_FRAME_DIGIT1) {
              bytes_processed = i;
              while ((bytes_processed < bytes_read) && (!crc_valid))
              {
@@ -385,7 +372,7 @@ ISL2950::collect()
                 }
                 bytes_processed++;
              }
-           _parse_state = TFS_NOT_STARTED;
+           _parse_state = STATE0_WAITING_FRAME;
 
          }
          // else {printf("Starting frame wrong. Index: %d value 0x%02X \n",i,_linebuf[i]);}
@@ -438,9 +425,8 @@ ISL2950::collect()
 void
 ISL2950::start()
 {
-  PX4_INFO("ISL2950::start() - launch the work queue");
-	/* reset the report ring and state machine */
-	_collect_phase = false;
+  PX4_INFO("driver started");
+
 	_reports->flush();
 
 	/* schedule a cycle to start things */
@@ -472,7 +458,7 @@ ISL2950::cycle()
 		_fd = ::open(_port,O_RDWR);
 
 		if (_fd < 0) {
-			PX4_ERR("ISL2950::cycle() - open failed (%i)", errno);
+			PX4_ERR("open failed (%i)", errno);
 			return;
 		}
 
