@@ -42,10 +42,11 @@
 #define MAVLINK_STREAM_H_
 
 #include <drivers/drv_hrt.h>
+#include <px4_module_params.h>
 
 class Mavlink;
 
-class MavlinkStream
+class MavlinkStream : public ModuleParams
 {
 
 public:
@@ -125,6 +126,10 @@ protected:
 	 * This function is called at every iteration of the mavlink module.
 	 */
 	virtual void update_data() { }
+
+	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::MAV_ODOM_LP>) _send_odom_loopback
+	)
 
 private:
 	hrt_abstime _last_sent{0};
