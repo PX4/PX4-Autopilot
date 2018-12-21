@@ -672,4 +672,7 @@ private:
 	// Argument is additional yaw variance in rad**2
 	void increaseQuatYawErrVariance(float yaw_variance);
 
+	// uncorrelate quaternion states from other states
+	void uncorrelateQuatStates();
+
 };
