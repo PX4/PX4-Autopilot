@@ -2316,19 +2316,21 @@ protected:
 		// check if it is to send visual odometry loopback or not
 		bool odom_updated = false;
 
+		mavlink_odometry_t msg = {};
+
 		if (_send_odom_loopback.get()) {
 			odom_updated = _vodom_sub->update(&_vodom_time, &odom);
+			// frame matches the external vision system
+			msg.frame_id = MAV_FRAME_VISION_NED;
 
 		} else {
 			odom_updated = _odom_sub->update(&_odom_time, &odom);
+			// frame matches the PX4 local NED frame
+			msg.frame_id = MAV_FRAME_ESTIM_NED;
 		}
 
 		if (odom_updated) {
-			mavlink_odometry_t msg = {};
-
 			msg.time_usec = odom.timestamp;
-
-			msg.frame_id = MAV_FRAME_ESTIM_NED;
 			msg.child_frame_id = MAV_FRAME_BODY_NED;
 
 			// Current position
