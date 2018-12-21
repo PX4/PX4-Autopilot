@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,56 +31,42 @@
  *
  ****************************************************************************/
 
-/**
- * @file sf0x_parser.cpp
- * @author Lorenz Meier <lm@inf.ethz.ch>
- *
- * Declarations of parser for the Lightware SF0x laser rangefinder series
- */
+ /**
+  * @file isl2950.cpp
+  * @author Claudio Micheli <claudio@auterion.com>
+  *
+  * Parser declarations for Lanbao PSK-CM8JL65-CC5 distance sensor
+  */
 
 #pragma once
 
 #include <stdint.h>
 // frame start delimiter
-#define TOF_SFD1      0xA5
-#define TOF_SFD2      0x5A
+#define START_FRAME_DIGIT1      0xA5
+#define START_FRAME_DIGIT2      0x5A
 
-/*typedef enum {
-  TFS_NOT_STARTED = 0,
-  TFS_GOT_SFD1,
-  TFS_GOT_SFD2,
-  TFS_GOT_DATA1,
-  TFS_GOT_DATA2,
-  TFS_GOT_CHECKSUM1,
-  TFS_GOT_CHECKSUM2,
-} TofFramingState;*/
+
+// Frame format definition
+//
+//   1B     1B      1B              1B            2B
+// | 0xA5 | 0x5A | distance-MSB | distance-LSB | crc-16 |
+//
+// Frame data saved for CRC calculation
+#define DISTANCE_MSB_POS   2
+#define DISTANCE_LSB_POS   3
+#define CHECKSUM_LENGTH  4
+
 
 enum ISL2950_PARSE_STATE {
-  TFS_NOT_STARTED = 0,
-  TFS_GOT_SFD1,
-  TFS_GOT_SFD2,
-  TFS_GOT_DATA1,
-  TFS_GOT_DATA2,
-  TFS_GOT_CHECKSUM1,
-  TFS_GOT_CHECKSUM2,
+  STATE0_WAITING_FRAME = 0,
+  STATE1_GOT_DIGIT1,
+  STATE2_GOT_DIGIT2,
+  STATE3_GOT_MSB_DATA,
+  STATE4_GOT_LSB_DATA,
+  STATE5_GOT_CHKSUM1,
+  STATE6_GOT_CHKSUM2,
 };
 
-enum IslWorkingMode {
-  KEEP_HEIGHT = 0,
-  NUM_WORKING_MODE
-};
-
-
-// SF0X STYLE
-/*enum ISL2950_PARSE_STATE {
-	ISL2950_PARSE_STATE0_UNSYNC = 0,
-	ISL2950_PARSE_STATE1_SYNC,
-	ISL2950_PARSE_STATE2_GOT_DIGIT0,
-	ISL2950_PARSE_STATE3_GOT_DOT,
-	ISL2950_PARSE_STATE4_GOT_DIGIT1,
-	ISL2950_PARSE_STATE5_GOT_DIGIT2,
-	ISL2950_PARSE_STATE6_GOT_CARRIAGE_RETURN
-};*/
 
 
 int isl2950_parser(uint8_t c, uint8_t *parserbuf,enum ISL2950_PARSE_STATE *state,uint16_t *crc16, int *dist);
