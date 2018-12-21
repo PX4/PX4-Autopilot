@@ -2258,79 +2258,6 @@ protected:
 	}
 };
 
-//TODO: remove this -> add ODOMETRY loopback only
-class MavlinkStreamVisionPositionEstimate : public MavlinkStream
-{
-public:
-	const char *get_name() const
-	{
-		return MavlinkStreamVisionPositionEstimate::get_name_static();
-	}
-
-	static const char *get_name_static()
-	{
-		return "VISION_POSITION_ESTIMATE";
-	}
-
-	static uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE;
-	}
-
-	uint16_t get_id()
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamVisionPositionEstimate(mavlink);
-	}
-
-	unsigned get_size()
-	{
-		return (_odom_time > 0) ? MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-	}
-private:
-
-	MavlinkOrbSubscription *_odom_sub;
-	uint64_t _odom_time;
-
-	/* do not allow top copying this class */
-	MavlinkStreamVisionPositionEstimate(MavlinkStreamVisionPositionEstimate &) = delete;
-	MavlinkStreamVisionPositionEstimate &operator = (const MavlinkStreamVisionPositionEstimate &) = delete;
-
-protected:
-	explicit MavlinkStreamVisionPositionEstimate(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_odom_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_visual_odometry))),
-		_odom_time(0)
-	{}
-
-	bool send(const hrt_abstime t)
-	{
-		vehicle_odometry_s vodom;
-
-		if (_odom_sub->update(&_odom_time, &vodom)) {
-			mavlink_vision_position_estimate_t vmsg = {};
-			vmsg.usec = vodom.timestamp;
-			vmsg.x = vodom.x;
-			vmsg.y = vodom.y;
-			vmsg.z = vodom.z;
-
-			matrix::Eulerf euler = matrix::Quatf(vodom.q);
-			vmsg.roll = euler.phi();
-			vmsg.pitch = euler.theta();
-			vmsg.yaw = euler.psi();
-
-			mavlink_msg_vision_position_estimate_send_struct(_mavlink->get_channel(), &vmsg);
-
-			return true;
-		}
-
-		return false;
-	}
-};
-
 class MavlinkStreamOdometry : public MavlinkStream
 {
 public:
@@ -2361,7 +2288,7 @@ public:
 
 	unsigned get_size()
 	{
-		return MAVLINK_MSG_ID_ODOMETRY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+		return (_odom_time > 0) ? MAVLINK_MSG_ID_ODOMETRY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
@@ -2372,8 +2299,8 @@ private:
 	uint64_t _vodom_time;
 
 	/* do not allow top copying this class */
-	MavlinkStreamOdometry(MavlinkStreamOdometry &);
-	MavlinkStreamOdometry &operator = (const MavlinkStreamOdometry &);
+	MavlinkStreamOdometry(MavlinkStreamOdometry &) = delete;
+	MavlinkStreamOdometry &operator = (const MavlinkStreamOdometry &) = delete;
 
 protected:
 	explicit MavlinkStreamOdometry(Mavlink *mavlink) : MavlinkStream(mavlink),
@@ -2386,7 +2313,6 @@ protected:
 	bool send(const hrt_abstime t)
 	{
 		vehicle_odometry_s odom;
-
 		// check if it is to send visual odometry loopback or not
 		bool odom_updated = false;
 
@@ -4905,7 +4831,6 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamTimesync::new_instance, &MavlinkStreamTimesync::get_name_static, &MavlinkStreamTimesync::get_id_static),
 	StreamListItem(&MavlinkStreamGlobalPositionInt::new_instance, &MavlinkStreamGlobalPositionInt::get_name_static, &MavlinkStreamGlobalPositionInt::get_id_static),
 	StreamListItem(&MavlinkStreamLocalPositionNED::new_instance, &MavlinkStreamLocalPositionNED::get_name_static, &MavlinkStreamLocalPositionNED::get_id_static),
-	StreamListItem(&MavlinkStreamVisionPositionEstimate::new_instance, &MavlinkStreamVisionPositionEstimate::get_name_static, &MavlinkStreamVisionPositionEstimate::get_id_static),
 	StreamListItem(&MavlinkStreamOdometry::new_instance, &MavlinkStreamOdometry::get_name_static, &MavlinkStreamOdometry::get_id_static),
 	StreamListItem(&MavlinkStreamEstimatorStatus::new_instance, &MavlinkStreamEstimatorStatus::get_name_static, &MavlinkStreamEstimatorStatus::get_id_static),
 	StreamListItem(&MavlinkStreamAttPosMocap::new_instance, &MavlinkStreamAttPosMocap::get_name_static, &MavlinkStreamAttPosMocap::get_id_static),
