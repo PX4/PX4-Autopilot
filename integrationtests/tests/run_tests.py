@@ -143,7 +143,7 @@ if __name__ == '__main__':
 
         for log_name in log_files:
             full_path_to_log = logdir + folder + '/' + log_name
-            print('\n Run tests against the following log file: ' + folder + '/' + log_name + '\n')
+            print('\n Run tests against the following log file: ' + logdir + folder + '/' + log_name + '\n')
             p_test = subprocess.Popen(['py.test', '-s', deselected_tests, testfile, '--filepath={0}'.format(full_path_to_log)])
             while p_test.poll() is None:
                 pass
