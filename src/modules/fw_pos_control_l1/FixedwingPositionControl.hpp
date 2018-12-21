@@ -97,6 +97,7 @@ using matrix::Eulerf;
 using matrix::Quatf;
 using matrix::Vector2f;
 using matrix::Vector3f;
+using matrix::wrap_pi;
 
 using uORB::Subscription;
 
