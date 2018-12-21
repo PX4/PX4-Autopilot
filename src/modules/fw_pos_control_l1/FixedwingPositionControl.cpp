@@ -1489,13 +1489,15 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 		if (_global_pos.terrain_alt_valid) {
 			// update the terrain altitude offset to the correct level (to be used on the next landing attempt)
 			// by checking that we are on slope or flaring we make sure that we are at least somewhat close to the landing point
-			if(_land_onslope || _land_noreturn_vertical) {
+			if (_land_onslope || _land_noreturn_vertical) {
 				// there has not been a valid estimate in a long time -> take it straight away
 				if (_time_last_t_alt == 0) {
 					_land_terrain_alt_offset_temporary = _global_pos.terrain_alt - (terrain_alt - _land_terrain_alt_offset);
+
 				} else {
 					// use a low pass filter
-					_land_terrain_alt_offset_temporary = 0.05f * (_global_pos.terrain_alt - (terrain_alt - _land_terrain_alt_offset)) + 0.95f * _land_terrain_alt_offset_temporary;
+					_land_terrain_alt_offset_temporary = 0.05f * (_global_pos.terrain_alt - (terrain_alt - _land_terrain_alt_offset)) +
+									     0.95f * _land_terrain_alt_offset_temporary;
 				}
 			}
 
@@ -1856,7 +1858,7 @@ void
 FixedwingPositionControl::reset_landing_state()
 {
 	// Do this only once
-	if (_time_started_landing > 0){
+	if (_time_started_landing > 0) {
 		// reset terrain estimation relevant values
 		_time_last_t_alt = 0;
 		_land_terrain_alt_offset = _land_terrain_alt_offset_temporary;
