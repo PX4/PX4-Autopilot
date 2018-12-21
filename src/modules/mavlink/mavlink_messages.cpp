@@ -2368,6 +2368,9 @@ private:
 	MavlinkOrbSubscription *_odom_sub;
 	uint64_t _odom_time;
 
+	MavlinkOrbSubscription *_vodom_sub;
+	uint64_t _vodom_time;
+
 	/* do not allow top copying this class */
 	MavlinkStreamOdometry(MavlinkStreamOdometry &);
 	MavlinkStreamOdometry &operator = (const MavlinkStreamOdometry &);
@@ -2375,14 +2378,26 @@ private:
 protected:
 	explicit MavlinkStreamOdometry(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_odom_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_odometry))),
-		_odom_time(0)
+		_odom_time(0),
+		_vodom_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_visual_odometry))),
+		_vodom_time(0)
 	{}
 
 	bool send(const hrt_abstime t)
 	{
 		vehicle_odometry_s odom;
 
-		if (_odom_sub->update(&_odom_time, &odom)) {
+		// check if it is to send visual odometry loopback or not
+		bool odom_updated = false;
+
+		if (_send_odom_loopback.get()) {
+			odom_updated = _vodom_sub->update(&_vodom_time, &odom);
+
+		} else {
+			odom_updated = _odom_sub->update(&_odom_time, &odom);
+		}
+
+		if (odom_updated) {
 			mavlink_odometry_t msg = {};
 
 			msg.time_usec = odom.timestamp;
