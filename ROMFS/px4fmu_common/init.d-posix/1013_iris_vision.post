@@ -1,3 +1,3 @@
 
 # shellcheck disable=SC2154
-mavlink stream -r 10 -s VISION_POSITION_ESTIMATE -u $udp_gcs_port_local
+mavlink stream -r 30 -s ODOMETRY -u $udp_gcs_port_local
