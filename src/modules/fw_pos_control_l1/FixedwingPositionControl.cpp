@@ -1496,7 +1496,6 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 		if (_global_pos.terrain_alt_valid) {
 			// update the terrain altitude offset to the correct level (to be used on the next landing attempt)
 			// by checking that we are on slope or flaring we make sure that we are at least somewhat close to the landing point
-
 			if (_land_onslope || _land_noreturn_vertical) {
 				// there has not been a valid estimate in a long time -> take it straight away
 				if (_time_last_t_alt == 0) {
