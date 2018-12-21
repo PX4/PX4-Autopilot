@@ -1296,6 +1296,30 @@ void Ekf::zeroOffDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t fi
 	}
 }
 
+void Ekf::uncorrelateQuatStates()
+{
+	// save 4x4 elements
+	uint32_t row;
+	uint32_t col;
+	float variances[4][4];
+	for (row = 0; row < 4; row++) {
+		for (col = 0; col < 4; col++) {
+			variances[row][col] = P[row][col];
+		}
+	}
+
+	// zero rows and columns
+	zeroRows(P, 0, 3);
+	zeroCols(P, 0, 3);
+
+	// restore 4x4 elements
+	for (row = 0; row < 4; row++) {
+		for (col = 0; col < 4; col++) {
+			P[row][col] = variances[row][col];
+		}
+	}
+}
+
 void Ekf::setDiag(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last, float variance)
 {
 	// zero rows and columns
