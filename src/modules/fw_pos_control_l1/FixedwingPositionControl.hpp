@@ -228,7 +228,6 @@ private:
 	float _land_terrain_alt_offset_temporary{0.0f};		///< temporary value for storing the offset while in the landing phase */
 	float _pos_sp_curr_alt_unadjusted{0.0f};		///< original position setpoint altitude
 	float _pos_sp_prev_alt_unadjusted{0.0f};		///< original position setpoint altitude
-	float _pos_sp_next_alt_unadjusted{0.0f};		///< original position setpoint altitude
 
 	/* Takeoff launch detection and runway */
 	LaunchDetector _launchDetector;
@@ -432,8 +431,8 @@ private:
 	 */
 	bool		update_desired_altitude(float dt);
 
-	bool		control_position(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
-					 const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
+	bool		control_position(const Vector2f &curr_pos, const Vector2f &ground_speed, position_setpoint_s &pos_sp_prev,
+					 position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
 	void		control_takeoff(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
 					const position_setpoint_s &pos_sp_curr);
 	void		control_landing(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
