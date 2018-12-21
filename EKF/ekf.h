@@ -668,4 +668,8 @@ private:
 	// check that the range finder data is continuous
 	void checkRangeDataContinuity();
 
+	// Increase the yaw error variance of the quaternions
+	// Argument is additional yaw variance in rad**2
+	void increaseQuatYawErrVariance(float yaw_variance);
+
 };
