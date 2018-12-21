@@ -223,6 +223,13 @@ private:
 	bool _was_in_air{false};				///< indicated wether the plane was in the air in the previous interation*/
 	hrt_abstime _time_went_in_air{0};			///< time at which the plane went in the air */
 
+	/* Values for adjusting the landing altitude */
+	float _land_terrain_alt_offset{0.0f};			///< offset that will be added to _pos_sp_curr_alt_unadjusted */
+	float _land_terrain_alt_offset_temporary{0.0f};		///< temporary value for storing the offset while in the landing phase */
+	float _pos_sp_curr_alt_unadjusted{0.0f};		///< original position setpoint altitude
+	float _pos_sp_prev_alt_unadjusted{0.0f};		///< original position setpoint altitude
+	float _pos_sp_next_alt_unadjusted{0.0f};		///< original position setpoint altitude
+
 	/* Takeoff launch detection and runway */
 	LaunchDetector _launchDetector;
 	LaunchDetectionResult _launch_detection_state{LAUNCHDETECTION_RES_NONE};

@@ -338,6 +338,13 @@ FixedwingPositionControl::vehicle_status_poll()
 				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
 			}
 		}
+
+		/* If the vehicle is disarmed (which resets the home position), reset landing state */
+		if (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+			_land_terrain_alt_offset_temporary = 0.0f;
+			_land_terrain_alt_offset = 0.0f;
+			reset_landing_state();
+		}
 	}
 }
 
@@ -751,7 +758,7 @@ FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitch_lim
 
 bool
 FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vector2f &ground_speed,
-		const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next)
+		position_setpoint_s &pos_sp_prev, position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next)
 {
 	float dt = 0.01f;
 
@@ -1480,6 +1487,18 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 
 	if (_parameters.land_use_terrain_estimate == 1) {
 		if (_global_pos.terrain_alt_valid) {
+			// update the terrain altitude offset to the correct level (to be used on the next landing attempt)
+			// by checking that we are on slope or flaring we make sure that we are at least somewhat close to the landing point
+			if(_land_onslope || _land_noreturn_vertical) {
+				// there has not been a valid estimate in a long time -> take it straight away
+				if (_time_last_t_alt == 0) {
+					_land_terrain_alt_offset_temporary = _global_pos.terrain_alt - (terrain_alt - _land_terrain_alt_offset);
+				} else {
+					// use a low pass filter
+					_land_terrain_alt_offset_temporary = 0.05f * (_global_pos.terrain_alt - (terrain_alt - _land_terrain_alt_offset)) + 0.95f * _land_terrain_alt_offset_temporary;
+				}
+			}
+
 			// all good, have valid terrain altitude
 			terrain_alt = _global_pos.terrain_alt;
 			_t_alt_prev_valid = terrain_alt;
@@ -1763,6 +1782,11 @@ FixedwingPositionControl::run()
 			Vector2f curr_pos((float)_global_pos.lat, (float)_global_pos.lon);
 			Vector2f ground_speed(_global_pos.vel_n, _global_pos.vel_e);
 
+			// Adjust the position setpoint triplet altitudes according to the ground altitude offset
+			// There is no additive summing because the update() always copies the data even if it is not updated.
+			_pos_sp_triplet.current.alt += _land_terrain_alt_offset;
+			_pos_sp_triplet.previous.alt += _land_terrain_alt_offset;
+
 			/*
 			 * Attempt to control position, on success (= sensors present and not in manual mode),
 			 * publish setpoint.
@@ -1831,21 +1855,25 @@ FixedwingPositionControl::reset_takeoff_state(bool force)
 void
 FixedwingPositionControl::reset_landing_state()
 {
-	_time_started_landing = 0;
+	// Do this only once
+	if (_time_started_landing > 0){
+		// reset terrain estimation relevant values
+		_time_last_t_alt = 0;
+		_land_terrain_alt_offset = _land_terrain_alt_offset_temporary;
 
-	// reset terrain estimation relevant values
-	_time_last_t_alt = 0;
+		_land_noreturn_horizontal = false;
+		_land_noreturn_vertical = false;
+		_land_stayonground = false;
+		_land_motor_lim = false;
+		_land_onslope = false;
 
-	_land_noreturn_horizontal = false;
-	_land_noreturn_vertical = false;
-	_land_stayonground = false;
-	_land_motor_lim = false;
-	_land_onslope = false;
+		// reset abort land, unless loitering after an abort
+		if (_land_abort && (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_LOITER)) {
 
-	// reset abort land, unless loitering after an abort
-	if (_land_abort && (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+			abort_landing(false);
+		}
 
-		abort_landing(false);
+		_time_started_landing = 0;
 	}
 }
 
