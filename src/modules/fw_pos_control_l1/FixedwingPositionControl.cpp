@@ -78,6 +78,11 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_early_config_change = param_find("FW_LND_EARLYCFG");
 	_parameter_handles.land_airspeed_scale = param_find("FW_LND_AIRSPD_SC");
 	_parameter_handles.land_throtTC_scale = param_find("FW_LND_THRTC_SC");
+	_parameter_handles.land_terrain_timeout = param_find("FW_LND_TERR_TO");
+	_parameter_handles.land_wait_terrain = param_find("FW_LND_WAIT_TERR");
+	_parameter_handles.land_require_valid_terrain = param_find("FW_LND_REQ_TERR");
+	_parameter_handles.land_max_aimpoint_shift = param_find("FW_LND_MAX_MV");
+	_parameter_handles.land_flare_horizontal_start_limit = param_find("FW_LND_FL_HLIM");
 
 	_parameter_handles.time_const = param_find("FW_T_TIME_CONST");
 	_parameter_handles.time_const_throt = param_find("FW_T_THRO_CONST");
@@ -152,6 +157,11 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_early_config_change, &(_parameters.land_early_config_change));
 	param_get(_parameter_handles.land_airspeed_scale, &(_parameters.land_airspeed_scale));
 	param_get(_parameter_handles.land_throtTC_scale, &(_parameters.land_throtTC_scale));
+	param_get(_parameter_handles.land_terrain_timeout, &(_parameters.land_terrain_timeout));
+	param_get(_parameter_handles.land_wait_terrain, &(_parameters.land_wait_terrain));
+	param_get(_parameter_handles.land_require_valid_terrain, &(_parameters.land_require_valid_terrain));
+	param_get(_parameter_handles.land_max_aimpoint_shift, &(_parameters.land_max_aimpoint_shift));
+	param_get(_parameter_handles.land_flare_horizontal_start_limit, &(_parameters.land_flare_horizontal_start_limit));
 
 	// VTOL parameter VTOL_TYPE
 	if (_parameter_handles.vtol_type != PARAM_INVALID) {
