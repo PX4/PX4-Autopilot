@@ -114,8 +114,6 @@ static constexpr float HDG_HOLD_YAWRATE_THRESH = 0.15f;	// max yawrate at which 
 static constexpr float HDG_HOLD_MAN_INPUT_THRESH =
 	0.01f; // max manual roll/yaw input from user which does not change the locked heading
 
-static constexpr hrt_abstime T_ALT_TIMEOUT = 1_s; // time after which we abort landing if terrain estimate is not valid
-
 static constexpr float THROTTLE_THRESH =
 	0.05f;	///< max throttle from user which will not lead to motors spinning up in altitude controlled modes
 static constexpr float MANUAL_THROTTLE_CLIMBOUT_THRESH =
