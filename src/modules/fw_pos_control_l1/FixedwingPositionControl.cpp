@@ -1517,7 +1517,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			// we have started landing phase but don't have valid terrain
 			// wait for some time, maybe we will soon get a valid estimate
 			// until then just use the altitude of the landing waypoint
-			if (hrt_elapsed_time(&_time_started_landing) < 10_s) {
+			if (hrt_elapsed_time(&_time_started_landing) < _parameters.land_wait_terrain * 1_s) {
 				terrain_alt = pos_sp_curr.alt;
 
 			} else {
@@ -1526,7 +1526,8 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 				abort_landing(true);
 			}
 
-		} else if ((!_global_pos.terrain_alt_valid && hrt_elapsed_time(&_time_last_t_alt) < T_ALT_TIMEOUT)
+		} else if ((!_global_pos.terrain_alt_valid
+			    && hrt_elapsed_time(&_time_last_t_alt) < _parameters.land_terrain_timeout * 1_s)
 			   || _land_noreturn_vertical) {
 			// use previous terrain estimate for some time and hope to recover
 			// if we are already flaring (land_noreturn_vertical) then just
