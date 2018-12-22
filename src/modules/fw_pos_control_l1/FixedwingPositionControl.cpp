@@ -1550,8 +1550,40 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 	 * horizontal limit (with some tolerance)
 	 * The horizontal limit is only applied when we are in front of the wp
 	 */
-	if ((_global_pos.alt < terrain_alt + _landingslope.flare_relative_alt()) ||
+	if (((_global_pos.alt < terrain_alt + _landingslope.flare_relative_alt()) &&
+	     (wp_distance < _landingslope.flare_length() + _parameters.land_flare_horizontal_start_limit) &&
+	     ((_parameters.land_require_valid_terrain && _time_last_t_alt > 0) || !_parameters.land_require_valid_terrain
+	      || !_parameters.land_use_terrain_estimate)) ||
 	    _land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
+
+		// Rangefinder bump handling: check if really at flare heights (_land_noreturn_vertical could be set without rangefinder)
+		// and if so, move the glide path accordingly.
+
+		// First time activated terrain at flare heights. Significant if we are higher than we thought (then the plane would naturally want to dive)
+		if (!_land_rngfnd_bump_handled && _time_last_t_alt > 0) {
+			//Check that we are not in the flare phase just because we thought the altitude was right, but are actually too high
+			//(meaning that _land_noreturn_vertical was set to true too soon)
+			//the rangefinder bump will be handled by the glideslope part
+			if (_land_noreturn_vertical && _global_pos.alt > terrain_alt + _landingslope.flare_relative_alt()) {
+				_land_noreturn_vertical = false;
+				_land_stayonground = false;
+				goto landing_glideslope;
+
+			} else { //We should already be flaring, then just start the flare at where we're at. We are anyway closer than flare_horizontal_start_limit
+				//Put the flare alt setpoint to be continuous with the current tecs alt setpoint (prevent jump caused by changing terrain alt)
+
+				_land_flare_shift = _landingslope.getFlareCurveLengthAtAltiude(_tecs.hgt_setpoint_adj() - terrain_alt) - wp_distance;
+
+				mavlink_log_critical(&_mavlink_log_pub, "Flare shift %d", (int)_land_flare_shift);
+
+				if (_land_flare_shift > _parameters.land_max_aimpoint_shift) {
+					_fw_pos_ctrl_status.abort_landing = true;
+				}
+
+				//don't come here again
+				_land_rngfnd_bump_handled = true;
+			}
+		}
 
 		/* land with minimal speed */
 
@@ -1567,8 +1599,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			_att_sp.fw_control_yaw = true;
 		}
 
-		if (((_global_pos.alt < terrain_alt + _landingslope.motor_lim_relative_alt()) &&
-		     (wp_distance_save < _landingslope.flare_length() + 5.0f)) || // Only kill throttle when close to WP
+		if ((_global_pos.alt < terrain_alt + _landingslope.motor_lim_relative_alt()) ||
 		    _land_motor_lim) {
 			throttle_max = min(throttle_max, _parameters.throttle_land_max);
 
@@ -1578,14 +1609,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			}
 		}
 
-		float flare_curve_alt_rel = _landingslope.getFlareCurveRelativeAltitudeSave(wp_distance, bearing_lastwp_currwp,
-					    bearing_airplane_currwp);
-
-		/* avoid climbout */
-		if ((_flare_curve_alt_rel_last < flare_curve_alt_rel && _land_noreturn_vertical) || _land_stayonground) {
-			flare_curve_alt_rel = 0.0f; // stay on ground
-			_land_stayonground = true;
-		}
+		float flare_curve_alt_rel = _landingslope.getFlareCurveRelativeAltitudeSave(wp_distance + _touchdown_point_shift);
 
 		const float airspeed_land = _parameters.land_airspeed_scale * _parameters.airspeed_min;
 		const float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
@@ -1603,8 +1627,13 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 
 		if (!_land_noreturn_vertical) {
 			// just started with the flaring phase
-			_flare_pitch_sp = 0.0f;
-			_flare_height = _global_pos.alt - terrain_alt;
+
+			// If no terrain valid, control the flare with pitch only.
+			if (_time_last_t_alt == 0) {
+				_flare_pitch_sp = 0.0f;
+				_flare_height = _global_pos.alt - terrain_alt;
+			}
+
 			mavlink_log_info(&_mavlink_log_pub, "Landing, flaring");
 			_land_noreturn_vertical = true;
 
