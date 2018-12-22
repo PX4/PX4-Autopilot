@@ -1582,6 +1582,35 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			}
 		}
 
+		// Rangefinder bump handling: check if really at flare heights (_land_noreturn_vertical could be set without rangefinder)
+		// and if so, move the glide path accordingly.
+
+		// First time activated terrain at flare heights. Significant if we are higher than we thought (then the plane would naturally want to dive)
+		if (!_land_rngfnd_bump_handled && _time_last_t_alt > 0) {
+			//Check that we are not in the flare phase just because we thought the altitude was right, but are actually too high
+			//(meaning that _land_noreturn_vertical was set to true too soon)
+			//the rangefinder bump will be handled by the glideslope part
+			if (_land_noreturn_vertical && _global_pos.alt > terrain_alt + _landingslope.flare_relative_alt()) {
+				_land_noreturn_vertical = false;
+				_land_stayonground = false;
+				goto landing_glideslope;
+
+			} else { //We should already be flaring, then just start the flare at where we're at. We are anyway closer than flare_horizontal_start_limit
+				//Put the flare alt setpoint to be continuous with the current tecs alt setpoint (prevent jump caused by changing terrain alt)
+
+				_land_flare_shift = _landingslope.getFlareCurveLengthAtAltiude(_tecs.hgt_setpoint_adj() - terrain_alt) - wp_distance;
+
+				mavlink_log_critical(&_mavlink_log_pub, "Flare shift %d", (int)_land_flare_shift);
+
+				if (_land_flare_shift > _parameters.land_max_aimpoint_shift) {
+					_fw_pos_ctrl_status.abort_landing = true;
+				}
+
+				//don't come here again
+				_land_rngfnd_bump_handled = true;
+			}
+		}
+
 		/* land with minimal speed */
 
 		/* force TECS to only control speed with pitch, altitude is only implicitly controlled now */
@@ -1633,8 +1662,13 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 
 		if (!_land_noreturn_vertical) {
 			// just started with the flaring phase
-			_flare_pitch_sp = 0.0f;
-			_flare_height = _global_pos.alt - terrain_alt;
+
+			// If no terrain valid, control the flare with pitch only.
+			if (_time_last_t_alt == 0) {
+				_flare_pitch_sp = 0.0f;
+				_flare_height = _global_pos.alt - terrain_alt;
+			}
+
 			mavlink_log_info(&_mavlink_log_pub, "Landing, flaring");
 			_land_noreturn_vertical = true;
 
