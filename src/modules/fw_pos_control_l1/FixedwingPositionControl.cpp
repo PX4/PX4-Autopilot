@@ -1434,11 +1434,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 	float wp_distance = get_distance_to_next_waypoint((double)curr_pos(0), (double)curr_pos(1), (double)curr_wp(0),
 			    (double)curr_wp(1));
 
-	/* calculate a waypoint distance value which is 0 when the aircraft is behind the waypoint */
-	float wp_distance_save = wp_distance;
-
 	if (fabsf(wrap_pi(bearing_airplane_currwp - bearing_lastwp_currwp)) >= radians(90.0f)) {
-		wp_distance_save = 0.0f;
 		wp_distance = -wp_distance;
 	}
 
@@ -1567,7 +1563,6 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			//the rangefinder bump will be handled by the glideslope part
 			if (_land_noreturn_vertical && _global_pos.alt > terrain_alt + _landingslope.flare_relative_alt()) {
 				_land_noreturn_vertical = false;
-				_land_stayonground = false;
 				goto landing_glideslope;
 
 			} else { //We should already be flaring, then just start the flare at where we're at. We are anyway closer than flare_horizontal_start_limit
@@ -1659,10 +1654,50 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 
 		float altitude_desired = terrain_alt;
 
-		const float landing_slope_alt_rel_desired = _landingslope.getLandingSlopeRelativeAltitudeSave(wp_distance,
-				bearing_lastwp_currwp, bearing_airplane_currwp);
+		const float landing_slope_alt_rel_desired = _landingslope.getLandingSlopeRelativeAltitudeSave(
+					wp_distance + _touchdown_point_shift);
 
 		if (_global_pos.alt > terrain_alt + landing_slope_alt_rel_desired || _land_onslope) {
+
+			// Check if we've gone past the landing point without starting to flare
+			if (wp_distance < 0 && _time_last_t_alt == 0) {
+				// if we don't have valid terrain here and are under 0.5 * FW_LND_FLALT, set the terrain altitude offset
+				// so that our current altitude represents 0.5 * FW_LND_FLALT on the next approach
+				if (_time_last_t_alt == 0 && _global_pos.alt < terrain_alt + 0.5f * _landingslope.flare_relative_alt()) {
+					_terrain_offset_land_temp = _global_pos.alt - 0.5f * _landingslope.flare_relative_alt() -
+								    (terrain_alt - _terrain_offset_land);
+				}
+
+				_fw_pos_ctrl_status.abort_landing = true;
+				mavlink_log_info(&_mavlink_log_pub, "Overshoot landing");
+			}
+
+			// Adjust the slope position at rangefinder activation so that we avoid diving if we should be lower than we are
+			else if (!_land_rngfnd_bump_handled && _time_last_t_alt > 0) {
+
+				// Move the land point forward so that we seem to be at the correct altitude
+				// if the altitude error would be over 15% of our current altitude from ground.
+				// Should there be a check that will prevent the slope from being moved if above a certain altitude?
+				if (landing_slope_alt_rel_desired < 0.85f * (_global_pos.alt - terrain_alt)) {
+					_touchdown_point_shift = _landingslope.getLandingSlopeWPDistance(_tecs.hgt_setpoint_adj(), terrain_alt,
+								 _landingslope.horizontal_slope_displacement(),
+								 _landingslope.landing_slope_angle_rad()) - wp_distance;
+
+					// inform about this movement
+					mavlink_log_info(&_mavlink_log_pub, "Gs shift %d", (int)_touchdown_point_shift);
+					_touchdown_point_shift = max(0.0f, _touchdown_point_shift);
+
+					//Check if the slope shift was too much at this point
+					if (_touchdown_point_shift > _parameters.land_max_aimpoint_shift) {
+						_fw_pos_ctrl_status.abort_landing = true;
+					}
+
+					landing_slope_alt_rel_desired = _landingslope.getLandingSlopeRelativeAltitudeSave(wp_distance + _land_slope_shift);
+				}
+
+				_land_rngfnd_bump_handled = true;
+			}
+
 			/* stay on slope */
 			altitude_desired = terrain_alt + landing_slope_alt_rel_desired;
 
