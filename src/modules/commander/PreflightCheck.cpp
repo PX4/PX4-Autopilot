@@ -44,6 +44,8 @@
 #include "health_flag_helper.h"
 #include "rc_check.h"
 
+#include <math.h>
+
 #include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>

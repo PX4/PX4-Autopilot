@@ -38,6 +38,7 @@
  */
 
 #include <float.h>
+#include <math.h>
 
 #include <board_config.h>
 #include <drivers/device/device.h>
