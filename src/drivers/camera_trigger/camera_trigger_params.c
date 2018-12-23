@@ -143,8 +143,6 @@ PARAM_DEFINE_FLOAT(TRIG_DISTANCE, 25.0f);
 /**
  * PWM output to trigger shot.
  *
- * @reboot_required true
- *
  * @min 1000
  * @max 2000
  * @unit us
