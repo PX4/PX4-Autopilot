@@ -1592,7 +1592,6 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			//the rangefinder bump will be handled by the glideslope part
 			if (_land_noreturn_vertical && _global_pos.alt > terrain_alt + _landingslope.flare_relative_alt()) {
 				_land_noreturn_vertical = false;
-				_land_stayonground = false;
 				goto landing_glideslope;
 
 			} else { //We should already be flaring, then just start the flare at where we're at. We are anyway closer than flare_horizontal_start_limit
