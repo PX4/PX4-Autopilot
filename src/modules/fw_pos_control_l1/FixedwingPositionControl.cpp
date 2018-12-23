@@ -1662,13 +1662,8 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 
 		if (!_land_noreturn_vertical) {
 			// just started with the flaring phase
-
-			// If no terrain valid, control the flare with pitch only.
-			if (_time_last_t_alt == 0) {
-				_flare_pitch_sp = 0.0f;
-				_flare_height = _global_pos.alt - terrain_alt;
-			}
-
+			_flare_pitch_sp = 0.0f;
+			_flare_height = _global_pos.alt - terrain_alt;
 			mavlink_log_info(&_mavlink_log_pub, "Landing, flaring");
 			_land_noreturn_vertical = true;
 
