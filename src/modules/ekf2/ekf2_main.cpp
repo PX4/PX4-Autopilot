@@ -1455,36 +1455,28 @@ void Ekf2::run()
 					lpos.hagl_max = INFINITY;
 				}
 
-				// Get covariances to vehicle odometry
-				float covariances[24];
-				_ekf.covariances_diagonal().copyTo(covariances);
+				// get pose covariance
+				float pose_covariance[36];
+				_ekf.get_pose_covariances(pose_covariance);
 
-				// get the covariance matrix size
-				const size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
-				const size_t VEL_URT_SIZE = sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
+				for (unsigned x = 0; x < 6; x++)
+					for (unsigned y = x; y < 6; y++)
+						odom.pose_covariance[x + y] = pose_covariance[x * 6 + y];
 
-				// initially set pose covariances to 0
-				for (size_t i = 0; i < POS_URT_SIZE; i++) {
-					odom.pose_covariance[i] = 0.0;
-				}
+				// get linear velocity covariance
+				matrix::SquareMatrix<float, 6> twist_cov = matrix::eye<float, 6>();
 
-				// set the position variances
-				odom.pose_covariance[odom.COVARIANCE_MATRIX_X_VARIANCE] = covariances[7];
-				odom.pose_covariance[odom.COVARIANCE_MATRIX_Y_VARIANCE] = covariances[8];
-				odom.pose_covariance[odom.COVARIANCE_MATRIX_Z_VARIANCE] = covariances[9];
+				// unknown angular velocity covariance matrix
+				float lv_cov[9];
+				_ekf.get_velocity_covariances(lv_cov);
+				matrix::SquareMatrix<float, 3> linvel_cov(lv_cov);
 
-				// TODO: implement propagation from quaternion covariance to Euler angle covariance
-				// by employing the covariance law
+				// parse twist covariance
+				twist_cov.slice<3, 3>(0, 0) = linvel_cov;
 
-				// initially set velocity covariances to 0
-				for (size_t i = 0; i < VEL_URT_SIZE; i++) {
-					odom.velocity_covariance[i] = 0.0;
-				}
-
-				// set the linear velocity variances
-				odom.velocity_covariance[odom.COVARIANCE_MATRIX_VX_VARIANCE] = covariances[4];
-				odom.velocity_covariance[odom.COVARIANCE_MATRIX_VY_VARIANCE] = covariances[5];
-				odom.velocity_covariance[odom.COVARIANCE_MATRIX_VZ_VARIANCE] = covariances[6];
+				for (unsigned x = 0; x < 6; x++)
+					for (unsigned y = x; y < 6; y++)
+						odom.velocity_covariance[x * 6 + y] = linvel_cov(x,y);
 
 				// publish vehicle local position data
 				_vehicle_local_position_pub.update();
