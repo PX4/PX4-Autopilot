@@ -43,6 +43,7 @@
 #include <px4_defines.h>
 #include <systemlib/px4_macros.h>
 
+#include <cmath>
 
 #define CAT3_(A, B, C)    A##B##C
 #define CAT3(A, B, C)     CAT3_(A, B, C)
