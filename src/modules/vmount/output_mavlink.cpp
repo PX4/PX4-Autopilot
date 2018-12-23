@@ -40,6 +40,8 @@
 
 #include "output_mavlink.h"
 
+#include <math.h>
+
 #include <uORB/topics/vehicle_command.h>
 #include <px4_defines.h>
 

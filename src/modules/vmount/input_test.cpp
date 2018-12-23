@@ -39,6 +39,8 @@
 
 #include "input_test.h"
 
+#include <math.h>
+
 #include <px4_posix.h>
 
 

@@ -43,6 +43,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <math.h>
 
 class ParameterTest : public UnitTest
 {

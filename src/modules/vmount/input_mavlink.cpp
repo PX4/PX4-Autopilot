@@ -48,6 +48,7 @@
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <errno.h>
+#include <math.h>
 
 namespace vmount
 {
