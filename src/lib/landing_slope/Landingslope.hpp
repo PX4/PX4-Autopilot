@@ -70,14 +70,6 @@ public:
 
 	/**
 	 *
-	 * @return relative altitude of point on landing slope at distance to landing waypoint=wp_landing_distance
-	 * Performs check if aircraft is in front of waypoint to avoid climbout
-	 */
-	float getLandingSlopeRelativeAltitudeSave(float wp_landing_distance, float bearing_lastwp_currwp,
-			float bearing_airplane_currwp);
-
-	/**
-	 *
 	 * @return Relative altitude of point on landing slope at distance to landing waypoint=wp_landing_distance
 	 */
 	static float getLandingSlopeRelativeAltitude(float wp_landing_distance, float horizontal_slope_displacement,
@@ -97,8 +89,9 @@ public:
 	static float getLandingSlopeWPDistance(float slope_altitude, float wp_landing_altitude,
 					       float horizontal_slope_displacement, float landing_slope_angle_rad);
 
-	float getFlareCurveRelativeAltitudeSave(float wp_landing_distance, float bearing_lastwp_currwp,
-						float bearing_airplane_currwp);
+	float getFlareCurveLengthAtAltiude(float alt);
+
+	float getFlareCurveRelativeAltitude(float wp_landing_distance);
 
 	void update(float landing_slope_angle_rad_new,
 		    float flare_relative_alt_new,

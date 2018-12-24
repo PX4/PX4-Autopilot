@@ -409,6 +409,83 @@ PARAM_DEFINE_FLOAT(FW_LND_AIRSPD_SC, 1.3f);
  */
 PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
 
+/**
+ * Max time for terrain to be invalid during landing (length of break)
+ *
+ * @unit s
+ * @min 0.1
+ * @decimal 2
+ * @increment 0.01
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_TERR_TO, 1.0f);
+
+/**
+ * Max time to wait for valid terrain estimate during landing
+ *
+ * @unit s
+ * @min 0.1
+ * @decimal 2
+ * @increment 0.01
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_WAIT_TERR, 10.0f);
+
+/**
+ * Require terrain estimate to be valid before entering flare. Enabling this can
+ * lead to an unflared landing, if no rangefinder is present. If enabled, set the
+ * flare start altitude to be within the rangefinder's range. Otherwise the flare
+ * will start when the rangefinder gets it's first valid range reading (if not
+ * FW_LND_MAX_MV past the horizontal flare starting point).
+ *
+ * @boolean
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_INT32(FW_LND_REQ_TERR, 0);
+
+/**
+ * The maximum amount that the landing point can be moved further after the rangefinder has activated
+ *
+ * If the shift is greater than this amount, a go-around will occur. The shift is there to make the
+ * landing occur in a pre-defined vertical pattern and to prevent dangerous dives.
+ *
+ * Set to a large value to disable landing aborts
+ *
+ * @unit m
+ * @min 0.0
+ * @decimal 1
+ * @increment 0.01
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_MAX_MV, 500.0f);
+
+/**
+ * The maximum altitude under which the glide slope position will be readjusted.
+ *
+ * If the rangefinder gets a valid reading under this altitude causing the glide slope altitude
+ * setpoint to change, the landing point will be moved further so that the setpoint will remain the same.
+ * Above this altitude the glide slope position will not be changed
+ *
+ * @unit m
+ * @min 0.0
+ * @decimal 1
+ * @increment 0.01
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_MV_ALT, 0.0f);
+
+/**
+ * How many percent we can be above the glide slope altitude setpoint to not readjust the slope position.
+ * Only applied when under FW_LND_MV_ALT and not flaring.
+ *
+ * @unit norm
+ * @min 0.1
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_GS_TOL, 0.1f);
 
 
 /*

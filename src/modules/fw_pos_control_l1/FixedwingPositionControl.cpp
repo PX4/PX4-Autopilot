@@ -82,7 +82,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_wait_terrain = param_find("FW_LND_WAIT_TERR");
 	_parameter_handles.land_require_valid_terrain = param_find("FW_LND_REQ_TERR");
 	_parameter_handles.land_max_aimpoint_shift = param_find("FW_LND_MAX_MV");
-	_parameter_handles.land_flare_horizontal_start_limit = param_find("FW_LND_FL_HLIM");
+	_parameter_handles.land_max_gs_mv_alt = param_find("FW_LND_MV_ALT");
+	_parameter_handles.land_gs_max_alt_err = param_find("FW_LND_GS_TOL");
 
 	_parameter_handles.time_const = param_find("FW_T_TIME_CONST");
 	_parameter_handles.time_const_throt = param_find("FW_T_THRO_CONST");
@@ -161,7 +162,8 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_wait_terrain, &(_parameters.land_wait_terrain));
 	param_get(_parameter_handles.land_require_valid_terrain, &(_parameters.land_require_valid_terrain));
 	param_get(_parameter_handles.land_max_aimpoint_shift, &(_parameters.land_max_aimpoint_shift));
-	param_get(_parameter_handles.land_flare_horizontal_start_limit, &(_parameters.land_flare_horizontal_start_limit));
+	param_get(_parameter_handles.land_max_gs_mv_alt, &(_parameters.land_max_gs_mv_alt));
+	param_get(_parameter_handles.land_gs_max_alt_err, &(_parameters.land_gs_max_alt_err));
 
 	// VTOL parameter VTOL_TYPE
 	if (_parameter_handles.vtol_type != PARAM_INVALID) {
@@ -1456,7 +1458,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 	// we want the plane to keep tracking the desired flight path until we start flaring
 	// if we go into heading hold mode earlier then we risk to be pushed away from the runway by cross winds
 	if ((_parameters.land_heading_hold_horizontal_distance > 0.0f) && !_land_noreturn_horizontal &&
-	    ((wp_distance + _land_slope_shift + _land_flare_shift < _parameters.land_heading_hold_horizontal_distance)
+	    ((wp_distance + _land_touchdown_point_shift < _parameters.land_heading_hold_horizontal_distance)
 	     || _land_noreturn_vertical)) {
 
 		if (pos_sp_prev.valid) {
@@ -1544,36 +1546,42 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 	}
 
 	/* Check if we should start flaring with a vertical and a
-	 * horizontal limit (with some tolerance)
-	 * The horizontal limit is only applied when we are in front of the wp
+	 * horizontal limit.
+	 * Checking for land_noreturn to avoid unwanted climb out
 	 */
-	if (((_global_pos.alt < terrain_alt + _landingslope.flare_relative_alt()) &&
-	     (wp_distance < _landingslope.flare_length() + _parameters.land_flare_horizontal_start_limit) &&
-	     ((_parameters.land_require_valid_terrain && _time_last_t_alt > 0) || !_parameters.land_require_valid_terrain
-	      || !_parameters.land_use_terrain_estimate)) ||
-	    _land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
+
+	float landing_slope_alt_rel_desired = _landingslope.getLandingSlopeRelativeAltitude(
+			wp_distance + _land_touchdown_point_shift);
+
+	if (_land_noreturn_vertical || ((landing_slope_alt_rel_desired < _landingslope.flare_relative_alt()) &&
+					(wp_distance < _landingslope.flare_length() - _land_touchdown_point_shift) &&
+					((_parameters.land_require_valid_terrain && _time_last_t_alt > 0) || !_parameters.land_require_valid_terrain
+					 || !_parameters.land_use_terrain_estimate))) {
 
 		// Rangefinder bump handling: check if really at flare heights (_land_noreturn_vertical could be set without rangefinder)
 		// and if so, move the glide path accordingly.
 
-		// First time activated terrain at flare heights. Significant if we are higher than we thought (then the plane would naturally want to dive)
+		// Valid terrain gotten for the first time when we should already be flaring (altitude and distance to landing point are small enough).
 		if (!_land_rngfnd_bump_handled && _time_last_t_alt > 0) {
 			//Check that we are not in the flare phase just because we thought the altitude was right, but are actually too high
 			//(meaning that _land_noreturn_vertical was set to true too soon)
 			//the rangefinder bump will be handled by the glideslope part
-			if (_land_noreturn_vertical && _global_pos.alt > terrain_alt + _landingslope.flare_relative_alt()) {
+			if (_prev_tecs_alt_sp > _landingslope.flare_relative_alt() + terrain_alt) {
 				_land_noreturn_vertical = false;
 				goto landing_glideslope;
 
-			} else { //We should already be flaring, then just start the flare at where we're at. We are anyway closer than flare_horizontal_start_limit
-				//Put the flare alt setpoint to be continuous with the current tecs alt setpoint (prevent jump caused by changing terrain alt)
+			} else {
+				// We should already be flaring.
 
-				_land_flare_shift = _landingslope.getFlareCurveLengthAtAltiude(_tecs.hgt_setpoint_adj() - terrain_alt) - wp_distance;
+				// Move flare so that the desired altitude is the same as the current tecs alt setpoint (prevents the jump caused by changing terrain alt)
+				// Don't move the TD point any closer though.
+				_land_touchdown_point_shift = max(0.0f, _landingslope.getFlareCurveLengthAtAltiude(pos_sp_curr.alt +
+								  landing_slope_alt_rel_desired - terrain_alt) - wp_distance);
 
-				mavlink_log_critical(&_mavlink_log_pub, "Flare shift %d", (int)_land_flare_shift);
+				mavlink_log_info(&_mavlink_log_pub, "Flare shift %d", (int)_land_touchdown_point_shift);
 
-				if (_land_flare_shift > _parameters.land_max_aimpoint_shift) {
-					_fw_pos_ctrl_status.abort_landing = true;
+				if (_land_touchdown_point_shift > _parameters.land_max_aimpoint_shift) {
+					abort_landing(true);
 				}
 
 				//don't come here again
@@ -1605,7 +1613,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			}
 		}
 
-		float flare_curve_alt_rel = _landingslope.getFlareCurveRelativeAltitudeSave(wp_distance + _touchdown_point_shift);
+		float flare_curve_alt_rel = _landingslope.getFlareCurveRelativeAltitude(wp_distance + _land_touchdown_point_shift);
 
 		const float airspeed_land = _parameters.land_airspeed_scale * _parameters.airspeed_min;
 		const float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
@@ -1640,6 +1648,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 		// _flare pitch_sp will be overridden if we have valid terrain altitude during flare -> following the predefined flare path
 		_att_sp.pitch_body = _flare_pitch_sp;
 
+
 	} else {
 
 		/* intersect glide slope:
@@ -1652,10 +1661,9 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 		 * until the intersection with slope
 		 * */
 
-		float altitude_desired = terrain_alt;
+landing_glideslope:
 
-		const float landing_slope_alt_rel_desired = _landingslope.getLandingSlopeRelativeAltitudeSave(
-					wp_distance + _touchdown_point_shift);
+		float altitude_desired = terrain_alt;
 
 		if (_global_pos.alt > terrain_alt + landing_slope_alt_rel_desired || _land_onslope) {
 
@@ -1664,11 +1672,11 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 				// if we don't have valid terrain here and are under 0.5 * FW_LND_FLALT, set the terrain altitude offset
 				// so that our current altitude represents 0.5 * FW_LND_FLALT on the next approach
 				if (_time_last_t_alt == 0 && _global_pos.alt < terrain_alt + 0.5f * _landingslope.flare_relative_alt()) {
-					_terrain_offset_land_temp = _global_pos.alt - 0.5f * _landingslope.flare_relative_alt() -
-								    (terrain_alt - _terrain_offset_land);
+					_land_terrain_alt_offset_temporary = _global_pos.alt - 0.5f * _landingslope.flare_relative_alt() -
+									     (terrain_alt - _land_terrain_alt_offset);
 				}
 
-				_fw_pos_ctrl_status.abort_landing = true;
+				abort_landing(true);
 				mavlink_log_info(&_mavlink_log_pub, "Overshoot landing");
 			}
 
@@ -1676,23 +1684,28 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			else if (!_land_rngfnd_bump_handled && _time_last_t_alt > 0) {
 
 				// Move the land point forward so that we seem to be at the correct altitude
-				// if the altitude error would be over 15% of our current altitude from ground.
-				// Should there be a check that will prevent the slope from being moved if above a certain altitude?
-				if (landing_slope_alt_rel_desired < 0.85f * (_global_pos.alt - terrain_alt)) {
-					_touchdown_point_shift = _landingslope.getLandingSlopeWPDistance(_tecs.hgt_setpoint_adj(), terrain_alt,
-								 _landingslope.horizontal_slope_displacement(),
-								 _landingslope.landing_slope_angle_rad()) - wp_distance;
+				// if the altitude error would be over FW_LND_GS_TOL of the current slope altitude setpoint
+				// Don't move the slope if the setpoint is above FW_LND_MV_ALT
+				// Always move the slope if the flare horizontal limit has been passed.
+				if (((_global_pos.alt - terrain_alt) > landing_slope_alt_rel_desired * (1.0f + _parameters.land_gs_max_alt_err)  &&
+				     landing_slope_alt_rel_desired < _parameters.land_max_gs_mv_alt) || wp_distance < _landingslope.flare_length()) {
+					_land_touchdown_point_shift = _landingslope.getLandingSlopeWPDistance(_prev_tecs_alt_sp, terrain_alt,
+								      _landingslope.horizontal_slope_displacement(),
+								      _landingslope.landing_slope_angle_rad()) - wp_distance;
+
+					// Don't move the touchdown point backwards
+					_land_touchdown_point_shift = max(0.0f, _land_touchdown_point_shift);
 
 					// inform about this movement
-					mavlink_log_info(&_mavlink_log_pub, "Gs shift %d", (int)_touchdown_point_shift);
-					_touchdown_point_shift = max(0.0f, _touchdown_point_shift);
+					mavlink_log_info(&_mavlink_log_pub, "Gs shift %d", (int)_land_touchdown_point_shift);
 
 					//Check if the slope shift was too much at this point
-					if (_touchdown_point_shift > _parameters.land_max_aimpoint_shift) {
-						_fw_pos_ctrl_status.abort_landing = true;
+					if (_land_touchdown_point_shift > _parameters.land_max_aimpoint_shift) {
+						abort_landing(true);
 					}
 
-					landing_slope_alt_rel_desired = _landingslope.getLandingSlopeRelativeAltitudeSave(wp_distance + _land_slope_shift);
+					landing_slope_alt_rel_desired = _landingslope.getLandingSlopeRelativeAltitude(wp_distance +
+									_land_touchdown_point_shift);
 				}
 
 				_land_rngfnd_bump_handled = true;
@@ -1727,6 +1740,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 					   _parameters.throttle_cruise,
 					   false,
 					   radians(_parameters.pitch_limit_min));
+
 	}
 }
 
@@ -1935,10 +1949,11 @@ FixedwingPositionControl::reset_landing_state()
 		// reset terrain estimation relevant values
 		_time_last_t_alt = 0;
 		_land_terrain_alt_offset = _land_terrain_alt_offset_temporary;
+		_land_touchdown_point_shift = 0.0f;
+		_land_rngfnd_bump_handled = false;
 
 		_land_noreturn_horizontal = false;
 		_land_noreturn_vertical = false;
-		_land_stayonground = false;
 		_land_motor_lim = false;
 		_land_onslope = false;
 
@@ -2076,6 +2091,8 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 				    climbout_mode, climbout_pitch_min_rad,
 				    throttle_min, throttle_max, throttle_cruise,
 				    pitch_min_rad, pitch_max_rad);
+
+	_prev_tecs_alt_sp = alt_sp;
 
 	tecs_status_publish();
 }
