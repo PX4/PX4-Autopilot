@@ -1550,10 +1550,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 	 * Checking for land_noreturn to avoid unwanted climb out
 	 */
 
-	float landing_slope_alt_rel_desired = _landingslope.getLandingSlopeRelativeAltitude(
-			wp_distance + _land_touchdown_point_shift);
-
-	if (_land_noreturn_vertical || ((landing_slope_alt_rel_desired < _landingslope.flare_relative_alt()) &&
+	if (_land_noreturn_vertical || ((_prev_tecs_alt_sp < _landingslope.flare_relative_alt() + terrain_alt) &&
 					(wp_distance < _landingslope.flare_length() - _land_touchdown_point_shift) &&
 					((_parameters.land_require_valid_terrain && _time_last_t_alt > 0) || !_parameters.land_require_valid_terrain
 					 || !_parameters.land_use_terrain_estimate))) {
@@ -1603,7 +1600,8 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			_att_sp.fw_control_yaw = true;
 		}
 
-		if ((_global_pos.alt < terrain_alt + _landingslope.motor_lim_relative_alt()) ||
+		if (((_global_pos.alt < terrain_alt + _landingslope.motor_lim_relative_alt()) &&
+		     (wp_distance_save < _landingslope.flare_length() + 5.0f)) || // Only kill throttle when close to WP
 		    _land_motor_lim) {
 			throttle_max = min(throttle_max, _parameters.throttle_land_max);
 
@@ -1664,6 +1662,9 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 landing_glideslope:
 
 		float altitude_desired = terrain_alt;
+
+		float landing_slope_alt_rel_desired = _landingslope.getLandingSlopeRelativeAltitude(
+				wp_distance + _land_touchdown_point_shift);
 
 		if (_global_pos.alt > terrain_alt + landing_slope_alt_rel_desired || _land_onslope) {
 
