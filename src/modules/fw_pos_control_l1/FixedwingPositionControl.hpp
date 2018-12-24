@@ -201,7 +201,6 @@ private:
 	/* Landing */
 	bool _land_noreturn_horizontal{false};
 	bool _land_noreturn_vertical{false};
-	bool _land_stayonground{false};
 	bool _land_motor_lim{false};
 	bool _land_onslope{false};
 	bool _land_abort{false};
@@ -215,7 +214,6 @@ private:
 
 	float _flare_height{0.0f};				///< estimated height to ground at which flare started */
 	float _flare_pitch_sp{0.0f};			///< Current forced (i.e. not determined using TECS) flare pitch setpoint */
-	float _flare_curve_alt_rel_last{0.0f};
 	float _target_bearing{0.0f};				///< estimated height to ground at which flare started */
 
 	bool _was_in_air{false};				///< indicated wether the plane was in the air in the previous interation*/

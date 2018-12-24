@@ -1585,24 +1585,27 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 		// Rangefinder bump handling: check if really at flare heights (_land_noreturn_vertical could be set without rangefinder)
 		// and if so, move the glide path accordingly.
 
-		// First time activated terrain at flare heights. Significant if we are higher than we thought (then the plane would naturally want to dive)
+		// Valid terrain gotten for the first time when we should already be flaring (altitude and distance to landing point are small enough).
 		if (!_land_rngfnd_bump_handled && _time_last_t_alt > 0) {
 			//Check that we are not in the flare phase just because we thought the altitude was right, but are actually too high
 			//(meaning that _land_noreturn_vertical was set to true too soon)
 			//the rangefinder bump will be handled by the glideslope part
-			if (_land_noreturn_vertical && _global_pos.alt > terrain_alt + _landingslope.flare_relative_alt()) {
+			if (_prev_tecs_alt_sp > _landingslope.flare_relative_alt() + terrain_alt) {
 				_land_noreturn_vertical = false;
 				goto landing_glideslope;
 
-			} else { //We should already be flaring, then just start the flare at where we're at. We are anyway closer than flare_horizontal_start_limit
-				//Put the flare alt setpoint to be continuous with the current tecs alt setpoint (prevent jump caused by changing terrain alt)
+			} else {
+				// We should already be flaring.
 
-				_land_flare_shift = _landingslope.getFlareCurveLengthAtAltiude(_tecs.hgt_setpoint_adj() - terrain_alt) - wp_distance;
+				// Move flare so that the desired altitude is the same as the current tecs alt setpoint (prevents the jump caused by changing terrain alt)
+				// Don't move the TD point any closer though.
+				_land_touchdown_point_shift = max(0.0f, _landingslope.getFlareCurveLengthAtAltiude(pos_sp_curr.alt +
+								  landing_slope_alt_rel_desired - terrain_alt) - wp_distance);
 
-				mavlink_log_critical(&_mavlink_log_pub, "Flare shift %d", (int)_land_flare_shift);
+				mavlink_log_info(&_mavlink_log_pub, "Flare shift %d", (int)_land_touchdown_point_shift);
 
-				if (_land_flare_shift > _parameters.land_max_aimpoint_shift) {
-					_fw_pos_ctrl_status.abort_landing = true;
+				if (_land_touchdown_point_shift > _parameters.land_max_aimpoint_shift) {
+					abort_landing(true);
 				}
 
 				//don't come here again
@@ -1723,8 +1726,7 @@ landing_glideslope:
 				// Always move the slope if the flare horizontal limit has been passed.
 				if (((_global_pos.alt - terrain_alt) > landing_slope_alt_rel_desired * (1.0f + _parameters.land_gs_max_alt_err)  &&
 				     landing_slope_alt_rel_desired < _parameters.land_max_gs_mv_alt) || wp_distance < _landingslope.flare_length()) {
-					_land_touchdown_point_shift = _landingslope.getLandingSlopeWPDistance(_land_prev_tecs_alt_sp, terrain_alt,
-								      _landingslope.horizontal_slope_displacement(),
+					_land_touchdown_point_shift = _landingslope.getLandingSlopeWPDistance(_land_prev_tecs_alt_sp, terrain_alt,								      _landingslope.horizontal_slope_displacement(),
 								      _landingslope.landing_slope_angle_rad()) - wp_distance;
 
 					// Don't move the touchdown point backwards
@@ -2127,6 +2129,8 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 				    climbout_mode, climbout_pitch_min_rad,
 				    throttle_min, throttle_max, throttle_cruise,
 				    pitch_min_rad, pitch_max_rad);
+
+	_prev_tecs_alt_sp = alt_sp;
 
 	tecs_status_publish();
 }

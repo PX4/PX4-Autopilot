@@ -410,6 +410,7 @@ PARAM_DEFINE_FLOAT(FW_LND_AIRSPD_SC, 1.3f);
 PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
 
 /**
+ * handling the change in altitude resulting from rangefinder activation (transient terrain altitude change) during landing
  * Require terrain estimate to be valid before entering flare. Enabling this can
  * lead to an unflared landing, if no rangefinder is present. If enabled, set the
  * flare start altitude to be within the rangefinder's range. Otherwise the flare
