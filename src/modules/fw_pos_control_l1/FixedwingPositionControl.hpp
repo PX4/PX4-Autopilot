@@ -225,7 +225,7 @@ private:
 
 	bool _land_rngfnd_bump_handled{false};			///< true when the rangefinder bump is handled */
 	float _land_touchdown_point_shift{0.0f};		///< how much the flare / glide slope will be moved after the rangefinder bump*/
-	float _prev_tecs_alt_sp{0.0};				///< the latest altitude setpoint that was sent to tecs*/
+	float _land_prev_tecs_alt_sp{0.0};			///< the latest altitude setpoint that was sent to tecs*/
 
 	/* Values for adjusting the landing altitude */
 	float _land_terrain_alt_offset{0.0f};			///< offset that will be added to _pos_sp_curr_alt_unadjusted */
