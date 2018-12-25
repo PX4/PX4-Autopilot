@@ -1517,7 +1517,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			// we have started landing phase but don't have valid terrain
 			// wait for some time, maybe we will soon get a valid estimate
 			// until then just use the altitude of the landing waypoint
-			if (hrt_elapsed_time(&_time_started_landing) < _parameters.land_wait_terrain * 1_s) {
+			if (hrt_elapsed_time(&_time_started_landing) < 10_s) {
 				terrain_alt = pos_sp_curr.alt;
 
 			} else {
@@ -1526,8 +1526,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 				abort_landing(true);
 			}
 
-		} else if ((!_global_pos.terrain_alt_valid
-			    && hrt_elapsed_time(&_time_last_t_alt) < _parameters.land_terrain_timeout * 1_s)
+		} else if ((!_global_pos.terrain_alt_valid && hrt_elapsed_time(&_time_last_t_alt) < T_ALT_TIMEOUT)
 			   || _land_noreturn_vertical) {
 			// use previous terrain estimate for some time and hope to recover
 			// if we are already flaring (land_noreturn_vertical) then just
@@ -1602,7 +1601,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 				_land_touchdown_point_shift = max(0.0f, _landingslope.getFlareCurveLengthAtAltiude(pos_sp_curr.alt +
 								  landing_slope_alt_rel_desired - terrain_alt) - wp_distance);
 
-				mavlink_log_info(&_mavlink_log_pub, "Flare shift %d", (int)_land_touchdown_point_shift);
+				mavlink_log_info(&_mavlink_log_pub, "TD moved %d", (int)_land_touchdown_point_shift);
 
 				if (_land_touchdown_point_shift > _parameters.land_max_aimpoint_shift) {
 					abort_landing(true);

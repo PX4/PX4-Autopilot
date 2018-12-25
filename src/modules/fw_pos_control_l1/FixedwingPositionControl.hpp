@@ -114,6 +114,8 @@ static constexpr float HDG_HOLD_YAWRATE_THRESH = 0.15f;	// max yawrate at which 
 static constexpr float HDG_HOLD_MAN_INPUT_THRESH =
 	0.01f; // max manual roll/yaw input from user which does not change the locked heading
 
+static constexpr hrt_abstime T_ALT_TIMEOUT = 1_s; // time after which we abort landing if terrain estimate is not valid
+
 static constexpr float THROTTLE_THRESH =
 	0.05f;	///< max throttle from user which will not lead to motors spinning up in altitude controlled modes
 static constexpr float MANUAL_THROTTLE_CLIMBOUT_THRESH =
@@ -201,6 +203,7 @@ private:
 	/* Landing */
 	bool _land_noreturn_horizontal{false};
 	bool _land_noreturn_vertical{false};
+	bool _land_stayonground{false};
 	bool _land_motor_lim{false};
 	bool _land_onslope{false};
 	bool _land_abort{false};
@@ -214,6 +217,7 @@ private:
 
 	float _flare_height{0.0f};				///< estimated height to ground at which flare started */
 	float _flare_pitch_sp{0.0f};			///< Current forced (i.e. not determined using TECS) flare pitch setpoint */
+	float _flare_curve_alt_rel_last{0.0f};
 	float _target_bearing{0.0f};				///< estimated height to ground at which flare started */
 
 	bool _was_in_air{false};				///< indicated wether the plane was in the air in the previous interation*/
