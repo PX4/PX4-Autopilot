@@ -134,7 +134,7 @@ then
 
 	param set VT_TYPE 2
 	param set VT_MOT_COUNT 4
-	param set VT_F_TRANS_THR 1
+	param set F_TRANS_THR 1
 	param set VT_DWN_PITCH_MAX 8
 	param set VT_FW_QC_P 55
 	param set VT_FW_QC_R 55
@@ -143,7 +143,7 @@ then
 	param set VT_WV_LND_EN 1
 	param set VT_WV_LTR_EN 1
 	param set VT_FWD_THRUST_SC 4
-	param set VT_F_TRANS_DUR 1
+	param set F_TRANS_DUR 1
 	param set VT_IDLE_PWM_MC 1025
 	param set VT_B_REV_OUT 0.5
 	param set VT_B_TRANS_THR 0.7

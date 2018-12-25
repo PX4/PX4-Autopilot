@@ -90,6 +90,7 @@ public:
 	/* Setters */
 	void set_time_constant(float time_constant);
 	void set_k_p(float k_p);
+	void set_k_d(float k_d);
 	void set_k_i(float k_i);
 	void set_k_ff(float k_ff);
 	void set_d_term_lp_fre(float d_fre);
@@ -110,6 +111,7 @@ protected:
 	float _tc;
 	float _k_p;
 	float _k_i;
+	float _k_d;
 	float _k_ff;
 	float _d_term_lp_fre;
 	float _integrator_max;
@@ -117,6 +119,7 @@ protected:
 	float _last_output;
 	float _integrator;
 	float _rate_error;
+	float _rate_error_last;
 	float _rate_setpoint;
 	float _bodyrate_setpoint;
 	float constrain_airspeed(float airspeed, float minspeed, float maxspeed);

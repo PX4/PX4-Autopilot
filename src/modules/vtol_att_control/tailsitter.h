@@ -104,6 +104,9 @@ private:
 	matrix::Quatf _q_trans_sp;
 	matrix::Vector3f _trans_rot_axis;
 
+	float _alt_sp;
+	float _vert_i_term;
+
 	void parameters_update() override;
 
 };

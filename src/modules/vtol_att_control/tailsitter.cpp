@@ -76,8 +76,6 @@ Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 	_params_handles_tailsitter.front_trans_dur_p2 = param_find("F_TRANS_DUR_P2");
 }
 
-}
-
 void
 Tailsitter::parameters_update()
 {
@@ -98,7 +96,7 @@ void Tailsitter::update_vtol_state()
 	*/
 
 	Eulerf euler = Quatf(_v_att->q);
-	float time_since_f_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
+	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
 	float time_since_b_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.b_trans_start_t) * 1e-6f;
 	float pitch = euler.theta();
 
@@ -121,7 +119,7 @@ void Tailsitter::update_vtol_state()
 			break;
 
 		case TRANSITION_BACK:
-			float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
+			time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
 
 			// check if we have reached pitch angle to switch to MC mode
 			if (pitch >= PITCH_TRANSITION_BACK && time_since_b_trans_start >= 1.0f) {
@@ -151,7 +149,7 @@ void Tailsitter::update_vtol_state()
 				_vtol_schedule.fw_start = hrt_absolute_time();
 
 				// check if we have reached airspeed  and the transition time is over the setpoint to switch to TRANSITION P2 mode
-				if ((airspeed_condition_satisfied && (time_since_f_trans_start >= (_params->front_trans_duration + _params_tailsitter.front_trans_dur_p2))) || can_transition_on_ground()) {
+				if ((airspeed_condition_satisfied && (time_since_trans_start >= (_params->front_trans_duration + _params_tailsitter.front_trans_dur_p2))) || can_transition_on_ground()) {
 					_vtol_schedule.flight_mode = FW_MODE;
 				}
 
@@ -289,13 +287,13 @@ void Tailsitter::control_altitude()
 		mavlink_log_critical(&mavlink_log_pub, "ffd:%.2f fdb:%.2f", (double)(thrust_ffd), (double)(thrust_fdb));
 	}
 */
-	_v_att_sp->thrust    = thrust_ffd + thrust_fdb;
-	_v_att_sp->thrust    = math::constrain(_v_att_sp->thrust, 0.2f, 0.8f);
+	_v_att_sp->thrust_body[2]    = thrust_ffd + thrust_fdb;
+	_v_att_sp->thrust_body[2]    = math::constrain(_v_att_sp->thrust_body[2], 0.2f, 0.8f);
 }
 
 void Tailsitter::update_transition_state()
 {
-	float time_since_f_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
+	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
 
 	if (!_flag_was_in_trans_mode) {
 		_flag_was_in_trans_mode = true;
@@ -314,10 +312,10 @@ void Tailsitter::update_transition_state()
 			_q_trans_start = Eulerf(0.0f, _fw_virtual_att_sp->pitch_body, yaw_sp);
 
 		// create time dependant pitch angle set point + 0.2 rad overlap over the switch value
-		_v_att_sp->pitch_body = _pitch_transition_start	- fabsf(PITCH_TRANSITION_FRONT_P1 - _pitch_transition_start) *
-					time_since_f_trans_start / _params->front_trans_duration;
-		_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, PITCH_TRANSITION_FRONT_P1,
-							_pitch_transition_start);
+		//_v_att_sp->pitch_body = _pitch_transition_start	- fabsf(PITCH_TRANSITION_FRONT_P1 - _pitch_transition_start) *
+		//			time_since_trans_start / _params->front_trans_duration;
+		//_v_att_sp->pitch_body = math::constrain(_v_att_sp->pitch_body, PITCH_TRANSITION_FRONT_P1,
+		//					_pitch_transition_start);
 
 			// attitude during transitions are controlled by mc attitude control so rotate the desired attitude to the
 			// multirotor frame
@@ -380,7 +378,7 @@ void Tailsitter::update_transition_state()
 void Tailsitter::waiting_on_tecs()
 {
 	// copy the last trust value from the front transition
-	_v_att_sp->thrust_body[0] = _thrust_transition;
+	_v_att_sp->thrust_body[2] = _thrust_transition;
 }
 
 void Tailsitter::update_fw_state()

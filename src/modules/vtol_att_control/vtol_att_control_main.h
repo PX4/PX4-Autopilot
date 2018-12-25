@@ -186,6 +186,7 @@ private:
 		param_t fw_pitch_trim;
 		param_t front_trans_time_openloop;
 		param_t front_trans_time_min;
+		param_t vt_safe_alt;
 		param_t front_trans_duration;
 		param_t front_trans_pitch_sp_p1;
 		param_t back_trans_duration;

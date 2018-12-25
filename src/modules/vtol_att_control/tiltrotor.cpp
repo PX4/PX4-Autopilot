@@ -115,7 +115,7 @@ void Tiltrotor::update_vtol_state()
 			break;
 
 		case TRANSITION_BACK:
-			float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
+			float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
 
 			if (_tilt_control <= _params_tiltrotor.tilt_mc && time_since_trans_start > _params->back_trans_duration) {
 				_vtol_schedule.flight_mode = MC_MODE;

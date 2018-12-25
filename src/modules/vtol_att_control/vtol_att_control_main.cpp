@@ -90,10 +90,6 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
 	_params_handles.vt_sweep_type = param_find("VT_SWEEP_TYPE");
 	_params_handles.vt_sweep_amp = param_find("VT_SWEEP_AMP");
-
-	_params_handles.wv_takeoff = param_find("VT_WV_TKO_EN");
-	_params_handles.wv_land = param_find("VT_WV_LND_EN");
-	_params_handles.wv_loiter = param_find("VT_WV_LTR_EN");
 	_params_handles.diff_thrust = param_find("VT_FW_DIFTHR_EN");
 	_params_handles.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
 

@@ -721,9 +721,9 @@ void FixedwingAttitudeControl::run()
 					_wheel_ctrl.reset_integrator();
 				}
 
-				float roll_sp = _att_sp.roll_body;
-				float pitch_sp = _att_sp.pitch_body;
-				float yaw_sp = _att_sp.yaw_body;
+				//float roll_sp = _att_sp.roll_body;
+				//float pitch_sp = _att_sp.pitch_body;
+				//float yaw_sp = _att_sp.yaw_body;
 
 				/* apply low-pass filtering to the rates for D-term */
 				rates(0) = _att.pitchspeed;

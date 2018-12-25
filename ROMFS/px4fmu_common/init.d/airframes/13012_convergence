@@ -62,7 +62,7 @@ then
 	param set SENS_BOARD_ROT 8
 
 	param set VT_B_TRANS_DUR  1
-	param set VT_F_TRANS_DUR  1.2
+	param set F_TRANS_DUR  1.2
 	param set VT_F_TR_OL_TM   4
 	param set VT_FW_DIFTHR_EN 1
 	param set VT_FW_DIFTHR_SC 0.17
