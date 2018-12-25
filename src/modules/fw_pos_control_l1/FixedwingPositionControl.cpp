@@ -1672,8 +1672,8 @@ landing_glideslope:
 
 		if (_global_pos.alt > terrain_alt + landing_slope_alt_rel_desired || _land_onslope) {
 
-			// Check if we've gone past the landing point without starting to flare
-			if (wp_distance < 0 && _time_last_t_alt == 0) {
+			// Check if we've gone way past the landing point without starting to flare
+			if (wp_distance < - _parameters.land_max_aimpoint_shift && _time_last_t_alt == 0) {
 				// if we don't have valid terrain here and are under 0.5 * FW_LND_FLALT, set the terrain altitude offset
 				// so that our current altitude represents 0.5 * FW_LND_FLALT on the next approach
 				if (_time_last_t_alt == 0 && _global_pos.alt < terrain_alt + 0.5f * _landingslope.flare_relative_alt()) {
