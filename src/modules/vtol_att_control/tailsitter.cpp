@@ -164,6 +164,17 @@ void Tailsitter::update_vtol_state()
 			break;
 		}
 	}
+	
+	/* Safety altitude protection, stay at MC mode when trige for once */
+	static bool alt_danger = false;
+	if ((_local_pos->z > (- _params->vt_safe_alt)) || (alt_danger == true))
+	{
+		if((_vtol_schedule.flight_mode == FW_MODE) || (_vtol_schedule.flight_mode == TRANSITION_FRONT_P1))
+		{
+			alt_danger             = true;
+		}
+		_vtol_schedule.flight_mode = MC_MODE;
+	}
 
 	// map tailsitter specific control phases to simple control modes
 	switch (_vtol_schedule.flight_mode) {
@@ -257,7 +268,6 @@ void Tailsitter::control_altitude()
 	float pitch          = euler.theta();
 	float ang_of_attack  = DEG_TO_RAD(90.0f) - pitch;
 	float horiz_vel      = sqrtf((_local_pos->vx * _local_pos->vx) + (_local_pos->vy * _local_pos->vy));
-
 	float thrust_ffd     = thr_from_acc_cmd(0.0f, horiz_vel, pitch, ang_of_attack);
 	//thrust_ffd           = _params->front_trans_throttle;
 

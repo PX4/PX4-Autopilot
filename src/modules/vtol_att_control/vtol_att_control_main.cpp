@@ -76,6 +76,7 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.front_trans_time_openloop = param_find("VT_F_TR_OL_TM");
 	_params_handles.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
 	_params_handles.fw_pitch_trim = param_find("VT_FW_PITCH_TRIM");
+	_params_handles.vt_safe_alt = param_find("VT_SAFE_ALT");
 	_params_handles.front_trans_duration = param_find("F_TRANS_DUR");
 	_params_handles.front_trans_pitch_sp_p1 = param_find("F_TRANS_PIT_SP");
 	_params_handles.back_trans_duration = param_find("VT_B_TRANS_DUR");
@@ -493,6 +494,7 @@ VtolAttitudeControl::parameters_update()
 				       _params.front_trans_time_min);
 
 
+	param_get(_params_handles.vt_safe_alt, &_params.vt_safe_alt);
 	param_get(_params_handles.front_trans_duration, &_params.front_trans_duration);
 	param_get(_params_handles.front_trans_pitch_sp_p1, &_params.front_trans_pitch_sp_p1);
 	param_get(_params_handles.back_trans_duration, &_params.back_trans_duration);

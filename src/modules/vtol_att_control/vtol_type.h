@@ -59,6 +59,7 @@ struct Params {
 	float fw_qc_max_roll;		// maximum roll angle FW mode (QuadChute)
 	float front_trans_time_openloop;
 	float front_trans_time_min;
+	float vt_safe_alt;
 	float front_trans_duration;
 	float front_trans_pitch_sp_p1;
 	float back_trans_duration;

@@ -27,11 +27,11 @@ set(config_module_list
 	drivers/imu/l3gd20
 	drivers/imu/lsm303d
 	drivers/magnetometer/hmc5883
-	drivers/magnetometer/lis3mdl
+	#drivers/magnetometer/lis3mdl
 	#drivers/mb12xx
 	#drivers/mkblctrl
 	drivers/imu/mpu6000
-	drivers/imu/mpu9250
+	#drivers/imu/mpu9250
 	#drivers/oreoled
 	#drivers/protocol_splitter
 	drivers/pwm_input
@@ -47,14 +47,14 @@ set(config_module_list
 	drivers/vmount
 
 	# distance sensors
-	drivers/distance_sensor/ll40ls
-	#drivers/distance_sensor/mb12xx
-	drivers/distance_sensor/sf0x
-	drivers/distance_sensor/sf1xx
-	drivers/distance_sensor/srf02
-	drivers/distance_sensor/teraranger
-	drivers/distance_sensor/tfmini
-	#drivers/distance_sensor/ulanding
+	# drivers/distance_sensor/ll40ls # Lidar-Lite
+	# drivers/distance_sensor/mb12xx # High Performance Ultrasonic (mb1240)
+	# drivers/distance_sensor/sf0x # LightWare SF10 and SF11 Lidar 
+	# drivers/distance_sensor/sf1xx # laser altimeter designed LiDAR (Lightware SF11/C)
+	# drivers/distance_sensor/srf02 # Ultra sonic sensor
+	# drivers/distance_sensor/teraranger # long range Time-of-Flight distance sensor
+	# drivers/distance_sensor/tfmini # Time-of-Flight distance sensor
+	# drivers/distance_sensor/ulanding
 	modules/sensors
 
 	#

@@ -130,6 +130,20 @@ PARAM_DEFINE_FLOAT(VT_SWEEP_AMP, 0.2f);
  * @decimal 2
  * @group VTOL Attitude Control
  */
+PARAM_DEFINE_FLOAT(VT_SAFE_ALT, 20.0f);
+
+/**
+ * Duration of a front transition
+ *
+ * Time in seconds used for a transition
+ *
+ * @unit s
+ * @min 0.00
+ * @max 20.00
+ * @increment 1
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
 PARAM_DEFINE_FLOAT(F_TRANS_DUR, 2.5f);
 
 /**
@@ -184,7 +198,7 @@ PARAM_DEFINE_FLOAT(VT_FW_PITCH_TRIM, 0.0f);
  * @decimal 3
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(F_TRANS_THR, 0.7f);
+PARAM_DEFINE_FLOAT(F_TRANS_THR, 0.65f);
 
 /**
  * Target throttle value for the transition to hover flight.

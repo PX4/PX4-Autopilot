@@ -79,7 +79,7 @@ PARAM_DEFINE_FLOAT(FW_R_TC, 0.4f);
  * @increment 0.05
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_P_TC, 0.4f);
+PARAM_DEFINE_FLOAT(FW_P_TC, 0.6f);
 
 /**
  * Pitch rate proportional gain.
@@ -94,7 +94,7 @@ PARAM_DEFINE_FLOAT(FW_P_TC, 0.4f);
  * @increment 0.005
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
+PARAM_DEFINE_FLOAT(FW_PR_P, 0.22f);
 
 /**
  * Pitch rate integrator gain.
@@ -109,19 +109,19 @@ PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
  * @increment 0.005
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_I, 0.006f);
+PARAM_DEFINE_FLOAT(FW_PR_I, 0.008f);
 
 /**
  * Pitch rate differential gain.
  *
  */
-PARAM_DEFINE_FLOAT(FW_PR_D, 0.005f);
+PARAM_DEFINE_FLOAT(FW_PR_D, 0.2f);
 
 /**
  * the cut-off frequency of Pitch rate controller D term.
  *
  */
-PARAM_DEFINE_FLOAT(FW_PR_D_CUTOFF, 25.0f);
+PARAM_DEFINE_FLOAT(FW_PR_D_CUTOFF, 30.0f);
 
 /**
  * Maximum positive / up pitch rate.
@@ -180,7 +180,7 @@ PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.4f);
  * @increment 0.005
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
+PARAM_DEFINE_FLOAT(FW_RR_P, 0.2f);
 
 /**
  * Roll rate integrator Gain
@@ -195,7 +195,7 @@ PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
  * @increment 0.005
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_RR_I, 0.01f);
+PARAM_DEFINE_FLOAT(FW_RR_I, 0.008f);
 
 /**
  * Roll integrator anti-windup
@@ -238,7 +238,7 @@ PARAM_DEFINE_FLOAT(FW_R_RMAX, 70.0f);
  * @increment 0.005
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_YR_P, 0.05f);
+PARAM_DEFINE_FLOAT(FW_YR_P, 0.5f);
 
 /**
  * Yaw rate integrator gain
@@ -395,7 +395,7 @@ PARAM_DEFINE_FLOAT(FW_RR_FF, 0.5f);
  * @increment 0.05
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_FF, 0.5f);
+PARAM_DEFINE_FLOAT(FW_PR_FF, 0.0f);
 
 /**
  * Yaw rate feed forward
@@ -409,7 +409,7 @@ PARAM_DEFINE_FLOAT(FW_PR_FF, 0.5f);
  * @increment 0.05
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_YR_FF, 0.3f);
+PARAM_DEFINE_FLOAT(FW_YR_FF, 0.0f);
 
 /**
  * Wheel steering rate feed forward
