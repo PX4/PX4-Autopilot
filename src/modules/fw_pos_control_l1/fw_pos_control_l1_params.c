@@ -410,28 +410,6 @@ PARAM_DEFINE_FLOAT(FW_LND_AIRSPD_SC, 1.3f);
 PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
 
 /**
- * Max time for terrain to be invalid during landing (length of break)
- *
- * @unit s
- * @min 0.1
- * @decimal 2
- * @increment 0.01
- * @group FW L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_LND_TERR_TO, 1.0f);
-
-/**
- * Max time to wait for valid terrain estimate during landing
- *
- * @unit s
- * @min 0.1
- * @decimal 2
- * @increment 0.01
- * @group FW L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_LND_WAIT_TERR, 10.0f);
-
-/**
  * Require terrain estimate to be valid before entering flare. Enabling this can
  * lead to an unflared landing, if no rangefinder is present. If enabled, set the
  * flare start altitude to be within the rangefinder's range. Otherwise the flare

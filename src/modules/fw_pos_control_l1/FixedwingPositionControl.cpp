@@ -78,8 +78,6 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_early_config_change = param_find("FW_LND_EARLYCFG");
 	_parameter_handles.land_airspeed_scale = param_find("FW_LND_AIRSPD_SC");
 	_parameter_handles.land_throtTC_scale = param_find("FW_LND_THRTC_SC");
-	_parameter_handles.land_terrain_timeout = param_find("FW_LND_TERR_TO");
-	_parameter_handles.land_wait_terrain = param_find("FW_LND_WAIT_TERR");
 	_parameter_handles.land_require_valid_terrain = param_find("FW_LND_REQ_TERR");
 	_parameter_handles.land_max_aimpoint_shift = param_find("FW_LND_MAX_MV");
 	_parameter_handles.land_max_gs_mv_alt = param_find("FW_LND_MV_ALT");
@@ -158,8 +156,6 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_early_config_change, &(_parameters.land_early_config_change));
 	param_get(_parameter_handles.land_airspeed_scale, &(_parameters.land_airspeed_scale));
 	param_get(_parameter_handles.land_throtTC_scale, &(_parameters.land_throtTC_scale));
-	param_get(_parameter_handles.land_terrain_timeout, &(_parameters.land_terrain_timeout));
-	param_get(_parameter_handles.land_wait_terrain, &(_parameters.land_wait_terrain));
 	param_get(_parameter_handles.land_require_valid_terrain, &(_parameters.land_require_valid_terrain));
 	param_get(_parameter_handles.land_max_aimpoint_shift, &(_parameters.land_max_aimpoint_shift));
 	param_get(_parameter_handles.land_max_gs_mv_alt, &(_parameters.land_max_gs_mv_alt));
@@ -1521,7 +1517,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			// we have started landing phase but don't have valid terrain
 			// wait for some time, maybe we will soon get a valid estimate
 			// until then just use the altitude of the landing waypoint
-			if (hrt_elapsed_time(&_time_started_landing) < _parameters.land_wait_terrain * 1_s) {
+			if (hrt_elapsed_time(&_time_started_landing) < 10_s) {
 				terrain_alt = pos_sp_curr.alt;
 
 			} else {
@@ -1530,8 +1526,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 				abort_landing(true);
 			}
 
-		} else if ((!_global_pos.terrain_alt_valid
-			    && hrt_elapsed_time(&_time_last_t_alt) < _parameters.land_terrain_timeout * 1_s)
+		} else if ((!_global_pos.terrain_alt_valid && hrt_elapsed_time(&_time_last_t_alt) < T_ALT_TIMEOUT)
 			   || _land_noreturn_vertical) {
 			// use previous terrain estimate for some time and hope to recover
 			// if we are already flaring (land_noreturn_vertical) then just
@@ -1575,7 +1570,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 				_land_touchdown_point_shift = max(0.0f, _landingslope.getFlareCurveLengthAtAltiude(pos_sp_curr.alt +
 								  landing_slope_alt_rel_desired - terrain_alt) - wp_distance);
 
-				mavlink_log_info(&_mavlink_log_pub, "Flare shift %d", (int)_land_touchdown_point_shift);
+				mavlink_log_info(&_mavlink_log_pub, "TD moved %d", (int)_land_touchdown_point_shift);
 
 				if (_land_touchdown_point_shift > _parameters.land_max_aimpoint_shift) {
 					abort_landing(true);
@@ -1678,7 +1673,7 @@ landing_glideslope:
 				}
 
 				abort_landing(true);
-				mavlink_log_info(&_mavlink_log_pub, "Overshoot landing");
+				mavlink_log_info(&_mavlink_log_pub, "Missed LAND");
 			}
 
 			// Adjust the slope position at rangefinder activation so that we avoid diving if we should be lower than we are
@@ -1698,7 +1693,7 @@ landing_glideslope:
 					_land_touchdown_point_shift = max(0.0f, _land_touchdown_point_shift);
 
 					// inform about this movement
-					mavlink_log_info(&_mavlink_log_pub, "Gs shift %d", (int)_land_touchdown_point_shift);
+					mavlink_log_info(&_mavlink_log_pub, "TD moved %d", (int)_land_touchdown_point_shift);
 
 					//Check if the slope shift was too much at this point
 					if (_land_touchdown_point_shift > _parameters.land_max_aimpoint_shift) {

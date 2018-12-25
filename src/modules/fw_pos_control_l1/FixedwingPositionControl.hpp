@@ -114,6 +114,8 @@ static constexpr float HDG_HOLD_YAWRATE_THRESH = 0.15f;	// max yawrate at which 
 static constexpr float HDG_HOLD_MAN_INPUT_THRESH =
 	0.01f; // max manual roll/yaw input from user which does not change the locked heading
 
+static constexpr hrt_abstime T_ALT_TIMEOUT = 1_s; // time after which we abort landing if terrain estimate is not valid
+
 static constexpr float THROTTLE_THRESH =
 	0.05f;	///< max throttle from user which will not lead to motors spinning up in altitude controlled modes
 static constexpr float MANUAL_THROTTLE_CLIMBOUT_THRESH =
@@ -201,6 +203,7 @@ private:
 	/* Landing */
 	bool _land_noreturn_horizontal{false};
 	bool _land_noreturn_vertical{false};
+	bool _land_stayonground{false};
 	bool _land_motor_lim{false};
 	bool _land_onslope{false};
 	bool _land_abort{false};
@@ -214,16 +217,15 @@ private:
 
 	float _flare_height{0.0f};				///< estimated height to ground at which flare started */
 	float _flare_pitch_sp{0.0f};			///< Current forced (i.e. not determined using TECS) flare pitch setpoint */
+	float _flare_curve_alt_rel_last{0.0f};
 	float _target_bearing{0.0f};				///< estimated height to ground at which flare started */
 
 	bool _was_in_air{false};				///< indicated wether the plane was in the air in the previous interation*/
 	hrt_abstime _time_went_in_air{0};			///< time at which the plane went in the air */
 
 	bool _land_rngfnd_bump_handled{false};			///< true when the rangefinder bump is handled */
-
-	float _land_touchdown_point_shift{0.0f};			///< how much the flare / glide slope will be moved after the rangefinder bump*/
-
-	float _prev_tecs_alt_sp{0.0};
+	float _land_touchdown_point_shift{0.0f};		///< how much the flare / glide slope will be moved after the rangefinder bump*/
+	float _prev_tecs_alt_sp{0.0};				///< the latest altitude setpoint that was sent to tecs*/
 
 	/* Values for adjusting the landing altitude */
 	float _land_terrain_alt_offset{0.0f};			///< offset that will be added to _pos_sp_curr_alt_unadjusted */
@@ -310,8 +312,6 @@ private:
 		int32_t land_early_config_change;
 		float land_airspeed_scale;
 		float land_throtTC_scale;
-		float land_terrain_timeout;
-		float land_wait_terrain;
 		int32_t land_require_valid_terrain;
 		float land_max_aimpoint_shift;
 		float land_max_gs_mv_alt;
@@ -381,8 +381,6 @@ private:
 		param_t land_early_config_change;
 		param_t land_airspeed_scale;
 		param_t land_throtTC_scale;
-		param_t land_terrain_timeout;
-		param_t land_wait_terrain;
 		param_t land_require_valid_terrain;
 		param_t land_max_aimpoint_shift;
 		param_t land_max_gs_mv_alt;
