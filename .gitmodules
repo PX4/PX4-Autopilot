@@ -30,6 +30,10 @@
 	path = src/lib/DriverFramework
 	url = https://github.com/PX4/DriverFramework.git
 	branch = master
+[submodule "boards/atlflight/cmake_hexagon"]
+	path = boards/atlflight/cmake_hexagon
+	url = https://github.com/ATLFlight/cmake_hexagon.git
+	branch = master
 [submodule "src/drivers/gps/devices"]
 	path = src/drivers/gps/devices
 	url = https://github.com/PX4/GpsDrivers.git
