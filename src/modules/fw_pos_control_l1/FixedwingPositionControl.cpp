@@ -1598,8 +1598,8 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 
 				// Move flare so that the desired altitude is the same as the current tecs alt setpoint (prevents the jump caused by changing terrain alt)
 				// Don't move the TD point any closer though.
-				_land_touchdown_point_shift = max(0.0f, _landingslope.getFlareCurveLengthAtAltiude(pos_sp_curr.alt +
-								  landing_slope_alt_rel_desired - terrain_alt) - wp_distance);
+				_land_touchdown_point_shift = max(0.0f,
+								  _landingslope.getFlareCurveLengthAtAltiude(_land_prev_tecs_alt_sp - terrain_alt) - wp_distance);
 
 				mavlink_log_info(&_mavlink_log_pub, "TD moved %d", (int)_land_touchdown_point_shift);
 
@@ -2128,8 +2128,6 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 				    climbout_mode, climbout_pitch_min_rad,
 				    throttle_min, throttle_max, throttle_cruise,
 				    pitch_min_rad, pitch_max_rad);
-
-	_prev_tecs_alt_sp = alt_sp;
 
 	tecs_status_publish();
 }
