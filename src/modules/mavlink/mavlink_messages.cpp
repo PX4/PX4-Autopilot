@@ -2688,6 +2688,8 @@ protected:
 					msg.approach_y = 0.0f;
 					msg.approach_z = 0.0f;
 
+					msg.time_usec = hrt_absolute_time();
+
 					mavlink_msg_home_position_send_struct(_mavlink->get_channel(), &msg);
 
 					return true;
@@ -3407,7 +3409,7 @@ protected:
 
 			/* send override message - harmless if connected to GCS, allows to connect a board to a Linux system */
 			/* http://mavlink.org/messages/common#RC_CHANNELS_OVERRIDE */
-			mavlink_rc_channels_override_t over;
+			mavlink_rc_channels_override_t over = {};
 			over.target_system = mavlink_system.sysid;
 			over.target_component = 0;
 			over.chan1_raw = msg.chan1_raw;
