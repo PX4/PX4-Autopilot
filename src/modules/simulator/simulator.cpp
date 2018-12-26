@@ -149,29 +149,26 @@ int Simulator::start(int argc, char *argv[])
 	if (_instance) {
 		drv_led_start();
 
-		InternetProtocol ip = InternetProtocol::UDP;
-		unsigned port = 14560;
-
 		if (argc == 5 && strcmp(argv[3], "-u") == 0) {
-			ip = InternetProtocol::UDP;
-			port = atoi(argv[4]);
+			_instance->set_ip(InternetProtocol::UDP);
+			_instance->set_port(atoi(argv[4]));
 		}
 
 		if (argc == 5 && strcmp(argv[3], "-c") == 0) {
-			ip = InternetProtocol::TCP;
-			port = atoi(argv[4]);
+			_instance->set_ip(InternetProtocol::TCP);
+			_instance->set_port(atoi(argv[4]));
 		}
 
 		if (argv[2][1] == 's') {
 			_instance->initializeSensorData();
 #ifndef __PX4_QURT
 			// Update sensor data
-			_instance->pollForMAVLinkMessages(false, ip, port);
+			_instance->pollForMAVLinkMessages(false);
 #endif
 
 		} else if (argv[2][1] == 'p') {
 			// Update sensor data
-			_instance->pollForMAVLinkMessages(true, ip, port);
+			_instance->pollForMAVLinkMessages(true);
 
 		} else {
 			_instance->initializeSensorData();
@@ -184,6 +181,16 @@ int Simulator::start(int argc, char *argv[])
 		PX4_WARN("Simulator creation failed");
 		return 1;
 	}
+}
+
+void Simulator::set_ip(InternetProtocol ip)
+{
+	_ip = ip;
+}
+
+void Simulator::set_port(unsigned port)
+{
+	_port = port;
 }
 
 static void usage()

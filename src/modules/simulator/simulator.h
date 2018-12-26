@@ -212,6 +212,11 @@ public:
 		sample(float a, float b, float c) : x(a), y(b), z(c) {}
 	};
 
+	enum class InternetProtocol {
+		TCP,
+		UDP
+	};
+
 	static int start(int argc, char *argv[]);
 
 	bool getRawAccelReport(uint8_t *buf, int len);
@@ -229,6 +234,9 @@ public:
 	void write_airspeed_data(void *buf);
 
 	bool isInitialized() { return _initialized; }
+
+	void set_ip(InternetProtocol ip);
+	void set_port(unsigned port);
 
 private:
 	Simulator() : ModuleParams(nullptr),
@@ -336,6 +344,9 @@ private:
 
 	int				_param_sub;
 
+	unsigned _port = 14560;
+	InternetProtocol _ip = InternetProtocol::UDP;
+
 	bool _initialized;
 	double _realtime_factor;		///< How fast the simulation runs in comparison to real system time
 	hrt_abstime _last_sim_timestamp;
@@ -385,17 +396,12 @@ private:
 
 	)
 
-	enum class InternetProtocol {
-		TCP,
-		UDP
-	};
-
 	void poll_topics();
 	void handle_message(mavlink_message_t *msg, bool publish);
 	void send_controls();
 	void send_heartbeat();
 	void request_hil_state_quaternion();
-	void pollForMAVLinkMessages(bool publish, InternetProtocol ip, int port);
+	void pollForMAVLinkMessages(bool publish);
 
 	void pack_actuator_message(mavlink_hil_actuator_controls_t &actuator_msg, unsigned index);
 	void send_mavlink_message(const mavlink_message_t &aMsg);
