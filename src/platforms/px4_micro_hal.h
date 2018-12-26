@@ -154,7 +154,7 @@ __BEGIN_DECLS
 #    define PX4_NUMBER_I2C_BUSES        KINETIS_NI2C
 
 #    define GPIO_OUTPUT_SET             GPIO_OUTPUT_ONE
-#    define GPIO_OUTPUT_CLEAR           GPIO_OUTPUT_ZER0
+#    define GPIO_OUTPUT_CLEAR           GPIO_OUTPUT_ZERO
 
 #    include <chip.h>
 #    include <kinetis_spi.h>
