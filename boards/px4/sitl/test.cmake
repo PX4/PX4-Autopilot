@@ -17,6 +17,7 @@ px4_add_board(
 		#magnetometer # all available magnetometer drivers
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
+		tone_alarm_sim
 		#uavcan
 
 	MODULES
@@ -96,3 +97,5 @@ if(REPLAY_FILE)
 	message("Building with uorb publisher rules support")
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 endif()
+
+set(ENABLE_LOCKSTEP_SCHEDULER no)

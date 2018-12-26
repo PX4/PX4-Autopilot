@@ -1463,7 +1463,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 	/* calculate a waypoint distance value which is 0 when the aircraft is behind the waypoint */
 	float wp_distance_save = wp_distance;
 
-	if (fabsf(bearing_airplane_currwp - bearing_lastwp_currwp) >= radians(90.0f)) {
+	if (fabsf(wrap_pi(bearing_airplane_currwp - bearing_lastwp_currwp)) >= radians(90.0f)) {
 		wp_distance_save = 0.0f;
 	}
 

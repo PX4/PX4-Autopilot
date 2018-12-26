@@ -112,7 +112,7 @@ static void run_led_test1()
 	led_control.priority = led_control_s::MAX_PRIORITY;
 	publish_led_control(led_control);
 
-	usleep(200 * 1000);
+	px4_usleep(200 * 1000);
 
 	// generate some pattern
 	for (int round = led_control_s::COLOR_RED; round <= led_control_s::COLOR_WHITE; ++round) {
@@ -121,25 +121,25 @@ static void run_led_test1()
 			led_control.mode = led_control_s::MODE_ON;
 			led_control.color = round;
 			publish_led_control(led_control);
-			usleep(80 * 1000);
+			px4_usleep(80 * 1000);
 		}
 
-		usleep(100 * 1000);
+		px4_usleep(100 * 1000);
 		led_control.led_mask = 0xff;
 
 		for (int i = 0; i < 3; ++i) {
 			led_control.mode = led_control_s::MODE_ON;
 			publish_led_control(led_control);
-			usleep(100 * 1000);
+			px4_usleep(100 * 1000);
 			led_control.mode = led_control_s::MODE_OFF;
 			publish_led_control(led_control);
-			usleep(100 * 1000);
+			px4_usleep(100 * 1000);
 		}
 
-		usleep(200 * 1000);
+		px4_usleep(200 * 1000);
 	}
 
-	usleep(500 * 1000);
+	px4_usleep(500 * 1000);
 
 	// reset
 	led_control.led_mask = 0xff;

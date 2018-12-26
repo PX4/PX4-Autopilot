@@ -45,7 +45,7 @@ else
 	REQUESTED_AUTOSTART=$(ls "$SCRIPT_DIR" | sed -n 's/^\([0-9][0-9]*\)_'${PX4_SIM_MODEL}'$/\1/p')
 	if [ -z "$REQUESTED_AUTOSTART" ]; then
 		echo "Error: Unknown model '$PX4_SIM_MODEL'"
-		exit -1
+		exit 1
 	fi
 fi
 
@@ -82,7 +82,7 @@ fi
 # multi-instance setup
 # shellcheck disable=SC2154
 param set MAV_SYS_ID $((px4_instance+1))
-simulator_udp_port=$((14560+px4_instance))
+simulator_tcp_port=$((4560+px4_instance))
 udp_offboard_port_local=$((14580+px4_instance))
 udp_offboard_port_remote=$((14540+px4_instance))
 udp_gcs_port_local=$((14570+px4_instance))
@@ -174,7 +174,7 @@ do
 done
 if [ ! -e "$autostart_file" ]; then
 	echo "Error: no autostart file found ($autostart_file)"
-	exit -1
+	exit 1
 fi
 
 sh "$autostart_file"
@@ -182,7 +182,7 @@ sh "$autostart_file"
 
 dataman start
 replay tryapplyparams
-simulator start -s -u $simulator_udp_port
+simulator start -s -c $simulator_tcp_port
 tone_alarm start
 gyrosim start
 accelsim start

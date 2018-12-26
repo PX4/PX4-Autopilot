@@ -1064,6 +1064,7 @@ _ram_flash_wait(px4_sem_t *sem)
 	const uint64_t diff = dm_operations_data.ram_flash.flush_timeout_usec - now;
 	struct timespec abstime;
 	abstime.tv_sec = diff / USEC_PER_SEC;
+	// FIXME: this could be made more performant.
 	abstime.tv_nsec = (diff % USEC_PER_SEC) * NSEC_PER_USEC;
 
 	px4_sem_timedwait(sem, &abstime);

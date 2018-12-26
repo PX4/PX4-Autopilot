@@ -78,6 +78,10 @@
 
 #include <parameters/param.h>
 
+# if defined(FLASH_BASED_PARAMS)
+#  include <parameters/flashparams/flashfs.h>
+#endif
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -372,6 +376,24 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETMODE(spi3, SPIDEV_MODE3);
 	SPI_SELECT(spi3, PX4_SPIDEV_BARO, false);
 	up_udelay(20);
+
+#if defined(FLASH_BASED_PARAMS)
+	static sector_descriptor_t params_sector_map[] = {
+		{1, 16 * 1024, 0x08004000},
+		{0, 0, 0},
+	};
+
+	/* Initialize the flashfs layer to use heap allocated memory */
+	result = parameter_flashfs_init(params_sector_map, NULL, 0);
+
+	if (result != OK) {
+		message("[boot] FAILED to init params in FLASH %d\n", result);
+		led_on(LED_AMBER);
+		return -ENODEV;
+	}
+
+#endif
+
 
 	return OK;
 }

@@ -75,6 +75,7 @@
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/optical_flow.h>
+#include <uORB/topics/orbit_status.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_combined.h>
@@ -183,6 +184,14 @@ void get_mavlink_navigation_mode(const struct vehicle_status_s *const status, ui
 					   | MAV_MODE_FLAG_STABILIZE_ENABLED
 					   | MAV_MODE_FLAG_GUIDED_ENABLED; // TODO: is POSCTL GUIDED?
 		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_ORBIT:
+		*mavlink_base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
+				      | MAV_MODE_FLAG_STABILIZE_ENABLED
+				      | MAV_MODE_FLAG_GUIDED_ENABLED;
+		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
+		custom_mode->sub_mode = PX4_CUSTOM_SUB_MODE_POSCTL_ORBIT;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
@@ -2249,23 +2258,22 @@ protected:
 	}
 };
 
-//TODO: remove this -> add ODOMETRY loopback only
-class MavlinkStreamVisionPositionEstimate : public MavlinkStream
+class MavlinkStreamOdometry : public MavlinkStream
 {
 public:
 	const char *get_name() const
 	{
-		return MavlinkStreamVisionPositionEstimate::get_name_static();
+		return MavlinkStreamOdometry::get_name_static();
 	}
 
 	static const char *get_name_static()
 	{
-		return "VISION_POSITION_ESTIMATE";
+		return "ODOMETRY";
 	}
 
 	static uint16_t get_id_static()
 	{
-		return MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE;
+		return MAVLINK_MSG_ID_ODOMETRY;
 	}
 
 	uint16_t get_id()
@@ -2275,50 +2283,109 @@ public:
 
 	static MavlinkStream *new_instance(Mavlink *mavlink)
 	{
-		return new MavlinkStreamVisionPositionEstimate(mavlink);
+		return new MavlinkStreamOdometry(mavlink);
 	}
 
 	unsigned get_size()
 	{
-		return (_odom_time > 0) ? MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
+		return (_odom_time > 0) ? MAVLINK_MSG_ID_ODOMETRY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
-private:
 
+private:
 	MavlinkOrbSubscription *_odom_sub;
 	uint64_t _odom_time;
 
+	MavlinkOrbSubscription *_vodom_sub;
+	uint64_t _vodom_time;
+
 	/* do not allow top copying this class */
-	MavlinkStreamVisionPositionEstimate(MavlinkStreamVisionPositionEstimate &) = delete;
-	MavlinkStreamVisionPositionEstimate &operator = (const MavlinkStreamVisionPositionEstimate &) = delete;
+	MavlinkStreamOdometry(MavlinkStreamOdometry &) = delete;
+	MavlinkStreamOdometry &operator = (const MavlinkStreamOdometry &) = delete;
 
 protected:
-	explicit MavlinkStreamVisionPositionEstimate(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_odom_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_visual_odometry))),
-		_odom_time(0)
+	explicit MavlinkStreamOdometry(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_odom_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_odometry))),
+		_odom_time(0),
+		_vodom_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_visual_odometry))),
+		_vodom_time(0)
 	{}
 
 	bool send(const hrt_abstime t)
 	{
-		vehicle_odometry_s vodom;
+		vehicle_odometry_s odom;
+		// check if it is to send visual odometry loopback or not
+		bool odom_updated = false;
 
-		if (_odom_sub->update(&_odom_time, &vodom)) {
-			mavlink_vision_position_estimate_t vmsg = {};
-			vmsg.usec = vodom.timestamp;
-			vmsg.x = vodom.x;
-			vmsg.y = vodom.y;
-			vmsg.z = vodom.z;
+		mavlink_odometry_t msg = {};
 
-			matrix::Eulerf euler = matrix::Quatf(vodom.q);
-			vmsg.roll = euler.phi();
-			vmsg.pitch = euler.theta();
-			vmsg.yaw = euler.psi();
+		if (_send_odom_loopback.get()) {
+			odom_updated = _vodom_sub->update(&_vodom_time, &odom);
+			// frame matches the external vision system
+			msg.frame_id = MAV_FRAME_VISION_NED;
 
-			mavlink_msg_vision_position_estimate_send_struct(_mavlink->get_channel(), &vmsg);
+		} else {
+			odom_updated = _odom_sub->update(&_odom_time, &odom);
+			// frame matches the PX4 local NED frame
+			msg.frame_id = MAV_FRAME_ESTIM_NED;
+		}
+
+		if (odom_updated) {
+			msg.time_usec = odom.timestamp;
+			msg.child_frame_id = MAV_FRAME_BODY_NED;
+
+			// Current position
+			msg.x = odom.x;
+			msg.y = odom.y;
+			msg.z = odom.z;
+
+			// Current orientation
+			msg.q[0] = odom.q[0];
+			msg.q[1] = odom.q[1];
+			msg.q[2] = odom.q[2];
+			msg.q[3] = odom.q[3];
+
+			// Local NED to body-NED Dcm matrix
+			matrix::Dcmf Rlb(matrix::Quatf(odom.q));
+
+			// Rotate linear and angular velocity from local NED to body-NED frame
+			matrix::Vector3f linvel_body(Rlb * matrix::Vector3f(odom.vx, odom.vy, odom.vz));
+
+			// Current linear velocity
+			msg.vx = linvel_body(0);
+			msg.vy = linvel_body(1);
+			msg.vz = linvel_body(2);
+
+			// Current body rates
+			msg.rollspeed = odom.rollspeed;
+			msg.pitchspeed = odom.pitchspeed;
+			msg.yawspeed = odom.yawspeed;
+
+			// get the covariance matrix size
+			const size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
+			const size_t VEL_URT_SIZE = sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
+			static_assert(POS_URT_SIZE == (sizeof(msg.pose_covariance) / sizeof(msg.pose_covariance[0])),
+				      "Odometry Pose Covariance matrix URT array size mismatch");
+			static_assert(VEL_URT_SIZE == (sizeof(msg.twist_covariance) / sizeof(msg.twist_covariance[0])),
+				      "Odometry Velocity Covariance matrix URT array size mismatch");
+
+			// copy pose covariances
+			for (size_t i = 0; i < POS_URT_SIZE; i++) {
+				msg.pose_covariance[i] = odom.pose_covariance[i];
+			}
+
+			// copy velocity covariances
+			//TODO: Apply rotation matrix to transform from body-fixed NED to earth-fixed NED frame
+			for (size_t i = 0; i < VEL_URT_SIZE; i++) {
+				msg.twist_covariance[i] = odom.velocity_covariance[i];
+			}
+
+			mavlink_msg_odometry_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;
 		}
 
 		return false;
+
 	}
 };
 
@@ -2385,88 +2452,6 @@ protected:
 			msg.vz = pos.vz;
 
 			mavlink_msg_local_position_ned_send_struct(_mavlink->get_channel(), &msg);
-
-			return true;
-		}
-
-		return false;
-	}
-};
-
-
-class MavlinkStreamLocalPositionNEDCOV : public MavlinkStream
-{
-public:
-	const char *get_name() const
-	{
-		return MavlinkStreamLocalPositionNEDCOV::get_name_static();
-	}
-
-	static const char *get_name_static()
-	{
-		return "LOCAL_POSITION_NED_COV";
-	}
-
-	static uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_LOCAL_POSITION_NED_COV;
-	}
-
-	uint16_t get_id()
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamLocalPositionNEDCOV(mavlink);
-	}
-
-	unsigned get_size()
-	{
-		return MAVLINK_MSG_ID_LOCAL_POSITION_NED_COV_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-	}
-
-private:
-	MavlinkOrbSubscription *_est_sub;
-	uint64_t _est_time;
-
-	/* do not allow top copying this class */
-	MavlinkStreamLocalPositionNEDCOV(MavlinkStreamLocalPositionNEDCOV &) = delete;
-	MavlinkStreamLocalPositionNEDCOV &operator = (const MavlinkStreamLocalPositionNEDCOV &) = delete;
-
-protected:
-	explicit MavlinkStreamLocalPositionNEDCOV(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_est_sub(_mavlink->add_orb_subscription(ORB_ID(estimator_status))),
-		_est_time(0)
-	{}
-
-	bool send(const hrt_abstime t)
-	{
-		struct estimator_status_s est = {};
-
-		if (_est_sub->update(&_est_time, &est)) {
-			mavlink_local_position_ned_cov_t msg = {};
-
-			msg.time_usec = est.timestamp;
-			msg.x = est.states[0];
-			msg.y = est.states[1];
-			msg.z = est.states[2];
-			msg.vx = est.states[3];
-			msg.vy = est.states[4];
-			msg.vz = est.states[5];
-			msg.ax = est.states[6];
-			msg.ay = est.states[7];
-			msg.az = est.states[8];
-
-			for (int i = 0; i < 9; i++) {
-				msg.covariance[i] = est.covariances[i];
-			}
-
-			msg.covariance[10] = est.health_flags;
-			msg.covariance[11] = est.timeout_flags;
-
-			mavlink_msg_local_position_ned_cov_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;
 		}
@@ -4103,7 +4088,6 @@ protected:
 		vehicle_status_s status;
 
 		if (_status_sub->update(&status)) {
-
 			mavlink_command_long_t msg = {};
 
 			msg.target_system = 0;
@@ -4178,7 +4162,6 @@ protected:
 		distance_sensor_s dist_sensor;
 
 		if (_distance_sensor_sub->update(&_dist_sensor_time, &dist_sensor)) {
-
 			mavlink_distance_sensor_t msg = {};
 
 			msg.time_boot_ms = dist_sensor.timestamp / 1000; /* us to ms */
@@ -4513,7 +4496,6 @@ protected:
 		wind_estimate_s wind_estimate;
 
 		if (_wind_estimate_sub->update(&_wind_estimate_time, &wind_estimate)) {
-
 			mavlink_wind_cov_t msg = {};
 
 			msg.time_usec = wind_estimate.timestamp;
@@ -4593,7 +4575,6 @@ protected:
 		struct mount_orientation_s mount_orientation;
 
 		if (_mount_orientation_sub->update(&_mount_orientation_time, &mount_orientation)) {
-
 			mavlink_mount_orientation_t msg = {};
 
 			msg.roll = math::degrees(mount_orientation.attitude_euler_angle[0]);
@@ -4663,14 +4644,12 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-
 		vehicle_attitude_s att = {};
 		vehicle_global_position_s gpos = {};
 		bool att_updated = _att_sub->update(&_att_time, &att);
 		bool gpos_updated = _gpos_sub->update(&_gpos_time, &gpos);
 
 		if (att_updated || gpos_updated) {
-
 			mavlink_hil_state_quaternion_t msg = {};
 
 			// vehicle_attitude -> hil_state_quaternion
@@ -4769,6 +4748,75 @@ protected:
 	}
 };
 
+class MavlinkStreamOrbitStatus : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamOrbitStatus::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "ORBIT_EXECUTION_STATUS";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_ORBIT_EXECUTION_STATUS;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamOrbitStatus(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_ORBIT_EXECUTION_STATUS_LEN +
+		       MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_sub;
+	uint64_t _orbit_status_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamOrbitStatus(MavlinkStreamOrbitStatus &);
+	MavlinkStreamOrbitStatus &operator = (const MavlinkStreamOrbitStatus &);
+
+protected:
+	explicit MavlinkStreamOrbitStatus(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_sub(_mavlink->add_orb_subscription(ORB_ID(orbit_status))),
+		_orbit_status_time(0)
+	{}
+
+	bool send(const hrt_abstime t)
+	{
+		struct orbit_status_s _orbit_status;
+
+		if (_sub->update(&_orbit_status_time, &_orbit_status)) {
+			mavlink_orbit_execution_status_t _msg_orbit_execution_status = {};
+
+			_msg_orbit_execution_status.time_usec = _orbit_status.timestamp;
+			_msg_orbit_execution_status.radius = _orbit_status.radius;
+			_msg_orbit_execution_status.frame  = _orbit_status.frame;
+			_msg_orbit_execution_status.x = _orbit_status.x * 1e7;
+			_msg_orbit_execution_status.y = _orbit_status.y * 1e7;
+			_msg_orbit_execution_status.z = _orbit_status.z;
+
+			mavlink_msg_orbit_execution_status_send_struct(_mavlink->get_channel(), &_msg_orbit_execution_status);
+		}
+
+		return true;
+	}
+};
+
 static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static, &MavlinkStreamHeartbeat::get_id_static),
 	StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static, &MavlinkStreamStatustext::get_id_static),
@@ -4787,8 +4835,7 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamTimesync::new_instance, &MavlinkStreamTimesync::get_name_static, &MavlinkStreamTimesync::get_id_static),
 	StreamListItem(&MavlinkStreamGlobalPositionInt::new_instance, &MavlinkStreamGlobalPositionInt::get_name_static, &MavlinkStreamGlobalPositionInt::get_id_static),
 	StreamListItem(&MavlinkStreamLocalPositionNED::new_instance, &MavlinkStreamLocalPositionNED::get_name_static, &MavlinkStreamLocalPositionNED::get_id_static),
-	StreamListItem(&MavlinkStreamVisionPositionEstimate::new_instance, &MavlinkStreamVisionPositionEstimate::get_name_static, &MavlinkStreamVisionPositionEstimate::get_id_static),
-	StreamListItem(&MavlinkStreamLocalPositionNEDCOV::new_instance, &MavlinkStreamLocalPositionNEDCOV::get_name_static, &MavlinkStreamLocalPositionNEDCOV::get_id_static),
+	StreamListItem(&MavlinkStreamOdometry::new_instance, &MavlinkStreamOdometry::get_name_static, &MavlinkStreamOdometry::get_id_static),
 	StreamListItem(&MavlinkStreamEstimatorStatus::new_instance, &MavlinkStreamEstimatorStatus::get_name_static, &MavlinkStreamEstimatorStatus::get_id_static),
 	StreamListItem(&MavlinkStreamAttPosMocap::new_instance, &MavlinkStreamAttPosMocap::get_name_static, &MavlinkStreamAttPosMocap::get_id_static),
 	StreamListItem(&MavlinkStreamHomePosition::new_instance, &MavlinkStreamHomePosition::get_name_static, &MavlinkStreamHomePosition::get_id_static),
@@ -4826,7 +4873,8 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamMountOrientation::new_instance, &MavlinkStreamMountOrientation::get_name_static, &MavlinkStreamMountOrientation::get_id_static),
 	StreamListItem(&MavlinkStreamHighLatency2::new_instance, &MavlinkStreamHighLatency2::get_name_static, &MavlinkStreamHighLatency2::get_id_static),
 	StreamListItem(&MavlinkStreamGroundTruth::new_instance, &MavlinkStreamGroundTruth::get_name_static, &MavlinkStreamGroundTruth::get_id_static),
-	StreamListItem(&MavlinkStreamPing::new_instance, &MavlinkStreamPing::get_name_static, &MavlinkStreamPing::get_id_static)
+	StreamListItem(&MavlinkStreamPing::new_instance, &MavlinkStreamPing::get_name_static, &MavlinkStreamPing::get_id_static),
+	StreamListItem(&MavlinkStreamOrbitStatus::new_instance, &MavlinkStreamOrbitStatus::get_name_static, &MavlinkStreamOrbitStatus::get_id_static)
 };
 
 const char *get_stream_name(const uint16_t msg_id)

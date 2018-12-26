@@ -37,6 +37,7 @@
  *
  */
 
+#include <px4_time.h>
 #include <px4_config.h>
 
 #include <sys/types.h>
@@ -136,7 +137,7 @@ int test_ppm_loopback(int argc, char *argv[])
 	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
 	struct input_rc_s rc_input;
 	orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
-	usleep(100000);
+	px4_usleep(100000);
 
 	/* open PPM input and expect values close to the output values */
 

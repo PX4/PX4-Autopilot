@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # @name DJI Flame Wheel F330
 #

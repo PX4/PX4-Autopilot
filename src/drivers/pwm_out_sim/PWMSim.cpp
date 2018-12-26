@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#include <px4_time.h>
 #include "PWMSim.hpp"
 
 #include <uORB/topics/multirotor_motor_limits.h>
@@ -196,7 +197,7 @@ PWMSim::run()
 
 		/* this can happen during boot, but after the sleep its likely resolved */
 		if (_poll_fds_num == 0) {
-			sleep(1);
+			px4_sleep(1);
 
 			PX4_DEBUG("no valid fds");
 			continue;
@@ -230,7 +231,8 @@ PWMSim::run()
 		}
 
 		/* can we mix? */
-		if (_armed && _mixers != nullptr) {
+		/* We also publish if not armed, this way we make sure SITL gets feedback. */
+		if (_mixers != nullptr) {
 
 			/* do mixing */
 			unsigned num_outputs = _mixers->mix(&_actuator_outputs.output[0], _num_outputs);

@@ -69,7 +69,7 @@ void listener(listener_print_topic_cb cb, const orb_id_t &id, unsigned num_msgs,
 			updated = true;
 
 		} else {
-			usleep(500);
+			px4_usleep(500);
 		}
 
 		if (updated) {

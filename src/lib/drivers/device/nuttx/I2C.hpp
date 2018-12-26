@@ -44,6 +44,10 @@
 
 #include <px4_i2c.h>
 
+#if !defined(CONFIG_I2C)
+#  error I2C support requires CONFIG_I2C
+#endif
+
 namespace device __EXPORT
 {
 

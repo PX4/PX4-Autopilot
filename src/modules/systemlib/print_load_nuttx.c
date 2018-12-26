@@ -46,6 +46,16 @@
 #include <systemlib/printload.h>
 #include <drivers/drv_hrt.h>
 
+#if defined(CONFIG_SCHED_INSTRUMENTATION)
+
+#if !defined(CONFIG_TASK_NAME_SIZE)
+#error print_load_nuttx requires CONFIG_TASK_NAME_SIZE
+#endif
+
+#if !defined(CONFIG_STACK_COLORATION)
+#error print_load_nuttx requires CONFIG_STACK_COLORATION
+#endif
+
 extern struct system_load_s system_load;
 
 #define CL "\033[K" // clear line
@@ -380,3 +390,5 @@ void print_load(uint64_t t, int fd, struct print_load_s *print_state)
 
 	print_load_buffer(t, data.buffer, sizeof(data.buffer), print_load_callback, &data, print_state);
 }
+
+#endif // if CONFIG_SCHED_INSTRUMENTATION

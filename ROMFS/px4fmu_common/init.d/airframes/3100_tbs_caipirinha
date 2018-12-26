@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # @name TBS Caipirinha
 #
@@ -50,7 +50,6 @@ then
 
 	param set PWM_MAIN_REV1 1
 	param set PWM_MAIN_REV2 1
-	param set PWM_DISARMED 0
 	param set PWM_MIN 900
 	param set PWM_MAX 2100
 fi

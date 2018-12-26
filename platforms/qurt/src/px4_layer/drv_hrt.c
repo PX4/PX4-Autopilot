@@ -49,12 +49,6 @@
 
 static struct sq_queue_s	callout_queue;
 
-/* latency histogram */
-#define LATENCY_BUCKET_COUNT 8
-__EXPORT const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
-__EXPORT const uint16_t	latency_buckets[LATENCY_BUCKET_COUNT] = { 1, 2, 5, 10, 20, 50, 100, 1000 };
-__EXPORT uint32_t	latency_counters[LATENCY_BUCKET_COUNT + 1];
-
 static void		hrt_call_reschedule(void);
 
 // Intervals in ms
@@ -375,12 +369,6 @@ void	hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callo
 	hrt_call_internal(entry, calltime, 0, callout, arg);
 }
 
-#if 0
-/*
- * Convert absolute time to a timespec.
- */
-void	abstime_to_ts(struct timespec *ts, hrt_abstime abstime);
-#endif
 
 static void
 hrt_call_invoke(void)

@@ -1,0 +1,65 @@
+#!/bin/sh
+#
+# @name BetaFPV Beta75X 2S Brushless Whoop
+#
+# @type Quadrotor H
+# @class Copter
+#
+# @board px4_fmu-v2 exclude
+# @board px4_fmu-v3 exclude
+# @board px4_fmu-v4 exclude
+# @board px4_fmu-v4pro exclude
+# @board px4_fmu-v5 exclude
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+#
+# @maintainer Beat Kueng <beat-kueng@gmx.net>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+if [ $AUTOCNF = yes ]
+then
+	param set CBRK_SUPPLY_CHK 894281
+	param set CBRK_USB_CHK 197848
+
+	param set IMU_GYRO_CUTOFF 100
+	param set MC_DTERM_CUTOFF 60
+
+	param set MC_AIRMODE 2
+	param set MC_PITCHRATE_D 0.0010
+	param set MC_PITCHRATE_I 0.5
+	param set MC_PITCHRATE_MAX 600
+	param set MC_PITCHRATE_P 0.0750
+	param set MC_PITCH_P 6
+	param set MC_ROLLRATE_D 0.0010
+	param set MC_ROLLRATE_I 0.4
+	param set MC_ROLLRATE_MAX 600
+	param set MC_ROLLRATE_P 0.0750
+	param set MC_YAWRATE_I 0.3
+	param set MC_YAWRATE_MAX 400
+	param set MC_YAWRATE_P 0.17
+	param set MC_YAW_P 4
+
+	param set MPC_MANTHR_MIN 0
+	param set MPC_MAN_TILT_MAX 60
+
+	param set MOT_ORDERING 1
+	param set PWM_DISARMED 950
+	param set PWM_MAX 1900
+	param set PWM_MIN 1100
+	param set PWM_RATE 0
+
+	param set RC_FLT_CUTOFF 0
+
+	param set SYS_HAS_BARO 0
+	param set SYS_HAS_MAG 0
+fi
+
+# The Whoop uses reversed props
+set MIXER quad_h
+set PWM_OUT 1234
+

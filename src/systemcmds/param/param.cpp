@@ -104,6 +104,10 @@ Parameters are automatically saved when changed, eg. with `param set`. They are 
 or to the SD card. `param select` can be used to change the storage location for subsequent saves (this will
 need to be (re-)configured on every boot).
 
+If the FLASH-based backend is enabled (which is done at compile time, e.g. for the Intel Aero or Omnibus),
+`param select` has no effect and the default is always the FLASH backend. However `param save/load <file>`
+can still be used to write to/read from files.
+
 Each parameter has a 'used' flag, which is set when it's read during boot. It is used to only show relevant
 parameters to a ground control station.
 
@@ -205,7 +209,10 @@ param_main(int argc, char *argv[])
 				param_set_default_file(nullptr);
 			}
 
-			PX4_INFO("selected parameter default file %s", param_get_default_file());
+			const char *default_file = param_get_default_file();
+			if (default_file) {
+				PX4_INFO("selected parameter default file %s", default_file);
+			}
 			return 0;
 		}
 
@@ -332,30 +339,6 @@ param_main(int argc, char *argv[])
 	return 1;
 }
 
-#if defined(FLASH_BASED_PARAMS)
-/* If flash based parameters are uses we have to change some of the calls to the
- * default param calls, which will in turn take care of locking and calling to the
- * flash backend.
- */
-static int
-do_save(const char *param_file_name)
-{
-	return param_save_default();
-}
-
-static int
-do_load(const char *param_file_name)
-{
-	return param_load_default();
-}
-
-static int
-do_import(const char *param_file_name)
-{
-	return param_import(-1);
-}
-#else
-
 static int
 do_save(const char *param_file_name)
 {
@@ -384,15 +367,20 @@ do_save(const char *param_file_name)
 static int
 do_load(const char *param_file_name)
 {
-	int fd = open(param_file_name, O_RDONLY);
+	int fd = -1;
+	if (param_file_name) { // passing NULL means to select the flash storage
+		fd = open(param_file_name, O_RDONLY);
 
-	if (fd < 0) {
-		PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
-		return 1;
+		if (fd < 0) {
+			PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
+			return 1;
+		}
 	}
 
 	int result = param_load(fd);
-	close(fd);
+	if (fd >= 0) {
+		close(fd);
+	}
 
 	if (result < 0) {
 		PX4_ERR("importing from '%s' failed (%i)", param_file_name, result);
@@ -405,15 +393,20 @@ do_load(const char *param_file_name)
 static int
 do_import(const char *param_file_name)
 {
-	int fd = open(param_file_name, O_RDONLY);
+	int fd = -1;
+	if (param_file_name) { // passing NULL means to select the flash storage
+		fd = open(param_file_name, O_RDONLY);
 
-	if (fd < 0) {
-		PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
-		return 1;
+		if (fd < 0) {
+			PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
+			return 1;
+		}
 	}
 
 	int result = param_import(fd);
-	close(fd);
+	if (fd >= 0) {
+		close(fd);
+	}
 
 	if (result < 0) {
 		PX4_ERR("importing from '%s' failed (%i)", param_file_name, result);
@@ -422,7 +415,6 @@ do_import(const char *param_file_name)
 
 	return 0;
 }
-#endif
 
 static int
 do_save_default()

@@ -39,6 +39,7 @@
  * Based on the hmc5883 driver.
  */
 
+#include <px4_time.h>
 #include "lis3mdl.h"
 
 LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rotation) :
@@ -146,7 +147,7 @@ LIS3MDL::calibrate(struct file *file_pointer, unsigned enable)
 		goto out;
 	}
 
-	usleep(20000);
+	px4_usleep(20000);
 
 	/* discard 10 samples to let the sensor settle */
 	for (uint8_t i = 0; i < num_samples; i++) {
@@ -211,7 +212,7 @@ LIS3MDL::calibrate(struct file *file_pointer, unsigned enable)
 		goto out;
 	}
 
-	usleep(60000);
+	px4_usleep(60000);
 
 	/* discard 10 samples to let the sensor settle */
 	for (uint8_t i = 0; i < num_samples; i++) {
@@ -285,7 +286,7 @@ out:
 	set_range(4);
 	set_default_register_values();
 
-	usleep(20000);
+	px4_usleep(20000);
 
 	return ret;
 }
@@ -687,7 +688,7 @@ LIS3MDL::read(struct file *file_pointer, char *buffer, size_t buffer_len)
 		}
 
 		/* wait for it to complete */
-		usleep(LIS3MDL_CONVERSION_INTERVAL);
+		px4_usleep(LIS3MDL_CONVERSION_INTERVAL);
 
 		/* run the collection phase */
 		if (collect() != OK) {

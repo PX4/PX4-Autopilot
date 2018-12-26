@@ -97,3 +97,5 @@ if(REPLAY_FILE)
 	message("Building with uorb publisher rules support")
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 endif()
+
+set(ENABLE_LOCKSTEP_SCHEDULER yes)

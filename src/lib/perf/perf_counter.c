@@ -48,6 +48,11 @@
 
 #include "perf_counter.h"
 
+/* latency histogram */
+__EXPORT const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
+__EXPORT const uint16_t	latency_buckets[LATENCY_BUCKET_COUNT] = { 1, 2, 5, 10, 20, 50, 100, 1000 };
+__EXPORT uint32_t	latency_counters[LATENCY_BUCKET_COUNT + 1];
+
 
 #ifdef __PX4_QURT
 // There is presumably no dprintf on QURT. Therefore use the usual output to mini-dm.
@@ -596,11 +601,6 @@ perf_print_all(int fd)
 
 	pthread_mutex_unlock(&perf_counters_mutex);
 }
-
-// these are defined in drv_hrt.c
-extern const uint16_t latency_bucket_count;
-extern uint32_t latency_counters[];
-extern const uint16_t latency_buckets[];
 
 void
 perf_print_latency(int fd)

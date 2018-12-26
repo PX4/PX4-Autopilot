@@ -40,6 +40,7 @@
 /* XXX trim includes */
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_time.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -238,7 +239,7 @@ MS5611_I2C::_read_prom()
 	 * Wait for PROM contents to be in the device (2.8 ms) in the case we are
 	 * called immediately after reset.
 	 */
-	usleep(3000);
+	px4_usleep(3000);
 
 	uint8_t last_val = 0;
 	bool bits_stuck = true;

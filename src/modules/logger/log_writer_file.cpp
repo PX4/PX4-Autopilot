@@ -300,7 +300,7 @@ int LogWriterFile::write_message(LogType type, void *ptr, size_t size, uint64_t 
 			while ((ret = write(type, ptr, 0, dropout_start)) == -1) {
 				unlock();
 				notify();
-				usleep(3000);
+				px4_usleep(3000);
 				lock();
 			}
 		}
@@ -314,7 +314,7 @@ int LogWriterFile::write_message(LogType type, void *ptr, size_t size, uint64_t 
 			while ((ret = write(type, uptr, write_size, 0)) == -1) {
 				unlock();
 				notify();
-				usleep(3000);
+				px4_usleep(3000);
 				lock();
 			}
 

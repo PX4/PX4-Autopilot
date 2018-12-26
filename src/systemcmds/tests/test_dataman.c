@@ -108,7 +108,7 @@ task_main(int argc, char *argv[])
 			PX4_INFO("task %d: %.0f%%", my_id, (double)i * 100.0f / NUM_MISSIONS_TEST);
 		}
 
-		usleep(rand() & ((64 * 1024) - 1));
+		px4_usleep(rand() & ((64 * 1024) - 1));
 	}
 
 	hrt_abstime rstart = hrt_absolute_time();

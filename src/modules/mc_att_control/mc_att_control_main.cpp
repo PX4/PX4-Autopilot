@@ -849,7 +849,7 @@ MulticopterAttitudeControl::run()
 		if (pret < 0) {
 			PX4_ERR("poll error %d, %d", pret, errno);
 			/* sleep a bit before next try */
-			usleep(100000);
+			px4_usleep(100000);
 			continue;
 		}
 

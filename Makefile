@@ -329,7 +329,7 @@ test_mixer_multirotor:
 	@$(MAKE) -C "$(SRC_DIR)"/src/lib/mixer --no-print-directory tests
 
 tests: test_mixer_multirotor
-	@$(MAKE) --no-print-directory px4_sitl_default test_results \
+	@$(MAKE) --no-print-directory px4_sitl_test test_results \
 	ASAN_OPTIONS="color=always:check_initialization_order=1:detect_stack_use_after_return=1" \
 	UBSAN_OPTIONS="color=always"
 

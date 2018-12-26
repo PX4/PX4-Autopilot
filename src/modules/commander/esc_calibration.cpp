@@ -79,7 +79,7 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s *a
 			break;
 
 		} else {
-			usleep(50000);
+			px4_usleep(50000);
 		}
 	}
 
@@ -188,7 +188,7 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s *a
 			}
 		}
 
-		usleep(50_ms);
+		px4_usleep(50_ms);
 	}
 
 Out:

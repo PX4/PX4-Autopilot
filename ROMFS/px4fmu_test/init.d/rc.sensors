@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # Standard startup script for onboard sensor drivers.
 #

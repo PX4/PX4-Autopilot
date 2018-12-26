@@ -269,7 +269,7 @@ void BATT_SMBUS::cycle()
 	} else {
 
 		while (_should_suspend) {
-			usleep(200000);
+			px4_usleep(200000);
 		}
 
 		// Schedule a fresh cycle call when the measurement is done.
@@ -444,7 +444,7 @@ int BATT_SMBUS::get_startup_info()
 
 	if (lifetime_data_flush() == PX4_OK) {
 		// Flush needs time to complete, otherwise device is busy. 100ms not enough, 200ms works.
-		usleep(200000);
+		px4_usleep(200000);
 
 		if (lifetime_read_block_one() == PX4_OK) {
 			if (_lifetime_max_delta_cell_voltage > BATT_CELL_VOLTAGE_THRESHOLD_FAILED) {
@@ -668,11 +668,11 @@ int BATT_SMBUS::custom_command(int argc, char *argv[])
 
 			if (PX4_OK != obj->dataflash_write(address, tx_buf, length)) {
 				PX4_INFO("Dataflash write failed: %d", address);
-				usleep(100000);
+				px4_usleep(100000);
 				return 1;
 
 			} else {
-				usleep(100000);
+				px4_usleep(100000);
 				return 0;
 			}
 		}

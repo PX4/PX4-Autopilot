@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # @name BirdsEyeView Aerobotics FireFly6
 # @type VTOL Tiltrotor

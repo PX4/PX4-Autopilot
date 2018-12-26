@@ -37,6 +37,7 @@
  *
  */
 
+#include <px4_time.h>
 #include <px4_config.h>
 
 #include <sys/types.h>
@@ -113,7 +114,7 @@ int test_servo(int argc, char *argv[])
 		goto out;
 	}
 
-	usleep(5000000);
+	px4_usleep(5000000);
 	printf("Advancing channel 0 to 1500\n");
 	result = ioctl(fd, PWM_SERVO_SET(0), 1500);
 	printf("Advancing channel 1 to 1800\n");

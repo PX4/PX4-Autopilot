@@ -5,12 +5,12 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR/jMAVSim"
 
-udp_port=14560
+tcp_port=4560
 extra_args=
 baudrate=921600
 device=
 ip="127.0.0.1"
-while getopts ":b:d:p:qr:i:" opt; do
+while getopts ":b:d:p:qr:f:i:" opt; do
 	case $opt in
 		b)
 			baudrate=$OPTARG
@@ -22,13 +22,16 @@ while getopts ":b:d:p:qr:i:" opt; do
 			ip="$OPTARG"
 			;;
 		p)
-			udp_port=$OPTARG
+			tcp_port=$OPTARG
 			;;
 		q)
 			extra_args="$extra_args -qgc"
 			;;
 		r)
 			extra_args="$extra_args -r $OPTARG"
+			;;
+		f)
+			extra_args="$extra_args -f $OPTARG"
 			;;
 		\?)
 			echo "Invalid option: -$OPTARG" >&2
@@ -38,7 +41,7 @@ while getopts ":b:d:p:qr:i:" opt; do
 done
 
 if [ "$device" == "" ]; then
-	device="-udp $ip:$udp_port"
+	device="-tcp $ip:$tcp_port"
 else
 	device="-serial $device $baudrate"
 fi

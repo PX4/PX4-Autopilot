@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 # Un comment and use set +e to ignore and set -e to enable 'exit on error control'
 set +e
 # Un comment the line below to help debug scripts by printing a trace of the script commands
@@ -78,11 +78,6 @@ ver all
 # is dependent.
 #
 uorb start
-
-#
-# Start the tone_alarm driver.
-#
-tone_alarm start
 
 #
 # Try to mount the microSD card.
@@ -172,6 +167,13 @@ else
 	then
 		param reset
 	fi
+
+	#
+	# Start the tone_alarm driver.
+	# Needs to be started after the parameters are loaded (for CBRK_BUZZER).
+	# Note that this will still play the already published startup tone.
+	#
+	tone_alarm start
 
 	#
 	# Start system state indicator.

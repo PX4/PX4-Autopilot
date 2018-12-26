@@ -38,6 +38,7 @@
 #include "FlightTaskOrbit.hpp"
 #include <mathlib/mathlib.h>
 #include <lib/ecl/geo/geo.h>
+#include <uORB/topics/orbit_status.h>
 
 using namespace matrix;
 
@@ -46,9 +47,16 @@ FlightTaskOrbit::FlightTaskOrbit()
 	_sticks_data_required = false;
 }
 
+FlightTaskOrbit::~FlightTaskOrbit()
+{
+	orb_unadvertise(_orbit_status_pub);
+}
+
 bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 {
 	bool ret = true;
+	// save previous velocity and roatation direction
+	float v = fabsf(_v);
 	bool clockwise = _v > 0;
 
 	// commanded radius
@@ -60,9 +68,10 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 
 	// commanded velocity, take sign of radius as rotation direction
 	if (PX4_ISFINITE(command.param2)) {
-		const float v = command.param2 * (clockwise ? 1.f : -1.f);
-		ret = ret && setVelocity(v);
+		v = command.param2;
 	}
+
+	ret = ret && setVelocity(v * (clockwise ? 1.f : -1.f));
 
 	// TODO: apply x,y / z independently in geo library
 	// commanded center coordinates
@@ -86,19 +95,40 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 	return ret;
 }
 
-bool FlightTaskOrbit::setRadius(const float r)
+bool FlightTaskOrbit::sendTelemetry()
 {
-	if (math::isInRange(r, _radius_min, _radius_max)) {
-		// small radius is more important than high velocity for safety
-		if (!checkAcceleration(r, _v, _acceleration_max)) {
-			_v = math::sign(_v) * sqrtf(_acceleration_max * r);
-		}
+	orbit_status_s _orbit_status = {};
+	_orbit_status.timestamp = hrt_absolute_time();
+	_orbit_status.radius = math::signNoZero(_v) * _r;
+	_orbit_status.frame = 0; // MAV_FRAME::MAV_FRAME_GLOBAL
 
-		_r = r;
-		return true;
+	if (globallocalconverter_toglobal(_center(0), _center(1), _position_setpoint(2),  &_orbit_status.x, &_orbit_status.y,
+					  &_orbit_status.z)) {
+		return false; // don't send the message if the transformation failed
 	}
 
-	return false;
+	if (_orbit_status_pub == nullptr) {
+		_orbit_status_pub = orb_advertise(ORB_ID(orbit_status), &_orbit_status);
+
+	} else {
+		orb_publish(ORB_ID(orbit_status), _orbit_status_pub, &_orbit_status);
+	}
+
+	return true;
+}
+
+bool FlightTaskOrbit::setRadius(float r)
+{
+	// clip the radius to be within range
+	r = math::constrain(r, _radius_min, _radius_max);
+
+	// small radius is more important than high velocity for safety
+	if (!checkAcceleration(r, _v, _acceleration_max)) {
+		_v = math::sign(_v) * sqrtf(_acceleration_max * r);
+	}
+
+	_r = r;
+	return true;
 }
 
 bool FlightTaskOrbit::setVelocity(const float v)
@@ -164,6 +194,9 @@ bool FlightTaskOrbit::update()
 	_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
 	// yawspeed feed-forward because we know the necessary angular rate
 	_yawspeed_setpoint = _v / _r;
+
+	// publish telemetry
+	sendTelemetry();
 
 	return true;
 }
