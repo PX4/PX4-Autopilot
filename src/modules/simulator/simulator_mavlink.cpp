@@ -511,7 +511,14 @@ void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
 
 	bufLen = mavlink_msg_to_send_buffer(buf, &aMsg);
 
-	ssize_t len = sendto(_fd, buf, bufLen, 0, (struct sockaddr *)&_srcaddr, sizeof(_srcaddr));
+	ssize_t len;
+
+	if (_ip == InternetProtocol::UDP) {
+		len = ::sendto(_fd, buf, bufLen, 0, (struct sockaddr *)&_srcaddr, sizeof(_srcaddr));
+
+	} else {
+		len = ::send(_fd, buf, bufLen, 0);
+	}
 
 	if (len <= 0) {
 		PX4_WARN("Failed sending mavlink message: %s", strerror(errno));
@@ -643,7 +650,7 @@ void Simulator::initializeSensorData()
 	write_airspeed_data(&airspeed);
 }
 
-void Simulator::pollForMAVLinkMessages(bool publish, InternetProtocol ip, int port)
+void Simulator::pollForMAVLinkMessages(bool publish)
 {
 #ifdef __PX4_DARWIN
 	pthread_setname_np("sim_rcv");
@@ -654,9 +661,9 @@ void Simulator::pollForMAVLinkMessages(bool publish, InternetProtocol ip, int po
 	struct sockaddr_in _myaddr {};
 	_myaddr.sin_family = AF_INET;
 	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	_myaddr.sin_port = htons(port);
+	_myaddr.sin_port = htons(_port);
 
-	if (ip == InternetProtocol::UDP) {
+	if (_ip == InternetProtocol::UDP) {
 
 		if ((_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 			PX4_ERR("Creating UDP socket failed: %s", strerror(errno));
@@ -664,11 +671,11 @@ void Simulator::pollForMAVLinkMessages(bool publish, InternetProtocol ip, int po
 		}
 
 		if (bind(_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
-			PX4_ERR("bind for UDP port %i failed (%i)", port, errno);
+			PX4_ERR("bind for UDP port %i failed (%i)", _port, errno);
 			return;
 		}
 
-		PX4_INFO("Waiting for simulator to connect on UDP port %u", port);
+		PX4_INFO("Waiting for simulator to connect on UDP port %u", _port);
 
 		while (true) {
 			// Once we receive something, we're most probably good and can carry on.
@@ -683,11 +690,11 @@ void Simulator::pollForMAVLinkMessages(bool publish, InternetProtocol ip, int po
 			}
 		}
 
-		PX4_INFO("Simulator connected on UDP port %u.", port);
+		PX4_INFO("Simulator connected on UDP port %u.", _port);
 
 	} else {
 
-		PX4_INFO("Waiting for simulator to connect on TCP port %u", port);
+		PX4_INFO("Waiting for simulator to connect on TCP port %u", _port);
 
 		while (true) {
 			if ((_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -714,7 +721,7 @@ void Simulator::pollForMAVLinkMessages(bool publish, InternetProtocol ip, int po
 			}
 		}
 
-		PX4_INFO("Simulator connected on TCP port %u.", port);
+		PX4_INFO("Simulator connected on TCP port %u.", _port);
 
 	}
 
