@@ -178,7 +178,7 @@ __BEGIN_DECLS
 /* The mfguid will be an array of bytes with
  * MSD @ index 0 - LSD @ index PX4_CPU_MFGUID_BYTE_LENGTH-1
  *
- * It wil be conferted to a string with the MSD on left and LSD on the right most position.
+ * It will be converted to a string with the MSD on left and LSD on the right most position.
  */
 #    define PX4_CPU_MFGUID_BYTE_LENGTH              PX4_CPU_UUID_BYTE_LENGTH
 
