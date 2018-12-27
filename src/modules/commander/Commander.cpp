@@ -1101,7 +1101,9 @@ Commander::set_home_position()
 			const vehicle_local_position_s &lpos = _local_position_sub.get();
 
 			// Set home position
-			home_position_s &home = _home_pub.get();
+			home_position_s home{};
+
+			home.timestamp = hrt_absolute_time();
 
 			home.lat = gpos.lat;
 			home.lon = gpos.lon;
@@ -1116,16 +1118,15 @@ Commander::set_home_position()
 
 			home.yaw = lpos.yaw;
 
-			//Play tune first time we initialize HOME
+			home.manual_home = false;
+
+			// play tune first time we initialize HOME
 			if (!status_flags.condition_home_position_valid) {
 				tune_home_set(true);
 			}
 
-			/* mark home position as set */
-			status_flags.condition_home_position_valid = _home_pub.update();
-
-			home.timestamp = hrt_absolute_time();
-			home.manual_home = false;
+			// mark home position as set
+			status_flags.condition_home_position_valid = _home_pub.update(home);
 
 			return status_flags.condition_home_position_valid;
 		}
