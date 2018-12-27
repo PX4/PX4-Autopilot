@@ -2688,7 +2688,7 @@ protected:
 					msg.approach_y = 0.0f;
 					msg.approach_z = 0.0f;
 
-					msg.time_usec = hrt_absolute_time();
+					msg.time_usec = home.timestamp;
 
 					mavlink_msg_home_position_send_struct(_mavlink->get_channel(), &msg);
 
