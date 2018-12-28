@@ -31,8 +31,10 @@
  *
  ****************************************************************************/
 
-#include <px4_time.h>
 #include "PWMSim.hpp"
+
+#include <px4_time.h>
+#include <mathlib/mathlib.h>
 
 #include <uORB/topics/multirotor_motor_limits.h>
 
@@ -254,14 +256,7 @@ PWMSim::run()
 				    _actuator_outputs.output[i] <= 1.0f) {
 					/* scale for PWM output 1000 - 2000us */
 					_actuator_outputs.output[i] = 1500 + (500 * _actuator_outputs.output[i]);
-
-					if (_actuator_outputs.output[i] > _pwm_max[i]) {
-						_actuator_outputs.output[i] = _pwm_max[i];
-					}
-
-					if (_actuator_outputs.output[i] < _pwm_min[i]) {
-						_actuator_outputs.output[i] = _pwm_min[i];
-					}
+					_actuator_outputs.output[i] = math::constrain(_actuator_outputs.output[i], (float)_pwm_min[i], (float)_pwm_max[i]);
 
 				} else {
 					/*
