@@ -694,22 +694,18 @@ int
 QMC5883::reset()
 {
 	/* software reset */
-	PX4_INFO("Writing reset");
 	write_reg(QMC5883_ADDR_CONTROL_1, QMC5883_SOFT_RESET);
 
 
 	/* set reset period to 0x01 */
-	PX4_INFO("Writing reset period 0x01");
 	write_reg(QMC5883_ADDR_SET_RESET, QMC5883_SET_DEFAULT);
 
 	/* set control register */
-	PX4_INFO("Writing control register");
 	_conf_reg = QMC5883_MODE_REG_CONTINOUS_MODE |
 			QMC5883_OUTPUT_DATA_RATE_200|
 			QMC5883_OVERSAMPLE_512 |
 			QMC5883_OUTPUT_RANGE_8G;
 	write_reg(QMC5883_ADDR_CONTROL_1, _conf_reg);
-
 
 	return OK;
 }
