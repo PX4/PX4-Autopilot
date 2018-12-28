@@ -237,16 +237,17 @@ PWMSim::run()
 		if (_mixers != nullptr) {
 
 			/* do mixing */
-			unsigned num_outputs = _mixers->mix(&_actuator_outputs.output[0], _num_outputs);
-			_actuator_outputs.noutputs = num_outputs;
+			_actuator_outputs.noutputs = _mixers->mix(&_actuator_outputs.output[0], _num_outputs);
 
 			/* disable unused ports by setting their output to NaN */
-			for (size_t i = num_outputs; i < sizeof(_actuator_outputs.output) / sizeof(_actuator_outputs.output[0]); i++) {
+			const size_t actuator_outputs_size = sizeof(_actuator_outputs.output) / sizeof(_actuator_outputs.output[0]);
+
+			for (size_t i = _actuator_outputs.noutputs; i < actuator_outputs_size; i++) {
 				_actuator_outputs.output[i] = NAN;
 			}
 
 			/* iterate actuators */
-			for (unsigned i = 0; i < num_outputs; i++) {
+			for (unsigned i = 0; i < _actuator_outputs.noutputs; i++) {
 				/* last resort: catch NaN, INF and out-of-band errors */
 				if (i < _actuator_outputs.noutputs &&
 				    PX4_ISFINITE(_actuator_outputs.output[i]) &&
@@ -268,14 +269,14 @@ PWMSim::run()
 
 			/* overwrite outputs in case of force_failsafe */
 			if (_failsafe) {
-				for (size_t i = 0; i < num_outputs; i++) {
+				for (size_t i = 0; i < _actuator_outputs.noutputs; i++) {
 					_actuator_outputs.output[i] = PWM_SIM_FAILSAFE_MAGIC;
 				}
 			}
 
 			/* overwrite outputs in case of lockdown */
 			if (_lockdown) {
-				for (size_t i = 0; i < num_outputs; i++) {
+				for (size_t i = 0; i < _actuator_outputs.noutputs; i++) {
 					_actuator_outputs.output[i] = 0.0;
 				}
 			}
