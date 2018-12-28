@@ -352,7 +352,7 @@ QMC5883::QMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_reports(nullptr),
 	_scale{},
 	_range_scale(0), /* default range scale from counts to gauss */
-	_range_ga(1.9f),
+	_range_ga(2.0f),
 	_collect_phase(false),
 	_class_instance(-1),
 	_orb_class_instance(-1),
@@ -713,6 +713,9 @@ QMC5883::reset()
 			QMC5883_OUTPUT_RANGE_8G;
 	write_reg(QMC5883_ADDR_CONTROL_1, _conf_reg);
 
+	/* set default range */
+	set_range(_range_ga);
+
 	return OK;
 }
 
@@ -954,6 +957,7 @@ out:
 
 int QMC5883::calibrate(struct file *filp, unsigned enable)
 {
+	PX4_INFO("QMC5883::calibrate");
 	struct mag_report report;
 	ssize_t sz;
 	int ret = 1;
