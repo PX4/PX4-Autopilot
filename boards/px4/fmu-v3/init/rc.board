@@ -44,6 +44,7 @@ fi
 
 # External I2C bus
 hmc5883 -C -T -X start
+qmc5883 -C -X start
 lis3mdl -X start
 ist8310 -C start
 

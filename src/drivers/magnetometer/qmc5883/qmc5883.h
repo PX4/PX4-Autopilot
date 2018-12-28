@@ -39,13 +39,12 @@
 
 #pragma once
 
-#define ADDR_ID_A			0x0a
-#define ADDR_ID_B			0x0b
-#define ADDR_ID_C			0x0c
+#define ADDR_ID_A			0x0C
+#define ADDR_ID_B			0x0D
 
-#define ID_A_WHO_AM_I			'H'
-#define ID_B_WHO_AM_I			'4'
-#define ID_C_WHO_AM_I			'3'
+#define ID_A_WHO_AM_I			0x01
+#define ID_B_WHO_AM_I			0xFF
+
 
 /* interface factories */
 extern device::Device *QMC5883_SPI_interface(int bus);

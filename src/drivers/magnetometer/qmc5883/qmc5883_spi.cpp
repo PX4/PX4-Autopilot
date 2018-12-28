@@ -109,18 +109,16 @@ QMC5883_SPI::init()
 	}
 
 	// read WHO_AM_I value
-	uint8_t data[3] = {0, 0, 0};
+	uint8_t data[2] = {0, 0};
 
 	if (read(ADDR_ID_A, &data[0], 1) ||
-	    read(ADDR_ID_B, &data[1], 1) ||
-	    read(ADDR_ID_C, &data[2], 1)) {
+	    read(ADDR_ID_B, &data[1], 1)) {
 		DEVICE_DEBUG("read_reg fail");
 	}
 
 	if ((data[0] != ID_A_WHO_AM_I) ||
-	    (data[1] != ID_B_WHO_AM_I) ||
-	    (data[2] != ID_C_WHO_AM_I)) {
-		DEVICE_DEBUG("ID byte mismatch (%02x,%02x,%02x)", data[0], data[1], data[2]);
+	    (data[1] != ID_B_WHO_AM_I)) {
+		DEVICE_DEBUG("ID byte mismatch (%02x,%02x)", data[0], data[1]);
 		return -EIO;
 	}
 
