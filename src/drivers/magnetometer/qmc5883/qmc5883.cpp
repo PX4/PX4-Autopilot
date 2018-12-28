@@ -83,6 +83,7 @@
 
 /* Max measurement rate is 200Hz */
 #define QMC5883_CONVERSION_INTERVAL	(1000000 / 200)	/* microseconds */
+#define QMC5883_MAX_COUNT 			32767
 
 #define QMC5883_ADDR_DATA_OUT_X_LSB		0x00
 #define QMC5883_ADDR_DATA_OUT_X_MSB		0x01
@@ -121,7 +122,7 @@
 #define QMC5883_ROL_PNT 			(1 << 6)
 #define QMC5883_SOFT_RESET 			(1 << 7)
 
-/* Set Regiter */
+/* Set Register */
 #define QMC5883_SET_DEFAULT 			(1 << 0)
 
 #define HMC5983_TEMP_SENSOR_ENABLE 0
@@ -693,8 +694,13 @@ QMC5883::stop()
 int
 QMC5883::reset()
 {
+	PX4_INFO("QMC5883::reset");
+	/* read 0x00 once */
+	uint8_t data_bits_in = 0;
+	read_reg(QMC5883_ADDR_DATA_OUT_X_LSB, data_bits_in);
+
 	/* software reset */
-	write_reg(QMC5883_ADDR_CONTROL_1, QMC5883_SOFT_RESET);
+	write_reg(QMC5883_ADDR_CONTROL_2, QMC5883_SOFT_RESET);
 
 
 	/* set reset period to 0x01 */
@@ -779,7 +785,7 @@ QMC5883::measure()
 	int ret = 0;
 
 	/*
-	 * Send the command to begin a measurement.
+	 * QMC5883 has only continuous measurement mode
 	 */
 	//ret = write_reg(ADDR_MODE, MODE_REG_SINGLE_MODE);
 
@@ -798,7 +804,7 @@ QMC5883::collect()
 		uint8_t		x[2];
 		uint8_t		z[2];
 		uint8_t		y[2];
-	}	hmc_report;
+	}	qmc_report;
 #pragma pack(pop)
 	struct {
 		int16_t		x, y, z;
@@ -829,7 +835,7 @@ QMC5883::collect()
 	 */
 
 	/* get measurements from the device */
-	ret = _interface->read(QMC5883_ADDR_DATA_OUT_X_LSB, (uint8_t *)&hmc_report, sizeof(hmc_report));
+	ret = _interface->read(QMC5883_ADDR_DATA_OUT_X_LSB, (uint8_t *)&qmc_report, sizeof(qmc_report));
 
 	if (ret != OK) {
 		perf_count(_comms_errors);
@@ -837,23 +843,24 @@ QMC5883::collect()
 		goto out;
 	}
 
-	/* swap the data we just received */
-	report.x = (((int16_t)hmc_report.x[0]) << 8) + hmc_report.x[1];
-	report.y = (((int16_t)hmc_report.y[0]) << 8) + hmc_report.y[1];
-	report.z = (((int16_t)hmc_report.z[0]) << 8) + hmc_report.z[1];
+	/* map data we just received LSB, MSB */
+	report.x = (((int16_t)qmc_report.x[1]) << 8) + qmc_report.x[0];
+	report.y = (((int16_t)qmc_report.y[1]) << 8) + qmc_report.y[0];
+	report.z = (((int16_t)qmc_report.z[1]) << 8) + qmc_report.z[0];
+	
 
 	/*
 	 * If any of the values are -4096, there was an internal math error in the sensor.
 	 * Generalise this to a simple range check that will also catch some bit errors.
 	 */
-	if ((abs(report.x) > 2048) ||
-	    (abs(report.y) > 2048) ||
-	    (abs(report.z) > 2048)) {
+	if ((abs(report.x) > QMC5883_MAX_COUNT) ||
+	    (abs(report.y) > QMC5883_MAX_COUNT) ||
+	    (abs(report.z) > QMC5883_MAX_COUNT)) {
 		perf_count(_comms_errors);
 		goto out;
 	}
 
-	/* get measurements from the device */
+	/* get temperature measurements from the device */
 	new_report.temperature = 0;
 
 	/*
@@ -980,12 +987,8 @@ int QMC5883::calibrate(struct file *filp, unsigned enable)
 	 * LSM/Ga, giving 1.16 and 1.08 */
 	float expected_cal[3] = { 1.16f, 1.08f, 1.08f };
 
-	/* start the sensor polling at 50 Hz */
-	if (OK != ioctl(filp, SENSORIOCSPOLLRATE, 50)) {
-		warn("FAILED: SENSORIOCSPOLLRATE 50Hz");
-		ret = 1;
-		goto out;
-	}
+	/* set polling rate to 50hz */
+	write_reg(QMC5883_ADDR_CONTROL_1, QMC5883_OUTPUT_DATA_RATE_50 | _conf_reg);
 
 	/* Set to 2.5 Gauss. We ask for 3 to get the right part of
 	 * the chained if statement above. */
