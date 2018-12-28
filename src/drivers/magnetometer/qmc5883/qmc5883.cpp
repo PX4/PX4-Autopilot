@@ -81,41 +81,47 @@
  * QMC5883 internal constants and data structures.
  */
 
-/* Max measurement rate is 160Hz, however with 160 it will be set to 166 Hz, therefore workaround using 150 */
-#define QMC5883_CONVERSION_INTERVAL	(1000000 / 150)	/* microseconds */
+/* Max measurement rate is 200Hz */
+#define QMC5883_CONVERSION_INTERVAL	(1000000 / 200)	/* microseconds */
 
-#define ADDR_CONF_A			0x00
-#define ADDR_CONF_B			0x01
-#define ADDR_MODE			0x02
-#define ADDR_DATA_OUT_X_MSB		0x03
-#define ADDR_DATA_OUT_X_LSB		0x04
-#define ADDR_DATA_OUT_Z_MSB		0x05
-#define ADDR_DATA_OUT_Z_LSB		0x06
-#define ADDR_DATA_OUT_Y_MSB		0x07
-#define ADDR_DATA_OUT_Y_LSB		0x08
-#define ADDR_STATUS			0x09
+#define QMC5883_ADDR_DATA_OUT_X_LSB		0x00
+#define QMC5883_ADDR_DATA_OUT_X_MSB		0x01
+#define QMC5883_ADDR_DATA_OUT_Y_LSB		0x02
+#define QMC5883_ADDR_DATA_OUT_Y_MSB		0x03
+#define QMC5883_ADDR_DATA_OUT_Z_LSB		0x04
+#define QMC5883_ADDR_DATA_OUT_Z_MSB		0x05
+#define QMC5883_ADDR_STATUS			0x06
+#define QMC5883_ADDR_TEMP_OUT_LSB 		0x07
+#define QMC5883_ADDR_TEMP_OUT_MSB 		0x08
+#define QMC5883_ADDR_CONTROL_1 			0x09
+#define QMC5883_ADDR_CONTROL_2 			0x0A
+#define QMC5883_ADDR_SET_RESET 			0x0B
 
-/* temperature on hmc5983 only */
-#define ADDR_TEMP_OUT_MSB		0x31
-#define ADDR_TEMP_OUT_LSB		0x32
 
-/* modes not changeable outside of driver */
-#define QMC5883L_MODE_NORMAL		(0 << 0)  /* default */
-#define QMC5883L_MODE_POSITIVE_BIAS	(1 << 0)  /* positive bias */
-#define QMC5883L_MODE_NEGATIVE_BIAS	(1 << 1)  /* negative bias */
+#define QMC5883_STATUS_REG_DRDY 		(1 << 0)  /* Data Ready: "0": no new data, "1": new data is ready */
+#define QMC5883_STATUS_REG_OVL 			(1 << 1)  /* Overflow Flag: "0": normal, "1": data overflow */
+#define QMC5883_STATUS_REG_DOR			(1 << 2)  /* Data Skip: "0": normal, "1": data skipped for reading */
 
-#define QMC5883L_AVERAGING_1		(0 << 5) /* conf a register */
-#define QMC5883L_AVERAGING_2		(1 << 5)
-#define QMC5883L_AVERAGING_4		(2 << 5)
-#define QMC5883L_AVERAGING_8		(3 << 5)
+/* Control Register 1 */
+#define QMC5883_MODE_REG_STANDBY 		(0 << 0)
+#define QMC5883_MODE_REG_CONTINOUS_MODE         (1 << 0)
+#define QMC5883_OUTPUT_DATA_RATE_10 		(0 << 2) /* Hz */
+#define QMC5883_OUTPUT_DATA_RATE_50 		(1 << 2)
+#define QMC5883_OUTPUT_DATA_RATE_100 		(2 << 2)
+#define QMC5883_OUTPUT_DATA_RATE_200 		(3 << 2)
+#define QMC5883_OUTPUT_RANGE_2G 		(0 << 4)  /* +/- 2 gauss */
+#define QMC5883_OUTPUT_RANGE_8G 		(1 << 4)  /* +/- 8 gauss */
+#define QMC5883_OVERSAMPLE_512 			(0 << 6)  /* controls digital filter bw - larger OSR -> smaller bw */
+#define QMC5883_OVERSAMPLE_256 			(1 << 6)
+#define QMC5883_OVERSAMPLE_128 			(2 << 6)
+#define QMC5883_OVERSAMPLE_64 			(3 << 6)
 
-#define MODE_REG_CONTINOUS_MODE		(0 << 0)
-#define MODE_REG_SINGLE_MODE		(1 << 0) /* default */
+/* Control Register 2 */
+#define QMC5883_INT_ENB 			(1 << 0)
+#define QMC5883_ROL_PNT 			(1 << 6)
+#define QMC5883_SOFT_RESET 			(1 << 7)
 
-#define STATUS_REG_DATA_OUT_LOCK	(1 << 1) /* page 16: set if data is only partially read, read device to reset */
-#define STATUS_REG_DATA_READY		(1 << 0) /* page 16: set if all axes have valid measurements */
-
-#define HMC5983_TEMP_SENSOR_ENABLE	(1 << 7)
+#define HMC5983_TEMP_SENSOR_ENABLE 0
 
 enum QMC5883_BUS {
 	QMC5883_BUS_ALL = 0,
@@ -403,6 +409,7 @@ QMC5883::~QMC5883()
 int
 QMC5883::init()
 {
+	PX4_INFO("QMC5883::init");
 	int ret = PX4_ERROR;
 
 	ret = CDev::init();
@@ -433,66 +440,31 @@ out:
 
 int QMC5883::set_range(unsigned range)
 {
-	if (range < 0.88f) {
-		_range_bits = 0x00;
-		_range_scale = 1.0f / 1370.0f;
-		_range_ga = 0.88f;
-
-	} else if (range <= 1.3f) {
-		_range_bits = 0x01;
-		_range_scale = 1.0f / 1090.0f;
-		_range_ga = 1.3f;
-
-	} else if (range <= 2) {
-		_range_bits = 0x02;
-		_range_scale = 1.0f / 820.0f;
-		_range_ga = 1.9f;
-
-	} else if (range <= 3) {
-		_range_bits = 0x03;
-		_range_scale = 1.0f / 660.0f;
-		_range_ga = 2.5f;
-
-	} else if (range <= 4) {
-		_range_bits = 0x04;
-		_range_scale = 1.0f / 440.0f;
-		_range_ga = 4.0f;
-
-	} else if (range <= 4.7f) {
-		_range_bits = 0x05;
-		_range_scale = 1.0f / 390.0f;
-		_range_ga = 4.7f;
-
-	} else if (range <= 5.6f) {
-		_range_bits = 0x06;
-		_range_scale = 1.0f / 330.0f;
-		_range_ga = 5.6f;
-
-	} else {
-		_range_bits = 0x07;
-		_range_scale = 1.0f / 230.0f;
-		_range_ga = 8.1f;
-	}
-
 	int ret;
-
-	/*
-	 * Send the command to set the range
-	 */
-	ret = write_reg(ADDR_CONF_B, (_range_bits << 5));
+	if (range <= 2) {
+		_range_bits = 0x00;
+		_range_scale = 1.0f / 12000.0f;
+		_range_ga = 2.00f;
+		ret = write_reg(QMC5883_ADDR_CONTROL_1, QMC5883_OUTPUT_RANGE_2G);
+	} else {
+		_range_bits = 0x01;
+		_range_scale = 1.0f / 3000.0f;
+		_range_ga = 8.00f;
+		ret = write_reg(QMC5883_ADDR_CONTROL_1, QMC5883_OUTPUT_RANGE_8G);
+	}
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
 	}
 
 	uint8_t range_bits_in = 0;
-	ret = read_reg(ADDR_CONF_B, range_bits_in);
+	ret = read_reg(QMC5883_ADDR_CONTROL_1, range_bits_in);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
 	}
 
-	return !(range_bits_in == (_range_bits << 5));
+	return !(range_bits_in == (_range_bits << 4));
 }
 
 /**
@@ -505,16 +477,16 @@ void QMC5883::check_range(void)
 	int ret;
 
 	uint8_t range_bits_in = 0;
-	ret = read_reg(ADDR_CONF_B, range_bits_in);
+	ret = read_reg(QMC5883_ADDR_CONTROL_1, range_bits_in);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
 		return;
 	}
 
-	if (range_bits_in != (_range_bits << 5)) {
+	if (range_bits_in != _range_bits << 4) {
 		perf_count(_range_errors);
-		ret = write_reg(ADDR_CONF_B, (_range_bits << 5));
+		ret = write_reg(QMC5883_ADDR_CONTROL_1, (_range_bits << 4));
 
 		if (OK != ret) {
 			perf_count(_comms_errors);
@@ -532,7 +504,7 @@ void QMC5883::check_conf(void)
 	int ret;
 
 	uint8_t conf_reg_in = 0;
-	ret = read_reg(ADDR_CONF_A, conf_reg_in);
+	ret = read_reg(QMC5883_ADDR_CONTROL_1, conf_reg_in);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -541,7 +513,7 @@ void QMC5883::check_conf(void)
 
 	if (conf_reg_in != _conf_reg) {
 		perf_count(_conf_errors);
-		ret = write_reg(ADDR_CONF_A, _conf_reg);
+		ret = write_reg(QMC5883_ADDR_CONTROL_1, _conf_reg);
 
 		if (OK != ret) {
 			perf_count(_comms_errors);
@@ -688,9 +660,6 @@ QMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 		DEVICE_DEBUG("MAGIOCGEXTERNAL in main driver");
 		return _interface->ioctl(cmd, dummy);
 
-	case MAGIOCSTEMPCOMP:
-		return set_temperature_compensation(arg);
-
 	default:
 		/* give it to the superclass */
 		return CDev::ioctl(filp, cmd, arg);
@@ -722,7 +691,7 @@ int
 QMC5883::reset()
 {
 	/* set range, ceil floating point number */
-	return set_range(_range_ga + 0.5f);
+	return write_reg(QMC5883_ADDR_CONTROL_1, QMC5883_SOFT_RESET);
 }
 
 void
@@ -791,12 +760,12 @@ QMC5883::cycle()
 int
 QMC5883::measure()
 {
-	int ret;
+	int ret = 0;
 
 	/*
 	 * Send the command to begin a measurement.
 	 */
-	ret = write_reg(ADDR_MODE, MODE_REG_SINGLE_MODE);
+	//ret = write_reg(ADDR_MODE, MODE_REG_SINGLE_MODE);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -844,7 +813,7 @@ QMC5883::collect()
 	 */
 
 	/* get measurements from the device */
-	ret = _interface->read(ADDR_DATA_OUT_X_MSB, (uint8_t *)&hmc_report, sizeof(hmc_report));
+	ret = _interface->read(QMC5883_ADDR_DATA_OUT_X_LSB, (uint8_t *)&hmc_report, sizeof(hmc_report));
 
 	if (ret != OK) {
 		perf_count(_comms_errors);
@@ -870,47 +839,6 @@ QMC5883::collect()
 
 	/* get measurements from the device */
 	new_report.temperature = 0;
-
-	if (_conf_reg & HMC5983_TEMP_SENSOR_ENABLE) {
-		/*
-		  if temperature compensation is enabled read the
-		  temperature too.
-
-		  We read the temperature every 10 samples to avoid
-		  excessive I2C traffic
-		 */
-		if (_temperature_counter++ == 10) {
-			uint8_t raw_temperature[2];
-
-			_temperature_counter = 0;
-
-			ret = _interface->read(ADDR_TEMP_OUT_MSB,
-					       raw_temperature, sizeof(raw_temperature));
-
-			if (ret == OK) {
-				int16_t temp16 = (((int16_t)raw_temperature[0]) << 8) +
-						 raw_temperature[1];
-				new_report.temperature = 25 + (temp16 / (16 * 8.0f));
-				_temperature_error_count = 0;
-
-			} else {
-				_temperature_error_count++;
-
-				if (_temperature_error_count == 10) {
-					/*
-					  it probably really is an old QMC5883,
-					  and can't do temperature. Disable it
-					*/
-					_temperature_error_count = 0;
-					DEVICE_DEBUG("disabling temperature compensation");
-					set_temperature_compensation(0);
-				}
-			}
-
-		} else {
-			new_report.temperature = _last_report.temperature;
-		}
-	}
 
 	/*
 	 * RAW outputs
@@ -1215,95 +1143,10 @@ int QMC5883::check_offset()
 
 int QMC5883::set_excitement(unsigned enable)
 {
-	int ret;
-	/* arm the excitement strap */
-	ret = read_reg(ADDR_CONF_A, _conf_reg);
 
-	if (OK != ret) {
-		perf_count(_comms_errors);
-	}
-
-	_conf_reg &= ~0x03; // reset previous excitement mode
-
-	if (((int)enable) < 0) {
-		_conf_reg |= 0x01;
-
-	} else if (enable > 0) {
-		_conf_reg |= 0x02;
-
-	}
-
-	// ::printf("set_excitement enable=%d regA=0x%x\n", (int)enable, (unsigned)_conf_reg);
-
-	ret = write_reg(ADDR_CONF_A, _conf_reg);
-
-	if (OK != ret) {
-		perf_count(_comms_errors);
-	}
-
-	uint8_t conf_reg_ret = 0;
-	read_reg(ADDR_CONF_A, conf_reg_ret);
-
-	//print_info();
-
-	return !(_conf_reg == conf_reg_ret);
+	return 0;
 }
 
-
-/*
-  enable/disable temperature compensation on the HMC5983
-
-  Unfortunately we don't yet know of a way to auto-detect the
-  difference between the QMC5883 and HMC5983. Both of them do
-  temperature sensing, but only the 5983 does temperature
-  compensation. We have noy yet found a behaviour that can be reliably
-  distinguished by reading registers to know which type a particular
-  sensor is
-
-  update: Current best guess is that many sensors marked QMC5883L on
-  the package are actually 5983 but without temperature compensation
-  tables. Reading the temperature works, but the mag field is not
-  automatically adjusted for temperature. We suspect that there may be
-  some early 5883L parts that don't have the temperature sensor at
-  all, although we haven't found one yet. The code that reads the
-  temperature looks for 10 failed transfers in a row and disables the
-  temperature sensor if that happens. It is hoped that this copes with
-  the genuine 5883L parts.
- */
-int QMC5883::set_temperature_compensation(unsigned enable)
-{
-	int ret;
-	/* get current config */
-	ret = read_reg(ADDR_CONF_A, _conf_reg);
-
-	if (OK != ret) {
-		perf_count(_comms_errors);
-		return -EIO;
-	}
-
-	if (enable != 0) {
-		_conf_reg |= HMC5983_TEMP_SENSOR_ENABLE;
-
-	} else {
-		_conf_reg &= ~HMC5983_TEMP_SENSOR_ENABLE;
-	}
-
-	ret = write_reg(ADDR_CONF_A, _conf_reg);
-
-	if (OK != ret) {
-		perf_count(_comms_errors);
-		return -EIO;
-	}
-
-	uint8_t conf_reg_ret = 0;
-
-	if (read_reg(ADDR_CONF_A, conf_reg_ret) != OK) {
-		perf_count(_comms_errors);
-		return -EIO;
-	}
-
-	return conf_reg_ret == _conf_reg;
-}
 
 int
 QMC5883::write_reg(uint8_t reg, uint8_t val)
@@ -1647,29 +1490,6 @@ reset(enum QMC5883_BUS busid)
 
 
 /**
- * enable/disable temperature compensation
- */
-int
-temp_enable(enum QMC5883_BUS busid, bool enable)
-{
-	struct qmc5883_bus_option &bus = find_bus(busid);
-	const char *path = bus.devpath;
-
-	int fd = open(path, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "failed ");
-	}
-
-	if (ioctl(fd, MAGIOCSTEMPCOMP, (unsigned)enable) < 0) {
-		err(1, "set temperature compensation failed");
-	}
-
-	close(fd);
-	return 0;
-}
-
-/**
  * Print a little info about the driver.
  */
 int
@@ -1704,7 +1524,6 @@ qmc5883_main(int argc, char *argv[])
 	enum QMC5883_BUS busid = QMC5883_BUS_ALL;
 	enum Rotation rotation = ROTATION_NONE;
 	bool calibrate = false;
-	bool temp_compensation = false;
 
 	if (argc < 2) {
 		qmc5883::usage();
@@ -1735,10 +1554,6 @@ qmc5883_main(int argc, char *argv[])
 			calibrate = true;
 			break;
 
-		case 'T':
-			temp_compensation = true;
-			break;
-
 		default:
 			qmc5883::usage();
 			exit(0);
@@ -1755,12 +1570,6 @@ qmc5883_main(int argc, char *argv[])
 
 		if (calibrate && qmc5883::calibrate(busid) != 0) {
 			errx(1, "calibration failed");
-		}
-
-		if (temp_compensation) {
-			// we consider failing to setup temperature
-			// compensation as non-fatal
-			qmc5883::temp_enable(busid, true);
 		}
 
 		exit(0);
@@ -1787,16 +1596,6 @@ qmc5883_main(int argc, char *argv[])
 		qmc5883::reset(busid);
 	}
 
-	/*
-	 * enable/disable temperature compensation
-	 */
-	if (!strcmp(verb, "tempoff")) {
-		qmc5883::temp_enable(busid, false);
-	}
-
-	if (!strcmp(verb, "tempon")) {
-		qmc5883::temp_enable(busid, true);
-	}
 
 	/*
 	 * Print driver information.
@@ -1817,5 +1616,5 @@ qmc5883_main(int argc, char *argv[])
 		}
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' 'calibrate', 'tempoff', 'tempon' or 'info'");
+	errx(1, "unrecognized command, try 'start', 'test', 'reset' 'calibrate', or 'info'");
 }

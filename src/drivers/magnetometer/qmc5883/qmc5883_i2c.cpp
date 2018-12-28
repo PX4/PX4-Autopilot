@@ -34,7 +34,7 @@
 /**
  * @file QMC5883_I2C.cpp
  *
- * I2C interface for QMC5883 / HMC 5983
+ * I2C interface for QMC5883
  */
 
 /* XXX trim includes */
@@ -59,7 +59,7 @@
 
 #include "board_config.h"
 
-#define QMC5883L_ADDRESS		0x1E
+#define QMC5883L_ADDRESS		0x0D
 
 device::Device *QMC5883_I2C_interface(int bus);
 
@@ -114,13 +114,13 @@ QMC5883_I2C::ioctl(unsigned operation, unsigned &arg)
 int
 QMC5883_I2C::probe()
 {
-	uint8_t data[3] = {0, 0, 0};
+	uint8_t data[2] = {0, 0};
 
 	_retries = 10;
 
 	if (read(ADDR_ID_A, &data[0], 1) ||
-	    read(ADDR_ID_B, &data[1], 1) ||
-	    read(ADDR_ID_C, &data[2], 1)) {
+	    read(ADDR_ID_B, &data[1], 1)) {
+	    	PX4_INFO("read_reg fail");
 		DEVICE_DEBUG("read_reg fail");
 		return -EIO;
 	}
@@ -128,9 +128,9 @@ QMC5883_I2C::probe()
 	_retries = 2;
 
 	if ((data[0] != ID_A_WHO_AM_I) ||
-	    (data[1] != ID_B_WHO_AM_I) ||
-	    (data[2] != ID_C_WHO_AM_I)) {
-		DEVICE_DEBUG("ID byte mismatch (%02x,%02x,%02x)", data[0], data[1], data[2]);
+	    (data[1] != ID_B_WHO_AM_I)) {
+	    	PX4_INFO("ID byte mismatch" );
+		DEVICE_DEBUG("ID byte mismatch (%02x,%02x)", data[0], data[1]);
 		return -EIO;
 	}
 
