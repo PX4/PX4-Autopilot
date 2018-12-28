@@ -121,6 +121,9 @@
 #define QMC5883_ROL_PNT 			(1 << 6)
 #define QMC5883_SOFT_RESET 			(1 << 7)
 
+/* Set Regiter */
+#define QMC5883_SET_DEFAULT 			(1 << 0)
+
 #define HMC5983_TEMP_SENSOR_ENABLE 0
 
 enum QMC5883_BUS {
@@ -690,8 +693,25 @@ QMC5883::stop()
 int
 QMC5883::reset()
 {
-	/* set range, ceil floating point number */
-	return write_reg(QMC5883_ADDR_CONTROL_1, QMC5883_SOFT_RESET);
+	/* software reset */
+	PX4_INFO("Writing reset");
+	write_reg(QMC5883_ADDR_CONTROL_1, QMC5883_SOFT_RESET);
+
+
+	/* set reset period to 0x01 */
+	PX4_INFO("Writing reset period 0x01");
+	write_reg(QMC5883_ADDR_SET_RESET, QMC5883_SET_DEFAULT);
+
+	/* set control register */
+	PX4_INFO("Writing control register");
+	_conf_reg = QMC5883_MODE_REG_CONTINOUS_MODE |
+			QMC5883_OUTPUT_DATA_RATE_200|
+			QMC5883_OVERSAMPLE_512 |
+			QMC5883_OUTPUT_RANGE_8G;
+	write_reg(QMC5883_ADDR_CONTROL_1, _conf_reg);
+
+
+	return OK;
 }
 
 void
