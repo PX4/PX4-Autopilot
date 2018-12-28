@@ -241,10 +241,8 @@ PWMSim::run()
 			_actuator_outputs.noutputs = num_outputs;
 
 			/* disable unused ports by setting their output to NaN */
-			for (size_t i = 0; i < sizeof(_actuator_outputs.output) / sizeof(_actuator_outputs.output[0]); i++) {
-				if (i >= num_outputs) {
-					_actuator_outputs.output[i] = NAN;
-				}
+			for (size_t i = num_outputs; i < sizeof(_actuator_outputs.output) / sizeof(_actuator_outputs.output[0]); i++) {
+				_actuator_outputs.output[i] = NAN;
 			}
 
 			/* iterate actuators */
