@@ -3,7 +3,6 @@ list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/boards/atlflight/cmake_hexagon"
 include(toolchain/Toolchain-qurt)
 include(fastrpc)
 include(qurt_lib)
-include(qurt_flags)
 
 add_subdirectory(src)
 
@@ -23,21 +22,27 @@ add_definitions(-D__QAIC_SKEL_EXPORT=__EXPORT)
 # Enable build without HexagonSDK to check link dependencies
 if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 
-	add_definitions(-D QURT_EXE_BUILD=1)
-
 	include_directories(
-                ${CMAKE_CURRENT_BINARY_DIR}
-                ${FASTRPC_DSP_INCLUDES}
-                )
+		${CMAKE_CURRENT_BINARY_DIR}
+		${FASTRPC_DSP_INCLUDES}
+	)
 
-	add_executable(px4
+	add_executable(px4_test
 		${PX4_BINARY_DIR}/apps.cpp
 		${PX4_BINARY_DIR}/platforms/qurt/px4muorb_skel.c
 	)
 
-	target_link_libraries(px4 PRIVATE ${module_libraries} ${df_driver_libs})
+	target_link_libraries(px4_test
+		PRIVATE
+			${module_libraries}
+			${df_driver_libs}
+			qurt_stubs
+	)
 
 else()
+
+	include(qurt_flags)
+
 	# Generate the DSP lib and stubs but not the apps side executable
 	# The Apps side executable is generated via the posix_eagle_xxxx target
 	QURT_LIB(LIB_NAME px4

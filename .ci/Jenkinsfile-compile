@@ -108,7 +108,7 @@ pipeline {
           ]
 
           def snapdragon_builds = [
-            target: ["atlflight_eagle_qurt-default", "atlflight_eagle_default"],
+            target: ["atlflight_eagle_qurt-default", "atlflight_eagle_qurt-test", "atlflight_eagle_default"],
             image: docker_images.snapdragon,
             archive: false
           ]

@@ -31,5 +31,7 @@
 #
 ############################################################################
 
-add_subdirectory(px4_layer)
-add_subdirectory(stubs)
+add_library(qurt_stubs
+	stubs_posix.c
+	stubs_qurt.c
+)
