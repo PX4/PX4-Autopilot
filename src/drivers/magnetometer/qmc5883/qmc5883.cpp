@@ -413,7 +413,6 @@ QMC5883::~QMC5883()
 int
 QMC5883::init()
 {
-	PX4_INFO("QMC5883::init");
 	int ret = PX4_ERROR;
 
 	ret = CDev::init();
@@ -447,12 +446,12 @@ int QMC5883::set_range(unsigned range)
 	int ret;
 	if (range <= 2) {
 		_range_bits = 0x00;
-		_range_scale = 1.0f / 12000.0f;
+		_range_scale = 1.2e-4;
 		_range_ga = 2.00f;
 		ret = write_reg(QMC5883_ADDR_CONTROL_1, QMC5883_OUTPUT_RANGE_2G);
 	} else {
 		_range_bits = 0x01;
-		_range_scale = 1.0f / 3000.0f;
+		_range_scale = 3.0e-3;
 		_range_ga = 8.00f;
 		ret = write_reg(QMC5883_ADDR_CONTROL_1, QMC5883_OUTPUT_RANGE_8G);
 	}
@@ -694,7 +693,6 @@ QMC5883::stop()
 int
 QMC5883::reset()
 {
-	PX4_INFO("QMC5883::reset");
 	/* read 0x00 once */
 	uint8_t data_bits_in = 0;
 	read_reg(QMC5883_ADDR_DATA_OUT_X_LSB, data_bits_in);
@@ -714,7 +712,7 @@ QMC5883::reset()
 	write_reg(QMC5883_ADDR_CONTROL_1, _conf_reg);
 
 	/* set default range */
-	set_range(_range_ga);
+	set_range(_range_ga + 0.5f);
 
 	return OK;
 }
@@ -900,7 +898,7 @@ QMC5883::collect()
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
-
+	
 	new_report.x = ((xraw_f * _range_scale) - _scale.x_offset) * _scale.x_scale;
 	/* flip axes and negate value for y */
 	new_report.y = ((yraw_f * _range_scale) - _scale.y_offset) * _scale.y_scale;
@@ -957,7 +955,6 @@ out:
 
 int QMC5883::calibrate(struct file *filp, unsigned enable)
 {
-	PX4_INFO("QMC5883::calibrate");
 	struct mag_report report;
 	ssize_t sz;
 	int ret = 1;
