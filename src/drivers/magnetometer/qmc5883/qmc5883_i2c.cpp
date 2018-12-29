@@ -120,8 +120,7 @@ QMC5883_I2C::probe()
 
 	if (read(ADDR_ID_A, &data[0], 1) ||
 	    read(ADDR_ID_B, &data[1], 1)) {
-	    	PX4_INFO("read_reg fail");
-		DEVICE_DEBUG("read_reg fail");
+	    	DEVICE_DEBUG("read_reg fail");
 		return -EIO;
 	}
 
@@ -129,7 +128,6 @@ QMC5883_I2C::probe()
 
 	if ((data[0] != ID_A_WHO_AM_I) ||
 	    (data[1] != ID_B_WHO_AM_I)) {
-	    	PX4_INFO("ID byte mismatch" );
 		DEVICE_DEBUG("ID byte mismatch (%02x,%02x)", data[0], data[1]);
 		return -EIO;
 	}
