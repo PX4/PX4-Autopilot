@@ -17,7 +17,7 @@ __END_DECLS
 #define px4_clock_gettime system_clock_gettime
 #endif
 
-#if defined(ENABLE_LOCKSTEP_SCHEDULER) || defined(__PX4_QURT)
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 
 __BEGIN_DECLS
 __EXPORT int px4_clock_settime(clockid_t clk_id, const struct timespec *tp);
