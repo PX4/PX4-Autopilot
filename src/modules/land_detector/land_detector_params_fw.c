@@ -68,7 +68,7 @@ PARAM_DEFINE_FLOAT(LNDFW_VEL_XY_MAX, 1.8f);
  * walk max vz: 0.18
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 0.8f);
+PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 1.0f);
 
 /**
  * Fixedwing max short-term velocity
