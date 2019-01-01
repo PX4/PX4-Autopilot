@@ -66,6 +66,7 @@ pipeline {
             sh 'export'
             sh('make px4_sitl_default package')
             stash(name: "px4_sitl_package", includes: "build/px4_sitl_default/*.bz2")
+            archiveArtifacts(artifacts: "build/px4_sitl_default/*.bz2", fingerprint: true, onlyIfSuccessful: true)
           }
         }
 
