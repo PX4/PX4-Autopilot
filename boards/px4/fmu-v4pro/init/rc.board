@@ -42,5 +42,3 @@ hmc5883 -C -T -X start
 
 # RM3100
 rm3100 start
-
-px4flow start &

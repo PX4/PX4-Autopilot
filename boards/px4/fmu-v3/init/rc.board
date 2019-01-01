@@ -137,6 +137,4 @@ else
 	lsm303d start
 fi
 
-px4flow start &
-
 unset BOARD_FMUV3
