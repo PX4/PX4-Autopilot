@@ -45,5 +45,3 @@ mpu6000 -s -R 8 start
 mpu9250 -s -R 8 start
 lsm303d -R 10 start
 l3gd20 -R 14 start
-
-px4flow start &
