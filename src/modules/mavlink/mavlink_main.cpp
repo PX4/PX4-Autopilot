@@ -54,7 +54,6 @@
 #include <errno.h>
 #include <assert.h>
 #include <math.h>
-#include <poll.h>
 #include <termios.h>
 #include <time.h>
 
@@ -269,7 +268,8 @@ Mavlink::Mavlink() :
 	_send_mutex {},
 
 	/* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el"))
+	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
+	_loop_interval_perf(perf_alloc(PC_INTERVAL, "mavlink_int"))
 {
 	_instance_id = Mavlink::instance_count();
 
@@ -335,6 +335,7 @@ Mavlink::Mavlink() :
 Mavlink::~Mavlink()
 {
 	perf_free(_loop_perf);
+	perf_free(_loop_interval_perf);
 
 	if (_task_running) {
 		/* task wakes up every 10ms or so at the longest */
@@ -567,7 +568,6 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 		}
 	}
 }
-
 
 int
 Mavlink::get_uart_fd(unsigned index)
@@ -2282,6 +2282,7 @@ Mavlink::task_main(int argc, char *argv[])
 		/* main loop */
 		px4_usleep(_main_loop_delay);
 
+		perf_count(_loop_interval_perf);
 		perf_begin(_loop_perf);
 
 		hrt_abstime t = hrt_absolute_time();
