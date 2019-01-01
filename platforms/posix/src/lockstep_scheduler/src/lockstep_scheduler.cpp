@@ -57,8 +57,7 @@ int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *loc
 
 		// The time has already passed.
 		if (time_us <= time_us_) {
-			errno = ETIMEDOUT;
-			return -1;
+			return ETIMEDOUT;
 		}
 
 		new_timed_wait = std::make_shared<TimedWait>();
@@ -80,8 +79,7 @@ int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *loc
 			std::lock_guard<std::mutex> lock_timed_waits(timed_waits_mutex_);
 
 			if (result == 0 && new_timed_wait->timeout) {
-				errno = ETIMEDOUT;
-				result = -1;
+				result = ETIMEDOUT;
 			}
 
 			new_timed_wait->done = true;
@@ -104,9 +102,8 @@ int LockstepScheduler::usleep_until(uint64_t time_us)
 
 	int result = cond_timedwait(&cond, &lock, time_us);
 
-	if (result == -1 && errno == ETIMEDOUT) {
+	if (result == ETIMEDOUT) {
 		// This is expected because we never notified to the condition.
-		errno = 0;
 		result = 0;
 	}
 
