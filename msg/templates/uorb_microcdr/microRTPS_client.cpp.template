@@ -123,7 +123,7 @@ void* send(void* /*unused*/)
         }
 @[end for]@
 
-        usleep(_options.sleep_ms*1000);
+        px4_usleep(_options.sleep_ms*1000);
         ++loop;
     }
 
@@ -212,7 +212,7 @@ void micrortps_start_topics(struct timespec &begin, int &total_read, uint32_t &r
         // loop forever if informed loop number is negative
         if (_options.loops >= 0 && loop >= _options.loops) break;
 
-        usleep(_options.sleep_ms*1000);
+        px4_usleep(_options.sleep_ms*1000);
         ++loop;
     }
 @[if send_topics]@
