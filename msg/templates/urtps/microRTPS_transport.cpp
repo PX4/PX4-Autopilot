@@ -36,8 +36,9 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include <cstdlib>
+#include <px4_time.h>
 
-#include "microRTPS_transport.h"
+#include <microRTPS_transport.h>
 
 #define DEFAULT_UART "/dev/ttyACM0"
 
@@ -326,7 +327,7 @@ int UART_node::init()
 	while (0 < ::read(uart_fd, (void *)&aux, 64)) {
 		//printf("%s ", aux);
 		flush = true;
-		usleep(1000);
+		px4_usleep(1000);
 	}
 
 	if (flush) {
