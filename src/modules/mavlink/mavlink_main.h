@@ -154,21 +154,21 @@ public:
 
 	static int		get_uart_fd(unsigned index);
 
-	int			get_uart_fd();
+	int			get_uart_fd() const { return _uart_fd; }
 
 	/**
 	 * Get the MAVLink system id.
 	 *
 	 * @return		The system ID of this vehicle
 	 */
-	int			get_system_id();
+	int			get_system_id() const { return mavlink_system.sysid; }
 
 	/**
 	 * Get the MAVLink component id.
 	 *
 	 * @return		The component ID of this vehicle
 	 */
-	int			get_component_id();
+	int			get_component_id() const { return mavlink_system.compid; }
 
 	const char *_device_name;
 
@@ -297,7 +297,7 @@ public:
 	/**
 	 * This is the beginning of a MAVLINK_START_UART_SEND/MAVLINK_END_UART_SEND transaction
 	 */
-	void 			begin_send();
+	void 			begin_send() { pthread_mutex_lock(&_send_mutex); }
 
 	/**
 	 * Send bytes out on the link.
@@ -329,7 +329,7 @@ public:
 	 */
 	MavlinkOrbSubscription *add_orb_subscription(const orb_id_t topic, int instance = 0, bool disable_sharing = false);
 
-	int			get_instance_id();
+	int			get_instance_id() const { return _instance_id; }
 
 	/**
 	 * Enable / disable hardware flow control.
@@ -338,7 +338,7 @@ public:
 	 */
 	int			enable_flow_control(enum FLOW_CONTROL_MODE enabled);
 
-	mavlink_channel_t	get_channel();
+	mavlink_channel_t	get_channel() const { return _channel; }
 
 	void			configure_stream_threadsafe(const char *stream_name, float rate = -1.0f);
 
@@ -678,11 +678,11 @@ private:
 
 	int message_buffer_count();
 
-	int message_buffer_is_empty();
+	int message_buffer_is_empty() const { return (_message_buffer.read_ptr == _message_buffer.write_ptr); }
 
 	int message_buffer_get_ptr(void **ptr, bool *is_part);
 
-	void message_buffer_mark_read(int n);
+	void message_buffer_mark_read(int n) { _message_buffer.read_ptr = (_message_buffer.read_ptr + n) % _message_buffer.size; }
 
 	void pass_message(const mavlink_message_t *msg);
 
