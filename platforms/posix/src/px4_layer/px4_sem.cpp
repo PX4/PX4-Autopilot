@@ -142,7 +142,7 @@ int px4_sem_timedwait(px4_sem_t *s, const struct timespec *abstime)
 
 	int err = ret;
 
-	if (err != 0 && errno != ETIMEDOUT) {
+	if (err != 0 && err != ETIMEDOUT) {
 		setbuf(stdout, nullptr);
 		setbuf(stderr, nullptr);
 		const unsigned NAMELEN = 32;
