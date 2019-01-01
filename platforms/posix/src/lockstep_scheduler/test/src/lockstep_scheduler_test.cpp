@@ -34,8 +34,7 @@ void test_condition_timing_out()
 	// Use a thread to wait for condition while we already have the lock.
 	// This ensures the synchronization happens in the right order.
 	std::thread thread([&ls, &cond, &lock, &should_have_timed_out]() {
-		assert(ls.cond_timedwait(&cond, &lock, some_time_us + 1000) == -1);
-		assert(errno == ETIMEDOUT);
+		assert(ls.cond_timedwait(&cond, &lock, some_time_us + 1000) == ETIMEDOUT);
 		assert(should_have_timed_out);
 		// It should be re-locked afterwards, so we should be able to unlock it.
 		assert(pthread_mutex_unlock(&lock) == 0);
@@ -139,7 +138,7 @@ public:
 		else if (timeout_reached) {
 			is_done_ = true;
 			thread_->join();
-			assert(result_ == -1);
+			assert(result_ == ETIMEDOUT);
 		}
 	}
 private:
