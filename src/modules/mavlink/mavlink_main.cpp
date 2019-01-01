@@ -581,34 +581,6 @@ Mavlink::get_uart_fd(unsigned index)
 	return -1;
 }
 
-int
-Mavlink::get_uart_fd()
-{
-	return _uart_fd;
-}
-
-int
-Mavlink::get_instance_id()
-{
-	return _instance_id;
-}
-
-mavlink_channel_t
-Mavlink::get_channel()
-{
-	return _channel;
-}
-
-int Mavlink::get_system_id()
-{
-	return mavlink_system.sysid;
-}
-
-int Mavlink::get_component_id()
-{
-	return mavlink_system.compid;
-}
-
 int Mavlink::mavlink_open_uart(int baud, const char *uart_name, bool force_flow_control)
 {
 #ifndef B460800
@@ -890,14 +862,6 @@ Mavlink::get_free_tx_buf()
 	}
 
 	return buf_free;
-}
-
-void
-Mavlink::begin_send()
-{
-	// must protect the network buffer so other calls from receive_thread do not
-	// mangle the message.
-	pthread_mutex_lock(&_send_mutex);
 }
 
 int
@@ -1521,13 +1485,6 @@ Mavlink::message_buffer_count()
 	return n;
 }
 
-int
-Mavlink::message_buffer_is_empty()
-{
-	return _message_buffer.read_ptr == _message_buffer.write_ptr;
-}
-
-
 bool
 Mavlink::message_buffer_write(const void *ptr, int size)
 {
@@ -1587,12 +1544,6 @@ Mavlink::message_buffer_get_ptr(void **ptr, bool *is_part)
 
 	*ptr = &(_message_buffer.data[_message_buffer.read_ptr]);
 	return n;
-}
-
-void
-Mavlink::message_buffer_mark_read(int n)
-{
-	_message_buffer.read_ptr = (_message_buffer.read_ptr + n) % _message_buffer.size;
 }
 
 void
