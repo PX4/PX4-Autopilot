@@ -2318,7 +2318,7 @@ protected:
 
 		mavlink_odometry_t msg = {};
 
-		if (_send_odom_loopback.get()) {
+		if (_mavlink->odometry_loopback_enabled()) {
 			odom_updated = _vodom_sub->update(&_vodom_time, &odom);
 			// frame matches the external vision system
 			msg.frame_id = MAV_FRAME_VISION_NED;
@@ -2361,8 +2361,8 @@ protected:
 			msg.yawspeed = odom.yawspeed;
 
 			// get the covariance matrix size
-			const size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
-			const size_t VEL_URT_SIZE = sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
+			static constexpr size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
+			static constexpr size_t VEL_URT_SIZE = sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
 			static_assert(POS_URT_SIZE == (sizeof(msg.pose_covariance) / sizeof(msg.pose_covariance[0])),
 				      "Odometry Pose Covariance matrix URT array size mismatch");
 			static_assert(VEL_URT_SIZE == (sizeof(msg.twist_covariance) / sizeof(msg.twist_covariance[0])),

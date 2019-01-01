@@ -127,10 +127,6 @@ protected:
 	 */
 	virtual void update_data() { }
 
-	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::MAV_ODOM_LP>) _send_odom_loopback
-	)
-
 private:
 	hrt_abstime _last_sent{0};
 	bool _first_message_sent{false};
