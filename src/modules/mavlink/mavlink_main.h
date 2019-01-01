@@ -294,7 +294,6 @@ public:
 	 */
 	bool			get_manual_input_mode_generation() { return _generate_rc; }
 
-
 	/**
 	 * This is the beginning of a MAVLINK_START_UART_SEND/MAVLINK_END_UART_SEND transaction
 	 */
@@ -647,6 +646,7 @@ private:
 	)
 
 	perf_counter_t		_loop_perf;			/**< loop performance counter */
+	perf_counter_t		_loop_interval_perf;		/**< loop interval performance counter */
 
 	void			mavlink_update_parameters();
 
