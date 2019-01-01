@@ -140,20 +140,24 @@ int px4_sem_timedwait(px4_sem_t *s, const struct timespec *abstime)
 		ret = 0;
 	}
 
-	int err = ret;
+	errno = ret;
 
-	if (err != 0 && err != ETIMEDOUT) {
+	if (ret != 0 && ret != ETIMEDOUT) {
 		setbuf(stdout, nullptr);
 		setbuf(stderr, nullptr);
 		const unsigned NAMELEN = 32;
 		char thread_name[NAMELEN] = {};
 		(void)pthread_getname_np(pthread_self(), thread_name, NAMELEN);
-		PX4_WARN("%s: px4_sem_timedwait failure: ret: %d, %s", thread_name, ret, strerror(err));
+		PX4_WARN("%s: px4_sem_timedwait failure: ret: %d, %s", thread_name, ret, strerror(ret));
 	}
 
 	int mret = pthread_mutex_unlock(&(s->lock));
 
-	return (err) ? err : mret;
+	if (ret || mret) {
+		return -1;
+	}
+
+	return 0;
 }
 
 int px4_sem_post(px4_sem_t *s)
