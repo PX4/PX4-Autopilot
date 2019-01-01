@@ -15,9 +15,9 @@ px4_add_board(
 		gps
 		#imu # all available imu drivers
 		#magnetometer # all available magnetometer drivers
-		#protocol_splitter
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
+		tone_alarm_sim
 		#uavcan
 
 	MODULES
@@ -98,3 +98,5 @@ if(REPLAY_FILE)
 	message("Building with uorb publisher rules support")
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 endif()
+
+set(ENABLE_LOCKSTEP_SCHEDULER yes)
