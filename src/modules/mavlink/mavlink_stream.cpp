@@ -58,7 +58,6 @@ int
 MavlinkStream::update(const hrt_abstime &t)
 {
 	update_data();
-	ModuleParams::updateParams();
 
 	// If the message has never been sent before we want
 	// to send it immediately and can return right away
