@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@
 /**
  * @file qmc5883.cpp
  *
- * Driver for the QMC5883 / HMC5983 magnetometer connected via I2C or SPI.
+ * Driver for the QMC5883 magnetometer connected via I2C or SPI.
  */
 
 #include <px4_config.h>
