@@ -283,7 +283,6 @@ private:
 
 	uORB::Publication<vehicle_local_position_s> _vehicle_local_position_pub;
 	uORB::Publication<vehicle_global_position_s> _vehicle_global_position_pub;
-	uORB::Publication<vehicle_odometry_s> _vehicle_odometry_pub;
 
 	Ekf _ekf;
 
@@ -397,6 +396,8 @@ private:
 		_rng_aid_height_max,	///< maximum allowed absolute altitude (AGL) for range aid (m)
 		(ParamExtFloat<px4::params::EKF2_RNG_A_IGATE>)
 		_rng_aid_innov_gate,	///< gate size used for innovation consistency checks for range aid fusion (STD)
+		(ParamExtInt<px4::params::EKF2_RNG_ABS>)
+		_rng_abs,	///< Boolean. A value of 1 indicates that the range finder sensor always gives an absolute altitude independently from the orientation of the vehicle.
 
 		// vision estimate fusion
 		(ParamFloat<px4::params::EKF2_EVP_NOISE>)
@@ -510,7 +511,6 @@ Ekf2::Ekf2():
 	_perf_ekf_update(perf_alloc_once(PC_ELAPSED, "EKF2 update")),
 	_vehicle_local_position_pub(ORB_ID(vehicle_local_position)),
 	_vehicle_global_position_pub(ORB_ID(vehicle_global_position)),
-	_vehicle_odometry_pub(ORB_ID(vehicle_odometry)),
 	_params(_ekf.getParamHandle()),
 	_obs_dt_min_ms(_params->sensor_interval_min_ms),
 	_mag_delay_ms(_params->mag_delay_ms),
@@ -570,6 +570,7 @@ Ekf2::Ekf2():
 	_rng_aid_hor_vel_max(_params->max_vel_for_range_aid),
 	_rng_aid_height_max(_params->max_hagl_for_range_aid),
 	_rng_aid_innov_gate(_params->range_aid_innov_gate),
+	_rng_abs(_params->rng_abs),
 	_ev_innov_gate(_params->ev_innov_gate),
 	_flow_noise(_params->flow_noise),
 	_flow_noise_qual_min(_params->flow_noise_qual_min),
@@ -727,7 +728,7 @@ void Ekf2::run()
 
 		if (ret < 0) {
 			// Poll error, sleep and try again
-			px4_usleep(10000);
+			usleep(10000);
 			continue;
 
 		} else if (ret == 0) {
@@ -1299,13 +1300,7 @@ void Ekf2::run()
 				// generate vehicle local position data
 				vehicle_local_position_s &lpos = _vehicle_local_position_pub.get();
 
-				// generate vehicle odometry data
-				vehicle_odometry_s &odom = _vehicle_odometry_pub.get();
-
 				lpos.timestamp = now;
-				odom.timestamp = lpos.timestamp;
-
-				odom.local_frame = odom.LOCAL_FRAME_NED;
 
 				// Position of body origin in local NED frame
 				float position[3];
@@ -1316,22 +1311,12 @@ void Ekf2::run()
 				lpos.y = (_ekf.local_position_is_valid()) ? position[1] : 0.0f;
 				lpos.z = position[2];
 
-				// Vehicle odometry position
-				odom.x = lpos.x;
-				odom.y = lpos.y;
-				odom.z = lpos.z;
-
 				// Velocity of body origin in local NED frame (m/s)
 				float velocity[3];
 				_ekf.get_velocity(velocity);
 				lpos.vx = velocity[0];
 				lpos.vy = velocity[1];
 				lpos.vz = velocity[2];
-
-				// Vehicle odometry linear velocity
-				odom.vx = lpos.vx;
-				odom.vy = lpos.vy;
-				odom.vz = lpos.vz;
 
 				// vertical position time derivative (m/s)
 				_ekf.get_pos_d_deriv(&lpos.z_deriv);
@@ -1369,16 +1354,6 @@ void Ekf2::run()
 				_ekf.copy_quaternion(q.data());
 
 				lpos.yaw = matrix::Eulerf(q).psi();
-
-				// Vehicle odometry quaternion
-				q.copyTo(odom.q);
-
-				// Vehicle odometry angular rates
-				float gyro_bias[3];
-				_ekf.get_gyro_bias(gyro_bias);
-				odom.rollspeed = sensors.gyro_rad[0] - gyro_bias[0];
-				odom.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
-				odom.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
 
 				lpos.dist_bottom_valid = _ekf.get_terrain_valid();
 
@@ -1422,42 +1397,8 @@ void Ekf2::run()
 					lpos.hagl_max = INFINITY;
 				}
 
-				// Get covariances to vehicle odometry
-				float covariances[24];
-				_ekf.get_covariances(covariances);
-
-				// get the covariance matrix size
-				const size_t POS_URT_SIZE = sizeof(odom.pose_covariance) / sizeof(odom.pose_covariance[0]);
-				const size_t VEL_URT_SIZE = sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
-
-				// initially set pose covariances to 0
-				for (size_t i = 0; i < POS_URT_SIZE; i++) {
-					odom.pose_covariance[i] = 0.0;
-				}
-
-				// set the position variances
-				odom.pose_covariance[odom.COVARIANCE_MATRIX_X_VARIANCE] = covariances[7];
-				odom.pose_covariance[odom.COVARIANCE_MATRIX_Y_VARIANCE] = covariances[8];
-				odom.pose_covariance[odom.COVARIANCE_MATRIX_Z_VARIANCE] = covariances[9];
-
-				// TODO: implement propagation from quaternion covariance to Euler angle covariance
-				// by employing the covariance law
-
-				// initially set velocity covariances to 0
-				for (size_t i = 0; i < VEL_URT_SIZE; i++) {
-					odom.velocity_covariance[i] = 0.0;
-				}
-
-				// set the linear velocity variances
-				odom.velocity_covariance[odom.COVARIANCE_MATRIX_VX_VARIANCE] = covariances[4];
-				odom.velocity_covariance[odom.COVARIANCE_MATRIX_VY_VARIANCE] = covariances[5];
-				odom.velocity_covariance[odom.COVARIANCE_MATRIX_VZ_VARIANCE] = covariances[6];
-
 				// publish vehicle local position data
 				_vehicle_local_position_pub.update();
-
-				// publish vehicle odometry data
-				_vehicle_odometry_pub.update();
 
 				if (_ekf.global_position_is_valid() && !_preflt_fail) {
 					// generate and publish global position data
