@@ -397,6 +397,8 @@ private:
 		_rng_aid_height_max,	///< maximum allowed absolute altitude (AGL) for range aid (m)
 		(ParamExtFloat<px4::params::EKF2_RNG_A_IGATE>)
 		_rng_aid_innov_gate,	///< gate size used for innovation consistency checks for range aid fusion (STD)
+		(ParamExtInt<px4::params::EKF2_RNG_ABS>)
+		_rng_abs,	///< Boolean. A value of 1 indicates that the range finder sensor always gives an absolute altitude independently from the orientation of the vehicle.
 
 		// vision estimate fusion
 		(ParamFloat<px4::params::EKF2_EVP_NOISE>)
@@ -570,6 +572,7 @@ Ekf2::Ekf2():
 	_rng_aid_hor_vel_max(_params->max_vel_for_range_aid),
 	_rng_aid_height_max(_params->max_hagl_for_range_aid),
 	_rng_aid_innov_gate(_params->range_aid_innov_gate),
+	_rng_abs(_params->rng_abs),
 	_ev_innov_gate(_params->ev_innov_gate),
 	_flow_noise(_params->flow_noise),
 	_flow_noise_qual_min(_params->flow_noise_qual_min),

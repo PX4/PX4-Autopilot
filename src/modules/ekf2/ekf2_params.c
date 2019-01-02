@@ -671,6 +671,16 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_GATE, 5.0f);
  */
 PARAM_DEFINE_FLOAT(EKF2_MIN_RNG, 0.1f);
 
+/**
+ * Absolute range finder
+ * 
+ * Boolean. A value of 1 indicates that the range finder sensor always gives an absolute altitude independently from the orientation of the vehicle.
+ * Useful for gimbal-mounted range finders or other absolute sensors.
+ * 
+ * @group EKF2
+ * @boolean
+ */
+PARAM_DEFINE_INT32(EKF2_RNG_ABS, 0);
 
 /**
  * Measurement noise for vision position observations used when the vision system does not supply error estimates
