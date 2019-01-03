@@ -162,7 +162,11 @@ hrt_abstime _hrt_absolute_time_internal()
 {
 	struct timespec ts;
 	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
+#ifdef __PX4_QURT
+	return ts_to_abstime(&ts) + dsp_offset;
+#else
 	return ts_to_abstime(&ts);
+#endif
 }
 
 #ifdef __PX4_QURT
