@@ -419,7 +419,7 @@ FixedwingPositionControl::get_demanded_airspeed()
 }
 
 float
-FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand)
+FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand, const Vector2f &ground_speed)
 {
 	/*
 	 * Calculate accelerated stall airspeed factor from commanded bank angle and use it to increase minimum airspeed.
@@ -440,55 +440,32 @@ FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand)
 
 	if (_airspeed_valid && PX4_ISFINITE(_att_sp.roll_body)) {
 
-		adjusted_min_airspeed = constrain(_parameters.airspeed_min / sqrtf(cosf(_att_sp.roll_body)), _parameters.airspeed_min,
-						  _parameters.airspeed_max);
+		adjusted_min_airspeed = constrain(_parameters.airspeed_min / sqrtf(cosf(_att_sp.roll_body)),
+						  _parameters.airspeed_min, _parameters.airspeed_max);
 	}
 
-	// add minimum ground speed undershoot (only non-zero in presence of sufficient wind)
-	// sanity check: limit to range
-	return constrain(airspeed_demand + _groundspeed_undershoot, adjusted_min_airspeed, _parameters.airspeed_max);
-}
+	// groundspeed undershoot
+	if (!_l1_control.circle_mode()) {
 
-void
-FixedwingPositionControl::calculate_gndspeed_undershoot(const Vector2f &curr_pos,
-		const Vector2f &ground_speed,
-		const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
-{
-	if (pos_sp_curr.valid && !_l1_control.circle_mode()) {
-		/* rotate ground speed vector with current attitude */
+		// rotate ground speed vector with current attitude
 		Vector2f yaw_vector(_R_nb(0, 0), _R_nb(1, 0));
 		yaw_vector.normalize();
-		float ground_speed_body = yaw_vector * ground_speed;
 
-		/* The minimum desired ground speed is the minimum airspeed projected on to the ground using the altitude and horizontal difference between the waypoints if available*/
-		float distance = 0.0f;
-		float delta_altitude = 0.0f;
-
-		if (pos_sp_prev.valid) {
-			distance = get_distance_to_next_waypoint(pos_sp_prev.lat, pos_sp_prev.lon, pos_sp_curr.lat, pos_sp_curr.lon);
-			delta_altitude = pos_sp_curr.alt - pos_sp_prev.alt;
-
-		} else {
-			distance = get_distance_to_next_waypoint((double)curr_pos(0), (double)curr_pos(1), pos_sp_curr.lat, pos_sp_curr.lon);
-			delta_altitude = pos_sp_curr.alt - _global_pos.alt;
-		}
-
-		float ground_speed_desired = _parameters.airspeed_min * cosf(atan2f(delta_altitude, distance));
+		const float ground_speed_body = yaw_vector * ground_speed;
 
 		/*
-		 * Ground speed undershoot is the amount of ground velocity not reached
-		 * by the plane. Consequently it is zero if airspeed is >= min ground speed
-		 * and positive if airspeed < min ground speed.
-		 *
 		 * This error value ensures that a plane (as long as its throttle capability is
 		 * not exceeded) travels towards a waypoint (and is not pushed more and more away
 		 * by wind). Not countering this would lead to a fly-away.
 		 */
-		_groundspeed_undershoot = max(ground_speed_desired - ground_speed_body, 0.0f);
-
-	} else {
-		_groundspeed_undershoot = 0.0f;
+		if (ground_speed_body < _groundspeed_min.get()) {
+			airspeed_demand += max(_groundspeed_min.get() - ground_speed_body, 0.0f);
+		}
 	}
+
+	// add minimum ground speed undershoot (only non-zero in presence of sufficient wind)
+	// sanity check: limit to range
+	return constrain(airspeed_demand, adjusted_min_airspeed, _parameters.airspeed_max);
 }
 
 void
@@ -772,8 +749,6 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 	_att_sp.fw_control_yaw = false;		// by default we don't want yaw to be contoller directly with rudder
 	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;		// by default we don't use flaps
 
-	calculate_gndspeed_undershoot(curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
-
 	Vector2f nav_speed_2d{ground_speed};
 
 	if (_airspeed_valid) {
@@ -881,7 +856,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
 			tecs_update_pitch_throttle(pos_sp_curr.alt,
-						   calculate_target_airspeed(mission_airspeed),
+						   calculate_target_airspeed(mission_airspeed, ground_speed),
 						   radians(_parameters.pitch_limit_min) - _parameters.pitchsp_offset_rad,
 						   radians(_parameters.pitch_limit_max) - _parameters.pitchsp_offset_rad,
 						   _parameters.throttle_min,
@@ -929,7 +904,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 			}
 
 			tecs_update_pitch_throttle(alt_sp,
-						   calculate_target_airspeed(mission_airspeed),
+						   calculate_target_airspeed(mission_airspeed, ground_speed),
 						   radians(_parameters.pitch_limit_min) - _parameters.pitchsp_offset_rad,
 						   radians(_parameters.pitch_limit_max) - _parameters.pitchsp_offset_rad,
 						   _parameters.throttle_min,
@@ -1255,7 +1230,7 @@ FixedwingPositionControl::control_takeoff(const Vector2f &curr_pos, const Vector
 		const float takeoff_pitch_max_deg = _runway_takeoff.getMaxPitch(_parameters.pitch_limit_max);
 
 		tecs_update_pitch_throttle(pos_sp_curr.alt,
-					   calculate_target_airspeed(_runway_takeoff.getMinAirspeedScaling() * _parameters.airspeed_min),
+					   calculate_target_airspeed(_runway_takeoff.getMinAirspeedScaling() * _parameters.airspeed_min, ground_speed),
 					   radians(_parameters.pitch_limit_min),
 					   radians(takeoff_pitch_max_deg),
 					   _parameters.throttle_min,
@@ -1341,7 +1316,7 @@ FixedwingPositionControl::control_takeoff(const Vector2f &curr_pos, const Vector
 
 			} else {
 				tecs_update_pitch_throttle(pos_sp_curr.alt,
-							   calculate_target_airspeed(_parameters.airspeed_trim),
+							   calculate_target_airspeed(_parameters.airspeed_trim, ground_speed),
 							   radians(_parameters.pitch_limit_min),
 							   radians(_parameters.pitch_limit_max),
 							   _parameters.throttle_min,
@@ -1555,7 +1530,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 		const float throttle_land = _parameters.throttle_min + (_parameters.throttle_max - _parameters.throttle_min) * 0.1f;
 
 		tecs_update_pitch_throttle(terrain_alt + flare_curve_alt_rel,
-					   calculate_target_airspeed(airspeed_land),
+					   calculate_target_airspeed(airspeed_land, ground_speed),
 					   radians(_parameters.land_flare_pitch_min_deg),
 					   radians(_parameters.land_flare_pitch_max_deg),
 					   0.0f,
@@ -1623,7 +1598,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 		const float airspeed_approach = _parameters.land_airspeed_scale * _parameters.airspeed_min;
 
 		tecs_update_pitch_throttle(altitude_desired,
-					   calculate_target_airspeed(airspeed_approach),
+					   calculate_target_airspeed(airspeed_approach, ground_speed),
 					   radians(_parameters.pitch_limit_min),
 					   radians(_parameters.pitch_limit_max),
 					   _parameters.throttle_min,
