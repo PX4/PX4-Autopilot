@@ -93,6 +93,13 @@ then
 	sf1xx start -a
 fi
 
+# Lanbao PSK-CM8JL65-CC5 distance sensor
+if param compare SENS_EN_CM8JL65 1
+then
+	cm8jl65 start
+fi
+
+
 # Heater driver for temperature regulated IMUs.
 if param compare SENS_EN_THERMAL 1
 then
