@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+# Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,37 +31,42 @@
 #
 ############################################################################
 
-set(SRCS_PLATFORM)
-if (${PX4_PLATFORM} STREQUAL "nuttx")
-	if ("${CONFIG_I2C}" STREQUAL "y")
-		list(APPEND SRCS_PLATFORM nuttx/I2C.cpp)
-	endif()
+include(CheckCSourceCompiles)
 
-	if ("${CONFIG_SPI}" STREQUAL "y")
-		list(APPEND SRCS_PLATFORM nuttx/SPI.cpp)
-	endif()
-else()
-	list(APPEND SRCS_PLATFORM
-		posix/I2C.cpp
-	)
-endif()
+#=============================================================================
+#
+#	check_i2c_dev_h
+#
+#	This function checks <linux/i2c-dev.h> header for i2c_msg structure
+#   definition.
+#
+#	Usage:
+#       check_i2c_dev_h(<variable>)
+#
+#   Output:
+#       The provided variable will be set to TRUE if i2c-dev.h contains
+#       definition for the i2c_msg structure
+#
+function(check_i2c_dev_h HAS_I2C_MSG)
+    # We intentionally don't include <linux/i2c.h> so that compilation will
+    # fail if i2c-dev is sane
+    check_c_source_compiles("
+                    #include <linux/i2c-dev.h>
+                    #include <sys/ioctl.h>
 
-px4_add_library(drivers__device
-	CDev.cpp
-	ringbuffer.cpp
-	integrator.cpp
-	${SRCS_PLATFORM}
-	)
-
-if (${PX4_PLATFORM} STREQUAL "nuttx")
-	target_link_libraries(drivers__device PRIVATE nuttx_arch)
-else()
-	check_i2c_dev_h(I2C_DEV_H_HAS_I2C_MSG)
-	if (${I2C_DEV_H_HAS_I2C_MSG})
-		target_compile_definitions(drivers__device PRIVATE
-				I2C_DEV_H_HAS_I2C_MSG
-				)
-	endif()
-endif()
-
-target_link_libraries(drivers__device PRIVATE cdev)
+                    int main()
+                    {
+                        struct i2c_msg msg;
+                        struct i2c_rdwr_ioctl_data data;
+                        msg.addr = 0x0;
+                        msg.flags = 0x0;
+                        msg.len = 0;
+                        msg.buf = NULL;
+                        data.msgs = &msg;
+                        data.nmsgs = 1;
+                        ioctl(0, I2C_RDWR, (unsigned long)&data);
+                        return 0;
+                    }
+            " I2C_DEV_HAS_I2C_MSG)
+    set(${HAS_I2C_MSG} ${I2C_DEV_HAS_I2C_MSG} PARENT_SCOPE)
+endfunction()

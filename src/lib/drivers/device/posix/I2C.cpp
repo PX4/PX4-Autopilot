@@ -43,8 +43,10 @@
 #include "I2C.hpp"
 
 #ifdef __PX4_LINUX
-#include <linux/i2c.h>
 #include <linux/i2c-dev.h>
+#ifndef I2C_DEV_H_HAS_I2C_MSG
+#include <linux/i2c.h>
+#endif
 #endif
 
 #ifdef __PX4_QURT
@@ -129,6 +131,8 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 	int ret = PX4_ERROR;
 	unsigned retry_count = 0;
 
+	using buf_type = decltype(msgv->buf);
+
 	if (_fd < 0) {
 		PX4_ERR("I2C device not opened");
 		return 1;
@@ -141,7 +145,7 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 		if (send_len > 0) {
 			msgv[msgs].addr = get_device_address();
 			msgv[msgs].flags = 0;
-			msgv[msgs].buf = const_cast<uint8_t *>(send);
+			msgv[msgs].buf = const_cast<buf_type>((const buf_type)send);
 			msgv[msgs].len = send_len;
 			msgs++;
 		}
@@ -149,7 +153,7 @@ I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned re
 		if (recv_len > 0) {
 			msgv[msgs].addr = get_device_address();
 			msgv[msgs].flags = I2C_M_READ;
-			msgv[msgs].buf = recv;
+			msgv[msgs].buf = (buf_type)recv;
 			msgv[msgs].len = recv_len;
 			msgs++;
 		}

@@ -354,6 +354,9 @@ include(px4_add_common_flags)
 px4_add_common_flags()
 px4_os_add_flags()
 
+# Checks for i2c-dev.h sanity
+include(check_i2c_dev_h)
+
 #=============================================================================
 # message, and airframe generation
 #
