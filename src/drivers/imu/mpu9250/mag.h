@@ -97,7 +97,7 @@
 #define AK09916_ST1_DOR                         0x02
 
 
-#define AK_MPU_OR_ICM(m,i)					((_parent->_device_type==MPU_DEVICE_TYPE_MPU9250) ? (m) : (i))
+#define AK_MPU_OR_ICM(m,i)					((_parent->_whoami == MPU_WHOAMI_9250) ? (m) : (i))
 
 
 

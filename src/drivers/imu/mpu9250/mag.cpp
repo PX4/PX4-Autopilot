@@ -118,7 +118,7 @@ MPU9250_mag::init()
 
 	/* if cdev init failed, bail now */
 	if (ret != OK) {
-		if (_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) { DEVICE_DEBUG("MPU9250 mag init failed"); }
+		if (_parent->_whoami == MPU_WHOAMI_9250) { DEVICE_DEBUG("MPU9250 mag init failed"); }
 
 		else { DEVICE_DEBUG("ICM20948 mag init failed"); }
 
@@ -171,7 +171,7 @@ MPU9250_mag::measure()
 		struct ak09916_regs ak09916_data;
 	} raw_data;
 
-	if (_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) {
+	if (_parent->_whoami == MPU_WHOAMI_9250) {
 		ret = _interface->read(AK8963REG_ST1, &raw_data, sizeof(struct ak8963_regs));
 
 	} else { // ICM20948 --> AK09916
@@ -179,7 +179,7 @@ MPU9250_mag::measure()
 	}
 
 	if (ret == OK) {
-		if (_parent->_device_type == MPU_DEVICE_TYPE_ICM20948) { raw_data.ak8963_data.st2 = raw_data.ak09916_data.st2; }
+		if (_parent->_whoami == ICM_WHOAMI_20948) { raw_data.ak8963_data.st2 = raw_data.ak09916_data.st2; }
 
 		_measure(raw_data.ak8963_data);
 	}
@@ -215,7 +215,7 @@ MPU9250_mag::_measure(struct ak8963_regs data)
 	// need a better check here. Using _parent->is_external() for mpu9250 also sets the
 	// internal magnetometers connected to the "external" spi bus as external, at least
 	// on Pixhawk 2.1. For now assuming the ICM20948 is only used on Here GPS, hence external.
-	if (_parent->_device_type == MPU_DEVICE_TYPE_ICM20948) {
+	if (_parent->_whoami == ICM_WHOAMI_20948) {
 		mrb.is_external = _parent->is_external();
 
 	} else {
@@ -228,7 +228,7 @@ MPU9250_mag::_measure(struct ak8963_regs data)
 	 */
 	float xraw_f, yraw_f, zraw_f;
 
-	if (_parent->_device_type == MPU_DEVICE_TYPE_ICM20948) {
+	if (_parent->_whoami == ICM_WHOAMI_20948) {
 		/*
 		 * Keeping consistent with the accel and gyro axes of the ICM20948 here, just aligning the magnetometer to them.
 		 */
@@ -253,7 +253,7 @@ MPU9250_mag::_measure(struct ak8963_regs data)
 	/* apply user specified rotation */
 	rotate_3f(_parent->_rotation, xraw_f, yraw_f, zraw_f);
 
-	if (_parent->_device_type == MPU_DEVICE_TYPE_ICM20948) {
+	if (_parent->_whoami == ICM_WHOAMI_20948) {
 		rotate_3f(ROTATION_YAW_270, xraw_f, yraw_f, zraw_f); //offset between accel/gyro and mag on icm20948
 	}
 
@@ -464,7 +464,7 @@ MPU9250_mag::ak8963_setup_master_i2c(void)
 	 * in master mode (SPI to I2C bridge)
 	 */
 	if (_interface == nullptr) {
-		if (_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) {
+		if (_parent->_whoami == MPU_WHOAMI_9250) {
 			_parent->modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_EN);
 			_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
 
@@ -503,7 +503,7 @@ MPU9250_mag::ak8963_setup(void)
 	} while (retries > 0);
 
 	/* No sensitivity adjustments available for AK09916/ICM20948 */
-	if (_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) {
+	if (_parent->_whoami == MPU_WHOAMI_9250) {
 		if (retries > 0) {
 			retries = 10;
 
@@ -526,7 +526,7 @@ MPU9250_mag::ak8963_setup(void)
 		return -EIO;
 	}
 
-	if (_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) {
+	if (_parent->_whoami == MPU_WHOAMI_9250) {
 		write_reg(AK8963REG_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
 
 	} else { // ICM20948 -> AK09916
@@ -539,7 +539,7 @@ MPU9250_mag::ak8963_setup(void)
 		/* Configure mpu' I2c Master interface to read ak8963 data
 		 * Into to fifo
 		 */
-		if (_parent->_device_type == MPU_DEVICE_TYPE_MPU9250) {
+		if (_parent->_whoami == MPU_WHOAMI_9250) {
 			set_passthrough(AK8963REG_ST1, sizeof(struct ak8963_regs));
 
 		} else { // ICM20948 -> AK09916
