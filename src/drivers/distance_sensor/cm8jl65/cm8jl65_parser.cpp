@@ -32,17 +32,17 @@
  ****************************************************************************/
 
 /**
- * @file isl2950_parser.cpp
+ * @file cm8jl65_parser.cpp
  * @author Claudio Micheli <claudio@auterion.com>
  *
  */
 
-#include "isl2950_parser.h"
+#include "cm8jl65_parser.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "isl2950_parser.h"
+#include "cm8jl65_parser.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -115,7 +115,7 @@ unsigned short crc16_calc(unsigned char *dataFrame,uint8_t crc16_length) {
   return (unsigned short)(crc_high_byte << 8 | crc_low_byte);
 }
 
-int isl2950_parser(uint8_t c, uint8_t *parserbuf, ISL2950_PARSE_STATE *state, uint16_t *crc16, int *dist)
+int cm8jl65_parser(uint8_t c, uint8_t *parserbuf, CM8JL65_PARSE_STATE *state, uint16_t *crc16, int *dist)
 {
   int ret = -1;
 
