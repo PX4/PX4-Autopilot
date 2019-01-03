@@ -370,6 +370,9 @@ private:
 		param_t vtol_type;
 	} _parameter_handles {};				///< handles for interesting parameters */
 
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _groundspeed_min
+	)
 
 	// Update our local parameter cache.
 	int		parameters_update();
@@ -438,9 +441,7 @@ private:
 	float		get_tecs_thrust();
 
 	float		get_demanded_airspeed();
-	float		calculate_target_airspeed(float airspeed_demand);
-	void		calculate_gndspeed_undershoot(const Vector2f &curr_pos, const Vector2f &ground_speed,
-			const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	float		calculate_target_airspeed(float airspeed_demand, const Vector2f &ground_speed);
 
 	/**
 	 * Handle incoming vehicle commands
