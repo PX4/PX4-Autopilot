@@ -46,12 +46,12 @@
 
 #ifdef USE_I2C
 
-device::Device *MPU9250_I2C_interface(int bus, int device_type, uint32_t address, bool external_bus);
+device::Device *MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus);
 
 class MPU9250_I2C : public device::I2C
 {
 public:
-	MPU9250_I2C(int bus, int device_type, uint32_t address);
+	MPU9250_I2C(int bus, uint32_t address);
 	~MPU9250_I2C() override = default;
 
 	int	read(unsigned address, void *data, unsigned count) override;
@@ -61,19 +61,17 @@ protected:
 	virtual int	probe();
 
 private:
-	int 		_device_type;
 
 };
 
 device::Device *
-MPU9250_I2C_interface(int bus, int device_type, uint32_t address, bool external_bus)
+MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus)
 {
-	return new MPU9250_I2C(bus, device_type, address);
+	return new MPU9250_I2C(bus, address);
 }
 
-MPU9250_I2C::MPU9250_I2C(int bus, int device_type, uint32_t address) :
-	I2C("MPU9250_I2C", nullptr, bus, address, 400000),
-	_device_type(device_type)
+MPU9250_I2C::MPU9250_I2C(int bus, uint32_t address) :
+	I2C("MPU9250_I2C", nullptr, bus, address, 400000)
 {
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU9250;
 }
@@ -109,35 +107,43 @@ MPU9250_I2C::read(unsigned reg_speed, void *data, unsigned count)
 int
 MPU9250_I2C::probe()
 {
-	uint8_t whoami = 0;
-	uint8_t reg_whoami = 0;
-	uint8_t expected = 0;
-	uint8_t register_select = REG_BANK(BANK0);  // register bank containing WHOAMI for ICM20948
+	// uint8_t whoami = 0;
+	// uint8_t reg_whoami = 0;
+	// uint8_t expected = 0;
+	// uint8_t register_select = REG_BANK(BANK0);  // register bank containing WHOAMI for ICM20948
 
-	switch (_device_type) {
-	case MPU_DEVICE_TYPE_MPU9250:
-		reg_whoami = MPUREG_WHOAMI;
-		expected = MPU_WHOAMI_9250;
-		break;
+	// switch (_whoami) {
+	// case MPU_WHOAMI_9250:
+	// 	reg_whoami = MPUREG_WHOAMI;
+	// 	expected = MPU_WHOAMI_9250;
+	// 	break;
 
-	case MPU_DEVICE_TYPE_MPU6500:
-		reg_whoami = MPUREG_WHOAMI;
-		expected = MPU_WHOAMI_6500;
-		break;
+	// case MPU_WHOAMI_6500:
+	// 	reg_whoami = MPUREG_WHOAMI;
+	// 	expected = MPU_WHOAMI_6500;
+	// 	break;
 
-	case MPU_DEVICE_TYPE_ICM20948:
-		reg_whoami = ICMREG_20948_WHOAMI;
-		expected = ICM_WHOAMI_20948;
-		/*
-		 * make sure register bank 0 is selected - whoami is only present on bank 0, and that is
-		 * not sure e.g. if the device has rebooted without repowering the sensor
-		 */
-		write(ICMREG_20948_BANK_SEL, &register_select, 1);
+	// case ICM_WHOAMI_20948:
+	// 	reg_whoami = ICMREG_20948_WHOAMI;
+	// 	expected = ICM_WHOAMI_20948;
+	// 	/*
+	// 	 * make sure register bank 0 is selected - whoami is only present on bank 0, and that is
+	// 	 * not sure e.g. if the device has rebooted without repowering the sensor
+	// 	 */
+	// 	write(ICMREG_20948_BANK_SEL, &register_select, 1);
 
-		break;
-	}
+	// 	break;
+	// }
 
-	return (read(reg_whoami, &whoami, 1) == OK && (whoami == expected)) ? 0 : -EIO;
+	// return (read(reg_whoami, &whoami, 1) == OK && (whoami == expected)) ? 0 : -EIO;
+
+
+	// // Try the mpu9250/6500 first
+	// read(MPUREG_WHOAMI, &whoami, 1);
+	// if (whoami == MPU_WHOAMI_9250)
+
+	// this does not matter
+	return PX4_OK;
 }
 
 #endif /* USE_I2C */
