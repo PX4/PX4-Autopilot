@@ -1356,10 +1356,19 @@ void Ekf::controlMagFusion()
 	// check for new magnetometer data that has fallen behind the fusion time horizon
 	// If we are using external vision data for heading then no magnetometer fusion is used
 	if (!_control_status.flags.ev_yaw && _mag_data_ready) {
+
+		// We need to reset the yaw angle after climbing away from the ground to enable
+		// recovery from ground level magnetic interference.
+		if (!_flt_mag_align_complete) {
+			// Check if height has increased sufficiently to be away from ground magnetic anomalies
+			// and request a yaw reset if not already requested.
+			_mag_yaw_reset_req |= (_last_on_ground_posD - _state.pos(2)) > 1.5f;
+		}
+
 		// perform a yaw reset if requested by other functions
 		if (_mag_yaw_reset_req) {
 			if (!_mag_use_inhibit ) {
-				resetMagHeading(_mag_sample_delayed.mag);
+				_flt_mag_align_complete = resetMagHeading(_mag_sample_delayed.mag) && _control_status.flags.in_air;
 			}
 			_mag_yaw_reset_req = false;
 		}
