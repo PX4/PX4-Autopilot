@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file isl2950.cpp
+ * @file cm8jl65.cpp
  * @author Claudio Micheli <claudio@auterion.com>
  *
  * Driver for the Lanbao PSK-CM8JL65-CC5 distance sensor.
@@ -65,7 +65,7 @@
  #include <uORB/uORB.h>
  #include <uORB/topics/distance_sensor.h>
 
- #include "isl2950_parser.h"
+ #include "cm8jl65_parser.h"
 
  /* Configuration Constants */
 
@@ -73,24 +73,24 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-#define ISL2950_TAKE_RANGE_REG		'd'
+#define CM8JL65_TAKE_RANGE_REG		'd'
 
 // designated serial port on Pixhawk (TELEM1)
-#define ISL2950_DEFAULT_PORT		"/dev/ttyS1" // Its baudrate is 115200
+#define CM8JL65_DEFAULT_PORT		"/dev/ttyS1" // Its baudrate is 115200
 
 // normal conversion wait time
-#define ISL2950_CONVERSION_INTERVAL 50*1000UL/* 50ms */
+#define CM8JL65_CONVERSION_INTERVAL 50*1000UL/* 50ms */
 
 
- class ISL2950 : public cdev::CDev
+ class CM8JL65 : public cdev::CDev
  {
  public:
 
    // Constructor
-   ISL2950(const char *port = ISL2950_DEFAULT_PORT, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+   CM8JL65(const char *port = CM8JL65_DEFAULT_PORT, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 
    // Virtual destructor
-   virtual ~ISL2950();
+   virtual ~CM8JL65();
 
    virtual int  init();
    virtual int  ioctl(device::file_t *filp, int cmd, unsigned long arg);
@@ -113,7 +113,7 @@
    uint8_t			             _linebuf[25];
    uint8_t                   _cycle_counter;
 
-   enum ISL2950_PARSE_STATE	 _parse_state;
+   enum CM8JL65_PARSE_STATE	 _parse_state;
    unsigned char             _frame_data[4];
    uint16_t                  _crc16;
    int                       _distance_mm;
@@ -166,7 +166,7 @@
   /*
    * Driver 'main' command.
    */
-  extern "C" __EXPORT int isl2950_main(int argc, char *argv[]);
+  extern "C" __EXPORT int cm8jl65_main(int argc, char *argv[]);
 
 /**
 * Method : Constructor
@@ -174,12 +174,12 @@
 * @note This method initializes the class variables
 */
 
-  ISL2950::ISL2950(const char *port, uint8_t rotation) :
+  CM8JL65::CM8JL65(const char *port, uint8_t rotation) :
 	CDev(RANGE_FINDER0_DEVICE_PATH),
 	_rotation(rotation),
 	_min_distance(0.10f),
 	_max_distance(9.0f),
-	_conversion_interval(ISL2950_CONVERSION_INTERVAL),
+	_conversion_interval(CM8JL65_CONVERSION_INTERVAL),
 	_reports(nullptr),
 	_fd(-1),
   _cycle_counter(0),
@@ -190,8 +190,8 @@
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
-	_sample_perf(perf_alloc(PC_ELAPSED, "isl2950_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "isl2950_com_err"))
+	_sample_perf(perf_alloc(PC_ELAPSED, "cm8jl65_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "cm8jl65_com_err"))
   {
 	/* store port name */
 	strncpy(_port, port, sizeof(_port));
@@ -201,7 +201,7 @@
 }
 
 // Destructor
-ISL2950::~ISL2950()
+CM8JL65::~CM8JL65()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -226,7 +226,7 @@ ISL2950::~ISL2950()
 */
 
 int
-ISL2950::init()
+CM8JL65::init()
 {
  /* status */
 int ret = 0;
@@ -264,31 +264,31 @@ do { /* create a scope to handle exit conditions using break */
 }
 
 void
-ISL2950::set_minimum_distance(float min)
+CM8JL65::set_minimum_distance(float min)
 {
 	_min_distance = min;
 }
 
 void
-ISL2950::set_maximum_distance(float max)
+CM8JL65::set_maximum_distance(float max)
 {
 	_max_distance = max;
 }
 
 float
-ISL2950::get_minimum_distance()
+CM8JL65::get_minimum_distance()
 {
 	return _min_distance;
 }
 
 float
-ISL2950::get_maximum_distance()
+CM8JL65::get_maximum_distance()
 {
 	return _max_distance;
 }
 
 int
-ISL2950::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+CM8JL65::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -337,7 +337,7 @@ int
  *
  * This method reads data from serial UART and places it into a buffer
 */
-ISL2950::collect()
+CM8JL65::collect()
 {
   int bytes_read = 0;
   int bytes_processed = 0;
@@ -367,7 +367,7 @@ ISL2950::collect()
              while ((bytes_processed < bytes_read) && (!crc_valid))
              {
             //    printf("In the cycle, processing  byte %d, 0x%02X \n",bytes_processed, _linebuf[bytes_processed]);
-                if (OK == isl2950_parser(_linebuf[bytes_processed],_frame_data, &_parse_state,&_crc16, &_distance_mm)){
+                if (OK == cm8jl65_parser(_linebuf[bytes_processed],_frame_data, &_parse_state,&_crc16, &_distance_mm)){
                     crc_valid = true;
                 }
                 bytes_processed++;
@@ -423,35 +423,35 @@ ISL2950::collect()
 }
 
 void
-ISL2950::start()
+CM8JL65::start()
 {
   PX4_INFO("driver started");
 
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&ISL2950::cycle_trampoline, this, 1);
+	work_queue(HPWORK, &_work, (worker_t)&CM8JL65::cycle_trampoline, this, 1);
 
 }
 
 void
-ISL2950::stop()
+CM8JL65::stop()
 {
 	work_cancel(HPWORK, &_work);
 }
 
 void
-ISL2950::cycle_trampoline(void *arg)
+CM8JL65::cycle_trampoline(void *arg)
 {
-	ISL2950 *dev = static_cast<ISL2950 *>(arg);
+	CM8JL65 *dev = static_cast<CM8JL65 *>(arg);
 
 	dev->cycle();
 }
 
 void
-ISL2950::cycle()
+CM8JL65::cycle()
 {
-  //PX4_DEBUG("ISL2950::cycle() - in the cycle");
+  //PX4_DEBUG("CM8JL65::cycle() - in the cycle");
 	/* fds initialized? */
 	if (_fd < 0) {
 		/* open fd */
@@ -497,19 +497,19 @@ ISL2950::cycle()
 		if (collect_ret == -EAGAIN) {
       _cycle_counter++;
 			/* We are missing bytes to complete the packet, re-cycle at 1ms */
-		//	work_queue(HPWORK,&_work,(worker_t)&ISL2950::cycle_trampoline,this,USEC2TICK(1000LL));
+		//	work_queue(HPWORK,&_work,(worker_t)&CM8JL65::cycle_trampoline,this,USEC2TICK(1000LL));
 		//	return;
 		}
 
 
 	/* schedule a fresh cycle call when a complete packet has been received */
-	//work_queue(HPWORK,&_work,(worker_t)&ISL2950::cycle_trampoline,this,USEC2TICK(_conversion_interval - _cycle_counter * 1000LL));
-  work_queue(HPWORK,&_work,(worker_t)&ISL2950::cycle_trampoline,this,USEC2TICK(_conversion_interval));
+	//work_queue(HPWORK,&_work,(worker_t)&CM8JL65::cycle_trampoline,this,USEC2TICK(_conversion_interval - _cycle_counter * 1000LL));
+  work_queue(HPWORK,&_work,(worker_t)&CM8JL65::cycle_trampoline,this,USEC2TICK(_conversion_interval));
   _cycle_counter = 0;
 }
 
 void
-ISL2950::print_info()
+CM8JL65::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
@@ -519,10 +519,10 @@ ISL2950::print_info()
 /**
  * Local functions in support of the shell command.
  */
-namespace isl2950
+namespace cm8jl65
 {
 
-ISL2950	*g_dev;
+CM8JL65	*g_dev;
 
 int	start(const char *port, uint8_t rotation);
 int	stop();
@@ -544,7 +544,7 @@ start(const char *port, uint8_t rotation)
 	}
 
 	/* create the driver */
-	g_dev = new ISL2950(port, rotation);
+	g_dev = new CM8JL65(port, rotation);
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -566,11 +566,11 @@ start(const char *port, uint8_t rotation)
     PX4_ERR("failed to set baudrate %d", B115200);
 		goto fail;
 	}
-  PX4_DEBUG("isl2950::start() succeeded");
+  PX4_DEBUG("cm8jl65::start() succeeded");
 	return 0;
 
 fail:
-  PX4_DEBUG("isl2950::start() failed");
+  PX4_DEBUG("cm8jl65::start() failed");
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
@@ -609,7 +609,7 @@ test()
 	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		PX4_ERR("%s open failed (try 'isl2950 start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
+		PX4_ERR("%s open failed (try 'cm8jl65 start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
 		return -1;
 	}
 
@@ -709,10 +709,10 @@ info()
 } // namespace
 
 int
-isl2950_main(int argc, char *argv[])
+cm8jl65_main(int argc, char *argv[])
 {
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	const char *device_path = ISL2950_DEFAULT_PORT;
+	const char *device_path = CM8JL65_DEFAULT_PORT;
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
@@ -741,35 +741,35 @@ isl2950_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		return isl2950::start(device_path, rotation);
+		return cm8jl65::start(device_path, rotation);
 	}
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[myoptind], "stop")) {
-		return isl2950::stop();
+		return cm8jl65::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[myoptind], "test")) {
-		return isl2950::test();
+		return cm8jl65::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[myoptind], "reset")) {
-		return isl2950::reset();
+		return cm8jl65::reset();
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
-		return isl2950::info();
+		return cm8jl65::info();
 	}
 
 out_error:

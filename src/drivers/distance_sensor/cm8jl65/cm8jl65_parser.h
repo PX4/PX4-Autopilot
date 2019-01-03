@@ -32,7 +32,7 @@
  ****************************************************************************/
 
  /**
-  * @file isl2950.cpp
+  * @file cm8jl65.cpp
   * @author Claudio Micheli <claudio@auterion.com>
   *
   * Parser declarations for Lanbao PSK-CM8JL65-CC5 distance sensor
@@ -57,7 +57,7 @@
 #define CHECKSUM_LENGTH  4
 
 
-enum ISL2950_PARSE_STATE {
+enum CM8JL65_PARSE_STATE {
   STATE0_WAITING_FRAME = 0,
   STATE1_GOT_DIGIT1,
   STATE2_GOT_DIGIT2,
@@ -69,4 +69,4 @@ enum ISL2950_PARSE_STATE {
 
 
 
-int isl2950_parser(uint8_t c, uint8_t *parserbuf,enum ISL2950_PARSE_STATE *state,uint16_t *crc16, int *dist);
+int cm8jl65_parser(uint8_t c, uint8_t *parserbuf,enum CM8JL65_PARSE_STATE *state,uint16_t *crc16, int *dist);

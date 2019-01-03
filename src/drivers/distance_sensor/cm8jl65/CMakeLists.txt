@@ -31,10 +31,10 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__isl2950
-	MAIN isl2950
+	MODULE drivers__cm8jl65
+	MAIN cm8jl65
 	SRCS
-		isl2950.cpp
-		isl2950_parser.cpp
+		cm8jl65.cpp
+		cm8jl65_parser.cpp
 	DEPENDS
 	)
