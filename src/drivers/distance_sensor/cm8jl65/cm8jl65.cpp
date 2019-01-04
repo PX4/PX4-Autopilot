@@ -75,8 +75,8 @@
 
 #define CM8JL65_TAKE_RANGE_REG		'd'
 
-// designated serial port on Pixhawk (TELEM1)
-#define CM8JL65_DEFAULT_PORT		"/dev/ttyS1" // Its baudrate is 115200
+// designated serial port on Pixhawk (TELEM2)
+#define CM8JL65_DEFAULT_PORT		"/dev/ttyS2" // Its baudrate is 115200
 
 // normal conversion wait time
 #define CM8JL65_CONVERSION_INTERVAL 50*1000UL/* 50ms */

@@ -36,9 +36,10 @@
  *
  * @reboot_required true
  * @min 0
- * @max 1
+ * @max 2
  * @group Sensors
  * @value 0 Disabled
- * @value 1 Enabled
+ * @value 1 Enabled on TELEM2
+ * @value 2 Enabled on TELEM1
  */
 PARAM_DEFINE_INT32(SENS_EN_CM8JL65, 0);

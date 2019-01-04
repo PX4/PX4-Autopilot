@@ -177,7 +177,7 @@ int cm8jl65_parser(uint8_t c, uint8_t *parserbuf, CM8JL65_PARSE_STATE *state, ui
       if (c == (*crc16 & 0xFF)) {
       // printf("Checksum verified \n");
         *dist = (parserbuf[DISTANCE_MSB_POS] << 8) | parserbuf[DISTANCE_LSB_POS];
-        return OK;
+        return 0;
       }
       /*else {
         //printf("Checksum invalidon low byte: 0x%02X, calculated: 0x%04X \n",c, *crc16);
