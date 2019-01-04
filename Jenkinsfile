@@ -57,6 +57,7 @@ pipeline {
               cd colcon_ws;
               git clone --recursive https://github.com/PX4/sitl_gazebo.git src/mavlink_sitl_gazebo;
               source /opt/ros/bouncy/setup.sh;
+              source /opt/ros/melodic/setup.sh;
               colcon build --event-handlers console_direct+ --symlink-install;
             '''
           }
