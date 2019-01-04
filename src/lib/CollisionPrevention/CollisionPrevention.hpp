@@ -72,7 +72,6 @@ public:
 
 private:
 
-	bool _is_active = true;
 	bool _interfering = false;		/**< states if the collision prevention interferes with the user input */
 
 	orb_advert_t _constraints_pub{nullptr};		/**< constraints publication */
