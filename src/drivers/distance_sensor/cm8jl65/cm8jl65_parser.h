@@ -31,12 +31,12 @@
  *
  ****************************************************************************/
 
- /**
-  * @file cm8jl65.cpp
-  * @author Claudio Micheli <claudio@auterion.com>
-  *
-  * Parser declarations for Lanbao PSK-CM8JL65-CC5 distance sensor
-  */
+/**
+ * @file cm8jl65.cpp
+ * @author Claudio Micheli <claudio@auterion.com>
+ *
+ * Parser declarations for Lanbao PSK-CM8JL65-CC5 distance sensor
+ */
 
 #pragma once
 
@@ -58,15 +58,15 @@
 
 
 enum CM8JL65_PARSE_STATE {
-  STATE0_WAITING_FRAME = 0,
-  STATE1_GOT_DIGIT1,
-  STATE2_GOT_DIGIT2,
-  STATE3_GOT_MSB_DATA,
-  STATE4_GOT_LSB_DATA,
-  STATE5_GOT_CHKSUM1,
-  STATE6_GOT_CHKSUM2,
+	STATE0_WAITING_FRAME = 0,
+	STATE1_GOT_DIGIT1,
+	STATE2_GOT_DIGIT2,
+	STATE3_GOT_MSB_DATA,
+	STATE4_GOT_LSB_DATA,
+	STATE5_GOT_CHKSUM1,
+	STATE6_GOT_CHKSUM2,
 };
 
 
 
-int cm8jl65_parser(uint8_t c, uint8_t *parserbuf,enum CM8JL65_PARSE_STATE *state,uint16_t *crc16, int *dist);
+int cm8jl65_parser(uint8_t c, uint8_t *parserbuf, enum CM8JL65_PARSE_STATE *state, uint16_t *crc16, int *dist);
