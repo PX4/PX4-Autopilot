@@ -429,7 +429,7 @@ bool Ekf::realignYawGPS()
 			ECL_WARN("EKF bad yaw corrected using GPS course");
 
 			// declare the magnetomer as failed if a bad yaw has occurred more than once
-			if (_flt_mag_align_complete && (_num_bad_flight_yaw_events >= 2) && !_control_status.flags.mag_fault) {
+			if (_control_status.flags.flt_mag_align_complete && (_num_bad_flight_yaw_events >= 2) && !_control_status.flags.mag_fault) {
 				ECL_WARN("EKF stopping magnetometer use");
 				_control_status.flags.mag_fault = true;
 			}
@@ -448,11 +448,11 @@ bool Ekf::realignYawGPS()
 			Eulerf euler321(_state.quat_nominal);
 
 			// apply yaw correction
-			if (!_flt_mag_align_complete) {
+			if (!_control_status.flags.flt_mag_align_complete) {
 				// This is our first flight aligment so we can assume that the recent change in velocity has occurred due to a
 				// forward direction takeoff or launch and therefore the inertial and GPS ground course discrepancy is due to yaw error
 				euler321(2) += courseYawError;
-				_flt_mag_align_complete = true;
+				_control_status.flags.flt_mag_align_complete = true;
 
 			} else if (_control_status.flags.wind) {
 				// we have previously aligned yaw in-flight and have wind estimates so set the yaw such that the vehicle nose is
@@ -765,7 +765,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 void Ekf::calcMagDeclination()
 {
 	// set source of magnetic declination for internal use
-	if (_flt_mag_align_complete) {
+	if (_control_status.flags.flt_mag_align_complete) {
 		// Use value consistent with earth field state
 		_mag_declination = atan2f(_state.mag_I(1), _state.mag_I(0));
 

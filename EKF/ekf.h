@@ -411,7 +411,6 @@ private:
 
 	// Variables used to control activation of post takeoff functionality
 	float _last_on_ground_posD{0.0f};	///< last vertical position when the in_air status was false (m)
-	bool _flt_mag_align_complete{false};	///< true when the in-flight mag field alignment has been completed
 	bool _flt_mag_align_converging{false};	///< true when the in-flight mag field post alignment convergence is being performd
 	uint64_t _flt_mag_align_start_time{0};	///< time that inflight magnetic field alignment started (uSec)
 	uint64_t _time_last_movement{0};	///< last system time that sufficient movement to use 3-axis magnetometer fusion was detected (uSec)
