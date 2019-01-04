@@ -180,7 +180,7 @@ pipeline {
         stage('Clang tidy') {
           agent {
             docker {
-              image 'px4io/px4-dev-clang:2019-01-01'
+              image 'px4io/px4-dev-clang:2018-03-30'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
