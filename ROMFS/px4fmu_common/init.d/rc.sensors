@@ -94,9 +94,16 @@ then
 fi
 
 # Lanbao PSK-CM8JL65-CC5 distance sensor
-if param compare SENS_EN_CM8JL65 1
+if param greater SENS_EN_CM8JL65 0
 then
-	cm8jl65 start
+	if param compare SENS_EN_CM8JL65 1
+	then
+		cm8jl65 start
+  fi
+	if param compare SENS_EN_CM8JL65 2
+	then
+		cm8jl65 start -d "/dev/ttyS1"
+	fi
 fi
 
 
