@@ -41,33 +41,33 @@
  *
  */
 
- #include <px4_config.h>
- #include <px4_getopt.h>
- #include <px4_workqueue.h>
+#include <px4_config.h>
+#include <px4_getopt.h>
+#include <px4_workqueue.h>
 
- #include <sys/types.h>
- #include <stdint.h>
- #include <stdlib.h>
- #include <stdbool.h>
- #include <string.h>
- #include <poll.h>
- #include <stdio.h>
- #include <unistd.h>
- #include <termios.h>
+#include <sys/types.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
+#include <poll.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <termios.h>
 
- #include <perf/perf_counter.h>
+#include <perf/perf_counter.h>
 
- #include <drivers/drv_hrt.h>
- #include <drivers/drv_range_finder.h>
- #include <drivers/device/device.h>
- #include <drivers/device/ringbuffer.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_range_finder.h>
+#include <drivers/device/device.h>
+#include <drivers/device/ringbuffer.h>
 
- #include <uORB/uORB.h>
- #include <uORB/topics/distance_sensor.h>
+#include <uORB/uORB.h>
+#include <uORB/topics/distance_sensor.h>
 
- #include "cm8jl65_parser.h"
+#include "cm8jl65_parser.h"
 
- /* Configuration Constants */
+/* Configuration Constants */
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
@@ -82,91 +82,91 @@
 #define CM8JL65_CONVERSION_INTERVAL 50*1000UL/* 50ms */
 
 
- class CM8JL65 : public cdev::CDev
- {
- public:
+class CM8JL65 : public cdev::CDev
+{
+public:
 
-   // Constructor
-   CM8JL65(const char *port = CM8JL65_DEFAULT_PORT, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	// Constructor
+	CM8JL65(const char *port = CM8JL65_DEFAULT_PORT, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 
-   // Virtual destructor
-   virtual ~CM8JL65();
+	// Virtual destructor
+	virtual ~CM8JL65();
 
-   virtual int  init();
-   virtual int  ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual int  init();
+	virtual int  ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
-    /**
-  	* Diagnostics - print some basic information about the driver.
-  	*/
-  	void				print_info();
+	/**
+	* Diagnostics - print some basic information about the driver.
+	*/
+	void				print_info();
 
- private:
+private:
 
-   char 				             _port[20];
-   uint8_t                   _rotation;
-   float				             _min_distance;
-   float				             _max_distance;
-   int         	             _conversion_interval;
-   work_s				             _work{};
-   ringbuffer::RingBuffer	  *_reports;
-   int				               _fd;
-   uint8_t			             _linebuf[25];
-   uint8_t                   _cycle_counter;
+	char 				             _port[20];
+	uint8_t                   _rotation;
+	float				             _min_distance;
+	float				             _max_distance;
+	int         	             _conversion_interval;
+	work_s				             _work{};
+	ringbuffer::RingBuffer	  *_reports;
+	int				               _fd;
+	uint8_t			             _linebuf[25];
+	uint8_t                   _cycle_counter;
 
-   enum CM8JL65_PARSE_STATE	 _parse_state;
-   unsigned char             _frame_data[4];
-   uint16_t                  _crc16;
-   int                       _distance_mm;
+	enum CM8JL65_PARSE_STATE	 _parse_state;
+	unsigned char             _frame_data[4];
+	uint16_t                  _crc16;
+	int                       _distance_mm;
 
-   int				               _class_instance;
-   int				               _orb_class_instance;
+	int				               _class_instance;
+	int				               _orb_class_instance;
 
-   orb_advert_t			         _distance_sensor_topic;
+	orb_advert_t			         _distance_sensor_topic;
 
-   perf_counter_t			       _sample_perf;
-   perf_counter_t			       _comms_errors;
+	perf_counter_t			       _sample_perf;
+	perf_counter_t			       _comms_errors;
 
-   /**
+	/**
 	* Initialise the automatic measurement state machine and start it.
 	*
 	* @note This function is called at open and error time.  It might make sense
 	*       to make it more aggressive about resetting the bus in case of errors.
 	*/
-	 void				start();
+	void				start();
 
-	 /**
-	 * Stop the automatic measurement state machine.
-	 */
-	 void				stop();
+	/**
+	* Stop the automatic measurement state machine.
+	*/
+	void				stop();
 
-   /**
+	/**
 	 * Set the min and max distance thresholds.
-  */
-	 void				set_minimum_distance(float min);
-	 void				set_maximum_distance(float max);
-	 float			get_minimum_distance();
-	 float			get_maximum_distance();
+	*/
+	void				set_minimum_distance(float min);
+	void				set_maximum_distance(float max);
+	float			get_minimum_distance();
+	float			get_maximum_distance();
 
-   /**
-   * Perform a reading cycle; collect from the previous measurement
-   * and start a new one.
-   */
-   void				cycle();
-   int				collect();
-   /**
-   * Static trampoline from the workq context; because we don't have a
-   * generic workq wrapper yet.
-   *
-   * @param arg		Instance pointer for the driver that is polling.
-   */
-   static void			cycle_trampoline(void *arg);
+	/**
+	* Perform a reading cycle; collect from the previous measurement
+	* and start a new one.
+	*/
+	void				cycle();
+	int				collect();
+	/**
+	* Static trampoline from the workq context; because we don't have a
+	* generic workq wrapper yet.
+	*
+	* @param arg		Instance pointer for the driver that is polling.
+	*/
+	static void			cycle_trampoline(void *arg);
 
-  };
+};
 
-  /*
-   * Driver 'main' command.
-   */
-  extern "C" __EXPORT int cm8jl65_main(int argc, char *argv[]);
+/*
+ * Driver 'main' command.
+ */
+extern "C" __EXPORT int cm8jl65_main(int argc, char *argv[]);
 
 /**
 * Method : Constructor
@@ -174,7 +174,7 @@
 * @note This method initializes the class variables
 */
 
-  CM8JL65::CM8JL65(const char *port, uint8_t rotation) :
+CM8JL65::CM8JL65(const char *port, uint8_t rotation) :
 	CDev(RANGE_FINDER0_DEVICE_PATH),
 	_rotation(rotation),
 	_min_distance(0.10f),
@@ -182,17 +182,17 @@
 	_conversion_interval(CM8JL65_CONVERSION_INTERVAL),
 	_reports(nullptr),
 	_fd(-1),
-  _cycle_counter(0),
+	_cycle_counter(0),
 	_parse_state(STATE0_WAITING_FRAME),
-  _frame_data{START_FRAME_DIGIT1, START_FRAME_DIGIT2, 0, 0},
-  _crc16(0),
-  _distance_mm(-1),
+	_frame_data{START_FRAME_DIGIT1, START_FRAME_DIGIT2, 0, 0},
+	_crc16(0),
+	_distance_mm(-1),
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
 	_sample_perf(perf_alloc(PC_ELAPSED, "cm8jl65_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "cm8jl65_com_err"))
-  {
+{
 	/* store port name */
 	strncpy(_port, port, sizeof(_port));
 	/* enforce null termination */
@@ -228,39 +228,40 @@ CM8JL65::~CM8JL65()
 int
 CM8JL65::init()
 {
- /* status */
-int ret = 0;
+	/* status */
+	int ret = 0;
 
-do { /* create a scope to handle exit conditions using break */
+	do { /* create a scope to handle exit conditions using break */
 
-  		/* do regular cdev init */
-  		ret = CDev::init();
+		/* do regular cdev init */
+		ret = CDev::init();
 
-  		if (ret != OK) { break; }
+		if (ret != OK) { break; }
 
-  		/* allocate basic report buffers */
-  		_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
+		/* allocate basic report buffers */
+		_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
-  		if (_reports == nullptr) {
-  			PX4_ERR("alloc failed");
-  			ret = -1;
-  			break;
-  		}
-  		_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
+		if (_reports == nullptr) {
+			PX4_ERR("alloc failed");
+			ret = -1;
+			break;
+		}
 
-  		/* get a publish handle on the range finder topic */
-  		struct distance_sensor_s ds_report = {};
+		_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 
-  		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-  					 &_orb_class_instance, ORB_PRIO_HIGH);
+		/* get a publish handle on the range finder topic */
+		struct distance_sensor_s ds_report = {};
 
-  		if (_distance_sensor_topic == nullptr) {
-  			PX4_ERR("failed to create distance_sensor object");
-  		}
+		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+					 &_orb_class_instance, ORB_PRIO_HIGH);
 
-  	} while (0);
+		if (_distance_sensor_topic == nullptr) {
+			PX4_ERR("failed to create distance_sensor object");
+		}
 
-  	return ret;
+	} while (0);
+
+	return ret;
 }
 
 void
@@ -316,7 +317,7 @@ CM8JL65::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 						return -EINVAL;
 					}
 
-						start();
+					start();
 
 
 					return OK;
@@ -339,61 +340,64 @@ int
 */
 CM8JL65::collect()
 {
-  int bytes_read = 0;
-  int bytes_processed = 0;
-  int i = 0;
-  bool crc_valid = false;
+	int bytes_read = 0;
+	int bytes_processed = 0;
+	int i = 0;
+	bool crc_valid = false;
 
 
-  perf_begin(_sample_perf);
+	perf_begin(_sample_perf);
 
 
-    /* read from the sensor (uart buffer) */
-    bytes_read = ::read(_fd, &_linebuf[0], sizeof(_linebuf));
+	/* read from the sensor (uart buffer) */
+	bytes_read = ::read(_fd, &_linebuf[0], sizeof(_linebuf));
 
 
-    if (bytes_read < 0) {
-  		PX4_DEBUG("read err: %d \n", bytes_read);
-  		perf_count(_comms_errors);
-  		perf_end(_sample_perf);
+	if (bytes_read < 0) {
+		PX4_DEBUG("read err: %d \n", bytes_read);
+		perf_count(_comms_errors);
+		perf_end(_sample_perf);
 
-    } else if (bytes_read > 0){
-    //     printf("Bytes read: %d \n",bytes_read);
-         i = bytes_read - 6 ;
-         while ((i >=0) && (!crc_valid))
-         {
-           if (_linebuf[i] == START_FRAME_DIGIT1) {
-             bytes_processed = i;
-             while ((bytes_processed < bytes_read) && (!crc_valid))
-             {
-            //    printf("In the cycle, processing  byte %d, 0x%02X \n",bytes_processed, _linebuf[bytes_processed]);
-                if (OK == cm8jl65_parser(_linebuf[bytes_processed],_frame_data, &_parse_state,&_crc16, &_distance_mm)){
-                    crc_valid = true;
-                }
-                bytes_processed++;
-             }
-           _parse_state = STATE0_WAITING_FRAME;
+	} else if (bytes_read > 0) {
+		//     printf("Bytes read: %d \n",bytes_read);
+		i = bytes_read - 6 ;
 
-         }
-         // else {printf("Starting frame wrong. Index: %d value 0x%02X \n",i,_linebuf[i]);}
-         i--;
-        }
+		while ((i >= 0) && (!crc_valid)) {
+			if (_linebuf[i] == START_FRAME_DIGIT1) {
+				bytes_processed = i;
 
-    }
+				while ((bytes_processed < bytes_read) && (!crc_valid)) {
+					//    printf("In the cycle, processing  byte %d, 0x%02X \n",bytes_processed, _linebuf[bytes_processed]);
+					if (OK == cm8jl65_parser(_linebuf[bytes_processed], _frame_data, &_parse_state, &_crc16, &_distance_mm)) {
+						crc_valid = true;
+					}
 
-  if (!crc_valid) {
+					bytes_processed++;
+				}
+
+				_parse_state = STATE0_WAITING_FRAME;
+
+			}
+
+			// else {printf("Starting frame wrong. Index: %d value 0x%02X \n",i,_linebuf[i]);}
+			i--;
+		}
+
+	}
+
+	if (!crc_valid) {
 		return -EAGAIN;
 	}
 
 
-  //printf("val (int): %d, raw: 0x%08X, valid: %s \n", _distance_mm, _frame_data, ((crc_valid) ? "OK" : "NO"));
+	//printf("val (int): %d, raw: 0x%08X, valid: %s \n", _distance_mm, _frame_data, ((crc_valid) ? "OK" : "NO"));
 
 	struct distance_sensor_s report;
 
 	report.timestamp = hrt_absolute_time();
 	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 	report.orientation = _rotation;
-	report.current_distance = _distance_mm/1000.0f;
+	report.current_distance = _distance_mm / 1000.0f;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
 	report.covariance = 0.0f;
@@ -413,19 +417,19 @@ CM8JL65::collect()
 
 	perf_end(_sample_perf);
 
-  /* ENABLE THIS IF YOU WANT TO PRINT OLD VALUES WHILE CRC CHECK IS WRONG
-  if (!crc_valid) {
-  		return -EAGAIN;
-  	}
-  else return OK; */
-  return OK;
+	/* ENABLE THIS IF YOU WANT TO PRINT OLD VALUES WHILE CRC CHECK IS WRONG
+	if (!crc_valid) {
+			return -EAGAIN;
+		}
+	else return OK; */
+	return OK;
 
 }
 
 void
 CM8JL65::start()
 {
-  PX4_INFO("driver started");
+	PX4_INFO("driver started");
 
 	_reports->flush();
 
@@ -451,11 +455,11 @@ CM8JL65::cycle_trampoline(void *arg)
 void
 CM8JL65::cycle()
 {
-  //PX4_DEBUG("CM8JL65::cycle() - in the cycle");
+	//PX4_DEBUG("CM8JL65::cycle() - in the cycle");
 	/* fds initialized? */
 	if (_fd < 0) {
 		/* open fd */
-		_fd = ::open(_port,O_RDWR);
+		_fd = ::open(_port, O_RDWR);
 
 		if (_fd < 0) {
 			PX4_ERR("open failed (%i)", errno);
@@ -491,21 +495,21 @@ CM8JL65::cycle()
 		}
 	}
 
-		/* perform collection */
-		int collect_ret = collect();
+	/* perform collection */
+	int collect_ret = collect();
 
-		if (collect_ret == -EAGAIN) {
-      _cycle_counter++;
-			/* We are missing bytes to complete the packet, re-cycle at 1ms */
+	if (collect_ret == -EAGAIN) {
+		_cycle_counter++;
+		/* We are missing bytes to complete the packet, re-cycle at 1ms */
 		//	work_queue(HPWORK,&_work,(worker_t)&CM8JL65::cycle_trampoline,this,USEC2TICK(1000LL));
 		//	return;
-		}
+	}
 
 
 	/* schedule a fresh cycle call when a complete packet has been received */
 	//work_queue(HPWORK,&_work,(worker_t)&CM8JL65::cycle_trampoline,this,USEC2TICK(_conversion_interval - _cycle_counter * 1000LL));
-  work_queue(HPWORK,&_work,(worker_t)&CM8JL65::cycle_trampoline,this,USEC2TICK(_conversion_interval));
-  _cycle_counter = 0;
+	work_queue(HPWORK, &_work, (worker_t)&CM8JL65::cycle_trampoline, this, USEC2TICK(_conversion_interval));
+	_cycle_counter = 0;
 }
 
 void
@@ -563,14 +567,16 @@ start(const char *port, uint8_t rotation)
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-    PX4_ERR("failed to set baudrate %d", B115200);
+		PX4_ERR("failed to set baudrate %d", B115200);
 		goto fail;
 	}
-  PX4_DEBUG("cm8jl65::start() succeeded");
+
+	PX4_DEBUG("cm8jl65::start() succeeded");
 	return 0;
 
 fail:
-  PX4_DEBUG("cm8jl65::start() failed");
+	PX4_DEBUG("cm8jl65::start() failed");
+
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
