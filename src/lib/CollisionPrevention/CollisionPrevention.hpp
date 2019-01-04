@@ -74,10 +74,10 @@ private:
 
 	bool _interfering = false;		/**< states if the collision prevention interferes with the user input */
 
-	orb_advert_t _constraints_pub{nullptr};		/**< constraints publication */
+	orb_advert_t _constraints_pub = nullptr;		/**< constraints publication */
 	orb_advert_t _mavlink_log_pub = nullptr;	 	/**< Mavlink log uORB handle */
 
-	uORB::Subscription<obstacle_distance_s> *_sub_obstacle_distance{nullptr}; /**< obstacle distances received form a range sensor */
+	uORB::Subscription<obstacle_distance_s> *_sub_obstacle_distance = nullptr; /**< obstacle distances received form a range sensor */
 
 	static constexpr uint64_t RANGE_STREAM_TIMEOUT_US = 500000;
 	static constexpr uint64_t MESSAGE_THROTTLE_US = 5000000;
