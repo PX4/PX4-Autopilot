@@ -729,7 +729,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 	}
 
 	// update the yaw angle variance using the variance of the measurement
-	if (!_control_status.flags.ev_yaw) {
+	if (_control_status.flags.ev_yaw) {
 		// using error estimate from external vision data
 		angle_err_var_vec(2) = sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f));
 
