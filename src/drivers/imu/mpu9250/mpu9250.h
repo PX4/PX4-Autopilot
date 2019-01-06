@@ -48,6 +48,7 @@
 #include <drivers/drv_mag.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
+#include <lib/flight_test_input/flight_test_input.hpp>
 
 #include "mag.h"
 #include "gyro.h"
@@ -332,6 +333,19 @@ private:
 	Integrator		_gyro_int;
 
 	enum Rotation		_rotation;
+
+	// Flight test input
+	FlightTestInput 	_fti_accx{"FTI_ACC1X"};
+	FlightTestInput 	_fti_accy{"FTI_ACC1Y"};
+	FlightTestInput 	_fti_accz{"FTI_ACC1Z"};
+
+	FlightTestInput 	_fti_gyro_x{"FTI_GYRO1X"};
+	FlightTestInput 	_fti_gyro_y{"FTI_GYRO1Y"};
+	FlightTestInput 	_fti_gyro_z{"FTI_GYRO1Z"};
+	
+	FlightTestInput 	_fti_magx{"FTI_MAG1X"};
+	FlightTestInput 	_fti_magy{"FTI_MAG1Y"};
+	FlightTestInput 	_fti_magz{"FTI_MAG1Z"};
 
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor

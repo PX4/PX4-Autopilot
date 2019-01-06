@@ -1348,6 +1348,11 @@ MPU9250::measure()
 	float yraw_f = report.accel_y;
 	float zraw_f = report.accel_z;
 
+        // Flight test input
+        //_fti_accx.inject(xraw_f);
+        //_fti_accy.inject(yraw_f);
+        //_fti_accz.inject(zraw_f);
+
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
 

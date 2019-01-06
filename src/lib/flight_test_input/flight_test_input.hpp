@@ -42,7 +42,7 @@ private:
 		TEST_INPUT_COMPLETE
 	} _state{TEST_INPUT_OFF};
 
-	orb_advert_t	_mavlink_log_pub{nullptr};
+        orb_advert_t	_mavlink_log_pub{nullptr};
 
 	float _time_running{0.0f};
 
