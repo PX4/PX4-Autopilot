@@ -1,11 +1,6 @@
 #include "lockstep_scheduler/lockstep_scheduler.h"
 
 
-uint64_t LockstepScheduler::get_absolute_time() const
-{
-	return time_us_;
-}
-
 void LockstepScheduler::set_absolute_time(uint64_t time_us)
 {
 	time_us_ = time_us;

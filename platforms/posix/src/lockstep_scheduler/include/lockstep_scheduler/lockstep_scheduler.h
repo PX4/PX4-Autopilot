@@ -11,7 +11,7 @@ class LockstepScheduler
 {
 public:
 	void set_absolute_time(uint64_t time_us);
-	uint64_t get_absolute_time() const;
+	inline uint64_t get_absolute_time() const { return time_us_; }
 	int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *lock, uint64_t time_us);
 	int usleep_until(uint64_t timed_us);
 
