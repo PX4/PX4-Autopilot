@@ -7,6 +7,7 @@ void LockstepScheduler::set_absolute_time(uint64_t time_us)
 
 	{
 		std::unique_lock<std::mutex> lock_timed_waits(timed_waits_mutex_);
+		setting_time_ = true;
 
 		auto it = std::begin(timed_waits_);
 
@@ -21,13 +22,12 @@ void LockstepScheduler::set_absolute_time(uint64_t time_us)
 			}
 
 			if (temp_timed_wait->time_us <= time_us &&
-			    !temp_timed_wait->timeout &&
-			    !temp_timed_wait->done) {
-				temp_timed_wait->timeout = true;
+			    !temp_timed_wait->timeout) {
 				// We are abusing the condition here to signal that the time
 				// has passed.
 				timed_waits_iterator_invalidated_ = false;
 				pthread_mutex_lock(temp_timed_wait->passed_lock);
+				temp_timed_wait->timeout = true;
 				pthread_cond_broadcast(temp_timed_wait->passed_cond);
 				pthread_mutex_unlock(temp_timed_wait->passed_lock);
 
@@ -41,6 +41,8 @@ void LockstepScheduler::set_absolute_time(uint64_t time_us)
 
 			++it;
 		}
+
+		setting_time_ = false;
 	}
 }
 
@@ -63,27 +65,33 @@ int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *loc
 		timed_waits_iterator_invalidated_ = true;
 	}
 
-	while (true) {
-		int result = pthread_cond_wait(cond, lock);
+	int result = pthread_cond_wait(cond, lock);
 
-		// We need to unlock before aqcuiring the timed_waits_mutex, otherwise
-		// we are at rist of priority inversion.
-		pthread_mutex_unlock(lock);
+	const bool timeout = new_timed_wait->timeout;
 
-		{
-			std::lock_guard<std::mutex> lock_timed_waits(timed_waits_mutex_);
-
-			if (result == 0 && new_timed_wait->timeout) {
-				result = ETIMEDOUT;
-			}
-
-			new_timed_wait->done = true;
-		}
-
-		// The lock needs to be locked on exit of this function
-		pthread_mutex_lock(lock);
-		return result;
+	if (result == 0 && timeout) {
+		result = ETIMEDOUT;
 	}
+
+	new_timed_wait->done = true;
+
+	if (!timeout && setting_time_) {
+		// This is where it gets tricky: the timeout has not been triggered yet,
+		// and another thread is in set_absolute_time().
+		// If it already passed the 'done' check, it will access the mutex and
+		// the condition variable next. However they might be invalid as soon as we
+		// return here, so we wait until set_absolute_time() is done.
+		// In addition we have to unlock 'lock', otherwise we risk a
+		// deadlock due to a different locking order in set_absolute_time().
+		// Note that this case does not happen too frequently, and thus can be
+		// a bit more expensive.
+		pthread_mutex_unlock(lock);
+		timed_waits_mutex_.lock();
+		timed_waits_mutex_.unlock();
+		pthread_mutex_lock(lock);
+	}
+
+	return result;
 }
 
 int LockstepScheduler::usleep_until(uint64_t time_us)
