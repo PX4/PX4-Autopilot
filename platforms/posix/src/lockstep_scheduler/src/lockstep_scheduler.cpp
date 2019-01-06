@@ -25,18 +25,10 @@ void LockstepScheduler::set_absolute_time(uint64_t time_us)
 			    !temp_timed_wait->timeout) {
 				// We are abusing the condition here to signal that the time
 				// has passed.
-				timed_waits_iterator_invalidated_ = false;
 				pthread_mutex_lock(temp_timed_wait->passed_lock);
 				temp_timed_wait->timeout = true;
 				pthread_cond_broadcast(temp_timed_wait->passed_cond);
 				pthread_mutex_unlock(temp_timed_wait->passed_lock);
-
-				if (timed_waits_iterator_invalidated_) {
-					// The vector might have changed, we need to start from the
-					// beginning.
-					it = std::begin(timed_waits_);
-					continue;
-				}
 			}
 
 			++it;
@@ -62,7 +54,6 @@ int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *loc
 		new_timed_wait->passed_cond = cond;
 		new_timed_wait->passed_lock = lock;
 		timed_waits_.push_back(new_timed_wait);
-		timed_waits_iterator_invalidated_ = true;
 	}
 
 	int result = pthread_cond_wait(cond, lock);

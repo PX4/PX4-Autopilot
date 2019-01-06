@@ -27,6 +27,5 @@ private:
 	};
 	std::vector<std::shared_ptr<TimedWait>> timed_waits_{};
 	std::mutex timed_waits_mutex_{};
-	bool timed_waits_iterator_invalidated_{false};
 	std::atomic<bool> setting_time_{false}; ///< true if set_absolute_time() is currently being executed
 };
