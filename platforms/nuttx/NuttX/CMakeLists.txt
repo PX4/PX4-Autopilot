@@ -82,15 +82,18 @@ endif()
 file(STRINGS ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig config_expanded REGEX "# Automatically generated file; DO NOT EDIT.")
 
 if ("x${config_expanded}" STREQUAL "x")
-# copy PX4 board Compressed config into nuttx and inflate it
+	# copy PX4 board Compressed config into nuttx and inflate it
 	add_custom_command(
-		OUTPUT ${NUTTX_DIR}/.config
+		OUTPUT
+			${NUTTX_DIR}/.config
+			${NUTTX_DIR}/arch/arm/include/math.h
 		COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig ${NUTTX_DIR}/.config
 		COMMAND kconfig-tweak --set-str CONFIG_APPS_DIR "../apps"
 		COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/include/nuttx/config.h
 		COMMAND ${CMAKE_COMMAND} -E remove_directory ${NUTTX_DIR}/configs/${PX4_BOARD}
 		COMMAND ${CMAKE_COMMAND} -E copy_directory ${NUTTX_CONFIG_DIR}/ ${CMAKE_CURRENT_BINARY_DIR}/nuttx-config
 		COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/nuttx-config/src
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/math.h ${NUTTX_DIR}/arch/arm/include/ # copy arm math.h into NuttX source
 		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/nsh_romfsimg.h ${CMAKE_CURRENT_BINARY_DIR}/nuttx-config/include/
 		COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD_CUSTOM=y olddefconfig
 		DEPENDS
@@ -98,18 +101,23 @@ if ("x${config_expanded}" STREQUAL "x")
 			${NUTTX_CONFIG_DIR}/include/board.h
 			${NUTTX_CONFIG_DIR}/scripts/ld.script
 			${NUTTX_DIR}/configs/dummy/Kconfig
+			${CMAKE_CURRENT_SOURCE_DIR}/math.h
+			${CMAKE_CURRENT_SOURCE_DIR}/nsh_romfsimg.h
 		WORKING_DIRECTORY ${NUTTX_DIR}
 		COMMENT "Copying NuttX config ${NUTTX_CONFIG} and configuring"
 		)
 else()
-# copy PX4 board config into nuttx
+	# copy PX4 board config into nuttx
 	add_custom_command(
-		OUTPUT ${NUTTX_DIR}/.config
+		OUTPUT
+			${NUTTX_DIR}/.config
+			${NUTTX_DIR}/arch/arm/include/math.h
 		COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig ${NUTTX_DIR}/.config
 		COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/include/nuttx/config.h
 		COMMAND ${CMAKE_COMMAND} -E remove_directory ${NUTTX_DIR}/configs/${PX4_BOARD}
 		COMMAND ${CMAKE_COMMAND} -E copy_directory ${NUTTX_CONFIG_DIR}/ ${CMAKE_CURRENT_BINARY_DIR}/nuttx-config
 		COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/nuttx-config/src
+		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/math.h ${NUTTX_DIR}/arch/arm/include/ # copy arm math.h into NuttX source
 		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/nsh_romfsimg.h ${CMAKE_CURRENT_BINARY_DIR}/nuttx-config/include/
 		DEPENDS
 			${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
@@ -118,6 +126,8 @@ else()
 			${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
 			${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
 			${NUTTX_DIR}/configs/dummy/Kconfig
+			${CMAKE_CURRENT_SOURCE_DIR}/math.h
+			${CMAKE_CURRENT_SOURCE_DIR}/nsh_romfsimg.h
 		WORKING_DIRECTORY ${NUTTX_DIR}
 		COMMENT "Copying NuttX uncompressed config ${NUTTX_CONFIG} and configuring"
 		)
