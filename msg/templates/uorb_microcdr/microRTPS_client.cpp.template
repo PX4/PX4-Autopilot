@@ -58,7 +58,7 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
 #include "microRTPS_transport.h"
 #include "microRTPS_client.h"
 
-#include <cinttypes>
+#include <inttypes.h>
 #include <cstdio>
 #include <ctime>
 #include <pthread.h>

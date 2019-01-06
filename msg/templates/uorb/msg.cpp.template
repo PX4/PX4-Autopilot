@@ -65,7 +65,7 @@ struct_size, padding_end_size = add_padding_bytes(sorted_fields, search_path)
 topic_fields = ["%s %s" % (convert_type(field.type), field.name) for field in sorted_fields]
 }@
 
-#include <cinttypes>
+#include <inttypes.h>
 #include <px4_log.h>
 #include <px4_defines.h>
 #include <uORB/topics/@(topic_name).h>
