@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include <cinttypes>
+#include <inttypes.h>
 
 #include <nuttx/arch.h>
 
