@@ -38,7 +38,7 @@
  * @author Roman Bapst
  */
 
-#include <cfloat>
+#include <float.h>
 
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/EKF/ekf.h>

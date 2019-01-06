@@ -1,7 +1,7 @@
 #include <unit_test.h>
 #include <mc_pos_control/Utility/ControlMath.hpp>
 #include <mathlib/mathlib.h>
-#include <cfloat>
+#include <float.h>
 
 #define SIGMA_SINGLE_OP			0.000001f
 

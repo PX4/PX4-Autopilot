@@ -1,7 +1,7 @@
 #include <unit_test.h>
 
 #include <px4_config.h>
-#include <cfloat>
+#include <float.h>
 
 typedef union {
 	float f;

@@ -42,7 +42,7 @@
 #include "vtol_type.h"
 #include "vtol_att_control_main.h"
 
-#include <cfloat>
+#include <float.h>
 #include <px4_defines.h>
 #include <matrix/math.hpp>
 
