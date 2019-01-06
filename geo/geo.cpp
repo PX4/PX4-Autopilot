@@ -47,7 +47,7 @@
 
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
-#include <cfloat>
+#include <float.h>
 
 using matrix::wrap_pi;
 using matrix::wrap_2pi;
