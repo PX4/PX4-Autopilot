@@ -45,7 +45,7 @@
 
 #include "navigator.h"
 
-#include <cfloat>
+#include <float.h>
 #include <sys/stat.h>
 
 #include <dataman/dataman.h>

@@ -41,7 +41,7 @@
  * @author Marco Zorzi <mzorzi@student.ethz.ch>
  */
 
-#include <cfloat>
+#include <float.h>
 
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>

@@ -51,7 +51,7 @@
 #include "launchdetection/LaunchDetector.h"
 #include "runway_takeoff/RunwayTakeoff.h"
 
-#include <cfloat>
+#include <float.h>
 
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>

@@ -39,7 +39,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <cfloat>
+#include <float.h>
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/ecl/geo_lookup/geo_mag_declination.h>
