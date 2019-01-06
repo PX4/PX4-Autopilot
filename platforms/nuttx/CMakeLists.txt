@@ -83,6 +83,7 @@ target_link_libraries(nuttx_cxx INTERFACE nuttx_c)
 
 target_link_libraries(px4 PRIVATE
 
+	-nostartfiles
 	-nodefaultlibs
 	-nostdlib
 
@@ -99,6 +100,7 @@ target_link_libraries(px4 PRIVATE
 	-Wl,--end-group
 
 	m
+	gcc
 	)
 
 target_link_libraries(px4 PRIVATE ${module_libraries})
