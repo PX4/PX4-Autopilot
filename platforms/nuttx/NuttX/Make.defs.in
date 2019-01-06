@@ -108,6 +108,7 @@ CFLAGS = $(ARCHINCLUDES) \
 
 CXXFLAGS = $(ARCHXXINCLUDES) \
 	-std=gnu++11 \
+	-nostdinc++ \
 	${CMAKE_CXX_FLAGS} \
 	$(FLAGS) \
 	-fcheck-new \
