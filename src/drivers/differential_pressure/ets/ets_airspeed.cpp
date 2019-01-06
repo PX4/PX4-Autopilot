@@ -38,7 +38,7 @@
  * Driver for the Eagle Tree Airspeed V3 connected via I2C.
  */
 
-#include <cfloat>
+#include <float.h>
 
 #include <px4_config.h>
 
