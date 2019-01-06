@@ -43,7 +43,7 @@
 #include "ekf.h"
 #include <ecl.h>
 #include <mathlib/mathlib.h>
-#include <cfloat>
+#include <float.h>
 
 void Ekf::fuseOptFlow()
 {
