@@ -54,10 +54,6 @@ const cdev::px4_file_operations_t cdev::CDev::fops = {};
 pthread_mutex_t devmutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t filemutex = PTHREAD_MUTEX_INITIALIZER;
 
-px4_sem_t lockstep_sem;
-bool sim_lockstep = false;
-volatile bool sim_delay = false;
-
 #define PX4_MAX_FD 350
 static map<string, void *> devmap;
 static cdev::file_t filemap[PX4_MAX_FD] = {};
@@ -333,10 +329,6 @@ extern "C" {
 		}
 
 #endif
-
-		while (sim_delay) {
-			px4_usleep(100);
-		}
 
 		PX4_DEBUG("Called px4_poll timeout = %d", timeout);
 
