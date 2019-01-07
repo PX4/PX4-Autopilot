@@ -154,6 +154,11 @@ uint64_t hrt_system_time()
  */
 hrt_abstime hrt_absolute_time()
 {
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	// optimized case (avoid ts_to_abstime) if lockstep scheduler is used
+	const uint64_t abstime = lockstep_scheduler.get_absolute_time();
+	return abstime - px4_timestart_monotonic;
+#else // defined(ENABLE_LOCKSTEP_SCHEDULER)
 	struct timespec ts;
 	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
 #ifdef __PX4_QURT
@@ -161,6 +166,7 @@ hrt_abstime hrt_absolute_time()
 #else
 	return ts_to_abstime(&ts);
 #endif
+#endif // defined(ENABLE_LOCKSTEP_SCHEDULER)
 }
 
 #ifdef __PX4_QURT
