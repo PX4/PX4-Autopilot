@@ -140,6 +140,8 @@ private:
 	int _class_instance;
 	int _orb_class_instance;
 
+	int _collect_time = 15000; // usecs, optical flow data publish rate
+
 	orb_advert_t _optical_flow_pub;
 	orb_advert_t _subsystem_pub;
 
@@ -575,7 +577,8 @@ PMW3901::collect()
 	_flow_sum_x += delta_x_raw;
 	_flow_sum_y += delta_y_raw;
 
-	if (_flow_dt_sum_usec < 15000) {
+	// returns if the collect time has not been reached
+	if (_flow_dt_sum_usec < _collect_time) {
 
 		return ret;
 	}
