@@ -79,7 +79,7 @@ pipeline {
                       -ex "target remote localhost:2331" \
                       -ex "monitor reset 0" \
                       -ex "load" \
-                      -ex "monitor compare-sections" \
+                      -ex "compare-sections" \
                       -ex "monitor reset 0" \
                       -ex "monitor sleep 1000" \
                       -ex "monitor go" \
@@ -115,7 +115,7 @@ pipeline {
                       -ex "target remote localhost:2331" \
                       -ex "monitor reset 0" \
                       -ex "load" \
-                      -ex "monitor compare-sections" \
+                      -ex "compare-sections" \
                       -ex "monitor reset 0" \
                       -ex "monitor sleep 1000" \
                       -ex "monitor go" \
