@@ -67,11 +67,6 @@ static hrt_abstime px4_timestart_monotonic = 0;
 static int32_t dsp_offset = 0;
 #endif
 
-static hrt_abstime _start_delay_time = 0;
-static hrt_abstime _delay_interval = 0;
-static hrt_abstime max_time = 0;
-static pthread_mutex_t _hrt_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 static LockstepScheduler lockstep_scheduler;
 #endif
@@ -80,7 +75,6 @@ static LockstepScheduler lockstep_scheduler;
 hrt_abstime hrt_absolute_time_offset();
 static void hrt_call_reschedule();
 static void hrt_call_invoke();
-static hrt_abstime _hrt_absolute_time_internal();
 __EXPORT hrt_abstime hrt_reset();
 
 hrt_abstime hrt_absolute_time_offset()
@@ -158,7 +152,7 @@ uint64_t hrt_system_time()
 /*
  * Get absolute time.
  */
-hrt_abstime _hrt_absolute_time_internal()
+hrt_abstime hrt_absolute_time()
 {
 	struct timespec ts;
 	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -177,42 +171,12 @@ int hrt_set_absolute_time_offset(int32_t time_diff_us)
 }
 #endif
 
-/*
- * Get absolute time.
- */
-hrt_abstime hrt_absolute_time()
-{
-	pthread_mutex_lock(&_hrt_mutex);
-
-	hrt_abstime ret;
-
-	if (_start_delay_time > 0) {
-		ret = _start_delay_time;
-
-	} else {
-		ret = _hrt_absolute_time_internal();
-	}
-
-	ret -= _delay_interval;
-
-	if (ret < max_time) {
-		PX4_ERR("WARNING! TIME IS NEGATIVE! %d vs %d", (int)ret, (int)max_time);
-		ret = max_time;
-	}
-
-	max_time = ret;
-	pthread_mutex_unlock(&_hrt_mutex);
-
-	return ret;
-}
-
 hrt_abstime hrt_reset()
 {
 #ifndef __PX4_QURT
 	px4_timestart_monotonic = 0;
 #endif
-	max_time = 0;
-	return _hrt_absolute_time_internal();
+	return hrt_absolute_time();
 }
 
 /*
@@ -315,41 +279,6 @@ void	hrt_init()
 	}
 
 	memset(&_hrt_work, 0, sizeof(_hrt_work));
-}
-
-void	hrt_start_delay()
-{
-	pthread_mutex_lock(&_hrt_mutex);
-	_start_delay_time = _hrt_absolute_time_internal();
-	pthread_mutex_unlock(&_hrt_mutex);
-}
-
-void	hrt_stop_delay_delta(hrt_abstime delta)
-{
-	pthread_mutex_lock(&_hrt_mutex);
-
-	uint64_t delta_measured = _hrt_absolute_time_internal() - _start_delay_time;
-
-	if (delta_measured < delta) {
-		delta = delta_measured;
-	}
-
-	_delay_interval += delta;
-	_start_delay_time = 0;
-
-	pthread_mutex_unlock(&_hrt_mutex);
-
-}
-
-void	hrt_stop_delay()
-{
-	pthread_mutex_lock(&_hrt_mutex);
-	uint64_t delta = _hrt_absolute_time_internal() - _start_delay_time;
-	_delay_interval += delta;
-	_start_delay_time = 0;
-
-	pthread_mutex_unlock(&_hrt_mutex);
-
 }
 
 static void
