@@ -213,7 +213,6 @@ rtps:
     id: 92
   - msg: vehicle_global_position
     id: 93
-    send: true
   - msg: vehicle_gps_position
     id: 94
   - msg: vehicle_land_detected
