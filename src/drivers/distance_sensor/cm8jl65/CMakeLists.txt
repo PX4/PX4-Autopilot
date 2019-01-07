@@ -36,5 +36,6 @@ px4_add_module(
 	SRCS
 		cm8jl65.cpp
 		cm8jl65_parser.cpp
-	DEPENDS
+  MODULE_CONFIG
+	  module.yaml
 	)
