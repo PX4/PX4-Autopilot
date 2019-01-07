@@ -50,7 +50,6 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_bias.h>
