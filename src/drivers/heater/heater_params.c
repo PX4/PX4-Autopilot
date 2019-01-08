@@ -59,17 +59,6 @@ PARAM_DEFINE_INT32(SENS_TEMP_ID, 1442826);
 PARAM_DEFINE_FLOAT(SENS_IMU_TEMP, 55.0f);
 
 /**
- * IMU heater controller feedforward value.
- *
- * @group Sensors
- * @unit microseconds
- * @min 0
- * @max 1.0
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(SENS_IMU_TEMP_FF, 0.0f);
-
-/**
  * IMU heater controller integrator gain value.
  *
  * @group Sensors
@@ -87,7 +76,7 @@ PARAM_DEFINE_FLOAT(SENS_IMU_TEMP_I, 0.025f);
  * @group Sensors
  * @unit microseconds/C
  * @min 0
- * @max 1.0
+ * @max 2.0
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(SENS_IMU_TEMP_P, 0.25f);
+PARAM_DEFINE_FLOAT(SENS_IMU_TEMP_P, 1.0f);
