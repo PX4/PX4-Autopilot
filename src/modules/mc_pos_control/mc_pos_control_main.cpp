@@ -1105,23 +1105,15 @@ MulticopterPositionControl::update_smooth_takeoff(const float &z_sp, const float
 void
 MulticopterPositionControl::limit_thrust_during_landing(vehicle_local_position_setpoint_s &setpoint)
 {
-	if (_vehicle_land_detected.ground_contact) {
-		// Set thrust in xy to zero
-		setpoint.thrust[0] = 0.0f;
-		setpoint.thrust[1] = 0.0f;
-		_control.resetIntegralXY();
-		// set yaw-sp to current yaw
-		setpoint.yaw = _states.yaw;
-	}
-
-	if (_vehicle_land_detected.maybe_landed) {
-		// set yaw-sp to current yaw
-		setpoint.yaw = _states.yaw;
-		// we set thrust to zero
-		// this will help to decide if we are actually landed or not
+	if (_vehicle_land_detected.ground_contact
+	    || _vehicle_land_detected.maybe_landed) {
+		// we set thrust to zero, this will help to decide if we are actually landed or not
 		setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
-		_control.resetIntegralXY(); //reuqired to prevent integrator from increasing
-		_control.resetIntegralZ(); //reuqired to prevent integrator from increasing
+		// set yaw-sp to current yaw to avoid any corrections
+		setpoint.yaw = _states.yaw;
+		// prevent any integrator windup
+		_control.resetIntegralXY();
+		_control.resetIntegralZ();
 	}
 }
 
