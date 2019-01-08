@@ -421,6 +421,11 @@ MPU9250::init()
 	return ret;
 }
 
+uint8_t MPU9250::get_whoami()
+{
+	return _whoami;
+}
+
 int MPU9250::reset()
 {
 	irqstate_t state;
@@ -574,6 +579,8 @@ MPU9250::probe()
 
 	// If it's not an MPU it must be an ICM
 	if ((_whoami != MPU_WHOAMI_9250) && (_whoami != MPU_WHOAMI_6500)) {
+		// Make sure selected register bank is bank 0 (which contains WHOAMI)
+		select_register_bank(REG_BANK(ICMREG_20948_WHOAMI));
 		_whoami = read_reg(ICMREG_20948_WHOAMI);
 	}
 
