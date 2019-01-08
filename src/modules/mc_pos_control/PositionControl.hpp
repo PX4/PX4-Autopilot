@@ -204,8 +204,7 @@ private:
 
 	void _positionController(); /** applies the P-position-controller */
 	void _velocityController(const float &dt); /** applies the PID-velocity-controller */
-	void _setCtrlFlagTrue(); /**< set control-loop flags to true (only required for logging) */
-	void _setCtrlFlagFalse(); /**< set control-loop flags to false (only required for logging) */
+	void _setCtrlFlag(bool value); /**< set control-loop flags (only required for logging) */
 
 	matrix::Vector3f _pos{}; /**< MC position */
 	matrix::Vector3f _vel{}; /**< MC velocity */
