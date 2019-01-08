@@ -264,7 +264,17 @@ start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external,
 		goto fail;
 	}
 
-	fd = open(bus.accelpath, O_RDONLY);
+	/*
+	 * Set the poll rate to default, starts automatic data collection.
+	 * Doing this through the mag device for the time being - it's always there, even in magnetometer only mode.
+	 * Using accel device for MPU6500.
+	 */
+	if (bus.dev->get_whoami() == MPU_WHOAMI_6500) {
+		fd = open(bus.accelpath, O_RDONLY);
+
+	} else {
+		fd = open(bus.magpath, O_RDONLY);
+	}
 
 	if (fd < 0) {
 		PX4_INFO("ioctl failed");
