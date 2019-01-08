@@ -1349,7 +1349,7 @@ void Ekf::controlMagFusion()
 	// Also reset the flight alignment flag so that the mag fields will be re-initialised next time we achieve flight altitude
 	if (!_control_status.flags.in_air) {
 		_last_on_ground_posD = _state.pos(2);
-		_control_status.flags.flt_mag_align_complete = false;
+		_control_status.flags.mag_align_complete = false;
 		_num_bad_flight_yaw_events = 0;
 	}
 
@@ -1359,7 +1359,7 @@ void Ekf::controlMagFusion()
 
 		// We need to reset the yaw angle after climbing away from the ground to enable
 		// recovery from ground level magnetic interference.
-		if (!_control_status.flags.flt_mag_align_complete) {
+		if (!_control_status.flags.mag_align_complete) {
 			// Check if height has increased sufficiently to be away from ground magnetic anomalies
 			// and request a yaw reset if not already requested.
 			_mag_yaw_reset_req |= (_last_on_ground_posD - _state.pos(2)) > 1.5f;
@@ -1368,7 +1368,7 @@ void Ekf::controlMagFusion()
 		// perform a yaw reset if requested by other functions
 		if (_mag_yaw_reset_req) {
 			if (!_mag_use_inhibit ) {
-				_control_status.flags.flt_mag_align_complete = resetMagHeading(_mag_sample_delayed.mag) && _control_status.flags.in_air;
+				_control_status.flags.mag_align_complete = resetMagHeading(_mag_sample_delayed.mag) && _control_status.flags.in_air;
 			}
 			_mag_yaw_reset_req = false;
 		}
@@ -1426,16 +1426,16 @@ void Ekf::controlMagFusion()
 			// decide whether 3-axis magnetomer fusion can be used
 			bool use_3D_fusion = _control_status.flags.tilt_align && // Use of 3D fusion requires valid tilt estimates
 					_control_status.flags.in_air && // don't use when on the ground becasue of magnetic anomalies
-					(_control_status.flags.flt_mag_align_complete || height_achieved) && // once in-flight field alignment has been performed, ignore relative height
+					(_control_status.flags.mag_align_complete || height_achieved) && // once in-flight field alignment has been performed, ignore relative height
 					((_imu_sample_delayed.time_us - _time_last_movement) < 2 * 1000 * 1000); // Using 3-axis fusion for a minimum period after to allow for false negatives
 
 			// perform switch-over
 			if (use_3D_fusion) {
 				if (!_control_status.flags.mag_3D) {
-					if (!_control_status.flags.flt_mag_align_complete) {
+					if (!_control_status.flags.mag_align_complete) {
 						// If we are flying a vehicle that flies forward, eg plane, then we can use the GPS course to check and correct the heading
 						if (_control_status.flags.fixed_wing && _control_status.flags.in_air) {
-							_control_status.flags.flt_mag_align_complete = realignYawGPS();
+							_control_status.flags.mag_align_complete = realignYawGPS();
 
 							if (_velpos_reset_request) {
 								resetVelocity();
@@ -1444,10 +1444,10 @@ void Ekf::controlMagFusion()
 							}
 
 						} else {
-							_control_status.flags.flt_mag_align_complete = resetMagHeading(_mag_sample_delayed.mag);
+							_control_status.flags.mag_align_complete = resetMagHeading(_mag_sample_delayed.mag);
 						}
 
-						_control_status.flags.yaw_align = _control_status.flags.yaw_align || _control_status.flags.flt_mag_align_complete;
+						_control_status.flags.yaw_align = _control_status.flags.yaw_align || _control_status.flags.mag_align_complete;
 
 					} else {
 						// reset the mag field covariances
@@ -1462,7 +1462,7 @@ void Ekf::controlMagFusion()
 				}
 
 				// only use one type of mag fusion at the same time
-				_control_status.flags.mag_3D = _control_status.flags.flt_mag_align_complete;
+				_control_status.flags.mag_3D = _control_status.flags.mag_align_complete;
 				_control_status.flags.mag_hdg = !_control_status.flags.mag_3D;
 
 			} else {
@@ -1510,13 +1510,13 @@ void Ekf::controlMagFusion()
 
 		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_3D) {
 			// if transitioning into 3-axis fusion mode, we need to initialise the yaw angle and field states
-			if (!_control_status.flags.mag_3D || !_control_status.flags.flt_mag_align_complete) {
-				_control_status.flags.flt_mag_align_complete = resetMagHeading(_mag_sample_delayed.mag);
-				_control_status.flags.yaw_align = _control_status.flags.yaw_align || _control_status.flags.flt_mag_align_complete;
+			if (!_control_status.flags.mag_3D || !_control_status.flags.mag_align_complete) {
+				_control_status.flags.mag_align_complete = resetMagHeading(_mag_sample_delayed.mag);
+				_control_status.flags.yaw_align = _control_status.flags.yaw_align || _control_status.flags.mag_align_complete;
 			}
 
 			// use 3-axis mag fusion if reset was successful
-			_control_status.flags.mag_3D = _control_status.flags.flt_mag_align_complete;
+			_control_status.flags.mag_3D = _control_status.flags.mag_align_complete;
 			_control_status.flags.mag_hdg = false;
 
 		} else {
