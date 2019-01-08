@@ -246,12 +246,13 @@ private:
 	// ----------------------------
 
 	// subscriptions
+	uORB::SubscriptionPolled<optical_flow_s> _sub_flow;
+	uORB::SubscriptionPolled<parameter_update_s> _sub_param_update;
+	uORB::SubscriptionPolled<sensor_combined_s> _sub_sensor;
+
 	uORB::Subscription<actuator_armed_s> _sub_armed;
 	uORB::Subscription<vehicle_land_detected_s> _sub_land;
 	uORB::Subscription<vehicle_attitude_s> _sub_att;
-	uORB::Subscription<optical_flow_s> _sub_flow;
-	uORB::Subscription<sensor_combined_s> _sub_sensor;
-	uORB::Subscription<parameter_update_s> _sub_param_update;
 	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
 	uORB::Subscription<vehicle_odometry_s> _sub_visual_odom;
 	uORB::Subscription<vehicle_odometry_s> _sub_mocap_odom;

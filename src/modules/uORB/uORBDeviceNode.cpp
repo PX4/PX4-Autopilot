@@ -164,6 +164,52 @@ uORB::DeviceNode::close(cdev::file_t *filp)
 	return CDev::close(filp);
 }
 
+bool
+uORB::DeviceNode::copy(void *dst, unsigned &generation)
+{
+	bool updated = false;
+
+	if (_published) {
+		ATOMIC_ENTER;
+
+		if (_generation > generation + _queue_size) {
+			// Reader is too far behind: some messages are lost
+			_lost_messages += _generation - (generation + _queue_size);
+			generation = _generation - _queue_size;
+		}
+
+		if ((_generation == generation) && (generation > 0)) {
+			/* The subscriber already read the latest message, but nothing new was published yet.
+			 * Return the previous message
+			 */
+			--generation;
+		}
+
+		memcpy(dst, _data + (_meta->o_size * (generation % _queue_size)), _meta->o_size);
+
+		if (generation < _generation) {
+			++generation;
+		}
+
+		ATOMIC_LEAVE;
+
+		updated = true;
+	}
+
+	return updated;
+}
+
+uint64_t
+uORB::DeviceNode::copyTime(void *dst, unsigned &generation)
+{
+	ATOMIC_ENTER;
+	const uint64_t update_time = _last_update;
+	copy(dst, generation);
+	ATOMIC_LEAVE;
+
+	return update_time;
+}
+
 ssize_t
 uORB::DeviceNode::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
@@ -179,42 +225,20 @@ uORB::DeviceNode::read(cdev::file_t *filp, char *buffer, size_t buflen)
 		return -EIO;
 	}
 
-	/*
-	 * Perform an atomic copy & state update
-	 */
-	ATOMIC_ENTER;
-
-	if (_generation > sd->generation + _queue_size) {
-		/* Reader is too far behind: some messages are lost */
-		_lost_messages += _generation - (sd->generation + _queue_size);
-		sd->generation = _generation - _queue_size;
-	}
-
-	if (_generation == sd->generation && sd->generation > 0) {
-		/* The subscriber already read the latest message, but nothing new was published yet.
-		 * Return the previous message
-		 */
-		--sd->generation;
-	}
-
 	/* if the caller doesn't want the data, don't give it to them */
 	if (nullptr != buffer) {
-		memcpy(buffer, _data + (_meta->o_size * (sd->generation % _queue_size)), _meta->o_size);
+		if (copy(buffer, sd->generation)) {
+			/*
+			 * Clear the flag that indicates that an update has been reported, as
+			 * we have just collected it.
+			 */
+			sd->set_update_reported(false);
+
+			return _meta->o_size;
+		}
 	}
 
-	if (sd->generation < _generation) {
-		++sd->generation;
-	}
-
-	/*
-	 * Clear the flag that indicates that an update has been reported, as
-	 * we have just collected it.
-	 */
-	sd->set_update_reported(false);
-
-	ATOMIC_LEAVE;
-
-	return _meta->o_size;
+	return 0;
 }
 
 ssize_t
@@ -272,6 +296,7 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 
 	/* update the timestamp and generation count */
 	_last_update = hrt_absolute_time();
+
 	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
 	_generation++;
 

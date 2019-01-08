@@ -21,16 +21,16 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
 	SuperBlock(nullptr, "LPE"),
 	ModuleParams(nullptr),
+	// set flow max update rate higher than expected to we don't lose packets
+	_sub_flow(ORB_ID(optical_flow), 1000 / 100),
+	// status updates 2 hz
+	_sub_param_update(ORB_ID(parameter_update), 1000 / 2),
+	// main prediction loop, 100 hz
+	_sub_sensor(ORB_ID(sensor_combined), 1000 / 100),
 	// subscriptions, set rate, add to list
 	_sub_armed(ORB_ID(actuator_armed), 1000 / 2, 0, &getSubscriptions()),
 	_sub_land(ORB_ID(vehicle_land_detected), 1000 / 2, 0, &getSubscriptions()),
 	_sub_att(ORB_ID(vehicle_attitude), 1000 / 100, 0, &getSubscriptions()),
-	// set flow max update rate higher than expected to we don't lose packets
-	_sub_flow(ORB_ID(optical_flow), 1000 / 100, 0, &getSubscriptions()),
-	// main prediction loop, 100 hz
-	_sub_sensor(ORB_ID(sensor_combined), 1000 / 100, 0, &getSubscriptions()),
-	// status updates 2 hz
-	_sub_param_update(ORB_ID(parameter_update), 1000 / 2, 0, &getSubscriptions()),
 	// gps 10 hz
 	_sub_gps(ORB_ID(vehicle_gps_position), 1000 / 10, 0, &getSubscriptions()),
 	// vision 50 hz
@@ -285,6 +285,9 @@ void BlockLocalPositionEstimator::update()
 
 	// get new data
 	updateSubscriptions();
+	_sub_flow.update();
+	_sub_param_update.update();
+	_sub_sensor.update();
 
 	// update parameters
 	if (paramsUpdated) {

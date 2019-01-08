@@ -169,7 +169,7 @@ private:
 	struct pollfd _controlPoll;
 
 	/** actuator controls subscription */
-	uORB::Subscription<actuator_controls_s> _actuators;
+	uORB::SubscriptionPolled<actuator_controls_s> _actuators;
 
 	// private data
 	float _motor1Position;

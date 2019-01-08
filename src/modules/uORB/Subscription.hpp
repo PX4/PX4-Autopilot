@@ -43,6 +43,10 @@
 #include <systemlib/err.h>
 #include <px4_defines.h>
 
+#include "uORBDeviceNode.hpp"
+#include "uORBManager.hpp"
+#include "uORBUtils.hpp"
+
 namespace uORB
 {
 
@@ -50,50 +54,108 @@ namespace uORB
  * Base subscription wrapper class, used in list traversal
  * of various subscriptions.
  */
-class __EXPORT SubscriptionBase
+class SubscriptionBase
 {
 public:
+
 	/**
 	 * Constructor
 	 *
 	 * @param meta The uORB metadata (usually from the ORB_ID()
 	 * 	macro) for the topic.
-	 * @param interval  The minimum interval in milliseconds
-	 * 	between updates
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionBase(const struct orb_metadata *meta, unsigned interval = 0, unsigned instance = 0);
+	SubscriptionBase() = default;
+	SubscriptionBase(const orb_metadata *meta, uint8_t instance = 0);
 	virtual ~SubscriptionBase();
 
-	// no copy, assignment, move, move assignment
-	SubscriptionBase(const SubscriptionBase &) = delete;
-	SubscriptionBase &operator=(const SubscriptionBase &) = delete;
-	SubscriptionBase(SubscriptionBase &&) = delete;
-	SubscriptionBase &operator=(SubscriptionBase &&) = delete;
+	bool valid() const { return _node != nullptr; }
+
+	bool init();
+	bool forceInit();
+
+	virtual bool updated() { return published() ? (_node->published_message_count() != _last_generation) : false; }
+
+	virtual bool update(void *dst) { return updated() ? copy(dst) : false; }
 
 	/**
-	 * Check if there is a new update.
-	 * */
-	bool updated();
-
-	/**
-	 * Update the struct
-	 * @param data The uORB message struct we are updating.
+	 * Check if subscription updated based on timestamp.
+	 *
+	 * @return true only if topic was updated based on a timestamp and
+	 * copied to buffer successfully.
+	 * If topic was not updated since last check it will return false but
+	 * still copy the data.
+	 * If no data available data buffer will be filled with zeros.
 	 */
-	bool update(void *data);
+	virtual bool update(uint64_t *time, void *dst);
 
-	int getHandle() const { return _handle; }
+	bool copy(void *dst) { return published() ? _node->copy(dst, _last_generation) : false; }
 
-	const orb_metadata *getMeta() const { return _meta; }
 
-	unsigned getInstance() const { return _instance; }
+	hrt_abstime	last_update() { return published() ? _node->last_update() : 0; }
+	bool		published() { return (_node != nullptr) ? _node->is_published() : init(); }
+
+	bool		set_instance(uint8_t instance);
+	uint8_t		get_instance() const { return _instance; }
+
+	bool		set_topic(orb_metadata *meta);
+	orb_id_t	get_topic() const { return _meta; }
 
 protected:
-	const struct orb_metadata *_meta;
 
-	unsigned _instance;
+	bool subscribe();
+	void unsubscribe();
 
-	int _handle{-1};
+	DeviceNode		*_node{nullptr};
+	unsigned		_last_generation{0};
+	const orb_metadata		*_meta{nullptr};
+	uint8_t			_instance{0};
+};
+
+// TODO: finish
+class SubscriptionInterval : public SubscriptionBase
+{
+public:
+
+	SubscriptionInterval() = default;
+
+	SubscriptionInterval(const orb_metadata *meta, unsigned interval = 0, uint8_t instance = 0) :
+		SubscriptionBase(meta, instance),
+		_interval(interval)
+	{}
+
+	virtual ~SubscriptionInterval() = default;
+
+	bool updated() override
+	{
+		if (hrt_absolute_time() >= (_last_update + (_interval * 1000))) {
+			return SubscriptionBase::updated();
+		}
+
+		return false;
+	}
+
+	bool update(void *dst) override
+	{
+		if (updated()) {
+			if (copy(dst)) {
+				_last_update = hrt_absolute_time();
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	int get_interval() const { return _interval; }
+	void set_interval(unsigned interval) { _interval = interval; }
+
+protected:
+
+	unsigned _interval{0}; // interval in milliseconds
+
+	uint64_t	_last_update{0};
+
 };
 
 /**
@@ -104,7 +166,7 @@ typedef SubscriptionBase SubscriptionTiny;
 /**
  * The subscription base class as a list node.
  */
-class __EXPORT SubscriptionNode : public SubscriptionBase, public ListNode<SubscriptionNode *>
+class  SubscriptionNode : public SubscriptionInterval, public ListNode<SubscriptionNode *>
 {
 public:
 	/**
@@ -118,7 +180,7 @@ public:
 	 * @param list 	A pointer to a list of subscriptions
 	 * 	that this should be appended to.
 	 */
-	SubscriptionNode(const struct orb_metadata *meta, unsigned interval = 0, unsigned instance = 0,
+	SubscriptionNode(const orb_metadata *meta, unsigned interval = 0, uint8_t instance = 0,
 			 List<SubscriptionNode *> *list = nullptr);
 
 	virtual ~SubscriptionNode() override = default;
@@ -140,7 +202,7 @@ public:
  * Subscription wrapper class
  */
 template<class T>
-class __EXPORT Subscription : public SubscriptionNode
+class Subscription final : public SubscriptionNode
 {
 public:
 	/**
@@ -153,15 +215,14 @@ public:
 	 * @param list A list interface for adding to
 	 * 	list during construction
 	 */
-	Subscription(const struct orb_metadata *meta, unsigned interval = 0, unsigned instance = 0,
+	Subscription(const orb_metadata *meta, unsigned interval = 0, uint8_t instance = 0,
 		     List<SubscriptionNode *> *list = nullptr):
-		SubscriptionNode(meta, interval, instance, list),
-		_data() // initialize data structure to zero
+		SubscriptionNode(meta, interval, instance, list)
 	{
 		forcedUpdate();
 	}
 
-	~Subscription() override = default;
+	~Subscription() override final = default;
 
 	// no copy, assignment, move, move assignment
 	Subscription(const Subscription &) = delete;
@@ -172,26 +233,125 @@ public:
 	/**
 	 * Create an update function that uses the embedded struct.
 	 */
-	bool update() override
-	{
-		return SubscriptionBase::update((void *)(&_data));
-	}
+	bool update() override final { return SubscriptionBase::update((void *)(&_data)); }
 
-	bool forcedUpdate() override
-	{
-		return orb_copy(_meta, _handle, &_data) == PX4_OK;
-	}
+	bool forcedUpdate() override final { return copy(&_data); }
 
 	/*
 	 * This function gets the T struct data
 	 * */
-	const T &get() const
-	{
-		return _data;
-	}
+	const T &get() const { return _data; }
 
 private:
-	T _data;
+
+	T _data{};
+};
+
+
+
+
+// LEGACY helper
+// TODO: remove entirely
+template<class T>
+class SubscriptionPolled
+{
+public:
+	/**
+	 * Constructor
+	 *
+	 * @param meta The uORB metadata (usually from the ORB_ID()
+	 * 	macro) for the topic.
+	 * @param interval  The minimum interval in milliseconds
+	 * 	between updates
+	 * @param instance The instance for multi sub.
+	 */
+	SubscriptionPolled(const orb_metadata *meta, unsigned interval = 0, uint8_t instance = 0) :
+		_meta(meta),
+		_instance(instance)
+	{
+		if (instance > 0) {
+			_handle = orb_subscribe_multi(_meta, instance);
+
+		} else {
+			_handle = orb_subscribe(_meta);
+		}
+
+		if (_handle < 0) {
+			PX4_ERR("%s sub failed", _meta->o_name);
+		}
+
+		if (interval > 0) {
+			orb_set_interval(_handle, interval);
+		}
+
+		forcedUpdate();
+	}
+
+	virtual ~SubscriptionPolled()
+	{
+		if (orb_unsubscribe(_handle) != PX4_OK) {
+			PX4_ERR("%s unsubscribe failed", _meta->o_name);
+		}
+	}
+
+	// no copy, assignment, move, move assignment
+	SubscriptionPolled(const SubscriptionBase &) = delete;
+	SubscriptionPolled &operator=(const SubscriptionBase &) = delete;
+	SubscriptionPolled(SubscriptionBase &&) = delete;
+	SubscriptionPolled &operator=(SubscriptionBase &&) = delete;
+
+	/**
+	 * Check if there is a new update.
+	 * */
+	bool updated()
+	{
+		bool isUpdated = false;
+
+		if (orb_check(_handle, &isUpdated) != PX4_OK) {
+			PX4_ERR("%s check failed", _meta->o_name);
+		}
+
+		return isUpdated;
+	}
+
+	/**
+	 * Update the struct
+	 * @param data The uORB message struct we are updating.
+	 */
+	bool update(void *data)
+	{
+		bool orb_updated = false;
+
+		if (updated()) {
+			if (orb_copy(_meta, _handle, data) != PX4_OK) {
+				PX4_ERR("%s copy failed", _meta->o_name);
+
+			} else {
+				orb_updated = true;
+			}
+		}
+
+		return orb_updated;
+	}
+
+	//Create an update function that uses the embedded struct.
+	bool update() { return update((void *)(&_data)); }
+	bool forcedUpdate() { return orb_copy(_meta, _handle, &_data) == PX4_OK; }
+
+	/*
+	 * This function gets the T struct data
+	 * */
+	const T &get() const { return _data; }
+
+	int getHandle() const { return _handle; }
+
+private:
+
+	const orb_metadata *_meta;
+	unsigned _instance;
+	int _handle{-1};
+	T _data{};
+
 };
 
 } // namespace uORB

@@ -24,6 +24,7 @@ void BlockSegwayController::update()
 
 	// get new information from subscriptions
 	updateSubscriptions();
+	_att.update();
 
 	actuator_controls_s &actuators = _actuators.get();
 

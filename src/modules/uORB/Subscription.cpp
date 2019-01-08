@@ -42,63 +42,117 @@
 namespace uORB
 {
 
-SubscriptionBase::SubscriptionBase(const struct orb_metadata *meta, unsigned interval, unsigned instance) :
+SubscriptionBase::SubscriptionBase(const orb_metadata *meta, uint8_t instance) :
 	_meta(meta),
 	_instance(instance)
 {
-	if (instance > 0) {
-		_handle = orb_subscribe_multi(_meta, instance);
-
-	} else {
-		_handle = orb_subscribe(_meta);
-	}
-
-	if (_handle < 0) {
-		PX4_ERR("%s sub failed", _meta->o_name);
-	}
-
-	if (interval > 0) {
-		orb_set_interval(_handle, interval);
-	}
-}
-
-bool SubscriptionBase::updated()
-{
-	bool isUpdated = false;
-
-	if (orb_check(_handle, &isUpdated) != PX4_OK) {
-		PX4_ERR("%s check failed", _meta->o_name);
-	}
-
-	return isUpdated;
-}
-
-bool SubscriptionBase::update(void *data)
-{
-	bool orb_updated = false;
-
-	if (updated()) {
-		if (orb_copy(_meta, _handle, data) != PX4_OK) {
-			PX4_ERR("%s copy failed", _meta->o_name);
-
-		} else {
-			orb_updated = true;
-		}
-	}
-
-	return orb_updated;
+	init();
 }
 
 SubscriptionBase::~SubscriptionBase()
 {
-	if (orb_unsubscribe(_handle) != PX4_OK) {
-		PX4_ERR("%s unsubscribe failed", _meta->o_name);
-	}
+	unsubscribe();
 }
 
-SubscriptionNode::SubscriptionNode(const struct orb_metadata *meta, unsigned interval, unsigned instance,
+bool SubscriptionBase::subscribe()
+{
+	DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
+	_node = device_master->getDeviceNode(_meta, _instance);
+
+	if (_node != nullptr) {
+		_node->add_internal_subscriber();
+
+		// If there were any previous publications, allow the subscriber to read them
+		const unsigned curr_gen = _node->published_message_count();
+		const unsigned q_size = _node->get_queue_size();
+
+		_last_generation = curr_gen - (q_size < curr_gen ? q_size : curr_gen);
+
+		return true;
+	}
+
+	return false;
+}
+
+void SubscriptionBase::unsubscribe()
+{
+	if (_node != nullptr) {
+		_node->remove_internal_subscriber();
+	}
+
+	_last_generation = 0;
+}
+
+bool SubscriptionBase::init()
+{
+	if (_meta != nullptr) {
+		// this throttles the relatively expensive calls to getDeviceNode()
+		if ((_last_generation == 0) || (_last_generation < 1000) || (_last_generation % 100 == 0))  {
+			subscribe();
+		}
+
+		if (_node == nullptr) {
+			// use generation to count attempts to subscribe
+			_last_generation++;
+		}
+	}
+
+	return false;
+}
+
+bool SubscriptionBase::forceInit()
+{
+	if (_node == nullptr) {
+		// reset generation to force subscription attempt
+		_last_generation = 0;
+		return subscribe();
+	}
+
+	return false;
+}
+
+bool SubscriptionBase::set_topic(orb_metadata *meta)
+{
+	if (meta != _meta) {
+		unsubscribe();
+		_meta = meta;
+		subscribe();
+		return true;
+	}
+
+	return false;
+}
+
+bool SubscriptionBase::set_instance(uint8_t instance)
+{
+	if (instance != _instance) {
+		unsubscribe();
+		subscribe();
+		return true;
+	}
+
+	return false;
+}
+
+bool SubscriptionBase::update(uint64_t *time, void *dst)
+{
+	if (published()) {
+		// always copy data
+		const uint64_t t = _node->copyTime(dst, _last_generation);
+
+		if (*time == 0 || *time != t) {
+			*time = t;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+SubscriptionNode::SubscriptionNode(const orb_metadata *meta, unsigned interval, uint8_t instance,
 				   List<SubscriptionNode *> *list)
-	: SubscriptionBase(meta, interval, instance)
+	: SubscriptionInterval(meta, interval, instance)
 {
 	if (list != nullptr) {
 		list->add(this);

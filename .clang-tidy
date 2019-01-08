@@ -50,6 +50,7 @@ Checks:          '*
 		,-misc-redundant-expression
 		,-misc-unconventional-assign-operator
 		,-misc-unused-parameters
+		,-misc-virtual-near-miss
 		,-modernize-deprecated-headers
 		,-modernize-loop-convert
 		,-modernize-use-auto

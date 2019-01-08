@@ -85,10 +85,11 @@ void BlockWaypointGuidance::update(
 BlockUorbEnabledAutopilot::BlockUorbEnabledAutopilot(SuperBlock *parent, const char *name) :
 	SuperBlock(parent, name),
 	// subscriptions
+	_att(ORB_ID(vehicle_attitude), 20),
+
 	_manual(ORB_ID(manual_control_setpoint), 20, 0, &getSubscriptions()),
 	_param_update(ORB_ID(parameter_update), 1000, 0, &getSubscriptions()), // limit to 1 Hz
 	_missionCmd(ORB_ID(position_setpoint_triplet), 20, 0, &getSubscriptions()),
-	_att(ORB_ID(vehicle_attitude), 20, 0, &getSubscriptions()),
 	_attCmd(ORB_ID(vehicle_attitude_setpoint), 20, 0, &getSubscriptions()),
 	_pos(ORB_ID(vehicle_global_position), 20, 0, &getSubscriptions()),
 	_ratesCmd(ORB_ID(vehicle_rates_setpoint), 20, 0, &getSubscriptions()),

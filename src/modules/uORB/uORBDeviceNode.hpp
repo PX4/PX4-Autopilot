@@ -35,6 +35,7 @@
 
 #include "uORBCommon.hpp"
 #include "uORBDeviceMaster.hpp"
+#include "uORBDeviceNode.hpp"
 
 #include <lib/cdev/CDev.hpp>
 
@@ -195,6 +196,11 @@ public:
 	int get_priority() const { return _priority; }
 	void set_priority(uint8_t priority) { _priority = priority; }
 
+	const hrt_abstime &last_update() const { return _last_update; }
+
+	bool copy(void *dst, unsigned &generation);
+	uint64_t copyTime(void *dst, unsigned &generation);
+
 protected:
 
 	pollevent_t poll_state(cdev::file_t *filp) override;
@@ -218,8 +224,7 @@ private:
 
 		// these flags are only used if update_interval != null
 		bool update_reported() const { return update_interval ? update_interval->update_reported : false; }
-		void set_update_reported(bool update_reported_flag)
-		{ if (update_interval) { update_interval->update_reported = update_reported_flag; } }
+		void set_update_reported(bool update_reported_flag) { if (update_interval) { update_interval->update_reported = update_reported_flag; } }
 	};
 
 	const orb_metadata *_meta; /**< object metadata information */

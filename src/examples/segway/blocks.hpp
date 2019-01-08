@@ -92,10 +92,11 @@ class __EXPORT BlockUorbEnabledAutopilot : public SuperBlock
 {
 protected:
 	// subscriptions
+	uORB::SubscriptionPolled<vehicle_attitude_s> _att;
+
 	uORB::Subscription<manual_control_setpoint_s> _manual;
 	uORB::Subscription<parameter_update_s> _param_update;
 	uORB::Subscription<position_setpoint_triplet_s> _missionCmd;
-	uORB::Subscription<vehicle_attitude_s> _att;
 	uORB::Subscription<vehicle_attitude_setpoint_s> _attCmd;
 	uORB::Subscription<vehicle_global_position_s> _pos;
 	uORB::Subscription<vehicle_rates_setpoint_s> _ratesCmd;
@@ -103,7 +104,9 @@ protected:
 
 	// publications
 	uORB::Publication<actuator_controls_s> _actuators;
+
 public:
+
 	BlockUorbEnabledAutopilot(SuperBlock *parent, const char *name);
 	virtual ~BlockUorbEnabledAutopilot() = default;
 };

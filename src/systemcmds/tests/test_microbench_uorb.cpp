@@ -47,6 +47,7 @@
 #include <px4_config.h>
 #include <px4_micro_hal.h>
 
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -98,6 +99,7 @@ public:
 private:
 
 	bool time_px4_uorb();
+	bool time_px4_uorb2();
 
 	void reset();
 
@@ -109,6 +111,7 @@ private:
 bool MicroBenchORB::run_tests()
 {
 	ut_run_test(time_px4_uorb);
+	ut_run_test(time_px4_uorb2);
 
 	return (_tests_failed == 0);
 }
@@ -150,13 +153,19 @@ bool MicroBenchORB::time_px4_uorb()
 	PERF("orb_stat vehicle_status", ret = orb_stat(fd_status, &time), 1000);
 	PERF("orb_copy vehicle_status", ret = orb_copy(ORB_ID(vehicle_status), fd_status, &status), 1000);
 
+	printf("\n");
+
 	PERF("orb_check vehicle_local_position", ret = orb_check(fd_lpos, &updated), 1000);
 	PERF("orb_stat vehicle_local_position", ret = orb_stat(fd_lpos, &time), 1000);
 	PERF("orb_copy vehicle_local_position", ret = orb_copy(ORB_ID(vehicle_local_position), fd_lpos, &lpos), 1000);
 
+	printf("\n");
+
 	PERF("orb_check sensor_gyro", ret = orb_check(fd_gyro, &updated), 1000);
 	PERF("orb_stat sensor_gyro", ret = orb_stat(fd_gyro, &time), 1000);
-	PERF("orb_copy sensor_gyro", ret = orb_copy(ORB_ID(sensor_gyro), fd_gyro, &lpos), 1000);
+	PERF("orb_copy sensor_gyro", ret = orb_copy(ORB_ID(sensor_gyro), fd_gyro, &gyro), 1000);
+
+	printf("\n");
 
 	PERF("orb_exists sensor_accel 0", ret = orb_exists(ORB_ID(sensor_accel), 0), 100);
 	PERF("orb_exists sensor_accel 1", ret = orb_exists(ORB_ID(sensor_accel), 1), 100);
@@ -167,6 +176,34 @@ bool MicroBenchORB::time_px4_uorb()
 	orb_unsubscribe(fd_status);
 	orb_unsubscribe(fd_lpos);
 	orb_unsubscribe(fd_gyro);
+
+	return true;
+}
+
+bool MicroBenchORB::time_px4_uorb2()
+{
+	bool ret = false;
+	bool updated = false;
+	uint64_t time = 0;
+
+	uORB::SubscriptionBase vstatus{ORB_ID(vehicle_status)};
+	PERF("orb_check vehicle_status", ret = vstatus.updated(), 1000);
+	PERF("orb_stat vehicle_status", time = vstatus.last_update(), 1000);
+	PERF("orb_copy vehicle_status", ret = vstatus.copy(&status), 1000);
+
+	printf("\n");
+
+	uORB::SubscriptionBase local_pos{ORB_ID(vehicle_local_position)};
+	PERF("orb_check vehicle_local_position", ret = local_pos.updated(), 1000);
+	PERF("orb_stat vehicle_local_position", time = local_pos.last_update(), 1000);
+	PERF("orb_copy vehicle_local_position", ret = local_pos.copy(&lpos), 1000);
+
+	printf("\n");
+
+	uORB::SubscriptionBase sens_gyro{ORB_ID(sensor_gyro)};
+	PERF("orb_check sensor_gyro", ret = sens_gyro.updated(), 1000);
+	PERF("orb_stat sensor_gyro", time = sens_gyro.last_update(), 1000);
+	PERF("orb_copy sensor_gyro", ret = sens_gyro.copy(&gyro), 1000);
 
 	return true;
 }
