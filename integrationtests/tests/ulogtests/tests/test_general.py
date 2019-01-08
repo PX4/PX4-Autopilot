@@ -14,27 +14,15 @@ import pytest
 
 
 def setup_dataframe(self, filepath, topics):
-    # Check if any of the topics exist in the topics exists in the log file
-    try:
-        self.ulog = pyulog.ULog(filepath, topics)
-    except:
-        print("Not a single topic that is needed for this test exists in the provided ulog file. Abort test")
-        assert False
+    """
+    return dataframe and ulog
+    """
+    self.ulog = loginfo.get_ulog(filepath, topics)
 
-    # Check for every topic separately if it exists in the log file
-    for i in range(len(self.ulog.data_list)):
-        if self.ulog.data_list[i].name in topics:
-            idx = topics.index(self.ulog.data_list[i].name)
-            topics.pop(idx)
-
-    if len(topics) > 0:
-        print("\033[93m" + "The following topics do not exist in the provided ulog file: " + "\033[0m")
-        print(topics)
+    if self.ulog == None:
         pytest.skip("Skip this test because topics are missing")
     else:
         self.df = ulogconv.merge(ulogconv.createPandaDict(self.ulog))
-    
-    # return self
 
 
 class TestAttitude:
