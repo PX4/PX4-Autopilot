@@ -633,35 +633,26 @@ Mavlink::mavlink_open_uart(int baud, const char *uart_name, bool force_flow_cont
 	/* if this is a config link, stay here and wait for it to open */
 	if (_uart_fd < 0 && _mode == MAVLINK_MODE_CONFIG) {
 
-		int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-		struct actuator_armed_s armed;
+		uORB::Subscription<actuator_armed_s> armed_sub{ORB_ID(actuator_armed)};
 
 		/* get the system arming state and abort on arming */
 		while (_uart_fd < 0) {
 
 			/* abort if an arming topic is published and system is armed */
-			bool updated = false;
-			orb_check(armed_sub, &updated);
+			armed_sub.update();
+			/* the system is now providing arming status feedback.
+			 * instead of timing out, we resort to abort bringing
+			 * up the terminal.
+			 */
 
-			if (updated) {
-				/* the system is now providing arming status feedback.
-				 * instead of timing out, we resort to abort bringing
-				 * up the terminal.
-				 */
-				orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
-
-				if (armed.armed) {
-					/* this is not an error, but we are done */
-					orb_unsubscribe(armed_sub);
-					return -1;
-				}
+			if ((hrt_elapsed_time(&armed_sub.get().timestamp) < 2_s) && armed_sub.get().armed) {
+				/* this is not an error, but we are done */
+				return -1;
 			}
 
 			px4_usleep(100000);
 			_uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY);
 		}
-
-		orb_unsubscribe(armed_sub);
 	}
 
 	if (_uart_fd < 0) {
@@ -2137,17 +2128,13 @@ Mavlink::task_main(int argc, char *argv[])
 	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status));
 	uint64_t status_time = 0;
 	MavlinkOrbSubscription *ack_sub = add_orb_subscription(ORB_ID(vehicle_command_ack), 0, true);
-	/* We don't want to miss the first advertise of an ACK, so we subscribe from the
-	 * beginning and not just when the topic exists. */
-	ack_sub->subscribe_from_beginning(true);
-	cmd_sub->subscribe_from_beginning(true);
 
 	/* command ack */
 	orb_advert_t command_ack_pub = nullptr;
 
 	MavlinkOrbSubscription *mavlink_log_sub = add_orb_subscription(ORB_ID(mavlink_log));
 
-	struct vehicle_status_s status;
+	vehicle_status_s status{};
 	status_sub->update(&status_time, &status);
 
 	/* Activate sending the data by default (for the IRIDIUM mode it will be disabled after the first round of packages is sent)*/
