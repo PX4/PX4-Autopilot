@@ -386,6 +386,7 @@ public:
 	virtual ~MPU9250();
 
 	virtual int		init();
+	uint8_t			get_whoami();
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
