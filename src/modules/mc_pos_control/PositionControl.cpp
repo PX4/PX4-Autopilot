@@ -55,24 +55,17 @@ void PositionControl::updateState(const PositionControlStates &states)
 	_vel_dot = states.acceleration;
 }
 
-void PositionControl::_setCtrlFlagTrue()
+void PositionControl::_setCtrlFlag(bool value)
 {
 	for (int i = 0; i <= 2; i++) {
-		_ctrl_pos[i] = _ctrl_vel[i] = true;
-	}
-}
-
-void PositionControl::_setCtrlFlagFalse()
-{
-	for (int i = 0; i <= 2; i++) {
-		_ctrl_pos[i] = _ctrl_vel[i] = false;
+		_ctrl_pos[i] = _ctrl_vel[i] = value;
 	}
 }
 
 bool PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &setpoint)
 {
-	// Only for logging purpose: by default we use the entire position-velocity control-loop pipeline
-	_setCtrlFlagTrue();
+	// by default we use the entire position-velocity control-loop pipeline (flag only for logging purpose)
+	_setCtrlFlag(true);
 
 	_pos_sp = Vector3f(setpoint.x, setpoint.y, setpoint.z);
 	_vel_sp = Vector3f(setpoint.vx, setpoint.vy, setpoint.vz);
@@ -212,8 +205,8 @@ bool PositionControl::_interfaceMapping()
 		// throttle down such that vehicle goes down with
 		// 70% of throttle range between min and hover
 		_thr_sp(2) = -(MPC_THR_MIN.get() + (MPC_THR_HOVER.get() - MPC_THR_MIN.get()) * 0.7f);
-		// position and velocity control-loop is not used (note: only for logging purpose)
-		_setCtrlFlagFalse(); // position/velocity control-loop is not used
+		// position and velocity control-loop is currently unused (flag only for logging purpose)
+		_setCtrlFlag(false);
 	}
 
 	return !(failsafe);
