@@ -114,7 +114,7 @@ private:
 	uint8_t                   _cycle_counter;
 
 	enum CM8JL65_PARSE_STATE	 _parse_state;
-	unsigned char             _frame_data[4];
+	unsigned char             _frame_data[PARSER_BUF_LENGTH];
 	uint16_t                  _crc16;
 	int                       _distance_mm;
 
@@ -368,7 +368,7 @@ CM8JL65::collect()
 
 				while ((bytes_processed < bytes_read) && (!crc_valid)) {
 					//    printf("In the cycle, processing  byte %d, 0x%02X \n",bytes_processed, _linebuf[bytes_processed]);
-					if (OK == cm8jl65_parser(_linebuf[bytes_processed], _frame_data, &_parse_state, &_crc16, &_distance_mm)) {
+					if (OK == cm8jl65_parser(_linebuf[bytes_processed], _frame_data, _parse_state, _crc16, _distance_mm)) {
 						crc_valid = true;
 					}
 
@@ -379,7 +379,6 @@ CM8JL65::collect()
 
 			}
 
-			// else {printf("Starting frame wrong. Index: %d value 0x%02X \n",i,_linebuf[i]);}
 			i--;
 		}
 
@@ -417,11 +416,6 @@ CM8JL65::collect()
 
 	perf_end(_sample_perf);
 
-	/* ENABLE THIS IF YOU WANT TO PRINT OLD VALUES WHILE CRC CHECK IS WRONG
-	if (!crc_valid) {
-			return -EAGAIN;
-		}
-	else return OK; */
 	return OK;
 
 }
@@ -455,11 +449,10 @@ CM8JL65::cycle_trampoline(void *arg)
 void
 CM8JL65::cycle()
 {
-	//PX4_DEBUG("CM8JL65::cycle() - in the cycle");
 	/* fds initialized? */
 	if (_fd < 0) {
 		/* open fd */
-		_fd = ::open(_port, O_RDWR);
+		_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 		if (_fd < 0) {
 			PX4_ERR("open failed (%i)", errno);
@@ -500,14 +493,10 @@ CM8JL65::cycle()
 
 	if (collect_ret == -EAGAIN) {
 		_cycle_counter++;
-		/* We are missing bytes to complete the packet, re-cycle at 1ms */
-		//	work_queue(HPWORK,&_work,(worker_t)&CM8JL65::cycle_trampoline,this,USEC2TICK(1000LL));
-		//	return;
 	}
 
 
 	/* schedule a fresh cycle call when a complete packet has been received */
-	//work_queue(HPWORK,&_work,(worker_t)&CM8JL65::cycle_trampoline,this,USEC2TICK(_conversion_interval - _cycle_counter * 1000LL));
 	work_queue(HPWORK, &_work, (worker_t)&CM8JL65::cycle_trampoline, this, USEC2TICK(_conversion_interval));
 	_cycle_counter = 0;
 }

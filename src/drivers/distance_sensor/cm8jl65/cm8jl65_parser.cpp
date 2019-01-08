@@ -48,7 +48,7 @@
 
 
 
-// Note : No clue what those static variables are
+
 static const unsigned char crc_msb_vector[] = {
 	0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41,
 	0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40,
@@ -103,14 +103,14 @@ static const unsigned char crc_lsb_vector[] = {
 
 
 
-unsigned short crc16_calc(unsigned char *dataFrame, uint8_t crc16_length)
+unsigned short crc16_calc(unsigned char *data_frame, uint8_t crc16_length)
 {
 	unsigned char crc_high_byte = 0xFF;
 	unsigned char crc_low_byte = 0xFF;
 	int i;
 
 	while (crc16_length--) {
-		i = crc_low_byte ^ *(dataFrame++);
+		i = crc_low_byte ^ *(data_frame++);
 		crc_low_byte = (unsigned char)(crc_high_byte ^ crc_msb_vector[i]);
 		crc_high_byte = crc_lsb_vector[i];
 	}
@@ -118,62 +118,56 @@ unsigned short crc16_calc(unsigned char *dataFrame, uint8_t crc16_length)
 	return (unsigned short)(crc_high_byte << 8 | crc_low_byte);
 }
 
-int cm8jl65_parser(uint8_t c, uint8_t *parserbuf, CM8JL65_PARSE_STATE *state, uint16_t *crc16, int *dist)
+int cm8jl65_parser(uint8_t c, uint8_t parserbuf[PARSER_BUF_LENGTH], CM8JL65_PARSE_STATE &state, uint16_t &crc16,
+		   int &dist)
 {
 	int ret = -1;
 
-//    printf("parse byte 0x%02X \n", b);
-
-	switch (*state) {
+	switch (state) {
 	case STATE0_WAITING_FRAME:
 		if (c == START_FRAME_DIGIT1) {
-			*state = STATE1_GOT_DIGIT1;
-			//printf("Got SFD1 \n");
+			state = STATE1_GOT_DIGIT1;
 		}
 
 		break;
 
 	case STATE1_GOT_DIGIT1:
 		if (c == START_FRAME_DIGIT2) {
-			*state = STATE2_GOT_DIGIT2;
-			//printf("Got SFD2 \n");
+			state = STATE2_GOT_DIGIT2;
 		}
 
-		// @NOTE: (claudio@auterion.com): if second byte is wrong we skip all the frame and restart parsing !!
 		else if (c == START_FRAME_DIGIT1) {
-			*state = STATE1_GOT_DIGIT1;
-			//printf("Discard previous SFD1, Got new SFD1 \n");
+			state = STATE1_GOT_DIGIT1;
 
 		} else {
-			*state = STATE0_WAITING_FRAME;
+			state = STATE0_WAITING_FRAME;
 		}
 
 		break;
 
 	case STATE2_GOT_DIGIT2:
-		*state = STATE3_GOT_MSB_DATA;
+		state = STATE3_GOT_MSB_DATA;
 		parserbuf[DISTANCE_MSB_POS] = c;                  // MSB Data
-		//printf("Got DATA1 0x%02X \n", c);
 		break;
 
 	case STATE3_GOT_MSB_DATA:
-		*state = STATE4_GOT_LSB_DATA;
+		state = STATE4_GOT_LSB_DATA;
 		parserbuf[DISTANCE_LSB_POS] = c;                  // LSB Data
-		//printf("Got DATA2 0x%02X \n", c);
+
 		// do crc calculation
-		*crc16 = crc16_calc(parserbuf, CHECKSUM_LENGTH);
+		crc16 = crc16_calc(parserbuf, PARSER_BUF_LENGTH);
 		// convert endian
-		*crc16 = (*crc16 >> 8) | (*crc16 << 8);
+		crc16 = (crc16 >> 8) | (crc16 << 8);
 		break;
 
 
 	case STATE4_GOT_LSB_DATA:
-		if (c == (*crc16 >> 8)) {
-			*state = STATE5_GOT_CHKSUM1;
+		if (c == (crc16 >> 8)) {
+			state = STATE5_GOT_CHKSUM1;
 
 		} else {
 			// printf("Checksum invalid on high byte: 0x%02X, calculated: 0x%04X \n",c, *crc16);
-			*state = STATE0_WAITING_FRAME;
+			state = STATE0_WAITING_FRAME;
 
 		}
 
@@ -181,21 +175,18 @@ int cm8jl65_parser(uint8_t c, uint8_t *parserbuf, CM8JL65_PARSE_STATE *state, ui
 
 	case STATE5_GOT_CHKSUM1:
 		// Here, reset state to `NOT-STARTED` no matter crc ok or not
-		*state = STATE0_WAITING_FRAME;
+		state = STATE0_WAITING_FRAME;
 
-		if (c == (*crc16 & 0xFF)) {
+		if (c == (crc16 & 0xFF)) {
 			// printf("Checksum verified \n");
-			*dist = (parserbuf[DISTANCE_MSB_POS] << 8) | parserbuf[DISTANCE_LSB_POS];
+			dist = (parserbuf[DISTANCE_MSB_POS] << 8) | parserbuf[DISTANCE_LSB_POS];
 			return 0;
 		}
 
-		/*else {
-		  //printf("Checksum invalidon low byte: 0x%02X, calculated: 0x%04X \n",c, *crc16);
-		}*/
 		break;
 
 	default:
-		printf("This should never happen. \n");
+		// Nothing todo
 		break;
 	}
 

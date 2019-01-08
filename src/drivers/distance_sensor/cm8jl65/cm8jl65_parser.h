@@ -54,7 +54,7 @@
 // Frame data saved for CRC calculation
 #define DISTANCE_MSB_POS   2
 #define DISTANCE_LSB_POS   3
-#define CHECKSUM_LENGTH  4
+#define PARSER_BUF_LENGTH  4
 
 
 enum CM8JL65_PARSE_STATE {
@@ -69,4 +69,5 @@ enum CM8JL65_PARSE_STATE {
 
 
 
-int cm8jl65_parser(uint8_t c, uint8_t *parserbuf, enum CM8JL65_PARSE_STATE *state, uint16_t *crc16, int *dist);
+int cm8jl65_parser(uint8_t c, uint8_t parserbuf[PARSER_BUF_LENGTH], enum CM8JL65_PARSE_STATE &state, uint16_t &crc16,
+		   int &dist);
