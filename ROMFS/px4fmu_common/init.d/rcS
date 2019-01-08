@@ -34,7 +34,7 @@ set IOFW "/etc/extras/px4_io-v2_default.bin"
 set IO_PRESENT no
 set LOG_FILE /fs/microsd/bootlog.txt
 set LOGGER_ARGS ""
-set LOGGER_BUF  14
+set LOGGER_BUF 20
 set MAV_TYPE none
 set MIXER none
 set MIXER_AUX none
