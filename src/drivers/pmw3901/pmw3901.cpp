@@ -140,7 +140,7 @@ private:
 	int _class_instance;
 	int _orb_class_instance;
 
-	int _collect_time = 15000; // usecs, optical flow data publish rate
+	const uint64_t _collect_time = 15000; // usecs, optical flow data publish rate
 
 	orb_advert_t _optical_flow_pub;
 	orb_advert_t _subsystem_pub;
