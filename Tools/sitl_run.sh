@@ -128,19 +128,19 @@ then
     echo "Not running simulation (\$DONT_RUN is set)."
 elif [ "$debugger" == "lldb" ]
 then
-	lldb -- $sitl_command
+	eval lldb -- $sitl_command
 elif [ "$debugger" == "gdb" ]
 then
-	gdb --args $sitl_command
+	eval gdb --args $sitl_command
 elif [ "$debugger" == "ddd" ]
 then
-	ddd --debugger gdb --args $sitl_command
+	eval ddd --debugger gdb --args $sitl_command
 elif [ "$debugger" == "valgrind" ]
 then
-	valgrind --track-origins=yes --leak-check=full -v $sitl_command
+	eval valgrind --track-origins=yes --leak-check=full -v $sitl_command
 elif [ "$debugger" == "callgrind" ]
 then
-	valgrind --tool=callgrind -v $sitl_command
+	eval valgrind --tool=callgrind -v $sitl_command
 elif [ "$debugger" == "ide" ]
 then
 	echo "######################################################################"
