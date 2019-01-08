@@ -140,6 +140,8 @@ private:
 	int _class_instance;
 	int _orb_class_instance;
 
+	const uint64_t _collect_time = 15000; // usecs, optical flow data publish rate
+
 	orb_advert_t _optical_flow_pub;
 	orb_advert_t _subsystem_pub;
 
@@ -575,7 +577,8 @@ PMW3901::collect()
 	_flow_sum_x += delta_x_raw;
 	_flow_sum_y += delta_y_raw;
 
-	if (_flow_dt_sum_usec < 45000) {
+	// returns if the collect time has not been reached
+	if (_flow_dt_sum_usec < _collect_time) {
 
 		return ret;
 	}
@@ -617,7 +620,7 @@ PMW3901::collect()
 	// set (conservative) specs according to datasheet
 	report.max_flow_rate = 5.0f;       // Datasheet: 7.4 rad/s
 	report.min_ground_distance = 0.1f; // Datasheet: 80mm
-	report.max_ground_distance = 5.0f; // Datasheet: infinity
+	report.max_ground_distance = 30.0f; // Datasheet: infinity
 
 	_flow_dt_sum_usec = 0;
 	_flow_sum_x = 0;
@@ -679,7 +682,7 @@ PMW3901::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(LPWORK, &_work, (worker_t)&PMW3901::cycle_trampoline, this, USEC2TICK(PMW3901_US));
+	work_queue(HPWORK, &_work, (worker_t)&PMW3901::cycle_trampoline, this, USEC2TICK(PMW3901_US));
 
 	/* notify about state change */
 	struct subsystem_info_s info = {};
@@ -718,7 +721,7 @@ PMW3901::cycle()
 	collect();
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(LPWORK,
+	work_queue(HPWORK,
 		   &_work,
 		   (worker_t)&PMW3901::cycle_trampoline,
 		   this,
