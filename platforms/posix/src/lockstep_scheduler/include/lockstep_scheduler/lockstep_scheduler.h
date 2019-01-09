@@ -10,6 +10,8 @@
 class LockstepScheduler
 {
 public:
+	~LockstepScheduler();
+
 	void set_absolute_time(uint64_t time_us);
 	inline uint64_t get_absolute_time() const { return time_us_; }
 	int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *lock, uint64_t time_us);
@@ -19,13 +21,28 @@ private:
 	std::atomic<uint64_t> time_us_{0};
 
 	struct TimedWait {
+		~TimedWait()
+		{
+			// If a thread quickly exits after a cond_timedwait(), the
+			// thread_local object can still be in the linked list. In that case
+			// we need to wait until it's removed.
+			while (!removed) {
+#ifndef UNIT_TESTS // unit tests don't define system_usleep and execute faster w/o sleeping here
+				system_sleep(5000);
+#endif
+			}
+		}
+
 		pthread_cond_t *passed_cond{nullptr};
 		pthread_mutex_t *passed_lock{nullptr};
 		uint64_t time_us{0};
 		bool timeout{false};
 		std::atomic<bool> done{false};
+		std::atomic<bool> removed{true};
+
+		TimedWait *next{nullptr}; ///< linked list
 	};
-	std::vector<std::shared_ptr<TimedWait>> timed_waits_{};
-	std::mutex timed_waits_mutex_{};
+	TimedWait *timed_waits_{nullptr}; ///< head of linked list
+	std::mutex timed_waits_mutex_;
 	std::atomic<bool> setting_time_{false}; ///< true if set_absolute_time() is currently being executed
 };
