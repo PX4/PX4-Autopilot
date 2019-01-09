@@ -6,6 +6,8 @@ if(NOT PROJECT_NAME STREQUAL "px4")
 
     set (CMAKE_CXX_STANDARD 11)
 
+	add_definitions(-DUNIT_TESTS)
+
     add_library(lockstep_scheduler
         src/lockstep_scheduler.cpp
     )
