@@ -146,7 +146,7 @@ RM3100_I2C::read(unsigned address, void *data, unsigned count)
 	/* We need a first transfer where we write the register to read */
 	ret = transfer(&cmd, 1, nullptr, 0);
 
-	if(ret != OK){
+	if (ret != OK) {
 		return ret;
 	}
 
