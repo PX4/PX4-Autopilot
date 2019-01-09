@@ -59,7 +59,8 @@
  * RM3100 internal constants and data structures.
  */
 
-#define RM3100_CONVERSION_INTERVAL	6850	// Microseconds, corresponds to 146 Hz (cycle count 200 on 3 axis)
+/* At 146 Hz we encounter errors, 100 Hz is safer */
+#define RM3100_CONVERSION_INTERVAL	10000	// Microseconds, corresponds to 100 Hz (cycle count 200 on 3 axis)
 #define UTESLA_TO_GAUSS			100.0f
 #define RM3100_SENSITIVITY		75.0f
 
