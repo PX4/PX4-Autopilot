@@ -3,24 +3,24 @@
 LockstepScheduler::~LockstepScheduler()
 {
 	// cleanup the linked list
-	std::unique_lock<std::mutex> lock_timed_waits(timed_waits_mutex_);
+	std::unique_lock<std::mutex> lock_timed_waits(_timed_waits_mutex);
 
-	while (timed_waits_) {
-		TimedWait *tmp = timed_waits_;
-		timed_waits_ = timed_waits_->next;
+	while (_timed_waits) {
+		TimedWait *tmp = _timed_waits;
+		_timed_waits = _timed_waits->next;
 		tmp->removed = true;
 	}
 }
 
 void LockstepScheduler::set_absolute_time(uint64_t time_us)
 {
-	time_us_ = time_us;
+	_time_us = time_us;
 
 	{
-		std::unique_lock<std::mutex> lock_timed_waits(timed_waits_mutex_);
-		setting_time_ = true;
+		std::unique_lock<std::mutex> lock_timed_waits(_timed_waits_mutex);
+		_setting_time = true;
 
-		TimedWait *timed_wait = timed_waits_;
+		TimedWait *timed_wait = _timed_waits;
 		TimedWait *timed_wait_prev = nullptr;
 
 		while (timed_wait) {
@@ -31,7 +31,7 @@ void LockstepScheduler::set_absolute_time(uint64_t time_us)
 					timed_wait_prev->next = timed_wait->next;
 
 				} else {
-					timed_waits_ = timed_wait->next;
+					_timed_waits = timed_wait->next;
 				}
 
 				TimedWait *tmp = timed_wait;
@@ -54,7 +54,7 @@ void LockstepScheduler::set_absolute_time(uint64_t time_us)
 			timed_wait = timed_wait->next;
 		}
 
-		setting_time_ = false;
+		_setting_time = false;
 	}
 }
 
@@ -64,10 +64,10 @@ int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *loc
 	// longer. And using thread_local is more efficient than malloc.
 	static thread_local TimedWait timed_wait;
 	{
-		std::lock_guard<std::mutex> lock_timed_waits(timed_waits_mutex_);
+		std::lock_guard<std::mutex> lock_timed_waits(_timed_waits_mutex);
 
 		// The time has already passed.
-		if (time_us <= time_us_) {
+		if (time_us <= _time_us) {
 			return ETIMEDOUT;
 		}
 
@@ -80,8 +80,8 @@ int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *loc
 		// Add to linked list if not removed yet (otherwise just re-use the object)
 		if (timed_wait.removed) {
 			timed_wait.removed = false;
-			timed_wait.next = timed_waits_;
-			timed_waits_ = &timed_wait;
+			timed_wait.next = _timed_waits;
+			_timed_waits = &timed_wait;
 		}
 	}
 
@@ -95,7 +95,7 @@ int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *loc
 
 	timed_wait.done = true;
 
-	if (!timeout && setting_time_) {
+	if (!timeout && _setting_time) {
 		// This is where it gets tricky: the timeout has not been triggered yet,
 		// and another thread is in set_absolute_time().
 		// If it already passed the 'done' check, it will access the mutex and
@@ -106,8 +106,8 @@ int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *loc
 		// Note that this case does not happen too frequently, and thus can be
 		// a bit more expensive.
 		pthread_mutex_unlock(lock);
-		timed_waits_mutex_.lock();
-		timed_waits_mutex_.unlock();
+		_timed_waits_mutex.lock();
+		_timed_waits_mutex.unlock();
 		pthread_mutex_lock(lock);
 	}
 
