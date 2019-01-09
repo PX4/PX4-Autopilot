@@ -71,15 +71,11 @@ uint16_t MavlinkMissionManager::_geofence_update_counter = 0;
 MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) :
 	_mavlink(mavlink)
 {
-	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
-	_mission_result_sub = orb_subscribe(ORB_ID(mission_result));
-
 	init_offboard_mission();
 }
 
 MavlinkMissionManager::~MavlinkMissionManager()
 {
-	orb_unsubscribe(_mission_result_sub);
 	orb_unadvertise(_offboard_mission_pub);
 }
 
@@ -485,12 +481,9 @@ MavlinkMissionManager::send(const hrt_abstime now)
 		return;
 	}
 
-	bool updated = false;
-	orb_check(_mission_result_sub, &updated);
+	mission_result_s mission_result;
 
-	if (updated) {
-		mission_result_s mission_result;
-		orb_copy(ORB_ID(mission_result), _mission_result_sub, &mission_result);
+	if (_mission_result_sub.update(&mission_result)) {
 
 		if (_current_seq != mission_result.seq_current) {
 			_current_seq = mission_result.seq_current;
