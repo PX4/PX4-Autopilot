@@ -125,69 +125,69 @@ class TestCase
 {
 public:
 	TestCase(unsigned timeout, unsigned unlocked_after, LockstepScheduler &ls) :
-		timeout_(timeout + some_time_us),
-		unlocked_after_(unlocked_after + some_time_us),
-		ls_(ls)
+		_timeout(timeout + some_time_us),
+		_unlocked_after(unlocked_after + some_time_us),
+		_ls(ls)
 	{
-		pthread_mutex_init(&lock_, NULL);
-		pthread_cond_init(&cond_, NULL);
+		pthread_mutex_init(&_lock, NULL);
+		pthread_cond_init(&_cond, NULL);
 	}
 
 	~TestCase()
 	{
-		assert(is_done_);
-		pthread_mutex_destroy(&lock_);
-		pthread_cond_destroy(&cond_);
+		assert(_is_done);
+		pthread_mutex_destroy(&_lock);
+		pthread_cond_destroy(&_cond);
 	}
 
 	void run()
 	{
-		pthread_mutex_lock(&lock_);
-		thread_ = std::make_shared<TestThread>([this]() {
-			result_ = ls_.cond_timedwait(&cond_, &lock_, timeout_);
-			pthread_mutex_unlock(&lock_);
+		pthread_mutex_lock(&_lock);
+		_thread = std::make_shared<TestThread>([this]() {
+			_result = _ls.cond_timedwait(&_cond, &_lock, _timeout);
+			pthread_mutex_unlock(&_lock);
 		});
 	}
 
 	void check()
 	{
-		if (is_done_) {
+		if (_is_done) {
 			return;
 		}
 
-		uint64_t time_us = ls_.get_absolute_time();
+		uint64_t time_us = _ls.get_absolute_time();
 
-		const bool unlock_reached = (time_us >= unlocked_after_);
-		const bool unlock_is_before_timeout = (unlocked_after_ <= timeout_);
-		const bool timeout_reached = (time_us >= timeout_);
+		const bool unlock_reached = (time_us >= _unlocked_after);
+		const bool unlock_is_before_timeout = (_unlocked_after <= _timeout);
+		const bool timeout_reached = (time_us >= _timeout);
 
 		if (unlock_reached && unlock_is_before_timeout && !(timeout_reached)) {
-			pthread_mutex_lock(&lock_);
-			pthread_cond_broadcast(&cond_);
-			pthread_mutex_unlock(&lock_);
-			is_done_ = true;
+			pthread_mutex_lock(&_lock);
+			pthread_cond_broadcast(&_cond);
+			pthread_mutex_unlock(&_lock);
+			_is_done = true;
 			// We can be sure that this triggers.
-			thread_->join(ls_);
-			assert(result_ == 0);
+			_thread->join(_ls);
+			assert(_result == 0);
 		}
 
 		else if (timeout_reached) {
-			is_done_ = true;
-			thread_->join(ls_);
-			assert(result_ == ETIMEDOUT);
+			_is_done = true;
+			_thread->join(_ls);
+			assert(_result == ETIMEDOUT);
 		}
 	}
 private:
 	static constexpr int INITIAL_RESULT = 42;
 
-	unsigned timeout_;
-	unsigned unlocked_after_;
-	pthread_cond_t cond_;
-	pthread_mutex_t lock_;
-	LockstepScheduler &ls_;
-	std::atomic<bool> is_done_{false};
-	std::atomic<int> result_ {INITIAL_RESULT};
-	std::shared_ptr<TestThread> thread_{};
+	unsigned _timeout;
+	unsigned _unlocked_after;
+	pthread_cond_t _cond;
+	pthread_mutex_t _lock;
+	LockstepScheduler &_ls;
+	std::atomic<bool> _is_done{false};
+	std::atomic<int> _result {INITIAL_RESULT};
+	std::shared_ptr<TestThread> _thread{};
 };
 
 int random_number(int min, int max)

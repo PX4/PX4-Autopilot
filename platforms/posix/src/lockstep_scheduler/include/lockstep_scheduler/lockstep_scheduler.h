@@ -13,13 +13,11 @@ public:
 	~LockstepScheduler();
 
 	void set_absolute_time(uint64_t time_us);
-	inline uint64_t get_absolute_time() const { return time_us_; }
+	inline uint64_t get_absolute_time() const { return _time_us; }
 	int cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *lock, uint64_t time_us);
 	int usleep_until(uint64_t timed_us);
 
 private:
-	std::atomic<uint64_t> time_us_{0};
-
 	struct TimedWait {
 		~TimedWait()
 		{
@@ -42,7 +40,10 @@ private:
 
 		TimedWait *next{nullptr}; ///< linked list
 	};
-	TimedWait *timed_waits_{nullptr}; ///< head of linked list
-	std::mutex timed_waits_mutex_;
-	std::atomic<bool> setting_time_{false}; ///< true if set_absolute_time() is currently being executed
+
+	std::atomic<uint64_t> _time_us{0};
+
+	TimedWait *_timed_waits{nullptr}; ///< head of linked list
+	std::mutex _timed_waits_mutex;
+	std::atomic<bool> _setting_time{false}; ///< true if set_absolute_time() is currently being executed
 };
