@@ -1,5 +1,16 @@
 #include "lockstep_scheduler/lockstep_scheduler.h"
 
+LockstepScheduler::~LockstepScheduler()
+{
+	// cleanup the linked list
+	std::unique_lock<std::mutex> lock_timed_waits(timed_waits_mutex_);
+
+	while (timed_waits_) {
+		TimedWait *tmp = timed_waits_;
+		timed_waits_ = timed_waits_->next;
+		tmp->removed = true;
+	}
+}
 
 void LockstepScheduler::set_absolute_time(uint64_t time_us)
 {
@@ -9,29 +20,38 @@ void LockstepScheduler::set_absolute_time(uint64_t time_us)
 		std::unique_lock<std::mutex> lock_timed_waits(timed_waits_mutex_);
 		setting_time_ = true;
 
-		auto it = std::begin(timed_waits_);
+		TimedWait *timed_wait = timed_waits_;
+		TimedWait *timed_wait_prev = nullptr;
 
-		while (it != std::end(timed_waits_)) {
-
-			std::shared_ptr<TimedWait> temp_timed_wait = *it;
-
+		while (timed_wait) {
 			// Clean up the ones that are already done from last iteration.
-			if (temp_timed_wait->done) {
-				it = timed_waits_.erase(it);
+			if (timed_wait->done) {
+				// Erase from the linked list
+				if (timed_wait_prev) {
+					timed_wait_prev->next = timed_wait->next;
+
+				} else {
+					timed_waits_ = timed_wait->next;
+				}
+
+				TimedWait *tmp = timed_wait;
+				timed_wait = timed_wait->next;
+				tmp->removed = true;
 				continue;
 			}
 
-			if (temp_timed_wait->time_us <= time_us &&
-			    !temp_timed_wait->timeout) {
+			if (timed_wait->time_us <= time_us &&
+			    !timed_wait->timeout) {
 				// We are abusing the condition here to signal that the time
 				// has passed.
-				pthread_mutex_lock(temp_timed_wait->passed_lock);
-				temp_timed_wait->timeout = true;
-				pthread_cond_broadcast(temp_timed_wait->passed_cond);
-				pthread_mutex_unlock(temp_timed_wait->passed_lock);
+				pthread_mutex_lock(timed_wait->passed_lock);
+				timed_wait->timeout = true;
+				pthread_cond_broadcast(timed_wait->passed_cond);
+				pthread_mutex_unlock(timed_wait->passed_lock);
 			}
 
-			++it;
+			timed_wait_prev = timed_wait;
+			timed_wait = timed_wait->next;
 		}
 
 		setting_time_ = false;
@@ -40,7 +60,9 @@ void LockstepScheduler::set_absolute_time(uint64_t time_us)
 
 int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *lock, uint64_t time_us)
 {
-	std::shared_ptr<TimedWait> new_timed_wait;
+	// A TimedWait object might still be in timed_waits_ after we return, so its lifetime needs to be
+	// longer. And using thread_local is more efficient than malloc.
+	static thread_local TimedWait timed_wait;
 	{
 		std::lock_guard<std::mutex> lock_timed_waits(timed_waits_mutex_);
 
@@ -49,22 +71,29 @@ int LockstepScheduler::cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *loc
 			return ETIMEDOUT;
 		}
 
-		new_timed_wait = std::make_shared<TimedWait>();
-		new_timed_wait->time_us = time_us;
-		new_timed_wait->passed_cond = cond;
-		new_timed_wait->passed_lock = lock;
-		timed_waits_.push_back(new_timed_wait);
+		timed_wait.time_us = time_us;
+		timed_wait.passed_cond = cond;
+		timed_wait.passed_lock = lock;
+		timed_wait.timeout = false;
+		timed_wait.done = false;
+
+		// Add to linked list if not removed yet (otherwise just re-use the object)
+		if (timed_wait.removed) {
+			timed_wait.removed = false;
+			timed_wait.next = timed_waits_;
+			timed_waits_ = &timed_wait;
+		}
 	}
 
 	int result = pthread_cond_wait(cond, lock);
 
-	const bool timeout = new_timed_wait->timeout;
+	const bool timeout = timed_wait.timeout;
 
 	if (result == 0 && timeout) {
 		result = ETIMEDOUT;
 	}
 
-	new_timed_wait->done = true;
+	timed_wait.done = true;
 
 	if (!timeout && setting_time_) {
 		// This is where it gets tricky: the timeout has not been triggered yet,
