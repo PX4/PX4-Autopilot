@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,6 +52,10 @@ __BEGIN_DECLS
 
 #  define px4_enter_critical_section()       enter_critical_section()
 #  define px4_leave_critical_section(flags)  leave_critical_section(flags)
+
+/*****************************************************************************************
+ *  STM32 Fx
+ ****************************************************************************************/
 
 #  if defined(CONFIG_ARCH_CHIP_STM32) || defined(CONFIG_ARCH_CHIP_STM32F7)
 
@@ -149,6 +153,10 @@ int stm32_flash_writeprotect(size_t page, bool enabled);
 #    define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  stm32_gpiosetevent(pinset,r,f,e,fp,a)
 #endif // defined(CONFIG_ARCH_CHIP_STM32) || defined(CONFIG_ARCH_CHIP_STM32F7)
 
+/*****************************************************************************************
+ *  K66
+ ****************************************************************************************/
+
 #if defined(CONFIG_ARCH_CHIP_KINETIS)
 #    define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_KINETISK66
 
@@ -221,6 +229,80 @@ int stm32_flash_writeprotect(size_t page, bool enabled);
 /* kinetis_gpiosetevent is not implemented and will need to be added */
 
 #    define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  kinetis_gpiosetevent(pinset,r,f,e,fp,a)
+#  endif
+
+/*****************************************************************************************
+ *  IMX RT
+ ****************************************************************************************/
+
+#if defined(CONFIG_ARCH_CHIP_IMXRT)
+#    define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_NXPIMXRT1062
+
+#    // Fixme: using ??
+#    define PX4_BBSRAM_SIZE             2048
+#    define PX4_BBSRAM_GETDESC_IOCTL    0
+#    define PX4_NUMBER_I2C_BUSES        4
+
+#    define GPIO_OUTPUT_SET             GPIO_OUTPUT_ONE
+#    define GPIO_OUTPUT_CLEAR           GPIO_OUTPUT_ZERO
+
+#    include <chip.h>
+#    include <imxrt_lpspi.h>
+#    include <imxrt_lpi2c.h>
+//#    include <imxrt_uid.h> todo:Upsteam UID access
+
+/* imxrt defines the 64 bit UUID as
+ *
+ *  OCOTP 0x410 bits 31:0
+ *  OCOTP 0x420 bits 63:32
+ *
+ *  PX4 uses the words in bigendian order MSB to LSB
+ *   word  [0]    [1]
+ *   bits 63-32, 31-00,
+ */
+#    define PX4_CPU_UUID_BYTE_LENGTH                8
+#    define PX4_CPU_UUID_WORD32_LENGTH              (PX4_CPU_UUID_BYTE_LENGTH/sizeof(uint32_t))
+
+/* The mfguid will be an array of bytes with
+ * MSD @ index 0 - LSD @ index PX4_CPU_MFGUID_BYTE_LENGTH-1
+ *
+ * It will be converted to a string with the MSD on left and LSD on the right most position.
+ */
+#    define PX4_CPU_MFGUID_BYTE_LENGTH              PX4_CPU_UUID_BYTE_LENGTH
+
+/* define common formating across all commands */
+
+#    define PX4_CPU_UUID_WORD32_FORMAT              "%08x"
+#    define PX4_CPU_UUID_WORD32_SEPARATOR           ":"
+
+#    define PX4_CPU_UUID_WORD32_UNIQUE_H            0 /* Least significant digits change the most (die wafer,X,Y */
+#    define PX4_CPU_UUID_WORD32_UNIQUE_M            1 /* Most significant digits change the least (lot#) */
+
+/*                                                  Separator    nnn:nnn:nnnn     2 char per byte           term */
+#    define PX4_CPU_UUID_WORD32_FORMAT_SIZE         (PX4_CPU_UUID_WORD32_LENGTH-1+(2*PX4_CPU_UUID_BYTE_LENGTH)+1)
+#    define PX4_CPU_MFGUID_FORMAT_SIZE              ((2*PX4_CPU_MFGUID_BYTE_LENGTH)+1)
+
+#    define imxrt_bbsram_savepanic(fileno, context, length) (0) // todo:Not implemented yet
+
+#    define px4_savepanic(fileno, context, length)   imxrt_bbsram_savepanic(fileno, context, length)
+
+/* bus_num is 1 based on imx and must be translated from the legacy one based */
+
+#    define PX4_BUS_OFFSET       0                  /* imxrt buses are 1 based no adjustment needed */
+
+#    define px4_spibus_initialize(bus_num_1based)   imxrt_lpspibus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
+
+#    define px4_i2cbus_initialize(bus_num_1based)   imxrt_i2cbus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
+#    define px4_i2cbus_uninitialize(pdev)           imxrt_i2cbus_uninitialize(pdev)
+
+#    define px4_arch_configgpio(pinset)             imxrt_config_gpio(pinset)
+#    define px4_arch_unconfiggpio(pinset)
+#    define px4_arch_gpioread(pinset)               imxrt_gpio_read(pinset)
+#    define px4_arch_gpiowrite(pinset, value)       imxrt_gpio_write(pinset, value)
+
+/* imxrt_gpiosetevent is not implemented and will need to be added */
+
+#    define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  imxrt_gpiosetevent(pinset,r,f,e,fp,a)
 #  endif
 
 #include <arch/board/board.h>
