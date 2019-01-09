@@ -61,9 +61,6 @@
 
 #define RM3100_ADDRESS		0x20
 
-#define DIR_READ		(1<<7)
-#define DIR_WRITE		(0<<7)
-
 class RM3100_I2C : public device::I2C
 {
 public:
@@ -143,8 +140,20 @@ RM3100_I2C::probe()
 int
 RM3100_I2C::read(unsigned address, void *data, unsigned count)
 {
-	uint8_t cmd = address | DIR_READ;
-	return transfer(&cmd, 1, (uint8_t *)data, count);
+	uint8_t cmd = address;
+	int ret;
+
+	/* We need a first transfer where we write the register to read */
+	ret = transfer(&cmd, 1, nullptr, 0);
+
+	if (ret != OK) {
+		return ret;
+	}
+
+	/* Now we read the previously selected register */
+	ret = transfer(nullptr, 0, (uint8_t *)data, count);
+
+	return ret;
 }
 
 int
@@ -156,7 +165,7 @@ RM3100_I2C::write(unsigned address, void *data, unsigned count)
 		return -EIO;
 	}
 
-	buf[0] = address | DIR_WRITE;
+	buf[0] = address;
 	memcpy(&buf[1], data, count);
 
 	return transfer(&buf[0], count + 1, nullptr, 0);
