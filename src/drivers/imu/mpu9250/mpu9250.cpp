@@ -206,6 +206,9 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_gyro_scale.z_offset = 0;
 	_gyro_scale.z_scale  = 1.0f;
 
+	px4_sem_init(&_data_semaphore, 0, 0);
+	sem_setprotocol(&_data_semaphore, SEM_PRIO_NONE);
+
 	memset(&_call, 0, sizeof(_call));
 #if defined(USE_I2C)
 	memset(&_work, 0, sizeof(_work));
@@ -248,6 +251,8 @@ MPU9250::~MPU9250()
 	perf_free(_good_transfers);
 	perf_free(_reset_retries);
 	perf_free(_duplicates);
+
+	px4_sem_destroy(&_data_semaphore);
 }
 
 int
@@ -797,7 +802,7 @@ MPU9250::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
-						start();
+						//start();
 					}
 
 					return OK;
@@ -1040,11 +1045,10 @@ MPU9250::start()
 	_mag->_mag_reports->flush();
 
 	if (_use_hrt) {
-		/* start polling at the specified rate */
-		hrt_call_every(&_call,
-			       1000,
-			       _call_interval - MPU9250_TIMER_REDUCTION,
-			       (hrt_callout)&MPU9250::measure_trampoline, this);
+
+		_should_exit = false;
+
+		run();
 
 	} else {
 #ifdef USE_I2C
@@ -1058,6 +1062,8 @@ MPU9250::start()
 void
 MPU9250::stop()
 {
+	_should_exit = true;
+
 	if (_use_hrt) {
 		hrt_cancel(&_call);
 
@@ -1102,6 +1108,32 @@ MPU9250::cycle()
 	}
 }
 #endif
+
+void MPU9250::post_semaphore(void *sem)
+{
+	px4_sem_post((px4_sem_t *)sem);
+}
+
+void MPU9250::run()
+{
+	px4_sem_init(&_data_semaphore, 0, 0);
+
+	/* start posting at the specified rate */
+	hrt_call_every(&_call,
+		       100000,
+		       _call_interval - MPU9250_TIMER_REDUCTION,
+		       (hrt_callout)&MPU9250::post_semaphore, &_data_semaphore);
+
+	while (!should_exit()) {
+
+		// Wait until semaphore has been posted via the timer interrupt.
+		px4_sem_wait(&_data_semaphore);
+
+		measure();
+
+	}
+
+}
 
 
 void
@@ -1348,10 +1380,10 @@ MPU9250::measure()
 	float yraw_f = report.accel_y;
 	float zraw_f = report.accel_z;
 
-        // Flight test input
-        //_fti_accx.inject(xraw_f);
-        //_fti_accy.inject(yraw_f);
-        //_fti_accz.inject(zraw_f);
+	// Flight test input
+	//_fti_accx.inject(xraw_f);
+	//_fti_accy.inject(yraw_f);
+	//_fti_accz.inject(zraw_f);
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);

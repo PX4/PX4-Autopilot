@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE drivers__mpu9250
 	MAIN mpu9250
-	STACK_MAIN 1500
+	STACK_MAIN 5000
 	COMPILE_FLAGS
 	SRCS
 		mpu9250.cpp

@@ -264,6 +264,17 @@ public:
 	// deliberately cause a sensor error
 	void 			test_error();
 
+	static void post_semaphore(void *sem);
+
+	/**
+	 * Start automatic measurement.
+	 */
+	void			start();
+
+	void			run();
+
+	bool			_should_exit{false};
+
 protected:
 	Device			*_interface;
 
@@ -276,6 +287,9 @@ protected:
 	virtual int		gyro_ioctl(struct file *filp, int cmd, unsigned long arg);
 
 private:
+
+	px4_sem_t _data_semaphore;
+
 	MPU9250_gyro	*_gyro;
 	MPU9250_mag     *_mag;
 	uint8_t			_whoami;	/** whoami result */
@@ -342,7 +356,7 @@ private:
 	FlightTestInput 	_fti_gyro_x{"FTI_GYRO1X"};
 	FlightTestInput 	_fti_gyro_y{"FTI_GYRO1Y"};
 	FlightTestInput 	_fti_gyro_z{"FTI_GYRO1Z"};
-	
+
 	FlightTestInput 	_fti_magx{"FTI_MAG1X"};
 	FlightTestInput 	_fti_magy{"FTI_MAG1Y"};
 	FlightTestInput 	_fti_magz{"FTI_MAG1Z"};
@@ -366,11 +380,6 @@ private:
 	bool			_got_duplicate;
 
 	/**
-	 * Start automatic measurement.
-	 */
-	void			start();
-
-	/**
 	 * Stop automatic measurement.
 	 */
 	void			stop();
@@ -388,6 +397,7 @@ private:
 	 */
 	int			reset_mpu();
 
+	bool		should_exit() { return _should_exit; }
 
 #if defined(USE_I2C)
 	/**
