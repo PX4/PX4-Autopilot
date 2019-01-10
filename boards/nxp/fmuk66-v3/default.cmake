@@ -47,6 +47,7 @@ px4_add_board(
 		tap_esc
 		telemetry # all available telemetry drivers
 		#test_ppm # NOT Portable YET
+		tone_alarm
 
 	MODULES
 		attitude_estimator_q

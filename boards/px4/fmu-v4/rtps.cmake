@@ -44,6 +44,7 @@ px4_add_board(
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm
+		tone_alarm
 		uavcan
 
 	MODULES
