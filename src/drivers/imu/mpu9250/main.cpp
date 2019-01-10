@@ -292,7 +292,7 @@ start(enum MPU9250_BUS busid, enum Rotation rotation, bool external, bool magnet
 	bool started = false;
 
 	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
-		if (busid == MPU9250_BUS_ALL && bus_options[i].dev != NULL) {
+		if (bus_options[i].dev != nullptr) {
 			// this device is already started
 			continue;
 		}
