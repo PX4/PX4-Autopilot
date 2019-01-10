@@ -3903,6 +3903,11 @@ void Commander::data_link_check(bool &status_changed)
 
 				case (telemetry_status_s::MAV_TYPE_ONBOARD_CONTROLLER):
 					_datalink_last_heartbeat_onboard_controller = telemetry.heartbeat_time;
+
+					if (_onboard_controller_lost != false) {
+						mavlink_log_info(&mavlink_log_pub, "ONBOARD CONTROLLER REGAINED");
+					}
+
 					_onboard_controller_lost = false;
 
 					if (telemetry.remote_component_id == telemetry_status_s::COMPONENT_ID_OBSTACLE_AVOIDANCE) {
@@ -3912,6 +3917,11 @@ void Commander::data_link_check(bool &status_changed)
 
 						_datalink_last_heartbeat_avoidance_system = telemetry.heartbeat_time;
 						_datalink_last_status_avoidance_system = telemetry.remote_system_status;
+
+						if (_avoidance_system_lost != false) {
+							mavlink_log_info(&mavlink_log_pub, "AVOIDANCE SYSTEM REGAINED");
+						}
+
 						_avoidance_system_lost = false;
 					}
 
