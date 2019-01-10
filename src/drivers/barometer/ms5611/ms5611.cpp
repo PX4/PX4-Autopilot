@@ -793,7 +793,7 @@ MS5611::collect()
 		int32_t P = (((raw * _SENS) >> 21) - _OFF) >> 15;
 		_P = P * 0.01f;
 		_T = _TEMP * 0.01f;
-                _fti_baro.inject(_P);
+                //_fti_baro.inject(_P);
 
 		/* generate a new report */
 		report.temperature = _TEMP / 100.0f;
