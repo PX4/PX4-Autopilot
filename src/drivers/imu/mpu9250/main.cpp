@@ -272,7 +272,7 @@ fail:
 	}
 
 	if (bus.dev != nullptr) {
-		delete(bus.dev);
+		delete (bus.dev);
 		bus.dev = nullptr;
 	}
 
