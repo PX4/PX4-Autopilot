@@ -646,7 +646,7 @@ void Ekf::fuseHeading()
 	// wrap the innovation to the interval between +-pi
 	_heading_innov = wrap_pi(_heading_innov);
 
-	// Calculate innovation variance and Kalman gains, taking advantage of the fact that only the first 3 elements in H are non zero
+	// Calculate innovation variance and Kalman gains, taking advantage of the fact that only the first 4 elements in H are non zero
 	// calculate the innovaton variance
 	float PH[4];
 	_heading_innov_var = R_YAW;
