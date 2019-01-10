@@ -39,6 +39,7 @@
 
 #pragma once
 
+#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <stdbool.h>
 #include <inttypes.h>
