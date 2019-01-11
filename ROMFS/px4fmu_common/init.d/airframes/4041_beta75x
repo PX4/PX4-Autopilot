@@ -50,13 +50,15 @@ then
 	param set MOT_ORDERING 1
 	param set PWM_DISARMED 950
 	param set PWM_MAX 1900
-	param set PWM_MIN 1100
+	param set PWM_MIN 1250
 	param set PWM_RATE 0
 
 	param set RC_FLT_CUTOFF 0
 
 	param set SYS_HAS_BARO 0
 	param set SYS_HAS_MAG 0
+
+	param set BAT_N_CELLS 2
 fi
 
 # The Whoop uses reversed props
