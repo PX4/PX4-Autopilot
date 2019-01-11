@@ -89,8 +89,13 @@ then
 fi
 
 
-# Pixracer: start MAVLink on Wifi (ESP8266 port)
-mavlink start -r 20000 -b 921600 -d /dev/ttyS0
+# Pixracer: start MAVLink on Wifi (ESP8266 port). Except for the TealOne airframe.
+if param compare SYS_AUTOSTART 4250
+then
+else
+	mavlink start -r 20000 -b 921600 -d /dev/ttyS0
+fi
+
 
 # Run FrSky Telemetry on Pixracer on the FrSky port if not enabled already
 if param compare TEL_FRSKY_CONFIG 0
