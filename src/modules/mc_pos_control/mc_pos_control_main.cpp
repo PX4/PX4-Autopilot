@@ -763,7 +763,7 @@ MulticopterPositionControl::run()
 				_avoidance_system_lost = false;
 				break;
 			case ObstacleAvoidanceStatus::FAILSAFE:
-				if(_avoidance_system_lost == false){
+				if(_avoidance_system_lost == false && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION){
 					_avoidance_system_lost = hrt_absolute_time();
 				}
 				break;
@@ -866,8 +866,9 @@ MulticopterPositionControl::start_flight_task()
 	bool task_failure = false;
 	bool should_disable_task = true;
 	int prev_failure_count = _task_failure_count;
+	bool mission_rejected_no_obstacle_avoidance = _avoidance_system_lost && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
 
-	if(!(_avoidance_system_lost && vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)){
+	if(!mission_rejected_no_obstacle_avoidance){
 		// Do not run any flight task for VTOLs in fixed-wing mode
 		if (!_vehicle_status.is_rotary_wing) {
 			_flight_tasks.switchTask(FlightTaskIndex::None);
@@ -1031,7 +1032,7 @@ MulticopterPositionControl::start_flight_task()
 	}
 
 	// check task failure
-	if (task_failure || (_avoidance_system_lost && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)) {
+	if (task_failure || mission_rejected_no_obstacle_avoidance) {
 		// for some reason no flighttask was able to start.
 		// go into failsafe flighttask
 		int error = _flight_tasks.switchTask(FlightTaskIndex::Failsafe);
