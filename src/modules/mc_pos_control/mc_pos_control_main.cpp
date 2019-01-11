@@ -128,6 +128,8 @@ private:
 	int		_home_pos_sub{-1}; 			/**< home position */
 	int		_traj_wp_avoidance_sub{-1};	/**< trajectory waypoint */
 
+	uint64_t	_avoidance_system_lost{0}; /**time at which avoidance system is lost */
+
 	int _task_failure_count{0};         /**< counter for task failures */
 
 	float _takeoff_speed = -1.f; /**< For flighttask interface used only. It can be thrust or velocity setpoints */
@@ -173,7 +175,6 @@ private:
 	hrt_abstime _last_warn = 0; /**< timer when the last warn message was sent out */
 
 	bool _in_failsafe = false; /**< true if failsafe was entered within current cycle */
-	bool _force_failsafe = false; /**< true if transition to failsafe is necessary */
 
 	/** Timeout in us for trajectory data to get considered invalid */
 	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500_ms;
@@ -269,7 +270,7 @@ private:
 	 * Start flightasks based on navigation state.
 	 * This methods activates a task based on the navigation state.
 	 */
-	void start_flight_task(bool force_failsafe);
+	void start_flight_task();
 
 	/**
 	 * Failsafe.
@@ -647,8 +648,7 @@ MulticopterPositionControl::run()
 
 		if (_control_mode.flag_armed) {
 			// as soon vehicle is armed check for flighttask
-			start_flight_task(_force_failsafe);
-			_force_failsafe = false;
+			start_flight_task();
 			// arm hysteresis prevents vehicle to takeoff
 			// before propeller reached idle speed.
 			_arm_hysteresis.set_state_and_update(true);
@@ -760,9 +760,12 @@ MulticopterPositionControl::run()
 				break;
 			case ObstacleAvoidanceStatus::ACTIVE:
 				execute_avoidance_waypoint(setpoint);
+				_avoidance_system_lost = false;
 				break;
 			case ObstacleAvoidanceStatus::FAILSAFE:
-				_force_failsafe = true;
+				if(_avoidance_system_lost == false){
+					_avoidance_system_lost = hrt_absolute_time();
+				}
 				break;
 			}
 
@@ -858,13 +861,13 @@ MulticopterPositionControl::run()
 }
 
 void
-MulticopterPositionControl::start_flight_task(bool force_failsafe)
+MulticopterPositionControl::start_flight_task()
 {
 	bool task_failure = false;
 	bool should_disable_task = true;
 	int prev_failure_count = _task_failure_count;
 
-	if(!force_failsafe){
+	if(!(_avoidance_system_lost && vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)){
 		// Do not run any flight task for VTOLs in fixed-wing mode
 		if (!_vehicle_status.is_rotary_wing) {
 			_flight_tasks.switchTask(FlightTaskIndex::None);
@@ -1028,8 +1031,7 @@ MulticopterPositionControl::start_flight_task(bool force_failsafe)
 	}
 
 	// check task failure
-	if (task_failure || force_failsafe) {
-
+	if (task_failure || (_avoidance_system_lost && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)) {
 		// for some reason no flighttask was able to start.
 		// go into failsafe flighttask
 		int error = _flight_tasks.switchTask(FlightTaskIndex::Failsafe);
@@ -1037,6 +1039,9 @@ MulticopterPositionControl::start_flight_task(bool force_failsafe)
 		if (error != 0) {
 			// No task was activated.
 			_flight_tasks.switchTask(FlightTaskIndex::None);
+		}
+		if (hrt_elapsed_time(&_avoidance_system_lost) > 30_s){
+			send_vehicle_cmd_do(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
 		}
 	} else if (should_disable_task) {
 		_flight_tasks.switchTask(FlightTaskIndex::None);
