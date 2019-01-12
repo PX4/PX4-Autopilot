@@ -47,6 +47,7 @@
 #include <parameters/param.h>
 #include <drivers/drv_hrt.h>
 #include <matrix/matrix/math.hpp>
+#include <mathlib/math/EulerFromQuat.hpp>
 #include <uORB/topics/vehicle_local_position.h>
 
 class Tailsitter : public VtolType
@@ -62,7 +63,7 @@ public:
 	void fill_actuator_outputs() override;
 	void waiting_on_tecs() override;
 
-	void control_altitude();
+	virtual float control_altitude();
 	virtual float thr_from_acc_cmd(float vert_acc_cmd, float airspeed, float pitch_ang, float aoa);
 
 private:
@@ -70,11 +71,13 @@ private:
 	struct {
 		float front_trans_dur_p2;
 		float fw_pitch_sp_offset;
+		float sys_ident_input;
 	} _params_tailsitter{};
 
 	struct {
 		param_t front_trans_dur_p2;
 		param_t fw_pitch_sp_offset;
+		param_t sys_ident_input;
 	} _params_handles_tailsitter{};
 
 	enum vtol_mode {
@@ -106,6 +109,9 @@ private:
 
 	float _alt_sp;
 	float _vert_i_term;
+	float _mc_hover_thrust;
+	float _trans_end_thrust;
+	float _trans_pitch_cmd;
 
 	void parameters_update() override;
 

@@ -1774,7 +1774,7 @@ FixedwingPositionControl::run()
 			/* read from param to clear updated flag */
 			parameter_update_s update;
 			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
-
+			
 			/* update parameters from storage */
 			parameters_update();
 		}
