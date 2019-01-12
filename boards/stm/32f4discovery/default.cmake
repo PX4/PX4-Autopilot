@@ -23,7 +23,7 @@ px4_add_board(
 		#lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		#mkblctrl
-		mtd
+		#mtd
 		#pca9685
 		#pwm_input
 		#pwm_out_sim

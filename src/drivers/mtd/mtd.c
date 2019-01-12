@@ -70,12 +70,7 @@ __EXPORT int mtd_main(int argc, char *argv[]);
 
 #ifndef CONFIG_MTD
 
-/* create a fake command with decent warning to not confuse users */
-int mtd_main(int argc, char *argv[])
-{
-	PX4_WARN("MTD not enabled, skipping.");
-	return 1;
-}
+#error CONFIG_MTD must be enabled to include systemcmds/mtd
 
 #else
 
