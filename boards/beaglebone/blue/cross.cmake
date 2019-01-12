@@ -47,7 +47,6 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		navigator
-		position_estimator_inav
 		sensors
 		vmount
 		vtol_att_control
@@ -74,6 +73,7 @@ px4_add_board(
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		#hwtest # Hardware test
+		position_estimator_inav
 		px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
 		px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app
 		rover_steering_control # Rover example app
