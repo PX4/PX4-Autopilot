@@ -397,6 +397,11 @@ __EXPORT int 		param_load_default(void);
  */
 __EXPORT uint32_t	param_hash_check(void);
 
+/**
+ * Print the status of the param system
+ *
+ */
+__EXPORT void	param_print_status(void);
 
 /**
  * Enable/disable the param autosaving.

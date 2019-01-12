@@ -1479,6 +1479,39 @@ uint32_t param_hash_check()
 	return param_hash;
 }
 
+void param_print_status()
+{
+	PX4_INFO("summary: %d/%d (used/total)", param_count_used(), param_count());
+
+#ifndef FLASH_BASED_PARAMS
+	const char *filename = param_get_default_file();
+
+	if (filename != nullptr) {
+		PX4_INFO("file: %s", param_get_default_file());
+	}
+
+#endif /* FLASH_BASED_PARAMS */
+
+	if (param_values != nullptr) {
+		PX4_INFO("storage array: %d/%d elements (%zu bytes total)",
+			 utarray_len(param_values), param_values->n, param_values->n * sizeof(UT_icd));
+	}
+
+#ifndef PARAM_NO_AUTOSAVE
+	PX4_INFO("auto save: %s", autosave_disabled ? "off" : "on");
+
+	if (!autosave_disabled && (last_autosave_timestamp > 0)) {
+		PX4_INFO("last auto save: %.3f seconds ago", hrt_elapsed_time(&last_autosave_timestamp) * 1e-6);
+	}
+
+#endif /* PARAM_NO_AUTOSAVE */
+
+	perf_print_counter(param_export_perf);
+	perf_print_counter(param_find_perf);
+	perf_print_counter(param_get_perf);
+	perf_print_counter(param_set_perf);
+}
+
 void init_params()
 {
 #ifdef __PX4_QURT
