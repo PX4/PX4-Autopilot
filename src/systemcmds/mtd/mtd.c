@@ -87,8 +87,10 @@ int mtd_main(int argc, char *argv[])
 
 
 #ifdef CONFIG_MTD_RAMTRON
+
 static int	ramtron_attach(void);
-#else
+
+#elif CONFIG_MTD_AT24XX
 
 #ifndef PX4_I2C_BUS_MTD
 #  ifdef PX4_I2C_BUS_ONBOARD
@@ -98,8 +100,8 @@ static int	ramtron_attach(void);
 #  endif
 #endif
 
-
 static int	at24xxx_attach(void);
+
 #endif
 static int	mtd_start(char *partition_names[], unsigned n_partitions);
 static int	mtd_erase(char *partition_names[], unsigned n_partitions);
@@ -251,7 +253,8 @@ ramtron_attach(void)
 	attached = true;
 	return 0;
 }
-#else
+
+#elif CONFIG_MTD_AT24XX
 
 static int
 at24xxx_attach(void)
@@ -302,7 +305,7 @@ mtd_start(char *partition_names[], unsigned n_partitions)
 	if (!attached) {
 #ifdef CONFIG_MTD_RAMTRON
 		ret = ramtron_attach();
-#else
+#elif CONFIG_MTD_AT24XX
 		ret = at24xxx_attach();
 #endif
 

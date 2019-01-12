@@ -30,14 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
 	MODULE systemcmds__mtd
 	MAIN mtd
 	STACK_MAIN 1500
-	COMPILE_FLAGS
 	SRCS
 		mtd.c
-		24xxxx_mtd.c
-	DEPENDS
 	)
-
