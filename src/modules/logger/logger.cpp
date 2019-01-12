@@ -616,27 +616,27 @@ void Logger::add_default_topics()
 {
 	// Note: try to avoid setting the interval where possible, as it increases RAM usage
 	add_topic("actuator_controls_0", 0);
-	add_topic("actuator_controls_1", 100);
-	add_topic("actuator_outputs", 100);
+	add_topic("actuator_controls_1", 0);
+	add_topic("actuator_outputs", 0);
 	add_topic("airspeed", 200);
 	add_topic("battery_status", 500);
-	add_topic("camera_capture");
-	add_topic("camera_trigger");
+	//add_topic("camera_capture");
+	//add_topic("camera_trigger");
 	add_topic("cpuload");
-	add_topic("distance_sensor", 100);
-	add_topic("ekf2_innovations", 200);
+	//add_topic("distance_sensor", 100);
+	//add_topic("ekf2_innovations", 200);
 	add_topic("ekf_gps_drift");
-	add_topic("esc_status", 250);
+	//add_topic("esc_status", 250);
 	add_topic("estimator_status", 200);
 	add_topic("home_position");
 
 	add_topic("input_rc", 200);
 	add_topic("iridiumsbd_status");
-	add_topic("landing_target_pose");
+	//add_topic("landing_target_pose");
 	add_topic("manual_control_setpoint", 200);
 	add_topic("mission");
 	add_topic("mission_result");
-	add_topic("optical_flow", 50);
+	//add_topic("optical_flow", 50);
 	add_topic("position_setpoint_triplet", 200);
 	add_topic("radio_status");
 	add_topic("rate_ctrl_status", 30);
@@ -647,19 +647,19 @@ void Logger::add_default_topics()
 	add_topic("trajectory_setpoint", 200);
 	add_topic("telemetry_status");
 	add_topic("vehicle_air_data", 200);
-	add_topic("vehicle_attitude", 30);
-	add_topic("vehicle_attitude_setpoint", 100);
+	add_topic("vehicle_attitude", 0);
+	add_topic("vehicle_attitude_setpoint", 0);
 	add_topic("vehicle_command");
 	add_topic("vehicle_global_position", 200);
 	add_topic("vehicle_gps_position");
-	add_topic("vehicle_land_detected");
-	add_topic("vehicle_local_position", 100);
-	add_topic("vehicle_local_position_setpoint", 100);
+	//add_topic("vehicle_land_detected");
+	add_topic("vehicle_local_position", 0);
+	add_topic("vehicle_local_position_setpoint", 0);
 	add_topic("vehicle_magnetometer", 200);
-	add_topic("vehicle_rates_setpoint", 30);
+	add_topic("vehicle_rates_setpoint", 0);
 	add_topic("vehicle_status", 200);
-	add_topic("vehicle_status_flags");
-	add_topic("vtol_vehicle_status", 200);
+	add_topic("vehicle_status_flags", 100);
+	add_topic("vtol_vehicle_status", 0);
 	add_topic("wind_estimate", 200);
 
 #ifdef CONFIG_ARCH_BOARD_PX4_SITL
@@ -708,15 +708,15 @@ void Logger::add_estimator_replay_topics()
 	// current EKF2 subscriptions
 	add_topic("airspeed");
 	add_topic("distance_sensor");
-	add_topic("optical_flow");
+	//add_topic("optical_flow");
 	add_topic("sensor_combined");
 	add_topic("sensor_selection");
 	add_topic("vehicle_air_data");
 	add_topic("vehicle_gps_position");
-	add_topic("vehicle_land_detected");
+	//add_topic("vehicle_land_detected");
 	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
-	add_topic("vehicle_visual_odometry");
+	//add_topic("vehicle_visual_odometry");
 }
 
 void Logger::add_thermal_calibration_topics()

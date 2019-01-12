@@ -446,7 +446,7 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
  * @increment 0.5
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
+PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 18.0f);
 
 /**
  * Cruise Airspeed
@@ -460,7 +460,7 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
  * @increment 0.5
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);
+PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 12.0f);
 
 /**
  * Maximum climb rate
