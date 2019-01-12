@@ -33,6 +33,7 @@
 
 #include <lib/mixer/mixer.h>
 #include <mathlib/math/filter/LowPassFilter2pVector3f.hpp>
+#include <mathlib/math/filter/NotchFilter.hpp>
 #include <matrix/matrix/math.hpp>
 #include <perf/perf_counter.h>
 #include <px4_config.h>
@@ -193,6 +194,7 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	math::LowPassFilter2pVector3f _lp_filters_d{initial_update_rate_hz, 50.f};	/**< low-pass filters for D-term (roll, pitch & yaw) */
+	math::NotchFilter     _notch_filter;                         /**< notch filters for pitch rate */
 	static constexpr const float initial_update_rate_hz = 250.f; /**< loop update rate used for initialization */
 	float _loop_update_rate_hz{initial_update_rate_hz};          /**< current rate-controller loop update rate in [Hz] */
 
@@ -232,6 +234,9 @@ private:
 		(ParamFloat<px4::params::MC_YAWRATE_FF>) _yaw_rate_ff,
 
 		(ParamFloat<px4::params::MC_DTERM_CUTOFF>) _d_term_cutoff_freq,			/**< Cutoff frequency for the D-term filter */
+		(ParamFloat<px4::params::MC_NOTCH_FREQ>)   _notch_freq,					
+		(ParamFloat<px4::params::MC_NOTCH_BAND>)   _notch_band,					
+		(ParamFloat<px4::params::MC_NOTCH_DEPTH>)  _notch_depth,				
 
 		(ParamFloat<px4::params::MC_TPA_BREAK_P>) _tpa_breakpoint_p,			/**< Throttle PID Attenuation breakpoint */
 		(ParamFloat<px4::params::MC_TPA_BREAK_I>) _tpa_breakpoint_i,			/**< Throttle PID Attenuation breakpoint */

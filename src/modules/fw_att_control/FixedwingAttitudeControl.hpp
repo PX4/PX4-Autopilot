@@ -40,6 +40,7 @@
 #include <lib/ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <mathlib/math/filter/NotchFilter.hpp>
 #include <matrix/math.hpp>
 #include <px4_config.h>
 #include <px4_defines.h>
@@ -130,6 +131,7 @@ private:
 	Subscription<airspeed_s>			_airspeed_sub;
 
 	math::LowPassFilter2p _lp_filters_d[3];                      /**< low-pass filters for D-term (pitch roll & yaw) */
+	math::NotchFilter     _notch_filter;                         /**< notch filters for pitch rate */
 	static constexpr const float initial_update_rate_hz = 250.f; /**< loop update rate used for initialization */
 	float _loop_update_rate_hz{initial_update_rate_hz};          /**< current rate-controller loop update rate in [Hz] */
 
@@ -168,6 +170,9 @@ private:
 		float roll_to_yaw_ff;
 		float y_rmax;
 		float d_term_lp_fre;
+		float notch_freq;
+		float notch_band;
+		float notch_depth;
 
 		bool  w_en;
 		float w_p;
@@ -242,6 +247,9 @@ private:
 		param_t roll_to_yaw_ff;
 		param_t y_rmax;
 		param_t d_term_lp_fre;
+		param_t notch_freq;
+		param_t notch_band;
+		param_t notch_depth;
 
 		param_t w_en;
 		param_t w_p;

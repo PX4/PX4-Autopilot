@@ -32,6 +32,9 @@
  ****************************************************************************/
 
 #include "FixedwingAttitudeControl.hpp"
+#include <systemlib/mavlink_log.h>
+
+//static orb_advert_t mavlink_log_pub = nullptr;
 
 /**
  * Fixedwing attitude control app start / stop handling function
@@ -43,9 +46,10 @@ extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[]);
 FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_airspeed_sub(ORB_ID(airspeed)),
 	_lp_filters_d{
-		{initial_update_rate_hz, 50.f},
-		{initial_update_rate_hz, 50.f},
-		{initial_update_rate_hz, 50.f}}, // will be initialized correctly when params are loaded
+		{initial_update_rate_hz, 32.f},
+		{initial_update_rate_hz, 32.f},
+		{initial_update_rate_hz, 32.f}}, // will be initialized correctly when params are loaded
+	_notch_filter{initial_update_rate_hz, 43.f, 1.0f, 0.01f},
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fwa_dt")),
@@ -68,6 +72,9 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.p_rmax_neg = param_find("FW_P_RMAX_NEG");
 	_parameter_handles.p_integrator_max = param_find("FW_PR_IMAX");
 	_parameter_handles.d_term_lp_fre = param_find("FW_PR_D_CUTOFF");
+	_parameter_handles.notch_freq  = param_find("NOTCH_FREQ");
+	_parameter_handles.notch_band  = param_find("NOTCH_BAND");
+	_parameter_handles.notch_depth = param_find("NOTCH_DEPTH");
 
 	_parameter_handles.r_tc = param_find("FW_R_TC");
 	_parameter_handles.r_p = param_find("FW_RR_P");
@@ -181,6 +188,10 @@ FixedwingAttitudeControl::parameters_update()
 	param_get(_parameter_handles.p_d, &(_parameters.p_d));
 	param_get(_parameter_handles.p_ff, &(_parameters.p_ff));
 	param_get(_parameter_handles.d_term_lp_fre, &(_parameters.d_term_lp_fre));
+	param_get(_parameter_handles.notch_freq, &(_parameters.notch_freq));
+	param_get(_parameter_handles.notch_band, &(_parameters.notch_band));
+	param_get(_parameter_handles.notch_depth, &(_parameters.notch_depth));
+
 	param_get(_parameter_handles.p_rmax_pos, &(_parameters.p_rmax_pos));
 	param_get(_parameter_handles.p_rmax_neg, &(_parameters.p_rmax_neg));
 	param_get(_parameter_handles.p_integrator_max, &(_parameters.p_integrator_max));
@@ -530,6 +541,8 @@ void FixedwingAttitudeControl::run()
 		_lp_filters_d[2].reset(rates_prev(2));
 	}
 
+	_notch_filter.set_notch_filter(_loop_update_rate_hz, _parameters.notch_freq, _parameters.notch_band, _parameters.notch_depth);
+
 	/* wakeup source */
 	px4_pollfd_struct_t fds[1];
 
@@ -677,6 +690,17 @@ void FixedwingAttitudeControl::run()
 					_lp_filters_d[0].set_cutoff_frequency(_loop_update_rate_hz, _parameters.d_term_lp_fre);
 					_lp_filters_d[1].set_cutoff_frequency(_loop_update_rate_hz, _parameters.d_term_lp_fre);
 					_lp_filters_d[2].set_cutoff_frequency(_loop_update_rate_hz, _parameters.d_term_lp_fre);
+
+					_notch_filter.set_notch_filter(_loop_update_rate_hz, _parameters.notch_freq, _parameters.notch_band, _parameters.notch_depth);
+
+					/**
+					static int ii = 1;
+					ii++;
+					if ((ii % 1) == 0) 
+					{
+						float rate_hz = _loop_update_rate_hz;
+						mavlink_log_critical(&mavlink_log_pub, "_loop_update_rate_hz:%.3f", (double)(rate_hz));
+					}**/
 				}
 			}
 
@@ -726,7 +750,7 @@ void FixedwingAttitudeControl::run()
 				//float yaw_sp = _att_sp.yaw_body;
 
 				/* apply low-pass filtering to the rates for D-term */
-				rates(0) = _att.pitchspeed;
+				rates(0) = _att.pitchspeed;//_notch_filter.apply(_att.pitchspeed);
 				rates(1) = _att.rollspeed;
 				rates(2) = _att.yawspeed;
 
@@ -740,9 +764,9 @@ void FixedwingAttitudeControl::run()
 				control_input.roll = euler_angles.phi();
 				control_input.pitch = euler_angles.theta();
 				control_input.yaw = euler_angles.psi();
-				control_input.body_x_rate = _att.rollspeed;
-				control_input.body_y_rate = _att.pitchspeed;
-				control_input.body_z_rate = _att.yawspeed;
+				control_input.body_x_rate = rates_filtered(1);
+				control_input.body_y_rate = rates_filtered(0);
+				control_input.body_z_rate = rates_filtered(2);
 				control_input.rates_filtered = rates_filtered;
 				control_input.rates_prev_filtered = rates_prev_filtered;
 				control_input.roll_setpoint = _att_sp.roll_body;
@@ -918,7 +942,6 @@ void FixedwingAttitudeControl::run()
 					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ?
 							_rates_sp.thrust_body[0] : 0.0f;
 				}
-
 
 				rates_prev = rates;
 				rates_prev_filtered = rates_filtered;

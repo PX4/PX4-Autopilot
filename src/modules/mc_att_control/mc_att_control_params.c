@@ -207,34 +207,24 @@ PARAM_DEFINE_FLOAT(MC_YAW_P, 2.8f);
  *
  * Yaw rate proportional gain, i.e. control output for angular speed error 1 rad/s.
  *
- * @min 0.0
- * @max 0.6
- * @decimal 2
- * @increment 0.01
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.2f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.07f);
 
 /**
  * Yaw rate I gain
  *
  * Yaw rate integral gain. Can be set to compensate static thrust difference or gravity center offset.
  *
- * @min 0.0
- * @decimal 2
- * @increment 0.01
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.1f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.005f);
 
 /**
  * Yaw rate integrator limit
  *
  * Yaw rate integrator limit. Can be set to increase the amount of integrator available to counteract disturbances or reduced to improve settling time after large yaw moment trim changes.
  *
- * @min 0.0
- * @decimal 2
- * @increment 0.01
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_YR_INT_LIM, 0.30f);
@@ -244,12 +234,9 @@ PARAM_DEFINE_FLOAT(MC_YR_INT_LIM, 0.30f);
  *
  * Yaw rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
  *
- * @min 0.0
- * @decimal 2
- * @increment 0.01
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.003f);
 
 /**
  * Yaw rate feedforward
@@ -563,6 +550,12 @@ PARAM_DEFINE_FLOAT(MC_TPA_RATE_D, 0.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_DTERM_CUTOFF, 30.f);
+
+PARAM_DEFINE_FLOAT(MC_NOTCH_FREQ, 43.f);
+
+PARAM_DEFINE_FLOAT(MC_NOTCH_BAND, 1.00f);
+
+PARAM_DEFINE_FLOAT(MC_NOTCH_DEPTH, 0.01f);
 
 /**
  * Multicopter air-mode

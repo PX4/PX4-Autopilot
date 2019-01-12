@@ -100,7 +100,8 @@ To reduce control latency, the module directly polls on the gyro topic published
 
 MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	ModuleParams(nullptr),
-	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
+	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
+	_notch_filter(initial_update_rate_hz, 43.f, 1.0f, 0.01f)
 	//_lp_filters_d{
 	//{initial_update_rate_hz, 50.f},
 	//{initial_update_rate_hz, 50.f},
@@ -158,9 +159,9 @@ MulticopterAttitudeControl::parameters_updated()
 	/* yaw gains */
 	_attitude_p(2) = _yaw_p.get();
 	_rate_p(2) = _yaw_rate_p.get();
-	_rate_i(2) = _yaw_rate_i.get();
+	_rate_i(2) = _yaw_rate_i.get()/10.0f; // just for temporary because the increment isn't enough
 	_rate_int_lim(2) = _yaw_rate_integ_lim.get();
-	_rate_d(2) = _yaw_rate_d.get();
+	_rate_d(2) = _yaw_rate_d.get()/10.0f; // just for temporary because the increment isn't enough
 	_rate_ff(2) = _yaw_rate_ff.get();
 
 	if (fabsf(_lp_filters_d.get_cutoff_freq() - _d_term_cutoff_freq.get()) > 0.01f) {
@@ -687,11 +688,14 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	Vector3f rates_i_scaled = _rate_i.emult(pid_attenuations(_tpa_breakpoint_i.get(), _tpa_rate_i.get()));
 	Vector3f rates_d_scaled = _rate_d.emult(pid_attenuations(_tpa_breakpoint_d.get(), _tpa_rate_d.get()));
 
-	/* angular rates error */
-	Vector3f rates_err = _rates_sp - rates;
+	/* apply notch filter for pitch rate */
+	rates(1) = _notch_filter.apply(rates(1));
 
 	/* apply low-pass filtering to the rates for D-term */
 	Vector3f rates_filtered(_lp_filters_d.apply(rates));
+
+	/* angular rates error */
+	Vector3f rates_err = _rates_sp - rates;
 
 	_att_control = rates_p_scaled.emult(rates_err) +
 		       _rates_int -
@@ -978,6 +982,7 @@ MulticopterAttitudeControl::run()
 					dt_accumulator = 0;
 					loop_counter = 0;
 					_lp_filters_d.set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
+					_notch_filter.set_notch_filter(_loop_update_rate_hz, _notch_freq.get(), _notch_band.get(), _notch_depth.get());
 				}
 			}
 
