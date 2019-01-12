@@ -38,6 +38,7 @@ px4_add_board(
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		mkblctrl
+		mtd
 		pca9685
 		#pwm_input # NOT Portable YET drivers
 		pwm_out_sim
@@ -84,7 +85,6 @@ px4_add_board(
 		mixer
 		motor_ramp
 		motor_test
-		mtd
 		nshterm
 		param
 		perf

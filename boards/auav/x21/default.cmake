@@ -34,6 +34,7 @@ px4_add_board(
 		magnetometer # all available magnetometer drivers
 		#md25
 		mkblctrl
+		mtd
 		lights/pca8574
 		pca9685
 		#pmw3901
@@ -88,7 +89,6 @@ px4_add_board(
 		mixer
 		motor_ramp
 		motor_test
-		mtd
 		nshterm
 		param
 		perf

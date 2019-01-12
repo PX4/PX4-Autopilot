@@ -31,6 +31,7 @@ px4_add_board(
 		lights/rgbled_ncp5623c
 		magnetometer # all available magnetometer drivers
 		mkblctrl
+		mtd
 		pca9685
 		protocol_splitter
 		pwm_input
@@ -83,7 +84,6 @@ px4_add_board(
 		mixer
 		motor_ramp
 		motor_test
-		mtd
 		nshterm
 		param
 		perf

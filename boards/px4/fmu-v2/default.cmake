@@ -44,6 +44,7 @@ px4_add_board(
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		#mkblctrl
+		mtd
 		#pca9685
 		#protocol_splitter
 		#pwm_input
@@ -95,7 +96,6 @@ px4_add_board(
 		mixer
 		#motor_ramp
 		#motor_test
-		mtd
 		#nshterm
 		param
 		perf

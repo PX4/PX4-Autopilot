@@ -28,6 +28,7 @@ px4_add_board(
 		irlock
 		magnetometer # all available magnetometer drivers
 		mkblctrl
+		mtd
 		lights/oreoled
 		pca9685
 		pwm_input
@@ -81,7 +82,6 @@ px4_add_board(
 		mixer
 		motor_ramp
 		motor_test
-		mtd
 		nshterm
 		param
 		perf

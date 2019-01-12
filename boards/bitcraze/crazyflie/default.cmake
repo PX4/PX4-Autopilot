@@ -12,6 +12,7 @@ px4_add_board(
 		distance_sensor/vl53lxx
 		gps
 		imu/mpu9250
+		mtd
 		pmw3901
 		px4fmu
 		stm32
@@ -51,7 +52,6 @@ px4_add_board(
 		mixer
 		motor_ramp
 		motor_test
-		mtd
 		nshterm
 		param
 		perf
