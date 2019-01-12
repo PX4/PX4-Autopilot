@@ -349,7 +349,7 @@ __EXPORT int		param_load(int fd);
  * @param arg		Argument passed to the function.
  * @param only_changed	If true, the function is only called for parameters whose values have
  *			been changed from the default.
- * @param only_changed	If true, the function is only called for parameters which have been
+ * @param only_used	If true, the function is only called for parameters which have been
  *			used in one of the running applications.
  */
 __EXPORT void		param_foreach(void (*func)(void *arg, param_t param), void *arg, bool only_changed, bool only_used);

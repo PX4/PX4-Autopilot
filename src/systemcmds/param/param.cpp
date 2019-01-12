@@ -81,6 +81,7 @@ static int	do_save_default();
 static int 	do_load(const char *param_file_name);
 static int	do_import(const char *param_file_name);
 static int	do_show(const char *search_string, bool only_changed);
+static int	do_show_all();
 static int	do_show_quiet(const char *param_name);
 static int	do_show_index(const char *index, bool used_index);
 static void	do_show_print(void *arg, param_t param);
@@ -130,7 +131,8 @@ $ reboot
 	PRINT_MODULE_USAGE_ARG("<file>", "File name (use <root>/eeprom/parameters if not given)", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("show", "Show parameter values");
-	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Show only changed params", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Show all parameters (not just used)", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Show only changed and used params", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('q', "quiet mode, print only param value (name needs to be exact)", true);
 	PRINT_MODULE_USAGE_ARG("<filter>", "Filter by param name (wildcard at end allowed, eg. sys_*)", true);
 
@@ -226,6 +228,9 @@ param_main(int argc, char *argv[])
 					} else {
 						return do_show(nullptr, true);
 					}
+
+				} else if (!strcmp(argv[2], "-a")) {
+					return do_show_all();
 
 				} else if (!strcmp(argv[2], "-q")) {
 					if (argc >= 4) {
@@ -426,11 +431,22 @@ static int
 do_show(const char *search_string, bool only_changed)
 {
 	PARAM_PRINT("Symbols: x = used, + = saved, * = unsaved\n");
-	param_foreach(do_show_print, (char *)search_string, only_changed, false);
+	param_foreach(do_show_print, (char *)search_string, only_changed, true);
+	PARAM_PRINT("\n %u/%u parameters used.\n", param_count_used(), param_count());
+
+	return 0;
+}
+
+static int
+do_show_all()
+{
+	PARAM_PRINT("Symbols: x = used, + = saved, * = unsaved\n");
+	param_foreach(do_show_print, nullptr, false, false);
 	PARAM_PRINT("\n %u parameters total, %u used.\n", param_count(), param_count_used());
 
 	return 0;
 }
+
 static int
 do_show_quiet(const char *param_name)
 {
