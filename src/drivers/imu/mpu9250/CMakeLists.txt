@@ -45,5 +45,5 @@ px4_add_module(
 		mag.cpp
 		mag_i2c.cpp
 	DEPENDS
+		px4_work_queue
 	)
-
