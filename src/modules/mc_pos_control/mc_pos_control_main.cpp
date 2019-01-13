@@ -1306,6 +1306,11 @@ void MulticopterPositionControl::send_vehicle_cmd_do(uint8_t nav_state)
 		command.param2 = (float)PX4_CUSTOM_MAIN_MODE_ALTCTL;
 		break;
 
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
+		command.param2 = (float)PX4_CUSTOM_MAIN_MODE_AUTO;
+		command.param3 = (float)PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
+		break;
+
 	default: //vehicle_status_s::NAVIGATION_STATE_POSCTL
 		command.param2 = (float)PX4_CUSTOM_MAIN_MODE_POSCTL;
 		break;
