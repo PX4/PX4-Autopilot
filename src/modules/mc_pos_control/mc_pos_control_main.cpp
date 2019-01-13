@@ -750,14 +750,14 @@ MulticopterPositionControl::run()
 				limit_altitude(setpoint);
 			}
 
-			// Update states, setpoints and constraints.
-			_control.updateConstraints(constraints);
-			_control.updateState(_states);
-
 			// adjust setpoints based on avoidance
 			if (use_obstacle_avoidance()) {
 				execute_avoidance_waypoint(setpoint);
 			}
+
+			// Update states, setpoints and constraints.
+			_control.updateConstraints(constraints);
+			_control.updateState(_states);
 
 			// update position controller setpoints
 			if (!_control.updateSetpoint(setpoint)) {
