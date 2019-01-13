@@ -649,18 +649,17 @@ MulticopterPositionControl::run()
 			_wv_controller->update(matrix::Quatf(_att_sp.q_d), _states.yaw);
 		}
 
-		if (_control_mode.flag_armed) {
+		// arm hysteresis prevents vehicle to takeoff
+		// before propeller reached idle speed.
+		_arm_hysteresis.set_state_and_update(_control_mode.flag_armed);
+
+		if (_arm_hysteresis.get_state()) {
 			// as soon vehicle is armed check for flighttask
 			start_flight_task();
-			// arm hysteresis prevents vehicle to takeoff
-			// before propeller reached idle speed.
-			_arm_hysteresis.set_state_and_update(true);
 
 		} else {
 			// disable flighttask
 			_flight_tasks.switchTask(FlightTaskIndex::None);
-			// reset arm hysteresis
-			_arm_hysteresis.set_state_and_update(false);
 		}
 
 		// check if any task is active
