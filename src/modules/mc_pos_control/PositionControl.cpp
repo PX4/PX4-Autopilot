@@ -84,8 +84,8 @@ bool PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &se
 
 	// If full manual is required (thrust already generated), don't run position/velocity
 	// controller and just return thrust.
-	_skip_controller = PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1))
-			   && PX4_ISFINITE(_thr_sp(2));
+	_skip_controller = PX4_ISFINITE(setpoint.thrust[0]) && PX4_ISFINITE(setpoint.thrust[1])
+			   && PX4_ISFINITE(setpoint.thrust[2]);
 
 	return mapping_succeeded;
 }
