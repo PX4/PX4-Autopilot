@@ -45,41 +45,34 @@
 #  define USE_I2C
 #endif
 
+enum MPU_DEVICE_TYPE {
+	MPU_DEVICE_TYPE_MPU6000	= 6000,
+	MPU_DEVICE_TYPE_ICM20602 = 20602,
+	MPU_DEVICE_TYPE_ICM20608 = 20608,
+	MPU_DEVICE_TYPE_ICM20689 = 20689
+};
 
 #define DIR_READ			0x80
 #define DIR_WRITE			0x00
 
-#define MPU_DEVICE_PATH_ACCEL		"/dev/mpu6000_accel"
-#define MPU_DEVICE_PATH_GYRO		"/dev/mpu6000_gyro"
-#define MPU_DEVICE_PATH_ACCEL1		"/dev/mpu6000_accel1"
-#define MPU_DEVICE_PATH_GYRO1		"/dev/mpu6000_gyro1"
-#define MPU_DEVICE_PATH_ACCEL_EXT	"/dev/mpu6000_accel_ext"
-#define MPU_DEVICE_PATH_GYRO_EXT	"/dev/mpu6000_gyro_ext"
-#define MPU_DEVICE_PATH_ACCEL_EXT1	"/dev/mpu6000_accel_ext1"
-#define MPU_DEVICE_PATH_GYRO_EXT1	"/dev/mpu6000_gyro_ext1"
-#define MPU_DEVICE_PATH_ACCEL_EXT2	"/dev/mpu6000_accel_ext2"
-#define MPU_DEVICE_PATH_GYRO_EXT2	"/dev/mpu6000_gyro_ext2"
+#define MPU_DEVICE_PATH		"/dev/mpu6000"
+#define MPU_DEVICE_PATH1		"/dev/mpu6000_1"
+#define MPU_DEVICE_PATH_EXT	"/dev/mpu6000_ext"
+#define MPU_DEVICE_PATH_EXT1	"/dev/mpu6000_ext1"
+#define MPU_DEVICE_PATH_EXT2	"/dev/mpu6000_ext2"
 
-#define ICM20602_DEVICE_PATH_ACCEL		"/dev/icm20602_accel"
-#define ICM20602_DEVICE_PATH_GYRO		"/dev/icm20602_gyro"
-#define ICM20602_DEVICE_PATH_ACCEL1		"/dev/icm20602_accel1"
-#define ICM20602_DEVICE_PATH_GYRO1		"/dev/icm20602_gyro1"
-#define ICM20602_DEVICE_PATH_ACCEL_EXT	"/dev/icm20602_accel_ext"
-#define ICM20602_DEVICE_PATH_GYRO_EXT	"/dev/icm20602_gyro_ext"
-#define ICM20602_DEVICE_PATH_ACCEL_EXT1	"/dev/icm20602_accel_ext1"
-#define ICM20602_DEVICE_PATH_GYRO_EXT1	"/dev/icm20602_gyro_ext1"
 
-#define ICM20608_DEVICE_PATH_ACCEL		"/dev/icm20608_accel"
-#define ICM20608_DEVICE_PATH_GYRO		"/dev/icm20608_gyro"
-#define ICM20608_DEVICE_PATH_ACCEL1		"/dev/icm20608_accel1"
-#define ICM20608_DEVICE_PATH_GYRO1		"/dev/icm20608_gyro1"
-#define ICM20608_DEVICE_PATH_ACCEL_EXT	"/dev/icm20608_accel_ext"
-#define ICM20608_DEVICE_PATH_GYRO_EXT	"/dev/icm20608_gyro_ext"
-#define ICM20608_DEVICE_PATH_ACCEL_EXT1	"/dev/icm20608_accel_ext1"
-#define ICM20608_DEVICE_PATH_GYRO_EXT1	"/dev/icm20608_gyro_ext1"
+#define ICM20602_DEVICE_PATH		"/dev/icm20602"
+#define ICM20602_DEVICE_PATH1		"/dev/icm20602_1"
+#define ICM20602_DEVICE_PATH_EXT	"/dev/icm20602_ext"
+#define ICM20602_DEVICE_PATH_EXT1	"/dev/icm20602_ext1"
 
-#define ICM20689_DEVICE_PATH_ACCEL		"/dev/icm20689_accel"
-#define ICM20689_DEVICE_PATH_GYRO		"/dev/icm20689_gyro"
+#define ICM20608_DEVICE_PATH		"/dev/icm20608"
+#define ICM20608_DEVICE_PATH1		"/dev/icm20608_1"
+#define ICM20608_DEVICE_PATH_EXT	"/dev/icm20608_ext"
+#define ICM20608_DEVICE_PATH_EXT1	"/dev/icm20608_ext1"
+
+#define ICM20689_DEVICE_PATH		"/dev/icm20689"
 
 // MPU 6000 registers
 #define MPUREG_WHOAMI			0x75
@@ -202,15 +195,10 @@
 #define MPU6050_REV_D8			0x28	// TODO:Need verification
 
 #define MPU6000_ACCEL_DEFAULT_RANGE_G				16
-#define MPU6000_ACCEL_DEFAULT_RATE					1000
-#define MPU6000_ACCEL_MAX_OUTPUT_RATE				280
-#define MPU6000_ACCEL_DEFAULT_DRIVER_FILTER_FREQ	30
 
 #define MPU6000_GYRO_DEFAULT_RANGE_G				8
 #define MPU6000_GYRO_DEFAULT_RATE					1000
-/* rates need to be the same between accel and gyro */
-#define MPU6000_GYRO_MAX_OUTPUT_RATE				MPU6000_ACCEL_MAX_OUTPUT_RATE
-#define MPU6000_GYRO_DEFAULT_DRIVER_FILTER_FREQ		30
+
 
 #define MPU6000_DEFAULT_ONCHIP_FILTER_FREQ			98
 
