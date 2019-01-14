@@ -40,5 +40,6 @@ px4_add_module(
 		hmc5883_spi.cpp
 		hmc5883.cpp
 	DEPENDS
+		px4_work_queue
 	)
 
