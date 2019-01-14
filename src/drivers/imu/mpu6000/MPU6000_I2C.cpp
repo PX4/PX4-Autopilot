@@ -42,7 +42,7 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_device.h>
 
-#include "mpu6000.h"
+#include "MPU6000.hpp"
 
 #ifdef USE_I2C
 
