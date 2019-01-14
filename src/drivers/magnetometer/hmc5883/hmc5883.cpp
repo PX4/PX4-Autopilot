@@ -57,7 +57,7 @@
 #include <unistd.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <nuttx/clock.h>
 
 #include <board_config.h>
@@ -125,11 +125,7 @@ enum HMC5883_BUS {
 	HMC5883_BUS_SPI
 };
 
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
-
-class HMC5883 : public device::CDev
+class HMC5883 : public device::CDev, public px4::ScheduledWorkItem
 {
 public:
 	HMC5883(device::Device *interface, const char *path, enum Rotation rotation);
@@ -154,8 +150,8 @@ protected:
 	Device			*_interface;
 
 private:
-	work_s			_work{};
-	unsigned		_measure_ticks;
+
+	unsigned		_measure_interval{0};
 
 	ringbuffer::RingBuffer	*_reports;
 	struct mag_calibration_s	_scale;
@@ -263,15 +259,7 @@ private:
 	 * and measurement to provide the most recent measurement possible
 	 * at the next interval.
 	 */
-	void			cycle();
-
-	/**
-	 * Static trampoline from the workq context; because we don't have a
-	 * generic workq wrapper yet.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		cycle_trampoline(void *arg);
+	void			Run() override;
 
 	/**
 	 * Write a register.
@@ -338,8 +326,8 @@ extern "C" __EXPORT int hmc5883_main(int argc, char *argv[]);
 
 HMC5883::HMC5883(device::Device *interface, const char *path, enum Rotation rotation) :
 	CDev("HMC5883", path),
+	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
-	_measure_ticks(0),
 	_reports(nullptr),
 	_scale{},
 	_range_scale(0), /* default range scale from counts to gauss */
@@ -376,9 +364,6 @@ HMC5883::HMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_scale.y_scale = 1.0f;
 	_scale.z_offset = 0;
 	_scale.z_scale = 1.0f;
-
-	// work_cancel in the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
 }
 
 HMC5883::~HMC5883()
@@ -563,7 +548,7 @@ HMC5883::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is enabled */
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
 		 * Note that we may be pre-empted by the workq thread while we are doing this;
@@ -624,10 +609,10 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(HMC5883_CONVERSION_INTERVAL);
+					_measure_interval = HMC5883_CONVERSION_INTERVAL;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -640,18 +625,18 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
-					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
+					/* convert hz to interval in microseconds */
+					unsigned interval = (1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(HMC5883_CONVERSION_INTERVAL)) {
+					if (interval < HMC5883_CONVERSION_INTERVAL) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					_measure_ticks = ticks;
+					_measure_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -706,16 +691,16 @@ HMC5883::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&HMC5883::cycle_trampoline, this, 1);
+	ScheduleNow();
 }
 
 void
 HMC5883::stop()
 {
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 		/* ensure no new items are queued while we cancel this one */
-		_measure_ticks = 0;
-		work_cancel(HPWORK, &_work);
+		_measure_interval = 0;
+		ScheduleClear();
 	}
 }
 
@@ -727,17 +712,9 @@ HMC5883::reset()
 }
 
 void
-HMC5883::cycle_trampoline(void *arg)
+HMC5883::Run()
 {
-	HMC5883 *dev = (HMC5883 *)arg;
-
-	dev->cycle();
-}
-
-void
-HMC5883::cycle()
-{
-	if (_measure_ticks == 0) {
+	if (_measure_interval == 0) {
 		return;
 	}
 
@@ -758,14 +735,10 @@ HMC5883::cycle()
 		/*
 		 * Is there a collect->measure gap?
 		 */
-		if (_measure_ticks > USEC2TICK(HMC5883_CONVERSION_INTERVAL)) {
+		if (_measure_interval > HMC5883_CONVERSION_INTERVAL) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&HMC5883::cycle_trampoline,
-				   this,
-				   _measure_ticks - USEC2TICK(HMC5883_CONVERSION_INTERVAL));
+			ScheduleDelayed(_measure_interval - HMC5883_CONVERSION_INTERVAL);
 
 			return;
 		}
@@ -779,13 +752,9 @@ HMC5883::cycle()
 	/* next phase is collection */
 	_collect_phase = true;
 
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 		/* schedule a fresh cycle call when the measurement is done */
-		work_queue(HPWORK,
-			   &_work,
-			   (worker_t)&HMC5883::cycle_trampoline,
-			   this,
-			   USEC2TICK(HMC5883_CONVERSION_INTERVAL));
+		ScheduleDelayed(HMC5883_CONVERSION_INTERVAL);
 	}
 }
 
@@ -1341,7 +1310,7 @@ HMC5883::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u ticks\n", _measure_ticks);
+	printf("interval:  %u us\n", _measure_interval);
 	print_message(_last_report);
 	_reports->print_info("report queue");
 }
