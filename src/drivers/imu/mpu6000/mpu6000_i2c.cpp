@@ -76,7 +76,6 @@ MPU6000_I2C::MPU6000_I2C(int bus, int device_type) :
 	I2C("MPU6000_I2C", nullptr, bus, PX4_I2C_MPU6050_ADDR, 400000),
 	_device_type(device_type)
 {
-	_device_id.devid_s.devtype =  DRV_ACC_DEVTYPE_MPU6000;
 }
 
 int
@@ -112,7 +111,7 @@ int
 MPU6000_I2C::probe()
 {
 	uint8_t whoami = 0;
-	uint8_t expected = _device_type == 6000 ? MPU_WHOAMI_6000 : ICM_WHOAMI_20608;
+	uint8_t expected = _device_type == MPU_DEVICE_TYPE_MPU6000 ? MPU_WHOAMI_6000 : ICM_WHOAMI_20608;
 	return (read(MPUREG_WHOAMI, &whoami, 1) > 0 && (whoami == expected)) ? 0 : -EIO;
 
 }

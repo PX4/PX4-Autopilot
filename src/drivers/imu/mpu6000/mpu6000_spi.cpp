@@ -114,19 +114,19 @@ MPU6000_SPI_interface(int bus, int device_type, bool external_bus)
 
 		switch (device_type) {
 
-		case 6000:
+		case MPU_DEVICE_TYPE_MPU6000:
 #  if defined(PX4_SPIDEV_EXT_MPU)
 			cs  = PX4_SPIDEV_EXT_MPU;
 # endif
 			break;
 
-		case 20602:
+		case MPU_DEVICE_TYPE_ICM20602:
 #  if defined(PX4_SPIDEV_ICM_20602_EXT)
 			cs = PX4_SPIDEV_ICM_20602_EXT;
 #  endif
 			break;
 
-		case 20608:
+		case MPU_DEVICE_TYPE_ICM20608:
 #  if defined(PX4_SPIDEV_EXT_ICM)
 			cs = PX4_SPIDEV_EXT_ICM;
 #  elif defined(PX4_SPIDEV_ICM_20608_EXT)
@@ -134,7 +134,7 @@ MPU6000_SPI_interface(int bus, int device_type, bool external_bus)
 #  endif
 			break;
 
-		case 20689:
+		case MPU_DEVICE_TYPE_ICM20689:
 #  if defined(PX4_SPIDEV_ICM_20689_EXT)
 			cs = PX4_SPIDEV_ICM_20689_EXT;
 #  endif
@@ -150,19 +150,19 @@ MPU6000_SPI_interface(int bus, int device_type, bool external_bus)
 
 		switch (device_type) {
 
-		case 6000:
+		case MPU_DEVICE_TYPE_MPU6000:
 #if defined(PX4_SPIDEV_MPU)
 			cs = PX4_SPIDEV_MPU;
 #endif
 			break;
 
-		case 20602:
+		case MPU_DEVICE_TYPE_ICM20602:
 #if defined(PX4_SPIDEV_ICM_20602)
 			cs = PX4_SPIDEV_ICM_20602;
 #endif
 			break;
 
-		case 20608:
+		case MPU_DEVICE_TYPE_ICM20608:
 #if defined(PX4_SPIDEV_ICM)
 			cs = PX4_SPIDEV_ICM;
 #elif defined(PX4_SPIDEV_ICM_20608)
@@ -170,7 +170,7 @@ MPU6000_SPI_interface(int bus, int device_type, bool external_bus)
 #endif
 			break;
 
-		case 20689:
+		case MPU_DEVICE_TYPE_ICM20689:
 #  if defined(PX4_SPIDEV_ICM_20689)
 			cs = PX4_SPIDEV_ICM_20689;
 #  endif
@@ -191,7 +191,6 @@ MPU6000_SPI::MPU6000_SPI(int bus, uint32_t device, int device_type) :
 	SPI("MPU6000", nullptr, bus, device, SPIDEV_MODE3, MPU6000_LOW_SPI_BUS_SPEED),
 	_device_type(device_type)
 {
-	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU6000;
 }
 
 void
@@ -270,21 +269,21 @@ MPU6000_SPI::probe()
 	switch (_device_type) {
 
 	default:
-	case 6000:
+	case MPU_DEVICE_TYPE_MPU6000:
 		_max_frequency = MPU6000_HIGH_SPI_BUS_SPEED;
 		break;
 
-	case 20602:
+	case MPU_DEVICE_TYPE_ICM20602:
 		expected = ICM_WHOAMI_20602;
 		_max_frequency = ICM20602_HIGH_SPI_BUS_SPEED;
 		break;
 
-	case 20608:
+	case MPU_DEVICE_TYPE_ICM20608:
 		expected = ICM_WHOAMI_20608;
 		_max_frequency = ICM20608_HIGH_SPI_BUS_SPEED;
 		break;
 
-	case 20689:
+	case MPU_DEVICE_TYPE_ICM20689:
 		expected = ICM_WHOAMI_20689;
 		_max_frequency = ICM20689_HIGH_SPI_BUS_SPEED;
 		break;

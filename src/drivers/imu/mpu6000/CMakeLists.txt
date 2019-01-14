@@ -38,5 +38,7 @@ px4_add_module(
 		mpu6000.cpp
 		mpu6000_i2c.cpp
 		mpu6000_spi.cpp
+	DEPENDS
+		drivers_accelerometer
+		drivers_gyroscope
 	)
-
