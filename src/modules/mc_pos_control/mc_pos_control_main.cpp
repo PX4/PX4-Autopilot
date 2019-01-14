@@ -486,22 +486,13 @@ MulticopterPositionControl::limit_altitude(vehicle_local_position_setpoint_s &se
 		return;
 	}
 
-	float altitude_above_home = -(_states.position(2) - _home_pos.z);
+	// maximum altitude == minimal z-value (NED)
+	const float min_z = _home_pos.z + (-_vehicle_land_detected.alt_max);
 
-	if (altitude_above_home > _vehicle_land_detected.alt_max) {
-		// we are above maximum altitude
-		setpoint.z = -_vehicle_land_detected.alt_max +  _home_pos.z;
-		setpoint.vz = 0.0f;
-
-	} else if (setpoint.vz <= 0.0f) {
-		// we want to fly upwards: check if vehicle does not exceed altitude
-
-		float delta_p = _vehicle_land_detected.alt_max - altitude_above_home;
-
-		if (fabsf(setpoint.vz) * _dt > delta_p) {
-			setpoint.z = -_vehicle_land_detected.alt_max +  _home_pos.z;
-			setpoint.vz = 0.0f;
-		}
+	if (_states.position(2) < min_z) {
+		// above maximum altitude, only allow downwards flight == positive vz-setpoints (NED)
+		setpoint.z = min_z;
+		setpoint.vz = math::max(setpoint.vz, 0.f);
 	}
 }
 
