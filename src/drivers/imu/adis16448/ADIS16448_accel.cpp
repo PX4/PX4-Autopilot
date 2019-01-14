@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,42 +32,56 @@
  ****************************************************************************/
 
 /**
- * @file drv_gyro.h
- *
- * Gyroscope driver interface.
+ * @file ADIS16448_accel.cpp
  */
 
-#ifndef _DRV_GYRO_H
-#define _DRV_GYRO_H
+#include "ADIS16448.h"
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+ADIS16448_accel::ADIS16448_accel(ADIS16448 *parent, const char *path) :
+	CDev("ADIS16448_accel", path),
+	_parent(parent)
+{
+}
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
+ADIS16448_accel::~ADIS16448_accel()
+{
+	if (_accel_class_instance != -1) {
+		unregister_class_devname(ACCEL_BASE_DEVICE_PATH, _accel_class_instance);
+	}
+}
 
-#define GYRO_BASE_DEVICE_PATH	"/dev/gyro"
+int
+ADIS16448_accel::init()
+{
+	// Base class init.
+	int ret;
+	ret = CDev::init();
 
-#include <uORB/topics/sensor_gyro.h>
+	// Exit if probe/setup failed.
+	if (ret != OK) {
+		DEVICE_DEBUG("accel init failed");
+		return ret;
+	}
 
-/** gyro scaling factors; Vout = (Vin * Vscale) + Voffset */
-struct gyro_calibration_s {
-	float x_offset;
-	float y_offset;
-	float z_offset;
-	float x_scale;
-	float y_scale;
-	float z_scale;
-};
+	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 
-/*
- * ioctl() definitions
- */
+	return ret;
+}
 
-#define _GYROIOCBASE		(0x2300)
-#define _GYROIOC(_n)		(_PX4_IOC(_GYROIOCBASE, _n))
+int
+ADIS16448_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
+{
+	return _parent->ioctl(filp, cmd, arg);
+}
 
-/** set the gyro scaling constants to (arg) */
-#define GYROIOCSSCALE		_GYROIOC(4)
+void
+ADIS16448_accel::parent_poll_notify()
+{
+	poll_notify(POLLIN);
+}
 
-#endif /* _DRV_GYRO_H */
+ssize_t
+ADIS16448_accel::read(struct file *filp, char *buffer, size_t buflen)
+{
+	return _parent->accel_read(filp, buffer, buflen);
+}

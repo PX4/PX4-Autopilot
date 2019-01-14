@@ -37,5 +37,8 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		adis16448.cpp
+		ADIS16448.cpp
+		ADIS16448_accel.cpp
+		ADIS16448_gyro.cpp
+		ADIS16448_mag.cpp
 	)

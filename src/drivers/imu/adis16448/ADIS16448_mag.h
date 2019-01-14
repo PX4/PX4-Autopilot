@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,42 +32,43 @@
  ****************************************************************************/
 
 /**
- * @file drv_gyro.h
+ * @file ADIS16448_mag.h
  *
- * Gyroscope driver interface.
+ * Driver for the Analog device ADIS16448 connected via SPI.
+ *
+ * @author Amir Melzer
+ * @author Andrew Tridgell
+ * @author Pat Hickey
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#ifndef _DRV_GYRO_H
-#define _DRV_GYRO_H
+/* Forward class declaration. */
+class ADIS16448;
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+/**
+ * Helper class implementing the mag driver node.
+ */
+class ADIS16448_mag : public device::CDev
+{
+public:
+	ADIS16448_mag(ADIS16448 *parent, const char *path);
+	virtual ~ADIS16448_mag();
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
+	virtual ssize_t read(struct file *filp, char *buffer, size_t buflen);
+	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual int init();
 
-#define GYRO_BASE_DEVICE_PATH	"/dev/gyro"
+protected:
+	friend class ADIS16448;
 
-#include <uORB/topics/sensor_gyro.h>
+	void parent_poll_notify();
+private:
+	ADIS16448 *_parent{nullptr};
+	orb_advert_t _mag_topic{nullptr};
+	int _mag_orb_class_instance{-1};
+	int _mag_class_instance{-1};
 
-/** gyro scaling factors; Vout = (Vin * Vscale) + Voffset */
-struct gyro_calibration_s {
-	float x_offset;
-	float y_offset;
-	float z_offset;
-	float x_scale;
-	float y_scale;
-	float z_scale;
+	// Disallow copy construction and move assignment of this class due to pointer data members.
+	ADIS16448_mag(const ADIS16448_mag &) = delete;
+	ADIS16448_mag operator=(const ADIS16448_mag &) = delete;
 };
-
-/*
- * ioctl() definitions
- */
-
-#define _GYROIOCBASE		(0x2300)
-#define _GYROIOC(_n)		(_PX4_IOC(_GYROIOCBASE, _n))
-
-/** set the gyro scaling constants to (arg) */
-#define GYROIOCSSCALE		_GYROIOC(4)
-
-#endif /* _DRV_GYRO_H */

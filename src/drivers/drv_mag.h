@@ -54,12 +54,12 @@
 
 /** mag scaling factors; Vout = (Vin * Vscale) + Voffset */
 struct mag_calibration_s {
-	float	x_offset;
-	float	x_scale;
-	float	y_offset;
-	float	y_scale;
-	float	z_offset;
-	float	z_scale;
+	float x_offset;
+	float y_offset;
+	float z_offset;
+	float x_scale;
+	float y_scale;
+	float z_scale;
 };
 
 /*
