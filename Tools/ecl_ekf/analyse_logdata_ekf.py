@@ -311,8 +311,9 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
 
         control_mode_summary_plot(
             pdf_pages, control_mode, status_time, [['airborne'], ['estimating_wind']],
-            titles=['EKF Control Status - Figure B'], xlabel='time (sec)', ylabels=['airborne', 'estimating wind'],
-            annotation_text=[[], []], additional_annotation=[airborne_annotations, []])
+            titles=['EKF Control Status - Figure B'], xlabel='time (sec)',
+            ylabels=['airborne', 'estimating wind'], annotation_text=[[], []],
+            additional_annotation=[airborne_annotations, []])
 
     # generate metadata for the normalised innovation consistency test levels
     # a value > 1.0 means the measurement data for that test has been rejected by the EKF
