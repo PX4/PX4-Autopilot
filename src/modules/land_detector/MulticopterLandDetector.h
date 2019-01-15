@@ -107,6 +107,7 @@ private:
 		param_t freefall_trigger_time;
 		param_t altitude_max;
 		param_t landSpeed;
+		param_t low_thrust_threshold;
 	} _paramHandle{};
 
 	struct {
@@ -120,6 +121,7 @@ private:
 		float freefall_trigger_time;
 		float altitude_max;
 		float landSpeed;
+		float low_thrust_threshold;
 	} _params{};
 
 	int _vehicleLocalPositionSub{ -1};
