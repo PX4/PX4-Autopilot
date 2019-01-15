@@ -1,166 +1,17 @@
+from typing import Tuple
+
 import numpy as np
 
 # matplotlib don't use Xwindows backend (must be before pyplot import)
 import matplotlib
 matplotlib.use('Agg')
 
-import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
-def plot_timeseries(pdf_pages, dataset, variables, title, xlabels, ylabels):
-    plt.figure(figsize=(20, 13))
-    plt.title(title)
-    for i in range(len(variables)):
-        plt.subplot(2, 1, i+1)
-        for v in variables[i]:
-            plt.plot(dataset[v], 'b')
-        plt.xlabel(xlabels[i])
-        plt.ylabel(ylabels[i])
-    pdf_pages.savefig()
-    plt.close()
+from plotting import TimeSeriesPlot, InnovationPlot, ControlModeSummaryPlot, CheckFlagsPlot, \
+    get_max_arg_time_value
 
-def get_min_arg_time_value(time_series_data, data_time):
-    min_arg = np.argmin(time_series_data)
-    min_time = data_time[min_arg]
-    min_value = np.amin(time_series_data)
-    return min_arg, min_value, min_time
-
-def get_max_arg_time_value(time_series_data, data_time):
-    max_arg = np.argmax(time_series_data)
-    max_time = data_time[max_arg]
-    max_value = np.amax(time_series_data)
-    return max_arg, max_value, max_time
-
-def plot_innovations(pdf_pages, dataset, variables, variances, titles, xlabels, ylabels):
-
-    plt.figure(figsize=(20, 13))
-    # if there is one title per variable, every subplot gets its own title, otherwise a single title is set
-    if len(titles) == 1:
-        plt.suptitle(titles[0])
-    for i in range(len(variables)):
-        # create a subplot for every variable
-        plt.subplot(len(variables), 1, i+1)
-        if len(titles) > 1:
-            plt.title(titles[i])
-
-        # plot the value and the standard deviation as a variable
-        plt.plot(1e-6 * dataset['timestamp'], dataset[variables[i]], 'b')
-        plt.plot(1e-6 * dataset['timestamp'], np.sqrt(dataset[variances[i]]), 'r')
-        plt.plot(1e-6 * dataset['timestamp'], -np.sqrt(dataset[variances[i]]), 'r')
-
-        plt.xlabel(xlabels[i])
-        plt.ylabel(ylabels[i])
-        plt.grid()
-
-        # add the maximum and minimum value as an annotation
-        _, max_value, max_time = get_max_arg_time_value(dataset[variables[i]], 1e-6 * dataset['timestamp'])
-        _, min_value, min_time = get_min_arg_time_value(dataset[variables[i]], 1e-6 * dataset['timestamp'])
-
-        plt.text(
-            max_time, max_value, 'max={:.2f}'.format(max_value), fontsize=12, horizontalalignment='left',
-            verticalalignment='bottom')
-        plt.text(
-            min_time, min_value, 'min={:.2f}'.format(min_value), fontsize=12, horizontalalignment='left',
-            verticalalignment='top')
-
-    if pdf_pages is not None:
-        pdf_pages.savefig()
-        plt.close()
-
-def plot_check_flags(
-        pdf_pages, dataset, data_time, variables, titles, xlabel, ylabels, ylim=None, legend=None, annotate=True):
-
-    colors = ['b', 'r', 'g', 'c', 'k', 'm']
-
-    plt.figure(figsize=(20, 13))
-    # if there is one title per variable, every subplot gets its own title, otherwise a single title is set
-    if len(titles) == 1:
-        plt.suptitle(titles[0])
-
-    for i in range(len(variables)):
-        # create a subplot for every variable
-        plt.subplot(len(variables), 1, i + 1)
-        if len(titles) > 1:
-            plt.title(titles[i])
-
-        for col, var in zip(colors[:len(variables[i])], variables[i]):
-            plt.plot(data_time, dataset[var], col)
-
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabels[i])
-        plt.grid()
-        if ylim is not None:
-            plt.ylim(ylim)
-
-        if legend is not None:
-            plt.legend(legend[i], loc='upper left')
-
-        if annotate:
-            for var in variables[i]:
-                # add the maximum and minimum value as an annotation
-                _, max_value, max_time = get_max_arg_time_value(dataset[var], data_time)
-                mean_value = np.mean(dataset[var])
-
-                plt.text(
-                    max_time, max_value, 'max={:.4f}, mean={:.4f}'.format(max_value, mean_value), fontsize=12,
-                    horizontalalignment='left', verticalalignment='bottom')
-
-    if pdf_pages is not None:
-        pdf_pages.savefig()
-        plt.close()
-
-def control_mode_summary_plot(pdf_pages, dataset, data_time, variables, titles, xlabel, ylabels, annotation_text,
-                              additional_annotation=None):
-
-    colors = ['b', 'r', 'g', 'c']
-
-    plt.figure(figsize=(20, 13))
-    # if there is one title per variable, every subplot gets its own title, otherwise a single title is set
-    if len(titles) == 1:
-        plt.suptitle(titles[0])
-
-    for i in range(len(variables)):
-        # create a subplot for every variable
-        plt.subplot(len(variables), 1, i + 1)
-        if len(titles) > 1:
-            plt.title(titles[i])
-
-        for col, var in zip(colors[:len(variables[i])], variables[i]):
-            plt.plot(data_time, dataset[var], col)
-
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabels[i])
-        plt.grid()
-        plt.ylim(-0.1, 1.1)
-
-        for t in range(len(annotation_text[i])):
-
-            _, _, align_time = get_max_arg_time_value(np.diff(dataset[variables[i][t]]), data_time)
-            v_annot_pos = (t+1.0)/(len(variables[i])+1) # vertical annotation position
-
-            if np.amin(dataset[variables[i][t]]) > 0:
-                plt.text(
-                    align_time, v_annot_pos,
-                    'no pre-arm data - cannot calculate {:s} start time'.format(annotation_text[i][t]),
-                    fontsize=12, horizontalalignment='left', verticalalignment='center', color=colors[t])
-            elif np.amax(dataset[variables[i][t]]) > 0:
-                plt.text(
-                    align_time, v_annot_pos, '{:s} at {:.1f} sec'.format(
-                        annotation_text[i][t], align_time), fontsize=12, horizontalalignment='left',
-                    verticalalignment='center', color=colors[t])
-
-        if additional_annotation is not None:
-            for a in range(len(additional_annotation[i])):
-                v_annot_pos = (a + 1.0) / (len(additional_annotation[i]) + 1)  # vertical annotation position
-                plt.text(
-                    additional_annotation[i][a][0], v_annot_pos, additional_annotation[i][a][1], fontsize=12,
-                    horizontalalignment='left', verticalalignment='center', color='b')
-
-    if pdf_pages is not None:
-        pdf_pages.savefig()
-        plt.close()
-
-def get_control_mode_flags(estimator_status):
+def get_control_mode_flags(estimator_status: dict) -> dict:
 
     control_mode = dict()
     # extract control mode metadata from estimator_status.control_mode_flags
@@ -196,7 +47,7 @@ def get_control_mode_flags(estimator_status):
     control_mode['using_evhgt'] = ((2 ** 14 & estimator_status['control_mode_flags']) > 0) * 1
     return control_mode
 
-def get_estimator_check_flags(estimator_status):
+def get_estimator_check_flags(estimator_status: dict) -> Tuple[dict, dict, dict]:
     control_mode = get_control_mode_flags(estimator_status)
     innov_flags = get_innovation_check_flags(estimator_status)
     gps_fail_flags = get_gps_check_fail_flags(estimator_status)
@@ -220,76 +71,99 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         # plot IMU consistency data
         if ('accel_inconsistency_m_s_s' in sensor_preflight.keys()) and (
                 'gyro_inconsistency_rad_s' in sensor_preflight.keys()):
-            plot_timeseries(
-                pdf_pages, sensor_preflight, [['accel_inconsistency_m_s_s'], ['gyro_inconsistency_rad_s']],
-                title='IMU Consistency Check Levels', xlabels=['data index', 'data index'],
-                ylabels=['acceleration (m/s/s)', 'angular rate (rad/s)'])
+            data_plot = TimeSeriesPlot(
+                sensor_preflight, [['accel_inconsistency_m_s_s'], ['gyro_inconsistency_rad_s']],
+                x_labels=['data index', 'data index'],
+                y_labels=['acceleration (m/s/s)', 'angular rate (rad/s)'],
+                plot_title = 'IMU Consistency Check Levels', pdf_handle=pdf_pages)
+            data_plot.save()
 
         # vertical velocity and position innovations
-        plot_innovations(
-            pdf_pages, ekf2_innovations, ['vel_pos_innov[2]', 'vel_pos_innov[5]'],
-            ['vel_pos_innov_var[2]', 'vel_pos_innov_var[5]'], titles=['Vertical Innovations'],
-            xlabels=['time (sec)', 'time (sec)'], ylabels=['Down Vel (m/s)', 'Down Pos (m)'])
+        data_plot = InnovationPlot(
+            ekf2_innovations, [('vel_pos_innov[2]', 'vel_pos_innov_var[2]'), ('vel_pos_innov[5]',
+            'vel_pos_innov_var[5]')], x_labels=['time (sec)', 'time (sec)'],
+            y_labels=['Down Vel (m/s)', 'Down Pos (m)'], plot_title='Vertical Innovations',
+            pdf_handle=pdf_pages)
+        data_plot.save()
 
         # horizontal velocity innovations
-        plot_innovations(
-            pdf_pages, ekf2_innovations, ['vel_pos_innov[0]', 'vel_pos_innov[1]'],
-            ['vel_pos_innov_var[0]', 'vel_pos_innov_var[1]'], titles=['Horizontal Velocity  Innovations'],
-            xlabels=['time (sec)', 'time (sec)'], ylabels=['North Vel (m/s)', 'East Vel (m/s)'])
+        data_plot = InnovationPlot(
+            ekf2_innovations, [('vel_pos_innov[0]', 'vel_pos_innov_var[0]'), ('vel_pos_innov[1]',
+            'vel_pos_innov_var[1]')], x_labels=['time (sec)', 'time (sec)'],
+            y_labels=['North Vel (m/s)', 'East Vel (m/s)'],
+            plot_title='Horizontal Velocity  Innovations', pdf_handle=pdf_pages)
+        data_plot.save()
 
         # horizontal position innovations
-        plot_innovations(
-            pdf_pages, ekf2_innovations, ['vel_pos_innov[3]', 'vel_pos_innov[4]'],
-            ['vel_pos_innov_var[3]', 'vel_pos_innov_var[4]'], titles=['Horizontal Position Innovations'],
-            xlabels=['time (sec)', 'time (sec)'], ylabels=['North Pos (m)', 'East Pos (m)'])
+        data_plot = InnovationPlot(
+            ekf2_innovations, [('vel_pos_innov[3]', 'vel_pos_innov_var[3]'), ('vel_pos_innov[4]',
+            'vel_pos_innov_var[4]')], x_labels=['time (sec)', 'time (sec)'],
+            y_labels=['North Pos (m)', 'East Pos (m)'], plot_title='Horizontal Position Innovations',
+            pdf_handle=pdf_pages)
+        data_plot.save()
 
         # magnetometer innovations
-        plot_innovations(
-            pdf_pages, ekf2_innovations, ['mag_innov[0]', 'mag_innov[1]', 'mag_innov[2]'],
-            ['mag_innov_var[0]', 'mag_innov_var[1]', 'mag_innov_var[2]'], titles=['Magnetometer Innovations'],
-            xlabels=['time (sec)', 'time (sec)', 'time (sec)'], ylabels=['X (Gauss)', 'Y (Gauss)', 'Z (Gauss)'])
+        data_plot = InnovationPlot(
+            ekf2_innovations, [('mag_innov[0]', 'mag_innov_var[0]'), ('mag_innov[1]',
+            'mag_innov_var[1]'), ('mag_innov[2]', 'mag_innov_var[2]')],
+            x_labels=['time (sec)', 'time (sec)', 'time (sec)'],
+            y_labels=['X (Gauss)', 'Y (Gauss)', 'Z (Gauss)'], plot_title='Magnetometer Innovations',
+            pdf_handle=pdf_pages)
+        data_plot.save()
 
         # magnetic heading innovations
-        plot_innovations(
-            pdf_pages, ekf2_innovations, ['heading_innov'], ['heading_innov_var'],
-            titles=['Magnetic Heading Innovations'], xlabels=['time (sec)'], ylabels=['Heading (rad)'])
+        data_plot = InnovationPlot(
+            ekf2_innovations, [('heading_innov', 'heading_innov_var')],
+            x_labels=['time (sec)'], y_labels=['Heading (rad)'],
+            plot_title='Magnetic Heading Innovations', pdf_handle=pdf_pages)
+        data_plot.save()
 
         # air data innovations
-        plot_innovations(
-            pdf_pages, ekf2_innovations, ['airspeed_innov', 'beta_innov'], ['airspeed_innov_var', 'beta_innov_var'],
-            titles=['True Airspeed Innovations', 'Synthetic Sideslip Innovations'],
-            xlabels=['time (sec)', 'time (sec)'], ylabels=['innovation (m/sec)', 'innovation (rad)'])
+        data_plot = InnovationPlot(
+            ekf2_innovations,
+            [('airspeed_innov', 'airspeed_innov_var'), ('beta_innov', 'beta_innov_var')],
+            x_labels=['time (sec)', 'time (sec)'],
+            y_labels=['innovation (m/sec)', 'innovation (rad)'],
+            sub_titles=['True Airspeed Innovations', 'Synthetic Sideslip Innovations'],
+            pdf_handle=pdf_pages)
+        data_plot.save()
 
         # optical flow innovations
-        plot_innovations(
-            pdf_pages, ekf2_innovations, ['flow_innov[0]', 'flow_innov[1]'],
-            ['flow_innov_var[0]', 'flow_innov_var[1]'],
-            titles=['Optical Flow Innovations'], xlabels=['time (sec)', 'time (sec)'],
-            ylabels=['X (rad/sec)', 'Y (rad/sec)'])
+        data_plot = InnovationPlot(
+            ekf2_innovations, [('flow_innov[0]', 'flow_innov_var[0]'), ('flow_innov[1]',
+            'flow_innov_var[1]')], x_labels=['time (sec)', 'time (sec)'],
+            y_labels=['X (rad/sec)', 'Y (rad/sec)'],
+            plot_title='Optical Flow Innovations', pdf_handle=pdf_pages)
+        data_plot.save()
 
         # plot normalised innovation test levels
         # define variables to plot
         variables = [['mag_test_ratio'], ['vel_test_ratio', 'pos_test_ratio'], ['hgt_test_ratio']]
         if np.amax(estimator_status['hagl_test_ratio']) > 0.0:  # plot hagl test ratio, if applicable
             variables[-1].append('hagl_test_ratio')
-        ylabels = ['mag', 'vel, pos', 'hgt']
+        y_labels = ['mag', 'vel, pos', 'hgt']
 
         if np.amax(estimator_status['tas_test_ratio']) > 0.0:  # plot airspeed sensor test ratio, if applicable
             variables.append(['tas_test_ratio'])
-            ylabels.append('TAS')
+            y_labels.append('TAS')
 
-        plot_check_flags(
-            pdf_pages, estimator_status, status_time, variables, titles=['Normalised Innovation Test Levels'],
-            xlabel='time (sec)', ylabels=ylabels)
+        data_plot = CheckFlagsPlot(
+            status_time, estimator_status, variables, x_label='time (sec)', y_labels=y_labels,
+            plot_title='Normalised Innovation Test Levels', pdf_handle=pdf_pages)
+        data_plot.save()
 
         # plot control mode summary A
-        control_mode_summary_plot(pdf_pages, control_mode, status_time, [['tilt_aligned', 'yaw_aligned'],
-            ['using_gps', 'using_optflow', 'using_evpos'], ['using_barohgt', 'using_gpshgt', 'using_rnghgt', 'using_evhgt'],
-             ['using_magyaw', 'using_mag3d', 'using_magdecl']], titles=['EKF Control Status - Figure A'],
-            xlabel='time (sec)', ylabels=['aligned', 'pos aiding', 'hgt aiding', 'mag aiding'], annotation_text=[
-                ['tilt alignment', 'yaw alignment'], ['GPS aiding', 'optical flow aiding', 'external vision aiding'],
-                ['Baro aiding', 'GPS aiding', 'rangefinder aiding', 'external vision aiding'],
-                ['magnetic yaw aiding', '3D magnetoemter aiding', 'magnetic declination aiding']])
+        data_plot = ControlModeSummaryPlot(
+            status_time, control_mode, [['tilt_aligned', 'yaw_aligned'],
+            ['using_gps', 'using_optflow', 'using_evpos'], ['using_barohgt', 'using_gpshgt',
+            'using_rnghgt', 'using_evhgt'], ['using_magyaw', 'using_mag3d', 'using_magdecl']],
+            x_label='time (sec)', y_labels=['aligned', 'pos aiding', 'hgt aiding', 'mag aiding'],
+            annotation_text=[['tilt alignment', 'yaw alignment'],
+            ['GPS aiding', 'optical flow aiding', 'external vision aiding'],
+            ['Baro aiding', 'GPS aiding', 'rangefinder aiding', 'external vision aiding'],
+            ['magnetic yaw aiding', '3D magnetoemter aiding', 'magnetic declination aiding']],
+            plot_title='EKF Control Status - Figure A', pdf_handle=pdf_pages)
+        data_plot.save()
 
         # plot control mode summary B
         # construct additional annotations for the airborne plot
@@ -309,11 +183,12 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         else:
             airborne_annotations.append((in_air_transition_time, 'in-air at {:.1f} sec'.format(in_air_transition_time)))
 
-        control_mode_summary_plot(
-            pdf_pages, control_mode, status_time, [['airborne'], ['estimating_wind']],
-            titles=['EKF Control Status - Figure B'], xlabel='time (sec)',
-            ylabels=['airborne', 'estimating wind'], annotation_text=[[], []],
-            additional_annotation=[airborne_annotations, []])
+        data_plot = ControlModeSummaryPlot(
+            status_time, control_mode, [['airborne'], ['estimating_wind']],
+            x_label='time (sec)', y_labels=['airborne', 'estimating wind'], annotation_text=[[], []],
+            additional_annotation=[airborne_annotations, []],
+            plot_title='EKF Control Status - Figure B', pdf_handle=pdf_pages)
+        data_plot.save()
 
     # generate metadata for the normalised innovation consistency test levels
     # a value > 1.0 means the measurement data for that test has been rejected by the EKF
@@ -384,32 +259,38 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
     if plot:
 
         # plot innovation_check_flags summary
-        plot_check_flags(
-            pdf_pages, innov_flags, status_time, [['vel_innov_fail', 'posh_innov_fail'], ['posv_innov_fail',
-            'hagl_innov_fail'], ['magx_innov_fail', 'magy_innov_fail', 'magz_innov_fail', 'yaw_innov_fail'],
-            ['tas_innov_fail'], ['sli_innov_fail'], ['ofx_innov_fail', 'ofy_innov_fail']],
-            titles=['EKF Innovation Test Fails'], xlabel='time (sec)', ylim=(-0.1, 1.1),
-            ylabels=['failed', 'failed', 'failed', 'failed', 'failed', 'failed'],
-            legend=[['vel NED', 'pos NE'], ['hgt absolute', 'hgt above ground'], ['mag_x', 'mag_y', 'mag_z', 'yaw'],
-                    ['airspeed'], ['sideslip'], ['flow X', 'flow Y']], annotate=False)
+        data_plot = CheckFlagsPlot(
+            status_time, innov_flags, [['vel_innov_fail', 'posh_innov_fail'], ['posv_innov_fail',
+            'hagl_innov_fail'], ['magx_innov_fail', 'magy_innov_fail', 'magz_innov_fail',
+             'yaw_innov_fail'], ['tas_innov_fail'], ['sli_innov_fail'], ['ofx_innov_fail',
+             'ofy_innov_fail']], x_label='time (sec)',
+            y_labels=['failed', 'failed', 'failed', 'failed', 'failed', 'failed'],
+            y_lim=(-0.1, 1.1),
+            legend=[['vel NED', 'pos NE'], ['hgt absolute', 'hgt above ground'],
+                    ['mag_x', 'mag_y', 'mag_z', 'yaw'], ['airspeed'], ['sideslip'],
+                    ['flow X', 'flow Y']],
+            plot_title='EKF Innovation Test Fails', annotate=False, pdf_handle=pdf_pages)
+        data_plot.save()
 
         # gps_check_fail_flags summary
-        plot_check_flags(
-            pdf_pages, gps_fail_flags, status_time,
+        data_plot = CheckFlagsPlot(
+            status_time, gps_fail_flags,
             [['nsat_fail', 'gdop_fail', 'herr_fail', 'verr_fail', 'gfix_fail', 'serr_fail'],
              ['hdrift_fail', 'vdrift_fail', 'hspd_fail', 'veld_diff_fail']],
-            titles=['GPS Direct Output Check Failures', 'GPS Derived Output Check Failures'], xlabel='time (sec)',
-            ylim=(-0.1, 1.1), ylabels=['failed', 'failed'],
-            legend=[['N sats', 'GDOP', 'horiz pos error', 'vert pos error', 'fix type', 'speed error'],
-                    ['horiz drift', 'vert drift', 'horiz speed', 'vert vel inconsistent']], annotate=False)
-
+            x_label='time (sec)', y_lim=(-0.1, 1.1), y_labels=['failed', 'failed'],
+            sub_titles=['GPS Direct Output Check Failures', 'GPS Derived Output Check Failures'],
+            legend=[['N sats', 'GDOP', 'horiz pos error', 'vert pos error', 'fix type',
+                     'speed error'], ['horiz drift', 'vert drift', 'horiz speed',
+                      'vert vel inconsistent']], annotate=False, pdf_handle=pdf_pages)
+        data_plot.save()
 
 
         # filter reported accuracy
-        plot_check_flags(
-            pdf_pages, estimator_status, status_time, [['pos_horiz_accuracy', 'pos_vert_accuracy']],
-            titles=['Reported Accuracy'], xlabel='time (sec)', ylabels=['accuracy (m)'],
-            legend=[['horizontal', 'vertical']], annotate=False)
+        data_plot = CheckFlagsPlot(
+            status_time, estimator_status, [['pos_horiz_accuracy', 'pos_vert_accuracy']],
+            x_label='time (sec)', y_labels=['accuracy (m)'], plot_title='Reported Accuracy',
+            legend=[['horizontal', 'vertical']], annotate=False, pdf_handle=pdf_pages)
+        data_plot.save()
 
         # Plot the EKF IMU vibration metrics
         scaled_estimator_status = {'vibe[0]': 1000.* estimator_status['vibe[0]'],
@@ -417,10 +298,11 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
                                    'vibe[2]': estimator_status['vibe[2]']
                                     }
 
-        plot_check_flags(
-            pdf_pages, scaled_estimator_status, status_time, [['vibe[0]'], ['vibe[1]'], ['vibe[2]']],
-            titles=['IMU Vibration Metrics'], xlabel='time (sec)',
-            ylabels=['Del Ang Coning (mrad)', 'HF Del Ang (mrad)', 'HF Del Vel (m/s)'])
+        data_plot = CheckFlagsPlot(
+            status_time, scaled_estimator_status, [['vibe[0]'], ['vibe[1]'], ['vibe[2]']],
+            x_label='time (sec)', y_labels=['Del Ang Coning (mrad)', 'HF Del Ang (mrad)',
+            'HF Del Vel (m/s)'], plot_title='IMU Vibration Metrics', pdf_handle=pdf_pages)
+        data_plot.save()
 
         # Plot the EKF output observer tracking errors
 
@@ -429,151 +311,60 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
                               'output_tracking_error[2]': ekf2_innovations['output_tracking_error[2]']
                               }
 
-        plot_check_flags(
-            pdf_pages, scaled_innovations, 1e-6 * ekf2_innovations['timestamp'],
+        data_plot = CheckFlagsPlot(
+            1e-6 * ekf2_innovations['timestamp'], scaled_innovations,
             [['output_tracking_error[0]'], ['output_tracking_error[1]'], ['output_tracking_error[2]']],
-            titles=['Output Observer Tracking Error Magnitudes'], xlabel='time (sec)',
-            ylabels=['angles (mrad)', 'velocity (m/s)', 'position (m)'])
+            x_label='time (sec)', y_labels=['angles (mrad)', 'velocity (m/s)', 'position (m)'],
+            plot_title='Output Observer Tracking Error Magnitudes', pdf_handle=pdf_pages)
+        data_plot.plot()
 
         # Plot the delta angle bias estimates
-        plot_check_flags(
-            pdf_pages, estimator_status, 1e-6 * estimator_status['timestamp'],
+        data_plot = CheckFlagsPlot(
+            1e-6 * estimator_status['timestamp'], estimator_status,
             [['states[10]'], ['states[11]'], ['states[12]']],
-            titles=['Delta Angle Bias Estimates'], xlabel='time (sec)',
-            ylabels=['X (rad)', 'Y (rad)', 'Z (rad)'], annotate=False)
+            x_label='time (sec)', y_labels=['X (rad)', 'Y (rad)', 'Z (rad)'],
+            plot_title='Delta Angle Bias Estimates', annotate=False, pdf_handle=pdf_pages)
+        data_plot.save()
 
-        plt.figure(16, figsize=(20, 13))
-        plt.subplot(3, 1, 1)
-        plt.plot(1e-6 * estimator_status['timestamp'], estimator_status['states[10]'], 'b')
-        plt.title('Delta Angle Bias Estimates')
-        plt.ylabel('X (rad)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.subplot(3, 1, 2)
-        plt.plot(1e-6 * estimator_status['timestamp'], estimator_status['states[11]'], 'b')
-        plt.ylabel('Y (rad)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.subplot(3, 1, 3)
-        plt.plot(1e-6 * estimator_status['timestamp'], estimator_status['states[12]'], 'b')
-        plt.ylabel('Z (rad)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        pdf_pages.savefig()
-        plt.close(16)
         # Plot the delta velocity bias estimates
-        plot_check_flags(
-            pdf_pages, estimator_status, 1e-6 * estimator_status['timestamp'],
+        data_plot = CheckFlagsPlot(
+            1e-6 * estimator_status['timestamp'], estimator_status,
             [['states[13]'], ['states[14]'], ['states[15]']],
-            titles=['Delta Velocity Bias Estimates'], xlabel='time (sec)',
-            ylabels=['X (m/s)', 'Y (m/s)', 'Z (m/s)'], annotate=False)
-
-        plt.figure(17, figsize=(20, 13))
-        plt.subplot(3, 1, 1)
-        plt.plot(1e-6 * estimator_status['timestamp'], estimator_status['states[13]'], 'b')
-        plt.title('Delta Velocity Bias Estimates')
-        plt.ylabel('X (m/s)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.subplot(3, 1, 2)
-        plt.plot(1e-6 * estimator_status['timestamp'], estimator_status['states[14]'], 'b')
-        plt.ylabel('Y (m/s)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.subplot(3, 1, 3)
-        plt.plot(1e-6 * estimator_status['timestamp'], estimator_status['states[15]'], 'b')
-        plt.ylabel('Z (m/s)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        pdf_pages.savefig()
-        plt.close(17)
+            x_label='time (sec)', y_labels=['X (m/s)', 'Y (m/s)', 'Z (m/s)'],
+            plot_title='Delta Velocity Bias Estimates', annotate=False, pdf_handle=pdf_pages)
+        data_plot.save()
 
         # Plot the earth frame magnetic field estimates
-        rad2deg = 57.2958
-        field_strength = np.sqrt(
-            estimator_status['states[16]'] ** 2 + estimator_status['states[17]'] ** 2 +
-            estimator_status['states[18]'] ** 2)
-        declination = rad2deg * np.arctan2(estimator_status['states[17]'], estimator_status['states[16]'])
-        inclination = rad2deg * np.arcsin(
-            estimator_status['states[18]'] / np.maximum(field_strength, np.finfo(np.float32).eps))
+        declination, field_strength, inclination = magnetic_field_estimates_from_status(
+            estimator_status)
 
-        plot_check_flags(
-            pdf_pages, {'strength': field_strength, 'declination': declination, 'inclination': inclination},
-            1e-6 * estimator_status['timestamp'], [['declination'], ['inclination'], ['strength']],
-            titles=['Earth Magnetic Field Estimates'], xlabel='time (sec)',
-            ylabels=['declination (deg)', 'inclination (deg)', 'strength (Gauss)'], annotate=False)
-
-        plt.figure(18, figsize=(20, 13))
-        plt.subplot(3, 1, 3)
-
-        plt.plot(1e-6 * estimator_status['timestamp'], strength, 'b')
-        plt.ylabel('strength (Gauss)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.subplot(3, 1, 1)
-
-        plt.plot(1e-6 * estimator_status['timestamp'], declination, 'b')
-        plt.title('Earth Magnetic Field Estimates')
-        plt.ylabel('declination (deg)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.subplot(3, 1, 2)
-        plt.plot(1e-6 * estimator_status['timestamp'], inclination, 'b')
-        plt.ylabel('inclination (deg)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        pdf_pages.savefig()
-        plt.close(18)
+        data_plot = CheckFlagsPlot(
+            1e-6 * estimator_status['timestamp'],
+            {'strength': field_strength, 'declination': declination, 'inclination': inclination},
+            [['declination'], ['inclination'], ['strength']],
+            x_label='time (sec)', y_labels=['declination (deg)', 'inclination (deg)',
+            'strength (Gauss)'], plot_title='Earth Magnetic Field Estimates', annotate=False,
+            pdf_handle=pdf_pages)
+        data_plot.save()
 
         # Plot the body frame magnetic field estimates
-        plot_check_flags(
-            pdf_pages, estimator_status, 1e-6 * estimator_status['timestamp'],
+        data_plot = CheckFlagsPlot(
+            1e-6 * estimator_status['timestamp'], estimator_status,
             [['states[19]'], ['states[20]'], ['states[21]']],
-            titles=['Magnetomer Bias Estimates'], xlabel='time (sec)',
-            ylabels=['X (Gauss)', 'Y (Gauss)', 'Z (Gauss)'], annotate=False)
-
-
-        plt.figure(19, figsize=(20, 13))
-        plt.subplot(3, 1, 1)
-        plt.plot(1e-6 * estimator_status['timestamp'], estimator_status['states[19]'], 'b')
-        plt.title('Magnetomer Bias Estimates')
-        plt.ylabel('X (Gauss)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.subplot(3, 1, 2)
-        plt.plot(1e-6 * estimator_status['timestamp'], estimator_status['states[20]'], 'b')
-        plt.ylabel('Y (Gauss)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.subplot(3, 1, 3)
-        plt.plot(1e-6 * estimator_status['timestamp'], estimator_status['states[21]'], 'b')
-        plt.ylabel('Z (Gauss)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        pdf_pages.savefig()
-        plt.close(19)
+            x_label='time (sec)', y_labels=['X (Gauss)', 'Y (Gauss)', 'Z (Gauss)'],
+            plot_title='Magnetometer Bias Estimates', annotate=False, pdf_handle=pdf_pages)
+        data_plot.save()
 
         # Plot the EKF wind estimates
-        plt.figure(20, figsize=(20, 13))
-        plt.subplot(2, 1, 1)
-        plt.plot(1e-6 * estimator_status['timestamp'], estimator_status['states[22]'], 'b')
-        plt.title('Wind Velocity Estimates')
-        plt.ylabel('North (m/s)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        plt.subplot(2, 1, 2)
-        plt.plot(1e-6 * estimator_status['timestamp'], estimator_status['states[23]'], 'b')
-        plt.ylabel('East (m/s)')
-        plt.xlabel('time (sec)')
-        plt.grid()
-        pdf_pages.savefig()
-        plt.close(20)
+        data_plot = CheckFlagsPlot(
+            1e-6 * estimator_status['timestamp'], estimator_status,
+            [['states[22]'], ['states[23]']], x_label='time (sec)',
+            y_labels=['North (m/s)', 'East (m/s)'], plot_title='Wind Velocity Estimates',
+            annotate=False, pdf_handle=pdf_pages)
+        data_plot.save()
+
         # close the pdf file
         pdf_pages.close()
-        # don't display to screen
-        # plt.show()
-        # clase all figures
-        plt.close("all")
 
     # Do some automated analysis of the status data
     # normal index range is defined by the flight duration
@@ -941,6 +732,18 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         test_results['filter_fault_status'][0] = 'Fail'
 
     return test_results
+
+
+def magnetic_field_estimates_from_status(estimator_status: dict) -> Tuple[float, float, float]:
+    rad2deg = 57.2958
+    field_strength = np.sqrt(
+        estimator_status['states[16]'] ** 2 + estimator_status['states[17]'] ** 2 +
+        estimator_status['states[18]'] ** 2)
+    declination = rad2deg * np.arctan2(estimator_status['states[17]'],
+                                       estimator_status['states[16]'])
+    inclination = rad2deg * np.arcsin(
+        estimator_status['states[18]'] / np.maximum(field_strength, np.finfo(np.float32).eps))
+    return declination, field_strength, inclination
 
 
 def get_gps_check_fail_flags(estimator_status):
