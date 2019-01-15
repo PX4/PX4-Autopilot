@@ -105,6 +105,7 @@ static const unsigned char crc_lsb_vector[] = {
 
 unsigned short crc16_calc(unsigned char *data_frame, uint8_t crc16_length)
 {
+	// compute CRC16 IBM 8005
 	unsigned char crc_high_byte = 0xFF;
 	unsigned char crc_low_byte = 0xFF;
 	int i;
