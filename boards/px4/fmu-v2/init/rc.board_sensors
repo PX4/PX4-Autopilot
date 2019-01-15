@@ -77,7 +77,7 @@ then
 	if [ $BOARD_FMUV3 = 21 ]
 	then
 		# v2.1 internal MPU9250 is rotated 180 deg roll, 270 deg yaw
-		mpu9250 -R 14 start
+		mpu9250 -s -R 14 start
 	fi
 
 else
