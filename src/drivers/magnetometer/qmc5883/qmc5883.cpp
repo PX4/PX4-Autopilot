@@ -803,8 +803,8 @@ QMC5883::collect()
 #pragma pack(push, 1)
 	struct { /* status register and data as read back from the device */
 		uint8_t		x[2];
-		uint8_t		z[2];
 		uint8_t		y[2];
+		uint8_t		z[2];
 	}	qmc_report;
 #pragma pack(pop)
 	struct {
