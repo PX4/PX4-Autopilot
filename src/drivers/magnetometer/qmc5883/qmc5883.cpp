@@ -240,15 +240,8 @@ private:
 	 *
 	 * Sets the internal range to handle at least the argument in Gauss.
 	 */
-	int 			set_range(unsigned range);
+	//int 			set_range(unsigned range);
 
-	/**
-	 * check the sensor range.
-	 *
-	 * checks that the range of the sensor is correctly set, to
-	 * cope with communication errors causing the range to change
-	 */
-	void 			check_range(void);
 
 	/**
 	 * check the sensor configuration.
@@ -301,13 +294,6 @@ private:
 	int			read_reg(uint8_t reg, uint8_t &val);
 
 	/**
-	 * Issue a measurement command.
-	 *
-	 * @return		OK if the measurement command was successful.
-	 */
-	int			measure();
-
-	/**
 	 * Collect the result of the most recent measurement.
 	 */
 	int			collect();
@@ -351,7 +337,7 @@ QMC5883::QMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_measure_ticks(0),
 	_reports(nullptr),
 	_scale{},
-	_range_scale(0), /* default range scale from counts to gauss */
+	_range_scale(0), 
 	_range_ga(2.0f),
 	_collect_phase(false),
 	_class_instance(-1),
@@ -441,62 +427,6 @@ out:
 	return ret;
 }
 
-int QMC5883::set_range(unsigned range)
-{
-	int ret;
-	if (range <= 2) {
-		_range_bits = 0x00;
-		_range_scale = 1.2e-4;
-		_range_ga = 2.00f;
-		ret = write_reg(QMC5883_ADDR_CONTROL_1, QMC5883_OUTPUT_RANGE_2G);
-	} else {
-		_range_bits = 0x01;
-		_range_scale = 3.0e-3;
-		_range_ga = 8.00f;
-		ret = write_reg(QMC5883_ADDR_CONTROL_1, QMC5883_OUTPUT_RANGE_8G);
-	}
-
-	if (OK != ret) {
-		perf_count(_comms_errors);
-	}
-
-	uint8_t range_bits_in = 0;
-	ret = read_reg(QMC5883_ADDR_CONTROL_1, range_bits_in);
-
-	if (OK != ret) {
-		perf_count(_comms_errors);
-	}
-
-	return !(range_bits_in == (_range_bits << 4));
-}
-
-/**
-   check that the range register has the right value. This is done
-   periodically to cope with I2C bus noise causing the range of the
-   compass changing.
- */
-void QMC5883::check_range(void)
-{
-	int ret;
-
-	uint8_t range_bits_in = 0;
-	ret = read_reg(QMC5883_ADDR_CONTROL_1, range_bits_in);
-
-	if (OK != ret) {
-		perf_count(_comms_errors);
-		return;
-	}
-
-	if (range_bits_in != _range_bits << 4) {
-		perf_count(_range_errors);
-		ret = write_reg(QMC5883_ADDR_CONTROL_1, (_range_bits << 4));
-
-		if (OK != ret) {
-			perf_count(_comms_errors);
-		}
-	}
-}
-
 /**
    check that the configuration register has the right value. This is
    done periodically to cope with I2C bus noise causing the
@@ -558,12 +488,6 @@ QMC5883::read(struct file *filp, char *buffer, size_t buflen)
 	/* XXX really it'd be nice to lock against other readers here */
 	do {
 		_reports->flush();
-
-		/* trigger a measurement */
-		if (OK != measure()) {
-			ret = -EIO;
-			break;
-		}
 
 		/* wait for it to complete */
 		usleep(QMC5883_CONVERSION_INTERVAL);
@@ -641,7 +565,7 @@ QMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return reset();
 
 	case MAGIOCSRANGE:
-		return set_range(arg);
+		return OK;
 
 	case MAGIOCSSCALE:
 		/* set new scale factors */
@@ -704,15 +628,17 @@ QMC5883::reset()
 	/* set reset period to 0x01 */
 	write_reg(QMC5883_ADDR_SET_RESET, QMC5883_SET_DEFAULT);
 
+	//use fixed range of 2G
+	_range_scale = 1.0f / 12000.0f;   // 12000 LSB/Gauss at +/- 2G range
+	_range_ga = 2.00f;
+	_range_bits = 0x00;
+
 	/* set control register */
 	_conf_reg = QMC5883_MODE_REG_CONTINOUS_MODE |
 			QMC5883_OUTPUT_DATA_RATE_200|
 			QMC5883_OVERSAMPLE_512 |
-			QMC5883_OUTPUT_RANGE_8G;
+			QMC5883_OUTPUT_RANGE_2G;
 	write_reg(QMC5883_ADDR_CONTROL_1, _conf_reg);
-
-	/* set default range */
-	set_range(_range_ga + 0.5f);
 
 	return OK;
 }
@@ -762,11 +688,6 @@ QMC5883::cycle()
 		}
 	}
 
-	/* measurement phase */
-	if (OK != measure()) {
-		DEVICE_DEBUG("measure error");
-	}
-
 	/* next phase is collection */
 	_collect_phase = true;
 
@@ -780,22 +701,6 @@ QMC5883::cycle()
 	}
 }
 
-int
-QMC5883::measure()
-{
-	int ret = 0;
-
-	/*
-	 * QMC5883 has only continuous measurement mode
-	 */
-	//ret = write_reg(ADDR_MODE, MODE_REG_SINGLE_MODE);
-
-	if (OK != ret) {
-		perf_count(_comms_errors);
-	}
-
-	return ret;
-}
 
 int
 QMC5883::collect()
@@ -849,7 +754,6 @@ QMC5883::collect()
 	report.y = (((int16_t)qmc_report.y[1]) << 8) + qmc_report.y[0];
 	report.z = (((int16_t)qmc_report.z[1]) << 8) + qmc_report.z[0];
 	
-
 	/*
 	 * If any of the values are -4096, there was an internal math error in the sensor.
 	 * Generalise this to a simple range check that will also catch some bit errors.
@@ -938,11 +842,8 @@ QMC5883::collect()
 	 */
 	check_counter = perf_event_count(_sample_perf) % 256;
 
-	if (check_counter == 0) {
-		check_range();
-	}
 
-	if (check_counter == 128) {
+	if (check_counter == 0) {
 		check_conf();
 	}
 
