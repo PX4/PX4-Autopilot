@@ -138,4 +138,7 @@ fi
 
 px4flow start &
 
+# External I2C bus magnetometer
+qmc5883 -X start
+
 unset BOARD_FMUV3

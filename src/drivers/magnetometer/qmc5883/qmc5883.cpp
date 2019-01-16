@@ -774,6 +774,7 @@ QMC5883::collect()
 	 * to align the sensor axes with the board, x and y need to be flipped
 	 * and y needs to be negated
 	 */
+	//TODO: sort out axes mapping
 	new_report.x_raw = -report.y;
 	new_report.y_raw = report.x;
 	/* z remains z */
@@ -796,6 +797,7 @@ QMC5883::collect()
 	/* the standard external mag by 3DR has x pointing to the
 	 * right, y pointing backwards, and z down, therefore switch x
 	 * and y and invert y */
+	//TODO: sort out axes mapping
 	xraw_f = -report.y;
 	yraw_f = report.x;
 	zraw_f = report.z;
@@ -834,7 +836,7 @@ QMC5883::collect()
 	poll_notify(POLLIN);
 
 	/*
-	  periodically check the range register and configuration
+	  periodically check the configuration
 	  registers. With a bad I2C cable it is possible for the
 	  registers to become corrupt, leading to bad readings. It
 	  doesn't happen often, but given the poor cables some
@@ -856,6 +858,7 @@ out:
 
 int QMC5883::calibrate(struct file *filp, unsigned enable)
 {
+	//TODO: verify calibration function
 	struct mag_report report;
 	ssize_t sz;
 	int ret = 1;
