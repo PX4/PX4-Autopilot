@@ -116,6 +116,9 @@ QMC5883_I2C::probe()
 {
 	uint8_t data[2] = {0, 0};
 
+	// must read registers 0x00 once or reset to read ID registers reliably
+	read(0x00, &data[0], 1);
+
 	_retries = 10;
 
 	if (read(ADDR_ID_A, &data[0], 1) ||
