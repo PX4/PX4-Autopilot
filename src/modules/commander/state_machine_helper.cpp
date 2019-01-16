@@ -293,6 +293,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 
 		break;
 
+	case commander_state_s::MAIN_STATE_AUTO_AMS:
 	case commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET:
 	case commander_state_s::MAIN_STATE_ORBIT:
 
@@ -309,17 +310,6 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 		if (status_flags.condition_global_position_valid &&
 		    status_flags.condition_auto_mission_available) {
 
-			ret = TRANSITION_CHANGED;
-		}
-
-		break;
-
-	case commander_state_s::MAIN_STATE_AUTO_AMS:
-
-		/* need global position and home position, and AMS is only implemented for multicopters */
-		if (status_flags.condition_global_position_valid &&
-		    status_flags.condition_home_position_valid &&
-		    status.is_rotary_wing) {
 			ret = TRANSITION_CHANGED;
 		}
 
