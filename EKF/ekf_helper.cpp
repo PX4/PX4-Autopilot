@@ -1688,4 +1688,10 @@ void Ekf::increaseQuatYawErrVariance(float yaw_variance)
 	P[1][3] -= yaw_variance*SQ[1]*SQ[3];
 	P[2][3] -= yaw_variance*SQ[0]*SQ[3];
 	P[3][3] += yaw_variance*sq(SQ[3]);
+	P[1][0] += yaw_variance*SQ[1]*SQ[2];
+	P[2][0] += yaw_variance*SQ[0]*SQ[2];
+	P[2][1] += yaw_variance*SQ[0]*SQ[1];
+	P[3][0] -= yaw_variance*SQ[2]*SQ[3];
+	P[3][1] -= yaw_variance*SQ[1]*SQ[3];
+	P[3][2] -= yaw_variance*SQ[0]*SQ[3];
 }
