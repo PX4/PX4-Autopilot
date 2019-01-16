@@ -82,7 +82,7 @@
  */
 
 /* Max measurement rate is 200Hz */
-#define QMC5883_CONVERSION_INTERVAL	(1000000 / 200)	/* microseconds */
+#define QMC5883_CONVERSION_INTERVAL	(1000000 / 150)	/* microseconds */
 #define QMC5883_MAX_COUNT 			32767
 
 #define QMC5883_ADDR_DATA_OUT_X_LSB		0x00
@@ -125,7 +125,7 @@
 /* Set Register */
 #define QMC5883_SET_DEFAULT 			(1 << 0)
 
-#define HMC5983_TEMP_SENSOR_ENABLE 0
+#define QMC5883_TEMP_OFFSET 50 /* deg celsius */
 
 enum QMC5883_BUS {
 	QMC5883_BUS_ALL = 0,
@@ -183,7 +183,6 @@ private:
 
 	/* status reporting */
 	bool			_sensor_ok;		/**< sensor was found and reports ok */
-	bool			_calibrated;		/**< the calibration is valid */
 
 	enum Rotation		_rotation;
 
@@ -206,42 +205,6 @@ private:
 	 * Reset the device
 	 */
 	int			reset();
-
-	/**
-	 * Perform the on-sensor scale calibration routine.
-	 *
-	 * @note The sensor will continue to provide measurements, these
-	 *	 will however reflect the uncalibrated sensor state until
-	 *	 the calibration routine has been completed.
-	 *
-	 * @param enable set to 1 to enable self-test strap, 0 to disable
-	 */
-	int			calibrate(struct file *filp, unsigned enable);
-
-	/**
-	 * Perform the on-sensor scale calibration routine.
-	 *
-	 * @note The sensor will continue to provide measurements, these
-	 *	 will however reflect the uncalibrated sensor state until
-	 *	 the calibration routine has been completed.
-	 *
-	 * @param enable set to 1 to enable self-test positive strap, -1 to enable
-	 *        negative strap, 0 to set to normal mode
-	 */
-	int			set_excitement(unsigned enable);
-
-	/**
-	 * enable hmc5983 temperature compensation
-	 */
-	int			set_temperature_compensation(unsigned enable);
-
-	/**
-	 * Set the sensor range.
-	 *
-	 * Sets the internal range to handle at least the argument in Gauss.
-	 */
-	//int 			set_range(unsigned range);
-
 
 	/**
 	 * check the sensor configuration.
@@ -298,28 +261,6 @@ private:
 	 */
 	int			collect();
 
-	/**
-	 * Convert a big-endian signed 16-bit value to a float.
-	 *
-	 * @param in		A signed 16-bit big-endian value.
-	 * @return		The floating-point representation of the value.
-	 */
-	float			meas_to_float(uint8_t in[2]);
-
-	/**
-	* Check the current scale calibration
-	*
-	* @return 0 if scale calibration is ok, 1 else
-	*/
-	int 			check_scale();
-
-	/**
-	* Check the current offset calibration
-	*
-	* @return 0 if offset calibration is ok, 1 else
-	*/
-	int 			check_offset();
-
 	/* this class has pointer data members, do not allow copying it */
 	QMC5883(const QMC5883 &);
 	QMC5883 operator=(const QMC5883 &);
@@ -337,7 +278,7 @@ QMC5883::QMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_measure_ticks(0),
 	_reports(nullptr),
 	_scale{},
-	_range_scale(0), 
+	_range_scale(1.0f / 12000.0f), 
 	_range_ga(2.0f),
 	_collect_phase(false),
 	_class_instance(-1),
@@ -348,7 +289,6 @@ QMC5883::QMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_range_errors(perf_alloc(PC_COUNT, "qmc5883_rng_err")),
 	_conf_errors(perf_alloc(PC_COUNT, "qmc5883_conf_err")),
 	_sensor_ok(false),
-	_calibrated(false),
 	_rotation(rotation),
 	_range_bits(0),
 	_conf_reg(0),
@@ -421,7 +361,7 @@ QMC5883::init()
 	_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
 
 	ret = OK;
-	/* sensor is ok, but not calibrated */
+	/* sensor is ok */
 	_sensor_ok = true;
 out:
 	return ret;
@@ -576,12 +516,6 @@ QMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 		/* copy out scale factors */
 		memcpy((struct mag_calibration_s *)arg, &_scale, sizeof(_scale));
 		return 0;
-
-	case MAGIOCCALIBRATE:
-		return calibrate(filp, arg);
-
-	case MAGIOCEXSTRAP:
-		return set_excitement(arg);
 
 	case MAGIOCGEXTERNAL:
 		DEVICE_DEBUG("MAGIOCGEXTERNAL in main driver");
@@ -768,13 +702,31 @@ QMC5883::collect()
 	/* get temperature measurements from the device */
 	new_report.temperature = 0;
 
+	if (_temperature_counter++ == 100) {
+		uint8_t raw_temperature[2];
+
+		_temperature_counter = 0;
+
+		ret = _interface->read(QMC5883_ADDR_TEMP_OUT_LSB,
+			       raw_temperature, sizeof(raw_temperature));
+
+		if (ret == OK) {
+			int16_t temp16 = (((int16_t)raw_temperature[1]) << 8) +
+						 raw_temperature[0];
+			new_report.temperature = QMC5883_TEMP_OFFSET + temp16 * 1.0f / 100.0f;
+		} 
+
+	} else {
+		new_report.temperature = _last_report.temperature;
+	}
+
+
 	/*
 	 * RAW outputs
 	 *
 	 * to align the sensor axes with the board, x and y need to be flipped
 	 * and y needs to be negated
 	 */
-	//TODO: sort out axes mapping
 	new_report.x_raw = -report.y;
 	new_report.y_raw = report.x;
 	/* z remains z */
@@ -856,222 +808,6 @@ out:
 	return ret;
 }
 
-int QMC5883::calibrate(struct file *filp, unsigned enable)
-{
-	//TODO: verify calibration function
-	struct mag_report report;
-	ssize_t sz;
-	int ret = 1;
-	uint8_t good_count = 0;
-
-	// XXX do something smarter here
-	int fd = (int)enable;
-
-	struct mag_calibration_s mscale_previous;
-	mscale_previous.x_offset = 0.0f;
-	mscale_previous.x_scale = 1.0f;
-	mscale_previous.y_offset = 0.0f;
-	mscale_previous.y_scale = 1.0f;
-	mscale_previous.z_offset = 0.0f;
-	mscale_previous.z_scale = 1.0f;
-
-	struct mag_calibration_s mscale_null;
-	mscale_null.x_offset = 0.0f;
-	mscale_null.x_scale = 1.0f;
-	mscale_null.y_offset = 0.0f;
-	mscale_null.y_scale = 1.0f;
-	mscale_null.z_offset = 0.0f;
-	mscale_null.z_scale = 1.0f;
-
-	float sum_excited[3] = {0.0f, 0.0f, 0.0f};
-
-	/* expected axis scaling. The datasheet says that 766 will
-	 * be places in the X and Y axes and 713 in the Z
-	 * axis. Experiments show that in fact 766 is placed in X,
-	 * and 713 in Y and Z. This is relative to a base of 660
-	 * LSM/Ga, giving 1.16 and 1.08 */
-	float expected_cal[3] = { 1.16f, 1.08f, 1.08f };
-
-	/* set polling rate to 50hz */
-	write_reg(QMC5883_ADDR_CONTROL_1, QMC5883_OUTPUT_DATA_RATE_50 | _conf_reg);
-
-	/* Set to 2.5 Gauss. We ask for 3 to get the right part of
-	 * the chained if statement above. */
-	if (OK != ioctl(filp, MAGIOCSRANGE, 3)) {
-		warnx("FAILED: MAGIOCSRANGE 2.5 Ga");
-		ret = 1;
-		goto out;
-	}
-
-	if (OK != ioctl(filp, MAGIOCEXSTRAP, 1)) {
-		warnx("FAILED: MAGIOCEXSTRAP 1");
-		ret = 1;
-		goto out;
-	}
-
-	if (OK != ioctl(filp, MAGIOCGSCALE, (long unsigned int)&mscale_previous)) {
-		warn("FAILED: MAGIOCGSCALE 1");
-		ret = 1;
-		goto out;
-	}
-
-	if (OK != ioctl(filp, MAGIOCSSCALE, (long unsigned int)&mscale_null)) {
-		warn("FAILED: MAGIOCSSCALE 1");
-		ret = 1;
-		goto out;
-	}
-
-	// discard 10 samples to let the sensor settle
-	for (uint8_t i = 0; i < 10; i++) {
-		struct pollfd fds;
-
-		/* wait for data to be ready */
-		fds.fd = fd;
-		fds.events = POLLIN;
-		ret = ::poll(&fds, 1, 2000);
-
-		if (ret != 1) {
-			warn("ERROR: TIMEOUT 1");
-			goto out;
-		}
-
-		/* now go get it */
-		sz = ::read(fd, &report, sizeof(report));
-
-		if (sz != sizeof(report)) {
-			warn("ERROR: READ 1");
-			ret = -EIO;
-			goto out;
-		}
-	}
-
-	/* read the sensor up to 150x, stopping when we have 50 good values */
-	for (uint8_t i = 0; i < 150 && good_count < 50; i++) {
-		struct pollfd fds;
-
-		/* wait for data to be ready */
-		fds.fd = fd;
-		fds.events = POLLIN;
-		ret = ::poll(&fds, 1, 2000);
-
-		if (ret != 1) {
-			warn("ERROR: TIMEOUT 2");
-			goto out;
-		}
-
-		/* now go get it */
-		sz = ::read(fd, &report, sizeof(report));
-
-		if (sz != sizeof(report)) {
-			warn("ERROR: READ 2");
-			ret = -EIO;
-			goto out;
-		}
-
-		float cal[3] = {fabsf(expected_cal[0] / report.x),
-				fabsf(expected_cal[1] / report.y),
-				fabsf(expected_cal[2] / report.z)
-			       };
-
-		if (cal[0] > 0.3f && cal[0] < 1.7f &&
-		    cal[1] > 0.3f && cal[1] < 1.7f &&
-		    cal[2] > 0.3f && cal[2] < 1.7f) {
-			good_count++;
-			sum_excited[0] += cal[0];
-			sum_excited[1] += cal[1];
-			sum_excited[2] += cal[2];
-		}
-	}
-
-	if (good_count < 5) {
-		ret = -EIO;
-		goto out;
-	}
-
-	float scaling[3];
-
-	scaling[0] = sum_excited[0] / good_count;
-	scaling[1] = sum_excited[1] / good_count;
-	scaling[2] = sum_excited[2] / good_count;
-
-	/* set scaling in device */
-	mscale_previous.x_scale = 1.0f / scaling[0];
-	mscale_previous.y_scale = 1.0f / scaling[1];
-	mscale_previous.z_scale = 1.0f / scaling[2];
-
-	ret = OK;
-
-out:
-
-	if (OK != ioctl(filp, MAGIOCSSCALE, (long unsigned int)&mscale_previous)) {
-		warn("FAILED: MAGIOCSSCALE 2");
-	}
-
-	/* set back to normal mode */
-	/* Set to 1.9 Gauss */
-	if (OK != ::ioctl(fd, MAGIOCSRANGE, 2)) {
-		warnx("FAILED: MAGIOCSRANGE 1.9 Ga");
-	}
-
-	if (OK != ::ioctl(fd, MAGIOCEXSTRAP, 0)) {
-		warnx("FAILED: MAGIOCEXSTRAP 0");
-	}
-
-	if (ret == OK) {
-		if (check_scale()) {
-			/* failed */
-			warnx("FAILED: SCALE");
-			ret = PX4_ERROR;
-		}
-
-	}
-
-	return ret;
-}
-
-int QMC5883::check_scale()
-{
-	bool scale_valid;
-
-	if ((-FLT_EPSILON + 1.0f < _scale.x_scale && _scale.x_scale < FLT_EPSILON + 1.0f) &&
-	    (-FLT_EPSILON + 1.0f < _scale.y_scale && _scale.y_scale < FLT_EPSILON + 1.0f) &&
-	    (-FLT_EPSILON + 1.0f < _scale.z_scale && _scale.z_scale < FLT_EPSILON + 1.0f)) {
-		/* scale is one */
-		scale_valid = false;
-
-	} else {
-		scale_valid = true;
-	}
-
-	/* return 0 if calibrated, 1 else */
-	return !scale_valid;
-}
-
-int QMC5883::check_offset()
-{
-	bool offset_valid;
-
-	if ((-2.0f * FLT_EPSILON < _scale.x_offset && _scale.x_offset < 2.0f * FLT_EPSILON) &&
-	    (-2.0f * FLT_EPSILON < _scale.y_offset && _scale.y_offset < 2.0f * FLT_EPSILON) &&
-	    (-2.0f * FLT_EPSILON < _scale.z_offset && _scale.z_offset < 2.0f * FLT_EPSILON)) {
-		/* offset is zero */
-		offset_valid = false;
-
-	} else {
-		offset_valid = true;
-	}
-
-	/* return 0 if calibrated, 1 else */
-	return !offset_valid;
-}
-
-int QMC5883::set_excitement(unsigned enable)
-{
-
-	return 0;
-}
-
-
 int
 QMC5883::write_reg(uint8_t reg, uint8_t val)
 {
@@ -1086,20 +822,6 @@ QMC5883::read_reg(uint8_t reg, uint8_t &val)
 	int ret = _interface->read(reg, &buf, 1);
 	val = buf;
 	return ret;
-}
-
-float
-QMC5883::meas_to_float(uint8_t in[2])
-{
-	union {
-		uint8_t	b[2];
-		int16_t	w;
-	} u;
-
-	u.b[0] = in[1];
-	u.b[1] = in[0];
-
-	return (float) u.w;
 }
 
 void
@@ -1151,7 +873,6 @@ struct qmc5883_bus_option &find_bus(enum QMC5883_BUS busid);
 void	test(enum QMC5883_BUS busid);
 void	reset(enum QMC5883_BUS busid);
 int	info(enum QMC5883_BUS busid);
-int	calibrate(enum QMC5883_BUS busid);
 int	temp_enable(QMC5883_BUS busid, bool enable);
 void	usage();
 
@@ -1196,7 +917,6 @@ start_bus(struct qmc5883_bus_option &bus, enum Rotation rotation)
 
 	return true;
 }
-
 
 /**
  * Start the driver.
@@ -1323,69 +1043,6 @@ test(enum QMC5883_BUS busid)
 	errx(0, "PASS");
 }
 
-
-/**
- * Automatic scale calibration.
- *
- * Basic idea:
- *
- *   output = (ext field +- 1.1 Ga self-test) * scale factor
- *
- * and consequently:
- *
- *   1.1 Ga = (excited - normal) * scale factor
- *   scale factor = (excited - normal) / 1.1 Ga
- *
- *   sxy = (excited - normal) / 766	| for conf reg. B set to 0x60 / Gain = 3
- *   sz  = (excited - normal) / 713	| for conf reg. B set to 0x60 / Gain = 3
- *
- * By subtracting the non-excited measurement the pure 1.1 Ga reading
- * can be extracted and the sensitivity of all axes can be matched.
- *
- * SELF TEST OPERATION
- * To check the QMC5883L for proper operation, a self test feature in incorporated
- * in which the sensor offset straps are excited to create a nominal field strength
- * (bias field) to be measured. To implement self test, the least significant bits
- * (MS1 and MS0) of configuration register A are changed from 00 to 01 (positive bias)
- * or 10 (negetive bias), e.g. 0x11 or 0x12.
- * Then, by placing the mode register into single-measurement mode (0x01),
- * two data acquisition cycles will be made on each magnetic vector.
- * The first acquisition will be a set pulse followed shortly by measurement
- * data of the external field. The second acquisition will have the offset strap
- * excited (about 10 mA) in the positive bias mode for X, Y, and Z axes to create
- * about a ±1.1 gauss self test field plus the external field. The first acquisition
- * values will be subtracted from the second acquisition, and the net measurement
- * will be placed into the data output registers.
- * Since self test adds ~1.1 Gauss additional field to the existing field strength,
- * using a reduced gain setting prevents sensor from being saturated and data registers
- * overflowed. For example, if the configuration register B is set to 0x60 (Gain=3),
- * values around +766 LSB (1.16 Ga * 660 LSB/Ga) will be placed in the X and Y data
- * output registers and around +713 (1.08 Ga * 660 LSB/Ga) will be placed in Z data
- * output register. To leave the self test mode, change MS1 and MS0 bit of the
- * configuration register A back to 00 (Normal Measurement Mode), e.g. 0x10.
- * Using the self test method described above, the user can scale sensor
- */
-int calibrate(enum QMC5883_BUS busid)
-{
-	int ret;
-	struct qmc5883_bus_option &bus = find_bus(busid);
-	const char *path = bus.devpath;
-
-	int fd = open(path, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "%s open failed (try 'qmc5883 start' if the driver is not running", path);
-	}
-
-	if (OK != (ret = ioctl(fd, MAGIOCCALIBRATE, fd))) {
-		warnx("failed to enable sensor calibration mode");
-	}
-
-	close(fd);
-
-	return ret;
-}
-
 /**
  * Reset the driver.
  */
@@ -1429,10 +1086,9 @@ info(enum QMC5883_BUS busid)
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'reset', 'info', 'calibrate'");
+	warnx("missing command: try 'start', 'info', 'test', 'reset', 'info'");
 	warnx("options:");
 	warnx("    -R rotation");
-	warnx("    -C calibrate on start");
 	warnx("    -X only external bus");
 #if (PX4_I2C_BUS_ONBOARD || PX4_SPIDEV_HMC)
 	warnx("    -I only internal bus");
@@ -1447,7 +1103,6 @@ qmc5883_main(int argc, char *argv[])
 	int ch;
 	enum QMC5883_BUS busid = QMC5883_BUS_ALL;
 	enum Rotation rotation = ROTATION_NONE;
-	bool calibrate = false;
 
 	if (argc < 2) {
 		qmc5883::usage();
@@ -1474,10 +1129,6 @@ qmc5883_main(int argc, char *argv[])
 			busid = QMC5883_BUS_SPI;
 			break;
 
-		case 'C':
-			calibrate = true;
-			break;
-
 		default:
 			qmc5883::usage();
 			exit(0);
@@ -1491,10 +1142,6 @@ qmc5883_main(int argc, char *argv[])
 	 */
 	if (!strcmp(verb, "start")) {
 		qmc5883::start(busid, rotation);
-
-		if (calibrate && qmc5883::calibrate(busid) != 0) {
-			errx(1, "calibration failed");
-		}
 
 		exit(0);
 	}
@@ -1528,17 +1175,5 @@ qmc5883_main(int argc, char *argv[])
 		qmc5883::info(busid);
 	}
 
-	/*
-	 * Autocalibrate the scaling
-	 */
-	if (!strcmp(verb, "calibrate")) {
-		if (qmc5883::calibrate(busid) == 0) {
-			errx(0, "calibration successful");
-
-		} else {
-			errx(1, "calibration failed");
-		}
-	}
-
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' 'calibrate', or 'info'");
+	errx(1, "unrecognized command, try 'start', 'test', 'reset', or 'info'");
 }

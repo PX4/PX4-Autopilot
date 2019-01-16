@@ -43,6 +43,7 @@ fi
 
 # External I2C bus
 hmc5883 -C -T -X start
+qmc5883 -X start
 lis3mdl -X start
 ist8310 -C start
 
@@ -137,8 +138,5 @@ else
 fi
 
 px4flow start &
-
-# External I2C bus magnetometer
-qmc5883 -X start
 
 unset BOARD_FMUV3

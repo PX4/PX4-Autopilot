@@ -139,9 +139,6 @@ else
 	lsm303d start
 fi
 
-# External I2C bus magnetometer
-qmc5883 -X start
-
 px4flow start &
 
 

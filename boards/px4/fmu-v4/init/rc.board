@@ -37,7 +37,7 @@ set MIXER_AUX none
 
 # External I2C bus
 hmc5883 -C -T -X start
-qmc5883 -X start
+qmc5883 -C -X start
 lis3mdl -X start
 ist8310 start
 bmp280 -I start
@@ -98,7 +98,5 @@ if param compare TEL_FRSKY_CONFIG 0
 then
 	frsky_telemetry start -d /dev/ttyS6 -t 15
 fi
-
-qmc5883 -X start
 
 px4flow start &
