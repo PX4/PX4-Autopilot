@@ -1676,6 +1676,9 @@ void Ekf::increaseQuatYawErrVariance(float yaw_variance)
 	SQ[2] = 0.5f * ((_state.quat_nominal(3)*SG[0]) - (_state.quat_nominal(1)*SG[1]) + (_state.quat_nominal(2)*SG[2]));
 	SQ[3] = 0.5f * ((_state.quat_nominal(0)*SG[0]) + (_state.quat_nominal(1)*SG[2]) + (_state.quat_nominal(2)*SG[1]));
 
+	// Limit yaw variance increase to prevent a badly conditioned covariance matrix
+	yaw_variance = fminf(yaw_variance, 1.0e-2f);
+
 	// Add covariances for additonal yaw uncertainty to existing covariances.
 	// This assumes that the additional yaw error is uncorrrelated to existing errors
 	P[0][0] += yaw_variance*sq(SQ[2]);
