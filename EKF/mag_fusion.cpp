@@ -916,7 +916,7 @@ void Ekf::fuseDeclination(float decl_sigma)
 			}
 		}
 
-		// correct the covariance marix for gross errors
+		// correct the covariance matrix for gross errors
 		fixCovarianceErrors();
 
 		// apply the state corrections
