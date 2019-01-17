@@ -155,12 +155,6 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 						 MPC_XY_TRAJ_P.get();  // Along-track setpoint + cross-track P controller
 		}
 
-	} else if (!PX4_ISFINITE(_velocity_setpoint(0)) &&
-		   !PX4_ISFINITE(_velocity_setpoint(1))) {
-		// No position nor velocity setpoints available, set the velocity targer to zero
-
-		_velocity_setpoint(0) = 0.f;
-		_velocity_setpoint(1) = 0.f;
 	}
 
 	if (PX4_ISFINITE(_position_setpoint(2))) {
@@ -175,9 +169,6 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 			_velocity_setpoint(2) = vel_sp_z;
 		}
 
-	} else if (!PX4_ISFINITE(_velocity_setpoint(2))) {
-		// No position nor velocity setpoints available, set the velocity targer to zero
-		_velocity_setpoint(2) = 0.f;
 	}
 }
 
@@ -204,6 +195,11 @@ void FlightTaskAutoLineSmoothVel::_updateTrajConstraints()
 
 void FlightTaskAutoLineSmoothVel::_generateTrajectory()
 {
+	if (!PX4_ISFINITE(_velocity_setpoint(0)) || !PX4_ISFINITE(_velocity_setpoint(1))
+	    || !PX4_ISFINITE(_velocity_setpoint(2))) {
+		return;
+	}
+
 	/* Slow down the trajectory by decreasing the integration time based on the position error.
 	 * This is only performed when the drone is behind the trajectory
 	 */
