@@ -207,12 +207,12 @@ void OutputBase::_calculate_output_angles(const hrt_abstime &t)
 
 	//get the output angles and stabilize if necessary
 	vehicle_attitude_s vehicle_attitude;
+	matrix::Eulerf euler;
 
 	if (_stabilize[0] || _stabilize[1] || _stabilize[2]) {
 		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &vehicle_attitude);
+		euler = matrix::Quatf(vehicle_attitude.q);
 	}
-
-	matrix::Eulerf euler = matrix::Quatf(vehicle_attitude.q);
 
 	for (int i = 0; i < 3; ++i) {
 		if (_stabilize[i]) {
