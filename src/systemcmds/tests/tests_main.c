@@ -51,103 +51,99 @@
 #define TESTS_EIGEN_DISABLE
 
 
+static int test_all(int argc, char *argv[]);
 static int test_help(int argc, char *argv[]);
+static int test_jig(int argc, char *argv[]);
 static int test_runner(unsigned option);
 
-static int test_all(int argc, char *argv[]);
-static int test_jig(int argc, char *argv[]);
 
 const struct {
-	const char 	*name;
-	int	(* fn)(int argc, char *argv[]);
-	unsigned	options;
-#define OPT_NOHELP	(1<<0)
-#define OPT_NOALLTEST	(1<<1)
-#define OPT_NOJIGTEST	(1<<2)
+	const char  *name;
+	int (* fn)(int argc, char *argv[]);
+	unsigned    options;
+#define OPT_NOHELP  (1<<0)
+#define OPT_NOALLTEST   (1<<1)
+#define OPT_NOJIGTEST   (1<<2)
 } tests[] = {
-	{"help",		test_help,	OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST},
-	{"all",			test_all,	OPT_NOALLTEST | OPT_NOJIGTEST},
-	{"jig",			test_jig,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"all",             test_all,                   OPT_NOALLTEST | OPT_NOJIGTEST},
+	{"help",            test_help,                  OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST},
+	{"jig",             test_jig,                   OPT_NOJIGTEST | OPT_NOALLTEST},
 #ifdef __PX4_NUTTX
-	{"adc",			test_adc,	OPT_NOJIGTEST},
-	{"file",		test_file,	OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"led",			test_led,	0},
-	{"sensors",		test_sensors,	0},
-	{"time",		test_time,	OPT_NOJIGTEST},
-	{"uart_baudchange",	test_uart_baudchange,	OPT_NOJIGTEST},
-	{"uart_break",		test_uart_break,	OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"uart_console",	test_uart_console,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"adc",             test_adc,                   OPT_NOJIGTEST},
+	{"file",            test_file,                  OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"led",             test_led,                   0},
+	{"sensors",         test_sensors,               0},
+	{"time",            test_time,                  OPT_NOJIGTEST},
+	{"uart_baudchange", test_uart_baudchange,       OPT_NOJIGTEST},
+	{"uart_break",      test_uart_break,            OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"uart_console",    test_uart_console,          OPT_NOJIGTEST | OPT_NOALLTEST},
 #else
-	{"rc",			rc_tests_main,	0},
+	{"mavlink",         mavlink_tests_main,         0},
+	{"rc",              rc_tests_main,              0},
 #endif /* __PX4_NUTTX */
 
 	/* external tests */
-	{"commander",		commander_tests_main,	0},
-	{"controllib",		controllib_test_main,	0},
-#ifndef __PX4_NUTTX
-	{"mavlink",		mavlink_tests_main,	0},
-#endif
-	{"sf0x",		sf0x_tests_main,	0},
-	{"uorb",		uorb_tests_main,	0},
-	{"hysteresis",		test_hysteresis,	0},
+	{"commander",           commander_tests_main,   0},
+	{"controllib",          controllib_test_main,   0},
+	{"sf0x",                sf0x_tests_main,        0},
+	{"uorb",                uorb_tests_main,        0},
 
-	{"mixer",		test_mixer,	OPT_NOJIGTEST},
-	{"autodeclination",	test_autodeclination,	0},
-	{"bezier",		test_bezierQuad, 0},
-	{"bson",		test_bson,	0},
-	{"conv",		test_conv, 0},
-	{"dataman",		test_dataman, OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"file2",		test_file2,	OPT_NOJIGTEST},
-	{"float",		test_float,	0},
-	{"hott_telemetry",	test_hott_telemetry,	OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"hrt",			test_hrt,	OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"int",			test_int,	0},
-	{"jig_voltages",	test_jig_voltages,	OPT_NOALLTEST},
-	{"mathlib",		test_mathlib,	0},
-	{"matrix",		test_matrix,	0},
-	{"microbench_hrt",		test_microbench_hrt,	0},
-	{"microbench_math",		test_microbench_math,	0},
-	{"microbench_matrix",		test_microbench_matrix,	0},
-	{"microbench_uorb",		test_microbench_uorb,	0},
-	{"mount",		test_mount,	OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"param",		test_param,	0},
-	{"parameters",	test_parameters,	0},
-	{"perf",		test_perf,	OPT_NOJIGTEST},
-	{"ppm",			test_ppm,	OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"ppm_loopback",	test_ppm_loopback,	OPT_NOALLTEST},
-	{"rc",			test_rc,	OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"search_min",	test_search_min, 0},
-	{"servo",		test_servo,	OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"sleep",		test_sleep,	OPT_NOJIGTEST},
-	{"tone",		test_tone,	0},
-	{"uart_loopback",	test_uart_loopback,	OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"uart_send",		test_uart_send,	OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"versioning",		test_versioning,	0},
-	{"ctlmath",		test_controlmath, 0},
-	{"smoothz", 	test_smooth_z, 0},
-	{NULL,			NULL, 		0}
+	{"autodeclination",     test_autodeclination,   0},
+	{"bezier",              test_bezierQuad,        0},
+	{"bson",                test_bson,              0},
+	{"conv",                test_conv,              0},
+	{"ctlmath",             test_controlmath,       0},
+	{"dataman",             test_dataman,           OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"file2",               test_file2,             OPT_NOJIGTEST},
+	{"float",               test_float,             0},
+	{"hott_telemetry",      test_hott_telemetry,    OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"hrt",                 test_hrt,               OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"hysteresis",          test_hysteresis,        0},
+	{"int",                 test_int,               0},
+	{"jig_voltages",        test_jig_voltages,      OPT_NOALLTEST},
+	{"mathlib",             test_mathlib,           0},
+	{"matrix",              test_matrix,            0},
+	{"microbench_hrt",      test_microbench_hrt,    0},
+	{"microbench_math",     test_microbench_math,   0},
+	{"microbench_matrix",   test_microbench_matrix, 0},
+	{"microbench_uorb",     test_microbench_uorb,   0},
+	{"mixer",               test_mixer,             OPT_NOJIGTEST},
+	{"mount",               test_mount,             OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"param",               test_param,             0},
+	{"parameters",          test_parameters,        0},
+	{"perf",                test_perf,              OPT_NOJIGTEST},
+	{"ppm",                 test_ppm,               OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"ppm_loopback",        test_ppm_loopback,      OPT_NOALLTEST},
+	{"rc",                  test_rc,                OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"search_min",          test_search_min,        0},
+	{"servo",               test_servo,             OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"sleep",               test_sleep,             OPT_NOJIGTEST},
+	{"smooth_z",            test_smooth_z,          0},
+	{"tone",                test_tone,              0},
+	{"uart_loopback",       test_uart_loopback,     OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"uart_send",           test_uart_send,         OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"versioning",          test_versioning,        0},
+	{NULL, NULL, 0}
 };
 
 #define NTESTS (sizeof(tests) / sizeof(tests[0]))
 
 static int
+test_all(int argc, char *argv[])
+{
+	return test_runner(OPT_NOALLTEST);
+}
+
+static int
 test_help(int argc, char *argv[])
 {
-	unsigned	i;
-
 	printf("Available tests:\n");
 
-	for (i = 0; tests[i].name; i++) {
+	for (size_t i = 0; tests[i].name; i++) {
 		printf("  %s\n", tests[i].name);
 	}
 
 	return 0;
-}
-
-static int
-test_all(int argc, char *argv[])
-{
-	return test_runner(OPT_NOALLTEST);
 }
 
 static int
@@ -159,11 +155,11 @@ test_jig(int argc, char *argv[])
 static int
 test_runner(unsigned option)
 {
-	unsigned	i;
-	char		*args[2] = {"all", NULL};
+	size_t i = 0;
+	char *args[2] = {"all", NULL};
 	unsigned int failcount = 0;
 	unsigned int testcount = 0;
-	unsigned		passed[NTESTS];
+	unsigned passed[NTESTS] = {};
 
 	printf("\nRunning all tests...\n\n");
 
@@ -262,7 +258,7 @@ int tests_main(int argc, char *argv[])
 		return 1;
 	}
 
-	for (unsigned i = 0; tests[i].name; i++) {
+	for (size_t i = 0; tests[i].name; i++) {
 		if (!strcmp(tests[i].name, argv[1])) {
 			if (tests[i].fn(argc - 1, argv + 1) == 0) {
 				printf("%s PASSED\n", tests[i].name);
