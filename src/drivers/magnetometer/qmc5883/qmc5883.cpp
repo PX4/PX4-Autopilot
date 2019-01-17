@@ -517,15 +517,6 @@ QMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 		memcpy((struct mag_calibration_s *)arg, &_scale, sizeof(_scale));
 		return 0;
 
-	case MAGIOCCALIBRATE:
-		return OK;
-
-	case MAGIOCEXSTRAP:
-		return OK;
-
-	case MAGIOCSELFTEST:
-		return OK;
-
 	case MAGIOCGEXTERNAL:
 		DEVICE_DEBUG("MAGIOCGEXTERNAL in main driver");
 		return _interface->ioctl(cmd, dummy);
