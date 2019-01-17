@@ -1,6 +1,6 @@
 
 px4_add_board(
-	PLATFORM nuttx
+	OS nuttx
 	VENDOR auav
 	MODEL x21
 	TOOLCHAIN arm-none-eabi

@@ -40,7 +40,7 @@ set(SRCS
 	otp.c
 	)
 
-if(${PX4_PLATFORM} STREQUAL "nuttx")
+if(${PX4_OS} STREQUAL "nuttx")
 	list(APPEND SRCS
 		print_load_nuttx.c
 		)

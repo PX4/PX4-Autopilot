@@ -149,7 +149,7 @@ function(px4_posix_generate_alias)
 			)
 		endif()
 	endforeach()
-	configure_file(${PX4_SOURCE_DIR}/platforms/posix/src/px4-alias.sh_in ${OUT})
+	configure_file(${PX4_SOURCE_DIR}/os/posix/src/px4-alias.sh_in ${OUT})
 endfunction()
 
 
@@ -219,7 +219,7 @@ function(px4_os_add_flags)
 		-Dnoreturn_function=__attribute__\(\(noreturn\)\)
 		)
 		
-	include_directories(platforms/posix/include)
+	include_directories(os/posix/include)
 
 	if ("${PX4_BOARD}" MATCHES "sitl")
 

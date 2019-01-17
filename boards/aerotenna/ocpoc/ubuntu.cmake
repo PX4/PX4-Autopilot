@@ -3,7 +3,7 @@ px4_add_board(
 	VENDOR aerotenna
 	MODEL ocpoc
 	LABEL ubuntu
-	PLATFORM posix
+	OS posix
 	ARCHITECTURE cortex-a9
 	TOOLCHAIN arm-linux-gnueabihf
 	TESTING

@@ -36,7 +36,7 @@ if("${CONFIG_SHMEM}" STREQUAL "1")
 	list(APPEND CMAKE_MODULE_PATH "${PX4_SOURCE_DIR}/boards/atlflight/cmake_hexagon")
 	include(hexagon_sdk)
 	include_directories(${HEXAGON_SDK_INCLUDES})
-	include_directories(${PX4_BINARY_DIR}/platforms/posix)
+	include_directories(${PX4_BINARY_DIR}/os/posix)
 	list(APPEND SHMEM_SRCS
 		shmem_posix.cpp
 	)
@@ -58,7 +58,7 @@ target_link_libraries(px4_layer PRIVATE px4_daemon)
 
 if(ENABLE_LOCKSTEP_SCHEDULER)
 	target_link_libraries(px4_layer PRIVATE lockstep_scheduler)
-	include_directories(${PX4_SOURCE_DIR}/platforms/posix/src/lockstep_scheduler/include)
+	include_directories(${PX4_SOURCE_DIR}/os/posix/src/lockstep_scheduler/include)
 endif()
 
 

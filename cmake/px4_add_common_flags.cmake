@@ -93,7 +93,7 @@ function(px4_add_common_flags)
 		add_compile_options(-fcolor-diagnostics)
 
 		# QuRT 6.4.X compiler identifies as Clang but does not support this option
-		if (NOT "${PX4_PLATFORM}" STREQUAL "qurt")
+		if (NOT "${PX4_OS}" STREQUAL "qurt")
 			add_compile_options(
 				-Qunused-arguments
 

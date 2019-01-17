@@ -1,6 +1,6 @@
 
 px4_add_board(
-	PLATFORM nuttx
+	OS nuttx
 	VENDOR av
 	MODEL x-v1
 	TOOLCHAIN arm-none-eabi

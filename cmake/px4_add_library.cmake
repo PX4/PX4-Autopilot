@@ -49,7 +49,7 @@ function(px4_add_library target)
 	target_link_libraries(${target} PRIVATE prebuild_targets parameters_interface uorb_msgs)
 
 	# TODO: move to platform layer
-	if ("${PX4_PLATFORM}" MATCHES "nuttx")
+	if ("${PX4_OS}" MATCHES "nuttx")
 		target_link_libraries(${target} PRIVATE m nuttx_c)
 	endif()
 

@@ -1,6 +1,6 @@
 
 px4_add_board(
-	PLATFORM nuttx
+	OS nuttx
 	VENDOR stm
 	MODEL nucleo-F767ZI
 	TOOLCHAIN arm-none-eabi

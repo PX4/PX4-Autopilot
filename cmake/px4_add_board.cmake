@@ -41,7 +41,7 @@ include(px4_base)
 #
 #	Usage:
 #		px4_add_board(
-#			PLATFORM <string>
+#			OS <string>
 #			VENDOR <string>
 #			MODEL <string>
 #			[ LABEL <string> ]
@@ -62,7 +62,7 @@ include(px4_base)
 #			)
 #
 #	Input:
-#		PLATFORM		: PX4 platform name (posix, nuttx, qurt)
+#		OS		: PX4 OS name (posix, nuttx, qurt)
 #		VENDOR			: name of board vendor/manufacturer/brand/etc
 #		MODEL			: name of board model
 #		LABEL			: optional label, set to default if not specified
@@ -84,7 +84,7 @@ include(px4_base)
 #
 #	Example:
 #		px4_add_board(
-#			PLATFORM nuttx
+#			OS nuttx
 #			VENDOR px4
 #			MODEL fmu-v5
 #			TOOLCHAIN arm-none-eabi
@@ -132,7 +132,7 @@ function(px4_add_board)
 	px4_parse_function_args(
 		NAME px4_add_board
 		ONE_VALUE
-			PLATFORM
+			OS
 			VENDOR
 			MODEL
 			LABEL
@@ -153,7 +153,7 @@ function(px4_add_board)
 			CONSTRAINED_FLASH
 			TESTING
 		REQUIRED
-			PLATFORM
+			OS
 			VENDOR
 			MODEL
 		ARGN ${ARGN})
@@ -180,8 +180,8 @@ function(px4_add_board)
 	set(PX4_CONFIG "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}" CACHE STRING "PX4 config" FORCE)
 
 	# set OS, and append specific platform module path
-	set(PX4_PLATFORM ${PLATFORM} CACHE STRING "PX4 board OS" FORCE)
-	list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake)
+	set(PX4_OS ${OS} CACHE STRING "PX4 board OS" FORCE)
+	list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/os/${PX4_OS}/cmake)
 
 	if(ARCHITECTURE)
 		set(CMAKE_SYSTEM_PROCESSOR ${ARCHITECTURE} CACHE INTERNAL "system processor" FORCE)

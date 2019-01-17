@@ -46,7 +46,7 @@
 #include <string>
 #include <termios.h>
 
-#include <platforms/posix/apps.h>
+#include <os/posix/apps.h>
 #include "history.h"
 
 namespace px4_daemon

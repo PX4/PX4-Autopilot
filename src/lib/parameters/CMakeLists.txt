@@ -130,7 +130,7 @@ else()
 	list(APPEND SRCS parameters.cpp)
 endif()
 
-if(${PX4_PLATFORM} STREQUAL "nuttx")
+if(${PX4_OS} STREQUAL "nuttx")
 	add_subdirectory(flashparams)
 endif()
 
@@ -155,6 +155,6 @@ else()
 endif()
 add_dependencies(parameters prebuild_targets)
 
-if(${PX4_PLATFORM} STREQUAL "nuttx")
+if(${PX4_OS} STREQUAL "nuttx")
 	target_link_libraries(parameters PRIVATE flashparams tinybson)
 endif()

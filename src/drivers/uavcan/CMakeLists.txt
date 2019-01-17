@@ -50,7 +50,7 @@ if(NOT config_uavcan_num_ifaces)
 	message(FATAL_ERROR "config_uavcan_num_ifaces not set")
 endif()
 
-string(TOUPPER "${PX4_PLATFORM}" OS_UPPER)
+string(TOUPPER "${PX4_OS}" OS_UPPER)
 string(TOUPPER "${UAVCAN_PLATFORM}" UAVCAN_PLATFORM_UPPER)
 add_definitions(
 		-DUAVCAN_CPP_VERSION=UAVCAN_CPP03

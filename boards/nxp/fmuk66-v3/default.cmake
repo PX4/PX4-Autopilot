@@ -1,6 +1,6 @@
 
 px4_add_board(
-	PLATFORM nuttx
+	OS nuttx
 	VENDOR nxp
 	MODEL fmuk66-v3
 	TOOLCHAIN arm-none-eabi

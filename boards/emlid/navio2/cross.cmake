@@ -3,7 +3,7 @@ px4_add_board(
 	VENDOR emlid
 	MODEL navio2
 	LABEL cross
-	PLATFORM posix
+	OS posix
 	ARCHITECTURE cortex-a53
 	TOOLCHAIN arm-linux-gnueabihf
 	TESTING

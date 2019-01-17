@@ -1,6 +1,6 @@
 
 px4_add_board(
-	PLATFORM nuttx
+	OS nuttx
 	VENDOR bitcraze
 	MODEL crazyflie
 	TOOLCHAIN arm-none-eabi

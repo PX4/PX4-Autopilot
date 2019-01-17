@@ -1,6 +1,6 @@
 
 px4_add_board(
-	PLATFORM posix
+	OS posix
 	VENDOR px4
 	MODEL sitl
 	LABEL test

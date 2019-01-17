@@ -32,7 +32,7 @@
 ############################################################################
 
 set(SRCS_PLATFORM)
-if (${PX4_PLATFORM} STREQUAL "nuttx")
+if (${PX4_OS} STREQUAL "nuttx")
 	list(APPEND SRCS_PLATFORM
 		nuttx/cdev_platform.cpp
 	)

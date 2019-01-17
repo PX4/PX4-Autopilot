@@ -32,7 +32,7 @@
 ############################################################################
 
 # nuttx uses internal work queue currently
-if (NOT "${PX4_PLATFORM}" MATCHES "nuttx")
+if (NOT "${PX4_OS}" MATCHES "nuttx")
 
 	add_library(work_queue
 		dq_addlast.c

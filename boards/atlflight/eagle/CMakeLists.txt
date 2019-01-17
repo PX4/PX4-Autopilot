@@ -38,12 +38,12 @@
 # Upload
 ############################################################################
 
-if("${PX4_PLATFORM}" MATCHES "qurt")
+if("${PX4_OS}" MATCHES "qurt")
 
 	add_custom_target(upload
 		COMMAND
 			${CMAKE_CURRENT_SOURCE_DIR}/scripts/adb_upload.sh
-				${PX4_BINARY_DIR}/platforms/qurt/libpx4.so ${PX4_BINARY_DIR}/platforms/qurt/libpx4muorb_skel.so ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/px4.config	# source
+				${PX4_BINARY_DIR}/os/qurt/libpx4.so ${PX4_BINARY_DIR}/os/qurt/libpx4muorb_skel.so ${PX4_SOURCE_DIR}/posix-configs/eagle/flight/px4.config	# source
 				/usr/share/data/adsp	# destination
 		DEPENDS px4 px4muorb_skel
 		COMMENT "uploading px4"

@@ -93,7 +93,7 @@ function(px4_add_module)
 		REQUIRED MODULE MAIN
 		ARGN ${ARGN})
 
-	if(UNITY_BUILD AND (${PX4_PLATFORM} STREQUAL "nuttx"))
+	if(UNITY_BUILD AND (${PX4_OS} STREQUAL "nuttx"))
 		# build standalone test library to catch compilation errors and provide sane output
 		add_library(${MODULE}_original STATIC EXCLUDE_FROM_ALL ${SRCS})
 		if(DEPENDS)
@@ -178,9 +178,9 @@ function(px4_add_module)
 	endif()
 	set_target_properties(${MODULE} PROPERTIES STACK_MAX ${STACK_MAX})
 
-	if(${PX4_PLATFORM} STREQUAL "qurt")
+	if(${PX4_OS} STREQUAL "qurt")
 		set_property(TARGET ${MODULE} PROPERTY POSITION_INDEPENDENT_CODE TRUE)
-	elseif(${PX4_PLATFORM} STREQUAL "nuttx")
+	elseif(${PX4_OS} STREQUAL "nuttx")
 		target_compile_options(${MODULE} PRIVATE -Wframe-larger-than=${STACK_MAX})
 	endif()
 

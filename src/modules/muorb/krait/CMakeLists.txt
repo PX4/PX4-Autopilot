@@ -37,7 +37,7 @@ px4_add_module(
 	MAIN muorb
 	INCLUDES
 		${HEXAGON_SDK_INCLUDES}
-		${PX4_BINARY_DIR}/platforms/posix
+		${PX4_BINARY_DIR}/os/posix
 	SRCS
 		uORBKraitFastRpcChannel.cpp
 		px4muorb_KraitRpcWrapper.cpp

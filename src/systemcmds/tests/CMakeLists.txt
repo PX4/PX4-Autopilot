@@ -74,7 +74,7 @@ set(srcs
 	tests_main.c
 	)
 
-if(${PX4_PLATFORM} STREQUAL "nuttx")
+if(${PX4_OS} STREQUAL "nuttx")
 	list(APPEND srcs
 		test_time.c
 		test_uart_break.c

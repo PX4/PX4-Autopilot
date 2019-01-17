@@ -20,7 +20,7 @@ include(configs/uavcan_board_ident/s2740vc-v1)
 # N.B. this would be uncommented when there is an APP
 #include(px4_make_uavcan_bootloader)
 #px4_make_uavcan_bootloadable(BOARD ${PX4_BOARD}
-# BIN ${PX4_BINARY_DIR}/platforms/nuttx/s2740vc-v1.bin
+# BIN ${PX4_BINARY_DIR}/os/nuttx/s2740vc-v1.bin
 # HWNAME ${uavcanblid_name}
 # HW_MAJOR ${uavcanblid_hw_version_major}
 # HW_MINOR ${uavcanblid_hw_version_minor}
@@ -28,7 +28,7 @@ include(configs/uavcan_board_ident/s2740vc-v1)
 # SW_MINOR ${uavcanblid_sw_version_minor})
 
 px4_add_board(
-	PLATFORM nuttx
+	OS nuttx
 	VENDOR thiemar
 	MODEL s2740vc-v1
 	TOOLCHAIN arm-none-eabi

@@ -35,7 +35,7 @@ px4_make_uavcan_bootloadable(
 )
 
 px4_add_board(
-	PLATFORM nuttx
+	OS nuttx
 	VENDOR px4
 	MODEL cannode-v1
 	TOOLCHAIN arm-none-eabi

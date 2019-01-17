@@ -3,7 +3,7 @@ px4_add_board(
 	VENDOR emlid
 	MODEL navio2
 	LABEL native
-	PLATFORM posix
+	OS posix
 	TESTING
 
 	DRIVERS

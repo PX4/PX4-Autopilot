@@ -35,7 +35,7 @@ file(GLOB_RECURSE copy_apps_files
 set(NUTTX_DIR ${CMAKE_CURRENT_BINARY_DIR}/nuttx)
 set(NUTTX_CONFIG_DIR ${PX4_BOARD_DIR}/nuttx-config)
 
-set(NUTTX_CONFIGS_DIR ${PX4_SOURCE_DIR}/platforms/nuttx/nuttx-configs)
+set(NUTTX_CONFIGS_DIR ${PX4_SOURCE_DIR}/os/nuttx/nuttx-configs)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Make.defs.in ${NUTTX_DIR}/Make.defs)
 
 # copy nuttx to build directory
@@ -208,7 +208,7 @@ endif()
 add_custom_target(oldconfig
 	COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD=${PX4_BOARD} oldconfig
 	COMMAND cp ${NUTTX_DIR}/.config ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
-	COMMAND ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/tools/nuttx_defconf_tool.sh ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
+	COMMAND ${PX4_SOURCE_DIR}/os/nuttx/NuttX/tools/nuttx_defconf_tool.sh ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig
 	DEPENDS ${NUTTX_DIR}/.config
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	COMMENT "Running NuttX make oldconfig for ${NUTTX_CONFIG}"

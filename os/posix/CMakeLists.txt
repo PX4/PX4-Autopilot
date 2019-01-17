@@ -6,7 +6,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
 # When building with catkin, do not change CMAKE_RUNTIME_OUTPUT_DIR from
-# CMAKE_CURRENT_BINARY_DIR ''./platforms/posix' to './bin'
+# CMAKE_CURRENT_BINARY_DIR ''./os/posix' to './bin'
 if (NOT CATKIN_DEVEL_PREFIX)
 	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 endif()

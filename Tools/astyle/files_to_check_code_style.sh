@@ -8,8 +8,8 @@ then
     PATTERN="$1"
 fi
 
-exec find boards src platforms \
-    -path platforms/nuttx/NuttX -prune -o \
+exec find boards src os \
+    -path os/nuttx/NuttX -prune -o \
     -path src/lib/DriverFramework -prune -o \
     -path src/lib/ecl -prune -o \
     -path src/lib/matrix -prune -o \

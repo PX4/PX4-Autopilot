@@ -3,7 +3,7 @@ px4_add_board(
 	VENDOR beaglebone
 	MODEL blue
 	LABEL cross
-	PLATFORM posix
+	OS posix
 	ARCHITECTURE cortex-a8
 	TOOLCHAIN arm-linux-gnueabihf
 	TESTING

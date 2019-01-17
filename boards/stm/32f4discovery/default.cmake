@@ -1,6 +1,6 @@
 
 px4_add_board(
-	PLATFORM nuttx
+	OS nuttx
 	VENDOR stm
 	MODEL 32f4discovery
 	TOOLCHAIN arm-none-eabi

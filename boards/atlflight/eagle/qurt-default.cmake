@@ -39,7 +39,7 @@ set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
 add_definitions(-D__PX4_QURT_EAGLE)
 
 px4_add_board(
-	PLATFORM qurt
+	OS qurt
 	VENDOR atlflight
 	MODEL eagle
 	LABEL qurt-default

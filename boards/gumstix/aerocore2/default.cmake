@@ -1,6 +1,6 @@
 
 px4_add_board(
-	PLATFORM nuttx
+	OS nuttx
 	VENDOR gumstix
 	MODEL aerocore2
 	TOOLCHAIN arm-none-eabi

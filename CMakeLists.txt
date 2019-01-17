@@ -40,7 +40,7 @@
 # * Common functions should be included in px_base.cmake.
 #
 # * OS/ board specific fucntions should be include in
-#	px_impl_${PX4_PLATFORM}.cmake or px4_impl_${PX4_PLATFORM}_${PX4_BOARD}.cmake.
+#	px_impl_${PX4_OS}.cmake or px4_impl_${PX4_OS}_${PX4_BOARD}.cmake.
 #
 # Formatting
 # ---------------------------------------------------------------------------
@@ -92,9 +92,9 @@
 # ---------------------------------------------------------------------------
 #
 # * If referencing a string variable, don't put it in quotes.
-#	Don't do "${PX4_PLATFORM}" STREQUAL "posix",
-#	instead type ${PX4_PLATFORM} STREQUAL "posix". This will throw an
-#	error when ${PX4_PLATFORM} is not defined instead of silently
+#	Don't do "${PX4_OS}" STREQUAL "posix",
+#	instead type ${PX4_OS} STREQUAL "posix". This will throw an
+#	error when ${PX4_OS} is not defined instead of silently
 #	evaluating to false.
 #
 #=============================================================================
@@ -214,7 +214,7 @@ message(STATUS "PX4 config file: ${PX4_CONFIG_FILE}")
 include(px4_add_board)
 include(${PX4_CONFIG_FILE})
 message(STATUS "PX4 config: ${PX4_CONFIG}")
-message(STATUS "PX4 platform: ${PX4_PLATFORM}")
+message(STATUS "PX4 platform: ${PX4_OS}")
 
 if (ENABLE_LOCKSTEP_SCHEDULER)
 	add_definitions(-DENABLE_LOCKSTEP_SCHEDULER)
@@ -232,12 +232,12 @@ endif()
 
 set_property(GLOBAL PROPERTY PX4_MODULE_CONFIG_FILES)
 
-include(platforms/${PX4_PLATFORM}/cmake/px4_impl_os.cmake)
-list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake)
+include(os/${PX4_OS}/cmake/px4_impl_os.cmake)
+list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/os/${PX4_OS}/cmake)
 
 # CMake build type (Debug Release RelWithDebInfo MinSizeRel Coverage)
 if (NOT CMAKE_BUILD_TYPE)
-	if (${PX4_PLATFORM} STREQUAL "nuttx")
+	if (${PX4_OS} STREQUAL "nuttx")
 		set(PX4_BUILD_TYPE "MinSizeRel")
 	else()
 		set(PX4_BUILD_TYPE "RelWithDebInfo")
@@ -279,7 +279,7 @@ endif()
 #=============================================================================
 
 # Setup install paths
-if (${PX4_PLATFORM} STREQUAL "posix")
+if (${PX4_OS} STREQUAL "posix")
 
 	# This makes it possible to dynamically load code which depends on symbols
 	# inside the px4 executable.
@@ -367,7 +367,7 @@ px4_generate_airframes_xml(BOARD ${PX4_BOARD})
 # DriverFramework
 #
 px4_add_git_submodule(TARGET git_driverframework PATH "src/lib/DriverFramework")
-set(OS ${PX4_PLATFORM})
+set(OS ${PX4_OS})
 add_subdirectory(src/lib/DriverFramework/framework)
 
 # List the DriverFramework drivers
@@ -435,7 +435,7 @@ add_subdirectory(src/lib/parameters EXCLUDE_FROM_ALL)
 target_link_libraries(parameters_interface INTERFACE parameters)
 
 # firmware added last to generate the builtin for included modules
-add_subdirectory(platforms/${PX4_PLATFORM})
+add_subdirectory(os/${PX4_OS})
 
 #=============================================================================
 # uORB graph generation: add a custom target 'uorb_graph'

@@ -3,7 +3,7 @@ px4_add_board(
 	VENDOR beaglebone
 	MODEL blue
 	LABEL native
-	PLATFORM posix
+	OS posix
 	TESTING
 
 	DRIVERS

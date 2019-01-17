@@ -32,7 +32,7 @@ if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 
 	add_executable(px4
 		${PX4_BINARY_DIR}/apps.cpp
-		${PX4_BINARY_DIR}/platforms/qurt/px4muorb_skel.c
+		${PX4_BINARY_DIR}/os/qurt/px4muorb_skel.c
 	)
 
 	target_link_libraries(px4 PRIVATE ${module_libraries} ${df_driver_libs})

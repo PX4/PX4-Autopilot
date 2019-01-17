@@ -2,7 +2,7 @@
 # FMUv3 is FMUv2 with access to the full 2MB flash
 
 px4_add_board(
-	PLATFORM nuttx
+	OS nuttx
 	VENDOR px4
 	MODEL fmu-v3
 	LABEL rtps

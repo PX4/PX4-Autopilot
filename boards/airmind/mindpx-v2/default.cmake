@@ -1,6 +1,6 @@
 
 px4_add_board(
-	PLATFORM nuttx
+	OS nuttx
 	VENDOR airmind
 	MODEL mindpx-v2
 	TOOLCHAIN arm-none-eabi

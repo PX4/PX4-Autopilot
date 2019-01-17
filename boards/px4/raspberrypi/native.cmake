@@ -3,7 +3,7 @@ px4_add_board(
 	VENDOR px4
 	MODEL raspberrypi
 	LABEL native
-	PLATFORM posix
+	OS posix
 	TESTING
 
 	DRIVERS

@@ -1,6 +1,6 @@
 
 px4_add_board(
-	PLATFORM nuttx
+	OS nuttx
 	VENDOR omnibus
 	MODEL f4sd
 	TOOLCHAIN arm-none-eabi

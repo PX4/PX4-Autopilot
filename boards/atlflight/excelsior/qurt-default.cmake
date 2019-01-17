@@ -39,7 +39,7 @@ set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
 add_definitions(-D__PX4_QURT_EXCELSIOR)
 
 px4_add_board(
-	PLATFORM qurt
+	OS qurt
 	VENDOR atlflight
 	MODEL excelsior
 	LABEL qurt-default

@@ -38,7 +38,7 @@ add_definitions(
 )
 
 px4_add_board(
-	PLATFORM posix
+	OS posix
 	VENDOR atlflight
 	MODEL eagle
 	LABEL default

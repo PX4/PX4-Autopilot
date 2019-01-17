@@ -1,6 +1,6 @@
 
 px4_add_board(
-	PLATFORM nuttx
+	OS nuttx
 	VENDOR atmel
 	MODEL same70xplained
 	TOOLCHAIN arm-none-eabi

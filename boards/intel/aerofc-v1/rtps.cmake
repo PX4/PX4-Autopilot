@@ -1,6 +1,6 @@
 
 px4_add_board(
-	PLATFORM nuttx
+	OS nuttx
 	VENDOR intel
 	MODEL aerofc-v1
 	LABEL rtsp

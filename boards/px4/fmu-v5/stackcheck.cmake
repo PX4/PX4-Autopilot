@@ -1,6 +1,6 @@
 
 px4_add_board(
-	PLATFORM nuttx
+	OS nuttx
 	VENDOR px4
 	MODEL fmu-v5
 	LABEL stackcheck

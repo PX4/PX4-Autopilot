@@ -37,7 +37,7 @@ px4_make_uavcan_bootloadable(
 )
 
 px4_add_board(
-	PLATFORM nuttx
+	OS nuttx
 	VENDOR auav
 	MODEL esc35-v1
 	TOOLCHAIN arm-none-eabi
