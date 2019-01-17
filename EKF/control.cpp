@@ -1510,6 +1510,9 @@ void Ekf::controlMagFusion()
 				for (uint8_t index = 0; index <= 5; index ++) {
 					P[index + 16][index + 16] = sq(_params.mag_noise);
 				}
+
+				// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
+				fuseDeclination(0.02f);
 			}
 
 		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_HEADING) {
@@ -1567,7 +1570,7 @@ void Ekf::controlMagFusion()
 			fuseMag();
 
 			if (_control_status.flags.mag_dec) {
-				fuseDeclination();
+				fuseDeclination(0.5f);
 			}
 
 		} else if (_control_status.flags.mag_hdg && _control_status.flags.yaw_align) {

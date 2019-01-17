@@ -791,13 +791,13 @@ void Ekf::fuseHeading()
 	}
 }
 
-void Ekf::fuseDeclination()
+void Ekf::fuseDeclination(float decl_sigma)
 {
 	// assign intermediate state variables
 	float magN = _state.mag_I(0);
 	float magE = _state.mag_I(1);
 
-	float R_DECL = sq(0.5f);
+	float R_DECL = sq(decl_sigma);
 
 	// Calculate intermediate variables
 	float t2 = magE*magE;

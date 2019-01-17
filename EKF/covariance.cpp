@@ -889,6 +889,9 @@ void Ekf::resetMagCovariance()
 	for (uint8_t rc_index = 16; rc_index <= 21; rc_index ++) {
 		P[rc_index][rc_index] = sq(_params.mag_noise);
 	}
+
+	// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
+	fuseDeclination(0.02f);
 }
 
 void Ekf::resetWindCovariance()
