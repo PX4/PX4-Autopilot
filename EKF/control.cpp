@@ -1463,9 +1463,16 @@ void Ekf::controlMagFusion()
 						zeroRows(P, 16, 21);
 						zeroCols(P, 16, 21);
 
-						// re-instate the last used variances
-						for (uint8_t index = 0; index <= 5; index ++) {
-							P[index + 16][index + 16] = _saved_mag_variance[index];
+						// re-instate variances for the D earth axis and XYZ body axis field
+						for (uint8_t index = 0; index <= 3; index ++) {
+							P[index + 18][index + 18] = _saved_mag_bf_variance[index];
+						}
+
+						// re-instate the NE axis covariance sub-matrix
+						for (uint8_t row = 0; row <= 1; row ++) {
+							for (uint8_t col = 0; col <= 1; col ++) {
+								P[row + 16][col + 16] = _saved_mag_ef_covmat[row][col];
+							}
 						}
 					}
 				}
@@ -1475,10 +1482,18 @@ void Ekf::controlMagFusion()
 				_control_status.flags.mag_hdg = !_control_status.flags.mag_3D;
 
 			} else {
-				// save magnetic field state variances for next time
+				// save magnetic field state covariance data for next time
 				if (_control_status.flags.mag_3D) {
-					for (uint8_t index = 0; index <= 5; index ++) {
-						_saved_mag_variance[index] = P[index + 16][index + 16];
+					// save variances for the D earth axis and XYZ body axis field
+					for (uint8_t index = 0; index <= 3; index ++) {
+						_saved_mag_bf_variance[index] = P[index + 18][index + 18];
+					}
+
+					// save the NE axis covariance sub-matrix
+					for (uint8_t row = 0; row <= 1; row ++) {
+						for (uint8_t col = 0; col <= 1; col ++) {
+							_saved_mag_ef_covmat[row][col] = P[row + 16][col + 16];
+						}
 					}
 
 					_control_status.flags.mag_3D = false;

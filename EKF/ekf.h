@@ -414,7 +414,8 @@ private:
 	bool _flt_mag_align_converging{false};	///< true when the in-flight mag field post alignment convergence is being performd
 	uint64_t _flt_mag_align_start_time{0};	///< time that inflight magnetic field alignment started (uSec)
 	uint64_t _time_last_movement{0};	///< last system time that sufficient movement to use 3-axis magnetometer fusion was detected (uSec)
-	float _saved_mag_variance[6] {};	///< magnetic field state variances that have been saved for use at the next initialisation (Gauss**2)
+	float _saved_mag_bf_variance[4] {};	///< magnetic field state variances that have been saved for use at the next initialisation (Gauss**2)
+	float _saved_mag_ef_covmat[2][2] {};    ///< NE magnetic field state covariance sub-matrix saved for use at the next initialisation (Gauss**2)
 	bool _velpos_reset_request{false};	///< true when a large yaw error has been fixed and a velocity and position state reset is required
 
 	gps_check_fail_status_u _gps_check_fail_status{};
