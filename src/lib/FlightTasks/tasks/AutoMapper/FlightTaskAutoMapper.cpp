@@ -110,7 +110,7 @@ void FlightTaskAutoMapper::_generateIdleSetpoints()
 	// Send zero thrust setpoint
 	_position_setpoint = Vector3f(NAN, NAN, NAN); // Don't require any position/velocity setpoints
 	_velocity_setpoint = Vector3f(NAN, NAN, NAN);
-	_thrust_setpoint.zero();
+	_thrust_setpoint = Vector3f(NAN, NAN, NAN);
 }
 
 void FlightTaskAutoMapper::_generateLandSetpoints()
