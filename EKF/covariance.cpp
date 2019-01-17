@@ -106,6 +106,9 @@ void Ekf::initialiseCovariance()
 		P[index][index] = sq(_params.mag_noise);
 	}
 
+	// save covariance data for re-use when auto-switching between heading and 3-axis fusion
+	save_mag_cov_data();
+
 	// wind
 	P[22][22] = sq(_params.initial_wind_uncertainty);
 	P[23][23] = sq(_params.initial_wind_uncertainty);
