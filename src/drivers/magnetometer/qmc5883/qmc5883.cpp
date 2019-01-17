@@ -1040,7 +1040,8 @@ test(enum QMC5883_BUS busid)
 		print_message(report);
 	}
 
-	errx(0, "PASS");
+	PX4_INFO("PASS");
+	exit(0);
 }
 
 /**
