@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *  Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
+ *  Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name NuttX nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,51 +32,70 @@
  ****************************************************************************/
 
 /**
- * @file test_hrt.c
- * Tests the high resolution timer.
+ * @file test_tone.cpp
+ * Test for audio tones.
  */
 
+#include <stdlib.h>
+
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_tone_alarm.h>
 #include <px4_posix.h>
-#include <sys/time.h>
 
 #include "tests_main.h"
 
-int test_hrt(int argc, char *argv[])
+
+int test_tone(int argc, char *argv[])
 {
-	struct hrt_call call;
-	hrt_abstime prev, now;
-	int i;
-	struct timeval tv1, tv2;
+	int fd, result;
+	unsigned long tone;
 
-	printf("start-time (hrt, sec/usec), end-time (hrt, sec/usec), microseconds per 1/10 second\n");
+	fd = px4_open(TONE_ALARM0_DEVICE_PATH, O_WRONLY);
 
-	for (i = 0; i < 10; i++) {
-		prev = hrt_absolute_time();
-		gettimeofday(&tv1, nullptr);
-		px4_usleep(100000);
-		now = hrt_absolute_time();
-		gettimeofday(&tv2, nullptr);
-		printf("%lu (%lu/%lu), %lu (%lu/%lu), %lu\n",
-		       (unsigned long)prev, (unsigned long)tv1.tv_sec, (unsigned long)tv1.tv_usec,
-		       (unsigned long)now, (unsigned long)tv2.tv_sec, (unsigned long)tv2.tv_usec,
-		       (unsigned long)(hrt_absolute_time() - prev));
-		fflush(stdout);
+	if (fd < 0) {
+		printf("failed opening " TONE_ALARM0_DEVICE_PATH "\n");
+		goto out;
 	}
 
-	px4_usleep(1000000);
+	tone = 1;
 
-	printf("one-second ticks\n");
+	if (argc == 2) {
+		tone = atoi(argv[1]);
+	}
 
-	for (i = 0; i < 3; i++) {
-		hrt_call_after(&call, 1000000, nullptr, nullptr);
+	if (tone  == 0) {
+		result = px4_ioctl(fd, TONE_SET_ALARM, TONE_STOP_TUNE);
 
-		while (!hrt_called(&call)) {
-			px4_usleep(1000);
+		if (result < 0) {
+			printf("failed clearing alarms\n");
+			goto out;
+
+		} else {
+			printf("Alarm stopped.\n");
 		}
 
-		printf("tick\n");
-		fflush(stdout);
+	} else {
+		result = px4_ioctl(fd, TONE_SET_ALARM, TONE_STOP_TUNE);
+
+		if (result < 0) {
+			printf("failed clearing alarms\n");
+			goto out;
+		}
+
+		result = px4_ioctl(fd, TONE_SET_ALARM, tone);
+
+		if (result < 0) {
+			printf("failed setting alarm %lu\n", tone);
+
+		} else {
+			printf("Alarm %lu (disable with: tests tone 0)\n", tone);
+		}
+	}
+
+out:
+
+	if (fd >= 0) {
+		px4_close(fd);
 	}
 
 	return 0;

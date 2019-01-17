@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *  Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
+ *  Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name NuttX nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,52 +32,47 @@
  ****************************************************************************/
 
 /**
- * @file test_hrt.c
- * Tests the high resolution timer.
+ * @file test_ppm.cpp
+ * Test for ppm channel values.
  */
 
-#include <drivers/drv_hrt.h>
-#include <px4_posix.h>
-#include <sys/time.h>
+#include <stdio.h>
 
 #include "tests_main.h"
 
-int test_hrt(int argc, char *argv[])
+
+extern uint16_t ppm_buffer[];
+extern unsigned ppm_decoded_channels;
+// extern uint16_t ppm_edge_history[];
+// extern uint16_t ppm_pulse_history[];
+
+
+int test_ppm(int argc, char *argv[])
 {
-	struct hrt_call call;
-	hrt_abstime prev, now;
-	int i;
-	struct timeval tv1, tv2;
+#ifdef HRT_PPM_CHANNEL
+	unsigned i;
 
-	printf("start-time (hrt, sec/usec), end-time (hrt, sec/usec), microseconds per 1/10 second\n");
+	printf("channels: %u\n", ppm_decoded_channels);
 
-	for (i = 0; i < 10; i++) {
-		prev = hrt_absolute_time();
-		gettimeofday(&tv1, nullptr);
-		px4_usleep(100000);
-		now = hrt_absolute_time();
-		gettimeofday(&tv2, nullptr);
-		printf("%lu (%lu/%lu), %lu (%lu/%lu), %lu\n",
-		       (unsigned long)prev, (unsigned long)tv1.tv_sec, (unsigned long)tv1.tv_usec,
-		       (unsigned long)now, (unsigned long)tv2.tv_sec, (unsigned long)tv2.tv_usec,
-		       (unsigned long)(hrt_absolute_time() - prev));
-		fflush(stdout);
+	for (i = 0; i < ppm_decoded_channels; i++) {
+		printf("  %u\n", ppm_buffer[i]);
 	}
 
-	px4_usleep(1000000);
+	// printf("edges\n");
 
-	printf("one-second ticks\n");
+	// for (i = 0; i < 32; i++) {
+	// 	printf("  %u\n", ppm_edge_history[i]);
+	// }
 
-	for (i = 0; i < 3; i++) {
-		hrt_call_after(&call, 1000000, nullptr, nullptr);
+	// printf("pulses\n");
 
-		while (!hrt_called(&call)) {
-			px4_usleep(1000);
-		}
+	// for (i = 0; i < 32; i++) {
+	// 	printf("  %u\n", ppm_pulse_history[i]);
+	// }
 
-		printf("tick\n");
-		fflush(stdout);
-	}
-
+	fflush(stdout);
+#else
+	printf("PPM not configured\n");
+#endif
 	return 0;
 }
