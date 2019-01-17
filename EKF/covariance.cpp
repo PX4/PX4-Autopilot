@@ -892,6 +892,9 @@ void Ekf::resetMagCovariance()
 
 	// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
 	fuseDeclination(0.02f);
+
+	// save covariance data for re-use when auto-switching between heading and 3-axis fusion
+	save_mag_cov_data();
 }
 
 void Ekf::resetWindCovariance()

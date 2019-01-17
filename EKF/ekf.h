@@ -674,6 +674,9 @@ private:
 	// Argument is additional yaw variance in rad**2
 	void increaseQuatYawErrVariance(float yaw_variance);
 
+	// save mag field state covariance data for re-use
+	void save_mag_cov_data();
+
 	// uncorrelate quaternion states from other states
 	void uncorrelateQuatStates();
 
