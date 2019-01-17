@@ -147,7 +147,7 @@ private:
 	vehicle_trajectory_waypoint_s _traj_wp_avoidance{};		/**< trajectory waypoint */
 	vehicle_trajectory_waypoint_s _traj_wp_avoidance_desired{};	/**< desired waypoints, inputs to an obstacle avoidance module */
 	landing_gear_s _landing_gear{};
-	int8_t	_old_landing_gear_position;
+	int8_t _old_landing_gear_position{landing_gear_s::GEAR_KEEP};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time constant for smooth takeoff ramp */
