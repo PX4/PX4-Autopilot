@@ -1484,18 +1484,7 @@ void Ekf::controlMagFusion()
 			} else {
 				// save magnetic field state covariance data for next time
 				if (_control_status.flags.mag_3D) {
-					// save variances for the D earth axis and XYZ body axis field
-					for (uint8_t index = 0; index <= 3; index ++) {
-						_saved_mag_bf_variance[index] = P[index + 18][index + 18];
-					}
-
-					// save the NE axis covariance sub-matrix
-					for (uint8_t row = 0; row <= 1; row ++) {
-						for (uint8_t col = 0; col <= 1; col ++) {
-							_saved_mag_ef_covmat[row][col] = P[row + 16][col + 16];
-						}
-					}
-
+					save_mag_cov_data();
 					_control_status.flags.mag_3D = false;
 				}
 
@@ -1528,6 +1517,9 @@ void Ekf::controlMagFusion()
 
 				// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
 				fuseDeclination(0.02f);
+
+				// save covariance data for re-use when auto-switching between heading and 3-axis fusion
+				save_mag_cov_data();
 			}
 
 		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_HEADING) {
