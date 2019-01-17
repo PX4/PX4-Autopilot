@@ -487,15 +487,17 @@ bool Ekf::realignYawGPS()
 			zeroRows(P, 16, 21);
 			zeroCols(P, 16, 21);
 
-			for (uint8_t index = 16; index <= 21; index ++) {
-				P[index][index] = sq(_params.mag_noise);
+			if (_control_status.flags.mag_3D) {
+				for (uint8_t index = 16; index <= 21; index ++) {
+					P[index][index] = sq(_params.mag_noise);
+				}
+
+				// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
+				fuseDeclination(0.02f);
+
+				// save covariance data for re-use when auto-switching between heading and 3-axis fusion
+				save_mag_cov_data();
 			}
-
-			// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
-			fuseDeclination(0.02f);
-
-			// save covariance data for re-use when auto-switching between heading and 3-axis fusion
-			save_mag_cov_data();
 
 			// record the start time for the magnetic field alignment
 			_flt_mag_align_start_time = _imu_sample_delayed.time_us;
@@ -528,15 +530,17 @@ bool Ekf::realignYawGPS()
 			zeroRows(P, 16, 21);
 			zeroCols(P, 16, 21);
 
-			for (uint8_t index = 16; index <= 21; index ++) {
-				P[index][index] = sq(_params.mag_noise);
+			if (_control_status.flags.mag_3D) {
+				for (uint8_t index = 16; index <= 21; index ++) {
+					P[index][index] = sq(_params.mag_noise);
+				}
+
+				// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
+				fuseDeclination(0.02f);
+
+				// save covariance data for re-use when auto-switching between heading and 3-axis fusion
+				save_mag_cov_data();
 			}
-
-			// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
-			fuseDeclination(0.02f);
-
-			// save covariance data for re-use when auto-switching between heading and 3-axis fusion
-			save_mag_cov_data();
 
 			// record the start time for the magnetic field alignment
 			_flt_mag_align_start_time = _imu_sample_delayed.time_us;
@@ -561,10 +565,15 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 
 	if (_params.mag_fusion_type >= MAG_FUSE_TYPE_NONE) {
 		// do not use the magnetomer and deactivate magnetic field states
+		// save covariance data for re-use if currently doing 3-axis fusion
+		if (_control_status.flags.mag_3D) {
+			save_mag_cov_data();
+			_control_status.flags.mag_3D = false;
+		}
 		zeroRows(P, 16, 21);
 		zeroCols(P, 16, 21);
 		_control_status.flags.mag_hdg = false;
-		_control_status.flags.mag_3D = false;
+
 		return false;
 	}
 
@@ -693,15 +702,17 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 	zeroRows(P, 16, 21);
 	zeroCols(P, 16, 21);
 
-	for (uint8_t index = 16; index <= 21; index ++) {
-		P[index][index] = sq(_params.mag_noise);
+	if (_control_status.flags.mag_3D) {
+		for (uint8_t index = 16; index <= 21; index ++) {
+			P[index][index] = sq(_params.mag_noise);
+		}
+
+		// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
+		fuseDeclination(0.02f);
+
+		// save covariance data for re-use when auto-switching between heading and 3-axis fusion
+		save_mag_cov_data();
 	}
-
-	// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
-	fuseDeclination(0.02f);
-
-	// save covariance data for re-use when auto-switching between heading and 3-axis fusion
-	save_mag_cov_data();
 
 	// record the time for the magnetic field alignment event
 	_flt_mag_align_start_time = _imu_sample_delayed.time_us;

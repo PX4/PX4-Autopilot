@@ -239,11 +239,16 @@ void Ekf::controlExternalVisionFusion()
 				// flag the yaw as aligned
 				_control_status.flags.yaw_align = true;
 
-				// turn on fusion of external vision yaw measurements and disable all magnetoemter fusion
+				// turn on fusion of external vision yaw measurements and disable all magnetometer fusion
 				_control_status.flags.ev_yaw = true;
 				_control_status.flags.mag_hdg = false;
-				_control_status.flags.mag_3D = false;
 				_control_status.flags.mag_dec = false;
+
+				// save covariance data for re-use if currently doing 3-axis fusion
+				if (_control_status.flags.mag_3D) {
+					save_mag_cov_data();
+					_control_status.flags.mag_3D = false;
+				}
 
 				ECL_INFO("EKF commencing external vision yaw fusion");
 			}
@@ -530,8 +535,13 @@ void Ekf::controlGpsFusion()
 				_control_status.flags.gps_yaw = true;
 				_control_status.flags.ev_yaw = false;
 				_control_status.flags.mag_hdg = false;
-				_control_status.flags.mag_3D = false;
 				_control_status.flags.mag_dec = false;
+
+				// save covariance data for re-use if currently doing 3-axis fusion
+				if (_control_status.flags.mag_3D) {
+					save_mag_cov_data();
+					_control_status.flags.mag_3D = false;
+				}
 
 				ECL_INFO("EKF commencing GPS yaw fusion");
 			}
@@ -1346,11 +1356,17 @@ void Ekf::controlDragFusion()
 void Ekf::controlMagFusion()
 {
 	if (_params.mag_fusion_type >= MAG_FUSE_TYPE_NONE) {
+
 		// do not use the magnetomer and deactivate magnetic field states
+		// save covariance data for re-use if currently doing 3-axis fusion
+		if (_control_status.flags.mag_3D) {
+			save_mag_cov_data();
+			_control_status.flags.mag_3D = false;
+		}
 		zeroRows(P, 16, 21);
 		zeroCols(P, 16, 21);
 		_control_status.flags.mag_hdg = false;
-		_control_status.flags.mag_3D = false;
+
 		return;
 	}
 
@@ -1467,7 +1483,6 @@ void Ekf::controlMagFusion()
 						for (uint8_t index = 0; index <= 3; index ++) {
 							P[index + 18][index + 18] = _saved_mag_bf_variance[index];
 						}
-
 						// re-instate the NE axis covariance sub-matrix
 						for (uint8_t row = 0; row <= 1; row ++) {
 							for (uint8_t col = 0; col <= 1; col ++) {
@@ -1482,7 +1497,7 @@ void Ekf::controlMagFusion()
 				_control_status.flags.mag_hdg = !_control_status.flags.mag_3D;
 
 			} else {
-				// save magnetic field state covariance data for next time
+				// save covariance data for re-use if currently doing 3-axis fusion
 				if (_control_status.flags.mag_3D) {
 					save_mag_cov_data();
 					_control_status.flags.mag_3D = false;
@@ -1515,17 +1530,24 @@ void Ekf::controlMagFusion()
 					P[index + 16][index + 16] = sq(_params.mag_noise);
 				}
 
-				// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
-				fuseDeclination(0.02f);
+				if (_control_status.flags.mag_3D) {
+					// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
+					fuseDeclination(0.02f);
 
-				// save covariance data for re-use when auto-switching between heading and 3-axis fusion
-				save_mag_cov_data();
+					// save covariance data for re-use when auto-switching between heading and 3-axis fusion
+					save_mag_cov_data();
+				}
 			}
 
 		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_HEADING) {
 			// always use heading fusion
 			_control_status.flags.mag_hdg = true;
-			_control_status.flags.mag_3D = false;
+
+			// save covariance data for re-use if currently doing 3-axis fusion
+			if (_control_status.flags.mag_3D) {
+				save_mag_cov_data();
+				_control_status.flags.mag_3D = false;
+			}
 
 		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_3D) {
 			// if transitioning into 3-axis fusion mode, we need to initialise the yaw angle and field states
@@ -1541,7 +1563,13 @@ void Ekf::controlMagFusion()
 		} else {
 			// do no magnetometer fusion at all
 			_control_status.flags.mag_hdg = false;
-			_control_status.flags.mag_3D = false;
+
+			// save covariance data for re-use if currently doing 3-axis fusion
+			if (_control_status.flags.mag_3D) {
+				save_mag_cov_data();
+				_control_status.flags.mag_3D = false;
+			}
+
 		}
 
 		// if we are using 3-axis magnetometer fusion, but without external aiding, then the declination must be fused as an observation to prevent long term heading drift
