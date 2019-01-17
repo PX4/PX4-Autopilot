@@ -489,7 +489,8 @@ private:
 	bool resetGpsAntYaw();
 
 	// fuse magnetometer declination measurement
-	void fuseDeclination();
+	// argument passed in is the declination uncertainty in radians
+	void fuseDeclination(float decl_sigma);
 
 	// fuse airspeed measurement
 	void fuseAirspeed();

@@ -491,8 +491,12 @@ bool Ekf::realignYawGPS()
 				P[index][index] = sq(_params.mag_noise);
 			}
 
+			// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
+			fuseDeclination(0.02f);
+
 			// record the start time for the magnetic field alignment
 			_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+
 			// calculate the amount that the quaternion has changed by
 			_state_reset_status.quat_change = quat_before_reset.inversed() * _state.quat_nominal;
 
@@ -524,6 +528,9 @@ bool Ekf::realignYawGPS()
 			for (uint8_t index = 16; index <= 21; index ++) {
 				P[index][index] = sq(_params.mag_noise);
 			}
+
+			// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
+			fuseDeclination(0.02f);
 
 			// record the start time for the magnetic field alignment
 			_flt_mag_align_start_time = _imu_sample_delayed.time_us;
@@ -683,6 +690,9 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 	for (uint8_t index = 16; index <= 21; index ++) {
 		P[index][index] = sq(_params.mag_noise);
 	}
+
+	// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
+	fuseDeclination(0.02f);
 
 	// record the time for the magnetic field alignment event
 	_flt_mag_align_start_time = _imu_sample_delayed.time_us;
