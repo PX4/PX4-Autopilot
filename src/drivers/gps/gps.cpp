@@ -998,7 +998,7 @@ int GPS::task_spawn(int argc, char *argv[], Instance instance)
 	}
 
 	int task_id = px4_task_spawn_cmd("gps", SCHED_DEFAULT,
-				   SCHED_PRIORITY_SLOW_DRIVER, 1530,
+				   SCHED_PRIORITY_SLOW_DRIVER, 1600,
 				   entry_point, (char *const *)argv);
 
 	if (task_id < 0) {
