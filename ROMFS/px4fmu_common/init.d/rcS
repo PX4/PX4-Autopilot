@@ -153,17 +153,6 @@ else
 	fi
 
 	#
-	# Optional board defaults: rc.board_defaults
-	#
-	set BOARD_RC_DEFAULTS /etc/init.d/rc.board_defaults
-	if [ -f $BOARD_RC_DEFAULTS ]
-	then
-		echo "Board defaults: ${BOARD_RC_DEFAULTS}"
-		sh $BOARD_RC_DEFAULTS
-	fi
-	unset BOARD_RC_DEFAULTS
-
-	#
 	# Set AUTOCNF flag to use it in AUTOSTART scripts.
 	#
 	if param compare SYS_AUTOCONFIG 1
@@ -174,6 +163,17 @@ else
 	else
 		set AUTOCNF no
 	fi
+
+	#
+	# Optional board defaults: rc.board_defaults
+	#
+	set BOARD_RC_DEFAULTS /etc/init.d/rc.board_defaults
+	if [ -f $BOARD_RC_DEFAULTS ]
+	then
+		echo "Board defaults: ${BOARD_RC_DEFAULTS}"
+		sh $BOARD_RC_DEFAULTS
+	fi
+	unset BOARD_RC_DEFAULTS
 
 	#
 	# Waypoint storage.
