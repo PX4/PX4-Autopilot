@@ -360,7 +360,9 @@ bool Radar::read_and_parse(uint8_t *buf, int len, float *range)
 		if (is_header_byte(_buf[index])) {
 			if (no_header_counter >= BUF_LEN / 3 - 1) {
 				if (ULANDING_VERSION == 1) {
-					bool checksum_passed = (((_buf[index + 1] + _buf[index + 2] + _buf[index + 3] + _buf[index + 4]) & 0xFF) == _buf[index + 5]);
+					bool checksum_passed = (((_buf[index + 1] + _buf[index + 2] + _buf[index + 3] + _buf[index + 4]) & 0xFF) == _buf[index +
+								5]);
+
 					if (!checksum_passed) {
 						// checksum failed
 						ret = false;
