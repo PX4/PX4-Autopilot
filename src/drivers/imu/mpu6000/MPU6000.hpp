@@ -66,7 +66,7 @@
 #include <px4_config.h>
 #include <px4_getopt.h>
 #include <px4_time.h>
-#include <px4_workqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/conversions.h>
 #include <systemlib/px4_macros.h>
 
@@ -302,7 +302,7 @@ enum MPU6000_BUS {
 	MPU6000_BUS_SPI_EXTERNAL2
 };
 
-class MPU6000 : public cdev::CDev
+class MPU6000 : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
 	MPU6000(device::Device *interface, const char *path, enum Rotation rotation, int device_type);
@@ -346,19 +346,12 @@ protected:
 	virtual int		probe();
 
 private:
+
+	void Run() override;
+
 	int 			_device_type;
 	uint8_t			_product{0};	/** product code */
 
-#if defined(USE_I2C)
-	/*
-	 * SPI bus based device use hrt
-	 * I2C bus needs to use work queue
-	 */
-	work_s			_work{};
-#endif
-	bool 			_use_hrt;
-
-	struct hrt_call		_call {};
 	unsigned		_call_interval{1000};
 
 	PX4Accelerometer	_px4_accel;
@@ -419,50 +412,6 @@ private:
 	 * is_mpu_device
 	 */
 	bool 		is_mpu_device() { return _device_type == MPU_DEVICE_TYPE_MPU6000; }
-
-
-#if defined(USE_I2C)
-	/**
-	 * When the I2C interfase is on
-	 * Perform a poll cycle; collect from the previous measurement
-	 * and start a new one.
-	 *
-	 * This is the heart of the measurement state machine.  This function
-	 * alternately starts a measurement, or collects the data from the
-	 * previous measurement.
-	 *
-	 * When the interval between measurements is greater than the minimum
-	 * measurement interval, a gap is inserted between collection
-	 * and measurement to provide the most recent measurement possible
-	 * at the next interval.
-	 */
-	void			cycle();
-
-	/**
-	 * Static trampoline from the workq context; because we don't have a
-	 * generic workq wrapper yet.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		cycle_trampoline(void *arg);
-
-	void use_i2c(bool on_true) { _use_hrt = !on_true; }
-
-#endif
-
-	bool is_i2c(void) { return !_use_hrt; }
-
-
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		measure_trampoline(void *arg);
 
 	/**
 	 * Fetch measurements from the sensor and update the report buffers.
