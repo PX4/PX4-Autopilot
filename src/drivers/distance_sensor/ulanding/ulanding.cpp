@@ -55,7 +55,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <vector>
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <drivers/device/ringbuffer.h>
