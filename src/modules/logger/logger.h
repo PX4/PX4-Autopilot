@@ -35,7 +35,7 @@
 
 #include "log_writer.h"
 #include "messages.h"
-#include "array.h"
+#include <containers/Array.hpp>
 #include "util.h"
 #include <px4_defines.h>
 #include <drivers/drv_hrt.h>
