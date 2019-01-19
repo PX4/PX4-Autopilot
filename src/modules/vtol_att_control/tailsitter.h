@@ -43,6 +43,7 @@
 #define TAILSITTER_H
 
 #include "vtol_type.h"
+#include "ILC_DATA.h"
 #include <perf/perf_counter.h>  /** is it necsacery? **/
 #include <parameters/param.h>
 #include <drivers/drv_hrt.h>
@@ -65,6 +66,7 @@ public:
 
 	virtual float control_altitude();
 	virtual float thr_from_acc_cmd(float vert_acc_cmd, float airspeed, float pitch_ang, float aoa);
+	virtual float get_CL(float aoa);
 
 private:
 
@@ -72,12 +74,14 @@ private:
 		float front_trans_dur_p2;
 		float fw_pitch_sp_offset;
 		float sys_ident_input;
+		int   sys_ident_num;
 	} _params_tailsitter{};
 
 	struct {
 		param_t front_trans_dur_p2;
 		param_t fw_pitch_sp_offset;
 		param_t sys_ident_input;
+		param_t sys_ident_num;
 	} _params_handles_tailsitter{};
 
 	enum vtol_mode {
@@ -112,6 +116,7 @@ private:
 	float _mc_hover_thrust;
 	float _trans_end_thrust;
 	float _trans_pitch_cmd;
+	float _CL_Degree[NUM_CL_POINTS+1];
 
 	void parameters_update() override;
 

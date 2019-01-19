@@ -150,6 +150,8 @@ PARAM_DEFINE_FLOAT(F_TRANS_DUR_P2, 0.5f);
 
 PARAM_DEFINE_FLOAT(SYS_IDENT_INPUT, 0.05f);
 
+PARAM_DEFINE_INT32(SYS_IDENT_NUM, 0);
+
 /**
  * the target pitch at the end of front trans
  *

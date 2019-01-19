@@ -40,6 +40,10 @@
 */
 
 #include "tailsitter.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
 #include "vtol_att_control_main.h"
 #include <systemlib/mavlink_log.h>
 
@@ -50,12 +54,12 @@
 #define RAD_TO_DEG(x) ((x) / 3.1416f * 180.0f)
 #define DEG_TO_RAD(x) ((x) / 180.0f * 3.1416f)
 
-#define ARSP_YAW_CTRL_DISABLE     4.0f	// airspeed at which we stop controlling yaw during a front transition
-#define THROTTLE_TRANSITION_MAX   0.25f	// maximum added thrust above last value in transition
+#define ARSP_YAW_CTRL_DISABLE     (4.0f)	// airspeed at which we stop controlling yaw during a front transition
+#define THROTTLE_TRANSITION_MAX   (0.25f)	// maximum added thrust above last value in transition
 #define PITCH_TRANSITION_FRONT_P1 (-_params->front_trans_pitch_sp_p1)	// pitch angle to switch to TRANSITION_P2
-#define PITCH_TRANSITION_BACK     -0.25f	// pitch angle to switch to MC
+#define PITCH_TRANSITION_BACK     (-0.25f)	// pitch angle to switch to MC
 
-static orb_advert_t mavlink_log_pub = nullptr;
+static  orb_advert_t mavlink_log_pub = nullptr;
 
 using namespace matrix;
 
@@ -72,7 +76,8 @@ Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 	_flag_was_in_trans_mode = false;
 
 	_params_handles_tailsitter.front_trans_dur_p2 = param_find("F_TRANS_DUR_P2");
-	_params_handles_tailsitter.sys_ident_input = param_find("SYS_IDENT_INPUT");
+	_params_handles_tailsitter.sys_ident_input    = param_find("SYS_IDENT_INPUT");
+	_params_handles_tailsitter.sys_ident_num      = param_find("SYS_IDENT_NUM");
 }
 
 void
@@ -86,6 +91,19 @@ Tailsitter::parameters_update()
 
 	param_get(_params_handles_tailsitter.sys_ident_input, &v);
 	_params_tailsitter.sys_ident_input = v;
+
+	param_get(_params_handles_tailsitter.sys_ident_num, &v);
+	_params_tailsitter.sys_ident_num = v;
+
+	/* update the CL points */
+	int iden_num = 0;
+	if ((_params_tailsitter.sys_ident_num >= 9) && (_params_tailsitter.sys_ident_num >= 0)) {
+		iden_num = _params_tailsitter.sys_ident_num;
+	}
+
+	memcpy(_CL_Degree, CL_SYS_ID[iden_num], sizeof(_CL_Degree));
+
+	mavlink_log_critical(&mavlink_log_pub, "sys_ident_cl_point:%.5f", (double)(_CL_Degree[19]));
 
 }
 
@@ -205,6 +223,25 @@ void Tailsitter::update_vtol_state()
 	}
 }
 
+float Tailsitter::get_CL(float aoa)
+{
+	float aoa_degree = RAD_TO_DEG(aoa);
+	int   aoa_int    = 0;
+	float CL         = 0.0f;
+
+	if ((fabsf(aoa_degree) <= 89.99f) && (fabsf(aoa_degree) >= 0.01f)) 
+	{
+		aoa_int = aoa_degree / 1;
+		CL      = _CL_Degree[aoa_int] + (aoa_degree - aoa_int) * (_CL_Degree[aoa_int + 1] - _CL_Degree[aoa_int]);
+	}
+	else
+	{
+		CL = 0.0f;
+	}
+
+	return CL;
+}
+
 /***
  *	calculate the thrust feedforward cmd based on the vertical acceleration cmd, horizontal velocity, pitch angle and ang-of-attack
  *	@input: vertical acceleration cmd (up is positive)
@@ -215,43 +252,35 @@ void Tailsitter::update_vtol_state()
  ***/
 float Tailsitter::thr_from_acc_cmd(float vert_acc_cmd, float airspeed, float pitch_ang, float aoa)
 {
-	float thr_ff_cmd   = 0.0f;
+	float thr_ff_cmd        = 0.0f;
 
 	/* calculate the aerodynamic lift force */
-	float lift          = 0.0f;
-	float ang_of_attack = 0.0f;
+	float CL_temp           = 0.0f;
+	float lift_weight_ratio = 0.0f;
+	float ang_of_attack     = 0.0f;
+	float dyn_pressure      = 0.5f * 1.237f * airspeed * airspeed;
 
-	ang_of_attack = math::constrain(aoa, - DEG_TO_RAD(89.9f), DEG_TO_RAD(89.9f));
+	ang_of_attack = math::constrain(aoa,       DEG_TO_RAD(0.1f), DEG_TO_RAD(89.9f));
+	pitch_ang     = math::constrain(pitch_ang, DEG_TO_RAD(0.1f), DEG_TO_RAD(89.9f));
 
-	if (fabsf(ang_of_attack) < DEG_TO_RAD(15.0f))
+	if ((fabsf(ang_of_attack) < DEG_TO_RAD(89.9f)) && (fabsf(ang_of_attack) >= DEG_TO_RAD(0.1f)))
 	{
-		lift = 0.5f * 1.237f * airspeed * airspeed * 0.1f * (1.58f + 4.0f * ang_of_attack) / (2.0f * 9.8f);
-	}
-	else if (fabsf(ang_of_attack) >= DEG_TO_RAD(15.0f))
-	{
-		lift = 0.5f * 1.237f * airspeed * airspeed * 0.1f * (2.63f / DEG_TO_RAD(90.0f - 15.0f) * (DEG_TO_RAD(90.0f) - ang_of_attack)) / (2.0f * 9.8f);
+		CL_temp           = get_CL(ang_of_attack);
+		lift_weight_ratio = dyn_pressure * 1.0f * CL_temp / (1.68f * 9.8f);
+		thr_ff_cmd        = (-_mc_hover_thrust - lift_weight_ratio * (-_mc_hover_thrust) + vert_acc_cmd) / cosf(pitch_ang);
 	}
 	else
 	{
-		lift = 0.0f;
-	}
-
-	if(fabsf(pitch_ang) < DEG_TO_RAD(89.9f))
-	{
-		thr_ff_cmd = (-_mc_hover_thrust - lift * (-_mc_hover_thrust) + vert_acc_cmd) / cosf(pitch_ang);
-	}
-	else
-	{
-		thr_ff_cmd = -_mc_hover_thrust;
+		lift_weight_ratio = 0.0f;
+		thr_ff_cmd        = -_mc_hover_thrust;
 	}
 
 	//thr_ff_cmd = math::constrain(thr_ff_cmd, 0.1f, 0.9f);
-
-	static int ii = 1;
+	static int ii = 0;
 	ii++;
 	if ((ii % 10) == 0) 
 	{
-		mavlink_log_critical(&mavlink_log_pub, "airsp:%.2f lift:%.2f aoa:%.3f", (double)(airspeed), (double)(lift), (double)(ang_of_attack));
+		mavlink_log_critical(&mavlink_log_pub, "airsp:%.2f lift:%.2f aoa:%.3f", (double)(airspeed), (double)(lift_weight_ratio), (double)(ang_of_attack));
 	}
 
 	return thr_ff_cmd;
@@ -267,7 +296,7 @@ float Tailsitter::control_altitude()
 	float dt             = 0.01f;
 	float alt_kp         = 0.8f;
 	float vert_vel_kp    = 0.08f;
-	float vert_vel_ki    = 0.02;
+	float vert_vel_ki    = 0.02f;
 	float vert_vel_sp    = 0.0f;
 	float vert_vel_err   = 0.0f;
 
@@ -297,14 +326,12 @@ float Tailsitter::control_altitude()
 
 	_vtol_vehicle_status->thrust_ffd 		= thrust_ffd;
 	_vtol_vehicle_status->thrust_fdb 		= thrust_fdb;
+	_vtol_vehicle_status->ticks_since_trans ++;
 
-	static int jj = 1;
-	jj++;
-	if ((jj % 10) == 5) 
+	if ((_vtol_vehicle_status->ticks_since_trans % 10) == 5) 
 	{
 		mavlink_log_critical(&mavlink_log_pub, "thrust_ffd:%.2f thrust_fdb:%.2f", (double)(thrust_ffd), (double)(thrust_fdb));
 	}
-	_vtol_vehicle_status->ticks_since_trans = jj;
 	
 	return (-1.0f * thrust_cmd);
 }
@@ -363,7 +390,7 @@ void Tailsitter::update_transition_state()
 
 		const float trans_pitch_rate = M_PI_2_F / _params->front_trans_duration;
 
-		if (tilt < M_PI_2_F - 0.06f) {
+		if (tilt < M_PI_2_F - 0.1745f) {
 			_trans_pitch_cmd = time_since_trans_start * trans_pitch_rate;
 			_q_trans_sp = Quatf(AxisAnglef(_trans_rot_axis, time_since_trans_start * trans_pitch_rate)) * _q_trans_start;
 		}
