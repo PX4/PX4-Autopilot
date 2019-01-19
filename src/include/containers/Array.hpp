@@ -47,9 +47,7 @@ class Array
 	typedef const TYPE *const_iterator;
 
 public:
-	Array()
-		: _size(0), _overflow(false)
-	{}
+	Array() = default;
 
 	bool push_back(const TYPE &x)
 	{
@@ -152,9 +150,9 @@ public:
 	}
 
 private:
-	TYPE        _items[N];
-	size_t      _size;
-	bool        _overflow;
+	TYPE        _items[N] {};
+	size_t      _size{0};
+	bool        _overflow{false};
 };
 
 }
