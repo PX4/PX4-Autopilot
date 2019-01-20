@@ -202,24 +202,17 @@ protected:
 	void poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events) override;
 
 private:
+
 	struct UpdateIntervalData {
-		struct hrt_call update_call;  /**< deferred wakeup call if update_period is nonzero */
-#ifndef __PX4_NUTTX
-		uint64_t last_update; /**< time at which the last update was provided, used when update_interval is nonzero */
-#endif
-		unsigned  interval; /**< if nonzero minimum interval between updates */
-		bool update_reported;
+		uint64_t last_update{0}; /**< time at which the last update was provided, used when update_interval is nonzero */
+		unsigned interval{0}; /**< if nonzero minimum interval between updates */
 	};
+
 	struct SubscriberData {
 		~SubscriberData() { if (update_interval) { delete (update_interval); } }
 
-		unsigned  generation; /**< last generation the subscriber has seen */
-		UpdateIntervalData *update_interval; /**< if null, no update interval */
-
-		// these flags are only used if update_interval != null
-		bool update_reported() const { return update_interval ? update_interval->update_reported : false; }
-		void set_update_reported(bool update_reported_flag)
-		{ if (update_interval) { update_interval->update_reported = update_reported_flag; } }
+		unsigned generation{0}; /**< last generation the subscriber has seen */
+		UpdateIntervalData *update_interval{nullptr}; /**< if null, no update interval */
 	};
 
 	const orb_metadata *_meta; /**< object metadata information */
@@ -240,18 +233,6 @@ private:
 					message, it is counted as two. */
 
 	inline static SubscriberData    *filp_to_sd(cdev::file_t *filp);
-
-	/**
-	 * Perform a deferred update for a rate-limited subscriber.
-	 */
-	void      update_deferred();
-
-	/**
-	 * Bridge from hrt_call to update_deferred
-	 *
-	 * void *arg    ORBDevNode pointer for which the deferred update is performed.
-	 */
-	static void   update_deferred_trampoline(void *arg);
 
 	/**
 	 * Check whether a topic appears updated to a subscriber.
