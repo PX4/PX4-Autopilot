@@ -89,6 +89,7 @@ target_link_libraries(px4 PRIVATE
 	-nostartfiles
 	-nodefaultlibs
 	-nostdlib
+	-nostdinc++
 
 	-fno-exceptions
 	-fno-rtti
