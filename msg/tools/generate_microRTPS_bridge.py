@@ -177,9 +177,9 @@ parser.add_argument("-t", "--topic-msg-dir", dest='msgdir', type=str,
 parser.add_argument("-b", "--uorb-templates-dir", dest='uorb_templates', type=str,
                     help="uORB templates dir, by default msgdir/templates/uorb_microcdr", default=default_uorb_templates_dir)
 parser.add_argument("-q", "--urtps-templates-dir", dest='urtps_templates', type=str,
-                    help="uRTPS templates dir, by default msgdir/templates/urtps", default=default_urtps_templates_dir)
+                    help="uRTPS templates abolsute path, by default use relative path to msg, templates/urtps", default=default_urtps_templates_dir)
 parser.add_argument("-y", "--rtps-ids-file", dest='yaml_file', type=str,
-                    help="RTPS msg IDs definition file, relative to the msgdir, by default tools/uorb_rtps_message_ids.yaml", default=default_rtps_id_file)
+                    help="RTPS msg IDs definition file absolute path, by default use relative path to msg, tools/uorb_rtps_message_ids.yaml", default=default_rtps_id_file)
 parser.add_argument("-p", "--package", dest='package', type=str,
                     help="Msg package naming, by default px4", default=default_package_name)
 parser.add_argument("-o", "--agent-outdir", dest='agentdir', type=str, nargs=1,
@@ -262,9 +262,17 @@ if agent and os.path.isdir(os.path.join(agent_out_dir, "idl")):
     shutil.rmtree(os.path.join(agent_out_dir, "idl"))
 
 uorb_templates_dir = os.path.join(msg_folder, args.uorb_templates)
-urtps_templates_dir = os.path.join(msg_folder, args.urtps_templates)
+if args.urtps_templates != default_urtps_templates_dir:
+    urtps_templates_dir = os.path.abspath(args.urtps_templates)
+else:
+    urtps_templates_dir = os.path.join(msg_folder, args.urtps_templates)
 # parse yaml file into a map of ids
-classifier = Classifier(os.path.join(msg_folder, args.yaml_file), msg_folder)
+if args.yaml_file != default_rtps_id_file:
+    classifier = Classifier(os.path.abspath(args.yaml_file), msg_folder)
+else:
+    classifier = Classifier(os.path.join(
+        msg_folder, args.yaml_file), msg_folder)
+
 # check if there are no ID's repeated
 check_rtps_id_uniqueness(classifier)
 
