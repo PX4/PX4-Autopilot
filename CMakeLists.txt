@@ -303,6 +303,11 @@ if (${PX4_PLATFORM} STREQUAL "posix")
 	# cmake testing only on posix
 	enable_testing()
 	include(CTest)
+
+	if (CATKIN_DEVEL_PREFIX)
+		# Install launch files
+		install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
+	endif()
 endif()
 
 #=============================================================================
