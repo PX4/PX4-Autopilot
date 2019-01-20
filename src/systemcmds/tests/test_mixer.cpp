@@ -37,7 +37,6 @@
  * Mixer load test
  */
 
-#include <limits>
 #include <dirent.h>
 #include <string.h>
 #include <unistd.h>
@@ -595,7 +594,7 @@ mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, f
 
 	if (should_prearm && control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
 	    control_index == actuator_controls_s::INDEX_THROTTLE) {
-		control = std::numeric_limits<float>::quiet_NaN();
+		control = NAN;
 	}
 
 	return 0;
