@@ -958,10 +958,10 @@ GPS::reset_if_scheduled()
 		_scheduled_reset = GPSRestartType::None;
 		int res = _helper->reset(restart_type);
 
-		if (res == -1) {
+		if (res < 0) {
 			PX4_INFO("Reset is not supported on this device.");
 
-		} else if (res < 0) {
+		} else if (res == 0) {
 			PX4_INFO("Reset failed.");
 
 		} else {
@@ -999,7 +999,7 @@ int
 GPS::custom_command(int argc, char *argv[])
 {
 	// Check if the driver is running.
-	if (!is_running() && _object.load() == nullptr) {
+	if (!is_running() && !_object) {
 		PX4_INFO("not running");
 		return PX4_ERROR;
 	}
