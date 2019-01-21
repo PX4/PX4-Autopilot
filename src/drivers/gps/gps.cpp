@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -153,8 +153,17 @@ public:
 	 */
 	int print_status() override;
 
-private:
+	/**
+	 * Schedule reset of the GPS device
+	 */
+	void schedule_reset(GPSRestartType restart_type);
 
+	/**
+	 * Reset device if reset was scheduled
+	 */
+	void reset_if_scheduled();
+
+private:
 	int				_serial_fd{-1};					///< serial interface to GPS
 	unsigned			_baudrate{0};					///< current baudrate
 	const unsigned			_configured_baudrate{0};			///< configured baudrate (0=auto-detect)
@@ -196,6 +205,8 @@ private:
 	/// and thus we wait until the first one publishes at least one message.
 
 	static volatile GPS *_secondary_instance;
+
+	volatile GPSRestartType _scheduled_reset{GPSRestartType::None};
 
 	/**
 	 * Publish the gps struct
@@ -753,6 +764,8 @@ GPS::run()
 						publishSatelliteInfo();
 					}
 
+					reset_if_scheduled();
+
 					/* measure update rate every 5 seconds */
 					if (hrt_absolute_time() - last_rate_measurement > RATE_MEASUREMENT_PERIOD) {
 						float dt = (float)((hrt_absolute_time() - last_rate_measurement)) / 1000000.0f;
@@ -908,6 +921,38 @@ GPS::print_status()
 }
 
 void
+GPS::schedule_reset(GPSRestartType restart_type)
+{
+	_scheduled_reset = restart_type;
+
+	if (_instance == Instance::Main && _secondary_instance) {
+		GPS *secondary_instance = (GPS *)_secondary_instance;
+		secondary_instance->schedule_reset(restart_type);
+	}
+}
+
+void
+GPS::reset_if_scheduled()
+{
+	GPSRestartType restart_type = _scheduled_reset;
+
+	if (restart_type != GPSRestartType::None) {
+		_scheduled_reset = GPSRestartType::None;
+		int res = _helper->reset(restart_type);
+
+		if (res < 0) {
+			PX4_INFO("Reset is not supported on this device.");
+
+		} else if (res == 0) {
+			PX4_INFO("Reset failed.");
+
+		} else {
+			PX4_INFO("Reset succeeded.");
+		}
+	}
+}
+
+void
 GPS::publish()
 {
 	if (_instance == Instance::Main || _is_gps_main_advertised) {
@@ -932,9 +977,41 @@ GPS::publishSatelliteInfo()
 	}
 }
 
-int GPS::custom_command(int argc, char *argv[])
+int
+GPS::custom_command(int argc, char *argv[])
 {
-	return print_usage("unknown command");
+	// Check if the driver is running.
+	if (!is_running() && !_object) {
+		PX4_INFO("not running");
+		return PX4_ERROR;
+	}
+
+	GPS *_instance = get_instance();
+
+	bool res = false;
+
+	if (_instance && argc == 2 && !strcmp(argv[0], "reset")) {
+
+		if (!strcmp(argv[1], "hot")) {
+			res = true;
+			_instance->schedule_reset(GPSRestartType::Hot);
+
+		} else if (!strcmp(argv[1], "cold")) {
+			res = true;
+			_instance->schedule_reset(GPSRestartType::Cold);
+
+		} else if (!strcmp(argv[1], "warm")) {
+			res = true;
+			_instance->schedule_reset(GPSRestartType::Warm);
+		}
+	}
+
+	if (res) {
+		PX4_INFO("Resetting GPS - %s", argv[1]);
+		return 0;
+	}
+
+	return (res) ? 0 : print_usage("unknown command");
 }
 
 int GPS::print_usage(const char *reason)
@@ -961,8 +1038,12 @@ so that they can be used in other projects as well (eg. QGroundControl uses them
 For testing it can be useful to fake a GPS signal (it will signal the system that it has a valid position):
 $ gps stop
 $ gps start -f
+
 Starting 2 GPS devices (the main GPS on /dev/ttyS3 and the secondary on /dev/ttyS4):
-gps start -d /dev/ttyS3 -e /dev/ttyS4
+$ gps start -d /dev/ttyS3 -e /dev/ttyS4
+
+Initiate warm restart of GPS device
+$ gps reset warm
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("gps", "driver");
