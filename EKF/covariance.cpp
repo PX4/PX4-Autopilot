@@ -847,6 +847,7 @@ void Ekf::fixCovarianceErrors()
 	if (!_control_status.flags.mag_3D) {
 		zeroRows(P, 16, 21);
 		zeroCols(P, 16, 21);
+		_mag_decl_cov_reset = false;
 
 	} else {
 		// constrain variances
@@ -887,14 +888,12 @@ void Ekf::resetMagCovariance()
 	// set the magnetic field covariance terms to zero
 	zeroRows(P, 16, 21);
 	zeroCols(P, 16, 21);
+	_mag_decl_cov_reset = false;
 
 	// set the field state variance to the observation variance
 	for (uint8_t rc_index = 16; rc_index <= 21; rc_index ++) {
 		P[rc_index][rc_index] = sq(_params.mag_noise);
 	}
-
-	// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
-	fuseDeclination(0.02f);
 
 	// save covariance data for re-use when auto-switching between heading and 3-axis fusion
 	save_mag_cov_data();

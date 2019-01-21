@@ -1365,6 +1365,7 @@ void Ekf::controlMagFusion()
 		}
 		zeroRows(P, 16, 21);
 		zeroCols(P, 16, 21);
+		_mag_decl_cov_reset = false;
 		_control_status.flags.mag_hdg = false;
 
 		return;
@@ -1519,24 +1520,20 @@ void Ekf::controlMagFusion()
 			// before they are used to constrain heading drift
 			_flt_mag_align_converging = ((_imu_sample_delayed.time_us - _flt_mag_align_start_time) < (uint64_t)5e6);
 
-			if (!_control_status.flags.update_mag_states_only && _control_status_prev.flags.update_mag_states_only) {
+			if (_control_status.flags.mag_3D && _control_status_prev.flags.update_mag_states_only && !_control_status.flags.update_mag_states_only) {
 				// When re-commencing use of magnetometer to correct vehicle states
 				// set the field state variance to the observation variance and zero
 				// the covariance terms to allow the field states re-learn rapidly
 				zeroRows(P, 16, 21);
 				zeroCols(P, 16, 21);
+				_mag_decl_cov_reset = false;
 
 				for (uint8_t index = 0; index <= 5; index ++) {
 					P[index + 16][index + 16] = sq(_params.mag_noise);
 				}
 
-				if (_control_status.flags.mag_3D) {
-					// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
-					fuseDeclination(0.02f);
-
-					// save covariance data for re-use when auto-switching between heading and 3-axis fusion
-					save_mag_cov_data();
-				}
+				// save covariance data for re-use when auto-switching between heading and 3-axis fusion
+				save_mag_cov_data();
 			}
 
 		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_HEADING) {
@@ -1602,10 +1599,22 @@ void Ekf::controlMagFusion()
 
 		// fuse magnetometer data using the selected methods
 		if (_control_status.flags.mag_3D && _control_status.flags.yaw_align) {
-			fuseMag();
-
-			if (_control_status.flags.mag_dec) {
-				fuseDeclination(0.5f);
+			if (!_mag_decl_cov_reset) {
+				// After any magnetic field covariance reset event the earth field state
+				// covariances need to be corrected to incorporate knowedge of the declination
+				// before fusing magnetomer data to prevent rapid rotation of the earth field
+				// states for the first few observations.
+				fuseDeclination(0.02f);
+				_mag_decl_cov_reset = true;
+				fuseMag();
+			} else {
+				// The normal sequence is to fuse the magnetmer data first before fusing
+				// declination angle at a higher uncertainty to allow some learning of
+				// declination angle over time.
+				fuseMag();
+				if (_control_status.flags.mag_dec) {
+					fuseDeclination(0.5f);
+				}
 			}
 
 		} else if (_control_status.flags.mag_hdg && _control_status.flags.yaw_align) {
