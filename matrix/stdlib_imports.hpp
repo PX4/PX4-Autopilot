@@ -11,7 +11,7 @@
 
 #include <cmath>
 #include <cstdlib>
-#include <cinttypes>
+#include <inttypes.h>
 
 namespace matrix {
 
@@ -78,8 +78,6 @@ using std::modf;
 
 # if (__cplusplus >= 201103L)
 
-using std::imaxabs;
-using std::imaxdiv;
 using std::remainder;
 using std::remquo;
 using std::fma;
