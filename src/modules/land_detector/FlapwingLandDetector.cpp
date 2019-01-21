@@ -130,10 +130,10 @@ bool FlapwingLandDetector::_get_landed_state()
 
                 _manual_throttle = _manual.z;
                 // crude land detector for Flapwing
-                flyDetected = (_velocity_xy_filtered > 1.3f
-                               || _velocity_z_filtered > 0.6f
-                               || _airspeed_filtered > 4.0f
-                               || _accel_horz_lp > 10.0f)
+                flyDetected = (_velocity_xy_filtered > 0.7f
+                               || _velocity_z_filtered > 0.9f
+                               || _airspeed_filtered > 20.0f
+                               || _accel_horz_lp > 14.0f)
                                && _manual_throttle > 0.15f;
                 landDetected  =! flyDetected;
 
