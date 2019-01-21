@@ -1608,7 +1608,7 @@ void Ekf::controlMagFusion()
 				_mag_decl_cov_reset = true;
 				fuseMag();
 			} else {
-				// The normal sequence is to fuse the magnetmer data first before fusing
+				// The normal sequence is to fuse the magnetometer data first before fusing
 				// declination angle at a higher uncertainty to allow some learning of
 				// declination angle over time.
 				fuseMag();
