@@ -847,7 +847,6 @@ void Ekf::fixCovarianceErrors()
 	if (!_control_status.flags.mag_3D) {
 		zeroRows(P, 16, 21);
 		zeroCols(P, 16, 21);
-		_mag_decl_cov_reset = false;
 
 	} else {
 		// constrain variances
