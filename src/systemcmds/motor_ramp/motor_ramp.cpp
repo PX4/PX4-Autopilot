@@ -83,6 +83,7 @@ static Mode _mode;
 static char *_mode_c;
 static char *_pwm_output_dev = "/dev/pwm_output0";
 static struct pwm_output_values _last_spos;
+static struct pwm_output_values _last_min;
 static unsigned _servo_count;
 
 /**
@@ -389,6 +390,12 @@ int motor_ramp_thread_main(int argc, char *argv[])
 		}
 	}
 
+	/* get current pwm min */
+	if (px4_ioctl(fd, PWM_SERVO_GET_MIN_PWM, (long unsigned int)&_last_min) < 0) {
+		PX4_ERR("failed getting pwm min values");
+		return 1;
+	}
+
 	if (px4_ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_ENTER_TEST_MODE) < 0) {
 		PX4_ERR("Failed to Enter pwm test mode");
 		return 1;
@@ -481,6 +488,12 @@ int motor_ramp_thread_main(int argc, char *argv[])
 	}
 
 	if (fd >= 0) {
+		/* get current pwm min */
+		if (px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&_last_min) < 0) {
+			PX4_ERR("failed getting pwm min values");
+			return 1;
+		}
+
 		/* set previous servo values */
 		for (unsigned i = 0; i < _servo_count; i++) {
 
