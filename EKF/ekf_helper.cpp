@@ -486,14 +486,12 @@ bool Ekf::realignYawGPS()
 			// reset the corresponding rows and columns in the covariance matrix and set the variances on the magnetic field states to the measurement variance
 			zeroRows(P, 16, 21);
 			zeroCols(P, 16, 21);
+			_mag_decl_cov_reset = false;
 
 			if (_control_status.flags.mag_3D) {
 				for (uint8_t index = 16; index <= 21; index ++) {
 					P[index][index] = sq(_params.mag_noise);
 				}
-
-				// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
-				fuseDeclination(0.02f);
 
 				// save covariance data for re-use when auto-switching between heading and 3-axis fusion
 				save_mag_cov_data();
@@ -529,14 +527,12 @@ bool Ekf::realignYawGPS()
 			// reset the corresponding rows and columns in the covariance matrix and set the variances on the magnetic field states to the measurement variance
 			zeroRows(P, 16, 21);
 			zeroCols(P, 16, 21);
+			_mag_decl_cov_reset = false;
 
 			if (_control_status.flags.mag_3D) {
 				for (uint8_t index = 16; index <= 21; index ++) {
 					P[index][index] = sq(_params.mag_noise);
 				}
-
-				// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
-				fuseDeclination(0.02f);
 
 				// save covariance data for re-use when auto-switching between heading and 3-axis fusion
 				save_mag_cov_data();
@@ -572,6 +568,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 		}
 		zeroRows(P, 16, 21);
 		zeroCols(P, 16, 21);
+		_mag_decl_cov_reset = false;
 		_control_status.flags.mag_hdg = false;
 
 		return false;
@@ -701,14 +698,12 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 	// reset the corresponding rows and columns in the covariance matrix and set the variances on the magnetic field states to the measurement variance
 	zeroRows(P, 16, 21);
 	zeroCols(P, 16, 21);
+	_mag_decl_cov_reset = false;
 
 	if (_control_status.flags.mag_3D) {
 		for (uint8_t index = 16; index <= 21; index ++) {
 			P[index][index] = sq(_params.mag_noise);
 		}
-
-		// Fuse the declination angle to prevent rapid rotation of earth field vector estimates
-		fuseDeclination(0.02f);
 
 		// save covariance data for re-use when auto-switching between heading and 3-axis fusion
 		save_mag_cov_data();
