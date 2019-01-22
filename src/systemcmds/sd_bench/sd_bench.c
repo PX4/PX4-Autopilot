@@ -157,7 +157,7 @@ unsigned int time_fsync(int fd)
 {
 	hrt_abstime fsync_start = hrt_absolute_time();
 	fsync(fd);
-	return hrt_elapsed_time_atomic(&fsync_start) / 1000;
+	return hrt_elapsed_time(&fsync_start) / 1000;
 }
 
 void write_test(int fd, uint8_t *block, int block_size)
