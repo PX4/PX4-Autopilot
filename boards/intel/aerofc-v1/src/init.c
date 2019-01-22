@@ -55,7 +55,6 @@
 #include <debug.h>
 #include <errno.h>
 
-#include "platform/cxxinitialize.h"
 #include <nuttx/board.h>
 #include <nuttx/analog/adc.h>
 
@@ -70,9 +69,7 @@
 #include <dataman/dataman.h>
 
 #include <systemlib/px4_macros.h>
-#include <systemlib/cpuload.h>
-#include <systemlib/err.h>
-#include <parameters/param.h>
+#include <px4_init.h>
 
 # if defined(FLASH_BASED_PARAMS)
 #  include <parameters/flashparams/flashfs.h>
@@ -175,29 +172,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* the interruption subsystem is not initialized when stm32_boardinitialize() is called */
 	stm32_gpiosetevent(GPIO_FORCE_BOOTLOADER, true, false, false, _bootloader_force_pin_callback, NULL);
 
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 
-	/* run C++ ctors before we go any further */
-
-	up_cxxinitialize();
-
-#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
-#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
-#	endif
-
-#else
-#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
-#endif
-
-	/* configure the high-resolution time/callout interface */
-	hrt_init();
-
-	param_init();
-
-	/* configure CPU load estimation */
-#ifdef CONFIG_SCHED_INSTRUMENTATION
-	cpuload_initialize_once();
-#endif
+	px4_platform_init();
 
 	/* set up the serial DMA polling */
 	static struct hrt_call serial_dma_call;
