@@ -982,12 +982,9 @@ void Ekf::controlHeightFusion()
 				_hgt_sensor_offset = 0.0f;
 			}
 
-			// Turn off ground effect compensation if it times out or sufficient height has been gained
-			// since takeoff.
+			// Turn off ground effect compensation if it times out
 			if (_control_status.flags.gnd_effect) {
-				if (((_time_last_imu - _time_last_gnd_effect_on) > GNDEFFECT_TIMEOUT) ||
-				    (((_last_on_ground_posD - _state.pos(2)) > _params.gnd_effect_max_hgt) &&
-				     _control_status.flags.in_air)) {
+				if ((_time_last_imu - _time_last_gnd_effect_on > GNDEFFECT_TIMEOUT)) {
 
 					_control_status.flags.gnd_effect = false;
 				}
