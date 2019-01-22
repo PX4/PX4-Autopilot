@@ -1,0 +1,25 @@
+#!nsh
+#
+# @name NUAA Flap Plane
+#
+# @type Standard Plane
+# @class Plane
+#
+# @output MAIN1 aileron
+# @output MAIN2 left servo
+# @output MAIN3 throttle
+# @output MAIN4 right servo
+#
+#
+# @maintainer Liaowei <1262917196@qq.com>
+#
+
+sh /etc/init.d/rc.fw_defaults
+
+set MIXER NUAA_FLAP
+
+set PWM_RATE 50
+set PWM_AUX_RATE 50
+
+# rate must be set by group (see pwm info)
+# throttle is in the same group as servos
