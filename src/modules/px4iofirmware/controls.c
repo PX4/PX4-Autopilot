@@ -460,7 +460,7 @@ controls_tick()
 	 * If we haven't seen any new control data in 200ms, assume we
 	 * have lost input.
 	 */
-	if (!rc_input_lost && hrt_elapsed_time(&system_state.rc_channels_timestamp_received) > 200000) {
+	if (!rc_input_lost && hrt_elapsed_time_atomic(&system_state.rc_channels_timestamp_received) > 200000) {
 		rc_input_lost = true;
 
 		/* clear the input-kind flags here */

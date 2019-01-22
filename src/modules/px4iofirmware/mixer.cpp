@@ -119,7 +119,7 @@ mixer_tick(void)
 
 	/* check that we are receiving fresh data from the FMU */
 	if ((system_state.fmu_data_received_time == 0) ||
-	    hrt_elapsed_time(&system_state.fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
+	    hrt_elapsed_time_atomic(&system_state.fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
 
 		/* too long without FMU input, time to go to failsafe */
 		if (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) {
