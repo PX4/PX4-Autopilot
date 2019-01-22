@@ -76,6 +76,7 @@ protected:
 	bool _get_ground_contact_state() override;
 	bool _get_maybe_landed_state() override;
 	bool _get_freefall_state() override;
+	bool _get_ground_effect_state() override;
 
 	float _get_max_altitude() override;
 private:
@@ -139,6 +140,9 @@ private:
 
 	hrt_abstime _min_trust_start{0};		///< timestamp when minimum trust was applied first
 	hrt_abstime _landed_time{0};
+
+	bool _in_descend{false};	///< vehicle is desending
+	bool _horizontalMovement{false};	///< vehicle is moving horizontally
 
 	/* get control mode dependent pilot throttle threshold with which we should quit landed state and take off */
 	float _get_takeoff_throttle();
