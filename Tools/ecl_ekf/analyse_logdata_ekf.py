@@ -1,16 +1,21 @@
-from typing import Tuple
+from typing import Dict, Optional
 
 # matplotlib don't use Xwindows backend (must be before pyplot import)
 import matplotlib
 matplotlib.use('Agg')
 import numpy as np
 
-from plotting import get_max_arg_time_value, get_estimator_check_flags
+from post_processing import get_estimator_check_flags
+from plotting import get_max_arg_time_value
 from pdf_report import create_pdf_report
+from detectors import InAirDetector
 
 
-def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_levels,
-                plot=False, output_plot_filename=None, late_start_early_ending=True):
+def analyse_ekf(
+        estimator_status: dict, ekf2_innovations: dict, sensor_preflight: dict,
+        check_levels: Dict[str, float], check_description: dict, in_air: InAirDetector,
+        in_air_no_ground_effects: InAirDetector, plot_report: bool = False,
+        output_plot_filename: Optional[str] = None) -> list:
 
     control_mode, innov_flags, gps_fail_flags = get_estimator_check_flags(estimator_status)
 
@@ -20,46 +25,12 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
     b_finishes_in_air, b_starts_in_air, in_air_duration, in_air_transition_time, \
     on_ground_transition_time = detect_airtime(control_mode, status_time)
 
-    if plot:
-        create_pdf_report(control_mode, ekf2_innovations, estimator_status, gps_fail_flags,
-                          in_air_duration, in_air_transition_time, innov_flags,
-                          on_ground_transition_time, output_plot_filename, sensor_preflight,
-                          status_time)
+    if plot_report:
+        create_pdf_report(
+            control_mode, ekf2_innovations, estimator_status, gps_fail_flags, in_air_duration,
+            in_air_transition_time, innov_flags, on_ground_transition_time, output_plot_filename,
+            sensor_preflight, status_time)
 
-    # generate metadata for the normalised innovation consistency test levels
-    # a value > 1.0 means the measurement data for that test has been rejected by the EKF
-    # airspeed data
-    tas_test_max = np.amax(estimator_status['tas_test_ratio'])
-    # height above ground data (rangefinder)
-    hagl_test_max = np.amax(estimator_status['hagl_test_ratio'])
-
-    # calculate alignment completion times
-    tilt_align_time_arg, _, tilt_align_time = get_max_arg_time_value(
-        np.diff(control_mode['tilt_aligned']), status_time)
-
-    # Do some automated analysis of the status data
-    # normal index range is defined by the flight duration
-    start_index = np.amin(np.where(status_time > in_air_transition_time))
-    end_index = np.amax(np.where(status_time <= on_ground_transition_time))
-    num_valid_values = (end_index - start_index + 1)
-    # find a late/early index range from 5 sec after in_air_transtion_time to 5 sec before on-ground transition time for mag and optical flow checks to avoid false positives
-    # this can be used to prevent false positives for sensors adversely affected by close proximity to the ground
-    # don't do this if the log starts or finishes in air or if it is shut off by flag
-    late_start_index = np.amin(np.where(status_time > (in_air_transition_time + 5.0)))\
-        if (late_start_early_ending and not b_starts_in_air) else start_index
-    early_end_index = np.amax(np.where(status_time <= (on_ground_transition_time - 5.0))) \
-        if (late_start_early_ending and not b_finishes_in_air) else end_index
-    num_valid_values_trimmed = (early_end_index - late_start_index + 1)
-    # also find the start and finish indexes for the innovation data
-    innov_start_index = np.amin(np.where(innov_time > in_air_transition_time))
-    innov_end_index = np.amax(np.where(innov_time <= on_ground_transition_time))
-    innov_num_valid_values = (innov_end_index - innov_start_index + 1)
-    innov_late_start_index = np.amin(np.where(innov_time > (in_air_transition_time + 5.0))) \
-        if (late_start_early_ending and not b_starts_in_air) else innov_start_index
-    innov_early_end_index = np.amax(np.where(innov_time <= (on_ground_transition_time - 5.0))) \
-        if (late_start_early_ending and not b_finishes_in_air) else innov_end_index
-    innov_num_valid_values_trimmed = (innov_early_end_index - innov_late_start_index + 1)
-    # define dictionary of test results and descriptions
     test_results = {
         'master_status': ['Pass',
                           'Master check status which can be either Pass Warning or Fail. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
@@ -187,49 +158,103 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
         'on_ground_transition_time': [round(on_ground_transition_time, 1),
                                       'The time in seconds measured from startup  that the EKF transitioned out of in-air mode. Set to a nan if a transition event is not detected.'],
     }
+
+    # Do some automated analysis of the status data
+    # normal index range is defined by the flight duration
+    start_index = np.amin(np.where(status_time > in_air_transition_time))
+    end_index = np.amax(np.where(status_time <= on_ground_transition_time))
+    num_valid_values = (end_index - start_index + 1)
+    # find a late/early index range from 5 sec after in_air_transtion_time to 5 sec before on-ground transition time for mag and optical flow checks to avoid false positives
+    # this can be used to prevent false positives for sensors adversely affected by close proximity to the ground
+    # don't do this if the log starts or finishes in air or if it is shut off by flag
+    late_start_index = np.amin(np.where(status_time > (in_air_transition_time + 5.0))) \
+        if (late_start_early_ending and not b_starts_in_air) else start_index
+    early_end_index = np.amax(np.where(status_time <= (on_ground_transition_time - 5.0))) \
+        if (late_start_early_ending and not b_finishes_in_air) else end_index
+    num_valid_values_trimmed = (early_end_index - late_start_index + 1)
+    # also find the start and finish indexes for the innovation data
+    innov_start_index = np.amin(np.where(innov_time > in_air_transition_time))
+    innov_end_index = np.amax(np.where(innov_time <= on_ground_transition_time))
+    innov_num_valid_values = (innov_end_index - innov_start_index + 1)
+    innov_late_start_index = np.amin(np.where(innov_time > (in_air_transition_time + 5.0))) \
+        if (late_start_early_ending and not b_starts_in_air) else innov_start_index
+    innov_early_end_index = np.amax(np.where(innov_time <= (on_ground_transition_time - 5.0))) \
+        if (late_start_early_ending and not b_finishes_in_air) else innov_end_index
+    innov_num_valid_values_trimmed = (innov_early_end_index - innov_late_start_index + 1)
+    # define dictionary of test results and descriptions
+
+
+    # generate metadata for the normalised innovation consistency test levels
+    # a value > 1.0 means the measurement data for that test has been rejected by the EKF
+    # airspeed data
+    tas_test_max = np.amax(estimator_status['tas_test_ratio'])
+    # height above ground data (rangefinder)
+    hagl_test_max = np.amax(estimator_status['hagl_test_ratio'])
+
+    # calculate alignment completion times
+    tilt_align_time_arg, _, tilt_align_time = get_max_arg_time_value(
+        np.diff(control_mode['tilt_aligned']), status_time)
+
+
     # generate test metadata
     # reduction of innovation message data
     if (innov_early_end_index > (innov_late_start_index + 50)):
         # Output Observer Tracking Errors
+
         test_results['output_obs_ang_err_median'][0] = np.median(
-            ekf2_innovations['output_tracking_error[0]'][innov_late_start_index:innov_early_end_index + 1])
+            ekf2_innovations['output_tracking_error[0]'][in_air_no_ground_effects.get_airtime(
+                'ekf2_innovations')])
         test_results['output_obs_vel_err_median'][0] = np.median(
-            ekf2_innovations['output_tracking_error[1]'][innov_late_start_index:innov_early_end_index + 1])
+            ekf2_innovations['output_tracking_error[1]'][in_air_no_ground_effects.get_airtime(
+                'ekf2_innovations')])
         test_results['output_obs_pos_err_median'][0] = np.median(
-            ekf2_innovations['output_tracking_error[2]'][innov_late_start_index:innov_early_end_index + 1])
+            ekf2_innovations['output_tracking_error[2]'][in_air_no_ground_effects.get_airtime(
+                'ekf2_innovations')])
+
     # reduction of status message data
     if (early_end_index > (late_start_index + 50)):
         # IMU vibration checks
-        temp = np.amax(estimator_status['vibe[0]'][late_start_index:early_end_index])
-        if (temp > 0.0):
-            test_results['imu_coning_peak'][0] = temp
-            test_results['imu_coning_mean'][0] = np.mean(estimator_status['vibe[0]'][late_start_index:early_end_index + 1])
-        temp = np.amax(estimator_status['vibe[1]'][late_start_index:early_end_index])
-        if (temp > 0.0):
-            test_results['imu_hfdang_peak'][0] = temp
-            test_results['imu_hfdang_mean'][0] = np.mean(estimator_status['vibe[1]'][late_start_index:early_end_index + 1])
-        temp = np.amax(estimator_status['vibe[2]'][late_start_index:early_end_index])
-        if (temp > 0.0):
-            test_results['imu_hfdvel_peak'][0] = temp
-            test_results['imu_hfdvel_mean'][0] = np.mean(estimator_status['vibe[2]'][late_start_index:early_end_index + 1])
+        est_airtime = in_air.get_airtime('estimator_status')
+        est_airtime_no_ground_effects = in_air_no_ground_effects.get_airtime('estimator_status')
+
+        con_peak = np.amax(estimator_status['vibe[0]'][est_airtime_no_ground_effects])
+        if (con_peak > 0.0):
+            test_results['imu_coning_peak'][0] = con_peak
+            test_results['imu_coning_mean'][0] = np.mean(
+                estimator_status['vibe[0]'][est_airtime_no_ground_effects])
+
+        hdfdang_peak = np.amax(estimator_status['vibe[1]'][est_airtime_no_ground_effects])
+        if (hdfdang_peak > 0.0):
+            test_results['imu_hfdang_peak'][0] = hdfdang_peak
+            test_results['imu_hfdang_mean'][0] = np.mean(
+                estimator_status['vibe[1]'][est_airtime_no_ground_effects])
+        hdfdvel_peak = np.amax(estimator_status['vibe[2]'][est_airtime_no_ground_effects])
+        if (hdfdvel_peak > 0.0):
+            test_results['imu_hfdvel_peak'][0] = hdfdvel_peak
+            test_results['imu_hfdvel_mean'][0] = np.mean(
+                estimator_status['vibe[2]'][est_airtime_no_ground_effects])
 
         # Magnetometer Sensor Checks
         if (np.amax(control_mode['yaw_aligned']) > 0.5):
-            mag_num_red = (estimator_status['mag_test_ratio'][start_index:end_index + 1] > 1.0).sum()
-            mag_num_amber = (estimator_status['mag_test_ratio'][start_index:end_index + 1] > 0.5).sum() - mag_num_red
+
+            mag_num_red = (estimator_status['mag_test_ratio'][est_airtime] > 1.0).sum()
+            mag_num_amber = (estimator_status['mag_test_ratio'][est_airtime] > 0.5).sum() - mag_num_red
             test_results['mag_percentage_red'][0] = 100.0 * mag_num_red / num_valid_values_trimmed
             test_results['mag_percentage_amber'][0] = 100.0 * mag_num_amber / num_valid_values_trimmed
             test_results['mag_test_max'][0] = np.amax(
-                estimator_status['mag_test_ratio'][late_start_index:early_end_index + 1])
-            test_results['mag_test_mean'][0] = np.mean(estimator_status['mag_test_ratio'][start_index:end_index])
+                estimator_status['mag_test_ratio'][est_airtime])
+            test_results['mag_test_mean'][0] = np.mean(
+                estimator_status['mag_test_ratio'][est_airtime])
+
+            airtime = in_air.get_airtime('estimator_status')
             test_results['magx_fail_percentage'][0] = 100.0 * (
-                    magx_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
+                    magx_innov_fail[est_airtime_no_ground_effects] > 0.5).sum() / num_valid_values_trimmed
             test_results['magy_fail_percentage'][0] = 100.0 * (
-                    magy_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
+                    magy_innov_fail[est_airtime_no_ground_effects] > 0.5).sum() / num_valid_values_trimmed
             test_results['magz_fail_percentage'][0] = 100.0 * (
-                    magz_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
+                    magz_innov_fail[est_airtime_no_ground_effects] > 0.5).sum() / num_valid_values_trimmed
             test_results['yaw_fail_percentage'][0] = 100.0 * (
-                    yaw_innov_fail[late_start_index:early_end_index + 1] > 0.5).sum() / num_valid_values_trimmed
+                    yaw_innov_fail[est_airtime_no_ground_effects] > 0.5).sum() / num_valid_values_trimmed
 
         # Velocity Sensor Checks
         if (np.amax(control_mode['using_gps']) > 0.5):
@@ -297,6 +322,7 @@ def analyse_ekf(estimator_status, ekf2_innovations, sensor_preflight, check_leve
             estimator_status['states[11]']) ** 2 + np.median(estimator_status['states[12]']) ** 2) ** 0.5
         test_results['imu_dvel_bias_median'][0] = (np.median(estimator_status['states[13]']) ** 2 + np.median(
             estimator_status['states[14]']) ** 2 + np.median(estimator_status['states[15]']) ** 2) ** 0.5
+
     # Check for internal filter nummerical faults
     test_results['filter_faults_max'][0] = np.amax(estimator_status['filter_fault_flags'])
     # TODO - process the following bitmask's when they have been properly documented in the uORB topic
