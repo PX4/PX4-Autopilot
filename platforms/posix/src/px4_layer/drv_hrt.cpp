@@ -205,7 +205,7 @@ hrt_abstime ts_to_abstime(const struct timespec *ts)
  * This function is safe to use even if the timestamp is updated
  * by an interrupt during execution.
  */
-hrt_abstime hrt_elapsed_time(const volatile hrt_abstime *then)
+hrt_abstime hrt_elapsed_time(const hrt_abstime *then)
 {
 	hrt_abstime delta = hrt_absolute_time() - *then;
 	return delta;
