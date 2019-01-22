@@ -7,14 +7,19 @@
 # External I2C bus
 hmc5883 -C -X start
 
+# Internal Mag I2C bus
+echo "error! bmm150 roatation needs to be set"
+bmm150 -R 2 start
+
 # Possible external compasses
-ist8310 -C -b 2 start
+ist8310 -C -b 1 start
 
 # External I2C bus
 lis3mdl -X start
 
-# Onboard I2C (baro) but an external bus on V3 RC15
-mpl3115a2 -X start
+# Onboard I2C baros
+bmp280 -I start
+mpl3115a2 -I start
 
 # Internal SPI (accel + mag)
 fxos8701cq start -R 0
