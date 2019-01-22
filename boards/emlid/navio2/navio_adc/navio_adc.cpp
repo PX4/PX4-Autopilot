@@ -52,6 +52,7 @@
 #include <stdio.h>
 #include <poll.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define ADC_BASE_DEV_PATH "/dev/adc"
 #define ADC_SYSFS_PATH "/sys/kernel/rcio/adc/ch0"

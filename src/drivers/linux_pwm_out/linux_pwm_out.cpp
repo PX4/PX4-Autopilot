@@ -31,13 +31,16 @@
  *
  ****************************************************************************/
 
+#include <errno.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <cmath>
 
 #include <px4_tasks.h>
 #include <px4_getopt.h>
 #include <px4_posix.h>
-#include <errno.h>
-#include <cmath>	// NAN
 
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
@@ -461,8 +464,6 @@ void task_main_trampoline(int argc, char *argv[])
 
 void start()
 {
-	ASSERT(_task_handle == -1);
-
 	_task_should_exit = false;
 
 	/* start the task */
@@ -474,7 +475,7 @@ void start()
 					  nullptr);
 
 	if (_task_handle < 0) {
-		warn("task start failed");
+		PX4_ERR("task start failed");
 		return;
 	}
 

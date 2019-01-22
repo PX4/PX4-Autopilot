@@ -39,6 +39,8 @@
  * on the serial port. By default port J12 (next to J13, power module side) is used.
  */
 
+#include <string.h>
+
 #include <px4_tasks.h>
 #include <px4_posix.h>
 #include <px4_getopt.h>
@@ -211,8 +213,6 @@ int start(int argc, char *argv[])
 		PX4_WARN("already running");
 		return -1;
 	}
-
-	ASSERT(_task_handle == -1);
 
 	_task_should_exit = false;
 

@@ -82,24 +82,6 @@
  * Pre-Processor Definitions
  ****************************************************************************/
 
-/* Configuration ************************************************************/
-
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) syslog(__VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message syslog
-#  else
-#    define message printf
-#  endif
-#endif
-
 /*
  * Ideally we'd be able to get these from up_internal.h,
  * but since we want to be able to disable the NuttX use
@@ -262,7 +244,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* configure the DMA allocator */
 
 	if (board_dma_alloc_init() < 0) {
-		message("DMA alloc FAILED");
+		syslog(LOG_ERR, "DMA alloc FAILED\n");
 	}
 
 	/* set up the serial DMA polling */
@@ -297,7 +279,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	spi1 = stm32_spibus_initialize(1);
 
 	if (!spi1) {
-		message("[boot] FAILED to initialize SPI port 1\n");
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 1\n");
 		led_on(LED_BLUE);
 		return -ENODEV;
 	}
@@ -314,7 +296,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	spi2 = stm32_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
 
 	if (!spi2) {
-		message("[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
 		led_on(LED_BLUE);
 		return -ENODEV;
 	}
@@ -324,7 +306,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (result != OK) {
 		led_on(LED_BLUE);
-		message("[boot] FAILED to bind SPI port 2 to the MMCSD driver\n");
+		syslog(LOG_ERR, "[boot] FAILED to bind SPI port 2 to the MMCSD driver\n");
 		return -ENODEV;
 	}
 
@@ -335,7 +317,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	spi3 = stm32_spibus_initialize(3);
 
 	if (!spi3) {
-		message("[boot] FAILED to initialize SPI port 3\n");
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 3\n");
 		led_on(LED_BLUE);
 		return -ENODEV;
 	}
@@ -362,7 +344,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	result = parameter_flashfs_init(params_sector_map, NULL, 0);
 
 	if (result != OK) {
-		message("[boot] FAILED to init params in FLASH %d\n", result);
+		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
 		led_on(LED_AMBER);
 		return -ENODEV;
 	}

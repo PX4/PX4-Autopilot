@@ -57,7 +57,6 @@
 #include <chip.h>
 #include <stm32_gpio.h>
 #include "board_config.h"
-#include <systemlib/err.h>
 
 /****************************************************************************
  * Pre-Processor Definitions

@@ -222,8 +222,6 @@ BottleDrop::~BottleDrop()
 int
 BottleDrop::start()
 {
-	ASSERT(_main_task == -1);
-
 	/* start the task */
 	_main_task = px4_task_spawn_cmd("bottle_drop",
 					SCHED_DEFAULT,

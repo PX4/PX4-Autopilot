@@ -37,6 +37,7 @@
 #include <drivers/drv_hrt.h>
 #include <cstdio>
 #include <pthread.h>
+#include <string.h>
 
 #define LOG_TAG "uORBKraitFastRpcChannel.cpp"
 

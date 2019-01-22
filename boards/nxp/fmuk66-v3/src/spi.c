@@ -51,25 +51,9 @@
 #include "chip.h"
 #include <kinetis.h>
 #include "board_config.h"
-#include <systemlib/err.h>
 #include <systemlib/px4_macros.h>
 
-#if defined(CONFIG_KINETIS_SPI0) || defined(CONFIG_KINETIS_SPI1) || \
-	defined(CONFIG_KINETIS_SPI2)
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) syslog(__VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message syslog
-#  else
-#    define message printf
-#  endif
-#endif
+#if defined(CONFIG_KINETIS_SPI0) || defined(CONFIG_KINETIS_SPI1) || defined(CONFIG_KINETIS_SPI2)
 
 /* Define CS GPIO array */
 static const uint32_t spi0selects_gpio[] = PX4_MEMORY_BUS_CS_GPIO;
@@ -208,7 +192,7 @@ __EXPORT int fmuk66_spi_bus_initialize(void)
 	spi_sensors = px4_spibus_initialize(PX4_SPI_BUS_SENSORS);
 
 	if (!spi_sensors) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_SENSORS);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_SENSORS);
 		return -ENODEV;
 	}
 
@@ -228,7 +212,7 @@ __EXPORT int fmuk66_spi_bus_initialize(void)
 	spi_memory = px4_spibus_initialize(PX4_SPI_BUS_MEMORY);
 
 	if (!spi_memory) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_MEMORY);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_MEMORY);
 		return -ENODEV;
 	}
 
@@ -248,7 +232,7 @@ __EXPORT int fmuk66_spi_bus_initialize(void)
 	spi_ext = px4_spibus_initialize(PX4_SPI_BUS_EXTERNAL);
 
 	if (!spi_ext) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXTERNAL);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXTERNAL);
 		return -ENODEV;
 	}
 
