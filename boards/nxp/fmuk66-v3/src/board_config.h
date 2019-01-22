@@ -83,11 +83,11 @@ __BEGIN_DECLS
 /* UART tty Mapping
  * Device   tty        alt           Connector Name
  * ------- ---------- -------------- --------- -------------------------
- * LPUART0 /dev/tty0  /dev/console    P16      DCD-Mini
- * UART0   /dev/tty1      ---         P7       IR transmitter & receiver
- * UART1   /dev/tty2      ---         P14,P15  SERIAL4/FrSky, RC_IN
- * UART2   /dev/tty3      ---         P3       GPS connector
- * UART4   /dev/tty4      ---         P10      UART (Bluetooth)
+ * LPUART0 /dev/tty0  /dev/console    J16      DCD-Mini
+ * UART0   /dev/tty1      ---         J7       SERIAL 2 / TELEMETRY 2 / IRDA
+ * UART1   /dev/tty2      ---         J15      SERIAL4/FrSky, RC_IN
+ * UART2   /dev/tty3      ---         J3       GPS connector
+ * UART4   /dev/tty4      ---         J10      SERIAL 1 / TELEMETRY 1
  */
 
 /* High-resolution timer */
@@ -211,6 +211,7 @@ __BEGIN_DECLS
 #define GPIO_SPI_CS_MEMORY                  (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTC | PIN2)
 #define GPIO_SPI_CS_FXAS21002CQ_GYRO        (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN9)
 #define GPIO_SPI_CS_FXOS8700CQ_ACCEL_MAG    (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN10)
+#define GPIO_SPI1_CS_CALMEM                 (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTA | PIN19)
 #define GPIO_SPI2_CS                        (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN20)
 #define GPIO_SPI2_EXT                       (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTD | PIN15)
 
@@ -240,9 +241,10 @@ __BEGIN_DECLS
 
 #define PX4_SPIDEV_ACCEL_MAG                PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,0)
 #define PX4_SPIDEV_GYRO                     PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,1)
-#define PX4_SENSOR_BUS_CS_GPIO              {GPIO_SPI_CS_FXOS8700CQ_ACCEL_MAG, GPIO_SPI_CS_FXAS21002CQ_GYRO}
+#define PX4_SPIDEV_CALMEM                   PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,2)
+#define PX4_SENSOR_BUS_CS_GPIO              {GPIO_SPI_CS_FXOS8700CQ_ACCEL_MAG, GPIO_SPI_CS_FXAS21002CQ_GYRO, GPIO_SPI1_CS_CALMEM}
 #define PX4_SENSOR_BUS_FIRST_CS             PX4_SPIDEV_ACCEL_MAG
-#define PX4_SENSOR_BUS_LAST_CS              PX4_SPIDEV_GYRO
+#define PX4_SENSOR_BUS_LAST_CS              PX4_SPIDEV_CALMEM
 
 #define PX4_SPIDEV_EXTERNAL1                PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL,0)
 #define PX4_SPIDEV_EXTERNAL2                PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL,1)
@@ -258,10 +260,13 @@ __BEGIN_DECLS
 
 /* I2C busses */
 
+#define PX4_I2C_BUS_ONBOARD                 PX4_BUS_NUMBER_TO_PX4(1)
 #define PX4_I2C_BUS_EXPANSION               PX4_BUS_NUMBER_TO_PX4(0)
-#define PX4_I2C_BUS_EXPANSION1              PX4_BUS_NUMBER_TO_PX4(1) // V3 RC15 has mpl3115a2 on onboard but this goes to a connector
-// So it is treated as external.
-#define PX4_I2C_BUS_LED                     PX4_I2C_BUS_EXPANSION1
+
+
+#define PX4_I2C_BUS_LED                     PX4_I2C_BUS_EXPANSION
+
+#define PX4_I2C_OBDEV_BMP280                0x76
 
 /*
  * ADC channels
