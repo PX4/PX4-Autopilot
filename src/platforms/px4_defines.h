@@ -77,7 +77,6 @@
  * Building for NuttX or POSIX.
  ****************************************************************************/
 
-#include <platforms/px4_includes.h>
 /* Main entry point */
 #define PX4_MAIN_FUNCTION(_prefix) int _prefix##_task_main(int argc, char *argv[])
 

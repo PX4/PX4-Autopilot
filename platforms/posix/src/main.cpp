@@ -60,6 +60,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <px4_time.h>
 #include <px4_log.h>

@@ -484,8 +484,6 @@ GroundRoverPositionControl::task_main_trampoline(int argc, char *argv[])
 int
 GroundRoverPositionControl::start()
 {
-	ASSERT(_control_task == -1);
-
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("gnd_pos_ctrl",
 					   SCHED_DEFAULT,

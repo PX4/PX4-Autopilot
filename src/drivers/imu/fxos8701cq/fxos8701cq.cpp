@@ -77,6 +77,7 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
 #include <platforms/px4_getopt.h>
+#include <systemlib/err.h>
 
 /* SPI protocol address bits */
 #define DIR_READ(a)                     ((a) & 0x7f)

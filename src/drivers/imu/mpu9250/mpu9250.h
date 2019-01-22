@@ -48,6 +48,7 @@
 #include <drivers/drv_mag.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
+#include <systemlib/err.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/debug_key_value.h>

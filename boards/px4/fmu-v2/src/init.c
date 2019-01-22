@@ -47,7 +47,6 @@
 
 #include <px4_config.h>
 #include <px4_tasks.h>
-#include <px4_time.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -78,24 +77,6 @@
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
-
-/* Configuration ************************************************************/
-
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) syslog(__VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message syslog
-#  else
-#    define message printf
-#  endif
-#endif
 
 /*
  * Ideally we'd be able to get these from up_internal.h,
@@ -130,8 +111,8 @@ __EXPORT void board_peripheral_reset(int ms)
 	stm32_gpiowrite(GPIO_VDD_5V_PERIPH_EN, 1);
 
 	/* wait for the peripheral rail to reach GND */
-	px4_usleep(ms * 1000);
-	warnx("reset done, %d ms", ms);
+	usleep(ms * 1000);
+	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
 
 	/* re-enable power */
 
@@ -382,7 +363,7 @@ static struct sdio_dev_s *sdio;
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	/* Ensure the power is on 1 ms before we drive the GPIO pins */
-	px4_usleep(1000);
+	usleep(1000);
 
 	if (OK == determin_hw_version(&hw_version, & hw_revision)) {
 		switch (hw_version) {
@@ -416,7 +397,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 				hw_version = HW_VER_FMUV3_STATE;
 				hw_type[1]++;
 				hw_type[2] = '0';
-				message("\nPixhack V3 detected, forcing to fmu-v3");
+				syslog(LOG_INFO, "\nPixhack V3 detected, forcing to fmu-v3");
 
 			} else {
 
@@ -431,12 +412,12 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 			/* questionable px4_fmu-v2 hardware, try forcing regular FMUv2 (not much else we can do) */
 
-			message("\nbad version detected, forcing to fmu-v2");
+			syslog(LOG_ERR, "\nbad version detected, forcing to fmu-v2");
 			hw_version = HW_VER_FMUV2_STATE;
 			break;
 		}
 
-		message("\nFMUv2 ver 0x%1X : Rev %x %s\n", hw_version, hw_revision, hw_type);
+		syslog(LOG_DEBUG, "\nFMUv2 ver 0x%1X : Rev %x %s\n", hw_version, hw_revision, hw_type);
 	}
 
 	/* configure SPI interfaces */
@@ -447,7 +428,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* configure the DMA allocator */
 
 	if (board_dma_alloc_init() < 0) {
-		message("DMA alloc FAILED");
+		syslog(LOG_ERR, "DMA alloc FAILED\n");
 	}
 
 	/* set up the serial DMA polling */
@@ -480,7 +461,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	spi1 = stm32_spibus_initialize(PX4_SPI_BUS_SENSORS);
 
 	if (!spi1) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_SENSORS);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_SENSORS);
 		led_on(LED_AMBER);
 		return -ENODEV;
 	}
@@ -496,7 +477,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	spi2 = stm32_spibus_initialize(PX4_SPI_BUS_RAMTRON);
 
 	if (!spi2) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_RAMTRON);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_RAMTRON);
 		led_on(LED_AMBER);
 		return -ENODEV;
 	}
@@ -512,7 +493,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	spi4 = stm32_spibus_initialize(PX4_SPI_BUS_EXT);
 
 	if (!spi4) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXT);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXT);
 		led_on(LED_AMBER);
 		return -ENODEV;
 	}
@@ -529,7 +510,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (!sdio) {
 		led_on(LED_AMBER);
-		message("[boot] Failed to initialize SDIO slot %d\n", CONFIG_NSH_MMCSDSLOTNO);
+		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n", CONFIG_NSH_MMCSDSLOTNO);
 		return -ENODEV;
 	}
 
@@ -538,7 +519,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (ret != OK) {
 		led_on(LED_AMBER);
-		message("[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
+		syslog(LOG_ERR, "[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
 		return ret;
 	}
 

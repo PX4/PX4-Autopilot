@@ -40,6 +40,8 @@
 
 #include "video_device.h"
 
+#include <stdlib.h>
+
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>

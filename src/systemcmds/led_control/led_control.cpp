@@ -39,6 +39,7 @@
 #include <px4_module.h>
 #include <px4_log.h>
 
+#include <stdlib.h>
 #include <unistd.h>
 
 #include <drivers/drv_hrt.h>

@@ -56,29 +56,10 @@
 #include <chip.h>
 #include <stm32_gpio.h>
 #include "board_config.h"
-#include <systemlib/err.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
-
-/* Configuration ************************************************************/
-
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) syslog(__VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message syslog
-#  else
-#    define message printf
-#  endif
-#endif
 
 /************************************************************************************
  * Public Functions
@@ -140,7 +121,7 @@ __EXPORT int stm32_spi_bus_initialize(void)
 	spi_sensors = stm32_spibus_initialize(PX4_SPI_BUS_SENSORS);
 
 	if (!spi_sensors) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_SENSORS);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_SENSORS);
 		return -ENODEV;
 	}
 
@@ -158,7 +139,7 @@ __EXPORT int stm32_spi_bus_initialize(void)
 	spi_fram = stm32_spibus_initialize(PX4_SPI_BUS_RAMTRON);
 
 	if (!spi_fram) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_RAMTRON);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_RAMTRON);
 		return -ENODEV;
 	}
 
@@ -178,7 +159,7 @@ __EXPORT int stm32_spi_bus_initialize(void)
 	spi_baro = stm32_spibus_initialize(PX4_SPI_BUS_BARO);
 
 	if (!spi_baro) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_BARO);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_BARO);
 		return -ENODEV;
 	}
 
@@ -198,7 +179,7 @@ __EXPORT int stm32_spi_bus_initialize(void)
 	spi_icm = stm32_spibus_initialize(PX4_SPI_BUS_ICM);
 
 	if (!spi_icm) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_ICM);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_ICM);
 		return -ENODEV;
 	}
 
@@ -371,7 +352,7 @@ __EXPORT void board_spi_reset(int ms)
 
 	/* wait for the sensor rail to reach GND */
 	usleep(ms * 1000);
-	warnx("reset done, %d ms", ms);
+	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
 
 	/* re-enable power */
 

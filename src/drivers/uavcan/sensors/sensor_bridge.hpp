@@ -41,6 +41,7 @@
 #include <uavcan/uavcan.hpp>
 #include <drivers/device/device.h>
 #include <drivers/drv_orb_dev.h>
+#include <uORB/uORB.h>
 
 /**
  * A sensor bridge class must implement this interface.

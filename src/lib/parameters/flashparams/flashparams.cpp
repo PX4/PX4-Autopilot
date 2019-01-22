@@ -45,9 +45,11 @@
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_shutdown.h>
+
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <errno.h>
 
 #include <parameters/param.h>
 

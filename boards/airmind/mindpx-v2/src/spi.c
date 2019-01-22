@@ -54,7 +54,6 @@
 #include <chip.h>
 #include <stm32.h>
 #include "board_config.h"
-#include <systemlib/err.h>
 
 /************************************************************************************
  * Public Functions
@@ -208,7 +207,7 @@ __EXPORT void board_spi_reset(int ms)
 	//
 	/* wait for the sensor rail to reach GND */
 	usleep(ms * 1000);
-	warnx("reset done, %d ms", ms);
+	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
 	//
 	//        /* re-enable power */
 	//
