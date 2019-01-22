@@ -98,7 +98,7 @@ __EXPORT extern void	abstime_to_ts(struct timespec *ts, hrt_abstime abstime);
  *
  * This function is not interrupt save.
  */
-__EXPORT extern hrt_abstime hrt_elapsed_time(const volatile hrt_abstime *then);
+__EXPORT extern hrt_abstime hrt_elapsed_time(const hrt_abstime *then);
 
 /**
  * Compute the delta between a timestamp taken in the past

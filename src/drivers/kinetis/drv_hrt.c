@@ -598,7 +598,7 @@ abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
  * Compare a time value with the current time.
  */
 hrt_abstime
-hrt_elapsed_time(const volatile hrt_abstime *then)
+hrt_elapsed_time(const hrt_abstime *then)
 {
 	hrt_abstime delta = hrt_absolute_time() - *then;
 
