@@ -44,6 +44,7 @@ set(QURT_LAYER_SRCS
 	qurt_stubs.c
 	main.cpp
 	shmem_qurt.cpp
+	px4_init.cpp
 	)
 
 if ("${QURT_ENABLE_STUBS}" STREQUAL "1")

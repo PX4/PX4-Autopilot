@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,77 +31,39 @@
  *
  ****************************************************************************/
 
-/**
- * @file px4_posix_impl.cpp
- *
- * PX4 Middleware Wrapper Linux Implementation
- */
+#include "px4_init.h"
 
+#include <px4_config.h>
 #include <px4_defines.h>
-#include <px4_middleware.h>
-#include <px4_workqueue.h>
-#include <px4_defines.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <signal.h>
-#include <errno.h>
-#include <unistd.h>
-#include <parameters/param.h>
-#include "hrt_work.h"
 #include <drivers/drv_hrt.h>
-#include "px4_time.h"
-#include <pthread.h>
-#include <px4_init.h>
+#include <lib/parameters/param.h>
+#include <systemlib/cpuload.h>
 
-extern pthread_t _shell_task_id;
+#include "platform/cxxinitialize.h"
 
-__BEGIN_DECLS
-
-long PX4_TICKS_PER_SEC = sysconf(_SC_CLK_TCK);
-
-__END_DECLS
-
-namespace px4
+int px4_platform_init(void)
 {
 
-void init_once();
+#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+	/* run C++ ctors before we go any further */
+	up_cxxinitialize();
 
-void init_once()
-{
-	_shell_task_id = pthread_self();
-	//printf("[init] shell id: %lu\n", (unsigned long)_shell_task_id);
+#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
+#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
+#	endif
 
-	work_queues_init();
-	hrt_work_queue_init();
-
-	px4_platform_init();
-}
-
-void init(int argc, char *argv[], const char *app_name)
-{
-	printf("\n");
-	printf("______  __   __    ___ \n");
-	printf("| ___ \\ \\ \\ / /   /   |\n");
-	printf("| |_/ /  \\ V /   / /| |\n");
-	printf("|  __/   /   \\  / /_| |\n");
-	printf("| |     / /^\\ \\ \\___  |\n");
-	printf("\\_|     \\/   \\/     |_/\n");
-	printf("\n");
-	printf("%s starting.\n", app_name);
-	printf("\n");
-
-	// set the threads name
-#ifdef __PX4_DARWIN
-	(void)pthread_setname_np(app_name);
 #else
-	(void)pthread_setname_np(pthread_self(), app_name);
+#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
 #endif
-}
 
-uint64_t get_time_micros()
-{
-	return hrt_absolute_time();
-}
+	hrt_init();
 
-}
+	param_init();
 
+	/* configure CPU load estimation */
+#ifdef CONFIG_SCHED_INSTRUMENTATION
+	cpuload_initialize_once();
+#endif
+
+	return PX4_OK;
+}
