@@ -51,5 +51,8 @@
 #define PX4_I2C_BUS_EXPANSION	1
 #define PX4_NUMBER_I2C_BUSES 1
 
+#define ADC_BATTERY_VOLTAGE_CHANNEL 0
+#define ADC_BATTERY_CURRENT_CHANNEL 1
+
 #include <system_config.h>
 #include <drivers/boards/common/board_common.h>
