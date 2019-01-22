@@ -179,17 +179,17 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	}
 
 	// Check if we are moving horizontally.
-	bool horizontalMovement = sqrtf(_vehicleLocalPosition.vx * _vehicleLocalPosition.vx
-					+ _vehicleLocalPosition.vy * _vehicleLocalPosition.vy) > _params.maxVelocity;
+	_horizontalMovement = sqrtf(_vehicleLocalPosition.vx * _vehicleLocalPosition.vx
+				    + _vehicleLocalPosition.vy * _vehicleLocalPosition.vy) > _params.maxVelocity;
 
 	// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,
 	// we then can assume that the vehicle hit ground
-	bool in_descend = _is_climb_rate_enabled()
-			  && (_vehicleLocalPositionSetpoint.vz >= land_speed_threshold);
-	bool hit_ground = in_descend && !verticalMovement;
+	_in_descend = _is_climb_rate_enabled()
+		      && (_vehicleLocalPositionSetpoint.vz >= land_speed_threshold);
+	bool hit_ground = _in_descend && !verticalMovement;
 
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
-	if ((_has_low_thrust() || hit_ground) && (!horizontalMovement || !_has_position_lock())
+	if ((_has_low_thrust() || hit_ground) && (!_horizontalMovement || !_has_position_lock())
 	    && (!verticalMovement || !_has_altitude_lock())) {
 		return true;
 	}
@@ -332,6 +332,16 @@ bool MulticopterLandDetector::_has_minimal_thrust()
 
 	// Check if thrust output is less than the minimum auto throttle param.
 	return _actuators.control[actuator_controls_s::INDEX_THROTTLE] <= sys_min_throttle;
+}
+
+bool MulticopterLandDetector::_get_ground_effect_state()
+{
+	if (_in_descend && !_horizontalMovement) {
+		return true;
+
+	} else {
+		return false;
+	}
 }
 
 } // namespace land_detector

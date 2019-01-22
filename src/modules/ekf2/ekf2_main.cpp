@@ -1238,6 +1238,7 @@ void Ekf2::run()
 		if (vehicle_land_detected_updated) {
 			if (orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &vehicle_land_detected) == PX4_OK) {
 				_ekf.set_in_air_status(!vehicle_land_detected.landed);
+				//_ekf.set_gnd_effect_flag(vehicle_land_detected.in_ground_effect);
 			}
 		}
 
