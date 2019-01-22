@@ -72,23 +72,7 @@
 #define PX4_ISFINITE(x) std::isfinite(x)
 #endif
 
-#if defined(__PX4_ROS)
-/****************************************************************************
- * Building for running within the ROS environment.
- ****************************************************************************/
-
-#define noreturn_function
-#ifdef __cplusplus
-#include "ros/ros.h"
-#endif
-
-/* Main entry point */
-#define PX4_MAIN_FUNCTION(_prefix) int main(int argc, char **argv)
-
-/* Get value of parameter by name, which is equal to the handle for ros */
-#define PX4_PARAM_GET_BYNAME(_name, _destpt) ros::param::get(_name, *_destpt)
-
-#elif defined(__PX4_NUTTX) || defined(__PX4_POSIX)
+#if defined(__PX4_NUTTX) || defined(__PX4_POSIX)
 /****************************************************************************
  * Building for NuttX or POSIX.
  ****************************************************************************/
@@ -209,7 +193,7 @@ __END_DECLS
 #define PX4_STORAGEDIR PX4_ROOTFSDIR
 #endif // __PX4_POSIX
 
-#if defined(__PX4_ROS) || defined(__PX4_POSIX)
+#if defined(__PX4_POSIX)
 /****************************************************************************
  * Defines for POSIX and ROS
  ****************************************************************************/
@@ -248,4 +232,4 @@ __END_DECLS
 #define M_DEG_TO_RAD 		0.017453292519943295
 #define M_RAD_TO_DEG 		57.295779513082323
 
-#endif // defined(__PX4_ROS) || defined(__PX4_POSIX)
+#endif // defined(__PX4_POSIX)
