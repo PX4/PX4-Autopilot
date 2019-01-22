@@ -223,7 +223,7 @@ GroundRoverAttitudeControl::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warn("poll error %d, %d", pret, errno);
+			PX4_ERR("poll error %d, %d", pret, errno);
 			continue;
 		}
 
@@ -298,7 +298,7 @@ GroundRoverAttitudeControl::task_main()
 						perf_count(_nonfinite_output_perf);
 
 						if (_debug && loop_counter % 10 == 0) {
-							warnx("yaw_u %.4f", (double)yaw_u);
+							PX4_INFO("yaw_u %.4f", (double)yaw_u);
 						}
 					}
 
@@ -343,7 +343,7 @@ GroundRoverAttitudeControl::task_main()
 		perf_end(_loop_perf);
 	}
 
-	warnx("exiting.\n");
+	PX4_INFO("exiting.");
 
 	_control_task = -1;
 	_task_running = false;
@@ -352,8 +352,6 @@ GroundRoverAttitudeControl::task_main()
 int
 GroundRoverAttitudeControl::start()
 {
-	ASSERT(_control_task == -1);
-
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("gnd_att_control",
 					   SCHED_DEFAULT,
@@ -363,7 +361,7 @@ GroundRoverAttitudeControl::start()
 					   nullptr);
 
 	if (_control_task < 0) {
-		warn("task start failed");
+		PX4_ERR("task start failed");
 		return -errno;
 	}
 
@@ -373,28 +371,28 @@ GroundRoverAttitudeControl::start()
 int gnd_att_control_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		warnx("usage: gnd_att_control {start|stop|status}");
+		PX4_INFO("usage: gnd_att_control {start|stop|status}");
 		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (att_gnd_control::g_control != nullptr) {
-			warnx("already running");
+			PX4_WARN("already running");
 			return 1;
 		}
 
 		att_gnd_control::g_control = new GroundRoverAttitudeControl;
 
 		if (att_gnd_control::g_control == nullptr) {
-			warnx("alloc failed");
+			PX4_ERR("alloc failed");
 			return 1;
 		}
 
 		if (PX4_OK != att_gnd_control::g_control->start()) {
 			delete att_gnd_control::g_control;
 			att_gnd_control::g_control = nullptr;
-			warn("start failed");
+			PX4_ERR("start failed");
 			return 1;
 		}
 
@@ -416,7 +414,7 @@ int gnd_att_control_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		if (att_gnd_control::g_control == nullptr) {
-			warnx("not running");
+			PX4_WARN("not running");
 			return 1;
 		}
 
@@ -427,15 +425,15 @@ int gnd_att_control_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (att_gnd_control::g_control) {
-			warnx("running");
+			PX4_INFO("running");
 			return 0;
 
 		} else {
-			warnx("not running");
+			PX4_INFO("not running");
 			return 1;
 		}
 	}
 
-	warnx("unrecognized command");
+	PX4_WARN("unrecognized command");
 	return 1;
 }

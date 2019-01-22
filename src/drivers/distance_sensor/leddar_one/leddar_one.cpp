@@ -36,6 +36,7 @@
 #include <px4_getopt.h>
 #include <px4_defines.h>
 
+#include <stdlib.h>
 #include <string.h>
 #include <termios.h>
 

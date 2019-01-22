@@ -40,6 +40,7 @@
 #include <lib/perf/perf_counter.h>
 #include <px4_config.h>
 #include <systemlib/conversions.h>
+#include <systemlib/err.h>
 
 #define DIR_READ                0x80
 #define DIR_WRITE               0x00

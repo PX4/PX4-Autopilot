@@ -80,24 +80,6 @@
  * Pre-Processor Definitions
  ****************************************************************************/
 
-/* Configuration ************************************************************/
-
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) syslog(LOG_NOTICE, __VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message syslog
-#  else
-#    define message printf
-#  endif
-#endif
-
 /*
  * Ideally we'd be able to get these from up_internal.h,
  * but since we want to be able to disable the NuttX use
@@ -239,7 +221,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* configure the DMA allocator */
 
 	if (board_dma_alloc_init() < 0) {
-		message("DMA alloc FAILED");
+		syslog(LOG_ERR, "DMA alloc FAILED\n");
 	}
 
 
@@ -253,7 +235,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	spi0 = px4_spibus_initialize(PX4_SPI_BUS_SENSORS);
 
 	if (!spi0) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_SENSORS);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_SENSORS);
 		board_autoled_on(LED_AMBER);
 		return -ENODEV;
 	}
@@ -285,8 +267,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
 
 	if (!sdio) {
-		message("[boot] Failed to initialize SDIO slot %d\n",
-			CONFIG_NSH_MMCSDSLOTNO);
+		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n",
+		       CONFIG_NSH_MMCSDSLOTNO);
 		return -ENODEV;
 	}
 
@@ -294,7 +276,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	int ret = mmcsd_slotinitialize(CONFIG_NSH_MMCSDMINOR, sdio);
 
 	if (ret != OK) {
-		message("[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
+		syslog(LOG_ERR, "[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
 		return ret;
 	}
 
