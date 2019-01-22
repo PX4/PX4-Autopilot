@@ -39,12 +39,7 @@
 
 #pragma once
 
-#if defined(__PX4_ROS)
-/*
- * Building for running within the ROS environment
- */
-
-#elif defined(__PX4_NUTTX)
+#if defined(__PX4_NUTTX)
 /*
  * Building for NuttX
  */

@@ -49,12 +49,7 @@ __EXPORT void init(int argc, char *argv[], const char *process_name);
 
 __EXPORT uint64_t get_time_micros();
 
-#if defined(__PX4_ROS)
-/**
- * Returns true if the app/task should continue to run
- */
-inline bool ok() { return ros::ok(); }
-#elif defined(__PX4_NUTTX)
+#if defined(__PX4_NUTTX)
 extern bool task_should_exit;
 /**
  * Returns true if the app/task should continue to run
