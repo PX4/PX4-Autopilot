@@ -45,6 +45,7 @@
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
+#include <px4_shutdown.h>
 
 #include <cstring>
 #include <float.h>
@@ -847,7 +848,7 @@ void Replay::run()
 
 		//TODO: add parameter -q?
 		replay_file.close();
-		px4_request_shutdown(false, false);
+		px4_shutdown_request(false, false);
 	}
 
 	onExitMainLoop();
