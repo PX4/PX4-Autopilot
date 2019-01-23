@@ -122,7 +122,7 @@ PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
 /**
 * Enable yaw control of the mount. (Only affects multicopters and ROI mission items)
 *
-* If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading mode as specified by MIS_YAWMODE.
+* If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading towards the flight direction.
 * If disabled, the vehicle will yaw towards the ROI.
 *
 * @value 0 Disable
