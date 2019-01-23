@@ -50,10 +50,4 @@ else()
 		)
 endif()
 
-# TODO: find a better way to do this
-if (NOT "${PX4_BOARD}" MATCHES "px4_io")
-	px4_add_library(systemlib ${SRCS})
-else()
-	add_library(systemlib ${PX4_SOURCE_DIR}/src/platforms/empty.c)
-	add_dependencies(systemlib prebuild_targets)
-endif()
+px4_add_library(systemlib ${SRCS})
