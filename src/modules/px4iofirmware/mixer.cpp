@@ -118,8 +118,12 @@ mixer_tick(void)
 	mixer_handle_text_create_mixer();
 
 	/* check that we are receiving fresh data from the FMU */
-	if ((system_state.fmu_data_received_time == 0) ||
-	    hrt_elapsed_time_atomic(&system_state.fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
+	irqstate_t irq_flags = enter_critical_section();
+	const hrt_abstime fmu_data_received_time = system_state.fmu_data_received_time;
+	leave_critical_section(irq_flags);
+
+	if ((fmu_data_received_time == 0) ||
+	    hrt_elapsed_time(&fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
 
 		/* too long without FMU input, time to go to failsafe */
 		if (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK) {
@@ -135,9 +139,9 @@ mixer_tick(void)
 		/* this flag is never cleared once OK */
 		PX4_ATOMIC_MODIFY_OR(r_status_flags, PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED);
 
-		if (system_state.fmu_data_received_time > last_fmu_update) {
+		if (fmu_data_received_time > last_fmu_update) {
 			new_fmu_data = true;
-			last_fmu_update = system_state.fmu_data_received_time;
+			last_fmu_update = fmu_data_received_time;
 		}
 	}
 
