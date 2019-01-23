@@ -65,7 +65,7 @@
 using matrix::Eulerf;
 using matrix::Quatf;
 
-using uORB::Subscription;
+using uORB::SubscriptionData;
 
 class FixedwingAttitudeControl final : public ModuleBase<FixedwingAttitudeControl>
 {
@@ -123,7 +123,7 @@ private:
 	vehicle_rates_setpoint_s		_rates_sp {};		/* attitude rates setpoint */
 	vehicle_status_s			_vehicle_status {};	/**< vehicle status */
 
-	Subscription<airspeed_s>			_airspeed_sub;
+	SubscriptionData<airspeed_s>			_airspeed_sub;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */

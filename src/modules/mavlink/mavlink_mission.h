@@ -125,7 +125,7 @@ private:
 
 	static bool		_transfer_in_progress;			///< Global variable checking for current transmission
 
-	uORB::SubscriptionBase	_mission_result_sub{ORB_ID(mission_result)};
+	uORB::Subscription	_mission_result_sub{ORB_ID(mission_result)};
 
 	orb_advert_t		_offboard_mission_pub{nullptr};
 

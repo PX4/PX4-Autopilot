@@ -54,7 +54,7 @@ namespace uORB
  * Base subscription wrapper class, used in list traversal
  * of various subscriptions.
  */
-class SubscriptionBase
+class Subscription
 {
 public:
 
@@ -65,9 +65,9 @@ public:
 	 * 	macro) for the topic.
 	 * @param instance The instance for multi sub.
 	 */
-	SubscriptionBase() = default;
-	SubscriptionBase(const orb_metadata *meta, uint8_t instance = 0);
-	virtual ~SubscriptionBase();
+	Subscription() = default;
+	Subscription(const orb_metadata *meta, uint8_t instance = 0);
+	virtual ~Subscription();
 
 	bool valid() const { return _node != nullptr; }
 
@@ -113,14 +113,14 @@ protected:
 };
 
 // TODO: finish
-class SubscriptionInterval : public SubscriptionBase
+class SubscriptionInterval : public Subscription
 {
 public:
 
 	SubscriptionInterval() = default;
 
 	SubscriptionInterval(const orb_metadata *meta, unsigned interval = 0, uint8_t instance = 0) :
-		SubscriptionBase(meta, instance),
+		Subscription(meta, instance),
 		_interval(interval)
 	{}
 
@@ -129,7 +129,7 @@ public:
 	bool updated() override
 	{
 		if (hrt_absolute_time() >= (_last_update + (_interval * 1000))) {
-			return SubscriptionBase::updated();
+			return Subscription::updated();
 		}
 
 		return false;
@@ -161,7 +161,7 @@ protected:
 /**
  * alias class name so it is clear that the base class
  */
-typedef SubscriptionBase SubscriptionTiny;
+typedef Subscription SubscriptionTiny;
 
 /**
  * The subscription base class as a list node.
@@ -202,7 +202,7 @@ public:
  * Subscription wrapper class
  */
 template<class T>
-class Subscription final : public SubscriptionNode
+class SubscriptionData final : public SubscriptionNode
 {
 public:
 	/**
@@ -215,25 +215,25 @@ public:
 	 * @param list A list interface for adding to
 	 * 	list during construction
 	 */
-	Subscription(const orb_metadata *meta, unsigned interval = 0, uint8_t instance = 0,
-		     List<SubscriptionNode *> *list = nullptr):
+	SubscriptionData(const orb_metadata *meta, unsigned interval = 0, uint8_t instance = 0,
+			 List<SubscriptionNode *> *list = nullptr):
 		SubscriptionNode(meta, interval, instance, list)
 	{
 		forcedUpdate();
 	}
 
-	~Subscription() override final = default;
+	~SubscriptionData() override final = default;
 
 	// no copy, assignment, move, move assignment
-	Subscription(const Subscription &) = delete;
-	Subscription &operator=(const Subscription &) = delete;
-	Subscription(Subscription &&) = delete;
-	Subscription &operator=(Subscription &&) = delete;
+	SubscriptionData(const SubscriptionData &) = delete;
+	SubscriptionData &operator=(const SubscriptionData &) = delete;
+	SubscriptionData(SubscriptionData &&) = delete;
+	SubscriptionData &operator=(SubscriptionData &&) = delete;
 
 	/**
 	 * Create an update function that uses the embedded struct.
 	 */
-	bool update() override final { return SubscriptionBase::update((void *)(&_data)); }
+	bool update() override final { return Subscription::update((void *)(&_data)); }
 
 	bool forcedUpdate() override final { return copy(&_data); }
 
@@ -295,10 +295,10 @@ public:
 	}
 
 	// no copy, assignment, move, move assignment
-	SubscriptionPolled(const SubscriptionBase &) = delete;
-	SubscriptionPolled &operator=(const SubscriptionBase &) = delete;
-	SubscriptionPolled(SubscriptionBase &&) = delete;
-	SubscriptionPolled &operator=(SubscriptionBase &&) = delete;
+	SubscriptionPolled(const Subscription &) = delete;
+	SubscriptionPolled &operator=(const Subscription &) = delete;
+	SubscriptionPolled(Subscription &&) = delete;
+	SubscriptionPolled &operator=(Subscription &&) = delete;
 
 	/**
 	 * Check if there is a new update.

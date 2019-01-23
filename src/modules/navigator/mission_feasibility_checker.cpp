@@ -450,7 +450,7 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 
 				if (MissionBlock::item_contains_position(missionitem_previous)) {
 
-					uORB::Subscription<position_controller_landing_status_s> landing_status{ORB_ID(position_controller_landing_status)};
+					uORB::SubscriptionData<position_controller_landing_status_s> landing_status{ORB_ID(position_controller_landing_status)};
 					landing_status.forcedUpdate();
 
 					const bool landing_status_valid = (landing_status.get().timestamp > 0);

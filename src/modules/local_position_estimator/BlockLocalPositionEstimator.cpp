@@ -210,7 +210,7 @@ void BlockLocalPositionEstimator::update()
 	if (!armedState && (_sub_lidar == nullptr || _sub_sonar == nullptr)) {
 		// detect distance sensors
 		for (size_t i = 0; i < N_DIST_SUBS; i++) {
-			uORB::Subscription<distance_sensor_s> *s = _dist_subs[i];
+			uORB::SubscriptionData<distance_sensor_s> *s = _dist_subs[i];
 
 			if (s == _sub_lidar || s == _sub_sonar) { continue; }
 

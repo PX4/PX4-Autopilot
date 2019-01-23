@@ -186,21 +186,21 @@ bool MicroBenchORB::time_px4_uorb2()
 	bool updated = false;
 	uint64_t time = 0;
 
-	uORB::SubscriptionBase vstatus{ORB_ID(vehicle_status)};
+	uORB::Subscription vstatus{ORB_ID(vehicle_status)};
 	PERF("orb_check vehicle_status", ret = vstatus.updated(), 1000);
 	PERF("orb_stat vehicle_status", time = vstatus.last_update(), 1000);
 	PERF("orb_copy vehicle_status", ret = vstatus.copy(&status), 1000);
 
 	printf("\n");
 
-	uORB::SubscriptionBase local_pos{ORB_ID(vehicle_local_position)};
+	uORB::Subscription local_pos{ORB_ID(vehicle_local_position)};
 	PERF("orb_check vehicle_local_position", ret = local_pos.updated(), 1000);
 	PERF("orb_stat vehicle_local_position", time = local_pos.last_update(), 1000);
 	PERF("orb_copy vehicle_local_position", ret = local_pos.copy(&lpos), 1000);
 
 	printf("\n");
 
-	uORB::SubscriptionBase sens_gyro{ORB_ID(sensor_gyro)};
+	uORB::Subscription sens_gyro{ORB_ID(sensor_gyro)};
 	PERF("orb_check sensor_gyro", ret = sens_gyro.updated(), 1000);
 	PERF("orb_stat sensor_gyro", time = sens_gyro.last_update(), 1000);
 	PERF("orb_copy sensor_gyro", ret = sens_gyro.copy(&gyro), 1000);

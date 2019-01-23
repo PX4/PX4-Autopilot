@@ -57,7 +57,7 @@ public:
 	 * @return true on success, false otherwise (subscription set to nullptr)
 	 */
 	template<class T>
-	bool get(const struct orb_metadata *meta, uORB::Subscription<T> *&subscription, unsigned instance = 0);
+	bool get(const struct orb_metadata *meta, uORB::SubscriptionData<T> *&subscription, unsigned instance = 0);
 
 	/**
 	 * update all subscriptions (if new data is available)
@@ -81,13 +81,14 @@ private:
 
 
 template<class T>
-bool SubscriptionArray::get(const struct orb_metadata *meta, uORB::Subscription<T> *&subscription, unsigned instance)
+bool SubscriptionArray::get(const struct orb_metadata *meta, uORB::SubscriptionData<T> *&subscription,
+			    unsigned instance)
 {
 	// does it already exist?
 	for (int i = 0; i < _subscriptions_count; ++i) {
 		if (_subscriptions[i]->get_topic() == meta && _subscriptions[i]->get_instance() == instance) {
 			// we know the type must be correct, so we can use reinterpret_cast (dynamic_cast is not available)
-			subscription = reinterpret_cast<uORB::Subscription<T>*>(_subscriptions[i]);
+			subscription = reinterpret_cast<uORB::SubscriptionData<T>*>(_subscriptions[i]);
 			return true;
 		}
 	}
@@ -100,7 +101,7 @@ bool SubscriptionArray::get(const struct orb_metadata *meta, uORB::Subscription<
 		}
 	}
 
-	subscription = new uORB::Subscription<T>(meta, 0, instance);
+	subscription = new uORB::SubscriptionData<T>(meta, 0, instance);
 
 	if (!subscription) {
 		return false;

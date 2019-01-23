@@ -250,21 +250,21 @@ private:
 	uORB::SubscriptionPolled<parameter_update_s> _sub_param_update;
 	uORB::SubscriptionPolled<sensor_combined_s> _sub_sensor;
 
-	uORB::Subscription<actuator_armed_s> _sub_armed;
-	uORB::Subscription<vehicle_land_detected_s> _sub_land;
-	uORB::Subscription<vehicle_attitude_s> _sub_att;
-	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
-	uORB::Subscription<vehicle_odometry_s> _sub_visual_odom;
-	uORB::Subscription<vehicle_odometry_s> _sub_mocap_odom;
-	uORB::Subscription<distance_sensor_s> _sub_dist0;
-	uORB::Subscription<distance_sensor_s> _sub_dist1;
-	uORB::Subscription<distance_sensor_s> _sub_dist2;
-	uORB::Subscription<distance_sensor_s> _sub_dist3;
-	uORB::Subscription<distance_sensor_s> *_dist_subs[N_DIST_SUBS];
-	uORB::Subscription<distance_sensor_s> *_sub_lidar;
-	uORB::Subscription<distance_sensor_s> *_sub_sonar;
-	uORB::Subscription<landing_target_pose_s> _sub_landing_target_pose;
-	uORB::Subscription<vehicle_air_data_s> _sub_airdata;
+	uORB::SubscriptionData<actuator_armed_s> _sub_armed;
+	uORB::SubscriptionData<vehicle_land_detected_s> _sub_land;
+	uORB::SubscriptionData<vehicle_attitude_s> _sub_att;
+	uORB::SubscriptionData<vehicle_gps_position_s> _sub_gps;
+	uORB::SubscriptionData<vehicle_odometry_s> _sub_visual_odom;
+	uORB::SubscriptionData<vehicle_odometry_s> _sub_mocap_odom;
+	uORB::SubscriptionData<distance_sensor_s> _sub_dist0;
+	uORB::SubscriptionData<distance_sensor_s> _sub_dist1;
+	uORB::SubscriptionData<distance_sensor_s> _sub_dist2;
+	uORB::SubscriptionData<distance_sensor_s> _sub_dist3;
+	uORB::SubscriptionData<distance_sensor_s> *_dist_subs[N_DIST_SUBS];
+	uORB::SubscriptionData<distance_sensor_s> *_sub_lidar;
+	uORB::SubscriptionData<distance_sensor_s> *_sub_sonar;
+	uORB::SubscriptionData<landing_target_pose_s> _sub_landing_target_pose;
+	uORB::SubscriptionData<vehicle_air_data_s> _sub_airdata;
 
 	// publications
 	uORB::Publication<vehicle_local_position_s> _pub_lpos;

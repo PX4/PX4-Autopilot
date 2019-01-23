@@ -102,8 +102,8 @@ public:
 
 private:
 
-	uORB::Subscription<vehicle_trajectory_waypoint_s> *_sub_vehicle_trajectory_waypoint{nullptr}; /**< vehicle trajectory waypoint subscription */
-	uORB::Subscription<vehicle_status_s> *_sub_vehicle_status{nullptr}; /**< vehicle status subscription */
+	uORB::SubscriptionData<vehicle_trajectory_waypoint_s> *_sub_vehicle_trajectory_waypoint{nullptr}; /**< vehicle trajectory waypoint subscription */
+	uORB::SubscriptionData<vehicle_status_s> *_sub_vehicle_status{nullptr}; /**< vehicle status subscription */
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::COM_OBS_AVOID>) COM_OBS_AVOID,             /**< obstacle avoidance enabled */

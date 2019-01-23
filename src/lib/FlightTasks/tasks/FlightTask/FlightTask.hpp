@@ -173,8 +173,8 @@ public:
 
 protected:
 
-	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
-	uORB::Subscription<vehicle_attitude_s> *_sub_attitude{nullptr};
+	uORB::SubscriptionData<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
+	uORB::SubscriptionData<vehicle_attitude_s> *_sub_attitude{nullptr};
 	uint8_t _heading_reset_counter{0}; /**< estimator heading reset */
 
 	/**

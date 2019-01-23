@@ -53,7 +53,7 @@ public:
 	bool updateInitialize() override;
 
 protected:
-	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
+	uORB::SubscriptionData<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
 private:
 	matrix::Vector3f _position_lock{};
 

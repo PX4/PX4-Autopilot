@@ -42,19 +42,19 @@
 namespace uORB
 {
 
-SubscriptionBase::SubscriptionBase(const orb_metadata *meta, uint8_t instance) :
+Subscription::Subscription(const orb_metadata *meta, uint8_t instance) :
 	_meta(meta),
 	_instance(instance)
 {
 	init();
 }
 
-SubscriptionBase::~SubscriptionBase()
+Subscription::~Subscription()
 {
 	unsubscribe();
 }
 
-bool SubscriptionBase::subscribe()
+bool Subscription::subscribe()
 {
 	DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
 	_node = device_master->getDeviceNode(_meta, _instance);
@@ -74,7 +74,7 @@ bool SubscriptionBase::subscribe()
 	return false;
 }
 
-void SubscriptionBase::unsubscribe()
+void Subscription::unsubscribe()
 {
 	if (_node != nullptr) {
 		_node->remove_internal_subscriber();
@@ -83,7 +83,7 @@ void SubscriptionBase::unsubscribe()
 	_last_generation = 0;
 }
 
-bool SubscriptionBase::init()
+bool Subscription::init()
 {
 	if (_meta != nullptr) {
 		// this throttles the relatively expensive calls to getDeviceNode()
@@ -100,7 +100,7 @@ bool SubscriptionBase::init()
 	return false;
 }
 
-bool SubscriptionBase::forceInit()
+bool Subscription::forceInit()
 {
 	if (_node == nullptr) {
 		// reset generation to force subscription attempt
@@ -111,7 +111,7 @@ bool SubscriptionBase::forceInit()
 	return false;
 }
 
-bool SubscriptionBase::set_topic(orb_metadata *meta)
+bool Subscription::set_topic(orb_metadata *meta)
 {
 	if (meta != _meta) {
 		unsubscribe();
@@ -123,7 +123,7 @@ bool SubscriptionBase::set_topic(orb_metadata *meta)
 	return false;
 }
 
-bool SubscriptionBase::set_instance(uint8_t instance)
+bool Subscription::set_instance(uint8_t instance)
 {
 	if (instance != _instance) {
 		unsubscribe();
@@ -134,7 +134,7 @@ bool SubscriptionBase::set_instance(uint8_t instance)
 	return false;
 }
 
-bool SubscriptionBase::update(uint64_t *time, void *dst)
+bool Subscription::update(uint64_t *time, void *dst)
 {
 	if (published()) {
 		// always copy data

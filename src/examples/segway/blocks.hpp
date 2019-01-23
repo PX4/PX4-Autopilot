@@ -94,13 +94,13 @@ protected:
 	// subscriptions
 	uORB::SubscriptionPolled<vehicle_attitude_s> _att;
 
-	uORB::Subscription<manual_control_setpoint_s> _manual;
-	uORB::Subscription<parameter_update_s> _param_update;
-	uORB::Subscription<position_setpoint_triplet_s> _missionCmd;
-	uORB::Subscription<vehicle_attitude_setpoint_s> _attCmd;
-	uORB::Subscription<vehicle_global_position_s> _pos;
-	uORB::Subscription<vehicle_rates_setpoint_s> _ratesCmd;
-	uORB::Subscription<vehicle_status_s> _status;
+	uORB::SubscriptionData<manual_control_setpoint_s> _manual;
+	uORB::SubscriptionData<parameter_update_s> _param_update;
+	uORB::SubscriptionData<position_setpoint_triplet_s> _missionCmd;
+	uORB::SubscriptionData<vehicle_attitude_setpoint_s> _attCmd;
+	uORB::SubscriptionData<vehicle_global_position_s> _pos;
+	uORB::SubscriptionData<vehicle_rates_setpoint_s> _ratesCmd;
+	uORB::SubscriptionData<vehicle_status_s> _status;
 
 	// publications
 	uORB::Publication<actuator_controls_s> _actuators;

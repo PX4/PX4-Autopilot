@@ -109,7 +109,7 @@ static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &sta
 
 	if (exists) {
 
-		uORB::Subscription<sensor_mag_s> magnetometer{ORB_ID(sensor_mag), 0, instance};
+		uORB::SubscriptionData<sensor_mag_s> magnetometer{ORB_ID(sensor_mag), 0, instance};
 
 		mag_valid = (hrt_elapsed_time(&magnetometer.get().timestamp) < 1_s);
 
@@ -245,7 +245,7 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 
 	if (exists) {
 
-		uORB::Subscription<sensor_accel_s> accel{ORB_ID(sensor_accel), 0, instance};
+		uORB::SubscriptionData<sensor_accel_s> accel{ORB_ID(sensor_accel), 0, instance};
 
 		accel_valid = (hrt_elapsed_time(&accel.get().timestamp) < 1_s);
 
@@ -309,7 +309,7 @@ static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 
 	if (exists) {
 
-		uORB::Subscription<sensor_gyro_s> gyro{ORB_ID(sensor_gyro), 0, instance};
+		uORB::SubscriptionData<sensor_gyro_s> gyro{ORB_ID(sensor_gyro), 0, instance};
 
 		gyro_valid = (hrt_elapsed_time(&gyro.get().timestamp) < 1_s);
 
@@ -352,7 +352,7 @@ static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 	bool baro_valid = false;
 
 	if (exists) {
-		uORB::Subscription<sensor_baro_s> baro{ORB_ID(sensor_baro), 0, instance};
+		uORB::SubscriptionData<sensor_baro_s> baro{ORB_ID(sensor_baro), 0, instance};
 
 		baro_valid = (hrt_elapsed_time(&baro.get().timestamp) < 1_s);
 

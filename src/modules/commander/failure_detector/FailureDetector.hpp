@@ -60,7 +60,7 @@ typedef enum {
 	FAILURE_ALT = vehicle_status_s::FAILURE_ALT,
 } failure_detector_bitmak;
 
-using uORB::Subscription;
+using uORB::SubscriptionData;
 
 class FailureDetector : public ModuleParams
 {
@@ -79,8 +79,8 @@ private:
 	)
 
 	// Subscriptions
-	Subscription<vehicle_attitude_s> _sub_vehicle_attitude_setpoint;
-	Subscription<vehicle_attitude_s> _sub_vehicule_attitude;
+	SubscriptionData<vehicle_attitude_s> _sub_vehicle_attitude_setpoint;
+	SubscriptionData<vehicle_attitude_s> _sub_vehicule_attitude;
 
 	uint8_t _status{FAILURE_NONE};
 
