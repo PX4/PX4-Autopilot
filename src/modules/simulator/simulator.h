@@ -349,7 +349,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _battery_drain_interval_s, ///< battery drain interval
-		(ParamInt<px4::params::MAV_TYPE>) _param_system_type
+		(ParamInt<px4::params::MAV_TYPE>) _param_system_type,
+		(ParamInt<px4::params::VT_MOT_COUNT>) _param_vtol_mot_count
 
 	)
 

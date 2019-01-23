@@ -105,19 +105,33 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 			n = 2;
 			break;
 
+		case MAV_TYPE_TRICOPTER:
+			n = 3;
+			break;
+
 		case MAV_TYPE_QUADROTOR:
 		case MAV_TYPE_VTOL_QUADROTOR:
-		case MAV_TYPE_VTOL_TILTROTOR:
 			n = 4;
 			break;
 
+		case MAV_TYPE_VTOL_TILTROTOR:
 		case MAV_TYPE_VTOL_RESERVED2:
-			// this is the standard VTOL / quad plane with 5 propellers
-			n = 5;
+		case MAV_TYPE_VTOL_RESERVED3:
+		case MAV_TYPE_VTOL_RESERVED4:
+		case MAV_TYPE_VTOL_RESERVED5:
+			n = _param_vtol_mot_count.get();
 			break;
 
 		case MAV_TYPE_HEXAROTOR:
 			n = 6;
+			break;
+
+		case MAV_TYPE_OCTOROTOR:
+			n = 8;
+			break;
+
+		case MAV_TYPE_DODECAROTOR:
+			n = 12;
 			break;
 
 		default:
