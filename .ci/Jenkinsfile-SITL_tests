@@ -208,10 +208,11 @@ pipeline {
 } // pipeline
 
 def createTestNode(Map test_def) {
+  def docker_image = test_def.get('docker_image', 'px4io/px4-dev-ros-kinetic:2018-09-11')
   return {
     node {
       cleanWs()
-      docker.image("px4io/px4-dev-ros-kinetic:2018-09-11").inside('-e HOME=${WORKSPACE} --cap-add SYS_PTRACE') {
+      docker.image(docker_image).inside('-e HOME=${WORKSPACE} --cap-add SYS_PTRACE') {
         stage(test_def.name) {
           def test_ok = true
           sh('export')
