@@ -33,7 +33,7 @@
 
 
 /**
- * MappyDot Rangefinder (i2c)
+ * Enable Mappydot rangefinder (i2c)
  *
  * @reboot_required true
  * @min 0
@@ -45,279 +45,253 @@
 PARAM_DEFINE_INT32(SENS_EN_MPDT, 0);
 
 /**
- * MappyDot sensor 0
+ * MappyDot Sensor 0 Rotation
+ *
+ * This parameter defines the rotation of the Mappydot sensor relative to the platform.
  *
  * @reboot_required true
  * @min 0
- * @max 19
+ * @max 7
  * @group Sensors
- * @value 0 Disabled (?)
- * @value 8 Address
- * @value 9 Address
- * @value 10 Address
- * @value 11 Address
- * @value 12 Address
- * @value 13 Address
- * @value 14 Address
- * @value 15 Address
- * @value 16 Address
- * @value 17 Address
- * @value 18 Address
- * @value 19 Address
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
  */
 PARAM_DEFINE_INT32(SENS_MPDT0_ROT, 0);
 
-
 /**
- * MappyDot sensor 1
+ * MappyDot Sensor 1 Rotation
+ *
+ * This parameter defines the rotation of the Mappydot sensor relative to the platform.
  *
  * @reboot_required true
  * @min 0
- * @max 19
+ * @max 7
  * @group Sensors
- * @value 0 Disabled (?)
- * @value 8 Address
- * @value 9 Address
- * @value 10 Address
- * @value 11 Address
- * @value 12 Address
- * @value 13 Address
- * @value 14 Address
- * @value 15 Address
- * @value 16 Address
- * @value 17 Address
- * @value 18 Address
- * @value 19 Address
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
  */
-
-
 PARAM_DEFINE_INT32(SENS_MPDT1_ROT, 0);
+
 /**
- * MappyDot sensor 2
+ * MappyDot Sensor 2 Rotation
+ *
+ * This parameter defines the rotation of the Mappydot sensor relative to the platform.
  *
  * @reboot_required true
  * @min 0
- * @max 19
+ * @max 7
  * @group Sensors
- * @value 0 Disabled (?)
- * @value 8 Address
- * @value 9 Address
- * @value 10 Address
- * @value 11 Address
- * @value 12 Address
- * @value 13 Address
- * @value 14 Address
- * @value 15 Address
- * @value 16 Address
- * @value 17 Address
- * @value 18 Address
- * @value 19 Address
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
  */
 PARAM_DEFINE_INT32(SENS_MPDT2_ROT, 0);
 
 /**
- * MappyDot sensor 3
+ * MappyDot Sensor 3 Rotation
+ *
+ * This parameter defines the rotation of the Mappydot sensor relative to the platform.
  *
  * @reboot_required true
  * @min 0
- * @max 19
+ * @max 7
  * @group Sensors
- * @value 0 Disabled (?)
- * @value 8 Address
- * @value 9 Address
- * @value 10 Address
- * @value 11 Address
- * @value 12 Address
- * @value 13 Address
- * @value 14 Address
- * @value 15 Address
- * @value 16 Address
- * @value 17 Address
- * @value 18 Address
- * @value 19 Address
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
  */
 PARAM_DEFINE_INT32(SENS_MPDT3_ROT, 0);
 
 /**
- * MappyDot sensor 4
+ * MappyDot Sensor 4 Rotation
+ *
+ * This parameter defines the rotation of the Mappydot sensor relative to the platform.
  *
  * @reboot_required true
  * @min 0
- * @max 19
+ * @max 7
  * @group Sensors
- * @value 0 Disabled (?)
- * @value 8 Address
- * @value 9 Address
- * @value 10 Address
- * @value 11 Address
- * @value 12 Address
- * @value 13 Address
- * @value 14 Address
- * @value 15 Address
- * @value 16 Address
- * @value 17 Address
- * @value 18 Address
- * @value 19 Address
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
  */
 PARAM_DEFINE_INT32(SENS_MPDT4_ROT, 0);
 
 /**
- * MappyDot sensor 5
+ * MappyDot Sensor 5 Rotation
+ *
+ * This parameter defines the rotation of the Mappydot sensor relative to the platform.
  *
  * @reboot_required true
  * @min 0
- * @max 19
+ * @max 7
  * @group Sensors
- * @value 0 Disabled (?)
- * @value 8 Address
- * @value 9 Address
- * @value 10 Address
- * @value 11 Address
- * @value 12 Address
- * @value 13 Address
- * @value 14 Address
- * @value 15 Address
- * @value 16 Address
- * @value 17 Address
- * @value 18 Address
- * @value 19 Address
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
  */
 PARAM_DEFINE_INT32(SENS_MPDT5_ROT, 0);
 
 /**
- * MappyDot sensor 6
+ * MappyDot Sensor 6 Rotation
+ *
+ * This parameter defines the rotation of the Mappydot sensor relative to the platform.
  *
  * @reboot_required true
  * @min 0
- * @max 19
+ * @max 7
  * @group Sensors
- * @value 0 Disabled (?)
- * @value 8 Address
- * @value 9 Address
- * @value 10 Address
- * @value 11 Address
- * @value 12 Address
- * @value 13 Address
- * @value 14 Address
- * @value 15 Address
- * @value 16 Address
- * @value 17 Address
- * @value 18 Address
- * @value 19 Address
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
  */
 PARAM_DEFINE_INT32(SENS_MPDT6_ROT, 0);
 
 /**
- * MappyDot sensor 7
+ * MappyDot Sensor 7 Rotation
+ *
+ * This parameter defines the rotation of the Mappydot sensor relative to the platform.
  *
  * @reboot_required true
  * @min 0
- * @max 19
+ * @max 7
  * @group Sensors
- * @value 0 Disabled (?)
- * @value 8 Address
- * @value 9 Address
- * @value 10 Address
- * @value 11 Address
- * @value 12 Address
- * @value 13 Address
- * @value 14 Address
- * @value 15 Address
- * @value 16 Address
- * @value 17 Address
- * @value 18 Address
- * @value 19 Address
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
  */
 PARAM_DEFINE_INT32(SENS_MPDT7_ROT, 0);
 
 /**
- * MappyDot sensor 8
+ * MappyDot Sensor 8 Rotation
+ *
+ * This parameter defines the rotation of the Mappydot sensor relative to the platform.
  *
  * @reboot_required true
  * @min 0
- * @max 19
+ * @max 7
  * @group Sensors
- * @value 0 Disabled (?)
- * @value 8 Address
- * @value 9 Address
- * @value 10 Address
- * @value 11 Address
- * @value 12 Address
- * @value 13 Address
- * @value 14 Address
- * @value 15 Address
- * @value 16 Address
- * @value 17 Address
- * @value 18 Address
- * @value 19 Address
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
  */
 PARAM_DEFINE_INT32(SENS_MPDT8_ROT, 0);
 
 /**
- * MappyDot sensor 9
+ * MappyDot Sensor 9 Rotation
+ *
+ * This parameter defines the rotation of the Mappydot sensor relative to the platform.
  *
  * @reboot_required true
  * @min 0
- * @max 19
+ * @max 7
  * @group Sensors
- * @value 0 Disabled (?)
- * @value 8 Address
- * @value 9 Address
- * @value 10 Address
- * @value 11 Address
- * @value 12 Address
- * @value 13 Address
- * @value 14 Address
- * @value 15 Address
- * @value 16 Address
- * @value 17 Address
- * @value 18 Address
- * @value 19 Address
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
  */
 PARAM_DEFINE_INT32(SENS_MPDT9_ROT, 0);
 
 /**
- * MappyDot sensor 10
+ * MappyDot Sensor 10 Rotation
+ *
+ * This parameter defines the rotation of the Mappydot sensor relative to the platform.
  *
  * @reboot_required true
  * @min 0
- * @max 19
+ * @max 7
  * @group Sensors
- * @value 0 Disabled (?)
- * @value 8 Address
- * @value 9 Address
- * @value 10 Address
- * @value 11 Address
- * @value 12 Address
- * @value 13 Address
- * @value 14 Address
- * @value 15 Address
- * @value 16 Address
- * @value 17 Address
- * @value 18 Address
- * @value 19 Address
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
  */
 PARAM_DEFINE_INT32(SENS_MPDT10_ROT, 0);
 
 /**
- * MappyDot sensor 11
+ * MappyDot Sensor 12 Rotation
+ *
+ * This parameter defines the rotation of the Mappydot sensor relative to the platform.
  *
  * @reboot_required true
  * @min 0
- * @max 19
+ * @max 7
  * @group Sensors
- * @value 0 Disabled (?)
- * @value 8 Address
- * @value 9 Address
- * @value 10 Address
- * @value 11 Address
- * @value 12 Address
- * @value 13 Address
- * @value 14 Address
- * @value 15 Address
- * @value 16 Address
- * @value 17 Address
- * @value 18 Address
- * @value 19 Address
+ *
+ * @value 0 No rotation
+ * @value 1 Yaw 45°
+ * @value 2 Yaw 90°
+ * @value 3 Yaw 135°
+ * @value 4 Yaw 180°
+ * @value 5 Yaw 225°
+ * @value 6 Yaw 270°
+ * @value 7 Yaw 315°
  */
 PARAM_DEFINE_INT32(SENS_MPDT11_ROT, 0);

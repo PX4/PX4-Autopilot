@@ -36,7 +36,7 @@
  * @author Mohammed Kabir (mhkabir@mit.edu)
  * @author Mark Sauder (mcsauder@gmail.com)
  *
- * Driver for the Mappydot infrared rangefinders connected via I2C.
+ * Driver for Mappydot infrared rangefinders connected via I2C.
  */
 
 #include <string.h>
@@ -49,12 +49,9 @@
 #include <px4_module_params.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/parameter_update.h>
-
 
 /* MappyDot Registers */
 /* Basics */
-#define MAPPYDOT_IDENTIFICATION__MODEL_ID                   0x010F
 #define MAPPYDOT_MEASUREMENT_BUDGET                         0x42
 #define MAPPYDOT_READ_ERROR_CODE                            0x45
 #define MAPPYDOT_CHECK_INTERRUPT                            0x49
@@ -141,15 +138,15 @@
 
 /* Configuration Constants */
 #define MAPPYDOT_BASE_ADDR                                  0x08
-#define MAPPYDOT_BUS_DEFAULT                                PX4_I2C_BUS_EXPANSION2
-#define MAPPYDOT_MEASUREMENT_INTERVAL_USEC                  20000  // 20ms measurement interval, 50Hz.
+#define MAPPYDOT_BUS_DEFAULT                                PX4_I2C_BUS_EXPANSION
+#define MAPPYDOT_MEASUREMENT_INTERVAL_USEC                  50000  // 50ms measurement interval, 20Hz.
 
 using namespace time_literals;
 
 class MappyDot : public device::I2C, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	MappyDot(const int bus = MAPPYDOT_BUS_DEFAULT, const int address = MAPPYDOT_BASE_ADDR);
+	MappyDot(const int bus = MAPPYDOT_BUS_DEFAULT);
 	virtual ~MappyDot();
 
 	/**
@@ -178,26 +175,14 @@ protected:
 private:
 
 	/**
+	 * Sends an i2c measure command to check for presence of a sensor.
+	 */
+	int probe();
+
+	/**
 	 * Collects the most recent sensor measurement data from the i2c bus.
 	 */
 	int collect();
-
-	/**
-	 * Gets the current sensor rotation value.
-	 */
-	int get_sensor_rotation(const size_t index);
-
-	/**
-	 * Sends an i2c measure command to the sensors.
-	 */
-	int measure();
-
-	/**
-	 * Tests whether the device supported by the driver is present at a specific address.
-	 * @param address The I2C bus address to probe.
-	 * @return True if the device is present.
-	 */
-	int probe_address(const uint8_t address);
 
 	/**
 	* Performs a poll cycle; collect from the previous measurement and start a new one.
@@ -205,19 +190,12 @@ private:
 	void Run() override;
 
 	/**
-	 * Updates and checks for updated uORB parameters.
-	 * @param force Boolean to determine if an update check should be forced.
+	 * Gets the current sensor rotation value.
 	 */
-	void update_params(const bool force = false);
+	int get_sensor_rotation(const size_t index);
 
 	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_addresses {};
 	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS> _sensor_rotations {};
-
-	int _orb_class_instance{-1};
-	int _param_sub{0};
-	int _sensor_rotation{0};
-
-	uint64_t _measure_interval{MAPPYDOT_MEASUREMENT_INTERVAL_USEC};
 
 	size_t _sensor_count{0};
 
@@ -244,13 +222,11 @@ private:
 };
 
 
-MappyDot::MappyDot(const int bus, const int address) :
-	I2C("MappyDot", MAPPYDOT_DEVICE_PATH, bus, address, MAPPYDOT_BUS_CLOCK),
+MappyDot::MappyDot(const int bus) :
+	I2C("MappyDot", MAPPYDOT_DEVICE_PATH, bus, MAPPYDOT_BASE_ADDR, MAPPYDOT_BUS_CLOCK),
 	ModuleParams(nullptr),
 	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id()))
-{
-	_param_sub = orb_subscribe(ORB_ID(parameter_update));
-}
+{}
 
 MappyDot::~MappyDot()
 {
@@ -261,9 +237,6 @@ MappyDot::~MappyDot()
 	if (_distance_sensor_topic != nullptr) {
 		orb_unadvertise(_distance_sensor_topic);
 	}
-
-	// Unsubscribe from uORB topics.
-	orb_unsubscribe(_param_sub);
 
 	// Free perf counters.
 	perf_free(_comms_errors);
@@ -286,14 +259,14 @@ MappyDot::collect()
 		int ret_val = transfer(nullptr, 0, &val[0], 2);
 
 		if (ret_val < 0) {
-			PX4_INFO("error reading from sensor: %i, address: 0x%02X", index, _sensor_addresses[index]);
+			PX4_ERR("sensor %i read failed, address: 0x%02X", index, _sensor_addresses[index]);
 			perf_count(_comms_errors);
 			perf_end(_sample_perf);
 			return ret_val;
 		}
 
-		uint16_t distance_mm = val[0] << 8 | val[1];
-		float distance_m = distance_mm / 1000.f;
+		uint16_t distance_mm = uint16_t(val[0]) << 8 | val[1];
+		float distance_m = static_cast<float>(distance_mm) / 1000.f;
 
 		distance_sensor_s report {};
 		report.current_distance = distance_m;
@@ -301,16 +274,13 @@ MappyDot::collect()
 		report.max_distance     = MAPPYDOT_MAX_DISTANCE;
 		report.min_distance     = MAPPYDOT_MIN_DISTANCE;
 		report.orientation      = _sensor_rotations[index];
-		report.signal_quality   = 0;
+		report.signal_quality   = -1;
 		report.timestamp        = hrt_absolute_time();
 		report.type             = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 		report.variance         = 0;
 
-		// Publish the report data if we have a valid topic.
-		if (_distance_sensor_topic != nullptr) {
-			orb_publish_auto(ORB_ID(distance_sensor), &_distance_sensor_topic, &report, &_orb_class_instance,
-					 ORB_PRIO_DEFAULT);
-		}
+		int instance_id;
+		orb_publish_auto(ORB_ID(distance_sensor), &_distance_sensor_topic, &report, &instance_id, ORB_PRIO_DEFAULT);
 
 	}
 
@@ -363,7 +333,7 @@ MappyDot::init()
 	}
 
 	// Allow for sensor auto-addressing time
-	px4_usleep(500_ms);
+	px4_usleep(1_s);
 
 	// Check for connected rangefinders on each i2c port,
 	// starting from the base address 0x08 and incrementing
@@ -371,7 +341,7 @@ MappyDot::init()
 		set_device_address(MAPPYDOT_BASE_ADDR + i);
 
 		// Check if a sensor is present.
-		if (measure() != PX4_OK) {
+		if (probe() != PX4_OK) {
 			break;
 		}
 
@@ -380,6 +350,32 @@ MappyDot::init()
 		_sensor_rotations[i] = get_sensor_rotation(i);
 		_sensor_count++;
 
+		// Configure the sensor
+		// Set measurement budget
+		uint16_t budget_ms = MAPPYDOT_MEASUREMENT_INTERVAL_USEC / 1000;
+		uint8_t budget_cmd[3] = {MAPPYDOT_MEASUREMENT_BUDGET,
+					 uint8_t(budget_ms >> 8 & 0xFF),
+					 uint8_t(budget_ms & 0xFF)
+					};
+		transfer(&budget_cmd[0], 3, nullptr, 0);
+		px4_usleep(10_ms);
+
+		// Configure long range mode
+		uint8_t range_cmd[2] = {MAPPYDOT_RANGING_MEASUREMENT_MODE,
+					MAPPYDOT_LONG_RANGE
+				       };
+		transfer(&range_cmd[0], 2, nullptr, 0);
+		px4_usleep(10_ms);
+
+		// Configure LED threshold
+		uint16_t threshold_mm = 1000; // 1m
+		uint8_t threshold_cmd[3] = {MAPPYDOT_SET_LED_THRESHOLD_DISTANCE_IN_MM,
+					    uint8_t(threshold_mm >> 8 & 0xFF),
+					    uint8_t(threshold_mm & 0xFF)
+					   };
+		transfer(&threshold_cmd[0], 3, nullptr, 0);
+		px4_usleep(10_ms);
+
 		PX4_INFO("sensor %i at address 0x%02X added", i, get_device_address());
 	}
 
@@ -387,35 +383,18 @@ MappyDot::init()
 		return PX4_ERROR;
 	}
 
-	PX4_INFO("%i sensors connected at %i Hz", _sensor_count, 1000000 / MAPPYDOT_MEASUREMENT_INTERVAL_USEC);
-
-	// Get a publish handle on the distance sensor topic
-	distance_sensor_s report {};
-	_distance_sensor_topic = orb_advertise_multi_queue(ORB_ID(distance_sensor), &report,
-				 &_orb_class_instance, ORB_PRIO_DEFAULT, _sensor_count);
-
-	if (_distance_sensor_topic == nullptr) {
-		PX4_ERR("failed to create distance_sensor object");
-		return PX4_ERROR;
-	}
-
+	PX4_INFO("%i sensors connected", _sensor_count);
 
 	return PX4_OK;
 }
 
 int
-MappyDot::measure()
+MappyDot::probe()
 {
 	uint8_t cmd = MAPPYDOT_PERFORM_SINGLE_RANGE;
 	int ret_val = transfer(&cmd, 1, nullptr, 0);
 
-	if (ret_val != PX4_OK) {
-		perf_count(_comms_errors);
-		PX4_DEBUG("i2c::transfer returned %d", ret_val);
-		return ret_val;
-	}
-
-	return PX4_OK;
+	return ret_val;
 }
 
 void
@@ -432,7 +411,7 @@ MappyDot::Run()
 
 	// Collect the sensor data.
 	if (collect() != PX4_OK) {
-		PX4_INFO("sensor measurement collection error");
+		PX4_INFO("collection error");
 		// If an error occurred, restart the measurement state machine.
 		start();
 		return;
@@ -441,14 +420,14 @@ MappyDot::Run()
 	hrt_abstime time_remaining = hrt_elapsed_time(&_cycle_start_time);
 
 	// Schedule the next cycle call.
-	ScheduleDelayed(_measure_interval - time_remaining);
+	ScheduleDelayed(MAPPYDOT_MEASUREMENT_INTERVAL_USEC - time_remaining);
 }
 
 void
 MappyDot::start()
 {
-	// Update uORB subscription topics.
-	update_params(true);
+	// Fetch parameter values.
+	ModuleParams::updateParams();
 
 	// Schedule the first cycle.
 	ScheduleNow();
@@ -458,20 +437,6 @@ void
 MappyDot::stop()
 {
 	ScheduleClear();
-}
-
-void
-MappyDot::update_params(const bool force)
-{
-	bool updated = false;
-	parameter_update_s param_update {};
-
-	orb_check(_param_sub, &updated);
-
-	if (updated || force) {
-		ModuleParams::updateParams();
-		orb_copy(ORB_ID(parameter_update), _param_sub, &param_update);
-	}
 }
 
 
