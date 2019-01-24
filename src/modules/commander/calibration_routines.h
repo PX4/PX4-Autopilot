@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /// @file calibration_routines.h
-///	@authot Don Gagne <don@thegagnes.com>
+///	@author Don Gagne <don@thegagnes.com>
 
 #pragma once
 
