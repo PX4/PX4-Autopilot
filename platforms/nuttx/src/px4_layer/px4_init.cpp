@@ -39,6 +39,9 @@
 #include <lib/parameters/param.h>
 #include <systemlib/cpuload.h>
 
+#include <fcntl.h>
+
+
 #include "platform/cxxinitialize.h"
 
 int px4_platform_init(void)
@@ -54,6 +57,42 @@ int px4_platform_init(void)
 
 #else
 #  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
+#endif
+
+
+#if !defined(CONFIG_DEV_CONSOLE) && defined(CONFIG_DEV_NULL)
+
+	/* Support running nsh on a board with out a console
+	 * Without this the assumption that the fd 0..2 are
+	 * std{in..err} will be wrong. NSH will read/write to the
+	 * fd it opens for the init script or nested scripts assigned
+	 * to fd 0..2.
+	 *
+	 */
+
+	int fd = open("/dev/null", O_RDWR);
+
+	if (fd == 0) {
+		/* Successfully opened /dev/null as stdin (fd == 0) */
+
+		(void)fs_dupfd2(0, 1);
+		(void)fs_dupfd2(0, 2);
+		(void)fs_fdopen(0, O_RDONLY,         NULL);
+		(void)fs_fdopen(1, O_WROK | O_CREAT, NULL);
+		(void)fs_fdopen(2, O_WROK | O_CREAT, NULL);
+
+	} else {
+		/* We failed to open /dev/null OR for some reason, we opened
+		 * it and got some file descriptor other than 0.
+		 */
+
+		if (fd > 0) {
+			(void)close(fd);
+		}
+
+		return -ENFILE;
+	}
+
 #endif
 
 	hrt_init();
