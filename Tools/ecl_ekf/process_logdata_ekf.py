@@ -82,7 +82,7 @@ def process_logdata_ekf(
     try:
         with open(check_description_filename, 'r') as file:
             reader = csv.DictReader(file)
-            check_description = {
+            test_results_table = {
                 row['check_id']: ['NaN', row['check_description']] for row in reader}
         print('Using test description loaded from {:s}'.format(check_description_filename))
     except:
@@ -105,7 +105,7 @@ def process_logdata_ekf(
     # perform the ekf analysis
     test_results = analyse_ekf(
             estimator_status_data, ekf2_innovations_data, sensor_preflight_data,
-        check_levels, check_description, in_air, in_air_no_ground_effects, plot_report=plot,
+        check_levels, test_results_table, in_air, in_air_no_ground_effects, plot_report=plot,
         output_plot_filename='{:s}.pdf'.format(os.path.splitext(filename)[0]))
 
     # write metadata to a .csv file
