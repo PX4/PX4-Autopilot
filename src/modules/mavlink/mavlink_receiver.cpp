@@ -1863,10 +1863,16 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 
 	// check how many channels are valid
 	for (int i = 17; i >= 0; i--) {
-		const bool ignore_field = rc.values[i] == UINT16_MAX ||
-					  (rc.values[i] == 0 && (i > 7));
+		// definition: ignore any channel with value UINT16_MAX and channel 8-18 with value 0
+		const bool ignore_channel = rc.values[i] == UINT16_MAX ||
+					    (rc.values[i] == 0 && (i > 7));
 
-		if (!ignore_field) {
+		if (ignore_channel) {
+			// set all ignored values to zero
+			rc.values[i] = 0;
+
+		} else {
+			// first channel to not ignore -> set count considering zero-based index
 			rc.channel_count = i + 1;
 			break;
 		}
