@@ -5,7 +5,7 @@
 #
 
 # AV-X: start MAVLink to companion (connected to TX2)
-mavlink start -d /dev/ttyS5 -r 20000 -b 460800 -m onboard
+mavlink start -d /dev/ttyS5 -b 500000 -m osd
 
 # AV-X: start MAVLink UDP port 14570
 mavlink start -x -u 14570
