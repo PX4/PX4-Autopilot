@@ -57,6 +57,9 @@
 namespace device
 {
 
+// static member bitmask
+uint8_t SPI::_is_locked = 0;
+
 SPI::SPI(const char *name,
 	 const char *devname,
 	 int bus,
@@ -126,8 +129,8 @@ SPI::init()
 
 void SPI::lock(struct spi_dev_s *dev)
 {
-	SPI_LOCK(dev, true);
 	_is_locked |= 1 << (_device_id.devid_s.bus - 1);
+	SPI_LOCK(dev, true);
 }
 
 void SPI::unlock(struct spi_dev_s *dev)
@@ -140,7 +143,7 @@ int
 SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 {
 	if ((send == nullptr) && (recv == nullptr)) {
-		return -EINVAL;
+		return PX4_ERROR;
 	}
 
 	// LOCK_NONE if we are in interrupt context because we cannot wait on a semaphore.

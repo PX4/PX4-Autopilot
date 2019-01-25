@@ -36,9 +36,7 @@
  *
  * Base class for devices connected via SPI.
  */
-
-#ifndef _DEVICE_SPI_H
-#define _DEVICE_SPI_H
+#pragma once
 
 #include "../CDev.hpp"
 #include <perf/perf_counter.h>
@@ -153,17 +151,18 @@ protected:
 	 */
 	void		set_lockmode(enum LockMode mode) { _locking_mode = mode; }
 
-	LockMode	_locking_mode;	/**< selected locking mode */
+	LockMode			_locking_mode;	/**< selected locking mode */
+
+	static uint8_t 		_is_locked; /** Bit mask. Bit position corresponds to bus number. */
 
 private:
 	uint32_t			_device;
 	enum spi_mode_e		_mode;
-	uint32_t		_frequency;
-	uint8_t 		_is_locked{0};
+	uint32_t			_frequency;
 	struct spi_dev_s	*_dev;
 
-	// For debugging
-	perf_counter_t 	_isr_deferred;
+	// For debugging. For all SPI busses.
+	perf_counter_t 		_isr_deferred;
 
 	/* this class does not allow copying */
 	SPI(const SPI &);
@@ -179,5 +178,3 @@ protected:
 };
 
 } // namespace device
-
-#endif /* _DEVICE_SPI_H */
