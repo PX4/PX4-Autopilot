@@ -63,18 +63,13 @@ SPI::SPI(const char *name,
 	 uint32_t device,
 	 enum spi_mode_e mode,
 	 uint32_t frequency) :
-	// base class
 	CDev(name, devname),
-	// public
-	// protected
 	_locking_mode(LOCK_PREEMPTION),
-	// private
 	_device(device),
 	_mode(mode),
 	_frequency(frequency),
 	_dev(nullptr)
 {
-	// fill in _device_id fields for a SPI device
 	_device_id.devid_s.bus_type = DeviceBusType_SPI;
 	_device_id.devid_s.bus = bus;
 	_device_id.devid_s.address = (uint8_t)device;
@@ -84,14 +79,11 @@ SPI::SPI(const char *name,
 
 SPI::~SPI()
 {
-	// XXX no way to let go of the bus...
 }
 
 int
 SPI::init()
 {
-	int ret = OK;
-
 	/* attach to the spi bus */
 	if (_dev == nullptr) {
 		int bus = get_device_bus();
@@ -106,41 +98,34 @@ SPI::init()
 
 	if (_dev == nullptr) {
 		DEVICE_DEBUG("failed to init SPI");
-		ret = -ENOENT;
-		goto out;
+		return PX4_ERROR;
 	}
 
 	/* deselect device to ensure high to low transition of pin select */
 	SPI_SELECT(_dev, _device, false);
 
 	/* call the probe function to check whether the device is present */
-	ret = probe();
-
-	if (ret != OK) {
+	if (probe() != PX4_OK) {
 		DEVICE_DEBUG("probe failed");
-		goto out;
+		return PX4_ERROR;
 	}
 
 	/* do base class init, which will create the device node, etc. */
-	ret = CDev::init();
-
-	if (ret != OK) {
+	if (CDev::init() != PX4_OK) {
 		DEVICE_DEBUG("cdev init failed");
-		goto out;
+		return PX4_ERROR;
 	}
 
 	/* tell the workd where we are */
 	DEVICE_LOG("on SPI bus %d at %d (%u KHz)", get_device_bus(), PX4_SPI_DEV_ID(_device), _frequency / 1000);
 
-out:
-	return ret;
+	return PX4_OK;
 }
 
 int SPI::lock(struct spi_dev_s *dev)
 {
 	SPI_LOCK(dev, true);
 	_is_locked |= 1 << (_device_id.devid_s.bus - 1);
-	//PX4_INFO("Locked bus %d: %d", _device_id.devid_s.bus, _is_locked);
 	return PX4_OK;
 }
 
@@ -148,7 +133,6 @@ int SPI::unlock(struct spi_dev_s *dev)
 {
 	SPI_LOCK(dev, false);
 	_is_locked &= ~(1 << (_device_id.devid_s.bus - 1));
-	//PX4_INFO("Unlocked bus %d: %d", _device_id.devid_s.bus, _is_locked);
 	return PX4_OK;
 }
 
@@ -162,7 +146,6 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	// LOCK_NONE if we are in interrupt context because we cannot wait on a semaphore.
 	LockMode mode = up_interrupt_context() ? LOCK_NONE : _locking_mode;
 
-	/* lock the bus as required */
 	switch (mode) {
 	case LOCK_PREEMPTION: {
 			irqstate_t state = px4_enter_critical_section();
@@ -220,7 +203,6 @@ SPI::transferhword(uint16_t *send, uint16_t *recv, unsigned len)
 
 	LockMode mode = up_interrupt_context() ? LOCK_NONE : _locking_mode;
 
-	/* lock the bus as required */
 	switch (mode) {
 	case LOCK_PREEMPTION: {
 			irqstate_t state = px4_enter_critical_section();
