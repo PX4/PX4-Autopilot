@@ -17,7 +17,7 @@ pipeline {
 
       agent {
         docker {
-          image 'px4io/px4-dev-ros-kinetic:2018-09-11'
+          image 'px4io/px4-dev-ros-kinetic:2019-01-25'
           args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE --cap-add SYS_PTRACE'
         }
       }
@@ -101,7 +101,8 @@ pipeline {
               name: "MC_offboard_att",
               test: "mavros_posix_tests_offboard_attctl.test",
               mission: "",
-              vehicle: "iris"
+              vehicle: "iris",
+              docker_image: "px4io/px4-dev-ros-kinetic:2018-09-11" // TODO: Update image after https://github.com/mavlink/mavros/pull/1161
             ],
             [
               name: "MC_offboard_pos",
@@ -208,7 +209,7 @@ pipeline {
 } // pipeline
 
 def createTestNode(Map test_def) {
-  def docker_image = test_def.get('docker_image', 'px4io/px4-dev-ros-kinetic:2018-09-11')
+  def docker_image = test_def.get('docker_image', 'px4io/px4-dev-ros-kinetic:2019-01-25')
   return {
     node {
       cleanWs()
