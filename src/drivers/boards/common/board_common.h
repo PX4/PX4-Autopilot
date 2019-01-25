@@ -1076,6 +1076,24 @@ __EXPORT bool px4_spi_bus_external(int bus);
 #endif /* BOARD_HAS_SIMPLE_HW_VERSIONING */
 
 /************************************************************************************
+ * Name: board_has_bus
+ *
+ ************************************************************************************/
+
+enum board_bus_types {
+	BOARD_SPI_BUS = 1,
+	BOARD_I2C_BUS = 2
+};
+
+#if defined(BOARD_HAS_BUS_MANIFEST)
+
+__EXPORT bool board_has_bus(enum board_bus_types type, uint32_t bus);
+
+#else
+#  define board_has_bus(t, b) true
+#endif /* BOARD_HAS_BUS_MANIFEST */
+
+/************************************************************************************
  * Name: board_hardfault_init
  *
  * Description:
