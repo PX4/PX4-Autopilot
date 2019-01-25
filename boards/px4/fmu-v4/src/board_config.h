@@ -108,6 +108,7 @@
 /* Define the Chip Selects for SPI4. */
 
 #ifdef CONFIG_STM32_SPI4
+#  define BOARD_HAS_BUS_MANIFEST 1 // We support a bus manifest because spi 4 is optional
 #  define GPIO_SPI4_CS_1         (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN8)  //ESP_RTS_PIN
 #endif /* CONFIG_STM32_SPI4 */
 /**

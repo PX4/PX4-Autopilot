@@ -60,6 +60,26 @@
  * Public Functions
  ************************************************************************************/
 
+__EXPORT bool board_has_bus(enum board_bus_types type, uint32_t bus)
+{
+	bool rv = true;
+
+	switch (type) {
+	case BOARD_SPI_BUS:
+#ifdef CONFIG_STM32_SPI4
+
+		rv = bus != PX4_SPI_BUS_EXTERNAL || (stm32_gpioread(GPIO_8266_GPIO2) == 0);
+
+#endif
+		break;
+
+	case BOARD_I2C_BUS:
+		break;
+	}
+
+	return rv;
+}
+
 /************************************************************************************
  * Name: stm32_spiinitialize
  *
