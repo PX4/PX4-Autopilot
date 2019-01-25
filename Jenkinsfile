@@ -44,7 +44,7 @@ pipeline {
         stage('Colcon build on ROS2 workspace') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros2-bouncy:2019-01-25'
+              image 'px4io/px4-dev-ros2-crystal:2019-01-25'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -56,7 +56,7 @@ pipeline {
               mkdir -p colcon_ws/src;
               cd colcon_ws;
               git clone --recursive https://github.com/PX4/sitl_gazebo.git src/mavlink_sitl_gazebo;
-              source /opt/ros/bouncy/setup.sh;
+              source /opt/ros/crystal/setup.sh;
               source /opt/ros/melodic/setup.sh;
               colcon build --event-handlers console_direct+ --symlink-install;
             '''
