@@ -1834,7 +1834,6 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 	// metadata
 	rc.timestamp = hrt_absolute_time();
 	rc.timestamp_last_signal = rc.timestamp;
-	rc.channel_count = 18;
 	rc.rssi = RC_INPUT_RSSI_MAX;
 	rc.rc_failsafe = false;
 	rc.rc_lost = false;
@@ -1861,6 +1860,22 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 	rc.values[15] = man.chan16_raw;
 	rc.values[16] = man.chan17_raw;
 	rc.values[17] = man.chan18_raw;
+
+	// check how many channels are valid
+	for (int i = 17; i >= 0; i--) {
+		const bool ignore_max = rc.values[i] == UINT16_MAX; // ignore any channel with value UINT16_MAX
+		const bool ignore_zero = (i > 7) && (rc.values[i] == 0); // ignore channel 8-18 if value is 0
+
+		if (ignore_max || ignore_zero) {
+			// set all ignored values to zero
+			rc.values[i] = 0;
+
+		} else {
+			// first channel to not ignore -> set count considering zero-based index
+			rc.channel_count = i + 1;
+			break;
+		}
+	}
 
 	// publish uORB message
 	int instance; // provides the instance ID or the publication
