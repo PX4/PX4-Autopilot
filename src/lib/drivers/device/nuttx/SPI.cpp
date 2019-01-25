@@ -68,7 +68,8 @@ SPI::SPI(const char *name,
 	_device(device),
 	_mode(mode),
 	_frequency(frequency),
-	_dev(nullptr)
+	_dev(nullptr),
+	_isr_deferred(perf_alloc(PC_COUNT, "spi_isr_deferred"))
 {
 	_device_id.devid_s.bus_type = DeviceBusType_SPI;
 	_device_id.devid_s.bus = bus;
@@ -79,6 +80,7 @@ SPI::SPI(const char *name,
 
 SPI::~SPI()
 {
+	perf_free(_isr_deferred);
 }
 
 int
@@ -122,18 +124,16 @@ SPI::init()
 	return PX4_OK;
 }
 
-int SPI::lock(struct spi_dev_s *dev)
+void SPI::lock(struct spi_dev_s *dev)
 {
 	SPI_LOCK(dev, true);
 	_is_locked |= 1 << (_device_id.devid_s.bus - 1);
-	return PX4_OK;
 }
 
-int SPI::unlock(struct spi_dev_s *dev)
+void SPI::unlock(struct spi_dev_s *dev)
 {
 	SPI_LOCK(dev, false);
 	_is_locked &= ~(1 << (_device_id.devid_s.bus - 1));
-	return PX4_OK;
 }
 
 int
@@ -164,7 +164,7 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	case LOCK_NONE: {
 			if (_is_locked) {
 				// Someone is using the bus
-				PX4_INFO("Error: bus %d in use", _device_id.devid_s.bus);
+				perf_count(_isr_deferred);
 				return PX4_ERROR;
 			}
 
@@ -221,7 +221,7 @@ SPI::transferhword(uint16_t *send, uint16_t *recv, unsigned len)
 	case LOCK_NONE: {
 			if (_is_locked) {
 				// Someone is using the bus
-				PX4_INFO("Error: bus %d in use", _device_id.devid_s.bus);
+				perf_count(_isr_deferred);
 				return PX4_ERROR;
 			}
 

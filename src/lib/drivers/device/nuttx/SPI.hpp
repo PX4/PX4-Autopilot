@@ -41,6 +41,7 @@
 #define _DEVICE_SPI_H
 
 #include "../CDev.hpp"
+#include <perf/perf_counter.h>
 
 namespace device __EXPORT
 {
@@ -80,9 +81,9 @@ protected:
 
 	virtual int	init();
 
-	int lock(struct spi_dev_s *dev);
+	void lock(struct spi_dev_s *dev);
 
-	int unlock(struct spi_dev_s *dev);
+	void unlock(struct spi_dev_s *dev);
 
 	/**
 	 * Check for the presence of the device on the bus.
@@ -160,6 +161,9 @@ private:
 	uint32_t		_frequency;
 	uint8_t 		_is_locked{0};
 	struct spi_dev_s	*_dev;
+
+	// For debugging
+	perf_counter_t 	_isr_deferred;
 
 	/* this class does not allow copying */
 	SPI(const SPI &);
