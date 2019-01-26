@@ -407,7 +407,14 @@ void register_sig_handler()
 	sig_segv.sa_handler = sig_segv_handler;
 	sig_segv.sa_flags = SA_RESTART | SA_SIGINFO;
 
+#ifdef __PX4_CYGWIN
+	// Do not catch SIGINT on Cygwin such that the process gets killed
+	// TODO: All threads should exit gracefully see https://github.com/PX4/Firmware/issues/11027
+	(void)sig_int; // this variable is unused
+#else
 	sigaction(SIGINT, &sig_int, nullptr);
+#endif
+
 	//sigaction(SIGTERM, &sig_int, nullptr);
 	sigaction(SIGFPE, &sig_fpe, nullptr);
 	sigaction(SIGPIPE, &sig_pipe, nullptr);
