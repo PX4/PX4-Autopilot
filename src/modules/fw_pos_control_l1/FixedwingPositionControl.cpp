@@ -2040,14 +2040,9 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 
 	if (_vehicle_status.in_transition_to_fw && !_tecs.in_front_transition()) {
 		_tecs.activate_front_transition();
-		_transition_alt_sp_tecs = alt_sp;
 
 	} else if (!_vehicle_status.in_transition_to_fw && _tecs.in_front_transition()) {
 		_tecs.deactivate_front_transition();
-	}
-
-	if (_tecs.in_front_transition()) {
-		alt_sp = _transition_alt_sp_tecs;
 	}
 
 	_tecs.update_pitch_throttle(_R_nb, pitch_for_tecs,
