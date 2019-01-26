@@ -236,7 +236,7 @@ void Standard::update_transition_state()
 			matrix::Quatf q_sp(matrix::Eulerf(_mc_virtual_att_sp->roll_body, _fw_virtual_att_sp->pitch_body,
 							  _mc_virtual_att_sp->yaw_body));
 			q_sp.copyTo(_v_att_sp->q_d);
-			_v_att_sp->pitch_body = _fw_virtual_att_sp->yaw_body;
+			_v_att_sp->pitch_body = _fw_virtual_att_sp->pitch_body;
 			_pusher_throttle = _fw_virtual_att_sp->thrust_body[0];
 
 		} else {
