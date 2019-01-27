@@ -52,7 +52,8 @@ __status__ = 'Development'
 input_dir = sys.argv[1]
 output_dir = sys.argv[2]
 
-os.mkdir(os.path.abspath(output_dir))
+if not os.path.exists(os.path.abspath(output_dir)):
+    os.mkdir(os.path.abspath(output_dir))
 
 msg_list = list()
 
