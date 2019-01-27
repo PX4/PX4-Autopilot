@@ -1,8 +1,6 @@
 #ifdef CONFIG_BOARD_CRASHDUMP
 
-#include <px4_config.h>
-#include <px4_log.h>
-#include <px4_tasks.h>
+#include <board_config.h>
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -67,8 +65,8 @@ int board_hardfault_init(int display_to_console, bool allow_prompt)
 
 	if (hadCrash == OK) {
 
-		PX4_ERR("[boot] There is a hard fault logged. Hold down the SPACE BAR," \
-			" while booting to review!\n");
+		syslog(LOG_ERR, "[boot] There is a hard fault logged. Hold down the SPACE BAR," \
+		       " while booting to review!\n");
 
 		/* Yes. So add one to the boot count - this will be reset after a successful
 		 * commit to SD
@@ -104,9 +102,9 @@ int board_hardfault_init(int display_to_console, bool allow_prompt)
 				hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
 			}
 
-			PX4_ERR("[boot] There were %d reboots with Hard fault that were not committed to disk%s\n",
-				reboots,
-				(bytesWaiting == 0 ? "" : " - Boot halted Due to Key Press\n"));
+			syslog(LOG_ERR, "[boot] There were %d reboots with Hard fault that were not committed to disk%s\n",
+			       reboots,
+			       (bytesWaiting == 0 ? "" : " - Boot halted Due to Key Press\n"));
 
 
 			/* For those of you with a debugger set a break point on up_assert and
@@ -155,9 +153,9 @@ int board_hardfault_init(int display_to_console, bool allow_prompt)
 						break;
 					} // Inner Switch
 
-					PX4_INFO("\nEnter B - Continue booting\n" \
-						 "Enter C - Clear the fault log\n" \
-						 "Enter D - Dump fault log\n\n?>");
+					syslog(LOG_INFO, "\nEnter B - Continue booting\n" \
+					       "Enter C - Clear the fault log\n" \
+					       "Enter D - Dump fault log\n\n?>");
 					fflush(stdout);
 
 read:

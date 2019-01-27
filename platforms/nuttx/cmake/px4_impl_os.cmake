@@ -125,25 +125,4 @@ function(px4_os_prebuild_targets)
 	target_link_libraries(prebuild_targets INTERFACE nuttx_xx nuttx_c nuttx_fs nuttx_mm nuttx_sched m gcc)
 	add_dependencies(prebuild_targets DEPENDS nuttx_context uorb_headers)
 
-	# parse nuttx config options for cmake
-	file(STRINGS ${PX4_BOARD_DIR}/nuttx-config/${NUTTX_CONFIG}/defconfig ConfigContents)
-	foreach(NameAndValue ${ConfigContents})
-		# Strip leading spaces
-		string(REGEX REPLACE "^[ ]+" "" NameAndValue ${NameAndValue})
-
-		# Find variable name
-		string(REGEX MATCH "^CONFIG[^=]+" Name ${NameAndValue})
-
-		if (Name)
-			# Find the value
-			string(REPLACE "${Name}=" "" Value ${NameAndValue})
-
-			# remove extra quotes
-			string(REPLACE "\"" "" Value ${Value})
-
-			# Set the variable
-			#message(STATUS "${Name} ${Value}")
-			set(${Name} ${Value} CACHE INTERNAL "NUTTX DEFCONFIG: ${Name}" FORCE)
-		endif()
-	endforeach()
 endfunction()
