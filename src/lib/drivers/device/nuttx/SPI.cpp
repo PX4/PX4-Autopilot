@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,11 +38,6 @@
  *
  * @todo Work out if caching the mode/frequency would save any time.
  *
- * @todo A separate bus/device abstraction would allow for mixed interrupt-mode
- * and non-interrupt-mode clients to arbitrate for the bus.  As things stand,
- * a bus shared between clients of both kinds is vulnerable to races between
- * the two, where an interrupt-mode client will ignore the lock held by the
- * non-interrupt-mode client.
  */
 
 #include "SPI.hpp"
@@ -143,7 +138,7 @@ int
 SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 {
 	if ((send == nullptr) && (recv == nullptr)) {
-		return PX4_ERROR;
+		return -EINVAL;
 	}
 
 	// LOCK_NONE if we are in interrupt context because we cannot wait on a semaphore.
@@ -165,7 +160,7 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 		}
 
 	case LOCK_NONE: {
-			if (_is_locked) {
+			if (_is_locked && (1 << (_device_id.devid_s.bus - 1))) {
 				// Someone is using the bus
 				perf_count(_isr_deferred);
 				return PX4_ERROR;
