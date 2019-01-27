@@ -123,14 +123,13 @@ if __name__ == "__main__":
     # Parse arguments
     args = parser.parse_args()
 
-    msg_folder = args.msgdir
+    msg_dir = args.msgdir
     if args.msgdir == 'msg':
-        msg_folder = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if args.yaml_file != 'tools/uorb_rtps_message_ids.yaml':
-        classifier = Classifier(os.path.abspath(args.yaml_file), msg_folder)
+        msg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     else:
-        classifier = Classifier(os.path.join(
-            msg_folder, args.yaml_file), msg_folder)
+        msg_dir = os.path.abspath(args.msgdir)
+    classifier = (Classifier(os.path.abspath(args.yaml_file), msg_dir) if os.path.isabs(args.yaml_file) \
+        else Classifier(os.path.join(msg_dir, args.yaml_file), msg_dir))
 
     if args.send:
         if args.path:
