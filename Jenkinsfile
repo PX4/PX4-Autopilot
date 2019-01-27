@@ -473,7 +473,7 @@ pipeline {
           }
         }
 
-        stage('Generate PX4 ROS msgs') {
+        stage('PX4 ROS msgs') {
           agent {
             docker { image 'px4io/px4-dev-base:2019-01-01' }
           }
