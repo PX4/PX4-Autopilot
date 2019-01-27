@@ -473,6 +473,33 @@ pipeline {
           }
         }
 
+        stage('Generate PX4 ROS msgs') {
+          agent {
+            docker { image 'px4io/px4-dev-base:2019-01-01' }
+          }
+          steps {
+            sh('export')
+            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
+              sh('git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_msgs.git')
+              sh('python msg/tools/uorb_to_ros_msgs.py msg/ msg/ros/')
+              sh('cp -a msg/ros/. px4_msgs/msg')
+              sh('cd px4_msgs; git status; git add .; git commit -a -m "Update message definitions `date`" || true')
+              sh('cd px4_msgs; git push origin master || true')
+              sh('rm -rf px4_msgs')
+              sh('rm -rf msg/ros')
+            }
+          }
+          when {
+            anyOf {
+              branch 'master'
+              branch 'pr-jenkins' // for testing
+            }
+          }
+          options {
+            skipDefaultCheckout()
+          }
+        }
+
         stage('S3') {
           agent {
             docker { image 'px4io/px4-dev-base:2019-01-26' }
