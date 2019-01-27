@@ -388,24 +388,24 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 		break;
 
-	case MAVLINK_MSG_ID_LANDING_TARGET:
-		mavlink_landing_target_t landing_target_mavlink;
-		mavlink_msg_landing_target_decode(msg, &landing_target_mavlink);
+	case MAVLINK_MSG_ID_LANDING_TARGET: {
+			mavlink_landing_target_t landing_target_mavlink;
+			mavlink_msg_landing_target_decode(msg, &landing_target_mavlink);
 
-		struct irlock_report_s report;
-		memset(&report, 0, sizeof(report));
+			struct irlock_report_s report = {};
 
-		report.timestamp = hrt_absolute_time();
-		report.signature = landing_target_mavlink.target_num;
-		report.pos_x = landing_target_mavlink.angle_x;
-		report.pos_y = landing_target_mavlink.angle_y;
-		report.size_x = landing_target_mavlink.size_x;
-		report.size_y = landing_target_mavlink.size_y;
+			report.timestamp = hrt_absolute_time();
+			report.signature = landing_target_mavlink.target_num;
+			report.pos_x = landing_target_mavlink.angle_x;
+			report.pos_y = landing_target_mavlink.angle_y;
+			report.size_x = landing_target_mavlink.size_x;
+			report.size_y = landing_target_mavlink.size_y;
 
-		int irlock_multi;
-		orb_publish_auto(ORB_ID(irlock_report), &_irlock_report_pub, &report, &irlock_multi, ORB_PRIO_HIGH);
+			int irlock_multi;
+			orb_publish_auto(ORB_ID(irlock_report), &_irlock_report_pub, &report, &irlock_multi, ORB_PRIO_HIGH);
 
-		break;
+			break;
+		}
 
 	case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
 		mavlink_hil_state_quaternion_t hil_state;
@@ -738,8 +738,7 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	param.sched_priority = SCHED_PRIORITY_DEFAULT;
 	(void)pthread_attr_setschedparam(&sender_thread_attr, &param);
 
-	struct pollfd fds[2];
-	memset(fds, 0, sizeof(fds));
+	struct pollfd fds[2] = {};
 	unsigned fd_count = 1;
 	fds[0].fd = _fd;
 	fds[0].events = POLLIN;
@@ -900,8 +899,7 @@ int openUart(const char *uart_name, int baud)
 
 
 	/* Try to set baud rate */
-	struct termios uart_config;
-	memset(&uart_config, 0, sizeof(uart_config));
+	struct termios uart_config = {};
 
 	int termios_state;
 
@@ -1031,8 +1029,7 @@ int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
 {
 	uint64_t timestamp = hrt_absolute_time();
 
-	struct optical_flow_s flow;
-	memset(&flow, 0, sizeof(flow));
+	struct optical_flow_s flow = {};
 
 	flow.sensor_id = flow_mavlink->sensor_id;
 	flow.timestamp = timestamp;
@@ -1186,8 +1183,7 @@ int Simulator::publish_distance_topic(mavlink_distance_sensor_t *dist_mavlink)
 {
 	uint64_t timestamp = hrt_absolute_time();
 
-	struct distance_sensor_s dist;
-	memset(&dist, 0, sizeof(dist));
+	struct distance_sensor_s dist = {};
 
 	dist.timestamp = timestamp;
 	dist.min_distance = dist_mavlink->min_distance / 100.0f;
