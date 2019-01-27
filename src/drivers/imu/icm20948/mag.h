@@ -96,7 +96,8 @@
 #define AK09916_ST1_DRDY                        0x01
 #define AK09916_ST1_DOR                         0x02
 
-class MPU9250;
+
+class ICM20948;
 
 #pragma pack(push, 1)
 struct ak8963_regs {
@@ -122,17 +123,17 @@ struct ak09916_regs {
 
 extern device::Device *AK8963_I2C_interface(int bus, bool external_bus);
 
-typedef device::Device *(*MPU9250_mag_constructor)(int, bool);
+typedef device::Device *(*ICM20948_mag_constructor)(int, bool);
 
 
 /**
  * Helper class implementing the magnetometer driver node.
  */
-class MPU9250_mag : public device::CDev
+class ICM20948_mag : public device::CDev
 {
 public:
-	MPU9250_mag(MPU9250 *parent, device::Device *interface, const char *path);
-	~MPU9250_mag();
+	ICM20948_mag(ICM20948 *parent, device::Device *interface, const char *path);
+	~ICM20948_mag();
 
 	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
 	virtual int init();
@@ -151,7 +152,7 @@ public:
 protected:
 	Device			*_interface;
 
-	friend class MPU9250;
+	friend class ICM20948;
 
 	/* Directly measure from the _interface if possible */
 	void measure();
@@ -165,7 +166,7 @@ protected:
 	bool is_passthrough() { return _interface == nullptr; }
 
 private:
-	MPU9250 *_parent;
+	ICM20948 *_parent;
 	orb_advert_t _mag_topic;
 	int _mag_orb_class_instance;
 	int _mag_class_instance;
@@ -188,6 +189,6 @@ private:
 	uint8_t			_last_mag_data[6];
 
 	/* do not allow to copy this class due to pointer data members */
-	MPU9250_mag(const MPU9250_mag &);
-	MPU9250_mag operator=(const MPU9250_mag &);
+	ICM20948_mag(const ICM20948_mag &);
+	ICM20948_mag operator=(const ICM20948_mag &);
 };
