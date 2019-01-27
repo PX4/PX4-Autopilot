@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,16 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(adis16448)
-add_subdirectory(adis16477)
-add_subdirectory(bma180)
-add_subdirectory(bmi055)
-add_subdirectory(bmi160)
-add_subdirectory(fxas21002c)
-add_subdirectory(fxos8701cq)
-add_subdirectory(icm20948)
-add_subdirectory(l3gd20)
-add_subdirectory(lsm303d)
-add_subdirectory(mpu6000)
-add_subdirectory(mpu9250)
+px4_add_module(
+	MODULE drivers__icm20948
+	MAIN icm20948
+	STACK_MAIN 1500
+	COMPILE_FLAGS
+	SRCS
+		icm20948.cpp
+		icm20948_i2c.cpp
+		icm20948_spi.cpp
+		main.cpp
+		accel.cpp
+		gyro.cpp
+		mag.cpp
+		mag_i2c.cpp
+	DEPENDS
+	)
