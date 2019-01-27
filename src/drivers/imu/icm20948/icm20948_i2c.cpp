@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file mpu9250_i2c.cpp
+ * @file icm20948_i2c.cpp
  *
- * I2C interface for MPU9250
+ * I2C interface for ICM20948
  */
 
 #include <px4_config.h>
@@ -42,17 +42,17 @@
 #include <drivers/drv_accel.h>
 #include <drivers/drv_device.h>
 
-#include "mpu9250.h"
+#include "icm20948.h"
 
 #ifdef USE_I2C
 
-device::Device *MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus);
+device::Device *ICM20948_I2C_interface(int bus, uint32_t address, bool external_bus);
 
-class MPU9250_I2C : public device::I2C
+class ICM20948_I2C : public device::I2C
 {
 public:
-	MPU9250_I2C(int bus, uint32_t address);
-	~MPU9250_I2C() override = default;
+	ICM20948_I2C(int bus, uint32_t address);
+	~ICM20948_I2C() override = default;
 
 	int	read(unsigned address, void *data, unsigned count) override;
 	int	write(unsigned address, void *data, unsigned count) override;
@@ -65,19 +65,19 @@ private:
 };
 
 device::Device *
-MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus)
+ICM20948_I2C_interface(int bus, uint32_t address, bool external_bus)
 {
-	return new MPU9250_I2C(bus, address);
+	return new ICM20948_I2C(bus, address);
 }
 
-MPU9250_I2C::MPU9250_I2C(int bus, uint32_t address) :
-	I2C("MPU9250_I2C", nullptr, bus, address, 400000)
+ICM20948_I2C::ICM20948_I2C(int bus, uint32_t address) :
+	I2C("ICM20948_I2C", nullptr, bus, address, 400000)
 {
 	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU9250;
 }
 
 int
-MPU9250_I2C::write(unsigned reg_speed, void *data, unsigned count)
+ICM20948_I2C::write(unsigned reg_speed, void *data, unsigned count)
 {
 	uint8_t cmd[MPU_MAX_WRITE_BUFFER_SIZE];
 
@@ -91,7 +91,7 @@ MPU9250_I2C::write(unsigned reg_speed, void *data, unsigned count)
 }
 
 int
-MPU9250_I2C::read(unsigned reg_speed, void *data, unsigned count)
+ICM20948_I2C::read(unsigned reg_speed, void *data, unsigned count)
 {
 	/* We want to avoid copying the data of MPUReport: So if the caller
 	 * supplies a buffer not MPUReport in size, it is assume to be a reg or
@@ -105,14 +105,23 @@ MPU9250_I2C::read(unsigned reg_speed, void *data, unsigned count)
 }
 
 int
-MPU9250_I2C::probe()
+ICM20948_I2C::probe()
 {
 	uint8_t whoami = 0;
+	uint8_t register_select = REG_BANK(BANK0);  // register bank containing WHOAMI for ICM20948
 
 	// Try first for mpu9250/6500
 	read(MPUREG_WHOAMI, &whoami, 1);
 
-	if (whoami == MPU_WHOAMI_9250 || whoami == MPU_WHOAMI_6500) {
+	/*
+	 * If it's not an MPU it must be an ICM
+	 * Make sure register bank 0 is selected - whoami is only present on bank 0, and that is
+	 * not sure e.g. if the device has rebooted without repowering the sensor
+	 */
+	write(ICMREG_20948_BANK_SEL, &register_select, 1);
+	read(ICMREG_20948_WHOAMI, &whoami, 1);
+
+	if (whoami == ICM_WHOAMI_20948) {
 		return PX4_OK;
 	}
 
