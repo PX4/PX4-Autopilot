@@ -490,7 +490,7 @@ pipeline {
           when {
             anyOf {
               branch 'master'
-              branch 'pr-jenkins' // for testing
+              branch 'feature/jenkins_autobuild_px4_msgs' // for testing
             }
           }
           options {
