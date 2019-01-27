@@ -54,6 +54,12 @@ output_dir = sys.argv[2]
 
 if not os.path.exists(os.path.abspath(output_dir)):
     os.mkdir(os.path.abspath(output_dir))
+else:
+    ros_msg_dir = os.path.abspath(output_dir)
+    msg_files = os.listdir(ros_msg_dir)
+    for msg in msg_files:
+        if msg.endswith(".msg"):
+            os.remove(os.path.join(ros_msg_dir, msg))
 
 msg_list = list()
 
