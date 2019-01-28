@@ -68,7 +68,6 @@
 #include <nuttx/clock.h>
 
 #include <board_config.h>
-#include <drivers/drv_hrt.h>
 
 #include <drivers/device/spi.h>
 #include <drivers/device/ringbuffer.h>
@@ -80,6 +79,7 @@
 #include <drivers/drv_mag.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 #define DIR_READ				0x00
 #define DIR_WRITE				0x80
@@ -185,7 +185,7 @@
 class ADIS16448_gyro;
 class ADIS16448_mag;
 
-class ADIS16448 : public device::SPI
+class ADIS16448 : public device::SPI, public px4::ScheduledWorkItem
 {
 public:
 	ADIS16448(int bus, const char *path_accel, const char *path_gyro, const char *path_mag, uint32_t device,
@@ -224,7 +224,6 @@ private:
 
 	uint16_t			_product;	/** product code */
 
-	struct hrt_call		_call;
 	unsigned			_call_interval;
 
 	ringbuffer::RingBuffer			*_gyro_reports;
@@ -324,16 +323,7 @@ private:
 	 */
 	int			reset();
 
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		measure_trampoline(void *arg);
+	void		Run() override;
 
 	/**
 	 * Fetch measurements from the sensor and update the report buffers.
@@ -471,10 +461,10 @@ extern "C" { __EXPORT int adis16448_main(int argc, char *argv[]); }
 ADIS16448::ADIS16448(int bus, const char *path_accel, const char *path_gyro, const char *path_mag, uint32_t device,
 		     enum Rotation rotation) :
 	SPI("ADIS16448", path_accel, bus, device, SPIDEV_MODE3, SPI_BUS_SPEED),
+	ScheduledWorkItem(px4::device_bus_to_wq(this->get_device_id())),
 	_gyro(new ADIS16448_gyro(this, path_gyro)),
 	_mag(new ADIS16448_mag(this, path_mag)),
 	_product(0),
-	_call{},
 	_call_interval(0),
 	_gyro_reports(nullptr),
 	_gyro_scale{},
@@ -544,8 +534,6 @@ ADIS16448::ADIS16448(int bus, const char *path_accel, const char *path_gyro, con
 	_mag_scale.y_scale  = 1.0f;
 	_mag_scale.z_offset = 0;
 	_mag_scale.z_scale  = 1.0f;
-
-	memset(&_call, 0, sizeof(_call));
 }
 
 ADIS16448::~ADIS16448()
@@ -1022,7 +1010,7 @@ ADIS16448::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
-					_call.period = _call_interval = ticks;
+					_call_interval = ticks;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -1171,23 +1159,19 @@ ADIS16448::start()
 	_mag_reports->flush();
 
 	/* start polling at the specified rate */
-	hrt_call_every(&_call, 1000, _call_interval, (hrt_callout)&ADIS16448::measure_trampoline, this);
-
+	ScheduleOnInterval(_call_interval, 10000);
 }
 
 void
 ADIS16448::stop()
 {
-	hrt_cancel(&_call);
+	ScheduleClear();
 }
 
 void
-ADIS16448::measure_trampoline(void *arg)
+ADIS16448::Run()
 {
-	ADIS16448 *dev = reinterpret_cast<ADIS16448 *>(arg);
-
-	/* make another measurement */
-	dev->measure();
+	measure();
 }
 
 int
