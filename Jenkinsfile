@@ -73,7 +73,7 @@ pipeline {
 
         stage('Style check') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-01' }
+            docker { image 'px4io/px4-dev-base:2019-01-26' }
           }
           steps {
             sh 'make check_format'
@@ -202,7 +202,7 @@ pipeline {
         stage('Cppcheck') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-01-01'
+              image 'px4io/px4-dev-base:2019-01-26'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -277,7 +277,7 @@ pipeline {
         stage('Module config validation') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-01-01'
+              image 'px4io/px4-dev-base:2019-01-26'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -302,7 +302,7 @@ pipeline {
 
         stage('Airframe') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-01' }
+            docker { image 'px4io/px4-dev-base:2019-01-26' }
           }
           steps {
             sh 'make distclean'
@@ -321,7 +321,7 @@ pipeline {
 
         stage('Parameter') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-01' }
+            docker { image 'px4io/px4-dev-base:2019-01-26' }
           }
           steps {
             sh 'make distclean'
@@ -340,7 +340,7 @@ pipeline {
 
         stage('Module') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-01' }
+            docker { image 'px4io/px4-dev-base:2019-01-26' }
           }
           steps {
             sh 'make distclean'
@@ -389,7 +389,7 @@ pipeline {
 
         stage('Devguide') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-01' }
+            docker { image 'px4io/px4-dev-base:2019-01-26' }
           }
           steps {
             sh('export')
@@ -419,7 +419,7 @@ pipeline {
 
         stage('Userguide') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-01' }
+            docker { image 'px4io/px4-dev-base:2019-01-26' }
           }
           steps {
             sh('export')
@@ -447,7 +447,7 @@ pipeline {
 
         stage('QGroundControl') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-01' }
+            docker { image 'px4io/px4-dev-base:2019-01-26' }
           }
           steps {
             sh('export')
@@ -475,7 +475,7 @@ pipeline {
 
         stage('S3') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-01' }
+            docker { image 'px4io/px4-dev-base:2019-01-26' }
           }
           steps {
             sh('export')
