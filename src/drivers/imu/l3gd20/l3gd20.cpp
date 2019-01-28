@@ -63,7 +63,6 @@
 #include <nuttx/arch.h>
 #include <nuttx/clock.h>
 
-#include <drivers/drv_hrt.h>
 #include <drivers/device/spi.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/device/ringbuffer.h>
@@ -72,6 +71,7 @@
 #include <board_config.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 #define L3GD20_DEVICE_PATH "/dev/l3gd20"
 
@@ -192,7 +192,7 @@
 
 extern "C" { __EXPORT int l3gd20_main(int argc, char *argv[]); }
 
-class L3GD20 : public device::SPI
+class L3GD20 : public device::SPI, public px4::ScheduledWorkItem
 {
 public:
 	L3GD20(int bus, const char *path, uint32_t device, enum Rotation rotation);
@@ -219,7 +219,6 @@ protected:
 
 private:
 
-	struct hrt_call		_call;
 	unsigned		_call_interval;
 
 	ringbuffer::RingBuffer	*_reports;
@@ -282,16 +281,7 @@ private:
 	 */
 	void			disable_i2c();
 
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		measure_trampoline(void *arg);
+	void		Run() override;
 
 	/**
 	 * check key registers for correct values
@@ -395,7 +385,7 @@ const uint8_t L3GD20::_checked_registers[L3GD20_NUM_CHECKED_REGISTERS] = { ADDR_
 L3GD20::L3GD20(int bus, const char *path, uint32_t device, enum Rotation rotation) :
 	SPI("L3GD20", path, bus, device, SPIDEV_MODE3,
 	    11 * 1000 * 1000 /* will be rounded to 10.4 MHz, within margins for L3GD20 */),
-	_call{},
+	ScheduledWorkItem(px4::device_bus_to_wq(this->get_device_id())),
 	_call_interval(0),
 	_reports(nullptr),
 	_gyro_scale{},
@@ -594,22 +584,20 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_call_interval == 0);
 
 					/* convert hz to hrt interval via microseconds */
-					unsigned ticks = 1000000 / arg;
+					unsigned interval = 1000000 / arg;
 
 					/* check against maximum sane rate */
-					if (ticks < 1000) {
+					if (interval < 1000) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
-					_call_interval = ticks;
-
-					_call.period = _call_interval - L3GD20_TIMER_REDUCTION;
+					_call_interval = interval;
 
 					/* adjust filters */
 					float cutoff_freq_hz = _gyro_filter_x.get_cutoff_freq();
-					float sample_rate = 1.0e6f / ticks;
+					float sample_rate = 1.0e6f / interval;
 					set_driver_lowpass_filter(sample_rate, cutoff_freq_hz);
 
 					/* if we need to start the poll state machine, do it */
@@ -778,16 +766,13 @@ L3GD20::start()
 	_reports->flush();
 
 	/* start polling at the specified rate */
-	hrt_call_every(&_call,
-		       1000,
-		       _call_interval - L3GD20_TIMER_REDUCTION,
-		       (hrt_callout)&L3GD20::measure_trampoline, this);
+	ScheduleOnInterval(_call_interval - L3GD20_TIMER_REDUCTION, 10000);
 }
 
 void
 L3GD20::stop()
 {
-	hrt_cancel(&_call);
+	ScheduleClear();
 }
 
 void
@@ -841,12 +826,10 @@ L3GD20::reset()
 }
 
 void
-L3GD20::measure_trampoline(void *arg)
+L3GD20::Run()
 {
-	L3GD20 *dev = (L3GD20 *)arg;
-
 	/* make another measurement */
-	dev->measure();
+	measure();
 }
 
 void
