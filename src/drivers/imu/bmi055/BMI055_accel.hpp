@@ -148,7 +148,7 @@
 /* Mask definitions for ACCD_X_LSB, ACCD_Y_LSB and ACCD_Z_LSB Register */
 #define BMI055_NEW_DATA_MASK                 0x01
 
-class BMI055_accel : public BMI055
+class BMI055_accel : public BMI055, public px4::ScheduledWorkItem
 {
 public:
 	BMI055_accel(int bus, const char *path_accel, uint32_t device, enum Rotation rotation);
@@ -229,16 +229,7 @@ private:
 	 */
 	int         reset();
 
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg       Instance pointer for the driver that is polling.
-	 */
-	static void     measure_trampoline(void *arg);
+	void     Run() override;
 
 	/**
 	 * Fetch measurements from the sensor and update the report buffers.

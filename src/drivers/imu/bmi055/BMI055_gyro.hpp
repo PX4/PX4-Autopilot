@@ -140,7 +140,7 @@
 
 #define BMI055_ACC_TEMP             0x08
 
-class BMI055_gyro : public BMI055
+class BMI055_gyro : public BMI055, public px4::ScheduledWorkItem
 {
 public:
 	BMI055_gyro(int bus, const char *path_gyro, uint32_t device, enum Rotation rotation);
@@ -218,16 +218,7 @@ private:
 	 */
 	int         reset();
 
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg       Instance pointer for the driver that is polling.
-	 */
-	static void     measure_trampoline(void *arg);
+	void     Run() override;
 
 	/**
 	 * Fetch measurements from the sensor and update the report buffers.
