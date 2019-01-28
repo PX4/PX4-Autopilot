@@ -56,6 +56,7 @@
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
 #include <pwm_limit/pwm_limit.h>
+#include <uORB/uORB.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
