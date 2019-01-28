@@ -48,6 +48,7 @@ const uint8_t BMI055_accel::_checked_registers[BMI055_ACCEL_NUM_CHECKED_REGISTER
 
 BMI055_accel::BMI055_accel(int bus, const char *path_accel, uint32_t device, enum Rotation rotation) :
 	BMI055("BMI055_ACCEL", path_accel, bus, device, SPIDEV_MODE3, BMI055_BUS_SPEED, rotation),
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmi055_accel_read")),
 	_measure_interval(perf_alloc(PC_INTERVAL, "bmi055_accel_measure_interval")),
 	_bad_transfers(perf_alloc(PC_COUNT, "bmi055_accel_bad_transfers")),
@@ -76,8 +77,6 @@ BMI055_accel::BMI055_accel(int bus, const char *path_accel, uint32_t device, enu
 	_accel_scale.y_scale  = 1.0f;
 	_accel_scale.z_offset = 0;
 	_accel_scale.z_scale  = 1.0f;
-
-	memset(&_call, 0, sizeof(_call));
 }
 
 BMI055_accel::~BMI055_accel()
@@ -306,31 +305,23 @@ BMI055_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_call_interval == 0);
 
 					/* convert hz to hrt interval via microseconds */
-					unsigned ticks = 1000000 / arg;
+					unsigned interval = 1000000 / arg;
 
 					/* check against maximum rate */
-					if (ticks < 1000) {
+					if (interval < 1000) {
 						return -EINVAL;
 					}
 
 					// adjust filters
 					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
-					float sample_rate = 1.0e6f / ticks;
+					float sample_rate = 1.0e6f / interval;
 
 					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 
 					/* update interval for next measurement */
-					_call_interval = ticks;
-
-					/*
-					  set call interval faster than the sample time. We
-					  then detect when we have duplicate samples and reject
-					  them. This prevents aliasing due to a beat between the
-					  stm32 clock and the bmi055 clock
-					 */
-					_call.period = _call_interval - BMI055_TIMER_REDUCTION;
+					_call_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -440,26 +431,22 @@ BMI055_accel::start()
 	_accel_reports->flush();
 
 	/* start polling at the specified rate */
-	hrt_call_every(&_call,
-		       1000,
-		       _call_interval - BMI055_TIMER_REDUCTION,
-		       (hrt_callout)&BMI055_accel::measure_trampoline, this);
+	ScheduleOnInterval(_call_interval - BMI055_TIMER_REDUCTION, 1000);
+
 	reset();
 }
 
 void
 BMI055_accel::stop()
 {
-	hrt_cancel(&_call);
+	ScheduleClear();
 }
 
 void
-BMI055_accel::measure_trampoline(void *arg)
+BMI055_accel::Run()
 {
-	BMI055_accel *dev = reinterpret_cast<BMI055_accel *>(arg);
-
 	/* make another measurement */
-	dev->measure();
+	measure();
 }
 
 void
