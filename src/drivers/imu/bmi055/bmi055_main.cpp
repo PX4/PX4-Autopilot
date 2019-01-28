@@ -446,7 +446,6 @@ BMI055::BMI055(const char *name, const char *devname, int bus, uint32_t device, 
 	       uint32_t frequency, enum Rotation rotation):
 	SPI(name, devname, bus, device, mode, frequency),
 	_whoami(0),
-	_call{},
 	_call_interval(0),
 	_register_wait(0),
 	_reset_wait(0),
