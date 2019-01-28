@@ -66,6 +66,7 @@
 #include <drivers/device/spi.h>
 #include <drivers/drv_accel.h>
 #include <drivers/device/ringbuffer.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 #define ACCEL_DEVICE_PATH	"/dev/bma180"
 
@@ -121,7 +122,7 @@
 
 extern "C" { __EXPORT int bma180_main(int argc, char *argv[]); }
 
-class BMA180 : public device::SPI
+class BMA180 : public device::SPI, public px4::ScheduledWorkItem
 {
 public:
 	BMA180(int bus, uint32_t device);
@@ -142,7 +143,6 @@ protected:
 
 private:
 
-	struct hrt_call		_call;
 	unsigned		_call_interval;
 
 	ringbuffer::RingBuffer		*_reports;
@@ -168,16 +168,7 @@ private:
 	 */
 	void			stop();
 
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		measure_trampoline(void *arg);
+	void		Run() override;
 
 	/**
 	 * Fetch measurements from the sensor and update the report ring.
@@ -232,6 +223,7 @@ private:
 
 BMA180::BMA180(int bus, uint32_t device) :
 	SPI("BMA180", ACCEL_DEVICE_PATH, bus, device, SPIDEV_MODE3, 8000000),
+	ScheduledWorkItem(px4::device_bus_to_wq(this->get_device_id())),
 	_call_interval(0),
 	_reports(nullptr),
 	_accel_range_scale(0.0f),
@@ -423,10 +415,6 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 						return -EINVAL;
 					}
 
-					/* update interval for next measurement */
-					/* XXX this is a bit shady, but no other way to adjust... */
-					_call.period = _call_interval = ticks;
-
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
 						start();
@@ -598,22 +586,20 @@ BMA180::start()
 	_reports->flush();
 
 	/* start polling at the specified rate */
-	hrt_call_every(&_call, 1000, _call_interval, (hrt_callout)&BMA180::measure_trampoline, this);
+	ScheduleOnInterval(_call_interval, 10000);
 }
 
 void
 BMA180::stop()
 {
-	hrt_cancel(&_call);
+	ScheduleClear();
 }
 
 void
-BMA180::measure_trampoline(void *arg)
+BMA180::Run()
 {
-	BMA180 *dev = (BMA180 *)arg;
-
 	/* make another measurement */
-	dev->measure();
+	measure();
 }
 
 void
