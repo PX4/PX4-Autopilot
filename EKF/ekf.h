@@ -494,6 +494,9 @@ private:
 	// argument passed in is the declination uncertainty in radians
 	void fuseDeclination(float decl_sigma);
 
+	// apply sensible limits to the declination and length of the NE mag field states estimates
+	void limitDeclination();
+
 	// fuse airspeed measurement
 	void fuseAirspeed();
 

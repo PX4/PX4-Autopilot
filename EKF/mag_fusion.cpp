@@ -419,6 +419,8 @@ void Ekf::fuseMag()
 			// apply the state corrections
 			fuse(Kfusion, _mag_innov[index]);
 
+			// constrain the declination of the earth field states
+			limitDeclination();
 		}
 	}
 }
@@ -797,6 +799,10 @@ void Ekf::fuseDeclination(float decl_sigma)
 	float magN = _state.mag_I(0);
 	float magE = _state.mag_I(1);
 
+	// minimum horizontal field strength before calculation becomes badly conditioned (T)
+	float h_field_min = 0.001f;
+
+	// observation variance (rad**2)
 	float R_DECL = sq(decl_sigma);
 
 	// Calculate intermediate variables
@@ -804,7 +810,7 @@ void Ekf::fuseDeclination(float decl_sigma)
 	float t3 = magN*magN;
 	float t4 = t2+t3;
 	// if the horizontal magnetic field is too small, this calculation will be badly conditioned
-	if (t4 < 1e-4f) {
+	if (t4 < h_field_min*h_field_min) {
 		return;
 	}
 	float t5 = P[16][16]*t2;
@@ -922,5 +928,57 @@ void Ekf::fuseDeclination(float decl_sigma)
 		// apply the state corrections
 		fuse(Kfusion, innovation);
 
+		// constrain the declination of the earth field states
+		limitDeclination();
+	}
+}
+
+void Ekf::limitDeclination()
+{
+	// get a reference value for the earth field declinaton and minimum plausible horizontal field strength
+	// set to 50% of the horizontal strength from geo tables if location is known
+	float decl_reference;
+	float h_field_min = 0.001f;
+	if (_params.mag_declination_source & MASK_USE_GEO_DECL) {
+		// use parameter value until GPS is available, then use value returned by geo library
+		if (_NED_origin_initialised) {
+			decl_reference = _mag_declination_gps;
+			h_field_min = fmaxf(h_field_min , 0.5f * _mag_strength_gps * cosf(_mag_inclination_gps));
+		} else {
+			decl_reference = math::radians(_params.mag_declination_deg);
+		}
+	} else {
+		// always use the parameter value
+		decl_reference = math::radians(_params.mag_declination_deg);
+	}
+
+	// do not allow the horizontal field length to collapse - this will make the declination fusion badly conditioned
+	// and can result in a reversal of the NE field states which the filter cannot recover from
+	// apply a circular limit
+	float h_field = sqrtf(_state.mag_I(0)*_state.mag_I(0) + _state.mag_I(1)*_state.mag_I(1));
+	if (h_field < h_field_min) {
+		if (h_field > 0.001f * h_field_min) {
+			float h_scaler = h_field_min / h_field;
+			_state.mag_I(0) *= h_scaler;
+			_state.mag_I(1) *= h_scaler;
+		} else {
+			// too small to scale radially so set to expected value
+			_state.mag_I(0) = 2.0f * h_field_min * cosf(_mag_declination);
+			_state.mag_I(1) = 2.0f * h_field_min * sinf(_mag_declination);
+		}
+		h_field = h_field_min;
+	}
+
+	// do not allow the declination estimate to vary too much relative to the reference value
+	const float decl_tolerance = 0.5f;
+	const float decl_max = decl_reference + decl_tolerance;
+	const float decl_min = decl_reference - decl_tolerance;
+	const float decl_estimate = atan2(_state.mag_I(1) , _state.mag_I(0));
+	if (decl_estimate > decl_max)  {
+		_state.mag_I(0) = h_field * cosf(decl_max);
+		_state.mag_I(1) = h_field * sinf(decl_max);
+	} else if (decl_estimate < decl_min)  {
+		_state.mag_I(0) = h_field * cosf(decl_min);
+		_state.mag_I(1) = h_field * sinf(decl_min);
 	}
 }

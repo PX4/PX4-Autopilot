@@ -552,6 +552,8 @@ protected:
 
 	float _mag_declination_gps{0.0f};         // magnetic declination returned by the geo library using the last valid GPS position (rad)
 	float _mag_declination_to_save_deg{0.0f}; // magnetic declination to save to EKF2_MAG_DECL (deg)
+	float _mag_inclination_gps{0.0f};	  // magnetic inclination returned by the geo library using the last valid GPS position (rad)
+	float _mag_strength_gps{0.0f};	          // magnetic strength returned by the geo library using the last valid GPS position (T)
 
 	// this is the current status of the filter control modes
 	filter_control_status_u _control_status{};
