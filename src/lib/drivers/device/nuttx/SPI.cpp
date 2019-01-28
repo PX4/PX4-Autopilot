@@ -160,7 +160,7 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 		}
 
 	case LOCK_NONE: {
-			if (_is_locked && (1 << _device_id.devid_s.bus)) {
+			if (_is_locked & (1 << _device_id.devid_s.bus)) {
 				// Someone is using the bus
 				perf_count(_isr_deferred);
 				return PX4_ERROR;
