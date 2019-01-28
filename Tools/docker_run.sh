@@ -17,9 +17,6 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 	elif [[ $@ =~ .*clang.* ]] || [[ $@ =~ .*scan-build.* ]]; then	
 		# clang tools
 		PX4_DOCKER_REPO="px4io/px4-dev-clang:2018-11-22"
-	elif [[ $@ =~ .*cppcheck.* ]]; then
-		# TODO: remove this once px4io/px4-dev-base updates
-		PX4_DOCKER_REPO="px4io/px4-dev-base:2018-11-22"
 	elif [[ $@ =~ .*tests* ]]; then
 		# run all tests with simulation
 		PX4_DOCKER_REPO="px4io/px4-dev-simulation:2018-11-22"
