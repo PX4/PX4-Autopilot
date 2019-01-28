@@ -74,6 +74,7 @@
 #include <lib/conversion/rotation.h>
 #include <px4_getopt.h>
 #include <systemlib/err.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 /* SPI protocol address bits */
 #define DIR_READ(a)                     ((a) | (1 << 7))
@@ -222,7 +223,7 @@
 
 extern "C" { __EXPORT int fxas21002c_main(int argc, char *argv[]); }
 
-class FXAS21002C : public device::SPI
+class FXAS21002C : public device::SPI, public px4::ScheduledWorkItem
 {
 public:
 	FXAS21002C(int bus, const char *path, uint32_t device, enum Rotation rotation);
@@ -252,8 +253,6 @@ protected:
 	virtual int probe();
 
 private:
-
-	struct hrt_call _gyro_call;
 
 	unsigned _call_interval;
 
@@ -325,16 +324,7 @@ private:
 	 */
 	void set_standby(int rate, bool standby_true);
 
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void measure_trampoline(void *arg);
+	void Run() override;
 
 	/**
 	 * check key registers for correct values
@@ -442,9 +432,8 @@ const uint8_t FXAS21002C::_checked_registers[FXAS21002C_NUM_CHECKED_REGISTERS] =
 
 
 FXAS21002C::FXAS21002C(int bus, const char *path, uint32_t device, enum Rotation rotation) :
-	SPI("FXAS21002C", path, bus, device, SPIDEV_MODE0,
-	    2 * 1000 * 1000),
-	_gyro_call{},
+	SPI("FXAS21002C", path, bus, device, SPIDEV_MODE0, 2 * 1000 * 1000),
+	ScheduledWorkItem(px4::device_bus_to_wq(this->get_device_id())),
 	_call_interval(0),
 	_reports(nullptr),
 	_gyro_scale{},
@@ -671,22 +660,20 @@ FXAS21002C::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_call_interval == 0);
 
 					/* convert hz to hrt interval via microseconds */
-					unsigned ticks = 1000000 / arg;
+					unsigned interval = 1000000 / arg;
 
 					/* check against maximum sane rate */
-					if (ticks < 1000) {
+					if (interval < 1000) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
-					_call_interval = ticks;
-
-					_gyro_call.period = _call_interval - FXAS21002C_TIMER_REDUCTION;
+					_call_interval = interval;
 
 					/* adjust filters */
 					float cutoff_freq_hz = _gyro_filter_x.get_cutoff_freq();
-					float sample_rate = 1.0e6f / ticks;
+					float sample_rate = 1.0e6f / interval;
 					set_sw_lowpass_filter(sample_rate, cutoff_freq_hz);
 
 					/* if we need to start the poll state machine, do it */
@@ -940,16 +927,13 @@ FXAS21002C::start()
 	_reports->flush();
 
 	/* start polling at the specified rate */
-	hrt_call_every(&_gyro_call,
-		       1000,
-		       _call_interval - FXAS21002C_TIMER_REDUCTION,
-		       (hrt_callout)&FXAS21002C::measure_trampoline, this);
+	ScheduleOnInterval(_call_interval - FXAS21002C_TIMER_REDUCTION, 10000);
 }
 
 void
 FXAS21002C::stop()
 {
-	hrt_cancel(&_gyro_call);
+	ScheduleClear();
 
 	/* reset internal states */
 	/* discard unread data in the buffers */
@@ -957,18 +941,15 @@ FXAS21002C::stop()
 }
 
 void
-FXAS21002C::measure_trampoline(void *arg)
+FXAS21002C::Run()
 {
-	FXAS21002C *dev = (FXAS21002C *)arg;
-
 	/* make another measurement */
-	dev->measure();
+	measure();
 }
 
 void
 FXAS21002C::check_registers(void)
 {
-
 	uint8_t v;
 
 	if ((v = read_reg(_checked_registers[_checked_next])) != _checked_values[_checked_next]) {
