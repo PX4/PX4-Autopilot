@@ -9,7 +9,7 @@ pipeline {
         stage('Catkin build on ROS workspace') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2019-01-01'
+              image 'px4io/px4-dev-ros:2019-01-27'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -44,7 +44,7 @@ pipeline {
         stage('Colcon build on ROS2 workspace') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros2-bouncy:2019-01-01'
+              image 'px4io/px4-dev-ros2-bouncy:2019-01-27'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -88,7 +88,7 @@ pipeline {
         stage('Bloaty px4_fmu-v2') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-01-01'
+              image 'px4io/px4-dev-nuttx:2019-01-27'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -116,7 +116,7 @@ pipeline {
         stage('Bloaty px4_fmu-v5') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-01-01'
+              image 'px4io/px4-dev-nuttx:2019-01-27'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -144,7 +144,7 @@ pipeline {
         stage('Clang analyzer') {
           agent {
             docker {
-              image 'px4io/px4-dev-clang:2019-01-01'
+              image 'px4io/px4-dev-clang:2019-01-27'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -178,26 +178,26 @@ pipeline {
           }
         }
 
-        stage('Clang tidy') {
-          agent {
-            docker {
-              image 'px4io/px4-dev-clang:2018-03-30'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-            }
-          }
-          steps {
-            sh 'export'
-            retry (3) {
-              sh 'make distclean'
-              sh 'make clang-tidy-quiet'
-            }
-          }
-          post {
-            always {
-              sh 'make distclean'
-            }
-          }
-        }
+        // stage('Clang tidy') {
+        //   agent {
+        //     docker {
+        //       image 'px4io/px4-dev-clang:2019-01-27'
+        //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+        //     }
+        //   }
+        //   steps {
+        //     sh 'export'
+        //     retry (3) {
+        //       sh 'make distclean'
+        //       sh 'make clang-tidy-quiet'
+        //     }
+        //   }
+        //   post {
+        //     always {
+        //       sh 'make distclean'
+        //     }
+        //   }
+        // }
 
         stage('Cppcheck') {
           agent {
@@ -239,7 +239,7 @@ pipeline {
         stage('Check stack') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-01-01'
+              image 'px4io/px4-dev-nuttx:2019-01-27'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -258,7 +258,7 @@ pipeline {
         stage('ShellCheck') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-01-01'
+              image 'px4io/px4-dev-nuttx:2019-01-27'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -360,7 +360,7 @@ pipeline {
         stage('uORB graphs') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-01-01'
+              image 'px4io/px4-dev-nuttx:2019-01-27'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -475,7 +475,7 @@ pipeline {
 
         stage('PX4 ROS msgs') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-01' }
+            docker { image 'px4io/px4-dev-base:2019-01-27' }
           }
           steps {
             checkout(scm)
