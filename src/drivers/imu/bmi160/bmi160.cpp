@@ -20,9 +20,9 @@ const uint8_t BMI160::_checked_registers[BMI160_NUM_CHECKED_REGISTERS] = {    BM
 
 BMI160::BMI160(int bus, const char *path_accel, const char *path_gyro, uint32_t device, enum Rotation rotation) :
 	SPI("BMI160", path_accel, bus, device, SPIDEV_MODE3, BMI160_BUS_SPEED),
+	ScheduledWorkItem(px4::device_bus_to_wq(this->get_device_id())),
 	_gyro(new BMI160_gyro(this, path_gyro)),
 	_whoami(0),
-	_call{},
 	_call_interval(0),
 	_accel_reports(nullptr),
 	_accel_scale{},
@@ -86,8 +86,6 @@ BMI160::BMI160(int bus, const char *path_accel, const char *path_gyro, uint32_t 
 	_gyro_scale.y_scale  = 1.0f;
 	_gyro_scale.z_offset = 0;
 	_gyro_scale.z_scale  = 1.0f;
-
-	memset(&_call, 0, sizeof(_call));
 }
 
 
@@ -599,14 +597,6 @@ BMI160::ioctl(struct file *filp, int cmd, unsigned long arg)
 					/* XXX this is a bit shady, but no other way to adjust... */
 					_call_interval = ticks;
 
-					/*
-					  set call interval faster then the sample time. We
-					  then detect when we have duplicate samples and reject
-					  them. This prevents aliasing due to a beat between the
-					  stm32 clock and the bmi160 clock
-					 */
-					_call.period = _call_interval - BMI160_TIMER_REDUCTION;
-
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
 						start();
@@ -817,26 +807,22 @@ BMI160::start()
 	_gyro_reports->flush();
 
 	/* start polling at the specified rate */
-	hrt_call_every(&_call,
-		       1000,
-		       _call_interval - BMI160_TIMER_REDUCTION,
-		       (hrt_callout)&BMI160::measure_trampoline, this);
+	ScheduleOnInterval(_call_interval - BMI160_TIMER_REDUCTION, 10000);
+
 	reset();
 }
 
 void
 BMI160::stop()
 {
-	hrt_cancel(&_call);
+	ScheduleClear();
 }
 
 void
-BMI160::measure_trampoline(void *arg)
+BMI160::Run()
 {
-	BMI160 *dev = reinterpret_cast<BMI160 *>(arg);
-
 	/* make another measurement */
-	dev->measure();
+	measure();
 }
 
 void

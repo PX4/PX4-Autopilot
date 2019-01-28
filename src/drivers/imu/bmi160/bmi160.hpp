@@ -36,6 +36,7 @@
 #include <drivers/drv_mag.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 #define DIR_READ                0x80
 #define DIR_WRITE               0x00
@@ -244,7 +245,7 @@
 
 class BMI160_gyro;
 
-class BMI160 : public device::SPI
+class BMI160 : public device::SPI, public px4::ScheduledWorkItem
 {
 public:
 	BMI160(int bus, const char *path_accel, const char *path_gyro, uint32_t device, enum Rotation rotation);
@@ -277,7 +278,6 @@ private:
 	BMI160_gyro		*_gyro;
 	uint8_t			_whoami;	/** whoami result */
 
-	struct hrt_call		_call;
 	unsigned		_call_interval;
 
 	ringbuffer::RingBuffer	*_accel_reports;
@@ -356,16 +356,7 @@ private:
 	 */
 	int			reset();
 
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		measure_trampoline(void *arg);
+	void		Run() override;
 
 	/**
 	 * Fetch measurements from the sensor and update the report buffers.
