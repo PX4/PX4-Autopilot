@@ -111,8 +111,8 @@ PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 2);
 /**
  * TELEM2 as companion computer link (deprecated)
  *
- * This parameter is deprecated. Do not change it, use the more generic serial
- * configuration parameters instead.
+ * This parameter is deprecated (from PX4 v1.8.1). Use the generic serial
+ * configuration parameters instead (e.g. MAV_0_CONFIG, MAV_0_MODE, etc.).
  *
  * @value 0 Disabled
  * @value 10 FrSky Telemetry
