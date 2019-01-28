@@ -11,6 +11,7 @@ from pyulog import *
 
 from analyse_logdata_ekf import analyse_ekf
 from detectors import InAirDetector
+from pdf_report import create_pdf_report
 
 """
 Performs a health assessment on the ecl EKF navigation estimator data contained in a an ULog file
@@ -46,27 +47,10 @@ def process_logdata_ekf(
         plot: bool = True, sensor_safety_margins: bool = True):
 
     ## load the log and extract the necessary data for the analyses
-    ulog = ULog(filename, None)
-
     try:
-        estimator_status_data = ulog.get_dataset('estimator_status').data
-        print('found estimator_status data')
+        ulog = ULog(filename)
     except:
-        print('could not find estimator_status data')
-        sys.exit(-1)
-
-    try:
-        ekf2_innovations_data = ulog.get_dataset('ekf2_innovations').data
-        print('found ekf2_innovation data')
-    except:
-        print('could not find ekf2_innovation data')
-        sys.exit(-1)
-
-    try:
-        sensor_preflight_data = ulog.get_dataset('sensor_preflight').data
-        print('found sensor_preflight data')
-    except:
-        print('could not find sensor_preflight data')
+        print('could not open {:s}'.format(filename))
         sys.exit(-1)
 
     try:
@@ -90,23 +74,12 @@ def process_logdata_ekf(
         sys.exit(-1)
 
     try:
-        in_air = InAirDetector(
-            ulog, min_flight_time_seconds=5.0, in_air_margin_seconds=0.0)
-        in_air_no_ground_effects = InAirDetector(
-            ulog, min_flight_time_seconds=5.0, in_air_margin_seconds=5.0)
+        # perform the ekf analysis
+        test_results = analyse_ekf(
+            ulog, check_levels, test_results_table, red_thresh=1.0, amb_thresh=0.5)
     except Exception as e:
         print(str(e))
         sys.exit(-1)
-
-    if in_air_no_ground_effects.take_off is None:
-        print('no airtime detected.')
-        sys.exit(-1)
-
-    # perform the ekf analysis
-    test_results = analyse_ekf(
-            estimator_status_data, ekf2_innovations_data, sensor_preflight_data,
-        check_levels, test_results_table, in_air, in_air_no_ground_effects, plot_report=plot,
-        output_plot_filename='{:s}.pdf'.format(os.path.splitext(filename)[0]))
 
     # write metadata to a .csv file
     with open('{:s}.mdat.csv'.format(os.path.splitext(filename)[0]), "w") as file:
@@ -122,7 +95,12 @@ def process_logdata_ekf(
     print('Test results written to {:s}.mdat.csv'.format(os.path.splitext(filename)))
 
     if plot:
-        print('Plots saved to {:s}.pdf'.format(os.path.splitext(filename)[0]))
+        try:
+            create_pdf_report(ulog, '{:s}.pdf'.format(os.path.splitext(filename)[0]))
+            print('Plots saved to {:s}.pdf'.format(os.path.splitext(filename)[0]))
+        except Exception as e:
+            print(str(e))
+            sys.exit(-1)
 
     return test_results
 

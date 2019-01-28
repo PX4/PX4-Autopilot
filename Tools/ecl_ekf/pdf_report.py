@@ -5,33 +5,49 @@ function collection for plotting
 
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
+from pyulog import ULog
 
-from post_processing import magnetic_field_estimates_from_status
+from post_processing import magnetic_field_estimates_from_status, get_estimator_check_flags
 from plotting import TimeSeriesPlot, InnovationPlot, ControlModeSummaryPlot, CheckFlagsPlot
+from detectors import PreconditionError
 
 
-def create_pdf_report(control_mode, ekf2_innovations, estimator_status, gps_fail_flags,
-                      in_air_duration, in_air_transition_time, innov_flags,
-                      on_ground_transition_time, output_plot_filename, sensor_preflight,
-                      status_time):
+def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
     """
     creates a pdf report of the ekf analysis.
-    :param control_mode:
-    :param ekf2_innovations:
-    :param estimator_status:
-    :param gps_fail_flags:
-    :param in_air_duration:
-    :param in_air_transition_time:
-    :param innov_flags:
-    :param on_ground_transition_time:
+    :param ulog:
     :param output_plot_filename:
-    :param sensor_preflight:
-    :param status_time:
     :return:
     """
 
     # create summary plots
     # save the plots to PDF
+
+    try:
+        estimator_status = ulog.get_dataset('estimator_status').data
+        print('found estimator_status data')
+    except:
+        raise PreconditionError('could not find estimator_status data')
+
+    try:
+        ekf2_innovations = ulog.get_dataset('ekf2_innovations').data
+        print('found ekf2_innovation data')
+    except:
+        raise PreconditionError('could not find ekf2_innovation data')
+
+    try:
+        sensor_preflight = ulog.get_dataset('sensor_preflight').data
+        print('found sensor_preflight data')
+    except:
+        raise PreconditionError('could not find sensor_preflight data')
+
+    control_mode, innov_flags, gps_fail_flags = get_estimator_check_flags(estimator_status)
+
+    status_time = 1e-6 * estimator_status['timestamp']
+
+    b_finishes_in_air, b_starts_in_air, in_air_duration, in_air_transition_time, \
+    on_ground_transition_time = detect_airtime(control_mode, status_time)
+
     with PdfPages(output_plot_filename) as pdf_pages:
 
         # plot IMU consistency data
@@ -266,3 +282,39 @@ def create_pdf_report(control_mode, ekf2_innovations, estimator_status, gps_fail
             y_labels=['North (m/s)', 'East (m/s)'], plot_title='Wind Velocity Estimates',
             annotate=False, pdf_handle=pdf_pages)
         data_plot.save()
+
+
+def detect_airtime(control_mode, status_time):
+    # define flags for starting and finishing in air
+    b_starts_in_air = False
+    b_finishes_in_air = False
+    # calculate in-air transition time
+    if (np.amin(control_mode['airborne']) < 0.5) and (np.amax(control_mode['airborne']) > 0.5):
+        in_air_transtion_time_arg = np.argmax(np.diff(control_mode['airborne']))
+        in_air_transition_time = status_time[in_air_transtion_time_arg]
+    elif (np.amax(control_mode['airborne']) > 0.5):
+        in_air_transition_time = np.amin(status_time)
+        print('log starts while in-air at ' + str(round(in_air_transition_time, 1)) + ' sec')
+        b_starts_in_air = True
+    else:
+        in_air_transition_time = float('NaN')
+        print('always on ground')
+    # calculate on-ground transition time
+    if (np.amin(np.diff(control_mode['airborne'])) < 0.0):
+        on_ground_transition_time_arg = np.argmin(np.diff(control_mode['airborne']))
+        on_ground_transition_time = status_time[on_ground_transition_time_arg]
+    elif (np.amax(control_mode['airborne']) > 0.5):
+        on_ground_transition_time = np.amax(status_time)
+        print('log finishes while in-air at ' + str(round(on_ground_transition_time, 1)) + ' sec')
+        b_finishes_in_air = True
+    else:
+        on_ground_transition_time = float('NaN')
+        print('always on ground')
+    if (np.amax(np.diff(control_mode['airborne'])) > 0.5) and (np.amin(np.diff(control_mode['airborne'])) < -0.5):
+        if ((on_ground_transition_time - in_air_transition_time) > 0.0):
+            in_air_duration = on_ground_transition_time - in_air_transition_time
+        else:
+            in_air_duration = float('NaN')
+    else:
+        in_air_duration = float('NaN')
+    return b_finishes_in_air, b_starts_in_air, in_air_duration, in_air_transition_time, on_ground_transition_time
