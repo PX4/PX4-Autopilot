@@ -41,6 +41,7 @@
 #include <px4_config.h>
 #include <systemlib/conversions.h>
 #include <systemlib/err.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 #define DIR_READ                0x80
 #define DIR_WRITE               0x00
@@ -59,7 +60,6 @@ protected:
 
 	uint8_t         _whoami;    /** whoami result */
 
-	struct hrt_call     _call;
 	unsigned        _call_interval;
 
 	uint8_t         _register_wait;
