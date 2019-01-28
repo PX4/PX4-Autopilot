@@ -159,7 +159,7 @@ private:
 		(ParamInt<px4::params::MPC_POS_MODE>) MPC_POS_MODE,
 		(ParamInt<px4::params::MPC_AUTO_MODE>) MPC_AUTO_MODE,
 		(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
-		(ParamFloat<px4::params::MPC_IDLE_TKO>) MPC_IDLE_TKO, /**< time constant for smooth takeoff ramp */
+		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) MPC_SPOOLUP_TIME, /**< time to let motors spool up after arming */
 		(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID, /**< enable obstacle avoidance */
 		(ParamFloat<px4::params::MPC_TILTMAX_LND>) MPC_TILTMAX_LND /**< maximum tilt for landing and smooth takeoff */
 	);
@@ -185,14 +185,7 @@ private:
 	/** During smooth-takeoff, below ALTITUDE_THRESHOLD the yaw-control is turned off ant tilt is limited */
 	static constexpr float ALTITUDE_THRESHOLD = 0.3f;
 
-	/**
-	 * Hysteresis that turns true once vehicle is armed for MPC_IDLE_TKO seconds.
-	 * A real vehicle requires some time to accelerates the propellers to IDLE speed. To ensure
-	 * that the propellers reach idle speed before initiating a takeoff, a delay of MPC_IDLE_TKO
-	 * is added.
-	 */
-	systemlib::Hysteresis _arm_hysteresis{false}; /**< becomes true once vehicle is armed for MPC_IDLE_TKO seconds */
-
+	systemlib::Hysteresis _spoolup_time_hysteresis{false}; /**< becomes true MPC_SPOOLUP_TIME seconds after the vehicle was armed */
 	systemlib::Hysteresis _failsafe_land_hysteresis{false}; /**< becomes true if task did not update correctly for LOITER_TIME_BEFORE_DESCEND */
 
 	WeatherVane *_wv_controller{nullptr};
@@ -411,8 +404,8 @@ MulticopterPositionControl::parameters_update(bool force)
 		_tko_speed.set(math::min(_tko_speed.get(), _vel_max_up.get()));
 		_land_speed.set(math::min(_land_speed.get(), _vel_max_down.get()));
 
-		// set trigger time for arm hysteresis
-		_arm_hysteresis.set_hysteresis_time_from(false, (int)(MPC_IDLE_TKO.get() * (float)1_s));
+		// set trigger time for takeoff delay
+		_spoolup_time_hysteresis.set_hysteresis_time_from(false, (int)(MPC_SPOOLUP_TIME.get() * (float)1_s));
 
 		if (_wv_controller != nullptr) {
 			_wv_controller->update_parameters();
@@ -649,16 +642,15 @@ MulticopterPositionControl::run()
 			_wv_controller->update(matrix::Quatf(_att_sp.q_d), _states.yaw);
 		}
 
-		// arm hysteresis prevents vehicle to takeoff
-		// before propeller reached idle speed.
-		_arm_hysteresis.set_state_and_update(_control_mode.flag_armed);
+		// start takeoff after delay to allow motors to reach idle speed
+		_spoolup_time_hysteresis.set_state_and_update(_control_mode.flag_armed);
 
-		if (_arm_hysteresis.get_state()) {
-			// as soon vehicle is armed check for flighttask
+		if (_spoolup_time_hysteresis.get_state()) {
+			// when vehicle is ready switch to the required flighttask
 			start_flight_task();
 
 		} else {
-			// disable flighttask
+			// stop flighttask while disarmed
 			_flight_tasks.switchTask(FlightTaskIndex::None);
 		}
 
@@ -706,9 +698,8 @@ MulticopterPositionControl::run()
 			// check if all local states are valid and map accordingly
 			set_vehicle_states(setpoint.vz);
 
-			// we can only do a smooth takeoff if a valid velocity or position is available and are
-			// armed long enough
-			if (_arm_hysteresis.get_state() && PX4_ISFINITE(_states.position(2)) && PX4_ISFINITE(_states.velocity(2))) {
+			// do smooth takeoff after delay if there's a valid vertical velocity or position
+			if (_spoolup_time_hysteresis.get_state() && PX4_ISFINITE(_states.position(2)) && PX4_ISFINITE(_states.velocity(2))) {
 				check_for_smooth_takeoff(setpoint.z, setpoint.vz, constraints);
 				update_smooth_takeoff(setpoint.z, setpoint.vz);
 			}
