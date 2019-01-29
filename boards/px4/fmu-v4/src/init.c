@@ -210,6 +210,7 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_PPM_IN);
 
 	int spi_init_mask = SPI_BUS_INIT_MASK;
+
 #if defined(CONFIG_STM32_SPI4)
 
 	/* We have SPI4 is GPIO_8266_GPIO2 PB4 pin 3 Low */
@@ -217,13 +218,15 @@ stm32_boardinitialize(void)
 		spi_init_mask |= SPI_BUS_INIT_MASK_EXT;
 
 	} else {
-#endif
+#endif /* CONFIG_STM32_SPI4 */
+
 		stm32_configgpio(GPIO_8266_PD);
 		stm32_configgpio(GPIO_8266_RST);
+
 #if defined(CONFIG_STM32_SPI4)
 	}
 
-#endif
+#endif /* CONFIG_STM32_SPI4 */
 
 // Configure SPI all interfaces GPIO.
 	stm32_spiinitialize(spi_init_mask);
@@ -350,7 +353,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #if defined(CONFIG_STM32_SPI4)
 
 	if (stm32_gpioread(GPIO_8266_GPIO2) == 0) {
-		syslog(LOG_INFO, "8266_GPIO2 - Low Initialize SPI port 4 \n");
+		syslog(LOG_INFO, "[boot] 8266_GPIO2 - Low Initialize SPI port 4 \n");
 
 		// Configure SPI-based devices.
 		spi4 = stm32_spibus_initialize(4);
@@ -359,8 +362,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 			syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 4\n");
 
 		} else {
-
-
 			// Default SPI4 to 20 MHz and de-assert the known chip selects.
 			SPI_SETFREQUENCY(spi4, 20 * 1000 * 1000);
 			SPI_SETBITS(spi4, 8);
@@ -369,7 +370,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		}
 	}
 
-#endif // defined(CONFIG_STM32_SPI4)
+#endif /* defined(CONFIG_STM32_SPI4) */
 
 
 #ifdef CONFIG_MMCSD

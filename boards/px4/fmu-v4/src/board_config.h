@@ -147,20 +147,18 @@
 
 #define PX4_SPI_BUS_SENSORS          1
 #define PX4_SPI_BUS_RAMTRON          2
+#define PX4_SPI_BUS_BARO             PX4_SPI_BUS_RAMTRON
+
 #ifdef CONFIG_STM32_SPI4
-
 #  define PX4_SPI_BUS_EXTERNAL       4
-
 /* The mask passes to init the SPI bus pins
  * N.B This works ONLY with buss numbers that are powers of 2
  * Adding SPI3 would break this!
  */
-
 #  define   SPI_BUS_INIT_MASK_EXT     PX4_SPI_BUS_EXTERNAL
 #endif /* CONFIG_STM32_SPI4 */
-#  define   SPI_BUS_INIT_MASK        (PX4_SPI_BUS_RAMTRON | PX4_SPI_BUS_SENSORS)
 
-#define PX4_SPI_BUS_BARO             PX4_SPI_BUS_RAMTRON
+#define SPI_BUS_INIT_MASK        (PX4_SPI_BUS_RAMTRON | PX4_SPI_BUS_SENSORS)
 
 /* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
 #define PX4_SPIDEV_GYRO              PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)

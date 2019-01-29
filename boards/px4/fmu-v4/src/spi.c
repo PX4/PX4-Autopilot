@@ -67,10 +67,8 @@ __EXPORT bool board_has_bus(enum board_bus_types type, uint32_t bus)
 	switch (type) {
 	case BOARD_SPI_BUS:
 #ifdef CONFIG_STM32_SPI4
-
 		rv = bus != PX4_SPI_BUS_EXTERNAL || (stm32_gpioread(GPIO_8266_GPIO2) == 0);
-
-#endif
+#endif /* CONFIG_STM32_SPI4 */
 		break;
 
 	case BOARD_I2C_BUS:
@@ -123,8 +121,6 @@ __EXPORT void stm32_spiinitialize(int mask)
 	}
 
 #endif /* CONFIG_STM32_SPI4 */
-
-
 }
 
 __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
@@ -211,7 +207,7 @@ __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, uint32_t devid)
 #ifdef CONFIG_STM32_SPI4
 __EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
-	if (devid == PX4_SPIDEV_EXTERNAL &&  stm32_gpioread(GPIO_8266_GPIO2) == 0) {
+	if (devid == PX4_SPIDEV_EXTERNAL && stm32_gpioread(GPIO_8266_GPIO2) == 0) {
 		stm32_gpiowrite(GPIO_SPI4_CS_1, !selected); // add cs
 	}
 }
@@ -221,7 +217,6 @@ __EXPORT uint8_t stm32_spi4status(FAR struct spi_dev_s *dev, uint32_t devid)
 	return SPI_STATUS_PRESENT;
 }
 #endif /* CONFIG_STM32_SPI4 */
-
 
 __EXPORT void board_spi_reset(int ms)
 {
@@ -255,9 +250,9 @@ __EXPORT void board_spi_reset(int ms)
 	stm32_gpiowrite(GPIO_SPI1_MISO_OFF, 0);
 	stm32_gpiowrite(GPIO_SPI1_MOSI_OFF, 0);
 
-	/* disable SPI bus 4*/
 #ifdef CONFIG_STM32_SPI4
 
+	/* disable SPI bus 4*/
 	if (stm32_gpioread(GPIO_8266_GPIO2) == 0) {
 		stm32_configgpio(GPIO_SPI4_SCK_OFF);
 		stm32_configgpio(GPIO_SPI4_MISO_OFF);
@@ -270,7 +265,6 @@ __EXPORT void board_spi_reset(int ms)
 
 #endif /* CONFIG_STM32_SPI4 */
 
-
 	/* N.B we do not have control over the SPI 2 buss powered devices
 	 * so the the ms5611 is not resetable.
 	 */
@@ -281,13 +275,11 @@ __EXPORT void board_spi_reset(int ms)
 #ifdef CONFIG_STM32_SPI4
 
 	if (stm32_gpioread(GPIO_8266_GPIO2) == 0) {
-
 		/* set the periph rail off (default) for SPI4 */
-
 		stm32_configgpio(GPIO_PERIPH_3V3_EN);
 	}
 
-#endif
+#endif /* CONFIG_STM32_SPI4 */
 
 	/* wait for the sensor rail to reach GND */
 	usleep(ms * 1000);
@@ -298,13 +290,11 @@ __EXPORT void board_spi_reset(int ms)
 #ifdef CONFIG_STM32_SPI4
 
 	if (stm32_gpioread(GPIO_8266_GPIO2) == 0) {
-
 		/* switch the periph rail back on */
-
 		stm32_gpiowrite(GPIO_PERIPH_3V3_EN, 1);
 	}
 
-#endif
+#endif /* CONFIG_STM32_SPI4 */
 
 	/* switch the sensor rail back on */
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
