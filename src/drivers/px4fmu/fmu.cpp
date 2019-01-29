@@ -2543,7 +2543,6 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 	case PORT_PWM4CAP2:
 		/* select 4-pin PWM mode 2 capture */
 		servo_mode = PX4FMU::MODE_4PWM2CAP;
-		mode_with_input = true;
 		break;
 
 #  endif

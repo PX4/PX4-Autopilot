@@ -55,7 +55,6 @@
 #include <px4_workqueue.h>
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_gpio.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_input_capture.h>
 #include <drivers/device/ringbuffer.h>
@@ -64,6 +63,8 @@
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
+
+#define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
 
 class CameraCapture
 {
