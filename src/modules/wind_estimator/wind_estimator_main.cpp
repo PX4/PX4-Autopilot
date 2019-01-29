@@ -173,7 +173,7 @@ WindEstimatorModule::cycle_trampoline(void *arg)
 			return;
 		}
 
-		_object = dev;
+		_object.store(dev);
 	}
 
 	if (dev) {
