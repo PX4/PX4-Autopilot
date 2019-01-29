@@ -115,7 +115,7 @@ template<class T>
 class ModuleBase
 {
 public:
-	ModuleBase() = default;
+	ModuleBase() : _task_should_exit{false} {}
 	virtual ~ModuleBase() {}
 
 	/**
