@@ -92,7 +92,7 @@ int Heater::controller_period(char *argv[])
 int Heater::custom_command(int argc, char *argv[])
 {
 	// Check if the driver is running.
-	if (!is_running() && !_object) {
+	if (!is_running()) {
 		PX4_INFO("not running");
 		return PX4_ERROR;
 	}
@@ -240,7 +240,7 @@ void Heater::initialize_trampoline(void *argv)
 		return;
 	}
 
-	_object = heater;
+	_object.store(heater);
 	heater->start();
 }
 
