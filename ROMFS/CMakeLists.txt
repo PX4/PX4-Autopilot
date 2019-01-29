@@ -165,9 +165,10 @@ add_custom_command(OUTPUT romfs_extras.stamp
 	COMMENT "ROMFS: copying extras"
 	)
 
-add_custom_command(OUTPUT romfs_pruned.stamp
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
-		--folder ${romfs_gen_root_dir} --board ${PX4_BOARD}
+add_custom_command(
+	OUTPUT romfs_pruned.stamp
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py --folder ${romfs_gen_root_dir} --board ${PX4_BOARD}
+	COMMAND ${CMAKE_COMMAND} -E touch romfs_pruned.stamp
 	DEPENDS
 		${romfs_gen_root_dir}/init.d/rcS
 		${romfs_gen_root_dir}/init.d/rc.autostart
@@ -178,11 +179,9 @@ add_custom_command(OUTPUT romfs_pruned.stamp
 
 if("${CONFIG_FS_CROMFS}" STREQUAL "y")
 	add_custom_command(
-		OUTPUT
-			${CMAKE_BINARY_DIR}/gencromfs
-		COMMAND
-			 make --no-print-directory --silent -f Makefile.host gencromfs
-	    COMMAND ${CMAKE_COMMAND} -E copy gencromfs ${CMAKE_BINARY_DIR}/gencromfs
+		OUTPUT ${CMAKE_BINARY_DIR}/gencromfs
+		COMMAND make --no-print-directory --silent -f Makefile.host gencromfs
+		COMMAND ${CMAKE_COMMAND} -E copy gencromfs ${CMAKE_BINARY_DIR}/gencromfs
 		DEPENDS ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/tools/gencromfs.c
 		WORKING_DIRECTORY ${NUTTX_DIR}/tools
 		)
@@ -190,7 +189,7 @@ if("${CONFIG_FS_CROMFS}" STREQUAL "y")
 	# create nsh_romfsimg.c
 	add_custom_command(OUTPUT nsh_romfsimg.c
 		COMMAND ${CMAKE_COMMAND} -E remove -f nsh_romfsimg.c
-		COMMAND ${CMAKE_BINARY_DIR}/gencromfs ${romfs_gen_root_dir}  nsh_romfsimg.c
+		COMMAND ${CMAKE_BINARY_DIR}/gencromfs ${romfs_gen_root_dir} nsh_romfsimg.c
 		DEPENDS
 			${CMAKE_BINARY_DIR}/gencromfs
 			${romfs_gen_root_dir}/init.d/rcS
@@ -209,8 +208,7 @@ else()
 	add_custom_command(OUTPUT romfs.img romfs.txt
 		COMMAND ${CMAKE_COMMAND} -E remove -f romfs.img romfs.txt
 		COMMAND ${GENROMFS} -f romfs.img -d ${romfs_gen_root_dir} -V "NSHInitVol" -v > romfs.txt 2>&1
-		DEPENDS
-			romfs_pruned.stamp
+		DEPENDS romfs_pruned.stamp
 		COMMENT "ROMFS: generating image"
 		)
 
