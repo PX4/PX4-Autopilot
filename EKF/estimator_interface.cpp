@@ -176,7 +176,7 @@ void EstimatorInterface::setMagData(uint64_t time_usec, float (&data)[3])
 	}
 
 	// limit data rate to prevent data being lost
-	if (time_usec - _time_last_mag > _min_obs_interval_us) {
+	if ((time_usec - _time_last_mag) > _min_obs_interval_us) {
 
 		magSample mag_sample_new;
 		mag_sample_new.time_us = time_usec - _params.mag_delay_ms * 1000;
@@ -269,7 +269,7 @@ void EstimatorInterface::setBaroData(uint64_t time_usec, float data)
 	}
 
 	// limit data rate to prevent data being lost
-	if (time_usec - _time_last_baro > _min_obs_interval_us) {
+	if ((time_usec - _time_last_baro) > _min_obs_interval_us) {
 
 		baroSample baro_sample_new;
 		baro_sample_new.hgt = data;
@@ -302,7 +302,7 @@ void EstimatorInterface::setAirspeedData(uint64_t time_usec, float true_airspeed
 	}
 
 	// limit data rate to prevent data being lost
-	if (time_usec - _time_last_airspeed > _min_obs_interval_us) {
+	if ((time_usec - _time_last_airspeed) > _min_obs_interval_us) {
 		airspeedSample airspeed_sample_new;
 		airspeed_sample_new.true_airspeed = true_airspeed;
 		airspeed_sample_new.eas2tas = eas2tas;
@@ -332,7 +332,7 @@ void EstimatorInterface::setRangeData(uint64_t time_usec, float data)
 	}
 
 	// limit data rate to prevent data being lost
-	if (time_usec - _time_last_range > _min_obs_interval_us) {
+	if ((time_usec - _time_last_range) > _min_obs_interval_us) {
 		rangeSample range_sample_new;
 		range_sample_new.rng = data;
 		range_sample_new.time_us = time_usec - _params.range_delay_ms * 1000;
@@ -361,7 +361,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 	}
 
 	// limit data rate to prevent data being lost
-	if (time_usec - _time_last_optflow > _min_obs_interval_us) {
+	if ((time_usec - _time_last_optflow) > _min_obs_interval_us) {
 		// check if enough integration time and fail if integration time is less than 50%
 		// of min arrival interval because too much data is being lost
 		float delta_time = 1e-6f * (float)flow->dt;
@@ -433,7 +433,7 @@ void EstimatorInterface::setExtVisionData(uint64_t time_usec, ext_vision_message
 	}
 
 	// limit data rate to prevent data being lost
-	if (time_usec - _time_last_ext_vision > _min_obs_interval_us) {
+	if ((time_usec - _time_last_ext_vision) > _min_obs_interval_us) {
 		extVisionSample ev_sample_new;
 		// calculate the system time-stamp for the mid point of the integration period
 		ev_sample_new.time_us = time_usec - _params.ev_delay_ms * 1000;
@@ -471,7 +471,7 @@ void EstimatorInterface::setAuxVelData(uint64_t time_usec, float (&data)[2], flo
 	}
 
 	// limit data rate to prevent data being lost
-	if (time_usec - _time_last_auxvel > _min_obs_interval_us) {
+	if ((time_usec - _time_last_auxvel) > _min_obs_interval_us) {
 
 		auxVelSample auxvel_sample_new;
 		auxvel_sample_new.time_us = time_usec - _params.auxvel_delay_ms * 1000;

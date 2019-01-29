@@ -149,7 +149,7 @@ void Ekf::fuseHagl()
 			_innov_check_fail_status.flags.reject_hagl = false;
 		} else {
 			// If we have been rejecting range data for too long, reset to measurement
-			if (_time_last_imu - _time_last_hagl_fuse > (uint64_t)10E6) {
+			if ((_time_last_imu - _time_last_hagl_fuse) > (uint64_t)10E6) {
 				_terrain_vpos = _state.pos(2) + meas_hagl;
 				_terrain_var = obs_variance;
 			} else {
@@ -171,7 +171,7 @@ bool Ekf::get_terrain_valid()
 // determine terrain validity
 void Ekf::update_terrain_valid()
 {
-	if (_terrain_initialised && (_time_last_imu - _time_last_hagl_fuse < (uint64_t)5e6)) {
+	if (_terrain_initialised && ((_time_last_imu - _time_last_hagl_fuse) < (uint64_t)5e6)) {
 
 		_hagl_valid = true;
 

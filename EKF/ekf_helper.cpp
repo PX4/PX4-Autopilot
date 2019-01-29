@@ -1322,11 +1322,11 @@ bool Ekf::global_position_is_valid()
 void Ekf::update_deadreckoning_status()
 {
 	bool velPosAiding = (_control_status.flags.gps || _control_status.flags.ev_pos)
-			    && ((_time_last_imu - _time_last_pos_fuse <= _params.no_aid_timeout_max)
-				|| (_time_last_imu - _time_last_vel_fuse <= _params.no_aid_timeout_max)
-				|| (_time_last_imu - _time_last_delpos_fuse <= _params.no_aid_timeout_max));
-	bool optFlowAiding = _control_status.flags.opt_flow && (_time_last_imu - _time_last_of_fuse <= _params.no_aid_timeout_max);
-	bool airDataAiding = _control_status.flags.wind && (_time_last_imu - _time_last_arsp_fuse <= _params.no_aid_timeout_max) && (_time_last_imu - _time_last_beta_fuse <= _params.no_aid_timeout_max);
+			    && (((_time_last_imu - _time_last_pos_fuse) <= _params.no_aid_timeout_max)
+				|| ((_time_last_imu - _time_last_vel_fuse) <= _params.no_aid_timeout_max)
+				|| ((_time_last_imu - _time_last_delpos_fuse) <= _params.no_aid_timeout_max));
+	bool optFlowAiding = _control_status.flags.opt_flow && ((_time_last_imu - _time_last_of_fuse) <= _params.no_aid_timeout_max);
+	bool airDataAiding = _control_status.flags.wind && ((_time_last_imu - _time_last_arsp_fuse) <= _params.no_aid_timeout_max) && ((_time_last_imu - _time_last_beta_fuse) <= _params.no_aid_timeout_max);
 
 	_is_wind_dead_reckoning = !velPosAiding && !optFlowAiding && airDataAiding;
 	_is_dead_reckoning = !velPosAiding && !optFlowAiding && !airDataAiding;
