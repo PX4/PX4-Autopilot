@@ -3,13 +3,18 @@
 function collection for plotting
 """
 
+# matplotlib don't use Xwindows backend (must be before pyplot import)
+import matplotlib
+matplotlib.use('Agg')
+
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 from pyulog import ULog
 
-from post_processing import magnetic_field_estimates_from_status, get_estimator_check_flags
-from plotting import TimeSeriesPlot, InnovationPlot, ControlModeSummaryPlot, CheckFlagsPlot
-from detectors import PreconditionError
+from analysis.post_processing import magnetic_field_estimates_from_status, get_estimator_check_flags
+from plotting.data_plots import TimeSeriesPlot, InnovationPlot, ControlModeSummaryPlot, \
+    CheckFlagsPlot
+from analysis.detectors import PreconditionError
 
 
 def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:

@@ -1,22 +1,31 @@
-from typing import Tuple, List, Dict, Optional, Callable
+from typing import Tuple, List, Dict
 
-# matplotlib don't use Xwindows backend (must be before pyplot import)
-import matplotlib
-matplotlib.use('Agg')
 import numpy as np
 
 from pyulog import ULog
 
-from post_processing import get_estimator_check_flags
-from plotting import get_max_arg_time_value
-from pdf_report import create_pdf_report
-from detectors import InAirDetector, PreconditionError
-from metrics import calculate_ecl_ekf_metrics
+from analysis.detectors import InAirDetector, PreconditionError
+from analysis.metrics import calculate_ecl_ekf_metrics
+from analysis.checks import perform_ecl_ekf_checks
+from analysis.post_processing import get_estimator_check_flags
 
 
 def analyse_ekf(
-        ulog: ULog, check_levels: Dict[str, float], test_results_table: Dict[str, list],
-        red_thresh: float = 1.0, amb_thresh: float = 0.5) -> list:
+        ulog: ULog, check_levels: Dict[str, float], red_thresh: float = 1.0,
+        amb_thresh: float = 0.5, min_flight_duration_seconds: float = 5.0,
+        in_air_margin_seconds: float = 5.0) -> \
+        Tuple[str, Dict[str, str], Dict[str, float], Dict[str, float]]:
+
+    """
+    performs the ecl ekf analysis.
+    :param ulog:
+    :param check_levels:
+    :param red_thresh:
+    :param amb_thresh:
+    :param min_flight_duration_seconds:
+    :param in_air_margin_seconds:
+    :return:
+    """
 
     try:
         estimator_status = ulog.get_dataset('estimator_status').data
@@ -25,24 +34,23 @@ def analyse_ekf(
         raise PreconditionError('could not find estimator_status data')
 
     try:
-        ekf2_innovations = ulog.get_dataset('ekf2_innovations').data
+        _ = ulog.get_dataset('ekf2_innovations').data
         print('found ekf2_innovation data')
     except:
         raise PreconditionError('could not find ekf2_innovation data')
 
     try:
-        sensor_preflight = ulog.get_dataset('sensor_preflight').data
-        print('found sensor_preflight data')
-    except:
-        raise PreconditionError('could not find sensor_preflight data')
-
-    try:
         in_air = InAirDetector(
-            ulog, min_flight_time_seconds=5.0, in_air_margin_seconds=0.0)
+            ulog, min_flight_time_seconds=min_flight_duration_seconds, in_air_margin_seconds=0.0)
         in_air_no_ground_effects = InAirDetector(
-            ulog, min_flight_time_seconds=5.0, in_air_margin_seconds=5.0)
+            ulog, min_flight_time_seconds=min_flight_duration_seconds,
+            in_air_margin_seconds=in_air_margin_seconds)
     except Exception as e:
         raise PreconditionError(str(e))
+
+    airtime_info = {
+        'in_air_transition_time': round(in_air.take_off, 1),
+        'on_ground_transition_time': round(in_air.landing, 1)}
 
     if in_air_no_ground_effects.take_off is None:
         raise PreconditionError('no airtime detected.')
@@ -51,137 +59,14 @@ def analyse_ekf(
 
     sensor_checks, innov_fail_checks = find_checks_that_apply(control_mode, estimator_status)
 
-    ekf_metrics, imu_metrics, innov_fail_metrics, sensor_metrics = calculate_ecl_ekf_metrics(
+    metrics = calculate_ecl_ekf_metrics(
         ulog, innov_flags, innov_fail_checks, sensor_checks, in_air, in_air_no_ground_effects,
         red_thresh=red_thresh, amb_thresh=amb_thresh)
 
-    # combine the metrics
-    combined_metrics = dict()
-    combined_metrics.update(imu_metrics)
-    combined_metrics.update(sensor_metrics)
-    combined_metrics.update(innov_fail_metrics)
-    combined_metrics.update(ekf_metrics)
+    check_status, master_status = perform_ecl_ekf_checks(
+        metrics, sensor_checks, innov_fail_checks, check_levels)
 
-    # perform the checks
-    imu_status = perform_imu_checks(imu_metrics, check_levels)
-
-    sensor_status = perform_sensor_checks(
-        sensor_checks, sensor_metrics, innov_fail_metrics, check_levels)
-
-    ekf_status = dict()
-    ekf_status['filter_fault_status'] = 'Fail' if ekf_metrics['filter_faults_max'] > 0 else 'Pass'
-
-    # combine the status from the checks
-    combined_status = dict()
-    combined_status.update(imu_status)
-    combined_status.update(sensor_status)
-    combined_status.update(ekf_status)
-
-    if any(val == 'Fail' for val in combined_status.values()):
-        master_status = 'Fail'
-    elif any(val == 'Warning' for val in combined_status.values()):
-        master_status = 'Warning'
-    else:
-        master_status = 'Pass'
-
-    test_results = create_results_table(
-        test_results_table, in_air, combined_metrics, combined_status, master_status)
-
-    return test_results
-
-
-def create_results_table(
-        test_results: Dict[str, list], in_air: InAirDetector, combined_metrics: Dict[str, float],
-        combined_status: Dict[str, str], master_status: str) -> Dict[str, list]:
-
-    # store metrics
-    for key, value in combined_metrics.items():
-        test_results[key][0] = value
-
-    # store check results
-    for key, value in combined_status.items():
-        test_results[key][0] = value
-
-    # store master status
-    test_results['master_status'][0] = master_status
-
-    # store take_off and landing information
-    test_results['in_air_transition_time'][0] = [round(in_air.take_off, 1)]
-    test_results['on_ground_transition_time'][0] = [round(in_air.landing, 1)]
-
-    return test_results
-
-
-def perform_imu_checks(
-        imu_metrics: Dict[str, float], check_levels: Dict[str, float]) -> Dict[str, str]:
-
-    # check for IMU sensor warnings
-    imu_status = dict()
-
-    # perform the vibration check
-    imu_status['imu_vibration_check'] = 'Pass'
-    for imu_vibr_metric in ['imu_coning', 'imu_hfdang', 'imu_hfdvel']:
-        mean_metric = '{:s}_mean'.format(imu_vibr_metric)
-        peak_metric = '{:s}_peak'.format(imu_vibr_metric)
-        if imu_metrics[mean_metric] > check_levels['{:s}_warn'.format(mean_metric)] \
-                or imu_metrics[peak_metric] > check_levels['{:s}_warn'.format(peak_metric)]:
-            imu_status['imu_vibration_check'] = 'Warning'
-
-    if imu_status['imu_vibration_check'] == 'Warning':
-        print('IMU vibration check warning.')
-
-    # perform the imu bias check
-    if imu_metrics['imu_dang_bias_median'] > check_levels['imu_dang_bias_median_warn'] \
-            or imu_metrics['imu_dvel_bias_median'] > check_levels['imu_dvel_bias_median_warn']:
-        imu_status['imu_bias_check'] = 'Warning'
-        print('IMU bias check warning.')
-    else:
-        imu_status['imu_bias_check'] = 'Pass'
-
-    # perform output predictor
-    if imu_metrics['output_obs_ang_err_median'] > check_levels['obs_ang_err_median_warn'] \
-            or imu_metrics['output_obs_vel_err_median'] > check_levels['obs_vel_err_median_warn'] \
-            or imu_metrics['output_obs_pos_err_median'] > check_levels['obs_pos_err_median_warn']:
-        imu_status['imu_output_predictor_check'] = 'Warning'
-        print('IMU output predictor check warning.')
-    else:
-        imu_status['imu_output_predictor_check'] = 'Pass'
-
-    imu_status['imu_sensor_status'] = 'Warning' if any(
-        val == 'Warning' for val in imu_status.values()) else 'Pass'
-
-    return imu_status
-
-
-def perform_sensor_checks(
-        sensor_checks: List[str], sensor_metrics: Dict[str, float],
-        innov_fail_metrics: Dict[str, float], check_levels: Dict[str, float]) -> Dict[str, str]:
-
-
-    sensor_status = dict()
-    for sensor_check in sensor_checks:
-        if sensor_metrics['{:s}_percentage_amber'.format(sensor_check)] > check_levels[
-            '{:s}_amber_fail_pct'.format(sensor_check)]:
-            sensor_status['{:s}_sensor_status'.format(sensor_check)] = 'Fail'
-        elif sensor_metrics['{:s}_percentage_amber'.format(sensor_check)] > check_levels[
-            '{:s}_amber_warn_pct'.format(sensor_check)]:
-            sensor_status['{:s}_sensor_status'.format(sensor_check)] = 'Warning'
-        else:
-            sensor_status['{:s}_sensor_status'.format(sensor_check)] = 'Pass'
-
-
-    for innov_fail_metric, metric_value in innov_fail_metrics.items():
-        if innov_fail_metric.startswith('hagl'):
-            sensor_id = 'hagl'
-        elif innov_fail_metric.startswith('of'):
-            sensor_id = 'flow'
-        else:
-            sensor_id = innov_fail_metric[0:3]
-
-        if metric_value > check_levels['{:s}_fail_pct'.format(sensor_id)]:
-            sensor_status['{:s}_sensor_status'.format(sensor_id)] = 'Fail'
-
-    return sensor_status
+    return master_status, check_status, metrics, airtime_info
 
 
 def find_checks_that_apply(control_mode: dict, estimator_status: dict) -> \

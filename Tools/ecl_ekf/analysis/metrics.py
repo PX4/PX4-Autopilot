@@ -8,8 +8,7 @@ from typing import Dict, List, Tuple, Callable
 from pyulog import ULog
 import numpy as np
 
-from detectors import InAirDetector, PreconditionError
-
+from detectors import InAirDetector
 
 def calculate_ecl_ekf_metrics(
         ulog: ULog, innov_flags: Dict[str, float], innov_fail_checks: List[str],
@@ -25,10 +24,7 @@ def calculate_ecl_ekf_metrics(
 
     imu_metrics = calculate_imu_metrics(ulog, in_air_no_ground_effects)
 
-    try:
-        estimator_status_data = ulog.get_dataset('estimator_status').data
-    except Exception:
-        raise PreconditionError('could not find estimator status data.')
+    estimator_status_data = ulog.get_dataset('estimator_status').data
 
     # Check for internal filter nummerical faults
     ekf_metrics = {'filter_faults_max': np.amax(estimator_status_data['filter_fault_flags'])}
@@ -36,7 +32,14 @@ def calculate_ecl_ekf_metrics(
     # estimator_status['health_flags']
     # estimator_status['timeout_flags']
 
-    return ekf_metrics, imu_metrics, innov_fail_metrics, sensor_metrics
+    # combine the metrics
+    combined_metrics = dict()
+    combined_metrics.update(imu_metrics)
+    combined_metrics.update(sensor_metrics)
+    combined_metrics.update(innov_fail_metrics)
+    combined_metrics.update(ekf_metrics)
+
+    return combined_metrics
 
 
 def calculate_sensor_metrics(
@@ -107,15 +110,9 @@ def calculate_innov_fail_metrics(
 def calculate_imu_metrics(
         ulog: ULog, in_air_no_ground_effects: InAirDetector) -> dict:
 
-    try:
-        ekf2_innovation_data = ulog.get_dataset('ekf2_innovations').data
-    except Exception:
-        raise PreconditionError('could not find ekf2_innovations data.')
+    ekf2_innovation_data = ulog.get_dataset('ekf2_innovations').data
 
-    try:
-        estimator_status_data = ulog.get_dataset('estimator_status').data
-    except Exception:
-        raise PreconditionError('could not find estimator status data.')
+    estimator_status_data = ulog.get_dataset('estimator_status').data
 
     imu_metrics = dict()
 

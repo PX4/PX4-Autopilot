@@ -6,12 +6,13 @@ import argparse
 import os
 import sys
 import csv
+from typing import Dict
 
 from pyulog import *
 
 from analyse_logdata_ekf import analyse_ekf
-from detectors import InAirDetector
 from pdf_report import create_pdf_report
+from analysis.detectors import PreconditionError
 
 """
 Performs a health assessment on the ecl EKF navigation estimator data contained in a an ULog file
@@ -34,12 +35,44 @@ def get_arguments():
     return parser.parse_args()
 
 
-def is_valid_directory(parser, arg):
-    if os.path.isdir(arg):
-        # Directory exists so return the directory
-        return arg
-    else:
-        parser.error('The directory {} does not exist'.format(arg))
+def create_results_table(
+        check_description_filename: str, master_status: str, check_status: Dict[str, str],
+        metrics: Dict[str, float], airtime_info: Dict[str, float]) -> Dict[str, list]:
+    """
+    creates the output results table
+    :param check_description_filename:
+    :param master_status:
+    :param check_status:
+    :param metrics:
+    :param airtime_info:
+    :return:
+    """
+
+    try:
+        with open(check_description_filename, 'r') as file:
+            reader = csv.DictReader(file)
+            test_results_table = {
+                row['check_id']: ['NaN', row['check_description']] for row in reader}
+        print('Using test description loaded from {:s}'.format(check_description_filename))
+    except:
+        raise PreconditionError('could not find {:s}'.format(check_description_filename))
+
+    # store metrics
+    for key, value in metrics.items():
+        test_results_table[key][0] = value
+
+    # store check results
+    for key, value in check_status.items():
+        test_results_table[key][0] = value
+
+    # store master status
+    test_results_table['master_status'][0] = master_status
+
+    # store take_off and landing information
+    test_results_table['in_air_transition_time'][0] = airtime_info['in_air_transition_time']
+    test_results_table['on_ground_transition_time'][0] = airtime_info['on_ground_transition_time']
+
+    return test_results_table
 
 
 def process_logdata_ekf(
@@ -64,22 +97,17 @@ def process_logdata_ekf(
         sys.exit(-1)
 
     try:
-        with open(check_description_filename, 'r') as file:
-            reader = csv.DictReader(file)
-            test_results_table = {
-                row['check_id']: ['NaN', row['check_description']] for row in reader}
-        print('Using test description loaded from {:s}'.format(check_description_filename))
-    except:
-        print('could not find {:s}'.format(check_description_filename))
-        sys.exit(-1)
-
-    try:
+        in_air_margin = 5.0 if sensor_safety_margins else 0.0
         # perform the ekf analysis
-        test_results = analyse_ekf(
-            ulog, check_levels, test_results_table, red_thresh=1.0, amb_thresh=0.5)
+        master_status, check_status, metrics, airtime_info = analyse_ekf(
+            ulog, check_levels, red_thresh=1.0, amb_thresh=0.5, min_flight_duration_seconds=5.0,
+            in_air_margin_seconds=in_air_margin)
     except Exception as e:
         print(str(e))
         sys.exit(-1)
+
+    test_results = create_results_table(
+        check_description_filename, master_status, check_status, metrics, airtime_info)
 
     # write metadata to a .csv file
     with open('{:s}.mdat.csv'.format(os.path.splitext(filename)[0]), "w") as file:
