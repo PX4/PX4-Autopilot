@@ -32,6 +32,7 @@ px4_add_board(
 		magnetometer # all available magnetometer drivers
 		mkblctrl
 		pca9685
+		pmw3901
 		pwm_input
 		pwm_out_sim
 		px4flow
