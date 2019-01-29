@@ -1505,7 +1505,7 @@ void Ekf2::run()
 				// it's not a cross-covariance matrix but simplifies propagating the data
 				matrix::SquareMatrix<float, 6> pose_cov = matrix::eye<float, 6>() * 9999.0f;
 				pose_cov.set(_ekf.position_covariances(), 0, 0);
-				pose_cov.set(propagate_covariances_from_quat_to_euler(q, _ekf.quaternion_covariances()), 3, 3);
+				pose_cov.set(propagate_covariances_from_quat_to_euler(q, _ekf.orientation_covariances()), 3, 3);
 
 				for (unsigned x = 0; x < 6; x++) {
 					for (unsigned y = x; y < 6; y++) {
