@@ -79,20 +79,25 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#if defined PX4_SPI_BUS_EXPANSION		// crazyflie
-#define PMW3901_BUS PX4_SPI_BUS_EXPANSION
-#elif defined PX4_SPI_BUS_EXTERNAL1		// fmu-v5
-#define PMW3901_BUS PX4_SPI_BUS_EXTERNAL1
+
+#if defined PX4_SPI_BUS_EXPANSION   // crazyflie
+# define PMW3901_BUS PX4_SPI_BUS_EXPANSION
+#elif defined PX4_SPI_BUS_EXTERNAL1   // fmu-v5
+# define PMW3901_BUS PX4_SPI_BUS_EXTERNAL1
+#elif defined PX4_SPI_BUS_EXTERNAL    // fmu-v4 extspi
+# define PMW3901_BUS PX4_SPI_BUS_EXTERNAL
 #else
-#error "add the required spi bus from board_config.h here"
+# error "add the required spi bus from board_config.h here"
 #endif
 
-#if defined PX4_SPIDEV_EXPANSION_2		// crazyflie flow deck
-#define PMW3901_SPIDEV PX4_SPIDEV_EXPANSION_2
-#elif defined PX4_SPIDEV_EXTERNAL1_1		// fmu-v5 ext CS1
-#define PMW3901_SPIDEV PX4_SPIDEV_EXTERNAL1_1
+#if defined PX4_SPIDEV_EXPANSION_2    // crazyflie flow deck
+# define PMW3901_SPIDEV PX4_SPIDEV_EXPANSION_2
+#elif defined PX4_SPIDEV_EXTERNAL1_1    // fmu-v5 ext CS1
+# define PMW3901_SPIDEV PX4_SPIDEV_EXTERNAL1_1
+#elif defined PX4_SPIDEV_EXTERNAL   // fmu-v4 extspi
+# define PMW3901_SPIDEV PX4_SPIDEV_EXTERNAL
 #else
-#error "add the required spi dev from board_config.h here"
+# error "add the required spi dev from board_config.h here"
 #endif
 
 #define PMW3901_SPI_BUS_SPEED (2000000L) // 2MHz

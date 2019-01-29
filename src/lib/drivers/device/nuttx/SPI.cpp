@@ -94,7 +94,14 @@ SPI::init()
 
 	/* attach to the spi bus */
 	if (_dev == nullptr) {
-		_dev = px4_spibus_initialize(get_device_bus());
+		int bus = get_device_bus();
+
+		if (!board_has_bus(BOARD_SPI_BUS, bus)) {
+			ret = -ENOENT;
+			goto out;
+		}
+
+		_dev = px4_spibus_initialize(bus);
 	}
 
 	if (_dev == nullptr) {
