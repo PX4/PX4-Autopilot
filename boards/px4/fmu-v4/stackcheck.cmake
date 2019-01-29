@@ -18,7 +18,6 @@ px4_add_board(
 	DRIVERS
 		barometer # all available barometer drivers
 		batt_smbus
-		lights/blinkm
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
@@ -26,17 +25,19 @@ px4_add_board(
 		heater
 		imu # all available imu drivers
 		irlock
+		lights/blinkm
+		lights/oreoled
+		lights/rgbled
+		lights/rgbled_ncp5623c
 		magnetometer # all available magnetometer drivers
 		mkblctrl
-		lights/oreoled
 		pca9685
+		pmw3901
 		pwm_input
 		pwm_out_sim
 		px4flow
 		px4fmu
 		rc_input
-		lights/rgbled
-		lights/rgbled_ncp5623c
 		stm32
 		stm32/adc
 		stm32/tone_alarm
@@ -103,6 +104,7 @@ px4_add_board(
 		#hello
 		#hwtest # Hardware test
 		#matlab_csv_serial
+		#position_estimator_inav
 		#px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
 		#px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app
 		#rover_steering_control # Rover example app
