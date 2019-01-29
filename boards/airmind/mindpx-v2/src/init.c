@@ -293,7 +293,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETFREQUENCY(spi2, 10000000);
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
-	SPI_SELECT(spi2, PX4_SPIDEV_EXT0, false);
+	SPI_SELECT(spi2, PX4_SPIDEV_EXTERNAL1_1, false);
 
 
 #ifdef CONFIG_MMCSD

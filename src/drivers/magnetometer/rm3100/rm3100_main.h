@@ -67,7 +67,7 @@ struct rm3100_bus_option {
 	{ RM3100_BUS_SPI_INTERNAL, "/dev/rm3100_spi_int", &RM3100_SPI_interface, PX4_SPI_BUS_SENSORS, NULL },
 #endif /* PX4_SPIDEV_RM */
 #ifdef PX4_SPIDEV_RM_EXT
-	{ RM3100_BUS_SPI_EXTERNAL, "/dev/rm3100_spi_ext", &RM3100_SPI_interface, PX4_SPI_BUS_EXT, NULL },
+	{ RM3100_BUS_SPI_EXTERNAL, "/dev/rm3100_spi_ext", &RM3100_SPI_interface, PX4_SPI_BUS_EXTERNAL1, NULL },
 #endif /* PX4_SPIDEV_RM_EXT */
 };
 

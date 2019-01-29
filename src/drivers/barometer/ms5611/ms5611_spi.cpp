@@ -117,9 +117,9 @@ private:
 device::Device *
 MS5611_spi_interface(ms5611::prom_u &prom_buf, uint8_t busnum)
 {
-#ifdef PX4_SPI_BUS_EXT
+#ifdef PX4_SPI_BUS_EXTERNAL1
 
-	if (busnum == PX4_SPI_BUS_EXT) {
+	if (busnum == PX4_SPI_BUS_EXTERNAL1) {
 #ifdef PX4_SPIDEV_EXT_BARO
 		return new MS5611_SPI(busnum, PX4_SPIDEV_EXT_BARO, prom_buf);
 #else

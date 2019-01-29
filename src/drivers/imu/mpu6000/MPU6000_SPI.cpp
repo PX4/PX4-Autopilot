@@ -110,7 +110,7 @@ MPU6000_SPI_interface(int bus, int device_type, bool external_bus)
 
 	if (external_bus) {
 
-#if defined(PX4_SPI_BUS_EXT) || defined(PX4_SPI_BUS_EXTERNAL)
+#if defined(PX4_SPI_BUS_EXTERNAL1)
 
 		switch (device_type) {
 

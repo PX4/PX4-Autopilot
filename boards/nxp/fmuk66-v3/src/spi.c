@@ -229,10 +229,10 @@ __EXPORT int fmuk66_spi_bus_initialize(void)
 
 	/* Configure EXTERNAL SPI-based devices */
 
-	spi_ext = px4_spibus_initialize(PX4_SPI_BUS_EXTERNAL);
+	spi_ext = px4_spibus_initialize(PX4_SPI_BUS_EXTERNAL1);
 
 	if (!spi_ext) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXTERNAL);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXTERNAL1);
 		return -ENODEV;
 	}
 
@@ -350,7 +350,7 @@ void kinetis_spi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected
 	/* SPI select is active low, so write !selected to select the device */
 
 	int sel = (int) devid;
-	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_EXTERNAL);
+	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_EXTERNAL1);
 
 	/* Making sure the other peripherals are not selected */
 

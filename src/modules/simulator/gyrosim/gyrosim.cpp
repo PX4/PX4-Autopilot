@@ -103,12 +103,6 @@ using namespace DriverFramework;
 
 #define GYROSIM_GYRO_DEFAULT_RATE	400
 
-#ifdef PX4_SPI_BUS_EXT
-#define EXTERNAL_BUS PX4_SPI_BUS_EXT
-#else
-#define EXTERNAL_BUS 0
-#endif
-
 /*
   the GYROSIM can only handle high SPI bus speeds on the sensor and
   interrupt status registers. All other registers have a maximum 1MHz

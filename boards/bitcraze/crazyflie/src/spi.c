@@ -29,7 +29,7 @@
 /* Debug ********************************************************************/
 
 /* Define CS GPIO array */
-static const uint32_t spi1selects_gpio[] = PX4_FLOW_BUS_CS_GPIO;
+static const uint32_t spi1selects_gpio[] = PX4_SPI_BUS_EXTERNAL1_CS_GPIO;
 
 
 /************************************************************************************
@@ -66,10 +66,10 @@ __EXPORT int stm32_spi_bus_initialize(void)
 	/* Configure SPI-based devices */
 
 	/* Get the external SPI port */
-	spi_expansion = stm32_spibus_initialize(PX4_SPI_BUS_EXPANSION);
+	spi_expansion = stm32_spibus_initialize(PX4_SPI_BUS_EXTERNAL1);
 
 	if (!spi_expansion) {
-		PX4_ERR("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXPANSION);
+		PX4_ERR("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXTERNAL1);
 		return -ENODEV;
 	}
 

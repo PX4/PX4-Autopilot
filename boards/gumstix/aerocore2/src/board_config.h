@@ -94,7 +94,7 @@
 
 #define PX4_SPI_BUS_SENSORS	3
 #define PX4_SPI_BUS_RAMTRON	4
-#define PX4_SPI_BUS_EXT		1
+#define PX4_SPI_BUS_EXTERNAL1	1
 #define PX4_SPI_BUS_BARO	PX4_SPI_BUS_SENSORS
 
 /* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI3 */

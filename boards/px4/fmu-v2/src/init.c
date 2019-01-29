@@ -490,10 +490,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETBITS(spi2, 8);
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 
-	spi4 = stm32_spibus_initialize(PX4_SPI_BUS_EXT);
+	spi4 = stm32_spibus_initialize(PX4_SPI_BUS_EXTERNAL1);
 
 	if (!spi4) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXT);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXTERNAL1);
 		led_on(LED_AMBER);
 		return -ENODEV;
 	}

@@ -67,7 +67,7 @@ __EXPORT bool board_has_bus(enum board_bus_types type, uint32_t bus)
 	switch (type) {
 	case BOARD_SPI_BUS:
 #ifdef CONFIG_STM32_SPI4
-		rv = bus != PX4_SPI_BUS_EXTERNAL || (stm32_gpioread(GPIO_8266_GPIO2) == 0);
+		rv = bus != PX4_SPI_BUS_EXTERNAL1 || (stm32_gpioread(GPIO_8266_GPIO2) == 0);
 #endif /* CONFIG_STM32_SPI4 */
 		break;
 
@@ -116,7 +116,7 @@ __EXPORT void stm32_spiinitialize(int mask)
 
 #ifdef CONFIG_STM32_SPI4
 
-	if (mask & PX4_SPI_BUS_EXTERNAL) {
+	if (mask & PX4_SPI_BUS_EXTERNAL1) {
 		stm32_configgpio(GPIO_SPI4_CS_1); //add cs
 	}
 
@@ -207,7 +207,7 @@ __EXPORT uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, uint32_t devid)
 #ifdef CONFIG_STM32_SPI4
 __EXPORT void stm32_spi4select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
-	if (devid == PX4_SPIDEV_EXTERNAL && stm32_gpioread(GPIO_8266_GPIO2) == 0) {
+	if (devid == PX4_SPIDEV_EXTERNAL1_1 && stm32_gpioread(GPIO_8266_GPIO2) == 0) {
 		stm32_gpiowrite(GPIO_SPI4_CS_1, !selected); // add cs
 	}
 }
@@ -310,7 +310,7 @@ __EXPORT void board_spi_reset(int ms)
 #ifdef CONFIG_STM32_SPI4
 
 	if (stm32_gpioread(GPIO_8266_GPIO2) == 0) {
-		stm32_spiinitialize(PX4_SPI_BUS_EXTERNAL);
+		stm32_spiinitialize(PX4_SPI_BUS_EXTERNAL1);
 		stm32_configgpio(GPIO_SPI4_SCK);
 		stm32_configgpio(GPIO_SPI4_MISO);
 		stm32_configgpio(GPIO_SPI4_MOSI);

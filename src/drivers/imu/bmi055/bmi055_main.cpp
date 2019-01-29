@@ -88,8 +88,8 @@ start(bool external_bus, enum Rotation rotation, enum sensor_type sensor)
 
 		/* create the driver */
 		if (external_bus) {
-#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_BMI)
-			*g_dev_acc_ptr = new BMI055_accel(PX4_SPI_BUS_EXT, path_accel, PX4_SPIDEV_EXT_BMI, rotation);
+#if defined(PX4_SPI_BUS_EXTERNAL1) && defined(PX4_SPIDEV_EXT_BMI)
+			*g_dev_acc_ptr = new BMI055_accel(PX4_SPI_BUS_EXTERNAL1, path_accel, PX4_SPIDEV_EXT_BMI, rotation);
 #else
 			errx(0, "External SPI not available");
 #endif
@@ -128,8 +128,8 @@ start(bool external_bus, enum Rotation rotation, enum sensor_type sensor)
 
 		/* create the driver */
 		if (external_bus) {
-#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_BMI)
-			*g_dev_ptr = new BMI055_gyro(PX4_SPI_BUS_EXT, path_gyro, PX4_SPIDEV_EXT_BMI, rotation);
+#if defined(PX4_SPI_BUS_EXTERNAL1) && defined(PX4_SPIDEV_EXT_BMI)
+			*g_dev_ptr = new BMI055_gyro(PX4_SPI_BUS_EXTERNAL1, path_gyro, PX4_SPIDEV_EXT_BMI, rotation);
 #else
 			errx(0, "External SPI not available");
 #endif

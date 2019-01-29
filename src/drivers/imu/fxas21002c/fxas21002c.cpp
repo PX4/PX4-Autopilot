@@ -1226,8 +1226,8 @@ start(bool external_bus, enum Rotation rotation)
 
 	/* create the driver */
 	if (external_bus) {
-#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_GYRO)
-		g_dev = new FXAS21002C(PX4_SPI_BUS_EXT, FXAS21002C_DEVICE_PATH_GYRO, PX4_SPIDEV_EXT_GYRO, rotation);
+#if defined(PX4_SPI_BUS_EXTERNAL1) && defined(PX4_SPIDEV_EXT_GYRO)
+		g_dev = new FXAS21002C(PX4_SPI_BUS_EXTERNAL1, FXAS21002C_DEVICE_PATH_GYRO, PX4_SPIDEV_EXT_GYRO, rotation);
 #else
 		PX4_ERR("External SPI not available");
 		exit(0);

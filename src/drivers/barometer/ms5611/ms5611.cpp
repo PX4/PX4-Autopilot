@@ -813,8 +813,8 @@ struct ms5611_bus_option {
 	uint8_t busnum;
 	MS5611 *dev;
 } bus_options[] = {
-#if defined(PX4_SPIDEV_EXT_BARO) && defined(PX4_SPI_BUS_EXT)
-	{ MS5611_BUS_SPI_EXTERNAL, "/dev/ms5611_spi_ext", &MS5611_spi_interface, PX4_SPI_BUS_EXT, NULL },
+#if defined(PX4_SPIDEV_EXT_BARO) && defined(PX4_SPI_BUS_EXTERNAL1)
+	{ MS5611_BUS_SPI_EXTERNAL, "/dev/ms5611_spi_ext", &MS5611_spi_interface, PX4_SPI_BUS_EXTERNAL1, NULL },
 #endif
 #ifdef PX4_SPIDEV_BARO
 	{ MS5611_BUS_SPI_INTERNAL, "/dev/ms5611_spi_int", &MS5611_spi_interface, PX4_SPI_BUS_BARO, NULL },

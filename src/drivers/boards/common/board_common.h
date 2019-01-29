@@ -1067,11 +1067,11 @@ __EXPORT bool px4_spi_bus_external(int bus);
 
 #else
 
-#ifdef PX4_SPI_BUS_EXT
-#define px4_spi_bus_external(bus) (bus == PX4_SPI_BUS_EXT)
+#ifdef PX4_SPI_BUS_EXTERNAL1
+#define px4_spi_bus_external(bus) (bus == PX4_SPI_BUS_EXTERNAL1)
 #else
 #define px4_spi_bus_external(bus) false
-#endif /* PX4_SPI_BUS_EXT */
+#endif /* PX4_SPI_BUS_EXTERNAL1 */
 
 #endif /* BOARD_HAS_SIMPLE_HW_VERSIONING */
 

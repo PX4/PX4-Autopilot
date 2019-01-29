@@ -543,8 +543,8 @@ struct bmp280_bus_option {
 	bool external;
 	BMP280 *dev;
 } bus_options[] = {
-#if defined(PX4_SPIDEV_EXT_BARO) && defined(PX4_SPI_BUS_EXT)
-	{ BMP280_BUS_SPI_EXTERNAL, "/dev/bmp280_spi_ext", &bmp280_spi_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_BARO, true, NULL },
+#if defined(PX4_SPIDEV_EXT_BARO) && defined(PX4_SPI_BUS_EXTERNAL1)
+	{ BMP280_BUS_SPI_EXTERNAL, "/dev/bmp280_spi_ext", &bmp280_spi_interface, PX4_SPI_BUS_EXTERNAL1, PX4_SPIDEV_EXT_BARO, true, NULL },
 #endif
 #if defined(PX4_SPIDEV_BARO)
 #  if defined(PX4_SPIDEV_BARO_BUS)

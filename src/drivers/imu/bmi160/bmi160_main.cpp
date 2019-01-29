@@ -48,8 +48,8 @@ start(bool external_bus, enum Rotation rotation)
 
 	/* create the driver */
 	if (external_bus) {
-#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_BMI)
-		*g_dev_ptr = new BMI160(PX4_SPI_BUS_EXT, path_accel, path_gyro, PX4_SPIDEV_EXT_BMI, rotation);
+#if defined(PX4_SPI_BUS_EXTERNAL1) && defined(PX4_SPIDEV_EXT_BMI)
+		*g_dev_ptr = new BMI160(PX4_SPI_BUS_EXTERNAL1, path_accel, path_gyro, PX4_SPIDEV_EXT_BMI, rotation);
 #else
 		errx(0, "External SPI not available");
 #endif

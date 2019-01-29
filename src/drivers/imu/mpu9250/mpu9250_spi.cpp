@@ -89,7 +89,7 @@ MPU9250_SPI_interface(int bus, uint32_t cs, bool external_bus)
 	device::Device *interface = nullptr;
 
 	if (external_bus) {
-#if !(defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_MPU))
+#if !(defined(PX4_SPI_BUS_EXTERNAL1) && defined(PX4_SPIDEV_EXT_MPU))
 		errx(0, "External SPI not available");
 #endif
 	}

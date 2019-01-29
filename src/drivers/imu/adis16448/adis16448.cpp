@@ -1596,8 +1596,8 @@ start(enum Rotation rotation)
 	}
 
 	/* create the driver */
-#if defined(PX4_SPI_BUS_EXT)
-	g_dev = new ADIS16448(PX4_SPI_BUS_EXT, ADIS16448_DEVICE_PATH_ACCEL, ADIS16448_DEVICE_PATH_GYRO,
+#if defined(PX4_SPI_BUS_EXTERNAL1) && defined(PX4_SPIDEV_EXT_MPU)
+	g_dev = new ADIS16448(PX4_SPI_BUS_EXTERNAL1, ADIS16448_DEVICE_PATH_ACCEL, ADIS16448_DEVICE_PATH_GYRO,
 			      ADIS16448_DEVICE_PATH_MAG, PX4_SPIDEV_EXT_MPU, rotation);
 #else
 	PX4_ERR("External SPI not available");

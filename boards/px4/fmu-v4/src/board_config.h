@@ -150,12 +150,12 @@
 #define PX4_SPI_BUS_BARO             PX4_SPI_BUS_RAMTRON
 
 #ifdef CONFIG_STM32_SPI4
-#  define PX4_SPI_BUS_EXTERNAL       4
+#  define PX4_SPI_BUS_EXTERNAL1       4
 /* The mask passes to init the SPI bus pins
  * N.B This works ONLY with buss numbers that are powers of 2
  * Adding SPI3 would break this!
  */
-#  define   SPI_BUS_INIT_MASK_EXT     PX4_SPI_BUS_EXTERNAL
+#  define   SPI_BUS_INIT_MASK_EXT     PX4_SPI_BUS_EXTERNAL1
 #endif /* CONFIG_STM32_SPI4 */
 
 #define SPI_BUS_INIT_MASK        (PX4_SPI_BUS_RAMTRON | PX4_SPI_BUS_SENSORS)
@@ -183,7 +183,7 @@
 #define PX4_SPIDEV_BARO             PX4_MK_SPI_SEL(PX4_SPI_BUS_BARO, 3)
 
 #ifdef CONFIG_STM32_SPI4
-#  define PX4_SPIDEV_EXTERNAL       PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL, 1)
+#  define PX4_SPIDEV_EXTERNAL1_1       PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL1, 1)
 #endif /* CONFIG_STM32_SPI4 */
 
 /* I2C busses. */

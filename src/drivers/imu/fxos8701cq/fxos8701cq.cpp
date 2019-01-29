@@ -1622,8 +1622,8 @@ start(bool external_bus, enum Rotation rotation)
 
 	/* create the driver */
 	if (external_bus) {
-#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_ACCEL_MAG)
-		g_dev = new FXOS8701CQ(PX4_SPI_BUS_EXT, FXOS8701C_DEVICE_PATH_ACCEL, PX4_SPIDEV_EXT_ACCEL_MAG, rotation);
+#if defined(PX4_SPI_BUS_EXTERNAL1) && defined(PX4_SPIDEV_EXT_ACCEL_MAG)
+		g_dev = new FXOS8701CQ(PX4_SPI_BUS_EXTERNAL1, FXOS8701C_DEVICE_PATH_ACCEL, PX4_SPIDEV_EXT_ACCEL_MAG, rotation);
 #else
 		PX4_ERR("External SPI not available");
 		exit(0);

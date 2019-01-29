@@ -366,7 +366,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 			SPI_SETFREQUENCY(spi4, 20 * 1000 * 1000);
 			SPI_SETBITS(spi4, 8);
 			SPI_SETMODE(spi4, SPIDEV_MODE3);
-			SPI_SELECT(spi4, PX4_SPIDEV_EXTERNAL, false);
+			SPI_SELECT(spi4, PX4_SPIDEV_EXTERNAL1_1, false);
 		}
 	}
 

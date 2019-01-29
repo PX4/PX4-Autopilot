@@ -1711,8 +1711,8 @@ start(bool external_bus, enum Rotation rotation, unsigned range)
 
 	/* create the driver */
 	if (external_bus) {
-#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_ACCEL_MAG)
-		g_dev = new LSM303D(PX4_SPI_BUS_EXT, LSM303D_DEVICE_PATH_ACCEL, PX4_SPIDEV_EXT_ACCEL_MAG, rotation);
+#if defined(PX4_SPI_BUS_EXTERNAL1) && defined(PX4_SPIDEV_EXT_ACCEL_MAG)
+		g_dev = new LSM303D(PX4_SPI_BUS_EXTERNAL1, LSM303D_DEVICE_PATH_ACCEL, PX4_SPIDEV_EXT_ACCEL_MAG, rotation);
 #else
 		errx(0, "External SPI not available");
 #endif

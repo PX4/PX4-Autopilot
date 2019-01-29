@@ -452,7 +452,7 @@ __EXPORT bool px4_spi_bus_external(int bus)
 		return false;
 
 	} else {
-		if (bus == PX4_SPI_BUS_EXT) {
+		if (bus == PX4_SPI_BUS_EXTERNAL1) {
 			return true;
 		}
 	}

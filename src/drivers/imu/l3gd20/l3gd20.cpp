@@ -1118,8 +1118,8 @@ start(bool external_bus, enum Rotation rotation)
 
 	/* create the driver */
 	if (external_bus) {
-#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_GYRO)
-		g_dev = new L3GD20(PX4_SPI_BUS_EXT, L3GD20_DEVICE_PATH, PX4_SPIDEV_EXT_GYRO, rotation);
+#if defined(PX4_SPI_BUS_EXTERNAL1) && defined(PX4_SPIDEV_EXT_GYRO)
+		g_dev = new L3GD20(PX4_SPI_BUS_EXTERNAL1, L3GD20_DEVICE_PATH, PX4_SPIDEV_EXT_GYRO, rotation);
 #else
 		errx(0, "External SPI not available");
 #endif

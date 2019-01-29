@@ -78,28 +78,6 @@
 
 #include <board_config.h>
 
-/* Configuration Constants */
-
-#if defined PX4_SPI_BUS_EXPANSION   // crazyflie
-# define PMW3901_BUS PX4_SPI_BUS_EXPANSION
-#elif defined PX4_SPI_BUS_EXTERNAL1   // fmu-v5
-# define PMW3901_BUS PX4_SPI_BUS_EXTERNAL1
-#elif defined PX4_SPI_BUS_EXTERNAL    // fmu-v4 extspi
-# define PMW3901_BUS PX4_SPI_BUS_EXTERNAL
-#else
-# error "add the required spi bus from board_config.h here"
-#endif
-
-#if defined PX4_SPIDEV_EXPANSION_2    // crazyflie flow deck
-# define PMW3901_SPIDEV PX4_SPIDEV_EXPANSION_2
-#elif defined PX4_SPIDEV_EXTERNAL1_1    // fmu-v5 ext CS1
-# define PMW3901_SPIDEV PX4_SPIDEV_EXTERNAL1_1
-#elif defined PX4_SPIDEV_EXTERNAL   // fmu-v4 extspi
-# define PMW3901_SPIDEV PX4_SPIDEV_EXTERNAL
-#else
-# error "add the required spi dev from board_config.h here"
-#endif
-
 #define PMW3901_SPI_BUS_SPEED (2000000L) // 2MHz
 
 #define DIR_WRITE(a) ((a) | (1 << 7))
@@ -119,7 +97,8 @@
 class PMW3901 : public device::SPI
 {
 public:
-	PMW3901(int bus = PMW3901_BUS, enum Rotation yaw_rotation = (enum Rotation)0);
+	PMW3901(int bus = PX4_SPI_BUS_EXTERNAL1, uint32_t spidev = PX4_SPIDEV_EXTERNAL1_1,
+		enum Rotation yaw_rotation = (enum Rotation)0);
 
 	virtual ~PMW3901();
 
@@ -205,8 +184,8 @@ private:
  */
 extern "C" __EXPORT int pmw3901_main(int argc, char *argv[]);
 
-PMW3901::PMW3901(int bus, enum Rotation yaw_rotation) :
-	SPI("PMW3901", PMW3901_DEVICE_PATH, bus, PMW3901_SPIDEV, SPIDEV_MODE0, PMW3901_SPI_BUS_SPEED),
+PMW3901::PMW3901(int bus, uint32_t spidev, enum Rotation yaw_rotation) :
+	SPI("PMW3901", PMW3901_DEVICE_PATH, bus, spidev, SPIDEV_MODE0, PMW3901_SPI_BUS_SPEED),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_ticks(0),
@@ -752,7 +731,7 @@ namespace pmw3901
 
 PMW3901	*g_dev;
 
-void	start(int spi_bus);
+void	start();
 void	stop();
 void	test();
 void	reset();
@@ -764,7 +743,7 @@ void	usage();
  * Start the driver.
  */
 void
-start(int spi_bus)
+start()
 {
 	int fd;
 
@@ -773,14 +752,30 @@ start(int spi_bus)
 	}
 
 	/* create the driver */
-	g_dev = new PMW3901(spi_bus, (enum Rotation)0);
+
+	g_dev = new PMW3901(PX4_SPI_BUS_EXTERNAL1, PX4_SPIDEV_EXTERNAL1_1, (enum Rotation)0);
 
 	if (g_dev == nullptr) {
 		goto fail;
 	}
 
 	if (OK != g_dev->init()) {
+
+#ifdef PX4_SPIDEV_EXTERNAL1_2
+		// try the 2nd external CS if available
+		g_dev = new PMW3901(PX4_SPI_BUS_EXTERNAL1, PX4_SPIDEV_EXTERNAL1_2, (enum Rotation)0);
+
+		if (g_dev == nullptr) {
+			goto fail;
+		}
+
+		if (OK != g_dev->init()) {
+			goto fail;
+		}
+
+#else
 		goto fail;
+#endif /* PX4_SPIDEV_EXTERNAL1_2 */
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
@@ -897,15 +892,9 @@ pmw3901_main(int argc, char *argv[])
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
-	int spi_bus = PMW3901_BUS;
 
 	while ((ch = px4_getopt(argc, argv, "b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'b':
-			spi_bus = (uint8_t)atoi(myoptarg);
-
-			break;
-
 		default:
 			err_flag = true;
 			break;
@@ -921,7 +910,7 @@ pmw3901_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		pmw3901::start(spi_bus);
+		pmw3901::start();
 	}
 
 	/*

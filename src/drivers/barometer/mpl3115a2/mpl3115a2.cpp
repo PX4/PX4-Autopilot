@@ -658,8 +658,8 @@ struct mpl3115a2_bus_option {
 	uint8_t busnum;
 	MPL3115A2 *dev;
 } bus_options[] = {
-#if defined(PX4_SPIDEV_EXT_BARO) && defined(PX4_SPI_BUS_EXT)
-	{ MPL3115A2_BUS_SPI_EXTERNAL, "/dev/mpl3115a2_spi_ext", &MPL3115A2_spi_interface, PX4_SPI_BUS_EXT, NULL },
+#if defined(PX4_SPIDEV_EXT_BARO) && defined(PX4_SPI_BUS_EXTERNAL1)
+	{ MPL3115A2_BUS_SPI_EXTERNAL, "/dev/mpl3115a2_spi_ext", &MPL3115A2_spi_interface, PX4_SPI_BUS_EXTERNAL1, NULL },
 #endif
 #ifdef PX4_SPIDEV_BARO
 	{ MPL3115A2_BUS_SPI_INTERNAL, "/dev/mpl3115a2_spi_int", &MPL3115A2_spi_interface, PX4_SPI_BUS_BARO, NULL },
