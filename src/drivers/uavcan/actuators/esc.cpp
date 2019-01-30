@@ -203,7 +203,7 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 {
 	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {
 		_esc_status.esc_count = uavcan::max<int>(_esc_status.esc_count, msg.esc_index + 1);
-		_esc_status.timestamp = msg.getMonotonicTimestamp().toUSec();
+		_esc_status.timestamp = hrt_absolute_time();
 
 		auto &ref = _esc_status.esc[msg.esc_index];
 
