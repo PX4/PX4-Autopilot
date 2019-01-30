@@ -115,7 +115,6 @@ then
 	param set EKF2_ANGERR_INIT 0.01
 	param set EKF2_HGT_MODE 0
 	param set EKF2_GBIAS_INIT 0.01
-	param set EKF2_MAG_TYPE 1
 
 	# LPE: GPS only mode
 	param set LPE_FUSION 145
