@@ -1372,8 +1372,7 @@ PX4IO::io_set_arming_state()
 			_lockdown_override = false;
 		}
 
-		/* Do not set failsafe if circuit breaker is enabled */
-		if (armed.force_failsafe && !_cb_flighttermination) {
+		if (armed.force_failsafe) {
 			set |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
 
 		} else {
