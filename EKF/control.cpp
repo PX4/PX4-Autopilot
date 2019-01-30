@@ -1388,14 +1388,27 @@ void Ekf::controlMagFusion()
 		if (!_control_status.flags.mag_align_complete) {
 			// Check if height has increased sufficiently to be away from ground magnetic anomalies
 			// and request a yaw reset if not already requested.
-			_mag_yaw_reset_req |= (_last_on_ground_posD - _state.pos(2)) > 1.5f;
+			_mag_yaw_reset_req |= ((_last_on_ground_posD - _state.pos(2)) > 1.5f);
 		}
 
 		// perform a yaw reset if requested by other functions
-		if (_mag_yaw_reset_req) {
+		if (_mag_yaw_reset_req && _control_status.flags.tilt_align) {
 			if (!_mag_use_inhibit ) {
-				_control_status.flags.mag_align_complete = resetMagHeading(_mag_sample_delayed.mag) && _control_status.flags.in_air;
+				if (!_control_status.flags.mag_align_complete && _control_status.flags.fixed_wing && _control_status.flags.in_air) {
+					// A fixed wing vehicle can use GPS to bound yaw errors immediately after launch
+					_control_status.flags.mag_align_complete = realignYawGPS();
+
+					if (_velpos_reset_request) {
+						resetVelocity();
+						resetPosition();
+						_velpos_reset_request = false;
+					}
+
+				} else {
+					_control_status.flags.mag_align_complete = resetMagHeading(_mag_sample_delayed.mag) && _control_status.flags.in_air;
+				}
 			}
+			_control_status.flags.yaw_align = _control_status.flags.yaw_align || _control_status.flags.mag_align_complete;
 			_mag_yaw_reset_req = false;
 		}
 
@@ -1407,9 +1420,6 @@ void Ekf::controlMagFusion()
 			_control_status.flags.mag_3D = false;
 
 		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_AUTO || _params.mag_fusion_type == MAG_FUSE_TYPE_AUTOFW) {
-			// Check if height has increased sufficiently to be away from ground magnetic anomalies
-			bool height_achieved = (_last_on_ground_posD - _state.pos(2)) > 1.5f;
-
 			// Check if there has been enough change in horizontal velocity to make yaw observable
 			// Apply hysteresis to check to avoid rapid toggling
 			if (_yaw_angle_observable) {
@@ -1452,43 +1462,24 @@ void Ekf::controlMagFusion()
 			// decide whether 3-axis magnetomer fusion can be used
 			bool use_3D_fusion = _control_status.flags.tilt_align && // Use of 3D fusion requires valid tilt estimates
 					_control_status.flags.in_air && // don't use when on the ground becasue of magnetic anomalies
-					(_control_status.flags.mag_align_complete || height_achieved) && // once in-flight field alignment has been performed, ignore relative height
+					_control_status.flags.mag_align_complete &&
 					((_imu_sample_delayed.time_us - _time_last_movement) < 2 * 1000 * 1000); // Using 3-axis fusion for a minimum period after to allow for false negatives
 
 			// perform switch-over
 			if (use_3D_fusion) {
 				if (!_control_status.flags.mag_3D) {
-					if (!_control_status.flags.mag_align_complete) {
-						// If we are flying a vehicle that flies forward, eg plane, then we can use the GPS course to check and correct the heading
-						if (_control_status.flags.fixed_wing && _control_status.flags.in_air) {
-							_control_status.flags.mag_align_complete = realignYawGPS();
+					// reset the mag field covariances
+					zeroRows(P, 16, 21);
+					zeroCols(P, 16, 21);
 
-							if (_velpos_reset_request) {
-								resetVelocity();
-								resetPosition();
-								_velpos_reset_request = false;
-							}
-
-						} else {
-							_control_status.flags.mag_align_complete = resetMagHeading(_mag_sample_delayed.mag);
-						}
-
-						_control_status.flags.yaw_align = _control_status.flags.yaw_align || _control_status.flags.mag_align_complete;
-
-					} else {
-						// reset the mag field covariances
-						zeroRows(P, 16, 21);
-						zeroCols(P, 16, 21);
-
-						// re-instate variances for the D earth axis and XYZ body axis field
-						for (uint8_t index = 0; index <= 3; index ++) {
-							P[index + 18][index + 18] = _saved_mag_bf_variance[index];
-						}
-						// re-instate the NE axis covariance sub-matrix
-						for (uint8_t row = 0; row <= 1; row ++) {
-							for (uint8_t col = 0; col <= 1; col ++) {
-								P[row + 16][col + 16] = _saved_mag_ef_covmat[row][col];
-							}
+					// re-instate variances for the D earth axis and XYZ body axis field
+					for (uint8_t index = 0; index <= 3; index ++) {
+						P[index + 18][index + 18] = _saved_mag_bf_variance[index];
+					}
+					// re-instate the NE axis covariance sub-matrix
+					for (uint8_t row = 0; row <= 1; row ++) {
+						for (uint8_t col = 0; col <= 1; col ++) {
+							P[row + 16][col + 16] = _saved_mag_ef_covmat[row][col];
 						}
 					}
 				}
