@@ -241,7 +241,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             [['output_tracking_error[0]'], ['output_tracking_error[1]'], ['output_tracking_error[2]']],
             x_label='time (sec)', y_labels=['angles (mrad)', 'velocity (m/s)', 'position (m)'],
             plot_title='Output Observer Tracking Error Magnitudes', pdf_handle=pdf_pages)
-        data_plot.plot()
+        data_plot.save()
 
         # Plot the delta angle bias estimates
         data_plot = CheckFlagsPlot(

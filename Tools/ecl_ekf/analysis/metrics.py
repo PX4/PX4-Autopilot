@@ -141,7 +141,7 @@ def calculate_imu_metrics(
         for signal in ['states[10]', 'states[11]', 'states[12]']]))
     imu_metrics['imu_dvel_bias_median'] = np.sqrt(np.sum([np.square(calculate_stat_from_signal(
         estimator_status_data, 'estimator_status', signal, in_air_no_ground_effects, np.median))
-        for signal in ['states[10]', 'states[11]', 'states[12]']]))
+        for signal in ['states[13]', 'states[14]', 'states[15]']]))
 
     return imu_metrics
 

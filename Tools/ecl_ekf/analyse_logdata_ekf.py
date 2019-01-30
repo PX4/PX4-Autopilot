@@ -49,8 +49,8 @@ def analyse_ekf(
         raise PreconditionError(str(e))
 
     airtime_info = {
-        'in_air_transition_time': round(in_air.take_off, 1),
-        'on_ground_transition_time': round(in_air.landing, 1)}
+        'in_air_transition_time': round(in_air.take_off, 2),
+        'on_ground_transition_time': round(in_air.landing, 2)}
 
     if in_air_no_ground_effects.take_off is None:
         raise PreconditionError('no airtime detected.')
