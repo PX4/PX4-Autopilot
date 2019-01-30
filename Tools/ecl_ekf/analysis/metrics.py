@@ -8,7 +8,7 @@ from typing import Dict, List, Tuple, Callable
 from pyulog import ULog
 import numpy as np
 
-from detectors import InAirDetector
+from analysis.detectors import InAirDetector
 
 def calculate_ecl_ekf_metrics(
         ulog: ULog, innov_flags: Dict[str, float], innov_fail_checks: List[str],

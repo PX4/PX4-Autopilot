@@ -11,7 +11,7 @@ from typing import Dict
 from pyulog import *
 
 from analyse_logdata_ekf import analyse_ekf
-from pdf_report import create_pdf_report
+from plotting.pdf_report import create_pdf_report
 from analysis.detectors import PreconditionError
 
 """
@@ -52,7 +52,7 @@ def create_results_table(
         with open(check_description_filename, 'r') as file:
             reader = csv.DictReader(file)
             test_results_table = {
-                row['check_id']: ['NaN', row['check_description']] for row in reader}
+                row['check_id']: [float('NaN'), row['check_description']] for row in reader}
         print('Using test description loaded from {:s}'.format(check_description_filename))
     except:
         raise PreconditionError('could not find {:s}'.format(check_description_filename))
@@ -64,6 +64,11 @@ def create_results_table(
     # store check results
     for key, value in check_status.items():
         test_results_table[key][0] = value
+
+    # store check results
+    for key, value in test_results_table.items():
+        if key.endswith('_status'):
+            test_results_table[key][0] = str(value[0])
 
     # store master status
     test_results_table['master_status'][0] = master_status
@@ -120,7 +125,7 @@ def process_logdata_ekf(
         key_list.sort()
         for key in key_list:
             file.write(key + "," + str(test_results[key][0]) + "," + test_results[key][1] + "\n")
-    print('Test results written to {:s}.mdat.csv'.format(os.path.splitext(filename)))
+    print('Test results written to {:s}.mdat.csv'.format(os.path.splitext(filename)[0]))
 
     if plot:
         try:

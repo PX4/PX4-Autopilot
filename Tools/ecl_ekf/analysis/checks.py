@@ -105,9 +105,11 @@ def perform_sensor_checks(
         if metrics['{:s}_percentage_amber'.format(sensor_check)] > check_levels[
             '{:s}_amber_fail_pct'.format(sensor_check)]:
             sensor_status['{:s}_sensor_status'.format(sensor_check)] = 'Fail'
+            print('{:s} sensor check failure.'.format(sensor_check))
         elif metrics['{:s}_percentage_amber'.format(sensor_check)] > check_levels[
             '{:s}_amber_warn_pct'.format(sensor_check)]:
             sensor_status['{:s}_sensor_status'.format(sensor_check)] = 'Warning'
+            print('{:s} sensor check warning.'.format(sensor_check))
         else:
             sensor_status['{:s}_sensor_status'.format(sensor_check)] = 'Pass'
 
@@ -131,5 +133,6 @@ def perform_sensor_checks(
 
         if metrics[metric_name] > check_levels['{:s}_fail_pct'.format(result_name)]:
             sensor_status['{:s}_sensor_status'.format(result_name)] = 'Fail'
+            print('{:s} sensor check failure.'.format(result_name))
 
     return sensor_status
