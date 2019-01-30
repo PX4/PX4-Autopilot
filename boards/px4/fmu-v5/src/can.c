@@ -37,16 +37,12 @@
  * Board-specific CAN functions.
  */
 
-/************************************************************************************
- * Included Files
- ************************************************************************************/
-
-#include <px4_config.h>
+#ifdef CONFIG_CAN
 
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/can.h>
+#include <nuttx/can/can.h>
 #include <arch/board/board.h>
 
 #include "chip.h"
@@ -81,6 +77,7 @@
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
+int can_devinit(void);
 
 /************************************************************************************
  * Name: can_devinit
@@ -127,3 +124,5 @@ int can_devinit(void)
 }
 
 #endif
+
+#endif /* CONFIG_CAN */
