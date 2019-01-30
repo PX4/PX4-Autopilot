@@ -40,6 +40,7 @@
 
 #include "../CDev.hpp"
 #include <perf/perf_counter.h>
+#include <px4_atomic.h>
 
 namespace device __EXPORT
 {
@@ -153,7 +154,7 @@ protected:
 
 	LockMode			_locking_mode;	/**< selected locking mode */
 
-	static uint32_t 		_is_locked; /** Bit mask. Bit position corresponds to bus number. */
+	static px4::atomic<uint32_t> 		_is_locked; /** Bit mask. Bit position corresponds to bus number. */
 
 private:
 	uint32_t			_device;

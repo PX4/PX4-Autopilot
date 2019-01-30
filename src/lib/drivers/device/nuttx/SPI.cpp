@@ -53,7 +53,8 @@ namespace device
 {
 
 // static member bitmask
-uint32_t SPI::_is_locked = 0;
+px4::atomic<uint32_t>  SPI::_is_locked{0};
+// uint32_t SPI::_is_locked = 0;
 
 SPI::SPI(const char *name,
 	 const char *devname,
@@ -89,8 +90,7 @@ SPI::init()
 		int bus = get_device_bus();
 
 		if (!board_has_bus(BOARD_SPI_BUS, bus)) {
-			ret = -ENOENT;
-			goto out;
+			return -ENOENT;
 		}
 
 		_dev = px4_spibus_initialize(bus);
@@ -124,14 +124,16 @@ SPI::init()
 
 void SPI::lock(struct spi_dev_s *dev)
 {
-	_is_locked |= (1 << _device_id.devid_s.bus);
+	// _is_locked |= (1 << _device_id.devid_s.bus);
+	_is_locked.fetch_or(1 << _device_id.devid_s.bus);
 	SPI_LOCK(dev, true);
 }
 
 void SPI::unlock(struct spi_dev_s *dev)
 {
 	SPI_LOCK(dev, false);
-	_is_locked &= ~(1 << _device_id.devid_s.bus);
+	// _is_locked &= ~(1 << _device_id.devid_s.bus);
+	_is_locked.fetch_nand(1 << _device_id.devid_s.bus);
 }
 
 int
@@ -160,7 +162,8 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 		}
 
 	case LOCK_NONE: {
-			if (_is_locked & (1 << _device_id.devid_s.bus)) {
+			// if (_is_locked & (1 << _device_id.devid_s.bus)) {
+			if (_is_locked.load() & (1 << _device_id.devid_s.bus)) {
 				// Someone is using the bus
 				perf_count(_isr_deferred);
 				return PX4_ERROR;
@@ -217,7 +220,7 @@ SPI::transferhword(uint16_t *send, uint16_t *recv, unsigned len)
 		}
 
 	case LOCK_NONE: {
-			if (_is_locked & (1 << _device_id.devid_s.bus)) {
+			if (_is_locked.load() & (1 << _device_id.devid_s.bus)) {
 				// Someone is using the bus
 				perf_count(_isr_deferred);
 				return PX4_ERROR;
