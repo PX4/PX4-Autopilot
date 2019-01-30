@@ -2207,6 +2207,7 @@ Commander::run()
 
 		/* Check for failure detector status */
 		const bool failure_detector_updated = _failure_detector.update();
+
 		if (failure_detector_updated) {
 
 			const uint8_t failure_status = _failure_detector.get_status();
@@ -2218,9 +2219,9 @@ Commander::run()
 		}
 
 		if (armed.armed &&
-			failure_detector_updated &&
-			!_in_flight_termination &&
-			!status_flags.circuit_breaker_flight_termination_disabled) {
+		    failure_detector_updated &&
+		    !_in_flight_termination &&
+		    !status_flags.circuit_breaker_flight_termination_disabled) {
 
 			if (status.failure_detector_status != 0) {
 
