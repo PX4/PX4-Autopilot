@@ -43,11 +43,11 @@ template<class T>
 class Watchdog
 {
 public:
-	Watchdog(unsigned interval, unsigned timeout) :
+	Watchdog(unsigned interval_us, unsigned timeout_us) :
 		_kick_period(perf_alloc(PC_ELAPSED, "WD_kick_period"))
 	{
-		_interval = interval;
-		_timeout = timeout;
+		_interval_us = interval_us;
+		_timeout_us = timeout_us;
 	}
 
 	virtual ~Watchdog()
@@ -56,32 +56,31 @@ public:
 		perf_free(_kick_period);
 	}
 
-	// Start the watchdog timer with an optional  delay.
-	void start(hrt_abstime delay = 0)
+	// Start the watchdog timer with an optional delay.
+	void start(hrt_abstime delay_us = 0)
 	{
-		hrt_call_after(&_call, delay, (hrt_callout)&T::watchdog_callback, this);
+		hrt_call_after(&_call, delay_us, (hrt_callout)&T::watchdog_callback, this);
 	}
 
-	// Add additional time to the watchdog timer. This must be called every loop in order to kee the timer from expiring.
+	// Add additional time to the watchdog timer. This must be called every loop in order to keep the timer from expiring.
 	void kick()
 	{
 		perf_end(_kick_period);
 
-		hrt_abstime new_expiration = hrt_absolute_time() + _interval + _timeout;
+		hrt_abstime delay = _interval_us + _timeout_us;
 
-		hrt_call_delay(&_call, new_expiration);
+		hrt_call_delay(&_call, delay);
 
 		perf_begin(_kick_period);
 	}
 
 private:
-	// The expiration time scheduled in the future.
-	hrt_abstime 		_expiration{};
+
 	struct hrt_call		_call {};
 	// The expected interval period of the loop the watchdog is monitoring.
-	unsigned 			_interval{};
+	unsigned 			_interval_us{};
 	// The maximum amount of time allowed to elapse past the specified interval period.
-	unsigned 			_timeout{};
+	unsigned 			_timeout_us{};
 
 	// Perf counters for debugging
 	perf_counter_t  _kick_period{};
