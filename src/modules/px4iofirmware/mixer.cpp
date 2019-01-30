@@ -201,33 +201,33 @@ mixer_tick(void)
 	 *
 	 */
 	should_arm = (
-			(r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)				/* IO initialised without error */
-			&& (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)			/* and IO is armed */
-			&& (
-				((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)		/* and FMU is armed */
-					&& (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK))	/* and there is valid input via or mixer */
-				|| (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)		/* or direct PWM is set */
-			)
-	);
+			     (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)				/* IO initialised without error */
+			     && (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)			/* and IO is armed */
+			     && (
+				     ((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)		/* and FMU is armed */
+				      && (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK))	/* and there is valid input via or mixer */
+				     || (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)		/* or direct PWM is set */
+			     )
+		     );
 
 	should_arm_nothrottle = (
 					(r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)		/* IO initialised without error */
 					&& (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)	/* and IO is armed */
 					&& (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)	/* and there is valid input via or mixer */
-	);
+				);
 
 	should_always_enable_pwm = (
-					(r_setup_arming & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE)
-					&& (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
-					&& (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK)
-	);
+					   (r_setup_arming & PX4IO_P_SETUP_ARMING_ALWAYS_PWM_ENABLE)
+					   && (r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)
+					   && (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_OK)
+				   );
 
 	/*
 	 * Check if failsafe termination is set - if yes,
 	 * set the force failsafe flag once entering the first
 	 * failsafe condition.
 	 */
-	if (	/* Flight termination is allowed */
+	if ( /* Flight termination is allowed */
 		REG_TO_BOOL(r_setup_flightterm) &&
 		/* If we ended up not changing the default mixer */
 		(source == MIX_DISARMED) &&
