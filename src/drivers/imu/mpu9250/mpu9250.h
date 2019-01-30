@@ -57,6 +57,8 @@
 #include "accel.h"
 #include "gyro.h"
 
+#include <px4_watchdog.h>
+
 
 #if defined(PX4_I2C_OBDEV_MPU9250) || defined(PX4_I2C_BUS_EXPANSION)
 #  define USE_I2C
@@ -393,6 +395,10 @@ public:
 	 * Diagnostics - print some basic information about the driver.
 	 */
 	void			print_info();
+
+	static void 	watchdog_callback(MPU9250 *obj);
+
+	px4::Watchdog<MPU9250> *_dog;
 
 protected:
 	device::Device *_interface;

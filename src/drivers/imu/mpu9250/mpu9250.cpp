@@ -207,6 +207,20 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_gyro_scale.y_scale  = 1.0f;
 	_gyro_scale.z_offset = 0;
 	_gyro_scale.z_scale  = 1.0f;
+
+
+	unsigned interval = 4000;
+	unsigned timeout = 800;
+	_dog = new px4::Watchdog<MPU9250>(interval, timeout);
+}
+
+void
+MPU9250::watchdog_callback(MPU9250 *obj)
+{
+	// Print out something stupid to show it works.
+	PX4_INFO("Watchdog!     Watchdog!     Watchdog!     Watchdog!");
+
+	// Do something with the obj. Reset or kill.
 }
 
 MPU9250::~MPU9250()
@@ -1060,6 +1074,9 @@ MPU9250::start()
 
 	_mag->_mag_reports->flush();
 
+	// Start the watchdog in 100ms, system boot up takes time.
+	_dog->start(100000);
+
 	if (_use_hrt) {
 		/* start polling at the specified rate */
 		hrt_call_every(&_call,
@@ -1515,6 +1532,10 @@ MPU9250::measure()
 		if (gyro_notify && !(_gyro->_pub_blocked)) {
 			/* publish it */
 			orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
+		}
+
+		if (gyro_notify && accel_notify) {
+			_dog->kick();
 		}
 	}
 
