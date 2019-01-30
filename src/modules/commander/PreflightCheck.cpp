@@ -682,20 +682,22 @@ static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s
 		// Ignore failure detector check after arming.
 		return true;
 
-	} else {
-		if (status.failure_detector_status != 0) {
-			success = false;
+	}
 
-			if (report_fail) {
-				if (status.failure_detector_status & vehicle_status_s::FAILURE_ROLL) {
-					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ROLL FAILURE DETECTED");
-				}
-				if (status.failure_detector_status & vehicle_status_s::FAILURE_PITCH) {
-					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: PITCH FAILURE DETECTED");
-				}
-				if (status.failure_detector_status & vehicle_status_s::FAILURE_ALT) {
-					mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: ALTITUDE FAILURE DETECTED");
-				}
+	if (status.failure_detector_status != 0) {
+		success = false;
+
+		if (report_fail) {
+			if (status.failure_detector_status & vehicle_status_s::FAILURE_ROLL) {
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: Roll failure detected");
+			}
+
+			if (status.failure_detector_status & vehicle_status_s::FAILURE_PITCH) {
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: Pitch failure detected");
+			}
+
+			if (status.failure_detector_status & vehicle_status_s::FAILURE_ALT) {
+				mavlink_log_critical(mavlink_log_pub, "PREFLIGHT FAIL: Altitude failure detected");
 			}
 		}
 	}
