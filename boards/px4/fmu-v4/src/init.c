@@ -228,7 +228,7 @@ stm32_boardinitialize(void)
 
 #endif /* CONFIG_STM32_SPI4 */
 
-// Configure SPI all interfaces GPIO.
+	// Configure SPI all interfaces GPIO.
 	stm32_spiinitialize(spi_init_mask);
 
 	// Configure heater GPIO.
@@ -398,6 +398,16 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	sdio_mediachange(sdio, true);
 
 #endif
+
+	/*
+	 * We know there are sketchy boards out there
+	 * as chinese companies produce Pixracers without
+	 * fully understanding the critical parts of the
+	 * schematic and BOM, leading to sensor brownouts
+	 * on boot. Original Pixracers following the
+	 * open hardware design do not require this.
+	 */
+	board_spi_reset(50);
 
 	return OK;
 }

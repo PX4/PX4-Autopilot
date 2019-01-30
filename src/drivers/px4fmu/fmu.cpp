@@ -41,7 +41,6 @@
 
 #include <board_config.h>
 #include <drivers/device/device.h>
-#include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_input_capture.h>
 #include <drivers/drv_mixer.h>
@@ -50,6 +49,7 @@
 #include <px4_getopt.h>
 #include <px4_log.h>
 #include <px4_module.h>
+#include <px4_workqueue.h>
 #include <circuit_breaker/circuit_breaker.h>
 #include <lib/cdev/CDev.hpp>
 #include <lib/mixer/mixer.h>
@@ -168,8 +168,6 @@ public:
 	int		set_pwm_alt_rate(unsigned rate);
 	int		set_pwm_alt_channels(uint32_t channels);
 
-	static int	set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
-
 	static void	capture_trampoline(void *context, uint32_t chan_index,
 					   hrt_abstime edge_time, uint32_t edge_state,
 					   uint32_t overflow);
@@ -264,9 +262,6 @@ private:
 	void		update_pwm_out_state(bool on);
 
 	void		update_params();
-
-	static void		sensor_reset(int ms);
-	static void		peripheral_reset(int ms);
 
 	int		capture_ioctl(file *filp, int cmd, unsigned long arg);
 
@@ -807,12 +802,6 @@ int
 PX4FMU::set_pwm_alt_channels(uint32_t channels)
 {
 	return set_pwm_rate(channels, _pwm_default_rate, _pwm_alt_rate);
-}
-
-int
-PX4FMU::set_i2c_bus_clock(unsigned bus, unsigned clock_hz)
-{
-	return device::I2C::set_bus_clock(bus, clock_hz);
 }
 
 void
@@ -2263,26 +2252,6 @@ PX4FMU::reorder_outputs(uint16_t values[MAX_ACTUATORS])
 	 */
 }
 
-void
-PX4FMU::sensor_reset(int ms)
-{
-	if (ms < 1) {
-		ms = 1;
-	}
-
-	board_spi_reset(ms);
-}
-
-void
-PX4FMU::peripheral_reset(int ms)
-{
-	if (ms < 1) {
-		ms = 10;
-	}
-
-	board_peripheral_reset(ms);
-}
-
 int
 PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 {
@@ -2548,17 +2517,6 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 	return OK;
 }
 
-
-namespace
-{
-
-int fmu_new_i2c_speed(unsigned bus, unsigned clock_hz)
-{
-	return PX4FMU::set_i2c_bus_clock(bus, clock_hz);
-}
-
-} // namespace
-
 int
 PX4FMU::test()
 {
@@ -2817,50 +2775,6 @@ int PX4FMU::custom_command(int argc, char *argv[])
 	PortMode new_mode = PORT_MODE_UNSET;
 	const char *verb = argv[0];
 
-	/* does not operate on a FMU instance */
-	if (!strcmp(verb, "i2c")) {
-		if (argc > 2) {
-			int bus = strtol(argv[1], 0, 0);
-			int clock_hz = strtol(argv[2], 0, 0);
-			int ret = fmu_new_i2c_speed(bus, clock_hz);
-
-			if (ret) {
-				PX4_ERR("setting I2C clock failed");
-			}
-
-			return ret;
-		}
-
-		return print_usage("not enough arguments");
-	}
-
-	if (!strcmp(verb, "sensor_reset")) {
-		if (argc > 1) {
-			int reset_time = strtol(argv[1], nullptr, 0);
-			sensor_reset(reset_time);
-
-		} else {
-			sensor_reset(0);
-			PX4_INFO("reset default time");
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(verb, "peripheral_reset")) {
-		if (argc > 2) {
-			int reset_time = strtol(argv[2], 0, 0);
-			peripheral_reset(reset_time);
-
-		} else {
-			peripheral_reset(0);
-			PX4_INFO("reset default time");
-		}
-
-		return 0;
-	}
-
-
 	/* start the FMU if not running */
 	if (!is_running()) {
 		int ret = PX4FMU::task_spawn(argc, argv);
@@ -3018,14 +2932,6 @@ mixer files.
 #if defined(BOARD_HAS_PWM)
   PRINT_MODULE_USAGE_COMMAND("mode_pwm1");
 #endif
-
-	PRINT_MODULE_USAGE_COMMAND_DESCR("sensor_reset", "Do a sensor reset (SPI bus)");
-	PRINT_MODULE_USAGE_ARG("<ms>", "Delay time in ms between reset and re-enabling", true);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("peripheral_reset", "Reset board peripherals");
-	PRINT_MODULE_USAGE_ARG("<ms>", "Delay time in ms between reset and re-enabling", true);
-
-	PRINT_MODULE_USAGE_COMMAND_DESCR("i2c", "Configure I2C clock rate");
-	PRINT_MODULE_USAGE_ARG("<bus_id> <rate>", "Specify the bus id (>=0) and rate in Hz", false);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test inputs and outputs");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("fake", "Arm and send an actuator controls command");

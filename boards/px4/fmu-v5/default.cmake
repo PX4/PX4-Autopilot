@@ -87,6 +87,7 @@ px4_add_board(
 
 	SYSTEMCMDS
 		bl_update
+		board_control
 		config
 		dumpfile
 		esc_calib
