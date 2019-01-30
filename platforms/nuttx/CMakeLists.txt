@@ -100,8 +100,8 @@ target_link_libraries(px4 PRIVATE
 	-Wl,--gc-sections
 
 	-Wl,--start-group
-	drivers_boards_common_arch
-	${nuttx_libs}
+		drivers_boards_common_arch
+		${nuttx_libs}
 	-Wl,--end-group
 
 	m
@@ -109,7 +109,6 @@ target_link_libraries(px4 PRIVATE
 	)
 
 target_link_libraries(px4 PRIVATE ${module_libraries})
-target_link_libraries(px4 PRIVATE modules__uORB)
 
 if (config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
