@@ -48,12 +48,12 @@ def analyse_ekf(
     except Exception as e:
         raise PreconditionError(str(e))
 
+    if in_air_no_ground_effects.take_off is None:
+        raise PreconditionError('no airtime detected.')
+
     airtime_info = {
         'in_air_transition_time': round(in_air.take_off, 2),
         'on_ground_transition_time': round(in_air.landing, 2)}
-
-    if in_air_no_ground_effects.take_off is None:
-        raise PreconditionError('no airtime detected.')
 
     control_mode, innov_flags, gps_fail_flags = get_estimator_check_flags(estimator_status)
 

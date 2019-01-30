@@ -88,8 +88,7 @@ def process_logdata_ekf(
     try:
         ulog = ULog(filename)
     except:
-        print('could not open {:s}'.format(filename))
-        sys.exit(-1)
+        raise PreconditionError('could not open {:s}'.format(filename))
 
     try:
         # get the dictionary of fail and warning test thresholds from a csv file
@@ -98,18 +97,13 @@ def process_logdata_ekf(
             check_levels = {row['check_id']: float(row['threshold']) for row in reader}
         print('Using test criteria loaded from {:s}'.format(check_level_dict_filename))
     except:
-        print('could not find {:s}'.format(check_level_dict_filename))
-        sys.exit(-1)
+        raise PreconditionError('could not find {:s}'.format(check_level_dict_filename))
 
-    try:
-        in_air_margin = 5.0 if sensor_safety_margins else 0.0
-        # perform the ekf analysis
-        master_status, check_status, metrics, airtime_info = analyse_ekf(
-            ulog, check_levels, red_thresh=1.0, amb_thresh=0.5, min_flight_duration_seconds=5.0,
-            in_air_margin_seconds=in_air_margin)
-    except Exception as e:
-        print(str(e))
-        sys.exit(-1)
+    in_air_margin = 5.0 if sensor_safety_margins else 0.0
+    # perform the ekf analysis
+    master_status, check_status, metrics, airtime_info = analyse_ekf(
+        ulog, check_levels, red_thresh=1.0, amb_thresh=0.5, min_flight_duration_seconds=5.0,
+        in_air_margin_seconds=in_air_margin)
 
     test_results = create_results_table(
         check_description_filename, master_status, check_status, metrics, airtime_info)
@@ -128,12 +122,8 @@ def process_logdata_ekf(
     print('Test results written to {:s}.mdat.csv'.format(os.path.splitext(filename)[0]))
 
     if plot:
-        try:
-            create_pdf_report(ulog, '{:s}.pdf'.format(os.path.splitext(filename)[0]))
-            print('Plots saved to {:s}.pdf'.format(os.path.splitext(filename)[0]))
-        except Exception as e:
-            print(str(e))
-            sys.exit(-1)
+        create_pdf_report(ulog, '{:s}.pdf'.format(os.path.splitext(filename)[0]))
+        print('Plots saved to {:s}.pdf'.format(os.path.splitext(filename)[0]))
 
     return test_results
 
@@ -154,9 +144,13 @@ def main() -> None:
         file_dir = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
         check_description_filename = os.path.join(file_dir, "check_description.csv")
 
-    test_results = process_logdata_ekf(
-        args.filename, check_level_dict_filename, check_description_filename,
-        plot=not args.no_plots, sensor_safety_margins=not args.no_sensor_safety_margin)
+    try:
+        test_results = process_logdata_ekf(
+            args.filename, check_level_dict_filename, check_description_filename,
+            plot=not args.no_plots, sensor_safety_margins=not args.no_sensor_safety_margin)
+    except Exception as e:
+        print(str(e))
+        sys.exit(-1)
 
     # print master test status to console
     if (test_results['master_status'][0] == 'Pass'):
