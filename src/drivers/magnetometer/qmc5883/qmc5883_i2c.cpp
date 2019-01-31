@@ -151,9 +151,10 @@ QMC5883_I2C::probe()
 	if(!read_valid){
 		DEVICE_DEBUG("read_reg fail");
 	}
-
-	DEVICE_DEBUG("ID byte mismatch (%02x,%02x)", data[0], data[1]);
-
+	if(!id_valid){
+		DEVICE_DEBUG("ID byte mismatch (%02x,%02x)", data[0], data[1]);
+	}
+	
 	return -EIO;
 }
 
