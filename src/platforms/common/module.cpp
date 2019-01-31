@@ -64,6 +64,11 @@ void PRINT_MODULE_USAGE_NAME(const char *executable_name, const char *category)
 	PX4_INFO_RAW(" Commands:\n");
 }
 
+void PRINT_MODULE_USAGE_SUBCATEGORY(const char *subcategory)
+{
+	(void)subcategory;
+}
+
 void PRINT_MODULE_USAGE_NAME_SIMPLE(const char *executable_name, const char *category)
 {
 	PX4_INFO_RAW("Usage: %s [arguments...]\n", executable_name);
