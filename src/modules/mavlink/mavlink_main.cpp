@@ -3067,7 +3067,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stream", "Configure the sending rate of a stream for a running instance");
 #if defined(CONFIG_NET) || defined(__PX4_POSIX)
-	PRINT_MODULE_USAGE_PARAM_INT('u', 0, 0, 65536, "Select Mavlink instance via local Network Port", true);
+	PRINT_MODULE_USAGE_PARAM_INT('u', -1, 0, 65536, "Select Mavlink instance via local Network Port", true);
 #endif
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<file:dev>", "Select Mavlink instance via Serial Device", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('s', nullptr, nullptr, "Mavlink stream to configure", false);
