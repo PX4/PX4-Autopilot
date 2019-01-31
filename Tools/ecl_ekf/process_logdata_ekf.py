@@ -27,7 +27,7 @@ def get_arguments():
                         help='Whether to only analyse and not plot the summaries for developers.')
     parser.add_argument('--check-level-thresholds', type=str, default=None,
                         help='The csv file of fail and warning test thresholds for analysis.')
-    parser.add_argument('--check-description', type=str, default=None,
+    parser.add_argument('--check-table', type=str, default=None,
                         help='The csv file with descriptions of the checks.')
     parser.add_argument('--no-sensor-safety-margin', action='store_true',
                         help='Whether to not cut-off 5s after take-off and 5s before landing '
@@ -36,11 +36,11 @@ def get_arguments():
 
 
 def create_results_table(
-        check_description_filename: str, master_status: str, check_status: Dict[str, str],
+        check_table_filename: str, master_status: str, check_status: Dict[str, str],
         metrics: Dict[str, float], airtime_info: Dict[str, float]) -> Dict[str, list]:
     """
     creates the output results table
-    :param check_description_filename:
+    :param check_table_filename:
     :param master_status:
     :param check_status:
     :param metrics:
@@ -49,13 +49,13 @@ def create_results_table(
     """
 
     try:
-        with open(check_description_filename, 'r') as file:
+        with open(check_table_filename, 'r') as file:
             reader = csv.DictReader(file)
             test_results_table = {
                 row['check_id']: [float('NaN'), row['check_description']] for row in reader}
-        print('Using test description loaded from {:s}'.format(check_description_filename))
+        print('Using test description loaded from {:s}'.format(check_table_filename))
     except:
-        raise PreconditionError('could not find {:s}'.format(check_description_filename))
+        raise PreconditionError('could not find {:s}'.format(check_table_filename))
 
     # store metrics
     for key, value in metrics.items():
@@ -81,7 +81,7 @@ def create_results_table(
 
 
 def process_logdata_ekf(
-        filename: str, check_level_dict_filename: str, check_description_filename: str,
+        filename: str, check_level_dict_filename: str, check_table_filename: str,
         plot: bool = True, sensor_safety_margins: bool = True):
 
     ## load the log and extract the necessary data for the analyses
@@ -106,7 +106,7 @@ def process_logdata_ekf(
         in_air_margin_seconds=in_air_margin)
 
     test_results = create_results_table(
-        check_description_filename, master_status, check_status, metrics, airtime_info)
+        check_table_filename, master_status, check_status, metrics, airtime_info)
 
     # write metadata to a .csv file
     with open('{:s}.mdat.csv'.format(os.path.splitext(filename)[0]), "w") as file:
@@ -138,15 +138,15 @@ def main() -> None:
         file_dir = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
         check_level_dict_filename = os.path.join(file_dir, "check_level_dict.csv")
 
-    if args.check_description is not None:
-        check_description_filename = args.check_description
+    if args.check_table is not None:
+        check_table_filename = args.check_table
     else:
         file_dir = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-        check_description_filename = os.path.join(file_dir, "check_description.csv")
+        check_table_filename = os.path.join(file_dir, "check_table.csv")
 
     try:
         test_results = process_logdata_ekf(
-            args.filename, check_level_dict_filename, check_description_filename,
+            args.filename, check_level_dict_filename, check_table_filename,
             plot=not args.no_plots, sensor_safety_margins=not args.no_sensor_safety_margin)
     except Exception as e:
         print(str(e))
