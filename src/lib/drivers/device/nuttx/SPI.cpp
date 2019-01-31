@@ -133,7 +133,7 @@ void SPI::unlock(struct spi_dev_s *dev)
 {
 	SPI_LOCK(dev, false);
 	// _is_locked &= ~(1 << _device_id.devid_s.bus);
-	_is_locked.fetch_nand(1 << _device_id.devid_s.bus);
+	_is_locked.fetch_and(~(1 << _device_id.devid_s.bus));
 }
 
 int
