@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +34,9 @@
 
 /**
  * @file simulator.cpp
- * A device simulator
+ *
+ * This module interfaces via MAVLink to a software in the loop simulator (SITL)
+ * such as jMAVSim or Gazebo.
  */
 
 #include <px4_log.h>
@@ -141,46 +144,62 @@ void Simulator::parameters_update(bool force)
 
 int Simulator::start(int argc, char *argv[])
 {
-	int ret = 0;
-	int udp_port = 14560;
 	_instance = new Simulator();
 
 	if (_instance) {
 		drv_led_start();
 
 		if (argc == 5 && strcmp(argv[3], "-u") == 0) {
-			udp_port = atoi(argv[4]);
+			_instance->set_ip(InternetProtocol::UDP);
+			_instance->set_port(atoi(argv[4]));
+		}
+
+		if (argc == 5 && strcmp(argv[3], "-c") == 0) {
+			_instance->set_ip(InternetProtocol::TCP);
+			_instance->set_port(atoi(argv[4]));
 		}
 
 		if (argv[2][1] == 's') {
 			_instance->initializeSensorData();
 #ifndef __PX4_QURT
 			// Update sensor data
-			_instance->pollForMAVLinkMessages(false, udp_port);
+			_instance->pollForMAVLinkMessages(false);
 #endif
 
 		} else if (argv[2][1] == 'p') {
 			// Update sensor data
-			_instance->pollForMAVLinkMessages(true, udp_port);
+			_instance->pollForMAVLinkMessages(true);
 
 		} else {
 			_instance->initializeSensorData();
 			_instance->_initialized = true;
 		}
 
+		return 0;
+
 	} else {
 		PX4_WARN("Simulator creation failed");
-		ret = 1;
+		return 1;
 	}
+}
 
-	return ret;
+void Simulator::set_ip(InternetProtocol ip)
+{
+	_ip = ip;
+}
+
+void Simulator::set_port(unsigned port)
+{
+	_port = port;
 }
 
 static void usage()
 {
-	PX4_WARN("Usage: simulator {start -[spt] [-u udp_port] |stop}");
+	PX4_WARN("Usage: simulator {start -[spt] [-u udp_port / -c tcp_port] |stop}");
 	PX4_WARN("Simulate raw sensors:     simulator start -s");
 	PX4_WARN("Publish sensors combined: simulator start -p");
+	PX4_WARN("Connect using UDP: simulator start -u udp_port");
+	PX4_WARN("Connect using TCP: simulator start -c tcp_port");
 	PX4_WARN("Dummy unit test data:     simulator start -t");
 }
 
@@ -192,41 +211,35 @@ extern "C" {
 
 	int simulator_main(int argc, char *argv[])
 	{
-		int ret = 0;
-
 		if (argc > 2 && strcmp(argv[1], "start") == 0) {
 			if (strcmp(argv[2], "-s") == 0 ||
 			    strcmp(argv[2], "-p") == 0 ||
 			    strcmp(argv[2], "-t") == 0) {
 
 				if (g_sim_task >= 0) {
-					warnx("Simulator already started");
+					PX4_WARN("Simulator already started");
 					return 0;
 				}
 
-				// enable lockstep support
-				px4_enable_sim_lockstep();
-
 				g_sim_task = px4_task_spawn_cmd("simulator",
 								SCHED_DEFAULT,
-								SCHED_PRIORITY_MAX,
+								SCHED_PRIORITY_DEFAULT,
 								1500,
 								Simulator::start,
 								argv);
 
-				// now wait for the command to complete
-				while (!px4_exit_requested()) {
+				while (true) {
 					if (Simulator::getInstance() && Simulator::getInstance()->isInitialized()) {
 						break;
 
 					} else {
-						usleep(100000);
+						system_sleep(1);
 					}
 				}
 
 			} else {
 				usage();
-				ret = -EINVAL;
+				return 1;
 			}
 
 		} else if (argc == 2 && strcmp(argv[1], "stop") == 0) {
@@ -240,10 +253,10 @@ extern "C" {
 
 		} else {
 			usage();
-			ret = -EINVAL;
+			return 1;
 		}
 
-		return ret;
+		return 0;
 	}
 
 }

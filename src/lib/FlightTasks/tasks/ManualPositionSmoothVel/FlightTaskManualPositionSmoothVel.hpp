@@ -70,4 +70,5 @@ private:
 	matrix::Vector3f _vel_sp_smooth;
 	bool _position_lock_xy_active{false};
 	matrix::Vector2f _position_setpoint_xy_locked;
+	uint8_t _reset_counter{0}; /**< counter for estimator resets in xy-direction */
 };

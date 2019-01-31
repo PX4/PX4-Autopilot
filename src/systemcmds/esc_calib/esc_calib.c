@@ -210,7 +210,7 @@ esc_calib_main(int argc, char *argv[])
 	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, act_sub, &actuators);
 
 	/* wait 50 ms */
-	usleep(50000);
+	px4_usleep(50000);
 
 	/* now expect nothing changed on that topic */
 	bool orb_updated;
@@ -261,7 +261,7 @@ esc_calib_main(int argc, char *argv[])
 		}
 
 		/* rate limit to ~ 20 Hz */
-		usleep(50000);
+		px4_usleep(50000);
 	}
 
 	/* open for ioctl only */
@@ -338,7 +338,7 @@ esc_calib_main(int argc, char *argv[])
 		}
 
 		/* rate limit to ~ 20 Hz */
-		usleep(50000);
+		px4_usleep(50000);
 	}
 
 	printf("Low PWM set: %d\n"
@@ -378,7 +378,7 @@ esc_calib_main(int argc, char *argv[])
 		}
 
 		/* rate limit to ~ 20 Hz */
-		usleep(50000);
+		px4_usleep(50000);
 	}
 
 	/* disarm */

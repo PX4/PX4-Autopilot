@@ -57,6 +57,7 @@ px4_add_board(
 		#tap_esc
 		#telemetry # all available telemetry drivers
 		#test_ppm
+		tone_alarm
 		#uavcan
 
 	MODULES
@@ -79,7 +80,6 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		navigator
-		#position_estimator_inav
 		sensors
 		vmount
 		vtol_att_control

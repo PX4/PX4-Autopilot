@@ -39,7 +39,7 @@
 
 #include "mixer.h"
 
-#include <cfloat>
+#include <float.h>
 #include <cstring>
 #include <cstdio>
 

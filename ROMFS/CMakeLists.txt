@@ -126,19 +126,32 @@ if(config_bl_file)
 		)
 endif()
 
-if(EXISTS "${PX4_BOARD_DIR}/init/rc.board")
-	add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rc.board
-		COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BOARD_DIR}/init/rc.board ${romfs_gen_root_dir}/init.d/rc.board
-		DEPENDS
-			${PX4_BOARD_DIR}/init/rc.board
-			${romfs_gen_root_dir}/init.d/rcS
-		COMMENT "ROMFS: copying rc.board"
+set(OPTIONAL_BOARD_RC)
+list(APPEND OPTIONAL_BOARD_RC
+	rc.board_defaults
+	rc.board_sensors
+	rc.board_extras
+)
+
+foreach(board_rc_file ${OPTIONAL_BOARD_RC})
+
+	if(EXISTS "${PX4_BOARD_DIR}/init/${board_rc_file}")
+		message(STATUS "ROMFS: Adding ${board_rc_file}")
+
+		add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/${board_rc_file}
+			COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BOARD_DIR}/init/${board_rc_file} ${romfs_gen_root_dir}/init.d/${board_rc_file}
+			DEPENDS
+				${PX4_BOARD_DIR}/init/${board_rc_file}
+				${romfs_gen_root_dir}/init.d/rcS
+			COMMENT "ROMFS: copying ${board_rc_file}"
 		)
 
-	list(APPEND extras_dependencies
-		${romfs_gen_root_dir}/init.d/rc.board
-		)
-endif()
+		list(APPEND extras_dependencies
+			${romfs_gen_root_dir}/init.d/${board_rc_file}
+			)
+	endif()
+
+endforeach()
 
 add_custom_command(OUTPUT romfs_extras.stamp
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${romfs_gen_root_dir}/extras/
@@ -152,9 +165,10 @@ add_custom_command(OUTPUT romfs_extras.stamp
 	COMMENT "ROMFS: copying extras"
 	)
 
-add_custom_command(OUTPUT romfs_pruned.stamp
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
-		--folder ${romfs_gen_root_dir} --board ${PX4_BOARD}
+add_custom_command(
+	OUTPUT romfs_pruned.stamp
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py --folder ${romfs_gen_root_dir} --board ${PX4_BOARD}
+	COMMAND ${CMAKE_COMMAND} -E touch romfs_pruned.stamp
 	DEPENDS
 		${romfs_gen_root_dir}/init.d/rcS
 		${romfs_gen_root_dir}/init.d/rc.autostart
@@ -163,30 +177,54 @@ add_custom_command(OUTPUT romfs_pruned.stamp
 	COMMENT "ROMFS: pruning"
 	)
 
-# create romfs.img
-find_program(GENROMFS genromfs)
-if(NOT GENROMFS)
-    message(FATAL_ERROR "genromfs not found")
-endif()
-add_custom_command(OUTPUT romfs.img romfs.txt
-	COMMAND ${CMAKE_COMMAND} -E remove -f romfs.img romfs.txt
-	COMMAND ${GENROMFS} -f romfs.img -d ${romfs_gen_root_dir} -V "NSHInitVol" -v > romfs.txt 2>&1
-	DEPENDS
-		romfs_pruned.stamp
-	COMMENT "ROMFS: generating image"
-	)
+if("${CONFIG_FS_CROMFS}" STREQUAL "y")
+	add_custom_command(
+		OUTPUT ${CMAKE_BINARY_DIR}/gencromfs
+		COMMAND make --no-print-directory --silent -f Makefile.host gencromfs
+		COMMAND ${CMAKE_COMMAND} -E copy gencromfs ${CMAKE_BINARY_DIR}/gencromfs
+		DEPENDS ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/tools/gencromfs.c
+		WORKING_DIRECTORY ${NUTTX_DIR}/tools
+		)
 
-# create nsh_romfsimg.c
-find_program(XXD xxd)
-if(NOT XXD)
-    message(FATAL_ERROR "xxd not found")
+	# create nsh_romfsimg.c
+	add_custom_command(OUTPUT nsh_romfsimg.c
+		COMMAND ${CMAKE_COMMAND} -E remove -f nsh_romfsimg.c
+		COMMAND ${CMAKE_BINARY_DIR}/gencromfs ${romfs_gen_root_dir} nsh_romfsimg.c
+		DEPENDS
+			${CMAKE_BINARY_DIR}/gencromfs
+			${romfs_gen_root_dir}/init.d/rcS
+			${romfs_gen_root_dir}/init.d/rc.autostart
+			romfs_extras.stamp
+			romfs_pruned.stamp
+		COMMENT "ROMFS: generating image"
+		)
+
+else()
+	# create romfs.img
+	find_program(GENROMFS genromfs)
+	if(NOT GENROMFS)
+	    message(FATAL_ERROR "genromfs not found")
+	endif()
+	add_custom_command(OUTPUT romfs.img romfs.txt
+		COMMAND ${CMAKE_COMMAND} -E remove -f romfs.img romfs.txt
+		COMMAND ${GENROMFS} -f romfs.img -d ${romfs_gen_root_dir} -V "NSHInitVol" -v > romfs.txt 2>&1
+		DEPENDS romfs_pruned.stamp
+		COMMENT "ROMFS: generating image"
+		)
+
+		# create nsh_romfsimg.c
+		find_program(XXD xxd)
+		if(NOT XXD)
+		    message(FATAL_ERROR "xxd not found")
+		endif()
+		add_custom_command(OUTPUT nsh_romfsimg.c
+			COMMAND ${CMAKE_COMMAND} -E remove -f nsh_romfsimg.c
+			COMMAND ${XXD} -i romfs.img nsh_romfsimg.c
+			COMMAND sed 's/unsigned/const unsigned/g' nsh_romfsimg.c > nsh_romfsimg.c.tmp && ${CMAKE_COMMAND} -E rename nsh_romfsimg.c.tmp nsh_romfsimg.c
+			DEPENDS romfs.img
+			)
 endif()
-add_custom_command(OUTPUT nsh_romfsimg.c
-	COMMAND ${CMAKE_COMMAND} -E remove -f nsh_romfsimg.c
-	COMMAND ${XXD} -i romfs.img nsh_romfsimg.c
-	COMMAND sed 's/unsigned/const unsigned/g' nsh_romfsimg.c > nsh_romfsimg.c.tmp && ${CMAKE_COMMAND} -E rename nsh_romfsimg.c.tmp nsh_romfsimg.c
-	DEPENDS romfs.img
-	)
+
 
 add_library(romfs STATIC nsh_romfsimg.c)
 add_dependencies(romfs prebuild_targets)

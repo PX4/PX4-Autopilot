@@ -40,10 +40,11 @@ set(QURT_LAYER_SRCS
 	px4_qurt_impl.cpp
 	px4_qurt_tasks.cpp
 	lib_crc32.c
-	../../../posix/src/px4_layer/drv_hrt.c
+	../../../posix/src/px4_layer/drv_hrt.cpp
 	qurt_stubs.c
 	main.cpp
 	shmem_qurt.cpp
+	px4_init.cpp
 	)
 
 if ("${QURT_ENABLE_STUBS}" STREQUAL "1")

@@ -37,10 +37,17 @@
  */
 
 #include <board_config.h>
-#include <px4_log.h>
+
 #include <px4_workqueue.h>
 #include <px4_shutdown.h>
 #include <px4_tasks.h>
+
+#ifndef MODULE_NAME
+#define MODULE_NAME "shutdown"
+#endif
+
+#include <px4_log.h>
+
 #include <stdint.h>
 #include <errno.h>
 #include <pthread.h>

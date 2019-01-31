@@ -44,11 +44,7 @@
 
 #include <stdbool.h>
 
-#ifdef __PX4_ROS
-
-#error "PX4 tasks not supported in ROS"
-
-#elif defined(__PX4_NUTTX)
+#if defined(__PX4_NUTTX)
 typedef int px4_task_t;
 
 #include <sys/prctl.h>

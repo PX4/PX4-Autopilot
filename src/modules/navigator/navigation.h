@@ -212,5 +212,3 @@ struct mission_save_point_s {
 /**
  * @}
  */
-
-

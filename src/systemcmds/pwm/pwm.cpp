@@ -703,7 +703,7 @@ pwm_main(int argc, char *argv[])
 
 			/* Delay longer than the max Oneshot duration */
 
-			usleep(2542);
+			px4_usleep(2542);
 
 #ifdef __PX4_NUTTX
 			/* Trigger all timer's channels in Oneshot mode to fire
@@ -752,7 +752,7 @@ err_out_no_test:
 		fds.events = POLLIN;
 
 		PX4_WARN("Running 5 steps. WARNING! Motors will be live in 5 seconds\nPress any key to abort now.");
-		sleep(5);
+		px4_sleep(5);
 
 		if (::ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_ENTER_TEST_MODE) < 0) {
 				PX4_ERR("Failed to Enter pwm test mode");
@@ -828,13 +828,13 @@ err_out_no_test:
 				}
 
 				if (phase == 1) {
-					usleep(steps_timings_us[steps_timing_index] / phase_maxcount);
+					px4_usleep(steps_timings_us[steps_timing_index] / phase_maxcount);
 
 				} else if (phase == 0) {
-					usleep(50000);
+					px4_usleep(50000);
 
 				} else if (phase == 2) {
-					usleep(50000);
+					px4_usleep(50000);
 
 				} else {
 					break;

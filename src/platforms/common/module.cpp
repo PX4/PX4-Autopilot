@@ -36,6 +36,10 @@
  * Implementation of the API declared in px4_module.h.
  */
 
+#ifndef MODULE_NAME
+#define MODULE_NAME "module"
+#endif
+
 #include <px4_module.h>
 #include <px4_log.h>
 

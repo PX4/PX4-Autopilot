@@ -118,7 +118,7 @@ int px4_mavlink_debug_main(int argc, char *argv[])
 		warnx("sent one more value..");
 
 		value_counter++;
-		usleep(500000);
+		px4_usleep(500000);
 	}
 
 	return 0;

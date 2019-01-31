@@ -122,7 +122,7 @@ void LidarLitePWM::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_read_errors);
 	perf_print_counter(_sensor_zero_resets);
-	warnx("poll interval:  %u ticks", getMeasureTicks());
+	PX4_INFO("poll interval:  %u ticks", getMeasureTicks());
 
 	print_message(_range);
 }

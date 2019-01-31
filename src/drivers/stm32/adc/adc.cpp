@@ -220,7 +220,7 @@ int board_adc_init()
 		/* do calibration if supported */
 #ifdef ADC_CR2_CAL
 		rCR2 |= ADC_CR2_CAL;
-		usleep(100);
+		px4_usleep(100);
 
 		if (rCR2 & ADC_CR2_CAL) {
 			return -1;
@@ -260,11 +260,11 @@ int board_adc_init()
 
 		/* power-cycle the ADC and turn it on */
 		rCR2 &= ~ADC_CR2_ADON;
-		usleep(10);
+		px4_usleep(10);
 		rCR2 |= ADC_CR2_ADON;
-		usleep(10);
+		px4_usleep(10);
 		rCR2 |= ADC_CR2_ADON;
-		usleep(10);
+		px4_usleep(10);
 
 		/* kick off a sample and wait for it to complete */
 		hrt_abstime now = hrt_absolute_time();
@@ -541,7 +541,7 @@ test(void)
 		}
 
 		printf("\n");
-		usleep(500000);
+		px4_usleep(500000);
 	}
 
 	exit(0);

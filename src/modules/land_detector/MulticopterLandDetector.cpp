@@ -151,7 +151,7 @@ bool MulticopterLandDetector::_get_freefall_state()
 
 bool MulticopterLandDetector::_get_ground_contact_state()
 {
-	// only trigger flight conditions if we are armed
+	// When not armed, consider to have ground-contact
 	if (!_arming.armed) {
 		return true;
 	}
@@ -175,7 +175,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 		// Adjust maxClimbRate if land_speed is lower than 2x maxClimbrate
 		float maxClimbRate = ((land_speed_threshold * 0.5f) < _params.maxClimbRate) ? (0.5f * land_speed_threshold) :
 				     _params.maxClimbRate;
-		verticalMovement = fabsf(_vehicleLocalPosition.z_deriv) > maxClimbRate;
+		verticalMovement = fabsf(_vehicleLocalPosition.vz) > maxClimbRate;
 	}
 
 	// Check if we are moving horizontally.
@@ -202,7 +202,7 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	// Time base for this function
 	const hrt_abstime now = hrt_absolute_time();
 
-	// only trigger flight conditions if we are armed
+	// When not armed, consider to be maybe-landed
 	if (!_arming.armed) {
 		return true;
 	}
@@ -249,6 +249,11 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 
 bool MulticopterLandDetector::_get_landed_state()
 {
+	// When not armed, consider to be landed
+	if (!_arming.armed) {
+		return true;
+	}
+
 	// reset the landed_time
 	if (!_maybe_landed_hysteresis.get_state()) {
 

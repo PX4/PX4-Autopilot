@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  * Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ * Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,12 +32,6 @@
  *
  ****************************************************************************/
 
-/**
- * @file vdev_posix.cpp
- *
- * POSIX-like API for virtual character device
- */
-
 #include "cdev_platform.hpp"
 
 #include <string>
@@ -58,10 +53,6 @@ const cdev::px4_file_operations_t cdev::CDev::fops = {};
 
 pthread_mutex_t devmutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t filemutex = PTHREAD_MUTEX_INITIALIZER;
-
-px4_sem_t lockstep_sem;
-bool sim_lockstep = false;
-volatile bool sim_delay = false;
 
 #define PX4_MAX_FD 350
 static map<string, void *> devmap;
@@ -196,6 +187,8 @@ extern "C" {
 				const unsigned NAMELEN = 32;
 				char thread_name[NAMELEN] = {};
 
+				PX4_WARN("%s: exceeded maximum number of file descriptors, accessing %s",
+					 thread_name, path);
 #ifndef __PX4_QURT
 				int nret = pthread_getname_np(pthread_self(), thread_name, NAMELEN);
 
@@ -206,8 +199,6 @@ extern "C" {
 				PX4_BACKTRACE();
 #endif
 
-				PX4_WARN("%s: exceeded maximum number of file descriptors, accessing %s",
-					 thread_name, path);
 				ret = -ENOENT;
 			}
 
@@ -339,10 +330,6 @@ extern "C" {
 
 #endif
 
-		while (sim_delay) {
-			usleep(100);
-		}
-
 		PX4_DEBUG("Called px4_poll timeout = %d", timeout);
 
 		px4_sem_init(&sem, 0, 0);
@@ -384,31 +371,21 @@ extern "C" {
 
 				// Get the current time
 				struct timespec ts;
-				// FIXME: check if QURT should probably be using CLOCK_MONOTONIC
-				px4_clock_gettime(CLOCK_REALTIME, &ts);
+				// Note, we can't actually use CLOCK_MONOTONIC on macOS
+				// but that's hidden and implemented in px4_clock_gettime.
+				px4_clock_gettime(CLOCK_MONOTONIC, &ts);
 
 				// Calculate an absolute time in the future
 				const unsigned billion = (1000 * 1000 * 1000);
-				unsigned tdiff = timeout;
-				uint64_t nsecs = ts.tv_nsec + (tdiff * 1000 * 1000);
+				uint64_t nsecs = ts.tv_nsec + (timeout * 1000 * 1000);
 				ts.tv_sec += nsecs / billion;
 				nsecs -= (nsecs / billion) * billion;
 				ts.tv_nsec = nsecs;
 
-				// Execute a blocking wait for that time in the future
-				errno = 0;
 				ret = px4_sem_timedwait(&sem, &ts);
-#ifndef __PX4_DARWIN
-				ret = errno;
-#endif
 
-				// Ensure ret is negative on failure
-				if (ret > 0) {
-					ret = -ret;
-				}
-
-				if (ret && ret != -ETIMEDOUT) {
-					PX4_WARN("%s: px4_poll() sem error", thread_name);
+				if (ret && errno != ETIMEDOUT) {
+					PX4_WARN("%s: px4_poll() sem error: %s", thread_name, strerror(errno));
 				}
 
 			} else if (timeout < 0) {
@@ -520,32 +497,6 @@ extern "C" {
 		}
 
 		pthread_mutex_unlock(&devmutex);
-	}
-
-	void px4_enable_sim_lockstep()
-	{
-		px4_sem_init(&lockstep_sem, 0, 0);
-
-		// lockstep_sem use case is a signal
-		px4_sem_setprotocol(&lockstep_sem, SEM_PRIO_NONE);
-
-		sim_lockstep = true;
-		sim_delay = false;
-	}
-
-	void px4_sim_start_delay()
-	{
-		sim_delay = true;
-	}
-
-	void px4_sim_stop_delay()
-	{
-		sim_delay = false;
-	}
-
-	bool px4_sim_delay_enabled()
-	{
-		return sim_delay;
 	}
 
 } // extern "C"

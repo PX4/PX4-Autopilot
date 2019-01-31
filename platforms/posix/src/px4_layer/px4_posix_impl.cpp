@@ -51,6 +51,7 @@
 #include <drivers/drv_hrt.h>
 #include "px4_time.h"
 #include <pthread.h>
+#include <px4_init.h>
 
 extern pthread_t _shell_task_id;
 
@@ -69,10 +70,11 @@ void init_once()
 {
 	_shell_task_id = pthread_self();
 	//printf("[init] shell id: %lu\n", (unsigned long)_shell_task_id);
+
 	work_queues_init();
 	hrt_work_queue_init();
-	hrt_init();
-	param_init();
+
+	px4_platform_init();
 }
 
 void init(int argc, char *argv[], const char *app_name)

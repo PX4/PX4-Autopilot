@@ -40,7 +40,7 @@
 
 #include "LandDetector.h"
 
-#include <cfloat>
+#include <float.h>
 
 #include <px4_config.h>
 #include <px4_defines.h>
@@ -92,7 +92,7 @@ void LandDetector::_cycle()
 {
 	perf_begin(_cycle_perf);
 
-	if (_object == nullptr) { // not initialized yet
+	if (_object.load() == nullptr) { // not initialized yet
 		// Advertise the first land detected uORB.
 		_landDetected.timestamp = hrt_absolute_time();
 		_landDetected.freefall = false;
@@ -110,7 +110,7 @@ void LandDetector::_cycle()
 
 		_check_params(true);
 
-		_object = this;
+		_object.store(this);
 	}
 
 	_check_params(false);

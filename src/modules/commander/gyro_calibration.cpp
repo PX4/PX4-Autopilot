@@ -539,7 +539,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 	}
 
 	/* if there is a any preflight-check system response, let the barrage of messages through */
-	usleep(200000);
+	px4_usleep(200000);
 
 	if (res == PX4_OK) {
 		calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
@@ -551,7 +551,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 	orb_unsubscribe(worker_data.sensor_correction_sub);
 
 	/* give this message enough time to propagate */
-	usleep(600000);
+	px4_usleep(600000);
 
 	return res;
 }

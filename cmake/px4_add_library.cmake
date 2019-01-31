@@ -46,7 +46,7 @@ function(px4_add_library target)
 
 	# all PX4 libraries have access to parameters and uORB
 	add_dependencies(${target} uorb_headers)
-	target_link_libraries(${target} PRIVATE prebuild_targets parameters_interface uorb_msgs)
+	target_link_libraries(${target} PRIVATE prebuild_targets parameters_interface px4_platform uorb_msgs)
 
 	# TODO: move to platform layer
 	if ("${PX4_PLATFORM}" MATCHES "nuttx")

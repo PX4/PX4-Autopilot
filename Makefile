@@ -241,11 +241,9 @@ misc_qgc_extra_firmware: \
 # Other NuttX firmware
 alt_firmware: \
 	check_nxp_fmuk66-v3_default \
-	check_atmel_same70xplained_default \
-	check_stm_32f4discovery_default \
 	check_px4_cannode-v1_default \
 	check_px4_esc-v1_default \
-	check_stm_nucleo-F767ZI_default \
+	check_auav_esc35-v1_default \
 	check_thiemar_s2740vc-v1_default \
 	sizes
 
@@ -329,7 +327,7 @@ test_mixer_multirotor:
 	@$(MAKE) -C "$(SRC_DIR)"/src/lib/mixer --no-print-directory tests
 
 tests: test_mixer_multirotor
-	@$(MAKE) --no-print-directory px4_sitl_default test_results \
+	@$(MAKE) --no-print-directory px4_sitl_test test_results \
 	ASAN_OPTIONS="color=always:check_initialization_order=1:detect_stack_use_after_return=1" \
 	UBSAN_OPTIONS="color=always"
 

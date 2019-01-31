@@ -107,7 +107,7 @@ int reboot_main(int argc, char *argv[])
 		return -1;
 	}
 
-	while (1) { usleep(1); } // this command should not return on success
+	while (1) { px4_usleep(1); } // this command should not return on success
 
 	return 0;
 }

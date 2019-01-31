@@ -103,19 +103,6 @@ public:
 	int controller_period(char *argv[]);
 
 	/**
-	 * @brief Reports the average heater on duty cycle as a percent.
-	 * @return Returns the average heater on cycle duty cycle as a percent.
-	 */
-	float duty_cycle();
-
-	/**
-	 * @brief Sets and/or reports the heater controller feed fordward value.
-	 * @param argv Pointer to the input argument array.
-	 * @return Returns the heater feed forward value iff successful, 0.0f otherwise.
-	 */
-	float feed_forward(char *argv[]);
-
-	/**
 	 * @brief Sets and/or reports the heater controller integrator gain value.
 	 * @param argv Pointer to the input argument array.
 	 * @return Returns the heater integrator gain value iff successful, 0.0f otherwise.
@@ -149,12 +136,6 @@ public:
 	int print_status();
 
 	/**
-	 * @brief Reports the current heater temperature.
-	 * @return Returns the current heater temperature value iff successful, -1.0f otherwise.
-	 */
-	float sensor_temperature();
-
-	/**
 	 * @brief Sets and/or reports the heater target temperature.
 	 * @param argv Pointer to the input argument array.
 	 * @return Returns the heater target temperature value iff successful, -1.0f otherwise.
@@ -176,11 +157,6 @@ protected:
 	static void initialize_trampoline(void *argv);
 
 private:
-
-	/**
-	 * @brief Checks for new commands and processes them.
-	 */
-	void process_commands();
 
 	/**
 	 * @brief Trampoline for the work queue.
@@ -215,7 +191,7 @@ private:
 
 	int _controller_period_usec = CONTROLLER_PERIOD_DEFAULT;
 
-	float _duty_cycle = 0.0f;
+	int _controller_time_on_usec = 0;
 
 	bool _heater_on = false;
 
@@ -233,7 +209,6 @@ private:
 
 	/** @note Declare local parameters using defined parameters. */
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SENS_IMU_TEMP_FF>)  _p_feed_forward_value,
 		(ParamFloat<px4::params::SENS_IMU_TEMP_I>)  _p_integrator_gain,
 		(ParamFloat<px4::params::SENS_IMU_TEMP_P>)  _p_proportional_gain,
 		(ParamInt<px4::params::SENS_TEMP_ID>) _p_sensor_id,

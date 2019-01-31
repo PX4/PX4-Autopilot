@@ -41,6 +41,8 @@
 #include "mavlink_timesync.h"
 #include "mavlink_main.h"
 
+#include <stdlib.h>
+
 MavlinkTimesync::MavlinkTimesync(Mavlink *mavlink) :
 	_mavlink(mavlink)
 {

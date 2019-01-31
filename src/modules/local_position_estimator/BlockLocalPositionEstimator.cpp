@@ -51,6 +51,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// publications
 	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
 	_pub_gpos(ORB_ID(vehicle_global_position), -1, &getPublications()),
+	_pub_odom(ORB_ID(vehicle_odometry), -1, &getPublications()),
 	_pub_est_status(ORB_ID(estimator_status), -1, &getPublications()),
 	_pub_innov(ORB_ID(ekf2_innovations), -1, &getPublications()),
 
@@ -509,6 +510,7 @@ void BlockLocalPositionEstimator::update()
 	if (_altOriginInitialized) {
 		// update all publications if possible
 		publishLocalPos();
+		publishOdom();
 		publishEstimatorStatus();
 		_pub_innov.get().timestamp = _timeStamp;
 		_pub_innov.update();
@@ -634,6 +636,82 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().hagl_min = INFINITY;
 		_pub_lpos.get().hagl_max = INFINITY;
 		_pub_lpos.update();
+	}
+}
+
+void BlockLocalPositionEstimator::publishOdom()
+{
+	const Vector<float, n_x> &xLP = _xLowPass.getState();
+
+	// publish vehicle odometry
+	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) &&
+	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
+	    && PX4_ISFINITE(_x(X_vz))) {
+		_pub_odom.get().timestamp = _timeStamp;
+		_pub_odom.get().local_frame = _pub_odom.get().LOCAL_FRAME_NED;
+
+		// position
+		_pub_odom.get().x = xLP(X_x);	// north
+		_pub_odom.get().y = xLP(X_y);	// east
+
+		if (_fusion.get() & FUSE_PUB_AGL_Z) {
+			_pub_odom.get().z = -_aglLowPass.getState();	// agl
+
+		} else {
+			_pub_odom.get().z = xLP(X_z);	// down
+		}
+
+		// orientation
+		matrix::Quatf q = matrix::Quatf(_sub_att.get().q);
+		q.copyTo(_pub_odom.get().q);
+
+		// linear velocity
+		_pub_odom.get().vx = xLP(X_vx);		// vel north
+		_pub_odom.get().vy = xLP(X_vy);		// vel east
+		_pub_odom.get().vz = xLP(X_vz);		// vel down
+
+		// angular velocity
+		_pub_odom.get().rollspeed = _sub_att.get().rollspeed;	// roll rate
+		_pub_odom.get().pitchspeed = _sub_att.get().pitchspeed;	// pitch rate
+		_pub_odom.get().yawspeed = _sub_att.get().yawspeed;	// yaw rate
+
+		// get the covariance matrix size
+		const size_t POS_URT_SIZE = sizeof(_pub_odom.get().pose_covariance) / sizeof(_pub_odom.get().pose_covariance[0]);
+		const size_t VEL_URT_SIZE = sizeof(_pub_odom.get().velocity_covariance) / sizeof(
+						    _pub_odom.get().velocity_covariance[0]);
+
+		// initially set pose covariances to 0
+		for (size_t i = 0; i < POS_URT_SIZE; i++) {
+			_pub_odom.get().pose_covariance[i] = 0.0;
+		}
+
+		// set the position variances
+		_pub_odom.get().pose_covariance[_pub_odom.get().COVARIANCE_MATRIX_X_VARIANCE] = _P(X_vx, X_vx);
+		_pub_odom.get().pose_covariance[_pub_odom.get().COVARIANCE_MATRIX_Y_VARIANCE] = _P(X_vy, X_vy);
+		_pub_odom.get().pose_covariance[_pub_odom.get().COVARIANCE_MATRIX_Z_VARIANCE] = _P(X_vz, X_vz);
+
+		// unknown orientation covariances
+		// TODO: add orientation covariance to vehicle_attitude
+		_pub_odom.get().pose_covariance[_pub_odom.get().COVARIANCE_MATRIX_ROLL_VARIANCE] = NAN;
+		_pub_odom.get().pose_covariance[_pub_odom.get().COVARIANCE_MATRIX_PITCH_VARIANCE] = NAN;
+		_pub_odom.get().pose_covariance[_pub_odom.get().COVARIANCE_MATRIX_YAW_VARIANCE] = NAN;
+
+		// initially set velocity covariances to 0
+		for (size_t i = 0; i < VEL_URT_SIZE; i++) {
+			_pub_odom.get().velocity_covariance[i] = 0.0;
+		}
+
+		// set the linear velocity variances
+		_pub_odom.get().velocity_covariance[_pub_odom.get().COVARIANCE_MATRIX_VX_VARIANCE] = _P(X_vx, X_vx);
+		_pub_odom.get().velocity_covariance[_pub_odom.get().COVARIANCE_MATRIX_VY_VARIANCE] = _P(X_vy, X_vy);
+		_pub_odom.get().velocity_covariance[_pub_odom.get().COVARIANCE_MATRIX_VZ_VARIANCE] = _P(X_vz, X_vz);
+
+		// unknown angular velocity covariances
+		_pub_odom.get().velocity_covariance[_pub_odom.get().COVARIANCE_MATRIX_ROLLRATE_VARIANCE] = NAN;
+		_pub_odom.get().velocity_covariance[_pub_odom.get().COVARIANCE_MATRIX_PITCHRATE_VARIANCE] = NAN;
+		_pub_odom.get().velocity_covariance[_pub_odom.get().COVARIANCE_MATRIX_YAWRATE_VARIANCE] = NAN;
+
+		_pub_odom.update();
 	}
 }
 

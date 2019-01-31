@@ -123,6 +123,14 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 	// that one is used as a velocity limit.
 	// If the position setpoints are set to NAN, the values in the velocity setpoints are used as velocity targets: nothing to do here.
 
+	// Check if a reset event has happened.
+	if (_sub_vehicle_local_position->get().xy_reset_counter != _reset_counter) {
+		// Reset the XY axes
+		_trajectory[0].setCurrentPosition(_position(0));
+		_trajectory[1].setCurrentPosition(_position(1));
+		_reset_counter = _sub_vehicle_local_position->get().xy_reset_counter;
+	}
+
 	if (PX4_ISFINITE(_position_setpoint(0)) &&
 	    PX4_ISFINITE(_position_setpoint(1))) {
 		// Use position setpoints to generate velocity setpoints
@@ -155,12 +163,6 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 						 MPC_XY_TRAJ_P.get();  // Along-track setpoint + cross-track P controller
 		}
 
-	} else if (!PX4_ISFINITE(_velocity_setpoint(0)) &&
-		   !PX4_ISFINITE(_velocity_setpoint(1))) {
-		// No position nor velocity setpoints available, set the velocity targer to zero
-
-		_velocity_setpoint(0) = 0.f;
-		_velocity_setpoint(1) = 0.f;
 	}
 
 	if (PX4_ISFINITE(_position_setpoint(2))) {
@@ -175,9 +177,6 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 			_velocity_setpoint(2) = vel_sp_z;
 		}
 
-	} else if (!PX4_ISFINITE(_velocity_setpoint(2))) {
-		// No position nor velocity setpoints available, set the velocity targer to zero
-		_velocity_setpoint(2) = 0.f;
 	}
 }
 
@@ -204,6 +203,11 @@ void FlightTaskAutoLineSmoothVel::_updateTrajConstraints()
 
 void FlightTaskAutoLineSmoothVel::_generateTrajectory()
 {
+	if (!PX4_ISFINITE(_velocity_setpoint(0)) || !PX4_ISFINITE(_velocity_setpoint(1))
+	    || !PX4_ISFINITE(_velocity_setpoint(2))) {
+		return;
+	}
+
 	/* Slow down the trajectory by decreasing the integration time based on the position error.
 	 * This is only performed when the drone is behind the trajectory
 	 */

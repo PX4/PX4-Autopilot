@@ -53,7 +53,5 @@ px4_add_module(
         SRCS
                 rc_receiver_main.cpp
 		rc_receiver_params.c
-        DEPENDS
-                platforms__common
         )
 target_link_libraries(platforms__qurt__fc_addon__rc_receiver PRIVATE rc_receiver)

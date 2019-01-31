@@ -1,8 +1,6 @@
 #ifdef CONFIG_BOARD_CRASHDUMP
 
-#include <px4_config.h>
-#include <px4_log.h>
-#include <px4_tasks.h>
+#include <board_config.h>
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -67,8 +65,8 @@ int board_hardfault_init(int display_to_console, bool allow_prompt)
 
 	if (hadCrash == OK) {
 
-		PX4_ERR("[boot] There is a hard fault logged. Hold down the SPACE BAR," \
-			" while booting to review!\n");
+		syslog(LOG_ERR, "[boot] There is a hard fault logged. Hold down the SPACE BAR," \
+		       " while booting to review!\n");
 
 		/* Yes. So add one to the boot count - this will be reset after a successful
 		 * commit to SD
@@ -104,9 +102,9 @@ int board_hardfault_init(int display_to_console, bool allow_prompt)
 				hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
 			}
 
-			PX4_ERR("[boot] There were %d reboots with Hard fault that were not committed to disk%s\n",
-				reboots,
-				(bytesWaiting == 0 ? "" : " - Boot halted Due to Key Press\n"));
+			syslog(LOG_ERR, "[boot] There were %d reboots with Hard fault that were not committed to disk%s\n",
+			       reboots,
+			       (bytesWaiting == 0 ? "" : " - Boot halted Due to Key Press\n"));
 
 
 			/* For those of you with a debugger set a break point on up_assert and
@@ -155,9 +153,9 @@ int board_hardfault_init(int display_to_console, bool allow_prompt)
 						break;
 					} // Inner Switch
 
-					PX4_INFO("\nEnter B - Continue booting\n" \
-						 "Enter C - Clear the fault log\n" \
-						 "Enter D - Dump fault log\n\n?>");
+					syslog(LOG_INFO, "\nEnter B - Continue booting\n" \
+					       "Enter C - Clear the fault log\n" \
+					       "Enter D - Dump fault log\n\n?>");
 					fflush(stdout);
 
 read:
@@ -194,7 +192,7 @@ static uint32_t *__attribute__((noinline)) __sdata_addr(void)
 
 __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint8_t *filename, int lineno)
 {
-#ifndef CRASHDUMP_RESET_ONLY
+#ifndef BOARD_CRASHDUMP_RESET_ONLY
 	/* We need a chunk of ram to save the complete context in.
 	 * Since we are going to reboot we will use &_sdata
 	 * which is the lowest memory and the amount we will save
@@ -334,11 +332,17 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint
 		up_lowputc('!');
 	}
 
-#endif /* CRASHDUMP_RESET_ONLY */
+#endif /* BOARD_CRASHDUMP_RESET_ONLY */
 
-#if defined(CONFIG_BOARD_RESET_ON_CRASH)
-	board_reset(0);
-#endif
+	/* All boards need to do a reset here!
+	 *
+	 * Since we needed a chunk of ram to save the complete
+	 * context in and have corrupted it.  We can not allow
+	 * the OS to run again. We used &_sdata which is the lowest memory
+	 * and it could be used by the OS.
+	*/
+
+	board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
 }
 
 #endif /* CONFIG_BOARD_CRASHDUMP */

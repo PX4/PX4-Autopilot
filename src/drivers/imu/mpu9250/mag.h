@@ -96,11 +96,6 @@
 #define AK09916_ST1_DRDY                        0x01
 #define AK09916_ST1_DOR                         0x02
 
-
-#define AK_MPU_OR_ICM(m,i)					((_parent->_device_type==MPU_DEVICE_TYPE_MPU9250) ? (m) : (i))
-
-
-
 class MPU9250;
 
 #pragma pack(push, 1)

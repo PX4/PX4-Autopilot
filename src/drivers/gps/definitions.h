@@ -40,6 +40,7 @@
 #pragma once
 
 #include <px4_defines.h>
+#include <px4_time.h>
 
 #define GPS_INFO(...) PX4_INFO(__VA_ARGS__)
 #define GPS_WARN(...) PX4_WARN(__VA_ARGS__)
@@ -48,7 +49,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
 
-#include <unistd.h> //this is POSIX, used for usleep
+#define gps_usleep px4_usleep
 
 #include <drivers/drv_hrt.h>
 

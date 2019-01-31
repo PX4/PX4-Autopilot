@@ -36,8 +36,10 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include <cstdlib>
+#include <px4_log.h>
+#include <px4_time.h>
 
-#include "microRTPS_transport.h"
+#include <microRTPS_transport.h>
 
 #define DEFAULT_UART "/dev/ttyACM0"
 
@@ -115,7 +117,7 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 		int errsv = errno;
 
 		if (errsv && EAGAIN != errsv && ETIMEDOUT != errsv) {
-			printf("Read fail %d\n", errsv);
+			PX4_ERR("Read fail %d", errsv);
 		}
 
 		return len;
@@ -141,7 +143,7 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 
 	// Start not found
 	if (msg_start_pos > rx_buff_pos - header_size) {
-		printf("                                 (↓↓ %u)\n", msg_start_pos);
+		PX4_INFO("                                 (↓↓ %u)", msg_start_pos);
 		// All we've checked so far is garbage, drop it - but save unchecked bytes
 		memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
 		rx_buff_pos = rx_buff_pos - msg_start_pos;
@@ -164,7 +166,7 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 	if (msg_start_pos + header_size + payload_len > rx_buff_pos) {
 		// If there's garbage at the beginning, drop it
 		if (msg_start_pos > 0) {
-			printf("                                 (↓ %u)\n", msg_start_pos);
+			PX4_INFO("                                 (↓ %u)", msg_start_pos);
 			memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
 			rx_buff_pos -= msg_start_pos;
 		}
@@ -176,8 +178,8 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 	uint16_t calc_crc = crc16((uint8_t *)rx_buffer + msg_start_pos + header_size, payload_len);
 
 	if (read_crc != calc_crc) {
-		printf("BAD CRC %u != %u\n", read_crc, calc_crc);
-		printf("                                 (↓ %lu)\n", (unsigned long)(header_size + payload_len));
+		PX4_ERR("Bad CRC %u != %u", read_crc, calc_crc);
+		PX4_ERR("                                 (↓ %lu)", (unsigned long)(header_size + payload_len));
 		len = -1;
 
 	} else {
@@ -240,8 +242,8 @@ ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t leng
 
 err:
 	//int errsv = errno;
-	//if (len == -1 ) printf("                               => Writing error '%d'\n", errsv);
-	//else            printf("                               => Wrote '%ld' != length(%lu) error '%d'\n", (long)len, (unsigned long)length, errsv);
+	//if (len == -1 ) PX4_ERR("                               => Writing error '%d'", errsv);
+	//else            PX4_ERR("                               => Wrote '%ld' != length(%lu) error '%d'", (long)len, (unsigned long)length, errsv);
 
 	return len;
 }
@@ -268,7 +270,7 @@ int UART_node::init()
 	uart_fd = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 	if (uart_fd < 0) {
-		printf("failed to open device: %s (%d)\n", uart_name, errno);
+		PX4_ERR("Failed to open device: %s (%d)", uart_name, errno);
 		return -errno;
 	}
 
@@ -284,7 +286,7 @@ int UART_node::init()
 	// Back up the original uart configuration to restore it after exit
 	if ((termios_state = tcgetattr(uart_fd, &uart_config)) < 0) {
 		int errno_bkp = errno;
-		printf("ERR GET CONF %s: %d (%d)\n", uart_name, termios_state, errno);
+		PX4_ERR("ERR GET CONF %s: %d (%d)", uart_name, termios_state, errno);
 		close();
 		return -errno_bkp;
 	}
@@ -307,7 +309,7 @@ int UART_node::init()
 		// Set baud rate
 		if (cfsetispeed(&uart_config, baudrate) < 0 || cfsetospeed(&uart_config, baudrate) < 0) {
 			int errno_bkp = errno;
-			printf("ERR SET BAUD %s: %d (%d)\n", uart_name, termios_state, errno);
+			PX4_ERR("ERR SET BAUD %s: %d (%d)", uart_name, termios_state, errno);
 			close();
 			return -errno_bkp;
 		}
@@ -315,7 +317,7 @@ int UART_node::init()
 
 	if ((termios_state = tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0) {
 		int errno_bkp = errno;
-		printf("ERR SET CONF %s (%d)\n", uart_name, errno);
+		PX4_ERR("ERR SET CONF %s (%d)", uart_name, errno);
 		close();
 		return -errno_bkp;
 	}
@@ -324,16 +326,16 @@ int UART_node::init()
 	bool flush = false;
 
 	while (0 < ::read(uart_fd, (void *)&aux, 64)) {
-		//printf("%s ", aux);
+		//PX4_INFO("%s ", aux);
 		flush = true;
-		usleep(1000);
+		px4_usleep(1000);
 	}
 
 	if (flush) {
-		printf("flush\n");
+		PX4_INFO("Flush");
 
 	} else {
-		printf("no flush\n");
+		PX4_INFO("No flush");
 	}
 
 	poll_fd[0].fd = uart_fd;
@@ -350,7 +352,7 @@ bool UART_node::fds_OK()
 uint8_t UART_node::close()
 {
 	if (-1 != uart_fd) {
-		printf("Close UART\n");
+		PX4_WARN("Closed UART...");
 		::close(uart_fd);
 		uart_fd = -1;
 		memset(&poll_fd, 0, sizeof(poll_fd));
@@ -422,18 +424,18 @@ int UDP_node::init_receiver(uint16_t udp_port)
 	receiver_inaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	if ((receiver_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		printf("create socket failed\n");
+		PX4_ERR("Create socket failed");
 		return -1;
 	}
 
-	printf("Trying to connect...\n");
+	PX4_INFO("Trying to connect...");
 
 	if (bind(receiver_fd, (struct sockaddr *)&receiver_inaddr, sizeof(receiver_inaddr)) < 0) {
-		printf("bind failed\n");
+		PX4_ERR("Bind failed");
 		return -1;
 	}
 
-	printf("connected to server!\n");
+	PX4_INFO("Connected to server!");
 #endif /* __PX4_NUTTX */
 
 	return 0;
@@ -444,7 +446,7 @@ int UDP_node::init_sender(uint16_t udp_port)
 #ifndef __PX4_NUTTX
 
 	if ((sender_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		printf("create socket failed\n");
+		PX4_ERR("Create socket failed");
 		return -1;
 	}
 
@@ -453,7 +455,7 @@ int UDP_node::init_sender(uint16_t udp_port)
 	sender_outaddr.sin_port = htons(udp_port);
 
 	if (inet_aton("127.0.0.1", &sender_outaddr.sin_addr) == 0) {
-		printf("inet_aton() failed\n");
+		PX4_ERR("inet_aton() failed");
 		return -1;
 	}
 
@@ -467,14 +469,14 @@ uint8_t UDP_node::close()
 #ifndef __PX4_NUTTX
 
 	if (sender_fd != -1) {
-		printf("Close sender socket\n");
+		PX4_WARN("Closed sender socket!");
 		shutdown(sender_fd, SHUT_RDWR);
 		::close(sender_fd);
 		sender_fd = -1;
 	}
 
 	if (receiver_fd != -1) {
-		printf("Close receiver socket\n");
+		PX4_WARN("Closed receiver socket!");
 		shutdown(receiver_fd, SHUT_RDWR);
 		::close(receiver_fd);
 		receiver_fd = -1;

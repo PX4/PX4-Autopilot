@@ -60,7 +60,7 @@ static const char *sensor_name = "airspeed";
 
 static void feedback_calibration_failed(orb_advert_t *mavlink_log_pub)
 {
-	sleep(5);
+	px4_sleep(5);
 	calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
 }
 
@@ -121,7 +121,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 	}
 
 	calibration_log_critical(mavlink_log_pub, "[cal] Ensure sensor is not measuring wind");
-	usleep(500 * 1000);
+	px4_usleep(500 * 1000);
 
 	while (calibration_counter < calibration_count) {
 
@@ -198,7 +198,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 	calibration_log_info(mavlink_log_pub, "[cal] Offset of %d Pascal", (int)diff_pres_offset);
 
 	/* wait 500 ms to ensure parameter propagated through the system */
-	usleep(500 * 1000);
+	px4_usleep(500 * 1000);
 
 	calibration_log_critical(mavlink_log_pub, "[cal] Blow across front of pitot without touching");
 
@@ -277,14 +277,14 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 	/* Wait 2sec for the airflow to stop and ensure the driver filter has caught up, otherwise
 	 * the followup preflight checks might fail. */
-	usleep(2e6);
+	px4_usleep(2e6);
 
 normal_return:
 	calibrate_cancel_unsubscribe(cancel_sub);
 	px4_close(diff_pres_sub);
 
 	// This give a chance for the log messages to go out of the queue before someone else stomps on then
-	sleep(1);
+	px4_sleep(1);
 
 	return result;
 

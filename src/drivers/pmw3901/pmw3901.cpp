@@ -79,20 +79,25 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#if defined PX4_SPI_BUS_EXPANSION		// crazyflie
-#define PMW3901_BUS PX4_SPI_BUS_EXPANSION
-#elif defined PX4_SPI_BUS_EXTERNAL1		// fmu-v5
-#define PMW3901_BUS PX4_SPI_BUS_EXTERNAL1
+
+#if defined PX4_SPI_BUS_EXPANSION   // crazyflie
+# define PMW3901_BUS PX4_SPI_BUS_EXPANSION
+#elif defined PX4_SPI_BUS_EXTERNAL1   // fmu-v5
+# define PMW3901_BUS PX4_SPI_BUS_EXTERNAL1
+#elif defined PX4_SPI_BUS_EXTERNAL    // fmu-v4 extspi
+# define PMW3901_BUS PX4_SPI_BUS_EXTERNAL
 #else
-#error "add the required spi bus from board_config.h here"
+# error "add the required spi bus from board_config.h here"
 #endif
 
-#if defined PX4_SPIDEV_EXPANSION_2		// crazyflie flow deck
-#define PMW3901_SPIDEV PX4_SPIDEV_EXPANSION_2
-#elif defined PX4_SPIDEV_EXTERNAL1_1		// fmu-v5 ext CS1
-#define PMW3901_SPIDEV PX4_SPIDEV_EXTERNAL1_1
+#if defined PX4_SPIDEV_EXPANSION_2    // crazyflie flow deck
+# define PMW3901_SPIDEV PX4_SPIDEV_EXPANSION_2
+#elif defined PX4_SPIDEV_EXTERNAL1_1    // fmu-v5 ext CS1
+# define PMW3901_SPIDEV PX4_SPIDEV_EXTERNAL1_1
+#elif defined PX4_SPIDEV_EXTERNAL   // fmu-v4 extspi
+# define PMW3901_SPIDEV PX4_SPIDEV_EXTERNAL
 #else
-#error "add the required spi dev from board_config.h here"
+# error "add the required spi dev from board_config.h here"
 #endif
 
 #define PMW3901_SPI_BUS_SPEED (2000000L) // 2MHz
@@ -139,6 +144,8 @@ private:
 	int _measure_ticks;
 	int _class_instance;
 	int _orb_class_instance;
+
+	const uint64_t _collect_time = 15000; // usecs, optical flow data publish rate
 
 	orb_advert_t _optical_flow_pub;
 	orb_advert_t _subsystem_pub;
@@ -575,7 +582,8 @@ PMW3901::collect()
 	_flow_sum_x += delta_x_raw;
 	_flow_sum_y += delta_y_raw;
 
-	if (_flow_dt_sum_usec < 45000) {
+	// returns if the collect time has not been reached
+	if (_flow_dt_sum_usec < _collect_time) {
 
 		return ret;
 	}
@@ -617,7 +625,7 @@ PMW3901::collect()
 	// set (conservative) specs according to datasheet
 	report.max_flow_rate = 5.0f;       // Datasheet: 7.4 rad/s
 	report.min_ground_distance = 0.1f; // Datasheet: 80mm
-	report.max_ground_distance = 5.0f; // Datasheet: infinity
+	report.max_ground_distance = 30.0f; // Datasheet: infinity
 
 	_flow_dt_sum_usec = 0;
 	_flow_sum_x = 0;
@@ -679,7 +687,7 @@ PMW3901::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(LPWORK, &_work, (worker_t)&PMW3901::cycle_trampoline, this, USEC2TICK(PMW3901_US));
+	work_queue(HPWORK, &_work, (worker_t)&PMW3901::cycle_trampoline, this, USEC2TICK(PMW3901_US));
 
 	/* notify about state change */
 	struct subsystem_info_s info = {};
@@ -718,7 +726,7 @@ PMW3901::cycle()
 	collect();
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(LPWORK,
+	work_queue(HPWORK,
 		   &_work,
 		   (worker_t)&PMW3901::cycle_trampoline,
 		   this,

@@ -130,16 +130,24 @@ private:
 		false; /**< Smooth velocity takeoff can be initiated either through position or velocity setpoint */
 
 	vehicle_status_s 			_vehicle_status{};		/**< vehicle status */
-	vehicle_land_detected_s 		_vehicle_land_detected{};	/**< vehicle land detected */
-	vehicle_attitude_setpoint_s		_att_sp{};			/**< vehicle attitude setpoint */
-	vehicle_control_mode_s			_control_mode{};		/**< vehicle control mode */
-	vehicle_local_position_s		_local_pos{};			/**< vehicle local position */
-	home_position_s				_home_pos{};			/**< home position */
-	vehicle_trajectory_waypoint_s		_traj_wp_avoidance{};		/**< trajectory waypoint */
-	vehicle_trajectory_waypoint_s		_traj_wp_avoidance_desired{};	/**< desired waypoints, inputs to an obstacle avoidance module */
-	landing_gear_s _landing_gear{};
+	/**< vehicle-land-detection: initialze to landed */
+	vehicle_land_detected_s _vehicle_land_detected = {
+		.timestamp = 0,
+		.alt_max = -1.0f,
+		.landed = true,
+		.freefall = false,
+		.ground_contact = false,
+		.maybe_landed = false,
+	};
 
-	int8_t		_old_landing_gear_position;
+	vehicle_attitude_setpoint_s	_att_sp{};			/**< vehicle attitude setpoint */
+	vehicle_control_mode_s	_control_mode{};		/**< vehicle control mode */
+	vehicle_local_position_s _local_pos{};			/**< vehicle local position */
+	home_position_s	_home_pos{};			/**< home position */
+	vehicle_trajectory_waypoint_s _traj_wp_avoidance{};		/**< trajectory waypoint */
+	vehicle_trajectory_waypoint_s _traj_wp_avoidance_desired{};	/**< desired waypoints, inputs to an obstacle avoidance module */
+	landing_gear_s _landing_gear{};
+	int8_t _old_landing_gear_position{landing_gear_s::GEAR_KEEP};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time constant for smooth takeoff ramp */
@@ -151,7 +159,7 @@ private:
 		(ParamInt<px4::params::MPC_POS_MODE>) MPC_POS_MODE,
 		(ParamInt<px4::params::MPC_AUTO_MODE>) MPC_AUTO_MODE,
 		(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
-		(ParamFloat<px4::params::MPC_IDLE_TKO>) MPC_IDLE_TKO, /**< time constant for smooth takeoff ramp */
+		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) MPC_SPOOLUP_TIME, /**< time to let motors spool up after arming */
 		(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID, /**< enable obstacle avoidance */
 		(ParamFloat<px4::params::MPC_TILTMAX_LND>) MPC_TILTMAX_LND /**< maximum tilt for landing and smooth takeoff */
 	);
@@ -177,14 +185,7 @@ private:
 	/** During smooth-takeoff, below ALTITUDE_THRESHOLD the yaw-control is turned off ant tilt is limited */
 	static constexpr float ALTITUDE_THRESHOLD = 0.3f;
 
-	/**
-	 * Hysteresis that turns true once vehicle is armed for MPC_IDLE_TKO seconds.
-	 * A real vehicle requires some time to accelerates the propellers to IDLE speed. To ensure
-	 * that the propellers reach idle speed before initiating a takeoff, a delay of MPC_IDLE_TKO
-	 * is added.
-	 */
-	systemlib::Hysteresis _arm_hysteresis{false}; /**< becomes true once vehicle is armed for MPC_IDLE_TKO seconds */
-
+	systemlib::Hysteresis _spoolup_time_hysteresis{false}; /**< becomes true MPC_SPOOLUP_TIME seconds after the vehicle was armed */
 	systemlib::Hysteresis _failsafe_land_hysteresis{false}; /**< becomes true if task did not update correctly for LOITER_TIME_BEFORE_DESCEND */
 
 	WeatherVane *_wv_controller{nullptr};
@@ -252,11 +253,11 @@ private:
 	void update_smooth_takeoff(const float &position_setpoint_z, const float &velocity_setpoint_z);
 
 	/**
-	 * Adjust the thrust setpoint during landing.
+	 * Adjust the setpoint during landing.
 	 * Thrust is adjusted to support the land-detector during detection.
-	 * @param thrust_setpoint gets adjusted based on land-detector state
+	 * @param setpoint gets adjusted based on land-detector state
 	 */
-	void limit_thrust_during_landing(matrix::Vector3f &thrust_sepoint);
+	void limit_thrust_during_landing(vehicle_local_position_setpoint_s &setpoint);
 
 	/**
 	 * Start flightasks based on navigation state.
@@ -286,6 +287,11 @@ private:
 	 * Check whether or not use the obstacle avoidance waypoint
 	 */
 	bool use_obstacle_avoidance();
+
+	/**
+	 * Reset setpoints to NAN
+	 */
+	void reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint);
 
 	/**
 	 * Overwrite setpoint with waypoint coming from obstacle avoidance
@@ -398,8 +404,8 @@ MulticopterPositionControl::parameters_update(bool force)
 		_tko_speed.set(math::min(_tko_speed.get(), _vel_max_up.get()));
 		_land_speed.set(math::min(_land_speed.get(), _vel_max_down.get()));
 
-		// set trigger time for arm hysteresis
-		_arm_hysteresis.set_hysteresis_time_from(false, (int)(MPC_IDLE_TKO.get() * (float)1_s));
+		// set trigger time for takeoff delay
+		_spoolup_time_hysteresis.set_hysteresis_time_from(false, (int)(MPC_SPOOLUP_TIME.get() * (float)1_s));
 
 		if (_wv_controller != nullptr) {
 			_wv_controller->update_parameters();
@@ -412,6 +418,9 @@ MulticopterPositionControl::parameters_update(bool force)
 void
 MulticopterPositionControl::poll_subscriptions()
 {
+	// This is polled for, so all we need to do is a copy now.
+	orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+
 	bool updated;
 
 	orb_check(_vehicle_status_sub, &updated);
@@ -445,12 +454,6 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
-	}
-
-	orb_check(_local_pos_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 	}
 
 	orb_check(_att_sub, &updated);
@@ -598,7 +601,8 @@ MulticopterPositionControl::run()
 	poll_subscriptions();
 
 	// setup file descriptor to poll the local position as loop wakeup source
-	px4_pollfd_struct_t poll_fd = {.fd = _local_pos_sub};
+	px4_pollfd_struct_t poll_fd = {};
+	poll_fd.fd = _local_pos_sub;
 	poll_fd.events = POLLIN;
 
 	while (!should_exit()) {
@@ -638,18 +642,16 @@ MulticopterPositionControl::run()
 			_wv_controller->update(matrix::Quatf(_att_sp.q_d), _states.yaw);
 		}
 
-		if (_control_mode.flag_armed) {
-			// as soon vehicle is armed check for flighttask
+		// start takeoff after delay to allow motors to reach idle speed
+		_spoolup_time_hysteresis.set_state_and_update(_control_mode.flag_armed);
+
+		if (_spoolup_time_hysteresis.get_state()) {
+			// when vehicle is ready switch to the required flighttask
 			start_flight_task();
-			// arm hysteresis prevents vehicle to takeoff
-			// before propeller reached idle speed.
-			_arm_hysteresis.set_state_and_update(true);
 
 		} else {
-			// disable flighttask
+			// stop flighttask while disarmed
 			_flight_tasks.switchTask(FlightTaskIndex::None);
-			// reset arm hysteresis
-			_arm_hysteresis.set_state_and_update(false);
 		}
 
 		// check if any task is active
@@ -696,9 +698,8 @@ MulticopterPositionControl::run()
 			// check if all local states are valid and map accordingly
 			set_vehicle_states(setpoint.vz);
 
-			// we can only do a smooth takeoff if a valid velocity or position is available and are
-			// armed long enough
-			if (_arm_hysteresis.get_state() && PX4_ISFINITE(_states.position(2)) && PX4_ISFINITE(_states.velocity(2))) {
+			// do smooth takeoff after delay if there's a valid vertical velocity or position
+			if (_spoolup_time_hysteresis.get_state() && PX4_ISFINITE(_states.position(2)) && PX4_ISFINITE(_states.velocity(2))) {
 				check_for_smooth_takeoff(setpoint.z, setpoint.vz, constraints);
 				update_smooth_takeoff(setpoint.z, setpoint.vz);
 			}
@@ -728,10 +729,8 @@ MulticopterPositionControl::run()
 
 			if (_vehicle_land_detected.landed && !_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
 				// Keep throttle low when landed and NOT in smooth takeoff
+				reset_setpoint_to_nan(setpoint);
 				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
-				setpoint.x = setpoint.y = setpoint.z = NAN;
-				setpoint.vx = setpoint.vy = setpoint.vz = NAN;
-				setpoint.yawspeed = NAN;
 				setpoint.yaw = _states.yaw;
 				// reactivate the task which will reset the setpoint to current state
 				_flight_tasks.reActivate();
@@ -742,14 +741,14 @@ MulticopterPositionControl::run()
 				limit_altitude(setpoint);
 			}
 
-			// Update states, setpoints and constraints.
-			_control.updateConstraints(constraints);
-			_control.updateState(_states);
-
 			// adjust setpoints based on avoidance
 			if (use_obstacle_avoidance()) {
 				execute_avoidance_waypoint(setpoint);
 			}
+
+			// Update states, setpoints and constraints.
+			_control.updateConstraints(constraints);
+			_control.updateState(_states);
 
 			// update position controller setpoints
 			if (!_control.updateSetpoint(setpoint)) {
@@ -759,37 +758,43 @@ MulticopterPositionControl::run()
 			// Generate desired thrust and yaw.
 			_control.generateThrustYawSetpoint(_dt);
 
-			matrix::Vector3f thr_sp = _control.getThrustSetpoint();
-
-			// Adjust thrust setpoint based on landdetector only if the
-			// vehicle is NOT in pure Manual mode and NOT in smooth takeoff
-			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
-				limit_thrust_during_landing(thr_sp);
-			}
-
 			publish_trajectory_sp(setpoint);
 
 			// Fill local position, velocity and thrust setpoint.
+			// This message contains setpoints where each type of setpoint is either the input to the PositionController
+			// or was generated by the PositionController and therefore corresponds to the PositioControl internal states (states that were generated by P-PID).
+			// Example:
+			// If the desired setpoint is position-setpoint, _local_pos_sp will contain
+			// position-, velocity- and thrust-setpoint where the velocity- and thrust-setpoint were generated by the PositionControlller.
+			// If the desired setpoint has a velocity-setpoint only, then _local_pos_sp will contain valid velocity- and thrust-setpoint, but the position-setpoint
+			// will remain NAN. Given that the PositionController cannot generate a position-setpoint, this type of setpoint is always equal to the input to the
+			// PositionController.
 			vehicle_local_position_setpoint_s local_pos_sp{};
 			local_pos_sp.timestamp = hrt_absolute_time();
-			local_pos_sp.x = _control.getPosSp()(0);
-			local_pos_sp.y = _control.getPosSp()(1);
-			local_pos_sp.z = _control.getPosSp()(2);
+			local_pos_sp.x = setpoint.x;
+			local_pos_sp.y = setpoint.y;
+			local_pos_sp.z = setpoint.z;
 			local_pos_sp.yaw = _control.getYawSetpoint();
 			local_pos_sp.yawspeed = _control.getYawspeedSetpoint();
+			local_pos_sp.vx = PX4_ISFINITE(_control.getVelSp()(0)) ? _control.getVelSp()(0) : setpoint.vx;
+			local_pos_sp.vy = PX4_ISFINITE(_control.getVelSp()(1)) ? _control.getVelSp()(1) : setpoint.vy;
+			local_pos_sp.vz = PX4_ISFINITE(_control.getVelSp()(2)) ? _control.getVelSp()(2) : setpoint.vz;
+			_control.getThrustSetpoint().copyTo(local_pos_sp.thrust);
 
-			local_pos_sp.vx = _control.getVelSp()(0);
-			local_pos_sp.vy = _control.getVelSp()(1);
-			local_pos_sp.vz = _control.getVelSp()(2);
-			thr_sp.copyTo(local_pos_sp.thrust);
-
-			// Publish local position setpoint (for logging only)
+			// Publish local position setpoint
+			// This message will be used by other modules (such as Landdetector) to determine
+			// vehicle intention.
 			publish_local_pos_sp(local_pos_sp);
 
-			_flight_tasks.updateVelocityControllerIO(_control.getVelSp(), thr_sp); // Inform FlightTask about the input and output of the velocity controller
+			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
+			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.
+			// Note: only adust thrust output if there was not thrust-setpoint demand in D-direction.
+			if (!_in_smooth_takeoff && !PX4_ISFINITE(setpoint.thrust[2])) {
+				limit_thrust_during_landing(local_pos_sp);
+			}
 
 			// Fill attitude setpoint. Attitude is computed from yaw and thrust setpoint.
-			_att_sp = ControlMath::thrustToAttitude(thr_sp, _control.getYawSetpoint());
+			_att_sp = ControlMath::thrustToAttitude(matrix::Vector3f(local_pos_sp.thrust), local_pos_sp.yaw);
 			_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
 			_att_sp.fw_control_yaw = false;
 			_att_sp.apply_flaps = false;
@@ -1088,23 +1093,15 @@ MulticopterPositionControl::update_smooth_takeoff(const float &z_sp, const float
 }
 
 void
-MulticopterPositionControl::limit_thrust_during_landing(matrix::Vector3f &thr_sp)
+MulticopterPositionControl::limit_thrust_during_landing(vehicle_local_position_setpoint_s &setpoint)
 {
-	if (_vehicle_land_detected.ground_contact) {
-		// Set thrust in xy to zero
-		thr_sp(0) = 0.0f;
-		thr_sp(1) = 0.0f;
-		// Reset integral in xy is required because PID-controller does
-		// know about the overwrite and would therefore increase the intragral term
-		_control.resetIntegralXY();
-	}
-
-	if (_vehicle_land_detected.maybe_landed) {
-		// we set thrust to zero
-		// this will help to decide if we are actually landed or not
-		thr_sp.zero();
-		// We need to reset all integral terms otherwise the PID-controller
-		// will continue to integrate
+	if (_vehicle_land_detected.ground_contact
+	    || _vehicle_land_detected.maybe_landed) {
+		// we set thrust to zero, this will help to decide if we are actually landed or not
+		setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
+		// set yaw-sp to current yaw to avoid any corrections
+		setpoint.yaw = _states.yaw;
+		// prevent any integrator windup
 		_control.resetIntegralXY();
 		_control.resetIntegralZ();
 	}
@@ -1119,13 +1116,8 @@ MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint
 	if (!_failsafe_land_hysteresis.get_state() && !force) {
 		// just keep current setpoint and don't do anything.
 
-
-
 	} else {
-		setpoint.x = setpoint.y = setpoint.z = NAN;
-		setpoint.vx = setpoint.vy = setpoint.vz = NAN;
-		setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = NAN;
-		setpoint.yaw = setpoint.yawspeed = NAN;
+		reset_setpoint_to_nan(setpoint);
 
 		if (PX4_ISFINITE(_states.velocity(2))) {
 			// We have a valid velocity in D-direction.
@@ -1189,15 +1181,35 @@ MulticopterPositionControl::execute_avoidance_waypoint(vehicle_local_position_se
 	Vector3f(NAN, NAN, NAN).copyTo(setpoint.thrust);
 }
 
+void
+MulticopterPositionControl::reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint)
+{
+	setpoint.x = setpoint.y = setpoint.z = NAN;
+	setpoint.vx = setpoint.vy = setpoint.vz = NAN;
+	setpoint.yaw = setpoint.yawspeed = NAN;
+	setpoint.acc_x = setpoint.acc_y = setpoint.acc_z = NAN;
+	setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = NAN;
+}
+
 bool
 MulticopterPositionControl::use_obstacle_avoidance()
 {
-	/* check that external obstacle avoidance is sending data and that the first point is valid */
-	return (MPC_OBS_AVOID.get()
-		&& (hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) < TRAJECTORY_STREAM_TIMEOUT_US)
-		&& (_traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true)
-		&& ((_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) ||
-		    (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL)));
+	if (MPC_OBS_AVOID.get()) {
+		const bool avoidance_data_timeout = hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) > TRAJECTORY_STREAM_TIMEOUT_US;
+		const bool avoidance_point_valid = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true;
+		const bool in_mission = _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+		const bool in_rtl = _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+
+		// switch to hold mode to stop when we loose external avoidance data during a mission
+		if (avoidance_data_timeout && in_mission) {
+			send_vehicle_cmd_do(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+		}
+
+		if ((in_mission || in_rtl) && !avoidance_data_timeout && avoidance_point_valid) {
+			return true;
+		}
+	}
+	return false;
 }
 
 void
@@ -1285,6 +1297,11 @@ void MulticopterPositionControl::send_vehicle_cmd_do(uint8_t nav_state)
 
 	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
 		command.param2 = (float)PX4_CUSTOM_MAIN_MODE_ALTCTL;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
+		command.param2 = (float)PX4_CUSTOM_MAIN_MODE_AUTO;
+		command.param3 = (float)PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
 		break;
 
 	default: //vehicle_status_s::NAVIGATION_STATE_POSCTL

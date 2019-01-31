@@ -42,10 +42,11 @@
 #define MAVLINK_STREAM_H_
 
 #include <drivers/drv_hrt.h>
+#include <px4_module_params.h>
 
 class Mavlink;
 
-class MavlinkStream
+class MavlinkStream : public ModuleParams
 {
 
 public:

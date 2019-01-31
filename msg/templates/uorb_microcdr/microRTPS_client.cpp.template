@@ -58,7 +58,7 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
 #include "microRTPS_transport.h"
 #include "microRTPS_client.h"
 
-#include <cinttypes>
+#include <inttypes.h>
 #include <cstdio>
 #include <ctime>
 #include <pthread.h>
@@ -123,14 +123,14 @@ void* send(void* /*unused*/)
         }
 @[end for]@
 
-        usleep(_options.sleep_ms*1000);
+        px4_usleep(_options.sleep_ms*1000);
         ++loop;
     }
 
     struct timespec end;
     px4_clock_gettime(CLOCK_REALTIME, &end);
     double elapsed_secs = double(end.tv_sec - begin.tv_sec) + double(end.tv_nsec - begin.tv_nsec)/double(1000000000);
-    printf("\nSENT:     %" PRIu64 " messages in %d LOOPS, %" PRIu64 " bytes in %.03f seconds - %.02fKB/s\n",
+    PX4_INFO("SENT: %" PRIu64 " messages in %d LOOPS, %" PRIu64 " bytes in %.03f seconds - %.02fKB/s",
             sent, loop, total_sent, elapsed_secs, (double)total_sent/(1000*elapsed_secs));
 
     return nullptr;
@@ -203,7 +203,7 @@ void micrortps_start_topics(struct timespec &begin, int &total_read, uint32_t &r
                 break;
 @[end for]@
                 default:
-                    printf("Unexpected topic ID\n");
+                    PX4_WARN("Unexpected topic ID\n");
                 break;
             }
         }
@@ -212,7 +212,7 @@ void micrortps_start_topics(struct timespec &begin, int &total_read, uint32_t &r
         // loop forever if informed loop number is negative
         if (_options.loops >= 0 && loop >= _options.loops) break;
 
-        usleep(_options.sleep_ms*1000);
+        px4_usleep(_options.sleep_ms*1000);
         ++loop;
     }
 @[if send_topics]@

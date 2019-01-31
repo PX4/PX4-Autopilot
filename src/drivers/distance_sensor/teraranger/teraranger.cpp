@@ -517,7 +517,7 @@ TERARANGER::read(device::file_t *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(TERARANGER_CONVERSION_INTERVAL);
+		px4_usleep(TERARANGER_CONVERSION_INTERVAL);
 
 		/* run the collection phase */
 		if (OK != collect()) {

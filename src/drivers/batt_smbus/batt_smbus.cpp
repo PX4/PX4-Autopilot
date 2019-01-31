@@ -43,6 +43,8 @@
 
 #include "batt_smbus.h"
 
+#include <stdlib.h>
+
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 
 struct work_s BATT_SMBUS::_work = {};
@@ -130,13 +132,13 @@ int BATT_SMBUS::task_spawn(int argc, char *argv[])
 
 	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
 
-		if (_object == nullptr && (busid == BATT_SMBUS_BUS_ALL || bus_options[i].busid == busid)) {
+		if (!is_running() && (busid == BATT_SMBUS_BUS_ALL || bus_options[i].busid == busid)) {
 
 			SMBus *interface = new SMBus(bus_options[i].busnum, BATT_SMBUS_ADDR);
 			BATT_SMBUS *dev = new BATT_SMBUS(interface, bus_options[i].devpath);
 
 			// Successful read of device type, we've found our battery
-			_object = dev;
+			_object.store(dev);
 			_task_id = task_id_is_work_queue;
 
 			int result = dev->get_startup_info();
@@ -269,7 +271,7 @@ void BATT_SMBUS::cycle()
 	} else {
 
 		while (_should_suspend) {
-			usleep(200000);
+			px4_usleep(200000);
 		}
 
 		// Schedule a fresh cycle call when the measurement is done.
@@ -444,7 +446,7 @@ int BATT_SMBUS::get_startup_info()
 
 	if (lifetime_data_flush() == PX4_OK) {
 		// Flush needs time to complete, otherwise device is busy. 100ms not enough, 200ms works.
-		usleep(200000);
+		px4_usleep(200000);
 
 		if (lifetime_read_block_one() == PX4_OK) {
 			if (_lifetime_max_delta_cell_voltage > BATT_CELL_VOLTAGE_THRESHOLD_FAILED) {
@@ -668,11 +670,11 @@ int BATT_SMBUS::custom_command(int argc, char *argv[])
 
 			if (PX4_OK != obj->dataflash_write(address, tx_buf, length)) {
 				PX4_INFO("Dataflash write failed: %d", address);
-				usleep(100000);
+				px4_usleep(100000);
 				return 1;
 
 			} else {
-				usleep(100000);
+				px4_usleep(100000);
 				return 0;
 			}
 		}

@@ -48,7 +48,7 @@
 #include "mission_feasibility_checker.h"
 #include "navigator_mode.h"
 
-#include <cfloat>
+#include <float.h>
 
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>

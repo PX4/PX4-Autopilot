@@ -72,11 +72,10 @@ public:
 
 private:
 
-	bool _is_active = true;
 	bool _interfering = false;		/**< states if the collision prevention interferes with the user input */
 
 	orb_advert_t _constraints_pub{nullptr};		/**< constraints publication */
-	orb_advert_t _mavlink_log_pub = nullptr;	 	/**< Mavlink log uORB handle */
+	orb_advert_t _mavlink_log_pub{nullptr};	 	/**< Mavlink log uORB handle */
 
 	uORB::Subscription<obstacle_distance_s> *_sub_obstacle_distance{nullptr}; /**< obstacle distances received form a range sensor */
 

@@ -18,7 +18,7 @@ pipeline {
       agent {
         docker {
           image 'px4io/px4-dev-ros-kinetic:2018-09-11'
-          args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE --cap-add SYS_PTRACE'
+          args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE --cap-add SYS_PTRACE --entrypoint=""'
         }
       }
 
@@ -47,8 +47,8 @@ pipeline {
         stage('unit tests') {
           steps {
             sh 'export'
-            sh 'make px4_sitl_default test_results_junit'
-            junit 'build/px4_sitl_default/JUnitTestResults.xml'
+            sh 'make px4_sitl_test test_results_junit'
+            junit 'build/px4_sitl_test/JUnitTestResults.xml'
           }
         }
 
@@ -66,6 +66,7 @@ pipeline {
             sh 'export'
             sh('make px4_sitl_default package')
             stash(name: "px4_sitl_package", includes: "build/px4_sitl_default/*.bz2")
+            archiveArtifacts(artifacts: "build/px4_sitl_default/*.bz2", fingerprint: true, onlyIfSuccessful: true)
           }
         }
 
@@ -146,7 +147,7 @@ pipeline {
         stage('code coverage (python)') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2018-11-22'
+              image 'px4io/px4-dev-base:2019-01-26'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw --cap-add SYS_PTRACE'
             }
           }
@@ -169,14 +170,14 @@ pipeline {
         stage('unit tests') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2018-11-22'
+              image 'px4io/px4-dev-base:2019-01-26'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw --cap-add SYS_PTRACE'
             }
           }
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'make px4_sitl_default test_results_junit'
+            sh 'make px4_sitl_test test_results_junit'
             withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
               sh 'curl -s https://codecov.io/bash | bash -s - -F unittest'
             }
@@ -201,7 +202,7 @@ pipeline {
   }
 
   options {
-    buildDiscarder(logRotator(numToKeepStr: '5', artifactDaysToKeepStr: '30'))
+    buildDiscarder(logRotator(numToKeepStr: '2', artifactDaysToKeepStr: '14'))
     timeout(time: 60, unit: 'MINUTES')
   }
 } // pipeline
@@ -210,7 +211,7 @@ def createTestNode(Map test_def) {
   return {
     node {
       cleanWs()
-      docker.image("px4io/px4-dev-ros-kinetic:2018-09-11").inside('-e HOME=${WORKSPACE} --cap-add SYS_PTRACE') {
+      docker.image("px4io/px4-dev-ros-kinetic:2018-09-11").inside('-e HOME=${WORKSPACE} --cap-add SYS_PTRACE --entrypoint=""') {
         stage(test_def.name) {
           def test_ok = true
           sh('export')

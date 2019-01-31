@@ -34,7 +34,8 @@
 px4_add_module(
 	MODULE drivers__rgbled_ncp5623c
 	MAIN rgbled_ncp5623c
-	COMPILE_FLAGS
+	STACK_MAIN
+		1500
 	SRCS
 		rgbled_ncp5623c.cpp
 	DEPENDS

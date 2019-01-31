@@ -374,35 +374,36 @@ FixedwingPositionControl::manual_control_setpoint_poll()
 void
 FixedwingPositionControl::airspeed_poll()
 {
+	bool airspeed_valid = _airspeed_valid;
+
 	if (!_parameters.airspeed_disabled && _sub_airspeed.update()) {
 
-		const airspeed_s &airspeed = _sub_airspeed.get();
+		const airspeed_s &as = _sub_airspeed.get();
 
-		_airspeed_valid = PX4_ISFINITE(airspeed.indicated_airspeed_m_s)
-				  && PX4_ISFINITE(airspeed.true_airspeed_m_s)
-				  && (airspeed.indicated_airspeed_m_s > 0.0f);
+		if (PX4_ISFINITE(as.indicated_airspeed_m_s)
+		    && PX4_ISFINITE(as.true_airspeed_m_s)
+		    && (as.indicated_airspeed_m_s > 0.0f)) {
 
-		_airspeed_last_received = hrt_absolute_time();
-		_airspeed = airspeed.indicated_airspeed_m_s;
+			airspeed_valid = true;
 
-		if (_airspeed_valid
-		    && airspeed.true_airspeed_m_s > airspeed.indicated_airspeed_m_s) {
+			_airspeed_last_valid = as.timestamp;
+			_airspeed = as.indicated_airspeed_m_s;
 
-			_eas2tas = max(airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s, 1.0f);
-
-		} else {
-			_eas2tas = 1.0f;
+			_eas2tas = constrain(as.true_airspeed_m_s / as.indicated_airspeed_m_s, 0.9f, 2.0f);
 		}
 
 	} else {
-		/* no airspeed updates for one second */
-		if (_airspeed_valid && (hrt_absolute_time() - _airspeed_last_received) > 1e6) {
-			_airspeed_valid = false;
+		// no airspeed updates for one second
+		if (airspeed_valid && (hrt_elapsed_time(&_airspeed_last_valid) > 1_s)) {
+			airspeed_valid = false;
 		}
 	}
 
-	/* update TECS state */
-	_tecs.enable_airspeed(_airspeed_valid);
+	// update TECS if validity changed
+	if (airspeed_valid != _airspeed_valid) {
+		_tecs.enable_airspeed(airspeed_valid);
+		_airspeed_valid = airspeed_valid;
+	}
 }
 
 void
@@ -820,20 +821,20 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 
 	calculate_gndspeed_undershoot(curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
 
-	// l1 navigation logic breaks down when wind speed exceeds max airspeed
-	// compute 2D groundspeed from airspeed-heading projection
-	Vector2f air_speed_2d{_airspeed * cosf(_yaw), _airspeed * sinf(_yaw)};
-	Vector2f nav_speed_2d{0.0f, 0.0f};
+	Vector2f nav_speed_2d{ground_speed};
 
-	// angle between air_speed_2d and ground_speed
-	float air_gnd_angle = acosf((air_speed_2d * ground_speed) / (air_speed_2d.length() * ground_speed.length()));
+	if (_airspeed_valid) {
+		// l1 navigation logic breaks down when wind speed exceeds max airspeed
+		// compute 2D groundspeed from airspeed-heading projection
+		const Vector2f air_speed_2d{_airspeed * cosf(_yaw), _airspeed * sinf(_yaw)};
 
-	// if angle > 90 degrees or groundspeed is less than threshold, replace groundspeed with airspeed projection
-	if ((fabsf(air_gnd_angle) > M_PI_2_F) || (ground_speed.length() < 3.0f)) {
-		nav_speed_2d = air_speed_2d;
+		// angle between air_speed_2d and ground_speed
+		const float air_gnd_angle = acosf((air_speed_2d * ground_speed) / (air_speed_2d.length() * ground_speed.length()));
 
-	} else {
-		nav_speed_2d = ground_speed;
+		// if angle > 90 degrees or groundspeed is less than threshold, replace groundspeed with airspeed projection
+		if ((fabsf(air_gnd_angle) > M_PI_2_F) || (ground_speed.length() < 3.0f)) {
+			nav_speed_2d = air_speed_2d;
+		}
 	}
 
 	/* no throttle limit as default */
@@ -1463,7 +1464,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 	/* calculate a waypoint distance value which is 0 when the aircraft is behind the waypoint */
 	float wp_distance_save = wp_distance;
 
-	if (fabsf(bearing_airplane_currwp - bearing_lastwp_currwp) >= radians(90.0f)) {
+	if (fabsf(wrap_pi(bearing_airplane_currwp - bearing_lastwp_currwp)) >= radians(90.0f)) {
 		wp_distance_save = 0.0f;
 	}
 

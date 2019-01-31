@@ -1,7 +1,8 @@
 
 #pragma once
 
-#include <cinttypes>
+#include <inttypes.h>
+#include <string.h>
 
 #define ATOMIC_ENTER lock()
 #define ATOMIC_LEAVE unlock()

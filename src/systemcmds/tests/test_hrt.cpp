@@ -1,7 +1,6 @@
 /****************************************************************************
- * px4/sensors/test_hrt.c
  *
- *  Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -13,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,9 +31,10 @@
  *
  ****************************************************************************/
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
+/**
+ * @file test_hrt.c
+ * Tests the high resolution timer.
+ */
 
 #include <px4_config.h>
 #include <px4_posix.h>
@@ -55,34 +55,6 @@
 
 #include "tests_main.h"
 
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Private Types
- ****************************************************************************/
-
-/****************************************************************************
- * Private Function Prototypes
- ****************************************************************************/
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
 
 extern uint16_t ppm_buffer[];
 extern unsigned ppm_decoded_channels;
@@ -124,10 +96,10 @@ int test_tone(int argc, char *argv[])
 	int fd, result;
 	unsigned long tone;
 
-	fd = px4_open(TONEALARM0_DEVICE_PATH, O_WRONLY);
+	fd = px4_open(TONE_ALARM0_DEVICE_PATH, O_WRONLY);
 
 	if (fd < 0) {
-		printf("failed opening " TONEALARM0_DEVICE_PATH "\n");
+		printf("failed opening " TONE_ALARM0_DEVICE_PATH "\n");
 		goto out;
 	}
 
@@ -175,10 +147,6 @@ out:
 	return 0;
 }
 
-/****************************************************************************
- * Name: test_hrt
- ****************************************************************************/
-
 int test_hrt(int argc, char *argv[])
 {
 	struct hrt_call call;
@@ -191,7 +159,7 @@ int test_hrt(int argc, char *argv[])
 	for (i = 0; i < 10; i++) {
 		prev = hrt_absolute_time();
 		gettimeofday(&tv1, nullptr);
-		usleep(100000);
+		px4_usleep(100000);
 		now = hrt_absolute_time();
 		gettimeofday(&tv2, nullptr);
 		printf("%lu (%lu/%lu), %lu (%lu/%lu), %lu\n",
@@ -201,7 +169,7 @@ int test_hrt(int argc, char *argv[])
 		fflush(stdout);
 	}
 
-	usleep(1000000);
+	px4_usleep(1000000);
 
 	printf("one-second ticks\n");
 
@@ -209,7 +177,7 @@ int test_hrt(int argc, char *argv[])
 		hrt_call_after(&call, 1000000, nullptr, nullptr);
 
 		while (!hrt_called(&call)) {
-			usleep(1000);
+			px4_usleep(1000);
 		}
 
 		printf("tick\n");

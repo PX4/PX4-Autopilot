@@ -45,9 +45,11 @@
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_shutdown.h>
+
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <errno.h>
 
 #include <parameters/param.h>
 
@@ -353,9 +355,9 @@ out:
 	return result;
 }
 
-int flash_param_save()
+int flash_param_save(bool only_unsaved)
 {
-	return param_export_internal(false);
+	return param_export_internal(only_unsaved);
 }
 
 int flash_param_load()
@@ -366,5 +368,5 @@ int flash_param_load()
 
 int flash_param_import()
 {
-	return -1;
+	return param_import_internal(false);
 }
