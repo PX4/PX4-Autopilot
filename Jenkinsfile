@@ -524,7 +524,7 @@ pipeline {
           when {
             anyOf {
               branch 'master'
-              branch 'pr-jenkins' // for testing
+              branch 'feature/jenkins_deploy_px4_ros_com' // for testing
             }
           }
           options {
