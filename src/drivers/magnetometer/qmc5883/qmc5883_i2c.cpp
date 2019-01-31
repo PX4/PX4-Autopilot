@@ -118,24 +118,43 @@ QMC5883_I2C::probe()
 
 	// must read registers 0x00 once or reset to read ID registers reliably
 	read(0x00, &data[0], 1);
+	read(0x00, &data[0], 1);
+	read(0x00, &data[0], 1);
 
 	_retries = 10;
 
-	if (read(ADDR_ID_A, &data[0], 1) ||
-	    read(ADDR_ID_B, &data[1], 1)) {
-	    	DEVICE_DEBUG("read_reg fail");
-		return -EIO;
+	unsigned count = _retries;
+	bool read_valid = false;
+	bool id_valid = false;
+
+	while(count > 0){
+
+		//attempt read
+		if(!read(ADDR_ID_A, &data[0], 1) &&
+	    	   !read(ADDR_ID_B, &data[1], 1)){
+			read_valid = true;
+		}
+
+		if(read_valid && data[0] == ID_A_WHO_AM_I &&
+	           data[1] == ID_B_WHO_AM_I){
+			id_valid = true;
+		}
+		
+		if(read_valid && id_valid){
+			return OK;
+		}
+		// wait 100 usec
+		usleep(100);
+		--count;
 	}
 
-	_retries = 2;
-
-	if ((data[0] != ID_A_WHO_AM_I) ||
-	    (data[1] != ID_B_WHO_AM_I)) {
-		DEVICE_DEBUG("ID byte mismatch (%02x,%02x)", data[0], data[1]);
-		return -EIO;
+	if(!read_valid){
+		DEVICE_DEBUG("read_reg fail");
 	}
 
-	return OK;
+	DEVICE_DEBUG("ID byte mismatch (%02x,%02x)", data[0], data[1]);
+
+	return -EIO;
 }
 
 int
