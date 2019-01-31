@@ -50,6 +50,7 @@ CameraCapture	*g_camera_capture;
 
 CameraCapture::CameraCapture() :
 	_capture_enabled(false),
+	_gpio_capture(false),
 	_trigger_pub(nullptr),
 	_command_ack_pub(nullptr),
 	_command_sub(-1),
@@ -100,6 +101,22 @@ CameraCapture::capture_callback(uint32_t chan_index,
 	work_queue(HPWORK, &_work_publisher, (worker_t)&CameraCapture::publish_trigger_trampoline, this, 0);
 }
 
+int
+CameraCapture::gpio_interrupt_routine(int irq, void *context, void *arg)
+{
+	CameraCapture *dev = reinterpret_cast<CameraCapture *>(arg);
+
+	dev->_trigger.chan_index = 0;
+	dev->_trigger.edge_time = hrt_absolute_time();
+	dev->_trigger.edge_state = 0;
+	dev->_trigger.overflow = 0;
+
+	work_queue(HPWORK, &_work_publisher, (worker_t)&CameraCapture::publish_trigger_trampoline, dev, 0);
+
+	return PX4_OK;
+
+}
+
 void
 CameraCapture::publish_trigger_trampoline(void *arg)
 {
@@ -116,7 +133,7 @@ CameraCapture::publish_trigger()
 	struct camera_trigger_s	trigger {};
 
 	// MODES 1 and 2 are not fully tested
-	if (_camera_capture_mode == 0) {
+	if (_camera_capture_mode == 0 || _gpio_capture) {
 		trigger.timestamp = _trigger.edge_time - uint64_t(1000 * _strobe_delay);
 		trigger.seq = _capture_seq++;
 		_last_trig_time = trigger.timestamp;
@@ -248,6 +265,8 @@ CameraCapture::cycle()
 void
 CameraCapture::set_capture_control(bool enabled)
 {
+#if !defined CONFIG_ARCH_BOARD_AV_X_V1
+
 	int fd = -1;
 
 	fd = ::open(PX4FMU_DEVICE_PATH, O_RDWR);
@@ -295,6 +314,7 @@ CameraCapture::set_capture_control(bool enabled)
 
 	if (::ioctl(fd, INPUT_CAP_SET_CALLBACK, (unsigned long)&conf) == 0) {
 		_capture_enabled = enabled;
+		_gpio_capture = false;
 
 	} else {
 		PX4_ERR("Unable to set capture callback for chan %u\n", conf.channel);
@@ -302,9 +322,21 @@ CameraCapture::set_capture_control(bool enabled)
 		goto err_out;
 	}
 
+#else
+
+	px4_arch_gpiosetevent(GPIO_TRIG_AVX, true, false, true, &CameraCapture::gpio_interrupt_routine, this);
+	_capture_enabled = enabled;
+	_gpio_capture = true;
+
+#endif
+
 	reset_statistics(false);
+
+#if !defined CONFIG_ARCH_BOARD_AV_X_V1
 err_out:
 	::close(fd);
+#endif
+
 	return;
 }
 
