@@ -40,21 +40,39 @@ The generated files will be written to the `modules` directory.
 
         self._outputs['main'] = result
 
-
         for category in sorted(module_groups):
             result = "# Modules Reference: %s\n" % category.capitalize()
-            module_list = module_groups[category]
-            for module in module_list:
-                result += "## %s\n" % module.name()
-                result += "Source: [%s](https://github.com/PX4/Firmware/tree/master/src/%s)\n\n" % (module.scope(), module.scope())
-                doc = module.documentation()
-                if len(doc) > 0:
-                    result += "%s\n" % doc
-                usage_string = module.usage_string()
-                if len(usage_string) > 0:
-                    result += "### Usage {#%s_usage}\n```\n%s\n```\n" % (module.name(), usage_string)
+            subcategories = module_groups[category]
+            if len(subcategories) > 1:
+                result += 'Subcategories:\n'
+                for subcategory in subcategories:
+                    if subcategory == '':
+                        continue
+                    subcategory_label = subcategory.replace('_', ' ').title()
+                    subcategory_file_name = category+'_'+subcategory
+                    result += '- [%s](modules_%s.md)\n' % (subcategory_label, subcategory_file_name)
 
+                    # add a sub-page for the subcategory
+                    result_subpage = '# Modules Reference: %s (%s)\n' % \
+                        (subcategory_label, category.capitalize())
+                    result_subpage += self._ProcessModules(subcategories[subcategory])
+                    self._outputs[subcategory_file_name] = result_subpage
+
+            result += '\n' + self._ProcessModules(subcategories[''])
             self._outputs[category] = result
+
+    def _ProcessModules(self, module_list):
+        result = ''
+        for module in module_list:
+            result += "## %s\n" % module.name()
+            result += "Source: [%s](https://github.com/PX4/Firmware/tree/master/src/%s)\n\n" % (module.scope(), module.scope())
+            doc = module.documentation()
+            if len(doc) > 0:
+                result += "%s\n" % doc
+            usage_string = module.usage_string()
+            if len(usage_string) > 0:
+                result += "### Usage {#%s_usage}\n```\n%s\n```\n" % (module.name(), usage_string)
+        return result
 
     def Save(self, dirname):
         for output_name in self._outputs:

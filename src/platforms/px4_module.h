@@ -473,6 +473,12 @@ __EXPORT void PRINT_MODULE_DESCRIPTION(const char *description);
 __EXPORT void PRINT_MODULE_USAGE_NAME(const char *executable_name, const char *category);
 
 /**
+ * @brief Specify a subcategory.
+ * @param subcategory e.g. if the category is 'driver', subcategory can be 'distance_sensor'
+ */
+__EXPORT void PRINT_MODULE_USAGE_SUBCATEGORY(const char *subcategory);
+
+/**
  * @brief Prints the name for a command without any sub-commands (@see PRINT_MODULE_USAGE_NAME()).
  */
 __EXPORT void PRINT_MODULE_USAGE_NAME_SIMPLE(const char *executable_name, const char *category);

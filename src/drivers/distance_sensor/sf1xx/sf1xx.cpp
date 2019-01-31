@@ -835,6 +835,7 @@ $ sf1xx stop
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("sf1xx", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Attempt to start driver on all I2C buses", true);
 	PRINT_MODULE_USAGE_PARAM_INT('b', 1, 1, 2000, "Start driver on specific I2C bus", true);
