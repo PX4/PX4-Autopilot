@@ -40,63 +40,53 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
+#include <lib/tunes/tunes.h>
 #include <px4_posix.h>
+#include <uORB/topics/tune_control.h>
 
 #include "tests_main.h"
 
-
 int test_tone(int argc, char *argv[])
 {
-	int fd, result;
-	unsigned long tone;
+	int result = PX4_ERROR;
+	tune_control_s tune_control = {};
+	tune_control.tune_id = static_cast<int>(TuneID::NOTIFY_NEGATIVE);
 
-	fd = px4_open(TONE_ALARM0_DEVICE_PATH, O_WRONLY);
+	orb_advert_t tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
 
-	if (fd < 0) {
-		printf("failed opening " TONE_ALARM0_DEVICE_PATH "\n");
-		goto out;
+	if (argc == 1) {
+		PX4_INFO("Volume silenced for testing predefined tunes 0-20.");
+		tune_control.strength = 0;
+
+		for (size_t i = 0; i <= 20; i++) {
+			tune_control.tune_id = i;
+			result = orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
+
+			if (result != PX4_OK) {
+				PX4_INFO("Error publishing TuneID: %d", tune_control.tune_id);
+				return result;
+			}
+		}
+
+		tune_control.tune_id = static_cast<int>(TuneID::NOTIFY_POSITIVE);
 	}
-
-	tone = 1;
 
 	if (argc == 2) {
-		tone = atoi(argv[1]);
-	}
-
-	if (tone  == 0) {
-		result = px4_ioctl(fd, TONE_SET_ALARM, TONE_STOP_TUNE);
-
-		if (result < 0) {
-			printf("failed clearing alarms\n");
-			goto out;
-
-		} else {
-			printf("Alarm stopped.\n");
-		}
-
-	} else {
-		result = px4_ioctl(fd, TONE_SET_ALARM, TONE_STOP_TUNE);
-
-		if (result < 0) {
-			printf("failed clearing alarms\n");
-			goto out;
-		}
-
-		result = px4_ioctl(fd, TONE_SET_ALARM, tone);
-
-		if (result < 0) {
-			printf("failed setting alarm %lu\n", tone);
-
-		} else {
-			printf("Alarm %lu (disable with: tests tone 0)\n", tone);
+		if (tune_control.tune_id <= 20) {
+			tune_control.tune_id = atoi(argv[1]);
+			PX4_INFO("Testing TuneID: %d", tune_control.tune_id);
 		}
 	}
 
-out:
-
-	if (fd >= 0) {
-		px4_close(fd);
+	if (argc == 3) {
+		Tunes tunes{};
+		tunes.set_string(argv[2], 40);
+		PX4_INFO("Testing custom tune.");
 	}
 
-	return 0;
+	tune_control.strength = 40;
+	result = orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
+
+	orb_unadvertise(tune_control_pub);
+	return result;
 }
