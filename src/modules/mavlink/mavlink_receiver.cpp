@@ -83,19 +83,13 @@
 using matrix::wrap_2pi;
 
 MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
+	ModuleParams(nullptr),
 	_mavlink(parent),
 	_mavlink_ftp(parent),
 	_mavlink_log_handler(parent),
 	_mavlink_timesync(parent),
 	_mission_manager(parent),
-	_parameters_manager(parent),
-	_p_bat_emergen_thr(param_find("BAT_EMERGEN_THR")),
-	_p_bat_crit_thr(param_find("BAT_CRIT_THR")),
-	_p_bat_low_thr(param_find("BAT_LOW_THR")),
-	_p_flow_rot(param_find("SENS_FLOW_ROT")),
-	_p_flow_maxr(param_find("SENS_FLOW_MAXR")),
-	_p_flow_minhgt(param_find("SENS_FLOW_MINHGT")),
-	_p_flow_maxhgt(param_find("SENS_FLOW_MAXHGT"))
+	_parameters_manager(parent)
 {
 	/* Make the attitude quaternion valid */
 	_att.q[0] = 1.0f;
@@ -334,14 +328,7 @@ void
 MavlinkReceiver::send_flight_information()
 {
 	mavlink_flight_information_t flight_info{};
-
-	param_t param_flight_uuid = param_find("COM_FLIGHT_UUID");
-
-	if (param_flight_uuid != PARAM_INVALID) {
-		int32_t flight_uuid;
-		param_get(param_flight_uuid, &flight_uuid);
-		flight_info.flight_uuid = (uint64_t)flight_uuid;
-	}
+	flight_info.flight_uuid = static_cast<uint64_t>(_param_com_flight_uuid.get());
 
 	actuator_armed_s actuator_armed{};
 	bool ret = _actuator_armed_sub.copy(&actuator_armed);
@@ -580,27 +567,25 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	mavlink_msg_optical_flow_rad_decode(msg, &flow);
 
 	/* read flow sensor parameters */
-	int32_t flow_rot_int;
-	param_get(_p_flow_rot, &flow_rot_int);
-	const enum Rotation flow_rot = (Rotation)flow_rot_int;
+	const enum Rotation flow_rot = (Rotation)_param_sens_flow_rot.get();
 
 	struct optical_flow_s f = {};
 
 	f.timestamp = _mavlink_timesync.sync_stamp(flow.time_usec);
-	f.integration_timespan = flow.integration_time_us;
+	f.time_since_last_sonar_update = flow.time_delta_distance_us;
+	f.integration_timespan  = flow.integration_time_us;
 	f.pixel_flow_x_integral = flow.integrated_x;
 	f.pixel_flow_y_integral = flow.integrated_y;
-	f.gyro_x_rate_integral = flow.integrated_xgyro;
-	f.gyro_y_rate_integral = flow.integrated_ygyro;
-	f.gyro_z_rate_integral = flow.integrated_zgyro;
-	f.time_since_last_sonar_update = flow.time_delta_distance_us;
-	f.ground_distance_m = flow.distance;
-	f.quality = flow.quality;
-	f.sensor_id = flow.sensor_id;
-	f.gyro_temperature = flow.temperature;
-	param_get(_p_flow_maxr, &f.max_flow_rate);
-	param_get(_p_flow_minhgt, &f.min_ground_distance);
-	param_get(_p_flow_maxhgt, &f.max_ground_distance);
+	f.gyro_x_rate_integral  = flow.integrated_xgyro;
+	f.gyro_y_rate_integral  = flow.integrated_ygyro;
+	f.gyro_z_rate_integral  = flow.integrated_zgyro;
+	f.gyro_temperature      = flow.temperature;
+	f.ground_distance_m     = flow.distance;
+	f.quality               = flow.quality;
+	f.sensor_id             = flow.sensor_id;
+	f.max_flow_rate         = _param_sens_flow_maxr.get();
+	f.min_ground_distance   = _param_sens_flow_minhgt.get();
+	f.max_ground_distance   = _param_sens_flow_maxhgt.get();
 
 	/* rotate measurements according to parameter */
 	float zeroval = 0.0f;
@@ -1536,23 +1521,15 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 	battery_status.cell_count = cell_count;
 	battery_status.connected = true;
 
-	// Get the battery level thresholds.
-	float bat_emergen_thr;
-	float bat_crit_thr;
-	float bat_low_thr;
-	param_get(_p_bat_emergen_thr, &bat_emergen_thr);
-	param_get(_p_bat_crit_thr, &bat_crit_thr);
-	param_get(_p_bat_low_thr, &bat_low_thr);
-
 	// Set the battery warning based on remaining charge.
 	//  Note: Smallest values must come first in evaluation.
-	if (battery_status.remaining < bat_emergen_thr) {
+	if (battery_status.remaining < _param_bat_emergen_thr.get()) {
 		battery_status.warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
 
-	} else if (battery_status.remaining < bat_crit_thr) {
+	} else if (battery_status.remaining < _param_bat_crit_thr.get()) {
 		battery_status.warning = battery_status_s::BATTERY_WARNING_CRITICAL;
 
-	} else if (battery_status.remaining < bat_low_thr) {
+	} else if (battery_status.remaining < _param_bat_low_thr.get()) {
 		battery_status.warning = battery_status_s::BATTERY_WARNING_LOW;
 	}
 
@@ -2589,6 +2566,8 @@ MavlinkReceiver::receive_thread(void *arg)
 	hrt_abstime last_send_update = 0;
 
 	while (!_mavlink->_task_should_exit) {
+		update_params(false);
+
 		if (poll(&fds[0], 1, timeout) > 0) {
 			if (_mavlink->get_protocol() == SERIAL) {
 
@@ -2737,4 +2716,18 @@ MavlinkReceiver::receive_start(pthread_t *thread, Mavlink *parent)
 	pthread_create(thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void *)parent);
 
 	pthread_attr_destroy(&receiveloop_attr);
+}
+
+void
+MavlinkReceiver::update_params(const bool force)
+{
+	bool updated;
+	parameter_update_s param_update;
+
+	orb_check(_param_sub, &updated);
+
+	if (updated || force) {
+		updateParams();
+		orb_copy(ORB_ID(parameter_update), _param_sub, &param_update);
+	}
 }
