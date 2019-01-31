@@ -87,9 +87,9 @@ $ tune_control play -t 2
 
 	PRINT_MODULE_USAGE_NAME("tune_control", "system");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("play","Play system tune, tone, or melody");
-        PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 21, "Play predefined system tune", true);
-        PRINT_MODULE_USAGE_PARAM_INT('f', 0, 0, 22, "Frequency of tone in Hz (0-22kHz)", true);
-	PRINT_MODULE_USAGE_PARAM_INT('d', 1, 1, 21, "Duration of tone in us", true);
+	PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 21, "Play predefined system tune", true);
+	PRINT_MODULE_USAGE_PARAM_INT('f', -1, 0, 22, "Frequency of tone in Hz (0-22kHz)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('d', -1, 1, 21, "Duration of tone in us", true);
 	PRINT_MODULE_USAGE_PARAM_INT('s', 40, 0, 100, "Strength of tone (0-100)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('m', nullptr,  R"(<string> - e.g. "MFT200e8a8a")",
 					 "Melody in string form", true);

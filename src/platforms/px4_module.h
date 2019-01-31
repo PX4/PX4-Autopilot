@@ -499,7 +499,7 @@ __EXPORT void PRINT_MODULE_USAGE_COMMAND_DESCR(const char *name, const char *des
 /**
  * @brief Prints an integer parameter.
  * @param option_char The option character.
- * @param default_val The parameter default value.
+ * @param default_val The parameter default value (set to -1 if not applicable).
  * @param min_val The parameter minimum value.
  * @param max_val The parameter value.
  * @param description Pointer to the usage description.
@@ -511,7 +511,7 @@ __EXPORT void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, in
 /**
  * @brief Prints a float parameter.
  * @note See PRINT_MODULE_USAGE_PARAM_INT().
- * @param default_val The parameter default value.
+ * @param default_val The parameter default value (set to NaN if not applicable).
  * @param min_val The parameter minimum value.
  * @param max_val The parameter maximum value.
  * @param description Pointer to the usage description. Pointer to the usage description.

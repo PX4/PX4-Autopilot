@@ -92,7 +92,8 @@ class ModuleDocumentation(object):
         description = self._get_string(args[4])
         if self._is_bool_true(args[5]):
             self._usage_string += "     [-%s <val>]  %s\n" % (option_char, description)
-            self._usage_string += "                 default: %i\n" % default_val
+            if default_val != -1:
+                self._usage_string += "                 default: %i\n" % default_val
         else:
             self._usage_string += "     -%s <val>    %s\n" % (option_char, description)
 
@@ -103,7 +104,8 @@ class ModuleDocumentation(object):
         description = self._get_string(args[4])
         if self._is_bool_true(args[5]):
             self._usage_string += "     [-%s <val>]  %s\n" % (option_char, description)
-            self._usage_string += "                 default: %.1f\n" % default_val
+            if not math.isnan(default_val):
+                self._usage_string += "                 default: %.1f\n" % default_val
         else:
             self._usage_string += "     -%s <val>    %s\n" % (option_char, description)
 
