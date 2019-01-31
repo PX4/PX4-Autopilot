@@ -75,6 +75,7 @@ px4_add_romfs_files(
 	4041_beta75x
 	4050_generic_250
 	4051_s250aq
+	4052_holybro_qav250
 	4060_dji_matrice_100
 	4070_aerofc
 	4080_zmr250
