@@ -95,11 +95,11 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 
 	if (_velocity_setpoint(2) < 0.f) { // up
 		_smoothing[2].setMaxAccel(MPC_ACC_UP_MAX.get());
-		_smoothing[2].setMaxVel(_constraints.speed_up);
+		_smoothing[2].setMaxVel(MPC_Z_VEL_MAX_UP.get());
 
 	} else { // down
 		_smoothing[2].setMaxAccel(MPC_ACC_DOWN_MAX.get());
-		_smoothing[2].setMaxVel(_constraints.speed_down);
+		_smoothing[2].setMaxVel(MPC_Z_VEL_MAX_DN.get());
 	}
 
 	Vector2f vel_xy_sp = Vector2f(&_velocity_setpoint(0));
