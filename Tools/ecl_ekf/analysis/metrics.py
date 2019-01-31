@@ -45,7 +45,7 @@ def calculate_ecl_ekf_metrics(
 def calculate_sensor_metrics(
         ulog: ULog, sensor_checks: List[str], in_air: InAirDetector,
         in_air_no_ground_effects: InAirDetector, red_thresh: float = 1.0,
-        amb_thresh: float = 0.5) -> dict:
+        amb_thresh: float = 0.5) -> Dict[str, float]:
 
     estimator_status_data = ulog.get_dataset('estimator_status').data
 
@@ -68,14 +68,14 @@ def calculate_sensor_metrics(
             estimator_status_data, 'estimator_status', signal, in_air_detector,
             lambda x: 100.0 * np.mean(x > amb_thresh))
 
-        # the percentage of samples above / below std dev
+        # the peak and mean ratio of samples above / below std dev
         peak = calculate_stat_from_signal(
-            estimator_status_data, 'estimator_status', signal, in_air, np.amax)
+            estimator_status_data, 'estimator_status', signal, in_air_detector, np.amax)
         if peak > 0.0:
             sensor_metrics['{:s}_test_max'.format(result)] = peak
             sensor_metrics['{:s}_test_mean'.format(result)] = calculate_stat_from_signal(
                 estimator_status_data, 'estimator_status', signal,
-                in_air_no_ground_effects, np.mean)
+                in_air_detector, np.mean)
 
     return sensor_metrics
 
