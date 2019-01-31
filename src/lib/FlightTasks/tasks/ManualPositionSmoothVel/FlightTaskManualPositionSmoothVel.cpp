@@ -76,8 +76,10 @@ void FlightTaskManualPositionSmoothVel::reset(Axes axes)
 	}
 
 	_position_lock_xy_active = false;
+	_position_lock_z_active = false;
 	_position_setpoint_xy_locked(0) = NAN;
 	_position_setpoint_xy_locked(1) = NAN;
+	_position_setpoint_z_locked = NAN;
 }
 
 void FlightTaskManualPositionSmoothVel::_updateSetpoints()
@@ -140,6 +142,16 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 		_position_lock_xy_active = false;
 	}
 
+	if (fabsf(_sticks_expo(2)) > FLT_EPSILON) {
+		if (_position_lock_z_active) {
+			_smoothing[2].setCurrentVelocity(_velocity_setpoint_feedback(
+					0)); // Start the trajectory at the current velocity setpoint
+			_position_setpoint_z_locked = NAN;
+		}
+
+		_position_lock_z_active = false;
+	}
+
 	for (int i = 0; i < 3; ++i) {
 		_smoothing[i].setMaxJerk(jerk[i]);
 		_smoothing[i].updateDurations(_deltatime, _velocity_setpoint(i));
@@ -157,27 +169,38 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 		}
 	}
 
+	if (!_position_lock_xy_active) {
+		_smoothing[0].setCurrentPosition(_position(0));
+		_smoothing[1].setCurrentPosition(_position(1));
+	}
+	if (!_position_lock_z_active) {
+		_smoothing[2].setCurrentPosition(_position(2));
+	}
+
 	Vector3f pos_sp_smooth;
-	Vector3f accel_sp_smooth;
-
 	for (int i = 0; i < 3; ++i) {
-		if (!_position_lock_xy_active) {
-			_smoothing[i].setCurrentPosition(_position(i));
-		}
 
-		_smoothing[i].integrate(accel_sp_smooth(i), _vel_sp_smooth(i), pos_sp_smooth(i));
+		_smoothing[i].integrate(_acceleration_setpoint(i), _vel_sp_smooth(i), pos_sp_smooth(i));
 		_velocity_setpoint(i) = _vel_sp_smooth(i); // Feedforward
+		_jerk_setpoint(i) = _smoothing[i].getCurrentJerk();
 	}
 
 	// Check for position lock transition
 	if (Vector2f(_vel_sp_smooth).length() < 0.01f &&
-	    Vector2f(accel_sp_smooth).length() < .2f &&
+	    Vector2f(_acceleration_setpoint).length() < .2f &&
 	    sticks_expo_xy.length() <= FLT_EPSILON) {
 		_position_setpoint_xy_locked(0) = pos_sp_smooth(0);
 		_position_setpoint_xy_locked(1) = pos_sp_smooth(1);
 		_position_lock_xy_active = true;
 	}
+	if (fabsf(_vel_sp_smooth(2)) < 0.01f &&
+	    fabsf(_acceleration_setpoint(2)) < .2f &&
+	    fabsf(_sticks_expo(2)) <= FLT_EPSILON) {
+		_position_setpoint_z_locked = pos_sp_smooth(2);
+		_position_lock_z_active = true;
+	}
 
 	_position_setpoint(0) = _position_setpoint_xy_locked(0);
 	_position_setpoint(1) = _position_setpoint_xy_locked(1);
+	_position_setpoint(2) = _position_setpoint_z_locked;
 }

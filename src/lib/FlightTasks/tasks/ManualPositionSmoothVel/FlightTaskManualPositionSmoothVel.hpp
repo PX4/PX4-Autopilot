@@ -69,6 +69,9 @@ private:
 	VelocitySmoothing _smoothing[3]; ///< Smoothing in x, y and z directions
 	matrix::Vector3f _vel_sp_smooth;
 	bool _position_lock_xy_active{false};
+	bool _position_lock_z_active{false};
 	matrix::Vector2f _position_setpoint_xy_locked;
+	float _position_setpoint_z_locked;
+
 	uint8_t _reset_counter{0}; /**< counter for estimator resets in xy-direction */
 };
