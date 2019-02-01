@@ -5,19 +5,20 @@
     <arg name="est" default="ekf2"/>
     <arg name="gui" default="false"/>
     <arg name="interactive" default="false"/>
-    <arg name="vehicle" default="iris_obs_avoid"/>
-    <arg name="sdf" default="$(find local_planner)/../sim/models/iris_depth_camera/iris_depth_camera.sdf"/>
-    <arg name="world" default="$(find local_planner)/../sim/worlds/boxes1.world"/>
     <arg name="mission" default="avoidance"/>
+    <arg name="sdf" default="$(find local_planner)/../sim/models/iris_depth_camera/iris_depth_camera.sdf"/>
+    <arg name="vehicle" default="iris_obs_avoid"/>
+    <arg name="world" default="$(find local_planner)/../sim/worlds/boxes1.world"/>
     <!-- PX4 SITL and Gazebo -->
     <include file="$(find px4)/launch/posix_sitl.launch">
         <arg name="est" value="$(arg est)"/>
         <arg name="gui" value="$(arg gui)"/>
         <arg name="interactive" value="$(arg interactive)"/>
-        <arg name="vehicle" value="$(arg vehicle)"/>
-        <arg name="world" value="$(arg world)"/>
-        <arg name="sdf" value="$(arg sdf)"/>
         <arg name="respawn_gazebo" value="true"/>
+        <arg name="sdf" value="$(arg sdf)"/>
+        <arg name="vehicle" value="$(arg vehicle)"/>
+        <arg name="verbose" value="true"/>
+        <arg name="world" value="$(arg world)"/>
     </include>
     <!-- MAVROS -->
     <include file="$(find mavros)/launch/node.launch">
