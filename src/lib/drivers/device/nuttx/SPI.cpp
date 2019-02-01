@@ -124,7 +124,6 @@ SPI::init()
 
 void SPI::lock(struct spi_dev_s *dev)
 {
-	// _is_locked |= (1 << _device_id.devid_s.bus);
 	_is_locked.fetch_or(1 << _device_id.devid_s.bus);
 	SPI_LOCK(dev, true);
 }
@@ -132,7 +131,6 @@ void SPI::lock(struct spi_dev_s *dev)
 void SPI::unlock(struct spi_dev_s *dev)
 {
 	SPI_LOCK(dev, false);
-	// _is_locked &= ~(1 << _device_id.devid_s.bus);
 	_is_locked.fetch_and(~(1 << _device_id.devid_s.bus));
 }
 
@@ -155,6 +153,7 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 		}
 
 	case LOCK_THREADS: {
+			// @NOTE: This assumes one thread per SPI bus.
 			lock(_dev);
 			_transfer(send, recv, len);
 			unlock(_dev);
@@ -162,7 +161,6 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 		}
 
 	case LOCK_NONE: {
-			// if (_is_locked & (1 << _device_id.devid_s.bus)) {
 			if (_is_locked.load() & (1 << _device_id.devid_s.bus)) {
 				// Someone is using the bus
 				perf_count(_isr_deferred);
@@ -213,6 +211,7 @@ SPI::transferhword(uint16_t *send, uint16_t *recv, unsigned len)
 		}
 
 	case LOCK_THREADS: {
+			// @NOTE: This assumes one thread per SPI bus.
 			lock(_dev);
 			_transferhword(send, recv, len);
 			unlock(_dev);
