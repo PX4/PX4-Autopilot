@@ -62,7 +62,7 @@ else()
 			${df_driver_libs}
 			df_driver_framework
 			pthread m
-			
+
 			# horrible circular dependencies that need to be teased apart
 			px4_layer
 			px4_platform
@@ -88,7 +88,7 @@ else()
 			${PROJECT_SOURCE_DIR}/test
 			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 		DESTINATION
-			${PROJECT_NAME}
+			share/${PROJECT_NAME}
 		USE_SOURCE_PERMISSIONS
 		)
 
@@ -127,7 +127,7 @@ elseif ("${PX4_BOARD}" MATCHES "sitl")
 			${PROJECT_SOURCE_DIR}/launch
 			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
 		DESTINATION
-			${PROJECT_NAME}
+			share/${PROJECT_NAME}
 		USE_SOURCE_PERMISSIONS
 		)
 
@@ -137,7 +137,7 @@ elseif ("${PX4_BOARD}" MATCHES "sitl")
 			${PROJECT_SOURCE_DIR}/CMakeLists.txt
 			${PROJECT_SOURCE_DIR}/package.xml
 		DESTINATION
-			${PROJECT_NAME}
+			share/${PROJECT_NAME}
 		)
 
 	# px4 Tools dirs
@@ -145,7 +145,7 @@ elseif ("${PX4_BOARD}" MATCHES "sitl")
 		DIRECTORY
 			${PROJECT_SOURCE_DIR}/Tools/ecl_ekf
 		DESTINATION
-			${PROJECT_NAME}/Tools
+			share/${PROJECT_NAME}/Tools
 		USE_SOURCE_PERMISSIONS
 		)
 
@@ -155,7 +155,7 @@ elseif ("${PX4_BOARD}" MATCHES "sitl")
 			${PROJECT_SOURCE_DIR}/Tools/setup_gazebo.bash
 			${PROJECT_SOURCE_DIR}/Tools/upload_log.py
 		DESTINATION
-			${PROJECT_NAME}/Tools
+			share/${PROJECT_NAME}/Tools
 		)
 
 	# sitl_gazebo built plugins
@@ -163,7 +163,7 @@ elseif ("${PX4_BOARD}" MATCHES "sitl")
 		DIRECTORY
 			${PROJECT_SOURCE_DIR}/build/px4_sitl_default/build_gazebo
 		DESTINATION
-			${PROJECT_NAME}/build/px4_sitl_default
+			share/${PROJECT_NAME}/build/px4_sitl_default
 		FILES_MATCHING
 			PATTERN "CMakeFiles" EXCLUDE
 			PATTERN "*.so"
@@ -175,7 +175,7 @@ elseif ("${PX4_BOARD}" MATCHES "sitl")
 			${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/models
 			${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/worlds
 		DESTINATION
-			${PROJECT_NAME}/Tools/sitl_gazebo
+			share/${PROJECT_NAME}/Tools/sitl_gazebo
 		)
 
 	# sitl_gazebo files
@@ -184,7 +184,7 @@ elseif ("${PX4_BOARD}" MATCHES "sitl")
 			${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/CMakeLists.txt
 			${PROJECT_SOURCE_DIR}/Tools/sitl_gazebo/package.xml
 		DESTINATION
-			${PROJECT_NAME}/Tools/sitl_gazebo
+			share/${PROJECT_NAME}/Tools/sitl_gazebo
 		)
 
 endif()
