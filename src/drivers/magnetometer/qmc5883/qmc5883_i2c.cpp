@@ -123,38 +123,37 @@ QMC5883_I2C::probe()
 
 	_retries = 10;
 
-	unsigned count = _retries;
 	bool read_valid = false;
 	bool id_valid = false;
 
-	while(count > 0){
-
+	for (unsigned i = 0; i < _retries; i++) {
 		//attempt read
-		if(!read(ADDR_ID_A, &data[0], 1) &&
-	    	   !read(ADDR_ID_B, &data[1], 1)){
+		if (!read(ADDR_ID_A, &data[0], 1) &&
+		    !read(ADDR_ID_B, &data[1], 1)) {
 			read_valid = true;
 		}
 
-		if(read_valid && data[0] == ID_A_WHO_AM_I &&
-	           data[1] == ID_B_WHO_AM_I){
+		if (read_valid && data[0] == ID_A_WHO_AM_I &&
+		    data[1] == ID_B_WHO_AM_I) {
 			id_valid = true;
 		}
-		
-		if(read_valid && id_valid){
+
+		if (read_valid && id_valid) {
 			return OK;
 		}
+
 		// wait 100 usec
 		usleep(100);
-		--count;
 	}
 
-	if(!read_valid){
+	if (!read_valid) {
 		DEVICE_DEBUG("read_reg fail");
 	}
-	if(!id_valid){
+
+	if (!id_valid) {
 		DEVICE_DEBUG("ID byte mismatch (%02x,%02x)", data[0], data[1]);
 	}
-	
+
 	return -EIO;
 }
 

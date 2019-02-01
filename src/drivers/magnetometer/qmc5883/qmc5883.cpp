@@ -278,7 +278,7 @@ QMC5883::QMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_measure_ticks(0),
 	_reports(nullptr),
 	_scale{},
-	_range_scale(1.0f / 12000.0f), 
+	_range_scale(1.0f / 12000.0f),
 	_range_ga(2.0f),
 	_collect_phase(false),
 	_class_instance(-1),
@@ -569,9 +569,9 @@ QMC5883::reset()
 
 	/* set control register */
 	_conf_reg = QMC5883_MODE_REG_CONTINOUS_MODE |
-			QMC5883_OUTPUT_DATA_RATE_200|
-			QMC5883_OVERSAMPLE_512 |
-			QMC5883_OUTPUT_RANGE_2G;
+		    QMC5883_OUTPUT_DATA_RATE_200 |
+		    QMC5883_OVERSAMPLE_512 |
+		    QMC5883_OUTPUT_RANGE_2G;
 	write_reg(QMC5883_ADDR_CONTROL_1, _conf_reg);
 
 	return OK;
@@ -687,7 +687,7 @@ QMC5883::collect()
 	report.x = (((int16_t)qmc_report.x[1]) << 8) + qmc_report.x[0];
 	report.y = (((int16_t)qmc_report.y[1]) << 8) + qmc_report.y[0];
 	report.z = (((int16_t)qmc_report.z[1]) << 8) + qmc_report.z[0];
-	
+
 	/*
 	 * If any of the values are -4096, there was an internal math error in the sensor.
 	 * Generalise this to a simple range check that will also catch some bit errors.
@@ -708,13 +708,13 @@ QMC5883::collect()
 		_temperature_counter = 0;
 
 		ret = _interface->read(QMC5883_ADDR_TEMP_OUT_LSB,
-			       raw_temperature, sizeof(raw_temperature));
+				       raw_temperature, sizeof(raw_temperature));
 
 		if (ret == OK) {
 			int16_t temp16 = (((int16_t)raw_temperature[1]) << 8) +
-						 raw_temperature[0];
+					 raw_temperature[0];
 			new_report.temperature = QMC5883_TEMP_OFFSET + temp16 * 1.0f / 100.0f;
-		} 
+		}
 
 	} else {
 		new_report.temperature = _last_report.temperature;
@@ -756,7 +756,7 @@ QMC5883::collect()
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
-	
+
 	new_report.x = ((xraw_f * _range_scale) - _scale.x_offset) * _scale.x_scale;
 	/* flip axes and negate value for y */
 	new_report.y = ((yraw_f * _range_scale) - _scale.y_offset) * _scale.y_scale;
