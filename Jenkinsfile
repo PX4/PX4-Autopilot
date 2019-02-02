@@ -60,6 +60,12 @@ pipeline {
               source /opt/ros/melodic/setup.sh;
               colcon build --event-handlers console_direct+ --symlink-install;
             '''
+            // test if the binary was correctly installed and runs using 'mavros_posix_silt.launch'
+            sh '''#!/bin/bash -l
+              echo $0;
+              source colcon_ws/install/local_setup.bash;
+              rostest px4 pub_test.launch;
+            '''
           }
           post {
             always {
