@@ -151,7 +151,7 @@ int LoadMon::task_spawn(int argc, char *argv[])
 		return ret;
 	}
 
-	_object = obj;
+	_object.store(obj);
 	_task_id = task_id_is_work_queue;
 	return 0;
 }

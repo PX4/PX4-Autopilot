@@ -10,7 +10,7 @@ px4_add_board(
 	BOOTLOADER ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/extras/px4fmuv3_bl.bin
 	IO px4_io-v2_default
 	#TESTING
-	CONSTRAINED_FLASH
+	#CONSTRAINED_FLASH
 	#UAVCAN_INTERFACES 2
 
 	SERIAL_PORTS
@@ -52,12 +52,14 @@ px4_add_board(
 		px4flow
 		px4fmu
 		px4io
+		#roboclaw
 		stm32
 		stm32/adc
 		stm32/tone_alarm
 		#tap_esc
 		#telemetry # all available telemetry drivers
 		#test_ppm
+		tone_alarm
 		#uavcan
 
 	MODULES
@@ -80,7 +82,6 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		navigator
-		#position_estimator_inav
 		sensors
 		vmount
 		vtol_att_control
@@ -107,6 +108,7 @@ px4_add_board(
 		top
 		#topic_listener
 		tune_control
+		#usb_connected
 		ver
 
 	EXAMPLES
@@ -114,13 +116,11 @@ px4_add_board(
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hello
 		#hwtest # Hardware test
+		#matlab_csv_serial
+		#position_estimator_inav
 		#px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
 		#px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app
 		#rover_steering_control # Rover example app
 		#segway
-	)
-
-# remove optional flight task features from fmu-v2 to save flash memory
-list(APPEND flight_tasks_to_remove
-		Orbit
+		#uuv_example_app
 	)

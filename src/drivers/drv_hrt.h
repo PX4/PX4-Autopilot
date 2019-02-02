@@ -39,6 +39,7 @@
 
 #pragma once
 
+#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <stdbool.h>
 #include <inttypes.h>
@@ -98,7 +99,10 @@ __EXPORT extern void	abstime_to_ts(struct timespec *ts, hrt_abstime abstime);
  *
  * This function is not interrupt save.
  */
-__EXPORT extern hrt_abstime hrt_elapsed_time(const hrt_abstime *then);
+static inline hrt_abstime hrt_elapsed_time(const hrt_abstime *then)
+{
+	return hrt_absolute_time() - *then;
+}
 
 /**
  * Compute the delta between a timestamp taken in the past

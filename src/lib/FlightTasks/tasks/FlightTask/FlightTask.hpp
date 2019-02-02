@@ -69,6 +69,7 @@ public:
 
 	/**
 	 * Initialize the uORB subscriptions using an array
+	 * @param subscription_array handling uORB subscribtions externally across task switches
 	 * @return true on success, false on error
 	 */
 	virtual bool initializeSubscriptions(SubscriptionArray &subscription_array);
@@ -86,9 +87,10 @@ public:
 
 	/**
 	 * To be called to adopt parameters from an arrived vehicle command
+	 * @param command received command message containing the parameters
 	 * @return true if accepted, false if declined
 	 */
-	virtual bool applyCommandParameters(const vehicle_command_s &command) { return true; }
+	virtual bool applyCommandParameters(const vehicle_command_s &command) { return false; }
 
 	/**
 	 * Call before activate() or update()
@@ -105,6 +107,7 @@ public:
 
 	/**
 	 * Get the output data
+	 * @return task output setpoints that get executed by the positon controller
 	 */
 	const vehicle_local_position_setpoint_s getPositionSetpoint();
 

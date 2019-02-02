@@ -58,6 +58,7 @@ px4_add_board(
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm
+		tone_alarm
 		uavcan
 
 	MODULES
@@ -81,7 +82,6 @@ px4_add_board(
 		mc_pos_control
 		micrortps_bridge
 		navigator
-		position_estimator_inav
 		sensors
 		vmount
 		vtol_att_control
@@ -119,10 +119,10 @@ px4_add_board(
 		hello
 		hwtest # Hardware test
 		#matlab_csv_serial
+		position_estimator_inav
 		px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
 		px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app
 		rover_steering_control # Rover example app
 		segway
 		uuv_example_app
-
 	)

@@ -658,7 +658,7 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
 
 /**
- * Manual-Position control sub-mode.
+ * Manual-Position control sub-mode
  *
  * The supported sub-modes are:
  * 0 Default position control where sticks map to position/velocity directly. Maximum speeds
@@ -679,7 +679,7 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
 PARAM_DEFINE_INT32(MPC_POS_MODE, 1);
 
 /**
- * Auto sub-mode.
+ * Auto sub-mode
  *
  * @value 0 Default line tracking
  * @value 1 Jerk-limited trajectory
@@ -688,20 +688,20 @@ PARAM_DEFINE_INT32(MPC_POS_MODE, 1);
 PARAM_DEFINE_INT32(MPC_AUTO_MODE, 1);
 
 /**
- * Delay from idle state to arming state.
+ * Enforced delay between arming and takeoff
  *
- * For altitude controlled modes, the transition from
- * idle to armed state is delayed by MPC_IDLE_TKO time to ensure
- * that the propellers have reached idle speed before attempting a
- * takeoff. This delay is particularly useful for vehicles with large
- * propellers.
+ * For altitude controlled modes the time from arming the motors until
+ * a takeoff is possible gets forced to be at least MPC_SPOOLUP_TIME seconds
+ * to ensure the motors and propellers can sppol up and reach idle speed before
+ * getting commanded to spin faster. This delay is particularly useful for vehicles
+ * with slow motor spin-up e.g. because of large propellers.
  *
  * @min 0
  * @max 10
- * @unit sec
+ * @unit s
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_IDLE_TKO, 0.0f);
+PARAM_DEFINE_FLOAT(MPC_SPOOLUP_TIME, 0.0f);
 
 /**
  * Flag to enable obstacle avoidance
@@ -713,7 +713,7 @@ PARAM_DEFINE_FLOAT(MPC_IDLE_TKO, 0.0f);
 PARAM_DEFINE_INT32(MPC_OBS_AVOID, 0);
 
 /**
- * Yaw mode.
+ * Yaw mode
  *
  * Specifies the heading in Auto.
  *

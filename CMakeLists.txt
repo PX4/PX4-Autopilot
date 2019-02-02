@@ -235,6 +235,10 @@ set_property(GLOBAL PROPERTY PX4_MODULE_CONFIG_FILES)
 include(platforms/${PX4_PLATFORM}/cmake/px4_impl_os.cmake)
 list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake)
 
+if(EXISTS "${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake/init.cmake")
+	include(init)
+endif()
+
 # CMake build type (Debug Release RelWithDebInfo MinSizeRel Coverage)
 if (NOT CMAKE_BUILD_TYPE)
 	if (${PX4_PLATFORM} STREQUAL "nuttx")

@@ -73,7 +73,6 @@ px4_add_board(
 		local_position_estimator
 		mc_att_control
 		mc_pos_control
-		position_estimator_inav
 		sensors
 		vmount
 		vtol_att_control

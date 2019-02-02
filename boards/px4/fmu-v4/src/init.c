@@ -201,17 +201,35 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_SBUS_INV);
 	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
 
+	stm32_configgpio(GPIO_8266_GPIO2);
 	stm32_configgpio(GPIO_8266_GPIO0);
-	stm32_configgpio(GPIO_8266_PD);
-	stm32_configgpio(GPIO_8266_RST);
 
 	// Safety - led on in led driver.
 	stm32_configgpio(GPIO_BTN_SAFETY);
 	stm32_configgpio(GPIO_RSSI_IN);
 	stm32_configgpio(GPIO_PPM_IN);
 
-	// Configure SPI all interfaces GPIO.
-	stm32_spiinitialize(PX4_SPI_BUS_RAMTRON | PX4_SPI_BUS_SENSORS);
+	int spi_init_mask = SPI_BUS_INIT_MASK;
+
+#if defined(CONFIG_STM32_SPI4)
+
+	/* We have SPI4 is GPIO_8266_GPIO2 PB4 pin 3 Low */
+	if (stm32_gpioread(GPIO_8266_GPIO2) == 0) {
+		spi_init_mask |= SPI_BUS_INIT_MASK_EXT;
+
+	} else {
+#endif /* CONFIG_STM32_SPI4 */
+
+		stm32_configgpio(GPIO_8266_PD);
+		stm32_configgpio(GPIO_8266_RST);
+
+#if defined(CONFIG_STM32_SPI4)
+	}
+
+#endif /* CONFIG_STM32_SPI4 */
+
+// Configure SPI all interfaces GPIO.
+	stm32_spiinitialize(spi_init_mask);
 
 	// Configure heater GPIO.
 	stm32_configgpio(GPIO_HEATER_INPUT);
@@ -246,6 +264,9 @@ stm32_boardinitialize(void)
 static struct spi_dev_s *spi1;
 static struct spi_dev_s *spi2;
 static struct sdio_dev_s *sdio;
+#if defined(CONFIG_STM32_SPI4)
+static struct spi_dev_s *spi4;
+#endif
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
@@ -328,6 +349,29 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	SPI_SETMODE(spi2, SPIDEV_MODE3);
 	SPI_SELECT(spi2, SPIDEV_FLASH(0), false);
 	SPI_SELECT(spi2, PX4_SPIDEV_BARO, false);
+
+#if defined(CONFIG_STM32_SPI4)
+
+	if (stm32_gpioread(GPIO_8266_GPIO2) == 0) {
+		syslog(LOG_INFO, "[boot] 8266_GPIO2 - Low Initialize SPI port 4 \n");
+
+		// Configure SPI-based devices.
+		spi4 = stm32_spibus_initialize(4);
+
+		if (!spi4) {
+			syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 4\n");
+
+		} else {
+			// Default SPI4 to 20 MHz and de-assert the known chip selects.
+			SPI_SETFREQUENCY(spi4, 20 * 1000 * 1000);
+			SPI_SETBITS(spi4, 8);
+			SPI_SETMODE(spi4, SPIDEV_MODE3);
+			SPI_SELECT(spi4, PX4_SPIDEV_EXTERNAL, false);
+		}
+	}
+
+#endif /* defined(CONFIG_STM32_SPI4) */
+
 
 #ifdef CONFIG_MMCSD
 

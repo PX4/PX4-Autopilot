@@ -53,7 +53,9 @@ function(px4_os_add_flags)
 
 	include_directories(BEFORE SYSTEM
 		${PX4_BINARY_DIR}/NuttX/nuttx/include
+
 		${PX4_BINARY_DIR}/NuttX/nuttx/include/cxx
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/include/cxx
 	)
 
 	include_directories(
@@ -63,6 +65,12 @@ function(px4_os_add_flags)
 
 		${PX4_BINARY_DIR}/NuttX/apps/include
 		)
+
+	# NuttX's disables inline below C99 (comiler.h), but __STDC_VERSION__ isn't set for C++
+	add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-D__STDC_VERSION__=199901L>)
+
+	# prevent using the toolchain's std c++ library
+	add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-nostdinc++>)
 
 	add_definitions(
 		-D__PX4_NUTTX
@@ -114,28 +122,7 @@ function(px4_os_prebuild_targets)
 	endif()
 
 	add_library(prebuild_targets INTERFACE)
-	target_link_libraries(prebuild_targets INTERFACE nuttx_cxx nuttx_c nuttx_fs nuttx_mm nuttx_sched m gcc)
+	target_link_libraries(prebuild_targets INTERFACE nuttx_xx nuttx_c nuttx_fs nuttx_mm nuttx_sched m gcc)
 	add_dependencies(prebuild_targets DEPENDS nuttx_context uorb_headers)
 
-	# parse nuttx config options for cmake
-	file(STRINGS ${PX4_BOARD_DIR}/nuttx-config/${NUTTX_CONFIG}/defconfig ConfigContents)
-	foreach(NameAndValue ${ConfigContents})
-		# Strip leading spaces
-		string(REGEX REPLACE "^[ ]+" "" NameAndValue ${NameAndValue})
-
-		# Find variable name
-		string(REGEX MATCH "^CONFIG[^=]+" Name ${NameAndValue})
-
-		if (Name)
-			# Find the value
-			string(REPLACE "${Name}=" "" Value ${NameAndValue})
-
-			# remove extra quotes
-			string(REPLACE "\"" "" Value ${Value})
-
-			# Set the variable
-			#message(STATUS "${Name} ${Value}")
-			set(${Name} ${Value} CACHE INTERNAL "NUTTX DEFCONFIG: ${Name}" FORCE)
-		endif()
-	endforeach()
 endfunction()

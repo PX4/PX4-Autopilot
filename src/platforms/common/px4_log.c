@@ -36,6 +36,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef MODULE_NAME
+#define MODULE_NAME "log"
+#endif
+
 #include <px4_log.h>
 #if defined(__PX4_POSIX)
 #if !defined(__PX4_CYGWIN)

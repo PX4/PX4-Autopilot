@@ -97,7 +97,7 @@ enum MPL3115A2_BUS {
  */
 
 #define MPL3115A2_CONVERSION_INTERVAL	10000	/* microseconds */
-#define MPL3115A2_OSR                   0       /* Over Sample rate of 1 6MS Minimum time between data samples */
+#define MPL3115A2_OSR                   2       /* Over Sample rate of 4 18MS Minimum time between data samples */
 #define MPL3115A2_CTRL_TRIGGER          (CTRL_REG1_OST | CTRL_REG1_OS(MPL3115A2_OSR))
 #define MPL3115A2_BARO_DEVICE_PATH_EXT  "/dev/mpl3115a2_ext"
 #define MPL3115A2_BARO_DEVICE_PATH_INT  "/dev/mpl3115a2_int"

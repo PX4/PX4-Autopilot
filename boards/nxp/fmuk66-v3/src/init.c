@@ -258,7 +258,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	VDD_ETH_EN(true);
 
-
 	px4_platform_init();
 
 	/* configure the DMA allocator */

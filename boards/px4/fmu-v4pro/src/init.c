@@ -273,8 +273,6 @@ static struct sdio_dev_s *sdio;
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
-
-
 	/* Bring up the Sensor power */
 
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
