@@ -133,13 +133,13 @@ def test_converges_to_baro_altitude(altitude):
     Increase the altitude with a bang-bang acceleration profile to target
     altitude, then wait there for a while and make sure it converges
     """
-    # Due to hypothesis not interacting with pytest, cannot use fixture here
-    ekf, time_usec = initialized_ekf()
+    ekf = ecl_EKF.Ekf()
 
+    time_usec = 1000
     dt_usec = ecl_EKF.Ekf.FILTER_UPDATE_PERIOD_MS * 1000
 
-    # No samples, half are used for ramping up / down to the altitude
-    n_samples = 200
+    # Run for a while
+    n_samples = 10000
 
     # Compute smooth acceleration profile
     rampup_accel = altitude / (((n_samples // 2 // 2) * (dt_usec / 1e6))**2)

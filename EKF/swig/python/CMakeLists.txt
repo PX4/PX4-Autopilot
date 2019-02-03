@@ -14,7 +14,10 @@ set_source_files_properties(../ecl_EKF.i PROPERTIES CPLUSPLUS ON)
 include_directories(../..)
 
 # Add swig module
-swig_add_module(ecl_EKF python ../ecl_EKF.i)
+swig_add_library(ecl_EKF
+	LANGUAGE python
+	SOURCES ../ecl_EKF.i
+)
 swig_link_libraries(ecl_EKF ecl_EKF ${PYTHON_LIBRARIES})
 
 # Files to install with Python

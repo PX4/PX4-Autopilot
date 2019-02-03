@@ -67,19 +67,5 @@ using ecl_abstime = uint64_t;
 
 #endif /* PX4_POSIX || PX4_NUTTX */
 
-
-#if defined(__PX4_QURT)
-
-// Missing math.h defines
-#define ISFINITE(x) __builtin_isfinite(x)
-
-#else /* !QuRT */
-
 #include <cmath>
-#if defined(__cplusplus) && !defined(__PX4_NUTTX)
-#define ISFINITE(x) std::isfinite(x)
-#else
-#define ISFINITE(x) isfinite(x)
-#endif
-
-#endif
+#define ISFINITE(x) __builtin_isfinite(x)
