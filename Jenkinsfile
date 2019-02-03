@@ -501,7 +501,7 @@ pipeline {
 
         stage('PX4 ROS2 bridge') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-01' }
+            docker { image 'px4io/px4-dev-base:2019-01-27' }
           }
           steps {
             checkout(scm)
