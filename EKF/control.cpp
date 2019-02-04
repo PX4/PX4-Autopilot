@@ -1385,7 +1385,8 @@ void Ekf::controlMagFusion()
 		if (!_control_status.flags.mag_align_complete) {
 			// Check if height has increased sufficiently to be away from ground magnetic anomalies
 			// and request a yaw reset if not already requested.
-			_mag_yaw_reset_req |= ((_last_on_ground_posD - _state.pos(2)) > 1.5f);
+			float terrain_vpos_estimate = get_terrain_valid() ? _terrain_vpos : _last_on_ground_posD;
+			_mag_yaw_reset_req |= (terrain_vpos_estimate - _state.pos(2)) > 1.5f;
 		}
 
 		// perform a yaw reset if requested by other functions
