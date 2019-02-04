@@ -31,31 +31,6 @@ pipeline {
           }
         }
 
-        stage('px4_fmu-v4_stackcheck') {
-          agent {
-            docker {
-              image 'px4io/px4-dev-nuttx:2019-02-03'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-            }
-          }
-          steps {
-            sh 'export'
-            sh 'make distclean'
-            sh 'ccache -z'
-            sh 'git fetch --tags'
-            sh 'make px4_fmu-v4_stackcheck'
-            sh 'make sizes'
-            sh 'ccache -s'
-            stash includes: 'build/px4_fmu-v4_stackcheck/px4_fmu-v4_stackcheck.elf', name: 'px4_fmu-v4_stackcheck'
-            stash includes: 'Tools/HIL/monitor_firmware_upload.py, Tools/HIL/run_tests.py', name: 'scripts-px4_fmu-v4_stackcheck'
-          }
-          post {
-            always {
-                sh 'make distclean'
-            }
-          }
-        }
-
       } // parallel
     } // stage Build
 
@@ -85,42 +60,6 @@ pipeline {
                       -ex "monitor go" \
                       -ex "kill" \
                       build/px4_fmu-v4_default/px4_fmu-v4_default.elf
-                '''
-                sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*` --baudrate 57600'
-                sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*`'
-              } catch (Exception err) {
-                  // always report passed for now
-                  currentBuild.result = 'SUCCESS'
-              }
-            } // script
-          }
-          options {
-            timeout(time: 600, unit: 'SECONDS')
-          }
-        }
-
-        stage('px4fmu-v4_stackcheck') {
-          agent {
-            label 'px4fmu-v4'
-          }
-          steps {
-            script {
-              try {
-                sh 'export'
-                sh 'find /dev/serial'
-                unstash 'scripts-px4_fmu-v4_stackcheck'
-                unstash 'px4_fmu-v4_stackcheck'
-                sh ''' JLinkGDBServerCLExe -device STM32F427VI -endian little -if SWD -speed auto -noir -LocalhostOnly -silent & \
-                      gdb-multiarch -nx --batch \
-                      -ex "target remote localhost:2331" \
-                      -ex "monitor reset 0" \
-                      -ex "load" \
-                      -ex "compare-sections" \
-                      -ex "monitor reset 0" \
-                      -ex "monitor sleep 1000" \
-                      -ex "monitor go" \
-                      -ex "kill" \
-                      build/px4_fmu-v4_stackcheck/px4_fmu-v4_stackcheck.elf
                 '''
                 sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*` --baudrate 57600'
                 sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*`'
