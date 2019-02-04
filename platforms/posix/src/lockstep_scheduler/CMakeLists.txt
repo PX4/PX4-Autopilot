@@ -34,7 +34,7 @@ else()
 		src/lockstep_scheduler.cpp
 	)
 	target_include_directories(lockstep_scheduler
-	PUBLIC
+		PUBLIC
 		${CMAKE_CURRENT_SOURCE_DIR}/include
 	)
 
