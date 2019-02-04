@@ -17,55 +17,6 @@ pipeline {
             snapdragon: "lorenzmeier/px4-dev-snapdragon:2018-09-12"
           ]
 
-          // MAC OSX px4_sitl_default
-          build_nodes["px4_sitl_default (OSX)"] = {
-            node("mac") {
-              withEnv(["CCACHE_BASEDIR=${pwd()}"]) {
-                stage("sitl (OSX)") {
-                  try {
-                    checkout(scm)
-                    sh('export')
-                    sh('make distclean')
-                    sh('ccache -z')
-                    sh('make px4_sitl_default')
-                    sh('ccache -s')
-                    sh('make tests')
-                  }
-                  catch (exc) {
-                    throw (exc)
-                  }
-                  finally {
-                    sh('make distclean')
-                  }
-                }
-              }
-            }
-          }
-
-          // MAC OSX px4_fmu-v4pro_default
-          build_nodes["px4_fmu-v4pro_default (OSX)"] = {
-            node("mac") {
-              withEnv(["CCACHE_BASEDIR=${pwd()}"]) {
-                stage("px4_fmu-v4pro (OSX)") {
-                  try {
-                    checkout(scm)
-                    sh('export')
-                    sh('make distclean')
-                    sh('ccache -z')
-                    sh('make px4_fmu-v4pro_default')
-                    sh('ccache -s')
-                  }
-                  catch (exc) {
-                    throw (exc)
-                  }
-                  finally {
-                    sh('make distclean')
-                  }
-                }
-              }
-            }
-          }
-
           def armhf_builds = [
             target: ["aerotenna_ocpoc_ubuntu"],
             image: docker_images.armhf,
