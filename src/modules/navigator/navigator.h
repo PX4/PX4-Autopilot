@@ -84,7 +84,8 @@ class Navigator : public ModuleBase<Navigator>, public ModuleParams
 {
 public:
 	Navigator();
-	virtual ~Navigator() = default;
+	~Navigator() override;
+
 	Navigator(const Navigator &) = delete;
 	Navigator operator=(const Navigator &) = delete;
 
