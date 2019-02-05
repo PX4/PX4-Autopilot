@@ -141,6 +141,28 @@ pipeline {
           }
         }
 
+        stage('SITL unit tests') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base:2019-02-03'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'make tests'
+            sh 'ccache -s'
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
+
         stage('Clang analyzer') {
           agent {
             docker {
