@@ -102,25 +102,7 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 		_smoothing[2].setMaxVel(MPC_Z_VEL_MAX_DN.get());
 	}
 
-	Vector2f vel_xy_sp = Vector2f(&_velocity_setpoint(0));
 	float jerk[3] = {_jerk_max.get(), _jerk_max.get(), _jerk_max.get()};
-	float jerk_xy = _jerk_max.get();
-
-	if (_jerk_min.get() > _jerk_max.get()) {
-		_jerk_min.set(0.f);
-	}
-
-	if (_jerk_min.get() > FLT_EPSILON) {
-		if (vel_xy_sp.length() < FLT_EPSILON) { // Brake
-			jerk_xy = _jerk_max.get();
-
-		} else {
-			jerk_xy = _jerk_min.get();
-		}
-	}
-
-	jerk[0] = jerk_xy;
-	jerk[1] = jerk_xy;
 
 	/* Check for position unlock
 	 * During a position lock -> position unlock transition, we have to make sure that the velocity setpoint
@@ -145,7 +127,7 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 	if (fabsf(_sticks_expo(2)) > FLT_EPSILON) {
 		if (_position_lock_z_active) {
 			_smoothing[2].setCurrentVelocity(_velocity_setpoint_feedback(
-					0)); // Start the trajectory at the current velocity setpoint
+					2)); // Start the trajectory at the current velocity setpoint
 			_position_setpoint_z_locked = NAN;
 		}
 
