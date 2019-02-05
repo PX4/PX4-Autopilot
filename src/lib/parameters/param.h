@@ -410,6 +410,9 @@ __EXPORT void	param_print_status(void);
  */
 __EXPORT void	param_control_autosave(bool enable);
 
+
+__EXPORT void	param_boot_complete(void);
+
 /*
  * Macros creating static parameter definitions.
  *

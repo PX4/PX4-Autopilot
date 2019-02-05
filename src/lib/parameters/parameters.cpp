@@ -97,6 +97,8 @@ static volatile bool autosave_scheduled = false;
 static bool autosave_disabled = false;
 #endif /* PARAM_NO_AUTOSAVE */
 
+static volatile bool boot_complete{false};
+
 /**
  * Array of static parameter info.
  */
@@ -682,6 +684,12 @@ param_control_autosave(bool enable)
 #endif /* PARAM_NO_AUTOSAVE */
 }
 
+void
+param_boot_complete()
+{
+	boot_complete = true;
+}
+
 static int
 param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes)
 {
@@ -834,6 +842,10 @@ void param_set_used_internal(param_t param)
 	// FIXME: this needs locking too
 	param_changed_storage[param_index / bits_per_allocation_unit] |=
 		(1 << param_index % bits_per_allocation_unit);
+
+	if (boot_complete) {
+		PX4_ERR("%s set used after boot complete", param_name(param));
+	}
 }
 
 int

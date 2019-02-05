@@ -2990,6 +2990,7 @@ Mavlink::stream_command(int argc, char *argv[])
 void
 Mavlink::set_boot_complete()
 {
+	param_boot_complete();
 	_boot_complete = true;
 
 #if defined(CONFIG_NET) || defined(__PX4_POSIX)
