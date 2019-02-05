@@ -419,7 +419,7 @@ void Standard::fill_actuator_outputs()
 	if (_vtol_schedule.flight_mode != MC_MODE) {
 		// roll
 		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
-			-_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
+			_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
 
 		// pitch
 		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
@@ -442,7 +442,7 @@ void Standard::fill_actuator_outputs()
 		} else {
 			// roll
 			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
-				-_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
+				_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
 
 			// pitch
 			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =

@@ -302,7 +302,7 @@ void Tailsitter::fill_actuator_outputs()
 
 	} else {
 		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
-			-_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
+			_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
 		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
 			_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH];
 	}
