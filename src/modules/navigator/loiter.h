@@ -55,15 +55,6 @@ public:
 	void on_activation() override;
 	void on_active() override;
 
-	// TODO: share this with mission
-	enum mission_yaw_mode {
-		MISSION_YAWMODE_NONE = 0,
-		MISSION_YAWMODE_FRONT_TO_WAYPOINT = 1,
-		MISSION_YAWMODE_FRONT_TO_HOME = 2,
-		MISSION_YAWMODE_BACK_TO_HOME = 3,
-		MISSION_YAWMODE_MAX = 4
-	};
-
 private:
 	/**
 	 * Use the stored reposition location of the navigator
