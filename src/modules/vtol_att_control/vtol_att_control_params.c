@@ -40,7 +40,7 @@
  */
 
 /**
- * VTOL number of engines
+ * VTOL number of engines when in multicopter mode
  *
  * @min 0
  * @max 8
