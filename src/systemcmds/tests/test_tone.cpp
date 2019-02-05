@@ -72,16 +72,18 @@ int test_tone(int argc, char *argv[])
 	}
 
 	if (argc == 2) {
+		tune_control.tune_id = atoi(argv[1]);
+
 		if (tune_control.tune_id <= 20) {
-			tune_control.tune_id = atoi(argv[1]);
-			PX4_INFO("Testing TuneID: %d", tune_control.tune_id);
+			PX4_INFO("TuneID: %d", tune_control.tune_id);
 		}
 	}
 
 	if (argc == 3) {
+		int volume = 40;
 		Tunes tunes{};
-		tunes.set_string(argv[2], 40);
-		PX4_INFO("Testing custom tune.");
+		tunes.set_string(argv[2], volume);
+		PX4_INFO("Custom tune.");
 	}
 
 	tune_control.strength = 40;
