@@ -89,6 +89,8 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.diff_thrust = param_find("VT_FW_DIFTHR_EN");
 	_params_handles.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
 
+	_params_handles.v19_vt_rolldir = param_find("V19_VT_ROLLDIR");
+
 	/* fetch initial parameter values */
 	parameters_update();
 
@@ -504,6 +506,9 @@ VtolAttitudeControl::parameters_update()
 	// make sure parameters are feasible, require at least 1 m/s difference between transition and blend airspeed
 	_params.airspeed_blend = math::min(_params.airspeed_blend, _params.transition_airspeed - 1.0f);
 
+	// Bugfix for v1.9, should be removed in 1.10
+	param_get(_params_handles.v19_vt_rolldir, &_params.v19_vt_rolldir);
+
 	// update the parameters of the instances of base VtolType
 	if (_vtol_type != nullptr) {
 		_vtol_type->parameters_update();
@@ -663,7 +668,39 @@ void VtolAttitudeControl::task_main()
 			_vtol_type->update_transition_state();
 		}
 
-		_vtol_type->fill_actuator_outputs();
+		// Fill actuator output
+		if (_params.v19_vt_rolldir) {
+
+			// The mixer may not have been adapted to the roll inversion in v1.9
+			// Display error message and do not fill actuator outputs
+			// TODO: remove the parameter and this error message in v1.10
+			const int v19_rolldir_warning_throttling = 5000;
+			static int v19_rolldir_warning_counter = 0;
+			v19_rolldir_warning_counter += 1;
+
+			if ((v19_rolldir_warning_counter % v19_rolldir_warning_throttling) == 0) {
+				mavlink_log_critical(&_mavlink_log_pub,
+						     "The VTOL roll commands were inverted in v1.9!");
+				mavlink_log_critical(&_mavlink_log_pub,
+						     "Check roll mixing, then set V19_VT_ROLLDIR to 0");
+			}
+
+			// Do not fill actuator output
+			_actuators_out_0.timestamp = hrt_absolute_time();
+			_actuators_out_0.timestamp_sample = _actuators_mc_in.timestamp_sample;
+			_actuators_out_1.timestamp = hrt_absolute_time();
+			_actuators_out_1.timestamp_sample = _actuators_fw_in.timestamp_sample;
+
+			for (size_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROLS; i++) {
+				_actuators_out_0.control[i] = 0.0f;
+				_actuators_out_1.control[i] = 0.0f;
+			}
+
+		} else {
+
+			// normal operation
+			_vtol_type->fill_actuator_outputs();
+		}
 
 		/* Only publish if the proper mode(s) are enabled */
 		if (_v_control_mode.flag_control_attitude_enabled ||
