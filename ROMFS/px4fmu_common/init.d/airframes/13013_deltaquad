@@ -151,6 +151,8 @@ then
 	param set VT_TRANS_TIMEOUT 22
 	param set VT_F_TRANS_RAMP 4
 
+	# Indicate that FW roll direction was fixed in mixer, to be removed in v1.10
+	param set V19_VT_ROLLDIR 0
 fi
 
 set MAV_TYPE 22
