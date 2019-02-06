@@ -99,4 +99,5 @@ if(REPLAY_FILE)
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 endif()
 
-set(ENABLE_LOCKSTEP_SCHEDULER yes)
+# temporarily disabled, see PX4/Firmware issues #11380 and #11384
+set(ENABLE_LOCKSTEP_SCHEDULER no)
