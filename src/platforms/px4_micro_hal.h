@@ -70,6 +70,7 @@ __BEGIN_DECLS
 #    if defined(CONFIG_ARCH_CHIP_STM32F7)
 #      define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32F7
 #      include <chip.h>
+#include <chip/stm32_flash.h>
 #      include <up_internal.h> //include up_systemreset() which is included on stm32.h
 #      include <stm32_bbsram.h>
 #      define PX4_BBSRAM_SIZE STM32F7_BBSRAM_SIZE
