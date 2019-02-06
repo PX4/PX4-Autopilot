@@ -500,8 +500,8 @@ pipeline {
             docker { image 'px4io/px4-dev-base:2019-01-27' }
           }
           steps {
-            checkout(scm)
             sh('export')
+            sh('make distclean')
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_msgs.git -b ${BRANCH_NAME}")
               sh('python msg/tools/uorb_to_ros_msgs.py msg/ px4_msgs/msg/')
@@ -516,9 +516,6 @@ pipeline {
               branch 'pr-jenkins' // for testing
             }
           }
-          options {
-            skipDefaultCheckout()
-          }
         }
 
         stage('PX4 ROS2 bridge') {
@@ -526,8 +523,8 @@ pipeline {
             docker { image 'px4io/px4-dev-base:2019-01-27' }
           }
           steps {
-            checkout(scm)
             sh('export')
+            sh('make distclean')
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_ros_com.git -b ${BRANCH_NAME}")
               // deploy uORB RTPS ID map
@@ -549,9 +546,6 @@ pipeline {
               branch 'master'
               branch 'pr-jenkins' // for testing
             }
-          }
-          options {
-            skipDefaultCheckout()
           }
         }
 
