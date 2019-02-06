@@ -1,7 +1,11 @@
+#! /usr/bin/env python3
+"""
+the ecl ekf analysis
+"""
+
 from typing import Tuple, List, Dict
 
 import numpy as np
-
 from pyulog import ULog
 
 from analysis.detectors import InAirDetector, PreconditionError
@@ -9,21 +13,19 @@ from analysis.metrics import calculate_ecl_ekf_metrics
 from analysis.checks import perform_ecl_ekf_checks
 from analysis.post_processing import get_estimator_check_flags
 
-
 def analyse_ekf(
         ulog: ULog, check_levels: Dict[str, float], red_thresh: float = 1.0,
         amb_thresh: float = 0.5, min_flight_duration_seconds: float = 5.0,
-        in_air_margin_seconds: float = 5.0) -> \
+        in_air_margin_seconds: float = 5.0, pos_checks_when_sensors_not_fused: bool = False) -> \
         Tuple[str, Dict[str, str], Dict[str, float], Dict[str, float]]:
-
     """
-    performs the ecl ekf analysis.
     :param ulog:
     :param check_levels:
     :param red_thresh:
     :param amb_thresh:
     :param min_flight_duration_seconds:
     :param in_air_margin_seconds:
+    :param pos_checks_when_sensors_not_fused:
     :return:
     """
 
@@ -57,7 +59,9 @@ def analyse_ekf(
 
     control_mode, innov_flags, gps_fail_flags = get_estimator_check_flags(estimator_status)
 
-    sensor_checks, innov_fail_checks = find_checks_that_apply(control_mode, estimator_status)
+    sensor_checks, innov_fail_checks = find_checks_that_apply(
+        control_mode, estimator_status,
+        pos_checks_when_sensors_not_fused=pos_checks_when_sensors_not_fused)
 
     metrics = calculate_ecl_ekf_metrics(
         ulog, innov_flags, innov_fail_checks, sensor_checks, in_air, in_air_no_ground_effects,
@@ -69,13 +73,15 @@ def analyse_ekf(
     return master_status, check_status, metrics, airtime_info
 
 
-def find_checks_that_apply(control_mode: dict, estimator_status: dict) -> \
+def find_checks_that_apply(
+    control_mode: dict, estimator_status: dict, pos_checks_when_sensors_not_fused: bool = False) ->\
         Tuple[List[str], List[str]]:
     """
     finds the checks that apply and stores them in lists for the std checks and the innovation
     fail checks.
     :param control_mode:
     :param estimator_status:
+    :param b_pos_only_when_sensors_fused:
     :return: a tuple of two lists that contain strings for the std checks and for the innovation
     fail checks.
     """
@@ -101,7 +107,8 @@ def find_checks_that_apply(control_mode: dict, estimator_status: dict) -> \
         innov_fail_checks.append('vel')
 
     # Position Sensor Checks
-    if ((np.amax(control_mode['using_gps']) > 0.5) or (np.amax(control_mode['using_evpos']) > 0.5)):
+    if (pos_checks_when_sensors_not_fused or (np.amax(control_mode['using_gps']) > 0.5)
+        or (np.amax(control_mode['using_evpos']) > 0.5)):
         sensor_checks.append('pos')
         innov_fail_checks.append('posh')
 

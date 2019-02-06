@@ -20,7 +20,7 @@ def perform_ecl_ekf_checks(
 
     imu_status = perform_imu_checks(metrics, check_levels)
 
-    sensor_status = perform_sensor_checks(
+    sensor_status = perform_sensor_innov_checks(
         metrics, sensor_checks, innov_fail_checks, check_levels)
 
     ekf_status = dict()
@@ -88,7 +88,7 @@ def perform_imu_checks(
     return imu_status
 
 
-def perform_sensor_checks(
+def perform_sensor_innov_checks(
         metrics: Dict[str, float], sensor_checks: List[str], innov_fail_checks: List[str],
         check_levels: Dict[str, float]) -> Dict[str, str]:
     """
@@ -101,38 +101,43 @@ def perform_sensor_checks(
     """
 
     sensor_status = dict()
-    for sensor_check in sensor_checks:
-        if metrics['{:s}_percentage_amber'.format(sensor_check)] > check_levels[
-            '{:s}_amber_fail_pct'.format(sensor_check)]:
-            sensor_status['{:s}_sensor_status'.format(sensor_check)] = 'Fail'
-            print('{:s} sensor check failure.'.format(sensor_check))
-        elif metrics['{:s}_percentage_amber'.format(sensor_check)] > check_levels[
-            '{:s}_amber_warn_pct'.format(sensor_check)]:
-            sensor_status['{:s}_sensor_status'.format(sensor_check)] = 'Warning'
-            print('{:s} sensor check warning.'.format(sensor_check))
-        else:
-            sensor_status['{:s}_sensor_status'.format(sensor_check)] = 'Pass'
 
+    for result_id in ['hgt', 'mag', 'vel', 'pos', 'tas', 'hagl']:
 
-    for innov_check in innov_fail_checks:
-        # the normal case
-        metric_name = '{:s}_fail_percentage'.format(innov_check)
-        result_name = innov_check
+        # only run sensor checks, if they apply.
+        if result_id in sensor_checks:
+            if metrics['{:s}_percentage_amber'.format(result_id)] > check_levels[
+                '{:s}_amber_fail_pct'.format(result_id)]:
+                sensor_status['{:s}_sensor_status'.format(result_id)] = 'Fail'
+                print('{:s} sensor check failure.'.format(result_id))
+            elif metrics['{:s}_percentage_amber'.format(result_id)] > check_levels[
+                '{:s}_amber_warn_pct'.format(result_id)]:
+                sensor_status['{:s}_sensor_status'.format(result_id)] = 'Warning'
+                print('{:s} sensor check warning.'.format(result_id))
+            else:
+                sensor_status['{:s}_sensor_status'.format(result_id)] = 'Pass'
 
-        # special cases
-        if innov_check.startswith('posv'):
-            metric_name = 'hgt_fail_percentage'
-            result_name = 'hgt'
-        elif innov_check.startswith('posh'):
-            metric_name = 'pos_fail_percentage'
-            result_name = 'pos'
-        elif innov_check.startswith('of'):
-            result_name = 'flow'
-        elif innov_check.startswith('mag'):
-            result_name = 'mag'
+    # perform innovation checks.
+    for signal_id, metric_name, result_id in [('posv', 'hgt_fail_percentage', 'hgt'),
+                                              ('magx', 'magx_fail_percentage', 'mag'),
+                                              ('magy', 'magy_fail_percentage', 'mag'),
+                                              ('magz', 'magz_fail_percentage', 'mag'),
+                                              ('yaw', 'yaw_fail_percentage', 'yaw'),
+                                              ('vel', 'vel_fail_percentage', 'vel'),
+                                              ('posh', 'pos_fail_percentage', 'pos'),
+                                              ('tas', 'tas_fail_percentage', 'tas'),
+                                              ('hagl', 'hagl_fail_percentage', 'hagl'),
+                                              ('ofx', 'ofx_fail_percentage', 'flow'),
+                                              ('ofy', 'ofy_fail_percentage', 'flow')]:
 
-        if metrics[metric_name] > check_levels['{:s}_fail_pct'.format(result_name)]:
-            sensor_status['{:s}_sensor_status'.format(result_name)] = 'Fail'
-            print('{:s} sensor check failure.'.format(result_name))
+        # only run innov fail checks, if they apply.
+        if signal_id in innov_fail_checks:
+
+            if metrics[metric_name] > check_levels['{:s}_fail_pct'.format(result_id)]:
+                sensor_status['{:s}_sensor_status'.format(result_id)] = 'Fail'
+                print('{:s} sensor check failure.'.format(result_id))
+            else:
+                if not ('{:s}_sensor_status'.format(result_id) in sensor_status):
+                    sensor_status['{:s}_sensor_status'.format(result_id)] = 'Pass'
 
     return sensor_status
