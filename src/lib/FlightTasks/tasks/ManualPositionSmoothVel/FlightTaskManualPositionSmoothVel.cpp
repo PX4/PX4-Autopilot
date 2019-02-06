@@ -95,11 +95,11 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 
 	if (_velocity_setpoint(2) < 0.f) { // up
 		_smoothing[2].setMaxAccel(MPC_ACC_UP_MAX.get());
-		_smoothing[2].setMaxVel(MPC_Z_VEL_MAX_UP.get());
+		_smoothing[2].setMaxVel(_constraints.speed_up);
 
 	} else { // down
 		_smoothing[2].setMaxAccel(MPC_ACC_DOWN_MAX.get());
-		_smoothing[2].setMaxVel(MPC_Z_VEL_MAX_DN.get());
+		_smoothing[2].setMaxVel(_constraints.speed_down);
 	}
 
 	float jerk[3] = {_jerk_max.get(), _jerk_max.get(), _jerk_max.get()};
