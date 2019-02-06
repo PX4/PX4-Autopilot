@@ -805,15 +805,7 @@ void Ekf2::run()
 			imu_bias_reset_request = !_ekf.reset_imu_bias();
 		}
 
-		// in replay mode we are getting the actual timestamp from the sensor topic
-		hrt_abstime now = 0;
-
-		if (_replay_mode) {
-			now = sensors.timestamp;
-
-		} else {
-			now = hrt_absolute_time();
-		}
+		const hrt_abstime now = sensors.timestamp;
 
 		// push imu data into estimator
 		float gyro_integral[3];
