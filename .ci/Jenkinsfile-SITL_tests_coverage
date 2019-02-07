@@ -5,33 +5,6 @@ pipeline {
 
   stages {
 
-    stage('Build') {
-      agent {
-        docker {
-          image 'px4io/px4-dev-ros-kinetic:2018-09-11'
-          args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE --cap-add SYS_PTRACE --entrypoint=""'
-        }
-      }
-      steps {
-        sh 'export'
-        sh 'make distclean'
-        sh 'ccache -z'
-        sh 'git fetch --tags'
-        sh 'make px4_sitl_default'
-        stash includes: 'build/**/*', name: 'build_sitl_coverage', useDefaultExcludes: false
-        sh 'make px4_sitl_default sitl_gazebo'
-        sh 'make px4_sitl_default package'
-        sh 'ccache -s'
-        stash(name: "px4_sitl_package", includes: "build/px4_sitl_default/*.bz2")
-        archiveArtifacts(artifacts: "build/px4_sitl_default/*.bz2", fingerprint: true, onlyIfSuccessful: true)
-      }
-      post {
-        always {
-            sh 'make distclean'
-        }
-      }
-    } // stage Build
-
     stage('ROS Tests') {
       steps {
         script {
@@ -99,8 +72,8 @@ pipeline {
         stage('code coverage (python)') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-01-26'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw --cap-add SYS_PTRACE'
+              image 'px4io/px4-dev-base:2019-02-03'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
           steps {
@@ -118,8 +91,8 @@ pipeline {
         stage('unit tests') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-01-26'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw --cap-add SYS_PTRACE'
+              image 'px4io/px4-dev-base:2019-02-03'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
           steps {
@@ -161,15 +134,15 @@ def createTestNode(Map test_def) {
           sh('export')
 
           checkout(scm)
-          unstash 'build_sitl_coverage'
-
-          unstash('px4_sitl_package')
-          sh('tar -xjpvf build/px4_sitl_default/px4-px4_sitl_default*.bz2')
 
           // run test
           try {
-            sh('px4-px4_sitl_default*/px4/test/rostest_px4_run.sh ' + test_def.test + ' mission:=' + test_def.mission + ' vehicle:=' + test_def.vehicle)
-
+            sh('make distclean')
+            sh('ccache -z')
+            sh('make px4_sitl_default')
+            sh('make px4_sitl_default sitl_gazebo')
+            sh('ccache -s')
+            sh('make rostest_run TEST_FILE=' + test_def.test + ' TEST_MISSION=' + test_def.mission + ' TEST_VEHICLE=' + test_def.vehicle)
           } catch (exc) {
             // save all test artifacts for debugging
             archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.ulg, .ros/**/rosunit-*.xml, .ros/**/rostest-*.log')
@@ -182,7 +155,7 @@ def createTestNode(Map test_def) {
 
             // process log data (with python code coverage)
             try {
-              sh('coverage run -p px4-px4_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
+              sh('coverage run -p Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
             } catch (exc) {
               // save log analysis artifacts for debugging
               archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.pdf, .ros/**/*.csv')
@@ -191,7 +164,7 @@ def createTestNode(Map test_def) {
             }
 
             // upload log to flight review (https://logs.px4.io/) with python code coverage
-            sh('coverage run -p px4-px4_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
+            sh('coverage run -p Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
 
             // upload python code coverage to codecov.io
             sh 'curl -s https://codecov.io/bash | bash -s - -X gcov -F sitl_python_${STAGE_NAME}'
