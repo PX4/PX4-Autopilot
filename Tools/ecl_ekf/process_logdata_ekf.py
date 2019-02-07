@@ -109,7 +109,7 @@ def process_logdata_ekf(
         check_table_filename, master_status, check_status, metrics, airtime_info)
 
     # write metadata to a .csv file
-    with open('{:s}.mdat.csv'.format(os.path.splitext(filename)[0]), "w") as file:
+    with open('{:s}.mdat.csv'.format(filename), "w") as file:
 
         file.write("name,value,description\n")
 
@@ -119,11 +119,11 @@ def process_logdata_ekf(
         key_list.sort()
         for key in key_list:
             file.write(key + "," + str(test_results[key][0]) + "," + test_results[key][1] + "\n")
-    print('Test results written to {:s}.mdat.csv'.format(os.path.splitext(filename)[0]))
+    print('Test results written to {:s}.mdat.csv'.format(filename))
 
     if plot:
-        create_pdf_report(ulog, '{:s}.pdf'.format(os.path.splitext(filename)[0]))
-        print('Plots saved to {:s}.pdf'.format(os.path.splitext(filename)[0]))
+        create_pdf_report(ulog, '{:s}.pdf'.format(filename))
+        print('Plots saved to {:s}.pdf'.format(filename))
 
     return test_results
 

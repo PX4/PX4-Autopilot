@@ -43,6 +43,8 @@ class InAirDetector(object):
                 'InAirDetector: Could not find vehicle land detected message and/or landed field'
                 ' and thus not find any airtime.')
 
+        self._log_start = self._ulog.start_timestamp / 1.0e6
+
         self._in_air = self._detect_airtime()
 
 
@@ -114,9 +116,17 @@ class InAirDetector(object):
     def landing(self) -> Optional[float]:
         """
         last landing
-        :return: the landing of the single flight.
+        :return: the last landing of the flight.
         """
         return self._in_air[-1].landing if self._in_air else None
+
+    @property
+    def log_start(self) -> Optional[float]:
+        """
+        log start
+        :return: the start time of the log.
+        """
+        return self._log_start
 
     def get_take_off_to_last_landing(self, dataset) -> list:
         """
