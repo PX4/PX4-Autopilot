@@ -308,6 +308,9 @@ PWMSim::run()
 					break;
 				}
 			}
+
+		} else {
+			PX4_WARN("_mixers is nullptr");
 		}
 
 		/* how about an arming update? */
