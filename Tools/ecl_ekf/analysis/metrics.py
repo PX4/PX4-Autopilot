@@ -74,7 +74,8 @@ def calculate_sensor_metrics(
                 lambda x: 100.0 * np.mean(x > red_thresh))
             sensor_metrics['{:s}_percentage_amber'.format(result_id)] = calculate_stat_from_signal(
                 estimator_status_data, 'estimator_status', signal, in_air_detector,
-                lambda x: 100.0 * np.mean(x > amb_thresh))
+                lambda x: 100.0 * np.mean(x > amb_thresh)) - \
+                    sensor_metrics['{:s}_percentage_red'.format(result_id)]
 
             # the peak and mean ratio of samples above / below std dev
             peak = calculate_stat_from_signal(
