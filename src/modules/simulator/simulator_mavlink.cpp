@@ -181,6 +181,7 @@ void Simulator::send_controls()
 		mavlink_msg_hil_actuator_controls_encode(0, 200, &message, &hil_act_control);
 
 		send_mavlink_message(message);
+		PX4_INFO("Sent actuator_outputs");
 	}
 }
 
