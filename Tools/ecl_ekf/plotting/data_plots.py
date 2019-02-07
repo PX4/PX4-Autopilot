@@ -171,7 +171,7 @@ class TimeSeriesPlot(DataPlot):
             plt.xlabel(self._x_labels[i])
             plt.ylabel(self._y_labels[i])
 
-        self.fig.tight_layout()
+        self.fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
 
 class InnovationPlot(DataPlot):
@@ -241,7 +241,7 @@ class InnovationPlot(DataPlot):
                 horizontalalignment='left',
                 verticalalignment='top')
 
-        self.fig.tight_layout()
+        self.fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
 
 class ControlModeSummaryPlot(DataPlot):
@@ -324,6 +324,8 @@ class ControlModeSummaryPlot(DataPlot):
                         self._additional_annotation[i][a][1], fontsize=12,
                         horizontalalignment='left', verticalalignment='center', color='b')
 
+        self.fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+
 
 class CheckFlagsPlot(DataPlot):
     """
@@ -384,7 +386,7 @@ class CheckFlagsPlot(DataPlot):
                 plt.legend(self._legend[i], loc='upper left')
 
             if self._b_annotate:
-                for var in self._variable_names[i]:
+                for col, var in zip(colors[:len(self._variable_names[i])], self._variable_names[i]):
                     # add the maximum and minimum value as an annotation
                     _, max_value, max_time = get_max_arg_time_value(
                         self.plot_data[var], self._data_time)
@@ -392,7 +394,7 @@ class CheckFlagsPlot(DataPlot):
 
                     plt.text(
                         max_time, max_value,
-                        'max={:.4f}, mean={:.4f}'.format(max_value, mean_value), fontsize=12,
-                        horizontalalignment='left', verticalalignment='bottom')
+                        'max={:.4f}, mean={:.4f}'.format(max_value, mean_value), color=col,
+                        fontsize=12, horizontalalignment='left', verticalalignment='bottom')
 
-
+        self.fig.tight_layout(rect=[0, 0.03, 1, 0.95])

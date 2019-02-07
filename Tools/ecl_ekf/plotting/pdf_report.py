@@ -130,18 +130,24 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
         # plot normalised innovation test levels
         # define variables to plot
         variables = [['mag_test_ratio'], ['vel_test_ratio', 'pos_test_ratio'], ['hgt_test_ratio']]
+        y_labels = ['mag', 'vel, pos', 'hgt']
+        legend = [['mag'], ['vel', 'pos'], ['hgt']]
         if np.amax(estimator_status['hagl_test_ratio']) > 0.0:  # plot hagl test ratio, if applicable
             variables[-1].append('hagl_test_ratio')
-        y_labels = ['mag', 'vel, pos', 'hgt']
+            y_labels[-1] += ', hagl'
+            legend[-1].append('hagl')
 
         if np.amax(estimator_status[
                        'tas_test_ratio']) > 0.0:  # plot airspeed sensor test ratio, if applicable
             variables.append(['tas_test_ratio'])
             y_labels.append('TAS')
+            legend.append(['airspeed'])
 
         data_plot = CheckFlagsPlot(
             status_time, estimator_status, variables, x_label='time (sec)', y_labels=y_labels,
-            plot_title='Normalised Innovation Test Levels', pdf_handle=pdf_pages)
+            plot_title='Normalised Innovation Test Levels', pdf_handle=pdf_pages, annotate=True,
+            legend=legend
+        )
         data_plot.save()
 
         # plot control mode summary A
@@ -227,7 +233,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             status_time, scaled_estimator_status, [['vibe[0]'], ['vibe[1]'], ['vibe[2]']],
             x_label='time (sec)', y_labels=['Del Ang Coning (mrad)', 'HF Del Ang (mrad)',
                                             'HF Del Vel (m/s)'], plot_title='IMU Vibration Metrics',
-            pdf_handle=pdf_pages)
+            pdf_handle=pdf_pages, annotate=True)
         data_plot.save()
 
         # Plot the EKF output observer tracking errors
@@ -238,9 +244,11 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             }
         data_plot = CheckFlagsPlot(
             1e-6 * ekf2_innovations['timestamp'], scaled_innovations,
-            [['output_tracking_error[0]'], ['output_tracking_error[1]'], ['output_tracking_error[2]']],
-            x_label='time (sec)', y_labels=['angles (mrad)', 'velocity (m/s)', 'position (m)'],
-            plot_title='Output Observer Tracking Error Magnitudes', pdf_handle=pdf_pages)
+            [['output_tracking_error[0]'], ['output_tracking_error[1]'],
+             ['output_tracking_error[2]']], x_label='time (sec)',
+            y_labels=['angles (mrad)', 'velocity (m/s)', 'position (m)'],
+            plot_title='Output Observer Tracking Error Magnitudes',
+            pdf_handle=pdf_pages, annotate=True)
         data_plot.save()
 
         # Plot the delta angle bias estimates
