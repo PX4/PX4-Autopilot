@@ -41,6 +41,7 @@
 #endif
 
 #include <px4_module.h>
+#include <px4_defines.h>
 #include <px4_log.h>
 
 pthread_mutex_t px4_modules_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -61,6 +62,11 @@ void PRINT_MODULE_USAGE_NAME(const char *executable_name, const char *category)
 {
 	PX4_INFO_RAW("Usage: %s <command> [arguments...]\n", executable_name);
 	PX4_INFO_RAW(" Commands:\n");
+}
+
+void PRINT_MODULE_USAGE_SUBCATEGORY(const char *subcategory)
+{
+	(void)subcategory;
 }
 
 void PRINT_MODULE_USAGE_NAME_SIMPLE(const char *executable_name, const char *category)
@@ -88,7 +94,10 @@ void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, int min_val
 {
 	if (is_optional) {
 		PX4_INFO_RAW("     [-%c <val>]  %s\n", option_char, description);
-		PX4_INFO_RAW("                 default: %i\n", default_val);
+
+		if (default_val != -1) {
+			PX4_INFO_RAW("                 default: %i\n", default_val);
+		}
 
 	} else {
 		PX4_INFO_RAW("     -%c <val>    %s\n", option_char, description);
@@ -100,7 +109,10 @@ void PRINT_MODULE_USAGE_PARAM_FLOAT(char option_char, float default_val, float m
 {
 	if (is_optional) {
 		PX4_INFO_RAW("     [-%c <val>]  %s\n", option_char, description);
-		PX4_INFO_RAW("                 default: %.1f\n", (double)default_val);
+
+		if (PX4_ISFINITE(default_val)) {
+			PX4_INFO_RAW("                 default: %.1f\n", (double)default_val);
+		}
 
 	} else {
 		PX4_INFO_RAW("     -%c <val>    %s\n", option_char, description);

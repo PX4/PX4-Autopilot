@@ -473,6 +473,12 @@ __EXPORT void PRINT_MODULE_DESCRIPTION(const char *description);
 __EXPORT void PRINT_MODULE_USAGE_NAME(const char *executable_name, const char *category);
 
 /**
+ * @brief Specify a subcategory (optional).
+ * @param subcategory e.g. if the category is 'driver', subcategory can be 'distance_sensor'
+ */
+__EXPORT void PRINT_MODULE_USAGE_SUBCATEGORY(const char *subcategory);
+
+/**
  * @brief Prints the name for a command without any sub-commands (@see PRINT_MODULE_USAGE_NAME()).
  */
 __EXPORT void PRINT_MODULE_USAGE_NAME_SIMPLE(const char *executable_name, const char *category);
@@ -499,7 +505,7 @@ __EXPORT void PRINT_MODULE_USAGE_COMMAND_DESCR(const char *name, const char *des
 /**
  * @brief Prints an integer parameter.
  * @param option_char The option character.
- * @param default_val The parameter default value.
+ * @param default_val The parameter default value (set to -1 if not applicable).
  * @param min_val The parameter minimum value.
  * @param max_val The parameter value.
  * @param description Pointer to the usage description.
@@ -511,7 +517,7 @@ __EXPORT void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, in
 /**
  * @brief Prints a float parameter.
  * @note See PRINT_MODULE_USAGE_PARAM_INT().
- * @param default_val The parameter default value.
+ * @param default_val The parameter default value (set to NaN if not applicable).
  * @param min_val The parameter minimum value.
  * @param max_val The parameter maximum value.
  * @param description Pointer to the usage description. Pointer to the usage description.
