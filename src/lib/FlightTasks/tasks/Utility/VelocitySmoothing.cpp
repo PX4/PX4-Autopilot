@@ -92,7 +92,7 @@ float VelocitySmoothing::computeT1(float accel_prev, float vel_prev, float vel_s
 	if (T1_plus >= 0.f && T3_plus >= 0.f) {
 		T1 = T1_plus;
 
-	} else if ( T1_minus >= 0.f && T3_minus >= 0.f) {
+	} else if (T1_minus >= 0.f && T3_minus >= 0.f) {
 		T1 = T1_minus;
 	}
 

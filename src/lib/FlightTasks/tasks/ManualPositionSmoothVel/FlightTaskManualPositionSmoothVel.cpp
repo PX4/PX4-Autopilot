@@ -155,11 +155,13 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 		_smoothing[0].setCurrentPosition(_position(0));
 		_smoothing[1].setCurrentPosition(_position(1));
 	}
+
 	if (!_position_lock_z_active) {
 		_smoothing[2].setCurrentPosition(_position(2));
 	}
 
 	Vector3f pos_sp_smooth;
+
 	for (int i = 0; i < 3; ++i) {
 
 		_smoothing[i].integrate(_acceleration_setpoint(i), _vel_sp_smooth(i), pos_sp_smooth(i));
@@ -175,6 +177,7 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 		_position_setpoint_xy_locked(1) = pos_sp_smooth(1);
 		_position_lock_xy_active = true;
 	}
+
 	if (fabsf(_vel_sp_smooth(2)) < 0.01f &&
 	    fabsf(_acceleration_setpoint(2)) < .2f &&
 	    fabsf(_sticks_expo(2)) <= FLT_EPSILON) {
