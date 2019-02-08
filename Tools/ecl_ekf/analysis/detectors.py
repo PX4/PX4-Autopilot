@@ -4,7 +4,6 @@ detectors
 """
 from typing import NamedTuple, Optional
 import numpy as np
-import pandas as pd
 from pyulog import ULog
 
 
