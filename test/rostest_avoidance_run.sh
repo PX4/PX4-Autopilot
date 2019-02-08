@@ -3,7 +3,7 @@
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 PX4_SRC_DIR=${DIR}/..
 
-source /opt/ros/kinetic/setup.bash
+source /opt/ros/${ROS_DISTRO}/setup.bash
 mkdir -p ${PX4_SRC_DIR}/catkin_ws/src
 cd ${PX4_SRC_DIR}/catkin_ws/
 git clone --depth=1 https://github.com/PX4/avoidance.git src/avoidance/
