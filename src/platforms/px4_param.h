@@ -64,7 +64,7 @@ inline static param_t param_handle(px4::params p)
 // It is marked as 'final', so that wrong usages lead to a compile error (see below)
 #define _DEFINE_PARAMETER_UPDATE_METHOD(...) \
 	protected: \
-	void updateParamsImpl() final { \
+	void virtual updateParamsImpl() final { \
 		APPLY_ALL(_CALL_UPDATE, __VA_ARGS__) \
 	} \
 	private:
