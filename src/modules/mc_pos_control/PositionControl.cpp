@@ -225,7 +225,7 @@ void PositionControl::_positionController()
 	_vel_sp(0) = vel_sp_xy(0);
 	_vel_sp(1) = vel_sp_xy(1);
 	// Constrain velocity in z-direction.
-	_vel_sp(2) = math::constrain(_vel_sp(2), -MPC_Z_VEL_MAX_UP.get(), MPC_Z_VEL_MAX_DN.get());
+	_vel_sp(2) = math::constrain(_vel_sp(2), -_constraints.speed_up, _constraints.speed_down);
 }
 
 void PositionControl::_velocityController(const float &dt)
