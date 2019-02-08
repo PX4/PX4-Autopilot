@@ -34,7 +34,7 @@
 /**
  * @file sih.cpp
  * Simulator in Hardware
- * 
+ *
  * @author Romain Chiappinelli		<romain.chiap@gmail.com>
  *
  * Coriolis g Corporation - January 2019
@@ -605,7 +605,7 @@ void Sih::send_serial_msg(int serial_fd, int64_t t_ms)
 float Sih::generate_wgn() 	// generate white Gaussian noise sample with std=1
 {
 	float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
- 
+
 	return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);	
 }
 
