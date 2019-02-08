@@ -1045,7 +1045,7 @@ MulticopterPositionControl::check_for_smooth_takeoff(const float &z_sp, const fl
 				     0.2f;
 
 		// takeoff was initiated through velocity setpoint
-		_smooth_velocity_takeoff = PX4_ISFINITE(vz_sp) && vz_sp < math::min(-_tko_speed.get(), -0.6f);
+		_smooth_velocity_takeoff = PX4_ISFINITE(vz_sp) && vz_sp < -0.1f;
 
 		if ((PX4_ISFINITE(z_sp) && z_sp < _states.position(2) - min_altitude) ||  _smooth_velocity_takeoff) {
 			// There is a position setpoint above current position or velocity setpoint larger than
@@ -1076,19 +1076,24 @@ MulticopterPositionControl::update_smooth_takeoff(const float &z_sp, const float
 		}
 
 		// Ramp up takeoff speed.
-		_takeoff_speed += desired_tko_speed * _dt / _takeoff_ramp_time.get();
-		_takeoff_speed = math::min(_takeoff_speed, desired_tko_speed);
+		if (_takeoff_ramp_time.get() > _dt) {
+			_takeoff_speed += desired_tko_speed * _dt / _takeoff_ramp_time.get();
+
+		} else {
+			// No ramp, directly go to desired takeoff speed
+			_takeoff_speed = desired_tko_speed;
+		}
+
+		_takeoff_speed = math::min(_takeoff_speed, _tko_speed.get());
 
 		// Smooth takeoff is achieved once desired altitude/velocity setpoint is reached.
 		if (!_smooth_velocity_takeoff) {
 			_in_smooth_takeoff = _states.position(2) - 0.2f > math::max(z_sp, _takeoff_reference_z - MPC_LAND_ALT2.get());
 
-		} else  {
-			_in_smooth_takeoff = _takeoff_speed < -vz_sp;
+		} else {
+			// Make sure to stay in smooth takeoff if takeoff has not been detected yet by the land detector
+			_in_smooth_takeoff = (_takeoff_speed < -vz_sp) || _vehicle_land_detected.landed;
 		}
-
-	} else {
-		_in_smooth_takeoff = false;
 	}
 }
 
