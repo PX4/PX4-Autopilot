@@ -55,7 +55,6 @@
 #include <debug.h>
 #include <errno.h>
 
-#include "platform/cxxinitialize.h"
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/i2c/i2c_master.h>
@@ -75,11 +74,8 @@
 #include <drivers/drv_board_led.h>
 
 #include <systemlib/px4_macros.h>
-#include <systemlib/cpuload.h>
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
 
-#include <parameters/param.h>
+#include <px4_init.h>
 
 #include "up_internal.h"
 /****************************************************************************
@@ -166,7 +162,7 @@ __EXPORT void board_peripheral_reset(int ms)
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
-	warnx("reset done, %d ms", ms);
+	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
 
 	/* re-enable power */
 
@@ -200,6 +196,30 @@ __EXPORT void board_on_reset(int status)
 	}
 }
 
+/****************************************************************************
+ * Name: board_app_finalinitialize
+ *
+ * Description:
+ *   Perform application specific initialization.  This function is never
+ *   called directly from application code, but only indirectly via the
+ *   (non-standard) boardctl() interface using the command
+ *   BOARDIOC_FINALINIT.
+ *
+ * Input Parameters:
+ *   arg - The argument has no meaning.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure to indicate the nature of the failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_BOARDCTL_FINALINIT
+int board_app_finalinitialize(uintptr_t arg)
+{
+	return 0;
+}
+#endif
 
 /************************************************************************************
  * Name: stm32_boardinitialize
@@ -273,22 +293,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	VDD_5V_RC_EN(true);
 	VDD_5V_WIFI_EN(true);
 
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-
-	/* run C++ ctors before we go any further */
-
-	up_cxxinitialize();
-
-#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
-#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
-#	endif
-
-#else
-#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
-#endif
-
-	/* configure the high-resolution time/callout interface */
-	hrt_init();
 
 	if (OK == board_determine_hw_info()) {
 		PX4_INFO("Rev 0x%1x : Ver 0x%1x %s", board_get_hw_revision(), board_get_hw_version(), board_get_hw_type_name());
@@ -297,18 +301,13 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		PX4_ERR("Failed to read HW revision and version");
 	}
 
-	param_init();
+	px4_platform_init();
 
 	/* configure the DMA allocator */
 
 	if (board_dma_alloc_init() < 0) {
 		PX4_ERR("DMA alloc FAILED");
 	}
-
-	/* configure CPU load estimation */
-#ifdef CONFIG_SCHED_INSTRUMENTATION
-	cpuload_initialize_once();
-#endif
 
 	/* set up the serial DMA polling */
 	static struct hrt_call serial_dma_call;

@@ -3,6 +3,7 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR px4
 	MODEL fmu-v5
+	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
@@ -26,21 +27,20 @@ px4_add_board(
 		#heater
 		imu/adis16448
 		#imu # all available imu drivers
-		imu/bma180
 		imu/bmi055
-		imu/bmi160
 		imu/mpu6000
 		imu/mpu9250
+		imu/icm20948
 		irlock
 		lights/blinkm
 		lights/oreoled
+		lights/pca8574
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		#md25
 		mkblctrl
-		lights/pca8574
 		pca9685
 		pmw3901
 		#protocol_splitter
@@ -57,6 +57,7 @@ px4_add_board(
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm
+		tone_alarm
 		uavcan
 
 	MODULES
@@ -79,7 +80,6 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		navigator
-		position_estimator_inav
 		sensors
 		vmount
 		vtol_att_control
@@ -117,12 +117,10 @@ px4_add_board(
 		hello
 		hwtest # Hardware test
 		#matlab_csv_serial
-		#publisher
+		position_estimator_inav
 		px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
 		px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app
 		rover_steering_control # Rover example app
 		segway
-		#subscriber
 		uuv_example_app
-
 	)

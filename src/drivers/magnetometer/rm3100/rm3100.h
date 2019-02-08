@@ -50,6 +50,7 @@
 
 #include <perf/perf_counter.h>
 #include <px4_defines.h>
+#include <systemlib/err.h>
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.

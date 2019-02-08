@@ -33,6 +33,9 @@
 
 include(cygwin_cygpath)
 
+set(NUTTX_DIR ${PX4_BINARY_DIR}/NuttX/nuttx)
+set(NUTTX_APPS_DIR ${PX4_BINARY_DIR}/NuttX/apps)
+
 add_subdirectory(src)
 
 add_executable(px4 ${PX4_SOURCE_DIR}/src/platforms/empty.c)
@@ -52,7 +55,7 @@ list(APPEND nuttx_libs
 	nuttx_binfmt
 	nuttx_c
 	nuttx_configs
-	nuttx_cxx
+	nuttx_xx
 	nuttx_drivers
 	nuttx_fs
 	nuttx_mm
@@ -79,24 +82,26 @@ target_link_libraries(nuttx_arch
 )
 
 target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
-target_link_libraries(nuttx_cxx INTERFACE nuttx_c)
+target_link_libraries(nuttx_xx INTERFACE nuttx_c)
 
 target_link_libraries(px4 PRIVATE
 
 	-nostartfiles
 	-nodefaultlibs
 	-nostdlib
+	-nostdinc++
 
 	-fno-exceptions
 	-fno-rtti
 
-	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx/configs/${PX4_BOARD}/scripts/ld.script
+	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx-config/scripts/ld.script
 	-Wl,-Map=${PX4_CONFIG}.map
 	-Wl,--warn-common
 	-Wl,--gc-sections
 
 	-Wl,--start-group
-	${nuttx_libs}
+		drivers_boards_common_arch
+		${nuttx_libs}
 	-Wl,--end-group
 
 	m
@@ -104,7 +109,6 @@ target_link_libraries(px4 PRIVATE
 	)
 
 target_link_libraries(px4 PRIVATE ${module_libraries})
-target_link_libraries(px4 PRIVATE modules__uORB)
 
 if (config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
@@ -119,9 +123,10 @@ add_custom_command(OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_BOARD}.bin
 # create .px4 with parameter and airframe metadata
 if (TARGET parameters_xml AND TARGET airframes_xml)
 
-	string(REPLACE ".elf" ".px4" fw_package ${FW_NAME})
+	string(REPLACE ".elf" ".px4" fw_package ${PX4_BINARY_DIR}/${FW_NAME})
 
-	add_custom_command(OUTPUT ${fw_package}
+	add_custom_command(
+		OUTPUT ${fw_package}
 		COMMAND
 			${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_mkfw.py
 				--prototype ${PX4_SOURCE_DIR}/boards/${PX4_BOARD_VENDOR}/${PX4_BOARD_MODEL}/firmware.prototype

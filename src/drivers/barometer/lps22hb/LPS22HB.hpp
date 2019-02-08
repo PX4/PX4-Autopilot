@@ -44,6 +44,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/device/ringbuffer.h>
 #include <drivers/drv_device.h>
+#include <systemlib/err.h>
 
 #include <uORB/uORB.h>
 

@@ -9,7 +9,7 @@ pipeline {
         stage('Catkin build on ROS workspace') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2019-01-01'
+              image 'px4io/px4-dev-ros:2019-01-27'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -44,7 +44,7 @@ pipeline {
         stage('Colcon build on ROS2 workspace') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros2-bouncy:2019-01-01'
+              image 'px4io/px4-dev-ros2-bouncy:2019-01-27'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -73,7 +73,7 @@ pipeline {
 
         stage('Style check') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-01' }
+            docker { image 'px4io/px4-dev-base:2019-01-26' }
           }
           steps {
             sh 'make check_format'
@@ -88,7 +88,7 @@ pipeline {
         stage('Bloaty px4_fmu-v2') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-01-01'
+              image 'px4io/px4-dev-nuttx:2019-01-27'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -116,7 +116,7 @@ pipeline {
         stage('Bloaty px4_fmu-v5') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-01-01'
+              image 'px4io/px4-dev-nuttx:2019-01-27'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -141,10 +141,32 @@ pipeline {
           }
         }
 
+        stage('SITL unit tests') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base:2019-02-03'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'make tests'
+            sh 'ccache -s'
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
+
         stage('Clang analyzer') {
           agent {
             docker {
-              image 'px4io/px4-dev-clang:2019-01-01'
+              image 'px4io/px4-dev-clang:2019-01-27'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -178,31 +200,31 @@ pipeline {
           }
         }
 
-        stage('Clang tidy') {
-          agent {
-            docker {
-              image 'px4io/px4-dev-clang:2018-03-30'
-              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-            }
-          }
-          steps {
-            sh 'export'
-            retry (3) {
-              sh 'make distclean'
-              sh 'make clang-tidy-quiet'
-            }
-          }
-          post {
-            always {
-              sh 'make distclean'
-            }
-          }
-        }
+        // stage('Clang tidy') {
+        //   agent {
+        //     docker {
+        //       image 'px4io/px4-dev-clang:2019-01-27'
+        //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+        //     }
+        //   }
+        //   steps {
+        //     sh 'export'
+        //     retry (3) {
+        //       sh 'make distclean'
+        //       sh 'make clang-tidy-quiet'
+        //     }
+        //   }
+        //   post {
+        //     always {
+        //       sh 'make distclean'
+        //     }
+        //   }
+        // }
 
         stage('Cppcheck') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-01-01'
+              image 'px4io/px4-dev-base:2019-01-26'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -239,7 +261,7 @@ pipeline {
         stage('Check stack') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-01-01'
+              image 'px4io/px4-dev-nuttx:2019-01-27'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -258,7 +280,7 @@ pipeline {
         stage('ShellCheck') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-01-01'
+              image 'px4io/px4-dev-nuttx:2019-01-27'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -277,7 +299,7 @@ pipeline {
         stage('Module config validation') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-01-01'
+              image 'px4io/px4-dev-base:2019-01-26'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -302,7 +324,7 @@ pipeline {
 
         stage('Airframe') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-01' }
+            docker { image 'px4io/px4-dev-base:2019-01-26' }
           }
           steps {
             sh 'make distclean'
@@ -321,7 +343,7 @@ pipeline {
 
         stage('Parameter') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-01' }
+            docker { image 'px4io/px4-dev-base:2019-01-26' }
           }
           steps {
             sh 'make distclean'
@@ -340,7 +362,7 @@ pipeline {
 
         stage('Module') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-01' }
+            docker { image 'px4io/px4-dev-base:2019-01-26' }
           }
           steps {
             sh 'make distclean'
@@ -360,7 +382,7 @@ pipeline {
         stage('uORB graphs') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-01-01'
+              image 'px4io/px4-dev-nuttx:2019-01-27'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -389,7 +411,7 @@ pipeline {
 
         stage('Devguide') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-01' }
+            docker { image 'px4io/px4-dev-base:2019-01-26' }
           }
           steps {
             sh('export')
@@ -419,7 +441,7 @@ pipeline {
 
         stage('Userguide') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-01' }
+            docker { image 'px4io/px4-dev-base:2019-01-26' }
           }
           steps {
             sh('export')
@@ -447,7 +469,7 @@ pipeline {
 
         stage('QGroundControl') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-01' }
+            docker { image 'px4io/px4-dev-base:2019-01-26' }
           }
           steps {
             sh('export')
@@ -473,9 +495,63 @@ pipeline {
           }
         }
 
+        stage('PX4 ROS msgs') {
+          agent {
+            docker { image 'px4io/px4-dev-base:2019-01-27' }
+          }
+          steps {
+            sh('export')
+            sh('make distclean')
+            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
+              sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_msgs.git -b ${BRANCH_NAME}")
+              sh('python msg/tools/uorb_to_ros_msgs.py msg/ px4_msgs/msg/')
+              sh('cd px4_msgs; git status; git add .; git commit -a -m "Update message definitions `date`" || true')
+              sh('cd px4_msgs; git push origin ${BRANCH_NAME} || true')
+              sh('rm -rf px4_msgs')
+            }
+          }
+          when {
+            anyOf {
+              branch 'master'
+              branch 'pr-jenkins' // for testing
+            }
+          }
+        }
+
+        stage('PX4 ROS2 bridge') {
+          agent {
+            docker { image 'px4io/px4-dev-base:2019-01-27' }
+          }
+          steps {
+            sh('export')
+            sh('make distclean')
+            withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
+              sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_ros_com.git -b ${BRANCH_NAME}")
+              // deploy uORB RTPS ID map
+              sh('python msg/tools/uorb_to_ros_rtps_ids.py -i msg/tools/uorb_rtps_message_ids.yaml -o px4_ros_com/templates/uorb_rtps_message_ids.yaml')
+              sh('cd px4_ros_com; git status; git add .; git commit -a -m "Update uORB RTPS ID map `date`" || true')
+              sh('cd px4_ros_com; git push origin ${BRANCH_NAME} || true')
+              // deploy uORB RTPS required tools
+              sh('cp msg/tools/uorb_rtps_classifier.py px4_ros_com/scripts/uorb_rtps_classifier.py')
+              sh('cp msg/tools/generate_microRTPS_bridge.py px4_ros_com/scripts/generate_microRTPS_bridge.py')
+              sh('cp msg/tools/px_generate_uorb_topic_files.py px4_ros_com/scripts/px_generate_uorb_topic_files.py')
+              sh('cp msg/tools/px_generate_uorb_topic_helper.py px4_ros_com/scripts/px_generate_uorb_topic_helper.py')
+              sh('cd px4_ros_com; git status; git add .; git commit -a -m "Update uORB RTPS script tools `date`" || true')
+              sh('cd px4_ros_com; git push origin ${BRANCH_NAME} || true')
+              sh('rm -rf px4_msgs')
+            }
+          }
+          when {
+            anyOf {
+              branch 'master'
+              branch 'pr-jenkins' // for testing
+            }
+          }
+        }
+
         stage('S3') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-01' }
+            docker { image 'px4io/px4-dev-base:2019-01-26' }
           }
           steps {
             sh('export')

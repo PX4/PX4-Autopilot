@@ -53,7 +53,6 @@
 #include <debug.h>
 #include <errno.h>
 
-#include "platform/cxxinitialize.h"
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/i2c/i2c_master.h>
@@ -68,33 +67,12 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
 
-#include <systemlib/cpuload.h>
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
 
-#include <parameters/param.h>
+#include <px4_init.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
-
-/* Configuration ************************************************************/
-
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) lowsyslog(__VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message lowsyslog
-#  else
-#    define message printf
-#  endif
-#endif
 
 /*
  * Ideally we'd be able to get these from up_internal.h,
@@ -129,7 +107,7 @@ __EXPORT void board_peripheral_reset(int ms)
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
-	warnx("reset done, %d ms", ms);
+	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
 
 	/* re-enable power */
 	/* switch the peripheral rail back on */
@@ -206,35 +184,13 @@ static struct spi_dev_s *spi4;
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-
-	/* run C++ ctors before we go any further */
-
-	up_cxxinitialize();
-
-#       if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
-#               error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
-#       endif
-
-#else
-#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
-#endif
-
-	/* configure the high-resolution time/callout interface */
-	hrt_init();
-
-	param_init();
+	px4_platform_init();
 
 	/* configure the DMA allocator */
 
 	if (board_dma_alloc_init() < 0) {
-		message("DMA alloc FAILED");
+		syslog(LOG_ERR, "DMA alloc FAILED\n");
 	}
-
-	/* configure CPU load estimation */
-#ifdef CONFIG_SCHED_INSTRUMENTATION
-	cpuload_initialize_once();
-#endif
 
 	/* set up the serial DMA polling */
 	static struct hrt_call serial_dma_call;
@@ -262,7 +218,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	spi3 = px4_spibus_initialize(3);
 
 	if (!spi3) {
-		message("[boot] FAILED to initialize SPI port 3\n");
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 3\n");
 		led_on(LED_AMBER);
 		return -ENODEV;
 	}
@@ -281,7 +237,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	spi4 = px4_spibus_initialize(4);
 
 	if (!spi4) {
-		message("[boot] FAILED to initialize SPI port 4\n");
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 4\n");
 		led_on(LED_AMBER);
 		return -ENODEV;
 	}

@@ -89,26 +89,6 @@ const uint16_t MPU9250::_mpu9250_checked_registers[MPU9250_NUM_CHECKED_REGISTERS
 										      MPUREG_INT_PIN_CFG
 										    };
 
-
-const uint16_t MPU9250::_icm20948_checked_registers[ICM20948_NUM_CHECKED_REGISTERS] = {
-	ICMREG_20948_USER_CTRL,
-	ICMREG_20948_PWR_MGMT_1,
-	ICMREG_20948_PWR_MGMT_2,
-	ICMREG_20948_INT_PIN_CFG,
-	ICMREG_20948_INT_ENABLE,
-	ICMREG_20948_INT_ENABLE_1,
-	ICMREG_20948_INT_ENABLE_2,
-	ICMREG_20948_INT_ENABLE_3,
-	ICMREG_20948_GYRO_SMPLRT_DIV,
-	ICMREG_20948_GYRO_CONFIG_1,
-	ICMREG_20948_GYRO_CONFIG_2,
-	ICMREG_20948_ACCEL_SMPLRT_DIV_1,
-	ICMREG_20948_ACCEL_SMPLRT_DIV_2,
-	ICMREG_20948_ACCEL_CONFIG,
-	ICMREG_20948_ACCEL_CONFIG_2
-};
-
-
 MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const char *path_accel,
 		 const char *path_gyro, const char *path_mag,
 		 enum Rotation rotation,
@@ -138,8 +118,6 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_gyro_range_scale(0.0f),
 	_gyro_range_rad_s(0.0f),
 	_dlpf_freq(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
-	_dlpf_freq_icm_gyro(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
-	_dlpf_freq_icm_accel(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
 	_sample_rate(1000),
 	_accel_reads(perf_alloc(PC_COUNT, "mpu9250_acc_read")),
 	_gyro_reads(perf_alloc(PC_COUNT, "mpu9250_gyro_read")),
@@ -360,7 +338,7 @@ MPU9250::init()
 	}
 
 	/* Magnetometer setup */
-	if (_whoami == MPU_WHOAMI_9250 || _whoami == ICM_WHOAMI_20948) {
+	if (_whoami == MPU_WHOAMI_9250) {
 
 #ifdef USE_I2C
 
@@ -448,7 +426,7 @@ int MPU9250::reset()
 
 	ret = reset_mpu();
 
-	if (ret == OK && (_whoami == MPU_WHOAMI_9250 || _whoami == ICM_WHOAMI_20948)) {
+	if (ret == OK && (_whoami == MPU_WHOAMI_9250)) {
 		ret = _mag->ak8963_reset();
 	}
 
@@ -472,22 +450,10 @@ int MPU9250::reset_mpu()
 		write_checked_reg(MPUREG_PWR_MGMT_2, 0);
 		usleep(1000);
 		break;
-
-	case ICM_WHOAMI_20948:
-		write_reg(ICMREG_20948_PWR_MGMT_1, BIT_H_RESET);
-		usleep(1000);
-
-		write_checked_reg(ICMREG_20948_PWR_MGMT_1, MPU_CLK_SEL_AUTO);
-		usleep(200);
-		write_checked_reg(ICMREG_20948_PWR_MGMT_2, 0);
-		break;
 	}
 
 	// Enable I2C bus or Disable I2C bus (recommended on data sheet)
-
-
-	write_checked_reg(MPU_OR_ICM(MPUREG_USER_CTRL, ICMREG_20948_USER_CTRL), is_i2c() ? 0 : BIT_I2C_IF_DIS);
-
+	write_checked_reg(MPUREG_USER_CTRL, is_i2c() ? 0 : BIT_I2C_IF_DIS);
 
 	// SAMPLE RATE
 	_set_sample_rate(_sample_rate);
@@ -499,10 +465,6 @@ int MPU9250::reset_mpu()
 	case MPU_WHOAMI_9250:
 	case MPU_WHOAMI_6500:
 		write_checked_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
-		break;
-
-	case ICM_WHOAMI_20948:
-		modify_checked_reg(ICMREG_20948_GYRO_CONFIG_1, ICM_BITS_GYRO_FS_SEL_MASK, ICM_BITS_GYRO_FS_SEL_2000DPS);
 		break;
 	}
 
@@ -518,8 +480,7 @@ int MPU9250::reset_mpu()
 	set_accel_range(ACCEL_RANGE_G);
 
 	// INT CFG => Interrupt on Data Ready
-	write_checked_reg(MPU_OR_ICM(MPUREG_INT_ENABLE, ICMREG_20948_INT_ENABLE_1),
-			  BIT_RAW_RDY_EN);        // INT: Raw data ready
+	write_checked_reg(MPUREG_INT_ENABLE, BIT_RAW_RDY_EN);        // INT: Raw data ready
 
 #ifdef USE_I2C
 	bool bypass = !_mag->is_passthrough();
@@ -536,11 +497,9 @@ int MPU9250::reset_mpu()
 	 * so bypass is true if the mag has an i2c non null interfaces.
 	 */
 
-	write_checked_reg(MPU_OR_ICM(MPUREG_INT_PIN_CFG, ICMREG_20948_INT_PIN_CFG),
-			  BIT_INT_ANYRD_2CLEAR | (bypass ? BIT_INT_BYPASS_EN : 0));
+	write_checked_reg(MPUREG_INT_PIN_CFG, BIT_INT_ANYRD_2CLEAR | (bypass ? BIT_INT_BYPASS_EN : 0));
 
-	write_checked_reg(MPU_OR_ICM(MPUREG_ACCEL_CONFIG2, ICMREG_20948_ACCEL_CONFIG_2),
-			  MPU_OR_ICM(BITS_ACCEL_CONFIG2_41HZ, ICM_BITS_DEC3_CFG_32));
+	write_checked_reg(MPUREG_ACCEL_CONFIG2, BITS_ACCEL_CONFIG2_41HZ);
 
 	retries = 3;
 	bool all_ok = false;
@@ -554,9 +513,6 @@ int MPU9250::reset_mpu()
 
 		for (uint8_t i = 0; i < _num_checked_registers; i++) {
 			if ((reg = read_reg(_checked_registers[i])) != _checked_values[i]) {
-				if (_whoami == ICM_WHOAMI_20948) {
-					_interface->read(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &bankcheck, 1);
-				}
 
 				write_reg(_checked_registers[i], _checked_values[i]);
 				PX4_ERR("Reg %d is:%d s/b:%d Tries:%d - bank s/b %d, is %d", _checked_registers[i], reg, _checked_values[i], retries,
@@ -577,27 +533,12 @@ MPU9250::probe()
 	// Try first for mpu9250/6500
 	_whoami = read_reg(MPUREG_WHOAMI);
 
-	// If it's not an MPU it must be an ICM
-	if ((_whoami != MPU_WHOAMI_9250) && (_whoami != MPU_WHOAMI_6500)) {
-		// Make sure selected register bank is bank 0 (which contains WHOAMI)
-		select_register_bank(REG_BANK(ICMREG_20948_WHOAMI));
-		_whoami = read_reg(ICMREG_20948_WHOAMI);
-	}
-
 	if (_whoami == MPU_WHOAMI_9250 || _whoami == MPU_WHOAMI_6500) {
 
 		_num_checked_registers = MPU9250_NUM_CHECKED_REGISTERS;
 		_checked_registers = _mpu9250_checked_registers;
 		memset(_checked_values, 0, MPU9250_NUM_CHECKED_REGISTERS);
 		memset(_checked_bad, 0, MPU9250_NUM_CHECKED_REGISTERS);
-		ret = PX4_OK;
-
-	} else if (_whoami == ICM_WHOAMI_20948) {
-
-		_num_checked_registers = ICM20948_NUM_CHECKED_REGISTERS;
-		_checked_registers = _icm20948_checked_registers;
-		memset(_checked_values, 0, ICM20948_NUM_CHECKED_REGISTERS);
-		memset(_checked_bad, 0, ICM20948_NUM_CHECKED_REGISTERS);
 		ret = PX4_OK;
 	}
 
@@ -613,7 +554,6 @@ MPU9250::probe()
 
 /*
   set sample rate (approximate) - 1kHz to 5Hz, for both accel and gyro
-  For ICM20948 accel and gyro samplerates are both set to the same value.
 */
 void
 MPU9250::_set_sample_rate(unsigned desired_sample_rate_hz)
@@ -629,10 +569,6 @@ MPU9250::_set_sample_rate(unsigned desired_sample_rate_hz)
 	case MPU_WHOAMI_6500:
 		div = 1000 / desired_sample_rate_hz;
 		break;
-
-	case ICM_WHOAMI_20948:
-		div = 1100 / desired_sample_rate_hz;
-		break;
 	}
 
 	if (div > 200) { div = 200; }
@@ -645,14 +581,6 @@ MPU9250::_set_sample_rate(unsigned desired_sample_rate_hz)
 	case MPU_WHOAMI_6500:
 		write_checked_reg(MPUREG_SMPLRT_DIV, div - 1);
 		_sample_rate = 1000 / div;
-		break;
-
-	case ICM_WHOAMI_20948:
-		write_checked_reg(ICMREG_20948_GYRO_SMPLRT_DIV, div - 1);
-		// There's also an MSB for this allowing much higher dividers for the accelerometer.
-		// For 1 < div < 200 the LSB is sufficient.
-		write_checked_reg(ICMREG_20948_ACCEL_SMPLRT_DIV_2, div - 1);
-		_sample_rate = 1100 / div;
 		break;
 	}
 }
@@ -766,151 +694,15 @@ MPU9250::_set_dlpf_filter(uint16_t frequency_hz)
 
 		write_checked_reg(MPUREG_CONFIG, filter);
 		break;
-
-	case ICM_WHOAMI_20948:
-
-		/*
-		   choose next highest filter frequency available for gyroscope
-		 */
-		if (frequency_hz == 0) {
-			_dlpf_freq_icm_gyro = 0;
-			filter = ICM_BITS_GYRO_DLPF_CFG_361HZ;
-
-		} else if (frequency_hz <= 5) {
-			_dlpf_freq_icm_gyro = 5;
-			filter = ICM_BITS_GYRO_DLPF_CFG_5HZ;
-
-		} else if (frequency_hz <= 11) {
-			_dlpf_freq_icm_gyro = 11;
-			filter = ICM_BITS_GYRO_DLPF_CFG_11HZ;
-
-		} else if (frequency_hz <= 23) {
-			_dlpf_freq_icm_gyro = 23;
-			filter = ICM_BITS_GYRO_DLPF_CFG_23HZ;
-
-		} else if (frequency_hz <= 51) {
-			_dlpf_freq_icm_gyro = 51;
-			filter = ICM_BITS_GYRO_DLPF_CFG_51HZ;
-
-		} else if (frequency_hz <= 119) {
-			_dlpf_freq_icm_gyro = 119;
-			filter = ICM_BITS_GYRO_DLPF_CFG_119HZ;
-
-		} else if (frequency_hz <= 151) {
-			_dlpf_freq_icm_gyro = 151;
-			filter = ICM_BITS_GYRO_DLPF_CFG_151HZ;
-
-		} else if (frequency_hz <= 197) {
-			_dlpf_freq_icm_gyro = 197;
-			filter = ICM_BITS_GYRO_DLPF_CFG_197HZ;
-
-		} else {
-			_dlpf_freq_icm_gyro = 0;
-			filter = ICM_BITS_GYRO_DLPF_CFG_361HZ;
-		}
-
-		write_checked_reg(ICMREG_20948_GYRO_CONFIG_1, filter);
-
-		/*
-		   choose next highest filter frequency available for accelerometer
-		 */
-		if (frequency_hz == 0) {
-			_dlpf_freq_icm_accel = 0;
-			filter = ICM_BITS_ACCEL_DLPF_CFG_473HZ;
-
-		} else if (frequency_hz <= 5) {
-			_dlpf_freq_icm_accel = 5;
-			filter = ICM_BITS_ACCEL_DLPF_CFG_5HZ;
-
-		} else if (frequency_hz <= 11) {
-			_dlpf_freq_icm_accel = 11;
-			filter = ICM_BITS_ACCEL_DLPF_CFG_11HZ;
-
-		} else if (frequency_hz <= 23) {
-			_dlpf_freq_icm_accel = 23;
-			filter = ICM_BITS_ACCEL_DLPF_CFG_23HZ;
-
-		} else if (frequency_hz <= 50) {
-			_dlpf_freq_icm_accel = 50;
-			filter = ICM_BITS_ACCEL_DLPF_CFG_50HZ;
-
-		} else if (frequency_hz <= 111) {
-			_dlpf_freq_icm_accel = 111;
-			filter = ICM_BITS_ACCEL_DLPF_CFG_111HZ;
-
-		} else if (frequency_hz <= 246) {
-			_dlpf_freq_icm_accel = 246;
-			filter = ICM_BITS_ACCEL_DLPF_CFG_246HZ;
-
-		} else {
-			_dlpf_freq_icm_accel = 0;
-			filter = ICM_BITS_ACCEL_DLPF_CFG_473HZ;
-		}
-
-		write_checked_reg(ICMREG_20948_ACCEL_CONFIG, filter);
-		break;
-	}
-}
-
-int
-MPU9250::select_register_bank(uint8_t bank)
-{
-	uint8_t ret;
-	uint8_t buf;
-	uint8_t retries = 3;
-
-	if (_selected_bank != bank) {
-		ret = _interface->write(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &bank, 1);
-
-		if (ret != OK) {
-			return ret;
-		}
-	}
-
-	/*
-	 * Making sure the right register bank is selected (even if it should be). Observed some
-	 * unexpected changes to this, don't risk writing to the wrong register bank.
-	 */
-	_interface->read(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &buf, 1);
-
-	while (bank != buf && retries > 0) {
-		//PX4_WARN("user bank: expected %d got %d",bank,buf);
-		ret = _interface->write(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &bank, 1);
-
-		if (ret != OK) {
-			return ret;
-		}
-
-		retries--;
-		//PX4_WARN("BANK retries: %d", 4-retries);
-
-		_interface->read(MPU9250_LOW_SPEED_OP(ICMREG_20948_BANK_SEL), &buf, 1);
-	}
-
-
-	_selected_bank = bank;
-
-	if (bank != buf) {
-		PX4_DEBUG("SELECT FAILED %d %d %d %d", retries, _selected_bank, bank, buf);
-		return PX4_ERROR;
-
-	} else {
-		return PX4_OK;
 	}
 }
 
 uint8_t
 MPU9250::read_reg(unsigned reg, uint32_t speed)
 {
-	uint8_t buf;
+	uint8_t buf{};
 
-	if (_whoami == ICM_WHOAMI_20948) {
-		select_register_bank(REG_BANK(reg));
-		_interface->read(MPU9250_SET_SPEED(REG_ADDRESS(reg), speed), &buf, 1);
-
-	} else {
-		_interface->read(MPU9250_SET_SPEED(REG_ADDRESS(reg), speed), &buf, 1);
-	}
+	_interface->read(MPU9250_SET_SPEED(REG_ADDRESS(reg), speed), &buf, 1);
 
 	return buf;
 }
@@ -918,35 +710,20 @@ MPU9250::read_reg(unsigned reg, uint32_t speed)
 uint8_t
 MPU9250::read_reg_range(unsigned start_reg, uint32_t speed, uint8_t *buf, uint16_t count)
 {
-	uint8_t ret;
-
-	if (buf == NULL) { return PX4_ERROR; }
-
-	if (_whoami == ICM_WHOAMI_20948) {
-		select_register_bank(REG_BANK(start_reg));
-		ret = _interface->read(MPU9250_SET_SPEED(REG_ADDRESS(start_reg), speed), buf, count);
-
-	} else {
-		ret = _interface->read(MPU9250_SET_SPEED(REG_ADDRESS(start_reg), speed), buf, count);
+	if (buf == NULL) {
+		return PX4_ERROR;
 	}
 
-	return ret;
+	return _interface->read(MPU9250_SET_SPEED(REG_ADDRESS(start_reg), speed), buf, count);
 }
 
 uint16_t
 MPU9250::read_reg16(unsigned reg)
 {
-	uint8_t buf[2];
+	uint8_t buf[2] {};
 
 	// general register transfer at low clock speed
-
-	if (_whoami == ICM_WHOAMI_20948) {
-		select_register_bank(REG_BANK(reg));
-		_interface->read(MPU9250_LOW_SPEED_OP(REG_ADDRESS(reg)), &buf, arraySize(buf));
-
-	} else {
-		_interface->read(MPU9250_LOW_SPEED_OP(reg), &buf, arraySize(buf));
-	}
+	_interface->read(MPU9250_LOW_SPEED_OP(reg), &buf, arraySize(buf));
 
 	return (uint16_t)(buf[0] << 8) | buf[1];
 }
@@ -955,14 +732,7 @@ void
 MPU9250::write_reg(unsigned reg, uint8_t value)
 {
 	// general register transfer at low clock speed
-
-	if (_whoami == ICM_WHOAMI_20948) {
-		select_register_bank(REG_BANK(reg));
-		_interface->write(MPU9250_LOW_SPEED_OP(REG_ADDRESS(reg)), &value, 1);
-
-	} else {
-		_interface->write(MPU9250_LOW_SPEED_OP(reg), &value, 1);
-	}
+	_interface->write(MPU9250_LOW_SPEED_OP(reg), &value, 1);
 }
 
 void
@@ -1033,10 +803,6 @@ MPU9250::set_accel_range(unsigned max_g_in)
 	case MPU_WHOAMI_9250:
 	case MPU_WHOAMI_6500:
 		write_checked_reg(MPUREG_ACCEL_CONFIG, afs_sel << 3);
-		break;
-
-	case ICM_WHOAMI_20948:
-		modify_checked_reg(ICMREG_20948_ACCEL_CONFIG, ICM_BITS_ACCEL_FS_SEL_MASK, afs_sel << 1);
 		break;
 	}
 
@@ -1169,12 +935,8 @@ MPU9250::check_registers(void)
 			// if the product_id is wrong then reset the
 			// sensor completely
 
-			if (_whoami == ICM_WHOAMI_20948) {
-				// reset_mpu();
-			} else {
-				write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
-				write_reg(MPUREG_PWR_MGMT_2, MPU_CLK_SEL_AUTO);
-			}
+			write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
+			write_reg(MPUREG_PWR_MGMT_2, MPU_CLK_SEL_AUTO);
 
 			// after doing a reset we need to wait a long
 			// time before we do any other register writes
@@ -1253,8 +1015,6 @@ MPU9250::measure()
 
 	struct MPUReport mpu_report;
 
-	struct ICMReport icm_report;
-
 	struct Report {
 		int16_t		accel_x;
 		int16_t		accel_y;
@@ -1279,19 +1039,11 @@ MPU9250::measure()
 				return;
 			}
 
-		} else {    // ICM20948
-			select_register_bank(REG_BANK(ICMREG_20948_ACCEL_XOUT_H));
-
-			if (OK != read_reg_range(ICMREG_20948_ACCEL_XOUT_H, MPU9250_HIGH_BUS_SPEED, (uint8_t *)&icm_report,
-						 sizeof(icm_report))) {
-				perf_end(_sample_perf);
-				return;
-			}
 		}
 
 		check_registers();
 
-		if (check_duplicate(MPU_OR_ICM(&mpu_report.accel_x[0], &icm_report.accel_x[0]))) {
+		if (check_duplicate(&mpu_report.accel_x[0])) {
 			return;
 		}
 	}
@@ -1324,24 +1076,13 @@ MPU9250::measure()
 		/*
 		 * Convert from big to little endian
 		 */
-		if (_whoami == ICM_WHOAMI_20948) {
-			report.accel_x = int16_t_from_bytes(icm_report.accel_x);
-			report.accel_y = int16_t_from_bytes(icm_report.accel_y);
-			report.accel_z = int16_t_from_bytes(icm_report.accel_z);
-			report.temp    = int16_t_from_bytes(icm_report.temp);
-			report.gyro_x  = int16_t_from_bytes(icm_report.gyro_x);
-			report.gyro_y  = int16_t_from_bytes(icm_report.gyro_y);
-			report.gyro_z  = int16_t_from_bytes(icm_report.gyro_z);
-
-		} else { // MPU9250/MPU6500
-			report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
-			report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
-			report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
-			report.temp    = int16_t_from_bytes(mpu_report.temp);
-			report.gyro_x  = int16_t_from_bytes(mpu_report.gyro_x);
-			report.gyro_y  = int16_t_from_bytes(mpu_report.gyro_y);
-			report.gyro_z  = int16_t_from_bytes(mpu_report.gyro_z);
-		}
+		report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
+		report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
+		report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
+		report.temp    = int16_t_from_bytes(mpu_report.temp);
+		report.gyro_x  = int16_t_from_bytes(mpu_report.gyro_x);
+		report.gyro_y  = int16_t_from_bytes(mpu_report.gyro_y);
+		report.gyro_z  = int16_t_from_bytes(mpu_report.gyro_z);
 
 		if (check_null_data((uint16_t *)&report, sizeof(report) / 2)) {
 			return;
@@ -1371,27 +1112,22 @@ MPU9250::measure()
 	if (!_magnetometer_only) {
 
 		/*
-		 * Keeping the axes as they are for ICM20948 so orientation will match the actual chip orientation
+		 * Swap axes and negate y
 		 */
-		if (_whoami != ICM_WHOAMI_20948) {
-			/*
-			 * Swap axes and negate y
-			 */
 
-			int16_t accel_xt = report.accel_y;
-			int16_t accel_yt = ((report.accel_x == -32768) ? 32767 : -report.accel_x);
+		int16_t accel_xt = report.accel_y;
+		int16_t accel_yt = ((report.accel_x == -32768) ? 32767 : -report.accel_x);
 
-			int16_t gyro_xt = report.gyro_y;
-			int16_t gyro_yt = ((report.gyro_x == -32768) ? 32767 : -report.gyro_x);
+		int16_t gyro_xt = report.gyro_y;
+		int16_t gyro_yt = ((report.gyro_x == -32768) ? 32767 : -report.gyro_x);
 
-			/*
-			 * Apply the swap
-			 */
-			report.accel_x = accel_xt;
-			report.accel_y = accel_yt;
-			report.gyro_x = gyro_xt;
-			report.gyro_y = gyro_yt;
-		}
+		/*
+		 * Apply the swap
+		 */
+		report.accel_x = accel_xt;
+		report.accel_y = accel_yt;
+		report.gyro_x = gyro_xt;
+		report.gyro_y = gyro_yt;
 
 		/*
 		 * Report buffers.

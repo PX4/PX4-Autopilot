@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2017 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,14 +32,15 @@
  ****************************************************************************/
 
 /**
- * @file test_mixer.hpp
- *
+ * @file test_mixer.cpp
  * Mixer load test
  */
 
 #include <dirent.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <math.h>
 
 #include <px4_config.h>
 #include <mixer/mixer.h>
@@ -397,13 +398,13 @@ bool MixerTest::mixerTest()
 
 		if (i != actuator_controls_s::INDEX_THROTTLE) {
 			if (r_page_servos[i] < r_page_servo_control_min[i]) {
-				warnx("active servo < min");
+				PX4_ERR("active servo < min");
 				return false;
 			}
 
 		} else {
 			if (r_page_servos[i] != r_page_servo_disarmed[i]) {
-				warnx("throttle output != 0 (this check assumed the IO pass mixer!)");
+				PX4_ERR("throttle output != 0 (this check assumed the IO pass mixer!)");
 				return false;
 			}
 		}

@@ -21,8 +21,14 @@ then
 
 	param set EKF2_ARSP_THR 8
 	param set EKF2_FUSE_BETA 1
+	param set EKF2_GPS_CHECK 21
 	param set EKF2_MAG_ACCLIM 0
 	param set EKF2_MAG_YAWLIM 0
+	param set EKF2_REQ_EPH 10
+	param set EKF2_REQ_EPV 10
+	param set EKF2_REQ_HDRIFT 0.5
+	param set EKF2_REQ_SACC 1
+	param set EKF2_REQ_VDRIFT 1.0
 
 	param set RTL_RETURN_ALT 100
 	param set RTL_DESCEND_ALT 100

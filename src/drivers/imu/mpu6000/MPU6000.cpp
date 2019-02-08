@@ -943,7 +943,7 @@ MPU6000::measure()
 		temperature = (report.temp / 326.8f + 25.0f);
 
 	} else { // If it is an MPU6000
-		temperature = (report.temp / 361.0f + 35.0f);
+		temperature = (report.temp / 340.0f + 35.0f);
 	}
 
 	_px4_accel.set_temperature(temperature);

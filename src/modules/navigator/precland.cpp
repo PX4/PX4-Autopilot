@@ -63,6 +63,10 @@ PrecLand::PrecLand(Navigator *navigator) :
 	MissionBlock(navigator),
 	ModuleParams(navigator)
 {
+	_handle_param_acceleration_hor = param_find("MPC_ACC_HOR");
+	_handle_param_xy_vel_cruise = param_find("MPC_XY_CRUISE");
+
+	updateParams();
 }
 
 void
@@ -101,7 +105,6 @@ PrecLand::on_activation()
 	_last_slewrate_time = 0;
 
 	switch_to_state_start();
-
 }
 
 void
@@ -158,6 +161,20 @@ PrecLand::on_active()
 		break;
 	}
 
+}
+
+void
+PrecLand::updateParams()
+{
+	ModuleParams::updateParams();
+
+	if (_handle_param_acceleration_hor != PARAM_INVALID) {
+		param_get(_handle_param_acceleration_hor, &_param_acceleration_hor);
+	}
+
+	if (_handle_param_xy_vel_cruise != PARAM_INVALID) {
+		param_get(_handle_param_xy_vel_cruise, &_param_xy_vel_cruise);
+	}
 }
 
 void
@@ -545,21 +562,21 @@ void PrecLand::slewrate(float &sp_x, float &sp_y)
 	// limit the setpoint speed to the maximum cruise speed
 	matrix::Vector2f sp_vel = (sp_curr - _sp_pev) / dt; // velocity of the setpoints
 
-	if (sp_vel.length() > _param_xy_vel_cruise.get()) {
-		sp_vel = sp_vel.normalized() * _param_xy_vel_cruise.get();
+	if (sp_vel.length() > _param_xy_vel_cruise) {
+		sp_vel = sp_vel.normalized() * _param_xy_vel_cruise;
 		sp_curr = _sp_pev + sp_vel * dt;
 	}
 
 	// limit the setpoint acceleration to the maximum acceleration
 	matrix::Vector2f sp_acc = (sp_curr - _sp_pev * 2 + _sp_pev_prev) / (dt * dt); // acceleration of the setpoints
 
-	if (sp_acc.length() > _param_acceleration_hor.get()) {
-		sp_acc = sp_acc.normalized() * _param_acceleration_hor.get();
+	if (sp_acc.length() > _param_acceleration_hor) {
+		sp_acc = sp_acc.normalized() * _param_acceleration_hor;
 		sp_curr = _sp_pev * 2 - _sp_pev_prev + sp_acc * (dt * dt);
 	}
 
 	// limit the setpoint speed such that we can stop at the setpoint given the maximum acceleration/deceleration
-	float max_spd = sqrtf(_param_acceleration_hor.get() * ((matrix::Vector2f)(_sp_pev - matrix::Vector2f(sp_x,
+	float max_spd = sqrtf(_param_acceleration_hor * ((matrix::Vector2f)(_sp_pev - matrix::Vector2f(sp_x,
 			      sp_y))).length());
 	sp_vel = (sp_curr - _sp_pev) / dt; // velocity of the setpoints
 

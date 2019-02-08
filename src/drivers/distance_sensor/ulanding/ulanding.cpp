@@ -303,8 +303,6 @@ Radar::task_main_trampoline(int argc, char *argv[])
 int
 Radar::start()
 {
-	ASSERT(_task_handle == -1);
-
 	/* start the task */
 	_task_handle = px4_task_spawn_cmd("ulanding_radar",
 					  SCHED_DEFAULT,

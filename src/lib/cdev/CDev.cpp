@@ -55,7 +55,7 @@ CDev::CDev(const char *devname) :
 	int ret = px4_sem_init(&_lock, 0, 1);
 
 	if (ret != 0) {
-		PX4_ERR("SEM INIT FAIL: ret %d", ret);
+		PX4_DEBUG("SEM INIT FAIL: ret %d", ret);
 	}
 }
 

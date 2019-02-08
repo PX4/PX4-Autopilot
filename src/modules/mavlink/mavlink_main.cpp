@@ -543,7 +543,7 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 			const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
 
 			int target_system_id = 0;
-			int target_component_id = 233;
+			int target_component_id = 0;
 
 			// might be nullptr if message is unknown
 			if (meta) {
@@ -557,11 +557,21 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 				}
 			}
 
-			// Broadcast or addressing this system and not trying to talk
-			// to the autopilot component -> pass on to other components
-			if ((target_system_id == 0 || target_system_id == self->get_system_id())
-			    && (target_component_id == 0 || target_component_id != self->get_component_id())
-			    && !(!self->forward_heartbeats_enabled() && msg->msgid == MAVLINK_MSG_ID_HEARTBEAT)) {
+			// We forward messages targetted at the same system, or addressed to all systems, or
+			// if not target system is set.
+			const bool target_system_id_ok =
+				(target_system_id == 0 || target_system_id == self->get_system_id());
+
+			// We forward messages that are targetting another component, or are addressed to all
+			// components, or if the target component is not set.
+			const bool target_component_id_ok =
+				(target_component_id == 0 || target_component_id != self->get_component_id());
+
+			// We don't forward heartbeats unless it's specifically enabled.
+			const bool heartbeat_check_ok =
+				(msg->msgid != MAVLINK_MSG_ID_HEARTBEAT || self->forward_heartbeats_enabled());
+
+			if (target_system_id_ok && target_component_id_ok && heartbeat_check_ok) {
 
 				inst->pass_message(msg);
 			}

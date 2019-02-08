@@ -33,8 +33,10 @@
 
 #include "log_writer_file.h"
 #include "messages.h"
+
 #include <fcntl.h>
 #include <string.h>
+#include <errno.h>
 
 #include <mathlib/mathlib.h>
 #include <px4_posix.h>

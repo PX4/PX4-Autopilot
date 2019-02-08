@@ -49,6 +49,7 @@
 #include <lib/conversion/rotation.h>
 #include <perf/perf_counter.h>
 #include <ecl/geo/geo.h>
+#include <systemlib/err.h>
 
 #define ADIS16477_GYRO_DEFAULT_RATE					250
 #define ADIS16477_GYRO_DEFAULT_DRIVER_FILTER_FREQ	30

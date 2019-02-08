@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,6 +30,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+/**
+ * @file test_perf.c
+ * Tests related to the performance counter.
+ */
 
 #include <px4_config.h>
 #include <px4_posix.h>

@@ -39,7 +39,6 @@ px4_add_library(drivers_board
 
 target_link_libraries(drivers_board
 	PRIVATE
-		nuttx_apps # up_cxxinitialize
 		drivers__led # drv_led_start
-		parameters # param_init
+		px4_layer
 	)

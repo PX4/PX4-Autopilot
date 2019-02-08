@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 /**
- * @file Takeoff.cpp
+ * @file takeoff.cpp
  *
  * Helper class to Takeoff
  *
- * @author Lorenz Meier <lorenz@px4.io
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include "takeoff.h"

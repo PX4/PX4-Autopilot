@@ -47,18 +47,13 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/vehicle_command_ack.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_status_flags.h>
 
 // subscriptions
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/estimator_status.h>
-#include <uORB/topics/geofence_result.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/mission_result.h>
-#include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>

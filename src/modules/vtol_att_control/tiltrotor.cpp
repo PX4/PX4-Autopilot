@@ -149,7 +149,7 @@ void Tiltrotor::update_vtol_state()
 
 				// check if airspeed is invalid and transition by time
 				transition_to_p2 |= _params->airspeed_disabled &&
-						    _tilt_control > _params_tiltrotor.tilt_transition &&
+						    _tilt_control >= _params_tiltrotor.tilt_transition &&
 						    time_since_trans_start > _params->front_trans_time_openloop;
 
 				if (transition_to_p2) {
@@ -334,15 +334,16 @@ void Tiltrotor::waiting_on_tecs()
 */
 void Tiltrotor::fill_actuator_outputs()
 {
+	// Multirotor output
 	_actuators_out_0->timestamp = hrt_absolute_time();
 	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
 
-	_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL]
-			* _mc_roll_weight;
+	_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] =
+		_actuators_mc_in->control[actuator_controls_s::INDEX_ROLL] * _mc_roll_weight;
 	_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
 		_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;
-	_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW] *
-			_mc_yaw_weight;
+	_actuators_out_0->control[actuator_controls_s::INDEX_YAW] =
+		_actuators_mc_in->control[actuator_controls_s::INDEX_YAW] * _mc_yaw_weight;
 
 	if (_vtol_schedule.flight_mode == FW_MODE) {
 		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
@@ -359,14 +360,23 @@ void Tiltrotor::fill_actuator_outputs()
 			_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
 	}
 
+	// Fixed wing output
 	_actuators_out_1->timestamp = hrt_absolute_time();
 	_actuators_out_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
 
-	_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
-		-_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
-	_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
-		(_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH]);
-	_actuators_out_1->control[actuator_controls_s::INDEX_YAW] =
-		_actuators_fw_in->control[actuator_controls_s::INDEX_YAW];	// yaw
 	_actuators_out_1->control[4] = _tilt_control;
+
+	if (_params->elevons_mc_lock && _vtol_schedule.flight_mode == MC_MODE) {
+		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = 0.0f;
+		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = 0.0f;
+		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = 0.0f;
+
+	} else {
+		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
+			-_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
+		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
+			_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH];
+		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] =
+			_actuators_fw_in->control[actuator_controls_s::INDEX_YAW];
+	}
 }

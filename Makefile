@@ -241,11 +241,9 @@ misc_qgc_extra_firmware: \
 # Other NuttX firmware
 alt_firmware: \
 	check_nxp_fmuk66-v3_default \
-	check_atmel_same70xplained_default \
-	check_stm_32f4discovery_default \
 	check_px4_cannode-v1_default \
 	check_px4_esc-v1_default \
-	check_stm_nucleo-F767ZI_default \
+	check_auav_esc35-v1_default \
 	check_thiemar_s2740vc-v1_default \
 	sizes
 
@@ -266,7 +264,7 @@ sizes:
 check: check_px4_sitl_default px4fmu_firmware misc_qgc_extra_firmware alt_firmware tests check_format
 
 # quick_check builds a single nuttx and posix target, runs testing, and checks the style
-quick_check: check_px4_sitl_default check_px4_fmu-v5_default tests check_format
+quick_check: check_px4_sitl_test check_px4_fmu-v5_default tests check_format
 
 check_%:
 	@echo
@@ -343,6 +341,10 @@ rostest: px4_sitl_default
 
 tests_mission: rostest
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_missions.test
+
+rostest_run: px4_sitl_default
+	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo
+	@"$(SRC_DIR)"/test/rostest_px4_run.sh $(TEST_FILE) mission:=$(TEST_MISSION) vehicle:=$(TEST_VEHICLE)
 
 tests_mission_coverage:
 	@$(MAKE) clean

@@ -91,10 +91,6 @@
 #define MPU_DEVICE_PATH_GYRO_EXT2	"/dev/mpu9250_gyro_ext2"
 #define MPU_DEVICE_PATH_MAG_EXT2	"/dev/mpu9250_mag_ext2"
 
-#define ICM_DEVICE_PATH_ACCEL_EXT  "/dev/icm20948_accel_ext"
-#define ICM_DEVICE_PATH_GYRO_EXT   "/dev/icm20948_gyro_ext"
-#define ICM_DEVICE_PATH_MAG_EXT    "/dev/icm20948_mag_ext"
-
 /** driver 'main' command */
 extern "C" { __EXPORT int mpu9250_main(int argc, char *argv[]); }
 
@@ -136,7 +132,6 @@ struct mpu9250_bus_option {
 #  if defined(PX4_I2C_OBDEV_MPU9250)
 	{ MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_I2C_interface, false, PX4_I2C_BUS_EXPANSION, PX4_I2C_OBDEV_MPU9250, nullptr },
 #  endif
-	{ MPU9250_BUS_I2C_EXTERNAL, ICM_DEVICE_PATH_ACCEL_EXT, ICM_DEVICE_PATH_GYRO_EXT, ICM_DEVICE_PATH_MAG_EXT, &MPU9250_I2C_interface, false, PX4_I2C_BUS_EXPANSION, PX4_I2C_EXT_ICM20948_1, nullptr },
 #endif
 #  if defined(PX4_I2C_BUS_EXPANSION1) && defined(PX4_I2C_OBDEV_MPU9250)
 	{ MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT1, MPU_DEVICE_PATH_GYRO_EXT1, MPU_DEVICE_PATH_MAG_EXT1, &MPU9250_I2C_interface, false, PX4_I2C_BUS_EXPANSION1, PX4_I2C_OBDEV_MPU9250, nullptr },

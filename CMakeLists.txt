@@ -235,6 +235,10 @@ set_property(GLOBAL PROPERTY PX4_MODULE_CONFIG_FILES)
 include(platforms/${PX4_PLATFORM}/cmake/px4_impl_os.cmake)
 list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake)
 
+if(EXISTS "${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake/init.cmake")
+	include(init)
+endif()
+
 # CMake build type (Debug Release RelWithDebInfo MinSizeRel Coverage)
 if (NOT CMAKE_BUILD_TYPE)
 	if (${PX4_PLATFORM} STREQUAL "nuttx")
@@ -417,8 +421,7 @@ add_library(parameters_interface INTERFACE)
 include(px4_add_library)
 add_subdirectory(src/lib EXCLUDE_FROM_ALL)
 
-add_subdirectory(src/platforms/common EXCLUDE_FROM_ALL)
-add_subdirectory(src/modules/systemlib EXCLUDE_FROM_ALL) # TODO: split into libraries in platform layer
+add_subdirectory(src/platforms EXCLUDE_FROM_ALL)
 add_subdirectory(src/modules/uORB EXCLUDE_FROM_ALL) # TODO: platform layer
 add_subdirectory(src/drivers/boards EXCLUDE_FROM_ALL)
 

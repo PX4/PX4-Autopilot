@@ -524,7 +524,9 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 
 	attitude_setpoint.timestamp = landing_gear.timestamp = hrt_absolute_time();
 	orb_publish_auto(ORB_ID(vehicle_attitude_setpoint), &_vehicle_attitude_setpoint_pub, &attitude_setpoint, nullptr, ORB_PRIO_DEFAULT);
-	orb_publish_auto(ORB_ID(landing_gear), &_landing_gear_pub, &attitude_setpoint, nullptr, ORB_PRIO_DEFAULT);
+
+	_landing_gear.timestamp = hrt_absolute_time();
+	orb_publish_auto(ORB_ID(landing_gear), &_landing_gear_pub, &_landing_gear, nullptr, ORB_PRIO_DEFAULT);
 }
 
 /**

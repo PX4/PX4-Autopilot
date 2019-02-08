@@ -40,6 +40,7 @@
 #include <px4_log.h>
 #include <math.h>
 #include <ctype.h>
+#include <errno.h>
 
 #define TUNE_ERROR -1
 #define TUNE_STOP 0

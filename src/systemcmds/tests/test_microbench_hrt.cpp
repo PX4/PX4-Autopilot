@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,6 +30,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+/**
+ * @file test_microbench_hrt.cpp
+ * Tests for the microbench high resolution timer.
+ */
 
 #include <unit_test.h>
 
@@ -137,7 +142,7 @@ ut_declare_test_c(test_microbench_hrt, MicroBenchHRT)
 bool MicroBenchHRT::time_px4_hrt()
 {
 	PERF("hrt_absolute_time()", u_64_out = hrt_absolute_time(), 1000);
-	PERF("hrt_elapsed_time()", u_64_out = hrt_elapsed_time(&u_64), 1000);
+	PERF("hrt_elapsed_time()", u_64_out = hrt_elapsed_time_atomic(&u_64), 1000);
 
 	return true;
 }

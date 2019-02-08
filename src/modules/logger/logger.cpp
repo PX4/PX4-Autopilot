@@ -52,7 +52,6 @@
 #include <uORB/topics/vehicle_command_ack.h>
 
 #include <drivers/drv_hrt.h>
-#include <px4_includes.h>
 #include <px4_getopt.h>
 #include <px4_log.h>
 #include <px4_posix.h>

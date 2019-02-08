@@ -121,7 +121,7 @@ int uORBTest::UnitTest::pubsublatency_main()
 		num_missed += t.val - current_value - 1;
 		current_value = t.val;
 
-		unsigned elt = (unsigned)hrt_elapsed_time(&t.time);
+		unsigned elt = (unsigned)hrt_elapsed_time_atomic(&t.time);
 		latency_integral += elt;
 		timings[i] = elt;
 
