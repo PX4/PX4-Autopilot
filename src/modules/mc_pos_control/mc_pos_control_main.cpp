@@ -1051,12 +1051,9 @@ MulticopterPositionControl::check_for_smooth_takeoff(const float &z_sp, const fl
 			// There is a position setpoint above current position or velocity setpoint larger than
 			// takeoff speed. Enable smooth takeoff.
 			_in_smooth_takeoff = true;
-			_takeoff_speed = -0.5f;
+			_takeoff_speed = 0.f;
 			_takeoff_reference_z = _states.position(2);
 
-		} else {
-			// Default
-			_in_smooth_takeoff = false;
 		}
 	}
 }
