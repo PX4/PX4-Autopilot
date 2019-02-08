@@ -973,7 +973,7 @@ void Ekf::limitDeclination()
 	const float decl_tolerance = 0.5f;
 	const float decl_max = decl_reference + decl_tolerance;
 	const float decl_min = decl_reference - decl_tolerance;
-	const float decl_estimate = atan2(_state.mag_I(1) , _state.mag_I(0));
+	const float decl_estimate = atan2f(_state.mag_I(1) , _state.mag_I(0));
 	if (decl_estimate > decl_max)  {
 		_state.mag_I(0) = h_field * cosf(decl_max);
 		_state.mag_I(1) = h_field * sinf(decl_max);
