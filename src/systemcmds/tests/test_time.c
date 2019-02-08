@@ -104,7 +104,7 @@ int test_time(int argc, char *argv[])
 	/* loop checking the time */
 	for (unsigned i = 0; i < 100; i++) {
 
-		usleep(rand());
+		usleep(rand() % SHRT_MAX);
 
 		uint32_t flags = px4_enter_critical_section();
 
