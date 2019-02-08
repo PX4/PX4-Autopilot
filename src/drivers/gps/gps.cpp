@@ -958,10 +958,10 @@ GPS::reset_if_scheduled()
 		_scheduled_reset = GPSRestartType::None;
 		int res = _helper->reset(restart_type);
 
-		if (res < 0) {
+		if (res == -1) {
 			PX4_INFO("Reset is not supported on this device.");
 
-		} else if (res == 0) {
+		} else if (res < 0) {
 			PX4_INFO("Reset failed.");
 
 		} else {
