@@ -24,11 +24,19 @@ class Airtime(NamedTuple):
 
 class InAirDetector(object):
     """
-    in air detector
+    handles airtime detection.
     """
 
     def __init__(self, ulog: ULog, min_flight_time_seconds: float = 0.0,
                  in_air_margin_seconds: float = 0.0) -> None:
+        """
+        initializes an InAirDetector instance.
+        :param ulog:
+        :param min_flight_time_seconds: set this value to return only airtimes that are at least
+        min_flight_time_seconds long
+        :param in_air_margin_seconds: removes a margin of in_air_margin_seconds from the airtime
+        to avoid ground effects.
+        """
 
         self._ulog = ulog
         self._min_flight_time_seconds = min_flight_time_seconds
@@ -172,57 +180,3 @@ class InAirDetector(object):
                                              1.0e6 < self._in_air[i].landing))[0])
 
         return airtime
-
-    @staticmethod
-    def get_airtime_from_meta(meta_tuple, sample_rate):
-        """
-        function retruning a na array of 1 or 0 showing if the input trajectory was in air at
-        that point.
-        :param meta_tuple: tuple containing the meta data
-        :param sample_rate: sampling time of the trajectory
-        :return:
-        """
-
-        def overwrite_slices(traj, slices):
-            """
-            overwrite slices that are in air with 1
-            :param traj: trajectory that should be overwritten at parts that are in air
-            :param slices: parts that are in air
-            :return:
-            """
-            for sli in slices:
-                traj[sli[0]:sli[1]] = np.ones(sli[1]-sli[0], dtype=int)
-
-            return traj
-
-        slices = []
-        log_len = int(meta_tuple.airtimes[-1][1]*1e6/sample_rate) # in ns
-        zero_array = np.zeros(log_len, dtype=int)
-        for i, at in enumerate(meta_tuple.airtimes):
-            slices.append([int(at.take_off*1e6/sample_rate), int(at.landing*1e6/sample_rate)])
-
-        in_air = overwrite_slices(zero_array, slices)
-
-        return in_air
-
-    @staticmethod
-    def filter_take_offs(meta_tuple, datasets, log_frames):
-
-        """
-        returns a list of log frames being in air.
-        :param meta_tuple: contains flight modes, and their start times
-        :param datasets: the datasets the model should train on
-        :param log_frames: sequences containing the flight modes specified
-        :return: log_frames_in_air
-        """
-        log_frames_in_air = []
-        in_air_times = meta_tuple.airtimes
-
-        for in_air_time in in_air_times:
-            frames = log_frames.copy()
-            for dataset in datasets:
-                frames[dataset] = frames[dataset].loc[pd.Timestamp(
-                    in_air_time.take_off, unit='s'):pd.Timestamp(in_air_time.landing, unit='s')]
-            log_frames_in_air.append(frames)
-
-        return log_frames_in_air
