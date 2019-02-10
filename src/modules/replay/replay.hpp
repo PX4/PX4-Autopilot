@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,7 +41,9 @@
 
 #include "definitions.hpp"
 
+#include <px4_module.h>
 #include <uORB/uORBTopics.h>
+#include <uORB/topics/ekf2_timestamps.h>
 
 namespace px4
 {
@@ -53,24 +55,34 @@ namespace px4
  * to replay. This is necessary because data messages from different subscriptions don't need to be in
  * monotonic increasing order.
  */
-class Replay
+class Replay : public ModuleBase<Replay>
 {
 public:
-	Replay();
+	Replay() = default;
 
-	/// Destructor, also waits for task exit
-	~Replay();
+	virtual ~Replay();
 
-	/// Start task.
-	/// @param quiet silently fail if no log file found
-	/// @param apply_params_only if true, only apply parameters from definitions section of the file
-	///                          and user-overridden parameters, then exit w/o replaying.
-	/// @return		OK on success.
-	static int		start(bool quiet, bool apply_params_only);
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	static void	task_main_trampoline(int argc, char *argv[]);
+	/** @see ModuleBase */
+	static Replay *instantiate(int argc, char *argv[]);
 
-	void		task_main();
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::run() */
+	void run() override;
+
+	/**
+	 * Apply the parameters from the log
+	 * @param quiet do not print an error if true and no log file given via ENV
+	 * @return 0 on success
+	 */
+	static int applyParams(bool quiet);
 
 	/**
 	 * Tell the replay module that we want to use replay mode.
@@ -80,15 +92,38 @@ public:
 	static void setupReplayFile(const char *file_name);
 
 	static bool isSetup() { return _replay_file; }
-private:
-	bool _task_should_exit = false;
-	std::set<std::string> _overridden_params;
-	std::map<std::string, std::string> _file_formats; ///< all formats we read from the file
 
-	uint64_t _file_start_time;
-	uint64_t _replay_start_time;
-	std::streampos _data_section_start; ///< first ADD_LOGGED_MSG message
-	std::vector<uint8_t> _read_buffer;
+protected:
+
+	/**
+	 * @class Compatibility base class to convert topics to an updated format
+	 */
+	class CompatBase
+	{
+	public:
+		virtual ~CompatBase() = default;
+
+		/**
+		 * apply compatibility to a topic
+		 * @param data input topic (can be modified in place)
+		 * @return new topic data
+		 */
+		virtual void *apply(void *data) = 0;
+	};
+
+	class CompatSensorCombinedDtType : public CompatBase
+	{
+	public:
+		CompatSensorCombinedDtType(int gyro_integral_dt_offset_log, int gyro_integral_dt_offset_intern,
+					   int accelerometer_integral_dt_offset_log, int accelerometer_integral_dt_offset_intern);
+
+		void *apply(void *data) override;
+	private:
+		int _gyro_integral_dt_offset_log;
+		int _gyro_integral_dt_offset_intern;
+		int _accelerometer_integral_dt_offset_log;
+		int _accelerometer_integral_dt_offset_intern;
+	};
 
 	struct Subscription {
 
@@ -97,13 +132,94 @@ private:
 		uint8_t multi_id;
 		int timestamp_offset; ///< marks the field of the timestamp
 
+		bool ignored = false; ///< if true, it will not be considered for publication in the main loop
+
 		std::streampos next_read_pos;
 		uint64_t next_timestamp; ///< timestamp of the file
+
+		CompatBase *compat = nullptr;
+
+		// statistics
+		int error_counter = 0;
+		int publication_counter = 0;
 	};
-	std::vector<Subscription> _subscriptions;
+
+	/**
+	 * Find the offset & field size in bytes for a given field name
+	 * @param format format string, as specified by ULog
+	 * @param field_name search for this field
+	 * @param offset returned offset
+	 * @param field_size returned field size
+	 * @return true if found, false otherwise
+	 */
+	static bool findFieldOffset(const std::string &format, const std::string &field_name, int &offset, int &field_size);
+
+	/**
+	 * publish an orb topic
+	 * @param sub
+	 * @param data
+	 * @return true if published, false otherwise
+	 */
+	bool publishTopic(Subscription &sub, void *data);
+
+	/**
+	 * called when entering the main replay loop
+	 */
+	virtual void onEnterMainLoop() {}
+	/**
+	 * called when exiting the main replay loop
+	 */
+	virtual void onExitMainLoop() {}
+
+	/**
+	 * called when a new subscription is added
+	 */
+	virtual void onSubscriptionAdded(Subscription &sub, uint16_t msg_id) {}
+
+	/**
+	 * handle delay until topic can be published.
+	 * @param next_file_timestamp timestamp of next message to publish
+	 * @param timestamp_offset offset between file start time and replay start time
+	 * @return timestamp that the message to publish should have
+	 */
+	virtual uint64_t handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_offset);
+
+	/**
+	 * handle the publication of a topic update
+	 * @return true if published, false otherwise
+	 */
+	virtual bool handleTopicUpdate(Subscription &sub, void *data, std::ifstream &replay_file);
+
+	/**
+	 * read a topic from the file (offset given by the subscription) into _read_buffer
+	 */
+	void readTopicDataToBuffer(const Subscription &sub, std::ifstream &replay_file);
+
+	/**
+	 * Find next data message for this subscription, starting with the stored file offset.
+	 * Skip the first message, and if found, read the timestamp and store the new file offset.
+	 * This also takes care of new subscriptions and parameter updates. When reaching EOF,
+	 * the subscription is set to invalid.
+	 * File seek position is arbitrary after this call.
+	 * @return false on file error
+	 */
+	bool nextDataMessage(std::ifstream &file, Subscription &subscription, int msg_id);
+
+	std::vector<Subscription *> _subscriptions;
+	std::vector<uint8_t> _read_buffer;
+
+private:
+	std::set<std::string> _overridden_params;
+	std::map<std::string, std::string> _file_formats; ///< all formats we read from the file
+
+	uint64_t _file_start_time;
+	uint64_t _replay_start_time;
+	std::streampos _data_section_start; ///< first ADD_LOGGED_MSG message
 
 	/** keep track of file position to avoid adding a subscription multiple times. */
 	std::streampos _subscription_file_pos = 0;
+
+	int64_t _read_until_file_position = 1ULL << 60; ///< read limit if log contains appended data
 
 	bool readFileHeader(std::ifstream &file);
 
@@ -117,6 +233,7 @@ private:
 	///file parsing methods. They return false, when further parsing should be aborted.
 	bool readFormat(std::ifstream &file, uint16_t msg_size);
 	bool readAndAddSubscription(std::ifstream &file, uint16_t msg_size);
+	bool readFlagBits(std::ifstream &file, uint16_t msg_size);
 
 	/**
 	 * Read the file header and definitions sections. Apply the parameters from this section
@@ -135,16 +252,6 @@ private:
 	bool readDropout(std::ifstream &file, uint16_t msg_size);
 	bool readAndApplyParameter(std::ifstream &file, uint16_t msg_size);
 
-	/**
-	 * Find next data message for this subscription, starting with the stored file offset.
-	 * Skip the first message, and if found, read the timestamp and store the new file offset.
-	 * This also takes care of new subscriptions and parameter updates. When reaching EOF,
-	 * the subscription is set to invalid.
-	 * File seek position is arbitrary after this call.
-	 * @return false on file error
-	 */
-	bool nextDataMessage(std::ifstream &file, Subscription &subscription, int msg_id);
-
 	static const orb_metadata *findTopic(const std::string &name);
 	/** get the array size from a type. eg. float[3] -> return float */
 	static std::string extractArraySize(const std::string &type_name_full, int &array_size);
@@ -156,6 +263,61 @@ private:
 	void setUserParams(const char *filename);
 
 	static char *_replay_file;
+};
+
+
+/**
+ * @class ReplayEkf2
+ * replay specialization for Ekf2 replay
+ */
+class ReplayEkf2 : public Replay
+{
+public:
+protected:
+
+	void onEnterMainLoop() override;
+	void onExitMainLoop() override;
+
+	uint64_t handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_offset) override;
+
+	/**
+	 * handle ekf2 topic publication in ekf2 replay mode
+	 * @param sub
+	 * @param data
+	 * @param replay_file file currently replayed (file seek position should be considered arbitrary after this call)
+	 * @return true if published, false otherwise
+	 */
+	bool handleTopicUpdate(Subscription &sub, void *data, std::ifstream &replay_file) override;
+
+	void onSubscriptionAdded(Subscription &sub, uint16_t msg_id) override;
+
+private:
+
+	bool publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifstream &replay_file);
+
+	/**
+	 * find the next message for a subscription that matches a given timestamp and publish it
+	 * @param timestamp in 0.1 ms
+	 * @param msg_id
+	 * @param replay_file file currently replayed (file seek position should be considered arbitrary after this call)
+	 * @return true if timestamp found and published
+	 */
+	bool findTimestampAndPublish(uint64_t timestamp, uint16_t msg_id, std::ifstream &replay_file);
+
+	int _vehicle_attitude_sub = -1;
+
+	static constexpr uint16_t msg_id_invalid = 0xffff;
+
+	uint16_t _airspeed_msg_id = msg_id_invalid;
+	uint16_t _distance_sensor_msg_id = msg_id_invalid;
+	uint16_t _gps_msg_id = msg_id_invalid;
+	uint16_t _optical_flow_msg_id = msg_id_invalid;
+	uint16_t _sensor_combined_msg_id = msg_id_invalid;
+	uint16_t _vehicle_air_data_msg_id = msg_id_invalid;
+	uint16_t _vehicle_magnetometer_msg_id = msg_id_invalid;
+	uint16_t _vehicle_visual_odometry_msg_id = msg_id_invalid;
+
+	int _topic_counter = 0;
 };
 
 } //namespace px4

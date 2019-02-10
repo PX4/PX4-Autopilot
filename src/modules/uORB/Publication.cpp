@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,90 +37,63 @@
  */
 
 #include "Publication.hpp"
-#include "topics/vehicle_attitude.h"
-#include "topics/vehicle_local_position.h"
-#include "topics/vehicle_global_position.h"
-#include "topics/debug_key_value.h"
-#include "topics/actuator_controls.h"
-#include "topics/vehicle_global_velocity_setpoint.h"
-#include "topics/vehicle_attitude_setpoint.h"
-#include "topics/vehicle_rates_setpoint.h"
-#include "topics/actuator_outputs.h"
-#include "topics/actuator_direct.h"
-#include "topics/tecs_status.h"
-#include "topics/rc_channels.h"
-#include "topics/filtered_bottom_flow.h"
-#include "topics/ekf2_innovations.h"
-
 #include <px4_defines.h>
 
 namespace uORB
 {
 
-PublicationBase::PublicationBase(const struct orb_metadata *meta,
-				 int priority) :
+PublicationBase::PublicationBase(const struct orb_metadata *meta, int priority) :
 	_meta(meta),
-	_priority(priority),
-	_instance(),
-	_handle(nullptr)
+	_priority(priority)
 {
-}
-
-void PublicationBase::update(void *data)
-{
-	if (_handle != nullptr) {
-		int ret = orb_publish(getMeta(), getHandle(), data);
-
-		if (ret != PX4_OK) { warnx("publish fail"); }
-
-	} else {
-		orb_advert_t handle;
-
-		if (_priority > 0) {
-			handle = orb_advertise_multi(
-					 getMeta(), data,
-					 &_instance, _priority);
-
-		} else {
-			handle = orb_advertise(getMeta(), data);
-		}
-
-		if (int64_t(handle) != PX4_ERROR) {
-			setHandle(handle);
-
-		} else {
-			warnx("advert fail");
-		}
-	}
 }
 
 PublicationBase::~PublicationBase()
 {
-	orb_unadvertise(getHandle());
+	orb_unadvertise(_handle);
 }
 
-PublicationNode::PublicationNode(const struct orb_metadata *meta,
-				 int priority,
-				 List<PublicationNode *> *list) :
+bool PublicationBase::update(void *data)
+{
+	bool updated = false;
+
+	if (_handle != nullptr) {
+		if (orb_publish(_meta, _handle, data) != PX4_OK) {
+			PX4_ERR("%s publish fail", _meta->o_name);
+
+		} else {
+			updated = true;
+		}
+
+	} else {
+		orb_advert_t handle = nullptr;
+
+		if (_priority > 0) {
+			int instance;
+			handle = orb_advertise_multi(_meta, data, &instance, _priority);
+
+		} else {
+			handle = orb_advertise(_meta, data);
+		}
+
+		if (handle != nullptr) {
+			_handle = handle;
+			updated = true;
+
+		} else {
+			PX4_ERR("%s advert fail", _meta->o_name);
+		}
+	}
+
+	return updated;
+}
+
+PublicationNode::PublicationNode(const struct orb_metadata *meta, int priority, List<PublicationNode *> *list) :
 	PublicationBase(meta, priority)
 {
-	if (list != nullptr) { list->add(this); }
+	if (list != nullptr) {
+		list->add(this);
+	}
 }
 
-// explicit template instantiation
-template class __EXPORT Publication<vehicle_attitude_s>;
-template class __EXPORT Publication<vehicle_local_position_s>;
-template class __EXPORT Publication<vehicle_global_position_s>;
-template class __EXPORT Publication<debug_key_value_s>;
-template class __EXPORT Publication<actuator_controls_s>;
-template class __EXPORT Publication<vehicle_global_velocity_setpoint_s>;
-template class __EXPORT Publication<vehicle_attitude_setpoint_s>;
-template class __EXPORT Publication<vehicle_rates_setpoint_s>;
-template class __EXPORT Publication<actuator_outputs_s>;
-template class __EXPORT Publication<actuator_direct_s>;
-template class __EXPORT Publication<tecs_status_s>;
-template class __EXPORT Publication<rc_channels_s>;
-template class __EXPORT Publication<filtered_bottom_flow_s>;
-template class __EXPORT Publication<ekf2_innovations_s>;
-
-}
+}  // namespace uORB

@@ -61,14 +61,17 @@
 
 #include <board_config.h>
 #include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
 
-#include "chip.h"
-#include "up_internal.h"
-#include "up_arch.h"
 
-#include "stm32.h"
 #include "stm32_gpio.h"
 #include "stm32_tim.h"
+
+#ifdef CONFIG_DEBUG_HRT
+#  define hrtinfo _info
+#else
+#  define hrtinfo(x...)
+#endif
 
 #ifdef HRT_TIMER
 
@@ -253,16 +256,9 @@ static uint16_t			latency_baseline;
 /* timer count at interrupt (for latency purposes) */
 static uint16_t			latency_actual;
 
-/* latency histogram */
-#define LATENCY_BUCKET_COUNT 8
-__EXPORT const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
-__EXPORT const uint16_t	latency_buckets[LATENCY_BUCKET_COUNT] = { 1, 2, 5, 10, 20, 50, 100, 1000 };
-__EXPORT uint32_t		latency_counters[LATENCY_BUCKET_COUNT + 1];
-
-
 /* timer-specific functions */
 static void		hrt_tim_init(void);
-static int		hrt_tim_isr(int irq, void *context);
+static int		hrt_tim_isr(int irq, void *context, void *arg);
 static void		hrt_latency_update(void);
 
 /* callout list manipulation */
@@ -408,7 +404,7 @@ static void
 hrt_tim_init(void)
 {
 	/* claim our interrupt vector */
-	irq_attach(HRT_TIMER_VECTOR, hrt_tim_isr);
+	irq_attach(HRT_TIMER_VECTOR, hrt_tim_isr, NULL);
 
 	/* clock/power on our timer */
 	modifyreg32(HRT_TIMER_POWER_REG, 0, HRT_TIMER_POWER_BIT);
@@ -460,7 +456,7 @@ hrt_ppm_decode(uint32_t status)
 		goto error;
 	}
 
-	/* how long since the last edge? - this handles counter wrapping implicitely. */
+	/* how long since the last edge? - this handles counter wrapping implicitly. */
 	width = count - ppm.last_edge;
 
 #if PPM_DEBUG
@@ -504,7 +500,7 @@ hrt_ppm_decode(uint32_t status)
 
 		} else {
 			/* frame channel count matches expected, let's use it */
-			if (ppm.next_channel > PPM_MIN_CHANNELS) {
+			if (ppm.next_channel >= PPM_MIN_CHANNELS) {
 				for (i = 0; i < ppm.next_channel; i++) {
 					ppm_buffer[i] = ppm_temp_buffer[i];
 				}
@@ -603,7 +599,7 @@ error:
  * and then re-scheduling the next deadline.
  */
 static int
-hrt_tim_isr(int irq, void *context)
+hrt_tim_isr(int irq, void *context, void *arg)
 {
 	uint32_t status;
 
@@ -698,7 +694,7 @@ hrt_absolute_time(void)
  * Convert a timespec to absolute time
  */
 hrt_abstime
-ts_to_abstime(struct timespec *ts)
+ts_to_abstime(const struct timespec *ts)
 {
 	hrt_abstime	result;
 
@@ -720,10 +716,10 @@ abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
 }
 
 /**
- * Compare a time value with the current time.
+ * Compare a time value with the current time as atomic operation
  */
 hrt_abstime
-hrt_elapsed_time(const volatile hrt_abstime *then)
+hrt_elapsed_time_atomic(const volatile hrt_abstime *then)
 {
 	irqstate_t flags = px4_enter_critical_section();
 
@@ -865,7 +861,7 @@ hrt_call_enter(struct hrt_call *entry)
 
 	if ((call == NULL) || (entry->deadline < call->deadline)) {
 		sq_addfirst(&entry->link, &callout_queue);
-		//lldbg("call enter at head, reschedule\n");
+		hrtinfo("call enter at head, reschedule\n");
 		/* we changed the next deadline, reschedule the timer event */
 		hrt_call_reschedule();
 
@@ -874,14 +870,14 @@ hrt_call_enter(struct hrt_call *entry)
 			next = (struct hrt_call *)sq_next(&call->link);
 
 			if ((next == NULL) || (entry->deadline < next->deadline)) {
-				//lldbg("call enter after head\n");
+				hrtinfo("call enter after head\n");
 				sq_addafter(&call->link, &entry->link, &callout_queue);
 				break;
 			}
 		} while ((call = next) != NULL);
 	}
 
-	//lldbg("scheduled\n");
+	hrtinfo("scheduled\n");
 }
 
 static void
@@ -905,7 +901,7 @@ hrt_call_invoke(void)
 		}
 
 		sq_rem(&call->link, &callout_queue);
-		//lldbg("call pop\n");
+		hrtinfo("call pop\n");
 
 		/* save the intended deadline for periodic calls */
 		deadline = call->deadline;
@@ -915,7 +911,7 @@ hrt_call_invoke(void)
 
 		/* invoke the callout (if there is one) */
 		if (call->callout) {
-			//lldbg("call %p: %p(%p)\n", call, call->callout, call->arg);
+			hrtinfo("call %p: %p(%p)\n", call, call->callout, call->arg);
 			call->callout(call->arg);
 		}
 
@@ -958,19 +954,20 @@ hrt_call_reschedule()
 	 * hrt_absolute_time runs at least once per timer period.
 	 */
 	if (next != NULL) {
-		//lldbg("entry in queue\n");
+		hrtinfo("entry in queue\n");
+
 		if (next->deadline <= (now + HRT_INTERVAL_MIN)) {
-			//lldbg("pre-expired\n");
+			hrtinfo("pre-expired\n");
 			/* set a minimal deadline so that we call ASAP */
 			deadline = now + HRT_INTERVAL_MIN;
 
 		} else if (next->deadline < deadline) {
-			//lldbg("due soon\n");
+			hrtinfo("due soon\n");
 			deadline = next->deadline;
 		}
 	}
 
-	//lldbg("schedule for %u at %u\n", (unsigned)(deadline & 0xffffffff), (unsigned)(now & 0xffffffff));
+	hrtinfo("schedule for %u at %u\n", (unsigned)(deadline & 0xffffffff), (unsigned)(now & 0xffffffff));
 
 	/* set the new compare value and remember it for latency tracking */
 	rCCR_HRT = latency_baseline = deadline & 0xffff;

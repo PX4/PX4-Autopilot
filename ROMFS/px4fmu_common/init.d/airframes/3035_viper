@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# @name Viper
+#
+# @type Flying Wing
+# @class Plane
+#
+# @maintainer Simon Wilks <simon@uaventure.com>
+#
+
+sh /etc/init.d/rc.fw_defaults
+
+set MIXER Viper

@@ -52,7 +52,8 @@
 #define CAL_QGC_STARTED_MSG			"[cal] calibration started: 2 %s"
 #define CAL_QGC_DONE_MSG			"[cal] calibration done: %s"
 #define CAL_QGC_FAILED_MSG			"[cal] calibration failed: %s"
-#define CAL_QGC_WARNING_MSG			"[cal] calibration warning: %s"
+// Warnings are deprecated because they were only used when it failed anyway.
+//#define CAL_QGC_WARNING_MSG			"[cal] calibration warning: %s"
 #define CAL_QGC_CANCELLED_MSG			"[cal] calibration cancelled"
 #define CAL_QGC_PROGRESS_MSG			"[cal] progress <%u>"
 #define CAL_QGC_ORIENTATION_DETECTED_MSG	"[cal] %s orientation detected"
@@ -62,6 +63,5 @@
 #define CAL_ERROR_RESET_CAL_MSG		"[cal] calibration failed: to reset, sensor %u"
 #define CAL_ERROR_APPLY_CAL_MSG		"[cal] calibration failed: to apply calibration, sensor %u"
 #define CAL_ERROR_SET_PARAMS_MSG	"[cal] calibration failed: to set parameters, sensor %u"
-#define CAL_ERROR_SAVE_PARAMS_MSG	"[cal] calibration failed: failed to save parameters"
 
 #endif /* CALIBRATION_MESSAGES_H_ */

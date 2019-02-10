@@ -52,14 +52,13 @@
 #include <errno.h>
 #include <string>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 
 #include <drivers/drv_range_finder.h>
 #include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/distance_sensor.h>
 
 #include <board_config.h>
@@ -76,7 +75,7 @@ using namespace DriverFramework;
 class DfTROneWrapper : public TROne
 {
 public:
-	DfTROneWrapper();
+	DfTROneWrapper(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	~DfTROneWrapper();
 
 
@@ -97,6 +96,8 @@ public:
 private:
 	int _publish(struct range_sensor_data &data);
 
+	uint8_t _rotation;
+
 	orb_advert_t		_range_topic;
 
 	int			_orb_class_instance;
@@ -105,8 +106,9 @@ private:
 
 };
 
-DfTROneWrapper::DfTROneWrapper(/*enum Rotation rotation*/) :
+DfTROneWrapper::DfTROneWrapper(uint8_t rotation) :
 	TROne(TRONE_DEVICE_PATH),
+	_rotation(rotation),
 	_range_topic(nullptr),
 	_orb_class_instance(-1)
 {
@@ -169,9 +171,11 @@ int DfTROneWrapper::_publish(struct range_sensor_data &data)
 
 	d.id = 0; // TODO set proper ID
 
-	d.orientation = 0; // TODO no idea what to put here
+	d.orientation = _rotation;
 
 	d.covariance = 0.0f;
+
+	d.signal_quality = -1;
 
 	if (_range_topic == nullptr) {
 		_range_topic = orb_advertise_multi(ORB_ID(distance_sensor), &d,
@@ -180,9 +184,6 @@ int DfTROneWrapper::_publish(struct range_sensor_data &data)
 	} else {
 		orb_publish(ORB_ID(distance_sensor), _range_topic, &d);
 	}
-
-	/* Notify anyone waiting for data. */
-	DevMgr::updateNotify(*this);
 
 	return 0;
 };
@@ -193,16 +194,16 @@ namespace df_trone_wrapper
 
 DfTROneWrapper *g_dev = nullptr;
 
-int start();
+int start(uint8_t rotation);
 int stop();
 int info();
 int probe();
 void usage();
 
-int start()
+int start(uint8_t rotation)
 {
 	PX4_ERR("start");
-	g_dev = new DfTROneWrapper();
+	g_dev = new DfTROneWrapper(rotation);
 
 	if (g_dev == nullptr) {
 		PX4_ERR("failed instantiating DfTROneWrapper object");
@@ -275,7 +276,7 @@ probe()
 	int ret;
 
 	if (g_dev == nullptr) {
-		ret = start();
+		ret = start(distance_sensor_s::ROTATION_DOWNWARD_FACING);
 
 		if (ret) {
 			PX4_ERR("Failed to start");
@@ -312,10 +313,15 @@ df_trone_wrapper_main(int argc, char *argv[])
 	int ret = 0;
 	int myoptind = 1;
 	const char *myoptarg = NULL;
+	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 
 	/* jump over start/off/etc and look at options first */
 	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
+		case 'R':
+			rotation = (uint8_t)atoi(myoptarg);
+			PX4_INFO("Setting distance sensor orientation to %d", (int)rotation);
+			break;
 
 		default:
 			df_trone_wrapper::usage();
@@ -332,7 +338,7 @@ df_trone_wrapper_main(int argc, char *argv[])
 
 
 	if (!strcmp(verb, "start")) {
-		ret = df_trone_wrapper::start(/*rotation*/);
+		ret = df_trone_wrapper::start(rotation);
 	}
 
 	else if (!strcmp(verb, "stop")) {

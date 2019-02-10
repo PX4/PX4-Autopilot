@@ -44,15 +44,16 @@
  */
 
 /**
- * Loiter Time
+ * RC Loss Loiter Time (CASA Outback Challenge rules)
  *
- * The amount of time in seconds the system should loiter at current position before termination
- * Set to -1 to make the system skip loitering
+ * The amount of time in seconds the system should loiter at current position before termination.
+ * Only applies if NAV_RCL_ACT is set to 2 (CASA Outback Challenge rules).
+ * Set to -1 to make the system skip loitering.
  *
  * @unit s
  * @min -1.0
  * @decimal 1
  * @increment 0.1
- * @group Radio Signal Loss
+ * @group Mission
  */
 PARAM_DEFINE_FLOAT(NAV_RCL_LT, 120.0f);

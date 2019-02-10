@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 
- /* @file enginefailure.cpp
- * Helper class for a fixedwing engine failure mode
- *
- * @author Thomas Gubler <thomasgubler@gmail.com>
- */
+/* @file enginefailure.cpp
+* Helper class for a fixedwing engine failure mode
+*
+* @author Thomas Gubler <thomasgubler@gmail.com>
+*/
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
@@ -43,7 +43,7 @@
 
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <navigator/navigation.h>
 
 #include <uORB/uORB.h>
@@ -52,19 +52,9 @@
 #include "navigator.h"
 #include "enginefailure.h"
 
-#define DELAY_SIGMA	0.01f
-
-EngineFailure::EngineFailure(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
+EngineFailure::EngineFailure(Navigator *navigator) :
+	MissionBlock(navigator),
 	_ef_state(EF_STATE_NONE)
-{
-	/* load initial params */
-	updateParams();
-	/* initial reset */
-	on_inactive();
-}
-
-EngineFailure::~EngineFailure()
 {
 }
 
@@ -96,31 +86,29 @@ EngineFailure::set_ef_item()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	/* make sure we have the latest params */
-	updateParams();
-
-	set_previous_pos_setpoint();
+	pos_sp_triplet->previous = pos_sp_triplet->current;
 	_navigator->set_can_loiter_at_sp(false);
 
 	switch (_ef_state) {
 	case EF_STATE_LOITERDOWN: {
-		//XXX create mission item at ground (below?) here
+			//XXX create mission item at ground (below?) here
 
-		_mission_item.lat = _navigator->get_global_position()->lat;
-		_mission_item.lon = _navigator->get_global_position()->lon;
-		_mission_item.altitude_is_relative = false;
-		 //XXX setting altitude to a very low value, evaluate other options
-		_mission_item.altitude = _navigator->get_home_position()->alt - 1000.0f;
-		_mission_item.yaw = NAN;
-		_mission_item.loiter_radius = _navigator->get_loiter_radius();
-		_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-		_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-		_mission_item.autocontinue = true;
-		_mission_item.origin = ORIGIN_ONBOARD;
+			_mission_item.lat = _navigator->get_global_position()->lat;
+			_mission_item.lon = _navigator->get_global_position()->lon;
+			_mission_item.altitude_is_relative = false;
+			//XXX setting altitude to a very low value, evaluate other options
+			_mission_item.altitude = _navigator->get_home_position()->alt - 1000.0f;
+			_mission_item.yaw = NAN;
+			_mission_item.loiter_radius = _navigator->get_loiter_radius();
+			_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+			_mission_item.autocontinue = true;
+			_mission_item.origin = ORIGIN_ONBOARD;
 
-		_navigator->set_can_loiter_at_sp(true);
-		break;
-	}
+			_navigator->set_can_loiter_at_sp(true);
+			break;
+		}
+
 	default:
 		break;
 	}
@@ -128,7 +116,8 @@ EngineFailure::set_ef_item()
 	reset_mission_item_reached();
 
 	/* convert mission item to current position setpoint and make it valid */
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+	mission_apply_limitation(_mission_item);
+	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
 
 	_navigator->set_position_setpoint_triplet_updated();
@@ -142,6 +131,7 @@ EngineFailure::advance_ef()
 		mavlink_log_emergency(_navigator->get_mavlink_log_pub(), "Engine failure. Loitering down");
 		_ef_state = EF_STATE_LOITERDOWN;
 		break;
+
 	default:
 		break;
 	}

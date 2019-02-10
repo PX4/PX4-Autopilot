@@ -31,42 +31,18 @@
  *
  ****************************************************************************/
 /**
- * @file Takeoff.cpp
+ * @file takeoff.cpp
  *
  * Helper class to Takeoff
  *
- * @author Lorenz Meier <lorenz@px4.io
+ * @author Lorenz Meier <lorenz@px4.io>
  */
-
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <math.h>
-#include <fcntl.h>
-
-#include <systemlib/mavlink_log.h>
-#include <systemlib/err.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/position_setpoint_triplet.h>
 
 #include "takeoff.h"
 #include "navigator.h"
 
-Takeoff::Takeoff(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
-	_param_min_alt(this, "MIS_TAKEOFF_ALT", false)
-{
-	// load initial params
-	updateParams();
-}
-
-Takeoff::~Takeoff()
-{
-}
-
-void
-Takeoff::on_inactive()
+Takeoff::Takeoff(Navigator *navigator) :
+	MissionBlock(navigator)
 {
 }
 
@@ -80,6 +56,7 @@ void
 Takeoff::on_active()
 {
 	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
+
 	if (rep->current.valid) {
 		// reset the position
 		set_takeoff_position();
@@ -91,7 +68,8 @@ Takeoff::on_active()
 		// set loiter item so position controllers stop doing takeoff logic
 		set_loiter_item(&_mission_item);
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-		mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
+		mission_apply_limitation(_mission_item);
+		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 		_navigator->set_position_setpoint_triplet_updated();
 	}
 }
@@ -103,45 +81,54 @@ Takeoff::set_takeoff_position()
 
 	float abs_altitude = 0.0f;
 
-	const float min_abs_altitude = _navigator->get_home_position()->alt + _param_min_alt.get();
+	float min_abs_altitude;
 
-	// Use altitude if it has been set.
-	if (rep->current.valid && PX4_ISFINITE(rep->current.alt)) {
+	if (_navigator->home_position_valid()) { //only use home position if it is valid
+		min_abs_altitude = _navigator->get_global_position()->alt + _navigator->get_takeoff_min_alt();
+
+	} else { //e.g. flow
+		min_abs_altitude = _navigator->get_takeoff_min_alt();
+	}
+
+	// Use altitude if it has been set. If home position is invalid use min_abs_altitude
+	if (rep->current.valid && PX4_ISFINITE(rep->current.alt) && _navigator->home_position_valid()) {
 		abs_altitude = rep->current.alt;
 
 		// If the altitude suggestion is lower than home + minimum clearance, raise it and complain.
 		if (abs_altitude < min_abs_altitude) {
+			if (abs_altitude < min_abs_altitude - 0.1f) { // don't complain if difference is smaller than 10cm
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+						     "Using minimum takeoff altitude: %.2f m", (double)_navigator->get_takeoff_min_alt());
+			}
+
 			abs_altitude = min_abs_altitude;
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-					     "Using minimum takeoff altitude: %.2f m", (double)_param_min_alt.get());
 		}
+
 	} else {
 		// Use home + minimum clearance but only notify.
 		abs_altitude = min_abs_altitude;
 		mavlink_log_info(_navigator->get_mavlink_log_pub(),
-				 "Using minimum takeoff altitude: %.2f m", (double)_param_min_alt.get());
+				 "Using minimum takeoff altitude: %.2f m", (double)_navigator->get_takeoff_min_alt());
 	}
 
 
 	if (abs_altitude < _navigator->get_global_position()->alt) {
 		// If the suggestion is lower than our current alt, let's not go down.
 		abs_altitude = _navigator->get_global_position()->alt;
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-				     "Already higher than takeoff altitude");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already higher than takeoff altitude");
 	}
 
 	// set current mission item to takeoff
 	set_takeoff_item(&_mission_item, abs_altitude);
-	_navigator->get_mission_result()->reached = false;
 	_navigator->get_mission_result()->finished = false;
 	_navigator->set_mission_result_updated();
 	reset_mission_item_reached();
 
 	// convert mission item to current setpoint
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	mission_apply_limitation(_mission_item);
+	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->previous.valid = false;
-	mission_item_to_position_setpoint(&_mission_item, &pos_sp_triplet->current);
-	pos_sp_triplet->current.yaw = _navigator->get_home_position()->yaw;
 	pos_sp_triplet->current.yaw_valid = true;
 	pos_sp_triplet->next.valid = false;
 

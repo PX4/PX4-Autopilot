@@ -1,10 +1,6 @@
-*.d
-!ROMFS/*/*.d
-!ROMFS/*/*/*.d
-!ROMFS/*/*/*/*.d
-*.px4log
 *.dSYM
 *.o
+*.gch
 *.pyc
 *~
 .*.swp
@@ -12,13 +8,13 @@
 .cproject
 .DS_Store
 .gdbinit
+.gdb_history
 .project
 .settings
 .swp
 .~lock.*
-Archives/*
-Build/*
 Testing/
+Packages/*
 build/*
 build_*/
 core
@@ -27,15 +23,6 @@ cscope.in.out
 cscope.po.out
 Firmware.sublime-workspace
 user.sublime*
-Images/*.bin
-Images/*.px4
-mavlink/include/mavlink/v0.9/
-/nuttx-configs/px4io-v2/src/.depend
-/nuttx-configs/px4io-v2/src/Make.dep
-/nuttx-configs/px4io-v2/src/libboard.a
-/nuttx-configs/px4io-v1/src/.depend
-/nuttx-configs/px4io-v1/src/Make.dep
-/nuttx-configs/px4io-v1/src/libboard.a
 /Documentation/doxy.log
 /Documentation/html/
 /Documentation/doxygen*objdb*tmp
@@ -45,19 +32,11 @@ tags
 .pydevproject
 .ropeproject
 *.orig
-src/modules/uORB/topics/*
-src/platforms/nuttx/px4_messages/*
-src/platforms/ros/px4_messages/*
 Firmware.zip
-unittests/build
 *.generated.h
 .vagrant
 *.pretty
 xcode
-src/platforms/posix/px4_messages/
-src/platforms/posix-arm/px4_messages/
-src/platforms/qurt/px4_messages/
-ROMFS/*/*/rc.autostart
 rootfs/
 *.autosave
 CMakeLists.txt.user
@@ -69,6 +48,19 @@ GTAGS
 *.files
 *.includes
 
-# uavcan firmware
-ROMFS/px4fmu_common/uavcan/
-vectorcontrol/
+# CLion ignores
+.idea
+cmake-build-*/
+
+posix-configs/SITL/init/test/*_generated
+
+/airframes.md
+/airframes.xml
+/parameters.md
+/parameters.xml
+/modules
+/msg/ros/*.msg
+
+*.gcov
+.coverage
+.coverage.*

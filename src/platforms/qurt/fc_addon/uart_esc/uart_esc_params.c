@@ -37,7 +37,7 @@
  * Parameters defined for the uart esc driver
  */
 #include <px4_config.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 /**
  * ESC model

@@ -10,6 +10,7 @@ Open a shell over MAVLink.
 from __future__ import print_function
 import sys, select
 import termios
+from timeit import default_timer as timer
 
 try:
     from pymavlink import mavutil
@@ -17,7 +18,8 @@ try:
 except:
     print("Failed to import pymavlink.")
     print("You may need to install it with 'pip install pymavlink pyserial'")
-    exit(-1)
+    print("")
+    raise
 from argparse import ArgumentParser
 
 
@@ -103,7 +105,7 @@ def main():
             args.port = "/dev/tty.usbmodem1"
         else:
             serial_list = mavutil.auto_detect_serial(preferred_list=['*FTDI*',
-                "*Arduino_Mega_2560*", "*3D_Robotics*", "*USB_to_UART*", '*PX4*', '*FMU*'])
+                "*Arduino_Mega_2560*", "*3D_Robotics*", "*USB_to_UART*", '*PX4*', '*FMU*', "*Gumstix*"])
 
             if len(serial_list) == 0:
                 print("Error: no serial connection found")
@@ -140,6 +142,8 @@ def main():
             CURSOR_BACK_N = '\x1b['+str(N)+'D'
             ERASE_END_LINE = '\x1b[K'
             sys.stdout.write(CURSOR_BACK_N + ERASE_END_LINE)
+
+        next_heartbeat_time = timer()
 
         while True:
             while True:
@@ -193,6 +197,13 @@ def main():
             if data and len(data) > 0:
                 sys.stdout.write(data)
                 sys.stdout.flush()
+
+            # handle heartbeat sending
+            heartbeat_time = timer()
+            if heartbeat_time > next_heartbeat_time:
+                mav_serialport.mav.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS,
+                        mavutil.mavlink.MAV_AUTOPILOT_GENERIC, 0, 0, 0)
+                next_heartbeat_time = heartbeat_time + 1
 
     except serial.serialutil.SerialException as e:
         print(e)

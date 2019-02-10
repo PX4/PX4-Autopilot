@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,43 +37,35 @@
  *
  * @author Anton Babushkin <anton.babushkin@me.com>
  * @author Lorenz Meier <lorenz@px4.io>
+ * @author Beat Kueng <beat@px4.io>
  */
 
 #pragma once
 
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 #include "mavlink_bridge_header.h"
-#include "mavlink_stream.h"
 #include <uORB/uORB.h>
 #include <uORB/topics/rc_parameter_map.h>
+#include <uORB/topics/uavcan_parameter_request.h>
+#include <uORB/topics/parameter_update.h>
+#include <drivers/drv_hrt.h>
 
-class MavlinkParametersManager : public MavlinkStream
+class Mavlink;
+
+class MavlinkParametersManager
 {
 public:
-	const char *get_name() const
-	{
-		return MavlinkParametersManager::get_name_static();
-	}
+	explicit MavlinkParametersManager(Mavlink *mavlink);
+	~MavlinkParametersManager();
 
-	static const char *get_name_static()
-	{
-		return "PARAM_VALUE";
-	}
-
-	uint8_t get_id()
-	{
-		return MAVLINK_MSG_ID_PARAM_VALUE;
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkParametersManager(mavlink);
-	}
+	/**
+	 * Handle sending of messages. Call this regularly at a fixed frequency.
+	 * @param t current time
+	 */
+	void send(const hrt_abstime t);
 
 	unsigned get_size();
-
-	unsigned get_size_avg();
 
 	void handle_message(const mavlink_message_t *msg);
 
@@ -85,16 +77,60 @@ private:
 	MavlinkParametersManager &operator = (const MavlinkParametersManager &);
 
 protected:
-	explicit MavlinkParametersManager(Mavlink *mavlink);
-	~MavlinkParametersManager();
+	/// send a single param if a PARAM_REQUEST_LIST is in progress
+	/// @return true if a parameter was sent
+	bool send_one();
 
-	void send(const hrt_abstime t);
+	/**
+	 * Handle any open param send transfer
+	 */
+	bool send_params();
 
-	int send_param(param_t param);
+	/**
+	 * Send UAVCAN params
+	 */
+	bool send_uavcan();
+
+	/**
+	 * Send untransmitted params
+	 */
+	bool send_untransmitted();
+
+	int send_param(param_t param, int component_id = -1);
+
+	// Item of a single-linked list to store requested uavcan parameters
+	struct _uavcan_open_request_list_item {
+		uavcan_parameter_request_s req;
+		struct _uavcan_open_request_list_item *next;
+	};
+
+	/**
+	 * Request the next uavcan parameter
+	 */
+	void request_next_uavcan_parameter();
+
+	/**
+	 * Enqueue one uavcan parameter reqest. We store 10 at max.
+	 */
+	void enque_uavcan_request(uavcan_parameter_request_s *req);
+
+	/**
+	 * Drop the first reqest from the list
+	 */
+	void dequeue_uavcan_request();
+
+	_uavcan_open_request_list_item *_uavcan_open_request_list; ///< Pointer to the first item in the linked list
+	bool _uavcan_waiting_for_request_response; ///< We have reqested a parameter and wait for the response
+	uint16_t _uavcan_queued_request_items;	///< Number of stored parameter requests currently in the list
 
 	orb_advert_t _rc_param_map_pub;
 	struct rc_parameter_map_s _rc_param_map;
 
 	orb_advert_t _uavcan_parameter_request_pub;
 	int _uavcan_parameter_value_sub;
+	int _mavlink_parameter_sub;
+	hrt_abstime _param_update_time;
+	int _param_update_index;
+
+	Mavlink *_mavlink;
 };

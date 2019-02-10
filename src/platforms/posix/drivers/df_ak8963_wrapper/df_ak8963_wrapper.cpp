@@ -49,7 +49,7 @@
 #include <px4_getopt.h>
 #include <errno.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 
 #include <drivers/drv_mag.h>
@@ -111,7 +111,7 @@ private:
 		float z_scale;
 	} _mag_calibration;
 
-	math::Matrix<3, 3>      _rotation_matrix;
+	matrix::Dcmf	_rotation_matrix;
 
 	int			_mag_orb_class_instance;
 
@@ -136,7 +136,7 @@ DfAK8963Wrapper::DfAK8963Wrapper(enum Rotation rotation) :
 	_mag_calibration.z_offset = 0.0f;
 
 	// Get sensor rotation matrix
-	get_rot_matrix(rotation, &_rotation_matrix);
+	_rotation_matrix = get_rot_matrix(rotation);
 }
 
 DfAK8963Wrapper::~DfAK8963Wrapper()
@@ -278,13 +278,14 @@ int DfAK8963Wrapper::_publish(struct mag_sensor_data &data)
 
 	mag_report mag_report = {};
 	mag_report.timestamp = hrt_absolute_time();
+	mag_report.is_external = true;
 
 	// TODO: remove these (or get the values)
 	mag_report.x_raw = 0;
 	mag_report.y_raw = 0;
 	mag_report.z_raw = 0;
 
-	math::Vector<3> mag_val(data.field_x_ga, data.field_y_ga, data.field_z_ga);
+	matrix::Vector3f mag_val(data.field_x_ga, data.field_y_ga, data.field_z_ga);
 
 	// apply sensor rotation on the accel measurement
 	mag_val = _rotation_matrix * mag_val;
@@ -296,7 +297,6 @@ int DfAK8963Wrapper::_publish(struct mag_sensor_data &data)
 
 	// TODO: get these right
 	//mag_report.scaling = -1.0f;
-	//mag_report.range_m_s2 = -1.0f;
 
 	mag_report.device_id = m_id.dev_id;
 
@@ -314,9 +314,6 @@ int DfAK8963Wrapper::_publish(struct mag_sensor_data &data)
 	}
 
 	perf_end(_mag_sample_perf);
-
-	/* Notify anyone waiting for data. */
-	DevMgr::updateNotify(*this);
 
 	return 0;
 };

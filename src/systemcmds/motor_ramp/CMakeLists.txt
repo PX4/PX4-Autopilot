@@ -38,7 +38,4 @@ px4_add_module(
         -Wno-write-strings
     SRCS
         motor_ramp.cpp
-    DEPENDS
-        platforms__common
     )
-# vim: set noet ft=cmake fenc=utf-8 ff=unix : 

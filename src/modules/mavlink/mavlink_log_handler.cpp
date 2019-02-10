@@ -39,9 +39,8 @@
 #include <sys/stat.h>
 #include <time.h>
 
-#define MOUNTPOINT PX4_ROOTFSDIR "/fs/microsd"
+#define MOUNTPOINT PX4_STORAGEDIR
 
-static const char *kSDRoot     = MOUNTPOINT "/";
 static const char *kLogRoot    = MOUNTPOINT "/log";
 static const char *kLogData    = MOUNTPOINT "/logdata.txt";
 static const char *kTmpData    = MOUNTPOINT "/$log$.txt";
@@ -64,7 +63,7 @@ static const char *kTmpData    = MOUNTPOINT "/$log$.txt";
 
 //-------------------------------------------------------------------
 static bool
-stat_file(const char *file, time_t *date = 0, uint32_t *size = 0)
+stat_file(const char *file, time_t *date = nullptr, uint32_t *size = nullptr)
 {
 	struct stat st;
 
@@ -80,16 +79,9 @@ stat_file(const char *file, time_t *date = 0, uint32_t *size = 0)
 }
 
 //-------------------------------------------------------------------
-MavlinkLogHandler *
-MavlinkLogHandler::new_instance(Mavlink *mavlink)
-{
-	return new MavlinkLogHandler(mavlink);
-}
-
-//-------------------------------------------------------------------
 MavlinkLogHandler::MavlinkLogHandler(Mavlink *mavlink)
-	: MavlinkStream(mavlink)
-	, _pLogHandlerHelper(0)
+	: _pLogHandlerHelper(nullptr),
+	  _mavlink(mavlink)
 {
 
 }
@@ -118,22 +110,8 @@ MavlinkLogHandler::handle_message(const mavlink_message_t *msg)
 }
 
 //-------------------------------------------------------------------
-const char *
-MavlinkLogHandler::get_name(void) const
-{
-	return "MAVLINK_LOG_HANDLER";
-}
-
-//-------------------------------------------------------------------
-uint8_t
-MavlinkLogHandler::get_id(void)
-{
-	return MAVLINK_MSG_ID_LOG_ENTRY;
-}
-
-//-------------------------------------------------------------------
 unsigned
-MavlinkLogHandler::get_size(void)
+MavlinkLogHandler::get_size()
 {
 	//-- Sending Log Entries
 	if (_pLogHandlerHelper && _pLogHandlerHelper->current_status == LogListHelper::LOG_HANDLER_LISTING) {
@@ -154,7 +132,7 @@ void
 MavlinkLogHandler::send(const hrt_abstime /*t*/)
 {
 	//-- An arbitrary count of max bytes in one go (one of the two below but never both)
-#define MAX_BYTES_SEND 64 * 1024
+#define MAX_BYTES_SEND 256 * 1024
 	size_t count = 0;
 
 	//-- Log Entries
@@ -184,7 +162,7 @@ MavlinkLogHandler::_log_request_list(const mavlink_message_t *msg)
 		//-- Is this a new request?
 		if ((request.end - request.start) > _pLogHandlerHelper->log_count) {
 			delete _pLogHandlerHelper;
-			_pLogHandlerHelper = NULL;
+			_pLogHandlerHelper = nullptr;
 		}
 	}
 
@@ -237,8 +215,14 @@ MavlinkLogHandler::_log_request_data(const mavlink_message_t *msg)
 		_pLogHandlerHelper->current_log_filename[0] = 0;
 		_pLogHandlerHelper->current_log_index = request.id;
 		uint32_t time_utc = 0;
-		_pLogHandlerHelper->get_entry(_pLogHandlerHelper->current_log_index, _pLogHandlerHelper->current_log_size, time_utc,
-					      _pLogHandlerHelper->current_log_filename);
+
+		if (!_pLogHandlerHelper->get_entry(_pLogHandlerHelper->current_log_index, _pLogHandlerHelper->current_log_size,
+						   time_utc,
+						   _pLogHandlerHelper->current_log_filename, sizeof(_pLogHandlerHelper->current_log_filename))) {
+			PX4LOG_WARN("LogListHelper::get_entry failed.\n");
+			return;
+		}
+
 		_pLogHandlerHelper->open_for_transmit();
 	}
 
@@ -269,32 +253,11 @@ MavlinkLogHandler::_log_request_erase(const mavlink_message_t * /*msg*/)
 	*/
 	if (_pLogHandlerHelper) {
 		delete _pLogHandlerHelper;
-		_pLogHandlerHelper = 0;
+		_pLogHandlerHelper = nullptr;
 	}
 
 	//-- Delete all logs
 	LogListHelper::delete_all(kLogRoot);
-	//-- Now delete all "msgs_*" from root
-	DIR *dp = opendir(kSDRoot);
-
-	if (dp) {
-		struct dirent *result = nullptr;
-
-		while ((result = readdir(dp))) {
-			if (result->d_type == PX4LOG_REGULAR_FILE) {
-				if (!memcmp(result->d_name, "msgs_", 5)) {
-					char msg_path[128];
-					snprintf(msg_path, sizeof(msg_path), "%s%s", kSDRoot, result->d_name);
-
-					if (unlink(msg_path)) {
-						PX4LOG_WARN("MavlinkLogHandler::_log_request_erase Error deleting %s\n", msg_path);
-					}
-				}
-			}
-		}
-
-		closedir(dp);
-	}
 }
 
 //-------------------------------------------------------------------
@@ -305,7 +268,7 @@ MavlinkLogHandler::_log_request_end(const mavlink_message_t * /*msg*/)
 
 	if (_pLogHandlerHelper) {
 		delete _pLogHandlerHelper;
-		_pLogHandlerHelper = 0;
+		_pLogHandlerHelper = nullptr;
 	}
 }
 
@@ -378,7 +341,7 @@ LogListHelper::LogListHelper()
 	, current_log_size(0)
 	, current_log_data_offset(0)
 	, current_log_data_remaining(0)
-	, current_log_filep(0)
+	, current_log_filep(nullptr)
 {
 	_init();
 }
@@ -393,7 +356,7 @@ LogListHelper::~LogListHelper()
 
 //-------------------------------------------------------------------
 bool
-LogListHelper::get_entry(int idx, uint32_t &size, uint32_t &date, char *filename)
+LogListHelper::get_entry(int idx, uint32_t &size, uint32_t &date, char *filename, int filename_len)
 {
 	//-- Find log file in log list file created during init()
 	size = 0;
@@ -410,11 +373,12 @@ LogListHelper::get_entry(int idx, uint32_t &size, uint32_t &date, char *filename
 		while (fgets(line, sizeof(line), f)) {
 			//-- Found our "index"
 			if (count++ == idx) {
-				char file[128];
+				char file[160];
 
 				if (sscanf(line, "%u %u %s", &date, &size, file) == 3) {
-					if (filename) {
-						strcpy(filename, file);
+					if (filename && filename_len > 0) {
+						strncpy(filename, file, filename_len);
+						filename[filename_len - 1] = 0; // ensure null-termination
 					}
 
 					result = true;
@@ -435,7 +399,7 @@ LogListHelper::open_for_transmit()
 {
 	if (current_log_filep) {
 		::fclose(current_log_filep);
-		current_log_filep = 0;
+		current_log_filep = nullptr;
 	}
 
 	current_log_filep = ::fopen(current_log_filename, "rb");
@@ -465,6 +429,7 @@ LogListHelper::get_log_data(uint8_t len, uint8_t *buffer)
 
 	if (offset && fseek(current_log_filep, offset, SEEK_CUR)) {
 		fclose(current_log_filep);
+		current_log_filep = nullptr;
 		PX4LOG_WARN("MavlinkLogHandler::get_log_data Seek error in %s\n", current_log_filename);
 		return 0;
 	}
@@ -511,10 +476,13 @@ LogListHelper::_init()
 		if (result->d_type == PX4LOG_DIRECTORY) {
 			time_t tt = 0;
 			char log_path[128];
-			snprintf(log_path, sizeof(log_path), "%s/%s", kLogRoot, result->d_name);
+			int ret = snprintf(log_path, sizeof(log_path), "%s/%s", kLogRoot, result->d_name);
+			bool path_is_ok = (ret > 0) && (ret < (int)sizeof(log_path));
 
-			if (_get_session_date(log_path, result->d_name, tt)) {
-				_scan_logs(f, log_path, tt);
+			if (path_is_ok) {
+				if (_get_session_date(log_path, result->d_name, tt)) {
+					_scan_logs(f, log_path, tt);
+				}
 			}
 		}
 	}
@@ -534,6 +502,14 @@ bool
 LogListHelper::_get_session_date(const char *path, const char *dir, time_t &date)
 {
 	if (strlen(dir) > 4) {
+		// Always try to get file time first
+		if (stat_file(path, &date)) {
+			// Try to prevent taking date if it's around 1970 (use the logic below instead)
+			if (date > 60 * 60 * 24) {
+				return true;
+			}
+		}
+
 		// Convert "sess000" to 00:00 Jan 1 1970 (day per session)
 		if (strncmp(dir, "sess", 4) == 0) {
 			unsigned u;
@@ -542,20 +518,6 @@ LogListHelper::_get_session_date(const char *path, const char *dir, time_t &date
 				date = u * 60 * 60 * 24;
 				return true;
 			}
-
-		} else {
-			if (stat_file(path, &date)) {
-				return true;
-			}
-
-			/* strptime not available for some reason
-			// Get date from directory name
-			struct tm tt;
-			if(strptime(dir, "%Y-%m-%d", &tt)) {
-				date = mktime(&tt);
-				return true;
-			}
-			*/
 		}
 	}
 
@@ -576,15 +538,20 @@ LogListHelper::_scan_logs(FILE *f, const char *dir, time_t &date)
 				time_t  ldate = date;
 				uint32_t size = 0;
 				char log_file_path[128];
-				snprintf(log_file_path, sizeof(log_file_path), "%s/%s", dir, result->d_name);
+				int ret = snprintf(log_file_path, sizeof(log_file_path), "%s/%s", dir, result->d_name);
+				bool path_is_ok = (ret > 0) && (ret < (int)sizeof(log_file_path));
 
-				if (_get_log_time_size(log_file_path, result->d_name, ldate, size)) {
-					//-- Write result->out to list file
-					fprintf(f, "%u %u %s\n", (unsigned)ldate, (unsigned)size, log_file_path);
-					log_count++;
+				if (path_is_ok) {
+					if (_get_log_time_size(log_file_path, result->d_name, ldate, size)) {
+						//-- Write result->out to list file
+						fprintf(f, "%u %u %s\n", (unsigned)ldate, (unsigned)size, log_file_path);
+						log_count++;
+					}
 				}
 			}
 		}
+
+		closedir(dp);
 	}
 }
 
@@ -594,6 +561,14 @@ LogListHelper::_get_log_time_size(const char *path, const char *file, time_t &da
 {
 	if (file && file[0]) {
 		if (strstr(file, ".px4log") || strstr(file, ".ulg")) {
+			// Always try to get file time first
+			if (stat_file(path, &date, &size)) {
+				// Try to prevent taking date if it's around 1970 (use the logic below instead)
+				if (date > 60 * 60 * 24) {
+					return true;
+				}
+			}
+
 			// Convert "log000" to 00:00 (minute per flight in session)
 			if (strncmp(file, "log", 3) == 0) {
 				unsigned u;
@@ -601,24 +576,10 @@ LogListHelper::_get_log_time_size(const char *path, const char *file, time_t &da
 				if (sscanf(&file[3], "%u", &u) == 1) {
 					date += (u * 60);
 
-					if (stat_file(path, 0, &size)) {
+					if (stat_file(path, nullptr, &size)) {
 						return true;
 					}
 				}
-
-			} else {
-				if (stat_file(path, &date, &size)) {
-					return true;
-				}
-
-				/* strptime not available for some reason
-				// Get time from file name
-				struct tm tt;
-				if(strptime(file, "%H_%M_%S", &tt)) {
-					date += mktime(&tt);
-					return true;
-				}
-				*/
 			}
 		}
 	}
@@ -647,20 +608,27 @@ LogListHelper::delete_all(const char *dir)
 
 		if (result->d_type == PX4LOG_DIRECTORY && result->d_name[0] != '.') {
 			char log_path[128];
-			snprintf(log_path, sizeof(log_path), "%s/%s", dir, result->d_name);
-			LogListHelper::delete_all(log_path);
+			int ret = snprintf(log_path, sizeof(log_path), "%s/%s", dir, result->d_name);
+			bool path_is_ok = (ret > 0) && (ret < (int)sizeof(log_path));
 
-			if (rmdir(log_path)) {
-				PX4LOG_WARN("MavlinkLogHandler::delete_all Error removing %s\n", log_path);
+			if (path_is_ok) {
+				LogListHelper::delete_all(log_path);
+
+				if (rmdir(log_path)) {
+					PX4LOG_WARN("MavlinkLogHandler::delete_all Error removing %s\n", log_path);
+				}
 			}
 		}
 
 		if (result->d_type == PX4LOG_REGULAR_FILE) {
 			char log_path[128];
-			snprintf(log_path, sizeof(log_path), "%s/%s", dir, result->d_name);
+			int ret = snprintf(log_path, sizeof(log_path), "%s/%s", dir, result->d_name);
+			bool path_is_ok = (ret > 0) && (ret < (int)sizeof(log_path));
 
-			if (unlink(log_path)) {
-				PX4LOG_WARN("MavlinkLogHandler::delete_all Error deleting %s\n", log_path);
+			if (path_is_ok) {
+				if (unlink(log_path)) {
+					PX4LOG_WARN("MavlinkLogHandler::delete_all Error deleting %s\n", log_path);
+				}
 			}
 		}
 	}

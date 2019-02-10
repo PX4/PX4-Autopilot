@@ -37,51 +37,42 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#ifndef NAVIGATOR_GPSFAILURE_H
-#define NAVIGATOR_GPSFAILURE_H
+#pragma once
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
+#include <px4_module_params.h>
 
-#include <uORB/uORB.h>
-#include <uORB/Publication.hpp>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-
-#include <drivers/drv_hrt.h>
-
-#include "navigator_mode.h"
 #include "mission_block.h"
 
 class Navigator;
 
-class GpsFailure : public MissionBlock
+class GpsFailure : public MissionBlock, public ModuleParams
 {
 public:
-	GpsFailure(Navigator *navigator, const char *name);
+	GpsFailure(Navigator *navigator);
+	~GpsFailure() = default;
 
-	~GpsFailure();
-
-	virtual void on_inactive();
-
-	virtual void on_activation();
-
-	virtual void on_active();
+	void on_inactive() override;
+	void on_activation() override;
+	void on_active() override;
 
 private:
-	/* Params */
-	control::BlockParamFloat _param_loitertime;
-	control::BlockParamFloat _param_openlooploiter_roll;
-	control::BlockParamFloat _param_openlooploiter_pitch;
-	control::BlockParamFloat _param_openlooploiter_thrust;
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::NAV_GPSF_LT>) _param_loitertime,
+		(ParamFloat<px4::params::NAV_GPSF_R>) _param_openlooploiter_roll,
+		(ParamFloat<px4::params::NAV_GPSF_P>) _param_openlooploiter_pitch,
+		(ParamFloat<px4::params::NAV_GPSF_TR>) _param_openlooploiter_thrust
+	)
 
 	enum GPSFState {
 		GPSF_STATE_NONE = 0,
 		GPSF_STATE_LOITER = 1,
 		GPSF_STATE_TERMINATE = 2,
 		GPSF_STATE_END = 3,
-	} _gpsf_state;
+	} _gpsf_state{GPSF_STATE_NONE};
 
-	hrt_abstime _timestamp_activation; //*< timestamp when this mode was activated */
+	hrt_abstime _timestamp_activation{0}; //*< timestamp when this mode was activated */
+
+	orb_advert_t	_att_sp_pub{nullptr};
 
 	/**
 	 * Set the GPSF item
@@ -94,4 +85,3 @@ private:
 	void		advance_gpsf();
 
 };
-#endif

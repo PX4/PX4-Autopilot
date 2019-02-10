@@ -38,8 +38,6 @@
  * @author Roman Bapst <roman@px4.io>
  */
 
-#include <systemlib/param/param.h>
-
 /**
  * Position of tilt servo in mc mode
  *
@@ -87,14 +85,3 @@ PARAM_DEFINE_FLOAT(VT_TILT_FW, 1.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_TRANS_P2_DUR, 0.5f);
-
-/**
- * The channel number of motors that must be turned off in fixed wing mode.
- *
- * @min 0
- * @max 12345678
- * @increment 1
- * @decimal 0
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_FW_MOT_OFFID, 0);

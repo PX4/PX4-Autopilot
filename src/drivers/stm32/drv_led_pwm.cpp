@@ -37,8 +37,9 @@
 *
 */
 
-#include <nuttx/config.h>
+#include <px4_config.h>
 
+#include <board_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -51,18 +52,25 @@
 #include <ctype.h>
 
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 #include <systemlib/px4_macros.h>
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/stm32/drv_io_timer.h>
 
 
-#include <board_config.h>
 
 #if defined(BOARD_HAS_LED_PWM)
+
+/* Board can override rate */
+
+#if (BOARD_LED_PWM_RATE)
+#  define LED_PWM_RATE BOARD_LED_PWM_RATE
+#else
+#  define LED_PWM_RATE 50
+#endif
+
 #define REG(_tmr, _reg) (*(volatile uint32_t *)(led_pwm_timers[_tmr].base + _reg))
 
 #define rCR1(_tmr)      REG(_tmr, STM32_GTIM_CR1_OFFSET)
@@ -104,37 +112,96 @@ led_pwm_timer_get_period(unsigned timer)
 	return (rARR(timer));
 }
 
+#if !defined(BOARD_HAS_SHARED_PWM_TIMERS)
+
+static void led_pwm_timer_init_timer(unsigned timer)
+{
+	if (led_pwm_timers[timer].base) {
+
+		irqstate_t flags = px4_enter_critical_section();
+
+		/* enable the timer clock before we try to talk to it */
+
+		modifyreg32(led_pwm_timers[timer].clock_register, 0, led_pwm_timers[timer].clock_bit);
+
+		/* disable and configure the timer */
+		rCR1(timer) = 0;
+		rCR2(timer) = 0;
+		rSMCR(timer) = 0;
+		rDIER(timer) = 0;
+		rCCER(timer) = 0;
+		rCCMR1(timer) = 0;
+		rCCMR2(timer) = 0;
+		rCCR1(timer) = 0;
+		rCCR2(timer) = 0;
+		rCCR3(timer) = 0;
+		rCCR4(timer) = 0;
+		rCCER(timer) = 0;
+		rDCR(timer) = 0;
+
+		if ((led_pwm_timers[timer].base == STM32_TIM1_BASE) || (led_pwm_timers[timer].base == STM32_TIM8_BASE)) {
+
+			/* master output enable = on */
+
+			rBDTR(timer) = ATIM_BDTR_MOE;
+		}
+
+		/* If the timer clock source provided as clock_freq is the STM32_APBx_TIMx_CLKIN
+		 * then configure the timer to free-run at 1MHz.
+		 * Otherwise, other frequencies are attainable by adjusting .clock_freq accordingly.
+		 */
+
+		rPSC(timer) = (led_pwm_timers[timer].clock_freq / 1000000) - 1;
+
+		/* configure the timer to update at the desired rate */
+
+		rARR(timer) = (1000000 / LED_PWM_RATE) - 1;
+
+		/* generate an update event; reloads the counter and all registers */
+		rEGR(timer) = GTIM_EGR_UG;
+
+		px4_leave_critical_section(flags);
+	}
+
+}
+#endif
 
 static void
 led_pwm_channel_init(unsigned channel)
 {
-	unsigned timer = led_pwm_channels[channel].timer_index;
+	/* Only initialize used channels */
 
-	/* configure the GPIO first */
+	if (led_pwm_channels[channel].timer_channel) {
 
-	px4_arch_configgpio(led_pwm_channels[channel].gpio_out);
+		unsigned timer = led_pwm_channels[channel].timer_index;
 
-	/* configure the channel */
-	switch (led_pwm_channels[channel].timer_channel) {
-	case 1:
-		rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE;
-		rCCER(timer) |= GTIM_CCER_CC1E;
-		break;
+		/* configure the GPIO first */
+		px4_arch_configgpio(led_pwm_channels[channel].gpio_out);
 
-	case 2:
-		rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC2M_SHIFT) | GTIM_CCMR1_OC2PE;
-		rCCER(timer) |= GTIM_CCER_CC2E;
-		break;
+		uint16_t polarity = led_pwm_channels[channel].masks;
 
-	case 3:
-		rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC3M_SHIFT) | GTIM_CCMR2_OC3PE;
-		rCCER(timer) |= GTIM_CCER_CC3E;
-		break;
+		/* configure the channel */
+		switch (led_pwm_channels[channel].timer_channel) {
+		case 1:
+			rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE;
+			rCCER(timer) |= polarity | GTIM_CCER_CC1E;
+			break;
 
-	case 4:
-		rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC4M_SHIFT) | GTIM_CCMR2_OC4PE;
-		rCCER(timer) |= GTIM_CCER_CC4E;
-		break;
+		case 2:
+			rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC2M_SHIFT) | GTIM_CCMR1_OC2PE;
+			rCCER(timer) |= polarity | GTIM_CCER_CC2E;
+			break;
+
+		case 3:
+			rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC3M_SHIFT) | GTIM_CCMR2_OC3PE;
+			rCCER(timer) |= polarity | GTIM_CCER_CC3E;
+			break;
+
+		case 4:
+			rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC4M_SHIFT) | GTIM_CCMR2_OC4PE;
+			rCCER(timer) |= polarity | GTIM_CCER_CC4E;
+			break;
+		}
 	}
 }
 
@@ -155,11 +222,7 @@ led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 
 	unsigned period = led_pwm_timer_get_period(timer);
 
-#if defined(BOARD_LED_PWM_DRIVE_ACTIVE_LOW)
-	unsigned value = period - (unsigned)cvalue * period / 255;
-#else
 	unsigned value = (unsigned)cvalue * period / 255;
-#endif
 
 	/* configure the channel */
 	if (value > 0) {
@@ -233,7 +296,11 @@ led_pwm_servo_init(void)
 {
 	/* do basic timer initialisation first */
 	for (unsigned i = 0; i < arraySize(led_pwm_timers); i++) {
+#if defined(BOARD_HAS_SHARED_PWM_TIMERS)
 		io_timer_init_timer(i);
+#else
+		led_pwm_timer_init_timer(i);
+#endif
 	}
 
 	/* now init channels */

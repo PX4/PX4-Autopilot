@@ -33,7 +33,6 @@
 
 /**
  * @file motor_ramp.cpp
- * Application to test motor ramp up.
  *
  * @author Andreas Antener <andreas@uaventure.com>
  * @author Roman Bapst <bapstroman@gmail.com>
@@ -41,6 +40,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_module.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
 #include <stdio.h>
@@ -56,8 +56,8 @@
 #include <drivers/drv_pwm_output.h>
 #include <platforms/px4_defines.h>
 
-#include "systemlib/systemlib.h"
 #include "systemlib/err.h"
+#include "uORB/topics/actuator_controls.h"
 
 enum RampState {
 	RAMP_INIT,
@@ -91,11 +91,11 @@ extern "C" __EXPORT int motor_ramp_main(int argc, char *argv[]);
  */
 int motor_ramp_thread_main(int argc, char *argv[]);
 
-bool min_pwm_valid(unsigned pwm_value);
+bool min_pwm_valid(int pwm_value);
 
-bool max_pwm_valid(unsigned pwm_value);
+bool max_pwm_valid(int pwm_value);
 
-int set_min_pwm(int fd, unsigned long max_channels, unsigned pwm_value);
+int set_min_pwm(int fd, unsigned long max_channels, int pwm_value);
 
 int set_out(int fd, unsigned long max_channels, float output);
 
@@ -113,14 +113,30 @@ usage(const char *reason)
 		PX4_ERR("%s", reason);
 	}
 
-	PX4_WARN("\n\nWARNING: motors will ramp up to full speed!\n\n"
-		 "Usage: motor_ramp <mode> <min_pwm> <time> [<max_pwm>]\n"
-		 "<mode> can be one of (ramp|sine|square)\n\n"
-		 "Example:\n"
-		 "sdlog2 on\n"
-		 "mc_att_control stop\n"
-		 "fw_att_control stop\n"
-		 "motor_ramp sine 1100 0.5\n");
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Application to test motor ramp up.
+
+Before starting, make sure to stop any running attitude controller:
+$ mc_att_control stop
+$ fw_att_control stop
+
+When starting, a background task is started, runs for several seconds (as specified), then exits.
+
+Note: this command currently only supports the `/dev/pwm_output0` output.
+
+### Example
+$ motor_ramp sine 1100 0.5
+)DESCR_STR");
+
+
+	PRINT_MODULE_USAGE_NAME_SIMPLE("motor_ramp", "command");
+	PRINT_MODULE_USAGE_ARG("ramp|sine|square", "mode", false);
+	PRINT_MODULE_USAGE_ARG("<min_pwm> <time> [<max_pwm>]", "pwm value in us, time in sec", false);
+
+	PRINT_MODULE_USAGE_PARAM_COMMENT("WARNING: motors will ramp up to full speed!");
+
 }
 
 /**
@@ -192,24 +208,21 @@ int motor_ramp_main(int argc, char *argv[])
 					      SCHED_PRIORITY_DEFAULT + 40,
 					      2000,
 					      motor_ramp_thread_main,
-					      (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
+					      (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
 	return 0;
-
-	usage("unrecognized command");
-	return 1;
 }
 
-bool min_pwm_valid(unsigned pwm_value)
+bool min_pwm_valid(int pwm_value)
 {
 	return pwm_value >= 900 && pwm_value <= 1500;
 }
 
-bool max_pwm_valid(unsigned pwm_value)
+bool max_pwm_valid(int pwm_value)
 {
 	return pwm_value <= 2100 && pwm_value > _min_pwm;
 }
 
-int set_min_pwm(int fd, unsigned long max_channels, unsigned pwm_value)
+int set_min_pwm(int fd, unsigned long max_channels, int pwm_value)
 {
 	int ret;
 
@@ -218,7 +231,7 @@ int set_min_pwm(int fd, unsigned long max_channels, unsigned pwm_value)
 
 	pwm_values.channel_count = max_channels;
 
-	for (int i = 0; i < max_channels; i++) {
+	for (unsigned i = 0; i < max_channels; i++) {
 		pwm_values.values[i] = pwm_value;
 	}
 
@@ -260,7 +273,7 @@ int prepare(int fd, unsigned long *max_channels)
 	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, act_sub, &actuators);
 
 	/* wait 50 ms */
-	usleep(50000);
+	px4_usleep(50000);
 
 	/* now expect nothing changed on that topic */
 	bool orb_updated;
@@ -341,7 +354,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 
 		switch (ramp_state) {
 		case RAMP_INIT: {
-				PX4_WARN("setting pwm min: %d", _min_pwm);
+				PX4_INFO("setting pwm min: %d", _min_pwm);
 				set_min_pwm(fd, max_channels, _min_pwm);
 				ramp_state = RAMP_MIN;
 				break;
@@ -349,7 +362,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 
 		case RAMP_MIN: {
 				if (timer > 3.0f) {
-					PX4_WARN("starting %s: %.2f sec", _mode_c, (double)_ramp_time);
+					PX4_INFO("starting %s: %.2f sec", _mode_c, (double)_ramp_time);
 					start = hrt_absolute_time();
 					ramp_state = RAMP_RAMP;
 				}
@@ -376,7 +389,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 					output = _mode != RAMP ? output : 1.0f;
 					start = hrt_absolute_time();
 					ramp_state = RAMP_WAIT;
-					PX4_WARN("%s finished, waiting", _mode_c);
+					PX4_INFO("%s finished, waiting", _mode_c);
 				}
 
 				set_out(fd, max_channels, output);
@@ -386,7 +399,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 		case RAMP_WAIT: {
 				if (timer > 0.5f) {
 					_thread_should_exit = true;
-					PX4_WARN("stopping");
+					PX4_INFO("stopping");
 					break;
 				}
 
@@ -396,7 +409,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 		}
 
 		// rate limit
-		usleep(2000);
+		px4_usleep(2000);
 	}
 
 	if (fd >= 0) {

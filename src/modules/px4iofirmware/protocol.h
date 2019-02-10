@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,8 @@
  *
  * PX4IO interface protocol.
  *
+ * @author Lorenz Meier <lorenz@px4.io>
+ *
  * Communication is performed via writes to and reads from 16-bit virtual
  * registers organised into pages of 255 registers each.
  *
@@ -74,7 +76,9 @@
 #define SIGNED_TO_REG(_signed)	((uint16_t)(_signed))
 
 #define REG_TO_FLOAT(_reg)	((float)REG_TO_SIGNED(_reg) / 10000.0f)
-#define FLOAT_TO_REG(_float)	SIGNED_TO_REG((int16_t)((_float) * 10000.0f))
+#define FLOAT_TO_REG(_float)	SIGNED_TO_REG((int16_t)floorf((_float + 0.00005f) * 10000.0f))
+
+#define REG_TO_BOOL(_reg) 	((bool)(_reg))
 
 #define PX4IO_PROTOCOL_VERSION		4
 
@@ -82,16 +86,17 @@
 #define PX4IO_PROTOCOL_MAX_CONTROL_COUNT	8	/**< The protocol does not support more than set here, individual units might support less - see PX4IO_P_CONFIG_CONTROL_COUNT */
 
 /* static configuration page */
-#define PX4IO_PAGE_CONFIG		0
+#define PX4IO_PAGE_CONFIG					0
 #define PX4IO_P_CONFIG_PROTOCOL_VERSION		0	/* PX4IO_PROTOCOL_VERSION */
 #define PX4IO_P_CONFIG_HARDWARE_VERSION		1	/* magic numbers TBD */
 #define PX4IO_P_CONFIG_BOOTLOADER_VERSION	2	/* get this how? */
-#define PX4IO_P_CONFIG_MAX_TRANSFER		3	/* maximum I2C transfer size */
+#define PX4IO_P_CONFIG_MAX_TRANSFER			3	/* maximum I2C transfer size */
 #define PX4IO_P_CONFIG_CONTROL_COUNT		4	/* hardcoded max control count supported */
 #define PX4IO_P_CONFIG_ACTUATOR_COUNT		5	/* hardcoded max actuator output count */
 #define PX4IO_P_CONFIG_RC_INPUT_COUNT		6	/* hardcoded max R/C input count supported */
 #define PX4IO_P_CONFIG_ADC_INPUT_COUNT		7	/* hardcoded max ADC inputs */
-#define PX4IO_P_CONFIG_RELAY_COUNT		8	/* hardcoded # of relay outputs */
+#define PX4IO_P_CONFIG_RELAY_COUNT			8	/* hardcoded # of relay outputs */
+#define PX4IO_MAX_TRANSFER_LEN				64
 
 /* dynamic status page */
 #define PX4IO_PAGE_STATUS		1
@@ -126,16 +131,11 @@
 #define PX4IO_P_STATUS_ALARMS_PWM_ERROR		(1 << 6) /* PWM configuration or output was bad */
 #define PX4IO_P_STATUS_ALARMS_VSERVO_FAULT	(1 << 7) /* [2] VServo was out of the valid range (2.5 - 5.5 V) */
 
-#define PX4IO_P_STATUS_VBATT			4	/* [1] battery voltage in mV */
-#define PX4IO_P_STATUS_IBATT			5	/* [1] battery current (raw ADC) */
 #define PX4IO_P_STATUS_VSERVO			6	/* [2] servo rail voltage in mV */
 #define PX4IO_P_STATUS_VRSSI			7	/* [2] RSSI voltage */
 #define PX4IO_P_STATUS_PRSSI			8	/* [2] RSSI PWM value */
 
 #define PX4IO_P_STATUS_MIXER			9	 /* mixer actuator limit flags */
-#define PX4IO_P_STATUS_MIXER_LOWER_LIMIT 		(1 << 0) /**< at least one actuator output has reached lower limit */
-#define PX4IO_P_STATUS_MIXER_UPPER_LIMIT 		(1 << 1) /**< at least one actuator output has reached upper limit */
-#define PX4IO_P_STATUS_MIXER_YAW_LIMIT 			(1 << 2) /**< yaw control is limited because it causes output clipping */
 
 /* array of post-mix actuator outputs, -10000..10000 */
 #define PX4IO_PAGE_ACTUATORS		2		/* 0..CONFIG_ACTUATOR_COUNT-1 */
@@ -195,18 +195,8 @@
 #define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
 #define PX4IO_P_SETUP_PWM_DEFAULTRATE		3	/* 'low' PWM frame output rate in Hz */
 #define PX4IO_P_SETUP_PWM_ALTRATE		4	/* 'high' PWM frame output rate in Hz */
-
-#if defined(CONFIG_ARCH_BOARD_PX4IO_V1) || defined(CONFIG_ARCH_BOARD_PX4FMU_V1)
-#define PX4IO_P_SETUP_RELAYS			5	/* bitmask of relay/switch outputs, 0 = off, 1 = on */
-#define PX4IO_P_SETUP_RELAYS_POWER1		(1<<0)	/* hardware rev [1] power relay 1 */
-#define PX4IO_P_SETUP_RELAYS_POWER2		(1<<1)	/* hardware rev [1] power relay 2 */
-#define PX4IO_P_SETUP_RELAYS_ACC1		(1<<2)	/* hardware rev [1] accessory power 1 */
-#define PX4IO_P_SETUP_RELAYS_ACC2		(1<<3)	/* hardware rev [1] accessory power 2 */
-#else
 #define PX4IO_P_SETUP_RELAYS_PAD		5
-#endif
 
-#define PX4IO_P_SETUP_VBATT_SCALE		6	/* hardware rev [1] battery voltage correction factor (float) */
 #define PX4IO_P_SETUP_VSERVO_SCALE		6	/* hardware rev [2] servo voltage correction factor (float) */
 #define PX4IO_P_SETUP_DSM			7	/* DSM bind state */
 enum {							/* DSM bind states */
@@ -242,7 +232,17 @@ enum {							/* DSM bind states */
 
 #define PX4IO_P_SETUP_SBUS_RATE			22	/* frame rate of SBUS1 output in Hz */
 
-#define PX4IO_P_SETUP_MOTOR_SLEW_MAX 	24 	/* max motor slew rate */
+#define PX4IO_P_SETUP_MOTOR_SLEW_MAX		24 	/* max motor slew rate */
+
+#define PX4IO_P_SETUP_THR_MDL_FAC 		25	/* factor for modelling static pwm output to thrust relationship */
+
+#define PX4IO_P_SETUP_THERMAL			26	/* thermal management */
+
+#define PX4IO_P_SETUP_AIRMODE 			27 	/* air-mode */
+
+#define PX4IO_THERMAL_IGNORE			UINT16_MAX
+#define PX4IO_THERMAL_OFF			0
+#define PX4IO_THERMAL_FULL			10000
 
 /* autopilot control values, -10000..10000 */
 #define PX4IO_PAGE_CONTROLS			51	/**< actuator control groups, one after the other, 8 wide */
@@ -293,8 +293,11 @@ enum {							/* DSM bind states */
 /* PWM maximum values for certain ESCs */
 #define PX4IO_PAGE_CONTROL_MAX_PWM		107		/**< 0..CONFIG_ACTUATOR_COUNT-1 */
 
+/* PWM mtrim values for central position */
+#define PX4IO_PAGE_CONTROL_TRIM_PWM		108		/**< 0..CONFIG_ACTUATOR_COUNT-1 */
+
 /* PWM disarmed values that are active, even when SAFETY_SAFE */
-#define PX4IO_PAGE_DISARMED_PWM		108			/* 0..CONFIG_ACTUATOR_COUNT-1 */
+#define PX4IO_PAGE_DISARMED_PWM		109			/* 0..CONFIG_ACTUATOR_COUNT-1 */
 
 /**
  * As-needed mixer data upload.
@@ -330,6 +333,10 @@ struct IOPacket {
 	uint16_t	regs[PKT_MAX_REGS];
 };
 #pragma pack(pop)
+
+#if (PX4IO_MAX_TRANSFER_LEN > PKT_MAX_REGS * 2)
+#error The max transfer length of the IO protocol must not be larger than the IO packet size
+#endif
 
 #define PKT_CODE_READ		0x00	/* FMU->IO read transaction */
 #define PKT_CODE_WRITE		0x40	/* FMU->IO write transaction */

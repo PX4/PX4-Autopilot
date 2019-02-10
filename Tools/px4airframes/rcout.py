@@ -4,6 +4,7 @@ import os
 
 class RCOutput():
     def __init__(self, groups, board):
+
         result = (  "#\n"
                     "#\n"
                     "#  THIS FILE IS AUTO-GENERATED. DO NOT EDIT!\n"
@@ -27,10 +28,19 @@ class RCOutput():
                     "# 12000 ..  12999       Octo Cox\n"
                     "# 13000 ..  13999       VTOL\n"
                     "# 14000 ..  14999       Tri Y\n"
+                    ""
+                    ""
+                    "cd /etc/init.d/airframes\n"
                     "\n")
         for group in groups:
             result += "# GROUP: %s\n\n" % group.GetName()
             for param in group.GetParams():
+                excluded = False
+                for code in param.GetArchCodes():
+                    if "{0}".format(code) == board and param.GetArchValue(code) == "exclude":
+                        excluded = True
+                if excluded:
+                    continue
                 path = os.path.split(param.GetPath())[1]
                 id_val = param.GetId()
                 name = param.GetFieldValue("short_desc")
@@ -40,7 +50,7 @@ class RCOutput():
                 result +=   "# %s\n" % param.GetName()
                 result +=   "if param compare SYS_AUTOSTART %s\n" % id_val
                 result +=   "then\n"
-                result +=   "\tsh /etc/init.d/%s\n" % path
+                result +=   "\tsh %s\n" % path
                 result +=   "fi\n"
 
                 #if long_desc is not None:

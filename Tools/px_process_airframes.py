@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ############################################################################
 #
-#   Copyright (C) 2013-2015 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2013-2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -35,10 +35,11 @@
 #
 # PX4 airframe config processor (main executable file)
 #
-# This tool scans the PX4 source code for declarations of airframes
+# This tool scans the PX4 ROMFS code for declarations of airframes
 #
 # Currently supported formats are:
 #   * XML for the parametric UI generator
+#   * Markdown for the PX4 dev guide (https://github.com/PX4/Devguide)
 #
 #
 
@@ -46,7 +47,7 @@ from __future__ import print_function
 import sys
 import os
 import argparse
-from px4airframes import srcscanner, srcparser, xmlout, rcout
+from px4airframes import srcscanner, srcparser, xmlout, rcout, markdownout
 
 def main():
     # Parse command line arguments
@@ -61,6 +62,18 @@ def main():
                         metavar="FILENAME",
                         help="Create XML file"
                              " (default FILENAME: airframes.xml)")
+    parser.add_argument("-m", "--markdown",
+                        nargs='?',
+                        const="airframes.md",
+                        metavar="FILENAME",
+                        help="Create Markdown file"
+                             " (default FILENAME: airframes.md)")
+    default_image_path = '../../assets/airframes/types'
+    parser.add_argument("-i", "--image-path",
+                        default=default_image_path,
+                        metavar="IMAGEPATH",
+                        help="HTML image path for Markdown (containing the airframe svg files)"
+                             " (default IMAGEPATH: "+default_image_path+")")
     parser.add_argument("-s", "--start-script",
                         nargs='?',
                         const="rc.autostart",
@@ -75,7 +88,7 @@ def main():
     args = parser.parse_args()
 
     # Check for valid command
-    if not (args.xml) and not (args.start_script):
+    if not (args.xml) and not (args.start_script) and not args.markdown:
         print("Error: You need to specify at least one output method!\n")
         parser.print_usage()
         sys.exit(1)
@@ -98,6 +111,12 @@ def main():
         if args.verbose: print("Creating XML file " + args.xml)
         out = xmlout.XMLOutput(param_groups, args.board)
         out.Save(args.xml)
+
+    # Output to markdown file
+    if args.markdown:
+        if args.verbose: print("Creating markdown file " + args.markdown)
+        out = markdownout.MarkdownTablesOutput(param_groups, args.board, args.image_path)
+        out.Save(args.markdown)
 
     if args.start_script:
         if args.verbose: print("Creating start script " + args.start_script)

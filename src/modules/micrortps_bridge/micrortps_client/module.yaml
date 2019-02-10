@@ -1,0 +1,17 @@
+module_name: RTPS
+serial_config:
+    - command: |
+        protocol_splitter start ${SERIAL_DEV}
+        mavlink start -d /dev/mavlink -b p:${BAUD_PARAM} -m onboard -r 5000 -x
+        micrortps_client start -d /dev/rtps -b p:${BAUD_PARAM} -l -1
+      port_config_param:
+        name: RTPS_MAV_CONFIG
+        group: RTPS
+      label: MAVLink + FastRTPS
+    - command: |
+        micrortps_client start -d ${SERIAL_DEV} -b p:${BAUD_PARAM} -l -1
+      port_config_param:
+        name: RTPS_CONFIG
+        group: RTPS
+      label: FastRTPS
+

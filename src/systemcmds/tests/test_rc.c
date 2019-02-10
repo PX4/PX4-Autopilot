@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,6 @@
 /**
  * @file test_rc.c
  * Tests RC input.
- *
  */
 
 #include <px4_config.h>
@@ -61,14 +60,13 @@
 
 int test_rc(int argc, char *argv[])
 {
-
 	int _rc_sub = orb_subscribe(ORB_ID(input_rc));
 
 	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
-	struct rc_input_values	rc_input;
-	struct rc_input_values	rc_last;
+	struct input_rc_s rc_input;
+	struct input_rc_s rc_last;
 	orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
-	usleep(100000);
+	px4_usleep(100000);
 
 	/* open PPM input and expect values close to the output values */
 
@@ -108,7 +106,7 @@ int test_rc(int argc, char *argv[])
 					for (unsigned i = 0; i < rc_input.channel_count; i++) {
 						if (abs(rc_input.values[i] - rc_last.values[i]) > 20) {
 							PX4_ERR("comparison fail: RC: %d, expected: %d", rc_input.values[i], rc_last.values[i]);
-							(void)close(_rc_sub);
+							(void)orb_unsubscribe(_rc_sub);
 							return ERROR;
 						}
 
@@ -117,13 +115,13 @@ int test_rc(int argc, char *argv[])
 
 					if (rc_last.channel_count != rc_input.channel_count) {
 						PX4_ERR("channel count mismatch: last: %d, now: %d", rc_last.channel_count, rc_input.channel_count);
-						(void)close(_rc_sub);
+						(void)orb_unsubscribe(_rc_sub);
 						return ERROR;
 					}
 
 					if (hrt_absolute_time() - rc_input.timestamp_last_signal > 100000) {
 						PX4_ERR("TIMEOUT, less than 10 Hz updates");
-						(void)close(_rc_sub);
+						(void)orb_unsubscribe(_rc_sub);
 						return ERROR;
 					}
 

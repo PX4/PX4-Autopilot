@@ -7,8 +7,8 @@ extern orb_advert_t mavlink_log_pub;
 // required number of samples for sensor
 // to initialize
 //
-static const uint32_t 		REQ_LIDAR_INIT_COUNT = 10;
-static const uint32_t 		LIDAR_TIMEOUT =   1000000; // 1.0 s
+static const uint32_t		REQ_LIDAR_INIT_COUNT = 10;
+static const uint32_t		LIDAR_TIMEOUT = 1000000;	// 1.0 s
 
 void BlockLocalPositionEstimator::lidarInit()
 {
@@ -25,8 +25,8 @@ void BlockLocalPositionEstimator::lidarInit()
 					     "mean %d cm stddev %d cm",
 					     int(100 * _lidarStats.getMean()(0)),
 					     int(100 * _lidarStats.getStdDev()(0)));
-		_lidarInitialized = true;
-		_lidarFault = FAULT_NONE;
+		_sensorTimeout &= ~SENSOR_LIDAR;
+		_sensorFault &= ~SENSOR_LIDAR;
 	}
 }
 
@@ -34,7 +34,7 @@ int BlockLocalPositionEstimator::lidarMeasure(Vector<float, n_y_lidar> &y)
 {
 	// measure
 	float d = _sub_lidar->get().current_distance;
-	float eps = 0.01f; // 1 cm
+	float eps = 0.01f;	// 1 cm
 	float min_dist = _sub_lidar->get().min_distance + eps;
 	float max_dist = _sub_lidar->get().max_distance - eps;
 
@@ -52,9 +52,10 @@ int BlockLocalPositionEstimator::lidarMeasure(Vector<float, n_y_lidar> &y)
 	_lidarStats.update(Scalarf(d));
 	_time_last_lidar = _timeStamp;
 	y.setZero();
+	matrix::Eulerf euler(matrix::Quatf(_sub_att.get().q));
 	y(0) = (d + _lidar_z_offset.get()) *
-	       cosf(_eul(0)) *
-	       cosf(_eul(1));
+	       cosf(euler.phi()) *
+	       cosf(euler.theta());
 	return OK;
 }
 
@@ -65,18 +66,13 @@ void BlockLocalPositionEstimator::lidarCorrect()
 
 	if (lidarMeasure(y) != OK) { return; }
 
-	// account for leaning
-	y(0) = y(0) *
-	       cosf(_eul(0)) *
-	       cosf(_eul(1));
-
 	// measurement matrix
 	Matrix<float, n_y_lidar, n_x> C;
 	C.setZero();
 	// y = -(z - tz)
 	// TODO could add trig to make this an EKF correction
-	C(Y_lidar_z, X_z) = -1; // measured altitude, negative down dir.
-	C(Y_lidar_z, X_tz) = 1; // measured altitude, negative down dir.
+	C(Y_lidar_z, X_z) = -1;	// measured altitude, negative down dir.
+	C(Y_lidar_z, X_tz) = 1;	// measured altitude, negative down dir.
 
 	// use parameter covariance unless sensor provides reasonable value
 	SquareMatrix<float, n_y_lidar> R;
@@ -91,43 +87,46 @@ void BlockLocalPositionEstimator::lidarCorrect()
 	}
 
 	// residual
-	Matrix<float, n_y_lidar, n_y_lidar> S_I = inv<float, n_y_lidar>((C * _P * C.transpose()) + R);
 	Vector<float, n_y_lidar> r = y - C * _x;
+	// residual covariance
+	Matrix<float, n_y_lidar, n_y_lidar> S = C * _P * C.transpose() + R;
+
+	// publish innovations
 	_pub_innov.get().hagl_innov = r(0);
-	_pub_innov.get().hagl_innov_var = R(0, 0);
+	_pub_innov.get().hagl_innov_var = S(0, 0);
+
+	// residual covariance, (inverse)
+	Matrix<float, n_y_lidar, n_y_lidar> S_I = inv<float, n_y_lidar>(S);
 
 	// fault detection
 	float beta = (r.transpose() * (S_I * r))(0, 0);
 
 	if (beta > BETA_TABLE[n_y_lidar]) {
-		if (_lidarFault < FAULT_MINOR) {
-			_lidarFault = FAULT_MINOR;
+		if (!(_sensorFault & SENSOR_LIDAR)) {
 			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] lidar fault,  beta %5.2f", double(beta));
+			_sensorFault |= SENSOR_LIDAR;
 		}
 
 		// abort correction
 		return;
 
-	} else if (_lidarFault) { // disable fault if ok
-		_lidarFault = FAULT_NONE;
-		//mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] lidar OK");
+	} else if (_sensorFault & SENSOR_LIDAR) {
+		_sensorFault &= ~SENSOR_LIDAR;
+		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] lidar OK");
 	}
 
-	// kalman filter correction if no fault
-	if (_lidarFault < fault_lvl_disable) {
-		Matrix<float, n_x, n_y_lidar> K = _P * C.transpose() * S_I;
-		Vector<float, n_x> dx = K * r;
-		correctionLogic(dx);
-		_x += dx;
-		_P -= K * C * _P;
-	}
+	// kalman filter correction always
+	Matrix<float, n_x, n_y_lidar> K = _P * C.transpose() * S_I;
+	Vector<float, n_x> dx = K * r;
+	_x += dx;
+	_P -= K * C * _P;
 }
 
 void BlockLocalPositionEstimator::lidarCheckTimeout()
 {
 	if (_timeStamp - _time_last_lidar > LIDAR_TIMEOUT) {
-		if (_lidarInitialized) {
-			_lidarInitialized = false;
+		if (!(_sensorTimeout & SENSOR_LIDAR)) {
+			_sensorTimeout |= SENSOR_LIDAR;
 			_lidarStats.reset();
 			mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] lidar timeout ");
 		}

@@ -1,7 +1,6 @@
 /****************************************************************************
- * px4/tests/test_time.c
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,9 +31,10 @@
  *
  ****************************************************************************/
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
+/**
+ * @file test_time.c
+ * Tests clocks/timekeeping.
+ */
 
 #include <px4_config.h>
 #include <px4_defines.h>
@@ -56,34 +56,10 @@
 #include <drivers/drv_hrt.h>
 
 
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Private Types
- ****************************************************************************/
-
-/****************************************************************************
- * Private Function Prototypes
- ****************************************************************************/
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/* emulate hrt_absolute_time using the cycle counter */
 static hrt_abstime
 cycletime(void)
 {
+	/* emulate hrt_absolute_time using the cycle counter */
 	static uint64_t basetime;
 	static uint32_t lasttime;
 	uint32_t cycles;
@@ -98,14 +74,6 @@ cycletime(void)
 
 	return (basetime + cycles) / 168;	/* XXX magic number */
 }
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: test_time
- ****************************************************************************/
 
 int test_time(int argc, char *argv[])
 {
@@ -136,7 +104,7 @@ int test_time(int argc, char *argv[])
 	/* loop checking the time */
 	for (unsigned i = 0; i < 100; i++) {
 
-		usleep(rand());
+		usleep(rand() % SHRT_MAX);
 
 		uint32_t flags = px4_enter_critical_section();
 

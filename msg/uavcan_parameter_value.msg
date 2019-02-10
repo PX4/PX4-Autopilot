@@ -1,4 +1,5 @@
 # UAVCAN-MAVLink parameter bridge response type
+uint64 timestamp		# time since system start (microseconds)
 uint8 node_id			# UAVCAN node ID mapped from MAVLink component ID
 char[17] param_id		# MAVLink/UAVCAN parameter name
 int16 param_index		# parameter index, if known

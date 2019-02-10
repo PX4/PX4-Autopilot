@@ -26,9 +26,9 @@ alt_acceptance_radius   = 5
 ################################################################################################
 
 # Import DroneKit-Python
-from dronekit import connect, Command
+from dronekit import connect, Command, VehicleMode
 from pymavlink import mavutil
-import time, sys, argparse
+import time, sys, argparse, json
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--connect", help="connection string")
@@ -80,36 +80,15 @@ print " Alt: %s" % vehicle.location.global_relative_frame.alt
 # Functions
 ################################################################################################
 
-
-def readmission(aFileName):
-    """
-    Load a mission from a file into a list. The mission definition is in the Waypoint file
-    format (http://qgroundcontrol.org/mavlink/waypoint_protocol#waypoint_file_format).
-    This function is used by upload_mission().
-    """
-    cmds = vehicle.commands
+def read_mission_json(f):
+    d = json.load(f)
+    current = True
     missionlist=[]
-    with open(aFileName) as f:
-        for i, line in enumerate(f):
-            if i==0:
-                if not line.startswith('QGC WPL 110'):
-                    raise Exception('File is not supported WP version')
-            else:
-                linearray=line.split('\t')
-                ln_index=int(linearray[0])
-                ln_currentwp=int(linearray[1])
-                ln_frame=int(linearray[2])
-                ln_command=int(linearray[3])
-                ln_param1=float(linearray[4])
-                ln_param2=float(linearray[5])
-                ln_param3=float(linearray[6])
-                ln_param4=float(linearray[7])
-                ln_param5=float(linearray[8])
-                ln_param6=float(linearray[9])
-                ln_param7=float(linearray[10])
-                ln_autocontinue=int(linearray[11].strip())
-                cmd = Command( 0, 0, 0, ln_frame, ln_command, ln_currentwp, ln_autocontinue, ln_param1, ln_param2, ln_param3, ln_param4, ln_param5, ln_param6, ln_param7)
-                missionlist.append(cmd)
+    for wp in d['items']:
+	cmd = Command( 0, 0, 0, int(wp['frame']), int(wp['command']), current, int(wp['autoContinue']), float(wp['param1']), float(wp['param2']), float(wp['param3']), float(wp['param4']), float(wp['coordinate'][0]), float(wp['coordinate'][1]), float(wp['coordinate'][2]))
+	missionlist.append(cmd)
+	if current:
+	    current = False
     return missionlist
 
 
@@ -118,7 +97,8 @@ def upload_mission(aFileName):
     Upload a mission from a file.
     """
     #Read mission from file
-    missionlist = readmission(aFileName)
+    with open(aFileName) as f:
+	missionlist = read_mission_json(f)
 
     #Clear existing mission from vehicle
     cmds = vehicle.commands
@@ -130,51 +110,6 @@ def upload_mission(aFileName):
     vehicle.commands.upload()
     return missionlist
 
-
-def download_mission():
-    """
-    Downloads the current mission and returns it in a list.
-    It is used in save_mission() to get the file information to save.
-    """
-    print " Download mission from vehicle"
-    missionlist=[]
-    cmds = vehicle.commands
-    cmds.download()
-    cmds.wait_ready()
-    for cmd in cmds:
-        missionlist.append(cmd)
-    return missionlist
-
-def save_mission(aFileName):
-    """
-    Save a mission in the Waypoint file format
-    (http://qgroundcontrol.org/mavlink/waypoint_protocol#waypoint_file_format).
-    """
-    print "\nSave mission from Vehicle to file: %s" % aFileName
-    #Download mission from vehicle
-    missionlist = download_mission()
-    #Add file-format information
-    output='QGC WPL 110\n'
-    #Add home location as 0th waypoint
-    home = vehicle.home_location
-    output+="%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n\n\n" % (0,1,0,16,0,0,0,0,home.lat,home.lon,home.alt,1)
-    #Add commands
-    for cmd in missionlist:
-        commandline="%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (cmd.seq,cmd.current,cmd.frame,cmd.command,cmd.param1,cmd.param2,cmd.param3,cmd.param4,cmd.x,cmd.y,cmd.z,cmd.autocontinue)
-        output+=commandline
-    with open(aFileName, 'w') as file_:
-        print " Write mission to file"
-        file_.write(output)
-
-
-def printfile(aFileName):
-    """
-    Print a mission file to demonstrate "round trip"
-    """
-    print "\nMission file: %s" % aFileName
-    with open(aFileName) as f:
-        for line in f:
-            print ' %s' % line.strip()
 
 
 ################################################################################################
@@ -227,11 +162,8 @@ while not home_position_set:
 missionlist = upload_mission(import_mission_filename)
 time.sleep(2)
 
-# set mission mode the hard way
-vehicle._master.mav.command_long_send(vehicle._master.target_system, vehicle._master.target_component,
-                                           mavutil.mavlink.MAV_CMD_DO_SET_MODE, 0,
-                                           MAV_MODE_AUTO,
-                                           0, 0, 0, 0, 0, 0)
+# set mission mode
+vehicle.mode = VehicleMode("MISSION")
 time.sleep(1)
 
 

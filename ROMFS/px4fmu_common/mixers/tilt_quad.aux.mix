@@ -1,0 +1,31 @@
+Tilt-Quadrotor mixer for PX4FMU (2/2) V2
+===========================
+
+This file defines the aux outputs mixer for a Tilt-quadrotor in the + configuration.
+
+# @output AUX1 Outer servo motor for rotor 2 arm
+# @output AUX2 Outer servo motor for rotor 4 arm
+# @output AUX3 Inner servo motor for rotor 2 arm
+# @output AUX4 Inner servo motor for rotor 4 arm
+
+Servo 1
+
+M: 1
+S: 0 1   -1000  -1000     0 -10000  10000
+
+Servo 2
+
+M: 1
+S: 0 1   1000   1000      0 -10000  10000
+
+Servo 3
+
+M: 2
+S: 0 2 -10000 -10000      0 -10000  10000
+S: 3 5  10000  10000      0 -10000  10000
+
+Servo 4
+
+M: 2
+S: 0 2  10000  10000      0 -10000  10000
+S: 3 5  10000  10000      0 -10000  10000

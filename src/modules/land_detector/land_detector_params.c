@@ -32,129 +32,29 @@
  ****************************************************************************/
 
 /**
- * @file land_detector.c
- * Land detector algorithm parameters.
+ * Total flight time in microseconds
  *
- * @author Johan Jansen <jnsn.johan@gmail.com>
+ * Total flight time of this autopilot. Higher 32 bits of the value.
+ * Flight time in microseconds = (LND_FLIGHT_T_HI << 32) | LND_FLIGHT_T_LO.
+ *
+ * @min 0
+ * @volatile
+ * @category system
+ * @group Land Detector
+ *
  */
+PARAM_DEFINE_INT32(LND_FLIGHT_T_HI, 0);
 
 /**
- * Multicopter max climb rate
+ * Total flight time in microseconds
  *
- * Maximum vertical velocity allowed in the landed state (m/s up and down)
+ * Total flight time of this autopilot. Lower 32 bits of the value.
+ * Flight time in microseconds = (LND_FLIGHT_T_HI << 32) | LND_FLIGHT_T_LO.
  *
- * @unit m/s
- * @decimal 1
- *
+ * @min 0
+ * @volatile
+ * @category system
  * @group Land Detector
+ *
  */
-PARAM_DEFINE_FLOAT(LNDMC_Z_VEL_MAX, 0.70f);
-
-/**
- * Multicopter max horizontal velocity
- *
- * Maximum horizontal velocity allowed in the landed state (m/s)
- *
- * @unit m/s
- * @decimal 1
- *
- * @group Land Detector
- */
-PARAM_DEFINE_FLOAT(LNDMC_XY_VEL_MAX, 1.50f);
-
-/**
- * Multicopter max rotation
- *
- * Maximum allowed angular velocity around each axis allowed in the landed state.
- *
- * @unit deg/s
- * @decimal 1
- *
- * @group Land Detector
- */
-PARAM_DEFINE_FLOAT(LNDMC_ROT_MAX, 20.0f);
-
-/**
- * Multicopter specific force threshold
- *
- * Multicopter threshold on the specific force measured by accelerometers in m/s^2 for free-fall detection
- *
- * @unit m/s^2
- * @min 0.1
- * @max 10
- * @decimal 2
- *
- * @group Land Detector
- */
-PARAM_DEFINE_FLOAT(LNDMC_FFALL_THR, 2.0f);
-
-/**
- * Multicopter free-fall trigger time
- *
- * Seconds (decimal) that freefall conditions have to met before triggering a freefall.
- * Minimal value is limited by LAND_DETECTOR_UPDATE_RATE=50Hz in landDetector.h
- *
- * @unit s
- * @min 0.02
- * @max 5
- * @decimal 2
- *
- * @group Land Detector
- */
-PARAM_DEFINE_FLOAT(LNDMC_FFALL_TTRI, 0.3);
-
-/**
- * Fixedwing max horizontal velocity
- *
- * Maximum horizontal velocity allowed in the landed state (m/s)
- *
- * @unit m/s
- * @min 0.5
- * @max 10
- * @decimal 1
- *
- * @group Land Detector
- */
-PARAM_DEFINE_FLOAT(LNDFW_VEL_XY_MAX, 5.0f);
-
-/**
- * Fixedwing max climb rate
- *
- * Maximum vertical velocity allowed in the landed state (m/s up and down)
- *
- * @unit m/s
- * @min 5
- * @max 20
- * @decimal 1
- *
- * @group Land Detector
- */
-PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 10.0f);
-
-/**
- * Fixedwing max short-term velocity
- *
- * Maximum velocity integral in flight direction allowed in the landed state (m/s)
- *
- * @unit m/s
- * @min 2
- * @max 10
- * @decimal 1
- *
- * @group Land Detector
- */
-PARAM_DEFINE_FLOAT(LNDFW_VELI_MAX, 4.0f);
-
-/**
- * Airspeed max
- *
- * Maximum airspeed allowed in the landed state (m/s)
- *
- * @unit m/s
- * @min 4
- * @max 20
- * @decimal 1
- *
- * @group Land Detector
- */
-PARAM_DEFINE_FLOAT(LNDFW_AIRSPD_MAX, 8.00f);
+PARAM_DEFINE_INT32(LND_FLIGHT_T_LO, 0);

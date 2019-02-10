@@ -41,6 +41,8 @@
 #include <math.h>
 #include <stdlib.h>
 
+#include <px4_defines.h>
+
 #include "test.hpp"
 
 bool __EXPORT equal(float a, float b, float epsilon)
@@ -58,6 +60,7 @@ bool __EXPORT greater_than(float a, float b)
 {
 	if (a > b) {
 		return true;
+
 	} else {
 		printf("not a > b ->\n\ta: %12.8f\n\tb: %12.8f\n", double(a), double(b));
 		return false;
@@ -68,6 +71,7 @@ bool __EXPORT less_than(float a, float b)
 {
 	if (a < b) {
 		return true;
+
 	} else {
 		printf("not a < b ->\n\ta: %12.8f\n\tb: %12.8f\n", double(a), double(b));
 		return false;
@@ -78,6 +82,7 @@ bool __EXPORT greater_than_or_equal(float a, float b)
 {
 	if (a >= b) {
 		return true;
+
 	} else {
 		printf("not a >= b ->\n\ta: %12.8f\n\tb: %12.8f\n", double(a), double(b));
 		return false;
@@ -88,6 +93,7 @@ bool __EXPORT less_than_or_equal(float a, float b)
 {
 	if (a <= b) {
 		return true;
+
 	} else {
 		printf("not a <= b ->\n\ta: %12.8f\n\tb: %12.8f\n", double(a), double(b));
 		return false;
@@ -102,7 +108,7 @@ void __EXPORT float2SigExp(
 // FIXME - This code makes no sense when exp is an int
 // FIXME - isnan and isinf not defined for QuRT
 #ifndef __PX4_QURT
-	if (isnan(num) || isinf(num)) {
+	if (!PX4_ISFINITE(num)) {
 		sig = 0.0f;
 		exp = -99;
 		return;
@@ -122,6 +128,7 @@ void __EXPORT float2SigExp(
 	} else {
 		exp = floor(exp);
 	}
+
 #endif
 
 	sig = num;

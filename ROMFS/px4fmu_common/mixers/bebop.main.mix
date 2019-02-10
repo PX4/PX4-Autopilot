@@ -1,3 +1,12 @@
+#
+# @board px4_fmu-v2 exclude
+# @board px4_fmu-v3 exclude
+# @board px4_fmu-v4 exclude
+# @board px4_fmu-v4pro exclude
+# @board px4_fmu-v5 exclude
+# @board aerofc-v1 exclude
+#
+
 Multirotor mixer for Parrot Bebop
 =================================
 

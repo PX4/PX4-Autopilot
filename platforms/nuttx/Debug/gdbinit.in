@@ -1,0 +1,14 @@
+source ${PX4_SOURCE_DIR}/platforms/nuttx/Debug/PX4
+source ${PX4_SOURCE_DIR}/platforms/nuttx/Debug/NuttX
+source ${PX4_SOURCE_DIR}/platforms/nuttx/Debug/ARMv7M
+
+set mem inaccessible-by-default off
+
+set print pretty
+
+set pagination off
+
+set history save on
+set history size unlimited
+
+set logging on

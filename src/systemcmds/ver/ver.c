@@ -40,145 +40,50 @@
 * @author Vladimir Kulla <ufon@kullaonline.net>
 */
 
+#include <px4_config.h>
+#include <px4_module.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 #include <version/version.h>
-#include <systemlib/err.h>
-#include <systemlib/mcu_version.h>
-#include <systemlib/git_version.h>
 
 /* string constants for version commands */
 static const char sz_ver_hw_str[] 	= "hw";
-static const char sz_ver_hwcmp_str[] = "hwcmp";
+static const char sz_ver_hwcmp_str[]    = "hwcmp";
+static const char sz_ver_hwtypecmp_str[]    = "hwtypecmp";
 static const char sz_ver_git_str[] 	= "git";
-static const char sz_ver_bdate_str[] = "bdate";
+static const char sz_ver_bdate_str[]    = "bdate";
+static const char sz_ver_buri_str[]     = "uri";
 static const char sz_ver_gcc_str[] 	= "gcc";
 static const char sz_ver_all_str[] 	= "all";
 static const char mcu_ver_str[]		= "mcu";
-static const char mcu_uid_str[]		= "uid";
-
-const char *px4_git_version = PX4_GIT_VERSION_STR;
-const uint64_t px4_git_version_binary = PX4_GIT_VERSION_BINARY;
-const char *px4_git_tag = PX4_GIT_TAG_STR;
-
-#if defined(__PX4_NUTTX)
-__EXPORT const char *os_git_tag = "6.27";
-__EXPORT const uint32_t px4_board_version = CONFIG_CDCACM_PRODUCTID;
-#else
-__EXPORT const char *os_git_tag = "";
-__EXPORT const uint32_t px4_board_version = 1;
-#endif
-
-// dev >= 0
-// alpha >= 64
-// beta >= 128
-// release candidate >= 192
-// release == 255
-enum FIRMWARE_TYPE {
-	FIRMWARE_TYPE_DEV = 0,
-	FIRMWARE_TYPE_ALPHA = 64,
-	FIRMWARE_TYPE_BETA = 128,
-	FIRMWARE_TYPE_RC = 192,
-	FIRMWARE_TYPE_RELEASE = 255
-};
-
-/**
- * Convert a version tag string to a number
- */
-uint32_t version_tag_to_number(const char *tag)
-{
-	uint32_t ver = 0;
-	unsigned len = strlen(tag);
-	unsigned mag = 0;
-	int32_t type = -1;
-	bool dotparsed = false;
-	unsigned dashcount = 0;
-
-	for (int i = len - 1; i >= 0; i--) {
-
-		if (tag[i] == '-') {
-			dashcount++;
-		}
-
-		if (tag[i] >= '0' && tag[i] <= '9') {
-			unsigned number = tag[i] - '0';
-
-			ver += (number << mag);
-			mag += 8;
-
-		} else if (tag[i] == '.') {
-			continue;
-
-		} else if (mag > 2 * 8 && dotparsed) {
-			/* this is a full version and we have enough digits */
-			return ver;
-
-		} else if (i > 3 && type == -1) {
-			/* scan and look for signature characters for each type */
-			const char *curr = &tag[i - 1];
-
-			// dev: v1.4.0rc3-7-g7e282f57
-			// rc: v1.4.0rc4
-			// release: v1.4.0
-
-			while (curr > &tag[0]) {
-				if (*curr == 'v') {
-					type = FIRMWARE_TYPE_DEV;
-					break;
-
-				} else if (*curr == 'p') {
-					type = FIRMWARE_TYPE_ALPHA;
-					break;
-
-				} else if (*curr == 't') {
-					type = FIRMWARE_TYPE_BETA;
-					break;
-
-				} else if (*curr == 'r') {
-					type = FIRMWARE_TYPE_RC;
-					break;
-				}
-
-				curr--;
-			}
-
-			/* looks like a release */
-			if (type == -1) {
-				type = FIRMWARE_TYPE_RELEASE;
-			}
-
-		} else if (tag[i] != 'v') {
-			/* reset, because we don't have a full tag but
-			 * are seeing non-numeric characters
-			 */
-			ver = 0;
-			mag = 0;
-		}
-	}
-
-	/* if git describe contains dashes this is not a real tag */
-	if (dashcount > 0) {
-		type = FIRMWARE_TYPE_DEV;
-	}
-
-	/* looks like a release */
-	if (type == -1) {
-		type = FIRMWARE_TYPE_RELEASE;
-	}
-
-	ver = (ver << 8);
-
-	return ver | type;
-}
+static const char px4_guid_str[]         = "px4guid";
 
 static void usage(const char *reason)
 {
 	if (reason != NULL) {
-		printf("%s\n", reason);
+		printf("%s\n\n", reason);
 	}
 
-	printf("usage: ver {hw|hwcmp|git|bdate|gcc|all|mcu|uid}\n\n");
+	PRINT_MODULE_DESCRIPTION("Tool to print various version information");
+
+	PRINT_MODULE_USAGE_NAME("ver", "command");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("hw", "Hardware architecture");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("mcu", "MCU info");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("git", "git version information");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("bdate", "Build date and time");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("gcc", "Compiler info");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("bdate", "Build date and time");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("px4guid", "PX4 GUID");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("uri", "Build URI");
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("all", "Print all versions");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("hwcmp", "Compare hardware version (returns 0 on match)");
+	PRINT_MODULE_USAGE_ARG("<hw> [<hw2>]",
+			       "Hardware to compare against (eg. PX4_FMU_V4). An OR comparison is used if multiple are specified", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("hwtypecmp", "Compare hardware type (returns 0 on match)");
+	PRINT_MODULE_USAGE_ARG("<hwtype> [<hwtype2>]",
+			       "Hardware type to compare against (eg. V2). An OR comparison is used if multiple are specified", false);
 }
 
 __EXPORT int ver_main(int argc, char *argv[]);
@@ -194,41 +99,108 @@ int ver_main(int argc, char *argv[])
 
 			if (!strncmp(argv[1], sz_ver_hwcmp_str, sizeof(sz_ver_hwcmp_str))) {
 				if (argc >= 3 && argv[2] != NULL) {
-					/* compare 3rd parameter with HW_ARCH string, in case of match, return 0 */
-					ret = strncmp(HW_ARCH, argv[2], strlen(HW_ARCH));
+					const char *board_name = px4_board_name();
 
-					if (ret == 0) {
-						PX4_INFO("match: %s", HW_ARCH);
+					for (int i = 2; i < argc; ++i) {
+						if (strcmp(board_name, argv[i]) == 0) {
+							return 0; // if one of the arguments match, return success
+						}
 					}
 
-					return ret;
+				} else {
+					PX4_ERR("Not enough arguments, try 'ver hwcmp PX4_FMU_V2'");
+				}
+
+				return 1;
+			}
+
+			if (!strncmp(argv[1], sz_ver_hwtypecmp_str, sizeof(sz_ver_hwtypecmp_str))) {
+				if (argc >= 3 && argv[2] != NULL) {
+					const char *board_type = px4_board_sub_type();
+
+					for (int i = 2; i < argc; ++i) {
+						if (strcmp(board_type, argv[i]) == 0) {
+							return 0; // if one of the arguments match, return success
+						}
+					}
 
 				} else {
-					warn("Not enough arguments, try 'ver hwcmp PX4FMU_V2'");
-					return 1;
+					PX4_ERR("Not enough arguments, try 'ver hwtypecmp {V2|V2M|V30|V31}'");
 				}
+
+				return 1;
 			}
 
 			/* check if we want to show all */
 			bool show_all = !strncmp(argv[1], sz_ver_all_str, sizeof(sz_ver_all_str));
 
 			if (show_all || !strncmp(argv[1], sz_ver_hw_str, sizeof(sz_ver_hw_str))) {
-				printf("HW arch: %s\n", HW_ARCH);
+				printf("HW arch: %s\n", px4_board_name());
+#if defined(BOARD_HAS_VERSIONING)
+				char vb[14] = "NA";
+				char rb[14] = "NA";
+				int  v = px4_board_hw_version();
+				int  r = px4_board_hw_revision();
+
+				if (v >= 0) {
+					snprintf(vb, sizeof(vb), "0x%08X", v);
+				}
+
+				if (r >= 0) {
+					snprintf(rb, sizeof(rb), "0x%08X", r);
+				}
+
+				printf("HW type: %s\n", strlen(px4_board_sub_type()) ? px4_board_sub_type() : "NA");
+				printf("HW version: %s\n", vb);
+				printf("HW revision: %s\n", rb);
+#endif
 				ret = 0;
 
 			}
 
 			if (show_all || !strncmp(argv[1], sz_ver_git_str, sizeof(sz_ver_git_str))) {
-				printf("FW git-hash: %s\n", px4_git_version);
-				unsigned fwver = version_tag_to_number(px4_git_tag);
+				printf("FW git-hash: %s\n", px4_firmware_version_string());
+				unsigned fwver = px4_firmware_version();
 				unsigned major = (fwver >> (8 * 3)) & 0xFF;
 				unsigned minor = (fwver >> (8 * 2)) & 0xFF;
 				unsigned patch = (fwver >> (8 * 1)) & 0xFF;
 				unsigned type = (fwver >> (8 * 0)) & 0xFF;
-				printf("FW version: %s (%u.%u.%u %u), %u\n", px4_git_tag, major, minor, patch,
-				       type, fwver);
-				/* middleware is currently the same thing as firmware, so not printing yet */
-				printf("OS version: %s (%u)\n", os_git_tag, version_tag_to_number(os_git_tag));
+
+				if (type == 255) {
+					printf("FW version: Release %u.%u.%u (%u)\n", major, minor, patch, fwver);
+
+				} else {
+					printf("FW version: %u.%u.%u %x (%u)\n", major, minor, patch, type, fwver);
+				}
+
+				if (show_all) {
+					const char *git_branch = px4_firmware_git_branch();
+
+					if (git_branch && git_branch[0]) {
+						printf("FW git-branch: %s\n", git_branch);
+					}
+				}
+
+				fwver = px4_os_version();
+				major = (fwver >> (8 * 3)) & 0xFF;
+				minor = (fwver >> (8 * 2)) & 0xFF;
+				patch = (fwver >> (8 * 1)) & 0xFF;
+				type = (fwver >> (8 * 0)) & 0xFF;
+				printf("OS: %s\n", px4_os_name());
+
+				if (type == 255) {
+					printf("OS version: Release %u.%u.%u (%u)\n", major, minor, patch, fwver);
+
+				} else {
+					printf("OS version: %u.%u.%u %u (%u)\n", major, minor, patch, type, fwver);
+				}
+
+				const char *os_git_hash = px4_os_version_string();
+
+				if (os_git_hash) {
+					printf("OS git-hash: %s\n", os_git_hash);
+				}
+
 				ret = 0;
 
 			}
@@ -239,18 +211,34 @@ int ver_main(int argc, char *argv[])
 
 			}
 
-			if (show_all || !strncmp(argv[1], sz_ver_gcc_str, sizeof(sz_ver_gcc_str))) {
-				printf("Toolchain: %s\n", __VERSION__);
+			if (show_all || !strncmp(argv[1], sz_ver_buri_str, sizeof(sz_ver_buri_str))) {
+				printf("Build uri: %s\n", px4_build_uri());
 				ret = 0;
 
 			}
 
+
+			if (show_all || !strncmp(argv[1], sz_ver_gcc_str, sizeof(sz_ver_gcc_str))) {
+				printf("Toolchain: %s, %s\n", px4_toolchain_name(), px4_toolchain_version());
+				ret = 0;
+
+			}
+
+			if (show_all || !strncmp(argv[1], px4_guid_str, sizeof(px4_guid_str))) {
+				char px4guid_fmt_buffer[PX4_GUID_FORMAT_SIZE];
+
+				board_get_px4_guid_formated(px4guid_fmt_buffer, sizeof(px4guid_fmt_buffer));
+				printf("PX4GUID: %s\n", px4guid_fmt_buffer);
+				ret = 0;
+			}
+
 			if (show_all || !strncmp(argv[1], mcu_ver_str, sizeof(mcu_ver_str))) {
 
-				char rev;
-				char *revstr;
+				char rev = ' ';
+				const char *revstr = NULL;
+				const char *errata = NULL;
 
-				int chip_version = mcu_version(&rev, &revstr);
+				int chip_version = board_mcu_version(&rev, &revstr, &errata);
 
 				if (chip_version < 0) {
 					printf("UNKNOWN MCU\n");
@@ -258,35 +246,24 @@ int ver_main(int argc, char *argv[])
 				} else {
 					printf("MCU: %s, rev. %c\n", revstr, rev);
 
-					if (chip_version < MCU_REV_STM32F4_REV_3) {
+					if (errata != NULL) {
 						printf("\nWARNING   WARNING   WARNING!\n"
-						       "Revision %c has a silicon errata\n"
-						       "This device can only utilize a maximum of 1MB flash safely!\n"
-						       "https://pixhawk.org/help/errata\n\n", rev);
+						       "Revision %c has a silicon errata:\n"
+						       "%s"
+						       "\nhttps://docs.px4.io/en/flight_controller/silicon_errata.html\n\n", rev, errata);
 					}
 				}
 
 				ret = 0;
 			}
 
-			if (show_all || !strncmp(argv[1], mcu_uid_str, sizeof(mcu_uid_str))) {
-				uint32_t uid[3];
-
-				mcu_unique_id(uid);
-
-				printf("UID: %X:%X:%X \n", uid[0], uid[1], uid[2]);
-
-				ret = 0;
-			}
-
-
 			if (ret == 1) {
-				warn("unknown command.\n");
+				PX4_ERR("unknown command");
 				return 1;
 			}
 
 		} else {
-			usage("Error, input parameter NULL.\n");
+			usage("Error, input parameter NULL.");
 		}
 
 	} else {

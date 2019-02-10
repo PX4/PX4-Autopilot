@@ -37,8 +37,8 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		fmu.cpp
-		px4fmu_params.c
 	DEPENDS
-		platforms__common
+		circuit_breaker
+		mixer
+		pwm_limit
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

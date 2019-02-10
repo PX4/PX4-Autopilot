@@ -55,12 +55,12 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/led_control.h>
+#include <uORB/topics/tune_control.h>
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
-#include <drivers/drv_led.h>
-#include <drivers/drv_rgbled.h>
 
 #include "commander_helper.h"
 #include "DevMgr.hpp"
@@ -81,7 +81,7 @@ using namespace DriverFramework;
 #define VEHICLE_TYPE_VTOL_RESERVED4 24
 #define VEHICLE_TYPE_VTOL_RESERVED5 25
 
-#define BLINK_MSG_TIME	700000	// 3 fast blinks
+#define BLINK_MSG_TIME	700000	// 3 fast blinks (in us)
 
 bool is_multirotor(const struct vehicle_status_s *current_status)
 {
@@ -94,10 +94,11 @@ bool is_multirotor(const struct vehicle_status_s *current_status)
 bool is_rotary_wing(const struct vehicle_status_s *current_status)
 {
 	return is_multirotor(current_status) || (current_status->system_type == VEHICLE_TYPE_HELICOPTER)
-		   || (current_status->system_type == VEHICLE_TYPE_COAXIAL);
+	       || (current_status->system_type == VEHICLE_TYPE_COAXIAL);
 }
 
-bool is_vtol(const struct vehicle_status_s * current_status) {
+bool is_vtol(const struct vehicle_status_s *current_status)
+{
 	return (current_status->system_type == VEHICLE_TYPE_VTOL_DUOROTOR ||
 		current_status->system_type == VEHICLE_TYPE_VTOL_QUADROTOR ||
 		current_status->system_type == VEHICLE_TYPE_VTOL_TILTROTOR ||
@@ -113,8 +114,11 @@ static int tune_current = TONE_STOP_TUNE;		// currently playing tune, can be int
 static unsigned int tune_durations[TONE_NUMBER_OF_TUNES];
 
 static DevHandle h_leds;
-static DevHandle h_rgbleds;
 static DevHandle h_buzzer;
+static led_control_s led_control = {};
+static orb_advert_t led_control_pub = nullptr;
+static tune_control_s tune_control = {};
+static orb_advert_t tune_control_pub = nullptr;
 
 int buzzer_init()
 {
@@ -125,25 +129,26 @@ int buzzer_init()
 	tune_durations[TONE_NOTIFY_NEGATIVE_TUNE] = 900000;
 	tune_durations[TONE_NOTIFY_NEUTRAL_TUNE] = 500000;
 	tune_durations[TONE_ARMING_WARNING_TUNE] = 3000000;
-
-	DevMgr::getHandle(TONEALARM0_DEVICE_PATH, h_buzzer);
-
-	if (!h_buzzer.isValid()) {
-		PX4_WARN("Buzzer: px4_open fail\n");
-		return PX4_ERROR;
-	}
-
+	tune_durations[TONE_HOME_SET] = 800000;
+	tune_durations[TONE_BATTERY_WARNING_FAST_TUNE] = 800000;
+	tune_durations[TONE_BATTERY_WARNING_SLOW_TUNE] = 800000;
+	tune_durations[TONE_SINGLE_BEEP_TUNE] = 300000;
+	tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
 	return PX4_OK;
 }
 
 void buzzer_deinit()
 {
-	DevMgr::releaseHandle(h_buzzer);
+	orb_unadvertise(tune_control_pub);
 }
 
 void set_tune_override(int tune)
 {
-	h_buzzer.ioctl(TONE_SET_ALARM, tune);
+	tune_control.tune_id = tune;
+	tune_control.strength = tune_control_s::STRENGTH_NORMAL;
+	tune_control.tune_override = 1;
+	tune_control.timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
 }
 
 void set_tune(int tune)
@@ -154,7 +159,11 @@ void set_tune(int tune)
 	if (tune_end == 0 || new_tune_duration != 0 || hrt_absolute_time() > tune_end) {
 		/* allow interrupting current non-repeating tune by the same tune */
 		if (tune != tune_current || new_tune_duration != 0) {
-			h_buzzer.ioctl(TONE_SET_ALARM, tune);
+			tune_control.tune_id = tune;
+			tune_control.strength = tune_control_s::STRENGTH_NORMAL;
+			tune_control.tune_override = 0;
+			tune_control.timestamp = hrt_absolute_time();
+			orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
 		}
 
 		tune_current = tune;
@@ -171,8 +180,7 @@ void set_tune(int tune)
 void tune_home_set(bool use_buzzer)
 {
 	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color(RGBLED_COLOR_GREEN);
-	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
+	rgbled_set_color_and_mode(led_control_s::COLOR_GREEN, led_control_s::MODE_BLINK_FAST);
 
 	if (use_buzzer) {
 		set_tune(TONE_HOME_SET);
@@ -182,8 +190,7 @@ void tune_home_set(bool use_buzzer)
 void tune_mission_ok(bool use_buzzer)
 {
 	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color(RGBLED_COLOR_GREEN);
-	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
+	rgbled_set_color_and_mode(led_control_s::COLOR_GREEN, led_control_s::MODE_BLINK_FAST);
 
 	if (use_buzzer) {
 		set_tune(TONE_NOTIFY_NEUTRAL_TUNE);
@@ -193,8 +200,7 @@ void tune_mission_ok(bool use_buzzer)
 void tune_mission_fail(bool use_buzzer)
 {
 	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color(RGBLED_COLOR_GREEN);
-	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
+	rgbled_set_color_and_mode(led_control_s::COLOR_GREEN, led_control_s::MODE_BLINK_FAST);
 
 	if (use_buzzer) {
 		set_tune(TONE_NOTIFY_NEGATIVE_TUNE);
@@ -207,8 +213,7 @@ void tune_mission_fail(bool use_buzzer)
 void tune_positive(bool use_buzzer)
 {
 	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color(RGBLED_COLOR_GREEN);
-	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
+	rgbled_set_color_and_mode(led_control_s::COLOR_GREEN, led_control_s::MODE_BLINK_FAST);
 
 	if (use_buzzer) {
 		set_tune(TONE_NOTIFY_POSITIVE_TUNE);
@@ -221,8 +226,7 @@ void tune_positive(bool use_buzzer)
 void tune_neutral(bool use_buzzer)
 {
 	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color(RGBLED_COLOR_WHITE);
-	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
+	rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_BLINK_FAST);
 
 	if (use_buzzer) {
 		set_tune(TONE_NOTIFY_NEUTRAL_TUNE);
@@ -235,11 +239,20 @@ void tune_neutral(bool use_buzzer)
 void tune_negative(bool use_buzzer)
 {
 	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
-	rgbled_set_color(RGBLED_COLOR_RED);
-	rgbled_set_mode(RGBLED_MODE_BLINK_FAST);
+	rgbled_set_color_and_mode(led_control_s::COLOR_RED, led_control_s::MODE_BLINK_FAST);
 
 	if (use_buzzer) {
 		set_tune(TONE_NOTIFY_NEGATIVE_TUNE);
+	}
+}
+
+void tune_failsafe(bool use_buzzer)
+{
+	blink_msg_end = hrt_absolute_time() + BLINK_MSG_TIME;
+	rgbled_set_color_and_mode(led_control_s::COLOR_PURPLE, led_control_s::MODE_BLINK_FAST);
+
+	if (use_buzzer) {
+		set_tune(TONE_BATTERY_WARNING_FAST_TUNE);
 	}
 }
 
@@ -261,7 +274,12 @@ int led_init()
 {
 	blink_msg_end = 0;
 
-#ifndef CONFIG_ARCH_BOARD_RPI
+	led_control.led_mask = 0xff;
+	led_control.mode = led_control_s::MODE_OFF;
+	led_control.priority = 0;
+	led_control.timestamp = hrt_absolute_time();
+	led_control_pub = orb_advertise_queue(ORB_ID(led_control), &led_control, LED_UORB_QUEUE_LENGTH);
+
 	/* first open normal LEDs */
 	DevMgr::getHandle(LED0_DEVICE_PATH, h_leds);
 
@@ -270,7 +288,10 @@ int led_init()
 		return PX4_ERROR;
 	}
 
-	/* the blue LED is only available on FMUv1 & AeroCore but not FMUv2 */
+	/* the green LED is only available on FMUv5 */
+	(void)h_leds.ioctl(LED_ON, LED_GREEN);
+
+	/* the blue LED is only available on AeroCore but not FMUv2 */
 	(void)h_leds.ioctl(LED_ON, LED_BLUE);
 
 	/* switch blue off */
@@ -284,25 +305,14 @@ int led_init()
 
 	/* switch amber off */
 	led_off(LED_AMBER);
-#endif
-
-	/* then try RGB LEDs, this can fail on FMUv1*/
-	DevHandle h;
-	DevMgr::getHandle(RGBLED0_DEVICE_PATH, h_rgbleds);
-
-	if (!h_rgbleds.isValid()) {
-		PX4_WARN("No RGB LED found at " RGBLED0_DEVICE_PATH);
-	}
 
 	return 0;
 }
 
 void led_deinit()
 {
-#ifndef CONFIG_ARCH_BOARD_RPI
+	orb_unadvertise(led_control_pub);
 	DevMgr::releaseHandle(h_leds);
-#endif
-	DevMgr::releaseHandle(h_rgbleds);
 }
 
 int led_toggle(int led)
@@ -320,20 +330,17 @@ int led_off(int led)
 	return h_leds.ioctl(LED_OFF, led);
 }
 
-void rgbled_set_color(rgbled_color_t color)
+void rgbled_set_color_and_mode(uint8_t color, uint8_t mode, uint8_t blinks, uint8_t prio)
 {
-
-	h_rgbleds.ioctl(RGBLED_SET_COLOR, (unsigned long)color);
+	led_control.mode = mode;
+	led_control.color = color;
+	led_control.num_blinks = blinks;
+	led_control.priority = prio;
+	led_control.timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(led_control), led_control_pub, &led_control);
 }
 
-void rgbled_set_mode(rgbled_mode_t mode)
+void rgbled_set_color_and_mode(uint8_t color, uint8_t mode)
 {
-
-	h_rgbleds.ioctl(RGBLED_SET_MODE, (unsigned long)mode);
-}
-
-void rgbled_set_pattern(rgbled_pattern_t *pattern)
-{
-
-	h_rgbleds.ioctl(RGBLED_SET_PATTERN, (unsigned long)pattern);
+	rgbled_set_color_and_mode(color, mode, 0, 0);
 }

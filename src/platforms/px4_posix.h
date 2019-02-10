@@ -40,6 +40,7 @@
 #pragma once
 
 #include <px4_defines.h>
+#include <px4_tasks.h>
 #include <stdint.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -54,11 +55,10 @@
 
 #include "px4_sem.h"
 
-
-#ifdef __PX4_NUTTX
-
 #define  PX4_F_RDONLY 1
 #define  PX4_F_WRONLY 2
+
+#ifdef __PX4_NUTTX
 
 typedef struct pollfd px4_pollfd_struct_t;
 
@@ -81,10 +81,9 @@ typedef struct pollfd px4_pollfd_struct_t;
 
 #elif defined(__PX4_POSIX)
 
-#define  PX4_F_RDONLY O_RDONLY
-#define  PX4_F_WRONLY O_WRONLY
-#define  PX4_F_CREAT  O_CREAT
 #define	 PX4_STACK_OVERHEAD	8192
+
+__BEGIN_DECLS
 
 typedef short pollevent_t;
 
@@ -99,8 +98,6 @@ typedef struct {
 	void   *priv;     	/* For use by drivers */
 } px4_pollfd_struct_t;
 
-__BEGIN_DECLS
-
 __EXPORT int 		px4_open(const char *path, int flags, ...);
 __EXPORT int 		px4_close(int fd);
 __EXPORT ssize_t	px4_read(int fd, void *buffer, size_t buflen);
@@ -110,11 +107,6 @@ __EXPORT int		px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout);
 __EXPORT int		px4_fsync(int fd);
 __EXPORT int		px4_access(const char *pathname, int mode);
 __EXPORT px4_task_t	px4_getpid(void);
-
-__EXPORT void		px4_enable_sim_lockstep(void);
-__EXPORT void		px4_sim_start_delay(void);
-__EXPORT void		px4_sim_stop_delay(void);
-__EXPORT bool		px4_sim_delay_enabled(void);
 
 __END_DECLS
 #else
@@ -144,7 +136,7 @@ __EXPORT const char 	*px4_get_topic_names(unsigned int *handle);
  */
 __EXPORT uint64_t	hrt_system_time(void);
 
-__EXPORT bool		px4_exit_requested(void);
+
 #endif
 
 __END_DECLS

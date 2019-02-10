@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,9 @@
 
 /**
  * @file test_uart_loopback.c
- * Tests the uart outputs
+ * Tests the uart outputs.
  *
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include <px4_config.h>
@@ -67,16 +68,21 @@ int test_uart_loopback(int argc, char *argv[])
 	int stdout_fd = 1;
 
 	int uart2 = open("/dev/ttyS1", O_RDWR | O_NONBLOCK | O_NOCTTY);
-	int uart5 = open("/dev/ttyS2", O_RDWR | O_NONBLOCK | O_NOCTTY);
 
 	if (uart2 < 0) {
 		printf("ERROR opening UART2, aborting..\n");
 		return uart2;
 	}
 
+	int uart5 = open("/dev/ttyS2", O_RDWR | O_NONBLOCK | O_NOCTTY);
+
 	if (uart5 < 0) {
+		if (uart2 >= 0) {
+			close(uart2);
+		}
+
 		printf("ERROR opening UART5, aborting..\n");
-		exit(uart5);
+		return 1;
 	}
 
 	uint8_t sample_stdout_fd[] = {'C', 'O', 'U', 'N', 'T', ' ', '#', '\n'};

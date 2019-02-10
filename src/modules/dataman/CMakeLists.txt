@@ -36,8 +36,5 @@ px4_add_module(
 	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
-		dataman.c
-	DEPENDS
-		platforms__common
+		dataman.cpp
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

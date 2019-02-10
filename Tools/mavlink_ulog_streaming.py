@@ -17,8 +17,9 @@ try:
     from pymavlink import mavutil
 except:
     print("Failed to import pymavlink.")
-    print("You may need to install it with 'pip install pymavlink'")
-    exit(-1)
+    print("You may need to install it with 'pip install pymavlink pyserial'")
+    print("")
+    raise
 from argparse import ArgumentParser
 
 
@@ -68,7 +69,18 @@ class MavlinkLogStreaming():
         ''' main loop reading messages '''
         measure_time_start = timer()
         measured_data = 0
+
+        next_heartbeat_time = timer()
         while True:
+
+            # handle heartbeat sending
+            heartbeat_time = timer()
+            if heartbeat_time > next_heartbeat_time:
+                self.debug('sending heartbeat')
+                self.mav.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS,
+                        mavutil.mavlink.MAV_AUTOPILOT_GENERIC, 0, 0, 0)
+                next_heartbeat_time = heartbeat_time + 1
+
             m, first_msg_start, num_drops = self.read_message()
             if m is not None:
                 self.process_streamed_ulog_data(m, first_msg_start, num_drops)
@@ -111,14 +123,17 @@ class MavlinkLogStreaming():
             # m is either 'LOGGING_DATA_ACKED' or 'LOGGING_DATA':
             is_newer, num_drops = self.check_sequence(m.sequence)
 
+            # return an ack, even we already sent it for the same sequence,
+            # because the ack could have been dropped
+            if m.get_type() == 'LOGGING_DATA_ACKED':
+                self.mav.mav.logging_ack_send(self.mav.target_system,
+                        self.target_component, m.sequence)
+
             if is_newer:
                 if num_drops > 0:
                     self.num_dropouts += num_drops
 
-                if m.get_type() == 'LOGGING_DATA_ACKED':
-                    self.mav.mav.logging_ack_send(self.mav.target_system,
-                            self.target_component, m.sequence)
-                else:
+                if m.get_type() == 'LOGGING_DATA':
                     if not self.got_header_section:
                         print('Header received in {:0.2f}s'.format(timer()-self.start_time))
                         self.logging_started = True

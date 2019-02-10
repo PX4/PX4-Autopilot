@@ -51,7 +51,7 @@
 #include <px4_getopt.h>
 #include <errno.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 
 #include <drivers/drv_mag.h>
@@ -72,11 +72,11 @@ extern "C" { __EXPORT int df_hmc5883_wrapper_main(int argc, char *argv[]); }
 using namespace DriverFramework;
 
 
-class DfHmc9250Wrapper : public HMC5883
+class DfHmc5883Wrapper : public HMC5883
 {
 public:
-	DfHmc9250Wrapper(enum Rotation rotation);
-	~DfHmc9250Wrapper();
+	DfHmc5883Wrapper(enum Rotation rotation, const char *path);
+	~DfHmc5883Wrapper();
 
 
 	/**
@@ -111,7 +111,7 @@ private:
 		float z_scale;
 	} _mag_calibration;
 
-	math::Matrix<3, 3>      _rotation_matrix;
+	matrix::Dcmf      _rotation_matrix;
 
 	int			_mag_orb_class_instance;
 
@@ -119,8 +119,8 @@ private:
 
 };
 
-DfHmc9250Wrapper::DfHmc9250Wrapper(enum Rotation rotation) :
-	HMC5883(MAG_DEVICE_PATH),
+DfHmc5883Wrapper::DfHmc5883Wrapper(enum Rotation rotation, const char *path) :
+	HMC5883(path),
 	_mag_topic(nullptr),
 	_param_update_sub(-1),
 	_mag_calibration{},
@@ -136,15 +136,15 @@ DfHmc9250Wrapper::DfHmc9250Wrapper(enum Rotation rotation) :
 	_mag_calibration.z_offset = 0.0f;
 
 	// Get sensor rotation matrix
-	get_rot_matrix(rotation, &_rotation_matrix);
+	_rotation_matrix = get_rot_matrix(rotation);
 }
 
-DfHmc9250Wrapper::~DfHmc9250Wrapper()
+DfHmc5883Wrapper::~DfHmc5883Wrapper()
 {
 	perf_free(_mag_sample_perf);
 }
 
-int DfHmc9250Wrapper::start()
+int DfHmc5883Wrapper::start()
 {
 	/* Subscribe to param update topic. */
 	if (_param_update_sub < 0) {
@@ -172,7 +172,7 @@ int DfHmc9250Wrapper::start()
 	return 0;
 }
 
-int DfHmc9250Wrapper::stop()
+int DfHmc5883Wrapper::stop()
 {
 	/* Stop sensor. */
 	int ret = HMC5883::stop();
@@ -185,7 +185,7 @@ int DfHmc9250Wrapper::stop()
 	return 0;
 }
 
-void DfHmc9250Wrapper::_update_mag_calibration()
+void DfHmc5883Wrapper::_update_mag_calibration()
 {
 	// TODO: replace magic number
 	for (unsigned i = 0; i < 3; ++i) {
@@ -251,7 +251,7 @@ void DfHmc9250Wrapper::_update_mag_calibration()
 }
 
 
-int DfHmc9250Wrapper::_publish(struct mag_sensor_data &data)
+int DfHmc5883Wrapper::_publish(struct mag_sensor_data &data)
 {
 	/* Check if calibration values are still up-to-date. */
 	bool updated;
@@ -269,6 +269,7 @@ int DfHmc9250Wrapper::_publish(struct mag_sensor_data &data)
 
 	mag_report mag_report = {};
 	mag_report.timestamp = hrt_absolute_time();
+	mag_report.is_external = true;
 
 	/* The standard external mag by 3DR has x pointing to the
 	 * right, y pointing backwards, and z down, therefore switch x
@@ -282,9 +283,9 @@ int DfHmc9250Wrapper::_publish(struct mag_sensor_data &data)
 	mag_report.y_raw = 0;
 	mag_report.z_raw = 0;
 
-	math::Vector<3> mag_val(data.field_x_ga,
-				data.field_y_ga,
-				data.field_z_ga);
+	matrix::Vector3f mag_val(data.field_x_ga,
+				 data.field_y_ga,
+				 data.field_z_ga);
 
 	// apply sensor rotation on the accel measurement
 	mag_val = _rotation_matrix * mag_val;
@@ -296,7 +297,6 @@ int DfHmc9250Wrapper::_publish(struct mag_sensor_data &data)
 
 	// TODO: get these right
 	//mag_report.scaling = -1.0f;
-	//mag_report.range_m_s2 = -1.0f;
 
 	mag_report.device_id = m_id.dev_id;
 
@@ -315,9 +315,6 @@ int DfHmc9250Wrapper::_publish(struct mag_sensor_data &data)
 
 	perf_end(_mag_sample_perf);
 
-	/* Notify anyone waiting for data. */
-	DevMgr::updateNotify(*this);
-
 	return 0;
 };
 
@@ -325,36 +322,36 @@ int DfHmc9250Wrapper::_publish(struct mag_sensor_data &data)
 namespace df_hmc5883_wrapper
 {
 
-DfHmc9250Wrapper *g_dev = nullptr;
+DfHmc5883Wrapper *g_dev = nullptr;
 
-int start(enum Rotation rotation);
+int start(enum Rotation rotation, const char *path);
 int stop();
 int info();
 void usage();
 
-int start(enum Rotation rotation)
+int start(enum Rotation rotation, const char *path)
 {
-	g_dev = new DfHmc9250Wrapper(rotation);
+	g_dev = new DfHmc5883Wrapper(rotation, path);
 
 	if (g_dev == nullptr) {
-		PX4_ERR("failed instantiating DfHmc9250Wrapper object");
+		PX4_ERR("failed instantiating DfHmc5883Wrapper object");
 		return -1;
 	}
 
 	int ret = g_dev->start();
 
 	if (ret != 0) {
-		PX4_ERR("DfHmc9250Wrapper start failed");
+		PX4_ERR("DfHmc5883Wrapper start failed");
 		return ret;
 	}
 
 	// Open the MAG sensor
 	DevHandle h;
-	DevMgr::getHandle(MAG_DEVICE_PATH, h);
+	DevMgr::getHandle(path, h);
 
 	if (!h.isValid()) {
 		DF_LOG_INFO("Error: unable to obtain a valid handle for the receiver at: %s (%d)",
-			    MAG_DEVICE_PATH, h.getError());
+			    path, h.getError());
 		return -1;
 	}
 
@@ -417,12 +414,17 @@ df_hmc5883_wrapper_main(int argc, char *argv[])
 	int ret = 0;
 	int myoptind = 1;
 	const char *myoptarg = NULL;
+	const char *device_path = MAG_DEVICE_PATH;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "R:D:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
 			rotation = (enum Rotation)atoi(myoptarg);
+			break;
+
+		case 'D':
+			device_path = myoptarg;
 			break;
 
 		default:
@@ -440,7 +442,7 @@ df_hmc5883_wrapper_main(int argc, char *argv[])
 
 
 	if (!strcmp(verb, "start")) {
-		ret = df_hmc5883_wrapper::start(rotation);
+		ret = df_hmc5883_wrapper::start(rotation, device_path);
 	}
 
 	else if (!strcmp(verb, "stop")) {
