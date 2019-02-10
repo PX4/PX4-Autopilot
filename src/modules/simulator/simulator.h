@@ -54,6 +54,8 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/tune_control.h>
+#include <lib/tunes/tunes.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_baro.h>
@@ -374,6 +376,7 @@ private:
 	int _vehicle_attitude_sub;
 	int _manual_sub;
 	int _vehicle_status_sub;
+	int _tune_control_sub;
 
 	// hil map_ref data
 	struct map_projection_reference_s _hil_local_proj_ref;
@@ -389,6 +392,9 @@ private:
 	struct vehicle_attitude_s _attitude;
 	struct manual_control_setpoint_s _manual;
 	struct vehicle_status_s _vehicle_status;
+	struct tune_control_s _tune_control;
+
+	Tunes _tunes;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _battery_drain_interval_s, ///< battery drain interval
