@@ -240,12 +240,6 @@ public:
 
 private:
 	Simulator() : ModuleParams(nullptr),
-		_accel(1),
-		_mpu(1),
-		_baro(1),
-		_mag(1),
-		_gps(1),
-		_airspeed(1),
 		_perf_accel(perf_alloc_once(PC_ELAPSED, "sim_accel_delay")),
 		_perf_mpu(perf_alloc_once(PC_ELAPSED, "sim_mpu_delay")),
 		_perf_baro(perf_alloc_once(PC_ELAPSED, "sim_baro_delay")),
@@ -253,42 +247,9 @@ private:
 		_perf_gps(perf_alloc_once(PC_ELAPSED, "sim_gps_delay")),
 		_perf_airspeed(perf_alloc_once(PC_ELAPSED, "sim_airspeed_delay")),
 		_perf_sim_delay(perf_alloc_once(PC_ELAPSED, "sim_network_delay")),
-		_perf_sim_interval(perf_alloc(PC_INTERVAL, "sim_network_interval")),
-		_accel_pub(nullptr),
-		_baro_pub(nullptr),
-		_gyro_pub(nullptr),
-		_mag_pub(nullptr),
-		_flow_pub(nullptr),
-		_visual_odometry_pub(nullptr),
-		_dist_pub(nullptr),
-		_battery_pub(nullptr),
-		_param_sub(-1),
-		_initialized(false),
-		_realtime_factor(1.0),
-#ifndef __PX4_QURT
-		_rc_channels_pub(nullptr),
-		_attitude_pub(nullptr),
-		_gpos_pub(nullptr),
-		_lpos_pub(nullptr),
-		_actuator_outputs_sub{},
-		_vehicle_attitude_sub(-1),
-		_manual_sub(-1),
-		_vehicle_status_sub(-1),
-		_hil_local_proj_ref(),
-		_hil_local_proj_inited(false),
-		_hil_ref_lat(0),
-		_hil_ref_lon(0),
-		_hil_ref_alt(0),
-		_hil_ref_timestamp(0),
-		_rc_input{},
-		_actuators{},
-		_attitude{},
-		_manual{},
-		_vehicle_status{}
-#endif
+		_perf_sim_interval(perf_alloc(PC_INTERVAL, "sim_network_interval"))
 	{
-		for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++)
-		{
+		for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++) {
 			_actuator_outputs_sub[i] = -1;
 		}
 
@@ -301,6 +262,7 @@ private:
 
 		_battery_status.timestamp = hrt_absolute_time();
 	}
+
 	~Simulator()
 	{
 		if (_instance != nullptr) {
@@ -315,12 +277,12 @@ private:
 	static Simulator *_instance;
 
 	// simulated sensor instances
-	simulator::Report<simulator::RawAccelData>	_accel;
-	simulator::Report<simulator::RawMPUData>	_mpu;
-	simulator::Report<simulator::RawBaroData>	_baro;
-	simulator::Report<simulator::RawMagData>	_mag;
-	simulator::Report<simulator::RawGPSData>	_gps;
-	simulator::Report<simulator::RawAirspeedData> _airspeed;
+	simulator::Report<simulator::RawAccelData>	_accel{1};
+	simulator::Report<simulator::RawMPUData>	_mpu{1};
+	simulator::Report<simulator::RawBaroData>	_baro{1};
+	simulator::Report<simulator::RawMagData>	_mag{1};
+	simulator::Report<simulator::RawGPSData>	_gps{1};
+	simulator::Report<simulator::RawAirspeedData>	_airspeed{1};
 
 	perf_counter_t _perf_accel;
 	perf_counter_t _perf_mpu;
@@ -332,25 +294,25 @@ private:
 	perf_counter_t _perf_sim_interval;
 
 	// uORB publisher handlers
-	orb_advert_t _accel_pub;
-	orb_advert_t _baro_pub;
-	orb_advert_t _gyro_pub;
-	orb_advert_t _mag_pub;
-	orb_advert_t _flow_pub;
-	orb_advert_t _visual_odometry_pub;
-	orb_advert_t _dist_pub;
-	orb_advert_t _battery_pub;
-	orb_advert_t _irlock_report_pub;
+	orb_advert_t _accel_pub{nullptr};
+	orb_advert_t _baro_pub{nullptr};
+	orb_advert_t _gyro_pub{nullptr};
+	orb_advert_t _mag_pub{nullptr};
+	orb_advert_t _flow_pub{nullptr};
+	orb_advert_t _visual_odometry_pub{nullptr};
+	orb_advert_t _dist_pub{nullptr};
+	orb_advert_t _battery_pub{nullptr};
+	orb_advert_t _irlock_report_pub{nullptr};
 
-	int				_param_sub;
+	int				_param_sub{-1};
 
 	unsigned _port = 14560;
 	InternetProtocol _ip = InternetProtocol::UDP;
 
-	bool _initialized;
-	double _realtime_factor;		///< How fast the simulation runs in comparison to real system time
-	hrt_abstime _last_sim_timestamp;
-	hrt_abstime _last_sitl_timestamp;
+	bool _initialized{false};
+	double _realtime_factor{1.0};		///< How fast the simulation runs in comparison to real system time
+	hrt_abstime _last_sim_timestamp{0};
+	hrt_abstime _last_sitl_timestamp{0};
 
 	// Lib used to do the battery calculations.
 	Battery _battery;
@@ -364,31 +326,31 @@ private:
 
 #ifndef __PX4_QURT
 	// uORB publisher handlers
-	orb_advert_t _rc_channels_pub;
-	orb_advert_t _attitude_pub;
-	orb_advert_t _gpos_pub;
-	orb_advert_t _lpos_pub;
+	orb_advert_t _rc_channels_pub{nullptr};
+	orb_advert_t _attitude_pub{nullptr};
+	orb_advert_t _gpos_pub{nullptr};
+	orb_advert_t _lpos_pub{nullptr};
 
 	// uORB subscription handlers
-	int _actuator_outputs_sub[ORB_MULTI_MAX_INSTANCES];
-	int _vehicle_attitude_sub;
-	int _manual_sub;
-	int _vehicle_status_sub;
+	int _actuator_outputs_sub[ORB_MULTI_MAX_INSTANCES] {-1, -1, -1, -1};
+	int _vehicle_attitude_sub{-1};
+	int _manual_sub{-1};
+	int _vehicle_status_sub{-1};
 
 	// hil map_ref data
-	struct map_projection_reference_s _hil_local_proj_ref;
-	bool _hil_local_proj_inited;
-	double _hil_ref_lat;
-	double _hil_ref_lon;
-	float _hil_ref_alt;
-	uint64_t _hil_ref_timestamp;
+	struct map_projection_reference_s _hil_local_proj_ref {};
+	bool _hil_local_proj_inited{false};
+	double _hil_ref_lat{0};
+	double _hil_ref_lon{0};
+	float _hil_ref_alt{0.0f};
+	uint64_t _hil_ref_timestamp{0};
 
 	// uORB data containers
-	struct input_rc_s _rc_input;
-	struct actuator_outputs_s _actuators[ORB_MULTI_MAX_INSTANCES];
-	struct vehicle_attitude_s _attitude;
-	struct manual_control_setpoint_s _manual;
-	struct vehicle_status_s _vehicle_status;
+	input_rc_s _rc_input {};
+	actuator_outputs_s _actuators[ORB_MULTI_MAX_INSTANCES] {};
+	vehicle_attitude_s _attitude {};
+	manual_control_setpoint_s _manual {};
+	vehicle_status_s _vehicle_status {};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _battery_drain_interval_s, ///< battery drain interval
