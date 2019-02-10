@@ -1126,13 +1126,14 @@ int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
 		odom.pitchspeed = odom_msg.pitchspeed;
 		odom.yawspeed = odom_msg.yawspeed;
 
-		const size_t VEL_URT_SIZE = sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
-		static_assert(VEL_URT_SIZE == (sizeof(odom_msg.twist_covariance) / sizeof(odom_msg.twist_covariance[0])),
+		// velocity_covariance
+		static constexpr size_t VEL_URT_SIZE = sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
+		static_assert(VEL_URT_SIZE == (sizeof(odom_msg.velocity_covariance) / sizeof(odom_msg.velocity_covariance[0])),
 			      "Odometry Velocity Covariance matrix URT array size mismatch");
 
 		/* The velocity covariance URT */
 		for (size_t i = 0; i < VEL_URT_SIZE; i++) {
-			odom.velocity_covariance[i] = odom_msg.twist_covariance[i];
+			odom.velocity_covariance[i] = odom_msg.velocity_covariance[i];
 		}
 
 	} else if (odom_mavlink->msgid == MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE) {
