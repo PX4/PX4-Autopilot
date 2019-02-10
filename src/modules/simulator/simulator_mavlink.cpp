@@ -312,6 +312,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 			if (publish) {
 				publish_sensor_topics(&imu);
+				PX4_INFO("received and published HIL_SENSOR");
 			}
 
 			update_sensors(&imu);
