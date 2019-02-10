@@ -9,7 +9,7 @@ pipeline {
         stage('Catkin build on ROS workspace') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros:2019-01-27'
+              image 'px4io/px4-dev-ros:2019-02-09'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -19,7 +19,8 @@ pipeline {
               echo $0;
               mkdir -p catkin_ws/src;
               cd catkin_ws;
-              git clone --recursive https://github.com/PX4/sitl_gazebo.git src/mavlink_sitl_gazebo;
+              git -C ${WORKSPACE}/catkin_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
+              git clone --recursive ${WORKSPACE}/catkin_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
               source /opt/ros/melodic/setup.bash;
               catkin init;
               catkin build -j$(nproc) -l$(nproc);
@@ -44,7 +45,7 @@ pipeline {
         stage('Colcon build on ROS2 workspace') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros2-bouncy:2019-01-27'
+              image 'px4io/px4-dev-ros2-bouncy:2019-02-09'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -55,7 +56,8 @@ pipeline {
               unset ROS_DISTRO;
               mkdir -p colcon_ws/src;
               cd colcon_ws;
-              git clone --recursive https://github.com/PX4/sitl_gazebo.git src/mavlink_sitl_gazebo;
+              git -C ${WORKSPACE}/colcon_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
+              git clone --recursive ${WORKSPACE}/colcon_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
               source /opt/ros/bouncy/setup.sh;
               source /opt/ros/melodic/setup.sh;
               colcon build --event-handlers console_direct+ --symlink-install;
