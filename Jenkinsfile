@@ -75,7 +75,7 @@ pipeline {
 
         stage('Style check') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-26' }
+            docker { image 'px4io/px4-dev-base:2019-02-09' }
           }
           steps {
             sh 'make check_format'
@@ -90,7 +90,7 @@ pipeline {
         stage('Bloaty px4_fmu-v2') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-01-27'
+              image 'px4io/px4-dev-nuttx:2019-02-09'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -118,7 +118,7 @@ pipeline {
         stage('Bloaty px4_fmu-v5') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-01-27'
+              image 'px4io/px4-dev-nuttx:2019-02-09'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -146,7 +146,7 @@ pipeline {
         stage('SITL unit tests') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-02-03'
+              image 'px4io/px4-dev-base:2019-02-09'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -168,7 +168,7 @@ pipeline {
         stage('Clang analyzer') {
           agent {
             docker {
-              image 'px4io/px4-dev-clang:2019-01-27'
+              image 'px4io/px4-dev-clang:2019-02-09'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -205,7 +205,7 @@ pipeline {
         // stage('Clang tidy') {
         //   agent {
         //     docker {
-        //       image 'px4io/px4-dev-clang:2019-01-27'
+        //       image 'px4io/px4-dev-clang:2019-02-09'
         //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
         //     }
         //   }
@@ -226,7 +226,7 @@ pipeline {
         stage('Cppcheck') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-01-26'
+              image 'px4io/px4-dev-base:2019-02-09'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -263,7 +263,7 @@ pipeline {
         stage('Check stack') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-01-27'
+              image 'px4io/px4-dev-nuttx:2019-02-09'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -282,7 +282,7 @@ pipeline {
         stage('ShellCheck') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-01-27'
+              image 'px4io/px4-dev-nuttx:2019-02-09'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -301,7 +301,7 @@ pipeline {
         stage('Module config validation') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-01-26'
+              image 'px4io/px4-dev-base:2019-02-09'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -326,7 +326,7 @@ pipeline {
 
         stage('Airframe') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-26' }
+            docker { image 'px4io/px4-dev-base:2019-02-09' }
           }
           steps {
             sh 'make distclean'
@@ -345,7 +345,7 @@ pipeline {
 
         stage('Parameter') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-26' }
+            docker { image 'px4io/px4-dev-base:2019-02-09' }
           }
           steps {
             sh 'make distclean'
@@ -364,7 +364,7 @@ pipeline {
 
         stage('Module') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-26' }
+            docker { image 'px4io/px4-dev-base:2019-02-09' }
           }
           steps {
             sh 'make distclean'
@@ -384,7 +384,7 @@ pipeline {
         stage('uORB graphs') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-01-27'
+              image 'px4io/px4-dev-nuttx:2019-02-09'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -413,7 +413,7 @@ pipeline {
 
         stage('Devguide') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-26' }
+            docker { image 'px4io/px4-dev-base:2019-02-09' }
           }
           steps {
             sh('export')
@@ -443,7 +443,7 @@ pipeline {
 
         stage('Userguide') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-26' }
+            docker { image 'px4io/px4-dev-base:2019-02-09' }
           }
           steps {
             sh('export')
@@ -471,7 +471,7 @@ pipeline {
 
         stage('QGroundControl') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-26' }
+            docker { image 'px4io/px4-dev-base:2019-02-09' }
           }
           steps {
             sh('export')
@@ -499,7 +499,7 @@ pipeline {
 
         stage('PX4 ROS msgs') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-27' }
+            docker { image 'px4io/px4-dev-base:2019-02-09' }
           }
           steps {
             sh('export')
@@ -522,7 +522,7 @@ pipeline {
 
         stage('PX4 ROS2 bridge') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-27' }
+            docker { image 'px4io/px4-dev-base:2019-02-09' }
           }
           steps {
             sh('export')
@@ -553,7 +553,7 @@ pipeline {
 
         stage('S3') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-01-26' }
+            docker { image 'px4io/px4-dev-base:2019-02-09' }
           }
           steps {
             sh('export')
@@ -590,7 +590,7 @@ pipeline {
     GIT_COMMITTER_NAME = "PX4BuildBot"
   }
   options {
-    buildDiscarder(logRotator(numToKeepStr: '5', artifactDaysToKeepStr: '30'))
+    buildDiscarder(logRotator(numToKeepStr: '10', artifactDaysToKeepStr: '30'))
     timeout(time: 60, unit: 'MINUTES')
   }
 }
