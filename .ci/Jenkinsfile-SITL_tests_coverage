@@ -72,7 +72,7 @@ pipeline {
         stage('code coverage (python)') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-02-03'
+              image 'px4io/px4-dev-base:2019-02-09'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -91,7 +91,7 @@ pipeline {
         stage('unit tests') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-02-03'
+              image 'px4io/px4-dev-base:2019-02-09'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -119,7 +119,7 @@ pipeline {
   }
 
   options {
-    buildDiscarder(logRotator(numToKeepStr: '2', artifactDaysToKeepStr: '14'))
+    buildDiscarder(logRotator(numToKeepStr: '5', artifactDaysToKeepStr: '14'))
     timeout(time: 60, unit: 'MINUTES')
   }
 } // pipeline
@@ -128,7 +128,7 @@ def createTestNode(Map test_def) {
   return {
     node {
       cleanWs()
-      docker.image("px4io/px4-dev-ros-kinetic:2018-09-11").inside('-e HOME=${WORKSPACE} --cap-add SYS_PTRACE --entrypoint=""') {
+      docker.image("px4io/px4-dev-ros-kinetic:2019-02-09").inside('-e HOME=${WORKSPACE}') {
         stage(test_def.name) {
           def test_ok = true
           sh('export')
