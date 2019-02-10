@@ -35,12 +35,12 @@ pipeline {
       steps {
         script {
           def missions = [
-            [
-              name: "FW",
-              test: "mavros_posix_test_mission.test",
-              mission: "FW_mission_1",
-              vehicle: "plane"
-            ],
+            // [
+            //   name: "FW",
+            //   test: "mavros_posix_test_mission.test",
+            //   mission: "FW_mission_1",
+            //   vehicle: "plane"
+            // ],
 
             [
               name: "MC_box",
