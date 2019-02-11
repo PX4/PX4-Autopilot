@@ -48,8 +48,8 @@ MPU6000::MPU6000(device::Device *interface, const char *path, enum Rotation rota
 #else
 	_use_hrt(true),
 #endif
-	_px4_accel(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT), rotation),
-	_px4_gyro(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_HIGH : ORB_PRIO_DEFAULT), rotation),
+	_px4_accel(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),
+	_px4_gyro(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6k_read")),
 	_measure_interval(perf_alloc(PC_INTERVAL, "mpu6k_measure_interval")),
 	_bad_transfers(perf_alloc(PC_COUNT, "mpu6k_bad_trans")),
