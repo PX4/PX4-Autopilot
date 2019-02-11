@@ -73,9 +73,12 @@ const unsigned mode_flag_armed = 128;
 const unsigned mode_flag_custom = 1;
 
 using namespace simulator;
+using namespace time_literals;
 
-void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &msg, unsigned index)
+mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const actuator_outputs_s &actuators)
 {
+	mavlink_hil_actuator_controls_t msg{};
+
 	msg.time_usec = hrt_absolute_time() + hrt_absolute_time_offset();
 
 	bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
@@ -123,14 +126,14 @@ void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &msg, unsi
 		}
 
 		for (unsigned i = 0; i < 16; i++) {
-			if (_actuators[index].output[i] > PWM_DEFAULT_MIN / 2) {
+			if (actuators.output[i] > PWM_DEFAULT_MIN / 2) {
 				if (i < n) {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for rotors */
-					msg.controls[i] = (_actuators[index].output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+					msg.controls[i] = (actuators.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
 
 				} else {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for other channels */
-					msg.controls[i] = (_actuators[index].output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+					msg.controls[i] = (actuators.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 				}
 
 			} else {
@@ -143,14 +146,14 @@ void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &msg, unsi
 		/* fixed wing: scale throttle to 0..1 and other channels to -1..1 */
 
 		for (unsigned i = 0; i < 16; i++) {
-			if (_actuators[index].output[i] > PWM_DEFAULT_MIN / 2) {
+			if (actuators.output[i] > PWM_DEFAULT_MIN / 2) {
 				if (i != 4) {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for normal channels */
-					msg.controls[i] = (_actuators[index].output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+					msg.controls[i] = (actuators.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 
 				} else {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for throttle */
-					msg.controls[i] = (_actuators[index].output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+					msg.controls[i] = (actuators.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
 				}
 
 			} else {
@@ -163,24 +166,30 @@ void Simulator::pack_actuator_message(mavlink_hil_actuator_controls_t &msg, unsi
 	msg.mode = mode_flag_custom;
 	msg.mode |= (armed) ? mode_flag_armed : 0;
 	msg.flags = 0;
+
+	return msg;
 }
 
 void Simulator::send_controls()
 {
-	for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++) {
+	// copy new actuator data if available
+	bool updated = false;
+	orb_check(_actuator_outputs_sub, &updated);
 
-		if (_actuator_outputs_sub[i] < 0 || _actuators[i].timestamp == 0) {
-			continue;
+	if (updated) {
+		actuator_outputs_s actuators{};
+		orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub, &actuators);
+
+		if (actuators.timestamp > 0) {
+			const mavlink_hil_actuator_controls_t hil_act_control = actuator_controls_from_outputs(actuators);
+
+			mavlink_message_t message{};
+			mavlink_msg_hil_actuator_controls_encode(0, 200, &message, &hil_act_control);
+
+			PX4_DEBUG("sending controls t=%ld (%ld)", actuators.timestamp, hil_act_control.time_usec);
+
+			send_mavlink_message(message);
 		}
-
-		mavlink_hil_actuator_controls_t hil_act_control = {};
-		hil_act_control.time_usec = _actuators[i].timestamp + hrt_absolute_time_offset();
-
-		mavlink_message_t message = {};
-		pack_actuator_message(hil_act_control, i);
-		mavlink_msg_hil_actuator_controls_encode(0, 200, &message, &hil_act_control);
-
-		send_mavlink_message(message);
 	}
 }
 
@@ -303,7 +312,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			float step = diff / 4000.0f;
 
 			if (step > 1.1f || step < 0.9f) {
-				PX4_INFO("time_usec: %lu, diff: %lu, step: %.2f", now_us, diff, step);
+				PX4_INFO("HIL_SENSOR: imu time_usec: %lu, time_usec: %lu, diff: %lu, step: %.2f", imu.time_usec, now_us, diff, step);
 			}
 
 			last_time = now_us;
@@ -316,7 +325,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			update_sensors(&imu);
 
 			// battery simulation (limit update to 100Hz)
-			if (hrt_elapsed_time(&_battery_status.timestamp) >= 10000) {
+			if (hrt_elapsed_time(&_battery_status.timestamp) >= 10_ms) {
 
 				const float discharge_interval_us = _battery_drain_interval_s.get() * 1000 * 1000;
 
@@ -528,16 +537,7 @@ void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
 void Simulator::poll_topics()
 {
 	// copy new actuator data if available
-	bool updated;
-
-	for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++) {
-
-		orb_check(_actuator_outputs_sub[i], &updated);
-
-		if (updated) {
-			orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub[i], &_actuators[i]);
-		}
-	}
+	bool updated = false;
 
 	orb_check(_vehicle_status_sub, &updated);
 
@@ -566,12 +566,8 @@ void Simulator::send()
 	// Without this, we get stuck at px4_poll which waits for a time update.
 	send_heartbeat();
 
-	// We then send the controls once which will notify the SITL simulator
-	// that our time is 0.
-	send_controls();
-
 	px4_pollfd_struct_t fds[1] = {};
-	fds[0].fd = _actuator_outputs_sub[0];
+	fds[0].fd = _actuator_outputs_sub;
 	fds[0].events = POLLIN;
 
 	while (true) {
@@ -735,7 +731,9 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 	struct sched_param param;
 	(void)pthread_attr_getschedparam(&sender_thread_attr, &param);
 
-	param.sched_priority = SCHED_PRIORITY_DEFAULT;
+	// sender thread should run immediately after new outputs are available
+	//  to send the lockstep update to the simulation
+	param.sched_priority = SCHED_PRIORITY_ACTUATOR_OUTPUTS + 1;
 	(void)pthread_attr_setschedparam(&sender_thread_attr, &param);
 
 	struct pollfd fds[2] = {};
@@ -763,10 +761,8 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 #endif
 
 	// subscribe to topics
-	for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++) {
-		_actuator_outputs_sub[i] = orb_subscribe_multi(ORB_ID(actuator_outputs), i);
-	}
-
+	// only subscribe to the first actuator_outputs to fill a single HIL_ACTUATOR_CONTROLS
+	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	// got data from simulator, now activate the sending thread
@@ -791,14 +787,13 @@ void Simulator::pollForMAVLinkMessages(bool publish)
 		}
 
 		if (pret < 0) {
-			PX4_WARN("simulator mavlink: poll error %d, %d", pret, errno);
+			PX4_ERR("poll error %d, %d", pret, errno);
 			continue;
 		}
 
 		if (fds[0].revents & POLLIN) {
 
-			int len = ::recvfrom(_fd, _buf, sizeof(_buf), 0,
-					     (struct sockaddr *)&_srcaddr, (socklen_t *)&_addrlen);
+			int len = ::recvfrom(_fd, _buf, sizeof(_buf), 0, (struct sockaddr *)&_srcaddr, (socklen_t *)&_addrlen);
 
 			if (len > 0) {
 				mavlink_message_t msg;

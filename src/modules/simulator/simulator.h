@@ -249,10 +249,6 @@ private:
 		_perf_sim_delay(perf_alloc_once(PC_ELAPSED, "sim_network_delay")),
 		_perf_sim_interval(perf_alloc(PC_INTERVAL, "sim_network_interval"))
 	{
-		for (unsigned i = 0; i < (sizeof(_actuator_outputs_sub) / sizeof(_actuator_outputs_sub[0])); i++) {
-			_actuator_outputs_sub[i] = -1;
-		}
-
 		simulator::RawGPSData gps_data{};
 		gps_data.eph = UINT16_MAX;
 		gps_data.epv = UINT16_MAX;
@@ -332,7 +328,7 @@ private:
 	orb_advert_t _lpos_pub{nullptr};
 
 	// uORB subscription handlers
-	int _actuator_outputs_sub[ORB_MULTI_MAX_INSTANCES] {-1, -1, -1, -1};
+	int _actuator_outputs_sub{-1};
 	int _vehicle_attitude_sub{-1};
 	int _manual_sub{-1};
 	int _vehicle_status_sub{-1};
@@ -347,7 +343,6 @@ private:
 
 	// uORB data containers
 	input_rc_s _rc_input {};
-	actuator_outputs_s _actuators[ORB_MULTI_MAX_INSTANCES] {};
 	vehicle_attitude_s _attitude {};
 	manual_control_setpoint_s _manual {};
 	vehicle_status_s _vehicle_status {};
@@ -365,7 +360,7 @@ private:
 	void request_hil_state_quaternion();
 	void pollForMAVLinkMessages(bool publish);
 
-	void pack_actuator_message(mavlink_hil_actuator_controls_t &actuator_msg, unsigned index);
+	mavlink_hil_actuator_controls_t actuator_controls_from_outputs(const actuator_outputs_s &actuators);
 	void send_mavlink_message(const mavlink_message_t &aMsg);
 	void update_sensors(mavlink_hil_sensor_t *imu);
 	void update_gps(mavlink_hil_gps_t *gps_sim);
