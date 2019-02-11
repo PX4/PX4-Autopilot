@@ -62,8 +62,6 @@ protected:
 	struct hrt_call     _call;
 	unsigned        _call_interval;
 
-	unsigned        _dlpf_freq;
-
 	uint8_t         _register_wait;
 	uint64_t        _reset_wait;
 

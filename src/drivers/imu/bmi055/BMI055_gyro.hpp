@@ -102,7 +102,7 @@
 // BMI055 Gyroscope Chip-Id
 #define BMI055_GYR_WHO_AM_I         0x0F
 
-//BMI055_GYR_BW         0x10
+// ODR & DLPF filter bandwidth settings (they are coupled)
 #define BMI055_GYRO_RATE_100        (0<<3) | (1<<2) | (1<<1) | (1<<0)
 #define BMI055_GYRO_RATE_200        (0<<3) | (1<<2) | (1<<1) | (0<<0)
 #define BMI055_GYRO_RATE_400        (0<<3) | (0<<2) | (1<<1) | (1<<0)
