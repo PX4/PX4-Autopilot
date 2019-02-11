@@ -547,29 +547,29 @@ void Simulator::poll_topics()
 
 	orb_check(_tune_control_sub, &updated);
 
-	if(updated) {
+	if (updated) {
 
-	    orb_copy(ORB_ID(tune_control), _tune_control_sub, &_tune_control);
+		orb_copy(ORB_ID(tune_control), _tune_control_sub, &_tune_control);
 
-	    _tunes.set_control(_tune_control);
+		_tunes.set_control(_tune_control);
 
-	    mavlink_play_tune_t tune_msg = { };
-        mavlink_message_t message = { };
+		mavlink_play_tune_t tune_msg = { };
+		mavlink_message_t message = { };
 
-	    union {
-	        struct {
-	            unsigned int frequency;
-	            unsigned int duration;
-	            unsigned int silence_length;
-	        };
-	        uint8_t a[sizeof(tune_msg.tune)];
-	    } tune_info = {};
+		union {
+			struct {
+				unsigned int frequency;
+				unsigned int duration;
+				unsigned int silence_length;
+			};
+			uint8_t a[sizeof(tune_msg.tune)];
+		} tune_info = {};
 
-        _tunes.get_next_tune(tune_info.frequency, tune_info.duration, tune_info.silence_length);
+		_tunes.get_next_tune(tune_info.frequency, tune_info.duration, tune_info.silence_length);
 
-        memcpy(tune_msg.tune, &tune_info.a, sizeof(tune_msg.tune));
-        mavlink_msg_play_tune_encode(0, 50, &message, &tune_msg);
-        send_mavlink_message(message);
+		memcpy(tune_msg.tune, tune_info.a, sizeof(tune_msg.tune));
+		mavlink_msg_play_tune_encode(0, 50, &message, &tune_msg);
+		send_mavlink_message(message);
 	}
 }
 
