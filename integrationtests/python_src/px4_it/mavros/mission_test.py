@@ -64,8 +64,7 @@ def get_last_log():
             log_path = os.path.join(os.environ['ROS_HOME'], 'log')
         except KeyError:
             log_path = os.path.join(os.environ['HOME'], '.ros/log')
-    last_log_dir = sorted(glob.glob(os.path.join(log_path, '*')))[-1]
-    last_log = sorted(glob.glob(os.path.join(last_log_dir, '*.ulg')))[-1]
+    last_log = sorted(glob.glob(os.path.join(log_path, '*/*.ulg')))[-1]
     return last_log
 
 
