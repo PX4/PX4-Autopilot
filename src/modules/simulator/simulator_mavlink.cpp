@@ -296,6 +296,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			px4_clock_settime(CLOCK_MONOTONIC, &ts);
 
 			hrt_abstime now_us = hrt_absolute_time();
+			PX4_INFO("received HIL_SENSOR with %lu", now_us);
 
 #if 0
 			// This is just for to debug missing HIL_SENSOR messages.
@@ -312,10 +313,6 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 
 			if (publish) {
 				publish_sensor_topics(&imu);
-				PX4_INFO("received and published HIL_SENSOR");
-
-			} else {
-				PX4_INFO("received HIL_SENSOR");
 			}
 
 
