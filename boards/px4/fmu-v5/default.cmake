@@ -20,8 +20,8 @@ px4_add_board(
 	DRIVERS
 		barometer # all available barometer drivers
 		batt_smbus
-		camera_trigger
 		camera_capture
+		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
@@ -29,9 +29,9 @@ px4_add_board(
 		imu/adis16448
 		#imu # all available imu drivers
 		imu/bmi055
+		imu/icm20948
 		imu/mpu6000
 		imu/mpu9250
-		imu/icm20948
 		irlock
 		lights/blinkm
 		lights/oreoled
@@ -124,4 +124,5 @@ px4_add_board(
 		rover_steering_control # Rover example app
 		segway
 		uuv_example_app
+
 	)
