@@ -1799,6 +1799,7 @@ bool Ekf2::publish_attitude(const sensor_combined_s &sensors, const hrt_abstime 
 		att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
 
 		int instance;
+		PX4_INFO("publishing attitude");
 		orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &instance, ORB_PRIO_HIGH);
 
 		return true;
@@ -1812,6 +1813,7 @@ bool Ekf2::publish_attitude(const sensor_combined_s &sensors, const hrt_abstime 
 		orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &instance, ORB_PRIO_HIGH);
 	}
 
+	PX4_INFO("not publishing invalid attitude");
 	return false;
 }
 
