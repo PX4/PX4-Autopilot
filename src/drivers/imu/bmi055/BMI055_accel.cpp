@@ -118,11 +118,13 @@ BMI055_accel::init()
 	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
 
 	if (_accel_reports == nullptr) {
-		goto out;
+		return -ENOMEM;
 	}
 
-	if (reset() != OK) {
-		goto out;
+	ret = reset();
+
+	if (ret != OK) {
+		return ret;
 	}
 
 	/* Initialize offsets and scales */
@@ -134,6 +136,16 @@ BMI055_accel::init()
 	_accel_scale.z_scale  = 1.0f;
 
 	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
+
+	param_t accel_cut_ph = param_find("IMU_ACCEL_CUTOFF");
+	float accel_cut = BMI055_ACCEL_DEFAULT_DRIVER_FILTER_FREQ;
+
+	if (accel_cut_ph != PARAM_INVALID && (param_get(accel_cut_ph, &accel_cut) == PX4_OK)) {
+
+		_accel_filter_x.set_cutoff_frequency(BMI055_ACCEL_DEFAULT_RATE, accel_cut);
+		_accel_filter_y.set_cutoff_frequency(BMI055_ACCEL_DEFAULT_RATE, accel_cut);
+		_accel_filter_z.set_cutoff_frequency(BMI055_ACCEL_DEFAULT_RATE, accel_cut);
+	}
 
 	measure();
 
@@ -149,7 +161,6 @@ BMI055_accel::init()
 		warnx("ADVERT FAIL");
 	}
 
-out:
 	return ret;
 }
 
