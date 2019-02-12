@@ -361,20 +361,15 @@ void AttitudeEstimatorQ::task_main()
 					// Hence Rvis must be transposed having (Rwr)' * Vw
 					// Rrw * Vw = vn. This way we have consistency
 					_vision_hdg = Rvis.transpose() * v;
+
+					// vision external heading usage (ATT_EXT_HDG_M 1)
+					if (_ext_hdg_mode == 1) {
+						// Check for timeouts on data
+						_ext_hdg_good = vision.timestamp > 0 && (hrt_elapsed_time(&vision.timestamp) < 500000);
+					}
 				}
 			}
 		}
-		// vision external heading usage (ATT_EXT_HDG_M 1)
-		if (_ext_hdg_mode == 1) {
-			// Check for timeouts on data
-			uint64_t time_topic;
-			if (orb_stat(_vision_odom_sub, &time_topic)) {
-				/* error getting last topic publication time */
-				time_topic = 0;
-			}
-			_ext_hdg_good = time_topic > 0 && (hrt_elapsed_time(&time_topic) < 500000);
-		}
-
 
 		bool mocap_updated = false;
 		orb_check(_mocap_odom_sub, &mocap_updated);
@@ -398,18 +393,14 @@ void AttitudeEstimatorQ::task_main()
 					// Hence Rmoc must be transposed having (Rwr)' * Vw
 					// Rrw * Vw = vn. This way we have consistency
 					_mocap_hdg = Rmoc.transpose() * v;
+
+					// Motion Capture external heading usage (ATT_EXT_HDG_M 2)
+					if (_ext_hdg_mode == 2) {
+						// Check for timeouts on data
+						_ext_hdg_good = mocap.timestamp > 0 && (hrt_elapsed_time(&mocap.timestamp) < 500000);
+					}
 				}
 			}
-		}
-		// Motion Capture external heading usage (ATT_EXT_HDG_M 2)
-		if (_ext_hdg_mode == 2) {
-			// Check for timeouts on data
-			uint64_t time_topic;
-			if (orb_stat(_mocap_odom_sub, &time_topic)) {
-				/* error getting last topic publication time */
-				time_topic = 0;
-			}
-			_ext_hdg_good = time_topic > 0 && (hrt_elapsed_time(&time_topic) < 500000);
 		}
 
 		bool gpos_updated = false;
