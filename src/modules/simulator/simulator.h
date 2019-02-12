@@ -362,6 +362,8 @@ private:
 	int publish_odometry_topic(mavlink_message_t *odom_mavlink);
 	int publish_distance_topic(mavlink_distance_sensor_t *dist);
 
+	hrt_abstime _last_actuator_timestamp {0};
+
 #ifndef __PX4_QURT
 	// uORB publisher handlers
 	orb_advert_t _rc_channels_pub;

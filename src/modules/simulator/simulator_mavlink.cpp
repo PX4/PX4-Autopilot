@@ -176,12 +176,23 @@ void Simulator::send_controls()
 		mavlink_hil_actuator_controls_t hil_act_control = {};
 		hil_act_control.time_usec = _actuators[i].timestamp + hrt_absolute_time_offset();
 
-		mavlink_message_t message = {};
-		pack_actuator_message(hil_act_control, i);
-		mavlink_msg_hil_actuator_controls_encode(0, 200, &message, &hil_act_control);
+		// FIXME: This is a workaround for the fixedwing ROS CI test where sometimes a
+		//        hil_actuator_controls message with the same timestamp was sent twice
+		//        and made lockstep stall.
+		if (hil_act_control.time_usec != _last_actuator_timestamp) {
 
-		send_mavlink_message(message);
-		PX4_INFO("Sent actuator_outputs");
+			mavlink_message_t message = {};
+			pack_actuator_message(hil_act_control, i);
+			mavlink_msg_hil_actuator_controls_encode(0, 200, &message, &hil_act_control);
+
+			send_mavlink_message(message);
+			PX4_INFO("Sent actuator_outputs");
+
+		} else {
+			PX4_ERR("hil_actuator_control already sent");
+		}
+
+		_last_actuator_timestamp = hil_act_control.time_usec;
 	}
 }
 
