@@ -920,7 +920,7 @@ tfmini_main(int argc, char *argv[])
 	}
 
 out_error:
-	PX4_ERR("unrecognized command: try 'start', 'test', or 'info'");
+	PX4_ERR("unrecognized command");
         tfmini::usage();
 	return -1;
 }
