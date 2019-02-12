@@ -2699,6 +2699,10 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 
 	last_overload = overload;
 
+	/* board supports HW armed indicator */
+
+	BOARD_INDICATE_ARMED_STATE(actuator_armed->armed);
+
 #if !defined(CONFIG_ARCH_LEDS) && defined(BOARD_HAS_CONTROL_STATUS_LEDS)
 
 	/* this runs at around 20Hz, full cycle is 16 ticks = 10/16Hz */
