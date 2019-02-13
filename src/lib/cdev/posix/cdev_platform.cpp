@@ -390,11 +390,11 @@ extern "C" {
 				nsecs -= (nsecs / billion) * billion;
 				ts.tv_nsec = nsecs;
 
-				PX4_INFO("before px4_sem_timedwait, ts: %lu.%lu", ts.tv_sec, ts.tv_nsec);
+				PX4_INFO("before px4_sem_timedwait, ts: %lu.%lu (%s)", ts.tv_sec, ts.tv_nsec, thread_name);
 
 				ret = px4_sem_timedwait(&sem, &ts);
 
-				PX4_INFO("after px4_sem_timedwait, ret: %d", ret);
+				PX4_INFO("after px4_sem_timedwait, ret: %d (%s)", ret, thread_name);
 
 				if (ret && errno != ETIMEDOUT) {
 					PX4_WARN("%s: px4_poll() sem error: %s", thread_name, strerror(errno));
