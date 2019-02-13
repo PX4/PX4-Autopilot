@@ -686,6 +686,8 @@ MulticopterPositionControl::run()
 				}
 			}
 
+			publish_trajectory_sp(setpoint);
+
 			/* desired waypoints for obstacle avoidance:
 			 * point_0 contains the current position with the desired velocity
 			 * point_1 contains _pos_sp_triplet.current if valid
@@ -758,7 +760,6 @@ MulticopterPositionControl::run()
 			// Generate desired thrust and yaw.
 			_control.generateThrustYawSetpoint(_dt);
 
-			publish_trajectory_sp(setpoint);
 
 			// Fill local position, velocity and thrust setpoint.
 			// This message contains setpoints where each type of setpoint is either the input to the PositionController
