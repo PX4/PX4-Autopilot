@@ -917,6 +917,7 @@ GYROSIM::_measure()
 	if (accel_notify) {
 		if (!(_pub_blocked)) {
 			/* publish it */
+			PX4_INFO("publishing sensor accel: %lu", arb.timestamp);
 			orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
 		}
 	}
@@ -924,6 +925,7 @@ GYROSIM::_measure()
 	if (gyro_notify) {
 		if (!(_pub_blocked)) {
 			/* publish it */
+			PX4_INFO("publishing sensor gyro: %lu", grb.timestamp);
 			orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
 		}
 	}

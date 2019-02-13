@@ -780,6 +780,7 @@ ACCELSIM::_measure()
 		// yet initialized
 		if (_accel_topic != nullptr) {
 			orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
+			PX4_INFO("publishing sensor accel: %lu", accel_report.timestamp);
 		}
 	}
 
