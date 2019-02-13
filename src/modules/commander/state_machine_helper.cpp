@@ -46,6 +46,7 @@
 #include <systemlib/mavlink_log.h>
 #include <drivers/drv_hrt.h>
 
+
 #include "state_machine_helper.h"
 #include "commander_helper.h"
 #include "PreflightCheck.h"
@@ -915,6 +916,7 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 	bool reportFailures = true;
 	bool prearm_ok = true;
 
+
 	// USB not connected
 	if (!status_flags.circuit_breaker_engaged_usb_check && status_flags.usb_connected) {
 		if (reportFailures) {
@@ -995,6 +997,15 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 			// feedback provided in arm_auth_check
 			prearm_ok = false;
 		}
+	}
+
+	if (!status_flags.avoidance_system_valid) {
+		if (prearm_ok && reportFailures) {
+			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: AVOIDANCE SYSTEM NOT READY");
+		}
+
+		prearm_ok = false;
+
 	}
 
 	return prearm_ok;
