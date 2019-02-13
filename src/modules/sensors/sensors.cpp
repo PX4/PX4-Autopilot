@@ -670,6 +670,8 @@ Sensors::run()
 			int instance;
 			orb_publish_auto(ORB_ID(sensor_combined), &_sensor_pub, &raw, &instance, ORB_PRIO_DEFAULT);
 
+			PX4_INFO("publishing sensor combined: %lu", raw.timestamp);
+
 			if (airdata.timestamp != airdata_prev_timestamp) {
 				orb_publish_auto(ORB_ID(vehicle_air_data), &_airdata_pub, &airdata, &instance, ORB_PRIO_DEFAULT);
 			}
