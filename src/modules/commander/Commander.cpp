@@ -4154,7 +4154,6 @@ void Commander::airspeed_use_check()
 		status.aspd_use_inhibit = false;
 		status.aspd_fail_rtl = false;
 		_time_last_airspeed = hrt_absolute_time();
-		_airspeed_fault_type = new(char[7]);
 		_load_factor_ratio = 0.5f;
 	} else {
 		// The vehicle is flying so use the status of the airspeed innovation check '_tas_check_fail' in
