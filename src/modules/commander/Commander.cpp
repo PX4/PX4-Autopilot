@@ -4179,7 +4179,7 @@ void Commander::airspeed_use_check()
 		_sensor_bias = _sensor_bias_sub.get();
 		float max_lift_ratio = fmaxf(_airspeed.indicated_airspeed_m_s, 0.7f) / fmaxf(_airspeed_stall.get(), 1.0f);
 		max_lift_ratio *= max_lift_ratio;
-		_load_factor_ratio = 0.95f * _load_factor_ratio + 0.05f * (fabsf(_sensor_bias.accel_z) / 9.80665f) / max_lift_ratio;
+		_load_factor_ratio = 0.95f * _load_factor_ratio + 0.05f * (fabsf(_sensor_bias.accel_z) / CONSTANTS_ONE_G) / max_lift_ratio;
 		_load_factor_ratio = math::constrain(_load_factor_ratio, 0.25f, 2.0f);
 		bool load_factor_ratio_fail = _load_factor_ratio > 1.1f;
 		status.load_factor_ratio = _load_factor_ratio;
