@@ -4,43 +4,7 @@
 #include <atomic>
 #include <random>
 #include <iostream>
-#include <functional>
-#include <chrono>
 
-class TestThread
-{
-public:
-	TestThread(const std::function<void()> &f)
-		: _f(f)
-	{
-		_thread = std::thread(std::bind(&TestThread::execute, this));
-	}
-
-	void join(LockstepScheduler &ls)
-	{
-		// The unit-tests do not reflect the real usage, where
-		// set_absolute_time() is called regularly and can do some
-		// cleanup tasks. We simulate that here by waiting until
-		// the given task returns (which is expected to happen quickly)
-		// and then call set_absolute_time(), which can do the cleanup,
-		// and _thread can then exit as well.
-		while (!_done) {
-			std::this_thread::yield(); // usleep is too slow here
-		}
-
-		ls.set_absolute_time(ls.get_absolute_time());
-		_thread.join();
-	}
-private:
-	void execute()
-	{
-		_f();
-		_done = true;
-	}
-	std::function<void()> _f;
-	std::atomic<bool> _done{false};
-	std::thread _thread;
-};
 
 constexpr uint64_t some_time_us = 12345678;
 
@@ -69,7 +33,7 @@ void test_condition_timing_out()
 
 	// Use a thread to wait for condition while we already have the lock.
 	// This ensures the synchronization happens in the right order.
-	TestThread thread([&ls, &cond, &lock, &should_have_timed_out]() {
+	std::thread thread([&ls, &cond, &lock, &should_have_timed_out]() {
 		assert(ls.cond_timedwait(&cond, &lock, some_time_us + 1000) == ETIMEDOUT);
 		assert(should_have_timed_out);
 		// It should be re-locked afterwards, so we should be able to unlock it.
@@ -80,7 +44,7 @@ void test_condition_timing_out()
 	should_have_timed_out = true;
 	ls.set_absolute_time(some_time_us + 1500);
 
-	thread.join(ls);
+	thread.join();
 
 	pthread_mutex_destroy(&lock);
 	pthread_cond_destroy(&cond);
@@ -103,7 +67,7 @@ void test_locked_semaphore_getting_unlocked()
 	pthread_mutex_lock(&lock);
 	// Use a thread to wait for condition while we already have the lock.
 	// This ensures the synchronization happens in the right order.
-	TestThread thread([&ls, &cond, &lock]() {
+	std::thread thread([&ls, &cond, &lock]() {
 
 		ls.set_absolute_time(some_time_us + 500);
 		assert(ls.cond_timedwait(&cond, &lock, some_time_us + 1000) == 0);
@@ -115,7 +79,7 @@ void test_locked_semaphore_getting_unlocked()
 	pthread_cond_broadcast(&cond);
 	pthread_mutex_unlock(&lock);
 
-	thread.join(ls);
+	thread.join();
 
 	pthread_mutex_destroy(&lock);
 	pthread_cond_destroy(&cond);
@@ -125,69 +89,69 @@ class TestCase
 {
 public:
 	TestCase(unsigned timeout, unsigned unlocked_after, LockstepScheduler &ls) :
-		_timeout(timeout + some_time_us),
-		_unlocked_after(unlocked_after + some_time_us),
-		_ls(ls)
+		timeout_(timeout + some_time_us),
+		unlocked_after_(unlocked_after + some_time_us),
+		ls_(ls)
 	{
-		pthread_mutex_init(&_lock, NULL);
-		pthread_cond_init(&_cond, NULL);
+		pthread_mutex_init(&lock_, NULL);
+		pthread_cond_init(&cond_, NULL);
 	}
 
 	~TestCase()
 	{
-		assert(_is_done);
-		pthread_mutex_destroy(&_lock);
-		pthread_cond_destroy(&_cond);
+		assert(is_done_);
+		pthread_mutex_destroy(&lock_);
+		pthread_cond_destroy(&cond_);
 	}
 
 	void run()
 	{
-		pthread_mutex_lock(&_lock);
-		_thread = std::make_shared<TestThread>([this]() {
-			_result = _ls.cond_timedwait(&_cond, &_lock, _timeout);
-			pthread_mutex_unlock(&_lock);
+		pthread_mutex_lock(&lock_);
+		thread_ = std::make_shared<std::thread>([this]() {
+			result_ = ls_.cond_timedwait(&cond_, &lock_, timeout_);
+			pthread_mutex_unlock(&lock_);
 		});
 	}
 
 	void check()
 	{
-		if (_is_done) {
+		if (is_done_) {
 			return;
 		}
 
-		uint64_t time_us = _ls.get_absolute_time();
+		uint64_t time_us = ls_.get_absolute_time();
 
-		const bool unlock_reached = (time_us >= _unlocked_after);
-		const bool unlock_is_before_timeout = (_unlocked_after <= _timeout);
-		const bool timeout_reached = (time_us >= _timeout);
+		const bool unlock_reached = (time_us >= unlocked_after_);
+		const bool unlock_is_before_timeout = (unlocked_after_ <= timeout_);
+		const bool timeout_reached = (time_us >= timeout_);
 
 		if (unlock_reached && unlock_is_before_timeout && !(timeout_reached)) {
-			pthread_mutex_lock(&_lock);
-			pthread_cond_broadcast(&_cond);
-			pthread_mutex_unlock(&_lock);
-			_is_done = true;
+			pthread_mutex_lock(&lock_);
+			pthread_cond_broadcast(&cond_);
+			pthread_mutex_unlock(&lock_);
+			is_done_ = true;
 			// We can be sure that this triggers.
-			_thread->join(_ls);
-			assert(_result == 0);
+			thread_->join();
+			assert(result_ == 0);
 		}
 
 		else if (timeout_reached) {
-			_is_done = true;
-			_thread->join(_ls);
-			assert(_result == ETIMEDOUT);
+			is_done_ = true;
+			thread_->join();
+			assert(result_ == ETIMEDOUT);
 		}
 	}
 private:
 	static constexpr int INITIAL_RESULT = 42;
 
-	unsigned _timeout;
-	unsigned _unlocked_after;
-	pthread_cond_t _cond;
-	pthread_mutex_t _lock;
-	LockstepScheduler &_ls;
-	std::atomic<bool> _is_done{false};
-	std::atomic<int> _result {INITIAL_RESULT};
-	std::shared_ptr<TestThread> _thread{};
+	unsigned timeout_;
+	unsigned unlocked_after_;
+	pthread_cond_t cond_;
+	pthread_mutex_t lock_;
+	LockstepScheduler &ls_;
+	std::atomic<bool> is_done_{false};
+	std::atomic<int> result_ {INITIAL_RESULT};
+	std::shared_ptr<std::thread> thread_{};
 };
 
 int random_number(int min, int max)
@@ -286,7 +250,7 @@ void test_usleep()
 
 	std::atomic<Step> step{Step::Init};
 
-	TestThread thread([&step, &ls]() {
+	std::thread thread([&step, &ls]() {
 		step = Step::ThreadStarted;
 
 		WAIT_FOR(step == Step::BeforeUsleep);
@@ -304,7 +268,7 @@ void test_usleep()
 
 	assert(ls.usleep_until(some_time_us + 1000) == 0);
 	assert(step == Step::UsleepTriggered);
-	thread.join(ls);
+	thread.join();
 }
 
 int main(int /*argc*/, char ** /*argv*/)
