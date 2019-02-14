@@ -49,10 +49,12 @@ bool FlightTaskManualPositionSmoothVel::activate()
 
 void FlightTaskManualPositionSmoothVel::reActivate()
 {
-	reset(Axes::XY);
+	// The task is reacivated while the vehicle is on the ground. To detect takeoff in mc_pos_control_main properly
+	// using the generated jerk, reset the z derivatives to zero
+	reset(Axes::XYZ, true);
 }
 
-void FlightTaskManualPositionSmoothVel::reset(Axes axes)
+void FlightTaskManualPositionSmoothVel::reset(Axes axes, bool force_z_zero)
 {
 	int count;
 
@@ -73,6 +75,11 @@ void FlightTaskManualPositionSmoothVel::reset(Axes axes)
 	// TODO: get current accel
 	for (int i = 0; i < count; ++i) {
 		_smoothing[i].reset(0.f, _velocity(i), _position(i));
+	}
+
+	// Set the z derivatives to zero
+	if (force_z_zero) {
+		_smoothing[2].reset(0.f, 0.f, _position(2));
 	}
 
 	_position_lock_xy_active = false;
