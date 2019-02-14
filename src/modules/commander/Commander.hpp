@@ -186,7 +186,7 @@ private:
 	uint8_t	_datalink_last_status_avoidance_system{telemetry_status_s::MAV_STATE_UNINIT};
 
 	uint64_t	_datalink_last_heartbeat_avoidance_system{0};
-	uint64_t	_avoidance_system_lost{0};
+	bool	_avoidance_system_lost{0};
 	uint64_t	_avoidance_system_not_started{0};
 	bool		_avoidance_system_status_change{0};
 	uint64_t	_datalink_last_status_avoidance_system{0};
