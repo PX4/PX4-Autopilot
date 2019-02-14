@@ -183,7 +183,6 @@ $ leddar_one stop
 	PRINT_MODULE_USAGE_PARAM_INT('r', 25, 1, 25, "Sensor rotation - downward facing by default", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("info","Print driver information");
 
 }
 
@@ -259,8 +258,6 @@ int leddar_one_main(int argc, char *argv[])
 
 		print_message(report);
 
-	} else if (!strcmp(verb, "info")) {
-		help();
 	} else {
 		help();
 		PX4_ERR("unrecognized command");
