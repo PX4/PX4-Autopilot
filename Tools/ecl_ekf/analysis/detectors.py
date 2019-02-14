@@ -2,7 +2,7 @@
 """
 detectors
 """
-from typing import NamedTuple, Optional
+from typing import Optional
 import numpy as np
 from pyulog import ULog
 
@@ -13,12 +13,13 @@ class PreconditionError(Exception):
     """
 
 
-class Airtime(NamedTuple):
+class Airtime(object):
     """
     Airtime struct.
     """
-    take_off: float
-    landing: float
+    def __init__(self, take_off: float, landing: float):
+        self.take_off = take_off
+        self.landing = landing
 
 
 class InAirDetector(object):
