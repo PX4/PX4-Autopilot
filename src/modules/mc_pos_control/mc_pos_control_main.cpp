@@ -243,7 +243,7 @@ private:
 	 * @param velocity setpoint_z the velocity setpoint in the z-Direction
 	 */
 	void check_for_smooth_takeoff(const float &position_setpoint_z, const float &velocity_setpoint_z,
-				      const vehicle_constraints_s &constraints);
+				      const float &jerk_sp, const vehicle_constraints_s &constraints);
 
 	/**
 	 * Check if smooth takeoff has ended and updates accordingly.
@@ -702,7 +702,7 @@ MulticopterPositionControl::run()
 
 			// do smooth takeoff after delay if there's a valid vertical velocity or position
 			if (_spoolup_time_hysteresis.get_state() && PX4_ISFINITE(_states.position(2)) && PX4_ISFINITE(_states.velocity(2))) {
-				check_for_smooth_takeoff(setpoint.z, setpoint.vz, constraints);
+				check_for_smooth_takeoff(setpoint.z, setpoint.vz, setpoint.jerk_z, constraints);
 				update_smooth_takeoff(setpoint.z, setpoint.vz);
 			}
 
@@ -759,7 +759,6 @@ MulticopterPositionControl::run()
 
 			// Generate desired thrust and yaw.
 			_control.generateThrustYawSetpoint(_dt);
-
 
 			// Fill local position, velocity and thrust setpoint.
 			// This message contains setpoints where each type of setpoint is either the input to the PositionController
@@ -1034,7 +1033,7 @@ MulticopterPositionControl::start_flight_task()
 
 void
 MulticopterPositionControl::check_for_smooth_takeoff(const float &z_sp, const float &vz_sp,
-		const vehicle_constraints_s &constraints)
+		const float &jerk_sp, const vehicle_constraints_s &constraints)
 {
 	// Check for smooth takeoff
 	if (_vehicle_land_detected.landed && !_in_smooth_takeoff) {
@@ -1047,6 +1046,8 @@ MulticopterPositionControl::check_for_smooth_takeoff(const float &z_sp, const fl
 
 		// takeoff was initiated through velocity setpoint
 		_smooth_velocity_takeoff = PX4_ISFINITE(vz_sp) && vz_sp < -0.1f;
+		bool jerk_triggered_takeoff = PX4_ISFINITE(jerk_sp) && jerk_sp < -FLT_EPSILON;
+		_smooth_velocity_takeoff |= jerk_triggered_takeoff;
 
 		if ((PX4_ISFINITE(z_sp) && z_sp < _states.position(2) - min_altitude) ||  _smooth_velocity_takeoff) {
 			// There is a position setpoint above current position or velocity setpoint larger than
