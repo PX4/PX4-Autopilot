@@ -1509,7 +1509,7 @@ void Ekf2::run()
 
 				for (unsigned x = 0; x < 6; x++) {
 					for (unsigned y = x; y < 6; y++) {
-						*pos_p++ = _ekf.pose_covariances()(x, y);
+						*pos_p++ = pose_cov(x, y);
 					}
 				}
 
@@ -1519,9 +1519,11 @@ void Ekf2::run()
 				twist_cov.set(_ekf.velocity_covariances(), 0, 0);
 				float *vel_p = &odom.velocity_covariance[0];
 
-				for (unsigned x = 0; x < 6; x++)
-					for (unsigned y = x; y < 6; y++)
-						odom.velocity_covariance[x * 6 + y] = linvel_cov(x,y);
+				for (unsigned x = 0; x < 6; x++) {
+					for (unsigned y = x; y < 6; y++) {
+						*vel_p++ = twist_cov(x, y);
+					}
+				}
 
 				// publish vehicle local position data
 				_vehicle_local_position_pub.update();
