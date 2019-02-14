@@ -511,17 +511,17 @@ pipeline {
               sh('cd px4_msgs; git status; git add .; git commit -a -m "Update message definitions `date`" || true')
               sh('cd px4_msgs; git push origin master || true')
               // 'ros1' branch
-              sh('cd px4_msgs; git checkout feature/deploy_ros1_msgs')
+              sh('cd px4_msgs; git checkout ros1')
               sh('python msg/tools/uorb_to_ros_msgs.py msg/ px4_msgs/msg/')
               sh('cd px4_msgs; git status; git add .; git commit -a -m "Update message definitions `date`" || true')
-              sh('cd px4_msgs; git push origin feature/deploy_ros1_msgs || true')
+              sh('cd px4_msgs; git push origin ros1 || true')
               sh('rm -rf px4_msgs')
             }
           }
           when {
             anyOf {
               branch 'master'
-              branch 'feature/deploy_ros1_msgs' // for testing
+              branch 'pr-jenkins' // for testing
             }
           }
         }
