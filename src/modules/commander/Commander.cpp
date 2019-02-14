@@ -3988,6 +3988,7 @@ void Commander::data_link_check(bool &status_changed)
 			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_FLIGHT_TERMINATION) {
 				mavlink_log_critical(&mavlink_log_pub, "Avoidance system abort");
 				status_flags.avoidance_system_valid = false;
+				status_changed = true;
 			}
 
 			_avoidance_system_status_change = false;
