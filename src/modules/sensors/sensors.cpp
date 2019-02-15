@@ -628,6 +628,7 @@ Sensors::run()
 
 		/* wait for up to 50ms for data (Note that this implies, we can have a fail-over time of 50ms,
 		 * if a gyro fails) */
+		PX4_INFO("before poll sleep with fds %d", poll_fds.fd);
 		PX4_INFO("before poll with fds %d", poll_fds.fd);
 		int pret = px4_poll(&poll_fds, 1, 50);
 		PX4_INFO("after poll, pret: %d", pret);

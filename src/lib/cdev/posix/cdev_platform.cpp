@@ -357,7 +357,7 @@ extern "C" {
 
 			// If fd is valid
 			if (dev) {
-				PX4_DEBUG("%s: px4_poll: CDev->poll(setup) %d", thread_name, fds[i].fd);
+				PX4_INFO("%s: px4_poll: CDev->poll(setup) %d", thread_name, fds[i].fd);
 				ret = dev->poll(&filemap[fds[i].fd], &fds[i], true);
 
 				if (ret < 0) {

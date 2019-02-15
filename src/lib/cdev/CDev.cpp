@@ -303,7 +303,9 @@ CDev::poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup)
 			 * Check to see whether we should send a poll notification
 			 * immediately.
 			 */
+			PX4_INFO("fds->events before: %d", fds->events);
 			fds->revents |= fds->events & poll_state(filep);
+			PX4_INFO("fds->events after: %d", fds->events);
 
 			/* yes? post the notification */
 			if (fds->revents != 0) {

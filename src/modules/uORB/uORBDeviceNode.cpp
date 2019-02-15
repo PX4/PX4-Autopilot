@@ -485,9 +485,12 @@ uORB::DeviceNode::poll_state(cdev::file_t *filp)
 	/*
 	 * If the topic appears updated to the subscriber, say so.
 	 */
+	PX4_INFO("before appears_updated");
 	if (appears_updated(sd)) {
+		PX4_INFO("after appears_updated: updated!");
 		return POLLIN;
 	}
+	PX4_INFO("after appears_updated: not updated");
 
 	return 0;
 }
