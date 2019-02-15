@@ -169,9 +169,9 @@ private:
 	 * source: "Development of a Real-Time Attitude System Using a Quaternion
 	 * Parameterization and Non-Dedicated GPS Receivers", John B. Schleppe 1996
 	 */
-	const matrix::SquareMatrix<float, 3> propagate_covariances_from_quat_to_euler(
-		const matrix::Quatf q,
-		const matrix::SquareMatrix<float, 4> quat_covariances) const
+	matrix::SquareMatrix<float, 3> propagate_covariances_from_quat_to_euler(
+		const matrix::Quatf &q,
+		const matrix::SquareMatrix<float, 4> &quat_covariances) const
 	{
 		// Jacobian matrix (3x4) containing the partial derivatives of the
 		// Euler angle equations with respect to the quaternions
@@ -1613,19 +1613,7 @@ void Ekf2::run()
 			status.timestamp = now;
 			_ekf.get_state_delayed(status.states);
 			status.n_states = 24;
-<<<<<<< HEAD
-<<<<<<< HEAD
 			_ekf.covariances_diagonal().copyTo(status.covariances);
-=======
-<<<<<<< HEAD
-			_ekf.get_covariances(status.covariances);
-=======
-			*status.covariances = (*_ekf.covariances_diagonal().data());
->>>>>>> ekf2: tide new covariance methods
->>>>>>> ekf2: tide new covariance methods
-=======
-			*status.covariances = (*_ekf.covariances_diagonal().data());
->>>>>>> ekf2_main: fix covariance copy to messages
 			_ekf.get_gps_check_status(&status.gps_check_fail_flags);
 			// only report enabled GPS check failures (the param indexes are shifted by 1 bit, because they don't include
 			// the GPS Fix bit, which is always checked)
