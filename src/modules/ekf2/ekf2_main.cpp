@@ -1503,7 +1503,7 @@ void Ekf2::run()
 
 				// get the position and orientation covariances and fil the pose covariance matrix
 				// it's not a cross-covariance matrix but simplifies propagating the data
-				matrix::SquareMatrix<float, 6> pose_cov = matrix::eye<float, 6>() * 9999.0f;
+				matrix::SquareMatrix<float, 6> pose_cov = matrix::eye<float, 6>();
 				pose_cov.set(_ekf.position_covariances(), 0, 0);
 				pose_cov.set(propagate_covariances_from_quat_to_euler(q, _ekf.orientation_covariances()), 3, 3);
 
@@ -1515,7 +1515,7 @@ void Ekf2::run()
 
 				// get the velocity covariances
 				// note: unknown angular velocity covariance matrix
-				matrix::SquareMatrix<float, 6> twist_cov = matrix::eye<float, 6>() * 9999.0f;
+				matrix::SquareMatrix<float, 6> twist_cov = matrix::eye<float, 6>() * NAN;
 				twist_cov.set(_ekf.velocity_covariances(), 0, 0);
 				float *vel_p = &odom.velocity_covariance[0];
 
