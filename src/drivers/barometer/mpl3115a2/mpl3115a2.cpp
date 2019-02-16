@@ -54,7 +54,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <getopt.h>
+#include <px4_getopt.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
@@ -70,7 +70,6 @@
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
-#include <platforms/px4_getopt.h>
 
 #include "mpl3115a2.h"
 
@@ -897,8 +896,8 @@ int
 mpl3115a2_main(int argc, char *argv[])
 {
 	enum MPL3115A2_BUS busid = MPL3115A2_BUS_ALL;
-	int ch;
 	int myoptind = 1;
+	int ch;
 	const char *myoptarg = NULL;
 
 	/* jump over start/off/etc and look at options first */
@@ -916,6 +915,11 @@ mpl3115a2_main(int argc, char *argv[])
 			mpl3115a2::usage();
 			exit(0);
 		}
+	}
+
+	if (myoptind >= argc) {
+		mpl3115a2::usage();
+		exit(0);
 	}
 
 	const char *verb = argv[myoptind];

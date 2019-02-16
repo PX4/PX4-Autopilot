@@ -42,6 +42,7 @@
  */
 
 #include "batt_smbus.h"
+#include <px4_getopt.h>
 
 #include <stdlib.h>
 
@@ -100,9 +101,12 @@ BATT_SMBUS::~BATT_SMBUS()
 int BATT_SMBUS::task_spawn(int argc, char *argv[])
 {
 	enum BATT_SMBUS_BUS busid = BATT_SMBUS_BUS_ALL;
-	int ch;
 
-	while ((ch = getopt(argc, argv, "XTRIA:")) != EOF) {
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+
+	while ((ch = px4_getopt(argc, argv, "XTRIA:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			busid = BATT_SMBUS_BUS_I2C_EXTERNAL;
@@ -128,6 +132,11 @@ int BATT_SMBUS::task_spawn(int argc, char *argv[])
 			print_usage();
 			return PX4_ERROR;
 		}
+	}
+
+	if (myoptind >= argc) {
+		print_usage();
+		return PX4_ERROR;
 	}
 
 	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {

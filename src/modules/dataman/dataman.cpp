@@ -46,6 +46,7 @@
 #include <px4_module.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
+#include <px4_getopt.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -56,7 +57,6 @@
 #include <string.h>
 #include <semaphore.h>
 #include <unistd.h>
-#include <platforms/px4_getopt.h>
 #include <drivers/drv_hrt.h>
 
 #include "dataman.h"

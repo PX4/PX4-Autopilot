@@ -75,7 +75,6 @@
 #include <uORB/uORB.h>
 
 #include <float.h>
-#include <getopt.h>
 #include <lib/conversion/rotation.h>
 
 /*
