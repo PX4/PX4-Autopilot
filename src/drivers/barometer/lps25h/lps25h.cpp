@@ -73,7 +73,7 @@
 #include <uORB/uORB.h>
 
 #include <float.h>
-#include <getopt.h>
+#include <px4_getopt.h>
 
 #include "lps25h.h"
 
@@ -967,9 +967,12 @@ int
 lps25h_main(int argc, char *argv[])
 {
 	enum LPS25H_BUS busid = LPS25H_BUS_ALL;
-	int ch;
 
-	while ((ch = getopt(argc, argv, "XIS:")) != EOF) {
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+
+	while ((ch = px4_getopt(argc, argv, "XIS:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 #if (PX4_I2C_BUS_ONBOARD || PX4_SPIDEV_HMC)
 
@@ -992,7 +995,12 @@ lps25h_main(int argc, char *argv[])
 		}
 	}
 
-	const char *verb = argv[optind];
+	if (myoptind >= argc) {
+		lps25h::usage();
+		exit(0);
+	}
+
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
