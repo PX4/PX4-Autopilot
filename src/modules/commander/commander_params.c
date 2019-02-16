@@ -718,7 +718,7 @@ PARAM_DEFINE_INT32(COM_POS_FS_GAIN, 10);
 /**
  * Horizontal position error threshold.
  *
- * This is the horizontal position error (EPV) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ * This is the horizontal position error (EPH) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
  *
  * @unit m
  * @group Commander
