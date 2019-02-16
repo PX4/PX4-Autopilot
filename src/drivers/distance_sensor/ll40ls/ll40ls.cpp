@@ -49,7 +49,7 @@
 #include <cstdlib>
 #include <string.h>
 #include <stdio.h>
-#include <platforms/px4_getopt.h>
+#include <px4_getopt.h>
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.

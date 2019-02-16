@@ -52,6 +52,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <px4_getopt.h>
 
 #include <nuttx/wqueue.h>
 #include <drivers/drv_hrt.h>
@@ -293,10 +294,13 @@ rgbled_usage()
 int
 rgbled_pwm_main(int argc, char *argv[])
 {
+	int myoptind = 1;
 	int ch;
+	const char *myoptarg = nullptr;
+
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "a:b:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'a':
 			break;
@@ -310,12 +314,13 @@ rgbled_pwm_main(int argc, char *argv[])
 		}
 	}
 
-	if (optind >= argc) {
+	if (myoptind >= argc) {
 		rgbled_usage();
-		exit(1);
+		exit(0);
 	}
 
-	const char *verb = argv[optind];
+	const char *verb = argv[myoptind];
+
 
 	if (!strcmp(verb, "start")) {
 		if (g_rgbled != nullptr) {
