@@ -25,6 +25,12 @@ int main()
         TEST(fabs(data[i] - m2.data()[i]) < 1e-6f);
     }
 
+    Matrix3f m_nan;
+    m_nan.setNaN();
+    for(int i=0; i<9; i++) {
+        TEST(isnan(m_nan.data()[i]));
+    }
+
     float data2d[3][3] = {
         {1, 2, 3},
         {4, 5, 6},
