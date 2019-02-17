@@ -17,7 +17,7 @@ matrix:
       compiler: clang
       env: CMAKE_BUILD_TYPE=Release CC=clang CXX=clang++ FORMAT=OFF
     - os: osx
-      osx_image: xcode8
+      osx_image: xcode10.1
       env: CMAKE_BUILD_TYPE=Release FORMAT=OFF
 
 addons:
@@ -39,4 +39,3 @@ script:
 after_success:
   - if [ "${CMAKE_BUILD_TYPE}" = "Coverage" ]; then cpp-coveralls -i matrix; fi
   - if [ "${CMAKE_BUILD_TYPE}" = "Coverage" ]; then bash <(curl -s https://codecov.io/bash) -F matrix_tests; fi
-
