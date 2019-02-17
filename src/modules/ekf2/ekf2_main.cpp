@@ -1498,32 +1498,18 @@ void Ekf2::run()
 					lpos.hagl_max = INFINITY;
 				}
 
-				// get pose covariance and copy the URT to the uORB message
-				float *pos_p = &odom.pose_covariance[0];
-
-				// get the position and orientation covariances and fil the pose covariance matrix
+				// get the position and orientation covariances and fill the pose covariance matrix
 				// it's not a cross-covariance matrix but simplifies propagating the data
 				matrix::SquareMatrix<float, 6> pose_cov = matrix::eye<float, 6>();
 				pose_cov.set(_ekf.position_covariances(), 0, 0);
 				pose_cov.set(propagate_covariances_from_quat_to_euler(q, _ekf.orientation_covariances()), 3, 3);
-
-				for (unsigned x = 0; x < 6; x++) {
-					for (unsigned y = x; y < 6; y++) {
-						*pos_p++ = pose_cov(x, y);
-					}
-				}
+				pose_cov.upper_right_triangle().copyTo(odom.pose_covariance);
 
 				// get the velocity covariances
-				// note: unknown angular velocity covariance matrix
-				matrix::SquareMatrix<float, 6> twist_cov = matrix::eye<float, 6>() * NAN;
-				twist_cov.set(_ekf.velocity_covariances(), 0, 0);
-				float *vel_p = &odom.velocity_covariance[0];
-
-				for (unsigned x = 0; x < 6; x++) {
-					for (unsigned y = x; y < 6; y++) {
-						*vel_p++ = twist_cov(x, y);
-					}
-				}
+				// note: unknown angular velocity covariance matrix - diag set to NaN
+				matrix::SquareMatrix<float, 6> vel_cov = matrix::diag<float, 6>(matrix::nans<6, 1>());
+				vel_cov.set(_ekf.velocity_covariances(), 0, 0);
+				vel_cov.upper_right_triangle().copyTo(odom.velocity_covariance);
 
 				// publish vehicle local position data
 				_vehicle_local_position_pub.update();
