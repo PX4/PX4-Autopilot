@@ -5,15 +5,15 @@ using namespace matrix;
 
 int main()
 {
-    TEST(fabs(wrap_pi(4.0) - (4.0 - 2*M_PI)) < 1e-5);
-    TEST(fabs(wrap_pi(-4.0) - (-4.0 + 2*M_PI)) < 1e-5);
-    TEST(fabs(wrap_pi(3.0) - (3.0)) < 1e-3);
+    TEST(fabs(wrap_pi(4.0) - (4.0 - 2*M_PI)) < __FLT_EPSILON__);
+    TEST(fabs(wrap_pi(-4.0) - (-4.0 + 2*M_PI)) < __FLT_EPSILON__);
+    TEST(fabs(wrap_pi(3.0) - (3.0)) < __FLT_EPSILON__);
     TEST(!is_finite(wrap_pi(1000.0f)));
     TEST(!is_finite(wrap_pi(-1000.0f)));
     wrap_pi(NAN);
 
-    TEST(fabs(wrap_2pi(-4.0) - (-4.0 + 2*M_PI)) < 1e-5);
-    TEST(fabs(wrap_2pi(3.0) - (3.0)) < 1e-3);
+    TEST(fabs(wrap_2pi(-4.0) - (-4.0 + 2*M_PI)) < __FLT_EPSILON__);
+    TEST(fabs(wrap_2pi(3.0) - (3.0)) < __FLT_EPSILON__);
     TEST(!is_finite(wrap_2pi(1000.0f)));
     TEST(!is_finite(wrap_2pi(-1000.0f)));
     wrap_2pi(NAN);

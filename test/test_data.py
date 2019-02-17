@@ -75,9 +75,9 @@ psi = 0.3
 print('euler', phi, theta, psi)
 
 q = euler_to_quat(phi, theta, psi)
-assert(abs(norm(q) - 1) < 1e-10)
-assert(abs(norm(q) - 1) < 1e-10)
-assert(norm(array(quat_to_euler(q)) - array([phi, theta, psi])) < 1e-10)
+assert(abs(norm(q) - 1) < __FLT_EPSILON__)
+assert(abs(norm(q) - 1) < __FLT_EPSILON__)
+assert(norm(array(quat_to_euler(q)) - array([phi, theta, psi])) < __FLT_EPSILON__)
 print('\nq:')
 pprint(q)
 
@@ -85,8 +85,8 @@ dcm = euler_to_dcm(phi, theta, psi)
 assert(norm(dcm[:,0]) == 1)
 assert(norm(dcm[:,1]) == 1)
 assert(norm(dcm[:,2]) == 1)
-assert(abs(dcm[:,0].dot(dcm[:,1])) < 1e-10)
-assert(abs(dcm[:,0].dot(dcm[:,2])) < 1e-10)
+assert(abs(dcm[:,0].dot(dcm[:,1])) < __FLT_EPSILON__)
+assert(abs(dcm[:,0].dot(dcm[:,2])) < __FLT_EPSILON__)
 print('\ndcm:')
 pprint(dcm)
 

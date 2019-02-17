@@ -14,7 +14,7 @@ int main()
     Vector3<float> diag_check(1, 5, 10);
 
     TEST(isEqual(A.diag(), diag_check));
-    TEST(A.trace() - 16 < 1e-3);
+    TEST(A.trace() - 16 < __FLT_EPSILON__);
 
     float data_check[9] = {
         1.01158503f,  0.02190432f,  0.03238144f,
@@ -25,7 +25,7 @@ int main()
     float dt = 0.01f;
     SquareMatrix<float, 3> eA = expm(SquareMatrix<float, 3>(A*dt), 5);
     SquareMatrix<float, 3> eA_check(data_check);
-    TEST((eA - eA_check).abs().max() < 1e-3);
+    TEST((eA - eA_check).abs().max() < 1e-3f);
     return 0;
 }
 
