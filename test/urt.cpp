@@ -1,5 +1,4 @@
 #include "test_macros.hpp"
-#include "float.h"
 #include <matrix/math.hpp>
 
 using namespace matrix;
@@ -14,8 +13,8 @@ int main()
 
     SquareMatrix<float, 3> A(data);
 
-    for(int i=0; i<sizeof(urt); i++) {
-        TEST(fabs(urt[i] - A.urt().data()[i]) < FLT_EPSILON);
+    for(int i=0; i<6; i++) {
+        TEST(fabs(urt[i] - A.urt().data()[i]) < 1e-6f);
     }
 
     return 0;
