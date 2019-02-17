@@ -14,7 +14,7 @@ int main()
     SquareMatrix<float, 3> A(data);
 
     for(int i=0; i<6; i++) {
-        TEST(fabs(urt[i] - A.urt().data()[i]) < 1e-6f);
+        TEST(fabs(urt[i] - A.urt().data()[i]) < __FLT_EPSILON__);
     }
 
     return 0;

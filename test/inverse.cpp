@@ -20,7 +20,7 @@ int main()
     SquareMatrix<float, 3> A(data);
     SquareMatrix<float, 3> A_I = inv(A);
     SquareMatrix<float, 3> A_I_check(data_check);
-    TEST((A_I - A_I_check).abs().max() < 1e-5);
+    TEST((A_I - A_I_check).abs().max() < 1e-6f);
 
     // stess test
     SquareMatrix<float, n_large> A_large;
@@ -63,7 +63,7 @@ int main()
     SquareMatrix<float, 9> A2(data2);
     SquareMatrix<float, 9> A2_I = inv(A2);
     SquareMatrix<float, 9> A2_I_check(data2_check);
-    TEST((A2_I - A2_I_check).abs().max() < 1e-3);
+    TEST((A2_I - A2_I_check).abs().max() < 1e-3f);
     float data3[9] = {
         0, 1, 2,
         3, 4, 5,
