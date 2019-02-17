@@ -40,12 +40,14 @@
 
 #include "LandDetector.h"
 
-#include <cfloat>
+#include <float.h>
 
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <drivers/drv_hrt.h>
 #include "uORB/topics/parameter_update.h"
+
+using namespace time_literals;
 
 namespace land_detector
 {
@@ -58,6 +60,18 @@ LandDetector::LandDetector() :
 LandDetector::~LandDetector()
 {
 	perf_free(_cycle_perf);
+
+	if (_armingSub >= 0) {
+		orb_unsubscribe(_armingSub);
+	}
+
+	if (_parameterSub >= 0) {
+		orb_unsubscribe(_parameterSub);
+	}
+
+	if (_landDetectedPub) {
+		orb_unadvertise(_landDetectedPub);
+	}
 }
 
 int LandDetector::start()
@@ -78,11 +92,11 @@ void LandDetector::_cycle()
 {
 	perf_begin(_cycle_perf);
 
-	if (_object == nullptr) { // not initialized yet
+	if (_object.load() == nullptr) { // not initialized yet
 		// Advertise the first land detected uORB.
 		_landDetected.timestamp = hrt_absolute_time();
 		_landDetected.freefall = false;
-		_landDetected.landed = false;
+		_landDetected.landed = true;
 		_landDetected.ground_contact = false;
 		_landDetected.maybe_landed = false;
 
@@ -91,11 +105,12 @@ void LandDetector::_cycle()
 
 		// Initialize uORB topics.
 		_armingSub = orb_subscribe(ORB_ID(actuator_armed));
+		_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 		_initialize_topics();
 
 		_check_params(true);
 
-		_object = this;
+		_object.store(this);
 	}
 
 	_check_params(false);
@@ -107,12 +122,13 @@ void LandDetector::_cycle()
 	const bool freefallDetected = (_state == LandDetectionState::FREEFALL);
 	const bool maybe_landedDetected = (_state == LandDetectionState::MAYBE_LANDED);
 	const bool ground_contactDetected = (_state == LandDetectionState::GROUND_CONTACT);
-	const float alt_max = _get_max_altitude();
+	const float alt_max = _get_max_altitude() > 0.0f ? _get_max_altitude() : INFINITY;
 
 	const hrt_abstime now = hrt_absolute_time();
 
-	// Only publish very first time or when the result has changed.
-	if ((_landDetectedPub == nullptr) ||
+	// publish at 1 Hz, very first time, or when the result has changed
+	if ((hrt_elapsed_time(&_landDetected.timestamp) >= 1_s) ||
+	    (_landDetectedPub == nullptr) ||
 	    (_landDetected.landed != landDetected) ||
 	    (_landDetected.freefall != freefallDetected) ||
 	    (_landDetected.maybe_landed != maybe_landedDetected) ||
@@ -155,7 +171,7 @@ void LandDetector::_cycle()
 
 		// Schedule next cycle.
 		work_queue(HPWORK, &_work, (worker_t)&LandDetector::_cycle_trampoline, this,
-			   USEC2TICK(1000000 / LAND_DETECTOR_UPDATE_RATE_HZ));
+			   USEC2TICK(1_s / LAND_DETECTOR_UPDATE_RATE_HZ));
 
 	} else {
 		exit_and_cleanup();

@@ -74,32 +74,36 @@ if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_t
 	add_custom_command(OUTPUT ${topic_bridge_files_out}
 		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/msg/tools/generate_microRTPS_bridge.py
 			--fastrtpsgen-dir $ENV{FASTRTPSGEN_DIR}
-			${send_topic_opt} ${send_topic_files}
-			${receive_topic_opt} ${receive_topic_files}
+			--generate-idl
+			--mkdir-build
+			--generate-cmakelists
 			--topic-msg-dir ${PX4_SOURCE_DIR}/msg
+			--uorb-templates-dir templates/uorb_microcdr
+			--urtps-templates-dir templates/urtps
 			--agent-outdir ${CMAKE_CURRENT_BINARY_DIR}/micrortps_agent
 			--client-outdir ${CMAKE_CURRENT_BINARY_DIR}/micrortps_client
-			>micrortps_bridge.log 2>&1 || cat micrortps_bridge.log # quiet successful build output
+			--idl-dir ${CMAKE_CURRENT_BINARY_DIR}/micrortps_agent/idl
+			>micrortps_bridge.log > /dev/null
 		DEPENDS ${send_topic_files} ${receive_topic_files}
 		COMMENT "Generating RTPS topic bridge"
 	)
 	add_custom_target(topic_bridge_files DEPENDS ${topic_bridge_files_out})
 
-	include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-	include_directories(${CMAKE_CURRENT_BINARY_DIR}/micrortps_client)
-
 	px4_add_module(
 		MODULE modules__micrortps_bridge__micrortps_client
 		MAIN micrortps_client
 		STACK_MAIN 4096
+		INCLUDES
+			${CMAKE_CURRENT_SOURCE_DIR}
+			${CMAKE_CURRENT_BINARY_DIR}/micrortps_client
 		SRCS
 			microRTPS_client_main.cpp
 			${msg_out_path}/micrortps_client/microRTPS_client.cpp
 			${msg_out_path}/micrortps_client/microRTPS_transport.cpp
+		MODULE_CONFIG
+			module.yaml
 		DEPENDS
-			platforms__common
 			topic_bridge_files
-			uorb_headers_microcdr
 	)
 	target_link_libraries(modules__micrortps_bridge__micrortps_client PRIVATE uorb_msgs_microcdr)
 endif()

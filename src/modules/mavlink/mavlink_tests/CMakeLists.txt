@@ -38,19 +38,13 @@ px4_add_module(
 	MAIN mavlink_tests
 	STACK_MAIN 5000
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
 		-DMAVLINK_FTP_UNIT_TEST
 		#-DMAVLINK_FTP_DEBUG
 		-DMavlinkStream=MavlinkStreamTest
 		-DMavlinkFTP=MavlinkFTPTest
-		-Wno-extra-semi
 	SRCS
 		mavlink_tests.cpp
 		mavlink_ftp_test.cpp
 		../mavlink_stream.cpp
 		../mavlink_ftp.cpp
-		../mavlink.c
-	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

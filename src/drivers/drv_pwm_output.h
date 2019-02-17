@@ -46,6 +46,7 @@
 
 #include <stdint.h>
 #include <sys/ioctl.h>
+#include <board_config.h>
 
 #include "drv_orb_dev.h"
 
@@ -189,10 +190,6 @@ struct pwm_output_rc_config {
 /** start DSM bind */
 #define DSM_BIND_START	_PX4_IOC(_PWM_SERVO_BASE, 10)
 
-#define DSM2_BIND_PULSES 3	/* DSM_BIND_START ioctl parameter, pulses required to start dsm2 pairing */
-#define DSMX_BIND_PULSES 7	/* DSM_BIND_START ioctl parameter, pulses required to start dsmx pairing */
-#define DSMX8_BIND_PULSES 9 	/* DSM_BIND_START ioctl parameter, pulses required to start 8 or more channel dsmx pairing */
-
 /** power up DSM receiver */
 #define DSM_BIND_POWER_UP _PX4_IOC(_PWM_SERVO_BASE, 11)
 
@@ -248,15 +245,6 @@ struct pwm_output_rc_config {
 /** force safety switch on (to enable use of safety switch) */
 #define PWM_SERVO_SET_FORCE_SAFETY_ON		_PX4_IOC(_PWM_SERVO_BASE, 28)
 
-/** set RC config for a channel. This takes a pointer to pwm_output_rc_config */
-#define PWM_SERVO_SET_RC_CONFIG			_PX4_IOC(_PWM_SERVO_BASE, 29)
-
-/** set the 'OVERRIDE OK' bit, which allows for RC control on FMU loss */
-#define PWM_SERVO_SET_OVERRIDE_OK		_PX4_IOC(_PWM_SERVO_BASE, 30)
-
-/** clear the 'OVERRIDE OK' bit, which allows for RC control on FMU loss */
-#define PWM_SERVO_CLEAR_OVERRIDE_OK		_PX4_IOC(_PWM_SERVO_BASE, 31)
-
 /** setup OVERRIDE_IMMEDIATE behaviour on FMU fail */
 #define PWM_SERVO_SET_OVERRIDE_IMMEDIATE	_PX4_IOC(_PWM_SERVO_BASE, 32)
 
@@ -271,12 +259,18 @@ struct pwm_output_rc_config {
 #define PWM_SERVO_MODE_3PWM         4
 #define PWM_SERVO_MODE_3PWM1CAP     5
 #define PWM_SERVO_MODE_4PWM         6
-#define PWM_SERVO_MODE_6PWM         7
-#define PWM_SERVO_MODE_8PWM         8
-#define PWM_SERVO_MODE_14PWM        9
-#define PWM_SERVO_MODE_4CAP        10
-#define PWM_SERVO_MODE_5CAP        11
-#define PWM_SERVO_MODE_6CAP        12
+#define PWM_SERVO_MODE_4PWM1CAP     7
+#define PWM_SERVO_MODE_4PWM2CAP     8
+#define PWM_SERVO_MODE_5PWM         9
+#define PWM_SERVO_MODE_5PWM1CAP    10
+#define PWM_SERVO_MODE_6PWM        11
+#define PWM_SERVO_MODE_8PWM        12
+#define PWM_SERVO_MODE_14PWM       13
+#define PWM_SERVO_MODE_4CAP        14
+#define PWM_SERVO_MODE_5CAP        15
+#define PWM_SERVO_MODE_6CAP        16
+#define PWM_SERVO_ENTER_TEST_MODE  17
+#define PWM_SERVO_EXIT_TEST_MODE   18
 #define PWM_SERVO_SET_MODE         _PX4_IOC(_PWM_SERVO_BASE, 34)
 
 /*

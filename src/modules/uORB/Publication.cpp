@@ -69,7 +69,8 @@ bool PublicationBase::update(void *data)
 		orb_advert_t handle = nullptr;
 
 		if (_priority > 0) {
-			handle = orb_advertise_multi(_meta, data, &_instance, _priority);
+			int instance;
+			handle = orb_advertise_multi(_meta, data, &instance, _priority);
 
 		} else {
 			handle = orb_advertise(_meta, data);

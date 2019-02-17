@@ -61,12 +61,15 @@
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/err.h>
 #include <systemlib/mavlink_log.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <dataman/dataman.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
+
+using matrix::wrap_pi;
 
 
 /**
@@ -158,7 +161,7 @@ private:
 	/**
 	 * Shim for calling task_main from task_create.
 	 */
-	static void	task_main_trampoline(int argc, char *argv[]);
+	static int	task_main_trampoline(int argc, char *argv[]);
 };
 
 namespace bottle_drop
@@ -188,6 +191,7 @@ BottleDrop::BottleDrop() :
 	_onboard_mission {},
 	_onboard_mission_pub(nullptr)
 {
+	_onboard_mission.dataman_id = DM_KEY_WAYPOINTS_ONBOARD;
 }
 
 BottleDrop::~BottleDrop()
@@ -202,7 +206,7 @@ BottleDrop::~BottleDrop()
 
 		do {
 			/* wait 20ms */
-			usleep(20000);
+			px4_usleep(20000);
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
@@ -218,8 +222,6 @@ BottleDrop::~BottleDrop()
 int
 BottleDrop::start()
 {
-	ASSERT(_main_task == -1);
-
 	/* start the task */
 	_main_task = px4_task_spawn_cmd("bottle_drop",
 					SCHED_DEFAULT,
@@ -257,7 +259,7 @@ BottleDrop::open_bay()
 
 	actuators_publish();
 
-	usleep(500 * 1000);
+	px4_usleep(500 * 1000);
 }
 
 void
@@ -272,7 +274,7 @@ BottleDrop::close_bay()
 	actuators_publish();
 
 	// delay until the bay is closed
-	usleep(500 * 1000);
+	px4_usleep(500 * 1000);
 }
 
 void
@@ -288,7 +290,7 @@ BottleDrop::drop()
 	}
 
 	while (hrt_elapsed_time(&_doors_opened) < 500 * 1000 && hrt_elapsed_time(&starttime) < 2000000) {
-		usleep(50000);
+		px4_usleep(50000);
 		warnx("delayed by door!");
 	}
 
@@ -300,7 +302,7 @@ BottleDrop::drop()
 	warnx("dropping now");
 
 	// Give it time to drop
-	usleep(1000 * 1000);
+	px4_usleep(1000 * 1000);
 }
 
 void
@@ -525,7 +527,7 @@ BottleDrop::task_main()
 				float approach_direction = get_bearing_to_next_waypoint(flight_vector_s.lat, flight_vector_s.lon, flight_vector_e.lat,
 							   flight_vector_e.lon);
 
-				approach_error = _wrap_pi(ground_direction - approach_direction);
+				approach_error = wrap_pi(ground_direction - approach_direction);
 
 				if (counter % 90 == 0) {
 					mavlink_log_info(&_mavlink_log_pub, "drop distance %u, heading error %u", (unsigned)distance_real,
@@ -621,19 +623,20 @@ BottleDrop::task_main()
 						warnx("ERROR: could not save onboard WP");
 					}
 
+					_onboard_mission.timestamp = hrt_absolute_time();
 					_onboard_mission.count = 2;
 					_onboard_mission.current_seq = 0;
 
 					if (_onboard_mission_pub != nullptr) {
-						orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
+						orb_publish(ORB_ID(mission), _onboard_mission_pub, &_onboard_mission);
 
 					} else {
-						_onboard_mission_pub = orb_advertise(ORB_ID(onboard_mission), &_onboard_mission);
+						_onboard_mission_pub = orb_advertise(ORB_ID(mission), &_onboard_mission);
 					}
 
 					float approach_direction = get_bearing_to_next_waypoint(flight_vector_s.lat, flight_vector_s.lon, flight_vector_e.lat,
 								   flight_vector_e.lon);
-					mavlink_log_critical(&_mavlink_log_pub, "position set, approach heading: %u", (unsigned)distance_real,
+					mavlink_log_critical(&_mavlink_log_pub, "position set, approach heading: %u",
 							     (unsigned)math::degrees(approach_direction + M_PI_F));
 
 					_drop_state = DROP_STATE_TARGET_SET;
@@ -645,8 +648,9 @@ BottleDrop::task_main()
 							     flight_vector_e.lon);
 
 					if (distance_wp2 < distance_real) {
+						_onboard_mission.timestamp = hrt_absolute_time();
 						_onboard_mission.current_seq = 0;
-						orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
+						orb_publish(ORB_ID(mission), _onboard_mission_pub, &_onboard_mission);
 
 					} else {
 
@@ -683,8 +687,9 @@ BottleDrop::task_main()
 									     flight_vector_e.lon);
 
 							if (distance_wp2 < distance_real) {
+								_onboard_mission.timestamp = hrt_absolute_time();
 								_onboard_mission.current_seq = 0;
-								orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
+								orb_publish(ORB_ID(mission), _onboard_mission_pub, &_onboard_mission);
 							}
 						}
 					}
@@ -702,9 +707,11 @@ BottleDrop::task_main()
 					mavlink_log_info(&_mavlink_log_pub, "#audio: closing bay");
 
 					// remove onboard mission
+					_onboard_mission.timestamp = hrt_absolute_time();
+					_onboard_mission.dataman_id = DM_KEY_WAYPOINTS_ONBOARD;
 					_onboard_mission.current_seq = -1;
 					_onboard_mission.count = 0;
-					orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
+					orb_publish(ORB_ID(mission), _onboard_mission_pub, &_onboard_mission);
 				}
 
 				break;
@@ -719,7 +726,7 @@ BottleDrop::task_main()
 			// update_actuators();
 
 			// run at roughly 100 Hz
-			usleep(sleeptime_us);
+			px4_usleep(sleeptime_us);
 
 			dt_runs = hrt_elapsed_time(&last_run) / 1e6f;
 			last_run = hrt_absolute_time();
@@ -804,7 +811,8 @@ BottleDrop::handle_command(struct vehicle_command_s *cmd)
 			_onboard_mission.current_seq = -1;
 
 			if (_onboard_mission_pub != nullptr) {
-				orb_publish(ORB_ID(onboard_mission), _onboard_mission_pub, &_onboard_mission);
+				_onboard_mission.timestamp = hrt_absolute_time();
+				orb_publish(ORB_ID(mission), _onboard_mission_pub, &_onboard_mission);
 			}
 
 		} else {
@@ -861,10 +869,11 @@ BottleDrop::answer_command(struct vehicle_command_s *cmd, unsigned result)
 	}
 }
 
-void
+int
 BottleDrop::task_main_trampoline(int argc, char *argv[])
 {
 	bottle_drop::g_bottle_drop->task_main();
+	return 0;
 }
 
 static void usage()

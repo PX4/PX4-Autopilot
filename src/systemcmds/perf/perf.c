@@ -39,7 +39,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "systemlib/perf_counter.h"
+#include <perf/perf_counter.h>
 
 __EXPORT int perf_main(int argc, char *argv[]);
 

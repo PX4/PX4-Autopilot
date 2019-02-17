@@ -39,33 +39,12 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <math.h>
-#include <fcntl.h>
-
-#include <geo/geo.h>
-
-#include <systemlib/mavlink_log.h>
-#include <systemlib/err.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/position_setpoint_triplet.h>
-
 #include "loiter.h"
 #include "navigator.h"
 
-Loiter::Loiter(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
-	_param_yawmode(this, "MIS_YAWMODE", false),
-	_loiter_pos_set(false)
-{
-	// load initial params
-	updateParams();
-}
-
-Loiter::~Loiter()
+Loiter::Loiter(Navigator *navigator) :
+	MissionBlock(navigator),
+	ModuleParams(navigator)
 {
 }
 
@@ -133,7 +112,6 @@ Loiter::set_loiter_position()
 	pos_sp_triplet->next.valid = false;
 
 	_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
-
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
@@ -160,26 +138,7 @@ Loiter::reposition()
 		memcpy(&pos_sp_triplet->current, &rep->current, sizeof(rep->current));
 		pos_sp_triplet->next.valid = false;
 
-		// set yaw (depends on the value of parameter MIS_YAWMODE):
-		// MISSION_YAWMODE_NONE: do not change yaw setpoint
-		// MISSION_YAWMODE_FRONT_TO_WAYPOINT: point to next waypoint
-		if (_param_yawmode.get() != MISSION_YAWMODE_NONE) {
-			float travel_dist = get_distance_to_next_waypoint(_navigator->get_global_position()->lat,
-					    _navigator->get_global_position()->lon,
-					    pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
-
-			if (travel_dist > 1.0f) {
-				// calculate direction the vehicle should point to.
-				pos_sp_triplet->current.yaw = get_bearing_to_next_waypoint(
-								      _navigator->get_global_position()->lat,
-								      _navigator->get_global_position()->lon,
-								      pos_sp_triplet->current.lat,
-								      pos_sp_triplet->current.lon);
-			}
-		}
-
 		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
-
 		_navigator->set_position_setpoint_triplet_updated();
 
 		// mark this as done

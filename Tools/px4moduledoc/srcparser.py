@@ -8,8 +8,11 @@ class ModuleDocumentation(object):
     documentation for a single module
     """
 
+    # If you add categories or subcategories, they also need to be added to the
+    # TOC in https://github.com/PX4/Devguide/blob/master/en/SUMMARY.md
     valid_categories = ['driver', 'estimator', 'controller', 'system',
-                        'communication', 'command']
+                        'communication', 'command', 'template']
+    valid_subcategories = ['', 'distance_sensor']
 
     max_line_length = 80 # wrap lines that are longer than this
 
@@ -19,6 +22,7 @@ class ModuleDocumentation(object):
         """
         self._name = ''
         self._category = ''
+        self._subcategory = ''
         self._doc_string = ''
         self._usage_string = ''
         self._first_command = True
@@ -43,7 +47,6 @@ class ModuleDocumentation(object):
         assert(len(args) == 1) # description
         self._doc_string = self._get_string(args[0])
 
-
     def _handle_usage_name(self, args):
         assert(len(args) == 2) # executable_name, category
         self._name = self._get_string(args[0])
@@ -51,6 +54,10 @@ class ModuleDocumentation(object):
 
         self._usage_string = "%s <command> [arguments...]\n" % self._name
         self._usage_string += " Commands:\n"
+
+    def _handle_usage_subcategory(self, args):
+        assert(len(args) == 1) # description
+        self._subcategory = self._get_string(args[0])
 
     def _handle_usage_name_simple(self, args):
         assert(len(args) == 2) # executable_name, category
@@ -92,7 +99,8 @@ class ModuleDocumentation(object):
         description = self._get_string(args[4])
         if self._is_bool_true(args[5]):
             self._usage_string += "     [-%s <val>]  %s\n" % (option_char, description)
-            self._usage_string += "                 default: %i\n" % default_val
+            if default_val != -1:
+                self._usage_string += "                 default: %i\n" % default_val
         else:
             self._usage_string += "     -%s <val>    %s\n" % (option_char, description)
 
@@ -103,7 +111,8 @@ class ModuleDocumentation(object):
         description = self._get_string(args[4])
         if self._is_bool_true(args[5]):
             self._usage_string += "     [-%s <val>]  %s\n" % (option_char, description)
-            self._usage_string += "                 default: %.1f\n" % default_val
+            if not math.isnan(default_val):
+                self._usage_string += "                 default: %.1f\n" % default_val
         else:
             self._usage_string += "     -%s <val>    %s\n" % (option_char, description)
 
@@ -194,6 +203,9 @@ class ModuleDocumentation(object):
     def category(self):
         return self._category
 
+    def subcategory(self):
+        return self._subcategory
+
     def scope(self):
         return self._scope
 
@@ -247,11 +259,18 @@ class SourceParser(object):
         self._modules = {} # all found modules: key is the module name
         self._consistency_checks_failure = False # one or more checks failed
 
+        self._comment_remove_pattern = re.compile(
+            r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
+            re.DOTALL | re.MULTILINE)
+
     def Parse(self, scope, contents):
         """
         Incrementally parse program contents and append all found documentations
         to the list.
         """
+
+        # remove comments from source
+        contents = self._comment_remover(contents)
 
         extracted_function_calls = [] # list of tuples: (FUNC_NAME, list(ARGS))
 
@@ -295,6 +314,9 @@ class SourceParser(object):
             if not module_doc.category() in ModuleDocumentation.valid_categories:
                 raise  Exception('Invalid/unknown category ' +
                         module_doc.category() + ' for ' + scope)
+            if not module_doc.subcategory() in ModuleDocumentation.valid_subcategories:
+                raise  Exception('Invalid/unknown subcategory ' +
+                        module_doc.subcategory() + ' for ' + scope)
 
             self._do_consistency_check(contents, scope, module_doc)
 
@@ -302,6 +324,16 @@ class SourceParser(object):
 
         return True
 
+    def _comment_remover(self, text):
+        """ remove C++ & C style comments.
+            Source: https://stackoverflow.com/a/241506 """
+        def replacer(match):
+            s = match.group(0)
+            if s.startswith('/'):
+                return " " # note: a space and not an empty string
+            else:
+                return s
+        return re.sub(self._comment_remove_pattern, replacer, text)
 
     def _do_consistency_check(self, contents, scope, module_doc):
         """
@@ -464,19 +496,25 @@ class SourceParser(object):
 
     def GetModuleGroups(self):
         """
-        Returns a dictionary of all categories with a list of associated modules.
+        Returns a dictionary of all categories with a dictonary of subcategories
+        that contain a list of associated modules.
         """
         groups = {}
         for module_name in self._modules:
             module = self._modules[module_name]
+            subcategory = module.subcategory()
             if module.category() in groups:
-                groups[module.category()].append(module)
+                if subcategory in groups[module.category()]:
+                    groups[module.category()][subcategory].append(module)
+                else:
+                    groups[module.category()][subcategory] = [module]
             else:
-                groups[module.category()]= [module]
+                groups[module.category()] = {subcategory: [module]}
 
         # sort by module name
         for category in groups:
             group = groups[category]
-            groups[category] = sorted(group, key=lambda x: x.name())
+            for subcategory in group:
+                group[subcategory] = sorted(group[subcategory], key=lambda x: x.name())
         return groups
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +35,8 @@
  * @file px4io.h
  *
  * General defines and structures for the PX4IO module firmware.
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #pragma once
@@ -48,7 +50,7 @@
 
 #include "protocol.h"
 
-#include <systemlib/pwm_limit/pwm_limit.h>
+#include <pwm_limit/pwm_limit.h>
 
 /*
  hotfix: we are critically short of memory in px4io and this is the
@@ -130,6 +132,7 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 #define r_setup_sbus_rate	r_page_setup[PX4IO_P_SETUP_SBUS_RATE]
 #define r_setup_thr_fac		r_page_setup[PX4IO_P_SETUP_THR_MDL_FAC]
 #define r_setup_slew_max	r_page_setup[PX4IO_P_SETUP_MOTOR_SLEW_MAX]
+#define r_setup_airmode		r_page_setup[PX4IO_P_SETUP_AIRMODE]
 
 #define r_control_values	(&r_page_controls[0])
 
@@ -151,6 +154,7 @@ struct sys_state_s {
 extern struct sys_state_s system_state;
 extern float dt;
 extern bool update_mc_thrust_param;
+extern bool update_trims;
 
 /*
  * PWM limit structure

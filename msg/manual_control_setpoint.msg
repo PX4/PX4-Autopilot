@@ -1,6 +1,7 @@
+uint64 timestamp			# time since system start (microseconds)
 
 uint8 SWITCH_POS_NONE = 0		# switch is not mapped
-uint8 SWITCH_POS_ON = 1			# switch activated (value = 1)
+uint8 SWITCH_POS_ON = 1		# switch activated (value = 1)
 uint8 SWITCH_POS_MIDDLE = 2		# middle position (value = 0)
 uint8 SWITCH_POS_OFF = 3		# switch not activated (value = -1)
 int8 MODE_SLOT_NONE = -1		# no mode slot assigned

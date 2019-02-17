@@ -51,48 +51,25 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/follow_target.h>
-#include <lib/geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <lib/mathlib/math/Limits.hpp>
 
 #include "navigator.h"
 
+using matrix::wrap_pi;
+
 constexpr float FollowTarget::_follow_position_matricies[4][9];
 
-FollowTarget::FollowTarget(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
-	_navigator(navigator),
-	_param_min_alt(this, "NAV_MIN_FT_HT", false),
-	_param_tracking_dist(this, "NAV_FT_DST", false),
-	_param_tracking_side(this, "NAV_FT_FS", false),
-	_param_tracking_resp(this, "NAV_FT_RS", false),
-	_param_yaw_auto_max(this, "MC_YAWRAUTO_MAX", false),
-	_follow_target_state(SET_WAIT_FOR_TARGET_POSITION),
-	_follow_target_position(FOLLOW_FROM_BEHIND),
-	_follow_target_sub(-1),
-	_step_time_in_ms(0.0f),
-	_follow_offset(OFFSET_M),
-	_target_updates(0),
-	_last_update_time(0),
-	_current_target_motion(),
-	_previous_target_motion(),
-	_yaw_rate(0.0F),
-	_responsiveness(0.0F),
-	_yaw_auto_max(0.0F),
-	_yaw_angle(0.0F)
+FollowTarget::FollowTarget(Navigator *navigator) :
+	MissionBlock(navigator),
+	ModuleParams(navigator)
 {
-	updateParams();
-	_current_target_motion = {};
-	_previous_target_motion =  {};
 	_current_vel.zero();
 	_step_vel.zero();
 	_est_target_vel.zero();
 	_target_distance.zero();
 	_target_position_offset.zero();
 	_target_position_delta.zero();
-}
-
-FollowTarget::~FollowTarget()
-{
 }
 
 void FollowTarget::on_inactive()
@@ -105,8 +82,6 @@ void FollowTarget::on_activation()
 	_follow_offset = _param_tracking_dist.get() < 1.0F ? 1.0F : _param_tracking_dist.get();
 
 	_responsiveness = math::constrain((float) _param_tracking_resp.get(), .1F, 1.0F);
-
-	_yaw_auto_max = math::radians(_param_yaw_auto_max.get());
 
 	_follow_target_position = _param_tracking_side.get();
 
@@ -124,7 +99,6 @@ void FollowTarget::on_activation()
 void FollowTarget::on_active()
 {
 	struct map_projection_reference_s target_ref;
-	math::Vector<3> target_reported_velocity(0, 0, 0);
 	follow_target_s target_motion_with_offset = {};
 	uint64_t current_time = hrt_absolute_time();
 	bool _radius_entered = false;
@@ -154,9 +128,6 @@ void FollowTarget::on_active()
 						     1 - _responsiveness);
 		_current_target_motion.lon = (_current_target_motion.lon * (double)_responsiveness) + target_motion.lon * (double)(
 						     1 - _responsiveness);
-
-		target_reported_velocity(0) = _current_target_motion.vx;
-		target_reported_velocity(1) = _current_target_motion.vy;
 
 	} else if (((current_time - _current_target_motion.timestamp) / 1000) > TARGET_TIMEOUT_MS && target_velocity_valid()) {
 		reset_target_validity();
@@ -231,11 +202,7 @@ void FollowTarget::on_active()
 						_current_target_motion.lat,
 						_current_target_motion.lon);
 
-				_yaw_rate = (_yaw_angle - _navigator->get_global_position()->yaw) / (dt_ms / 1000.0F);
-
-				_yaw_rate = _wrap_pi(_yaw_rate);
-
-				_yaw_rate = math::constrain(_yaw_rate, -1.0F * _yaw_auto_max, _yaw_auto_max);
+				_yaw_rate = wrap_pi((_yaw_angle - _navigator->get_global_position()->yaw) / (dt_ms / 1000.0f));
 
 			} else {
 				_yaw_angle = _yaw_rate = NAN;

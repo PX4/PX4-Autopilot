@@ -36,18 +36,16 @@ px4_add_module(
 	MAIN send_event
 	STACK_MAIN 2200
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
 	SRCS
+		rc_loss_alarm.cpp
 		send_event.cpp
+		set_leds.cpp
+		status_display.cpp
+		subscriber_handler.cpp
 		temperature_calibration/accel.cpp
 		temperature_calibration/baro.cpp
 		temperature_calibration/gyro.cpp
 		temperature_calibration/task.cpp
-		subscriber_handler.cpp
-		status_display.cpp
-		set_leds.cpp
 	DEPENDS
-		platforms__common
 		modules__uORB
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

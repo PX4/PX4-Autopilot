@@ -49,8 +49,8 @@
  */
 struct orb_metadata {
 	const char *o_name;		/**< unique object name */
-	const size_t o_size;		/**< object size */
-	const size_t o_size_no_padding;	/**< object size w/o padding at the end (for logger) */
+	const uint16_t o_size;		/**< object size */
+	const uint16_t o_size_no_padding;	/**< object size w/o padding at the end (for logger) */
 	const char *o_fields;		/**< semicolon separated list of fields (with type) */
 };
 
@@ -162,6 +162,11 @@ extern orb_advert_t orb_advertise_multi_queue(const struct orb_metadata *meta, c
 extern int orb_unadvertise(orb_advert_t handle) __EXPORT;
 
 /**
+ * @see uORB::Manager::orb_publish()
+ */
+extern int	orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data) __EXPORT;
+
+/**
  * Advertise as the publisher of a topic.
  *
  * This performs the initial advertisement of a topic; it creates the topic
@@ -169,13 +174,23 @@ extern int orb_unadvertise(orb_advert_t handle) __EXPORT;
  *
  * @see uORB::Manager::orb_advertise_multi() for meaning of the individual parameters
  */
-extern int orb_publish_auto(const struct orb_metadata *meta, orb_advert_t *handle, const void *data, int *instance,
-			    int priority);
+static inline int orb_publish_auto(const struct orb_metadata *meta, orb_advert_t *handle, const void *data,
+				   int *instance,
+				   int priority)
+{
+	if (!*handle) {
+		*handle = orb_advertise_multi(meta, data, instance, priority);
 
-/**
- * @see uORB::Manager::orb_publish()
- */
-extern int	orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data) __EXPORT;
+		if (*handle) {
+			return 0;
+		}
+
+	} else {
+		return orb_publish(meta, *handle, data);
+	}
+
+	return -1;
+}
 
 /**
  * @see uORB::Manager::orb_subscribe()

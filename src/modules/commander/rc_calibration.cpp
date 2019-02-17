@@ -48,13 +48,13 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <systemlib/mavlink_log.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <systemlib/err.h>
 
 int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 {
 	int sub_man = orb_subscribe(ORB_ID(manual_control_setpoint));
-	usleep(400000);
+	px4_usleep(400000);
 	struct manual_control_setpoint_s sp;
 	bool changed;
 	orb_check(sub_man, &changed);

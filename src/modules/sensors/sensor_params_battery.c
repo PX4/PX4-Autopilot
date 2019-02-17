@@ -105,3 +105,13 @@ PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
  * @group Battery Calibration
  */
 PARAM_DEFINE_INT32(BAT_SOURCE, 0);
+
+/**
+ * Battery ADC Channel
+ *
+ * This parameter specifies the ADC channel used to monitor voltage of main power battery.
+ * A value of -1 means to use the board default.
+ *
+ * @group Battery Calibration
+ */
+PARAM_DEFINE_INT32(BAT_ADC_CHANNEL, -1);

@@ -1,0 +1,111 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file rc_loss_alarm.cpp
+ *
+ */
+
+#include "rc_loss_alarm.h"
+
+#include <px4_defines.h>
+
+#include <drivers/drv_hrt.h>
+#include <stdint.h>
+
+#include <tunes/tune_definition.h>
+
+#include <uORB/topics/tune_control.h>
+
+namespace events
+{
+namespace rc_loss
+{
+
+RC_Loss_Alarm::RC_Loss_Alarm(const events::SubscriberHandler &subscriber_handler)
+	: _subscriber_handler(subscriber_handler)
+{
+}
+
+bool RC_Loss_Alarm::check_for_updates()
+{
+	if (_subscriber_handler.vehicle_status_updated()) {
+		orb_copy(ORB_ID(vehicle_status), _subscriber_handler.get_vehicle_status_sub(), &_vehicle_status);
+		return true;
+	}
+
+	return false;
+}
+
+void RC_Loss_Alarm::process()
+{
+	if (!check_for_updates()) {
+		return;
+	}
+
+	if (!_was_armed &&
+	    _vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+
+		_was_armed = true;	// Once true, impossible to go back to false
+	}
+
+	if (!_had_rc && !_vehicle_status.rc_signal_lost) {
+
+		_had_rc = true;
+	}
+
+	if (_was_armed && _had_rc && _vehicle_status.rc_signal_lost &&
+	    _vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
+
+		play_tune();
+	}
+}
+
+void RC_Loss_Alarm::play_tune()
+{
+	struct tune_control_s tune_control = {};
+	tune_control.tune_id = static_cast<int>(TuneID::ERROR_TUNE);
+	tune_control.strength = tune_control_s::STRENGTH_MAX;
+	tune_control.tune_override = 1;
+	tune_control.timestamp = hrt_absolute_time();
+
+	if (_tune_control_pub == nullptr) {
+		_tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+
+	} else	{
+		orb_publish(ORB_ID(tune_control), _tune_control_pub, &tune_control);
+	}
+}
+
+} /* namespace rc_loss */
+} /* namespace events */

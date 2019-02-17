@@ -38,6 +38,6 @@ px4_add_module(
 		mkblctrl.cpp
 		mkblctrl_params.c
 	DEPENDS
-		platforms__common
+		mixer
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

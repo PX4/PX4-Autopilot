@@ -50,8 +50,7 @@
 #include <string.h>
 #include <math.h>
 
-#include <systemlib/systemlib.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 #include <arch/board/board.h>
 #include "RoboClaw.hpp"

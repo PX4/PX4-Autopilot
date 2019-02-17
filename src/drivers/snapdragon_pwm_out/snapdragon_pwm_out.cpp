@@ -38,20 +38,22 @@
 #include <px4_posix.h>
 #include <errno.h>
 #include <cmath>	// NAN
-
+#include <string.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/parameter_update.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
-#include <lib/mixer/mixer.h>
-#include <lib/mixer/mixer_load.h>
-#include <lib/mixer/mixer_multirotor_normalized.generated.h>
-#include <systemlib/param/param.h>
-#include <systemlib/pwm_limit/pwm_limit.h>
+#include <mixer/mixer.h>
+#include <mixer/mixer_load.h>
+#include <mixer/mixer_multirotor_normalized.generated.h>
+#include <parameters/param.h>
+#include <perf/perf_counter.h>
+#include <pwm_limit/pwm_limit.h>
 #include <dev_fs_lib_pwm.h>
 
 /*
@@ -112,28 +114,31 @@ int32_t _pwm_max;
 
 MultirotorMixer *_mixer = nullptr;
 
+perf_counter_t	_perf_control_latency = nullptr;
 
 /*
  * forward declaration
  */
 
-void usage();
+static void usage();
 
-void start();
+static void start();
 
-void stop();
+static void stop();
 
-int pwm_initialize(const char *device);
+static int pwm_initialize(const char *device);
 
-void pwm_deinitialize();
+static void pwm_deinitialize();
 
-void send_outputs_pwm(const uint16_t *pwm);
+static void send_outputs_pwm(const uint16_t *pwm);
 
-void task_main_trampoline(int argc, char *argv[]);
+static void task_main_trampoline(int argc, char *argv[]);
 
-void subscribe();
+static void subscribe();
 
-void task_main(int argc, char *argv[]);
+static void task_main(int argc, char *argv[]);
+
+static void update_params(Mixer::Airmode &airmode);
 
 int initialize_mixer(const char *mixer_filename);
 
@@ -157,6 +162,15 @@ int mixer_control_callback(uintptr_t handle,
 	return 0;
 }
 
+void update_params(Mixer::Airmode &airmode)
+{
+	// multicopter air-mode
+	param_t param_handle = param_find("MC_AIRMODE");
+
+	if (param_handle != PARAM_INVALID) {
+		param_get(param_handle, &airmode);
+	}
+}
 
 int initialize_mixer(const char *mixer_filename)
 {
@@ -324,8 +338,6 @@ void send_outputs_pwm(const uint16_t *pwm)
 	}
 }
 
-
-
 void task_main(int argc, char *argv[])
 {
 	if (pwm_initialize(_device) < 0) {
@@ -343,6 +355,10 @@ void task_main(int argc, char *argv[])
 	// subscribe and set up polling
 	subscribe();
 
+	Mixer::Airmode airmode = Mixer::Airmode::disabled;
+	update_params(airmode);
+	int params_sub = orb_subscribe(ORB_ID(parameter_update));
+
 	// Start disarmed
 	_armed.armed = false;
 	_armed.prearmed = false;
@@ -350,10 +366,16 @@ void task_main(int argc, char *argv[])
 	// set max min pwm
 	pwm_limit_init(&_pwm_limit);
 
+	_perf_control_latency = perf_alloc(PC_ELAPSED, "snapdragon_pwm_out control latency");
+
 	_is_running = true;
 
 	// Main loop
 	while (!_task_should_exit) {
+
+		if (_mixer) {
+			_mixer->set_airmode(airmode);
+		}
 
 		/* wait up to 10ms for data */
 		int pret = px4_poll(_poll_fds, _poll_fds_num, 10);
@@ -399,8 +421,6 @@ void task_main(int argc, char *argv[])
 			continue;
 		}
 
-		_outputs.timestamp = hrt_absolute_time();
-
 		/* do  mixing for virtual control group */
 		_outputs.noutputs = _mixer->mix(_outputs.output, _outputs.NUM_ACTUATOR_OUTPUTS);
 
@@ -431,6 +451,8 @@ void task_main(int argc, char *argv[])
 			send_outputs_pwm(pwm);
 		}
 
+		_outputs.timestamp = hrt_absolute_time();
+
 		if (_outputs_pub != nullptr) {
 			orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
 
@@ -438,6 +460,26 @@ void task_main(int argc, char *argv[])
 			_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
 		}
 
+		// use first valid timestamp_sample for latency tracking
+		for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			const bool required = _groups_required & (1 << i);
+			const hrt_abstime &timestamp_sample = _controls[i].timestamp_sample;
+
+			if (required && (timestamp_sample > 0)) {
+				perf_set_elapsed(_perf_control_latency, _outputs.timestamp - timestamp_sample);
+				break;
+			}
+		}
+
+		/* check for parameter updates */
+		bool param_updated = false;
+		orb_check(params_sub, &param_updated);
+
+		if (param_updated) {
+			struct parameter_update_s update;
+			orb_copy(ORB_ID(parameter_update), params_sub, &update);
+			update_params(airmode);
+		}
 	}
 
 	pwm_deinitialize();
@@ -449,8 +491,11 @@ void task_main(int argc, char *argv[])
 	}
 
 	orb_unsubscribe(_armed_sub);
-	_is_running = false;
+	orb_unsubscribe(params_sub);
 
+	perf_free(_perf_control_latency);
+
+	_is_running = false;
 }
 
 void task_main_trampoline(int argc, char *argv[])
@@ -460,8 +505,6 @@ void task_main_trampoline(int argc, char *argv[])
 
 void start()
 {
-	ASSERT(_task_handle == -1);
-
 	_task_should_exit = false;
 
 	/* start the task */
@@ -473,7 +516,7 @@ void start()
 					  nullptr);
 
 	if (_task_handle < 0) {
-		warn("task start failed");
+		PX4_ERR("task start failed");
 		return;
 	}
 

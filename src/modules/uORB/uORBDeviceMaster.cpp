@@ -1,0 +1,415 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+#include "uORBDeviceMaster.hpp"
+#include "uORBDeviceNode.hpp"
+#include "uORBManager.hpp"
+#include "uORBUtils.hpp"
+
+#ifdef ORB_COMMUNICATOR
+#include "uORBCommunicator.hpp"
+#endif /* ORB_COMMUNICATOR */
+
+#include <px4_sem.hpp>
+#include <systemlib/px4_macros.h>
+
+uORB::DeviceMaster::DeviceMaster()
+{
+	px4_sem_init(&_lock, 0, 1);
+	_last_statistics_output = hrt_absolute_time();
+}
+
+uORB::DeviceMaster::~DeviceMaster()
+{
+	px4_sem_destroy(&_lock);
+}
+
+int
+uORB::DeviceMaster::advertise(const struct orb_metadata *meta, int *instance, int priority)
+{
+	int ret = PX4_ERROR;
+
+	char nodepath[orb_maxpath];
+
+	/* construct a path to the node - this also checks the node name */
+	ret = uORB::Utils::node_mkpath(nodepath, meta, instance);
+
+	if (ret != PX4_OK) {
+		return ret;
+	}
+
+	ret = PX4_ERROR;
+
+	/* try for topic groups */
+	const unsigned max_group_tries = (instance != nullptr) ? ORB_MULTI_MAX_INSTANCES : 1;
+	unsigned group_tries = 0;
+
+	if (instance) {
+		/* for an advertiser, this will be 0, but a for subscriber that requests a certain instance,
+		 * we do not want to start with 0, but with the instance the subscriber actually requests.
+		 */
+		group_tries = *instance;
+
+		if (group_tries >= max_group_tries) {
+			return -ENOMEM;
+		}
+	}
+
+	SmartLock smart_lock(_lock);
+
+	do {
+		/* if path is modifyable change try index */
+		if (instance != nullptr) {
+			/* replace the number at the end of the string */
+			nodepath[strlen(nodepath) - 1] = '0' + group_tries;
+			*instance = group_tries;
+		}
+
+		/* driver wants a permanent copy of the path, so make one here */
+		const char *devpath = strdup(nodepath);
+
+		if (devpath == nullptr) {
+			return -ENOMEM;
+		}
+
+		/* construct the new node */
+		uORB::DeviceNode *node = new uORB::DeviceNode(meta, group_tries, devpath, priority);
+
+		/* if we didn't get a device, that's bad */
+		if (node == nullptr) {
+			free((void *)devpath);
+			return -ENOMEM;
+		}
+
+		/* initialise the node - this may fail if e.g. a node with this name already exists */
+		ret = node->init();
+
+		/* if init failed, discard the node and its name */
+		if (ret != PX4_OK) {
+			delete node;
+
+			if (ret == -EEXIST) {
+				/* if the node exists already, get the existing one and check if
+				 * something has been published yet. */
+				uORB::DeviceNode *existing_node = getDeviceNodeLocked(meta, group_tries);
+
+				if ((existing_node != nullptr) && !(existing_node->is_published())) {
+					/* nothing has been published yet, lets claim it */
+					existing_node->set_priority(priority);
+					ret = PX4_OK;
+
+				} else {
+					/* otherwise: data has already been published, keep looking */
+				}
+			}
+
+			/* also discard the name now */
+			free((void *)devpath);
+
+		} else {
+			// add to the node map;.
+			_node_list.add(node);
+		}
+
+		group_tries++;
+
+	} while (ret != PX4_OK && (group_tries < max_group_tries));
+
+	if (ret != PX4_OK && group_tries >= max_group_tries) {
+		ret = -ENOMEM;
+	}
+
+	return ret;
+}
+
+void uORB::DeviceMaster::printStatistics(bool reset)
+{
+	hrt_abstime current_time = hrt_absolute_time();
+	PX4_INFO("Statistics, since last output (%i ms):", (int)((current_time - _last_statistics_output) / 1000));
+	_last_statistics_output = current_time;
+
+	PX4_INFO("TOPIC, NR LOST MSGS");
+	bool had_print = false;
+
+	lock();
+
+	for (DeviceNode *node = _node_list.getHead(); node != nullptr; node = node->getSibling()) {
+		if (node->print_statistics(reset)) {
+			had_print = true;
+		}
+	}
+
+	unlock();
+
+	if (!had_print) {
+		PX4_INFO("No lost messages");
+	}
+}
+
+void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node, int &num_topics,
+		size_t &max_topic_name_length, char **topic_filter, int num_filters)
+{
+	DeviceNodeStatisticsData *cur_node = nullptr;
+	num_topics = 0;
+	DeviceNodeStatisticsData *last_node = *first_node;
+
+	if (last_node) {
+		while (last_node->next) {
+			last_node = last_node->next;
+		}
+	}
+
+	for (DeviceNode *node = _node_list.getHead(); node != nullptr; node = node->getSibling()) {
+
+		++num_topics;
+
+		//check if already added
+		cur_node = *first_node;
+
+		while (cur_node && cur_node->node != node) {
+			cur_node = cur_node->next;
+		}
+
+		if (cur_node) {
+			continue;
+		}
+
+		if (num_filters > 0 && topic_filter) {
+			bool matched = false;
+
+			for (int i = 0; i < num_filters; ++i) {
+				if (strstr(node->get_meta()->o_name, topic_filter[i])) {
+					matched = true;
+				}
+			}
+
+			if (!matched) {
+				continue;
+			}
+		}
+
+		if (last_node) {
+			last_node->next = new DeviceNodeStatisticsData();
+			last_node = last_node->next;
+
+		} else {
+			*first_node = last_node = new DeviceNodeStatisticsData();
+		}
+
+		if (!last_node) {
+			PX4_ERR("mem alloc failed");
+			break;
+		}
+
+		last_node->node = node;
+
+		size_t name_length = strlen(last_node->node->get_meta()->o_name);
+
+		if (name_length > max_topic_name_length) {
+			max_topic_name_length = name_length;
+		}
+
+		last_node->last_lost_msg_count = last_node->node->lost_message_count();
+		last_node->last_pub_msg_count = last_node->node->published_message_count();
+	}
+}
+
+#define CLEAR_LINE "\033[K"
+
+void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
+{
+	bool print_active_only = true;
+
+	if (topic_filter && num_filters > 0) {
+		if (!strcmp("-a", topic_filter[0])) {
+			num_filters = 0;
+		}
+
+		print_active_only = false; // print non-active if -a or some filter given
+	}
+
+	PX4_INFO_RAW("\033[2J\n"); //clear screen
+
+	lock();
+
+	if (_node_list.getHead() == nullptr) {
+		unlock();
+		PX4_INFO("no active topics");
+		return;
+	}
+
+	DeviceNodeStatisticsData *first_node = nullptr;
+	DeviceNodeStatisticsData *cur_node = nullptr;
+	size_t max_topic_name_length = 0;
+	int num_topics = 0;
+	addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
+
+	/* a DeviceNode is never deleted, so it's save to unlock here and still access the DeviceNodes */
+	unlock();
+
+#ifdef __PX4_QURT //QuRT has no poll()
+	int num_runs = 0;
+#else
+	const int stdin_fileno = 0;
+
+	struct pollfd fds;
+	fds.fd = stdin_fileno;
+	fds.events = POLLIN;
+#endif
+	bool quit = false;
+
+	hrt_abstime start_time = hrt_absolute_time();
+
+	while (!quit) {
+
+#ifdef __PX4_QURT
+
+		if (++num_runs > 1) {
+			quit = true; //just exit after one output
+		}
+
+#else
+
+		/* Sleep 200 ms waiting for user input five times ~ 1s */
+		for (int k = 0; k < 5; k++) {
+			char c;
+
+			int ret = ::poll(&fds, 1, 0); //just want to check if there is new data available
+
+			if (ret > 0) {
+
+				ret = ::read(stdin_fileno, &c, 1);
+
+				if (ret) {
+					quit = true;
+					break;
+				}
+			}
+
+			px4_usleep(200000);
+		}
+
+#endif
+
+		if (!quit) {
+
+			//update the stats
+			hrt_abstime current_time = hrt_absolute_time();
+			float dt = (current_time - start_time) / 1.e6f;
+			cur_node = first_node;
+
+			while (cur_node) {
+				uint32_t num_lost = cur_node->node->lost_message_count();
+				unsigned int num_msgs = cur_node->node->published_message_count();
+				cur_node->pub_msg_delta = (num_msgs - cur_node->last_pub_msg_count) / dt;
+				cur_node->lost_msg_delta = (num_lost - cur_node->last_lost_msg_count) / dt;
+				cur_node->last_lost_msg_count = num_lost;
+				cur_node->last_pub_msg_count = num_msgs;
+				cur_node = cur_node->next;
+			}
+
+			start_time = current_time;
+
+
+			PX4_INFO_RAW("\033[H"); // move cursor home and clear screen
+			PX4_INFO_RAW(CLEAR_LINE "update: 1s, num topics: %i\n", num_topics);
+			PX4_INFO_RAW(CLEAR_LINE "%-*s INST #SUB #MSG #LOST #QSIZE\n", (int)max_topic_name_length - 2, "TOPIC NAME");
+			cur_node = first_node;
+
+			while (cur_node) {
+
+				if (!print_active_only || cur_node->pub_msg_delta > 0) {
+					PX4_INFO_RAW(CLEAR_LINE "%-*s %2i %4i %4i %5i %i\n", (int)max_topic_name_length,
+						     cur_node->node->get_meta()->o_name, (int)cur_node->node->get_instance(),
+						     (int)cur_node->node->subscriber_count(), cur_node->pub_msg_delta,
+						     (int)cur_node->lost_msg_delta, cur_node->node->get_queue_size());
+				}
+
+				cur_node = cur_node->next;
+			}
+
+			lock();
+			addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
+			unlock();
+		}
+	}
+
+	//cleanup
+	cur_node = first_node;
+
+	while (cur_node) {
+		DeviceNodeStatisticsData *next_node = cur_node->next;
+		delete cur_node;
+		cur_node = next_node;
+	}
+}
+
+#undef CLEAR_LINE
+
+uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
+{
+	lock();
+
+	for (DeviceNode *node = _node_list.getHead(); node != nullptr; node = node->getSibling()) {
+		if (strcmp(node->get_devname(), nodepath) == 0) {
+			unlock();
+			return node;
+		}
+	}
+
+	unlock();
+
+	return nullptr;
+}
+
+uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const struct orb_metadata *meta, const uint8_t instance)
+{
+	lock();
+	uORB::DeviceNode *node = getDeviceNodeLocked(meta, instance);
+	unlock();
+
+	//We can safely return the node that can be used by any thread, because
+	//a DeviceNode never gets deleted.
+	return node;
+}
+
+uORB::DeviceNode *uORB::DeviceMaster::getDeviceNodeLocked(const struct orb_metadata *meta, const uint8_t instance)
+{
+	for (DeviceNode *node = _node_list.getHead(); node != nullptr; node = node->getSibling()) {
+		if ((strcmp(node->get_name(), meta->o_name) == 0) && (node->get_instance() == instance)) {
+			return node;
+		}
+	}
+
+	return nullptr;
+}

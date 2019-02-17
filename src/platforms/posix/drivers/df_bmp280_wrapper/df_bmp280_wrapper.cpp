@@ -51,9 +51,10 @@
 #include <px4_getopt.h>
 #include <errno.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 
+#include <drivers/drv_hrt.h>
 #include <drivers/drv_baro.h>
 
 #include <board_config.h>
@@ -130,6 +131,10 @@ int DfBmp280Wrapper::start()
 		return ret;
 	}
 
+#if defined(__DF_BBBLUE)
+	PX4_INFO("BMP280 started");
+#endif
+
 	return 0;
 }
 
@@ -150,39 +155,12 @@ int DfBmp280Wrapper::_publish(struct baro_sensor_data &data)
 {
 	perf_begin(_baro_sample_perf);
 
-	baro_report baro_report = {};
-	baro_report.timestamp = hrt_absolute_time();
+	sensor_baro_s baro_report = {};
+	baro_report.timestamp   = hrt_absolute_time();
+	baro_report.error_count = data.error_counter;
 
-	baro_report.pressure = data.pressure_pa / 100.0f; // to mbar
+	baro_report.pressure    = data.pressure_pa / 100.0f; // to mbar
 	baro_report.temperature = data.temperature_c;
-
-	// TODO: verify this, it's just copied from the MS5611 driver.
-
-	// Constant for now
-	const double MSL_PRESSURE_KPA = 101325.0 / 1000.0;
-
-	/* tropospheric properties (0-11km) for standard atmosphere */
-	const double T1 = 15.0 + 273.15;	/* temperature at base height in Kelvin */
-	const double a  = -6.5 / 1000;	/* temperature gradient in degrees per metre */
-	const double g  = 9.80665;	/* gravity constant in m/s/s */
-	const double R  = 287.05;	/* ideal gas constant in J/kg/K */
-
-	/* current pressure at MSL in kPa */
-	double p1 = MSL_PRESSURE_KPA;
-
-	/* measured pressure in kPa */
-	double p = static_cast<double>(data.pressure_pa) / 1000.0;
-
-	/*
-	 * Solve:
-	 *
-	 *     /        -(aR / g)     \
-	 *    | (p / p1)          . T1 | - T1
-	 *     \                      /
-	 * h = -------------------------------  + h1
-	 *                   a
-	 */
-	baro_report.altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
 
 	// TODO: when is this ever blocked?
 	if (!(m_pub_blocked)) {

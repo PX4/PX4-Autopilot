@@ -96,6 +96,8 @@ void Block::updateParams()
 		param->update();
 		param = param->getSibling();
 	}
+
+	updateParamsSubclass();
 }
 
 void Block::updateSubscriptions()

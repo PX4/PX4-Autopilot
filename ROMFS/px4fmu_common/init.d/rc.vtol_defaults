@@ -1,22 +1,29 @@
-#!nsh
+#!/bin/sh
+#
+# VTOL default parameters.
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
 
 set VEHICLE_TYPE vtol
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	param set MIS_TAKEOFF_ALT 20
 	param set MIS_YAW_TMT 10
 
-	param set MPC_ACC_HOR_MAX 2.0
+	param set MPC_ACC_HOR_MAX 2
 	param set MPC_LAND_SPEED 0.7
-	param set MPC_TKO_SPEED 1.0
-	param set MPC_XY_VEL_MAX 4.0
+	param set MPC_TKO_SPEED 1
+	param set MPC_XY_VEL_MAX 4
 	param set MPC_Z_VEL_MAX_DN 1.5
 
 	param set NAV_ACC_RAD 3
 
-	param set RTL_LAND_DELAY 0
-fi
+	param set PWM_AUX_RATE 50
+	param set PWM_RATE 400
 
-# set environment variables (!= parameters)
-set PWM_RATE 400
+	param set RTL_LAND_DELAY 0
+
+	param set WV_EN 1
+fi

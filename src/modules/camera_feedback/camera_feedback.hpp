@@ -45,9 +45,8 @@
 #include <stdbool.h>
 #include <poll.h>
 #include <mathlib/mathlib.h>
-#include <systemlib/systemlib.h>
 #include <systemlib/err.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 #include <px4_config.h>
 #include <px4_defines.h>
@@ -62,11 +61,6 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 
-typedef enum : int32_t {
-	CAMERA_FEEDBACK_MODE_NONE = 0,
-	CAMERA_FEEDBACK_MODE_TRIGGER,
-	CAMERA_FEEDBACK_MODE_PWM
-} camera_feedback_mode_t;
 
 class CameraFeedback
 {
@@ -99,21 +93,20 @@ private:
 	int			_main_task;				/**< handle for task */
 
 	int			_trigger_sub;
-	int			_lpos_sub;
 	int			_gpos_sub;
 	int			_att_sub;
 
 	orb_advert_t	_capture_pub;
 
-	param_t			_p_feedback;
+	param_t			_p_camera_capture_feedback;
 
-	camera_feedback_mode_t _camera_feedback_mode;
+	int32_t _camera_capture_feedback;
 
 	void		task_main();
 
 	/**
 	 * Shim for calling task_main from task_create.
 	 */
-	static void	task_main_trampoline(int argc, char *argv[]);
+	static int	task_main_trampoline(int argc, char *argv[]);
 
 };

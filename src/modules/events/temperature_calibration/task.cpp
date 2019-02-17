@@ -83,11 +83,11 @@ public:
 	 */
 	int		start();
 
-	static void do_temperature_calibration(int argc, char *argv[]);
+	static int do_temperature_calibration(int argc, char *argv[]);
 
 	void		task_main();
 
-	void exit() { _force_task_exit = true; }
+	void exit_task() { _force_task_exit = true; }
 
 private:
 	void publish_led_control(led_control_s &led_control);
@@ -181,7 +181,7 @@ void TemperatureCalibration::task_main()
 	// make sure the system updates the changed parameters
 	param_notify_changes();
 
-	usleep(300000); // wait a bit for the system to apply the parameters
+	px4_usleep(300000); // wait a bit for the system to apply the parameters
 
 	hrt_abstime next_progress_output = hrt_absolute_time() + 1e6;
 
@@ -205,7 +205,7 @@ void TemperatureCalibration::task_main()
 
 		if (ret < 0) {
 			// Poll error, sleep and try again
-			usleep(10000);
+			px4_usleep(10000);
 			continue;
 
 		} else if (ret == 0) {
@@ -217,7 +217,7 @@ void TemperatureCalibration::task_main()
 		if (!_gyro) {
 			sensor_gyro_s gyro_data;
 
-			for (int i = 0; i < num_gyro; ++i) {
+			for (unsigned i = 0; i < num_gyro; ++i) {
 				orb_copy(ORB_ID(sensor_gyro), gyro_sub[i], &gyro_data);
 			}
 		}
@@ -320,15 +320,15 @@ void TemperatureCalibration::task_main()
 	PX4_INFO("Exiting temperature calibration task");
 }
 
-void TemperatureCalibration::do_temperature_calibration(int argc, char *argv[])
+int TemperatureCalibration::do_temperature_calibration(int argc, char *argv[])
 {
 	temperature_calibration::instance->task_main();
+	return 0;
 }
 
 int TemperatureCalibration::start()
 {
 
-	ASSERT(_control_task == -1);
 	_control_task = px4_task_spawn_cmd("temperature_calib",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_MAX - 5,

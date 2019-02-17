@@ -63,7 +63,7 @@
  * @max 1.0
  * @decimal 2
  * @increment 0.05
- * @group FW Attitude Control
+ * @group GND Attitude Control
  */
 PARAM_DEFINE_FLOAT(GND_WR_TC, 0.4f);
 

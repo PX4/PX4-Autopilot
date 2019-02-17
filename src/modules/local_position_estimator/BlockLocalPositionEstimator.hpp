@@ -1,9 +1,11 @@
 #pragma once
 
 #include <px4_posix.h>
+#include <drivers/drv_hrt.h>
+#include <px4_module_params.h>
 #include <controllib/blocks.hpp>
 #include <mathlib/mathlib.h>
-#include <lib/geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <matrix/Matrix.hpp>
 
 // uORB Subscriptions
@@ -20,7 +22,9 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/att_pos_mocap.h>
+#include <uORB/topics/landing_target_pose.h>
+#include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/vehicle_odometry.h>
 
 // uORB Publications
 #include <uORB/Publication.hpp>
@@ -51,7 +55,7 @@ static const float BETA_TABLE[7] = {0,
 				    19.6465647819,
 				   };
 
-class BlockLocalPositionEstimator : public control::SuperBlock
+class BlockLocalPositionEstimator : public control::SuperBlock, public ModuleParams
 {
 // dynamics:
 //
@@ -112,17 +116,17 @@ public:
 	enum {Y_vision_x = 0, Y_vision_y, Y_vision_z, n_y_vision};
 	enum {Y_mocap_x = 0, Y_mocap_y, Y_mocap_z, n_y_mocap};
 	enum {Y_land_vx = 0, Y_land_vy, Y_land_agl, n_y_land};
+	enum {Y_target_x = 0, Y_target_y, n_y_target};
 	enum {POLL_FLOW = 0, POLL_SENSORS, POLL_PARAM, n_poll};
 	enum {
 		FUSE_GPS = 1 << 0,
 		FUSE_FLOW = 1 << 1,
 		FUSE_VIS_POS = 1 << 2,
-		FUSE_VIS_YAW = 1 << 3,
+		FUSE_LAND_TARGET = 1 << 3,
 		FUSE_LAND = 1 << 4,
 		FUSE_PUB_AGL_Z = 1 << 5,
 		FUSE_FLOW_GYRO_COMP = 1 << 6,
-		FUSE_BARO = 1 << 7,
-		FUSE_LAND_TARGET = 1 << 8
+		FUSE_BARO = 1 << 7
 	};
 
 	enum sensor_t {
@@ -146,12 +150,11 @@ public:
 	// public methods
 	BlockLocalPositionEstimator();
 	void update();
-	virtual ~BlockLocalPositionEstimator();
+	virtual ~BlockLocalPositionEstimator() = default;
 
 private:
-	// prevent copy and assignment
-	BlockLocalPositionEstimator(const BlockLocalPositionEstimator &);
-	BlockLocalPositionEstimator operator=(const BlockLocalPositionEstimator &);
+	BlockLocalPositionEstimator(const BlockLocalPositionEstimator &) = delete;
+	BlockLocalPositionEstimator operator=(const BlockLocalPositionEstimator &) = delete;
 
 	// methods
 	// ----------------------------
@@ -216,6 +219,12 @@ private:
 	void landInit();
 	void landCheckTimeout();
 
+	// landing target
+	int  landingTargetMeasure(Vector<float, n_y_target> &y);
+	void landingTargetCorrect();
+	void landingTargetInit();
+	void landingTargetCheckTimeout();
+
 	// timeouts
 	void checkTimeouts();
 
@@ -230,6 +239,7 @@ private:
 	// publications
 	void publishLocalPos();
 	void publishGlobalPos();
+	void publishOdom();
 	void publishEstimatorStatus();
 
 	// attributes
@@ -243,8 +253,8 @@ private:
 	uORB::Subscription<sensor_combined_s> _sub_sensor;
 	uORB::Subscription<parameter_update_s> _sub_param_update;
 	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
-	uORB::Subscription<vehicle_local_position_s> _sub_vision_pos;
-	uORB::Subscription<att_pos_mocap_s> _sub_mocap;
+	uORB::Subscription<vehicle_odometry_s> _sub_visual_odom;
+	uORB::Subscription<vehicle_odometry_s> _sub_mocap_odom;
 	uORB::Subscription<distance_sensor_s> _sub_dist0;
 	uORB::Subscription<distance_sensor_s> _sub_dist1;
 	uORB::Subscription<distance_sensor_s> _sub_dist2;
@@ -252,77 +262,92 @@ private:
 	uORB::Subscription<distance_sensor_s> *_dist_subs[N_DIST_SUBS];
 	uORB::Subscription<distance_sensor_s> *_sub_lidar;
 	uORB::Subscription<distance_sensor_s> *_sub_sonar;
+	uORB::Subscription<landing_target_pose_s> _sub_landing_target_pose;
+	uORB::Subscription<vehicle_air_data_s> _sub_airdata;
 
 	// publications
 	uORB::Publication<vehicle_local_position_s> _pub_lpos;
 	uORB::Publication<vehicle_global_position_s> _pub_gpos;
+	uORB::Publication<vehicle_odometry_s> _pub_odom;
 	uORB::Publication<estimator_status_s> _pub_est_status;
 	uORB::Publication<ekf2_innovations_s> _pub_innov;
 
 	// map projection
 	struct map_projection_reference_s _map_ref;
 
-	// general parameters
-	BlockParamInt _fusion;
-	BlockParamFloat  _vxy_pub_thresh;
-	BlockParamFloat  _z_pub_thresh;
 
-	// sonar parameters
-	BlockParamFloat  _sonar_z_stddev;
-	BlockParamFloat  _sonar_z_offset;
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SYS_AUTOSTART>) _sys_autostart,   /**< example parameter */
 
-	// lidar parameters
-	BlockParamFloat  _lidar_z_stddev;
-	BlockParamFloat  _lidar_z_offset;
+		// general parameters
+		(ParamInt<px4::params::LPE_FUSION>) _fusion,
+		(ParamFloat<px4::params::LPE_VXY_PUB>) _vxy_pub_thresh,
+		(ParamFloat<px4::params::LPE_Z_PUB>) _z_pub_thresh,
 
-	// accel parameters
-	BlockParamFloat  _accel_xy_stddev;
-	BlockParamFloat  _accel_z_stddev;
+		// sonar parameters
+		(ParamFloat<px4::params::LPE_SNR_Z>) _sonar_z_stddev,
+		(ParamFloat<px4::params::LPE_SNR_OFF_Z>) _sonar_z_offset,
 
-	// baro parameters
-	BlockParamFloat  _baro_stddev;
+		// lidar parameters
+		(ParamFloat<px4::params::LPE_LDR_Z>) _lidar_z_stddev,
+		(ParamFloat<px4::params::LPE_LDR_OFF_Z>) _lidar_z_offset,
 
-	// gps parameters
-	BlockParamFloat  _gps_delay;
-	BlockParamFloat  _gps_xy_stddev;
-	BlockParamFloat  _gps_z_stddev;
-	BlockParamFloat  _gps_vxy_stddev;
-	BlockParamFloat  _gps_vz_stddev;
-	BlockParamFloat  _gps_eph_max;
-	BlockParamFloat  _gps_epv_max;
+		// accel parameters
+		(ParamFloat<px4::params::LPE_ACC_XY>) _accel_xy_stddev,
+		(ParamFloat<px4::params::LPE_ACC_Z>) _accel_z_stddev,
 
-	// vision parameters
-	BlockParamFloat  _vision_xy_stddev;
-	BlockParamFloat  _vision_z_stddev;
-	BlockParamFloat  _vision_delay;
+		// baro parameters
+		(ParamFloat<px4::params::LPE_BAR_Z>) _baro_stddev,
 
-	// mocap parameters
-	BlockParamFloat  _mocap_p_stddev;
+		// gps parameters
+		(ParamFloat<px4::params::LPE_GPS_DELAY>) _gps_delay,
+		(ParamFloat<px4::params::LPE_GPS_XY>) _gps_xy_stddev,
+		(ParamFloat<px4::params::LPE_GPS_Z>) _gps_z_stddev,
+		(ParamFloat<px4::params::LPE_GPS_VXY>) _gps_vxy_stddev,
+		(ParamFloat<px4::params::LPE_GPS_VZ>) _gps_vz_stddev,
+		(ParamFloat<px4::params::LPE_EPH_MAX>) _gps_eph_max,
+		(ParamFloat<px4::params::LPE_EPV_MAX>) _gps_epv_max,
 
-	// flow parameters
-	BlockParamFloat  _flow_z_offset;
-	BlockParamFloat  _flow_scale;
-	//BlockParamFloat  _flow_board_x_offs;
-	//BlockParamFloat  _flow_board_y_offs;
-	BlockParamInt    _flow_min_q;
-	BlockParamFloat  _flow_r;
-	BlockParamFloat  _flow_rr;
+		// vision parameters
+		(ParamFloat<px4::params::LPE_VIS_XY>) _vision_xy_stddev,
+		(ParamFloat<px4::params::LPE_VIS_Z>) _vision_z_stddev,
+		(ParamFloat<px4::params::LPE_VIS_DELAY>) _vision_delay,
 
-	// land parameters
-	BlockParamFloat  _land_z_stddev;
-	BlockParamFloat  _land_vxy_stddev;
+		// mocap parameters
+		(ParamFloat<px4::params::LPE_VIC_P>) _mocap_p_stddev,
 
-	// process noise
-	BlockParamFloat  _pn_p_noise_density;
-	BlockParamFloat  _pn_v_noise_density;
-	BlockParamFloat  _pn_b_noise_density;
-	BlockParamFloat  _pn_t_noise_density;
-	BlockParamFloat  _t_max_grade;
+		// flow parameters
+		(ParamFloat<px4::params::LPE_FLW_OFF_Z>) _flow_z_offset,
+		(ParamFloat<px4::params::LPE_FLW_SCALE>) _flow_scale,
+		(ParamInt<px4::params::LPE_FLW_QMIN>) _flow_min_q,
+		(ParamFloat<px4::params::LPE_FLW_R>) _flow_r,
+		(ParamFloat<px4::params::LPE_FLW_RR>) _flow_rr,
 
-	// init origin
-	BlockParamInt    _fake_origin;
-	BlockParamFloat  _init_origin_lat;
-	BlockParamFloat  _init_origin_lon;
+		// land parameters
+		(ParamFloat<px4::params::LPE_LAND_Z>) _land_z_stddev,
+		(ParamFloat<px4::params::LPE_LAND_VXY>) _land_vxy_stddev,
+
+		// process noise
+		(ParamFloat<px4::params::LPE_PN_P>) _pn_p_noise_density,
+		(ParamFloat<px4::params::LPE_PN_V>) _pn_v_noise_density,
+		(ParamFloat<px4::params::LPE_PN_B>) _pn_b_noise_density,
+		(ParamFloat<px4::params::LPE_PN_T>) _pn_t_noise_density,
+		(ParamFloat<px4::params::LPE_T_MAX_GRADE>) _t_max_grade,
+
+		(ParamFloat<px4::params::LPE_LT_COV>) _target_min_cov,
+		(ParamInt<px4::params::LTEST_MODE>) _target_mode,
+
+		// init origin
+		(ParamInt<px4::params::LPE_FAKE_ORIGIN>) _fake_origin,
+		(ParamFloat<px4::params::LPE_LAT>) _init_origin_lat,
+		(ParamFloat<px4::params::LPE_LON>) _init_origin_lon
+	)
+
+	// target mode paramters from landing_target_estimator module
+	enum TargetMode {
+		Target_Moving = 0,
+		Target_Stationary = 1
+	};
 
 	// flow gyro filter
 	BlockHighPass _flow_gyro_x_high_pass;
@@ -361,6 +386,7 @@ private:
 	uint64_t _time_last_vision_p;
 	uint64_t _time_last_mocap;
 	uint64_t _time_last_land;
+	uint64_t _time_last_target;
 
 	// reference altitudes
 	float _altOrigin;
@@ -378,13 +404,41 @@ private:
 	uint16_t _sensorFault;
 	uint8_t _estimatorInitialized;
 
+	// sensor update flags
+	bool _flowUpdated;
+	bool _gpsUpdated;
+	bool _visionUpdated;
+	bool _mocapUpdated;
+	bool _lidarUpdated;
+	bool _sonarUpdated;
+	bool _landUpdated;
+	bool _baroUpdated;
+
+	// sensor validation flags
+	bool _vision_xy_valid;
+	bool _vision_z_valid;
+	bool _mocap_xy_valid;
+	bool _mocap_z_valid;
+
+	// sensor std deviations
+	float _vision_eph;
+	float _vision_epv;
+	float _mocap_eph;
+	float _mocap_epv;
+
+	// local to global coversion related variables
+	bool _is_global_cov_init;
+	uint64_t _global_ref_timestamp;
+	double _ref_lat;
+	double _ref_lon;
+	float _ref_alt;
+
 	// state space
 	Vector<float, n_x>  _x;	// state vector
 	Vector<float, n_u>  _u;	// input vector
 	Matrix<float, n_x, n_x>  _P;	// state covariance matrix
 
 	matrix::Dcm<float> _R_att;
-	Vector3f _eul;
 
 	Matrix<float, n_x, n_x>  _A;	// dynamics matrix
 	Matrix<float, n_x, n_u>  _B;	// input matrix

@@ -84,6 +84,8 @@ public:
 
 protected:
 
+	virtual void updateParamsSubclass() {}
+
 	SuperBlock *getParent() { return _parent; }
 	List<uORB::SubscriptionNode *> &getSubscriptions() { return _subscriptions; }
 	List<uORB::PublicationNode *> &getPublications() { return _publications; }

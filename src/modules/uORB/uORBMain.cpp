@@ -32,10 +32,11 @@
  ****************************************************************************/
 
 #include <string.h>
-#include "uORBDevices.hpp"
+
 #include "uORBManager.hpp"
 #include "uORB.h"
 #include "uORBCommon.hpp"
+
 #include <px4_log.h>
 #include <px4_module.h>
 
@@ -105,7 +106,7 @@ uorb_main(int argc, char *argv[])
 		}
 
 		/* create the driver */
-		g_dev = uORB::Manager::get_instance()->get_device_master(uORB::PUBSUB);
+		g_dev = uORB::Manager::get_instance()->get_device_master();
 
 		if (g_dev == nullptr) {
 			return -errno;

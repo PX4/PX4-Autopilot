@@ -56,9 +56,12 @@ public:
 		get_name(name),
 		get_id(id) {}
 
-	~StreamListItem() {}
 };
 
-extern const StreamListItem *streams_list[];
+const char *get_stream_name(const uint16_t msg_id);
+MavlinkStream *create_mavlink_stream(const char *stream_name, Mavlink *mavlink);
+
+void get_mavlink_navigation_mode(const struct vehicle_status_s *const status, uint8_t *mavlink_base_mode,
+				 union px4_custom_mode *custom_mode);
 
 #endif /* MAVLINK_MESSAGES_H_ */

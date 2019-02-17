@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+ * Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -31,12 +32,14 @@
  ****************************************************************************/
 #include <unistd.h>
 #include <fcntl.h>
-#include <termios.h>
 #include <stdio.h>
 #include <errno.h>
 #include <sys/socket.h>
+#include <cstdlib>
+#include <px4_log.h>
+#include <px4_time.h>
 
-#include "microRTPS_transport.h"
+#include <microRTPS_transport.h>
 
 #define DEFAULT_UART "/dev/ttyACM0"
 
@@ -114,7 +117,7 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 		int errsv = errno;
 
 		if (errsv && EAGAIN != errsv && ETIMEDOUT != errsv) {
-			printf("Read fail %d\n", errsv);
+			PX4_ERR("Read fail %d", errsv);
 		}
 
 		return len;
@@ -140,7 +143,7 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 
 	// Start not found
 	if (msg_start_pos > rx_buff_pos - header_size) {
-		printf("                                 (↓↓ %u)\n", msg_start_pos);
+		PX4_INFO("                                 (↓↓ %u)", msg_start_pos);
 		// All we've checked so far is garbage, drop it - but save unchecked bytes
 		memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
 		rx_buff_pos = rx_buff_pos - msg_start_pos;
@@ -163,7 +166,7 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 	if (msg_start_pos + header_size + payload_len > rx_buff_pos) {
 		// If there's garbage at the beginning, drop it
 		if (msg_start_pos > 0) {
-			printf("                                 (↓ %u)\n", msg_start_pos);
+			PX4_INFO("                                 (↓ %u)", msg_start_pos);
 			memmove(rx_buffer, rx_buffer + msg_start_pos, rx_buff_pos - msg_start_pos);
 			rx_buff_pos -= msg_start_pos;
 		}
@@ -175,8 +178,8 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 	uint16_t calc_crc = crc16((uint8_t *)rx_buffer + msg_start_pos + header_size, payload_len);
 
 	if (read_crc != calc_crc) {
-		printf("BAD CRC %u != %u\n", read_crc, calc_crc);
-		printf("                                 (↓ %lu)\n", (unsigned long)(header_size + payload_len));
+		PX4_ERR("Bad CRC %u != %u", read_crc, calc_crc);
+		PX4_ERR("                                 (↓ %lu)", (unsigned long)(header_size + payload_len));
 		len = -1;
 
 	} else {
@@ -191,6 +194,11 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 	memmove(rx_buffer, rx_buffer + msg_start_pos + header_size + payload_len, rx_buff_pos);
 
 	return len;
+}
+
+ssize_t Transport_node::get_header_length()
+{
+    return sizeof(struct Header);
 }
 
 ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t length)
@@ -214,7 +222,7 @@ ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t leng
 
 	// [>,>,>,topic_ID,seq,payload_length,CRCHigh,CRCLow,payload_start, ... ,payload_end]
 
-	uint16_t crc = crc16((uint8_t *)buffer, length);
+	uint16_t crc = crc16((uint8_t *)&buffer[sizeof(header)], length);
 
 	header.topic_ID = topic_ID;
 	header.seq = seq++;
@@ -223,24 +231,19 @@ ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t leng
 	header.crc_h = (crc >> 8) & 0xff;
 	header.crc_l = crc & 0xff;
 
-	ssize_t len = node_write(&header, sizeof(header));
-
-	if (len != sizeof(header)) {
+	/* Headroom for header is created in client */
+	/*Fill in the header in the same payload buffer to call a single node_write */
+	memcpy(buffer, &header, sizeof(header));
+	ssize_t len = node_write(buffer, length + sizeof(header));
+	if (len != ssize_t(length + sizeof(header))) {
 		goto err;
 	}
-
-	len = node_write(buffer, length);
-
-	if (len != ssize_t(length)) {
-		goto err;
-	}
-
 	return len + sizeof(header);
 
 err:
 	//int errsv = errno;
-	//if (len == -1 ) printf("                               => Writing error '%d'\n", errsv);
-	//else            printf("                               => Wrote '%ld' != length(%lu) error '%d'\n", (long)len, (unsigned long)length, errsv);
+	//if (len == -1 ) PX4_ERR("                               => Writing error '%d'", errsv);
+	//else            PX4_ERR("                               => Wrote '%ld' != length(%lu) error '%d'", (long)len, (unsigned long)length, errsv);
 
 	return len;
 }
@@ -267,7 +270,7 @@ int UART_node::init()
 	uart_fd = open(uart_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 	if (uart_fd < 0) {
-		printf("failed to open device: %s (%d)\n", uart_name, errno);
+		PX4_ERR("Failed to open device: %s (%d)", uart_name, errno);
 		return -errno;
 	}
 
@@ -283,20 +286,39 @@ int UART_node::init()
 	// Back up the original uart configuration to restore it after exit
 	if ((termios_state = tcgetattr(uart_fd, &uart_config)) < 0) {
 		int errno_bkp = errno;
-		printf("ERR GET CONF %s: %d (%d)\n", uart_name, termios_state, errno);
+		PX4_ERR("ERR GET CONF %s: %d (%d)", uart_name, termios_state, errno);
 		close();
 		return -errno_bkp;
 	}
 
-	// Clear ONLCR flag (which appends a CR for every LF)
-	uart_config.c_oflag &= ~ONLCR;
+        //Set up the UART for non-canonical binary communication: 8 bits, 1 stop bit, no parity,
+        //no flow control, no modem control
+        uart_config.c_iflag &= !(INPCK | ISTRIP | INLCR | IGNCR | ICRNL | IXON | IXANY | IXOFF);
+        uart_config.c_iflag |= IGNBRK | IGNPAR;
+
+        uart_config.c_oflag &= !(OPOST | ONLCR | OCRNL | ONOCR | ONLRET | OFILL | NLDLY | VTDLY);
+        uart_config.c_oflag |= NL0 | VT0;
+
+        uart_config.c_cflag &= !(CSIZE | CSTOPB | PARENB);
+        uart_config.c_cflag |= CS8 | CREAD | CLOCAL;
+
+        uart_config.c_lflag &= !(ISIG | ICANON | ECHO | TOSTOP | IEXTEN);
 
 	// USB serial is indicated by /dev/ttyACM0
 	if (strcmp(uart_name, "/dev/ttyACM0") != 0 && strcmp(uart_name, "/dev/ttyACM1") != 0) {
 		// Set baud rate
-		if (cfsetispeed(&uart_config, baudrate) < 0 || cfsetospeed(&uart_config, baudrate) < 0) {
+		speed_t speed;
+
+		if (!baudrate_to_speed(baudrate, &speed)) {
+			PX4_ERR("ERR SET BAUD %s: Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600, 115200, 230400, 460800, 500000, 921600, 1000000\n",
+			       uart_name, baudrate);
+			close();
+			return -EINVAL;
+		}
+
+		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
 			int errno_bkp = errno;
-			printf("ERR SET BAUD %s: %d (%d)\n", uart_name, termios_state, errno);
+			PX4_ERR("ERR SET BAUD %s: %d (%d)", uart_name, termios_state, errno);
 			close();
 			return -errno_bkp;
 		}
@@ -304,7 +326,7 @@ int UART_node::init()
 
 	if ((termios_state = tcsetattr(uart_fd, TCSANOW, &uart_config)) < 0) {
 		int errno_bkp = errno;
-		printf("ERR SET CONF %s (%d)\n", uart_name, errno);
+		PX4_ERR("ERR SET CONF %s (%d)", uart_name, errno);
 		close();
 		return -errno_bkp;
 	}
@@ -313,16 +335,16 @@ int UART_node::init()
 	bool flush = false;
 
 	while (0 < ::read(uart_fd, (void *)&aux, 64)) {
-		//printf("%s ", aux);
+		//PX4_INFO("%s ", aux);
 		flush = true;
-		usleep(1000);
+		px4_usleep(1000);
 	}
 
 	if (flush) {
-		printf("flush\n");
+		PX4_INFO("Flush");
 
 	} else {
-		printf("no flush\n");
+		PX4_INFO("No flush");
 	}
 
 	poll_fd[0].fd = uart_fd;
@@ -339,7 +361,7 @@ bool UART_node::fds_OK()
 uint8_t UART_node::close()
 {
 	if (-1 != uart_fd) {
-		printf("Close UART\n");
+		PX4_WARN("Closed UART...");
 		::close(uart_fd);
 		uart_fd = -1;
 		memset(&poll_fd, 0, sizeof(poll_fd));
@@ -373,6 +395,87 @@ ssize_t UART_node::node_write(void *buffer, size_t len)
 	return ::write(uart_fd, buffer, len);
 }
 
+bool UART_node::baudrate_to_speed(uint32_t bauds, speed_t *speed)
+{
+#ifndef B460800
+#define B460800 460800
+#endif
+
+#ifndef B500000
+#define B500000 500000
+#endif
+
+#ifndef B921600
+#define B921600 921600
+#endif
+
+#ifndef B1000000
+#define B1000000 1000000
+#endif
+
+	switch (bauds) {
+	case 0:      *speed = B0;      break;
+
+	case 50:     *speed = B50;     break;
+
+	case 75:     *speed = B75;     break;
+
+	case 110:    *speed = B110;    break;
+
+	case 134:    *speed = B134;    break;
+
+	case 150:    *speed = B150;    break;
+
+	case 200:    *speed = B200;    break;
+
+	case 300:    *speed = B300;    break;
+
+	case 600:    *speed = B600;    break;
+
+	case 1200:   *speed = B1200;   break;
+
+	case 1800:   *speed = B1800;   break;
+
+	case 2400:   *speed = B2400;   break;
+
+	case 4800:   *speed = B4800;   break;
+
+	case 9600:   *speed = B9600;   break;
+
+	case 19200:  *speed = B19200;  break;
+
+	case 38400:  *speed = B38400;  break;
+
+	case 57600:  *speed = B57600;  break;
+
+	case 115200: *speed = B115200; break;
+
+	case 230400: *speed = B230400; break;
+
+	case 460800: *speed = B460800; break;
+
+	case 500000: *speed = B500000; break;
+
+	case 921600: *speed = B921600; break;
+
+	case 1000000: *speed = B1000000; break;
+
+#ifdef B1500000
+
+	case 1500000: *speed = B1500000; break;
+#endif
+
+#ifdef B3000000
+
+	case 3000000: *speed = B3000000; break;
+#endif
+
+	default:
+		return false;
+	}
+
+	return true;
+}
 
 UDP_node::UDP_node(uint16_t _udp_port_recv, uint16_t _udp_port_send):
 	sender_fd(-1),
@@ -411,18 +514,18 @@ int UDP_node::init_receiver(uint16_t udp_port)
 	receiver_inaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	if ((receiver_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		printf("create socket failed\n");
+		PX4_ERR("Create socket failed");
 		return -1;
 	}
 
-	printf("Trying to connect...\n");
+	PX4_INFO("Trying to connect...");
 
 	if (bind(receiver_fd, (struct sockaddr *)&receiver_inaddr, sizeof(receiver_inaddr)) < 0) {
-		printf("bind failed\n");
+		PX4_ERR("Bind failed");
 		return -1;
 	}
 
-	printf("connected to server!\n");
+	PX4_INFO("Connected to server!");
 #endif /* __PX4_NUTTX */
 
 	return 0;
@@ -433,7 +536,7 @@ int UDP_node::init_sender(uint16_t udp_port)
 #ifndef __PX4_NUTTX
 
 	if ((sender_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		printf("create socket failed\n");
+		PX4_ERR("Create socket failed");
 		return -1;
 	}
 
@@ -442,7 +545,7 @@ int UDP_node::init_sender(uint16_t udp_port)
 	sender_outaddr.sin_port = htons(udp_port);
 
 	if (inet_aton("127.0.0.1", &sender_outaddr.sin_addr) == 0) {
-		printf("inet_aton() failed\n");
+		PX4_ERR("inet_aton() failed");
 		return -1;
 	}
 
@@ -456,14 +559,14 @@ uint8_t UDP_node::close()
 #ifndef __PX4_NUTTX
 
 	if (sender_fd != -1) {
-		printf("Close sender socket\n");
+		PX4_WARN("Closed sender socket!");
 		shutdown(sender_fd, SHUT_RDWR);
 		::close(sender_fd);
 		sender_fd = -1;
 	}
 
 	if (receiver_fd != -1) {
-		printf("Close receiver socket\n");
+		PX4_WARN("Closed receiver socket!");
 		shutdown(receiver_fd, SHUT_RDWR);
 		::close(receiver_fd);
 		receiver_fd = -1;

@@ -38,6 +38,5 @@ px4_add_module(
 	SRCS
 		ver.c
 	DEPENDS
-		platforms__common
+		version
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

@@ -73,17 +73,6 @@ PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 2.5f);
 PARAM_DEFINE_FLOAT(MIS_LTRMIN_ALT, -1.0f);
 
 /**
- * Persistent onboard mission storage
- *
- * When enabled, missions that have been uploaded by the GCS are stored
- * and reloaded after reboot persistently.
- *
- * @boolean
- * @group Mission
- */
-PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
-
-/**
  * Maximal horizontal distance from home to first waypoint
  *
  * Failsafe check to prevent running mission stored from previous flight at a new takeoff location.
@@ -131,20 +120,18 @@ PARAM_DEFINE_FLOAT(MIS_DIST_WPS, 900);
 PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
 
 /**
- * Multirotor only. Yaw setpoint mode.
- *
- * The values are defined in the enum mission_altitude_mode
- *
- * @min 0
- * @max 3
- * @value 0 Heading as set by waypoint
- * @value 1 Heading towards waypoint
- * @value 2 Heading towards home
- * @value 3 Heading away from home
- * @value 4 Heading towards ROI
- * @group Mission
- */
-PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
+* Enable yaw control of the mount. (Only affects multicopters and ROI mission items)
+*
+* If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading towards the flight direction.
+* If disabled, the vehicle will yaw towards the ROI.
+*
+* @value 0 Disable
+* @value 1 Enable
+* @min 0
+* @max 1
+* @group Mission
+*/
+PARAM_DEFINE_INT32(MIS_MNT_YAW_CTL, 0);
 
 /**
  * Time in seconds we wait on reaching target heading at a waypoint if it is forced.

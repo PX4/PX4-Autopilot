@@ -39,7 +39,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 /**
  * Complimentary filter accelerometer weight
@@ -53,6 +53,8 @@ PARAM_DEFINE_FLOAT(ATT_W_ACC, 0.2f);
 
 /**
  * Complimentary filter magnetometer weight
+ *
+ * Set to 0 to avoid using the magnetometer.
  *
  * @group Attitude Q estimator
  * @min 0

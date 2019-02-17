@@ -42,6 +42,5 @@ px4_add_module(
                 interfaces/src/seagull_map2.cpp
                 interfaces/src/gpio.cpp
 	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

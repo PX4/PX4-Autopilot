@@ -34,6 +34,7 @@
 /**
  * Primary baro ID
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_BARO_PRIME, 0);
@@ -54,7 +55,8 @@ PARAM_DEFINE_INT32(CAL_BARO_PRIME, 0);
  * @value 0 Model with Pitot
  * @value 1 Model without Pitot (1.5 mm tubes)
  * @value 2 Tube Pressure Drop
- * @group Sensor Calibration
+ *
+ * @group Sensors
  */
 PARAM_DEFINE_INT32(CAL_AIR_CMODEL, 0);
 
@@ -67,7 +69,7 @@ PARAM_DEFINE_INT32(CAL_AIR_CMODEL, 0);
  * @max 2.00
  * @unit meter
  *
- * @group Sensor Calibration
+ * @group Sensors
  */
 PARAM_DEFINE_FLOAT(CAL_AIR_TUBELEN, 0.2f);
 
@@ -78,7 +80,7 @@ PARAM_DEFINE_FLOAT(CAL_AIR_TUBELEN, 0.2f);
  * @max 100
  * @unit millimeter
  *
- * @group Sensor Calibration
+ * @group Sensors
  */
 PARAM_DEFINE_FLOAT(CAL_AIR_TUBED_MM, 1.5f);
 
@@ -87,6 +89,7 @@ PARAM_DEFINE_FLOAT(CAL_AIR_TUBED_MM, 1.5f);
  *
  * The offset (zero-reading) in Pascal
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(SENS_DPRES_OFF, 0.0f);
@@ -146,34 +149,21 @@ PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
  * @value 23 Roll 270°, Yaw 135°
  * @value 24 Pitch 90°
  * @value 25 Pitch 270°
+ * @value 26 Roll 270°, Yaw 270°
+ * @value 27 Roll 180°, Pitch 270°
+ * @value 28 Pitch 90°, Yaw 180
+ * @value 29 Pitch 90°, Roll 90°
+ * @value 30 Yaw 293°, Pitch 68°, Roll 90° (Solo)
+ * @value 31 Pitch 90°, Roll 270°
+ * @value 32 Pitch 9°, Yaw 180°
+ * @value 33 Pitch 45°
+ * @value 34 Pitch 315°
  *
  * @reboot_required true
  *
  * @group Sensors
  */
 PARAM_DEFINE_INT32(SENS_BOARD_ROT, 0);
-
-/**
- * PX4Flow board rotation
- *
- * This parameter defines the yaw rotation of the PX4FLOW board relative to the vehicle body frame.
- * Zero rotation is defined as X on flow board pointing towards front of vehicle.
- * The recommneded installation default for the PX4FLOW board is with the Y axis forward (270 deg yaw).
- *
- * @value 0 No rotation
- * @value 1 Yaw 45°
- * @value 2 Yaw 90°
- * @value 3 Yaw 135°
- * @value 4 Yaw 180°
- * @value 5 Yaw 225°
- * @value 6 Yaw 270°
- * @value 7 Yaw 315°
- *
- * @reboot_required true
- *
- * @group Sensors
- */
-PARAM_DEFINE_INT32(SENS_FLOW_ROT, 6);
 
 /**
  * Board rotation Y (Pitch) offset
@@ -209,75 +199,6 @@ PARAM_DEFINE_FLOAT(SENS_BOARD_X_OFF, 0.0f);
 PARAM_DEFINE_FLOAT(SENS_BOARD_Z_OFF, 0.0f);
 
 /**
- * Lidar-Lite (LL40LS)
- *
- * @reboot_required true
- * @min 0
- * @max 2
- * @group Sensors
- * @value 0 Disabled
- * @value 1 PWM
- * @value 2 I2C
- */
-PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
-
-/**
- * Lightware laser rangefinder (serial)
- *
- * @reboot_required true
- * @min 0
- * @max 4
- * @group Sensors
- * @value 0 Disabled
- * @value 1 SF02
- * @value 2 SF10/a
- * @value 3 SF10/b
- * @value 4 SF10/c
- * @value 5 SF11/c
- */
-PARAM_DEFINE_INT32(SENS_EN_SF0X, 0);
-
-/**
- * Maxbotix Soanr (mb12xx)
- *
- * @reboot_required true
- *
- * @boolean
- * @group Sensors
- */
-PARAM_DEFINE_INT32(SENS_EN_MB12XX, 0);
-
-/**
- * TeraRanger Rangefinder (i2c)
- *
- * @reboot_required true
- * @min 0
- * @max 3
- * @group Sensors
- * @value 0 Disabled
- * @value 1 Autodetect
- * @value 2 TROne
- * @value 3 TREvo
- */
-PARAM_DEFINE_INT32(SENS_EN_TRANGER, 0);
-
-/**
- * Lightware SF1xx/SF20/LW20 laser rangefinder (i2c)
- *
- * @reboot_required true
- * @min 0
- * @max 5
- * @group Sensors
- * @value 0 Disabled
- * @value 1 SF10/a
- * @value 2 SF10/b
- * @value 3 SF10/c
- * @value 4 SF11/c
- * @value 5 SF/LW20
- */
-PARAM_DEFINE_INT32(SENS_EN_SF1XX, 0);
-
-/**
  * Thermal control of sensor temperature
  *
  * @value -1 Thermal control unavailable
@@ -287,28 +208,28 @@ PARAM_DEFINE_INT32(SENS_EN_SF1XX, 0);
 PARAM_DEFINE_INT32(SENS_EN_THERMAL, -1);
 
 /**
-* Driver level cut frequency for gyro
+* Driver level cutoff frequency for gyro
 *
-* The cut frequency for the 2nd order butterworth filter on the gyro driver. This features
+* The cutoff frequency for the 2nd order butterworth filter on the gyro driver. This features
 * is currently supported by the mpu6000 and mpu9250. This only affects the signal sent to the
 * controllers, not the estimators. 0 disables the filter.
 *
-* @min 5
+* @min 0
 * @max 1000
 * @unit Hz
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
+PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 80.0f);
 
 /**
-* Driver level cut frequency for accel
+* Driver level cutoff frequency for accel
 *
-* The cut frequency for the 2nd order butterworth filter on the accel driver. This features
+* The cutoff frequency for the 2nd order butterworth filter on the accel driver. This features
 * is currently supported by the mpu6000 and mpu9250. This only affects the signal sent to the
 * controllers, not the estimators. 0 disables the filter.
 *
-* @min 5
+* @min 0
 * @max 1000
 * @unit Hz
 * @reboot_required true

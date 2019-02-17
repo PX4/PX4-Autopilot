@@ -40,24 +40,21 @@
 
 #pragma once
 
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
-#include <lib/mathlib/math/Vector.hpp>
-#include <lib/mathlib/math/Matrix.hpp>
 #include "navigator_mode.h"
 #include "mission_block.h"
+
+#include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
+
+#include <px4_module_params.h>
 #include <uORB/topics/follow_target.h>
 
-class FollowTarget : public MissionBlock
+class FollowTarget : public MissionBlock, public ModuleParams
 {
 
 public:
-	FollowTarget(Navigator *navigator, const char *name);
-
-	FollowTarget(const FollowTarget &) = delete;
-	FollowTarget &operator=(const FollowTarget &) = delete;
-
-	~FollowTarget();
+	FollowTarget(Navigator *navigator);
+	~FollowTarget() = default;
 
 	void on_inactive() override;
 	void on_activation() override;
@@ -86,67 +83,45 @@ private:
 	};
 
 	static constexpr float _follow_position_matricies[4][9] = {
-		{
-			1.0F,  -1.0F, 0.0F,
-			1.0F,   1.0F, 0.0F,
-			0.0F,   0.0F, 1.0F
-		}, // follow right
+		{ 1.0F, -1.0F, 0.0F,  1.0F,  1.0F, 0.0F, 0.0F, 0.0F, 1.0F}, // follow right
+		{-1.0F,  0.0F, 0.0F,  0.0F, -1.0F, 0.0F, 0.0F, 0.0F, 1.0F}, // follow behind
+		{ 1.0F,  0.0F, 0.0F,  0.0F,  1.0F, 0.0F, 0.0F, 0.0F, 1.0F}, // follow front
+		{ 1.0F,  1.0F, 0.0F, -1.0F,  1.0F, 0.0F, 0.0F, 0.0F, 1.0F}  // follow left side
+	};
 
-		{
-			-1.0F,  0.0F, 0.0F,
-			0.0F, -1.0F, 0.0F,
-			0.0F,  0.0F, 1.0F
-		}, // follow behind
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::NAV_MIN_FT_HT>)	_param_min_alt,
+		(ParamFloat<px4::params::NAV_FT_DST>) _param_tracking_dist,
+		(ParamInt<px4::params::NAV_FT_FS>) _param_tracking_side,
+		(ParamFloat<px4::params::NAV_FT_RS>) _param_tracking_resp
+	)
 
-		{
-			1.0F,   0.0F, 0.0F,
-			0.0F,   1.0F, 0.0F,
-			0.0F,   0.0F, 1.0F
-		}, // follow front
+	FollowTargetState _follow_target_state{SET_WAIT_FOR_TARGET_POSITION};
+	int _follow_target_position{FOLLOW_FROM_BEHIND};
 
-		{
-			1.0F,   1.0F, 0.0F,
-			-1.0F,   1.0F, 0.0F,
-			0.0F,   0.0F, 1.0F
-		}
-	}; // follow left side
+	int _follow_target_sub{-1};
+	float _step_time_in_ms{0.0f};
+	float _follow_offset{OFFSET_M};
 
+	uint64_t _target_updates{0};
+	uint64_t _last_update_time{0};
 
-	Navigator *_navigator;
-	control::BlockParamFloat	_param_min_alt;
-	control::BlockParamFloat 	_param_tracking_dist;
-	control::BlockParamInt 		_param_tracking_side;
-	control::BlockParamFloat 	_param_tracking_resp;
-	control::BlockParamFloat 	_param_yaw_auto_max;
+	matrix::Vector3f _current_vel;
+	matrix::Vector3f _step_vel;
+	matrix::Vector3f _est_target_vel;
+	matrix::Vector3f _target_distance;
+	matrix::Vector3f _target_position_offset;
+	matrix::Vector3f _target_position_delta;
+	matrix::Vector3f _filtered_target_position_delta;
 
+	follow_target_s _current_target_motion{};
+	follow_target_s _previous_target_motion{};
 
-	FollowTargetState _follow_target_state;
-	int _follow_target_position;
-
-	int _follow_target_sub;
-	float _step_time_in_ms;
-	float _follow_offset;
-
-	uint64_t _target_updates;
-	uint64_t _last_update_time;
-
-	math::Vector<3> _current_vel;
-	math::Vector<3> _step_vel;
-	math::Vector<3> _est_target_vel;
-	math::Vector<3> _target_distance;
-	math::Vector<3> _target_position_offset;
-	math::Vector<3> _target_position_delta;
-	math::Vector<3> _filtered_target_position_delta;
-
-	follow_target_s _current_target_motion;
-	follow_target_s _previous_target_motion;
-	float _yaw_rate;
-	float _responsiveness;
-	float _yaw_auto_max;
-	float _yaw_angle;
+	float _yaw_rate{0.0f};
+	float _responsiveness{0.0f};
+	float _yaw_angle{0.0f};
 
 	// Mavlink defined motion reporting capabilities
-
 	enum {
 		POS = 0,
 		VEL = 1,
@@ -154,7 +129,8 @@ private:
 		ATT_RATES = 3
 	};
 
-	math::Matrix<3, 3> _rot_matrix;
+	matrix::Dcmf _rot_matrix;
+
 	void track_target_position();
 	void track_target_velocity();
 	bool target_velocity_valid();

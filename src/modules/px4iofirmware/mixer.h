@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,4 +39,4 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 #pragma once
-#define PX4IO_MAX_MIXER_LENGHT		230
+#define PX4IO_MAX_MIXER_LENGTH		330

@@ -44,7 +44,7 @@
 
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 
 #include <uORB/uORB.h>
 #include <navigator/navigation.h>
@@ -53,20 +53,10 @@
 #include "navigator.h"
 #include "datalinkloss.h"
 
-#define DELAY_SIGMA	0.01f
-
-RCLoss::RCLoss(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
-	_param_loitertime(this, "LT"),
+RCLoss::RCLoss(Navigator *navigator) :
+	MissionBlock(navigator),
+	ModuleParams(navigator),
 	_rcl_state(RCL_STATE_NONE)
-{
-	/* load initial params */
-	updateParams();
-	/* initial reset */
-	on_inactive();
-}
-
-RCLoss::~RCLoss()
 {
 }
 
@@ -101,7 +91,7 @@ RCLoss::set_rcl_item()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	set_previous_pos_setpoint();
+	pos_sp_triplet->previous = pos_sp_triplet->current;
 	_navigator->set_can_loiter_at_sp(false);
 
 	switch (_rcl_state) {
@@ -110,7 +100,7 @@ RCLoss::set_rcl_item()
 			_mission_item.lon = _navigator->get_global_position()->lon;
 			_mission_item.altitude = _navigator->get_global_position()->alt;
 			_mission_item.altitude_is_relative = false;
-			_mission_item.yaw = NAN;
+			_mission_item.yaw = _navigator->get_global_position()->yaw;
 			_mission_item.loiter_radius = _navigator->get_loiter_radius();
 			_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
@@ -126,7 +116,7 @@ RCLoss::set_rcl_item()
 			/* Request flight termination from the commander */
 			_navigator->get_mission_result()->flight_termination = true;
 			_navigator->set_mission_result_updated();
-			warnx("rc not recovered: request flight termination");
+			warnx("RC not recovered: request flight termination");
 			pos_sp_triplet->previous.valid = false;
 			pos_sp_triplet->current.valid = false;
 			pos_sp_triplet->next.valid = false;
@@ -154,12 +144,12 @@ RCLoss::advance_rcl()
 	case RCL_STATE_NONE:
 		if (_param_loitertime.get() > 0.0f) {
 			warnx("RC loss, OBC mode, loiter");
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "rc loss, loitering");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RC loss, loitering");
 			_rcl_state = RCL_STATE_LOITER;
 
 		} else {
 			warnx("RC loss, OBC mode, slip loiter, terminate");
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "rc loss, terminating");
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RC loss, terminating");
 			_rcl_state = RCL_STATE_TERMINATE;
 			_navigator->get_mission_result()->stay_in_failsafe = true;
 			_navigator->set_mission_result_updated();

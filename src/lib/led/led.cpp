@@ -140,13 +140,12 @@ int LedController::update(LedControlData &control_data)
 				if ((_states[i].current_blinking_time += blink_delta_t) > current_blink_duration) {
 					_states[i].current_blinking_time -= current_blink_duration;
 
-					if (cur_data.blink_times_left == 254) {
-						// handle toggling for infinite case: toggle between 254 and 255
+					if (cur_data.blink_times_left == 246) {
+						// handle toggling for infinite case: decrease between 255 and 246
+						// In order to handle the flash mode infinite case it needs a
+						// total of 10 steps.
 						cur_data.blink_times_left = 255;
 						++num_blinking_do_not_change_state;
-
-					} else if (cur_data.blink_times_left == 255) {
-						cur_data.blink_times_left = 254;
 
 					} else if (--cur_data.blink_times_left == 0) {
 						cur_data.mode = led_control_s::MODE_DISABLED;

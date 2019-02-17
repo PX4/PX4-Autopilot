@@ -103,7 +103,7 @@ GroundRoverPositionControl::~GroundRoverPositionControl()
 
 		do {
 			/* wait 20ms */
-			usleep(20000);
+			px4_usleep(20000);
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
@@ -150,12 +150,6 @@ GroundRoverPositionControl::parameters_update()
 			   _parameters.speed_imax,
 			   _parameters.gndspeed_max);
 
-	/* Update and publish the navigation capabilities */
-	_gnd_pos_ctrl_status.landing_slope_angle_rad = 0;
-	_gnd_pos_ctrl_status.landing_horizontal_slope_displacement = 0;
-	_gnd_pos_ctrl_status.landing_flare_length = 0;
-	gnd_pos_ctrl_status_publish();
-
 	return OK;
 }
 
@@ -192,21 +186,9 @@ GroundRoverPositionControl::position_setpoint_triplet_poll()
 	}
 }
 
-void GroundRoverPositionControl::gnd_pos_ctrl_status_publish()
-{
-	_gnd_pos_ctrl_status.timestamp = hrt_absolute_time();
-
-	if (_gnd_pos_ctrl_status_pub != nullptr) {
-		orb_publish(ORB_ID(fw_pos_ctrl_status), _gnd_pos_ctrl_status_pub, &_gnd_pos_ctrl_status);
-
-	} else {
-		_gnd_pos_ctrl_status_pub = orb_advertise(ORB_ID(fw_pos_ctrl_status), &_gnd_pos_ctrl_status);
-	}
-}
-
 bool
-GroundRoverPositionControl::control_position(const math::Vector<2> &current_position,
-		const math::Vector<3> &ground_speed, const position_setpoint_triplet_s &pos_sp_triplet)
+GroundRoverPositionControl::control_position(const matrix::Vector2f &current_position,
+		const matrix::Vector3f &ground_speed, const position_setpoint_triplet_s &pos_sp_triplet)
 {
 	float dt = 0.01; // Using non zero value to a avoid division by zero
 
@@ -227,17 +209,17 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		bool was_circle_mode = _gnd_control.circle_mode();
 
 		/* current waypoint (the one currently heading for) */
-		math::Vector<2> curr_wp((float)pos_sp_triplet.current.lat, (float)pos_sp_triplet.current.lon);
+		matrix::Vector2f curr_wp((float)pos_sp_triplet.current.lat, (float)pos_sp_triplet.current.lon);
 
 		/* previous waypoint */
-		math::Vector<2> prev_wp = curr_wp;
+		matrix::Vector2f prev_wp = curr_wp;
 
 		if (pos_sp_triplet.previous.valid) {
 			prev_wp(0) = (float)pos_sp_triplet.previous.lat;
 			prev_wp(1) = (float)pos_sp_triplet.previous.lon;
 		}
 
-		math::Vector<2> ground_speed_2d = {ground_speed(0), ground_speed(1)};
+		matrix::Vector2f ground_speed_2d(ground_speed);
 
 		float mission_throttle = _parameters.throttle_cruise;
 
@@ -279,18 +261,18 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			_att_sp.roll_body = 0.0f;
 			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = 0.0f;
-			_att_sp.thrust = 0.0f;
+			_att_sp.thrust_body[0] = 0.0f;
 
 		} else if ((pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION)
 			   || (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
 
 			/* waypoint is a plain navigation waypoint or the takeoff waypoint, does not matter */
 			_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
-			_att_sp.roll_body = _gnd_control.nav_roll();
+			_att_sp.roll_body = _gnd_control.get_roll_setpoint();
 			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
 			_att_sp.fw_control_yaw = true;
-			_att_sp.thrust = mission_throttle;
+			_att_sp.thrust_body[0] = mission_throttle;
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
@@ -298,11 +280,11 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 			_gnd_control.navigate_loiter(curr_wp, current_position, pos_sp_triplet.current.loiter_radius,
 						     pos_sp_triplet.current.loiter_direction, ground_speed_2d);
 
-			_att_sp.roll_body = _gnd_control.nav_roll();
+			_att_sp.roll_body = _gnd_control.get_roll_setpoint();
 			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
 			_att_sp.fw_control_yaw = true;
-			_att_sp.thrust = 0.0f;
+			_att_sp.thrust_body[0] = 0.0f;
 		}
 
 		if (was_circle_mode && !_gnd_control.circle_mode()) {
@@ -317,7 +299,7 @@ GroundRoverPositionControl::control_position(const math::Vector<2> &current_posi
 		_att_sp.pitch_body = 0.0f;
 		_att_sp.yaw_body = 0.0f;
 		_att_sp.fw_control_yaw = true;
-		_att_sp.thrust = 0.0f;
+		_att_sp.thrust_body[0] = 0.0f;
 
 		/* do not publish the setpoint */
 		setpoint = false;
@@ -412,8 +394,8 @@ GroundRoverPositionControl::task_main()
 			_sub_attitude.update();
 			_sub_sensors.update();
 
-			math::Vector<3> ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);
-			math::Vector<2> current_position((float)_global_pos.lat, (float)_global_pos.lon);
+			matrix::Vector3f ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);
+			matrix::Vector2f current_position((float)_global_pos.lat, (float)_global_pos.lon);
 
 			/*
 			 * Attempt to control position, on success (= sensors present and not in manual mode),
@@ -440,31 +422,34 @@ GroundRoverPositionControl::task_main()
 						/* advertise and publish */
 						_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
 					}
-				}
 
-				/* XXX check if radius makes sense here */
-				float turn_distance = _parameters.l1_distance; //_gnd_control.switch_distance(100.0f);
+					/* XXX check if radius makes sense here */
+					float turn_distance = _parameters.l1_distance; //_gnd_control.switch_distance(100.0f);
 
-				/* lazily publish navigation capabilities */
-				if ((hrt_elapsed_time(&_gnd_pos_ctrl_status.timestamp) > 1000000)
-				    || (fabsf(turn_distance - _gnd_pos_ctrl_status.turn_distance) > FLT_EPSILON
-					&& turn_distance > 0)) {
+					// publish status
+					position_controller_status_s pos_ctrl_status = {};
 
-					/* set new turn distance */
-					_gnd_pos_ctrl_status.turn_distance = turn_distance;
+					pos_ctrl_status.nav_roll = _gnd_control.get_roll_setpoint();
+					pos_ctrl_status.nav_pitch = 0.0f;
+					pos_ctrl_status.nav_bearing = _gnd_control.nav_bearing();
 
-					_gnd_pos_ctrl_status.nav_roll = _gnd_control.nav_roll();
-					_gnd_pos_ctrl_status.nav_pitch = 0.0f;
-					_gnd_pos_ctrl_status.nav_bearing = _gnd_control.nav_bearing();
+					pos_ctrl_status.target_bearing = _gnd_control.target_bearing();
+					pos_ctrl_status.xtrack_error = _gnd_control.crosstrack_error();
 
-					_gnd_pos_ctrl_status.target_bearing = _gnd_control.target_bearing();
-					_gnd_pos_ctrl_status.xtrack_error = _gnd_control.crosstrack_error();
+					pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon,
+								  _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
 
-					math::Vector<2> curr_wp((float)_pos_sp_triplet.current.lat, (float)_pos_sp_triplet.current.lon);
-					_gnd_pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(current_position(0), current_position(1), curr_wp(0),
-								       curr_wp(1));
+					pos_ctrl_status.acceptance_radius = turn_distance;
+					pos_ctrl_status.yaw_acceptance = NAN;
 
-					gnd_pos_ctrl_status_publish();
+					pos_ctrl_status.timestamp = hrt_absolute_time();
+
+					if (_pos_ctrl_status_pub != nullptr) {
+						orb_publish(ORB_ID(position_controller_status), _pos_ctrl_status_pub, &pos_ctrl_status);
+
+					} else {
+						_pos_ctrl_status_pub = orb_advertise(ORB_ID(position_controller_status), &pos_ctrl_status);
+					}
 				}
 			}
 
@@ -479,28 +464,26 @@ GroundRoverPositionControl::task_main()
 	_control_task = -1;
 }
 
-void
+int
 GroundRoverPositionControl::task_main_trampoline(int argc, char *argv[])
 {
 	gnd_control::g_control = new GroundRoverPositionControl();
 
 	if (gnd_control::g_control == nullptr) {
 		warnx("OUT OF MEM");
-		return;
+		return -1;
 	}
 
 	/* only returns on exit */
 	gnd_control::g_control->task_main();
 	delete gnd_control::g_control;
 	gnd_control::g_control = nullptr;
+	return 0;
 }
 
 int
 GroundRoverPositionControl::start()
 {
-	ASSERT(_control_task == -1);
-	warn("Starting by marco");
-
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("gnd_pos_ctrl",
 					   SCHED_DEFAULT,
@@ -508,7 +491,6 @@ GroundRoverPositionControl::start()
 					   1700,
 					   (px4_main_t)&GroundRoverPositionControl::task_main_trampoline,
 					   nullptr);
-	warn("done");
 
 	if (_control_task < 0) {
 		warn("task start failed");
@@ -539,7 +521,7 @@ int gnd_pos_control_main(int argc, char *argv[])
 
 		/* avoid memory fragmentation by not exiting start handler until the task has fully started */
 		while (gnd_control::g_control == nullptr || !gnd_control::g_control->task_running()) {
-			usleep(50000);
+			px4_usleep(50000);
 			printf(".");
 			fflush(stdout);
 		}

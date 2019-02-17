@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# NXP fmuk66-v3 specific board defaults
+#------------------------------------------------------------------------------
+
+
+if [ $AUTOCNF = yes ]
+then
+
+fi
+
+set MIXER_AUX none

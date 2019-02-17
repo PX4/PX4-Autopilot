@@ -58,6 +58,7 @@
 #define DRV_MAG_DEVTYPE_MPU9250  0x04
 #define DRV_MAG_DEVTYPE_LIS3MDL  0x05
 #define DRV_MAG_DEVTYPE_IST8310  0x06
+#define DRV_MAG_DEVTYPE_RM3100   0x07
 #define DRV_ACC_DEVTYPE_LSM303D  0x11
 #define DRV_ACC_DEVTYPE_BMA180   0x12
 #define DRV_ACC_DEVTYPE_MPU6000  0x13
@@ -103,6 +104,11 @@
 #define DRV_ACC_DEVTYPE_ADIS16448	0x55
 #define DRV_MAG_DEVTYPE_ADIS16448	0x56
 #define DRV_GYR_DEVTYPE_ADIS16448	0x57
+#define DRV_BARO_DEVTYPE_LPS22HB	0x58
+#define DRV_ACC_DEVTYPE_ADIS16477	0x59
+#define DRV_GYR_DEVTYPE_ADIS16477	0x60
+#define DRV_ACC_DEVTYPE_LSM303AGR	0x61
+#define DRV_MAG_DEVTYPE_LSM303AGR	0x62
 
 /*
  * ioctl() definitions
@@ -120,46 +126,11 @@
  */
 #define SENSORIOCSPOLLRATE	_SENSORIOC(0)
 
-/**
- * Return the driver's approximate polling rate in Hz, or one of the
- * SENSOR_POLLRATE values.
- */
-#define SENSORIOCGPOLLRATE	_SENSORIOC(1)
-
-#define SENSOR_POLLRATE_MANUAL		1000000	/**< poll when read */
-#define SENSOR_POLLRATE_EXTERNAL	1000001	/**< poll when device signals ready */
-#define SENSOR_POLLRATE_MAX		1000002	/**< poll at device maximum rate */
 #define SENSOR_POLLRATE_DEFAULT		1000003	/**< poll at driver normal rate */
-
-/**
- * Set the internal queue depth to (arg) entries, must be at least 1
- *
- * This sets the upper bound on the number of readings that can be
- * read from the driver.
- */
-#define SENSORIOCSQUEUEDEPTH	_SENSORIOC(2)
-
-/** return the internal queue depth */
-#define SENSORIOCGQUEUEDEPTH	_SENSORIOC(3)
 
 /**
  * Reset the sensor to its default configuration
  */
 #define SENSORIOCRESET		_SENSORIOC(4)
-
-/**
- * Set the sensor orientation
- */
-#define SENSORIOCSROTATION	_SENSORIOC(5)
-
-/**
- * Get the sensor orientation
- */
-#define SENSORIOCGROTATION	_SENSORIOC(6)
-
-/**
- * Test the sensor calibration
- */
-#define SENSORIOCCALTEST	_SENSORIOC(7)
 
 #endif /* _DRV_SENSOR_H */

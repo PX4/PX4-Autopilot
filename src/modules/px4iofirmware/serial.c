@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012,2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,7 +51,7 @@
 #include <up_internal.h>
 #include <up_arch.h>
 #include <stm32.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 //#define DEBUG
 #include "px4io.h"

@@ -222,7 +222,7 @@ class Graph:
         special_cases_sub = [
     ('sensors', r'voted_sensors_update\.cpp$', r'\binit_sensor_class\b\(([^,)]+)', r'^meta$'),
     ('mavlink', r'.*', r'\badd_orb_subscription\b\(([^,)]+)', r'^_topic$'),
-    ('sdlog2', r'.*', None, r'^topic$'),
+    ('listener', r'.*', None, r'^(id)$'),
     ('logger', r'.*', None, r'^(topic|sub\.metadata|_polling_topic_meta)$'),
 
     ('uavcan', r'uavcan_main\.cpp$', r'\b_control_topics\[[0-9]\]=([^,)]+)', r'^_control_topics\[i\]$'),
@@ -246,15 +246,12 @@ class Graph:
     
     ('mc_pos_control', r'mc_pos_control_main\.cpp$', r'\b_attitude_setpoint_id=([^,)]+)', r'^_attitude_setpoint_id$'),
 
-    ('mc_att_control', r'mc_att_control_main\.cpp$', r'\b_rates_sp_id=([^,)]+)', r'^_rates_sp_id$'),
     ('mc_att_control', r'mc_att_control_main\.cpp$', r'\b_actuators_id=([^,)]+)', r'^_actuators_id$'),
 
-    ('fw_att_control', r'fw_att_control_main\.cpp$', r'\b_rates_sp_id=([^,)]+)', r'^_rates_sp_id$'),
-    ('fw_att_control', r'fw_att_control_main\.cpp$', r'\b_actuators_id=([^,)]+)', r'^_actuators_id$'),
-    ('fw_att_control', r'fw_att_control_main\.cpp$', r'\b_attitude_setpoint_id=([^,)]+)', r'^_attitude_setpoint_id$'),
+    ('fw_att_control', r'FixedwingAttitudeControl\.cpp$', r'\b_actuators_id=([^,)]+)', r'^_actuators_id$'),
+    ('fw_att_control', r'FixedwingAttitudeControl\.cpp$', r'\b_attitude_setpoint_id=([^,)]+)', r'^_attitude_setpoint_id$'),
 
     ('uavcan', r'sensors/.*\.cpp$', r'\bUavcanCDevSensorBridgeBase\([^{]*DEVICE_PATH,([^,)]+)', r'^_orb_topic$'),
-    ('batt_smbus', r'batt_smbus\.cpp$', r'\b_batt_orb_id=([^,)]+)', r'^_batt_orb_id$'),
     ]
         special_cases_pub = [(a, re.compile(b), re.compile(c) if c is not None else None, re.compile(d))
                                    for a,b,c,d in special_cases_pub]

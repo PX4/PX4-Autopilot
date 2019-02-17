@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,9 +33,7 @@
 
 /**
  * @file test_mount.c
- *
  * Device mount / unmount stress test
- *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
@@ -48,8 +46,7 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <string.h>
 
 #include <drivers/drv_hrt.h>
@@ -71,7 +68,7 @@ test_mount(int argc, char *argv[])
 	/* check if microSD card is mounted */
 	struct stat buffer;
 
-	if (stat(PX4_ROOTFSDIR "/fs/microsd/", &buffer)) {
+	if (stat(PX4_STORAGEDIR "/", &buffer)) {
 		PX4_ERR("no microSD card mounted, aborting file test");
 		return 1;
 	}
@@ -79,7 +76,7 @@ test_mount(int argc, char *argv[])
 	/* list directory */
 	DIR		*d;
 	struct dirent	*dir;
-	d = opendir(PX4_ROOTFSDIR "/fs/microsd");
+	d = opendir(PX4_STORAGEDIR);
 
 	if (d) {
 
@@ -152,7 +149,7 @@ test_mount(int argc, char *argv[])
 				PX4_INFO("\n SUCCESSFULLY PASSED FSYNC'ED WRITES, CONTINUTING WITHOUT FSYNC");
 				fsync(fileno(stdout));
 				fsync(fileno(stderr));
-				usleep(20000);
+				px4_usleep(20000);
 			}
 
 		}
@@ -187,7 +184,7 @@ test_mount(int argc, char *argv[])
 		printf("unpower the system immediately (within 0.5s) when the hash (#) sign appears\n");
 		fsync(fileno(stdout));
 		fsync(fileno(stderr));
-		usleep(50000);
+		px4_usleep(50000);
 
 		for (unsigned a = 0; a < alignments; a++) {
 
@@ -203,7 +200,7 @@ test_mount(int argc, char *argv[])
 
 			uint8_t read_buf[chunk_sizes[c] + alignments] __attribute__((aligned(64)));
 
-			int fd = px4_open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
+			int fd = px4_open(PX4_STORAGEDIR "/testfile", O_TRUNC | O_WRONLY | O_CREAT);
 
 			for (unsigned i = 0; i < iterations; i++) {
 
@@ -237,10 +234,10 @@ test_mount(int argc, char *argv[])
 			printf(".");
 			fsync(fileno(stdout));
 			fsync(fileno(stderr));
-			usleep(200000);
+			px4_usleep(200000);
 
 			px4_close(fd);
-			fd = px4_open(PX4_ROOTFSDIR "/fs/microsd/testfile", O_RDONLY);
+			fd = px4_open(PX4_STORAGEDIR "/testfile", O_RDONLY);
 
 			/* read back data for validation */
 			for (unsigned i = 0; i < iterations; i++) {
@@ -269,7 +266,7 @@ test_mount(int argc, char *argv[])
 
 			}
 
-			int ret = unlink(PX4_ROOTFSDIR "/fs/microsd/testfile");
+			int ret = unlink(PX4_STORAGEDIR "/testfile");
 			px4_close(fd);
 
 			if (ret) {
@@ -283,7 +280,7 @@ test_mount(int argc, char *argv[])
 
 	fsync(fileno(stdout));
 	fsync(fileno(stderr));
-	usleep(20000);
+	px4_usleep(20000);
 
 	close(cmd_fd);
 
@@ -291,7 +288,7 @@ test_mount(int argc, char *argv[])
 	PX4_INFO("Iteration done, rebooting..");
 	fsync(fileno(stdout));
 	fsync(fileno(stderr));
-	usleep(50000);
+	px4_usleep(50000);
 	px4_systemreset(false);
 
 	/* never going to get here */

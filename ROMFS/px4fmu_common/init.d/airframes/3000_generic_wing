@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# @name Generic Flying Wing
+#
+# @type Flying Wing
+# @class Plane
+#
+# @maintainer
+#
+
+sh /etc/init.d/rc.fw_defaults
+
+set MIXER fw_generic_wing

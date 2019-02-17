@@ -1,15 +1,181 @@
 #ifdef CONFIG_BOARD_CRASHDUMP
 
-#include <px4_config.h>
-#include <px4_tasks.h>
+#include <board_config.h>
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
+#include <limits.h>
+#include <errno.h>
+#include <sys/ioctl.h>
 
 #include <nuttx/board.h>
 
 #include "up_internal.h"
 #include <systemlib/hardfault_log.h>
+
+#if defined(CONFIG_STM32F7_BBSRAM) && defined(CONFIG_STM32F7_SAVE_CRASHDUMP)
+#  define HAS_BBSRAM CONFIG_STM32F7_BBSRAM
+#  define BBSRAM_FILE_COUNT CONFIG_STM32F7_BBSRAM_FILES
+#  define SAVE_CRASHDUMP CONFIG_STM32F7_SAVE_CRASHDUMP
+#elif defined(CONFIG_STM32_BBSRAM) && defined(CONFIG_STM32_SAVE_CRASHDUMP)
+#  define HAS_BBSRAM CONFIG_STM32_BBSRAM
+#  define BBSRAM_FILE_COUNT CONFIG_STM32_BBSRAM_FILES
+#  define SAVE_CRASHDUMP CONFIG_STM32_SAVE_CRASHDUMP
+#endif
+
+int board_hardfault_init(int display_to_console, bool allow_prompt)
+{
+
+	int hadCrash = -1;
+#if defined(HAS_BBSRAM)
+
+	/* NB. the use of the console requires the hrt running
+	 * to poll the DMA
+	 */
+
+	/* Using Battery Backed Up SRAM */
+
+	int filesizes[BBSRAM_FILE_COUNT + 1] = BSRAM_FILE_SIZES;
+
+	stm32_bbsraminitialize(BBSRAM_PATH, filesizes);
+
+#if defined(SAVE_CRASHDUMP)
+
+	/* Panic Logging in Battery Backed Up Files */
+
+	/*
+	 * In an ideal world, if a fault happens in flight the
+	 * system save it to BBSRAM will then reboot. Upon
+	 * rebooting, the system will log the fault to disk, recover
+	 * the flight state and continue to fly.  But if there is
+	 * a fault on the bench or in the air that prohibit the recovery
+	 * or committing the log to disk, the things are too broken to
+	 * fly. So the question is:
+	 *
+	 * Did we have a hard fault and not make it far enough
+	 * through the boot sequence to commit the fault data to
+	 * the SD card?
+	 */
+
+	/* Do we have an uncommitted hard fault in BBSRAM?
+	 *  - this will be reset after a successful commit to SD
+	 */
+	hadCrash = hardfault_check_status("boot");
+
+	if (hadCrash == OK) {
+
+		syslog(LOG_ERR, "[boot] There is a hard fault logged. Hold down the SPACE BAR," \
+		       " while booting to review!\n");
+
+		/* Yes. So add one to the boot count - this will be reset after a successful
+		 * commit to SD
+		 */
+
+		int reboots = hardfault_increment_reboot("boot", false);
+
+		if (reboots < 0) {
+			return -EIO;
+		}
+
+		if (reboots >= 32000) {
+			reboots = hardfault_increment_reboot("boot", true);
+			return -ENOSPC;
+		}
+
+		/* Also end the misery for a user that holds for a key down on the console */
+
+		int bytesWaiting;
+		ioctl(fileno(stdin), FIONREAD, (unsigned long)((uintptr_t) &bytesWaiting));
+
+		if (reboots > display_to_console || bytesWaiting != 0) {
+
+			/* Since we can not commit the fault dump to disk. Display it
+			 * to the console.
+			 */
+
+			if (!allow_prompt) {
+				bytesWaiting = 0;
+			}
+
+			if (display_to_console != INT_MAX) {
+				hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
+			}
+
+			syslog(LOG_ERR, "[boot] There were %d reboots with Hard fault that were not committed to disk%s\n",
+			       reboots,
+			       (bytesWaiting == 0 ? "" : " - Boot halted Due to Key Press\n"));
+
+
+			/* For those of you with a debugger set a break point on up_assert and
+			 * then set dbgContinue = 1 and go.
+			 */
+
+			/* Clear any key press that got us here */
+
+			volatile bool dbgContinue = bytesWaiting == 0;
+			int c = '>';
+
+			while (!dbgContinue) {
+
+				switch (c) {
+
+				case EOF:
+				case '\n':
+				case '\r':
+				case ' ':
+					goto read;
+
+				default:
+
+					putchar(c);
+					putchar('\n');
+
+					switch (c) {
+
+					case 'D':
+					case 'd':
+						hardfault_write("boot", fileno(stdout), HARDFAULT_DISPLAY_FORMAT, false);
+						break;
+
+					case 'C':
+					case 'c':
+						hardfault_rearm("boot");
+						hardfault_increment_reboot("boot", true);
+						break;
+
+					case 'B':
+					case 'b':
+						dbgContinue = true;
+						break;
+
+					default:
+						break;
+					} // Inner Switch
+
+					syslog(LOG_INFO, "\nEnter B - Continue booting\n" \
+					       "Enter C - Clear the fault log\n" \
+					       "Enter D - Dump fault log\n\n?>");
+					fflush(stdout);
+
+read:
+
+					if (!dbgContinue) {
+						c = getchar();
+					}
+
+					break;
+
+				} // outer switch
+			} // for
+
+		} // inner if
+	} // outer if
+
+#endif // SAVE_CRASHDUMP
+#endif // HAS_BBSRAM
+	return hadCrash == OK ? 1 : 0;
+}
 
 static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
 {
@@ -26,7 +192,7 @@ static uint32_t *__attribute__((noinline)) __sdata_addr(void)
 
 __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint8_t *filename, int lineno)
 {
-#ifndef CRASHDUMP_RESET_ONLY
+#ifndef BOARD_CRASHDUMP_RESET_ONLY
 	/* We need a chunk of ram to save the complete context in.
 	 * Since we are going to reboot we will use &_sdata
 	 * which is the lowest memory and the amount we will save
@@ -166,11 +332,17 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const uint
 		up_lowputc('!');
 	}
 
-#endif /* CRASHDUMP_RESET_ONLY */
+#endif /* BOARD_CRASHDUMP_RESET_ONLY */
 
-#if defined(CONFIG_BOARD_RESET_ON_CRASH)
-	board_reset(0);
-#endif
+	/* All boards need to do a reset here!
+	 *
+	 * Since we needed a chunk of ram to save the complete
+	 * context in and have corrupted it.  We can not allow
+	 * the OS to run again. We used &_sdata which is the lowest memory
+	 * and it could be used by the OS.
+	*/
+
+	board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
 }
 
 #endif /* CONFIG_BOARD_CRASHDUMP */

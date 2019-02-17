@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# av_x1-v1 specific board init
+#
+#
+
+# AV-X: start MAVLink to companion (connected to TX2)
+mavlink start -d /dev/ttyS5 -b 500000 -m osd
+mavlink stream -d /dev/ttyS5 -s HIGHRES_IMU -r 250
+mavlink stream -d /dev/ttyS5 -s CAMERA_TRIGGER -r 100
+mavlink stream -d /dev/ttyS5 -s LOCAL_POSITION_NED -r 50
+
+
+# AV-X: start MAVLink UDP port 14570
+mavlink start -x -u 14570

@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-px4_add_git_submodule(TARGET git_mavlink_v1 PATH "${PX4_SOURCE_DIR}/mavlink/include/mavlink/v1.0")
-
 option(ENABLE_UART_RC_INPUT "Enable RC Input from UART mavlink connection" OFF)
 
 if(ENABLE_UART_RC_INPUT)
@@ -50,20 +48,34 @@ configure_file(simulator_config.h.in simulator_config.h @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(SIMULATOR_SRCS simulator.cpp)
-if (NOT ${OS} STREQUAL "qurt")
+if (NOT ${PX4_PLATFORM} STREQUAL "qurt")
 	list(APPEND SIMULATOR_SRCS
 		simulator_mavlink.cpp)
 endif()
+
+add_subdirectory(ledsim)
 
 px4_add_module(
 	MODULE modules__simulator
 	MAIN simulator
 	COMPILE_FLAGS
+		-Wno-double-promotion
 	INCLUDES
 		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS
 		${SIMULATOR_SRCS}
 	DEPENDS
-		git_mavlink_v1
-		platforms__common
+		git_mavlink_v2
+		battery
+		conversion
+		drivers__ledsim
+		git_ecl
+		ecl_geo
 	)
+target_include_directories(modules__simulator INTERFACE ${PX4_SOURCE_DIR}/mavlink/include/mavlink)
+
+add_subdirectory(accelsim)
+add_subdirectory(airspeedsim)
+add_subdirectory(barosim)
+add_subdirectory(gpssim)
+add_subdirectory(gyrosim)

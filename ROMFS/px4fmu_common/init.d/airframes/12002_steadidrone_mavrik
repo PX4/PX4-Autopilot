@@ -1,0 +1,50 @@
+#!/bin/sh
+#
+# @name Steadidrone MAVRIK
+#
+# @type Octo Coax Wide
+# @class Copter
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+# @output MAIN5 motor 5
+# @output MAIN6 motor 6
+# @output MAIN7 motor 7
+# @output MAIN8 motor 8
+#
+# @maintainer Simon Wilks <simon@uaventure.com>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+if [ $AUTOCNF = yes ]
+then
+	param set MC_PITCH_P 4
+	param set MC_PITCHRATE_P 0.24
+	param set MC_PITCHRATE_I 0.09
+	param set MC_PITCHRATE_D 0.013
+	param set MC_PITCHRATE_MAX 180
+
+	param set MC_ROLL_P 4
+	param set MC_ROLLRATE_P 0.16
+	param set MC_ROLLRATE_I 0.07
+	param set MC_ROLLRATE_D 0.009
+	param set MC_ROLLRATE_MAX 180
+
+	param set MC_YAW_P 3
+	param set MC_YAWRATE_P 0.2
+	param set MC_YAWRATE_I 0.1
+	param set MC_YAWRATE_D 0
+
+	param set MPC_HOLD_MAX_XY 0.25
+	param set MPC_THR_MIN 0.15
+	param set MPC_Z_VEL_MAX_DN 2
+
+	param set BAT_N_CELLS 4
+fi
+
+set MIXER octo_cox_w
+
+set PWM_OUT 12345678

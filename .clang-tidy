@@ -1,5 +1,6 @@
 Checks:          '*
 		,-cert-dcl50-cpp
+		,-cert-env33-c
 		,-cert-err34-c
 		,-cert-err58-cpp
 		,-cert-msc30-c
@@ -59,6 +60,7 @@ Checks:          '*
 		,-modernize-use-equals-delete
 		,-modernize-use-override
 		,-modernize-use-using
+		,-modernize-pass-by-value
 		,-performance-inefficient-string-concatenation
 		,-readability-avoid-const-params-in-decls
 		,-readability-else-after-return

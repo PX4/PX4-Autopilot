@@ -44,11 +44,7 @@
 
 #include <stdbool.h>
 
-#ifdef __PX4_ROS
-
-#error "PX4 tasks not supported in ROS"
-
-#elif defined(__PX4_NUTTX)
+#if defined(__PX4_NUTTX)
 typedef int px4_task_t;
 
 #include <sys/prctl.h>
@@ -64,23 +60,25 @@ typedef int px4_task_t;
 #define px4_task_exit(x) _exit(x)
 
 #elif defined(__PX4_POSIX) || defined(__PX4_QURT)
+
 #include <pthread.h>
 #include <sched.h>
 
 /** Default scheduler type */
 #define SCHED_DEFAULT	SCHED_FIFO
-#ifdef __PX4_LINUX
+
+#if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
+
 #define SCHED_PRIORITY_MAX sched_get_priority_max(SCHED_FIFO)
 #define SCHED_PRIORITY_MIN sched_get_priority_min(SCHED_FIFO)
 #define SCHED_PRIORITY_DEFAULT (((sched_get_priority_max(SCHED_FIFO) - sched_get_priority_min(SCHED_FIFO)) / 2) + sched_get_priority_min(SCHED_FIFO))
-#elif defined(__PX4_DARWIN)
-#define SCHED_PRIORITY_MAX sched_get_priority_max(SCHED_FIFO)
-#define SCHED_PRIORITY_MIN sched_get_priority_min(SCHED_FIFO)
-#define SCHED_PRIORITY_DEFAULT (((sched_get_priority_max(SCHED_FIFO) - sched_get_priority_min(SCHED_FIFO)) / 2) + sched_get_priority_min(SCHED_FIFO))
+
 #elif defined(__PX4_QURT)
+
 #define SCHED_PRIORITY_MAX 255
 #define SCHED_PRIORITY_MIN 0
 #define SCHED_PRIORITY_DEFAULT 20
+
 #else
 #error "No target OS defined"
 #endif
@@ -97,6 +95,7 @@ typedef struct {
 	int argc;
 	char **argv;
 } px4_task_args_t;
+
 #else
 #error "No target OS defined"
 #endif
@@ -111,9 +110,9 @@ typedef struct {
 // which typically runs at a slower rate
 #define SCHED_PRIORITY_ATTITUDE_CONTROL		(SCHED_PRIORITY_MAX - 4)
 
-// Actuator outputs should run before right after the attitude controller
-// updated
-#define SCHED_PRIORITY_ACTUATOR_OUTPUTS		(SCHED_PRIORITY_MAX - 4)
+// Actuator outputs should run as soon as the rate controller publishes
+// the actuator controls topic
+#define SCHED_PRIORITY_ACTUATOR_OUTPUTS		(SCHED_PRIORITY_MAX - 3)
 
 // Position controllers typically are in a blocking wait on estimator data
 // so when new sensor data is available they will run last. Keeping them

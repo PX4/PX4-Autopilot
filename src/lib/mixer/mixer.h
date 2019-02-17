@@ -125,21 +125,49 @@
  */
 
 
-#ifndef _SYSTEMLIB_MIXER_MIXER_H
-#define _SYSTEMLIB_MIXER_MIXER_H value
+#pragma once
 
-#include <px4_config.h>
-#include "drivers/drv_mixer.h"
+#include <stdint.h>
 
-#include "mixer_load.h"
+/** simple channel scaler */
+struct mixer_scaler_s {
+	float			negative_scale;
+	float			positive_scale;
+	float			offset;
+	float			min_output;
+	float			max_output;
+};
+
+/** mixer input */
+struct mixer_control_s {
+	uint8_t			control_group;	/**< group from which the input reads */
+	uint8_t			control_index;	/**< index within the control group */
+	struct mixer_scaler_s 	scaler;		/**< scaling applied to the input before use */
+};
+
+/** simple mixer */
+struct mixer_simple_s {
+	uint8_t			control_count;	/**< number of inputs */
+	struct mixer_scaler_s	output_scaler;	/**< scaling for the output */
+	struct mixer_control_s	controls[0];	/**< actual size of the array is set by control_count */
+};
+
+#define MIXER_SIMPLE_SIZE(_icount)	(sizeof(struct mixer_simple_s) + (_icount) * sizeof(struct mixer_control_s))
+
 
 /**
  * Abstract class defining a mixer mixing zero or more inputs to
  * one or more outputs.
  */
-class __EXPORT Mixer
+class Mixer
 {
 public:
+	enum class Airmode : int32_t {
+		disabled = 0,
+		roll_pitch = 1,
+		roll_pitch_yaw = 2
+	};
+
 	/** next mixer in a list */
 	Mixer				*_next;
 
@@ -204,12 +232,26 @@ public:
 	 */
 	virtual unsigned set_trim(float trim) = 0;
 
+	/**
+	 * @brief Get trim offset for this mixer
+	 *
+	 * @return the number of outputs this mixer feeds to
+	 */
+	virtual unsigned get_trim(float *trim) = 0;
+
 	/*
 	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to pwm.
 	 *
 	 * @param[in]  val   The value
 	 */
 	virtual void 			set_thrust_factor(float val) {}
+
+	/**
+	 * @brief Set airmode. Airmode allows the mixer to increase the total thrust in order to unsaturate the motors.
+	 *
+	 * @param[in]  airmode   Select airmode type (0 = disabled, 1 = roll/pitch, 2 = roll/pitch/yaw)
+	 */
+	virtual void set_airmode(Airmode airmode) {};
 
 protected:
 	/** client-supplied callback used when fetching control values */
@@ -252,6 +294,14 @@ protected:
 	static const char 		*findtag(const char *buf, unsigned &buflen, char tag);
 
 	/**
+	 * Find next tag and return it (0 is returned if no tag is found)
+	 *
+	 * @param buf			The buffer to operate on.
+	 * @param buflen		length of the buffer.
+	 */
+	static char 			findnexttag(const char *buf, unsigned buflen);
+
+	/**
 	 * Skip a line
 	 *
 	 * @param buf			The buffer to operate on.
@@ -276,15 +326,15 @@ private:
  * Group of mixers, built up from single mixers and processed
  * in order when mixing.
  */
-class __EXPORT MixerGroup : public Mixer
+class MixerGroup : public Mixer
 {
 public:
 	MixerGroup(ControlCallback control_cb, uintptr_t cb_handle);
 	~MixerGroup();
 
-	virtual unsigned		mix(float *outputs, unsigned space);
-	virtual uint16_t		get_saturation_status(void);
-	virtual void			groups_required(uint32_t &groups);
+	unsigned		mix(float *outputs, unsigned space) override;
+	uint16_t		get_saturation_status(void) override;
+	void			groups_required(uint32_t &groups) override;
 
 	/**
 	 * Add a mixer to the group.
@@ -326,6 +376,7 @@ public:
 	 *   M: <control count>
 	 *   O: <-ve scale> <+ve scale> <offset> <lower limit> <upper limit>
 	 *
+	 * The second line O: can be omitted. In that case 'O: 10000 10000 0 -10000 10000' is used.
 	 * The definition continues with <control count> entries describing the control
 	 * inputs and their scaling, in the form:
 	 *
@@ -369,7 +420,7 @@ public:
 	 * @param[in]  delta_out_max  Maximum delta output.
 	 *
 	 */
-	virtual void 			set_max_delta_out_once(float delta_out_max);
+	void 			set_max_delta_out_once(float delta_out_max) override;
 
 	/*
 	 * Invoke the set_offset method of each mixer in the group
@@ -377,7 +428,14 @@ public:
 	 */
 	unsigned set_trims(int16_t *v, unsigned n);
 
-	unsigned set_trim(float trim)
+	unsigned set_trim(float trim) override
+	{
+		return 0;
+	}
+
+	unsigned get_trims(int16_t *values);
+
+	unsigned get_trim(float *trim) override
 	{
 		return 0;
 	}
@@ -387,7 +445,9 @@ public:
 	 *
 	 * @param[in]  val   The value
 	 */
-	virtual void	set_thrust_factor(float val);
+	void	set_thrust_factor(float val) override;
+
+	void 	set_airmode(Airmode airmode) override;
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */
@@ -402,7 +462,7 @@ private:
  *
  * Used as a placeholder for output channels that are unassigned in groups.
  */
-class __EXPORT NullMixer : public Mixer
+class NullMixer : public Mixer
 {
 public:
 	NullMixer();
@@ -423,13 +483,17 @@ public:
 	 */
 	static NullMixer		*from_text(const char *buf, unsigned &buflen);
 
-	virtual unsigned		mix(float *outputs, unsigned space);
-	virtual uint16_t		get_saturation_status(void);
-	virtual void			groups_required(uint32_t &groups);
-	virtual void 			set_offset(float trim) {}
-	unsigned set_trim(float trim)
+	unsigned		mix(float *outputs, unsigned space) override;
+	uint16_t		get_saturation_status(void) override;
+	void			groups_required(uint32_t &groups) override;
+	unsigned set_trim(float trim) override
 	{
-		return 0;
+		return 1;
+	}
+
+	unsigned get_trim(float *trim) override
+	{
+		return 1;
 	}
 
 };
@@ -439,7 +503,7 @@ public:
  *
  * Collects zero or more inputs and mixes them to a single output.
  */
-class __EXPORT SimpleMixer : public Mixer
+class SimpleMixer : public Mixer
 {
 public:
 	/**
@@ -491,9 +555,9 @@ public:
 	static SimpleMixer		*pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, unsigned input, uint16_t min,
 			uint16_t mid, uint16_t max);
 
-	virtual unsigned		mix(float *outputs, unsigned space);
-	virtual uint16_t		get_saturation_status(void);
-	virtual void			groups_required(uint32_t &groups);
+	unsigned		mix(float *outputs, unsigned space) override;
+	uint16_t		get_saturation_status(void) override;
+	void			groups_required(uint32_t &groups) override;
 
 	/**
 	 * Check that the mixer configuration as loaded is sensible.
@@ -505,7 +569,9 @@ public:
 	 */
 	int				check();
 
-	unsigned set_trim(float trim);
+	unsigned set_trim(float trim) override;
+
+	unsigned get_trim(float *trim) override;
 
 protected:
 
@@ -538,7 +604,7 @@ enum class MultirotorGeometry : MultirotorGeometryUnderlyingType;
  * Collects four inputs (roll, pitch, yaw, thrust) and mixes them to
  * a set of outputs based on the configured geometry.
  */
-class __EXPORT MultirotorMixer : public Mixer
+class MultirotorMixer : public Mixer
 {
 public:
 	/**
@@ -546,10 +612,10 @@ public:
 	 * Precalculated rotor mix.
 	 */
 	struct Rotor {
-		float	roll_scale;	/**< scales roll for this rotor */
+		float	roll_scale;		/**< scales roll for this rotor */
 		float	pitch_scale;	/**< scales pitch for this rotor */
-		float	yaw_scale;	/**< scales yaw for this rotor */
-		float	out_scale;	/**< scales total out for this rotor */
+		float	yaw_scale;		/**< scales yaw for this rotor */
+		float	thrust_scale;	/**< scales thrust for this rotor */
 	};
 
 	/**
@@ -575,6 +641,20 @@ public:
 			float pitch_scale,
 			float yaw_scale,
 			float idle_speed);
+
+	/**
+	 * Constructor (for testing).
+	 *
+	 * @param control_cb		Callback invoked to read inputs.
+	 * @param cb_handle		Passed to control_cb.
+	 * @param rotors		control allocation matrix
+	 * @param rotor_count		length of rotors array (= number of motors)
+	 */
+	MultirotorMixer(ControlCallback control_cb,
+			uintptr_t cb_handle,
+			Rotor *rotors,
+			unsigned rotor_count);
+
 	~MultirotorMixer();
 
 	/**
@@ -596,9 +676,9 @@ public:
 	static MultirotorMixer		*from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf,
 			unsigned &buflen);
 
-	virtual unsigned		mix(float *outputs, unsigned space);
-	virtual uint16_t		get_saturation_status(void);
-	virtual void			groups_required(uint32_t &groups);
+	unsigned		mix(float *outputs, unsigned space) override;
+	uint16_t		get_saturation_status(void) override;
+	void			groups_required(uint32_t &groups) override;
 
 	/**
 	 * @brief      Update slew rate parameter. This tells the multicopter mixer
@@ -610,9 +690,14 @@ public:
 	 * @param[in]  delta_out_max  Maximum delta output.
 	 *
 	 */
-	virtual void 			set_max_delta_out_once(float delta_out_max) { _delta_out_max = delta_out_max; }
+	void 			set_max_delta_out_once(float delta_out_max) override { _delta_out_max = delta_out_max; }
 
-	unsigned set_trim(float trim)
+	unsigned set_trim(float trim) override
+	{
+		return _rotor_count;
+	}
+
+	unsigned get_trim(float *trim) override
 	{
 		return _rotor_count;
 	}
@@ -622,7 +707,9 @@ public:
 	 *
 	 * @param[in]  val   The value
 	 */
-	virtual void			set_thrust_factor(float val) {_thrust_factor = val;}
+	void			set_thrust_factor(float val) override { _thrust_factor = val; }
+
+	void 			set_airmode(Airmode airmode) override;
 
 	union saturation_status {
 		struct {
@@ -642,6 +729,78 @@ public:
 	};
 
 private:
+	/**
+	 * Computes the gain k by which desaturation_vector has to be multiplied
+	 * in order to unsaturate the output that has the greatest saturation.
+	 * @see also minimize_saturation().
+	 *
+	 * @return desaturation gain
+	 */
+	float compute_desaturation_gain(const float *desaturation_vector, const float *outputs, saturation_status &sat_status,
+					float min_output, float max_output) const;
+
+	/**
+	 * Minimize the saturation of the actuators by adding or substracting a fraction of desaturation_vector.
+	 * desaturation_vector is the vector that added to the output outputs, modifies the thrust or angular
+	 * acceleration on a specific axis.
+	 * For example, if desaturation_vector is given to slide along the vertical thrust axis (thrust_scale), the
+	 * saturation will be minimized by shifting the vertical thrust setpoint, without changing the
+	 * roll/pitch/yaw accelerations.
+	 *
+	 * Note that as we only slide along the given axis, in extreme cases outputs can still contain values
+	 * outside of [min_output, max_output].
+	 *
+	 * @param desaturation_vector vector that is added to the outputs, e.g. thrust_scale
+	 * @param outputs output vector that is modified
+	 * @param sat_status saturation status output
+	 * @param min_output minimum desired value in outputs
+	 * @param max_output maximum desired value in outputs
+	 * @param reduce_only if true, only allow to reduce (substract) a fraction of desaturation_vector
+	 */
+	void minimize_saturation(const float *desaturation_vector, float *outputs, saturation_status &sat_status,
+				 float min_output = 0.f, float max_output = 1.f, bool reduce_only = false) const;
+
+	/**
+	 * Mix roll, pitch, yaw, thrust and set the outputs vector.
+	 *
+	 * Desaturation behavior: airmode for roll/pitch:
+	 * thrust is increased/decreased as much as required to meet the demanded roll/pitch.
+	 * Yaw is not allowed to increase the thrust, @see mix_yaw() for the exact behavior.
+	 */
+	inline void mix_airmode_rp(float roll, float pitch, float yaw, float thrust, float *outputs);
+
+	/**
+	 * Mix roll, pitch, yaw, thrust and set the outputs vector.
+	 *
+	 * Desaturation behavior: full airmode for roll/pitch/yaw:
+	 * thrust is increased/decreased as much as required to meet demanded the roll/pitch/yaw.
+	 */
+	inline void mix_airmode_rpy(float roll, float pitch, float yaw, float thrust, float *outputs);
+
+	/**
+	 * Mix roll, pitch, yaw, thrust and set the outputs vector.
+	 *
+	 * Desaturation behavior: no airmode, thrust is NEVER increased to meet the demanded
+	 * roll/pitch/yaw. Instead roll/pitch/yaw is reduced as much as needed.
+	 * Thrust can be reduced to unsaturate the upper side.
+	 * @see mix_yaw() for the exact yaw behavior.
+	 */
+	inline void mix_airmode_disabled(float roll, float pitch, float yaw, float thrust, float *outputs);
+
+	/**
+	 * Mix yaw by updating an existing output vector (that already contains roll/pitch/thrust).
+	 *
+	 * Desaturation behavior: thrust is allowed to be decreased up to 15% in order to allow
+	 * some yaw control on the upper end. On the lower end thrust will never be increased,
+	 * but yaw is decreased as much as required.
+	 *
+	 * @param yaw demanded yaw
+	 * @param outputs output vector that is updated
+	 */
+	inline void mix_yaw(float yaw, float *outputs);
+
+	void update_saturation_status(unsigned index, bool clipping_high, bool clipping_low);
+
 	float				_roll_scale;
 	float				_pitch_scale;
 	float				_yaw_scale;
@@ -649,13 +808,15 @@ private:
 	float 				_delta_out_max;
 	float 				_thrust_factor;
 
-	void update_saturation_status(unsigned index, bool clipping_high, bool clipping_low);
+	Airmode				_airmode;
+
 	saturation_status _saturation_status;
 
 	unsigned			_rotor_count;
 	const Rotor			*_rotors;
 
 	float 				*_outputs_prev = nullptr;
+	float 				*_tmp_array = nullptr;
 
 	/* do not allow to copy due to ptr data members */
 	MultirotorMixer(const MultirotorMixer &);
@@ -688,7 +849,7 @@ struct mixer_heli_s {
  * Collects four inputs (roll, pitch, yaw, thrust) and mixes them to servo commands
  * for swash plate tilting and throttle- and pitch curves.
  */
-class __EXPORT HelicopterMixer : public Mixer
+class HelicopterMixer : public Mixer
 {
 public:
 	/**
@@ -701,7 +862,8 @@ public:
 	HelicopterMixer(ControlCallback control_cb,
 			uintptr_t cb_handle,
 			mixer_heli_s *mixer_info);
-	~HelicopterMixer();
+
+	~HelicopterMixer() = default;
 
 	/**
 	 * Factory method.
@@ -722,12 +884,17 @@ public:
 	static HelicopterMixer		*from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf,
 			unsigned &buflen);
 
-	virtual unsigned		mix(float *outputs, unsigned space);
-	virtual void			groups_required(uint32_t &groups);
+	unsigned		mix(float *outputs, unsigned space) override;
+	void			groups_required(uint32_t &groups) override;
 
-	virtual uint16_t		get_saturation_status(void) { return 0; }
+	uint16_t		get_saturation_status(void) override { return 0; }
 
-	unsigned set_trim(float trim)
+	unsigned set_trim(float trim) override
+	{
+		return 4;
+	}
+
+	unsigned get_trim(float *trim) override
 	{
 		return 4;
 	}
@@ -739,5 +906,3 @@ private:
 	HelicopterMixer(const HelicopterMixer &);
 	HelicopterMixer operator=(const HelicopterMixer &);
 };
-
-#endif

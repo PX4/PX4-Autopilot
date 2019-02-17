@@ -48,7 +48,7 @@
 #include <errno.h>
 #include <nuttx/mm/gran.h>
 
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 /************************************************************************************
  * Definitions
@@ -73,7 +73,7 @@
 #if defined(BOARD_DMA_ALLOC_POOL_SIZE)
 
 #  if !defined(CONFIG_GRAN) || !defined(CONFIG_FAT_DMAMEMORY)
-#    error microSD DMA support requires CONFIG_GRAN
+#    error microSD DMA support requires CONFIG_GRAN and CONFIG_FAT_DMAMEMORY
 #  endif
 
 static GRAN_HANDLE dma_allocator;

@@ -31,10 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(drivers_bootloaders
-		boot_app_shared.c
-	)
-add_dependencies(drivers_bootloaders platforms__common)
+add_library(drivers_bootloaders boot_app_shared.c)
+add_dependencies(drivers_bootloaders prebuild_targets)
 
 include_directories(include)
-target_include_directories(drivers_bootloaders INTERFACE include)
+target_include_directories(drivers_bootloaders INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(drivers_bootloaders PRIVATE systemlib)

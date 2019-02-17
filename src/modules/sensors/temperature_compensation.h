@@ -42,8 +42,9 @@
 
 #pragma once
 
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 
 #include "common.h"
 
@@ -67,7 +68,7 @@ class TemperatureCompensation
 public:
 
 	/** (re)load the parameters. Make sure to call this on startup as well */
-	int parameters_update();
+	int parameters_update(bool hil_enabled = false);
 
 	/** supply information which device_id matches a specific uORB topic_instance
 	 *  (needed if a system has multiple sensors of the same type)
@@ -89,14 +90,13 @@ public:
 	 *         1: corrections applied but no changes to offsets & scales,
 	 *         2: corrections applied and offsets & scales updated
 	 */
-	int apply_corrections_gyro(int topic_instance, math::Vector<3> &sensor_data, float temperature,
-				   float *offsets, float *scales);
+	int apply_corrections_gyro(int topic_instance, matrix::Vector3f &sensor_data, float temperature, float *offsets,
+				   float *scales);
 
-	int apply_corrections_accel(int topic_instance, math::Vector<3> &sensor_data, float temperature,
-				    float *offsets, float *scales);
+	int apply_corrections_accel(int topic_instance, matrix::Vector3f &sensor_data, float temperature, float *offsets,
+				    float *scales);
 
-	int apply_corrections_baro(int topic_instance, float &sensor_data, float temperature,
-				   float *offsets, float *scales);
+	int apply_corrections_baro(int topic_instance, float &sensor_data, float temperature, float *offsets, float *scales);
 
 	/** output current configuration status to console */
 	void print_status();

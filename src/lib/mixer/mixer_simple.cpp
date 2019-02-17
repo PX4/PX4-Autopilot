@@ -37,22 +37,9 @@
  * Simple summing mixer.
  */
 
-#include <px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-#include <ctype.h>
-
 #include "mixer.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
@@ -75,6 +62,12 @@ SimpleMixer::~SimpleMixer()
 unsigned SimpleMixer::set_trim(float trim)
 {
 	_pinfo->output_scaler.offset = trim;
+	return 1;
+}
+
+unsigned SimpleMixer::get_trim(float *trim)
+{
+	*trim = _pinfo->output_scaler.offset;
 	return 1;
 }
 
@@ -160,6 +153,7 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 	unsigned inputs;
 	int used;
 	const char *end = buf + buflen;
+	char next_tag;
 
 	/* enforce that the mixer ends with a new line */
 	if (!string_well_formed(buf, buflen)) {
@@ -169,6 +163,12 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 	/* get the base info for the mixer */
 	if (sscanf(buf, "M: %u%n", &inputs, &used) != 1) {
 		debug("simple parse failed on '%s'", buf);
+		goto out;
+	}
+
+	/* at least 1 input is required */
+	if (inputs == 0) {
+		debug("simple parse got 0 inputs");
 		goto out;
 	}
 
@@ -188,9 +188,27 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 
 	mixinfo->control_count = inputs;
 
-	if (parse_output_scaler(end - buflen, buflen, mixinfo->output_scaler)) {
-		debug("simple mixer parser failed parsing out scaler tag, ret: '%s'", buf);
-		goto out;
+	/* find the next tag */
+	next_tag = findnexttag(end - buflen, buflen);
+
+	if (next_tag == 'S') {
+
+		/* No output scalers specified. Use default values.
+		 * Corresponds to:
+		 * O:      10000  10000      0 -10000  10000
+		 */
+		mixinfo->output_scaler.negative_scale	= 1.0f;
+		mixinfo->output_scaler.positive_scale	= 1.0f;
+		mixinfo->output_scaler.offset		= 0.f;
+		mixinfo->output_scaler.min_output	= -1.0f;
+		mixinfo->output_scaler.max_output	= 1.0f;
+
+	} else {
+
+		if (parse_output_scaler(end - buflen, buflen, mixinfo->output_scaler)) {
+			debug("simple mixer parser failed parsing out scaler tag, ret: '%s'", buf);
+			goto out;
+		}
 	}
 
 	for (unsigned i = 0; i < inputs; i++) {

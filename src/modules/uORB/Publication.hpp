@@ -81,7 +81,6 @@ protected:
 	const struct orb_metadata *_meta;
 	const int _priority;
 
-	int _instance{0};
 	orb_advert_t _handle{nullptr};
 };
 
@@ -157,6 +156,12 @@ public:
 	bool update() override
 	{
 		return PublicationBase::update((void *)(&_data));
+	}
+
+	bool update(const T &data)
+	{
+		_data = data;
+		return update();
 	}
 
 private:

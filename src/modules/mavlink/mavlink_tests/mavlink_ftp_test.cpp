@@ -45,7 +45,7 @@
 #ifdef __PX4_NUTTX
 #define PX4_MAVLINK_TEST_DATA_DIR "/etc"
 #else
-#define PX4_MAVLINK_TEST_DATA_DIR "ROMFS/px4fmu_test"
+#define PX4_MAVLINK_TEST_DATA_DIR "etc"
 #endif
 
 /// @brief Test case file name for Read command. File are generated using mavlink_ftp_test_data.py
@@ -55,19 +55,14 @@ const MavlinkFtpTest::DownloadTestCase MavlinkFtpTest::_rgDownloadTestCases[] = 
 	{ PX4_MAVLINK_TEST_DATA_DIR  "/unit_test_data/mavlink_tests/test_240.data",	MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN - sizeof(MavlinkFTP::PayloadHeader) + 1,	false, false },	// Read take two packets
 };
 
-const char MavlinkFtpTest::_unittest_microsd_dir[] = PX4_ROOTFSDIR "/fs/microsd/ftp_unit_test_dir";
-const char MavlinkFtpTest::_unittest_microsd_file[] = PX4_ROOTFSDIR "/fs/microsd/ftp_unit_test_dir/file";
+const char MavlinkFtpTest::_unittest_microsd_dir[] = PX4_STORAGEDIR "/ftp_unit_test_dir";
+const char MavlinkFtpTest::_unittest_microsd_file[] = PX4_STORAGEDIR "/ftp_unit_test_dir/file";
 
 MavlinkFtpTest::MavlinkFtpTest() :
 	_ftp_server(nullptr),
 	_expected_seq_number(0),
 	_reply_msg{}
 {
-}
-
-MavlinkFtpTest::~MavlinkFtpTest()
-{
-
 }
 
 /// @brief Called before every test to initialize the FTP Server.
@@ -422,6 +417,7 @@ bool MavlinkFtpTest::_read_test()
 						 &reply);		// Payload inside FTP message response
 
 		if (!success) {
+			delete[] bytes;
 			return false;
 		}
 
@@ -437,6 +433,7 @@ bool MavlinkFtpTest::_read_test()
 					    &reply);	// Payload inside FTP message response
 
 		if (!success) {
+			delete[] bytes;
 			return false;
 		}
 
@@ -458,6 +455,7 @@ bool MavlinkFtpTest::_read_test()
 						    &reply);	// Payload inside FTP message response
 
 			if (!success) {
+				delete[] bytes;
 				return false;
 			}
 
@@ -470,6 +468,7 @@ bool MavlinkFtpTest::_read_test()
 						    &reply);	// Payload inside FTP message response
 
 			if (!success) {
+				delete[] bytes;
 				return false;
 			}
 
@@ -491,11 +490,15 @@ bool MavlinkFtpTest::_read_test()
 					    &reply);	// Payload inside FTP message response
 
 		if (!success) {
+			delete[] bytes;
 			return false;
 		}
 
 		ut_compare("Didn't get Ack back", reply->opcode, MavlinkFTP::kRspAck);
 		ut_compare("Incorrect payload size", reply->size, 0);
+
+		delete[] bytes;
+		bytes = nullptr;
 	}
 
 	return true;
@@ -536,6 +539,7 @@ bool MavlinkFtpTest::_burst_test()
 						 &reply);		// Payload inside FTP message response
 
 		if (!success) {
+			delete[] bytes;
 			return false;
 		}
 
@@ -578,11 +582,15 @@ bool MavlinkFtpTest::_burst_test()
 					    &reply);	// Payload inside FTP message response
 
 		if (!success) {
+			delete[] bytes;
 			return false;
 		}
 
 		ut_compare("Didn't get Ack back", reply->opcode, MavlinkFTP::kRspAck);
 		ut_compare("Incorrect payload size", reply->size, 0);
+
+		delete[] bytes;
+		bytes = nullptr;
 	}
 
 	return true;

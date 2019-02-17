@@ -39,6 +39,7 @@ px4_add_module(
 		tap_esc.cpp
 		tap_esc_common.cpp
 	DEPENDS
-		platforms__common
+		mixer
+		pwm_limit
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

@@ -40,6 +40,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_log.h>
 #include <px4_module.h>
 #include <px4_posix.h>
 
@@ -57,11 +58,7 @@
 
 #include <arch/board/board.h>
 
-#include "systemlib/systemlib.h"
-#include "systemlib/param/param.h"
-#if defined(FLASH_BASED_PARAMS)
-# include "systemlib/flashparams/flashparams.h"
-#endif
+#include <parameters/param.h>
 #include "systemlib/err.h"
 
 __BEGIN_DECLS
@@ -76,7 +73,7 @@ enum COMPARE_OPERATOR {
 #ifdef __PX4_QURT
 #define PARAM_PRINT PX4_INFO
 #else
-#define PARAM_PRINT printf
+#define PARAM_PRINT PX4_INFO_RAW
 #endif
 
 static int 	do_save(const char *param_file_name);
@@ -84,11 +81,14 @@ static int	do_save_default();
 static int 	do_load(const char *param_file_name);
 static int	do_import(const char *param_file_name);
 static int	do_show(const char *search_string, bool only_changed);
+static int	do_show_all();
+static int	do_show_quiet(const char *param_name);
 static int	do_show_index(const char *index, bool used_index);
 static void	do_show_print(void *arg, param_t param);
 static int	do_set(const char *name, const char *val, bool fail_on_not_found);
 static int	do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OPERATOR cmd_op);
 static int 	do_reset(const char *excludes[], int num_excludes);
+static int 	do_touch(const char *params[], int num_params);
 static int	do_reset_nostart(const char *excludes[], int num_excludes);
 static int	do_find(const char *name);
 
@@ -104,6 +104,10 @@ This is used for example in the startup script to set airframe-specific paramete
 Parameters are automatically saved when changed, eg. with `param set`. They are typically stored to FRAM
 or to the SD card. `param select` can be used to change the storage location for subsequent saves (this will
 need to be (re-)configured on every boot).
+
+If the FLASH-based backend is enabled (which is done at compile time, e.g. for the Intel Aero or Omnibus),
+`param select` has no effect and the default is always the FLASH backend. However `param save/load <file>`
+can still be used to write to/read from files.
 
 Each parameter has a 'used' flag, which is set when it's read during boot. It is used to only show relevant
 parameters to a ground control station.
@@ -127,8 +131,12 @@ $ reboot
 	PRINT_MODULE_USAGE_ARG("<file>", "File name (use <root>/eeprom/parameters if not given)", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("show", "Show parameter values");
-	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Show only changed params", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Show all parameters (not just used)", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Show only changed and used params", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('q', "quiet mode, print only param value (name needs to be exact)", true);
 	PRINT_MODULE_USAGE_ARG("<filter>", "Filter by param name (wildcard at end allowed, eg. sys_*)", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print status of parameter system");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("set", "Set parameter to a value");
 	PRINT_MODULE_USAGE_ARG("<param_name> <value>", "Parameter name and value to set", false);
@@ -140,6 +148,9 @@ $ reboot
 	PRINT_MODULE_USAGE_COMMAND_DESCR("greater",
 					 "Compare a param with a value. Command will succeed if param is greater than the value");
 	PRINT_MODULE_USAGE_ARG("<param_name> <value>", "Parameter name and value to compare", false);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("touch", "Mark a parameter as used");
+	PRINT_MODULE_USAGE_ARG("<param_name1> [<param_name2>]", "Parameter name (one or more)", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset params to default");
 	PRINT_MODULE_USAGE_ARG("<exclude1> [<exclude2>]", "Do not reset matching params (wildcard at end allowed)", true);
@@ -202,7 +213,10 @@ param_main(int argc, char *argv[])
 				param_set_default_file(nullptr);
 			}
 
-			PX4_INFO("selected parameter default file %s", param_get_default_file());
+			const char *default_file = param_get_default_file();
+			if (default_file) {
+				PX4_INFO("selected parameter default file %s", default_file);
+			}
 			return 0;
 		}
 
@@ -217,6 +231,13 @@ param_main(int argc, char *argv[])
 						return do_show(nullptr, true);
 					}
 
+				} else if (!strcmp(argv[2], "-a")) {
+					return do_show_all();
+
+				} else if (!strcmp(argv[2], "-q")) {
+					if (argc >= 4) {
+						return do_show_quiet(argv[3]);
+					}
 				} else {
 					return do_show(argv[2], false);
 				}
@@ -224,6 +245,11 @@ param_main(int argc, char *argv[])
 			} else {
 				return do_show(nullptr, false);
 			}
+		}
+
+		if (!strcmp(argv[1], "status")) {
+			param_print_status();
+			return PX4_OK;
 		}
 
 		if (!strcmp(argv[1], "set")) {
@@ -272,6 +298,15 @@ param_main(int argc, char *argv[])
 			}
 		}
 
+		if (!strcmp(argv[1], "touch")) {
+			if (argc >= 3) {
+				return do_touch((const char **) &argv[2], argc - 2);
+			} else {
+				PX4_ERR("not enough arguments.");
+				return 1;
+			}
+		}
+
 		if (!strcmp(argv[1], "reset_nostart")) {
 			if (argc >= 3) {
 				return do_reset_nostart((const char **) &argv[2], argc - 2);
@@ -316,30 +351,6 @@ param_main(int argc, char *argv[])
 	return 1;
 }
 
-#if defined(FLASH_BASED_PARAMS)
-/* If flash based parameters are uses we have to change some of the calls to the
- * default param calls, which will in turn take care of locking and calling to the
- * flash backend.
- */
-static int
-do_save(const char *param_file_name)
-{
-	return param_save_default();
-}
-
-static int
-do_load(const char *param_file_name)
-{
-	return param_load_default();
-}
-
-static int
-do_import(const char *param_file_name)
-{
-	return param_import(-1);
-}
-#else
-
 static int
 do_save(const char *param_file_name)
 {
@@ -368,15 +379,20 @@ do_save(const char *param_file_name)
 static int
 do_load(const char *param_file_name)
 {
-	int fd = open(param_file_name, O_RDONLY);
+	int fd = -1;
+	if (param_file_name) { // passing NULL means to select the flash storage
+		fd = open(param_file_name, O_RDONLY);
 
-	if (fd < 0) {
-		PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
-		return 1;
+		if (fd < 0) {
+			PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
+			return 1;
+		}
 	}
 
 	int result = param_load(fd);
-	close(fd);
+	if (fd >= 0) {
+		close(fd);
+	}
 
 	if (result < 0) {
 		PX4_ERR("importing from '%s' failed (%i)", param_file_name, result);
@@ -389,15 +405,20 @@ do_load(const char *param_file_name)
 static int
 do_import(const char *param_file_name)
 {
-	int fd = open(param_file_name, O_RDONLY);
+	int fd = -1;
+	if (param_file_name) { // passing NULL means to select the flash storage
+		fd = open(param_file_name, O_RDONLY);
 
-	if (fd < 0) {
-		PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
-		return 1;
+		if (fd < 0) {
+			PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
+			return 1;
+		}
 	}
 
 	int result = param_import(fd);
-	close(fd);
+	if (fd >= 0) {
+		close(fd);
+	}
 
 	if (result < 0) {
 		PX4_ERR("importing from '%s' failed (%i)", param_file_name, result);
@@ -406,7 +427,6 @@ do_import(const char *param_file_name)
 
 	return 0;
 }
-#endif
 
 static int
 do_save_default()
@@ -418,8 +438,52 @@ static int
 do_show(const char *search_string, bool only_changed)
 {
 	PARAM_PRINT("Symbols: x = used, + = saved, * = unsaved\n");
-	param_foreach(do_show_print, (char *)search_string, only_changed, false);
+	param_foreach(do_show_print, (char *)search_string, only_changed, true);
+	PARAM_PRINT("\n %u/%u parameters used.\n", param_count_used(), param_count());
+
+	return 0;
+}
+
+static int
+do_show_all()
+{
+	PARAM_PRINT("Symbols: x = used, + = saved, * = unsaved\n");
+	param_foreach(do_show_print, nullptr, false, false);
 	PARAM_PRINT("\n %u parameters total, %u used.\n", param_count(), param_count_used());
+
+	return 0;
+}
+
+static int
+do_show_quiet(const char *param_name)
+{
+	param_t param = param_find_no_notification(param_name);
+	int32_t ii;
+	float ff;
+	// Print only the param value (can be used in scripts)
+
+	if (param == PARAM_INVALID) {
+		return 1;
+	}
+
+	switch (param_type(param)) {
+	case PARAM_TYPE_INT32:
+		if (!param_get(param, &ii)) {
+			PARAM_PRINT("%ld", (long)ii);
+		}
+
+		break;
+
+	case PARAM_TYPE_FLOAT:
+		if (!param_get(param, &ff)) {
+			PARAM_PRINT("%4.4f", (double)ff);
+		}
+
+		break;
+
+	default:
+		return 1;
+	}
 
 	return 0;
 }
@@ -720,6 +784,17 @@ do_reset(const char *excludes[], int num_excludes)
 		param_reset_all();
 	}
 
+	return 0;
+}
+
+static int
+do_touch(const char *params[], int num_params)
+{
+	for (int i = 0; i < num_params; ++i) {
+		if (param_find(params[i]) == PARAM_INVALID) {
+			PX4_ERR("param %s not found", params[i]);
+		}
+	}
 	return 0;
 }
 

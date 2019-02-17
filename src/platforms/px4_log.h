@@ -38,9 +38,8 @@
 
 #pragma once
 
-
-#define _PX4_LOG_LEVEL_ALWAYS		0
-#define _PX4_LOG_LEVEL_DEBUG		1
+#define _PX4_LOG_LEVEL_DEBUG		0
+#define _PX4_LOG_LEVEL_INFO		1
 #define _PX4_LOG_LEVEL_WARN		2
 #define _PX4_LOG_LEVEL_ERROR		3
 #define _PX4_LOG_LEVEL_PANIC		4
@@ -66,23 +65,13 @@ __END_DECLS
  ****************************************************************************/
 #define __px4_log_omit(level, FMT, ...)   do_nothing(level, ##__VA_ARGS__)
 
-#if defined(__PX4_ROS)
-
-#include <ros/console.h>
-#define PX4_PANIC(...)	ROS_FATAL(__VA_ARGS__)
-#define PX4_ERR(...)	ROS_ERROR(__VA_ARGS__)
-#define PX4_WARN(...) 	ROS_WARN(__VA_ARGS__)
-#define PX4_INFO(...) 	ROS_INFO(__VA_ARGS__)
-#define PX4_DEBUG(...)	ROS_DEBUG(__VA_ARGS__)
-#define PX4_BACKTRACE()
-
-#elif defined(__PX4_QURT)
+#if defined(__PX4_QURT)
 #include "qurt_log.h"
 /****************************************************************************
  * Messages that should never be filtered or compiled out
  ****************************************************************************/
-#define PX4_LOG(FMT, ...) 	qurt_log(_PX4_LOG_LEVEL_ALWAYS, __FILE__, __LINE__, FMT, ##__VA_ARGS__)
-#define PX4_INFO(FMT, ...) 	qurt_log(_PX4_LOG_LEVEL_ALWAYS, __FILE__, __LINE__, FMT, ##__VA_ARGS__)
+#define PX4_INFO(FMT, ...) 	qurt_log(_PX4_LOG_LEVEL_INFO, __FILE__, __LINE__, FMT, ##__VA_ARGS__)
+#define PX4_INFO_RAW(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_INFO, FMT, ##__VA_ARGS__)
 #define PX4_BACKTRACE()
 
 #if defined(TRACE_BUILD)
@@ -122,8 +111,8 @@ __END_DECLS
 #define PX4_DEBUG(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_DEBUG, FMT, ##__VA_ARGS__)
 
 #endif
-#define PX4_LOG_NAMED(name, FMT, ...) 	qurt_log( _PX4_LOG_LEVEL_ALWAYS, __FILE__, __LINE__, "%s " FMT, name, ##__VA_ARGS__)
-#define PX4_LOG_NAMED_COND(name, cond, FMT, ...) if( cond ) qurt_log( _PX4_LOG_LEVEL_ALWAYS, __FILE__, __LINE__, "%s " FMT, name,  ##__VA_ARGS__)
+#define PX4_LOG_NAMED(name, FMT, ...) 	qurt_log( _PX4_LOG_LEVEL_INFO, __FILE__, __LINE__, "%s " FMT, name, ##__VA_ARGS__)
+#define PX4_LOG_NAMED_COND(name, cond, FMT, ...) if( cond ) qurt_log( _PX4_LOG_LEVEL_INFO, __FILE__, __LINE__, "%s " FMT, name,  ##__VA_ARGS__)
 
 #else
 
@@ -140,7 +129,15 @@ __BEGIN_DECLS
 __EXPORT extern const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT extern const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT extern void px4_backtrace(void);
-__EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...);
+__EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...)
+__attribute__((format(printf, 3, 4)));
+__EXPORT void px4_log_raw(int level, const char *fmt, ...)
+__attribute__((format(printf, 2, 3)));
+
+#if __GNUC__
+// Allow empty format strings.
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
+#endif
 
 __END_DECLS
 
@@ -158,11 +155,6 @@ __END_DECLS
  ****************************************************************************/
 #define __px4__log_printcond(cond, ...)	    if (cond) printf(__VA_ARGS__)
 #define __px4__log_printline(level, ...)    printf(__VA_ARGS__)
-
-
-#ifndef MODULE_NAME
-#define MODULE_NAME "Unknown"
-#endif
 
 #define __px4__log_timestamp_fmt	"%-10" PRIu64 " "
 #define __px4__log_timestamp_arg 	,hrt_absolute_time()
@@ -191,24 +183,6 @@ __END_DECLS
 #define PX4_LOG_COLORIZED_OUTPUT //if defined and output is a tty, colorize the output according to the log level
 #endif /* __PX4_POSIX */
 
-
-#ifdef PX4_LOG_COLORIZED_OUTPUT
-#include <unistd.h>
-#define PX4_LOG_COLOR_START \
-	int use_color = isatty(STDOUT_FILENO); \
-	if (use_color) printf("%s", __px4_log_level_color[level]);
-#define PX4_LOG_COLOR_MODULE \
-	if (use_color) printf(PX4_ANSI_COLOR_GRAY);
-#define PX4_LOG_COLOR_MESSAGE \
-	if (use_color) printf("%s", __px4_log_level_color[level]);
-#define PX4_LOG_COLOR_END \
-	if (use_color) printf(PX4_ANSI_COLOR_RESET);
-#else
-#define PX4_LOG_COLOR_START
-#define PX4_LOG_COLOR_MODULE
-#define PX4_LOG_COLOR_MESSAGE
-#define PX4_LOG_COLOR_END
-#endif /* PX4_LOG_COLORIZED_OUTPUT */
 
 /****************************************************************************
  * Output format macros
@@ -260,6 +234,22 @@ __END_DECLS
 	do { \
 		px4_log_modulename(level, MODULE_NAME, fmt, ##__VA_ARGS__); \
 	} while(0)
+
+/****************************************************************************
+ * __px4_log_raw:
+ * Convert a message in the form:
+ * 	PX4_INFO("val is %d", val);
+ * to
+ * 	printf("val is %d", val);
+ *
+ * This can be used for simple printfs with all the formatting control.
+ ****************************************************************************/
+#define __px4_log_raw(level, fmt, ...) \
+	do { \
+		px4_log_raw(level, fmt, ##__VA_ARGS__); \
+	} while(0)
+
+
 /****************************************************************************
  * __px4_log_timestamp:
  * Convert a message in the form:
@@ -398,8 +388,13 @@ __END_DECLS
 /****************************************************************************
  * Messages that should never be filtered or compiled out
  ****************************************************************************/
-#define PX4_LOG(FMT, ...) 	__px4_log(_PX4_LOG_LEVEL_ALWAYS, FMT, ##__VA_ARGS__)
-#define PX4_INFO(FMT, ...) 	__px4_log_modulename(_PX4_LOG_LEVEL_ALWAYS, FMT, ##__VA_ARGS__)
+#define PX4_INFO(FMT, ...) 	__px4_log_modulename(_PX4_LOG_LEVEL_INFO, FMT, ##__VA_ARGS__)
+
+#ifdef __NUTTX
+#define PX4_INFO_RAW		printf
+#else
+#define PX4_INFO_RAW(FMT, ...) 	__px4_log_raw(_PX4_LOG_LEVEL_INFO, FMT, ##__VA_ARGS__)
+#endif
 
 #if defined(TRACE_BUILD)
 /****************************************************************************

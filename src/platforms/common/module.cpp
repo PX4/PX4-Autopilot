@@ -36,7 +36,13 @@
  * Implementation of the API declared in px4_module.h.
  */
 
+#ifndef MODULE_NAME
+#define MODULE_NAME "module"
+#endif
+
 #include <px4_module.h>
+#include <px4_defines.h>
+#include <px4_log.h>
 
 pthread_mutex_t px4_modules_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -47,46 +53,54 @@ void PRINT_MODULE_DESCRIPTION(const char *description)
 	// TODO: the output could be improved by:
 	// - mark titles in bold (lines starting with ##)
 	// - highlight commands (lines starting with $, or `cmd`)
-	printf("%s\n\n", description);
+	PX4_INFO_RAW("%s\n\n", description);
 }
 
 #endif /* __PX4_NUTTX */
 
 void PRINT_MODULE_USAGE_NAME(const char *executable_name, const char *category)
 {
-	printf("Usage: %s <command> [arguments...]\n", executable_name);
-	printf(" Commands:\n");
+	PX4_INFO_RAW("Usage: %s <command> [arguments...]\n", executable_name);
+	PX4_INFO_RAW(" Commands:\n");
+}
+
+void PRINT_MODULE_USAGE_SUBCATEGORY(const char *subcategory)
+{
+	(void)subcategory;
 }
 
 void PRINT_MODULE_USAGE_NAME_SIMPLE(const char *executable_name, const char *category)
 {
-	printf("Usage: %s [arguments...]\n", executable_name);
+	PX4_INFO_RAW("Usage: %s [arguments...]\n", executable_name);
 }
 
 void PRINT_MODULE_USAGE_COMMAND_DESCR(const char *name, const char *description)
 {
 	if (description) {
-		printf("\n   %-13s %s\n", name, description);
+		PX4_INFO_RAW("\n   %-13s %s\n", name, description);
 
 	} else {
-		printf("\n   %s\n", name);
+		PX4_INFO_RAW("\n   %s\n", name);
 	}
 }
 
 void PRINT_MODULE_USAGE_PARAM_COMMENT(const char *comment)
 {
-	printf("\n %s\n", comment);
+	PX4_INFO_RAW("\n %s\n", comment);
 }
 
 void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, int min_val, int max_val,
 				  const char *description, bool is_optional)
 {
 	if (is_optional) {
-		printf("     [-%c <val>]  %s\n", option_char, description);
-		printf("                 default: %i\n", default_val);
+		PX4_INFO_RAW("     [-%c <val>]  %s\n", option_char, description);
+
+		if (default_val != -1) {
+			PX4_INFO_RAW("                 default: %i\n", default_val);
+		}
 
 	} else {
-		printf("     -%c <val>    %s\n", option_char, description);
+		PX4_INFO_RAW("     -%c <val>    %s\n", option_char, description);
 	}
 }
 
@@ -94,21 +108,24 @@ void PRINT_MODULE_USAGE_PARAM_FLOAT(char option_char, float default_val, float m
 				    const char *description, bool is_optional)
 {
 	if (is_optional) {
-		printf("     [-%c <val>]  %s\n", option_char, description);
-		printf("                 default: %.1f\n", (double)default_val);
+		PX4_INFO_RAW("     [-%c <val>]  %s\n", option_char, description);
+
+		if (PX4_ISFINITE(default_val)) {
+			PX4_INFO_RAW("                 default: %.1f\n", (double)default_val);
+		}
 
 	} else {
-		printf("     -%c <val>    %s\n", option_char, description);
+		PX4_INFO_RAW("     -%c <val>    %s\n", option_char, description);
 	}
 }
 
 void PRINT_MODULE_USAGE_PARAM_FLAG(char option_char, const char *description, bool is_optional)
 {
 	if (is_optional) {
-		printf("     [-%c]        %s\n", option_char, description);
+		PX4_INFO_RAW("     [-%c]        %s\n", option_char, description);
 
 	} else {
-		printf("     -%c          %s\n", option_char, description);
+		PX4_INFO_RAW("     -%c          %s\n", option_char, description);
 	}
 }
 
@@ -116,23 +133,23 @@ void PRINT_MODULE_USAGE_PARAM_STRING(char option_char, const char *default_val, 
 				     const char *description, bool is_optional)
 {
 	if (is_optional) {
-		printf("     [-%c <val>]  %s\n", option_char, description);
+		PX4_INFO_RAW("     [-%c <val>]  %s\n", option_char, description);
 
 	} else {
-		printf("     -%c <val>    %s\n", option_char, description);
+		PX4_INFO_RAW("     -%c <val>    %s\n", option_char, description);
 	}
 
 	if (values) {
 		if (default_val) {
-			printf("                 values: %s, default: %s\n", values, default_val);
+			PX4_INFO_RAW("                 values: %s, default: %s\n", values, default_val);
 
 		} else {
-			printf("                 values: %s\n", values);
+			PX4_INFO_RAW("                 values: %s\n", values);
 		}
 
 	} else {
 		if (default_val) {
-			printf("                 default: %s\n", default_val);
+			PX4_INFO_RAW("                 default: %s\n", default_val);
 		}
 	}
 }
@@ -141,10 +158,10 @@ void PRINT_MODULE_USAGE_PARAM_STRING(char option_char, const char *default_val, 
 void PRINT_MODULE_USAGE_ARG(const char *values, const char *description, bool is_optional)
 {
 	if (is_optional) {
-		printf("     [%-9s] %s\n", values, description);
+		PX4_INFO_RAW("     [%-9s] %s\n", values, description);
 
 	} else {
-		printf("     %-11s %s\n", values, description);
+		PX4_INFO_RAW("     %-11s %s\n", values, description);
 	}
 }
 

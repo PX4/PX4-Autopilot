@@ -48,12 +48,6 @@ class AppState
 public:
 	~AppState() {}
 
-#if defined(__PX4_ROS)
-	AppState() {}
-
-	bool exitRequested() { return !ros::ok(); }
-	void requestExit() { ros::shutdown(); }
-#else
 	AppState() : _exitRequested(false), _isRunning(false) {}
 
 	bool exitRequested() { return _exitRequested; }
@@ -65,7 +59,6 @@ public:
 protected:
 	bool _exitRequested;
 	bool _isRunning;
-#endif
 private:
 	AppState(const AppState &);
 	const AppState &operator=(const AppState &);
@@ -73,14 +66,9 @@ private:
 }
 
 // Task/process based build
-#if defined(__PX4_ROS) || defined(__PX4_NUTTX)
-
-// Thread based build
-#else
 
 #ifdef PX4_MAIN
 extern int PX4_MAIN(int argc, char *argv[]);
 #endif
 
-#endif
 

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mixer.c
+ * @file mixer.cpp
  *
  * Mixer utility.
  */
@@ -48,7 +48,9 @@
 #include <errno.h>
 #include <ctype.h>
 
+#include <drivers/drv_mixer.h>
 #include <lib/mixer/mixer.h>
+#include <lib/mixer/mixer_load.h>
 #include <uORB/topics/actuator_controls.h>
 
 /**
@@ -131,7 +133,7 @@ static int
 load(const char *devname, const char *fname, bool append)
 {
 	// sleep a while to ensure device has been set up
-	usleep(20000);
+	px4_usleep(20000);
 
 	int dev;
 

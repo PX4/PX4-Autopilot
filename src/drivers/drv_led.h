@@ -59,4 +59,5 @@ static const int LED_UORB_QUEUE_LENGTH = BOARD_MAX_LEDS;
 
 // Legacy paths - 2 are need to allow both pwm and i2c drviers to co-exist
 #define RGBLED0_DEVICE_PATH "/dev/rgbled0"         // Primary RGB LED on i2c
+#define RGBLED1_DEVICE_PATH "/dev/rgbled1"	   // Primary RGB LED(NCP5623C) on i2c
 #define RGBLED_PWM0_DEVICE_PATH "/dev/rgbled_pwm0" // Secondary RGB LED on PWM

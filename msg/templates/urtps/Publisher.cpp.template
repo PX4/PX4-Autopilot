@@ -8,6 +8,7 @@
 @# Context:
 @#  - msgs (List) list of all msg files
 @#  - multi_topics (List) list of all multi-topic names
+@#  - ids (List) list of all RTPS msg ids
 @###############################################
 @{
 import genmsg.msgs
@@ -48,7 +49,7 @@ topic = spec.short_name
  *
  ****************************************************************************/
 
-/*! 
+/*!
  * @@file @(topic)_Publisher.cpp
  * This file contains the implementation of the publisher functions.
  *
@@ -74,33 +75,33 @@ topic = spec.short_name
 bool @(topic)_Publisher::init()
 {
     // Create RTPSParticipant
-    
+
     ParticipantAttributes PParam;
     PParam.rtps.builtin.domainId = 0;
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
-    PParam.rtps.setName("Participant_publisher");  //You can put here the name you want
+    PParam.rtps.setName("@(topic)_publisher");  //You can put here the name you want
     mp_participant = Domain::createParticipant(PParam);
     if(mp_participant == nullptr)
         return false;
-    
+
     //Register the type
-    
-    Domain::registerType(mp_participant,(TopicDataType*) &myType);
-    
+
+    Domain::registerType(mp_participant, (TopicDataType*) &myType);
+
     // Create Publisher
-    
+
     PublisherAttributes Wparam;
     Wparam.topic.topicKind = NO_KEY;
     Wparam.topic.topicDataType = myType.getName();  //This type MUST be registered
     Wparam.topic.topicName = "@(topic)_PubSubTopic";
-    mp_publisher = Domain::createPublisher(mp_participant,Wparam,(PublisherListener*)&m_listener);
+    mp_publisher = Domain::createPublisher(mp_participant, Wparam, (PublisherListener*) &m_listener);
     if(mp_publisher == nullptr)
         return false;
     //std::cout << "Publisher created, waiting for Subscribers." << std::endl;
     return true;
 }
 
-void @(topic)_Publisher::PubListener::onPublicationMatched(Publisher* pub,MatchingInfo& info)
+void @(topic)_Publisher::PubListener::onPublicationMatched(Publisher* pub, MatchingInfo& info)
 {
     if (info.status == MATCHED_MATCHING)
     {
@@ -120,13 +121,13 @@ void @(topic)_Publisher::run()
     {
         eClock::my_sleep(250); // Sleep 250 ms
     }
-    
+
     // Publication code
-    
+
     @(topic)_ st;
-    
+
     /* Initialize your structure here */
-    
+
     int msgsent = 0;
     char ch = 'y';
     do
