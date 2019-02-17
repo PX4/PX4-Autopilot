@@ -34,6 +34,7 @@
             <arg name="Y" value="0"/>
             <arg name="vehicle" value="$(arg vehicle)"/>
             <arg name="mavlink_udp_port" value="14561"/>
+            <arg name="mavlink_tcp_port" value="4561"/>
             <arg name="ID" value="$(arg ID)"/>
         </include>
         <!-- MAVROS -->
@@ -59,6 +60,7 @@
             <arg name="Y" value="0"/>
             <arg name="vehicle" value="$(arg vehicle)"/>
             <arg name="mavlink_udp_port" value="14562"/>
+            <arg name="mavlink_tcp_port" value="4562"/>
             <arg name="ID" value="$(arg ID)"/>
         </include>
         <!-- MAVROS -->
@@ -85,6 +87,7 @@
             <arg name="Y" value="0"/>
             <arg name="vehicle" value="$(arg vehicle)"/>
             <arg name="mavlink_udp_port" value="14563"/>
+            <arg name="mavlink_tcp_port" value="4563"/>
             <arg name="ID" value="$(arg ID)"/>
         </include>
         <!-- MAVROS -->
