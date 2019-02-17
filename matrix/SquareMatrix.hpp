@@ -48,7 +48,6 @@ public:
         }
     }
 
-
     // inverse alias
     inline bool I(SquareMatrix<Type, M> &i) const
     {
@@ -64,6 +63,23 @@ public:
         for (size_t i = 0; i < M; i++) {
             res(i) = self(i, i);
         }
+        return res;
+    }
+
+    // get matrix upper right triangle
+    Vector<Type, M * (M + 1) / 2> urt() const
+    {
+        Vector<Type, M * (M + 1) / 2> res;
+        const SquareMatrix<Type, M> &self = *this;
+
+        unsigned idx = 0;
+        for (size_t x = 0; x < M; x++) {
+            for (size_t y = x; y < M; y++) {
+                res(idx) = self(x, y);
+                ++idx;
+            }
+        }
+
         return res;
     }
 
