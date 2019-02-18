@@ -45,9 +45,10 @@
 #include <string.h>
 #include <stdio.h>
 
-#include <perf/perf_counter.h>
 #include <parameters/param.h>
 #include <px4_getopt.h>
+#include <px4_module.h>
+#include <px4_module_params.h>
 #include <px4_workqueue.h>
 
 #include <board_config.h>
@@ -92,75 +93,45 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class OSDatxxxx : public device::SPI
+
+extern "C" __EXPORT int atxxxx_main(int argc, char *argv[]);
+
+
+class OSDatxxxx : public device::SPI, public ModuleBase<OSDatxxxx>, public ModuleParams
 {
 public:
 	OSDatxxxx(int bus = OSD_BUS);
 
-	virtual ~OSDatxxxx();
+	~OSDatxxxx();
 
 	virtual int init();
 
-	virtual ssize_t read(device::file_t *filp, char *buffer, size_t buflen);
-
-	virtual int ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	/**
+	 * @see ModuleBase::custom_command
+	 */
+	static int custom_command(int argc, char *argv[]);
 
 	/**
-	* Diagnostics - print some basic information about the driver.
-	*/
-	void print_info();
+	 * @see ModuleBase::print_usage
+	 */
+	static int print_usage(const char *reason = nullptr);
 
 	/**
-	* Initialise the automatic measurement state machine and start it.
-	*
-	* @note This function is called at open and error time.  It might make sense
-	*       to make it more aggressive about resetting the bus in case of errors.
-	*/
-	void start();
+	 * @see ModuleBase::task_spawn
+	 */
+	static int task_spawn(int argc, char *argv[]);
 
 protected:
 	virtual int probe();
 
 private:
-	work_s _work;
+	static void cycle_trampoline(void *arg);
 
-	int _measure_ticks;
-
-	perf_counter_t _sample_perf;
-	perf_counter_t _comms_errors;
-
-	param_t _p_tx_mode;
-	int32_t _tx_mode;
-
-	int _battery_sub;
-	int _local_position_sub;
-	int _vehicle_status_sub;
-
-	bool _on;
-
-	// battery
-	float _battery_voltage_filtered_v;
-	float _battery_discharge_mah;
-	bool _battery_valid;
-
-	// altitude
-	float _local_position_z;
-	bool _local_position_valid;
-
-	// flight time
-	uint8_t _arming_state;
-	uint64_t _arming_timestamp;
-
-	/**
-	* Stop the automatic measurement state machine.
-	*/
-	void stop();
-
-	/**
-	* Perform a poll cycle; collect from the previous measurement
-	* and start a new one.
-	*/
 	void cycle();
+
+	static void initialize_trampoline(void *arg);
+
+	int start();
 
 	int reset();
 
@@ -183,17 +154,26 @@ private:
 	int update_topics();
 	int	update_screen();
 
-	/**
-	* Static trampoline from the workq context; because we don't have a
-	* generic workq wrapper yet.
-	*
-	* @param arg		Instance pointer for the driver that is polling.
-	*/
-	static void cycle_trampoline(void *arg);
+	static work_s _work;
 
+	int _battery_sub{-1};
+	int _local_position_sub{-1};
+	int _vehicle_status_sub{-1};
 
+	// battery
+	float _battery_voltage_filtered_v{0.f};
+	float _battery_discharge_mah{0.f};
+	bool _battery_valid{false};
+
+	// altitude
+	float _local_position_z{0.f};
+	bool _local_position_valid{false};
+
+	// flight time
+	uint8_t _arming_state{0};
+	uint64_t _arming_timestamp{0};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::OSD_ATXXXX_CFG>) _param_atxxxx_cfg
+	)
 };
-/*
- * Driver 'main' command.
- */
-extern "C" __EXPORT int atxxxx_main(int argc, char *argv[]);
