@@ -381,11 +381,11 @@ pca8574_main(int argc, char *argv[])
 	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'a':
-			pca8574adr = strtol(optarg, NULL, 0);
+			pca8574adr = strtol(myoptarg, NULL, 0);
 			break;
 
 		case 'b':
-			i2cdevice = strtol(optarg, NULL, 0);
+			i2cdevice = strtol(myoptarg, NULL, 0);
 			break;
 
 		default:

@@ -1947,11 +1947,11 @@ lsm303d_main(int argc, char *argv[])
 			break;
 
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		case 'a':
-			accel_range = atoi(optarg);
+			accel_range = atoi(myoptarg);
 			break;
 
 		default:
