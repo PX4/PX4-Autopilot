@@ -458,7 +458,7 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 	}
 
 	if (land_start_req && !land_start_found) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: land start required.");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: landing pattern required.");
 		return false;
 	}
 
