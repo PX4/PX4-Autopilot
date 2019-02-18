@@ -541,7 +541,7 @@ pca9685_main(int argc, char *argv[])
 	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'a':
-			i2caddr = strtol(optarg, NULL, 0);
+			i2caddr = strtol(myoptarg, NULL, 0);
 			break;
 
 		case 'b':
