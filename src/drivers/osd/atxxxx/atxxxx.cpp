@@ -34,44 +34,62 @@
 /**
  * @file atxxxx.cpp
  * @author Daniele Pettenuzzo
+ * @author Beat Küng <beat-kueng@gmx.net>
  *
  * Driver for the ATXXXX chip on the omnibus fcu connected via SPI.
  */
 
 #include "atxxxx.h"
 
+struct work_s OSDatxxxx::_work = {};
+
 
 OSDatxxxx::OSDatxxxx(int bus) :
 	SPI("OSD", OSD_DEVICE_PATH, bus, OSD_SPIDEV, SPIDEV_MODE0, OSD_SPI_BUS_SPEED),
-	_measure_ticks(0),
-	_sample_perf(perf_alloc(PC_ELAPSED, "osd_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "osd_com_err")),
-	_battery_sub(-1),
-	_local_position_sub(-1),
-	_vehicle_status_sub(-1),
-	_battery_voltage_filtered_v(0),
-	_battery_discharge_mah(0),
-	_battery_valid(false),
-	_local_position_z(0),
-	_local_position_valid(false),
-	_arming_state(1),
-	_arming_timestamp(0)
+	ModuleParams(nullptr)
 {
-	_p_tx_mode = param_find("OSD_ATXXXX_CFG");
-	param_get(_p_tx_mode, &_tx_mode);
-
-	// work_cancel in the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
+	_battery_sub = orb_subscribe(ORB_ID(battery_status));
+	_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 }
 
 OSDatxxxx::~OSDatxxxx()
 {
-	/* make sure we are truly inactive */
-	stop();
+	orb_unsubscribe(_battery_sub);
+	orb_unsubscribe(_local_position_sub);
+	orb_unsubscribe(_vehicle_status_sub);
+}
 
-	// free perf counters
-	perf_free(_sample_perf);
-	perf_free(_comms_errors);
+int OSDatxxxx::task_spawn(int argc, char *argv[])
+{
+	int ch;
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
+	int spi_bus = OSD_BUS;
+
+	while ((ch = px4_getopt(argc, argv, "b:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'b':
+			spi_bus = (uint8_t)atoi(myoptarg);
+			break;
+		}
+	}
+
+	int ret = work_queue(LPWORK, &_work, (worker_t)&OSDatxxxx::initialize_trampoline, (void *)(long)spi_bus, 0);
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	ret = wait_until_running();
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	_task_id = task_id_is_work_queue;
+
+	return 0;
 }
 
 
@@ -79,16 +97,18 @@ int
 OSDatxxxx::init()
 {
 	/* do SPI init (and probe) first */
-	if (SPI::init() != PX4_OK) {
-		goto fail;
+	int ret = SPI::init();
+
+	if (ret != PX4_OK) {
+		return ret;
 	}
 
-	if (reset() != PX4_OK) {
-		goto fail;
+	if ((ret = reset()) != PX4_OK) {
+		return ret;
 	}
 
-	if (init_osd() != PX4_OK) {
-		goto fail;
+	if ((ret = init_osd()) != PX4_OK) {
+		return ret;
 	}
 
 	for (int i = 0; i < OSD_CHARS_PER_ROW; i++) {
@@ -97,15 +117,41 @@ OSDatxxxx::init()
 		}
 	}
 
-	_battery_sub = orb_subscribe(ORB_ID(battery_status));
-	// _local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	return ret;
+}
 
-	return PX4_OK;
+int OSDatxxxx::start()
+{
+	if (is_running()) {
+		return 0;
+	}
 
-fail:
-	return PX4_ERROR;
+	init();
 
+	// Kick off the cycling. We can call it directly because we're already in the work queue context.
+	cycle();
+
+	return 0;
+}
+
+void OSDatxxxx::initialize_trampoline(void *arg)
+{
+	OSDatxxxx *osd = new OSDatxxxx((long)arg);
+
+	if (!osd) {
+		PX4_ERR("alloc failed");
+		return;
+	}
+
+	osd->start();
+	_object.store(osd);
+}
+
+void OSDatxxxx::cycle_trampoline(void *arg)
+{
+	OSDatxxxx *obj = reinterpret_cast<OSDatxxxx *>(arg);
+
+	obj->cycle();
 }
 
 
@@ -131,7 +177,7 @@ OSDatxxxx::init_osd()
 	int ret = PX4_OK;
 	uint8_t data = OSD_ZERO_BYTE;
 
-	if (_tx_mode == 2) {
+	if (_param_atxxxx_cfg.get() == 2) {
 		data |= OSD_PAL_TX_MODE;
 	}
 
@@ -148,20 +194,6 @@ OSDatxxxx::init_osd()
 
 }
 
-
-int
-OSDatxxxx::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
-	return -1;
-}
-
-ssize_t
-OSDatxxxx::read(device::file_t *filp, char *buffer, size_t buflen)
-{
-	return -1;
-}
-
-
 int
 OSDatxxxx::readRegister(unsigned reg, uint8_t *data, unsigned count)
 {
@@ -173,7 +205,6 @@ OSDatxxxx::readRegister(unsigned reg, uint8_t *data, unsigned count)
 	ret = transfer(&cmd[0], &cmd[0], count + 1);
 
 	if (OK != ret) {
-		perf_count(_comms_errors);
 		DEVICE_LOG("spi::transfer returned %d", ret);
 		return ret;
 	}
@@ -197,7 +228,6 @@ OSDatxxxx::writeRegister(unsigned reg, uint8_t data)
 	ret = transfer(&cmd[0], nullptr, 2);
 
 	if (OK != ret) {
-		perf_count(_comms_errors);
 		DEVICE_LOG("spi::transfer returned %d", ret);
 		return ret;
 	}
@@ -440,20 +470,6 @@ OSDatxxxx::update_screen()
 
 }
 
-
-void
-OSDatxxxx::start()
-{
-	/* schedule a cycle to start things */
-	work_queue(LPWORK, &_work, (worker_t)&OSDatxxxx::cycle_trampoline, this, USEC2TICK(OSD_US));
-}
-
-void
-OSDatxxxx::stop()
-{
-	work_cancel(LPWORK, &_work);
-}
-
 int
 OSDatxxxx::reset()
 {
@@ -464,16 +480,13 @@ OSDatxxxx::reset()
 }
 
 void
-OSDatxxxx::cycle_trampoline(void *arg)
-{
-	OSDatxxxx *dev = (OSDatxxxx *)arg;
-
-	dev->cycle();
-}
-
-void
 OSDatxxxx::cycle()
 {
+	if (should_exit()) {
+		exit_and_cleanup();
+		return;
+	}
+
 	update_topics();
 
 	if (_battery_valid || _local_position_valid || _arming_state > 1) {
@@ -489,179 +502,32 @@ OSDatxxxx::cycle()
 
 }
 
-void
-OSDatxxxx::print_info()
+int OSDatxxxx::print_usage(const char *reason)
 {
-	perf_print_counter(_sample_perf);
-	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u ticks\n", _measure_ticks);
-	printf("battery_status: %.3f\n", (double)_battery_voltage_filtered_v);
-	printf("arming_state: %d\n", _arming_state);
-	printf("arming_timestamp: %5.1f\n", (double)_arming_timestamp);
+	if (reason) {
+		printf("%s\n\n", reason);
+	}
 
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+OSD driver for the ATXXXX chip that is mounted on the OmnibusF4SD board for example.
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("atxxxx", "driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the driver");
+	PRINT_MODULE_USAGE_PARAM_INT('b', -1, 0, 100, "SPI bus (default: use board-specific bus)", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
 }
 
-
-/**
- * Local functions in support of the shell command.
- */
-namespace osd
+int OSDatxxxx::custom_command(int argc, char *argv[])
 {
-
-OSDatxxxx	*g_dev;
-
-int	start(int spi_bus);
-int	stop();
-int	info();
-void usage();
-
-
-/**
- * Start the driver.
- */
-int
-start(int spi_bus)
-{
-	int fd;
-
-	if (g_dev != nullptr) {
-		PX4_ERR("already started");
-		goto fail;
-	}
-
-	/* create the driver */
-	g_dev = new OSDatxxxx(spi_bus);
-
-	if (g_dev == nullptr) {
-		goto fail;
-	}
-
-	if (OK != g_dev->init()) {
-		goto fail;
-	}
-
-	fd = open(OSD_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		goto fail;
-	}
-
-	g_dev->start();
-
-	return PX4_OK;
-
-fail:
-
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
-	}
-
-	PX4_ERR("driver start failed");
-	return PX4_ERROR;
+	return print_usage("unrecognized command");
 }
 
-/**
- * Stop the driver
- */
-int
-stop()
+int atxxxx_main(int argc, char *argv[])
 {
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
-
-	} else {
-		PX4_ERR("driver not running");
-		return PX4_ERROR;
-	}
-
-	return PX4_OK;
-}
-
-/**
- * Print a little info about the driver.
- */
-int
-info()
-{
-	if (g_dev == nullptr) {
-		PX4_ERR("driver not running");
-		return PX4_ERROR;
-	}
-
-	printf("state @ %p\n", g_dev);
-	g_dev->print_info();
-
-	return PX4_OK;
-}
-
-/**
- * Print a little info about how to start/stop/use the driver
- */
-void usage()
-{
-	PX4_INFO("usage: atxxxx {start|stop|status'}");
-	PX4_INFO("    [-b SPI_BUS]");
-}
-
-} // namespace osd
-
-
-int
-atxxxx_main(int argc, char *argv[])
-{
-	if (argc < 2) {
-		osd::usage();
-		return PX4_ERROR;
-	}
-
-	// don't exit from getopt loop to leave getopt global variables in consistent state,
-	// set error flag instead
-	bool err_flag = false;
-	int ch;
-	int myoptind = 1;
-	const char *myoptarg = nullptr;
-	int spi_bus = OSD_BUS;
-
-	while ((ch = px4_getopt(argc, argv, "b:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'b':
-			spi_bus = (uint8_t)atoi(myoptarg);
-			break;
-
-		default:
-			err_flag = true;
-			break;
-		}
-	}
-
-	if (err_flag) {
-		osd::usage();
-		return PX4_ERROR;
-	}
-
-	/*
-	 * Start/load the driver.
-	 */
-	if (!strcmp(argv[myoptind], "start")) {
-		return osd::start(spi_bus);
-	}
-
-	/*
-	 * Stop the driver
-	 */
-	if (!strcmp(argv[myoptind], "stop")) {
-		return osd::stop();
-	}
-
-	/*
-	 * Print driver information.
-	 */
-	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
-		return osd::info();
-	}
-
-	osd::usage();
-	return PX4_ERROR;
+	return OSDatxxxx::main(argc, argv);
 }
