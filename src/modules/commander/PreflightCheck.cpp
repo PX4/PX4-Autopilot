@@ -555,7 +555,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 
 	if (status.pos_test_ratio > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Horizontal position estimate Error");
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Position estimate Error");
 		}
 
 		success = false;
