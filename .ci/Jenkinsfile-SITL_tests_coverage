@@ -128,7 +128,7 @@ def createTestNode(Map test_def) {
   return {
     node {
       cleanWs()
-      docker.image("px4io/px4-dev-ros-kinetic:2019-02-09").inside('-e HOME=${WORKSPACE}') {
+      docker.image("px4io/px4-dev-ros-kinetic:2019-02-14").inside('-e HOME=${WORKSPACE}') {
         stage(test_def.name) {
           def test_ok = true
           sh('export')
