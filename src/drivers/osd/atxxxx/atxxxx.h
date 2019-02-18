@@ -34,7 +34,7 @@
 #pragma once
 
 /**
- * @file osd.h
+ * @file atxxxx.h
  * @author Daniele Pettenuzzo
  *
  * Driver for the ATXXXX chip on the omnibus fcu connected via SPI.
@@ -92,12 +92,12 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class OSD : public device::SPI
+class OSDatxxxx : public device::SPI
 {
 public:
-	OSD(int bus = OSD_BUS);
+	OSDatxxxx(int bus = OSD_BUS);
 
-	virtual ~OSD();
+	virtual ~OSDatxxxx();
 
 	virtual int init();
 
@@ -196,4 +196,4 @@ private:
 /*
  * Driver 'main' command.
  */
-extern "C" __EXPORT int osd_main(int argc, char *argv[]);
+extern "C" __EXPORT int atxxxx_main(int argc, char *argv[]);

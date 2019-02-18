@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,14 +32,16 @@
  ****************************************************************************/
 
 /**
-* ATXXX OSD Chip
+* Enable/Disable the ATXXX OSD Chip
 *
-* Select Transmission Standard
+* Configure the ATXXXX OSD Chip (mounted on the OmnibusF4SD board) and
+* select the transmission standard.
 *
-* @value 0 NTSC
-* @value 1 PAL
+* @value 0 Disabled
+* @value 1 NTSC
+* @value 2 PAL
 *
 * @reboot_required true
 *
 */
-PARAM_DEFINE_INT32(OSD_TX_MODE, 0);
+PARAM_DEFINE_INT32(OSD_ATXXXX_CFG, 0);
