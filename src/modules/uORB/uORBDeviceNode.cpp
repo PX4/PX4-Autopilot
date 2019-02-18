@@ -279,6 +279,10 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 
 	ATOMIC_LEAVE;
 
+	if (_work_items_available) {
+		schedule_work_items();
+	}
+
 	/* notify any poll waiters */
 	poll_notify(POLLIN);
 
@@ -781,4 +785,38 @@ int uORB::DeviceNode::update_queue_size(unsigned int queue_size)
 
 	_queue_size = queue_size;
 	return PX4_OK;
+}
+
+bool uORB::DeviceNode::register_work_item(px4::WorkItem *item)
+{
+	if (item != nullptr) {
+		_registered_work_items.add(item);
+		_work_items_available = true;
+
+		return true;
+	}
+
+	return false;
+}
+
+bool uORB::DeviceNode::unregister_work_item(px4::WorkItem *item)
+{
+	if (item != nullptr) {
+		_registered_work_items.remove(item);
+
+		if (_registered_work_items.getHead() == nullptr) {
+			_work_items_available = false;
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+void uORB::DeviceNode::schedule_work_items()
+{
+	for (px4::WorkItem *item = _registered_work_items.getHead(); item != nullptr; item = item->getSibling()) {
+		item->ScheduleNow();
+	}
 }

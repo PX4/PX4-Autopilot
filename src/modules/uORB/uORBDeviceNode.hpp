@@ -39,6 +39,7 @@
 #include <lib/cdev/CDev.hpp>
 
 #include <containers/List.hpp>
+#include <px4_work_queue/WorkItem.hpp>
 
 namespace uORB
 {
@@ -195,6 +196,12 @@ public:
 	int get_priority() const { return _priority; }
 	void set_priority(uint8_t priority) { _priority = priority; }
 
+	// add item to list of work items to schedule on node update
+	bool register_work_item(px4::WorkItem *item);
+
+	// remove item from list of work items
+	bool unregister_work_item(px4::WorkItem *item);
+
 protected:
 
 	pollevent_t poll_state(cdev::file_t *filp) override;
@@ -227,6 +234,10 @@ private:
 	uint8_t     *_data{nullptr};   /**< allocated object buffer */
 	hrt_abstime   _last_update{0}; /**< time the object was last updated */
 	volatile unsigned   _generation{0};  /**< object generation count */
+
+	List<px4::WorkItem *> _registered_work_items;
+	bool			_work_items_available{false};
+
 	uint8_t   _priority;  /**< priority of the topic */
 	bool _published{false};  /**< has ever data been published */
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
@@ -262,5 +273,8 @@ private:
 	 * @return    True if the topic should appear updated to the subscriber
 	 */
 	bool      appears_updated(SubscriberData *sd);
+
+
+	void	schedule_work_items();
 
 };

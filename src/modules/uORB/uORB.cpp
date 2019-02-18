@@ -107,6 +107,11 @@ int  orb_exists(const struct orb_metadata *meta, int instance)
 	return uORB::Manager::get_instance()->orb_exists(meta, instance);
 }
 
+int orb_register_work_callback(const struct orb_metadata *meta, int instance, px4::WorkItem *item)
+{
+	return uORB::Manager::get_instance()->orb_register_work_callback(meta, instance, item);
+}
+
 int  orb_group_count(const struct orb_metadata *meta)
 {
 	unsigned instance = 0;

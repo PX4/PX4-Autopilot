@@ -43,6 +43,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+namespace px4
+{
+class WorkItem; // forward declaration
+} // namespace px4
+#endif
 
 /**
  * Object metadata.
@@ -226,6 +232,13 @@ extern int	orb_stat(int handle, uint64_t *time) __EXPORT;
  * @see uORB::Manager::orb_exists()
  */
 extern int	orb_exists(const struct orb_metadata *meta, int instance) __EXPORT;
+
+/**
+ * @see uORB::Manager::orb_register_work_callback()
+ */
+#ifdef __cplusplus
+extern int orb_register_work_callback(const struct orb_metadata *meta, int instance, px4::WorkItem *item) __EXPORT;
+#endif
 
 /**
  * Get the number of published instances of a topic group

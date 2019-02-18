@@ -44,6 +44,8 @@
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
 
+#include <px4_work_queue/WorkItem.hpp>
+
 uORB::Manager *uORB::Manager::_Instance = nullptr;
 
 bool uORB::Manager::initialize()
@@ -90,6 +92,24 @@ uORB::DeviceMaster *uORB::Manager::get_device_master()
 	}
 
 	return _device_master;
+}
+
+int uORB::Manager::orb_register_work_callback(const struct orb_metadata *meta, int instance, px4::WorkItem *item)
+{
+	// find node
+	// insert callback (like pollset)
+
+	if (get_device_master()) {
+		uORB::DeviceNode *node = _device_master->getDeviceNode(meta, instance);
+
+		if (node != nullptr) {
+			if (node->register_work_item(item)) {
+				return PX4_OK;
+			}
+		}
+	}
+
+	return PX4_ERROR;
 }
 
 int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
