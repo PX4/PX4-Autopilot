@@ -545,7 +545,7 @@ pca9685_main(int argc, char *argv[])
 			break;
 
 		case 'b':
-			i2cdevice = strtol(optarg, NULL, 0);
+			i2cdevice = strtol(myoptarg, NULL, 0);
 			break;
 
 		default:

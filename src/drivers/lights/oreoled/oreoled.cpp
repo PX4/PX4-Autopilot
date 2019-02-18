@@ -1621,11 +1621,11 @@ oreoled_main(int argc, char *argv[])
 	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'a':
-			i2c_addr = (int)strtol(optarg, NULL, 0);
+			i2c_addr = (int)strtol(myoptarg, NULL, 0);
 			break;
 
 		case 'b':
-			i2cdevice = (int)strtol(optarg, NULL, 0);
+			i2cdevice = (int)strtol(myoptarg, NULL, 0);
 			break;
 
 		default:
