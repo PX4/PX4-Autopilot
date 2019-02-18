@@ -94,10 +94,10 @@ void RC_Loss_Alarm::process()
 void RC_Loss_Alarm::play_tune()
 {
 	struct tune_control_s tune_control = {};
-	tune_control.tune_id = static_cast<int>(TuneID::ERROR_TUNE);
-	tune_control.strength = tune_control_s::STRENGTH_MAX;
+	tune_control.timestamp     = hrt_absolute_time();
+	tune_control.tune_id       = static_cast<int>(TuneID::ERROR_TUNE);
 	tune_control.tune_override = 1;
-	tune_control.timestamp = hrt_absolute_time();
+	tune_control.volume        = tune_control_s::VOLUME_LEVEL_MAX;
 
 	if (_tune_control_pub == nullptr) {
 		_tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);

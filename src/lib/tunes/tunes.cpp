@@ -100,12 +100,12 @@ int Tunes::set_control(const tune_control_s &tune_control)
 		// Reset octave, tempo etc.
 		reset(_repeat);
 
-		// Strength will remain valid for the entire tune, unless interrupted.
-		if ((unsigned)tune_control.strength <= TUNE_MAX_STRENGTH) {
-			_strength = (unsigned)tune_control.strength;
+		// Volume will remain valid for the entire tune, unless interrupted.
+		if (tune_control.volume <= tune_control_s::VOLUME_LEVEL_MAX) {
+			_volume = tune_control.volume;
 
 		} else {
-			_strength = TUNE_MAX_STRENGTH;
+			_volume = tune_control_s::VOLUME_LEVEL_MAX;
 		}
 
 
@@ -129,7 +129,7 @@ int Tunes::set_control(const tune_control_s &tune_control)
 	return OK;
 }
 
-void Tunes::set_string(const char *const string, uint8_t strength)
+void Tunes::set_string(const char *const string, uint8_t volume)
 {
 	// Only play new tune if nothing is being played currently.
 	if (_tune == nullptr) {
@@ -138,26 +138,26 @@ void Tunes::set_string(const char *const string, uint8_t strength)
 		_tune_start_ptr = string;
 		_next_tune      = _tune;
 
-		if (strength <= TUNE_MAX_STRENGTH) {
-			_strength = strength;
+		if (volume <= tune_control_s::VOLUME_LEVEL_MAX) {
+			_volume = volume;
 
 		} else {
-			_strength = TUNE_MAX_STRENGTH;
+			_volume = tune_control_s::VOLUME_LEVEL_MAX;
 		}
 	}
 }
 
 int Tunes::get_next_note(unsigned &frequency, unsigned &duration,
-			 unsigned &silence, uint8_t &strength)
+			 unsigned &silence, uint8_t &volume)
 {
 	int ret = get_next_note(frequency, duration, silence);
 
-	// Check if note should not be heard -> adjust strength to 0 to be safe.
+	// Check if note should not be heard -> adjust volume to 0 to be safe.
 	if (frequency == 0 || duration == 0) {
-		strength = 0;
+		volume = 0;
 
 	} else {
-		strength = _strength;
+		volume = _volume;
 	}
 
 	return ret;
