@@ -5,6 +5,10 @@
 # @type Flying Wing
 # @class Plane
 #
+# @output MAIN1 right aileron
+# @output MAIN2 left aileron
+# @output MAIN4 throttle
+#
 # @maintainer Simon Wilks <simon@uaventure.com>
 #
 
