@@ -54,6 +54,7 @@ protected:
 	void _updateHeadingSetpoints(); /**< sets yaw or yaw speed */
 	virtual void _updateSetpoints(); /**< updates all setpoints */
 	virtual void _scaleSticks(); /**< scales sticks to velocity in z */
+	void _updateConstraints(); /**< update dynamic constraints */
 
 	/**
 	 * rotates vector into local frame
@@ -73,7 +74,11 @@ protected:
 					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) MPC_HOLD_MAX_XY,
 					(ParamFloat<px4::params::MPC_Z_P>) MPC_Z_P, /**< position controller altitude propotional gain */
 					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) MPC_MAN_Y_MAX, /**< scaling factor from stick to yaw rate */
-					(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) MPC_MAN_TILT_MAX /**< maximum tilt allowed for manual flight */
+					(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) MPC_MAN_TILT_MAX, /**< maximum tilt allowed for manual flight */
+					(ParamFloat<px4::params::MPC_LAND_ALT1>) MPC_LAND_ALT1,
+					(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2,
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) MPC_LAND_SPEED,
+					(ParamFloat<px4::params::MPC_TKO_SPEED>) MPC_TKO_SPEED
 				       )
 private:
 	/**

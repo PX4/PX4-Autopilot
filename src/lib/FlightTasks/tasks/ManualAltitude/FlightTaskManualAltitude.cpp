@@ -80,6 +80,22 @@ bool FlightTaskManualAltitude::activate()
 	return ret;
 }
 
+void FlightTaskManualAltitude::_updateConstraints()
+{
+	// Altitude above ground is by default just the negation of the current local position in D-direction.
+	float alt_above_ground = -_position(2);
+
+	if (PX4_ISFINITE(_dist_to_bottom)) {
+		// We have a valid distance to ground measurement
+		alt_above_ground = _dist_to_bottom;
+	}
+
+	// Below ALT1, limit down speed
+	_constraints.speed_down = (alt_above_ground < MPC_LAND_ALT1.get()) ? MPC_LAND_SPEED.get() : _min_speed_down;
+	// Below ALT2, limit up speed
+	_constraints.speed_up = (alt_above_ground < MPC_LAND_ALT2.get()) ? MPC_TKO_SPEED.get() : _max_speed_up;
+}
+
 void FlightTaskManualAltitude::_scaleSticks()
 {
 	// Use sticks input with deadzone and exponential curve for vertical velocity and yawspeed
@@ -309,6 +325,7 @@ void FlightTaskManualAltitude::_updateSetpoints()
 
 bool FlightTaskManualAltitude::update()
 {
+	_updateConstraints();
 	_scaleSticks();
 	_updateSetpoints();
 
