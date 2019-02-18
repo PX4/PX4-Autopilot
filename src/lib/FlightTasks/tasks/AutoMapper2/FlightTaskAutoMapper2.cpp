@@ -136,7 +136,7 @@ void FlightTaskAutoMapper2::_prepareTakeoffSetpoints()
 {
 	// Takeoff is completely defined by target position
 	_position_setpoint = _target;
-	const float speed_tko = (_alt_above_ground > MPC_LAND_ALT1.get()) ? _constraints.speed_up : MPC_TKO_SPEED.get();
+	const float speed_tko = (_alt_above_ground > MPC_LAND_ALT2.get()) ? _constraints.speed_up : MPC_TKO_SPEED.get();
 	_velocity_setpoint = Vector3f(NAN, NAN, -speed_tko); // Limit the maximum vertical speed
 
 	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
