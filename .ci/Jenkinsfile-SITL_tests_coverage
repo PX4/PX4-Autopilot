@@ -155,7 +155,8 @@ def createTestNode(Map test_def) {
 
             // process log data (with python code coverage)
             try {
-              sh('coverage run -p Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
+              //sh('coverage run -p Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
+              sh('Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
             } catch (exc) {
               // save log analysis artifacts for debugging
               archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.pdf, .ros/**/*.csv')
