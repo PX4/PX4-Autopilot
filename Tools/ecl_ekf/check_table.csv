@@ -1,0 +1,66 @@
+check_id,check_description
+master_status, Master check status which can be either Pass Warning or Fail. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required
+mag_sensor_status, Magnetometer sensor check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required
+yaw_sensor_status, Yaw sensor check summary. This sensor data can be sourced from the magnetometer or an external vision system. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required
+vel_sensor_status, Velocity sensor check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required
+pos_sensor_status, Position sensor check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required
+hgt_sensor_status, Height sensor check summary. This sensor data can be sourced from either Baro or GPS or range finder or external vision system. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no anomalies were detected and no further investigation is required
+hagl_sensor_status, Height above ground sensor check summary. This sensor data is normally sourced from a rangefinder sensor. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required
+tas_sensor_status, Airspeed sensor check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required
+imu_sensor_status, IMU sensor check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required
+imu_vibration_check, IMU vibration check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required
+imu_bias_check, IMU bias check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required
+imu_output_predictor_check, IMU output predictor check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required
+flow_sensor_status, Optical Flow sensor check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required
+filter_fault_status, Internal Filter check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required
+mag_percentage_red, The percentage of in-flight consolidated magnetic field sensor innovation consistency test values > 1.0.
+mag_percentage_amber, The percentage of in-flight consolidated magnetic field sensor innovation consistency test values > 0.5.
+magx_fail_percentage, The percentage of in-flight recorded failure events for the X-axis magnetic field sensor innovation consistency test.
+magy_fail_percentage, The percentage of in-flight recorded failure events for the Y-axis magnetic field sensor innovation consistency test.
+magz_fail_percentage, The percentage of in-flight recorded failure events for the Z-axis magnetic field sensor innovation consistency test.
+yaw_fail_percentage, The percentage of in-flight recorded failure events for the yaw sensor innovation consistency test.
+mag_test_max, The maximum in-flight value of the magnetic field sensor innovation consistency test ratio.
+mag_test_mean, The mean in-flight value of the magnetic field sensor innovation consistency test ratio.
+vel_percentage_red, The percentage of in-flight velocity sensor consolidated innovation consistency test values > 1.0.
+vel_percentage_amber, The percentage of in-flight velocity sensor consolidated innovation consistency test values > 0.5.
+vel_fail_percentage, The percentage of in-flight recorded failure events for the velocity sensor consolidated innovation consistency test.
+vel_test_max, The maximum in-flight value of the velocity sensor consolidated innovation consistency test ratio.
+vel_test_mean, The mean in-flight value of the velocity sensor consolidated innovation consistency test ratio.
+pos_percentage_red, The percentage of in-flight position sensor consolidated innovation consistency test values > 1.0.
+pos_percentage_amber, The percentage of in-flight position sensor consolidated innovation consistency test values > 0.5.
+pos_fail_percentage, The percentage of in-flight recorded failure events for the velocity sensor consolidated innovation consistency test.
+pos_test_max, The maximum in-flight value of the position sensor consolidated innovation consistency test ratio.
+pos_test_mean, The mean in-flight value of the position sensor consolidated innovation consistency test ratio.
+hgt_percentage_red, The percentage of in-flight height sensor innovation consistency test values > 1.0.
+hgt_percentage_amber, The percentage of in-flight height sensor innovation consistency test values > 0.5.
+hgt_fail_percentage, The percentage of in-flight recorded failure events for the height sensor innovation consistency test.
+hgt_test_max, The maximum in-flight value of the height sensor innovation consistency test ratio.
+hgt_test_mean, The mean in-flight value of the height sensor innovation consistency test ratio.
+tas_percentage_red, The percentage of in-flight airspeed sensor innovation consistency test values > 1.0.
+tas_percentage_amber, The percentage of in-flight airspeed sensor innovation consistency test values > 0.5.
+tas_fail_percentage, The percentage of in-flight recorded failure events for the airspeed sensor innovation consistency test.
+tas_test_max, The maximum in-flight value of the airspeed sensor innovation consistency test ratio.
+tas_test_mean, The mean in-flight value of the airspeed sensor innovation consistency test ratio.
+hagl_percentage_red, The percentage of in-flight height above ground sensor innovation consistency test values > 1.0.
+hagl_percentage_amber, The percentage of in-flight height above ground sensor innovation consistency test values > 0.5.
+hagl_fail_percentage, The percentage of in-flight recorded failure events for the height above ground sensor innovation consistency test.
+hagl_test_max, The maximum in-flight value of the height above ground sensor innovation consistency test ratio.
+hagl_test_mean, The mean in-flight value of the height above ground sensor innovation consistency test ratio.
+ofx_fail_percentage, The percentage of in-flight recorded failure events for the optical flow sensor X-axis innovation consistency test.
+ofy_fail_percentage, The percentage of in-flight recorded failure events for the optical flow sensor Y-axis innovation consistency test.
+filter_faults_max, Largest recorded value of the filter internal fault bitmask. Should always be zero.
+imu_coning_peak, Peak in-flight value of the IMU delta angle coning vibration metric (rad)
+imu_coning_mean, Mean in-flight value of the IMU delta angle coning vibration metric (rad)
+imu_hfdang_peak, Peak in-flight value of the IMU delta angle high frequency vibration metric (rad)
+imu_hfdang_mean, Mean in-flight value of the IMU delta angle high frequency vibration metric (rad)
+imu_hfdvel_peak, Peak in-flight value of the IMU delta velocity high frequency vibration metric (m/s)
+imu_hfdvel_mean, Mean in-flight value of the IMU delta velocity high frequency vibration metric (m/s)
+output_obs_ang_err_median, Median in-flight value of the output observer angular error (rad)
+output_obs_vel_err_median, Median in-flight value of the output observer velocity error (m/s)
+output_obs_pos_err_median, Median in-flight value of the output observer position error (m)
+imu_dang_bias_median, Median in-flight value of the delta angle bias vector length (rad)
+imu_dvel_bias_median, Median in-flight value of the delta velocity bias vector length (m/s)
+tilt_align_time, The time in seconds measured from startup that the EKF completed the tilt alignment. A nan value indicates that the alignment had completed before logging started or alignment did not complete.
+yaw_align_time, The time in seconds measured from startup that the EKF completed the yaw alignment.
+in_air_transition_time, The time in seconds measured from startup that the EKF transtioned into in-air mode. Set to a nan if a transition event is not detected.
+on_ground_transition_time, The time in seconds measured from startup  that the EKF transitioned out of in-air mode. Set to a nan if a transition event is not detected.
