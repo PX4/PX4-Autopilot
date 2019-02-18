@@ -150,6 +150,7 @@ void VotedSensorsUpdate::parameters_update()
 	/* temperature compensation */
 	_temperature_compensation.parameters_update(_hil_enabled);
 
+#if 0
 	/* gyro */
 	for (int topic_instance = 0; topic_instance < GYRO_COUNT_MAX; ++topic_instance) {
 
@@ -219,6 +220,7 @@ void VotedSensorsUpdate::parameters_update()
 			}
 		}
 	}
+#endif
 
 
 	/* set offset parameters to new values */
