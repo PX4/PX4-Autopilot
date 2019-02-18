@@ -135,6 +135,14 @@ class DataPlot():
             print('skipping saving to pdf: handle was not initialized.')
 
 
+    def close(self) -> None:
+        """
+        closes the figure.
+        :return:
+        """
+        plt.close(self._fig)
+
+
 class TimeSeriesPlot(DataPlot):
     """
     class for creating multiple time series plot.

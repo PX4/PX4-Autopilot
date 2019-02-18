@@ -10,7 +10,6 @@ import os, glob
 
 from process_logdata_ekf import process_logdata_ekf
 
-
 def get_arguments():
     parser = argparse.ArgumentParser(description='Analyse the estimator_status and ekf2_innovation message data for the'
                                                  ' .ulg files in the specified directory')
@@ -46,7 +45,6 @@ def main() -> None:
         file_dir = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
         check_table_filename = os.path.join(file_dir, "check_table.csv")
 
-
     ulog_directory = args.directory_path
 
     # get all the ulog files found in the specified directory and in subdirectories
@@ -71,17 +69,9 @@ def main() -> None:
         print('analysing file {:d}/{:d}: {:s}'.format(i, n_files, ulog_file))
 
         try:
-            test_results = process_logdata_ekf(
+            _ = process_logdata_ekf(
                 ulog_file, check_level_dict_filename, check_table_filename,
                 plot=not args.no_plots, sensor_safety_margins=not args.no_sensor_safety_margin)
-
-            # print master test status to console
-            if (test_results['master_status'][0] == 'Pass'):
-                print('No anomalies detected')
-            elif (test_results['master_status'][0] == 'Warning'):
-                print('Minor anomalies detected')
-            elif (test_results['master_status'][0] == 'Fail'):
-                print('Major anomalies detected')
 
         except Exception as e:
             print(str(e))

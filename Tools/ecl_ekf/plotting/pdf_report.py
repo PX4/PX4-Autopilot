@@ -16,7 +16,6 @@ from plotting.data_plots import TimeSeriesPlot, InnovationPlot, ControlModeSumma
     CheckFlagsPlot
 from analysis.detectors import PreconditionError
 
-
 def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
     """
     creates a pdf report of the ekf analysis.
@@ -64,6 +63,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
                 y_labels=['acceleration (m/s/s)', 'angular rate (rad/s)'],
                 plot_title='IMU Consistency Check Levels', pdf_handle=pdf_pages)
             data_plot.save()
+            data_plot.close()
 
         # vertical velocity and position innovations
         data_plot = InnovationPlot(
@@ -73,6 +73,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             y_labels=['Down Vel (m/s)', 'Down Pos (m)'], plot_title='Vertical Innovations',
             pdf_handle=pdf_pages)
         data_plot.save()
+        data_plot.close()
 
         # horizontal velocity innovations
         data_plot = InnovationPlot(
@@ -82,6 +83,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             y_labels=['North Vel (m/s)', 'East Vel (m/s)'],
             plot_title='Horizontal Velocity  Innovations', pdf_handle=pdf_pages)
         data_plot.save()
+        data_plot.close()
 
         # horizontal position innovations
         data_plot = InnovationPlot(
@@ -91,6 +93,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             y_labels=['North Pos (m)', 'East Pos (m)'], plot_title='Horizontal Position Innovations',
             pdf_handle=pdf_pages)
         data_plot.save()
+        data_plot.close()
 
         # magnetometer innovations
         data_plot = InnovationPlot(
@@ -100,6 +103,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             y_labels=['X (Gauss)', 'Y (Gauss)', 'Z (Gauss)'], plot_title='Magnetometer Innovations',
             pdf_handle=pdf_pages)
         data_plot.save()
+        data_plot.close()
 
         # magnetic heading innovations
         data_plot = InnovationPlot(
@@ -107,6 +111,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             x_labels=['time (sec)'], y_labels=['Heading (rad)'],
             plot_title='Magnetic Heading Innovations', pdf_handle=pdf_pages)
         data_plot.save()
+        data_plot.close()
 
         # air data innovations
         data_plot = InnovationPlot(
@@ -117,6 +122,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             sub_titles=['True Airspeed Innovations', 'Synthetic Sideslip Innovations'],
             pdf_handle=pdf_pages)
         data_plot.save()
+        data_plot.close()
 
         # optical flow innovations
         data_plot = InnovationPlot(
@@ -126,6 +132,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             y_labels=['X (rad/sec)', 'Y (rad/sec)'],
             plot_title='Optical Flow Innovations', pdf_handle=pdf_pages)
         data_plot.save()
+        data_plot.close()
 
         # plot normalised innovation test levels
         # define variables to plot
@@ -149,6 +156,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             legend=legend
         )
         data_plot.save()
+        data_plot.close()
 
         # plot control mode summary A
         data_plot = ControlModeSummaryPlot(
@@ -162,6 +170,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
              'magnetic declination aiding']], plot_title='EKF Control Status - Figure A',
             pdf_handle=pdf_pages)
         data_plot.save()
+        data_plot.close()
 
         # plot control mode summary B
         # construct additional annotations for the airborne plot
@@ -188,6 +197,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             additional_annotation=[airborne_annotations, []],
             plot_title='EKF Control Status - Figure B', pdf_handle=pdf_pages)
         data_plot.save()
+        data_plot.close()
 
         # plot innovation_check_flags summary
         data_plot = CheckFlagsPlot(
@@ -204,6 +214,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
                     ['flow X', 'flow Y']],
             plot_title='EKF Innovation Test Fails', annotate=False, pdf_handle=pdf_pages)
         data_plot.save()
+        data_plot.close()
 
         # gps_check_fail_flags summary
         data_plot = CheckFlagsPlot(
@@ -216,6 +227,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
                      'speed error'], ['horiz drift', 'vert drift', 'horiz speed',
                                       'vert vel inconsistent']], annotate=False, pdf_handle=pdf_pages)
         data_plot.save()
+        data_plot.close()
 
         # filter reported accuracy
         data_plot = CheckFlagsPlot(
@@ -223,6 +235,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             x_label='time (sec)', y_labels=['accuracy (m)'], plot_title='Reported Accuracy',
             legend=[['horizontal', 'vertical']], annotate=False, pdf_handle=pdf_pages)
         data_plot.save()
+        data_plot.close()
 
         # Plot the EKF IMU vibration metrics
         scaled_estimator_status = {'vibe[0]': 1000. * estimator_status['vibe[0]'],
@@ -235,6 +248,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
                                             'HF Del Vel (m/s)'], plot_title='IMU Vibration Metrics',
             pdf_handle=pdf_pages, annotate=True)
         data_plot.save()
+        data_plot.close()
 
         # Plot the EKF output observer tracking errors
         scaled_innovations = {
@@ -250,6 +264,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             plot_title='Output Observer Tracking Error Magnitudes',
             pdf_handle=pdf_pages, annotate=True)
         data_plot.save()
+        data_plot.close()
 
         # Plot the delta angle bias estimates
         data_plot = CheckFlagsPlot(
@@ -258,6 +273,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             x_label='time (sec)', y_labels=['X (rad)', 'Y (rad)', 'Z (rad)'],
             plot_title='Delta Angle Bias Estimates', annotate=False, pdf_handle=pdf_pages)
         data_plot.save()
+        data_plot.close()
 
         # Plot the delta velocity bias estimates
         data_plot = CheckFlagsPlot(
@@ -266,6 +282,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             x_label='time (sec)', y_labels=['X (m/s)', 'Y (m/s)', 'Z (m/s)'],
             plot_title='Delta Velocity Bias Estimates', annotate=False, pdf_handle=pdf_pages)
         data_plot.save()
+        data_plot.close()
 
         # Plot the earth frame magnetic field estimates
         declination, field_strength, inclination = magnetic_field_estimates_from_status(
@@ -279,6 +296,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             plot_title='Earth Magnetic Field Estimates', annotate=False,
             pdf_handle=pdf_pages)
         data_plot.save()
+        data_plot.close()
 
         # Plot the body frame magnetic field estimates
         data_plot = CheckFlagsPlot(
@@ -287,6 +305,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             x_label='time (sec)', y_labels=['X (Gauss)', 'Y (Gauss)', 'Z (Gauss)'],
             plot_title='Magnetometer Bias Estimates', annotate=False, pdf_handle=pdf_pages)
         data_plot.save()
+        data_plot.close()
 
         # Plot the EKF wind estimates
         data_plot = CheckFlagsPlot(
@@ -295,6 +314,7 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
             y_labels=['North (m/s)', 'East (m/s)'], plot_title='Wind Velocity Estimates',
             annotate=False, pdf_handle=pdf_pages)
         data_plot.save()
+        data_plot.close()
 
 
 def detect_airtime(control_mode, status_time):
