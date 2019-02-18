@@ -1719,7 +1719,7 @@ hmc5883_main(int argc, char *argv[])
 	while ((ch = px4_getopt(argc, argv, "XISR:CT", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 #if (PX4_I2C_BUS_ONBOARD || PX4_SPIDEV_HMC)
 
