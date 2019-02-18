@@ -147,10 +147,10 @@ void Tunes::set_string(const char *const string, uint8_t strength)
 	}
 }
 
-int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
+int Tunes::get_next_note(unsigned &frequency, unsigned &duration,
 			 unsigned &silence, uint8_t &strength)
 {
-	int ret = get_next_tune(frequency, duration, silence);
+	int ret = get_next_note(frequency, duration, silence);
 
 	// Check if note should not be heard -> adjust strength to 0 to be safe.
 	if (frequency == 0 || duration == 0) {
@@ -163,7 +163,7 @@ int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
 	return ret;
 }
 
-int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
+int Tunes::get_next_note(unsigned &frequency, unsigned &duration,
 			 unsigned &silence)
 {
 	// Return the values for frequency and duration if the custom msg was received.

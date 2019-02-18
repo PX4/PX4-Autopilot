@@ -202,7 +202,7 @@ tune_control_main(int argc, char *argv[])
 			PX4_INFO("Start playback...");
 			tunes.set_string(tune_string, tune_control.strength);
 
-			while (tunes.get_next_tune(frequency, duration, silence, strength) > 0) {
+			while (tunes.get_next_note(frequency, duration, silence, strength) > 0) {
 				tune_control.tune_id = 0;
 				tune_control.frequency = (uint16_t)frequency;
 				tune_control.duration = (uint32_t)duration;
@@ -236,7 +236,7 @@ tune_control_main(int argc, char *argv[])
 			PX4_WARN("Tune ID not recognized.");
 		}
 
-		while (tunes.get_next_tune(frequency, duration, silence, strength) > 0) {
+		while (tunes.get_next_note(frequency, duration, silence, strength) > 0) {
 			PX4_INFO("frequency: %d, duration %d, silence %d, strength%d",
 				 frequency, duration, silence, strength);
 			px4_usleep(500000);
