@@ -32,21 +32,20 @@
  ****************************************************************************/
 
 /**
- * @file osd.cpp
+ * @file atxxxx.cpp
  * @author Daniele Pettenuzzo
  *
  * Driver for the ATXXXX chip on the omnibus fcu connected via SPI.
  */
 
-#include "osd.h"
+#include "atxxxx.h"
 
 
-OSD::OSD(int bus) :
+OSDatxxxx::OSDatxxxx(int bus) :
 	SPI("OSD", OSD_DEVICE_PATH, bus, OSD_SPIDEV, SPIDEV_MODE0, OSD_SPI_BUS_SPEED),
 	_measure_ticks(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "osd_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "osd_com_err")),
-	_tx_mode(1),
 	_battery_sub(-1),
 	_local_position_sub(-1),
 	_vehicle_status_sub(-1),
@@ -58,18 +57,14 @@ OSD::OSD(int bus) :
 	_arming_state(1),
 	_arming_timestamp(0)
 {
-	// enable debug() calls
-	_debug_enabled = false;
-
-	// get params
-	_p_tx_mode = param_find("OSD_TX_MODE");
-	param_get(_p_tx_mode, (int32_t *)&_tx_mode);
+	_p_tx_mode = param_find("OSD_ATXXXX_CFG");
+	param_get(_p_tx_mode, &_tx_mode);
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
 }
 
-OSD::~OSD()
+OSDatxxxx::~OSDatxxxx()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -81,7 +76,7 @@ OSD::~OSD()
 
 
 int
-OSD::init()
+OSDatxxxx::init()
 {
 	/* do SPI init (and probe) first */
 	if (SPI::init() != PX4_OK) {
@@ -115,7 +110,7 @@ fail:
 
 
 int
-OSD::probe()
+OSDatxxxx::probe()
 {
 	uint8_t data = 0;
 	int ret = PX4_OK;
@@ -131,12 +126,12 @@ OSD::probe()
 }
 
 int
-OSD::init_osd()
+OSDatxxxx::init_osd()
 {
 	int ret = PX4_OK;
 	uint8_t data = OSD_ZERO_BYTE;
 
-	if (_tx_mode) {
+	if (_tx_mode == 2) {
 		data |= OSD_PAL_TX_MODE;
 	}
 
@@ -155,20 +150,20 @@ OSD::init_osd()
 
 
 int
-OSD::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+OSDatxxxx::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	return -1;
 }
 
 ssize_t
-OSD::read(device::file_t *filp, char *buffer, size_t buflen)
+OSDatxxxx::read(device::file_t *filp, char *buffer, size_t buflen)
 {
 	return -1;
 }
 
 
 int
-OSD::readRegister(unsigned reg, uint8_t *data, unsigned count)
+OSDatxxxx::readRegister(unsigned reg, uint8_t *data, unsigned count)
 {
 	uint8_t cmd[5]; 					// read up to 4 bytes
 	int ret;
@@ -191,7 +186,7 @@ OSD::readRegister(unsigned reg, uint8_t *data, unsigned count)
 
 
 int
-OSD::writeRegister(unsigned reg, uint8_t data)
+OSDatxxxx::writeRegister(unsigned reg, uint8_t data)
 {
 	uint8_t cmd[2]; 						// write 1 byte
 	int ret;
@@ -212,7 +207,7 @@ OSD::writeRegister(unsigned reg, uint8_t data)
 }
 
 int
-OSD::add_character_to_screen(char c, uint8_t pos_x, uint8_t pos_y)
+OSDatxxxx::add_character_to_screen(char c, uint8_t pos_x, uint8_t pos_y)
 {
 
 	uint16_t position = (OSD_CHARS_PER_ROW * pos_y) + pos_x;
@@ -235,13 +230,13 @@ OSD::add_character_to_screen(char c, uint8_t pos_x, uint8_t pos_y)
 }
 
 int
-OSD::add_battery_symbol(uint8_t pos_x, uint8_t pos_y)
+OSDatxxxx::add_battery_symbol(uint8_t pos_x, uint8_t pos_y)
 {
 	return add_character_to_screen(146, pos_x, pos_y);
 }
 
 int
-OSD::add_battery_info(uint8_t pos_x, uint8_t pos_y)
+OSDatxxxx::add_battery_info(uint8_t pos_x, uint8_t pos_y)
 {
 	char buf[5];
 	int ret = PX4_OK;
@@ -268,13 +263,13 @@ OSD::add_battery_info(uint8_t pos_x, uint8_t pos_y)
 }
 
 int
-OSD::add_altitude_symbol(uint8_t pos_x, uint8_t pos_y)
+OSDatxxxx::add_altitude_symbol(uint8_t pos_x, uint8_t pos_y)
 {
 	return add_character_to_screen(154, pos_x, pos_y);
 }
 
 int
-OSD::add_altitude(uint8_t pos_x, uint8_t pos_y)
+OSDatxxxx::add_altitude(uint8_t pos_x, uint8_t pos_y)
 {
 	char buf[5];
 	int ret = PX4_OK;
@@ -291,13 +286,13 @@ OSD::add_altitude(uint8_t pos_x, uint8_t pos_y)
 }
 
 int
-OSD::add_flighttime_symbol(uint8_t pos_x, uint8_t pos_y)
+OSDatxxxx::add_flighttime_symbol(uint8_t pos_x, uint8_t pos_y)
 {
 	return add_character_to_screen(112, pos_x, pos_y);
 }
 
 int
-OSD::add_flighttime(float flight_time, uint8_t pos_x, uint8_t pos_y)
+OSDatxxxx::add_flighttime(float flight_time, uint8_t pos_x, uint8_t pos_y)
 {
 	char buf[6];
 	int ret = PX4_OK;
@@ -312,7 +307,7 @@ OSD::add_flighttime(float flight_time, uint8_t pos_x, uint8_t pos_y)
 }
 
 int
-OSD::enable_screen()
+OSDatxxxx::enable_screen()
 {
 	uint8_t data;
 	int ret = PX4_OK;
@@ -324,7 +319,7 @@ OSD::enable_screen()
 }
 
 int
-OSD::disable_screen()
+OSDatxxxx::disable_screen()
 {
 	uint8_t data;
 	int ret = PX4_OK;
@@ -337,7 +332,7 @@ OSD::disable_screen()
 
 
 int
-OSD::update_topics()//TODO have an argument to choose what to update and return validity
+OSDatxxxx::update_topics()//TODO have an argument to choose what to update and return validity
 {
 	struct battery_status_s battery = {};
 	// struct vehicle_local_position_s local_position = {};
@@ -419,7 +414,7 @@ OSD::update_topics()//TODO have an argument to choose what to update and return 
 
 
 int
-OSD::update_screen()
+OSDatxxxx::update_screen()
 {
 	int ret = PX4_OK;
 
@@ -447,20 +442,20 @@ OSD::update_screen()
 
 
 void
-OSD::start()
+OSDatxxxx::start()
 {
 	/* schedule a cycle to start things */
-	work_queue(LPWORK, &_work, (worker_t)&OSD::cycle_trampoline, this, USEC2TICK(OSD_US));
+	work_queue(LPWORK, &_work, (worker_t)&OSDatxxxx::cycle_trampoline, this, USEC2TICK(OSD_US));
 }
 
 void
-OSD::stop()
+OSDatxxxx::stop()
 {
 	work_cancel(LPWORK, &_work);
 }
 
 int
-OSD::reset()
+OSDatxxxx::reset()
 {
 	int ret = writeRegister(0x00, 0x02);
 	usleep(100);
@@ -469,15 +464,15 @@ OSD::reset()
 }
 
 void
-OSD::cycle_trampoline(void *arg)
+OSDatxxxx::cycle_trampoline(void *arg)
 {
-	OSD *dev = (OSD *)arg;
+	OSDatxxxx *dev = (OSDatxxxx *)arg;
 
 	dev->cycle();
 }
 
 void
-OSD::cycle()
+OSDatxxxx::cycle()
 {
 	update_topics();
 
@@ -488,14 +483,14 @@ OSD::cycle()
 	/* schedule a fresh cycle call when the measurement is done */
 	work_queue(LPWORK,
 		   &_work,
-		   (worker_t)&OSD::cycle_trampoline,
+		   (worker_t)&OSDatxxxx::cycle_trampoline,
 		   this,
 		   USEC2TICK(OSD_UPDATE_RATE));
 
 }
 
 void
-OSD::print_info()
+OSDatxxxx::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
@@ -513,7 +508,7 @@ OSD::print_info()
 namespace osd
 {
 
-OSD	*g_dev;
+OSDatxxxx	*g_dev;
 
 int	start(int spi_bus);
 int	stop();
@@ -535,7 +530,7 @@ start(int spi_bus)
 	}
 
 	/* create the driver */
-	g_dev = new OSD(spi_bus);
+	g_dev = new OSDatxxxx(spi_bus);
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -606,7 +601,7 @@ info()
  */
 void usage()
 {
-	PX4_INFO("usage: osd {start|stop|status'}");
+	PX4_INFO("usage: atxxxx {start|stop|status'}");
 	PX4_INFO("    [-b SPI_BUS]");
 }
 
@@ -614,7 +609,7 @@ void usage()
 
 
 int
-osd_main(int argc, char *argv[])
+atxxxx_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		osd::usage();
