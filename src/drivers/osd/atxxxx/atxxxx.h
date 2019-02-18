@@ -55,11 +55,6 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/device/spi.h>
 
-#include <uORB/uORB.h>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_status.h>
-
 /* Configuration Constants */
 #ifdef PX4_SPI_BUS_OSD
 #define OSD_BUS PX4_SPI_BUS_OSD
@@ -80,13 +75,15 @@
 
 #define OSD_DEVICE_PATH "/dev/osd"
 
-#define OSD_US 1000 /*  1 ms  */
 #define OSD_UPDATE_RATE 500000 /*  2 Hz  */
 #define OSD_CHARS_PER_ROW	30
+#define OSD_NUM_ROWS_PAL	16
+#define OSD_NUM_ROWS_NTSC	13
 #define OSD_ZERO_BYTE 0x00
 #define OSD_PAL_TX_MODE 0x40
 
 /* OSD Registers addresses */
+// TODO
 
 
 #ifndef CONFIG_SCHED_WORKQUEUE
@@ -141,18 +138,20 @@ private:
 	int writeRegister(unsigned reg, uint8_t data);
 
 	int add_character_to_screen(char c, uint8_t pos_x, uint8_t pos_y);
-	int add_battery_symbol(uint8_t pos_x, uint8_t pos_y);
+	void add_string_to_screen_centered(const char *str, uint8_t pos_y, int max_length);
+	void clear_line(uint8_t pos_x, uint8_t pos_y, int length);
+
 	int add_battery_info(uint8_t pos_x, uint8_t pos_y);
-	int add_altitude_symbol(uint8_t pos_x, uint8_t pos_y);
 	int add_altitude(uint8_t pos_x, uint8_t pos_y);
-	int add_flighttime_symbol(uint8_t pos_x, uint8_t pos_y);
 	int add_flighttime(float flight_time, uint8_t pos_x, uint8_t pos_y);
+
+	static const char *get_flight_mode(uint8_t nav_state);
 
 	int enable_screen();
 	int disable_screen();
 
 	int update_topics();
-	int	update_screen();
+	int update_screen();
 
 	static work_s _work;
 
@@ -172,6 +171,9 @@ private:
 	// flight time
 	uint8_t _arming_state{0};
 	uint64_t _arming_timestamp{0};
+
+	// flight mode
+	uint8_t _nav_state{0};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::OSD_ATXXXX_CFG>) _param_atxxxx_cfg

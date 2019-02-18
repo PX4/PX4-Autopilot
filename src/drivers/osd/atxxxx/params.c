@@ -42,6 +42,7 @@
 * @value 2 PAL
 *
 * @reboot_required true
+* @group OSD
 *
 */
 PARAM_DEFINE_INT32(OSD_ATXXXX_CFG, 0);
