@@ -1078,7 +1078,8 @@ $ gps reset warm
 	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "ubx|mtk|ash|eml", "GPS Protocol (default=auto select)", true);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "hot|warm|cold");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset GPS device");
+	PRINT_MODULE_USAGE_ARG("cold|warm|hot", "Specify reset type", false);
 
 	return 0;
 }
