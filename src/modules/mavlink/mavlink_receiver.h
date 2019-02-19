@@ -253,12 +253,13 @@ private:
 
 	static const int _gps_inject_data_queue_size = 6;
 
-	int _actuator_armed_sub;
-	int _control_mode_sub;
-	int _hil_frames;
-	int _vehicle_attitude_sub;
+	int _actuator_armed_sub{orb_subscribe(ORB_ID(actuator_armed))};
+	int _control_mode_sub{orb_subscribe(ORB_ID(vehicle_control_mode))};
+	int _vehicle_attitude_sub{orb_subscribe(ORB_ID(vehicle_attitude))};
 
-	uint64_t _global_ref_timestamp;
+	int _hil_frames;
+
+	uint64_t _global_ref_timestamp{0};
 	uint64_t _old_timestamp;
 
 	bool _hil_local_proj_inited;
