@@ -15,6 +15,10 @@
 
 namespace matrix {
 
+#if !defined(FLT_EPSILON)
+#define FLT_EPSILON     __FLT_EPSILON__
+#endif
+
 #if defined(__PX4_NUTTX)
 /*
  * NuttX has no usable C++ math library, so we need to provide the needed definitions here manually.

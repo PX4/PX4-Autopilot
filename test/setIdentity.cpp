@@ -11,10 +11,10 @@ int main()
     for (size_t i = 0; i < 3; i++) {
         for (size_t j = 0; j < 3; j++) {
             if (i == j) {
-                TEST(fabs(A(i, j) -  1) < __FLT_EPSILON__);
+                TEST(fabs(A(i, j) -  1) < FLT_EPSILON);
 
             } else {
-                TEST(fabs(A(i, j) -  0) < __FLT_EPSILON__);
+                TEST(fabs(A(i, j) -  0) < FLT_EPSILON);
             }
         }
     }
@@ -25,10 +25,10 @@ int main()
     for (size_t i = 0; i < 3; i++) {
         for (size_t j = 0; j < 3; j++) {
             if (i == j) {
-                TEST(fabs(B(i, j) -  1) < __FLT_EPSILON__);
+                TEST(fabs(B(i, j) -  1) < FLT_EPSILON);
 
             } else {
-                TEST(fabs(B(i, j) -  0) < __FLT_EPSILON__);
+                TEST(fabs(B(i, j) -  0) < FLT_EPSILON);
             }
         }
     }

@@ -18,7 +18,7 @@ set(tests
     hatvee
     copyto
     least_squares
-    urt
+    upperRightTriangle
     )
 
 add_custom_target(test_build)

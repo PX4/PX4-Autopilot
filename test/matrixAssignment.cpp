@@ -22,7 +22,7 @@ int main()
     Matrix3f m2(data);
 
     for(int i=0; i<9; i++) {
-        TEST(fabs(data[i] - m2.data()[i]) < __FLT_EPSILON__);
+        TEST(fabs(data[i] - m2.data()[i]) < FLT_EPSILON);
     }
 
     Matrix3f m_nan;
@@ -38,7 +38,7 @@ int main()
     };
     m2 = Matrix3f(data2d);
     for(int i=0; i<9; i++) {
-        TEST(fabs(data[i] - m2.data()[i]) < __FLT_EPSILON__);
+        TEST(fabs(data[i] - m2.data()[i]) < FLT_EPSILON);
     }
 
     float data_times_2[9] = {2, 4, 6, 8, 10, 12, 14, 16, 18};
@@ -100,16 +100,16 @@ int main()
     m4.swapCols(2, 2);
     TEST(isEqual(m4, Matrix3f(data)));
 
-    TEST(fabs(m4.min() - 1) < __FLT_EPSILON__);
-    TEST(fabs((-m4).min() + 9) < __FLT_EPSILON__);
+    TEST(fabs(m4.min() - 1) < FLT_EPSILON);
+    TEST(fabs((-m4).min() + 9) < FLT_EPSILON);
 
     Scalar<float> s = 1;
     const Vector<float, 1> & s_vect = s;
-    TEST(fabs(s - 1) < __FLT_EPSILON__);
-    TEST(fabs(s_vect(0) - 1.0f) < __FLT_EPSILON__);
+    TEST(fabs(s - 1) < FLT_EPSILON);
+    TEST(fabs(s_vect(0) - 1.0f) < FLT_EPSILON);
 
     Matrix<float, 1, 1> m5 = s;
-    TEST(fabs(m5(0,0) - s) < __FLT_EPSILON__);
+    TEST(fabs(m5(0,0) - s) < FLT_EPSILON);
 
     Matrix<float, 2, 2> m6;
     m6.setRow(0, Vector2f(1, 2));

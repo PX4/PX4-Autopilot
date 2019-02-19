@@ -10,7 +10,6 @@
 
 #include <cstdio>
 #include <cmath>    // cmath has to be introduced BEFORE we poison the C library identifiers
-#include "float.h"
 
 #define TEST(X) if(!(X)) { fprintf(stderr, "test failed on %s:%d\n", __FILE__, __LINE__); return -1;}
 
