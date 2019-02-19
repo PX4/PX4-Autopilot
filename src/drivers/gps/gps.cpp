@@ -999,7 +999,7 @@ int
 GPS::custom_command(int argc, char *argv[])
 {
 	// Check if the driver is running.
-	if (!is_running() && _object.load() == nullptr) {
+	if (!is_running()) {
 		PX4_INFO("not running");
 		return PX4_ERROR;
 	}
