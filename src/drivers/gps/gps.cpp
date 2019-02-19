@@ -1008,7 +1008,7 @@ GPS::custom_command(int argc, char *argv[])
 
 	bool res = false;
 
-	if (_instance && argc == 2 && !strcmp(argv[0], "reset")) {
+	if (argc == 2 && !strcmp(argv[0], "reset")) {
 
 		if (!strcmp(argv[1], "hot")) {
 			res = true;
