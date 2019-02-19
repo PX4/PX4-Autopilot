@@ -58,7 +58,6 @@
 #include <unistd.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 
 #include <board_config.h>
@@ -76,6 +75,8 @@
 
 #include <float.h>
 #include <lib/conversion/rotation.h>
+
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 /*
  * IST8310 internal constants and data structures.
@@ -182,11 +183,7 @@ enum IST8310_BUS {
 	IST8310_BUS_I2C_INTERNAL  = 5,
 };
 
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
-
-class IST8310 : public device::I2C
+class IST8310 : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
 	IST8310(int bus_number, int address, const char *path, enum Rotation rotation);
@@ -206,8 +203,8 @@ protected:
 	virtual int probe();
 
 private:
-	work_s          _work{};
-	unsigned        _measure_ticks{0};
+
+	unsigned        _measure_interval{0};
 
 	ringbuffer::RingBuffer  *_reports{nullptr};
 
@@ -288,15 +285,7 @@ private:
 	 * and measurement to provide the most recent measurement possible
 	 * at the next interval.
 	 */
-	void            cycle();
-
-	/**
-	 * Static trampoline from the workq context; because we don't have a
-	 * generic workq wrapper yet.
-	 *
-	 * @param arg       Instance pointer for the driver that is polling.
-	 */
-	static void     cycle_trampoline(void *arg);
+	void            Run() override;
 
 	/**
 	 * Write a register.
@@ -390,6 +379,7 @@ extern "C" __EXPORT int ist8310_main(int argc, char *argv[]);
 
 IST8310::IST8310(int bus_number, int address, const char *path, enum Rotation rotation) :
 	I2C("IST8310", path, bus_number, address, IST8310_DEFAULT_BUS_SPEED),
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ist8310_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ist8310_com_err")),
 	_range_errors(perf_alloc(PC_COUNT, "ist8310_rng_err")),
@@ -543,7 +533,7 @@ IST8310::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is enabled */
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
 		 * Note that we may be pre-empted by the workq thread while we are doing this;
@@ -602,10 +592,10 @@ IST8310::ioctl(struct file *filp, int cmd, unsigned long arg)
 			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(IST8310_CONVERSION_INTERVAL);
+					_measure_interval = IST8310_CONVERSION_INTERVAL;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -618,18 +608,18 @@ IST8310::ioctl(struct file *filp, int cmd, unsigned long arg)
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
+					unsigned interval = (1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(IST8310_CONVERSION_INTERVAL)) {
+					if (interval < IST8310_CONVERSION_INTERVAL) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					_measure_ticks = ticks;
+					_measure_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -677,13 +667,13 @@ IST8310::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&IST8310::cycle_trampoline, this, 1);
+	ScheduleNow();
 }
 
 void
 IST8310::stop()
 {
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 }
 
 int
@@ -701,14 +691,6 @@ IST8310::reset()
 	write_reg(ADDR_CTRL4, _ctl4_reg);
 
 	return OK;
-}
-
-void
-IST8310::cycle_trampoline(void *arg)
-{
-	IST8310 *dev = (IST8310 *)arg;
-
-	dev->cycle();
 }
 
 int
@@ -734,7 +716,7 @@ IST8310::probe()
 }
 
 void
-IST8310::cycle()
+IST8310::Run()
 {
 	/* collection phase? */
 	if (_collect_phase) {
@@ -753,14 +735,10 @@ IST8310::cycle()
 		/*
 		 * Is there a collect->measure gap?
 		 */
-		if (_measure_ticks > USEC2TICK(IST8310_CONVERSION_INTERVAL)) {
+		if (_measure_interval > IST8310_CONVERSION_INTERVAL) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&IST8310::cycle_trampoline,
-				   this,
-				   _measure_ticks - USEC2TICK(IST8310_CONVERSION_INTERVAL));
+			ScheduleDelayed(_measure_interval - IST8310_CONVERSION_INTERVAL);
 
 			return;
 		}
@@ -775,22 +753,16 @@ IST8310::cycle()
 	_collect_phase = true;
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&IST8310::cycle_trampoline,
-		   this,
-		   USEC2TICK(IST8310_CONVERSION_INTERVAL));
+	ScheduleDelayed(IST8310_CONVERSION_INTERVAL);
 }
 
 int
 IST8310::measure()
 {
-	int ret;
-
 	/*
 	 * Send the command to begin a measurement.
 	 */
-	ret = write_reg(ADDR_CTRL1, CTRL1_MODE_SINGLE);
+	int ret = write_reg(ADDR_CTRL1, CTRL1_MODE_SINGLE);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -1151,7 +1123,7 @@ IST8310::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u ticks\n", _measure_ticks);
+	printf("poll interval:  %u interval\n", _measure_interval);
 	print_message(_last_report);
 	_reports->print_info("report queue");
 }
