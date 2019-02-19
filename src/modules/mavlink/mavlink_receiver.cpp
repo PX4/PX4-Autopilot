@@ -40,33 +40,18 @@
  * @author Thomas Gubler <thomas@px4.io>
  */
 
-/* XXX trim includes */
-#include <px4_config.h>
-#include <px4_time.h>
-#include <px4_tasks.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <unistd.h>
-#include <pthread.h>
-#include <stdio.h>
-#include <math.h>
-#include <stdbool.h>
-#include <fcntl.h>
-#include <string.h>
-#include <drivers/drv_hrt.h>
+#include <airspeed/airspeed.h>
+#include <commander/px4_custom_mode.h>
+#include <conversion/rotation.h>
 #include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
+#include <drivers/drv_gyro.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_mag.h>
 #include <drivers/drv_range_finder.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_tone_alarm.h>
-#include <time.h>
-#include <float.h>
-#include <unistd.h>
-#ifndef __PX4_POSIX
-#include <termios.h>
-#endif
+#include <ecl/geo/geo.h>
 
 #ifdef CONFIG_NET
 #include <net/if.h>
@@ -74,11 +59,6 @@
 #include <netinet/in.h>
 #endif
 
-#include <errno.h>
-#include <stdlib.h>
-#include <poll.h>
-
-#include <sys/stat.h>
 #ifdef __PX4_DARWIN
 #include <sys/param.h>
 #include <sys/mount.h>
@@ -86,23 +66,13 @@
 #include <sys/statfs.h>
 #endif
 
-#include <airspeed/airspeed.h>
-#include <ecl/geo/geo.h>
-#include <mathlib/mathlib.h>
-#include <conversion/rotation.h>
-#include <parameters/param.h>
-#include <systemlib/mavlink_log.h>
-#include <systemlib/err.h>
+#ifndef __PX4_POSIX
+#include <termios.h>
+#endif
 
-#include <commander/px4_custom_mode.h>
-
-#include <uORB/topics/radio_status.h>
-#include <uORB/topics/vehicle_command_ack.h>
-
-#include "mavlink_bridge_header.h"
-#include "mavlink_receiver.h"
-#include "mavlink_main.h"
 #include "mavlink_command_sender.h"
+#include "mavlink_main.h"
+#include "mavlink_receiver.h"
 
 #ifdef CONFIG_NET
 #define MAVLINK_RECEIVER_NET_ADDED_STACK 1360
