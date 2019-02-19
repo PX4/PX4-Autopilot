@@ -38,4 +38,6 @@ px4_add_module(
 	STACK_MAIN 1500
 	SRCS
 		ist8310.cpp
+	DEPENDS
+		px4_work_queue
 	)
