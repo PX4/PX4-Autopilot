@@ -14,7 +14,7 @@ int main()
     Vector3<float> diag_check(1, 5, 10);
 
     TEST(isEqual(A.diag(), diag_check));
-    TEST(A.trace() - 16 < __FLT_EPSILON__);
+    TEST(A.trace() - 16 < FLT_EPSILON);
 
     float data_check[9] = {
         1.01158503f,  0.02190432f,  0.03238144f,

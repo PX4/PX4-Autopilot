@@ -66,8 +66,8 @@ public:
         return res;
     }
 
-    // get matrix upper right triangle
-    Vector<Type, M * (M + 1) / 2> urt() const
+    // get matrix upper right triangle in a row-major vector format
+    Vector<Type, M * (M + 1) / 2> upper_right_triangle() const
     {
         Vector<Type, M * (M + 1) / 2> res;
         const SquareMatrix<Type, M> &self = *this;
@@ -149,7 +149,7 @@ bool inv(const SquareMatrix<Type, M> & A, SquareMatrix<Type, M> & inv)
     for (size_t n = 0; n < M; n++) {
 
         // if diagonal is zero, swap with row below
-        if (fabs(static_cast<float>(U(n, n))) < __FLT_EPSILON__) {
+        if (fabs(static_cast<float>(U(n, n))) < FLT_EPSILON) {
             //printf("trying pivot for row %d\n",n);
             for (size_t i = n + 1; i < M; i++) {
 
@@ -174,7 +174,7 @@ bool inv(const SquareMatrix<Type, M> & A, SquareMatrix<Type, M> & inv)
 #endif
 
         // failsafe, return zero matrix
-        if (fabs(static_cast<float>(U(n, n))) < __FLT_EPSILON__) {
+        if (fabs(static_cast<float>(U(n, n))) < FLT_EPSILON) {
             return false;
         }
 
