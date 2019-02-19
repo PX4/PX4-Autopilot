@@ -50,10 +50,10 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/collision_report.h>
+#include <uORB/topics/debug_array.h>
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/debug_value.h>
 #include <uORB/topics/debug_vect.h>
-#include <uORB/topics/debug_array.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/follow_target.h>
 #include <uORB/topics/gps_inject_data.h>
@@ -67,13 +67,12 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/vehicle_trajectory_waypoint.h>
-#include <uORB/topics/transponder_report.h>
 #include <uORB/topics/telemetry_status.h>
-#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/transponder_report.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -82,6 +81,7 @@
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_trajectory_waypoint.h>
 
 #include "mavlink_ftp.h"
 #include "mavlink_log_handler.h"
@@ -107,7 +107,7 @@ public:
 	/**
 	 * Display the mavlink status.
 	 */
-	void		print_status();
+	void print_status();
 
 	/**
 	 * Start the receiver thread
@@ -128,11 +128,13 @@ private:
 	template<class T>
 	void handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
 					 const vehicle_command_s &vehicle_command);
+
+	void handle_message_adsb_vehicle(mavlink_message_t *msg);
+	void handle_message_att_pos_mocap(mavlink_message_t *msg);
 	void handle_message_command_ack(mavlink_message_t *msg);
 	void handle_message_optical_flow_rad(mavlink_message_t *msg);
 	void handle_message_hil_optical_flow(mavlink_message_t *msg);
 	void handle_message_set_mode(mavlink_message_t *msg);
-	void handle_message_att_pos_mocap(mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
 	void handle_message_gps_global_origin(mavlink_message_t *msg);
 	void handle_message_set_position_target_local_ned(mavlink_message_t *msg);
@@ -149,7 +151,6 @@ private:
 	void handle_message_distance_sensor(mavlink_message_t *msg);
 	void handle_message_follow_target(mavlink_message_t *msg);
 	void handle_message_landing_target(mavlink_message_t *msg);
-	void handle_message_adsb_vehicle(mavlink_message_t *msg);
 	void handle_message_collision(mavlink_message_t *msg);
 	void handle_message_gps_rtcm_data(mavlink_message_t *msg);
 	void handle_message_battery_status(mavlink_message_t *msg);
@@ -189,7 +190,7 @@ private:
 	 */
 	int decode_switch_pos_n(uint16_t buttons, unsigned sw);
 
-	bool	evaluate_target_ok(int command, int target_system, int target_component);
+	bool evaluate_target_ok(int command, int target_system, int target_component);
 
 	void send_flight_information();
 
@@ -201,13 +202,15 @@ private:
 	MavlinkParametersManager	_parameters_manager;
 	MavlinkFTP			_mavlink_ftp;
 	MavlinkLogHandler		_mavlink_log_handler;
-	MavlinkTimesync		_mavlink_timesync;
+	MavlinkTimesync			_mavlink_timesync;
 
 	mavlink_status_t _status; ///< receiver status, used for mavlink_parse_char()
+
 	struct vehicle_attitude_s _att;
 	struct vehicle_local_position_s _hil_local_pos;
 	struct vehicle_land_detected_s _hil_land_detector;
 	struct vehicle_control_mode_s _control_mode;
+
 	orb_advert_t _global_pos_pub;
 	orb_advert_t _local_pos_pub;
 	orb_advert_t _attitude_pub;
@@ -245,19 +248,25 @@ private:
 	orb_advert_t _debug_value_pub;
 	orb_advert_t _debug_vect_pub;
 	orb_advert_t _debug_array_pub;
-	static const int _gps_inject_data_queue_size = 6;
 	orb_advert_t _gps_inject_data_pub;
 	orb_advert_t _command_ack_pub;
-	int _control_mode_sub;
+
+	static const int _gps_inject_data_queue_size = 6;
+
 	int _actuator_armed_sub;
-	int _vehicle_attitude_sub;
-	uint64_t _global_ref_timestamp;
+	int _control_mode_sub;
 	int _hil_frames;
+	int _vehicle_attitude_sub;
+
+	uint64_t _global_ref_timestamp;
 	uint64_t _old_timestamp;
+
 	bool _hil_local_proj_inited;
 	float _hil_local_alt0;
+
 	struct map_projection_reference_s _hil_local_proj_ref;
 	struct offboard_control_mode_s _offboard_control_mode;
+
 	int	_orb_class_instance;
 
 	static constexpr unsigned MOM_SWITCH_COUNT = 8;
