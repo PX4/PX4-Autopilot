@@ -175,7 +175,6 @@ private:
 	int		_telemetry_status_sub[ORB_MULTI_MAX_INSTANCES] {};
 
 	uint64_t	_datalink_last_heartbeat_gcs{0};
-	uint64_t	_datalink_lost{0};
 
 	uint64_t	_datalink_last_heartbeat_onboard_controller{0};
 	uint64_t	_onboard_controller_lost{0};

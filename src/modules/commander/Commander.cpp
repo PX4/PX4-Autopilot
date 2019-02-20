@@ -3858,7 +3858,7 @@ void Commander::data_link_check(bool &status_changed)
 				case (telemetry_status_s::LINK_TYPE_IRIDIUM):
 
 					// lazily subscribe
-					if (orb_exists(ORB_ID(iridiumsbd_status), 0) == PX4_OK) {
+					if (_iridiumsbd_status_sub == -1 && orb_exists(ORB_ID(iridiumsbd_status), 0) == PX4_OK) {
 						_iridiumsbd_status_sub = orb_subscribe(ORB_ID(iridiumsbd_status));
 					}
 
@@ -3892,10 +3892,12 @@ void Commander::data_link_check(bool &status_changed)
 				case (telemetry_status_s::MAV_TYPE_GCS):
 					_datalink_last_heartbeat_gcs = telemetry.heartbeat_time;
 
+					// Recover from data link lost
 					if (status.data_link_lost) {
-						if (hrt_elapsed_time(&_datalink_lost) > (_datalink_regain_threshold.get() * 1_s)) {
+						if (hrt_elapsed_time(&_datalink_last_heartbeat_gcs) < (_datalink_regain_threshold.get() * 1_s)) {
 							status.data_link_lost = false;
 							status_changed = true;
+							mavlink_log_critical(&mavlink_log_pub, "DATA LINK REGAINED");
 						}
 					}
 
@@ -3932,12 +3934,10 @@ void Commander::data_link_check(bool &status_changed)
 	}
 
 	// GCS data link loss failsafe
-	if ((_datalink_last_heartbeat_gcs > 0) &&
-	    (hrt_elapsed_time(&_datalink_last_heartbeat_gcs) > (_datalink_loss_threshold.get() * 1_s))) {
+	if (!status.data_link_lost) {
+		if (_datalink_last_heartbeat_gcs != 0
+		    && hrt_elapsed_time(&_datalink_last_heartbeat_gcs) > (_datalink_loss_threshold.get() * 1_s)) {
 
-		_datalink_lost = hrt_absolute_time();
-
-		if (!status.data_link_lost) {
 			status.data_link_lost = true;
 			status.data_link_lost_counter++;
 
@@ -3998,7 +3998,8 @@ void Commander::data_link_check(bool &status_changed)
 
 
 	// high latency data link loss failsafe
-	if (hrt_elapsed_time(&_high_latency_datalink_heartbeat) > (_high_latency_datalink_loss_threshold.get() * 1_s)) {
+	if (_high_latency_datalink_heartbeat > 0
+	    && hrt_elapsed_time(&_high_latency_datalink_heartbeat) > (_high_latency_datalink_loss_threshold.get() * 1_s)) {
 		_high_latency_datalink_lost = hrt_absolute_time();
 
 		if (!status.high_latency_data_link_lost) {
