@@ -790,7 +790,7 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 	struct distance_sensor_s d;
 	memset(&d, 0, sizeof(d));
 
-	d.timestamp = dist_sensor.time_boot_ms * 1000; /* ms to us */
+	d.timestamp = hrt_absolute_time(); /* Use system time for now, don't trust sender to attach correct timestamp */
 	d.min_distance = float(dist_sensor.min_distance) * 1e-2f; /* cm to m */
 	d.max_distance = float(dist_sensor.max_distance) * 1e-2f; /* cm to m */
 	d.current_distance = float(dist_sensor.current_distance) * 1e-2f; /* cm to m */
