@@ -632,7 +632,7 @@ void Simulator::send_heartbeat()
 	send_mavlink_message(message);
 }
 
-void Simulator::initializeSensorData()
+void Simulator::initialize_sensor_data()
 {
 	// Write sensor data to memory so that drivers can copy data from there.
 	RawMPUData mpu = {};
@@ -664,7 +664,7 @@ void Simulator::initializeSensorData()
 	write_airspeed_data(&airspeed);
 }
 
-void Simulator::pollForMAVLinkMessages(bool publish)
+void Simulator::poll_for_MAVLink_messages(bool publish)
 {
 #ifdef __PX4_DARWIN
 	pthread_setname_np("sim_rcv");
