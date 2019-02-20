@@ -219,19 +219,19 @@ public:
 
 	static int start(int argc, char *argv[]);
 
-	bool getRawAccelReport(uint8_t *buf, int len);
-	bool getMagReport(uint8_t *buf, int len);
-	bool getMPUReport(uint8_t *buf, int len);
+	bool getAirspeedSample(uint8_t *buf, int len);
 	bool getBaroSample(uint8_t *buf, int len);
 	bool getGPSSample(uint8_t *buf, int len);
-	bool getAirspeedSample(uint8_t *buf, int len);
+	bool getMagReport(uint8_t *buf, int len);
+	bool getMPUReport(uint8_t *buf, int len);
+	bool getRawAccelReport(uint8_t *buf, int len);
 
-	void write_MPU_data(void *buf);
+	void write_airspeed_data(void *buf);
 	void write_accel_data(void *buf);
-	void write_mag_data(void *buf);
 	void write_baro_data(void *buf);
 	void write_gps_data(void *buf);
-	void write_airspeed_data(void *buf);
+	void write_mag_data(void *buf);
+	void write_MPU_data(void *buf);
 
 	bool isInitialized() { return _initialized; }
 
@@ -239,19 +239,13 @@ public:
 	void set_port(unsigned port);
 
 private:
-	Simulator() : ModuleParams(nullptr),
-		_perf_accel(perf_alloc_once(PC_ELAPSED, "sim_accel_delay")),
-		_perf_mpu(perf_alloc_once(PC_ELAPSED, "sim_mpu_delay")),
-		_perf_baro(perf_alloc_once(PC_ELAPSED, "sim_baro_delay")),
-		_perf_mag(perf_alloc_once(PC_ELAPSED, "sim_mag_delay")),
-		_perf_gps(perf_alloc_once(PC_ELAPSED, "sim_gps_delay")),
-		_perf_airspeed(perf_alloc_once(PC_ELAPSED, "sim_airspeed_delay")),
-		_perf_sim_delay(perf_alloc_once(PC_ELAPSED, "sim_network_delay")),
-		_perf_sim_interval(perf_alloc(PC_INTERVAL, "sim_network_interval"))
+	Simulator() :
+		ModuleParams(nullptr)
 	{
 		simulator::RawGPSData gps_data{};
 		gps_data.eph = UINT16_MAX;
 		gps_data.epv = UINT16_MAX;
+
 		_gps.writeData(&gps_data);
 
 		_param_sub = orb_subscribe(ORB_ID(parameter_update));
@@ -268,73 +262,94 @@ private:
 		_instance = NULL;
 	}
 
+	// class methods
 	void initializeSensorData();
 
-	static Simulator *_instance;
-
-	// simulated sensor instances
-	simulator::Report<simulator::RawAccelData>	_accel{1};
-	simulator::Report<simulator::RawMPUData>	_mpu{1};
-	simulator::Report<simulator::RawBaroData>	_baro{1};
-	simulator::Report<simulator::RawMagData>	_mag{1};
-	simulator::Report<simulator::RawGPSData>	_gps{1};
-	simulator::Report<simulator::RawAirspeedData>	_airspeed{1};
-
-	perf_counter_t _perf_accel;
-	perf_counter_t _perf_mpu;
-	perf_counter_t _perf_baro;
-	perf_counter_t _perf_mag;
-	perf_counter_t _perf_gps;
-	perf_counter_t _perf_airspeed;
-	perf_counter_t _perf_sim_delay;
-	perf_counter_t _perf_sim_interval;
-
-	// uORB publisher handlers
-	orb_advert_t _accel_pub{nullptr};
-	orb_advert_t _baro_pub{nullptr};
-	orb_advert_t _gyro_pub{nullptr};
-	orb_advert_t _mag_pub{nullptr};
-	orb_advert_t _flow_pub{nullptr};
-	orb_advert_t _visual_odometry_pub{nullptr};
-	orb_advert_t _dist_pub{nullptr};
-	orb_advert_t _battery_pub{nullptr};
-	orb_advert_t _irlock_report_pub{nullptr};
-
-	int				_param_sub{-1};
-
-	unsigned _port = 14560;
-	InternetProtocol _ip = InternetProtocol::UDP;
-
-	bool _initialized{false};
-	double _realtime_factor{1.0};		///< How fast the simulation runs in comparison to real system time
-	hrt_abstime _last_sim_timestamp{0};
-	hrt_abstime _last_sitl_timestamp{0};
-
-	// Lib used to do the battery calculations.
-	Battery _battery;
-	battery_status_s _battery_status{};
-
-	// class methods
 	int publish_sensor_topics(mavlink_hil_sensor_t *imu);
 	int publish_flow_topic(mavlink_hil_optical_flow_t *flow);
 	int publish_odometry_topic(mavlink_message_t *odom_mavlink);
 	int publish_distance_topic(mavlink_distance_sensor_t *dist);
 
-#ifndef __PX4_QURT
+	static Simulator *_instance;
+
+	// simulated sensor instances
+	simulator::Report<simulator::RawAirspeedData>	_airspeed{1};
+	simulator::Report<simulator::RawAccelData>	_accel{1};
+	simulator::Report<simulator::RawBaroData>	_baro{1};
+	simulator::Report<simulator::RawGPSData>	_gps{1};
+	simulator::Report<simulator::RawMagData>	_mag{1};
+	simulator::Report<simulator::RawMPUData>	_mpu{1};
+
+	perf_counter_t _perf_accel{perf_alloc_once(PC_ELAPSED, "sim_accel_delay")};
+	perf_counter_t _perf_airspeed{perf_alloc_once(PC_ELAPSED, "sim_airspeed_delay")};
+	perf_counter_t _perf_baro{perf_alloc_once(PC_ELAPSED, "sim_baro_delay")};
+	perf_counter_t _perf_gps{perf_alloc_once(PC_ELAPSED, "sim_gps_delay")};
+	perf_counter_t _perf_mag{perf_alloc_once(PC_ELAPSED, "sim_mag_delay")};
+	perf_counter_t _perf_mpu{perf_alloc_once(PC_ELAPSED, "sim_mpu_delay")};
+	perf_counter_t _perf_sim_delay{perf_alloc_once(PC_ELAPSED, "sim_network_delay")};
+	perf_counter_t _perf_sim_interval{perf_alloc(PC_INTERVAL, "sim_network_interval")};
+
 	// uORB publisher handlers
-	orb_advert_t _rc_channels_pub{nullptr};
+	orb_advert_t _accel_pub{nullptr};
+	orb_advert_t _baro_pub{nullptr};
+	orb_advert_t _battery_pub{nullptr};
+	orb_advert_t _dist_pub{nullptr};
+	orb_advert_t _flow_pub{nullptr};
+	orb_advert_t _gyro_pub{nullptr};
+	orb_advert_t _irlock_report_pub{nullptr};
+	orb_advert_t _mag_pub{nullptr};
+	orb_advert_t _visual_odometry_pub{nullptr};
+
+	int _param_sub{-1};
+
+	unsigned int _port{14560};
+
+	InternetProtocol _ip{InternetProtocol::UDP};
+
+	bool _initialized{false};
+
+	double _realtime_factor{1.0};		///< How fast the simulation runs in comparison to real system time
+
+	hrt_abstime _last_sim_timestamp{0};
+	hrt_abstime _last_sitl_timestamp{0};
+
+	// Lib used to do the battery calculations.
+	Battery _battery {};
+	battery_status_s _battery_status{};
+
+#ifndef __PX4_QURT
+
+	mavlink_hil_actuator_controls_t actuator_controls_from_outputs(const actuator_outputs_s &actuators);
+
+	void handle_message(mavlink_message_t *msg, bool publish);
+	void parameters_update(bool force);
+	void poll_topics();
+	void pollForMAVLinkMessages(bool publish);
+	void request_hil_state_quaternion();
+	void send();
+	void send_controls();
+	void send_heartbeat();
+	void send_mavlink_message(const mavlink_message_t &aMsg);
+	void update_sensors(mavlink_hil_sensor_t *imu);
+	void update_gps(mavlink_hil_gps_t *gps_sim);
+
+	static void *sending_trampoline(void *);
+
+	// uORB publisher handlers
 	orb_advert_t _attitude_pub{nullptr};
 	orb_advert_t _gpos_pub{nullptr};
 	orb_advert_t _lpos_pub{nullptr};
+	orb_advert_t _rc_channels_pub{nullptr};
 
 	// uORB subscription handlers
 	int _actuator_outputs_sub{-1};
-	int _vehicle_attitude_sub{-1};
 	int _manual_sub{-1};
+	int _vehicle_attitude_sub{-1};
 	int _vehicle_status_sub{-1};
 
 	// hil map_ref data
 	struct map_projection_reference_s _hil_local_proj_ref {};
+
 	bool _hil_local_proj_inited{false};
 	double _hil_ref_lat{0};
 	double _hil_ref_lon{0};
@@ -350,22 +365,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _battery_drain_interval_s, ///< battery drain interval
 		(ParamInt<px4::params::MAV_TYPE>) _param_system_type
-
 	)
 
-	void poll_topics();
-	void handle_message(mavlink_message_t *msg, bool publish);
-	void send_controls();
-	void send_heartbeat();
-	void request_hil_state_quaternion();
-	void pollForMAVLinkMessages(bool publish);
-
-	mavlink_hil_actuator_controls_t actuator_controls_from_outputs(const actuator_outputs_s &actuators);
-	void send_mavlink_message(const mavlink_message_t &aMsg);
-	void update_sensors(mavlink_hil_sensor_t *imu);
-	void update_gps(mavlink_hil_gps_t *gps_sim);
-	void parameters_update(bool force);
-	static void *sending_trampoline(void *);
-	void send();
 #endif
 };
