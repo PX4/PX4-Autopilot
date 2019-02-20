@@ -116,7 +116,7 @@ PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
  * @decimal 1
  * @increment 0.5
  */
-PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
+PARAM_DEFINE_INT32(COM_DL_REG_T, 2);
 
 /**
  * High Latency Datalink loss time threshold
