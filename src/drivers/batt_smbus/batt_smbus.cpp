@@ -134,11 +134,6 @@ int BATT_SMBUS::task_spawn(int argc, char *argv[])
 		}
 	}
 
-	if (myoptind >= argc) {
-		print_usage();
-		return PX4_ERROR;
-	}
-
 	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
 
 		if (!is_running() && (busid == BATT_SMBUS_BUS_ALL || bus_options[i].busid == busid)) {
