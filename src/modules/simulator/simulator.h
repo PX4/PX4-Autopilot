@@ -272,7 +272,7 @@ private:
 	}
 
 	// class methods
-	void initializeSensorData();
+	void initialize_sensor_data();
 
 	int publish_sensor_topics(mavlink_hil_sensor_t *imu);
 	int publish_flow_topic(mavlink_hil_optical_flow_t *flow);
@@ -333,7 +333,7 @@ private:
 	void handle_message(mavlink_message_t *msg, bool publish);
 	void parameters_update(bool force);
 	void poll_topics();
-	void pollForMAVLinkMessages(bool publish);
+	void poll_for_MAVLink_messages(bool publish);
 	void request_hil_state_quaternion();
 	void send();
 	void send_controls();
