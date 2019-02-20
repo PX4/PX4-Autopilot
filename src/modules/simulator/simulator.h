@@ -255,9 +255,18 @@ private:
 
 	~Simulator()
 	{
-		if (_instance != nullptr) {
-			delete _instance;
-		}
+		// Unsubscribe from uORB topics.
+		orb_unsubscribe(_param_sub);
+
+		// free perf counters
+		perf_free(_perf_accel);
+		perf_free(_perf_airspeed);
+		perf_free(_perf_baro);
+		perf_free(_perf_gps);
+		perf_free(_perf_mag);
+		perf_free(_perf_mpu);
+		perf_free(_perf_sim_delay);
+		perf_free(_perf_sim_interval);
 
 		_instance = NULL;
 	}
@@ -358,8 +367,8 @@ private:
 
 	// uORB data containers
 	input_rc_s _rc_input {};
-	vehicle_attitude_s _attitude {};
 	manual_control_setpoint_s _manual {};
+	vehicle_attitude_s _attitude {};
 	vehicle_status_s _vehicle_status {};
 
 	DEFINE_PARAMETERS(
