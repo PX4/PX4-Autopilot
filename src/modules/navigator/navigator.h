@@ -281,6 +281,7 @@ public:
 	// Param access
 	float		get_loiter_min_alt() const { return _param_loiter_min_alt.get(); }
 	float		get_takeoff_min_alt() const { return _param_takeoff_min_alt.get(); }
+	bool		get_takeoff_required() const { return _param_takeoff_required.get(); }
 	float		get_yaw_timeout() const { return _param_yaw_timeout.get(); }
 	float		get_yaw_threshold() const { return _param_yaw_err.get(); }
 
@@ -371,6 +372,7 @@ private:
 		// Mission (MIS_*)
 		(ParamFloat<px4::params::MIS_LTRMIN_ALT>) _param_loiter_min_alt,
 		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>) _param_takeoff_min_alt,
+		(ParamBool<px4::params::MIS_TAKEOFF_REQ>) _param_takeoff_required,
 		(ParamFloat<px4::params::MIS_YAW_TMT>) _param_yaw_timeout,
 		(ParamFloat<px4::params::MIS_YAW_ERR>) _param_yaw_err
 	)
