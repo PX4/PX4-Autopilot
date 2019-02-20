@@ -95,6 +95,8 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 bool
 MissionFeasibilityChecker::checkRotarywing(const mission_s &mission, float home_alt, bool home_alt_valid)
 {
+	bool has_takeoff = false;
+
 	for (size_t i = 0; i < mission.count; i++) {
 		struct mission_item_s missionitem = {};
 		const ssize_t len = sizeof(struct mission_item_s);
@@ -122,11 +124,22 @@ MissionFeasibilityChecker::checkRotarywing(const mission_s &mission, float home_
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Takeoff altitude too low!");
 				return false;
 			}
+
+			has_takeoff = true;
 		}
 	}
 
-	// all checks have passed
-	return true;
+	// checks if the mission has at least a takeoff waypoint
+	// MIS_TAKEOFF_REQ param has to be set and the vehicle has to be landed - one can load a mission
+	// while the vehicle is flying and it does not require a takeoff waypoint
+	if (!has_takeoff && _navigator->get_takeoff_required() && _navigator->get_land_detected()->landed) {
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: No takeoff waypoint found!");
+		return false;
+
+	} else {
+		// all checks have passed
+		return true;
+	}
 }
 
 bool
@@ -315,6 +328,8 @@ MissionFeasibilityChecker::checkMissionItemValidity(const mission_s &mission)
 bool
 MissionFeasibilityChecker::checkFixedWingTakeoff(const mission_s &mission, float home_alt, bool home_alt_valid)
 {
+	bool has_takeoff = false;
+
 	for (size_t i = 0; i < mission.count; i++) {
 		struct mission_item_s missionitem = {};
 		const ssize_t len = sizeof(struct mission_item_s);
@@ -344,11 +359,22 @@ MissionFeasibilityChecker::checkFixedWingTakeoff(const mission_s &mission, float
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Takeoff altitude too low!");
 				return false;
 			}
+
+			has_takeoff = true;
 		}
 	}
 
-	// all checks have passed
-	return true;
+	// checks if the mission has at least one takeoff waypoint;
+	// MIS_TAKEOFF_REQ param has to be set and the vehicle has to be landed - one can load a mission
+	// while the vehicle is flying and it does not require a takeoff waypoint
+	if (!has_takeoff && _navigator->get_takeoff_required() && _navigator->get_land_detected()->landed) {
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: No takeoff waypoint found!");
+		return false;
+
+	} else {
+		// all checks have passed
+		return true;
+	}
 }
 
 bool
