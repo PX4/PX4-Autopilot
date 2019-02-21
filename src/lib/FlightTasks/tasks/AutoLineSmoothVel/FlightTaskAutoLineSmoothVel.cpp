@@ -75,7 +75,7 @@ void FlightTaskAutoLineSmoothVel::_generateSetpoints()
 	_prepareSetpoints();
 	_generateTrajectory();
 
-	if (!PX4_ISFINITE(_yaw_setpoint)) {
+	if (!PX4_ISFINITE(_yaw_setpoint) && !PX4_ISFINITE(_yawspeed_setpoint)) {
 		// no valid heading -> generate heading in this flight task
 		_generateHeading();
 	}
