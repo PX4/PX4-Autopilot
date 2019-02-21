@@ -59,8 +59,6 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 
-using matrix::wrap_pi;
-
 Mission::Mission(Navigator *navigator) :
 	MissionBlock(navigator),
 	ModuleParams(navigator)
@@ -1226,7 +1224,7 @@ Mission::heading_sp_update()
 				  point_from_latlon[1], point_to_latlon[0], point_to_latlon[1]);
 
 		if (d_current > _navigator->get_acceptance_radius()) {
-			float yaw = wrap_pi(
+			float yaw = matrix::wrap_pi(
 					    get_bearing_to_next_waypoint(point_from_latlon[0],
 							    point_from_latlon[1], point_to_latlon[0],
 							    point_to_latlon[1]) + yaw_offset);
