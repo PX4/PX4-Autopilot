@@ -69,7 +69,7 @@
 #include <systemlib/mavlink_log.h>
 #include <lib/ecl/geo/geo.h>
 #include <drivers/drv_hrt.h>
-#include <platforms/px4_defines.h>
+#include <px4_defines.h>
 
 #include <terrain_estimation/terrain_estimator.h>
 #include "position_estimator_inav_params.h"

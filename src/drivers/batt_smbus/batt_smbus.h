@@ -50,7 +50,7 @@
 #include <px4_config.h>
 #include <px4_workqueue.h>
 #include <perf/perf_counter.h>
-#include <platforms/px4_module.h>
+#include <px4_module.h>
 #include <uORB/topics/battery_status.h>
 
 #define DATA_BUFFER_SIZE				                32

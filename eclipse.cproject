@@ -30,7 +30,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib/ecl}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/modules/systemlib}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib/geo}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/platforms}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/platform}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/uORB/topics}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware}&quot;"/>
@@ -51,7 +51,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib/ecl}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/modules/systemlib}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib/geo}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/platforms}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/platform}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/uORB/topics}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware}&quot;"/>
@@ -79,7 +79,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib/ecl}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/modules/systemlib}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/lib/geo}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/platforms}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/platform}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/src/include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware/uORB/topics}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/PX4-Firmware}&quot;"/>

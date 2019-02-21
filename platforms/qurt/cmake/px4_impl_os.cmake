@@ -94,8 +94,8 @@ function(px4_qurt_generate_builtin_commands)
 			math(EXPR command_count "${command_count}+1")
 		endif()
 	endforeach()
-	configure_file(${PX4_SOURCE_DIR}/src/platforms/apps.cpp.in ${OUT}.cpp)
-	configure_file(${PX4_SOURCE_DIR}/src/platforms/apps.h.in ${OUT}.h)
+	configure_file(${PX4_SOURCE_DIR}/src/platform/apps.cpp.in ${OUT}.cpp)
+	configure_file(${PX4_SOURCE_DIR}/src/platform/apps.h.in ${OUT}.h)
 endfunction()
 
 #=============================================================================

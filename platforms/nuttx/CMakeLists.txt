@@ -38,7 +38,7 @@ set(NUTTX_APPS_DIR ${PX4_BINARY_DIR}/NuttX/apps)
 
 add_subdirectory(src)
 
-add_executable(px4 ${PX4_SOURCE_DIR}/src/platforms/empty.c)
+add_executable(px4 ${PX4_SOURCE_DIR}/src/platform/empty.c)
 set(FW_NAME ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf)
 set_target_properties(px4 PROPERTIES OUTPUT_NAME ${FW_NAME})
 add_dependencies(px4 git_nuttx nuttx_build)

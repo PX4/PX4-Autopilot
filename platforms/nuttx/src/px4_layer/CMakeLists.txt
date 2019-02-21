@@ -46,6 +46,6 @@ if (NOT ${PX4_BOARD} MATCHES "px4_io")
 			drivers_boards_common_arch
 		)
 else()
-	add_library(px4_layer ${PX4_SOURCE_DIR}/src/platforms/empty.c)
+	add_library(px4_layer ${PX4_SOURCE_DIR}/src/platform/empty.c)
 endif()
 add_dependencies(px4_layer prebuild_targets)

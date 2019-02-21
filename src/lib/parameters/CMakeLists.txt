@@ -151,7 +151,7 @@ if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 	target_compile_definitions(parameters PRIVATE -DMODULE_NAME="parameters")
 	target_compile_options(parameters PRIVATE -Wno-sign-compare) # TODO: fix this
 else()
-	add_library(parameters ${PX4_SOURCE_DIR}/src/platforms/empty.c)
+	add_library(parameters ${PX4_SOURCE_DIR}/src/platform/empty.c)
 endif()
 add_dependencies(parameters prebuild_targets)
 

@@ -67,7 +67,7 @@ topic_name = spec.short_name
 @# Generic Includes
 @##############################
 #include "px4/@(topic_name).h"
-#include "platforms/px4_message.h"
+#include "platform/px4_message.h"
 
 @##############################
 @# Class

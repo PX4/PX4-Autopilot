@@ -66,7 +66,7 @@ topic_name = spec.short_name
 @# Generic Includes
 @##############################
 #include <uORB/topics/@(topic_name).h>
-#include "platforms/px4_message.h"
+#include "platform/px4_message.h"
 
 @##############################
 @# Class
