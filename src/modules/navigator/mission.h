@@ -80,7 +80,7 @@ public:
 		MISSION_ALTMODE_FOH = 1
 	};
 
-	bool set_current_offboard_mission_index(uint16_t index);
+	bool set_current_mission_index(uint16_t index);
 
 	bool land_start();
 	bool landing();
@@ -102,9 +102,9 @@ public:
 private:
 
 	/**
-	 * Update offboard mission topic
+	 * Update mission topic
 	 */
-	void update_offboard_mission();
+	void update_mission();
 
 	/**
 	 * Move on to next mission item or switch to loiter
@@ -184,9 +184,9 @@ private:
 	bool read_mission_item(int offset, struct mission_item_s *mission_item);
 
 	/**
-	 * Save current offboard mission state to dataman
+	 * Save current mission state to dataman
 	 */
-	void save_offboard_mission_state();
+	void save_mission_state();
 
 	/**
 	 * Inform about a changed mission item after a DO_JUMP
@@ -199,9 +199,9 @@ private:
 	void set_mission_item_reached();
 
 	/**
-	 * Set the current offboard mission item
+	 * Set the current mission item
 	 */
-	void set_current_offboard_mission_item();
+	void set_current_mission_item();
 
 	/**
 	 * Check whether a mission is ready to go
@@ -209,9 +209,9 @@ private:
 	void check_mission_valid(bool force);
 
 	/**
-	 * Reset offboard mission
+	 * Reset mission
 	 */
-	void reset_offboard_mission(struct mission_s &mission);
+	void reset_mission(struct mission_s &mission);
 
 	/**
 	 * Returns true if we need to reset the mission
@@ -226,10 +226,10 @@ private:
 	/**
 	 * Find and store the index of the landing sequence (DO_LAND_START)
 	 */
-	bool find_offboard_land_start();
+	bool find_mission_land_start();
 
 	/**
-	 * Return the index of the closest offboard mission item to the current global position.
+	 * Return the index of the closest mission item to the current global position.
 	 */
 	int32_t index_closest_mission_item() const;
 
@@ -242,9 +242,9 @@ private:
 		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mnt_yaw_ctl
 	)
 
-	struct mission_s _offboard_mission {};
+	struct mission_s _mission {};
 
-	int32_t _current_offboard_mission_index{-1};
+	int32_t _current_mission_index{-1};
 
 	// track location of planned mission landing
 	bool	_land_start_available{false};
@@ -254,7 +254,7 @@ private:
 
 	enum {
 		MISSION_TYPE_NONE,
-		MISSION_TYPE_OFFBOARD
+		MISSION_TYPE_MISSION
 	} _mission_type{MISSION_TYPE_NONE};
 
 	bool _inited{false};
