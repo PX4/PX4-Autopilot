@@ -122,7 +122,7 @@ Navigator::Navigator() :
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
-	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
+	_mission_sub = orb_subscribe(ORB_ID(mission));
 	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
 	_traffic_sub = orb_subscribe(ORB_ID(transponder_report));
@@ -139,7 +139,7 @@ Navigator::~Navigator()
 	orb_unsubscribe(_vstatus_sub);
 	orb_unsubscribe(_land_detected_sub);
 	orb_unsubscribe(_home_pos_sub);
-	orb_unsubscribe(_offboard_mission_sub);
+	orb_unsubscribe(_mission_sub);
 	orb_unsubscribe(_param_update_sub);
 	orb_unsubscribe(_vehicle_command_sub);
 }
@@ -459,7 +459,7 @@ Navigator::run()
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_MISSION_START) {
 				if (_mission_result.valid && PX4_ISFINITE(cmd.param1) && (cmd.param1 >= 0)) {
-					if (!_mission.set_current_offboard_mission_index(cmd.param1)) {
+					if (!_mission.set_current_mission_index(cmd.param1)) {
 						PX4_WARN("CMD_MISSION_START failed");
 					}
 				}
