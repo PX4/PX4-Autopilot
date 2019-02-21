@@ -106,8 +106,8 @@ PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
 /**
  * Datalink regain time threshold
  *
- * After a data link loss: after this this amount of seconds with a healthy datalink the 'datalink loss'
- * flag is set back to false
+ * After a data link loss: Amount of time between two heartbeats to consider datalink healthy again and
+ * set 'datalink loss' flag back to false.
  *
  * @group Commander
  * @unit s
