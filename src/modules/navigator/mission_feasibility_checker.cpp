@@ -96,6 +96,7 @@ bool
 MissionFeasibilityChecker::checkRotarywing(const mission_s &mission, float home_alt, bool home_alt_valid)
 {
 	bool has_takeoff = false;
+	int takeoff_index = -1;
 
 	for (size_t i = 0; i < mission.count; i++) {
 		struct mission_item_s missionitem = {};
@@ -125,11 +126,55 @@ MissionFeasibilityChecker::checkRotarywing(const mission_s &mission, float home_
 				return false;
 			}
 
-			has_takeoff = true;
+			// if it is the first mission item, then it is accepted
+			// immediatly
+			if (i == 0) {
+				has_takeoff = true;
+
+			} else if (takeoff_index != -1) {
+				// stores the index of the first takeoff waypoint
+				takeoff_index = i;
+			}
 		}
 	}
 
-	// checks if the mission has at least a takeoff waypoint
+	if (takeoff_index != -1) {
+		// checks if all the mission items before the first takeoff waypoint
+		// are not waypoints or position-related items;
+		// this means that, before a takeoff waypoint, one can set
+		// one of the bellow mission items
+		for (size_t i = 0; i < (size_t)takeoff_index; i++) {
+			struct mission_item_s missionitem = {};
+
+			if (missionitem.nav_cmd == NAV_CMD_IDLE ||
+			    missionitem.nav_cmd == NAV_CMD_DELAY ||
+			    missionitem.nav_cmd == NAV_CMD_DO_JUMP ||
+			    missionitem.nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
+			    missionitem.nav_cmd == NAV_CMD_DO_SET_HOME ||
+			    missionitem.nav_cmd == NAV_CMD_DO_SET_SERVO ||
+			    missionitem.nav_cmd == NAV_CMD_DO_LAND_START ||
+			    missionitem.nav_cmd == NAV_CMD_DO_TRIGGER_CONTROL ||
+			    missionitem.nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
+			    missionitem.nav_cmd == NAV_CMD_IMAGE_START_CAPTURE ||
+			    missionitem.nav_cmd == NAV_CMD_IMAGE_STOP_CAPTURE ||
+			    missionitem.nav_cmd == NAV_CMD_VIDEO_START_CAPTURE ||
+			    missionitem.nav_cmd == NAV_CMD_VIDEO_STOP_CAPTURE ||
+			    missionitem.nav_cmd == NAV_CMD_DO_MOUNT_CONFIGURE ||
+			    missionitem.nav_cmd == NAV_CMD_DO_MOUNT_CONTROL ||
+			    missionitem.nav_cmd == NAV_CMD_DO_SET_ROI ||
+			    missionitem.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION ||
+			    missionitem.nav_cmd == NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET ||
+			    missionitem.nav_cmd == NAV_CMD_DO_SET_ROI_NONE ||
+			    missionitem.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
+			    missionitem.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL ||
+			    missionitem.nav_cmd == NAV_CMD_SET_CAMERA_MODE ||
+			    missionitem.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
+				has_takeoff = true;
+			}
+		}
+	}
+
+	// check for a takeoof waypoint, after the above conditions have been met
 	// MIS_TAKEOFF_REQ param has to be set and the vehicle has to be landed - one can load a mission
 	// while the vehicle is flying and it does not require a takeoff waypoint
 	if (!has_takeoff && _navigator->get_takeoff_required() && _navigator->get_land_detected()->landed) {
@@ -329,6 +374,7 @@ bool
 MissionFeasibilityChecker::checkFixedWingTakeoff(const mission_s &mission, float home_alt, bool home_alt_valid)
 {
 	bool has_takeoff = false;
+	int takeoff_index = -1;
 
 	for (size_t i = 0; i < mission.count; i++) {
 		struct mission_item_s missionitem = {};
@@ -360,11 +406,55 @@ MissionFeasibilityChecker::checkFixedWingTakeoff(const mission_s &mission, float
 				return false;
 			}
 
-			has_takeoff = true;
+			// if it is the first mission item, then it is accepted
+			// immediatly
+			if (i == 0) {
+				has_takeoff = true;
+
+			} else if (takeoff_index != -1) {
+				// stores the index of the first takeoff waypoint
+				takeoff_index = i;
+			}
 		}
 	}
 
-	// checks if the mission has at least one takeoff waypoint;
+	if (takeoff_index != -1) {
+		// checks if all the mission items before the first takeoff waypoint
+		// are not waypoints or position-related items;
+		// this means that, before a takeoff waypoint, one can set
+		// one of the bellow mission items
+		for (size_t i = 0; i < (size_t)takeoff_index; i++) {
+			struct mission_item_s missionitem = {};
+
+			if (missionitem.nav_cmd == NAV_CMD_IDLE ||
+			    missionitem.nav_cmd == NAV_CMD_DELAY ||
+			    missionitem.nav_cmd == NAV_CMD_DO_JUMP ||
+			    missionitem.nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
+			    missionitem.nav_cmd == NAV_CMD_DO_SET_HOME ||
+			    missionitem.nav_cmd == NAV_CMD_DO_SET_SERVO ||
+			    missionitem.nav_cmd == NAV_CMD_DO_LAND_START ||
+			    missionitem.nav_cmd == NAV_CMD_DO_TRIGGER_CONTROL ||
+			    missionitem.nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
+			    missionitem.nav_cmd == NAV_CMD_IMAGE_START_CAPTURE ||
+			    missionitem.nav_cmd == NAV_CMD_IMAGE_STOP_CAPTURE ||
+			    missionitem.nav_cmd == NAV_CMD_VIDEO_START_CAPTURE ||
+			    missionitem.nav_cmd == NAV_CMD_VIDEO_STOP_CAPTURE ||
+			    missionitem.nav_cmd == NAV_CMD_DO_MOUNT_CONFIGURE ||
+			    missionitem.nav_cmd == NAV_CMD_DO_MOUNT_CONTROL ||
+			    missionitem.nav_cmd == NAV_CMD_DO_SET_ROI ||
+			    missionitem.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION ||
+			    missionitem.nav_cmd == NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET ||
+			    missionitem.nav_cmd == NAV_CMD_DO_SET_ROI_NONE ||
+			    missionitem.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
+			    missionitem.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL ||
+			    missionitem.nav_cmd == NAV_CMD_SET_CAMERA_MODE ||
+			    missionitem.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
+				has_takeoff = true;
+			}
+		}
+	}
+
+	// check for a takeoof waypoint, after the above conditions have been met
 	// MIS_TAKEOFF_REQ param has to be set and the vehicle has to be landed - one can load a mission
 	// while the vehicle is flying and it does not require a takeoff waypoint
 	if (!has_takeoff && _navigator->get_takeoff_required() && _navigator->get_land_detected()->landed) {
