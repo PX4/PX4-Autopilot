@@ -40,6 +40,12 @@
 
 using namespace matrix;
 
+FlightTaskAutoMapper2::FlightTaskAutoMapper2() :
+	_obstacle_avoidance(this)
+{
+
+}
+
 bool FlightTaskAutoMapper2::activate()
 {
 	bool ret = FlightTaskAuto::activate();
@@ -90,6 +96,8 @@ bool FlightTaskAutoMapper2::update()
 		_preparePositionSetpoints();
 		break;
 	}
+
+	_obstacle_avoidance.prepareAvoidanceSetpoints(_position_setpoint, _velocity_setpoint, _yaw_setpoint, _yawspeed_setpoint);
 
 	_generateSetpoints();
 
