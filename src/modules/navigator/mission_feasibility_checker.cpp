@@ -181,10 +181,10 @@ MissionFeasibilityChecker::checkRotarywing(const mission_s &mission, float home_
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff waypoint required!");
 		return false;
 
-	} else {
-		// all checks have passed
-		return true;
 	}
+
+	// all checks have passed
+	return true;
 }
 
 bool
@@ -461,10 +461,10 @@ MissionFeasibilityChecker::checkFixedWingTakeoff(const mission_s &mission, float
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff waypoint required!");
 		return false;
 
-	} else {
-		// all checks have passed
-		return true;
 	}
+
+	// all checks have passed
+	return true;
 }
 
 bool
