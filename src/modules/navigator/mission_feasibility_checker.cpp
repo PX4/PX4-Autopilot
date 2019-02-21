@@ -133,7 +133,7 @@ MissionFeasibilityChecker::checkRotarywing(const mission_s &mission, float home_
 	// MIS_TAKEOFF_REQ param has to be set and the vehicle has to be landed - one can load a mission
 	// while the vehicle is flying and it does not require a takeoff waypoint
 	if (!has_takeoff && _navigator->get_takeoff_required() && _navigator->get_land_detected()->landed) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: No takeoff waypoint found!");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff waypoint required!");
 		return false;
 
 	} else {
@@ -368,7 +368,7 @@ MissionFeasibilityChecker::checkFixedWingTakeoff(const mission_s &mission, float
 	// MIS_TAKEOFF_REQ param has to be set and the vehicle has to be landed - one can load a mission
 	// while the vehicle is flying and it does not require a takeoff waypoint
 	if (!has_takeoff && _navigator->get_takeoff_required() && _navigator->get_land_detected()->landed) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: No takeoff waypoint found!");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff waypoint required!");
 		return false;
 
 	} else {
