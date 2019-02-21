@@ -87,7 +87,7 @@ private:
 	 * Perform a poll cycle; collect from the previous measurement
 	 * and start a new one.
 	 */
-	void	cycle() override;
+	void	Run() override;
 	int	measure() override { return 0; }
 	int	collect() override;
 	int	probe() override;
