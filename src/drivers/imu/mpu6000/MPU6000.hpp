@@ -56,7 +56,7 @@
  */
 
 #include <drivers/drv_hrt.h>
-#include <lib/cdev/CDev.hpp>
+#include <cdev/CDev.hpp>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/device/i2c.h>
 #include <lib/drivers/device/spi.h>

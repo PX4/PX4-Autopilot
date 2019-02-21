@@ -64,7 +64,7 @@
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/ringbuffer.h>
-#include <lib/cdev/CDev.hpp>
+#include <cdev/CDev.hpp>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/differential_pressure.h>

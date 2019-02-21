@@ -52,7 +52,7 @@
 #include <px4_log.h>
 #include <px4_module.h>
 #include <circuit_breaker/circuit_breaker.h>
-#include <lib/cdev/CDev.hpp>
+#include <cdev/CDev.hpp>
 #include <lib/mixer/mixer.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>

@@ -38,7 +38,7 @@
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/Device.hpp>
-#include <lib/cdev/CDev.hpp>
+#include <cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/uORB.h>

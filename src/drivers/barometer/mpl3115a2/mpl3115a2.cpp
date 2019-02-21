@@ -37,7 +37,7 @@
  * Driver for the MPL3115A2 barometric pressure sensor connected via I2C.
  */
 
-#include <lib/cdev/CDev.hpp>
+#include <cdev/CDev.hpp>
 #include <drivers/device/Device.hpp>
 #include <px4_config.h>
 #include <px4_log.h>

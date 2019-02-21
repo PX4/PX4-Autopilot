@@ -33,4 +33,5 @@
 
 add_subdirectory(common)
 
+add_subdirectory(cdev EXCLUDE_FROM_ALL)
 add_subdirectory(uORB EXCLUDE_FROM_ALL)

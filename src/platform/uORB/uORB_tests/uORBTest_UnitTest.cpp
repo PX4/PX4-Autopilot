@@ -39,7 +39,7 @@
 #include <errno.h>
 #include <poll.h>
 #include <math.h>
-#include <lib/cdev/CDev.hpp>
+#include <cdev/CDev.hpp>
 
 ORB_DEFINE(orb_test, struct orb_test, sizeof(orb_test), "ORB_TEST:int val;hrt_abstime time;");
 ORB_DEFINE(orb_multitest, struct orb_test, sizeof(orb_test), "ORB_MULTITEST:int val;hrt_abstime time;");

@@ -36,7 +36,7 @@
 #include "uORBCommon.hpp"
 #include "uORBDeviceMaster.hpp"
 
-#include <lib/cdev/CDev.hpp>
+#include <cdev/CDev.hpp>
 
 #include <containers/List.hpp>
 

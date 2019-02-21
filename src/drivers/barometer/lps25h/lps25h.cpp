@@ -39,7 +39,7 @@
 
 #include <px4_config.h>
 
-#include <lib/cdev/CDev.hpp>
+#include <cdev/CDev.hpp>
 #include <drivers/device/Device.hpp>
 #include <drivers/device/i2c.h>
 

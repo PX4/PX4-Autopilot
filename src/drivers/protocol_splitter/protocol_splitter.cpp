@@ -40,7 +40,7 @@
  *    /dev/rtps
  */
 
-#include <lib/cdev/CDev.hpp>
+#include <cdev/CDev.hpp>
 #include <px4_sem.hpp>
 #include <px4_log.h>
 

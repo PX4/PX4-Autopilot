@@ -44,7 +44,7 @@
 #include <px4_tasks.h>
 #include <px4_time.h>
 #include <drivers/drv_device.h>
-#include <lib/cdev/CDev.hpp>
+#include <cdev/CDev.hpp>
 #include <unistd.h>
 #include <stdio.h>
 

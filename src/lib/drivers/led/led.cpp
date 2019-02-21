@@ -38,7 +38,7 @@
  */
 
 #include <px4_config.h>
-#include <lib/cdev/CDev.hpp>
+#include <cdev/CDev.hpp>
 #include <drivers/drv_board_led.h>
 #include <stdio.h>
 

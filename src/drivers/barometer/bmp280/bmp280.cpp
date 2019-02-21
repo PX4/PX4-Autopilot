@@ -61,7 +61,7 @@
 #include <board_config.h>
 #include "bmp280.h"
 
-#include <lib/cdev/CDev.hpp>
+#include <cdev/CDev.hpp>
 #include <drivers/drv_baro.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/ringbuffer.h>

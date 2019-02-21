@@ -44,7 +44,7 @@
 #include <cstring>
 
 #include <lib/mathlib/mathlib.h>
-#include <lib/cdev/CDev.hpp>
+#include <cdev/CDev.hpp>
 #include <perf/perf_counter.h>
 #include <px4_module_params.h>
 #include <uORB/uORB.h>
