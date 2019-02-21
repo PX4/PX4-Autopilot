@@ -284,19 +284,9 @@ private:
 	void update_avoidance_waypoint_desired(PositionControlStates &states, vehicle_local_position_setpoint_s &setpoint);
 
 	/**
-	 * Check whether or not use the obstacle avoidance waypoint
-	 */
-	bool use_obstacle_avoidance();
-
-	/**
 	 * Reset setpoints to NAN
 	 */
 	void reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint);
-
-	/**
-	 * Overwrite setpoint with waypoint coming from obstacle avoidance
-	 */
-	void execute_avoidance_waypoint(vehicle_local_position_setpoint_s &setpoint);
 
 	/**
 	 * Publish desired vehicle_trajectory_waypoint
@@ -736,11 +726,6 @@ MulticopterPositionControl::run()
 				limit_altitude(setpoint);
 			}
 
-			// adjust setpoints based on avoidance
-			if (use_obstacle_avoidance()) {
-				execute_avoidance_waypoint(setpoint);
-			}
-
 			// Update states, setpoints and constraints.
 			_control.updateConstraints(constraints);
 			_control.updateState(_states);
@@ -1169,24 +1154,6 @@ MulticopterPositionControl::update_avoidance_waypoint_desired(PositionControlSta
 }
 
 void
-MulticopterPositionControl::execute_avoidance_waypoint(vehicle_local_position_setpoint_s &setpoint)
-{
-	setpoint.x = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].position[0];
-	setpoint.y = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].position[1];
-	setpoint.z = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].position[2];
-
-	setpoint.vx = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[0];
-	setpoint.vy = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[1];
-	setpoint.vz = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[2];
-
-	setpoint.acc_x = setpoint.acc_y = setpoint.acc_z = NAN;
-
-	setpoint.yaw = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw;
-	setpoint.yawspeed = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed;
-	Vector3f(NAN, NAN, NAN).copyTo(setpoint.thrust);
-}
-
-void
 MulticopterPositionControl::reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint)
 {
 	setpoint.x = setpoint.y = setpoint.z = NAN;
@@ -1194,27 +1161,6 @@ MulticopterPositionControl::reset_setpoint_to_nan(vehicle_local_position_setpoin
 	setpoint.yaw = setpoint.yawspeed = NAN;
 	setpoint.acc_x = setpoint.acc_y = setpoint.acc_z = NAN;
 	setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = NAN;
-}
-
-bool
-MulticopterPositionControl::use_obstacle_avoidance()
-{
-	if (_param_com_obs_avoid.get()) {
-		const bool avoidance_data_timeout = hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) > TRAJECTORY_STREAM_TIMEOUT_US;
-		const bool avoidance_point_valid = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true;
-		const bool in_mission = _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
-		const bool in_rtl = _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
-
-		// switch to hold mode to stop when we loose external avoidance data during a mission
-		if (avoidance_data_timeout && in_mission) {
-			send_vehicle_cmd_do(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
-		}
-
-		if ((in_mission || in_rtl) && !avoidance_data_timeout && avoidance_point_valid) {
-			return true;
-		}
-	}
-	return false;
 }
 
 void
