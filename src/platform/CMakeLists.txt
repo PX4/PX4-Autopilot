@@ -32,3 +32,5 @@
 ############################################################################
 
 add_subdirectory(common)
+
+add_subdirectory(uORB EXCLUDE_FROM_ALL)

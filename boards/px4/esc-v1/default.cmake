@@ -55,6 +55,7 @@ px4_add_board(
 		reboot
 		param
 		top
+		uorb
 		ver
 
 	)

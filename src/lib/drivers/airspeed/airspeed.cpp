@@ -111,10 +111,6 @@ Airspeed::init()
 	_airspeed_pub = orb_advertise_multi(ORB_ID(differential_pressure), &arp, &_airspeed_orb_class_instance,
 					    ORB_PRIO_HIGH - _class_instance);
 
-	if (_airspeed_pub == nullptr) {
-		PX4_WARN("uORB started?");
-	}
-
 	return PX4_OK;
 }
 

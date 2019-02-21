@@ -121,6 +121,22 @@ enum ORB_PRIO {
 
 __BEGIN_DECLS
 
+
+/**
+ * Initialize the uORB backend. Call this on startup before calling any other methods.
+ */
+__EXPORT int		uorb_start(void);
+
+/**
+ * Print topic statisticss.
+ */
+__EXPORT int		uorb_status(void);
+
+/**
+ * Monitor topic publication rates.
+ */
+__EXPORT int		uorb_top(char **topic_filter, int num_filters);
+
 /**
  * ORB topic advertiser handle.
  *

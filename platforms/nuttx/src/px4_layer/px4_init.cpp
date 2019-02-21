@@ -38,6 +38,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
 #include <systemlib/cpuload.h>
+#include <uORB/uORB.h>
 
 #include <fcntl.h>
 
@@ -103,6 +104,8 @@ int px4_platform_init(void)
 #ifdef CONFIG_SCHED_INSTRUMENTATION
 	cpuload_initialize_once();
 #endif
+
+	uorb_start();
 
 	return PX4_OK;
 }

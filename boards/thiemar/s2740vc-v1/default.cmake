@@ -45,6 +45,7 @@ px4_add_board(
 		config
 		reboot
 		top
+		uorb
 		ver
 
 	)

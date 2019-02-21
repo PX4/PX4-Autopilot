@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,116 +31,68 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include <string.h>
 
-class ORBSet
+#include "uORB.h"
+
+#include "uORBManager.hpp"
+#include "uORBCommon.hpp"
+
+#include <px4_log.h>
+#include <px4_module.h>
+
+static uORB::DeviceMaster *g_dev = nullptr;
+
+int uorb_start(void)
 {
-public:
-	struct Node {
-		struct Node *next;
-		const char *node_name;
-	};
-
-	ORBSet() :
-		_top(nullptr),
-		_end(nullptr)
-	{ }
-	~ORBSet()
-	{
-		while (_top != nullptr) {
-			unlinkNext(_top);
-
-			if (_top->next == nullptr) {
-				free((void *)_top->node_name);
-				free(_top);
-				_top = nullptr;
-			}
-		}
-	}
-	void insert(const char *node_name)
-	{
-		Node **p;
-
-		if (_top == nullptr) {
-			p = &_top;
-
-		} else {
-			p = &_end->next;
-		}
-
-		*p = (Node *)malloc(sizeof(Node));
-
-		if (_end) {
-			_end = _end->next;
-
-		} else {
-			_end = _top;
-		}
-
-		_end->next = nullptr;
-		_end->node_name = strdup(node_name);
+	if (g_dev != nullptr) {
+		PX4_WARN("already loaded");
+		/* user wanted to start uorb, its already running, no error */
+		return 0;
 	}
 
-	bool find(const char *node_name)
-	{
-		Node *p = _top;
-
-		while (p) {
-			if (strcmp(p->node_name, node_name) == 0) {
-				return true;
-			}
-
-			p = p->next;
-		}
-
-		return false;
+	if (!uORB::Manager::initialize()) {
+		PX4_ERR("uorb manager alloc failed");
+		return -ENOMEM;
 	}
 
-	bool erase(const char *node_name)
-	{
-		Node *p = _top;
+	/* create the driver */
+	g_dev = uORB::Manager::get_instance()->get_device_master();
 
-		if (_top && (strcmp(_top->node_name, node_name) == 0)) {
-			p = _top->next;
-			free((void *)_top->node_name);
-			free(_top);
-			_top = p;
-
-			if (_top == nullptr) {
-				_end = nullptr;
-			}
-
-			return true;
-		}
-
-		while (p->next) {
-			if (strcmp(p->next->node_name, node_name) == 0) {
-				unlinkNext(p);
-				return true;
-			}
-		}
-
-		return false;
+	if (g_dev == nullptr) {
+		return -errno;
 	}
 
-private:
+#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR)
+	/* FIXME: this fails on Snapdragon (see https://github.com/PX4/Firmware/issues/5406),
+	 * so we disable logging messages to the ulog for now. This needs further investigations.
+	 */
+	px4_log_initialize();
+#endif
 
-	void unlinkNext(Node *a)
-	{
-		Node *b = a->next;
+	return OK;
+}
 
-		if (b != nullptr) {
-			if (_end == b) {
-				_end = a;
-			}
+int uorb_status(void)
+{
+	if (g_dev != nullptr) {
+		g_dev->printStatistics(true);
 
-			a->next = b->next;
-			free((void *)b->node_name);
-			free(b);
-		}
+	} else {
+		PX4_INFO("uorb is not running");
 	}
 
-	Node *_top;
-	Node *_end;
-};
+	return PX4_OK;
+}
 
+int uorb_top(char **topic_filter, int num_filters)
+{
+	if (g_dev != nullptr) {
+		g_dev->showTop(topic_filter, num_filters);
+
+	} else {
+		PX4_INFO("uorb is not running");
+	}
+
+	return OK;
+}

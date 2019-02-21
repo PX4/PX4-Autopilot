@@ -7,8 +7,6 @@ set unit_test_failure 0
 
 set BOARD_RC /etc/init.d/rc.board
 
-uorb start
-
 if rgbled start
 then
 	led_control on -c blue
@@ -40,11 +38,6 @@ fi
 #
 # Start a minimal system
 #
-
-#
-# Start the ORB (first app to start)
-#
-uorb start
 
 #
 # Load parameters

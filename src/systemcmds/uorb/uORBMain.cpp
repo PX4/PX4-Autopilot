@@ -32,17 +32,15 @@
  ****************************************************************************/
 
 #include <string.h>
+#include <errno.h>
 
-#include "uORBManager.hpp"
-#include "uORB.h"
-#include "uORBCommon.hpp"
+#include <uORB/uORB.h>
 
 #include <px4_log.h>
 #include <px4_module.h>
 
 extern "C" { __EXPORT int uorb_main(int argc, char *argv[]); }
 
-static uORB::DeviceMaster *g_dev = nullptr;
 static void usage()
 {
 	PRINT_MODULE_DESCRIPTION(
@@ -50,10 +48,7 @@ static void usage()
 ### Description
 uORB is the internal pub-sub messaging system, used for communication between modules.
 
-It is typically started as one of the very first modules and most other modules depend on it.
-
 ### Implementation
-No thread or work queue is needed, the module start only makes sure to initialize the shared global state.
 Communication is done via shared memory.
 The implementation is asynchronous and lock-free, ie. a publisher does not wait for a subscriber and vice versa.
 This is achieved by having a separate buffer between a publisher and a subscriber.
@@ -93,58 +88,11 @@ uorb_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[1], "start")) {
-
-		if (g_dev != nullptr) {
-			PX4_WARN("already loaded");
-			/* user wanted to start uorb, its already running, no error */
-			return 0;
-		}
-
-		if (!uORB::Manager::initialize()) {
-			PX4_ERR("uorb manager alloc failed");
-			return -ENOMEM;
-		}
-
-		/* create the driver */
-		g_dev = uORB::Manager::get_instance()->get_device_master();
-
-		if (g_dev == nullptr) {
-			return -errno;
-		}
-
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR)
-		/* FIXME: this fails on Snapdragon (see https://github.com/PX4/Firmware/issues/5406),
-		 * so we disable logging messages to the ulog for now. This needs further investigations.
-		 */
-		px4_log_initialize();
-#endif
-
-		return OK;
-	}
-
-	/*
-	 * Print driver information.
-	 */
-	if (!strcmp(argv[1], "status")) {
-		if (g_dev != nullptr) {
-			g_dev->printStatistics(true);
-
-		} else {
-			PX4_INFO("uorb is not running");
-		}
-
-		return OK;
-	}
-
-	if (!strcmp(argv[1], "top")) {
-		if (g_dev != nullptr) {
-			g_dev->showTop(argv + 2, argc - 2);
-
-		} else {
-			PX4_INFO("uorb is not running");
-		}
-
-		return OK;
+		return uorb_start();
+	} else if (!strcmp(argv[1], "status")) {
+		return uorb_status();
+	} else if (!strcmp(argv[1], "top")) {
+		return uorb_top(argv + 2, argc - 2);
 	}
 
 	usage();

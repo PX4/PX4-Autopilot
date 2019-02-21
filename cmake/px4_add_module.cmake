@@ -152,7 +152,7 @@ function(px4_add_module)
 	add_dependencies(${MODULE} uorb_headers)
 
 	if(NOT DYNAMIC)
-		target_link_libraries(${MODULE} PRIVATE prebuild_targets parameters_interface px4_layer px4_platform systemlib)
+		target_link_libraries(${MODULE} PRIVATE prebuild_targets parameters_interface px4_layer px4_platform px4_platform_uorb systemlib)
 		set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES ${MODULE})
 		set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
 	endif()

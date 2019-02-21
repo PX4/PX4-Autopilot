@@ -70,6 +70,7 @@ px4_add_board(
 		top
 		topic_listener
 		tune_control
+		uorb
 		ver
 
 	EXAMPLES

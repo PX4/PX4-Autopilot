@@ -52,8 +52,6 @@ fi
 # clear bootlog
 [ -f $LOG_FILE ] && rm $LOG_FILE
 
-
-uorb start
 if [ -f eeprom/parameters ]
 then
 	param load

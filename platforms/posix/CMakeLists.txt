@@ -72,8 +72,6 @@ else()
 		target_link_libraries(px4 PRIVATE rt)
 	endif()
 
-	target_link_libraries(px4 PRIVATE modules__uORB)
-
 	#=============================================================================
 	# install
 	#

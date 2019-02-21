@@ -135,10 +135,6 @@ AirspeedSim::init()
 
 		/* measurement will have generated a report, publish */
 		_airspeed_pub = orb_advertise(ORB_ID(differential_pressure), &arp);
-
-		if (_airspeed_pub == nullptr) {
-			PX4_WARN("uORB started?");
-		}
 	}
 
 	ret = OK;

@@ -3,7 +3,6 @@
 # (px4-alias.sh is expected to be in the PATH)
 . px4-alias.sh
 
-uorb start
 
 param load
 param set SYS_RESTART_TYPE 0
