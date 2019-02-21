@@ -70,8 +70,7 @@ int val_read(void *dest, volatile const void *src, int bytes)
 
 int write_otp(uint8_t id_type, uint32_t vid, uint32_t pid, char *signature)
 {
-
-	warnx("write_otp: PX4 / %02X / %02lX / %02lX  / ... etc  \n", id_type, (unsigned long)vid, (unsigned long)pid);
+	printf("write_otp: PX4 / %02X / %02lX / %02lX  / ... etc  \n", id_type, (unsigned long)vid, (unsigned long)pid);
 
 	int errors = 0;
 

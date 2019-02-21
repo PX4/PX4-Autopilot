@@ -31,4 +31,4 @@
 #
 ############################################################################
 
-add_subdirectory(px4_layer)
+add_subdirectory(px4_layer EXCLUDE_FROM_ALL)

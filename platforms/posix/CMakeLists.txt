@@ -17,7 +17,8 @@ add_definitions("-DPX4_SHELL_COMMAND_PREFIX=\"${PX4_SHELL_COMMAND_PREFIX}\"")
 
 px4_posix_generate_builtin_commands(
 	OUT apps
-	MODULE_LIST ${module_libraries})
+	MODULE_LIST ${module_libraries}
+)
 
 px4_posix_generate_alias(
 	OUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/px4-alias.sh
@@ -43,7 +44,7 @@ if (("${PX4_BOARD}" MATCHES "atlflight_eagle") OR ("${PX4_BOARD}" MATCHES "atlfl
 			-Wl,--start-group
 				px4_layer
 				parameters
-				${module_libraries}
+				px4_modules
 				${df_driver_libs}
 				${FASTRPC_ARM_LIBS}
 				pthread m rt
@@ -58,11 +59,12 @@ else()
 
 	target_link_libraries(px4
 		PRIVATE
-			${module_libraries}
+			px4_modules
 			${df_driver_libs}
 			df_driver_framework
-			pthread m
-			
+			pthread
+			m
+
 			# horrible circular dependencies that need to be teased apart
 			px4_layer
 			px4_platform

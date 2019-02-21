@@ -43,8 +43,6 @@ set(FW_NAME ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf)
 set_target_properties(px4 PROPERTIES OUTPUT_NAME ${FW_NAME})
 add_dependencies(px4 git_nuttx nuttx_build)
 
-get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
-
 # build NuttX
 add_subdirectory(NuttX ${PX4_BINARY_DIR}/NuttX)
 
@@ -84,6 +82,12 @@ target_link_libraries(nuttx_arch
 target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
 target_link_libraries(nuttx_xx INTERFACE nuttx_c)
 
+# px4io special case
+#  entrypoint is user_start in px4iofirmware module
+if(TARGET px4iofirmware)
+	target_link_libraries(nuttx_sched INTERFACE px4iofirmware)
+endif()
+
 target_link_libraries(px4 PRIVATE
 
 	-nostartfiles
@@ -99,6 +103,8 @@ target_link_libraries(px4 PRIVATE
 	-Wl,--warn-common
 	-Wl,--gc-sections
 
+	px4_modules
+
 	-Wl,--start-group
 		drivers_boards_common_arch
 		${nuttx_libs}
@@ -106,9 +112,7 @@ target_link_libraries(px4 PRIVATE
 
 	m
 	gcc
-	)
-
-target_link_libraries(px4 PRIVATE ${module_libraries})
+)
 
 if (config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)

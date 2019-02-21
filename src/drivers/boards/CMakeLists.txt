@@ -31,4 +31,4 @@
 #
 ############################################################################
 
-add_subdirectory(common)
+add_subdirectory(common EXCLUDE_FROM_ALL)

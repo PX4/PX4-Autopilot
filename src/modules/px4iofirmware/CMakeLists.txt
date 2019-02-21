@@ -44,10 +44,10 @@ add_library(px4iofirmware
 
 set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES px4iofirmware)
 target_link_libraries(px4iofirmware
-	PUBLIC
-		nuttx_apps
+	PRIVATE
+		drivers_arch
 		nuttx_arch
-		nuttx_c
+		nuttx_apps
 		mixer
 		rc
 		perf

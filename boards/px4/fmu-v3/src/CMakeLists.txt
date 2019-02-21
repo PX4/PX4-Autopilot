@@ -31,15 +31,15 @@
 #
 ############################################################################
 
-px4_add_library(drivers_board
+add_library(drivers_board
 	can.c
 	i2c.c
 	init.c
 	led.c
+	manifest.c
 	spi.c
 	timer_config.c
 	usb.c
-	manifest.c
 )
 
 target_link_libraries(drivers_board

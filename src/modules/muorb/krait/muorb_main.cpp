@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 #include <string.h>
-#include "modules/uORB/uORBManager.hpp"
+#include <uORB/uORBManager.hpp>
 #include "uORBKraitFastRpcChannel.hpp"
 
 extern "C" { __EXPORT int muorb_main(int argc, char *argv[]); }

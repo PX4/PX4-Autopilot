@@ -31,7 +31,8 @@
 #
 ############################################################################
 
-px4_add_library(drivers_board
+add_library(drivers_board
 	init.c
 	timer_config.c
 )
+add_dependencies(drivers_board prebuild_targets)

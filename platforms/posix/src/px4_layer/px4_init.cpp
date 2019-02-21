@@ -38,6 +38,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
 #include <uORB/uORB.h>
+#include <px4_log.h>
 
 int px4_platform_init(void)
 {
@@ -46,6 +47,8 @@ int px4_platform_init(void)
 	param_init();
 
 	uorb_start();
+
+	px4_log_initialize();
 
 	return PX4_OK;
 }

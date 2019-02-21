@@ -134,26 +134,21 @@ if(${PX4_PLATFORM} STREQUAL "nuttx")
 	add_subdirectory(flashparams)
 endif()
 
-# TODO: find a better way to do this
-if (NOT "${PX4_BOARD}" MATCHES "px4_io")
-	add_library(parameters
-		${SRCS}
-		px4_parameters.c
-		px4_parameters.h
-		px4_parameters_public.h
-		)
 
-	if ("${CONFIG_SHMEM}" STREQUAL "1")
-		target_link_libraries(parameters PRIVATE px4_layer)
-	endif()
+add_library(parameters
+	${SRCS}
+	px4_parameters.c
+	px4_parameters.h
+	px4_parameters_public.h
+	)
 
-	target_link_libraries(parameters PRIVATE perf tinybson)
-	target_compile_definitions(parameters PRIVATE -DMODULE_NAME="parameters")
-	target_compile_options(parameters PRIVATE -Wno-sign-compare) # TODO: fix this
-else()
-	add_library(parameters ${PX4_SOURCE_DIR}/src/platform/empty.c)
+if ("${CONFIG_SHMEM}" STREQUAL "1")
+	target_link_libraries(parameters PRIVATE px4_layer)
 endif()
-add_dependencies(parameters prebuild_targets)
+
+target_link_libraries(parameters PRIVATE perf prebuild_targets tinybson)
+target_compile_definitions(parameters PRIVATE -DMODULE_NAME="parameters")
+target_compile_options(parameters PRIVATE -Wno-sign-compare) # TODO: fix this
 
 if(${PX4_PLATFORM} STREQUAL "nuttx")
 	target_link_libraries(parameters PRIVATE flashparams tinybson)

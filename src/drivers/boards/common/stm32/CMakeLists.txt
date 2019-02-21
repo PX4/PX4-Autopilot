@@ -39,4 +39,8 @@ add_library(drivers_boards_common_arch
 	board_critmon.c
 )
 add_dependencies(drivers_boards_common_arch prebuild_targets)
-target_link_libraries(drivers_boards_common_arch PRIVATE nuttx_arch)
+target_link_libraries(drivers_boards_common_arch
+	PRIVATE
+		nuttx_arch
+		drivers_stm32_adc # board_hw_rev_ver needs adc init
+)

@@ -39,5 +39,9 @@ add_library(drivers_arch
 	drv_input_capture.c
 	drv_led_pwm.cpp
 )
-add_dependencies(drivers_arch prebuild_targets)
-target_link_libraries(drivers_arch PRIVATE drivers_board)
+
+target_link_libraries(drivers_arch
+	PRIVATE
+		drivers_board
+		prebuild_targets
+)

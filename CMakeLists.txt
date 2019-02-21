@@ -126,7 +126,9 @@ define_property(GLOBAL PROPERTY PX4_MODULE_LIBRARIES
 define_property(GLOBAL PROPERTY PX4_MODULE_PATHS
                  BRIEF_DOCS "PX4 module paths"
                  FULL_DOCS "List of paths to all PX4 modules"
-                 )
+		 )
+
+add_library(px4_modules INTERFACE)
 
 #=============================================================================
 # configuration

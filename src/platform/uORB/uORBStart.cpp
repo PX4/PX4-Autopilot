@@ -63,13 +63,6 @@ int uorb_start(void)
 		return -errno;
 	}
 
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_EAGLE) && !defined(__PX4_POSIX_EXCELSIOR)
-	/* FIXME: this fails on Snapdragon (see https://github.com/PX4/Firmware/issues/5406),
-	 * so we disable logging messages to the ulog for now. This needs further investigations.
-	 */
-	px4_log_initialize();
-#endif
-
 	return OK;
 }
 

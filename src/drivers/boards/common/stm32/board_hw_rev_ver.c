@@ -191,9 +191,7 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 
 	if ((high ^ low) && low == 0) {
 
-
 		/* Yes - Fire up the ADC (it has once control) */
-
 		if (board_adc_init() == OK) {
 
 			/* Read the value */

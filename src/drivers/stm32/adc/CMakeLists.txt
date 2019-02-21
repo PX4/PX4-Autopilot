@@ -31,9 +31,14 @@
 #
 ############################################################################
 
+add_library(drivers_stm32_adc adc.cpp)
+target_link_libraries(drivers_stm32_adc PRIVATE drivers_arch)
+
 px4_add_module(
 	MODULE drivers__adc
 	MAIN adc
 	SRCS
-		adc.cpp
+		adc_main.cpp
+	DEPENDS
+		drivers_stm32_adc
 	)

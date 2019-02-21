@@ -31,4 +31,5 @@
 #
 ############################################################################
 
-px4_add_library(pwm_limit pwm_limit.cpp)
+add_library(pwm_limit pwm_limit.cpp)
+add_dependencies(pwm_limit prebuild_targets)

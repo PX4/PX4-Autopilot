@@ -39,9 +39,9 @@
 #include <lib/parameters/param.h>
 #include <systemlib/cpuload.h>
 #include <uORB/uORB.h>
+#include <px4_log.h>
 
 #include <fcntl.h>
-
 
 #include "platform/cxxinitialize.h"
 
@@ -105,7 +105,12 @@ int px4_platform_init(void)
 	cpuload_initialize_once();
 #endif
 
+	/* start uORB and uORB logging unless disabled */
+#ifndef PARAM_NO_ORB
 	uorb_start();
+
+	px4_log_initialize();
+#endif /* !PARAM_NO_ORB */
 
 	return PX4_OK;
 }

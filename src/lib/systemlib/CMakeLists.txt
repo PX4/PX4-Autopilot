@@ -31,7 +31,15 @@
 #
 ############################################################################
 
-set(SRCS
+set(EXTRA_SRCS)
+if(${PX4_PLATFORM} STREQUAL "nuttx")
+	list(APPEND EXTRA_SRCS print_load_nuttx.c)
+elseif(${PX4_PLATFORM} STREQUAL "posix")
+	list(APPEND EXTRA_SRCS print_load_posix.c)
+endif()
+
+px4_add_library(systemlib
+	${EXTRA_SRCS}
 	conversions.c
 	cpuload.c
 	crc.c
@@ -39,15 +47,3 @@ set(SRCS
 	mavlink_log.c
 	otp.c
 	)
-
-if(${PX4_PLATFORM} STREQUAL "nuttx")
-	list(APPEND SRCS
-		print_load_nuttx.c
-		)
-else()
-	list(APPEND SRCS
-		print_load_posix.c
-		)
-endif()
-
-px4_add_library(systemlib ${SRCS})

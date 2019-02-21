@@ -54,13 +54,16 @@ add_library(px4_layer
 	${SHMEM_SRCS}
 )
 target_compile_definitions(px4_layer PRIVATE MODULE_NAME="px4")
-target_link_libraries(px4_layer PRIVATE work_queue)
-target_link_libraries(px4_layer PRIVATE px4_daemon)
+target_link_libraries(px4_layer
+	PRIVATE
+		px4_daemon
+		px4_platform_log
+		work_queue
+)
 
 if(ENABLE_LOCKSTEP_SCHEDULER)
 	target_link_libraries(px4_layer PRIVATE lockstep_scheduler)
 endif()
-
 
 if (EXTRA_DEPENDS)
 	add_dependencies(px4_layer ${EXTRA_DEPENDS})

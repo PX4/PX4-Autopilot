@@ -223,4 +223,8 @@ function(px4_add_module)
 			set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/${module_config})
 		endforeach()
 	endif()
+
+	if(NOT DYNAMIC)
+		target_link_libraries(px4_modules INTERFACE ${MODULE})
+	endif()
 endfunction()
