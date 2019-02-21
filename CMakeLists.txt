@@ -418,10 +418,11 @@ endif()
 #
 add_library(parameters_interface INTERFACE)
 
+add_subdirectory(src/platform EXCLUDE_FROM_ALL)
+
 include(px4_add_library)
 add_subdirectory(src/lib EXCLUDE_FROM_ALL)
 
-add_subdirectory(src/platform EXCLUDE_FROM_ALL)
 add_subdirectory(src/drivers/boards EXCLUDE_FROM_ALL)
 
 if(EXISTS "${PX4_BOARD_DIR}/CMakeLists.txt")

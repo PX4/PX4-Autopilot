@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(px4_platform_uorb
+add_library(px4_platform_uorb
 		Publication.cpp
 		Subscription.cpp
 		uORB.cpp
@@ -42,7 +42,8 @@ px4_add_library(px4_platform_uorb
 		uORBStart.cpp
 		)
 
-target_link_libraries(px4_platform_uorb PRIVATE cdev)
+target_link_libraries(px4_platform_uorb PRIVATE cdev prebuild_targets px4_platform)
+target_compile_definitions(px4_platform_uorb PRIVATE MODULE_NAME="uORB")
 
 if(PX4_TESTING)
 	add_subdirectory(uORB_tests)

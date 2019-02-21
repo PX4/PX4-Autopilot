@@ -43,10 +43,12 @@ else()
 	)
 endif()
 
-px4_add_library(cdev
+add_library(cdev
 	CDev.cpp
 	${SRCS_PLATFORM}
 	)
+target_compile_definitions(cdev PRIVATE MODULE_NAME="cdev")
+target_link_libraries(cdev PRIVATE prebuild_targets)
 
 if(PX4_TESTING)
 	add_subdirectory(test)
