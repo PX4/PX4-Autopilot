@@ -448,6 +448,11 @@ Mission::update_mission()
 	/* reset triplets */
 	_navigator->reset_triplets();
 
+	/* Reset vehicle_roi
+	 * Missions that do not explicitly configure ROI would not override
+	 * an existing ROI setting from previous missions */
+	_navigator->reset_vroi();
+
 	struct mission_s old_mission = _mission;
 
 	if (orb_copy(ORB_ID(mission), _navigator->get_mission_sub(), &_mission) == OK) {
