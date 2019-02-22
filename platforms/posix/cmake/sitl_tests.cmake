@@ -17,6 +17,7 @@ set(tests
 	hrt
 	hysteresis
 	int
+	IntrusiveQueue
 	List
 	mathlib
 	matrix

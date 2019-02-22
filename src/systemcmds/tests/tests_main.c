@@ -95,6 +95,7 @@ const struct {
 	{"hrt",			test_hrt,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"hysteresis",		test_hysteresis,	0},
 	{"int",			test_int,		0},
+	{"IntrusiveQueue",	test_IntrusiveQueue,	0},
 	{"jig_voltages",	test_jig_voltages,	OPT_NOALLTEST},
 	{"List",		test_List,		0},
 	{"mathlib",		test_mathlib,		0},

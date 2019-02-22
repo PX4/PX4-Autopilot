@@ -57,6 +57,7 @@ extern int test_hott_telemetry(int argc, char *argv[]);
 extern int test_hrt(int argc, char *argv[]);
 extern int test_hysteresis(int argc, char *argv[]);
 extern int test_int(int argc, char *argv[]);
+extern int test_IntrusiveQueue(int argc, char *argv[]);
 extern int test_jig_voltages(int argc, char *argv[]);
 extern int test_led(int argc, char *argv[]);
 extern int test_List(int argc, char *argv[]);
