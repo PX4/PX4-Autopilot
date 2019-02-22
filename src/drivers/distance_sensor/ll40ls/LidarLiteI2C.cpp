@@ -52,8 +52,8 @@
 
 LidarLiteI2C::LidarLiteI2C(int bus, const char *path, uint8_t rotation, int address) :
 	I2C("LL40LS", path, bus, address, 100000),
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 	_rotation(rotation),
-	_work{},
 	_reports(nullptr),
 	_sensor_ok(false),
 	_collect_phase(false),
@@ -74,9 +74,6 @@ LidarLiteI2C::LidarLiteI2C(int bus, const char *path, uint8_t rotation, int addr
 {
 	// up the retries since the device misses the first measure attempts
 	_retries = 3;
-
-	// work_cancel in the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
 }
 
 LidarLiteI2C::~LidarLiteI2C()
@@ -254,7 +251,7 @@ ssize_t LidarLiteI2C::read(device::file_t *filp, char *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is enabled */
-	if (getMeasureTicks() > 0) {
+	if (getMeasureInterval() > 0) {
 
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
@@ -570,22 +567,15 @@ void LidarLiteI2C::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&LidarLiteI2C::cycle_trampoline, this, 1);
+	ScheduleNow();
 }
 
 void LidarLiteI2C::stop()
 {
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 }
 
-void LidarLiteI2C::cycle_trampoline(void *arg)
-{
-	LidarLiteI2C *dev = (LidarLiteI2C *)arg;
-
-	dev->cycle();
-}
-
-void LidarLiteI2C::cycle()
+void LidarLiteI2C::Run()
 {
 	/* collection phase? */
 	if (_collect_phase) {
@@ -607,14 +597,10 @@ void LidarLiteI2C::cycle()
 			/*
 			 * Is there a collect->measure gap?
 			 */
-			if (getMeasureTicks() > USEC2TICK(LL40LS_CONVERSION_INTERVAL)) {
+			if (getMeasureInterval() > (LL40LS_CONVERSION_INTERVAL)) {
 
 				/* schedule a fresh cycle call when we are ready to measure again */
-				work_queue(HPWORK,
-					   &_work,
-					   (worker_t)&LidarLiteI2C::cycle_trampoline,
-					   this,
-					   getMeasureTicks() - USEC2TICK(LL40LS_CONVERSION_INTERVAL));
+				ScheduleDelayed(getMeasureInterval() - LL40LS_CONVERSION_INTERVAL);
 
 				return;
 			}
@@ -635,11 +621,7 @@ void LidarLiteI2C::cycle()
 	}
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&LidarLiteI2C::cycle_trampoline,
-		   this,
-		   USEC2TICK(LL40LS_CONVERSION_INTERVAL));
+	ScheduleDelayed(LL40LS_CONVERSION_INTERVAL);
 }
 
 void LidarLiteI2C::print_info()
@@ -648,7 +630,7 @@ void LidarLiteI2C::print_info()
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_sensor_resets);
 	perf_print_counter(_sensor_zero_resets);
-	printf("poll interval:  %u ticks\n", getMeasureTicks());
+	printf("poll interval:  %u \n", getMeasureInterval());
 	_reports->print_info("report queue");
 	printf("distance: %ucm (0x%04x)\n",
 	       (unsigned)_last_distance, (unsigned)_last_distance);
