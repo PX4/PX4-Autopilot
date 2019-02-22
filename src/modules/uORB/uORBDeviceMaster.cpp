@@ -163,7 +163,7 @@ void uORB::DeviceMaster::printStatistics(bool reset)
 
 	lock();
 
-	for (DeviceNode *node = _node_list.getHead(); node != nullptr; node = node->getSibling()) {
+	for (const auto &node : _node_list) {
 		if (node->print_statistics(reset)) {
 			had_print = true;
 		}
@@ -189,7 +189,7 @@ void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node
 		}
 	}
 
-	for (DeviceNode *node = _node_list.getHead(); node != nullptr; node = node->getSibling()) {
+	for (const auto &node : _node_list) {
 
 		++num_topics;
 
@@ -262,7 +262,7 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 	lock();
 
-	if (_node_list.getHead() == nullptr) {
+	if (_node_list.empty()) {
 		unlock();
 		PX4_INFO("no active topics");
 		return;
@@ -380,7 +380,7 @@ uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
 {
 	lock();
 
-	for (DeviceNode *node = _node_list.getHead(); node != nullptr; node = node->getSibling()) {
+	for (uORB::DeviceNode *node : _node_list) {
 		if (strcmp(node->get_devname(), nodepath) == 0) {
 			unlock();
 			return node;
@@ -405,7 +405,7 @@ uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const struct orb_metadata *m
 
 uORB::DeviceNode *uORB::DeviceMaster::getDeviceNodeLocked(const struct orb_metadata *meta, const uint8_t instance)
 {
-	for (DeviceNode *node = _node_list.getHead(); node != nullptr; node = node->getSibling()) {
+	for (uORB::DeviceNode *node : _node_list) {
 		if ((strcmp(node->get_name(), meta->o_name) == 0) && (node->get_instance() == instance)) {
 			return node;
 		}
