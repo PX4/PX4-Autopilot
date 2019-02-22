@@ -41,7 +41,7 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_getopt.h>
-#include <px4_workqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_module.h>
 
 #include <drivers/device/i2c.h>
@@ -92,21 +92,17 @@
 
 #define TERARANGER_CONVERSION_INTERVAL 50000 /* 50ms */
 
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
-
-class TERARANGER : public device::I2C
+class TERARANGER : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
 	TERARANGER(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING,
 		   int bus = TERARANGER_BUS_DEFAULT, int address = TRONE_BASEADDR);
 	virtual ~TERARANGER();
 
-	virtual int 		init();
+	virtual int 		init() override;
 
-	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen);
-	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen) override;
+	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
 	/**
 	* Diagnostics - print some basic information about the driver.
@@ -114,17 +110,16 @@ public:
 	void				print_info();
 
 protected:
-	virtual int			probe();
+	virtual int			probe() override;
 
 private:
 	uint8_t _rotation;
 	float				_min_distance;
 	float				_max_distance;
-	work_s				_work{};
 	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
 	uint8_t				_valid;
-	int				_measure_ticks;
+	int				_measure_interval;
 	bool				_collect_phase;
 	int				_class_instance;
 	int				_orb_class_instance;
@@ -170,17 +165,9 @@ private:
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
 	*/
-	void				cycle();
+	void					Run() override;
 	int					measure();
 	int					collect();
-	/**
-	* Static trampoline from the workq context; because we don't have a
-	* generic workq wrapper yet.
-	*
-	* @param arg		Instance pointer for the driver that is polling.
-	*/
-	static void		cycle_trampoline(void *arg);
-
 
 };
 
@@ -229,13 +216,14 @@ extern "C" __EXPORT int teraranger_main(int argc, char *argv[]);
 
 TERARANGER::TERARANGER(uint8_t rotation, int bus, int address) :
 	I2C("TERARANGER", TERARANGER_DEVICE_PATH, bus, address, 100000),
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 	_rotation(rotation),
 	_min_distance(-1.0f),
 	_max_distance(-1.0f),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_valid(0),
-	_measure_ticks(0),
+	_measure_interval(0),
 	_collect_phase(false),
 	_class_instance(-1),
 	_orb_class_instance(-1),
@@ -431,10 +419,10 @@ TERARANGER::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(TERARANGER_CONVERSION_INTERVAL);
+					_measure_interval = (TERARANGER_CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -447,18 +435,18 @@ TERARANGER::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* convert hz to tick interval via microseconds */
-					int ticks = USEC2TICK(1000000 / arg);
+					int interval = (1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(TERARANGER_CONVERSION_INTERVAL)) {
+					if (interval < (TERARANGER_CONVERSION_INTERVAL)) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					_measure_ticks = ticks;
+					_measure_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -489,7 +477,7 @@ TERARANGER::read(device::file_t *filp, char *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is enabled */
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
@@ -621,25 +609,17 @@ TERARANGER::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&TERARANGER::cycle_trampoline, this, 1);
+	ScheduleNow();
 }
 
 void
 TERARANGER::stop()
 {
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 }
 
 void
-TERARANGER::cycle_trampoline(void *arg)
-{
-	TERARANGER *dev = (TERARANGER *)arg;
-
-	dev->cycle();
-}
-
-void
-TERARANGER::cycle()
+TERARANGER::Run()
 {
 	/* collection phase? */
 	if (_collect_phase) {
@@ -658,13 +638,9 @@ TERARANGER::cycle()
 		/*
 		 * Is there a collect->measure gap?
 		 */
-		if (_measure_ticks > USEC2TICK(TERARANGER_CONVERSION_INTERVAL)) {
+		if (_measure_interval > TERARANGER_CONVERSION_INTERVAL) {
 			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&TERARANGER::cycle_trampoline,
-				   this,
-				   _measure_ticks - USEC2TICK(TERARANGER_CONVERSION_INTERVAL));
+			ScheduleDelayed(_measure_interval - TERARANGER_CONVERSION_INTERVAL);
 
 			return;
 		}
@@ -679,11 +655,7 @@ TERARANGER::cycle()
 	_collect_phase = true;
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&TERARANGER::cycle_trampoline,
-		   this,
-		   USEC2TICK(TERARANGER_CONVERSION_INTERVAL));
+	ScheduleDelayed(TERARANGER_CONVERSION_INTERVAL);
 }
 
 void
@@ -691,7 +663,7 @@ TERARANGER::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u ticks\n", _measure_ticks);
+	printf("poll interval:  %u\n", _measure_interval);
 	_reports->print_info("report queue");
 }
 
