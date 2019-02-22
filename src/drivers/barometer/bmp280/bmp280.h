@@ -148,6 +148,8 @@ public:
 	// bulk read of calibration data into buffer, return same pointer
 	virtual bmp280::calibration_s *get_calibration(uint8_t addr) = 0;
 
+	virtual uint32_t get_device_id() const = 0;
+
 };
 
 } /* namespace */
