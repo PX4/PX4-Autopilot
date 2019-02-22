@@ -59,7 +59,7 @@
 #include <unistd.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <nuttx/clock.h>
 
 #include <perf/perf_counter.h>
@@ -97,13 +97,9 @@
 #define PX4FLOW_MAX_DISTANCE 5.0f
 #define PX4FLOW_MIN_DISTANCE 0.3f
 
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
-
 #include "i2c_frame.h"
 
-class PX4FLOW: public device::I2C
+class PX4FLOW: public device::I2C, public px4::ScheduledWorkItem
 {
 public:
 	PX4FLOW(int bus, int address = I2C_FLOW_ADDRESS_DEFAULT, enum Rotation rotation = (enum Rotation)0,
@@ -127,10 +123,9 @@ protected:
 private:
 
 	uint8_t _sonar_rotation;
-	work_s				_work;
 	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
-	int				_measure_ticks;
+	int				_measure_interval;
 	bool				_collect_phase;
 	int			_class_instance;
 	int			_orb_class_instance;
@@ -176,17 +171,9 @@ private:
 	 * Perform a poll cycle; collect from the previous measurement
 	 * and start a new one.
 	 */
-	void				cycle();
+	void				Run() override;
 	int					measure();
 	int					collect();
-	/**
-	 * Static trampoline from the workq context; because we don't have a
-	 * generic workq wrapper yet.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void			cycle_trampoline(void *arg);
-
 };
 
 /*
@@ -196,10 +183,11 @@ extern "C" __EXPORT int px4flow_main(int argc, char *argv[]);
 
 PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation, int conversion_interval, uint8_t sonar_rotation) :
 	I2C("PX4FLOW", PX4FLOW0_DEVICE_PATH, bus, address, PX4FLOW_I2C_MAX_BUS_SPEED), /* 100-400 KHz */
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 	_sonar_rotation(sonar_rotation),
 	_reports(nullptr),
 	_sensor_ok(false),
-	_measure_ticks(0),
+	_measure_interval(0),
 	_collect_phase(false),
 	_class_instance(-1),
 	_orb_class_instance(-1),
@@ -210,11 +198,6 @@ PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation, int conversion_in
 	_conversion_interval(conversion_interval),
 	_sensor_rotation(rotation)
 {
-	// disable debug() calls
-	_debug_enabled = false;
-
-	// work_cancel in the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
 }
 
 PX4FLOW::~PX4FLOW()
@@ -342,10 +325,10 @@ PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
 			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(_conversion_interval);
+					_measure_interval = (_conversion_interval);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -358,18 +341,18 @@ PX4FLOW::ioctl(struct file *filp, int cmd, unsigned long arg)
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
+					unsigned interval = (1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(_conversion_interval)) {
+					if (interval < (_conversion_interval)) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					_measure_ticks = ticks;
+					_measure_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -400,7 +383,7 @@ PX4FLOW::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is enabled */
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
@@ -585,25 +568,17 @@ PX4FLOW::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&PX4FLOW::cycle_trampoline, this, 1);
+	ScheduleNow();
 }
 
 void
 PX4FLOW::stop()
 {
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 }
 
 void
-PX4FLOW::cycle_trampoline(void *arg)
-{
-	PX4FLOW *dev = (PX4FLOW *)arg;
-
-	dev->cycle();
-}
-
-void
-PX4FLOW::cycle()
+PX4FLOW::Run()
 {
 	if (OK != measure()) {
 		DEVICE_DEBUG("measure error");
@@ -617,9 +592,7 @@ PX4FLOW::cycle()
 		return;
 	}
 
-	work_queue(HPWORK, &_work, (worker_t)&PX4FLOW::cycle_trampoline, this,
-		   _measure_ticks);
-
+	ScheduleDelayed(_measure_interval);
 }
 
 void
@@ -627,7 +600,7 @@ PX4FLOW::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u ticks\n", _measure_ticks);
+	printf("poll interval:  %u\n", _measure_interval);
 	_reports->print_info("report queue");
 }
 
