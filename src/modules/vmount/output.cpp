@@ -51,6 +51,8 @@
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 
+using matrix::wrap_pi;
+
 namespace vmount
 {
 
@@ -197,6 +199,8 @@ void OutputBase::_handle_position_update(bool force_update)
 	_angle_setpoints[1] += _cur_control_data->type_data.lonlat.pitch_angle_offset;
 	_angle_setpoints[2] += _cur_control_data->type_data.lonlat.yaw_angle_offset;
 
+	// make sure yaw is wrapped correctly for the output
+	_angle_setpoints[2] = wrap_pi(_angle_setpoints[2]);
 }
 
 void OutputBase::_calculate_output_angles(const hrt_abstime &t)
