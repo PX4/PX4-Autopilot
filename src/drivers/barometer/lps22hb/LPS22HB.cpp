@@ -46,6 +46,7 @@
 
 LPS22HB::LPS22HB(device::Device *interface, const char *path) :
 	CDev(path),
+	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, "lps22hb_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "lps22hb_comms_errors"))
@@ -90,7 +91,7 @@ LPS22HB::init()
 	ret = OK;
 
 	PX4_INFO("starting");
-	_measure_ticks = USEC2TICK(LPS22HB_CONVERSION_INTERVAL);
+	_measure_interval = LPS22HB_CONVERSION_INTERVAL;
 	start();
 
 out:
@@ -113,14 +114,14 @@ LPS22HB::ioctl(struct file *filp, int cmd, unsigned long arg)
 			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(LPS22HB_CONVERSION_INTERVAL);
+					_measure_interval = (LPS22HB_CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
-						_measure_ticks = USEC2TICK(LPS22HB_CONVERSION_INTERVAL);
+						_measure_interval = (LPS22HB_CONVERSION_INTERVAL);
 						start();
 					}
 
@@ -130,18 +131,18 @@ LPS22HB::ioctl(struct file *filp, int cmd, unsigned long arg)
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
+					unsigned interval = (1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(LPS22HB_CONVERSION_INTERVAL)) {
+					if (interval < (LPS22HB_CONVERSION_INTERVAL)) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					_measure_ticks = ticks;
+					_measure_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -172,13 +173,13 @@ LPS22HB::start()
 	_collect_phase = false;
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&LPS22HB::cycle_trampoline, this, 1);
+	ScheduleNow();
 }
 
 void
 LPS22HB::stop()
 {
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 }
 
 int
@@ -192,15 +193,7 @@ LPS22HB::reset()
 }
 
 void
-LPS22HB::cycle_trampoline(void *arg)
-{
-	LPS22HB *dev = reinterpret_cast<LPS22HB *>(arg);
-
-	dev->cycle();
-}
-
-void
-LPS22HB::cycle()
+LPS22HB::Run()
 {
 	/* collection phase? */
 	if (_collect_phase) {
@@ -219,14 +212,10 @@ LPS22HB::cycle()
 		/*
 		 * Is there a collect->measure gap?
 		 */
-		if (_measure_ticks > USEC2TICK(LPS22HB_CONVERSION_INTERVAL)) {
+		if (_measure_interval > LPS22HB_CONVERSION_INTERVAL) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&LPS22HB::cycle_trampoline,
-				   this,
-				   _measure_ticks - USEC2TICK(LPS22HB_CONVERSION_INTERVAL));
+			ScheduleDelayed(_measure_interval - LPS22HB_CONVERSION_INTERVAL);
 
 			return;
 		}
@@ -241,11 +230,7 @@ LPS22HB::cycle()
 	_collect_phase = true;
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&LPS22HB::cycle_trampoline,
-		   this,
-		   USEC2TICK(LPS22HB_CONVERSION_INTERVAL));
+	ScheduleDelayed(LPS22HB_CONVERSION_INTERVAL);
 }
 
 int
@@ -346,7 +331,7 @@ LPS22HB::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 
-	PX4_INFO("poll interval:  %u ticks", _measure_ticks);
+	PX4_INFO("poll interval:  %u", _measure_interval);
 
 	print_message(_last_report);
 }

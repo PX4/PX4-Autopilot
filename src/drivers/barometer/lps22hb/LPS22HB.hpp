@@ -36,7 +36,7 @@
 #include <lib/cdev/CDev.hpp>
 #include <drivers/device/Device.hpp>
 #include <px4_config.h>
-#include <px4_workqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 #include <perf/perf_counter.h>
 
@@ -84,7 +84,7 @@ extern device::Device *LPS22HB_SPI_interface(int bus);
 extern device::Device *LPS22HB_I2C_interface(int bus);
 typedef device::Device *(*LPS22HB_constructor)(int);
 
-class LPS22HB : public cdev::CDev
+class LPS22HB : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
 	LPS22HB(device::Device *interface, const char *path);
@@ -103,8 +103,7 @@ protected:
 	device::Device			*_interface;
 
 private:
-	work_s			_work{};
-	unsigned		_measure_ticks{0};
+	unsigned		_measure_interval{0};
 
 	bool			_collect_phase{false};
 
@@ -149,15 +148,7 @@ private:
 	 * and measurement to provide the most recent measurement possible
 	 * at the next interval.
 	 */
-	void			cycle();
-
-	/**
-	 * Static trampoline from the workq context; because we don't have a
-	 * generic workq wrapper yet.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		cycle_trampoline(void *arg);
+	void			Run() override;
 
 	/**
 	 * Write a register.
