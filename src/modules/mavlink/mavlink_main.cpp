@@ -218,8 +218,6 @@ Mavlink::Mavlink() :
 	_wait_to_transmit(false),
 	_received_messages(false),
 	_main_loop_delay(1000),
-	_subscriptions(nullptr),
-	_streams(nullptr),
 	_mavlink_shell(nullptr),
 	_mavlink_ulog(nullptr),
 	_mavlink_ulog_stop_requested(false),
@@ -1349,9 +1347,7 @@ MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, int 
 {
 	if (!disable_sharing) {
 		/* check if already subscribed to this topic */
-		MavlinkOrbSubscription *sub;
-
-		LL_FOREACH(_subscriptions, sub) {
+		for (MavlinkOrbSubscription *sub : _subscriptions) {
 			if (sub->get_topic() == topic && sub->get_instance() == instance) {
 				/* already subscribed */
 				return sub;
@@ -1362,7 +1358,7 @@ MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, int 
 	/* add new subscription */
 	MavlinkOrbSubscription *sub_new = new MavlinkOrbSubscription(topic, instance);
 
-	LL_APPEND(_subscriptions, sub_new);
+	_subscriptions.add(sub_new);
 
 	return sub_new;
 }
@@ -1382,9 +1378,7 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 		interval = -1;
 	}
 
-	/* search if stream exists */
-	MavlinkStream *stream;
-	LL_FOREACH(_streams, stream) {
+	for (const auto &stream : _streams) {
 		if (strcmp(stream_name, stream->get_name()) == 0) {
 			if (interval != 0) {
 				/* set new interval */
@@ -1392,8 +1386,8 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 
 			} else {
 				/* delete stream */
-				LL_DELETE(_streams, stream);
-				delete stream;
+				_streams.deleteNode(stream);
+				return OK; // must finish with loop after node is deleted
 			}
 
 			return OK;
@@ -1407,11 +1401,11 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 
 	// search for stream with specified name in supported streams list
 	// create new instance if found
-	stream = create_mavlink_stream(stream_name, this);
+	MavlinkStream *stream = create_mavlink_stream(stream_name, this);
 
 	if (stream != nullptr) {
 		stream->set_interval(interval);
-		LL_APPEND(_streams, stream);
+		_streams.add(stream);
 
 		return OK;
 	}
@@ -1455,7 +1449,6 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 int
 Mavlink::message_buffer_init(int size)
 {
-
 	_message_buffer.size = size;
 	_message_buffer.write_ptr = 0;
 	_message_buffer.read_ptr = 0;
@@ -1607,8 +1600,7 @@ Mavlink::update_rate_mult()
 	float rate = 0.0f;
 
 	/* scale down rates if their theoretical bandwidth is exceeding the link bandwidth */
-	MavlinkStream *stream;
-	LL_FOREACH(_streams, stream) {
+	for (const auto &stream : _streams) {
 		if (stream->const_rate()) {
 			const_rate += (stream->get_interval() > 0) ? stream->get_size_avg() * 1000000.0f / stream->get_interval() : 0;
 
@@ -2467,8 +2459,7 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		/* update streams */
-		MavlinkStream *stream;
-		LL_FOREACH(_streams, stream) {
+		for (const auto &stream : _streams) {
 			stream->update(t);
 
 			if (!_first_heartbeat_sent) {
@@ -2568,28 +2559,10 @@ Mavlink::task_main(int argc, char *argv[])
 	_subscribe_to_stream = nullptr;
 
 	/* delete streams */
-	MavlinkStream *stream_to_del = nullptr;
-	MavlinkStream *stream_next = _streams;
-
-	while (stream_next != nullptr) {
-		stream_to_del = stream_next;
-		stream_next = stream_to_del->next;
-		delete stream_to_del;
-	}
-
-	_streams = nullptr;
+	_streams.clear();
 
 	/* delete subscriptions */
-	MavlinkOrbSubscription *sub_to_del = nullptr;
-	MavlinkOrbSubscription *sub_next = _subscriptions;
-
-	while (sub_next != nullptr) {
-		sub_to_del = sub_next;
-		sub_next = sub_to_del->next;
-		delete sub_to_del;
-	}
-
-	_subscriptions = nullptr;
+	_subscriptions.clear();
 
 	if (_uart_fd >= 0 && !_is_usb_uart) {
 		/* close UART */
@@ -2628,15 +2601,7 @@ void Mavlink::publish_telemetry_status()
 	_tstatus.forwarding = get_forwarding_on();
 	_tstatus.mavlink_v2 = (_protocol_version == 2);
 
-	int num_streams = 0;
-
-	MavlinkStream *stream;
-	LL_FOREACH(_streams, stream) {
-		// count
-		num_streams++;
-	}
-
-	_tstatus.streams = num_streams;
+	_tstatus.streams = _streams.size();
 
 	_tstatus.timestamp = hrt_absolute_time();
 	int instance;
@@ -2873,8 +2838,8 @@ Mavlink::display_status_streams()
 	printf("\t%-20s%-16s %s\n", "Name", "Rate Config (current) [Hz]", "Message Size (if active) [B]");
 
 	const float rate_mult = _rate_mult;
-	MavlinkStream *stream;
-	LL_FOREACH(_streams, stream) {
+
+	for (const auto &stream : _streams) {
 		const int interval = stream->get_interval();
 		const unsigned size = stream->get_size();
 		char rate_str[20];

@@ -59,6 +59,8 @@
 #include <net/if.h>
 #endif
 
+#include <containers/List.hpp>
+#include <systemlib/uthash/utlist.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
 #include <pthread.h>
@@ -392,7 +394,7 @@ public:
 	 */
 	void			send_protocol_version();
 
-	MavlinkStream 		*get_streams() const { return _streams; }
+	List<MavlinkStream *> &get_streams() { return _streams; }
 
 	float			get_rate_mult() const { return _rate_mult; }
 
@@ -546,8 +548,8 @@ private:
 
 	unsigned		_main_loop_delay;	/**< mainloop delay, depends on data rate */
 
-	MavlinkOrbSubscription	*_subscriptions;
-	MavlinkStream		*_streams;
+	List<MavlinkOrbSubscription *>	_subscriptions;
+	List<MavlinkStream *>		_streams;
 
 	MavlinkShell			*_mavlink_shell;
 	MavlinkULog			*_mavlink_ulog;

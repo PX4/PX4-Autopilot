@@ -45,7 +45,6 @@
 #include "mavlink_main.h"
 
 MavlinkStream::MavlinkStream(Mavlink *mavlink) :
-	ModuleParams(nullptr),
 	_mavlink(mavlink)
 {
 	_last_sent = hrt_absolute_time();

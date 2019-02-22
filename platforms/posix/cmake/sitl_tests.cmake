@@ -17,6 +17,7 @@ set(tests
 	hrt
 	hysteresis
 	int
+	List
 	mathlib
 	matrix
 	microbench_hrt
