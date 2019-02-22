@@ -96,6 +96,7 @@ bool
 MissionFeasibilityChecker::checkRotarywing(const mission_s &mission, float home_alt, bool home_alt_valid)
 {
 	bool has_takeoff = false;
+	bool takeoff_first = false;
 	int takeoff_index = -1;
 
 	for (size_t i = 0; i < mission.count; i++) {
@@ -126,12 +127,15 @@ MissionFeasibilityChecker::checkRotarywing(const mission_s &mission, float home_
 				return false;
 			}
 
-			// if it is the first mission item, then it is accepted
-			// immediately
-			if (i == 0) {
-				has_takeoff = true;
+			// tell that mission has a takeoff waypoint
+			has_takeoff = true;
 
-			} else if (takeoff_index != -1) {
+			// tell that a takeoff waypoint is the first "waypoint"
+			// mission item
+			if (i == 0) {
+				takeoff_first = true;
+
+			} else if (takeoff_index == -1) {
 				// stores the index of the first takeoff waypoint
 				takeoff_index = i;
 			}
@@ -169,18 +173,26 @@ MissionFeasibilityChecker::checkRotarywing(const mission_s &mission, float home_
 			    missionitem.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL ||
 			    missionitem.nav_cmd == NAV_CMD_SET_CAMERA_MODE ||
 			    missionitem.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
-				has_takeoff = true;
+				takeoff_first = true;
 			}
 		}
 	}
 
-	// check for a takeoff waypoint, after the above conditions have been met
-	// MIS_TAKEOFF_REQ param has to be set and the vehicle has to be landed - one can load a mission
-	// while the vehicle is flying and it does not require a takeoff waypoint
-	if (!has_takeoff && _navigator->get_takeoff_required() && _navigator->get_land_detected()->landed) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff waypoint required.");
-		return false;
+	if (_navigator->get_takeoff_required() && _navigator->get_land_detected()->landed) {
+		// check for a takeoff waypoint, after the above conditions have been met
+		// MIS_TAKEOFF_REQ param has to be set and the vehicle has to be landed - one can load a mission
+		// while the vehicle is flying and it does not require a takeoff waypoint
+		if (!has_takeoff) {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff waypoint required.");
+			return false;
 
+		} else if (!takeoff_first) {
+			// check if the takeoff waypoint is the first waypoint item on the mission
+			// i.e, an item with position/attitude change modification
+			// if it is not, the mission should be rejected
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff not first waypoint item");
+			return false;
+		}
 	}
 
 	// all checks have passed
@@ -374,6 +386,7 @@ bool
 MissionFeasibilityChecker::checkFixedWingTakeoff(const mission_s &mission, float home_alt, bool home_alt_valid)
 {
 	bool has_takeoff = false;
+	bool takeoff_first = false;
 	int takeoff_index = -1;
 
 	for (size_t i = 0; i < mission.count; i++) {
@@ -406,12 +419,15 @@ MissionFeasibilityChecker::checkFixedWingTakeoff(const mission_s &mission, float
 				return false;
 			}
 
-			// if it is the first mission item, then it is accepted
-			// immediately
-			if (i == 0) {
-				has_takeoff = true;
+			// tell that mission has a takeoff waypoint
+			has_takeoff = true;
 
-			} else if (takeoff_index != -1) {
+			// tell that a takeoff waypoint is the first "waypoint"
+			// mission item
+			if (i == 0) {
+				takeoff_first = true;
+
+			} else if (takeoff_index == -1) {
 				// stores the index of the first takeoff waypoint
 				takeoff_index = i;
 			}
@@ -449,18 +465,26 @@ MissionFeasibilityChecker::checkFixedWingTakeoff(const mission_s &mission, float
 			    missionitem.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL ||
 			    missionitem.nav_cmd == NAV_CMD_SET_CAMERA_MODE ||
 			    missionitem.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
-				has_takeoff = true;
+				takeoff_first = true;
 			}
 		}
 	}
 
-	// check for a takeoff waypoint, after the above conditions have been met
-	// MIS_TAKEOFF_REQ param has to be set and the vehicle has to be landed - one can load a mission
-	// while the vehicle is flying and it does not require a takeoff waypoint
-	if (!has_takeoff && _navigator->get_takeoff_required() && _navigator->get_land_detected()->landed) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff waypoint required.");
-		return false;
+	if (_navigator->get_takeoff_required() && _navigator->get_land_detected()->landed) {
+		// check for a takeoff waypoint, after the above conditions have been met
+		// MIS_TAKEOFF_REQ param has to be set and the vehicle has to be landed - one can load a mission
+		// while the vehicle is flying and it does not require a takeoff waypoint
+		if (!has_takeoff) {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff waypoint required.");
+			return false;
 
+		} else if (!takeoff_first) {
+			// check if the takeoff waypoint is the first waypoint item on the mission
+			// i.e, an item with position/attitude change modification
+			// if it is not, the mission should be rejected
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff not first waypoint item");
+			return false;
+		}
 	}
 
 	// all checks have passed
