@@ -84,14 +84,7 @@ static const char *LOCK_FILE_PATH = "/tmp/px4_lock";
 #define PATH_MAX 1024
 #endif
 
-
 static volatile bool _exit_requested = false;
-
-
-namespace px4
-{
-void init_once();
-}
 
 static void sig_int_handler(int sig_num);
 static void sig_fpe_handler(int sig_num);
@@ -271,7 +264,6 @@ int main(int argc, char **argv)
 
 		DriverFramework::Framework::initialize();
 
-		px4::init_once();
 		px4::init(argc, argv, "px4");
 
 		ret = run_startup_script(commands_file, absolute_binary_path, instance);
@@ -297,6 +289,9 @@ int main(int argc, char **argv)
 		std::string cmd("shutdown");
 		px4_daemon::Pxh::process_line(cmd, true);
 
+		// remove any file lock
+		const std::string file_lock_path = std::string(LOCK_FILE_PATH) + '-' + std::to_string(instance);
+		remove(file_lock_path.c_str());
 	}
 
 	return PX4_OK;
@@ -426,8 +421,8 @@ void sig_int_handler(int sig_num)
 	fflush(stdout);
 	printf("\nExiting...\n");
 	fflush(stdout);
-	px4_daemon::Pxh::stop();
-	_exit_requested = true;
+
+	px4_systemreset(false);
 }
 
 void sig_fpe_handler(int sig_num)
@@ -436,8 +431,8 @@ void sig_fpe_handler(int sig_num)
 	printf("\nfloating point exception\n");
 	PX4_BACKTRACE();
 	fflush(stdout);
-	px4_daemon::Pxh::stop();
-	_exit_requested = true;
+
+	px4_systemreset(false);
 }
 
 void sig_segv_handler(int sig_num)
@@ -641,4 +636,16 @@ std::string pwd()
 {
 	char temp[PATH_MAX];
 	return (getcwd(temp, PATH_MAX) ? std::string(temp) : std::string(""));
+}
+
+void
+px4_systemreset(bool to_bootloader)
+{
+	printf("Shutting down\n");
+
+	px4_daemon::Pxh::stop();
+
+	_exit_requested = true;
+
+	system_exit(0);
 }

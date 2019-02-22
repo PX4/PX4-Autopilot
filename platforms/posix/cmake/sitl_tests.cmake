@@ -54,17 +54,18 @@ if (CMAKE_SYSTEM_NAME STREQUAL "CYGWIN")
 endif()
 
 foreach(test_name ${tests})
-	configure_file(${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_template.in ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_${test_name}_generated)
+	configure_file(
+		${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_template.in
+		${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_${test_name}_generated
+		)
 
 	add_test(NAME ${test_name}
-		COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
-			$<TARGET_FILE:px4>
-			none
-			none
-			test_${test_name}_generated
-			${PX4_SOURCE_DIR}
-			${PX4_BINARY_DIR}
-		WORKING_DIRECTORY ${SITL_WORKING_DIR})
+		COMMAND $<TARGET_FILE:px4> -d
+			-s ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_${test_name}_generated
+			-t ${PX4_SOURCE_DIR}/test_data/
+			${PX4_SOURCE_DIR}/ROMFS/px4fmu_test
+		WORKING_DIRECTORY ${SITL_WORKING_DIR}
+	)
 
 	set_tests_properties(${test_name} PROPERTIES FAIL_REGULAR_EXPRESSION "${test_name} FAILED")
 	set_tests_properties(${test_name} PROPERTIES PASS_REGULAR_EXPRESSION "${test_name} PASSED")
@@ -75,14 +76,12 @@ endforeach()
 
 # Mavlink test requires mavlink running
 add_test(NAME mavlink
-	COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
-		$<TARGET_FILE:px4>
-		none
-		none
-		test_mavlink
-		${PX4_SOURCE_DIR}
-		${PX4_BINARY_DIR}
-	WORKING_DIRECTORY ${SITL_WORKING_DIR})
+	COMMAND $<TARGET_FILE:px4> -d
+		-s ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_mavlink
+		-t ${PX4_SOURCE_DIR}/test_data/
+		${PX4_SOURCE_DIR}/ROMFS/px4fmu_test
+	WORKING_DIRECTORY ${SITL_WORKING_DIR}
+)
 
 set_tests_properties(mavlink PROPERTIES FAIL_REGULAR_EXPRESSION "mavlink FAILED")
 set_tests_properties(mavlink PROPERTIES PASS_REGULAR_EXPRESSION "mavlink PASSED")
@@ -92,14 +91,12 @@ sanitizer_fail_test_on_error(mavlink)
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "CYGWIN")
 	# Shutdown test
 	add_test(NAME shutdown
-		COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
-			$<TARGET_FILE:px4>
-			none
-			none
-			test_shutdown
-			${PX4_SOURCE_DIR}
-			${PX4_BINARY_DIR}
-		WORKING_DIRECTORY ${SITL_WORKING_DIR})
+		COMMAND $<TARGET_FILE:px4> -d
+			-s ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_shutdown
+			-t ${PX4_SOURCE_DIR}/test_data/
+			${PX4_SOURCE_DIR}/ROMFS/px4fmu_test
+		WORKING_DIRECTORY ${SITL_WORKING_DIR}
+	)
 
 	#set_tests_properties(shutdown PROPERTIES FAIL_REGULAR_EXPRESSION "shutdown FAILED")
 	set_tests_properties(shutdown PROPERTIES PASS_REGULAR_EXPRESSION "Shutting down")
@@ -108,15 +105,13 @@ endif()
 
 # Dynamic module loading test
 add_test(NAME dyn
-	COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
-		$<TARGET_FILE:px4>
-		none
-		none
-		test_dyn_hello
-		${PX4_SOURCE_DIR}
-		${PX4_BINARY_DIR}
+	COMMAND $<TARGET_FILE:px4> -d
+		-s ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_dyn_hello
+		-t ${PX4_SOURCE_DIR}/test_data/
+		${PX4_SOURCE_DIR}/ROMFS/px4fmu_test
 		$<TARGET_FILE:examples__dyn_hello>
-	WORKING_DIRECTORY ${SITL_WORKING_DIR})
+	WORKING_DIRECTORY ${SITL_WORKING_DIR}
+)
 set_tests_properties(dyn PROPERTIES PASS_REGULAR_EXPRESSION "1: PASSED")
 sanitizer_fail_test_on_error(dyn)
 
@@ -128,17 +123,18 @@ set(test_cmds
 	)
 
 foreach(cmd_name ${test_cmds})
-	configure_file(${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/cmd_template.in ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/cmd_${cmd_name}_generated)
+	configure_file(
+		${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/cmd_template.in
+		${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/cmd_${cmd_name}_generated
+		)
 
 	add_test(NAME posix_${cmd_name}
-		COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
-			$<TARGET_FILE:px4>
-			none
-			none
-			cmd_${cmd_name}_generated
-			${PX4_SOURCE_DIR}
-			${PX4_BINARY_DIR}
-		WORKING_DIRECTORY ${SITL_WORKING_DIR})
+		COMMAND $<TARGET_FILE:px4> -d
+			-s ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/cmd_${cmd_name}_generated
+			-t ${PX4_SOURCE_DIR}/test_data/
+			${PX4_SOURCE_DIR}/ROMFS/px4fmu_test
+		WORKING_DIRECTORY ${SITL_WORKING_DIR}
+	)
 
 	sanitizer_fail_test_on_error(posix_${cmd_name})
 	set_tests_properties(posix_${cmd_name} PROPERTIES PASS_REGULAR_EXPRESSION "Shutting down")

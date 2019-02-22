@@ -16,7 +16,6 @@
 extern "C" {
 
 ${builtin_apps_decl_string}
-int shutdown_main(int argc, char *argv[]);
 int list_tasks_main(int argc, char *argv[]);
 int list_files_main(int argc, char *argv[]);
 int list_devices_main(int argc, char *argv[]);
@@ -31,7 +30,6 @@ extern void px4_show_devices(void);
 void init_app_map(apps_map_type &apps)
 {
 ${builtin_apps_string}
-	apps["shutdown"] = shutdown_main;
 	apps["list_tasks"] = list_tasks_main;
 	apps["list_files"] = list_files_main;
 	apps["list_devices"] = list_devices_main;
@@ -46,12 +44,6 @@ void list_builtins(apps_map_type &apps)
 	for (apps_map_type::iterator it = apps.begin(); it != apps.end(); ++it) {
 		printf("  %s\n", it->first.c_str());
 	}
-}
-
-int shutdown_main(int argc, char *argv[])
-{
-	printf("Shutting down\n");
-	system_exit(0);
 }
 
 int list_tasks_main(int argc, char *argv[])
