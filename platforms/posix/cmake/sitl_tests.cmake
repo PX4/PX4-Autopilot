@@ -5,6 +5,7 @@
 # TODO: find a way to keep this in sync with tests_main
 set(tests
 	autodeclination
+	bezier
 	bson
 	commander
 	controllib
@@ -27,6 +28,7 @@ set(tests
 	parameters
 	perf
 	rc
+	search_min
 	servo
 	sf0x
 	sleep
