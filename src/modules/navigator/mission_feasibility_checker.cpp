@@ -127,7 +127,7 @@ MissionFeasibilityChecker::checkRotarywing(const mission_s &mission, float home_
 			}
 
 			// if it is the first mission item, then it is accepted
-			// immediatly
+			// immediately
 			if (i == 0) {
 				has_takeoff = true;
 
@@ -174,11 +174,11 @@ MissionFeasibilityChecker::checkRotarywing(const mission_s &mission, float home_
 		}
 	}
 
-	// check for a takeoof waypoint, after the above conditions have been met
+	// check for a takeoff waypoint, after the above conditions have been met
 	// MIS_TAKEOFF_REQ param has to be set and the vehicle has to be landed - one can load a mission
 	// while the vehicle is flying and it does not require a takeoff waypoint
 	if (!has_takeoff && _navigator->get_takeoff_required() && _navigator->get_land_detected()->landed) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff waypoint required!");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff waypoint required.");
 		return false;
 
 	}
@@ -407,7 +407,7 @@ MissionFeasibilityChecker::checkFixedWingTakeoff(const mission_s &mission, float
 			}
 
 			// if it is the first mission item, then it is accepted
-			// immediatly
+			// immediately
 			if (i == 0) {
 				has_takeoff = true;
 
@@ -454,11 +454,11 @@ MissionFeasibilityChecker::checkFixedWingTakeoff(const mission_s &mission, float
 		}
 	}
 
-	// check for a takeoof waypoint, after the above conditions have been met
+	// check for a takeoff waypoint, after the above conditions have been met
 	// MIS_TAKEOFF_REQ param has to be set and the vehicle has to be landed - one can load a mission
 	// while the vehicle is flying and it does not require a takeoff waypoint
 	if (!has_takeoff && _navigator->get_takeoff_required() && _navigator->get_land_detected()->landed) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff waypoint required!");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff waypoint required.");
 		return false;
 
 	}
