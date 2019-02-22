@@ -54,7 +54,7 @@
 #include <ctype.h>
 #include <px4_getopt.h>
 
-#include <nuttx/wqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <drivers/drv_hrt.h>
 
 #include <perf/perf_counter.h>
@@ -70,7 +70,7 @@
 #define RGBLED_ONTIME 120
 #define RGBLED_OFFTIME 120
 
-class RGBLED_PWM : public device::CDev
+class RGBLED_PWM : public device::CDev, public px4::ScheduledWorkItem
 {
 public:
 	RGBLED_PWM();
@@ -82,7 +82,6 @@ public:
 	int		status();
 
 private:
-	work_s			_work;
 
 	uint8_t			_r;
 	uint8_t			_g;
@@ -93,8 +92,7 @@ private:
 
 	LedController		_led_controller;
 
-	static void		led_trampoline(void *arg);
-	void			led();
+	void			Run() override;
 
 	int			send_led_rgb();
 	int			get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b);
@@ -115,7 +113,7 @@ RGBLED_PWM *g_rgbled = nullptr;
 
 RGBLED_PWM::RGBLED_PWM() :
 	CDev("rgbled_pwm", RGBLED_PWM0_DEVICE_PATH),
-	_work{},
+	ScheduledWorkItem(px4::wq_configurations::lp_default),
 	_r(0),
 	_g(0),
 	_b(0),
@@ -143,8 +141,9 @@ RGBLED_PWM::init()
 	send_led_rgb();
 
 	_running = true;
+
 	// kick off work queue
-	work_queue(LPWORK, &_work, (worker_t)&RGBLED_PWM::led_trampoline, this, 0);
+	ScheduleNow();
 
 	return OK;
 }
@@ -175,19 +174,11 @@ RGBLED_PWM::probe()
 	return (OK);
 }
 
-void
-RGBLED_PWM::led_trampoline(void *arg)
-{
-	RGBLED_PWM *rgbl = reinterpret_cast<RGBLED_PWM *>(arg);
-
-	rgbl->led();
-}
-
 /**
  * Main loop function
  */
 void
-RGBLED_PWM::led()
+RGBLED_PWM::Run()
 {
 	if (!_should_run) {
 		int led_control_sub = _led_controller.led_control_subscription();
@@ -249,8 +240,7 @@ RGBLED_PWM::led()
 	}
 
 	/* re-queue ourselves to run again later */
-	work_queue(LPWORK, &_work, (worker_t)&RGBLED_PWM::led_trampoline, this,
-		   USEC2TICK(_led_controller.maximum_update_interval()));
+	ScheduleDelayed(_led_controller.maximum_update_interval());
 }
 
 /**
