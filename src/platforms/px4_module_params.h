@@ -78,11 +78,8 @@ protected:
 	 */
 	virtual void updateParams()
 	{
-		ModuleParams *child = _children.getHead();
-
-		while (child) {
+		for (const auto &child : _children) {
 			child->updateParams();
-			child = child->getSibling();
 		}
 
 		updateParamsImpl();

@@ -1942,8 +1942,7 @@ MavlinkReceiver::get_message_interval(int msgId)
 {
 	unsigned interval = 0;
 
-	MavlinkStream *stream = nullptr;
-	LL_FOREACH(_mavlink->get_streams(), stream) {
+	for (const auto &stream : _mavlink->get_streams()) {
 		if (stream->get_id() == msgId) {
 			interval = stream->get_interval();
 			break;
