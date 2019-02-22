@@ -149,31 +149,41 @@ MissionFeasibilityChecker::checkRotarywing(const mission_s &mission, float home_
 		// one of the bellow mission items
 		for (size_t i = 0; i < (size_t)takeoff_index; i++) {
 			struct mission_item_s missionitem = {};
+			const ssize_t len = sizeof(struct mission_item_s);
 
-			if (missionitem.nav_cmd == NAV_CMD_IDLE ||
-			    missionitem.nav_cmd == NAV_CMD_DELAY ||
-			    missionitem.nav_cmd == NAV_CMD_DO_JUMP ||
-			    missionitem.nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
-			    missionitem.nav_cmd == NAV_CMD_DO_SET_HOME ||
-			    missionitem.nav_cmd == NAV_CMD_DO_SET_SERVO ||
-			    missionitem.nav_cmd == NAV_CMD_DO_LAND_START ||
-			    missionitem.nav_cmd == NAV_CMD_DO_TRIGGER_CONTROL ||
-			    missionitem.nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
-			    missionitem.nav_cmd == NAV_CMD_IMAGE_START_CAPTURE ||
-			    missionitem.nav_cmd == NAV_CMD_IMAGE_STOP_CAPTURE ||
-			    missionitem.nav_cmd == NAV_CMD_VIDEO_START_CAPTURE ||
-			    missionitem.nav_cmd == NAV_CMD_VIDEO_STOP_CAPTURE ||
-			    missionitem.nav_cmd == NAV_CMD_DO_MOUNT_CONFIGURE ||
-			    missionitem.nav_cmd == NAV_CMD_DO_MOUNT_CONTROL ||
-			    missionitem.nav_cmd == NAV_CMD_DO_SET_ROI ||
-			    missionitem.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION ||
-			    missionitem.nav_cmd == NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET ||
-			    missionitem.nav_cmd == NAV_CMD_DO_SET_ROI_NONE ||
-			    missionitem.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
-			    missionitem.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL ||
-			    missionitem.nav_cmd == NAV_CMD_SET_CAMERA_MODE ||
-			    missionitem.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
+			if (dm_read((dm_item_t)mission.dataman_id, i, &missionitem, len) != len) {
+				/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+				return false;
+			}
+
+			if (missionitem.nav_cmd != NAV_CMD_IDLE &&
+			    missionitem.nav_cmd != NAV_CMD_DELAY &&
+			    missionitem.nav_cmd != NAV_CMD_DO_JUMP &&
+			    missionitem.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_HOME &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO &&
+			    missionitem.nav_cmd != NAV_CMD_DO_LAND_START &&
+			    missionitem.nav_cmd != NAV_CMD_DO_TRIGGER_CONTROL &&
+			    missionitem.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&
+			    missionitem.nav_cmd != NAV_CMD_IMAGE_START_CAPTURE &&
+			    missionitem.nav_cmd != NAV_CMD_IMAGE_STOP_CAPTURE &&
+			    missionitem.nav_cmd != NAV_CMD_VIDEO_START_CAPTURE &&
+			    missionitem.nav_cmd != NAV_CMD_VIDEO_STOP_CAPTURE &&
+			    missionitem.nav_cmd != NAV_CMD_DO_MOUNT_CONFIGURE &&
+			    missionitem.nav_cmd != NAV_CMD_DO_MOUNT_CONTROL &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI_LOCATION &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI_NONE &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_DIST &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL &&
+			    missionitem.nav_cmd != NAV_CMD_SET_CAMERA_MODE &&
+			    missionitem.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
+				takeoff_first = false;
+
+			} else {
 				takeoff_first = true;
+
 			}
 		}
 	}
@@ -441,31 +451,41 @@ MissionFeasibilityChecker::checkFixedWingTakeoff(const mission_s &mission, float
 		// one of the bellow mission items
 		for (size_t i = 0; i < (size_t)takeoff_index; i++) {
 			struct mission_item_s missionitem = {};
+			const ssize_t len = sizeof(struct mission_item_s);
 
-			if (missionitem.nav_cmd == NAV_CMD_IDLE ||
-			    missionitem.nav_cmd == NAV_CMD_DELAY ||
-			    missionitem.nav_cmd == NAV_CMD_DO_JUMP ||
-			    missionitem.nav_cmd == NAV_CMD_DO_CHANGE_SPEED ||
-			    missionitem.nav_cmd == NAV_CMD_DO_SET_HOME ||
-			    missionitem.nav_cmd == NAV_CMD_DO_SET_SERVO ||
-			    missionitem.nav_cmd == NAV_CMD_DO_LAND_START ||
-			    missionitem.nav_cmd == NAV_CMD_DO_TRIGGER_CONTROL ||
-			    missionitem.nav_cmd == NAV_CMD_DO_DIGICAM_CONTROL ||
-			    missionitem.nav_cmd == NAV_CMD_IMAGE_START_CAPTURE ||
-			    missionitem.nav_cmd == NAV_CMD_IMAGE_STOP_CAPTURE ||
-			    missionitem.nav_cmd == NAV_CMD_VIDEO_START_CAPTURE ||
-			    missionitem.nav_cmd == NAV_CMD_VIDEO_STOP_CAPTURE ||
-			    missionitem.nav_cmd == NAV_CMD_DO_MOUNT_CONFIGURE ||
-			    missionitem.nav_cmd == NAV_CMD_DO_MOUNT_CONTROL ||
-			    missionitem.nav_cmd == NAV_CMD_DO_SET_ROI ||
-			    missionitem.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION ||
-			    missionitem.nav_cmd == NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET ||
-			    missionitem.nav_cmd == NAV_CMD_DO_SET_ROI_NONE ||
-			    missionitem.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST ||
-			    missionitem.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL ||
-			    missionitem.nav_cmd == NAV_CMD_SET_CAMERA_MODE ||
-			    missionitem.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION) {
+			if (dm_read((dm_item_t)mission.dataman_id, i, &missionitem, len) != len) {
+				/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+				return false;
+			}
+
+			if (missionitem.nav_cmd != NAV_CMD_IDLE &&
+			    missionitem.nav_cmd != NAV_CMD_DELAY &&
+			    missionitem.nav_cmd != NAV_CMD_DO_JUMP &&
+			    missionitem.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_HOME &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO &&
+			    missionitem.nav_cmd != NAV_CMD_DO_LAND_START &&
+			    missionitem.nav_cmd != NAV_CMD_DO_TRIGGER_CONTROL &&
+			    missionitem.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&
+			    missionitem.nav_cmd != NAV_CMD_IMAGE_START_CAPTURE &&
+			    missionitem.nav_cmd != NAV_CMD_IMAGE_STOP_CAPTURE &&
+			    missionitem.nav_cmd != NAV_CMD_VIDEO_START_CAPTURE &&
+			    missionitem.nav_cmd != NAV_CMD_VIDEO_STOP_CAPTURE &&
+			    missionitem.nav_cmd != NAV_CMD_DO_MOUNT_CONFIGURE &&
+			    missionitem.nav_cmd != NAV_CMD_DO_MOUNT_CONTROL &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI_LOCATION &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI_NONE &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_DIST &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL &&
+			    missionitem.nav_cmd != NAV_CMD_SET_CAMERA_MODE &&
+			    missionitem.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
+				takeoff_first = false;
+
+			} else {
 				takeoff_first = true;
+
 			}
 		}
 	}
