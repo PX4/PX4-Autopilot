@@ -41,7 +41,7 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_getopt.h>
-#include <px4_workqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 #include <drivers/device/spi.h>
 
@@ -112,11 +112,7 @@
 #define PMW3901_SAMPLE_RATE 10000 /*  10 ms */
 
 
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
-
-class PMW3901 : public device::SPI
+class PMW3901 : public device::SPI, public px4::ScheduledWorkItem
 {
 public:
 	PMW3901(int bus = PMW3901_BUS, enum Rotation yaw_rotation = (enum Rotation)0);
@@ -138,10 +134,9 @@ protected:
 	virtual int probe();
 
 private:
-	work_s _work;
 	ringbuffer::RingBuffer *_reports;
 	bool _sensor_ok;
-	int _measure_ticks;
+	int _measure_interval;
 	int _class_instance;
 	int _orb_class_instance;
 
@@ -178,7 +173,8 @@ private:
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
 	*/
-	void cycle();
+	void Run() override;
+
 	int	collect();
 
 	int readRegister(unsigned reg, uint8_t *data, unsigned count);
@@ -186,19 +182,7 @@ private:
 
 	int sensorInit();
 	int readMotionCount(int16_t &deltaX, int16_t &deltaY);
-
-	/**
-	* Static trampoline from the workq context; because we don't have a
-	* generic workq wrapper yet.
-	*
-	* @param arg		Instance pointer for the driver that is polling.
-	*/
-	static void cycle_trampoline(void *arg);
-
-
 };
-
-
 
 /*
  * Driver 'main' command.
@@ -207,9 +191,10 @@ extern "C" __EXPORT int pmw3901_main(int argc, char *argv[]);
 
 PMW3901::PMW3901(int bus, enum Rotation yaw_rotation) :
 	SPI("PMW3901", PMW3901_DEVICE_PATH, bus, PMW3901_SPIDEV, SPIDEV_MODE0, PMW3901_SPI_BUS_SPEED),
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 	_reports(nullptr),
 	_sensor_ok(false),
-	_measure_ticks(0),
+	_measure_interval(0),
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_optical_flow_pub(nullptr),
@@ -219,12 +204,6 @@ PMW3901::PMW3901(int bus, enum Rotation yaw_rotation) :
 	_previous_collect_timestamp(0),
 	_yaw_rotation(yaw_rotation)
 {
-
-	// enable debug() calls
-	_debug_enabled = false;
-
-	// work_cancel in the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
 }
 
 PMW3901::~PMW3901()
@@ -420,10 +399,10 @@ PMW3901::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			case SENSOR_POLLRATE_DEFAULT: {
 
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(PMW3901_SAMPLE_RATE);
+					_measure_interval = (PMW3901_SAMPLE_RATE);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -436,18 +415,18 @@ PMW3901::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
+					unsigned interval = (1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(PMW3901_SAMPLE_RATE)) {
+					if (interval < (PMW3901_SAMPLE_RATE)) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					_measure_ticks = ticks;
+					_measure_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -478,7 +457,7 @@ PMW3901::read(device::file_t *filp, char *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is enabled */
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
@@ -687,7 +666,7 @@ PMW3901::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&PMW3901::cycle_trampoline, this, USEC2TICK(PMW3901_US));
+	ScheduleDelayed(PMW3901_US);
 
 	/* notify about state change */
 	struct subsystem_info_s info = {};
@@ -709,29 +688,16 @@ PMW3901::start()
 void
 PMW3901::stop()
 {
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 }
 
 void
-PMW3901::cycle_trampoline(void *arg)
-{
-	PMW3901 *dev = (PMW3901 *)arg;
-
-	dev->cycle();
-}
-
-void
-PMW3901::cycle()
+PMW3901::Run()
 {
 	collect();
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&PMW3901::cycle_trampoline,
-		   this,
-		   USEC2TICK(PMW3901_SAMPLE_RATE));
-
+	ScheduleDelayed(PMW3901_SAMPLE_RATE);
 }
 
 void
@@ -739,10 +705,9 @@ PMW3901::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u ticks\n", _measure_ticks);
+	printf("poll interval:  %u\n", _measure_interval);
 	_reports->print_info("report queue");
 }
-
 
 /**
  * Local functions in support of the shell command.
