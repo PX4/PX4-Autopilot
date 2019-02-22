@@ -60,6 +60,8 @@ public:
 	bmp280::data_s *get_data(uint8_t addr);
 	bmp280::calibration_s *get_calibration(uint8_t addr);
 
+	uint32_t get_device_id() const override { return device::I2C::get_device_id(); }
+
 private:
 	struct bmp280::calibration_s _cal;
 	struct bmp280::data_s _data;

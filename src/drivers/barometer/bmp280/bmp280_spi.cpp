@@ -76,6 +76,8 @@ public:
 	bmp280::data_s *get_data(uint8_t addr);
 	bmp280::calibration_s *get_calibration(uint8_t addr);
 
+	uint32_t get_device_id() const override { return device::SPI::get_device_id(); }
+
 private:
 	spi_calibration_s _cal;
 	spi_data_s _data;
