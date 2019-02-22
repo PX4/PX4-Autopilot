@@ -45,8 +45,7 @@
 
 #include "LidarLite.h"
 
-#include <px4_workqueue.h>
-
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 #include <drivers/device/ringbuffer.h>
 #include <perf/perf_counter.h>
@@ -57,7 +56,7 @@
 
 
 
-class LidarLitePWM : public LidarLite, public cdev::CDev
+class LidarLitePWM : public LidarLite, public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
 	LidarLitePWM(const char *path, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
@@ -72,7 +71,7 @@ public:
 
 	void stop() override;
 
-	void cycle();
+	void Run() override;
 
 	/**
 	* @brief
@@ -85,14 +84,6 @@ public:
 	 *   print registers to console
 	 */
 	void print_registers() override;
-
-	/**
-	* Static trampoline from the workq context; because we don't have a
-	* generic workq wrapper yet.
-	*
-	* @param arg        Instance pointer for the driver that is polling.
-	*/
-	static void     cycle_trampoline(void *arg);
 
 	const char *get_dev_name() override;
 
@@ -108,7 +99,6 @@ protected:
 
 private:
 	uint8_t _rotation;
-	work_s			_work;
 	ringbuffer::RingBuffer	*_reports;
 	int			_class_instance;
 	int			_orb_class_instance;

@@ -57,8 +57,7 @@
 class LidarLite
 {
 public:
-	LidarLite();
-
+	LidarLite() = default;
 	virtual ~LidarLite() = default;
 
 	virtual int init() = 0;
@@ -89,12 +88,12 @@ protected:
 	* range to be brought in at all, otherwise it will use the defaults LL40LS_MIN_DISTANCE
 	* and LL40LS_MAX_DISTANCE_V3
 	*/
-	void                set_minimum_distance(const float min);
-	void                set_maximum_distance(const float max);
-	float               get_minimum_distance() const;
-	float               get_maximum_distance() const;
+	void                set_minimum_distance(const float min) { _min_distance = min; }
+	void                set_maximum_distance(const float max) { _max_distance = max; }
+	float               get_minimum_distance() const { return _min_distance; }
+	float               get_maximum_distance() const { return _max_distance; }
 
-	uint32_t            getMeasureTicks() const;
+	uint32_t            getMeasureInterval() const { return _measure_interval; }
 
 	virtual int         measure() = 0;
 	virtual int         collect() = 0;
@@ -102,7 +101,7 @@ protected:
 	virtual int         reset_sensor() = 0;
 
 private:
-	float               _min_distance;
-	float               _max_distance;
-	uint32_t            _measure_ticks;
+	float               _min_distance{LL40LS_MIN_DISTANCE};
+	float               _max_distance{LL40LS_MAX_DISTANCE_V3};
+	uint32_t            _measure_interval{0};
 };
