@@ -86,7 +86,7 @@ void BlockLocalPositionEstimator::sonarCorrect()
 	    && !(_sensorTimeout & SENSOR_LIDAR)) { return; }
 
 	// calculate covariance
-	float cov = _sub_sonar->get().covariance;
+	float cov = _sub_sonar->get().variance;
 
 	if (cov < 1.0e-3f) {
 		// use sensor value if reasoanble

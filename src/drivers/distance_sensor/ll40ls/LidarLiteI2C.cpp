@@ -540,7 +540,7 @@ int LidarLiteI2C::collect()
 	report.current_distance = distance_m;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
-	report.covariance = 0.0f;
+	report.variance = 0.0f;
 	report.signal_quality = signal_quality;
 	report.type =
 		distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;		// the sensor is in fact a laser + sonar but there is no enum for this
