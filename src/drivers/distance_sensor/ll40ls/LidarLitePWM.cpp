@@ -51,8 +51,8 @@
 
 LidarLitePWM::LidarLitePWM(const char *path, uint8_t rotation) :
 	CDev(path),
+	ScheduledWorkItem(px4::wq_configurations::hp_default),
 	_rotation(rotation),
-	_work{},
 	_reports(nullptr),
 	_class_instance(-1),
 	_orb_class_instance(-1),
@@ -122,7 +122,7 @@ void LidarLitePWM::print_info()
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_read_errors);
 	perf_print_counter(_sensor_zero_resets);
-	PX4_INFO("poll interval:  %u ticks", getMeasureTicks());
+	PX4_INFO("poll interval:  %u ", getMeasureInterval());
 
 	print_message(_range);
 }
@@ -135,31 +135,20 @@ void LidarLitePWM::print_registers()
 void LidarLitePWM::start()
 {
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&LidarLitePWM::cycle_trampoline, this, 1);
+	ScheduleNow();
 }
 
 void LidarLitePWM::stop()
 {
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 }
 
-void LidarLitePWM::cycle_trampoline(void *arg)
-{
-	LidarLitePWM *dev = (LidarLitePWM *)arg;
-
-	dev->cycle();
-}
-
-void LidarLitePWM::cycle()
+void LidarLitePWM::Run()
 {
 	measure();
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&LidarLitePWM::cycle_trampoline,
-		   this,
-		   getMeasureTicks());
+	ScheduleDelayed(getMeasureInterval());
 }
 
 int LidarLitePWM::measure()
@@ -213,7 +202,7 @@ ssize_t LidarLitePWM::read(device::file_t *filp, char *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is enabled */
-	if (getMeasureTicks() > 0) {
+	if (getMeasureInterval() > 0) {
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
 		 * Note that we may be pre-empted by the workq thread while we are doing this;
