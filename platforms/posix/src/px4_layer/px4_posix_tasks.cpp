@@ -65,7 +65,6 @@
 #define PX4_MAX_TASKS 50
 #define SHELL_TASK_ID (PX4_MAX_TASKS+1)
 
-pthread_t _shell_task_id = 0;
 pthread_mutex_t task_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct task_entry {
@@ -109,13 +108,6 @@ static void *entry_adapter(void *ptr)
 	PX4_DEBUG("After px4_task_exit");
 
 	return nullptr;
-}
-
-void
-px4_systemreset(bool to_bootloader)
-{
-	PX4_WARN("Called px4_system_reset");
-	system_exit(0);
 }
 
 px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, px4_main_t entry,

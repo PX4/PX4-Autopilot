@@ -53,8 +53,6 @@
 #include <pthread.h>
 #include <px4_init.h>
 
-extern pthread_t _shell_task_id;
-
 __BEGIN_DECLS
 
 long PX4_TICKS_PER_SEC = sysconf(_SC_CLK_TCK);
@@ -63,19 +61,6 @@ __END_DECLS
 
 namespace px4
 {
-
-void init_once();
-
-void init_once()
-{
-	_shell_task_id = pthread_self();
-	//printf("[init] shell id: %lu\n", (unsigned long)_shell_task_id);
-
-	work_queues_init();
-	hrt_work_queue_init();
-
-	px4_platform_init();
-}
 
 void init(int argc, char *argv[], const char *app_name)
 {
@@ -96,6 +81,11 @@ void init(int argc, char *argv[], const char *app_name)
 #else
 	(void)pthread_setname_np(pthread_self(), app_name);
 #endif
+
+	work_queues_init();
+	hrt_work_queue_init();
+
+	px4_platform_init();
 }
 
 uint64_t get_time_micros()
