@@ -77,7 +77,7 @@ void BlockLocalPositionEstimator::lidarCorrect()
 	// use parameter covariance unless sensor provides reasonable value
 	SquareMatrix<float, n_y_lidar> R;
 	R.setZero();
-	float cov = _sub_lidar->get().covariance;
+	float cov = _sub_lidar->get().variance;
 
 	if (cov < 1.0e-3f) {
 		R(0, 0) = _lidar_z_stddev.get() * _lidar_z_stddev.get();

@@ -1188,7 +1188,7 @@ int Simulator::publish_distance_topic(mavlink_distance_sensor_t *dist_mavlink)
 	dist.type = dist_mavlink->type;
 	dist.id = dist_mavlink->id;
 	dist.orientation = dist_mavlink->orientation;
-	dist.covariance = dist_mavlink->covariance / 100.0f;
+	dist.variance = dist_mavlink->covariance / 100.0f;
 	dist.signal_quality = -1;
 
 	int dist_multi;

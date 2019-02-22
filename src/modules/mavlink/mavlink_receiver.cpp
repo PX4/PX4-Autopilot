@@ -683,7 +683,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 		d.type = 1;
 		d.id = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
 		d.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-		d.covariance = 0.0;
+		d.variance = 0.0;
 
 		if (_flow_distance_sensor_pub == nullptr) {
 			_flow_distance_sensor_pub = orb_advertise_multi(ORB_ID(distance_sensor), &d,
@@ -736,7 +736,7 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 	d.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 	d.id = 0;
 	d.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	d.covariance = 0.0;
+	d.variance = 0.0;
 
 	if (_hil_distance_sensor_pub == nullptr) {
 		_hil_distance_sensor_pub = orb_advertise_multi(ORB_ID(distance_sensor), &d,
@@ -797,7 +797,7 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 	d.type = dist_sensor.type;
 	d.id = 	MAV_DISTANCE_SENSOR_LASER;
 	d.orientation = dist_sensor.orientation;
-	d.covariance = dist_sensor.covariance * 1e-4f; // cm^2 to m^2
+	d.variance = dist_sensor.covariance * 1e-4f; // cm^2 to m^2
 
 	/// TODO Add sensor rotation according to MAV_SENSOR_ORIENTATION enum
 
