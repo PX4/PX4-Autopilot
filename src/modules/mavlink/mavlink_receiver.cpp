@@ -797,7 +797,7 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 	d.type = dist_sensor.type;
 	d.id = 	MAV_DISTANCE_SENSOR_LASER;
 	d.orientation = dist_sensor.orientation;
-	d.covariance = dist_sensor.covariance;
+	d.covariance = dist_sensor.covariance * 1e-4f; // cm^2 to m^2
 
 	/// TODO Add sensor rotation according to MAV_SENSOR_ORIENTATION enum
 
