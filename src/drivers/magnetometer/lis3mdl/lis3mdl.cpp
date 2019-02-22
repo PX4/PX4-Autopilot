@@ -44,8 +44,8 @@
 
 LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rotation) :
 	CDev("LIS3MDL", path),
+	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
-	_work{},
 	_reports(nullptr),
 	_scale{},
 	_last_report{},
@@ -58,7 +58,7 @@ LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rota
 	_continuous_mode_set(false),
 	_mode(CONTINUOUS),
 	_rotation(rotation),
-	_measure_ticks(0),
+	_measure_interval(0),
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_range_ga(4.0f),
@@ -80,9 +80,6 @@ LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rota
 	_device_id.devid_s.address = _interface->get_device_address();
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_LIS3MDL;
 
-	// enable debug() calls
-	_debug_enabled = false;
-
 	// default scaling
 	_scale.x_offset = 0;
 	_scale.x_scale = 1.0f;
@@ -90,9 +87,6 @@ LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rota
 	_scale.y_scale = 1.0f;
 	_scale.z_offset = 0;
 	_scale.z_scale = 1.0f;
-
-	// work_cancel in the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
 }
 
 LIS3MDL::~LIS3MDL()
@@ -444,10 +438,10 @@ LIS3MDL::collect()
 }
 
 void
-LIS3MDL::cycle()
+LIS3MDL::Run()
 {
-	/* _measure_ticks == 0  is used as _task_should_exit */
-	if (_measure_ticks == 0) {
+	/* _measure_interval == 0  is used as _task_should_exit */
+	if (_measure_interval == 0) {
 		return;
 	}
 
@@ -464,22 +458,10 @@ LIS3MDL::cycle()
 		DEVICE_DEBUG("measure error");
 	}
 
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 		/* schedule a fresh cycle call when the measurement is done */
-		work_queue(HPWORK,
-			   &_work,
-			   (worker_t)&LIS3MDL::cycle_trampoline,
-			   this,
-			   USEC2TICK(LIS3MDL_CONVERSION_INTERVAL));
+		ScheduleDelayed(LIS3MDL_CONVERSION_INTERVAL);
 	}
-}
-
-void
-LIS3MDL::cycle_trampoline(void *arg)
-{
-	LIS3MDL *dev = (LIS3MDL *)arg;
-
-	dev->cycle();
 }
 
 int
@@ -524,10 +506,10 @@ LIS3MDL::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
-					bool not_started = (_measure_ticks == 0);
+					bool not_started = (_measure_interval == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(LIS3MDL_CONVERSION_INTERVAL);
+					_measure_interval = (LIS3MDL_CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
 					if (not_started) {
@@ -540,13 +522,13 @@ LIS3MDL::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 			/* Uses arg (hz) for a custom poll rate */
 			default: {
 					/* do we need to start internal polling? */
-					bool not_started = (_measure_ticks == 0);
+					bool not_started = (_measure_interval == 0);
 
 					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
+					unsigned interval = (1000000 / arg);
 
 					/* update interval for next measurement */
-					_measure_ticks = ticks;
+					_measure_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (not_started) {
@@ -621,7 +603,7 @@ LIS3MDL::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	PX4_INFO("poll interval:  %u ticks", _measure_ticks);
+	PX4_INFO("poll interval:  %u", _measure_interval);
 	print_message(_last_report);
 	_reports->print_info("report queue");
 }
@@ -659,7 +641,7 @@ LIS3MDL::read(struct file *file_pointer, char *buffer, size_t buffer_len)
 	}
 
 	/* if automatic measurement is enabled */
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
 		 * Note that we may be pre-empted by the workq thread while we are doing this;
@@ -808,16 +790,16 @@ LIS3MDL::start()
 	set_default_register_values();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&LIS3MDL::cycle_trampoline, this, 1);
+	ScheduleNow();
 }
 
 void
 LIS3MDL::stop()
 {
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 		/* ensure no new items are queued while we cancel this one */
-		_measure_ticks = 0;
-		work_cancel(HPWORK, &_work);
+		_measure_interval = 0;
+		ScheduleClear();
 	}
 }
 
