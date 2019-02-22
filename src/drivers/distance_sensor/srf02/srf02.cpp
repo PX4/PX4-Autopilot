@@ -40,7 +40,7 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_getopt.h>
-#include <px4_workqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <containers/Array.hpp>
 
 #include <drivers/device/i2c.h>
@@ -85,23 +85,19 @@
 #define SRF02_MAX_DISTANCE 	(7.65f)
 
 #define SRF02_CONVERSION_INTERVAL 	100000 /* 60ms for one sonar */
-#define TICKS_BETWEEN_SUCCESIVE_FIRES 	100000 /* 30ms between each sonar measurement (watch out for interference!) */
+#define SRF02_INTERVAL_BETWEEN_SUCCESIVE_FIRES 	100000 /* 30ms between each sonar measurement (watch out for interference!) */
 
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
-
-class SRF02 : public device::I2C
+class SRF02 : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
 	SRF02(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING, int bus = SRF02_BUS_DEFAULT,
 	      int address = SRF02_BASEADDR);
 	virtual ~SRF02();
 
-	virtual int 		init();
+	virtual int 		init() override;
 
-	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen);
-	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen) override;
+	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
 	/**
 	* Diagnostics - print some basic information about the driver.
@@ -109,16 +105,15 @@ public:
 	void				print_info();
 
 protected:
-	virtual int			probe();
+	virtual int			probe() override;
 
 private:
 	uint8_t _rotation;
 	float				_min_distance;
 	float				_max_distance;
-	work_s				_work{};
 	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
-	int				_measure_ticks;
+	int				_measure_interval;
 	bool				_collect_phase;
 	int				_class_instance;
 	int				_orb_class_instance;
@@ -169,18 +164,9 @@ private:
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
 	*/
-	void				cycle();
+	void					Run() override;
 	int					measure();
 	int					collect();
-	/**
-	* Static trampoline from the workq context; because we don't have a
-	* generic workq wrapper yet.
-	*
-	* @param arg		Instance pointer for the driver that is polling.
-	*/
-	static void			cycle_trampoline(void *arg);
-
-
 };
 
 /*
@@ -190,12 +176,13 @@ extern "C" __EXPORT int srf02_main(int argc, char *argv[]);
 
 SRF02::SRF02(uint8_t rotation, int bus, int address) :
 	I2C("MB12xx", SRF02_DEVICE_PATH, bus, address, 100000),
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 	_rotation(rotation),
 	_min_distance(SRF02_MIN_DISTANCE),
 	_max_distance(SRF02_MAX_DISTANCE),
 	_reports(nullptr),
 	_sensor_ok(false),
-	_measure_ticks(0),
+	_measure_interval(0),
 	_collect_phase(false),
 	_class_instance(-1),
 	_orb_class_instance(-1),
@@ -205,7 +192,6 @@ SRF02::SRF02(uint8_t rotation, int bus, int address) :
 	_cycle_counter(0),	/* initialising counter for cycling function to zero */
 	_cycling_rate(0),	/* initialising cycling rate (which can differ depending on one sonar or multiple) */
 	_index_counter(0) 	/* initialising temp sonar i2c address to zero */
-
 {
 }
 
@@ -285,7 +271,7 @@ SRF02::init()
 		_cycling_rate = SRF02_CONVERSION_INTERVAL;
 
 	} else {
-		_cycling_rate = TICKS_BETWEEN_SUCCESIVE_FIRES;
+		_cycling_rate = SRF02_INTERVAL_BETWEEN_SUCCESIVE_FIRES;
 	}
 
 	/* show the connected sonars in terminal */
@@ -347,10 +333,10 @@ SRF02::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(_cycling_rate);
+					_measure_interval = (_cycling_rate);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -364,18 +350,18 @@ SRF02::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* convert hz to tick interval via microseconds */
-					int ticks = USEC2TICK(1000000 / arg);
+					int interval = (1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(_cycling_rate)) {
+					if (interval < (_cycling_rate)) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					_measure_ticks = ticks;
+					_measure_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -407,7 +393,7 @@ SRF02::read(device::file_t *filp, char *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is enabled */
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
@@ -540,27 +526,17 @@ SRF02::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&SRF02::cycle_trampoline, this, 5);
+	ScheduleDelayed(5);
 }
 
 void
 SRF02::stop()
 {
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 }
 
 void
-SRF02::cycle_trampoline(void *arg)
-{
-
-	SRF02 *dev = (SRF02 *)arg;
-
-	dev->cycle();
-
-}
-
-void
-SRF02::cycle()
+SRF02::Run()
 {
 	if (_collect_phase) {
 		_index_counter = addr_ind[_cycle_counter]; /*sonar from previous iteration collect is now read out */
@@ -587,14 +563,11 @@ SRF02::cycle()
 		/* Is there a collect->measure gap? Yes, and the timing is set equal to the cycling_rate
 		   Otherwise the next sonar would fire without the first one having received its reflected sonar pulse */
 
-		if (_measure_ticks > USEC2TICK(_cycling_rate)) {
+		if (_measure_interval > _cycling_rate) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&SRF02::cycle_trampoline,
-				   this,
-				   _measure_ticks - USEC2TICK(_cycling_rate));
+			ScheduleDelayed(_measure_interval - _cycling_rate);
+
 			return;
 		}
 	}
@@ -614,12 +587,7 @@ SRF02::cycle()
 	_collect_phase = true;
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&SRF02::cycle_trampoline,
-		   this,
-		   USEC2TICK(_cycling_rate));
-
+	ScheduleDelayed(_cycling_rate);
 }
 
 void
@@ -627,7 +595,7 @@ SRF02::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u ticks\n", _measure_ticks);
+	printf("poll interval:  %u\n", _measure_interval);
 	_reports->print_info("report queue");
 }
 
