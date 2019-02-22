@@ -837,6 +837,8 @@ MulticopterAttitudeControl::run()
 
 	while (!should_exit()) {
 
+		// check if the selected gyro has updated first
+		sensor_correction_poll();
 		poll_fds.fd = _sensor_gyro_sub[_selected_gyro];
 
 		/* wait for up to 100ms for data */
@@ -887,7 +889,6 @@ MulticopterAttitudeControl::run()
 			vehicle_status_poll();
 			vehicle_motor_limits_poll();
 			battery_status_poll();
-			sensor_correction_poll();
 			sensor_bias_poll();
 			vehicle_land_detected_poll();
 			landing_gear_state_poll();
