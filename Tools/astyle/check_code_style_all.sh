@@ -25,7 +25,7 @@ else
 	if [ "$ASTYLE_VER" != "$ASTYLE_VER_REQUIRED_1" -a \
 	     "$ASTYLE_VER" != "$ASTYLE_VER_REQUIRED_2" -a \
 	     "$ASTYLE_VER" != "$ASTYLE_VER_REQUIRED_3" -a \
-	     "$ASTYLE_VER" != "$ASTYLE_VER_REQUIRED_4" ];
+	     "$ASTYLE_VER" != "$ASTYLE_VER_REQUIRED_4" ]
 	then
 	    echo "Error: you're using ${ASTYLE_VER}"
 	    echo "but should be using ${ASTYLE_VER_REQUIRED_1}, ${ASTYLE_VER_REQUIRED_2}, ${ASTYLE_VER_REQUIRED_3}, or ${ASTYLE_VER_REQUIRED_4} instead"
@@ -36,8 +36,7 @@ fi
 CI="${CI:-false}"
 DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
 
-if [[ "$@" == "--fix" ]]
-then
+if [[ "$@" == "--fix" ]]; then
     export PX4_ASTYLE_FIX=1
 fi
 

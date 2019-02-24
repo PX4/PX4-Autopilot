@@ -3,8 +3,7 @@ set -eu
 
 PATTERN="-e ."
 
-if [ $# -gt 0 ]
-then
+if [ $# -gt 0 ]; then
     PATTERN="$1"
 fi
 
