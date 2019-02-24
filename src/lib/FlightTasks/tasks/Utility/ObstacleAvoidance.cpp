@@ -52,15 +52,19 @@ ObstacleAvoidance::ObstacleAvoidance(ModuleParams *parent) :
 
 }
 
-void ObstacleAvoidance::prepareAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, float &yaw_sp, float &yaw_speed_sp) {
+void ObstacleAvoidance::prepareAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, float &yaw_sp,
+		float &yaw_speed_sp)
+{
 
 	if (!COM_OBS_AVOID.get()) {
 		return;
 	}
 
 	_sub_vehicle_trajectory_waypoint.update();
-	const bool avoidance_data_timeout = hrt_elapsed_time((hrt_abstime *)&_sub_vehicle_trajectory_waypoint.get().timestamp) > TRAJECTORY_STREAM_TIMEOUT_US;
-	const bool avoidance_point_valid = _sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true;
+	const bool avoidance_data_timeout = hrt_elapsed_time((hrt_abstime *)&_sub_vehicle_trajectory_waypoint.get().timestamp) >
+					    TRAJECTORY_STREAM_TIMEOUT_US;
+	const bool avoidance_point_valid =
+		_sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true;
 
 	if (!avoidance_data_timeout && avoidance_point_valid) {
 		pos_sp = _sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position;
