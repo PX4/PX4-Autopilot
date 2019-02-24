@@ -439,6 +439,7 @@ distclean: gazeboclean
 	@git submodule deinit -f .
 	@git clean -ff -x -d -e ".project" -e ".cproject" -e ".idea" -e ".settings" -e ".vscode"
 
+# Help / Error
 # --------------------------------------------------------------------
 
 # All other targets are handled by PX4_MAKE. Add a rule here to avoid printing an error.
@@ -446,22 +447,14 @@ distclean: gazeboclean
 	$(if $(filter $(FIRST_ARG),$@), \
 		$(error "$@ cannot be the first argument. Use '$(MAKE) help|list_config_targets' to get a list of all possible [configuration] targets."),@#)
 
-#help:
-#	@echo
-#	@echo "Type 'make ' and hit the tab key twice to see a list of the available"
-#	@echo "build configurations."
-#	@echo
-
-empty :=
-space := $(empty) $(empty)
-
 # Print a list of non-config targets (based on http://stackoverflow.com/a/26339924/1487069)
+space := $(subst ,, )
 help:
 	@echo "Usage: $(MAKE) <target>"
 	@echo "Where <target> is one of:"
 	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | \
 		awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | \
-		egrep -v -e '^[^[:alnum:]]' -e '^($(subst $(space),|,$(ALL_CONFIG_TARGETS) $(NUTTX_CONFIG_TARGETS)))$$' -e '_default$$' -e '^(posix|eagle|Makefile)'
+		egrep -v -e '^[^[:alnum:]]' -e '^($(subst $(space),|,$(ALL_CONFIG_TARGETS)))$$' -e '_default$$' -e '^(posix|eagle|Makefile)'
 	@echo
 	@echo "Or, $(MAKE) <config_target> [<make_target(s)>]"
 	@echo "Use '$(MAKE) list_config_targets' for a list of configuration targets."
