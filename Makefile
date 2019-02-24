@@ -1,6 +1,6 @@
 ############################################################################
 #
-# Copyright (c) 2015 - 2017 PX4 Development Team. All rights reserved.
+# Copyright (c) 2015 - 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -142,11 +142,18 @@ endif
 # --------------------------------------------------------------------
 # describe how to build a cmake config
 define cmake-build
-+@$(eval PX4_CONFIG = $(1))
-+@$(eval BUILD_DIR = "$(SRC_DIR)"/build/$(PX4_CONFIG)$(BUILD_DIR_SUFFIX))
-+@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
-+@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake "$(SRC_DIR)" -G"$(PX4_CMAKE_GENERATOR)" $(CMAKE_ARGS) -DCONFIG=$(PX4_CONFIG) || (rm -rf $(BUILD_DIR)); fi
-+@$(PX4_MAKE) -C $(BUILD_DIR) $(PX4_MAKE_ARGS) $(ARGS)
+	@$(eval BUILD_DIR = "$(SRC_DIR)/build/$(1)")
+	@# make sure to start from scratch when switching from GNU Make to Ninja
+	@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
+	@# only excplicitly configure the first build, if cache file already exists the makefile will rerun cmake automatically if necessary
+	@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then \
+		mkdir -p $(BUILD_DIR) \
+		&& cd $(BUILD_DIR) \
+		&& cmake "$(SRC_DIR)" -G"$(PX4_CMAKE_GENERATOR)" $(CMAKE_ARGS) \
+		|| (rm -rf $(BUILD_DIR)); \
+	fi
+	@# run the build for the specified target
+	@cmake --build $(BUILD_DIR) -- $(PX4_MAKE_ARGS) $(ARGS)
 endef
 
 COLOR_BLUE = \033[0;94m
@@ -159,28 +166,24 @@ endef
 # Get a list of all config targets boards/*/*.cmake
 ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 ! -name '*common*' ! -name '*sdflight*' -name '*.cmake' -print | sed -e 's/boards\///' | sed -e 's/\.cmake//' | sed -e 's/\//_/g' | sort)
 
-# Strip off default
-CONFIG_TARGETS_DEFAULT := $(patsubst %_default,%,$(filter %_default,$(ALL_CONFIG_TARGETS)))
-
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
 #  Do not put any spaces between function arguments.
 
 # All targets.
 $(ALL_CONFIG_TARGETS):
-	$(call cmake-build,$@)
+	@$(eval PX4_CONFIG = $@)
+	@$(eval CMAKE_ARGS += -DCONFIG=$(PX4_CONFIG))
+	@$(call cmake-build,$(PX4_CONFIG)$(BUILD_DIR_SUFFIX))
 
-# Abbreviated config targets.
-
-# nuttx_ is left off by default; provide a rule to allow that.
-$(NUTTX_CONFIG_TARGETS):
-	$(call cmake-build,nuttx_$@)
-
-all_nuttx_targets: $(NUTTX_CONFIG_TARGETS)
-
+# Filter for only default targets to allow omiting the "_default" postfix
+CONFIG_TARGETS_DEFAULT := $(patsubst %_default,%,$(filter %_default,$(ALL_CONFIG_TARGETS)))
 $(CONFIG_TARGETS_DEFAULT):
-	$(call cmake-build,$@_default)
+	@$(eval PX4_CONFIG = $@_default)
+	@$(eval CMAKE_ARGS += -DCONFIG=$(PX4_CONFIG))
+	@$(call cmake-build,$(PX4_CONFIG)$(BUILD_DIR_SUFFIX))
 
+all_config_targets: $(ALL_CONFIG_TARGETS)
 all_default_targets: $(CONFIG_TARGETS_DEFAULT)
 
 posix: px4_sitl_default
@@ -199,7 +202,7 @@ posix_sitl_default:
 	$(MAKE) px4_sitl_default
 
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
-.PHONY: all posix px4_sitl_default all_nuttx_targets all_default_targets
+.PHONY: all posix px4_sitl_default all_config_targets all_default_targets
 
 # Multi- config targets.
 eagle_default: atlflight_eagle_default atlflight_eagle_qurt-default
