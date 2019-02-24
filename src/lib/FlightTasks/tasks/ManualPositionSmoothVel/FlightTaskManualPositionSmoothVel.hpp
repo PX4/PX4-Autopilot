@@ -71,7 +71,7 @@ private:
 	bool _position_lock_xy_active{false};
 	bool _position_lock_z_active{false};
 	matrix::Vector2f _position_setpoint_xy_locked;
-	float _position_setpoint_z_locked;
+	float _position_setpoint_z_locked{NAN};
 
 	uint8_t _reset_counter{0}; /**< counter for estimator resets in xy-direction */
 };
