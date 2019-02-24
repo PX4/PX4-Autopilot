@@ -154,7 +154,7 @@ private:
 			       float &accel_out, float &vel_out, float &pos_out);
 
 	/* Inputs */
-	float _vel_sp;
+	float _vel_sp{0.0f};
 	float _dt = 1.f;
 
 	/* Constraints */
