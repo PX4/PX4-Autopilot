@@ -68,6 +68,7 @@ using namespace time_literals;
 
 ADIS16497::ADIS16497(int bus, const char *path_accel, const char *path_gyro, uint32_t device, enum Rotation rotation) :
 	SPI("ADIS16497", path_accel, bus, device, SPIDEV_MODE3, 5000000),
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 	_gyro(new ADIS16497_gyro(this, path_gyro)),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ADIS16497_read")),
 	_sample_interval_perf(perf_alloc(PC_INTERVAL, "ADIS16497_read_int")),
@@ -474,7 +475,7 @@ ADIS16497::start()
 	stop();
 
 	// Start polling at the specified rate
-	hrt_call_every(&_call, 1000, _call_interval, (hrt_callout)&ADIS16497::measure_trampoline, this);
+	ScheduleOnInterval(_call_interval, 1000);
 #endif
 }
 
@@ -485,7 +486,7 @@ ADIS16497::stop()
 	// Disable data ready callback
 	px4_arch_gpiosetevent(GPIO_SPI1_DRDY1_ADIS16497, false, false, false, nullptr, nullptr);
 #else
-	hrt_cancel(&_call);
+	ScheduleClear();
 #endif
 }
 
@@ -495,18 +496,16 @@ ADIS16497::data_ready_interrupt(int irq, void *context, void *arg)
 	ADIS16497 *dev = reinterpret_cast<ADIS16497 *>(arg);
 
 	/* make another measurement */
-	dev->measure();
+	dev->ScheduleNow();
 
 	return PX4_OK;
 }
 
 void
-ADIS16497::measure_trampoline(void *arg)
+ADIS16497::Run()
 {
-	ADIS16497 *dev = reinterpret_cast<ADIS16497 *>(arg);
-
 	/* make another measurement */
-	dev->measure();
+	measure();
 }
 
 int
