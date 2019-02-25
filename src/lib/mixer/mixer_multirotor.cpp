@@ -388,15 +388,22 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	// Slew rate limiting and saturation checking
 	for (unsigned i = 0; i < _rotor_count; i++) {
 		bool clipping_high = false;
-		bool clipping_low = false;
+		bool clipping_low_roll_pitch = false;
+		bool clipping_low_yaw = false;
 
-		// check for saturation against static limits
-		if (outputs[i] > 0.99f) {
-			clipping_high = true;
+		// Check for saturation against static limits.
+		// We only check for low clipping if airmode is disabled (or yaw
+		// clipping if airmode==roll/pitch), since in all other cases thrust will
+		// be reduced or boosted and we can keep the integrators enabled, which
+		// leads to better tracking performance.
+		if (outputs[i] < _idle_speed + 0.01f) {
+			if (_airmode == Airmode::disabled) {
+				clipping_low_roll_pitch = true;
+				clipping_low_yaw = true;
 
-		} else if (outputs[i] < _idle_speed + 0.01f) {
-			clipping_low = true;
-
+			} else if (_airmode == Airmode::roll_pitch) {
+				clipping_low_yaw = true;
+			}
 		}
 
 		// check for saturation against slew rate limits
@@ -409,7 +416,8 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 
 			} else if (delta_out < -_delta_out_max) {
 				outputs[i] = _outputs_prev[i] - _delta_out_max;
-				clipping_low = true;
+				clipping_low_roll_pitch = true;
+				clipping_low_yaw = true;
 
 			}
 		}
@@ -417,7 +425,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		_outputs_prev[i] = outputs[i];
 
 		// update the saturation status report
-		update_saturation_status(i, clipping_high, clipping_low);
+		update_saturation_status(i, clipping_high, clipping_low_roll_pitch, clipping_low_yaw);
 	}
 
 	// this will force the caller of the mixer to always supply new slew rate values, otherwise no slew rate limiting will happen
@@ -431,10 +439,12 @@ MultirotorMixer::mix(float *outputs, unsigned space)
  *
  * index: 0 based index identifying the motor that is saturating
  * clipping_high: true if the motor demand is being limited in the positive direction
- * clipping_low: true if the motor demand is being limited in the negative direction
+ * clipping_low_roll_pitch: true if the motor demand is being limited in the negative direction (roll/pitch)
+ * clipping_low_yaw: true if the motor demand is being limited in the negative direction (yaw)
 */
 void
-MultirotorMixer::update_saturation_status(unsigned index, bool clipping_high, bool clipping_low)
+MultirotorMixer::update_saturation_status(unsigned index, bool clipping_high, bool clipping_low_roll_pitch,
+		bool clipping_low_yaw)
 {
 	// The motor is saturated at the upper limit
 	// check which control axes and which directions are contributing
@@ -475,7 +485,7 @@ MultirotorMixer::update_saturation_status(unsigned index, bool clipping_high, bo
 
 	// The motor is saturated at the lower limit
 	// check which control axes and which directions are contributing
-	if (clipping_low) {
+	if (clipping_low_roll_pitch) {
 		// check if the roll input is saturating
 		if (_rotors[index].roll_scale > 0.0f) {
 			// A negative change in roll will increase saturation
@@ -496,6 +506,11 @@ MultirotorMixer::update_saturation_status(unsigned index, bool clipping_high, bo
 			_saturation_status.flags.pitch_pos = true;
 		}
 
+		// A negative change in thrust will increase saturation
+		_saturation_status.flags.thrust_neg = true;
+	}
+
+	if (clipping_low_yaw) {
 		// check if the yaw input is saturating
 		if (_rotors[index].yaw_scale > 0.0f) {
 			// A negative change in yaw will increase saturation
@@ -505,9 +520,6 @@ MultirotorMixer::update_saturation_status(unsigned index, bool clipping_high, bo
 			// A positive change in yaw will increase saturation
 			_saturation_status.flags.yaw_pos = true;
 		}
-
-		// A negative change in thrust will increase saturation
-		_saturation_status.flags.thrust_neg = true;
 	}
 
 	_saturation_status.flags.valid = true;
