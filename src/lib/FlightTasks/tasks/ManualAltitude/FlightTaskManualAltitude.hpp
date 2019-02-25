@@ -40,12 +40,14 @@
 #pragma once
 
 #include "FlightTaskManual.hpp"
+#include <uORB/topics/home_position.h>
 
 class FlightTaskManualAltitude : public FlightTaskManual
 {
 public:
 	FlightTaskManualAltitude() = default;
 	virtual ~FlightTaskManualAltitude() = default;
+	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 	bool activate() override;
 	bool updateInitialize() override;
 	bool update() override;
@@ -73,7 +75,10 @@ protected:
 					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) MPC_HOLD_MAX_XY,
 					(ParamFloat<px4::params::MPC_Z_P>) MPC_Z_P, /**< position controller altitude propotional gain */
 					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) MPC_MAN_Y_MAX, /**< scaling factor from stick to yaw rate */
-					(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) MPC_MAN_TILT_MAX /**< maximum tilt allowed for manual flight */
+					(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) MPC_MAN_TILT_MAX, /**< maximum tilt allowed for manual flight */
+					(ParamFloat<px4::params::MPC_LAND_ALT1>) MPC_LAND_ALT1, // altitude at which to start downwards slowdown
+					(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude below wich to land with land speed
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) MPC_LAND_SPEED
 				       )
 private:
 	/**
@@ -95,6 +100,13 @@ private:
 
 	void _respectMaxAltitude();
 
+	/**
+	 * Sets downwards velocity constraint based on the distance to ground.
+	 * To ensure a slowdown to land speed before hitting the ground.
+	 */
+	void _respectGroundSlowdown();
+
+	uORB::Subscription<home_position_s> *_sub_home_position{nullptr};
 
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
 	float _max_speed_up = 10.0f;
