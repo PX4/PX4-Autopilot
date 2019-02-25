@@ -799,7 +799,7 @@ private:
 	 */
 	inline void mix_yaw(float yaw, float *outputs);
 
-	void update_saturation_status(unsigned index, bool clipping_high, bool clipping_low);
+	void update_saturation_status(unsigned index, bool clipping_high, bool clipping_low_roll_pitch, bool clipping_low_yaw);
 
 	float				_roll_scale;
 	float				_pitch_scale;
