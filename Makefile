@@ -143,10 +143,12 @@ endif
 # describe how to build a cmake config
 define cmake-build
 	@$(eval BUILD_DIR = "$(SRC_DIR)/build/$(1)")
+	@# check if the desired cmake configuration matches the cache then CMAKE_CACHE_CHECK stays empty
+	@$(call cmake-cache-check)
 	@# make sure to start from scratch when switching from GNU Make to Ninja
 	@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
 	@# only excplicitly configure the first build, if cache file already exists the makefile will rerun cmake automatically if necessary
-	@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then \
+	@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ] || [ $(CMAKE_CACHE_CHECK) ]; then \
 		mkdir -p $(BUILD_DIR) \
 		&& cd $(BUILD_DIR) \
 		&& cmake "$(SRC_DIR)" -G"$(PX4_CMAKE_GENERATOR)" $(CMAKE_ARGS) \
@@ -154,6 +156,19 @@ define cmake-build
 	fi
 	@# run the build for the specified target
 	@cmake --build $(BUILD_DIR) -- $(PX4_MAKE_ARGS) $(ARGS)
+endef
+
+# check if the options we want to build with in CMAKE_ARGS match the ones which are already configured in the cache inside BUILD_DIR
+define cmake-cache-check
+	@# change to build folder which fails if it doesn't exist and CACHED_CMAKE_OPTIONS stays empty
+	@# fetch all previously configured and cached options from the build folder and transform them into the OPTION=VALUE format without type (e.g. :BOOL)
+	@$(eval CACHED_CMAKE_OPTIONS = $(shell cd $(BUILD_DIR) 2>/dev/null && cmake -L 2>/dev/null | sed -n 's/\([^[:blank:]]*\):[^[:blank:]]*\(=[^[:blank:]]*\)/\1\2/gp' ))
+	@# transform the options in CMAKE_ARGS into the OPTION=VALUE format without -D
+	@$(eval DESIRED_CMAKE_OPTIONS = $(shell echo $(CMAKE_ARGS) | sed -n 's/-D\([^[:blank:]]*=[^[:blank:]]*\)/\1/gp' ))
+	@# find each currently desired option in the already cached ones
+	@$(eval VERIFIED_CMAKE_OPTIONS = $(foreach option,$(DESIRED_CMAKE_OPTIONS),$(findstring $(option),$(CACHED_CMAKE_OPTIONS))))
+	@# if the complete list of desired options is found in the list of verified options we don't need to reconfigure and CMAKE_CACHE_CHECK stays empty
+	@$(eval CMAKE_CACHE_CHECK = $(if $(findstring $(DESIRED_CMAKE_OPTIONS),$(VERIFIED_CMAKE_OPTIONS)),,y))
 endef
 
 COLOR_BLUE = \033[0;94m
