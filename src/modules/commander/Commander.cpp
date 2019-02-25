@@ -3906,11 +3906,13 @@ void Commander::data_link_check(bool &status_changed)
 				case (telemetry_status_s::MAV_TYPE_ONBOARD_CONTROLLER):
 					_datalink_last_heartbeat_onboard_controller = telemetry.heartbeat_time;
 
-					if (_onboard_controller_lost != false) {
-						mavlink_log_info(&mavlink_log_pub, "ONBOARD CONTROLLER REGAINED");
-					}
+					if (_onboard_controller_lost) {
+						if (hrt_elapsed_time(&_datalink_last_heartbeat_onboard_controller) < (5_s)) {
+							mavlink_log_info(&mavlink_log_pub, "ONBOARD CONTROLLER REGAINED");
+							_onboard_controller_lost = false;
+						}
 
-					_onboard_controller_lost = false;
+					}
 
 					if (telemetry.remote_component_id == telemetry_status_s::COMPONENT_ID_OBSTACLE_AVOIDANCE) {
 						if (telemetry.heartbeat_time != _datalink_last_heartbeat_avoidance_system) {
@@ -3948,17 +3950,15 @@ void Commander::data_link_check(bool &status_changed)
 	}
 
 	// ONBOARD CONTROLLER data link loss failsafe (hard coded 5 seconds)
-	//  only issue a periodic warning for now
 	if ((_datalink_last_heartbeat_onboard_controller > 0)
-	    && (hrt_elapsed_time(&_datalink_last_heartbeat_onboard_controller) > 5_s) &&
-	    (hrt_elapsed_time(&_onboard_controller_lost) > 5_s)) {
+	    && (hrt_elapsed_time(&_datalink_last_heartbeat_onboard_controller) > 5_s) && !_onboard_controller_lost) {
 
-		_onboard_controller_lost = hrt_absolute_time();
 		mavlink_log_critical(&mavlink_log_pub, "ONBOARD CONTROLLER LOST");
+		_onboard_controller_lost = true;
 	}
 
 	// AVOIDANCE SYSTEM state check (only if it is enabled)
-	if (_obs_avoid.get()) {
+	if (_obs_avoid.get() && !_onboard_controller_lost) {
 
 		//if avoidance never started
 		if (_datalink_last_heartbeat_avoidance_system == 0 && hrt_elapsed_time(&_avoidance_system_not_started) > 5_s) {
@@ -3967,10 +3967,9 @@ void Commander::data_link_check(bool &status_changed)
 		}
 
 		//if heartbeats stop
-		if ((_datalink_last_heartbeat_avoidance_system > 0)
-		    && (hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > 5_s) &&
-		    (hrt_elapsed_time(&_avoidance_system_lost) > 5_s)) {
-			_avoidance_system_lost = hrt_absolute_time();
+		if (!_avoidance_system_lost && (_datalink_last_heartbeat_avoidance_system > 0)
+		    && (hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > 5_s)) {
+			_avoidance_system_lost = true;
 			mavlink_log_critical(&mavlink_log_pub, "AVOIDANCE SYSTEM LOST");
 		}
 
@@ -3985,7 +3984,7 @@ void Commander::data_link_check(bool &status_changed)
 			}
 
 			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_CRITICAL) {
-				mavlink_log_critical(&mavlink_log_pub, "AVOIDANCE SYSTEM TIMEOUT");
+				mavlink_log_info(&mavlink_log_pub, "AVOIDANCE SYSTEM TIMEOUT");
 			}
 
 			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_FLIGHT_TERMINATION) {
