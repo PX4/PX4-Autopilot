@@ -193,3 +193,18 @@ PARAM_DEFINE_INT32(CBRK_USB_CHK, 0);
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_VELPOSERR, 0);
+
+/**
+ * Circuit breaker for power avionics check
+ *
+ * Setting this parameter to 586987 will disable the power avionics valid
+ * checks in the commander.
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 586987
+ * @category Developer
+ * @group Circuit Breaker
+ */
+PARAM_DEFINE_INT32(CBRK_AVIO_CHK, 0);
