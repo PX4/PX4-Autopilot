@@ -2603,6 +2603,7 @@ get_circuit_breaker_params()
 	status_flags.circuit_breaker_flight_termination_disabled = circuit_breaker_enabled("CBRK_FLIGHTTERM",
 			CBRK_FLIGHTTERM_KEY);
 	status_flags.circuit_breaker_engaged_posfailure_check = circuit_breaker_enabled("CBRK_VELPOSERR", CBRK_VELPOSERR_KEY);
+	status_flags.circuit_breaker_engaged_avionics_check = circuit_breaker_enabled("CBRK_AVIO_CHK", CBRK_AVIO_CHK_KEY);
 }
 
 void
