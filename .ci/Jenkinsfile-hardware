@@ -40,7 +40,7 @@ pipeline {
 
         stage('px4fmu-v4_default') {
           agent {
-            label 'px4fmu-v4'
+            label 'px4_fmu-v4'
           }
           steps {
             script {
@@ -49,8 +49,7 @@ pipeline {
                 sh 'find /dev/serial'
                 unstash 'scripts-px4_fmu-v4_default'
                 unstash 'px4_fmu-v4_default'
-                sh ''' JLinkGDBServerCLExe -device STM32F427VI -endian little -if SWD -speed auto -noir -LocalhostOnly -silent & \
-                      gdb-multiarch -nx --batch \
+                sh ''' gdb-multiarch -nx --batch \
                       -ex "target remote localhost:2331" \
                       -ex "monitor reset 0" \
                       -ex "load" \
