@@ -3907,7 +3907,7 @@ void Commander::data_link_check(bool &status_changed)
 					_datalink_last_heartbeat_onboard_controller = telemetry.heartbeat_time;
 
 					if (_onboard_controller_lost) {
-						if (hrt_elapsed_time(&_datalink_last_heartbeat_onboard_controller) < (5_s)) {
+						if (hrt_elapsed_time(&_datalink_last_heartbeat_onboard_controller) < _onboard_regain_threshold.get() * 1_s) {
 							mavlink_log_info(&mavlink_log_pub, "ONBOARD CONTROLLER REGAINED");
 							_onboard_controller_lost = false;
 						}
@@ -3951,7 +3951,8 @@ void Commander::data_link_check(bool &status_changed)
 
 	// ONBOARD CONTROLLER data link loss failsafe (hard coded 5 seconds)
 	if ((_datalink_last_heartbeat_onboard_controller > 0)
-	    && (hrt_elapsed_time(&_datalink_last_heartbeat_onboard_controller) > 5_s) && !_onboard_controller_lost) {
+	    && (hrt_elapsed_time(&_datalink_last_heartbeat_onboard_controller) > _onboard_loss_timeout.get() * 1_s)
+	    && !_onboard_controller_lost) {
 
 		mavlink_log_critical(&mavlink_log_pub, "ONBOARD CONTROLLER LOST");
 		_onboard_controller_lost = true;
