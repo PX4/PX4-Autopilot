@@ -169,17 +169,7 @@ pipeline {
                 sh 'export'
                 sh 'find /dev/serial'
                 unstash 'px4_fmu-v2_test'
-                sh '''gdb-multiarch -nx --batch \
-                      -ex "target remote localhost:2331" \
-                      -ex "monitor reset 0" \
-                      -ex "load" \
-                      -ex "compare-sections" \
-                      -ex "monitor reset 0" \
-                      -ex "monitor sleep 1000" \
-                      -ex "monitor go" \
-                      -ex "kill" \
-                      build/px4_fmu-v2_test/px4_fmu-v2_test.elf
-                '''
+                sh 'platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v2_test/px4_fmu-v2_test.elf'
                 sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*` --baudrate 57600'
                 //sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*`'
               } catch (Exception err) {
@@ -203,51 +193,7 @@ pipeline {
                 sh 'export'
                 sh 'find /dev/serial'
                 unstash 'px4_fmu-v3_default'
-                sh '''gdb-multiarch -nx --batch \
-                      -ex "target remote localhost:2331" \
-                      -ex "monitor reset 0" \
-                      -ex "load" \
-                      -ex "compare-sections" \
-                      -ex "monitor reset 0" \
-                      -ex "monitor sleep 1000" \
-                      -ex "monitor go" \
-                      -ex "kill" \
-                      build/px4_fmu-v3_default/px4_fmu-v3_default.elf
-                '''
-                sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*` --baudrate 57600'
-                sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*`'
-              } catch (Exception err) {
-                  // always report passed for now
-                  currentBuild.result = 'SUCCESS'
-              }
-            } // script
-          }
-          options {
-            timeout(time: 600, unit: 'SECONDS')
-          }
-        }
-
-        stage('px4_fmu-v3_default (pixhack-v3)') {
-          agent {
-            label 'pixhack-v3'
-          }
-          steps {
-            script {
-              try {
-                sh 'export'
-                sh 'find /dev/serial'
-                unstash 'px4_fmu-v3_default'
-                sh '''gdb-multiarch -nx --batch \
-                      -ex "target remote localhost:2331" \
-                      -ex "monitor reset 0" \
-                      -ex "load" \
-                      -ex "compare-sections" \
-                      -ex "monitor reset 0" \
-                      -ex "monitor sleep 1000" \
-                      -ex "monitor go" \
-                      -ex "kill" \
-                      build/px4_fmu-v3_default/px4_fmu-v3_default.elf
-                '''
+                sh 'platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v3_default/px4_fmu-v3_default.elf'
                 sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*` --baudrate 57600'
                 sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*`'
               } catch (Exception err) {
@@ -271,17 +217,7 @@ pipeline {
                 sh 'export'
                 sh 'find /dev/serial'
                 unstash 'px4_fmu-v4_default'
-                sh ''' gdb-multiarch -nx --batch \
-                      -ex "target remote localhost:2331" \
-                      -ex "monitor reset 0" \
-                      -ex "load" \
-                      -ex "compare-sections" \
-                      -ex "monitor reset 0" \
-                      -ex "monitor sleep 1000" \
-                      -ex "monitor go" \
-                      -ex "kill" \
-                      build/px4_fmu-v4_default/px4_fmu-v4_default.elf
-                '''
+                sh 'platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v4_default/px4_fmu-v4_default.elf'
                 sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*` --baudrate 57600'
                 sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*`'
               } catch (Exception err) {
@@ -305,17 +241,7 @@ pipeline {
                 sh 'export'
                 sh 'find /dev/serial'
                 unstash 'px4_fmu-v4pro_default'
-                sh '''gdb-multiarch -nx --batch \
-                      -ex "target remote localhost:2331" \
-                      -ex "monitor reset 0" \
-                      -ex "load" \
-                      -ex "compare-sections" \
-                      -ex "monitor reset 0" \
-                      -ex "monitor sleep 1000" \
-                      -ex "monitor go" \
-                      -ex "kill" \
-                      build/px4_fmu-v4pro_default/px4_fmu-v4pro_default.elf
-                '''
+                sh 'platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v4pro_default/px4_fmu-v4pro_default.elf'
                 sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*` --baudrate 57600'
                 sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*`'
               } catch (Exception err) {
@@ -339,17 +265,7 @@ pipeline {
                 sh 'export'
                 sh 'find /dev/serial'
                 unstash 'px4_fmu-v5_default'
-                sh '''gdb-multiarch -nx --batch \
-                      -ex "target remote localhost:2331" \
-                      -ex "monitor reset 0" \
-                      -ex "load" \
-                      -ex "compare-sections" \
-                      -ex "monitor reset 0" \
-                      -ex "monitor sleep 1000" \
-                      -ex "monitor go" \
-                      -ex "kill" \
-                      build/px4_fmu-v5_default/px4_fmu-v5_default.elf
-                '''
+                sh './platforms/nuttx/Debug/jlink_gdb_upload.sh  build/px4_fmu-v5_default/px4_fmu-v5_default.elf'
                 sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*` --baudrate 57600'
                 sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*`'
               } catch (Exception err) {
@@ -373,17 +289,7 @@ pipeline {
                 sh 'export'
                 sh 'find /dev/serial'
                 unstash 'px4_fmu-v5_stackcheck'
-                sh '''gdb-multiarch -nx --batch \
-                      -ex "target remote localhost:2331" \
-                      -ex "monitor reset 0" \
-                      -ex "load" \
-                      -ex "compare-sections" \
-                      -ex "monitor reset 0" \
-                      -ex "monitor sleep 1000" \
-                      -ex "monitor go" \
-                      -ex "kill" \
-                      build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf
-                '''
+                sh './platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf'
                 sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*` --baudrate 57600'
                 sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*`'
               } catch (Exception err) {
