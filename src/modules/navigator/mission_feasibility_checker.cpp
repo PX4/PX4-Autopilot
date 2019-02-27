@@ -106,11 +106,12 @@ MissionFeasibilityChecker::checkRotarywing(const mission_s &mission, float home_
 bool
 MissionFeasibilityChecker::checkFixedwing(const mission_s &mission, float home_alt, bool land_start_req)
 {
-	/*
-	 * Perform checks and issue feedback to the user for all checks
-	 * Mission is only marked as feasible if all checks return true
-	 */
-	return (checkTakeoff(mission, home_alt) && checkFixedWingLanding(mission, land_start_req));
+	/* Perform checks and issue feedback to the user for all checks */
+	bool resTakeoff = checkTakeoff(mission, home_alt);
+	bool resLanding = checkFixedWingLanding(mission, land_start_req);
+
+	/* Mission is only marked as feasible if all checks return true */
+	return (resTakeoff && resLanding);
 }
 
 bool
