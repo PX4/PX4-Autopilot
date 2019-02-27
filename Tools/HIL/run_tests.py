@@ -22,7 +22,7 @@ def do_tests(port, baudrate):
             finished = 1
         time.sleep(0.05)
 
-    ser.write('tests perf\n')
+    ser.write('tests all\n')
 
     finished = 0
     while finished == 0:
