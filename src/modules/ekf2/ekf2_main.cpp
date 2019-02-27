@@ -916,11 +916,12 @@ void Ekf2::run()
 					_ekf.set_air_density(airdata.rho);
 
 					// calculate static pressure error = Pmeas - Ptruth
-					// model position error sensitivity as a body fixed ellipse with a different scale in the positive and 
+					// model position error sensitivity as a body fixed ellipse with a different scale in the positive and
 					// negative X and Y directions
 					const Vector3f vel_body_wind = get_vel_body_wind();
 
 					float K_pstatic_coef_x;
+
 					if (vel_body_wind(0) >= 0.0f) {
 						K_pstatic_coef_x = _K_pstatic_coef_xp.get();
 
@@ -929,6 +930,7 @@ void Ekf2::run()
 					}
 
 					float K_pstatic_coef_y;
+
 					if (vel_body_wind(1) >= 0.0f) {
 						K_pstatic_coef_y = _K_pstatic_coef_yp.get();
 
