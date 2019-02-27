@@ -350,12 +350,16 @@ endif()
 
 add_custom_target(jlink_upload
 	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink.sh
-	COMMAND ${GDB} --nx --batch
-		-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
+	COMMAND ${GDB} -nx -batch
 		-ex 'target remote localhost:2331'
-		-ex 'monitor reset'
+		-ex 'monitor reset 0'
 		-ex 'load'
+		-ex 'compare-sections'
+		-ex 'monitor reset 0'
+		-ex 'monitor sleep 1000'
+		-ex 'monitor go'
 		-ex 'kill'
+		-ex 'quit'
 		$<TARGET_FILE:px4>
 	DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
@@ -364,12 +368,15 @@ add_custom_target(jlink_upload
 
 add_custom_target(jlink_debug
 	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink.sh
-	COMMAND ${GDB} --nh
+	COMMAND ${GDB} -nh
 		-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
 		-ex 'target remote localhost:2331'
-		-ex 'monitor reset'
+		-ex 'monitor reset 0'
 		-ex 'load'
-		-ex 'monitor reset'
+		-ex 'compare-sections'
+		-ex 'monitor reset 0'
+		-ex 'monitor sleep 1000'
+		-ex 'monitor go'
 		-ex 'continue'
 		$<TARGET_FILE:px4>
 	DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit
