@@ -42,6 +42,12 @@ using namespace matrix;
 
 static constexpr float SIGMA_NORM	= 0.001f;
 
+FlightTaskAuto::FlightTaskAuto() :
+	_obstacle_avoidance(this)
+{
+
+}
+
 bool FlightTaskAuto::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
 	if (!FlightTask::initializeSubscriptions(subscription_array)) {
@@ -57,6 +63,10 @@ bool FlightTaskAuto::initializeSubscriptions(SubscriptionArray &subscription_arr
 	}
 
 	if (!subscription_array.get(ORB_ID(vehicle_status), _sub_vehicle_status)) {
+		return false;
+	}
+
+	if (!_obstacle_avoidance.initializeSubscriptions(subscription_array)) {
 		return false;
 	}
 

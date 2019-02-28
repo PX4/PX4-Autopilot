@@ -46,6 +46,8 @@
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/vehicle_status.h>
 #include <lib/ecl/geo/geo.h>
+#include "lib/FlightTasks/tasks/Utility/ObstacleAvoidance.hpp"
+
 
 /**
  * This enum has to agree with position_setpoint_s type definition
@@ -73,7 +75,7 @@ enum class State {
 class FlightTaskAuto : public FlightTask
 {
 public:
-	FlightTaskAuto() = default;
+	FlightTaskAuto();
 
 	virtual ~FlightTaskAuto() = default;
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
@@ -84,6 +86,7 @@ public:
 	 * Sets an external yaw handler which can be used to implement a different yaw control strategy.
 	 */
 	void setYawHandler(WeatherVane *ext_yaw_handler) override {_ext_yaw_handler = ext_yaw_handler;}
+	ObstacleAvoidance _obstacle_avoidance;
 
 protected:
 	void _setDefaultConstraints() override;
@@ -112,6 +115,8 @@ protected:
 					(ParamInt<px4::params::MPC_YAW_MODE>) _param_mpc_yaw_mode, // defines how heading is executed,
 					(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid // obstacle avoidance active
 				       );
+
+
 
 private:
 	matrix::Vector2f _lock_position_xy{NAN, NAN}; /**< if no valid triplet is received, lock positition to current position */
