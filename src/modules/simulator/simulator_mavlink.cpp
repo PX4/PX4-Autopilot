@@ -368,9 +368,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		break;
 
 	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
-		mavlink_distance_sensor_t dist;
-		mavlink_msg_distance_sensor_decode(msg, &dist);
-		publish_distance_topic(&dist);
+		handle_message_distance_sensor(msg);
 		break;
 
 	case MAVLINK_MSG_ID_HIL_GPS:
@@ -497,6 +495,13 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		break;
 	}
 
+}
+
+void Simulator::handle_message_distance_sensor(const mavlink_message_t *msg)
+{
+	mavlink_distance_sensor_t dist;
+	mavlink_msg_distance_sensor_decode(msg, &dist);
+	publish_distance_topic(&dist);
 }
 
 void Simulator::handle_message_landing_target(const mavlink_message_t *msg)
