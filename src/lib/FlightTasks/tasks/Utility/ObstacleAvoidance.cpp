@@ -52,6 +52,15 @@ ObstacleAvoidance::ObstacleAvoidance(ModuleParams *parent) :
 
 }
 
+bool ObstacleAvoidance::initializeSubscriptions(SubscriptionArray &subscription_array)
+{
+	if (!subscription_array.get(ORB_ID(vehicle_trajectory_waypoint), _sub_vehicle_trajectory_waypoint)) {
+		return false;
+	}
+
+	return true;
+}
+
 void ObstacleAvoidance::prepareAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, float &yaw_sp,
 		float &yaw_speed_sp)
 {
@@ -60,16 +69,15 @@ void ObstacleAvoidance::prepareAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &ve
 		return;
 	}
 
-	_sub_vehicle_trajectory_waypoint.update();
-	const bool avoidance_data_timeout = hrt_elapsed_time((hrt_abstime *)&_sub_vehicle_trajectory_waypoint.get().timestamp) >
-					    TRAJECTORY_STREAM_TIMEOUT_US;
+	const bool avoidance_data_timeout = hrt_elapsed_time((hrt_abstime *)&_sub_vehicle_trajectory_waypoint->get().timestamp)
+					    > TRAJECTORY_STREAM_TIMEOUT_US;
 	const bool avoidance_point_valid =
-		_sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true;
+		_sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true;
 
 	if (!avoidance_data_timeout && avoidance_point_valid) {
-		pos_sp = _sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position;
-		vel_sp = _sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity;
-		yaw_sp =  _sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw;
-		yaw_speed_sp = _sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed;
+		pos_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position;
+		vel_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity;
+		yaw_sp =  _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw;
+		yaw_speed_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed;
 	}
 }

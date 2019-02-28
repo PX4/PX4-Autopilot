@@ -53,11 +53,13 @@ public:
 	ObstacleAvoidance(ModuleParams *parent);
 	~ObstacleAvoidance() = default;
 
+	bool initializeSubscriptions(SubscriptionArray &subscription_array);
+
 	void prepareAvoidanceSetpoints(matrix::Vector3f &pos_sp, matrix::Vector3f &vel_sp, float &yaw_sp, float &yaw_speed_sp);
 
 private:
 
-	uORB::Subscription<vehicle_trajectory_waypoint_s> _sub_vehicle_trajectory_waypoint{ORB_ID(vehicle_trajectory_waypoint)};
+	uORB::Subscription<vehicle_trajectory_waypoint_s> *_sub_vehicle_trajectory_waypoint{nullptr};
 
   DEFINE_PARAMETERS(
     (ParamInt<px4::params::COM_OBS_AVOID>) COM_OBS_AVOID             /**< obstacle avoidance enabled */
