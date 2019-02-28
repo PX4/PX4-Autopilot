@@ -279,29 +279,29 @@ pipeline {
           }
         }
 
-        // stage('px4_fmu-v5_stackcheck') {
-        //   agent {
-        //     label 'px4_fmu-v5'
-        //   }
-        //   steps {
-        //     script {
-        //       try {
-        //         sh 'export'
-        //         sh 'find /dev/serial'
-        //         unstash 'px4_fmu-v5_stackcheck'
-        //         sh './platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf'
-        //         sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*` --baudrate 57600'
-        //         sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*`'
-        //       } catch (Exception err) {
-        //           // always report passed for now
-        //           currentBuild.result = 'SUCCESS'
-        //       }
-        //     } // script
-        //   }
-        //   options {
-        //     timeout(time: 600, unit: 'SECONDS')
-        //   }
-        // }
+        stage('px4_fmu-v5_stackcheck') {
+          agent {
+            label 'px4_fmu-v5'
+          }
+          steps {
+            script {
+              try {
+                sh 'export'
+                sh 'find /dev/serial'
+                unstash 'px4_fmu-v5_stackcheck'
+                sh './platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf'
+                sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*` --baudrate 57600'
+                sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*`'
+              } catch (Exception err) {
+                  // always report passed for now
+                  currentBuild.result = 'SUCCESS'
+              }
+            } // script
+          }
+          options {
+            timeout(time: 600, unit: 'SECONDS')
+          }
+        }
 
       } // parallel
     } // stage Flash
