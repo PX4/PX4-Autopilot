@@ -357,9 +357,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		break;
 
 	case MAVLINK_MSG_ID_HIL_OPTICAL_FLOW:
-		mavlink_hil_optical_flow_t flow;
-		mavlink_msg_hil_optical_flow_decode(msg, &flow);
-		publish_flow_topic(&flow);
+		handle_message_optical_flow(msg);
 		break;
 
 	case MAVLINK_MSG_ID_ODOMETRY:
@@ -520,6 +518,13 @@ void Simulator::handle_message_landing_target(const mavlink_message_t *msg)
 
 	int irlock_multi;
 	orb_publish_auto(ORB_ID(irlock_report), &_irlock_report_pub, &report, &irlock_multi, ORB_PRIO_HIGH);
+}
+
+void Simulator::handle_message_optical_flow(const mavlink_message_t *msg)
+{
+	mavlink_hil_optical_flow_t flow;
+	mavlink_msg_hil_optical_flow_decode(msg, &flow);
+	publish_flow_topic(&flow);
 }
 
 void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
