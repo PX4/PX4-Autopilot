@@ -26,14 +26,14 @@ then
 
 	param set MC_AIRMODE 1
 	param set MC_PITCHRATE_D 0.0012
-	param set MC_PITCHRATE_I 0.45
+	param set MC_PITCHRATE_I 0.25
 	param set MC_PITCHRATE_MAX 1200
-	param set MC_PITCHRATE_P 0.084
+	param set MC_PITCHRATE_P 0.082
 	param set MC_PITCH_P 8
 	param set MC_ROLLRATE_D 0.0012
-	param set MC_ROLLRATE_I 0.45
+	param set MC_ROLLRATE_I 0.2
 	param set MC_ROLLRATE_MAX 1200
-	param set MC_ROLLRATE_P 0.078
+	param set MC_ROLLRATE_P 0.076
 	param set MC_ROLL_P 8
 	param set MC_YAWRATE_I 0.3
 	param set MC_YAWRATE_MAX 600
