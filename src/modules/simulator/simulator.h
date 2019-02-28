@@ -333,6 +333,7 @@ private:
 	void handle_message(mavlink_message_t *msg, bool publish);
 	void handle_message_distance_sensor(const mavlink_message_t *msg);
 	void handle_message_landing_target(const mavlink_message_t *msg);
+	void handle_message_optical_flow(const mavlink_message_t *msg);
 
 	void parameters_update(bool force);
 	void poll_topics();
