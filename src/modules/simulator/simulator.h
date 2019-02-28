@@ -330,7 +330,7 @@ private:
 
 	mavlink_hil_actuator_controls_t actuator_controls_from_outputs(const actuator_outputs_s &actuators);
 
-	void handle_message(mavlink_message_t *msg, bool publish);
+	void handle_message(mavlink_message_t *msg);
 	void handle_message_distance_sensor(const mavlink_message_t *msg);
 	void handle_message_hil_state_quaternion(const mavlink_message_t *msg);
 	void handle_message_landing_target(const mavlink_message_t *msg);
@@ -338,12 +338,13 @@ private:
 
 	void parameters_update(bool force);
 	void poll_topics();
-	void poll_for_MAVLink_messages(bool publish);
+	void poll_for_MAVLink_messages();
 	void request_hil_state_quaternion();
 	void send();
 	void send_controls();
 	void send_heartbeat();
 	void send_mavlink_message(const mavlink_message_t &aMsg);
+	void set_publish(const bool publish);
 	void update_sensors(mavlink_hil_sensor_t *imu);
 	void update_gps(mavlink_hil_gps_t *gps_sim);
 
@@ -365,6 +366,8 @@ private:
 	struct map_projection_reference_s _hil_local_proj_ref {};
 
 	bool _hil_local_proj_inited{false};
+	bool _publish{false};
+
 	double _hil_ref_lat{0};
 	double _hil_ref_lon{0};
 	float _hil_ref_alt{0.0f};
