@@ -289,7 +289,7 @@ void Simulator::update_gps(mavlink_hil_gps_t *gps_sim)
 	write_gps_data((void *)&gps);
 }
 
-void Simulator::handle_message(mavlink_message_t *msg, bool publish)
+void Simulator::handle_message(mavlink_message_t *msg)
 {
 	switch (msg->msgid) {
 	case MAVLINK_MSG_ID_HIL_SENSOR: {
@@ -318,7 +318,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 			last_time = now_us;
 #endif
 
-			if (publish) {
+			if (_publish) {
 				publish_sensor_topics(&imu);
 			}
 
@@ -373,7 +373,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		mavlink_hil_gps_t gps_sim;
 		mavlink_msg_hil_gps_decode(msg, &gps_sim);
 
-		if (publish) {
+		if (_publish) {
 			//PX4_WARN("FIXME:  Need to publish GPS topic.  Not done yet.");
 		}
 
@@ -386,7 +386,7 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		fill_rc_input_msg(&_rc_input, &rc_channels);
 
 		// publish message
-		if (publish) {
+		if (_publish) {
 			int rc_multi;
 			orb_publish_auto(ORB_ID(input_rc), &_rc_channels_pub, &_rc_input, &rc_multi, ORB_PRIO_HIGH);
 		}
@@ -402,7 +402,6 @@ void Simulator::handle_message(mavlink_message_t *msg, bool publish)
 		handle_message_hil_state_quaternion(msg);
 		break;
 	}
-
 }
 
 void Simulator::handle_message_distance_sensor(const mavlink_message_t *msg)
@@ -664,7 +663,7 @@ void Simulator::initialize_sensor_data()
 	write_airspeed_data(&airspeed);
 }
 
-void Simulator::poll_for_MAVLink_messages(bool publish)
+void Simulator::poll_for_MAVLink_messages()
 {
 #ifdef __PX4_DARWIN
 	pthread_setname_np("sim_rcv");
@@ -818,7 +817,7 @@ void Simulator::poll_for_MAVLink_messages(bool publish)
 
 				for (int i = 0; i < len; i++) {
 					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &mavlink_status)) {
-						handle_message(&msg, publish);
+						handle_message(&msg);
 					}
 				}
 			}
@@ -838,7 +837,8 @@ void Simulator::poll_for_MAVLink_messages(bool publish)
 				for (int i = 0; i < len; ++i) {
 					if (mavlink_parse_char(MAVLINK_COMM_1, serial_buf[i], &msg, &serial_status)) {
 						// have a message, handle it
-						handle_message(&msg, true);
+						set_publish(true);
+						handle_message(&msg);
 					}
 				}
 			}
@@ -846,6 +846,8 @@ void Simulator::poll_for_MAVLink_messages(bool publish)
 
 #endif
 	}
+
+	set_publish(false);
 }
 
 
@@ -1213,4 +1215,9 @@ int Simulator::publish_distance_topic(mavlink_distance_sensor_t *dist_mavlink)
 	orb_publish_auto(ORB_ID(distance_sensor), &_dist_pub, &dist, &dist_multi, ORB_PRIO_HIGH);
 
 	return OK;
+}
+
+void Simulator::set_publish(const bool publish)
+{
+	_publish = publish;
 }
