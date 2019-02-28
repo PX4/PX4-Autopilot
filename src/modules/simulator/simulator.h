@@ -373,7 +373,9 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _battery_drain_interval_s, ///< battery drain interval
-		(ParamInt<px4::params::MAV_TYPE>) _param_system_type
+		(ParamInt<px4::params::MAV_TYPE>) _param_system_type,
+		(ParamInt<px4::params::MAV_SYS_ID>) _param_system_id,
+		(ParamInt<px4::params::MAV_COMP_ID>) _param_component_id
 	)
 
 #endif

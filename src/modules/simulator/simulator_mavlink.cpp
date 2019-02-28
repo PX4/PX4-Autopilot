@@ -184,7 +184,7 @@ void Simulator::send_controls()
 			const mavlink_hil_actuator_controls_t hil_act_control = actuator_controls_from_outputs(actuators);
 
 			mavlink_message_t message{};
-			mavlink_msg_hil_actuator_controls_encode(0, 200, &message, &hil_act_control);
+			mavlink_msg_hil_actuator_controls_encode(_param_system_id.get(), _param_component_id.get(), &message, &hil_act_control);
 
 			PX4_DEBUG("sending controls t=%ld (%ld)", actuators.timestamp, hil_act_control.time_usec);
 
@@ -600,7 +600,7 @@ void Simulator::request_hil_state_quaternion()
 	cmd_long.command = MAV_CMD_SET_MESSAGE_INTERVAL;
 	cmd_long.param1 = MAVLINK_MSG_ID_HIL_STATE_QUATERNION;
 	cmd_long.param2 = 5e3;
-	mavlink_msg_command_long_encode(0, 50, &message, &cmd_long);
+	mavlink_msg_command_long_encode(_param_system_id.get(), _param_component_id.get(), &message, &cmd_long);
 	send_mavlink_message(message);
 }
 
@@ -610,7 +610,7 @@ void Simulator::send_heartbeat()
 	mavlink_message_t message = {};
 	hb.autopilot = 12;
 	hb.base_mode |= (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 128 : 0;
-	mavlink_msg_heartbeat_encode(0, 50, &message, &hb);
+	mavlink_msg_heartbeat_encode(_param_system_id.get(), _param_component_id.get(), &message, &hb);
 	send_mavlink_message(message);
 }
 
