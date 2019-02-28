@@ -40,11 +40,7 @@
 
 using namespace matrix;
 
-FlightTaskAutoMapper2::FlightTaskAutoMapper2() :
-	_obstacle_avoidance(this)
-{
 
-}
 
 bool FlightTaskAutoMapper2::activate()
 {
