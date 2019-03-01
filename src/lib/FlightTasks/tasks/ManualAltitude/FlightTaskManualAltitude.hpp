@@ -76,9 +76,10 @@ protected:
 					(ParamFloat<px4::params::MPC_Z_P>) MPC_Z_P, /**< position controller altitude propotional gain */
 					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) MPC_MAN_Y_MAX, /**< scaling factor from stick to yaw rate */
 					(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) MPC_MAN_TILT_MAX, /**< maximum tilt allowed for manual flight */
-					(ParamFloat<px4::params::MPC_LAND_ALT1>) MPC_LAND_ALT1, // altitude at which to start downwards slowdown
-					(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, // altitude below wich to land with land speed
-					(ParamFloat<px4::params::MPC_LAND_SPEED>) MPC_LAND_SPEED
+					(ParamFloat<px4::params::MPC_LAND_ALT1>) MPC_LAND_ALT1, /**< altitude at which to start downwards slowdown */
+					(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, /**< altitude below wich to land with land speed */
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) MPC_LAND_SPEED, /**< desired downwards speed when approaching the ground */
+					(ParamFloat<px4::params::MPC_TKO_SPEED>) MPC_TKO_SPEED /**< desired upwards speed when still close to the ground */
 				       )
 private:
 	/**
