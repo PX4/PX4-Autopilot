@@ -108,7 +108,6 @@ private:
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
 	orb_advert_t	_traj_sp_pub{nullptr};		/**< trajectory setpoints publication */
 	orb_advert_t	_local_pos_sp_pub{nullptr};		/**< vehicle local position setpoint publication */
-	orb_advert_t _traj_wp_avoidance_desired_pub{nullptr}; /**< trajectory waypoint desired publication */
 	orb_advert_t _pub_vehicle_command{nullptr};           /**< vehicle command publication */
 	orb_id_t _attitude_setpoint_id{nullptr};
 	orb_advert_t	_landing_gear_pub{nullptr};
@@ -120,7 +119,6 @@ private:
 	int		_local_pos_sub{-1};			/**< vehicle local position */
 	int		_att_sub{-1};				/**< vehicle attitude */
 	int		_home_pos_sub{-1}; 			/**< home position */
-	int		_traj_wp_avoidance_sub{-1};	/**< trajectory waypoint */
 
 	int _task_failure_count{0};         /**< counter for task failures */
 
@@ -144,8 +142,6 @@ private:
 	vehicle_control_mode_s	_control_mode{};		/**< vehicle control mode */
 	vehicle_local_position_s _local_pos{};			/**< vehicle local position */
 	home_position_s	_home_pos{};			/**< home position */
-	vehicle_trajectory_waypoint_s _traj_wp_avoidance{};		/**< trajectory waypoint */
-	vehicle_trajectory_waypoint_s _traj_wp_avoidance_desired{};	/**< desired waypoints, inputs to an obstacle avoidance module */
 	landing_gear_s _landing_gear{};
 	int8_t _old_landing_gear_position{landing_gear_s::GEAR_KEEP};
 
@@ -160,7 +156,6 @@ private:
 		(ParamInt<px4::params::MPC_AUTO_MODE>) _param_mpc_auto_mode,
 		(ParamInt<px4::params::MPC_ALT_MODE>) _param_mpc_alt_mode,
 		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) _param_mpc_spoolup_time, /**< time to let motors spool up after arming */
-		(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid, /**< enable obstacle avoidance */
 		(ParamFloat<px4::params::MPC_TILTMAX_LND>) _param_mpc_tiltmax_lnd /**< maximum tilt for landing and smooth takeoff */
 	);
 
@@ -276,22 +271,9 @@ private:
 		      const bool warn);
 
 	/**
-	 * Fill desired vehicle_trajectory_waypoint:
-	 * point1: current position, desired velocity
-	 * point2: current triplet only if in auto mode
-	 * @param states current vehicle state
-	 */
-	void update_avoidance_waypoint_desired(PositionControlStates &states, vehicle_local_position_setpoint_s &setpoint);
-
-	/**
 	 * Reset setpoints to NAN
 	 */
 	void reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint);
-
-	/**
-	 * Publish desired vehicle_trajectory_waypoint
-	 */
-	void publish_avoidance_desired_waypoint();
 
 	/**
 	 * Shim for calling task_main from task_create.
@@ -461,11 +443,6 @@ MulticopterPositionControl::poll_subscriptions()
 		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
 	}
 
-	orb_check(_traj_wp_avoidance_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_trajectory_waypoint), _traj_wp_avoidance_sub, &_traj_wp_avoidance);
-	}
 }
 
 void
@@ -574,7 +551,6 @@ MulticopterPositionControl::run()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
-	_traj_wp_avoidance_sub = orb_subscribe(ORB_ID(vehicle_trajectory_waypoint));
 
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	orb_set_interval(_local_pos_sub, 20); // 50 Hz updates
@@ -670,12 +646,6 @@ MulticopterPositionControl::run()
 			}
 
 			publish_trajectory_sp(setpoint);
-
-			/* desired waypoints for obstacle avoidance:
-			 * point_0 contains the current position with the desired velocity
-			 * point_1 contains _pos_sp_triplet.current if valid
-			 */
-			update_avoidance_waypoint_desired(_states, setpoint);
 
 			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
 			landing_gear_s gear = _flight_tasks.getGear();
@@ -826,7 +796,6 @@ MulticopterPositionControl::run()
 	orb_unsubscribe(_local_pos_sub);
 	orb_unsubscribe(_att_sub);
 	orb_unsubscribe(_home_pos_sub);
-	orb_unsubscribe(_traj_wp_avoidance_sub);
 }
 
 void
@@ -1129,31 +1098,6 @@ MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint
 }
 
 void
-MulticopterPositionControl::update_avoidance_waypoint_desired(PositionControlStates &states,
-		vehicle_local_position_setpoint_s &setpoint)
-{
-	if (_param_com_obs_avoid.get()) {
-		_traj_wp_avoidance_desired = _flight_tasks.getAvoidanceWaypoint();
-		_traj_wp_avoidance_desired.timestamp = hrt_absolute_time();
-		_traj_wp_avoidance_desired.type = vehicle_trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
-
-		states.position.copyTo(_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].position);
-
-		_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[0] = setpoint.vx;
-		_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[1] = setpoint.vy;
-		_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity[2] = setpoint.vz;
-
-		states.acceleration.copyTo(_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].acceleration);
-
-		_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw = states.yaw;
-		_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed = NAN;
-		_traj_wp_avoidance_desired.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid = true;
-
-		publish_avoidance_desired_waypoint();
-	}
-}
-
-void
 MulticopterPositionControl::reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint)
 {
 	setpoint.x = setpoint.y = setpoint.z = NAN;
@@ -1161,19 +1105,6 @@ MulticopterPositionControl::reset_setpoint_to_nan(vehicle_local_position_setpoin
 	setpoint.yaw = setpoint.yawspeed = NAN;
 	setpoint.acc_x = setpoint.acc_y = setpoint.acc_z = NAN;
 	setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = NAN;
-}
-
-void
-MulticopterPositionControl::publish_avoidance_desired_waypoint()
-{
-	// publish desired waypoint
-	if (_traj_wp_avoidance_desired_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_trajectory_waypoint_desired), _traj_wp_avoidance_desired_pub, &_traj_wp_avoidance_desired);
-
-	} else {
-		_traj_wp_avoidance_desired_pub = orb_advertise(ORB_ID(vehicle_trajectory_waypoint_desired),
-						 &_traj_wp_avoidance_desired);
-	}
 }
 
 void
