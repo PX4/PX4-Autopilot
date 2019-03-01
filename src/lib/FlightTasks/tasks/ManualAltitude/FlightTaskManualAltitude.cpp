@@ -277,12 +277,15 @@ void FlightTaskManualAltitude::_respectGroundSlowdown()
 		dist_to_ground = -(_position(2) - _sub_home_position->get().z);
 	}
 
-	// limit downwards speed gradually within the altitudes MPC_LAND_ALT1 and MPC_LAND_ALT2
+	// limit speed gradually within the altitudes MPC_LAND_ALT1 and MPC_LAND_ALT2
 	if (PX4_ISFINITE(dist_to_ground)) {
-		const float slowdown_limit = math::gradual(dist_to_ground,
-					     MPC_LAND_ALT2.get(), MPC_LAND_ALT1.get(),
-					     MPC_LAND_SPEED.get(), _constraints.speed_down);
-		_velocity_setpoint(2) = math::min(_velocity_setpoint(2), slowdown_limit);
+		const float limit_down = math::gradual(dist_to_ground,
+						       MPC_LAND_ALT2.get(), MPC_LAND_ALT1.get(),
+						       MPC_LAND_SPEED.get(), _constraints.speed_down);
+		const float limit_up = math::gradual(dist_to_ground,
+						     MPC_LAND_ALT2.get(), MPC_LAND_ALT1.get(),
+						     MPC_TKO_SPEED.get(), _constraints.speed_up);
+		_velocity_setpoint(2) = math::constrain(_velocity_setpoint(2), -limit_up, limit_down);
 	}
 }
 
