@@ -235,14 +235,20 @@ bool FlightTaskAuto::_evaluateTriplets()
 	State previous_state = _current_state;
 	_current_state = _getCurrentState();
 
+
+
 	if (triplet_update || (_current_state != previous_state)) {
 		_updateInternalWaypoints();
-		_updateAvoidanceWaypoints();
 		_mission_gear = _sub_triplet_setpoint->get().current.landing_gear;
 	}
 
 	if (_param_com_obs_avoid.get() && _sub_vehicle_status->get().is_rotary_wing) {
-		_checkAvoidanceProgress();
+		_obstacle_avoidance.updateAvoidanceWaypoints(_triplet_target, _yaw_setpoint, _yawspeed_setpoint, _triplet_next_wp,
+				_sub_triplet_setpoint->get().next.yaw,
+				_sub_triplet_setpoint->get().next.yawspeed_valid ? _sub_triplet_setpoint->get().next.yawspeed : NAN);
+		_obstacle_avoidance.updateAvoidanceSetpoints(_position_setpoint, _velocity_setpoint);
+		_obstacle_avoidance.checkAvoidanceProgress(_position, _triplet_prev_wp, _target_acceptance_radius, _closest_pt);
+		// _checkAvoidanceProgress();
 	}
 
 	return true;
@@ -299,70 +305,6 @@ void FlightTaskAuto::_set_heading_from_mode()
 		_yaw_lock = false;
 		_yaw_setpoint = NAN;
 	}
-}
-
-void FlightTaskAuto::_updateAvoidanceWaypoints()
-{
-	_desired_waypoint.timestamp = hrt_absolute_time();
-
-	_triplet_target.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].position);
-	Vector3f(NAN, NAN, NAN).copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].velocity);
-	Vector3f(NAN, NAN, NAN).copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].acceleration);
-
-	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].yaw = _yaw_setpoint;
-	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].yaw_speed = _yawspeed_setpoint;
-	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].point_valid = true;
-
-
-	_triplet_next_wp.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].position);
-	Vector3f(NAN, NAN, NAN).copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].velocity);
-	Vector3f(NAN, NAN, NAN).copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].acceleration);
-
-	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].yaw = _sub_triplet_setpoint->get().next.yaw;
-	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].yaw_speed =
-		_sub_triplet_setpoint->get().next.yawspeed_valid ?
-		_sub_triplet_setpoint->get().next.yawspeed : NAN;
-	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].point_valid = true;
-}
-
-void FlightTaskAuto::_checkAvoidanceProgress()
-{
-	position_controller_status_s pos_control_status = {};
-	pos_control_status.timestamp = hrt_absolute_time();
-
-	// vector from previous triplet to current target
-	Vector2f prev_to_target = Vector2f(_triplet_target - _triplet_prev_wp);
-	// vector from previous triplet to the vehicle projected position on the line previous-target triplet
-	Vector2f prev_to_closest_pt = _closest_pt - Vector2f(_triplet_prev_wp);
-	// fraction of the previous-tagerget line that has been flown
-	const float prev_curr_travelled = prev_to_closest_pt.length() / prev_to_target.length();
-
-	Vector2f pos_to_target = Vector2f(_triplet_target - _position);
-
-	if (prev_curr_travelled > 1.0f) {
-		// if the vehicle projected position on the line previous-target is past the target waypoint,
-		// increase the target acceptance radius such that navigator will update the triplets
-		pos_control_status.acceptance_radius = pos_to_target.length() + 0.5f;
-	}
-
-	const float pos_to_target_z = fabsf(_triplet_target(2) - _position(2));
-
-	if (pos_to_target.length() < _target_acceptance_radius && pos_to_target_z > _param_nav_mc_alt_rad.get()) {
-		// vehicle above or below the target waypoint
-		pos_control_status.altitude_acceptance = pos_to_target_z + 0.5f;
-	}
-
-	// do not check for waypoints yaw acceptance in navigator
-	pos_control_status.yaw_acceptance = NAN;
-
-	if (_pub_pos_control_status == nullptr) {
-		_pub_pos_control_status = orb_advertise(ORB_ID(position_controller_status), &pos_control_status);
-
-	} else {
-		orb_publish(ORB_ID(position_controller_status), _pub_pos_control_status, &pos_control_status);
-
-	}
-
 }
 
 bool FlightTaskAuto::_isFinite(const position_setpoint_s &sp)
