@@ -43,6 +43,7 @@
 
 #include <px4_module_params.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/position_controller_status.h>
 #include <lib/FlightTasks/tasks/FlightTask/SubscriptionArray.hpp>
 #include <matrix/matrix/math.hpp>
 #include <px4_defines.h>
@@ -51,18 +52,31 @@ class ObstacleAvoidance : public ModuleParams
 {
 public:
 	ObstacleAvoidance(ModuleParams *parent);
-	~ObstacleAvoidance() = default;
+	~ObstacleAvoidance();
 
 	bool initializeSubscriptions(SubscriptionArray &subscription_array);
 
 	void prepareAvoidanceSetpoints(matrix::Vector3f &pos_sp, matrix::Vector3f &vel_sp, float &yaw_sp, float &yaw_speed_sp);
+	void updateAvoidanceWaypoints(const matrix::Vector3f &curr_wp, const float curr_yaw, const float curr_yawspeed,
+				      const matrix::Vector3f &next_wp, const float next_yaw, const float next_yawspeed);
+	void updateAvoidanceSetpoints(const matrix::Vector3f &pos_sp, const matrix::Vector3f &vel_sp);
+	void checkAvoidanceProgress(const matrix::Vector3f &pos, const matrix::Vector3f &prev_wp,
+				    float target_acceptance_radius,
+				    const matrix::Vector2f &closest_pt);
 
 private:
 
 	uORB::Subscription<vehicle_trajectory_waypoint_s> *_sub_vehicle_trajectory_waypoint{nullptr};
 
   DEFINE_PARAMETERS(
-    (ParamInt<px4::params::COM_OBS_AVOID>) COM_OBS_AVOID             /**< obstacle avoidance enabled */
+    (ParamInt<px4::params::COM_OBS_AVOID>) COM_OBS_AVOID,             /**< obstacle avoidance enabled */
+		(ParamFloat<px4::params::NAV_MC_ALT_RAD>) NAV_MC_ALT_RAD
   );
+
+	vehicle_trajectory_waypoint_s _desired_waypoint = {};
+	orb_advert_t _traj_wp_avoidance_desired_pub{nullptr}; /**< trajectory waypoint desired publication */
+	orb_advert_t _pub_pos_control_status{nullptr};
+
+	void _publish_avoidance_desired_waypoint();
 
 };
