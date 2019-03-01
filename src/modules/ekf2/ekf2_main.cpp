@@ -488,7 +488,7 @@ private:
 		(ParamFloat<px4::params::EKF2_PCOEF_YP>)
 		_K_pstatic_coef_yp,	///< static pressure position error coefficient along the positive Y body axis
 		(ParamFloat<px4::params::EKF2_PCOEF_YN>)
-		_K_pstatic_coef_yn,	///< static pressure position error coefficient along the negativeY body axis
+		_K_pstatic_coef_yn,	///< static pressure position error coefficient along the negative Y body axis
 		(ParamFloat<px4::params::EKF2_PCOEF_Z>)
 		_K_pstatic_coef_z,	///< static pressure position error coefficient along the Z body axis
 
