@@ -122,8 +122,9 @@ private:
 	void handle_message(mavlink_message_t *msg);
 	void handle_message_command_long(mavlink_message_t *msg);
 	void handle_message_command_int(mavlink_message_t *msg);
+
 	/**
-	 * common method to handle both mavlink command types. T is one of mavlink_command_int_t or mavlink_command_long_t
+	 * Common method to handle both mavlink command types. T is one of mavlink_command_int_t or mavlink_command_long_t.
 	 */
 	template<class T>
 	void handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
@@ -171,22 +172,22 @@ private:
 	 * Set the interval at which the given message stream is published.
 	 * The rate is the number of messages per second.
 	 *
-	 * @param msgId the message ID of to change the interval of
-	 * @param interval the interval in us to send the message at
-	 * @param data_rate the total link data rate in bytes per second
+	 * @param msgId The ID of the message interval to be set.
+	 * @param interval The interval in usec to send the message.
+	 * @param data_rate The total link data rate in bytes per second.
 	 *
-	 * @return PX4_OK on success, PX4_ERROR on fail
+	 * @return PX4_OK on success, PX4_ERROR on fail.
 	 */
 	int set_message_interval(int msgId, float interval, int data_rate = -1);
 	void get_message_interval(int msgId);
 
 	/**
-	 * Decode a switch position from a bitfield
+	 * Decode a switch position from a bitfield.
 	 */
 	switch_pos_t decode_switch_pos(uint16_t buttons, unsigned sw);
 
 	/**
-	 * Decode a switch position from a bitfield and state
+	 * Decode a switch position from a bitfield and state.
 	 */
 	int decode_switch_pos_n(uint16_t buttons, unsigned sw);
 
@@ -283,6 +284,7 @@ private:
 	param_t _p_flow_minhgt{PARAM_INVALID};
 	param_t _p_flow_maxhgt{PARAM_INVALID};
 
+	// Disallow copy construction and move assignment.
 	MavlinkReceiver(const MavlinkReceiver &) = delete;
 	MavlinkReceiver operator=(const MavlinkReceiver &) = delete;
 };
