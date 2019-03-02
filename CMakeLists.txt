@@ -414,6 +414,20 @@ if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 endif()
 
 #=============================================================================
+# Testing - Automatic unit and integration testing with CTest
+#
+
+option(unit_testing "Configure unit test targets" OFF)
+
+list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake/gtest/)
+include(px4_add_gtest)
+
+if(unit_testing)
+   include(gtest)
+   add_custom_target(unit_test COMMAND GTEST_COLOR=1 ${CMAKE_CTEST_COMMAND} -V -R Test USES_TERMINAL)
+endif()
+
+#=============================================================================
 # subdirectories
 #
 add_library(parameters_interface INTERFACE)
