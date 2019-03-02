@@ -837,8 +837,10 @@ void Simulator::poll_for_MAVLink_messages()
 				for (int i = 0; i < len; ++i) {
 					if (mavlink_parse_char(MAVLINK_COMM_1, serial_buf[i], &msg, &serial_status)) {
 						// have a message, handle it
+						bool prev_publish = _publish;
 						set_publish(true);
 						handle_message(&msg);
+						set_publish(prev_publish);
 					}
 				}
 			}
@@ -846,8 +848,6 @@ void Simulator::poll_for_MAVLink_messages()
 
 #endif
 	}
-
-	set_publish(false);
 }
 
 
