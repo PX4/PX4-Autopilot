@@ -344,7 +344,7 @@ private:
 	void send_controls();
 	void send_heartbeat();
 	void send_mavlink_message(const mavlink_message_t &aMsg);
-	void set_publish(const bool publish);
+	void set_publish(const bool publish = false);
 	void update_sensors(mavlink_hil_sensor_t *imu);
 	void update_gps(mavlink_hil_gps_t *gps_sim);
 
