@@ -337,8 +337,13 @@ format:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard tests_avoidance
+.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard tests_avoidance unit_test
 .PHONY: rostest python_coverage
+
+unit_test:
+	$(eval CMAKE_ARGS += -Dunit_testing=ON)
+	$(eval ARGS += unit_test)
+	$(call cmake-build,px4_sitl_default)
 
 tests:
 	@$(MAKE) --no-print-directory px4_sitl_test test_results \

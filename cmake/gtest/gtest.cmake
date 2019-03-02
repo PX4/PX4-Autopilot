@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+# Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,12 +31,13 @@
 #
 ############################################################################
 
-px4_add_library(AttitudeControl
-	AttitudeControl.cpp
-)
-target_include_directories(AttitudeControl
-	PUBLIC
-	${CMAKE_CURRENT_SOURCE_DIR}
-)
+# Download and unpack googletest at configure time
+configure_file(${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt.in googletest-download/CMakeLists.txt)
+execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" . RESULT_VARIABLE result1 WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download)
+execute_process(COMMAND ${CMAKE_COMMAND} --build . RESULT_VARIABLE result2 WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download)
+if(result1 OR result2)
+	message(FATAL_ERROR "Preparing googletest failed: ${result1} ${result2}")
+endif()
 
-px4_add_gtest(SRC AttitudeControlTest.cpp LINKLIBS AttitudeControl)
+# Add googletest, defines gtest and gtest_main targets
+add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src ${CMAKE_CURRENT_BINARY_DIR}/googletest-build EXCLUDE_FROM_ALL)

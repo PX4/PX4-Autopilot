@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+# Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,12 +31,38 @@
 #
 ############################################################################
 
-px4_add_library(AttitudeControl
-	AttitudeControl.cpp
-)
-target_include_directories(AttitudeControl
-	PUBLIC
-	${CMAKE_CURRENT_SOURCE_DIR}
-)
+include(px4_base)
 
-px4_add_gtest(SRC AttitudeControlTest.cpp LINKLIBS AttitudeControl)
+#=============================================================================
+#
+#	px4_add_gtest
+#
+#	Adds a googletest unit test to the unit_test target.
+#
+function(px4_add_gtest)
+	# skip if unit testing is not configured
+	if(unit_testing)
+		# parse source file and library dependencies from arguments
+		px4_parse_function_args(
+			NAME px4_add_gtest
+			ONE_VALUE SRC
+			MULTI_VALUE LINKLIBS
+			REQUIRED SRC
+			ARGN ${ARGN})
+
+		# infer test name from source filname without extension
+		get_filename_component(TESTNAME ${SRC} NAME_WE)
+
+		# build a binary for the unit test
+		add_executable(${TESTNAME} EXCLUDE_FROM_ALL ${SRC})
+
+		# link the libary to test and gtest
+		target_link_libraries(${TESTNAME} ${LINKLIBS} gtest_main)
+
+		# add the test to the ctest plan
+		add_test(NAME ${TESTNAME} COMMAND ${TESTNAME})
+
+		# attach it to the unit test target
+		add_dependencies(unit_test ${TESTNAME})
+	endif()
+endfunction()
