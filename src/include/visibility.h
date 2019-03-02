@@ -86,7 +86,7 @@
 #ifdef __cplusplus
 #include <cstdlib>
 #endif
-#pragma GCC poison exit
+//#pragma GCC poison exit
 
 #include <stdlib.h>
 
