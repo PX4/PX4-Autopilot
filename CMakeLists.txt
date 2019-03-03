@@ -424,7 +424,7 @@ include(px4_add_gtest)
 
 if(unit_testing)
    include(gtest)
-   add_custom_target(unit_test COMMAND GTEST_COLOR=1 ${CMAKE_CTEST_COMMAND} -V -R Test USES_TERMINAL)
+   add_custom_target(unit_test COMMAND GTEST_COLOR=1 ${CMAKE_CTEST_COMMAND} -V -R UnitTest- USES_TERMINAL)
 endif()
 
 #=============================================================================
