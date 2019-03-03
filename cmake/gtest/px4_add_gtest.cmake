@@ -50,8 +50,10 @@ function(px4_add_gtest)
 			REQUIRED SRC
 			ARGN ${ARGN})
 
-		# infer test name from source filname without extension
+		# infer test name from source filname
 		get_filename_component(TESTNAME ${SRC} NAME_WE)
+		string(REPLACE Test "" TESTNAME ${TESTNAME})
+		set(TESTNAME UnitTest-${TESTNAME})
 
 		# build a binary for the unit test
 		add_executable(${TESTNAME} EXCLUDE_FROM_ALL ${SRC})
