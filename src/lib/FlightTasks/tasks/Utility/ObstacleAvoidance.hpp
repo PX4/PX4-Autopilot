@@ -44,7 +44,10 @@
 #include <px4_module_params.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/position_controller_status.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_status.h>
 #include <lib/FlightTasks/tasks/FlightTask/SubscriptionArray.hpp>
+#include <commander/px4_custom_mode.h>
 #include <matrix/matrix/math.hpp>
 #include <px4_defines.h>
 
@@ -67,6 +70,7 @@ public:
 private:
 
 	uORB::Subscription<vehicle_trajectory_waypoint_s> *_sub_vehicle_trajectory_waypoint{nullptr};
+	uORB::Subscription<vehicle_status_s> *_sub_vehicle_status{nullptr};
 
   DEFINE_PARAMETERS(
     (ParamInt<px4::params::COM_OBS_AVOID>) COM_OBS_AVOID,             /**< obstacle avoidance enabled */
@@ -76,7 +80,9 @@ private:
 	vehicle_trajectory_waypoint_s _desired_waypoint = {};
 	orb_advert_t _traj_wp_avoidance_desired_pub{nullptr}; /**< trajectory waypoint desired publication */
 	orb_advert_t _pub_pos_control_status{nullptr};
+	orb_advert_t _pub_vehicle_command{nullptr};
 
 	void _publish_avoidance_desired_waypoint();
+	void _publish_vehicle_cmd_do_loiter();
 
 };
