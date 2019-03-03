@@ -60,11 +60,11 @@ matrix::Vector3f AttitudeControl::update(matrix::Quatf q, matrix::Quatf qd, floa
 	qd.normalize();
 
 	// calculate reduced desired attitude neglecting vehicle's yaw to prioritize roll and pitch
-	Vector3f e_z = q.dcm_z();
-	Vector3f e_z_d = qd.dcm_z();
+	const Vector3f e_z = q.dcm_z();
+	const Vector3f e_z_d = qd.dcm_z();
 	Quatf qd_red(e_z, e_z_d);
 
-	if (abs(qd_red(1)) > (1.f - 1e-5f) || abs(qd_red(2)) > (1.f - 1e-5f)) {
+	if (fabsf(qd_red(1)) > (1.f - 1e-5f) || fabsf(qd_red(2)) > (1.f - 1e-5f)) {
 		// In the infinitesimal corner case where the vehicle and thrust have the completely opposite direction,
 		// full attitude control anyways generates no yaw input and directly takes the combination of
 		// roll and pitch leading to the correct desired yaw. Ignoring this case would still be totally safe and stable.
@@ -84,11 +84,11 @@ matrix::Vector3f AttitudeControl::update(matrix::Quatf q, matrix::Quatf qd, floa
 	qd = qd_red * Quatf(cosf(_yaw_w * acosf(q_mix(0))), 0, 0, sinf(_yaw_w * asinf(q_mix(3))));
 
 	// quaternion attitude control law, qe is rotation from q to qd
-	Quatf qe = q.inversed() * qd;
+	const Quatf qe = q.inversed() * qd;
 
 	// using sin(alpha/2) scaled rotation axis as attitude error (see quaternion definition by axis angle)
 	// also taking care of the antipodal unit quaternion ambiguity
-	Vector3f eq = 2.f * math::signNoZero(qe(0)) * qe.imag();
+	const Vector3f eq = 2.f * math::signNoZero(qe(0)) * qe.imag();
 
 	// calculate angular rates setpoint
 	matrix::Vector3f rate_setpoint = eq.emult(_proportional_gain);

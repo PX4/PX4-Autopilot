@@ -35,6 +35,6 @@ px4_add_library(AttitudeControl
 	AttitudeControl.cpp
 )
 target_include_directories(AttitudeControl
-PUBLIC
+	PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}
 )
