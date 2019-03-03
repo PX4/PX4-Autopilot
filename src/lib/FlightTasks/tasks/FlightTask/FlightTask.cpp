@@ -8,14 +8,6 @@ const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NA
 
 const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {}};
 const landing_gear_s FlightTask::empty_landing_gear_default_keep = {0, landing_gear_s::GEAR_KEEP, {}};
-const vehicle_trajectory_waypoint_s FlightTask::empty_trajectory_waypoint = {0, 0, {0, 0, 0, 0, 0, 0, 0},
-	{	{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
-		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
-		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
-		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
-		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}}
-	}
-};
 
 bool FlightTask::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
@@ -92,7 +84,6 @@ void FlightTask::_resetSetpoints()
 	_jerk_setpoint.setAll(NAN);
 	_thrust_setpoint.setAll(NAN);
 	_yaw_setpoint = _yawspeed_setpoint = NAN;
-	_desired_waypoint = FlightTask::empty_trajectory_waypoint;
 }
 
 void FlightTask::_evaluateVehicleLocalPosition()

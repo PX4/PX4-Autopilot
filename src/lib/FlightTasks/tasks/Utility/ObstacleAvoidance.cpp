@@ -46,10 +46,19 @@ using namespace time_literals;
 /** Timeout in us for trajectory data to get considered invalid */
 static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500_ms;
 
+const vehicle_trajectory_waypoint_s empty_trajectory_waypoint = {0, 0, {0, 0, 0, 0, 0, 0, 0},
+	{	{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
+		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
+		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
+		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
+		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}}
+	}
+};
+
 ObstacleAvoidance::ObstacleAvoidance(ModuleParams *parent) :
 	ModuleParams(parent)
 {
-
+	_desired_waypoint = empty_trajectory_waypoint;
 }
 
 ObstacleAvoidance::~ObstacleAvoidance()
@@ -123,10 +132,11 @@ void ObstacleAvoidance::updateAvoidanceSetpoints(const Vector3f &pos_sp, const V
 {
 	pos_sp.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_0].position);
 	vel_sp.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity);
+	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid = true;
 
 	_publish_avoidance_desired_waypoint();
 
-	// TODO: reset all fields to NaN
+	_desired_waypoint = empty_trajectory_waypoint;
 }
 
 void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector3f &prev_wp,

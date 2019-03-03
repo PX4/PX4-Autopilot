@@ -57,21 +57,6 @@ const landing_gear_s FlightTasks::getGear()
 	}
 }
 
-const vehicle_trajectory_waypoint_s FlightTasks::getAvoidanceWaypoint()
-{
-	if (isAnyTaskActive()) {
-		return _current_task.task->getAvoidanceWaypoint();
-
-	} else {
-		return FlightTask::empty_trajectory_waypoint;
-	}
-}
-
-const vehicle_trajectory_waypoint_s &FlightTasks::getEmptyAvoidanceWaypoint()
-{
-	return FlightTask::empty_trajectory_waypoint;
-}
-
 int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 {
 	// switch to the running task, nothing to do
