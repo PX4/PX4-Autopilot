@@ -80,6 +80,10 @@ bool ObstacleAvoidance::initializeSubscriptions(SubscriptionArray &subscription_
 		return false;
 	}
 
+	if (!subscription_array.get(ORB_ID(vehicle_status), _sub_vehicle_status)) {
+		return false;
+	}
+
 	return true;
 }
 
@@ -95,13 +99,18 @@ void ObstacleAvoidance::prepareAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &ve
 					    > TRAJECTORY_STREAM_TIMEOUT_US;
 	const bool avoidance_point_valid =
 		_sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true;
+	const bool is_loitering = _sub_vehicle_status->get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 
-	if (!avoidance_data_timeout && avoidance_point_valid) {
-		pos_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position;
-		vel_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity;
-		yaw_sp =  _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw;
-		yaw_speed_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed;
+	if ((avoidance_data_timeout || !avoidance_point_valid) && !is_loitering) {
+		PX4_WARN("Obstacle Avoidance system failed, loitering");
+		_publish_vehicle_cmd_do_loiter();
+		return;
 	}
+
+	pos_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position;
+	vel_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity;
+	yaw_sp =  _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw;
+	yaw_speed_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed;
 }
 
 void ObstacleAvoidance::updateAvoidanceWaypoints(const Vector3f &curr_wp, const float curr_yaw,
@@ -192,5 +201,30 @@ ObstacleAvoidance::_publish_avoidance_desired_waypoint()
 	} else {
 		_traj_wp_avoidance_desired_pub = orb_advertise(ORB_ID(vehicle_trajectory_waypoint_desired),
 						 &_desired_waypoint);
+	}
+}
+
+void ObstacleAvoidance::_publish_vehicle_cmd_do_loiter()
+{
+	vehicle_command_s command{};
+	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
+	command.param1 = (float)1; // base mode
+	command.param3 = (float)0; // sub mode
+	command.target_system = 1;
+	command.target_component = 1;
+	command.source_system = 1;
+	command.source_component = 1;
+	command.confirmation = false;
+	command.from_external = false;
+	command.param2 = (float)PX4_CUSTOM_MAIN_MODE_AUTO;
+	command.param3 = (float)PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
+
+	// publish the vehicle command
+	if (_pub_vehicle_command == nullptr) {
+		_pub_vehicle_command = orb_advertise_queue(ORB_ID(vehicle_command), &command,
+				       vehicle_command_s::ORB_QUEUE_LENGTH);
+
+	} else {
+		orb_publish(ORB_ID(vehicle_command), _pub_vehicle_command, &command);
 	}
 }
