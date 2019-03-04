@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,9 +36,6 @@
  */
 
 #include "ObstacleAvoidance.hpp"
-#include <drivers/drv_hrt.h>
-#include <uORB/Subscription.hpp>
-
 
 using namespace matrix;
 using namespace time_literals;
@@ -64,8 +61,8 @@ ObstacleAvoidance::ObstacleAvoidance(ModuleParams *parent) :
 ObstacleAvoidance::~ObstacleAvoidance()
 {
 	//unadvertise publishers
-	if (_traj_wp_avoidance_desired_pub != nullptr) {
-		orb_unadvertise(_traj_wp_avoidance_desired_pub);
+	if (_pub_traj_wp_avoidance_desired != nullptr) {
+		orb_unadvertise(_pub_traj_wp_avoidance_desired);
 	}
 
 	if (_pub_pos_control_status != nullptr) {
@@ -194,11 +191,11 @@ void
 ObstacleAvoidance::_publish_avoidance_desired_waypoint()
 {
 	// publish desired waypoint
-	if (_traj_wp_avoidance_desired_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_trajectory_waypoint_desired), _traj_wp_avoidance_desired_pub, &_desired_waypoint);
+	if (_pub_traj_wp_avoidance_desired != nullptr) {
+		orb_publish(ORB_ID(vehicle_trajectory_waypoint_desired), _pub_traj_wp_avoidance_desired, &_desired_waypoint);
 
 	} else {
-		_traj_wp_avoidance_desired_pub = orb_advertise(ORB_ID(vehicle_trajectory_waypoint_desired),
+		_pub_traj_wp_avoidance_desired = orb_advertise(ORB_ID(vehicle_trajectory_waypoint_desired),
 						 &_desired_waypoint);
 	}
 }
