@@ -110,7 +110,7 @@ void ObstacleAvoidance::prepareAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &ve
 	yaw_speed_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed;
 }
 
-void ObstacleAvoidance::updateAvoidanceWaypoints(const Vector3f &curr_wp, const float curr_yaw,
+void ObstacleAvoidance::updateAvoidanceDesiredWaypoints(const Vector3f &curr_wp, const float curr_yaw,
 		const float curr_yawspeed,
 		const Vector3f &next_wp, const float next_yaw, const float next_yawspeed)
 {
@@ -135,7 +135,7 @@ void ObstacleAvoidance::updateAvoidanceWaypoints(const Vector3f &curr_wp, const 
 	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].point_valid = true;
 }
 
-void ObstacleAvoidance::updateAvoidanceSetpoints(const Vector3f &pos_sp, const Vector3f &vel_sp)
+void ObstacleAvoidance::updateAvoidanceDesiredSetpoints(const Vector3f &pos_sp, const Vector3f &vel_sp)
 {
 	pos_sp.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_0].position);
 	vel_sp.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity);

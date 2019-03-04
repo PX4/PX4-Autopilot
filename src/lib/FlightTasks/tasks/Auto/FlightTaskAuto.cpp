@@ -243,10 +243,11 @@ bool FlightTaskAuto::_evaluateTriplets()
 	}
 
 	if (_param_com_obs_avoid.get() && _sub_vehicle_status->get().is_rotary_wing) {
-		_obstacle_avoidance.updateAvoidanceWaypoints(_triplet_target, _yaw_setpoint, _yawspeed_setpoint, _triplet_next_wp,
+		_obstacle_avoidance.updateAvoidanceDesiredWaypoints(_triplet_target, _yaw_setpoint, _yawspeed_setpoint,
+				_triplet_next_wp,
 				_sub_triplet_setpoint->get().next.yaw,
 				_sub_triplet_setpoint->get().next.yawspeed_valid ? _sub_triplet_setpoint->get().next.yawspeed : NAN);
-		_obstacle_avoidance.updateAvoidanceSetpoints(_position_setpoint, _velocity_setpoint);
+		_obstacle_avoidance.updateAvoidanceDesiredSetpoints(_position_setpoint, _velocity_setpoint);
 		_obstacle_avoidance.checkAvoidanceProgress(_position, _triplet_prev_wp, _target_acceptance_radius, _closest_pt);
 	}
 
