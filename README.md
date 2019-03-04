@@ -10,7 +10,7 @@ The library is BSD 3-clause licensed.
 
 ## EKF Documentation
 
-  * [EKF Documentation and Tuning Guide](https://dev.px4.io/en/tutorials/tuning_the_ecl_ekf.html)
+  * [EKF Documentation and Tuning Guide](https://docs.px4.io/en/advanced_config/tuning_the_ecl_ekf.html)
 
 ## Building EKF
 
