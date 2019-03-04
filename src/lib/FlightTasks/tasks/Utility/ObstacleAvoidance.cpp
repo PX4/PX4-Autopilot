@@ -119,6 +119,7 @@ void ObstacleAvoidance::updateAvoidanceWaypoints(const Vector3f &curr_wp, const 
 {
 	_desired_waypoint.timestamp = hrt_absolute_time();
 	_desired_waypoint.type = vehicle_trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
+	_curr_wp = curr_wp;
 
 	curr_wp.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].position);
 	Vector3f(NAN, NAN, NAN).copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].velocity);
@@ -149,21 +150,19 @@ void ObstacleAvoidance::updateAvoidanceSetpoints(const Vector3f &pos_sp, const V
 }
 
 void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector3f &prev_wp,
-		float target_acceptance_radius,
-		const Vector2f &closest_pt)
+		float target_acceptance_radius, const Vector2f &closest_pt)
 {
 	position_controller_status_s pos_control_status = {};
 	pos_control_status.timestamp = hrt_absolute_time();
-	Vector3f curr_wp = _desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].position;
 
 	// vector from previous triplet to current target
-	Vector2f prev_to_target = Vector2f(curr_wp - prev_wp);
+	Vector2f prev_to_target = Vector2f(_curr_wp - prev_wp);
 	// vector from previous triplet to the vehicle projected position on the line previous-target triplet
-	Vector2f prev_to_closest_pt = closest_pt - Vector2f(prev_wp);
+	Vector2f prev_to_closest_pt = closest_pt - Vector2f(prev_wp); prev_to_closest_pt.print();
 	// fraction of the previous-tagerget line that has been flown
 	const float prev_curr_travelled = prev_to_closest_pt.length() / prev_to_target.length();
 
-	Vector2f pos_to_target = Vector2f(curr_wp - pos);
+	Vector2f pos_to_target = Vector2f(_curr_wp - pos);
 
 	if (prev_curr_travelled > 1.0f) {
 		// if the vehicle projected position on the line previous-target is past the target waypoint,
@@ -171,7 +170,7 @@ void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector
 		pos_control_status.acceptance_radius = pos_to_target.length() + 0.5f;
 	}
 
-	const float pos_to_target_z = fabsf(curr_wp(2) - pos(2));
+	const float pos_to_target_z = fabsf(_curr_wp(2) - pos(2));
 
 	if (pos_to_target.length() < target_acceptance_radius && pos_to_target_z > NAV_MC_ALT_RAD.get()) {
 		// vehicle above or below the target waypoint
