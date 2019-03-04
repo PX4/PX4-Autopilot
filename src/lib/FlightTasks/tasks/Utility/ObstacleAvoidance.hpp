@@ -81,14 +81,14 @@ public:
 	 * @param next_yaw, next yaw triplet
 	 * @param next_yawspeed, next yaw speed triplet
 	 */
-	void updateAvoidanceWaypoints(const matrix::Vector3f &curr_wp, const float curr_yaw, const float curr_yawspeed,
-				      const matrix::Vector3f &next_wp, const float next_yaw, const float next_yawspeed);
+	void updateAvoidanceDesiredWaypoints(const matrix::Vector3f &curr_wp, const float curr_yaw, const float curr_yawspeed,
+					     const matrix::Vector3f &next_wp, const float next_yaw, const float next_yawspeed);
 	/**
 	 * Updates the desired setpoints to send to the obstacle avoidance system.
 	 * @param pos_sp, desired position setpoint computed by the active FlightTask
 	 * @param vel_sp, desired velocity setpoint computed by the active FlightTask
 	 */
-	void updateAvoidanceSetpoints(const matrix::Vector3f &pos_sp, const matrix::Vector3f &vel_sp);
+	void updateAvoidanceDesiredSetpoints(const matrix::Vector3f &pos_sp, const matrix::Vector3f &vel_sp);
 
 	/**
 	 * Checks the vehicle progress between previous and current position triplet.
