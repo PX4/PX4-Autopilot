@@ -42,43 +42,50 @@
 
 #pragma once
 
-#include <px4_posix.h>
-#include <px4_module_params.h>
-
+#include <pthread.h>
 #include <stdbool.h>
+
 #ifdef __PX4_NUTTX
 #include <nuttx/fs/fs.h>
 #else
-#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <drivers/device/device.h>
+#include <sys/socket.h>
 #endif
 
 #if defined(CONFIG_NET) || !defined(__PX4_NUTTX)
-#include <netinet/in.h>
 #include <net/if.h>
+#include <netinet/in.h>
 #endif
 
 #include <containers/List.hpp>
-#include <systemlib/uthash/utlist.h>
+#include <drivers/device/ringbuffer.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
-#include <pthread.h>
+#include <px4_cli.h>
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_getopt.h>
+#include <px4_module.h>
+#include <px4_module_params.h>
+#include <px4_posix.h>
 #include <systemlib/mavlink_log.h>
-#include <drivers/device/ringbuffer.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/mission.h>
+#include <systemlib/uthash/utlist.h>
+#include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/radio_status.h>
 #include <uORB/topics/telemetry_status.h>
+#include <uORB/uORB.h>
 
-#include "mavlink_bridge_header.h"
-#include "mavlink_orb_subscription.h"
-#include "mavlink_stream.h"
+#include "mavlink_command_sender.h"
 #include "mavlink_messages.h"
+#include "mavlink_orb_subscription.h"
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
+
+#define DEFAULT_REMOTE_PORT_UDP 14550 ///< GCS port per MAVLink spec
+#define DEFAULT_DEVICE_NAME     "/dev/ttyS1"
+#define HASH_PARAM              "_HASH_CHECK"
 
 enum Protocol {
 	SERIAL = 0,
@@ -87,8 +94,6 @@ enum Protocol {
 };
 
 using namespace time_literals;
-
-#define HASH_PARAM "_HASH_CHECK"
 
 class Mavlink : public ModuleParams
 {
