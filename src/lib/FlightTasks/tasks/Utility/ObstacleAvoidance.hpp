@@ -82,6 +82,8 @@ private:
 	orb_advert_t _pub_pos_control_status{nullptr};
 	orb_advert_t _pub_vehicle_command{nullptr};
 
+	matrix::Vector3f _curr_wp = {};
+
 	void _publish_avoidance_desired_waypoint();
 	void _publish_vehicle_cmd_do_loiter();
 
