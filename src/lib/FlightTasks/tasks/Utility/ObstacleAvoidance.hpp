@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,15 +41,19 @@
 
 #pragma once
 
+#include <px4_defines.h>
 #include <px4_module_params.h>
-#include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <commander/px4_custom_mode.h>
+#include <drivers/drv_hrt.h>
+
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
-#include <lib/FlightTasks/tasks/FlightTask/SubscriptionArray.hpp>
-#include <commander/px4_custom_mode.h>
+#include <uORB/topics/vehicle_trajectory_waypoint.h>
+
 #include <matrix/matrix/math.hpp>
-#include <px4_defines.h>
+
+#include <lib/FlightTasks/tasks/FlightTask/SubscriptionArray.hpp>
 
 class ObstacleAvoidance : public ModuleParams
 {
@@ -59,32 +63,68 @@ public:
 
 	bool initializeSubscriptions(SubscriptionArray &subscription_array);
 
+	/**
+	 * Inject setpoints from obstacle avoidance system into FLightTasks.
+	 * @param pos_sp, position setpoint
+	 * @param vel_sp, velocity setpoint
+	 * @param yaw_sp, yaw setpoint
+	 * @param yaw_speed_sp, yaw speed setpoint
+	 */
 	void prepareAvoidanceSetpoints(matrix::Vector3f &pos_sp, matrix::Vector3f &vel_sp, float &yaw_sp, float &yaw_speed_sp);
+
+	/**
+	 * Updates the desired waypoints to send to the obstacle avoidance system.
+	 * @param curr_wp, current position triplet
+	 * @param curr_yaw, current yaw triplet
+	 * @param curr_yawspeed, current yaw speed triplet
+	 * @param next_wp, next position triplet
+	 * @param next_yaw, next yaw triplet
+	 * @param next_yawspeed, next yaw speed triplet
+	 */
 	void updateAvoidanceWaypoints(const matrix::Vector3f &curr_wp, const float curr_yaw, const float curr_yawspeed,
 				      const matrix::Vector3f &next_wp, const float next_yaw, const float next_yawspeed);
+	/**
+	 * Updates the desired setpoints to send to the obstacle avoidance system.
+	 * @param pos_sp, desired position setpoint computed by the active FlightTask
+	 * @param vel_sp, desired velocity setpoint computed by the active FlightTask
+	 */
 	void updateAvoidanceSetpoints(const matrix::Vector3f &pos_sp, const matrix::Vector3f &vel_sp);
+
+	/**
+	 * Checks the vehicle progress between previous and current position triplet.
+	 * @param pos, vehicle position
+	 * @param prev_wp, previous position triplet
+	 * @param target_acceptance_radius, current position triplet xy acceptance radius
+	 * @param closest_pt, closest point to the vehicle on the line previous-current position triplet
+	 */
 	void checkAvoidanceProgress(const matrix::Vector3f &pos, const matrix::Vector3f &prev_wp,
-				    float target_acceptance_radius,
-				    const matrix::Vector2f &closest_pt);
+				    float target_acceptance_radius, const matrix::Vector2f &closest_pt);
 
 private:
 
-	uORB::Subscription<vehicle_trajectory_waypoint_s> *_sub_vehicle_trajectory_waypoint{nullptr};
-	uORB::Subscription<vehicle_status_s> *_sub_vehicle_status{nullptr};
+	uORB::Subscription<vehicle_trajectory_waypoint_s> *_sub_vehicle_trajectory_waypoint{nullptr}; /**< vehicle trajectory waypoint subscription */
+	uORB::Subscription<vehicle_status_s> *_sub_vehicle_status{nullptr}; /**< vehicle status subscription */
 
   DEFINE_PARAMETERS(
     (ParamInt<px4::params::COM_OBS_AVOID>) COM_OBS_AVOID,             /**< obstacle avoidance enabled */
-		(ParamFloat<px4::params::NAV_MC_ALT_RAD>) NAV_MC_ALT_RAD
+		(ParamFloat<px4::params::NAV_MC_ALT_RAD>) NAV_MC_ALT_RAD          /**< Acceptance radius for multicopter altitude */
   );
 
-	vehicle_trajectory_waypoint_s _desired_waypoint = {};
-	orb_advert_t _traj_wp_avoidance_desired_pub{nullptr}; /**< trajectory waypoint desired publication */
-	orb_advert_t _pub_pos_control_status{nullptr};
-	orb_advert_t _pub_vehicle_command{nullptr};
+	vehicle_trajectory_waypoint_s _desired_waypoint = {};  /**< desired vehicle trajectory waypoint to be sent to OA */
+	orb_advert_t _pub_traj_wp_avoidance_desired{nullptr}; /**< trajectory waypoint desired publication */
+	orb_advert_t _pub_pos_control_status{nullptr}; /**< position controller status publication */
+	orb_advert_t _pub_vehicle_command{nullptr}; /**< vehicle command do publication */
 
-	matrix::Vector3f _curr_wp = {};
+	matrix::Vector3f _curr_wp = {}; /**< current position triplet */
 
+	/**
+	 * Publishes vehicle trajectory waypoint desired.
+	 */
 	void _publish_avoidance_desired_waypoint();
+
+	/**
+	 * Publishes vehicle vehicle command.
+	 */
 	void _publish_vehicle_cmd_do_loiter();
 
 };
