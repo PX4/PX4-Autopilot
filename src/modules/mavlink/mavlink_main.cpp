@@ -40,22 +40,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
-#include <px4_module.h>
-#include <px4_cli.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <assert.h>
-#include <math.h>
 #include <termios.h>
-#include <time.h>
 
 #ifdef CONFIG_NET
 #include <arpa/inet.h>
@@ -63,34 +48,12 @@
 #include <netutils/netlib.h>
 #endif
 
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#include <drivers/device/device.h>
-#include <drivers/drv_hrt.h>
-#include <arch/board/board.h>
-
-#include <parameters/param.h>
-#include <systemlib/err.h>
-#include <perf/perf_counter.h>
-#include <systemlib/mavlink_log.h>
 #include <lib/ecl/geo/geo.h>
-#include <dataman/dataman.h>
-#include <version/version.h>
 #include <mathlib/mathlib.h>
+#include <version/version.h>
 
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_command_ack.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/mavlink_log.h>
-
-#include "mavlink_bridge_header.h"
-#include "mavlink_main.h"
-#include "mavlink_messages.h"
 #include "mavlink_receiver.h"
-#include "mavlink_rate_limiter.h"
-#include "mavlink_command_sender.h"
+#include "mavlink_main.h"
 
 // Guard against MAVLink misconfiguration
 #ifndef MAVLINK_CRC_EXTRA
@@ -108,17 +71,14 @@
 #define MAVLINK_NET_ADDED_STACK 0
 #endif
 
-#define DEFAULT_REMOTE_PORT_UDP			14550 ///< GCS port per MAVLink spec
-#define DEFAULT_DEVICE_NAME			"/dev/ttyS1"
-#define MAX_DATA_RATE				10000000	///< max data rate in bytes/s
-#define MAIN_LOOP_DELAY 			10000	///< 100 Hz @ 1000 bytes/s data rate
-#define FLOW_CONTROL_DISABLE_THRESHOLD		40	///< picked so that some messages still would fit it.
-//#define MAVLINK_PRINT_PACKETS
+#define FLOW_CONTROL_DISABLE_THRESHOLD 40              ///< picked so that some messages still would fit it.
+#define MAX_DATA_RATE                  10000000        ///< max data rate in bytes/s
+#define MAIN_LOOP_DELAY                10000           ///< 100 Hz @ 1000 bytes/s data rate
 
 static Mavlink *_mavlink_instances = nullptr;
 
 /**
- * mavlink app start / stop handling function
+ * Mavlink app start / stop handling function.
  *
  * @ingroup apps
  */
