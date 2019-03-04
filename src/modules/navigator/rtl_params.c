@@ -113,6 +113,6 @@ PARAM_DEFINE_FLOAT(RTL_MIN_DIST, 5.0f);
  * @value 0 Return home via direct path
  * @value 1 Return to a planned mission landing, if available, via direct path, else return to home via direct path
  * @value 2 Return to a planned mission landing, if available, using the mission path, else return to home via the reverse mission path
- * @group Return To Land
+ * @group Return Mode
  */
 PARAM_DEFINE_INT32(RTL_TYPE, 0);
