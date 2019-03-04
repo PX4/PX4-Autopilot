@@ -113,7 +113,8 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 
 		case MAV_TYPE_VTOL_RESERVED2:
 			// this is the standard VTOL / quad plane with 5 propellers
-			n = 5;
+			//n = 5;
+			n = param_find("VT_MOT_COUNT") + 1; // this will work until you have more than 1 push or pull motors
 			break;
 
 		case MAV_TYPE_HEXAROTOR:
