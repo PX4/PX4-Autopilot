@@ -155,7 +155,7 @@ void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector
 	// vector from previous triplet to current target
 	Vector2f prev_to_target = Vector2f(_curr_wp - prev_wp);
 	// vector from previous triplet to the vehicle projected position on the line previous-target triplet
-	Vector2f prev_to_closest_pt = closest_pt - Vector2f(prev_wp); prev_to_closest_pt.print();
+	Vector2f prev_to_closest_pt = closest_pt - Vector2f(prev_wp);
 	// fraction of the previous-tagerget line that has been flown
 	const float prev_curr_travelled = prev_to_closest_pt.length() / prev_to_target.length();
 

@@ -40,8 +40,6 @@
 
 using namespace matrix;
 
-
-
 bool FlightTaskAutoMapper2::activate()
 {
 	bool ret = FlightTaskAuto::activate();
