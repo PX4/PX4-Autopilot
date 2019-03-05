@@ -310,14 +310,7 @@ void Simulator::handle_message(mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_HIL_GPS:
-		mavlink_hil_gps_t gps_sim;
-		mavlink_msg_hil_gps_decode(msg, &gps_sim);
-
-		if (_publish) {
-			//PX4_WARN("FIXME:  Need to publish GPS topic.  Not done yet.");
-		}
-
-		update_gps(&gps_sim);
+		handle_message_hil_gps(msg);
 		break;
 
 	case MAVLINK_MSG_ID_RC_CHANNELS:
@@ -349,6 +342,18 @@ void Simulator::handle_message_distance_sensor(const mavlink_message_t *msg)
 	mavlink_distance_sensor_t dist;
 	mavlink_msg_distance_sensor_decode(msg, &dist);
 	publish_distance_topic(&dist);
+}
+
+void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
+{
+	mavlink_hil_gps_t gps_sim;
+	mavlink_msg_hil_gps_decode(msg, &gps_sim);
+
+	if (_publish) {
+		//PX4_WARN("FIXME:  Need to publish GPS topic.  Not done yet.");
+	}
+
+	update_gps(&gps_sim);
 }
 
 void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
