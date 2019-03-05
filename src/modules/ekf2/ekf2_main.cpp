@@ -1027,7 +1027,7 @@ void Ekf2::run()
 
 		if ((_gps_blend_mask.get() == 0) && gps1_updated) {
 			// When GPS blending is disabled we always use the first receiver instance
-			_ekf.setGpsData(_gps_state[0].time_usec, &_gps_state[0]);
+			_ekf.setGpsData(_gps_state[0].time_usec, _gps_state[0]);
 
 		} else if ((_gps_blend_mask.get() > 0) && (gps1_updated || gps2_updated)) {
 			// blend dual receivers if available
@@ -1072,7 +1072,7 @@ void Ekf2::run()
 				}
 
 				// write selected GPS to EKF
-				_ekf.setGpsData(_gps_output[_gps_select_index].time_usec, &_gps_output[_gps_select_index]);
+				_ekf.setGpsData(_gps_output[_gps_select_index].time_usec, _gps_output[_gps_select_index]);
 
 				// log blended solution as a third GPS instance
 				ekf_gps_position_s gps;
