@@ -72,6 +72,7 @@ px4_add_board(
 		navigator
 		#position_estimator_inav
 		sensors
+		sih
 		vmount
 		#vtol_att_control
 		#wind_estimator

@@ -78,6 +78,19 @@ PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
 PARAM_DEFINE_INT32(SYS_HITL, 0);
 
 /**
+ * Enable SIH mode on next boot
+ *
+ * The simulation in hardware (SIH) will enable a quad simulator to run on the autopilot.
+ * When disabled the same vehicle can be normally flown outdoors.
+ *
+ * @boolean
+ * @reboot_required true
+ *
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_SIH, 0);
+
+/**
  * Set restart type
  *
  * Set by px4io to indicate type of restart

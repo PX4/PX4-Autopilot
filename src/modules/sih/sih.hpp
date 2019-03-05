@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,6 +40,7 @@
 #include <conversion/rotation.h> 	// math::radians, 
 #include <ecl/geo/geo.h> 			// to get the physical constants
 #include <drivers/drv_hrt.h> 		// to get the real time
+// #include <mathlib/math/filter/LowPassFilter2p.hpp>
 
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -49,6 +50,8 @@
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/sih.h>
+#include <uORB/topics/vehicle_global_position.h> 	// to publish groundtruth
+#include <uORB/topics/vehicle_attitude.h> 			// to publish groundtruth
 
 using namespace matrix;
 
@@ -84,6 +87,8 @@ public:
 	// generate white Gaussian noise sample as a 3D vector with specified std
 	static Vector3f noiseGauss3f(float stdx, float stdy, float stdz);
 
+	static void timer_callback(void *arg);
+
 	// static int pack_float(char* uart_msg, int index, void *value); 	// pack a float to a IEEE754
 private:
 
@@ -92,10 +97,8 @@ private:
 	 * @param parameter_update_sub uorb subscription to parameter_update
 	 * @param force for a parameter update
 	 */
-	void parameters_update_poll(int parameter_update_sub);
+	void parameters_update_poll();
 	void parameters_updated();
-
-	uint8_t is_HIL_running(int vehicle_status_sub);
 
 	// to publish the simulator states
 	struct sih_s 					_sih {};
@@ -115,6 +118,15 @@ private:
 	// to publish the gps position
 	struct vehicle_gps_position_s 	_vehicle_gps_pos {};
 	orb_advert_t 					_vehicle_gps_pos_pub{nullptr};
+	// attitude groundtruth
+	struct vehicle_global_position_s 	_gpos_gt {};
+	orb_advert_t 						_gpos_gt_sub{nullptr};
+	// global position groundtruth
+	struct vehicle_attitude_s			_att_gt {};
+	orb_advert_t 						_att_gt_sub{nullptr};
+
+	int _parameter_update_sub {-1};
+	int _actuator_out_sub {-1};
 
 	// hard constants
 	static constexpr uint16_t NB_MOTORS = 4;
@@ -122,19 +134,27 @@ private:
 	static constexpr float T1_K = T1_C - CONSTANTS_ABSOLUTE_NULL_CELSIUS;	// ground temperature in Kelvin
 	static constexpr float TEMP_GRADIENT  = -6.5f / 1000.0f;	// temperature gradient in degrees per metre
 	static constexpr uint32_t BAUDS_RATE = 57600; 			// bauds rate of the serial port
+	static constexpr hrt_abstime LOOP_INTERVAL = 10000; 		// 250 Hz real time
 
 	void init_variables();
 	void init_sensors();
 	int  init_serial_port();
-	void read_motors(const int actuator_out_sub);
+	void read_motors();
 	void generate_force_and_torques();
 	void equations_of_motion();
 	void reconstruct_sensors_signals();
-	void send_IMU(hrt_abstime now);
-	void send_gps(hrt_abstime now);
+	void send_IMU();
+	void send_gps();
 	void publish_sih();
 	void send_serial_msg(int serial_fd, int64_t t_ms);
+	void inner_loop();
 
+	int32_t 	_counter = 0;
+	hrt_call	_timer_call;
+	hrt_abstime _last_run;
+	hrt_abstime _gps_time;
+	hrt_abstime _serial_time;
+	hrt_abstime _now;
 	float  		_dt; 			// sampling time [s]
 
 	char _uart_name[12] = "/dev/ttyS5/"; 					// serial port name
