@@ -276,7 +276,7 @@ private:
 
 	int publish_sensor_topics(mavlink_hil_sensor_t *imu);
 	int publish_flow_topic(mavlink_hil_optical_flow_t *flow);
-	int publish_odometry_topic(mavlink_message_t *odom_mavlink);
+	int publish_odometry_topic(const mavlink_message_t *odom_mavlink);
 	int publish_distance_topic(mavlink_distance_sensor_t *dist);
 
 	static Simulator *_instance;
@@ -338,6 +338,7 @@ private:
 	void handle_message_landing_target(const mavlink_message_t *msg);
 	void handle_message_optical_flow(const mavlink_message_t *msg);
 	void handle_message_rc_channels(const mavlink_message_t *msg);
+	void handle_message_vision_position_estimate(const mavlink_message_t *msg);
 
 	void parameters_update(bool force);
 	void poll_topics();
