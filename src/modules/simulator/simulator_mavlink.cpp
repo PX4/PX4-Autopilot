@@ -292,68 +292,8 @@ void Simulator::update_gps(mavlink_hil_gps_t *gps_sim)
 void Simulator::handle_message(mavlink_message_t *msg)
 {
 	switch (msg->msgid) {
-	case MAVLINK_MSG_ID_HIL_SENSOR: {
-			mavlink_hil_sensor_t imu;
-			mavlink_msg_hil_sensor_decode(msg, &imu);
-
-			// set temperature to a decent value
-			imu.temperature = 32.0f;
-
-			struct timespec ts;
-			abstime_to_ts(&ts, imu.time_usec);
-			px4_clock_settime(CLOCK_MONOTONIC, &ts);
-
-			hrt_abstime now_us = hrt_absolute_time();
-
-#if 0
-			// This is just for to debug missing HIL_SENSOR messages.
-			static hrt_abstime last_time = 0;
-			hrt_abstime diff = now_us - last_time;
-			float step = diff / 4000.0f;
-
-			if (step > 1.1f || step < 0.9f) {
-				PX4_INFO("HIL_SENSOR: imu time_usec: %lu, time_usec: %lu, diff: %lu, step: %.2f", imu.time_usec, now_us, diff, step);
-			}
-
-			last_time = now_us;
-#endif
-
-			if (_publish) {
-				publish_sensor_topics(&imu);
-			}
-
-			update_sensors(&imu);
-
-			// battery simulation (limit update to 100Hz)
-			if (hrt_elapsed_time(&_battery_status.timestamp) >= 10_ms) {
-
-				const float discharge_interval_us = _battery_drain_interval_s.get() * 1000 * 1000;
-
-				bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-
-				if (!armed || batt_sim_start == 0 || batt_sim_start > now_us) {
-					batt_sim_start = now_us;
-				}
-
-				float ibatt = -1.0f; // no current sensor in simulation
-				const float minimum_percentage = 0.499f; // change this value if you want to simulate low battery reaction
-
-				/* Simulate the voltage of a linearly draining battery but stop at the minimum percentage */
-				float battery_percentage = 1.0f - (now_us - batt_sim_start) / discharge_interval_us;
-
-				battery_percentage = math::max(battery_percentage, minimum_percentage);
-				float vbatt = math::gradual(battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(), _battery.full_cell_voltage());
-				vbatt *= _battery.cell_count();
-
-				const float throttle = 0.0f; // simulate no throttle compensation to make the estimate predictable
-				_battery.updateBatteryStatus(now_us, vbatt, ibatt, true, true, 0, throttle, armed, &_battery_status);
-
-
-				// publish the battery voltage
-				int batt_multi;
-				orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &_battery_status, &batt_multi, ORB_PRIO_HIGH);
-			}
-		}
+	case MAVLINK_MSG_ID_HIL_SENSOR:
+		handle_message_hil_sensor(msg);
 		break;
 
 	case MAVLINK_MSG_ID_HIL_OPTICAL_FLOW:
@@ -409,6 +349,70 @@ void Simulator::handle_message_distance_sensor(const mavlink_message_t *msg)
 	mavlink_distance_sensor_t dist;
 	mavlink_msg_distance_sensor_decode(msg, &dist);
 	publish_distance_topic(&dist);
+}
+
+void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
+{
+	mavlink_hil_sensor_t imu;
+	mavlink_msg_hil_sensor_decode(msg, &imu);
+
+	// set temperature to a decent value
+	imu.temperature = 32.0f;
+
+	struct timespec ts;
+	abstime_to_ts(&ts, imu.time_usec);
+	px4_clock_settime(CLOCK_MONOTONIC, &ts);
+
+	hrt_abstime now_us = hrt_absolute_time();
+
+#if 0
+	// This is just for to debug missing HIL_SENSOR messages.
+	static hrt_abstime last_time = 0;
+	hrt_abstime diff = now_us - last_time;
+	float step = diff / 4000.0f;
+
+	if (step > 1.1f || step < 0.9f) {
+		PX4_INFO("HIL_SENSOR: imu time_usec: %lu, time_usec: %lu, diff: %lu, step: %.2f", imu.time_usec, now_us, diff, step);
+	}
+
+	last_time = now_us;
+#endif
+
+	if (_publish) {
+		publish_sensor_topics(&imu);
+	}
+
+	update_sensors(&imu);
+
+	// battery simulation (limit update to 100Hz)
+	if (hrt_elapsed_time(&_battery_status.timestamp) >= 10_ms) {
+
+		const float discharge_interval_us = _battery_drain_interval_s.get() * 1000 * 1000;
+
+		bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+
+		if (!armed || batt_sim_start == 0 || batt_sim_start > now_us) {
+			batt_sim_start = now_us;
+		}
+
+		float ibatt = -1.0f; // no current sensor in simulation
+		const float minimum_percentage = 0.499f; // change this value if you want to simulate low battery reaction
+
+		/* Simulate the voltage of a linearly draining battery but stop at the minimum percentage */
+		float battery_percentage = 1.0f - (now_us - batt_sim_start) / discharge_interval_us;
+
+		battery_percentage = math::max(battery_percentage, minimum_percentage);
+		float vbatt = math::gradual(battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(), _battery.full_cell_voltage());
+		vbatt *= _battery.cell_count();
+
+		const float throttle = 0.0f; // simulate no throttle compensation to make the estimate predictable
+		_battery.updateBatteryStatus(now_us, vbatt, ibatt, true, true, 0, throttle, armed, &_battery_status);
+
+
+		// publish the battery voltage
+		int batt_multi;
+		orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &_battery_status, &batt_multi, ORB_PRIO_HIGH);
+	}
 }
 
 void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg)
