@@ -302,7 +302,7 @@ void Simulator::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_ODOMETRY:
 	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
-		publish_odometry_topic(msg);
+		handle_message_vision_position_estimate(msg);
 		break;
 
 	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
@@ -540,6 +540,11 @@ void Simulator::handle_message_rc_channels(const mavlink_message_t *msg)
 		int rc_multi;
 		orb_publish_auto(ORB_ID(input_rc), &_rc_channels_pub, &_rc_input, &rc_multi, ORB_PRIO_HIGH);
 	}
+}
+
+void Simulator::handle_message_vision_position_estimate(const mavlink_message_t *msg)
+{
+	publish_odometry_topic(msg);
 }
 
 void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
@@ -1100,7 +1105,7 @@ int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
 	return OK;
 }
 
-int Simulator::publish_odometry_topic(mavlink_message_t *odom_mavlink)
+int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)
 {
 	uint64_t timestamp = hrt_absolute_time();
 
