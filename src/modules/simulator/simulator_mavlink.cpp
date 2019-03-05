@@ -317,10 +317,9 @@ void Simulator::handle_message(mavlink_message_t *msg)
 		handle_message_rc_channels(msg);
 		break;
 
-	case MAVLINK_MSG_ID_LANDING_TARGET: {
-			handle_message_landing_target(msg);
-			break;
-		}
+	case MAVLINK_MSG_ID_LANDING_TARGET:
+		handle_message_landing_target(msg);
+		break;
 
 	case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
 		handle_message_hil_state_quaternion(msg);
