@@ -824,12 +824,16 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 	if (hil_enabled && !_hil_enabled && _datarate > 5000) {
 		_hil_enabled = true;
 		ret = configure_stream("HIL_ACTUATOR_CONTROLS", 200.0f);
+
+		configure_stream("GROUND_TRUTH", 25.0f); 	// HIL_STATE_QUATERNION to display the SIH
 	}
 
 	/* disable HIL */
 	if (!hil_enabled && _hil_enabled) {
 		_hil_enabled = false;
 		ret = configure_stream("HIL_ACTUATOR_CONTROLS", 0.0f);
+
+		configure_stream("GROUND_TRUTH", 0.0f);
 	}
 
 	return ret;
@@ -1828,7 +1832,6 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GLOBAL_POSITION_INT", 10.0f);
 		configure_stream_local("GPS2_RAW", unlimited_rate);
 		configure_stream_local("GPS_RAW_INT", unlimited_rate);
-		configure_stream_local("GROUND_TRUTH", 25.0f); 	// HIL_STATE_QUATERNION to display the SIH
 		configure_stream_local("HIGHRES_IMU", 50.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
 		configure_stream_local("LOCAL_POSITION_NED", 30.0f);
