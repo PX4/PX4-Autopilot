@@ -126,7 +126,7 @@ public:
 	void get_covariances(float *covariances);
 
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
-	bool collect_gps(uint64_t time_usec, struct gps_message *gps);
+	bool collect_gps(const gps_message &gps);
 
 	bool collect_imu(const imuSample &imu);
 
@@ -578,7 +578,7 @@ private:
 	void calcEarthRateNED(Vector3f &omega, float lat_rad) const;
 
 	// return true id the GPS quality is good enough to set an origin and start aiding
-	bool gps_is_good(struct gps_message *gps);
+	bool gps_is_good(const gps_message &gps);
 
 	// Control the filter fusion modes
 	void controlFusionModes();

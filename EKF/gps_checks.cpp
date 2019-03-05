@@ -56,14 +56,14 @@
 #define MASK_GPS_HSPD   (1<<7)
 #define MASK_GPS_VSPD   (1<<8)
 
-bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
+bool Ekf::collect_gps(const gps_message &gps)
 {
 	// Run GPS checks always
 	bool gps_checks_pass = gps_is_good(gps);
 	if (!_NED_origin_initialised && gps_checks_pass) {
 		// If we have good GPS data set the origin's WGS-84 position to the last gps fix
-		double lat = gps->lat / 1.0e7;
-		double lon = gps->lon / 1.0e7;
+		double lat = gps.lat / 1.0e7;
+		double lon = gps.lon / 1.0e7;
 		map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
 
 		// if we are already doing aiding, corect for the change in posiiton since the EKF started navigating
@@ -74,7 +74,7 @@ bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
 		}
 
 		// Take the current GPS height and subtract the filter height above origin to estimate the GPS height of the origin
-		_gps_alt_ref = 1e-3f * (float)gps->alt + _state.pos(2);
+		_gps_alt_ref = 1e-3f * (float)gps.alt + _state.pos(2);
 		_NED_origin_initialised = true;
 		_last_gps_origin_time_us = _time_last_imu;
 
@@ -86,8 +86,8 @@ bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
 		// request a reset of the yaw using the new declination
 		_mag_yaw_reset_req = true;
 		// save the horizontal and vertical position uncertainty of the origin
-		_gps_origin_eph = gps->eph;
-		_gps_origin_epv = gps->epv;
+		_gps_origin_eph = gps.eph;
+		_gps_origin_epv = gps.epv;
 
 		// if the user has selected GPS as the primary height source, switch across to using it
 		if (_primary_hgt_source == VDIST_SENSOR_GPS) {
@@ -103,7 +103,7 @@ bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
 	}
 
 	// start collecting GPS if there is a 3D fix and the NED origin has been set
-	return _NED_origin_initialised && (gps->fix_type >= 3);
+	return _NED_origin_initialised && (gps.fix_type >= 3);
 }
 
 /*
@@ -113,27 +113,27 @@ bool Ekf::collect_gps(uint64_t time_usec, struct gps_message *gps)
  * Checks are activated using the EKF2_GPS_CHECK bitmask parameter
  * Checks are adjusted using the EKF2_REQ_* parameters
 */
-bool Ekf::gps_is_good(struct gps_message *gps)
+bool Ekf::gps_is_good(const gps_message &gps)
 {
 	// Check the fix type
-	_gps_check_fail_status.flags.fix = (gps->fix_type < 3);
+	_gps_check_fail_status.flags.fix = (gps.fix_type < 3);
 
 	// Check the number of satellites
-	_gps_check_fail_status.flags.nsats = (gps->nsats < _params.req_nsats);
+	_gps_check_fail_status.flags.nsats = (gps.nsats < _params.req_nsats);
 
 	// Check the geometric dilution of precision
-	_gps_check_fail_status.flags.gdop = (gps->gdop > _params.req_gdop);
+	_gps_check_fail_status.flags.gdop = (gps.gdop > _params.req_gdop);
 
 	// Check the reported horizontal and vertical position accuracy
-	_gps_check_fail_status.flags.hacc = (gps->eph > _params.req_hacc);
-	_gps_check_fail_status.flags.vacc = (gps->epv > _params.req_vacc);
+	_gps_check_fail_status.flags.hacc = (gps.eph > _params.req_hacc);
+	_gps_check_fail_status.flags.vacc = (gps.epv > _params.req_vacc);
 
 	// Check the reported speed accuracy
-	_gps_check_fail_status.flags.sacc = (gps->sacc > _params.req_sacc);
+	_gps_check_fail_status.flags.sacc = (gps.sacc > _params.req_sacc);
 
 	// check if GPS quality is degraded
-	_gps_error_norm = fmaxf((gps->eph / _params.req_hacc) , (gps->epv / _params.req_vacc));
-	_gps_error_norm = fmaxf(_gps_error_norm , (gps->sacc / _params.req_sacc));
+	_gps_error_norm = fmaxf((gps.eph / _params.req_hacc) , (gps.epv / _params.req_vacc));
+	_gps_error_norm = fmaxf(_gps_error_norm , (gps.sacc / _params.req_sacc));
 
 	// Calculate time lapsed since last update, limit to prevent numerical errors and calculate a lowpass filter coefficient
 	const float filt_time_const = 10.0f;
@@ -141,8 +141,8 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 	float filter_coef = dt / filt_time_const;
 
 	// The following checks are only valid when the vehicle is at rest
-	double lat = gps->lat * 1.0e-7;
-	double lon = gps->lon * 1.0e-7;
+	double lat = gps.lat * 1.0e-7;
+	double lon = gps.lon * 1.0e-7;
 	if (!_control_status.flags.in_air && _vehicle_at_rest) {
 		// Calculate position movement since last measurement
 		float delta_posN = 0.0f;
@@ -155,7 +155,7 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 		} else {
 			// no previous position has been set
 			map_projection_init_timestamped(&_gps_pos_prev, lat, lon, _time_last_imu);
-			_gps_alt_prev = 1e-3f * (float)gps->alt;
+			_gps_alt_prev = 1e-3f * (float)gps.alt;
 
 		}
 
@@ -174,7 +174,7 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 
 		// Calculate the vertical drift velocity and limit to 10x the threshold
 		float vz_drift_limit = 10.0f * _params.req_vdrift;
-		float gps_alt_m = 1e-3f * (float)gps->alt;
+		float gps_alt_m = 1e-3f * (float)gps.alt;
 		float velD = math::constrain(((_gps_alt_prev - gps_alt_m) / dt), -vz_drift_limit, vz_drift_limit);
 
 		// Apply a low pass filter to the vertical velocity
@@ -186,8 +186,8 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 
 		// Check the magnitude of the filtered horizontal GPS velocity
 		float vxy_drift_limit = 10.0f * _params.req_hdrift;
-		float gps_velN = fminf(fmaxf(gps->vel_ned[0], -vxy_drift_limit), vxy_drift_limit);
-		float gps_velE = fminf(fmaxf(gps->vel_ned[1], -vxy_drift_limit), vxy_drift_limit);
+		float gps_velN = fminf(fmaxf(gps.vel_ned[0], -vxy_drift_limit), vxy_drift_limit);
+		float gps_velE = fminf(fmaxf(gps.vel_ned[1], -vxy_drift_limit), vxy_drift_limit);
 		_gps_velN_filt = gps_velN * filter_coef + _gps_velN_filt * (1.0f - filter_coef);
 		_gps_velE_filt  = gps_velE * filter_coef + _gps_velE_filt  * (1.0f - filter_coef);
 		_gps_drift_metrics[2] = sqrtf(_gps_velN_filt * _gps_velN_filt + _gps_velE_filt * _gps_velE_filt);
@@ -211,11 +211,11 @@ bool Ekf::gps_is_good(struct gps_message *gps)
 
 	// save GPS fix for next time
 	map_projection_init_timestamped(&_gps_pos_prev, lat, lon, _time_last_imu);
-	_gps_alt_prev = 1e-3f * (float)gps->alt;
+	_gps_alt_prev = 1e-3f * (float)gps.alt;
 
 	// Check  the filtered difference between GPS and EKF vertical velocity
 	float vz_diff_limit = 10.0f * _params.req_vdrift;
-	float vertVel = fminf(fmaxf((gps->vel_ned[2] - _state.vel(2)), -vz_diff_limit), vz_diff_limit);
+	float vertVel = fminf(fmaxf((gps.vel_ned[2] - _state.vel(2)), -vz_diff_limit), vz_diff_limit);
 	_gps_velD_diff_filt = vertVel * filter_coef + _gps_velD_diff_filt * (1.0f - filter_coef);
 	_gps_check_fail_status.flags.vspeed = (fabsf(_gps_velD_diff_filt) > _params.req_vdrift);
 
