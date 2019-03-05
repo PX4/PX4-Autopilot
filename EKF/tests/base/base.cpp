@@ -44,6 +44,9 @@
 
 int main(int argc, char *argv[])
 {
+	(void)argc; // unused
+	(void)argv; // unused
+
 	Ekf *base = new Ekf();
 
 	// Test1: feed in fake imu data and check if delta angles are summed correclty
@@ -131,7 +134,7 @@ int main(int argc, char *argv[])
 		base->setIMUData(timer, timer - timer_last, timer - timer_last, delta_ang, delta_vel);
 		base->setMagData(timer, mag);
 		base->setBaroData(timer, baro);
-		base->setGpsData(timer, &gps);
+		base->setGpsData(timer, gps);
 		//base->print_imu_avg_time();
 
 		timer_last = timer;

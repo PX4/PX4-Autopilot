@@ -50,6 +50,9 @@ struct sample {
 
 int main(int argc, char *argv[])
 {
+	(void)argc; // unused
+	(void)argv; // unused
+
 	sample x;
 	x.time_us = 1000000;
 	x.data[0] = x.data[1] = x.data[2] = 1.5f;

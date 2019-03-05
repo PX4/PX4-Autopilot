@@ -95,7 +95,6 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 			-Wextra
 			-Werror
 
-			-Wno-unused-parameter
 			-Wno-missing-field-initializers # ignore for GCC 4.8 support
 		)
 	endif()
