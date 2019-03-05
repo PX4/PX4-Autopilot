@@ -46,11 +46,6 @@
 
 using matrix::wrap_pi;
 
-ECL_WheelController::ECL_WheelController() :
-	ECL_Controller("wheel")
-{
-}
-
 float ECL_WheelController::control_bodyrate(const struct ECL_ControlData &ctl_data)
 {
 	/* Do not calculate control signal with bad inputs */

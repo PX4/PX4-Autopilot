@@ -43,14 +43,6 @@
 #include <geo/geo.h>
 #include <mathlib/mathlib.h>
 
-ECL_YawController::ECL_YawController() :
-	ECL_Controller("yaw"),
-	_coordinated_min_speed(1.0f),
-	_max_rate(0.0f), /* disable by default */
-	_coordinated_method(0)
-{
-}
-
 float ECL_YawController::control_attitude(const struct ECL_ControlData &ctl_data)
 {
 	switch (_coordinated_method) {
@@ -194,6 +186,8 @@ float ECL_YawController::control_bodyrate(const struct ECL_ControlData &ctl_data
 
 float ECL_YawController::control_attitude_impl_accclosedloop(const struct ECL_ControlData &ctl_data)
 {
+	(void)ctl_data; // unused
+
 	/* dont set a rate setpoint */
 	return 0.0f;
 }

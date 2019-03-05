@@ -44,13 +44,6 @@
 #include <geo/geo.h>
 #include <mathlib/mathlib.h>
 
-ECL_PitchController::ECL_PitchController() :
-	ECL_Controller("pitch"),
-	_max_rate_neg(0.0f),
-	_roll_ff(0.0f)
-{
-}
-
 float ECL_PitchController::control_attitude(const struct ECL_ControlData &ctl_data)
 {
 

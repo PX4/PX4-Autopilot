@@ -55,7 +55,7 @@ class ECL_RollController :
 	public ECL_Controller
 {
 public:
-	ECL_RollController();
+	ECL_RollController() = default;
 	~ECL_RollController() = default;
 
 	float control_attitude(const struct ECL_ControlData &ctl_data);
