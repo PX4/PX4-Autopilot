@@ -539,27 +539,18 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_YAWLIM, 0.25f);
 PARAM_DEFINE_FLOAT(EKF2_BARO_GATE, 5.0f);
 
 /**
- * Boolean determining if barometer deadzone near ground should be accounted.
- *
- * A value of 1 indicates that deadzone is active
- *
- * @group EKF2
- * @boolean
- */
-PARAM_DEFINE_INT32(EKF2_GND_EFF_EN, 0);
-
-/**
  * Baro deadzone range for height fusion
  *
- * Sets the value of deadzone applied to negative baro innovations when ground effect compensation is active
+ * Sets the value of deadzone applied to negative baro innovations.
+ * Deadzone is enabled when EKF2_GND_EFF_DZ > 0.
  *
  * @group EKF2
- * @min 0.5
+ * @min 0.0
  * @max 10.0
  * @unit M
  * @decimal 1
  */
-PARAM_DEFINE_FLOAT(EKF2_GND_EFF_DZ, 5.0f);
+PARAM_DEFINE_FLOAT(EKF2_GND_EFF_DZ, 0.0f);
 
 /**
  * Gate size for GPS horizontal position fusion

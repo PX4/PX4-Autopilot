@@ -337,8 +337,6 @@ private:
 		(ParamExtFloat<px4::params::EKF2_BARO_NOISE>) _baro_noise,	///< observation noise for barometric height fusion (m)
 		(ParamExtFloat<px4::params::EKF2_BARO_GATE>)
 		_baro_innov_gate,	///< barometric height innovation consistency gate size (STD)
-		(ParamInt<px4::params::EKF2_GND_EFF_EN>)
-		_enable_gnd_effect,	///< Controls barometric deadzone fusion, 0 disables, 1 enables
 		(ParamExtFloat<px4::params::EKF2_GND_EFF_DZ>)
 		_gnd_effect_deadzone,	///< barometric deadzone range for negative innovations (m)
 		(ParamExtFloat<px4::params::EKF2_GPS_P_GATE>)
@@ -1255,7 +1253,7 @@ void Ekf2::run()
 		if (vehicle_land_detected_updated) {
 			if (orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &vehicle_land_detected) == PX4_OK) {
 				_ekf.set_in_air_status(!vehicle_land_detected.landed);
-				if(_enable_gnd_effect.get())
+				if(_gnd_effect_deadzone.get() > 0.0f)
 				  _ekf.set_gnd_effect_flag(vehicle_land_detected.in_ground_effect);
 			}
 		}
