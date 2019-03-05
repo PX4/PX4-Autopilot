@@ -301,6 +301,9 @@ void Simulator::handle_message(mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_ODOMETRY:
+		handle_message_odometry(msg);
+		break;
+
 	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
 		handle_message_vision_position_estimate(msg);
 		break;
@@ -520,6 +523,11 @@ void Simulator::handle_message_landing_target(const mavlink_message_t *msg)
 
 	int irlock_multi;
 	orb_publish_auto(ORB_ID(irlock_report), &_irlock_report_pub, &report, &irlock_multi, ORB_PRIO_HIGH);
+}
+
+void Simulator::handle_message_odometry(const mavlink_message_t *msg)
+{
+	publish_odometry_topic(msg);
 }
 
 void Simulator::handle_message_optical_flow(const mavlink_message_t *msg)
