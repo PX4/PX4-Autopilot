@@ -43,11 +43,6 @@
 #include <geo/geo.h>
 #include <mathlib/mathlib.h>
 
-ECL_RollController::ECL_RollController() :
-	ECL_Controller("roll")
-{
-}
-
 float ECL_RollController::control_attitude(const struct ECL_ControlData &ctl_data)
 {
 	/* Do not calculate control signal with bad inputs */

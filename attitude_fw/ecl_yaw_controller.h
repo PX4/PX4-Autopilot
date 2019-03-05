@@ -54,7 +54,7 @@ class ECL_YawController :
 	public ECL_Controller
 {
 public:
-	ECL_YawController();
+	ECL_YawController() = default;
 	~ECL_YawController() = default;
 
 	float control_attitude(const struct ECL_ControlData &ctl_data);
@@ -78,10 +78,10 @@ public:
 	};
 
 protected:
-	float _coordinated_min_speed;
-	float _max_rate;
+	float _coordinated_min_speed{1.0f};
+	float _max_rate{0.0f};
 
-	int32_t _coordinated_method;
+	int32_t _coordinated_method{COORD_METHOD_OPEN};
 
 	float control_attitude_impl_openloop(const struct ECL_ControlData &ctl_data);
 
