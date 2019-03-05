@@ -337,6 +337,10 @@ private:
 		(ParamExtFloat<px4::params::EKF2_BARO_NOISE>) _baro_noise,	///< observation noise for barometric height fusion (m)
 		(ParamExtFloat<px4::params::EKF2_BARO_GATE>)
 		_baro_innov_gate,	///< barometric height innovation consistency gate size (STD)
+		(ParamInt<px4::params::EKF2_GND_EFF_EN>)
+		_enable_gnd_effect,	///< Controls barometric deadzone fusion, 0 disables, 1 enables
+		(ParamExtFloat<px4::params::EKF2_GND_EFF_DZ>)
+		_gnd_effect_deadzone,	///< barometric deadzone range for negative innovations (m)
 		(ParamExtFloat<px4::params::EKF2_GPS_P_GATE>)
 		_posNE_innov_gate,	///< GPS horizontal position innovation consistency gate size (STD)
 		(ParamExtFloat<px4::params::EKF2_GPS_V_GATE>) _vel_innov_gate,	///< GPS velocity innovation consistency gate size (STD)
@@ -537,6 +541,7 @@ Ekf2::Ekf2():
 	_pos_noaid_noise(_params->pos_noaid_noise),
 	_baro_noise(_params->baro_noise),
 	_baro_innov_gate(_params->baro_innov_gate),
+	_gnd_effect_deadzone(_params->gnd_effect_deadzone),
 	_posNE_innov_gate(_params->posNE_innov_gate),
 	_vel_innov_gate(_params->vel_innov_gate),
 	_tas_innov_gate(_params->tas_innov_gate),
@@ -1250,7 +1255,8 @@ void Ekf2::run()
 		if (vehicle_land_detected_updated) {
 			if (orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &vehicle_land_detected) == PX4_OK) {
 				_ekf.set_in_air_status(!vehicle_land_detected.landed);
-				//_ekf.set_gnd_effect_flag(vehicle_land_detected.in_ground_effect);
+				if(_enable_gnd_effect.get())
+				  _ekf.set_gnd_effect_flag(vehicle_land_detected.in_ground_effect);
 			}
 		}
 
