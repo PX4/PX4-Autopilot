@@ -382,7 +382,7 @@
  *  -------- ----- ------ ---------
  */
 
-#define PIN_LPUART0_RX      PIN_LPUART0_RX_3
+#define PIN_LPUART0_RX      (PIN_LPUART0_RX_3 | GPIO_PULLUP)
 #define PIN_LPUART0_TX      PIN_LPUART0_TX_3
 
 /* UART0
