@@ -33,8 +33,6 @@
 
 #pragma once
 
-#include <matrix/matrix/math.hpp>
-
 /**
  * @class VelocitySmoothing
  *
@@ -115,6 +113,9 @@ public:
 	static void timeSynchronization(VelocitySmoothing *traj, int n_traj);
 
 	float getTotalTime() const { return _T1 + _T2 + _T3; }
+	float getT1() const { return _T1; }
+	float getT2() const { return _T2; }
+	float getT3() const { return _T3; }
 	float getVelSp() const { return _vel_sp; }
 
 private:
@@ -124,7 +125,7 @@ private:
 	 * @param T123 optional parameter. If set, the total trajectory time will be T123, if not,
 	 * 		the algorithm optimizes for time.
 	 */
-	void updateDurations(float T123 = NAN);
+	void updateDurations(float T123 = -1.f);
 	/**
 	 * Compute increasing acceleration time
 	 */

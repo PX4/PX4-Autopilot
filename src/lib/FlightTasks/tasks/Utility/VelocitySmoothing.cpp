@@ -35,8 +35,6 @@
 
 #include <cstdio>
 #include <float.h>
-#include <math.h>
-#include <px4_defines.h>
 
 #include <mathlib/mathlib.h>
 
@@ -210,22 +208,22 @@ void VelocitySmoothing::updateDurations(float T123)
 	_max_jerk_T1 = (_vel_sp - _vel > 0.f) ? _max_jerk : -_max_jerk;
 
 	// compute increasing acceleration time
-	if (PX4_ISFINITE(T123)) {
-		T1 = computeT1(T123, _accel, _vel, _vel_sp, _max_jerk_T1);
+	if (T123 < 0.f) {
+		T1 = computeT1(_accel, _vel, _vel_sp, _max_jerk_T1);
 
 	} else {
-		T1 = computeT1(_accel, _vel, _vel_sp, _max_jerk_T1);
+		T1 = computeT1(T123, _accel, _vel, _vel_sp, _max_jerk_T1);
 	}
 
 	// compute decreasing acceleration time
 	T3 = computeT3(T1, _accel, _max_jerk_T1);
 
 	// compute constant acceleration time
-	if (PX4_ISFINITE(T123)) {
-		T2 = computeT2(T123, T1, T3);
+	if (T123 < 0.f) {
+		T2 = computeT2(T1, T3, _accel, _vel, _vel_sp, _max_jerk_T1);
 
 	} else {
-		T2 = computeT2(T1, T3, _accel, _vel, _vel_sp, _max_jerk_T1);
+		T2 = computeT2(T123, T1, T3);
 	}
 
 	_T1 = T1;
