@@ -355,7 +355,7 @@ public:
     template<size_t P, size_t Q>
     Matrix<Type, P, Q> slice(size_t x0, size_t y0) const
     {
-        Matrix<Type, M, N> &self = *this;
+        const Matrix<Type, M, N> &self = *this;
         Matrix<Type, P, Q> res; //default constructed
         for (size_t i = 0; i < P; i++) {
             for (size_t j = 0; j < Q; j++) {
