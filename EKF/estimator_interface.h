@@ -41,10 +41,10 @@
 
 #pragma once
 
+#include <ecl.h>
 #include "common.h"
 #include "RingBuffer.h"
 
-#include <ecl.h>
 #include <geo/geo.h>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
