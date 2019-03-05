@@ -314,16 +314,7 @@ void Simulator::handle_message(mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_RC_CHANNELS:
-		mavlink_rc_channels_t rc_channels;
-		mavlink_msg_rc_channels_decode(msg, &rc_channels);
-		fill_rc_input_msg(&_rc_input, &rc_channels);
-
-		// publish message
-		if (_publish) {
-			int rc_multi;
-			orb_publish_auto(ORB_ID(input_rc), &_rc_channels_pub, &_rc_input, &rc_multi, ORB_PRIO_HIGH);
-		}
-
+		handle_message_rc_channels(msg);
 		break;
 
 	case MAVLINK_MSG_ID_LANDING_TARGET: {
@@ -537,6 +528,19 @@ void Simulator::handle_message_optical_flow(const mavlink_message_t *msg)
 	mavlink_hil_optical_flow_t flow;
 	mavlink_msg_hil_optical_flow_decode(msg, &flow);
 	publish_flow_topic(&flow);
+}
+
+void Simulator::handle_message_rc_channels(const mavlink_message_t *msg)
+{
+	mavlink_rc_channels_t rc_channels;
+	mavlink_msg_rc_channels_decode(msg, &rc_channels);
+	fill_rc_input_msg(&_rc_input, &rc_channels);
+
+	// publish message
+	if (_publish) {
+		int rc_multi;
+		orb_publish_auto(ORB_ID(input_rc), &_rc_channels_pub, &_rc_input, &rc_multi, ORB_PRIO_HIGH);
+	}
 }
 
 void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
