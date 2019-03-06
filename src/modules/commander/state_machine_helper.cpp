@@ -836,15 +836,18 @@ void set_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
 	// do the best you can according to the action set
 
 	switch (link_loss_act) {
-	case (link_loss_actions_t::DISABLED):
-	case (link_loss_actions_t::AUTO_RECOVER):
+	case link_loss_actions_t::DISABLED:
+		// If datalink loss failsafe is disabled then no action must be taken.
+		break;
+
+	case link_loss_actions_t::AUTO_RECOVER:
 		if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
 			status->nav_state = auto_recovery_nav_state;
 			return;
 		}
 
 	// FALLTHROUGH
-	case (link_loss_actions_t::AUTO_RTL):
+	case link_loss_actions_t::AUTO_RTL:
 		if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
 			main_state_transition(*status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, internal_state);
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
@@ -852,14 +855,14 @@ void set_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
 		}
 
 	// FALLTHROUGH
-	case (link_loss_actions_t::AUTO_LOITER):
+	case link_loss_actions_t::AUTO_LOITER:
 		if (status_flags.condition_global_position_valid) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 			return;
 		}
 
 	// FALLTHROUGH
-	case (link_loss_actions_t::AUTO_LAND):
+	case link_loss_actions_t::AUTO_LAND:
 		if (status_flags.condition_global_position_valid) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 			return;
@@ -883,12 +886,12 @@ void set_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
 		}
 
 	// FALLTHROUGH
-	case (link_loss_actions_t::TERMINATE):
+	case link_loss_actions_t::TERMINATE:
 		status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
 		armed->force_failsafe = true;
 		break;
 
-	case (link_loss_actions_t::LOCKDOWN):
+	case link_loss_actions_t::LOCKDOWN:
 		armed->lockdown = true;
 		break;
 	}
