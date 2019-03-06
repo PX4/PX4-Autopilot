@@ -57,7 +57,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
-
+#include <uORB/topics/telemetry_status.h>
 using math::constrain;
 using uORB::Publication;
 using uORB::Subscription;
@@ -183,10 +183,10 @@ private:
 	uint64_t	_onboard_controller_lost{0};
 
 	uint64_t	_datalink_last_heartbeat_avoidance_system{0};
-	uint64_t	_avoidance_system_lost{0};
+	bool			_avoidance_system_lost{0};
 	uint64_t	_avoidance_system_not_started{0};
 	bool		_avoidance_system_status_change{0};
-	uint64_t	_datalink_last_status_avoidance_system{9};
+	uint8_t	_datalink_last_status_avoidance_system{telemetry_status_s::MAV_STATE_UNINIT};
 
 	int			_iridiumsbd_status_sub{-1};
 	uint64_t	_high_latency_datalink_heartbeat{0};

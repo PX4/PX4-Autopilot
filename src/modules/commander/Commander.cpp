@@ -3897,7 +3897,7 @@ void Commander::data_link_check(bool &status_changed)
 						if (hrt_elapsed_time(&_datalink_last_heartbeat_gcs) < (_datalink_regain_threshold.get() * 1_s)) {
 							status.data_link_lost = false;
 							status_changed = true;
-							mavlink_log_critical(&mavlink_log_pub, "DATA LINK REGAINED");
+							mavlink_log_info(&mavlink_log_pub, "Data link regained");
 						}
 					}
 
@@ -3908,7 +3908,7 @@ void Commander::data_link_check(bool &status_changed)
 
 					if (_onboard_controller_lost) {
 						if (hrt_elapsed_time(&_datalink_last_heartbeat_onboard_controller) < _onboard_regain_threshold.get() * 1_s) {
-							mavlink_log_info(&mavlink_log_pub, "ONBOARD CONTROLLER REGAINED");
+							mavlink_log_info(&mavlink_log_pub, "Onboard controller regained");
 							_onboard_controller_lost = false;
 						}
 
@@ -3922,8 +3922,8 @@ void Commander::data_link_check(bool &status_changed)
 						_datalink_last_heartbeat_avoidance_system = telemetry.heartbeat_time;
 						_datalink_last_status_avoidance_system = telemetry.remote_system_status;
 
-						if (_avoidance_system_lost != false) {
-							mavlink_log_info(&mavlink_log_pub, "AVOIDANCE SYSTEM REGAINED");
+						if (_avoidance_system_lost) {
+							mavlink_log_info(&mavlink_log_pub, "Avoidance system regained");
 						}
 
 						_avoidance_system_lost = false;
@@ -3943,7 +3943,7 @@ void Commander::data_link_check(bool &status_changed)
 			status.data_link_lost = true;
 			status.data_link_lost_counter++;
 
-			mavlink_log_critical(&mavlink_log_pub, "DATA LINK LOST");
+			mavlink_log_critical(&mavlink_log_pub, "Data link lost");
 
 			status_changed = true;
 		}
@@ -3954,7 +3954,7 @@ void Commander::data_link_check(bool &status_changed)
 	    && (hrt_elapsed_time(&_datalink_last_heartbeat_onboard_controller) > _onboard_loss_timeout.get() * 1_s)
 	    && !_onboard_controller_lost) {
 
-		mavlink_log_critical(&mavlink_log_pub, "ONBOARD CONTROLLER LOST");
+		mavlink_log_critical(&mavlink_log_pub, "Onboard controller lost");
 		_onboard_controller_lost = true;
 	}
 
@@ -3964,32 +3964,32 @@ void Commander::data_link_check(bool &status_changed)
 		//if avoidance never started
 		if (_datalink_last_heartbeat_avoidance_system == 0 && hrt_elapsed_time(&_avoidance_system_not_started) > 5_s) {
 			_avoidance_system_not_started = hrt_absolute_time();
-			mavlink_log_critical(&mavlink_log_pub, "AVOIDANCE SYSTEM DID NOT START");
+			mavlink_log_info(&mavlink_log_pub, "Waiting for avoidance system to start");
 		}
 
 		//if heartbeats stop
 		if (!_avoidance_system_lost && (_datalink_last_heartbeat_avoidance_system > 0)
 		    && (hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > 5_s)) {
 			_avoidance_system_lost = true;
-			mavlink_log_critical(&mavlink_log_pub, "AVOIDANCE SYSTEM LOST");
+			mavlink_log_critical(&mavlink_log_pub, "Avoidance system lost");
 		}
 
 		//if status changed
 		if (_avoidance_system_status_change) {
 			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_BOOT) {
-				mavlink_log_info(&mavlink_log_pub, "AVOIDANCE SYSTEM STARTING");
+				mavlink_log_info(&mavlink_log_pub, "Avoidance system starting");
 			}
 
 			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_ACTIVE) {
-				mavlink_log_info(&mavlink_log_pub, "AVOIDANCE SYSTEM HEALTHY");
+				mavlink_log_info(&mavlink_log_pub, "Avoidance system healthy");
 			}
 
 			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_CRITICAL) {
-				mavlink_log_info(&mavlink_log_pub, "AVOIDANCE SYSTEM TIMEOUT");
+				mavlink_log_info(&mavlink_log_pub, "Avoidance system timeout");
 			}
 
 			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_FLIGHT_TERMINATION) {
-				mavlink_log_critical(&mavlink_log_pub, "AVOIDANCE SYSTEM ABORT");
+				mavlink_log_critical(&mavlink_log_pub, "Avoidance system abort");
 			}
 
 			_avoidance_system_status_change = false;
@@ -4004,7 +4004,7 @@ void Commander::data_link_check(bool &status_changed)
 
 		if (!status.high_latency_data_link_lost) {
 			status.high_latency_data_link_lost = true;
-			mavlink_log_critical(&mavlink_log_pub, "HIGH LATENCY DATA LINK LOST");
+			mavlink_log_critical(&mavlink_log_pub, "High latency data link lost");
 			status_changed = true;
 		}
 	}
@@ -4045,13 +4045,13 @@ void Commander::battery_status_check()
 			if (!armed.armed && (battery.warning != _battery_warning)) {
 
 				if (battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
-					mavlink_log_critical(&mavlink_log_pub, "DANGEROUSLY LOW BATTERY, SHUT SYSTEM DOWN");
+					mavlink_log_critical(&mavlink_log_pub, "Dangerously low battery, shut system down");
 					px4_usleep(200000);
 
 					int ret_val = px4_shutdown_request(false, false);
 
 					if (ret_val) {
-						mavlink_log_critical(&mavlink_log_pub, "SYSTEM DOES NOT SUPPORT SHUTDOWN");
+						mavlink_log_critical(&mavlink_log_pub, "System does not support shutdown");
 
 					} else {
 						while (1) { px4_usleep(1); }
@@ -4144,7 +4144,7 @@ void Commander::estimator_check(bool *status_changed)
 						// if the innovation test has failed continuously, declare the nav as failed
 						if (hrt_elapsed_time(&_time_last_innov_pass) > 1_s) {
 							_nav_test_failed = true;
-							mavlink_log_emergency(&mavlink_log_pub, "CRITICAL NAVIGATION FAILURE - CHECK SENSOR CALIBRATION");
+							mavlink_log_emergency(&mavlink_log_pub, "Critical navigation failure - check sensor calibration");
 						}
 					}
 				}
