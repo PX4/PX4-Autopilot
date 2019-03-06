@@ -53,7 +53,7 @@
 
 #include <matrix/matrix/math.hpp>
 
-#include <lib/FlightTasks/tasks/FlightTask/SubscriptionArray.hpp>
+#include <SubscriptionArray.hpp>
 
 class ObstacleAvoidance : public ModuleParams
 {
