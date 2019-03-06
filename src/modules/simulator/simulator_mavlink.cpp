@@ -220,7 +220,7 @@ static void fill_rc_input_msg(input_rc_s *rc, mavlink_rc_channels_t *rc_channels
 	rc->values[17] = rc_channels->chan18_raw;
 }
 
-void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
+void Simulator::update_sensors(const mavlink_hil_sensor_t *imu)
 {
 	// write sensor data to memory so that drivers can copy data from there
 	RawMPUData mpu = {};
@@ -269,7 +269,7 @@ void Simulator::update_sensors(mavlink_hil_sensor_t *imu)
 	write_airspeed_data(&airspeed);
 }
 
-void Simulator::update_gps(mavlink_hil_gps_t *gps_sim)
+void Simulator::update_gps(const mavlink_hil_gps_t *gps_sim)
 {
 	RawGPSData gps = {};
 	gps.timestamp = hrt_absolute_time();
@@ -289,7 +289,7 @@ void Simulator::update_gps(mavlink_hil_gps_t *gps_sim)
 	write_gps_data((void *)&gps);
 }
 
-void Simulator::handle_message(mavlink_message_t *msg)
+void Simulator::handle_message(const mavlink_message_t *msg)
 {
 	switch (msg->msgid) {
 	case MAVLINK_MSG_ID_HIL_SENSOR:
@@ -970,7 +970,7 @@ int openUart(const char *uart_name, int baud)
 }
 #endif
 
-int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
+int Simulator::publish_sensor_topics(const mavlink_hil_sensor_t *imu)
 {
 	uint64_t timestamp = hrt_absolute_time();
 
@@ -1065,7 +1065,7 @@ int Simulator::publish_sensor_topics(mavlink_hil_sensor_t *imu)
 	return OK;
 }
 
-int Simulator::publish_flow_topic(mavlink_hil_optical_flow_t *flow_mavlink)
+int Simulator::publish_flow_topic(const mavlink_hil_optical_flow_t *flow_mavlink)
 {
 	uint64_t timestamp = hrt_absolute_time();
 
@@ -1220,7 +1220,7 @@ int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)
 	return OK;
 }
 
-int Simulator::publish_distance_topic(mavlink_distance_sensor_t *dist_mavlink)
+int Simulator::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavlink)
 {
 	uint64_t timestamp = hrt_absolute_time();
 
