@@ -177,20 +177,22 @@ private:
 	void		data_link_check(bool &status_changed);
 	int		_telemetry_status_sub[ORB_MULTI_MAX_INSTANCES] {};
 
-	uint64_t	_datalink_last_heartbeat_gcs{0};
+	hrt_abstime	_datalink_last_heartbeat_gcs{0};
 
-	uint64_t	_datalink_last_heartbeat_onboard_controller{0};
-	uint64_t	_onboard_controller_lost{0};
+	hrt_abstime	_datalink_last_heartbeat_onboard_controller{0};
+	bool 				_onboard_controller_lost{0};
 
-	uint64_t	_datalink_last_heartbeat_avoidance_system{0};
-	bool			_avoidance_system_lost{0};
-	uint64_t	_avoidance_system_not_started{0};
+	hrt_abstime	_datalink_last_heartbeat_avoidance_system{0};
+	bool				_avoidance_system_lost{0};
+	hrt_abstime	_avoidance_system_not_started{0};
+
 	bool		_avoidance_system_status_change{0};
 	uint8_t	_datalink_last_status_avoidance_system{telemetry_status_s::MAV_STATE_UNINIT};
 
 	int			_iridiumsbd_status_sub{-1};
-	uint64_t	_high_latency_datalink_heartbeat{0};
-	uint64_t	_high_latency_datalink_lost{0};
+
+	hrt_abstime	_high_latency_datalink_heartbeat{0};
+	hrt_abstime	_high_latency_datalink_lost{0};
 
 	void estimator_check(bool *status_changed);
 
