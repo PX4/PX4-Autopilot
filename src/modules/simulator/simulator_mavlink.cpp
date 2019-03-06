@@ -114,7 +114,7 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 		case MAV_TYPE_VTOL_RESERVED2:
 			// this is the standard VTOL
 			// this will work until you have more than 1 push or pull motors
-			if param_get(param_find("VT_MOT_COUNT"), &n) {
+			if (param_get(param_find("VT_MOT_COUNT"), &n)) {
 				n = 5;
 			} else {
 				n += 1;
