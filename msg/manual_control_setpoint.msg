@@ -48,6 +48,7 @@ float32 aux2			 # default function: camera pitch / tilt
 float32 aux3			 # default function: camera trigger
 float32 aux4			 # default function: camera roll
 float32 aux5			 # default function: payload drop
+float32 aux6
 
 uint8 mode_switch		 # main mode 3 position switch (mandatory): _MANUAL_, ASSIST, AUTO
 uint8 return_switch		 # return to launch 2 position switch (mandatory): _NORMAL_, RTL
