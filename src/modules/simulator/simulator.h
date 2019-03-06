@@ -274,10 +274,10 @@ private:
 	// class methods
 	void initialize_sensor_data();
 
-	int publish_sensor_topics(mavlink_hil_sensor_t *imu);
-	int publish_flow_topic(mavlink_hil_optical_flow_t *flow);
+	int publish_sensor_topics(const mavlink_hil_sensor_t *imu);
+	int publish_flow_topic(const mavlink_hil_optical_flow_t *flow);
 	int publish_odometry_topic(const mavlink_message_t *odom_mavlink);
-	int publish_distance_topic(mavlink_distance_sensor_t *dist);
+	int publish_distance_topic(const mavlink_distance_sensor_t *dist);
 
 	static Simulator *_instance;
 
@@ -330,7 +330,7 @@ private:
 
 	mavlink_hil_actuator_controls_t actuator_controls_from_outputs(const actuator_outputs_s &actuators);
 
-	void handle_message(mavlink_message_t *msg);
+	void handle_message(const mavlink_message_t *msg);
 	void handle_message_distance_sensor(const mavlink_message_t *msg);
 	void handle_message_hil_gps(const mavlink_message_t *msg);
 	void handle_message_hil_sensor(const mavlink_message_t *msg);
@@ -350,8 +350,8 @@ private:
 	void send_heartbeat();
 	void send_mavlink_message(const mavlink_message_t &aMsg);
 	void set_publish(const bool publish = true);
-	void update_sensors(mavlink_hil_sensor_t *imu);
-	void update_gps(mavlink_hil_gps_t *gps_sim);
+	void update_sensors(const mavlink_hil_sensor_t *imu);
+	void update_gps(const mavlink_hil_gps_t *gps_sim);
 
 	static void *sending_trampoline(void *);
 
