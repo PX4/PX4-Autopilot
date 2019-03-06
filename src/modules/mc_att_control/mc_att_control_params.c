@@ -553,9 +553,14 @@ PARAM_DEFINE_FLOAT(MC_DTERM_CUTOFF, 30.f);
 
 PARAM_DEFINE_FLOAT(MC_NOTCH_FREQ, 43.f);
 
+/* actually, the band and depth used here are complicate, refer to the matlab simulation.
+ * By Cris.Wei
+ */
 PARAM_DEFINE_FLOAT(MC_NOTCH_BAND, 1.00f);
 
 PARAM_DEFINE_FLOAT(MC_NOTCH_DEPTH, 0.01f);
+
+PARAM_DEFINE_INT32(MC_NOTCH_ENABLE, 1);
 
 /**
  * Multicopter air-mode

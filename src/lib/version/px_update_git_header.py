@@ -24,7 +24,8 @@ header = """
 
 
 # PX4
-git_tag = subprocess.check_output('git describe --always --tags --dirty'.split(),
+#git_tag = subprocess.check_output('git describe --always --tags --dirty'.split(),
+git_tag = subprocess.check_output('git describe --always --tags'.split(),
                                   stderr=subprocess.STDOUT).decode('utf-8').strip()
 git_version = subprocess.check_output('git rev-parse --verify HEAD'.split(),
                                       stderr=subprocess.STDOUT).decode('utf-8').strip()
@@ -45,7 +46,7 @@ header += """
            git_version_short=git_version_short,
            git_branch_name=git_branch_name)
 
-
+'''
 # ECL
 if (os.path.exists('src/lib/ecl/.git')):
     ecl_git_tag = subprocess.check_output('git describe --always --tags --dirty'.split(),
@@ -60,6 +61,7 @@ if (os.path.exists('src/lib/ecl/.git')):
 #define ECL_LIB_GIT_VERSION_BINARY 0x{ecl_git_version_short}
 """.format(ecl_git_version=ecl_git_version,
            ecl_git_version_short=ecl_git_version_short)
+'''
 
 
 # Mavlink

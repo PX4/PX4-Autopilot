@@ -64,7 +64,7 @@ public:
 	void fill_actuator_outputs() override;
 	void waiting_on_tecs() override;
 
-	virtual float control_altitude();
+	virtual float control_altitude(float time_since_trans_start, float alt_cmd);
 	virtual float thr_from_acc_cmd(float vert_acc_cmd, float airspeed, float pitch_ang, float aoa);
 	virtual float get_CL(float aoa);
 
@@ -115,8 +115,9 @@ private:
 	float _vert_i_term;
 	float _mc_hover_thrust;
 	float _trans_end_thrust;
-	float _trans_pitch_cmd;
+	float _trans_pitch_rot;
 	float _CL_Degree[NUM_CL_POINTS+1];
+	float _target_alt;
 
 	void parameters_update() override;
 

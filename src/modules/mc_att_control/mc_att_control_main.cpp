@@ -60,6 +60,7 @@
 #define AXIS_INDEX_YAW 2
 #define AXIS_COUNT 3
 
+
 using namespace matrix;
 
 //static orb_advert_t mavlink_log_pub = nullptr;
@@ -689,7 +690,10 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	Vector3f rates_d_scaled = _rate_d.emult(pid_attenuations(_tpa_breakpoint_d.get(), _tpa_rate_d.get()));
 
 	/* apply notch filter for pitch rate */
-	rates(1) = _notch_filter.apply(rates(1));
+	if (_notch_enable.get()) {
+		//mavlink_log_critical(&mavlink_log_pub, "notch: ON");
+		rates(1) = _notch_filter.apply(rates(1));
+	}
 
 	/* apply low-pass filtering to the rates for D-term */
 	Vector3f rates_filtered(_lp_filters_d.apply(rates));
@@ -983,6 +987,7 @@ MulticopterAttitudeControl::run()
 					loop_counter = 0;
 					_lp_filters_d.set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
 					_notch_filter.set_notch_filter(_loop_update_rate_hz, _notch_freq.get(), _notch_band.get(), _notch_depth.get());
+					PX4_WARN("");
 				}
 			}
 

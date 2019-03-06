@@ -237,6 +237,7 @@ private:
 		(ParamFloat<px4::params::MC_NOTCH_FREQ>)   _notch_freq,					
 		(ParamFloat<px4::params::MC_NOTCH_BAND>)   _notch_band,					
 		(ParamFloat<px4::params::MC_NOTCH_DEPTH>)  _notch_depth,				
+		(ParamInt<px4::params::MC_NOTCH_ENABLE>)    _notch_enable,
 
 		(ParamFloat<px4::params::MC_TPA_BREAK_P>) _tpa_breakpoint_p,			/**< Throttle PID Attenuation breakpoint */
 		(ParamFloat<px4::params::MC_TPA_BREAK_I>) _tpa_breakpoint_i,			/**< Throttle PID Attenuation breakpoint */

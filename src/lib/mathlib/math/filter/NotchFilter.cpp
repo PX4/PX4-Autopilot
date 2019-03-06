@@ -45,7 +45,7 @@ void NotchFilter::set_notch_filter(float sample_freq, float notch_freq, float no
 	float  c = notch_depth / w;
 	float  T = 1.0f / sample_freq;
 
-	_a0 = (4.0f * a + 2.0f * b * T + T * T) / ( 4.0f * a + 2.0f * b * T + T * T);
+	_a0 = (4.0f * a + 2.0f * c * T + T * T) / ( 4.0f * a + 2.0f * b * T + T * T);
 	_a1 = (2.0f * T * T - 8.0f * a) / (4.0f * a + 2.0f * b * T + T * T);
 	_a2 = (4.0f * a - 2.0f * c * T + T * T) / (4.0f * a + 2.0f * b * T + T * T);
 	_b1 = (2.0f * T * T - 8.0f * a) / (4.0f * a + 2.0f * b * T + T * T);

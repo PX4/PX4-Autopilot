@@ -415,6 +415,12 @@ VtolAttitudeControl::is_fixed_wing_requested()
 	return to_fw;
 }
 
+bool
+VtolAttitudeControl::is_sweep_requested()
+{
+	return (_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON);
+}
+
 /*
  * Abort front transition
  */
