@@ -3850,12 +3850,12 @@ void Commander::data_link_check(bool &status_changed)
 
 				// handle different radio types
 				switch (telemetry.type) {
-				case (telemetry_status_s::LINK_TYPE_USB):
+				case telemetry_status_s::LINK_TYPE_USB:
 					// set (but don't unset) telemetry via USB as active once a MAVLink connection is up
 					status_flags.usb_connected = true;
 					break;
 
-				case (telemetry_status_s::LINK_TYPE_IRIDIUM):
+				case telemetry_status_s::LINK_TYPE_IRIDIUM:
 
 					// lazily subscribe
 					if (_iridiumsbd_status_sub == -1 && orb_exists(ORB_ID(iridiumsbd_status), 0) == PX4_OK) {
@@ -3889,7 +3889,7 @@ void Commander::data_link_check(bool &status_changed)
 
 				// handle different remote types
 				switch (telemetry.remote_type) {
-				case (telemetry_status_s::MAV_TYPE_GCS):
+				case telemetry_status_s::MAV_TYPE_GCS:
 					_datalink_last_heartbeat_gcs = telemetry.heartbeat_time;
 
 					// Recover from data link lost
@@ -3903,7 +3903,7 @@ void Commander::data_link_check(bool &status_changed)
 
 					break;
 
-				case (telemetry_status_s::MAV_TYPE_ONBOARD_CONTROLLER):
+				case telemetry_status_s::MAV_TYPE_ONBOARD_CONTROLLER:
 					_datalink_last_heartbeat_onboard_controller = telemetry.heartbeat_time;
 
 					if (_onboard_controller_lost) {
