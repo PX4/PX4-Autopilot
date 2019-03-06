@@ -45,7 +45,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <lib/ecl/geo/geo.h>
-#include "lib/FlightTasks/tasks/Utility/ObstacleAvoidance.hpp"
+#include "ObstacleAvoidance.hpp"
 
 /**
  * This enum has to agree with position_setpoint_s type definition
@@ -84,7 +84,6 @@ public:
 	 * Sets an external yaw handler which can be used to implement a different yaw control strategy.
 	 */
 	void setYawHandler(WeatherVane *ext_yaw_handler) override {_ext_yaw_handler = ext_yaw_handler;}
-	ObstacleAvoidance _obstacle_avoidance;
 
 protected:
 	void _setDefaultConstraints() override;
@@ -103,6 +102,8 @@ protected:
 	State _current_state{State::none};
 	float _target_acceptance_radius = 0.0f; /**< Acceptances radius of the target */
 	int _mission_gear = landing_gear_s::GEAR_KEEP;
+
+	ObstacleAvoidance _obstacle_avoidance;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
