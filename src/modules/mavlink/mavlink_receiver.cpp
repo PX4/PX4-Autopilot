@@ -1882,8 +1882,9 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 		mavlink_heartbeat_t hb;
 		mavlink_msg_heartbeat_decode(msg, &hb);
 
-		/* ignore own heartbeats, accept only heartbeats from GCS */
-		if (msg->sysid != mavlink_system.sysid || hb.type == MAV_TYPE_ONBOARD_CONTROLLER) {
+		/* Accept only heartbeats from GCS or ONBOARD Controller, skip heartbeats from other vehicles */
+		if ((msg->sysid != mavlink_system.sysid && hb.type == MAV_TYPE_GCS) || (msg->sysid == mavlink_system.sysid
+				&& hb.type == MAV_TYPE_ONBOARD_CONTROLLER)) {
 
 			telemetry_status_s &tstatus = _mavlink->get_telemetry_status();
 
