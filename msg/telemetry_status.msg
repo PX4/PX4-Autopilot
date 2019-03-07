@@ -36,7 +36,7 @@ uint8 remote_component_id		# component id of the remote system (Mavlink header c
 uint8 remote_type			# remote system status flag (Mavlink MAV_TYPE)
 uint8 remote_system_status		# remote system status flag (Mavlink MAV_STATE)
 
-uint8 type				# type of the radio hardware
+uint8 type				#  type of the radio hardware (LINK_TYPE_*)
 
 uint8 mode
 
