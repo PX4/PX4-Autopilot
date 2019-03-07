@@ -96,7 +96,6 @@ private:
 
 		(ParamInt<px4::params::NAV_DLL_ACT>) _datalink_loss_action,
 		(ParamInt<px4::params::COM_DL_LOSS_T>) _datalink_loss_threshold,
-		(ParamInt<px4::params::COM_DL_REG_T>) _datalink_regain_threshold,
 
 		(ParamInt<px4::params::COM_HLDL_LOSS_T>) _high_latency_datalink_loss_threshold,
 		(ParamInt<px4::params::COM_HLDL_REG_T>) _high_latency_datalink_regain_threshold,
@@ -120,8 +119,7 @@ private:
 
 		(ParamInt<px4::params::COM_OBS_AVOID>) _obs_avoid,
 
-		(ParamInt<px4::params::COM_ONB_LOSS_T>) _onboard_loss_timeout,
-		(ParamInt<px4::params::COM_ONB_REG_T>) _onboard_regain_threshold
+		(ParamInt<px4::params::COM_ONB_LOSS_T>) _onboard_loss_timeout
 	)
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
