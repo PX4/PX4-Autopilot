@@ -141,6 +141,19 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 		_position_lock_z_active = false;
 	}
 
+	// During position lock, lower jerk to help the optimizer
+	// to converge to 0 acceleration and velocity
+	if (_position_lock_xy_active) {
+		jerk[0] = 1.f;
+		jerk[1] = 1.f;
+
+	} else {
+		jerk[0] = _jerk_max.get();
+		jerk[1] = _jerk_max.get();
+	}
+
+	jerk[2] = _position_lock_z_active ? 1.f : _jerk_max.get();
+
 	for (int i = 0; i < 3; ++i) {
 		_smoothing[i].setMaxJerk(jerk[i]);
 		_smoothing[i].updateDurations(_deltatime, _velocity_setpoint(i));
