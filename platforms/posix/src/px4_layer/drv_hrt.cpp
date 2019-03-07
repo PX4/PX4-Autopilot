@@ -68,7 +68,7 @@ static int32_t dsp_offset = 0;
 #endif
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
-static LockstepScheduler lockstep_scheduler;
+static LockstepScheduler *lockstep_scheduler = new LockstepScheduler();
 #endif
 
 
@@ -156,7 +156,7 @@ hrt_abstime hrt_absolute_time()
 {
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	// optimized case (avoid ts_to_abstime) if lockstep scheduler is used
-	const uint64_t abstime = lockstep_scheduler.get_absolute_time();
+	const uint64_t abstime = lockstep_scheduler->get_absolute_time();
 	return abstime - px4_timestart_monotonic;
 #else // defined(ENABLE_LOCKSTEP_SCHEDULER)
 	struct timespec ts;
@@ -539,7 +539,7 @@ int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
 {
 	if (clk_id == CLOCK_MONOTONIC) {
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
-		const uint64_t abstime = lockstep_scheduler.get_absolute_time();
+		const uint64_t abstime = lockstep_scheduler->get_absolute_time();
 		abstime_to_ts(tp, abstime - px4_timestart_monotonic);
 		return 0;
 #else // defined(ENABLE_LOCKSTEP_SCHEDULER)
@@ -571,7 +571,7 @@ int px4_clock_settime(clockid_t clk_id, const struct timespec *ts)
 			px4_timestart_monotonic = time_us;
 		}
 
-		lockstep_scheduler.set_absolute_time(time_us);
+		lockstep_scheduler->set_absolute_time(time_us);
 		return 0;
 	}
 }
@@ -585,9 +585,9 @@ int px4_usleep(useconds_t usec)
 		return system_usleep(usec);
 	}
 
-	const uint64_t time_finished = lockstep_scheduler.get_absolute_time() + usec;
+	const uint64_t time_finished = lockstep_scheduler->get_absolute_time() + usec;
 
-	return lockstep_scheduler.usleep_until(time_finished);
+	return lockstep_scheduler->usleep_until(time_finished);
 }
 
 unsigned int px4_sleep(unsigned int seconds)
@@ -598,10 +598,10 @@ unsigned int px4_sleep(unsigned int seconds)
 		return system_sleep(seconds);
 	}
 
-	const uint64_t time_finished = lockstep_scheduler.get_absolute_time() +
+	const uint64_t time_finished = lockstep_scheduler->get_absolute_time() +
 				       ((uint64_t)seconds * 1000000);
 
-	return lockstep_scheduler.usleep_until(time_finished);
+	return lockstep_scheduler->usleep_until(time_finished);
 }
 
 int px4_pthread_cond_timedwait(pthread_cond_t *cond,
@@ -610,6 +610,6 @@ int px4_pthread_cond_timedwait(pthread_cond_t *cond,
 {
 	const uint64_t time_us = ts_to_abstime(ts);
 	const uint64_t scheduled = time_us + px4_timestart_monotonic;
-	return lockstep_scheduler.cond_timedwait(cond, mutex, scheduled);
+	return lockstep_scheduler->cond_timedwait(cond, mutex, scheduled);
 }
 #endif
