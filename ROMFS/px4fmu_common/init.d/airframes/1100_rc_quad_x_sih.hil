@@ -17,3 +17,5 @@ set PWM_OUT 1234
 param set SYS_HITL 1
 
 param set SYS_SIH 1
+
+param set BAT_N_CELLS 4
