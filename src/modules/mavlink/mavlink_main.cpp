@@ -2552,8 +2552,13 @@ void Mavlink::publish_telemetry_status()
 	_tstatus.streams = _streams.size();
 
 	_tstatus.timestamp = hrt_absolute_time();
-	int instance;
-	orb_publish_auto(ORB_ID(telemetry_status), &_telem_status_pub, &_tstatus, &instance, ORB_PRIO_DEFAULT);
+
+	if (_telem_status_pub == nullptr) {
+		_telem_status_pub = orb_advertise_queue(ORB_ID(telemetry_status), &_tstatus, 3);
+
+	} else {
+		orb_publish(ORB_ID(telemetry_status), _telem_status_pub, &_tstatus);
+	}
 }
 
 void Mavlink::check_radio_config()
