@@ -253,7 +253,6 @@ private:
 	orb_advert_t _rc_pub{nullptr};
 	orb_advert_t _trajectory_waypoint_pub{nullptr};
 	orb_advert_t _transponder_report_pub{nullptr};
-	orb_advert_t _telem_status_pub{nullptr};
 	orb_advert_t _visual_odometry_pub{nullptr};
 
 	static constexpr int _gps_inject_data_queue_size{6};

@@ -173,7 +173,7 @@ private:
 	 * Checks the status of all available data links and handles switching between different system telemetry states.
 	 */
 	void		data_link_check(bool &status_changed);
-	int		_telemetry_status_sub[ORB_MULTI_MAX_INSTANCES] {};
+	int		_telemetry_status_sub{-1};
 
 	hrt_abstime	_datalink_last_heartbeat_gcs{0};
 
