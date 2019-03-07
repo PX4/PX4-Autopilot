@@ -3890,29 +3890,31 @@ void Commander::data_link_check(bool &status_changed)
 				// handle different remote types
 				switch (telemetry.remote_type) {
 				case telemetry_status_s::MAV_TYPE_GCS:
-					_datalink_last_heartbeat_gcs = telemetry.heartbeat_time;
 
 					// Recover from data link lost
 					if (status.data_link_lost) {
-						if (hrt_elapsed_time(&_datalink_last_heartbeat_gcs) < (_datalink_regain_threshold.get() * 1_s)) {
+						if (telemetry.heartbeat_time > _datalink_last_heartbeat_gcs) {
 							status.data_link_lost = false;
 							status_changed = true;
 							mavlink_log_info(&mavlink_log_pub, "Data link regained");
 						}
 					}
 
+					_datalink_last_heartbeat_gcs = telemetry.heartbeat_time;
+
 					break;
 
 				case telemetry_status_s::MAV_TYPE_ONBOARD_CONTROLLER:
-					_datalink_last_heartbeat_onboard_controller = telemetry.heartbeat_time;
 
 					if (_onboard_controller_lost) {
-						if (hrt_elapsed_time(&_datalink_last_heartbeat_onboard_controller) < _onboard_regain_threshold.get() * 1_s) {
+						if (telemetry.heartbeat_time > _datalink_last_heartbeat_onboard_controller) {
 							mavlink_log_info(&mavlink_log_pub, "Onboard controller regained");
 							_onboard_controller_lost = false;
 						}
 
 					}
+
+					_datalink_last_heartbeat_onboard_controller = telemetry.heartbeat_time;
 
 					if (telemetry.remote_component_id == telemetry_status_s::COMPONENT_ID_OBSTACLE_AVOIDANCE) {
 						if (telemetry.heartbeat_time != _datalink_last_heartbeat_avoidance_system) {

@@ -104,21 +104,6 @@ PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
 PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
 
 /**
- * Datalink regain time threshold
- *
- * After a data link loss: Amount of time between two heartbeats to consider datalink healthy again and
- * set 'datalink loss' flag back to false.
- *
- * @group Commander
- * @unit s
- * @min 0
- * @max 3
- * @decimal 1
- * @increment 0.5
- */
-PARAM_DEFINE_INT32(COM_DL_REG_T, 2);
-
-/**
  * High Latency Datalink loss time threshold
  *
  * After this amount of seconds without datalink the data link lost mode triggers
@@ -832,17 +817,3 @@ PARAM_DEFINE_INT32(COM_OBS_AVOID, 0);
  * @increment 1
  */
 PARAM_DEFINE_INT32(COM_ONB_LOSS_T, 5);
-
-/**
- * Onboard link regain time threshold
- *
- * After a onboard link loss: Amount of time between two heartbeats to consider connection healthy again.
- *
- * @group Commander
- * @unit s
- * @min 0
- * @max 3
- * @decimal 1
- * @increment 0.5
- */
-PARAM_DEFINE_INT32(COM_ONB_REG_T, 1);
