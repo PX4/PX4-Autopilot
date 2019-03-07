@@ -183,20 +183,19 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 	Vector3f pos_sp_smooth;
 
 	for (int i = 0; i < 3; ++i) {
-
 		_smoothing[i].integrate(_acceleration_setpoint(i), _vel_sp_smooth(i), pos_sp_smooth(i));
 		_velocity_setpoint(i) = _vel_sp_smooth(i); // Feedforward
 		_jerk_setpoint(i) = _smoothing[i].getCurrentJerk();
 	}
 
 	// Check for position lock transition
-	if (Vector2f(_vel_sp_smooth).length() < 0.01f &&
+	if (Vector2f(_vel_sp_smooth).length() < 0.1f &&
 	    Vector2f(_acceleration_setpoint).length() < .2f &&
 	    sticks_expo_xy.length() <= FLT_EPSILON) {
 		_position_lock_xy_active = true;
 	}
 
-	if (fabsf(_vel_sp_smooth(2)) < 0.01f &&
+	if (fabsf(_vel_sp_smooth(2)) < 0.1f &&
 	    fabsf(_acceleration_setpoint(2)) < .2f &&
 	    fabsf(_sticks_expo(2)) <= FLT_EPSILON) {
 		_position_lock_z_active = true;
@@ -209,10 +208,29 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 	if (_position_lock_xy_active) {
 		_position_setpoint_xy_locked(0) = pos_sp_smooth(0);
 		_position_setpoint_xy_locked(1) = pos_sp_smooth(1);
+
+		// If the velocity setpoint is smaller than 1mm/s and that the acceleration is 0, force the setpoints
+		// to zero. This is required because the generated velocity is never exactly zero and if the drone hovers
+		// for a long period of time, thr drift of the position setpoint will be noticeable.
+		for (int i = 0; i < 2; i++) {
+			if (fabsf(_velocity_setpoint(i)) < 1e-3f && fabsf(_acceleration_setpoint(0)) < FLT_EPSILON) {
+				_velocity_setpoint(i) = 0.f;
+				_acceleration_setpoint(i) = 0.f;
+				_smoothing[i].setCurrentVelocity(0.f);
+				_smoothing[i].setCurrentAcceleration(0.f);
+			}
+		}
 	}
 
 	if (_position_lock_z_active) {
 		_position_setpoint_z_locked = pos_sp_smooth(2);
+
+		if (fabsf(_velocity_setpoint(2)) < 1e-3f && fabsf(_acceleration_setpoint(2)) < FLT_EPSILON) {
+			_velocity_setpoint(2) = 0.f;
+			_acceleration_setpoint(2) = 0.f;
+			_smoothing[2].setCurrentVelocity(0.f);
+			_smoothing[2].setCurrentAcceleration(0.f);
+		}
 	}
 
 	_position_setpoint(0) = _position_setpoint_xy_locked(0);
