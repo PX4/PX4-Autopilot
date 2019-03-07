@@ -26,7 +26,7 @@ private:
 			// we need to wait until it's removed.
 			while (!removed) {
 #ifndef UNIT_TESTS // unit tests don't define system_usleep and execute faster w/o sleeping here
-				system_sleep(5000);
+				system_usleep(5000);
 #endif
 			}
 		}
