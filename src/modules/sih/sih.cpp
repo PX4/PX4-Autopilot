@@ -44,7 +44,6 @@
 
 #include <px4_getopt.h>
 #include <px4_log.h>
-#include <px4_posix.h>
 
 #include <drivers/drv_pwm_output.h>			// to get PWM flags
 #include <uORB/topics/vehicle_status.h> 	// to get the HIL status
@@ -86,7 +85,7 @@ Most of the variables are declared global in the .hpp file to avoid stack overfl
 	PRINT_MODULE_USAGE_NAME("sih", "sih");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Optional example flag", true);
-	PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 4096, "Optional example parameter", true);
+	PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 1024, "Optional example parameter", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
@@ -124,7 +123,7 @@ int Sih::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("sih",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_MAX, //SCHED_PRIORITY_DEFAULT
-				      4096,
+				      1024,
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 
@@ -182,7 +181,9 @@ Sih *Sih::instantiate(int argc, char *argv[])
 }
 
 Sih::Sih(int example_param, bool example_flag)
-	: ModuleParams(nullptr)
+	: ModuleParams(nullptr),
+    _loop_perf(perf_alloc(PC_ELAPSED, "sih_execution")),
+    _sampling_perf(perf_alloc(PC_ELAPSED, "sih_sampling"))
 {
 }
 
@@ -206,29 +207,40 @@ void Sih::run()
 	_gps_time = task_start;
 	_serial_time = task_start;
 
-	// hrt_call_every(&_timer_call, LOOP_INTERVAL, LOOP_INTERVAL, timer_callback, this);
+    px4_sem_init(&_data_semaphore, 0, 0);
 
-	while (!should_exit())
-	{
-		inner_loop();
-		
-		usleep(1000);
-	}
+    hrt_call_every(&_timer_call, LOOP_INTERVAL, LOOP_INTERVAL, timer_callback, &_data_semaphore);
 
-	// hrt_cancel(&_timer_call); 	// close the periodic timer interruption
+    perf_begin(_sampling_perf);
+
+    while (!should_exit())
+    {
+        px4_sem_wait(&_data_semaphore);     // periodic real time wakeup
+
+        perf_end(_sampling_perf);
+        perf_begin(_sampling_perf);
+
+        perf_begin(_loop_perf);
+
+        inner_loop();   // main execution function
+
+        perf_end(_loop_perf);
+    }
+
+	hrt_cancel(&_timer_call); 	// close the periodic timer interruption
 	orb_unsubscribe(_actuator_out_sub);
 	orb_unsubscribe(_parameter_update_sub);
 	// close(serial_fd);
 
 }
 
-// timer_callback() is used as a trampoline to inner_loop()
-void Sih::timer_callback(void *arg)
+// timer_callback() is used as a real time callback to post the semaphore
+void Sih::timer_callback(void *sem)
 {
-	(reinterpret_cast<Sih *>(arg))->inner_loop();
+	px4_sem_post((px4_sem_t *)sem);
 }
 
-// This is the main execution called periodically by the timer callback
+// this is the main execution waken up periodically by the semaphore
 void Sih::inner_loop()
 {
 	_now = hrt_absolute_time();
@@ -262,11 +274,6 @@ void Sih::inner_loop()
 
 		parameters_update_poll(); 	// update the parameters if needed
 	}
-	// else if (loop_count==5)
-	// {
-	// 	tcflush(serial_fd, TCOFLUSH); 	// flush output data
-	// 	tcdrain(serial_fd);
-	// }
 
 	_sih.te_us=hrt_absolute_time()-_now; 	// execution time (without delay)
 

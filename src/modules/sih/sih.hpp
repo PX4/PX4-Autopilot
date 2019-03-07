@@ -35,12 +35,13 @@
 
 #include <px4_module.h>
 #include <px4_module_params.h>
+#include <px4_posix.h>
 
 #include <matrix/matrix/math.hpp> 	// matrix, vectors, dcm, quaterions
 #include <conversion/rotation.h> 	// math::radians, 
 #include <ecl/geo/geo.h> 			// to get the physical constants
 #include <drivers/drv_hrt.h> 		// to get the real time
-// #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <perf/perf_counter.h>
 
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -87,7 +88,8 @@ public:
 	// generate white Gaussian noise sample as a 3D vector with specified std
 	static Vector3f noiseGauss3f(float stdx, float stdy, float stdz);
 
-	static void timer_callback(void *arg);
+	// timer called periodically to post the semaphore
+	static void timer_callback(void *sem);
 
 	// static int pack_float(char* uart_msg, int index, void *value); 	// pack a float to a IEEE754
 private:
@@ -134,7 +136,7 @@ private:
 	static constexpr float T1_K = T1_C - CONSTANTS_ABSOLUTE_NULL_CELSIUS;	// ground temperature in Kelvin
 	static constexpr float TEMP_GRADIENT  = -6.5f / 1000.0f;	// temperature gradient in degrees per metre
 	static constexpr uint32_t BAUDS_RATE = 57600; 			// bauds rate of the serial port
-	static constexpr hrt_abstime LOOP_INTERVAL = 10000; 		// 250 Hz real time
+	static constexpr hrt_abstime LOOP_INTERVAL = 4000; 		// 4ms => 250 Hz real-time
 
 	void init_variables();
 	void init_sensors();
@@ -148,6 +150,11 @@ private:
 	void publish_sih();
 	void send_serial_msg(int serial_fd, int64_t t_ms);
 	void inner_loop();
+
+	perf_counter_t	_loop_perf;
+	perf_counter_t	_sampling_perf;
+
+	px4_sem_t 		_data_semaphore;
 
 	int32_t 	_counter = 0;
 	hrt_call	_timer_call;
