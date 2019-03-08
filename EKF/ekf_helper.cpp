@@ -394,6 +394,12 @@ void Ekf::alignOutputFilter()
 		_output_buffer[i].vel += vel_delta;
 		_output_buffer[i].pos += pos_delta;
 	}
+
+	_output_new.quat_nominal *= q_delta;
+	_output_new.quat_nominal.normalize();
+
+	_output_sample_delayed.quat_nominal *= q_delta;
+	_output_sample_delayed.quat_nominal.normalize();
 }
 
 // Do a forced re-alignment of the yaw angle to align with the horizontal velocity vector from the GPS.
