@@ -60,6 +60,7 @@ bool Ekf::init(uint64_t timestamp)
 	_output_new.vel.setZero();
 	_output_new.pos.setZero();
 	_output_new.quat_nominal.setZero();
+	_output_new.quat_nominal(0) = 1.0f;
 
 	_delta_angle_corr.setZero();
 	_imu_down_sampled.delta_ang.setZero();
