@@ -8,5 +8,9 @@ AUX2 Passthrough
 M: 1
 S: 3 6  10000  10000      0 -10000  10000
 
-Parachute
+Failsafe outputs
+The following outputs are set to their disarmed value
+during normal operation and to their failsafe falue in case
+of flight termination.
+Z:
 Z:
