@@ -558,7 +558,7 @@ bool Ekf::realignYawGPS()
 }
 
 // Reset heading and magnetic field states
-bool Ekf::resetMagHeading(Vector3f &mag_init)
+bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update_buffer)
 {
 	// prevent a reset being performed more than once on the same frame
 	if (_imu_sample_delayed.time_us == _flt_mag_align_start_time) {
@@ -737,24 +737,28 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 		resetExtVisRotMat();
 	}
 
-	// update the yaw angle variance using the variance of the measurement
-	if (_control_status.flags.ev_yaw) {
-		// using error estimate from external vision data
-		increaseQuatYawErrVariance(sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f)));
-	} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_AUTOFW) {
-		// using magnetic heading tuning parameter
-		increaseQuatYawErrVariance(sq(fmaxf(_params.mag_heading_noise, 1.0e-2f)));
+	if (increase_yaw_var) {
+		// update the yaw angle variance using the variance of the measurement
+		if (_control_status.flags.ev_yaw) {
+			// using error estimate from external vision data
+			increaseQuatYawErrVariance(sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f)));
+		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_AUTOFW) {
+			// using magnetic heading tuning parameter
+			increaseQuatYawErrVariance(sq(fmaxf(_params.mag_heading_noise, 1.0e-2f)));
+		}
 	}
 
-	// add the reset amount to the output observer buffered data
-	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
-		// Note q1 *= q2 is equivalent to q1 = q2 * q1
-		_output_buffer[i].quat_nominal *= _state_reset_status.quat_change;
-	}
+	if (update_buffer) {
+		// add the reset amount to the output observer buffered data
+		for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
+			// Note q1 *= q2 is equivalent to q1 = q2 * q1
+			_output_buffer[i].quat_nominal *= _state_reset_status.quat_change;
+		}
 
-	// apply the change in attitude quaternion to our newest quaternion estimate
-	// which was already taken out from the output buffer
-	_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
+		// apply the change in attitude quaternion to our newest quaternion estimate
+		// which was already taken out from the output buffer
+		_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
+	}
 
 	// capture the reset event
 	_state_reset_status.quat_counter++;
