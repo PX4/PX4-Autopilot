@@ -19,7 +19,7 @@ ist8310 start
 bmp280 -I start
 
 # expansion i2c used for BMM150 rotated by 90deg
-bmm150 -R 2 start
+bmm150 -X -R 2 start
 
 # For Teal One airframe
 if param compare SYS_AUTOSTART 4250

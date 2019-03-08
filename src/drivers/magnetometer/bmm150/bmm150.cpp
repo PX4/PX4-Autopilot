@@ -86,8 +86,12 @@ void start(bool external_bus, enum Rotation rotation)
 #endif
 
 	} else {
+#if defined(PX4_I2C_BUS_ONBOARD)
+		*g_dev_ptr = new BMM150(PX4_I2C_BUS_ONBOARD, path, rotation);
+#else
 		PX4_ERR("Internal I2C not available");
 		exit(0);
+#endif
 	}
 
 	if (*g_dev_ptr == nullptr) {
