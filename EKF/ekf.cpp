@@ -233,9 +233,6 @@ bool Ekf::initialiseFilter()
 		_state.mag_B.setZero();
 		_state.wind_vel.setZero();
 
-		// initialise the state covariance matrix
-		initialiseCovariance();
-
 		// get initial roll and pitch estimate from delta velocity vector, assuming vehicle is static
 		float pitch = 0.0f;
 		float roll = 0.0f;
@@ -260,7 +257,19 @@ bool Ekf::initialiseFilter()
 		// calculate the initial magnetic field and yaw alignment
 		// Get the magnetic declination
 		calcMagDeclination();
-		_control_status.flags.yaw_align = resetMagHeading(_mag_filt_state);
+		_control_status.flags.yaw_align = resetMagHeading(_mag_filt_state, false, false);
+
+		// initialise the state covariance matrix
+		initialiseCovariance();
+
+		// update the yaw angle variance using the variance of the measurement
+		if (_control_status.flags.ev_yaw) {
+			// using error estimate from external vision data TODO: this is never true
+			increaseQuatYawErrVariance(sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f)));
+		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_AUTOFW) {
+			// using magnetic heading tuning parameter
+			increaseQuatYawErrVariance(sq(fmaxf(_params.mag_heading_noise, 1.0e-2f)));
+		}
 
 		if (_control_status.flags.rng_hgt) {
 			// if we are using the range finder as the primary source, then calculate the baro height at origin so  we can use baro as a backup

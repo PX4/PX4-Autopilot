@@ -544,9 +544,9 @@ private:
 	// update the terrain vertical position estimate using a height above ground measurement from the range finder
 	void fuseHagl();
 
-	// reset the heading and magnetic field states using the declination and magnetometer measurements
+	// reset the heading and magnetic field states using the declination and magnetometer/external vision measurements
 	// return true if successful
-	bool resetMagHeading(Vector3f &mag_init);
+	bool resetMagHeading(Vector3f &mag_init, bool increase_yaw_var = true, bool update_buffer=true);
 
 	// Do a forced re-alignment of the yaw angle to align with the horizontal velocity vector from the GPS.
 	// It is used to align the yaw angle after launch or takeoff for fixed wing vehicle.
