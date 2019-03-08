@@ -170,7 +170,7 @@ private:
 	bool _geofence_violated_prev{false};
 
 	FailureDetector _failure_detector;
-	bool _in_flight_termination{false};
+	bool _flight_termination_triggered{false};
 
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd, actuator_armed_s *armed,
 			    orb_advert_t *command_ack_pub, bool *changed);
