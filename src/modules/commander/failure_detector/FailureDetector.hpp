@@ -70,7 +70,8 @@ public:
 
 	bool update();
 
-	uint8_t get_status() const {return _status;}
+	uint8_t get_status() const { return _status; }
+	bool is_failure() const { return (_status == FAILURE_NONE) ? false : true; }
 
 private:
 

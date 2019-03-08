@@ -2223,14 +2223,14 @@ Commander::run()
 		    !_flight_termination_triggered &&
 		    !status_flags.circuit_breaker_flight_termination_disabled) {
 
-			if (status.failure_detector_status != 0) {
+			if (_failure_detector.is_failure()) {
 
 				armed.force_failsafe = true;
 				status_changed = true;
 
 				_flight_termination_triggered = true;
 
-				mavlink_log_critical(&mavlink_log_pub, "Attitude failure detected: force failsafe");
+				mavlink_log_critical(&mavlink_log_pub, "Critical failure detected: terminate flight");
 				set_tune_override(TONE_PARACHUTE_RELEASE_TUNE);
 			}
 		}
