@@ -142,7 +142,7 @@ private:
 	hrt_abstime _landed_time{0};
 
 	bool _in_descend{false};	///< vehicle is desending
-	bool _horizontalMovement{false};	///< vehicle is moving horizontally
+	bool _horizontal_movement{false};	///< vehicle is moving horizontally
 
 	/* get control mode dependent pilot throttle threshold with which we should quit landed state and take off */
 	float _get_takeoff_throttle();
