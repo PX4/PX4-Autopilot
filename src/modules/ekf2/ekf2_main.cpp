@@ -252,17 +252,17 @@ private:
 	uint64_t _gps_alttitude_ellipsoid_previous_timestamp[GPS_MAX_RECEIVERS] {}; ///< storage for previous timestamp to compute dt
 	float   _wgs84_hgt_offset = 0;  ///< height offset between AMSL and WGS84
 
-	int _airdata_sub{-1};
-	int _airspeed_sub{-1};
-	int _ev_odom_sub{-1};
-	int _landing_target_pose_sub{-1};
-	int _magnetometer_sub{-1};
-	int _optical_flow_sub{-1};
-	int _params_sub{-1};
-	int _sensor_selection_sub{-1};
-	int _sensors_sub{-1};
-	int _status_sub{-1};
-	int _vehicle_land_detected_sub{-1};
+	int _airdata_sub{ -1};
+	int _airspeed_sub{ -1};
+	int _ev_odom_sub{ -1};
+	int _landing_target_pose_sub{ -1};
+	int _magnetometer_sub{ -1};
+	int _optical_flow_sub{ -1};
+	int _params_sub{ -1};
+	int _sensor_selection_sub{ -1};
+	int _sensors_sub{ -1};
+	int _status_sub{ -1};
+	int _vehicle_land_detected_sub{ -1};
 
 	// because we can have several distance sensor instances with different orientations
 	int _range_finder_subs[ORB_MULTI_MAX_INSTANCES] {};
@@ -270,7 +270,7 @@ private:
 
 	// because we can have multiple GPS instances
 	int _gps_subs[GPS_MAX_RECEIVERS] {};
-	int _gps_orb_instance{-1};
+	int _gps_orb_instance{ -1};
 
 	orb_advert_t _att_pub{nullptr};
 	orb_advert_t _wind_pub{nullptr};
@@ -1253,8 +1253,10 @@ void Ekf2::run()
 		if (vehicle_land_detected_updated) {
 			if (orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &vehicle_land_detected) == PX4_OK) {
 				_ekf.set_in_air_status(!vehicle_land_detected.landed);
-				if(_gnd_effect_deadzone.get() > 0.0f)
-				  _ekf.set_gnd_effect_flag(vehicle_land_detected.in_ground_effect);
+
+				if (_gnd_effect_deadzone.get() > 0.0f) {
+					_ekf.set_gnd_effect_flag(vehicle_land_detected.in_ground_effect);
+				}
 			}
 		}
 
@@ -1269,7 +1271,7 @@ void Ekf2::run()
 				// we can only use the landing target if it has a fixed position and  a valid velocity estimate
 				if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid) {
 					// velocity of vehicle relative to target has opposite sign to target relative to vehicle
-					float velocity[2] = {-landing_target_pose.vx_rel, -landing_target_pose.vy_rel};
+					float velocity[2] = { -landing_target_pose.vx_rel, -landing_target_pose.vy_rel};
 					float variance[2] = {landing_target_pose.cov_vx_rel, landing_target_pose.cov_vy_rel};
 					_ekf.setAuxVelData(landing_target_pose.timestamp, velocity, variance);
 				}
