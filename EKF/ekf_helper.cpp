@@ -716,21 +716,6 @@ bool Ekf::resetMagHeading(Vector3f &mag_init)
 	Quatf q_error =  quat_before_reset.inversed() * quat_after_reset;
 	q_error.normalize();
 
-	// convert the quaternion delta to a delta angle
-	Vector3f delta_ang_error;
-	float scalar;
-
-	if (q_error(0) >= 0.0f) {
-		scalar = -2.0f;
-
-	} else {
-		scalar = 2.0f;
-	}
-
-	delta_ang_error(0) = scalar * q_error(1);
-	delta_ang_error(1) = scalar * q_error(2);
-	delta_ang_error(2) = scalar * q_error(3);
-
 	// update quaternion states
 	_state.quat_nominal = quat_after_reset;
 	uncorrelateQuatStates();
