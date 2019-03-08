@@ -2220,7 +2220,7 @@ Commander::run()
 
 		if (armed.armed &&
 		    failure_detector_updated &&
-		    !_in_flight_termination &&
+		    !_flight_termination_triggered &&
 		    !status_flags.circuit_breaker_flight_termination_disabled) {
 
 			if (status.failure_detector_status != 0) {
@@ -2228,7 +2228,7 @@ Commander::run()
 				armed.force_failsafe = true;
 				status_changed = true;
 
-				_in_flight_termination = true;
+				_flight_termination_triggered = true;
 
 				mavlink_log_critical(&mavlink_log_pub, "Attitude failure detected: force failsafe");
 				set_tune_override(TONE_PARACHUTE_RELEASE_TUNE);
