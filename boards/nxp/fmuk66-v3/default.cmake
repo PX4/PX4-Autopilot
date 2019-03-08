@@ -36,6 +36,7 @@ px4_add_board(
 		lights/blinkm
 		lights/oreoled
 		lights/rgbled
+		lights/rgbled_ncp5623c
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		mkblctrl
