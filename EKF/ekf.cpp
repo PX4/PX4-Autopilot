@@ -256,13 +256,10 @@ bool Ekf::initialiseFilter()
 		// update transformation matrix from body to world frame
 		_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
 
-		// calculate the averaged magnetometer reading
-		Vector3f mag_init = _mag_filt_state;
-
 		// calculate the initial magnetic field and yaw alignment
 		// Get the magnetic declination
 		calcMagDeclination();
-		_control_status.flags.yaw_align = resetMagHeading(mag_init);
+		_control_status.flags.yaw_align = resetMagHeading(_mag_filt_state);
 
 		if (_control_status.flags.rng_hgt) {
 			// if we are using the range finder as the primary source, then calculate the baro height at origin so  we can use baro as a backup
