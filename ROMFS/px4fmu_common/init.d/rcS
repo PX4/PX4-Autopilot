@@ -194,20 +194,13 @@ else
 	#
 	# Start system state indicator.
 	#
-	if ! rgbled start
+	rgbled start
+	rgbled_ncp5623c start
+	rgbled_pwm start
+
+	if blinkm start
 	then
-
-		rgbled_ncp5623c start
-
-		#
-		# FMUv5 may have both PWM I2C RGB LED support.
-		#
-		rgbled_pwm start
-
-		if blinkm start
-		then
-			blinkm systemstate
-		fi
+		blinkm systemstate
 	fi
 
 	#
