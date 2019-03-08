@@ -10,7 +10,7 @@ int main()
                      7, 8, 10
                     };
     SquareMatrix<float, 3> A(data);
-    
+
     // Test row slicing
     Matrix<float, 2, 3> B_rowslice(A.slice<2, 3>(1, 0));
     float data_check_rowslice[6] = {
@@ -19,7 +19,7 @@ int main()
     };
     Matrix<float, 2, 3> B_check_rowslice(data_check_rowslice);
     TEST(isEqual(B_rowslice, B_check_rowslice));
-    
+
     // Test column slicing
     Matrix<float, 3, 2> B_colslice(A.slice<3, 2>(0, 1));
     float data_check_colslice[6] = {
