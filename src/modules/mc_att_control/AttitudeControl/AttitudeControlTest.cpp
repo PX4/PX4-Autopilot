@@ -3,7 +3,8 @@
 
 using namespace matrix;
 
-TEST(AttitudeControlTest, AllZeroCase) {
+TEST(AttitudeControlTest, AllZeroCase)
+{
 	AttitudeControl attitude_control;
 	matrix::Vector3f rate_setpoint = attitude_control.update(Quatf(), Quatf(), 0.f);
 	EXPECT_EQ(rate_setpoint(0), 0.f);
