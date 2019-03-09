@@ -31,6 +31,11 @@
 #
 ############################################################################
 
+# target_link_libraries() allow use with targets in other directories.
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.13.0")
+	cmake_policy(SET CMP0079 NEW)
+endif()
+
 include(cygwin_cygpath)
 
 set(NUTTX_DIR ${PX4_BINARY_DIR}/NuttX/nuttx)
