@@ -104,8 +104,6 @@ public:
 
 	virtual void get_true_airspeed(float *tas) = 0;
 
-	virtual void get_covariances(float *covariances) = 0;
-
 	// gets the variances for the NED velocity states
 	virtual void get_vel_var(Vector3f &vel_var) = 0;
 

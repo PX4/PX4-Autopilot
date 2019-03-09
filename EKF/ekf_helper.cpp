@@ -982,14 +982,6 @@ void Ekf::get_gyro_bias(float bias[3])
 	memcpy(bias, temp, 3 * sizeof(float));
 }
 
-// get the diagonal elements of the covariance matrix
-void Ekf::get_covariances(float *covariances)
-{
-	for (unsigned i = 0; i < _k_num_states; i++) {
-		covariances[i] = P[i][i];
-	}
-}
-
 // get the position and height of the ekf origin in WGS-84 coordinates and time the origin was set
 // return true if the origin is valid
 bool Ekf::get_ekf_origin(uint64_t *origin_time, map_projection_reference_s *origin_pos, float *origin_alt)
