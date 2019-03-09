@@ -261,11 +261,9 @@ private:
 	int _control_mode_sub{orb_subscribe(ORB_ID(vehicle_control_mode))};
 	int _vehicle_attitude_sub{orb_subscribe(ORB_ID(vehicle_attitude))};
 
-	int _hil_frames{0};
 	int _orb_class_instance{-1};
 
 	uint64_t _global_ref_timestamp{0};
-	uint64_t _old_timestamp{0};
 
 	bool _hil_local_proj_inited{false};
 
