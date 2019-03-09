@@ -42,7 +42,6 @@ px4_add_board(
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
-		magnetometer/qmc5883
 		#mkblctrl
 		#pca9685
 		#protocol_splitter
