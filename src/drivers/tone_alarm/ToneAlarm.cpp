@@ -98,7 +98,7 @@ void ToneAlarm::next_note()
 		_silence_length = 0;
 
 	} else if (_play_tone) {
-		int parse_ret_val = _tunes.get_next_tune(frequency, duration, _silence_length);
+		int parse_ret_val = _tunes.get_next_note(frequency, duration, _silence_length);
 
 		if (parse_ret_val > 0) {
 			// Continue playing.

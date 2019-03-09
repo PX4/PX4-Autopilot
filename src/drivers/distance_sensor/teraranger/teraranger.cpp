@@ -42,6 +42,7 @@
 #include <px4_defines.h>
 #include <px4_getopt.h>
 #include <px4_workqueue.h>
+#include <px4_module.h>
 
 #include <drivers/device/i2c.h>
 
@@ -587,7 +588,7 @@ TERARANGER::collect()
 	report.current_distance = distance_m;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
-	report.covariance = 0.0f;
+	report.variance = 0.0f;
 	report.signal_quality = -1;
 	/* TODO: set proper ID */
 	report.id = 0;
@@ -931,13 +932,39 @@ info()
 static void
 teraranger_usage()
 {
-	PX4_INFO("usage: teraranger command [options]");
-	PX4_INFO("options:");
-	PX4_INFO("\t-b --bus i2cbus (%d)", TERARANGER_BUS_DEFAULT);
-	PX4_INFO("\t-a --all");
-	PX4_INFO("\t-R --rotation (%d)", distance_sensor_s::ROTATION_DOWNWARD_FACING);
-	PX4_INFO("command:");
-	PX4_INFO("\tstart|stop|test|reset|info");
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+I2C bus driver for TeraRanger rangefinders.
+
+The sensor/driver must be enabled using the parameter SENS_EN_TRANGER.
+
+Setup/usage information: https://docs.px4.io/en/sensor/rangefinders.html#teraranger-rangefinders
+
+### Examples
+
+Start driver on any bus (start on bus where first sensor found).
+$ teraranger start -a
+Start driver on specified bus
+$ teraranger start -b 1
+Stop driver
+$ teraranger stop
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("teraranger", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Attempt to start driver on all I2C buses (first one found)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 1, 1, 2000, "Start driver on specific I2C bus", true);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 1, 25, "Sensor rotation - downward facing by default", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reset","Reset driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("info","Print driver information");
+
+
+
 }
 
 int

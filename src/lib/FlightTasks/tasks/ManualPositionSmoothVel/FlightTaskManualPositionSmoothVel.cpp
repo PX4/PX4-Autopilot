@@ -49,10 +49,12 @@ bool FlightTaskManualPositionSmoothVel::activate()
 
 void FlightTaskManualPositionSmoothVel::reActivate()
 {
-	reset(Axes::XY);
+	// The task is reacivated while the vehicle is on the ground. To detect takeoff in mc_pos_control_main properly
+	// using the generated jerk, reset the z derivatives to zero
+	reset(Axes::XYZ, true);
 }
 
-void FlightTaskManualPositionSmoothVel::reset(Axes axes)
+void FlightTaskManualPositionSmoothVel::reset(Axes axes, bool force_z_zero)
 {
 	int count;
 
@@ -75,9 +77,16 @@ void FlightTaskManualPositionSmoothVel::reset(Axes axes)
 		_smoothing[i].reset(0.f, _velocity(i), _position(i));
 	}
 
+	// Set the z derivatives to zero
+	if (force_z_zero) {
+		_smoothing[2].reset(0.f, 0.f, _position(2));
+	}
+
 	_position_lock_xy_active = false;
+	_position_lock_z_active = false;
 	_position_setpoint_xy_locked(0) = NAN;
 	_position_setpoint_xy_locked(1) = NAN;
+	_position_setpoint_z_locked = NAN;
 }
 
 void FlightTaskManualPositionSmoothVel::_updateSetpoints()
@@ -100,25 +109,7 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 		_smoothing[2].setMaxVel(_constraints.speed_down);
 	}
 
-	Vector2f vel_xy_sp = Vector2f(&_velocity_setpoint(0));
 	float jerk[3] = {_jerk_max.get(), _jerk_max.get(), _jerk_max.get()};
-	float jerk_xy = _jerk_max.get();
-
-	if (_jerk_min.get() > _jerk_max.get()) {
-		_jerk_min.set(0.f);
-	}
-
-	if (_jerk_min.get() > FLT_EPSILON) {
-		if (vel_xy_sp.length() < FLT_EPSILON) { // Brake
-			jerk_xy = _jerk_max.get();
-
-		} else {
-			jerk_xy = _jerk_min.get();
-		}
-	}
-
-	jerk[0] = jerk_xy;
-	jerk[1] = jerk_xy;
 
 	/* Check for position unlock
 	 * During a position lock -> position unlock transition, we have to make sure that the velocity setpoint
@@ -140,6 +131,16 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 		_position_lock_xy_active = false;
 	}
 
+	if (fabsf(_sticks_expo(2)) > FLT_EPSILON) {
+		if (_position_lock_z_active) {
+			_smoothing[2].setCurrentVelocity(_velocity_setpoint_feedback(
+					2)); // Start the trajectory at the current velocity setpoint
+			_position_setpoint_z_locked = NAN;
+		}
+
+		_position_lock_z_active = false;
+	}
+
 	for (int i = 0; i < 3; ++i) {
 		_smoothing[i].setMaxJerk(jerk[i]);
 		_smoothing[i].updateDurations(_deltatime, _velocity_setpoint(i));
@@ -157,27 +158,51 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 		}
 	}
 
+	if (!_position_lock_xy_active) {
+		_smoothing[0].setCurrentPosition(_position(0));
+		_smoothing[1].setCurrentPosition(_position(1));
+	}
+
+	if (!_position_lock_z_active) {
+		_smoothing[2].setCurrentPosition(_position(2));
+	}
+
 	Vector3f pos_sp_smooth;
-	Vector3f accel_sp_smooth;
 
 	for (int i = 0; i < 3; ++i) {
-		if (!_position_lock_xy_active) {
-			_smoothing[i].setCurrentPosition(_position(i));
-		}
 
-		_smoothing[i].integrate(accel_sp_smooth(i), _vel_sp_smooth(i), pos_sp_smooth(i));
+		_smoothing[i].integrate(_acceleration_setpoint(i), _vel_sp_smooth(i), pos_sp_smooth(i));
 		_velocity_setpoint(i) = _vel_sp_smooth(i); // Feedforward
+		_jerk_setpoint(i) = _smoothing[i].getCurrentJerk();
 	}
 
 	// Check for position lock transition
 	if (Vector2f(_vel_sp_smooth).length() < 0.01f &&
-	    Vector2f(accel_sp_smooth).length() < .2f &&
+	    Vector2f(_acceleration_setpoint).length() < .2f &&
 	    sticks_expo_xy.length() <= FLT_EPSILON) {
+		_position_lock_xy_active = true;
+	}
+
+	if (fabsf(_vel_sp_smooth(2)) < 0.01f &&
+	    fabsf(_acceleration_setpoint(2)) < .2f &&
+	    fabsf(_sticks_expo(2)) <= FLT_EPSILON) {
+		_position_lock_z_active = true;
+	}
+
+	// Set valid position setpoint while in position lock.
+	// When the position lock condition above is false, it does not
+	// mean that the unlock condition is true. This is why
+	// we are checking the lock flag here.
+	if (_position_lock_xy_active) {
 		_position_setpoint_xy_locked(0) = pos_sp_smooth(0);
 		_position_setpoint_xy_locked(1) = pos_sp_smooth(1);
-		_position_lock_xy_active = true;
+	}
+
+	if (_position_lock_z_active) {
+		_position_setpoint_z_locked = pos_sp_smooth(2);
 	}
 
 	_position_setpoint(0) = _position_setpoint_xy_locked(0);
 	_position_setpoint(1) = _position_setpoint_xy_locked(1);
+	_position_setpoint(2) = _position_setpoint_z_locked;
 }

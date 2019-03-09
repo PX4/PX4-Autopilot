@@ -277,7 +277,7 @@ Radar::init()
 		ds_report.orientation = _rotation;
 		ds_report.id = 0;
 		ds_report.current_distance = -1.0f;	// make evident that this range sample is invalid
-		ds_report.covariance = SENS_VARIANCE;
+		ds_report.variance = SENS_VARIANCE;
 
 		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
 					 &_orb_class_instance, ORB_PRIO_HIGH);
@@ -463,7 +463,7 @@ Radar::task_main()
 							  report.current_distance;
 				report.min_distance = ULANDING_MIN_DISTANCE;
 				report.max_distance = ULANDING_MAX_DISTANCE;
-				report.covariance = SENS_VARIANCE;
+				report.variance = SENS_VARIANCE;
 				report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR;
 				report.id = 0;
 

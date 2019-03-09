@@ -39,6 +39,7 @@
 
 #include "input_rc.h"
 
+#include <math.h>
 #include <errno.h>
 #include <px4_posix.h>
 #include <px4_defines.h>

@@ -399,7 +399,7 @@ CM8JL65::collect()
 	report.current_distance = _distance_mm / 1000.0f;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
-	report.covariance = 0.0f;
+	report.variance = 0.0f;
 	report.signal_quality = -1;
 	/* TODO: set proper ID */
 	report.id = 0;

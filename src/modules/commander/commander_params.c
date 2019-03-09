@@ -575,7 +575,7 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_YAW, 0.5f);
  * @decimal 4
  * @increment 0.0001
  */
-PARAM_DEFINE_FLOAT(COM_ARM_EKF_AB, 2.4e-3f);
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_AB, 1.73e-3f);
 
 /**
  * Maximum value of EKF gyro delta angle bias estimate that will allow arming
@@ -718,7 +718,7 @@ PARAM_DEFINE_INT32(COM_POS_FS_GAIN, 10);
 /**
  * Horizontal position error threshold.
  *
- * This is the horizontal position error (EPV) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ * This is the horizontal position error (EPH) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
  *
  * @unit m
  * @group Commander

@@ -45,6 +45,7 @@
 #include <px4_config.h>
 #include <px4_workqueue.h>
 #include <px4_getopt.h>
+#include <px4_module.h>
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -539,7 +540,7 @@ TFMINI::collect()
 	report.current_distance = distance_m;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
-	report.covariance = 0.0f;
+	report.variance = 0.0f;
 	report.signal_quality = -1;
 	/* TODO: set proper ID */
 	report.id = 0;
@@ -823,8 +824,32 @@ info()
 void
 usage()
 {
-	printf("usage:\n");
-	printf("tfmini start -d <device path> -R (optional) <rotation>:\n");
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+Serial bus driver for the Benewake TFmini LiDAR.
+
+Most boards are configured to enable/start the driver on a specified UART using the SENS_TFMINI_CFG parameter.
+
+Setup/usage information: https://docs.px4.io/en/sensor/tfmini.html
+
+### Examples
+
+Attempt to start driver on a specified serial device.
+$ tfmini start -d /dev/ttyS1
+Stop driver
+$ tfmini stop
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("tfmini", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 1, 25, "Sensor rotation - downward facing by default", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("info","Print driver information");
 }
 
 } // namespace
@@ -895,6 +920,7 @@ tfmini_main(int argc, char *argv[])
 	}
 
 out_error:
-	PX4_ERR("unrecognized command, try 'start', 'test', or 'info'");
+	PX4_ERR("unrecognized command");
+        tfmini::usage();
 	return -1;
 }

@@ -33,8 +33,9 @@ else()
 	add_library(lockstep_scheduler
 		src/lockstep_scheduler.cpp
 	)
-	include_directories(
-		include
+	target_include_directories(lockstep_scheduler
+		PUBLIC
+		${CMAKE_CURRENT_SOURCE_DIR}/include
 	)
 
 endif()

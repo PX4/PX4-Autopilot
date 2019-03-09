@@ -70,12 +70,6 @@
 
 /* Configuration ************************************************************************************/
 
-/* Un-comment to support some RC00 polarities inversions
- * on test HW as well as R and G LEDs on UI LED are swapped
- */
-//#define PX4_FMUV5_RC00
-
-#define PX4_FMUV5_RC01
 #define BOARD_HAS_LTC4417
 
 #if defined(BOARD_HAS_LTC4417)
@@ -121,6 +115,8 @@
 #define GPIO_SPI1_CS2_ICM20602    /* PF3 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTF|GPIO_PIN3)
 #define GPIO_SPI1_CS3_BMI055_GYRO /* PF4 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTF|GPIO_PIN4)
 #define GPIO_SPI1_CS4_BMI055_ACC  /* PG10 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN10)
+#define GPIO_SPI1_CS5_AUX_MEM     /* PH5  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTH|GPIO_PIN5)
+
 
 /*  Define the SPI1 Data Ready interrupts */
 
@@ -170,7 +166,6 @@
 #define SPI6_CS1_EXTERNAL2     /* PI6  */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN6)
 #define SPI6_CS2_EXTERNAL2     /* PI7  */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN7)
 #define SPI6_CS3_EXTERNAL2     /* PI8  */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN8)
-#define SPIAUX_CS_MEM          /* PH5  */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTH|GPIO_PIN5)
 
 
 /*
@@ -186,45 +181,31 @@
 
 /* v BEGIN Legacy SPI defines TODO: fix this with enumeration */
 #define PX4_SPI_BUS_RAMTRON  PX4_SPI_BUS_MEMORY
-#define PX4_SPIDEV_BMA 0
-#define PX4_SPIDEV_BMI 0
 /* ^ END Legacy SPI defines TODO: fix this with enumeration */
-
 
 #define PX4_SPIDEV_ICM_20689        PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,0)
 #define PX4_SPIDEV_ICM_20602        PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,1)
 #define PX4_SPIDEV_BMI055_GYR       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,2)
 #define PX4_SPIDEV_BMI055_ACC       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,3)
-
-#define PX4_SENSOR_BUS_CS_GPIO      {GPIO_SPI1_CS1_ICM20689, GPIO_SPI1_CS2_ICM20602, GPIO_SPI1_CS3_BMI055_GYRO, GPIO_SPI1_CS4_BMI055_ACC}
-#define PX4_SENSORS_BUS_FIRST_CS    PX4_SPIDEV_ICM_20689
-#define PX4_SENSORS_BUS_LAST_CS     PX4_SPIDEV_BMI055_ACC
+#define PX4_SPIDEV_AUX_MEM          PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,4)
+#define PX4_SENSOR_BUS_CS_GPIO      {GPIO_SPI1_CS1_ICM20689, GPIO_SPI1_CS2_ICM20602, GPIO_SPI1_CS3_BMI055_GYRO, GPIO_SPI1_CS4_BMI055_ACC, GPIO_SPI1_CS5_AUX_MEM}
 
 #define PX4_SPIDEV_MEMORY           PX4_MK_SPI_SEL(PX4_SPI_BUS_MEMORY,0)
 #define PX4_MEMORY_BUS_CS_GPIO      {GPIO_SPI2_CS_FRAM}
-#define PX4_MEMORY_BUS_FIRST_CS     PX4_SPIDEV_MEMORY
-#define PX4_MEMORY_BUS_LAST_CS      PX4_SPIDEV_MEMORY
 
 #define PX4_SPIDEV_BARO             PX4_MK_SPI_SEL(PX4_SPI_BUS_BARO,0)
 #define PX4_SPIDEV_SPI4_CS2         PX4_MK_SPI_SEL(PX4_SPI_BUS_BARO,1)
 #define PX4_BARO_BUS_CS_GPIO        {GPIO_SPI4_CS1_MS5611, GPIO_SPI4_CS2}
-#define PX4_BARO_BUS_FIRST_CS       PX4_SPIDEV_BARO
-#define PX4_BARO_BUS_LAST_CS        PX4_SPIDEV_SPI4_CS2
 
 #define PX4_SPIDEV_EXTERNAL1_1      PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL1,0)
 #define PX4_SPIDEV_EXTERNAL1_2      PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL1,1)
 #define PX4_SPIDEV_EXTERNAL1_3      PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL1,2)
 #define PX4_EXTERNAL1_BUS_CS_GPIO   {SPI5_CS1_EXTERNAL1, SPI5_CS2_EXTERNAL1, SPI5_CS3_EXTERNAL1}
-#define PX4_EXTERNAL1_BUS_FIRST_CS  PX4_SPIDEV_EXTERNAL1_1
-#define PX4_EXTERNAL1_BUS_LAST_CS   PX4_SPIDEV_EXTERNAL1_3
 
 #define PX4_SPIDEV_EXTERNAL2_1      PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL2,0)
 #define PX4_SPIDEV_EXTERNAL2_2      PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL2,1)
 #define PX4_SPIDEV_EXTERNAL2_3      PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL2,2)
-#define PX4_SPIDEV_AUX_MEM          PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL2,3)
-#define PX4_EXTERNAL2_BUS_CS_GPIO   {SPI6_CS1_EXTERNAL2, SPI6_CS2_EXTERNAL2, SPI6_CS3_EXTERNAL2, SPIAUX_CS_MEM}
-#define PX4_EXTERNAL2_BUS_FIRST_CS  PX4_SPIDEV_EXTERNAL2_1
-#define PX4_EXTERNAL2_BUS_LAST_CS   PX4_SPIDEV_AUX_MEM
+#define PX4_EXTERNAL2_BUS_CS_GPIO   {SPI6_CS1_EXTERNAL2, SPI6_CS2_EXTERNAL2, SPI6_CS3_EXTERNAL2}
 
 
 /* I2C busses */
@@ -366,9 +347,14 @@
 
 #define DIRECT_PWM_CAPTURE_CHANNELS  3
 
-/* TIM5_CH4 SPARE PIN */
-#define GPIO_TIM5_CH4IN    /* PI0   T5C4  TIM5_SPARE_4 */  GPIO_TIM5_CH4IN_2
-#define GPIO_TIM5_CH4OUT   /* PI0   T5C4  TIM5_SPARE_4 */   GPIO_TIM5_CH4OUT_2
+/* PI0 is nARMED
+ *  The GPIO will be set as input while not armed HW will have external HW Pull UP.
+ *  While armed it shall be configured at a GPIO OUT set LOW
+ */
+#define GPIO_nARMED_INIT     /* PI0 */  (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTI|GPIO_PIN0)
+#define GPIO_nARMED          /* PI0 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTI|GPIO_PIN0)
+
+#define BOARD_INDICATE_ARMED_STATE(on_armed)  px4_arch_configgpio((on_armed) ? GPIO_nARMED : GPIO_nARMED_INIT)
 
 /* PWM
  *
@@ -416,11 +402,9 @@
 #define LED_TIM3_CH4OUT   /* PB1   T3C4  RED   */ GPIO_TIM3_CH4OUT_1
 
 #define BOARD_HAS_UI_LED_PWM            1
-#if defined(PX4_FMUV5_RC00)
-# define BOARD_UI_LED_SWAP_RG           1
-#else
-#  define BOARD_UI_LED_PWM_DRIVE_ACTIVE_LOW 1
-#endif
+
+#define BOARD_UI_LED_PWM_DRIVE_ACTIVE_LOW 1
+
 #define UI_LED_TIM5_CH1OUT /* PH10  T5C1  RED   */ GPIO_TIM5_CH1OUT_2
 #define UI_LED_TIM5_CH2OUT /* PH11  T5C2  GREEN */ GPIO_TIM5_CH2OUT_2
 #define UI_LED_TIM5_CH3OUT /* PH12  T5C3  BLUE  */ GPIO_TIM5_CH3OUT_2
@@ -465,14 +449,7 @@
 #define BOARD_NUMBER_BRICKS             2
 #define GPIO_nVDD_USB_VALID             GPIO_nPOWER_IN_C /* USB     Is Chosen */
 
-#if defined(PX4_FMUV5_RC00)
-#  define GPIO_VDD_5V_PERIPH_EN         /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN4)
-#  define GPIO_xVDD_5V_PERIPH_EN                   GPIO_VDD_5V_PERIPH_EN
-#endif
-#if defined(PX4_FMUV5_RC01)
-#  define GPIO_nVDD_5V_PERIPH_EN         /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
-#  define GPIO_xVDD_5V_PERIPH_EN                    GPIO_nVDD_5V_PERIPH_EN
-#endif
+#define GPIO_nVDD_5V_PERIPH_EN          /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
 #define GPIO_nVDD_5V_PERIPH_OC          /* PE15 */ (GPIO_INPUT |GPIO_PULLUP|GPIO_PORTE|GPIO_PIN15)
 #define GPIO_nVDD_5V_HIPOWER_EN         /* PF12 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTF|GPIO_PIN12)
 #define GPIO_nVDD_5V_HIPOWER_OC         /* PG13 */ (GPIO_INPUT |GPIO_PULLUP|GPIO_PORTF|GPIO_PIN13)
@@ -485,12 +462,7 @@
 
 /* Define True logic Power Control in arch agnostic form */
 
-#if defined(PX4_FMUV5_RC00)
-#define VDD_5V_PERIPH_EN(on_true)          px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_EN, (on_true))
-#endif
-#if defined(PX4_FMUV5_RC01)
 #define VDD_5V_PERIPH_EN(on_true)          px4_arch_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, !(on_true))
-#endif
 #define VDD_5V_HIPOWER_EN(on_true)         px4_arch_gpiowrite(GPIO_nVDD_5V_HIPOWER_EN, !(on_true))
 #define VDD_3V3_SENSORS_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, (on_true))
 #define VDD_3V3_SPEKTRUM_POWER_EN(on_true) px4_arch_gpiowrite(GPIO_VDD_3V3_SPEKTRUM_POWER_EN, (on_true))
@@ -683,7 +655,7 @@
 		GPIO_nPOWER_IN_A,                 \
 		GPIO_nPOWER_IN_B,                 \
 		GPIO_nPOWER_IN_C,                 \
-		GPIO_xVDD_5V_PERIPH_EN,           \
+		GPIO_nVDD_5V_PERIPH_EN,           \
 		GPIO_nVDD_5V_PERIPH_OC,           \
 		GPIO_nVDD_5V_HIPOWER_EN,          \
 		GPIO_nVDD_5V_HIPOWER_OC,          \
@@ -695,7 +667,8 @@
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_RSSI_IN_INIT,                \
 		GPIO_nSAFETY_SWITCH_LED_OUT_INIT, \
-		GPIO_SAFETY_SWITCH_IN             \
+		GPIO_SAFETY_SWITCH_IN,            \
+		GPIO_nARMED_INIT                  \
 	}
 
 __BEGIN_DECLS
@@ -733,16 +706,6 @@ int stm32_sdio_initialize(void);
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
-
-/************************************************************************************
- * Name: stm32_spi_bus_initialize
- *
- * Description:
- *   Called to configure SPI Buses.
- *
- ************************************************************************************/
-
-extern int stm32_spi_bus_initialize(void);
 
 void board_spi_reset(int ms);
 

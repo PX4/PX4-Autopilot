@@ -44,6 +44,8 @@
 #include "health_flag_helper.h"
 #include "rc_check.h"
 
+#include <math.h>
+
 #include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
@@ -531,7 +533,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 
 	if (status.hgt_test_ratio > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Height estimate Error");
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Height estimate error");
 		}
 
 		success = false;
@@ -543,7 +545,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 
 	if (status.vel_test_ratio > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Velocity estimate Error");
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Velocity estimate error");
 		}
 
 		success = false;
@@ -555,7 +557,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 
 	if (status.pos_test_ratio > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Horizontal estimate Pos Error");
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Position estimate error");
 		}
 
 		success = false;
@@ -567,7 +569,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 
 	if (status.mag_test_ratio > test_limit) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Yaw estimate Error");
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Yaw estimate error");
 		}
 
 		success = false;
@@ -577,14 +579,19 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 	// check accelerometer delta velocity bias estimates
 	param_get(param_find("COM_ARM_EKF_AB"), &test_limit);
 
-	if (fabsf(status.states[13]) > test_limit || fabsf(status.states[14]) > test_limit
-	    || fabsf(status.states[15]) > test_limit) {
-		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: High Accelerometer Bias");
-		}
+	for (uint8_t index = 13; index < 16; index++) {
+		// allow for higher uncertainty in estimates for axes that are less observable to prevent false positives
+		// adjust test threshold by 3-sigma
+		float test_uncertainty = 3.0f * sqrtf(fmaxf(status.covariances[index], 0.0f));
 
-		success = false;
-		goto out;
+		if (fabsf(status.states[index]) > test_limit + test_uncertainty) {
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: High Accelerometer Bias");
+			}
+
+			success = false;
+			goto out;
+		}
 	}
 
 	// check gyro delta angle bias estimates

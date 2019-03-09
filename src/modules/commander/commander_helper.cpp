@@ -145,7 +145,7 @@ void buzzer_deinit()
 void set_tune_override(int tune)
 {
 	tune_control.tune_id = tune;
-	tune_control.strength = tune_control_s::STRENGTH_NORMAL;
+	tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
 	tune_control.tune_override = 1;
 	tune_control.timestamp = hrt_absolute_time();
 	orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
@@ -160,7 +160,7 @@ void set_tune(int tune)
 		/* allow interrupting current non-repeating tune by the same tune */
 		if (tune != tune_current || new_tune_duration != 0) {
 			tune_control.tune_id = tune;
-			tune_control.strength = tune_control_s::STRENGTH_NORMAL;
+			tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
 			tune_control.tune_override = 0;
 			tune_control.timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);

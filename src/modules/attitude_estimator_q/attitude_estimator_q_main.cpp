@@ -339,6 +339,7 @@ void AttitudeEstimatorQ::task_main()
 		}
 
 		// Update vision and motion capture heading
+		_ext_hdg_good = false;
 		bool vision_updated = false;
 		orb_check(_vision_odom_sub, &vision_updated);
 

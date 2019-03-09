@@ -9,62 +9,13 @@ pipeline {
         script {
           def build_nodes = [:]
           def docker_images = [
-            armhf: "px4io/px4-dev-armhf:2019-01-27",
-            base: "px4io/px4-dev-base:2019-01-26",
-            nuttx: "px4io/px4-dev-nuttx:2019-01-27",
-            ros: "px4io/px4-dev-ros:2019-01-27",
-            rpi: "px4io/px4-dev-raspi:2019-01-27",
+            armhf: "px4io/px4-dev-armhf:2019-02-09",
+            base: "px4io/px4-dev-base:2019-02-09",
+            nuttx: "px4io/px4-dev-nuttx:2019-02-09",
+            ros: "px4io/px4-dev-ros-kinetic:2019-02-14",
+            rpi: "px4io/px4-dev-raspi:2019-02-09",
             snapdragon: "lorenzmeier/px4-dev-snapdragon:2018-09-12"
           ]
-
-          // MAC OSX px4_sitl_default
-          build_nodes["px4_sitl_default (OSX)"] = {
-            node("mac") {
-              withEnv(["CCACHE_BASEDIR=${pwd()}"]) {
-                stage("sitl (OSX)") {
-                  try {
-                    checkout(scm)
-                    sh('export')
-                    sh('make distclean')
-                    sh('ccache -z')
-                    sh('make px4_sitl_default')
-                    sh('ccache -s')
-                    sh('make tests')
-                  }
-                  catch (exc) {
-                    throw (exc)
-                  }
-                  finally {
-                    sh('make distclean')
-                  }
-                }
-              }
-            }
-          }
-
-          // MAC OSX px4_fmu-v4pro_default
-          build_nodes["px4_fmu-v4pro_default (OSX)"] = {
-            node("mac") {
-              withEnv(["CCACHE_BASEDIR=${pwd()}"]) {
-                stage("px4_fmu-v4pro (OSX)") {
-                  try {
-                    checkout(scm)
-                    sh('export')
-                    sh('make distclean')
-                    sh('ccache -z')
-                    sh('make px4_fmu-v4pro_default')
-                    sh('ccache -s')
-                  }
-                  catch (exc) {
-                    throw (exc)
-                  }
-                  finally {
-                    sh('make distclean')
-                  }
-                }
-              }
-            }
-          }
 
           def armhf_builds = [
             target: ["aerotenna_ocpoc_ubuntu"],
@@ -79,8 +30,13 @@ pipeline {
           ]
 
           def nuttx_builds_archive = [
-            target: ["px4_fmu-v2_default", "px4_fmu-v3_default", "px4_fmu-v4_default", "px4_fmu-v4pro_default", "px4_fmu-v5_default", "px4_fmu-v5_rtps", "px4_fmu-v5_stackcheck",
-                     "intel_aerofc-v1_default", "gumstix_aerocore2_default", "auav_x21_default", "av_x-v1_default", "bitcraze_crazyflie_default", "airmind_mindpx-v2_default",
+            target: [
+                     "px4_fmu-v2_default", "px4_fmu-v2_fixedwing", "px4_fmu-v2_lpe", "px4_fmu-v2_multicopter", "px4_fmu-v2_rover", "px4_fmu-v2_test",
+                     "px4_fmu-v3_default",
+                     "px4_fmu-v4_default",
+                     "px4_fmu-v4pro_default",
+                     "px4_fmu-v5_default", "px4_fmu-v5_fixedwing", "px4_fmu-v5_multicopter", "px4_fmu-v5_rover", "px4_fmu-v5_rtps", "px4_fmu-v5_stackcheck",
+                     "intel_aerofc-v1_default", "auav_x21_default", "av_x-v1_default", "bitcraze_crazyflie_default", "airmind_mindpx-v2_default",
                      "nxp_fmuk66-v3_default", "omnibus_f4sd_default"],
             image: docker_images.nuttx,
             archive: true
@@ -125,7 +81,7 @@ pipeline {
     // TODO: actually upload artifacts to S3
     stage('S3 Upload') {
       agent {
-        docker { image 'px4io/px4-dev-base:2019-01-26' }
+        docker { image 'px4io/px4-dev-base:2019-02-09' }
       }
       options {
             skipDefaultCheckout()

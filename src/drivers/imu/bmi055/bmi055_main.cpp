@@ -35,7 +35,7 @@
 #include "BMI055_gyro.hpp"
 
 #include <px4_config.h>
-#include <platforms/px4_getopt.h>
+#include <px4_getopt.h>
 
 /** driver 'main' command */
 extern "C" { __EXPORT int bmi055_main(int argc, char *argv[]); }
@@ -448,7 +448,6 @@ BMI055::BMI055(const char *name, const char *devname, int bus, uint32_t device, 
 	_whoami(0),
 	_call{},
 	_call_interval(0),
-	_dlpf_freq(0),
 	_register_wait(0),
 	_reset_wait(0),
 	_rotation(rotation),

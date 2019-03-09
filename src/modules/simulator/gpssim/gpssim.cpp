@@ -286,6 +286,7 @@ GPSSIM::receive(int timeout)
 		_report_gps_pos.cog_rad = (float)(gps.cog) * 3.1415f / (100.0f * 180.0f);
 		_report_gps_pos.fix_type = gps.fix_type;
 		_report_gps_pos.satellites_used = gps.satellites_visible;
+		_report_gps_pos.s_variance_m_s = 0.25f;
 
 		timestamp_last = gps.timestamp;
 

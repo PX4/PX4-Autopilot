@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+ * Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -31,7 +32,6 @@
  ****************************************************************************/
 #include <unistd.h>
 #include <fcntl.h>
-#include <termios.h>
 #include <stdio.h>
 #include <errno.h>
 #include <sys/socket.h>
@@ -307,7 +307,16 @@ int UART_node::init()
 	// USB serial is indicated by /dev/ttyACM0
 	if (strcmp(uart_name, "/dev/ttyACM0") != 0 && strcmp(uart_name, "/dev/ttyACM1") != 0) {
 		// Set baud rate
-		if (cfsetispeed(&uart_config, baudrate) < 0 || cfsetospeed(&uart_config, baudrate) < 0) {
+		speed_t speed;
+
+		if (!baudrate_to_speed(baudrate, &speed)) {
+			PX4_ERR("ERR SET BAUD %s: Unsupported baudrate: %d\n\tsupported examples:\n\t9600, 19200, 38400, 57600, 115200, 230400, 460800, 500000, 921600, 1000000\n",
+			       uart_name, baudrate);
+			close();
+			return -EINVAL;
+		}
+
+		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
 			int errno_bkp = errno;
 			PX4_ERR("ERR SET BAUD %s: %d (%d)", uart_name, termios_state, errno);
 			close();
@@ -386,6 +395,87 @@ ssize_t UART_node::node_write(void *buffer, size_t len)
 	return ::write(uart_fd, buffer, len);
 }
 
+bool UART_node::baudrate_to_speed(uint32_t bauds, speed_t *speed)
+{
+#ifndef B460800
+#define B460800 460800
+#endif
+
+#ifndef B500000
+#define B500000 500000
+#endif
+
+#ifndef B921600
+#define B921600 921600
+#endif
+
+#ifndef B1000000
+#define B1000000 1000000
+#endif
+
+	switch (bauds) {
+	case 0:      *speed = B0;      break;
+
+	case 50:     *speed = B50;     break;
+
+	case 75:     *speed = B75;     break;
+
+	case 110:    *speed = B110;    break;
+
+	case 134:    *speed = B134;    break;
+
+	case 150:    *speed = B150;    break;
+
+	case 200:    *speed = B200;    break;
+
+	case 300:    *speed = B300;    break;
+
+	case 600:    *speed = B600;    break;
+
+	case 1200:   *speed = B1200;   break;
+
+	case 1800:   *speed = B1800;   break;
+
+	case 2400:   *speed = B2400;   break;
+
+	case 4800:   *speed = B4800;   break;
+
+	case 9600:   *speed = B9600;   break;
+
+	case 19200:  *speed = B19200;  break;
+
+	case 38400:  *speed = B38400;  break;
+
+	case 57600:  *speed = B57600;  break;
+
+	case 115200: *speed = B115200; break;
+
+	case 230400: *speed = B230400; break;
+
+	case 460800: *speed = B460800; break;
+
+	case 500000: *speed = B500000; break;
+
+	case 921600: *speed = B921600; break;
+
+	case 1000000: *speed = B1000000; break;
+
+#ifdef B1500000
+
+	case 1500000: *speed = B1500000; break;
+#endif
+
+#ifdef B3000000
+
+	case 3000000: *speed = B3000000; break;
+#endif
+
+	default:
+		return false;
+	}
+
+	return true;
+}
 
 UDP_node::UDP_node(uint16_t _udp_port_recv, uint16_t _udp_port_send):
 	sender_fd(-1),

@@ -113,6 +113,35 @@ Navigator::Navigator() :
 
 	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
 	_handle_reverse_delay = param_find("VT_B_REV_DEL");
+
+	// subscriptions
+	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	_pos_ctrl_landing_status_sub = orb_subscribe(ORB_ID(position_controller_landing_status));
+	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
+	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
+	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
+	_mission_sub = orb_subscribe(ORB_ID(mission));
+	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
+	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+	_traffic_sub = orb_subscribe(ORB_ID(transponder_report));
+
+	reset_triplets();
+}
+
+Navigator::~Navigator()
+{
+	orb_unsubscribe(_global_pos_sub);
+	orb_unsubscribe(_local_pos_sub);
+	orb_unsubscribe(_gps_pos_sub);
+	orb_unsubscribe(_pos_ctrl_landing_status_sub);
+	orb_unsubscribe(_vstatus_sub);
+	orb_unsubscribe(_land_detected_sub);
+	orb_unsubscribe(_home_pos_sub);
+	orb_unsubscribe(_mission_sub);
+	orb_unsubscribe(_param_update_sub);
+	orb_unsubscribe(_vehicle_command_sub);
 }
 
 void
@@ -188,19 +217,6 @@ Navigator::run()
 		PX4_INFO("Loading geofence from %s", GEOFENCE_FILENAME);
 		_geofence.loadFromFile(GEOFENCE_FILENAME);
 	}
-
-	/* do subscriptions */
-	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	_pos_ctrl_landing_status_sub = orb_subscribe(ORB_ID(position_controller_landing_status));
-	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
-	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
-	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
-	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
-	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
-	_traffic_sub = orb_subscribe(ORB_ID(transponder_report));
 
 	/* copy all topics first time */
 	vehicle_status_update();
@@ -443,7 +459,7 @@ Navigator::run()
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_MISSION_START) {
 				if (_mission_result.valid && PX4_ISFINITE(cmd.param1) && (cmd.param1 >= 0)) {
-					if (!_mission.set_current_offboard_mission_index(cmd.param1)) {
+					if (!_mission.set_current_mission_index(cmd.param1)) {
 						PX4_WARN("CMD_MISSION_START failed");
 					}
 				}
@@ -777,17 +793,6 @@ Navigator::run()
 
 		perf_end(_loop_perf);
 	}
-
-	orb_unsubscribe(_global_pos_sub);
-	orb_unsubscribe(_local_pos_sub);
-	orb_unsubscribe(_gps_pos_sub);
-	orb_unsubscribe(_pos_ctrl_landing_status_sub);
-	orb_unsubscribe(_vstatus_sub);
-	orb_unsubscribe(_land_detected_sub);
-	orb_unsubscribe(_home_pos_sub);
-	orb_unsubscribe(_offboard_mission_sub);
-	orb_unsubscribe(_param_update_sub);
-	orb_unsubscribe(_vehicle_command_sub);
 }
 
 int Navigator::task_spawn(int argc, char *argv[])

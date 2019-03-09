@@ -54,6 +54,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <sys/stat.h>
+#include <px4_getopt.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
@@ -1611,17 +1612,20 @@ oreoled_main(int argc, char *argv[])
 	int i2cdevice = -1;
 	int i2c_addr = OREOLED_BASE_I2C_ADDR; /* 7bit */
 
+	int myoptind = 1;
 	int ch;
+	const char *myoptarg = nullptr;
+
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "a:b:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'a':
-			i2c_addr = (int)strtol(optarg, NULL, 0);
+			i2c_addr = (int)strtol(myoptarg, NULL, 0);
 			break;
 
 		case 'b':
-			i2cdevice = (int)strtol(optarg, NULL, 0);
+			i2cdevice = (int)strtol(myoptarg, NULL, 0);
 			break;
 
 		default:
@@ -1630,12 +1634,12 @@ oreoled_main(int argc, char *argv[])
 		}
 	}
 
-	if (optind >= argc) {
+	if (myoptind >= argc) {
 		oreoled_usage();
 		exit(1);
 	}
 
-	const char *verb = argv[optind];
+	const char *verb = argv[myoptind];
 
 	int ret;
 
@@ -2008,18 +2012,18 @@ oreoled_main(int argc, char *argv[])
 		}
 
 		/* check led num */
-		sendb.led_num = (uint8_t)strtol(argv[optind + 1], NULL, 0);
+		sendb.led_num = (uint8_t)strtol(argv[myoptind + 1], NULL, 0);
 
 		if (sendb.led_num > 3) {
 			errx(1, "led number must be between 0 ~ 3");
 		}
 
 		/* get bytes */
-		sendb.num_bytes = argc - (optind + 2);
+		sendb.num_bytes = argc - (myoptind + 2);
 		uint8_t byte_count;
 
 		for (byte_count = 0; byte_count < sendb.num_bytes; byte_count++) {
-			sendb.buff[byte_count] = (uint8_t)strtol(argv[byte_count + optind + 2], NULL, 0);
+			sendb.buff[byte_count] = (uint8_t)strtol(argv[byte_count + myoptind + 2], NULL, 0);
 		}
 
 		/* send bytes */

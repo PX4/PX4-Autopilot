@@ -218,8 +218,6 @@ Mavlink::Mavlink() :
 	_wait_to_transmit(false),
 	_received_messages(false),
 	_main_loop_delay(1000),
-	_subscriptions(nullptr),
-	_streams(nullptr),
 	_mavlink_shell(nullptr),
 	_mavlink_ulog(nullptr),
 	_mavlink_ulog_stop_requested(false),
@@ -543,7 +541,7 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 			const mavlink_msg_entry_t *meta = mavlink_get_msg_entry(msg->msgid);
 
 			int target_system_id = 0;
-			int target_component_id = 233;
+			int target_component_id = 0;
 
 			// might be nullptr if message is unknown
 			if (meta) {
@@ -557,11 +555,21 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 				}
 			}
 
-			// Broadcast or addressing this system and not trying to talk
-			// to the autopilot component -> pass on to other components
-			if ((target_system_id == 0 || target_system_id == self->get_system_id())
-			    && (target_component_id == 0 || target_component_id != self->get_component_id())
-			    && !(!self->forward_heartbeats_enabled() && msg->msgid == MAVLINK_MSG_ID_HEARTBEAT)) {
+			// We forward messages targetted at the same system, or addressed to all systems, or
+			// if not target system is set.
+			const bool target_system_id_ok =
+				(target_system_id == 0 || target_system_id == self->get_system_id());
+
+			// We forward messages that are targetting another component, or are addressed to all
+			// components, or if the target component is not set.
+			const bool target_component_id_ok =
+				(target_component_id == 0 || target_component_id != self->get_component_id());
+
+			// We don't forward heartbeats unless it's specifically enabled.
+			const bool heartbeat_check_ok =
+				(msg->msgid != MAVLINK_MSG_ID_HEARTBEAT || self->forward_heartbeats_enabled());
+
+			if (target_system_id_ok && target_component_id_ok && heartbeat_check_ok) {
 
 				inst->pass_message(msg);
 			}
@@ -1339,9 +1347,7 @@ MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, int 
 {
 	if (!disable_sharing) {
 		/* check if already subscribed to this topic */
-		MavlinkOrbSubscription *sub;
-
-		LL_FOREACH(_subscriptions, sub) {
+		for (MavlinkOrbSubscription *sub : _subscriptions) {
 			if (sub->get_topic() == topic && sub->get_instance() == instance) {
 				/* already subscribed */
 				return sub;
@@ -1352,7 +1358,7 @@ MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, int 
 	/* add new subscription */
 	MavlinkOrbSubscription *sub_new = new MavlinkOrbSubscription(topic, instance);
 
-	LL_APPEND(_subscriptions, sub_new);
+	_subscriptions.add(sub_new);
 
 	return sub_new;
 }
@@ -1372,9 +1378,7 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 		interval = -1;
 	}
 
-	/* search if stream exists */
-	MavlinkStream *stream;
-	LL_FOREACH(_streams, stream) {
+	for (const auto &stream : _streams) {
 		if (strcmp(stream_name, stream->get_name()) == 0) {
 			if (interval != 0) {
 				/* set new interval */
@@ -1382,8 +1386,8 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 
 			} else {
 				/* delete stream */
-				LL_DELETE(_streams, stream);
-				delete stream;
+				_streams.deleteNode(stream);
+				return OK; // must finish with loop after node is deleted
 			}
 
 			return OK;
@@ -1397,11 +1401,11 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 
 	// search for stream with specified name in supported streams list
 	// create new instance if found
-	stream = create_mavlink_stream(stream_name, this);
+	MavlinkStream *stream = create_mavlink_stream(stream_name, this);
 
 	if (stream != nullptr) {
 		stream->set_interval(interval);
-		LL_APPEND(_streams, stream);
+		_streams.add(stream);
 
 		return OK;
 	}
@@ -1445,7 +1449,6 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 int
 Mavlink::message_buffer_init(int size)
 {
-
 	_message_buffer.size = size;
 	_message_buffer.write_ptr = 0;
 	_message_buffer.read_ptr = 0;
@@ -1597,8 +1600,7 @@ Mavlink::update_rate_mult()
 	float rate = 0.0f;
 
 	/* scale down rates if their theoretical bandwidth is exceeding the link bandwidth */
-	MavlinkStream *stream;
-	LL_FOREACH(_streams, stream) {
+	for (const auto &stream : _streams) {
 		if (stream->const_rate()) {
 			const_rate += (stream->get_interval() > 0) ? stream->get_size_avg() * 1000000.0f / stream->get_interval() : 0;
 
@@ -1772,6 +1774,27 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
 		configure_stream_local("VFR_HUD", 10.0f);
 		configure_stream_local("WIND_COV", 10.0f);
+		break;
+
+	case MAVLINK_MODE_EXTVISION:
+		configure_stream_local("ALTITUDE", 10.0f); // for avoidance
+		configure_stream_local("ATTITUDE", 25.0f);
+		configure_stream_local("ATTITUDE_TARGET", 10.0f);
+		configure_stream_local("CAMERA_TRIGGER", unlimited_rate); // for VIO
+		configure_stream_local("DISTANCE_SENSOR", 10.0f);		// for avoidance
+		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
+		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
+		configure_stream_local("GLOBAL_POSITION_INT", 10.0f);
+		configure_stream_local("GPS_RAW_INT", 1.0f);
+		configure_stream_local("HOME_POSITION", 0.5f);
+		configure_stream_local("HIGHRES_IMU", unlimited_rate);		// for VIO
+		configure_stream_local("LOCAL_POSITION_NED", 30.0f); //for VIO and avoidance
+		configure_stream_local("SYS_STATUS", 5.0f);
+		configure_stream_local("SYSTEM_TIME", 1.0f);
+		configure_stream_local("TIMESYNC", 10.0f);
+		configure_stream_local("TRAJECTORY_REPRESENTATION_WAYPOINTS", 5.0f); // for avoidance
+		configure_stream_local("VFR_HUD", 25.0f);
+		configure_stream_local("WIND_COV", 2.0f);
 		break;
 
 	case MAVLINK_MODE_OSD:
@@ -2057,6 +2080,9 @@ Mavlink::task_main(int argc, char *argv[])
 
 					} else if (strcmp(myoptarg, "minimal") == 0) {
 						_mode = MAVLINK_MODE_MINIMAL;
+
+					} else if (strcmp(myoptarg, "extvision") == 0) {
+						_mode = MAVLINK_MODE_EXTVISION;
 
 					} else {
 						PX4_ERR("invalid mode");
@@ -2433,8 +2459,7 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		/* update streams */
-		MavlinkStream *stream;
-		LL_FOREACH(_streams, stream) {
+		for (const auto &stream : _streams) {
 			stream->update(t);
 
 			if (!_first_heartbeat_sent) {
@@ -2534,28 +2559,10 @@ Mavlink::task_main(int argc, char *argv[])
 	_subscribe_to_stream = nullptr;
 
 	/* delete streams */
-	MavlinkStream *stream_to_del = nullptr;
-	MavlinkStream *stream_next = _streams;
-
-	while (stream_next != nullptr) {
-		stream_to_del = stream_next;
-		stream_next = stream_to_del->next;
-		delete stream_to_del;
-	}
-
-	_streams = nullptr;
+	_streams.clear();
 
 	/* delete subscriptions */
-	MavlinkOrbSubscription *sub_to_del = nullptr;
-	MavlinkOrbSubscription *sub_next = _subscriptions;
-
-	while (sub_next != nullptr) {
-		sub_to_del = sub_next;
-		sub_next = sub_to_del->next;
-		delete sub_to_del;
-	}
-
-	_subscriptions = nullptr;
+	_subscriptions.clear();
 
 	if (_uart_fd >= 0 && !_is_usb_uart) {
 		/* close UART */
@@ -2594,15 +2601,7 @@ void Mavlink::publish_telemetry_status()
 	_tstatus.forwarding = get_forwarding_on();
 	_tstatus.mavlink_v2 = (_protocol_version == 2);
 
-	int num_streams = 0;
-
-	MavlinkStream *stream;
-	LL_FOREACH(_streams, stream) {
-		// count
-		num_streams++;
-	}
-
-	_tstatus.streams = num_streams;
+	_tstatus.streams = _streams.size();
 
 	_tstatus.timestamp = hrt_absolute_time();
 	int instance;
@@ -2839,8 +2838,8 @@ Mavlink::display_status_streams()
 	printf("\t%-20s%-16s %s\n", "Name", "Rate Config (current) [Hz]", "Message Size (if active) [B]");
 
 	const float rate_mult = _rate_mult;
-	MavlinkStream *stream;
-	LL_FOREACH(_streams, stream) {
+
+	for (const auto &stream : _streams) {
 		const int interval = stream->get_interval();
 		const unsigned size = stream->get_size();
 		char rate_str[20];
@@ -3039,7 +3038,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr,
 					"Partner IP (broadcasting can be enabled via MAV_BROADCAST param)", true);
 #endif
-	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal",
+	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvsision",
 					"Mode: sets default streams and rates", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, "<interface_name>", "wifi/ethernet interface name", true);
 #if defined(CONFIG_NET_IGMP) && defined(CONFIG_NET_ROUTE)
@@ -3057,7 +3056,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stream", "Configure the sending rate of a stream for a running instance");
 #if defined(CONFIG_NET) || defined(__PX4_POSIX)
-	PRINT_MODULE_USAGE_PARAM_INT('u', 0, 0, 65536, "Select Mavlink instance via local Network Port", true);
+	PRINT_MODULE_USAGE_PARAM_INT('u', -1, 0, 65536, "Select Mavlink instance via local Network Port", true);
 #endif
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<file:dev>", "Select Mavlink instance via Serial Device", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('s', nullptr, nullptr, "Mavlink stream to configure", false);

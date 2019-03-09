@@ -54,7 +54,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <getopt.h>
+#include <px4_getopt.h>
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
@@ -1932,23 +1932,26 @@ int
 lsm303d_main(int argc, char *argv[])
 {
 	bool external_bus = false;
-	int ch;
 	enum Rotation rotation = ROTATION_NONE;
 	int accel_range = 8;
 
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XR:a:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XR:a:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			external_bus = true;
 			break;
 
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		case 'a':
-			accel_range = atoi(optarg);
+			accel_range = atoi(myoptarg);
 			break;
 
 		default:
@@ -1957,7 +1960,12 @@ lsm303d_main(int argc, char *argv[])
 		}
 	}
 
-	const char *verb = argv[optind];
+	if (myoptind >= argc) {
+		lsm303d::usage();
+		exit(0);
+	}
+
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.

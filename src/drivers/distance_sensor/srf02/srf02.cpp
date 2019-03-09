@@ -131,7 +131,7 @@ private:
 	uint8_t				_cycle_counter;	/* counter in cycle to change i2c adresses */
 	int					_cycling_rate;	/* */
 	uint8_t				_index_counter;	/* temporary sonar i2c address */
-	px4::Array<uint8_t, MB12XX_MAX_RANGEFINDERS>	addr_ind; 	/* temp sonar i2c address vector */
+	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS>	addr_ind; 	/* temp sonar i2c address vector */
 
 	/**
 	* Test whether the device supported by the driver is present at a
@@ -266,7 +266,7 @@ SRF02::init()
 	/* check for connected rangefinders on each i2c port:
 	   We start from i2c base address (0x70 = 112) and count downwards
 	   So second iteration it uses i2c address 111, third iteration 110 and so on*/
-	for (unsigned counter = 0; counter <= MB12XX_MAX_RANGEFINDERS; counter++) {
+	for (unsigned counter = 0; counter <= RANGE_FINDER_MAX_SENSORS; counter++) {
 		_index_counter = SRF02_BASEADDR - counter;	/* set temp sonar i2c address to base adress - counter */
 		set_device_address(_index_counter);			/* set I2c port to temp sonar i2c adress */
 		int ret2 = measure();
@@ -510,7 +510,7 @@ SRF02::collect()
 	report.current_distance = distance_m;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
-	report.covariance = 0.0f;
+	report.variance = 0.0f;
 	report.signal_quality = -1;
 	/* TODO: set proper ID */
 	report.id = 0;

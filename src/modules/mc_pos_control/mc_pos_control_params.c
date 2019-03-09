@@ -650,8 +650,9 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
  *
  * Increasing this value will make automatic and manual takeoff slower.
  * If it's too slow the drone might scratch the ground and tip over.
+ * A time constant of 0 disables the ramp
  *
- * @min 0.1
+ * @min 0
  * @max 1
  * @group Multicopter Position Control
  */

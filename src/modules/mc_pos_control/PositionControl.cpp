@@ -221,7 +221,7 @@ void PositionControl::_positionController()
 	// Constrain horizontal velocity by prioritizing the velocity component along the
 	// the desired position setpoint over the feed-forward term.
 	const Vector2f vel_sp_xy = ControlMath::constrainXY(Vector2f(vel_sp_position),
-				   Vector2f(_vel_sp - vel_sp_position), _constraints.speed_xy);
+				   Vector2f(_vel_sp - vel_sp_position), MPC_XY_VEL_MAX.get());
 	_vel_sp(0) = vel_sp_xy(0);
 	_vel_sp(1) = vel_sp_xy(1);
 	// Constrain velocity in z-direction.

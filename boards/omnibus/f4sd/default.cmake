@@ -42,6 +42,7 @@ px4_add_board(
 		#telemetry # all available telemetry drivers
 		telemetry/frsky_telemetry
 		#test_ppm
+		osd
 
 	MODULES
 		attitude_estimator_q

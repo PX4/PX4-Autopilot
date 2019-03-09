@@ -38,6 +38,7 @@
 #include <drivers/device/device.h>
 #include <lib/drivers/tone_alarm/ToneAlarmInterface.h>
 #include <px4_defines.h>
+#include <cmath>
 
 /* Check that tone alarm and HRT timers are different */
 #if defined(TONE_ALARM_TIMER) && defined(HRT_TIMER)

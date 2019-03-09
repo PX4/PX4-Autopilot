@@ -41,6 +41,7 @@
 
 #include <systemlib/mavlink_log.h>
 
+#include <uORB/Subscription.hpp>
 #include <conversion/rotation.h>
 #include <ecl/geo/geo.h>
 
@@ -151,79 +152,68 @@ void VotedSensorsUpdate::parameters_update()
 	_temperature_compensation.parameters_update(_hil_enabled);
 
 	/* gyro */
-	for (int topic_instance = 0; topic_instance < GYRO_COUNT_MAX; ++topic_instance) {
+	for (int topic_instance = 0; topic_instance < _gyro.subscription_count; ++topic_instance) {
 
-		if (topic_instance < _gyro.subscription_count) {
-			// valid subscription, so get the driver id by getting the published sensor data
-			sensor_gyro_s report;
+		uORB::Subscription<sensor_gyro_s> report{ORB_ID(sensor_gyro), 0, (unsigned)topic_instance};
 
-			if (orb_copy(ORB_ID(sensor_gyro), _gyro.subscription[topic_instance], &report) == 0) {
-				int temp = _temperature_compensation.set_sensor_id_gyro(report.device_id, topic_instance);
+		int temp = _temperature_compensation.set_sensor_id_gyro(report.get().device_id, topic_instance);
 
-				if (temp < 0) {
-					PX4_ERR("%s temp compensation init: failed to find device ID %u for instance %i",
-						"gyro", report.device_id, topic_instance);
-					_corrections.gyro_mapping[topic_instance] = 0;
+		if (temp < 0) {
+			PX4_ERR("%s temp compensation init: failed to find device ID %u for instance %i", "gyro", report.get().device_id,
+				topic_instance);
 
-				} else {
-					_corrections.gyro_mapping[topic_instance] = temp;
+			_corrections.gyro_mapping[topic_instance] = 0;
 
-				}
-			}
+		} else {
+			_corrections.gyro_mapping[topic_instance] = temp;
+
 		}
 	}
 
 
 	/* accel */
-	for (int topic_instance = 0; topic_instance < ACCEL_COUNT_MAX; ++topic_instance) {
+	for (int topic_instance = 0; topic_instance < _accel.subscription_count; ++topic_instance) {
 
-		if (topic_instance < _accel.subscription_count) {
-			// valid subscription, so get the driver id by getting the published sensor data
-			sensor_accel_s report;
+		uORB::Subscription<sensor_accel_s> report{ORB_ID(sensor_accel), 0, (unsigned)topic_instance};
 
-			if (orb_copy(ORB_ID(sensor_accel), _accel.subscription[topic_instance], &report) == 0) {
-				int temp = _temperature_compensation.set_sensor_id_accel(report.device_id, topic_instance);
+		int temp = _temperature_compensation.set_sensor_id_accel(report.get().device_id, topic_instance);
 
-				if (temp < 0) {
-					PX4_ERR("%s temp compensation init: failed to find device ID %u for instance %i",
-						"accel", report.device_id, topic_instance);
-					_corrections.accel_mapping[topic_instance] = 0;
+		if (temp < 0) {
+			PX4_ERR("%s temp compensation init: failed to find device ID %u for instance %i", "accel", report.get().device_id,
+				topic_instance);
 
-				} else {
-					_corrections.accel_mapping[topic_instance] = temp;
+			_corrections.accel_mapping[topic_instance] = 0;
 
-				}
-			}
+		} else {
+			_corrections.accel_mapping[topic_instance] = temp;
+
 		}
 	}
 
+
 	/* baro */
-	for (int topic_instance = 0; topic_instance < BARO_COUNT_MAX; ++topic_instance) {
+	for (int topic_instance = 0; topic_instance < _baro.subscription_count; ++topic_instance) {
 
-		if (topic_instance < _baro.subscription_count) {
-			// valid subscription, so get the driver id by getting the published sensor data
-			sensor_baro_s report;
+		uORB::Subscription<sensor_baro_s> report{ORB_ID(sensor_baro), 0, (unsigned)topic_instance};
 
-			if (orb_copy(ORB_ID(sensor_baro), _baro.subscription[topic_instance], &report) == 0) {
-				int temp = _temperature_compensation.set_sensor_id_baro(report.device_id, topic_instance);
+		int temp = _temperature_compensation.set_sensor_id_baro(report.get().device_id, topic_instance);
 
-				if (temp < 0) {
-					PX4_ERR("%s temp compensation init: failed to find device ID %u for instance %i",
-						"baro", report.device_id, topic_instance);
-					_corrections.baro_mapping[topic_instance] = 0;
+		if (temp < 0) {
+			PX4_ERR("%s temp compensation init: failed to find device ID %u for instance %i", "baro", report.get().device_id,
+				topic_instance);
 
-				} else {
-					_corrections.baro_mapping[topic_instance] = temp;
+			_corrections.baro_mapping[topic_instance] = 0;
 
-				}
-			}
+		} else {
+			_corrections.baro_mapping[topic_instance] = temp;
+
 		}
 	}
 
 
 	/* set offset parameters to new values */
-	bool failed;
-	char str[30];
+	bool failed = false;
+	char str[30] {};
 	unsigned gyro_count = 0;
 	unsigned accel_count = 0;
 	unsigned gyro_cal_found_count = 0;

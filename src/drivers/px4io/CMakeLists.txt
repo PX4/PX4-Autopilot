@@ -57,6 +57,7 @@ ExternalProject_Add(px4io_firmware
 	CMAKE_ARGS -DCONFIG=${config_io_board}
 	INSTALL_COMMAND ""
 	USES_TERMINAL_BUILD true
+	DEPENDS git_nuttx git_nuttx_apps
 )
 
 ExternalProject_Get_Property(px4io_firmware BINARY_DIR)

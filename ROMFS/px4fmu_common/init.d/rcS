@@ -372,7 +372,6 @@ else
 		fi
 
 		camera_trigger start
-		param set CAM_FBACK_MODE 1
 		camera_feedback start
 	fi
 
@@ -417,6 +416,15 @@ else
 	#       rc.fw_apps, rc.mc_apps, rc.ugv_apps, and rc.vtol_apps.
 	#
 	sh /etc/init.d/rc.vehicle_setup
+
+	# Camera capture driver
+	if param greater CAM_CAP_FBACK 0
+	then
+		if camera_capture start
+		then
+			camera_capture on
+		fi
+	fi
 
 	#
 	# Start the navigator.

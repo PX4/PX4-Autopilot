@@ -59,6 +59,14 @@ using matrix::wrap_pi;
 MissionBlock::MissionBlock(Navigator *navigator) :
 	NavigatorMode(navigator)
 {
+	_mission_item.lat = (double)NAN;
+	_mission_item.lon = (double)NAN;
+	_mission_item.yaw = NAN;
+	_mission_item.loiter_radius = _navigator->get_loiter_radius();
+	_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+	_mission_item.time_inside = 0.0f;
+	_mission_item.autocontinue = true;
+	_mission_item.origin = ORIGIN_ONBOARD;
 }
 
 bool
@@ -320,9 +328,9 @@ MissionBlock::is_mission_item_reached()
 
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 
-		if ((_navigator->get_vstatus()->is_rotary_wing
-		     || (_mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT && _mission_item.force_heading))
-		    && PX4_ISFINITE(_navigator->get_yaw_acceptance(_mission_item.yaw))) {
+		if ((_navigator->get_vstatus()->is_rotary_wing && PX4_ISFINITE(_navigator->get_yaw_acceptance(_mission_item.yaw)))
+		    || ((_mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT) && _mission_item.force_heading
+			&& PX4_ISFINITE(_mission_item.yaw))) {
 
 			/* check course if defined only for rotary wing except takeoff */
 			float cog = _navigator->get_vstatus()->is_rotary_wing ? _navigator->get_global_position()->yaw : atan2f(
@@ -469,10 +477,14 @@ MissionBlock::issue_command(const mission_item_s &item)
 }
 
 float
-MissionBlock::get_time_inside(const struct mission_item_s &item)
+MissionBlock::get_time_inside(const mission_item_s &item) const
 {
-	if (item.nav_cmd != NAV_CMD_TAKEOFF) {
-		return item.time_inside;
+	if ((item.nav_cmd == NAV_CMD_WAYPOINT && _navigator->get_vstatus()->is_rotary_wing) ||
+	    item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
+	    item.nav_cmd == NAV_CMD_DELAY) {
+
+		// a negative time inside would be invalid
+		return math::max(item.time_inside, 0.0f);
 	}
 
 	return 0.0f;
@@ -502,7 +514,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 
 	sp->lat = item.lat;
 	sp->lon = item.lon;
-	sp->alt = item.altitude_is_relative ? item.altitude + _navigator->get_home_position()->alt : item.altitude;
+	sp->alt = get_absolute_altitude_for_item(item);
 	sp->yaw = item.yaw;
 	sp->yaw_valid = PX4_ISFINITE(item.yaw);
 	sp->loiter_radius = (fabsf(item.loiter_radius) > NAV_EPSILON_POSITION) ? fabsf(item.loiter_radius) :
@@ -728,7 +740,7 @@ MissionBlock::mission_apply_limitation(mission_item_s &item)
 }
 
 float
-MissionBlock::get_absolute_altitude_for_item(struct mission_item_s &mission_item) const
+MissionBlock::get_absolute_altitude_for_item(const mission_item_s &mission_item) const
 {
 	if (mission_item.altitude_is_relative) {
 		return mission_item.altitude + _navigator->get_home_position()->alt;

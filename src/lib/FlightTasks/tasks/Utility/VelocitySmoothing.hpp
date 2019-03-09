@@ -134,7 +134,6 @@ private:
 	 */
 	inline float computeT1(float T123, float accel_prev, float vel_prev, float vel_setpoint, float max_jerk);
 	inline float saturateT1ForAccel(float accel_prev, float max_jerk, float T1);
-	inline float recomputeMaxJerk(float accel_prev, float max_jerk, float T1);
 	/**
 	 * Compute constant acceleration time
 	 */
@@ -155,7 +154,7 @@ private:
 			       float &accel_out, float &vel_out, float &pos_out);
 
 	/* Inputs */
-	float _vel_sp;
+	float _vel_sp{0.0f};
 	float _dt = 1.f;
 
 	/* Constraints */

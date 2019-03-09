@@ -34,6 +34,8 @@
 #include "send_event.h"
 #include "temperature_calibration/temperature_calibration.h"
 
+#include <math.h>
+
 #include <px4_getopt.h>
 #include <px4_log.h>
 #include <drivers/drv_hrt.h>

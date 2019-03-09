@@ -73,7 +73,7 @@
 #include <uORB/uORB.h>
 
 #include <float.h>
-#include <getopt.h>
+#include <px4_getopt.h>
 #include <lib/conversion/rotation.h>
 
 #include "hmc5883.h"
@@ -1701,7 +1701,11 @@ usage()
 int
 hmc5883_main(int argc, char *argv[])
 {
+	int myoptind = 1;
 	int ch;
+	const char *myoptarg = nullptr;
+
+
 	enum HMC5883_BUS busid = HMC5883_BUS_ALL;
 	enum Rotation rotation = ROTATION_NONE;
 	bool calibrate = false;
@@ -1712,10 +1716,10 @@ hmc5883_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	while ((ch = getopt(argc, argv, "XISR:CT")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XISR:CT", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 #if (PX4_I2C_BUS_ONBOARD || PX4_SPIDEV_HMC)
 
@@ -1746,7 +1750,13 @@ hmc5883_main(int argc, char *argv[])
 		}
 	}
 
-	const char *verb = argv[optind];
+	if (myoptind >= argc) {
+		hmc5883::usage();
+		exit(0);
+	}
+
+	const char *verb = argv[myoptind];
+
 
 	/*
 	 * Start/load the driver.

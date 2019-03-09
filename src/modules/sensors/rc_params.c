@@ -1528,7 +1528,7 @@ PARAM_DEFINE_INT32(RC_MAP_ACRO_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_OFFB_SW, 0);
 
 /**
- * Kill switch channel
+ * Emergency Kill switch channel
  *
  * @min 0
  * @max 18

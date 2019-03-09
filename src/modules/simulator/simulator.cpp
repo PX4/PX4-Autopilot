@@ -160,18 +160,19 @@ int Simulator::start(int argc, char *argv[])
 		}
 
 		if (argv[2][1] == 's') {
-			_instance->initializeSensorData();
+			_instance->initialize_sensor_data();
 #ifndef __PX4_QURT
 			// Update sensor data
-			_instance->pollForMAVLinkMessages(false);
+			_instance->poll_for_MAVLink_messages();
 #endif
 
 		} else if (argv[2][1] == 'p') {
 			// Update sensor data
-			_instance->pollForMAVLinkMessages(true);
+			_instance->set_publish(true);
+			_instance->poll_for_MAVLink_messages();
 
 		} else {
-			_instance->initializeSensorData();
+			_instance->initialize_sensor_data();
 			_instance->_initialized = true;
 		}
 

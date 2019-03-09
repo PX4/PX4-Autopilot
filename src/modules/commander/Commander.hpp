@@ -185,6 +185,9 @@ private:
 
 	void battery_status_check();
 
+	systemlib::Hysteresis	_auto_disarm_landed{false};
+	systemlib::Hysteresis	_auto_disarm_killed{false};
+
 	// Subscriptions
 	Subscription<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
 	Subscription<iridiumsbd_status_s> 		_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};

@@ -524,7 +524,9 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 
 	attitude_setpoint.timestamp = landing_gear.timestamp = hrt_absolute_time();
 	orb_publish_auto(ORB_ID(vehicle_attitude_setpoint), &_vehicle_attitude_setpoint_pub, &attitude_setpoint, nullptr, ORB_PRIO_DEFAULT);
-	orb_publish_auto(ORB_ID(landing_gear), &_landing_gear_pub, &attitude_setpoint, nullptr, ORB_PRIO_DEFAULT);
+
+	_landing_gear.timestamp = hrt_absolute_time();
+	orb_publish_auto(ORB_ID(landing_gear), &_landing_gear_pub, &_landing_gear, nullptr, ORB_PRIO_DEFAULT);
 }
 
 /**
@@ -835,6 +837,8 @@ MulticopterAttitudeControl::run()
 
 	while (!should_exit()) {
 
+		// check if the selected gyro has updated first
+		sensor_correction_poll();
 		poll_fds.fd = _sensor_gyro_sub[_selected_gyro];
 
 		/* wait for up to 100ms for data */
@@ -885,7 +889,6 @@ MulticopterAttitudeControl::run()
 			vehicle_status_poll();
 			vehicle_motor_limits_poll();
 			battery_status_poll();
-			sensor_correction_poll();
 			sensor_bias_poll();
 			vehicle_land_detected_poll();
 			landing_gear_state_poll();

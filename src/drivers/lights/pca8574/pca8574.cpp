@@ -54,6 +54,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <px4_getopt.h>
 
 #include <nuttx/wqueue.h>
 
@@ -371,17 +372,20 @@ pca8574_main(int argc, char *argv[])
 	int i2cdevice = -1;
 	int pca8574adr = ADDR; // 7bit
 
+	int myoptind = 1;
 	int ch;
+	const char *myoptarg = nullptr;
+
 
 	// jump over start/off/etc and look at options first
-	while ((ch = getopt(argc, argv, "a:b:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'a':
-			pca8574adr = strtol(optarg, NULL, 0);
+			pca8574adr = strtol(myoptarg, NULL, 0);
 			break;
 
 		case 'b':
-			i2cdevice = strtol(optarg, NULL, 0);
+			i2cdevice = strtol(myoptarg, NULL, 0);
 			break;
 
 		default:
@@ -390,12 +394,12 @@ pca8574_main(int argc, char *argv[])
 		}
 	}
 
-	if (optind >= argc) {
+	if (myoptind >= argc) {
 		pca8574_usage();
-		exit(1);
+		exit(0);
 	}
 
-	const char *verb = argv[optind];
+	const char *verb = argv[myoptind];
 
 	int fd;
 	int ret;

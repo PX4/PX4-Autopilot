@@ -109,7 +109,7 @@
 // BMI055 Accelerometer Chip-Id
 #define BMI055_ACC_WHO_AM_I         0xFA
 
-//BMI055_ACC_BW           0x10
+// DLPF filter bandwidth settings
 #define BMI055_ACCEL_BW_7_81      (1<<3) | (0<<2) | (0<<1) | (0<<0)
 #define BMI055_ACCEL_BW_15_63     (1<<3) | (0<<2) | (0<<1) | (1<<0)
 #define BMI055_ACCEL_BW_31_25     (1<<3) | (0<<2) | (1<<1) | (0<<0)
@@ -190,8 +190,6 @@ private:
 	orb_advert_t        _accel_topic;
 	int         _accel_orb_class_instance;
 	int         _accel_class_instance;
-
-	float       _accel_sample_rate;
 
 	math::LowPassFilter2p   _accel_filter_x;
 	math::LowPassFilter2p   _accel_filter_y;
@@ -278,11 +276,6 @@ private:
 	 * @return 0 on success, 1 on failure
 	 */
 	int             self_test();
-
-	/*
-	 * set accel sample rate
-	 */
-	int accel_set_sample_rate(float desired_sample_rate_hz);
 
 	/*
 	 * check that key registers still have the right value

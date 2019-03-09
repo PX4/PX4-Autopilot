@@ -46,6 +46,7 @@
 #include <stdbool.h>
 #include <float.h>
 #include <string.h>
+#include <math.h>
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>

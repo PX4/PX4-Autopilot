@@ -75,6 +75,7 @@ then
 	param set VT_TILT_TRANS   0.45
 	param set VT_TRANS_MIN_TM 1.2
 	param set VT_TRANS_P2_DUR 1.3
+	param set VT_ELEV_MC_LOCK 0
 	param set VT_TYPE 1
 fi
 

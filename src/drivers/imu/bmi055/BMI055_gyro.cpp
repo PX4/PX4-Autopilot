@@ -117,11 +117,13 @@ BMI055_gyro::init()
 	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_gyro_s));
 
 	if (_gyro_reports == nullptr) {
-		goto out;
+		return -ENOMEM;
 	}
 
-	if (reset() != OK) {
-		goto out;
+	ret = reset();
+
+	if (ret != OK) {
+		return ret;
 	}
 
 	/* Initialize offsets and scales */
@@ -132,11 +134,14 @@ BMI055_gyro::init()
 	_gyro_scale.z_offset = 0;
 	_gyro_scale.z_scale  = 1.0f;
 
+	param_t gyro_cut_ph = param_find("IMU_GYRO_CUTOFF");
+	float gyro_cut = BMI055_GYRO_DEFAULT_DRIVER_FILTER_FREQ;
 
-	/* if probe/setup failed, bail now */
-	if (ret != OK) {
-		DEVICE_DEBUG("gyro init failed");
-		return ret;
+	if (gyro_cut_ph != PARAM_INVALID && (param_get(gyro_cut_ph, &gyro_cut) == PX4_OK)) {
+
+		_gyro_filter_x.set_cutoff_frequency(BMI055_GYRO_DEFAULT_RATE, gyro_cut);
+		_gyro_filter_y.set_cutoff_frequency(BMI055_GYRO_DEFAULT_RATE, gyro_cut);
+		_gyro_filter_z.set_cutoff_frequency(BMI055_GYRO_DEFAULT_RATE, gyro_cut);
 	}
 
 	_gyro_class_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
@@ -154,7 +159,6 @@ BMI055_gyro::init()
 		warnx("ADVERT FAIL");
 	}
 
-out:
 	return ret;
 }
 
@@ -162,13 +166,13 @@ int BMI055_gyro::reset()
 {
 	write_reg(BMI055_GYR_SOFTRESET, BMI055_SOFT_RESET);//Soft-reset
 	usleep(5000);
-	write_checked_reg(BMI055_GYR_BW,     0); // Write Gyro Bandwidth
+	write_checked_reg(BMI055_GYR_BW,     0); // Write Gyro Bandwidth (will be overwritten in gyro_set_sample_rate())
 	write_checked_reg(BMI055_GYR_RANGE,     0);// Write Gyro range
 	write_checked_reg(BMI055_GYR_INT_EN_0,      BMI055_GYR_DRDY_INT_EN); //Enable DRDY interrupt
 	write_checked_reg(BMI055_GYR_INT_MAP_1,     BMI055_GYR_DRDY_INT1); //Map DRDY interrupt on pin INT1
 
 	set_gyro_range(BMI055_GYRO_DEFAULT_RANGE_DPS);// set Gyro range
-	gyro_set_sample_rate(BMI055_GYRO_DEFAULT_RATE);// set Gyro ODR
+	gyro_set_sample_rate(BMI055_GYRO_DEFAULT_RATE);// set Gyro ODR & Filter Bandwidth
 
 	//Enable Gyroscope in normal mode
 	write_reg(BMI055_GYR_LPM1, BMI055_GYRO_NORMAL);
@@ -221,19 +225,19 @@ BMI055_gyro::gyro_set_sample_rate(float frequency)
 	uint8_t clearbits = BMI055_GYRO_BW_MASK;
 
 	if (frequency <= 100) {
-		setbits |= BMI055_GYRO_RATE_100;
+		setbits |= BMI055_GYRO_RATE_100; /* 32 Hz cutoff */
 		_gyro_sample_rate = 100;
 
 	} else if (frequency <= 250) {
-		setbits |= BMI055_GYRO_RATE_400;
+		setbits |= BMI055_GYRO_RATE_400; /* 47 Hz cutoff */
 		_gyro_sample_rate = 400;
 
 	} else if (frequency <= 1000) {
-		setbits |= BMI055_GYRO_RATE_1000;
+		setbits |= BMI055_GYRO_RATE_1000; /* 116 Hz cutoff */
 		_gyro_sample_rate = 1000;
 
 	} else if (frequency > 1000) {
-		setbits |= BMI055_GYRO_RATE_2000;
+		setbits |= BMI055_GYRO_RATE_2000; /* 230 Hz cutoff */
 		_gyro_sample_rate = 2000;
 
 	} else {

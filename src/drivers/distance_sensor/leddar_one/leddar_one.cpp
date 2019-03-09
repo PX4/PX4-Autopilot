@@ -35,6 +35,7 @@
 #include <px4_workqueue.h>
 #include <px4_getopt.h>
 #include <px4_defines.h>
+#include <px4_module.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -157,10 +158,32 @@ extern "C" __EXPORT int leddar_one_main(int argc, char *argv[]);
 
 static void help()
 {
-	printf("missing command: try 'start', 'stop' or 'test'\n");
-	printf("options:\n");
-	printf("    -d <serial port> to set the serial port were " NAME " is connected\n");
-	printf("    -r rotation\n");
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+Serial bus driver for the LeddarOne LiDAR.
+
+Most boards are configured to enable/start the driver on a specified UART using the SENS_LEDDAR1_CFG parameter.
+
+Setup/usage information: https://docs.px4.io/en/sensor/leddar_one.html
+
+### Examples
+
+Attempt to start driver on a specified serial device.
+$ leddar_one start -d /dev/ttyS1
+Stop driver
+$ leddar_one stop
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("leddar_one", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
+	PRINT_MODULE_USAGE_PARAM_INT('r', 25, 1, 25, "Sensor rotation - downward facing by default", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
+
 }
 
 int leddar_one_main(int argc, char *argv[])
@@ -183,6 +206,7 @@ int leddar_one_main(int argc, char *argv[])
 			break;
 
 		default:
+			PX4_WARN("Unknown option!");
 			help();
 			return PX4_ERROR;
 		}
@@ -236,6 +260,7 @@ int leddar_one_main(int argc, char *argv[])
 
 	} else {
 		help();
+		PX4_ERR("unrecognized command");
 		return PX4_ERROR;
 	}
 
@@ -411,7 +436,7 @@ void leddar_one::_publish(uint16_t distance_mm)
 	report.current_distance = ((float)distance_mm / 1000.0f);
 	report.min_distance = MIN_DISTANCE;
 	report.max_distance = MAX_DISTANCE;
-	report.covariance = 0.0f;
+	report.variance = 0.0f;
 	report.signal_quality = -1;
 	report.id = 0;
 

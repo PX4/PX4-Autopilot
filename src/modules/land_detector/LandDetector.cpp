@@ -41,6 +41,7 @@
 #include "LandDetector.h"
 
 #include <float.h>
+#include <math.h>
 
 #include <px4_config.h>
 #include <px4_defines.h>

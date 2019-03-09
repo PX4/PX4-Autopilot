@@ -84,7 +84,8 @@ class Navigator : public ModuleBase<Navigator>, public ModuleParams
 {
 public:
 	Navigator();
-	virtual ~Navigator() = default;
+	~Navigator() override;
+
 	Navigator(const Navigator &) = delete;
 	Navigator operator=(const Navigator &) = delete;
 
@@ -158,11 +159,12 @@ public:
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
+	void reset_vroi() { _vroi = {}; }
 
 	bool home_alt_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt); }
 	bool home_position_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt && _home_pos.valid_hpos); }
 
-	int		get_offboard_mission_sub() { return _offboard_mission_sub; }
+	int		get_mission_sub() { return _mission_sub; }
 
 	Geofence	&get_geofence() { return _geofence; }
 
@@ -279,6 +281,7 @@ public:
 	// Param access
 	float		get_loiter_min_alt() const { return _param_loiter_min_alt.get(); }
 	float		get_takeoff_min_alt() const { return _param_takeoff_min_alt.get(); }
+	bool		get_takeoff_required() const { return _param_takeoff_required.get(); }
 	float		get_yaw_timeout() const { return _param_yaw_timeout.get(); }
 	float		get_yaw_threshold() const { return _param_yaw_err.get(); }
 
@@ -293,7 +296,7 @@ private:
 	int		_home_pos_sub{-1};		/**< home position subscription */
 	int		_land_detected_sub{-1};		/**< vehicle land detected subscription */
 	int		_local_pos_sub{-1};		/**< local position subscription */
-	int		_offboard_mission_sub{-1};	/**< offboard mission subscription */
+	int		_mission_sub{-1};		/**< mission subscription */
 	int		_param_update_sub{-1};		/**< param update subscription */
 	int		_pos_ctrl_landing_status_sub{-1};	/**< position controller landing status subscription */
 	int		_traffic_sub{-1};		/**< traffic subscription */
@@ -369,6 +372,7 @@ private:
 		// Mission (MIS_*)
 		(ParamFloat<px4::params::MIS_LTRMIN_ALT>) _param_loiter_min_alt,
 		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>) _param_takeoff_min_alt,
+		(ParamBool<px4::params::MIS_TAKEOFF_REQ>) _param_takeoff_required,
 		(ParamFloat<px4::params::MIS_YAW_TMT>) _param_yaw_timeout,
 		(ParamFloat<px4::params::MIS_YAW_ERR>) _param_yaw_err
 	)

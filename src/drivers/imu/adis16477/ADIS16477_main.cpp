@@ -33,6 +33,8 @@
 
 #include "ADIS16477.hpp"
 
+#include <px4_getopt.h>
+
 #define ADIS16477_DEVICE_PATH_ACCEL		"/dev/adis16477_accel"
 #define ADIS16477_DEVICE_PATH_GYRO		"/dev/adis16477_gyro"
 
@@ -215,22 +217,30 @@ int
 adis16477_main(int argc, char *argv[])
 {
 	enum Rotation rotation = ROTATION_NONE;
+
+	int myoptind = 1;
 	int ch;
+	const char *myoptarg = nullptr;
 
 	/* start options */
-	while ((ch = getopt(argc, argv, "R:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		default:
 			adis16477::usage();
-			exit(0);
+			return 0;
 		}
 	}
 
-	const char *verb = argv[optind];
+	if (myoptind >= argc) {
+		adis16477::usage();
+		return -1;
+	}
+
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.

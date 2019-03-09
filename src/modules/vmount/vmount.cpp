@@ -43,6 +43,7 @@
  * Outputs to the mounts can be RC (PWM) output or mavlink.
  */
 
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>

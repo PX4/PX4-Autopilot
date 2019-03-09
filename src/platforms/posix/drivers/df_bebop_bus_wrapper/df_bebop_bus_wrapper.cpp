@@ -48,6 +48,8 @@
 
 #include <errno.h>
 #include <string.h>
+#include <math.h>
+
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
