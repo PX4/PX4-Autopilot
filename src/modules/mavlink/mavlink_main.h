@@ -42,43 +42,50 @@
 
 #pragma once
 
-#include <px4_posix.h>
-#include <px4_module_params.h>
-
+#include <pthread.h>
 #include <stdbool.h>
+
 #ifdef __PX4_NUTTX
 #include <nuttx/fs/fs.h>
 #else
-#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <drivers/device/device.h>
+#include <sys/socket.h>
 #endif
 
 #if defined(CONFIG_NET) || !defined(__PX4_NUTTX)
-#include <netinet/in.h>
 #include <net/if.h>
+#include <netinet/in.h>
 #endif
 
 #include <containers/List.hpp>
-#include <systemlib/uthash/utlist.h>
+#include <drivers/device/ringbuffer.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
-#include <pthread.h>
+#include <px4_cli.h>
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_getopt.h>
+#include <px4_module.h>
+#include <px4_module_params.h>
+#include <px4_posix.h>
 #include <systemlib/mavlink_log.h>
-#include <drivers/device/ringbuffer.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/mission.h>
+#include <systemlib/uthash/utlist.h>
+#include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/radio_status.h>
 #include <uORB/topics/telemetry_status.h>
+#include <uORB/uORB.h>
 
-#include "mavlink_bridge_header.h"
-#include "mavlink_orb_subscription.h"
-#include "mavlink_stream.h"
+#include "mavlink_command_sender.h"
 #include "mavlink_messages.h"
+#include "mavlink_orb_subscription.h"
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
+
+#define DEFAULT_REMOTE_PORT_UDP 14550 ///< GCS port per MAVLink spec
+#define DEFAULT_DEVICE_NAME     "/dev/ttyS1"
+#define HASH_PARAM              "_HASH_CHECK"
 
 enum Protocol {
 	SERIAL = 0,
@@ -87,8 +94,6 @@ enum Protocol {
 };
 
 using namespace time_literals;
-
-#define HASH_PARAM "_HASH_CHECK"
 
 class Mavlink : public ModuleParams
 {
@@ -107,7 +112,7 @@ public:
 	/**
 	* Start the mavlink task.
 	 *
-	 * @return		OK on success.
+	 * @return OK on success.
 	 */
 	static int		start(int argc, char *argv[]);
 
@@ -161,18 +166,18 @@ public:
 	/**
 	 * Get the MAVLink system id.
 	 *
-	 * @return		The system ID of this vehicle
+	 * @return The system ID of this vehicle
 	 */
 	int			get_system_id() const { return mavlink_system.sysid; }
 
 	/**
 	 * Get the MAVLink component id.
 	 *
-	 * @return		The component ID of this vehicle
+	 * @return The component ID of this vehicle
 	 */
 	int			get_component_id() const { return mavlink_system.compid; }
 
-	const char *_device_name;
+	const char *_device_name{DEFAULT_DEVICE_NAME};
 
 	enum MAVLINK_MODE {
 		MAVLINK_MODE_NORMAL = 0,
@@ -449,9 +454,9 @@ public:
 	int 			get_socket_fd() { return _socket_fd; };
 
 #ifdef __PX4_POSIX
-	const in_addr query_netmask_addr(const int socket_fd, const ifreq &ifreq);
+	const in_addr		query_netmask_addr(const int socket_fd, const ifreq &ifreq);
 
-	const in_addr compute_broadcast_addr(const in_addr &host_addr, const in_addr &netmask_addr);
+	const in_addr		compute_broadcast_addr(const in_addr &host_addr, const in_addr &netmask_addr);
 #endif
 
 #if defined(CONFIG_NET) || defined(__PX4_POSIX)
@@ -519,7 +524,7 @@ public:
 	struct ping_statistics_s &get_ping_statistics() { return _ping_stats; }
 
 protected:
-	Mavlink			*next;
+	Mavlink			*next{nullptr};
 
 private:
 	int			_instance_id;
@@ -530,14 +535,15 @@ private:
 	orb_advert_t		_mavlink_log_pub{nullptr};
 	orb_advert_t		_telem_status_pub{nullptr};
 
-	bool			_task_running;
+	bool			_task_running{false};
 	static bool		_boot_complete;
-	static constexpr int MAVLINK_MAX_INSTANCES = 4;
-	static constexpr int MAVLINK_MIN_INTERVAL = 1500;
-	static constexpr int MAVLINK_MAX_INTERVAL = 10000;
-	static constexpr float MAVLINK_MIN_MULTIPLIER = 0.0005f;
-	mavlink_message_t _mavlink_buffer;
-	mavlink_status_t _mavlink_status;
+	static constexpr int	MAVLINK_MAX_INSTANCES{4};
+	static constexpr int	MAVLINK_MIN_INTERVAL{1500};
+	static constexpr int	MAVLINK_MAX_INTERVAL{10000};
+	static constexpr float	MAVLINK_MIN_MULTIPLIER{0.0005f};
+
+	mavlink_message_t	_mavlink_buffer {};
+	mavlink_status_t	_mavlink_status {};
 
 	/* states */
 	bool			_hil_enabled;		/**< Hardware In the Loop mode */
@@ -559,7 +565,7 @@ private:
 
 	mavlink_channel_t	_channel;
 
-	ringbuffer::RingBuffer		_logbuffer;
+	ringbuffer::RingBuffer	_logbuffer;
 
 	pthread_t		_receive_thread;
 
@@ -585,9 +591,9 @@ private:
 
 	bool			mavlink_link_termination_allowed;
 
-	char 			*_subscribe_to_stream;
+	char			*_subscribe_to_stream;
 	float			_subscribe_to_stream_rate;  ///< rate of stream to subscribe to (0=disable, -1=unlimited, -2=default)
-	bool 			_udp_initialised;
+	bool			_udp_initialised;
 
 	enum FLOW_CONTROL_MODE	_flow_control_mode;
 	uint64_t		_last_write_success_time;
@@ -602,23 +608,23 @@ private:
 	uint64_t		_bytes_timestamp;
 
 #if defined(CONFIG_NET) || defined(__PX4_POSIX)
-	struct sockaddr_in _myaddr;
-	struct sockaddr_in _src_addr;
-	struct sockaddr_in _bcast_addr;
-	bool _src_addr_initialized;
-	bool _broadcast_address_found;
-	bool _broadcast_address_not_found_warned;
-	bool _broadcast_failed_warned;
-	uint8_t _network_buf[MAVLINK_MAX_PACKET_LEN];
-	unsigned _network_buf_len;
+	struct			sockaddr_in _myaddr;
+	struct			sockaddr_in _src_addr;
+	struct			sockaddr_in _bcast_addr;
+	bool			_src_addr_initialized;
+	bool			_broadcast_address_found;
+	bool			_broadcast_address_not_found_warned;
+	bool			_broadcast_failed_warned;
+	uint8_t			_network_buf[MAVLINK_MAX_PACKET_LEN];
+	unsigned		_network_buf_len;
 #endif
 
-	const char *_interface_name;
+	const char 		*_interface_name;
 
-	int _socket_fd;
-	Protocol	_protocol;
-	unsigned short _network_port;
-	unsigned short _remote_port;
+	int			_socket_fd;
+	Protocol		_protocol;
+	unsigned short		_network_port;
+	unsigned short		_remote_port;
 
 	radio_status_s		_rstatus{};
 	telemetry_status_s	_tstatus{};
@@ -632,10 +638,10 @@ private:
 		char *data;
 	};
 
-	mavlink_message_buffer	_message_buffer;
+	mavlink_message_buffer	_message_buffer {};
 
-	pthread_mutex_t		_message_buffer_mutex;
-	pthread_mutex_t		_send_mutex;
+	pthread_mutex_t		_message_buffer_mutex {};
+	pthread_mutex_t		_send_mutex {};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_system_id,
@@ -716,7 +722,7 @@ private:
 	 */
 	int		task_main(int argc, char *argv[]);
 
-	/* do not allow copying this class */
-	Mavlink(const Mavlink &);
-	Mavlink operator=(const Mavlink &);
+	// Disallow copy construction and move assignment.
+	Mavlink(const Mavlink &) = delete;
+	Mavlink operator=(const Mavlink &) = delete;
 };

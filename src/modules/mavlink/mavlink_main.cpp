@@ -40,22 +40,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
-#include <px4_module.h>
-#include <px4_cli.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <assert.h>
-#include <math.h>
 #include <termios.h>
-#include <time.h>
 
 #ifdef CONFIG_NET
 #include <arpa/inet.h>
@@ -63,34 +48,12 @@
 #include <netutils/netlib.h>
 #endif
 
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#include <drivers/device/device.h>
-#include <drivers/drv_hrt.h>
-#include <arch/board/board.h>
-
-#include <parameters/param.h>
-#include <systemlib/err.h>
-#include <perf/perf_counter.h>
-#include <systemlib/mavlink_log.h>
 #include <lib/ecl/geo/geo.h>
-#include <dataman/dataman.h>
-#include <version/version.h>
 #include <mathlib/mathlib.h>
+#include <version/version.h>
 
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_command_ack.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/mavlink_log.h>
-
-#include "mavlink_bridge_header.h"
-#include "mavlink_main.h"
-#include "mavlink_messages.h"
 #include "mavlink_receiver.h"
-#include "mavlink_rate_limiter.h"
-#include "mavlink_command_sender.h"
+#include "mavlink_main.h"
 
 // Guard against MAVLink misconfiguration
 #ifndef MAVLINK_CRC_EXTRA
@@ -108,17 +71,14 @@
 #define MAVLINK_NET_ADDED_STACK 0
 #endif
 
-#define DEFAULT_REMOTE_PORT_UDP			14550 ///< GCS port per MAVLink spec
-#define DEFAULT_DEVICE_NAME			"/dev/ttyS1"
-#define MAX_DATA_RATE				10000000	///< max data rate in bytes/s
-#define MAIN_LOOP_DELAY 			10000	///< 100 Hz @ 1000 bytes/s data rate
-#define FLOW_CONTROL_DISABLE_THRESHOLD		40	///< picked so that some messages still would fit it.
-//#define MAVLINK_PRINT_PACKETS
+#define FLOW_CONTROL_DISABLE_THRESHOLD 40              ///< picked so that some messages still would fit it.
+#define MAX_DATA_RATE                  10000000        ///< max data rate in bytes/s
+#define MAIN_LOOP_DELAY                10000           ///< 100 Hz @ 1000 bytes/s data rate
 
 static Mavlink *_mavlink_instances = nullptr;
 
 /**
- * mavlink app start / stop handling function
+ * Mavlink app start / stop handling function.
  *
  * @ingroup apps
  */
@@ -202,16 +162,11 @@ bool Mavlink::_boot_complete = false;
 
 Mavlink::Mavlink() :
 	ModuleParams(nullptr),
-	_device_name("/dev/ttyS1"),
 	_task_should_exit(false),
-	next(nullptr),
 	_instance_id(0),
 	_transmitting_enabled(true),
 	_transmitting_enabled_commanded(false),
 	_mavlink_log_pub(nullptr),
-	_task_running(false),
-	_mavlink_buffer{},
-	_mavlink_status{},
 	_hil_enabled(false),
 	_generate_rc(false),
 	_is_usb_uart(false),
@@ -261,10 +216,6 @@ Mavlink::Mavlink() :
 	_protocol(SERIAL),
 	_network_port(14556),
 	_remote_port(DEFAULT_REMOTE_PORT_UDP),
-	_message_buffer {},
-	_message_buffer_mutex {},
-	_send_mutex {},
-
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
 	_loop_interval_perf(perf_alloc(PC_INTERVAL, "mavlink_int"))
@@ -356,7 +307,8 @@ Mavlink::~Mavlink()
 	}
 }
 
-void Mavlink::mavlink_update_parameters()
+void
+Mavlink::mavlink_update_parameters()
 {
 	updateParams();
 
@@ -392,7 +344,7 @@ Mavlink::set_proto_version(unsigned version)
 int
 Mavlink::instance_count()
 {
-	unsigned inst_index = 0;
+	size_t inst_index = 0;
 	Mavlink *inst;
 
 	LL_FOREACH(::_mavlink_instances, inst) {
@@ -589,7 +541,8 @@ Mavlink::get_uart_fd(unsigned index)
 	return -1;
 }
 
-int Mavlink::mavlink_open_uart(int baud, const char *uart_name, bool force_flow_control)
+int
+Mavlink::mavlink_open_uart(int baud, const char *uart_name, bool force_flow_control)
 {
 #ifndef B460800
 #define B460800 460800
@@ -1259,7 +1212,8 @@ Mavlink::send_statustext_emergency(const char *string)
 	mavlink_log_emergency(&_mavlink_log_pub, "%s", string);
 }
 
-void Mavlink::send_autopilot_capabilites()
+void
+Mavlink::send_autopilot_capabilites()
 {
 	struct vehicle_status_s status;
 
@@ -1322,7 +1276,8 @@ void Mavlink::send_autopilot_capabilites()
 	}
 }
 
-void Mavlink::send_protocol_version()
+void
+Mavlink::send_protocol_version()
 {
 	mavlink_protocol_version_t msg = {};
 
@@ -1343,7 +1298,8 @@ void Mavlink::send_protocol_version()
 	set_proto_version(curr_proto_ver);
 }
 
-MavlinkOrbSubscription *Mavlink::add_orb_subscription(const orb_id_t topic, int instance, bool disable_sharing)
+MavlinkOrbSubscription *
+Mavlink::add_orb_subscription(const orb_id_t topic, int instance, bool disable_sharing)
 {
 	if (!disable_sharing) {
 		/* check if already subscribed to this topic */

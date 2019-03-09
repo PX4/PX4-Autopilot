@@ -22,7 +22,7 @@ pipeline {
         sh 'make px4_sitl_default package'
         sh 'ccache -s'
         stash(name: "px4_sitl_package", includes: "build/px4_sitl_default/*.bz2")
-        archiveArtifacts(artifacts: "build/px4_sitl_default/*.bz2", fingerprint: true, onlyIfSuccessful: true)
+        //archiveArtifacts(artifacts: "build/px4_sitl_default/*.bz2", fingerprint: true, onlyIfSuccessful: true)
       }
       post {
         always {
@@ -97,6 +97,7 @@ pipeline {
   environment {
     CCACHE_DIR = '/tmp/ccache'
     CI = true
+    PX4_CMAKE_BUILD_TYPE = 'AddressSanitizer'
   }
 
   options {
