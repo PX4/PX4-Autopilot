@@ -41,6 +41,8 @@
 #include "land.h"
 #include "navigator.h"
 
+//test
+
 Land::Land(Navigator *navigator) :
 	MissionBlock(navigator)
 {
