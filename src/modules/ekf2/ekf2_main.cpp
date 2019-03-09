@@ -165,49 +165,16 @@ private:
 	 */
 	float filter_altitude_ellipsoid(float amsl_hgt);
 
-	/* Covariance propagation from quaternions to euler angles using the covariance law
-	 * source: "Development of a Real-Time Attitude System Using a Quaternion
+	/* @brief Covariance propagation from quaternions to euler angles using the covariance propagation law
+	 * Source: "Development of a Real-Time Attitude System Using a Quaternion
 	 * Parameterization and Non-Dedicated GPS Receivers", John B. Schleppe 1996
+	 * @param  q			quaternion of the orientation in the local NED frame
+	 * @param  quat_covariances	orientation quaternion covariances
+	 * @return orientation euler angle covariances
 	 */
 	matrix::SquareMatrix<float, 3> propagate_covariances_from_quat_to_euler(
 		const matrix::Quatf &q,
-		const matrix::SquareMatrix<float, 4> &quat_covariances) const
-	{
-		// Jacobian matrix (3x4) containing the partial derivatives of the
-		// Euler angle equations with respect to the quaternions
-		matrix::Matrix<float, 3, 4> G;
-
-		float q1 = q(0);
-		float q2 = q(1);
-		float q3 = q(2);
-		float q4 = q(3);
-
-		// Protect against division by 0
-		float d1 = (2 * q1 * q2 + 2 * q2 * q4) * (2 * q1 * q2 + 2 * q2 * q4) + (-2 * q2 * q2 - 2 * q3 * q3 + 1) *
-			   (-2 * q2 * q2 - 2 * q3 * q3 + 1);
-		float d2 = (2 * q1 * q4 + 2 * q2 * q3) * (2 * q1 * q4 + 2 * q2 * q3) + (-2 * q3 * q3 - 2 * q4 * q4 + 1) *
-			   (-2 * q3 * q3 - 2 * q4 * q4 + 1);
-		d1 = fabsf(d1) >= FLT_EPSILON ? d1 : FLT_EPSILON;
-		d2 = fabsf(d2) >= FLT_EPSILON ? d2 : FLT_EPSILON;
-
-		// Protect against square root of negative numbers
-		float x = fmaxf(-(2 * q1 * q3 + 2 * q2 * q4) * (2 * q1 * q3 + 2 * q2 * q4) + 1, FLT_EPSILON);
-
-		G(0, 0) =  2 * q2 * (-2 * q2 * q2 - 2 * q3 * q3 + 1) / d1;
-		G(0, 1) = -4 * q2 * (-2 * q1 * q2 - 2 * q2 * q4) / d1 + (2 * q1 + 2 * q4) * (-2 * q2 * q2 - 2 * q3 * q3 + 1) / d1;
-		G(0, 2) = -4 * q3 * (-2 * q1 * q2 - 2 * q2 * q4) / d1;
-		G(0, 3) =  2 * q2 * (-2 * q2 * q2 - 2 * q3 * q3 + 1) / d1;
-		G(1, 0) =  2 * q3 / sqrtf(x);
-		G(1, 1) =  2 * q4 / sqrtf(x);
-		G(1, 2) =  2 * q1 / sqrtf(x);
-		G(1, 3) =  2 * q2 / sqrtf(x);
-		G(2, 0) =  2 * q4 * (-2 * q3 * q3 - 2 * q4 * q4 + 1) / d2;
-		G(2, 1) =  2 * q3 * (-2 * q3 * q3 - 2 * q4 * q4 + 1) / d2;
-		G(2, 2) =  2 * q2 * (-2 * q3 * q3 - 2 * q4 * q4 + 1) / d2 - 4 * q3 * (-2 * q1 * q4 - 2 * q2 * q3) / d2;
-		G(2, 3) =  2 * q1 * (-2 * q3 * q3 - 2 * q4 * q4 + 1) / d2 - 4 * q4 * (-2 * q1 * q4 - 2 * q2 * q3) / d2;
-
-		return G * quat_covariances * G.transpose();
-	}
+		const matrix::SquareMatrix<float, 4> &quat_covariances) const;
 
 	bool 	_replay_mode = false;			///< true when we use replay data from a log
 
@@ -2504,6 +2471,46 @@ float Ekf2::filter_altitude_ellipsoid(float amsl_hgt)
 	}
 
 	return amsl_hgt + _wgs84_hgt_offset;
+}
+
+matrix::SquareMatrix<float, 3> Ekf2::propagate_covariances_from_quat_to_euler(
+	const matrix::Quatf &q,
+	const matrix::SquareMatrix<float, 4> &quat_covariances) const
+{
+	// Jacobian matrix (3x4) containing the partial derivatives of the
+	// Euler angle equations with respect to the quaternions
+	matrix::Matrix<float, 3, 4> G;
+
+	float q1 = q(0);
+	float q2 = q(1);
+	float q3 = q(2);
+	float q4 = q(3);
+
+	// Protect against division by 0
+	float d1 = (2 * q1 * q2 + 2 * q2 * q4) * (2 * q1 * q2 + 2 * q2 * q4) + (-2 * q2 * q2 - 2 * q3 * q3 + 1) *
+		   (-2 * q2 * q2 - 2 * q3 * q3 + 1);
+	float d2 = (2 * q1 * q4 + 2 * q2 * q3) * (2 * q1 * q4 + 2 * q2 * q3) + (-2 * q3 * q3 - 2 * q4 * q4 + 1) *
+		   (-2 * q3 * q3 - 2 * q4 * q4 + 1);
+	d1 = math::max(0.0f, d1);
+	d2 = math::max(0.0f, d2);
+
+	// Protect against square root of negative numbers
+	float x = math::max(-(2 * q1 * q3 + 2 * q2 * q4) * (2 * q1 * q3 + 2 * q2 * q4) + 1, 0.0f);
+
+	G(0, 0) =  2 * q2 * (-2 * q2 * q2 - 2 * q3 * q3 + 1) / d1;
+	G(0, 1) = -4 * q2 * (-2 * q1 * q2 - 2 * q2 * q4) / d1 + (2 * q1 + 2 * q4) * (-2 * q2 * q2 - 2 * q3 * q3 + 1) / d1;
+	G(0, 2) = -4 * q3 * (-2 * q1 * q2 - 2 * q2 * q4) / d1;
+	G(0, 3) =  2 * q2 * (-2 * q2 * q2 - 2 * q3 * q3 + 1) / d1;
+	G(1, 0) =  2 * q3 / sqrtf(x);
+	G(1, 1) =  2 * q4 / sqrtf(x);
+	G(1, 2) =  2 * q1 / sqrtf(x);
+	G(1, 3) =  2 * q2 / sqrtf(x);
+	G(2, 0) =  2 * q4 * (-2 * q3 * q3 - 2 * q4 * q4 + 1) / d2;
+	G(2, 1) =  2 * q3 * (-2 * q3 * q3 - 2 * q4 * q4 + 1) / d2;
+	G(2, 2) =  2 * q2 * (-2 * q3 * q3 - 2 * q4 * q4 + 1) / d2 - 4 * q3 * (-2 * q1 * q4 - 2 * q2 * q3) / d2;
+	G(2, 3) =  2 * q1 * (-2 * q3 * q3 - 2 * q4 * q4 + 1) / d2 - 4 * q4 * (-2 * q1 * q4 - 2 * q2 * q3) / d2;
+
+	return G * quat_covariances * G.transpose();
 }
 
 Ekf2 *Ekf2::instantiate(int argc, char *argv[])
