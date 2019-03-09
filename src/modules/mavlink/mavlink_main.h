@@ -527,9 +527,10 @@ protected:
 	Mavlink			*next{nullptr};
 
 private:
-	int			_instance_id;
-	bool			_transmitting_enabled;
-	bool			_transmitting_enabled_commanded;
+	int			_instance_id{0};
+
+	bool			_transmitting_enabled{true};
+	bool			_transmitting_enabled_commanded{false};
 	bool			_first_heartbeat_sent{false};
 
 	orb_advert_t		_mavlink_log_pub{nullptr};
@@ -546,24 +547,25 @@ private:
 	mavlink_status_t	_mavlink_status {};
 
 	/* states */
-	bool			_hil_enabled;		/**< Hardware In the Loop mode */
-	bool			_generate_rc;		/**< Generate RC messages from manual input MAVLink messages */
-	bool			_is_usb_uart;		/**< Port is USB */
-	bool			_wait_to_transmit;  	/**< Wait to transmit until received messages. */
-	bool			_received_messages;	/**< Whether we've received valid mavlink messages. */
+	bool			_hil_enabled{false};		/**< Hardware In the Loop mode */
+	bool			_generate_rc{false};		/**< Generate RC messages from manual input MAVLink messages */
+	bool			_is_usb_uart{false};		/**< Port is USB */
+	bool			_wait_to_transmit{false};  	/**< Wait to transmit until received messages. */
+	bool			_received_messages{false};	/**< Whether we've received valid mavlink messages. */
 
 	unsigned		_main_loop_delay;	/**< mainloop delay, depends on data rate */
 
 	List<MavlinkOrbSubscription *>	_subscriptions;
 	List<MavlinkStream *>		_streams;
 
-	MavlinkShell			*_mavlink_shell;
-	MavlinkULog			*_mavlink_ulog;
-	volatile bool			_mavlink_ulog_stop_requested;
+	MavlinkShell		*_mavlink_shell{nullptr};
+	MavlinkULog		*_mavlink_ulog{nullptr};
 
-	MAVLINK_MODE 		_mode;
+	volatile bool		_mavlink_ulog_stop_requested{false};
 
-	mavlink_channel_t	_channel;
+	MAVLINK_MODE 		_mode{MAVLINK_MODE_NORMAL};
+
+	mavlink_channel_t	_channel{MAVLINK_COMM_0};
 
 	ringbuffer::RingBuffer	_logbuffer;
 
