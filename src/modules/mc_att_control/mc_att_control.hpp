@@ -147,6 +147,9 @@ private:
 	 */
 	matrix::Vector3f pid_attenuations(float tpa_breakpoint, float tpa_rate);
 
+	/** lower yawspeed limit in auto modes because we expect yaw steps */
+	void adapt_auto_yaw_rate_limit();
+
 	AttitudeControl _attitude_control; /**< class for attitude control calculations */
 
 	int		_v_att_sub{-1};			/**< vehicle attitude subscription */
