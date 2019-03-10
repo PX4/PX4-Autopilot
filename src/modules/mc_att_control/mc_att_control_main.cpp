@@ -149,6 +149,7 @@ MulticopterAttitudeControl::parameters_updated()
 	// angular rate limits
 	using math::radians;
 	_attitude_control.setRateLimit(Vector3f(radians(_roll_rate_max.get()), radians(_pitch_rate_max.get()), radians(_yaw_rate_max.get())));
+	adapt_auto_yaw_rate_limit();
 
 	// manual rate control acro mode rate limits
 	_acro_rate_max = Vector3f(radians(_acro_roll_max.get()), radians(_acro_pitch_max.get()), radians(_acro_yaw_max.get()));
@@ -194,6 +195,16 @@ MulticopterAttitudeControl::vehicle_control_mode_poll()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_control_mode), _v_control_mode_sub, &_v_control_mode);
+		adapt_auto_yaw_rate_limit();
+	}
+}
+
+void MulticopterAttitudeControl::adapt_auto_yaw_rate_limit() {
+	if ((_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_auto_enabled) &&
+		!_v_control_mode.flag_control_manual_enabled) {
+		_attitude_control.setRateLimitYaw(math::radians(_yaw_auto_max.get()));
+	} else {
+		_attitude_control.setRateLimitYaw(math::radians(_yaw_rate_max.get()));
 	}
 }
 
@@ -517,14 +528,6 @@ MulticopterAttitudeControl::control_attitude()
 
 	// physical thrust axis is the negative of body z axis
 	_thrust_sp = -_v_att_sp.thrust_body[2];
-
-	// lower yawspeed limit in auto modes because we expect yaw steps
-	if ((_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_auto_enabled) &&
-		!_v_control_mode.flag_control_manual_enabled) {
-		_attitude_control.setRateLimitYaw(math::radians(_yaw_auto_max.get()));
-	} else {
-		_attitude_control.setRateLimitYaw(math::radians(_yaw_rate_max.get()));
-	}
 
 	_rates_sp = _attitude_control.update(Quatf(_v_att.q), Quatf(_v_att_sp.q_d), _v_att_sp.yaw_sp_move_rate);
 }
