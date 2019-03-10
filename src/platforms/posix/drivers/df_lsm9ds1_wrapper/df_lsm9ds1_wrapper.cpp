@@ -169,7 +169,6 @@ private:
 
 	bool _mag_enabled;
 
-<<<<<<< HEAD
     FlightTestInput _fti_accx{"FTI_ACC1X"};
     FlightTestInput _fti_accy{"FTI_ACC1Y"};
     FlightTestInput _fti_accz{"FTI_ACC1Z"};
@@ -181,19 +180,7 @@ private:
     FlightTestInput _fti_magx{"FTI_MAG1X"};
     FlightTestInput _fti_magy{"FTI_MAG1Y"};
     FlightTestInput _fti_magz{"FTI_MAG1Z"};
-=======
-	FlightTestInput _fti_accx{"FTI_ACC1X"};
-	FlightTestInput _fti_accy{"FTI_ACC1Y"};
-	FlightTestInput _fti_accz{"FTI_ACC1Z"};
 
-	FlightTestInput _fti_gyro_x{"FTI_GYRO1X"};
-	FlightTestInput _fti_gyro_y{"FTI_GYRO1Y"};
-	FlightTestInput _fti_gyro_z{"FTI_GYRO1Z"};
-
-	FlightTestInput _fti_magx{"FTI_MAG1X"};
-	FlightTestInput _fti_magy{"FTI_MAG1Y"};
-	FlightTestInput _fti_magz{"FTI_MAG1Z"};
->>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 };
 
 DfLsm9ds1Wrapper::DfLsm9ds1Wrapper(bool mag_enabled, enum Rotation rotation) :
@@ -596,7 +583,7 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
 		_update_gyro_calibration();
 	}
 
-<<<<<<< HEAD
+
     // Noise inject
     _fti_accx.inject(data.accel_m_s2_x);
     _fti_accy.inject(data.accel_m_s2_y);
@@ -611,22 +598,7 @@ int DfLsm9ds1Wrapper::_publish(struct imu_sensor_data &data)
     _fti_magz.inject(data.mag_ga_z);
 
     // Original code from here on
-=======
-	// Noise inject
-	_fti_accx.inject(data.accel_m_s2_x);
-	_fti_accy.inject(data.accel_m_s2_y);
-	_fti_accz.inject(data.accel_m_s2_z);
 
-	_fti_gyro_x.inject(data.gyro_rad_s_x);
-	_fti_gyro_y.inject(data.gyro_rad_s_y);
-	_fti_gyro_z.inject(data.gyro_rad_s_z);
-
-	_fti_magx.inject(data.mag_ga_x);
-	_fti_magy.inject(data.mag_ga_y);
-	_fti_magz.inject(data.mag_ga_z);
-
-	// Original code from here on
->>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 	matrix::Vector3f vec_integrated_unused;
 	uint32_t integral_dt_unused;
 	matrix::Vector3f accel_val(data.accel_m_s2_x,

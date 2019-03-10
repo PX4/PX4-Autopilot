@@ -653,15 +653,11 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	float yraw_f = data.accel_m_s2_y;
 	float zraw_f = data.accel_m_s2_z;
 
-<<<<<<< HEAD
+
     _fti_accx.inject(xraw_f);
     _fti_accy.inject(yraw_f);
     _fti_accz.inject(zraw_f);
-=======
-	_fti_accx.inject(xraw_f);
-	_fti_accy.inject(yraw_f);
-	_fti_accz.inject(zraw_f);
->>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
+
 
 
 	// apply user specified rotation
