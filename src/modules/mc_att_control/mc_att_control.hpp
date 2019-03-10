@@ -283,8 +283,6 @@ private:
 	matrix::Vector3f _rate_d;		/**< D gain for angular rate error */
 	matrix::Vector3f _rate_ff;		/**< Feedforward gain for desired rates */
 
-	matrix::Vector3f _mc_rate_max;		/**< attitude rate limits in stabilized modes */
-	matrix::Vector3f _auto_rate_max;	/**< attitude rate limits in auto modes */
 	matrix::Vector3f _acro_rate_max;	/**< max attitude rates in acro mode */
 	float _man_tilt_max;			/**< maximum tilt allowed for manual flight [rad] */
 
