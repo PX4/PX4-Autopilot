@@ -1468,10 +1468,10 @@ LSM303D::measure()
 	float yraw_f = raw_accel_report.y;
 	float zraw_f = raw_accel_report.z;
 
-        // Flight test input
-        //_fti_accx.inject(xraw_f);
-        //_fti_accy.inject(yraw_f);
-        //_fti_accz.inject(zraw_f);
+    // Flight test input
+    //_fti_accx.inject(xraw_f);
+    //_fti_accy.inject(yraw_f);
+    //_fti_accz.inject(zraw_f);
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);

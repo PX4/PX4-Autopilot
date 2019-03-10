@@ -1382,9 +1382,9 @@ MPU9250::measure()
 
 	// Flight test input (only on the first instance)
 	if (_accel_class_instance == 0) {
-		//_fti_accx.inject(xraw_f);
-		//_fti_accy.inject(yraw_f);
-		//_fti_accz.inject(zraw_f);
+		_fti_accx.inject(xraw_f);
+		_fti_accy.inject(yraw_f);
+		_fti_accz.inject(zraw_f);
 	}
 
 	// apply user specified rotation
@@ -1422,6 +1422,13 @@ MPU9250::measure()
 	xraw_f = report.gyro_x;
 	yraw_f = report.gyro_y;
 	zraw_f = report.gyro_z;
+
+	// Flight test input (only on the first instance)
+	if (_accel_class_instance == 0) {
+		_fti_gyro_x.inject(xraw_f);
+		_fti_gyro_y.inject(yraw_f);
+		_fti_gyro_z.inject(zraw_f);
+	}
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
