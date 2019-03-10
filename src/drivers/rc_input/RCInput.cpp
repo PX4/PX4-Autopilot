@@ -795,6 +795,10 @@ int RCInput::print_status()
 	PX4_INFO("CRSF Telemetry: %s", _crsf_telemetry ? "yes" : "no");
 	PX4_INFO("SBUS frame drops: %u", sbus_dropped_frames());
 
+#if ADC_RC_RSSI_CHANNEL
+        PX4_INFO("vrssi: %dmV", (int)(_analog_rc_rssi_volt * 1000.0f));
+#endif
+
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_publish_interval_perf);
 
