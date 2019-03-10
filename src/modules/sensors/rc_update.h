@@ -46,6 +46,8 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <uORB/topics/rc_channels.h>
 
+#include <lib/flight_test_input/flight_test_input.hpp>
+
 namespace sensors
 {
 
@@ -131,6 +133,11 @@ private:
 	math::LowPassFilter2p _filter_pitch; /** we want smooth setpoints as inputs to the controllers */
 	math::LowPassFilter2p _filter_yaw;
 	math::LowPassFilter2p _filter_throttle;
+
+	FlightTestInput _fti_roll{"FTI_RC_R"};
+	FlightTestInput _fti_pitch{"FTI_RC_P"};
+	FlightTestInput _fti_yaw{"FTI_RC_Y"};
+	FlightTestInput _fti_throttle{"FTI_RC_T"};
 
 };
 

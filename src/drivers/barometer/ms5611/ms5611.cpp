@@ -66,6 +66,7 @@
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <platforms/px4_getopt.h>
+#include <lib/flight_test_input/flight_test_input.hpp>
 
 #include "ms5611.h"
 
@@ -169,6 +170,9 @@ protected:
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_measure_perf;
 	perf_counter_t		_comms_errors;
+
+        // Flight test input
+        FlightTestInput 	_fti_baro{"FTI_BARO"};
 
 	/**
 	 * Initialize the automatic measurement state machine and start it.
@@ -755,6 +759,7 @@ MS5611::collect()
 		int32_t P = (((raw * _SENS) >> 21) - _OFF) >> 15;
 		_P = P * 0.01f;
 		_T = _TEMP * 0.01f;
+                //_fti_baro.inject(_P);
 
 		/* generate a new report */
 		report.temperature = _TEMP / 100.0f;

@@ -72,6 +72,7 @@
 #include <board_config.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
+#include <lib/flight_test_input/flight_test_input.hpp>
 
 /* SPI protocol address bits */
 #define DIR_READ				(1<<7)
@@ -300,6 +301,18 @@ private:
 	Integrator		_accel_int;
 
 	enum Rotation		_rotation;
+
+        FlightTestInput     _fti_accx{"FTI_ACC2X"};
+        FlightTestInput     _fti_accy{"FTI_ACC2Y"};
+        FlightTestInput     _fti_accz{"FTI_ACC2Z"};
+
+        FlightTestInput     _fti_gyro_x{"FTI_GYRO2X"};
+        FlightTestInput     _fti_gyro_y{"FTI_GYRO2Y"};
+        FlightTestInput     _fti_gyro_z{"FTI_GYRO2Z"};
+
+        FlightTestInput     _fti_magx{"FTI_MAG2X"};
+        FlightTestInput     _fti_magy{"FTI_MAG2Y"};
+        FlightTestInput     _fti_magz{"FTI_MAG2Z"};
 
 	// values used to
 	float			_last_accel[3];
@@ -1357,6 +1370,11 @@ LSM303D::measure()
 	float xraw_f = raw_accel_report.x;
 	float yraw_f = raw_accel_report.y;
 	float zraw_f = raw_accel_report.z;
+
+    // Flight test input
+    //_fti_accx.inject(xraw_f);
+    //_fti_accy.inject(yraw_f);
+    //_fti_accz.inject(zraw_f);
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);

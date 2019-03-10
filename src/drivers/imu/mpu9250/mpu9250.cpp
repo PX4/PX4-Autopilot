@@ -185,6 +185,17 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_gyro_scale.y_scale  = 1.0f;
 	_gyro_scale.z_offset = 0;
 	_gyro_scale.z_scale  = 1.0f;
+<<<<<<< HEAD
+=======
+
+	px4_sem_init(&_data_semaphore, 0, 0);
+	sem_setprotocol(&_data_semaphore, SEM_PRIO_NONE);
+
+	memset(&_call, 0, sizeof(_call));
+#if defined(USE_I2C)
+	memset(&_work, 0, sizeof(_work));
+#endif
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 }
 
 MPU9250::~MPU9250()
@@ -225,6 +236,8 @@ MPU9250::~MPU9250()
 	perf_free(_good_transfers);
 	perf_free(_reset_retries);
 	perf_free(_duplicates);
+
+	px4_sem_destroy(&_data_semaphore);
 }
 
 int
@@ -646,7 +659,93 @@ MPU9250::_set_pollrate(unsigned long rate)
 void
 MPU9250::_set_dlpf_filter(uint16_t frequency_hz)
 {
+<<<<<<< HEAD
 	uint8_t filter;
+=======
+	switch (cmd) {
+
+	case SENSORIOCRESET: {
+			return reset();
+		}
+
+	case SENSORIOCSPOLLRATE: {
+			switch (arg) {
+
+			/* switching to manual polling */
+			case SENSOR_POLLRATE_MANUAL:
+				stop();
+				_call_interval = 0;
+				return OK;
+
+			/* external signalling not supported */
+			case SENSOR_POLLRATE_EXTERNAL:
+
+			/* zero would be bad */
+			case 0:
+				return -EINVAL;
+
+			/* set default/max polling rate */
+			case SENSOR_POLLRATE_MAX:
+				return ioctl(filp, SENSORIOCSPOLLRATE, 1000);
+
+			case SENSOR_POLLRATE_DEFAULT:
+				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_ACCEL_DEFAULT_RATE);
+
+			/* adjust to a legal polling interval in Hz */
+			default: {
+					/* do we need to start internal polling? */
+					bool want_start = (_call_interval == 0);
+
+					/* convert hz to hrt interval via microseconds */
+					unsigned ticks = 1000000 / arg;
+
+					/* check against maximum sane rate */
+					if (ticks < 1000) {
+						return -EINVAL;
+					}
+
+					// adjust filters
+					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
+					float sample_rate = 1.0e6f / ticks;
+					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
+
+
+					float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
+					_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
+					_gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
+					_gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
+
+					/* update interval for next measurement */
+					/* XXX this is a bit shady, but no other way to adjust... */
+					_call_interval = ticks;
+
+					/*
+					  set call interval faster than the sample time. We
+					  then detect when we have duplicate samples and reject
+					  them. This prevents aliasing due to a beat between the
+					  stm32 clock and the mpu9250 clock
+					 */
+					_call.period = _call_interval - MPU9250_TIMER_REDUCTION;
+
+					/* if we need to start the poll state machine, do it */
+					if (want_start) {
+						//start();
+					}
+
+					return OK;
+				}
+			}
+		}
+
+	case SENSORIOCGPOLLRATE:
+		if (_call_interval == 0) {
+			return SENSOR_POLLRATE_MANUAL;
+		}
+
+		return 1000000 / _call_interval;
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 
 	switch (_whoami) {
 	case MPU_WHOAMI_9250:
@@ -827,11 +926,10 @@ MPU9250::start()
 	_mag->_mag_reports->flush();
 
 	if (_use_hrt) {
-		/* start polling at the specified rate */
-		hrt_call_every(&_call,
-			       1000,
-			       _call_interval - MPU9250_TIMER_REDUCTION,
-			       (hrt_callout)&MPU9250::measure_trampoline, this);
+
+		_should_exit = false;
+
+		run();
 
 	} else {
 #ifdef USE_I2C
@@ -845,6 +943,8 @@ MPU9250::start()
 void
 MPU9250::stop()
 {
+	_should_exit = true;
+
 	if (_use_hrt) {
 		hrt_cancel(&_call);
 
@@ -889,6 +989,32 @@ MPU9250::cycle()
 	}
 }
 #endif
+
+void MPU9250::post_semaphore(void *sem)
+{
+	px4_sem_post((px4_sem_t *)sem);
+}
+
+void MPU9250::run()
+{
+	px4_sem_init(&_data_semaphore, 0, 0);
+
+	/* start posting at the specified rate */
+	hrt_call_every(&_call,
+		       100000,
+		       _call_interval - MPU9250_TIMER_REDUCTION,
+		       (hrt_callout)&MPU9250::post_semaphore, &_data_semaphore);
+
+	while (!should_exit()) {
+
+		// Wait until semaphore has been posted via the timer interrupt.
+		px4_sem_wait(&_data_semaphore);
+
+		measure();
+
+	}
+
+}
 
 
 void
@@ -1140,11 +1266,23 @@ MPU9250::measure()
 		 */
 		grb.timestamp = arb.timestamp = hrt_absolute_time();
 
+<<<<<<< HEAD
 		// report the error count as the sum of the number of bad
 		// transfers and bad register reads. This allows the higher
 		// level code to decide if it should use this sensor based on
 		// whether it has had failures
 		grb.error_count = arb.error_count = perf_event_count(_bad_transfers) + perf_event_count(_bad_registers);
+=======
+	// Flight test input (only on the first instance)
+	if (_accel_class_instance == 0) {
+		_fti_accx.inject(xraw_f);
+		_fti_accy.inject(yraw_f);
+		_fti_accz.inject(zraw_f);
+	}
+
+	// apply user specified rotation
+	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 
 		/*
 		 * 1) Scale raw value to SI units using scaling from datasheet.
@@ -1192,7 +1330,19 @@ MPU9250::measure()
 
 		arb.scaling = _accel_range_scale;
 
+<<<<<<< HEAD
 		arb.temperature = _last_temperature;
+=======
+	// Flight test input (only on the first instance)
+	if (_accel_class_instance == 0) {
+		_fti_gyro_x.inject(xraw_f);
+		_fti_gyro_y.inject(yraw_f);
+		_fti_gyro_z.inject(zraw_f);
+	}
+
+	// apply user specified rotation
+	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 
 		/* return device ID */
 		arb.device_id = _accel->_device_id.devid;

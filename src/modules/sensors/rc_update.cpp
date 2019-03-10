@@ -106,6 +106,7 @@ void RCUpdate::update_rc_functions()
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_GEAR] = _parameters.rc_map_gear_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_STAB] = _parameters.rc_map_stab_sw - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_MAN] = _parameters.rc_map_man_sw - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_FTI] = _parameters.rc_map_fti_sw - 1;
 
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS] = _parameters.rc_map_flaps - 1;
 
@@ -447,6 +448,7 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 					     _parameters.rc_stab_th, _parameters.rc_stab_inv);
 			manual.man_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_MAN,
 					    _parameters.rc_man_th, _parameters.rc_man_inv);
+			manual.fti_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_FTI, 0.25f, false);
 
 			/* publish manual_control_setpoint topic */
 			orb_publish_auto(ORB_ID(manual_control_setpoint), &_manual_control_pub, &manual, &instance,

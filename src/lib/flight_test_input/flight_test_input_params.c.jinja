@@ -1,0 +1,64 @@
+{# jinja template to generate the flight test input parameters. #}
+
+{% for group in param_groups -%}
+
+
+/**
+ * Test Input {{ group }} Type
+ *
+ * @value 0 None
+ * @value 1 Failure (Off)
+ * @value 2 Gaussian Noise
+ * @value 3 White Noise
+ * @value 4 Pink Noise
+ * @value 5 Brown Noise
+ * @value 6 Blue Noise
+ * @value 7 Violet Noise
+ * @value 8 Grey Noise
+ *
+ * @group Flight Test Input {{ group }}
+ */
+PARAM_DEFINE_INT32(FTI_{{ group }}_TYPE, 0);
+
+/**
+ * Test input {{ group }} Enable/Disable
+ *
+ * @boolean
+ * @group Flight Test Input {{ group }}
+ */
+PARAM_DEFINE_INT32(FTI_{{ group }}_EN, 0);
+
+/**
+ * Test input {{ group }} dwell time
+ *
+ * Total length of noise injection
+ *
+ * @unit s
+ * @min 0
+ * @max 3600
+ * @decimal 0
+ * @group Flight Test Input {{ group }}
+ */
+PARAM_DEFINE_FLOAT(FTI_{{ group }}_TIME, 3600.0f);
+
+/**
+ * Test input {{ group }} bias
+ *
+ * @group Flight Test Input {{ group }}
+ */
+PARAM_DEFINE_FLOAT(FTI_{{ group }}_BIAS, 0.0f);
+
+/**
+ * Test input {{ group }} amplitude
+ *
+ * @group Flight Test Input {{ group }}
+ */
+PARAM_DEFINE_FLOAT(FTI_{{ group }}_AMP, 1.0f);
+
+/**
+ * Test input {{ group }} standard deviation
+ *
+ * @group Flight Test Input {{ group }}
+ */
+PARAM_DEFINE_FLOAT(FTI_{{ group }}_SD, 1.0f);
+{% endfor %}

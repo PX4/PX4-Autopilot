@@ -182,6 +182,7 @@ private:
 
 	enum Rotation _rotation;
 
+<<<<<<< HEAD
     FlightTestInput _fti_accx{"FTI_ACC1X"};
     FlightTestInput _fti_accy{"FTI_ACC1Y"};
     FlightTestInput _fti_accz{"FTI_ACC1Z"};
@@ -193,6 +194,19 @@ private:
     FlightTestInput _fti_magx{"FTI_MAG1X"};
     FlightTestInput _fti_magy{"FTI_MAG1Y"};
     FlightTestInput _fti_magz{"FTI_MAG1Z"};
+=======
+	FlightTestInput _fti_accx{"FTI_ACC1X"};
+	FlightTestInput _fti_accy{"FTI_ACC1Y"};
+	FlightTestInput _fti_accz{"FTI_ACC1Z"};
+
+	FlightTestInput _fti_gyro_x{"FTI_GYRO1X"};
+	FlightTestInput _fti_gyro_y{"FTI_GYRO1Y"};
+	FlightTestInput _fti_gyro_z{"FTI_GYRO1Z"};
+
+	FlightTestInput _fti_magx{"FTI_MAG1X"};
+	FlightTestInput _fti_magy{"FTI_MAG1Y"};
+	FlightTestInput _fti_magz{"FTI_MAG1Z"};
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 };
 
 DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled, enum Rotation rotation) :
@@ -639,9 +653,15 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	float yraw_f = data.accel_m_s2_y;
 	float zraw_f = data.accel_m_s2_z;
 
+<<<<<<< HEAD
     _fti_accx.inject(xraw_f);
     _fti_accy.inject(yraw_f);
     _fti_accz.inject(zraw_f);
+=======
+	_fti_accx.inject(xraw_f);
+	_fti_accy.inject(yraw_f);
+	_fti_accz.inject(zraw_f);
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 
 
 	// apply user specified rotation

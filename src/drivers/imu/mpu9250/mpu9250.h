@@ -48,10 +48,14 @@
 #include <drivers/drv_mag.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
+<<<<<<< HEAD
 #include <systemlib/err.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/debug_key_value.h>
+=======
+#include <lib/flight_test_input/flight_test_input.hpp>
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 
 #include "mag.h"
 #include "accel.h"
@@ -184,10 +188,10 @@
 #define MPU_WHOAMI_9250             0x71
 #define MPU_WHOAMI_6500             0x70
 
-#define MPU9250_ACCEL_DEFAULT_RATE	1000
+#define MPU9250_ACCEL_DEFAULT_RATE	700
 #define MPU9250_ACCEL_MAX_OUTPUT_RATE			280
 #define MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ 30
-#define MPU9250_GYRO_DEFAULT_RATE	1000
+#define MPU9250_GYRO_DEFAULT_RATE	700
 /* rates need to be the same between accel and gyro */
 #define MPU9250_GYRO_MAX_OUTPUT_RATE			MPU9250_ACCEL_MAX_OUTPUT_RATE
 #define MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ 30
@@ -271,6 +275,25 @@ public:
 	 */
 	void			print_info();
 
+<<<<<<< HEAD
+=======
+	void			print_registers();
+
+	// deliberately cause a sensor error
+	void 			test_error();
+
+	static void post_semaphore(void *sem);
+
+	/**
+	 * Start automatic measurement.
+	 */
+	void			start();
+
+	void			run();
+
+	bool			_should_exit{false};
+
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 protected:
 	device::Device *_interface;
 	uint8_t			_whoami;	/** whoami result */
@@ -282,7 +305,13 @@ protected:
 	friend class MPU9250_gyro;
 
 private:
+<<<<<<< HEAD
 	MPU9250_accel   *_accel;
+=======
+
+	px4_sem_t _data_semaphore;
+
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 	MPU9250_gyro	*_gyro;
 	MPU9250_mag     *_mag;
 	uint8_t 		_selected_bank;			/* Remember selected memory bank to avoid polling / setting on each read/write */
@@ -341,6 +370,19 @@ private:
 
 	enum Rotation		_rotation;
 
+	// Flight test input
+	FlightTestInput 	_fti_accx{"FTI_ACC1X"};
+	FlightTestInput 	_fti_accy{"FTI_ACC1Y"};
+	FlightTestInput 	_fti_accz{"FTI_ACC1Z"};
+
+	FlightTestInput 	_fti_gyro_x{"FTI_GYRO1X"};
+	FlightTestInput 	_fti_gyro_y{"FTI_GYRO1Y"};
+	FlightTestInput 	_fti_gyro_z{"FTI_GYRO1Z"};
+
+	FlightTestInput 	_fti_magx{"FTI_MAG1X"};
+	FlightTestInput 	_fti_magy{"FTI_MAG1Y"};
+	FlightTestInput 	_fti_magz{"FTI_MAG1Z"};
+
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
@@ -370,11 +412,6 @@ private:
 	bool			_got_duplicate;
 
 	/**
-	 * Start automatic measurement.
-	 */
-	void			start();
-
-	/**
 	 * Stop automatic measurement.
 	 */
 	void			stop();
@@ -392,6 +429,7 @@ private:
 	 */
 	int			reset_mpu();
 
+	bool		should_exit() { return _should_exit; }
 
 #if defined(USE_I2C)
 	/**

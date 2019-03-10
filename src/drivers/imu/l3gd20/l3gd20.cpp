@@ -72,6 +72,7 @@
 #include <board_config.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
+#include <lib/flight_test_input/flight_test_input.hpp>
 
 #define L3GD20_DEVICE_PATH "/dev/l3gd20"
 
@@ -169,7 +170,7 @@
 #define FIFO_CTRL_STREAM_TO_FIFO_MODE		(3<<5)
 #define FIFO_CTRL_BYPASS_TO_STREAM_MODE		(1<<7)
 
-#define L3GD20_DEFAULT_RATE			760
+#define L3GD20_DEFAULT_RATE				760
 #define L3G4200D_DEFAULT_RATE			800
 #define L3GD20_MAX_OUTPUT_RATE			280
 #define L3GD20_DEFAULT_RANGE_DPS		2000
@@ -246,6 +247,10 @@ private:
 	math::LowPassFilter2p	_gyro_filter_x;
 	math::LowPassFilter2p	_gyro_filter_y;
 	math::LowPassFilter2p	_gyro_filter_z;
+
+    FlightTestInput     _fti_gyro_x{"FTI_GYRO2X"};
+    FlightTestInput     _fti_gyro_y{"FTI_GYRO2Y"};
+    FlightTestInput     _fti_gyro_z{"FTI_GYRO2Z"};
 
 	Integrator		_gyro_int;
 
@@ -961,6 +966,11 @@ L3GD20::measure()
 	float xraw_f = report.x_raw;
 	float yraw_f = report.y_raw;
 	float zraw_f = report.z_raw;
+
+	// Flight test input (only on the first instance)
+	//_fti_gyro_x.inject(xraw_f);
+	//_fti_gyro_y.inject(yraw_f);
+	//_fti_gyro_z.inject(zraw_f);
 
 	// apply user specified rotation
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);

@@ -51,6 +51,8 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/parameter_update.h>
 
+#include <lib/flight_test_input/flight_test_input.hpp>
+
 class PWMSim : public cdev::CDev, public ModuleBase<PWMSim>
 {
 	static constexpr uint32_t PWM_SIM_DISARMED_MAGIC = 900;
@@ -134,6 +136,11 @@ private:
 	Mixer::Airmode 	_airmode{Mixer::Airmode::disabled}; 	///< multicopter air-mode
 
 	perf_counter_t	_perf_control_latency;
+
+	FlightTestInput _fti_pwm1{"FTI_PWM1"};
+	FlightTestInput _fti_pwm2{"FTI_PWM2"};
+	FlightTestInput _fti_pwm3{"FTI_PWM3"};
+	FlightTestInput _fti_pwm4{"FTI_PWM4"};
 
 	static int	control_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input);
 

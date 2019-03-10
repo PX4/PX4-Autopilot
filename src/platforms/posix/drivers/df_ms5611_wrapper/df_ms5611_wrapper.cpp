@@ -96,7 +96,11 @@ private:
 
 	perf_counter_t		_baro_sample_perf;
 
+<<<<<<< HEAD
     FlightTestInput _fti_baro{"FTI_BARO"};
+=======
+	FlightTestInput _fti_baro{"FTI_BARO"};
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 
 };
 
@@ -148,8 +152,13 @@ int DfMS5611Wrapper::stop()
 
 int DfMS5611Wrapper::_publish(struct baro_sensor_data &data)
 {
+<<<<<<< HEAD
     // Noise inject
     _fti_baro.inject(data.pressure_pa);
+=======
+	// Noise inject
+	_fti_baro.inject(data.pressure_pa);
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 
 
 	perf_begin(_baro_sample_perf);

@@ -106,8 +106,15 @@ enum MPU9250_BUS {
 /**
  * Local functions in support of the shell command.
  */
+
+static int task_handle_started = -1;
+
 namespace mpu9250
 {
+
+static enum MPU9250_BUS bus_id = MPU9250_BUS_ALL;
+static enum Rotation mpu_rotation = ROTATION_NONE;
+static bool is_external = false;
 
 /*
   list of supported bus configurations
@@ -123,8 +130,10 @@ struct mpu9250_bus_option {
 	uint8_t busnum;
 	uint32_t address;
 	MPU9250	*dev;
+	int task_id;
 } bus_options[] = {
 #if defined (USE_I2C)
+<<<<<<< HEAD
 #  if defined(PX4_I2C_BUS_ONBOARD) && defined(PX4_I2C_OBDEV_MPU9250)
 	{ MPU9250_BUS_I2C_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG,  &MPU9250_I2C_interface, false, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_MPU9250, nullptr },
 #  endif
@@ -148,14 +157,42 @@ struct mpu9250_bus_option {
 #endif
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_MPU)
 	{ MPU9250_BUS_SPI_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_SPI_interface, true, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_MPU, nullptr },
+=======
+#  if defined(PX4_I2C_BUS_ONBOARD)
+	{ MPU9250_BUS_I2C_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG,  &MPU9250_I2C_interface, false, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_MPU9250, NULL, -1 },
+#  endif
+#  if defined(PX4_I2C_BUS_EXPANSION)
+	{ MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_I2C_interface, false, PX4_I2C_BUS_EXPANSION, PX4_I2C_OBDEV_MPU9250, NULL, -1 },
+#  endif
+#  if defined(PX4_I2C_BUS_EXPANSION1)
+	{ MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT1, MPU_DEVICE_PATH_GYRO_EXT1, MPU_DEVICE_PATH_MAG_EXT1, &MPU9250_I2C_interface, false, PX4_I2C_BUS_EXPANSION1, PX4_I2C_OBDEV_MPU9250, NULL, -1 },
+#  endif
+#  if defined(PX4_I2C_BUS_EXPANSION2)
+	{ MPU9250_BUS_I2C_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT2, MPU_DEVICE_PATH_GYRO_EXT2, MPU_DEVICE_PATH_MAG_EXT2, &MPU9250_I2C_interface, false, PX4_I2C_BUS_EXPANSION2, PX4_I2C_OBDEV_MPU9250, NULL, -1 },
+#  endif
+#endif
+#ifdef PX4_SPIDEV_MPU
+	{ MPU9250_BUS_SPI_INTERNAL, MPU_DEVICE_PATH_ACCEL, MPU_DEVICE_PATH_GYRO, MPU_DEVICE_PATH_MAG, &MPU9250_SPI_interface, true, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_MPU, NULL, -1 },
+#endif
+#ifdef PX4_SPIDEV_MPU2
+	{ MPU9250_BUS_SPI_INTERNAL2, MPU_DEVICE_PATH_ACCEL_1, MPU_DEVICE_PATH_GYRO_1, MPU_DEVICE_PATH_MAG_1, &MPU9250_SPI_interface, true, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_MPU2, NULL, -1 },
+#endif
+#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_MPU)
+	{ MPU9250_BUS_SPI_EXTERNAL, MPU_DEVICE_PATH_ACCEL_EXT, MPU_DEVICE_PATH_GYRO_EXT, MPU_DEVICE_PATH_MAG_EXT, &MPU9250_SPI_interface, true, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_MPU, NULL, -1 },
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 #endif
 };
 
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
 
+<<<<<<< HEAD
 void	start(enum MPU9250_BUS busid, enum Rotation rotation, bool external_bus, bool magnetometer_only);
 bool	start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external_bus, bool magnetometer_only);
+=======
+int	start_task(int argc, char *argv[]);
+bool	start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external_bus);
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 struct mpu9250_bus_option &find_bus(enum MPU9250_BUS busid);
 void	stop(enum MPU9250_BUS busid);
 void	reset(enum MPU9250_BUS busid);
@@ -217,8 +254,14 @@ start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external,
 
 #endif
 
+<<<<<<< HEAD
 	bus.dev = new MPU9250(interface, mag_interface, bus.accelpath, bus.gyropath, bus.magpath, rotation,
 			      magnetometer_only);
+=======
+	MPU9250 mpu(interface, mag_interface, bus.accelpath, bus.gyropath, bus.magpath, rotation);
+
+	bus.dev = &mpu;
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 
 	if (bus.dev == nullptr) {
 		delete interface;
@@ -258,6 +301,8 @@ start_bus(struct mpu9250_bus_option &bus, enum Rotation rotation, bool external,
 
 	close(fd);
 
+	mpu.start();
+
 	return true;
 
 fail:
@@ -280,29 +325,45 @@ fail:
  * This function only returns if the driver is up and running
  * or failed to detect the sensor.
  */
+<<<<<<< HEAD
 void
 start(enum MPU9250_BUS busid, enum Rotation rotation, bool external, bool magnetometer_only)
+=======
+int
+start_task(int argc, char *argv[])
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 {
-
 	bool started = false;
 
 	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
+<<<<<<< HEAD
 		if (bus_options[i].dev != nullptr) {
+=======
+		if (bus_id == MPU9250_BUS_ALL && bus_options[i].dev != NULL) {
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 			// this device is already started
 			continue;
 		}
 
-		if (busid != MPU9250_BUS_ALL && bus_options[i].busid != busid) {
+		if (bus_id != MPU9250_BUS_ALL && bus_options[i].busid != bus_id) {
 			// not the one that is asked for
 			continue;
 		}
 
+<<<<<<< HEAD
 		started |= start_bus(bus_options[i], rotation, external, magnetometer_only);
 
 		if (started) { break; }
+=======
+		started |= start_bus(bus_options[i], mpu_rotation, is_external);
+
+		if (started) {
+			bus_options[i].task_id = task_handle_started;
+		}
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 	}
 
-	exit(started ? 0 : 1);
+	return (started ? 0 : 1);
 
 }
 
@@ -392,34 +453,39 @@ mpu9250_main(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 
+<<<<<<< HEAD
 	enum MPU9250_BUS busid = MPU9250_BUS_ALL;
 	enum Rotation rotation = ROTATION_NONE;
 	bool magnetometer_only = false;
+=======
+	mpu9250::bus_id = MPU9250_BUS_ALL;
+	mpu9250::mpu_rotation = ROTATION_NONE;
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 
 	while ((ch = px4_getopt(argc, argv, "XISstMR:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
-			busid = MPU9250_BUS_I2C_EXTERNAL;
+			mpu9250::bus_id = MPU9250_BUS_I2C_EXTERNAL;
 			break;
 
 		case 'I':
-			busid = MPU9250_BUS_I2C_INTERNAL;
+			mpu9250::bus_id = MPU9250_BUS_I2C_INTERNAL;
 			break;
 
 		case 'S':
-			busid = MPU9250_BUS_SPI_EXTERNAL;
+			mpu9250::bus_id = MPU9250_BUS_SPI_EXTERNAL;
 			break;
 
 		case 's':
-			busid = MPU9250_BUS_SPI_INTERNAL;
+			mpu9250::bus_id = MPU9250_BUS_SPI_INTERNAL;
 			break;
 
 		case 't':
-			busid = MPU9250_BUS_SPI_INTERNAL2;
+			mpu9250::bus_id = MPU9250_BUS_SPI_INTERNAL2;
 			break;
 
 		case 'R':
-			rotation = (enum Rotation)atoi(myoptarg);
+			mpu9250::mpu_rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		case 'M':
@@ -437,34 +503,74 @@ mpu9250_main(int argc, char *argv[])
 		return -1;
 	}
 
-	bool external = busid == MPU9250_BUS_I2C_EXTERNAL || busid == MPU9250_BUS_SPI_EXTERNAL;
+	mpu9250::is_external = (mpu9250::bus_id == MPU9250_BUS_I2C_EXTERNAL) || (mpu9250::bus_id == MPU9250_BUS_SPI_EXTERNAL);
 	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
 	 */
 	if (!strcmp(verb, "start")) {
+<<<<<<< HEAD
 		mpu9250::start(busid, rotation, external, magnetometer_only);
+=======
+
+		/* start the task */
+		task_handle_started = px4_task_spawn_cmd("mpu9250",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_MAX,
+				      6000,
+				      (px4_main_t)&mpu9250::start_task,
+				      nullptr);
+
+		if (task_handle_started < 0) {
+			PX4_WARN("task start failed");
+			return -errno;
+		}
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 	}
 
 	if (!strcmp(verb, "stop")) {
-		mpu9250::stop(busid);
+		mpu9250::stop(mpu9250::bus_id);
 	}
 
 	/*
+<<<<<<< HEAD
+=======
+	 * Test the driver/device.
+	 */
+	if (!strcmp(verb, "test")) {
+		mpu9250::test(mpu9250::bus_id);
+	}
+
+	/*
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 	 * Reset the driver.
 	 */
 	if (!strcmp(verb, "reset")) {
-		mpu9250::reset(busid);
+		mpu9250::reset(mpu9250::bus_id);
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(verb, "info")) {
-		mpu9250::info(busid);
+		mpu9250::info(mpu9250::bus_id);
 	}
 
+<<<<<<< HEAD
+=======
+	/*
+	 * Print register information.
+	 */
+	if (!strcmp(verb, "regdump")) {
+		mpu9250::regdump(mpu9250::bus_id);
+	}
+
+	if (!strcmp(verb, "testerror")) {
+		mpu9250::testerror(mpu9250::bus_id);
+	}
+
+>>>>>>> 4ef9763e64145fb8b0a1c91ab887a6e9e6fefcc9
 	mpu9250::usage();
 	return 0;
 }
