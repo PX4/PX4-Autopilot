@@ -249,7 +249,6 @@ bool Ekf::initialiseFilter()
 		// calculate initial tilt alignment
 		Eulerf euler_init(roll, pitch, 0.0f);
 		_state.quat_nominal = Quatf(euler_init);
-		_output_new.quat_nominal = _state.quat_nominal;
 
 		// update transformation matrix from body to world frame
 		_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
