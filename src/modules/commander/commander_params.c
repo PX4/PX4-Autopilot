@@ -805,15 +805,3 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
  * @group Mission
  */
 PARAM_DEFINE_INT32(COM_OBS_AVOID, 0);
-
-/**
- * Time-out to wait when onboard connection is lost before triggering onboard lost action.
- * TODO: Define parameters to specify proper action to trigger.
- *
- * @group Commander
- * @unit s
- * @min 0
- * @max 60
- * @increment 1
- */
-PARAM_DEFINE_INT32(COM_ONB_LOSS_T, 5);
