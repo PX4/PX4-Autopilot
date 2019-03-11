@@ -117,9 +117,7 @@ private:
 		(ParamInt<px4::params::COM_LOW_BAT_ACT>) _low_bat_action,
 		(ParamFloat<px4::params::COM_DISARM_LAND>) _disarm_when_landed_timeout,
 
-		(ParamInt<px4::params::COM_OBS_AVOID>) _obs_avoid,
-
-		(ParamInt<px4::params::COM_ONB_LOSS_T>) _onboard_loss_timeout
+		(ParamInt<px4::params::COM_OBS_AVOID>) _obs_avoid
 	)
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
@@ -178,7 +176,7 @@ private:
 	hrt_abstime	_datalink_last_heartbeat_gcs{0};
 
 	hrt_abstime	_datalink_last_heartbeat_onboard_controller{0};
-	bool 				_onboard_controller_lost{0};
+	bool 				_onboard_controller_lost{false};
 
 	hrt_abstime	_datalink_last_heartbeat_avoidance_system{0};
 	bool				_avoidance_system_lost{0};
