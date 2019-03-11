@@ -4202,12 +4202,12 @@ void Commander::airspeed_use_check()
 
 		//  Decide if the control loops should be using the airspeed data based on the length of time the
 		// airspeed data has been declared bad
-		if (_tas_check_fail || load_factor_ratio_fail || data_missing) {
+		if (_tas_check_fail || load_factor_ratio_fail || data_missing || bad_number_fail) {
 			// either load factor or EKF innovation or missing data test failure can declare the airspeed bad
 			_time_tas_bad_declared = hrt_absolute_time();
 			status.aspd_check_failing = true;
 
-		} else if (!_tas_check_fail && !load_factor_ratio_fail && !data_missing) {
+		} else if (!_tas_check_fail && !load_factor_ratio_fail && !data_missing && !bad_number_fail) {
 			// All checks must pass to declare airspeed good
 			_time_tas_good_declared = hrt_absolute_time();
 			status.aspd_check_failing = false;
