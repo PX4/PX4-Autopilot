@@ -379,7 +379,7 @@ void Ekf::resetHeight()
 void Ekf::alignOutputFilter()
 {
 	// calculate the quaternion delta between the output and EKF quaternions at the EKF fusion time horizon
-	Quatf q_delta = _state.quat_nominal * _output_sample_delayed.quat_nominal.inversed();
+	Quatf q_delta = _output_sample_delayed.quat_nominal.inversed() *  _state.quat_nominal;
 	q_delta.normalize();
 
 	// calculate the velocity and posiiton deltas between the output and EKF at the EKF fusion time horizon
@@ -387,7 +387,7 @@ void Ekf::alignOutputFilter()
 	const Vector3f pos_delta = _state.pos - _output_sample_delayed.pos;
 
 	// loop through the output filter state history and add the deltas
-	// Note q1 *= q2 is equivalent to q1 = q2 * q1
+	// Note q1 *= q2 is equivalent to q1 = q1 * q2
 	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
 		_output_buffer[i].quat_nominal *= q_delta;
 		_output_buffer[i].quat_nominal.normalize();
