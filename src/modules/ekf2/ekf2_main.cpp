@@ -1398,6 +1398,11 @@ void Ekf2::run()
 					_ekf.set_gnd_effect_flag(true);
 				}
 
+				// update ground effect flag based on land detector state
+				else if (vehicle_land_detected_updated && _gnd_effect_deadzone.get() > 0.0f) {
+					_ekf.set_gnd_effect_flag(vehicle_land_detected.in_ground_effect);
+				}
+
 				lpos.dist_bottom_rate = -lpos.vz; // Distance to bottom surface (ground) change rate
 
 				_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
