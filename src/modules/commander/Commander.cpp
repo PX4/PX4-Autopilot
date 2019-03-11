@@ -3969,31 +3969,29 @@ void Commander::data_link_check(bool &status_changed)
 		}
 	}
 
-		//if status changed
-		if (_avoidance_system_status_change) {
-			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_BOOT) {
-				mavlink_log_info(&mavlink_log_pub, "Avoidance system starting");
-			}
-
-			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_ACTIVE) {
-				mavlink_log_info(&mavlink_log_pub, "Avoidance system healthy");
-				status_flags.avoidance_system_valid = true;
-			}
-
-			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_CRITICAL) {
-				mavlink_log_info(&mavlink_log_pub, "Avoidance system timeout");
-			}
-
-			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_FLIGHT_TERMINATION) {
-				mavlink_log_critical(&mavlink_log_pub, "Avoidance system abort");
-				status_flags.avoidance_system_valid = false;
-				status_changed = true;
-			}
-
-			_avoidance_system_status_change = false;
+	//if status changed
+	if (_avoidance_system_status_change) {
+		if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_BOOT) {
+			mavlink_log_info(&mavlink_log_pub, "Avoidance system starting");
 		}
-	}
 
+		if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_ACTIVE) {
+			mavlink_log_info(&mavlink_log_pub, "Avoidance system healthy");
+			status_flags.avoidance_system_valid = true;
+		}
+
+		if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_CRITICAL) {
+			mavlink_log_info(&mavlink_log_pub, "Avoidance system timeout");
+		}
+
+		if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_FLIGHT_TERMINATION) {
+			mavlink_log_critical(&mavlink_log_pub, "Avoidance system abort");
+			status_flags.avoidance_system_valid = false;
+			status_changed = true;
+		}
+
+		_avoidance_system_status_change = false;
+	}
 
 	// high latency data link loss failsafe
 	if (_high_latency_datalink_heartbeat > 0
