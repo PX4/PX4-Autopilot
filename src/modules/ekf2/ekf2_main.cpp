@@ -1253,10 +1253,6 @@ void Ekf2::run()
 		if (vehicle_land_detected_updated) {
 			if (orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &vehicle_land_detected) == PX4_OK) {
 				_ekf.set_in_air_status(!vehicle_land_detected.landed);
-
-				if (_gnd_effect_deadzone.get() > 0.0f) {
-					_ekf.set_gnd_effect_flag(vehicle_land_detected.in_ground_effect);
-				}
 			}
 		}
 
@@ -1395,6 +1391,11 @@ void Ekf2::run()
 				// constrain the distance to ground to _rng_gnd_clearance
 				if (lpos.dist_bottom < _rng_gnd_clearance.get()) {
 					lpos.dist_bottom = _rng_gnd_clearance.get();
+				}
+
+				// update ground effect flag based on terrain estimation
+				if (lpos.dist_bottom_valid && lpos.dist_bottom < _gnd_effect_deadzone.get()) {
+					_ekf.set_gnd_effect_flag(true);
 				}
 
 				lpos.dist_bottom_rate = -lpos.vz; // Distance to bottom surface (ground) change rate
