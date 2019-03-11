@@ -818,7 +818,17 @@ PARAM_DEFINE_FLOAT(COM_ASPD_STALL, 10.0f);
  * @value 1 log a message
  * @value 2 log a message, warn the user
  * @value 3 log a message, warn the user, switch to non-airspeed TECS mode
- * @value 4 log a message, warn the user, switch to non-airspeed TECS mode, switch to Return mode
+ * @value 4 log a message, warn the user, switch to non-airspeed TECS mode, switch to Return mode after COM_ASPD_FS_DLY seconds
  * @group Mission
  */
 PARAM_DEFINE_INT32(COM_ASPD_FS_ACT, 0);
+
+/**
+ * RTL delay after bad airspeed measurements are detected if COM_ASPD_FS_ACT is set to 4. Ensure the COM_ASPD_STALL parameter is set correctly before use.
+ *
+ * @min 0
+ * @max 300
+ * @group Commander
+ * @unit s
+ */
+PARAM_DEFINE_INT32(COM_ASPD_FS_DLY, 0);

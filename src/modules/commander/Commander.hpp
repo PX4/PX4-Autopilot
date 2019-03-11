@@ -113,7 +113,8 @@ private:
 		(ParamInt<px4::params::COM_TAS_FS_T1>) _tas_use_stop_delay,
 		(ParamInt<px4::params::COM_TAS_FS_T2>) _tas_use_start_delay,
 		(ParamInt<px4::params::COM_ASPD_FS_ACT>) _airspeed_fail_action,
-		(ParamFloat<px4::params::COM_ASPD_STALL>) _airspeed_stall
+		(ParamFloat<px4::params::COM_ASPD_STALL>) _airspeed_stall,
+		(ParamInt<px4::params::COM_ASPD_FS_DLY>) _airspeed_rtl_delay
 
 	)
 

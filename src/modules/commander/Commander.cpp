@@ -4259,20 +4259,38 @@ void Commander::airspeed_use_check()
 				    || (internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL)
 				    || (internal_state.main_state == commander_state_s::MAIN_STATE_RATTITUDE)) {
 					// don't RTL if pilot is in control
-					mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA  %s - stopping use", _airspeed_fault_type);
+					mavlink_log_critical(&mavlink_log_pub, "ASPD DATA %s - stopping use", _airspeed_fault_type);
+
+				} else if (hrt_absolute_time() - _time_tas_good_declared < 1_s * (hrt_abstime)_airspeed_rtl_delay.get()) {
+					// Wait for timeout and issue message
+					mavlink_log_critical(&mavlink_log_pub, "ASPD DATA %s - stopping use, RTL in %i sec", _airspeed_fault_type,
+							     _airspeed_rtl_delay.get());
 
 				} else if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags,
 						&internal_state)) {
-					// the critical message even if already in RTL
+					// Issue critical message even if already in RTL
 					status.aspd_fail_rtl = true;
-					mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA %s - stopping use and returning", _airspeed_fault_type);
+
+					if (_airspeed_rtl_delay.get() == 0) {
+						mavlink_log_critical(&mavlink_log_pub, "ASPD DATA %s - stopping use and returning", _airspeed_fault_type);
+
+					} else {
+						mavlink_log_critical(&mavlink_log_pub, "ASPD DATA STILL %s - returning", _airspeed_fault_type);
+					}
 
 				} else {
-					mavlink_log_emergency(&mavlink_log_pub, "AIRSPEED DATA  %s - stopping use, return failed", _airspeed_fault_type);
+					status.aspd_fail_rtl = true;
+
+					if (_airspeed_rtl_delay.get() == 0) {
+						mavlink_log_critical(&mavlink_log_pub, "ASPD DATA %s - stopping use, return failed", _airspeed_fault_type);
+
+					} else {
+						mavlink_log_critical(&mavlink_log_pub, "ASPD DATA STILL %s - return failed", _airspeed_fault_type);
+					}
 				}
 
 			} else if (fault_cleared) {
-				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA GOOD - restarting use");
+				mavlink_log_critical(&mavlink_log_pub, "ASPD DATA GOOD - restarting use");
 			}
 
 			// Inhibit airspeed use immediately if a bad number
@@ -4285,12 +4303,12 @@ void Commander::airspeed_use_check()
 
 	case 3: { // log a message, warn the user, switch to non-airspeed TECS mode
 			if (fault_declared) {
-				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA  %s  - stopping use", _airspeed_fault_type);
+				mavlink_log_critical(&mavlink_log_pub, "ASPD DATA %s  - stopping use", _airspeed_fault_type);
 				status.aspd_fault_declared = true;
 				status.aspd_use_inhibit = true;
 
 			} else if (fault_cleared) {
-				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA GOOD - restarting use");
+				mavlink_log_critical(&mavlink_log_pub, "ASPD DATA GOOD - restarting use");
 			}
 
 			// Inhibit airspeed use immediately if a bad number
@@ -4303,11 +4321,11 @@ void Commander::airspeed_use_check()
 
 	case 2: { // log a message, warn the user
 			if (fault_declared) {
-				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA %s", _airspeed_fault_type);
+				mavlink_log_critical(&mavlink_log_pub, "ASPD DATA %s", _airspeed_fault_type);
 				status.aspd_fault_declared = true;
 
 			} else if (fault_cleared) {
-				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA GOOD");
+				mavlink_log_critical(&mavlink_log_pub, "ASPD DATA GOOD");
 			}
 
 			// Inhibit airspeed use immediately if a bad number
@@ -4320,11 +4338,11 @@ void Commander::airspeed_use_check()
 
 	case 1: { // log a message
 			if (fault_declared) {
-				mavlink_log_info(&mavlink_log_pub, "AIRSPEED DATA %s", _airspeed_fault_type);
+				mavlink_log_info(&mavlink_log_pub, "ASPD DATA %s", _airspeed_fault_type);
 				status.aspd_fault_declared = true;
 
 			} else if (fault_cleared) {
-				mavlink_log_info(&mavlink_log_pub, "AIRSPEED DATA GOOD");
+				mavlink_log_info(&mavlink_log_pub, "ASPD DATA GOOD");
 			}
 
 			// Inhibit airspeed use immediately if a bad number
