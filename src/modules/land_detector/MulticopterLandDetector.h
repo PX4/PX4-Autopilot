@@ -122,13 +122,13 @@ private:
 		float landSpeed;
 	} _params{};
 
-	int _vehicleLocalPositionSub{-1};
-	int _vehicleLocalPositionSetpointSub{-1};
-	int _actuatorsSub{-1};
-	int _attitudeSub{-1};
-	int _sensor_bias_sub{-1};
-	int _vehicle_control_mode_sub{-1};
-	int _battery_sub{-1};
+	int _vehicleLocalPositionSub{ -1};
+	int _vehicleLocalPositionSetpointSub{ -1};
+	int _actuatorsSub{ -1};
+	int _attitudeSub{ -1};
+	int _sensor_bias_sub{ -1};
+	int _vehicle_control_mode_sub{ -1};
+	int _battery_sub{ -1};
 
 	vehicle_local_position_s				_vehicleLocalPosition {};
 	vehicle_local_position_setpoint_s	_vehicleLocalPositionSetpoint {};

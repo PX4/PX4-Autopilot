@@ -185,8 +185,8 @@ private:
 
 	bool _previous_arming_state{false}; ///< stores the previous _arming.armed state
 
-	int _parameterSub{-1};
-	int _armingSub{-1};
+	int _parameterSub{ -1};
+	int _armingSub{ -1};
 };
 
 
