@@ -1280,7 +1280,7 @@ Commander::run()
 	int system_power_sub = orb_subscribe(ORB_ID(system_power));
 	int vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
 
-	struct geofence_result_s geofence_result {};
+	geofence_result_s geofence_result {};
 
 	land_detector.landed = true;
 

@@ -74,7 +74,7 @@ uint8 rc_input_mode				# set to 1 to disable the RC input, 2 to enable manual co
 bool data_link_lost				# datalink to GCS lost
 uint8 data_link_lost_counter			# counts unique data link lost events
 
-bool high_latency_data_link_lost 			# all low latency datalinks to GCS lost
+bool high_latency_data_link_lost 			# Set to true if the high latency data link (eg. RockBlock Iridium 9603 telemetry module) is lost
 
 bool engine_failure				# Set to true if an engine failure is detected
 bool mission_failure				# Set to true if mission could not continue/finish

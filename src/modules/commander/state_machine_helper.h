@@ -64,8 +64,8 @@ enum class link_loss_actions_t {
 	AUTO_RTL = 2,		// Return mode
 	AUTO_LAND = 3,		// Land mode
 	AUTO_RECOVER = 4,	// Data Link Auto Recovery (CASA Outback Challenge rules)
-	TERMINATE = 5,		// Terminate
-	LOCKDOWN = 6,		// Lockdown
+	TERMINATE = 5,		// Turn off all controllers and set PWM outputs to failsafe value
+	LOCKDOWN = 6,		// Kill the motors, same result as kill switch
 };
 
 typedef enum {
