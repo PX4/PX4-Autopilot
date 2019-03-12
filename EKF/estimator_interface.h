@@ -335,8 +335,14 @@ public:
 	// At the next startup, set param.mag_declination_deg to the value saved
 	bool get_mag_decl_deg(float *val)
 	{
-		*val = _mag_declination_to_save_deg;
-		return _NED_origin_initialised && (_params.mag_declination_source & MASK_SAVE_GEO_DECL);
+		*val = 0.0f;
+		if (_NED_origin_initialised && (_params.mag_declination_source & MASK_SAVE_GEO_DECL)) {
+			*val = math::degrees(_mag_declination_gps);
+			return true;
+
+		} else {
+			return false;
+		}
 	}
 
 	virtual void get_accel_bias(float bias[3]) = 0;
@@ -549,7 +555,6 @@ protected:
 	void unallocate_buffers();
 
 	float _mag_declination_gps{0.0f};         // magnetic declination returned by the geo library using the last valid GPS position (rad)
-	float _mag_declination_to_save_deg{0.0f}; // magnetic declination to save to EKF2_MAG_DECL (deg)
 	float _mag_inclination_gps{0.0f};	  // magnetic inclination returned by the geo library using the last valid GPS position (rad)
 	float _mag_strength_gps{0.0f};	          // magnetic strength returned by the geo library using the last valid GPS position (T)
 

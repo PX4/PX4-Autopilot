@@ -777,17 +777,14 @@ float Ekf::getMagDeclination()
 	} else if (_params.mag_declination_source & MASK_USE_GEO_DECL) {
 		// use parameter value until GPS is available, then use value returned by geo library
 		if (_NED_origin_initialised) {
-			_mag_declination_to_save_deg = math::degrees(_mag_declination_gps);
 			return _mag_declination_gps;
 
 		} else {
-			_mag_declination_to_save_deg = _params.mag_declination_deg;
 			return math::radians(_params.mag_declination_deg);
 		}
 
 	} else {
 		// always use the parameter value
-		_mag_declination_to_save_deg = _params.mag_declination_deg;
 		return math::radians(_params.mag_declination_deg);
 	}
 }
