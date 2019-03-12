@@ -167,10 +167,15 @@ private:
 
 	void mission_init();
 
+	void estimator_check(bool *status_changed);
+
+	void battery_status_check();
+
 	/**
 	 * Checks the status of all available data links and handles switching between different system telemetry states.
 	 */
 	void		data_link_check(bool &status_changed);
+
 	int		_telemetry_status_sub{-1};
 
 	hrt_abstime	_datalink_last_heartbeat_gcs{0};
@@ -190,13 +195,9 @@ private:
 	hrt_abstime	_high_latency_datalink_heartbeat{0};
 	hrt_abstime	_high_latency_datalink_lost{0};
 
-	void estimator_check(bool *status_changed);
-
 	int _battery_sub{-1};
 	uint8_t _battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	float _battery_current{0.0f};
-
-	void battery_status_check();
 
 	systemlib::Hysteresis	_auto_disarm_landed{false};
 	systemlib::Hysteresis	_auto_disarm_killed{false};
