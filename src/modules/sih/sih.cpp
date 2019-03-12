@@ -637,14 +637,36 @@ void Sih::send_serial_msg(int serial_fd, int64_t t_ms)
 
 float Sih::generate_wgn() 	// generate white Gaussian noise sample with std=1
 {
-	float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
+	// algorithm 1:
+	// float temp=((float)(rand()+1))/(((float)RAND_MAX+1.0f));
+	// return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);
+	// algorithm 2: from BlockRandGauss.hpp
+	static float V1, V2, S;
+	static bool phase = true;
+	float X;
 
-	return sqrtf(-2.0f*logf(temp))*cosf(2.0f*M_PI_F*rand()/RAND_MAX);	
+	if (phase) {
+		do {
+			float U1 = (float)rand() / RAND_MAX;
+			float U2 = (float)rand() / RAND_MAX;
+			V1 = 2.0f * U1 - 1.0f;
+			V2 = 2.0f * U2 - 1.0f;
+			S = V1 * V1 + V2 * V2;
+		} while (S >= 1.0f || fabsf(S) < 1e-8f);
+
+		X = V1 * float(sqrtf(-2.0f * float(logf(S)) / S));
+
+	} else {
+		X = V2 * float(sqrtf(-2.0f * float(logf(S)) / S));
+	}
+
+	phase = !phase;
+	return X;
 }
 
 Vector3f Sih::noiseGauss3f(float stdx,float stdy, float stdz) 	// generate white Gaussian noise sample with specified std
 {
-	return Vector3f(generate_wgn()*stdx,generate_wgn()*stdy,generate_wgn()*stdz);	
+	return Vector3f(generate_wgn()*stdx,generate_wgn()*stdy,generate_wgn()*stdz);
 } // there is another wgn algorithm in BlockRandGauss.hpp
 
 int sih_main(int argc, char *argv[])
