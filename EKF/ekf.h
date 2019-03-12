@@ -389,8 +389,6 @@ private:
 	bool _inhibit_flow_use{false};	///< true when use of optical flow and range finder is being inhibited
 	Vector2f _flowRadXYcomp;	///< measured delta angle of the image about the X and Y body axes after removal of body rotation (rad), RH rotation is positive
 
-	float _mag_declination{0.0f};	///< magnetic declination used by reset and fusion functions (rad)
-
 	// output predictor states
 	Vector3f _delta_angle_corr;	///< delta angle correction vector (rad)
 	imuSample _imu_down_sampled{};	///< down sampled imu data (sensor rate -> filter update rate)
@@ -553,7 +551,7 @@ private:
 	bool realignYawGPS();
 
 	// calculate the magnetic declination to be used by the alignment and fusion processing
-	void calcMagDeclination();
+	float getMagDeclination();
 
 	// reset position states of the ekf (only horizontal position)
 	bool resetPosition();

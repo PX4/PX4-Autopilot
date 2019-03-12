@@ -491,7 +491,7 @@ void Ekf::fuseHeading()
 			}
 
 			// the angle of the projection onto the horizontal gives the yaw angle
-			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
+			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
 
 		} else if (_control_status.flags.ev_yaw) {
 			// calculate the yaw angle for a 321 sequence
@@ -584,7 +584,7 @@ void Ekf::fuseHeading()
 			}
 
 			// the angle of the projection onto the horizontal gives the yaw angle
-			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
+			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
 
 		} else if (_control_status.flags.ev_yaw) {
 			// calculate the yaw angle for a 312 sequence
@@ -873,7 +873,7 @@ void Ekf::fuseDeclination(float decl_sigma)
 	Kfusion[23] = -t4*t13*(P[23][16]*magE-P[23][17]*magN);
 
 	// calculate innovation and constrain
-	float innovation = atan2f(magE, magN) - _mag_declination;
+	float innovation = atan2f(magE, magN) - getMagDeclination();
 	innovation = math::constrain(innovation, -0.5f, 0.5f);
 
 	// apply covariance correction via P_new = (I -K*H)*P
@@ -963,8 +963,9 @@ void Ekf::limitDeclination()
 			_state.mag_I(1) *= h_scaler;
 		} else {
 			// too small to scale radially so set to expected value
-			_state.mag_I(0) = 2.0f * h_field_min * cosf(_mag_declination);
-			_state.mag_I(1) = 2.0f * h_field_min * sinf(_mag_declination);
+			float mag_declination = getMagDeclination();
+			_state.mag_I(0) = 2.0f * h_field_min * cosf(mag_declination);
+			_state.mag_I(1) = 2.0f * h_field_min * sinf(mag_declination);
 		}
 		h_field = h_field_min;
 	}

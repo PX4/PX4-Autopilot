@@ -610,7 +610,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
 			Vector3f mag_earth_pred = R_to_earth * mag_init;
 			// the angle of the projection onto the horizontal gives the yaw angle
-			euler321(2) = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
+			euler321(2) = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
 
 		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR && _mag_use_inhibit) {
 			// we are operating without knowing the earth frame yaw angle
@@ -668,7 +668,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
 			Vector3f mag_earth_pred = R_to_earth * mag_init;
 			// the angle of the projection onto the horizontal gives the yaw angle
-			euler312(0) = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_declination;
+			euler312(0) = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
 
 		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR && _mag_use_inhibit) {
 			// we are operating without knowing the earth frame yaw angle
@@ -767,28 +767,28 @@ bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update
 }
 
 // Calculate the magnetic declination to be used by the alignment and fusion processing
-void Ekf::calcMagDeclination()
+float Ekf::getMagDeclination()
 {
 	// set source of magnetic declination for internal use
 	if (_control_status.flags.mag_align_complete) {
 		// Use value consistent with earth field state
-		_mag_declination = atan2f(_state.mag_I(1), _state.mag_I(0));
+		return atan2f(_state.mag_I(1), _state.mag_I(0));
 
 	} else if (_params.mag_declination_source & MASK_USE_GEO_DECL) {
 		// use parameter value until GPS is available, then use value returned by geo library
 		if (_NED_origin_initialised) {
-			_mag_declination = _mag_declination_gps;
-			_mag_declination_to_save_deg = math::degrees(_mag_declination);
+			_mag_declination_to_save_deg = math::degrees(_mag_declination_gps);
+			return _mag_declination_gps;
 
 		} else {
-			_mag_declination = math::radians(_params.mag_declination_deg);
 			_mag_declination_to_save_deg = _params.mag_declination_deg;
+			return math::radians(_params.mag_declination_deg);
 		}
 
 	} else {
 		// always use the parameter value
-		_mag_declination = math::radians(_params.mag_declination_deg);
 		_mag_declination_to_save_deg = _params.mag_declination_deg;
+		return math::radians(_params.mag_declination_deg);
 	}
 }
 

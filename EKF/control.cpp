@@ -48,9 +48,6 @@ void Ekf::controlFusionModes()
 	// Store the status to enable change detection
 	_control_status_prev.value = _control_status.value;
 
-	// Get the magnetic declination
-	calcMagDeclination();
-
 	// monitor the tilt alignment
 	if (!_control_status.flags.tilt_align) {
 		// whilst we are aligning the tilt, monitor the variances
