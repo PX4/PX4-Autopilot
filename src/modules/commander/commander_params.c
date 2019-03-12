@@ -802,6 +802,7 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
  * Temporary Parameter to enable interface testing
  *
  * @boolean
+ * @reboot_required true
  * @group Mission
  */
 PARAM_DEFINE_INT32(COM_OBS_AVOID, 0);

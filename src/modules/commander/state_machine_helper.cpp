@@ -999,9 +999,9 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 		}
 	}
 
-	if (!status_flags.avoidance_system_valid) {
+	if (status_flags.avoidance_system_required && !status_flags.avoidance_system_valid) {
 		if (prearm_ok && reportFailures) {
-			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: AVOIDANCE SYSTEM NOT READY");
+			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: Avoidance system not ready");
 		}
 
 		prearm_ok = false;
