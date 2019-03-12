@@ -766,7 +766,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update
 	return true;
 }
 
-// Calculate the magnetic declination to be used by the alignment and fusion processing
+// Return the magnetic declination in radians to be used by the alignment and fusion processing
 float Ekf::getMagDeclination()
 {
 	// set source of magnetic declination for internal use

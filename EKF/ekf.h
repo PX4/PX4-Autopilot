@@ -550,7 +550,7 @@ private:
 	// It is used to align the yaw angle after launch or takeoff for fixed wing vehicle.
 	bool realignYawGPS();
 
-	// calculate the magnetic declination to be used by the alignment and fusion processing
+	// Return the magnetic declination in radians to be used by the alignment and fusion processing
 	float getMagDeclination();
 
 	// reset position states of the ekf (only horizontal position)
