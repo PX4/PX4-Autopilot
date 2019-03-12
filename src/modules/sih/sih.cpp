@@ -227,6 +227,7 @@ void Sih::run()
         perf_end(_loop_perf);
     }
 
+    px4_sem_destroy(&_data_semaphore);
 	hrt_cancel(&_timer_call); 	// close the periodic timer interruption
 	orb_unsubscribe(_actuator_out_sub);
 	orb_unsubscribe(_parameter_update_sub);
