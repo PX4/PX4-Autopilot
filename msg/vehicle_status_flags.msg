@@ -34,4 +34,5 @@ bool rc_calibration_valid                            # set if RC calibration is 
 bool vtol_transition_failure                        # Set to true if vtol transition failed
 bool usb_connected                                # status of the USB power supply
 
-bool avoidance_system_valid                       # status of the obstacle avoidance system
+bool avoidance_system_required					  # Set to true if avoidance system is enabled via COM_OBS_AVOID parameter
+bool avoidance_system_valid                       # Status of the obstacle avoidance system
