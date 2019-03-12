@@ -41,4 +41,3 @@ px4_add_module(
 		qmc5883.cpp
 	DEPENDS
 	)
-
