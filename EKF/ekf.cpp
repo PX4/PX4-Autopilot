@@ -254,8 +254,6 @@ bool Ekf::initialiseFilter()
 		_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
 
 		// calculate the initial magnetic field and yaw alignment
-		// Get the magnetic declination
-		calcMagDeclination();
 		_control_status.flags.yaw_align = resetMagHeading(_mag_filt_state, false, false);
 
 		// initialise the state covariance matrix
