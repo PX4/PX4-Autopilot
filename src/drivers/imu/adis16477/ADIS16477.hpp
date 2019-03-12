@@ -30,36 +30,39 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
-/*
- * ADIS16477.hpp
+/**
+ * @file ADIS16477.hpp
  *
  */
 
-#ifndef DRIVERS_IMU_ADIS16477_ADIS16477_HPP_
-#define DRIVERS_IMU_ADIS16477_ADIS16477_HPP_
+#pragma once
 
 #include <drivers/device/ringbuffer.h>
 #include <drivers/device/spi.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
+#include <drivers/drv_hrt.h>
+#include <ecl/geo/geo.h>
+#include <lib/conversion/rotation.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <drivers/device/integrator.h>
-#include <lib/conversion/rotation.h>
+#include <drivers/device/ringbuffer.h>
+#include <drivers/device/spi.h>
 #include <perf/perf_counter.h>
-#include <ecl/geo/geo.h>
-#include <systemlib/err.h>
+#include <px4_config.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <systemlib/err.h>
 
-#define ADIS16477_GYRO_DEFAULT_RATE					250
-#define ADIS16477_GYRO_DEFAULT_DRIVER_FILTER_FREQ	30
+#define ADIS16477_GYRO_DEFAULT_RATE                250
+#define ADIS16477_GYRO_DEFAULT_DRIVER_FILTER_FREQ  30
 
-#define ADIS16477_ACCEL_DEFAULT_RATE				250
-#define ADIS16477_ACCEL_DEFAULT_DRIVER_FILTER_FREQ	30
+#define ADIS16477_ACCEL_DEFAULT_RATE               250
+#define ADIS16477_ACCEL_DEFAULT_DRIVER_FILTER_FREQ 30
 
-#define ADIS16477_ACCEL_MAX_OUTPUT_RATE              1221
-#define ADIS16477_GYRO_MAX_OUTPUT_RATE               1221
+#define ADIS16477_ACCEL_MAX_OUTPUT_RATE            1221
+#define ADIS16477_GYRO_MAX_OUTPUT_RATE             1221
 
+// Forward class declaration.
 class ADIS16477_gyro;
 
 class ADIS16477 : public device::SPI, public px4::ScheduledWorkItem
@@ -68,62 +71,60 @@ public:
 	ADIS16477(int bus, const char *path_accel, const char *path_gyro, uint32_t device, enum Rotation rotation);
 	virtual ~ADIS16477();
 
-	virtual int		init();
+	virtual int init();
 
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
 
-	void			print_info();
+	void print_info();
 
 protected:
-	virtual int		probe();
-
 	friend class ADIS16477_gyro;
 
-	virtual int		gyro_ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual int gyro_ioctl(struct file *filp, int cmd, unsigned long arg);
+
+	virtual int probe();
 
 private:
-	ADIS16477_gyro		*_gyro{nullptr};
+	ADIS16477_gyro *_gyro{nullptr};
 
-	uint16_t			_product{0};	/** product code */
+	uint16_t _product_id{0};	// Product code.
 
-	unsigned			_call_interval{0};
+	hrt_call _call {};
+	orb_advert_t _accel_topic{nullptr};
 
-	struct gyro_calibration_s	_gyro_scale {};
-
-	// gyro 0.025 °/sec/LSB
-	float				_gyro_range_scale{0.025f};
-	float				_gyro_range_rad_s{math::radians(500.0f)};
-
-	struct accel_calibration_s	_accel_scale {};
+	accel_calibration_s _accel_scale {};
+	gyro_calibration_s _gyro_scale {};
 
 	// accel 1.25 mg/LSB
-	float				_accel_range_scale{1.25f * CONSTANTS_ONE_G / 1000.0f};
-	float				_accel_range_m_s2{40.0f * CONSTANTS_ONE_G};
+	float _accel_range_m_s2{40.0f * CONSTANTS_ONE_G};
+	float _accel_range_scale{1.25f * CONSTANTS_ONE_G / 1000.0f};
 
-	orb_advert_t		_accel_topic{nullptr};
+	// gyro 0.025 °/sec/LSB
+	float _gyro_range_rad_s{math::radians(500.0f)};
+	float _gyro_range_scale{0.025f};
 
-	int					_accel_orb_class_instance{-1};
-	int					_accel_class_instance{-1};
+	int _accel_orb_class_instance{-1};
+	int _accel_class_instance{-1};
 
-	unsigned			_sample_rate{100};
+	unsigned int _call_interval{0};
+	unsigned int _sample_rate{100};
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_bad_transfers;
+	perf_counter_t _bad_transfers{perf_alloc(PC_COUNT, "adis16477_bad_transfers")};
+	perf_counter_t _controller_latency_perf{perf_alloc(PC_ELAPSED, "adis16477_controller_latency_perf")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "adis16477_sample_perf")};
 
-	math::LowPassFilter2p	_gyro_filter_x{ADIS16477_GYRO_DEFAULT_RATE, ADIS16477_GYRO_DEFAULT_DRIVER_FILTER_FREQ};
-	math::LowPassFilter2p	_gyro_filter_y{ADIS16477_GYRO_DEFAULT_RATE, ADIS16477_GYRO_DEFAULT_DRIVER_FILTER_FREQ};
-	math::LowPassFilter2p	_gyro_filter_z{ADIS16477_GYRO_DEFAULT_RATE, ADIS16477_GYRO_DEFAULT_DRIVER_FILTER_FREQ};
+	math::LowPassFilter2p _accel_filter_x{ADIS16477_ACCEL_DEFAULT_RATE, ADIS16477_ACCEL_DEFAULT_DRIVER_FILTER_FREQ};
+	math::LowPassFilter2p _accel_filter_y{ADIS16477_ACCEL_DEFAULT_RATE, ADIS16477_ACCEL_DEFAULT_DRIVER_FILTER_FREQ};
+	math::LowPassFilter2p _accel_filter_z{ADIS16477_ACCEL_DEFAULT_RATE, ADIS16477_ACCEL_DEFAULT_DRIVER_FILTER_FREQ};
 
-	math::LowPassFilter2p	_accel_filter_x{ADIS16477_ACCEL_DEFAULT_RATE, ADIS16477_ACCEL_DEFAULT_DRIVER_FILTER_FREQ};
-	math::LowPassFilter2p	_accel_filter_y{ADIS16477_ACCEL_DEFAULT_RATE, ADIS16477_ACCEL_DEFAULT_DRIVER_FILTER_FREQ};
-	math::LowPassFilter2p	_accel_filter_z{ADIS16477_ACCEL_DEFAULT_RATE, ADIS16477_ACCEL_DEFAULT_DRIVER_FILTER_FREQ};
+	math::LowPassFilter2p _gyro_filter_x{ADIS16477_GYRO_DEFAULT_RATE, ADIS16477_GYRO_DEFAULT_DRIVER_FILTER_FREQ};
+	math::LowPassFilter2p _gyro_filter_y{ADIS16477_GYRO_DEFAULT_RATE, ADIS16477_GYRO_DEFAULT_DRIVER_FILTER_FREQ};
+	math::LowPassFilter2p _gyro_filter_z{ADIS16477_GYRO_DEFAULT_RATE, ADIS16477_GYRO_DEFAULT_DRIVER_FILTER_FREQ};
 
-	Integrator			_accel_int{1000000 / ADIS16477_ACCEL_MAX_OUTPUT_RATE, false};
-	Integrator			_gyro_int{1000000 / ADIS16477_GYRO_MAX_OUTPUT_RATE, true};
+	Integrator _accel_int{1000000 / ADIS16477_ACCEL_MAX_OUTPUT_RATE, false};
+	Integrator _gyro_int{1000000 / ADIS16477_GYRO_MAX_OUTPUT_RATE, true};
 
-	enum Rotation		_rotation;
-
-	perf_counter_t		_controller_latency_perf;
+	enum Rotation _rotation;
 
 #pragma pack(push, 1)
 	/**
@@ -139,69 +140,81 @@ private:
 		int16_t		accel_y;
 		int16_t		accel_z;
 		uint16_t	temp;
-		uint16_t	DATA_CNTR;
+		uint16_t	data_cnt;
 		uint8_t		checksum;
-		uint8_t		_padding; // 16 bit SPI mode
+		uint8_t		padding; // 16 bit SPI mode
 	};
 #pragma pack(pop)
 
 	/**
 	 * Start automatic measurement.
 	 */
-	void		start();
+	void start();
 
 	/**
 	 * Stop automatic measurement.
 	 */
-	void		stop();
+	void stop();
 
 	/**
 	 * Reset chip.
 	 *
 	 * Resets the chip and measurements ranges, but not scale and offset.
 	 */
-	int			reset();
-
-	void		Run() override;
+	int reset();
 
 	/**
 	 * Fetch measurements from the sensor and update the report buffers.
 	 */
-	int			measure();
+	int measure();
 
-	bool			publish_accel(const ADISReport &report);
-	bool			publish_gyro(const ADISReport &report);
+	/**
+	 * Static trampoline from the hrt_call context; because we don't have a
+	 * generic hrt wrapper yet.
+	 *
+	 * Called by the HRT in interrupt context at the specified rate if
+	 * automatic polling is enabled.
+	 *
+	 * @param arg		Instance pointer for the driver that is polling.
+	 */
+	static void measure_trampoline(void *arg);
 
-	uint16_t		read_reg16(uint8_t reg);
+	bool publish_accel(const ADISReport &report);
+	bool publish_gyro(const ADISReport &report);
 
-	void			write_reg(uint8_t reg, uint8_t value);
-	void			write_reg16(uint8_t reg, uint16_t value);
+	void Run() override;
 
-	// ADIS16477 onboard self test
-	bool 			self_test();
+	uint16_t read_reg16(uint8_t reg);
 
-	/*
-	  set low pass filter frequency
+	void write_reg(uint8_t reg, uint8_t value);
+	void write_reg16(uint8_t reg, uint16_t value);
+
+	/**
+	 * ADIS16477 onboard self test.
+	 */
+	bool self_test();
+
+	/**
+	 * Set low pass filter frequency.
 	 */
 	void _set_dlpf_filter(uint16_t frequency_hz);
 
-	/*
-	  set IMU to factory default
+	/**
+	 * Set IMU to factory default.
 	 */
 	void _set_factory_default();
 
-	/*
-	  set sample rate (approximate) - 1kHz to 5Hz
-	*/
+	/**
+	 * Set sample rate (approximate) - 1kHz to 5Hz.
+	 */
 	void _set_sample_rate(uint16_t desired_sample_rate_hz);
 
-	/*
-	  set the gyroscope dynamic range
-	*/
+	/**
+	 * Set the gyroscope dynamic range.
+	 */
 	void _set_gyro_dyn_range(uint16_t desired_gyro_dyn_range);
 
-	ADIS16477(const ADIS16477 &);
-	ADIS16477 operator=(const ADIS16477 &);
+	// Disallow copy construction and move assignment of this class.
+	ADIS16477(const ADIS16477 &) = delete;
+	ADIS16477 operator=(const ADIS16477 &) = delete;
 };
-
-#endif /* DRIVERS_IMU_ADIS16477_ADIS16477_HPP_ */

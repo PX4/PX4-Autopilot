@@ -34,14 +34,24 @@
 #include "ADIS16477.hpp"
 #include "ADIS16477_gyro.hpp"
 
-#include <px4_config.h>
-#include <ecl/geo/geo.h>
+#define DIR_READ                                   0x00
+#define DIR_WRITE                                  0x80
 
-#define DIR_READ				0x00
-#define DIR_WRITE				0x80
+#define ACCEL_INITIAL_SENSITIVITY                  52428800 // LSB/G
+#define GYRO1_INITIAL_SENSITIVITY_16_BIT           160      // LSB/deg/sec
+#define GYRO2_INITIAL_SENSITIVITY_16_BIT           40       // LSB/deg/sec
+#define GYRO3_INITIAL_SENSITIVITY_16_BIT           10       // LSB/deg/sec
+#define GYRO1_INITIAL_SENSITIVITY_32_BIT           10485760 // LSB/deg/sec
+#define GYRO2_INITIAL_SENSITIVITY_32_BIT           2621440  // LSB/deg/sec
+#define GYRO3_INITIAL_SENSITIVITY_32_BIT           655360   // LSB/deg/sec
+
+#define ACCEL_DYNAMIC_RANGE                        40.0f    // G's
+#define GYRO1_DYNAMIC_RANGE                        125.0f   // Degrees/sec
+#define GYRO2_DYNAMIC_RANGE                        500.0f   // Degrees/sec
+#define GYRO3_DYNAMIC_RANGE                        2000.0f  // Degrees/sec
 
 //  ADIS16477 registers
-static constexpr uint8_t DIAG_STAT = 0x02; // Output, system error flags
+static constexpr uint8_t DIAG_STAT  = 0x02; // Output, system error flags
 
 static constexpr uint8_t X_GYRO_LOW = 0x04; // Output, x-axis gyroscope, low word
 static constexpr uint8_t X_GYRO_OUT = 0x06; // Output, x-axis gyroscope, high word
@@ -57,23 +67,19 @@ static constexpr uint8_t Y_ACCL_OUT = 0x16; // Output, y-axis accelerometer, hig
 static constexpr uint8_t Z_ACCL_LOW = 0x18; // Output, z-axis accelerometer, low word
 static constexpr uint8_t Z_ACCL_OUT = 0x1A; // Output, z-axis accelerometer, high word
 
-static constexpr uint8_t TEMP_OUT	= 0x1A; // Output, temperature
-static constexpr uint8_t TIME_STAMP	= 0x1A; // Output, time stamp
+static constexpr uint8_t TEMP_OUT   = 0x1A; // Output, temperature
+static constexpr uint8_t TIME_STAMP = 0x1A; // Output, time stamp
 
-static constexpr uint8_t FILT_CTRL	= 0x5C;
-static constexpr uint8_t DEC_RATE	= 0x64;
+static constexpr uint8_t FILT_CTRL  = 0x5C;
+static constexpr uint8_t DEC_RATE   = 0x64;
 
-static constexpr uint8_t GLOB_CMD	= 0x68;
+static constexpr uint8_t GLOB_CMD   = 0x68;
 
-static constexpr uint8_t PROD_ID	= 0x72;
+static constexpr uint8_t PROD_ID    = 0x72;
 
 static constexpr uint16_t PROD_ID_ADIS16477 = 0x405D; /* ADIS16477 Identification, device number  */
 
 static constexpr int T_STALL = 16;
-
-#define GYROINITIALSENSITIVITY		250
-#define ACCELINITIALSENSITIVITY		(1.0f / 1200.0f)
-#define ACCELDYNAMICRANGE		18.0f
 
 using namespace time_literals;
 
@@ -81,8 +87,6 @@ ADIS16477::ADIS16477(int bus, const char *path_accel, const char *path_gyro, uin
 	SPI("ADIS16477", path_accel, bus, device, SPIDEV_MODE3, 1000000),
 	ScheduledWorkItem(px4::device_bus_to_wq(this->get_device_id())),
 	_gyro(new ADIS16477_gyro(this, path_gyro)),
-	_sample_perf(perf_alloc(PC_ELAPSED, "adis16477_read")),
-	_bad_transfers(perf_alloc(PC_COUNT, "adis16477_bad_transfers")),
 	_rotation(rotation)
 {
 #ifdef GPIO_SPI1_RESET_ADIS16477
@@ -260,10 +264,10 @@ ADIS16477::probe()
 
 	// read product id (5 attempts)
 	for (int i = 0; i < 5; i++) {
-		_product = read_reg16(PROD_ID);
+		_product_id = read_reg16(PROD_ID);
 
-		if (_product == PROD_ID_ADIS16477) {
-			DEVICE_DEBUG("PRODUCT: %X", _product);
+		if (_product_id == PROD_ID_ADIS16477) {
+			DEVICE_DEBUG("PRODUCT: %X", _product_id);
 
 			if (self_test()) {
 				return PX4_OK;
