@@ -117,7 +117,9 @@ private:
 		(ParamInt<px4::params::COM_LOW_BAT_ACT>) _low_bat_action,
 		(ParamFloat<px4::params::COM_DISARM_LAND>) _disarm_when_landed_timeout,
 
-		(ParamInt<px4::params::COM_OBS_AVOID>) _obs_avoid
+		(ParamInt<px4::params::COM_OBS_AVOID>) _obs_avoid,
+		(ParamInt<px4::params::COM_ONB_BOOT_T>) _onboard_boot_timeout
+
 	)
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */

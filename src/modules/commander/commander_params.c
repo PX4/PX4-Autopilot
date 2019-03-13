@@ -806,3 +806,17 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
  * @group Mission
  */
 PARAM_DEFINE_INT32(COM_OBS_AVOID, 0);
+
+/**
+ * Set onboard controller bootup timeout
+ *
+ * This parameter defines the bootup timeout.
+ * After the timeout a mavlink message to warn the user that the system
+ * is still booting up is triggered.
+ *
+ * @group Commander
+ * @unit s
+ * @min 0
+ * @max 120
+ */
+PARAM_DEFINE_INT32(COM_ONB_BOOT_T, 15);
