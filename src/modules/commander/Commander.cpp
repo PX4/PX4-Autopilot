@@ -3964,14 +3964,15 @@ void Commander::data_link_check(bool &status_changed)
 	if (status_flags.avoidance_system_required && !_onboard_controller_lost) {
 
 		//if avoidance never started
-		if (_datalink_last_heartbeat_avoidance_system == 0 && hrt_elapsed_time(&_avoidance_system_not_started) > 10_s
+		if (_datalink_last_heartbeat_avoidance_system == 0
+		    && hrt_elapsed_time(&_avoidance_system_not_started) > _onboard_boot_timeout.get() * 1_s
 		    && avoidance_waiting_count < AVOIDANCE_MAX_TRIALS) {
 			_avoidance_system_not_started = hrt_absolute_time();
 			mavlink_log_info(&mavlink_log_pub, "Waiting for avoidance system to start");
 			avoidance_waiting_count++;
 
 		} else if (avoidance_waiting_count == AVOIDANCE_MAX_TRIALS) {
-			mavlink_log_critical(&mavlink_log_pub, "Avoidance system not responding. Try reboot vehicle.");
+			mavlink_log_critical(&mavlink_log_pub, "Avoidance not responding. Try reboot vehicle.");
 			avoidance_waiting_count++;
 		}
 
