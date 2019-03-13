@@ -582,10 +582,12 @@ MulticopterPositionControl::run()
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 	_traj_wp_avoidance_sub = orb_subscribe(ORB_ID(vehicle_trajectory_waypoint));
+
+	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	orb_set_interval(_local_pos_sub, 20); // 50 Hz updates
 
 	// get initial values for all parameters and subscribtions
 	parameters_update(true);
