@@ -69,12 +69,20 @@ protected:
 	void _setDefaultConstraints() override;
 
 	inline float _constrainOneSide(float val, float constrain);
+	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
 	void _generateHeading();
 	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
 	void _updateTrajConstraints();
 	void _prepareSetpoints(); /**< Generate velocity target points for the trajectory generator. */
 	void _generateTrajectory();
 	VelocitySmoothing _trajectory[3]; ///< Trajectories in x, y and z directions
-	float _yaw_sp_prev{NAN};
-	uint8_t _reset_counter{0}; /**< counter for estimator resets in xy-direction */
+	float _yaw_sp_prev;
+
+	/* counters for estimator local position resets */
+	struct {
+		uint8_t xy;
+		uint8_t vxy;
+		uint8_t z;
+		uint8_t vz;
+	} _reset_counters{0, 0, 0, 0};
 };

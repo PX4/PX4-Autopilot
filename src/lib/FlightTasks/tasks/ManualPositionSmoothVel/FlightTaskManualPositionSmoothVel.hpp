@@ -70,6 +70,7 @@ private:
 	 * Reset the required axes. when force_z_zero is set to true, the z derivatives are set to sero and not to the estimated states
 	 */
 	void reset(Axes axes, bool force_z_zero = false);
+	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
 
 	VelocitySmoothing _smoothing[3]; ///< Smoothing in x, y and z directions
 	matrix::Vector3f _vel_sp_smooth;
@@ -78,5 +79,11 @@ private:
 	matrix::Vector2f _position_setpoint_xy_locked;
 	float _position_setpoint_z_locked{NAN};
 
-	uint8_t _reset_counter{0}; /**< counter for estimator resets in xy-direction */
+	/* counters for estimator local position resets */
+	struct {
+		uint8_t xy;
+		uint8_t vxy;
+		uint8_t z;
+		uint8_t vz;
+	} _reset_counters{0, 0, 0, 0};
 };
