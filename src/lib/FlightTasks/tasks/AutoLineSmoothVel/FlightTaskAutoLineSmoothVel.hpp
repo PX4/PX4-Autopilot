@@ -68,7 +68,7 @@ protected:
 	void _generateSetpoints() override; /**< Generate setpoints along line. */
 	void _setDefaultConstraints() override;
 
-	inline float constrain_one_side(float val, float constrain);
+	inline float _constrainOneSide(float val, float constrain);
 	void _generateHeading();
 	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
 	void _updateTrajConstraints();

@@ -109,7 +109,7 @@ bool FlightTaskAutoLineSmoothVel::_generateHeadingAlongTraj()
  * Example: 	- if the constrain is -5, the value will be constrained between -5 and 0
  * 		- if the constrain is 5, the value will be constrained between 0 and 5
  */
-inline float FlightTaskAutoLineSmoothVel::constrain_one_side(float val, float constrain)
+inline float FlightTaskAutoLineSmoothVel::_constrainOneSide(float val, float constrain)
 {
 	const float min = (constrain < FLT_EPSILON) ? constrain : 0.f;
 	const float max = (constrain > FLT_EPSILON) ? constrain : 0.f;
@@ -153,7 +153,7 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 		for (int i = 0; i < 2; i++) {
 			// If available, constrain the velocity using _velocity_setpoint(.)
 			if (PX4_ISFINITE(_velocity_setpoint(i))) {
-				_velocity_setpoint(i) = constrain_one_side(vel_sp_xy(i), _velocity_setpoint(i));
+				_velocity_setpoint(i) = _constrainOneSide(vel_sp_xy(i), _velocity_setpoint(i));
 
 			} else {
 				_velocity_setpoint(i) = vel_sp_xy(i);
@@ -171,7 +171,7 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 
 		// If available, constrain the velocity using _velocity_setpoint(.)
 		if (PX4_ISFINITE(_velocity_setpoint(2))) {
-			_velocity_setpoint(2) = constrain_one_side(vel_sp_z, _velocity_setpoint(2));
+			_velocity_setpoint(2) = _constrainOneSide(vel_sp_z, _velocity_setpoint(2));
 
 		} else {
 			_velocity_setpoint(2) = vel_sp_z;
