@@ -35,5 +35,5 @@ add_executable(ecl_tests_data_validator test_data_validator.cpp)
 target_link_libraries(ecl_tests_data_validator ecl_validation)
 
 add_test(NAME ecl_tests_data_validator
-        COMMAND ecl_tests_data_validator
-        )
+	COMMAND ecl_tests_data_validator
+)

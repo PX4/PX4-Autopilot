@@ -104,6 +104,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 	enable_testing()
 	
 	if(BUILD_TESTING)
+		option(ECL_TESTS "Build ECL tests" ON)
 
 		add_custom_target(check
 			COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C Debug
