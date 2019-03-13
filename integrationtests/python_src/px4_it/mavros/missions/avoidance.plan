@@ -14,7 +14,7 @@
         "hoverSpeed": 5,
         "items": [
             {
-                "AMSLAltAboveTerrain": 4,
+                "AMSLAltAboveTerrain": null,
                 "Altitude": 4,
                 "AltitudeMode": 0,
                 "autoContinue": true,
@@ -33,7 +33,7 @@
                 "type": "SimpleItem"
             },
             {
-                "AMSLAltAboveTerrain": 4,
+                "AMSLAltAboveTerrain": null,
                 "Altitude": 4,
                 "AltitudeMode": 0,
                 "autoContinue": true,
@@ -52,7 +52,7 @@
                 "type": "SimpleItem"
             },
             {
-                "AMSLAltAboveTerrain": -2,
+                "AMSLAltAboveTerrain": null,
                 "Altitude": -1,
                 "AltitudeMode": 0,
                 "autoContinue": true,
