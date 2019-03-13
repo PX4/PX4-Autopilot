@@ -39,9 +39,8 @@ add_dependencies(ecl_validation prebuild_targets)
 target_compile_definitions(ecl_validation PRIVATE -DMODULE_NAME="ecl/validation")
 target_include_directories(ecl_validation PUBLIC ${ECL_SOURCE_DIR})
 
-if(BUILD_TESTING)
+if(ECL_TESTS)
 	add_definitions(-UNDEBUG) # keep assert
 
 	add_subdirectory(tests)
 endif()
-
