@@ -123,7 +123,6 @@ static constexpr uint64_t HOTPLUG_SENS_TIMEOUT = 8_s;	/**< wait for hotplug sens
 static constexpr uint64_t PRINT_MODE_REJECT_INTERVAL = 500_ms;
 static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL = 500_ms;
 
-static constexpr uint8_t AVOIDANCE_MAX_TRIALS = 4;  /* Maximum number of trials for avoidance system to start */
 /* Mavlink log uORB handle */
 static orb_advert_t mavlink_log_pub = nullptr;
 static orb_advert_t power_button_state_pub = nullptr;
@@ -173,8 +172,6 @@ static struct vehicle_land_detected_s land_detector = {};
 static float _eph_threshold_adj =
 	INFINITY;	///< maximum allowable horizontal position uncertainty after adjustment for flight condition
 static bool _skip_pos_accuracy_check = false;
-
-static int avoidance_waiting_count = 0;
 
 /**
  * The daemon app only briefly exists to start
@@ -584,7 +581,6 @@ Commander::Commander() :
 	status_flags.condition_power_input_valid = true;
 	status_flags.rc_calibration_valid = true;
 
-	status_flags.avoidance_system_required = _obs_avoid.get();
 	status_flags.avoidance_system_valid = false;
 
 
@@ -1218,6 +1214,8 @@ Commander::run()
 	/* failsafe response to loss of navigation accuracy */
 	param_t _param_posctl_nav_loss_act = param_find("COM_POSCTL_NAVL");
 
+	status_flags.avoidance_system_required = _obs_avoid.get();
+
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
 
@@ -1485,6 +1483,9 @@ Commander::run()
 
 			param_init_forced = false;
 		}
+
+		/* Update OA parameter */
+		status_flags.avoidance_system_required = _obs_avoid.get();
 
 		/* handle power button state */
 		orb_check(power_button_state_sub, &updated);
@@ -3833,6 +3834,7 @@ bool Commander::preflight_check(bool report)
 void Commander::data_link_check(bool &status_changed)
 {
 	bool updated = false;
+	static bool print_msg_once = false;
 
 	orb_check(_telemetry_status_sub, &updated);
 
@@ -3965,15 +3967,12 @@ void Commander::data_link_check(bool &status_changed)
 
 		//if avoidance never started
 		if (_datalink_last_heartbeat_avoidance_system == 0
-		    && hrt_elapsed_time(&_avoidance_system_not_started) > _onboard_boot_timeout.get() * 1_s
-		    && avoidance_waiting_count < AVOIDANCE_MAX_TRIALS) {
-			_avoidance_system_not_started = hrt_absolute_time();
-			mavlink_log_info(&mavlink_log_pub, "Waiting for avoidance system to start");
-			avoidance_waiting_count++;
+		    && hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > _onboard_boot_timeout.get() * 1_s) {
+			if (!print_msg_once) {
+				mavlink_log_critical(&mavlink_log_pub, "Avoidance system not available!");
+				print_msg_once = true;
 
-		} else if (avoidance_waiting_count == AVOIDANCE_MAX_TRIALS) {
-			mavlink_log_critical(&mavlink_log_pub, "Avoidance not responding. Try reboot vehicle.");
-			avoidance_waiting_count++;
+			}
 		}
 
 		//if heartbeats stop
@@ -3991,9 +3990,8 @@ void Commander::data_link_check(bool &status_changed)
 			}
 
 			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_ACTIVE) {
-				mavlink_log_info(&mavlink_log_pub, "Avoidance system healthy");
+				mavlink_log_info(&mavlink_log_pub, "Avoidance system connected");
 				status_flags.avoidance_system_valid = true;
-				avoidance_waiting_count = 0;
 			}
 
 			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_CRITICAL) {
