@@ -73,14 +73,14 @@ int dyn_main(int argc, char *argv[]) {
 	void *handle = dlopen(argv[1], RTLD_NOW);
 
 	if (!handle) {
-		PX4_ERR("%s", dlerror());
+		PX4_ERR("dlopen failed: %s", dlerror());
 		return 1;
 	}
 
 	void *main_address = dlsym(handle, "px4_module_main");
 
 	if (!main_address) {
-		PX4_ERR("%s", dlerror());
+		PX4_ERR("dlsym failed: %s", dlerror());
 		dlclose(handle);
 		return 1;
 	}
