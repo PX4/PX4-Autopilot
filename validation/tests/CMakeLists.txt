@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2018 ECL Development Team. All rights reserved.
+#   Copyright (c) 2019 ECL Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,9 +31,16 @@
 #
 ############################################################################
 
-add_executable(ecl_tests_data_validator test_data_validator.cpp)
+add_executable(ecl_tests_data_validator test_data_validator.cpp tests_common.cpp)
 target_link_libraries(ecl_tests_data_validator ecl_validation)
 
 add_test(NAME ecl_tests_data_validator
-	COMMAND ecl_tests_data_validator
-)
+        COMMAND ecl_tests_data_validator
+        )
+
+add_executable(ecl_tests_data_validator_group  test_data_validator_group.cpp tests_common.cpp)
+target_link_libraries(ecl_tests_data_validator_group ecl_validation)
+
+add_test(NAME ecl_tests_data_validator_group
+        COMMAND ecl_tests_data_validator_group
+        )
