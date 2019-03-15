@@ -110,7 +110,7 @@ add_test(NAME dyn
 		-t ${PX4_SOURCE_DIR}/test_data/
 		${PX4_SOURCE_DIR}/ROMFS/px4fmu_test
 		$<TARGET_FILE:examples__dyn_hello>
-	WORKING_DIRECTORY ${SITL_WORKING_DIR}
+	WORKING_DIRECTORY ${SITL_WORKING_DIR}/../src/examples/dyn_hello
 )
 set_tests_properties(dyn PROPERTIES PASS_REGULAR_EXPRESSION "1: PASSED")
 sanitizer_fail_test_on_error(dyn)
