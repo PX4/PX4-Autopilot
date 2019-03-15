@@ -39,57 +39,18 @@
 
 #include <stdint.h>
 #include <cassert>
-//#include <stdio.h>
+#include <stdio.h>
 #include <math.h>
-#include "../data_validator.h"
+#include <validation/data_validator.h>
+#include <validation/tests/tests_common.h>
 
-//void dump_validator_state(DataValidator* validator)
-//{
-//  uint32_t state = validator->state();
-//  printf("state: 0x%x no_data: %d stale: %d timeout:%d\n",
-//         validator->state(),
-//         DataValidator::ERROR_FLAG_NO_DATA & state,
-//         DataValidator::ERROR_FLAG_STALE_DATA & state,
-//         DataValidator::ERROR_FLAG_TIMEOUT & state
-//  );
-//  validator->print();
-//}
-
-
-/**
- * Insert a series of samples around a mean value
- * @param validator The validator under test
- * @param mean The mean value
- * @param count The number of samples to insert in the validator
- * @param rms_err (out) calculated rms error of the inserted samples
- */
-void insert_values_around_mean(DataValidator *validator, const float mean, uint32_t count, float *rms_err)
-{
-	uint64_t timestamp = 500;
-	uint64_t timestamp_incr = 5;
-	const uint64_t error_count = 0;
-	const int priority = 50;
-	const float swing = 1E-2f;
-	double sum_dev_squares = 0.0f;
-
-	//insert a series of values that swing around the mean
-	for (uint32_t i = 0; i < count;  i++) {
-		float iter_swing = (0 == (i % 2)) ? swing : -swing;
-		float iter_val = mean + iter_swing;
-		float iter_dev = iter_val - mean;
-		sum_dev_squares += (iter_dev * iter_dev);
-		timestamp += timestamp_incr;
-		validator->put(timestamp, iter_val, error_count, priority);
-	}
-
-	double rms = sqrt(sum_dev_squares / (double)count);
-	//note: this should be approximately equal to "swing"
-	*rms_err = (float)rms;
-}
 
 void test_init()
 {
+	printf("\n--- test_init ---\n");
+
 	uint64_t fake_timestamp = 666;
+	const uint32_t timeout_usec = 2000;//from original private value
 
 	DataValidator *validator = new DataValidator;
 	// initially there should be no siblings
@@ -102,6 +63,9 @@ void test_init()
 	assert(!validator->used());
 	// initially no priority
 	assert(0 == validator->priority());
+	validator->set_timeout(timeout_usec);
+	assert(validator->get_timeout() == timeout_usec);
+
 
 	DataValidator *sibling_validator = new DataValidator;
 	validator->setSibling(sibling_validator);
@@ -112,50 +76,58 @@ void test_init()
 	uint32_t state = validator->state();
 	assert(DataValidator::ERROR_FLAG_NO_DATA == (DataValidator::ERROR_FLAG_NO_DATA & state));
 
+	//verify that calling print doesn't crash tests
+	validator->print();
+
+	float *vibe_offset = validator->vibration_offset();
+	assert(0.0f == vibe_offset[0]);
+
+	delete validator; //force delete
+
 }
 
 void test_put()
 {
+	printf("\n--- test_put ---\n");
+
 	uint64_t timestamp = 500;
-	uint64_t timestamp_incr = 5;
-	const uint32_t timeout_usec = 2000;//from original private value
+	const uint32_t timeout_usec = 2000;//derived from class-private value
 	float val = 3.14159f;
-	uint64_t error_count = 0;
-	int priority = 50;
-	//from private value: this is min change needed to avoid stale detection
+	//derived from class-private value: this is min change needed to avoid stale detection
 	const float sufficient_incr_value = (1.1f * 1E-6f);
-	const int equal_value_count = 100; //default is private VALUE_EQUAL_COUNT_DEFAULT
 
 	DataValidator *validator = new DataValidator;
-	validator->set_timeout(timeout_usec);
-	validator->set_equal_value_threshold(equal_value_count);
-
-	//put a bunch of values that are all different
-	for (int i = 0; i < equal_value_count;  i++, val +=  sufficient_incr_value) {
-		timestamp += timestamp_incr;
-		validator->put(timestamp, val, error_count, priority);
-	}
+	fill_validator_with_samples(validator, sufficient_incr_value, &val, &timestamp);
 
 	assert(validator->used());
+	//verify that the last value we inserted is the current validator value
+	float last_val = val - sufficient_incr_value;
+	assert(validator->value()[0] == last_val);
 
 	// we've just provided a bunch of valid data: should be fully confident
 	float conf = validator->confidence(timestamp);
-//  if (1.0f != conf) {
-//    printf("conf: %f\n",(double)conf);
-//    dump_validator_state(validator);
-//  }
+
+	if (1.0f != conf) {
+		printf("conf: %f\n", (double)conf);
+		dump_validator_state(validator);
+	}
+
 	assert(1.0f == conf);
 	// should be no errors
 	assert(0 == validator->state());
 
 	//now check confidence much beyond the timeout window-- should timeout
 	conf = validator->confidence(timestamp + (1.1 * timeout_usec));
-//  if (0.0f != conf) {
-//    printf("conf: %f\n",(double)conf);
-//    dump_validator_state(validator);
-//  }
+
+	if (0.0f != conf) {
+		printf("conf: %f\n", (double)conf);
+		dump_validator_state(validator);
+	}
+
 	assert(0.0f == conf);
 	assert(DataValidator::ERROR_FLAG_TIMEOUT == (DataValidator::ERROR_FLAG_TIMEOUT & validator->state()));
+
+	delete validator; //force delete
 
 }
 
@@ -164,32 +136,29 @@ void test_put()
  */
 void test_stale_detector()
 {
+	printf("\n--- test_stale_detector ---\n");
+
 	uint64_t timestamp = 500;
-	uint64_t timestamp_incr = 5;
 	float val = 3.14159f;
-	uint64_t error_count = 0;
-	int priority = 50;
-	const float insufficient_incr_value = (0.99 * 1E-6f);//insufficient to avoid stale detection
-	const int equal_value_count = 100; //default is private VALUE_EQUAL_COUNT_DEFAULT
+	//derived from class-private value, this is insufficient to avoid stale detection:
+	const float insufficient_incr_value = (0.99 * 1E-6f);
 
 	DataValidator *validator = new DataValidator;
-	validator->set_equal_value_threshold(equal_value_count);
-
-	//put a bunch of values that are all different
-	for (int i = 0; i < equal_value_count; i++, val += insufficient_incr_value) {
-		timestamp += timestamp_incr;
-		validator->put(timestamp, val, error_count, priority);
-	}
+	fill_validator_with_samples(validator, insufficient_incr_value, &val, &timestamp);
 
 	// data is stale: should have no confidence
 	assert(0.0f == validator->confidence(timestamp));
 
 	// should be a stale error
 	uint32_t state = validator->state();
-//  if (DataValidator::ERROR_FLAG_STALE_DATA != state) {
-//    dump_validator_state(validator);
-//  }
+
+	if (DataValidator::ERROR_FLAG_STALE_DATA != state) {
+		dump_validator_state(validator);
+	}
+
 	assert(DataValidator::ERROR_FLAG_STALE_DATA == (DataValidator::ERROR_FLAG_STALE_DATA & state));
+
+	delete validator; //force delete
 
 }
 
@@ -198,23 +167,134 @@ void test_stale_detector()
  */
 void test_rms_calculation()
 {
+	printf("\n--- test_rms_calculation ---\n");
 	const int equal_value_count = 100; //default is private VALUE_EQUAL_COUNT_DEFAULT
 	const float mean_value = 3.14159f;
 	const uint32_t sample_count = 1000;
 	float expected_rms_err = 0.0f;
+	uint64_t timestamp = 500;
 
 	DataValidator *validator = new DataValidator;
 	validator->set_equal_value_threshold(equal_value_count);
 
-	insert_values_around_mean(validator, mean_value, sample_count, &expected_rms_err);
+	insert_values_around_mean(validator, mean_value, sample_count, &expected_rms_err, &timestamp);
 	float *rms = validator->rms();
 	assert(nullptr != rms);
 	float calc_rms_err = rms[0];
 	float diff = fabsf(calc_rms_err - expected_rms_err);
 	float diff_frac = (diff / expected_rms_err);
-//  printf("rms: %f expect: %f diff: %f frac: %f\n", (double)calc_rms_err, (double)expected_rms_err,
-//      (double)diff, (double)diff_frac);
+	printf("rms: %f expect: %f diff: %f frac: %f\n", (double)calc_rms_err, (double)expected_rms_err,
+	       (double)diff, (double)diff_frac);
 	assert(diff_frac < 0.03f);
+
+	float *vibe_offset = validator->vibration_offset();
+	float vibe_diff = fabsf(0.01005f - vibe_offset[0]);  //TODO calculate this vibration value
+	printf("vibe: %f", (double)vibe_offset[0]);
+	assert(vibe_diff < 1E-3f);
+
+	delete validator; //force delete
+
+}
+
+/**
+ * Verify error tracking performed by DataValidator::put
+ */
+void test_error_tracking()
+{
+	printf("\n--- test_error_tracking ---\n");
+	uint64_t timestamp = 500;
+	uint64_t timestamp_incr = 5;
+	const uint32_t timeout_usec = 2000;//from original private value
+	float val = 3.14159f;
+	uint64_t error_count = 0;
+	int expected_error_density = 0;
+	int priority = 50;
+	//from private value: this is min change needed to avoid stale detection
+	const float sufficient_incr_value = (1.1f * 1E-6f);
+	//default is private VALUE_EQUAL_COUNT_DEFAULT
+	const int equal_value_count = 50000;
+	//should be less than equal_value_count: ensure this is less than NORETURN_ERRCOUNT
+	const int total_iterations = 1000;
+
+	DataValidator *validator = new DataValidator;
+	validator->set_timeout(timeout_usec);
+	validator->set_equal_value_threshold(equal_value_count);
+
+	//put a bunch of values that are all different
+	for (int i = 0; i < total_iterations;  i++, val += sufficient_incr_value) {
+		timestamp += timestamp_incr;
+
+		//up to a 50% random error rate appears to pass the error density filter
+		if ((((float)rand() / (float)RAND_MAX)) < 0.500f) {
+			error_count += 1;
+			expected_error_density += 1;
+
+		} else if (expected_error_density > 0) {
+			expected_error_density -= 1;
+		}
+
+		validator->put(timestamp, val, error_count, priority);
+	}
+
+	assert(validator->used());
+	//at this point, error_count should be less than NORETURN_ERRCOUNT
+	assert(validator->error_count() == error_count);
+
+	// we've just provided a bunch of valid data with some errors:
+	// confidence should be reduced by the number of errors
+	float conf = validator->confidence(timestamp);
+	printf("error_count: %u validator confidence: %f\n", (uint32_t)error_count, (double)conf);
+	assert(1.0f != conf);  //we should not be fully confident
+	assert(0.0f != conf);  //neither should we be completely unconfident
+	// should be no errors, even if confidence is reduced, since we didn't exceed NORETURN_ERRCOUNT
+	assert(0 == validator->state());
+
+	// the error density will reduce the confidence by 1 - (error_density / ERROR_DENSITY_WINDOW)
+	// ERROR_DENSITY_WINDOW is currently private, but == 100.0f
+	float reduced_conf = 1.0f - ((float)expected_error_density / 100.0f);
+	double diff = fabs(reduced_conf - conf);
+
+	if (reduced_conf != conf) {
+		printf("conf: %f reduced_conf: %f diff: %f\n",
+		       (double)conf, (double)reduced_conf, diff);
+		dump_validator_state(validator);
+	}
+
+	assert(diff < 1E-6f);
+
+	//Now, insert a series of errors and ensure we trip the error detector
+	for (int i = 0; i < 250;  i++, val += sufficient_incr_value) {
+		timestamp += timestamp_incr;
+		//100% error rate
+		error_count += 1;
+		expected_error_density += 1;
+		validator->put(timestamp, val, error_count, priority);
+	}
+
+	conf = validator->confidence(timestamp);
+	assert(0.0f == conf);  // should we be completely unconfident
+	// we should have triggered the high error density detector
+	assert(DataValidator::ERROR_FLAG_HIGH_ERRDENSITY == (DataValidator::ERROR_FLAG_HIGH_ERRDENSITY & validator->state()));
+
+
+	validator->reset_state();
+
+	//Now insert so many errors that we exceed private NORETURN_ERRCOUNT
+	for (int i = 0; i < 10000;  i++, val += sufficient_incr_value) {
+		timestamp += timestamp_incr;
+		//100% error rate
+		error_count += 1;
+		expected_error_density += 1;
+		validator->put(timestamp, val, error_count, priority);
+	}
+
+	conf = validator->confidence(timestamp);
+	assert(0.0f == conf);  // should we be completely unconfident
+	// we should have triggered the high error count detector
+	assert(DataValidator::ERROR_FLAG_HIGH_ERRCOUNT == (DataValidator::ERROR_FLAG_HIGH_ERRCOUNT & validator->state()));
+
+	delete validator; //force delete
+
 }
 
 int main(int argc, char *argv[])
@@ -222,10 +302,13 @@ int main(int argc, char *argv[])
 	(void)argc; // unused
 	(void)argv; // unused
 
+	srand(666);
 	test_init();
 	test_put();
 	test_stale_detector();
 	test_rms_calculation();
+	test_error_tracking();
+	//TODO verify vibration calculation
 
 	return 0; //passed
 }
