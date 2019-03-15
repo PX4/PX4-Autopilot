@@ -72,7 +72,7 @@ fi
 
 if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]; then
 	# Start Java simulator
-	"$src_path"/Tools/jmavsim_run.sh -r 250 -f $speed_factor &
+	"$src_path"/Tools/jmavsim_run.sh -r 250 -f $speed_factor -l &
 	SIM_PID=`echo $!`
 elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 	if [ -x "$(command -v gazebo)" ]; then
