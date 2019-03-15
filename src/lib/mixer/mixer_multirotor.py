@@ -101,7 +101,7 @@ def mix_yaw(m_sp, u, P, u_min, u_max):
 def airmode_rp(m_sp, P, u_min, u_max):
     """
     Mix roll, pitch, yaw and thrust.
-    
+
     Desaturation behavior: airmode for roll/pitch:
     thrust is increased/decreased as much as required to meet the demanded roll/pitch.
     Yaw is not allowed to increase the thrust, @see mix_yaw() for the exact behavior.
@@ -124,7 +124,7 @@ def airmode_rp(m_sp, P, u_min, u_max):
 def airmode_rpy(m_sp, P, u_min, u_max):
     """
     Mix roll, pitch, yaw and thrust.
-    
+
     Desaturation behavior: full airmode for roll/pitch/yaw:
     thrust is increased/decreased as much as required to meet demanded the roll/pitch/yaw.
     """
@@ -140,7 +140,7 @@ def airmode_rpy(m_sp, P, u_min, u_max):
 def normal_mode(m_sp, P, u_min, u_max):
     """
     Mix roll, pitch, yaw and thrust.
-    
+
     Desaturation behavior: no airmode, thrust is NEVER increased to meet the demanded
     roll/pitch/yaw. Instead roll/pitch/yaw is reduced as much as needed.
     Thrust can be reduced to unsaturate the upper side.
@@ -256,15 +256,15 @@ def run_tests(mixer_cb, P, test_mixer_binary, test_index=None):
         #'cat > /tmp/test_'+str(mode_idx), shell=True, # just to test the output
         stdout=subprocess.PIPE,
         stdin=subprocess.PIPE)
-    proc.stdin.write("{:}\n".format(mode_idx)) # airmode
+    proc.stdin.write("{:}\n".format(mode_idx).encode('utf-8')) # airmode
     motor_count = P.shape[0]
-    proc.stdin.write("{:}\n".format(motor_count)) # motor count
+    proc.stdin.write("{:}\n".format(motor_count).encode('utf-8')) # motor count
     # control allocation matrix
     for row in P.getA():
         for col in row:
-            proc.stdin.write("{:.8f} ".format(col))
-        proc.stdin.write("\n")
-    proc.stdin.write("\n")
+            proc.stdin.write("{:.8f} ".format(col).encode('utf-8'))
+        proc.stdin.write("\n".encode('utf-8'))
+    proc.stdin.write("\n".encode('utf-8'))
 
     failed = False
     try:
@@ -277,7 +277,7 @@ def run_tests(mixer_cb, P, test_mixer_binary, test_index=None):
             actuator_controls = test_cases[[i], :].T
             proc.stdin.write("{:.8f} {:.8f} {:.8f} {:.8f}\n"
                     .format(actuator_controls[0, 0], actuator_controls[1, 0],
-                        actuator_controls[2, 0], actuator_controls[3, 0]))
+                        actuator_controls[2, 0], actuator_controls[3, 0]).encode('utf-8'))
 
             (u, u_new) = mixer_cb(actuator_controls, P, 0.0, 1.0)
             # Saturate the outputs between 0 and 1
@@ -285,8 +285,8 @@ def run_tests(mixer_cb, P, test_mixer_binary, test_index=None):
             u_new_sat = np.minimum(u_new_sat, np.matlib.ones(u.size).T)
             # write expected outputs
             for j in range(motor_count):
-                proc.stdin.write("{:.8f} ".format(u_new_sat[j, 0]))
-            proc.stdin.write("\n")
+                proc.stdin.write("{:.8f} ".format(u_new_sat[j, 0]).encode('utf-8'))
+            proc.stdin.write("\n".encode('utf-8'))
 
         proc.stdin.close()
     except IOError as e:
