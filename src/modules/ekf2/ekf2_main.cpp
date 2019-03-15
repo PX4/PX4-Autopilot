@@ -339,6 +339,8 @@ private:
 		_baro_innov_gate,	///< barometric height innovation consistency gate size (STD)
 		(ParamExtFloat<px4::params::EKF2_GND_EFF_DZ>)
 		_gnd_effect_deadzone,	///< barometric deadzone range for negative innovations (m)
+		(ParamExtFloat<px4::params::EKF2_GND_MAX_HGT>)
+		_gnd_effect_max_hgt,	///< maximum height above the ground level for expected negative baro innovations (m)
 		(ParamExtFloat<px4::params::EKF2_GPS_P_GATE>)
 		_posNE_innov_gate,	///< GPS horizontal position innovation consistency gate size (STD)
 		(ParamExtFloat<px4::params::EKF2_GPS_V_GATE>) _vel_innov_gate,	///< GPS velocity innovation consistency gate size (STD)
@@ -540,6 +542,7 @@ Ekf2::Ekf2():
 	_baro_noise(_params->baro_noise),
 	_baro_innov_gate(_params->baro_innov_gate),
 	_gnd_effect_deadzone(_params->gnd_effect_deadzone),
+	_gnd_effect_max_hgt(_params->gnd_effect_max_hgt),
 	_posNE_innov_gate(_params->posNE_innov_gate),
 	_vel_innov_gate(_params->vel_innov_gate),
 	_tas_innov_gate(_params->tas_innov_gate),
@@ -1394,7 +1397,7 @@ void Ekf2::run()
 				}
 
 				// update ground effect flag based on terrain estimation
-				if (lpos.dist_bottom_valid && lpos.dist_bottom < _gnd_effect_deadzone.get()) {
+				if (lpos.dist_bottom_valid && lpos.dist_bottom < _gnd_effect_max_hgt.get()) {
 					_ekf.set_gnd_effect_flag(true);
 				}
 

@@ -553,6 +553,19 @@ PARAM_DEFINE_FLOAT(EKF2_BARO_GATE, 5.0f);
 PARAM_DEFINE_FLOAT(EKF2_GND_EFF_DZ, 0.0f);
 
 /**
+ * Height above ground level for ground effect zone
+ *
+ * Sets the maximum distance to the ground level where negative baro innovations are expected.
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 5.0
+ * @unit M
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_GND_MAX_HGT, 0.5f);
+
+/**
  * Gate size for GPS horizontal position fusion
  *
  * Sets the number of standard deviations used by the innovation consistency test.
