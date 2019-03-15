@@ -153,8 +153,12 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	bool triplet_update = true;
 
-	if (!(fabsf(_triplet_target(0) - tmp_target(0)) > 0.001f || fabsf(_triplet_target(1) - tmp_target(1)) > 0.001f
-	      || fabsf(_triplet_target(2) - tmp_target(2)) > 0.001f)) {
+	if (PX4_ISFINITE(_triplet_target(0))
+	    && PX4_ISFINITE(_triplet_target(1))
+	    && PX4_ISFINITE(_triplet_target(2))
+	    && fabsf(_triplet_target(0) - tmp_target(0)) < 0.001f
+	    && fabsf(_triplet_target(1) - tmp_target(1)) < 0.001f
+	    && fabsf(_triplet_target(2) - tmp_target(2)) < 0.001f) {
 		// Nothing has changed: just keep old waypoints.
 		triplet_update = false;
 
