@@ -251,6 +251,7 @@ extern "C" {
 				if (Simulator::getInstance()) {
 					Simulator::getInstance()->stop();
 				}
+
 				g_sim_task = -1;
 			}
 
