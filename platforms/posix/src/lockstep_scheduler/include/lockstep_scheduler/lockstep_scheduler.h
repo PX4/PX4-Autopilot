@@ -29,7 +29,10 @@ private:
 				// This destructor gets called as part of thread-local storage cleanup.
 				// This is really only a work-around for non-proper thread stopping. Note that we also assume,
 				// that we can still access the mutex.
-				pthread_mutex_unlock(passed_lock);
+				if (passed_lock) {
+					pthread_mutex_unlock(passed_lock);
+				}
+
 				done = true;
 			}
 
