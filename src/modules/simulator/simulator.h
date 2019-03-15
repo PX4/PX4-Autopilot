@@ -363,8 +363,6 @@ private:
 
 	// uORB subscription handlers
 	int _actuator_outputs_sub{-1};
-	int _manual_sub{-1};
-	int _vehicle_attitude_sub{-1};
 	int _vehicle_status_sub{-1};
 
 	// hil map_ref data

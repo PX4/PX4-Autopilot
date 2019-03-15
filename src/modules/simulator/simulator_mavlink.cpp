@@ -802,8 +802,8 @@ void Simulator::poll_for_MAVLink_messages()
 
 #endif
 
-	// subscribe to topics
-	// only subscribe to the first actuator_outputs to fill a single HIL_ACTUATOR_CONTROLS
+	// Subscribe to topics.
+	// Only subscribe to the first actuator_outputs to fill a single HIL_ACTUATOR_CONTROLS.
 	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
@@ -873,6 +873,9 @@ void Simulator::poll_for_MAVLink_messages()
 
 #endif
 	}
+
+	orb_unsubscribe(_actuator_outputs_sub);
+	orb_unsubscribe(_vehicle_status_sub);
 }
 
 
