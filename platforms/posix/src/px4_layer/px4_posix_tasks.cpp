@@ -295,7 +295,7 @@ int px4_task_delete(px4_task_t id)
 		pthread_exit(nullptr);
 
 	} else {
-		rv = pthread_cancel(pid);
+		rv = pthread_join(pid, nullptr);
 	}
 
 	taskmap[id].isused = false;

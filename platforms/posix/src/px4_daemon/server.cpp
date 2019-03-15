@@ -206,9 +206,7 @@ Server::_server_main()
 				auto thread = _fd_to_thread.find(poll_fds[i].fd);
 
 				if (thread != _fd_to_thread.end()) {
-					// Thread is still running, so we cancel it.
-					// TODO: use a more graceful exit method to avoid resource leaks
-					pthread_cancel(thread->second);
+					pthread_join(thread->second, nullptr);
 					_fd_to_thread.erase(thread);
 				}
 
