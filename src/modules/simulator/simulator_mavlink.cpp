@@ -612,7 +612,7 @@ void Simulator::send()
 	fds[0].fd = _actuator_outputs_sub;
 	fds[0].events = POLLIN;
 
-	while (true) {
+	while (!_should_exit) {
 		// Wait for up to 100ms for data.
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
@@ -715,7 +715,7 @@ void Simulator::poll_for_MAVLink_messages()
 
 		PX4_INFO("Waiting for simulator to connect on UDP port %u", _port);
 
-		while (true) {
+		while (!_should_exit) {
 			// Once we receive something, we're most probably good and can carry on.
 			int len = ::recvfrom(_fd, _buf, sizeof(_buf), 0,
 					     (struct sockaddr *)&_srcaddr, (socklen_t *)&_addrlen);
@@ -734,7 +734,7 @@ void Simulator::poll_for_MAVLink_messages()
 
 		PX4_INFO("Waiting for simulator to connect on TCP port %u", _port);
 
-		while (true) {
+		while (!_should_exit) {
 			if ((_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 				PX4_ERR("Creating TCP socket failed: %s", strerror(errno));
 				return;
@@ -818,7 +818,7 @@ void Simulator::poll_for_MAVLink_messages()
 
 	_initialized = true;
 
-	while (true) {
+	while (!_should_exit) {
 
 		// wait for new mavlink messages to arrive
 		int pret = ::poll(&fds[0], fd_count, 1000);

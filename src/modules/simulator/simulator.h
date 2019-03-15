@@ -68,6 +68,7 @@
 #include <v2.0/mavlink_types.h>
 #include <v2.0/common/mavlink.h>
 #include <lib/ecl/geo/geo.h>
+#include <atomic>
 
 namespace simulator
 {
@@ -238,6 +239,8 @@ public:
 	void set_ip(InternetProtocol ip);
 	void set_port(unsigned port);
 
+	void stop() { _should_exit = true; }
+
 private:
 	Simulator() :
 		ModuleParams(nullptr)
@@ -280,6 +283,9 @@ private:
 	int publish_distance_topic(const mavlink_distance_sensor_t *dist);
 
 	static Simulator *_instance;
+
+	// TODO: should replace this boilerplate with ModuleBase.
+	std::atomic_bool _should_exit{false};
 
 	// simulated sensor instances
 	simulator::Report<simulator::RawAirspeedData>	_airspeed{1};

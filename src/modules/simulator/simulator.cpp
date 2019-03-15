@@ -248,7 +248,9 @@ extern "C" {
 				PX4_WARN("Simulator not running");
 
 			} else {
-				px4_task_delete(g_sim_task);
+				if (Simulator::getInstance()) {
+					Simulator::getInstance()->stop();
+				}
 				g_sim_task = -1;
 			}
 
