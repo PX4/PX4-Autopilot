@@ -647,5 +647,6 @@ px4_systemreset(bool to_bootloader)
 
 	_exit_requested = true;
 
-	system_exit(0);
+	// Don't use system_exit so that all threads can return and be joined.
+	// system_exit(0);
 }

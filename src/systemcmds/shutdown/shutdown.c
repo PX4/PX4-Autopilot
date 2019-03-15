@@ -49,4 +49,7 @@ int shutdown_main(int argc, char *argv[])
 
 	const bool to_bootloader = false;
 	px4_systemreset(to_bootloader);
+#ifdef __PX4_POSIX
+	return 0;
+#endif
 }
