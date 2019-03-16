@@ -66,6 +66,7 @@ function(px4_add_common_flags)
 		-Werror
 
 		-Warray-bounds
+		-Wcast-align
 		-Wdisabled-optimization
 		-Wdouble-promotion
 		-Wfatal-errors
@@ -78,8 +79,6 @@ function(px4_add_common_flags)
 		-Wuninitialized
 		-Wunknown-pragmas
 		-Wunused-variable
-
-		#-Wcast-align # TODO: fix and enable
 
 		# disabled warnings
 		-Wno-implicit-fallthrough # set appropriate level and update

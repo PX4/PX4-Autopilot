@@ -42,6 +42,7 @@ px4_add_module(
 		#-DMAVLINK_FTP_DEBUG
 		-DMavlinkStream=MavlinkStreamTest
 		-DMavlinkFTP=MavlinkFTPTest
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		mavlink_tests.cpp
 		mavlink_ftp_test.cpp

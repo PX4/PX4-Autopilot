@@ -35,9 +35,9 @@ px4_add_module(
 	MAIN qmc5883
 	STACK_MAIN 1500
 	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		qmc5883_i2c.cpp
 		qmc5883_spi.cpp
 		qmc5883.cpp
-	DEPENDS
 	)

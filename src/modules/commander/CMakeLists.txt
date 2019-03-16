@@ -39,6 +39,7 @@ px4_add_module(
 	STACK_MAIN 4096
 	STACK_MAX 2450
 	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		accelerometer_calibration.cpp
 		airspeed_calibration.cpp

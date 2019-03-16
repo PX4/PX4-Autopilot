@@ -60,6 +60,7 @@ px4_add_module(
 	MAIN simulator
 	COMPILE_FLAGS
 		-Wno-double-promotion
+		-Wno-cast-align
 	INCLUDES
 		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS
