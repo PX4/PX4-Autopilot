@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
@@ -29,14 +29,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-#############################################################################
+#
 px4_add_module(
-	MODULE modules__replay
-	MAIN replay
-	COMPILE_FLAGS
-	STACK_MAIN 1000
-	STACK_MAX 4000
-	SRCS
-		replay_main.cpp
-	DEPENDS
-	)
+    MODULE modules__replay
+    MAIN replay
+    COMPILE_FLAGS
+    STACK_MAIN 1000
+    STACK_MAX 4000
+    SRCS replay_main.cpp
+    DEPENDS
+)

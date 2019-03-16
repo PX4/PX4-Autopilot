@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
@@ -29,23 +29,22 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 
 px4_add_module(
-	MODULE modules__events
-	MAIN send_event
-	STACK_MAIN 2200
-	COMPILE_FLAGS
-	SRCS
-		rc_loss_alarm.cpp
-		send_event.cpp
-		set_leds.cpp
-		status_display.cpp
-		subscriber_handler.cpp
-		temperature_calibration/accel.cpp
-		temperature_calibration/baro.cpp
-		temperature_calibration/gyro.cpp
-		temperature_calibration/task.cpp
-	DEPENDS
-		modules__uORB
-	)
+    MODULE modules__events
+    MAIN send_event
+    STACK_MAIN 2200
+    COMPILE_FLAGS
+    SRCS
+        rc_loss_alarm.cpp
+        send_event.cpp
+        set_leds.cpp
+        status_display.cpp
+        subscriber_handler.cpp
+        temperature_calibration/accel.cpp
+        temperature_calibration/baro.cpp
+        temperature_calibration/gyro.cpp
+        temperature_calibration/task.cpp
+    DEPENDS modules__uORB
+)

@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 # Copyright (c) 2017 PX4 Development Team. All rights reserved.
 #
@@ -29,22 +29,28 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
-
-#=============================================================================
-#
-#	Converts a cygwin path (/cygdrive/c/...) to a mixed windows path (C:/...)
-#
-#	It is called on every platform but only adjusts the output when
-#	called inside the cygwin environment.
 #
 
-macro (CYGPATH _path _cygpath)
-	if (CMAKE_HOST_SYSTEM_NAME STREQUAL CYGWIN)
-		EXECUTE_PROCESS(COMMAND cygpath.exe -m ${${_path}}
-		OUTPUT_VARIABLE ${_cygpath})
-		string (STRIP ${${_cygpath}} ${_cygpath})
-	else()
-		set(${_cygpath} ${${_path}})
-	endif ()
-endmacro (CYGPATH)
+# =============================================================================
+#
+# Converts a cygwin path (/cygdrive/c/...) to a mixed windows path (C:/...)
+#
+# It is called on every platform but only adjusts the output when called inside the cygwin environment.
+#
+
+macro(CYGPATH _path _cygpath)
+    if(CMAKE_HOST_SYSTEM_NAME STREQUAL CYGWIN)
+        execute_process(
+            COMMAND
+                cygpath.exe -m ${${_path}}
+            OUTPUT_VARIABLE ${_cygpath}
+        )
+        string(
+            STRIP
+                ${${_cygpath}}
+                ${_cygpath}
+        )
+    else()
+        set(${_cygpath} ${${_path}})
+    endif()
+endmacro(CYGPATH)

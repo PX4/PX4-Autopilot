@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
@@ -29,32 +29,32 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 
 px4_add_module(
-	MODULE modules__navigator
-	MAIN navigator
-	STACK_MAIN 1300
-	COMPILE_FLAGS
-	SRCS
-		navigator_main.cpp
-		navigator_mode.cpp
-		mission_block.cpp
-		mission.cpp
-		loiter.cpp
-		rtl.cpp
-		takeoff.cpp
-		land.cpp
-		precland.cpp
-		mission_feasibility_checker.cpp
-		geofence.cpp
-		datalinkloss.cpp
-		rcloss.cpp
-		enginefailure.cpp
-		gpsfailure.cpp
-		follow_target.cpp
-	DEPENDS
-		git_ecl
-		ecl_geo
-		landing_slope
-	)
+    MODULE modules__navigator
+    MAIN navigator
+    STACK_MAIN 1300
+    COMPILE_FLAGS
+    SRCS
+        navigator_main.cpp
+        navigator_mode.cpp
+        mission_block.cpp
+        mission.cpp
+        loiter.cpp
+        rtl.cpp
+        takeoff.cpp
+        land.cpp
+        precland.cpp
+        mission_feasibility_checker.cpp
+        geofence.cpp
+        datalinkloss.cpp
+        rcloss.cpp
+        enginefailure.cpp
+        gpsfailure.cpp
+        follow_target.cpp
+    DEPENDS
+        git_ecl
+        ecl_geo
+        landing_slope
+)

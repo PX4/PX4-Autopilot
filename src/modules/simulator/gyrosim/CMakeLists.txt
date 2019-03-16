@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
@@ -29,16 +29,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 
 px4_add_module(
-	MODULE drivers__gyrosim
-	MAIN gyrosim
-	COMPILE_FLAGS
-		-Wno-double-promotion
-	STACK_MAIN 1200
-	SRCS
-		gyrosim.cpp
-	DEPENDS
-		modules__simulator
+    MODULE drivers__gyrosim
+    MAIN gyrosim
+    COMPILE_FLAGS -Wno-double-promotion
+    STACK_MAIN 1200
+    SRCS gyrosim.cpp
+    DEPENDS modules__simulator
 )

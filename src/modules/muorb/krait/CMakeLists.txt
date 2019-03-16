@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
@@ -29,17 +29,17 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 include(hexagon_sdk)
 
 px4_add_module(
-	MODULE modules__muorb__krait
-	MAIN muorb
-	INCLUDES
-		${HEXAGON_SDK_INCLUDES}
-		${PX4_BINARY_DIR}/platforms/posix
-	SRCS
-		uORBKraitFastRpcChannel.cpp
-		px4muorb_KraitRpcWrapper.cpp
-		muorb_main.cpp
-	)
+    MODULE modules__muorb__krait
+    MAIN muorb
+    INCLUDES
+        ${HEXAGON_SDK_INCLUDES}
+        ${PX4_BINARY_DIR}/platforms/posix
+    SRCS
+        uORBKraitFastRpcChannel.cpp
+        px4muorb_KraitRpcWrapper.cpp
+        muorb_main.cpp
+)

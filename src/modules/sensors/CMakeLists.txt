@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
 #
@@ -29,26 +29,25 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 
 px4_add_module(
-	MODULE modules__sensors
-	MAIN sensors
-	PRIORITY "SCHED_PRIORITY_MAX-5"
-	STACK_MAIN 1500
-	SRCS
-		voted_sensors_update.cpp
-		rc_update.cpp
-		sensors.cpp
-		parameters.cpp
-		temperature_compensation.cpp
-
-	DEPENDS
-		airspeed
-		battery
-		conversion
-		drivers__device
-		git_ecl
-		ecl_validation
-		mathlib
-	)
+    MODULE modules__sensors
+    MAIN sensors
+    PRIORITY "SCHED_PRIORITY_MAX-5"
+    STACK_MAIN 1500
+    SRCS
+        voted_sensors_update.cpp
+        rc_update.cpp
+        sensors.cpp
+        parameters.cpp
+        temperature_compensation.cpp
+    DEPENDS
+        airspeed
+        battery
+        conversion
+        drivers__device
+        git_ecl
+        ecl_validation
+        mathlib
+)

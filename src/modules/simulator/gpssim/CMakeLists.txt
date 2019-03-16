@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
@@ -29,15 +29,12 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 
 px4_add_module(
-	MODULE drivers__gpssim
-	MAIN gpssim
-	COMPILE_FLAGS
-		-Wno-double-promotion
-	SRCS
-		gpssim.cpp
-	DEPENDS
-		modules__simulator
-	)
+    MODULE drivers__gpssim
+    MAIN gpssim
+    COMPILE_FLAGS -Wno-double-promotion
+    SRCS gpssim.cpp
+    DEPENDS modules__simulator
+)

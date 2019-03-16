@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
@@ -29,19 +29,18 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 px4_add_module(
-	MODULE modules__land_detector
-	MAIN land_detector
-	STACK_MAIN 1200
-	COMPILE_FLAGS
-	SRCS
-		land_detector_main.cpp
-		LandDetector.cpp
-		MulticopterLandDetector.cpp
-		FixedwingLandDetector.cpp
-		VtolLandDetector.cpp
-		RoverLandDetector.cpp
-	DEPENDS
-	)
-
+    MODULE modules__land_detector
+    MAIN land_detector
+    STACK_MAIN 1200
+    COMPILE_FLAGS
+    SRCS
+        land_detector_main.cpp
+        LandDetector.cpp
+        MulticopterLandDetector.cpp
+        FixedwingLandDetector.cpp
+        VtolLandDetector.cpp
+        RoverLandDetector.cpp
+    DEPENDS
+)

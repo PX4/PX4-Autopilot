@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
@@ -29,21 +29,21 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 px4_add_module(
-	MODULE modules__mc_pos_control
-	MAIN mc_pos_control
-	COMPILE_FLAGS
-	STACK_MAIN 1200
-	SRCS
-		mc_pos_control_main.cpp
-		PositionControl.cpp
-		Utility/ControlMath.cpp
-	DEPENDS
-		controllib
-		FlightTasks
-		git_ecl
-		ecl_geo
-		WeatherVane
-		CollisionPrevention
-	)
+    MODULE modules__mc_pos_control
+    MAIN mc_pos_control
+    COMPILE_FLAGS
+    STACK_MAIN 1200
+    SRCS
+        mc_pos_control_main.cpp
+        PositionControl.cpp
+        Utility/ControlMath.cpp
+    DEPENDS
+        controllib
+        FlightTasks
+        git_ecl
+        ecl_geo
+        WeatherVane
+        CollisionPrevention
+)

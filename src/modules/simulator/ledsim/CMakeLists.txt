@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
@@ -29,7 +29,12 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 
 px4_add_library(drivers__ledsim led.cpp)
-target_link_libraries(drivers__ledsim PRIVATE drivers__led drivers_board)
+target_link_libraries(
+    drivers__ledsim
+    PRIVATE
+        drivers__led
+        drivers_board
+)

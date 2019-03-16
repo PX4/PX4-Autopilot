@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
@@ -29,18 +29,17 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 
 px4_add_module(
-	MODULE modules__mc_att_control
-	MAIN mc_att_control
-	STACK_MAIN 1200
-	STACK_MAX 3500
-	COMPILE_FLAGS
-	SRCS
-		mc_att_control_main.cpp
-	DEPENDS
-		circuit_breaker
-		conversion
-		mathlib
-	)
+    MODULE modules__mc_att_control
+    MAIN mc_att_control
+    STACK_MAIN 1200
+    STACK_MAX 3500
+    COMPILE_FLAGS
+    SRCS mc_att_control_main.cpp
+    DEPENDS
+        circuit_breaker
+        conversion
+        mathlib
+)

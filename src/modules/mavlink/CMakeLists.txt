@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
 #
@@ -29,48 +29,46 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 
 px4_add_git_submodule(TARGET git_mavlink_v2 PATH "${PX4_SOURCE_DIR}/mavlink/include/mavlink/v2.0")
 
 px4_add_module(
-	MODULE modules__mavlink
-	MAIN mavlink
-	STACK_MAIN 1600
-	STACK_MAX 1600
-	COMPILE_FLAGS
-	INCLUDES
-		${PX4_SOURCE_DIR}/mavlink/include/mavlink
-	SRCS
-		mavlink.c
-		mavlink_command_sender.cpp
-		mavlink_ftp.cpp
-		mavlink_high_latency2.cpp
-		mavlink_log_handler.cpp
-		mavlink_main.cpp
-		mavlink_messages.cpp
-		mavlink_mission.cpp
-		mavlink_orb_subscription.cpp
-		mavlink_parameters.cpp
-		mavlink_rate_limiter.cpp
-		mavlink_receiver.cpp
-		mavlink_shell.cpp
-		mavlink_simple_analyzer.cpp
-		mavlink_stream.cpp
-		mavlink_ulog.cpp
-		mavlink_timesync.cpp
-	MODULE_CONFIG
-		module.yaml
-	DEPENDS
-		airspeed
-		git_mavlink_v2
-		conversion
-		git_ecl
-		ecl_geo
-		version
-	UNITY_BUILD
-	)
+    MODULE modules__mavlink
+    MAIN mavlink
+    STACK_MAIN 1600
+    STACK_MAX 1600
+    COMPILE_FLAGS
+    INCLUDES ${PX4_SOURCE_DIR}/mavlink/include/mavlink
+    SRCS
+        mavlink.c
+        mavlink_command_sender.cpp
+        mavlink_ftp.cpp
+        mavlink_high_latency2.cpp
+        mavlink_log_handler.cpp
+        mavlink_main.cpp
+        mavlink_messages.cpp
+        mavlink_mission.cpp
+        mavlink_orb_subscription.cpp
+        mavlink_parameters.cpp
+        mavlink_rate_limiter.cpp
+        mavlink_receiver.cpp
+        mavlink_shell.cpp
+        mavlink_simple_analyzer.cpp
+        mavlink_stream.cpp
+        mavlink_ulog.cpp
+        mavlink_timesync.cpp
+    MODULE_CONFIG module.yaml
+    DEPENDS
+        airspeed
+        git_mavlink_v2
+        conversion
+        git_ecl
+        ecl_geo
+        version
+    UNITY_BUILD
+)
 
 if(PX4_TESTING)
-	add_subdirectory(mavlink_tests)
+    add_subdirectory(mavlink_tests)
 endif()

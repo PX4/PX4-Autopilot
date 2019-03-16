@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2017 PX4 Development Team. All rights reserved.
 #
@@ -29,13 +29,5 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
-px4_add_module(
-	MODULE modules__camera_feedback
-	MAIN camera_feedback
-	COMPILE_FLAGS
-	SRCS
-		camera_feedback.cpp
-	DEPENDS
-	)
-
+#
+px4_add_module(MODULE modules__camera_feedback MAIN camera_feedback COMPILE_FLAGS SRCS camera_feedback.cpp DEPENDS)

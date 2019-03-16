@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
@@ -29,14 +29,14 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 px4_add_module(
-	MODULE modules__commander__commander_tests
-	MAIN commander_tests
-	SRCS
-		commander_tests.cpp
-		state_machine_helper_test.cpp
-		../state_machine_helper.cpp
-		../PreflightCheck.cpp
-	DEPENDS
-	)
+    MODULE modules__commander__commander_tests
+    MAIN commander_tests
+    SRCS
+        commander_tests.cpp
+        state_machine_helper_test.cpp
+        ../state_machine_helper.cpp
+        ../PreflightCheck.cpp
+    DEPENDS
+)

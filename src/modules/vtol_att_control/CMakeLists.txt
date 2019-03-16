@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
@@ -29,19 +29,17 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 px4_add_module(
-	MODULE modules__vtol_att_control
-	MAIN vtol_att_control
-	STACK_MAIN 1300
-	COMPILE_FLAGS
-	SRCS
-		vtol_att_control_main.cpp
-		tiltrotor.cpp
-		vtol_type.cpp
-		tailsitter.cpp
-		standard.cpp
-	DEPENDS
-		pwm_limit
-	)
-
+    MODULE modules__vtol_att_control
+    MAIN vtol_att_control
+    STACK_MAIN 1300
+    COMPILE_FLAGS
+    SRCS
+        vtol_att_control_main.cpp
+        tiltrotor.cpp
+        vtol_type.cpp
+        tailsitter.cpp
+        standard.cpp
+    DEPENDS pwm_limit
+)

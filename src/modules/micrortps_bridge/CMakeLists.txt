@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 # Copyright (c) 2017 PX4 Development Team. All rights reserved.
 #
@@ -29,131 +29,178 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 
-#=============================================================================
+# =============================================================================
 # RTPS and micro-cdr
 #
 
 find_program(FASTRTPSGEN fastrtpsgen PATHS $ENV{FASTRTPSGEN_DIR})
 if(NOT FASTRTPSGEN)
-	message(FATAL_ERROR "Unable to find fastrtpsgen")
+    message(FATAL_ERROR "Unable to find fastrtpsgen")
 endif()
 
-if (EXISTS "${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_message_ids.yaml")
+if(EXISTS "${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_message_ids.yaml")
 
-  set(config_rtps_send_topics)
-	execute_process(
-		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_classifier.py -s
-		OUTPUT_VARIABLE config_rtps_send_topics
-	)
+    set(config_rtps_send_topics)
+    execute_process(
+        COMMAND
+            ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_classifier.py -s
+        OUTPUT_VARIABLE config_rtps_send_topics
+    )
 
-	STRING(REGEX REPLACE ", " ";" config_rtps_send_topics "${config_rtps_send_topics}")
-	STRING(REGEX REPLACE "\n" "" config_rtps_send_topics "${config_rtps_send_topics}")
+    string(
+        REGEX
+        REPLACE
+            ", "
+            ";"
+            config_rtps_send_topics
+            "${config_rtps_send_topics}"
+    )
+    string(
+        REGEX
+        REPLACE
+            "\n"
+            ""
+            config_rtps_send_topics
+            "${config_rtps_send_topics}"
+    )
 
-	set(config_rtps_receive_topics)
-	execute_process(
-		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_classifier.py -r
-		OUTPUT_VARIABLE config_rtps_receive_topics
-	)
+    set(config_rtps_receive_topics)
+    execute_process(
+        COMMAND
+            ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_classifier.py -r
+        OUTPUT_VARIABLE config_rtps_receive_topics
+    )
 
-	STRING(REGEX REPLACE ", " ";" config_rtps_receive_topics "${config_rtps_receive_topics}")
-	STRING(REGEX REPLACE "\n" "" config_rtps_receive_topics "${config_rtps_receive_topics}")
+    string(
+        REGEX
+        REPLACE
+            ", "
+            ";"
+            config_rtps_receive_topics
+            "${config_rtps_receive_topics}"
+    )
+    string(
+        REGEX
+        REPLACE
+            "\n"
+            ""
+            config_rtps_receive_topics
+            "${config_rtps_receive_topics}"
+    )
 
 endif()
 
-if (FASTRTPSGEN AND (config_rtps_send_topics OR config_rtps_receive_topics))
-	option(GENERATE_RTPS_BRIDGE "enable RTPS and microCDR" ON)
+if(FASTRTPSGEN AND (config_rtps_send_topics OR config_rtps_receive_topics))
+    option(GENERATE_RTPS_BRIDGE "enable RTPS and microCDR" ON)
 endif()
 
-if (GENERATE_RTPS_BRIDGE)
+if(GENERATE_RTPS_BRIDGE)
 
-	# temporarily set to OFF
-	option(CHECK_ENDIANNESS OFF)
+    # temporarily set to OFF
+    option(CHECK_ENDIANNESS OFF)
 
-	add_subdirectory(micrortps_client)
+    add_subdirectory(micrortps_client)
 
-	###############################################################################
-	# micro-cdr serialization
-	###############################################################################
-	include(px4_git)
-	px4_add_git_submodule(TARGET git_micro_cdr PATH micro-CDR)
-	add_subdirectory(micro-CDR)
+    #
+    # micro-cdr serialization
+    #
+    include(px4_git)
+    px4_add_git_submodule(TARGET git_micro_cdr PATH micro-CDR)
+    add_subdirectory(micro-CDR)
 
-	set(msg_out_path_microcdr ${PX4_BINARY_DIR}/uORB_microcdr/topics)
-	set(msg_source_out_path_microcdr ${CMAKE_CURRENT_BINARY_DIR}/topics_microcdr_sources)
+    set(msg_out_path_microcdr ${PX4_BINARY_DIR}/uORB_microcdr/topics)
+    set(msg_source_out_path_microcdr ${CMAKE_CURRENT_BINARY_DIR}/topics_microcdr_sources)
 
-	set(uorb_headers_microcdr)
-	set(uorb_sources_microcdr)
+    set(uorb_headers_microcdr)
+    set(uorb_sources_microcdr)
 
-	# send topic files
-	message(STATUS "RTPS send: ${config_rtps_send_topics}")
-	set(send_topic_files)
-	foreach(topic ${config_rtps_send_topics})
-		list(APPEND send_topic_files ${PX4_SOURCE_DIR}/msg/${topic}.msg)
-		list(APPEND uorb_headers_microcdr ${msg_out_path_microcdr}/${topic}.h)
-		list(APPEND uorb_sources_microcdr ${msg_source_out_path_microcdr}/${topic}.cpp)
-	endforeach()
+    # send topic files
+    message(STATUS "RTPS send: ${config_rtps_send_topics}")
+    set(send_topic_files)
+    foreach(topic ${config_rtps_send_topics})
+        list(
+            APPEND
+                send_topic_files
+                ${PX4_SOURCE_DIR}/msg/${topic}.msg
+        )
+        list(
+            APPEND
+                uorb_headers_microcdr
+                ${msg_out_path_microcdr}/${topic}.h
+        )
+        list(
+            APPEND
+                uorb_sources_microcdr
+                ${msg_source_out_path_microcdr}/${topic}.cpp
+        )
+    endforeach()
 
-	# receive topic files
-	message(STATUS "RTPS receive: ${config_rtps_receive_topics}")
-	set(receive_topic_files)
-	foreach(topic ${config_rtps_receive_topics})
-		list(APPEND receive_topic_files ${PX4_SOURCE_DIR}/msg/${topic}.msg)
-		list(APPEND uorb_headers_microcdr ${msg_out_path_microcdr}/${topic}.h)
-		list(APPEND uorb_sources_microcdr ${msg_source_out_path_microcdr}/${topic}.cpp)
-	endforeach()
+    # receive topic files
+    message(STATUS "RTPS receive: ${config_rtps_receive_topics}")
+    set(receive_topic_files)
+    foreach(topic ${config_rtps_receive_topics})
+        list(
+            APPEND
+                receive_topic_files
+                ${PX4_SOURCE_DIR}/msg/${topic}.msg
+        )
+        list(
+            APPEND
+                uorb_headers_microcdr
+                ${msg_out_path_microcdr}/${topic}.h
+        )
+        list(
+            APPEND
+                uorb_sources_microcdr
+                ${msg_source_out_path_microcdr}/${topic}.cpp
+        )
+    endforeach()
 
-	list(REMOVE_DUPLICATES uorb_headers_microcdr)
-	list(REMOVE_DUPLICATES uorb_sources_microcdr)
+    list(REMOVE_DUPLICATES uorb_headers_microcdr)
+    list(REMOVE_DUPLICATES uorb_sources_microcdr)
 
-	# Generate uORB serialization headers
-	add_custom_command(OUTPUT ${uorb_headers_microcdr}
-		COMMAND ${PYTHON_EXECUTABLE} tools/px_generate_uorb_topic_files.py
-			--headers
-			-f ${send_topic_files} ${receive_topic_files}
-			-i .
-			-o ${msg_out_path_microcdr}
-			-e templates/uorb_microcdr
-			-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/headers_microcdr
-			-q
-		DEPENDS ${msg_files}
-		COMMENT "Generating uORB microcdr topic headers"
-		WORKING_DIRECTORY ${PX4_SOURCE_DIR}/msg/
-		VERBATIM
-		)
-	add_custom_target(uorb_headers_microcdr_gen DEPENDS ${uorb_headers_microcdr})
+    # Generate uORB serialization headers
+    add_custom_command(
+        OUTPUT ${uorb_headers_microcdr}
+        COMMAND
+            ${PYTHON_EXECUTABLE} tools/px_generate_uorb_topic_files.py
+            --headers
+                -f ${send_topic_files} ${receive_topic_files} -i . -o ${msg_out_path_microcdr} -e
+                templates/uorb_microcdr -t ${CMAKE_CURRENT_BINARY_DIR}/tmp/headers_microcdr -q
+        DEPENDS ${msg_files}
+        COMMENT "Generating uORB microcdr topic headers"
+        WORKING_DIRECTORY ${PX4_SOURCE_DIR}/msg/
+        VERBATIM
+    )
+    add_custom_target(uorb_headers_microcdr_gen DEPENDS ${uorb_headers_microcdr})
 
-	# Generate uORB serialization sources
-	add_custom_command(OUTPUT ${uorb_sources_microcdr}
-		COMMAND ${PYTHON_EXECUTABLE} tools/px_generate_uorb_topic_files.py
-			--sources
-			-f ${send_topic_files} ${receive_topic_files}
-			-i .
-			-o ${msg_source_out_path_microcdr}
-			-e templates/uorb_microcdr
-			-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/sources_microcdr
-			-q
-		DEPENDS ${msg_files}
-		COMMENT "Generating uORB microcdr topic sources"
-		WORKING_DIRECTORY ${PX4_SOURCE_DIR}/msg/
-		VERBATIM
-		)
-	px4_add_library(uorb_msgs_microcdr ${uorb_sources_microcdr})
-	add_dependencies(uorb_msgs_microcdr
-		uorb_headers_microcdr_gen
-		git_micro_cdr
-		microcdr
-	)
-	add_dependencies(microcdr prebuild_targets)
+    # Generate uORB serialization sources
+    add_custom_command(
+        OUTPUT ${uorb_sources_microcdr}
+        COMMAND
+            ${PYTHON_EXECUTABLE} tools/px_generate_uorb_topic_files.py
+            --sources
+                -f ${send_topic_files} ${receive_topic_files} -i . -o ${msg_source_out_path_microcdr} -e
+                templates/uorb_microcdr -t ${CMAKE_CURRENT_BINARY_DIR}/tmp/sources_microcdr -q
+        DEPENDS ${msg_files}
+        COMMENT "Generating uORB microcdr topic sources"
+        WORKING_DIRECTORY ${PX4_SOURCE_DIR}/msg/
+        VERBATIM
+    )
+    px4_add_library(uorb_msgs_microcdr ${uorb_sources_microcdr})
+    add_dependencies(uorb_msgs_microcdr uorb_headers_microcdr_gen git_micro_cdr microcdr)
+    add_dependencies(microcdr prebuild_targets)
 
-	# microCDR
-	target_include_directories(uorb_msgs_microcdr
-		PUBLIC
-			${CMAKE_CURRENT_SOURCE_DIR}/micro-CDR/include
-			${CMAKE_CURRENT_BINARY_DIR}/micro-CDR/include
-			${CMAKE_CURRENT_BINARY_DIR}/micro-CDR/include/microcdr
-	)
+    # microCDR
+    target_include_directories(
+        uorb_msgs_microcdr
+        PUBLIC
+            ${CMAKE_CURRENT_SOURCE_DIR}/micro-CDR/include
+            ${CMAKE_CURRENT_BINARY_DIR}/micro-CDR/include
+            ${CMAKE_CURRENT_BINARY_DIR}/micro-CDR/include/microcdr
+    )
 
-	target_link_libraries(uorb_msgs_microcdr PRIVATE microcdr)
+    target_link_libraries(uorb_msgs_microcdr PRIVATE microcdr)
 endif()

@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2016 PX4 Development Team. All rights reserved.
 #
@@ -29,21 +29,20 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 
 px4_add_module(
-	MODULE modules__logger
-	MAIN logger
-	PRIORITY "SCHED_PRIORITY_MAX-30"
-	STACK_MAIN 2200
-	COMPILE_FLAGS
-	SRCS
-		logger.cpp
-		log_writer.cpp
-		log_writer_file.cpp
-		log_writer_mavlink.cpp
-		util.cpp
-		watchdog.cpp
-	DEPENDS
-		version
-	)
+    MODULE modules__logger
+    MAIN logger
+    PRIORITY "SCHED_PRIORITY_MAX-30"
+    STACK_MAIN 2200
+    COMPILE_FLAGS
+    SRCS
+        logger.cpp
+        log_writer.cpp
+        log_writer_file.cpp
+        log_writer_mavlink.cpp
+        util.cpp
+        watchdog.cpp
+    DEPENDS version
+)

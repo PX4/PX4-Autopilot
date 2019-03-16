@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
@@ -29,10 +29,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 
-px4_add_library(modules__muorb__adsp
-	px4muorb.cpp
-	uORBFastRpcChannel.cpp
-)
+px4_add_library(modules__muorb__adsp px4muorb.cpp uORBFastRpcChannel.cpp)
 target_include_directories(modules__muorb__adsp PRIVATE ${PX4_SOURCE_DIR}/src/modules/uORB)

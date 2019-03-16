@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
 #
@@ -29,27 +29,25 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 
-add_library(px4iofirmware
-	hx_stream.c
-	adc.c
-	controls.c
-	mixer.cpp
-	px4io.c
-	registers.c
-	safety.c
-	serial.c
-	)
+add_library(px4iofirmware hx_stream.c adc.c controls.c mixer.cpp px4io.c registers.c safety.c serial.c)
 
-set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES px4iofirmware)
-target_link_libraries(px4iofirmware
-	PUBLIC
-		nuttx_apps
-		nuttx_arch
-		nuttx_c
-		mixer
-		rc
-		perf
-		pwm_limit
+set_property(
+    GLOBAL
+    APPEND
+    PROPERTY
+        PX4_MODULE_LIBRARIES
+        px4iofirmware
+)
+target_link_libraries(
+    px4iofirmware
+    PUBLIC
+        nuttx_apps
+        nuttx_arch
+        nuttx_c
+        mixer
+        rc
+        perf
+        pwm_limit
 )

@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
@@ -29,15 +29,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 px4_add_module(
-	MODULE modules__wind_estimator
-	MAIN wind_estimator
-	INCLUDES
-		${PX4_SOURCE_DIR}/src/lib/ecl
-	SRCS
-		wind_estimator_main.cpp
-	DEPENDS
-		git_ecl
-		ecl_airdata
+    MODULE modules__wind_estimator
+    MAIN wind_estimator
+    INCLUDES ${PX4_SOURCE_DIR}/src/lib/ecl
+    SRCS wind_estimator_main.cpp
+    DEPENDS
+        git_ecl
+        ecl_airdata
 )

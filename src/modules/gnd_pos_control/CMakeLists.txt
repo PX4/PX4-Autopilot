@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2017 PX4 Development Team. All rights reserved.
 #
@@ -29,14 +29,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 px4_add_module(
-	MODULE modules__gnd_pos_control
-	MAIN gnd_pos_control
-	SRCS
-		GroundRoverPositionControl.cpp
-	DEPENDS
-		git_ecl
-		ecl_l1
-		pid
-	)
+    MODULE modules__gnd_pos_control
+    MAIN gnd_pos_control
+    SRCS GroundRoverPositionControl.cpp
+    DEPENDS
+        git_ecl
+        ecl_l1
+        pid
+)

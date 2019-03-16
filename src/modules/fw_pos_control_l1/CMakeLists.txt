@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
 #
@@ -29,22 +29,21 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 
 add_subdirectory(launchdetection)
 add_subdirectory(runway_takeoff)
 
 px4_add_module(
-	MODULE modules__fw_pos_control_l1
-	MAIN fw_pos_control_l1
-	STACK_MAIN 1200
-	SRCS
-		FixedwingPositionControl.cpp
-	DEPENDS
-		git_ecl
-		ecl_l1
-		ecl_tecs
-		launchdetection
-		landing_slope
-		runway_takeoff
-	)
+    MODULE modules__fw_pos_control_l1
+    MAIN fw_pos_control_l1
+    STACK_MAIN 1200
+    SRCS FixedwingPositionControl.cpp
+    DEPENDS
+        git_ecl
+        ecl_l1
+        ecl_tecs
+        launchdetection
+        landing_slope
+        runway_takeoff
+)

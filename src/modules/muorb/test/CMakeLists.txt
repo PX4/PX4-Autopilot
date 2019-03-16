@@ -1,4 +1,4 @@
-############################################################################
+#
 #
 #   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
@@ -29,13 +29,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
+#
 px4_add_module(
-	MODULE modules__muorb__test__muorb_test
-	MAIN muorb_test
-	SRCS
-		muorb_test_main.cpp
-		muorb_test_start_posix.cpp
-		muorb_test_example.cpp
-	DEPENDS
-	)
+    MODULE modules__muorb__test__muorb_test
+    MAIN muorb_test
+    SRCS
+        muorb_test_main.cpp
+        muorb_test_start_posix.cpp
+        muorb_test_example.cpp
+    DEPENDS
+)
