@@ -858,11 +858,10 @@ MulticopterAttitudeControl::run()
 		/* run controller on gyro changes */
 		if (poll_fds.revents & POLLIN) {
 			const hrt_abstime now = hrt_absolute_time();
-			float dt = (now - last_run) / 1e6f;
-			last_run = now;
 
 			// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
-			math::constrain(dt, 0.0002f, 0.02f);
+			const float dt = math::constrain(((now - last_run) / 1e6f), 0.0002f, 0.02f);
+			last_run = now;
 
 			/* copy gyro data */
 			orb_copy(ORB_ID(sensor_gyro), _sensor_gyro_sub[_selected_gyro], &_sensor_gyro);
