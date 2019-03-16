@@ -36,6 +36,7 @@ px4_add_module(
 	MAIN gyrosim
 	COMPILE_FLAGS
 		-Wno-double-promotion
+		-Wno-cast-align # TODO: fix and enable
 	STACK_MAIN 1200
 	SRCS
 		gyrosim.cpp

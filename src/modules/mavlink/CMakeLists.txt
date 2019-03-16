@@ -39,6 +39,7 @@ px4_add_module(
 	STACK_MAIN 1600
 	STACK_MAX 1600
 	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	INCLUDES
 		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS

@@ -35,6 +35,7 @@ px4_add_module(
 	MAIN px4io
 	STACK_MAIN 1816
 	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		px4io.cpp
 		px4io_uploader.cpp
