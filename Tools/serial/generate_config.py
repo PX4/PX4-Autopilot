@@ -241,7 +241,7 @@ PARAM_DEFINE_{param_type}({name}, {default_value});
 for yaml_file in args.config_files:
     with open(yaml_file, 'r') as stream:
         try:
-            yaml_config = yaml.load(stream)
+            yaml_config = yaml.load(stream, Loader=yaml.Loader)
             serial_commands.extend(parse_yaml_serial_config(yaml_config))
 
             # TODO: additional params should be parsed in a separate script
