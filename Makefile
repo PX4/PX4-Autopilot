@@ -335,6 +335,12 @@ format:
 	$(call colorecho,'Formatting with astyle')
 	@"$(SRC_DIR)"/Tools/astyle/check_code_style_all.sh --fix
 
+format_cmake:
+	@git submodule deinit -f .
+	cmake-format -i CMakeLists.txt
+	cmake-format -i `find cmake/ -type f`
+	cmake-format -i `find src/modules/ -name CMakeLists.txt`
+
 # Testing
 # --------------------------------------------------------------------
 .PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard tests_avoidance
