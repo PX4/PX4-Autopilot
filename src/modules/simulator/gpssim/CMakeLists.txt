@@ -36,6 +36,7 @@ px4_add_module(
 	MAIN gpssim
 	COMPILE_FLAGS
 		-Wno-double-promotion
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		gpssim.cpp
 	DEPENDS

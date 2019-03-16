@@ -36,7 +36,7 @@ px4_add_module(
 	STACK_MAIN 1024
 	COMPILE_FLAGS
 		-Wno-pmf-conversions
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		pwm_input.cpp
-	DEPENDS
 	)

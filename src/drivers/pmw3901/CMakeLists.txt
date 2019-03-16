@@ -34,6 +34,8 @@
 px4_add_module(
 	MODULE drivers__pmw3901
 	MAIN pmw3901
+	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	STACK_MAIN 1200
 	SRCS
 		pmw3901.cpp

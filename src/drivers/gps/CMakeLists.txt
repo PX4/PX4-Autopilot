@@ -37,6 +37,8 @@ px4_add_module(
 	MODULE drivers__gps
 	MAIN gps
 	STACK_MAIN 1200
+	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		gps.cpp
 		devices/src/gps_helper.cpp
