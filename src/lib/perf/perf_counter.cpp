@@ -49,8 +49,8 @@
 #include "perf_counter.h"
 
 /* latency histogram */
-__EXPORT const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
-__EXPORT const uint16_t	latency_buckets[LATENCY_BUCKET_COUNT] = { 1, 2, 5, 10, 20, 50, 100, 1000 };
+const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
+const uint16_t	latency_buckets[LATENCY_BUCKET_COUNT] = { 1, 2, 5, 10, 20, 50, 100, 1000 };
 __EXPORT uint32_t	latency_counters[LATENCY_BUCKET_COUNT + 1];
 
 
@@ -71,44 +71,41 @@ struct perf_ctr_header {
 /**
  * PC_EVENT counter.
  */
-struct perf_ctr_count {
-	struct perf_ctr_header	hdr;
-	uint64_t		event_count;
+struct perf_ctr_count : public perf_ctr_header {
+	uint64_t		event_count{0};
 };
 
 /**
  * PC_ELAPSED counter.
  */
-struct perf_ctr_elapsed {
-	struct perf_ctr_header	hdr;
-	uint64_t		event_count;
-	uint64_t		time_start;
-	uint64_t		time_total;
-	uint32_t		time_least;
-	uint32_t		time_most;
-	float			mean;
-	float			M2;
+struct perf_ctr_elapsed : public perf_ctr_header {
+	uint64_t		event_count{0};
+	uint64_t		time_start{0};
+	uint64_t		time_total{0};
+	uint32_t		time_least{0};
+	uint32_t		time_most{0};
+	float			mean{0.0f};
+	float			M2{0.0f};
 };
 
 /**
  * PC_INTERVAL counter.
  */
-struct perf_ctr_interval {
-	struct perf_ctr_header	hdr;
-	uint64_t		event_count;
-	uint64_t		time_event;
-	uint64_t		time_first;
-	uint64_t		time_last;
-	uint32_t		time_least;
-	uint32_t		time_most;
-	float			mean;
-	float			M2;
+struct perf_ctr_interval : public perf_ctr_header {
+	uint64_t		event_count{0};
+	uint64_t		time_event{0};
+	uint64_t		time_first{0};
+	uint64_t		time_last{0};
+	uint32_t		time_least{0};
+	uint32_t		time_most{0};
+	float			mean{0.0f};
+	float			M2{0.0f};
 };
 
 /**
  * List of all known counters.
  */
-static sq_queue_t	perf_counters = { NULL, NULL };
+static sq_queue_t	perf_counters = { nullptr, nullptr };
 
 /**
  * mutex protecting access to the perf_counters linked list (which is read from & written to by different threads)
@@ -125,27 +122,26 @@ pthread_mutex_t perf_counters_mutex = PTHREAD_MUTEX_INITIALIZER;
 perf_counter_t
 perf_alloc(enum perf_counter_type type, const char *name)
 {
-	perf_counter_t ctr = NULL;
+	perf_counter_t ctr = nullptr;
 
 	switch (type) {
 	case PC_COUNT:
-		ctr = (perf_counter_t)calloc(sizeof(struct perf_ctr_count), 1);
+		ctr = new perf_ctr_count();
 		break;
 
 	case PC_ELAPSED:
-		ctr = (perf_counter_t)calloc(sizeof(struct perf_ctr_elapsed), 1);
+		ctr = new perf_ctr_elapsed();
 		break;
 
 	case PC_INTERVAL:
-		ctr = (perf_counter_t)calloc(sizeof(struct perf_ctr_interval), 1);
-
+		ctr = new perf_ctr_interval();
 		break;
 
 	default:
 		break;
 	}
 
-	if (ctr != NULL) {
+	if (ctr != nullptr) {
 		ctr->type = type;
 		ctr->name = name;
 		pthread_mutex_lock(&perf_counters_mutex);
@@ -162,7 +158,7 @@ perf_alloc_once(enum perf_counter_type type, const char *name)
 	pthread_mutex_lock(&perf_counters_mutex);
 	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
 
-	while (handle != NULL) {
+	while (handle != nullptr) {
 		if (!strcmp(handle->name, name)) {
 			if (type == handle->type) {
 				/* they are the same counter */
@@ -172,7 +168,7 @@ perf_alloc_once(enum perf_counter_type type, const char *name)
 			} else {
 				/* same name but different type, assuming this is an error and not intended */
 				pthread_mutex_unlock(&perf_counters_mutex);
-				return NULL;
+				return nullptr;
 			}
 		}
 
@@ -188,20 +184,21 @@ perf_alloc_once(enum perf_counter_type type, const char *name)
 void
 perf_free(perf_counter_t handle)
 {
-	if (handle == NULL) {
+	if (handle == nullptr) {
 		return;
 	}
 
 	pthread_mutex_lock(&perf_counters_mutex);
 	sq_rem(&handle->link, &perf_counters);
 	pthread_mutex_unlock(&perf_counters_mutex);
-	free(handle);
+
+	delete handle;
 }
 
 void
 perf_count(perf_counter_t handle)
 {
-	if (handle == NULL) {
+	if (handle == nullptr) {
 		return;
 	}
 
@@ -260,7 +257,7 @@ perf_count(perf_counter_t handle)
 void
 perf_begin(perf_counter_t handle)
 {
-	if (handle == NULL) {
+	if (handle == nullptr) {
 		return;
 	}
 
@@ -277,7 +274,7 @@ perf_begin(perf_counter_t handle)
 void
 perf_end(perf_counter_t handle)
 {
-	if (handle == NULL) {
+	if (handle == nullptr) {
 		return;
 	}
 
@@ -322,7 +319,7 @@ perf_end(perf_counter_t handle)
 void
 perf_set_elapsed(perf_counter_t handle, int64_t elapsed)
 {
-	if (handle == NULL) {
+	if (handle == nullptr) {
 		return;
 	}
 
@@ -363,7 +360,7 @@ perf_set_elapsed(perf_counter_t handle, int64_t elapsed)
 void
 perf_set_count(perf_counter_t handle, uint64_t count)
 {
-	if (handle == NULL) {
+	if (handle == nullptr) {
 		return;
 	}
 
@@ -382,7 +379,7 @@ perf_set_count(perf_counter_t handle, uint64_t count)
 void
 perf_cancel(perf_counter_t handle)
 {
-	if (handle == NULL) {
+	if (handle == nullptr) {
 		return;
 	}
 
@@ -404,7 +401,7 @@ perf_cancel(perf_counter_t handle)
 void
 perf_reset(perf_counter_t handle)
 {
-	if (handle == NULL) {
+	if (handle == nullptr) {
 		return;
 	}
 
@@ -439,7 +436,7 @@ perf_reset(perf_counter_t handle)
 void
 perf_print_counter(perf_counter_t handle)
 {
-	if (handle == NULL) {
+	if (handle == nullptr) {
 		return;
 	}
 
@@ -449,7 +446,7 @@ perf_print_counter(perf_counter_t handle)
 void
 perf_print_counter_fd(int fd, perf_counter_t handle)
 {
-	if (handle == NULL) {
+	if (handle == nullptr) {
 		return;
 	}
 
@@ -499,7 +496,7 @@ perf_print_counter_buffer(char *buffer, int length, perf_counter_t handle)
 {
 	int num_written = 0;
 
-	if (handle == NULL) {
+	if (handle == nullptr) {
 		return 0;
 	}
 
@@ -549,7 +546,7 @@ perf_print_counter_buffer(char *buffer, int length, perf_counter_t handle)
 uint64_t
 perf_event_count(perf_counter_t handle)
 {
-	if (handle == NULL) {
+	if (handle == nullptr) {
 		return 0;
 	}
 
@@ -580,7 +577,7 @@ perf_iterate_all(perf_callback cb, void *user)
 	pthread_mutex_lock(&perf_counters_mutex);
 	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
 
-	while (handle != NULL) {
+	while (handle != nullptr) {
 		cb(handle, user);
 		handle = (perf_counter_t)sq_next(&handle->link);
 	}
@@ -594,7 +591,7 @@ perf_print_all(int fd)
 	pthread_mutex_lock(&perf_counters_mutex);
 	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
 
-	while (handle != NULL) {
+	while (handle != nullptr) {
 		perf_print_counter_fd(fd, handle);
 		handle = (perf_counter_t)sq_next(&handle->link);
 	}
@@ -621,7 +618,7 @@ perf_reset_all(void)
 	pthread_mutex_lock(&perf_counters_mutex);
 	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
 
-	while (handle != NULL) {
+	while (handle != nullptr) {
 		perf_reset(handle);
 		handle = (perf_counter_t)sq_next(&handle->link);
 	}
