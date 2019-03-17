@@ -106,7 +106,7 @@
                 "type": "cortex-debug",
                 "servertype": "jlink",
                 "device": "STM32F427VI",
-                //"svdFile": "",
+                "svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/STM32F427.svd",
                 "interface": "swd",
                 "ipAddress": null,
                 "serialNumber": null
