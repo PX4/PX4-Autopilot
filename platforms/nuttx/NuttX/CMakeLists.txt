@@ -129,7 +129,7 @@ add_custom_command(
 		${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
 		${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
 	WORKING_DIRECTORY ${NUTTX_DIR}
-	COMMENT "Copying NuttX config ${NUTTX_CONFIG} and configuring"
+	COMMENT "Copying NuttX config ${NUTTX_CONFIG}"
 )
 
 # NuttX defconfig
@@ -141,14 +141,13 @@ if (NOT config_expanded)
 	add_custom_command(
 		OUTPUT ${NUTTX_DIR}/.config
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DEFCONFIG} ${NUTTX_DIR}/.config
-		COMMAND kconfig-tweak --set-str CONFIG_APPS_DIR "../apps"
-		COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD_CUSTOM=y olddefconfig
+		COMMAND PATH=${CMAKE_CURRENT_SOURCE_DIR}/tools:$ENV{PATH} make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD_CUSTOM=y CONFIG_APPS_DIR="../apps" olddefconfig > nuttx_olddefconfig.log
 		DEPENDS
 			${NUTTX_DEFCONFIG}
 			${NUTTX_DIR}/configs/dummy/Kconfig
 			${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy_config_dir.stamp
 		WORKING_DIRECTORY ${NUTTX_DIR}
-		COMMENT "Copying NuttX config ${NUTTX_CONFIG} and configuring"
+		COMMENT "Copying NuttX compressed config ${NUTTX_CONFIG} and inflating"
 	)
 else()
 	# copy uncompressed PX4 defconfig into nuttx
@@ -160,7 +159,7 @@ else()
 			${NUTTX_DIR}/configs/dummy/Kconfig
 			${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy_config_dir.stamp
 		WORKING_DIRECTORY ${NUTTX_DIR}
-		COMMENT "Copying NuttX uncompressed config ${NUTTX_CONFIG} and configuring"
+		COMMENT "Copying NuttX uncompressed config ${NUTTX_CONFIG}"
 	)
 endif()
 
@@ -189,11 +188,8 @@ else()
 endif()
 
 # context
-add_custom_command(
-	OUTPUT
-		${NUTTX_DIR}/include/nuttx/version.h
-		${NUTTX_DIR}/include/nuttx/config.h
-	COMMAND make ${nuttx_build_options} --no-print-directory CONFIG_ARCH_BOARD_CUSTOM=y context ${nuttx_build_output}
+add_custom_command(OUTPUT ${NUTTX_DIR}/include/nuttx/version.h ${NUTTX_DIR}/include/nuttx/config.h
+	COMMAND make ${nuttx_build_options} --no-print-directory CONFIG_ARCH_BOARD_CUSTOM=y context > nuttx_context.log
 	DEPENDS ${NUTTX_DIR}/.config
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	${nuttx_build_uses_terminal}
@@ -251,7 +247,7 @@ endif()
 # libapps.a
 add_custom_command(OUTPUT ${APPS_DIR}/libapps.a ${APPS_DIR}/platform/.built
 	COMMAND find ${APPS_DIR} -name \*.o -delete
-	COMMAND make ${nuttx_build_options} --no-print-directory -C ../apps TOPDIR="${NUTTX_DIR}" libapps.a ${nuttx_build_output}
+	COMMAND make ${nuttx_build_options} --no-print-directory -C ../apps TOPDIR="${NUTTX_DIR}" libapps.a > nuttx_apps.log
 	DEPENDS ${nuttx_builtin_list} ${NUTTX_DIR}/include/nuttx/version.h ${NUTTX_DIR}/include/nuttx/config.h
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	${nuttx_build_uses_terminal}

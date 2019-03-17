@@ -114,8 +114,13 @@ execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DEFCONFIG}
 # copy PX4 board config into nuttx
 file(STRINGS ${NUTTX_DEFCONFIG} config_expanded REGEX "# Automatically generated file; DO NOT EDIT.")
 if (NOT config_expanded)
-	execute_process(COMMAND kconfig-tweak --set-str CONFIG_APPS_DIR "../apps" WORKING_DIRECTORY ${NUTTX_DIR})
-	execute_process(COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD_CUSTOM=y olddefconfig WORKING_DIRECTORY ${NUTTX_DIR})
+	set(ENV{PATH} "${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/tools:$ENV{PATH}")
+	execute_process(
+		COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD_CUSTOM=y olddefconfig
+		WORKING_DIRECTORY ${NUTTX_DIR}
+		OUTPUT_FILE nuttx_olddefconfig.log
+		ERROR_FILE nuttx_olddefconfig.log
+	)
 endif()
 
 ###############################################################################
