@@ -808,11 +808,7 @@ MulticopterAttitudeControl::run()
 	_motor_limits_sub = orb_subscribe(ORB_ID(multirotor_motor_limits));
 	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
 
-	_gyro_count = math::min(orb_group_count(ORB_ID(sensor_gyro)), MAX_GYRO_COUNT);
-
-	if (_gyro_count == 0) {
-		_gyro_count = 1;
-	}
+	_gyro_count = math::constrain(orb_group_count(ORB_ID(sensor_gyro)), 1, MAX_GYRO_COUNT);
 
 	for (unsigned s = 0; s < _gyro_count; s++) {
 		_sensor_gyro_sub[s] = orb_subscribe_multi(ORB_ID(sensor_gyro), s);
@@ -862,16 +858,10 @@ MulticopterAttitudeControl::run()
 		/* run controller on gyro changes */
 		if (poll_fds.revents & POLLIN) {
 			const hrt_abstime now = hrt_absolute_time();
-			float dt = (now - last_run) / 1e6f;
+
+			// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
+			const float dt = math::constrain(((now - last_run) / 1e6f), 0.0002f, 0.02f);
 			last_run = now;
-
-			/* guard against too small (< 0.2ms) and too large (> 20ms) dt's */
-			if (dt < 0.0002f) {
-				dt = 0.0002f;
-
-			} else if (dt > 0.02f) {
-				dt = 0.02f;
-			}
 
 			/* copy gyro data */
 			orb_copy(ORB_ID(sensor_gyro), _sensor_gyro_sub[_selected_gyro], &_sensor_gyro);
