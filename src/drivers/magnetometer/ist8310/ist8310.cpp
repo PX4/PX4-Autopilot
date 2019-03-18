@@ -228,8 +228,7 @@ private:
 	/* status reporting */
 	bool			_sensor_ok{false};		/**< sensor was found and reports ok */
 	bool			_calibrated{false};		/**< the calibration is valid */
-	bool			_ctl_reg_mismatch{false};	/**< control register value mismatch after checking */
-
+	
 	enum Rotation       _rotation;
 
 	sensor_mag_s   _last_report{};           /**< used for info() */
@@ -505,8 +504,6 @@ void IST8310::check_conf(void)
 		if (OK != ret) {
 			perf_count(_comms_errors);
 		}
-
-		_ctl_reg_mismatch = true;
 	}
 
 	ret = read_reg(ADDR_CTRL4, ctrl_reg_in);
@@ -523,11 +520,7 @@ void IST8310::check_conf(void)
 		if (OK != ret) {
 			perf_count(_comms_errors);
 		}
-
-		_ctl_reg_mismatch = true;
 	}
-
-	_ctl_reg_mismatch = false;
 }
 
 ssize_t
