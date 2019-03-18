@@ -25,7 +25,7 @@ imu_data.del_ang = [gyro_rad0.*imu_data.gyro_dt, gyro_rad1.*imu_data.gyro_dt, gy
 imu_data.accel_dt = accelerometer_integral_dt ./ 1e6;
 imu_data.del_vel = [accelerometer_m_s20.*imu_data.accel_dt, accelerometer_m_s21.*imu_data.accel_dt, accelerometer_m_s22.*imu_data.accel_dt];
 
-%% convert magnetomer data
+%% convert magnetometer data
 clear mag_data;
 last_time = 0;
 output_index = 1;

@@ -106,7 +106,7 @@ void Ekf::fuseVelPosHeight()
 			gate_size[5] = fmaxf(_params.baro_innov_gate, 1.0f);
 
 			// Compensate for positive static pressure transients (negative vertical position innovations)
-			// casued by rotor wash ground interaction by applying a temporary deadzone to baro innovations.
+			// caused by rotor wash ground interaction by applying a temporary deadzone to baro innovations.
 			float deadzone_start = 0.0f;
 			float deadzone_end = deadzone_start + _params.gnd_effect_deadzone;
 
@@ -146,7 +146,7 @@ void Ekf::fuseVelPosHeight()
 
 		} else if (_control_status.flags.ev_hgt) {
 			fuse_map[5] = true;
-			// calculate the innovation assuming the external vision observaton is in local NED frame
+			// calculate the innovation assuming the external vision observation is in local NED frame
 			innovation[5] = _state.pos(2) - _ev_sample_delayed.posNED(2);
 			// observation variance - defined externally
 			R[5] = fmaxf(_ev_sample_delayed.hgtErr, 0.01f);
@@ -234,7 +234,7 @@ void Ekf::fuseVelPosHeight()
 			Kfusion[row] = P[row][state_index] / _vel_pos_innov_var[obs_index];
 		}
 
-		// update covarinace matrix via Pnew = (I - KH)P
+		// update covariance matrix via Pnew = (I - KH)P
 		float KHP[_k_num_states][_k_num_states];
 
 		for (unsigned row = 0; row < _k_num_states; row++) {
@@ -244,7 +244,7 @@ void Ekf::fuseVelPosHeight()
 		}
 
 		// if the covariance correction will result in a negative variance, then
-		// the covariance marix is unhealthy and must be corrected
+		// the covariance matrix is unhealthy and must be corrected
 		bool healthy = true;
 
 		for (int i = 0; i < _k_num_states; i++) {
@@ -299,7 +299,7 @@ void Ekf::fuseVelPosHeight()
 			}
 		}
 
-		// only apply covariance and state corrrections if healthy
+		// only apply covariance and state corrections if healthy
 		if (healthy) {
 			// apply the covariance corrections
 			for (unsigned row = 0; row < _k_num_states; row++) {
@@ -308,7 +308,7 @@ void Ekf::fuseVelPosHeight()
 				}
 			}
 
-			// correct the covariance marix for gross errors
+			// correct the covariance matrix for gross errors
 			fixCovarianceErrors();
 
 			// apply the state corrections

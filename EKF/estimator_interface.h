@@ -382,7 +382,7 @@ public:
 	// status - a bitmask integer containing the pass/fail status for each EKF measurement innovation consistency check
 	// Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.
 	// A value > 1 indicates that the sensor measurement has exceeded the maximum acceptable level and has been rejected by the EKF
-	// Where a measurement type is a vector quantity, eg magnetoemter, GPS position, etc, the maximum value is returned.
+	// Where a measurement type is a vector quantity, eg magnetometer, GPS position, etc, the maximum value is returned.
 	virtual void get_innovation_test_status(uint16_t *status, float *mag, float *vel, float *pos, float *hgt, float *tas, float *hagl, float *beta) = 0;
 
 	// return a bitmask integer that describes which state estimates can be used for flight control
@@ -488,19 +488,19 @@ protected:
 	float _tas_test_ratio{0.0f};		// tas innovation consistency check ratio
 	float _terr_test_ratio{0.0f};		// height above terrain measurement innovation consistency check ratio
 	float _beta_test_ratio{0.0f};		// sideslip innovation consistency check ratio
-	float _drag_test_ratio[2] {};	// drag innovation cinsistency check ratio
+	float _drag_test_ratio[2] {};	// drag innovation consistency check ratio
 	innovation_fault_status_u _innov_check_fail_status{};
 
 	bool _is_dead_reckoning{false};		// true if we are no longer fusing measurements that constrain horizontal velocity drift
 	bool _deadreckon_time_exceeded{false};	// true if the horizontal nav solution has been deadreckoning for too long and is invalid
-	bool _is_wind_dead_reckoning{false};	// true if we are navigating reliant on wind relative measurements
+	bool _is_wind_dead_reckoning{false};	// true if we are navigationg reliant on wind relative measurements
 
 	// IMU vibration and movement monitoring
 	Vector3f _delta_ang_prev;	// delta angle from the previous IMU measurement
 	Vector3f _delta_vel_prev;	// delta velocity from the previous IMU measurement
 	float _vibe_metrics[3] {};	// IMU vibration metrics
 					// [0] Level of coning vibration in the IMU delta angles (rad^2)
-					// [1] high frequency vibraton level in the IMU delta angle data (rad)
+					// [1] high frequency vibration level in the IMU delta angle data (rad)
 					// [2] high frequency vibration level in the IMU delta velocity data (m/s)
 	float _gps_drift_metrics[3] {};	// Array containing GPS drift metrics
 					// [0] Horizontal position drift rate (m/s)
@@ -548,7 +548,7 @@ protected:
 
 	fault_status_u _fault_status{};
 
-	// allocate data buffers and intialise interface variables
+	// allocate data buffers and initialize interface variables
 	bool initialise_interface(uint64_t timestamp);
 
 	// free buffer memory

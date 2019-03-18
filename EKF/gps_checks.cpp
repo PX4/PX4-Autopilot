@@ -66,7 +66,7 @@ bool Ekf::collect_gps(const gps_message &gps)
 		double lon = gps.lon / 1.0e7;
 		map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
 
-		// if we are already doing aiding, corect for the change in posiiton since the EKF started navigating
+		// if we are already doing aiding, correct for the change in position since the EKF started navigationg
 		if (_control_status.flags.opt_flow || _control_status.flags.gps || _control_status.flags.ev_pos) {
 			double est_lat, est_lon;
 			map_projection_reproject(&_pos_ref, -_state.pos(0), -_state.pos(1), &est_lat, &est_lon);
@@ -197,7 +197,7 @@ bool Ekf::gps_is_good(const gps_message &gps)
 
 	} else if (_control_status.flags.in_air) {
 		// These checks are always declared as passed when flying
-		// If on ground and moving, the last result before movemenent commenced is kept
+		// If on ground and moving, the last result before movement commenced is kept
 		_gps_check_fail_status.flags.hdrift = false;
 		_gps_check_fail_status.flags.vdrift = false;
 		_gps_check_fail_status.flags.hspeed = false;

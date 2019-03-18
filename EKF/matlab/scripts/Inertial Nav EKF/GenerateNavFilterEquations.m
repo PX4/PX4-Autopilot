@@ -62,7 +62,7 @@ syms R_DECL R_YAW real; % variance of declination or yaw angle observation
 syms BCXinv BCYinv real % inverse of ballistic coefficient for wind relative movement along the x and y  body axes
 syms rho real % air density (kg/m^3)
 syms R_ACC real % variance of accelerometer measurements (m/s^2)^2
-syms Kaccx Kaccy real % derivative of X and Y body specific forces wrt componenent of true airspeed along each axis (1/s)
+syms Kaccx Kaccy real % derivative of X and Y body specific forces wrt component of true airspeed along each axis (1/s)
 
 %% define the state prediction equations
 

@@ -55,9 +55,9 @@ void Ekf::fuseAirspeed()
 	float v_tas_pred; // Predicted measurement
 	float R_TAS = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) * math::constrain(_airspeed_sample_delayed.eas2tas, 0.9f,
 			 10.0f)); // Variance for true airspeed measurement - (m/sec)^2
-	float SH_TAS[3] = {}; // Varialbe used to optimise calculations of measurement jacobian
+	float SH_TAS[3] = {}; // Variable used to optimise calculations of measurement jacobian
 	float H_TAS[24] = {}; // Observation Jacobian
-	float SK_TAS[2] = {}; // Varialbe used to optimise calculations of the Kalman gain vector
+	float SK_TAS[2] = {}; // Variable used to optimise calculations of the Kalman gain vector
 	float Kfusion[24] = {}; // Kalman gain vector
 
 	// Copy required states to local variable names
@@ -96,7 +96,7 @@ void Ekf::fuseAirspeed()
 			SK_TAS[0] = 1.0f / _airspeed_innov_var_temp;
 			_fault_status.flags.bad_airspeed = false;
 
-		} else { // Reset the estimator covarinace matrix
+		} else { // Reset the estimator covariance matrix
 			_fault_status.flags.bad_airspeed = true;
 
 			// if we are getting aiding from other sources, warn and reset the wind states and covariances only
@@ -198,7 +198,7 @@ void Ekf::fuseAirspeed()
 		}
 
 		// if the covariance correction will result in a negative variance, then
-		// the covariance marix is unhealthy and must be corrected
+		// the covariance matrix is unhealthy and must be corrected
 		bool healthy = true;
 		_fault_status.flags.bad_airspeed = false;
 
@@ -217,7 +217,7 @@ void Ekf::fuseAirspeed()
 			}
 		}
 
-		// only apply covariance and state corrrections if healthy
+		// only apply covariance and state corrections if healthy
 		if (healthy) {
 			// apply the covariance corrections
 			for (unsigned row = 0; row < _k_num_states; row++) {
@@ -226,7 +226,7 @@ void Ekf::fuseAirspeed()
 				}
 			}
 
-			// correct the covariance marix for gross errors
+			// correct the covariance matrix for gross errors
 			fixCovarianceErrors();
 
 			// apply the state corrections

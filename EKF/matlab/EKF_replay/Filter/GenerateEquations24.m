@@ -87,7 +87,7 @@ stateVectorNew = [quatNew;vNew;pNew;dAngBiasNew;dVelBiasNew;magNnew;magEnew;magD
 
 % Define the control (disturbance) vector. Error growth in the inertial
 % solution is assumed to be driven by 'noise' in the delta angles and
-% velocities, after bias effects have been removed. This is OK becasue we
+% velocities, after bias effects have been removed. This is OK because we
 % have sensor bias accounted for in the state equations.
 distVector = [daxVar;dayVar;dazVar;dvxVar;dvyVar;dvzVar];
 

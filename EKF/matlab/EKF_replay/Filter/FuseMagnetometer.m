@@ -8,7 +8,7 @@ function [...
     P, ... % predicted covariance
     magMea, ... % body frame magnetic flux measurements
     testRatio, ... % Size of magnetometer innovation in standard deviations before measurements are rejected
-    R_MAG) % magnetoemter measurement variance - gauss^2
+    R_MAG) % magnetometer measurement variance - gauss^2
 
 q0 = states(1);
 q1 = states(2);

@@ -65,12 +65,12 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 	Vector3f temp = cross_product(imu_sample.delta_ang, _delta_ang_prev);
 	_vibe_metrics[0] = 0.99f * _vibe_metrics[0] + 0.01f * temp.norm();
 
-	// calculate a metric which indiates the amount of high frequency gyro vibration
+	// calculate a metric which indicates the amount of high frequency gyro vibration
 	temp = imu_sample.delta_ang - _delta_ang_prev;
 	_delta_ang_prev = imu_sample.delta_ang;
 	_vibe_metrics[1] = 0.99f * _vibe_metrics[1] + 0.01f * temp.norm();
 
-	// calculate a metric which indicates the amount of high fequency accelerometer vibration
+	// calculate a metric which indicates the amount of high frequency accelerometer vibration
 	temp = imu_sample.delta_vel - _delta_vel_prev;
 	_delta_vel_prev = imu_sample.delta_vel;
 	_vibe_metrics[2] = 0.99f * _vibe_metrics[2] + 0.01f * temp.norm();
@@ -307,7 +307,7 @@ void EstimatorInterface::setAirspeedData(uint64_t time_usec, float true_airspeed
 		airspeed_sample_new.true_airspeed = true_airspeed;
 		airspeed_sample_new.eas2tas = eas2tas;
 		airspeed_sample_new.time_us = time_usec - _params.airspeed_delay_ms * 1000;
-		airspeed_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2; //typo PeRRiod
+		airspeed_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 		_time_last_airspeed = time_usec;
 
 		_airspeed_buffer.push(airspeed_sample_new);
@@ -369,7 +369,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 		bool delta_time_good = delta_time >= delta_time_min;
 
 		if (!delta_time_good) {
-			// protect against overflow casued by division with very small delta_time
+			// protect against overflow caused by division with very small delta_time
 			delta_time = delta_time_min;
 		}
 
@@ -501,7 +501,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	// calculate the IMU buffer length required to accomodate the maximum delay with some allowance for jitter
 	_imu_buffer_length = (max_time_delay_ms / FILTER_UPDATE_PERIOD_MS) + 1;
 
-	// set the observaton buffer length to handle the minimum time of arrival between observations in combination
+	// set the observation buffer length to handle the minimum time of arrival between observations in combination
 	// with the worst case delay from current time to ekf fusion time
 	// allow for worst case 50% extension of the ekf fusion time horizon delay due to timing jitter
 	uint16_t ekf_delay_ms = max_time_delay_ms + (int)(ceilf((float)max_time_delay_ms * 0.5f));

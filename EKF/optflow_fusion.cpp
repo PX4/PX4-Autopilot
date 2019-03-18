@@ -67,14 +67,14 @@ void Ekf::fuseOptFlow()
 	float H_LOS[2][24] = {}; // Optical flow observation Jacobians
 	float Kfusion[24][2] = {}; // Optical flow Kalman gains
 
-	// get rotation nmatrix from earth to body
+	// get rotation matrix from earth to body
 	Dcmf earth_to_body(_state.quat_nominal);
 	earth_to_body = earth_to_body.transpose();
 
 	// calculate the sensor position relative to the IMU
 	Vector3f pos_offset_body = _params.flow_pos_body - _params.imu_pos_body;
 
-	// calculate the velocity of the sensor reelative to the imu in body frame
+	// calculate the velocity of the sensor relative to the imu in body frame
 	// Note: _flow_sample_delayed.gyroXYZ is the negative of the body angular velocity, thus use minus sign
 	Vector3f vel_rel_imu_body = cross_product(-_flow_sample_delayed.gyroXYZ / _flow_sample_delayed.dt, pos_offset_body);
 
@@ -91,7 +91,7 @@ void Ekf::fuseOptFlow()
 	Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
 
 	// calculate the height above the ground of the optical flow camera. Since earth frame is NED
-	// a positve offset in earth frame leads to a a smaller height above the ground.
+	// a positive offset in earth frame leads to a smaller height above the ground.
 	heightAboveGndEst -= pos_offset_earth(2);
 
 	// constrain minimum height above ground
@@ -102,7 +102,7 @@ void Ekf::fuseOptFlow()
 
 	// calculate optical LOS rates using optical flow rates that have had the body angular rate contribution removed
 	// correct for gyro bias errors in the data used to do the motion compensation
-	// Note the sign convention used: A positive LOS rate is a RH rotaton of the scene about that axis.
+	// Note the sign convention used: A positive LOS rate is a RH rotation of the scene about that axis.
 	Vector2f opt_flow_rate;
 	opt_flow_rate(0) = _flowRadXYcomp(0) / _flow_sample_delayed.dt + _flow_gyro_bias(0);
 	opt_flow_rate(1) = _flowRadXYcomp(1) / _flow_sample_delayed.dt + _flow_gyro_bias(1);
@@ -132,7 +132,7 @@ void Ekf::fuseOptFlow()
 			H_LOS[0][5] = t2*(q0*q0-q1*q1+q2*q2-q3*q3);
 			H_LOS[0][6] = t2*(q0*q1*2.0f+q2*q3*2.0f);
 
-			// calculate intermediate variables for the X observaton innovatoin variance and Kalman gains
+			// calculate intermediate variables for the X observation innovatoin variance and Kalman gains
 			float t3 = q1*vd*2.0f;
 			float t4 = q0*ve*2.0f;
 			float t11 = q3*vn*2.0f;
@@ -278,7 +278,7 @@ void Ekf::fuseOptFlow()
 			H_LOS[1][5] = -t2*(q0*q3*2.0f+q1*q2*2.0f);
 			H_LOS[1][6] = t2*(q0*q2*2.0f-q1*q3*2.0f);
 
-			// calculate intermediate variables for the Y observaton innovatoin variance and Kalman gains
+			// calculate intermediate variables for the Y observation innovatoin variance and Kalman gains
 			float t3 = q3*ve*2.0f;
 			float t4 = q0*vn*2.0f;
 			float t11 = q2*vd*2.0f;
@@ -472,7 +472,7 @@ void Ekf::fuseOptFlow()
 		}
 
 		// if the covariance correction will result in a negative variance, then
-		// the covariance marix is unhealthy and must be corrected
+		// the covariance matrix is unhealthy and must be corrected
 		bool healthy = true;
 		_fault_status.flags.bad_optflow_X = false;
 		_fault_status.flags.bad_optflow_Y = false;
@@ -496,7 +496,7 @@ void Ekf::fuseOptFlow()
 			}
 		}
 
-		// only apply covariance and state corrrections if healthy
+		// only apply covariance and state corrections if healthy
 		if (healthy) {
 			// apply the covariance corrections
 			for (unsigned row = 0; row < _k_num_states; row++) {
@@ -505,7 +505,7 @@ void Ekf::fuseOptFlow()
 				}
 			}
 
-			// correct the covariance marix for gross errors
+			// correct the covariance matrix for gross errors
 			fixCovarianceErrors();
 
 			// apply the state corrections
@@ -604,7 +604,7 @@ float Ekf::calcOptFlowMeasVar()
 		weighting = 0.0f;
 	}
 
-	// take the weighted average of the observation noie for the best and wort flow quality
+	// take the weighted average of the observation noise for the best and wort flow quality
 	float R_LOS = sq(R_LOS_best * weighting + R_LOS_worst * (1.0f - weighting));
 
 	return R_LOS;

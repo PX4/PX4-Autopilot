@@ -6,7 +6,7 @@ function P  = PredictCovariance(deltaAngle, ...
     param) % tuning parameters
     
 % Set filter state process noise other than IMU errors, which are already
-% built into the derived covariance predition equations.
+% built into the derived covariance prediction equations.
 % This process noise determines the rate of estimation of IMU bias errors
 dAngBiasSigma = dt*dt*param.prediction.dAngBiasPnoise;
 dVelBiasSigma = dt*dt*param.prediction.dVelBiasPnoise;

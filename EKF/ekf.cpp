@@ -470,7 +470,7 @@ void Ekf::calculateOutputStates()
 	_output_new.time_us = imu.time_us;
 	_output_new.quat_nominal = _output_new.quat_nominal * dq;
 
-	// the quaternions must always be normalised afer modification
+	// the quaternions must always be normalised after modification
 	_output_new.quat_nominal.normalize();
 
 	// calculate the rotation matrix from body to earth frame

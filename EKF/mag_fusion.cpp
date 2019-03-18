@@ -377,7 +377,7 @@ void Ekf::fuseMag()
 		}
 
 		// if the covariance correction will result in a negative variance, then
-		// the covariance marix is unhealthy and must be corrected
+		// the covariance matrix is unhealthy and must be corrected
 		_fault_status.flags.bad_mag_x = false;
 		_fault_status.flags.bad_mag_y = false;
 		_fault_status.flags.bad_mag_z = false;
@@ -404,7 +404,7 @@ void Ekf::fuseMag()
 			}
 		}
 
-		// only apply covariance and state corrrections if healthy
+		// only apply covariance and state corrections if healthy
 		if (healthy) {
 			// apply the covariance corrections
 			for (unsigned row = 0; row < _k_num_states; row++) {
@@ -413,7 +413,7 @@ void Ekf::fuseMag()
 				}
 			}
 
-			// correct the covariance marix for gross errors
+			// correct the covariance matrix for gross errors
 			fixCovarianceErrors();
 
 			// apply the state corrections
@@ -506,7 +506,7 @@ void Ekf::fuseHeading()
 		}
 
 	} else {
-		// calculate observaton jacobian when we are observing a rotation in a 312 sequence
+		// calculate observation jacobian when we are observing a rotation in a 312 sequence
 		float t9 = q0*q3;
 		float t10 = q1*q2;
 		float t2 = t9-t10;
@@ -617,18 +617,18 @@ void Ekf::fuseHeading()
 	// wrap the heading to the interval between +-pi
 	measured_hdg = wrap_pi(measured_hdg);
 
-	// calculate the innovation and define the innovaton gate
+	// calculate the innovation and define the innovation gate
 	float innov_gate = math::max(_params.heading_innov_gate, 1.0f);
 	if (_mag_use_inhibit) {
-		// The magnetomer cannot be trusted but we need to fuse a heading to prevent a badly
-		// conditoned covariance matrix developing over time.
+		// The magnetometer cannot be trusted but we need to fuse a heading to prevent a badly
+		// conditioned covariance matrix developing over time.
 		if (!_vehicle_at_rest) {
 			// Vehicle is not at rest so fuse a zero innovation and record the
 			// predicted heading to use as an observation when movement ceases.
 			_heading_innov = 0.0f;
 			_vehicle_at_rest_prev = false;
 		} else {
-			// Vehicle is at rest so use the last moving prediciton as an observation
+			// Vehicle is at rest so use the last moving prediction as an observation
 			// to prevent the heading from drifting and to enable yaw gyro bias learning
 			// before takeoff.
 			if (!_vehicle_at_rest_prev || !_mag_use_inhibit_prev) {
@@ -649,7 +649,7 @@ void Ekf::fuseHeading()
 	_heading_innov = wrap_pi(_heading_innov);
 
 	// Calculate innovation variance and Kalman gains, taking advantage of the fact that only the first 4 elements in H are non zero
-	// calculate the innovaton variance
+	// calculate the innovation variance
 	float PH[4];
 	_heading_innov_var = R_YAW;
 
@@ -756,7 +756,7 @@ void Ekf::fuseHeading()
 	}
 
 	// if the covariance correction will result in a negative variance, then
-	// the covariance marix is unhealthy and must be corrected
+	// the covariance matrix is unhealthy and must be corrected
 	bool healthy = true;
 	_fault_status.flags.bad_hdg = false;
 
@@ -775,7 +775,7 @@ void Ekf::fuseHeading()
 		}
 	}
 
-	// only apply covariance and state corrrections if healthy
+	// only apply covariance and state corrections if healthy
 	if (healthy) {
 		// apply the covariance corrections
 		for (unsigned row = 0; row < _k_num_states; row++) {
@@ -784,7 +784,7 @@ void Ekf::fuseHeading()
 			}
 		}
 
-		// correct the covariance marix for gross errors
+		// correct the covariance matrix for gross errors
 		fixCovarianceErrors();
 
 		// apply the state corrections
@@ -895,7 +895,7 @@ void Ekf::fuseDeclination(float decl_sigma)
 	}
 
 	// if the covariance correction will result in a negative variance, then
-	// the covariance marix is unhealthy and must be corrected
+	// the covariance matrix is unhealthy and must be corrected
 	bool healthy = true;
 	_fault_status.flags.bad_mag_decl = false;
 	for (int i = 0; i < _k_num_states; i++) {
@@ -913,7 +913,7 @@ void Ekf::fuseDeclination(float decl_sigma)
 		}
 	}
 
-	// only apply covariance and state corrrections if healthy
+	// only apply covariance and state corrections if healthy
 	if (healthy) {
 		// apply the covariance corrections
 		for (unsigned row = 0; row < _k_num_states; row++) {

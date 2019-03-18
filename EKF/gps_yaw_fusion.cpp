@@ -138,7 +138,7 @@ void Ekf::fuseGpsAntYaw()
 	// wrap the heading to the interval between +-pi
 	measured_hdg = wrap_pi(measured_hdg);
 
-	// calculate the innovation and define the innovaton gate
+	// calculate the innovation and define the innovation gate
 	float innov_gate = math::max(_params.heading_innov_gate, 1.0f);
 	_heading_innov = predicted_hdg - measured_hdg;
 
@@ -146,7 +146,7 @@ void Ekf::fuseGpsAntYaw()
 	_heading_innov = wrap_pi(_heading_innov);
 
 	// Calculate innovation variance and Kalman gains, taking advantage of the fact that only the first 3 elements in H are non zero
-	// calculate the innovaton variance
+	// calculate the innovation variance
 	float PH[4];
 	_heading_innov_var = R_YAW;
 
@@ -253,7 +253,7 @@ void Ekf::fuseGpsAntYaw()
 	}
 
 	// if the covariance correction will result in a negative variance, then
-	// the covariance marix is unhealthy and must be corrected
+	// the covariance matrix is unhealthy and must be corrected
 	bool healthy = true;
 	_fault_status.flags.bad_hdg = false;
 
@@ -272,7 +272,7 @@ void Ekf::fuseGpsAntYaw()
 		}
 	}
 
-	// only apply covariance and state corrrections if healthy
+	// only apply covariance and state corrections if healthy
 	if (healthy) {
 		// apply the covariance corrections
 		for (unsigned row = 0; row < _k_num_states; row++) {
@@ -281,7 +281,7 @@ void Ekf::fuseGpsAntYaw()
 			}
 		}
 
-		// correct the covariance marix for gross errors
+		// correct the covariance matrix for gross errors
 		fixCovarianceErrors();
 
 		// apply the state corrections
@@ -309,7 +309,7 @@ bool Ekf::resetGpsAntYaw()
 		// get measurement and correct for antenna array yaw offset
 		float measured_yaw = _gps_sample_delayed.yaw + _gps_yaw_offset;
 
-		// caclulate the amount the yaw needs to be rotated by
+		// calculate the amount the yaw needs to be rotated by
 		float yaw_delta = wrap_pi(measured_yaw - predicted_yaw);
 
 		// save a copy of the quaternion state for later use in calculating the amount of reset change
