@@ -199,8 +199,6 @@ void Sih::run()
 
 	init_variables();
  	init_sensors();	
-	// on the AUAVX21: "/dev/ttyS2/" is TELEM2 UART3 --- "/dev/ttyS5/" is Debug UART7 --- "/dev/ttyS4/" is OSD UART8
-	// int serial_fd=init_serial_port(); 	 	// init and open the serial port
 
 	const hrt_abstime task_start = hrt_absolute_time();
 	_last_run = task_start;
@@ -231,7 +229,6 @@ void Sih::run()
 	hrt_cancel(&_timer_call); 	// close the periodic timer interruption
 	orb_unsubscribe(_actuator_out_sub);
 	orb_unsubscribe(_parameter_update_sub);
-	// close(serial_fd);
 
 }
 
@@ -271,13 +268,8 @@ void Sih::inner_loop()
 
 		publish_sih(); 	// publish _sih message for debug purpose
 
-		// send_serial_msg(serial_fd, (int64_t)(now - task_start)/1000);
-
 		parameters_update_poll(); 	// update the parameters if needed
 	}
-
-	_sih.te_us=hrt_absolute_time()-_now; 	// execution time (without delay)
-
 }
 
 void Sih::parameters_update_poll()
@@ -373,29 +365,6 @@ void Sih::init_sensors()
 	_vehicle_gps_pos.epv = 1.78f; 
 	_vehicle_gps_pos.hdop = 0.7f;
 	_vehicle_gps_pos.vdop = 1.1f;	
-}
-
-int Sih::init_serial_port()
-{
-	struct termios uart_config;
-	int serial_fd = open(_uart_name, O_WRONLY | O_NONBLOCK | O_NOCTTY);
-
-	if (serial_fd < 0) {
-		PX4_ERR("failed to open port: %s", _uart_name);
-	}
-
-	tcgetattr(serial_fd, &uart_config); // read configuration
-
-	uart_config.c_oflag |= ONLCR;
-	// try to set Bauds rate
-	if (cfsetispeed(&uart_config, BAUDS_RATE) < 0 || cfsetospeed(&uart_config, BAUDS_RATE) < 0) {
-		PX4_WARN("ERR SET BAUD %s\n", _uart_name);
-		close(serial_fd);
-	}	
-
-	tcsetattr(serial_fd, TCSANOW, &uart_config); 	// set config
-
-	return serial_fd;
 }
 
 // read the motor signals outputted from the mixer
@@ -579,61 +548,7 @@ void Sih::publish_sih()
 	} else {
 		_att_gt_sub = orb_advertise(ORB_ID(vehicle_attitude_groundtruth), &_att_gt);
 	}
-
-	Eulerf Euler(_q);
-	_sih.timestamp=hrt_absolute_time();
-	_sih.dt_us=(uint32_t)(_dt*1e6f);
-	_sih.euler_rpy[0]=degrees(Euler(0));
-	_sih.euler_rpy[1]=degrees(Euler(1));
-	_sih.euler_rpy[2]=degrees(Euler(2));
-	_sih.omega_b[0]=_w_B(0); 	// wing body rates in body frame
-	_sih.omega_b[1]=_w_B(1);
-	_sih.omega_b[2]=_w_B(2);
-	_sih.p_i_local[0]=_p_I(0); 	// local inertial position
-	_sih.p_i_local[1]=_p_I(1);
-	_sih.p_i_local[2]=_p_I(2);
-	_sih.v_i[0]=_v_I(0); 	// inertial velocity
-	_sih.v_i[1]=_v_I(1);
-	_sih.v_i[2]=_v_I(2);
-	_sih.u[0]=_u[0];
-	_sih.u[1]=_u[1];
-	_sih.u[2]=_u[2];
-	_sih.u[3]=_u[3];
-	if (_sih_pub != nullptr) {
-		orb_publish(ORB_ID(sih), _sih_pub, &_sih);
-	} else {
-		_sih_pub = orb_advertise(ORB_ID(sih), &_sih);
-	}
 } 
-
-void Sih::send_serial_msg(int serial_fd, int64_t t_ms)
-{
-
-	char uart_msg[100];
-
-	uint8_t n;
-	int32_t GPS_pos[3]; 	// latitude, longitude in 10^-7 degrees, altitude AMSL in mm
-	int32_t EA_deci_deg[3]; // Euler angles in deci degrees integers to send to serial
-	int32_t throttles[4]; 	// throttles from 0 to 99
-
-	GPS_pos[0]=(int32_t)(_gps_lat_noiseless*1e7); 		// Latitude in 1E-7 degrees	
-	GPS_pos[1]=(int32_t)(_gps_lon_noiseless*1e7);			// Longitude in 1E-7 degrees
-	GPS_pos[2]=(int32_t)(_gps_alt_noiseless*1000.0f); 	// Altitude in 1E-3 meters above MSL, (millimetres)
-	Eulerf Euler(_q);
-	EA_deci_deg[0]=(int32_t)degrees(Euler(0)*10.0f); 	// decidegrees
-	EA_deci_deg[1]=(int32_t)degrees(Euler(1)*10.0f);
-	EA_deci_deg[2]=(int32_t)degrees(Euler(2)*10.0f);
-	throttles[0]=(int32_t)(_u[0]*99.0f); 	
-	throttles[1]=(int32_t)(_u[1]*99.0f);
-	throttles[2]=(int32_t)(_u[2]*99.0f);
-	throttles[3]=(int32_t)(_u[3]*99.0f);
-
-	n = sprintf(uart_msg, "T%07lld,P%+010d%+010d%+08d,A%+05d%+05d%+05d,U%+03d%+03d%+03d%+03d\n", 
-		t_ms,GPS_pos[0],GPS_pos[1],GPS_pos[2],
-		EA_deci_deg[0],EA_deci_deg[1],EA_deci_deg[2],
-		throttles[0],throttles[1],throttles[2],throttles[3]);
-	write(serial_fd, uart_msg, n);
-}
 
 float Sih::generate_wgn() 	// generate white Gaussian noise sample with std=1
 {
