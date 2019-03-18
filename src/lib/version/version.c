@@ -347,8 +347,8 @@ uint64_t px4_firmware_version_binary(void)
 
 const char *px4_ecl_lib_version_string(void)
 {
-#ifdef ECL_LIB_GIT_VERSION_STRING
-	return ECL_LIB_GIT_VERSION_STRING;
+#ifdef ECL_LIB_GIT_VERSION_STR
+	return ECL_LIB_GIT_VERSION_STR;
 #else
 	return NULL;
 #endif
@@ -370,3 +370,11 @@ uint64_t px4_os_version_binary(void)
 #endif
 }
 
+const char *px4_firmware_git_tag_string(void)
+{
+#ifdef PX4_GIT_TAG_STR
+	return PX4_GIT_TAG_STR;
+#else
+	return NULL;
+#endif
+}

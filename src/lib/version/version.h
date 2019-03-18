@@ -156,7 +156,7 @@ __EXPORT const char *px4_toolchain_name(void);
 __EXPORT const char *px4_toolchain_version(void);
 
 /**
- * Firmware version as human readable string (git tag)
+ * Firmware version as a commit hash (git hash)
  */
 __EXPORT const char *px4_firmware_version_string(void);
 
@@ -166,25 +166,32 @@ __EXPORT const char *px4_firmware_version_string(void);
 __EXPORT const char *px4_firmware_git_branch(void);
 
 /**
- * Firmware version in binary form (first part of the git tag)
+ * Firmware version in binary form (first part of the git hash)
  */
 __EXPORT uint64_t px4_firmware_version_binary(void);
 
 /**
- * ECL lib version as human readable string (git tag)
+ * ECL lib version as human readable string (git hash)
  */
 __EXPORT const char *px4_ecl_lib_version_string(void);
 
 /**
- * MAVLink lib version in binary form (first part of the git tag)
+ * MAVLink lib version in binary form (first part of the git hash)
  */
 __EXPORT uint64_t px4_mavlink_lib_version_binary(void);
 
 /**
- * Operating system version in binary form (first part of the git tag)
+ * Operating system version in binary form (first part of the git hash)
  * @return this is not available on all OSes and can return 0
  */
 __EXPORT uint64_t px4_os_version_binary(void);
+
+/**
+ * Firmware version as human readable string (git tag)
+ * Will point to a parent tag (as returned by `git describe`) if current commit is not tagged
+ * @return Tag name as a C string or NULL if not defined
+ */
+__EXPORT const char *px4_firmware_git_tag_string(void);
 
 __END_DECLS
 
