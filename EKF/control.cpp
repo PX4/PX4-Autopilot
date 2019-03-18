@@ -154,7 +154,7 @@ void Ekf::controlFusionModes()
 
 void Ekf::controlExternalVisionFusion()
 {
-	// Check for new exernal vision data
+	// Check for new external vision data
 	if (_ev_data_ready) {
 
 		// if the ev data is not in a NED reference frame, then the transformation between EV and EKF navigation frames
@@ -168,7 +168,7 @@ void Ekf::controlExternalVisionFusion()
 		if ((_params.fusion_mode & MASK_USE_EVPOS) && !_control_status.flags.ev_pos && _control_status.flags.tilt_align
 		    && _control_status.flags.yaw_align) {
 
-			// check for a exernal vision measurement that has fallen behind the fusion time horizon
+			// check for a external vision measurement that has fallen behind the fusion time horizon
 			if ((_time_last_imu - _time_last_ext_vision) < (2 * EV_MAX_INTERVAL)) {
 				// turn on use of external vision measurements for position
 				_control_status.flags.ev_pos = true;
@@ -196,7 +196,7 @@ void Ekf::controlExternalVisionFusion()
 		if (!_control_status.flags.gps && (_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw && _control_status.flags.tilt_align) {
 			// don't start using EV data unless daa is arriving frequently
 			if (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL) {
-				// reset the yaw angle to the value from the observaton quaternion
+				// reset the yaw angle to the value from the observation quaternion
 				// get the roll, pitch, yaw estimates from the quaternion states
 				Quatf q_init(_state.quat_nominal);
 				Eulerf euler_init(q_init);
@@ -707,7 +707,7 @@ void Ekf::controlHeightSensorTimeouts()
 	// Check for IMU accelerometer vibration induced clipping as evidenced by the vertical innovations being positive and not stale.
 	// Clipping causes the average accel reading to move towards zero which makes the INS think it is falling and produces positive vertical innovations
 	float var_product_lim = sq(_params.vert_innov_test_lim) * sq(_params.vert_innov_test_lim);
-	bool bad_vert_accel = (_control_status.flags.baro_hgt && // we can only run this check if vertical position and velocity observations are indepedant
+	bool bad_vert_accel = (_control_status.flags.baro_hgt && // we can only run this check if vertical position and velocity observations are independent
 			(sq(_vel_pos_innov[5] * _vel_pos_innov[2]) > var_product_lim * (_vel_pos_innov_var[5] * _vel_pos_innov_var[2])) && // vertical position and velocity sensors are in agreement that we have a significant error
 			(_vel_pos_innov[2] > 0.0f) && // positive innovation indicates that the inertial nav thinks it is falling
 			((_imu_sample_delayed.time_us - _baro_sample_delayed.time_us) < 2 * BARO_MAX_INTERVAL) && // vertical position data is fresh
@@ -730,7 +730,7 @@ void Ekf::controlHeightSensorTimeouts()
 		_bad_vert_accel_detected = bad_vert_accel;
 	}
 
-	// check if height is continuously failing becasue of accel errors
+	// check if height is continuously failing because of accel errors
 	bool continuous_bad_accel_hgt = ((_time_last_imu - _time_good_vert_accel) > (unsigned)_params.bad_acc_reset_delay_us);
 
 	// check if height has been inertial deadreckoning for too long
@@ -962,7 +962,7 @@ void Ekf::controlHeightFusion()
 			_fuse_height = true;
 
 			// we have just switched to using range finder, calculate height sensor offset such that current
-			// measurment matches our current height estimate
+			// measurement matches our current height estimate
 			if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
 				if (get_terrain_valid()) {
 					_hgt_sensor_offset = _terrain_vpos;
@@ -998,7 +998,7 @@ void Ekf::controlHeightFusion()
 			_fuse_height = true;
 
 			// we have just switched to using gps height, calculate height sensor offset such that current
-			// measurment matches our current height estimate
+			// measurement matches our current height estimate
 			if (_control_status_prev.flags.gps_hgt != _control_status.flags.gps_hgt) {
 				_hgt_sensor_offset = _gps_sample_delayed.hgt - _gps_alt_ref + _state.pos(2);
 			}
@@ -1011,7 +1011,7 @@ void Ekf::controlHeightFusion()
 		_fuse_height = _range_data_ready;
 
 		// we have just switched to using range finder, calculate height sensor offset such that current
-		// measurment matches our current height estimate
+		// measurement matches our current height estimate
 		if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
 			// use the parameter rng_gnd_clearance if on ground to avoid a noisy offset initialization (e.g. sonar)
 			if (_control_status.flags.in_air && get_terrain_valid()) {
@@ -1047,7 +1047,7 @@ void Ekf::controlHeightFusion()
 			_fuse_height = true;
 
 			// we have just switched to using range finder, calculate height sensor offset such that current
-			// measurment matches our current height estimate
+			// measurement matches our current height estimate
 			if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
 				if (get_terrain_valid()) {
 					_hgt_sensor_offset = _terrain_vpos;
@@ -1062,7 +1062,7 @@ void Ekf::controlHeightFusion()
 			_fuse_height = true;
 
 			// we have just switched to using gps height, calculate height sensor offset such that current
-			// measurment matches our current height estimate
+			// measurement matches our current height estimate
 			if (_control_status_prev.flags.gps_hgt != _control_status.flags.gps_hgt) {
 				_hgt_sensor_offset = _gps_sample_delayed.hgt - _gps_alt_ref + _state.pos(2);
 			}
@@ -1307,7 +1307,7 @@ void Ekf::controlBetaFusion()
 
 	// Perform synthetic sideslip fusion when in-air and sideslip fuson had been enabled externally in addition to the following criteria:
 
-	// Suffient time has lapsed sice the last fusion
+	// Sufficient time has lapsed sice the last fusion
 	bool beta_fusion_time_triggered = ((_time_last_imu - _time_last_beta_fuse) > _params.beta_avg_ft_us);
 
 	if (beta_fusion_time_triggered && _control_status.flags.fuse_beta && _control_status.flags.in_air) {
@@ -1354,7 +1354,7 @@ void Ekf::controlMagFusion()
 {
 	if (_params.mag_fusion_type >= MAG_FUSE_TYPE_NONE) {
 
-		// do not use the magnetomer and deactivate magnetic field states
+		// do not use the magnetometer and deactivate magnetic field states
 		// save covariance data for re-use if currently doing 3-axis fusion
 		if (_control_status.flags.mag_3D) {
 			save_mag_cov_data();
@@ -1456,9 +1456,9 @@ void Ekf::controlMagFusion()
 				_time_last_movement = _imu_sample_delayed.time_us;
 			}
 
-			// decide whether 3-axis magnetomer fusion can be used
+			// decide whether 3-axis magnetometer fusion can be used
 			bool use_3D_fusion = _control_status.flags.tilt_align && // Use of 3D fusion requires valid tilt estimates
-					_control_status.flags.in_air && // don't use when on the ground becasue of magnetic anomalies
+					_control_status.flags.in_air && // don't use when on the ground because of magnetic anomalies
 					_control_status.flags.mag_align_complete &&
 					((_imu_sample_delayed.time_us - _time_last_movement) < 2 * 1000 * 1000); // Using 3-axis fusion for a minimum period after to allow for false negatives
 
@@ -1566,7 +1566,7 @@ void Ekf::controlMagFusion()
 			_control_status.flags.mag_dec = false;
 		}
 
-		// If the user has selected auto protection against indoor magnetic field errors, only use the magnetomer
+		// If the user has selected auto protection against indoor magnetic field errors, only use the magnetometer
 		// if a yaw angle relative to true North is required for navigation. If no GPS or other earth frame aiding
 		// is available, assume that we are operating indoors and the magnetometer should not be used.
 		bool user_selected = (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR);
@@ -1580,7 +1580,7 @@ void Ekf::controlMagFusion()
 			_mag_use_not_inhibit_us = _imu_sample_delayed.time_us;
 		}
 
-		// If magnetomer use has been inhibited continuously then a yaw reset is required for a valid heading
+		// If magnetometer use has been inhibited continuously then a yaw reset is required for a valid heading
 		if (uint32_t(_imu_sample_delayed.time_us - _mag_use_not_inhibit_us) > (uint32_t)5e6) {
 			_mag_inhibit_yaw_reset_req = true;
 		}
@@ -1628,7 +1628,7 @@ void Ekf::controlVelPosFusion()
 	    !_control_status.flags.ev_pos &&
 	    !(_control_status.flags.fuse_aspd && _control_status.flags.fuse_beta)) {
 
-		// We now need to use a synthetic positon observation to prevent unconstrained drift of the INS states.
+		// We now need to use a synthetic position observation to prevent unconstrained drift of the INS states.
 		_using_synthetic_position = true;
 
 		// Fuse synthetic position observations every 200msec

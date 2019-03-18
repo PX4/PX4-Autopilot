@@ -25,7 +25,7 @@ param.fusion.baroHgtGate = 5.0; % Size of the IMU velocity innovation consistenc
 param.fusion.baroHgtNoise = 2.0; % 1SD observation noise of the baro measurements (m)
 
 %% Magnetometer measurement fusion
-param.fusion.magTimeDelay = 0.0; % Magnetomer time delay relative to IMU (sec)
+param.fusion.magTimeDelay = 0.0; % magnetometer time delay relative to IMU (sec)
 param.fusion.magFuseMethod = 1; % 0: 3-Axis field fusion with free declination, 1: 3-Axis field fusion with constrained declination, 2: magnetic heading fusion. (None)
 param.fusion.magFieldError = 0.05; % Magnetic field measurement 1SD error including hard and soft iron interference. Used when magFuseMethod = 0 or 1. (gauss)
 param.fusion.magHdgError = 0.1745; % Magnetic heading measurement 1SD error including hard and soft iron interference. Used when magFuseMethod = 2. (rad)

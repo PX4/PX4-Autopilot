@@ -61,7 +61,7 @@ bool Ekf::initHagl()
 		_terrain_vpos = _state.pos(2) + _params.rng_gnd_clearance;
 		// Use the ground clearance value as our uncertainty
 		_terrain_var = sq(_params.rng_gnd_clearance);
-		// ths is a guess
+		// this is a guess
 		return false;
 
 	} else {

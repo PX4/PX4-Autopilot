@@ -274,7 +274,7 @@ void Ekf::fuseDrag()
 			}
 
 			// if the covariance correction will result in a negative variance, then
-			// the covariance marix is unhealthy and must be corrected
+			// the covariance matrix is unhealthy and must be corrected
 			bool healthy = true;
 
 			//_fault_status.flags.bad_sideslip = false;
@@ -293,7 +293,7 @@ void Ekf::fuseDrag()
 				}
 			}
 
-			// only apply covariance and state corrrections if healthy
+			// only apply covariance and state corrections if healthy
 			if (healthy) {
 				// apply the covariance corrections
 				for (unsigned row = 0; row < _k_num_states; row++) {
@@ -302,7 +302,7 @@ void Ekf::fuseDrag()
 					}
 				}
 
-				// correct the covariance marix for gross errors
+				// correct the covariance matrix for gross errors
 				fixCovarianceErrors();
 
 				// apply the state corrections

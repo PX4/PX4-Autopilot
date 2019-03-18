@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 
 	Ekf *base = new Ekf();
 
-	// Test1: feed in fake imu data and check if delta angles are summed correclty
+	// Test1: feed in fake imu data and check if delta angles are summed correctly
 	float delta_vel[3] = { 0.002f, 0.002f, 0.002f};
 	float delta_ang[3] = { -0.1f, 0.2f, 0.3f};
 	uint32_t time_usec = 1000;

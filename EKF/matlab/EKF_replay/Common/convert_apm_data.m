@@ -21,7 +21,7 @@ imu_data.accel_dt = IMT(:,4);
 imu_data.del_vel = IMT(:,9:11);
 save imu_data.mat imu_data;
 
-%% convert magnetomer data
+%% convert magnetometer data
 clear mag_data;
 last_time = 0;
 output_index = 1;

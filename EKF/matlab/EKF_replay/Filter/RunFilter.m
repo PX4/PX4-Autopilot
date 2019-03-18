@@ -249,7 +249,7 @@ for index = indexStart:indexStop
                 end
                 
             elseif (param.fusion.magFuseMethod == 2)
-                % fuse magnetomer data as a single magnetic heading measurement
+                % fuse magnetometer data as a single magnetic heading measurement
                 [states, covariance, hdgInnov, hdgInnovVar] = FuseMagHeading(states, covariance, mag_data.field_ga(latest_mag_index,:), param.fusion.magDeclDeg*deg2rad, param.fusion.magHdgGate, param.fusion.magHdgError^2);
                 
                 % log data
@@ -317,7 +317,7 @@ for index = indexStart:indexStop
                 viso_fuse_index = viso_fuse_index + 1;
                 last_drift_constrain_time = local_time;
                 
-                % convert delta positon measurements to velocity
+                % convert delta position measurements to velocity
                 relVelBodyMea = [viso_data.dPosX(latest_viso_index);viso_data.dPosY(latest_viso_index);viso_data.dPosZ(latest_viso_index)]./viso_data.dt(latest_viso_index);
                 
                 % convert quality metric to equivalent observation error

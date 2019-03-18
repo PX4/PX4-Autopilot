@@ -165,7 +165,7 @@ void Ekf::predictCovariance()
 	// convert rate of change of accelerometer bias (m/s**3) as specified by the parameter to an expected change in delta velocity (m/s) since the last update
 	float d_vel_bias_sig = dt * dt * math::constrain(_params.accel_bias_p_noise, 0.0f, 1.0f);
 
-	// inhibit learning of imu acccel bias if the manoeuvre levels are too high to protect against the effect of sensor nonlinearities or bad accel data is detected
+	// inhibit learning of imu accel bias if the manoeuvre levels are too high to protect against the effect of sensor nonlinearities or bad accel data is detected
 	float alpha = math::constrain((dt / _params.acc_bias_learn_tc), 0.0f, 1.0f);
 	float beta = 1.0f - alpha;
 	_ang_rate_mag_filt = fmaxf(dt_inv * _imu_sample_delayed.delta_ang.norm(), beta * _ang_rate_mag_filt);
@@ -744,10 +744,10 @@ void Ekf::fixCovarianceErrors()
 		P[i][i] = math::constrain(P[i][i], 0.0f, P_lim[3]);
 	}
 
-	// force symmetry on the quaternion, velocity and positon state covariances
+	// force symmetry on the quaternion, velocity and position state covariances
 	makeSymmetrical(P, 0, 12);
 
-	// the following states are optional and are deactivaed when not required
+	// the following states are optional and are deactivated when not required
 	// by ensuring the corresponding covariance matrix values are kept at zero
 
 	// accelerometer bias states
@@ -807,7 +807,7 @@ void Ekf::fixCovarianceErrors()
 			down_dvel_bias += _state.accel_bias(axis_index) * _R_to_earth(2, axis_index);
 		}
 
-		// check that the vertical componenent of accel bias is consistent with both the vertical position and velocity innovation
+		// check that the vertical component of accel bias is consistent with both the vertical position and velocity innovation
 		bool bad_acc_bias = (fabsf(down_dvel_bias) > dVel_bias_lim
 				     && down_dvel_bias * _vel_pos_innov[2] < 0.0f
 				     && down_dvel_bias * _vel_pos_innov[5] < 0.0f);

@@ -46,9 +46,9 @@
 
 void Ekf::fuseSideslip()
 {
-	float SH_BETA[13] = {}; // Varialbe used to optimise calculations of measurement jacobian
+	float SH_BETA[13] = {}; // Variable used to optimise calculations of measurement jacobian
 	float H_BETA[24] = {}; // Observation Jacobian
-	float SK_BETA[8] = {}; // Varialbe used to optimise calculations of the Kalman gain vector
+	float SK_BETA[8] = {}; // Variable used to optimise calculations of the Kalman gain vector
 	float Kfusion[24] = {}; // Kalman gain vector
 	float R_BETA = _params.beta_noise;
 
@@ -248,7 +248,7 @@ void Ekf::fuseSideslip()
 		}
 
 		// if the covariance correction will result in a negative variance, then
-		// the covariance marix is unhealthy and must be corrected
+		// the covariance matrix is unhealthy and must be corrected
 		bool healthy = true;
 		_fault_status.flags.bad_sideslip = false;
 
@@ -266,7 +266,7 @@ void Ekf::fuseSideslip()
 			}
 		}
 
-		// only apply covariance and state corrrections if healthy
+		// only apply covariance and state corrections if healthy
 		if (healthy) {
 			// apply the covariance corrections
 			for (unsigned row = 0; row < _k_num_states; row++) {
@@ -275,7 +275,7 @@ void Ekf::fuseSideslip()
 				}
 			}
 
-			// correct the covariance marix for gross errors
+			// correct the covariance matrix for gross errors
 			fixCovarianceErrors();
 
 			// apply the state corrections
