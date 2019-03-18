@@ -228,7 +228,6 @@ private:
 	/* status reporting */
 	bool			_sensor_ok{false};		/**< sensor was found and reports ok */
 	bool			_calibrated{false};		/**< the calibration is valid */
-	
 	enum Rotation       _rotation;
 
 	sensor_mag_s   _last_report{};           /**< used for info() */
