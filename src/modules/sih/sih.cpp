@@ -82,7 +82,7 @@ Most of the variables are declared global in the .hpp file to avoid stack overfl
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("sih", "sih");
+	PRINT_MODULE_USAGE_NAME("sih", "simulation");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Optional example flag", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 1024, "Optional example parameter", true);

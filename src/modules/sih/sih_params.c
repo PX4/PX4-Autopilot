@@ -48,7 +48,7 @@
  * @min 0.0
  * @decimal 2
  * @increment 0.1
- * @group SIH
+ * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_MASS, 1.0f);
 
@@ -62,7 +62,7 @@ PARAM_DEFINE_FLOAT(SIH_MASS, 1.0f);
  * @min 0.0
  * @decimal 3
  * @increment 0.005
- * @group SIH
+ * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_IXX, 0.025f);
 
@@ -76,7 +76,7 @@ PARAM_DEFINE_FLOAT(SIH_IXX, 0.025f);
  * @min 0.0
  * @decimal 3
  * @increment 0.005
- * @group SIH
+ * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_IYY, 0.025f);
 
@@ -90,7 +90,7 @@ PARAM_DEFINE_FLOAT(SIH_IYY, 0.025f);
  * @min 0.0
  * @decimal 3
  * @increment 0.005
- * @group SIH
+ * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_IZZ, 0.030f);
 
@@ -103,7 +103,7 @@ PARAM_DEFINE_FLOAT(SIH_IZZ, 0.030f);
  * @unit kg*m*m
  * @decimal 3
  * @increment 0.005
- * @group SIH
+ * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_IXY, 0.0f);
 
@@ -116,7 +116,7 @@ PARAM_DEFINE_FLOAT(SIH_IXY, 0.0f);
  * @unit kg*m*m
  * @decimal 3
  * @increment 0.005
- * @group SIH
+ * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_IXZ, 0.0f);
 
@@ -129,7 +129,7 @@ PARAM_DEFINE_FLOAT(SIH_IXZ, 0.0f);
  * @unit kg*m*m
  * @decimal 3
  * @increment 0.005
- * @group SIH
+ * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_IYZ, 0.0f);
 
@@ -145,7 +145,7 @@ PARAM_DEFINE_FLOAT(SIH_IYZ, 0.0f);
  * @min 0.0
  * @decimal 2
  * @increment 0.5
- * @group SIH
+ * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_T_MAX, 5.0f);
 
@@ -161,7 +161,7 @@ PARAM_DEFINE_FLOAT(SIH_T_MAX, 5.0f);
  * @min 0.0
  * @decimal 3
  * @increment 0.05
- * @group SIH
+ * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_Q_MAX, 0.1f);
 
@@ -177,7 +177,7 @@ PARAM_DEFINE_FLOAT(SIH_Q_MAX, 0.1f);
  * @min 0.0
  * @decimal 2
  * @increment 0.05
- * @group SIH
+ * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_L_ROLL, 0.2f);
 
@@ -193,7 +193,7 @@ PARAM_DEFINE_FLOAT(SIH_L_ROLL, 0.2f);
  * @min 0.0
  * @decimal 2
  * @increment 0.05
- * @group SIH
+ * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_L_PITCH, 0.2f);
 
@@ -210,7 +210,7 @@ PARAM_DEFINE_FLOAT(SIH_L_PITCH, 0.2f);
  * @min 0.0
  * @decimal 2
  * @increment 0.05
- * @group SIH
+ * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_KDV, 1.0f);
 
@@ -227,7 +227,7 @@ PARAM_DEFINE_FLOAT(SIH_KDV, 1.0f);
  * @min 0.0
  * @decimal 3
  * @increment 0.005
- * @group SIH
+ * @group Simulation In Hardware
  */
 PARAM_DEFINE_FLOAT(SIH_KDW, 0.025f);
 
@@ -243,9 +243,9 @@ PARAM_DEFINE_FLOAT(SIH_KDW, 0.025f);
  * @unit 1e-7 deg
  * @min -850000000
  * @max  850000000
- * @group SIH
+ * @group Simulation In Hardware
  */
-PARAM_DEFINE_INT32(SIH_LAT0, 454671160);
+PARAM_DEFINE_INT32(SIHG_LAT0, 454671160);
 
 /**
  * Initial geodetic longitude
@@ -259,9 +259,9 @@ PARAM_DEFINE_INT32(SIH_LAT0, 454671160);
  * @unit 1e-7 deg
  * @min -1800000000
  * @max  1800000000
- * @group SIH
+ * @group Simulation In Hardware
  */
-PARAM_DEFINE_INT32(SIH_LON0, -737578370);
+PARAM_DEFINE_INT32(SIHG_LON0, -737578370);
 
 /**
  * Initial AMSL ground altitude
@@ -280,9 +280,9 @@ PARAM_DEFINE_INT32(SIH_LON0, -737578370);
  * @max 8848.0
  * @decimal 2
  * @increment 0.01
- * @group SIH
+ * @group Simulation In Hardware
  */
-PARAM_DEFINE_FLOAT(SIH_H0, 32.34f);
+PARAM_DEFINE_FLOAT(SIHG_H0, 32.34f);
 
 /**
  * North magnetic field at the initial location
@@ -300,9 +300,9 @@ PARAM_DEFINE_FLOAT(SIH_H0, 32.34f);
  * @max  1.0
  * @decimal 2
  * @increment 0.001
- * @group SIH
+ * @group Simulation In Hardware
  */
-PARAM_DEFINE_FLOAT(SIH_MU_X,  0.179f);
+PARAM_DEFINE_FLOAT(SIHG_MU_X,  0.179f);
 
 /**
  * East magnetic field at the initial location
@@ -320,9 +320,9 @@ PARAM_DEFINE_FLOAT(SIH_MU_X,  0.179f);
  * @max  1.0
  * @decimal 2
  * @increment 0.001
- * @group SIH
+ * @group Simulation In Hardware
  */
-PARAM_DEFINE_FLOAT(SIH_MU_Y, -0.045f);
+PARAM_DEFINE_FLOAT(SIHG_MU_Y, -0.045f);
 
 /**
  * Down magnetic field at the initial location
@@ -340,6 +340,6 @@ PARAM_DEFINE_FLOAT(SIH_MU_Y, -0.045f);
  * @max  1.0
  * @decimal 2
  * @increment 0.001
- * @group SIH
+ * @group Simulation In Hardware
  */
-PARAM_DEFINE_FLOAT(SIH_MU_Z,  0.504f);
+PARAM_DEFINE_FLOAT(SIHG_MU_Z,  0.504f);

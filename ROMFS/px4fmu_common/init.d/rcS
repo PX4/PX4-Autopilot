@@ -328,17 +328,16 @@ else
 	# Sensors System (start before Commander so Preflight checks are properly run).
 	# Commander needs to be this early for in-air-restarts.
 	#
-	if param compare SYS_HITL 1
+	if param greater SYS_HITL 0
 	then
 		set OUTPUT_MODE hil
 		sensors start -h
 		commander start --hil
-
 		# disable GPS
 		param set GPS_1_CONFIG 0
 
-		# start the SIH if needed
-		if  param compare SYS_SIH 1
+		# start the simulator in hardware if needed
+		if  param compare SYS_HITL 2
 		then
 			sih start
 		fi
