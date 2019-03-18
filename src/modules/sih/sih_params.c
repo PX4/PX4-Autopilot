@@ -245,7 +245,7 @@ PARAM_DEFINE_FLOAT(SIH_KDW, 0.025f);
  * @max  850000000
  * @group Simulation In Hardware
  */
-PARAM_DEFINE_INT32(SIHG_LAT0, 454671160);
+PARAM_DEFINE_INT32(SIH__LAT0, 454671160);
 
 /**
  * Initial geodetic longitude
@@ -261,7 +261,7 @@ PARAM_DEFINE_INT32(SIHG_LAT0, 454671160);
  * @max  1800000000
  * @group Simulation In Hardware
  */
-PARAM_DEFINE_INT32(SIHG_LON0, -737578370);
+PARAM_DEFINE_INT32(SIH__LON0, -737578370);
 
 /**
  * Initial AMSL ground altitude
@@ -282,7 +282,7 @@ PARAM_DEFINE_INT32(SIHG_LON0, -737578370);
  * @increment 0.01
  * @group Simulation In Hardware
  */
-PARAM_DEFINE_FLOAT(SIHG_H0, 32.34f);
+PARAM_DEFINE_FLOAT(SIH__H0, 32.34f);
 
 /**
  * North magnetic field at the initial location
@@ -302,7 +302,7 @@ PARAM_DEFINE_FLOAT(SIHG_H0, 32.34f);
  * @increment 0.001
  * @group Simulation In Hardware
  */
-PARAM_DEFINE_FLOAT(SIHG_MU_X,  0.179f);
+PARAM_DEFINE_FLOAT(SIH__MU_X,  0.179f);
 
 /**
  * East magnetic field at the initial location
@@ -322,7 +322,7 @@ PARAM_DEFINE_FLOAT(SIHG_MU_X,  0.179f);
  * @increment 0.001
  * @group Simulation In Hardware
  */
-PARAM_DEFINE_FLOAT(SIHG_MU_Y, -0.045f);
+PARAM_DEFINE_FLOAT(SIH__MU_Y, -0.045f);
 
 /**
  * Down magnetic field at the initial location
@@ -342,4 +342,4 @@ PARAM_DEFINE_FLOAT(SIHG_MU_Y, -0.045f);
  * @increment 0.001
  * @group Simulation In Hardware
  */
-PARAM_DEFINE_FLOAT(SIHG_MU_Z,  0.504f);
+PARAM_DEFINE_FLOAT(SIH__MU_Z,  0.504f);
