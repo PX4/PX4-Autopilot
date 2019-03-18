@@ -9,7 +9,7 @@ class ModuleDocumentation(object):
     """
 
     valid_categories = ['driver', 'estimator', 'controller', 'system',
-                        'communication', 'command', 'template']
+                        'communication', 'command', 'template','simulation']
 
     max_line_length = 80 # wrap lines that are longer than this
 
