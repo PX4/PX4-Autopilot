@@ -50,7 +50,6 @@
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/sih.h>
 #include <uORB/topics/vehicle_global_position.h> 	// to publish groundtruth
 #include <uORB/topics/vehicle_attitude.h> 			// to publish groundtruth
 
@@ -102,9 +101,6 @@ private:
 	void parameters_update_poll();
 	void parameters_updated();
 
-	// to publish the simulator states
-	struct sih_s 					_sih {};
-	orb_advert_t    				_sih_pub{nullptr};
 	// to publish the sensor baro
 	struct sensor_baro_s 			_sensor_baro {};
 	orb_advert_t    				_sensor_baro_pub{nullptr};
@@ -135,12 +131,10 @@ private:
 	static constexpr float T1_C = 15.0f; 						// ground temperature in celcius
 	static constexpr float T1_K = T1_C - CONSTANTS_ABSOLUTE_NULL_CELSIUS;	// ground temperature in Kelvin
 	static constexpr float TEMP_GRADIENT  = -6.5f / 1000.0f;	// temperature gradient in degrees per metre
-	static constexpr uint32_t BAUDS_RATE = 57600; 			// bauds rate of the serial port
 	static constexpr hrt_abstime LOOP_INTERVAL = 4000; 		// 4ms => 250 Hz real-time
 
 	void init_variables();
 	void init_sensors();
-	int  init_serial_port();
 	void read_motors();
 	void generate_force_and_torques();
 	void equations_of_motion();
@@ -148,7 +142,6 @@ private:
 	void send_IMU();
 	void send_gps();
 	void publish_sih();
-	void send_serial_msg(int serial_fd, int64_t t_ms);
 	void inner_loop();
 
 	perf_counter_t	_loop_perf;
@@ -163,8 +156,6 @@ private:
 	hrt_abstime _serial_time;
 	hrt_abstime _now;
 	float  		_dt; 			// sampling time [s]
-
-	char _uart_name[12] = "/dev/ttyS5/"; 					// serial port name
 
 	Vector3f 	_T_B; 			// thrust force in body frame [N]
 	Vector3f 	_Fa_I; 			// aerodynamic force in inertial frame [N]
