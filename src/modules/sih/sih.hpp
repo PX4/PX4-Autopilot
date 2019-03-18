@@ -217,11 +217,11 @@ private:
 		(ParamFloat<px4::params::SIH_L_PITCH>) _sih_l_pitch,
 		(ParamFloat<px4::params::SIH_KDV>) _sih_kdv,
 		(ParamFloat<px4::params::SIH_KDW>) _sih_kdw,
-		(ParamInt<px4::params::SIH_LAT0>) _sih_lat0,
-		(ParamInt<px4::params::SIH_LON0>) _sih_lon0,
-		(ParamFloat<px4::params::SIH_H0>) _sih_h0,
-		(ParamFloat<px4::params::SIH_MU_X>) _sih_mu_x,
-		(ParamFloat<px4::params::SIH_MU_Y>) _sih_mu_y,
-		(ParamFloat<px4::params::SIH_MU_Z>) _sih_mu_z
+		(ParamInt<px4::params::SIHG_LAT0>) _sih_lat0,
+		(ParamInt<px4::params::SIHG_LON0>) _sih_lon0,
+		(ParamFloat<px4::params::SIHG_H0>) _sih_h0,
+		(ParamFloat<px4::params::SIHG_MU_X>) _sih_mu_x,
+		(ParamFloat<px4::params::SIHG_MU_Y>) _sih_mu_y,
+		(ParamFloat<px4::params::SIHG_MU_Z>) _sih_mu_z
 	)
 };
