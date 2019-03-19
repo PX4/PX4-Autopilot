@@ -118,7 +118,7 @@ private:
 		(ParamFloat<px4::params::COM_DISARM_LAND>) _disarm_when_landed_timeout,
 
 		(ParamInt<px4::params::COM_OBS_AVOID>) _obs_avoid,
-		(ParamInt<px4::params::COM_ONB_BOOT_T>) _onboard_boot_timeout
+		(ParamInt<px4::params::COM_OA_BOOT_T>) _oa_boot_timeout
 
 	)
 
