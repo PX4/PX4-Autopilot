@@ -582,7 +582,6 @@ bool is_already_running(int instance)
 	int fd = open(file_lock_path.c_str(), O_RDWR | O_CREAT, 0666);
 
 	if (fd < 0) {
-		close(fd);
 		return false;
 	}
 
@@ -598,10 +597,12 @@ bool is_already_running(int instance)
 			return true;
 		}
 
+		close(fd);
 		return false;
 	}
 
 	errno = 0;
+	close(fd);
 	return false;
 }
 
