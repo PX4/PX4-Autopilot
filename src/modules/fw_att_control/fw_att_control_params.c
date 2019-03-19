@@ -359,7 +359,7 @@ PARAM_DEFINE_FLOAT(FW_W_RMAX, 30.0f);
  * Roll rate feed forward
  *
  * Direct feed forward from rate setpoint to control surface output. Use this
- * to obtain a tigher response of the controller without introducing
+ * to obtain a higher response of the controller without introducing
  * noise amplification.
  *
  * @unit %/rad/s
