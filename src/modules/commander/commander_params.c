@@ -798,7 +798,7 @@ PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
 PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
 
 /**
- * Flag to enable obstacle avoidance
+ * Flag to enable obstacle avoidance.
  *
  * @boolean
  * @group Mission
@@ -806,14 +806,14 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
 PARAM_DEFINE_INT32(COM_OBS_AVOID, 0);
 
 /**
- * Set onboard controller bootup timeout
+ * Set avoidance system bootup timeout.
  *
- * This parameter defines the bootup timeout.
- * After the timeout, a mavlink message that tells the user that the avoidance system
- * is not available is sent.
+ * The avoidance system running on the companion computer is expected to boot
+ * within this time and start providing trajectory points.
+ * If no avoidance system is detected a MAVLink warning message is sent.
  * @group Commander
  * @unit s
  * @min 0
  * @max 200
  */
-PARAM_DEFINE_INT32(COM_ONB_BOOT_T, 100);
+PARAM_DEFINE_INT32(COM_OA_BOOT_T, 100);

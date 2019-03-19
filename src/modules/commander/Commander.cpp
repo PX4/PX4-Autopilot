@@ -3967,7 +3967,7 @@ void Commander::data_link_check(bool &status_changed)
 
 		//if avoidance never started
 		if (_datalink_last_heartbeat_avoidance_system == 0
-		    && hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > _onboard_boot_timeout.get() * 1_s) {
+		    && hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > _oa_boot_timeout.get() * 1_s) {
 			if (!print_msg_once) {
 				mavlink_log_critical(&mavlink_log_pub, "Avoidance system not available!");
 				print_msg_once = true;
