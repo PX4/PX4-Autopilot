@@ -55,6 +55,7 @@ PARAM_DEFINE_INT32(SDLOG_UTC_OFFSET, 0);
  * Determines when to start and stop logging. By default, logging is started
  * when arming the system, and stopped when disarming.
  *
+ * @value -1 disabled
  * @value 0 when armed until disarm (default)
  * @value 1 from boot until disarm
  * @value 2 from boot until shutdown
