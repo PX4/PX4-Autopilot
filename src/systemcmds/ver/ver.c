@@ -189,7 +189,7 @@ int ver_main(int argc, char *argv[])
 					const char *ecl_git_hash = px4_ecl_lib_version_string();
 
 					if (ecl_git_hash && ecl_git_hash[0]) {
-						printf("ECL git hash: %s\n", ecl_git_hash);
+						printf("ECL git-hash: %s\n", ecl_git_hash);
 					}
 
 				}
