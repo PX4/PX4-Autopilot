@@ -67,7 +67,7 @@ void FlightTaskAutoLineSmoothVel::_setDefaultConstraints()
 {
 	FlightTaskAuto::_setDefaultConstraints();
 
-	_constraints.speed_xy = MPC_XY_VEL_MAX.get(); // TODO : Should be computed using heading
+	_constraints.speed_xy = _param_mpc_xy_vel_max.get(); // TODO : Should be computed using heading
 }
 
 void FlightTaskAutoLineSmoothVel::_generateSetpoints()
@@ -166,8 +166,9 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 		Vector2f closest_pt = Vector2f(_prev_wp) + u_prev_to_dest * (prev_to_pos * u_prev_to_dest);
 		Vector2f u_pos_traj_to_dest_xy(Vector2f(pos_traj_to_dest).unit_or_zero());
 
-		float speed_sp_track = Vector2f(pos_traj_to_dest).length() * MPC_XY_TRAJ_P.get();
+		float speed_sp_track = Vector2f(pos_traj_to_dest).length() * _param_mpc_xy_traj_p.get();
 		speed_sp_track = math::constrain(speed_sp_track, 0.0f, _mc_cruise_speed);
+
 		Vector2f vel_sp_xy = u_pos_traj_to_dest_xy * speed_sp_track;
 
 		for (int i = 0; i < 2; i++) {
@@ -180,14 +181,14 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 			}
 
 			_velocity_setpoint(i) += (closest_pt(i) - _trajectory[i].getCurrentPosition()) *
-						 MPC_XY_TRAJ_P.get();  // Along-track setpoint + cross-track P controller
+						 _param_mpc_xy_traj_p.get();  // Along-track setpoint + cross-track P controller
 		}
 
 	}
 
 	if (PX4_ISFINITE(_position_setpoint(2))) {
 		const float vel_sp_z = (_position_setpoint(2) - _trajectory[2].getCurrentPosition()) *
-				       MPC_Z_TRAJ_P.get(); // Generate a velocity target for the trajectory using a simple P loop
+				       _param_mpc_z_traj_p.get(); // Generate a velocity target for the trajectory using a simple P loop
 
 		// If available, constrain the velocity using _velocity_setpoint(.)
 		if (PX4_ISFINITE(_velocity_setpoint(2))) {
@@ -203,21 +204,21 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 void FlightTaskAutoLineSmoothVel::_updateTrajConstraints()
 {
 	// Update the constraints of the trajectories
-	_trajectory[0].setMaxAccel(MPC_ACC_HOR_MAX.get()); // TODO : Should be computed using heading
-	_trajectory[1].setMaxAccel(MPC_ACC_HOR_MAX.get());
+	_trajectory[0].setMaxAccel(_param_mpc_acc_hor_max.get()); // TODO : Should be computed using heading
+	_trajectory[1].setMaxAccel(_param_mpc_acc_hor_max.get());
 	_trajectory[0].setMaxVel(_constraints.speed_xy);
 	_trajectory[1].setMaxVel(_constraints.speed_xy);
-	_trajectory[0].setMaxJerk(MPC_JERK_MIN.get()); // TODO : Should be computed using heading
-	_trajectory[1].setMaxJerk(MPC_JERK_MIN.get());
-	_trajectory[2].setMaxJerk(MPC_JERK_MIN.get());
+	_trajectory[0].setMaxJerk(_param_mpc_jerk_min.get()); // TODO : Should be computed using heading
+	_trajectory[1].setMaxJerk(_param_mpc_jerk_min.get());
+	_trajectory[2].setMaxJerk(_param_mpc_jerk_min.get());
 
 	if (_velocity_setpoint(2) < 0.f) { // up
-		_trajectory[2].setMaxAccel(MPC_ACC_UP_MAX.get());
-		_trajectory[2].setMaxVel(MPC_Z_VEL_MAX_UP.get());
+		_trajectory[2].setMaxAccel(_param_mpc_acc_up_max.get());
+		_trajectory[2].setMaxVel(_param_mpc_z_vel_max_up.get());
 
 	} else { // down
-		_trajectory[2].setMaxAccel(MPC_ACC_DOWN_MAX.get());
-		_trajectory[2].setMaxVel(MPC_Z_VEL_MAX_DN.get());
+		_trajectory[2].setMaxAccel(_param_mpc_acc_down_max.get());
+		_trajectory[2].setMaxVel(_param_mpc_z_vel_max_dn.get());
 	}
 }
 

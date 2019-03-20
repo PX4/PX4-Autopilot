@@ -146,10 +146,10 @@ void FlightTask::_evaluateVehicleLocalPosition()
 
 void FlightTask::_setDefaultConstraints()
 {
-	_constraints.speed_xy = MPC_XY_VEL_MAX.get();
-	_constraints.speed_up = MPC_Z_VEL_MAX_UP.get();
-	_constraints.speed_down = MPC_Z_VEL_MAX_DN.get();
-	_constraints.tilt = math::radians(MPC_TILTMAX_AIR.get());
+	_constraints.speed_xy = _param_mpc_xy_vel_max.get();
+	_constraints.speed_up = _param_mpc_z_vel_max_up.get();
+	_constraints.speed_down = _param_mpc_z_vel_max_dn.get();
+	_constraints.tilt = math::radians(_param_mpc_tiltmax_air.get());
 	_constraints.min_distance_to_ground = NAN;
 	_constraints.max_distance_to_ground = NAN;
 }

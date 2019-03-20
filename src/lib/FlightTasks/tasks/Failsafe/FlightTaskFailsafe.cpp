@@ -41,7 +41,7 @@ bool FlightTaskFailsafe::activate()
 	bool ret = FlightTask::activate();
 	_position_setpoint = _position;
 	_velocity_setpoint.zero();
-	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, -MPC_THR_HOVER.get() * 0.6f);
+	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, -_param_mpc_thr_hover.get() * 0.6f);
 	_yaw_setpoint = _yaw;
 	_yawspeed_setpoint = 0.0f;
 	return ret;
@@ -67,7 +67,7 @@ bool FlightTaskFailsafe::update()
 
 	} else if (PX4_ISFINITE(_velocity(2))) {
 		// land with landspeed
-		_velocity_setpoint(2) = MPC_LAND_SPEED.get();
+		_velocity_setpoint(2) = _param_mpc_land_speed.get();
 		_position_setpoint(2) = NAN;
 		_thrust_setpoint(2) = NAN;
 	}
