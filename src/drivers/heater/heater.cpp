@@ -156,11 +156,11 @@ void Heater::cycle()
 		_sensor_temperature = _sensor_accel.temperature;
 
 		// Calculate the temperature delta between the setpoint and reported temperature.
-		float temperature_delta = _p_temperature_setpoint.get() - _sensor_temperature;
+		float temperature_delta = _param_sens_imu_temp.get() - _sensor_temperature;
 
 		// Modulate the heater time on with a feedforward/PI controller.
-		_proportional_value = temperature_delta * _p_proportional_gain.get();
-		_integrator_value += temperature_delta * _p_integrator_gain.get();
+		_proportional_value = temperature_delta * _param_sens_imu_temp_p.get();
+		_integrator_value += temperature_delta * _param_sens_imu_temp_i.get();
 
 		// Constrain the integrator value to no more than 25% of the duty cycle.
 		_integrator_value = math::constrain(_integrator_value, -0.25f, 0.25f);
@@ -214,7 +214,7 @@ void Heater::initialize_topics()
 		}
 
 		// If the correct ID is found, exit the for-loop with _sensor_accel_sub pointing to the correct instance.
-		if (_sensor_accel.device_id == (uint32_t)_p_sensor_id.get()) {
+		if (_sensor_accel.device_id == (uint32_t)_param_sens_temp_id.get()) {
 			PX4_INFO("IMU sensor identified.");
 			break;
 		}
@@ -225,7 +225,7 @@ void Heater::initialize_topics()
 	PX4_INFO("Device ID:  %d", _sensor_accel.device_id);
 
 	// Exit the driver if the sensor ID does not match the desired sensor.
-	if (_sensor_accel.device_id != (uint32_t)_p_sensor_id.get()) {
+	if (_sensor_accel.device_id != (uint32_t)_param_sens_temp_id.get()) {
 		request_stop();
 		PX4_ERR("Could not identify IMU sensor.");
 	}
@@ -247,11 +247,11 @@ void Heater::initialize_trampoline(void *argv)
 float Heater::integrator(char *argv[])
 {
 	if (argv[1]) {
-		_p_integrator_gain.set(atof(argv[1]));
+		_param_sens_imu_temp_i.set(atof(argv[1]));
 	}
 
-	PX4_INFO("Integrator gain:  %2.5f", (double)_p_integrator_gain.get());
-	return _p_integrator_gain.get();
+	PX4_INFO("Integrator gain:  %2.5f", (double)_param_sens_imu_temp_i.get());
+	return _param_sens_imu_temp_i.get();
 }
 
 int Heater::orb_update(const struct orb_metadata *meta, int handle, void *buffer)
@@ -278,7 +278,7 @@ int Heater::print_status()
 {
 	PX4_INFO("Temperature: %3.3fC - Setpoint: %3.2fC - Heater State: %s",
 		 (double)_sensor_temperature,
-		 (double)_p_temperature_setpoint.get(),
+		 (double)_param_sens_imu_temp.get(),
 		 _heater_on ? "On" : "Off");
 
 	return PX4_OK;
@@ -316,11 +316,11 @@ This task can be started at boot from the startup scripts by setting SENS_EN_THE
 float Heater::proportional(char *argv[])
 {
 	if (argv[1]) {
-		_p_proportional_gain.set(atof(argv[1]));
+		_param_sens_imu_temp_p.set(atof(argv[1]));
 	}
 
-	PX4_INFO("Proportional gain:  %2.5f", (double)_p_proportional_gain.get());
-	return _p_proportional_gain.get();
+	PX4_INFO("Proportional gain:  %2.5f", (double)_param_sens_imu_temp_p.get());
+	return _param_sens_imu_temp_p.get();
 }
 
 uint32_t Heater::sensor_id()
@@ -368,11 +368,11 @@ int Heater::task_spawn(int argc, char *argv[])
 float Heater::temperature_setpoint(char *argv[])
 {
 	if (argv[1]) {
-		_p_temperature_setpoint.set(atof(argv[1]));
+		_param_sens_imu_temp.set(atof(argv[1]));
 	}
 
-	PX4_INFO("Target temp:  %3.3f", (double)_p_temperature_setpoint.get());
-	return _p_temperature_setpoint.get();
+	PX4_INFO("Target temp:  %3.3f", (double)_param_sens_imu_temp.get());
+	return _param_sens_imu_temp.get();
 }
 
 void Heater::update_params(const bool force)

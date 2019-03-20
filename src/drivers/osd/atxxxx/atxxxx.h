@@ -176,6 +176,6 @@ private:
 	uint8_t _nav_state{0};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::OSD_ATXXXX_CFG>) _param_atxxxx_cfg
+		(ParamInt<px4::params::OSD_ATXXXX_CFG>) _param_osd_atxxxx_cfg
 	)
 };

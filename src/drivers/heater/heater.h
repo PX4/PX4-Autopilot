@@ -209,9 +209,9 @@ private:
 
 	/** @note Declare local parameters using defined parameters. */
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SENS_IMU_TEMP_I>)  _p_integrator_gain,
-		(ParamFloat<px4::params::SENS_IMU_TEMP_P>)  _p_proportional_gain,
-		(ParamInt<px4::params::SENS_TEMP_ID>) _p_sensor_id,
-		(ParamFloat<px4::params::SENS_IMU_TEMP>) _p_temperature_setpoint
+		(ParamFloat<px4::params::SENS_IMU_TEMP_I>)  _param_sens_imu_temp_i,
+		(ParamFloat<px4::params::SENS_IMU_TEMP_P>)  _param_sens_imu_temp_p,
+		(ParamInt<px4::params::SENS_TEMP_ID>) _param_sens_temp_id,
+		(ParamFloat<px4::params::SENS_IMU_TEMP>) _param_sens_imu_temp
 	)
 };
