@@ -150,18 +150,18 @@ private:
 	int8_t _old_landing_gear_position{landing_gear_s::GEAR_KEEP};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _takeoff_ramp_time, /**< time constant for smooth takeoff ramp */
-		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _vel_max_up,
-		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _vel_max_down,
-		(ParamFloat<px4::params::MPC_LAND_SPEED>) _land_speed,
-		(ParamFloat<px4::params::MPC_TKO_SPEED>) _tko_speed,
-		(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, /**< downwards speed limited below this altitude */
-		(ParamInt<px4::params::MPC_POS_MODE>) MPC_POS_MODE,
-		(ParamInt<px4::params::MPC_AUTO_MODE>) MPC_AUTO_MODE,
-		(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
-		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) MPC_SPOOLUP_TIME, /**< time to let motors spool up after arming */
-		(ParamInt<px4::params::COM_OBS_AVOID>) COM_OBS_AVOID, /**< enable obstacle avoidance */
-		(ParamFloat<px4::params::MPC_TILTMAX_LND>) MPC_TILTMAX_LND /**< maximum tilt for landing and smooth takeoff */
+		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _param_mpc_tko_ramp_t, /**< time constant for smooth takeoff ramp */
+		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
+		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
+		(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
+		(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
+		(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2, /**< downwards speed limited below this altitude */
+		(ParamInt<px4::params::MPC_POS_MODE>) _param_mpc_pos_mode,
+		(ParamInt<px4::params::MPC_AUTO_MODE>) _param_mpc_auto_mode,
+		(ParamInt<px4::params::MPC_ALT_MODE>) _param_mpc_alt_mode,
+		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) _param_mpc_spoolup_time, /**< time to let motors spool up after arming */
+		(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid, /**< enable obstacle avoidance */
+		(ParamFloat<px4::params::MPC_TILTMAX_LND>) _param_mpc_tiltmax_lnd /**< maximum tilt for landing and smooth takeoff */
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
@@ -401,11 +401,11 @@ MulticopterPositionControl::parameters_update(bool force)
 		_flight_tasks.handleParameterUpdate();
 
 		// initialize vectors from params and enforce constraints
-		_tko_speed.set(math::min(_tko_speed.get(), _vel_max_up.get()));
-		_land_speed.set(math::min(_land_speed.get(), _vel_max_down.get()));
+		_param_mpc_tko_speed.set(math::min(_param_mpc_tko_speed.get(), _param_mpc_z_vel_max_up.get()));
+		_param_mpc_land_speed.set(math::min(_param_mpc_land_speed.get(), _param_mpc_z_vel_max_dn.get()));
 
 		// set trigger time for takeoff delay
-		_spoolup_time_hysteresis.set_hysteresis_time_from(false, (int)(MPC_SPOOLUP_TIME.get() * (float)1_s));
+		_spoolup_time_hysteresis.set_hysteresis_time_from(false, (int)(_param_mpc_spoolup_time.get() * (float)1_s));
 
 		if (_wv_controller != nullptr) {
 			_wv_controller->update_parameters();
@@ -534,7 +534,7 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 		_vel_y_deriv.update(0.0f);
 	}
 
-	if (MPC_ALT_MODE.get() && _local_pos.dist_bottom_valid && PX4_ISFINITE(_local_pos.dist_bottom_rate)) {
+	if (_param_mpc_alt_mode.get() && _local_pos.dist_bottom_valid && PX4_ISFINITE(_local_pos.dist_bottom_rate)) {
 		// terrain following
 		_states.velocity(2) = -_local_pos.dist_bottom_rate;
 		_states.acceleration(2) = _vel_z_deriv.update(-_states.velocity(2));
@@ -546,7 +546,7 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 		if (PX4_ISFINITE(vel_sp_z) && fabsf(vel_sp_z) > FLT_EPSILON && PX4_ISFINITE(_local_pos.z_deriv)) {
 			// A change in velocity is demanded. Set velocity to the derivative of position
 			// because it has less bias but blend it in across the landing speed range
-			float weighting = fminf(fabsf(vel_sp_z) / _land_speed.get(), 1.0f);
+			float weighting = fminf(fabsf(vel_sp_z) / _param_mpc_land_speed.get(), 1.0f);
 			_states.velocity(2) = _local_pos.z_deriv * weighting + _local_pos.vz * (1.0f - weighting);
 		}
 
@@ -718,7 +718,7 @@ MulticopterPositionControl::run()
 					}
 
 					// limit tilt during smooth takeoff when still close to ground
-					constraints.tilt = math::radians(MPC_TILTMAX_LND.get());
+					constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
 				}
 			}
 
@@ -921,7 +921,7 @@ MulticopterPositionControl::start_flight_task()
 		// Auto related maneuvers
 		should_disable_task = false;
 		int error = 0;
-		switch (MPC_AUTO_MODE.get()) {
+		switch (_param_mpc_auto_mode.get()) {
 		case 1:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLineSmoothVel);
 			break;
@@ -949,7 +949,7 @@ MulticopterPositionControl::start_flight_task()
 		should_disable_task = false;
 		int error = 0;
 
-		switch (MPC_POS_MODE.get()) {
+		switch (_param_mpc_pos_mode.get()) {
 		case 1:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmooth);
 			break;
@@ -985,7 +985,7 @@ MulticopterPositionControl::start_flight_task()
 		should_disable_task = false;
 		int error = 0;
 
-		switch (MPC_POS_MODE.get()) {
+		switch (_param_mpc_pos_mode.get()) {
 		case 1:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitudeSmooth);
 			break;
@@ -1072,23 +1072,23 @@ MulticopterPositionControl::update_smooth_takeoff(const float &z_sp, const float
 
 		// If there is a valid position setpoint, then set the desired speed to the takeoff speed.
 		if (!_smooth_velocity_takeoff) {
-			desired_tko_speed = _tko_speed.get();
+			desired_tko_speed = _param_mpc_tko_speed.get();
 		}
 
 		// Ramp up takeoff speed.
-		if (_takeoff_ramp_time.get() > _dt) {
-			_takeoff_speed += desired_tko_speed * _dt / _takeoff_ramp_time.get();
+		if (_param_mpc_tko_ramp_t.get() > _dt) {
+			_takeoff_speed += desired_tko_speed * _dt / _param_mpc_tko_ramp_t.get();
 
 		} else {
 			// No ramp, directly go to desired takeoff speed
 			_takeoff_speed = desired_tko_speed;
 		}
 
-		_takeoff_speed = math::min(_takeoff_speed, _tko_speed.get());
+		_takeoff_speed = math::min(_takeoff_speed, _param_mpc_tko_speed.get());
 
 		// Smooth takeoff is achieved once desired altitude/velocity setpoint is reached.
 		if (!_smooth_velocity_takeoff) {
-			_in_smooth_takeoff = _states.position(2) - 0.2f > math::max(z_sp, _takeoff_reference_z - MPC_LAND_ALT2.get());
+			_in_smooth_takeoff = _states.position(2) - 0.2f > math::max(z_sp, _takeoff_reference_z - _param_mpc_land_alt2.get());
 
 		} else {
 			// Make sure to stay in smooth takeoff if takeoff has not been detected yet by the land detector
@@ -1127,7 +1127,7 @@ MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint
 		if (PX4_ISFINITE(_states.velocity(2))) {
 			// We have a valid velocity in D-direction.
 			// descend downwards with landspeed.
-			setpoint.vz = _land_speed.get();
+			setpoint.vz = _param_mpc_land_speed.get();
 			setpoint.thrust[0] = setpoint.thrust[1] = 0.0f;
 			if (warn) {
 				PX4_WARN("Failsafe: Descend with land-speed.");
@@ -1147,7 +1147,7 @@ void
 MulticopterPositionControl::update_avoidance_waypoint_desired(PositionControlStates &states,
 		vehicle_local_position_setpoint_s &setpoint)
 {
-	if (COM_OBS_AVOID.get()) {
+	if (_param_com_obs_avoid.get()) {
 		_traj_wp_avoidance_desired = _flight_tasks.getAvoidanceWaypoint();
 		_traj_wp_avoidance_desired.timestamp = hrt_absolute_time();
 		_traj_wp_avoidance_desired.type = vehicle_trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
@@ -1199,7 +1199,7 @@ MulticopterPositionControl::reset_setpoint_to_nan(vehicle_local_position_setpoin
 bool
 MulticopterPositionControl::use_obstacle_avoidance()
 {
-	if (COM_OBS_AVOID.get()) {
+	if (_param_com_obs_avoid.get()) {
 		const bool avoidance_data_timeout = hrt_elapsed_time((hrt_abstime *)&_traj_wp_avoidance.timestamp) > TRAJECTORY_STREAM_TIMEOUT_US;
 		const bool avoidance_point_valid = _traj_wp_avoidance.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true;
 		const bool in_mission = _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
