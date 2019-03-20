@@ -117,7 +117,7 @@ OSDatxxxx::init()
 	}
 
 	// clear the screen
-	int num_rows = _param_atxxxx_cfg.get() == 1 ? OSD_NUM_ROWS_NTSC : OSD_NUM_ROWS_PAL;
+	int num_rows = _param_osd_atxxxx_cfg.get() == 1 ? OSD_NUM_ROWS_NTSC : OSD_NUM_ROWS_PAL;
 
 	for (int i = 0; i < OSD_CHARS_PER_ROW; i++) {
 		for (int j = 0; j < num_rows; j++) {
@@ -185,7 +185,7 @@ OSDatxxxx::init_osd()
 	int ret = PX4_OK;
 	uint8_t data = OSD_ZERO_BYTE;
 
-	if (_param_atxxxx_cfg.get() == 2) {
+	if (_param_osd_atxxxx_cfg.get() == 2) {
 		data |= OSD_PAL_TX_MODE;
 	}
 
