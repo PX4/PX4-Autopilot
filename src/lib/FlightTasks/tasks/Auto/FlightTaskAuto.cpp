@@ -231,7 +231,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_mission_gear = _sub_triplet_setpoint->get().current.landing_gear;
 	}
 
-	if (COM_OBS_AVOID.get() && _sub_vehicle_status->get().is_rotary_wing) {
+	if (_param_com_obs_avoid.get() && _sub_vehicle_status->get().is_rotary_wing) {
 		_checkAvoidanceProgress();
 	}
 
@@ -243,7 +243,7 @@ void FlightTaskAuto::_set_heading_from_mode()
 
 	Vector2f v; // Vector that points towards desired location
 
-	switch (MPC_YAW_MODE.get()) {
+	switch (_param_mpc_yaw_mode.get()) {
 
 	case 0: // Heading points towards the current waypoint.
 		v = Vector2f(_target) - Vector2f(_position);
@@ -337,7 +337,7 @@ void FlightTaskAuto::_checkAvoidanceProgress()
 
 	const float pos_to_target_z = fabsf(_triplet_target(2) - _position(2));
 
-	if (pos_to_target.length() < _target_acceptance_radius && pos_to_target_z > NAV_MC_ALT_RAD.get()) {
+	if (pos_to_target.length() < _target_acceptance_radius && pos_to_target_z > _param_nav_mc_alt_rad.get()) {
 		// vehicle above or below the target waypoint
 		pos_control_status.altitude_acceptance = pos_to_target_z + 0.5f;
 	}
@@ -410,8 +410,8 @@ void FlightTaskAuto::_setDefaultConstraints()
 	FlightTask::_setDefaultConstraints();
 
 	// only adjust limits if the new limit is lower
-	if (_constraints.speed_xy >= MPC_XY_CRUISE.get()) {
-		_constraints.speed_xy = MPC_XY_CRUISE.get();
+	if (_constraints.speed_xy >= _param_mpc_xy_cruise.get()) {
+		_constraints.speed_xy = _param_mpc_xy_cruise.get();
 	}
 }
 

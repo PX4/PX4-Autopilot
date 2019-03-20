@@ -51,10 +51,10 @@ public:
 protected:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAutoMapper,
-					(ParamFloat<px4::params::MIS_YAW_ERR>) MIS_YAW_ERR, // yaw-error threshold
-					(ParamFloat<px4::params::MPC_ACC_HOR>) MPC_ACC_HOR, // acceleration in flight
-					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) MPC_ACC_UP_MAX,
-					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) MPC_ACC_DOWN_MAX
+					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err, // yaw-error threshold
+					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, // acceleration in flight
+					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
+					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max
 				       );
 
 	void _generateSetpoints() override; /**< Generate setpoints along line. */

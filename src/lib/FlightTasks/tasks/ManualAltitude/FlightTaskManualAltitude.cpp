@@ -71,7 +71,7 @@ bool FlightTaskManualAltitude::activate()
 	_velocity_setpoint(2) = 0.0f;
 	_setDefaultConstraints();
 
-	_constraints.tilt = math::radians(MPC_MAN_TILT_MAX.get());
+	_constraints.tilt = math::radians(_param_mpc_man_tilt_max.get());
 
 	if (PX4_ISFINITE(_sub_vehicle_local_position->get().hagl_min)) {
 		_constraints.min_distance_to_ground = _sub_vehicle_local_position->get().hagl_min;
@@ -96,7 +96,7 @@ bool FlightTaskManualAltitude::activate()
 void FlightTaskManualAltitude::_scaleSticks()
 {
 	// Use sticks input with deadzone and exponential curve for vertical velocity and yawspeed
-	_yawspeed_setpoint = _sticks_expo(3) * math::radians(MPC_MAN_Y_MAX.get());
+	_yawspeed_setpoint = _sticks_expo(3) * math::radians(_param_mpc_man_y_max.get());
 
 	const float vel_max_z = (_sticks(2) > 0.0f) ? _constraints.speed_down : _constraints.speed_up;
 	_velocity_setpoint(2) = vel_max_z * _sticks_expo(2);
@@ -111,11 +111,11 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 	const bool apply_brake = fabsf(_sticks_expo(2)) <= FLT_EPSILON;
 
 	// Check if vehicle has stopped
-	const bool stopped = (MPC_HOLD_MAX_Z.get() < FLT_EPSILON || fabsf(_velocity(2)) < MPC_HOLD_MAX_Z.get());
+	const bool stopped = (_param_mpc_hold_max_z.get() < FLT_EPSILON || fabsf(_velocity(2)) < _param_mpc_hold_max_z.get());
 
 	// Manage transition between use of distance to ground and distance to local origin
 	// when terrain hold behaviour has been selected.
-	if (MPC_ALT_MODE.get() == 2) {
+	if (_param_mpc_alt_mode.get() == 2) {
 		// Use horizontal speed as a transition criteria
 		float spd_xy = Vector2f(_velocity).length();
 
@@ -124,7 +124,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 		bool stick_input = stick_xy > 0.001f;
 
 		if (_terrain_hold) {
-			bool too_fast = spd_xy > MPC_HOLD_MAX_XY.get();
+			bool too_fast = spd_xy > _param_mpc_hold_max_xy.get();
 
 			if (stick_input || too_fast || !PX4_ISFINITE(_dist_to_bottom)) {
 				// Stop using distance to ground
@@ -141,7 +141,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 			}
 
 		} else {
-			bool not_moving = spd_xy < 0.5f * MPC_HOLD_MAX_XY.get();
+			bool not_moving = spd_xy < 0.5f * _param_mpc_hold_max_xy.get();
 
 			if (!stick_input && not_moving && PX4_ISFINITE(_dist_to_bottom)) {
 				// Start using distance to ground
@@ -157,7 +157,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 
 	}
 
-	if ((MPC_ALT_MODE.get() == 1 || _terrain_follow) && PX4_ISFINITE(_dist_to_bottom)) {
+	if ((_param_mpc_alt_mode.get() == 1 || _terrain_follow) && PX4_ISFINITE(_dist_to_bottom)) {
 		// terrain following
 		_terrainFollowing(apply_brake, stopped);
 		// respect maximum altitude
@@ -242,7 +242,7 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 		// if there is a valid maximum distance to ground, linearly increase speed limit with distance
 		// below the maximum, preserving control loop vertical position error gain.
 		if (PX4_ISFINITE(_constraints.max_distance_to_ground)) {
-			_constraints.speed_up = math::constrain(MPC_Z_P.get() * (_constraints.max_distance_to_ground - _dist_to_bottom),
+			_constraints.speed_up = math::constrain(_param_mpc_z_p.get() * (_constraints.max_distance_to_ground - _dist_to_bottom),
 								-_min_speed_down, _max_speed_up);
 
 		} else {
@@ -280,11 +280,11 @@ void FlightTaskManualAltitude::_respectGroundSlowdown()
 	// limit speed gradually within the altitudes MPC_LAND_ALT1 and MPC_LAND_ALT2
 	if (PX4_ISFINITE(dist_to_ground)) {
 		const float limit_down = math::gradual(dist_to_ground,
-						       MPC_LAND_ALT2.get(), MPC_LAND_ALT1.get(),
-						       MPC_LAND_SPEED.get(), _constraints.speed_down);
+						       _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
+						       _param_mpc_land_speed.get(), _constraints.speed_down);
 		const float limit_up = math::gradual(dist_to_ground,
-						     MPC_LAND_ALT2.get(), MPC_LAND_ALT1.get(),
-						     MPC_TKO_SPEED.get(), _constraints.speed_up);
+						     _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
+						     _param_mpc_tko_speed.get(), _constraints.speed_up);
 		_velocity_setpoint(2) = math::constrain(_velocity_setpoint(2), -limit_up, limit_down);
 	}
 }

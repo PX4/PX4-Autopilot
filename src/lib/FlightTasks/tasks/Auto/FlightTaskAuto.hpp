@@ -105,11 +105,12 @@ protected:
 	int _mission_gear = landing_gear_s::GEAR_KEEP;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
-					(ParamFloat<px4::params::MPC_XY_CRUISE>) MPC_XY_CRUISE,
-					(ParamFloat<px4::params::MPC_CRUISE_90>) MPC_CRUISE_90, // speed at corner when angle is 90 degrees move to line
-					(ParamFloat<px4::params::NAV_MC_ALT_RAD>) NAV_MC_ALT_RAD, //vertical acceptance radius at which waypoints are updated
-					(ParamInt<px4::params::MPC_YAW_MODE>) MPC_YAW_MODE, // defines how heading is executed,
-					(ParamInt<px4::params::COM_OBS_AVOID>) COM_OBS_AVOID // obstacle avoidance active
+					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
+					(ParamFloat<px4::params::MPC_CRUISE_90>) _param_mpc_cruise_90, // speed at corner when angle is 90 degrees move to line
+					(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
+					_param_nav_mc_alt_rad, //vertical acceptance radius at which waypoints are updated
+					(ParamInt<px4::params::MPC_YAW_MODE>) _param_mpc_yaw_mode, // defines how heading is executed,
+					(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid // obstacle avoidance active
 				       );
 
 private:
