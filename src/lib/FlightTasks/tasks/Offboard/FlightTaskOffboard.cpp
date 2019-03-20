@@ -125,7 +125,7 @@ bool FlightTaskOffboard::update()
 		// just do takeoff to default altitude
 		if (!PX4_ISFINITE(_position_lock(0))) {
 			_position_setpoint = _position_lock = _position;
-			_position_setpoint(2) = _position_lock(2) = _position(2) - MIS_TAKEOFF_ALT.get();
+			_position_setpoint(2) = _position_lock(2) = _position(2) - _param_mis_takeoff_alt.get();
 
 		} else {
 			_position_setpoint = _position_lock;
@@ -144,11 +144,11 @@ bool FlightTaskOffboard::update()
 		if (!PX4_ISFINITE(_position_lock(0))) {
 			_position_setpoint = _position_lock = _position;
 			_position_setpoint(2) = _position_lock(2) = NAN;
-			_velocity_setpoint(2) = MPC_LAND_SPEED.get();
+			_velocity_setpoint(2) = _param_mpc_land_speed.get();
 
 		} else {
 			_position_setpoint = _position_lock;
-			_velocity_setpoint(2) = MPC_LAND_SPEED.get();
+			_velocity_setpoint(2) = _param_mpc_land_speed.get();
 		}
 
 		// don't have to continue

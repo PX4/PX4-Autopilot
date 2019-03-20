@@ -82,7 +82,7 @@ private:
 	unsigned	_sample_rate{1000};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _filter_cutoff
+		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff
 	)
 
 };

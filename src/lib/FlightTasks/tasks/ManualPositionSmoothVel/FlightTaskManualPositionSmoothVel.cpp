@@ -121,21 +121,21 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 	FlightTaskManualPosition::_updateSetpoints();
 
 	/* Update constraints */
-	_smoothing[0].setMaxAccel(MPC_ACC_HOR_MAX.get());
-	_smoothing[1].setMaxAccel(MPC_ACC_HOR_MAX.get());
+	_smoothing[0].setMaxAccel(_param_mpc_acc_hor_max.get());
+	_smoothing[1].setMaxAccel(_param_mpc_acc_hor_max.get());
 	_smoothing[0].setMaxVel(_constraints.speed_xy);
 	_smoothing[1].setMaxVel(_constraints.speed_xy);
 
 	if (_velocity_setpoint(2) < 0.f) { // up
-		_smoothing[2].setMaxAccel(MPC_ACC_UP_MAX.get());
+		_smoothing[2].setMaxAccel(_param_mpc_acc_up_max.get());
 		_smoothing[2].setMaxVel(_constraints.speed_up);
 
 	} else { // down
-		_smoothing[2].setMaxAccel(MPC_ACC_DOWN_MAX.get());
+		_smoothing[2].setMaxAccel(_param_mpc_acc_down_max.get());
 		_smoothing[2].setMaxVel(_constraints.speed_down);
 	}
 
-	float jerk[3] = {_jerk_max.get(), _jerk_max.get(), _jerk_max.get()};
+	float jerk[3] = {_param_mpc_jerk_max.get(), _param_mpc_jerk_max.get(), _param_mpc_jerk_max.get()};
 
 	_checkEkfResetCounters();
 
@@ -176,11 +176,11 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 		jerk[1] = 1.f;
 
 	} else {
-		jerk[0] = _jerk_max.get();
-		jerk[1] = _jerk_max.get();
+		jerk[0] = _param_mpc_jerk_max.get();
+		jerk[1] = _param_mpc_jerk_max.get();
 	}
 
-	jerk[2] = _position_lock_z_active ? 1.f : _jerk_max.get();
+	jerk[2] = _position_lock_z_active ? 1.f : _param_mpc_jerk_max.get();
 
 	for (int i = 0; i < 3; ++i) {
 		_smoothing[i].setMaxJerk(jerk[i]);

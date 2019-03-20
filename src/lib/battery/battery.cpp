@@ -58,7 +58,7 @@ Battery::reset(battery_status_s *battery_status)
 	battery_status->current_a = -1.f;
 	battery_status->remaining = 1.f;
 	battery_status->scale = 1.f;
-	battery_status->cell_count = _n_cells.get();
+	battery_status->cell_count = _param_bat_n_cells.get();
 	// TODO: check if it is sane to reset warning to NONE
 	battery_status->warning = battery_status_s::BATTERY_WARNING_NONE;
 	battery_status->connected = false;
@@ -168,21 +168,21 @@ void
 Battery::estimateRemaining(float voltage_v, float current_a, float throttle, bool armed)
 {
 	// remaining battery capacity based on voltage
-	float cell_voltage = voltage_v / _n_cells.get();
+	float cell_voltage = voltage_v / _param_bat_n_cells.get();
 
 	// correct battery voltage locally for load drop to avoid estimation fluctuations
-	if (_r_internal.get() >= 0.f) {
-		cell_voltage += _r_internal.get() * current_a;
+	if (_param_bat_r_internal.get() >= 0.f) {
+		cell_voltage += _param_bat_r_internal.get() * current_a;
 
 	} else {
 		// assume linear relation between throttle and voltage drop
-		cell_voltage += throttle * _v_load_drop.get();
+		cell_voltage += throttle * _param_bat_v_load_drop.get();
 	}
 
-	_remaining_voltage = math::gradual(cell_voltage, _v_empty.get(), _v_charged.get(), 0.f, 1.f);
+	_remaining_voltage = math::gradual(cell_voltage, _param_bat_v_empty.get(), _param_bat_v_charged.get(), 0.f, 1.f);
 
 	// choose which quantity we're using for final reporting
-	if (_capacity.get() > 0.f) {
+	if (_param_bat_capacity.get() > 0.f) {
 		// if battery capacity is known, fuse voltage measurement with used capacity
 		if (!_battery_initialized) {
 			// initialization of the estimation state
@@ -193,7 +193,7 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle, boo
 			const float weight_v = 3e-4f * (1 - _remaining_voltage);
 			_remaining = (1 - weight_v) * _remaining + weight_v * _remaining_voltage;
 			// directly apply current capacity slope calculated using current
-			_remaining -= _discharged_mah_loop / _capacity.get();
+			_remaining -= _discharged_mah_loop / _param_bat_capacity.get();
 			_remaining = math::max(_remaining, 0.f);
 		}
 
@@ -208,13 +208,13 @@ Battery::determineWarning(bool connected)
 {
 	if (connected) {
 		// propagate warning state only if the state is higher, otherwise remain in current warning state
-		if (_remaining < _emergency_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_EMERGENCY)) {
+		if (_remaining < _param_bat_emergen_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_EMERGENCY)) {
 			_warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
 
-		} else if (_remaining < _crit_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
+		} else if (_remaining < _param_bat_crit_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
 			_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
 
-		} else if (_remaining < _low_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_LOW)) {
+		} else if (_remaining < _param_bat_low_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_LOW)) {
 			_warning = battery_status_s::BATTERY_WARNING_LOW;
 		}
 	}
@@ -223,12 +223,12 @@ Battery::determineWarning(bool connected)
 void
 Battery::computeScale()
 {
-	const float voltage_range = (_v_charged.get() - _v_empty.get());
+	const float voltage_range = (_param_bat_v_charged.get() - _param_bat_v_empty.get());
 
 	// reusing capacity calculation to get single cell voltage before drop
-	const float bat_v = _v_empty.get() + (voltage_range * _remaining_voltage);
+	const float bat_v = _param_bat_v_empty.get() + (voltage_range * _remaining_voltage);
 
-	_scale = _v_charged.get() / bat_v;
+	_scale = _param_bat_v_charged.get() / bat_v;
 
 	if (_scale > 1.3f) { // Allow at most 30% compensation
 		_scale = 1.3f;

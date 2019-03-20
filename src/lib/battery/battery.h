@@ -59,17 +59,17 @@ public:
 	/**
 	 * Get the battery cell count
 	 */
-	int cell_count() { return _n_cells.get(); }
+	int cell_count() { return _param_bat_n_cells.get(); }
 
 	/**
 	 * Get the empty voltage per cell
 	 */
-	float empty_cell_voltage() { return _v_empty.get(); }
+	float empty_cell_voltage() { return _param_bat_v_empty.get(); }
 
 	/**
 	 * Get the full voltage per cell
 	 */
-	float full_cell_voltage() { return _v_charged.get(); }
+	float full_cell_voltage() { return _param_bat_v_charged.get(); }
 
 	/**
 	 * Update current battery status message.
@@ -96,15 +96,15 @@ private:
 	void computeScale();
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::BAT_V_EMPTY>) _v_empty,
-		(ParamFloat<px4::params::BAT_V_CHARGED>) _v_charged,
-		(ParamInt<px4::params::BAT_N_CELLS>) _n_cells,
-		(ParamFloat<px4::params::BAT_CAPACITY>) _capacity,
-		(ParamFloat<px4::params::BAT_V_LOAD_DROP>) _v_load_drop,
-		(ParamFloat<px4::params::BAT_R_INTERNAL>) _r_internal,
-		(ParamFloat<px4::params::BAT_LOW_THR>) _low_thr,
-		(ParamFloat<px4::params::BAT_CRIT_THR>) _crit_thr,
-		(ParamFloat<px4::params::BAT_EMERGEN_THR>) _emergency_thr
+		(ParamFloat<px4::params::BAT_V_EMPTY>) _param_bat_v_empty,
+		(ParamFloat<px4::params::BAT_V_CHARGED>) _param_bat_v_charged,
+		(ParamInt<px4::params::BAT_N_CELLS>) _param_bat_n_cells,
+		(ParamFloat<px4::params::BAT_CAPACITY>) _param_bat_capacity,
+		(ParamFloat<px4::params::BAT_V_LOAD_DROP>) _param_bat_v_load_drop,
+		(ParamFloat<px4::params::BAT_R_INTERNAL>) _param_bat_r_internal,
+		(ParamFloat<px4::params::BAT_LOW_THR>) _param_bat_low_thr,
+		(ParamFloat<px4::params::BAT_CRIT_THR>) _param_bat_crit_thr,
+		(ParamFloat<px4::params::BAT_EMERGEN_THR>) _param_bat_emergen_thr
 	)
 
 	bool _battery_initialized = false;

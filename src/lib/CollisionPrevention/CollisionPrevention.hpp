@@ -66,7 +66,7 @@ public:
 	 */
 	bool initializeSubscriptions(SubscriptionArray &subscription_array);
 
-	bool is_active() { return MPC_COL_PREV_D.get() > 0; }
+	bool is_active() { return _param_mpc_col_prev_d.get() > 0; }
 
 	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed);
 
@@ -90,7 +90,7 @@ private:
 	matrix::Vector2f _move_constraints_y;
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_COL_PREV_D>) MPC_COL_PREV_D /**< collision prevention keep minimum distance */
+		(ParamFloat<px4::params::MPC_COL_PREV_D>) _param_mpc_col_prev_d /**< collision prevention keep minimum distance */
 	)
 
 	void update();

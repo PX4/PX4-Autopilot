@@ -122,8 +122,10 @@ void CollisionPrevention::update_range_constraints()
 				float angle = math::radians((float)i * obstacle_distance.increment);
 
 				//calculate normalized velocity reductions
-				float vel_lim_x = (max_detection_distance - distance) / (max_detection_distance - MPC_COL_PREV_D.get()) * cos(angle);
-				float vel_lim_y = (max_detection_distance - distance) / (max_detection_distance - MPC_COL_PREV_D.get()) * sin(angle);
+				float vel_lim_x = (max_detection_distance - distance) / (max_detection_distance - _param_mpc_col_prev_d.get()) * cos(
+							  angle);
+				float vel_lim_y = (max_detection_distance - distance) / (max_detection_distance - _param_mpc_col_prev_d.get()) * sin(
+							  angle);
 
 				if (vel_lim_x > 0 && vel_lim_x > _move_constraints_x_normalized(1)) { _move_constraints_x_normalized(1) = vel_lim_x; }
 
