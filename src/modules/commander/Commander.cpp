@@ -1110,7 +1110,7 @@ Commander::set_home_position()
 		const vehicle_global_position_s &gpos = _global_position_sub.get();
 
 		// Ensure that the GPS accuracy is good enough for intializing home
-		if ((gpos.eph <= _home_eph_threshold.get()) && (gpos.epv <= _home_epv_threshold.get())) {
+		if ((gpos.eph <= _param_com_home_h_t.get()) && (gpos.epv <= _param_com_home_v_t.get())) {
 
 			const vehicle_local_position_s &lpos = _local_position_sub.get();
 
@@ -1214,7 +1214,7 @@ Commander::run()
 	/* failsafe response to loss of navigation accuracy */
 	param_t _param_posctl_nav_loss_act = param_find("COM_POSCTL_NAVL");
 
-	status_flags.avoidance_system_required = _obs_avoid.get();
+	status_flags.avoidance_system_required = _param_com_obs_avoid.get();
 
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
@@ -1485,7 +1485,7 @@ Commander::run()
 		}
 
 		/* Update OA parameter */
-		status_flags.avoidance_system_required = _obs_avoid.get();
+		status_flags.avoidance_system_required = _param_com_obs_avoid.get();
 
 		/* handle power button state */
 		orb_check(power_button_state_sub, &updated);
@@ -1668,9 +1668,9 @@ Commander::run()
 						// Set all position and velocity test probation durations to takeoff value
 						// This is a larger value to give the vehicle time to complete a failsafe landing
 						// if faulty sensors cause loss of navigation shortly after takeoff.
-						_gpos_probation_time_us = _failsafe_pos_probation.get() * 1_s;
-						_lpos_probation_time_us = _failsafe_pos_probation.get() * 1_s;
-						_lvel_probation_time_us = _failsafe_pos_probation.get() * 1_s;
+						_gpos_probation_time_us = _param_com_pos_fs_prob.get() * 1_s;
+						_lpos_probation_time_us = _param_com_pos_fs_prob.get() * 1_s;
+						_lvel_probation_time_us = _param_com_pos_fs_prob.get() * 1_s;
 					}
 				}
 
@@ -1690,14 +1690,14 @@ Commander::run()
 		if (armed.armed) {
 
 			// Check for auto-disarm on landing
-			if (_disarm_when_landed_timeout.get() > 0) {
+			if (_param_com_disarm_land.get() > 0) {
 
 				if (!have_taken_off_since_arming) {
 					// pilot has ten seconds time to take off
 					_auto_disarm_landed.set_hysteresis_time_from(false, 10_s);
 
 				} else {
-					_auto_disarm_landed.set_hysteresis_time_from(false, _disarm_when_landed_timeout.get() * 1_s);
+					_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_land.get() * 1_s);
 				}
 
 				_auto_disarm_landed.set_state_and_update(land_detector.landed);
@@ -1950,7 +1950,7 @@ Commander::run()
 
 		/* RC input check */
 		if (!status_flags.rc_input_blocked && sp_man.timestamp != 0 &&
-		    (hrt_elapsed_time(&sp_man.timestamp) < (_rc_loss_threshold.get() * 1_s))) {
+		    (hrt_elapsed_time(&sp_man.timestamp) < (_param_com_rc_loss_t.get() * 1_s))) {
 
 			/* handle the case where RC signal was regained */
 			if (!status_flags.rc_signal_found_once) {
@@ -2367,12 +2367,12 @@ Commander::run()
 						       &armed,
 						       &internal_state,
 						       &mavlink_log_pub,
-						       (link_loss_actions_t)_datalink_loss_action.get(),
+						       (link_loss_actions_t)_param_nav_dll_act.get(),
 						       _mission_result_sub.get().finished,
 						       _mission_result_sub.get().stay_in_failsafe,
 						       status_flags,
 						       land_detector.landed,
-						       (link_loss_actions_t)_rc_loss_action.get(),
+						       (link_loss_actions_t)_param_nav_rcl_act.get(),
 						       offboard_loss_act,
 						       offboard_loss_rc_act,
 						       posctl_nav_loss_act);
@@ -3117,7 +3117,8 @@ Commander::reset_posvel_validity(bool *changed)
 
 	check_posvel_validity(local_position.xy_valid, local_position.eph, _eph_threshold_adj, local_position.timestamp,
 			      &_last_lpos_fail_time_us, &_lpos_probation_time_us, &status_flags.condition_local_position_valid, changed);
-	check_posvel_validity(local_position.v_xy_valid, local_position.evh, _evh_threshold.get(), local_position.timestamp,
+	check_posvel_validity(local_position.v_xy_valid, local_position.evh, _param_com_vel_fs_evh.get(),
+			      local_position.timestamp,
 			      &_last_lvel_fail_time_us, &_lvel_probation_time_us, &status_flags.condition_local_velocity_valid, changed);
 }
 
@@ -3134,7 +3135,7 @@ Commander::check_posvel_validity(const bool data_valid, const float data_accurac
 		*probation_time_us = POSVEL_PROBATION_MIN;
 	}
 
-	const bool data_stale = ((hrt_elapsed_time(&data_timestamp_us) > _failsafe_pos_delay.get() * 1_s)
+	const bool data_stale = ((hrt_elapsed_time(&data_timestamp_us) > _param_com_pos_fs_delay.get() * 1_s)
 				 || (data_timestamp_us == 0));
 	const float req_accuracy = (was_valid ? required_accuracy * 2.5f : required_accuracy);
 
@@ -3162,7 +3163,8 @@ Commander::check_posvel_validity(const bool data_valid, const float data_accurac
 
 		} else {
 			// failed again, increase probation time
-			const int64_t probation_time_new = *probation_time_us + hrt_elapsed_time(last_fail_time_us) * _failsafe_pos_gain.get();
+			const int64_t probation_time_new = *probation_time_us + hrt_elapsed_time(last_fail_time_us) *
+							   _param_com_pos_fs_gain.get();
 			*probation_time_us = math::constrain(probation_time_new, POSVEL_PROBATION_MIN, POSVEL_PROBATION_MAX);
 		}
 
@@ -3868,7 +3870,7 @@ void Commander::data_link_check(bool &status_changed)
 							_high_latency_datalink_heartbeat = iridium_status.last_heartbeat;
 
 							if (status.high_latency_data_link_lost) {
-								if (hrt_elapsed_time(&_high_latency_datalink_lost) > (_high_latency_datalink_regain_threshold.get() * 1_s)) {
+								if (hrt_elapsed_time(&_high_latency_datalink_lost) > (_param_com_hldl_reg_t.get() * 1_s)) {
 									status.high_latency_data_link_lost = false;
 									status_changed = true;
 								}
@@ -3940,7 +3942,7 @@ void Commander::data_link_check(bool &status_changed)
 	// GCS data link loss failsafe
 	if (!status.data_link_lost) {
 		if (_datalink_last_heartbeat_gcs != 0
-		    && hrt_elapsed_time(&_datalink_last_heartbeat_gcs) > (_datalink_loss_threshold.get() * 1_s)) {
+		    && hrt_elapsed_time(&_datalink_last_heartbeat_gcs) > (_param_com_dl_loss_t.get() * 1_s)) {
 
 			status.data_link_lost = true;
 			status.data_link_lost_counter++;
@@ -3966,7 +3968,7 @@ void Commander::data_link_check(bool &status_changed)
 
 		//if avoidance never started
 		if (_datalink_last_heartbeat_avoidance_system == 0
-		    && hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > _oa_boot_timeout.get() * 1_s) {
+		    && hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > _param_com_oa_boot_t.get() * 1_s) {
 			if (!_print_avoidance_msg_once) {
 				mavlink_log_critical(&mavlink_log_pub, "Avoidance system not available!");
 				_print_avoidance_msg_once = true;
@@ -4011,7 +4013,7 @@ void Commander::data_link_check(bool &status_changed)
 
 	// high latency data link loss failsafe
 	if (_high_latency_datalink_heartbeat > 0
-	    && hrt_elapsed_time(&_high_latency_datalink_heartbeat) > (_high_latency_datalink_loss_threshold.get() * 1_s)) {
+	    && hrt_elapsed_time(&_high_latency_datalink_heartbeat) > (_param_com_hldl_loss_t.get() * 1_s)) {
 		_high_latency_datalink_lost = hrt_absolute_time();
 
 		if (!status.high_latency_data_link_lost) {
@@ -4049,7 +4051,7 @@ void Commander::battery_status_check()
 			if (armed.armed) {
 				if (battery.warning > _battery_warning) {
 					battery_failsafe(&mavlink_log_pub, status, status_flags, &internal_state, battery.warning,
-							 (low_battery_action_t)_low_bat_action.get());
+							 (low_battery_action_t)_param_com_low_bat_act.get());
 				}
 			}
 
@@ -4115,7 +4117,7 @@ void Commander::estimator_check(bool *status_changed)
 			_eph_threshold_adj = INFINITY;
 
 		} else {
-			_eph_threshold_adj = _eph_threshold.get();
+			_eph_threshold_adj = _param_com_pos_fs_eph.get();
 		}
 
 		/* Check estimator status for signs of bad yaw induced post takeoff navigation failure
@@ -4182,7 +4184,7 @@ void Commander::estimator_check(bool *status_changed)
 			// use local position message to determine validity
 			check_posvel_validity(lpos.xy_valid, lpos.eph, _eph_threshold_adj, lpos.timestamp, &_last_lpos_fail_time_us,
 					      &_lpos_probation_time_us, &status_flags.condition_local_position_valid, status_changed);
-			check_posvel_validity(lpos.v_xy_valid, lpos.evh, _evh_threshold.get(), lpos.timestamp, &_last_lvel_fail_time_us,
+			check_posvel_validity(lpos.v_xy_valid, lpos.evh, _param_com_vel_fs_evh.get(), lpos.timestamp, &_last_lvel_fail_time_us,
 					      &_lvel_probation_time_us, &status_flags.condition_local_velocity_valid, status_changed);
 		}
 	}
@@ -4194,6 +4196,6 @@ void Commander::estimator_check(bool *status_changed)
 		set_health_flags_present_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GPS, true, true, status);
 	}
 
-	check_valid(lpos.timestamp, _failsafe_pos_delay.get() * 1_s, lpos.z_valid,
+	check_valid(lpos.timestamp, _param_com_pos_fs_delay.get() * 1_s, lpos.z_valid,
 		    &(status_flags.condition_local_altitude_valid), status_changed);
 }

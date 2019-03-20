@@ -69,8 +69,8 @@ FailureDetector::update_attitude_status()
 		const float roll(euler.phi());
 		const float pitch(euler.theta());
 
-		const float max_roll_deg = _fail_trig_roll.get();
-		const float max_pitch_deg = _fail_trig_pitch.get();
+		const float max_roll_deg = _param_fd_fail_r.get();
+		const float max_pitch_deg = _param_fd_fail_p.get();
 		const float max_roll(fabsf(math::radians(max_roll_deg)));
 		const float max_pitch(fabsf(math::radians(max_pitch_deg)));
 
