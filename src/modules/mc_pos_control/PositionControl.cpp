@@ -91,11 +91,11 @@ void PositionControl::generateThrustYawSetpoint(const float dt)
 		// Limit the thrust vector.
 		float thr_mag = _thr_sp.length();
 
-		if (thr_mag > MPC_THR_MAX.get()) {
-			_thr_sp = _thr_sp.normalized() * MPC_THR_MAX.get();
+		if (thr_mag > _param_mpc_thr_max.get()) {
+			_thr_sp = _thr_sp.normalized() * _param_mpc_thr_max.get();
 
-		} else if (thr_mag < MPC_MANTHR_MIN.get() && thr_mag > FLT_EPSILON) {
-			_thr_sp = _thr_sp.normalized() * MPC_MANTHR_MIN.get();
+		} else if (thr_mag < _param_mpc_manthr_min.get() && thr_mag > FLT_EPSILON) {
+			_thr_sp = _thr_sp.normalized() * _param_mpc_manthr_min.get();
 		}
 
 		// Just set the set-points equal to the current vehicle state.
@@ -204,7 +204,7 @@ bool PositionControl::_interfaceMapping()
 		_thr_sp(0) = _thr_sp(1) = 0.0f;
 		// throttle down such that vehicle goes down with
 		// 70% of throttle range between min and hover
-		_thr_sp(2) = -(MPC_THR_MIN.get() + (MPC_THR_HOVER.get() - MPC_THR_MIN.get()) * 0.7f);
+		_thr_sp(2) = -(_param_mpc_thr_min.get() + (_param_mpc_thr_hover.get() - _param_mpc_thr_min.get()) * 0.7f);
 		// position and velocity control-loop is currently unused (flag only for logging purpose)
 		_setCtrlFlag(false);
 	}
@@ -215,13 +215,14 @@ bool PositionControl::_interfaceMapping()
 void PositionControl::_positionController()
 {
 	// P-position controller
-	const Vector3f vel_sp_position = (_pos_sp - _pos).emult(Vector3f(MPC_XY_P.get(), MPC_XY_P.get(), MPC_Z_P.get()));
+	const Vector3f vel_sp_position = (_pos_sp - _pos).emult(Vector3f(_param_mpc_xy_p.get(), _param_mpc_xy_p.get(),
+					 _param_mpc_z_p.get()));
 	_vel_sp = vel_sp_position + _vel_sp;
 
 	// Constrain horizontal velocity by prioritizing the velocity component along the
 	// the desired position setpoint over the feed-forward term.
 	const Vector2f vel_sp_xy = ControlMath::constrainXY(Vector2f(vel_sp_position),
-				   Vector2f(_vel_sp - vel_sp_position), MPC_XY_VEL_MAX.get());
+				   Vector2f(_vel_sp - vel_sp_position), _param_mpc_xy_vel_max.get());
 	_vel_sp(0) = vel_sp_xy(0);
 	_vel_sp(1) = vel_sp_xy(1);
 	// Constrain velocity in z-direction.
@@ -257,22 +258,22 @@ void PositionControl::_velocityController(const float &dt)
 	const Vector3f vel_err = _vel_sp - _vel;
 
 	// Consider thrust in D-direction.
-	float thrust_desired_D = MPC_Z_VEL_P.get() * vel_err(2) +  MPC_Z_VEL_D.get() * _vel_dot(2) + _thr_int(
-					 2) - MPC_THR_HOVER.get();
+	float thrust_desired_D = _param_mpc_z_vel_p.get() * vel_err(2) +  _param_mpc_z_vel_d.get() * _vel_dot(2) + _thr_int(
+					 2) - _param_mpc_thr_hover.get();
 
 	// The Thrust limits are negated and swapped due to NED-frame.
-	float uMax = -MPC_THR_MIN.get();
-	float uMin = -MPC_THR_MAX.get();
+	float uMax = -_param_mpc_thr_min.get();
+	float uMin = -_param_mpc_thr_max.get();
 
 	// Apply Anti-Windup in D-direction.
 	bool stop_integral_D = (thrust_desired_D >= uMax && vel_err(2) >= 0.0f) ||
 			       (thrust_desired_D <= uMin && vel_err(2) <= 0.0f);
 
 	if (!stop_integral_D) {
-		_thr_int(2) += vel_err(2) * MPC_Z_VEL_I.get() * dt;
+		_thr_int(2) += vel_err(2) * _param_mpc_z_vel_i.get() * dt;
 
 		// limit thrust integral
-		_thr_int(2) = math::min(fabsf(_thr_int(2)), MPC_THR_MAX.get()) * math::sign(_thr_int(2));
+		_thr_int(2) = math::min(fabsf(_thr_int(2)), _param_mpc_thr_max.get()) * math::sign(_thr_int(2));
 	}
 
 	// Saturate thrust setpoint in D-direction.
@@ -288,12 +289,12 @@ void PositionControl::_velocityController(const float &dt)
 	} else {
 		// PID-velocity controller for NE-direction.
 		Vector2f thrust_desired_NE;
-		thrust_desired_NE(0) = MPC_XY_VEL_P.get() * vel_err(0) + MPC_XY_VEL_D.get() * _vel_dot(0) + _thr_int(0);
-		thrust_desired_NE(1) = MPC_XY_VEL_P.get() * vel_err(1) + MPC_XY_VEL_D.get() * _vel_dot(1) + _thr_int(1);
+		thrust_desired_NE(0) = _param_mpc_xy_vel_p.get() * vel_err(0) + _param_mpc_xy_vel_d.get() * _vel_dot(0) + _thr_int(0);
+		thrust_desired_NE(1) = _param_mpc_xy_vel_p.get() * vel_err(1) + _param_mpc_xy_vel_d.get() * _vel_dot(1) + _thr_int(1);
 
 		// Get maximum allowed thrust in NE based on tilt and excess thrust.
 		float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);
-		float thrust_max_NE = sqrtf(MPC_THR_MAX.get() * MPC_THR_MAX.get() - _thr_sp(2) * _thr_sp(2));
+		float thrust_max_NE = sqrtf(_param_mpc_thr_max.get() * _param_mpc_thr_max.get() - _thr_sp(2) * _thr_sp(2));
 		thrust_max_NE = math::min(thrust_max_NE_tilt, thrust_max_NE);
 
 		// Saturate thrust in NE-direction.
@@ -308,15 +309,15 @@ void PositionControl::_velocityController(const float &dt)
 
 		// Use tracking Anti-Windup for NE-direction: during saturation, the integrator is used to unsaturate the output
 		// see Anti-Reset Windup for PID controllers, L.Rundqwist, 1990
-		float arw_gain = 2.f / MPC_XY_VEL_P.get();
+		float arw_gain = 2.f / _param_mpc_xy_vel_p.get();
 
 		Vector2f vel_err_lim;
 		vel_err_lim(0) = vel_err(0) - (thrust_desired_NE(0) - _thr_sp(0)) * arw_gain;
 		vel_err_lim(1) = vel_err(1) - (thrust_desired_NE(1) - _thr_sp(1)) * arw_gain;
 
 		// Update integral
-		_thr_int(0) += MPC_XY_VEL_I.get() * vel_err_lim(0) * dt;
-		_thr_int(1) += MPC_XY_VEL_I.get() * vel_err_lim(1) * dt;
+		_thr_int(0) += _param_mpc_xy_vel_i.get() * vel_err_lim(0) * dt;
+		_thr_int(1) += _param_mpc_xy_vel_i.get() * vel_err_lim(1) * dt;
 	}
 }
 
@@ -328,20 +329,20 @@ void PositionControl::updateConstraints(const vehicle_constraints_s &constraints
 	// constraints, then just use global constraints for the limits.
 
 	if (!PX4_ISFINITE(constraints.tilt)
-	    || !(constraints.tilt < math::max(MPC_TILTMAX_AIR_rad.get(), MPC_MAN_TILT_MAX_rad.get()))) {
-		_constraints.tilt = math::max(MPC_TILTMAX_AIR_rad.get(), MPC_MAN_TILT_MAX_rad.get());
+	    || !(constraints.tilt < math::max(_param_mpc_tiltmax_air.get(), _param_mpc_man_tilt_max.get()))) {
+		_constraints.tilt = math::max(_param_mpc_tiltmax_air.get(), _param_mpc_man_tilt_max.get());
 	}
 
-	if (!PX4_ISFINITE(constraints.speed_up) || !(constraints.speed_up < MPC_Z_VEL_MAX_UP.get())) {
-		_constraints.speed_up = MPC_Z_VEL_MAX_UP.get();
+	if (!PX4_ISFINITE(constraints.speed_up) || !(constraints.speed_up < _param_mpc_z_vel_max_up.get())) {
+		_constraints.speed_up = _param_mpc_z_vel_max_up.get();
 	}
 
-	if (!PX4_ISFINITE(constraints.speed_down) || !(constraints.speed_down < MPC_Z_VEL_MAX_DN.get())) {
-		_constraints.speed_down = MPC_Z_VEL_MAX_DN.get();
+	if (!PX4_ISFINITE(constraints.speed_down) || !(constraints.speed_down < _param_mpc_z_vel_max_dn.get())) {
+		_constraints.speed_down = _param_mpc_z_vel_max_dn.get();
 	}
 
-	if (!PX4_ISFINITE(constraints.speed_xy) || !(constraints.speed_xy < MPC_XY_VEL_MAX.get())) {
-		_constraints.speed_xy = MPC_XY_VEL_MAX.get();
+	if (!PX4_ISFINITE(constraints.speed_xy) || !(constraints.speed_xy < _param_mpc_xy_vel_max.get())) {
+		_constraints.speed_xy = _param_mpc_xy_vel_max.get();
 	}
 }
 
@@ -350,6 +351,6 @@ void PositionControl::updateParams()
 	ModuleParams::updateParams();
 
 	// Tilt needs to be in radians
-	MPC_TILTMAX_AIR_rad.set(math::radians(MPC_TILTMAX_AIR_rad.get()));
-	MPC_MAN_TILT_MAX_rad.set(math::radians(MPC_MAN_TILT_MAX_rad.get()));
+	_param_mpc_tiltmax_air.set(math::radians(_param_mpc_tiltmax_air.get()));
+	_param_mpc_man_tilt_max.set(math::radians(_param_mpc_man_tilt_max.get()));
 }
