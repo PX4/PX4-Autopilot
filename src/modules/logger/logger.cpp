@@ -2032,12 +2032,18 @@ void Logger::write_version(LogType type)
 
 	const char *git_branch = px4_firmware_git_branch();
 
+	const char *git_tag = px4_firmware_git_tag_string();
+
 	if (git_branch && git_branch[0]) {
 		write_info(type, "ver_sw_branch", git_branch);
 	}
 
 	if (os_version) {
 		write_info(type, "sys_os_ver", os_version);
+	}
+
+	if (git_tag && git_tag[0]) {
+	    write_info(type, "ver_git_tag", git_tag);
 	}
 
 	write_info(type, "sys_os_ver_release", px4_os_version());
