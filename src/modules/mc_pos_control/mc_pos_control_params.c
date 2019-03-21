@@ -320,8 +320,8 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 12.0f);
  * Limits maximum tilt in AUTO and POSCTRL modes during flight.
  *
  * @unit deg
- * @min 0.0
- * @max 90.0
+ * @min 20.0
+ * @max 180.0
  * @decimal 1
  * @group Multicopter Position Control
  */
@@ -333,8 +333,8 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.0f);
  * Limits maximum tilt angle on landing.
  *
  * @unit deg
- * @min 0.0
- * @max 180.0
+ * @min 10.0
+ * @max 90.0
  * @decimal 1
  * @group Multicopter Position Control
  */
