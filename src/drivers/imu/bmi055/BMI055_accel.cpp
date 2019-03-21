@@ -169,7 +169,7 @@ int BMI055_accel::reset()
 	write_reg(BMI055_ACC_SOFTRESET, BMI055_SOFT_RESET);//Soft-reset
 	up_udelay(5000);
 
-	write_checked_reg(BMI055_ACC_BW,    BMI055_ACCEL_BW_62_5); //Write accel bandwidth (DLPF)
+	write_checked_reg(BMI055_ACC_BW,    BMI055_ACCEL_BW_500); //Write accel bandwidth (DLPF)
 	write_checked_reg(BMI055_ACC_RANGE,     BMI055_ACCEL_RANGE_2_G);//Write range
 	write_checked_reg(BMI055_ACC_INT_EN_1,      BMI055_ACC_DRDY_INT_EN); //Enable DRDY interrupt
 	write_checked_reg(BMI055_ACC_INT_MAP_1,     BMI055_ACC_DRDY_INT1); //Map DRDY interrupt on pin INT1
