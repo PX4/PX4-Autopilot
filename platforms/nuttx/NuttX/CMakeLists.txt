@@ -113,7 +113,7 @@ add_custom_command(
 		${NUTTX_DIR}/arch/arm/include/math.h
 		${PX4_BINARY_DIR}/NuttX/nuttx-config/include/board.h
 		${PX4_BINARY_DIR}/NuttX/nuttx-config/include/nsh_romfsimg.h
-		${PX4_BINARY_DIR}/NuttX/nuttx-config/scripts/ld.script
+		${PX4_BINARY_DIR}/NuttX/nuttx-config/scripts/script.ld
 		${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy_config_dir.stamp
 	COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/include/nuttx/config.h
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${NUTTX_CONFIG_DIR}/ ${PX4_BINARY_DIR}/NuttX/nuttx-config
@@ -125,7 +125,7 @@ add_custom_command(
 		${NUTTX_SRC_DIR}/math.h
 		${NUTTX_SRC_DIR}/nsh_romfsimg.h
 		${NUTTX_CONFIG_DIR}/include/board.h
-		${NUTTX_CONFIG_DIR}/scripts/ld.script
+		${NUTTX_CONFIG_DIR}/scripts/script.ld
 		${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
 		${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
 	WORKING_DIRECTORY ${NUTTX_DIR}
