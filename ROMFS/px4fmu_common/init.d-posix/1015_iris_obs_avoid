@@ -9,5 +9,5 @@ sh /etc/init.d-posix/10016_iris
 
 if [ $AUTOCNF = yes ]
 then
-	param set COM_OBS_AVOID 1
+	param set COM_OBS_AVOID 0
 fi
