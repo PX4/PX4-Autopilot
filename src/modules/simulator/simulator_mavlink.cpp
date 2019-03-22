@@ -327,6 +327,10 @@ void Simulator::handle_message(const mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
 		handle_message_hil_state_quaternion(msg);
 		break;
+
+	case MAVLINK_MSG_ID_COLLISION:
+		handle_message_collision(msg);
+		break;
 	}
 }
 
@@ -505,6 +509,22 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 		orb_publish_auto(ORB_ID(vehicle_local_position_groundtruth), &_lpos_pub, &hil_lpos, &hil_lpos_multi,
 				 ORB_PRIO_HIGH);
 	}
+}
+
+void Simulator::handle_message_collision(const mavlink_message_t *msg)
+{
+	mavlink_collision_t collision;
+	mavlink_msg_collision_decode(msg, &collision);
+
+	struct collision_report_s collision_report = {};
+	{
+		collision_report.timestamp = hrt_absolute_time();
+		collision_report.horizontal_minimum_delta = collision.horizontal_minimum_delta;
+	}
+
+	int collision_multi;
+	orb_publish_auto(ORB_ID(collision_report), &_irlock_report_pub, &collision_report, &collision_multi, ORB_PRIO_HIGH);
+
 }
 
 void Simulator::handle_message_landing_target(const mavlink_message_t *msg)

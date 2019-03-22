@@ -53,6 +53,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/irlock_report.h>
+#include <uORB/topics/collision_report.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
@@ -308,6 +309,7 @@ private:
 	orb_advert_t _irlock_report_pub{nullptr};
 	orb_advert_t _mag_pub{nullptr};
 	orb_advert_t _visual_odometry_pub{nullptr};
+	orb_advert_t _collision_pub{nullptr};
 
 	int _param_sub{-1};
 
@@ -340,6 +342,7 @@ private:
 	void handle_message_optical_flow(const mavlink_message_t *msg);
 	void handle_message_rc_channels(const mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(const mavlink_message_t *msg);
+	void handle_message_collision(const mavlink_message_t *msg);
 
 	void parameters_update(bool force);
 	void poll_topics();
