@@ -84,7 +84,7 @@ bool ObstacleAvoidance::initializeSubscriptions(SubscriptionArray &subscription_
 	return true;
 }
 
-void ObstacleAvoidance::prepareAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, float &yaw_sp,
+void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, float &yaw_sp,
 		float &yaw_speed_sp)
 {
 
