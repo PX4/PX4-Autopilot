@@ -187,7 +187,6 @@ private:
 
 	hrt_abstime	_datalink_last_heartbeat_avoidance_system{0};
 	bool				_avoidance_system_lost{false};
-	hrt_abstime	_avoidance_system_not_started{0};
 
 	bool		_avoidance_system_status_change{false};
 	uint8_t	_datalink_last_status_avoidance_system{telemetry_status_s::MAV_STATE_UNINIT};
@@ -203,6 +202,8 @@ private:
 
 	systemlib::Hysteresis	_auto_disarm_landed{false};
 	systemlib::Hysteresis	_auto_disarm_killed{false};
+
+	bool _print_msg_once{false};
 
 	// Subscriptions
 	Subscription<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
