@@ -416,7 +416,10 @@ void GPS::handleInjectDataTopic()
 {
 	bool updated = false;
 
+	const size_t max_num_injections = 6;
+	size_t num_injections = 0;
 	do {
+		num_injections++;
 		updated = _orb_inject_data_sub.updated();
 
 		if (updated) {
@@ -431,7 +434,7 @@ void GPS::handleInjectDataTopic()
 
 			++_last_rate_rtcm_injection_count;
 		}
-	} while (updated);
+	} while (updated && num_injections < max_num_injections);
 }
 
 bool GPS::injectData(uint8_t *data, size_t len)
