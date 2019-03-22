@@ -17,4 +17,6 @@ source /usr/share/gazebo/setup.sh
 export CATKIN_SETUP_UTIL_ARGS=--extend
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:${PX4_SRC_DIR}/catkin_ws/src/avoidance/sim/models
 
+python $DIR/collision_test.py &
+
 source $DIR/rostest_px4_run.sh "$@"
