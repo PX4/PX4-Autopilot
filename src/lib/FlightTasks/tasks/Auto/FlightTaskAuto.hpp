@@ -45,7 +45,7 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <lib/ecl/geo/geo.h>
-#include "ObstacleAvoidance.hpp"
+#include <ObstacleAvoidance.hpp>
 
 /**
  * This enum has to agree with position_setpoint_s type definition
@@ -103,7 +103,7 @@ protected:
 	float _target_acceptance_radius = 0.0f; /**< Acceptances radius of the target */
 	int _mission_gear = landing_gear_s::GEAR_KEEP;
 
-	ObstacleAvoidance _obstacle_avoidance;
+	ObstacleAvoidance _obstacle_avoidance; /**< class adjusting setpoints according to external avoidance module's input */
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,

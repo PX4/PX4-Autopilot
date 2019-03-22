@@ -64,16 +64,16 @@ public:
 	bool initializeSubscriptions(SubscriptionArray &subscription_array);
 
 	/**
-	 * Inject setpoints from obstacle avoidance system into FLightTasks.
+	 * Inject setpoints from obstacle avoidance system into FlightTasks.
 	 * @param pos_sp, position setpoint
 	 * @param vel_sp, velocity setpoint
 	 * @param yaw_sp, yaw setpoint
 	 * @param yaw_speed_sp, yaw speed setpoint
 	 */
-	void prepareAvoidanceSetpoints(matrix::Vector3f &pos_sp, matrix::Vector3f &vel_sp, float &yaw_sp, float &yaw_speed_sp);
+	void injectAvoidanceSetpoints(matrix::Vector3f &pos_sp, matrix::Vector3f &vel_sp, float &yaw_sp, float &yaw_speed_sp);
 
 	/**
-	 * Updates the desired waypoints to send to the obstacle avoidance system.
+	 * Updates the desired waypoints to send to the obstacle avoidance system. These messages don't have any direct impact on the flight.
 	 * @param curr_wp, current position triplet
 	 * @param curr_yaw, current yaw triplet
 	 * @param curr_yawspeed, current yaw speed triplet
@@ -91,7 +91,7 @@ public:
 	void updateAvoidanceDesiredSetpoints(const matrix::Vector3f &pos_sp, const matrix::Vector3f &vel_sp);
 
 	/**
-	 * Checks the vehicle progress between previous and current position triplet.
+	 * Checks the vehicle progress between previous and current position waypoint of the triplet.
 	 * @param pos, vehicle position
 	 * @param prev_wp, previous position triplet
 	 * @param target_acceptance_radius, current position triplet xy acceptance radius
