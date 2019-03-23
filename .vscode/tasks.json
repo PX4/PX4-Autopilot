@@ -8,14 +8,90 @@
             "type": "shell",
             "command": "Tools/jmavsim_run.sh",
             "isBackground": true,
-            "args": ["-r", "500"],
+            "args": [
+                "-r",
+                "500"
+            ],
             "options": {
                 "cwd": "${workspaceRoot}"
             },
             "presentation": {
                 "reveal": "always",
                 "panel": "dedicated"
-            }
+            },
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": ".",
+                        "endsPattern": ".",
+                    }
+                }
+            ]
+        },
+        {
+            "label": "jmavsim kill",
+            "type": "shell",
+            "command": "kill $(ps aux | grep jmavsim | grep -v 'grep' | awk '{print $2}')",
+            "problemMatcher": []
+        },
+        {
+            "label": "gazebo build",
+            "type": "shell",
+            "command": "make px4_sitl_default sitl_gazebo",
+            "options": {
+                "cwd": "${workspaceRoot}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "gazebo iris",
+            "type": "shell",
+            "dependsOn": "gazebo build",
+            "options": {
+                "cwd": "${workspaceRoot}",
+                "env": {
+                    "GAZEBO_PLUGIN_PATH": "${workspaceRoot}/build/px4_sitl_default/build_gazebo",
+                    "GAZEBO_MODEL_PATH": "${workspaceRoot}/Tools/sitl_gazebo/models"
+                }
+            },
+            "command": "gzserver --verbose ${workspaceRoot}/Tools/sitl_gazebo/worlds/iris.world",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": ".",
+                        "endsPattern": ".",
+                    }
+                }
+            ]
+        },
+        {
+            "label": "gazebo kill",
+            "type": "shell",
+            "command": "killall gzserver",
+            "problemMatcher": []
         },
     ]
 }

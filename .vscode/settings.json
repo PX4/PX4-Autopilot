@@ -1,10 +1,82 @@
 {
         "editor.insertSpaces": false,
+        "editor.tabSize": 8,
         "editor.wordWrapColumn": 120,
+        "editor.suggest.localityBonus": true,
         "astyle.astylerc": "${workspaceFolder}/Tools/astyle/astylerc",
+        "astyle.c.enable": true,
+        "astyle.cpp.enable": true,
+        "breadcrumbs.enabled": true,
+        "cmake.autoRestartBuild": true,
+        "cmake.buildDirectory": "${workspaceFolder}/build/${variant:CONFIG}",
+        "cmake.buildBeforeRun": true,
+        "cmake.configureOnOpen": true,
+        "cmake.copyCompileCommands": "${workspaceFolder}/.vscode/compile_commands.json",
+        "cmake.debugConfig": {
+                "name": "SITL shell (gdb)",
+                "type": "cppdbg",
+                "request": "launch",
+                "program": "${command:cmake.launchTargetPath}",
+                "args": [
+                        "${workspaceFolder}/ROMFS/px4fmu_common",
+                        "-s",
+                        "etc/init.d-posix/rcS",
+                        "-t",
+                        "${workspaceFolder}/test_data"
+                ],
+                "stopAtEntry": false,
+                "cwd": "${workspaceFolder}/build/px4_sitl_default/tmp",
+                "environment": [
+                        {
+                                "name": "PX4_SIM_MODEL",
+                                "value": "shell"
+                        }
+                ],
+                "externalConsole": false,
+                "linux": {
+                        "MIMode": "gdb",
+                        "setupCommands": [
+                                {
+                                        "description": "Enable pretty-printing for gdb",
+                                        "text": "-enable-pretty-printing",
+                                        "ignoreFailures": true
+                                },
+                                {
+                                        "description": "PX4 ignore wq signals",
+                                        "text": "handle SIGCONT nostop noprint nopass",
+                                        "ignoreFailures": true
+                                }
+                        ]
+                },
+                "osx": {
+                        "MIMode": "lldb",
+                        "setupCommands": [
+                                {
+                                        "text": "pro hand -p true -s false -n false SIGCONT",
+                                }
+                        ]
+                }
+        },
+        "C_Cpp.clang_format_fallbackStyle": "none",
+        "C_Cpp.configurationWarnings": "Disabled",
         "C_Cpp.default.cppStandard": "c++11",
         "C_Cpp.default.cStandard": "c99",
-        "cmake.buildDirectory": "${workspaceRoot}/build/${variant:CONFIG}",
-        "cmake.autoRestartBuild": true,
-        "cmake.configureOnOpen": true,
+        "C_Cpp.default.intelliSenseMode": "gcc-x64",
+        "C_Cpp.errorSquiggles": "Disabled",
+        "C_Cpp.formatting": "Disabled",
+        "C_Cpp.intelliSenseEngine": "Default",
+        "C_Cpp.intelliSenseEngineFallback": "Disabled",
+        "debug.toolBarLocation": "docked",
+        "git.detectSubmodulesLimit": 20,
+        "files.associations": {
+                "*.jinja": "jinja"
+        },
+        "search.exclude": {
+                "build/**": true
+        },
+        "search.showLineNumbers": true,
+        "workbench.statusBar.feedback.visible": false,
+        "workbench.editor.enablePreview": false,
+        "workbench.editor.enablePreviewFromQuickOpen": false,
+        "workbench.editor.highlightModifiedTabs": true
 }
