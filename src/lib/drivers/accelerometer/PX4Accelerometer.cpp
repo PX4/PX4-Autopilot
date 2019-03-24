@@ -40,7 +40,7 @@ PX4Accelerometer::PX4Accelerometer(uint32_t device_id, uint8_t priority, enum Ro
 	CDev(nullptr),
 	ModuleParams(nullptr),
 	_sensor_accel_pub{ORB_ID(sensor_accel), priority},
-	_rotation{get_rot_matrix(rotation)}
+	_rotation{rotation}
 {
 	_class_device_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 
@@ -103,9 +103,14 @@ void PX4Accelerometer::update(hrt_abstime timestamp, int16_t x, int16_t y, int16
 	sensor_accel_s &report = _sensor_accel_pub.get();
 	report.timestamp = timestamp;
 
-	// Apply rotation, range scale, and the calibrating offset/scale
-	const matrix::Vector3f val_raw{(float)x, (float)y, (float)z};
-	const matrix::Vector3f val_calibrated{ _rotation *(((val_raw * report.scaling) - _calibration_offset).emult(_calibration_scale))};
+	// Apply rotation (before scaling)
+	float xraw_f = x;
+	float yraw_f = y;
+	float zraw_f = z;
+	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+
+	// Apply range scale and the calibrating offset/scale
+	const matrix::Vector3f val_calibrated{(((matrix::Vector3f{xraw_f, yraw_f, zraw_f} * report.scaling) - _calibration_offset).emult(_calibration_scale))};
 
 	// Filtered values
 	const matrix::Vector3f val_filtered{_filter.apply(val_calibrated)};
