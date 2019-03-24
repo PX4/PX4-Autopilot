@@ -72,7 +72,7 @@ private:
 	math::LowPassFilter2pVector3f _filter{1000, 100};
 	Integrator _integrator{4000, true};
 
-	const matrix::Dcmf	_rotation;
+	const enum Rotation	_rotation;
 
 	matrix::Vector3f	_calibration_scale{1.0f, 1.0f, 1.0f};
 	matrix::Vector3f	_calibration_offset{0.0f, 0.0f, 0.0f};
