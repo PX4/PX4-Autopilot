@@ -34,6 +34,7 @@ px4_add_board(
 		imu/lsm303d
 		imu/mpu6000
 		imu/mpu9250
+		imu/icm20948
 		irlock
 		lights/blinkm
 		lights/oreoled
