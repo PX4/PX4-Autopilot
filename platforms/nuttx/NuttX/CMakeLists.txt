@@ -141,7 +141,7 @@ if (NOT config_expanded)
 	add_custom_command(
 		OUTPUT ${NUTTX_DIR}/.config
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DEFCONFIG} ${NUTTX_DIR}/.config
-		COMMAND PATH=${CMAKE_CURRENT_SOURCE_DIR}/tools:$ENV{PATH} make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD_CUSTOM=y CONFIG_APPS_DIR="../apps" olddefconfig > nuttx_olddefconfig.log
+		COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tools/px4_nuttx_make_olddefconfig.sh ${NUTTX_DIR}
 		DEPENDS
 			${NUTTX_DEFCONFIG}
 			${NUTTX_DIR}/configs/dummy/Kconfig
