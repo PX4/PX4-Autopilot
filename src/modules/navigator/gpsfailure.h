@@ -57,10 +57,10 @@ public:
 
 private:
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_GPSF_LT>) _param_loitertime,
-		(ParamFloat<px4::params::NAV_GPSF_R>) _param_openlooploiter_roll,
-		(ParamFloat<px4::params::NAV_GPSF_P>) _param_openlooploiter_pitch,
-		(ParamFloat<px4::params::NAV_GPSF_TR>) _param_openlooploiter_thrust
+		(ParamFloat<px4::params::NAV_GPSF_LT>) _param_nav_gpsf_lt,
+		(ParamFloat<px4::params::NAV_GPSF_R>) _param_nav_gpsf_r,
+		(ParamFloat<px4::params::NAV_GPSF_P>) _param_nav_gpsf_p,
+		(ParamFloat<px4::params::NAV_GPSF_TR>) _param_nav_gpsf_tr
 	)
 
 	enum GPSFState {

@@ -124,9 +124,9 @@ public:
 
 	bool isEmpty() { return _num_polygons == 0; }
 
-	int getAltitudeMode() { return _param_altitude_mode.get(); }
-	int getSource() { return _param_source.get(); }
-	int getGeofenceAction() { return _param_action.get(); }
+	int getAltitudeMode() { return _param_gf_altmode.get(); }
+	int getSource() { return _param_gf_source.get(); }
+	int getGeofenceAction() { return _param_gf_action.get(); }
 
 	bool isHomeRequired();
 
@@ -158,12 +158,12 @@ private:
 	map_projection_reference_s _projection_reference = {}; ///< reference to convert (lon, lat) to local [m]
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::GF_ACTION>) _param_action,
-		(ParamInt<px4::params::GF_ALTMODE>) _param_altitude_mode,
-		(ParamInt<px4::params::GF_SOURCE>) _param_source,
-		(ParamInt<px4::params::GF_COUNT>) _param_counter_threshold,
-		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_max_hor_distance,
-		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_max_ver_distance
+		(ParamInt<px4::params::GF_ACTION>) _param_gf_action,
+		(ParamInt<px4::params::GF_ALTMODE>) _param_gf_altmode,
+		(ParamInt<px4::params::GF_SOURCE>) _param_gf_source,
+		(ParamInt<px4::params::GF_COUNT>) _param_gf_count,
+		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
+		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist
 	)
 
 	uORB::Subscription<vehicle_air_data_s>	_sub_airdata;
