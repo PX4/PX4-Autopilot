@@ -856,23 +856,23 @@ Navigator::publish_position_setpoint_triplet()
 float
 Navigator::get_default_acceptance_radius()
 {
-	return _param_acceptance_radius.get();
+	return _param_nav_acc_rad.get();
 }
 
 float
 Navigator::get_acceptance_radius()
 {
-	return get_acceptance_radius(_param_acceptance_radius.get());
+	return get_acceptance_radius(_param_nav_acc_rad.get());
 }
 
 float
 Navigator::get_default_altitude_acceptance_radius()
 {
 	if (!get_vstatus()->is_rotary_wing) {
-		return _param_fw_alt_acceptance_radius.get();
+		return _param_nav_fw_alt_rad.get();
 
 	} else {
-		float alt_acceptance_radius = _param_mc_alt_acceptance_radius.get();
+		float alt_acceptance_radius = _param_nav_mc_alt_rad.get();
 
 		const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
 
@@ -893,7 +893,7 @@ Navigator::get_altitude_acceptance_radius()
 
 		if (next_sp.type == position_setpoint_s::SETPOINT_TYPE_LAND && next_sp.valid) {
 			// Use separate (tighter) altitude acceptance for clean altitude starting point before landing
-			return _param_fw_alt_lnd_acceptance_radius.get();
+			return _param_nav_fw_altl_rad.get();
 		}
 	}
 
@@ -1109,7 +1109,7 @@ void Navigator::check_traffic()
 					// direction of traffic in human-readable 0..360 degree in earth frame
 					int traffic_direction = math::degrees(tr.heading) + 180;
 
-					switch (_param_traffic_avoidance_mode.get()) {
+					switch (_param_nav_traff_avoid.get()) {
 
 					case 0: {
 							/* ignore */
@@ -1182,7 +1182,7 @@ Navigator::force_vtol()
 {
 	return _vstatus.is_vtol &&
 	       (!_vstatus.is_rotary_wing || _vstatus.in_transition_to_fw)
-	       && _param_force_vtol.get();
+	       && _param_nav_force_vt.get();
 }
 
 int Navigator::print_usage(const char *reason)

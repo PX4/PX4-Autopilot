@@ -90,10 +90,10 @@ private:
 	};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_MIN_FT_HT>)	_param_min_alt,
-		(ParamFloat<px4::params::NAV_FT_DST>) _param_tracking_dist,
-		(ParamInt<px4::params::NAV_FT_FS>) _param_tracking_side,
-		(ParamFloat<px4::params::NAV_FT_RS>) _param_tracking_resp
+		(ParamFloat<px4::params::NAV_MIN_FT_HT>) _param_nav_min_ft_ht,
+		(ParamFloat<px4::params::NAV_FT_DST>) _param_nav_ft_dst,
+		(ParamInt<px4::params::NAV_FT_FS>) _param_nav_ft_fs,
+		(ParamFloat<px4::params::NAV_FT_RS>) _param_nav_ft_rs
 	)
 
 	FollowTargetState _follow_target_state{SET_WAIT_FOR_TARGET_POSITION};

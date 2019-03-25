@@ -226,7 +226,7 @@ Mission::on_active()
 			set_mission_items();
 		}
 
-	} else if (_mission_type != MISSION_TYPE_NONE && _param_altmode.get() == MISSION_ALTMODE_FOH) {
+	} else if (_mission_type != MISSION_TYPE_NONE && _param_mis_altmode.get() == MISSION_ALTMODE_FOH) {
 
 		altitude_sp_foh_update();
 
@@ -243,7 +243,7 @@ Mission::on_active()
 	}
 
 	/* see if we need to update the current yaw heading */
-	if (!_param_mnt_yaw_ctl.get() && (_navigator->get_vstatus()->is_rotary_wing)
+	if (!_param_mis_mnt_yaw_ctl.get() && (_navigator->get_vstatus()->is_rotary_wing)
 	    && (_navigator->get_vroi().mode != vehicle_roi_s::ROI_NONE)
 	    && !(_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 		 || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
@@ -1612,8 +1612,8 @@ Mission::check_mission_valid(bool force)
 
 		_navigator->get_mission_result()->valid =
 			_missionFeasibilityChecker.checkMissionFeasible(_mission,
-					_param_dist_1wp.get(),
-					_param_dist_between_wps.get(),
+					_param_mis_dist_1wp.get(),
+					_param_mis_dist_wps.get(),
 					_navigator->mission_landing_required());
 
 		_navigator->get_mission_result()->seq_total = _mission.count;
