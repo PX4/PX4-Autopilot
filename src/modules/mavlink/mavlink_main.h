@@ -244,9 +244,9 @@ public:
 
 	bool			get_hil_enabled() { return _hil_enabled; }
 
-	bool			get_use_hil_gps() { return _param_use_hil_gps.get(); }
+	bool			get_use_hil_gps() { return _param_mav_usehilgps.get(); }
 
-	bool			get_forward_externalsp() { return _param_forward_externalsp.get(); }
+	bool			get_forward_externalsp() { return _param_mav_fwdextsp.get(); }
 
 	bool			get_flow_control_enabled() { return _flow_control_mode; }
 
@@ -254,7 +254,7 @@ public:
 
 	bool			is_connected() { return (hrt_elapsed_time(&_tstatus.heartbeat_time) < 3_s); }
 
-	bool			broadcast_enabled() { return _param_broadcast_mode.get() == BROADCAST_MODE_ON; }
+	bool			broadcast_enabled() { return _param_mav_broadcast.get() == BROADCAST_MODE_ON; }
 
 	/**
 	 * Set the boot complete flag on all instances
@@ -443,7 +443,7 @@ public:
 
 	ringbuffer::RingBuffer	*get_logbuffer() { return &_logbuffer; }
 
-	unsigned		get_system_type() { return _param_system_type.get(); }
+	unsigned		get_system_type() { return _param_mav_type.get(); }
 
 	Protocol 		get_protocol() { return _protocol; }
 
@@ -504,9 +504,9 @@ public:
 
 	bool ftp_enabled() const { return _ftp_on; }
 
-	bool hash_check_enabled() const { return _param_hash_check_enabled.get(); }
-	bool forward_heartbeats_enabled() const { return _param_heartbeat_forwarding_enabled.get(); }
-	bool odometry_loopback_enabled() const { return _param_send_odom_loopback.get(); }
+	bool hash_check_enabled() const { return _param_mav_hash_chk_en.get(); }
+	bool forward_heartbeats_enabled() const { return _param_mav_hb_forw_en.get(); }
+	bool odometry_loopback_enabled() const { return _param_mav_odom_lp.get(); }
 
 	struct ping_statistics_s {
 		uint64_t last_ping_time;
@@ -646,17 +646,17 @@ private:
 	pthread_mutex_t		_send_mutex {};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::MAV_SYS_ID>) _param_system_id,
-		(ParamInt<px4::params::MAV_COMP_ID>) _param_component_id,
-		(ParamInt<px4::params::MAV_PROTO_VER>) _param_mav_proto_version,
-		(ParamInt<px4::params::MAV_RADIO_ID>) _param_radio_id,
-		(ParamInt<px4::params::MAV_TYPE>) _param_system_type,
-		(ParamBool<px4::params::MAV_USEHILGPS>) _param_use_hil_gps,
-		(ParamBool<px4::params::MAV_FWDEXTSP>) _param_forward_externalsp,
-		(ParamInt<px4::params::MAV_BROADCAST>) _param_broadcast_mode,
-		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_hash_check_enabled,
-		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_heartbeat_forwarding_enabled,
-		(ParamBool<px4::params::MAV_ODOM_LP>) _param_send_odom_loopback
+		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
+		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
+		(ParamInt<px4::params::MAV_PROTO_VER>) _param_mav_proto_ver,
+		(ParamInt<px4::params::MAV_RADIO_ID>) _param_mav_radio_id,
+		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
+		(ParamBool<px4::params::MAV_USEHILGPS>) _param_mav_usehilgps,
+		(ParamBool<px4::params::MAV_FWDEXTSP>) _param_mav_fwdextsp,
+		(ParamInt<px4::params::MAV_BROADCAST>) _param_mav_broadcast,
+		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_mav_hash_chk_en,
+		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
+		(ParamBool<px4::params::MAV_ODOM_LP>) _param_mav_odom_lp
 	)
 
 	perf_counter_t		_loop_perf;			/**< loop performance counter */
