@@ -125,12 +125,12 @@ private:
 	PrecLandMode _mode{PrecLandMode::Opportunistic};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::PLD_BTOUT>) _param_timeout,
-		(ParamFloat<px4::params::PLD_HACC_RAD>) _param_hacc_rad,
-		(ParamFloat<px4::params::PLD_FAPPR_ALT>) _param_final_approach_alt,
-		(ParamFloat<px4::params::PLD_SRCH_ALT>) _param_search_alt,
-		(ParamFloat<px4::params::PLD_SRCH_TOUT>) _param_search_timeout,
-		(ParamInt<px4::params::PLD_MAX_SRCH>) _param_max_searches
+		(ParamFloat<px4::params::PLD_BTOUT>) _param_pld_btout,
+		(ParamFloat<px4::params::PLD_HACC_RAD>) _param_pld_hacc_rad,
+		(ParamFloat<px4::params::PLD_FAPPR_ALT>) _param_pld_fappr_alt,
+		(ParamFloat<px4::params::PLD_SRCH_ALT>) _param_pld_srch_alt,
+		(ParamFloat<px4::params::PLD_SRCH_TOUT>) _param_pld_srch_tout,
+		(ParamInt<px4::params::PLD_MAX_SRCH>) _param_pld_max_srch
 	)
 
 	// non-navigator parameters

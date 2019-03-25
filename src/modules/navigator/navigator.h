@@ -169,7 +169,7 @@ public:
 	Geofence	&get_geofence() { return _geofence; }
 
 	bool		get_can_loiter_at_sp() { return _can_loiter_at_sp; }
-	float		get_loiter_radius() { return _param_loiter_radius.get(); }
+	float		get_loiter_radius() { return _param_nav_loiter_rad.get(); }
 
 	/**
 	 * Returns the default acceptance radius defined by the parameter
@@ -279,11 +279,11 @@ public:
 	bool		abort_landing();
 
 	// Param access
-	float		get_loiter_min_alt() const { return _param_loiter_min_alt.get(); }
-	float		get_takeoff_min_alt() const { return _param_takeoff_min_alt.get(); }
-	bool		get_takeoff_required() const { return _param_takeoff_required.get(); }
-	float		get_yaw_timeout() const { return _param_yaw_timeout.get(); }
-	float		get_yaw_threshold() const { return _param_yaw_err.get(); }
+	float		get_loiter_min_alt() const { return _param_mis_ltrmin_alt.get(); }
+	float		get_takeoff_min_alt() const { return _param_mis_takeoff_alt.get(); }
+	bool		get_takeoff_required() const { return _param_mis_takeoff_req.get(); }
+	float		get_yaw_timeout() const { return _param_mis_yaw_tmt.get(); }
+	float		get_yaw_threshold() const { return _param_mis_yaw_err.get(); }
 
 	float		get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss; }
 	float		get_vtol_reverse_delay() const { return _param_reverse_delay; }
@@ -357,24 +357,24 @@ private:
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_loiter_radius,	/**< loiter radius for fixedwing */
-		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_acceptance_radius,	/**< acceptance for takeoff */
+		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,	/**< loiter radius for fixedwing */
+		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad,	/**< acceptance for takeoff */
 		(ParamFloat<px4::params::NAV_FW_ALT_RAD>)
-		_param_fw_alt_acceptance_radius,	/**< acceptance radius for fixedwing altitude */
+		_param_nav_fw_alt_rad,	/**< acceptance radius for fixedwing altitude */
 		(ParamFloat<px4::params::NAV_FW_ALTL_RAD>)
-		_param_fw_alt_lnd_acceptance_radius,	/**< acceptance radius for fixedwing altitude before landing*/
+		_param_nav_fw_altl_rad,	/**< acceptance radius for fixedwing altitude before landing*/
 		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
-		_param_mc_alt_acceptance_radius,	/**< acceptance radius for multicopter altitude */
-		(ParamInt<px4::params::NAV_FORCE_VT>) _param_force_vtol,	/**< acceptance radius for multicopter altitude */
-		(ParamInt<px4::params::NAV_TRAFF_AVOID>) _param_traffic_avoidance_mode,	/**< avoiding other aircraft is enabled */
+		_param_nav_mc_alt_rad,	/**< acceptance radius for multicopter altitude */
+		(ParamInt<px4::params::NAV_FORCE_VT>) _param_nav_force_vt,	/**< acceptance radius for multicopter altitude */
+		(ParamInt<px4::params::NAV_TRAFF_AVOID>) _param_nav_traff_avoid,	/**< avoiding other aircraft is enabled */
 
 		// non-navigator parameters
 		// Mission (MIS_*)
-		(ParamFloat<px4::params::MIS_LTRMIN_ALT>) _param_loiter_min_alt,
-		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>) _param_takeoff_min_alt,
-		(ParamBool<px4::params::MIS_TAKEOFF_REQ>) _param_takeoff_required,
-		(ParamFloat<px4::params::MIS_YAW_TMT>) _param_yaw_timeout,
-		(ParamFloat<px4::params::MIS_YAW_ERR>) _param_yaw_err
+		(ParamFloat<px4::params::MIS_LTRMIN_ALT>) _param_mis_ltrmin_alt,
+		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>) _param_mis_takeoff_alt,
+		(ParamBool<px4::params::MIS_TAKEOFF_REQ>) _param_mis_takeoff_req,
+		(ParamFloat<px4::params::MIS_YAW_TMT>) _param_mis_yaw_tmt,
+		(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err
 	)
 
 	param_t _handle_back_trans_dec_mss{PARAM_INVALID};

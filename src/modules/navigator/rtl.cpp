@@ -74,7 +74,7 @@ RTL::on_activation()
 	} else if ((rtl_type() == RTL_LAND) && _navigator->on_mission_landing()) {
 		// RTL straight to RETURN state, but mission will takeover for landing.
 
-	} else if ((_navigator->get_global_position()->alt < _navigator->get_home_position()->alt + _param_return_alt.get())
+	} else if ((_navigator->get_global_position()->alt < _navigator->get_home_position()->alt + _param_rtl_return_alt.get())
 		   || _rtl_alt_min) {
 
 		// If lower than return altitude, climb up first.
@@ -134,15 +134,15 @@ RTL::set_rtl_item()
 	const float home_dist = get_distance_to_next_waypoint(home.lat, home.lon, gpos.lat, gpos.lon);
 
 	// Compute the return altitude.
-	float return_alt = math::max(home.alt + _param_return_alt.get(), gpos.alt);
+	float return_alt = math::max(home.alt + _param_rtl_return_alt.get(), gpos.alt);
 
 	// We are close to home, limit climb to min.
 	if (home_dist < _param_rtl_min_dist.get()) {
-		return_alt = home.alt + _param_descend_alt.get();
+		return_alt = home.alt + _param_rtl_descend_alt.get();
 	}
 
 	// Compute the loiter altitude.
-	const float loiter_altitude = math::min(home.alt + _param_descend_alt.get(), gpos.alt);
+	const float loiter_altitude = math::min(home.alt + _param_rtl_descend_alt.get(), gpos.alt);
 
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB: {
@@ -229,7 +229,7 @@ RTL::set_rtl_item()
 		}
 
 	case RTL_STATE_LOITER: {
-			const bool autoland = (_param_land_delay.get() > FLT_EPSILON);
+			const bool autoland = (_param_rtl_land_delay.get() > FLT_EPSILON);
 
 			// Don't change altitude.
 			_mission_item.lat = home.lat;
@@ -239,7 +239,7 @@ RTL::set_rtl_item()
 			_mission_item.yaw = home.yaw;
 			_mission_item.loiter_radius = _navigator->get_loiter_radius();
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = math::max(_param_land_delay.get(), 0.0f);
+			_mission_item.time_inside = math::max(_param_rtl_land_delay.get(), 0.0f);
 			_mission_item.autocontinue = autoland;
 			_mission_item.origin = ORIGIN_ONBOARD;
 
@@ -324,7 +324,7 @@ RTL::advance_rtl()
 	case RTL_STATE_DESCEND:
 
 		// Only go to land if autoland is enabled.
-		if (_param_land_delay.get() < -DELAY_SIGMA || _param_land_delay.get() > DELAY_SIGMA) {
+		if (_param_rtl_land_delay.get() < -DELAY_SIGMA || _param_rtl_land_delay.get() > DELAY_SIGMA) {
 			_rtl_state = RTL_STATE_LOITER;
 
 		} else {

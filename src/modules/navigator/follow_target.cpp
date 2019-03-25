@@ -79,11 +79,11 @@ void FollowTarget::on_inactive()
 
 void FollowTarget::on_activation()
 {
-	_follow_offset = _param_tracking_dist.get() < 1.0F ? 1.0F : _param_tracking_dist.get();
+	_follow_offset = _param_nav_ft_dst.get() < 1.0F ? 1.0F : _param_nav_ft_dst.get();
 
-	_responsiveness = math::constrain((float) _param_tracking_resp.get(), .1F, 1.0F);
+	_responsiveness = math::constrain((float) _param_nav_ft_rs.get(), .1F, 1.0F);
 
-	_follow_target_position = _param_tracking_side.get();
+	_follow_target_position = _param_nav_ft_fs.get();
 
 	if ((_follow_target_position > FOLLOW_FROM_LEFT) || (_follow_target_position < FOLLOW_FROM_RIGHT)) {
 		_follow_target_position = FOLLOW_FROM_BEHIND;
@@ -250,7 +250,7 @@ void FollowTarget::on_active()
 				_follow_target_state = TRACK_VELOCITY;
 
 			} else if (target_velocity_valid()) {
-				set_follow_target_item(&_mission_item, _param_min_alt.get(), target_motion_with_offset, _yaw_angle);
+				set_follow_target_item(&_mission_item, _param_nav_min_ft_ht.get(), target_motion_with_offset, _yaw_angle);
 				// keep the current velocity updated with the target velocity for when it's needed
 				_current_vel = _est_target_vel;
 
@@ -275,7 +275,7 @@ void FollowTarget::on_active()
 					_last_update_time = current_time;
 				}
 
-				set_follow_target_item(&_mission_item, _param_min_alt.get(), target_motion_with_offset, _yaw_angle);
+				set_follow_target_item(&_mission_item, _param_nav_min_ft_ht.get(), target_motion_with_offset, _yaw_angle);
 
 				update_position_sp(true, false, _yaw_rate);
 
@@ -299,7 +299,7 @@ void FollowTarget::on_active()
 			target.lon = _navigator->get_global_position()->lon;
 			target.alt = 0.0F;
 
-			set_follow_target_item(&_mission_item, _param_min_alt.get(), target, _yaw_angle);
+			set_follow_target_item(&_mission_item, _param_nav_min_ft_ht.get(), target, _yaw_angle);
 
 			update_position_sp(false, false, _yaw_rate);
 

@@ -59,16 +59,16 @@ public:
 
 private:
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_DLL_CH_T>) _param_commsholdwaittime,
-		(ParamInt<px4::params::NAV_DLL_CH_LAT>) _param_commsholdlat, // * 1e7
-		(ParamInt<px4::params::NAV_DLL_CH_LON>) _param_commsholdlon, // * 1e7
-		(ParamFloat<px4::params::NAV_DLL_CH_ALT>) _param_commsholdalt,
-		(ParamInt<px4::params::NAV_AH_LAT>) _param_airfieldhomelat, // * 1e7
-		(ParamInt<px4::params::NAV_AH_LON>) _param_airfieldhomelon, // * 1e7
-		(ParamFloat<px4::params::NAV_AH_ALT>) _param_airfieldhomealt,
-		(ParamFloat<px4::params::NAV_DLL_AH_T>) _param_airfieldhomewaittime,
-		(ParamInt<px4::params::NAV_DLL_N>) _param_numberdatalinklosses,
-		(ParamInt<px4::params::NAV_DLL_CHSK>) _param_skipcommshold
+		(ParamFloat<px4::params::NAV_DLL_CH_T>) _param_nav_dll_ch_t,
+		(ParamInt<px4::params::NAV_DLL_CH_LAT>) _param_nav_dll_ch_lat, // * 1e7
+		(ParamInt<px4::params::NAV_DLL_CH_LON>) _param_nav_dll_ch_lon, // * 1e7
+		(ParamFloat<px4::params::NAV_DLL_CH_ALT>) _param_nav_dll_ch_alt,
+		(ParamInt<px4::params::NAV_AH_LAT>) _param_nav_ah_lat, // * 1e7
+		(ParamInt<px4::params::NAV_AH_LON>) _param_nav_ah_lon, // * 1e7
+		(ParamFloat<px4::params::NAV_AH_ALT>) _param_nav_ah_alt,
+		(ParamFloat<px4::params::NAV_DLL_AH_T>) _param_nav_dll_ah_t,
+		(ParamInt<px4::params::NAV_DLL_N>) _param_nav_dll_n,
+		(ParamInt<px4::params::NAV_DLL_CHSK>) _param_nav_dll_chsk
 	)
 
 	enum DLLState {
