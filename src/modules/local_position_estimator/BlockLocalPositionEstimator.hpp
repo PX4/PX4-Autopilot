@@ -277,70 +277,70 @@ private:
 
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_AUTOSTART>) _sys_autostart,   /**< example parameter */
+		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
 
 		// general parameters
-		(ParamInt<px4::params::LPE_FUSION>) _fusion,
-		(ParamFloat<px4::params::LPE_VXY_PUB>) _vxy_pub_thresh,
-		(ParamFloat<px4::params::LPE_Z_PUB>) _z_pub_thresh,
+		(ParamInt<px4::params::LPE_FUSION>) _param_lpe_fusion,
+		(ParamFloat<px4::params::LPE_VXY_PUB>) _param_lpe_vxy_pub,
+		(ParamFloat<px4::params::LPE_Z_PUB>) _param_lpe_z_pub,
 
 		// sonar parameters
-		(ParamFloat<px4::params::LPE_SNR_Z>) _sonar_z_stddev,
-		(ParamFloat<px4::params::LPE_SNR_OFF_Z>) _sonar_z_offset,
+		(ParamFloat<px4::params::LPE_SNR_Z>) _param_lpe_snr_z,
+		(ParamFloat<px4::params::LPE_SNR_OFF_Z>) _param_lpe_snr_off_z,
 
 		// lidar parameters
-		(ParamFloat<px4::params::LPE_LDR_Z>) _lidar_z_stddev,
-		(ParamFloat<px4::params::LPE_LDR_OFF_Z>) _lidar_z_offset,
+		(ParamFloat<px4::params::LPE_LDR_Z>) _param_lpe_ldr_z,
+		(ParamFloat<px4::params::LPE_LDR_OFF_Z>) _param_lpe_ldr_off_z,
 
 		// accel parameters
-		(ParamFloat<px4::params::LPE_ACC_XY>) _accel_xy_stddev,
-		(ParamFloat<px4::params::LPE_ACC_Z>) _accel_z_stddev,
+		(ParamFloat<px4::params::LPE_ACC_XY>) _param_lpe_acc_xy,
+		(ParamFloat<px4::params::LPE_ACC_Z>) _param_lpe_acc_z,
 
 		// baro parameters
-		(ParamFloat<px4::params::LPE_BAR_Z>) _baro_stddev,
+		(ParamFloat<px4::params::LPE_BAR_Z>) _param_lpe_bar_z,
 
 		// gps parameters
-		(ParamFloat<px4::params::LPE_GPS_DELAY>) _gps_delay,
-		(ParamFloat<px4::params::LPE_GPS_XY>) _gps_xy_stddev,
-		(ParamFloat<px4::params::LPE_GPS_Z>) _gps_z_stddev,
-		(ParamFloat<px4::params::LPE_GPS_VXY>) _gps_vxy_stddev,
-		(ParamFloat<px4::params::LPE_GPS_VZ>) _gps_vz_stddev,
-		(ParamFloat<px4::params::LPE_EPH_MAX>) _gps_eph_max,
-		(ParamFloat<px4::params::LPE_EPV_MAX>) _gps_epv_max,
+		(ParamFloat<px4::params::LPE_GPS_DELAY>) _param_lpe_gps_delay,
+		(ParamFloat<px4::params::LPE_GPS_XY>) _param_lpe_gps_xy,
+		(ParamFloat<px4::params::LPE_GPS_Z>) _param_lpe_gps_z,
+		(ParamFloat<px4::params::LPE_GPS_VXY>) _param_lpe_gps_vxy,
+		(ParamFloat<px4::params::LPE_GPS_VZ>) _param_lpe_gps_vz,
+		(ParamFloat<px4::params::LPE_EPH_MAX>) _param_lpe_eph_max,
+		(ParamFloat<px4::params::LPE_EPV_MAX>) _param_lpe_epv_max,
 
 		// vision parameters
-		(ParamFloat<px4::params::LPE_VIS_XY>) _vision_xy_stddev,
-		(ParamFloat<px4::params::LPE_VIS_Z>) _vision_z_stddev,
-		(ParamFloat<px4::params::LPE_VIS_DELAY>) _vision_delay,
+		(ParamFloat<px4::params::LPE_VIS_XY>) _param_lpe_vis_xy,
+		(ParamFloat<px4::params::LPE_VIS_Z>) _param_lpe_vis_z,
+		(ParamFloat<px4::params::LPE_VIS_DELAY>) _param_lpe_vis_delay,
 
 		// mocap parameters
-		(ParamFloat<px4::params::LPE_VIC_P>) _mocap_p_stddev,
+		(ParamFloat<px4::params::LPE_VIC_P>) _param_lpe_vic_p,
 
 		// flow parameters
-		(ParamFloat<px4::params::LPE_FLW_OFF_Z>) _flow_z_offset,
-		(ParamFloat<px4::params::LPE_FLW_SCALE>) _flow_scale,
-		(ParamInt<px4::params::LPE_FLW_QMIN>) _flow_min_q,
-		(ParamFloat<px4::params::LPE_FLW_R>) _flow_r,
-		(ParamFloat<px4::params::LPE_FLW_RR>) _flow_rr,
+		(ParamFloat<px4::params::LPE_FLW_OFF_Z>) _param_lpe_flw_off_z,
+		(ParamFloat<px4::params::LPE_FLW_SCALE>) _param_lpe_flw_scale,
+		(ParamInt<px4::params::LPE_FLW_QMIN>) _param_lpe_flw_qmin,
+		(ParamFloat<px4::params::LPE_FLW_R>) _param_lpe_flw_r,
+		(ParamFloat<px4::params::LPE_FLW_RR>) _param_lpe_flw_rr,
 
 		// land parameters
-		(ParamFloat<px4::params::LPE_LAND_Z>) _land_z_stddev,
-		(ParamFloat<px4::params::LPE_LAND_VXY>) _land_vxy_stddev,
+		(ParamFloat<px4::params::LPE_LAND_Z>) _param_lpe_land_z,
+		(ParamFloat<px4::params::LPE_LAND_VXY>) _param_lpe_land_vxy,
 
 		// process noise
-		(ParamFloat<px4::params::LPE_PN_P>) _pn_p_noise_density,
-		(ParamFloat<px4::params::LPE_PN_V>) _pn_v_noise_density,
-		(ParamFloat<px4::params::LPE_PN_B>) _pn_b_noise_density,
-		(ParamFloat<px4::params::LPE_PN_T>) _pn_t_noise_density,
-		(ParamFloat<px4::params::LPE_T_MAX_GRADE>) _t_max_grade,
+		(ParamFloat<px4::params::LPE_PN_P>) _param_lpe_pn_p,
+		(ParamFloat<px4::params::LPE_PN_V>) _param_lpe_pn_v,
+		(ParamFloat<px4::params::LPE_PN_B>) _param_lpe_pn_b,
+		(ParamFloat<px4::params::LPE_PN_T>) _param_lpe_pn_t,
+		(ParamFloat<px4::params::LPE_T_MAX_GRADE>) _param_lpe_t_max_grade,
 
-		(ParamFloat<px4::params::LPE_LT_COV>) _target_min_cov,
-		(ParamInt<px4::params::LTEST_MODE>) _target_mode,
+		(ParamFloat<px4::params::LPE_LT_COV>) _param_lpe_lt_cov,
+		(ParamInt<px4::params::LTEST_MODE>) _param_ltest_mode,
 
 		// init origin
-		(ParamInt<px4::params::LPE_FAKE_ORIGIN>) _fake_origin,
-		(ParamFloat<px4::params::LPE_LAT>) _init_origin_lat,
-		(ParamFloat<px4::params::LPE_LON>) _init_origin_lon
+		(ParamInt<px4::params::LPE_FAKE_ORIGIN>) _param_lpe_fake_origin,
+		(ParamFloat<px4::params::LPE_LAT>) _param_lpe_lat,
+		(ParamFloat<px4::params::LPE_LON>) _param_lpe_lon
 	)
 
 	// target mode paramters from landing_target_estimator module
