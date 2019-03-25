@@ -85,7 +85,7 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 
 	const float pwm_center = (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2;
 
-	int _system_type = _param_system_type.get();
+	int _system_type = _param_mav_type.get();
 
 	/* scale outputs depending on system type */
 	if (_system_type == MAV_TYPE_QUADROTOR ||
@@ -184,7 +184,7 @@ void Simulator::send_controls()
 			const mavlink_hil_actuator_controls_t hil_act_control = actuator_controls_from_outputs(actuators);
 
 			mavlink_message_t message{};
-			mavlink_msg_hil_actuator_controls_encode(_param_system_id.get(), _param_component_id.get(), &message, &hil_act_control);
+			mavlink_msg_hil_actuator_controls_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &hil_act_control);
 
 			PX4_DEBUG("sending controls t=%ld (%ld)", actuators.timestamp, hil_act_control.time_usec);
 
@@ -385,7 +385,7 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 	// battery simulation (limit update to 100Hz)
 	if (hrt_elapsed_time(&_battery_status.timestamp) >= 10_ms) {
 
-		const float discharge_interval_us = _battery_drain_interval_s.get() * 1000 * 1000;
+		const float discharge_interval_us = _param_sim_bat_drain.get() * 1000 * 1000;
 
 		bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
@@ -642,7 +642,7 @@ void Simulator::request_hil_state_quaternion()
 	cmd_long.command = MAV_CMD_SET_MESSAGE_INTERVAL;
 	cmd_long.param1 = MAVLINK_MSG_ID_HIL_STATE_QUATERNION;
 	cmd_long.param2 = 5e3;
-	mavlink_msg_command_long_encode(_param_system_id.get(), _param_component_id.get(), &message, &cmd_long);
+	mavlink_msg_command_long_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &cmd_long);
 	send_mavlink_message(message);
 }
 
@@ -652,7 +652,7 @@ void Simulator::send_heartbeat()
 	mavlink_message_t message = {};
 	hb.autopilot = 12;
 	hb.base_mode |= (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 128 : 0;
-	mavlink_msg_heartbeat_encode(_param_system_id.get(), _param_component_id.get(), &message, &hb);
+	mavlink_msg_heartbeat_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &hb);
 	send_mavlink_message(message);
 }
 
