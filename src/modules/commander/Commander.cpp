@@ -3967,9 +3967,9 @@ void Commander::data_link_check(bool &status_changed)
 		//if avoidance never started
 		if (_datalink_last_heartbeat_avoidance_system == 0
 		    && hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > _oa_boot_timeout.get() * 1_s) {
-			if (!_print_msg_once) {
+			if (!_print_avoidance_msg_once) {
 				mavlink_log_critical(&mavlink_log_pub, "Avoidance system not available!");
-				_print_msg_once = true;
+				_print_avoidance_msg_once = true;
 
 			}
 		}
@@ -3980,7 +3980,7 @@ void Commander::data_link_check(bool &status_changed)
 			_avoidance_system_lost = true;
 			mavlink_log_critical(&mavlink_log_pub, "Avoidance system lost");
 			status_flags.avoidance_system_valid = false;
-			_print_msg_once = false;
+			_print_avoidance_msg_once = false;
 		}
 
 		//if status changed
