@@ -203,7 +203,7 @@ private:
 	systemlib::Hysteresis	_auto_disarm_landed{false};
 	systemlib::Hysteresis	_auto_disarm_killed{false};
 
-	bool _print_msg_once{false};
+	bool _print_avoidance_msg_once{false};
 
 	// Subscriptions
 	Subscription<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
