@@ -520,7 +520,7 @@ void Sih::send_gps()
 void Sih::publish_sih()
 {
 
-
+	_gpos_gt.timestamp=hrt_absolute_time();
 	_gpos_gt.lat=_gps_lat_noiseless;
 	_gpos_gt.lon=_gps_lon_noiseless;
 	_gpos_gt.alt=_gps_alt_noiseless;
@@ -588,15 +588,3 @@ int sih_main(int argc, char *argv[])
 {
 	return Sih::main(argc, argv);
 }
-
-// int Sih::pack_float(char* uart_msg, int index, void *value)
-// {
-// 	uint32_t value_raw=(uint32_t)(value*);
-
-// 	for (int i=3; i>=0; i=i-1) {
-// 		buffer[index+i]=(char)(value_raw&0xFF);
-// 		value_raw=value_raw>>8;
-// 	}
-
-// 	return index+4;	// points to the index for the next value
-// }
