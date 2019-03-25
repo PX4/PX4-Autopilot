@@ -51,7 +51,7 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	// check quality
 	float qual = _sub_flow.get().quality;
 
-	if (qual < _flow_min_q.get()) {
+	if (qual < _param_lpe_flw_qmin.get()) {
 		return -1;
 	}
 
@@ -64,8 +64,8 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 
 	// optical flow in x, y axis
 	// TODO consider making flow scale a states of the kalman filter
-	float flow_x_rad = _sub_flow.get().pixel_flow_x_integral * _flow_scale.get();
-	float flow_y_rad = _sub_flow.get().pixel_flow_y_integral * _flow_scale.get();
+	float flow_x_rad = _sub_flow.get().pixel_flow_x_integral * _param_lpe_flw_scale.get();
+	float flow_y_rad = _sub_flow.get().pixel_flow_y_integral * _param_lpe_flw_scale.get();
 	float dt_flow = _sub_flow.get().integration_timespan / 1.0e6f;
 
 	if (dt_flow > 0.5f || dt_flow < 1.0e-6f) {
@@ -76,7 +76,7 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	float gyro_x_rad = 0;
 	float gyro_y_rad = 0;
 
-	if (_fusion.get() & FUSE_FLOW_GYRO_COMP) {
+	if (_param_lpe_fusion.get() & FUSE_FLOW_GYRO_COMP) {
 		gyro_x_rad = _flow_gyro_x_high_pass.update(
 				     _sub_flow.get().gyro_x_rate_integral);
 		gyro_y_rad = _flow_gyro_y_high_pass.update(
@@ -163,8 +163,8 @@ void BlockLocalPositionEstimator::flowCorrect()
 	float rot_sq = euler.phi() * euler.phi() + euler.theta() * euler.theta();
 
 	R(Y_flow_vx, Y_flow_vx) = flow_vxy_stddev * flow_vxy_stddev +
-				  _flow_r.get() * _flow_r.get() * rot_sq +
-				  _flow_rr.get() * _flow_rr.get() * rotrate_sq;
+				  _param_lpe_flw_r.get() * _param_lpe_flw_r.get() * rot_sq +
+				  _param_lpe_flw_rr.get() * _param_lpe_flw_rr.get() * rotrate_sq;
 	R(Y_flow_vy, Y_flow_vy) = R(Y_flow_vx, Y_flow_vx);
 
 	// residual
