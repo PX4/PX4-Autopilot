@@ -333,7 +333,7 @@ else
 		param set GPS_1_CONFIG 0
 
 		# start the simulator in hardware if needed
-		if  param compare SYS_HITL 2
+		if param compare SYS_HITL 2
 		then
 			sih start
 		fi

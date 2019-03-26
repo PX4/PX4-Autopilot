@@ -642,7 +642,8 @@ private:
 		(ParamInt<px4::params::MAV_BROADCAST>) _param_broadcast_mode,
 		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_hash_check_enabled,
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_heartbeat_forwarding_enabled,
-		(ParamBool<px4::params::MAV_ODOM_LP>) _param_send_odom_loopback
+		(ParamBool<px4::params::MAV_ODOM_LP>) _param_send_odom_loopback,
+		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl
 	)
 
 	perf_counter_t		_loop_perf;			/**< loop performance counter */
