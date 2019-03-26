@@ -732,6 +732,16 @@ def main():
         print("WARNING: You should uninstall ModemManager as it conflicts with any non-modem serial device (like Pixhawk)")
         print("==========================================================================================================")
 
+    # We need to check for pyserial because the import itself doesn't
+    # seem to fail, at least not on macOS.
+    try:
+        if serial.__version__:
+            pass
+    except:
+        print("Error: pyserial not installed!")
+        print("    (Install using: sudo pip install pyserial)")
+        sys.exit(1)
+
     # Load the firmware file
     fw = firmware(args.firmware)
 
