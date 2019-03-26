@@ -55,7 +55,7 @@ Usage:
     The script needs a list of files as an input. To quickly find and feed all the file
     that it needs to inspect, one can simply pipe the result of a ripgrep -l command as follows:
 
-        rg -l '\.[gs]et\(|px4::params::' | python parameter_update.py
+        rg -l '\.[gs]et\(|px4::params::' -tcpp | python parameter_update.py
 """
 
 import re
@@ -73,7 +73,7 @@ replace_dict = dict()
 
 print("Searching for parameters...")
 for filename in filenames:
-    print("In {} :".format(filename))
+    print(filename)
     with open(filename, 'r') as f:
         text = f.read()
         for match in regex.finditer(text):
@@ -84,7 +84,7 @@ for old_var in replace_dict:
     print("{} -> {}".format(old_var, replace_dict[old_var]))
 
 for filename in filenames:
-    print("In {} :".format(filename))
+    print(filename)
     for old_var in replace_dict:
         for line in fileinput.input(filename, inplace=1):
             line = re.sub(r'(>\)\s*)\b' + old_var + r'\b', r'\1' + replace_dict[old_var], line.rstrip()) # replace the declaration
