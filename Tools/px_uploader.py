@@ -205,7 +205,7 @@ class uploader(object):
         self.window_max = 256
         self.window_per = 2  # Sync,<result>
         self.ackWindowedMode = False  # Assume Non Widowed mode for all USB CDC
-        self.port = serial.Serial(portname, baudrate_bootloader, timeout=0.5, write_timeout=0.5)
+        self.port = serial.Serial(portname, baudrate_bootloader, timeout=0.5, write_timeout=0)
         self.otp = b''
         self.sn = b''
         self.baudrate_bootloader = baudrate_bootloader
@@ -247,14 +247,7 @@ class uploader(object):
 
     def __send(self, c):
         # print("send " + binascii.hexlify(c))
-        while True:
-            try:
-                self.port.write(c)
-                break
-            except serial.SerialTimeoutException as e:
-                print("Write timeout (%s), trying again" % e)
-                time.sleep(0.04)
-                continue
+        self.port.write(c)
 
     def __recv(self, count=1):
         c = self.port.read(count)
@@ -440,7 +433,7 @@ class uploader(object):
         self.__send(data)
         self.__send(uploader.EOC)
         if (not windowMode):
-            self.__getSync()
+            self.__getSync(False)
         else:
             # The following is done to have minimum delay on the transmission
             # of the ne fw. The per block cost of __getSync was about 16 mS per.
