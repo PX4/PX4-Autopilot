@@ -75,10 +75,11 @@ struct Params {
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg
 enum mode {
-	TRANSITION_TO_FW = 1,
+	TRANSITION_TO_FW_PHASE_1 = 1,
 	TRANSITION_TO_MC = 2,
 	ROTARY_WING = 3,
-	FIXED_WING = 4
+	FIXED_WING = 4,
+	TRANSITION_TO_FW_PHASE_2 = 5
 };
 
 enum vtol_type {

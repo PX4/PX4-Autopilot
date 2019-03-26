@@ -763,8 +763,18 @@ FixedwingPositionControl::update_desired_altitude(float dt)
 	}
 
 	if (_vehicle_status.is_vtol) {
-		if (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode) {
-			_hold_alt = _global_pos.alt;
+		/* reset hold alt if not currently controlling alt:
+		* -when tailsitter and in MC or transition
+		* -when not tailsitter and in MC not in  transition phase 2 (after belnding) */
+		if (_parameters.vtol_type == vtol_type::TAILSITTER) {
+			if (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode) {
+				_hold_alt = _global_pos.alt;
+			}
+		} else {
+			if ((_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode) &&
+			!_vehicle_status.in_transition_to_fw_phase_2) {
+				_hold_alt = _global_pos.alt; // only use TECS when in_transition_to_fw_phase_2
+			}
 		}
 	}
 
@@ -1014,7 +1024,10 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 
 		if (_control_mode_current != FW_POSCTRL_MODE_POSITION) {
 			/* Need to init because last loop iteration was in a different mode */
-			_hold_alt = _global_pos.alt;
+			if (_control_mode_current != FW_POSCTRL_MODE_ALTITUDE) {
+				/* Only reset _hold_alt when previously not in altitude mode*/
+				_hold_alt = _global_pos.alt;
+			}
 			_hdg_hold_yaw = _yaw;
 			_hdg_hold_enabled = false; // this makes sure the waypoints are reset below
 			_yaw_lock_engaged = false;
@@ -1831,7 +1844,12 @@ FixedwingPositionControl::run()
 
 				// add attitude setpoint offsets
 				_att_sp.roll_body += _parameters.rollsp_offset_rad;
-				_att_sp.pitch_body += _parameters.pitchsp_offset_rad;
+
+				if (!_vehicle_status.in_transition_to_fw_phase_2) {
+					_att_sp.pitch_body += _parameters.pitchsp_offset_rad;
+				} else { // do not add offset in case of beeing in VTOL forward transition (offset is ramped up and added in vtol_att_control)
+					_att_sp.pitch_body = _att_sp.pitch_body;
+				}
 
 				if (_control_mode.flag_control_manual_enabled) {
 					_att_sp.roll_body = constrain(_att_sp.roll_body, -_parameters.man_roll_max_rad, _parameters.man_roll_max_rad);
@@ -1925,12 +1943,11 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 	// do not run TECS if we are not in air
 	bool run_tecs = !_vehicle_land_detected.landed;
 
-	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
-	// (it should also not run during VTOL blending because airspeed is too low still)
 	if (_vehicle_status.is_vtol) {
-		if (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode) {
-			run_tecs = false;
-		}
+		// run TECS during 2nd phase of transition to fixed-wing flight (tiltrotor and standard)
+		run_tecs &= (!_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_to_fw_phase_2);
+		// for tailsitters we don't want TECS do run during any transitions
+		run_tecs &= !(_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.in_transition_mode);
 
 		if (_vehicle_status.in_transition_mode) {
 			// we're in transition
@@ -1982,7 +1999,8 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 
 	/* No underspeed protection in landing mode */
 	_tecs.set_detect_underspeed_enabled(!(mode == tecs_status_s::TECS_MODE_LAND
-					      || mode == tecs_status_s::TECS_MODE_LAND_THROTTLELIM));
+					      || mode == tecs_status_s::TECS_MODE_LAND_THROTTLELIM
+								|| _vehicle_status.in_transition_to_fw_phase_2)); // disable in transition to fixed-wing flight
 
 	/* Using tecs library */
 	float pitch_for_tecs = _pitch - _parameters.pitchsp_offset_rad;

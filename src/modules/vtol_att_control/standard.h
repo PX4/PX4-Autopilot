@@ -62,7 +62,6 @@ public:
 	void update_fw_state() override;
 	void update_mc_state() override;
 	void fill_actuator_outputs() override;
-	void waiting_on_tecs() override;
 
 private:
 
@@ -88,7 +87,8 @@ private:
 
 	enum vtol_mode {
 		MC_MODE = 0,
-		TRANSITION_TO_FW,
+		TRANSITION_TO_FW_PHASE_1,
+		TRANSITION_TO_FW_PHASE_2,
 		TRANSITION_TO_MC,
 		FW_MODE
 	};
@@ -96,11 +96,13 @@ private:
 	struct {
 		vtol_mode flight_mode;			// indicates in which mode the vehicle is in
 		hrt_abstime transition_start;	// at what time did we start a transition (front- or backtransition)
+		hrt_abstime transition_to_fw_phase_2_start;	// at what time did we start phase 2 of a forward transition
 	} _vtol_schedule;
 
 	float _pusher_throttle{0.0f};
 	float _reverse_output{0.0f};
 	float _airspeed_trans_blend_margin{0.0f};
+	float _transition_to_fw_phase_2_start{0.0f}; // time at which phase 2 of FW transition was started
 
 	void parameters_update() override;
 };

@@ -572,7 +572,8 @@ void VtolAttitudeControl::task_main()
 
 		// run vtol_att on MC actuator publications, unless in full FW mode
 		switch (_vtol_type->get_mode()) {
-		case TRANSITION_TO_FW:
+		case TRANSITION_TO_FW_PHASE_1:
+		case TRANSITION_TO_FW_PHASE_2:
 		case TRANSITION_TO_MC:
 		case ROTARY_WING:
 			fds[0].fd = _actuator_inputs_mc;
@@ -639,7 +640,8 @@ void VtolAttitudeControl::task_main()
 			// vehicle is in rotary wing mode
 			_vtol_vehicle_status.vtol_in_rw_mode = true;
 			_vtol_vehicle_status.vtol_in_trans_mode = false;
-			_vtol_vehicle_status.in_transition_to_fw = false;
+			_vtol_vehicle_status.in_transition_to_fw_phase_1 = false;
+			_vtol_vehicle_status.in_transition_to_fw_phase_2 = false;
 
 			// got data from mc attitude controller
 			_vtol_type->update_mc_state();
@@ -651,11 +653,14 @@ void VtolAttitudeControl::task_main()
 			// vehicle is in fw mode
 			_vtol_vehicle_status.vtol_in_rw_mode = false;
 			_vtol_vehicle_status.vtol_in_trans_mode = false;
-			_vtol_vehicle_status.in_transition_to_fw = false;
+			_vtol_vehicle_status.in_transition_to_fw_phase_1 = false;
+			_vtol_vehicle_status.in_transition_to_fw_phase_2 = false;
 
 			_vtol_type->update_fw_state();
 
-		} else if (_vtol_type->get_mode() == TRANSITION_TO_MC || _vtol_type->get_mode() == TRANSITION_TO_FW) {
+		} else if (_vtol_type->get_mode() == TRANSITION_TO_MC ||
+		_vtol_type->get_mode() == TRANSITION_TO_FW_PHASE_1 ||
+		_vtol_type->get_mode() == TRANSITION_TO_FW_PHASE_2) {
 
 			mc_virtual_att_sp_poll();
 			fw_virtual_att_sp_poll();
@@ -663,7 +668,8 @@ void VtolAttitudeControl::task_main()
 			// vehicle is doing a transition
 			_vtol_vehicle_status.vtol_in_trans_mode = true;
 			_vtol_vehicle_status.vtol_in_rw_mode = true; //making mc attitude controller work during transition
-			_vtol_vehicle_status.in_transition_to_fw = (_vtol_type->get_mode() == TRANSITION_TO_FW);
+			_vtol_vehicle_status.in_transition_to_fw_phase_1 = (_vtol_type->get_mode() == TRANSITION_TO_FW_PHASE_1);
+			_vtol_vehicle_status.in_transition_to_fw_phase_2 = (_vtol_type->get_mode() == TRANSITION_TO_FW_PHASE_2);
 
 			_vtol_type->update_transition_state();
 		}

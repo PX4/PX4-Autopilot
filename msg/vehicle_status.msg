@@ -66,7 +66,8 @@ bool is_rotary_wing			# True if system is in rotary wing configuration, so for a
 bool is_vtol				# True if the system is VTOL capable
 bool vtol_fw_permanent_stab		# True if VTOL should stabilize attitude for fw in manual mode
 bool in_transition_mode			# True if VTOL is doing a transition
-bool in_transition_to_fw		# True if VTOL is doing a transition from MC to FW
+bool in_transition_to_fw_phase_1		# True if VTOL is doing a transition from MC to FW and is in phase 1 (prior blending and (optionally) TECS activation)
+bool in_transition_to_fw_phase_2		# True if VTOL is doing a transition from MC to FW and is in phase 2 (post blending and (optionally) TECS activation)
 
 bool rc_signal_lost				# true if RC reception lost
 uint8 rc_input_mode				# set to 1 to disable the RC input, 2 to enable manual control to RC in mapping.

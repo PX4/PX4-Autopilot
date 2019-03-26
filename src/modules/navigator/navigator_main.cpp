@@ -1181,7 +1181,7 @@ bool
 Navigator::force_vtol()
 {
 	return _vstatus.is_vtol &&
-	       (!_vstatus.is_rotary_wing || _vstatus.in_transition_to_fw)
+	       (!_vstatus.is_rotary_wing || _vstatus.in_transition_to_fw_phase_1 || _vstatus.in_transition_to_fw_phase_2)
 	       && _param_force_vtol.get();
 }
 

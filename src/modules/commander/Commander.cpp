@@ -1621,8 +1621,13 @@ Commander::run()
 					status_changed = true;
 				}
 
-				if (status.in_transition_to_fw != vtol_status.in_transition_to_fw) {
-					status.in_transition_to_fw = vtol_status.in_transition_to_fw;
+				if (status.in_transition_to_fw_phase_1 != vtol_status.in_transition_to_fw_phase_1) {
+					status.in_transition_to_fw_phase_1 = vtol_status.in_transition_to_fw_phase_1;
+					status_changed = true;
+				}
+
+				if (status.in_transition_to_fw_phase_2 != vtol_status.in_transition_to_fw_phase_2) {
+					status.in_transition_to_fw_phase_2 = vtol_status.in_transition_to_fw_phase_2;
 					status_changed = true;
 				}
 

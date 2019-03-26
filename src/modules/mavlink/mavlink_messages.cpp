@@ -4278,7 +4278,7 @@ protected:
 				} else if (!status.in_transition_mode) {
 					_msg.vtol_state = MAV_VTOL_STATE_FW;
 
-				} else if (status.in_transition_mode && status.in_transition_to_fw) {
+				} else if (status.in_transition_mode && (status.in_transition_to_fw_phase_1 || status.in_transition_to_fw_phase_1)) {
 					_msg.vtol_state = MAV_VTOL_STATE_TRANSITION_TO_FW;
 
 				} else if (status.in_transition_mode) {
