@@ -388,17 +388,6 @@ static bool airspeedCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &statu
 	int fd_diffpres = orb_subscribe(ORB_ID(differential_pressure));
 	differential_pressure_s differential_pressure = {};
 
-	if ((orb_copy(ORB_ID(differential_pressure), fd_diffpres, &differential_pressure) != PX4_OK) ||
-	    (hrt_elapsed_time(&differential_pressure.timestamp) > 1_s)) {
-		if (report_fail && !optional) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Airspeed Sensor missing");
-		}
-
-		present = false;
-		success = false;
-		goto out;
-	}
-
 	if ((orb_copy(ORB_ID(airspeed), fd_airspeed, &airspeed) != PX4_OK) ||
 	    (hrt_elapsed_time(&airspeed.timestamp) > 1_s)) {
 		if (report_fail && !optional) {
