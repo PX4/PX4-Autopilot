@@ -85,7 +85,6 @@ Most of the variables are declared global in the .hpp file to avoid stack overfl
 
     PRINT_MODULE_USAGE_NAME("sih", "simulation");
     PRINT_MODULE_USAGE_COMMAND("start");
-    PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 1024, "Optional example parameter", true);
     PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
     return 0;
@@ -122,7 +121,7 @@ int Sih::task_spawn(int argc, char *argv[])
 
 Sih *Sih::instantiate(int argc, char *argv[])
 {
-    Sih *instance = new Sih(0, false);
+    Sih *instance = new Sih();
 
     if (instance == nullptr) {
         PX4_ERR("alloc failed");
@@ -131,7 +130,7 @@ Sih *Sih::instantiate(int argc, char *argv[])
     return instance;
 }
 
-Sih::Sih(int example_param, bool example_flag)
+Sih::Sih()
     : ModuleParams(nullptr),
     _loop_perf(perf_alloc(PC_ELAPSED, "sih_execution")),
     _sampling_perf(perf_alloc(PC_ELAPSED, "sih_sampling"))
