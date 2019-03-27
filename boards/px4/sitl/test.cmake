@@ -99,4 +99,5 @@ if(REPLAY_FILE)
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 endif()
 
+message("Building without lockstep for test")
 set(ENABLE_LOCKSTEP_SCHEDULER no)
