@@ -529,7 +529,6 @@ void VtolAttitudeControl::task_main()
 	fflush(stdout);
 
 	/* do subscriptions */
-	_v_att_sp_sub          = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_mc_virtual_att_sp_sub = orb_subscribe(ORB_ID(mc_virtual_attitude_setpoint));
 	_fw_virtual_att_sp_sub = orb_subscribe(ORB_ID(fw_virtual_attitude_setpoint));
 	_v_att_sub             = orb_subscribe(ORB_ID(vehicle_attitude));

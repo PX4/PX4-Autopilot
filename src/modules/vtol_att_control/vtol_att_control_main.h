@@ -135,7 +135,6 @@ private:
 	int	_params_sub{-1};			//parameter updates subscription
 	int	_pos_sp_triplet_sub{-1};			// local position setpoint subscription
 	int	_tecs_status_sub{-1};
-	int	_v_att_sp_sub{-1};			//vehicle attitude setpoint subscription
 	int	_v_att_sub{-1};				//vehicle attitude subscription
 	int	_v_control_mode_sub{-1};	//vehicle control mode subscription
 	int	_vehicle_cmd_sub{-1};
