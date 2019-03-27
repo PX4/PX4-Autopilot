@@ -452,6 +452,9 @@ else
 		vmount start
 	fi
 
+	# Check for flow sensor, launched as a background task to scan
+	px4flow start &
+
 	#
 	# Optional board supplied extras: rc.board_extras
 	#
