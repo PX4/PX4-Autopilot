@@ -163,7 +163,7 @@ void Tailsitter::update_vtol_state()
 		break;
 
 	case TRANSITION_FRONT_P1:
-		_vtol_mode = TRANSITION_TO_FW;
+		_vtol_mode = TRANSITION_TO_FW_PHASE_2;
 		_vtol_vehicle_status->vtol_in_trans_mode = true;
 		break;
 
