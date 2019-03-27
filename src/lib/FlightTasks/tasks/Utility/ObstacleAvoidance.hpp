@@ -120,11 +120,11 @@ private:
 	/**
 	 * Publishes vehicle trajectory waypoint desired.
 	 */
-	void _publish_avoidance_desired_waypoint();
+	void _publishAvoidanceDesiredWaypoint();
 
 	/**
-	 * Publishes vehicle vehicle command.
+	 * Publishes vehicle command.
 	 */
-	void _publish_vehicle_cmd_do_loiter();
+	void _publishVehicleCmdDoLoiter();
 
 };
