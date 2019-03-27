@@ -2210,7 +2210,7 @@ Commander::run()
 
 		if (failure_detector_updated) {
 
-			const uint8_t failure_status = _failure_detector.get_status();
+			const uint8_t failure_status = _failure_detector.getStatus();
 
 			if (failure_status != status.failure_detector_status) {
 				status.failure_detector_status = failure_status;
@@ -2223,7 +2223,7 @@ Commander::run()
 		    !_flight_termination_triggered &&
 		    !status_flags.circuit_breaker_flight_termination_disabled) {
 
-			if (_failure_detector.is_failure()) {
+			if (_failure_detector.isFailure()) {
 
 				armed.force_failsafe = true;
 				status_changed = true;

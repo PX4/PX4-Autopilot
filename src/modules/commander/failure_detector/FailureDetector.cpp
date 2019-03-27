@@ -52,13 +52,13 @@ FailureDetector::update()
 {
 	bool updated(false);
 
-	updated = update_attitude_status();
+	updated = updateAttitudeStatus();
 
 	return updated;
 }
 
 bool
-FailureDetector::update_attitude_status()
+FailureDetector::updateAttitudeStatus()
 {
 	bool updated(false);
 

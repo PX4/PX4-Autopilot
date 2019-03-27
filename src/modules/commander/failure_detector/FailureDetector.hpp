@@ -70,8 +70,8 @@ public:
 
 	bool update();
 
-	uint8_t get_status() const { return _status; }
-	bool is_failure() const { return (_status == FAILURE_NONE) ? false : true; }
+	uint8_t getStatus() const { return _status; }
+	bool isFailure() const { return (_status == FAILURE_NONE) ? false : true; }
 
 private:
 
@@ -91,5 +91,5 @@ private:
 	systemlib::Hysteresis _roll_failure_hysteresis{false};
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
 
-	bool update_attitude_status();
+	bool updateAttitudeStatus();
 };
