@@ -795,7 +795,8 @@ void
 FixedwingPositionControl::do_takeoff_help(float *hold_altitude, float *pitch_limit_min)
 {
 	/* demand "climbout_diff" m above ground if user switched into this mode during takeoff */
-	if (in_takeoff_situation()) {
+	/* disable takeoff help for VTOLs */
+	if (in_takeoff_situation() && !_vehicle_status.is_vtol) {
 		*hold_altitude = _takeoff_ground_alt + _parameters.climbout_diff;
 		*pitch_limit_min = radians(10.0f);
 
