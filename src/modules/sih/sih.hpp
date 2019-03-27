@@ -58,7 +58,7 @@ extern "C" __EXPORT int sih_main(int argc, char *argv[]);
 class Sih : public ModuleBase<Sih>, public ModuleParams
 {
 public:
-	Sih(int example_param, bool example_flag);
+	Sih();
 
 	virtual ~Sih() = default;
 
