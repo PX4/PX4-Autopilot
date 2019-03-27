@@ -108,9 +108,6 @@ fi
 # ICM20948 as external magnetometer on I2C (e.g. Here GPS)
 icm20948 -X -M -R 6 start
 
-# Check for flow sensor, launched as a background task to scan
-px4flow start &
-
 ###############################################################################
 #                            End Optional drivers                             #
 ###############################################################################
