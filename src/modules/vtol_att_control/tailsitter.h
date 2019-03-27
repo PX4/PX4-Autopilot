@@ -95,7 +95,8 @@ private:
 		NO_SWEEP = 0,
 		PITCH_RATE,
 		ROLL_RATE,
-		YAW_RATE
+		YAW_RATE,
+		THRUST
 	};
 
 	struct {
@@ -110,12 +111,16 @@ private:
 	matrix::Quatf _q_trans_start;
 	matrix::Quatf _q_trans_sp;
 	matrix::Vector3f _trans_rot_axis;
+	matrix::Vector3f _trans_roll_axis;
 
 	float _alt_sp;
 	float _vert_i_term;
 	float _mc_hover_thrust;
 	float _trans_end_thrust;
 	float _trans_pitch_rot;
+	float _trans_roll_rot;
+	float _trans_start_x;
+	float _trans_start_y;
 	float _CL_Degree[NUM_CL_POINTS+1];
 	float _target_alt;
 

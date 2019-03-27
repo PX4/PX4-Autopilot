@@ -14,6 +14,8 @@ float32 aoa
 float32 vert_acc_cmd
 float32 thrust_cmd
 float32 vert_vel_sp
+float32 rollrot
+float32 lat_dist
 
 bool vtol_in_rw_mode			# true: vtol vehicle is in rotating wing mode
 bool vtol_in_trans_mode
