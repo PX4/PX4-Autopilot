@@ -101,7 +101,7 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 
 	if ((avoidance_data_timeout || !avoidance_point_valid) && !is_loitering) {
 		PX4_WARN("Obstacle Avoidance system failed, loitering");
-		_publish_vehicle_cmd_do_loiter();
+		_publishVehicleCmdDoLoiter();
 		return;
 	}
 
@@ -142,7 +142,7 @@ void ObstacleAvoidance::updateAvoidanceDesiredSetpoints(const Vector3f &pos_sp, 
 	vel_sp.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity);
 	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid = true;
 
-	_publish_avoidance_desired_waypoint();
+	_publishAvoidanceDesiredWaypoint();
 
 	_desired_waypoint = empty_trajectory_waypoint;
 }
@@ -189,7 +189,7 @@ void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector
 }
 
 void
-ObstacleAvoidance::_publish_avoidance_desired_waypoint()
+ObstacleAvoidance::_publishAvoidanceDesiredWaypoint()
 {
 	// publish desired waypoint
 	if (_pub_traj_wp_avoidance_desired != nullptr) {
@@ -201,7 +201,7 @@ ObstacleAvoidance::_publish_avoidance_desired_waypoint()
 	}
 }
 
-void ObstacleAvoidance::_publish_vehicle_cmd_do_loiter()
+void ObstacleAvoidance::_publishVehicleCmdDoLoiter()
 {
 	vehicle_command_s command{};
 	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
