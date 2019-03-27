@@ -240,7 +240,7 @@ enum {							/* DSM bind states */
 
 #define PX4IO_P_SETUP_AIRMODE 			27 	/* air-mode */
 
-#define PX4IO_P_SETUP_ENABLE_FLIGHTTERM		28	/* flight termination circuit breaker */
+#define PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION	28	/* flight termination circuit breaker */
 
 #define PX4IO_THERMAL_IGNORE			UINT16_MAX
 #define PX4IO_THERMAL_OFF			0

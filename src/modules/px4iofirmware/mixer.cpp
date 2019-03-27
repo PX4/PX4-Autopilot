@@ -228,7 +228,7 @@ mixer_tick(void)
 	 * failsafe condition.
 	 */
 	if ( /* Flight termination is allowed */
-		REG_TO_BOOL(r_setup_flightterm) &&
+		REG_TO_BOOL(r_setup_flighttermination) &&
 		/* If we ended up not changing the default mixer */
 		(source == MIX_DISARMED) &&
 		/* and we should be armed, so we intended to provide outputs */
