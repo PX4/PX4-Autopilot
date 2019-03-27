@@ -47,7 +47,6 @@
 #include <drivers/drv_hrt.h>
 
 #include <uORB/topics/position_controller_status.h>
-#include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 
@@ -113,7 +112,6 @@ private:
 	vehicle_trajectory_waypoint_s _desired_waypoint = {};  /**< desired vehicle trajectory waypoint to be sent to OA */
 	orb_advert_t _pub_traj_wp_avoidance_desired{nullptr}; /**< trajectory waypoint desired publication */
 	orb_advert_t _pub_pos_control_status{nullptr}; /**< position controller status publication */
-	orb_advert_t _pub_vehicle_command{nullptr}; /**< vehicle command do publication */
 
 	matrix::Vector3f _curr_wp = {}; /**< current position triplet */
 
@@ -121,10 +119,5 @@ private:
 	 * Publishes vehicle trajectory waypoint desired.
 	 */
 	void _publishAvoidanceDesiredWaypoint();
-
-	/**
-	 * Publishes vehicle command.
-	 */
-	void _publishVehicleCmdDoLoiter();
 
 };

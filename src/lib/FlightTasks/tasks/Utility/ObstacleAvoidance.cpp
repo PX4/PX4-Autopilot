@@ -88,19 +88,13 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 		float &yaw_speed_sp)
 {
 
-	if (!COM_OBS_AVOID.get() || _sub_vehicle_status->get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
-		// if avoidance disabled or in failsafe nav_state LOITER, don't inject setpoints from avoidance system
-		return;
-	}
-
-	const bool avoidance_data_timeout = hrt_elapsed_time((hrt_abstime *)&_sub_vehicle_trajectory_waypoint->get().timestamp)
-					    > TRAJECTORY_STREAM_TIMEOUT_US;
-	const bool avoidance_point_valid =
-		_sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true;
-
-	if (avoidance_data_timeout || !avoidance_point_valid) {
-		PX4_WARN("Obstacle Avoidance system failed, loitering");
-		_publishVehicleCmdDoLoiter();
+	if (!COM_OBS_AVOID.get() || _sub_vehicle_status->get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER
+	    || _sub_vehicle_status->get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
+	    || _sub_vehicle_status->get().nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND
+	    || _sub_vehicle_status->get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND
+	    || _sub_vehicle_status->get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL
+	    || _sub_vehicle_status->get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL) {
+		// if avoidance disabled or in nav state land, loiter don't inject setpoints from avoidance system
 		return;
 	}
 
@@ -197,30 +191,5 @@ ObstacleAvoidance::_publishAvoidanceDesiredWaypoint()
 	} else {
 		_pub_traj_wp_avoidance_desired = orb_advertise(ORB_ID(vehicle_trajectory_waypoint_desired),
 						 &_desired_waypoint);
-	}
-}
-
-void ObstacleAvoidance::_publishVehicleCmdDoLoiter()
-{
-	vehicle_command_s command{};
-	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
-	command.param1 = (float)1; // base mode
-	command.param3 = (float)0; // sub mode
-	command.target_system = 1;
-	command.target_component = 1;
-	command.source_system = 1;
-	command.source_component = 1;
-	command.confirmation = false;
-	command.from_external = false;
-	command.param2 = (float)PX4_CUSTOM_MAIN_MODE_AUTO;
-	command.param3 = (float)PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
-
-	// publish the vehicle command
-	if (_pub_vehicle_command == nullptr) {
-		_pub_vehicle_command = orb_advertise_queue(ORB_ID(vehicle_command), &command,
-				       vehicle_command_s::ORB_QUEUE_LENGTH);
-
-	} else {
-		orb_publish(ORB_ID(vehicle_command), _pub_vehicle_command, &command);
 	}
 }

@@ -515,6 +515,10 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act,
 						vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER);
 
+		} else if (status_flags.avoidance_system_required && !status_flags.avoidance_system_valid) {
+			/* avoidance system not healty -> loiter */
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+
 		} else if (!stay_in_failsafe) {
 			/* stay where you are if you should stay in failsafe, otherwise everything is perfect */
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
@@ -566,6 +570,13 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
+		} else if (status_flags.avoidance_system_required && !status_flags.avoidance_system_valid) {
+			/* avoidance system not healty -> switch it off */
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+			int32_t com_obs_avoid = 0;
+			param_set(param_find("COM_OBS_AVOID"), &com_obs_avoid);
+			mavlink_log_critical(mavlink_log_pub, "Avoidance system disabled.");
+
 		} else {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 		}
@@ -625,6 +636,10 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
+
+		} else if (status_flags.avoidance_system_required && !status_flags.avoidance_system_valid) {
+			/* avoidance system not healty -> land */
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
 		} else {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF;
