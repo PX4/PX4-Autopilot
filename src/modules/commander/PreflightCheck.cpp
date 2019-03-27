@@ -674,7 +674,8 @@ out:
 	return success;
 }
 
-static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, bool report_fail, bool prearm)
+static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, bool report_fail,
+				 bool prearm)
 {
 	bool success = true;
 
@@ -684,7 +685,7 @@ static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s
 
 	}
 
-	if (status.failure_detector_status != 0) {
+	if (status.failure_detector_status != vehicle_status_s::FAILURE_NONE) {
 		success = false;
 
 		if (report_fail) {
