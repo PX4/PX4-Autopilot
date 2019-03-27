@@ -51,6 +51,7 @@
 #include <circuit_breaker/circuit_breaker.h>
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
+#include <vtol_att_control/vtol_type.h>
 
 #define TPA_RATE_LOWER_LIMIT 0.05f
 
@@ -523,7 +524,17 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	_landing_gear.landing_gear = get_landing_gear_state();
 
 	attitude_setpoint.timestamp = landing_gear.timestamp = hrt_absolute_time();
-	orb_publish_auto(ORB_ID(vehicle_attitude_setpoint), &_vehicle_attitude_setpoint_pub, &attitude_setpoint, nullptr, ORB_PRIO_DEFAULT);
+
+	/* pulish on virtual attitude setpoints if VTOL */
+	if (_attitude_setpoint_id == nullptr) {
+		if (_vehicle_status.is_vtol) {
+			_attitude_setpoint_id = ORB_ID(mc_virtual_attitude_setpoint);
+
+		} else {
+			_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
+		}
+	}
+	orb_publish_auto(_attitude_setpoint_id, &_vehicle_attitude_setpoint_pub, &attitude_setpoint, nullptr, ORB_PRIO_DEFAULT);
 
 	_landing_gear.timestamp = hrt_absolute_time();
 	orb_publish_auto(ORB_ID(landing_gear), &_landing_gear_pub, &_landing_gear, nullptr, ORB_PRIO_DEFAULT);
@@ -900,10 +911,12 @@ MulticopterAttitudeControl::run()
 			if (_v_control_mode.flag_control_attitude_enabled && _vehicle_status.is_rotary_wing) {
 				if (attitude_updated) {
 					// Generate the attitude setpoint from stick inputs if we are in Manual/Stabilized mode
+					// For Tailsitters doing transitions the attitude setpoint is generated in tailsitter.cpp
 					if (_v_control_mode.flag_control_manual_enabled &&
 							!_v_control_mode.flag_control_altitude_enabled &&
 							!_v_control_mode.flag_control_velocity_enabled &&
-							!_v_control_mode.flag_control_position_enabled) {
+							!_v_control_mode.flag_control_position_enabled &&
+							!(_vtol_type.get() == vtol_type::TAILSITTER && _vehicle_status.in_transition_mode)) {
 						generate_attitude_setpoint(attitude_dt, reset_yaw_sp);
 						attitude_setpoint_generated = true;
 					}

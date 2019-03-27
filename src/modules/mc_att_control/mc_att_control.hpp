@@ -171,6 +171,7 @@ private:
 	orb_advert_t	_landing_gear_pub{nullptr};
 
 	orb_id_t _actuators_id{nullptr};	/**< pointer to correct actuator controls0 uORB metadata structure */
+	orb_id_t _attitude_setpoint_id{nullptr};	/**< pointer to correct attitude setpoint */
 
 	bool		_actuators_0_circuit_breaker_enabled{false};	/**< circuit breaker to suppress output */
 
@@ -271,7 +272,8 @@ private:
 		(ParamFloat<px4::params::MPC_THR_HOVER>) _throttle_hover,			/**< throttle at which vehicle is at hover equilibrium */
 		(ParamInt<px4::params::MPC_THR_CURVE>) _throttle_curve,				/**< throttle curve behavior */
 
-		(ParamInt<px4::params::MC_AIRMODE>) _airmode
+		(ParamInt<px4::params::MC_AIRMODE>) _airmode,
+		(ParamInt<px4::params::VT_TYPE>) _vtol_type
 	)
 
 	matrix::Vector3f _attitude_p;		/**< P gain for attitude control */
@@ -287,4 +289,3 @@ private:
 	float _man_tilt_max;			/**< maximum tilt allowed for manual flight [rad] */
 
 };
-
