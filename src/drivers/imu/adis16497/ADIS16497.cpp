@@ -613,7 +613,7 @@ ADIS16497::publish_accel(const hrt_abstime &t, const ADISReport &report)
 		arb.y_integral = aval_integrated(1);
 		arb.z_integral = aval_integrated(2);
 
-		arb.temperature = report.TEMP_OUT * 0.1f - 25.0f; // 1 LSB = 0.1°C, 0x0000 at 25°C
+		arb.temperature = report.TEMP_OUT * 0.0125f - 25.0f; // 1 LSB = 0.0125°C, 0x0000 at 25°C
 
 		orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
 	}
@@ -662,7 +662,7 @@ ADIS16497::publish_gyro(const hrt_abstime &t, const ADISReport &report)
 		grb.y_integral = gval_integrated(1);
 		grb.z_integral = gval_integrated(2);
 
-		grb.temperature = report.TEMP_OUT * 0.1f - 25.0f; // 1 LSB = 0.1°C, 0x0000 at 25°C
+		grb.temperature = report.TEMP_OUT * 0.0125f - 25.0f; // 1 LSB = 0.0125°C, 0x0000 at 25°C
 
 		orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
 	}
