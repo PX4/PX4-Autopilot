@@ -359,7 +359,7 @@ PARAM_DEFINE_FLOAT(FW_W_RMAX, 30.0f);
  * Roll rate feed forward
  *
  * Direct feed forward from rate setpoint to control surface output. Use this
- * to obtain a higher response of the controller without introducing
+ * to obtain a tighter response of the controller without introducing
  * noise amplification.
  *
  * @unit %/rad/s
@@ -583,7 +583,7 @@ PARAM_DEFINE_FLOAT(FW_MAN_Y_SC, 1.0f);
 /**
  * Whether to scale throttle by battery power level
  *
- * This compensates for voltage drop of the battery over time by attempting to
+ * This compensates for a voltage drop of the battery over time by attempting to
  * normalize performance across the operating range of the battery. The fixed wing
  * should constantly behave as if it was fully charged with reduced max thrust
  * at lower battery percentages. i.e. if cruise speed is at 0.5 throttle at 100% battery,
