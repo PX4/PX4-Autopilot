@@ -990,6 +990,10 @@ MulticopterPositionControl::start_flight_task()
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitudeSmooth);
 			break;
 
+		case 3:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitudeSmoothVel);
+			break;
+
 		default:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAltitude);
 			break;
