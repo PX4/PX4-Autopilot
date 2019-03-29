@@ -53,6 +53,7 @@ endif()
 list(APPEND flight_tasks_all
 	ManualAltitude
 	ManualAltitudeSmooth
+	ManualAltitudeSmoothVel
 	ManualPosition
 	ManualPositionSmooth
 	ManualPositionSmoothVel
