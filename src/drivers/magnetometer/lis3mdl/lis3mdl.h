@@ -47,6 +47,7 @@
 #include <drivers/drv_mag.h>
 
 #include <lib/conversion/rotation.h>
+#include <systemlib/err.h>
 
 #include <perf/perf_counter.h>
 #include <px4_defines.h>

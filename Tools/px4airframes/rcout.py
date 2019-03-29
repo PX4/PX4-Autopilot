@@ -28,6 +28,9 @@ class RCOutput():
                     "# 12000 ..  12999       Octo Cox\n"
                     "# 13000 ..  13999       VTOL\n"
                     "# 14000 ..  14999       Tri Y\n"
+                    ""
+                    ""
+                    "cd /etc/init.d/airframes\n"
                     "\n")
         for group in groups:
             result += "# GROUP: %s\n\n" % group.GetName()
@@ -47,7 +50,7 @@ class RCOutput():
                 result +=   "# %s\n" % param.GetName()
                 result +=   "if param compare SYS_AUTOSTART %s\n" % id_val
                 result +=   "then\n"
-                result +=   "\tsh /etc/init.d/%s\n" % path
+                result +=   "\tsh %s\n" % path
                 result +=   "fi\n"
 
                 #if long_desc is not None:

@@ -78,4 +78,3 @@ typedef struct i2c_integral_frame {
 } i2c_integral_frame;
 
 #define I2C_INTEGRAL_FRAME_SIZE (sizeof(i2c_integral_frame))
-

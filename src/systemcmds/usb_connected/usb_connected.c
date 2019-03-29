@@ -42,7 +42,6 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <drivers/drv_gpio.h>
 #include <arch/board/board.h>
 #include <board_config.h>
 

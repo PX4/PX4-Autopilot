@@ -58,6 +58,16 @@
 PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 2.5f);
 
 /**
+ * Take-off waypoint required
+ *
+ * If set, the mission feasibility checker will check for a takeoff waypoint on the mission.
+ *
+ * @boolean
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(MIS_TAKEOFF_REQ, 0);
+
+/**
  * Minimum Loiter altitude
  *
  * This is the minimum altitude the system will always obey. The intent is to stay out of ground effect.
@@ -122,7 +132,7 @@ PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
 /**
 * Enable yaw control of the mount. (Only affects multicopters and ROI mission items)
 *
-* If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading mode as specified by MIS_YAWMODE.
+* If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading towards the flight direction.
 * If disabled, the vehicle will yaw towards the ROI.
 *
 * @value 0 Disable

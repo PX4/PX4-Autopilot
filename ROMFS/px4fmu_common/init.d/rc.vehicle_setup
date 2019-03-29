@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # Vehicle configuration setup script.
 #

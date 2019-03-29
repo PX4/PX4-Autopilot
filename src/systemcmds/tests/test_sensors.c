@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,10 +34,10 @@
 /**
  * @file test_sensors.c
  * Tests the onboard sensors.
- *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
+#include <px4_time.h>
 #include <px4_config.h>
 #include <px4_posix.h>
 
@@ -101,7 +101,7 @@ accel(int argc, char *argv[], const char *path)
 	}
 
 	/* wait at least 100ms, sensor should have data after no more than 20ms */
-	usleep(100000);
+	px4_usleep(100000);
 
 	/* read data - expect samples */
 	ret = px4_read(fd, &buf, sizeof(buf));
@@ -151,7 +151,7 @@ gyro(int argc, char *argv[], const char *path)
 	}
 
 	/* wait at least 5 ms, sensor should have data after that */
-	usleep(5000);
+	px4_usleep(5000);
 
 	/* read data - expect samples */
 	ret = px4_read(fd, &buf, sizeof(buf));
@@ -196,7 +196,7 @@ mag(int argc, char *argv[], const char *path)
 	}
 
 	/* wait at least 5 ms, sensor should have data after that */
-	usleep(5000);
+	px4_usleep(5000);
 
 	/* read data - expect samples */
 	ret = px4_read(fd, &buf, sizeof(buf));
@@ -241,7 +241,7 @@ baro(int argc, char *argv[], const char *path)
 	}
 
 	/* wait at least 5 ms, sensor should have data after that */
-	usleep(5000);
+	px4_usleep(5000);
 
 	/* read data - expect samples */
 	ret = px4_read(fd, &buf, sizeof(buf));

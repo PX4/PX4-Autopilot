@@ -58,7 +58,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <getopt.h>
+#include <px4_getopt.h>
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
@@ -1780,13 +1780,16 @@ int
 adis16448_main(int argc, char *argv[])
 {
 	enum Rotation rotation = ROTATION_NONE;
+
+	int myoptind = 1;
 	int ch;
+	const char *myoptarg = nullptr;
 
 	/* start options */
-	while ((ch = getopt(argc, argv, "R:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		default:
@@ -1795,7 +1798,13 @@ adis16448_main(int argc, char *argv[])
 		}
 	}
 
-	const char *verb = argv[optind];
+	if (myoptind >= argc) {
+		adis16448::usage();
+		return -1;
+	}
+
+	const char *verb = argv[myoptind];
+
 
 	/*
 	 * Start/load the driver.

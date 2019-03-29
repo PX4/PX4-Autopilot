@@ -61,11 +61,6 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 
-typedef enum : int32_t {
-	CAMERA_FEEDBACK_MODE_NONE = 0,
-	CAMERA_FEEDBACK_MODE_TRIGGER,
-	CAMERA_FEEDBACK_MODE_PWM
-} camera_feedback_mode_t;
 
 class CameraFeedback
 {
@@ -103,9 +98,9 @@ private:
 
 	orb_advert_t	_capture_pub;
 
-	param_t			_p_feedback;
+	param_t			_p_camera_capture_feedback;
 
-	camera_feedback_mode_t _camera_feedback_mode;
+	int32_t _camera_capture_feedback;
 
 	void		task_main();
 

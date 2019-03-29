@@ -12,8 +12,7 @@ set i {{ command.instance }}
 {% endif -%}
 # get the device & baudrate
 sh $PRT_F
-if [ $SERIAL_DEV != none ]
-then
+if [ $SERIAL_DEV != none ]; then
 {% if not constrained_flash -%}
 	echo "Starting {{ command.label }} on $SERIAL_DEV"
 {% endif -%}
@@ -22,9 +21,13 @@ fi
 
 {% endfor %}
 
+{% for serial_device in serial_devices -%}
+unset PRT_{{ serial_device.tag }}_
+{% endfor %}
 unset i
 unset SERIAL_DEV
 unset PRT
 unset PRT_F
 unset BAUD_PARAM
+unset MAV_ARGS
 

@@ -1,0 +1,17 @@
+{
+    // See http://go.microsoft.com/fwlink/?LinkId=827846
+    // for the documentation about the extensions.json format
+    "recommendations": [
+        "ajshort.ros",
+        "chiehyu.vscode-astyle",
+        "dan-c-underwood.arm",
+        "github.vscode-pull-request-github",
+        "marus25.cortex-debug",
+        "ms-python.python",
+        "ms-vscode.cpptools",
+        "peterjausovec.vscode-docker",
+        "twxs.cmake",
+        "vector-of-bool.cmake-tools",
+        "wholroyd.jinja"
+    ]
+}

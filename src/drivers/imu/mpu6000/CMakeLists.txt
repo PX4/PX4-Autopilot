@@ -35,8 +35,11 @@ px4_add_module(
 	MAIN mpu6000
 	STACK_MAIN 1500
 	SRCS
-		mpu6000.cpp
-		mpu6000_i2c.cpp
-		mpu6000_spi.cpp
+		MPU6000.cpp
+		MPU6000_I2C.cpp
+		mpu6000_main.cpp
+		MPU6000_SPI.cpp
+	DEPENDS
+		drivers_accelerometer
+		drivers_gyroscope
 	)
-

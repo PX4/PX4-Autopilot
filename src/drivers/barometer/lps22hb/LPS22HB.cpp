@@ -186,7 +186,7 @@ LPS22HB::reset()
 {
 	int ret = PX4_ERROR;
 
-	ret = write_reg(CTRL_REG2, BOOT | I2C_DIS | SWRESET);
+	ret = write_reg(CTRL_REG2, BOOT | SWRESET);
 
 	return ret;
 }

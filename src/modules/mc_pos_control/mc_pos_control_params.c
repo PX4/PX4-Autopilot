@@ -214,10 +214,10 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_P, 0.09f);
 /**
  * Integral gain for horizontal velocity error
  *
- * Non-zero value allows to resist wind.
+ * Non-zero value allows to eliminate steady state errors in the presence of disturbances like wind.
  *
  * @min 0.0
- * @max 0.1
+ * @max 3.0
  * @decimal 3
  * @group Multicopter Position Control
  */
@@ -320,8 +320,8 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 12.0f);
  * Limits maximum tilt in AUTO and POSCTRL modes during flight.
  *
  * @unit deg
- * @min 0.0
- * @max 90.0
+ * @min 20.0
+ * @max 180.0
  * @decimal 1
  * @group Multicopter Position Control
  */
@@ -333,7 +333,7 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.0f);
  * Limits maximum tilt angle on landing.
  *
  * @unit deg
- * @min 0.0
+ * @min 10.0
  * @max 90.0
  * @decimal 1
  * @group Multicopter Position Control
@@ -568,7 +568,7 @@ PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 8.0f);
 PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);
 
 /**
- * Manual control stick exponential curve sensitivity attenuation with small velocity setpoints
+ * Manual position control stick exponential curve sensitivity
  *
  * The higher the value the less sensitivity the stick has around zero
  * while still reaching the maximum value with full stick deflection.
@@ -650,15 +650,16 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
  *
  * Increasing this value will make automatic and manual takeoff slower.
  * If it's too slow the drone might scratch the ground and tip over.
+ * A time constant of 0 disables the ramp
  *
- * @min 0.1
+ * @min 0
  * @max 1
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
 
 /**
- * Manual-Position control sub-mode.
+ * Manual-Position control sub-mode
  *
  * The supported sub-modes are:
  * 0 Default position control where sticks map to position/velocity directly. Maximum speeds
@@ -679,49 +680,29 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
 PARAM_DEFINE_INT32(MPC_POS_MODE, 1);
 
 /**
- * Auto sub-mode.
- *
- * The supported sub-modes are:
- * 0 Direct line tracking, no smoothing
- *
- * 1 Not used
- *
- * 2 Not used
- *
- * 3 Jerk-limited trajectory
+ * Auto sub-mode
  *
  * @value 0 Default line tracking
- * @value 1 N/A
- * @value 2 N/A
- * @value 3 Jerk-limited trajectory
+ * @value 1 Jerk-limited trajectory
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_INT32(MPC_AUTO_MODE, 3);
+PARAM_DEFINE_INT32(MPC_AUTO_MODE, 1);
 
 /**
- * Delay from idle state to arming state.
+ * Enforced delay between arming and takeoff
  *
- * For altitude controlled modes, the transition from
- * idle to armed state is delayed by MPC_IDLE_TKO time to ensure
- * that the propellers have reached idle speed before attempting a
- * takeoff. This delay is particularly useful for vehicles with large
- * propellers.
+ * For altitude controlled modes the time from arming the motors until
+ * a takeoff is possible gets forced to be at least MPC_SPOOLUP_TIME seconds
+ * to ensure the motors and propellers can sppol up and reach idle speed before
+ * getting commanded to spin faster. This delay is particularly useful for vehicles
+ * with slow motor spin-up e.g. because of large propellers.
  *
  * @min 0
  * @max 10
- * @unit sec
+ * @unit s
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_IDLE_TKO, 0.0f);
-
-/**
- * Flag to enable obstacle avoidance
- * Temporary Parameter to enable interface testing
- *
- * @boolean
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_INT32(MPC_OBS_AVOID, 0);
+PARAM_DEFINE_FLOAT(MPC_SPOOLUP_TIME, 0.0f);
 
 /**
  * Yaw mode.
@@ -729,7 +710,7 @@ PARAM_DEFINE_INT32(MPC_OBS_AVOID, 0);
  * Specifies the heading in Auto.
  *
  * @min 0
- * @max 2
+ * @max 3
  * @value 0 towards waypoint
  * @value 1 towards home
  * @value 2 away from home

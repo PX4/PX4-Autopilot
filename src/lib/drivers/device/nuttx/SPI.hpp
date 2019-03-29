@@ -42,8 +42,6 @@
 
 #include "../CDev.hpp"
 
-#include <px4_spi.h>
-
 namespace device __EXPORT
 {
 

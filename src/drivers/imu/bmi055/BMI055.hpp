@@ -40,6 +40,7 @@
 #include <lib/perf/perf_counter.h>
 #include <px4_config.h>
 #include <systemlib/conversions.h>
+#include <systemlib/err.h>
 
 #define DIR_READ                0x80
 #define DIR_WRITE               0x00
@@ -60,8 +61,6 @@ protected:
 
 	struct hrt_call     _call;
 	unsigned        _call_interval;
-
-	unsigned        _dlpf_freq;
 
 	uint8_t         _register_wait;
 	uint64_t        _reset_wait;

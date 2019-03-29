@@ -53,14 +53,14 @@
  * of the size
  */
 enum class WaypointType : int {
-	position = 0,
-	velocity,
-	loiter,
-	takeoff,
-	land,
-	idle,
-	offboard, // only part of this structure due to legacy reason. It is not used within the Auto flighttasks
-	follow_target
+	position = position_setpoint_s::SETPOINT_TYPE_POSITION,
+	velocity = position_setpoint_s::SETPOINT_TYPE_VELOCITY,
+	loiter = position_setpoint_s::SETPOINT_TYPE_LOITER,
+	takeoff = position_setpoint_s::SETPOINT_TYPE_TAKEOFF,
+	land = position_setpoint_s::SETPOINT_TYPE_LAND,
+	idle = position_setpoint_s::SETPOINT_TYPE_IDLE,
+	offboard = position_setpoint_s::SETPOINT_TYPE_OFFBOARD, // only part of this structure due to legacy reason. It is not used within the Auto flighttasks
+	follow_target = position_setpoint_s::SETPOINT_TYPE_FOLLOW_TARGET,
 };
 
 enum class State {
@@ -87,7 +87,6 @@ public:
 
 protected:
 	void _setDefaultConstraints() override;
-	float _getMaxCruiseSpeed() {return MPC_XY_CRUISE.get();} /**< getter for default cruise speed */
 	matrix::Vector2f _getTargetVelocityXY(); /**< only used for follow-me and only here because of legacy reason.*/
 	void _updateInternalWaypoints(); /**< Depending on state of vehicle, the internal waypoints might differ from target (for instance if offtrack). */
 	bool _compute_heading_from_2D_vector(float &heading, matrix::Vector2f v); /**< Computes and sets heading a 2D vector */
@@ -102,16 +101,15 @@ protected:
 	uORB::Subscription<home_position_s> *_sub_home_position{nullptr};
 
 	State _current_state{State::none};
-
-	float _speed_at_target = 0.0f; /**< Desired velocity at target. */
 	float _target_acceptance_radius = 0.0f; /**< Acceptances radius of the target */
+	int _mission_gear = landing_gear_s::GEAR_KEEP;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) MPC_XY_CRUISE,
 					(ParamFloat<px4::params::MPC_CRUISE_90>) MPC_CRUISE_90, // speed at corner when angle is 90 degrees move to line
 					(ParamFloat<px4::params::NAV_MC_ALT_RAD>) NAV_MC_ALT_RAD, //vertical acceptance radius at which waypoints are updated
 					(ParamInt<px4::params::MPC_YAW_MODE>) MPC_YAW_MODE, // defines how heading is executed,
-					(ParamInt<px4::params::MPC_OBS_AVOID>) MPC_OBS_AVOID // obstacle avoidance active
+					(ParamInt<px4::params::COM_OBS_AVOID>) COM_OBS_AVOID // obstacle avoidance active
 				       );
 
 private:
@@ -140,7 +138,6 @@ private:
 	bool _evaluateTriplets(); /**< Checks and sets triplets. */
 	bool _isFinite(const position_setpoint_s &sp); /**< Checks if all waypoint triplets are finite. */
 	bool _evaluateGlobalReference(); /**< Check is global reference is available. */
-	float _getVelocityFromAngle(const float angle); /**< Computes the speed at target depending on angle. */
 	State _getCurrentState(); /**< Computes the current vehicle state based on the vehicle position and navigator triplets. */
 	void _set_heading_from_mode(); /**< @see  MPC_YAW_MODE */
 	void _checkAvoidanceProgress();

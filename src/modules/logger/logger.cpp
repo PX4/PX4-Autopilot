@@ -52,7 +52,6 @@
 #include <uORB/topics/vehicle_command_ack.h>
 
 #include <drivers/drv_hrt.h>
-#include <px4_includes.h>
 #include <px4_getopt.h>
 #include <px4_log.h>
 #include <px4_posix.h>
@@ -622,6 +621,7 @@ void Logger::add_default_topics()
 	add_topic("battery_status", 500);
 	add_topic("camera_capture");
 	add_topic("camera_trigger");
+	add_topic("camera_trigger_secondary");
 	add_topic("cpuload");
 	add_topic("distance_sensor", 100);
 	add_topic("ekf2_innovations", 200);
@@ -641,7 +641,7 @@ void Logger::add_default_topics()
 	add_topic("sensor_preflight", 200);
 	add_topic("system_power", 500);
 	add_topic("tecs_status", 200);
-	add_topic("trajectory_setpoint");
+	add_topic("trajectory_setpoint", 200);
 	add_topic("telemetry_status");
 	add_topic("vehicle_air_data", 200);
 	add_topic("vehicle_attitude", 30);
@@ -656,30 +656,23 @@ void Logger::add_default_topics()
 	add_topic("vehicle_rates_setpoint", 30);
 	add_topic("vehicle_status", 200);
 	add_topic("vehicle_status_flags");
-	add_topic("vehicle_trajectory_waypoint", 200);
-	add_topic("vehicle_trajectory_waypoint_desired", 200);
-	add_topic("vehicle_vision_attitude");
-	add_topic("vehicle_vision_position");
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("wind_estimate", 200);
 
-#ifdef CONFIG_ARCH_BOARD_SITL
-	add_topic("actuator_armed");
+#ifdef CONFIG_ARCH_BOARD_PX4_SITL
 	add_topic("actuator_controls_virtual_fw");
 	add_topic("actuator_controls_virtual_mc");
-	add_topic("commander_state");
 	add_topic("fw_virtual_attitude_setpoint");
 	add_topic("mc_virtual_attitude_setpoint");
 	add_topic("multirotor_motor_limits");
 	add_topic("position_controller_status");
-	add_topic("position_controller_landingstatus");
 	add_topic("offboard_control_mode");
 	add_topic("time_offset");
 	add_topic("vehicle_attitude_groundtruth", 10);
 	add_topic("vehicle_global_position_groundtruth", 100);
 	add_topic("vehicle_local_position_groundtruth", 100);
 	add_topic("vehicle_roi");
-#endif
+#endif /* CONFIG_ARCH_BOARD_PX4_SITL */
 }
 
 void Logger::add_high_rate_topics()
@@ -720,8 +713,7 @@ void Logger::add_estimator_replay_topics()
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
-	add_topic("vehicle_vision_attitude");
-	add_topic("vehicle_vision_position");
+	add_topic("vehicle_visual_odometry");
 }
 
 void Logger::add_thermal_calibration_topics()
@@ -737,6 +729,16 @@ void Logger::add_sensor_comparison_topics()
 	add_topic("sensor_baro", 100);
 	add_topic("sensor_gyro", 100);
 	add_topic("sensor_mag", 100);
+}
+
+void Logger::add_vision_and_avoidance_topics()
+{
+	add_topic("collision_constraints");
+	add_topic("obstacle_distance");
+	add_topic("vehicle_mocap_odometry", 30);
+	add_topic("vehicle_trajectory_waypoint", 200);
+	add_topic("vehicle_trajectory_waypoint_desired", 200);
+	add_topic("vehicle_visual_odometry", 30);
 }
 
 void Logger::add_system_identification_topics()
@@ -868,6 +870,10 @@ void Logger::initialize_configured_topics()
 
 	if (sdlog_profile & SDLogProfileMask::SENSOR_COMPARISON) {
 		add_sensor_comparison_topics();
+	}
+
+	if (sdlog_profile & SDLogProfileMask::VISION_AND_AVOIDANCE) {
+		add_vision_and_avoidance_topics();
 	}
 }
 

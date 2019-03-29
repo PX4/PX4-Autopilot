@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# PX4 FMUv5 specific board sensors init
+#------------------------------------------------------------------------------
+
+# Internal SPI bus ICM-20602
+mpu6000 -R 8 -s -T 20602 start
+
+# Internal SPI bus ICM-20689
+mpu6000 -R 8 -z -T 20689 start
+
+# Internal SPI bus BMI055 accel
+bmi055 -A -R 10 start
+
+# Internal SPI bus BMI055 gyro
+bmi055 -G -R 10 start
+
+# Possible external compasses
+hmc5883 -C -T -X start
+
+# Possible external compasses
+ist8310 -C -b 1 start
+ist8310 -C -b 2 start
+
+# Possible internal compass
+ist8310 -C -b 5 start
+
+# Possible pmw3901 optical flow sensor
+pmw3901 start

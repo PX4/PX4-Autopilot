@@ -70,7 +70,7 @@ MS5525::init_ms5525()
 		return false;
 	}
 
-	usleep(3000);
+	px4_usleep(3000);
 
 	// Step 2 - read calibration coefficients from prom
 

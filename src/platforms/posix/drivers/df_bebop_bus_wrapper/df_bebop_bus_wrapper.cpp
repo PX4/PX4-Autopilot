@@ -39,6 +39,7 @@
  * motor and contol commands to the Bebop and reads its status and informations.
  */
 
+#include <stdlib.h>
 #include <stdint.h>
 
 #include <px4_tasks.h>
@@ -47,6 +48,8 @@
 
 #include <errno.h>
 #include <string.h>
+#include <math.h>
+
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
@@ -54,6 +57,7 @@
 #include <uORB/topics/esc_status.h>
 
 #include <lib/mixer/mixer.h>
+#include <lib/mixer/mixer_load.h>
 #include <battery/battery.h>
 
 #include <bebop_bus/BebopBus.hpp>
@@ -299,7 +303,7 @@ int initialize_mixers(const char *mixers_filename)
 	PX4_INFO("Trying to initialize mixers from config file %s", mixers_filename);
 
 	if (load_mixer_file(mixers_filename, &buf[0], sizeof(buf)) < 0) {
-		warnx("can't load mixer: %s", mixers_filename);
+		PX4_ERR("can't load mixer: %s", mixers_filename);
 		return -1;
 	}
 
@@ -483,9 +487,6 @@ int start()
 	DevMgr::releaseHandle(h);
 
 	// Start the task to forward the motor control commands
-	ASSERT(_task_handle == -1);
-
-	/* start the task */
 	_task_handle = px4_task_spawn_cmd("bebop_bus_esc_main",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_MAX,
@@ -494,7 +495,7 @@ int start()
 					  nullptr);
 
 	if (_task_handle < 0) {
-		warn("task start failed");
+		PX4_ERR("task start failed");
 		return -1;
 	}
 

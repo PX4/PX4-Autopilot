@@ -57,17 +57,19 @@
  * via the ioctl.
  */
 
-#ifndef DRV_TONE_ALARM_H_
-#define DRV_TONE_ALARM_H_
+#pragma once
 
-#include <sys/ioctl.h>
 #include <lib/tunes/tune_definition.h>
 #include <uORB/topics/tune_control.h>
 
-#define TONEALARM0_DEVICE_PATH "/dev/tone_alarm0"
+#define CBRK_BUZZER_KEY 782097
+#define CBRK_OFF        0
+#define CBRK_ON         1
+#define CBRK_UNINIT     2
 
-#define _TONE_ALARM_BASE	0x7400
-#define TONE_SET_ALARM		_PX4_IOC(_TONE_ALARM_BASE, 1)
+#define _TONE_ALARM_BASE        0x7400
+#define TONE_SET_ALARM          _PX4_IOC(_TONE_ALARM_BASE, 1)
+#define TONE_ALARM0_DEVICE_PATH "/dev/tone_alarm0"
 
 // TODO: remove this once the tone_alarm driver is changed to the new tunelib
 enum {
@@ -89,5 +91,3 @@ enum {
 	TONE_HOME_SET,
 	TONE_NUMBER_OF_TUNES
 };
-
-#endif /* DRV_TONE_ALARM_H_ */

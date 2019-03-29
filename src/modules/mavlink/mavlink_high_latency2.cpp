@@ -138,9 +138,7 @@ bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 		updated |= write_wind_estimate(&msg);
 
 		if (updated) {
-			uint32_t timestamp;
-			convert_limit_safe(t / 1000, timestamp);
-			msg.timestamp = timestamp;
+			msg.timestamp = t / 1000;
 
 			msg.type = _mavlink->get_system_type();
 			msg.autopilot = MAV_AUTOPILOT_PX4;
@@ -317,13 +315,10 @@ bool MavlinkStreamHighLatency2::write_global_position(mavlink_high_latency2_t *m
 	const bool updated = _global_pos_sub->update(&_global_pos_time, &global_pos);
 
 	if (_global_pos_time > 0) {
-		int32_t latitude, longitude;
-		convert_limit_safe(global_pos.lat * 1e7, latitude);
-		convert_limit_safe(global_pos.lon * 1e7, longitude);
-		msg->latitude = latitude;
-		msg->longitude = longitude;
+		msg->latitude = global_pos.lat * 1e7;
+		msg->longitude = global_pos.lon * 1e7;
 
-		int16_t altitude;
+		int16_t altitude = 0;
 
 		if (global_pos.alt > 0) {
 			convert_limit_safe(global_pos.alt + 0.5f, altitude);

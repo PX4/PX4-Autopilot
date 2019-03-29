@@ -41,6 +41,7 @@
 #include <px4_workqueue.h>
 #include <drivers/device/device.h>
 #include <px4_defines.h>
+#include <containers/Array.hpp>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -54,7 +55,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <vector>
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
@@ -86,7 +86,7 @@
 class HC_SR04 : public cdev::CDev
 {
 public:
-	HC_SR04(unsigned sonars = 6);
+	HC_SR04();
 	virtual ~HC_SR04();
 
 	virtual int 		init();
@@ -123,9 +123,9 @@ private:
 	int					_cycling_rate;	/* */
 	uint8_t				_index_counter;	/* temporary sonar i2c address */
 
-	std::vector<float>
+	px4::Array<float, 6>
 	_latest_sonar_measurements; /* vector to store latest sonar measurements in before writing to report */
-	unsigned 		_sonars;
+	unsigned 		_sonars{6};
 	struct GPIOConfig {
 		uint32_t        trig_port;
 		uint32_t        echo_port;
@@ -200,7 +200,7 @@ const HC_SR04::GPIOConfig HC_SR04::_gpio_tab[] = {
 extern "C"  __EXPORT int hc_sr04_main(int argc, char *argv[]);
 static int sonar_isr(int irq, void *context);
 
-HC_SR04::HC_SR04(unsigned sonars) :
+HC_SR04::HC_SR04() :
 	CDev(SR04_DEVICE_PATH, 0),
 	_min_distance(SR04_MIN_DISTANCE),
 	_max_distance(SR04_MAX_DISTANCE),

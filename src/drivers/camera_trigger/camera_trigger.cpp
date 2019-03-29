@@ -183,8 +183,10 @@ private:
 	param_t			_p_interval;
 	param_t			_p_distance;
 	param_t			_p_interface;
+	param_t 		_p_cam_cap_fback;
 
 	trigger_mode_t		_trigger_mode;
+	int32_t _cam_cap_fback;
 
 	camera_interface_mode_t	_camera_interface_mode;
 	CameraInterface		*_camera_interface;  ///< instance of camera interface
@@ -251,6 +253,7 @@ CameraTrigger::CameraTrigger() :
 	_trigger_pub(nullptr),
 	_cmd_ack_pub(nullptr),
 	_trigger_mode(TRIGGER_MODE_NONE),
+	_cam_cap_fback(0),
 	_camera_interface_mode(CAMERA_INTERFACE_MODE_GPIO),
 	_camera_interface(nullptr)
 {
@@ -269,12 +272,14 @@ CameraTrigger::CameraTrigger() :
 	_p_activation_time = param_find("TRIG_ACT_TIME");
 	_p_mode = param_find("TRIG_MODE");
 	_p_interface = param_find("TRIG_INTERFACE");
+	_p_cam_cap_fback = param_find("CAM_CAP_FBACK");
 
 	param_get(_p_activation_time, &_activation_time);
 	param_get(_p_interval, &_interval);
 	param_get(_p_distance, &_distance);
 	param_get(_p_mode, (int32_t *)&_trigger_mode);
 	param_get(_p_interface, (int32_t *)&_camera_interface_mode);
+	param_get(_p_cam_cap_fback, (int32_t *)&_cam_cap_fback);
 
 	switch (_camera_interface_mode) {
 #ifdef __PX4_NUTTX
@@ -315,7 +320,13 @@ CameraTrigger::CameraTrigger() :
 
 	// Advertise critical publishers here, because we cannot advertise in interrupt context
 	struct camera_trigger_s trigger = {};
-	_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
+
+	if (!_cam_cap_fback) {
+		_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
+
+	} else {
+		_trigger_pub = orb_advertise(ORB_ID(camera_trigger_secondary), &trigger);
+	}
 
 }
 
@@ -761,8 +772,14 @@ CameraTrigger::engage(void *arg)
 	trigger.timestamp_utc = (uint64_t) tv.tv_sec * 1000000 + tv.tv_nsec / 1000;
 
 	trigger.seq = trig->_trigger_seq;
+	trigger.feedback = false;
 
-	orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &trigger);
+	if (!trig->_cam_cap_fback) {
+		orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &trigger);
+
+	} else {
+		orb_publish(ORB_ID(camera_trigger_secondary), trig->_trigger_pub, &trigger);
+	}
 
 	// increment frame count
 	trig->_trigger_seq++;

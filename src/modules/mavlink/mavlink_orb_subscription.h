@@ -41,14 +41,13 @@
 #ifndef MAVLINK_ORB_SUBSCRIPTION_H_
 #define MAVLINK_ORB_SUBSCRIPTION_H_
 
-#include <systemlib/uthash/utlist.h>
 #include <drivers/drv_hrt.h>
+#include <containers/List.hpp>
 #include "uORB/uORB.h"	// orb_id_t
 
-class MavlinkOrbSubscription
+class MavlinkOrbSubscription : public ListNode<MavlinkOrbSubscription *>
 {
 public:
-	MavlinkOrbSubscription *next{nullptr};	///< pointer to next subscription in list
 
 	MavlinkOrbSubscription(const orb_id_t topic, int instance);
 	~MavlinkOrbSubscription();

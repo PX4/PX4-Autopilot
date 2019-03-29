@@ -54,7 +54,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <getopt.h>
+#include <px4_getopt.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
@@ -70,7 +70,6 @@
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
-#include <platforms/px4_getopt.h>
 
 #include "mpl3115a2.h"
 
@@ -97,7 +96,7 @@ enum MPL3115A2_BUS {
  */
 
 #define MPL3115A2_CONVERSION_INTERVAL	10000	/* microseconds */
-#define MPL3115A2_OSR                   0       /* Over Sample rate of 1 6MS Minimum time between data samples */
+#define MPL3115A2_OSR                   2       /* Over Sample rate of 4 18MS Minimum time between data samples */
 #define MPL3115A2_CTRL_TRIGGER          (CTRL_REG1_OST | CTRL_REG1_OS(MPL3115A2_OSR))
 #define MPL3115A2_BARO_DEVICE_PATH_EXT  "/dev/mpl3115a2_ext"
 #define MPL3115A2_BARO_DEVICE_PATH_INT  "/dev/mpl3115a2_int"
@@ -897,8 +896,8 @@ int
 mpl3115a2_main(int argc, char *argv[])
 {
 	enum MPL3115A2_BUS busid = MPL3115A2_BUS_ALL;
-	int ch;
 	int myoptind = 1;
+	int ch;
 	const char *myoptarg = NULL;
 
 	/* jump over start/off/etc and look at options first */
@@ -916,6 +915,11 @@ mpl3115a2_main(int argc, char *argv[])
 			mpl3115a2::usage();
 			exit(0);
 		}
+	}
+
+	if (myoptind >= argc) {
+		mpl3115a2::usage();
+		exit(0);
 	}
 
 	const char *verb = argv[myoptind];

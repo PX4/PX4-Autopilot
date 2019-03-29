@@ -38,6 +38,7 @@
 #include "StraightLine.hpp"
 #include <mathlib/mathlib.h>
 #include <float.h>
+#include <px4_defines.h>
 
 #define VEL_ZERO_THRESHOLD 0.001f // Threshold to compare if the target velocity is zero
 #define DECELERATION_MAX 8.0f     // The vehicles maximum deceleration TODO check to create param

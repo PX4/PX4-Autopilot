@@ -55,23 +55,6 @@ except ImportError:
         "Failed to import yaml. You may need to install it with 'sudo pip install pyyaml'")
 
 
-def get_absolute_path(arg_parse_dir):
-    """
-    Get absolute path from dir
-    """
-    root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-    if isinstance(arg_parse_dir, list):
-        dir = arg_parse_dir[0]
-    else:
-        dir = arg_parse_dir
-
-    if dir[0] != '/':
-        dir = root_path + "/" + dir
-
-    return dir
-
-
 def check_rtps_id_uniqueness(classifier):
     """
     Checks if there are no ID's for different msgs repeated on the map
@@ -106,7 +89,7 @@ def check_rtps_id_uniqueness(classifier):
             if list(classifier.msgs_to_ignore.values()).count(value) > 1:
                 repeated_ids.update({key: value})
 
-    # check if there are repeated IDs between classfied and unclassified msgs
+    # check if there are repeated IDs between classified and unclassified msgs
     # check send and ignore lists
     send_ignore_common_ids = list(set(classifier.msgs_to_ignore.values(
     )).intersection(classifier.msgs_to_send.values()))
@@ -149,10 +132,8 @@ def check_rtps_id_uniqueness(classifier):
                              ", ".join('%d' % id for id in px_generate_uorb_topic_helper.check_available_ids(all_ids)))
 
 
-default_client_out = get_absolute_path(
-    "src/modules/micrortps_bridge/micrortps_client")
-default_agent_out = get_absolute_path(
-    "src/modules/micrortps_bridge/micrortps_agent")
+default_client_out = "src/modules/micrortps_bridge/micrortps_client"
+default_agent_out = "src/modules/micrortps_bridge/micrortps_agent"
 default_uorb_templates_dir = "templates/uorb_microcdr"
 default_urtps_templates_dir = "templates/urtps"
 default_rtps_id_file = "tools/uorb_rtps_message_ids.yaml"
@@ -173,22 +154,22 @@ parser.add_argument("-m", "--mkdir-build", dest='mkdir_build',
 parser.add_argument("-l", "--generate-cmakelists", dest='cmakelists',
                     action="store_true", help="Flag to generate a CMakeLists.txt file for the micro-RTPS agent")
 parser.add_argument("-t", "--topic-msg-dir", dest='msgdir', type=str,
-                    help="Topics message dir, by default msg/", default="msg")
+                    help="Topics message, by default using relative path 'msg/'", default="msg")
 parser.add_argument("-b", "--uorb-templates-dir", dest='uorb_templates', type=str,
-                    help="uORB templates dir, by default msgdir/templates/uorb_microcdr", default=default_uorb_templates_dir)
+                    help="uORB templates, by default using relative path to msgdir 'templates/uorb_microcdr'", default=default_uorb_templates_dir)
 parser.add_argument("-q", "--urtps-templates-dir", dest='urtps_templates', type=str,
-                    help="uRTPS templates dir, by default msgdir/templates/urtps", default=default_urtps_templates_dir)
+                    help="uRTPS templates, by default using relative path to msgdir 'templates/urtps'", default=default_urtps_templates_dir)
 parser.add_argument("-y", "--rtps-ids-file", dest='yaml_file', type=str,
-                    help="RTPS msg IDs definition file, relative to the msgdir, by default tools/uorb_rtps_message_ids.yaml", default=default_rtps_id_file)
+                    help="RTPS msg IDs definition path, by default using relative path to msgdir 'tools/uorb_rtps_message_ids.yaml'", default=default_rtps_id_file)
 parser.add_argument("-p", "--package", dest='package', type=str,
                     help="Msg package naming, by default px4", default=default_package_name)
-parser.add_argument("-o", "--agent-outdir", dest='agentdir', type=str, nargs=1,
-                    help="Agent output dir, by default src/modules/micrortps_bridge/micrortps_agent", default=default_agent_out)
-parser.add_argument("-u", "--client-outdir", dest='clientdir', type=str, nargs=1,
-                    help="Client output dir, by default src/modules/micrortps_bridge/micrortps_client", default=default_client_out)
-parser.add_argument("-f", "--fastrtpsgen-dir", dest='fastrtpsgen', type=str, nargs='?',
+parser.add_argument("-o", "--agent-outdir", dest='agentdir', type=str,
+                    help="Agent output dir, by default using relative path 'src/modules/micrortps_bridge/micrortps_agent'", default=default_agent_out)
+parser.add_argument("-u", "--client-outdir", dest='clientdir', type=str,
+                    help="Client output dir, by default using relative path 'src/modules/micrortps_bridge/micrortps_client'", default=default_client_out)
+parser.add_argument("-f", "--fastrtpsgen-dir", dest='fastrtpsgen', type=str,
                     help="fastrtpsgen installation dir, only needed if fastrtpsgen is not in PATH, by default empty", default="")
-parser.add_argument("-g", "--fastrtpsgen-include", dest='fastrtpsgen_include', type=str, nargs='?',
+parser.add_argument("-g", "--fastrtpsgen-include", dest='fastrtpsgen_include', type=str,
                     help="directory(ies) to add to preprocessor include paths of fastrtpsgen, by default empty", default="")
 parser.add_argument("--delete-tree", dest='del_tree',
                     action="store_true", help="Delete dir tree output dir(s)")
@@ -200,36 +181,43 @@ if len(sys.argv) <= 1:
 
 # Parse arguments
 args = parser.parse_args()
-msg_folder = get_absolute_path(args.msgdir)
-package = args.package
 agent = args.agent
 client = args.client
-mkdir_build = args.mkdir_build
 cmakelists = args.cmakelists
 del_tree = args.del_tree
-px_generate_uorb_topic_files.append_to_include_path(
-    {msg_folder}, px_generate_uorb_topic_files.INCL_DEFAULT, package)
-agent_out_dir = get_absolute_path(args.agentdir)
-client_out_dir = get_absolute_path(
-    args.clientdir)
 gen_idl = args.gen_idl
+mkdir_build = args.mkdir_build
+package = args.package
+
+# Msg files path
+msg_dir = os.path.abspath(args.msgdir)
+px_generate_uorb_topic_files.append_to_include_path(
+    {msg_dir}, px_generate_uorb_topic_files.INCL_DEFAULT, package)
+
+# Agent files output path
+agent_out_dir =  os.path.abspath(args.agentdir)
+
+# Client files output path
+client_out_dir = os.path.abspath(args.clientdir)
+
+# IDL files path
 idl_dir = args.idl_dir
 if idl_dir != '':
-    idl_dir = get_absolute_path(args.idl_dir)
+    idl_dir = os.path.abspath(args.idl_dir)
 else:
     idl_dir = os.path.join(agent_out_dir, "idl")
 
-if args.fastrtpsgen is None or args.fastrtpsgen == "":
+if args.fastrtpsgen is None or args.fastrtpsgen == '':
     # Assume fastrtpsgen is in PATH
-    fastrtpsgen_path = "fastrtpsgen"
+    fastrtpsgen_path = 'fastrtpsgen'
 else:
     # Path to fastrtpsgen is explicitly specified
     fastrtpsgen_path = os.path.join(
-        get_absolute_path(args.fastrtpsgen), "/fastrtpsgen")
+        os.path.abspath(args.fastrtpsgen), 'fastrtpsgen')
 fastrtpsgen_include = args.fastrtpsgen_include
 if fastrtpsgen_include is not None and fastrtpsgen_include != '':
     fastrtpsgen_include = "-I " + \
-        get_absolute_path(
+        os.path.abspath(
             args.fastrtpsgen_include) + " "
 
 # If nothing specified it's generated both
@@ -261,10 +249,18 @@ if del_tree:
 if agent and os.path.isdir(os.path.join(agent_out_dir, "idl")):
     shutil.rmtree(os.path.join(agent_out_dir, "idl"))
 
-uorb_templates_dir = os.path.join(msg_folder, args.uorb_templates)
-urtps_templates_dir = os.path.join(msg_folder, args.urtps_templates)
+# uORB templates path
+uorb_templates_dir = (args.uorb_templates if os.path.isabs(args.uorb_templates) \
+    else os.path.join(msg_dir, args.uorb_templates))
+
+# uRTPS templates path
+urtps_templates_dir = (args.urtps_templates if os.path.isabs(args.urtps_templates) \
+    else os.path.join(msg_dir, args.urtps_templates))
+
 # parse yaml file into a map of ids
-classifier = Classifier(os.path.join(msg_folder, args.yaml_file), msg_folder)
+classifier = (Classifier(os.path.abspath(args.yaml_file), msg_dir) if os.path.isabs(args.yaml_file) \
+    else Classifier(os.path.join(msg_dir, args.yaml_file), msg_dir))
+
 # check if there are no ID's repeated
 check_rtps_id_uniqueness(classifier)
 

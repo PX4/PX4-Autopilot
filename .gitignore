@@ -52,8 +52,6 @@ GTAGS
 .idea
 cmake-build-*/
 
-.vscode
-
 posix-configs/SITL/init/test/*_generated
 
 /airframes.md
@@ -61,7 +59,14 @@ posix-configs/SITL/init/test/*_generated
 /parameters.md
 /parameters.xml
 /modules
+/msg/ros/*.msg
 
 *.gcov
 .coverage
 .coverage.*
+
+.vscode/.cortex-debug.peripherals.state.json
+.vscode/.cortex-debug.registers.state.json
+.vscode/compile_commands.json
+.vscode/ipch/
+

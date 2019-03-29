@@ -43,6 +43,7 @@
 #include <lib/conversion/rotation.h>
 #include <perf/perf_counter.h>
 #include <px4_workqueue.h>
+#include <systemlib/err.h>
 
 // Register mapping
 static constexpr uint8_t WHO_AM_I_M = 0x4F;

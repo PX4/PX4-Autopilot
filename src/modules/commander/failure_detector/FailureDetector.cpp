@@ -83,6 +83,7 @@ FailureDetector::update_attitude_status()
 		if (roll_status) {
 			_status |= FAILURE_ROLL;
 		}
+
 		if (pitch_status) {
 			_status |= FAILURE_PITCH;
 		}

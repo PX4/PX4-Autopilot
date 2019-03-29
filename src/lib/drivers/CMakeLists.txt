@@ -31,7 +31,12 @@
 #
 ############################################################################
 
+add_subdirectory(accelerometer)
 add_subdirectory(airspeed)
 add_subdirectory(device)
+add_subdirectory(gyroscope)
 add_subdirectory(led)
+add_subdirectory(linux_gpio)
+add_subdirectory(magnetometer)
 add_subdirectory(smbus)
+add_subdirectory(tone_alarm)

@@ -58,7 +58,9 @@ public:
 	int	write(unsigned address, void *data, unsigned count) override;
 
 protected:
-	int	probe() override;
+	virtual int	probe();
+
+private:
 
 };
 
@@ -106,8 +108,15 @@ int
 MPU9250_I2C::probe()
 {
 	uint8_t whoami = 0;
-	uint8_t expected = MPU_WHOAMI_9250;
-	return (read(MPUREG_WHOAMI, &whoami, 1) == OK && (whoami == expected)) ? 0 : -EIO;
+
+	// Try first for mpu9250/6500
+	read(MPUREG_WHOAMI, &whoami, 1);
+
+	if (whoami == MPU_WHOAMI_9250 || whoami == MPU_WHOAMI_6500) {
+		return PX4_OK;
+	}
+
+	return -ENODEV;
 }
 
 #endif /* USE_I2C */

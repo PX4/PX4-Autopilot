@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # @name Typhoon H480 SITL
 #
@@ -14,7 +14,7 @@ then
 	param set MPC_XY_VEL_I 0.2
 	param set MPC_XY_VEL_P 0.15
 
-	param set RTL_DESCEND_ALT 10.0
+	param set RTL_DESCEND_ALT 10
 	param set RTL_LAND_DELAY 0
 
 	param set TRIG_INTERFACE 3

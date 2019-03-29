@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,11 +33,7 @@
 /**
  * @file server_io.h
  *
- * These are helper functions to send the stdout over a pipe
- * back to the client.
- *
- * @author Julian Oes <julian@oes.ch>
- * @author Beat Küng <beat-kueng@gmx.net>
+ * @author Mara Bos <m-ou.se@m-ou.se>
  */
 #pragma once
 
@@ -46,20 +42,11 @@
 __BEGIN_DECLS
 
 /**
- * Get the stdout pipe buffer in order to write to fill it.
+ * Get the stdout of the current thread.
  *
- * @param buffer: pointer to buffer that will be set in function.
- * @param max_length: length of the assigned buffer.
- * @param is_atty: true if we are writing to a terminal (and can e.g. use colors).
- * @return 0 on success
+ * @param isatty_: if not NULL, *isatty_ will be set to wether the stream points to a terminal (true) or not (false).
+ * @return The FILE* which represents the standard output of the current thread.
  */
-__EXPORT int get_stdout_pipe_buffer(char **buffer, unsigned *max_length, bool *is_atty);
+__EXPORT FILE *get_stdout(bool *isatty_);
 
-/**
- * Write the filled bytes to the pipe.
- *
- * @param buffer_length: the number of bytes that should be written.
- * @return 0 on success
- */
-__EXPORT int send_stdout_pipe_buffer(unsigned buffer_length);
 __END_DECLS

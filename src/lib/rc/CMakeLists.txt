@@ -41,3 +41,7 @@ add_library(rc
 )
 target_compile_options(rc PRIVATE -Wno-unused-result)
 target_link_libraries(rc PRIVATE prebuild_targets)
+
+if(PX4_TESTING AND (${PX4_PLATFORM} MATCHES "posix"))
+	add_subdirectory(rc_tests)
+endif()

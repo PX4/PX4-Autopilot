@@ -60,12 +60,13 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <stdlib.h>
+#include <string.h>
 
+#include <px4_time.h>
 #include <px4_log.h>
 #include <px4_getopt.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
-#include <px4_log.h>
 
 #include "apps.h"
 #include "px4_middleware.h"
@@ -75,6 +76,7 @@
 #include "px4_daemon/server.h"
 #include "px4_daemon/pxh.h"
 
+#define MODULE_NAME "px4"
 
 static const char *LOCK_FILE_PATH = "/tmp/px4_lock";
 
@@ -172,8 +174,6 @@ int main(int argc, char **argv)
 		argv[0] += path_length + strlen(prefix);
 
 		px4_daemon::Client client(instance);
-		client.generate_uuid();
-		client.register_sig_handler();
 		return client.process_args(argc, (const char **)argv);
 
 	} else {
@@ -407,7 +407,14 @@ void register_sig_handler()
 	sig_segv.sa_handler = sig_segv_handler;
 	sig_segv.sa_flags = SA_RESTART | SA_SIGINFO;
 
+#ifdef __PX4_CYGWIN
+	// Do not catch SIGINT on Cygwin such that the process gets killed
+	// TODO: All threads should exit gracefully see https://github.com/PX4/Firmware/issues/11027
+	(void)sig_int; // this variable is unused
+#else
 	sigaction(SIGINT, &sig_int, nullptr);
+#endif
+
 	//sigaction(SIGTERM, &sig_int, nullptr);
 	sigaction(SIGFPE, &sig_fpe, nullptr);
 	sigaction(SIGPIPE, &sig_pipe, nullptr);
@@ -545,7 +552,7 @@ int run_startup_script(const std::string &commands_file, const std::string &abso
 void wait_to_exit()
 {
 	while (!_exit_requested) {
-		usleep(100000);
+		px4_usleep(100000);
 	}
 }
 
@@ -595,11 +602,6 @@ bool is_already_running(int instance)
 
 	errno = 0;
 	return false;
-}
-
-bool px4_exit_requested(void)
-{
-	return _exit_requested;
 }
 
 bool file_exists(const std::string &name)

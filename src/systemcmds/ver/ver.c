@@ -80,7 +80,7 @@ static void usage(const char *reason)
 	PRINT_MODULE_USAGE_COMMAND_DESCR("all", "Print all versions");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("hwcmp", "Compare hardware version (returns 0 on match)");
 	PRINT_MODULE_USAGE_ARG("<hw> [<hw2>]",
-			       "Hardware to compare against (eg. PX4FMU_V4). An OR comparison is used if multiple are specified", false);
+			       "Hardware to compare against (eg. PX4_FMU_V4). An OR comparison is used if multiple are specified", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("hwtypecmp", "Compare hardware type (returns 0 on match)");
 	PRINT_MODULE_USAGE_ARG("<hwtype> [<hwtype2>]",
 			       "Hardware type to compare against (eg. V2). An OR comparison is used if multiple are specified", false);
@@ -108,7 +108,7 @@ int ver_main(int argc, char *argv[])
 					}
 
 				} else {
-					PX4_ERR("Not enough arguments, try 'ver hwcmp PX4FMU_V2'");
+					PX4_ERR("Not enough arguments, try 'ver hwcmp PX4_FMU_V2'");
 				}
 
 				return 1;

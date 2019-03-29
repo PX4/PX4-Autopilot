@@ -556,7 +556,7 @@ PX4FLOW::collect()
 	distance_report.min_distance = PX4FLOW_MIN_DISTANCE;
 	distance_report.max_distance = PX4FLOW_MAX_DISTANCE;
 	distance_report.current_distance = report.ground_distance_m;
-	distance_report.covariance = 0.0f;
+	distance_report.variance = 0.0f;
 	distance_report.signal_quality = -1;
 	distance_report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
 	/* TODO: the ID needs to be properly set */
@@ -800,7 +800,7 @@ start(int argc, char *argv[])
 		if (retry_nr < START_RETRY_COUNT) {
 			/* lets not be too verbose */
 			// PX4_WARN("PX4FLOW not found on I2C busses. Retrying in %d ms. Giving up in %d retries.", START_RETRY_TIMEOUT, START_RETRY_COUNT - retry_nr);
-			usleep(START_RETRY_TIMEOUT * 1000);
+			px4_usleep(START_RETRY_TIMEOUT * 1000);
 			retry_nr++;
 
 		} else {

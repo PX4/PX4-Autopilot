@@ -34,11 +34,10 @@ px4_add_module(
 	MODULE drivers__ll40ls
 	MAIN ll40ls
 	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		ll40ls.cpp
 		LidarLite.cpp
 		LidarLiteI2C.cpp
 		LidarLitePWM.cpp
-	DEPENDS
 	)
-

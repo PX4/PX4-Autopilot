@@ -39,6 +39,7 @@
 
 #pragma once
 
+#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <stdbool.h>
 #include <inttypes.h>
@@ -85,7 +86,7 @@ __EXPORT extern hrt_abstime hrt_absolute_time(void);
 /**
  * Convert a timespec to absolute time.
  */
-__EXPORT extern hrt_abstime ts_to_abstime(struct timespec *ts);
+__EXPORT extern hrt_abstime ts_to_abstime(const struct timespec *ts);
 
 /**
  * Convert absolute time to a timespec.
@@ -96,10 +97,21 @@ __EXPORT extern void	abstime_to_ts(struct timespec *ts, hrt_abstime abstime);
  * Compute the delta between a timestamp taken in the past
  * and now.
  *
+ * This function is not interrupt save.
+ */
+static inline hrt_abstime hrt_elapsed_time(const hrt_abstime *then)
+{
+	return hrt_absolute_time() - *then;
+}
+
+/**
+ * Compute the delta between a timestamp taken in the past
+ * and now.
+ *
  * This function is safe to use even if the timestamp is updated
  * by an interrupt during execution.
  */
-__EXPORT extern hrt_abstime hrt_elapsed_time(const volatile hrt_abstime *then);
+__EXPORT extern hrt_abstime hrt_elapsed_time_atomic(const volatile hrt_abstime *then);
 
 /**
  * Store the absolute time in an interrupt-safe fashion.
@@ -173,23 +185,9 @@ __EXPORT extern void	hrt_init(void);
 
 #ifdef __PX4_POSIX
 
-/**
- * Start to delay the HRT return value.
- *
- * Until hrt_stop_delay() is called the HRT calls will return the timestamp
- * at the instance then hrt_start_delay() was called.
- */
-__EXPORT extern	void	hrt_start_delay(void);
+__EXPORT extern hrt_abstime hrt_reset(void);
 
-/**
- * Stop to delay the HRT.
- */
-__EXPORT extern void	hrt_stop_delay(void);
-
-/**
- * Stop to delay the HRT, but with an exact delta time.
- */
-__EXPORT extern void	hrt_stop_delay_delta(hrt_abstime delta);
+__EXPORT extern hrt_abstime hrt_absolute_time_offset(void);
 
 #endif
 

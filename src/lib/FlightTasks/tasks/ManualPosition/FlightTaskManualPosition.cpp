@@ -41,6 +41,24 @@
 
 using namespace matrix;
 
+FlightTaskManualPosition::FlightTaskManualPosition() : _collision_prevention(this)
+{
+
+}
+
+bool FlightTaskManualPosition::initializeSubscriptions(SubscriptionArray &subscription_array)
+{
+	if (!FlightTaskManualAltitude::initializeSubscriptions(subscription_array)) {
+		return false;
+	}
+
+	if (!_collision_prevention.initializeSubscriptions(subscription_array)) {
+		return false;
+	}
+
+	return true;
+}
+
 bool FlightTaskManualPosition::updateInitialize()
 {
 	bool ret = FlightTaskManualAltitude::updateInitialize();
@@ -53,9 +71,10 @@ bool FlightTaskManualPosition::updateInitialize()
 
 bool FlightTaskManualPosition::activate()
 {
-
 	// all requirements from altitude-mode still have to hold
 	bool ret = FlightTaskManualAltitude::activate();
+
+	_constraints.tilt = math::radians(MPC_TILTMAX_AIR.get());
 
 	// set task specific constraint
 	if (_constraints.speed_xy >= MPC_VEL_MANUAL.get()) {
@@ -112,6 +131,12 @@ void FlightTaskManualPosition::_scaleSticks()
 
 	/* Rotate setpoint into local frame. */
 	_rotateIntoHeadingFrame(vel_sp_xy);
+
+	// collision prevention
+	if (_collision_prevention.is_active()) {
+		_collision_prevention.modifySetpoint(vel_sp_xy, _constraints.speed_xy);
+	}
+
 	_velocity_setpoint(0) = vel_sp_xy(0);
 	_velocity_setpoint(1) = vel_sp_xy(1);
 }
@@ -146,6 +171,13 @@ void FlightTaskManualPosition::_updateXYlock()
 void FlightTaskManualPosition::_updateSetpoints()
 {
 	FlightTaskManualAltitude::_updateSetpoints(); // needed to get yaw and setpoints in z-direction
+
+	// check if an external yaw handler is active and if yes, let it update the yaw setpoints
+	if (_weathervane_yaw_handler != nullptr && _weathervane_yaw_handler->is_active()) {
+		_yaw_setpoint = NAN;
+		_yawspeed_setpoint += _weathervane_yaw_handler->get_weathervane_yawrate();
+	}
+
 	_thrust_setpoint.setAll(NAN); // don't require any thrust setpoints
 	_updateXYlock(); // check for position lock
 }

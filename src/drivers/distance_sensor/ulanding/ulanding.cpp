@@ -55,7 +55,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <vector>
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <drivers/device/ringbuffer.h>
@@ -169,7 +168,7 @@ Radar::~Radar()
 
 		do {
 			/* wait 20ms */
-			usleep(20000);
+			px4_usleep(20000);
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
@@ -278,7 +277,7 @@ Radar::init()
 		ds_report.orientation = _rotation;
 		ds_report.id = 0;
 		ds_report.current_distance = -1.0f;	// make evident that this range sample is invalid
-		ds_report.covariance = SENS_VARIANCE;
+		ds_report.variance = SENS_VARIANCE;
 
 		_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
 					 &_orb_class_instance, ORB_PRIO_HIGH);
@@ -304,8 +303,6 @@ Radar::task_main_trampoline(int argc, char *argv[])
 int
 Radar::start()
 {
-	ASSERT(_task_handle == -1);
-
 	/* start the task */
 	_task_handle = px4_task_spawn_cmd("ulanding_radar",
 					  SCHED_DEFAULT,
@@ -360,8 +357,11 @@ bool Radar::read_and_parse(uint8_t *buf, int len, float *range)
 		if (is_header_byte(_buf[index])) {
 			if (no_header_counter >= BUF_LEN / 3 - 1) {
 				if (ULANDING_VERSION == 1) {
-					if (((_buf[index + 1] + _buf[index + 2] + _buf[index + 3] + _buf[index + 4])) != (_buf[index + 5])
-					    || (_buf[index + 1] <= 0)) {
+					bool checksum_passed = (((_buf[index + 1] + _buf[index + 2] + _buf[index + 3] + _buf[index + 4]) & 0xFF) == _buf[index +
+								5]);
+
+					if (!checksum_passed) {
+						// checksum failed
 						ret = false;
 						break;
 					}
@@ -436,7 +436,7 @@ Radar::task_main()
 		if (pret < 0) {
 			PX4_DEBUG("radar serial port poll error");
 			// sleep a bit before next try
-			usleep(100000);
+			px4_usleep(100000);
 			continue;
 		}
 
@@ -463,7 +463,7 @@ Radar::task_main()
 							  report.current_distance;
 				report.min_distance = ULANDING_MIN_DISTANCE;
 				report.max_distance = ULANDING_MAX_DISTANCE;
-				report.covariance = SENS_VARIANCE;
+				report.variance = SENS_VARIANCE;
 				report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR;
 				report.id = 0;
 

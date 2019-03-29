@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # @name Plane SITL
 #
@@ -7,7 +7,7 @@ sh /etc/init.d/rc.fw_defaults
 
 if [ $AUTOCNF = yes ]
 then
-	param set EKF2_ARSP_THR 8.0
+	param set EKF2_ARSP_THR 8
 	param set EKF2_FUSE_BETA 1
 	param set EKF2_MAG_ACCLIM 0
 	param set EKF2_MAG_YAWLIM 0
@@ -31,7 +31,7 @@ then
 	param set MIS_LTRMIN_ALT 30
 	param set MIS_TAKEOFF_ALT 30
 
-	param set NAV_ACC_RAD 15.0
+	param set NAV_ACC_RAD 15
 	param set NAV_DLL_ACT 2
 	param set NAV_LOITER_RAD 50
 

@@ -43,24 +43,6 @@
 #include <px4_sem.hpp>
 #include <systemlib/px4_macros.h>
 
-#ifdef __PX4_NUTTX
-#define ITERATE_NODE_MAP() \
-	for (ORBMap::Node *node_iter = _node_map.top(); node_iter; node_iter = node_iter->next)
-#define INIT_NODE_MAP_VARS(node_obj, node_name_str) \
-	DeviceNode *node_obj = node_iter->node; \
-	const char *node_name_str = node_iter->node_name; \
-	UNUSED(node_name_str);
-
-#else
-#include <algorithm>
-#define ITERATE_NODE_MAP() \
-	for (const auto &node_iter : _node_map)
-#define INIT_NODE_MAP_VARS(node_obj, node_name_str) \
-	DeviceNode *node_obj = node_iter.second; \
-	const char *node_name_str = node_iter.first.c_str(); \
-	UNUSED(node_name_str);
-#endif
-
 uORB::DeviceMaster::DeviceMaster()
 {
 	px4_sem_init(&_lock, 0, 1);
@@ -121,7 +103,7 @@ uORB::DeviceMaster::advertise(const struct orb_metadata *meta, int *instance, in
 		}
 
 		/* construct the new node */
-		uORB::DeviceNode *node = new uORB::DeviceNode(meta, devpath, priority);
+		uORB::DeviceNode *node = new uORB::DeviceNode(meta, group_tries, devpath, priority);
 
 		/* if we didn't get a device, that's bad */
 		if (node == nullptr) {
@@ -139,7 +121,7 @@ uORB::DeviceMaster::advertise(const struct orb_metadata *meta, int *instance, in
 			if (ret == -EEXIST) {
 				/* if the node exists already, get the existing one and check if
 				 * something has been published yet. */
-				uORB::DeviceNode *existing_node = getDeviceNodeLocked(devpath);
+				uORB::DeviceNode *existing_node = getDeviceNodeLocked(meta, group_tries);
 
 				if ((existing_node != nullptr) && !(existing_node->is_published())) {
 					/* nothing has been published yet, lets claim it */
@@ -156,11 +138,7 @@ uORB::DeviceMaster::advertise(const struct orb_metadata *meta, int *instance, in
 
 		} else {
 			// add to the node map;.
-#ifdef __PX4_NUTTX
-			_node_map.insert(devpath, node);
-#else
-			_node_map[std::string(devpath)] = node;
-#endif
+			_node_list.add(node);
 		}
 
 		group_tries++;
@@ -184,9 +162,8 @@ void uORB::DeviceMaster::printStatistics(bool reset)
 	bool had_print = false;
 
 	lock();
-	ITERATE_NODE_MAP() {
-		INIT_NODE_MAP_VARS(node, node_name)
 
+	for (const auto &node : _node_list) {
 		if (node->print_statistics(reset)) {
 			had_print = true;
 		}
@@ -212,8 +189,8 @@ void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node
 		}
 	}
 
-	ITERATE_NODE_MAP() {
-		INIT_NODE_MAP_VARS(node, node_name)
+	for (const auto &node : _node_list) {
+
 		++num_topics;
 
 		//check if already added
@@ -255,8 +232,7 @@ void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node
 		}
 
 		last_node->node = node;
-		int node_name_len = strlen(node_name);
-		last_node->instance = (uint8_t)(node_name[node_name_len - 1] - '0');
+
 		size_t name_length = strlen(last_node->node->get_meta()->o_name);
 
 		if (name_length > max_topic_name_length) {
@@ -273,20 +249,32 @@ void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node
 void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 {
 	bool print_active_only = true;
+	bool only_once = false; // if true, run only once, then exit
 
 	if (topic_filter && num_filters > 0) {
-		if (!strcmp("-a", topic_filter[0])) {
-			num_filters = 0;
+		bool show_all = false;
+
+		for (int i = 0; i < num_filters; ++i) {
+			if (!strcmp("-a", topic_filter[i])) {
+				show_all = true;
+
+			} else if (!strcmp("-1", topic_filter[i])) {
+				only_once = true;
+			}
 		}
 
-		print_active_only = false; // print non-active if -a or some filter given
+		print_active_only = only_once ? (num_filters == 1) : false; // print non-active if -a or some filter given
+
+		if (show_all || print_active_only) {
+			num_filters = 0;
+		}
 	}
 
 	PX4_INFO_RAW("\033[2J\n"); //clear screen
 
 	lock();
 
-	if (_node_map.empty()) {
+	if (_node_list.empty()) {
 		unlock();
 		PX4_INFO("no active topics");
 		return;
@@ -302,7 +290,7 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 	unlock();
 
 #ifdef __PX4_QURT //QuRT has no poll()
-	int num_runs = 0;
+	only_once = true;
 #else
 	const int stdin_fileno = 0;
 
@@ -316,13 +304,7 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 	while (!quit) {
 
-#ifdef __PX4_QURT
-
-		if (++num_runs > 1) {
-			quit = true; //just exit after one output
-		}
-
-#else
+#ifndef __PX4_QURT
 
 		/* Sleep 200 ms waiting for user input five times ~ 1s */
 		for (int k = 0; k < 5; k++) {
@@ -340,7 +322,7 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 				}
 			}
 
-			usleep(200000);
+			px4_usleep(200000);
 		}
 
 #endif
@@ -374,7 +356,7 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 				if (!print_active_only || cur_node->pub_msg_delta > 0) {
 					PX4_INFO_RAW(CLEAR_LINE "%-*s %2i %4i %4i %5i %i\n", (int)max_topic_name_length,
-						     cur_node->node->get_meta()->o_name, (int)cur_node->instance,
+						     cur_node->node->get_meta()->o_name, (int)cur_node->node->get_instance(),
 						     (int)cur_node->node->subscriber_count(), cur_node->pub_msg_delta,
 						     (int)cur_node->lost_msg_delta, cur_node->node->get_queue_size());
 				}
@@ -385,6 +367,10 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 			lock();
 			addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
 			unlock();
+		}
+
+		if (only_once) {
+			quit = true;
 		}
 	}
 
@@ -403,39 +389,37 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
 {
 	lock();
-	uORB::DeviceNode *node = getDeviceNodeLocked(nodepath);
+
+	for (uORB::DeviceNode *node : _node_list) {
+		if (strcmp(node->get_devname(), nodepath) == 0) {
+			unlock();
+			return node;
+		}
+	}
+
 	unlock();
+
+	return nullptr;
+}
+
+uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const struct orb_metadata *meta, const uint8_t instance)
+{
+	lock();
+	uORB::DeviceNode *node = getDeviceNodeLocked(meta, instance);
+	unlock();
+
 	//We can safely return the node that can be used by any thread, because
 	//a DeviceNode never gets deleted.
 	return node;
 }
 
-
-#ifdef __PX4_NUTTX
-uORB::DeviceNode *uORB::DeviceMaster::getDeviceNodeLocked(const char *nodepath)
+uORB::DeviceNode *uORB::DeviceMaster::getDeviceNodeLocked(const struct orb_metadata *meta, const uint8_t instance)
 {
-	uORB::DeviceNode *rc = nullptr;
-
-	if (_node_map.find(nodepath)) {
-		rc = _node_map.get(nodepath);
+	for (uORB::DeviceNode *node : _node_list) {
+		if ((strcmp(node->get_name(), meta->o_name) == 0) && (node->get_instance() == instance)) {
+			return node;
+		}
 	}
 
-	return rc;
+	return nullptr;
 }
-
-#else
-
-uORB::DeviceNode *uORB::DeviceMaster::getDeviceNodeLocked(const char *nodepath)
-{
-	uORB::DeviceNode *rc = nullptr;
-	std::string np(nodepath);
-
-	auto iter = _node_map.find(np);
-
-	if (iter != _node_map.end()) {
-		rc = iter->second;
-	}
-
-	return rc;
-}
-#endif

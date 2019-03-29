@@ -39,6 +39,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_time.h>
 
 #include <drivers/device/i2c.h>
 
@@ -72,7 +73,7 @@
 #include <uORB/uORB.h>
 
 #include <float.h>
-#include <getopt.h>
+#include <px4_getopt.h>
 #include <lib/conversion/rotation.h>
 
 #include "hmc5883.h"
@@ -591,7 +592,7 @@ HMC5883::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(HMC5883_CONVERSION_INTERVAL);
+		px4_usleep(HMC5883_CONVERSION_INTERVAL);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -1700,7 +1701,11 @@ usage()
 int
 hmc5883_main(int argc, char *argv[])
 {
+	int myoptind = 1;
 	int ch;
+	const char *myoptarg = nullptr;
+
+
 	enum HMC5883_BUS busid = HMC5883_BUS_ALL;
 	enum Rotation rotation = ROTATION_NONE;
 	bool calibrate = false;
@@ -1711,10 +1716,10 @@ hmc5883_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	while ((ch = getopt(argc, argv, "XISR:CT")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XISR:CT", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 #if (PX4_I2C_BUS_ONBOARD || PX4_SPIDEV_HMC)
 
@@ -1745,7 +1750,13 @@ hmc5883_main(int argc, char *argv[])
 		}
 	}
 
-	const char *verb = argv[optind];
+	if (myoptind >= argc) {
+		hmc5883::usage();
+		exit(0);
+	}
+
+	const char *verb = argv[myoptind];
+
 
 	/*
 	 * Start/load the driver.

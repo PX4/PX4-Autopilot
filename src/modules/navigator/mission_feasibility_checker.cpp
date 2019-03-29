@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +37,7 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
  * @author Sander Smeets <sander@droneslab.com>
+ * @author Nuno Marques <nuno.marques@dronesolutions.io>
  */
 
 #include "mission_feasibility_checker.h"
@@ -83,58 +84,30 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 
 	// VTOL always respects rotary wing feasibility
 	if (_navigator->get_vstatus()->is_rotary_wing || _navigator->get_vstatus()->is_vtol) {
-		failed = failed || !checkRotarywing(mission, home_alt, home_alt_valid);
+		failed = failed || !checkRotarywing(mission, home_alt);
 
 	} else {
-		failed = failed || !checkFixedwing(mission, home_alt, home_alt_valid, land_start_req);
+		failed = failed || !checkFixedwing(mission, home_alt, land_start_req);
 	}
 
 	return !failed;
 }
 
 bool
-MissionFeasibilityChecker::checkRotarywing(const mission_s &mission, float home_alt, bool home_alt_valid)
+MissionFeasibilityChecker::checkRotarywing(const mission_s &mission, float home_alt)
 {
-	for (size_t i = 0; i < mission.count; i++) {
-		struct mission_item_s missionitem = {};
-		const ssize_t len = sizeof(struct mission_item_s);
-
-		if (dm_read((dm_item_t)mission.dataman_id, i, &missionitem, len) != len) {
-			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
-			return false;
-		}
-
-		// look for a takeoff waypoint
-		if (missionitem.nav_cmd == NAV_CMD_TAKEOFF) {
-			// make sure that the altitude of the waypoint is at least one meter larger than the altitude acceptance radius
-			// this makes sure that the takeoff waypoint is not reached before we are at least one meter in the air
-			const float takeoff_alt = missionitem.altitude_is_relative ? missionitem.altitude : missionitem.altitude - home_alt;
-
-			// check if we should use default acceptance radius
-			float acceptance_radius = _navigator->get_altitude_acceptance_radius();
-
-			// if a specific acceptance radius has been defined, use that one instead
-			if (missionitem.acceptance_radius > NAV_EPSILON_POSITION) {
-				acceptance_radius = missionitem.acceptance_radius;
-			}
-
-			if (takeoff_alt - 1.0f < acceptance_radius) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Takeoff altitude too low!");
-				return false;
-			}
-		}
-	}
-
-	// all checks have passed
-	return true;
+	/*
+	 * Perform check and issue feedback to the user
+	 * Mission is only marked as feasible if takeoff check passes
+	 */
+	return checkTakeoff(mission, home_alt);
 }
 
 bool
-MissionFeasibilityChecker::checkFixedwing(const mission_s &mission, float home_alt, bool home_alt_valid,
-		bool land_start_req)
+MissionFeasibilityChecker::checkFixedwing(const mission_s &mission, float home_alt, bool land_start_req)
 {
 	/* Perform checks and issue feedback to the user for all checks */
-	bool resTakeoff = checkFixedWingTakeoff(mission, home_alt, home_alt_valid);
+	bool resTakeoff = checkTakeoff(mission, home_alt);
 	bool resLanding = checkFixedWingLanding(mission, land_start_req);
 
 	/* Mission is only marked as feasible if all checks return true */
@@ -313,8 +286,12 @@ MissionFeasibilityChecker::checkMissionItemValidity(const mission_s &mission)
 }
 
 bool
-MissionFeasibilityChecker::checkFixedWingTakeoff(const mission_s &mission, float home_alt, bool home_alt_valid)
+MissionFeasibilityChecker::checkTakeoff(const mission_s &mission, float home_alt)
 {
+	bool has_takeoff = false;
+	bool takeoff_first = false;
+	int takeoff_index = -1;
+
 	for (size_t i = 0; i < mission.count; i++) {
 		struct mission_item_s missionitem = {};
 		const ssize_t len = sizeof(struct mission_item_s);
@@ -344,6 +321,82 @@ MissionFeasibilityChecker::checkFixedWingTakeoff(const mission_s &mission, float
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Takeoff altitude too low!");
 				return false;
 			}
+
+			// tell that mission has a takeoff waypoint
+			has_takeoff = true;
+
+			// tell that a takeoff waypoint is the first "waypoint"
+			// mission item
+			if (i == 0) {
+				takeoff_first = true;
+
+			} else if (takeoff_index == -1) {
+				// stores the index of the first takeoff waypoint
+				takeoff_index = i;
+			}
+		}
+	}
+
+	if (takeoff_index != -1) {
+		// checks if all the mission items before the first takeoff waypoint
+		// are not waypoints or position-related items;
+		// this means that, before a takeoff waypoint, one can set
+		// one of the bellow mission items
+		for (size_t i = 0; i < (size_t)takeoff_index; i++) {
+			struct mission_item_s missionitem = {};
+			const ssize_t len = sizeof(struct mission_item_s);
+
+			if (dm_read((dm_item_t)mission.dataman_id, i, &missionitem, len) != len) {
+				/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+				return false;
+			}
+
+			if (missionitem.nav_cmd != NAV_CMD_IDLE &&
+			    missionitem.nav_cmd != NAV_CMD_DELAY &&
+			    missionitem.nav_cmd != NAV_CMD_DO_JUMP &&
+			    missionitem.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_HOME &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_SERVO &&
+			    missionitem.nav_cmd != NAV_CMD_DO_LAND_START &&
+			    missionitem.nav_cmd != NAV_CMD_DO_TRIGGER_CONTROL &&
+			    missionitem.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&
+			    missionitem.nav_cmd != NAV_CMD_IMAGE_START_CAPTURE &&
+			    missionitem.nav_cmd != NAV_CMD_IMAGE_STOP_CAPTURE &&
+			    missionitem.nav_cmd != NAV_CMD_VIDEO_START_CAPTURE &&
+			    missionitem.nav_cmd != NAV_CMD_VIDEO_STOP_CAPTURE &&
+			    missionitem.nav_cmd != NAV_CMD_DO_MOUNT_CONFIGURE &&
+			    missionitem.nav_cmd != NAV_CMD_DO_MOUNT_CONTROL &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI_LOCATION &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_ROI_NONE &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_DIST &&
+			    missionitem.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL &&
+			    missionitem.nav_cmd != NAV_CMD_SET_CAMERA_MODE &&
+			    missionitem.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
+				takeoff_first = false;
+
+			} else {
+				takeoff_first = true;
+
+			}
+		}
+	}
+
+	if (_navigator->get_takeoff_required() && _navigator->get_land_detected()->landed) {
+		// check for a takeoff waypoint, after the above conditions have been met
+		// MIS_TAKEOFF_REQ param has to be set and the vehicle has to be landed - one can load a mission
+		// while the vehicle is flying and it does not require a takeoff waypoint
+		if (!has_takeoff) {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff waypoint required.");
+			return false;
+
+		} else if (!takeoff_first) {
+			// check if the takeoff waypoint is the first waypoint item on the mission
+			// i.e, an item with position/attitude change modification
+			// if it is not, the mission should be rejected
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff not first waypoint item");
+			return false;
 		}
 	}
 
@@ -458,7 +511,7 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 	}
 
 	if (land_start_req && !land_start_found) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: land start required.");
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: landing pattern required.");
 		return false;
 	}
 
