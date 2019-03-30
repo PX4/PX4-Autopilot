@@ -1533,7 +1533,7 @@ void Ekf::controlMagFusion()
 			}
 
 		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_3D) {
-			if (!_control_status.flags.mag_3D && _control_status.flags.yaw_align && (_flt_mag_align_start_time > 0)) {
+			if (!_control_status.flags.mag_3D && _control_status.flags.yaw_align) {
 				// only commence 3-axis fusion when yaw is aligned and field states set
 				_control_status.flags.mag_3D = true;
 			}
