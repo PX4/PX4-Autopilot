@@ -252,34 +252,56 @@ float Tailsitter::get_CL(float aoa)
  ***/
 float Tailsitter::thr_from_acc_cmd(float vert_acc_cmd, float airspeed, float pitch_ang, float vz)
 {
-	float thr_ff_cmd        = 0.0f;
+	float bx_acc_cmd      = 0.0f;
+	float bx_acc_err      = 0.0f;
+	float bx_acc_err_i    = 0.0f;
+
+	/* bx_acc_kp and bx_acc_ki are from loopshaping */
+	float bx_acc_kp       = 0.03f;
+	float bx_acc_ki       = 0.03f;
+
+	float thrust_cmd      = 0.0f;
 
 	/* calculate the aerodynamic lift force */
-	float CL_temp           = 0.0f;
+	//float CL_temp           = 0.0f;
 	float lift_weight_ratio = 0.0f;
 	float ang_of_attack     = 0.0f;
-	float dyn_pressure      = 0.5f * 1.237f * airspeed * airspeed;
+	//float dyn_pressure      = 0.5f * 1.237f * airspeed * airspeed;
 
 	float ang_of_vel    = atan2f(vz, airspeed) * (math::constrain(vz * vz / (5.0f * 5.0f), 0.0f, 1.0f));
-	pitch_ang     = math::constrain(pitch_ang,     DEG_TO_RAD(0.001f), DEG_TO_RAD(89.99f));
-	ang_of_attack = math::constrain(ang_of_vel, DEG_TO_RAD(-20.0f), DEG_TO_RAD(20.0f)) + DEG_TO_RAD(100.0f) - pitch_ang;
-	ang_of_attack = math::constrain(ang_of_attack, DEG_TO_RAD(0.001f), DEG_TO_RAD(89.99f));
+
+	pitch_ang           = math::constrain(pitch_ang,     DEG_TO_RAD(0.001f), DEG_TO_RAD(89.99f));
+	ang_of_attack       = math::constrain(ang_of_vel, DEG_TO_RAD(-20.0f), DEG_TO_RAD(20.0f)) + DEG_TO_RAD(100.0f) - pitch_ang;
+	ang_of_attack       = math::constrain(ang_of_attack, DEG_TO_RAD(0.001f), DEG_TO_RAD(89.99f));
 	
-	_vtol_vehicle_status->aoa      = ang_of_attack;
+	_vtol_vehicle_status->aoa = ang_of_attack;
 
 	if ((fabsf(ang_of_attack) < DEG_TO_RAD(89.999f)) && (fabsf(ang_of_attack) >= DEG_TO_RAD(0.001f)))
 	{
+		/***
 		CL_temp           = get_CL(ang_of_attack);
 		lift_weight_ratio = dyn_pressure * 1.0f * CL_temp * 0.5f/ (1.68f * 9.8f);
-		thr_ff_cmd        = (-_mc_hover_thrust - lift_weight_ratio * (-_mc_hover_thrust) + vert_acc_cmd / 9.8f * (-_mc_hover_thrust)) / cosf(pitch_ang);
+		thrust_cmd        = (-_mc_hover_thrust - lift_weight_ratio * (-_mc_hover_thrust) + vert_acc_cmd / 9.8f * (-_mc_hover_thrust)) / cosf(pitch_ang);
+		 ***/
+		bx_acc_cmd    = (9.8f + _sensor_acc->x * sinf(pitch_ang) - vert_acc_cmd) / cosf(pitch_ang);
+		bx_acc_cmd    = math::constrain(bx_acc_cmd, -2.0f * 9.8f, 2.0f * 9.8f);
+		bx_acc_err    = bx_acc_cmd + _sensor_acc->z;
+		bx_acc_err_i  = _vtol_vehicle_status->bx_acc_i + bx_acc_ki * bx_acc_err * 0.004f;
+		thrust_cmd    = bx_acc_cmd / 9.8f * (-_mc_hover_thrust) + bx_acc_err * bx_acc_kp + bx_acc_err_i;
 	}
 	else
 	{
 		lift_weight_ratio = 0.0f;
-		thr_ff_cmd        = -_mc_hover_thrust;
+		thrust_cmd        = -_mc_hover_thrust;
+		bx_acc_err_i      = 0.0f;
 	}
 
-	//thr_ff_cmd = math::constrain(thr_ff_cmd, 0.1f, 0.9f);
+	_vtol_vehicle_status->pitch_ang  = pitch_ang;
+	_vtol_vehicle_status->bx_acc_cmd = bx_acc_cmd;
+	_vtol_vehicle_status->bx_acc_e   = bx_acc_err;
+	_vtol_vehicle_status->bx_acc_i   = bx_acc_err_i;
+
+	//thrust_cmd = math::constrain(thrust_cmd, 0.1f, 0.9f);
 	static int ii = 0;
 	ii++;
 	if ((ii % 10) == 0) 
@@ -287,7 +309,7 @@ float Tailsitter::thr_from_acc_cmd(float vert_acc_cmd, float airspeed, float pit
 		mavlink_log_critical(&mavlink_log_pub, "airsp:%.2f lift:%.2f aoa:%.3f", (double)(airspeed), (double)(lift_weight_ratio), (double)(ang_of_attack));
 	}
 
-	return thr_ff_cmd;
+	return thrust_cmd;
 }
 
 float ILC_in(float time_since_trans_start)
@@ -311,10 +333,7 @@ float ILC_in(float time_since_trans_start)
 float Tailsitter::control_altitude(float time_since_trans_start, float alt_cmd)
 {
 	float alt_kp         = 0.6f;
-	float vert_kp        = 0.5f;
-	float vert_kv        = 1.5f;
-	float vert_vel_sp    = 0.0f;
-	float vert_vel_err   = 0.0f;
+	float vel_kp         = 1.5f;
 
 	/* calculate the euler angle from quatnion(follow the Pitch-Roll-Yaw) */
 	matrix::EulerFromQuatf euler = matrix::Quatf(_v_att->q);
@@ -322,34 +341,20 @@ float Tailsitter::control_altitude(float time_since_trans_start, float alt_cmd)
 	/* calculate the feedforward thrust cmd */
 	float pitch          = - euler.theta(); // theta is minus zero
 
-	/* calculate the feedback thrust cmd */
-	vert_vel_sp          = (alt_cmd - _local_pos->z) * alt_kp;
-	vert_vel_sp          = math::constrain(vert_vel_sp, -2.5f, 2.5f);
-	vert_vel_err         = -(vert_vel_sp - _local_pos->vz);
-
-	if (time_since_trans_start <= 0.3f)
-	{
-		_vert_i_term     = 0.0f;
-	}
-
-	float thrust_fdb     = vert_vel_err * vert_kv - (alt_cmd - _local_pos->z) * vert_kp;
-
 	//float ang_of_attack  = DEG_TO_RAD(96.0f) - pitch; //install pitch angle is 6 degree
 	float horiz_vel      = sqrtf((_local_pos->vx * _local_pos->vx) + (_local_pos->vy * _local_pos->vy));
 	float ILC_input      = ILC_in(time_since_trans_start);
-	float vert_acc_cmd   = thrust_fdb + ILC_input * 9.8f / (-_mc_hover_thrust);
+	float vert_acc_cmd   = (alt_cmd - _local_pos->z) * alt_kp + -_local_pos->vz * vel_kp ;//+ ILC_input * 9.8f / (-_mc_hover_thrust);
 	float thrust_cmd     = math::constrain(thr_from_acc_cmd(vert_acc_cmd, horiz_vel, pitch, _local_pos->vz), 0.0f, 0.9f);
 
 	_vtol_vehicle_status->ilc_input 		= ILC_input;
-	_vtol_vehicle_status->thrust_fdb 		= thrust_fdb;
 	_vtol_vehicle_status->vert_acc_cmd      = vert_acc_cmd;
-	_vtol_vehicle_status->vert_vel_sp       = vert_vel_sp;
 	_vtol_vehicle_status->thrust_cmd        = thrust_cmd;
 	_vtol_vehicle_status->ticks_since_trans ++;
 
 	if ((_vtol_vehicle_status->ticks_since_trans % 10) == 5) 
 	{
-		mavlink_log_critical(&mavlink_log_pub, "thrust_ffd:%.2f thrust_fdb:%.2f", (double)(ILC_input), (double)(thrust_fdb));
+		mavlink_log_critical(&mavlink_log_pub, "vert_acc_cmd:%.2f thrust_cmd:%.2f", (double)(vert_acc_cmd), (double)(thrust_cmd));
 	}
 	
 	return (-1.0f * thrust_cmd);

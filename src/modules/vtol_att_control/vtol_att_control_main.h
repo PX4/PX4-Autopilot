@@ -77,6 +77,7 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/topics/sensor_accel.h>
 
 #include "tiltrotor.h"
 #include "tailsitter.h"
@@ -114,6 +115,7 @@ public:
 	struct vehicle_local_position_s 		*get_local_pos() {return &_local_pos;}
 	struct vehicle_local_position_setpoint_s	*get_local_pos_sp() {return &_local_pos_sp;}
 	struct vtol_vehicle_status_s			*get_vtol_vehicle_status() {return &_vtol_vehicle_status;}
+	struct sensor_accel_s                   *get_sensor_acc() {return &_sensor_acc;}
 
 	struct Params 					*get_params() {return &_params;}
 
@@ -131,6 +133,7 @@ private:
 	int	_land_detected_sub{-1};
 	int	_local_pos_sp_sub{-1};			// setpoint subscription
 	int	_local_pos_sub{-1};			// sensor subscription
+	int _sensor_acc_sub{-1};
 	int	_manual_control_sp_sub{-1};	//manual control setpoint subscription
 	int	_mc_virtual_att_sp_sub{-1};
 	int	_params_sub{-1};			//parameter updates subscription
@@ -171,6 +174,7 @@ private:
 	vehicle_local_position_s			_local_pos{};
 	vehicle_local_position_setpoint_s	_local_pos_sp{};
 	vtol_vehicle_status_s 			_vtol_vehicle_status{};
+	sensor_accel_s                  _sensor_acc{};
 
 	Params _params{};	// struct holding the parameters
 
@@ -232,6 +236,7 @@ private:
 	void 		vehicle_airspeed_poll();		// Check for changes in airspeed
 	void 		vehicle_local_pos_poll();		// Check for changes in sensor values
 	void 		vehicle_local_pos_sp_poll();		// Check for changes in setpoint values
+	void        sensor_acc_poll();
 
 	int 		parameters_update();			//Update local parameter cache
 

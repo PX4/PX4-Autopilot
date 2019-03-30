@@ -193,6 +193,7 @@ protected:
 	struct airspeed_s 				*_airspeed;					// airspeed
 	struct tecs_status_s				*_tecs_status;
 	struct vehicle_land_detected_s			*_land_detected;
+	struct sensor_accel_s               *_sensor_acc;
 
 	struct Params 					*_params;
 

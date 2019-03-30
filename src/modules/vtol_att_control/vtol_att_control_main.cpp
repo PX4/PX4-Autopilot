@@ -247,6 +247,22 @@ VtolAttitudeControl::vehicle_local_pos_poll()
 * Check for setpoint updates.
 */
 void
+VtolAttitudeControl::sensor_acc_poll()
+{
+	bool updated;
+	/* Check if parameters have changed */
+	orb_check(_sensor_acc_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(sensor_accel), _sensor_acc_sub, &_sensor_acc);
+	}
+
+}
+
+/**
+* Check for setpoint updates.
+*/
+void
 VtolAttitudeControl::vehicle_local_pos_sp_poll()
 {
 	bool updated;
@@ -553,7 +569,8 @@ void VtolAttitudeControl::task_main()
 	_params_sub            = orb_subscribe(ORB_ID(parameter_update));
 	_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_local_pos_sub         = orb_subscribe(ORB_ID(vehicle_local_position));
-	_local_pos_sp_sub         = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
+	_sensor_acc_sub        = orb_subscribe(ORB_ID(sensor_accel));
+	_local_pos_sp_sub      = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 	_pos_sp_triplet_sub    = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_airspeed_sub          = orb_subscribe(ORB_ID(airspeed));
 	_vehicle_cmd_sub	   = orb_subscribe(ORB_ID(vehicle_command));
@@ -620,6 +637,7 @@ void VtolAttitudeControl::task_main()
 		vehicle_attitude_poll();
 		vehicle_local_pos_poll();
 		vehicle_local_pos_sp_poll();
+		sensor_acc_poll();
 		pos_sp_triplet_poll();
 		vehicle_airspeed_poll();
 		vehicle_cmd_poll();
