@@ -55,7 +55,7 @@ def get_N_colors(N, s=0.8, v=0.9):
     return hex_out
 
 
-class PubSub:
+class PubSub(object):
     """ Collects either publication or subscription information for nodes
     (modules and topics) & edges """
 
@@ -184,7 +184,7 @@ class PubSub:
         return self._module_pubsubs
 
 
-class Graph:
+class Graph(object):
     """ Collects Node and Edge information by parsing the source tree """
     def __init__(self, module_whitelist=[], topic_blacklist=[]):
         self._current_module = [] # stack with current module (they can be nested)
@@ -459,7 +459,7 @@ class Graph:
 
 
 
-class OutputGraphviz:
+class OutputGraphviz(object):
     """ write graph using Graphviz """
 
     def __init__(self, graph):
@@ -521,7 +521,7 @@ class OutputGraphviz:
 	graph.render(file_name, view=False)
 
 
-class OutputJSON:
+class OutputJSON(object):
     """ write graph to a JSON file (that can be used with D3.js) """
 
     def __init__(self, graph):
