@@ -116,9 +116,12 @@ $ pwm test -c 13 -p 1200
 	PRINT_MODULE_USAGE_COMMAND_DESCR("disarm", "Disarm output");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("info", "Print current configuration of all channels");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("forcefail", "Force Failsafe mode");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("forcefail", "Force Failsafe mode. "
+                                         "PWM outputs are set to failsafe values.");
 	PRINT_MODULE_USAGE_ARG("on|off", "Turn on or off", false);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("terminatefail", "Force Termination Failsafe mode");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("terminatefail", "Enable Termination Failsafe mode. "
+                                         "While this is true, "
+                                         "any failsafe that occurs will be unrecoverable (even if recovery conditions are met).");
 	PRINT_MODULE_USAGE_ARG("on|off", "Turn on or off", false);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("rate", "Configure PWM rates");
@@ -136,14 +139,14 @@ $ pwm test -c 13 -p 1200
 
 
 	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'failsafe', 'disarmed', 'min', 'max' and 'test' require a PWM value:");
-	PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 4000, "PWM value (eg. 1100)", false);
+	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 0, 4000, "PWM value (eg. 1100)", false);
 
 	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'rate', 'oneshot', 'failsafe', 'disarmed', 'min', 'max', 'test' and 'steps' "
 					 "additionally require to specify the channels with one of the following commands:");
 	PRINT_MODULE_USAGE_PARAM_STRING('c', nullptr, nullptr, "select channels in the form: 1234 (1 digit per channel, 1=first)",
 					true);
-	PRINT_MODULE_USAGE_PARAM_INT('m', 0, 0, 4096, "Select channels via bitmask (eg. 0xF, 3)", true);
-	PRINT_MODULE_USAGE_PARAM_INT('g', 0, 0, 10, "Select channels by group (eg. 0, 1, 2. use 'pwm info' to show groups)",
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 4096, "Select channels via bitmask (eg. 0xF, 3)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('g', -1, 0, 10, "Select channels by group (eg. 0, 1, 2. use 'pwm info' to show groups)",
 				     true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Select all channels", true);
 
@@ -700,7 +703,7 @@ pwm_main(int argc, char *argv[])
 
 			/* Delay longer than the max Oneshot duration */
 
-			usleep(2542);
+			px4_usleep(2542);
 
 #ifdef __PX4_NUTTX
 			/* Trigger all timer's channels in Oneshot mode to fire
@@ -749,7 +752,7 @@ err_out_no_test:
 		fds.events = POLLIN;
 
 		PX4_WARN("Running 5 steps. WARNING! Motors will be live in 5 seconds\nPress any key to abort now.");
-		sleep(5);
+		px4_sleep(5);
 
 		if (::ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_ENTER_TEST_MODE) < 0) {
 				PX4_ERR("Failed to Enter pwm test mode");
@@ -825,13 +828,13 @@ err_out_no_test:
 				}
 
 				if (phase == 1) {
-					usleep(steps_timings_us[steps_timing_index] / phase_maxcount);
+					px4_usleep(steps_timings_us[steps_timing_index] / phase_maxcount);
 
 				} else if (phase == 0) {
-					usleep(50000);
+					px4_usleep(50000);
 
 				} else if (phase == 2) {
-					usleep(50000);
+					px4_usleep(50000);
 
 				} else {
 					break;

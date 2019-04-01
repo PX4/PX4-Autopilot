@@ -32,9 +32,9 @@
 ############################################################################
 
 # common board drivers (currently only for nuttx fmu boards)
-if (${OS} MATCHES "nuttx" AND NOT ${BOARD} MATCHES "io")
+if ((${PX4_PLATFORM} MATCHES "nuttx") AND NOT ${PX4_BOARD} MATCHES "io")
 
-	px4_add_library(drivers_boards_common
+	add_library(drivers_boards_common
 		board_crashdump.c
 		board_dma_alloc.c
 		board_gpio_init.c
@@ -42,8 +42,6 @@ if (${OS} MATCHES "nuttx" AND NOT ${BOARD} MATCHES "io")
 
 	if (${CONFIG_ARCH_CHIP} MATCHES "kinetis")
 		add_subdirectory(kinetis)
-	elseif (${CONFIG_ARCH_CHIP} MATCHES "samv7")
-		add_subdirectory(samv7)
 	elseif (${CONFIG_ARCH_CHIP} MATCHES "stm32")
 		add_subdirectory(stm32)
 	endif()

@@ -36,6 +36,7 @@ px4_add_module(
 	MAIN accelsim
 	COMPILE_FLAGS
 		-Wno-double-promotion
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		accelsim.cpp
 	DEPENDS

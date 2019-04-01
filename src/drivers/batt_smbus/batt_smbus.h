@@ -37,34 +37,30 @@
  * Header for a battery monitor connected via SMBus (I2C).
  * Designed for BQ40Z50-R1/R2
  *
- * @author Randy Mackay <rmackay9@yahoo.com>
- * @author Alex Klimaj <alexklimaj@gmail.com>
- * @author Mark Sauder <mcsauder@gmail.com>
  * @author Jacob Dahl <dahl.jakejacob@gmail.com>
+ * @author Alex Klimaj <alexklimaj@gmail.com>
  */
 
 #pragma once
 
+#include <drivers/drv_hrt.h>
+#include <ecl/geo/geo.h>
+#include <lib/drivers/smbus/SMBus.hpp>
+#include <mathlib/mathlib.h>
 #include <px4_config.h>
 #include <px4_workqueue.h>
-
-#include <stdio.h>
-
-#include <string.h>
-#include <ecl/geo/geo.h>
-
-#include <lib/cdev/CDev.hpp>
-#include <drivers/device/Device.hpp>
-#include <drivers/device/i2c.h>
-#include <drivers/drv_device.h>
-
-#include <drivers/drv_hrt.h>
-
+#include <perf/perf_counter.h>
+#include <platforms/px4_module.h>
 #include <uORB/topics/battery_status.h>
 
-#define DATA_BUFFER_SIZE				32
+#define DATA_BUFFER_SIZE				                32
 
-#define BATT_SMBUS_I2C_BUS                              PX4_I2C_BUS_EXPANSION
+#define BATT_CELL_VOLTAGE_THRESHOLD_RTL                 0.5f                    ///< Threshold in volts to RTL if cells are imbalanced
+#define BATT_CELL_VOLTAGE_THRESHOLD_FAILED              1.5f                    ///< Threshold in volts to Land if cells are imbalanced
+
+#define BATT_CURRENT_UNDERVOLTAGE_THRESHOLD             5.0f                    ///< Threshold in amps to disable undervoltage protection
+#define BATT_VOLTAGE_UNDERVOLTAGE_THRESHOLD             3.4f                    ///< Threshold in volts to re-enable undervoltage protection
+
 #define BATT_SMBUS_CURRENT                              0x0A                    ///< current register
 #define BATT_SMBUS_AVERAGE_CURRENT                      0x0B                    ///< current register
 #define BATT_SMBUS_ADDR                                 0x0B                    ///< Default 7 bit address I2C address. 8 bit = 0x16
@@ -84,20 +80,49 @@
 #define BATT_SMBUS_MANUFACTURE_DATE                     0x1B                    ///< manufacture date register
 #define BATT_SMBUS_SERIAL_NUMBER                        0x1C                    ///< serial number register
 #define BATT_SMBUS_MEASUREMENT_INTERVAL_US              100000                  ///< time in microseconds, measure at 10Hz
-#define BATT_SMBUS_TIMEOUT_US                           1000000                ///< timeout looking for battery 10seconds after startup
+#define BATT_SMBUS_TIMEOUT_US                           1000000                 ///< timeout looking for battery 10seconds after startup
 #define BATT_SMBUS_MANUFACTURER_ACCESS                  0x00
-#define BATT_SMBUS_MANUFACTURER_DATA			0x23
+#define BATT_SMBUS_MANUFACTURER_DATA			        0x23
 #define BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS            0x44
-#define BATT_SMBUS_SECURITY_KEYS			0x0035
+#define BATT_SMBUS_SECURITY_KEYS			            0x0035
+#define BATT_SMBUS_CELL_1_VOLTAGE                       0x3F
+#define BATT_SMBUS_CELL_2_VOLTAGE                       0x3E
+#define BATT_SMBUS_CELL_3_VOLTAGE                       0x3D
+#define BATT_SMBUS_CELL_4_VOLTAGE                       0x3C
+#define BATT_SMBUS_LIFETIME_FLUSH                       0x002E
+#define BATT_SMBUS_LIFETIME_BLOCK_ONE                   0x0060
+#define BATT_SMBUS_ENABLED_PROTECTIONS_A_ADDRESS        0x4938
+#define BATT_SMBUS_SEAL                                 0x0030
 
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
+#define BATT_SMBUS_ENABLED_PROTECTIONS_A_DEFAULT		0xcf
+#define BATT_SMBUS_ENABLED_PROTECTIONS_A_CUV_DISABLED	0xce
+
+#define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
+
+enum BATT_SMBUS_BUS {
+	BATT_SMBUS_BUS_ALL = 0,
+	BATT_SMBUS_BUS_I2C_INTERNAL,
+	BATT_SMBUS_BUS_I2C_EXTERNAL,
+	BATT_SMBUS_BUS_I2C_EXTERNAL1,
+	BATT_SMBUS_BUS_I2C_EXTERNAL2
+};
+
+struct batt_smbus_bus_option {
+	enum BATT_SMBUS_BUS busid;
+	const char *devpath;
+	uint8_t busnum;
+} bus_options[] = {
+	{ BATT_SMBUS_BUS_I2C_EXTERNAL, "/dev/batt_smbus_ext", PX4_I2C_BUS_EXPANSION},
+#ifdef PX4_I2C_BUS_EXPANSION1
+	{ BATT_SMBUS_BUS_I2C_EXTERNAL1, "/dev/batt_smbus_ext1", PX4_I2C_BUS_EXPANSION1},
 #endif
-
-/**
- * @brief Nuttshell accessible method to return the driver usage arguments.
- */
-void batt_smbus_usage();
+#ifdef PX4_I2C_BUS_EXPANSION2
+	{ BATT_SMBUS_BUS_I2C_EXTERNAL2, "/dev/batt_smbus_ext2", PX4_I2C_BUS_EXPANSION2},
+#endif
+#ifdef PX4_I2C_BUS_ONBOARD
+	{ BATT_SMBUS_BUS_I2C_INTERNAL, "/dev/batt_smbus_int", PX4_I2C_BUS_ONBOARD},
+#endif
+};
 
 /**
  * @brief Nuttshell accessible method to return the battery manufacture date.
@@ -117,42 +142,26 @@ int manufacturer_name();
  */
 int serial_number();
 
-extern device::Device *BATT_SMBUS_I2C_interface(int bus);
-typedef device::Device *(*BATT_SMBUS_constructor)(int);
 
-class BATT_SMBUS : public cdev::CDev
+
+class BATT_SMBUS : public ModuleBase<BATT_SMBUS>
 {
 public:
 
-	/**
-	 * @brief Default Constructor.
-	 * @param interface The device communication interface (i2c)
-	 * @param path The device i2c address
-	 */
-	BATT_SMBUS(device::Device *interface, const char *path);
+	BATT_SMBUS(SMBus *interface, const char *path);
 
-	/**
-	 * @brief Default Destructor.
-	 */
-	virtual ~BATT_SMBUS();
+	~BATT_SMBUS();
 
-	/**
-	 * @brief Sends a block read command.
-	 * @param cmd_code The command code.
-	 * @param data The returned data.
-	 * @param length The number of bytes being read
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
-	 */
-	int block_read(const uint8_t cmd_code, void *data, const unsigned length);
+	friend SMBus;
 
-	/**
-	 * @brief Sends a block write command.
-	 * @param cmd_code The command code.
-	 * @param data The data to be written.
-	 * @param length The number of bytes being written.
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
-	 */
-	int block_write(const uint8_t cmd_code, void *data, const unsigned length);
+	/** @see ModuleBase */
+	static int print_usage();
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
 	/**
 	 * @brief Reads data from flash.
@@ -172,14 +181,6 @@ public:
 	int dataflash_write(uint16_t &address, void *data, const unsigned length);
 
 	/**
-	 * @brief Calculates the PEC from the data.
-	 * @param buff The buffer that stores the data.
-	 * @param length The number of bytes being written.
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
-	 */
-	uint8_t get_pec(uint8_t *buffer, const uint8_t length);
-
-	/**
 	 * @brief Returns the SBS serial number of the battery device.
 	 * @return Returns the SBS serial number of the battery device.
 	 */
@@ -193,21 +194,15 @@ public:
 
 	/**
 	 * @brief Prints the latest report.
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
 	 */
-	int info();
+	void print_report();
 
-	/**
-	 * @brief Initializes the smart battery device. Calls probe() to check for device on bus.
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
-	 */
-	virtual int init();
 
 	/**
 	 * @brief Gets the SBS manufacture date of the battery.
 	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
 	 */
-	int manufacture_date(void *man_date);
+	int manufacture_date();
 
 	/**
 	 * @brief Gets the SBS manufacturer name of the battery device.
@@ -235,13 +230,6 @@ public:
 	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
 	 */
 	int manufacturer_write(const uint16_t cmd_code, void *data, const unsigned length);
-	/**
-	 * @brief Sends a read-word command with cmd_code as the command.
-	 * @param cmd_code The command code.
-	 * @param data The returned data.
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
-	 */
-	int read_word(const uint8_t cmd_code, void *data);
 
 	/**
 	 * @brief Search all possible slave addresses for a smart battery.
@@ -250,38 +238,63 @@ public:
 	int search_addresses();
 
 	/**
-	 * @brief Starts periodic reads from the battery.
-	 */
-	void start();
-
-	/**
-	 * @brief Stops periodic reads from the battery.
-	 */
-	void stop();
-
-	/**
 	 * @brief Unseals the battery to allow writing to restricted flash.
 	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
 	 */
 	int unseal();
 
-protected:
-	device::Device *_interface;
+	/**
+	 * @brief Seals the battery to disallow writing to restricted flash.
+	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
+	 */
+	int seal();
+
+	/**
+	 * @brief This command flushes the RAM Lifetime Data to data flash to help streamline evaluation testing.
+	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
+	 */
+	int lifetime_data_flush();
+
+	/**
+	 * @brief Reads the lifetime data from block 1.
+	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
+	 */
+	int lifetime_read_block_one();
+
+	/**
+	 * @brief Reads the cell voltages.
+	 * @return Returns PX4_OK on success or associated read error code on failure.
+	 */
+	int get_cell_voltages();
+
+	/**
+	 * @brief Enables or disables the cell under voltage protection emergency shut off.
+	 */
+	void set_undervoltage_protection(float average_current);
+
+	SMBus *_interface;
+
+	void suspend();
+
+	void resume();
 
 private:
 
-	/**
-	 * @brief Static function that is called by worker queue.
-	 */
 	static void cycle_trampoline(void *arg);
 
-	/**
-	 * @brief The loop that continually generates new reports.
-	 */
-	void cycle();
+	static work_s _work;
 
-	/** @struct _work Work queue for scheduling reads. */
-	work_s _work = work_s{};
+	perf_counter_t _cycle;
+
+	float _cell_voltages[4] = {};
+
+	float _max_cell_voltage_delta{0};
+
+	float _min_cell_voltage{0};
+
+	bool _should_suspend{false};
+
+	void cycle();
 
 	/** @param _last_report Last published report, used for test(). */
 	battery_status_s _last_report = battery_status_s{};
@@ -289,8 +302,8 @@ private:
 	/** @param _batt_topic uORB battery topic. */
 	orb_advert_t _batt_topic;
 
-	/** @param _batt_orb_id uORB battery topic ID. */
-	orb_id_t _batt_orb_id;
+	/** @param _cell_count Number of series cell. */
+	uint8_t _cell_count;
 
 	/** @param _batt_capacity Battery design capacity in mAh (0 means unknown). */
 	uint16_t _batt_capacity;
@@ -316,7 +329,13 @@ private:
 	/** @param _manufacturer_name Name of the battery manufacturer. */
 	char *_manufacturer_name;
 
-	/* Do not allow copy construction or move assignment of this class. */
+	/** @param _lifetime_max_delta_cell_voltage Max lifetime delta of the battery cells */
+	float _lifetime_max_delta_cell_voltage;
+
+	/** @param _cell_undervoltage_protection_status 0 if protection disabled, 1 if enabled */
+	uint8_t _cell_undervoltage_protection_status;
+
+	/** Do not allow copy construction or move assignment of this class. */
 	BATT_SMBUS(const BATT_SMBUS &);
 	BATT_SMBUS operator=(const BATT_SMBUS &);
 };

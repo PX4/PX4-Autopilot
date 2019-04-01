@@ -42,6 +42,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_time.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
@@ -437,24 +438,6 @@ int
 PWMIN::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 500)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
 	case SENSORIOCRESET:
 		/* user has asked for the timer to be reset. This may
 		 * be needed if the pin was used for a different
@@ -605,7 +588,7 @@ static void pwmin_test(void)
 
 		} else {
 			/* no data, retry in 2 ms */
-			::usleep(2000);
+			px4_usleep(2000);
 		}
 	}
 

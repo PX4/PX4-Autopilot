@@ -40,7 +40,7 @@
 
 #pragma once
 
-#include <cfloat>
+#include <float.h>
 
 #include <px4_module_params.h>
 #include <drivers/drv_hrt.h>

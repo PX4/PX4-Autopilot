@@ -285,7 +285,7 @@ DfMpu9250Wrapper::~DfMpu9250Wrapper()
 int DfMpu9250Wrapper::start()
 {
 	// TODO: don't publish garbage here
-	accel_report accel_report = {};
+	sensor_accel_s accel_report = {};
 	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &accel_report,
 					   &_accel_orb_class_instance, ORB_PRIO_DEFAULT);
 
@@ -295,7 +295,7 @@ int DfMpu9250Wrapper::start()
 	}
 
 	// TODO: don't publish garbage here
-	gyro_report gyro_report = {};
+	sensor_gyro_s gyro_report = {};
 	_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &gyro_report,
 					  &_gyro_orb_class_instance, ORB_PRIO_DEFAULT);
 
@@ -612,8 +612,8 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 		_update_mag_calibration();
 	}
 
-	accel_report accel_report = {};
-	gyro_report gyro_report = {};
+	sensor_accel_s accel_report = {};
+	sensor_gyro_s gyro_report = {};
 	mag_report mag_report = {};
 
 	accel_report.timestamp = gyro_report.timestamp = hrt_absolute_time();

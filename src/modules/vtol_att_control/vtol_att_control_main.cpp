@@ -86,6 +86,10 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
 	_params_handles.mpc_xy_cruise = param_find("MPC_XY_CRUISE");
 	_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
+	_params_handles.diff_thrust = param_find("VT_FW_DIFTHR_EN");
+	_params_handles.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
+
+	_params_handles.v19_vt_rolldir = param_find("V19_VT_ROLLDIR");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -118,7 +122,7 @@ VtolAttitudeControl::~VtolAttitudeControl()
 
 		do {
 			/* wait 20ms */
-			usleep(20000);
+			px4_usleep(20000);
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
@@ -486,6 +490,10 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.front_trans_timeout, &_params.front_trans_timeout);
 	param_get(_params_handles.mpc_xy_cruise, &_params.mpc_xy_cruise);
 	param_get(_params_handles.fw_motors_off, &_params.fw_motors_off);
+	param_get(_params_handles.diff_thrust, &_params.diff_thrust);
+
+	param_get(_params_handles.diff_thrust_scale, &v);
+	_params.diff_thrust_scale = math::constrain(v, -1.0f, 1.0f);
 
 	// standard vtol always needs to turn all mc motors off when going into fixed wing mode
 	// normally the parameter fw_motors_off can be used to specify this, however, since historically standard vtol code
@@ -498,58 +506,15 @@ VtolAttitudeControl::parameters_update()
 	// make sure parameters are feasible, require at least 1 m/s difference between transition and blend airspeed
 	_params.airspeed_blend = math::min(_params.airspeed_blend, _params.transition_airspeed - 1.0f);
 
+	// Bugfix for v1.9, should be removed in 1.10
+	param_get(_params_handles.v19_vt_rolldir, &_params.v19_vt_rolldir);
+
 	// update the parameters of the instances of base VtolType
 	if (_vtol_type != nullptr) {
 		_vtol_type->parameters_update();
 	}
 
 	return OK;
-}
-
-/**
-* Prepare message for mc attitude rates setpoint topic
-*/
-void VtolAttitudeControl::fill_mc_att_rates_sp()
-{
-	bool updated;
-	orb_check(_mc_virtual_v_rates_sp_sub, &updated);
-
-	if (updated) {
-		vehicle_rates_setpoint_s v_rates_sp;
-
-		if (orb_copy(ORB_ID(mc_virtual_rates_setpoint), _mc_virtual_v_rates_sp_sub, &v_rates_sp) == PX4_OK) {
-			// publish the attitude rates setpoint
-			if (_v_rates_sp_pub != nullptr) {
-				orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &v_rates_sp);
-
-			} else {
-				_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &v_rates_sp);
-			}
-		}
-	}
-}
-
-/**
-* Prepare message for fw attitude rates setpoint topic
-*/
-void VtolAttitudeControl::fill_fw_att_rates_sp()
-{
-	bool updated;
-	orb_check(_fw_virtual_v_rates_sp_sub, &updated);
-
-	if (updated) {
-		vehicle_rates_setpoint_s v_rates_sp;
-
-		if (orb_copy(ORB_ID(fw_virtual_rates_setpoint), _fw_virtual_v_rates_sp_sub, &v_rates_sp) == PX4_OK) {
-			// publish the attitude rates setpoint
-			if (_v_rates_sp_pub != nullptr) {
-				orb_publish(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_pub, &v_rates_sp);
-
-			} else {
-				_v_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &v_rates_sp);
-			}
-		}
-	}
 }
 
 int
@@ -564,11 +529,8 @@ void VtolAttitudeControl::task_main()
 	fflush(stdout);
 
 	/* do subscriptions */
-	_v_att_sp_sub          = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_mc_virtual_att_sp_sub = orb_subscribe(ORB_ID(mc_virtual_attitude_setpoint));
 	_fw_virtual_att_sp_sub = orb_subscribe(ORB_ID(fw_virtual_attitude_setpoint));
-	_mc_virtual_v_rates_sp_sub = orb_subscribe(ORB_ID(mc_virtual_rates_setpoint));
-	_fw_virtual_v_rates_sp_sub = orb_subscribe(ORB_ID(fw_virtual_rates_setpoint));
 	_v_att_sub             = orb_subscribe(ORB_ID(vehicle_attitude));
 	_v_control_mode_sub    = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_params_sub            = orb_subscribe(ORB_ID(parameter_update));
@@ -632,7 +594,7 @@ void VtolAttitudeControl::task_main()
 		if (pret < 0) {
 			PX4_ERR("poll error %d, %d", pret, errno);
 			/* sleep a bit before next try */
-			usleep(100000);
+			px4_usleep(100000);
 			continue;
 		}
 
@@ -680,7 +642,6 @@ void VtolAttitudeControl::task_main()
 
 			// got data from mc attitude controller
 			_vtol_type->update_mc_state();
-			fill_mc_att_rates_sp();
 
 		} else if (_vtol_type->get_mode() == FIXED_WING) {
 
@@ -692,7 +653,6 @@ void VtolAttitudeControl::task_main()
 			_vtol_vehicle_status.in_transition_to_fw = false;
 
 			_vtol_type->update_fw_state();
-			fill_fw_att_rates_sp();
 
 		} else if (_vtol_type->get_mode() == TRANSITION_TO_MC || _vtol_type->get_mode() == TRANSITION_TO_FW) {
 
@@ -705,10 +665,41 @@ void VtolAttitudeControl::task_main()
 			_vtol_vehicle_status.in_transition_to_fw = (_vtol_type->get_mode() == TRANSITION_TO_FW);
 
 			_vtol_type->update_transition_state();
-			fill_mc_att_rates_sp();
 		}
 
-		_vtol_type->fill_actuator_outputs();
+		// Fill actuator output
+		if (_params.v19_vt_rolldir) {
+
+			// The mixer may not have been adapted to the roll inversion in v1.9
+			// Display error message and do not fill actuator outputs
+			// TODO: remove the parameter and this error message in v1.10
+			const int v19_rolldir_warning_throttling = 5000;
+			static int v19_rolldir_warning_counter = 0;
+			v19_rolldir_warning_counter += 1;
+
+			if ((v19_rolldir_warning_counter % v19_rolldir_warning_throttling) == 0) {
+				mavlink_log_critical(&_mavlink_log_pub,
+						     "The VTOL roll commands were inverted in v1.9!");
+				mavlink_log_critical(&_mavlink_log_pub,
+						     "Check roll mixing, then set V19_VT_ROLLDIR to 0");
+			}
+
+			// Do not fill actuator output
+			_actuators_out_0.timestamp = hrt_absolute_time();
+			_actuators_out_0.timestamp_sample = _actuators_mc_in.timestamp_sample;
+			_actuators_out_1.timestamp = hrt_absolute_time();
+			_actuators_out_1.timestamp_sample = _actuators_fw_in.timestamp_sample;
+
+			for (size_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROLS; i++) {
+				_actuators_out_0.control[i] = 0.0f;
+				_actuators_out_1.control[i] = 0.0f;
+			}
+
+		} else {
+
+			// normal operation
+			_vtol_type->fill_actuator_outputs();
+		}
 
 		/* Only publish if the proper mode(s) are enabled */
 		if (_v_control_mode.flag_control_attitude_enabled ||

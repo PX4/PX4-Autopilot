@@ -51,7 +51,7 @@
 #include <parameters/param.h>
 #include "hrt_work.h"
 #include "px4_log.h"
-
+#include <px4_init.h>
 
 //extern pthread_t _shell_task_id;
 
@@ -105,8 +105,8 @@ void init_once(void)
 
 	work_queues_init();
 	hrt_work_queue_init();
-	hrt_init();
-	param_init();
+
+	px4_platform_init();
 }
 
 void init(int argc, char *argv[], const char *app_name)

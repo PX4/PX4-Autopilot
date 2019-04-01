@@ -373,12 +373,6 @@ RM3100::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return PX4_OK;
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
@@ -424,42 +418,12 @@ RM3100::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return PX4_OK;
-		}
-
 	case SENSORIOCRESET:
 		return reset();
-
-	case MAGIOCSSAMPLERATE:
-		/* same as pollrate because device is in single measurement mode*/
-		return ioctl(file_pointer, SENSORIOCSPOLLRATE, arg);
-
-	case MAGIOCGSAMPLERATE:
-		/* same as pollrate because device is in single measurement mode*/
-		return 1000000 / TICK2USEC(_measure_ticks);
 
 	case MAGIOCSRANGE:
 		/* field measurement range cannot be configured for this sensor (8 Gauss) */
 		return OK;
-
-	case MAGIOCGRANGE:
-		/* field measurement range cannot be configured for this sensor (8 Gauss) */
-		return 8;
 
 	case MAGIOCSSCALE:
 		/* set new scale factors */

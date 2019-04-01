@@ -50,14 +50,15 @@
 #include <math.h>
 
 #include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_sem.h>
 #include <px4_shutdown.h>
-
-#include <perf/perf_counter.h>
 #include <systemlib/uthash/utarray.h>
+
+using namespace time_literals;
 
 //#define PARAM_NO_ORB ///< if defined, avoid uorb dependency. This disables publication of parameter_update on param change
 //#define PARAM_NO_AUTOSAVE ///< if defined, do not autosave (avoids LP work queue dependency)
@@ -69,9 +70,14 @@
 
 #if defined(FLASH_BASED_PARAMS)
 #include "flashparams/flashparams.h"
+static const char *param_default_file = nullptr; // nullptr means to store to FLASH
+#else
+inline static int flash_param_save(bool only_unsaved) { return -1; }
+inline static int flash_param_load() { return -1; }
+inline static int flash_param_import() { return -1; }
+static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
 #endif
 
-static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
 static char *param_user_file = nullptr;
 
 #ifdef __PX4_QURT
@@ -86,8 +92,8 @@ static char *param_user_file = nullptr;
 #include <px4_workqueue.h>
 /* autosaving variables */
 static hrt_abstime last_autosave_timestamp = 0;
-static struct work_s autosave_work;
-static bool autosave_scheduled = false;
+static struct work_s autosave_work {};
+static volatile bool autosave_scheduled = false;
 static bool autosave_disabled = false;
 #endif /* PARAM_NO_AUTOSAVE */
 
@@ -622,7 +628,7 @@ autosave_worker(void *arg)
 	int ret = param_save_default();
 
 	if (ret != 0) {
-		PX4_ERR("param save failed (%i)", ret);
+		PX4_ERR("param auto save failed (%i)", ret);
 	}
 }
 #endif /* PARAM_NO_AUTOSAVE */
@@ -646,10 +652,10 @@ param_autosave()
 	// - tasks often call param_set() for multiple params, so this avoids unnecessary save calls
 	// - the logger stores changed params. He gets notified on a param change via uORB and then
 	//   looks at all unsaved params.
-	hrt_abstime delay = 300 * 1000;
+	hrt_abstime delay = 300_ms;
 
-	const hrt_abstime rate_limit = 2000 * 1000; // rate-limit saving to 2 seconds
-	hrt_abstime last_save_elapsed = hrt_elapsed_time(&last_autosave_timestamp);
+	static constexpr const hrt_abstime rate_limit = 2_s; // rate-limit saving to 2 seconds
+	const hrt_abstime last_save_elapsed = hrt_elapsed_time(&last_autosave_timestamp);
 
 	if (last_save_elapsed < rate_limit && rate_limit > last_save_elapsed + delay) {
 		delay = rate_limit - last_save_elapsed;
@@ -921,6 +927,11 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 int
 param_set_default_file(const char *filename)
 {
+#ifdef FLASH_BASED_PARAMS
+	// the default for flash-based params is always the FLASH
+	(void)filename;
+#else
+
 	if (param_user_file != nullptr) {
 		// we assume this is not in use by some other thread
 		free(param_user_file);
@@ -930,6 +941,8 @@ param_set_default_file(const char *filename)
 	if (filename) {
 		param_user_file = strdup(filename);
 	}
+
+#endif /* FLASH_BASED_PARAMS */
 
 	return 0;
 }
@@ -944,9 +957,15 @@ int
 param_save_default()
 {
 	int res = PX4_ERROR;
-#if !defined(FLASH_BASED_PARAMS)
 
 	const char *filename = param_get_default_file();
+
+	if (!filename) {
+		param_lock_writer();
+		res = flash_param_save(false);
+		param_unlock_writer();
+		return res;
+	}
 
 	/* write parameters to temp file */
 	int fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
@@ -973,11 +992,6 @@ param_save_default()
 	}
 
 	PARAM_CLOSE(fd);
-#else
-	param_lock_writer();
-	res = flash_param_save();
-	param_unlock_writer();
-#endif
 
 	return res;
 }
@@ -989,13 +1003,18 @@ int
 param_load_default()
 {
 	int res = 0;
-#if !defined(FLASH_BASED_PARAMS)
-	int fd_load = PARAM_OPEN(param_get_default_file(), O_RDONLY);
+	const char *filename = param_get_default_file();
+
+	if (!filename) {
+		return flash_param_load();
+	}
+
+	int fd_load = PARAM_OPEN(filename, O_RDONLY);
 
 	if (fd_load < 0) {
 		/* no parameter file is OK, otherwise this is an error */
 		if (errno != ENOENT) {
-			PX4_ERR("open '%s' for reading failed", param_get_default_file());
+			PX4_ERR("open '%s' for reading failed", filename);
 			return -1;
 		}
 
@@ -1006,25 +1025,29 @@ param_load_default()
 	PARAM_CLOSE(fd_load);
 
 	if (result != 0) {
-		PX4_ERR("error reading parameters from '%s'", param_get_default_file());
+		PX4_ERR("error reading parameters from '%s'", filename);
 		return -2;
 	}
 
-#else
-	// no need for locking
-	res = flash_param_load();
-#endif
 	return res;
 }
 
 int
 param_export(int fd, bool only_unsaved)
 {
+	int	result = -1;
 	perf_begin(param_export_perf);
 
-	param_wbuf_s *s = nullptr;
-	int	result = -1;
+	if (fd < 0) {
+		param_lock_writer();
+		// flash_param_save() will take the shutdown lock
+		result = flash_param_save(only_unsaved);
+		param_unlock_writer();
+		perf_end(param_export_perf);
+		return result;
+	}
 
+	param_wbuf_s *s = nullptr;
 	struct bson_encoder_s encoder;
 
 	int shutdown_lock_ret = px4_shutdown_lock();
@@ -1280,7 +1303,6 @@ param_import_internal(int fd, bool mark_saved)
 
 	do {
 		result = bson_decoder_next(&decoder);
-		usleep(1);
 
 	} while (result > 0);
 
@@ -1290,18 +1312,20 @@ param_import_internal(int fd, bool mark_saved)
 int
 param_import(int fd)
 {
-#if !defined(FLASH_BASED_PARAMS)
+	if (fd < 0) {
+		return flash_param_import();
+	}
+
 	return param_import_internal(fd, false);
-#else
-	(void)fd; // unused
-	// no need for locking here
-	return flash_param_import();
-#endif
 }
 
 int
 param_load(int fd)
 {
+	if (fd < 0) {
+		return flash_param_load();
+	}
+
 	param_reset_all_internal(false);
 	return param_import_internal(fd, true);
 }
@@ -1347,4 +1371,37 @@ uint32_t param_hash_check()
 	param_unlock_reader();
 
 	return param_hash;
+}
+
+void param_print_status()
+{
+	PX4_INFO("summary: %d/%d (used/total)", param_count_used(), param_count());
+
+#ifndef FLASH_BASED_PARAMS
+	const char *filename = param_get_default_file();
+
+	if (filename != nullptr) {
+		PX4_INFO("file: %s", param_get_default_file());
+	}
+
+#endif /* FLASH_BASED_PARAMS */
+
+	if (param_values != nullptr) {
+		PX4_INFO("storage array: %d/%d elements (%zu bytes total)",
+			 utarray_len(param_values), param_values->n, param_values->n * sizeof(UT_icd));
+	}
+
+#ifndef PARAM_NO_AUTOSAVE
+	PX4_INFO("auto save: %s", autosave_disabled ? "off" : "on");
+
+	if (!autosave_disabled && (last_autosave_timestamp > 0)) {
+		PX4_INFO("last auto save: %.3f seconds ago", hrt_elapsed_time(&last_autosave_timestamp) * 1e-6);
+	}
+
+#endif /* PARAM_NO_AUTOSAVE */
+
+	perf_print_counter(param_export_perf);
+	perf_print_counter(param_find_perf);
+	perf_print_counter(param_get_perf);
+	perf_print_counter(param_set_perf);
 }

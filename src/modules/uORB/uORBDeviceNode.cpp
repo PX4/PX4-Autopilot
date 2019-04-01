@@ -33,14 +33,6 @@
 
 #include "uORBDeviceNode.hpp"
 
-#ifdef __PX4_NUTTX
-#define FILE_FLAGS(filp) filp->f_oflags
-#define FILE_PRIV(filp) filp->f_priv
-#else
-#define FILE_FLAGS(filp) filp->flags
-#define FILE_PRIV(filp) filp->priv
-#endif
-
 #include "uORBDeviceNode.hpp"
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
@@ -58,13 +50,15 @@ uORB::DeviceNode::SubscriberData *uORB::DeviceNode::filp_to_sd(cdev::file_t *fil
 	}
 
 #endif
-	return (SubscriberData *)(FILE_PRIV(filp));
+	return (SubscriberData *)(filp->f_priv);
 }
 
-uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const char *path, int priority, unsigned int queue_size) :
+uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path,
+			     uint8_t priority, uint8_t queue_size) :
 	CDev(path),
 	_meta(meta),
-	_priority((uint8_t)priority),
+	_instance(instance),
+	_priority(priority),
 	_queue_size(queue_size)
 {
 }
@@ -82,7 +76,7 @@ uORB::DeviceNode::open(cdev::file_t *filp)
 	int ret;
 
 	/* is this a publisher? */
-	if (FILE_FLAGS(filp) == PX4_F_WRONLY) {
+	if (filp->f_oflags == PX4_F_WRONLY) {
 
 		/* become the publisher if we can */
 		lock();
@@ -111,7 +105,7 @@ uORB::DeviceNode::open(cdev::file_t *filp)
 	}
 
 	/* is this a new subscriber? */
-	if (FILE_FLAGS(filp) == PX4_F_RDONLY) {
+	if (filp->f_oflags == PX4_F_RDONLY) {
 
 		/* allocate subscriber data */
 		SubscriberData *sd = new SubscriberData{};
@@ -123,7 +117,7 @@ uORB::DeviceNode::open(cdev::file_t *filp)
 		/* If there were any previous publications, allow the subscriber to read them */
 		sd->generation = _generation - (_queue_size < _generation ? _queue_size : _generation);
 
-		FILE_PRIV(filp) = (void *)sd;
+		filp->f_priv = (void *)sd;
 
 		ret = CDev::open(filp);
 
@@ -137,7 +131,7 @@ uORB::DeviceNode::open(cdev::file_t *filp)
 		return ret;
 	}
 
-	if (FILE_FLAGS(filp) == 0) {
+	if (filp->f_oflags == 0) {
 		return CDev::open(filp);
 	}
 
@@ -596,12 +590,6 @@ out:
 bool
 uORB::DeviceNode::appears_updated(SubscriberData *sd)
 {
-
-	/* block if in simulation mode */
-	while (px4_sim_delay_enabled()) {
-		usleep(100);
-	}
-
 	/* assume it doesn't look updated */
 	bool ret = false;
 
@@ -760,7 +748,7 @@ int16_t uORB::DeviceNode::process_received_message(int32_t length, uint8_t *data
 	int16_t ret = -1;
 
 	if (length != (int32_t)(_meta->o_size)) {
-		PX4_ERR("Received DataLength[%d] != ExpectedLen[%d]", _meta->o_name, (int)length, (int)_meta->o_size);
+		PX4_ERR("Received '%s' with DataLength[%d] != ExpectedLen[%d]", _meta->o_name, (int)length, (int)_meta->o_size);
 		return PX4_ERROR;
 	}
 

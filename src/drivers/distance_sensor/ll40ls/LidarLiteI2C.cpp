@@ -230,24 +230,6 @@ ok:
 int LidarLiteI2C::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			ATOMIC_ENTER;
-
-			if (!_reports->resize(arg)) {
-				ATOMIC_LEAVE;
-				return -ENOMEM;
-			}
-
-			ATOMIC_LEAVE;
-
-			return OK;
-		}
-
 	default: {
 			int result = LidarLite::ioctl(filp, cmd, arg);
 
@@ -301,7 +283,7 @@ ssize_t LidarLiteI2C::read(device::file_t *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(LL40LS_CONVERSION_INTERVAL);
+		px4_usleep(LL40LS_CONVERSION_INTERVAL);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -371,7 +353,7 @@ int LidarLiteI2C::reset_sensor()
 	}
 
 	// wait for sensor reset to complete
-	usleep(50000);
+	px4_usleep(50000);
 	ret = write_reg(LL40LS_SIG_COUNT_VAL_REG, LL40LS_SIG_COUNT_VAL_MAX);
 
 	if (ret != OK) {
@@ -379,7 +361,7 @@ int LidarLiteI2C::reset_sensor()
 	}
 
 	// wait for register write to complete
-	usleep(1000);
+	px4_usleep(1000);
 
 	return OK;
 }
@@ -392,7 +374,7 @@ void LidarLiteI2C::print_registers()
 	_pause_measurements = true;
 	printf("ll40ls registers\n");
 	// wait for a while to ensure the lidar is in a ready state
-	usleep(50000);
+	px4_usleep(50000);
 
 	for (uint8_t reg = 0; reg <= 0x67; reg++) {
 		uint8_t val = 0;
@@ -558,7 +540,7 @@ int LidarLiteI2C::collect()
 	report.current_distance = distance_m;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
-	report.covariance = 0.0f;
+	report.variance = 0.0f;
 	report.signal_quality = signal_quality;
 	report.type =
 		distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;		// the sensor is in fact a laser + sonar but there is no enum for this

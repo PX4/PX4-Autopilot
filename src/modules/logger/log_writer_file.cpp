@@ -33,8 +33,10 @@
 
 #include "log_writer_file.h"
 #include "messages.h"
+
 #include <fcntl.h>
 #include <string.h>
+#include <errno.h>
 
 #include <mathlib/mathlib.h>
 #include <px4_posix.h>
@@ -257,8 +259,10 @@ void LogWriterFile::run()
 						buffer.close_file();
 					}
 
-				} else if (call_fsync) {
+				} else if (call_fsync && buffer._should_run) {
+					pthread_mutex_unlock(&_mtx);
 					buffer.fsync();
+					pthread_mutex_lock(&_mtx);
 
 				} else if (available == 0 && !buffer._should_run) {
 					buffer.close_file();
@@ -298,7 +302,7 @@ int LogWriterFile::write_message(LogType type, void *ptr, size_t size, uint64_t 
 			while ((ret = write(type, ptr, 0, dropout_start)) == -1) {
 				unlock();
 				notify();
-				usleep(3000);
+				px4_usleep(3000);
 				lock();
 			}
 		}
@@ -312,7 +316,7 @@ int LogWriterFile::write_message(LogType type, void *ptr, size_t size, uint64_t 
 			while ((ret = write(type, uptr, write_size, 0)) == -1) {
 				unlock();
 				notify();
-				usleep(3000);
+				px4_usleep(3000);
 				lock();
 			}
 

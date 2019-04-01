@@ -41,6 +41,7 @@
 #include <px4_workqueue.h>
 #include <drivers/device/device.h>
 #include <px4_defines.h>
+#include <containers/Array.hpp>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -54,7 +55,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <vector>
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
@@ -86,7 +86,7 @@
 class HC_SR04 : public cdev::CDev
 {
 public:
-	HC_SR04(unsigned sonars = 6);
+	HC_SR04();
 	virtual ~HC_SR04();
 
 	virtual int 		init();
@@ -123,9 +123,9 @@ private:
 	int					_cycling_rate;	/* */
 	uint8_t				_index_counter;	/* temporary sonar i2c address */
 
-	std::vector<float>
+	px4::Array<float, 6>
 	_latest_sonar_measurements; /* vector to store latest sonar measurements in before writing to report */
-	unsigned 		_sonars;
+	unsigned 		_sonars{6};
 	struct GPIOConfig {
 		uint32_t        trig_port;
 		uint32_t        echo_port;
@@ -200,7 +200,7 @@ const HC_SR04::GPIOConfig HC_SR04::_gpio_tab[] = {
 extern "C"  __EXPORT int hc_sr04_main(int argc, char *argv[]);
 static int sonar_isr(int irq, void *context);
 
-HC_SR04::HC_SR04(unsigned sonars) :
+HC_SR04::HC_SR04() :
 	CDev(SR04_DEVICE_PATH, 0),
 	_min_distance(SR04_MIN_DISTANCE),
 	_max_distance(SR04_MAX_DISTANCE),
@@ -348,21 +348,11 @@ HC_SR04::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -404,35 +394,6 @@ HC_SR04::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				}
 			}
 		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (1000 / _measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			ATOMIC_ENTER;
-
-			if (!_reports->resize(arg)) {
-				ATOMIC_LEAVE;
-				return -ENOMEM;
-			}
-
-			ATOMIC_LEAVE;
-
-			return OK;
-		}
-
-	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
 
 	default:
 		/* give it to the superclass */

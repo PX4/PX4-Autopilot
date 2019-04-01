@@ -38,6 +38,4 @@ px4_add_module(
         -Wno-write-strings
     SRCS
         motor_ramp.cpp
-    DEPENDS
-        platforms__common
     )

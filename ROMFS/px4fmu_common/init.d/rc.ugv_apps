@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # Standard apps for unmanned ground vehicles (UGV).
 #

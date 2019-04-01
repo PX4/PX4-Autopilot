@@ -37,6 +37,7 @@
 #include "../uORB.h"
 #include <px4_time.h>
 #include <px4_tasks.h>
+#include <unistd.h>
 
 struct orb_test {
 	int val;
@@ -161,7 +162,7 @@ int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
 		}
 
 		/* simulate >800 Hz system operation */
-		usleep(1000);
+		px4_usleep(1000);
 	}
 
 	if (pubsub_task < 0) {

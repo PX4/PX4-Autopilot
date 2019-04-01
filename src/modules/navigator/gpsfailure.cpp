@@ -46,6 +46,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <mathlib/mathlib.h>
 
 using matrix::Eulerf;
@@ -86,7 +87,7 @@ GpsFailure::on_active()
 			att_sp.timestamp = hrt_absolute_time();
 			att_sp.roll_body = math::radians(_param_openlooploiter_roll.get());
 			att_sp.pitch_body = math::radians(_param_openlooploiter_pitch.get());
-			att_sp.thrust = _param_openlooploiter_thrust.get();
+			att_sp.thrust_body[0] = _param_openlooploiter_thrust.get();
 
 			Quatf q(Eulerf(att_sp.roll_body, att_sp.pitch_body, 0.0f));
 			q.copyTo(att_sp.q_d);

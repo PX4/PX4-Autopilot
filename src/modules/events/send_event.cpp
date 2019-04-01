@@ -34,6 +34,8 @@
 #include "send_event.h"
 #include "temperature_calibration/temperature_calibration.h"
 
+#include <math.h>
+
 #include <px4_getopt.h>
 #include <px4_log.h>
 #include <drivers/drv_hrt.h>
@@ -113,7 +115,7 @@ void SendEvent::initialize_trampoline(void *arg)
 	}
 
 	send_event->start();
-	_object = send_event;
+	_object.store(send_event);
 }
 
 void SendEvent::cycle_trampoline(void *arg)

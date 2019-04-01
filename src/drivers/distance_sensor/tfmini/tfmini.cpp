@@ -45,6 +45,7 @@
 #include <px4_config.h>
 #include <px4_workqueue.h>
 #include <px4_getopt.h>
+#include <px4_module.h>
 
 #include <sys/types.h>
 #include <sys/ioctl.h>
@@ -362,21 +363,11 @@ TFMINI::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -418,35 +409,6 @@ TFMINI::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				}
 			}
 		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (1000 / _measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			ATOMIC_ENTER;
-
-			if (!_reports->resize(arg)) {
-				ATOMIC_LEAVE;
-				return -ENOMEM;
-			}
-
-			ATOMIC_LEAVE;
-
-			return OK;
-		}
-
-	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
 
 	default:
 		/* give it to the superclass */
@@ -490,7 +452,7 @@ TFMINI::read(device::file_t *filp, char *buffer, size_t buflen)
 		_reports->flush();
 
 		/* wait for it to complete */
-		usleep(_conversion_interval);
+		px4_usleep(_conversion_interval);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -578,7 +540,7 @@ TFMINI::collect()
 	report.current_distance = distance_m;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
-	report.covariance = 0.0f;
+	report.variance = 0.0f;
 	report.signal_quality = -1;
 	/* TODO: set proper ID */
 	report.id = 0;
@@ -822,7 +784,7 @@ test()
 		sz = px4_read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			PX4_ERR("read failed: got %d vs exp. %d", sz, sizeof(report));
+			PX4_ERR("read failed: got %zi vs exp. %zu", sz, sizeof(report));
 			break;
 		}
 
@@ -862,8 +824,32 @@ info()
 void
 usage()
 {
-	printf("usage:\n");
-	printf("tfmini start -d <device path> -R (optional) <rotation>:\n");
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+Serial bus driver for the Benewake TFmini LiDAR.
+
+Most boards are configured to enable/start the driver on a specified UART using the SENS_TFMINI_CFG parameter.
+
+Setup/usage information: https://docs.px4.io/en/sensor/tfmini.html
+
+### Examples
+
+Attempt to start driver on a specified serial device.
+$ tfmini start -d /dev/ttyS1
+Stop driver
+$ tfmini stop
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("tfmini", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 1, 25, "Sensor rotation - downward facing by default", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("info","Print driver information");
 }
 
 } // namespace
@@ -934,6 +920,7 @@ tfmini_main(int argc, char *argv[])
 	}
 
 out_error:
-	PX4_ERR("unrecognized command, try 'start', 'test', or 'info'");
+	PX4_ERR("unrecognized command");
+        tfmini::usage();
 	return -1;
 }

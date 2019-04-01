@@ -113,13 +113,13 @@ int PGA460::initialize_device_settings()
 		return PX4_ERROR;
 	}
 
-	usleep(10000);
+	px4_usleep(10000);
 
 	// Read to see if eeprom saved data matches desired data, otherwise overwrite eeprom.
 	if (read_eeprom() != PX4_OK) {
 		write_eeprom();
 		// Allow sufficient time for the device to complete writing to registers.
-		usleep(10000);
+		px4_usleep(10000);
 	}
 
 	// Verify the device is alive.
@@ -152,7 +152,7 @@ int PGA460::initialize_thresholds()
 	}
 
 	// Must wait >50us per datasheet.
-	usleep(100);
+	px4_usleep(100);
 
 	if (read_threshold_registers() == PX4_OK) {
 		return PX4_OK;
@@ -183,7 +183,7 @@ uint32_t PGA460::collect_results()
 
 		bytes_available -= ret;
 
-		usleep(1000);
+		px4_usleep(1000);
 
 	} while (bytes_available > 0);
 
@@ -250,7 +250,7 @@ float PGA460::get_temperature()
 	}
 
 	// The pga460 requires a 2ms delay per the datasheet.
-	usleep(5000);
+	px4_usleep(5000);
 
 	buf_tx[1] = TNLR;
 	ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx) - 2);
@@ -259,7 +259,7 @@ float PGA460::get_temperature()
 		return PX4_ERROR;
 	}
 
-	usleep(10000);
+	px4_usleep(10000);
 
 	uint8_t buf_rx[4] = {};
 	int bytes_available = sizeof(buf_rx);
@@ -278,7 +278,7 @@ float PGA460::get_temperature()
 
 		bytes_available -= ret;
 
-		usleep(1000);
+		px4_usleep(1000);
 
 	} while (bytes_available > 0);
 
@@ -528,7 +528,7 @@ int PGA460::read_eeprom()
 		return PX4_ERROR;
 	}
 
-	usleep(10000);
+	px4_usleep(10000);
 
 	int bytes_available = sizeof(buf_rx);
 	int total_bytes = 0;
@@ -546,7 +546,7 @@ int PGA460::read_eeprom()
 
 		bytes_available -= ret;
 
-		usleep(1000);
+		px4_usleep(1000);
 
 	} while (bytes_available > 0);
 
@@ -580,7 +580,7 @@ uint8_t PGA460::read_register(const uint8_t reg)
 		return PX4_ERROR;
 	}
 
-	usleep(10000);
+	px4_usleep(10000);
 
 	uint8_t buf_rx[3] = {};
 	int bytes_available = sizeof(buf_rx);
@@ -599,7 +599,7 @@ uint8_t PGA460::read_register(const uint8_t reg)
 
 		bytes_available -= ret;
 
-		usleep(1000);
+		px4_usleep(1000);
 
 	} while (bytes_available > 0);
 
@@ -628,7 +628,7 @@ int PGA460::read_threshold_registers()
 		return PX4_ERROR;
 	}
 
-	usleep(10000);
+	px4_usleep(10000);
 
 	uint8_t buf_rx[array_size + 2] = {};
 	int bytes_available = sizeof(buf_rx);
@@ -647,7 +647,7 @@ int PGA460::read_threshold_registers()
 
 		bytes_available -= ret;
 
-		usleep(1000);
+		px4_usleep(1000);
 
 	} while (bytes_available > 0);
 
@@ -669,7 +669,7 @@ int PGA460::request_results()
 {
 	uint8_t buf_tx[2] = {SYNCBYTE, UMR};
 	int ret = ::write(_fd, &buf_tx[0], sizeof(buf_tx));
-	usleep(10000);
+	px4_usleep(10000);
 
 	if(!ret) {
 		return PX4_ERROR;
@@ -707,7 +707,7 @@ void PGA460::run()
 		// Control rate.
 		uint64_t loop_time = hrt_absolute_time() - _start_loop;
 		uint32_t sleep_time = (loop_time > POLL_RATE_US) ? 0 : POLL_RATE_US - loop_time;
-		usleep(sleep_time);
+		px4_usleep(sleep_time);
 
 		_start_loop = hrt_absolute_time();
 		request_results();
@@ -856,17 +856,17 @@ int PGA460::write_eeprom()
 	}
 
 	// Needs time, see datasheet timing requirements.
-	usleep(5000);
+	px4_usleep(5000);
 	unlock_eeprom();
 	flash_eeprom();
-	usleep(5000);
+	px4_usleep(5000);
 
 	uint8_t result = 0;
 
 	// Give up to 100ms for ee_cntrl register to reflect a successful eeprom write.
 	for (int i = 0; i < 100; i++) {
 		result = read_register(EE_CNTRL_ADDR);
-		usleep(5000);
+		px4_usleep(5000);
 
 		if (result & 1 << 2) {
 			PX4_INFO("EEPROM write successful");

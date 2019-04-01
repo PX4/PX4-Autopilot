@@ -31,6 +31,18 @@
  *
  ****************************************************************************/
 
+/**
+ * @file SMBus.cpp
+ * SMBus v2.0 protocol implementation.
+ *
+ * @author Jacob Dahl <dahl.jakejacob@gmail.com>
+ *
+ * TODO
+ *  - Enable SMBus mode at the NuttX level. This may be tricky sharing the bus with i2c.
+ *  	i.e STM32f4 see platforms/nuttx/Nuttx/nuttx/arch/arm/src/stm32/stm32f40xxx_i2c.c
+ *  - Add remaining SMBus protocol messages as needed
+ */
+
 #include "SMBus.hpp"
 
 SMBus::SMBus(int bus_num, uint16_t address) :
@@ -66,6 +78,22 @@ int SMBus::read_word(const uint8_t cmd_code, void *data)
 	return result;
 }
 
+int SMBus::write_word(const uint8_t cmd_code, void *data)
+{
+	// 2 data bytes + pec byte
+	uint8_t buf[5] = {};
+	buf[0] = (get_device_address() << 1) | 0x10;
+	buf[1] = cmd_code;
+	buf[2] = ((uint8_t *)data)[0];
+	buf[3] = ((uint8_t *)data)[1];
+
+	buf[4] = get_pec(buf, 4);
+
+	int result = transfer(&buf[1], 4, nullptr, 0);
+
+	return result;
+}
+
 int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length, bool use_pec)
 {
 	unsigned byte_count = 0;
@@ -95,8 +123,8 @@ int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length, 
 
 int SMBus::block_write(const uint8_t cmd_code, void *data, uint8_t byte_count, bool use_pec)
 {
-	// cmd code, byte count, data[byte_count], pec (optional)
-	uint8_t buf[32 + 3];
+	// cmd code[1], byte count[1], data[byte_count] (32max), pec[1] (optional)
+	uint8_t buf[32 + 2];
 
 	buf[0] = cmd_code;
 	buf[1] = (uint8_t)byte_count;
@@ -112,12 +140,12 @@ int SMBus::block_write(const uint8_t cmd_code, void *data, uint8_t byte_count, b
 	int result = 0;
 
 	// If block_write fails, try up to 10 times.
-	while (i < 10 && (result = transfer((uint8_t *)buf, byte_count + 2, nullptr, 0)) != PX4_OK) {
+	while (i < 10 && ((result = transfer((uint8_t *)buf, byte_count + 2, nullptr, 0)) != PX4_OK)) {
 		i++;
 	}
 
-	if (i == 10) {
-		PX4_WARN("Block_write failed 10 times");
+	if (i == 10 || result) {
+		PX4_WARN("Block_write failed %d times", i);
 		result = -EINVAL;
 	}
 

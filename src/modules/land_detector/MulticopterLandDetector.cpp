@@ -151,7 +151,7 @@ bool MulticopterLandDetector::_get_freefall_state()
 
 bool MulticopterLandDetector::_get_ground_contact_state()
 {
-	// only trigger flight conditions if we are armed
+	// When not armed, consider to have ground-contact
 	if (!_arming.armed) {
 		return true;
 	}
@@ -175,21 +175,21 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 		// Adjust maxClimbRate if land_speed is lower than 2x maxClimbrate
 		float maxClimbRate = ((land_speed_threshold * 0.5f) < _params.maxClimbRate) ? (0.5f * land_speed_threshold) :
 				     _params.maxClimbRate;
-		verticalMovement = fabsf(_vehicleLocalPosition.z_deriv) > maxClimbRate;
+		verticalMovement = fabsf(_vehicleLocalPosition.vz) > maxClimbRate;
 	}
 
 	// Check if we are moving horizontally.
-	bool horizontalMovement = sqrtf(_vehicleLocalPosition.vx * _vehicleLocalPosition.vx
-					+ _vehicleLocalPosition.vy * _vehicleLocalPosition.vy) > _params.maxVelocity;
+	_horizontal_movement = sqrtf(_vehicleLocalPosition.vx * _vehicleLocalPosition.vx
+				     + _vehicleLocalPosition.vy * _vehicleLocalPosition.vy) > _params.maxVelocity;
 
 	// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,
 	// we then can assume that the vehicle hit ground
-	bool in_descend = _is_climb_rate_enabled()
-			  && (_vehicleLocalPositionSetpoint.vz >= land_speed_threshold);
-	bool hit_ground = in_descend && !verticalMovement;
+	_in_descend = _is_climb_rate_enabled()
+		      && (_vehicleLocalPositionSetpoint.vz >= land_speed_threshold);
+	bool hit_ground = _in_descend && !verticalMovement;
 
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
-	if ((_has_low_thrust() || hit_ground) && (!horizontalMovement || !_has_position_lock())
+	if ((_has_low_thrust() || hit_ground) && (!_horizontal_movement || !_has_position_lock())
 	    && (!verticalMovement || !_has_altitude_lock())) {
 		return true;
 	}
@@ -202,7 +202,7 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	// Time base for this function
 	const hrt_abstime now = hrt_absolute_time();
 
-	// only trigger flight conditions if we are armed
+	// When not armed, consider to be maybe-landed
 	if (!_arming.armed) {
 		return true;
 	}
@@ -249,6 +249,11 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 
 bool MulticopterLandDetector::_get_landed_state()
 {
+	// When not armed, consider to be landed
+	if (!_arming.armed) {
+		return true;
+	}
+
 	// reset the landed_time
 	if (!_maybe_landed_hysteresis.get_state()) {
 
@@ -327,6 +332,16 @@ bool MulticopterLandDetector::_has_minimal_thrust()
 
 	// Check if thrust output is less than the minimum auto throttle param.
 	return _actuators.control[actuator_controls_s::INDEX_THROTTLE] <= sys_min_throttle;
+}
+
+bool MulticopterLandDetector::_get_ground_effect_state()
+{
+	if (_in_descend && !_horizontal_movement) {
+		return true;
+
+	} else {
+		return false;
+	}
 }
 
 } // namespace land_detector

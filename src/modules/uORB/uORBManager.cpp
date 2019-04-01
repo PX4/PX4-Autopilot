@@ -94,33 +94,43 @@ uORB::DeviceMaster *uORB::Manager::get_device_master()
 
 int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 {
+	int ret = PX4_ERROR;
+
+	// instance valid range: [0, ORB_MULTI_MAX_INSTANCES)
+	if ((instance < 0) || (instance > (ORB_MULTI_MAX_INSTANCES - 1))) {
+		return ret;
+	}
+
+	if (get_device_master()) {
+		uORB::DeviceNode *node = _device_master->getDeviceNode(meta, instance);
+
+		if (node != nullptr) {
+			if (node->is_published()) {
+				return PX4_OK;
+			}
+		}
+	}
+
+#ifdef ORB_COMMUNICATOR
+
 	/*
 	 * Generate the path to the node and try to open it.
 	 */
 	char path[orb_maxpath];
 	int inst = instance;
-	int ret = uORB::Utils::node_mkpath(path, meta, &inst);
+
+	ret = uORB::Utils::node_mkpath(path, meta, &inst);
 
 	if (ret != OK) {
 		errno = -ret;
 		return PX4_ERROR;
 	}
 
-#if defined(__PX4_NUTTX)
-	struct stat buffer;
-	ret = stat(path, &buffer);
-#else
 	ret = px4_access(path, F_OK);
-
-#ifdef ORB_COMMUNICATOR
 
 	if (ret == -1 && meta != nullptr && !_remote_topics.empty()) {
 		ret = (_remote_topics.find(meta->o_name) != _remote_topics.end()) ? OK : PX4_ERROR;
 	}
-
-#endif /* ORB_COMMUNICATOR */
-
-#endif
 
 	if (ret == 0) {
 		// we know the topic exists, but it's not necessarily advertised/published yet (for example
@@ -140,6 +150,8 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 			px4_close(fd);
 		}
 	}
+
+#endif /* ORB_COMMUNICATOR */
 
 	return ret;
 }

@@ -1,0 +1,73 @@
+#!/bin/sh
+#
+# @name Fun Cub Quad VTOL
+#
+# @type Standard VTOL
+# @class VTOL
+#
+# @maintainer Simon Wilks <simon@uaventure.com>
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+# @output AUX1 Aileron 1
+# @output AUX2 Aileron 2
+# @output AUX3 Elevator
+# @output AUX4 Rudder
+# @output AUX5 Throttle
+#
+
+sh /etc/init.d/rc.vtol_defaults
+
+if [ $AUTOCNF = yes ]
+then
+	param set PWM_AUX_DIS5 950
+
+	param set PWM_RATE 400
+
+	param set MC_ROLL_P 6
+	param set MC_ROLLRATE_P 0.17
+	param set MC_ROLLRATE_I 0.002
+	param set MC_ROLLRATE_D 0.004
+	param set MC_ROLLRATE_FF 0
+	param set MC_PITCH_P 6
+	param set MC_PITCHRATE_P 0.19
+	param set MC_PITCHRATE_I 0.002
+	param set MC_PITCHRATE_D 0.004
+	param set MC_PITCHRATE_FF 0
+	param set MC_YAW_P 2.8
+	param set MC_YAWRATE_P 0.22
+	param set MC_YAWRATE_I 0.02
+	param set MC_YAWRATE_D 0
+	param set MC_YAWRATE_FF 0
+	param set MC_YAWRATE_MAX 40
+	param set MC_YAWRAUTO_MAX 40
+
+	param set FW_PR_FF 0.5
+	param set FW_PR_I 0.02
+	param set FW_PR_IMAX 0.4
+	param set FW_PR_P 0.08
+	param set FW_RR_FF 0.6
+	param set FW_RR_I 0.01
+	param set FW_RR_IMAX 0.2
+	param set FW_RR_P 0.05
+	param set FW_THR_CRUISE 0.75
+
+	param set VT_ARSP_BLEND 6
+	param set VT_ARSP_TRANS 12
+	param set VT_F_TRANS_THR 0.75
+	param set VT_MOT_COUNT 4
+	param set VT_IDLE_PWM_MC 1080
+	param set VT_TYPE 2
+
+	# Indicate that FW roll direction was fixed in mixer, to be removed in v1.10
+	param set V19_VT_ROLLDIR 0
+fi
+
+set MAV_TYPE 22
+
+set MIXER quad_x
+set MIXER_AUX vtol_AAERT
+
+set PWM_OUT 1234

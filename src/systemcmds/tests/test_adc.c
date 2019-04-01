@@ -36,6 +36,7 @@
  * Test for the analog to digital converter.
  */
 
+#include <px4_time.h>
 #include <px4_config.h>
 #include <px4_posix.h>
 #include <px4_log.h>
@@ -78,7 +79,7 @@ int test_adc(int argc, char *argv[])
 		}
 
 		printf("\n");
-		usleep(150000);
+		px4_usleep(150000);
 	}
 
 	printf("\t ADC test successful.\n");

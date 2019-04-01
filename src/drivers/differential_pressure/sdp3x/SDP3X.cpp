@@ -70,7 +70,7 @@ SDP3X::init_sdp3x()
 	}
 
 	// wait until sensor is ready
-	usleep(20000);
+	px4_usleep(20000);
 
 	// step 2 - configure
 	ret = write_command(SDP3X_CONT_MEAS_AVG_MODE);
@@ -81,7 +81,7 @@ SDP3X::init_sdp3x()
 		return false;
 	}
 
-	usleep(10000);
+	px4_usleep(10000);
 
 	// step 3 - get scale
 	uint8_t val[9];

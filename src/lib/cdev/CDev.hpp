@@ -155,6 +155,13 @@ public:
 	 */
 	virtual int	poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup);
 
+	/**
+	 * Get the device name.
+	 *
+	 * @return the file system string of the device handle
+	 */
+	const char	*get_devname() const { return _devname; }
+
 protected:
 	/**
 	 * Pointer to the default cdev file operations table; useful for
@@ -238,13 +245,6 @@ protected:
 	 * @return		  OK on success, -errno otherwise
 	 */
 	virtual int unregister_class_devname(const char *class_devname, unsigned class_instance);
-
-	/**
-	 * Get the device name.
-	 *
-	 * @return the file system string of the device handle
-	 */
-	const char	*get_devname() { return _devname; }
 
 	/**
 	 * Take the driver lock.

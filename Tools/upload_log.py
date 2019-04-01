@@ -71,6 +71,16 @@ def main():
                       help="Log source (Eg. CI)", default="webui")
     parser.add_argument("--email", dest="email", type=str,
                       help="Your e-mail (to send the upload link)", default=None)
+    parser.add_argument("--type", dest="type", type=str, default='flightreport',
+                        help="The upload type (either flightreport or personal).")
+    parser.add_argument("--videoUrl", dest="videoUrl", type=str, default='',
+                        help="An Url to a video (only used for type flightreport).")
+    parser.add_argument("--rating", dest="rating", type=str, default='notset',
+                        help="A rating for the flight (only used for type flightreport).")
+    parser.add_argument("--windSpeed", dest="windSpeed", type=int, default=-1,
+                        help="A wind speed category for the flight (only used for flightreport).")
+    parser.add_argument("--public", dest="public", type=bool, default=True,
+                        help="Whether the log is uploaded as public (only used for flightreport).")
     parser.add_argument("FILE", help="ULog file(s)", nargs="+")
     args = parser.parse_args()
 
@@ -92,8 +102,14 @@ def main():
     else:
         email = args.email
 
-    payload = {'type': 'personal', 'description': description,
-            'feedback': feedback, 'email': email, 'source': args.source}
+    payload = {'type': args.type, 'description': description,
+               'feedback': feedback, 'email': email, 'source': args.source}
+
+    if args.type == 'flightreport':
+        payload['videoUrl'] = args.videoUrl
+        payload['rating'] = args.rating
+        payload['windSpeed'] = args.windSpeed
+        payload['public'] = str(args.public).lower()
 
     for file_name in args.FILE:
         if not quiet:

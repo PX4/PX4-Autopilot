@@ -41,11 +41,7 @@
 
 #define PX4_I2C_M_READ           0x0001          /* read data, from slave to master */
 
-#if defined(__PX4_ROS)
-
-#error "Devices not supported in ROS"
-
-#elif defined (__PX4_NUTTX)
+#if defined (__PX4_NUTTX)
 __BEGIN_DECLS
 
 /*

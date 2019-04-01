@@ -239,6 +239,7 @@ private:
 	// publications
 	void publishLocalPos();
 	void publishGlobalPos();
+	void publishOdom();
 	void publishEstimatorStatus();
 
 	// attributes
@@ -267,6 +268,7 @@ private:
 	// publications
 	uORB::Publication<vehicle_local_position_s> _pub_lpos;
 	uORB::Publication<vehicle_global_position_s> _pub_gpos;
+	uORB::Publication<vehicle_odometry_s> _pub_odom;
 	uORB::Publication<estimator_status_s> _pub_est_status;
 	uORB::Publication<ekf2_innovations_s> _pub_innov;
 

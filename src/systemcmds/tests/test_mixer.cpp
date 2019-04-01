@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2017 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,17 +32,19 @@
  ****************************************************************************/
 
 /**
- * @file test_mixer.hpp
- *
+ * @file test_mixer.cpp
  * Mixer load test
  */
 
-#include <limits>
 #include <dirent.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <math.h>
 
 #include <px4_config.h>
 #include <mixer/mixer.h>
+#include <mixer/mixer_load.h>
 #include <pwm_limit/pwm_limit.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
@@ -60,7 +62,7 @@ static int	mixer_callback(uintptr_t handle,
 			       uint8_t control_index,
 			       float &control);
 
-const unsigned output_max = 8;
+static const unsigned output_max = 8;
 static float actuator_controls[output_max];
 static bool should_prearm = false;
 
@@ -78,7 +80,7 @@ static bool should_prearm = false;
 #endif
 #endif
 
-#if defined(CONFIG_ARCH_BOARD_SITL)
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
 #define MIXER_PATH(_file)  "etc/mixers/"#_file
 #define MIXER_ONBOARD_PATH "etc/mixers"
 #else
@@ -396,13 +398,13 @@ bool MixerTest::mixerTest()
 
 		if (i != actuator_controls_s::INDEX_THROTTLE) {
 			if (r_page_servos[i] < r_page_servo_control_min[i]) {
-				warnx("active servo < min");
+				PX4_ERR("active servo < min");
 				return false;
 			}
 
 		} else {
 			if (r_page_servos[i] != r_page_servo_disarmed[i]) {
-				warnx("throttle output != 0 (this check assumed the IO pass mixer!)");
+				PX4_ERR("throttle output != 0 (this check assumed the IO pass mixer!)");
 				return false;
 			}
 		}
@@ -449,7 +451,7 @@ bool MixerTest::mixerTest()
 			}
 		}
 
-		usleep(sleep_quantum_us);
+		px4_usleep(sleep_quantum_us);
 		sleepcount++;
 
 		if (sleepcount % 10 == 0) {
@@ -514,7 +516,7 @@ bool MixerTest::mixerTest()
 			}
 		}
 
-		usleep(sleep_quantum_us);
+		px4_usleep(sleep_quantum_us);
 		sleepcount++;
 
 		if (sleepcount % 10 == 0) {
@@ -564,7 +566,7 @@ bool MixerTest::mixerTest()
 			}
 		}
 
-		usleep(sleep_quantum_us);
+		px4_usleep(sleep_quantum_us);
 		sleepcount++;
 
 		if (sleepcount % 10 == 0) {
@@ -593,7 +595,7 @@ mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, f
 
 	if (should_prearm && control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE &&
 	    control_index == actuator_controls_s::INDEX_THROTTLE) {
-		control = std::numeric_limits<float>::quiet_NaN();
+		control = NAN;
 	}
 
 	return 0;

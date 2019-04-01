@@ -42,27 +42,16 @@
 
 #include <px4_config.h>
 #include <px4_log.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <stdio.h>
-
-#include <perf/perf_counter.h>
-
-#include <board_config.h>
+#include <px4_time.h>
+#include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
-
 #include <drivers/device/spi.h>
 #include <drivers/device/ringbuffer.h>
 #include <drivers/device/integrator.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
 
 #include "mag.h"
@@ -129,14 +118,17 @@ MPU9250_mag::init()
 
 	/* if cdev init failed, bail now */
 	if (ret != OK) {
-		DEVICE_DEBUG("MPU9250 mag init failed");
+		if (_parent->_whoami == MPU_WHOAMI_9250) {
+			PX4_ERR("mag init failed");
+		}
+
 		return ret;
 	}
 
 	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
 
 	if (_mag_reports == nullptr) {
-		return -ENOMEM;;
+		return -ENOMEM;
 	}
 
 	_mag_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
@@ -147,8 +139,8 @@ MPU9250_mag::init()
 	_mag_reports->get(&mrp);
 
 	_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
-					 &_mag_orb_class_instance, ORB_PRIO_LOW);
-	//			   &_mag_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
+					 &_mag_orb_class_instance, (_parent->is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
+//    &_mag_orb_class_instance, ORB_PRIO_LOW);
 
 	if (_mag_topic == nullptr) {
 		PX4_ERR("ADVERT FAIL");
@@ -173,10 +165,15 @@ bool MPU9250_mag::check_duplicate(uint8_t *mag_data)
 void
 MPU9250_mag::measure()
 {
-	struct ak8963_regs data;
+	union raw_data_t {
+		struct ak8963_regs ak8963_data;
+		struct ak09916_regs ak09916_data;
+	} raw_data;
 
-	if (OK == _interface->read(AK8963REG_ST1, &data, sizeof(struct ak8963_regs))) {
-		_measure(data);
+	uint8_t ret = _interface->read(AK8963REG_ST1, &raw_data, sizeof(struct ak8963_regs));
+
+	if (ret == OK) {
+		_measure(raw_data.ak8963_data);
 	}
 }
 
@@ -205,19 +202,22 @@ MPU9250_mag::_measure(struct ak8963_regs data)
 
 	mag_report	mrb;
 	mrb.timestamp = hrt_absolute_time();
-	mrb.is_external = false;
+
+	mrb.is_external = _parent->is_external();
 
 	/*
 	 * Align axes - note the accel & gryo are also re-aligned so this
 	 *              doesn't look obvious with the datasheet
 	 */
+	float xraw_f, yraw_f, zraw_f;
+
 	mrb.x_raw =  data.x;
 	mrb.y_raw = -data.y;
 	mrb.z_raw = -data.z;
 
-	float xraw_f =  data.x;
-	float yraw_f = -data.y;
-	float zraw_f = -data.z;
+	xraw_f =  data.x;
+	yraw_f = -data.y;
+	zraw_f = -data.z;
 
 	/* apply user specified rotation */
 	rotate_3f(_parent->_rotation, xraw_f, yraw_f, zraw_f);
@@ -244,52 +244,14 @@ MPU9250_mag::_measure(struct ak8963_regs data)
 	}
 }
 
-ssize_t
-MPU9250_mag::read(struct file *filp, char *buffer, size_t buflen)
-{
-	unsigned count = buflen / sizeof(mag_report);
-
-	/* buffer must be large enough */
-	if (count < 1) {
-		return -ENOSPC;
-	}
-
-	/* if automatic measurement is not enabled, get a fresh measurement into the buffer */
-	if (_parent->_call_interval == 0) {
-		_mag_reports->flush();
-		/* TODO: this won't work as getting valid magnetometer
-		 *       data requires more than one measure cycle
-		 */
-		_parent->measure();
-	}
-
-	/* if no data, error (we could block here) */
-	if (_mag_reports->empty()) {
-		return -EAGAIN;
-	}
-
-	perf_count(_mag_reads);
-
-	/* copy reports out of our buffer to the caller */
-	mag_report *mrp = reinterpret_cast<mag_report *>(buffer);
-	int transferred = 0;
-
-	while (count--) {
-		if (!_mag_reports->get(mrp)) {
-			break;
-		}
-
-		transferred++;
-		mrp++;
-	}
-
-	/* return the number of bytes transferred */
-	return (transferred * sizeof(mag_report));
-}
-
 int
 MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
+	/*
+	 * Repeated in MPU9250_accel::ioctl
+	 * Both accel and mag CDev could be unused in case of magnetometer only mode or MPU6500
+	 */
+
 	switch (cmd) {
 
 	case SENSORIOCRESET:
@@ -298,75 +260,18 @@ MPU9250_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				/*
-				 * TODO: investigate being able to stop
-				 *       the continuous sampling
-				 */
-				//stop();
-				return OK;
-
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
-				return ioctl(filp, SENSORIOCSPOLLRATE, 100);
-
 			case SENSOR_POLLRATE_DEFAULT:
-				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_AK8963_SAMPLE_RATE);
+				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_ACCEL_DEFAULT_RATE);
 
 			/* adjust to a legal polling interval in Hz */
-			default: {
-					if (MPU9250_AK8963_SAMPLE_RATE != arg) {
-						return -EINVAL;
-					}
-
-					return OK;
-				}
+			default:
+				return _parent->_set_pollrate(arg);
 			}
 		}
-
-	case SENSORIOCGPOLLRATE:
-		return MPU9250_AK8963_SAMPLE_RATE;
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_mag_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
-	case MAGIOCGSAMPLERATE:
-		return MPU9250_AK8963_SAMPLE_RATE;
-
-	case MAGIOCSSAMPLERATE:
-
-		/*
-		 * We don't currently support any means of changing
-		 * the sampling rate of the mag
-		 */
-		if (MPU9250_AK8963_SAMPLE_RATE != arg) {
-			return -EINVAL;
-		}
-
-		return OK;
 
 	case MAGIOCSSCALE:
 		/* copy scale in */
@@ -413,7 +318,7 @@ void
 MPU9250_mag::passthrough_read(uint8_t reg, uint8_t *buf, uint8_t size)
 {
 	set_passthrough(reg, size);
-	usleep(25 + 25 * size); // wait for the value to be read from slave
+	px4_usleep(25 + 25 * size); // wait for the value to be read from slave
 	read_block(MPUREG_EXT_SENS_DATA_00, buf, size);
 	_parent->write_reg(MPUREG_I2C_SLV0_CTRL, 0); // disable new reads
 }
@@ -433,7 +338,6 @@ MPU9250_mag::read_reg(unsigned int reg)
 	return buf;
 }
 
-
 bool
 MPU9250_mag::ak8963_check_id(uint8_t &deviceid)
 {
@@ -449,11 +353,9 @@ void
 MPU9250_mag::passthrough_write(uint8_t reg, uint8_t val)
 {
 	set_passthrough(reg, 1, &val);
-	usleep(50); // wait for the value to be written to slave
+	px4_usleep(50); // wait for the value to be written to slave
 	_parent->write_reg(MPUREG_I2C_SLV0_CTRL, 0); // disable new writes
 }
-
-
 
 void
 MPU9250_mag::write_reg(unsigned reg, uint8_t value)
@@ -467,14 +369,10 @@ MPU9250_mag::write_reg(unsigned reg, uint8_t value)
 	}
 }
 
-
-
-
 int
 MPU9250_mag::ak8963_reset(void)
 {
 	// First initialize it to use the bus
-
 	int rv = ak8963_setup();
 
 	if (rv == OK) {
@@ -486,7 +384,6 @@ MPU9250_mag::ak8963_reset(void)
 	}
 
 	return rv;
-
 }
 
 bool
@@ -496,7 +393,7 @@ MPU9250_mag::ak8963_read_adjustments(void)
 	float ak8963_ASA[3];
 
 	write_reg(AK8963REG_CNTL1, AK8963_FUZE_MODE | AK8963_16BIT_ADC);
-	usleep(50);
+	px4_usleep(50);
 
 	if (_interface != nullptr) {
 		_interface->read(AK8963REG_ASAX, response, 3);
@@ -531,8 +428,10 @@ MPU9250_mag::ak8963_setup_master_i2c(void)
 	 * in master mode (SPI to I2C bridge)
 	 */
 	if (_interface == nullptr) {
-		_parent->modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_EN);
-		_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
+		if (_parent->_whoami == MPU_WHOAMI_9250) {
+			_parent->modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_EN);
+			_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
+		}
 
 	} else {
 		_parent->modify_checked_reg(MPUREG_USER_CTRL, BIT_I2C_MST_EN, 0);
@@ -557,7 +456,7 @@ MPU9250_mag::ak8963_setup(void)
 		}
 
 		retries--;
-		PX4_ERR("AK8963: bad id %d retries %d", id, retries);
+		PX4_WARN("AK8963: bad id %d retries %d", id, retries);
 		_parent->modify_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_RST);
 		up_udelay(100);
 	} while (retries > 0);
@@ -583,15 +482,19 @@ MPU9250_mag::ak8963_setup(void)
 		return -EIO;
 	}
 
-	write_reg(AK8963REG_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
+	if (_parent->_whoami == MPU_WHOAMI_9250) {
+		write_reg(AK8963REG_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
 
+	}
 
 	if (_interface == NULL) {
 
 		/* Configure mpu' I2c Master interface to read ak8963 data
 		 * Into to fifo
 		 */
-		set_passthrough(AK8963REG_ST1, sizeof(struct ak8963_regs));
+		if (_parent->_whoami == MPU_WHOAMI_9250) {
+			set_passthrough(AK8963REG_ST1, sizeof(struct ak8963_regs));
+		}
 	}
 
 	return OK;

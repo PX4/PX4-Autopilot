@@ -45,7 +45,7 @@ else
 	REQUESTED_AUTOSTART=$(ls "$SCRIPT_DIR" | sed -n 's/^\([0-9][0-9]*\)_'${PX4_SIM_MODEL}'$/\1/p')
 	if [ -z "$REQUESTED_AUTOSTART" ]; then
 		echo "Error: Unknown model '$PX4_SIM_MODEL'"
-		exit -1
+		exit 1
 	fi
 fi
 
@@ -82,7 +82,7 @@ fi
 # multi-instance setup
 # shellcheck disable=SC2154
 param set MAV_SYS_ID $((px4_instance+1))
-simulator_udp_port=$((14560+px4_instance))
+simulator_tcp_port=$((4560+px4_instance))
 udp_offboard_port_local=$((14580+px4_instance))
 udp_offboard_port_remote=$((14540+px4_instance))
 udp_gcs_port_local=$((14570+px4_instance))
@@ -115,7 +115,6 @@ then
 	param set EKF2_ANGERR_INIT 0.01
 	param set EKF2_HGT_MODE 0
 	param set EKF2_GBIAS_INIT 0.01
-	param set EKF2_MAG_TYPE 1
 
 	# LPE: GPS only mode
 	param set LPE_FUSION 145
@@ -128,17 +127,27 @@ then
 	param set MC_ROLLRATE_P 0.2
 
 	param set MPC_ALT_MODE 0
-	param set MPC_HOLD_MAX_Z 2.0
+	param set MPC_HOLD_MAX_Z 2
 	param set MPC_Z_VEL_I 0.15
 	param set MPC_Z_VEL_P 0.6
+	param set MPC_XY_P 0.8
+	param set MPC_XY_VEL_P 0.2
+	param set MPC_XY_VEL_I 0.02
+	param set MPC_XY_VEL_D 0.016
 
-	param set NAV_ACC_RAD 2.0
+	param set MPC_JERK_MIN 10
+	param set MPC_JERK_MAX 20
+	param set MPC_ACC_HOR_MAX 3
+
+	param set NAV_ACC_RAD 2
 	param set NAV_DLL_ACT 2
 
-	param set RTL_DESCEND_ALT 5.0
+	param set RTL_DESCEND_ALT 5
 	param set RTL_LAND_DELAY 5
-	param set RTL_RETURN_ALT 30.0
+	param set RTL_RETURN_ALT 30
 
+	# enable default, estimator replay and vision/avoidance logging profiles
+	param set SDLOG_PROFILE 131
 	param set SDLOG_DIRS_MAX 7
 	param set SENS_BOARD_ROT 0
 	param set SENS_BOARD_X_OFF 0.000001
@@ -164,7 +173,7 @@ do
 done
 if [ ! -e "$autostart_file" ]; then
 	echo "Error: no autostart file found ($autostart_file)"
-	exit -1
+	exit 1
 fi
 
 sh "$autostart_file"
@@ -172,7 +181,7 @@ sh "$autostart_file"
 
 dataman start
 replay tryapplyparams
-simulator start -s -u $simulator_udp_port
+simulator start -s -c $simulator_tcp_port
 tone_alarm start
 gyrosim start
 accelsim start
@@ -195,7 +204,6 @@ fi
 if param greater TRIG_MODE 0
 then
 	camera_trigger start
-	param set CAM_FBACK_MODE 1
 	camera_feedback start
 fi
 

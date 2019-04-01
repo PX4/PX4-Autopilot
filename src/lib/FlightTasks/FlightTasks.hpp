@@ -79,6 +79,12 @@ public:
 	const vehicle_constraints_s getConstraints();
 
 	/**
+	 * Get landing gear position.
+	 * @return landing gear
+	 */
+	const landing_gear_s getGear();
+
+	/**
 	 * Get task avoidance desired waypoints
 	 * @return auto triplets in the mc_pos_control
 	 */
@@ -135,6 +141,8 @@ public:
 	 *   This method will re-activate current task.
 	 */
 	void reActivate();
+
+	void updateVelocityControllerIO(const matrix::Vector3f &vel_sp, const matrix::Vector3f &thrust_sp) {_current_task.task->updateVelocityControllerIO(vel_sp, thrust_sp); }
 
 private:
 

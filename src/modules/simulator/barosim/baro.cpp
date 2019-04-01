@@ -99,7 +99,7 @@ protected:
 	ringbuffer::RingBuffer	*_reports;
 
 	/* last report */
-	struct baro_report	report;
+	sensor_baro_s	report;
 
 	orb_advert_t		_baro_topic;
 	int			_orb_class_instance;
@@ -162,7 +162,7 @@ int
 BAROSIM::init()
 {
 	int ret;
-	struct baro_report brp = {};
+	sensor_baro_s brp = {};
 
 	ret = VirtDevObj::init();
 
@@ -172,7 +172,7 @@ BAROSIM::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(baro_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_baro_s));
 
 	if (_reports == nullptr) {
 		PX4_ERR("can't get memory for reports");

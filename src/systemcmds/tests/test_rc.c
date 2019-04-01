@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,6 @@
 /**
  * @file test_rc.c
  * Tests RC input.
- *
  */
 
 #include <px4_config.h>
@@ -67,7 +66,7 @@ int test_rc(int argc, char *argv[])
 	struct input_rc_s rc_input;
 	struct input_rc_s rc_last;
 	orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
-	usleep(100000);
+	px4_usleep(100000);
 
 	/* open PPM input and expect values close to the output values */
 

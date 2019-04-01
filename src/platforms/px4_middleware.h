@@ -49,12 +49,7 @@ __EXPORT void init(int argc, char *argv[], const char *process_name);
 
 __EXPORT uint64_t get_time_micros();
 
-#if defined(__PX4_ROS)
-/**
- * Returns true if the app/task should continue to run
- */
-inline bool ok() { return ros::ok(); }
-#elif defined(__PX4_NUTTX)
+#if defined(__PX4_NUTTX)
 extern bool task_should_exit;
 /**
  * Returns true if the app/task should continue to run
@@ -68,24 +63,5 @@ inline void usleep(uint64_t sleep_interval) { }
  * Linux needs to have globally unique checks for thread/task status
  */
 #endif
-
-class Rate
-{
-public:
-	/**
-	 * Construct the Rate object and set rate
-	 * @param rate_hz rate from which sleep time is calculated in Hz
-	 */
-	explicit Rate(unsigned rate_hz) { sleep_interval = 1e6 / rate_hz; }
-
-	/**
-	 * Sleep for 1/rate_hz s
-	 */
-	void sleep() { usleep(sleep_interval); }
-
-private:
-	uint64_t sleep_interval;
-
-};
 
 } // namespace px4

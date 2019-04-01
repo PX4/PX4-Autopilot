@@ -75,7 +75,6 @@
 #include <uORB/uORB.h>
 
 #include <float.h>
-#include <getopt.h>
 #include <lib/conversion/rotation.h>
 
 /*
@@ -229,8 +228,6 @@ private:
 	/* status reporting */
 	bool			_sensor_ok{false};		/**< sensor was found and reports ok */
 	bool			_calibrated{false};		/**< the calibration is valid */
-	bool			_ctl_reg_mismatch{false};	/**< control register value mismatch after checking */
-
 	enum Rotation       _rotation;
 
 	sensor_mag_s   _last_report{};           /**< used for info() */
@@ -506,8 +503,6 @@ void IST8310::check_conf(void)
 		if (OK != ret) {
 			perf_count(_comms_errors);
 		}
-
-		_ctl_reg_mismatch = true;
 	}
 
 	ret = read_reg(ADDR_CTRL4, ctrl_reg_in);
@@ -524,11 +519,7 @@ void IST8310::check_conf(void)
 		if (OK != ret) {
 			perf_count(_comms_errors);
 		}
-
-		_ctl_reg_mismatch = true;
 	}
-
-	_ctl_reg_mismatch = false;
 }
 
 ssize_t
@@ -596,21 +587,11 @@ IST8310::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -652,41 +633,8 @@ IST8310::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return 1000000 / TICK2USEC(_measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
 	case SENSORIOCRESET:
 		return reset();
-
-	case MAGIOCSSAMPLERATE:
-		/* same as pollrate because device is in single measurement mode*/
-		return ioctl(filp, SENSORIOCSPOLLRATE, arg);
-
-	case MAGIOCGSAMPLERATE:
-		/* same as pollrate because device is in single measurement mode*/
-		return 1000000 / TICK2USEC(_measure_ticks);
 
 	case MAGIOCEXSTRAP:
 		return set_selftest(arg);
@@ -1352,16 +1300,6 @@ test(enum IST8310_BUS busid)
 	/* check if mag is onboard or external */
 	if ((ret = ioctl(fd, MAGIOCGEXTERNAL, 0)) < 0) {
 		errx(1, "failed to get if mag is onboard or external");
-	}
-
-	/* set the queue depth to 5 */
-	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
-		errx(1, "failed to set queue depth");
-	}
-
-	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
 	}
 
 	/* read the sensor 5x and report each value */

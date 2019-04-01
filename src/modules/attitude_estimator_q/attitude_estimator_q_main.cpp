@@ -39,7 +39,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <cfloat>
+#include <float.h>
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/ecl/geo_lookup/geo_mag_declination.h>
@@ -214,7 +214,7 @@ AttitudeEstimatorQ::~AttitudeEstimatorQ()
 
 		do {
 			/* wait 20ms */
-			usleep(20000);
+			px4_usleep(20000);
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
@@ -229,8 +229,6 @@ AttitudeEstimatorQ::~AttitudeEstimatorQ()
 
 int AttitudeEstimatorQ::start()
 {
-	ASSERT(_control_task == -1);
-
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("attitude_estimator_q",
 					   SCHED_DEFAULT,
@@ -282,7 +280,7 @@ void AttitudeEstimatorQ::task_main()
 
 		if (ret < 0) {
 			// Poll error, sleep and try again
-			usleep(10000);
+			px4_usleep(10000);
 			PX4_WARN("POLL ERROR");
 			continue;
 
@@ -341,6 +339,7 @@ void AttitudeEstimatorQ::task_main()
 		}
 
 		// Update vision and motion capture heading
+		_ext_hdg_good = false;
 		bool vision_updated = false;
 		orb_check(_vision_odom_sub, &vision_updated);
 
@@ -350,10 +349,10 @@ void AttitudeEstimatorQ::task_main()
 			if (orb_copy(ORB_ID(vehicle_visual_odometry), _vision_odom_sub, &vision) == PX4_OK) {
 				// validation check for vision attitude data
 				bool vision_att_valid = PX4_ISFINITE(vision.q[0])
-							&& (PX4_ISFINITE(vision.pose_covariance[vision.COVARIANCE_MATRIX_ROLL_VARIANCE]) ? fabsf(sqrtf(fmaxf(
+							&& (PX4_ISFINITE(vision.pose_covariance[vision.COVARIANCE_MATRIX_ROLL_VARIANCE]) ? sqrtf(fmaxf(
 									vision.pose_covariance[vision.COVARIANCE_MATRIX_ROLL_VARIANCE],
 									fmaxf(vision.pose_covariance[vision.COVARIANCE_MATRIX_PITCH_VARIANCE],
-											vision.pose_covariance[vision.COVARIANCE_MATRIX_YAW_VARIANCE]))) - _eo_max_std_dev) < FLT_EPSILON : true);
+											vision.pose_covariance[vision.COVARIANCE_MATRIX_YAW_VARIANCE]))) <= _eo_max_std_dev : true);
 
 				if (vision_att_valid) {
 					Dcmf Rvis = Quatf(vision.q);
@@ -382,10 +381,10 @@ void AttitudeEstimatorQ::task_main()
 			if (orb_copy(ORB_ID(vehicle_mocap_odometry), _mocap_odom_sub, &mocap) == PX4_OK) {
 				// validation check for mocap attitude data
 				bool mocap_att_valid = PX4_ISFINITE(mocap.q[0])
-						       && (PX4_ISFINITE(mocap.pose_covariance[mocap.COVARIANCE_MATRIX_ROLL_VARIANCE]) ? fabsf(sqrtf(fmaxf(
+						       && (PX4_ISFINITE(mocap.pose_covariance[mocap.COVARIANCE_MATRIX_ROLL_VARIANCE]) ? sqrtf(fmaxf(
 								       mocap.pose_covariance[mocap.COVARIANCE_MATRIX_ROLL_VARIANCE],
 								       fmaxf(mocap.pose_covariance[mocap.COVARIANCE_MATRIX_PITCH_VARIANCE],
-										       mocap.pose_covariance[mocap.COVARIANCE_MATRIX_YAW_VARIANCE]))) - _eo_max_std_dev) < FLT_EPSILON : true);
+										       mocap.pose_covariance[mocap.COVARIANCE_MATRIX_YAW_VARIANCE]))) <= _eo_max_std_dev : true);
 
 				if (mocap_att_valid) {
 					Dcmf Rmoc = Quatf(mocap.q);

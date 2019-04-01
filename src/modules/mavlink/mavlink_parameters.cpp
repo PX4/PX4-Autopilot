@@ -134,8 +134,12 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
 
 				/* Whatever the value is, we're being told to stop sending */
-				if (strncmp(name, "_HASH_CHECK", sizeof(name)) == 0 && _mavlink->hash_check_enabled()) {
-					_send_all_index = -1;
+				if (strncmp(name, "_HASH_CHECK", sizeof(name)) == 0) {
+
+					if (_mavlink->hash_check_enabled()) {
+						_send_all_index = -1;
+					}
+
 					/* No other action taken, return */
 					return;
 				}
@@ -149,15 +153,9 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					_mavlink->send_statustext_info(buf);
 
 				} else {
-					// Load current value before setting it
-					float curr_val;
-					param_get(param, &curr_val);
+					// According to the mavlink spec we should always acknowledge a write operation.
 					param_set(param, &(set.param_value));
-
-					// Check if the parameter changed. If it didn't change, send current value back
-					if (!(fabsf(curr_val - set.param_value) > 0.0f)) {
-						send_param(param);
-					}
+					send_param(param);
 				}
 			}
 
@@ -452,8 +450,7 @@ MavlinkParametersManager::send_uavcan()
 			msg.param_value = value.real_value;
 
 		} else {
-			int32_t val;
-			val = (int32_t)value.int_value;
+			int32_t val = (int32_t)value.int_value;
 			memcpy(&msg.param_value, &val, sizeof(int32_t));
 			msg.param_type = MAVLINK_TYPE_INT32_T;
 		}
@@ -547,14 +544,19 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 	 * get param value, since MAVLink encodes float and int params in the same
 	 * space during transmission, copy param onto float val_buf
 	 */
-	if (param_get(param, &msg.param_value) != OK) {
+	float param_value{};
+
+	if (param_get(param, &param_value) != OK) {
 		return 2;
 	}
+
+	msg.param_value = param_value;
 
 	msg.param_count = param_count_used();
 	msg.param_index = param_get_used_index(param);
 
 #if defined(__GNUC__) && __GNUC__ >= 8
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstringop-truncation"
 #endif
 	/*

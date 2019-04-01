@@ -35,7 +35,7 @@
 
 #include "log_writer.h"
 #include "messages.h"
-#include "array.h"
+#include <containers/Array.hpp>
 #include "util.h"
 #include <px4_defines.h>
 #include <drivers/drv_hrt.h>
@@ -64,7 +64,8 @@ enum class SDLogProfileMask : int32_t {
 	SYSTEM_IDENTIFICATION = 1 << 3,
 	HIGH_RATE =             1 << 4,
 	DEBUG_TOPICS =          1 << 5,
-	SENSOR_COMPARISON =     1 << 6
+	SENSOR_COMPARISON =     1 << 6,
+	VISION_AND_AVOIDANCE =  1 << 7
 };
 
 enum class MissionLogType : int32_t {
@@ -332,6 +333,7 @@ private:
 	void add_high_rate_topics();
 	void add_debug_topics();
 	void add_sensor_comparison_topics();
+	void add_vision_and_avoidance_topics();
 
 	/**
 	 * check current arming state and start/stop logging if state changed and according to configured params.

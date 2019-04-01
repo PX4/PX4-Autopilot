@@ -70,7 +70,7 @@ endfunction()
 add_subdirectory(${romfs_src_dir})
 
 # directory setup
-# copy all romfs files, process airframes, prune comments
+# copy all romfs files, process airframes
 get_property(romfs_cmake_files GLOBAL PROPERTY PX4_ROMFS_CMAKE_FILES)
 get_property(romfs_copy_files GLOBAL PROPERTY PX4_ROMFS_FILES)
 get_property(module_config_files GLOBAL PROPERTY PX4_MODULE_CONFIG_FILES)
@@ -84,38 +84,40 @@ add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rcS ${romfs_gen_root_dir}
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${romfs_src_dir} ${romfs_gen_root_dir}
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/init.d-posix
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/mixers-sitl
+	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/mixers/CMakeLists.txt
+	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/CMakeLists.txt
+	COMMAND ${CMAKE_COMMAND} -E remove ${romfs_gen_root_dir}/init.d/airframes/CMakeLists.txt
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
 		--airframes-path ${romfs_gen_root_dir}/init.d
 		--start-script ${romfs_gen_root_dir}/init.d/rc.autostart
-		--board ${BOARD}
+		--board ${PX4_BOARD}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 		--rc-dir ${romfs_gen_root_dir}/init.d
 		--serial-ports ${board_serial_ports} ${added_arguments}
 		--config-files ${module_config_files} #--verbose
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
-		--folder ${romfs_gen_root_dir} --board ${BOARD}
 	DEPENDS
 		${jinja_templates}
 		${module_config_files}
 		${romfs_cmake_files}
 		${romfs_copy_files}
 		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
-		${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
 		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
-	COMMENT "ROMFS: copying, generating airframes, pruning"
+	COMMENT "ROMFS: copying, generating airframes"
 	)
 
 # copy extras into ROMFS
 set(extras_dependencies)
+
 # copy px4io binary if configured
-if (config_io_board)
+if(config_io_board)
 	list(APPEND extras_dependencies
 		copy_px4io_bin
 		${fw_io_bin}
 		)
 endif()
 
-if (config_bl_file)
+
+if(config_bl_file)
 	file(MAKE_DIRECTORY ${PX4_BINARY_DIR}/romfs_extras)
 	configure_file(${config_bl_file} ${PX4_BINARY_DIR}/romfs_extras COPYONLY)
 
@@ -123,6 +125,33 @@ if (config_bl_file)
 		${config_bl_file}
 		)
 endif()
+
+set(OPTIONAL_BOARD_RC)
+list(APPEND OPTIONAL_BOARD_RC
+	rc.board_defaults
+	rc.board_sensors
+	rc.board_extras
+)
+
+foreach(board_rc_file ${OPTIONAL_BOARD_RC})
+
+	if(EXISTS "${PX4_BOARD_DIR}/init/${board_rc_file}")
+		message(STATUS "ROMFS: Adding ${board_rc_file}")
+
+		add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/${board_rc_file}
+			COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BOARD_DIR}/init/${board_rc_file} ${romfs_gen_root_dir}/init.d/${board_rc_file}
+			DEPENDS
+				${PX4_BOARD_DIR}/init/${board_rc_file}
+				${romfs_gen_root_dir}/init.d/rcS
+			COMMENT "ROMFS: copying ${board_rc_file}"
+		)
+
+		list(APPEND extras_dependencies
+			${romfs_gen_root_dir}/init.d/${board_rc_file}
+			)
+	endif()
+
+endforeach()
 
 add_custom_command(OUTPUT romfs_extras.stamp
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${romfs_gen_root_dir}/extras/
@@ -136,32 +165,66 @@ add_custom_command(OUTPUT romfs_extras.stamp
 	COMMENT "ROMFS: copying extras"
 	)
 
-# create romfs.img
-find_program(GENROMFS genromfs)
-if(NOT GENROMFS)
-    message(FATAL_ERROR "genromfs not found")
-endif()
-add_custom_command(OUTPUT romfs.img romfs.txt
-	COMMAND ${CMAKE_COMMAND} -E remove -f romfs.img romfs.txt
-	COMMAND ${GENROMFS} -f romfs.img -d ${romfs_gen_root_dir} -V "NSHInitVol" -v > romfs.txt 2>&1
+add_custom_command(
+	OUTPUT romfs_pruned.stamp
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py --folder ${romfs_gen_root_dir} --board ${PX4_BOARD}
+	COMMAND ${CMAKE_COMMAND} -E touch romfs_pruned.stamp
 	DEPENDS
 		${romfs_gen_root_dir}/init.d/rcS
 		${romfs_gen_root_dir}/init.d/rc.autostart
 		romfs_extras.stamp
-	COMMENT "ROMFS: generating image"
+		${PX4_SOURCE_DIR}/Tools/px_romfs_pruner.py
+	COMMENT "ROMFS: pruning"
 	)
 
-# create nsh_romfsimg.c
-find_program(XXD xxd)
-if(NOT XXD)
-    message(FATAL_ERROR "xxd not found")
+if("${CONFIG_FS_CROMFS}" STREQUAL "y")
+	add_custom_command(
+		OUTPUT ${CMAKE_BINARY_DIR}/gencromfs
+		COMMAND make --no-print-directory --silent -f Makefile.host gencromfs
+		COMMAND ${CMAKE_COMMAND} -E copy gencromfs ${CMAKE_BINARY_DIR}/gencromfs
+		DEPENDS ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/tools/gencromfs.c
+		WORKING_DIRECTORY ${NUTTX_DIR}/tools
+		)
+
+	# create nsh_romfsimg.c
+	add_custom_command(OUTPUT nsh_romfsimg.c
+		COMMAND ${CMAKE_COMMAND} -E remove -f nsh_romfsimg.c
+		COMMAND ${CMAKE_BINARY_DIR}/gencromfs ${romfs_gen_root_dir} nsh_romfsimg.c
+		DEPENDS
+			${CMAKE_BINARY_DIR}/gencromfs
+			${romfs_gen_root_dir}/init.d/rcS
+			${romfs_gen_root_dir}/init.d/rc.autostart
+			romfs_extras.stamp
+			romfs_pruned.stamp
+		COMMENT "ROMFS: generating image"
+		)
+
+else()
+	# create romfs.img
+	find_program(GENROMFS genromfs)
+	if(NOT GENROMFS)
+	    message(FATAL_ERROR "genromfs not found")
+	endif()
+	add_custom_command(OUTPUT romfs.img romfs.txt
+		COMMAND ${CMAKE_COMMAND} -E remove -f romfs.img romfs.txt
+		COMMAND ${GENROMFS} -f romfs.img -d ${romfs_gen_root_dir} -V "NSHInitVol" -v > romfs.txt 2>&1
+		DEPENDS romfs_pruned.stamp
+		COMMENT "ROMFS: generating image"
+		)
+
+		# create nsh_romfsimg.c
+		find_program(XXD xxd)
+		if(NOT XXD)
+		    message(FATAL_ERROR "xxd not found")
+		endif()
+		add_custom_command(OUTPUT nsh_romfsimg.c
+			COMMAND ${CMAKE_COMMAND} -E remove -f nsh_romfsimg.c
+			COMMAND ${XXD} -i romfs.img nsh_romfsimg.c
+			COMMAND sed 's/unsigned/const unsigned/g' nsh_romfsimg.c > nsh_romfsimg.c.tmp && ${CMAKE_COMMAND} -E rename nsh_romfsimg.c.tmp nsh_romfsimg.c
+			DEPENDS romfs.img
+			)
 endif()
-add_custom_command(OUTPUT nsh_romfsimg.c
-	COMMAND ${CMAKE_COMMAND} -E remove -f nsh_romfsimg.c
-	COMMAND ${XXD} -i romfs.img nsh_romfsimg.c
-	COMMAND sed 's/unsigned/const unsigned/g' nsh_romfsimg.c > nsh_romfsimg.c.tmp && ${CMAKE_COMMAND} -E rename nsh_romfsimg.c.tmp nsh_romfsimg.c
-	DEPENDS romfs.img
-	)
+
 
 add_library(romfs STATIC nsh_romfsimg.c)
 add_dependencies(romfs prebuild_targets)
@@ -172,6 +235,7 @@ set_target_properties(romfs PROPERTIES LINKER_LANGUAGE C)
 find_program(SHELLCHECK_PATH shellcheck)
 
 if(SHELLCHECK_PATH)
+
 	# TODO: fix SC2086, SC2166
 	add_custom_target(shellcheck
 		COMMAND ${SHELLCHECK_PATH} --shell=sh
@@ -179,7 +243,8 @@ if(SHELLCHECK_PATH)
 			--exclude=SC2086 # SC2086: Double quote to prevent globbing and word splitting.
 			--exclude=SC2166 # SC2166: Prefer [ p ] || [ q ] as [ p -o q ] is not well defined.
 			--exclude=SC2154 # SC2154: <var> is referenced but not assigned (NuttX uses different asssignment)
-			init.d/*
+			--exclude=SC2164 # SC2164: Use 'cd ... || exit' or 'cd ... || return' in case cd fails.
+			`find ${romfs_gen_root_dir}/init.d -type f`
 		DEPENDS ${romfs_gen_root_dir}/init.d/rc.autostart
 		WORKING_DIRECTORY ${romfs_gen_root_dir}
 		USES_TERMINAL

@@ -41,6 +41,8 @@
 #include <unistd.h>
 #include <stdbool.h>
 
+#include <px4_atomic.h>
+#include <px4_time.h>
 #include <px4_log.h>
 #include <px4_tasks.h>
 #include <systemlib/px4_macros.h>
@@ -113,7 +115,7 @@ template<class T>
 class ModuleBase
 {
 public:
-	ModuleBase() = default;
+	ModuleBase() : _task_should_exit{false} {}
 	virtual ~ModuleBase() {}
 
 	/**
@@ -173,10 +175,10 @@ public:
 		argv += 1;
 #endif
 
-		_object = T::instantiate(argc, argv);
+		T *object = T::instantiate(argc, argv);
+		_object.store(object);
 
-		if (_object) {
-			T *object = (T *)_object;
+		if (object) {
 			object->run();
 
 		} else {
@@ -228,15 +230,16 @@ public:
 		lock_module();
 
 		if (is_running()) {
-			if (_object) {
-				T *object = (T *)_object;
+			T *object = _object.load();
+
+			if (object) {
 				object->request_stop();
 
 				unsigned int i = 0;
 
 				do {
 					unlock_module();
-					usleep(20000); // 20 ms
+					px4_usleep(20000); // 20 ms
 					lock_module();
 
 					if (++i > 100 && _task_id != -1) { // wait at most 2 sec
@@ -246,10 +249,8 @@ public:
 
 						_task_id = -1;
 
-						if (_object) {
-							delete _object;
-							_object = nullptr;
-						}
+						delete _object.load();
+						_object.store(nullptr);
 
 						ret = -1;
 						break;
@@ -278,8 +279,8 @@ public:
 		int ret = -1;
 		lock_module();
 
-		if (is_running() && _object) {
-			T *object = (T *)_object;
+		if (is_running() && _object.load()) {
+			T *object = _object.load();
 			ret = object->print_status();
 
 		} else {
@@ -325,7 +326,7 @@ protected:
 	 */
 	virtual void request_stop()
 	{
-		_task_should_exit = true;
+		_task_should_exit.store(true);
 	}
 
 	/**
@@ -334,7 +335,7 @@ protected:
 	 */
 	bool should_exit() const
 	{
-		return _task_should_exit;
+		return _task_should_exit.load();
 	}
 
 	/**
@@ -350,10 +351,8 @@ protected:
 		// - deleting the object must take place inside the lock.
 		lock_module();
 
-		if (_object) {
-			delete _object;
-			_object = nullptr;
-		}
+		delete _object.load();
+		_object.store(nullptr);
 
 		_task_id = -1; // Signal a potentially waiting thread for the module to exit that it can continue.
 		unlock_module();
@@ -369,9 +368,9 @@ protected:
 
 		do {
 			/* Wait up to 1s. */
-			usleep(2500);
+			px4_usleep(2500);
 
-		} while (!_object && ++i < 400);
+		} while (!_object.load() && ++i < 400);
 
 		if (i == 400) {
 			PX4_ERR("Timed out while waiting for thread to start");
@@ -386,14 +385,14 @@ protected:
 	 */
 	static T *get_instance()
 	{
-		return (T *)_object;
+		return (T *)_object.load();
 	}
 
 	/**
 	 * @var _object Instance if the module is running.
 	 * @note There will be one instance for each template type.
 	 */
-	static volatile T *_object;
+	static px4::atomic<T *> _object;
 
 	/** @var _task_id The task handle: -1 = invalid, otherwise task is assumed to be running. */
 	static int _task_id;
@@ -419,11 +418,11 @@ private:
 	}
 
 	/** @var _task_should_exit Boolean flag to indicate if the task should exit. */
-	volatile bool _task_should_exit = false;
+	px4::atomic_bool _task_should_exit{false};
 };
 
 template<class T>
-volatile T *ModuleBase<T>::_object = nullptr;
+px4::atomic<T *> ModuleBase<T>::_object{nullptr};
 
 template<class T>
 int ModuleBase<T>::_task_id = -1;
@@ -474,6 +473,12 @@ __EXPORT void PRINT_MODULE_DESCRIPTION(const char *description);
 __EXPORT void PRINT_MODULE_USAGE_NAME(const char *executable_name, const char *category);
 
 /**
+ * @brief Specify a subcategory (optional).
+ * @param subcategory e.g. if the category is 'driver', subcategory can be 'distance_sensor'
+ */
+__EXPORT void PRINT_MODULE_USAGE_SUBCATEGORY(const char *subcategory);
+
+/**
  * @brief Prints the name for a command without any sub-commands (@see PRINT_MODULE_USAGE_NAME()).
  */
 __EXPORT void PRINT_MODULE_USAGE_NAME_SIMPLE(const char *executable_name, const char *category);
@@ -500,7 +505,7 @@ __EXPORT void PRINT_MODULE_USAGE_COMMAND_DESCR(const char *name, const char *des
 /**
  * @brief Prints an integer parameter.
  * @param option_char The option character.
- * @param default_val The parameter default value.
+ * @param default_val The parameter default value (set to -1 if not applicable).
  * @param min_val The parameter minimum value.
  * @param max_val The parameter value.
  * @param description Pointer to the usage description.
@@ -512,7 +517,7 @@ __EXPORT void PRINT_MODULE_USAGE_PARAM_INT(char option_char, int default_val, in
 /**
  * @brief Prints a float parameter.
  * @note See PRINT_MODULE_USAGE_PARAM_INT().
- * @param default_val The parameter default value.
+ * @param default_val The parameter default value (set to NaN if not applicable).
  * @param min_val The parameter minimum value.
  * @param max_val The parameter maximum value.
  * @param description Pointer to the usage description. Pointer to the usage description.

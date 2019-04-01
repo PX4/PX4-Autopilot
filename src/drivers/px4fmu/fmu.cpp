@@ -37,12 +37,12 @@
  * Driver/configurator for the PX4 FMU
  */
 
-#include <cfloat>
+#include <float.h>
+#include <math.h>
 
 #include <board_config.h>
 #include <drivers/device/device.h>
 #include <drivers/device/i2c.h>
-#include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_input_capture.h>
 #include <drivers/drv_mixer.h>
@@ -57,6 +57,7 @@
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
 #include <pwm_limit/pwm_limit.h>
+#include <uORB/uORB.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -92,6 +93,7 @@ enum PortMode {
 	PORT_PWM1,
 	PORT_PWM3CAP1,
 	PORT_PWM4CAP1,
+	PORT_PWM4CAP2,
 	PORT_PWM5CAP1,
 	PORT_PWM2CAP2,
 	PORT_CAPTURE,
@@ -100,6 +102,8 @@ enum PortMode {
 #if !defined(BOARD_HAS_PWM)
 #  error "board_config.h needs to define BOARD_HAS_PWM"
 #endif
+
+#define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
 
 class PX4FMU : public cdev::CDev, public ModuleBase<PX4FMU>
 {
@@ -113,6 +117,7 @@ public:
 		MODE_3PWM1CAP,
 		MODE_4PWM,
 		MODE_4PWM1CAP,
+		MODE_4PWM2CAP,
 		MODE_5PWM,
 		MODE_5PWM1CAP,
 		MODE_6PWM,
@@ -236,7 +241,7 @@ private:
 
 	float _mot_t_max;	///< maximum rise time for motor (slew rate limiting)
 	float _thr_mdl_fac;	///< thrust to pwm modelling factor
-	bool _airmode; 		///< multicopter air-mode
+	Mixer::Airmode _airmode;	///< multicopter air-mode
 	MotorOrdering _motor_ordering;
 
 	perf_counter_t	_perf_control_latency;
@@ -263,23 +268,8 @@ private:
 
 	void		update_params();
 
-	struct GPIOConfig {
-		uint32_t	input;
-		uint32_t	output;
-		uint32_t	alt;
-	};
-
-#if defined(BOARD_HAS_FMU_GPIO)
-	static const GPIOConfig	_gpio_tab[];
-	static const unsigned	_ngpio;
-#endif
 	static void		sensor_reset(int ms);
 	static void		peripheral_reset(int ms);
-	int		gpio_reset(void);
-	int		gpio_set_function(uint32_t gpios, int function);
-	int		gpio_write(uint32_t gpios, int function);
-	int		gpio_read(uint32_t *value);
-	int		gpio_ioctl(file *filp, int cmd, unsigned long arg);
 
 	int		capture_ioctl(file *filp, int cmd, unsigned long arg);
 
@@ -296,11 +286,6 @@ private:
 	inline void reorder_outputs(uint16_t values[MAX_ACTUATORS]);
 };
 
-#if defined(BOARD_HAS_FMU_GPIO)
-const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] =	BOARD_FMU_GPIO_TAB;
-
-const unsigned		PX4FMU::_ngpio = arraySize(PX4FMU::_gpio_tab);
-#endif
 pwm_limit_t		PX4FMU::_pwm_limit;
 actuator_armed_s	PX4FMU::_armed = {};
 work_s	PX4FMU::_work = {};
@@ -340,7 +325,7 @@ PX4FMU::PX4FMU(bool run_as_task) :
 	_to_mixer_status(nullptr),
 	_mot_t_max(0.0f),
 	_thr_mdl_fac(0.0f),
-	_airmode(false),
+	_airmode(Mixer::Airmode::disabled),
 	_motor_ordering(MotorOrdering::PX4),
 	_perf_control_latency(perf_alloc(PC_ELAPSED, "fmu control latency"))
 {
@@ -629,6 +614,23 @@ PX4FMU::set_mode(Mode mode)
 		_num_outputs = 4;
 
 		break;
+
+#if defined(BOARD_HAS_CAPTURE)
+
+	case MODE_4PWM2CAP:
+		PX4_DEBUG("MODE_4PWM2CAP");
+		up_input_capture_set(5, Rising, 0, NULL, NULL);
+
+		/* default output rates */
+		_pwm_default_rate = 400;
+		_pwm_alt_rate = 50;
+		_pwm_alt_rate_channels = 0;
+		_pwm_mask = 0x0f;
+		_pwm_initialized = false;
+		_num_outputs = 4;
+
+		break;
+#endif
 
 #if defined(BOARD_HAS_CAPTURE)
 
@@ -1026,7 +1028,7 @@ PX4FMU::cycle_trampoline(void *arg)
 			return;
 		}
 
-		_object = dev;
+		_object.store(dev);
 	}
 
 	dev->cycle();
@@ -1214,7 +1216,7 @@ PX4FMU::cycle()
 					}
 				}
 
-				/* overwrite outputs in case of lockdown with disarmed PWM values */
+				/* overwrite outputs in case of lockdown or parachute triggering with disarmed PWM values */
 				if (_armed.lockdown || _armed.manual_lockdown) {
 					for (size_t i = 0; i < mixed_num_outputs; i++) {
 						pwm_limited[i] = _disarmed_pwm[i];
@@ -1401,10 +1403,7 @@ void PX4FMU::update_params()
 	param_handle = param_find("MC_AIRMODE");
 
 	if (param_handle != PARAM_INVALID) {
-		int32_t val;
-		param_get(param_handle, &val);
-		_airmode = val > 0;
-		PX4_DEBUG("%s: %d", "MC_AIRMODE", _airmode);
+		param_get(param_handle, &_airmode);
 	}
 
 	// motor ordering
@@ -1464,13 +1463,6 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret;
 
-	/* try it as a GPIO ioctl first */
-	ret = gpio_ioctl(filp, cmd, arg);
-
-	if (ret != -ENOTTY) {
-		return ret;
-	}
-
 	/* try it as a Capture ioctl next */
 	ret = capture_ioctl(filp, cmd, arg);
 
@@ -1488,6 +1480,7 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 	case MODE_2PWM2CAP:
 	case MODE_3PWM1CAP:
 	case MODE_4PWM1CAP:
+	case MODE_4PWM2CAP:
 	case MODE_5PWM1CAP:
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 	case MODE_6PWM:
@@ -1993,6 +1986,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 		case MODE_4PWM:
 		case MODE_4PWM1CAP:
+		case MODE_4PWM2CAP:
 			*(unsigned *)arg = 4;
 			break;
 
@@ -2102,6 +2096,10 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 			case PWM_SERVO_MODE_4PWM1CAP:
 				ret = set_mode(MODE_4PWM1CAP);
+				break;
+
+			case PWM_SERVO_MODE_4PWM2CAP:
+				ret = set_mode(MODE_4PWM2CAP);
 				break;
 
 			case PWM_SERVO_MODE_5PWM:
@@ -2312,100 +2310,6 @@ PX4FMU::peripheral_reset(int ms)
 }
 
 int
-PX4FMU::gpio_reset(void)
-{
-#if !defined(BOARD_HAS_FMU_GPIO)
-	return -EINVAL;
-#else
-
-	/*
-	 * Setup default GPIO config - all pins as GPIOs, input if
-	 * possible otherwise output if possible.
-	 */
-	for (unsigned i = 0; i < _ngpio; i++) {
-		if (_gpio_tab[i].input != 0) {
-			px4_arch_configgpio(_gpio_tab[i].input);
-
-		} else if (_gpio_tab[i].output != 0) {
-			px4_arch_configgpio(_gpio_tab[i].output);
-		}
-	}
-
-#  if defined(GPIO_GPIO_DIR)
-	/* if we have a GPIO direction control, set it to zero (input) */
-	px4_arch_gpiowrite(GPIO_GPIO_DIR, 0);
-	px4_arch_configgpio(GPIO_GPIO_DIR);
-#  endif
-	return OK;
-#endif // !defined(BOARD_HAS_FMU_GPIO)
-}
-
-int
-PX4FMU::gpio_set_function(uint32_t gpios, int function)
-{
-#if !defined(BOARD_HAS_FMU_GPIO)
-	return -EINVAL;
-#else
-
-	/* configure selected GPIOs as required */
-	for (unsigned i = 0; i < _ngpio; i++) {
-		if (gpios & (1 << i)) {
-			switch (function) {
-			case GPIO_SET_OUTPUT:
-				if (_gpio_tab[i].output) {
-					px4_arch_configgpio(_gpio_tab[i].output);
-				}
-
-				break;
-			}
-		}
-	}
-
-	return OK;
-#endif // !defined(BOARD_HAS_FMU_GPIO)
-
-}
-
-int
-PX4FMU::gpio_write(uint32_t gpios, int function)
-{
-#if !defined(BOARD_HAS_FMU_GPIO)
-	return -EINVAL;
-#else
-	int value = (function == GPIO_SET) ? 1 : 0;
-
-	for (unsigned i = 0; i < _ngpio; i++) {
-		if (gpios & (1 << i)) {
-			if (_gpio_tab[i].output) {
-				px4_arch_gpiowrite(_gpio_tab[i].output, value);
-			}
-		}
-	}
-
-	return OK;
-#endif
-}
-
-int
-PX4FMU::gpio_read(uint32_t *value)
-{
-#if !defined(BOARD_HAS_FMU_GPIO)
-	return -EINVAL;
-#else
-	uint32_t bits = 0;
-
-	for (unsigned i = 0; i < _ngpio; i++) {
-		if (_gpio_tab[i].input != 0 && px4_arch_gpioread(_gpio_tab[i].input)) {
-			bits |= (1 << i);
-		}
-	}
-
-	*value = bits;
-	return OK;
-#endif
-}
-
-int
 PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	int	ret = -EINVAL;
@@ -2419,7 +2323,8 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 	input_capture_stats_t *stats = (input_capture_stats_t *)arg;
 
 	if (_mode == MODE_3PWM1CAP || _mode == MODE_2PWM2CAP ||
-	    _mode == MODE_4PWM1CAP || _mode == MODE_5PWM1CAP) {
+	    _mode == MODE_4PWM1CAP || _mode == MODE_5PWM1CAP ||
+	    _mode == MODE_4PWM2CAP) {
 
 		pconfig = (input_capture_config_t *)arg;
 	}
@@ -2501,6 +2406,7 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 			break;
 
 		case MODE_2PWM2CAP:
+		case MODE_4PWM2CAP:
 			*(unsigned *)arg = 2;
 			break;
 
@@ -2525,6 +2431,10 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 		case MODE_4PWM1CAP:
 			set_mode(MODE_4PWM1CAP);
+			break;
+
+		case MODE_4PWM2CAP:
+			set_mode(MODE_4PWM2CAP);
 			break;
 
 		case MODE_5PWM1CAP:
@@ -2552,37 +2462,6 @@ PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 int
-PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-	int	ret = OK;
-
-	lock();
-
-	switch (cmd) {
-
-	case GPIO_RESET:
-		ret = gpio_reset();
-		break;
-
-	case GPIO_SET_OUTPUT:
-		ret = gpio_set_function(arg, cmd);
-		break;
-
-	case GPIO_SET:
-	case GPIO_CLEAR:
-		ret = gpio_write(arg, cmd);
-		break;
-
-	default:
-		ret = -ENOTTY;
-	}
-
-	unlock();
-
-	return ret;
-}
-
-int
 PX4FMU::fmu_new_mode(PortMode new_mode)
 {
 	if (!is_running()) {
@@ -2590,7 +2469,6 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 	}
 
 	PX4FMU::Mode servo_mode;
-	bool mode_with_input = false;
 
 	servo_mode = PX4FMU::MODE_NONE;
 
@@ -2640,13 +2518,14 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 		servo_mode = PX4FMU::MODE_5PWM;
 		break;
 
+
 #  if defined(BOARD_HAS_CAPTURE)
 
 	case PORT_PWM5CAP1:
 		/* select 5-pin PWM mode 1 capture */
 		servo_mode = PX4FMU::MODE_5PWM1CAP;
-		mode_with_input = true;
 		break;
+
 #  endif
 
 	case PORT_PWM4:
@@ -2654,13 +2533,19 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 		servo_mode = PX4FMU::MODE_4PWM;
 		break;
 
+
 #  if defined(BOARD_HAS_CAPTURE)
 
 	case PORT_PWM4CAP1:
 		/* select 4-pin PWM mode 1 capture */
 		servo_mode = PX4FMU::MODE_4PWM1CAP;
-		mode_with_input = true;
 		break;
+
+	case PORT_PWM4CAP2:
+		/* select 4-pin PWM mode 2 capture */
+		servo_mode = PX4FMU::MODE_4PWM2CAP;
+		break;
+
 #  endif
 
 	case PORT_PWM3:
@@ -2673,7 +2558,6 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 	case PORT_PWM3CAP1:
 		/* select 3-pin PWM mode 1 capture */
 		servo_mode = PX4FMU::MODE_3PWM1CAP;
-		mode_with_input = true;
 		break;
 #  endif
 
@@ -2687,8 +2571,8 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 	case PORT_PWM2CAP2:
 		/* select 2-pin PWM mode 2 capture */
 		servo_mode = PX4FMU::MODE_2PWM2CAP;
-		mode_with_input = true;
 		break;
+
 #  endif
 #endif
 
@@ -2699,12 +2583,6 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 	PX4FMU *object = get_instance();
 
 	if (servo_mode != object->get_mode()) {
-
-		/* reset to all-inputs */
-		if (mode_with_input) {
-			object->ioctl(0, GPIO_RESET, 0);
-		}
-
 		/* (re)set the PWM output mode */
 		object->set_mode(servo_mode);
 	}
@@ -3071,6 +2949,9 @@ int PX4FMU::custom_command(int argc, char *argv[])
 
 	} else if (!strcmp(verb, "mode_pwm4cap1")) {
 		new_mode = PORT_PWM4CAP1;
+
+	} else if (!strcmp(verb, "mode_pwm4cap2")) {
+		new_mode = PORT_PWM4CAP2;
 #  endif
 
 	} else if (!strcmp(verb, "mode_pwm3")) {
@@ -3174,6 +3055,7 @@ mixer files.
   PRINT_MODULE_USAGE_COMMAND("mode_pwm5cap1");
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm4");
   PRINT_MODULE_USAGE_COMMAND("mode_pwm4cap1");
+  PRINT_MODULE_USAGE_COMMAND("mode_pwm4cap2");
   PRINT_MODULE_USAGE_COMMAND("mode_pwm3");
   PRINT_MODULE_USAGE_COMMAND("mode_pwm3cap1");
 	PRINT_MODULE_USAGE_COMMAND("mode_pwm2");
@@ -3231,13 +3113,15 @@ int PX4FMU::print_status()
 
 	case MODE_4PWM: mode_str = "pwm4"; break;
 
-  case MODE_4PWM1CAP: mode_str = "pwm4cap1"; break;
+  	case MODE_4PWM1CAP: mode_str = "pwm4cap1"; break;
 
-  case MODE_5PWM: mode_str = "pwm5"; break;
+	case MODE_4PWM2CAP: mode_str = "pwm4cap2"; break;
 
-  case MODE_5PWM1CAP: mode_str = "pwm5cap1"; break;
+  	case MODE_5PWM: mode_str = "pwm5"; break;
 
-  case MODE_6PWM: mode_str = "pwm6"; break;
+  	case MODE_5PWM1CAP: mode_str = "pwm5cap1"; break;
+
+  	case MODE_6PWM: mode_str = "pwm6"; break;
 
 	case MODE_8PWM: mode_str = "pwm8"; break;
 

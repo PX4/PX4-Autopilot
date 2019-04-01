@@ -321,7 +321,10 @@ PARAM_DEFINE_FLOAT(FW_LND_TLALT, -1.0f);
 PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
 
 /**
- * Use terrain estimate during landing
+ * Use terrain estimate during landing.
+ *
+ * This is turned off by default and a waypoint or return altitude is normally used
+ * (or sea level for an arbitrary land position).
  *
  * @boolean
  * @group FW L1 Control

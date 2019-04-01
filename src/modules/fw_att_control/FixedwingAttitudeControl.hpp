@@ -95,6 +95,7 @@ private:
 
 	int		_att_sub{-1};				/**< vehicle attitude */
 	int		_att_sp_sub{-1};			/**< vehicle attitude setpoint */
+	int		_rates_sp_sub{-1};			/**< vehicle rates setpoint */
 	int		_battery_status_sub{-1};		/**< battery status subscription */
 	int		_global_pos_sub{-1};			/**< global position subscription */
 	int		_manual_sub{-1};			/**< notification of manual control updates */
@@ -109,7 +110,6 @@ private:
 	orb_advert_t	_actuators_2_pub{nullptr};		/**< actuator control group 1 setpoint (Airframe) */
 	orb_advert_t	_rate_ctrl_status_pub{nullptr};		/**< rate controller status publication */
 
-	orb_id_t _rates_sp_id{nullptr};	// pointer to correct rates setpoint uORB metadata structure
 	orb_id_t _actuators_id{nullptr};	// pointer to correct actuator controls0 uORB metadata structure
 	orb_id_t _attitude_setpoint_id{nullptr};
 
@@ -185,7 +185,7 @@ private:
 		float pitchsp_offset_deg;		/**< Pitch Setpoint Offset in deg */
 		float rollsp_offset_rad;		/**< Roll Setpoint Offset in rad */
 		float pitchsp_offset_rad;		/**< Pitch Setpoint Offset in rad */
-		float man_roll_max;				/**< Max Roll in rad */
+		float man_roll_max;			/**< Max Roll in rad */
 		float man_pitch_max;			/**< Max Pitch in rad */
 		float man_roll_scale;			/**< scale factor applied to roll actuator control in pure manual mode */
 		float man_pitch_scale;			/**< scale factor applied to pitch actuator control in pure manual mode */
@@ -195,13 +195,14 @@ private:
 		float acro_max_y_rate_rad;
 		float acro_max_z_rate_rad;
 
-		float flaps_scale;				/**< Scale factor for flaps */
-		float flaps_takeoff_scale; /**< Scale factor for flaps on take-off */
+		float flaps_scale;			/**< Scale factor for flaps */
+		float flaps_takeoff_scale;		/**< Scale factor for flaps on take-off */
+		float flaps_land_scale;			/**< Scale factor for flaps on landing */
 		float flaperon_scale;			/**< Scale factor for flaperons */
 
 		float rattitude_thres;
 
-		int32_t vtol_type;					/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
+		int32_t vtol_type;			/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
 
 		int32_t bat_scale_en;			/**< Battery scaling enabled */
 		bool airspeed_disabled;
@@ -266,6 +267,7 @@ private:
 
 		param_t flaps_scale;
 		param_t flaps_takeoff_scale;
+		param_t flaps_land_scale;
 		param_t flaperon_scale;
 
 		param_t rattitude_thres;
@@ -291,9 +293,10 @@ private:
 
 	void		vehicle_control_mode_poll();
 	void		vehicle_manual_poll();
-	void		vehicle_setpoint_poll();
+	void		vehicle_attitude_setpoint_poll();
+	void		vehicle_rates_setpoint_poll();
 	void		global_pos_poll();
 	void		vehicle_status_poll();
 	void		vehicle_land_detected_poll();
-
+	void 		get_airspeed_and_scaling(float &airspeed, float &airspeed_scaling);
 };

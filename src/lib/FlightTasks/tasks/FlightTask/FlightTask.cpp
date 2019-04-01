@@ -4,9 +4,10 @@
 
 constexpr uint64_t FlightTask::_timeout;
 // First index of empty_setpoint corresponds to time-stamp and requires a finite number.
-const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {NAN, NAN, NAN}};
+const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {NAN, NAN, NAN}};
 
-const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, vehicle_constraints_s::GEAR_KEEP, {}};
+const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {}};
+const landing_gear_s FlightTask::empty_landing_gear_default_keep = {0, landing_gear_s::GEAR_KEEP, {}};
 const vehicle_trajectory_waypoint_s FlightTask::empty_trajectory_waypoint = {0, 0, {0, 0, 0, 0, 0, 0, 0},
 	{	{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
 		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
@@ -35,7 +36,13 @@ bool FlightTask::activate()
 	_setDefaultConstraints();
 	_time_stamp_activate = hrt_absolute_time();
 	_heading_reset_counter = _sub_attitude->get().quat_reset_counter;
+	_gear = empty_landing_gear_default_keep;
 	return true;
+}
+
+void FlightTask::reActivate()
+{
+	activate();
 }
 
 bool FlightTask::updateInitialize()
@@ -66,6 +73,10 @@ const vehicle_local_position_setpoint_s FlightTask::getPositionSetpoint()
 	vehicle_local_position_setpoint.acc_y = _acceleration_setpoint(1);
 	vehicle_local_position_setpoint.acc_z = _acceleration_setpoint(2);
 
+	vehicle_local_position_setpoint.jerk_x = _jerk_setpoint(0);
+	vehicle_local_position_setpoint.jerk_y = _jerk_setpoint(1);
+	vehicle_local_position_setpoint.jerk_z = _jerk_setpoint(2);
+
 	_thrust_setpoint.copyTo(vehicle_local_position_setpoint.thrust);
 	vehicle_local_position_setpoint.yaw = _yaw_setpoint;
 	vehicle_local_position_setpoint.yawspeed = _yawspeed_setpoint;
@@ -78,6 +89,7 @@ void FlightTask::_resetSetpoints()
 	_position_setpoint.setAll(NAN);
 	_velocity_setpoint.setAll(NAN);
 	_acceleration_setpoint.setAll(NAN);
+	_jerk_setpoint.setAll(NAN);
 	_thrust_setpoint.setAll(NAN);
 	_yaw_setpoint = _yawspeed_setpoint = NAN;
 	_desired_waypoint = FlightTask::empty_trajectory_waypoint;
@@ -89,6 +101,11 @@ void FlightTask::_evaluateVehicleLocalPosition()
 	_velocity.setAll(NAN);
 	_yaw = NAN;
 	_dist_to_bottom = NAN;
+
+	if ((_time_stamp_current - _sub_attitude->get().timestamp) < _timeout) {
+		// yaw
+		_yaw = matrix::Eulerf(matrix::Quatf(_sub_attitude->get().q)).psi();
+	}
 
 	// Only use vehicle-local-position topic fields if the topic is received within a certain timestamp
 	if ((_time_stamp_current - _sub_vehicle_local_position->get().timestamp) < _timeout) {
@@ -113,9 +130,6 @@ void FlightTask::_evaluateVehicleLocalPosition()
 			_velocity(2) = _sub_vehicle_local_position->get().vz;
 		}
 
-		// yaw
-		_yaw = _sub_vehicle_local_position->get().yaw;
-
 		// distance to bottom
 		if (_sub_vehicle_local_position->get().dist_bottom_valid
 		    && PX4_ISFINITE(_sub_vehicle_local_position->get().dist_bottom)) {
@@ -136,7 +150,6 @@ void FlightTask::_setDefaultConstraints()
 	_constraints.speed_up = MPC_Z_VEL_MAX_UP.get();
 	_constraints.speed_down = MPC_Z_VEL_MAX_DN.get();
 	_constraints.tilt = math::radians(MPC_TILTMAX_AIR.get());
-	_constraints.landing_gear = vehicle_constraints_s::GEAR_KEEP;
 	_constraints.min_distance_to_ground = NAN;
 	_constraints.max_distance_to_ground = NAN;
 }

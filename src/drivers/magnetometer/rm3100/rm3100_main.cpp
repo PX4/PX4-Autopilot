@@ -73,7 +73,7 @@ rm3100::init(RM3100_BUS bus_id)
 		return false;
 
 	} else {
-		PX4_INFO("Poll rate set to max (146 Hz)");
+		PX4_INFO("Poll rate set to 100 Hz");
 	}
 
 	close(fd);
@@ -179,18 +179,6 @@ rm3100::test(RM3100_BUS bus_id)
 	/* check if mag is onboard or external */
 	if (ioctl(fd, MAGIOCGEXTERNAL, 0) < 0) {
 		PX4_WARN("failed to get if mag is onboard or external");
-		return 1;
-	}
-
-	/* set the queue depth to 5 */
-	if (ioctl(fd, SENSORIOCSQUEUEDEPTH, 10) != OK) {
-		PX4_WARN("failed to set queue depth");
-		return 1;
-	}
-
-	/* start the sensor polling at 2Hz */
-	if (ioctl(fd, SENSORIOCSPOLLRATE, 2) != OK) {
-		PX4_WARN("failed to set 2Hz poll rate");
 		return 1;
 	}
 

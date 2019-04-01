@@ -500,6 +500,20 @@ PARAM_DEFINE_FLOAT(FW_FLAPS_SCL, 1.0f);
 PARAM_DEFINE_FLOAT(FW_FLAPS_TO_SCL, 0.0f);
 
 /**
+ * Flaps setting during landing
+ *
+ * Sets a fraction of full flaps (FW_FLAPS_SCL) during landing
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_FLAPS_LND_SCL, 1.0f);
+
+/**
  * Scale factor for flaperons
  *
  * @unit norm

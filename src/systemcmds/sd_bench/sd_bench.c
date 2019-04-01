@@ -44,7 +44,6 @@
 
 #include <px4_config.h>
 #include <px4_module.h>
-#include <px4_includes.h>
 #include <px4_getopt.h>
 #include <px4_log.h>
 
