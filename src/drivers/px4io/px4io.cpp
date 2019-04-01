@@ -1024,8 +1024,7 @@ PX4IO::task_main()
 				}
 
 				/* Check if the IO safety circuit breaker has been updated */
-				bool circuit_breaker_io_safety_enabled;
-				circuit_breaker_io_safety_enabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
+				bool circuit_breaker_io_safety_enabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
 				/* Bypass IO safety switch logic by setting FORCE_SAFETY_OFF */
 				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, circuit_breaker_io_safety_enabled);
 
