@@ -97,9 +97,8 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 					    > TRAJECTORY_STREAM_TIMEOUT_US;
 	const bool avoidance_point_valid =
 		_sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true;
-	const bool is_loitering = _sub_vehicle_status->get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 
-	if ((avoidance_data_timeout || !avoidance_point_valid) && !is_loitering) {
+	if (avoidance_data_timeout || !avoidance_point_valid) {
 		PX4_WARN("Obstacle Avoidance system failed, loitering");
 		_publishVehicleCmdDoLoiter();
 		return;
