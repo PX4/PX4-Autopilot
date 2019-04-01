@@ -76,15 +76,12 @@ enum Mode {
 static bool _thread_should_exit = false;		/**< motor_ramp exit flag */
 static bool _thread_running = false;		/**< motor_ramp status flag */
 static int _motor_ramp_task;				/**< Handle of motor_ramp task / thread */
-static float _ramp_time = 1.0f;
+static float _ramp_time;
 static int _min_pwm;
-static int _max_pwm = 2000;
+static int _max_pwm;
 static Mode _mode;
-static char *_mode_c;
-static char *_pwm_output_dev = "/dev/pwm_output0";
-static struct pwm_output_values _last_spos;
-static struct pwm_output_values _last_min;
-static unsigned _servo_count;
+static const char *_mode_c;
+static const char *_pwm_output_dev = "/dev/pwm_output0";
 
 /**
  * motor_ramp management function.
@@ -160,6 +157,8 @@ int motor_ramp_main(int argc, char *argv[])
 	const char *myoptarg = nullptr;
 	bool error_flag = false;
 	bool set_pwm_min = false;
+	_max_pwm = 2000;
+	_ramp_time = 1.0f;
 
 	if (_thread_running) {
 		PX4_WARN("motor_ramp already running\n");
@@ -209,7 +208,7 @@ int motor_ramp_main(int argc, char *argv[])
 			case 'r':
 				_ramp_time = atof(myoptarg);
 
-				if (!(_ramp_time > 0)) {
+				if (_ramp_time <= 0) {
 					usage("ramp time must be greater than 0");
 					error_flag = true;
 				}
@@ -366,32 +365,34 @@ int motor_ramp_thread_main(int argc, char *argv[])
 {
 	_thread_running = true;
 
-	char *dev = _pwm_output_dev;
 	unsigned long max_channels = 0;
+	static struct pwm_output_values last_spos;
+	static struct pwm_output_values last_min;
+	static unsigned servo_count;
 
-	int fd = px4_open(dev, 0);
+	int fd = px4_open(_pwm_output_dev, 0);
 
 	if (fd < 0) {
-		PX4_ERR("can't open %s", dev);
+		PX4_ERR("can't open %s", _pwm_output_dev);
 	}
 
 	/* get the number of servo channels */
-	if (px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&_servo_count) < 0) {
+	if (px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count) < 0) {
 			PX4_ERR("PWM_SERVO_GET_COUNT");
 			return 1;
 	}
 
 	/* get current servo values */
-	for (unsigned i = 0; i < _servo_count; i++) {
+	for (unsigned i = 0; i < servo_count; i++) {
 
-		if (px4_ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&_last_spos.values[i]) < 0) {
+		if (px4_ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&last_spos.values[i]) < 0) {
 			PX4_ERR("PWM_SERVO_GET(%d)", i);
 			return 1;
 		}
 	}
 
 	/* get current pwm min */
-	if (px4_ioctl(fd, PWM_SERVO_GET_MIN_PWM, (long unsigned int)&_last_min) < 0) {
+	if (px4_ioctl(fd, PWM_SERVO_GET_MIN_PWM, (long unsigned int)&last_min) < 0) {
 		PX4_ERR("failed getting pwm min values");
 		return 1;
 	}
@@ -489,15 +490,15 @@ int motor_ramp_thread_main(int argc, char *argv[])
 
 	if (fd >= 0) {
 		/* get current pwm min */
-		if (px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&_last_min) < 0) {
+		if (px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&last_min) < 0) {
 			PX4_ERR("failed getting pwm min values");
 			return 1;
 		}
 
 		/* set previous servo values */
-		for (unsigned i = 0; i < _servo_count; i++) {
+		for (unsigned i = 0; i < servo_count; i++) {
 
-			if (px4_ioctl(fd, PWM_SERVO_SET(i), (unsigned long)_last_spos.values[i]) < 0) {
+			if (px4_ioctl(fd, PWM_SERVO_SET(i), (unsigned long)last_spos.values[i]) < 0) {
 				PX4_ERR("PWM_SERVO_SET(%d)", i);
 				return 1;
 			}
