@@ -223,20 +223,13 @@ mixer_tick(void)
 				   );
 
 	/*
-	 * Check if failsafe termination is set - if yes,
-	 * set the force failsafe flag once entering the first
-	 * failsafe condition.
+	 * Check if FMU is still alive, if not, terminate the flight
 	 */
-	if ( /* Flight termination is allowed */
-		REG_TO_BOOL(r_setup_flighttermination) &&
-		/* If we ended up not changing the default mixer */
-		(source == MIX_DISARMED) &&
-		/* and we should be armed, so we intended to provide outputs */
-		should_arm &&
-		/* and FMU is initialized */
-		(r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED)) {
-		/* FMU is then dead -> force failsafe */
-		PX4_ATOMIC_MODIFY_OR(r_setup_arming, PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE);
+	if (REG_TO_BOOL(r_setup_flighttermination) && 			/* Flight termination is allowed */
+	    (source == MIX_DISARMED) && 				/* and if we ended up not changing the default mixer */
+	    should_arm && 						/* and we should be armed, so we intended to provide outputs */
+	    (r_status_flags & PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED)) { 	/* and FMU is initialized */
+		PX4_ATOMIC_MODIFY_OR(r_setup_arming, PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE); /* then FMU is dead -> terminate flight */
 	}
 
 	/*
