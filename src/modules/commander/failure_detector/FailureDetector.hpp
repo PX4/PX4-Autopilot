@@ -71,7 +71,7 @@ public:
 	bool update();
 
 	uint8_t getStatus() const { return _status; }
-	bool isFailure() const { return (_status == FAILURE_NONE) ? false : true; }
+	bool isFailure() const { return _status != FAILURE_NONE; }
 
 private:
 
