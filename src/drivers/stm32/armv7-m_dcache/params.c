@@ -43,5 +43,7 @@
  * @value 1 Force it off
  * @value 2 Force it on
  * @group Chip
+ * @category Developer
+
  */
 PARAM_DEFINE_INT32(FORCE_F7_DCACHE, 0);
