@@ -297,12 +297,21 @@ FixedwingPositionControl::parameters_update()
 void
 FixedwingPositionControl::vehicle_control_mode_poll()
 {
-	bool updated;
+	bool updated = false;
 
 	orb_check(_control_mode_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
+		const bool was_armed = _control_mode.flag_armed;
+
+		if (orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode) == PX4_OK) {
+
+			// reset state when arming
+			if (!was_armed && _control_mode.flag_armed) {
+				reset_takeoff_state(true);
+				reset_landing_state();
+			}
+		}
 	}
 }
 
@@ -1870,10 +1879,10 @@ FixedwingPositionControl::run()
 }
 
 void
-FixedwingPositionControl::reset_takeoff_state()
+FixedwingPositionControl::reset_takeoff_state(bool force)
 {
 	// only reset takeoff if !armed or just landed
-	if (!_control_mode.flag_armed || (_was_in_air && _vehicle_land_detected.landed)) {
+	if (!_control_mode.flag_armed || (_was_in_air && _vehicle_land_detected.landed) || force) {
 
 		_runway_takeoff.reset();
 

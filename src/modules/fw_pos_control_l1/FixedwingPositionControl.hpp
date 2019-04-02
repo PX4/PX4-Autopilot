@@ -447,7 +447,7 @@ private:
 	 */
 	void		handle_command();
 
-	void		reset_takeoff_state();
+	void		reset_takeoff_state(bool force = false);
 	void		reset_landing_state();
 
 	/*
