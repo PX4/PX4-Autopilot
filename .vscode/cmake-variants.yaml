@@ -15,7 +15,7 @@ CONFIG:
       short: px4_sitl (Address Sanitizer)
       buildType: AddressSanitizer
       settings:
-        CONFIG: px4_sitl_default        
+        CONFIG: px4_sitl_default
     px4_fmu-v2_default:
       short: px4_fmu-v2
       buildType: MinSizeRel
