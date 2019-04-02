@@ -56,10 +56,9 @@ PARAM_DEFINE_INT32(SYS_AUTOSTART, 0);
  * Platform-specific values are used if available.
  * RC* parameters are preserved.
  *
- * @min 0
- * @max 1
  * @value 0 Keep parameters
  * @value 1 Reset parameters
+ * @value 2 Reload airframe parameters
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
@@ -144,9 +143,10 @@ PARAM_DEFINE_INT32(SYS_COMPANION, 0);
 /**
  * Parameter version
  *
- * This monotonically increasing number encodes the parameter compatibility set.
- * whenever it increases parameters might not be backwards compatible and
- * ground control stations should suggest a fresh configuration.
+ * This is used internally only: an airframe configuration might set an expected
+ * parameter version value via PARAM_DEFAULTS_VER. This is checked on bootup
+ * against SYS_PARAM_VER, and if they do not match, parameters from the airframe
+ * configuration are reloaded.
  *
  * @min 0
  * @group System
