@@ -59,7 +59,7 @@ OUTPUT_ARCH(arm)
 ENTRY(__start)		/* treat __start as the anchor for dead code stripping */
 EXTERN(_vectors)	/* force the vectors to be included in the output */
 
-/* 
+/*
  * Ensure that abort() is present in the final object.  The exception handling
  * code pulled in by libgcc.a requires it (and that code cannot be easily avoided).
  */
