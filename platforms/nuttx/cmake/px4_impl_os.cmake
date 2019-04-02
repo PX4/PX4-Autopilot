@@ -115,8 +115,8 @@ function(px4_os_prebuild_targets)
 			REQUIRED OUT
 			ARGN ${ARGN})
 
-	if(PX4_BOARD_LABEL MATCHES "stackcheck")
-		set(NUTTX_CONFIG "stackcheck" CACHE INTERNAL "NuttX config" FORCE)
+	if(EXISTS ${PX4_BOARD_DIR}/nuttx-config/${PX4_BOARD_LABEL})
+		set(NUTTX_CONFIG "${PX4_BOARD_LABEL}" CACHE INTERNAL "NuttX config" FORCE)
 	else()
 		set(NUTTX_CONFIG "nsh" CACHE INTERNAL "NuttX config" FORCE)
 	endif()
