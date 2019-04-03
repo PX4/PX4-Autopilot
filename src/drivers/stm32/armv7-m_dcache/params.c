@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * Force F7 D cache on and disregard erratta 1259864 Data corruption in
- * a sequence of Write-Through stores and loads on ARM M7 silicon
+ * Force F7 D cache on and disregard errata 1259864 data corruption in
+ * a sequence of write-through stores and loads on ARM M7 silicon
  * Fault Status: Present in r0p1, r0p2, r1p0 and r1p1. Fixed in r1p2
  *
  *
@@ -46,4 +46,4 @@
  * @category Developer
 
  */
-PARAM_DEFINE_INT32(FORCE_F7_DCACHE, 0);
+PARAM_DEFINE_INT32(SYS_FORCE_F7DC, 0);
