@@ -73,7 +73,7 @@ extern "C" __EXPORT int board_get_dcache_setting();
 
 int board_get_dcache_setting()
 {
-	param_t ph = param_find("FORCE_F7_DCACHE");
+	param_t ph = param_find("SYS_FORCE_F7DC");
 	int32_t dcache_setting = -1;
 
 	if (ph != PARAM_INVALID) {
