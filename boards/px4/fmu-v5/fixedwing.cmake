@@ -38,6 +38,7 @@ px4_add_board(
 		rc_input
 		stm32
 		stm32/adc
+		stm32/armv7-m_dcache
 		stm32/tone_alarm
 		telemetry # all available telemetry drivers
 		uavcan
