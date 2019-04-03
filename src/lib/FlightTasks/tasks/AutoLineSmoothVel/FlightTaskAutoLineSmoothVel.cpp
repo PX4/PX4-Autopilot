@@ -167,7 +167,7 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 		Vector2f u_pos_traj_to_dest_xy(Vector2f(pos_traj_to_dest).unit_or_zero());
 
 		float speed_sp_track = Vector2f(pos_traj_to_dest).length() * MPC_XY_TRAJ_P.get();
-		speed_sp_track = math::constrain(speed_sp_track, 0.0f, MPC_XY_CRUISE.get());
+		speed_sp_track = math::constrain(speed_sp_track, 0.0f, _mc_cruise_speed);
 		Vector2f vel_sp_xy = u_pos_traj_to_dest_xy * speed_sp_track;
 
 		for (int i = 0; i < 2; i++) {
