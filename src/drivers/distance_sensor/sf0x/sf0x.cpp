@@ -592,12 +592,15 @@ SF0X::cycle()
 
 		/* if dis_sensor model is SF11/C, then set baudrate 115200, else 9600*/
 		int hw_model;
+
 		param_get(param_find("SENS_EN_SF0X"), &hw_model);
+
 		unsigned speed;
-		if (hw_model==5) {
+
+		if (hw_model == 5) {
 			speed = B115200;
 		}
-		
+
 		else {
 			speed = B9600;
 		}
