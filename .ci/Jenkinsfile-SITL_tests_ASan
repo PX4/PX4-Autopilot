@@ -98,6 +98,7 @@ pipeline {
     CCACHE_DIR = '/tmp/ccache'
     CI = true
     PX4_CMAKE_BUILD_TYPE = 'AddressSanitizer'
+    ASAN_OPTIONS = 'detect_stack_use_after_return=1,check_initialization_order=1'
   }
 
   options {
