@@ -167,6 +167,32 @@ pipeline {
           }
         }
 
+        stage('SITL unit tests (ASan)') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base-bionic:2019-03-08'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          environment {
+            PX4_CMAKE_BUILD_TYPE = 'AddressSanitizer'
+            ASAN_OPTIONS = 'detect_stack_use_after_return=1,check_initialization_order=1'
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'make tests'
+            sh 'ccache -s'
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
+
         stage('Clang analyzer') {
           agent {
             docker {
