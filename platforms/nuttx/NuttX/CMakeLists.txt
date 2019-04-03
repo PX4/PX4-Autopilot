@@ -87,16 +87,22 @@ set(APPS_DIR ${CMAKE_CURRENT_BINARY_DIR}/apps)
 # If the board provides a Kconfig Use it or create an empty one
 if(EXISTS ${NUTTX_CONFIG_DIR}/Kconfig)
 	add_custom_command(
-		OUTPUT ${NUTTX_DIR}/configs/dummy/Kconfig
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_CONFIG_DIR}/Kconfig ${NUTTX_DIR}/configs/dummy/Kconfig
+		OUTPUT
+			${NUTTX_DIR}/configs/dummy/Kconfig
+			${CMAKE_CURRENT_BINARY_DIR}/nuttx_config_kconfig.stamp
+		COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/Kconfig ${NUTTX_DIR}/configs/dummy/Kconfig
+		COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/nuttx_config_kconfig.stamp
 		DEPENDS
 			${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
 			${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
 		)
 else()
 	add_custom_command(
-		OUTPUT ${NUTTX_DIR}/configs/dummy/Kconfig
+		OUTPUT
+			${NUTTX_DIR}/configs/dummy/Kconfig
+			${CMAKE_CURRENT_BINARY_DIR}/nuttx_config_kconfig.stamp
 		COMMAND ${CMAKE_COMMAND} -E touch ${NUTTX_DIR}/configs/dummy/Kconfig
+		COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/nuttx_config_kconfig.stamp
 		DEPENDS
 			${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
 			${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
@@ -139,25 +145,31 @@ file(STRINGS ${NUTTX_DEFCONFIG} config_expanded REGEX "# Automatically generated
 if (NOT config_expanded)
 	# copy compressed PX4 defconfig into nuttx and inflate
 	add_custom_command(
-		OUTPUT ${NUTTX_DIR}/.config
+		OUTPUT
+			${NUTTX_DIR}/.config
+			${CMAKE_CURRENT_BINARY_DIR}/nuttx_config.stamp
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DEFCONFIG} ${NUTTX_DIR}/.config
 		COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tools/px4_nuttx_make_olddefconfig.sh ${NUTTX_DIR}
+		COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/nuttx_config.stamp
 		DEPENDS
 			${NUTTX_DEFCONFIG}
-			${NUTTX_DIR}/configs/dummy/Kconfig
 			${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy_config_dir.stamp
+			${CMAKE_CURRENT_BINARY_DIR}/nuttx_config_kconfig.stamp
 		WORKING_DIRECTORY ${NUTTX_DIR}
 		COMMENT "Copying NuttX compressed config ${NUTTX_CONFIG} and inflating"
 	)
 else()
 	# copy uncompressed PX4 defconfig into nuttx
 	add_custom_command(
-		OUTPUT ${NUTTX_DIR}/.config
+		OUTPUT
+			${NUTTX_DIR}/.config
+			${CMAKE_CURRENT_BINARY_DIR}/nuttx_config.stamp
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DEFCONFIG} ${NUTTX_DIR}/.config
+		COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/nuttx_config.stamp
 		DEPENDS
 			${NUTTX_DEFCONFIG}
-			${NUTTX_DIR}/configs/dummy/Kconfig
 			${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy_config_dir.stamp
+			${CMAKE_CURRENT_BINARY_DIR}/nuttx_config_kconfig.stamp
 		WORKING_DIRECTORY ${NUTTX_DIR}
 		COMMENT "Copying NuttX uncompressed config ${NUTTX_CONFIG}"
 	)
@@ -190,7 +202,7 @@ endif()
 # context
 add_custom_command(OUTPUT ${NUTTX_DIR}/include/nuttx/version.h ${NUTTX_DIR}/include/nuttx/config.h
 	COMMAND make ${nuttx_build_options} --no-print-directory CONFIG_ARCH_BOARD_CUSTOM=y context > nuttx_context.log
-	DEPENDS ${NUTTX_DIR}/.config
+	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/nuttx_config.stamp
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	${nuttx_build_uses_terminal}
 	)
@@ -210,7 +222,7 @@ if (CONFIG_NSH_LIBRARY)
 		COMMAND rm -f ${APPS_DIR}/builtin/builtin_list.h
 		COMMAND ${CMAKE_COMMAND} -E touch builtins_clean.stamp
 		DEPENDS
-			${NUTTX_DIR}/.config
+			${CMAKE_CURRENT_BINARY_DIR}/nuttx_config.stamp
 			${NUTTX_DIR}/include/nuttx/version.h
 			${NUTTX_DIR}/include/nuttx/config.h
 			${PX4_CONFIG_FILE}
