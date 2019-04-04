@@ -32,6 +32,7 @@ set PWM_OUT                     none
 set SDCARD_MIXERS_PATH          etc/mixers
 set USE_IO                      no
 set VEHICLE_TYPE                none
+set LOGGER_BUF			1000
 
 set RUN_MINIMAL_SHELL           no
 
@@ -146,6 +147,8 @@ then
 	param set RTL_LAND_DELAY 5
 	param set RTL_RETURN_ALT 30
 
+	# By default log from boot until first disarm.
+	param set SDLOG_MODE 1
 	# enable default, estimator replay and vision/avoidance logging profiles
 	param set SDLOG_PROFILE 131
 	param set SDLOG_DIRS_MAX 7
@@ -240,8 +243,8 @@ mavlink start -x -u $udp_offboard_port_local -r 4000000 -m onboard -o $udp_offbo
 # execute autostart post script if any
 [ -e "$autostart_file".post ] && sh "$autostart_file".post
 
-
-logger start -e -t -b 1000
+# Run script to start logging
+sh etc/init.d/rc.logging
 
 mavlink boot_complete
 replay trystart
