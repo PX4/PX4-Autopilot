@@ -569,6 +569,17 @@ protected:
 		const bool updated_battery = _battery_status_sub->update(&_battery_status_timestamp, &battery_status);
 
 		if (updated_status || updated_battery || updated_cpuload) {
+
+			if (!updated_status) {
+				_status_sub->update(&status);
+			}
+			if (!updated_battery) {
+				_battery_status_sub->update(&battery_status);
+			}
+			if (!updated_cpuload) {
+				_cpuload_sub->update(&cpuload);
+			}
+
 			mavlink_sys_status_t msg = {};
 
 			msg.onboard_control_sensors_present = status.onboard_control_sensors_present;
