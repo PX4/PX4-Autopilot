@@ -16,11 +16,10 @@ bmi055 -A -R 10 start
 bmi055 -G -R 10 start
 
 # Possible external compasses
-hmc5883 -C -T -X start
-
-# Possible external compasses
 ist8310 -C -b 1 start
 ist8310 -C -b 2 start
+hmc5883 -C -T -X start
+qmc5883 -X start
 
 # Possible internal compass
 ist8310 -C -b 5 start
