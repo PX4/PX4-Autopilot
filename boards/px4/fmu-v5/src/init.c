@@ -230,8 +230,6 @@ stm32_boardinitialize(void)
 {
 	board_on_reset(-1); /* Reset PWM first thing */
 
-	board_configure_dcache(0);
-
 	/* configure LEDs */
 
 	board_autoled_initialize();
@@ -280,6 +278,8 @@ stm32_boardinitialize(void)
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	/* Power on Interfaces */
+
+	board_configure_dcache(0);
 
 	VDD_3V3_SD_CARD_EN(true);
 	VDD_5V_PERIPH_EN(true);
