@@ -191,8 +191,6 @@ stm32_boardinitialize(void)
 {
 	board_on_reset(-1); /* Reset PWM first thing */
 
-	board_configure_dcache(0);
-
 	/* configure LEDs */
 	board_autoled_initialize();
 
@@ -232,6 +230,9 @@ stm32_boardinitialize(void)
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
+
+	board_configure_dcache(0);
+
 	px4_platform_init();
 
 	/* configure the DMA allocator */
