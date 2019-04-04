@@ -1046,7 +1046,7 @@ blinkm_main(int argc, char *argv[])
 
 
 	if (g_blinkm == nullptr) {
-		fprintf(stderr, "not started\n");
+		PX4_ERR("not started");
 		blinkm_usage();
 		return 0;
 	}
@@ -1064,10 +1064,10 @@ blinkm_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "list")) {
 		for (unsigned i = 0; BlinkM::script_names[i] != nullptr; i++) {
-			fprintf(stderr, "    %s\n", BlinkM::script_names[i]);
+			PX4_ERR("    %s", BlinkM::script_names[i]);
 		}
 
-		fprintf(stderr, "    <html color number>\n");
+		PX4_ERR("    <html color number>");
 		return 0;
 	}
 
