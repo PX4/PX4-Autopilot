@@ -36,7 +36,7 @@ px4_add_module(
 	MAIN pmw3901
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
-	STACK_MAIN 1200
+	STACK_MAIN 1400
 	SRCS
 		pmw3901.cpp
 	)
