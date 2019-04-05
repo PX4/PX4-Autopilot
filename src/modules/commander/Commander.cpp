@@ -2118,7 +2118,7 @@ Commander::run()
 
 		} else {
 			if (!status_flags.rc_input_blocked && !status.rc_signal_lost) {
-				mavlink_log_critical(&mavlink_log_pub, "Manual control lost (at t=%" PRIu64 "ms)", hrt_absolute_time() / 1000);
+				mavlink_log_critical(&mavlink_log_pub, "Manual control lost");
 				status.rc_signal_lost = true;
 				rc_signal_lost_timestamp = sp_man.timestamp;
 				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, status);
@@ -4001,7 +4001,7 @@ void Commander::data_link_check(bool &status_changed)
 			}
 
 			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_FLIGHT_TERMINATION) {
-				mavlink_log_critical(&mavlink_log_pub, "Avoidance system aborted");
+				mavlink_log_critical(&mavlink_log_pub, "Avoidance system rejected");
 				status_flags.avoidance_system_valid = false;
 				status_changed = true;
 			}
