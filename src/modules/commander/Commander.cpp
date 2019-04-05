@@ -3900,7 +3900,11 @@ void Commander::data_link_check(bool &status_changed)
 					}
 				}
 
-				_datalink_last_heartbeat_gcs = telemetry.heartbeat_time;
+				// Only keep the very last heartbeat timestamp, so we don't get confused
+				// by multiple mavlink instances publishing different timestamps.
+				if (telemetry.heartbeat_time > _datalink_last_heartbeat_gcs) {
+					_datalink_last_heartbeat_gcs = telemetry.heartbeat_time;
+				}
 
 				break;
 
