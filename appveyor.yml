@@ -12,14 +12,6 @@ branches:
 # Build worker image (build VM template)
 image: Visual Studio 2017
 
-# build platform, i.e. Win32 (instead of x86), x64, Any CPU. This setting is optional.
-platform:
-- x64
-
-# scripts that are called at very beginning, before repo cloning
-init:
-- ver
-
 environment:
   matrix:
     - PX4_CONFIG: tests # this builds posix in px4_sitl_test folder and runs tests
