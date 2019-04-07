@@ -44,7 +44,7 @@ build_script:
 # safe the repopath for switching to it in cygwin bash
 - for /f %%i in ('cygpath -u %%CD%%') do set repopath=%%i
 # fetch all submodules in parallel with limited depth
-- call bash --login -c "cd $repopath && git submodule -q update --init --recursive --jobs=10 --depth 200"
+#- call bash --login -c "cd $repopath && git submodule -q update --init --recursive --jobs=10 --depth 200"
 # build the make target
 - call bash --login -c "cd $repopath && make $PX4_CONFIG"
 
