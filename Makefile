@@ -338,12 +338,9 @@ format:
 # Testing
 # --------------------------------------------------------------------
 .PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard tests_avoidance
-.PHONY: rostest python_coverage test_mixer_multirotor
+.PHONY: rostest python_coverage
 
-test_mixer_multirotor:
-	@$(MAKE) -C "$(SRC_DIR)"/src/lib/mixer --no-print-directory tests
-
-tests: test_mixer_multirotor
+tests:
 	@$(MAKE) --no-print-directory px4_sitl_test test_results \
 	ASAN_OPTIONS="color=always:check_initialization_order=1:detect_stack_use_after_return=1" \
 	UBSAN_OPTIONS="color=always"

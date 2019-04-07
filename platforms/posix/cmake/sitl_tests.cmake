@@ -150,6 +150,7 @@ add_custom_target(test_results
 		DEPENDS
 			px4
 			examples__dyn_hello
+			test_mixer_multirotor
 		USES_TERMINAL
 		COMMENT "Running tests in sitl"
 		WORKING_DIRECTORY ${PX4_BINARY_DIR})
