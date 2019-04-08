@@ -268,6 +268,11 @@ private:
 	void write_perf_data(bool preflight);
 
 	/**
+	 * write bootup console output
+	 */
+	void write_console_output();
+
+	/**
 	 * callback to write the performance counters
 	 */
 	static void perf_iterate_callback(perf_counter_t handle, void *user);
