@@ -36,7 +36,7 @@
 #include <px4_defines.h>
 #include <px4_sem.h>
 #include <pthread.h>
-
+#include <string.h>
 #include <fcntl.h>
 
 #ifdef BOARD_ENABLE_CONSOLE_BUFFER
@@ -54,6 +54,10 @@ public:
 	void write(const char *buffer, size_t len);
 
 	void print(bool follow);
+
+	int size();
+
+	int read(char *buffer, int buffer_length, int *offset);
 
 private:
 	void		lock() { do {} while (px4_sem_wait(&_lock) != 0); }
@@ -121,6 +125,69 @@ void ConsoleBuffer::write(const char *buffer, size_t len)
 	unlock();
 }
 
+int ConsoleBuffer::size()
+{
+	lock();
+	int size;
+
+	if (_head <= _tail) {
+		size = _tail - _head;
+
+	} else {
+		size = BOARD_CONSOLE_BUFFER_SIZE - (_head - _tail);
+	}
+
+	unlock();
+	return size;
+}
+
+int ConsoleBuffer::read(char *buffer, int buffer_length, int *offset)
+{
+	lock();
+
+	if (*offset == -1) {
+		*offset = _head;
+	}
+
+	int size = 0;
+
+	if (*offset < _tail) {
+		size = _tail - *offset;
+
+		if (size > buffer_length) {
+			size = buffer_length;
+		}
+
+		memcpy(buffer, _buffer + *offset, size);
+
+	} else if (_tail < *offset) {
+		size = BOARD_CONSOLE_BUFFER_SIZE - *offset;
+
+		if (size > buffer_length) {
+			size = buffer_length;
+		}
+
+		memcpy(buffer, _buffer + *offset, size);
+		buffer += size;
+		buffer_length -= size;
+
+		int size_secondary = _tail;
+
+		if (size_secondary > buffer_length) {
+			size_secondary = buffer_length;
+		}
+
+		if (size_secondary > 0) {
+			memcpy(buffer, _buffer, size_secondary);
+			size += size_secondary;
+		}
+	}
+
+	unlock();
+	*offset = (*offset + size) % BOARD_CONSOLE_BUFFER_SIZE;
+	return size;
+}
+
 static ConsoleBuffer g_console_buffer;
 
 
@@ -162,10 +229,14 @@ int px4_console_buffer_init()
 	return register_driver(CONSOLE_BUFFER_DEVICE, &g_console_buffer_fops, 0666, NULL);
 }
 
-#else
-
-int px4_console_buffer_init()
+int px4_console_buffer_size()
 {
-	return 0;
+	return g_console_buffer.size();
 }
+
+int px4_console_buffer_read(char *buffer, int buffer_length, int *offset)
+{
+	return g_console_buffer.read(buffer, buffer_length, offset);
+}
+
 #endif /* BOARD_ENABLE_CONSOLE_BUFFER */
