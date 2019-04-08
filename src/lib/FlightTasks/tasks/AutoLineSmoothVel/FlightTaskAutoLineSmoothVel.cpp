@@ -66,8 +66,6 @@ void FlightTaskAutoLineSmoothVel::reActivate()
 void FlightTaskAutoLineSmoothVel::_setDefaultConstraints()
 {
 	FlightTaskAuto::_setDefaultConstraints();
-
-	_constraints.speed_xy = _param_mpc_xy_vel_max.get(); // TODO : Should be computed using heading
 }
 
 void FlightTaskAutoLineSmoothVel::_generateSetpoints()
