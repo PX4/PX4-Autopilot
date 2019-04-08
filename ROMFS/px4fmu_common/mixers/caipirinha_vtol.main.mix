@@ -10,18 +10,11 @@ at the default rate of 50Hz. Note that channels 3 and 4 are assigned but not use
 
 Motor mixer
 ------------
-Channel 1 connects to the right (starboard) motor.
-Channel 2 connects to the left (port) motor.
+Channel 1 connects to the forward motor.
+Channel 2 connects to the backward motor.
+channel 3 and 4 are free.
 
-R: 2- 10000 10000 10000 0
-
-Zero mixer (2x)
----------------
-Channels 3,4 are unused.
-
-Z:
-
-Z:
+R: 4x 0 10000 0 0
 
 Elevons mixer
 --------------
@@ -30,10 +23,10 @@ Channel 6 connects to the left (port) elevon.
 
 M: 2
 O:        7500    7500    0 -10000  10000
-S: 1 0  -10000  -10000    0 -10000  10000
-S: 1 1   10000   10000    0 -10000  10000
+S: 0 0  -10000  -10000    0 -10000  10000
+S: 0 2   10000   10000    0 -10000  10000
 
 M: 2
 O:        7500    7500    0 -10000  10000
-S: 1 0  -10000  -10000    0 -10000  10000
-S: 1 1  -10000  -10000    0 -10000  10000
+S: 0 0   10000   10000    0 -10000  10000
+S: 0 2   10000   10000    0 -10000  10000
