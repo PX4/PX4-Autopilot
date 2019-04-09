@@ -1589,7 +1589,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			//Check that we are not in the flare phase just because we thought the altitude was right, but are actually too high
 			//(meaning that _land_noreturn_vertical was set to true too soon)
 			//the rangefinder bump will be handled by the glideslope part
-			if (_prev_tecs_alt_sp > _landingslope.flare_relative_alt() + terrain_alt) {
+                        if (_land_prev_tecs_alt_sp > _landingslope.flare_relative_alt() + terrain_alt) {
 				_land_noreturn_vertical = false;
 				goto landing_glideslope;
 
