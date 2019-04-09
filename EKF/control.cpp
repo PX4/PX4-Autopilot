@@ -1379,7 +1379,7 @@ void Ekf::controlMagFusion()
 
 		// We need to reset the yaw angle after climbing away from the ground to enable
 		// recovery from ground level magnetic interference.
-		if (!_control_status.flags.mag_align_complete) {
+		if (!_control_status.flags.mag_align_complete && _control_status.flags.in_air) {
 			// Check if height has increased sufficiently to be away from ground magnetic anomalies
 			// and request a yaw reset if not already requested.
 			float terrain_vpos_estimate = get_terrain_valid() ? _terrain_vpos : _last_on_ground_posD;
