@@ -250,7 +250,6 @@ private:
 
 	uint8_t _regdata[108];
 
-	bool _pub_blocked = true; // Don't publish until initialized
 };
 
 /**
@@ -361,10 +360,6 @@ GYROSIM::init()
 	PX4_DEBUG("init");
 	int ret = 1;
 
-	sensor_accel_s arp = {};
-
-	sensor_gyro_s grp = {};
-
 	ret = VirtDevObj::init();
 
 	if (ret != 0) {
@@ -408,7 +403,6 @@ GYROSIM::init()
 	_gyro_scale.z_offset = 0;
 	_gyro_scale.z_scale  = 1.0f;
 
-
 	/* do init for the gyro device node, keep it optional */
 	ret = _gyro->init();
 
@@ -426,33 +420,7 @@ GYROSIM::init()
 	}
 
 	// Do not call _gyro->start()  because polling is done in accel
-
 	_measure();
-
-	/* advertise sensor topic, measure manually to initialize valid report */
-	_accel_reports->get(&arp);
-
-	/* measurement will have generated a report, publish */
-	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-					   &_accel_orb_class_instance, ORB_PRIO_HIGH);
-
-	if (_accel_topic == nullptr) {
-		PX4_WARN("ADVERT FAIL");
-
-	} else {
-		_pub_blocked = false;
-	}
-
-
-	/* advertise sensor topic, measure manually to initialize valid report */
-	_gyro_reports->get(&grp);
-
-	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-			     &_gyro->_gyro_orb_class_instance, ORB_PRIO_HIGH);
-
-	if (_gyro->_gyro_topic == nullptr) {
-		PX4_WARN("ADVERT FAIL");
-	}
 
 out:
 	return ret;
@@ -915,17 +883,11 @@ GYROSIM::_measure()
 	_gyro_reports->force(&grb);
 
 	if (accel_notify) {
-		if (!(_pub_blocked)) {
-			/* publish it */
-			orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
-		}
+		orb_publish_auto(ORB_ID(sensor_accel), &_accel_topic, &arb, &_accel_orb_class_instance, ORB_PRIO_HIGH);
 	}
 
 	if (gyro_notify) {
-		if (!(_pub_blocked)) {
-			/* publish it */
-			orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
-		}
+		orb_publish_auto(ORB_ID(sensor_gyro), &_gyro->_gyro_topic, &grb, &_gyro->_gyro_orb_class_instance, ORB_PRIO_HIGH);
 	}
 
 	/* stop measuring */

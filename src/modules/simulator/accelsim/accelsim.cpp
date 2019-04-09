@@ -125,9 +125,9 @@ private:
 	float			_mag_range_scale;
 	unsigned		_mag_samplerate;
 
-	orb_advert_t		_accel_topic;
-	int			_accel_orb_class_instance;
-	int			_accel_class_instance;
+	orb_advert_t		_accel_topic{nullptr};
+	int			_accel_orb_class_instance{-1};
+	int			_accel_class_instance{-1};
 
 	unsigned		_accel_read;
 	unsigned		_mag_read;
@@ -224,9 +224,9 @@ protected:
 private:
 	ACCELSIM	*_parent;
 
-	orb_advert_t	_mag_topic;
-	int		_mag_orb_class_instance;
-	int		_mag_class_instance;
+	orb_advert_t	_mag_topic{nullptr};
+	int		_mag_orb_class_instance{-1};
+	int		_mag_class_instance{-1};
 
 	virtual void	_measure();
 
@@ -250,9 +250,6 @@ ACCELSIM::ACCELSIM(const char *path, enum Rotation rotation) :
 	_mag_range_ga(0.0f),
 	_mag_range_scale(0.0f),
 	_mag_samplerate(0),
-	_accel_topic(nullptr),
-	_accel_orb_class_instance(-1),
-	_accel_class_instance(-1),
 	_accel_read(0),
 	_mag_read(0),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "sim_accel_read")),
@@ -320,8 +317,7 @@ ACCELSIM::init()
 {
 	int ret = -1;
 
-	struct mag_report mrp = {};
-	sensor_accel_s arp = {};
+	mag_report mrp = {};
 
 	/* do SIM init first */
 	if (VirtDevObj::init() != 0) {
@@ -357,23 +353,7 @@ ACCELSIM::init()
 	_mag_reports->get(&mrp);
 
 	/* measurement will have generated a report, publish */
-	_mag->_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
-					       &_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
-
-	if (_mag->_mag_topic == nullptr) {
-		PX4_WARN("ADVERT ERR");
-	}
-
-	/* advertise sensor topic, measure manually to initialize valid report */
-	_accel_reports->get(&arp);
-
-	/* measurement will have generated a report, publish */
-	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-					   &_accel_orb_class_instance, ORB_PRIO_DEFAULT);
-
-	if (_accel_topic == nullptr) {
-		PX4_WARN("ADVERT ERR");
-	}
+	_mag->_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp, &_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
 
 out:
 	return ret;
@@ -743,9 +723,7 @@ ACCELSIM::_measure()
 	 *		  74 from all measurements centers them around zero.
 	 */
 
-
 	accel_report.timestamp = hrt_absolute_time();
-
 	accel_report.device_id = 1310728;
 
 	// use the temperature from the last mag reading
@@ -769,19 +747,18 @@ ACCELSIM::_measure()
 	accel_report.y = raw_accel_report.y;
 	accel_report.z = raw_accel_report.z;
 
+	//accel_report.integral_dt = 0;
+	//accel_report.x_integral = 0.0f;
+	//accel_report.y_integral = 0.0f;
+	//accel_report.z_integral = 0.0f;
+
+	accel_report.temperature = 25.0f;
+
 	accel_report.scaling = _accel_range_scale;
 
 	_accel_reports->force(&accel_report);
 
-	if (!(m_pub_blocked)) {
-		/* publish it */
-
-		// The first call to measure() is from init() and _accel_topic is not
-		// yet initialized
-		if (_accel_topic != nullptr) {
-			orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
-		}
-	}
+	orb_publish_auto(ORB_ID(sensor_accel), &_accel_topic, &accel_report, &_accel_orb_class_instance, ORB_PRIO_DEFAULT);
 
 	_accel_read++;
 
@@ -803,8 +780,6 @@ ACCELSIM::mag_measure()
 		float		z;
 	} raw_mag_report;
 #pragma pack(pop)
-
-	mag_report mag_report = {};
 
 	/* start the performance counter */
 	perf_begin(_mag_sample_perf);
@@ -832,7 +807,7 @@ ACCELSIM::mag_measure()
 	 *		  74 from all measurements centers them around zero.
 	 */
 
-
+	mag_report mag_report = {};
 	mag_report.timestamp = hrt_absolute_time();
 	mag_report.device_id = 196616;
 	mag_report.is_external = false;
@@ -863,10 +838,7 @@ ACCELSIM::mag_measure()
 
 	_mag_reports->force(&mag_report);
 
-	if (!(m_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_mag), _mag->_mag_topic, &mag_report);
-	}
+	orb_publish_auto(ORB_ID(sensor_mag), &_mag->_mag_topic, &mag_report, &_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
 
 	_mag_read++;
 
