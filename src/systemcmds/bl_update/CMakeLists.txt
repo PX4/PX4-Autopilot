@@ -35,9 +35,7 @@ px4_add_module(
 	MAIN bl_update
 	STACK_MAIN 4096
 	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		bl_update.c
-	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

@@ -35,8 +35,10 @@
  * @file terrain_estimator.h
  */
 
+#pragma once
+
 #include <lib/mathlib/mathlib.h>
-#include "matrix/Matrix.hpp"
+#include <matrix/math.hpp>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -58,11 +60,11 @@ class __EXPORT TerrainEstimator
 {
 public:
 	TerrainEstimator();
-	~TerrainEstimator() {};
+	~TerrainEstimator() {}
 
 	bool is_valid() {return _terrain_valid;}
 	float get_distance_to_ground() {return -_x(0);}
-	float get_velocity() {return _x(1);};
+	float get_velocity() {return _x(1);}
 
 	void predict(float dt, const struct vehicle_attitude_s *attitude, const struct sensor_combined_s *sensor,
 		     const struct distance_sensor_s *distance);

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,36 +42,36 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#ifndef NAVIGATOR_MISSION_H
-#define NAVIGATOR_MISSION_H
+#pragma once
 
 #include "mission_block.h"
 #include "mission_feasibility_checker.h"
 #include "navigator_mode.h"
 
-#include <cfloat>
+#include <float.h>
 
-#include <controllib/block/BlockParam.hpp>
-#include <controllib/blocks.hpp>
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
+#include <px4_module_params.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_roi.h>
 #include <uORB/uORB.h>
 
 class Navigator;
 
-class Mission : public MissionBlock
+class Mission : public MissionBlock, public ModuleParams
 {
 public:
-	Mission(Navigator *navigator, const char *name);
+	Mission(Navigator *navigator);
 	~Mission() override = default;
 
 	void on_inactive() override;
+	void on_inactivation() override;
 	void on_activation() override;
 	void on_active() override;
 
@@ -80,28 +80,31 @@ public:
 		MISSION_ALTMODE_FOH = 1
 	};
 
-	enum mission_yaw_mode {
-		MISSION_YAWMODE_NONE = 0,
-		MISSION_YAWMODE_FRONT_TO_WAYPOINT = 1,
-		MISSION_YAWMODE_FRONT_TO_HOME = 2,
-		MISSION_YAWMODE_BACK_TO_HOME = 3,
-		MISSION_YAWMODE_MAX = 4
-	};
+	bool set_current_mission_index(uint16_t index);
 
-	bool set_current_offboard_mission_index(unsigned index);
+	bool land_start();
+	bool landing();
 
-	int find_offboard_land_start();
+	uint16_t get_land_start_index() const { return _land_start_index; }
+	bool get_land_start_available() const { return _land_start_available; }
+	bool get_mission_finished() const { return _mission_type == MISSION_TYPE_NONE; }
+	bool get_mission_changed() const { return _mission_changed ; }
+	bool get_mission_waypoints_changed() const { return _mission_waypoints_changed ; }
 
+	void set_closest_item_as_current();
+
+	/**
+	 * Set a new mission mode and handle the switching between the different modes
+	 *
+	 * For a list of the different modes refer to mission_result.msg
+	 */
+	void set_execution_mode(const uint8_t mode);
 private:
-	/**
-	 * Update onboard mission topic
-	 */
-	void update_onboard_mission();
 
 	/**
-	 * Update offboard mission topic
+	 * Update mission topic
 	 */
-	void update_offboard_mission();
+	void update_mission();
 
 	/**
 	 * Move on to next mission item or switch to loiter
@@ -131,7 +134,7 @@ private:
 	/**
 	 * Copies position from setpoint if valid, otherwise copies current position
 	 */
-	void copy_positon_if_valid(struct mission_item_s *mission_item, struct position_setpoint_s *setpoint);
+	void copy_position_if_valid(struct mission_item_s *mission_item, struct position_setpoint_s *setpoint);
 
 	/**
 	 * Create mission item to align towards next waypoint
@@ -154,11 +157,6 @@ private:
 	void altitude_sp_foh_update();
 
 	/**
-	 * Resets the altitude sp foh logic
-	 */
-	void altitude_sp_foh_reset();
-
-	/**
 	 * Update the cruising speed setpoint.
 	 */
 	void cruising_speed_sp_update();
@@ -168,16 +166,14 @@ private:
 	 */
 	void do_abort_landing();
 
-	float get_absolute_altitude_for_item(struct mission_item_s &mission_item);
-
 	/**
 	 * Read the current and the next mission item. The next mission item read is the
 	 * next mission item that contains a position.
 	 *
 	 * @return true if current mission item available
 	 */
-	bool prepare_mission_items(bool onboard, struct mission_item_s *mission_item,
-				   struct mission_item_s *next_position_mission_item, bool *has_next_position_item);
+	bool prepare_mission_items(mission_item_s *mission_item,
+				   mission_item_s *next_position_mission_item, bool *has_next_position_item);
 
 	/**
 	 * Read current (offset == 0) or a specific (offset > 0) mission item
@@ -185,12 +181,12 @@ private:
 	 *
 	 * @return true if successful
 	 */
-	bool read_mission_item(bool onboard, int offset, struct mission_item_s *mission_item);
+	bool read_mission_item(int offset, struct mission_item_s *mission_item);
 
 	/**
-	 * Save current offboard mission state to dataman
+	 * Save current mission state to dataman
 	 */
-	void save_offboard_mission_state();
+	void save_mission_state();
 
 	/**
 	 * Inform about a changed mission item after a DO_JUMP
@@ -203,25 +199,19 @@ private:
 	void set_mission_item_reached();
 
 	/**
-	 * Set the current offboard mission item
+	 * Set the current mission item
 	 */
-	void set_current_offboard_mission_item();
-
-	/**
-	 * Set that the mission is finished if one exists or that none exists
-	 */
-	void set_mission_finished();
+	void set_current_mission_item();
 
 	/**
 	 * Check whether a mission is ready to go
 	 */
 	void check_mission_valid(bool force);
 
-
 	/**
-	 * Reset offboard mission
+	 * Reset mission
 	 */
-	void reset_offboard_mission(struct mission_s &mission);
+	void reset_mission(struct mission_s &mission);
 
 	/**
 	 * Returns true if we need to reset the mission
@@ -233,32 +223,45 @@ private:
 	 */
 	void generate_waypoint_from_heading(struct position_setpoint_s *setpoint, float yaw);
 
-	control::BlockParamInt _param_onboard_enabled;
-	control::BlockParamFloat _param_takeoff_alt;
-	control::BlockParamFloat _param_dist_1wp;
-	control::BlockParamInt _param_altmode;
-	control::BlockParamInt _param_yawmode;
-	control::BlockParamInt _param_force_vtol;
-	control::BlockParamFloat _param_fw_climbout_diff;
+	/**
+	 * Find and store the index of the landing sequence (DO_LAND_START)
+	 */
+	bool find_mission_land_start();
 
-	struct mission_s _onboard_mission {};
-	struct mission_s _offboard_mission {};
+	/**
+	 * Return the index of the closest mission item to the current global position.
+	 */
+	int32_t index_closest_mission_item() const;
 
-	int _current_onboard_mission_index{-1};
-	int _current_offboard_mission_index{-1};
+	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_mis_dist_1wp,
+		(ParamFloat<px4::params::MIS_DIST_WPS>) _param_mis_dist_wps,
+		(ParamInt<px4::params::MIS_ALTMODE>) _param_mis_altmode,
+		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mis_mnt_yaw_ctl
+	)
+
+	struct mission_s _mission {};
+
+	int32_t _current_mission_index{-1};
+
+	// track location of planned mission landing
+	bool	_land_start_available{false};
+	uint16_t _land_start_index{UINT16_MAX};		/**< index of DO_LAND_START, INVALID_DO_LAND_START if no planned landing */
+
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
 
 	enum {
 		MISSION_TYPE_NONE,
-		MISSION_TYPE_ONBOARD,
-		MISSION_TYPE_OFFBOARD
+		MISSION_TYPE_MISSION
 	} _mission_type{MISSION_TYPE_NONE};
 
 	bool _inited{false};
 	bool _home_inited{false};
 	bool _need_mission_reset{false};
-
-	MissionFeasibilityChecker _missionFeasibilityChecker; /**< class that checks if a mission is feasible */
+	bool _mission_waypoints_changed{false};
+	bool _mission_changed{false}; /** < true if the mission changed since the mission mode was active */
 
 	float _min_current_sp_distance_xy{FLT_MAX}; /**< minimum distance which was achieved to the current waypoint  */
 
@@ -272,8 +275,10 @@ private:
 		WORK_ITEM_TYPE_ALIGN,		/**< align for next waypoint */
 		WORK_ITEM_TYPE_CMD_BEFORE_MOVE,
 		WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF,
-		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION
+		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION,
+		WORK_ITEM_TYPE_PRECISION_LAND
 	} _work_item_type{WORK_ITEM_TYPE_DEFAULT};	/**< current type of work to do (sub mission item) */
-};
 
-#endif
+	uint8_t _mission_execution_mode{mission_result_s::MISSION_EXECUTION_MODE_NORMAL};	/**< the current mode of how the mission is executed,look at mission_result.msg for the definition */
+	bool _execution_mode_changed{false};
+};

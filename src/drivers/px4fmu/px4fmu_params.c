@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,140 +32,37 @@
  ****************************************************************************/
 
 /**
- * Invert direction of aux output channel 1
+ * Motor Ordering
  *
- * Set to 1 to invert the channel, 0 for default direction.
+ * Determines the motor ordering. This can be used for example in combination with
+ * a 4-in-1 ESC that assumes a motor ordering which is different from PX4.
  *
- * @reboot_required true
+ * ONLY supported for Quads.
+ * ONLY supported for fmu output (Pixracer or Omnibus F4).
+ *
+ * When changing this, make sure to test the motor response without props first.
+ *
+ * @value 0 PX4
+ * @value 1 Betaflight / Cleanflight
+ *
+ * @min 0
+ * @max 1
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(MOT_ORDERING, 0);
+
+/**
+ * Run the FMU as a task to reduce latency
+ *
+ * If true, the FMU will run in a separate task instead of on the work queue.
+ * Set this if low latency is required, for example for racing.
+ *
+ * This is a trade-off between RAM usage and latency: running as a task, it
+ * requires a separate stack and directly polls on the control topics, whereas
+ * running on the work queue, it runs at a fixed update rate.
+ *
  * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_AUX_REV1, 0);
-
-/**
- * Invert direction of aux output channel 2
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
  * @reboot_required true
- * @boolean
- * @group PWM Outputs
+ * @group System
  */
-PARAM_DEFINE_INT32(PWM_AUX_REV2, 0);
-
-/**
- * Invert direction of aux output channel 3
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_AUX_REV3, 0);
-
-/**
- * Invert direction of aux output channel 4
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_AUX_REV4, 0);
-
-/**
- * Invert direction of aux output channel 5
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_AUX_REV5, 0);
-
-/**
- * Invert direction of aux output channel 6
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_AUX_REV6, 0);
-
-/**
- * Trim value for FMU PWM output channel 1
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_AUX_TRIM1, 0);
-
-/**
- * Trim value for FMU PWM output channel 2
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_AUX_TRIM2, 0);
-
-/**
- * Trim value for FMU PWM output channel 3
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_AUX_TRIM3, 0);
-
-/**
- * Trim value for FMU PWM output channel 4
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_AUX_TRIM4, 0);
-
-/**
- * Trim value for FMU PWM output channel 5
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_AUX_TRIM5, 0);
-
-/**
- * Trim value for FMU PWM output channel 6
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_AUX_TRIM6, 0);
-
+PARAM_DEFINE_INT32(SYS_FMU_TASK, 1);

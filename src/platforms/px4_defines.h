@@ -41,6 +41,10 @@
 
 #include <px4_log.h>
 
+#if defined(__PX4_NUTTX) && !defined(CONFIG_ARCH_MATH_H)
+#error CONFIG_ARCH_MATH_H is required to use math definitions and functions
+#endif
+
 /****************************************************************************
  * Defines for all platforms.
  ****************************************************************************/
@@ -61,40 +65,22 @@
 /* Wrapper for rotation matrices stored in arrays */
 #define PX4_R(_array, _x, _y) PX4_ARRAY2D(_array, 3, _x, _y)
 
-/* Define a usable PX4_ISFINITE. Note that PX4_ISFINITE is ONLY used in C++ files,
- * therefore, by default, we want to use std::isfinite. */
+/* Define PX4_ISFINITE */
 #ifdef __cplusplus
-#include <cmath>
-#define PX4_ISFINITE(x) std::isfinite(x)
-#endif
+constexpr bool PX4_ISFINITE(float x) { return __builtin_isfinite(x); }
+constexpr bool PX4_ISFINITE(double x) { return __builtin_isfinite(x); }
+#endif /* __cplusplus */
 
-#if defined(__PX4_ROS)
-/****************************************************************************
- * Building for running within the ROS environment.
- ****************************************************************************/
-
-#define noreturn_function
-#ifdef __cplusplus
-#include "ros/ros.h"
-#endif
-
-/* Main entry point */
-#define PX4_MAIN_FUNCTION(_prefix) int main(int argc, char **argv)
-
-/* Get value of parameter by name, which is equal to the handle for ros */
-#define PX4_PARAM_GET_BYNAME(_name, _destpt) ros::param::get(_name, *_destpt)
-
-#elif defined(__PX4_NUTTX) || defined(__PX4_POSIX)
+#if defined(__PX4_NUTTX) || defined(__PX4_POSIX)
 /****************************************************************************
  * Building for NuttX or POSIX.
  ****************************************************************************/
 
-#include <platforms/px4_includes.h>
 /* Main entry point */
 #define PX4_MAIN_FUNCTION(_prefix) int _prefix##_task_main(int argc, char *argv[])
 
 /* Parameter handle datatype */
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 typedef param_t px4_param_t;
 
 /* Get value of parameter by name */
@@ -110,9 +96,9 @@ typedef param_t px4_param_t;
  * NuttX specific defines.
  ****************************************************************************/
 
-#define PX4_ROOTFSDIR
+#define PX4_ROOTFSDIR ""
+#define PX4_STORAGEDIR PX4_ROOTFSDIR "/fs/microsd"
 #define _PX4_IOC(x,y) _IOC(x,y)
-#define px4_statfs_buf_f_bavail_t int
 
 // mode for open with O_CREAT
 #define PX4_O_MODE_777 0777
@@ -130,29 +116,15 @@ typedef param_t px4_param_t;
 #  define offsetof(TYPE, MEMBER) __builtin_offsetof (TYPE, MEMBER)
 #endif
 
-// Workaround for broken NuttX math.h.
-#ifdef __cplusplus
-#include <cmath>
-#undef isfinite
-template<typename T>
-inline bool isfinite(T __y)
-{
-	int __cy = fpclassify(__y);
-	return __cy != FP_INFINITE && __cy != FP_NAN;
-}
-namespace std
-{
-using ::isfinite;
-}
-#endif // __cplusplus
-
 #elif defined(__PX4_POSIX)
 /****************************************************************************
  * POSIX Specific defines
  ****************************************************************************/
 
 // Flag is meaningless on Linux
+#ifndef O_BINARY
 #define O_BINARY 0
+#endif
 
 // mode for open with O_CREAT
 #define PX4_O_MODE_777 (S_IRWXU | S_IRWXG | S_IRWXO)
@@ -165,24 +137,16 @@ using ::isfinite;
 /* FIXME - Used to satisfy build */
 #define getreg32(a)    (*(volatile uint32_t *)(a))
 
-#define USEC_PER_TICK (1000000UL/PX4_TICKS_PER_SEC)
+#define USEC_PER_TICK (1000000/PX4_TICKS_PER_SEC)
 #define USEC2TICK(x) (((x)+(USEC_PER_TICK/2))/USEC_PER_TICK)
-
-#define px4_statfs_buf_f_bavail_t unsigned long
 
 #ifdef __PX4_QURT
 
 // QURT specific
 #  include "dspal_math.h"
-#  define PX4_ROOTFSDIR
+#  define PX4_ROOTFSDIR "."
 #  define PX4_TICKS_PER_SEC 1000L
 #  define SIOCDEVPRIVATE 999999
-
-// HEXAGON's isfinite() is erroneously defined as a macro even for C++,
-// using std::isfinite (using ::isfinite) which is a function, but which
-// appears to be broken because of undefined symbols (ie, _Dtest (C linkage)).
-#  undef PX4_ISFINITE
-#  define PX4_ISFINITE(x) __builtin_isfinite(x)
 
 #else // __PX4_QURT
 
@@ -197,13 +161,15 @@ __END_DECLS
 #  elif defined(__PX4_POSIX_BEBOP)
 #    define PX4_ROOTFSDIR "/data/ftp/internal_000"
 #  else
-#    define PX4_ROOTFSDIR "rootfs"
+#    define PX4_ROOTFSDIR "."
 #  endif
 
 #endif // __PX4_QURT
+
+#define PX4_STORAGEDIR PX4_ROOTFSDIR
 #endif // __PX4_POSIX
 
-#if defined(__PX4_ROS) || defined(__PX4_POSIX)
+#if defined(__PX4_POSIX)
 /****************************************************************************
  * Defines for POSIX and ROS
  ****************************************************************************/
@@ -242,4 +208,4 @@ __END_DECLS
 #define M_DEG_TO_RAD 		0.017453292519943295
 #define M_RAD_TO_DEG 		57.295779513082323
 
-#endif // defined(__PX4_ROS) || defined(__PX4_POSIX)
+#endif // defined(__PX4_POSIX)

@@ -36,18 +36,13 @@
  *
  * Parameters for GPSF navigation mode
  *
- * @author Thomas Gubler <thomasgubler@gmail.com>
- */
-
-/*
- * GPS Failure Navigation Mode parameters, accessible via MAVLink
  */
 
 /**
  * Loiter time
  *
- * The amount of time in seconds the system should do open loop loiter and wait for gps recovery
- * before it goes into flight termination.
+ * The time in seconds the system should do open loop loiter and wait for GPS recovery
+ * before it goes into flight termination. Set to 0 to disable.
  *
  * @unit s
  * @min 0.0
@@ -56,12 +51,12 @@
  * @increment 1
  * @group GPS Failure Navigation
  */
-PARAM_DEFINE_FLOAT(NAV_GPSF_LT, 30.0f);
+PARAM_DEFINE_FLOAT(NAV_GPSF_LT, 0.0f);
 
 /**
- * Open loop loiter roll
+ * Fixed bank angle
  *
- * Roll in degrees during the open loop loiter
+ * Roll in degrees during the loiter
  *
  * @unit deg
  * @min 0.0
@@ -73,7 +68,7 @@ PARAM_DEFINE_FLOAT(NAV_GPSF_LT, 30.0f);
 PARAM_DEFINE_FLOAT(NAV_GPSF_R, 15.0f);
 
 /**
- * Open loop loiter pitch
+ * Fixed pitch angle
  *
  * Pitch in degrees during the open loop loiter
  *
@@ -87,7 +82,7 @@ PARAM_DEFINE_FLOAT(NAV_GPSF_R, 15.0f);
 PARAM_DEFINE_FLOAT(NAV_GPSF_P, 0.0f);
 
 /**
- * Open loop loiter thrust
+ * Thrust
  *
  * Thrust value which is set during the open loop loiter
  *
@@ -98,4 +93,4 @@ PARAM_DEFINE_FLOAT(NAV_GPSF_P, 0.0f);
  * @increment 0.05
  * @group GPS Failure Navigation
  */
-PARAM_DEFINE_FLOAT(NAV_GPSF_TR, 0.7f);
+PARAM_DEFINE_FLOAT(NAV_GPSF_TR, 0.0f);

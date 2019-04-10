@@ -1,6 +1,7 @@
+uint64 timestamp			# time since system start (microseconds)
 
 uint8 SWITCH_POS_NONE = 0		# switch is not mapped
-uint8 SWITCH_POS_ON = 1			# switch activated (value = 1)
+uint8 SWITCH_POS_ON = 1		# switch activated (value = 1)
 uint8 SWITCH_POS_MIDDLE = 2		# middle position (value = 0)
 uint8 SWITCH_POS_OFF = 3		# switch not activated (value = -1)
 int8 MODE_SLOT_NONE = -1		# no mode slot assigned
@@ -47,6 +48,7 @@ float32 aux2			 # default function: camera pitch / tilt
 float32 aux3			 # default function: camera trigger
 float32 aux4			 # default function: camera roll
 float32 aux5			 # default function: payload drop
+float32 aux6
 
 uint8 mode_switch		 # main mode 3 position switch (mandatory): _MANUAL_, ASSIST, AUTO
 uint8 return_switch		 # return to launch 2 position switch (mandatory): _NORMAL_, RTL

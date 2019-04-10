@@ -19,13 +19,11 @@ factors (to reverse the servo movement) and adjust the offset, scaling and
 endpoints to suit.
 
 M: 2
-O:      10000  10000      0 -10000  10000
-S: 1 0  10000  10000      0 -10000  10000
+S: 1 0 -10000 -10000      0 -10000  10000
 S: 1 6  10000  10000      0 -10000  10000
 
 M: 2
-O:      10000  10000      0 -10000  10000
-S: 1 0  10000  10000      0 -10000  10000
+S: 1 0 -10000 -10000      0 -10000  10000
 S: 1 6 -10000 -10000      0 -10000  10000
 
 
@@ -37,12 +35,10 @@ On the assumption that the two tail servos are physically reversed, the pitch
 input is inverted between the two servos.
 
 M: 2
-O:      10000  10000      0 -10000  10000
 S: 1 2  -7000  -7000      0 -10000  10000
 S: 1 1  -8000  -8000      0 -10000  10000
 
 M: 2
-O:      10000  10000      0 -10000  10000
 S: 1 2  -7000  -7000      0 -10000  10000
 S: 1 1   8000   8000      0 -10000  10000
 
@@ -54,6 +50,5 @@ This mixer generates a full-range output (-1 to 1) from an input in the (0 - 1)
 range.  Inputs below zero are treated as zero.
 
 M: 1
-O:      10000  10000      0 -10000  10000
 S: 1 3      0  20000 -10000 -10000  10000
 

@@ -141,6 +141,47 @@ private:
 		PerPriorityData priority[led_control_s::MAX_PRIORITY + 1];
 		uint16_t current_blinking_time = 0; ///< how long the Led was in current state (in 0.1 ms, wraps if > 6.5s)
 		NextState next_state;
+
+		void set(const led_control_s &led_control)
+		{
+			int next_priority = (int)led_control.priority;
+			priority[next_priority].color = led_control.color;
+			priority[next_priority].mode = led_control.mode;
+
+			// initialise the flash counter
+			if (led_control.mode == led_control_s::MODE_FLASH) {
+				priority[next_priority].blink_times_left = led_control.num_blinks * 10;
+
+			} else {
+				priority[next_priority].blink_times_left = led_control.num_blinks * 2;
+			}
+
+			if (priority[next_priority].blink_times_left == 0) {
+				// handle infinite case
+				priority[next_priority].blink_times_left = 246;
+			}
+
+
+		}
+
+		void apply_next_state()
+		{
+			int next_priority = (int)next_state.priority;
+			priority[next_priority].color = next_state.color;
+			priority[next_priority].mode = next_state.mode;
+
+			if (next_state.mode == led_control_s::MODE_FLASH) {
+				priority[next_priority].blink_times_left = next_state.num_blinks * 10;
+
+			} else {
+				priority[next_priority].blink_times_left = next_state.num_blinks * 2;
+			}
+
+			if (priority[next_priority].blink_times_left == 0) {
+				// handle infinite case
+				priority[next_priority].blink_times_left = 254;
+			}
+		}
 	};
 
 	PerLedData _states[BOARD_MAX_LEDS]; ///< keep current LED states
@@ -150,4 +191,3 @@ private:
 	bool _force_update = true; ///< force an orb_copy in the beginning
 	bool _breathe_enabled = false; ///< true if at least one of the led's is currently in breathe mode
 };
-

@@ -66,9 +66,8 @@ public:
 		_sum(),
 		_sumSq(),
 		_count(0)
-	{
-	};
-	virtual ~BlockStats() {};
+	{}
+	virtual ~BlockStats() {}
 	void update(const matrix::Vector<Type, M> &u)
 	{
 		_sum += u;
@@ -90,7 +89,7 @@ public:
 	}
 	matrix::Vector<Type, M> getStdDev()
 	{
-		return getVar().pow(0.5);
+		return getVar().pow(0.5f);
 	}
 private:
 // attributes

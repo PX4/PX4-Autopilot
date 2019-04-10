@@ -39,6 +39,7 @@
  * motor and contol commands to the Bebop and reads its status and informations.
  */
 
+#include <stdlib.h>
 #include <stdint.h>
 
 #include <px4_tasks.h>
@@ -47,14 +48,17 @@
 
 #include <errno.h>
 #include <string.h>
+#include <math.h>
+
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/esc_status.h>
 
-#include <systemlib/mixer/mixer.h>
-#include <systemlib/battery.h>
+#include <lib/mixer/mixer.h>
+#include <lib/mixer/mixer_load.h>
+#include <battery/battery.h>
 
 #include <bebop_bus/BebopBus.hpp>
 #include <DevMgr.hpp>
@@ -202,7 +206,8 @@ int DfBebopBusWrapper::_publish(struct bebop_state_data &data)
 
 	// TODO Check if this is the right way for the Bebop
 	// We don't have current measurements
-	_battery.updateBatteryStatus(timestamp, data.battery_voltage_v, 0.0, _last_throttle, _armed, &battery_report);
+	_battery.updateBatteryStatus(timestamp, data.battery_voltage_v, 0.0, true, true, 0, _last_throttle, _armed,
+				     &battery_report);
 
 	esc_status_s esc_status = {};
 
@@ -298,7 +303,7 @@ int initialize_mixers(const char *mixers_filename)
 	PX4_INFO("Trying to initialize mixers from config file %s", mixers_filename);
 
 	if (load_mixer_file(mixers_filename, &buf[0], sizeof(buf)) < 0) {
-		warnx("can't load mixer: %s", mixers_filename);
+		PX4_ERR("can't load mixer: %s", mixers_filename);
 		return -1;
 	}
 
@@ -376,9 +381,7 @@ void task_main(int argc, char *argv[])
 
 			if (_mixers != nullptr) {
 				/* do mixing */
-				_outputs.noutputs = _mixers->mix(_outputs.output,
-								 4,
-								 NULL);
+				_outputs.noutputs = _mixers->mix(_outputs.output, 4);
 			}
 
 			// Set last throttle for battery calculations
@@ -433,14 +436,16 @@ void task_main(int argc, char *argv[])
 			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
 		}
 
+		const bool lockdown = _armed.manual_lockdown || _armed.lockdown || _armed.force_failsafe;
+
 		// Start the motors if armed but not alreay running
-		if (_armed.armed && !_motors_running) {
+		if (_armed.armed && !lockdown && !_motors_running) {
 			g_dev->start_motors();
 			_motors_running = true;
 		}
 
-		// Stop motors if not armed but running
-		if (!_armed.armed && _motors_running) {
+		// Stop motors if not armed or killed, but running
+		if ((!_armed.armed || lockdown) && _motors_running) {
 			g_dev->stop_motors();
 			_motors_running = false;
 		}
@@ -482,9 +487,6 @@ int start()
 	DevMgr::releaseHandle(h);
 
 	// Start the task to forward the motor control commands
-	ASSERT(_task_handle == -1);
-
-	/* start the task */
 	_task_handle = px4_task_spawn_cmd("bebop_bus_esc_main",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_MAX,
@@ -493,7 +495,7 @@ int start()
 					  nullptr);
 
 	if (_task_handle < 0) {
-		warn("task start failed");
+		PX4_ERR("task start failed");
 		return -1;
 	}
 

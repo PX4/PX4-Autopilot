@@ -1,0 +1,33 @@
+# How to install:
+#   gem install github_changelog_generator
+# How to run:
+#   github_changelog_generator -u PX4 -p Firmware
+# Description:
+#   The following params are sensible defaults for the PX4 project,
+#   if you want to do a changelog before a release you need to update since-tag and future-releases,
+
+# Params:
+#   github_changelog_generator --help for all options
+
+# max-issues
+#   max threshold for github api queries
+#   make sure you set your CHANGELOG_GITHUB_TOKEN before
+#   running
+max-issues=1500
+
+# exclude-tags-regex
+#   excludes release candidates
+exclude-tags-regex=rc[0-9]{1,}|beta[0-9]{1,}
+
+# since-tag
+#   version of last stable release
+#   you need to change this depending on what you need
+#   if you want a changelog between versions this is the lowest version
+since-tag=1.6.5
+
+# future-release
+#   version you are about to release
+#   if you want a changelog between a version and all unreleased changes grouped as a release
+#     eg: v1.6.5 to v1.7.0
+future-release=v1.7.0
+

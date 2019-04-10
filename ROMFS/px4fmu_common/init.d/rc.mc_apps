@@ -1,14 +1,17 @@
-#!nsh
+#!/bin/sh
 #
-# Standard apps for multirotors:
-# att & pos estimator, att & pos control.
+# Standard apps for multirotors. Attitude/Position estimator, Attitude/Position control.
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
+###############################################################################
+#                       Begin Estimator Group Selection                       #
+###############################################################################
 
-#---------------------------------------
-# Estimator group selction
 #
-# INAV (deprecated)
+# INAV (deprecated).
+#
 if param compare SYS_MC_EST_GROUP 0
 then
 	echo "ERROR [init] Estimator INAV deprecated. Using EKF2"
@@ -16,11 +19,15 @@ then
 	param save
 fi
 
+#
 # LPE
+#
 if param compare SYS_MC_EST_GROUP 1
 then
-	# Try to start LPE. If it fails, start EKF2 as a default
-	# Unfortunately we do not build it on px4fmu-v2 due to a limited flash.
+	#
+	# Try to start LPE. If it fails, start EKF2 as a default.
+	# Unfortunately we do not build it on px4_fmu-v2 due to a limited flash.
+	#
 	if attitude_estimator_q start
 	then
 		local_position_estimator start
@@ -31,18 +38,28 @@ then
 	fi
 fi
 
-# EKF
+#
+# EKF2
+#
 if param compare SYS_MC_EST_GROUP 2
 then
 	ekf2 start
 fi
-#---------------------------------------
+###############################################################################
+#                        End Estimator Group Selection                        #
+###############################################################################
 
+#
+# Start Multicopter Attitude Controller.
+#
 mc_att_control start
 
+#
+# Start Multicopter Position Controller.
+#
 mc_pos_control start
 
 #
-# Start Land Detector
+# Start Multicopter Land Detector.
 #
 land_detector start multicopter

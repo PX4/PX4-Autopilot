@@ -56,6 +56,9 @@
 #include <uORB/topics/sensor_preflight.h>
 #include <uORB/topics/sensor_correction.h>
 #include <uORB/topics/sensor_selection.h>
+#include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/vehicle_magnetometer.h>
+#include <uORB/topics/subsystem_info.h>
 
 #include <DevMgr.hpp>
 
@@ -97,9 +100,6 @@ public:
 
 	void print_status();
 
-	/** get the latest baro pressure */
-	float baro_pressure() const { return _last_best_baro_pressure; }
-
 	/**
 	 * call this whenever parameters got updated. Make sure to have initialize_sensors() called at least
 	 * once before calling this.
@@ -109,7 +109,7 @@ public:
 	/**
 	 * read new sensor data
 	 */
-	void sensors_poll(sensor_combined_s &raw);
+	void sensors_poll(sensor_combined_s &raw, vehicle_air_data_s &airdata, vehicle_magnetometer_s &magnetometer);
 
 	/**
 	 * set the relative timestamps of each sensor timestamp, based on the last sensors_poll,
@@ -121,13 +121,6 @@ public:
 	 * check if a failover event occured. if so, report it.
 	 */
 	void check_failover();
-
-	/**
-	 * check vibration levels and output a warning if they're high
-	 * @return true on high vibration
-	 */
-	bool check_vibration();
-
 
 	int num_gyros() const { return _gyro.subscription_count; }
 	int gyro_fd(int idx) const { return _gyro.subscription[idx]; }
@@ -142,7 +135,12 @@ public:
 	/**
 	 * Calculates the magnitude in rad/s of the largest difference between the primary and any other gyro sensor
 	 */
-	void calc_gyro_inconsistency(struct sensor_preflight_s &preflt);
+	void calc_gyro_inconsistency(sensor_preflight_s &preflt);
+
+	/**
+	 * Calculates the magnitude in Gauss of the largest difference between the primary and any other magnetometers
+	 */
+	void calc_mag_inconsistency(sensor_preflight_s &preflt);
 
 private:
 
@@ -154,10 +152,13 @@ private:
 			  last_failover_count(0)
 		{
 			for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
+				enabled[i] = true;
 				subscription[i] = -1;
 				priority[i] = 0;
 			}
 		}
+
+		bool enabled[SENSOR_COUNT_MAX];
 
 		int subscription[SENSOR_COUNT_MAX]; /**< raw sensor data subscription */
 		uint8_t priority[SENSOR_COUNT_MAX]; /**< sensor priority */
@@ -191,7 +192,7 @@ private:
 	 * @param raw			Combined sensor data structure into which
 	 *				data should be returned.
 	 */
-	void		mag_poll(struct sensor_combined_s &raw);
+	void		mag_poll(vehicle_magnetometer_s &magnetometer);
 
 	/**
 	 * Poll the barometer for updated data.
@@ -199,13 +200,13 @@ private:
 	 * @param raw			Combined sensor data structure into which
 	 *				data should be returned.
 	 */
-	void		baro_poll(struct sensor_combined_s &raw);
+	void		baro_poll(vehicle_air_data_s &airdata);
 
 	/**
 	 * Check & handle failover of a sensor
 	 * @return true if a switch occured (could be for a non-critical reason)
 	 */
-	bool check_failover(SensorData &sensor, const char *sensor_name);
+	bool check_failover(SensorData &sensor, const char *sensor_name, const uint64_t type);
 
 	/**
 	 * Apply a gyro calibration.
@@ -245,24 +246,21 @@ private:
 
 	orb_advert_t	_mavlink_log_pub = nullptr;
 
-	float _last_baro_pressure[BARO_COUNT_MAX]; /**< pressure from last baro sensors */
-	float _last_best_baro_pressure = 0.0f; /**< pressure from last best baro */
 	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX]; /**< latest sensor data from all sensors instances */
+	vehicle_air_data_s _last_airdata[SENSOR_COUNT_MAX]; /**< latest sensor data from all sensors instances */
+	vehicle_magnetometer_s _last_magnetometer[SENSOR_COUNT_MAX]; /**< latest sensor data from all sensors instances */
+
 	uint64_t _last_accel_timestamp[ACCEL_COUNT_MAX]; /**< latest full timestamp */
-	uint64_t _last_mag_timestamp[MAG_COUNT_MAX]; /**< latest full timestamp */
-	uint64_t _last_baro_timestamp[BARO_COUNT_MAX]; /**< latest full timestamp */
 
-	hrt_abstime _vibration_warning_timestamp = 0;
-	bool _vibration_warning = false;
-
-	math::Matrix<3, 3>	_board_rotation = {};	/**< rotation matrix for the orientation that the board is mounted */
-	math::Matrix<3, 3>	_mag_rotation[MAG_COUNT_MAX] = {};	/**< rotation matrix for the orientation that the external mag0 is mounted */
+	matrix::Dcmf	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
+	matrix::Dcmf	_mag_rotation[MAG_COUNT_MAX];	/**< rotation matrix for the orientation that the external mag0 is mounted */
 
 	const Parameters &_parameters;
 	const bool _hil_enabled; /**< is hardware-in-the-loop mode enabled? */
 
 	float _accel_diff[3][2];	/**< filtered accel differences between IMU units (m/s/s) */
 	float _gyro_diff[3][2];		/**< filtered gyro differences between IMU uinits (rad/s) */
+	float _mag_diff[3][2];		/**< filtered mag differences between sensor instances (Ga) */
 
 	/* sensor thermal compensation */
 	TemperatureCompensation _temperature_compensation;
@@ -274,12 +272,16 @@ private:
 	struct sensor_selection_s _selection = {}; /**< struct containing the sensor selection to be published to the uORB*/
 	orb_advert_t _sensor_selection_pub = nullptr; /**< handle to the sensor selection uORB topic */
 	bool _selection_changed = false; /**< true when a sensor selection has changed and not been published */
-	uint32_t _accel_device_id[SENSOR_COUNT_MAX] = {};
+
+	/* subsystem info publication */
+	struct subsystem_info_s _info;
+	orb_advert_t _info_pub = nullptr;
+
+	uint32_t _accel_device_id[SENSOR_COUNT_MAX] = {}; /**< accel driver device id for each uorb instance */
 	uint32_t _baro_device_id[SENSOR_COUNT_MAX] = {};
 	uint32_t _gyro_device_id[SENSOR_COUNT_MAX] = {};
 	uint32_t _mag_device_id[SENSOR_COUNT_MAX] = {};
 
-	static const double	_msl_pressure;	/** average sea-level pressure in kPa */
 };
 
 

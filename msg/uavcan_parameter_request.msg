@@ -1,4 +1,5 @@
 # UAVCAN-MAVLink parameter bridge request type
+uint64 timestamp		# time since system start (microseconds)
 uint8 message_type		# MAVLink message type: PARAM_REQUEST_READ, PARAM_REQUEST_LIST, PARAM_SET
 uint8 node_id			# UAVCAN node ID mapped from MAVLink component ID
 char[17] param_id		# MAVLink/UAVCAN parameter name

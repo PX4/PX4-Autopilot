@@ -1,8 +1,9 @@
 from xml.sax.saxutils import escape
 import codecs
+import os
 
 class MarkdownTablesOutput():
-    def __init__(self, groups, board):
+    def __init__(self, groups, board, image_path):
         result = ("# Airframes Reference\n"
                   "> **Note** **This list is auto-generated from the source code**.\n"
                   "> \n"
@@ -12,17 +13,25 @@ class MarkdownTablesOutput():
 
         result += """This page lists all supported airframes and types including
  the motor assignment and numbering. The motors in **green** rotate clockwise,
- the ones in **blue** conterclockwise.\n\n"""
+ the ones in **blue** counterclockwise.\n\n"""
+ 
+        type_set = set()
+        
+        if len(image_path) > 0 and image_path[-1] != '/':
+            image_path = image_path + '/'
 
         for group in groups:
+            if group.GetClass() not in type_set:
+               result += '## %s\n\n' % group.GetClass()
+               type_set.add(group.GetClass())
 
-            result += '## %s\n\n' % group.GetName()
+            result += '### %s\n\n' % group.GetName()
 
             # Display an image of the frame
             image_name = group.GetImageName()
             result += '<div>\n'
-            if image_name != 'AirframeUnknown':
-                result += '<img src="../images/airframes/types/%s.svg" width="29%%" style="max-height: 180px;"/>\n' % (image_name)
+            image_name = image_path + image_name
+            result += '<img src="%s.svg" width="29%%" style="max-height: 180px;"/>\n' % (image_name)
 
             # check if all outputs are equal for the group: if so, show them
             # only once
@@ -81,6 +90,8 @@ class MarkdownTablesOutput():
                     if maintainer != '':
                         maintainer_entry = '<p>Maintainer: %s</p>' % (maintainer)
                     url = param.GetFieldValue('url')
+                    name_anchor='id="%s_%s_%s"' % (group.GetClass(),group.GetName(),name)
+                    name_anchor=name_anchor.replace(' ','_').lower()
                     name_entry = name
                     if url != '':
                         name_entry = '<a href="%s">%s</a>' % (url, name)
@@ -107,8 +118,8 @@ class MarkdownTablesOutput():
                     else:
                         outputs_entry = ''
 
-                    result += ('<tr>\n <td style="vertical-align: top;">%s</td>\n <td style="vertical-align: top;">%s%s%s</td>\n\n</tr>\n' %
-                        (name_entry, maintainer_entry, airframe_id_entry,
+                    result += ('<tr %s>\n <td style="vertical-align: top;">%s</td>\n <td style="vertical-align: top;">%s%s%s</td>\n\n</tr>\n' %
+                        (name_anchor, name_entry, maintainer_entry, airframe_id_entry,
                         outputs_entry))
 
 

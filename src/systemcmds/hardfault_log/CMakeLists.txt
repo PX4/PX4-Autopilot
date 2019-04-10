@@ -33,11 +33,11 @@
 px4_add_module(
 	MODULE systemcmds__hardfault_log
 	MAIN hardfault_log
-	STACK_MAIN 1024
+	STACK_MAIN 2100
 	COMPILE_FLAGS
-		-Os
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		hardfault_log.c
 	DEPENDS
-		platforms__common
+		version
 	)

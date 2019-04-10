@@ -48,7 +48,7 @@ namespace control
 {
 
 static constexpr uint8_t maxChildrenPerBlock = 100;
-static constexpr uint8_t maxParamsPerBlock = 100;
+static constexpr uint8_t maxParamsPerBlock = 110;
 static constexpr uint8_t maxSubscriptionsPerBlock = 100;
 static constexpr uint8_t maxPublicationsPerBlock = 100;
 static constexpr uint8_t blockNameLengthMax = 40;
@@ -84,6 +84,8 @@ public:
 
 protected:
 
+	virtual void updateParamsSubclass() {}
+
 	SuperBlock *getParent() { return _parent; }
 	List<uORB::SubscriptionNode *> &getSubscriptions() { return _subscriptions; }
 	List<uORB::PublicationNode *> &getPublications() { return _publications; }
@@ -104,7 +106,7 @@ class __EXPORT SuperBlock :
 public:
 	friend class Block;
 
-	SuperBlock(SuperBlock *parent, const char *name) : Block(parent, name) {};
+	SuperBlock(SuperBlock *parent, const char *name) : Block(parent, name) {}
 	~SuperBlock() = default;
 
 	// no copy, assignment, move, move assignment

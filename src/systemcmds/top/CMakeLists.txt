@@ -34,10 +34,10 @@ px4_add_module(
 	MODULE systemcmds__top
 	MAIN top
 	STACK_MAIN 1700
+	PRIORITY "SCHED_PRIORITY_MAX"
 	COMPILE_FLAGS
 	SRCS
 		top.c
 	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

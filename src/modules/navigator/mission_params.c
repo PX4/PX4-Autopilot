@@ -58,29 +58,29 @@
 PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 2.5f);
 
 /**
+ * Take-off waypoint required
+ *
+ * If set, the mission feasibility checker will check for a takeoff waypoint on the mission.
+ *
+ * @boolean
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(MIS_TAKEOFF_REQ, 0);
+
+/**
  * Minimum Loiter altitude
  *
  * This is the minimum altitude the system will always obey. The intent is to stay out of ground effect.
+ * set to -1, if there shouldn't be a minimum loiter altitude
  *
  * @unit m
- * @min 0
+ * @min -1
  * @max 80
  * @decimal 1
  * @increment 0.5
  * @group Mission
  */
-PARAM_DEFINE_FLOAT(MIS_LTRMIN_ALT, 1.2f);
-
-/**
- * Persistent onboard mission storage
- *
- * When enabled, missions that have been uploaded by the GCS are stored
- * and reloaded after reboot persistently.
- *
- * @boolean
- * @group Mission
- */
-PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
+PARAM_DEFINE_FLOAT(MIS_LTRMIN_ALT, -1.0f);
 
 /**
  * Maximal horizontal distance from home to first waypoint
@@ -91,12 +91,28 @@ PARAM_DEFINE_INT32(MIS_ONBOARD_EN, 1);
  *
  * @unit m
  * @min 0
- * @max 1000
+ * @max 10000
  * @decimal 1
- * @increment 0.5
+ * @increment 100
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 900);
+
+/**
+ * Maximal horizontal distance between waypoint
+ *
+ * Failsafe check to prevent running missions which are way too big.
+ * Set a value of zero or less to disable. The mission will not be started if any distance between
+ * two subsequent waypoints is greater than MIS_DIST_WPS.
+ *
+ * @unit m
+ * @min 0
+ * @max 10000
+ * @decimal 1
+ * @increment 100
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(MIS_DIST_WPS, 900);
 
 /**
  * Altitude setpoint mode
@@ -114,25 +130,24 @@ PARAM_DEFINE_FLOAT(MIS_DIST_1WP, 900);
 PARAM_DEFINE_INT32(MIS_ALTMODE, 1);
 
 /**
- * Multirotor only. Yaw setpoint mode.
- *
- * The values are defined in the enum mission_altitude_mode
- *
- * @min 0
- * @max 3
- * @value 0 Heading as set by waypoint
- * @value 1 Heading towards waypoint
- * @value 2 Heading towards home
- * @value 3 Heading away from home
- * @group Mission
- */
-PARAM_DEFINE_INT32(MIS_YAWMODE, 1);
+* Enable yaw control of the mount. (Only affects multicopters and ROI mission items)
+*
+* If enabled, yaw commands will be sent to the mount and the vehicle will follow its heading towards the flight direction.
+* If disabled, the vehicle will yaw towards the ROI.
+*
+* @value 0 Disable
+* @value 1 Enable
+* @min 0
+* @max 1
+* @group Mission
+*/
+PARAM_DEFINE_INT32(MIS_MNT_YAW_CTL, 0);
 
 /**
  * Time in seconds we wait on reaching target heading at a waypoint if it is forced.
  *
  * If set > 0 it will ignore the target heading for normal waypoint acceptance. If the
- * waypoint forces the heading the timeout will matter. For example on VTOL forwards transiton.
+ * waypoint forces the heading the timeout will matter. For example on VTOL forwards transition.
  * Mainly useful for VTOLs that have less yaw authority and might not reach target
  * yaw in wind. Disabled by default.
  *
@@ -156,41 +171,3 @@ PARAM_DEFINE_FLOAT(MIS_YAW_TMT, -1.0f);
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_YAW_ERR, 12.0f);
-
-/**
- * Weather-vane mode landings for missions
- *
- * @boolean
- * @group Mission
- */
-PARAM_DEFINE_INT32(VT_WV_LND_EN, 0);
-
-/**
- * Enable weather-vane mode takeoff for missions
- *
- * @boolean
- * @group Mission
- */
-PARAM_DEFINE_INT32(VT_WV_TKO_EN, 0);
-
-/**
- * Weather-vane mode for loiter
- *
- * @boolean
- * @group Mission
- */
-PARAM_DEFINE_INT32(VT_WV_LTR_EN, 0);
-
-/**
- * Cruise Airspeed
- *
- * The fixed wing controller tries to fly at this airspeed.
- *
- * @unit m/s
- * @min 0.0
- * @max 40
- * @decimal 1
- * @increment 0.5
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);

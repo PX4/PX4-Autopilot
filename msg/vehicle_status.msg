@@ -1,14 +1,22 @@
 # If you change the order, add or remove arming_state_t states make sure to update the arrays
 # in state_machine_helper.cpp as well.
+uint64 timestamp				# time since system start (microseconds)
+
 uint8 ARMING_STATE_INIT = 0
 uint8 ARMING_STATE_STANDBY = 1
 uint8 ARMING_STATE_ARMED = 2
-uint8 ARMING_STATE_ARMED_ERROR = 3
-uint8 ARMING_STATE_STANDBY_ERROR = 4
-uint8 ARMING_STATE_REBOOT = 5
-uint8 ARMING_STATE_IN_AIR_RESTORE = 6
-uint8 ARMING_STATE_MAX = 7
+uint8 ARMING_STATE_STANDBY_ERROR = 3
+uint8 ARMING_STATE_REBOOT = 4
+uint8 ARMING_STATE_IN_AIR_RESTORE = 5
+uint8 ARMING_STATE_MAX = 6
 
+# FailureDetector status
+uint8 FAILURE_NONE = 0
+uint8 FAILURE_ROLL = 1 	# (1 << 0)
+uint8 FAILURE_PITCH = 2	# (1 << 1)
+uint8 FAILURE_ALT = 4 	# (1 << 2)
+
+# HIL
 uint8 HIL_STATE_OFF = 0
 uint8 HIL_STATE_ON = 1
 
@@ -33,7 +41,9 @@ uint8 NAVIGATION_STATE_RATTITUDE = 16		# Rattitude (aka "flip") mode
 uint8 NAVIGATION_STATE_AUTO_TAKEOFF = 17	# Takeoff
 uint8 NAVIGATION_STATE_AUTO_LAND = 18		# Land
 uint8 NAVIGATION_STATE_AUTO_FOLLOW_TARGET = 19	# Auto Follow
-uint8 NAVIGATION_STATE_MAX = 20
+uint8 NAVIGATION_STATE_AUTO_PRECLAND = 20	# Precision land with landing target
+uint8 NAVIGATION_STATE_ORBIT = 21       # Orbit in a circle
+uint8 NAVIGATION_STATE_MAX = 22
 
 uint8 RC_IN_MODE_DEFAULT = 0
 uint8 RC_IN_MODE_OFF = 1
@@ -45,13 +55,14 @@ uint8 RC_IN_MODE_GENERATED = 2
 uint8 nav_state				# set navigation state machine to specified value
 uint8 arming_state			# current arming state
 uint8 hil_state				# current hil state
-bool failsafe				# true if system is in failsafe state
+bool failsafe				# true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)
 
 uint8 system_type			# system type, contains mavlink MAV_TYPE
-uint32 system_id			# system id, contains MAVLink's system ID field
-uint32 component_id			# subsystem / component id, contains MAVLink's component ID field
+uint8 system_id			# system id, contains MAVLink's system ID field
+uint8 component_id			# subsystem / component id, contains MAVLink's component ID field
 
 bool is_rotary_wing			# True if system is in rotary wing configuration, so for a VTOL this is only true while flying as a multicopter
+
 bool is_vtol				# True if the system is VTOL capable
 bool vtol_fw_permanent_stab		# True if VTOL should stabilize attitude for fw in manual mode
 bool in_transition_mode			# True if VTOL is doing a transition
@@ -62,9 +73,13 @@ uint8 rc_input_mode				# set to 1 to disable the RC input, 2 to enable manual co
 
 bool data_link_lost				# datalink to GCS lost
 uint8 data_link_lost_counter			# counts unique data link lost events
+
+bool high_latency_data_link_lost 			# Set to true if the high latency data link (eg. RockBlock Iridium 9603 telemetry module) is lost
+
 bool engine_failure				# Set to true if an engine failure is detected
-bool engine_failure_cmd				# Set to true if an engine failure mode is commanded
 bool mission_failure				# Set to true if mission could not continue/finish
+
+uint8 failure_detector_status			# Bitmask containing FailureDetector status [0, 0, 0, 0, 0, FAILURE_ALT, FAILURE_PITCH, FAILURE_ROLL]
 
 # see SYS_STATUS mavlink message for the following
 uint32 onboard_control_sensors_present

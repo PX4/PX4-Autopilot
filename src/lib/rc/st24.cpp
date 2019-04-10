@@ -44,15 +44,6 @@
 #include "st24.h"
 #include "common_rc.h"
 
-enum ST24_DECODE_STATE {
-	ST24_DECODE_STATE_UNSYNCED = 0,
-	ST24_DECODE_STATE_GOT_STX1,
-	ST24_DECODE_STATE_GOT_STX2,
-	ST24_DECODE_STATE_GOT_LEN,
-	ST24_DECODE_STATE_GOT_TYPE,
-	ST24_DECODE_STATE_GOT_DATA
-};
-
 const char *decode_states[] = {"UNSYNCED",
 			       "GOT_STX1",
 			       "GOT_STX2",

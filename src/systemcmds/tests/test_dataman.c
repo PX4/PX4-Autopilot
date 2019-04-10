@@ -1,7 +1,6 @@
 /****************************************************************************
- * px4/sensors/test_dataman.c
  *
- *  Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -13,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,9 +31,10 @@
  *
  ****************************************************************************/
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
+/**
+ * @file test_dataman.c
+ * Tests for the data manager.
+ */
 
 #include <px4_config.h>
 #include <px4_posix.h>
@@ -50,7 +50,6 @@
 #include <arch/board/board.h>
 
 #include <drivers/drv_board_led.h>
-#include <systemlib/systemlib.h>
 #include <drivers/drv_hrt.h>
 #include <semaphore.h>
 
@@ -59,9 +58,12 @@
 #include "dataman/dataman.h"
 
 static px4_sem_t *sems;
+static bool *task_returned_error;
 int test_dataman(int argc, char *argv[]);
 
 #define NUM_MISSIONS_TEST 50
+
+#define DM_MAX_DATA_SIZE sizeof(struct mission_s)
 
 static int
 task_main(int argc, char *argv[])
@@ -106,7 +108,7 @@ task_main(int argc, char *argv[])
 			PX4_INFO("task %d: %.0f%%", my_id, (double)i * 100.0f / NUM_MISSIONS_TEST);
 		}
 
-		usleep(rand() & ((64 * 1024) - 1));
+		px4_usleep(rand() & ((64 * 1024) - 1));
 	}
 
 	hrt_abstime rstart = hrt_absolute_time();
@@ -141,7 +143,7 @@ task_main(int argc, char *argv[])
 	}
 
 	hrt_abstime rend = hrt_absolute_time();
-	PX4_INFO("task %d pass, hit %d, miss %d, io time read %llums. write %llums.",
+	PX4_INFO("task %d pass, hit %d, miss %d, io time read %" PRIu64 "ms. write %" PRIu64 "ms.",
 		 my_id, hit, miss, (rend - rstart) / NUM_MISSIONS_TEST / 1000, (wend - wstart) / NUM_MISSIONS_TEST / 1000);
 	px4_sem_post(sems + my_id);
 	return 0;
@@ -150,6 +152,7 @@ fail:
 	PX4_ERR("test_dataman FAILED: task %d, buffer %02x %02x %02x %02x %02x %02x",
 		my_id, buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
 	px4_sem_post(sems + my_id);
+	task_returned_error[my_id] = true;
 	return -1;
 }
 
@@ -164,6 +167,7 @@ int test_dataman(int argc, char *argv[])
 	}
 
 	sems = (px4_sem_t *)malloc(num_tasks * sizeof(px4_sem_t));
+	task_returned_error = (bool *)calloc(num_tasks, sizeof(bool));
 	PX4_INFO("Running %d tasks", num_tasks);
 
 	for (i = 0; i < num_tasks; i++) {
@@ -190,6 +194,22 @@ int test_dataman(int argc, char *argv[])
 	}
 
 	free(sems);
+
+	bool got_error = false;
+
+	for (i = 0; i < num_tasks; i++) {
+		if (task_returned_error[i]) {
+			got_error = true;
+			break;
+		}
+	}
+
+	free(task_returned_error);
+
+	if (got_error) {
+		return -1;
+	}
+
 	dm_restart(DM_INIT_REASON_IN_FLIGHT);
 
 	for (i = 0; i < NUM_MISSIONS_TEST; i++) {

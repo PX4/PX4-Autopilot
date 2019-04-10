@@ -6,7 +6,7 @@ import subprocess
 import struct
 import optparse
 import binascii
-import cStringIO
+from io import BytesIO
 
 class GitWrapper:
     @classmethod
@@ -84,14 +84,17 @@ class FirmwareImage(object):
             self._do_close = False
             self._padding = 0
         else:
-            self._file = open(path_or_file, mode + "b")
+            if "b" not in mode:
+                self._file = open(path_or_file, mode + "b")
+            else:
+                self._file = open(path_or_file, mode)
             self._do_close = True
             self._padding = 4
 
         if "r" in mode:
-            self._contents = cStringIO.StringIO(self._file.read())
+            self._contents = BytesIO(self._file.read())
         else:
-            self._contents = cStringIO.StringIO()
+            self._contents = BytesIO()
         self._do_write = False
 
         self._length = None
@@ -152,9 +155,9 @@ class FirmwareImage(object):
         # descriptor zeroed out.
         crc_offset = self.app_descriptor_offset + len(AppDescriptor.SIGNATURE)
         content = bytearray(self._contents.getvalue())
-        content[crc_offset:crc_offset + 8] = bytearray("\x00" * 8)
+        content[crc_offset:crc_offset + 8] = bytearray.fromhex("00" * 8)
         if  self._padding:
-            content += bytearray("\xff" * self._padding)
+            content += bytearray.fromhex("ff" * self._padding)
         val = MASK
         for byte in content:
             val ^= (byte << 56) & MASK
@@ -261,7 +264,7 @@ if __name__ == "__main__":
         try:
             options.vcs_commit = int(GitWrapper.command("rev-list HEAD --max-count=1 --abbrev=8 --abbrev-commit"),16)
         except Exception  as e:
-            print "Git Command failed "+ str(e) +"- Exiting!"
+            print("Git Command failed "+ str(e) +"- Exiting!")
             quit()
 
     if args:
@@ -271,7 +274,7 @@ if __name__ == "__main__":
         in_file = sys.stdin
         out_file = sys.stdout
 
-    bootloader_image = ""
+    bootloader_image = b""
     if options.bootloader_image:
         with open(options.bootloader_image, "rb") as bootloader:
             bootloader_image = bootloader.read()

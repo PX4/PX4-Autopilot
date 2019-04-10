@@ -1,5 +1,6 @@
 Checks:          '*
 		,-cert-dcl50-cpp
+		,-cert-env33-c
 		,-cert-err34-c
 		,-cert-err58-cpp
 		,-cert-msc30-c
@@ -9,11 +10,13 @@ Checks:          '*
 		,-clang-analyzer-core.UndefinedBinaryOperatorResult
 		,-clang-analyzer-core.uninitialized.Assign
 		,-clang-analyzer-core.VLASize
+		,-clang-analyzer-cplusplus.NewDelete
 		,-clang-analyzer-cplusplus.NewDeleteLeaks
 		,-clang-analyzer-deadcode.DeadStores
 		,-clang-analyzer-optin.cplusplus.VirtualCall
 		,-clang-analyzer-optin.performance.Padding
 		,-clang-analyzer-security.insecureAPI.strcpy
+		,-clang-analyzer-unix.API
 		,-clang-analyzer-unix.cstring.BadSizeArg
 		,-clang-analyzer-unix.Malloc
 		,-clang-analyzer-unix.MallocSizeof
@@ -57,6 +60,7 @@ Checks:          '*
 		,-modernize-use-equals-delete
 		,-modernize-use-override
 		,-modernize-use-using
+		,-modernize-pass-by-value
 		,-performance-inefficient-string-concatenation
 		,-readability-avoid-const-params-in-decls
 		,-readability-else-after-return

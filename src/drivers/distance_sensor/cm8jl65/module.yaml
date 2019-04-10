@@ -1,0 +1,6 @@
+module_name: Lanbao PSK-CM8JL65-CC5
+serial_config:
+    - command: cm8jl65 start -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_CM8JL65_CFG
+        group: Sensors

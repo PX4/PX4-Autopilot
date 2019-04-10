@@ -7,8 +7,8 @@ extern orb_advert_t mavlink_log_pub;
 // required number of samples for sensor
 // to initialize
 //
-static const uint32_t 		REQ_LAND_INIT_COUNT = 1;
-static const uint32_t 		LAND_TIMEOUT =   1000000; // 1.0 s
+static const uint32_t		REQ_LAND_INIT_COUNT = 1;
+static const uint32_t		LAND_TIMEOUT = 1000000;	// 1.0 s
 
 void BlockLocalPositionEstimator::landInit()
 {
@@ -48,15 +48,15 @@ void BlockLocalPositionEstimator::landCorrect()
 	// y = -(z - tz)
 	C(Y_land_vx, X_vx) = 1;
 	C(Y_land_vy, X_vy) = 1;
-	C(Y_land_agl, X_z) = -1; // measured altitude, negative down dir.
-	C(Y_land_agl, X_tz) = 1; // measured altitude, negative down dir.
+	C(Y_land_agl, X_z) = -1;// measured altitude, negative down dir.
+	C(Y_land_agl, X_tz) = 1;// measured altitude, negative down dir.
 
 	// use parameter covariance
 	SquareMatrix<float, n_y_land> R;
 	R.setZero();
-	R(Y_land_vx, Y_land_vx) = _land_vxy_stddev.get() * _land_vxy_stddev.get();
-	R(Y_land_vy, Y_land_vy) = _land_vxy_stddev.get() * _land_vxy_stddev.get();
-	R(Y_land_agl, Y_land_agl) = _land_z_stddev.get() * _land_z_stddev.get();
+	R(Y_land_vx, Y_land_vx) = _param_lpe_land_vxy.get() * _param_lpe_land_vxy.get();
+	R(Y_land_vy, Y_land_vy) = _param_lpe_land_vxy.get() * _param_lpe_land_vxy.get();
+	R(Y_land_agl, Y_land_agl) = _param_lpe_land_z.get() * _param_lpe_land_z.get();
 
 	// residual
 	Matrix<float, n_y_land, n_y_land> S_I = inv<float, n_y_land>((C * _P * C.transpose()) + R);
@@ -101,4 +101,3 @@ void BlockLocalPositionEstimator::landCheckTimeout()
 		}
 	}
 }
-

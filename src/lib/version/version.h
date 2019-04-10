@@ -47,15 +47,6 @@
 #include <systemlib/px4_macros.h>
 #include <stdint.h>
 
-/* The preferred method for publishing a board name is to
- * define it in board_config.h as BOARD_NAME
- */
-
-#ifndef BOARD_NAME
-#  error "board_config.h must define BOARD_NAME"
-#endif
-
-
 __BEGIN_DECLS
 
 /**
@@ -63,22 +54,73 @@ __BEGIN_DECLS
  */
 static inline const char *px4_board_name(void)
 {
-	return BOARD_NAME;
+	return PX4_BOARD_NAME;
+}
+
+/**
+ * get the board sub type
+ */
+static inline const char *px4_board_sub_type(void)
+{
+	return board_get_hw_type_name();
+}
+
+/**
+ * get the board HW version
+ */
+static inline int px4_board_hw_version(void)
+{
+	return board_get_hw_version();
+}
+
+/**
+ * get the board HW revision
+ */
+static inline int px4_board_hw_revision(void)
+{
+	return board_get_hw_revision();
 }
 
 /**
  * get the build URI (used for crash logging)
  */
-static inline const char *px4_build_uri(void)
-{
-	return STRINGIFY(BUILD_URI);
-}
+const char *px4_build_uri(void);
+
+/**
+ * Convert a version tag string to a number
+ * @param tag version tag in one of the following forms:
+ *            - vendor: v1.4.0-0.2.0
+ *            - dev: v1.4.0rc3-7-g7e282f57
+ *            - rc: v1.4.0rc4
+ *            - release: v1.4.0
+ *            - linux: 7.9.3
+ * @return version in the form 0xAABBCCTT (AA: Major, BB: Minor, CC: Patch, TT Type @see FIRMWARE_TYPE)
+ */
+__EXPORT uint32_t version_tag_to_number(const char *tag);
 
 /**
  * get the PX4 Firmware version
  * @return version in the form 0xAABBCCTT (AA: Major, BB: Minor, CC: Patch, TT Type @see FIRMWARE_TYPE)
  */
 __EXPORT uint32_t px4_firmware_version(void);
+
+/**
+ * Convert a version tag string to a vendor version number
+ * @param tag version tag in one of the following forms:
+ *            - vendor: v1.4.0-0.2.0
+ *            - dev: v1.4.0rc3-7-g7e282f57
+ *            - rc: v1.4.0rc4
+ *            - release: v1.4.0
+ *            - linux: 7.9.3
+ * @return version in the form 0xAABBCCTT (AA: Major, BB: Minor, CC: Patch, TT Type @see FIRMWARE_TYPE)
+ */
+__EXPORT uint32_t version_tag_to_vendor_version_number(const char *tag);
+
+/**
+ * get the PX4 Firmware vendor version
+ * @return version in the form 0xAABBCCTT (AA: Major, BB: Minor, CC: Patch, TT Type @see FIRMWARE_TYPE)
+ */
+__EXPORT uint32_t px4_firmware_vendor_version(void);
 
 /**
  * get the board version (last 8 bytes should be silicon ID, if any)
@@ -119,9 +161,19 @@ __EXPORT const char *px4_toolchain_version(void);
 __EXPORT const char *px4_firmware_version_string(void);
 
 /**
+ * get the git branch name (can be empty, for example if HEAD points to a tag)
+ */
+__EXPORT const char *px4_firmware_git_branch(void);
+
+/**
  * Firmware version in binary form (first part of the git tag)
  */
 __EXPORT uint64_t px4_firmware_version_binary(void);
+
+/**
+ * ECL lib version as human readable string (git tag)
+ */
+__EXPORT const char *px4_ecl_lib_version_string(void);
 
 /**
  * MAVLink lib version in binary form (first part of the git tag)

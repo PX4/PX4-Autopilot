@@ -39,8 +39,11 @@
  * on the serial port. By default port J12 (next to J13, power module side) is used.
  */
 
+#include <string.h>
+
 #include <px4_tasks.h>
 #include <px4_posix.h>
+#include <px4_getopt.h>
 
 #include <lib/rc/dsm.h>
 #include <drivers/drv_rc_input.h>
@@ -76,7 +79,23 @@ void fill_input_rc(uint16_t raw_rc_count, uint16_t raw_rc_values[input_rc_s::RC_
 
 void task_main(int argc, char *argv[])
 {
-	int uart_fd = dsm_init(SPEKTRUM_UART_DEVICE_PATH);
+	const char *device_path = SPEKTRUM_UART_DEVICE_PATH;
+	int ch;
+	int myoptind = 1;
+	const char *myoptarg = NULL;
+
+	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'd':
+			device_path = myoptarg;
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	int uart_fd = dsm_init(device_path);
 
 	if (uart_fd < 1) {
 		PX4_ERR("dsm init failed");
@@ -110,20 +129,18 @@ void task_main(int argc, char *argv[])
 
 		bool dsm_11_bit;
 		unsigned frame_drops;
+		int8_t dsm_rssi;
 
 		// parse new data
 		bool rc_updated = dsm_parse(now, rx_buf, newbytes, &raw_rc_values[0], &raw_rc_count,
-					    &dsm_11_bit, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
+					    &dsm_11_bit, &frame_drops, &dsm_rssi, input_rc_s::RC_INPUT_MAX_CHANNELS);
 		UNUSED(dsm_11_bit);
 
 		if (rc_updated) {
 
 			input_rc_s input_rc = {};
 
-			// We don't know RSSI.
-			const int rssi = -1;
-
-			fill_input_rc(raw_rc_count, raw_rc_values, now, false, false, frame_drops, rssi,
+			fill_input_rc(raw_rc_count, raw_rc_values, now, false, false, frame_drops, dsm_rssi,
 				      input_rc);
 
 			if (rc_pub == nullptr) {
@@ -190,14 +207,12 @@ void fill_input_rc(uint16_t raw_rc_count, uint16_t raw_rc_values[input_rc_s::RC_
 	input_rc.rc_total_frame_count = 0;
 }
 
-int start()
+int start(int argc, char *argv[])
 {
 	if (_is_running) {
 		PX4_WARN("already running");
 		return -1;
 	}
-
-	ASSERT(_task_handle == -1);
 
 	_task_should_exit = false;
 
@@ -206,7 +221,7 @@ int start()
 					  SCHED_PRIORITY_DEFAULT,
 					  2000,
 					  (px4_main_t)&task_main,
-					  nullptr);
+					  (char *const *)argv);
 
 	if (_task_handle < 0) {
 		PX4_ERR("task start failed");
@@ -263,7 +278,7 @@ int spektrum_rc_main(int argc, char *argv[])
 
 
 	if (!strcmp(verb, "start")) {
-		return spektrum_rc::start();
+		return spektrum_rc::start(argc - 1, argv + 1);
 	}
 
 	else if (!strcmp(verb, "stop")) {

@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+# @name Generic Quadplane VTOL
+#
+# @type Standard VTOL
+# @class VTOL
+#
+# @maintainer
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+# @output AUX1 Aileron 1
+# @output AUX2 Aileron 2
+# @output AUX3 Elevator
+# @output AUX4 Rudder
+# @output AUX5 Throttle
+#
+
+sh /etc/init.d/rc.vtol_defaults
+
+if [ $AUTOCNF = yes ]
+then
+	param set PWM_AUX_DIS5 950
+	param set PWM_RATE 400
+
+	param set VT_TYPE 2
+	param set VT_MOT_COUNT 4
+
+	# Indicate that FW roll direction was fixed in mixer, to be removed in v1.10
+	param set V19_VT_ROLLDIR 0
+fi
+
+set MAV_TYPE 22
+
+set MIXER quad_x
+set MIXER_AUX vtol_AAERT
+
+set PWM_OUT 1234

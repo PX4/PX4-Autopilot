@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,191 +40,20 @@
  */
 
 #include <px4_config.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 /**
- * Invert direction of main output channel 1
+ * Set usage of IO board
  *
- * Set to 1 to invert the channel, 0 for default direction.
+ * Can be used to use a standard startup script but with a FMU only set-up. Set to 0 to force the FMU only set-up.
  *
- * @reboot_required true
  * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_MAIN_REV1, 0);
-
-/**
- * Invert direction of main output channel 2
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
+ * @min 0
+ * @max 1
  * @reboot_required true
- * @boolean
- * @group PWM Outputs
+ * @group System
  */
-PARAM_DEFINE_INT32(PWM_MAIN_REV2, 0);
-
-/**
- * Invert direction of main output channel 3
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_MAIN_REV3, 0);
-
-/**
- * Invert direction of main output channel 4
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_MAIN_REV4, 0);
-
-/**
- * Invert direction of main output channel 5
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_MAIN_REV5, 0);
-
-/**
- * Invert direction of main output channel 6
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_MAIN_REV6, 0);
-
-/**
- * Invert direction of main output channel 7
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_MAIN_REV7, 0);
-
-/**
- * Invert direction of main output channel 8
- *
- * Set to 1 to invert the channel, 0 for default direction.
- *
- * @reboot_required true
- * @boolean
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(PWM_MAIN_REV8, 0);
-
-/**
- * Trim value for main output channel 1
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM1, 0);
-
-/**
- * Trim value for main output channel 2
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM2, 0);
-
-/**
- * Trim value for main output channel 3
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM3, 0);
-
-/**
- * Trim value for main output channel 4
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM4, 0);
-
-/**
- * Trim value for main output channel 5
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM5, 0);
-
-/**
- * Trim value for main output channel 6
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM6, 0);
-
-/**
- * Trim value for main output channel 7
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM7, 0);
-
-/**
- * Trim value for main output channel 8
- *
- * Set to normalized offset
- *
- * @min -0.2
- * @max 0.2
- * @decimal 2
- * @group PWM Outputs
- */
-PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM8, 0);
+PARAM_DEFINE_INT32(SYS_USE_IO, 1);
 
 /**
  * S.BUS out
@@ -235,3 +64,61 @@ PARAM_DEFINE_FLOAT(PWM_MAIN_TRIM8, 0);
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_SBUS_MODE, 0);
+
+/**
+ * PWM input channel that provides RSSI.
+ *
+ * 0: do not read RSSI from input channel
+ * 1-18: read RSSI from specified input channel
+ *
+ * Specify the range for RSSI input with RC_RSSI_PWM_MIN and RC_RSSI_PWM_MAX parameters.
+ *
+ * @min 0
+ * @max 18
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
+ * @group Radio Calibration
+ *
+ */
+PARAM_DEFINE_INT32(RC_RSSI_PWM_CHAN, 0);
+
+/**
+ * Max input value for RSSI reading.
+ *
+ * Only used if RC_RSSI_PWM_CHAN > 0
+ *
+ * @min 0
+ * @max 2000
+ * @group Radio Calibration
+ *
+ */
+PARAM_DEFINE_INT32(RC_RSSI_PWM_MAX, 1000);
+
+/**
+ * Min input value for RSSI reading.
+ *
+ * Only used if RC_RSSI_PWM_CHAN > 0
+ *
+ * @min 0
+ * @max 2000
+ * @group Radio Calibration
+ *
+ */
+PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);

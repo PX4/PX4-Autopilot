@@ -44,6 +44,7 @@
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <uORB/topics/rc_channels.h>
 
 namespace sensors
 {

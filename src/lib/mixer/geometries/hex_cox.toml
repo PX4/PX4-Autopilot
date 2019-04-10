@@ -1,0 +1,40 @@
+# Generic Hexacopter in coaxial configuration
+
+[info]
+key = "6c"
+description = "Generic Hexacopter in coaxial configuration"
+
+[rotor_default]
+axis      = [0.0, 0.0, -1.0]
+Ct        = 1.0
+Cm        = 0.05
+
+[[rotors]]
+name      = "front_right_top"
+position  = [0.5, 0.866, -0.1]
+direction = "CW"
+
+[[rotors]]
+name      = "front_right_bottom"
+position  = [0.5, 0.866, 0.1]
+direction = "CCW"
+
+[[rotors]]
+name      = "rear_top"
+position  = [-1.0, 0.0, -0.1]
+direction = "CW"
+
+[[rotors]]
+name      = "rear_bottom"
+position  = [-1.0, 0.0, 0.1]
+direction = "CCW"
+
+[[rotors]]
+name      = "front_left_top"
+position  = [0.5, -0.866, -0.1]
+direction = "CW"
+
+[[rotors]]
+name      = "front_left_bottom"
+position  = [0.5, -0.866, 0.1]
+direction = "CCW"

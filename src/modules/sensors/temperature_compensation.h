@@ -40,8 +40,11 @@
  * @author Beat Küng <beat-kueng@gmx.net>
  */
 
-#include <systemlib/param/param.h>
+#pragma once
+
+#include <parameters/param.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 
 #include "common.h"
 
@@ -65,7 +68,7 @@ class TemperatureCompensation
 public:
 
 	/** (re)load the parameters. Make sure to call this on startup as well */
-	int parameters_update();
+	int parameters_update(bool hil_enabled = false);
 
 	/** supply information which device_id matches a specific uORB topic_instance
 	 *  (needed if a system has multiple sensors of the same type)
@@ -87,14 +90,13 @@ public:
 	 *         1: corrections applied but no changes to offsets & scales,
 	 *         2: corrections applied and offsets & scales updated
 	 */
-	int apply_corrections_gyro(int topic_instance, math::Vector<3> &sensor_data, float temperature,
-				   float *offsets, float *scales);
+	int apply_corrections_gyro(int topic_instance, matrix::Vector3f &sensor_data, float temperature, float *offsets,
+				   float *scales);
 
-	int apply_corrections_accel(int topic_instance, math::Vector<3> &sensor_data, float temperature,
-				    float *offsets, float *scales);
+	int apply_corrections_accel(int topic_instance, matrix::Vector3f &sensor_data, float temperature, float *offsets,
+				    float *scales);
 
-	int apply_corrections_baro(int topic_instance, float &sensor_data, float temperature,
-				   float *offsets, float *scales);
+	int apply_corrections_baro(int topic_instance, float &sensor_data, float temperature, float *offsets, float *scales);
 
 	/** output current configuration status to console */
 	void print_status();
@@ -116,7 +118,7 @@ private:
 
 	*/
 	struct SensorCalData1D {
-		int ID;
+		int32_t ID;
 		float x5;
 		float x4;
 		float x3;
@@ -160,7 +162,7 @@ private:
 
 	 */
 	struct SensorCalData3D {
-		int ID;			/**< sensor device ID*/
+		int32_t ID;		/**< sensor device ID*/
 		float x3[3];		/**< x^3 term of polynomial */
 		float x2[3];		/**< x^2 term of polynomial */
 		float x1[3];		/**< x^1 term of polynomial */
@@ -185,11 +187,11 @@ private:
 
 	// create a struct containing all thermal calibration parameters
 	struct Parameters {
-		int gyro_tc_enable;
+		int32_t gyro_tc_enable;
 		SensorCalData3D gyro_cal_data[GYRO_COUNT_MAX];
-		int accel_tc_enable;
+		int32_t accel_tc_enable;
 		SensorCalData3D accel_cal_data[ACCEL_COUNT_MAX];
-		int baro_tc_enable;
+		int32_t baro_tc_enable;
 		SensorCalData1D baro_cal_data[BARO_COUNT_MAX];
 	};
 

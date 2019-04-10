@@ -120,7 +120,7 @@ public:
 	/**
 	 * deconstructor
 	 */
-	virtual ~MD25();
+	virtual ~MD25() = default;
 
 	/**
 	 * @return software version

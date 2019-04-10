@@ -61,10 +61,9 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/parameter_update.h>
-#include <systemlib/param/param.h>
-#include <systemlib/pid/pid.h>
-#include <geo/geo.h>
-#include <systemlib/perf_counter.h>
+#include <parameters/param.h>
+#include <lib/ecl/geo/geo.h>
+#include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <matrix/math.hpp>
 
@@ -183,7 +182,7 @@ void control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const st
 	actuators->control[2] = yaw_err * pp.yaw_p;
 
 	/* copy throttle */
-	actuators->control[3] = att_sp->thrust;
+	actuators->control[3] = att_sp->thrust_body[0];
 
 	actuators->timestamp = hrt_absolute_time();
 }
@@ -396,7 +395,6 @@ usage(const char *reason)
 	}
 
 	fprintf(stderr, "usage: rover_steering_control {start|stop|status}\n\n");
-	exit(1);
 }
 
 /**
@@ -411,6 +409,7 @@ int rover_steering_control_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		usage("missing command");
+		return 1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
@@ -418,7 +417,7 @@ int rover_steering_control_main(int argc, char *argv[])
 		if (thread_running) {
 			warnx("running");
 			/* this is not an error */
-			exit(0);
+			return 0;
 		}
 
 		thread_should_exit = false;
@@ -429,12 +428,12 @@ int rover_steering_control_main(int argc, char *argv[])
 						 rover_steering_control_thread_main,
 						 (argv) ? (char *const *)&argv[2] : (char *const *)nullptr);
 		thread_running = true;
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "stop")) {
 		thread_should_exit = true;
-		exit(0);
+		return 0;
 	}
 
 	if (!strcmp(argv[1], "status")) {
@@ -445,11 +444,11 @@ int rover_steering_control_main(int argc, char *argv[])
 			warnx("not started");
 		}
 
-		exit(0);
+		return 0;
 	}
 
 	usage("unrecognized command");
-	exit(1);
+	return 1;
 }
 
 

@@ -40,11 +40,12 @@
  */
 
 /**
- * Set to 1 to enable thermal compensation for barometric pressure sensors. Set to 0 to disable.
+ * Thermal compensation for barometric pressure sensors.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  * @min 0
  * @max 1
+ * @boolean
  */
 PARAM_DEFINE_INT32(TC_B_ENABLE, 0);
 
@@ -53,77 +54,77 @@ PARAM_DEFINE_INT32(TC_B_ENABLE, 0);
 /**
  * ID of Barometer that the calibration is for.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_INT32(TC_B0_ID, 0);
 
 /**
  * Barometer offset temperature ^5 polynomial coefficient.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B0_X5, 0.0f);
 
 /**
  * Barometer offset temperature ^4 polynomial coefficient.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B0_X4, 0.0f);
 
 /**
  * Barometer offset temperature ^3 polynomial coefficient.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B0_X3, 0.0f);
 
 /**
  * Barometer offset temperature ^2 polynomial coefficient.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B0_X2, 0.0f);
 
 /**
  * Barometer offset temperature ^1 polynomial coefficients.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B0_X1, 0.0f);
 
 /**
  * Barometer offset temperature ^0 polynomial coefficient.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B0_X0, 0.0f);
 
 /**
  * Barometer scale factor - X axis.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B0_SCL, 1.0f);
 
 /**
  * Barometer calibration reference temperature.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B0_TREF, 40.0f);
 
 /**
  * Barometer calibration minimum temperature.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B0_TMIN, 5.0f);
 
 /**
  * Barometer calibration maximum temperature.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B0_TMAX, 75.0f);
 
@@ -132,77 +133,77 @@ PARAM_DEFINE_FLOAT(TC_B0_TMAX, 75.0f);
 /**
  * ID of Barometer that the calibration is for.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_INT32(TC_B1_ID, 0);
 
 /**
  * Barometer offset temperature ^5 polynomial coefficient.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B1_X5, 0.0f);
 
 /**
  * Barometer offset temperature ^4 polynomial coefficient.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B1_X4, 0.0f);
 
 /**
  * Barometer offset temperature ^3 polynomial coefficient.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B1_X3, 0.0f);
 
 /**
  * Barometer offset temperature ^2 polynomial coefficient.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B1_X2, 0.0f);
 
 /**
  * Barometer offset temperature ^1 polynomial coefficients.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B1_X1, 0.0f);
 
 /**
  * Barometer offset temperature ^0 polynomial coefficient.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B1_X0, 0.0f);
 
 /**
  * Barometer scale factor - X axis.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B1_SCL, 1.0f);
 
 /**
  * Barometer calibration reference temperature.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B1_TREF, 40.0f);
 
 /**
  * Barometer calibration minimum temperature.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B1_TMIN, 5.0f);
 
 /**
  * Barometer calibration maximum temperature.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B1_TMAX, 75.0f);
 
@@ -211,76 +212,76 @@ PARAM_DEFINE_FLOAT(TC_B1_TMAX, 75.0f);
 /**
  * ID of Barometer that the calibration is for.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_INT32(TC_B2_ID, 0);
 
 /**
  * Barometer offset temperature ^5 polynomial coefficient.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B2_X5, 0.0f);
 
 /**
  * Barometer offset temperature ^4 polynomial coefficient.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B2_X4, 0.0f);
 
 /**
  * Barometer offset temperature ^3 polynomial coefficient.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B2_X3, 0.0f);
 
 /**
  * Barometer offset temperature ^2 polynomial coefficient.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B2_X2, 0.0f);
 
 /**
  * Barometer offset temperature ^1 polynomial coefficients.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B2_X1, 0.0f);
 
 /**
  * Barometer offset temperature ^0 polynomial coefficient.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B2_X0, 0.0f);
 
 /**
  * Barometer scale factor - X axis.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B2_SCL, 1.0f);
 
 /**
  * Barometer calibration reference temperature.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B2_TREF, 40.0f);
 
 /**
  * Barometer calibration minimum temperature.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B2_TMIN, 5.0f);
 
 /**
  * Barometer calibration maximum temperature.
  *
- * @group Sensor Thermal Compensation
+ * @group Thermal Compensation
  */
 PARAM_DEFINE_FLOAT(TC_B2_TMAX, 75.0f);

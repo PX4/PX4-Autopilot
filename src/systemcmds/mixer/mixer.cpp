@@ -32,12 +32,13 @@
  ****************************************************************************/
 
 /**
- * @file mixer.c
+ * @file mixer.cpp
  *
  * Mixer utility.
  */
 
 #include <px4_config.h>
+#include <px4_module.h>
 #include <px4_posix.h>
 #include <string.h>
 #include <stdlib.h>
@@ -47,8 +48,9 @@
 #include <errno.h>
 #include <ctype.h>
 
-#include <systemlib/err.h>
-#include <systemlib/mixer/mixer.h>
+#include <drivers/drv_mixer.h>
+#include <lib/mixer/mixer.h>
+#include <lib/mixer/mixer_load.h>
 #include <uORB/topics/actuator_controls.h>
 
 /**
@@ -110,15 +112,28 @@ usage(const char *reason)
 		PX4_INFO("%s", reason);
 	}
 
-	PX4_INFO("usage:");
-	PX4_INFO("  mixer load <device> <filename>");
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Load or append mixer files to the ESC driver.
+
+Note that the driver must support the used ioctl's, which is the case on NuttX, but for example not on RPi.
+)DESCR_STR");
+
+
+	PRINT_MODULE_USAGE_NAME("mixer", "command");
+
+	PRINT_MODULE_USAGE_COMMAND("load");
+	PRINT_MODULE_USAGE_ARG("<file:dev> <file>", "Output device (eg. /dev/pwm_output0) and mixer file", false);
+	PRINT_MODULE_USAGE_COMMAND("append");
+	PRINT_MODULE_USAGE_ARG("<file:dev> <file>", "Output device (eg. /dev/pwm_output0) and mixer file", false);
 }
 
 static int
 load(const char *devname, const char *fname, bool append)
 {
 	// sleep a while to ensure device has been set up
-	usleep(20000);
+	px4_usleep(20000);
 
 	int dev;
 

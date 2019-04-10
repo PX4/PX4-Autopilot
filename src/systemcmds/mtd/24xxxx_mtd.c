@@ -51,6 +51,7 @@
  ************************************************************************************/
 
 #include <px4_config.h>
+#include <px4_time.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -66,7 +67,7 @@
 #include <nuttx/i2c/i2c_master.h>
 #include <nuttx/mtd/mtd.h>
 
-#include "systemlib/perf_counter.h"
+#include <perf/perf_counter.h>
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -96,7 +97,23 @@
 
 /* Get the part configuration based on the size configuration */
 
-#if CONFIG_AT24XX_SIZE == 32
+#if CONFIG_AT24XX_SIZE == 2       /* AT24C02: 2Kbits = 256; 16 * 16 =  256 */
+#  define AT24XX_NPAGES     16
+#  define AT24XX_PAGESIZE   16
+#  define AT24XX_ADDRSIZE   1
+#elif CONFIG_AT24XX_SIZE == 4     /* AT24C04: 4Kbits = 512B; 32 * 16 = 512 */
+#  define AT24XX_NPAGES     32
+#  define AT24XX_PAGESIZE   16
+#  define AT24XX_ADDRSIZE   1
+#elif CONFIG_AT24XX_SIZE == 8     /* AT24C08: 8Kbits = 1KiB; 64 * 16 = 1024 */
+#  define AT24XX_NPAGES     64
+#  define AT24XX_PAGESIZE   16
+#  define AT24XX_ADDRSIZE   1
+#elif CONFIG_AT24XX_SIZE == 16    /* AT24C16: 16Kbits = 2KiB; 128 * 16 = 2048 */
+#  define AT24XX_NPAGES     128
+#  define AT24XX_PAGESIZE   16
+#  define AT24XX_ADDRSIZE   1
+#elif CONFIG_AT24XX_SIZE == 32
 #  define AT24XX_NPAGES     128
 #  define AT24XX_PAGESIZE   32
 #elif CONFIG_AT24XX_SIZE == 48
@@ -212,7 +229,7 @@ static int at24c_eraseall(FAR struct at24c_dev_s *priv)
 
 		while (I2C_TRANSFER(priv->dev, &msgv[0], 1) < 0) {
 			fwarn("erase stall\n");
-			usleep(10000);
+			px4_usleep(10000);
 		}
 	}
 
@@ -325,7 +342,7 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 			}
 
 			finfo("read stall");
-			usleep(1000);
+			px4_usleep(1000);
 
 			/* We should normally only be here on the first read after
 			 * a write.
@@ -414,7 +431,7 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
 			}
 
 			finfo("write stall");
-			usleep(1000);
+			px4_usleep(1000);
 
 			/* We expect to see a number of retries per write cycle as we
 			 * poll for write completion.

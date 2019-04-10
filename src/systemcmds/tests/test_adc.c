@@ -36,8 +36,8 @@
  * Test for the analog to digital converter.
  */
 
+#include <px4_time.h>
 #include <px4_config.h>
-#include <px4_adc.h>
 #include <px4_posix.h>
 #include <px4_log.h>
 
@@ -63,8 +63,8 @@ int test_adc(int argc, char *argv[])
 	}
 
 	for (unsigned i = 0; i < 5; i++) {
-		/* make space for a maximum of twelve channels */
-		struct adc_msg_s data[12];
+		/* make space for a maximum number of channels */
+		px4_adc_msg_t data[PX4_MAX_ADC_CHANNELS];
 		/* read all channels available */
 		ssize_t count = px4_read(fd, data, sizeof(data));
 
@@ -79,7 +79,7 @@ int test_adc(int argc, char *argv[])
 		}
 
 		printf("\n");
-		usleep(150000);
+		px4_usleep(150000);
 	}
 
 	printf("\t ADC test successful.\n");

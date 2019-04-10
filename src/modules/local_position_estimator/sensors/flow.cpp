@@ -7,8 +7,8 @@ extern orb_advert_t mavlink_log_pub;
 
 // required number of samples for sensor
 // to initialize
-static const uint32_t 		REQ_FLOW_INIT_COUNT = 10;
-static const uint32_t 		FLOW_TIMEOUT = 1000000;	// 1 s
+static const uint32_t		REQ_FLOW_INIT_COUNT = 10;
+static const uint32_t		FLOW_TIMEOUT = 1000000;	// 1 s
 
 // minimum flow altitude
 static const float flow_min_agl = 0.3;
@@ -36,8 +36,10 @@ void BlockLocalPositionEstimator::flowInit()
 
 int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 {
+	matrix::Eulerf euler(matrix::Quatf(_sub_att.get().q));
+
 	// check for sane pitch/roll
-	if (_eul(0) > 0.5f || _eul(1) > 0.5f) {
+	if (euler.phi() > 0.5f || euler.theta() > 0.5f) {
 		return -1;
 	}
 
@@ -49,7 +51,7 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	// check quality
 	float qual = _sub_flow.get().quality;
 
-	if (qual < _flow_min_q.get()) {
+	if (qual < _param_lpe_flw_qmin.get()) {
 		return -1;
 	}
 
@@ -58,14 +60,12 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 		return -1;
 	}
 
-	matrix::Eulerf euler = matrix::Quatf(_sub_att.get().q);
-
 	float d = agl() * cosf(euler.phi()) * cosf(euler.theta());
 
 	// optical flow in x, y axis
 	// TODO consider making flow scale a states of the kalman filter
-	float flow_x_rad = _sub_flow.get().pixel_flow_x_integral * _flow_scale.get();
-	float flow_y_rad = _sub_flow.get().pixel_flow_y_integral * _flow_scale.get();
+	float flow_x_rad = _sub_flow.get().pixel_flow_x_integral * _param_lpe_flw_scale.get();
+	float flow_y_rad = _sub_flow.get().pixel_flow_y_integral * _param_lpe_flw_scale.get();
 	float dt_flow = _sub_flow.get().integration_timespan / 1.0e6f;
 
 	if (dt_flow > 0.5f || dt_flow < 1.0e-6f) {
@@ -76,7 +76,7 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	float gyro_x_rad = 0;
 	float gyro_y_rad = 0;
 
-	if (_fusion.get() & FUSE_FLOW_GYRO_COMP) {
+	if (_param_lpe_fusion.get() & FUSE_FLOW_GYRO_COMP) {
 		gyro_x_rad = _flow_gyro_x_high_pass.update(
 				     _sub_flow.get().gyro_x_rate_integral);
 		gyro_y_rad = _flow_gyro_y_high_pass.update(
@@ -89,8 +89,8 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	// compute velocities in body frame using ground distance
 	// note that the integral rates in the optical_flow uORB topic are RH rotations about body axes
 	Vector3f delta_b(
-		+(flow_y_rad - gyro_y_rad)*d,
-		-(flow_x_rad - gyro_x_rad)*d,
+		+(flow_y_rad - gyro_y_rad) * d,
+		-(flow_x_rad - gyro_x_rad) * d,
 		0);
 
 	// rotation of flow from body to nav frame
@@ -159,23 +159,28 @@ void BlockLocalPositionEstimator::flowCorrect()
 			   + _sub_att.get().pitchspeed * _sub_att.get().pitchspeed
 			   + _sub_att.get().yawspeed * _sub_att.get().yawspeed;
 
-	float rot_sq = _eul(0) * _eul(0) + _eul(1) * _eul(1);
+	matrix::Eulerf euler(matrix::Quatf(_sub_att.get().q));
+	float rot_sq = euler.phi() * euler.phi() + euler.theta() * euler.theta();
 
 	R(Y_flow_vx, Y_flow_vx) = flow_vxy_stddev * flow_vxy_stddev +
-				  _flow_r.get() * _flow_r.get() * rot_sq +
-				  _flow_rr.get() * _flow_rr.get() * rotrate_sq;
+				  _param_lpe_flw_r.get() * _param_lpe_flw_r.get() * rot_sq +
+				  _param_lpe_flw_rr.get() * _param_lpe_flw_rr.get() * rotrate_sq;
 	R(Y_flow_vy, Y_flow_vy) = R(Y_flow_vx, Y_flow_vx);
 
 	// residual
 	Vector<float, 2> r = y - C * _x;
+
+	// residual covariance
+	Matrix<float, n_y_flow, n_y_flow> S = C * _P * C.transpose() + R;
+
+	// publish innovations
 	_pub_innov.get().flow_innov[0] = r(0);
 	_pub_innov.get().flow_innov[1] = r(1);
-	_pub_innov.get().flow_innov_var[0] = R(0, 0);
-	_pub_innov.get().flow_innov_var[1] = R(1, 1);
+	_pub_innov.get().flow_innov_var[0] = S(0, 0);
+	_pub_innov.get().flow_innov_var[1] = S(1, 1);
 
 	// residual covariance, (inverse)
-	Matrix<float, n_y_flow, n_y_flow> S_I =
-		inv<float, n_y_flow>(C * _P * C.transpose() + R);
+	Matrix<float, n_y_flow, n_y_flow> S_I = inv<float, n_y_flow>(S);
 
 	// fault detection
 	float beta = (r.transpose() * (S_I * r))(0, 0);
@@ -197,9 +202,7 @@ void BlockLocalPositionEstimator::flowCorrect()
 		Vector<float, n_x> dx = K * r;
 		_x += dx;
 		_P -= K * C * _P;
-
 	}
-
 }
 
 void BlockLocalPositionEstimator::flowCheckTimeout()

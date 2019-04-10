@@ -121,10 +121,6 @@ MD25::MD25(const char *deviceName, int bus,
 	setTimeout(true);
 }
 
-MD25::~MD25()
-{
-}
-
 int MD25::readData()
 {
 	uint8_t sendBuf[1];
@@ -357,7 +353,7 @@ int MD25::probe()
 
 	//printf("searching for MD25 address\n");
 	while (true) {
-		set_address(testAddress);
+		set_device_address(testAddress);
 		ret = readData();
 
 		if (ret == OK && !found) {
@@ -376,11 +372,11 @@ int MD25::probe()
 	}
 
 	if (found) {
-		set_address(goodAddress);
+		set_device_address(goodAddress);
 		return OK;
 
 	} else {
-		set_address(0);
+		set_device_address(0);
 		return ret;
 	}
 }
@@ -395,7 +391,7 @@ int MD25::search()
 
 	//printf("searching for MD25 address\n");
 	while (true) {
-		set_address(testAddress);
+		set_device_address(testAddress);
 		ret = readData();
 
 		if (ret == OK && !found) {
@@ -415,11 +411,11 @@ int MD25::search()
 	}
 
 	if (found) {
-		set_address(goodAddress);
+		set_device_address(goodAddress);
 		return OK;
 
 	} else {
-		set_address(0);
+		set_device_address(0);
 		return ret;
 	}
 }

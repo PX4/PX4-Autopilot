@@ -44,3 +44,45 @@
  */
 PARAM_DEFINE_INT32(GPS_DUMP_COMM, 0);
 
+/**
+ * u-blox GPS dynamic platform model
+ *
+ * u-blox receivers support different dynamic platform models to adjust the navigation engine to
+ * the expected application environment.
+ *
+ * @min 0
+ * @max 9
+ * @value 2 stationary
+ * @value 4 automotive
+ * @value 6 airborne with <1g acceleration
+ * @value 7 airborne with <2g acceleration
+ * @value 8 airborne with <4g acceleration
+ *
+ * @reboot_required true
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
+
+
+/**
+ * Heading/Yaw offset for dual antenna GPS
+ *
+ * Heading offset angle for dual antenna GPS setups that support heading estimation.
+ * (currently only for the Trimble MB-Two).
+ *
+ * Set this to 0 if the antennas are parallel to the forward-facing direction of the vehicle and the first antenna is in
+ * front. The offset angle increases counterclockwise.
+ *
+ * Set this to 90 if the first antenna is placed on the right side and the second on the left side of the vehicle.
+ *
+ * @min 0
+ * @max 360
+ * @unit deg
+ * @reboot_required true
+ * @decimal 0
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
+

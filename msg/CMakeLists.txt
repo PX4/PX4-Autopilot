@@ -31,70 +31,81 @@
 #
 ############################################################################
 
-set(msg_file_names
+set(msg_files
 	actuator_armed.msg
 	actuator_controls.msg
 	actuator_direct.msg
 	actuator_outputs.msg
 	adc_report.msg
 	airspeed.msg
-	att_pos_mocap.msg
 	battery_status.msg
-	camera_trigger.msg
 	camera_capture.msg
+	camera_trigger.msg
 	collision_report.msg
+	collision_constraints.msg
 	commander_state.msg
-	control_state.msg
 	cpuload.msg
+	debug_array.msg
 	debug_key_value.msg
+	debug_value.msg
+	debug_vect.msg
 	differential_pressure.msg
 	distance_sensor.msg
 	ekf2_innovations.msg
-	ekf2_replay.msg
 	ekf2_timestamps.msg
+	ekf_gps_drift.msg
+	ekf_gps_position.msg
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
-	fence.msg
-	fence_vertex.msg
-	filtered_bottom_flow.msg
 	follow_target.msg
-	fw_pos_ctrl_status.msg
 	geofence_result.msg
 	gps_dump.msg
 	gps_inject_data.msg
-	hil_sensor.msg
 	home_position.msg
 	input_rc.msg
+	iridiumsbd_status.msg
+	irlock_report.msg
+	landing_gear.msg
+	landing_target_innovations.msg
+	landing_target_pose.msg
 	led_control.msg
 	log_message.msg
 	manual_control_setpoint.msg
 	mavlink_log.msg
-	mc_att_ctrl_status.msg
 	mission.msg
 	mission_result.msg
 	mount_orientation.msg
 	multirotor_motor_limits.msg
+	obstacle_distance.msg
 	offboard_control_mode.msg
 	optical_flow.msg
-	output_pwm.msg
+	orbit_status.msg
 	parameter_update.msg
+	ping.msg
+	position_controller_landing_status.msg
+	position_controller_status.msg
 	position_setpoint.msg
 	position_setpoint_triplet.msg
+	power_button_state.msg
 	pwm_input.msg
 	qshell_req.msg
+	qshell_retval.msg
+	radio_status.msg
+	rate_ctrl_status.msg
 	rc_channels.msg
 	rc_parameter_map.msg
 	safety.msg
 	satellite_info.msg
 	sensor_accel.msg
 	sensor_baro.msg
+	sensor_bias.msg
 	sensor_combined.msg
 	sensor_correction.msg
-	sensor_selection.msg
 	sensor_gyro.msg
 	sensor_mag.msg
 	sensor_preflight.msg
+	sensor_selection.msg
 	servorail_status.msg
 	subsystem_info.msg
 	system_power.msg
@@ -102,43 +113,102 @@ set(msg_file_names
 	tecs_status.msg
 	telemetry_status.msg
 	test_motor.msg
-	time_offset.msg
+	timesync_status.msg
+	trajectory_waypoint.msg
 	transponder_report.msg
+	tune_control.msg
 	uavcan_parameter_request.msg
 	uavcan_parameter_value.msg
 	ulog_stream.msg
 	ulog_stream_ack.msg
+	vehicle_air_data.msg
 	vehicle_attitude.msg
 	vehicle_attitude_setpoint.msg
 	vehicle_command.msg
 	vehicle_command_ack.msg
+	vehicle_constraints.msg
 	vehicle_control_mode.msg
-	vehicle_force_setpoint.msg
 	vehicle_global_position.msg
-	vehicle_global_velocity_setpoint.msg
 	vehicle_gps_position.msg
 	vehicle_land_detected.msg
 	vehicle_local_position.msg
 	vehicle_local_position_setpoint.msg
+	vehicle_magnetometer.msg
+	vehicle_odometry.msg
 	vehicle_rates_setpoint.msg
 	vehicle_roi.msg
 	vehicle_status.msg
 	vehicle_status_flags.msg
+	vehicle_trajectory_waypoint.msg
 	vtol_vehicle_status.msg
 	wind_estimate.msg
 	)
 
-# Get absolute paths
-set(msg_files)
-set(msg_include_paths)
+if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
+	# Check that the msg directory and the CMakeLists.txt file exists
+	if(EXISTS ${EXTERNAL_MODULES_LOCATION}/msg/CMakeLists.txt)
+		add_subdirectory(${EXTERNAL_MODULES_LOCATION}/msg external_msg)
 
-foreach(msg_file ${msg_file_names})
-	list(APPEND msg_files ${CMAKE_CURRENT_SOURCE_DIR}/${msg_file})
+		# Add each of the external message files to the global msg_files list
+		foreach(external_msg_file ${config_msg_list_external})
+			list(APPEND msg_files ${EXTERNAL_MODULES_LOCATION}/msg/${external_msg_file})
+		endforeach()
+	endif()
+endif()
+
+px4_add_git_submodule(TARGET git_gencpp PATH tools/gencpp)
+px4_add_git_submodule(TARGET git_genmsg PATH tools/genmsg)
+
+# headers
+set(msg_out_path ${PX4_BINARY_DIR}/uORB/topics)
+set(msg_source_out_path	${CMAKE_CURRENT_BINARY_DIR}/topics_sources)
+
+set(uorb_headers)
+set(uorb_sources ${msg_source_out_path}/uORBTopics.cpp)
+foreach(msg_file ${msg_files})
+	get_filename_component(msg ${msg_file} NAME_WE)
+	list(APPEND uorb_headers ${msg_out_path}/${msg}.h)
+	list(APPEND uorb_sources ${msg_source_out_path}/${msg}.cpp)
 endforeach()
 
-list(APPEND msg_include_paths ${CMAKE_CURRENT_SOURCE_DIR})
-set(msg_include_paths ${msg_include_paths} PARENT_SCOPE)
+# Generate uORB headers
+add_custom_command(OUTPUT ${uorb_headers}
+	COMMAND ${PYTHON_EXECUTABLE} tools/px_generate_uorb_topic_files.py
+		--headers
+		-f ${msg_files}
+		-i ${CMAKE_CURRENT_SOURCE_DIR}
+		-o ${msg_out_path}
+		-e templates/uorb
+		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/headers
+		-q
+	DEPENDS
+		${msg_files}
+		templates/uorb/msg.h.template
+		tools/px_generate_uorb_topic_files.py
+	COMMENT "Generating uORB topic headers"
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	VERBATIM
+	)
+add_custom_target(uorb_headers DEPENDS ${uorb_headers})
 
-set(msg_files ${msg_files} PARENT_SCOPE)
+# Generate uORB sources
+add_custom_command(OUTPUT ${uorb_sources}
+	COMMAND ${PYTHON_EXECUTABLE} tools/px_generate_uorb_topic_files.py
+		--sources
+		-f ${msg_files}
+		-i ${CMAKE_CURRENT_SOURCE_DIR}
+		-o ${msg_source_out_path}
+		-e templates/uorb
+		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/sources
+		-q
+	DEPENDS
+		${msg_files}
+		templates/uorb/msg.cpp.template
+		tools/px_generate_uorb_topic_files.py
+	COMMENT "Generating uORB topic sources"
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	VERBATIM
+	)
 
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+add_library(uorb_msgs ${uorb_sources})
+add_dependencies(uorb_msgs prebuild_targets uorb_headers)

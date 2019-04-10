@@ -58,12 +58,14 @@ PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
  * Vertical thrust required to hover.
  * This value is mapped to center stick for manual throttle control.
  * With this value set to the thrust required to hover, transition
- * from manual to ALTCTL mode while hovering will occur with the
+ * from manual to Altitude or Position mode while hovering will occur with the
  * throttle stick near center, which is then interpreted as (near)
  * zero demand for vertical speed.
  *
+ * This parameter is also important for the landing detection to work correctly.
+ *
  * @unit norm
- * @min 0.2
+ * @min 0.1
  * @max 0.8
  * @decimal 2
  * @increment 0.01
@@ -72,26 +74,46 @@ PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
 PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
 
 /**
+ * Thrust curve in Manual Mode
+ *
+ * This parameter defines how the throttle stick input is mapped to commanded thrust
+ * in Manual/Stabilized flight mode.
+ *
+ * In case the default is used ('Rescale to hover thrust'), the stick input is linearly
+ * rescaled, such that a centered stick corresponds to the hover throttle (see MPC_THR_HOVER).
+ *
+ * Select 'No Rescale' to directly map the stick 1:1 to the output. This can be useful
+ * in case the hover thrust is very low and the default would lead to too much distortion
+ * (e.g. if hover thrust is set to 20%, 80% of the upper thrust range is squeezed into the
+ * upper half of the stick range).
+ *
+ * Note: in case MPC_THR_HOVER is set to 50%, the modes 0 and 1 are the same.
+ *
+ * @value 0 Rescale to hover thrust
+ * @value 1 No Rescale
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_THR_CURVE, 0);
+
+/**
  * Maximum thrust in auto thrust control
  *
- * Limit max allowed thrust. Setting a value of one can put
- * the system into actuator saturation as no spread between
- * the motors is possible any more. A value of 0.8 - 0.9
- * is recommended.
+ * Limit max allowed thrust
  *
  * @unit norm
  * @min 0.0
- * @max 0.95
+ * @max 1.0
  * @decimal 2
  * @increment 0.01
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_THR_MAX, 0.9f);
+PARAM_DEFINE_FLOAT(MPC_THR_MAX, 1.0f);
 
 /**
  * Minimum manual thrust
  *
  * Minimum vertical thrust. It's recommended to set it > 0 to avoid free fall with zero thrust.
+ * With MC_AIRMODE set to 1, this can safely be set to 0.
  *
  * @unit norm
  * @min 0.0
@@ -101,23 +123,6 @@ PARAM_DEFINE_FLOAT(MPC_THR_MAX, 0.9f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_MANTHR_MIN, 0.08f);
-
-/**
- * Maximum manual thrust
- *
- * Limit max allowed thrust. Setting a value of one can put
- * the system into actuator saturation as no spread between
- * the motors is possible any more. A value of 0.8 - 0.9
- * is recommended.
- *
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_MANTHR_MAX, 0.9f);
 
 /**
  * Proportional gain for vertical position error
@@ -187,18 +192,6 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.0f);
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.0f);
 
 /**
- * Vertical velocity feed forward
- *
- * Feed forward weight for altitude control in stabilized modes (ALTCTRL, POSCTRL). 0 will give slow responce and no overshot, 1 - fast responce and big overshot.
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_Z_FF, 0.5f);
-
-/**
  * Proportional gain for horizontal position error
  *
  * @min 0.0
@@ -221,10 +214,10 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_P, 0.09f);
 /**
  * Integral gain for horizontal velocity error
  *
- * Non-zero value allows to resist wind.
+ * Non-zero value allows to eliminate steady state errors in the presence of disturbances like wind.
  *
  * @min 0.0
- * @max 0.1
+ * @max 3.0
  * @decimal 3
  * @group Multicopter Position Control
  */
@@ -241,7 +234,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_I, 0.02f);
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 
 /**
- * Nominal horizontal velocity in mission
+ * Maximum horizontal velocity in mission
  *
  * Normal horizontal velocity in AUTO modes (includes
  * also RTL / hold / etc.) and endpoint for
@@ -257,7 +250,45 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 
 /**
- * Nominal horizontal velocity for manual controlled mode
+ * Proportional gain for horizontal trajectory position error
+ *
+ * @min 0.1
+ * @max 5.0
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.3f);
+
+/**
+ * Proportional gain for vertical trajectory position error
+ *
+ * @min 0.1
+ * @max 5.0
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_TRAJ_P, 0.3f);
+
+/**
+ * Cruise speed when angle prev-current/current-next setpoint
+ * is 90 degrees. It should be lower than MPC_XY_CRUISE.
+ *
+ * Applies only in AUTO modes (includes
+ * also RTL / hold / etc.)
+ *
+ * @unit m/s
+ * @min 1.0
+ * @max 20.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_CRUISE_90, 3.0f);
+
+/**
+ * Maximum horizontal velocity setpoint for manual controlled mode
+ * If velocity setpoint larger than MPC_XY_VEL_MAX is set, then
+ * the setpoint will be capped to MPC_XY_VEL_MAX
  *
  * @unit m/s
  * @min 3.0
@@ -266,23 +297,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_VEL_MAN_MAX, 10.0f);
-
-/**
- * Distance Threshold Horizontal Auto
- *
- * The distance defines at which point the vehicle
- * has to slow down to reach target if no direct
- * passing to the next target is desired
- *
- * @unit m
- * @min 1.0
- * @max 50.0
- * @increment 1
- * @decimal 2
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_TARGET_THRE, 15.0f);
+PARAM_DEFINE_FLOAT(MPC_VEL_MANUAL, 10.0f);
 
 /**
  * Maximum horizontal velocity
@@ -297,19 +312,7 @@ PARAM_DEFINE_FLOAT(MPC_TARGET_THRE, 15.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 8.0f);
-
-/**
- * Horizontal velocity feed forward
- *
- * Feed forward weight for position control in position control mode (POSCTRL). 0 will give slow responce and no overshot, 1 - fast responce and big overshot.
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_XY_FF, 0.5f);
+PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 12.0f);
 
 /**
  * Maximum tilt angle in air
@@ -317,8 +320,8 @@ PARAM_DEFINE_FLOAT(MPC_XY_FF, 0.5f);
  * Limits maximum tilt in AUTO and POSCTRL modes during flight.
  *
  * @unit deg
- * @min 0.0
- * @max 90.0
+ * @min 20.0
+ * @max 180.0
  * @decimal 1
  * @group Multicopter Position Control
  */
@@ -330,7 +333,7 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.0f);
  * Limits maximum tilt angle on landing.
  *
  * @unit deg
- * @min 0.0
+ * @min 10.0
  * @max 90.0
  * @decimal 1
  * @group Multicopter Position Control
@@ -341,11 +344,11 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
  * Landing descend rate
  *
  * @unit m/s
- * @min 0.2
+ * @min 0.6
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.5f);
+PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.7f);
 
 /**
  * Takeoff climb rate
@@ -424,7 +427,7 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_Z, 0.6f);
 PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
 
 /**
- * Maximum horizonal acceleration in velocity controlled modes
+ * Maximum horizontal acceleration for auto mode and maximum deceleration for manual mode
  *
  * @unit m/s/s
  * @min 2.0
@@ -433,10 +436,10 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
+PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 10.0f);
 
 /**
- * Maximum horizonal braking deceleration in velocity controlled modes
+ * Acceleration for auto and for manual
  *
  * @unit m/s/s
  * @min 2.0
@@ -445,7 +448,35 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_DEC_HOR_MAX, 10.0f);
+
+PARAM_DEFINE_FLOAT(MPC_ACC_HOR, 5.0f);
+
+/**
+ * Slow horizontal manual deceleration for manual mode
+ *
+ * @unit m/s/s
+ * @min 0.5
+ * @max 10.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_DEC_HOR_SLOW, 5.0f);
+
+/**
+ * Horizontal acceleration in manual modes when te estimator speed limit is removed.
+ * If full stick is being applied and the estimator stops demanding a speed limit,
+ * which it had been before (e.g if GPS is gained while flying on optical flow/vision only),
+ * the vehicle will accelerate at this rate until the normal position control speed is achieved.
+ *
+ * @unit m/s/s
+ * @min 0.2
+ * @max 2.0
+ * @increment 0.1
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_ACC_HOR_ESTM, 0.5f);
 
 /**
  * Maximum vertical acceleration in velocity controlled modes upward
@@ -457,7 +488,7 @@ PARAM_DEFINE_FLOAT(MPC_DEC_HOR_MAX, 10.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_ACC_UP_MAX, 5.0f);
+PARAM_DEFINE_FLOAT(MPC_ACC_UP_MAX, 10.0f);
 
 /**
  * Maximum vertical acceleration in velocity controlled modes down
@@ -469,21 +500,75 @@ PARAM_DEFINE_FLOAT(MPC_ACC_UP_MAX, 5.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 5.0f);
+PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 10.0f);
 
 /**
- * Altitude control mode, note mode 1 only tested with LPE
+ * Maximum jerk limit
+ *
+ * Limit the maximum jerk of the vehicle (how fast the acceleration can change).
+ * A lower value leads to smoother vehicle motions, but it also limits its
+ * agility (how fast it can change directions or break).
+ *
+ * Setting this to the maximum value essentially disables the limit.
+ *
+ * Note: this is only used when MPC_POS_MODE is set to a smoothing mode.
+ *
+ * @unit m/s/s/s
+ * @min 0.5
+ * @max 500.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 20.0f);
+
+/**
+ * Velocity-based jerk limit
+ *
+ * If this is not zero, a velocity-based maximum jerk limit is used: the applied
+ * jerk limit linearly increases with the vehicle's velocity between
+ * MPC_JERK_MIN (zero velocity) and MPC_JERK_MAX (maximum velocity).
+ *
+ * This means that the vehicle's motions are smooth for low velocities, but
+ * still allows fast direction changes or breaking at higher velocities.
+ *
+ * Set this to zero to use a fixed maximum jerk limit (MPC_JERK_MAX).
+ *
+ * Note: this is only used when MPC_POS_MODE is set to a smoothing mode.
+ *
+ * @unit m/s/s/s
+ * @min 0
+ * @max 30.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 8.0f);
+
+/**
+ * Altitude control mode.
+ *
+ * Set to 0 to control height relative to the earth frame origin. This origin may move up and down in
+ * flight due to sensor drift.
+ * Set to 1 to control height relative to estimated distance to ground. The vehicle will move up and down
+ * with terrain height variation. Requires a distance to ground sensor. The height controller will
+ * revert to using height above origin if the distance to ground estimate becomes invalid as indicated
+ * by the local_position.distance_bottom_valid message being false.
+ * Set to 2 to control height relative to ground (requires a distance sensor) when stationary and relative
+ * to earth frame origin when moving horizontally.
+ * The speed threshold is controlled by the MPC_HOLD_MAX_XY parameter.
  *
  * @min 0
- * @max 1
+ * @max 2
  * @value 0 Altitude following
  * @value 1 Terrain following
+ * @value 2 Terrain hold
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);
 
 /**
- * Manual control stick exponential curve sensitivity attenuation with small velocity setpoints
+ * Manual position control stick exponential curve sensitivity
  *
  * The higher the value the less sensitivity the stick has around zero
  * while still reaching the maximum value with full stick deflection.
@@ -513,6 +598,22 @@ PARAM_DEFINE_FLOAT(MPC_XY_MAN_EXPO, 0.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_Z_MAN_EXPO, 0.0f);
+
+/**
+ * Manual control stick yaw rotation exponential curve
+ *
+ * The higher the value the less sensitivity the stick has around zero
+ * while still reaching the maximum value with full stick deflection.
+ *
+ * 0 Purely linear input curve (default)
+ * 1 Purely cubic input curve
+ *
+ * @min 0
+ * @max 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_YAW_EXPO, 0.0f);
 
 /**
  * Altitude for 1. step of slow landing (descend)
@@ -549,9 +650,71 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
  *
  * Increasing this value will make automatic and manual takeoff slower.
  * If it's too slow the drone might scratch the ground and tip over.
+ * A time constant of 0 disables the ramp
  *
- * @min 0.1
+ * @min 0
  * @max 1
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
+
+/**
+ * Manual-Position control sub-mode
+ *
+ * The supported sub-modes are:
+ * 0 Default position control where sticks map to position/velocity directly. Maximum speeds
+ * 	 is MPC_VEL_MANUAL.
+ * 1 Smooth position control where setpoints are adjusted based on acceleration limits
+ * 	 and jerk limits.
+ * 2 Sport mode that is the same Default position control but with velocity limits set to
+ * 	 the maximum allowed speeds (MPC_XY_VEL_MAX)
+ * 3 Smooth position control with maximum acceleration and jerk limits (different algorithm
+ *   than 1).
+ *
+ * @value 0 Default position control
+ * @value 1 Smooth position control
+ * @value 2 Sport position control
+ * @value 3 Smooth position control (Velocity)
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_POS_MODE, 1);
+
+/**
+ * Auto sub-mode
+ *
+ * @value 0 Default line tracking
+ * @value 1 Jerk-limited trajectory
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_AUTO_MODE, 1);
+
+/**
+ * Enforced delay between arming and takeoff
+ *
+ * For altitude controlled modes the time from arming the motors until
+ * a takeoff is possible gets forced to be at least MPC_SPOOLUP_TIME seconds
+ * to ensure the motors and propellers can sppol up and reach idle speed before
+ * getting commanded to spin faster. This delay is particularly useful for vehicles
+ * with slow motor spin-up e.g. because of large propellers.
+ *
+ * @min 0
+ * @max 10
+ * @unit s
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_SPOOLUP_TIME, 0.0f);
+
+/**
+ * Yaw mode.
+ *
+ * Specifies the heading in Auto.
+ *
+ * @min 0
+ * @max 3
+ * @value 0 towards waypoint
+ * @value 1 towards home
+ * @value 2 away from home
+ * @value 3 along trajectory
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);

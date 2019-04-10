@@ -1,0 +1,153 @@
+#!/usr/bin/env groovy
+
+pipeline {
+  agent none
+  stages {
+
+    stage('Build') {
+      steps {
+        script {
+          def build_nodes = [:]
+          def docker_images = [
+            armhf: "px4io/px4-dev-armhf:2019-03-08",
+            base: "px4io/px4-dev-base-bionic:2019-03-08",
+            nuttx: "px4io/px4-dev-nuttx:2019-03-08",
+            ros: "px4io/px4-dev-ros-kinetic:2019-03-08",
+            rpi: "px4io/px4-dev-raspi:2019-03-08",
+            snapdragon: "lorenzmeier/px4-dev-snapdragon:2018-09-12"
+          ]
+
+          def armhf_builds = [
+            target: ["aerotenna_ocpoc_ubuntu"],
+            image: docker_images.armhf,
+            archive: false
+          ]
+
+          def base_builds = [
+            target: ["px4_sitl_rtps"],
+            image: docker_images.base,
+            archive: false
+          ]
+
+          def nuttx_builds_archive = [
+            target: [
+                     "px4_fmu-v2_default", "px4_fmu-v2_fixedwing", "px4_fmu-v2_lpe", "px4_fmu-v2_multicopter", "px4_fmu-v2_rover", "px4_fmu-v2_test",
+                     "px4_fmu-v3_default",
+                     "px4_fmu-v4_default",
+                     "px4_fmu-v4pro_default",
+                     "px4_fmu-v5_default", "px4_fmu-v5_fixedwing", "px4_fmu-v5_multicopter", "px4_fmu-v5_rover", "px4_fmu-v5_rtps", "px4_fmu-v5_stackcheck",
+                     "intel_aerofc-v1_default", "auav_x21_default", "av_x-v1_default", "bitcraze_crazyflie_default", "airmind_mindpx-v2_default",
+                     "nxp_fmuk66-v3_default", "omnibus_f4sd_default"],
+            image: docker_images.nuttx,
+            archive: true
+          ]
+
+          def nuttx_builds_other = [
+            target: ["px4_cannode-v1_default", "px4_esc-v1_default", "thiemar_s2740vc-v1_default"],
+            image: docker_images.nuttx,
+            archive: false
+          ]
+
+          def rpi_builds = [
+            target: ["emlid_navio2_cross", "parrot_bebop_default"],
+            image: docker_images.rpi,
+            archive: false
+          ]
+
+          def snapdragon_builds = [
+            target: ["atlflight_eagle_qurt-default", "atlflight_eagle_default"],
+            image: docker_images.snapdragon,
+            archive: false
+          ]
+
+          def docker_builds = [
+            armhf_builds, base_builds, nuttx_builds_archive, nuttx_builds_other, rpi_builds, snapdragon_builds
+          ]
+
+          for (def build_type = 0; build_type < docker_builds.size(); build_type++) {
+            for (def build_target = 0; build_target < docker_builds[build_type].target.size(); build_target++) {
+              build_nodes.put(docker_builds[build_type].target[build_target],
+                createBuildNode(docker_builds[build_type].archive, docker_builds[build_type].image, docker_builds[build_type].target[build_target])
+                )
+            }
+          }
+
+        parallel build_nodes
+
+        } // script
+      } // steps
+    } // stage Build
+
+    // TODO: actually upload artifacts to S3
+    // stage('S3 Upload') {
+    //   agent {
+    //     docker { image 'px4io/px4-dev-base-bionic:2019-03-08' }
+    //   }
+    //   options {
+    //         skipDefaultCheckout()
+    //   }
+    //   when {
+    //     anyOf {
+    //       branch 'master'
+    //       branch 'beta'
+    //       branch 'stable'
+    //       branch 'pr-jenkins' // for testing
+    //     }
+    //   }
+    //   steps {
+    //     sh 'echo "uploading to S3"'
+    //   }
+    // }
+
+  } // stages
+  environment {
+    CCACHE_DIR = '/tmp/ccache'
+    CI = true
+  }
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '2', artifactDaysToKeepStr: '14'))
+    timeout(time: 60, unit: 'MINUTES')
+  }
+}
+
+def createBuildNode(Boolean archive, String docker_image, String target) {
+  return {
+
+    // TODO: fix the snapdragon image
+    bypass_entrypoint = ''
+    if (docker_image == 'lorenzmeier/px4-dev-snapdragon:2018-09-12') {
+      bypass_entrypoint = ' --entrypoint=""'
+    }
+
+    node {
+      docker.withRegistry('https://registry.hub.docker.com', 'docker_hub_dagar') {
+        docker.image(docker_image).inside('-e CCACHE_BASEDIR=${WORKSPACE} -v ${CCACHE_DIR}:${CCACHE_DIR}:rw' + bypass_entrypoint) {
+          stage(target) {
+            try {
+              sh('export')
+              checkout(scm)
+              sh('make distclean')
+              sh('git fetch --tags')
+              sh('ccache -z')
+              sh('make ' + target)
+              sh('ccache -s')
+              sh('make sizes')
+              if (archive) {
+                archiveArtifacts(allowEmptyArchive: false, artifacts: 'build/*/*.px4, build/*/*.elf, build/*/*.bin', fingerprint: true, onlyIfSuccessful: true)
+              }
+              sh('make ' + target + ' package')
+              archiveArtifacts(allowEmptyArchive: true, artifacts: 'build/*/*.tar.bz2', fingerprint: true, onlyIfSuccessful: true)
+              archiveArtifacts(allowEmptyArchive: true, artifacts: 'build/*/*.deb', fingerprint: true, onlyIfSuccessful: true)
+            }
+            catch (exc) {
+              throw (exc)
+            }
+            finally {
+              sh('make distclean')
+            }
+          }
+        }
+      }
+    }
+  }
+}

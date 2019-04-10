@@ -1,4 +1,4 @@
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 // 16 is max name length
 
@@ -425,30 +425,41 @@ PARAM_DEFINE_FLOAT(LPE_LAND_Z, 0.03f);
 PARAM_DEFINE_FLOAT(LPE_LAND_VXY, 0.05f);
 
 /**
+ * Minimum landing target standard covariance, uses reported covariance if greater.
+ *
+ * @group Local Position Estimator
+ * @unit m^2
+ * @min 0.0
+ * @max 10
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(LPE_LT_COV, 0.0001f);
+
+/**
  * Integer bitmask controlling data fusion
  *
  * Set bits in the following positions to enable:
  * 0 : Set to true to fuse GPS data if available, also requires GPS for altitude init
  * 1 : Set to true to fuse optical flow data if available
  * 2 : Set to true to fuse vision position
- * 3 : Set to true to fuse vision yaw
+ * 3 : Set to true to enable landing target
  * 4 : Set to true to fuse land detector
  * 5 : Set to true to publish AGL as local position down component
  * 6 : Set to true to enable flow gyro compensation
  * 7 : Set to true to enable baro fusion
  *
- * default (145 - GPS only)
+ * default (145 - GPS, baro, land detector)
  *
  * @group Local Position Estimator
  * @min 0
  * @max 255
- * @bit 0 fuse GPS, requires GPS for alt. init
- * @bit 1 fuse optical flow
- * @bit 2 fuse vision position
- * @bit 3 fuse vision yaw
- * @bit 4 fuse land detector
- * @bit 5 pub agl as lpos down
- * @bit 6 flow gyro compensation
- * @bit 7 fuse baro
+ * @bit 0  fuse GPS, requires GPS for alt. init
+ * @bit 1  fuse optical flow
+ * @bit 2  fuse vision position
+ * @bit 3  fuse landing target
+ * @bit 4  fuse land detector
+ * @bit 5  pub agl as lpos down
+ * @bit 6  flow gyro compensation
+ * @bit 7  fuse baro
  */
 PARAM_DEFINE_INT32(LPE_FUSION, 145);

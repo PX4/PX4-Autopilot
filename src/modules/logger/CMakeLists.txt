@@ -37,13 +37,14 @@ px4_add_module(
 	PRIORITY "SCHED_PRIORITY_MAX-30"
 	STACK_MAIN 2200
 	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		logger.cpp
 		log_writer.cpp
 		log_writer_file.cpp
 		log_writer_mavlink.cpp
+		util.cpp
+		watchdog.cpp
 	DEPENDS
-		platforms__common
-		modules__uORB
+		version
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

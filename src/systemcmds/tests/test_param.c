@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,23 +33,17 @@
 
 /**
  * @file test_param.c
- *
  * Tests related to the parameter system.
  */
 
 #include <px4_defines.h>
 #include <stdio.h>
 #include "systemlib/err.h"
-#include "systemlib/param/param.h"
+#include <parameters/param.h>
 #include "tests_main.h"
 
 #define PARAM_MAGIC1 12345678
 #define PARAM_MAGIC2 0xa5a5a5a5
-
-/**
- * @group Testing
- */
-PARAM_DEFINE_INT32(TEST_PARAMS, 12345678);
 
 int
 test_param(int argc, char *argv[])

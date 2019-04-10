@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# av_x1-v1 specific board init
+#------------------------------------------------------------------------------
+
+
+if [ $AUTOCNF = yes ]
+then
+
+fi
+
+set LOGGER_BUF 64
+set MIXER_AUX none

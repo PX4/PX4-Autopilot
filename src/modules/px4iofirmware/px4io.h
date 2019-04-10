@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,11 @@
  * @file px4io.h
  *
  * General defines and structures for the PX4IO module firmware.
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
  */
+
+#pragma once
 
 #include <px4_config.h>
 
@@ -46,7 +50,7 @@
 
 #include "protocol.h"
 
-#include <systemlib/pwm_limit/pwm_limit.h>
+#include <pwm_limit/pwm_limit.h>
 
 /*
  hotfix: we are critically short of memory in px4io and this is the
@@ -115,9 +119,6 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 #define r_setup_pwm_rates	r_page_setup[PX4IO_P_SETUP_PWM_RATES]
 #define r_setup_pwm_defaultrate	r_page_setup[PX4IO_P_SETUP_PWM_DEFAULTRATE]
 #define r_setup_pwm_altrate	r_page_setup[PX4IO_P_SETUP_PWM_ALTRATE]
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
-#define r_setup_relays		r_page_setup[PX4IO_P_SETUP_RELAYS]
-#endif
 #define r_setup_rc_thr_failsafe	r_page_setup[PX4IO_P_SETUP_RC_THR_FAILSAFE_US]
 
 #define r_setup_pwm_reverse	r_page_setup[PX4IO_P_SETUP_PWM_REVERSE]
@@ -131,6 +132,7 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 #define r_setup_sbus_rate	r_page_setup[PX4IO_P_SETUP_SBUS_RATE]
 #define r_setup_thr_fac		r_page_setup[PX4IO_P_SETUP_THR_MDL_FAC]
 #define r_setup_slew_max	r_page_setup[PX4IO_P_SETUP_MOTOR_SLEW_MAX]
+#define r_setup_airmode		r_page_setup[PX4IO_P_SETUP_AIRMODE]
 
 #define r_control_values	(&r_page_controls[0])
 
@@ -152,6 +154,7 @@ struct sys_state_s {
 extern struct sys_state_s system_state;
 extern float dt;
 extern bool update_mc_thrust_param;
+extern bool update_trims;
 
 /*
  * PWM limit structure
@@ -166,25 +169,6 @@ extern pwm_limit_t pwm_limit;
 #define LED_SAFETY(_s)			px4_arch_gpiowrite(GPIO_LED3, !(_s))
 #define LED_RING(_s)			px4_arch_gpiowrite(GPIO_LED4, (_s))
 
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V1
-
-# define PX4IO_RELAY_CHANNELS		4
-# define POWER_SERVO(_s)		px4_arch_gpiowrite(GPIO_SERVO_PWR_EN, (_s))
-# define POWER_ACC1(_s)			px4_arch_gpiowrite(GPIO_ACC1_PWR_EN, (_s))
-# define POWER_ACC2(_s)			px4_arch_gpiowrite(GPIO_ACC2_PWR_EN, (_s))
-# define POWER_RELAY1(_s)		px4_arch_gpiowrite(GPIO_RELAY1_EN, (_s))
-# define POWER_RELAY2(_s)		px4_arch_gpiowrite(GPIO_RELAY2_EN, (_s))
-
-# define OVERCURRENT_ACC		(!px4_arch_gpioread(GPIO_ACC_OC_DETECT))
-# define OVERCURRENT_SERVO		(!px4_arch_gpioread(GPIO_SERVO_OC_DETECT))
-
-# define PX4IO_ADC_CHANNEL_COUNT	2
-# define ADC_VBATT			4
-# define ADC_IN5			5
-
-#endif
-
-#ifdef CONFIG_ARCH_BOARD_PX4IO_V2
 
 # define PX4IO_RELAY_CHANNELS		0
 # define ENABLE_SBUS_OUT(_s)		px4_arch_gpiowrite(GPIO_SBUS_OENABLE, !(_s))
@@ -194,8 +178,6 @@ extern pwm_limit_t pwm_limit;
 # define PX4IO_ADC_CHANNEL_COUNT	2
 # define ADC_VSERVO			4
 # define ADC_RSSI			5
-
-#endif
 
 #define BUTTON_SAFETY		px4_arch_gpioread(GPIO_BTN_SAFETY)
 
@@ -213,6 +195,7 @@ extern pwm_limit_t pwm_limit;
  * Mixer
  */
 extern void	mixer_tick(void);
+extern int	mixer_handle_text_create_mixer(void);
 extern int	mixer_handle_text(const void *buffer, size_t length);
 /* Set the failsafe values of all mixed channels (based on zero throttle, controls centered) */
 extern void	mixer_set_failsafe(void);

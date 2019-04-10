@@ -1,4 +1,5 @@
 /* definitions of builtin command list - automatically generated, do not edit */
+#include "px4_time.h"
 #include "px4_posix.h"
 #include "px4_log.h"
 
@@ -9,6 +10,8 @@
 #include <string>
 
 #include <cstdlib>
+
+#define MODULE_NAME "px4"
 
 extern "C" {
 
@@ -48,7 +51,7 @@ void list_builtins(apps_map_type &apps)
 int shutdown_main(int argc, char *argv[])
 {
 	printf("Shutting down\n");
-	exit(0);
+	system_exit(0);
 }
 
 int list_tasks_main(int argc, char *argv[])
@@ -84,7 +87,7 @@ int sleep_main(int argc, char *argv[])
 
         unsigned long usecs = 1000000UL * atol(argv[1]);
         printf("Sleeping for %s s; (%lu us).\n", argv[1], usecs);
-        usleep(usecs);
+        px4_usleep(usecs);
         return 0;
 }
 
@@ -109,7 +112,7 @@ int wait_for_topic(int argc, char *argv[])
 
 	while (orb_exists(&meta, 0) != 0 && (timeout && (elapsed < timeout)))
 	{
-		sleep(1);
+		px4_sleep(1);
 		elapsed += 1;
 	}
 

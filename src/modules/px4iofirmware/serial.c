@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012,2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,7 +51,7 @@
 #include <up_internal.h>
 #include <up_arch.h>
 #include <stm32.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 //#define DEBUG
 #include "px4io.h"
@@ -71,7 +71,7 @@ static void		rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
 static DMA_HANDLE	tx_dma;
 static DMA_HANDLE	rx_dma;
 
-static int		serial_interrupt(int irq, void *context);
+static int		serial_interrupt(int irq, void *context, FAR void *arg);
 static void		dma_reset(void);
 
 static struct IOPacket	dma_packet;
@@ -123,7 +123,7 @@ interface_init(void)
 	rBRR = (mantissa << USART_BRR_MANT_SHIFT) | (fraction << USART_BRR_FRAC_SHIFT);
 
 	/* connect our interrupt */
-	irq_attach(PX4FMU_SERIAL_VECTOR, serial_interrupt);
+	irq_attach(PX4FMU_SERIAL_VECTOR, serial_interrupt, NULL);
 	up_enable_irq(PX4FMU_SERIAL_VECTOR);
 
 	/* enable UART and error/idle interrupts */
@@ -255,7 +255,7 @@ rx_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 }
 
 static int
-serial_interrupt(int irq, void *context)
+serial_interrupt(int irq, void *context, FAR void *arg)
 {
 	static bool abort_on_idle = false;
 

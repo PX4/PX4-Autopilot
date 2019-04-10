@@ -1,3 +1,8 @@
+#!/bin/sh
+# PX4 commands need the 'px4-' prefix in bash.
+# (px4-alias.sh is expected to be in the PATH)
+. px4-alias.sh
+
 uorb start
 
 param load
@@ -10,28 +15,14 @@ tone_alarm start
 gyrosim start
 accelsim start
 barosim start
-adcsim start
 gpssim start
 measairspeedsim start
-pwm_out_sim mode_pwm
-
-help
+pwm_out_sim start
 
 ver all
-
-list_tasks
-list_devices
-list_topics
-list_files
-
-mavlink start -u 14556 -r 2000000
-mavlink boot_complete
 
 tests @test_name@
 
 dataman status
-dataman stop
-
-perf
 
 shutdown

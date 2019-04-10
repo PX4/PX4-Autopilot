@@ -1,0 +1,95 @@
+#!/bin/sh
+# PX4 commands need the 'px4-' prefix in bash.
+# (px4-alias.sh is expected to be in the PATH)
+. px4-alias.sh
+
+uorb start
+
+param load
+
+param set BAT_N_CELLS 3
+param set MAV_TYPE 22
+param set VT_TYPE 2
+param set SYS_RESTART_TYPE 0
+
+dataman start
+
+simulator start -t
+tone_alarm start
+gyrosim start
+accelsim start
+barosim start
+gpssim start
+measairspeedsim start
+pwm_out_sim start
+
+sensors start
+commander start
+land_detector start vtol
+navigator start
+ekf2 start
+vtol_att_control start
+mc_pos_control start
+mc_att_control start
+fw_pos_control_l1 start
+fw_att_control start
+wind_estimator start
+
+#mixer load /dev/pwm_output0 ROMFS/sitl/mixers/standard_vtol_sitl.main.mix
+
+ver all
+
+logger start -e -t
+
+mavlink boot_complete
+
+sleep 2
+
+echo "Boot complete"
+
+# status of all running modules
+echo "Checking status of all modules"
+logger status
+pwm_out_sim status
+sensors status
+commander status
+land_detector status
+navigator status
+ekf2 status
+mc_pos_control status
+mc_att_control status
+fw_pos_control_l1 status
+fw_att_control status
+wind_estimator status
+dataman status
+uorb status
+
+# stop all
+echo "Stopping all modules"
+logger stop
+pwm_out_sim stop
+mc_att_control stop
+fw_att_control stop
+mc_pos_control stop
+fw_pos_control_l1 stop
+navigator stop
+commander stop
+land_detector stop
+ekf2 stop
+wind_estimator stop
+sensors stop
+
+sleep 2
+
+simulator stop
+tone_alarm stop
+gyrosim stop
+#accelsim stop
+#barosim stop
+gpssim stop
+measairspeedsim stop
+
+dataman stop
+#uorb stop
+
+shutdown

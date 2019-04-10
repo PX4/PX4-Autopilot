@@ -67,8 +67,8 @@ public:
 		Block(parent, name),
 		_state(0.0f / 0.0f /* initialize to invalid val, force into is_finite() check on first call */),
 		_fCut(this, "") // only one parameter, no need to name
-	{};
-	virtual ~BlockLowPass() {};
+	{}
+	virtual ~BlockLowPass() {}
 	float update(float input);
 // accessors
 	float getState() { return _state; }

@@ -70,8 +70,8 @@ public:
 		_kP(this, "P"),
 		_kI(this, "I"),
 		_kD(this, "D")
-	{};
-	virtual ~BlockPID() {};
+	{}
+	virtual ~BlockPID() {}
 	float update(float input)
 	{
 		return getKP() * input +

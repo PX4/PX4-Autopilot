@@ -57,6 +57,7 @@ class XMLOutput():
                             attribstrs = attrib.split(":")
                             xml_field.attrib[attribstrs[0].strip()] = attribstrs[1].strip()
                         xml_field.text = valstrs[0]
+
         indent(xml_parameters)
         self.xml_document = ET.ElementTree(xml_parameters)
 

@@ -42,6 +42,6 @@ px4_add_module(
 		tailsitter.cpp
 		standard.cpp
 	DEPENDS
-		platforms__common
+		pwm_limit
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

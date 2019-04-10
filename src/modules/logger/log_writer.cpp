@@ -95,45 +95,45 @@ LogWriter::~LogWriter()
 	}
 }
 
-bool LogWriter::is_started() const
+bool LogWriter::is_started(LogType type) const
 {
 	bool ret = false;
 
 	if (_log_writer_file) {
-		ret = _log_writer_file->is_started();
+		ret = _log_writer_file->is_started(type);
 	}
 
-	if (_log_writer_mavlink) {
+	if (_log_writer_mavlink && type == LogType::Full) {
 		ret = ret || _log_writer_mavlink->is_started();
 	}
 
 	return ret;
 }
 
-bool LogWriter::is_started(Backend query_backend) const
+bool LogWriter::is_started(LogType type, Backend query_backend) const
 {
 	if (query_backend == BackendFile && _log_writer_file) {
-		return _log_writer_file->is_started();
+		return _log_writer_file->is_started(type);
 	}
 
-	if (query_backend == BackendMavlink && _log_writer_mavlink) {
+	if (query_backend == BackendMavlink && _log_writer_mavlink && type == LogType::Full) {
 		return _log_writer_mavlink->is_started();
 	}
 
 	return false;
 }
 
-void LogWriter::start_log_file(const char *filename)
+void LogWriter::start_log_file(LogType type, const char *filename)
 {
 	if (_log_writer_file) {
-		_log_writer_file->start_log(filename);
+		_log_writer_file->start_log(type, filename);
 	}
 }
 
-void LogWriter::stop_log_file()
+void LogWriter::stop_log_file(LogType type)
 {
 	if (_log_writer_file) {
-		_log_writer_file->stop_log();
+		_log_writer_file->stop_log(type);
 	}
 }
 
@@ -158,15 +158,15 @@ void LogWriter::thread_stop()
 	}
 }
 
-int LogWriter::write_message(void *ptr, size_t size, uint64_t dropout_start)
+int LogWriter::write_message(LogType type, void *ptr, size_t size, uint64_t dropout_start)
 {
 	int ret_file = 0, ret_mavlink = 0;
 
 	if (_log_writer_file_for_write) {
-		ret_file = _log_writer_file_for_write->write_message(ptr, size, dropout_start);
+		ret_file = _log_writer_file_for_write->write_message(type, ptr, size, dropout_start);
 	}
 
-	if (_log_writer_mavlink_for_write) {
+	if (_log_writer_mavlink_for_write && type == LogType::Full) {
 		ret_mavlink = _log_writer_mavlink_for_write->write_message(ptr, size);
 	}
 

@@ -39,6 +39,7 @@
 #include <dirent.h>
 #include <queue.h>
 
+#include <px4_defines.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 
@@ -70,9 +71,10 @@ public:
 	///	@param worker_data Data to pass to worker
 	void set_unittest_worker(ReceiveMessageFunc_t rcvMsgFunc, void *worker_data);
 
-	/// @brief This is the payload which is in mavlink_file_transfer_protocol_t.payload. We pad the structure ourselves to
-	/// 32 bit alignment to avoid usage of any pack pragmas.
-	struct PayloadHeader {
+	/// @brief This is the payload which is in mavlink_file_transfer_protocol_t.payload.
+	/// This needs to be packed, because it's typecasted from mavlink_file_transfer_protocol_t.payload, which starts
+	/// at a 3 byte offset, causing an unaligned access to seq_number and offset
+	struct __attribute__((__packed__)) PayloadHeader {
 		uint16_t	seq_number;	///< sequence number for message
 		uint8_t		session;	///< Session id for read and write commands
 		uint8_t		opcode;		///< Command opcode
@@ -116,7 +118,9 @@ public:
 		kErrInvalidSession,		///< Session is not currently open
 		kErrNoSessionsAvailable,	///< All available Sessions in use
 		kErrEOF,			///< Offset past end of file for List and Read commands
-		kErrUnknownCommand		///< Unknown command opcode
+		kErrUnknownCommand,		///< Unknown command opcode
+		kErrFailFileExists,		///< File exists already
+		kErrFailFileProtected		///< File is write protected
 	};
 
 	unsigned get_size();
@@ -146,6 +150,12 @@ private:
 	uint8_t _getServerComponentId(void);
 	uint8_t _getServerChannel(void);
 
+	/**
+	 * make sure that the working buffers _work_buffer* are allocated
+	 * @return true if buffers exist, false if allocation failed
+	 */
+	bool _ensure_buffers_exist();
+
 	static const char	kDirentFile = 'F';	///< Identifies File returned from List command
 	static const char	kDirentDir = 'D';	///< Identifies Directory returned from List command
 	static const char	kDirentSkip = 'S';	///< Identifies Skipped entry from List command
@@ -162,10 +172,10 @@ private:
 		uint8_t		stream_target_system_id;
 		unsigned	stream_chunk_transmitted;
 	};
-	struct SessionInfo _session_info;	///< Session info, fd=-1 for no active session
+	struct SessionInfo _session_info {};	///< Session info, fd=-1 for no active session
 
-	ReceiveMessageFunc_t	_utRcvMsgFunc;	///< Unit test override for mavlink message sending
-	void			*_worker_data;	///< Additional parameter to _utRcvMsgFunc;
+	ReceiveMessageFunc_t	_utRcvMsgFunc{};	///< Unit test override for mavlink message sending
+	void			*_worker_data{nullptr};	///< Additional parameter to _utRcvMsgFunc;
 
 	Mavlink *_mavlink;
 
@@ -173,6 +183,25 @@ private:
 	MavlinkFTP(const MavlinkFTP &);
 	MavlinkFTP operator=(const MavlinkFTP &);
 
+	/* work buffers: they're allocated as soon as we get the first request (lazy, since FTP is rarely used) */
+	char *_work_buffer1{nullptr};
+	static constexpr int _work_buffer1_len = kMaxDataLength;
+	char *_work_buffer2{nullptr};
+	static constexpr int _work_buffer2_len = 256;
+	hrt_abstime _last_work_buffer_access{0}; ///< timestamp when the buffers were last accessed
+
+	// prepend a root directory to each file/dir access to avoid enumerating the full FS tree (e.g. on Linux).
+	// Note that requests can still fall outside of the root dir by using ../..
+#ifdef MAVLINK_FTP_UNIT_TEST
+	static constexpr const char _root_dir[] = "";
+#else
+	static constexpr const char _root_dir[] = PX4_ROOTFSDIR;
+#endif
+	static constexpr const int _root_dir_len = sizeof(_root_dir) - 1;
+
+	bool _last_reply_valid = false;
+	uint8_t _last_reply[MAVLINK_MSG_ID_FILE_TRANSFER_PROTOCOL_LEN - MAVLINK_MSG_FILE_TRANSFER_PROTOCOL_FIELD_PAYLOAD_LEN
+								      + sizeof(PayloadHeader) + sizeof(uint32_t)];
 
 	// Mavlink test needs to be able to call send
 	friend class MavlinkFtpTest;

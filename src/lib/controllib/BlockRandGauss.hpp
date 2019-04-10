@@ -68,8 +68,8 @@ public:
 		// seed should be initialized somewhere
 		// in main program for all calls to rand
 		// XXX currently in nuttx if you seed to 0, rand breaks
-	};
-	virtual ~BlockRandGauss() {};
+	}
+	virtual ~BlockRandGauss() {}
 	float update()
 	{
 		static float V1, V2, S;
