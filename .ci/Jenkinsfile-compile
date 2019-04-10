@@ -42,6 +42,13 @@ pipeline {
             archive: true
           ]
 
+          def nuttx_builds_noninja = [
+            target: [
+                     "NO_NINJA_BUILD=1 px4_fmu-v2_default", "NO_NINJA_BUILD=1 px4_fmu-v5_default"],
+            image: docker_images.nuttx,
+            archive: false
+          ]
+
           def nuttx_builds_other = [
             target: ["px4_cannode-v1_default", "px4_esc-v1_default", "thiemar_s2740vc-v1_default"],
             image: docker_images.nuttx,
@@ -61,7 +68,7 @@ pipeline {
           ]
 
           def docker_builds = [
-            armhf_builds, base_builds, nuttx_builds_archive, nuttx_builds_other, rpi_builds, snapdragon_builds
+            armhf_builds, base_builds, nuttx_builds_archive, nuttx_builds_noninja, nuttx_builds_other, rpi_builds, snapdragon_builds
           ]
 
           for (def build_type = 0; build_type < docker_builds.size(); build_type++) {
