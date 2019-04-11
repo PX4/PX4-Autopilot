@@ -315,48 +315,45 @@ ACCELSIM::~ACCELSIM()
 int
 ACCELSIM::init()
 {
-	int ret = -1;
-
-	mag_report mrp = {};
-
 	/* do SIM init first */
 	if (VirtDevObj::init() != 0) {
 		PX4_WARN("SIM init failed");
-		goto out;
+		return PX4_ERROR;
 	}
 
 	/* allocate basic report buffers */
 	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
 
 	if (_accel_reports == nullptr) {
-		goto out;
+		return PX4_ERROR;
 	}
 
-	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
+	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_mag_s));
 
 	if (_mag_reports == nullptr) {
-		goto out;
+		return PX4_ERROR;
 	}
 
 	/* do init for the mag device node */
-	ret = _mag->init();
+	int ret = _mag->init();
 
 	if (ret != OK) {
 		PX4_WARN("MAG init failed");
-		goto out;
+		return PX4_ERROR;
 	}
 
 	/* fill report structures */
 	_measure();
 
-	/* advertise sensor topic, measure manually to initialize valid report */
-	_mag_reports->get(&mrp);
+	mag_report mag_report = {};
+
+	/* advertise mag sensor topic, measure manually to initialize valid report */
+	_mag_reports->get(&mag_report);
 
 	/* measurement will have generated a report, publish */
-	_mag->_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp, &_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
+	orb_publish_auto(ORB_ID(sensor_mag), &_mag->_mag_topic, &mag_report, &_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
 
-out:
-	return ret;
+	return PX4_OK;
 }
 
 int
