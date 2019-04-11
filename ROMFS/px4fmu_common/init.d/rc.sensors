@@ -105,9 +105,6 @@ then
 	teraranger start -a
 fi
 
-# ICM20948 as external magnetometer on I2C (e.g. Here GPS)
-icm20948 -X -M -R 6 start
-
 ###############################################################################
 #                            End Optional drivers                             #
 ###############################################################################

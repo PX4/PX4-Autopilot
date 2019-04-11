@@ -29,7 +29,6 @@ px4_add_board(
 		imu/adis16448
 		#imu # all available imu drivers
 		imu/bmi055
-		imu/icm20948
 		imu/mpu6000
 		imu/mpu9250
 		irlock

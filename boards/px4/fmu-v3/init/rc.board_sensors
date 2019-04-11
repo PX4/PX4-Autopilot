@@ -59,6 +59,9 @@ then
 	# sensor heating is available, but we disable it for now
 	param set SENS_EN_THERMAL 0
 
+	# ICM20948 as external magnetometer on I2C (e.g. Here GPS)
+	icm20948 -X -M -R 6 start
+
 	# external L3GD20H is rotated 180 degrees yaw
 	l3gd20 -X -R 4 start
 
