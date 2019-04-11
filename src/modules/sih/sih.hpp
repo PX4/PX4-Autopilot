@@ -146,13 +146,13 @@ private:
 
 	px4_sem_t       _data_semaphore;
 
-	int32_t     _counter = 0;
 	hrt_call    _timer_call;
 	hrt_abstime _last_run;
 	hrt_abstime _gps_time;
 	hrt_abstime _serial_time;
 	hrt_abstime _now;
 	float       _dt;            // sampling time [s]
+	bool        _grounded{true};// whether the vehicle is on the ground
 
 	matrix::Vector3f    _T_B;           // thrust force in body frame [N]
 	matrix::Vector3f    _Fa_I;          // aerodynamic force in inertial frame [N]
