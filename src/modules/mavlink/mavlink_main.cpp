@@ -766,7 +766,12 @@ Mavlink::set_hil_enabled(bool hil_enabled)
 		_hil_enabled = true;
 		ret = configure_stream("HIL_ACTUATOR_CONTROLS", 200.0f);
 
-		configure_stream("GROUND_TRUTH", 200.0f); 	// HIL_STATE_QUATERNION to display the SIH
+		if (_param_sys_hitl.get() == 2) {		// Simulation in Hardware enabled ?
+			configure_stream("GROUND_TRUTH", 25.0f); 	// HIL_STATE_QUATERNION to display the SIH
+
+		} else {
+			configure_stream("GROUND_TRUTH", 0.0f);
+		}
 	}
 
 	/* disable HIL */
