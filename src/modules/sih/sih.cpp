@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -123,7 +123,7 @@ int Sih::task_spawn(int argc, char *argv[])
 {
 	_task_id = px4_task_spawn_cmd("sih",
 				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_DEFAULT,
+				      SCHED_PRIORITY_MAX, //SCHED_PRIORITY_DEFAULT
 				      4096,
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
@@ -188,106 +188,102 @@ Sih::Sih(int example_param, bool example_flag)
 
 void Sih::run()
 {
-	
-	// to subscribe to (read) the actuators_out pwm
-	int actuator_out_sub = orb_subscribe(ORB_ID(actuator_outputs));
 
-	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	// to subscribe to (read) the actuators_out pwm
+	_actuator_out_sub = orb_subscribe(ORB_ID(actuator_outputs));
 
 	// initialize parameters
-	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
-	parameters_update_poll(parameter_update_sub);
-
+	_parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
+	parameters_update_poll();
 
 	init_variables();
  	init_sensors();	
 	// on the AUAVX21: "/dev/ttyS2/" is TELEM2 UART3 --- "/dev/ttyS5/" is Debug UART7 --- "/dev/ttyS4/" is OSD UART8
-	int serial_fd=init_serial_port(); 	 	// init and open the serial port
+	// int serial_fd=init_serial_port(); 	 	// init and open the serial port
 
 	const hrt_abstime task_start = hrt_absolute_time();
-	hrt_abstime last_run = task_start;
-	hrt_abstime gps_time = task_start;
-	hrt_abstime serial_time = task_start;
-	hrt_abstime now;
+	_last_run = task_start;
+	_gps_time = task_start;
+	_serial_time = task_start;
 
-	while (!should_exit() && is_HIL_running(vehicle_status_sub)) {
+	// hrt_call_every(&_timer_call, LOOP_INTERVAL, LOOP_INTERVAL, timer_callback, this);
 
-		now = hrt_absolute_time();
-		_dt = (now - last_run) * 1e-6f;
-		last_run = now;
+	while (!should_exit())
+	{
+		inner_loop();
 		
-		read_motors(actuator_out_sub);
-
-		generate_force_and_torques();
-
-		equations_of_motion();
-
-		reconstruct_sensors_signals();
-
-		send_IMU(now);
-
-		if (now - gps_time > 50000) 	// gps published at 20Hz
-		{
-			gps_time=now;
-			send_gps(gps_time);				
-		}		
-		
-		// send uart message every 40 ms
-		if (now - serial_time > 40000)
-		{
-			serial_time=now;
-
-			publish_sih(); 	// publish _sih message for debug purpose
-
-			send_serial_msg(serial_fd, (int64_t)(now - task_start)/1000); 	
-
-			parameters_update_poll(parameter_update_sub); 	// update the parameters if needed
-		}
-		// else if (loop_count==5)
-		// {
-		// 	tcflush(serial_fd, TCOFLUSH); 	// flush output data
-		// 	tcdrain(serial_fd);
-		// }
-
-		usleep(1000); 	// sleeping time us
-
+		usleep(1000);
 	}
 
-	orb_unsubscribe(actuator_out_sub);
-	orb_unsubscribe(parameter_update_sub); 
-	orb_unsubscribe(vehicle_status_sub);
-	close(serial_fd);
-	
+	// hrt_cancel(&_timer_call); 	// close the periodic timer interruption
+	orb_unsubscribe(_actuator_out_sub);
+	orb_unsubscribe(_parameter_update_sub);
+	// close(serial_fd);
+
 }
 
-void Sih::parameters_update_poll(int parameter_update_sub)
+// timer_callback() is used as a trampoline to inner_loop()
+void Sih::timer_callback(void *arg)
+{
+	(reinterpret_cast<Sih *>(arg))->inner_loop();
+}
+
+// This is the main execution called periodically by the timer callback
+void Sih::inner_loop()
+{
+	_now = hrt_absolute_time();
+	_dt = (_now - _last_run) * 1e-6f;
+	_last_run = _now;
+
+	read_motors();
+
+	generate_force_and_torques();
+
+	equations_of_motion();
+
+	reconstruct_sensors_signals();
+
+	send_IMU();
+
+	if (_now - _gps_time >= 50000) 	// gps published at 20Hz
+	{
+		_gps_time=_now;
+		send_gps();
+	}
+
+	// send uart message every 40 ms
+	if (_now - _serial_time >= 40000)
+	{
+		_serial_time=_now;
+
+		publish_sih(); 	// publish _sih message for debug purpose
+
+		// send_serial_msg(serial_fd, (int64_t)(now - task_start)/1000);
+
+		parameters_update_poll(); 	// update the parameters if needed
+	}
+	// else if (loop_count==5)
+	// {
+	// 	tcflush(serial_fd, TCOFLUSH); 	// flush output data
+	// 	tcdrain(serial_fd);
+	// }
+
+	_sih.te_us=hrt_absolute_time()-_now; 	// execution time (without delay)
+
+}
+
+void Sih::parameters_update_poll()
 {
 	bool updated;
 	struct parameter_update_s param_upd;
 
-	orb_check(parameter_update_sub, &updated);
+	orb_check(_parameter_update_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(parameter_update), parameter_update_sub, &param_upd);
+		orb_copy(ORB_ID(parameter_update), _parameter_update_sub, &param_upd);
 		updateParams();
-		parameters_updated();		
+		parameters_updated();
 	}
-}
-
-uint8_t Sih::is_HIL_running(int vehicle_status_sub)
-{
-	bool updated;
-	struct vehicle_status_s vehicle_status;
-	static uint8_t running=false;
-
-	orb_check(vehicle_status_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
-		running=vehicle_status.hil_state;
-	}	
-
-	return running;
 }
 
 // store the parameters in a more convenient form
@@ -395,16 +391,16 @@ int Sih::init_serial_port()
 }
 
 // read the motor signals outputted from the mixer
-void Sih::read_motors(const int actuator_out_sub)
+void Sih::read_motors()
 {
 	struct actuator_outputs_s actuators_out {};
 
 	// read the actuator outputs
 	bool updated;
-	orb_check(actuator_out_sub, &updated);
+	orb_check(_actuator_out_sub, &updated);
 
 	if (updated) {
-		orb_copy(ORB_ID(actuator_outputs), actuator_out_sub, &actuators_out);
+		orb_copy(ORB_ID(actuator_outputs), _actuator_out_sub, &actuators_out);
 		for (int i=0; i<NB_MOTORS; i++) 	// saturate the motor signals
 			_u[i]=constrain((actuators_out.output[i]-PWM_DEFAULT_MIN)/(PWM_DEFAULT_MAX-PWM_DEFAULT_MIN),0.0f, 1.0f);
 	}
@@ -482,9 +478,9 @@ void Sih::reconstruct_sensors_signals()
 	_gps_vel=_v_I+noiseGauss3f(0.06f,0.077f,0.158f);
 }
 
-void Sih::send_IMU(hrt_abstime now)
+void Sih::send_IMU()
 {
-	_sensor_accel.timestamp=now;
+	_sensor_accel.timestamp=_now;
 	_sensor_accel.x=_acc(0);
 	_sensor_accel.y=_acc(1);	
 	_sensor_accel.z=_acc(2);
@@ -494,7 +490,7 @@ void Sih::send_IMU(hrt_abstime now)
 		_sensor_accel_pub = orb_advertise(ORB_ID(sensor_accel), &_sensor_accel);
 	}
 
-	_sensor_gyro.timestamp=now;
+	_sensor_gyro.timestamp=_now;
 	_sensor_gyro.x=_gyro(0);
 	_sensor_gyro.y=_gyro(1);	
 	_sensor_gyro.z=_gyro(2);
@@ -504,7 +500,7 @@ void Sih::send_IMU(hrt_abstime now)
 		_sensor_gyro_pub = orb_advertise(ORB_ID(sensor_gyro), &_sensor_gyro);
 	}
 
-	_sensor_mag.timestamp=now;
+	_sensor_mag.timestamp=_now;
 	_sensor_mag.x=_mag(0);
 	_sensor_mag.y=_mag(1);
 	_sensor_mag.z=_mag(2);
@@ -514,7 +510,7 @@ void Sih::send_IMU(hrt_abstime now)
 		_sensor_mag_pub = orb_advertise(ORB_ID(sensor_mag), &_sensor_mag);
 	}
 
-	_sensor_baro.timestamp=now;
+	_sensor_baro.timestamp=_now;
 	_sensor_baro.pressure=_baro_p_mBar;
 	_sensor_baro.temperature=_baro_temp_c;
 	if (_sensor_baro_pub != nullptr) {
@@ -524,9 +520,9 @@ void Sih::send_IMU(hrt_abstime now)
 	}
 }
 
-void Sih::send_gps(hrt_abstime now)
+void Sih::send_gps()
 {
-	_vehicle_gps_pos.timestamp=now; 			
+	_vehicle_gps_pos.timestamp=_now;
 	_vehicle_gps_pos.lat=(int32_t)(_gps_lat*1e7); 			// Latitude in 1E-7 degrees	
 	_vehicle_gps_pos.lon=(int32_t)(_gps_lon*1e7);	// Longitude in 1E-7 degrees
 	_vehicle_gps_pos.alt=(int32_t)(_gps_alt*1000.0f); 	// Altitude in 1E-3 meters above MSL, (millimetres)
@@ -546,6 +542,35 @@ void Sih::send_gps(hrt_abstime now)
 
 void Sih::publish_sih()
 {
+
+
+	_gpos_gt.lat=_gps_lat_noiseless;
+	_gpos_gt.lon=_gps_lon_noiseless;
+	_gpos_gt.alt=_gps_alt_noiseless;
+	_gpos_gt.vel_n=_v_I(0);
+	_gpos_gt.vel_e=_v_I(1);
+	_gpos_gt.vel_d=_v_I(2);
+
+	if (_gpos_gt_sub != nullptr) {
+		orb_publish(ORB_ID(vehicle_global_position_groundtruth), _gpos_gt_sub, &_gpos_gt);
+	} else {
+		_gpos_gt_sub = orb_advertise(ORB_ID(vehicle_global_position_groundtruth), &_gpos_gt);
+	}
+
+	// publish attitude groundtruth
+	_att_gt.timestamp=hrt_absolute_time();
+	_att_gt.q[0]=_q(0);
+	_att_gt.q[1]=_q(1);
+	_att_gt.q[2]=_q(2);
+	_att_gt.q[3]=_q(3);
+	_att_gt.rollspeed=_w_B(0);
+	_att_gt.pitchspeed=_w_B(1);
+	_att_gt.yawspeed=_w_B(2);
+	if (_att_gt_sub != nullptr) {
+		orb_publish(ORB_ID(vehicle_attitude_groundtruth), _att_gt_sub, &_att_gt);
+	} else {
+		_att_gt_sub = orb_advertise(ORB_ID(vehicle_attitude_groundtruth), &_att_gt);
+	}
 
 	Eulerf Euler(_q);
 	_sih.timestamp=hrt_absolute_time();
