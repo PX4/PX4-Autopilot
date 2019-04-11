@@ -337,6 +337,12 @@ else
 		# disable GPS
 		param set GPS_1_CONFIG 0
 
+		# start the SIH if needed
+		if  param compare SYS_SIH 1
+		then
+			sih start
+		fi
+
 	else
 		#
 		# board sensors: rc.sensors
