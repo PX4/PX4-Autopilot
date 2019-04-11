@@ -128,10 +128,13 @@ bool FlightTaskAuto::_evaluateTriplets()
 	// Always update cruise speed since that can change without waypoint changes.
 	_mc_cruise_speed = _sub_triplet_setpoint->get().current.cruising_speed;
 
-	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < 0.0f) || (_mc_cruise_speed > _constraints.speed_xy)) {
-		// Use default limit.
+	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < 0.0f)) {
+		// If no speed is planned use the default cruise speed as limit
 		_mc_cruise_speed = _constraints.speed_xy;
 	}
+
+	// Ensure planned cruise speed is below the maximum such that the smooth trajectory doesn't get capped
+	_mc_cruise_speed = math::min(_mc_cruise_speed, _param_mpc_xy_vel_max.get());
 
 	// Temporary target variable where we save the local reprojection of the latest navigator current triplet.
 	Vector3f tmp_target;
