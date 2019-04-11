@@ -43,8 +43,6 @@
  */
 
  
- //test
- 
 #include "Commander.hpp"
 
 /* commander module headers */
