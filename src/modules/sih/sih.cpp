@@ -348,8 +348,6 @@ void Sih::generate_force_and_torques()
 // apply the equations of motion of a rigid body and integrate one step
 void Sih::equations_of_motion()
 {
-    static bool grounded=true;  // the simulation starts with the vehicle on the ground
-
     _C_IB=_q.to_dcm();  // body to inertial transformation
 
     // Equations of motion of a rigid body
@@ -359,26 +357,24 @@ void Sih::equations_of_motion()
     _w_B_dot=_Im1*(_Mt_B+_Ma_B-_w_B.cross(_I*_w_B));    // conservation of angular momentum
 
     // fake ground, avoid free fall
-    if(_p_I(2)>0.0f && (_v_I_dot(2)>0.0f || _v_I(2)>0.0f))
-    {
-        if (grounded==false)    // if we just hit the floor
+    if(_p_I(2)>0.0f && (_v_I_dot(2)>0.0f || _v_I(2)>0.0f)) {
+        if (!_grounded) {    // if we just hit the floor
             // for the accelerometer, compute the acceleration that will stop the vehicle in one time step
             _v_I_dot=-_v_I/_dt;
-        else
+        } else {
             _v_I_dot.setZero();
+        }
         _v_I.setZero();
         _w_B.setZero();
-        grounded=true;
-    }
-    else
-    {
+        _grounded = true;
+    } else {
         // integration: Euler forward
         _p_I = _p_I + _p_I_dot*_dt;
         _v_I = _v_I + _v_I_dot*_dt;
         _q = _q+_q_dot*_dt;     // as given in attitude_estimator_q_main.cpp
         _q.normalize();
         _w_B = _w_B + _w_B_dot*_dt;
-        grounded=false;
+        _grounded = false;
     }
 }
 
