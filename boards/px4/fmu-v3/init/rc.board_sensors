@@ -4,6 +4,7 @@
 #------------------------------------------------------------------------------
 
 # External I2C bus
+ak09916 -X start
 hmc5883 -C -T -X start
 lis3mdl -X start
 ist8310 -C start
