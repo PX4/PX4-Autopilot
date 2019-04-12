@@ -316,42 +316,43 @@ int
 ACCELSIM::init()
 {
 	/* do SIM init first */
-	if (VirtDevObj::init() != 0) {
+	int ret = VirtDevObj::init();
+
+	if (ret != PX4_OK) {
 		PX4_WARN("SIM init failed");
-		return PX4_ERROR;
+		return ret;
 	}
 
 	/* allocate basic report buffers */
 	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
 
 	if (_accel_reports == nullptr) {
-		return PX4_ERROR;
+		PX4_WARN("_accel_reports creation failed");
+		return -ENOMEM;
 	}
 
 	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_mag_s));
 
 	if (_mag_reports == nullptr) {
-		return PX4_ERROR;
+		PX4_WARN("_mag_reports creation failed");
+		return -ENOMEM;
 	}
 
 	/* do init for the mag device node */
-	int ret = _mag->init();
+	ret = _mag->init();
 
-	if (ret != OK) {
+	if (ret != PX4_OK) {
 		PX4_WARN("MAG init failed");
-		return PX4_ERROR;
+		return ret;
 	}
 
 	/* fill report structures */
 	_measure();
 
-	mag_report mag_report = {};
+	sensor_mag_s mag_report = {};
 
 	/* advertise mag sensor topic, measure manually to initialize valid report */
 	_mag_reports->get(&mag_report);
-
-	/* measurement will have generated a report, publish */
-	orb_publish_auto(ORB_ID(sensor_mag), &_mag->_mag_topic, &mag_report, &_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
 
 	return PX4_OK;
 }

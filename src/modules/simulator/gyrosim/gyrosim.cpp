@@ -357,15 +357,11 @@ GYROSIM::~GYROSIM()
 int
 GYROSIM::init()
 {
-	PX4_DEBUG("init");
-	int ret = 1;
-
-	ret = VirtDevObj::init();
+	int ret = VirtDevObj::init();
 
 	if (ret != 0) {
 		PX4_WARN("Base class init failed");
-		ret = 1;
-		goto out;
+		return ret;
 	}
 
 	/* allocate basic report buffers */
@@ -373,19 +369,19 @@ GYROSIM::init()
 
 	if (_accel_reports == nullptr) {
 		PX4_WARN("_accel_reports creation failed");
-		goto out;
+		return -ENOMEM;
 	}
 
 	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_gyro_s));
 
 	if (_gyro_reports == nullptr) {
 		PX4_WARN("_gyro_reports creation failed");
-		goto out;
+		return -ENOMEM;
 	}
 
 	if (reset() != OK) {
 		PX4_WARN("reset failed");
-		goto out;
+		return PX4_ERROR;
 	}
 
 	/* Initialize offsets and scales */
@@ -422,8 +418,7 @@ GYROSIM::init()
 	// Do not call _gyro->start()  because polling is done in accel
 	_measure();
 
-out:
-	return ret;
+	return PX4_OK;
 }
 
 int GYROSIM::reset()
