@@ -11,6 +11,7 @@
         "ms-vscode.cpptools",
         "peterjausovec.vscode-docker",
         "twxs.cmake",
+        "uavcan.dsdl",
         "vector-of-bool.cmake-tools",
         "wholroyd.jinja"
     ]
