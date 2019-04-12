@@ -250,14 +250,32 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 
 /**
- * Proportional gain for horizontal trajectory position error
+ * Proportional gain that generates the desired current velocity
+ * given the distance to the tracking point on the line. The tracking
+ * point is at most L1 meters in front of the drone and decreases while
+ * approaching the waypoint. In order to reach cruise speed between two
+ * waypoints, this value has to be at least MPC_XY_CRUISE / MPC_L1_DISTANCE.
  *
  * @min 0.1
  * @max 5.0
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.3f);
+PARAM_DEFINE_FLOAT(MPC_L1_SPEED_P, 0.4f);
+
+/**
+ * L1 distance used for cross-track control of the limited-jerk
+ * trajectory generator.
+ * Shorten to have a sharper response until the setpoint starts
+ * to oscillate. This parameter highly depends on cruise speed,
+ * maximum acceleration and maximum jerk settings.
+ *
+ * @min 1.0
+ * @max 30.0
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_L1_DISTANCE, 15.f);
 
 /**
  * Proportional gain for vertical trajectory position error

@@ -157,12 +157,32 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 		Vector2f u_prev_to_dest = Vector2f(pos_sp_xy - Vector2f(_prev_wp)).unit_or_zero();
 		Vector2f prev_to_pos(pos_traj - Vector2f(_prev_wp));
 		Vector2f closest_pt = Vector2f(_prev_wp) + u_prev_to_dest * (prev_to_pos * u_prev_to_dest);
+		Vector2f closest_pt_to_dest = pos_sp_xy - closest_pt;
 		Vector2f u_pos_traj_to_dest_xy(Vector2f(pos_traj_to_dest).unit_or_zero());
 
-		float speed_sp_track = Vector2f(pos_traj_to_dest).length() * _param_mpc_xy_traj_p.get();
-		speed_sp_track = math::constrain(speed_sp_track, 0.0f, _mc_cruise_speed);
+		// Compute along-track error using L1 distance and cross-track error
+		float crosstrack_error = Vector2f(closest_pt - pos_traj).length();
+		float alongtrack_error = 0.f;
+		float l1 = _param_mpc_l1_distance.get(); // L1 distance
 
-		Vector2f vel_sp_xy = u_pos_traj_to_dest_xy * speed_sp_track;
+		// Protect against sqrt of a negative number
+		if (l1 > crosstrack_error) {
+			alongtrack_error = sqrtf(l1 * l1 - crosstrack_error * crosstrack_error);
+			// The along-track error generated has to be smaller that the distance to the waypoint
+			alongtrack_error = math::min(closest_pt_to_dest.length(), alongtrack_error);
+		}
+
+		// Recompute new L1 length limited by the maximum alongtrack error
+		l1 = sqrtf(crosstrack_error * crosstrack_error + alongtrack_error * alongtrack_error);
+
+		// Position of the point on the line where L1 intersect the line between the two waypoints
+		Vector2f pos_crossing_point = closest_pt + alongtrack_error * u_pos_traj_to_dest_xy;
+		Vector2f u_traj_to_crossing_point = (pos_crossing_point - pos_traj) / l1;
+
+		// Compute the desired speed given the L1 distance
+		float speed_sp_norm = l1 * _param_mpc_l1_speed_p.get();
+		speed_sp_norm = math::constrain(speed_sp_norm, 0.0f, _mc_cruise_speed);
+		Vector2f vel_sp_xy = speed_sp_norm * u_traj_to_crossing_point;
 
 		for (int i = 0; i < 2; i++) {
 			// If available, constrain the velocity using _velocity_setpoint(.)
@@ -172,11 +192,7 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 			} else {
 				_velocity_setpoint(i) = vel_sp_xy(i);
 			}
-
-			_velocity_setpoint(i) += (closest_pt(i) - _trajectory[i].getCurrentPosition()) *
-						 _param_mpc_xy_traj_p.get();  // Along-track setpoint + cross-track P controller
 		}
-
 	}
 
 	if (PX4_ISFINITE(_position_setpoint(2))) {
