@@ -42,8 +42,6 @@
  *			- State machines will be model driven
  */
 
- //test3
- //test2
  
 #include "Commander.hpp"
 
