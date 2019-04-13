@@ -817,3 +817,67 @@ PARAM_DEFINE_INT32(COM_OBS_AVOID, 0);
  * @max 200
  */
 PARAM_DEFINE_INT32(COM_OA_BOOT_T, 100);
+
+/**
+ * Airspeed Consistency Threshold.
+ *
+ * This scales the minimum airspeed inconsistency required to trigger a failsafe. Increase to make the check less sensitive, decrease to make it more sensitive. The failsafe response is controlled by the COM_ASPD_FS_ACT parameter.
+ *
+ * @min 0.5
+ * @max 2.0
+ * @group Commander
+ */
+PARAM_DEFINE_FLOAT(COM_TAS_FS_INNOV, 1.0f);
+
+/**
+ * Delay before stopping use of airspeed sensor if checks indicate sensor is bad. The failsafe response is controlled by the COM_ASPD_FS_ACT parameter.
+ *
+ * @unit sec
+ * @group Commander
+ * @min 1
+ * @max 10
+ */
+PARAM_DEFINE_INT32(COM_TAS_FS_T1, 3);
+
+/**
+ * Delay before switching back to using airspeed sensor if checks indicate sensor is good. The failsafe response is controlled by the COM_ASPD_FS_ACT parameter.
+ *
+ * @unit sec
+ * @group Commander
+ * @min 10
+ * @max 1000
+ */
+PARAM_DEFINE_INT32(COM_TAS_FS_T2, 100);
+
+/**
+ * Stall airspeed.
+ *
+ * This is the minimum indicated airspeed at which the wing can produce 1g of lift. It is used by the airspeed sensor fault detection and failsafe calculation to detect a significant airspeed low measurement error condition and should be set based on flight test for reliable operation. The failsafe response is controlled by the COM_ASPD_FS_ACT parameter.
+ *
+ * @group Commander
+ * @unit m/s
+ */
+PARAM_DEFINE_FLOAT(COM_ASPD_STALL, 10.0f);
+
+/**
+ * Failsafe action when bad airspeed measurements are detected. Ensure the COM_ASPD_STALL parameter is set correctly before use.
+ *
+ * @value 0 do nothing
+ * @value 1 log a message
+ * @value 2 log a message, warn the user
+ * @value 3 log a message, warn the user, switch to non-airspeed TECS mode
+ * @value 4 log a message, warn the user, switch to non-airspeed TECS mode, switch to Return mode after COM_ASPD_FS_DLY seconds
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(COM_ASPD_FS_ACT, 0);
+
+/**
+ * RTL delay after bad airspeed measurements are detected if COM_ASPD_FS_ACT is set to 4. Ensure the COM_ASPD_STALL parameter is set correctly before use.
+ *
+ * @min 0
+ * @max 300
+ * @group Commander
+ * @unit s
+ */
+PARAM_DEFINE_INT32(COM_ASPD_FS_DLY, 0);
+

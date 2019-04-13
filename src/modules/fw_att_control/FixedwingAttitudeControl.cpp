@@ -472,7 +472,8 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 {
 	_airspeed_sub.update();
 	const bool airspeed_valid = PX4_ISFINITE(_airspeed_sub.get().indicated_airspeed_m_s)
-				    && (hrt_elapsed_time(&_airspeed_sub.get().timestamp) < 1_s);
+				    && (hrt_elapsed_time(&_airspeed_sub.get().timestamp) < 1_s)
+				    && !_vehicle_status.aspd_use_inhibit;
 
 	if (!airspeed_valid) {
 		perf_count(_nonfinite_input_perf);
