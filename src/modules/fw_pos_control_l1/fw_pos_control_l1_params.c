@@ -334,19 +334,18 @@ PARAM_DEFINE_INT32(FW_LND_USETER, 0);
 /**
  * Early landing configuration deployment
  *
- * When set to 0/disabled, the landing configuration (flaps, landing airspeed, etc.) is only activated
- * on the final approach to landing. When set to 1/enabled, it is already activated when entering the
- * final loiter-down (loiter-to-alt) WP before the landing approach. This shifts the (often large)
+ * When disabled, the landing configuration (flaps, landing airspeed, etc.) is only activated
+ * on the final approach to landing. When enabled, it is already activated when entering the
+ * final loiter-down (loiter-to-alt) waypoint before the landing approach. This shifts the (often large)
  * altitude and airspeed errors caused by the configuration change away from the ground such that
  * these are not so critical. It also gives the controller enough time to adapt to the new
  * configuration such that the landing approach starts with a cleaner initial state.
  *
- * @value 0 Disable early land configuration deployment
- * @value 1 Enable early land configuration deployment
+ * @boolean
  *
  * @group FW L1 Control
  */
-PARAM_DEFINE_INT32(FW_LND_EARLYCFG, 1);
+PARAM_DEFINE_INT32(FW_LND_EARLYCFG, 0);
 
 /**
  * Flare, minimum pitch
