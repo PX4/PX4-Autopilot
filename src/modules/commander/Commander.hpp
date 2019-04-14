@@ -51,15 +51,15 @@
 
 // subscriptions
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/airspeed.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/sensor_bias.h>
+#include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/telemetry_status.h>
-#include <uORB/topics/sensor_bias.h>
-#include <uORB/topics/airspeed.h>
 
 using math::constrain;
 using uORB::Publication;
@@ -154,7 +154,7 @@ private:
 	bool		_tas_check_fail{false};	/**< true when airspeed innovations have failed consistency checks */
 	hrt_abstime	_time_last_tas_pass{0};		/**< last time innovation checks passed */
 	hrt_abstime	_time_last_tas_fail{0};		/**< last time innovation checks failed */
-	const hrt_abstime TAS_INNOV_FAIL_DELAY = 1_s;	/**< time required for innovation levels to pass or fail (usec) */
+	static constexpr hrt_abstime TAS_INNOV_FAIL_DELAY{1_s};	/**< time required for innovation levels to pass or fail (usec) */
 	bool		_tas_use_inhibit{false};	/**< true when the commander has instructed the control loops to not use airspeed data */
 	hrt_abstime	_time_tas_good_declared{0};	/**< time TAS use was started (uSec) */
 	hrt_abstime	_time_tas_bad_declared{0};	/**< time TAS use was stopped (uSec) */
@@ -230,20 +230,16 @@ private:
 	bool _print_avoidance_msg_once{false};
 
 	// Subscriptions
+	Subscription<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
 	Subscription<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
 	Subscription<mission_result_s>			_mission_result_sub{ORB_ID(mission_result)};
+	Subscription<sensor_bias_s>			_sensor_bias_sub{ORB_ID(sensor_bias)};
 	Subscription<vehicle_global_position_s>		_global_position_sub{ORB_ID(vehicle_global_position)};
 	Subscription<vehicle_local_position_s>		_local_position_sub{ORB_ID(vehicle_local_position)};
-	Subscription<sensor_bias_s>			_sensor_bias_sub{ORB_ID(sensor_bias)};
-	Subscription<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
 
 	Publication<home_position_s>			_home_pub{ORB_ID(home_position)};
 
 	orb_advert_t					_status_pub{nullptr};
-
-	struct airspeed_s _airspeed = {};
-	struct sensor_bias_s _sensor_bias = {};
-
 };
 
 #endif /* COMMANDER_HPP_ */
