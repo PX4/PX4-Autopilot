@@ -299,10 +299,6 @@ if (${PX4_PLATFORM} STREQUAL "posix")
 	if (NOT CMAKE_INSTALL_PREFIX)
 		set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Install path prefix" FORCE)
 	endif()
-
-	# cmake testing only on posix
-	enable_testing()
-	include(CTest)
 endif()
 
 #=============================================================================
@@ -417,14 +413,18 @@ endif()
 # Testing - Automatic unit and integration testing with CTest
 #
 
-option(unit_testing "Configure unit test targets" OFF)
+# optionally enable cmake testing (supported only on posix)
+option(CMAKE_TESTING "Configure test targets" OFF)
+if(CMAKE_TESTING)
+	include(CTest)
+endif()
 
 list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake/gtest/)
 include(px4_add_gtest)
 
-if(unit_testing)
-   include(gtest)
-   add_custom_target(unit_test COMMAND GTEST_COLOR=1 ${CMAKE_CTEST_COMMAND} -V -R UnitTest- USES_TERMINAL)
+if(BUILD_TESTING)
+	include(gtest)
+	add_custom_target(unit_test COMMAND GTEST_COLOR=1 ${CMAKE_CTEST_COMMAND} -V -R UnitTest- USES_TERMINAL)
 endif()
 
 #=============================================================================
