@@ -41,7 +41,7 @@ include(px4_base)
 #
 function(px4_add_gtest)
 	# skip if unit testing is not configured
-	if(unit_testing)
+	if(BUILD_TESTING)
 		# parse source file and library dependencies from arguments
 		px4_parse_function_args(
 			NAME px4_add_gtest
