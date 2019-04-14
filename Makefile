@@ -341,14 +341,18 @@ format:
 .PHONY: rostest python_coverage
 
 unit_test:
-	$(eval CMAKE_ARGS += -Dunit_testing=ON)
+	$(eval CMAKE_ARGS += -DCMAKE_TESTING=ON)
+	$(eval CMAKE_ARGS += -DCONFIG=px4_sitl_test)
 	$(eval ARGS += unit_test)
-	$(call cmake-build,px4_sitl_default)
+	$(call cmake-build,px4_sitl_test)
 
 tests:
-	@$(MAKE) --no-print-directory px4_sitl_test test_results \
-	ASAN_OPTIONS="color=always:check_initialization_order=1:detect_stack_use_after_return=1" \
-	UBSAN_OPTIONS="color=always"
+	$(eval CMAKE_ARGS += -DCMAKE_TESTING=ON)
+	$(eval CMAKE_ARGS += -DCONFIG=px4_sitl_test)
+	$(eval ARGS += test_results)
+	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
+	$(eval UBSAN_OPTIONS += color=always)
+	$(call cmake-build,px4_sitl_test)
 
 tests_coverage:
 	@$(MAKE) clean
