@@ -55,7 +55,10 @@ bool Ekf::initHagl()
 		_terrain_var = sq(_params.range_noise);
 		// success
 		return true;
-
+	} else if (_flow_for_terrain_data_ready) {
+		_terrain_vpos = _state.pos(2);
+		_terrain_var = 100.0f;
+		return true;
 	} else if (!_control_status.flags.in_air) {
 		// if on ground we assume a ground clearance
 		_terrain_vpos = _state.pos(2) + _params.rng_gnd_clearance;
@@ -102,6 +105,11 @@ void Ekf::runTerrainEstimator()
 			_sin_tilt_rng = sinf(_params.rng_sens_pitch);
 			_cos_tilt_rng = cosf(_params.rng_sens_pitch);
 
+		}
+
+		if (_flow_for_terrain_data_ready) {
+			fuseFlowForTerrain();
+			_flow_for_terrain_data_ready = false;
 		}
 
 		//constrain _terrain_vpos to be a minimum of _params.rng_gnd_clearance larger than _state.pos(2)
@@ -159,6 +167,100 @@ void Ekf::fuseHagl()
 	} else {
 		_innov_check_fail_status.flags.reject_hagl = true;
 		return;
+	}
+}
+
+void Ekf::fuseFlowForTerrain()
+{
+	// calculate optical LOS rates using optical flow rates that have had the body angular rate contribution removed
+	// correct for gyro bias errors in the data used to do the motion compensation
+	// Note the sign convention used: A positive LOS rate is a RH rotation of the scene about that axis.
+	Vector2f opt_flow_rate;
+	opt_flow_rate(0) = _flowRadXYcomp(0) / _flow_sample_delayed.dt + _flow_gyro_bias(0);
+	opt_flow_rate(1) = _flowRadXYcomp(1) / _flow_sample_delayed.dt + _flow_gyro_bias(1);
+
+	// get latest estimated orientation
+	float q0 = _state.quat_nominal(0);
+	float q1 = _state.quat_nominal(1);
+	float q2 = _state.quat_nominal(2);
+	float q3 = _state.quat_nominal(3);
+
+	// calculate the optical flow observation variance
+	float R_LOS = calcOptFlowMeasVar();
+
+	// get rotation matrix from earth to body
+	Dcmf earth_to_body(_state.quat_nominal);
+	earth_to_body = earth_to_body.transpose();
+
+	// calculate the sensor position relative to the IMU
+	Vector3f pos_offset_body = _params.flow_pos_body - _params.imu_pos_body;
+
+	// calculate the velocity of the sensor relative to the imu in body frame
+	// Note: _flow_sample_delayed.gyroXYZ is the negative of the body angular velocity, thus use minus sign
+	Vector3f vel_rel_imu_body = cross_product(-_flow_sample_delayed.gyroXYZ / _flow_sample_delayed.dt, pos_offset_body);
+
+	// calculate the velocity of the sensor in the earth frame
+	Vector3f vel_rel_earth = _state.vel + _R_to_earth * vel_rel_imu_body;
+
+	// rotate into body frame
+	Vector3f vel_body = earth_to_body * vel_rel_earth;
+
+	float t0 = q0*q0 - q1*q1 - q2*q2 + q3*q3;
+
+	// Calculate observation matrix for flow around the vehicle x axis
+	float Hx = vel_body(1) * t0 /((_terrain_vpos - _state.pos(2)) * (_terrain_vpos - _state.pos(2)));
+
+	// Cacluate innovation variance
+	_flow_innov_var[0] = Hx * Hx * _terrain_var + R_LOS;
+
+	// calculate the kalman gain for the flow x measurement
+	float Kx = _terrain_var * Hx / _flow_innov_var[0];
+
+	// calculate prediced optical flow about x axis
+	float pred_flow_x = vel_body(1) * earth_to_body(2,2) / (_terrain_vpos - _state.pos(2));
+
+	// calculate flow innovation (x axis)
+	_flow_innov[0] = pred_flow_x - opt_flow_rate(0);
+
+	// calculate correction term for terrain variance
+	float KxHxP =  Kx * Hx * _terrain_var;
+
+	// innovation consistency check
+	float gate_size = fmaxf(_params.flow_innov_gate, 1.0f);
+	float flow_test_ratio = sq(_flow_innov[0]) / (sq(gate_size) * _flow_innov_var[0]);
+
+	// do not perform measurement update if badly conditioned
+	if (flow_test_ratio <= 1.0f) {
+		_terrain_vpos += Kx * _flow_innov[0];
+		// guard against negative variance
+		_terrain_var = fmaxf(_terrain_var - KxHxP, 0.0f);
+	}
+
+	// Calculate observation matrix for flow around the vehicle y axis
+	float Hy = -vel_body(0) * t0 /((_terrain_vpos - _state.pos(2)) * (_terrain_vpos - _state.pos(2)));
+
+	// Calculuate innovation variance
+	_flow_innov_var[1] = Hy * Hy * _terrain_var + R_LOS;
+
+	// calculate the kalman gain for the flow y measurement
+	float Ky = _terrain_var * Hy / _flow_innov_var[1];
+
+	// calculate prediced optical flow about y axis
+	float pred_flow_y = -vel_body(0) * earth_to_body(2,2) / (_terrain_vpos - _state.pos(2));
+
+	// calculate flow innovation (y axis)
+	_flow_innov[1] = pred_flow_y - opt_flow_rate(1);
+
+	// calculate correction term for terrain variance
+	float KyHyP =  Ky * Hy * _terrain_var;
+
+	// innovation consistency check
+	flow_test_ratio = sq(_flow_innov[1]) / (sq(gate_size) * _flow_innov_var[1]);
+
+	if (flow_test_ratio <= 1.0f) {
+		_terrain_vpos += Ky * _flow_innov[1];
+		// guard against negative variance
+		_terrain_var = fmaxf(_terrain_var - KyHyP, 0.0f);
 	}
 }
 

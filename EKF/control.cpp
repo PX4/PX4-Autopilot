@@ -123,6 +123,14 @@ void Ekf::controlFusionModes()
 				   && (_R_to_earth(2, 2) > _params.range_cos_max_tilt);
 	}
 
+	// check if we should fuse flow data for terrain estimation
+	if (!_flow_for_terrain_data_ready && _flow_data_ready) {
+		// only fuse flow for terrain if range data hasn't been fused for 5 seconds
+		_flow_for_terrain_data_ready = (_time_last_imu - _time_last_hagl_fuse) > 5 * 1000 * 1000;
+		// only fuse flow for terrain if the main filter is not fusing flow and we are using gps
+		_flow_for_terrain_data_ready &= (!_control_status.flags.opt_flow && _control_status.flags.gps);
+	}
+
 	_ev_data_ready = _ext_vision_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_ev_sample_delayed);
 	_tas_data_ready = _airspeed_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_airspeed_sample_delayed);
 

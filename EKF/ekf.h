@@ -315,6 +315,7 @@ private:
 	bool _flow_data_ready{false};	///< true when the leading edge of the optical flow integration period has fallen behind the fusion time horizon
 	bool _ev_data_ready{false};	///< true when new external vision system data has fallen behind the fusion time horizon and is available to be fused
 	bool _tas_data_ready{false};	///< true when new true airspeed data has fallen behind the fusion time horizon and is available to be fused
+	bool _flow_for_terrain_data_ready{false}; /// same flag as "_flow_data_ready" but used for separate terrain estimator
 
 	uint64_t _time_last_fake_gps{0};	///< last time we faked GPS position measurements to constrain tilt errors during operation without external aiding (uSec)
 	uint64_t _time_ins_deadreckon_start{0};	///< amount of time we have been doing inertial only deadreckoning (uSec)
@@ -543,6 +544,9 @@ private:
 
 	// update the terrain vertical position estimate using a height above ground measurement from the range finder
 	void fuseHagl();
+
+	// update the terrain vertical position estimate using an optical flow measurement
+	void fuseFlowForTerrain();
 
 	// reset the heading and magnetic field states using the declination and magnetometer/external vision measurements
 	// return true if successful
