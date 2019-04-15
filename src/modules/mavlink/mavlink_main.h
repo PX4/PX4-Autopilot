@@ -591,7 +591,7 @@ private:
 	 */
 	unsigned int		_mavlink_param_queue_index{0};
 
-	bool			mavlink_link_termination_allowed{false};
+	bool			_mavlink_link_termination_allowed{false};
 
 	char			*_subscribe_to_stream{nullptr};
 	float			_subscribe_to_stream_rate{0.0f};  ///< rate of stream to subscribe to (0=disable, -1=unlimited, -2=default)
@@ -611,9 +611,10 @@ private:
 	uint64_t		_bytes_timestamp;
 
 #if defined(CONFIG_NET) || defined(__PX4_POSIX)
-	struct			sockaddr_in _myaddr;
-	struct			sockaddr_in _src_addr;
-	struct			sockaddr_in _bcast_addr;
+	sockaddr_in		_myaddr;
+	sockaddr_in		_src_addr;
+	sockaddr_in		_bcast_addr;
+
 	bool			_src_addr_initialized;
 	bool			_broadcast_address_found;
 	bool			_broadcast_address_not_found_warned;
