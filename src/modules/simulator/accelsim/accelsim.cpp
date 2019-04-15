@@ -349,11 +349,6 @@ ACCELSIM::init()
 	/* fill report structures */
 	_measure();
 
-	sensor_mag_s mag_report = {};
-
-	/* advertise mag sensor topic, measure manually to initialize valid report */
-	_mag_reports->get(&mag_report);
-
 	return PX4_OK;
 }
 
