@@ -95,6 +95,13 @@ bool VtolType::init()
 		return false;
 	}
 
+	ret = px4_ioctl(fd, PWM_SERVO_GET_MIN_PWM, (long unsigned int)&_min_mc_pwm_values);
+
+	if (ret != PX4_OK) {
+		PX4_ERR("failed getting min values");
+		px4_close(fd);
+		return false;
+	}
 
 	ret = px4_ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, (long unsigned int)&_disarmed_pwm_values);
 
@@ -103,6 +110,8 @@ bool VtolType::init()
 		px4_close(fd);
 		return false;
 	}
+
+	px4_close(fd);
 
 	return true;
 
@@ -240,7 +249,13 @@ bool VtolType::set_idle_mc()
 	memset(&pwm_values, 0, sizeof(pwm_values));
 
 	for (int i = 0; i < _params->vtol_motor_count; i++) {
-		pwm_values.values[i] = pwm_value;
+		if (is_motor_off_channel(i)) {
+			pwm_values.values[i] = pwm_value;
+
+		} else {
+			pwm_values.values[i] = _min_mc_pwm_values.values[i];
+		}
+
 		pwm_values.channel_count++;
 	}
 
@@ -254,7 +269,13 @@ bool VtolType::set_idle_fw()
 	memset(&pwm_values, 0, sizeof(pwm_values));
 
 	for (int i = 0; i < _params->vtol_motor_count; i++) {
-		pwm_values.values[i] = PWM_MOTOR_OFF;
+		if (is_motor_off_channel(i)) {
+			pwm_values.values[i] = PWM_MOTOR_OFF;
+
+		} else {
+			pwm_values.values[i] = _min_mc_pwm_values.values[i];
+		}
+
 		pwm_values.channel_count++;
 	}
 
