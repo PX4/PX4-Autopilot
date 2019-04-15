@@ -41,166 +41,156 @@
  *
  */
 
+#include <poll.h>
 #include <px4_config.h>
 #include <px4_getopt.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include <stdbool.h>
-#include <string.h>
-#include <poll.h>
+#include <stdint.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
 #include <termios.h>
+#include <unistd.h>
 
-#include <perf/perf_counter.h>
-
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_range_finder.h>
 #include <drivers/device/device.h>
 #include <drivers/device/ringbuffer.h>
-
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_range_finder.h>
+#include <perf/perf_counter.h>
+#include <px4_config.h>
+#include <px4_getopt.h>
+#include <px4_workqueue.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/distance_sensor.h>
 
 #include "cm8jl65_parser.h"
 
+
 /* Configuration Constants */
-
 #define CM8JL65_TAKE_RANGE_REG		'd'
-
-// designated serial port on Pixhawk (TELEM2)
-#define CM8JL65_DEFAULT_PORT		"/dev/ttyS2" // Its baudrate is 115200
-
-// normal conversion wait time
-#define CM8JL65_CONVERSION_INTERVAL 50*1000UL/* 50ms */
+#define CM8JL65_DEFAULT_PORT		"/dev/ttyS2"	// Default serial port on Pixhawk (TELEM2), baudrate 115200
+#define CM8JL65_CONVERSION_INTERVAL 	50*1000UL	// 50ms default sensor conversion time.
 
 
 class CM8JL65 : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
-
-	// Constructor
+	/**
+	 * Default Constructor
+	 * @param port The serial port to open for communicating with the sensor.
+	 * @param rotation The sensor rotation relative to the vehicle body.
+	 */
 	CM8JL65(const char *port = CM8JL65_DEFAULT_PORT, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 
-	// Virtual destructor
+	/** Virtual destructor */
 	virtual ~CM8JL65() override;
 
+	/**
+	 * Method : init()
+	 * This method initializes the general driver for a range finder sensor.
+	 */
 	virtual int  init() override;
+
 	virtual int  ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
 	/**
-	* Diagnostics - print some basic information about the driver.
-	*/
-	void				print_info();
+	 * Diagnostics - print some basic information about the driver.
+	 */
+	void print_info();
 
 private:
 
-	char 				             _port[20];
-	uint8_t                   _rotation;
-	float				             _min_distance;
-	float				             _max_distance;
-	int         	             _conversion_interval;
-	ringbuffer::RingBuffer	  *_reports;
-	int				               _fd;
-	uint8_t			             _linebuf[25];
-	uint8_t                   _cycle_counter;
-
-	enum CM8JL65_PARSE_STATE	 _parse_state;
-	unsigned char             _frame_data[PARSER_BUF_LENGTH];
-	uint16_t                  _crc16;
-	int                       _distance_mm;
-
-	int				               _class_instance;
-	int				               _orb_class_instance;
-
-	orb_advert_t			         _distance_sensor_topic;
-
-	perf_counter_t			       _sample_perf;
-	perf_counter_t			       _comms_errors;
+	/**
+	 * Reads data from serial UART and places it into a buffer
+	 */
+	int collect();
 
 	/**
-	* Initialise the automatic measurement state machine and start it.
-	*
-	* @note This function is called at open and error time.  It might make sense
-	*       to make it more aggressive about resetting the bus in case of errors.
-	*/
-	void				start();
+	 * Perform a reading cycle; collect from the previous measurement
+	 * and start a new one.
+	 */
+	void cycle();
 
 	/**
-	* Stop the automatic measurement state machine.
-	*/
-	void				stop();
+	 * Static trampoline from the workq context; because we don't have a
+	 * generic workq wrapper yet.
+	 *
+	 * @param arg Instance pointer for the driver that is polling.
+	 */
+	static void cycle_trampoline(void *arg);
 
 	/**
-	 * Set the min and max distance thresholds.
-	*/
-	void				set_minimum_distance(float min);
-	void				set_maximum_distance(float max);
-	float			get_minimum_distance();
-	float			get_maximum_distance();
+	 * Perform a reading cycle; collect from the previous measurement
+	 * and start a new one.
+	 */
+	void Run() override;
 
 	/**
-	* Perform a reading cycle; collect from the previous measurement
-	* and start a new one.
-	*/
-	void				Run() override;
+	 * Initialise the automatic measurement state machine and start it.
+	 * @note This function is called at open and error time.  It might make sense
+	 *       to make it more aggressive about resetting the bus in case of errors.
+	 */
+	void start();
 
-	int				collect();
+	/**
+	 * Stops the automatic measurement state machine.
+	 */
+	void stop();
 
+	char _port[20] {};
+
+	unsigned char _frame_data[PARSER_BUF_LENGTH] {START_FRAME_DIGIT1, START_FRAME_DIGIT2, 0, 0};
+
+	int _class_instance{-1};
+	int _conversion_interval{CM8JL65_CONVERSION_INTERVAL};
+	int _fd{-1};
+	int _orb_class_instance{-1};
+
+	uint8_t _cycle_counter{0};
+	uint8_t _linebuf[25] {};
+	uint8_t _rotation{0};
+
+	uint16_t _crc16{0};
+
+	float _max_distance{9.0f};
+	float _min_distance{0.10f};
+
+	ringbuffer::RingBuffer *_reports{nullptr};
+
+	CM8JL65_PARSE_STATE _parse_state{STATE0_WAITING_FRAME};
+
+	orb_advert_t _distance_sensor_topic{nullptr};
+
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, "cm8jl65_com_err")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "cm8jl65_read")};
 };
 
-/*
- * Driver 'main' command.
- */
-extern "C" __EXPORT int cm8jl65_main(int argc, char *argv[]);
-
-/**
-* Method : Constructor
-*
-* @note This method initializes the class variables
-*/
 
 CM8JL65::CM8JL65(const char *port, uint8_t rotation) :
 	CDev(RANGE_FINDER0_DEVICE_PATH),
 	ScheduledWorkItem(px4::wq_configurations::hp_default),
-	_rotation(rotation),
-	_min_distance(0.10f),
-	_max_distance(9.0f),
-	_conversion_interval(CM8JL65_CONVERSION_INTERVAL),
-	_reports(nullptr),
-	_fd(-1),
-	_cycle_counter(0),
-	_parse_state(STATE0_WAITING_FRAME),
-	_frame_data{START_FRAME_DIGIT1, START_FRAME_DIGIT2, 0, 0},
-	_crc16(0),
-	_distance_mm(-1),
-	_class_instance(-1),
-	_orb_class_instance(-1),
-	_distance_sensor_topic(nullptr),
-	_sample_perf(perf_alloc(PC_ELAPSED, "cm8jl65_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "cm8jl65_com_err"))
+	_rotation(rotation)
 {
-	/* store port name */
+	// Store the port name.
 	strncpy(_port, port, sizeof(_port) - 1);
 
-	/* enforce null termination */
+	// Enforce null termination.
 	_port[sizeof(_port) - 1] = '\0';
 }
 
-// Destructor
 CM8JL65::~CM8JL65()
 {
-	/* make sure we are truly inactive */
+	// Ensure we are truly inactive.
 	stop();
 
-	/* free any existing reports */
+	// Free any existing reports.
 	if (_reports != nullptr) {
 		delete _reports;
 	}
 
+	// Unregister the device class name.
 	if (_class_instance != -1) {
 		unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_instance);
 	}
@@ -208,12 +198,6 @@ CM8JL65::~CM8JL65()
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
-
-/**
-* Method : init()
-*
-* This method setup the general driver for a range finder sensor.
-*/
 
 int
 CM8JL65::init()
@@ -252,30 +236,6 @@ CM8JL65::init()
 	} while (0);
 
 	return ret;
-}
-
-void
-CM8JL65::set_minimum_distance(float min)
-{
-	_min_distance = min;
-}
-
-void
-CM8JL65::set_maximum_distance(float max)
-{
-	_max_distance = max;
-}
-
-float
-CM8JL65::get_minimum_distance()
-{
-	return _min_distance;
-}
-
-float
-CM8JL65::get_maximum_distance()
-{
-	return _max_distance;
 }
 
 int
@@ -322,26 +282,17 @@ CM8JL65::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 }
 
 int
-
-/*
- * Method: collect()
- *
- * This method reads data from serial UART and places it into a buffer
-*/
 CM8JL65::collect()
 {
-	int bytes_read = 0;
-	int bytes_processed = 0;
-	int i = 0;
+	int index = 0;
+	int _distance_mm = -1;
 	bool crc_valid = false;
-
 
 	perf_begin(_sample_perf);
 
-
-	/* read from the sensor (uart buffer) */
-	bytes_read = ::read(_fd, &_linebuf[0], sizeof(_linebuf));
-
+	// Read from the sensor UART buffer.
+	int bytes_read = ::read(_fd, &_linebuf[0], sizeof(_linebuf));
+	int bytes_processed = 0;
 
 	if (bytes_read < 0) {
 		PX4_DEBUG("read err: %d \n", bytes_read);
@@ -350,11 +301,11 @@ CM8JL65::collect()
 
 	} else if (bytes_read > 0) {
 		//     printf("Bytes read: %d \n",bytes_read);
-		i = bytes_read - 6 ;
+		index = bytes_read - 6 ;
 
-		while ((i >= 0) && (!crc_valid)) {
-			if (_linebuf[i] == START_FRAME_DIGIT1) {
-				bytes_processed = i;
+		while ((index >= 0) && (!crc_valid)) {
+			if (_linebuf[index] == START_FRAME_DIGIT1) {
+				bytes_processed = index;
 
 				while ((bytes_processed < bytes_read) && (!crc_valid)) {
 					//    printf("In the cycle, processing  byte %d, 0x%02X \n",bytes_processed, _linebuf[bytes_processed]);
@@ -366,48 +317,41 @@ CM8JL65::collect()
 				}
 
 				_parse_state = STATE0_WAITING_FRAME;
-
 			}
 
-			i--;
+			index--;
 		}
-
 	}
 
 	if (!crc_valid) {
 		return -EAGAIN;
 	}
 
+	bytes_read = OK;
 
 	//printf("val (int): %d, raw: 0x%08X, valid: %s \n", _distance_mm, _frame_data, ((crc_valid) ? "OK" : "NO"));
 
 	struct distance_sensor_s report;
+	report.current_distance = static_cast<float>(_distance_mm) / 1000.0f;
+	report.id               = 0;	// TODO: set proper ID.
+	report.max_distance     = _max_distance;
+	report.min_distance     = _min_distance;
+	report.orientation      = _rotation;
+	report.signal_quality   = -1;
+	report.timestamp        = hrt_absolute_time();
+	report.type             = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	report.variance         = 0.0f;
 
-	report.timestamp = hrt_absolute_time();
-	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
-	report.orientation = _rotation;
-	report.current_distance = _distance_mm / 1000.0f;
-	report.min_distance = get_minimum_distance();
-	report.max_distance = get_maximum_distance();
-	report.variance = 0.0f;
-	report.signal_quality = -1;
-	/* TODO: set proper ID */
-	report.id = 0;
-
-	/* publish it */
+	// Publish the new report.
 	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
 
 	_reports->force(&report);
 
-	/* notify anyone waiting for data */
+	// Notify anyone waiting for data.
 	poll_notify(POLLIN);
-
-	bytes_read = OK;
-
 	perf_end(_sample_perf);
 
-	return OK;
-
+	return PX4_OK;
 }
 
 void
@@ -415,9 +359,10 @@ CM8JL65::start()
 {
 	PX4_INFO("driver started");
 
+	// Flush the report ring buffer.
 	_reports->flush();
 
-	/* schedule a cycle to start things */
+	// Schedule a cycle to start things.
 	ScheduleNow();
 }
 
@@ -430,9 +375,9 @@ CM8JL65::stop()
 void
 CM8JL65::Run()
 {
-	/* fds initialized? */
+	// File descriptor initialized?
 	if (_fd < 0) {
-		/* open fd */
+		// Open fd.
 		_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 		if (_fd < 0) {
@@ -444,18 +389,18 @@ CM8JL65::Run()
 
 		int termios_state;
 
-		/* fill the struct for the new configuration */
+		// Fill the struct for the new configuration.
 		tcgetattr(_fd, &uart_config);
 
-		/* clear ONLCR flag (which appends a CR for every LF) */
+		// Clear ONLCR flag (which appends a CR for every LF).
 		uart_config.c_oflag &= ~ONLCR;
 
-		/* no parity, one stop bit */
+		// No parity, one stop bit.
 		uart_config.c_cflag &= ~(CSTOPB | PARENB);
 
 		unsigned speed = B115200;
 
-		/* set baud rate */
+		// Set baud rate.
 		if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
 			PX4_ERR("CFG: %d ISPD", termios_state);
 		}
@@ -469,14 +414,14 @@ CM8JL65::Run()
 		}
 	}
 
-	/* perform collection */
+	// Perform collection.
 	int collect_ret = collect();
 
 	if (collect_ret == -EAGAIN) {
 		_cycle_counter++;
 	}
 
-	/* schedule a fresh cycle call when a complete packet has been received */
+	// Schedule a fresh cycle call when a complete packet has been received.
 	ScheduleDelayed(_conversion_interval);
 	_cycle_counter = 0;
 }
@@ -497,11 +442,55 @@ namespace cm8jl65
 
 CM8JL65	*g_dev;
 
-int	start(const char *port, uint8_t rotation);
-int	stop();
-int	test();
-int	reset();
-int	info();
+int info();
+int reset();
+int start(const char *port, uint8_t rotation);
+int stop();
+int test();
+int usage();
+
+/**
+ * Print a little info about the driver.
+ */
+int
+info()
+{
+	if (g_dev == nullptr) {
+		PX4_ERR("driver not running");
+		return PX4_ERROR;
+	}
+
+	printf("state @ %p\n", g_dev);
+	g_dev->print_info();
+
+	return PX4_OK;
+}
+
+/**
+ * Reset the driver.
+ */
+int
+reset()
+{
+	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
+
+	if (fd < 0) {
+		PX4_ERR("open failed (%i)", errno);
+		return PX4_ERROR;
+	}
+
+	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
+		PX4_ERR("driver reset failed");
+		return PX4_ERROR;
+	}
+
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+		PX4_ERR("driver poll restart failed");
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
+}
 
 /**
  * Start the driver.
@@ -578,37 +567,35 @@ int stop()
 int
 test()
 {
-	struct distance_sensor_s report;
-	ssize_t sz;
-
 	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		PX4_ERR("%s open failed (try 'cm8jl65 start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
-		return -1;
+		return PX4_ERROR;
 	}
 
-	/* do a simple demand read */
-	sz = read(fd, &report, sizeof(report));
+	// Perform a simple demand read.
+	struct distance_sensor_s report;
+	ssize_t sz = read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
 		PX4_ERR("immediate read failed");
-		return -1;
+		return PX4_ERROR;
 	}
 
 	print_message(report);
 
-	/* start the sensor polling at 2 Hz rate */
+	// Start the sensor polling at 2 Hz rate.
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
 		PX4_ERR("failed to set 2Hz poll rate");
-		return -1;
+		return PX4_ERROR;
 	}
 
-	/* read the sensor 5x and report each value */
+	// Read the sensor 5x and report each value.
 	for (unsigned i = 0; i < 5; i++) {
 		struct pollfd fds;
 
-		/* wait for data to be ready */
+		// Wait for data to be ready.
 		fds.fd = fd;
 		fds.events = POLLIN;
 		int ret = poll(&fds, 1, 2000);
@@ -618,7 +605,7 @@ test()
 			break;
 		}
 
-		/* now go get it */
+		// Now go get it.
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
@@ -629,62 +616,34 @@ test()
 		print_message(report);
 	}
 
-	/* reset the sensor polling to the default rate */
+	// Reset the sensor polling to the default rate.
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
 		PX4_ERR("ioctl SENSORIOCSPOLLRATE failed");
-		return -1;
+		return PX4_ERROR;
 	}
 
-	return 0;
+	return PX4_OK;
 }
+
+int
+usage()
+{
+	PX4_INFO("usage: cm8jl65 command [options]");
+	PX4_INFO("command:");
+	PX4_INFO("\tstart|stop|test|info");
+	PX4_INFO("options:");
+	PX4_INFO("\t-R --rotation (%d)", distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	PX4_INFO("\t-d --device_path");
+	return PX4_OK;
+}
+
+} // namespace cm8jl65
+
 
 /**
- * Reset the driver.
+ * Driver 'main' command.
  */
-int
-reset()
-{
-	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		PX4_ERR("open failed (%i)", errno);
-		return -1;
-	}
-
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		PX4_ERR("driver reset failed");
-		return -1;
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		PX4_ERR("driver poll restart failed");
-		return -1;
-	}
-
-	return 0;
-}
-
-/**
- * Print a little info about the driver.
- */
-int
-info()
-{
-	if (g_dev == nullptr) {
-		PX4_ERR("driver not running");
-		return -1;
-	}
-
-	printf("state @ %p\n", g_dev);
-	g_dev->print_info();
-
-	return 0;
-}
-
-} // namespace
-
-int
-cm8jl65_main(int argc, char *argv[])
+extern "C" __EXPORT int cm8jl65_main(int argc, char *argv[])
 {
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	const char *device_path = CM8JL65_DEFAULT_PORT;
@@ -704,50 +663,38 @@ cm8jl65_main(int argc, char *argv[])
 
 		default:
 			PX4_WARN("Unknown option!");
-			return -1;
+			return cm8jl65::usage();
 		}
 	}
 
 	if (myoptind >= argc) {
-		goto out_error;
+		return cm8jl65::usage();
 	}
 
-	/*
-	 * Start/load the driver.
-	 */
+	// Start/load the driver.
 	if (!strcmp(argv[myoptind], "start")) {
 		return cm8jl65::start(device_path, rotation);
 	}
 
-	/*
-	 * Stop the driver
-	 */
+	// Stop the driver
 	if (!strcmp(argv[myoptind], "stop")) {
 		return cm8jl65::stop();
 	}
 
-	/*
-	 * Test the driver/device.
-	 */
+	// Test the driver/device.
 	if (!strcmp(argv[myoptind], "test")) {
 		return cm8jl65::test();
 	}
 
-	/*
-	 * Reset the driver.
-	 */
+	// Reset the driver.
 	if (!strcmp(argv[myoptind], "reset")) {
 		return cm8jl65::reset();
 	}
 
-	/*
-	 * Print driver information.
-	 */
+	// Print driver information.
 	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
 		return cm8jl65::info();
 	}
 
-out_error:
-	PX4_ERR("unrecognized command, try 'start', 'test', 'reset' or 'info'");
-	return -1;
+	return cm8jl65::usage();
 }
