@@ -625,7 +625,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	struct distance_sensor_s d = {};
 
 	if (flow.distance > 0.0f) { // negative values signal invalid data
-		d.timestamp = _mavlink_timesync.sync_stamp(flow.integration_time_us * 1000); /* ms to us */
+		d.timestamp = f.timestamp;
 		d.min_distance = 0.3f;
 		d.max_distance = 5.0f;
 		d.current_distance = flow.distance; /* both are in m */
