@@ -415,9 +415,6 @@ GYROSIM::init()
 		return ret;
 	}
 
-	// Do not call _gyro->start()  because polling is done in accel
-	_measure();
-
 	return PX4_OK;
 }
 

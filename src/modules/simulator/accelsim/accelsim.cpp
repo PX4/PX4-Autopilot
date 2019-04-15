@@ -346,9 +346,6 @@ ACCELSIM::init()
 		return ret;
 	}
 
-	/* fill report structures */
-	_measure();
-
 	return PX4_OK;
 }
 
