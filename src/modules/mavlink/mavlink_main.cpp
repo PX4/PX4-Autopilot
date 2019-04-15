@@ -1977,7 +1977,7 @@ Mavlink::task_main(int argc, char *argv[])
 #endif
 
 //		case 'e':
-//			mavlink_link_termination_allowed = true;
+//			_mavlink_link_termination_allowed = true;
 //			break;
 
 		case 'm': {
