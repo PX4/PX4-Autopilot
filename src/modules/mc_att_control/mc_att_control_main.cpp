@@ -562,7 +562,7 @@ void
 MulticopterAttitudeControl::control_attitude_rates(float dt)
 {
 	/* reset integral if disarmed */
-	if (!_v_control_mode.flag_armed || !_vehicle_status.is_rotary_wing) {
+	if (!_v_control_mode.flag_armed || !_vehicle_status.is_rotary_wing ||  _vehicle_status.in_transition_mode) {
 		_rates_int.zero();
 	}
 
@@ -816,7 +816,7 @@ MulticopterAttitudeControl::run()
 
 			bool attitude_setpoint_generated = false;
 
-			if (_v_control_mode.flag_control_attitude_enabled && _vehicle_status.is_rotary_wing) {
+			if (_v_control_mode.flag_control_attitude_enabled && _vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
 				if (attitude_updated) {
 					// Generate the attitude setpoint from stick inputs if we are in Manual/Stabilized mode
 					if (_v_control_mode.flag_control_manual_enabled &&
@@ -833,7 +833,7 @@ MulticopterAttitudeControl::run()
 
 			} else {
 				/* attitude controller disabled, poll rates setpoint topic */
-				if (_v_control_mode.flag_control_manual_enabled && _vehicle_status.is_rotary_wing) {
+				if (_v_control_mode.flag_control_manual_enabled && _vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
 					if (manual_control_updated) {
 						/* manual rates control - ACRO mode */
 						Vector3f man_rate_sp(

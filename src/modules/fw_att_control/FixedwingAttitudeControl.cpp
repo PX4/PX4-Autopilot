@@ -296,7 +296,8 @@ void
 FixedwingAttitudeControl::vehicle_manual_poll()
 {
 
-	if (_vcontrol_mode.flag_control_manual_enabled && !_vehicle_status.is_rotary_wing) {
+	if (_vcontrol_mode.flag_control_manual_enabled && (!_vehicle_status.is_rotary_wing
+			|| _vehicle_status.in_transition_mode)) {
 
 		// Always copy the new manual setpoint, even if it wasn't updated, to fill the _actuators with valid values
 		if (orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual) == PX4_OK) {
@@ -426,7 +427,7 @@ FixedwingAttitudeControl::vehicle_status_poll()
 		// by the multicoper attitude controller. Therefore, modify the control mode to achieve rate
 		// control only
 		if (_vehicle_status.is_vtol) {
-			if (_vehicle_status.is_rotary_wing) {
+			if (_vehicle_status.is_rotary_wing && ! _vehicle_status.in_transition_mode) {
 				_vcontrol_mode.flag_control_attitude_enabled = false;
 				_vcontrol_mode.flag_control_manual_enabled = false;
 			}
@@ -617,7 +618,8 @@ void FixedwingAttitudeControl::run()
 			_att_sp.fw_control_yaw = _att_sp.fw_control_yaw && _vcontrol_mode.flag_control_auto_enabled;
 
 			/* lock integrator until control is started */
-			bool lock_integrator = !(_vcontrol_mode.flag_control_rates_enabled && !_vehicle_status.is_rotary_wing);
+			bool lock_integrator = !(_vcontrol_mode.flag_control_rates_enabled);
+			lock_integrator &= _vehicle_status.is_rotary_wing;
 
 			/* Simple handling of failsafe: deploy parachute if failsafe is on */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
@@ -625,11 +627,6 @@ void FixedwingAttitudeControl::run()
 
 			} else {
 				_actuators_airframe.control[7] = 0.0f;
-			}
-
-			/* if we are in rotary wing mode, do nothing */
-			if (_vehicle_status.is_rotary_wing && !_vehicle_status.is_vtol) {
-				continue;
 			}
 
 			control_flaps(deltaT);
@@ -664,10 +661,10 @@ void FixedwingAttitudeControl::run()
 				}
 
 				/* Reset integrators if the aircraft is on ground
-				 * or a multicopter (but not transitioning VTOL)
+				 * or a multicopter
 				 */
 				if (_landed
-				    || (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode)) {
+				    || (_vehicle_status.is_rotary_wing)) {
 
 					_roll_ctrl.reset_integrator();
 					_pitch_ctrl.reset_integrator();
