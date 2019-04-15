@@ -252,6 +252,7 @@ private:
 	/**
 	 * @brief      Stores the max pwm values given by the system.
 	 */
+	struct pwm_output_values _min_mc_pwm_values {};
 	struct pwm_output_values _max_mc_pwm_values {};
 	struct pwm_output_values _disarmed_pwm_values {};
 
