@@ -1,0 +1,84 @@
+#!/bin/sh
+#
+# @name BabyShark VTOL
+#
+# @type Standard VTOL
+# @class VTOL
+#
+# @maintainer Silvan Fuhrer <silvan@auterion.com>
+#
+# @output MAIN1 Ailerons
+# @output MAIN2 A-tail left
+# @output MAIN3 Pusher motor
+# @output MAIN4 A-tail right
+# @output MAIN5 motor 1
+# @output MAIN6 motor 2
+# @output MAIN7 motor 3
+# @output MAIN8 motor 4
+
+sh /etc/init.d/rc.vtol_defaults
+
+if [ $AUTOCNF = yes ]
+then
+	param set FW_AIRSPD_MAX   28
+	param set FW_AIRSPD_MIN   17
+	param set FW_AIRSPD_TRIM  23
+	param set FW_CLMBOUT_DIFF 0.1
+	param set FW_L1_R_SLEW_MAX 40
+	param set FW_LND_EARLYCFG 1
+	param set FW_P_LIM_MAX 25
+	param set FW_P_LIM_MIN -25
+	param set FW_R_LIM 35
+	param set FW_THR_CRUISE 0.7
+	param set FW_THR_MIN 0.25
+	param set FW_THR_SLEW_MAX 0.6
+	param set FW_T_HRATE_FF 0
+
+	param set IMU_GYRO_CUTOFF 40
+
+	param set MC_DTERM_CUTOFF 15
+	param set MC_PITCHRATE_MAX 60
+	param set MC_ROLLRATE_MAX 60
+	param set MC_YAWRATE_I 0.15
+	param set MC_YAWRATE_MAX 40
+	param set MC_YAWRATE_P 0.3
+	param set MC_YAWRAUTO_MAX 40
+
+	param set MPC_MAN_TILT_MAX 25
+	param set MPC_MAN_Y_MAX 40
+	param set MPC_SPOOLUP_TIME 2
+	param set MPC_THR_HOVER 0.45
+	param set MPC_TILTMAX_AIR 25
+	param set MPC_TKO_RAMP_T0.8
+	param set MPC_VEL_MANUAL 3
+	param set MPC_XY_VEL_MAX 3.5
+	param set MPC_Z_VEL_MAX_UP 2
+
+	param set PWM_MAIN_DIS3 1000
+	param set PWM_MAIN_MIN3 1120
+	param set PWM_MIN 950
+
+	param set V19_VT_ROLLDIR 0
+
+	param set VT_ARSP_TRANS 19
+	param set VT_B_TRANS_DUR 9
+	param set VT_ELEV_MC_LOCK 0
+	param set VT_FWD_THRUST_SC 1.2
+	param set VT_FW_MOT_OFFID 5678
+	param set VT_F_TRANS_DUR 8
+	param set VT_F_TRANS_THR 0.85
+	param set VT_F_TR_OL_TM 7
+	param set VT_IDLE_PWM_MC 1000
+	param set VT_MOT_COUNT 8
+	param set VT_PSHER_RMP_DT 2
+	param set VT_TRANS_MIN_TM 6
+	param set VT_TYPE 2
+
+fi
+
+set MAV_TYPE 22
+
+set MIXER babyshark
+set MIXER_AUX pass
+
+set PWM_OUT 5678
