@@ -648,7 +648,7 @@ BMI055_gyro::measure()
 	grb.scaling = _gyro_range_scale;
 
 	/*
-	 * Temperature is reported as Eight-bit 2’s complement sensor temperature value 
+	 * Temperature is reported as Eight-bit 2’s complement sensor temperature value
 	 * with 0.5 °C/LSB sensitivity and an offset of 23.0 °C
 	 */
 	_last_temperature = (report.temp * 0.5f) + 23.0f;
