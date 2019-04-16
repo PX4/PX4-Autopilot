@@ -559,8 +559,8 @@ BMI055_accel::measure()
 	msb = (uint16_t)accel_data[index++];
 	msblsb = (msb << 8) | lsb;
 	report.accel_z = ((int16_t)msblsb >> 4); /* Data in Z axis */
-	
-	// Byte 
+
+	// Byte
 	report.temp = accel_data[index];
 
 	// Checking the status of new data
