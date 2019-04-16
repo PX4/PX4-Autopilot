@@ -149,31 +149,12 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 
 	//calculate movement constraints based on range data
 	update_range_constraints();
-	_move_constraints_x = _move_constraints_x_normalized;
-	_move_constraints_y = _move_constraints_y_normalized;
-
-	// calculate the maximum velocity along x,y axis when moving in the demanded direction
-	float vel_mag = original_setpoint.norm();
-	float v_max_x, v_max_y;
-
-	if (vel_mag > 0.0f) {
-		v_max_x = abs(max_speed / vel_mag * original_setpoint(0));
-		v_max_y = abs(max_speed / vel_mag * original_setpoint(1));
-
-	} else {
-		v_max_x = 0.0f;
-		v_max_y = 0.0f;
-	}
-
-	//scale the velocity reductions with the maximum possible velocity along the respective axis
-	_move_constraints_x *= v_max_x;
-	_move_constraints_y *= v_max_y;
 
 	//apply the velocity reductions to form velocity limits
-	_move_constraints_x(0) = v_max_x - _move_constraints_x(0);
-	_move_constraints_x(1) = v_max_x - _move_constraints_x(1);
-	_move_constraints_y(0) = v_max_y - _move_constraints_y(0);
-	_move_constraints_y(1) = v_max_y - _move_constraints_y(1);
+	_move_constraints_x(0) = max_speed * (1 - _move_constraints_x_normalized(0));
+	_move_constraints_x(1) = max_speed * (1 - _move_constraints_x_normalized(1));
+	_move_constraints_y(0) = max_speed * (1 - _move_constraints_y_normalized(0));
+	_move_constraints_y(1) = max_speed * (1 - _move_constraints_y_normalized(1));
 
 	//constrain the velocity setpoint to respect the velocity limits
 	Vector2f new_setpoint;
