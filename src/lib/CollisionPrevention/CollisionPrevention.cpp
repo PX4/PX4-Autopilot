@@ -162,9 +162,10 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 	new_setpoint(1) = math::constrain(original_setpoint(1), -_move_constraints_y(0), _move_constraints_y(1));
 
 	//warn user if collision prevention starts to interfere
-	bool currently_interfering = (new_setpoint(0) < 0.95f * original_setpoint(0)
-				      || new_setpoint(0) > 1.05f * original_setpoint(0) || new_setpoint(1) < 0.95f * original_setpoint(1)
-				      || new_setpoint(1) > 1.05f * original_setpoint(1));
+	bool currently_interfering = (new_setpoint(0) < original_setpoint(0) - 0.05 * max_speed
+				      || new_setpoint(0) > original_setpoint(0) + 0.05 * max_speed
+				      || new_setpoint(1) < original_setpoint(1) - 0.05 * max_speed
+				      || new_setpoint(1) > original_setpoint(1) + 0.05 * max_speed);
 
 	if (currently_interfering && (currently_interfering != _interfering)) {
 		mavlink_log_critical(&_mavlink_log_pub, "Collision Warning");
