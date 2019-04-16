@@ -150,6 +150,13 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 	//calculate movement constraints based on range data
 	update_range_constraints();
 
+	//clamp constraints to be in [0,1]. Constraints > 1 occur if the vehicle is closer than _param_mpc_col_prev_d to the obstacle.
+	//they would lead to the vehicle being pushed back from the obstacle which we do not yet support
+	_move_constraints_x_normalized(0) = math::constrain(_move_constraints_x_normalized(0), 0.f, 1.f);
+	_move_constraints_x_normalized(1) = math::constrain(_move_constraints_x_normalized(1), 0.f, 1.f);
+	_move_constraints_y_normalized(0) = math::constrain(_move_constraints_y_normalized(0), 0.f, 1.f);
+	_move_constraints_y_normalized(1) = math::constrain(_move_constraints_y_normalized(1), 0.f, 1.f);
+
 	//apply the velocity reductions to form velocity limits
 	_move_constraints_x(0) = max_speed * (1 - _move_constraints_x_normalized(0));
 	_move_constraints_x(1) = max_speed * (1 - _move_constraints_x_normalized(1));
