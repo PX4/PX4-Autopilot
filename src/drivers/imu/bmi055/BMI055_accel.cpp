@@ -523,7 +523,7 @@ BMI055_accel::measure()
 		int16_t     accel_x;
 		int16_t     accel_y;
 		int16_t     accel_z;
-		int16_t     temp;
+		int8_t     temp;
 	} report;
 
 	/* start measuring */
@@ -570,9 +570,6 @@ BMI055_accel::measure()
 
 
 	_got_duplicate = false;
-
-	int8_t temp = read_reg(BMI055_ACC_TEMP);
-	report.temp = temp;
 
 	if (report.accel_x == 0 &&
 	    report.accel_y == 0 &&
