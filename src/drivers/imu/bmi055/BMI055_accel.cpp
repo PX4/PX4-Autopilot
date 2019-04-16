@@ -510,7 +510,7 @@ BMI055_accel::measure()
 {
 	perf_count(_measure_interval);
 
-	uint8_t index = 0, accel_data[7];
+	uint8_t index = 0, accel_data[8];
 	uint16_t lsb, msb, msblsb;
 	uint8_t status_x, status_y, status_z;
 
@@ -559,6 +559,9 @@ BMI055_accel::measure()
 	msb = (uint16_t)accel_data[index++];
 	msblsb = (msb << 8) | lsb;
 	report.accel_z = ((int16_t)msblsb >> 4); /* Data in Z axis */
+	
+	// Byte 
+	report.temp = accel_data[index];
 
 	// Checking the status of new data
 	if ((!status_x) || (!status_y) || (!status_z)) {
