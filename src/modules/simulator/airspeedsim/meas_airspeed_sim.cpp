@@ -190,7 +190,7 @@ MEASAirspeedSim::collect()
 	float temperature = airspeed_report.temperature;
 	float diff_press_pa_raw = airspeed_report.diff_pressure * 100.0f; // convert from millibar to bar
 
-	struct differential_pressure_s report;
+	differential_pressure_s report = {};
 
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
@@ -198,10 +198,8 @@ MEASAirspeedSim::collect()
 	report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw);
 	report.differential_pressure_raw_pa = diff_press_pa_raw;
 
-	if (_airspeed_pub != nullptr) {
-		/* publish it */
-		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
-	}
+	int instance;
+	orb_publish_auto(ORB_ID(differential_pressure), &_airspeed_pub, &report, &instance, ORB_PRIO_DEFAULT);
 
 	new_report(report);
 

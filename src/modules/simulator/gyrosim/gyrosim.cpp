@@ -250,7 +250,6 @@ private:
 
 	uint8_t _regdata[108];
 
-	bool _pub_blocked = true; // Don't publish until initialized
 };
 
 /**
@@ -358,19 +357,11 @@ GYROSIM::~GYROSIM()
 int
 GYROSIM::init()
 {
-	PX4_DEBUG("init");
-	int ret = 1;
-
-	sensor_accel_s arp = {};
-
-	sensor_gyro_s grp = {};
-
-	ret = VirtDevObj::init();
+	int ret = VirtDevObj::init();
 
 	if (ret != 0) {
 		PX4_WARN("Base class init failed");
-		ret = 1;
-		goto out;
+		return ret;
 	}
 
 	/* allocate basic report buffers */
@@ -378,19 +369,19 @@ GYROSIM::init()
 
 	if (_accel_reports == nullptr) {
 		PX4_WARN("_accel_reports creation failed");
-		goto out;
+		return -ENOMEM;
 	}
 
 	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_gyro_s));
 
 	if (_gyro_reports == nullptr) {
 		PX4_WARN("_gyro_reports creation failed");
-		goto out;
+		return -ENOMEM;
 	}
 
 	if (reset() != OK) {
 		PX4_WARN("reset failed");
-		goto out;
+		return PX4_ERROR;
 	}
 
 	/* Initialize offsets and scales */
@@ -408,7 +399,6 @@ GYROSIM::init()
 	_gyro_scale.z_offset = 0;
 	_gyro_scale.z_scale  = 1.0f;
 
-
 	/* do init for the gyro device node, keep it optional */
 	ret = _gyro->init();
 
@@ -425,37 +415,7 @@ GYROSIM::init()
 		return ret;
 	}
 
-	// Do not call _gyro->start()  because polling is done in accel
-
-	_measure();
-
-	/* advertise sensor topic, measure manually to initialize valid report */
-	_accel_reports->get(&arp);
-
-	/* measurement will have generated a report, publish */
-	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-					   &_accel_orb_class_instance, ORB_PRIO_HIGH);
-
-	if (_accel_topic == nullptr) {
-		PX4_WARN("ADVERT FAIL");
-
-	} else {
-		_pub_blocked = false;
-	}
-
-
-	/* advertise sensor topic, measure manually to initialize valid report */
-	_gyro_reports->get(&grp);
-
-	_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-			     &_gyro->_gyro_orb_class_instance, ORB_PRIO_HIGH);
-
-	if (_gyro->_gyro_topic == nullptr) {
-		PX4_WARN("ADVERT FAIL");
-	}
-
-out:
-	return ret;
+	return PX4_OK;
 }
 
 int GYROSIM::reset()
@@ -915,17 +875,11 @@ GYROSIM::_measure()
 	_gyro_reports->force(&grb);
 
 	if (accel_notify) {
-		if (!(_pub_blocked)) {
-			/* publish it */
-			orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
-		}
+		orb_publish_auto(ORB_ID(sensor_accel), &_accel_topic, &arb, &_accel_orb_class_instance, ORB_PRIO_HIGH);
 	}
 
 	if (gyro_notify) {
-		if (!(_pub_blocked)) {
-			/* publish it */
-			orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
-		}
+		orb_publish_auto(ORB_ID(sensor_gyro), &_gyro->_gyro_topic, &grb, &_gyro->_gyro_orb_class_instance, ORB_PRIO_HIGH);
 	}
 
 	/* stop measuring */
