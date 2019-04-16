@@ -571,7 +571,7 @@ BMI055_accel::measure()
 
 	_got_duplicate = false;
 
-	uint8_t temp = read_reg(BMI055_ACC_TEMP);
+	int8_t temp = read_reg(BMI055_ACC_TEMP);
 	report.temp = temp;
 
 	if (report.accel_x == 0 &&
@@ -649,9 +649,13 @@ BMI055_accel::measure()
 
 	arb.scaling = _accel_range_scale;
 
-	_last_temperature = 23 + report.temp * 1.0f / 512.0f;
-
+	/*
+	 * Temperature is reported as Eight-bit 2’s complement sensor temperature value 
+	 * with 0.5 °C/LSB sensitivity and an offset of 23.0 °C
+	 */
+	_last_temperature = (report.temp * 0.5f) + 23.0f;
 	arb.temperature = _last_temperature;
+
 	arb.device_id = _device_id.devid;
 
 	_accel_reports->force(&arb);
