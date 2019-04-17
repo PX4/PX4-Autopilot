@@ -50,6 +50,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 #include <drivers/drv_hrt.h>
 #include <px4_getopt.h>
@@ -198,6 +199,7 @@ $ logger on
 	PRINT_MODULE_USAGE_NAME("logger", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('m', "all", "file|mavlink|all", "Backend mode", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Enable/disable logging via Aux1 RC channel", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('e', "Enable logging right after start until disarm (otherwise only when armed)", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Log until shutdown (implies -e)", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('t', "Use date/time for naming log directories and files", true);
@@ -290,6 +292,7 @@ Logger *Logger::instantiate(int argc, char *argv[])
 	int log_buffer_size = 12 * 1024;
 	bool log_on_start = false;
 	bool log_until_shutdown = false;
+	Logger::LogMode log_mode = Logger::LogMode::while_armed;
 	bool error_flag = false;
 	bool log_name_timestamp = false;
 	unsigned int queue_size = 14; //TODO: we might be able to reduce this if mavlink polled on the topic and/or
@@ -301,7 +304,7 @@ Logger *Logger::instantiate(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "r:b:etfm:q:p:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "r:b:etfm:q:p:x", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'r': {
 				unsigned long r = strtoul(myoptarg, nullptr, 10);
@@ -312,6 +315,10 @@ Logger *Logger::instantiate(int argc, char *argv[])
 
 				log_interval = 1e6 / r;
 			}
+			break;
+
+		case 'x':
+			log_mode = Logger::LogMode::rc_aux1;
 			break;
 
 		case 'e':
@@ -379,12 +386,19 @@ Logger *Logger::instantiate(int argc, char *argv[])
 		}
 	}
 
+	if (log_on_start) {
+		if (log_until_shutdown) {
+			log_mode = Logger::LogMode::boot_until_shutdown;
+		} else {
+			log_mode = Logger::LogMode::boot_until_disarm;
+		}
+	}
+
 	if (error_flag) {
 		return nullptr;
 	}
 
-	Logger *logger = new Logger(backend, log_buffer_size, log_interval, poll_topic, log_on_start,
-				    log_until_shutdown, log_name_timestamp, queue_size);
+	Logger *logger = new Logger(backend, log_buffer_size, log_interval, poll_topic, log_mode, log_name_timestamp, queue_size);
 
 #if defined(DBGPRINT) && defined(__PX4_NUTTX)
 	struct mallinfo alloc_info = mallinfo();
@@ -413,10 +427,8 @@ Logger *Logger::instantiate(int argc, char *argv[])
 
 
 Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, const char *poll_topic_name,
-	       bool log_on_start, bool log_until_shutdown, bool log_name_timestamp, unsigned int queue_size) :
-	_arm_override(false),
-	_log_on_start(log_on_start),
-	_log_until_shutdown(log_until_shutdown),
+	       LogMode log_mode, bool log_name_timestamp, unsigned int queue_size) :
+	_log_mode(log_mode),
 	_log_name_timestamp(log_name_timestamp),
 	_writer(backend, buffer_size, queue_size),
 	_log_interval(log_interval)
@@ -941,6 +953,11 @@ void Logger::run()
 		}
 	}
 
+	int manual_control_sp_sub = -1;
+	if (_log_mode == LogMode::rc_aux1) {
+		manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	}
+
 	int ntopics = add_topics_from_file(PX4_STORAGEDIR "/etc/logging/logger_topics.txt");
 
 	if (ntopics > 0) {
@@ -1004,9 +1021,7 @@ void Logger::run()
 
 	px4_register_shutdown_hook(&Logger::request_stop_static);
 
-	// we start logging immediately
-	// the case where we wait with logging until vehicle is armed is handled below
-	if (_log_on_start) {
+	if (_log_mode == LogMode::boot_until_disarm || _log_mode == LogMode::boot_until_shutdown) {
 		start_log_file(LogType::Full);
 	}
 
@@ -1047,8 +1062,8 @@ void Logger::run()
 
 	while (!should_exit()) {
 
-		// Start/stop logging when system arm/disarm
-		const bool logging_started = check_arming_state(vehicle_status_sub, (MissionLogType)mission_log_mode);
+		// Start/stop logging (depending on logging mode, by default when arming/disarming)
+		const bool logging_started = start_stop_logging(vehicle_status_sub, manual_control_sp_sub, (MissionLogType)mission_log_mode);
 		if (logging_started) {
 #ifdef DBGPRINT
 			timer_start = hrt_absolute_time();
@@ -1272,6 +1287,10 @@ void Logger::run()
 		}
 	}
 
+	if (manual_control_sp_sub != -1) {
+		orb_unsubscribe(manual_control_sp_sub);
+	}
+
 	if (polling_topic_sub >= 0) {
 		orb_unsubscribe(polling_topic_sub);
 	}
@@ -1312,43 +1331,75 @@ void Logger::debug_print_buffer(uint32_t &total_bytes, hrt_abstime &timer_start)
 #endif /* DBGPRINT */
 }
 
-bool Logger::check_arming_state(int vehicle_status_sub, MissionLogType mission_log_type)
+bool Logger::start_stop_logging(int vehicle_status_sub, int manual_control_sp_sub, MissionLogType mission_log_type)
 {
-	bool vehicle_status_updated;
-	int ret = orb_check(vehicle_status_sub, &vehicle_status_updated);
 	bool bret = false;
+	bool want_start = false;
+	bool want_stop = false;
 
-	if (ret == 0 && vehicle_status_updated) {
-		vehicle_status_s vehicle_status;
-		orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
-		bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) || _arm_override;
+	if (_log_mode == LogMode::rc_aux1) {
+		//aux1-based logging
+		bool manual_control_setpoint_updated;
+		int ret = orb_check(manual_control_sp_sub, &manual_control_setpoint_updated);
 
-		if (_was_armed != armed && !_log_until_shutdown) {
-			_was_armed = armed;
+		if (ret == 0 && manual_control_setpoint_updated) {
+			manual_control_setpoint_s manual_sp;
+			orb_copy(ORB_ID(manual_control_setpoint), manual_control_sp_sub, &manual_sp);
+			bool should_start = manual_sp.aux1 > 0.3f || _manually_logging_override;
 
-			if (armed) {
+			if (_prev_state != should_start) {
+				_prev_state = should_start;
+				if (should_start) {
+					want_start = true;
 
-				if (_should_stop_file_log) { // happens on quick arming after disarm
-					_should_stop_file_log = false;
-					stop_log_file(LogType::Full);
-				}
-
-				start_log_file(LogType::Full);
-				bret = true;
-
-				if (mission_log_type != MissionLogType::Disabled) {
-					start_log_file(LogType::Mission);
-				}
-
-			} else {
-				// delayed stop: we measure the process loads and then stop
-				initialize_load_output(PrintLoadReason::Postflight);
-				_should_stop_file_log = true;
-
-				if (mission_log_type != MissionLogType::Disabled) {
-					stop_log_file(LogType::Mission);
+				} else {
+					want_stop = true;
 				}
 			}
+		}
+
+	} else {
+		// arming-based logging
+		bool vehicle_status_updated;
+		int ret = orb_check(vehicle_status_sub, &vehicle_status_updated);
+
+		if (ret == 0 && vehicle_status_updated) {
+			vehicle_status_s vehicle_status;
+			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
+			bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) || _manually_logging_override;
+
+			if (_prev_state != armed && _log_mode != LogMode::boot_until_shutdown) {
+				_prev_state = armed;
+
+				if (armed) {
+					want_start = true;
+
+				} else {
+					want_stop = true;
+				}
+			}
+		}
+	}
+
+	if (want_start) {
+		if (_should_stop_file_log) { // happens on quick stop/start toggling
+			_should_stop_file_log = false;
+			stop_log_file(LogType::Full);
+		}
+
+		start_log_file(LogType::Full);
+		bret = true;
+
+		if (mission_log_type != MissionLogType::Disabled) {
+			start_log_file(LogType::Mission);
+		}
+	} else if (want_stop) {
+		// delayed stop: we measure the process loads and then stop
+		initialize_load_output(PrintLoadReason::Postflight);
+		_should_stop_file_log = true;
+
+		if (mission_log_type != MissionLogType::Disabled) {
+			stop_log_file(LogType::Mission);
 		}
 	}
 	return bret;
