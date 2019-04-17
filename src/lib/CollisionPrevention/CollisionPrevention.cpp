@@ -149,31 +149,19 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 
 	//calculate movement constraints based on range data
 	update_range_constraints();
-	_move_constraints_x = _move_constraints_x_normalized;
-	_move_constraints_y = _move_constraints_y_normalized;
 
-	// calculate the maximum velocity along x,y axis when moving in the demanded direction
-	float vel_mag = original_setpoint.norm();
-	float v_max_x, v_max_y;
-
-	if (vel_mag > 0.0f) {
-		v_max_x = abs(max_speed / vel_mag * original_setpoint(0));
-		v_max_y = abs(max_speed / vel_mag * original_setpoint(1));
-
-	} else {
-		v_max_x = 0.0f;
-		v_max_y = 0.0f;
-	}
-
-	//scale the velocity reductions with the maximum possible velocity along the respective axis
-	_move_constraints_x *= v_max_x;
-	_move_constraints_y *= v_max_y;
+	//clamp constraints to be in [0,1]. Constraints > 1 occur if the vehicle is closer than _param_mpc_col_prev_d to the obstacle.
+	//they would lead to the vehicle being pushed back from the obstacle which we do not yet support
+	_move_constraints_x_normalized(0) = math::constrain(_move_constraints_x_normalized(0), 0.f, 1.f);
+	_move_constraints_x_normalized(1) = math::constrain(_move_constraints_x_normalized(1), 0.f, 1.f);
+	_move_constraints_y_normalized(0) = math::constrain(_move_constraints_y_normalized(0), 0.f, 1.f);
+	_move_constraints_y_normalized(1) = math::constrain(_move_constraints_y_normalized(1), 0.f, 1.f);
 
 	//apply the velocity reductions to form velocity limits
-	_move_constraints_x(0) = v_max_x - _move_constraints_x(0);
-	_move_constraints_x(1) = v_max_x - _move_constraints_x(1);
-	_move_constraints_y(0) = v_max_y - _move_constraints_y(0);
-	_move_constraints_y(1) = v_max_y - _move_constraints_y(1);
+	_move_constraints_x(0) = max_speed * (1.f - _move_constraints_x_normalized(0));
+	_move_constraints_x(1) = max_speed * (1.f - _move_constraints_x_normalized(1));
+	_move_constraints_y(0) = max_speed * (1.f - _move_constraints_y_normalized(0));
+	_move_constraints_y(1) = max_speed * (1.f - _move_constraints_y_normalized(1));
 
 	//constrain the velocity setpoint to respect the velocity limits
 	Vector2f new_setpoint;
@@ -181,9 +169,10 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 	new_setpoint(1) = math::constrain(original_setpoint(1), -_move_constraints_y(0), _move_constraints_y(1));
 
 	//warn user if collision prevention starts to interfere
-	bool currently_interfering = (new_setpoint(0) < 0.95f * original_setpoint(0)
-				      || new_setpoint(0) > 1.05f * original_setpoint(0) || new_setpoint(1) < 0.95f * original_setpoint(1)
-				      || new_setpoint(1) > 1.05f * original_setpoint(1));
+	bool currently_interfering = (new_setpoint(0) < original_setpoint(0) - 0.05f * max_speed
+				      || new_setpoint(0) > original_setpoint(0) + 0.05f * max_speed
+				      || new_setpoint(1) < original_setpoint(1) - 0.05f * max_speed
+				      || new_setpoint(1) > original_setpoint(1) + 0.05f * max_speed);
 
 	if (currently_interfering && (currently_interfering != _interfering)) {
 		mavlink_log_critical(&_mavlink_log_pub, "Collision Warning");
