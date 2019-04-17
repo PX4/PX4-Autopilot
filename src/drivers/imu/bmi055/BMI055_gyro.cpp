@@ -562,8 +562,7 @@ BMI055_gyro::measure()
 
 	check_registers();
 
-	uint8_t temp = read_reg(BMI055_ACC_TEMP);
-
+	int8_t temp = read_reg(BMI055_ACC_TEMP);
 	report.temp = temp;
 
 	report.gyro_x = bmi_gyroreport.gyro_x;
@@ -648,7 +647,13 @@ BMI055_gyro::measure()
 
 	grb.scaling = _gyro_range_scale;
 
+	/*
+	 * Temperature is reported as Eight-bit 2’s complement sensor temperature value
+	 * with 0.5 °C/LSB sensitivity and an offset of 23.0 °C
+	 */
+	_last_temperature = (report.temp * 0.5f) + 23.0f;
 	grb.temperature = _last_temperature;
+
 	grb.device_id = _device_id.devid;
 
 	_gyro_reports->force(&grb);
