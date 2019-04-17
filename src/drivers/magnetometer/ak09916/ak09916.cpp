@@ -311,6 +311,8 @@ AK09916::init()
 		return ret;
 	}
 
+	reset();
+
 	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
 
 	if (_mag_reports == nullptr) {
@@ -318,8 +320,6 @@ AK09916::init()
 	}
 
 	_mag_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
-
-	reset();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
 	struct mag_report mrp;
@@ -583,8 +583,7 @@ AK09916::write_reg(uint8_t reg, uint8_t value)
 int
 AK09916::reset(void)
 {
-	// First initialize it to use the bus
-	int rv = setup();
+	int rv = probe();
 
 	if (rv == OK) {
 		// Now reset the mag
@@ -598,7 +597,7 @@ AK09916::reset(void)
 }
 
 int
-AK09916::setup(void)
+AK09916::probe(void)
 {
 	int retries = 10;
 
@@ -608,12 +607,18 @@ AK09916::setup(void)
 		uint8_t id = 0;
 
 		if (check_id(id)) {
-			break;
+			return OK;
 		}
 
 		retries--;
 	} while (retries > 0);
 
+	return PX4_ERROR;
+}
+
+int
+AK09916::setup(void)
+{
 	write_reg(AK09916REG_CNTL2, AK09916_CNTL2_CONTINOUS_MODE_100HZ);
 
 	return OK;
