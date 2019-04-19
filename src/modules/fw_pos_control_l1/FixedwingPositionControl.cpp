@@ -1593,7 +1593,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			//Check that we are not in the flare phase just because we thought the altitude was right, but are actually too high
 			//(meaning that _land_noreturn_vertical was set to true too soon)
 			//the rangefinder bump will be handled by the glideslope part
-                        if (_land_prev_tecs_alt_sp > _landingslope.flare_relative_alt() + terrain_alt) {
+			if (_land_prev_tecs_alt_sp > _landingslope.flare_relative_alt() + terrain_alt) {
 				_land_noreturn_vertical = false;
 				goto landing_glideslope;
 
@@ -1729,7 +1729,8 @@ landing_glideslope:
 				// Always move the slope if the flare horizontal limit has been passed.
 				if (((_global_pos.alt - terrain_alt) > landing_slope_alt_rel_desired * (1.0f + _parameters.land_gs_max_alt_err)  &&
 				     landing_slope_alt_rel_desired < _parameters.land_max_gs_mv_alt) || wp_distance < _landingslope.flare_length()) {
-					_land_touchdown_point_shift = _landingslope.getLandingSlopeWPDistance(_land_prev_tecs_alt_sp, terrain_alt,								      _landingslope.horizontal_slope_displacement(),
+					_land_touchdown_point_shift = _landingslope.getLandingSlopeWPDistance(_land_prev_tecs_alt_sp, terrain_alt,
+								      _landingslope.horizontal_slope_displacement(),
 								      _landingslope.landing_slope_angle_rad()) - wp_distance;
 
 					// Don't move the touchdown point backwards
