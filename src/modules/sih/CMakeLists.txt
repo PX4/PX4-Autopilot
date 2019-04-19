@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,11 +31,14 @@
 #
 ############################################################################
 
-add_subdirectory(ak09916)
-add_subdirectory(bmm150)
-add_subdirectory(hmc5883)
-add_subdirectory(qmc5883)
-add_subdirectory(ist8310)
-add_subdirectory(lis3mdl)
-add_subdirectory(lsm303agr)
-add_subdirectory(rm3100)
+px4_add_module(
+	MODULE modules__sih
+	MAIN sih
+	STACK_MAIN 1200
+	STACK_MAX 1024
+	COMPILE_FLAGS
+	SRCS
+		sih.cpp
+	DEPENDS
+		mathlib
+	)

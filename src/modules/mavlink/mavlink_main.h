@@ -656,7 +656,8 @@ private:
 		(ParamInt<px4::params::MAV_BROADCAST>) _param_mav_broadcast,
 		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_mav_hash_chk_en,
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
-		(ParamBool<px4::params::MAV_ODOM_LP>) _param_mav_odom_lp
+		(ParamBool<px4::params::MAV_ODOM_LP>) _param_mav_odom_lp,
+		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl
 	)
 
 	perf_counter_t		_loop_perf;			/**< loop performance counter */

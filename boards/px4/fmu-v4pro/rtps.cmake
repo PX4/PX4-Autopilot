@@ -82,6 +82,7 @@ px4_add_board(
 		micrortps_bridge
 		navigator
 		sensors
+		sih
 		vmount
 		vtol_att_control
 		wind_estimator

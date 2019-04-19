@@ -29,7 +29,6 @@ px4_add_board(
 		imu/adis16448
 		#imu # all available imu drivers
 		imu/bmi055
-		imu/icm20948
 		imu/mpu6000
 		imu/mpu9250
 		#irlock
@@ -84,6 +83,7 @@ px4_add_board(
 		#micrortps_bridge
 		navigator
 		sensors
+		sih
 		vmount
 		vtol_att_control
 		wind_estimator

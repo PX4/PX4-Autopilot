@@ -64,12 +64,15 @@ PARAM_DEFINE_INT32(SYS_AUTOSTART, 0);
 PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
 
 /**
- * Enable HITL mode on next boot
+ * Enable HITL/SIH mode on next boot
  *
- * While enabled the system will boot in HITL mode and not enable all sensors and checks.
- * When disabled the same vehicle can be normally flown outdoors.
+ * While enabled the system will boot in Hardware-In-The-Loop (HITL)
+ * or Simulation-In-Hardware (SIH) mode and not enable all sensors and checks.
+ * When disabled the same vehicle can be flown normally.
  *
- * @boolean
+ * @value 0 HITL and SIH disabled
+ * @value 1 HITL enabled
+ * @value 2 SIH enabled
  * @reboot_required true
  *
  * @group System

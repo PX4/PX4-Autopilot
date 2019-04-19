@@ -510,7 +510,7 @@ BMI055_accel::measure()
 {
 	perf_count(_measure_interval);
 
-	uint8_t index = 0, accel_data[7];
+	uint8_t index = 0, accel_data[8];
 	uint16_t lsb, msb, msblsb;
 	uint8_t status_x, status_y, status_z;
 
@@ -523,7 +523,7 @@ BMI055_accel::measure()
 		int16_t     accel_x;
 		int16_t     accel_y;
 		int16_t     accel_z;
-		int16_t     temp;
+		int8_t     temp;
 	} report;
 
 	/* start measuring */
@@ -560,6 +560,9 @@ BMI055_accel::measure()
 	msblsb = (msb << 8) | lsb;
 	report.accel_z = ((int16_t)msblsb >> 4); /* Data in Z axis */
 
+	// Byte
+	report.temp = accel_data[index];
+
 	// Checking the status of new data
 	if ((!status_x) || (!status_y) || (!status_z)) {
 		perf_end(_sample_perf);
@@ -570,9 +573,6 @@ BMI055_accel::measure()
 
 
 	_got_duplicate = false;
-
-	uint8_t temp = read_reg(BMI055_ACC_TEMP);
-	report.temp = temp;
 
 	if (report.accel_x == 0 &&
 	    report.accel_y == 0 &&
@@ -649,9 +649,13 @@ BMI055_accel::measure()
 
 	arb.scaling = _accel_range_scale;
 
-	_last_temperature = 23 + report.temp * 1.0f / 512.0f;
-
+	/*
+	 * Temperature is reported as Eight-bit 2’s complement sensor temperature value
+	 * with 0.5 °C/LSB sensitivity and an offset of 23.0 °C
+	 */
+	_last_temperature = (report.temp * 0.5f) + 23.0f;
 	arb.temperature = _last_temperature;
+
 	arb.device_id = _device_id.devid;
 
 	_accel_reports->force(&arb);

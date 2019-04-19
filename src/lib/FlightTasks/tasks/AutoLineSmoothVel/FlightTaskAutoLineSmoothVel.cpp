@@ -63,13 +63,6 @@ void FlightTaskAutoLineSmoothVel::reActivate()
 	// flight task is always reset.
 }
 
-void FlightTaskAutoLineSmoothVel::_setDefaultConstraints()
-{
-	FlightTaskAuto::_setDefaultConstraints();
-
-	_constraints.speed_xy = _param_mpc_xy_vel_max.get(); // TODO : Should be computed using heading
-}
-
 void FlightTaskAutoLineSmoothVel::_generateSetpoints()
 {
 	_prepareSetpoints();
@@ -167,7 +160,7 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 		Vector2f u_pos_traj_to_dest_xy(Vector2f(pos_traj_to_dest).unit_or_zero());
 
 		float speed_sp_track = Vector2f(pos_traj_to_dest).length() * _param_mpc_xy_traj_p.get();
-		speed_sp_track = math::constrain(speed_sp_track, 0.0f, _param_mpc_xy_cruise.get());
+		speed_sp_track = math::constrain(speed_sp_track, 0.0f, _mc_cruise_speed);
 
 		Vector2f vel_sp_xy = u_pos_traj_to_dest_xy * speed_sp_track;
 
@@ -206,8 +199,8 @@ void FlightTaskAutoLineSmoothVel::_updateTrajConstraints()
 	// Update the constraints of the trajectories
 	_trajectory[0].setMaxAccel(_param_mpc_acc_hor_max.get()); // TODO : Should be computed using heading
 	_trajectory[1].setMaxAccel(_param_mpc_acc_hor_max.get());
-	_trajectory[0].setMaxVel(_constraints.speed_xy);
-	_trajectory[1].setMaxVel(_constraints.speed_xy);
+	_trajectory[0].setMaxVel(_param_mpc_xy_vel_max.get());
+	_trajectory[1].setMaxVel(_param_mpc_xy_vel_max.get());
 	_trajectory[0].setMaxJerk(_param_mpc_jerk_min.get()); // TODO : Should be computed using heading
 	_trajectory[1].setMaxJerk(_param_mpc_jerk_min.get());
 	_trajectory[2].setMaxJerk(_param_mpc_jerk_min.get());

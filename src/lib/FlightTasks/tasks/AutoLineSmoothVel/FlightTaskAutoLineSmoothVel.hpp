@@ -66,7 +66,6 @@ protected:
 				       );
 
 	void _generateSetpoints() override; /**< Generate setpoints along line. */
-	void _setDefaultConstraints() override;
 
 	inline float _constrainOneSide(float val, float constrain);
 	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
