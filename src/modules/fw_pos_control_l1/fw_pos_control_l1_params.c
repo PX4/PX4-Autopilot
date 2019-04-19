@@ -470,7 +470,7 @@ PARAM_DEFINE_FLOAT(FW_LND_GS_TOL, 0.1f);
  * The time for how long the terrain estimate can be without updating before aborting the landing during the
  * landing phase.
  *
- * @unit norm
+ * @unit s
  * @min 0.1
  * @max 10.0
  * @decimal 2
@@ -482,7 +482,7 @@ PARAM_DEFINE_FLOAT(FW_LND_TERR_TO, 1.0f);
 /**
  * How many seconds we will wait for a valid terrain estimate during the landing phase before aborting the landing.
  *
- * @unit norm
+ * @unit s
  * @min 0.1
  * @max 100
  * @decimal 2
