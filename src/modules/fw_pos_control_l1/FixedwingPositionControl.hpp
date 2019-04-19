@@ -114,8 +114,6 @@ static constexpr float HDG_HOLD_YAWRATE_THRESH = 0.15f;	// max yawrate at which 
 static constexpr float HDG_HOLD_MAN_INPUT_THRESH =
 	0.01f; // max manual roll/yaw input from user which does not change the locked heading
 
-static constexpr hrt_abstime T_ALT_TIMEOUT = 1_s; // time after which we abort landing if terrain estimate is not valid
-
 static constexpr float THROTTLE_THRESH =
 	0.05f;	///< max throttle from user which will not lead to motors spinning up in altitude controlled modes
 static constexpr float MANUAL_THROTTLE_CLIMBOUT_THRESH =
@@ -316,6 +314,8 @@ private:
 		float land_max_aimpoint_shift;
 		float land_max_gs_mv_alt;
 		float land_gs_max_alt_err;
+		float land_terr_timeout;
+		float land_terr_wait_time;
 
 		// VTOL
 		float airspeed_trans;
@@ -385,6 +385,8 @@ private:
 		param_t land_max_aimpoint_shift;
 		param_t land_max_gs_mv_alt;
 		param_t land_gs_max_alt_err;
+		param_t land_terr_timeout;
+		param_t land_terr_wait_time;
 
 		param_t vtol_type;
 	} _parameter_handles {};				///< handles for interesting parameters */

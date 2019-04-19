@@ -466,6 +466,31 @@ PARAM_DEFINE_FLOAT(FW_LND_MV_ALT, 0.0f);
  */
 PARAM_DEFINE_FLOAT(FW_LND_GS_TOL, 0.1f);
 
+/**
+ * The time for how long the terrain estimate can be without updating before aborting the landing during the
+ * landing phase.
+ *
+ * @unit norm
+ * @min 0.1
+ * @max 10.0
+ * @decimal 2
+ * @increment 0.1
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_TERR_TO, 1.0f);
+
+/**
+ * How many seconds we will wait for a valid terrain estimate during the landing phase before aborting the landing.
+ *
+ * @unit norm
+ * @min 0.1
+ * @max 100
+ * @decimal 2
+ * @increment 0.1
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_WAIT_TERR, 10.0f);
+
 
 /*
  * TECS parameters

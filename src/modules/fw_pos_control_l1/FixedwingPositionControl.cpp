@@ -82,6 +82,8 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.land_max_aimpoint_shift = param_find("FW_LND_MAX_MV");
 	_parameter_handles.land_max_gs_mv_alt = param_find("FW_LND_MV_ALT");
 	_parameter_handles.land_gs_max_alt_err = param_find("FW_LND_GS_TOL");
+	_parameter_handles.land_terr_timeout = param_find("FW_LND_TERR_TO");
+	_parameter_handles.land_terr_wait_time = param_find("FW_LND_WAIT_TERR");
 
 	_parameter_handles.time_const = param_find("FW_T_TIME_CONST");
 	_parameter_handles.time_const_throt = param_find("FW_T_THRO_CONST");
@@ -160,6 +162,8 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_max_aimpoint_shift, &(_parameters.land_max_aimpoint_shift));
 	param_get(_parameter_handles.land_max_gs_mv_alt, &(_parameters.land_max_gs_mv_alt));
 	param_get(_parameter_handles.land_gs_max_alt_err, &(_parameters.land_gs_max_alt_err));
+	param_get(_parameter_handles.land_terr_timeout, &(_parameters.land_terr_timeout));
+	param_get(_parameter_handles.land_terr_wait_time, &(_parameters.land_terr_wait_time));
 
 	// VTOL parameter VTOL_TYPE
 	if (_parameter_handles.vtol_type != PARAM_INVALID) {
@@ -1517,7 +1521,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 			// we have started landing phase but don't have valid terrain
 			// wait for some time, maybe we will soon get a valid estimate
 			// until then just use the altitude of the landing waypoint
-			if (hrt_elapsed_time(&_time_started_landing) < 10_s) {
+			if (hrt_elapsed_time(&_time_started_landing) < _parameters.land_terr_wait_time) {
 				terrain_alt = pos_sp_curr.alt;
 
 			} else {
@@ -1526,7 +1530,7 @@ FixedwingPositionControl::control_landing(const Vector2f &curr_pos, const Vector
 				abort_landing(true);
 			}
 
-		} else if ((!_global_pos.terrain_alt_valid && hrt_elapsed_time(&_time_last_t_alt) < T_ALT_TIMEOUT)
+		} else if ((!_global_pos.terrain_alt_valid && hrt_elapsed_time(&_time_last_t_alt) < _parameters.land_terr_timeout)
 			   || _land_noreturn_vertical) {
 			// use previous terrain estimate for some time and hope to recover
 			// if we are already flaring (land_noreturn_vertical) then just
