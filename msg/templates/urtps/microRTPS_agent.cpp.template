@@ -53,6 +53,7 @@ recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgSc
  ****************************************************************************/
 
 #include <thread>
+#include <atomic>
 #include <unistd.h>
 #include <poll.h>
 #include <chrono>
@@ -181,8 +182,9 @@ void signal_handler(int signum)
    running = 0;
    transport_node->close();
 }
-@[if recv_topics]@
 
+@[if recv_topics]@
+std::atomic<bool> exit_sender_thread(false);
 void t_send(void *data)
 {
     char data_buffer[BUFFER_SIZE] = {};
@@ -192,7 +194,7 @@ void t_send(void *data)
     while (running)
     {
         // Send subscribed topics over UART
-        while (topics.hasMsg(&topic_ID))
+        while (topics.hasMsg(&topic_ID) && !exit_sender_thread.load())
         {
             uint16_t header_length = transport_node->get_header_length();
             /* make room for the header to fill in later */
@@ -301,6 +303,7 @@ int main(int argc, char** argv)
         usleep(_options.sleep_us);
     }
 @[if recv_topics]@
+    exit_sender_thread = true;
     sender_thread.join();
 @[end if]@
     delete transport_node;
