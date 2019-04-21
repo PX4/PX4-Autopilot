@@ -819,15 +819,27 @@ PARAM_DEFINE_INT32(COM_OBS_AVOID, 0);
 PARAM_DEFINE_INT32(COM_OA_BOOT_T, 100);
 
 /**
- * Airspeed failsafe consistency threshold
+ * Airspeed failsafe consistency threshold percentage
  *
- * This scales the minimum airspeed inconsistency required to trigger a failsafe. Increase to make the check less sensitive, decrease to make it more sensitive. The failsafe response is controlled by the COM_ASPD_FS_ACT parameter.
- *
- * @min 0.5
- * @max 2.0
+ * This scales the minimum airspeed test ratio as logged in estimator_status.tas_test_ratio required to trigger a failsafe. A parameter value of 100 eqautes to a estimator_status.tas_test_ratio of 1. A zero value disables the check. Larger values to make the check less sensitive, smaller values to make it more sensitive. Start with a value of 100 when tuning. The time required to detect a fault when the threshold is exceeded depends on the size of the exceedance and is controlled by COM_TAS_FS_DELAY. The failsafe response to is controlled by the COM_ASPD_FS_ACT parameter.
+*
+ * @min 0
+ * @max 300
  * @group Commander
  */
-PARAM_DEFINE_FLOAT(COM_TAS_FS_INNOV, 1.0f);
+PARAM_DEFINE_INT32(COM_TAS_FS_INNOV, 0);
+
+/**
+ * Airspeed failsafe consistency delay
+ *
+ * This sets the time integral of airspeed test ratio exceedance above COM_TAS_FS_INNOV required to trigger a failsafe. For example if COM_TAS_FS_INNOV is 100 and estimator_status.tas_test_ratio is 2.0, then the exceedance is 1.0 and the integral will rise at a rate of 1.0/second. Increase to make the check less sensitive, decrease to make it more sensitive. The failsafe response is controlled by the COM_ASPD_FS_ACT parameter.
+ *
+ * @unit s
+ * @min 0.0
+ * @max 30.0
+ * @group Commander
+ */
+PARAM_DEFINE_FLOAT(COM_TAS_FS_DELAY, 10.0f);
 
 /**
  * Airspeed failsafe stop delay
@@ -880,7 +892,7 @@ PARAM_DEFINE_INT32(COM_ASPD_FS_ACT, 0);
 /**
  * Airspeed fault detection RTL delay
  *
- * RTL delay after bad airspeed measurements are detected if COM_ASPD_FS_ACT is set to 4. Ensure the COM_ASPD_STALL parameter is set correctly before use.
+ * RTL delay after bad airspeed measurements are detected if COM_ASPD_FS_ACT is set to 4. Ensure the COM_ASPD_STALL parameter is set correctly before use. The failsafe start and stop delays are controlled by the COM_TAS_FS_T1 and COM_TAS_FS_T2 parameters. Additional protection against persistent airspeed sensor errors can be enabled using the COM_TAS_FS_INNOV parameter, but these addtional checks are more prone to false positives in windy conditions.
  *
  * @min 0
  * @max 300

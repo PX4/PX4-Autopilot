@@ -123,7 +123,8 @@ private:
 		(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid,
 		(ParamInt<px4::params::COM_OA_BOOT_T>) _param_com_oa_boot_t,
 
-		(ParamFloat<px4::params::COM_TAS_FS_INNOV>) _tas_innov_threshold,
+		(ParamInt<px4::params::COM_TAS_FS_INNOV>) _tas_innov_threshold,
+		(ParamFloat<px4::params::COM_TAS_FS_DELAY>) _tas_innov_threshold_delay,
 		(ParamInt<px4::params::COM_TAS_FS_T1>) _tas_use_stop_delay,
 		(ParamInt<px4::params::COM_TAS_FS_T2>) _tas_use_start_delay,
 		(ParamInt<px4::params::COM_ASPD_FS_ACT>) _airspeed_fail_action,
@@ -159,8 +160,10 @@ private:
 	hrt_abstime	_time_tas_good_declared{0};	/**< time TAS use was started (uSec) */
 	hrt_abstime	_time_tas_bad_declared{0};	/**< time TAS use was stopped (uSec) */
 	hrt_abstime	_time_last_airspeed{0};		/**< time last airspeed measurement was received (uSec) */
+	hrt_abstime	_time_last_aspd_innov_check{0};	/**< time airspeed innovation was last checked (uSec) */
 	char		*_airspeed_fault_type = new char[7];
 	float		_load_factor_ratio{0.5f};	/**< ratio of maximum load factor predicted by stall speed to measured load factor */
+	float		_apsd_innov_integ_state{0.0f};	/**< inegral of excess normalised airspeed innovation (sec) */
 
 	FailureDetector _failure_detector;
 	bool _failure_detector_termination_printed{false};
