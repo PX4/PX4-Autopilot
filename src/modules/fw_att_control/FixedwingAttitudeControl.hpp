@@ -132,6 +132,8 @@ private:
 	float _flaps_applied{0.0f};
 	float _flaperons_applied{0.0f};
 
+	float _airspeed_scaling{1.0f};
+
 	bool _landed{true};
 
 	float _battery_scale{1.0f};
@@ -298,5 +300,6 @@ private:
 	void		global_pos_poll();
 	void		vehicle_status_poll();
 	void		vehicle_land_detected_poll();
-	void 		get_airspeed_and_scaling(float &airspeed, float &airspeed_scaling);
+
+	float 		get_airspeed_and_update_scaling();
 };
