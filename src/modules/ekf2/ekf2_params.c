@@ -607,7 +607,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * Set bits in the following positions to enable:
  * 0 : Set to true to use GPS data if available
  * 1 : Set to true to use optical flow data if available
- * 2 : Set to true to inhibit IMU bias estimation
+ * 2 : Set to true to inhibit IMU delta velocity bias estimation
  * 3 : Set to true to enable vision position fusion
  * 4 : Set to true to enable vision yaw fusion. Cannot be used if bit position 7 is true.
  * 5 : Set to true to enable multi-rotor drag specific force fusion
