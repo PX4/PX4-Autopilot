@@ -340,14 +340,8 @@ format:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard tests_avoidance unit_test
+.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard tests_avoidance
 .PHONY: rostest python_coverage
-
-unit_test:
-	$(eval CMAKE_ARGS += -DCMAKE_TESTING=ON)
-	$(eval CMAKE_ARGS += -DCONFIG=px4_sitl_test)
-	$(eval ARGS += unit_test)
-	$(call cmake-build,px4_sitl_test)
 
 tests:
 	$(eval CMAKE_ARGS += -DCMAKE_TESTING=ON)

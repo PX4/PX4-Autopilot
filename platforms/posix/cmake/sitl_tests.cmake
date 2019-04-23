@@ -145,19 +145,6 @@ foreach(cmd_name ${test_cmds})
 	set_tests_properties(posix_${cmd_name} PROPERTIES PASS_REGULAR_EXPRESSION "Shutting down")
 endforeach()
 
-
-add_custom_target(test_results
-		COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -T Test -R ${TESTFILTER}
-		DEPENDS
-			px4
-			examples__dyn_hello
-			test_mixer_multirotor
-			unit_test
-		USES_TERMINAL
-		COMMENT "Running tests in sitl"
-		WORKING_DIRECTORY ${PX4_BINARY_DIR})
-set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
 if (CMAKE_BUILD_TYPE STREQUAL Coverage)
 	setup_target_for_coverage(test_coverage "${CMAKE_CTEST_COMMAND} --output-on-failure -T Test" tests)
 	setup_target_for_coverage(generate_coverage "${CMAKE_COMMAND} -E echo" generic)
