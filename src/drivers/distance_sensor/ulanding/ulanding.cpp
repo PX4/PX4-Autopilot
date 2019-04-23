@@ -72,14 +72,14 @@
 namespace ulanding
 {
 
-#define ULANDING_MIN_DISTANCE		0.315f
-#define ULANDING_MAX_DISTANCE		50.0f
+#define ULANDING_MIN_DISTANCE	0.315f
+#define ULANDING_MAX_DISTANCE	50.0f
 #define ULANDING_VERSION	1
 
 #if defined(__PX4_POSIX_OCPOC)
-#define RADAR_DEFAULT_PORT		"/dev/ttyS6"	// default uLanding port on OCPOC
+#define RADAR_DEFAULT_PORT	"/dev/ttyS6"	// default uLanding port on OCPOC
 #else
-#define RADAR_DEFAULT_PORT		"/dev/ttyS2"	// telem2 on Pixhawk
+#define RADAR_DEFAULT_PORT	"/dev/ttyS2"	// telem2 on Pixhawk
 #endif
 
 #if ULANDING_VERSION == 1
@@ -90,13 +90,13 @@ namespace ulanding
 #define BUF_LEN 		9
 #endif
 
-/* assume standard deviation to be equal to sensor resolution.
-   Static bench tests have shown that the sensor ouput does
-   not vary if the unit is not moved. */
+/**
+ * Assume standard deviation to be equal to sensor resolution.
+ * Static bench tests have shown that the sensor ouput does
+ * not vary if the unit is not moved.
+ */
 #define SENS_VARIANCE 		0.045f * 0.045f
 
-
-extern "C" __EXPORT int ulanding_radar_main(int argc, char *argv[]);
 
 class Radar : public cdev::CDev
 {
@@ -104,47 +104,41 @@ public:
 	Radar(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING, const char *port = RADAR_DEFAULT_PORT);
 	virtual ~Radar();
 
-	virtual int 			init();
+	virtual int init();
 
-	int				start();
+	int start();
 
 private:
-	uint8_t _rotation;
-	bool				_task_should_exit;
-	int 				_task_handle;
-	char 				_port[20];
-	int				_class_instance;
-	int				_orb_class_instance;
-	orb_advert_t			_distance_sensor_topic;
 
-	unsigned 	_head;
-	unsigned 	_tail;
-	uint8_t 	_buf[BUF_LEN] {};
+	void cycle();
 
-	static int task_main_trampoline(int argc, char *argv[]);
-	void task_main();
+	static void cycle_trampoline(int argc, char *argv[]);
 
 	bool read_and_parse(uint8_t *buf, int len, float *range);
 
 	bool is_header_byte(uint8_t c) {return (c == ULANDING_HDR);};
-};
 
-namespace radar
-{
-Radar	*g_dev;
-}
+	char _port[20];
+
+	bool _task_should_exit{false};
+
+	int _class_instance{-1};
+	int _orb_class_instance{-1};
+	int _task_handle{-1};
+
+	unsigned int _head{0};
+	unsigned int _tail{0};
+
+	uint8_t _buf[BUF_LEN] {};
+	uint8_t _rotation;
+
+	orb_advert_t _distance_sensor_topic{nullptr};
+
+};
 
 Radar::Radar(uint8_t rotation, const char *port) :
 	CDev(RANGE_FINDER0_DEVICE_PATH),
-	_rotation(rotation),
-	_task_should_exit(false),
-	_task_handle(-1),
-	_class_instance(-1),
-	_orb_class_instance(-1),
-	_distance_sensor_topic(nullptr),
-	_head(0),
-	_tail(0)
-
+	_rotation(rotation)
 {
 	/* store port name */
 	strncpy(_port, port, sizeof(_port) - 1);
@@ -294,13 +288,6 @@ Radar::init()
 }
 
 int
-Radar::task_main_trampoline(int argc, char *argv[])
-{
-	radar::g_dev->task_main();
-	return 0;
-}
-
-int
 Radar::start()
 {
 	/* start the task */
@@ -308,7 +295,7 @@ Radar::start()
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_MAX - 30,
 					  800,
-					  (px4_main_t)&Radar::task_main_trampoline,
+					  (px4_main_t)&Radar::cycle_trampoline,
 					  nullptr);
 
 	if (_task_handle < 0) {
@@ -403,7 +390,7 @@ bool Radar::read_and_parse(uint8_t *buf, int len, float *range)
 }
 
 void
-Radar::task_main()
+Radar::cycle()
 {
 	int fd = ::open(_port, O_RDWR | O_NOCTTY);
 
@@ -477,7 +464,22 @@ Radar::task_main()
 	::close(fd);
 }
 
-int ulanding_radar_main(int argc, char *argv[])
+void
+Radar::cycle_trampoline(int argc, char *argv[])
+{
+	Radar *radar = (Radar *)argv;
+	radar->cycle();
+}
+
+namespace radar
+{
+Radar	*g_dev;
+}
+
+/**
+ * Driver 'main' command.
+ */
+extern "C" __EXPORT int ulanding_radar_main(int argc, char *argv[])
 {
 	if (argc <= 1) {
 		PX4_WARN("not enough arguments, usage: start [device_path], stop, info ");
