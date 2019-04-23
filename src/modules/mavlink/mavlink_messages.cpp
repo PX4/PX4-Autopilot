@@ -573,9 +573,11 @@ protected:
 			if (!updated_status) {
 				_status_sub->update(&status);
 			}
+
 			if (!updated_battery) {
 				_battery_status_sub->update(&battery_status);
 			}
+
 			if (!updated_cpuload) {
 				_cpuload_sub->update(&cpuload);
 			}
