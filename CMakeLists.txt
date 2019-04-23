@@ -418,13 +418,14 @@ option(CMAKE_TESTING "Configure test targets" OFF)
 if(CMAKE_TESTING)
 	include(CTest)
 endif()
+set(TESTFILTER "" CACHE STRING "Filter string for ctest to selectively only run specific tests (ctest -R)")
 
 list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake/gtest/)
 include(px4_add_gtest)
 
 if(BUILD_TESTING)
 	include(gtest)
-	add_custom_target(unit_test COMMAND GTEST_COLOR=1 ${CMAKE_CTEST_COMMAND} -V -R UnitTest- USES_TERMINAL)
+	add_custom_target(unit_test COMMAND GTEST_COLOR=1 ${CMAKE_CTEST_COMMAND} -V -R ${TESTFILTER} USES_TERMINAL)
 endif()
 
 #=============================================================================

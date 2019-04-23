@@ -147,7 +147,7 @@ endforeach()
 
 
 add_custom_target(test_results
-		COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -T Test
+		COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -T Test -R ${TESTFILTER}
 		DEPENDS
 			px4
 			examples__dyn_hello
