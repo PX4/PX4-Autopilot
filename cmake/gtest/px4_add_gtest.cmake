@@ -37,7 +37,7 @@ include(px4_base)
 #
 #	px4_add_gtest
 #
-#	Adds a googletest unit test to the unit_test target.
+#	Adds a googletest unit test to the test_results target.
 #
 function(px4_add_gtest)
 	# skip if unit testing is not configured
@@ -65,6 +65,6 @@ function(px4_add_gtest)
 		add_test(NAME ${TESTNAME} COMMAND ${TESTNAME})
 
 		# attach it to the unit test target
-		add_dependencies(unit_test ${TESTNAME})
+		add_dependencies(test_results ${TESTNAME})
 	endif()
 endfunction()

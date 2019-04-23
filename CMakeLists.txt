@@ -416,17 +416,29 @@ endif()
 # optionally enable cmake testing (supported only on posix)
 option(CMAKE_TESTING "Configure test targets" OFF)
 if(CMAKE_TESTING)
-	include(CTest)
+	include(CTest) # sets BUILD_TESTING variable
 endif()
+
+# enable test filtering to run only specific tests with the ctest -R regex functionality
 set(TESTFILTER "" CACHE STRING "Filter string for ctest to selectively only run specific tests (ctest -R)")
 
+# if testing is enabled download and configure gtest
 list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake/gtest/)
 include(px4_add_gtest)
-
 if(BUILD_TESTING)
 	include(gtest)
-	add_custom_target(unit_test COMMAND GTEST_COLOR=1 ${CMAKE_CTEST_COMMAND} -V -R ${TESTFILTER} USES_TERMINAL)
 endif()
+
+add_custom_target(test_results
+		COMMAND GTEST_COLOR=1 ${CMAKE_CTEST_COMMAND} --output-on-failure -T Test -R ${TESTFILTER} USES_TERMINAL
+		DEPENDS
+			px4
+			examples__dyn_hello
+			test_mixer_multirotor
+		USES_TERMINAL
+		COMMENT "Running tests"
+		WORKING_DIRECTORY ${PX4_BINARY_DIR})
+set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 #=============================================================================
 # subdirectories
