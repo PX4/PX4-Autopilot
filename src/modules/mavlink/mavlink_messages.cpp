@@ -3135,7 +3135,7 @@ protected:
 
 		if (control_mode.flag_control_position_enabled) {
 
-			position_setpoint_triplet_s pos_sp_triplet;
+			position_setpoint_triplet_s pos_sp_triplet = {};
 			_pos_sp_triplet_sub->update(&pos_sp_triplet);
 
 			if (pos_sp_triplet.timestamp > 0 && pos_sp_triplet.current.valid

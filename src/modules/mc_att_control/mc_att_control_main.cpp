@@ -676,7 +676,7 @@ MulticopterAttitudeControl::publish_rates_setpoint()
 void
 MulticopterAttitudeControl::publish_rate_controller_status()
 {
-	rate_ctrl_status_s rate_ctrl_status;
+	rate_ctrl_status_s rate_ctrl_status = {};
 	rate_ctrl_status.timestamp = hrt_absolute_time();
 	rate_ctrl_status.rollspeed = _rates_prev(0);
 	rate_ctrl_status.pitchspeed = _rates_prev(1);
