@@ -88,8 +88,8 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
 	_params_handles.mpc_xy_cruise = param_find("MPC_XY_CRUISE");
 	_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
-	_params_handles.vt_sweep_type = param_find("VT_SWEEP_TYPE");
-	_params_handles.vt_sweep_amp = param_find("VT_SWEEP_AMP");
+	_params_handles.vt_sweep_or_suck_type = param_find("SWEEP_SUCK_TYPE");
+	_params_handles.vt_sweep_or_suck_amp = param_find("SWEEP_SUCK_AMP");
 	_params_handles.diff_thrust = param_find("VT_FW_DIFTHR_EN");
 	_params_handles.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
 
@@ -431,11 +431,22 @@ VtolAttitudeControl::is_fixed_wing_requested()
 	return to_fw;
 }
 
+/*
+ * the sweep and wall-suck request are both from landing-geat switch
+ */
 bool
 VtolAttitudeControl::is_sweep_requested()
 {
 	return (_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON);
 }
+
+bool
+VtolAttitudeControl::is_wallsuck_requested()
+{
+	return (_manual_control_sp.gear_switch == manual_control_setpoint_s::SWITCH_POS_ON);
+}
+
+
 
 /*
  * Abort front transition
@@ -495,14 +506,14 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.fw_qc_max_roll, &l);
 	_params.fw_qc_max_roll = l;
 
-	param_get(_params_handles.vt_sweep_type, &l);
-	_params.vt_sweep_type = l;
+	param_get(_params_handles.vt_sweep_or_suck_type, &l);
+	_params.vt_sweep_or_suck_type = l;
 
 	param_get(_params_handles.front_trans_time_openloop, &_params.front_trans_time_openloop);
 
 	param_get(_params_handles.front_trans_time_min, &_params.front_trans_time_min);
 
-	param_get(_params_handles.vt_sweep_amp, &_params.vt_sweep_amp);
+	param_get(_params_handles.vt_sweep_or_suck_amp, &_params.vt_sweep_or_suck_amp);
 
 	/*
 	 * Minimum transition time can be maximum 90 percent of the open loop transition time,

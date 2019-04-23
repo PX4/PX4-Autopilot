@@ -71,8 +71,8 @@ struct Params {
 	float front_trans_timeout;
 	float mpc_xy_cruise;
 	int32_t fw_motors_off;			/**< bitmask of all motors that should be off in fixed wing mode */
-	int32_t vt_sweep_type;
-	float vt_sweep_amp;
+	int32_t vt_sweep_or_suck_type;
+	float vt_sweep_or_suck_amp;
 	int32_t diff_thrust;
 	float diff_thrust_scale;
 };

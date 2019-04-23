@@ -99,6 +99,12 @@ private:
 		THRUST
 	};
 
+	enum wall_suck_type {
+		NO_SUCK = 0,
+		TOP_WALL,
+		SIDE_WALL,
+	};
+
 	struct {
 		vtol_mode   flight_mode;	    /**< vtol flight mode, defined by enum vtol_mode */
 		float       ctrl_out_trans_end; /**< MC controller output at the end of front transition */

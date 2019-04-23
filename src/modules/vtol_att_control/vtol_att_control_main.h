@@ -97,6 +97,7 @@ public:
 	int start();	/* start the task and return OK on success */
 	bool is_fixed_wing_requested();
 	bool is_sweep_requested();
+	bool is_wallsuck_requested();
 	void abort_front_transition(const char *reason);
 
 	struct actuator_controls_s 			*get_actuators_fw_in() {return &_actuators_fw_in;}
@@ -203,8 +204,8 @@ private:
 		param_t front_trans_timeout;
 		param_t mpc_xy_cruise;
 		param_t fw_motors_off;
-		param_t vt_sweep_type;
-		param_t vt_sweep_amp;
+		param_t vt_sweep_or_suck_type;
+		param_t vt_sweep_or_suck_amp;
 		param_t diff_thrust;
 		param_t diff_thrust_scale;
 	} _params_handles{};

@@ -154,10 +154,14 @@ void Tailsitter::update_vtol_state()
 		switch (_vtol_schedule.flight_mode) {
 		case MC_MODE:
 			// initialise a front transition
-		if (_local_pos->z < (- _params->vt_safe_alt)) {
+		#if 0 // Disabled for suck wall
+			if (_local_pos->z < (- _params->vt_safe_alt)) {
+				_vtol_schedule.flight_mode 	= TRANSITION_FRONT_P1;
+				_vtol_schedule.f_trans_start_t = hrt_absolute_time();
+			}
+		#endif
 			_vtol_schedule.flight_mode 	= TRANSITION_FRONT_P1;
 			_vtol_schedule.f_trans_start_t = hrt_absolute_time();
-		}
 			break;
 
 		case FW_MODE:
@@ -172,7 +176,8 @@ void Tailsitter::update_vtol_state()
 
 				// check if we have reached airspeed  and the transition time is over the setpoint to switch to TRANSITION P2 mode
 				if ((airspeed_condition_satisfied && (time_since_trans_start >= (_params->front_trans_duration + _params_tailsitter.front_trans_dur_p2))) || can_transition_on_ground()) {
-					_vtol_schedule.flight_mode = FW_MODE;
+					//_vtol_schedule.flight_mode = FW_MODE;
+					_vtol_schedule.flight_mode = MC_MODE; //Just for the wall suck
 				}
 
 				break;
@@ -186,6 +191,7 @@ void Tailsitter::update_vtol_state()
 	}
 	
 	/* Safety altitude protection, stay at MC mode when trige for once */
+#if 0 // Disabled for suck wall
 	static bool alt_danger = false;
 	if ((_local_pos->z > (- _params->vt_safe_alt)) || (alt_danger == true))
 	{
@@ -196,6 +202,7 @@ void Tailsitter::update_vtol_state()
 		}
 		_vtol_schedule.flight_mode = MC_MODE;
 	}
+#endif
 
 	// map tailsitter specific control phases to simple control modes
 	switch (_vtol_schedule.flight_mode) {
@@ -380,8 +387,11 @@ float calc_pitch_rot(float time_since_trans_start) {
 void Tailsitter::update_transition_state()
 {
 	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
+	float suck_wall_thr_cmd = 0.0f;
+#if 0
 	float delt_x;
 	float delt_y;
+#endif
 
 	if (!_flag_was_in_trans_mode) {
 		_flag_was_in_trans_mode = true;
@@ -432,6 +442,7 @@ void Tailsitter::update_transition_state()
 	// calculate the pitch setpoint
 	if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P1) {
 
+#if 0
 		// const float trans_pitch_rate = M_PI_2_F / _params->front_trans_duration;
 		_trans_pitch_rot = calc_pitch_rot(time_since_trans_start);
 
@@ -450,6 +461,31 @@ void Tailsitter::update_transition_state()
 
 		/* save the thrust value at the end of the transition */
 		_trans_end_thrust = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
+#endif
+		switch (_params->vt_sweep_or_suck_type){
+		case NO_SUCK:
+		case TOP_WALL:
+			if (time_since_trans_start <= _params->front_trans_duration) {
+				suck_wall_thr_cmd = _params->front_trans_throttle - (float)(_params->vt_sweep_or_suck_amp) * time_since_trans_start;
+				_v_att_sp->thrust_body[2] = _params->front_trans_throttle * (-1.0f);
+				_vtol_vehicle_status->thrust_cmd = suck_wall_thr_cmd;
+				_trans_pitch_rot = time_since_trans_start * M_PI_2_F / _params->front_trans_duration;
+				_q_trans_sp = Quatf(AxisAnglef(_trans_rot_axis, _trans_pitch_rot)) * _q_trans_start;
+			}
+			else {
+				_v_att_sp->thrust_body[2] = _params->front_trans_throttle * (-1.0f);
+				_q_trans_sp = Quatf(_v_att->q);
+			}
+	    	
+			break;
+	    case SIDE_WALL:
+	    	break;
+		}
+
+		if ((_vtol_vehicle_status->ticks_since_trans % 10) == 5) 
+		{
+			mavlink_log_critical(&mavlink_log_pub, "START SUCK:%.2f", (double)(suck_wall_thr_cmd));
+		}
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_BACK) {
 		_target_alt  = _local_pos->z;
@@ -508,13 +544,17 @@ void Tailsitter::update_fw_state()
 void Tailsitter::fill_actuator_outputs()
 {
 	float time_since_fw_start = 0.0f;
+	float smooth_fw_start = 0.0f;
+
+	// parameters for sweep
 	float time_since_sweep = 0.0f;
 	float sweep_signal_phase = 0.0f;
 	float sweep_signal = 0.0f;
-	float smooth_fw_start = 0.0f;
+	
 	float sweep_min_frequency = 0.5f * 6.2831f;
 	float sweep_max_frequency = 80.0f * 6.2831f ;
 	float overall_time = 150.0f;
+
 	_actuators_out_0->timestamp = hrt_absolute_time();
 	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
 
@@ -544,7 +584,7 @@ void Tailsitter::fill_actuator_outputs()
 
 		/* just for sweep input signal */
 		if(_attc->is_sweep_requested()) {
-			switch (_params->vt_sweep_type){
+			switch (_params->vt_sweep_or_suck_type){
 			case NO_SWEEP:
 				break;
 			case PITCH_RATE:
@@ -553,7 +593,7 @@ void Tailsitter::fill_actuator_outputs()
 				sweep_signal_phase = sweep_min_frequency * time_since_sweep + 0.0187f * (sweep_max_frequency - sweep_min_frequency) * (overall_time / 4.0f * powf(2.7183f, (4.0f * time_since_sweep / overall_time)) - time_since_sweep);
 				// Linear Chirp
 				//sweep_signal_phase = sweep_min_frequency * time_since_sweep + 0.5f * (sweep_max_frequency - sweep_min_frequency) * (time_since_sweep * time_since_sweep / overall_time);
-				sweep_signal = (float)(_params->vt_sweep_amp) * sinf(sweep_signal_phase);
+				sweep_signal = (float)(_params->vt_sweep_or_suck_amp) * sinf(sweep_signal_phase);
 				_actuators_out_0->sweep_input = sweep_signal;
 				_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] + sweep_signal;
 				break;
@@ -563,7 +603,7 @@ void Tailsitter::fill_actuator_outputs()
 				sweep_signal_phase = sweep_min_frequency * time_since_sweep + 0.0187f * (sweep_max_frequency - sweep_min_frequency) * (overall_time / 4.0f * powf(2.7183f, (4.0f * time_since_sweep / overall_time)) - time_since_sweep);
 				// Linear Chirp
 				// sweep_signal_phase = sweep_min_frequency  * time_since_sweep + 0.5f * (sweep_max_frequency - sweep_min_frequency) * (time_since_sweep * time_since_sweep / overall_time);
-				sweep_signal = (float)(_params->vt_sweep_amp) * sinf(sweep_signal_phase);
+				sweep_signal = (float)(_params->vt_sweep_or_suck_amp) * sinf(sweep_signal_phase);
 				_actuators_out_0->sweep_input = sweep_signal;
 				_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL] + sweep_signal;
 				break;
@@ -573,7 +613,7 @@ void Tailsitter::fill_actuator_outputs()
 				sweep_signal_phase = sweep_min_frequency * time_since_sweep + 0.0187f * (sweep_max_frequency - sweep_min_frequency) * (overall_time / 4.0f * powf(2.7183f, (4.0f * time_since_sweep / overall_time)) - time_since_sweep);
 				// Linear Chirp
 				// sweep_signal_phase = sweep_min_frequency  * time_since_sweep + 0.5f * (sweep_max_frequency - sweep_min_frequency) * (time_since_sweep * time_since_sweep / overall_time);
-				sweep_signal = (float)(_params->vt_sweep_amp) * sinf(sweep_signal_phase);
+				sweep_signal = (float)(_params->vt_sweep_or_suck_amp) * sinf(sweep_signal_phase);
 				_actuators_out_0->sweep_input = sweep_signal;
 				_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE] + sweep_signal;
 				break;
@@ -582,6 +622,8 @@ void Tailsitter::fill_actuator_outputs()
 			/* record the start time */
 			_vtol_schedule.sweep_start = hrt_absolute_time();
 		}
+
+
 		break;
 
 	case FIXED_WING:
