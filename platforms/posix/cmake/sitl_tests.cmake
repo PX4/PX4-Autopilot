@@ -54,9 +54,10 @@ if (CMAKE_SYSTEM_NAME STREQUAL "CYGWIN")
 endif()
 
 foreach(test_name ${tests})
+	set(test_name_prefix sitl-${test_name})
 	configure_file(${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_template.in ${PX4_SOURCE_DIR}/posix-configs/SITL/init/test/test_${test_name}_generated)
 
-	add_test(NAME ${test_name}
+	add_test(NAME ${test_name_prefix}
 		COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh
 			$<TARGET_FILE:px4>
 			none
@@ -66,10 +67,10 @@ foreach(test_name ${tests})
 			${PX4_BINARY_DIR}
 		WORKING_DIRECTORY ${SITL_WORKING_DIR})
 
-	set_tests_properties(${test_name} PROPERTIES FAIL_REGULAR_EXPRESSION "${test_name} FAILED")
-	set_tests_properties(${test_name} PROPERTIES PASS_REGULAR_EXPRESSION "${test_name} PASSED")
+	set_tests_properties(${test_name_prefix} PROPERTIES FAIL_REGULAR_EXPRESSION "${test_name} FAILED")
+	set_tests_properties(${test_name_prefix} PROPERTIES PASS_REGULAR_EXPRESSION "${test_name} PASSED")
 
-	sanitizer_fail_test_on_error(${test_name})
+	sanitizer_fail_test_on_error(${test_name_prefix})
 endforeach()
 
 
