@@ -291,6 +291,27 @@ public:
 	bool		force_vtol();
 
 private:
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,	/**< loiter radius for fixedwing */
+		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad,	/**< acceptance for takeoff */
+		(ParamFloat<px4::params::NAV_FW_ALT_RAD>)
+		_param_nav_fw_alt_rad,	/**< acceptance radius for fixedwing altitude */
+		(ParamFloat<px4::params::NAV_FW_ALTL_RAD>)
+		_param_nav_fw_altl_rad,	/**< acceptance radius for fixedwing altitude before landing*/
+		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
+		_param_nav_mc_alt_rad,	/**< acceptance radius for multicopter altitude */
+		(ParamInt<px4::params::NAV_FORCE_VT>) _param_nav_force_vt,	/**< acceptance radius for multicopter altitude */
+		(ParamInt<px4::params::NAV_TRAFF_AVOID>) _param_nav_traff_avoid,	/**< avoiding other aircraft is enabled */
+
+		// non-navigator parameters
+		// Mission (MIS_*)
+		(ParamFloat<px4::params::MIS_LTRMIN_ALT>) _param_mis_ltrmin_alt,
+		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>) _param_mis_takeoff_alt,
+		(ParamBool<px4::params::MIS_TAKEOFF_REQ>) _param_mis_takeoff_req,
+		(ParamFloat<px4::params::MIS_YAW_TMT>) _param_mis_yaw_tmt,
+		(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err
+	)
+
 	int		_global_pos_sub{-1};		/**< global position subscription */
 	int		_gps_pos_sub{-1};		/**< gps position subscription */
 	int		_home_pos_sub{-1};		/**< home position subscription */
@@ -355,27 +376,6 @@ private:
 	FollowTarget	_follow_target;
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
-
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,	/**< loiter radius for fixedwing */
-		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad,	/**< acceptance for takeoff */
-		(ParamFloat<px4::params::NAV_FW_ALT_RAD>)
-		_param_nav_fw_alt_rad,	/**< acceptance radius for fixedwing altitude */
-		(ParamFloat<px4::params::NAV_FW_ALTL_RAD>)
-		_param_nav_fw_altl_rad,	/**< acceptance radius for fixedwing altitude before landing*/
-		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
-		_param_nav_mc_alt_rad,	/**< acceptance radius for multicopter altitude */
-		(ParamInt<px4::params::NAV_FORCE_VT>) _param_nav_force_vt,	/**< acceptance radius for multicopter altitude */
-		(ParamInt<px4::params::NAV_TRAFF_AVOID>) _param_nav_traff_avoid,	/**< avoiding other aircraft is enabled */
-
-		// non-navigator parameters
-		// Mission (MIS_*)
-		(ParamFloat<px4::params::MIS_LTRMIN_ALT>) _param_mis_ltrmin_alt,
-		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>) _param_mis_takeoff_alt,
-		(ParamBool<px4::params::MIS_TAKEOFF_REQ>) _param_mis_takeoff_req,
-		(ParamFloat<px4::params::MIS_YAW_TMT>) _param_mis_yaw_tmt,
-		(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err
-	)
 
 	param_t _handle_back_trans_dec_mss{PARAM_INVALID};
 	param_t _handle_reverse_delay{PARAM_INVALID};
