@@ -123,8 +123,8 @@ private:
 		(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid,
 		(ParamInt<px4::params::COM_OA_BOOT_T>) _param_com_oa_boot_t,
 
-		(ParamInt<px4::params::COM_TAS_FS_INNOV>) _tas_innov_threshold,
-		(ParamFloat<px4::params::COM_TAS_FS_DELAY>) _tas_innov_threshold_delay,
+		(ParamFloat<px4::params::COM_TAS_FS_INNOV>) _tas_innov_threshold,
+		(ParamFloat<px4::params::COM_TAS_FS_INTEG>) _tas_innov_integ_threshold,
 		(ParamInt<px4::params::COM_TAS_FS_T1>) _tas_use_stop_delay,
 		(ParamInt<px4::params::COM_TAS_FS_T2>) _tas_use_start_delay,
 		(ParamInt<px4::params::COM_ASPD_FS_ACT>) _airspeed_fail_action,

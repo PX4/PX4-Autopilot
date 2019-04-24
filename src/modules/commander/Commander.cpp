@@ -4130,6 +4130,7 @@ void Commander::airspeed_use_check()
 		status.aspd_fault_declared = false;
 		status.aspd_use_inhibit = false;
 		status.aspd_fail_rtl = false;
+		status.arspd_check_level = 0.0f;
 
 		_time_last_airspeed = hrt_absolute_time();
 		_time_last_aspd_innov_check = hrt_absolute_time();
@@ -4139,41 +4140,38 @@ void Commander::airspeed_use_check()
 
 		// Check normalised innovation levels with requirement for continuous data and use of hysteresis
 		// to prevent false triggering.
-		if (_tas_innov_threshold.get() > 0) {
-			float dt_s = float(1e-6 * (double)hrt_elapsed_time(&_time_last_aspd_innov_check));
+		float dt_s = float(1e-6 * (double)hrt_elapsed_time(&_time_last_aspd_innov_check));
 
-			if (dt_s < 1.0f) {
-				if (_estimator_status_sub.get().tas_test_ratio <= 0.01f * (float)_tas_innov_threshold.get()) {
-					// record pass and reset integrator used to trigger
-					_time_last_tas_pass = hrt_absolute_time();
-					_apsd_innov_integ_state = 0.0f;
+		if (dt_s < 1.0f) {
+			if (_estimator_status_sub.get().tas_test_ratio <= _tas_innov_threshold.get()) {
+				// record pass and reset integrator used to trigger
+				_time_last_tas_pass = hrt_absolute_time();
+				_apsd_innov_integ_state = 0.0f;
 
-				} else {
-					// integrate exceedance
-					_apsd_innov_integ_state += dt_s * (_estimator_status_sub.get().tas_test_ratio - 0.01f *
-									   (float)_tas_innov_threshold.get());
-				}
+			} else {
+				// integrate exceedance
+				_apsd_innov_integ_state += dt_s * (_estimator_status_sub.get().tas_test_ratio - _tas_innov_threshold.get());
+			}
 
-				if ((_estimator_status_sub.get().vel_test_ratio < 1.0f) && (_estimator_status_sub.get().mag_test_ratio < 1.0f)) {
-					// nav velocity data is likely good so airspeed innovations are able to be used
-					if (_apsd_innov_integ_state > _tas_innov_threshold_delay.get()) {
-						_time_last_tas_fail = hrt_absolute_time();
-					}
-				}
+			status.arspd_check_level = _apsd_innov_integ_state;
 
-				if (!_tas_check_fail) {
-					_tas_check_fail = (hrt_elapsed_time(&_time_last_tas_pass) > TAS_INNOV_FAIL_DELAY);
-
-				} else {
-					_tas_check_fail = (hrt_elapsed_time(&_time_last_tas_fail) < TAS_INNOV_FAIL_DELAY);
+			if ((_estimator_status_sub.get().vel_test_ratio < 1.0f) && (_estimator_status_sub.get().mag_test_ratio < 1.0f)) {
+				// nav velocity data is likely good so airspeed innovations are able to be used
+				if ((_tas_innov_integ_threshold.get() > 0.0f) && (_apsd_innov_integ_state > _tas_innov_integ_threshold.get())) {
+					_time_last_tas_fail = hrt_absolute_time();
 				}
 			}
 
-			_time_last_aspd_innov_check = hrt_absolute_time();
+			if (!_tas_check_fail) {
+				_tas_check_fail = (hrt_elapsed_time(&_time_last_tas_pass) > TAS_INNOV_FAIL_DELAY);
 
-		} else {
-			_tas_check_fail = false;
+			} else {
+				_tas_check_fail = (hrt_elapsed_time(&_time_last_tas_fail) < TAS_INNOV_FAIL_DELAY);
+			}
 		}
+
+		_time_last_aspd_innov_check = hrt_absolute_time();
+
 
 		// The vehicle is flying so use the status of the airspeed innovation check '_tas_check_fail' in
 		// addition to a sanity check using airspeed and load factor and a missing sensor data check.
