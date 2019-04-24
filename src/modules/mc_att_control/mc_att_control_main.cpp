@@ -149,7 +149,6 @@ MulticopterAttitudeControl::parameters_updated()
 	// angular rate limits
 	using math::radians;
 	_attitude_control.setRateLimit(Vector3f(radians(_param_mc_rollrate_max.get()), radians(_param_mc_pitchrate_max.get()), radians(_param_mc_yawrate_max.get())));
-	adapt_auto_yaw_rate_limit();
 
 	// manual rate control acro mode rate limits
 	_acro_rate_max = Vector3f(radians(_param_mc_acro_r_max.get()), radians(_param_mc_acro_p_max.get()), radians(_param_mc_acro_y_max.get()));
@@ -195,16 +194,6 @@ MulticopterAttitudeControl::vehicle_control_mode_poll()
 
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_control_mode), _v_control_mode_sub, &_v_control_mode);
-		adapt_auto_yaw_rate_limit();
-	}
-}
-
-void MulticopterAttitudeControl::adapt_auto_yaw_rate_limit() {
-	if ((_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_auto_enabled) &&
-		!_v_control_mode.flag_control_manual_enabled) {
-		_attitude_control.setRateLimitYaw(math::radians(_param_mc_yawrauto_max.get()));
-	} else {
-		_attitude_control.setRateLimitYaw(math::radians(_param_mc_yawrate_max.get()));
 	}
 }
 

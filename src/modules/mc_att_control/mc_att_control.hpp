@@ -147,9 +147,6 @@ private:
 	 */
 	matrix::Vector3f pid_attenuations(float tpa_breakpoint, float tpa_rate);
 
-	/** lower yawspeed limit in auto modes because we expect yaw steps */
-	void adapt_auto_yaw_rate_limit();
-
 	AttitudeControl _attitude_control; /**< class for attitude control calculations */
 
 	int		_v_att_sub{-1};			/**< vehicle attitude subscription */
@@ -249,7 +246,6 @@ private:
 		(ParamFloat<px4::params::MC_ROLLRATE_MAX>) _param_mc_rollrate_max,
 		(ParamFloat<px4::params::MC_PITCHRATE_MAX>) _param_mc_pitchrate_max,
 		(ParamFloat<px4::params::MC_YAWRATE_MAX>) _param_mc_yawrate_max,
-		(ParamFloat<px4::params::MC_YAWRAUTO_MAX>) _param_mc_yawrauto_max,
 		(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max,			/**< scaling factor from stick to yaw rate */
 
 		(ParamFloat<px4::params::MC_ACRO_R_MAX>) _param_mc_acro_r_max,
