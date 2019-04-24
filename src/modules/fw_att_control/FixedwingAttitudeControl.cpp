@@ -472,7 +472,6 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 {
 	_airspeed_sub.update();
 	const bool airspeed_valid = PX4_ISFINITE(_airspeed_sub.get().indicated_airspeed_m_s)
-				    && (_airspeed_sub.get().indicated_airspeed_m_s >= 0.0f)
 				    && (hrt_elapsed_time(&_airspeed_sub.get().timestamp) < 1_s);
 
 	if (!airspeed_valid) {
@@ -503,9 +502,8 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 	 * Forcing the scaling to this value allows reasonable handheld tests.
 	 */
 	const float airspeed_constrained = math::constrain(airspeed, _parameters.airspeed_min, _parameters.airspeed_max);
-	const float airspeed_scaling = _parameters.airspeed_trim / airspeed_constrained;
+	_airspeed_scaling = _parameters.airspeed_trim / airspeed_constrained;
 
-	_airspeed_scaling = math::constrain(airspeed_scaling, _airspeed_scaling - 0.01f, _airspeed_scaling + 0.01f);
 
 	return airspeed;
 }
