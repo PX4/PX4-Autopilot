@@ -113,7 +113,7 @@ void FlightTaskAuto::_limitYawRate()
 {
 	if (PX4_ISFINITE(_yaw_setpoint) || PX4_ISFINITE(_yaw_sp_prev)) {
 		// Limit the rate of change of the yaw setpoint
-		float dy_max = math::radians(_param_mc_yawrauto_max.get()) * _deltatime;
+		float dy_max = math::radians(_param_mpc_yawrauto_max.get()) * _deltatime;
 
 		if (fabsf(_yaw_setpoint - _yaw_sp_prev) < M_PI_F) {
 			// Wrap around 0
@@ -134,7 +134,7 @@ void FlightTaskAuto::_limitYawRate()
 	}
 
 	if (PX4_ISFINITE(_yawspeed_setpoint)) {
-		_yawspeed_setpoint = math::constrain(_yawspeed_setpoint, -_param_mc_yawrauto_max.get(), _param_mc_yawrauto_max.get());
+		_yawspeed_setpoint = math::constrain(_yawspeed_setpoint, -_param_mpc_yawrauto_max.get(), _param_mpc_yawrauto_max.get());
 	}
 }
 
