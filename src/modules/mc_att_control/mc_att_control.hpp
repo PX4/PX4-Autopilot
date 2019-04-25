@@ -57,6 +57,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/landing_gear.h>
+#include <vtol_att_control/vtol_type.h>
 
 #include <AttitudeControl.hpp>
 
@@ -174,6 +175,7 @@ private:
 	orb_advert_t	_landing_gear_pub{nullptr};
 
 	orb_id_t _actuators_id{nullptr};	/**< pointer to correct actuator controls0 uORB metadata structure */
+	orb_id_t _attitude_sp_id{nullptr};	/**< pointer to correct attitude setpoint uORB metadata structure */
 
 	bool		_actuators_0_circuit_breaker_enabled{false};	/**< circuit breaker to suppress output */
 
@@ -274,7 +276,8 @@ private:
 		_param_mpc_thr_hover,			/**< throttle at which vehicle is at hover equilibrium */
 		(ParamInt<px4::params::MPC_THR_CURVE>) _param_mpc_thr_curve,				/**< throttle curve behavior */
 
-		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode
+		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,
+		(ParamInt<px4::params::VT_TYPE>) _vtol_type
 	)
 
 	matrix::Vector3f _rate_p;		/**< P gain for angular rate error */
