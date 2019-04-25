@@ -2746,8 +2746,9 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 		|| (_last_sp_man.man_switch != sp_man.man_switch);
 
 	// only switch mode based on RC switch if necessary to also allow mode switching via MAVLink
-	const bool should_evaluate_rc_mode_switch = position_got_valid || ((first_time_rc || rc_values_updated)
-			&& some_switch_changed);
+	const bool should_evaluate_rc_mode_switch = first_time_rc
+			|| position_got_valid
+			|| (rc_values_updated && some_switch_changed);
 
 	if (!should_evaluate_rc_mode_switch) {
 
