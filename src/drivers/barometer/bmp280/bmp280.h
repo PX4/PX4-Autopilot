@@ -154,6 +154,6 @@ public:
 
 
 /* interface factories */
-extern bmp280::IBMP280 *bmp280_spi_interface(uint8_t busnum, uint8_t device, bool external);
-extern bmp280::IBMP280 *bmp280_i2c_interface(uint8_t busnum, uint8_t device, bool external);
-typedef bmp280::IBMP280 *(*BMP280_constructor)(uint8_t, uint8_t, bool);
+extern bmp280::IBMP280 *bmp280_spi_interface(uint8_t busnum, uint32_t device, bool external);
+extern bmp280::IBMP280 *bmp280_i2c_interface(uint8_t busnum, uint32_t device, bool external);
+typedef bmp280::IBMP280 *(*BMP280_constructor)(uint8_t, uint32_t, bool);
