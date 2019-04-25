@@ -616,6 +616,21 @@ PARAM_DEFINE_FLOAT(MPC_Z_MAN_EXPO, 0.0f);
 PARAM_DEFINE_FLOAT(MPC_YAW_EXPO, 0.0f);
 
 /**
+ * Max yaw rate in auto mode
+ *
+ * Limit the rate of change of the yaw setpoint in autonomous mode
+ * to avoid large control output and mixer saturation.
+ *
+ * @unit deg/s
+ * @min 0.0
+ * @max 360.0
+ * @decimal 1
+ * @increment 5
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.0f);
+
+/**
  * Altitude for 1. step of slow landing (descend)
  *
  * Below this altitude descending velocity gets limited
