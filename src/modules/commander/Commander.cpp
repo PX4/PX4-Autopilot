@@ -2730,20 +2730,23 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 	// we want to allow rc mode change to take precidence.  This is a safety
 	// feature, just in case offboard control goes crazy.
 
+	const bool position_got_valid = !_last_condition_global_position_valid && status_flags.condition_global_position_valid;
+	const bool had_rc_before = _last_sp_man.timestamp != 0;
+	const bool rc_values_not_updated = _last_sp_man.timestamp == sp_man.timestamp;
+	const bool all_switches_stayed =
+		(_last_sp_man.offboard_switch == sp_man.offboard_switch)
+		&& (_last_sp_man.return_switch == sp_man.return_switch)
+		&& (_last_sp_man.mode_switch == sp_man.mode_switch)
+		&& (_last_sp_man.acro_switch == sp_man.acro_switch)
+		&& (_last_sp_man.rattitude_switch == sp_man.rattitude_switch)
+		&& (_last_sp_man.posctl_switch == sp_man.posctl_switch)
+		&& (_last_sp_man.loiter_switch == sp_man.loiter_switch)
+		&& (_last_sp_man.mode_slot == sp_man.mode_slot)
+		&& (_last_sp_man.stab_switch == sp_man.stab_switch)
+		&& (_last_sp_man.man_switch == sp_man.man_switch);
+
 	/* manual setpoint has not updated, do not re-evaluate it */
-	if (!(!_last_condition_global_position_valid &&
-	      status_flags.condition_global_position_valid)
-	    && (((_last_sp_man.timestamp != 0) && (_last_sp_man.timestamp == sp_man.timestamp)) ||
-		((_last_sp_man.offboard_switch == sp_man.offboard_switch) &&
-		 (_last_sp_man.return_switch == sp_man.return_switch) &&
-		 (_last_sp_man.mode_switch == sp_man.mode_switch) &&
-		 (_last_sp_man.acro_switch == sp_man.acro_switch) &&
-		 (_last_sp_man.rattitude_switch == sp_man.rattitude_switch) &&
-		 (_last_sp_man.posctl_switch == sp_man.posctl_switch) &&
-		 (_last_sp_man.loiter_switch == sp_man.loiter_switch) &&
-		 (_last_sp_man.mode_slot == sp_man.mode_slot) &&
-		 (_last_sp_man.stab_switch == sp_man.stab_switch) &&
-		 (_last_sp_man.man_switch == sp_man.man_switch)))) {
+	if (!position_got_valid && ((had_rc_before && rc_values_not_updated) || all_switches_stayed)) {
 
 		// store the last manual control setpoint set by the pilot in a manual state
 		// if the system now later enters an autonomous state the pilot can move
