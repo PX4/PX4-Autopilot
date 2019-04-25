@@ -167,7 +167,7 @@ parser.add_argument("-o", "--agent-outdir", dest='agentdir', type=str,
                     help="Agent output dir, by default using relative path 'src/modules/micrortps_bridge/micrortps_agent'", default=default_agent_out)
 parser.add_argument("-u", "--client-outdir", dest='clientdir', type=str,
                     help="Client output dir, by default using relative path 'src/modules/micrortps_bridge/micrortps_client'", default=default_client_out)
-parser.add_argument("-f", "--fastrtpsgen-dir", dest='fastrtpsgen', type=str,
+parser.add_argument("-f", "--fastrtpsgen-dir", dest='fastrtpsgen', type=str, nargs='?',
                     help="fastrtpsgen installation dir, only needed if fastrtpsgen is not in PATH, by default empty", default="")
 parser.add_argument("-g", "--fastrtpsgen-include", dest='fastrtpsgen_include', type=str,
                     help="directory(ies) to add to preprocessor include paths of fastrtpsgen, by default empty", default="")
