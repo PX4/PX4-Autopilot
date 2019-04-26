@@ -360,7 +360,8 @@ mixer_tick(void)
 		isr_debug(5, "> PWM disabled");
 	}
 
-	if (mixer_servos_armed && (should_arm || should_arm_nothrottle)
+	if (mixer_servos_armed
+	    && (should_arm || should_arm_nothrottle || (source == MIX_FAILSAFE))
 	    && !(r_setup_arming & PX4IO_P_SETUP_ARMING_LOCKDOWN)) {
 		/* update the servo outputs. */
 		for (unsigned i = 0; i < PX4IO_SERVO_COUNT; i++) {
