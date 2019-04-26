@@ -813,7 +813,7 @@ MulticopterAttitudeControl::run()
 			bool is_hover = _vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode;
 
 			// vehicle is a tailsitter in transition mode
-			bool is_tailsitter_transition = _vehicle_status.in_transition_mode && (_vtol_type.get() == vtol_type::TAILSITTER);
+			bool is_tailsitter_transition = _vehicle_status.in_transition_mode && (_param_vtol_type.get() == vtol_type::TAILSITTER);
 
 			bool run_att_ctrl = _v_control_mode.flag_control_attitude_enabled && (is_hover || is_tailsitter_transition);
 
