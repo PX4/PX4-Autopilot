@@ -104,37 +104,27 @@ bool FlightTaskAuto::updateFinalize()
 {
 	// All the auto FlightTasks have to comply with defined maximum yaw rate
 	// If the FlightTask generates a yaw or a yawrate setpoint that exceeds this value
-	// if will see its setpoint constrained here
+	// it will see its setpoint constrained here
 	_limitYawRate();
 	return true;
 }
 
 void FlightTaskAuto::_limitYawRate()
 {
-	if (PX4_ISFINITE(_yaw_setpoint) || PX4_ISFINITE(_yaw_sp_prev)) {
+	const float yawrate_max = math::radians(_param_mpc_yawrauto_max.get());
+
+	if (PX4_ISFINITE(_yaw_setpoint) && PX4_ISFINITE(_yaw_sp_prev)) {
 		// Limit the rate of change of the yaw setpoint
-		float dy_max = math::radians(_param_mpc_yawrauto_max.get()) * _deltatime;
-
-		if (fabsf(_yaw_setpoint - _yaw_sp_prev) < M_PI_F) {
-			// Wrap around 0
-			_yaw_setpoint = math::constrain(_yaw_setpoint,
-							_yaw_sp_prev - dy_max,
-							_yaw_sp_prev + dy_max);
-
-		} else {
-			// Wrap around PI/-PI
-			_yaw_setpoint = matrix::wrap_pi(
-						math::constrain(matrix::wrap_2pi(_yaw_setpoint),
-								matrix::wrap_2pi(_yaw_sp_prev) - dy_max,
-								matrix::wrap_2pi(_yaw_sp_prev) + dy_max)
-					);
-		}
-
+		const float dyaw_desired = matrix::wrap_pi(_yaw_setpoint - _yaw_sp_prev);
+		const float dyaw_max = yawrate_max * _deltatime;
+		const float dyaw = math::constrain(dyaw_desired, -dyaw_max, dyaw_max);
+		_yaw_setpoint = _yaw_sp_prev + dyaw;
+		_yaw_setpoint = matrix::wrap_pi(_yaw_setpoint);
 		_yaw_sp_prev = _yaw_setpoint;
 	}
 
 	if (PX4_ISFINITE(_yawspeed_setpoint)) {
-		_yawspeed_setpoint = math::constrain(_yawspeed_setpoint, -_param_mpc_yawrauto_max.get(), _param_mpc_yawrauto_max.get());
+		_yawspeed_setpoint = math::constrain(_yawspeed_setpoint, -yawrate_max, yawrate_max);
 	}
 }
 
