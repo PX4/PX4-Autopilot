@@ -247,6 +247,7 @@ private:
 	uint8_t _gps_slowest_index = 0;			///< index of the physical receiver with the slowest update rate
 	float _gps_dt[GPS_MAX_RECEIVERS] = {};		///< average time step in seconds.
 	bool  _gps_new_output_data = false;		///< true if there is new output data for the EKF
+	bool _had_valid_terrain = false;		///< true if at any time there was a valid terrain estimate
 
 	int32_t _gps_alttitude_ellipsoid[GPS_MAX_RECEIVERS] {};	///< altitude in 1E-3 meters (millimeters) above ellipsoid
 	uint64_t _gps_alttitude_ellipsoid_previous_timestamp[GPS_MAX_RECEIVERS] {}; ///< storage for previous timestamp to compute dt
@@ -1414,14 +1415,26 @@ void Ekf2::run()
 					lpos.dist_bottom = _param_ekf2_min_rng.get();
 				}
 
-				// update ground effect flag based on terrain estimation
-				if (lpos.dist_bottom_valid && lpos.dist_bottom < _param_ekf2_gnd_max_hgt.get()) {
-					_ekf.set_gnd_effect_flag(true);
+				if (!_had_valid_terrain) {
+					_had_valid_terrain = lpos.dist_bottom_valid;
 				}
 
-				// update ground effect flag based on land detector state
-				else if (vehicle_land_detected_updated && _param_ekf2_gnd_eff_dz.get() > 0.0f) {
-					_ekf.set_gnd_effect_flag(vehicle_land_detected.in_ground_effect);
+				if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+					// set ground effect flag if vehicle is closer than a specified distance to the ground
+					if (lpos.dist_bottom_valid) {
+						_ekf.set_gnd_effect_flag(lpos.dist_bottom < _param_ekf2_gnd_max_hgt.get());
+
+						// if we have no valid terrain estimate and never had one then use ground effect flag from land detector
+						// _had_valid_terrain is used to make sure that we don't fall back to using this option
+						// if we temporarily lose terrain data due to the distance sensor getting out of range
+
+					} else if (vehicle_land_detected_updated && _param_ekf2_gnd_eff_dz.get() > 0.0f && !_had_valid_terrain) {
+						// update ground effect flag based on land detector state
+						_ekf.set_gnd_effect_flag(vehicle_land_detected.in_ground_effect);
+					}
+
+				} else {
+					_ekf.set_gnd_effect_flag(false);
 				}
 
 				lpos.dist_bottom_rate = -lpos.vz; // Distance to bottom surface (ground) change rate
