@@ -112,7 +112,7 @@ void Ekf::runTerrainEstimator()
 			_flow_for_terrain_data_ready = false;
 		}
 
-		//constrain _terrain_vpos to be a minimum of _params.rng_gnd_clearance larger than _state.pos(2)
+		// constrain _terrain_vpos to be a minimum of _params.rng_gnd_clearance larger than _state.pos(2)
 		if (_terrain_vpos - _state.pos(2) < _params.rng_gnd_clearance) {
 			_terrain_vpos = _params.rng_gnd_clearance + _state.pos(2);
 		}
@@ -207,8 +207,12 @@ void Ekf::fuseFlowForTerrain()
 
 	float t0 = q0*q0 - q1*q1 - q2*q2 + q3*q3;
 
+	// constrain terrain to minimum allowed value and predict height above ground
+	_terrain_vpos = fmaxf(_terrain_vpos, _params.rng_gnd_clearance + _state.pos(2));
+	float pred_hagl = _terrain_vpos - _state.pos(2);
+
 	// Calculate observation matrix for flow around the vehicle x axis
-	float Hx = vel_body(1) * t0 /((_terrain_vpos - _state.pos(2)) * (_terrain_vpos - _state.pos(2)));
+	float Hx = vel_body(1) * t0 /(pred_hagl * pred_hagl);
 
 	// Cacluate innovation variance
 	_flow_innov_var[0] = Hx * Hx * _terrain_var + R_LOS;
@@ -217,7 +221,7 @@ void Ekf::fuseFlowForTerrain()
 	float Kx = _terrain_var * Hx / _flow_innov_var[0];
 
 	// calculate prediced optical flow about x axis
-	float pred_flow_x = vel_body(1) * earth_to_body(2,2) / (_terrain_vpos - _state.pos(2));
+	float pred_flow_x = vel_body(1) * earth_to_body(2,2) / pred_hagl;
 
 	// calculate flow innovation (x axis)
 	_flow_innov[0] = pred_flow_x - opt_flow_rate(0);
@@ -237,7 +241,7 @@ void Ekf::fuseFlowForTerrain()
 	}
 
 	// Calculate observation matrix for flow around the vehicle y axis
-	float Hy = -vel_body(0) * t0 /((_terrain_vpos - _state.pos(2)) * (_terrain_vpos - _state.pos(2)));
+	float Hy = -vel_body(0) * t0 /(pred_hagl * pred_hagl);
 
 	// Calculuate innovation variance
 	_flow_innov_var[1] = Hy * Hy * _terrain_var + R_LOS;
@@ -246,7 +250,7 @@ void Ekf::fuseFlowForTerrain()
 	float Ky = _terrain_var * Hy / _flow_innov_var[1];
 
 	// calculate prediced optical flow about y axis
-	float pred_flow_y = -vel_body(0) * earth_to_body(2,2) / (_terrain_vpos - _state.pos(2));
+	float pred_flow_y = -vel_body(0) * earth_to_body(2,2) / pred_hagl;
 
 	// calculate flow innovation (y axis)
 	_flow_innov[1] = pred_flow_y - opt_flow_rate(1);
