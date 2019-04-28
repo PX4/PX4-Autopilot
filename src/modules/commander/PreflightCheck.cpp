@@ -925,8 +925,15 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 
 	/* ---- Navigation EKF ---- */
 	// only check EKF2 data if EKF2 is selected as the estimator and GNSS checking is enabled
-	int32_t estimator_type;
-	param_get(param_find("SYS_MC_EST_GROUP"), &estimator_type);
+	int32_t estimator_type = -1;
+
+	if (status.is_rotary_wing && !status.is_vtol) {
+		param_get(param_find("SYS_MC_EST_GROUP"), &estimator_type);
+
+	} else {
+		// EKF2 is currently the only supported option for FW & VTOL
+		estimator_type = 2;
+	}
 
 	if (estimator_type == 2) {
 		// don't report ekf failures for the first 10 seconds to allow time for the filter to start
