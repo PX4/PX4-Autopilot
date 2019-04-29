@@ -11,5 +11,5 @@ mpu9250 -R 12 start
 lps25h start
 
 # Optical flow deck
-vl53l0x start
+vl53lxx start
 pmw3901 start
