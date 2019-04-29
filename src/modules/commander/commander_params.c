@@ -895,7 +895,7 @@ PARAM_DEFINE_FLOAT(COM_ASPD_STALL, 10.0f);
 PARAM_DEFINE_INT32(COM_ASPD_FS_ACT, 0);
 
 /**
- * Airspeed fault detection RTL delay (Experimental)
+ * Airspeed fault detection delay before RTL (Experimental)
  *
  * RTL delay after bad airspeed measurements are detected if COM_ASPD_FS_ACT is set to 4. Ensure the COM_ASPD_STALL parameter is set correctly before use. The failsafe start and stop delays are controlled by the COM_TAS_FS_T1 and COM_TAS_FS_T2 parameters. Additional protection against persistent airspeed sensor errors can be enabled using the COM_TAS_FS_INNOV parameter, but these addtional checks are more prone to false positives in windy conditions.
  *
