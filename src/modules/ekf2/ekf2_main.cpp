@@ -1327,6 +1327,9 @@ void Ekf2::run()
 			filter_control_status_u control_status;
 			_ekf.get_control_mode(&control_status.value);
 
+			// get the full covariance matrix
+			matrix::SquareMatrix<float, 24> covariances = _ekf.covariances();
+
 			// only publish position after successful alignment
 			if (control_status.flags.tilt_align) {
 				// generate vehicle local position data
@@ -1468,14 +1471,14 @@ void Ekf2::run()
 				// get the position and orientation covariances and fill the pose covariance matrix
 				// it's not a cross-covariance matrix but simplifies propagating the data
 				matrix::SquareMatrix<float, 6> pose_cov = matrix::eye<float, 6>();
-				pose_cov.set(_ekf.position_covariances(), 0, 0);
-				pose_cov.set(propagate_covariances_from_quat_to_euler(q, _ekf.orientation_covariances()), 3, 3);
+				pose_cov.set(covariances.slice<3, 3>(7, 7), 0, 0);
+				pose_cov.set(propagate_covariances_from_quat_to_euler(q, covariances.slice<4, 4>(0, 0)), 3, 3);
 				pose_cov.upper_right_triangle().copyTo(odom.pose_covariance);
 
 				// get the velocity covariances
 				// note: unknown angular velocity covariance matrix - diag set to NaN
 				matrix::SquareMatrix<float, 6> vel_cov = matrix::diag<float, 6>(matrix::nans<6, 1>());
-				vel_cov.set(_ekf.velocity_covariances(), 0, 0);
+				vel_cov.set(covariances.slice<3, 3>(4, 4), 0, 0);
 				vel_cov.upper_right_triangle().copyTo(odom.velocity_covariance);
 
 				// publish vehicle local position data
@@ -1566,7 +1569,7 @@ void Ekf2::run()
 			status.timestamp = now;
 			_ekf.get_state_delayed(status.states);
 			status.n_states = 24;
-			_ekf.covariances_diagonal().copyTo(status.covariances);
+			covariances.diag().copyTo(status.covariances);
 			_ekf.get_gps_check_status(&status.gps_check_fail_flags);
 			// only report enabled GPS check failures (the param indexes are shifted by 1 bit, because they don't include
 			// the GPS Fix bit, which is always checked)
