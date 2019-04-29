@@ -1419,7 +1419,8 @@ void Ekf2::run()
 					_had_valid_terrain = lpos.dist_bottom_valid;
 				}
 
-				if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+				// only consider ground effect if compensation is configured and the vehicle is armed (props spinning)
+				if (_param_ekf2_gnd_eff_dz.get() > 0.0f && vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 					// set ground effect flag if vehicle is closer than a specified distance to the ground
 					if (lpos.dist_bottom_valid) {
 						_ekf.set_gnd_effect_flag(lpos.dist_bottom < _param_ekf2_gnd_max_hgt.get());
@@ -1428,7 +1429,7 @@ void Ekf2::run()
 						// _had_valid_terrain is used to make sure that we don't fall back to using this option
 						// if we temporarily lose terrain data due to the distance sensor getting out of range
 
-					} else if (vehicle_land_detected_updated && _param_ekf2_gnd_eff_dz.get() > 0.0f && !_had_valid_terrain) {
+					} else if (vehicle_land_detected_updated && !_had_valid_terrain) {
 						// update ground effect flag based on land detector state
 						_ekf.set_gnd_effect_flag(vehicle_land_detected.in_ground_effect);
 					}
