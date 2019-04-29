@@ -32,10 +32,10 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__vl53lxx
-	MAIN vl53lxx
+	MODULE drivers__vl53l0x
+	MAIN vl53l0x
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		vl53lxx.cpp
+		vl53l0x.cpp
 	)

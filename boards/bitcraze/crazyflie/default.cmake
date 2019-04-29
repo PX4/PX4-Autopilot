@@ -9,7 +9,7 @@ px4_add_board(
 
 	DRIVERS
 		barometer/lps25h
-		distance_sensor/vl53lxx
+		distance_sensor/vl53l0x
 		gps
 		imu/mpu9250
 		pmw3901

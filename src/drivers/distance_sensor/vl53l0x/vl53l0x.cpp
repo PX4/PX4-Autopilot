@@ -32,10 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file vl53lxx.cpp
+ * @file vl53l0x.cpp
  * @author Daniele Pettenuzzo
  *
- * Driver for the vl53lxx ToF Sensor from ST Microelectronics connected via I2C.
+ * Driver for the vl53l0x ToF Sensor from ST Microelectronics connected via I2C.
  */
 
 #include <px4_config.h>
@@ -69,12 +69,12 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#define VL53LXX_BUS_DEFAULT PX4_I2C_BUS_EXPANSION
+#define VL53L0X_BUS_DEFAULT PX4_I2C_BUS_EXPANSION
 
-#define VL53LXX_BASEADDR 0b0101001 // 7-bit address
-#define VL53LXX_DEVICE_PATH "/dev/vl53lxx"
+#define VL53L0X_BASEADDR 0b0101001 // 7-bit address
+#define VL53L0X_DEVICE_PATH "/dev/vl53l0x"
 
-/* VL53LXX Registers addresses */
+/* VL53L0X Registers addresses */
 #define VHV_CONFIG_PAD_SCL_SDA_EXTSUP_HW_REG 0x89
 #define MSRC_CONFIG_CONTROL_REG 0x60
 #define FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT_REG 0x44
@@ -92,26 +92,26 @@
 #define GPIO_HV_MUX_ACTIVE_HIGH_REG 0x84
 #define SYSTEM_INTERRUPT_CLEAR_REG 0x0B
 #define RESULT_RANGE_STATUS_REG 0x14
-#define VL53LXX_RA_IDENTIFICATION_MODEL_ID 0xC0
-#define VL53LXX_IDENTIFICATION_MODEL_ID 0xEEAA
+#define VL53L0X_RA_IDENTIFICATION_MODEL_ID 0xC0
+#define VL53L0X_IDENTIFICATION_MODEL_ID 0xEEAA
 
-#define VL53LXX_US 1000 /*  1ms */
-#define VL53LXX_SAMPLE_RATE 50000 /* 50ms */
+#define VL53L0X_US 1000 /*  1ms */
+#define VL53L0X_SAMPLE_RATE 50000 /* 50ms */
 
-#define VL53LXX_MAX_RANGING_DISTANCE 2.0f
-#define VL53LXX_MIN_RANGING_DISTANCE 0.0f
+#define VL53L0X_MAX_RANGING_DISTANCE 2.0f
+#define VL53L0X_MIN_RANGING_DISTANCE 0.0f
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class VL53LXX : public device::I2C
+class VL53L0X : public device::I2C
 {
 public:
-	VL53LXX(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING,
-		int bus = VL53LXX_BUS_DEFAULT, int address = VL53LXX_BASEADDR);
+	VL53L0X(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING,
+		int bus = VL53L0X_BUS_DEFAULT, int address = VL53L0X_BASEADDR);
 
-	virtual ~VL53LXX();
+	virtual ~VL53L0X();
 
 	virtual int init();
 
@@ -191,10 +191,10 @@ private:
 /*
  * Driver 'main' command.
  */
-extern "C" __EXPORT int vl53lxx_main(int argc, char *argv[]);
+extern "C" __EXPORT int vl53l0x_main(int argc, char *argv[]);
 
-VL53LXX::VL53LXX(uint8_t rotation, int bus, int address) :
-	I2C("VL53LXX", VL53LXX_DEVICE_PATH, bus, address, 400000),
+VL53L0X::VL53L0X(uint8_t rotation, int bus, int address) :
+	I2C("VL53L0X", VL53L0X_DEVICE_PATH, bus, address, 400000),
 	_rotation(rotation),
 	_reports(nullptr),
 	_sensor_ok(false),
@@ -205,8 +205,8 @@ VL53LXX::VL53LXX(uint8_t rotation, int bus, int address) :
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_distance_sensor_topic(nullptr),
-	_sample_perf(perf_alloc(PC_ELAPSED, "vl53lxx_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "vl53lxx_com_err")),
+	_sample_perf(perf_alloc(PC_ELAPSED, "vl53l0x_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "vl53l0x_com_err")),
 	_stop_variable(0)
 {
 	// up the retries since the device misses the first measure attempts
@@ -219,7 +219,7 @@ VL53LXX::VL53LXX(uint8_t rotation, int bus, int address) :
 	memset(&_work, 0, sizeof(_work));
 }
 
-VL53LXX::~VL53LXX()
+VL53L0X::~VL53L0X()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -244,7 +244,7 @@ VL53LXX::~VL53LXX()
 
 
 int
-VL53LXX::sensorInit()
+VL53L0X::sensorInit()
 {
 	uint8_t val = 0;
 	int ret = OK;
@@ -298,11 +298,11 @@ VL53LXX::sensorInit()
 }
 
 int
-VL53LXX::init()
+VL53L0X::init()
 {
 	int ret = OK;
 
-	set_device_address(VL53LXX_BASEADDR);
+	set_device_address(VL53L0X_BASEADDR);
 
 	/* do I2C init (and probe) first */
 	if (I2C::init() != OK) {
@@ -328,7 +328,7 @@ out:
 }
 
 int
-VL53LXX::probe()
+VL53L0X::probe()
 {
 	if (sensorInit() == OK) {
 		return OK;
@@ -339,7 +339,7 @@ VL53LXX::probe()
 }
 
 int
-VL53LXX::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+VL53L0X::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -354,7 +354,7 @@ VL53LXX::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(VL53LXX_SAMPLE_RATE);
+					_measure_ticks = USEC2TICK(VL53L0X_SAMPLE_RATE);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -395,7 +395,7 @@ VL53LXX::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 
 ssize_t
-VL53LXX::read(device::file_t *filp, char *buffer, size_t buflen)
+VL53L0X::read(device::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct distance_sensor_s);
 	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
@@ -455,7 +455,7 @@ VL53LXX::read(device::file_t *filp, char *buffer, size_t buflen)
 
 
 int
-VL53LXX::readRegister(uint8_t reg_address, uint8_t &value)
+VL53L0X::readRegister(uint8_t reg_address, uint8_t &value)
 {
 	int ret;
 
@@ -481,7 +481,7 @@ VL53LXX::readRegister(uint8_t reg_address, uint8_t &value)
 
 
 int
-VL53LXX::readRegisterMulti(uint8_t reg_address, uint8_t *value, uint8_t length)
+VL53L0X::readRegisterMulti(uint8_t reg_address, uint8_t *value, uint8_t length)
 {
 	int ret;
 
@@ -507,7 +507,7 @@ VL53LXX::readRegisterMulti(uint8_t reg_address, uint8_t *value, uint8_t length)
 
 
 int
-VL53LXX::writeRegister(uint8_t reg_address, uint8_t value)
+VL53L0X::writeRegister(uint8_t reg_address, uint8_t value)
 {
 	int ret;
 	uint8_t cmd[2] = {0, 0};
@@ -528,7 +528,7 @@ VL53LXX::writeRegister(uint8_t reg_address, uint8_t value)
 
 
 int
-VL53LXX::writeRegisterMulti(uint8_t reg_address, uint8_t *value,
+VL53L0X::writeRegisterMulti(uint8_t reg_address, uint8_t *value,
 			    uint8_t length) /* bytes are send in order as they are in the array */
 {
 	/* be careful: for uint16_t to send first higher byte */
@@ -536,7 +536,7 @@ VL53LXX::writeRegisterMulti(uint8_t reg_address, uint8_t *value,
 	uint8_t cmd[7] = {0, 0, 0, 0, 0, 0, 0};
 
 	if (length > 6 || length < 1) {
-		DEVICE_LOG("VL53LXX::writeRegisterMulti length out of range");
+		DEVICE_LOG("VL53L0X::writeRegisterMulti length out of range");
 		return PX4_ERROR;
 	}
 
@@ -557,7 +557,7 @@ VL53LXX::writeRegisterMulti(uint8_t reg_address, uint8_t *value,
 
 
 int
-VL53LXX::measure()
+VL53L0X::measure()
 {
 	int ret = OK;
 	uint8_t wait_for_measurement;
@@ -585,8 +585,8 @@ VL53LXX::measure()
 		readRegister(SYSRANGE_START_REG, system_start);
 
 		if ((system_start & 0x01) == 1) {
-			work_queue(LPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this,
-				   USEC2TICK(VL53LXX_US));		// reschedule every 1 ms until measurement is ready
+			work_queue(LPWORK, &_work, (worker_t)&VL53L0X::cycle_trampoline, this,
+				   USEC2TICK(VL53L0X_US));		// reschedule every 1 ms until measurement is ready
 			ret = OK;
 			return ret;
 
@@ -601,8 +601,8 @@ VL53LXX::measure()
 		readRegister(SYSRANGE_START_REG, system_start);
 
 		if ((system_start & 0x01) == 1) {
-			work_queue(LPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this,
-				   USEC2TICK(VL53LXX_US));		// reschedule every 1 ms until measurement is ready
+			work_queue(LPWORK, &_work, (worker_t)&VL53L0X::cycle_trampoline, this,
+				   USEC2TICK(VL53L0X_US));		// reschedule every 1 ms until measurement is ready
 			ret = OK;
 			return ret;
 
@@ -614,8 +614,8 @@ VL53LXX::measure()
 	readRegister(RESULT_INTERRUPT_STATUS_REG, wait_for_measurement);
 
 	if ((wait_for_measurement & 0x07) == 0) {
-		work_queue(LPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this,
-			   USEC2TICK(VL53LXX_US));		// reschedule every 1 ms until measurement is ready
+		work_queue(LPWORK, &_work, (worker_t)&VL53L0X::cycle_trampoline, this,
+			   USEC2TICK(VL53L0X_US));		// reschedule every 1 ms until measurement is ready
 		ret = OK;
 		return ret;
 	}
@@ -635,7 +635,7 @@ VL53LXX::measure()
 
 
 int
-VL53LXX::collect()
+VL53L0X::collect()
 {
 	int ret = -EIO;
 
@@ -665,8 +665,8 @@ VL53LXX::collect()
 
 	report.current_distance = distance_m;
 
-	report.min_distance = VL53LXX_MIN_RANGING_DISTANCE;
-	report.max_distance = VL53LXX_MAX_RANGING_DISTANCE;
+	report.min_distance = VL53L0X_MIN_RANGING_DISTANCE;
+	report.max_distance = VL53L0X_MAX_RANGING_DISTANCE;
 	report.variance = 0.0f;
 	report.signal_quality = -1;
 
@@ -693,34 +693,34 @@ VL53LXX::collect()
 
 
 void
-VL53LXX::start()
+VL53L0X::start()
 {
 	/* reset the report ring and state machine */
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(LPWORK, &_work, (worker_t)&VL53LXX::cycle_trampoline, this, USEC2TICK(VL53LXX_US));
+	work_queue(LPWORK, &_work, (worker_t)&VL53L0X::cycle_trampoline, this, USEC2TICK(VL53L0X_US));
 }
 
 
 void
-VL53LXX::stop()
+VL53L0X::stop()
 {
 	work_cancel(LPWORK, &_work);
 }
 
 
 void
-VL53LXX::cycle_trampoline(void *arg)
+VL53L0X::cycle_trampoline(void *arg)
 {
-	VL53LXX *dev = (VL53LXX *)arg;
+	VL53L0X *dev = (VL53L0X *)arg;
 
 	dev->cycle();
 }
 
 
 void
-VL53LXX::cycle()
+VL53L0X::cycle()
 {
 	measure();
 
@@ -733,7 +733,7 @@ VL53LXX::cycle()
 
 		work_queue(LPWORK,
 			   &_work,
-			   (worker_t)&VL53LXX::cycle_trampoline,
+			   (worker_t)&VL53L0X::cycle_trampoline,
 			   this,
 			   _measure_ticks);
 	}
@@ -742,7 +742,7 @@ VL53LXX::cycle()
 
 
 void
-VL53LXX::print_info()
+VL53L0X::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
@@ -752,7 +752,7 @@ VL53LXX::print_info()
 
 
 bool
-VL53LXX::spadCalculations()
+VL53L0X::spadCalculations()
 {
 	uint8_t val;
 
@@ -846,7 +846,7 @@ VL53LXX::spadCalculations()
 
 
 bool
-VL53LXX::sensorTuning()
+VL53L0X::sensorTuning()
 {
 
 	writeRegister(0xFF, 0x01);
@@ -935,7 +935,7 @@ VL53LXX::sensorTuning()
 
 
 bool
-VL53LXX::singleRefCalibration(uint8_t byte)
+VL53L0X::singleRefCalibration(uint8_t byte)
 {
 	uint8_t val;
 
@@ -956,10 +956,10 @@ VL53LXX::singleRefCalibration(uint8_t byte)
 /**
  * Local functions in support of the shell command.
  */
-namespace vl53lxx
+namespace vl53l0x
 {
 
-VL53LXX	*g_dev;
+VL53L0X	*g_dev;
 
 int 	start(uint8_t rotation);
 int 	start_bus(uint8_t rotation, int i2c_bus);
@@ -1010,7 +1010,7 @@ start_bus(uint8_t rotation, int i2c_bus)
 	}
 
 	/* create the driver */
-	g_dev = new VL53LXX(rotation, i2c_bus);
+	g_dev = new VL53L0X(rotation, i2c_bus);
 
 	if (g_dev == nullptr) {
 		goto fail;
@@ -1021,7 +1021,7 @@ start_bus(uint8_t rotation, int i2c_bus)
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	fd = px4_open(VL53LXX_DEVICE_PATH, O_RDONLY);
+	fd = px4_open(VL53L0X_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		goto fail;
@@ -1077,10 +1077,10 @@ test()
 	struct distance_sensor_s report;
 	ssize_t sz;
 
-	int fd = px4_open(VL53LXX_DEVICE_PATH, O_RDONLY);
+	int fd = px4_open(VL53L0X_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		PX4_ERR("%s open failed (try 'vl53lxx start' if the driver is not running)", VL53LXX_DEVICE_PATH);
+		PX4_ERR("%s open failed (try 'vl53l0x start' if the driver is not running)", VL53L0X_DEVICE_PATH);
 		return PX4_ERROR;
 	}
 
@@ -1118,15 +1118,15 @@ info()
 	return PX4_OK;
 }
 
-} // namespace vl53lxx
+} // namespace vl53l0x
 
 
 static void
-vl53lxx_usage()
+vl53l0x_usage()
 {
-	PX4_INFO("usage: vl53lxx command [options]");
+	PX4_INFO("usage: vl53l0x command [options]");
 	PX4_INFO("options:");
-	PX4_INFO("\t-b --bus i2cbus (%d)", VL53LXX_BUS_DEFAULT);
+	PX4_INFO("\t-b --bus i2cbus (%d)", VL53L0X_BUS_DEFAULT);
 	PX4_INFO("\t-a --all");
 	PX4_INFO("\t-R --rotation (%d)", distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	PX4_INFO("command:");
@@ -1135,7 +1135,7 @@ vl53lxx_usage()
 
 
 int
-vl53lxx_main(int argc, char *argv[])
+vl53l0x_main(int argc, char *argv[])
 {
 	int ch;
 	int myoptind = 1;
@@ -1143,7 +1143,7 @@ vl53lxx_main(int argc, char *argv[])
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	bool start_all = false;
 
-	int i2c_bus = VL53LXX_BUS_DEFAULT;
+	int i2c_bus = VL53L0X_BUS_DEFAULT;
 
 	while ((ch = px4_getopt(argc, argv, "ab:R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
@@ -1170,10 +1170,10 @@ vl53lxx_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
 		if (start_all) {
-			return vl53lxx::start(rotation);
+			return vl53l0x::start(rotation);
 
 		} else {
-			return vl53lxx::start_bus(rotation, i2c_bus);
+			return vl53l0x::start_bus(rotation, i2c_bus);
 		}
 	}
 
@@ -1181,25 +1181,25 @@ vl53lxx_main(int argc, char *argv[])
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[myoptind], "stop")) {
-		return vl53lxx::stop();
+		return vl53l0x::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[myoptind], "test")) {
-		return vl53lxx::test();
+		return vl53l0x::test();
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
-		return vl53lxx::info();
+		return vl53l0x::info();
 	}
 
 out_error:
 
-	vl53lxx_usage();
+	vl53l0x_usage();
 	return PX4_ERROR;
 }
