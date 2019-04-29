@@ -430,7 +430,7 @@ PARAM_DEFINE_FLOAT(FW_WR_FF, 0.2f);
 PARAM_DEFINE_FLOAT(FW_RSP_OFF, 0.0f);
 
 /**
- * Pitch setpoint offset
+ * Pitch setpoint offset (cruise trim)
  *
  * An airframe specific offset of the pitch setpoint in degrees, the value is
  * added to the pitch setpoint and should correspond to the typical cruise
