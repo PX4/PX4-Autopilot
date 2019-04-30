@@ -78,7 +78,7 @@ bool FlightTaskAuto::activate()
 	bool ret = FlightTask::activate();
 	_position_setpoint = _position;
 	_velocity_setpoint = _velocity;
-	_yaw_setpoint = _yaw;
+	_yaw_setpoint = _yaw_sp_prev = _yaw;
 	_yawspeed_setpoint = 0.0f;
 	_setDefaultConstraints();
 	return ret;
@@ -98,6 +98,34 @@ bool FlightTaskAuto::updateInitialize()
 	      && PX4_ISFINITE(_velocity(2));
 
 	return ret;
+}
+
+bool FlightTaskAuto::updateFinalize()
+{
+	// All the auto FlightTasks have to comply with defined maximum yaw rate
+	// If the FlightTask generates a yaw or a yawrate setpoint that exceeds this value
+	// it will see its setpoint constrained here
+	_limitYawRate();
+	return true;
+}
+
+void FlightTaskAuto::_limitYawRate()
+{
+	const float yawrate_max = math::radians(_param_mpc_yawrauto_max.get());
+
+	if (PX4_ISFINITE(_yaw_setpoint) && PX4_ISFINITE(_yaw_sp_prev)) {
+		// Limit the rate of change of the yaw setpoint
+		const float dyaw_desired = matrix::wrap_pi(_yaw_setpoint - _yaw_sp_prev);
+		const float dyaw_max = yawrate_max * _deltatime;
+		const float dyaw = math::constrain(dyaw_desired, -dyaw_max, dyaw_max);
+		_yaw_setpoint = _yaw_sp_prev + dyaw;
+		_yaw_setpoint = matrix::wrap_pi(_yaw_setpoint);
+		_yaw_sp_prev = _yaw_setpoint;
+	}
+
+	if (PX4_ISFINITE(_yawspeed_setpoint)) {
+		_yawspeed_setpoint = math::constrain(_yawspeed_setpoint, -yawrate_max, yawrate_max);
+	}
 }
 
 bool FlightTaskAuto::_evaluateTriplets()

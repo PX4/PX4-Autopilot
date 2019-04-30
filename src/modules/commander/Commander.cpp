@@ -165,6 +165,7 @@ static uint64_t rc_signal_lost_timestamp;		// Time at which the RC reception was
 
 static uint8_t arm_requirements = ARM_REQ_NONE;
 
+static bool _last_condition_local_altitude_valid = false;
 static bool _last_condition_global_position_valid = false;
 
 static struct vehicle_land_detected_s land_detector = {};
@@ -2085,6 +2086,7 @@ Commander::run()
 			transition_result_t main_res = set_main_state(status, &status_changed);
 
 			/* store last position lock state */
+			_last_condition_local_altitude_valid = status_flags.condition_local_altitude_valid;
 			_last_condition_global_position_valid = status_flags.condition_global_position_valid;
 
 			/* play tune on mode change only if armed, blink LED always */
@@ -2730,20 +2732,29 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 	// we want to allow rc mode change to take precidence.  This is a safety
 	// feature, just in case offboard control goes crazy.
 
-	/* manual setpoint has not updated, do not re-evaluate it */
-	if (!(!_last_condition_global_position_valid &&
-	      status_flags.condition_global_position_valid)
-	    && (((_last_sp_man.timestamp != 0) && (_last_sp_man.timestamp == sp_man.timestamp)) ||
-		((_last_sp_man.offboard_switch == sp_man.offboard_switch) &&
-		 (_last_sp_man.return_switch == sp_man.return_switch) &&
-		 (_last_sp_man.mode_switch == sp_man.mode_switch) &&
-		 (_last_sp_man.acro_switch == sp_man.acro_switch) &&
-		 (_last_sp_man.rattitude_switch == sp_man.rattitude_switch) &&
-		 (_last_sp_man.posctl_switch == sp_man.posctl_switch) &&
-		 (_last_sp_man.loiter_switch == sp_man.loiter_switch) &&
-		 (_last_sp_man.mode_slot == sp_man.mode_slot) &&
-		 (_last_sp_man.stab_switch == sp_man.stab_switch) &&
-		 (_last_sp_man.man_switch == sp_man.man_switch)))) {
+	const bool altitude_got_valid = !_last_condition_local_altitude_valid && status_flags.condition_local_altitude_valid;
+	const bool position_got_valid = !_last_condition_global_position_valid && status_flags.condition_global_position_valid;
+	const bool first_time_rc = _last_sp_man.timestamp == 0;
+	const bool rc_values_updated = _last_sp_man.timestamp != sp_man.timestamp;
+	const bool some_switch_changed =
+		(_last_sp_man.offboard_switch != sp_man.offboard_switch)
+		|| (_last_sp_man.return_switch != sp_man.return_switch)
+		|| (_last_sp_man.mode_switch != sp_man.mode_switch)
+		|| (_last_sp_man.acro_switch != sp_man.acro_switch)
+		|| (_last_sp_man.rattitude_switch != sp_man.rattitude_switch)
+		|| (_last_sp_man.posctl_switch != sp_man.posctl_switch)
+		|| (_last_sp_man.loiter_switch != sp_man.loiter_switch)
+		|| (_last_sp_man.mode_slot != sp_man.mode_slot)
+		|| (_last_sp_man.stab_switch != sp_man.stab_switch)
+		|| (_last_sp_man.man_switch != sp_man.man_switch);
+
+	// only switch mode based on RC switch if necessary to also allow mode switching via MAVLink
+	const bool should_evaluate_rc_mode_switch = first_time_rc
+			|| altitude_got_valid
+			|| position_got_valid
+			|| (rc_values_updated && some_switch_changed);
+
+	if (!should_evaluate_rc_mode_switch) {
 
 		// store the last manual control setpoint set by the pilot in a manual state
 		// if the system now later enters an autonomous state the pilot can move

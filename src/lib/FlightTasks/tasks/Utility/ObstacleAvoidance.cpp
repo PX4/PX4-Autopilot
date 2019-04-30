@@ -56,6 +56,7 @@ ObstacleAvoidance::ObstacleAvoidance(ModuleParams *parent) :
 	ModuleParams(parent)
 {
 	_desired_waypoint = empty_trajectory_waypoint;
+	_failsafe_position.setNaN();
 }
 
 ObstacleAvoidance::~ObstacleAvoidance()
@@ -101,7 +102,21 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 	if (avoidance_data_timeout || !avoidance_point_valid) {
 		PX4_WARN("Obstacle Avoidance system failed, loitering");
 		_publishVehicleCmdDoLoiter();
+
+		if (!PX4_ISFINITE(_failsafe_position(0)) || !PX4_ISFINITE(_failsafe_position(1))
+		    || !PX4_ISFINITE(_failsafe_position(2))) {
+			// save vehicle position when entering failsafe
+			_failsafe_position = _position;
+		}
+
+		pos_sp = _failsafe_position;
+		vel_sp.setNaN();
+		yaw_sp = NAN;
+		yaw_speed_sp = NAN;
 		return;
+
+	} else {
+		_failsafe_position.setNaN();
 	}
 
 	pos_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position;
@@ -149,6 +164,7 @@ void ObstacleAvoidance::updateAvoidanceDesiredSetpoints(const Vector3f &pos_sp, 
 void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector3f &prev_wp,
 		float target_acceptance_radius, const Vector2f &closest_pt)
 {
+	_position = pos;
 	position_controller_status_s pos_control_status = {};
 	pos_control_status.timestamp = hrt_absolute_time();
 
@@ -159,7 +175,7 @@ void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector
 	// fraction of the previous-tagerget line that has been flown
 	const float prev_curr_travelled = prev_to_closest_pt.length() / prev_to_target.length();
 
-	Vector2f pos_to_target = Vector2f(_curr_wp - pos);
+	Vector2f pos_to_target = Vector2f(_curr_wp - _position);
 
 	if (prev_curr_travelled > 1.0f) {
 		// if the vehicle projected position on the line previous-target is past the target waypoint,
@@ -167,7 +183,7 @@ void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector
 		pos_control_status.acceptance_radius = pos_to_target.length() + 0.5f;
 	}
 
-	const float pos_to_target_z = fabsf(_curr_wp(2) - pos(2));
+	const float pos_to_target_z = fabsf(_curr_wp(2) - _position(2));
 
 	if (pos_to_target.length() < target_acceptance_radius && pos_to_target_z > NAV_MC_ALT_RAD.get()) {
 		// vehicle above or below the target waypoint

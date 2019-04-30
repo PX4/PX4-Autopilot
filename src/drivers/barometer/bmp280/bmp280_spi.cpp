@@ -82,7 +82,7 @@ private:
 	bool _external;
 };
 
-bmp280::IBMP280 *bmp280_spi_interface(uint8_t busnum, uint8_t device, bool external)
+bmp280::IBMP280 *bmp280_spi_interface(uint8_t busnum, uint32_t device, bool external)
 {
 	return new BMP280_SPI(busnum, device, external);
 }

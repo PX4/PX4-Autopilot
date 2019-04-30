@@ -309,7 +309,14 @@ RTL::advance_rtl()
 		break;
 
 	case RTL_STATE_RETURN:
-		_rtl_state = RTL_STATE_DESCEND;
+
+		// Descend to desired altitude if delay is set, directly land otherwise
+		if (_param_rtl_land_delay.get() < -DELAY_SIGMA || _param_rtl_land_delay.get() > DELAY_SIGMA) {
+			_rtl_state = RTL_STATE_DESCEND;
+
+		} else {
+			_rtl_state = RTL_STATE_LAND;
+		}
 
 		if (_navigator->get_vstatus()->is_vtol && !_navigator->get_vstatus()->is_rotary_wing) {
 			_rtl_state = RTL_STATE_TRANSITION_TO_MC;

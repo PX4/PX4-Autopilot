@@ -79,6 +79,7 @@ public:
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 	bool activate() override;
 	bool updateInitialize() override;
+	bool updateFinalize() override;
 
 	/**
 	 * Sets an external yaw handler which can be used to implement a different yaw control strategy.
@@ -111,12 +112,14 @@ protected:
 					(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
 					_param_nav_mc_alt_rad, //vertical acceptance radius at which waypoints are updated
 					(ParamInt<px4::params::MPC_YAW_MODE>) _param_mpc_yaw_mode, // defines how heading is executed,
-					(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid // obstacle avoidance active
+					(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid, // obstacle avoidance active
+					(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max
 				       );
 
 private:
 	matrix::Vector2f _lock_position_xy{NAN, NAN}; /**< if no valid triplet is received, lock positition to current position */
 	bool _yaw_lock = false; /**< if within acceptance radius, lock yaw to current yaw */
+	float _yaw_sp_prev = NAN;
 	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
 	uORB::Subscription<vehicle_status_s> *_sub_vehicle_status{nullptr};
 
@@ -136,6 +139,7 @@ private:
 		nullptr;	/**< external weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
 
 
+	void _limitYawRate(); /**< Limits the rate of change of the yaw setpoint. */
 	bool _evaluateTriplets(); /**< Checks and sets triplets. */
 	bool _isFinite(const position_setpoint_s &sp); /**< Checks if all waypoint triplets are finite. */
 	bool _evaluateGlobalReference(); /**< Check is global reference is available. */

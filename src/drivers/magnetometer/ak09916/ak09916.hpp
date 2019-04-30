@@ -139,6 +139,7 @@ public:
 	void read_block(uint8_t reg, uint8_t *val, uint8_t count);
 
 	int reset(void);
+	int probe(void);
 	int setup(void);
 	void print_info(void);
 	int setup_master_i2c(void);

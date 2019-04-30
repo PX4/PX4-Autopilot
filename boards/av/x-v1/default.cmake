@@ -3,6 +3,7 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR av
 	MODEL x-v1
+	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
@@ -19,8 +20,8 @@ px4_add_board(
 	DRIVERS
 		barometer # all available barometer drivers
 		batt_smbus
-		camera_trigger
 		camera_capture
+		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
@@ -31,21 +32,22 @@ px4_add_board(
 		irlock
 		lights/blinkm
 		#lights/oreoled
+		#lights/pca8574
 		#lights/rgbled
+		#lights/rgbled_ncp5623c
 		#lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		#md25
 		mkblctrl
-		#lights/pca8574
 		pca9685
-		#pmw3901
-		protocol_splitter
+		pmw3901
+		#protocol_splitter
 		#pwm_input
 		pwm_out_sim
 		px4flow
 		px4fmu
 		rc_input
-		roboclaw
+		#roboclaw
 		stm32
 		stm32/adc
 		stm32/armv7-m_dcache
@@ -104,7 +106,6 @@ px4_add_board(
 		top
 		topic_listener
 		tune_control
-		#usb_connected
 		ver
 
 	EXAMPLES

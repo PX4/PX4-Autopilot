@@ -353,8 +353,6 @@ public:
 
 	void			configure_stream_threadsafe(const char *stream_name, float rate = -1.0f);
 
-	bool			_task_should_exit;	/**< if true, mavlink task should exit */
-
 	orb_advert_t		*get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
 	/**
@@ -452,6 +450,8 @@ public:
 	unsigned short		get_remote_port() { return _remote_port; }
 
 	int 			get_socket_fd() { return _socket_fd; };
+
+	bool			_task_should_exit{false};	/**< Mavlink task should exit iff true. */
 
 #ifdef __PX4_POSIX
 	const in_addr		query_netmask_addr(const int socket_fd, const ifreq &ifreq);
@@ -553,7 +553,7 @@ private:
 	bool			_wait_to_transmit{false};  	/**< Wait to transmit until received messages. */
 	bool			_received_messages{false};	/**< Whether we've received valid mavlink messages. */
 
-	unsigned		_main_loop_delay;	/**< mainloop delay, depends on data rate */
+	unsigned		_main_loop_delay{1000};	/**< mainloop delay, depends on data rate */
 
 	List<MavlinkOrbSubscription *>	_subscriptions;
 	List<MavlinkStream *>		_streams;
@@ -567,18 +567,18 @@ private:
 
 	mavlink_channel_t	_channel{MAVLINK_COMM_0};
 
-	ringbuffer::RingBuffer	_logbuffer;
+	ringbuffer::RingBuffer	_logbuffer{5, sizeof(mavlink_log_s)};
 
-	pthread_t		_receive_thread;
+	pthread_t		_receive_thread {};
 
-	bool			_forwarding_on;
-	bool			_ftp_on;
+	bool			_forwarding_on{false};
+	bool			_ftp_on{false};
 
-	int			_uart_fd;
+	int			_uart_fd{-1};
 
-	int			_baudrate;
-	int			_datarate;		///< data rate for normal streams (attitude, position, etc.)
-	float			_rate_mult;
+	int			_baudrate{57600};
+	int			_datarate{1000};		///< data rate for normal streams (attitude, position, etc.)
+	float			_rate_mult{1.0f};
 
 	bool			_radio_status_available{false};
 	bool			_radio_status_critical{false};
@@ -589,15 +589,16 @@ private:
 	 * logic will send parameters from the current index
 	 * to len - 1, the end of the param list.
 	 */
-	unsigned int		_mavlink_param_queue_index;
+	unsigned int		_mavlink_param_queue_index{0};
 
-	bool			mavlink_link_termination_allowed;
+	bool			_mavlink_link_termination_allowed{false};
 
-	char			*_subscribe_to_stream;
-	float			_subscribe_to_stream_rate;  ///< rate of stream to subscribe to (0=disable, -1=unlimited, -2=default)
-	bool			_udp_initialised;
+	char			*_subscribe_to_stream{nullptr};
+	float			_subscribe_to_stream_rate{0.0f};  ///< rate of stream to subscribe to (0=disable, -1=unlimited, -2=default)
+	bool			_udp_initialised{false};
 
-	enum FLOW_CONTROL_MODE	_flow_control_mode;
+	FLOW_CONTROL_MODE	_flow_control_mode{Mavlink::FLOW_CONTROL_OFF};
+
 	uint64_t		_last_write_success_time;
 	uint64_t		_last_write_try_time;
 	uint64_t		_mavlink_start_time;
@@ -610,9 +611,10 @@ private:
 	uint64_t		_bytes_timestamp;
 
 #if defined(CONFIG_NET) || defined(__PX4_POSIX)
-	struct			sockaddr_in _myaddr;
-	struct			sockaddr_in _src_addr;
-	struct			sockaddr_in _bcast_addr;
+	sockaddr_in		_myaddr;
+	sockaddr_in		_src_addr;
+	sockaddr_in		_bcast_addr;
+
 	bool			_src_addr_initialized;
 	bool			_broadcast_address_found;
 	bool			_broadcast_address_not_found_warned;

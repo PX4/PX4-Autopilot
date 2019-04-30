@@ -21,7 +21,7 @@ bool FlightTasks::update()
 
 	if (isAnyTaskActive()) {
 		_subscription_array.update();
-		return _current_task.task->updateInitialize() && _current_task.task->update();
+		return _current_task.task->updateInitialize() && _current_task.task->update() && _current_task.task->updateFinalize();
 	}
 
 	return false;

@@ -452,8 +452,7 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 
 		// always publish ground truth attitude message
 		int hil_gpos_multi;
-		orb_publish_auto(ORB_ID(vehicle_global_position_groundtruth), &_gpos_pub, &hil_gpos, &hil_gpos_multi,
-				 ORB_PRIO_HIGH);
+		orb_publish_auto(ORB_ID(vehicle_global_position_groundtruth), &_gpos_pub, &hil_gpos, &hil_gpos_multi, ORB_PRIO_HIGH);
 	}
 
 	/* local position */
@@ -502,8 +501,7 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 
 		// always publish ground truth attitude message
 		int hil_lpos_multi;
-		orb_publish_auto(ORB_ID(vehicle_local_position_groundtruth), &_lpos_pub, &hil_lpos, &hil_lpos_multi,
-				 ORB_PRIO_HIGH);
+		orb_publish_auto(ORB_ID(vehicle_local_position_groundtruth), &_lpos_pub, &hil_lpos, &hil_lpos_multi, ORB_PRIO_HIGH);
 	}
 }
 
