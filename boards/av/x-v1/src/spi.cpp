@@ -58,7 +58,7 @@
 
 /* Define CS GPIO array */
 static constexpr uint32_t spi1selects_gpio[] = PX4_SENSOR1_BUS_CS_GPIO;
-static constexpr uint32_t spi2selects_gpio[] = PX4_SENSOR2_BUS_CS_GPIO;
+static constexpr uint32_t spi2selects_gpio[] = PX4_EXTERNAL1_BUS_CS_GPIO;
 static constexpr uint32_t spi4selects_gpio[] = PX4_SENSOR4_BUS_CS_GPIO;
 static constexpr uint32_t spi5selects_gpio[] = PX4_SENSOR5_BUS_CS_GPIO;
 
@@ -145,7 +145,7 @@ __EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
 #if defined(CONFIG_STM32F7_SPI2)
 __EXPORT void stm32_spi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 {
-	ASSERT(PX4_SPI_BUS_ID(devid) == PX4_SPI_BUS_SENSOR2);
+	ASSERT(PX4_SPI_BUS_ID(devid) == PX4_SPI_BUS_EXTERNAL1);
 
 	// Making sure the other peripherals are not selected
 	for (auto cs : spi2selects_gpio) {
