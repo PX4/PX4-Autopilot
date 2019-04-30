@@ -596,6 +596,8 @@ Commander::~Commander()
 	if (_iridiumsbd_status_sub >= 0) {
 		orb_unsubscribe(_iridiumsbd_status_sub);
 	}
+
+	delete[] _airspeed_fault_type;
 }
 
 bool
