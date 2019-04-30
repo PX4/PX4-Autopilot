@@ -276,9 +276,11 @@ private:
 		_param_mpc_thr_hover,			/**< throttle at which vehicle is at hover equilibrium */
 		(ParamInt<px4::params::MPC_THR_CURVE>) _param_mpc_thr_curve,				/**< throttle curve behavior */
 
-		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,
-		(ParamInt<px4::params::VT_TYPE>) _param_vtol_type
+		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode
 	)
+
+	param_t _param_handle_vtol_type{0};
+	bool _is_tailsitter{false};
 
 	matrix::Vector3f _rate_p;		/**< P gain for angular rate error */
 	matrix::Vector3f _rate_i;		/**< I gain for angular rate error */

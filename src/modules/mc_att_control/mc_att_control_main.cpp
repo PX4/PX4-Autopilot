@@ -125,6 +125,13 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 		_sensor_correction.gyro_scale_2[i] = 1.0f;
 	}
 
+	_param_handle_vtol_type = param_find("VT_TYPE");
+	int32_t tmp;
+
+	if (!param_get(_param_handle_vtol_type, &tmp)) {
+		_is_tailsitter = (tmp == vtol_type::TAILSITTER);
+	}
+
 	parameters_updated();
 }
 
@@ -813,7 +820,7 @@ MulticopterAttitudeControl::run()
 			bool is_hover = _vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode;
 
 			// vehicle is a tailsitter in transition mode
-			bool is_tailsitter_transition = _vehicle_status.in_transition_mode && (_param_vtol_type.get() == vtol_type::TAILSITTER);
+			bool is_tailsitter_transition = _vehicle_status.in_transition_mode && _is_tailsitter;
 
 			bool run_att_ctrl = _v_control_mode.flag_control_attitude_enabled && (is_hover || is_tailsitter_transition);
 
