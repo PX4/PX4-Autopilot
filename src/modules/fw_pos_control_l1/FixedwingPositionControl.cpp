@@ -391,7 +391,8 @@ FixedwingPositionControl::airspeed_poll()
 
 		if (PX4_ISFINITE(as.indicated_airspeed_m_s)
 		    && PX4_ISFINITE(as.true_airspeed_m_s)
-		    && (as.indicated_airspeed_m_s > 0.0f)) {
+		    && (as.indicated_airspeed_m_s > 0.0f)
+		    && !_vehicle_status.aspd_use_inhibit) {
 
 			airspeed_valid = true;
 

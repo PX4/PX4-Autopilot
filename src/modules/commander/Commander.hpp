@@ -51,13 +51,16 @@
 
 // subscriptions
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/airspeed.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/sensor_bias.h>
+#include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/telemetry_status.h>
+
 using math::constrain;
 using uORB::Publication;
 using uORB::Subscription;
@@ -118,7 +121,15 @@ private:
 		(ParamFloat<px4::params::COM_DISARM_LAND>) _param_com_disarm_land,
 
 		(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid,
-		(ParamInt<px4::params::COM_OA_BOOT_T>) _param_com_oa_boot_t
+		(ParamInt<px4::params::COM_OA_BOOT_T>) _param_com_oa_boot_t,
+
+		(ParamFloat<px4::params::COM_TAS_FS_INNOV>) _tas_innov_threshold,
+		(ParamFloat<px4::params::COM_TAS_FS_INTEG>) _tas_innov_integ_threshold,
+		(ParamInt<px4::params::COM_TAS_FS_T1>) _tas_use_stop_delay,
+		(ParamInt<px4::params::COM_TAS_FS_T2>) _tas_use_start_delay,
+		(ParamInt<px4::params::COM_ASPD_FS_ACT>) _airspeed_fail_action,
+		(ParamFloat<px4::params::COM_ASPD_STALL>) _airspeed_stall,
+		(ParamInt<px4::params::COM_ASPD_FS_DLY>) _airspeed_rtl_delay
 
 	)
 
@@ -139,6 +150,20 @@ private:
 	hrt_abstime	_time_last_innov_pass{0};	/**< last time velocity or position innovations passed */
 	bool		_nav_test_passed{false};	/**< true if the post takeoff navigation test has passed */
 	bool		_nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
+
+	/* class variables used to check for airspeed sensor failure */
+	bool		_tas_check_fail{false};	/**< true when airspeed innovations have failed consistency checks */
+	hrt_abstime	_time_last_tas_pass{0};		/**< last time innovation checks passed */
+	hrt_abstime	_time_last_tas_fail{0};		/**< last time innovation checks failed */
+	static constexpr hrt_abstime TAS_INNOV_FAIL_DELAY{1_s};	/**< time required for innovation levels to pass or fail (usec) */
+	bool		_tas_use_inhibit{false};	/**< true when the commander has instructed the control loops to not use airspeed data */
+	hrt_abstime	_time_tas_good_declared{0};	/**< time TAS use was started (uSec) */
+	hrt_abstime	_time_tas_bad_declared{0};	/**< time TAS use was stopped (uSec) */
+	hrt_abstime	_time_last_airspeed{0};		/**< time last airspeed measurement was received (uSec) */
+	hrt_abstime	_time_last_aspd_innov_check{0};	/**< time airspeed innovation was last checked (uSec) */
+	char		*_airspeed_fault_type = new char[7];
+	float		_load_factor_ratio{0.5f};	/**< ratio of maximum load factor predicted by stall speed to measured load factor */
+	float		_apsd_innov_integ_state{0.0f};	/**< inegral of excess normalised airspeed innovation (sec) */
 
 	FailureDetector _failure_detector;
 	bool _failure_detector_termination_printed{false};
@@ -170,6 +195,8 @@ private:
 	void mission_init();
 
 	void estimator_check(bool *status_changed);
+
+	void airspeed_use_check();
 
 	void battery_status_check();
 
@@ -206,8 +233,10 @@ private:
 	bool _print_avoidance_msg_once{false};
 
 	// Subscriptions
+	Subscription<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
 	Subscription<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
 	Subscription<mission_result_s>			_mission_result_sub{ORB_ID(mission_result)};
+	Subscription<sensor_bias_s>			_sensor_bias_sub{ORB_ID(sensor_bias)};
 	Subscription<vehicle_global_position_s>		_global_position_sub{ORB_ID(vehicle_global_position)};
 	Subscription<vehicle_local_position_s>		_local_position_sub{ORB_ID(vehicle_local_position)};
 
