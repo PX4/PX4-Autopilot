@@ -77,12 +77,6 @@ public:
 	 */
 	void setRateLimit(const matrix::Vector3f &rate_limit) { _rate_limit = rate_limit; }
 
-	/**
-	 * Set hard limit for output rate setpoint around yaw axis
-	 * @param rate_limit_yaw [rad/s] limits for rotation around yaw axis
-	 */
-	void setRateLimitYaw(const float rate_limit_yaw) { _rate_limit(2) = rate_limit_yaw; }
-
 private:
 	matrix::Vector3f _proportional_gain;
 	matrix::Vector3f _rate_limit;
