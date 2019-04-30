@@ -40,7 +40,7 @@ px4_add_board(
 		#md25
 		mkblctrl
 		pca9685
-		#pmw3901
+		pmw3901
 		#protocol_splitter
 		#pwm_input
 		pwm_out_sim
