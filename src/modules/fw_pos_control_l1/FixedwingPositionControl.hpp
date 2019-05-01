@@ -234,7 +234,7 @@ private:
 	/* throttle and airspeed states */
 	bool _airspeed_valid{false};				///< flag if a valid airspeed estimate exists
 	hrt_abstime _airspeed_last_valid{0};			///< last time airspeed was received. Used to detect timeouts.
-	float _airspeed{0.0f};
+	float _EAS{0.0f};
 	float _eas2tas{1.0f};
 
 	float _groundspeed_undershoot{0.0f};			///< ground speed error to min. speed in m/s
@@ -273,9 +273,9 @@ private:
 		float speed_weight;
 		float time_const_throt;
 
-		float airspeed_min;
-		float airspeed_trim;
-		float airspeed_max;
+		float EAS_min;
+		float EAS_trim;
+		float EAS_max;
 		int32_t airspeed_disabled;
 
 		float pitch_limit_min;
@@ -303,7 +303,7 @@ private:
 		float land_throtTC_scale;
 
 		// VTOL
-		float airspeed_trans;
+		float EAS_trans;
 		int32_t vtol_type;
 	} _parameters{};					///< local copies of interesting parameters */
 
@@ -332,10 +332,10 @@ private:
 		param_t speed_weight;
 		param_t pitch_damping;
 
-		param_t airspeed_min;
-		param_t airspeed_trim;
-		param_t airspeed_max;
-		param_t airspeed_trans;
+		param_t EAS_min;
+		param_t EAS_trim;
+		param_t EAS_max;
+		param_t EAS_trans;
 		param_t airspeed_disabled;
 
 		param_t pitch_limit_min;
@@ -389,7 +389,7 @@ private:
 	void		landing_status_publish();
 	void		tecs_status_publish();
 
-	void		abort_landing(bool abort);
+	void		abort_landing(const bool abort);
 
 	/**
 	 * Get a new waypoint based on heading and distance from current position
@@ -399,18 +399,18 @@ private:
 	 * @param waypoint_prev the waypoint at the current position
 	 * @param waypoint_next the waypoint in the heading direction
 	 */
-	void		get_waypoint_heading_distance(float heading, position_setpoint_s &waypoint_prev,
-			position_setpoint_s &waypoint_next, bool flag_init);
+	void		get_waypoint_heading_distance(const float heading, position_setpoint_s &waypoint_prev,
+			position_setpoint_s &waypoint_next, const bool flag_init) const;
 
 	/**
 	 * Return the terrain estimate during takeoff or takeoff_alt if terrain estimate is not available
 	 */
-	float		get_terrain_altitude_takeoff(float takeoff_alt, const vehicle_global_position_s &global_pos);
+	float		get_terrain_altitude_takeoff(const float takeoff_alt, const vehicle_global_position_s &global_pos) const;
 
 	/**
 	 * Check if we are in a takeoff situation
 	 */
-	bool 		in_takeoff_situation();
+	bool 		in_takeoff_situation() const;
 
 	/**
 	 * Do takeoff help when in altitude controlled modes
@@ -425,7 +425,7 @@ private:
 	 * @param dt Time step
 	 * @return true if climbout mode was requested by user (climb with max rate and min airspeed)
 	 */
-	bool		update_desired_altitude(float dt);
+	bool		update_desired_altitude(const float dt);
 
 	bool		control_position(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
 					 const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
@@ -434,11 +434,11 @@ private:
 	void		control_landing(const Vector2f &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
 					const position_setpoint_s &pos_sp_curr);
 
-	float		get_tecs_pitch();
-	float		get_tecs_thrust();
+	float		get_tecs_pitch() const;
+	float		get_tecs_thrust() const;
 
-	float		get_demanded_airspeed();
-	float		calculate_target_airspeed(float airspeed_demand);
+	float		get_demanded_EAS() const;
+	float		calculate_target_EAS(const float EAS_demand) const;
 	void		calculate_gndspeed_undershoot(const Vector2f &curr_pos, const Vector2f &ground_speed,
 			const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 
@@ -453,11 +453,11 @@ private:
 	/*
 	 * Call TECS : a wrapper function to call the TECS implementation
 	 */
-	void tecs_update_pitch_throttle(float alt_sp, float airspeed_sp,
+	void tecs_update_pitch_throttle(const float alt_sp, float EAS_sp,
 					float pitch_min_rad, float pitch_max_rad,
-					float throttle_min, float throttle_max, float throttle_cruise,
-					bool climbout_mode, float climbout_pitch_min_rad,
-					uint8_t mode = tecs_status_s::TECS_MODE_NORMAL);
+					const float throttle_min, float throttle_max, float throttle_cruise,
+					const bool climbout_mode, const float climbout_pitch_min_rad,
+					const uint8_t mode = tecs_status_s::TECS_MODE_NORMAL);
 
 };
 

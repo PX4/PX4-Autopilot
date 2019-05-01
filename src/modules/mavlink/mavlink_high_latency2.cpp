@@ -356,7 +356,7 @@ bool MavlinkStreamHighLatency2::write_tecs_status(mavlink_high_latency2_t *msg)
 
 	if (_tecs_time > 0) {
 		int16_t target_altitude;
-		convert_limit_safe(tecs_status.altitude_sp, target_altitude);
+		convert_limit_safe(tecs_status.altitude_setpoint_adj, target_altitude);
 		msg->target_altitude = target_altitude;
 	}
 
@@ -496,7 +496,7 @@ void MavlinkStreamHighLatency2::update_tecs_status()
 	tecs_status_s tecs_status;
 
 	if (_tecs_status_sub->update(&tecs_status)) {
-		_airspeed_sp.add_value(tecs_status.airspeed_sp, _update_rate_filtered);
+		_airspeed_sp.add_value(tecs_status.tas_setpoint_adj, _update_rate_filtered);
 	}
 }
 

@@ -4043,8 +4043,8 @@ protected:
 			msg.target_bearing = (int16_t)math::degrees(pos_ctrl_status.target_bearing);
 			msg.wp_dist = (uint16_t)pos_ctrl_status.wp_dist;
 			msg.xtrack_error = pos_ctrl_status.xtrack_error;
-			msg.alt_error = tecs_status.altitude_filtered - tecs_status.altitude_sp;
-			msg.aspd_error = tecs_status.airspeed_filtered - tecs_status.airspeed_sp;
+			msg.alt_error = tecs_status.altitude_state - tecs_status.altitude_setpoint_adj;
+			msg.aspd_error = tecs_status.tas_state - tecs_status.tas_setpoint_adj;
 
 			mavlink_msg_nav_controller_output_send_struct(_mavlink->get_channel(), &msg);
 

@@ -8,21 +8,21 @@ uint8 TECS_MODE_BAD_DESCENT = 5
 uint8 TECS_MODE_CLIMBOUT = 6
 
 
-float32 altitude_sp
-float32 altitude_filtered
-float32 height_rate_setpoint
-float32 height_rate
-float32 airspeed_sp
-float32 airspeed_filtered
-float32 airspeed_derivative_sp
-float32 airspeed_derivative
+float32 altitude_setpoint_adj
+float32 altitude_state
+float32 altitude_rate_setpoint
+float32 vert_vel_state
+float32 tas_setpoint_adj
+float32 tas_state
+float32 tas_rate_setpoint
+float32 tas_rate
 
 float32 total_energy_error
 float32 energy_distribution_error
 float32 total_energy_rate_error
 float32 energy_distribution_rate_error
 
-float32 throttle_integ
-float32 pitch_integ
+float32 throttle_integ_state
+float32 pitch_integ_state
 
 uint8 mode
