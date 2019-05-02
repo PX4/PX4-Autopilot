@@ -147,7 +147,7 @@ if(NOT PX4_CONFIG_FILE)
 		"boards/*.cmake"
 		)
 
-	set(PX4_CONFIGS ${board_configs} CACHE STRINGS "PX4 board configs" FORCE)
+	set(PX4_CONFIGS ${board_configs} CACHE STRING "PX4 board configs" FORCE)
 
 	foreach(filename ${board_configs})
 		# parse input CONFIG into components to match with existing in tree configs
