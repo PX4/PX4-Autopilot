@@ -335,10 +335,12 @@ MissionBlock::is_mission_item_reached()
 			&& PX4_ISFINITE(_mission_item.yaw))) {
 
 			/* check course if defined only for rotary wing except takeoff */
-			float cog = _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-				    ? _navigator->get_global_position()->yaw : atan2f(
+			float cog = (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) ?
+				    _navigator->get_global_position()->yaw :
+				    atan2f(
 					    _navigator->get_global_position()->vel_e,
-					    _navigator->get_global_position()->vel_n);
+					    _navigator->get_global_position()->vel_n
+				    );
 
 			float yaw_err = wrap_pi(_mission_item.yaw - cog);
 
