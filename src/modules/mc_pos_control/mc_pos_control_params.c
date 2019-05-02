@@ -250,6 +250,20 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 
 /**
+ * Navigator waypoint acceptance threshold
+ *
+ * Threshold for the internal waypoint update in 
+ * FLightTaskAuto state machine.
+ * 
+ * @min 1.0
+ * @max 1000.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_WP_NAV_ACC, 1.0f);
+
+/**
  * Proportional gain for horizontal trajectory position error
  *
  * @min 0.1
