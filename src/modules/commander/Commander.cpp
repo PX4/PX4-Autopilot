@@ -1297,7 +1297,7 @@ Commander::run()
 		status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
 	} else if (is_ground_rover(&status)) {
-		status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_GROUND;
+		status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROVER;
 
 	} else {
 		status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_UNKNOWN;
@@ -1407,9 +1407,9 @@ Commander::run()
 					status.system_type = (uint8_t)system_type;
 				}
 
-				bool is_rotary = is_rotary_wing(&status) || (is_vtol(&status) && vtol_status.vtol_in_rw_mode);
-				bool is_fixed = is_fixed_wing(&status) || (is_vtol(&status) && !vtol_status.vtol_in_rw_mode);
-				bool is_ground = is_ground_rover(&status);
+				const bool is_rotary = is_rotary_wing(&status) || (is_vtol(&status) && vtol_status.vtol_in_rw_mode);
+				const bool is_fixed = is_fixed_wing(&status) || (is_vtol(&status) && !vtol_status.vtol_in_rw_mode);
+				const bool is_ground = is_ground_rover(&status);
 
 				/* disable manual override for all systems that rely on electronic stabilization */
 				if (is_rotary) {
@@ -1419,7 +1419,7 @@ Commander::run()
 					status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
 				} else if (is_ground) {
-					status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_GROUND;
+					status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROVER;
 				}
 
 				/* set vehicle_status.is_vtol flag */
@@ -1628,9 +1628,11 @@ Commander::run()
 			if (is_vtol(&status)) {
 
 				// Check if there has been any change while updating the flags
-				bool is_rotary = status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+				const auto new_vehicle_type = vtol_status.vtol_in_rw_mode ?
+							      vehicle_status_s::VEHICLE_TYPE_ROTARY_WING :
+							      vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
-				if (is_rotary != vtol_status.vtol_in_rw_mode) {
+				if (new_vehicle_type != status.vehicle_type) {
 					status.vehicle_type = vtol_status.vtol_in_rw_mode ?
 							      vehicle_status_s::VEHICLE_TYPE_ROTARY_WING :
 							      vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
