@@ -691,6 +691,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 
 				} else if (status_flags.condition_local_altitude_valid) {
+					//TODO: Add case for rover
 					if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 						status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
