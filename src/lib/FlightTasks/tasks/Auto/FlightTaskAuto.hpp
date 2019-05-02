@@ -107,6 +107,7 @@ protected:
 	ObstacleAvoidance _obstacle_avoidance; /**< class adjusting setpoints according to external avoidance module's input */
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
+					(ParamFloat<px4::params::MPC_WP_NAV_ACC>) _param_mpc_wp_nav_acc,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
 					(ParamFloat<px4::params::MPC_CRUISE_90>) _param_mpc_cruise_90, // speed at corner when angle is 90 degrees move to line
 					(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
