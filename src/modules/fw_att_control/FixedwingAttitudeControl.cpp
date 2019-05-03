@@ -297,10 +297,11 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 void
 FixedwingAttitudeControl::vehicle_manual_poll()
 {
+	const bool is_tailsitter_transition = (_parameters.vtol_type == vtol_type::TAILSITTER)
+					      && _vehicle_status.in_transition_mode;
+	const bool is_fixed_wing = !_vehicle_status.is_rotary_wing;
 
-	// If VTOL, generate rates sp with FW attutide controller if in transition or in fixed-wing flight
-	if (_vcontrol_mode.flag_control_manual_enabled && !(_vehicle_status.is_rotary_wing &&
-			(!_vehicle_status.in_transition_mode || _parameters.vtol_type == vtol_type::TAILSITTER))) {
+	if (_vcontrol_mode.flag_control_manual_enabled && (!is_tailsitter_transition || is_fixed_wing)) {
 
 		// Always copy the new manual setpoint, even if it wasn't updated, to fill the _actuators with valid values
 		if (orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual) == PX4_OK) {
@@ -426,16 +427,12 @@ FixedwingAttitudeControl::vehicle_status_poll()
 	if (vehicle_status_updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
 
-		// if VTOL and not in fixed wing mode we should only control body-rates which are published
-		// by the multicoper attitude controller. Therefore, modify the control mode to achieve rate
-		// control only
-		// if VTOL and not in fixed wing or transition mode (only non-tailsitters), we should only
-		// control body-rates which are published by the multicoper attitude controller. Therefore,
-		// modify the control mode to achieve rate control only.
+		const bool is_hovering = _vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode;
+		const bool is_tailsitter_transition = _vehicle_status.in_transition_mode
+						      && (_parameters.vtol_type == vtol_type::TAILSITTER);
 
 		if (_vehicle_status.is_vtol) {
-			if (_vehicle_status.is_rotary_wing && (!_vehicle_status.in_transition_mode ||
-							       _parameters.vtol_type == vtol_type::TAILSITTER)) {
+			if (is_hovering || is_tailsitter_transition) {
 				_vcontrol_mode.flag_control_attitude_enabled = false;
 				_vcontrol_mode.flag_control_manual_enabled = false;
 			}
@@ -630,9 +627,7 @@ void FixedwingAttitudeControl::run()
 			_att_sp.fw_control_yaw = _att_sp.fw_control_yaw && _vcontrol_mode.flag_control_auto_enabled;
 
 			/* lock integrator until control is started */
-			bool lock_integrator = !(_vcontrol_mode.flag_control_rates_enabled);
-			lock_integrator &= _vehicle_status.is_rotary_wing;
-			lock_integrator &= (!_vehicle_status.in_transition_mode || _parameters.vtol_type == vtol_type::TAILSITTER);
+			bool lock_integrator = !_vcontrol_mode.flag_control_rates_enabled || _vehicle_status.is_rotary_wing;
 
 			/* Simple handling of failsafe: deploy parachute if failsafe is on */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
@@ -680,8 +675,7 @@ void FixedwingAttitudeControl::run()
 				 * or a multicopter (but not transitioning VTOL)
 				 */
 				if (_landed
-				    || (_vehicle_status.is_rotary_wing && (!_vehicle_status.in_transition_mode ||
-						    _parameters.vtol_type == vtol_type::TAILSITTER))) {
+				    || (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode)) {
 
 					_roll_ctrl.reset_integrator();
 					_pitch_ctrl.reset_integrator();

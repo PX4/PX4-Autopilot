@@ -816,13 +816,12 @@ MulticopterAttitudeControl::run()
 
 			bool attitude_setpoint_generated = false;
 
-			// vehicle is hovering
-			bool is_hover = _vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode;
+			const bool is_hovering = _vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode;
 
 			// vehicle is a tailsitter in transition mode
-			bool is_tailsitter_transition = _vehicle_status.in_transition_mode && _is_tailsitter;
+			const bool is_tailsitter_transition = _vehicle_status.in_transition_mode && _is_tailsitter;
 
-			bool run_att_ctrl = _v_control_mode.flag_control_attitude_enabled && (is_hover || is_tailsitter_transition);
+			bool run_att_ctrl = _v_control_mode.flag_control_attitude_enabled && (is_hovering || is_tailsitter_transition);
 
 
 			if (run_att_ctrl) {
@@ -842,7 +841,7 @@ MulticopterAttitudeControl::run()
 
 			} else {
 				/* attitude controller disabled, poll rates setpoint topic */
-				if (_v_control_mode.flag_control_manual_enabled && is_hover) {
+				if (_v_control_mode.flag_control_manual_enabled && is_hovering) {
 					if (manual_control_updated) {
 						/* manual rates control - ACRO mode */
 						Vector3f man_rate_sp(
