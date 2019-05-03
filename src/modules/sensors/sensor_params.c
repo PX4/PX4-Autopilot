@@ -220,7 +220,7 @@ PARAM_DEFINE_INT32(SENS_EN_THERMAL, -1);
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 80.0f);
+PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
 
 /**
 * Driver level cutoff frequency for accel
