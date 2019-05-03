@@ -370,7 +370,7 @@ bool VtolType::is_motor_off_channel(const int channel)
 	int tmp;
 	int channels = _params->fw_motors_off;
 
-	const uint8_t num_outputs_max = 8;
+	const int num_outputs_max = 8;
 
 	for (int i = 0; i < num_outputs_max; ++i) {
 		tmp = channels % 10;
