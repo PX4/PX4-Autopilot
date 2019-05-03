@@ -1668,10 +1668,10 @@ Commander::run()
 					status_changed = true;
 				}
 
-				const bool is_not_rotary_wing = (status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+				const bool should_soft_stop = (status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 
-				if (armed.soft_stop != is_not_rotary_wing) {
-					armed.soft_stop = status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+				if (armed.soft_stop != should_soft_stop) {
+					armed.soft_stop = should_soft_stop;
 					status_changed = true;
 				}
 			}
