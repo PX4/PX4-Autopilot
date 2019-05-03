@@ -279,7 +279,7 @@ private:
 		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode
 	)
 
-	param_t _param_handle_vtol_type{0};
+	param_t _param_handle_vtol_type{PARAM_INVALID};
 	bool _is_tailsitter{false};
 
 	matrix::Vector3f _rate_p;		/**< P gain for angular rate error */
