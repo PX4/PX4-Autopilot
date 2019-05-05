@@ -428,7 +428,8 @@ State FlightTaskAuto::_getCurrentState()
 		// Target is behind.
 		return_state = State::target_behind;
 
-	} else if (u_prev_to_target * prev_to_pos < 0.0f && prev_to_pos.length() > _mc_cruise_speed * _param_mpc_wp_nav_acc.get()) {
+	} else if (u_prev_to_target * prev_to_pos < 0.0f
+		   && prev_to_pos.length() > _mc_cruise_speed * _param_mpc_wp_nav_acc.get()) {
 		// Current position is more than cruise speed in front of previous setpoint.
 		return_state = State::previous_infront;
 
