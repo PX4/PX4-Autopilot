@@ -125,13 +125,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 		_sensor_correction.gyro_scale_2[i] = 1.0f;
 	}
 
-	_param_handle_vtol_type = param_find("VT_TYPE");
-	int32_t tmp;
-
-	if (!param_get(_param_handle_vtol_type, &tmp)) {
-		_is_tailsitter = (tmp == vtol_type::TAILSITTER);
-	}
-
 	parameters_updated();
 }
 
@@ -260,6 +253,13 @@ MulticopterAttitudeControl::vehicle_status_poll()
 			if (_vehicle_status.is_vtol) {
 				_actuators_id = ORB_ID(actuator_controls_virtual_mc);
 				_attitude_sp_id = ORB_ID(mc_virtual_attitude_setpoint);
+
+				_param_handle_vtol_type = param_find("VT_TYPE");
+				int32_t tmp;
+
+				if (!param_get(_param_handle_vtol_type, &tmp)) {
+					_is_tailsitter = (tmp == vtol_type::TAILSITTER);
+				}
 
 			} else {
 				_actuators_id = ORB_ID(actuator_controls_0);
