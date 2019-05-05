@@ -252,9 +252,8 @@ PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 /**
  * Navigator waypoint acceptance threshold
  *
- * Threshold for the internal waypoint update in 
- * FLightTaskAuto state machine.
- * 
+ * Threshold for the internal waypoint update in FLightTaskAuto state machine.
+ *
  * @min 1.0
  * @max 1000.0
  * @increment 1
