@@ -59,6 +59,7 @@
 #include <uORB/topics/sensor_preflight.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/system_power.h>
+#include <uORB/topics/geofence_result.h>
 
 using namespace time_literals;
 
@@ -674,6 +675,46 @@ out:
 	return success;
 }
 
+static bool geofenceCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, bool report_fail)
+{
+
+	int32_t com_arm_geofence;
+	param_get(param_find("COM_ARM_GEOFENCE"), &com_arm_geofence);
+
+	if (com_arm_geofence == 0) {
+		// geofence is not required
+		return true;
+	}
+
+	if (com_arm_geofence == 1 && vehicle_status.nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+		// check only in mission mode
+		return true;
+	}
+
+	int geofence_sub = orb_subscribe(ORB_ID(geofence_result));
+	geofence_result_s geofence_result;
+	int res = orb_copy(ORB_ID(geofence_result), geofence_sub, &geofence_result);
+	orb_unsubscribe(geofence_sub);
+
+	if (res != PX4_OK) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Failed to check GeoFence");
+		}
+
+		return false;
+	}
+
+	if (geofence_result.empty) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: GeoFence is not set");
+		}
+
+		return false;
+	}
+
+	return true;
+}
+
 bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 		    vehicle_status_flags_s &status_flags, bool checkGNSS, bool reportFailures, bool prearm,
 		    const hrt_abstime &time_since_boot)
@@ -942,6 +983,11 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 		if (!ekf2Check(mavlink_log_pub, status, false, reportFailures && report_ekf_fail && !failed, checkGNSS)) {
 			failed = true;
 		}
+	}
+
+	/* ---- GeoFence ---- */
+	if (!geofenceCheck(mavlink_log_pub, status, reportFailures && !failed)) {
+		failed = true;
 	}
 
 	/* Report status */
