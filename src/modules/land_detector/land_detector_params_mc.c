@@ -131,3 +131,18 @@ PARAM_DEFINE_FLOAT(LNDMC_ALT_MAX, -1.0f);
  *
  */
 PARAM_DEFINE_FLOAT(LNDMC_LOW_T_THR, 0.3);
+
+/**
+ * Rangefinder clearance for ground contact detection
+ *
+ * Ground contact will be detected, if the rangeinder distance is less or equal this value.
+ * A negative value indicates no rangefinder usage.
+ *
+ * @unit m
+ * @min -1
+ * @max 10
+ * @decimal 3
+ * @group Land Detector
+ *
+ */
+PARAM_DEFINE_FLOAT(LNDMC_CLEARANCE, -1.0f);

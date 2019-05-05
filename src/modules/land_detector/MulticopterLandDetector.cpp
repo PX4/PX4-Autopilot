@@ -83,6 +83,7 @@ MulticopterLandDetector::MulticopterLandDetector()
 	_paramHandle.altitude_max = param_find("LNDMC_ALT_MAX");
 	_paramHandle.landSpeed = param_find("MPC_LAND_SPEED");
 	_paramHandle.low_thrust_threshold = param_find("LNDMC_LOW_T_THR");
+	_paramHandle.clearance = param_find("LNDMC_CLEARANCE");
 
 	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
 	_landed_hysteresis.set_hysteresis_time_from(false, LAND_DETECTOR_TRIGGER_TIME_US);
@@ -100,6 +101,7 @@ void MulticopterLandDetector::_initialize_topics()
 	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
 	_vehicle_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_battery_sub = orb_subscribe(ORB_ID(battery_status));
+	_distance_sensor_sub = orb_subscribe_multi(ORB_ID(distance_sensor), 0);
 }
 
 void MulticopterLandDetector::_update_topics()
@@ -111,6 +113,7 @@ void MulticopterLandDetector::_update_topics()
 	_orb_update(ORB_ID(sensor_bias), _sensor_bias_sub, &_sensors);
 	_orb_update(ORB_ID(vehicle_control_mode), _vehicle_control_mode_sub, &_control_mode);
 	_orb_update(ORB_ID(battery_status), _battery_sub, &_battery);
+	_orb_update(ORB_ID(distance_sensor), _distance_sensor_sub, &_distance_sensor);
 }
 
 void MulticopterLandDetector::_update_params()
@@ -128,6 +131,7 @@ void MulticopterLandDetector::_update_params()
 	param_get(_paramHandle.altitude_max, &_params.altitude_max);
 	param_get(_paramHandle.landSpeed, &_params.landSpeed);
 	param_get(_paramHandle.low_thrust_threshold, &_params.low_thrust_threshold);
+	param_get(_paramHandle.clearance, &_params.clearance);
 
 }
 
@@ -157,6 +161,19 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// When not armed, consider to have ground-contact
 	if (!_arming.armed) {
 		return true;
+	}
+
+	if (_params.clearance >= 0 &&
+	    hrt_elapsed_time(&_distance_sensor.timestamp) < 200_ms &&
+	    _distance_sensor.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING &&
+	    _distance_sensor.current_distance <= _distance_sensor.max_distance &&
+	    _distance_sensor.current_distance >= _distance_sensor.min_distance) {
+		// rangefinder data is valid
+		if (_distance_sensor.current_distance <= _params.clearance) {
+			return true;
+		}
+
+		// rangefinder says we're not in ground contact, but we still try another conditions
 	}
 
 	// land speed threshold
