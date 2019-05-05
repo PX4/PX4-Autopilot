@@ -33,6 +33,8 @@
 
 #include "FixedwingAttitudeControl.hpp"
 
+#include <vtol_att_control/vtol_type.h>
+
 using namespace time_literals;
 
 /**
@@ -119,9 +121,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	_parameter_handles.bat_scale_en = param_find("FW_BAT_SCALE_EN");
 	_parameter_handles.airspeed_mode = param_find("FW_ARSP_MODE");
-
-	// initialize to invalid VTOL type
-	_parameters.vtol_type = -1;
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -242,10 +241,6 @@ FixedwingAttitudeControl::parameters_update()
 
 	param_get(_parameter_handles.rattitude_thres, &_parameters.rattitude_thres);
 
-	if (_vehicle_status.is_vtol) {
-		param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
-	}
-
 	param_get(_parameter_handles.bat_scale_en, &_parameters.bat_scale_en);
 
 	param_get(_parameter_handles.airspeed_mode, &tmp);
@@ -292,13 +287,22 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &_vcontrol_mode);
 	}
+
+	if (_vehicle_status.is_vtol) {
+		const bool is_hovering = _vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode;
+		const bool is_tailsitter_transition = _vehicle_status.in_transition_mode && _is_tailsitter;
+
+		if (is_hovering || is_tailsitter_transition) {
+			_vcontrol_mode.flag_control_attitude_enabled = false;
+			_vcontrol_mode.flag_control_manual_enabled = false;
+		}
+	}
 }
 
 void
 FixedwingAttitudeControl::vehicle_manual_poll()
 {
-	const bool is_tailsitter_transition = (_parameters.vtol_type == vtol_type::TAILSITTER)
-					      && _vehicle_status.in_transition_mode;
+	const bool is_tailsitter_transition = _is_tailsitter && _vehicle_status.in_transition_mode;
 	const bool is_fixed_wing = !_vehicle_status.is_rotary_wing;
 
 	if (_vcontrol_mode.flag_control_manual_enabled && (!is_tailsitter_transition || is_fixed_wing)) {
@@ -397,7 +401,7 @@ FixedwingAttitudeControl::vehicle_rates_setpoint_poll()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_rates_setpoint), _rates_sp_sub, &_rates_sp);
 
-		if (_parameters.vtol_type == vtol_type::TAILSITTER) {
+		if (_is_tailsitter) {
 			float tmp = _rates_sp.roll;
 			_rates_sp.roll = -_rates_sp.yaw;
 			_rates_sp.yaw = tmp;
@@ -427,24 +431,17 @@ FixedwingAttitudeControl::vehicle_status_poll()
 	if (vehicle_status_updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
 
-		const bool is_hovering = _vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode;
-		const bool is_tailsitter_transition = _vehicle_status.in_transition_mode
-						      && (_parameters.vtol_type == vtol_type::TAILSITTER);
-
-		if (_vehicle_status.is_vtol) {
-			if (is_hovering || is_tailsitter_transition) {
-				_vcontrol_mode.flag_control_attitude_enabled = false;
-				_vcontrol_mode.flag_control_manual_enabled = false;
-			}
-		}
-
 		/* set correct uORB ID, depending on if vehicle is VTOL or not */
 		if (!_actuators_id) {
 			if (_vehicle_status.is_vtol) {
 				_actuators_id = ORB_ID(actuator_controls_virtual_fw);
 				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
 
-				_parameter_handles.vtol_type = param_find("VT_TYPE");
+				int32_t vtol_type = -1;
+
+				if (param_get(param_find("VT_TYPE"), &vtol_type) == PX4_OK) {
+					_is_tailsitter = (vtol_type == vtol_type::TAILSITTER);
+				}
 
 				parameters_update();
 
@@ -570,7 +567,7 @@ void FixedwingAttitudeControl::run()
 			/* get current rotation matrix and euler angles from control state quaternions */
 			matrix::Dcmf R = matrix::Quatf(_att.q);
 
-			if (_vehicle_status.is_vtol && _parameters.vtol_type == vtol_type::TAILSITTER) {
+			if (_is_tailsitter) {
 				/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
 				 *
 				 * Since the VTOL airframe is initialized as a multicopter we need to
@@ -613,7 +610,7 @@ void FixedwingAttitudeControl::run()
 				_att.yawspeed = helper;
 			}
 
-			matrix::Eulerf euler_angles(R);
+			const matrix::Eulerf euler_angles(R);
 
 			vehicle_attitude_setpoint_poll();
 			vehicle_control_mode_poll();
