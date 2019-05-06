@@ -60,7 +60,6 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
-#include <vtol_att_control/vtol_type.h>
 
 using matrix::Eulerf;
 using matrix::Quatf;
@@ -273,8 +272,6 @@ private:
 		param_t flaperon_scale;
 
 		param_t rattitude_thres;
-
-		param_t vtol_type;
 
 		param_t bat_scale_en;
 		param_t airspeed_mode;
