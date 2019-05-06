@@ -196,7 +196,6 @@ WindEstimatorModule::cycle()
 
 	bool lpos_valid = false;
 	bool att_valid = false;
-	bool airspeed_valid = false;
 
 	const hrt_abstime time_now_usec = hrt_absolute_time();
 
@@ -229,14 +228,12 @@ WindEstimatorModule::cycle()
 		airspeed_s airspeed = {};
 
 		if (orb_copy(ORB_ID(airspeed), _airspeed_sub, &airspeed) == PX4_OK) {
-			airspeed_valid = (time_now_usec - airspeed.timestamp < 1_s) && (airspeed.timestamp > 0);
-		}
+			if ((time_now_usec - airspeed.timestamp < 1_s) && (airspeed.timestamp > 0)) {
+				const Vector3f vel_var{Dcmf(q) *Vector3f{lpos.evh, lpos.evh, lpos.evv}};
 
-		if (airspeed_valid) {
-			Vector3f vel_var{Dcmf(q) *Vector3f{lpos.evh, lpos.evh, lpos.evv}};
-
-			// airspeed fusion
-			_wind_estimator.fuse_airspeed(time_now_usec, airspeed.indicated_airspeed_m_s, vI, Vector2f{vel_var(0), vel_var(1)});
+				// airspeed fusion
+				_wind_estimator.fuse_airspeed(time_now_usec, airspeed.true_airspeed_m_s, vI, Vector2f{vel_var(0), vel_var(1)});
+			}
 		}
 
 		// if we fused either airspeed or sideslip we publish a wind_estimate message
