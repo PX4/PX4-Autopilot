@@ -52,7 +52,7 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/en/contribut
   * [Multicopter Software Architecture](https://github.com/PX4/Firmware/labels/multicopter)
     * [Matthias Grob](https://github.com/MaEtUgR)
   * [VTOL Flight Control](https://github.com/PX4/Firmware/labels/vtol)
-    * [Roman Bapst](https://github.com/tumbili)
+    * [Roman Bapst](https://github.com/RomanBapst)
   * [Fixed Wing Flight Control](https://github.com/PX4/Firmware/labels/fixedwing)
     * [Roman Bapst](https://github.com/tumbili)
   * OS / NuttX [David Sidrane](https://github.com/davids5)
