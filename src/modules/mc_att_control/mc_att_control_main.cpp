@@ -252,9 +252,16 @@ MulticopterAttitudeControl::vehicle_status_poll()
 		if (_actuators_id == nullptr) {
 			if (_vehicle_status.is_vtol) {
 				_actuators_id = ORB_ID(actuator_controls_virtual_mc);
+				_attitude_sp_id = ORB_ID(mc_virtual_attitude_setpoint);
+
+				int32_t vt_type = -1;
+				if (param_get(param_find("VT_TYPE"), &vt_type) == PX4_OK) {
+					_is_tailsitter = (vt_type == vtol_type::TAILSITTER);
+				}
 
 			} else {
 				_actuators_id = ORB_ID(actuator_controls_0);
+				_attitude_sp_id = ORB_ID(vehicle_attitude_setpoint);
 			}
 		}
 	}
@@ -407,7 +414,6 @@ void
 MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_sp)
 {
 	vehicle_attitude_setpoint_s attitude_setpoint{};
-	landing_gear_s landing_gear{};
 	const float yaw = Eulerf(Quatf(_v_att.q)).psi();
 
 	/* reset yaw setpoint to current position if needed */
@@ -495,12 +501,12 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	attitude_setpoint.q_d_valid = true;
 
 	attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_sp.z);
+	attitude_setpoint.timestamp = hrt_absolute_time();
+	if (_attitude_sp_id != nullptr) {
+		orb_publish_auto(_attitude_sp_id, &_vehicle_attitude_setpoint_pub, &attitude_setpoint, nullptr, ORB_PRIO_DEFAULT);
+	}
 
 	_landing_gear.landing_gear = get_landing_gear_state();
-
-	attitude_setpoint.timestamp = landing_gear.timestamp = hrt_absolute_time();
-	orb_publish_auto(ORB_ID(vehicle_attitude_setpoint), &_vehicle_attitude_setpoint_pub, &attitude_setpoint, nullptr, ORB_PRIO_DEFAULT);
-
 	_landing_gear.timestamp = hrt_absolute_time();
 	orb_publish_auto(ORB_ID(landing_gear), &_landing_gear_pub, &_landing_gear, nullptr, ORB_PRIO_DEFAULT);
 }
@@ -805,7 +811,15 @@ MulticopterAttitudeControl::run()
 
 			bool attitude_setpoint_generated = false;
 
-			if (_v_control_mode.flag_control_attitude_enabled && _vehicle_status.is_rotary_wing) {
+			const bool is_hovering = _vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode;
+
+			// vehicle is a tailsitter in transition mode
+			const bool is_tailsitter_transition = _vehicle_status.in_transition_mode && _is_tailsitter;
+
+			bool run_att_ctrl = _v_control_mode.flag_control_attitude_enabled && (is_hovering || is_tailsitter_transition);
+
+
+			if (run_att_ctrl) {
 				if (attitude_updated) {
 					// Generate the attitude setpoint from stick inputs if we are in Manual/Stabilized mode
 					if (_v_control_mode.flag_control_manual_enabled &&
@@ -822,7 +836,7 @@ MulticopterAttitudeControl::run()
 
 			} else {
 				/* attitude controller disabled, poll rates setpoint topic */
-				if (_v_control_mode.flag_control_manual_enabled && _vehicle_status.is_rotary_wing) {
+				if (_v_control_mode.flag_control_manual_enabled && is_hovering) {
 					if (manual_control_updated) {
 						/* manual rates control - ACRO mode */
 						Vector3f man_rate_sp(
@@ -856,9 +870,12 @@ MulticopterAttitudeControl::run()
 			}
 
 			if (attitude_updated) {
+				// reset yaw setpoint during transitions, tailsitter.cpp generates
+				// attitude setpoint for the transition
 				reset_yaw_sp = (!attitude_setpoint_generated && !_v_control_mode.flag_control_rattitude_enabled) ||
 						_vehicle_land_detected.landed ||
-						(_vehicle_status.is_vtol && !_vehicle_status.is_rotary_wing); // VTOL in FW mode
+						(_vehicle_status.is_vtol && _vehicle_status.in_transition_mode);
+
 				attitude_dt = 0.f;
 			}
 

@@ -60,7 +60,6 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
-#include <vtol_att_control/vtol_type.h>
 
 using matrix::Eulerf;
 using matrix::Quatf;
@@ -140,6 +139,8 @@ private:
 
 	bool _flag_control_attitude_enabled_last{false};
 
+	bool _is_tailsitter{false};
+
 	struct {
 		float p_tc;
 		float p_p;
@@ -203,8 +204,6 @@ private:
 		float flaperon_scale;			/**< Scale factor for flaperons */
 
 		float rattitude_thres;
-
-		int32_t vtol_type;			/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
 
 		int32_t bat_scale_en;			/**< Battery scaling enabled */
 		bool airspeed_disabled;
@@ -273,8 +272,6 @@ private:
 		param_t flaperon_scale;
 
 		param_t rattitude_thres;
-
-		param_t vtol_type;
 
 		param_t bat_scale_en;
 		param_t airspeed_mode;
