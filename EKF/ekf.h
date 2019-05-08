@@ -363,6 +363,9 @@ private:
 
 	float P[_k_num_states][_k_num_states] {};	///< state covariance matrix
 
+	Vector3f _delta_vel_bias_var_accum;		///< kahan summation algorithm accumulator for delta velocity bias variance
+	Vector3f _delta_angle_bias_var_accum;	///< kahan summation algorithm accumulator for delta angle bias variance
+
 	float _vel_pos_innov[6] {};	///< NED velocity and position innovations: 0-2 vel (m/sec),  3-5 pos (m)
 	float _vel_pos_innov_var[6] {};	///< NED velocity and position innovation variances: 0-2 vel ((m/sec)**2), 3-5 pos (m**2)
 	float _aux_vel_innov[2] {};	///< NE auxiliary velocity innovations: (m/sec)
@@ -706,5 +709,11 @@ private:
 
 	// uncorrelate quaternion states from other states
 	void uncorrelateQuatStates();
+
+	// Use Kahan summation algorithm to get the sum of "sum_previous" and "input".
+	// This function relies on the caller to be responsible for keeping a copy of
+	// "accumulator" and passing this value at the next iteration.
+	// Ref: https://en.wikipedia.org/wiki/Kahan_summation_algorithm
+	float kahanSummation(float sum_previous, float input, float &accumulator) const;
 
 };
