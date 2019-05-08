@@ -54,7 +54,7 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/en/contribut
   * [VTOL Flight Control](https://github.com/PX4/Firmware/labels/vtol)
     * [Roman Bapst](https://github.com/RomanBapst)
   * [Fixed Wing Flight Control](https://github.com/PX4/Firmware/labels/fixedwing)
-    * [Roman Bapst](https://github.com/tumbili)
+    * [Roman Bapst](https://github.com/RomanBapst)
   * OS / NuttX [David Sidrane](https://github.com/davids5)
   * Driver Architecture [Daniel Agar](https://github.com/dagar)
   * Commander Architecture [Julian Oes](https://github.com/julianoes)
