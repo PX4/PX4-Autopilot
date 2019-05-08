@@ -33,12 +33,49 @@
 
 #include <gtest/gtest.h>
 #include <AttitudeControl.hpp>
+#include <mathlib/math/Functions.hpp>
 
 using namespace matrix;
 
 TEST(AttitudeControlTest, AllZeroCase)
 {
 	AttitudeControl attitude_control;
-	matrix::Vector3f rate_setpoint = attitude_control.update(Quatf(), Quatf(), 0.f);
+	Vector3f rate_setpoint = attitude_control.update(Quatf(), Quatf(), 0.f);
 	EXPECT_EQ(rate_setpoint, Vector3f());
+}
+
+TEST(AttitudeControlTest, Convergence)
+{
+	AttitudeControl attitude_control;
+	attitude_control.setProportionalGain(Vector3f(.1f,.1f,.1f));
+	attitude_control.setRateLimit(Vector3f(10000,10000,10000));
+
+	Quatf quat_goal;
+	//Quatf quat_state(0.996f,0.087f,0.f,0.f);
+	Quatf quat_state(1,0,0,0);
+	quat_state.normalize();
+
+	float error = 10.0f;
+
+	int i;
+	for (i = 100; i > 0; i--) {
+		// run attitude control to get rate setpoints
+		Vector3f rate_setpoint = attitude_control.update(quat_state, quat_goal, 0.f);
+		// rotate the simulated state quaternion a bit according to the rate setpoint
+		quat_state = quat_state * Quatf(AxisAnglef(rate_setpoint));
+		// calculate a very simple error metric
+		const float new_error = Vector<float, 4>(quat_state * math::signNoZero(quat_state(0)) - quat_goal).norm();
+		// expect the error to get smaller with each iteration
+		EXPECT_LT(new_error, error);
+		error = new_error;
+		// stop if the error is below a numerical threshold
+		if (fabsf(error) < 1e-4f) {
+			break;
+		}
+	}
+
+	// it shouldn't have taken longer than an iteration timeout to converge
+	EXPECT_GT(i, 0);
+	// we need to have really reached the goal attitude
+	EXPECT_EQ(quat_state * math::signNoZero(quat_state(0)), quat_goal);
 }
