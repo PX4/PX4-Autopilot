@@ -91,7 +91,7 @@ bool FlightTaskAutoLineSmoothVel::_generateHeadingAlongTraj()
 	bool res = false;
 	Vector2f vel_sp_xy(_velocity_setpoint);
 
-	if (vel_sp_xy.length() > .01f) {
+	if (vel_sp_xy.length() > .1f) {
 		// Generate heading from velocity vector, only if it is long enough
 		_compute_heading_from_2D_vector(_yaw_setpoint, vel_sp_xy);
 		res = true;
