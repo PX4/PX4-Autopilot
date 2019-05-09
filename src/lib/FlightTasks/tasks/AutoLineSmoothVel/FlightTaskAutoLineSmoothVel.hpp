@@ -79,7 +79,6 @@ protected:
 	void _generateTrajectory();
 	VelocitySmoothing _trajectory[3]; ///< Trajectories in x, y and z directions
 
-	float _yaw_sp_prev{NAN};
 	bool _want_takeoff{false};
 
 	/* counters for estimator local position resets */
