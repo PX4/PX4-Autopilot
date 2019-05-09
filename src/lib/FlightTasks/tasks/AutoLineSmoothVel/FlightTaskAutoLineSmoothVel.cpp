@@ -254,6 +254,15 @@ void FlightTaskAutoLineSmoothVel::_generateTrajectory()
 
 	_updateTrajConstraints();
 
+	// If the acceleration and velocities are small and that we want to stop, reduce the amplitude of the jerk signal
+	// to help the optimizer to converge towards zero
+	if (Vector2f(_velocity_setpoint).length() < (0.01f * _param_mpc_xy_traj_p.get())
+	    && Vector2f(accel_sp_smooth).length() < 0.2f
+	    && Vector2f(vel_sp_smooth).length() < 0.1f) {
+		_trajectory[0].setMaxJerk(1.f);
+		_trajectory[1].setMaxJerk(1.f);
+	}
+
 	for (int i = 0; i < 3; ++i) {
 		_trajectory[i].updateDurations(_deltatime, _velocity_setpoint(i));
 	}
