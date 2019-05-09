@@ -104,6 +104,8 @@ protected:
 	float _target_acceptance_radius = 0.0f; /**< Acceptances radius of the target */
 	int _mission_gear = landing_gear_s::GEAR_KEEP;
 
+	float _yaw_sp_prev = NAN;
+
 	ObstacleAvoidance _obstacle_avoidance; /**< class adjusting setpoints according to external avoidance module's input */
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
@@ -119,7 +121,6 @@ protected:
 private:
 	matrix::Vector2f _lock_position_xy{NAN, NAN}; /**< if no valid triplet is received, lock positition to current position */
 	bool _yaw_lock = false; /**< if within acceptance radius, lock yaw to current yaw */
-	float _yaw_sp_prev = NAN;
 	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
 	uORB::Subscription<vehicle_status_s> *_sub_vehicle_status{nullptr};
 
