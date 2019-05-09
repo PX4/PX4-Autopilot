@@ -51,7 +51,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/parameter_update.h>
 
-class PWMSim : public device::CDev, public ModuleBase<PWMSim>
+class PWMSim : public cdev::CDev, public ModuleBase<PWMSim>
 {
 	static constexpr uint32_t PWM_SIM_DISARMED_MAGIC = 900;
 	static constexpr uint32_t PWM_SIM_FAILSAFE_MAGIC = 600;
@@ -112,6 +112,7 @@ private:
 
 	actuator_outputs_s _actuator_outputs = {};
 	orb_advert_t	_outputs_pub{nullptr};
+	orb_advert_t	_mixer_status{nullptr};
 
 	unsigned	_num_outputs{0};
 
@@ -130,7 +131,7 @@ private:
 	actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {};
 	orb_id_t	_control_topics[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {};
 
-	bool 	_airmode{false}; 	///< multicopter air-mode
+	Mixer::Airmode 	_airmode{Mixer::Airmode::disabled}; 	///< multicopter air-mode
 
 	perf_counter_t	_perf_control_latency;
 

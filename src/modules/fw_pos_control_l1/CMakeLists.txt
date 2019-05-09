@@ -40,11 +40,11 @@ px4_add_module(
 	STACK_MAIN 1200
 	SRCS
 		FixedwingPositionControl.cpp
-		Landingslope.cpp
 	DEPENDS
 		git_ecl
 		ecl_l1
 		ecl_tecs
 		launchdetection
+		landing_slope
 		runway_takeoff
 	)

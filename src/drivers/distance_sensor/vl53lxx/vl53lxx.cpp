@@ -366,13 +366,6 @@ VL53LXX::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 					return OK;
 				}
 
-			case SENSOR_POLLRATE_MANUAL: {
-
-					stop();
-					_measure_ticks = 0;
-					return OK;
-				}
-
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
@@ -674,7 +667,7 @@ VL53LXX::collect()
 
 	report.min_distance = VL53LXX_MIN_RANGING_DISTANCE;
 	report.max_distance = VL53LXX_MAX_RANGING_DISTANCE;
-	report.covariance = 0.0f;
+	report.variance = 0.0f;
 	report.signal_quality = -1;
 
 	/* TODO: set proper ID */

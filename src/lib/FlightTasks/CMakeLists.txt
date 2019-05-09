@@ -51,15 +51,19 @@ endif()
 
 # add core flight tasks to list
 list(APPEND flight_tasks_all
-	ManualStabilized
 	ManualAltitude
 	ManualAltitudeSmooth
+	ManualAltitudeSmoothVel
 	ManualPosition
 	ManualPositionSmooth
+	ManualPositionSmoothVel
 	Sport
 	AutoLine
+	AutoLineSmoothVel
 	AutoFollowMe
 	Offboard
+	Failsafe
+	Transition
 	${flight_tasks_to_add}
 )
 
@@ -99,6 +103,8 @@ add_custom_command(
 ###########################################
 # Create Flight Tasks Library
 ###########################################
+
+add_compile_options(-Wno-cast-align) # TODO: fix and enable
 
 px4_add_library(FlightTasks
 	FlightTasks.cpp

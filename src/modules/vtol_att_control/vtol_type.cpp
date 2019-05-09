@@ -42,7 +42,7 @@
 #include "vtol_type.h"
 #include "vtol_att_control_main.h"
 
-#include <cfloat>
+#include <float.h>
 #include <px4_defines.h>
 #include <matrix/math.hpp>
 
@@ -95,6 +95,13 @@ bool VtolType::init()
 		return false;
 	}
 
+	ret = px4_ioctl(fd, PWM_SERVO_GET_MIN_PWM, (long unsigned int)&_min_mc_pwm_values);
+
+	if (ret != PX4_OK) {
+		PX4_ERR("failed getting min values");
+		px4_close(fd);
+		return false;
+	}
 
 	ret = px4_ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, (long unsigned int)&_disarmed_pwm_values);
 
@@ -103,6 +110,8 @@ bool VtolType::init()
 		px4_close(fd);
 		return false;
 	}
+
+	px4_close(fd);
 
 	return true;
 
@@ -124,24 +133,7 @@ void VtolType::update_mc_state()
 	_mc_roll_weight = 1.0f;
 	_mc_pitch_weight = 1.0f;
 	_mc_yaw_weight = 1.0f;
-
-	// VTOL weathervane
-	_v_att_sp->disable_mc_yaw_control = false;
-
-	if (_attc->get_pos_sp_triplet()->current.valid &&
-	    !_v_control_mode->flag_control_manual_enabled) {
-
-		if (_params->wv_takeoff && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
-			_v_att_sp->disable_mc_yaw_control = true;
-
-		} else if (_params->wv_loiter
-			   && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
-			_v_att_sp->disable_mc_yaw_control = true;
-
-		} else if (_params->wv_land && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-			_v_att_sp->disable_mc_yaw_control = true;
-		}
-	}
+	_mc_throttle_weight = 1.0f;
 }
 
 void VtolType::update_fw_state()
@@ -210,8 +202,8 @@ void VtolType::check_quadchute_condition()
 			// We use tecs for tracking in FW and local_pos_sp during transitions
 			if (_tecs_running) {
 				// 1 second rolling average
-				_ra_hrate = (49 * _ra_hrate + _tecs_status->flight_path_angle) / 50;
-				_ra_hrate_sp = (49 * _ra_hrate_sp + _tecs_status->flight_path_angle_sp) / 50;
+				_ra_hrate = (49 * _ra_hrate + _tecs_status->height_rate) / 50;
+				_ra_hrate_sp = (49 * _ra_hrate_sp + _tecs_status->height_rate_setpoint) / 50;
 
 				// are we dropping while requesting significant ascend?
 				if (((_tecs_status->altitude_sp - _tecs_status->altitude_filtered) > _params->fw_alt_err) &&
@@ -257,7 +249,13 @@ bool VtolType::set_idle_mc()
 	memset(&pwm_values, 0, sizeof(pwm_values));
 
 	for (int i = 0; i < _params->vtol_motor_count; i++) {
-		pwm_values.values[i] = pwm_value;
+		if (is_motor_off_channel(i)) {
+			pwm_values.values[i] = pwm_value;
+
+		} else {
+			pwm_values.values[i] = _min_mc_pwm_values.values[i];
+		}
+
 		pwm_values.channel_count++;
 	}
 
@@ -271,7 +269,13 @@ bool VtolType::set_idle_fw()
 	memset(&pwm_values, 0, sizeof(pwm_values));
 
 	for (int i = 0; i < _params->vtol_motor_count; i++) {
-		pwm_values.values[i] = PWM_MOTOR_OFF;
+		if (is_motor_off_channel(i)) {
+			pwm_values.values[i] = PWM_MOTOR_OFF;
+
+		} else {
+			pwm_values.values[i] = _min_mc_pwm_values.values[i];
+		}
+
 		pwm_values.channel_count++;
 	}
 
@@ -366,7 +370,9 @@ bool VtolType::is_motor_off_channel(const int channel)
 	int tmp;
 	int channels = _params->fw_motors_off;
 
-	for (int i = 0; i < _params->vtol_motor_count; ++i) {
+	static constexpr int num_outputs_max = 8;
+
+	for (int i = 0; i < num_outputs_max; ++i) {
 		tmp = channels % 10;
 
 		if (tmp == 0) {

@@ -76,6 +76,7 @@ protected:
 	bool _get_ground_contact_state() override;
 	bool _get_maybe_landed_state() override;
 	bool _get_freefall_state() override;
+	bool _get_ground_effect_state() override;
 
 	float _get_max_altitude() override;
 private:
@@ -101,12 +102,12 @@ private:
 		param_t maxRotation;
 		param_t minThrottle;
 		param_t hoverThrottle;
-		param_t throttleRange;
 		param_t minManThrottle;
 		param_t freefall_acc_threshold;
 		param_t freefall_trigger_time;
 		param_t altitude_max;
 		param_t landSpeed;
+		param_t low_thrust_threshold;
 	} _paramHandle{};
 
 	struct {
@@ -115,21 +116,21 @@ private:
 		float maxRotation_rad_s;
 		float minThrottle;
 		float hoverThrottle;
-		float throttleRange;
 		float minManThrottle;
 		float freefall_acc_threshold;
 		float freefall_trigger_time;
 		float altitude_max;
 		float landSpeed;
+		float low_thrust_threshold;
 	} _params{};
 
-	int _vehicleLocalPositionSub{-1};
-	int _vehicleLocalPositionSetpointSub{-1};
-	int _actuatorsSub{-1};
-	int _attitudeSub{-1};
-	int _sensor_bias_sub{-1};
-	int _vehicle_control_mode_sub{-1};
-	int _battery_sub{-1};
+	int _vehicleLocalPositionSub{ -1};
+	int _vehicleLocalPositionSetpointSub{ -1};
+	int _actuatorsSub{ -1};
+	int _attitudeSub{ -1};
+	int _sensor_bias_sub{ -1};
+	int _vehicle_control_mode_sub{ -1};
+	int _battery_sub{ -1};
 
 	vehicle_local_position_s				_vehicleLocalPosition {};
 	vehicle_local_position_setpoint_s	_vehicleLocalPositionSetpoint {};
@@ -141,6 +142,9 @@ private:
 
 	hrt_abstime _min_trust_start{0};		///< timestamp when minimum trust was applied first
 	hrt_abstime _landed_time{0};
+
+	bool _in_descend{false};	///< vehicle is desending
+	bool _horizontal_movement{false};	///< vehicle is moving horizontally
 
 	/* get control mode dependent pilot throttle threshold with which we should quit landed state and take off */
 	float _get_takeoff_throttle();

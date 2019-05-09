@@ -41,6 +41,7 @@
 #include <px4_workqueue.h>
 #include <drivers/device/device.h>
 #include <px4_defines.h>
+#include <containers/Array.hpp>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -54,7 +55,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <vector>
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
@@ -83,10 +83,10 @@
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
 
-class HC_SR04 : public device::CDev
+class HC_SR04 : public cdev::CDev
 {
 public:
-	HC_SR04(unsigned sonars = 6);
+	HC_SR04();
 	virtual ~HC_SR04();
 
 	virtual int 		init();
@@ -106,7 +106,7 @@ protected:
 private:
 	float				_min_distance;
 	float				_max_distance;
-	work_s				_work;
+	work_s				_work{};
 	ringbuffer::RingBuffer	*_reports;
 	bool				_sensor_ok;
 	int					_measure_ticks;
@@ -123,9 +123,9 @@ private:
 	int					_cycling_rate;	/* */
 	uint8_t				_index_counter;	/* temporary sonar i2c address */
 
-	std::vector<float>
+	px4::Array<float, 6>
 	_latest_sonar_measurements; /* vector to store latest sonar measurements in before writing to report */
-	unsigned 		_sonars;
+	unsigned 		_sonars{6};
 	struct GPIOConfig {
 		uint32_t        trig_port;
 		uint32_t        echo_port;
@@ -200,8 +200,8 @@ const HC_SR04::GPIOConfig HC_SR04::_gpio_tab[] = {
 extern "C"  __EXPORT int hc_sr04_main(int argc, char *argv[]);
 static int sonar_isr(int irq, void *context);
 
-HC_SR04::HC_SR04(unsigned sonars) :
-	CDev("HC_SR04", SR04_DEVICE_PATH, 0),
+HC_SR04::HC_SR04() :
+	CDev(SR04_DEVICE_PATH, 0),
 	_min_distance(SR04_MIN_DISTANCE),
 	_max_distance(SR04_MAX_DISTANCE),
 	_reports(nullptr),
@@ -222,11 +222,6 @@ HC_SR04::HC_SR04(unsigned sonars) :
 	_status(0)
 
 {
-	/* enable debug() calls */
-	_debug_enabled = false;
-
-	/* work_cancel in the dtor will explode if we don't do this... */
-	memset(&_work, 0, sizeof(_work));
 }
 
 HC_SR04::~HC_SR04()
@@ -274,7 +269,7 @@ HC_SR04::init()
 				 &_orb_class_instance, ORB_PRIO_LOW);
 
 	if (_distance_sensor_topic == nullptr) {
-		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+		PX4_ERR("failed to create distance_sensor object");
 	}
 
 	/* init echo port : */
@@ -290,7 +285,7 @@ HC_SR04::init()
 	_cycling_rate = SR04_CONVERSION_INTERVAL;
 
 	/* show the connected sonars in terminal */
-	DEVICE_DEBUG("Number of sonars set: %d", _sonars);
+	PX4_DEBUG("Number of sonars set: %d", _sonars);
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
@@ -353,21 +348,11 @@ HC_SR04::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -409,35 +394,6 @@ HC_SR04::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				}
 			}
 		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (1000 / _measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			ATOMIC_ENTER;
-
-			if (!_reports->resize(arg)) {
-				ATOMIC_LEAVE;
-				return -ENOMEM;
-			}
-
-			ATOMIC_LEAVE;
-
-			return OK;
-		}
-
-	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
 
 	default:
 		/* give it to the superclass */
@@ -533,7 +489,7 @@ HC_SR04::collect()
 
 	/* read from the sensor */
 	if (_status != 2) {
-		DEVICE_DEBUG("erro sonar %d ,status=%d", _cycle_counter, _status);
+		PX4_DEBUG("erro sonar %d ,status=%d", _cycle_counter, _status);
 		px4_arch_gpiosetevent(_gpio_tab[_cycle_counter].echo_port, true, true, false, nullptr);
 		perf_end(_sample_perf);
 		return (ret);
@@ -645,7 +601,7 @@ HC_SR04::cycle()
 	/*_circle_count 计录当前sonar　*/
 	/* perform collection */
 	if (OK != collect()) {
-		DEVICE_DEBUG("collection error");
+		PX4_DEBUG("collection error");
 	}
 
 	/* change to next sonar */
@@ -657,7 +613,7 @@ HC_SR04::cycle()
 
 	/* 测量next sonar */
 	if (OK != measure()) {
-		DEVICE_DEBUG("measure error sonar adress %d", _cycle_counter);
+		PX4_DEBUG("measure error sonar adress %d", _cycle_counter);
 	}
 
 

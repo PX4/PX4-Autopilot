@@ -82,22 +82,6 @@ PARAM_DEFINE_FLOAT(LNDMC_ROT_MAX, 20.0f);
 PARAM_DEFINE_FLOAT(LNDMC_FFALL_THR, 2.0f);
 
 /**
- * Multicopter sub-hover throttle scaling
- *
- * The range between throttle_min and throttle_hover is scaled
- * by this parameter to define how close to minimum throttle
- * the current throttle value needs to be in order to get
- * accepted as landed.
- *
- * @min 0.05
- * @max 0.5
- * @decimal 2
- *
- * @group Land Detector
- */
-PARAM_DEFINE_FLOAT(LNDMC_THR_RANGE, 0.1f);
-
-/**
  * Multicopter free-fall trigger time
  *
  * Seconds (decimal) that freefall conditions have to met before triggering a freefall.
@@ -129,3 +113,21 @@ PARAM_DEFINE_FLOAT(LNDMC_FFALL_TTRI, 0.3);
  *
  */
 PARAM_DEFINE_FLOAT(LNDMC_ALT_MAX, -1.0f);
+
+/**
+ * Low throttle detection threshold.
+ *
+ * Defines the commanded throttle value below which the land detector
+ * considers the vehicle to have "low thrust". This is one condition that
+ * is used to detect the ground contact state. The value is calculated as
+ * val = (MPC_THR_HOVER - MPC_THR_MIN) * LNDMC_LOW_T_THR + MPC_THR_MIN
+ * Increase this value if the system takes long time to detect landing.
+ *
+ * @unit norm
+ * @min 0.1
+ * @max 0.9
+ * @decimal 2
+ * @group Land Detector
+ *
+ */
+PARAM_DEFINE_FLOAT(LNDMC_LOW_T_THR, 0.3);

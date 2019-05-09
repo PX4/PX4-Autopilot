@@ -45,7 +45,8 @@
 
 /* Device limits */
 #define LL40LS_MIN_DISTANCE (0.05f)
-#define LL40LS_MAX_DISTANCE (25.00f)
+#define LL40LS_MAX_DISTANCE_V3 (35.00f)
+#define LL40LS_MAX_DISTANCE_V1 (25.00f)
 
 // normal conversion wait time
 #define LL40LS_CONVERSION_INTERVAL 50*1000UL /* 50ms */
@@ -86,7 +87,7 @@ protected:
 	/**
 	* Set the min and max distance thresholds if you want the end points of the sensors
 	* range to be brought in at all, otherwise it will use the defaults LL40LS_MIN_DISTANCE
-	* and LL40LS_MAX_DISTANCE
+	* and LL40LS_MAX_DISTANCE_V3
 	*/
 	void                set_minimum_distance(const float min);
 	void                set_maximum_distance(const float max);

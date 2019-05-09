@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE drivers__barometer__lps22hb
 	MAIN lps22hb
-	COMPILE_FLAGS
 	SRCS
 		lps22hb_main.cpp
 		LPS22HB.cpp

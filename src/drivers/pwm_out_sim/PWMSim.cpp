@@ -33,8 +33,13 @@
 
 #include "PWMSim.hpp"
 
+#include <px4_time.h>
+#include <mathlib/mathlib.h>
+
+#include <uORB/topics/multirotor_motor_limits.h>
+
 PWMSim::PWMSim() :
-	CDev("pwm_out_sim", PWM_OUTPUT0_DEVICE_PATH),
+	CDev(PWM_OUTPUT0_DEVICE_PATH),
 	_perf_control_latency(perf_alloc(PC_ELAPSED, "pwm_out_sim control latency"))
 {
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
@@ -74,21 +79,18 @@ PWMSim::set_mode(Mode mode)
 	 */
 	switch (mode) {
 	case MODE_8PWM:
-		PX4_INFO("MODE_8PWM");
 		/* multi-port as 8 PWM outs */
 		_update_rate = 400;	/* default output rate */
 		_num_outputs = 8;
 		break;
 
 	case MODE_16PWM:
-		PX4_INFO("MODE_16PWM");
 		/* multi-port as 16 PWM outs */
 		_update_rate = 400;	/* default output rate */
 		_num_outputs = 16;
 		break;
 
 	case MODE_NONE:
-		PX4_INFO("MODE_NONE");
 		/* disable servo outputs and set a very low update rate */
 		_update_rate = 10;
 		_num_outputs = 0;
@@ -147,9 +149,7 @@ void PWMSim::update_params()
 	param_t param_handle = param_find("MC_AIRMODE");
 
 	if (param_handle != PARAM_INVALID) {
-		int32_t val;
-		param_get(param_handle, &val);
-		_airmode = val > 0;
+		param_get(param_handle, &_airmode);
 	}
 }
 
@@ -199,7 +199,7 @@ PWMSim::run()
 
 		/* this can happen during boot, but after the sleep its likely resolved */
 		if (_poll_fds_num == 0) {
-			sleep(1);
+			px4_sleep(1);
 
 			PX4_DEBUG("no valid fds");
 			continue;
@@ -233,59 +233,64 @@ PWMSim::run()
 		}
 
 		/* can we mix? */
-		if (_armed && _mixers != nullptr) {
+		/* We also publish if not armed, this way we make sure SITL gets feedback. */
+		if (_mixers != nullptr) {
 
 			/* do mixing */
-			unsigned num_outputs = _mixers->mix(&_actuator_outputs.output[0], _num_outputs);
-			_actuator_outputs.noutputs = num_outputs;
+			_actuator_outputs.noutputs = _mixers->mix(&_actuator_outputs.output[0], _num_outputs);
 
 			/* disable unused ports by setting their output to NaN */
-			for (size_t i = 0; i < sizeof(_actuator_outputs.output) / sizeof(_actuator_outputs.output[0]); i++) {
-				if (i >= num_outputs) {
-					_actuator_outputs.output[i] = NAN;
-				}
+			const size_t actuator_outputs_size = sizeof(_actuator_outputs.output) / sizeof(_actuator_outputs.output[0]);
+
+			for (size_t i = _actuator_outputs.noutputs; i < actuator_outputs_size; i++) {
+				_actuator_outputs.output[i] = NAN;
 			}
 
 			/* iterate actuators */
-			for (unsigned i = 0; i < num_outputs; i++) {
+			for (unsigned i = 0; i < _actuator_outputs.noutputs; i++) {
 				/* last resort: catch NaN, INF and out-of-band errors */
-				if (i < _actuator_outputs.noutputs &&
-				    PX4_ISFINITE(_actuator_outputs.output[i]) &&
-				    _actuator_outputs.output[i] >= -1.0f &&
-				    _actuator_outputs.output[i] <= 1.0f) {
+				const bool sane_mixer_output = PX4_ISFINITE(_actuator_outputs.output[i]) &&
+							       _actuator_outputs.output[i] >= -1.0f &&
+							       _actuator_outputs.output[i] <= 1.0f;
+
+				if (_armed && sane_mixer_output) {
 					/* scale for PWM output 1000 - 2000us */
 					_actuator_outputs.output[i] = 1500 + (500 * _actuator_outputs.output[i]);
-
-					if (_actuator_outputs.output[i] > _pwm_max[i]) {
-						_actuator_outputs.output[i] = _pwm_max[i];
-					}
-
-					if (_actuator_outputs.output[i] < _pwm_min[i]) {
-						_actuator_outputs.output[i] = _pwm_min[i];
-					}
+					_actuator_outputs.output[i] = math::constrain(_actuator_outputs.output[i], (float)_pwm_min[i], (float)_pwm_max[i]);
 
 				} else {
-					/*
-					 * Value is NaN, INF or out of band - set to the minimum value.
+					/* Disarmed or insane value - set disarmed pwm value
 					 * This will be clearly visible on the servo status and will limit the risk of accidentally
-					 * spinning motors. It would be deadly in flight.
-					 */
+					 * spinning motors. It would be deadly in flight. */
 					_actuator_outputs.output[i] = PWM_SIM_DISARMED_MAGIC;
 				}
 			}
 
 			/* overwrite outputs in case of force_failsafe */
 			if (_failsafe) {
-				for (size_t i = 0; i < num_outputs; i++) {
+				for (size_t i = 0; i < _actuator_outputs.noutputs; i++) {
 					_actuator_outputs.output[i] = PWM_SIM_FAILSAFE_MAGIC;
 				}
 			}
 
 			/* overwrite outputs in case of lockdown */
 			if (_lockdown) {
-				for (size_t i = 0; i < num_outputs; i++) {
+				for (size_t i = 0; i < _actuator_outputs.noutputs; i++) {
 					_actuator_outputs.output[i] = 0.0;
 				}
+			}
+
+			/* publish mixer status */
+			MultirotorMixer::saturation_status saturation_status;
+			saturation_status.value = _mixers->get_saturation_status();
+
+			if (saturation_status.flags.valid) {
+				multirotor_motor_limits_s motor_limits;
+				motor_limits.timestamp = hrt_absolute_time();
+				motor_limits.saturation_status = saturation_status.value;
+
+				int instance;
+				orb_publish_auto(ORB_ID(multirotor_motor_limits), &_mixer_status, &motor_limits, &instance, ORB_PRIO_DEFAULT);
 			}
 
 			/* and publish for anyone that cares to see */

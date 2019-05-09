@@ -58,7 +58,6 @@
 #include <termios.h>
 
 #include <perf/perf_counter.h>
-#include <systemlib/err.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
@@ -81,7 +80,7 @@
 // designated SERIAL4/5 on Pixhawk
 #define SF0X_DEFAULT_PORT		"/dev/ttyS6"
 
-class SF0X : public device::CDev
+class SF0X : public cdev::CDev
 {
 public:
 	SF0X(const char *port = SF0X_DEFAULT_PORT, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
@@ -97,16 +96,13 @@ public:
 	*/
 	void				print_info();
 
-protected:
-	virtual int			probe();
-
 private:
 	char 				_port[20];
 	uint8_t _rotation;
 	float				_min_distance;
 	float				_max_distance;
 	int         		        _conversion_interval;
-	work_s				_work;
+	work_s				_work{};
 	ringbuffer::RingBuffer		*_reports;
 	int				_measure_ticks;
 	bool				_collect_phase;
@@ -173,7 +169,7 @@ private:
 extern "C" __EXPORT int sf0x_main(int argc, char *argv[]);
 
 SF0X::SF0X(const char *port, uint8_t rotation) :
-	CDev("SF0X", RANGE_FINDER0_DEVICE_PATH),
+	CDev(RANGE_FINDER0_DEVICE_PATH),
 	_rotation(rotation),
 	_min_distance(0.30f),
 	_max_distance(40.0f),
@@ -197,46 +193,6 @@ SF0X::SF0X(const char *port, uint8_t rotation) :
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
 
-	/* open fd */
-	_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
-
-	if (_fd < 0) {
-		warnx("FAIL: laser fd");
-	}
-
-	struct termios uart_config;
-
-	int termios_state;
-
-	/* fill the struct for the new configuration */
-	tcgetattr(_fd, &uart_config);
-
-	/* clear ONLCR flag (which appends a CR for every LF) */
-	uart_config.c_oflag &= ~ONLCR;
-
-	/* no parity, one stop bit */
-	uart_config.c_cflag &= ~(CSTOPB | PARENB);
-
-	unsigned speed = B9600;
-
-	/* set baud rate */
-	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
-		warnx("ERR CFG: %d ISPD", termios_state);
-	}
-
-	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
-		warnx("ERR CFG: %d OSPD\n", termios_state);
-	}
-
-	if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERR baud %d ATTR", termios_state);
-	}
-
-	// disable debug() calls
-	_debug_enabled = false;
-
-	// work_cancel in the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
 }
 
 SF0X::~SF0X()
@@ -264,9 +220,6 @@ SF0X::init()
 	param_get(param_find("SENS_EN_SF0X"), &hw_model);
 
 	switch (hw_model) {
-	case 0:
-		DEVICE_LOG("disabled.");
-		return 0;
 
 	case 1: /* SF02 (40m, 12 Hz)*/
 		_min_distance = 0.3f;
@@ -300,7 +253,7 @@ SF0X::init()
 		break;
 
 	default:
-		DEVICE_LOG("invalid HW model %d.", hw_model);
+		PX4_ERR("invalid HW model %d.", hw_model);
 		return -1;
 	}
 
@@ -318,7 +271,7 @@ SF0X::init()
 		_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
 		if (_reports == nullptr) {
-			warnx("mem err");
+			PX4_ERR("alloc failed");
 			ret = -1;
 			break;
 		}
@@ -332,22 +285,12 @@ SF0X::init()
 					 &_orb_class_instance, ORB_PRIO_HIGH);
 
 		if (_distance_sensor_topic == nullptr) {
-			DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+			PX4_ERR("failed to create distance_sensor object");
 		}
 
 	} while (0);
 
-	/* close the fd */
-	::close(_fd);
-	_fd = -1;
-
-	return OK;
-}
-
-int
-SF0X::probe()
-{
-	return measure();
+	return ret;
 }
 
 void
@@ -382,21 +325,11 @@ SF0X::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -438,35 +371,6 @@ SF0X::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				}
 			}
 		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (1000 / _measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			ATOMIC_ENTER;
-
-			if (!_reports->resize(arg)) {
-				ATOMIC_LEAVE;
-				return -ENOMEM;
-			}
-
-			ATOMIC_LEAVE;
-
-			return OK;
-		}
-
-	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
 
 	default:
 		/* give it to the superclass */
@@ -516,7 +420,7 @@ SF0X::read(device::file_t *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(_conversion_interval);
+		px4_usleep(_conversion_interval);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -547,7 +451,7 @@ SF0X::measure()
 
 	if (ret != sizeof(cmd)) {
 		perf_count(_comms_errors);
-		DEVICE_LOG("write fail %d", ret);
+		PX4_DEBUG("write fail %d", ret);
 		return ret;
 	}
 
@@ -574,7 +478,7 @@ SF0X::collect()
 	ret = ::read(_fd, &readbuf[0], readlen);
 
 	if (ret < 0) {
-		DEVICE_DEBUG("read err: %d", ret);
+		PX4_DEBUG("read err: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 
@@ -605,7 +509,7 @@ SF0X::collect()
 		return -EAGAIN;
 	}
 
-	DEVICE_DEBUG("val (float): %8.4f, raw: %s, valid: %s", (double)distance_m, _linebuf, ((valid) ? "OK" : "NO"));
+	PX4_DEBUG("val (float): %8.4f, raw: %s, valid: %s", (double)distance_m, _linebuf, ((valid) ? "OK" : "NO"));
 
 	struct distance_sensor_s report;
 
@@ -615,7 +519,7 @@ SF0X::collect()
 	report.current_distance = distance_m;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
-	report.covariance = 0.0f;
+	report.variance = 0.0f;
 	report.signal_quality = -1;
 	/* TODO: set proper ID */
 	report.id = 0;
@@ -667,6 +571,51 @@ SF0X::cycle()
 	if (_fd < 0) {
 		/* open fd */
 		_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
+
+		if (_fd < 0) {
+			PX4_ERR("open failed (%i)", errno);
+			return;
+		}
+
+		struct termios uart_config;
+
+		int termios_state;
+
+		/* fill the struct for the new configuration */
+		tcgetattr(_fd, &uart_config);
+
+		/* clear ONLCR flag (which appends a CR for every LF) */
+		uart_config.c_oflag &= ~ONLCR;
+
+		/* no parity, one stop bit */
+		uart_config.c_cflag &= ~(CSTOPB | PARENB);
+
+		/* if distance sensor model is SF11/C, then set baudrate 115200, else 9600 */
+		int hw_model;
+
+		param_get(param_find("SENS_EN_SF0X"), &hw_model);
+
+		unsigned speed;
+
+		if (hw_model == 5) {
+			speed = B115200;
+
+		} else {
+			speed = B9600;
+		}
+
+		/* set baud rate */
+		if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
+			PX4_ERR("CFG: %d ISPD", termios_state);
+		}
+
+		if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
+			PX4_ERR("CFG: %d OSPD", termios_state);
+		}
+
+		if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
+			PX4_ERR("baud %d ATTR", termios_state);
+		}
 	}
 
 	/* collection phase? */
@@ -689,7 +638,7 @@ SF0X::cycle()
 
 			/* we know the sensor needs about four seconds to initialize */
 			if (hrt_absolute_time() > 5 * 1000 * 1000LL && _consecutive_fail_count < 5) {
-				DEVICE_LOG("collection error #%u", _consecutive_fail_count);
+				PX4_ERR("collection error #%u", _consecutive_fail_count);
 			}
 
 			_consecutive_fail_count++;
@@ -724,7 +673,7 @@ SF0X::cycle()
 
 	/* measurement phase */
 	if (OK != measure()) {
-		DEVICE_LOG("measure error");
+		PX4_DEBUG("measure error");
 	}
 
 	/* next phase is collection */
@@ -755,22 +704,23 @@ namespace sf0x
 
 SF0X	*g_dev;
 
-void	start(const char *port, uint8_t rotation);
-void	stop();
-void	test();
-void	reset();
-void	info();
+int	start(const char *port, uint8_t rotation);
+int	stop();
+int	test();
+int	reset();
+int	info();
 
 /**
  * Start the driver.
  */
-void
+int
 start(const char *port, uint8_t rotation)
 {
 	int fd;
 
 	if (g_dev != nullptr) {
-		errx(1, "already started");
+		PX4_WARN("already started");
+		return -1;
 	}
 
 	/* create the driver */
@@ -788,7 +738,7 @@ start(const char *port, uint8_t rotation)
 	fd = open(RANGE_FINDER0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
-		warnx("device open fail");
+		PX4_ERR("device open fail (%i)", errno);
 		goto fail;
 	}
 
@@ -796,7 +746,7 @@ start(const char *port, uint8_t rotation)
 		goto fail;
 	}
 
-	exit(0);
+	return 0;
 
 fail:
 
@@ -805,23 +755,23 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	return -1;
 }
 
 /**
  * Stop the driver
  */
-void stop()
+int stop()
 {
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
 
 	} else {
-		errx(1, "driver not running");
+		return -1;
 	}
 
-	exit(0);
+	return 0;
 }
 
 /**
@@ -829,7 +779,7 @@ void stop()
  * make sure we can collect data from the sensor in polled
  * and automatic modes.
  */
-void
+int
 test()
 {
 	struct distance_sensor_s report;
@@ -838,21 +788,24 @@ test()
 	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'sf0x start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
+		PX4_ERR("%s open failed (try 'sf0x start' if the driver is not running", RANGE_FINDER0_DEVICE_PATH);
+		return -1;
 	}
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
-		err(1, "immediate read failed");
+		PX4_ERR("immediate read failed");
+		return -1;
 	}
 
 	print_message(report);
 
 	/* start the sensor polling at 2 Hz rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
+		PX4_ERR("failed to set 2Hz poll rate");
+		return -1;
 	}
 
 	/* read the sensor 5x and report each value */
@@ -865,7 +818,7 @@ test()
 		int ret = poll(&fds, 1, 2000);
 
 		if (ret != 1) {
-			warnx("timed out");
+			PX4_ERR("timed out");
 			break;
 		}
 
@@ -873,7 +826,7 @@ test()
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			warnx("read failed: got %d vs exp. %d", sz, sizeof(report));
+			PX4_ERR("read failed: got %zi vs exp. %zu", sz, sizeof(report));
 			break;
 		}
 
@@ -882,49 +835,54 @@ test()
 
 	/* reset the sensor polling to the default rate */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		errx(1, "ERR: DEF RATE");
+		PX4_ERR("ioctl SENSORIOCSPOLLRATE failed");
+		return -1;
 	}
 
-	errx(0, "PASS");
+	return 0;
 }
 
 /**
  * Reset the driver.
  */
-void
+int
 reset()
 {
 	int fd = open(RANGE_FINDER0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "failed ");
+		PX4_ERR("open failed (%i)", errno);
+		return -1;
 	}
 
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
+		PX4_ERR("driver reset failed");
+		return -1;
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
+		PX4_ERR("driver poll restart failed");
+		return -1;
 	}
 
-	exit(0);
+	return 0;
 }
 
 /**
  * Print a little info about the driver.
  */
-void
+int
 info()
 {
 	if (g_dev == nullptr) {
-		errx(1, "driver not running");
+		PX4_ERR("driver not running");
+		return -1;
 	}
 
 	printf("state @ %p\n", g_dev);
 	g_dev->print_info();
 
-	exit(0);
+	return 0;
 }
 
 } // namespace
@@ -932,15 +890,20 @@ info()
 int
 sf0x_main(int argc, char *argv[])
 {
-	int ch;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	const char *device_path = SF0X_DEFAULT_PORT;
+	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "R:d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
 			rotation = (uint8_t)atoi(myoptarg);
+			break;
+
+		case 'd':
+			device_path = myoptarg;
 			break;
 
 		default:
@@ -957,40 +920,35 @@ sf0x_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		if (argc > myoptind + 1) {
-			sf0x::start(argv[myoptind + 1], rotation);
-
-		} else {
-			sf0x::start(SF0X_DEFAULT_PORT, rotation);
-		}
+		return sf0x::start(device_path, rotation);
 	}
 
 	/*
 	 * Stop the driver
 	 */
 	if (!strcmp(argv[myoptind], "stop")) {
-		sf0x::stop();
+		return sf0x::stop();
 	}
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[myoptind], "test")) {
-		sf0x::test();
+		return sf0x::test();
 	}
 
 	/*
 	 * Reset the driver.
 	 */
 	if (!strcmp(argv[myoptind], "reset")) {
-		sf0x::reset();
+		return sf0x::reset();
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
-		sf0x::info();
+		return sf0x::info();
 	}
 
 out_error:

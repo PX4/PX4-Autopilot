@@ -118,3 +118,38 @@ void __cxa_pure_virtual()
 	PX4_WARN("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
 	block_indefinite();
 }
+
+float _Stof(const char *p0, char **p1, long p2)
+{
+	PX4_WARN("Error: Calling unresolved symbol stub[%s]", __FUNCTION__);
+	block_indefinite();
+	return 0;
+}
+
+void *bsearch(const void *key, const void *ptr, size_t count, size_t size, int (*comp)(const void *, const void *))
+{
+	const char *first = (const char *)ptr;
+
+	while (count > 1) {
+		size_t m = count / 2;
+		const char *middle_element = first + m * size;
+		int cmp_res = comp(middle_element, key);
+
+		if (cmp_res > 0) {
+			count = m;
+
+		} else if (cmp_res == 0) {
+			return (void *)middle_element;
+
+		} else {
+			first = middle_element + size;
+			count = count - m - 1;
+		}
+	}
+
+	if (count && comp(first, key) == 0) {
+		return (void *)first;
+	}
+
+	return NULL;
+}

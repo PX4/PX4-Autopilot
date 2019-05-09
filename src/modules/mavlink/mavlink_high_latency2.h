@@ -101,8 +101,8 @@ private:
 	MavlinkOrbSubscription *_estimator_status_sub;
 	uint64_t _estimator_status_time;
 
-	MavlinkOrbSubscription *_fw_pos_ctrl_status_sub;
-	uint64_t _fw_pos_ctrl_status_time;
+	MavlinkOrbSubscription *_pos_ctrl_status_sub;
+	uint64_t _pos_ctrl_status_time;
 
 	MavlinkOrbSubscription *_geofence_sub;
 	uint64_t _geofence_time;

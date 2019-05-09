@@ -53,40 +53,58 @@ void FlightTaskAutoLine::_generateSetpoints()
 	_generateXYsetpoints();
 }
 
+void FlightTaskAutoLine::_setSpeedAtTarget()
+{
+	// angle goes from 0 to 2 with 0 = large angle, 2 = small angle:   0 = PI ; 2 = PI*0
+	float angle = 2.0f; // minimum angle
+	_speed_at_target = 0.0f;
+
+	if (Vector2f(&(_target - _next_wp)(0)).length() > 0.001f &&
+	    (Vector2f(&(_target - _prev_wp)(0)).length() > _target_acceptance_radius)) {
+		// angle = cos(x) + 1.0
+		angle =
+			Vector2f(&(_target - _prev_wp)(0)).unit_or_zero()
+			* Vector2f(&(_target - _next_wp)(0)).unit_or_zero()
+			+ 1.0f;
+		_speed_at_target = math::expontialFromLimits(angle, 0.0f, _param_mpc_cruise_90.get(), _mc_cruise_speed);
+	}
+}
+
+
 void FlightTaskAutoLine::_generateHeadingAlongTrack()
 {
-	Vector2f prev_to_dest = Vector2f(&(_target - _prev_wp)(0));
+	Vector2f prev_to_dest(_target - _prev_wp);
+	_compute_heading_from_2D_vector(_yaw_setpoint, prev_to_dest);
 
-	if (!_compute_heading_from_2D_vector(_yaw_setpoint, prev_to_dest)) {
-		// heading could not be computed. best we can do is to set heading
-		// to current yaw
-		_yaw_setpoint = _yaw;
-	}
 }
 
 void FlightTaskAutoLine::_generateXYsetpoints()
 {
-	Vector2f pos_sp_to_dest = Vector2f(&(_target - _position_setpoint)(0));
-	const bool has_reached_altitude = fabsf(_target(2) - _position(2)) < NAV_ACC_RAD.get();
+	_setSpeedAtTarget();
+	Vector2f pos_sp_to_dest(_target - _position_setpoint);
+	const bool has_reached_altitude = fabsf(_target(2) - _position(2)) < _target_acceptance_radius;
 
-	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < NAV_ACC_RAD.get()) ||
-	    (!has_reached_altitude && pos_sp_to_dest.length() < NAV_ACC_RAD.get())) {
+	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < _target_acceptance_radius) ||
+	    (!has_reached_altitude && pos_sp_to_dest.length() < _target_acceptance_radius)) {
 
-		// Vehicle reached target in xy and no passing required. Lock position */
+		// Vehicle reached target in xy and no passing required. Lock position
 		_position_setpoint(0) = _target(0);
 		_position_setpoint(1) = _target(1);
 		_velocity_setpoint(0) = _velocity_setpoint(1) = 0.0f;
 
 	} else {
+		// Vehicle needs to pass waypoint
+		// Ensure that vehicle never gets stuck because of too low target-speed
+		_speed_at_target = math::max(_speed_at_target, 0.5f);
 
 		// Get various path specific vectors. */
-		Vector2f u_prev_to_dest = Vector2f(&(_target - _prev_wp)(0)).unit_or_zero();
-		Vector2f prev_to_pos(&(_position - _prev_wp)(0));
-		Vector2f closest_pt = Vector2f(&_prev_wp(0)) + u_prev_to_dest * (prev_to_pos * u_prev_to_dest);
-		Vector2f closest_to_dest = Vector2f(&(_target - _position)(0));
-		Vector2f prev_to_dest = Vector2f(&(_target - _prev_wp)(0));
+		Vector2f u_prev_to_dest = Vector2f(_target - _prev_wp).unit_or_zero();
+		Vector2f prev_to_pos(_position - _prev_wp);
+		Vector2f closest_pt = Vector2f(_prev_wp) + u_prev_to_dest * (prev_to_pos * u_prev_to_dest);
+		Vector2f closest_to_dest(_target - _position);
+		Vector2f prev_to_dest(_target - _prev_wp);
 		float speed_sp_track = _mc_cruise_speed;
-		float speed_sp_prev_track = math::max(Vector2f(&_velocity_setpoint(0)) * u_prev_to_dest, 0.0f);
+		float speed_sp_prev_track = math::max(Vector2f(_velocity_setpoint) * u_prev_to_dest, 0.0f);
 
 		// Distance to target when brake should occur. The assumption is made that
 		// 1.5 * cruising speed is enough to break.
@@ -100,9 +118,9 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 		}
 
 		// Compute maximum speed at target threshold */
-		if (threshold_max > NAV_ACC_RAD.get()) {
-			float m = (_mc_cruise_speed - _speed_at_target) / (threshold_max - NAV_ACC_RAD.get());
-			speed_threshold = m * (target_threshold - NAV_ACC_RAD.get()) + _speed_at_target; // speed at transition
+		if (threshold_max > _target_acceptance_radius) {
+			float m = (_mc_cruise_speed - _speed_at_target) / (threshold_max - _target_acceptance_radius);
+			speed_threshold = m * (target_threshold - _target_acceptance_radius) + _speed_at_target; // speed at transition
 		}
 
 		// Either accelerate or decelerate
@@ -115,7 +133,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 				_speed_at_target = 0.0f;
 			}
 
-			float acceptance_radius = NAV_ACC_RAD.get();
+			float acceptance_radius = _target_acceptance_radius;
 
 			if (_speed_at_target < 0.01f) {
 				// If vehicle wants to stop at the target, then set acceptance radius to zero as well.
@@ -153,12 +171,15 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 			}
 
 			// If yaw offset is large, only accelerate with 0.5 m/s^2.
-			float acc_max = (fabsf(yaw_diff) > math::radians(MIS_YAW_ERR.get())) ? 0.5f : MPC_ACC_HOR.get();
+			float acc_max = (fabsf(yaw_diff) > math::radians(_param_mis_yaw_err.get())) ? 0.5f : _param_mpc_acc_hor.get();
 
 			if (acc_track > acc_max) {
 				// accelerate towards target
 				speed_sp_track = acc_max * _deltatime + speed_sp_prev_track;
 			}
+
+			// ensure that desired speed does not exceed speed at threshold
+			speed_sp_track = math::min(speed_threshold, speed_sp_track);
 		}
 
 		speed_sp_track = math::constrain(speed_sp_track, 0.0f, _mc_cruise_speed);
@@ -189,8 +210,8 @@ void FlightTaskAutoLine::_generateAltitudeSetpoints()
 		// limit vertical downwards speed (positive z) close to ground
 		// for now we use the altitude above home and assume that we want to land at same height as we took off
 		float vel_limit = math::gradual(_alt_above_ground,
-						MPC_LAND_ALT2.get(), MPC_LAND_ALT1.get(),
-						MPC_LAND_SPEED.get(), _constraints.speed_down);
+						_param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
+						_param_mpc_land_speed.get(), _constraints.speed_down);
 
 		// Speed at threshold is by default maximum speed. Threshold defines
 		// the point in z at which vehicle slows down to reach target altitude.
@@ -223,7 +244,7 @@ void FlightTaskAutoLine::_generateAltitudeSetpoints()
 			// we want to accelerate
 
 			const float acc = (speed_sp - fabsf(_velocity_setpoint(2))) / _deltatime;
-			const float acc_max = (flying_upward) ? (MPC_ACC_UP_MAX.get() * 0.5f) : (MPC_ACC_DOWN_MAX.get() * 0.5f);
+			const float acc_max = (flying_upward) ? (_param_mpc_acc_up_max.get() * 0.5f) : (_param_mpc_acc_down_max.get() * 0.5f);
 
 			if (acc > acc_max) {
 				speed_sp = acc_max * _deltatime + fabsf(_velocity_setpoint(2));

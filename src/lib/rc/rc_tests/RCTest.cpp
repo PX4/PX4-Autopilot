@@ -3,6 +3,7 @@
 #include <systemlib/err.h>
 
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <drivers/drv_hrt.h>
@@ -14,10 +15,10 @@
 #include <lib/rc/sumd.h>
 #include <lib/rc/crsf.h>
 
-#if !defined(CONFIG_ARCH_BOARD_SITL)
-#define TEST_DATA_PATH "/fs/microsd"
-#else
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
 #define TEST_DATA_PATH "./test_data/"
+#else
+#define TEST_DATA_PATH "/fs/microsd"
 #endif
 
 extern "C" __EXPORT int rc_tests_main(int argc, char *argv[]);
@@ -122,7 +123,7 @@ bool RCTest::crsfTest()
 			}
 
 			if (expected_num_channels != num_values) {
-				PX4_ERR("File line: ", line_counter);
+				PX4_ERR("File line: %d", line_counter);
 				ut_compare("Unexpected number of decoded channels", expected_num_channels, num_values);
 			}
 

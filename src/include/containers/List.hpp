@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,43 +34,31 @@
 /**
  * @file List.hpp
  *
- * A linked list.
+ * An intrusive linked list.
  */
 
 #pragma once
 
+#include <stdlib.h>
+
 template<class T>
-class __EXPORT ListNode
+class ListNode
 {
 public:
-	ListNode() : _sibling() {}
-	virtual ~ListNode() = default;
-
-	// no copy, assignment, move, move assignment
-	ListNode(const ListNode &) = delete;
-	ListNode &operator=(const ListNode &) = delete;
-	ListNode(ListNode &&) = delete;
-	ListNode &operator=(ListNode &&) = delete;
 
 	void setSibling(T sibling) { _sibling = sibling; }
-	const T getSibling() { return _sibling; }
+	const T getSibling() const { return _sibling; }
 
 protected:
-	T _sibling;
+
+	T _sibling{nullptr};
+
 };
 
 template<class T>
-class __EXPORT List
+class List
 {
 public:
-	List() : _head() {}
-	virtual ~List() = default;
-
-	// no copy, assignment, move, move assignment
-	List(const List &) = delete;
-	List &operator=(const List &) = delete;
-	List(List &&) = delete;
-	List &operator=(List &&) = delete;
 
 	void add(T newNode)
 	{
@@ -78,8 +66,89 @@ public:
 		_head = newNode;
 	}
 
-	const T getHead() { return _head; }
+	bool remove(T removeNode)
+	{
+		// base case
+		if (removeNode == _head) {
+			_head = nullptr;
+			return true;
+		}
+
+		for (T node = getHead(); node != nullptr; node = node->getSibling()) {
+			// is sibling the node to remove?
+			if (node->getSibling() == removeNode) {
+				// replace sibling
+				if (node->getSibling() != nullptr) {
+					node->setSibling(node->getSibling()->getSibling());
+
+				} else {
+					node->setSibling(nullptr);
+				}
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	struct Iterator {
+		T node;
+		Iterator(T v) : node(v) {}
+
+		operator T() const { return node; }
+		operator T &() { return node; }
+		T operator* () const { return node; }
+		Iterator &operator++ ()
+		{
+			if (node) {
+				node = node->getSibling();
+			};
+
+			return *this;
+		}
+	};
+
+	Iterator begin() { return Iterator(getHead()); }
+	Iterator end() { return Iterator(nullptr); }
+
+	const T getHead() const { return _head; }
+
+	bool empty() const { return getHead() == nullptr; }
+
+	size_t size() const
+	{
+		size_t sz = 0;
+
+		for (auto node = getHead(); node != nullptr; node = node->getSibling()) {
+			sz++;
+		}
+
+		return sz;
+	}
+
+	void deleteNode(T node)
+	{
+		if (remove(node)) {
+			// only delete if node was successfully removed
+			delete node;
+		}
+	}
+
+	void clear()
+	{
+		auto node = getHead();
+
+		while (node != nullptr) {
+			auto next = node->getSibling();
+			delete node;
+			node = next;
+		}
+
+		_head = nullptr;
+	}
 
 protected:
-	T _head;
+
+	T _head{nullptr};
 };

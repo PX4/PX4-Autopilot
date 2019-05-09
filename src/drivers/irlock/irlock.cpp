@@ -51,8 +51,9 @@
 #include <board_config.h>
 #include <drivers/device/i2c.h>
 #include <drivers/device/ringbuffer.h>
-#include <drivers/drv_irlock.h>
 #include <drivers/drv_hrt.h>
+
+#include <px4_getopt.h>
 
 #include <nuttx/clock.h>
 #include <nuttx/wqueue.h>
@@ -88,6 +89,26 @@
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
 #endif
+
+#define IRLOCK_BASE_DEVICE_PATH	"/dev/irlock"
+#define IRLOCK0_DEVICE_PATH	"/dev/irlock0"
+
+#define IRLOCK_OBJECTS_MAX	5	/** up to 5 objects can be detected/reported **/
+
+struct irlock_target_s {
+	uint16_t signature;	/** target signature **/
+	float pos_x;	/** x-axis distance from center of image to center of target in units of tan(theta) **/
+	float pos_y;	/** y-axis distance from center of image to center of target in units of tan(theta) **/
+	float size_x;	/** size of target along x-axis in units of tan(theta) **/
+	float size_y;	/** size of target along y-axis in units of tan(theta) **/
+};
+
+/** irlock_s structure returned from read calls **/
+struct irlock_s {
+	uint64_t timestamp; /** microseconds since system start **/
+	uint8_t num_targets;
+	struct irlock_target_s targets[IRLOCK_OBJECTS_MAX];
+};
 
 class IRLOCK : public device::I2C
 {
@@ -449,17 +470,28 @@ int irlock_main(int argc, char *argv[])
 {
 	int i2cdevice = IRLOCK_I2C_BUS;
 
-	/** jump over start/off/etc and look at options first **/
-	if (getopt(argc, argv, "b:") != EOF) {
-		i2cdevice = (int)strtol(optarg, NULL, 0);
+	int ch;
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
+
+	while ((ch = px4_getopt(argc, argv, "b:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'b':
+			i2cdevice = (uint8_t)atoi(myoptarg);
+			break;
+
+		default:
+			PX4_WARN("Unknown option!");
+			return -1;
+		}
 	}
 
-	if (optind >= argc) {
+	if (myoptind >= argc) {
 		irlock_usage();
 		exit(1);
 	}
 
-	const char *command = argv[optind];
+	const char *command = argv[myoptind];
 
 	/** start driver **/
 	if (!strcmp(command, "start")) {

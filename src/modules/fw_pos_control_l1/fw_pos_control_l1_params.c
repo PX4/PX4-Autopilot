@@ -225,10 +225,10 @@ PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
 PARAM_DEFINE_FLOAT(FW_THR_IDLE, 0.15f);
 
 /**
- * Throttle limit value before flare
+ * Throttle limit during landing below throttle limit altitude
  *
- * This throttle value will be set as throttle limit at FW_LND_TLALT,
- * before aircraft will flare.
+ * During the flare of the autonomous landing process, this value will be set
+ * as throttle limit when the aircraft altitude is below FW_LND_TLALT.
  *
  * @unit norm
  * @min 0.0
@@ -321,7 +321,10 @@ PARAM_DEFINE_FLOAT(FW_LND_TLALT, -1.0f);
 PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
 
 /**
- * Use terrain estimate during landing
+ * Use terrain estimate during landing.
+ *
+ * This is turned off by default and a waypoint or return altitude is normally used
+ * (or sea level for an arbitrary land position).
  *
  * @boolean
  * @group FW L1 Control
@@ -329,10 +332,26 @@ PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
 PARAM_DEFINE_INT32(FW_LND_USETER, 0);
 
 /**
+ * Early landing configuration deployment
+ *
+ * When disabled, the landing configuration (flaps, landing airspeed, etc.) is only activated
+ * on the final approach to landing. When enabled, it is already activated when entering the
+ * final loiter-down (loiter-to-alt) waypoint before the landing approach. This shifts the (often large)
+ * altitude and airspeed errors caused by the configuration change away from the ground such that
+ * these are not so critical. It also gives the controller enough time to adapt to the new
+ * configuration such that the landing approach starts with a cleaner initial state.
+ *
+ * @boolean
+ *
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_INT32(FW_LND_EARLYCFG, 0);
+
+/**
  * Flare, minimum pitch
  *
  * Minimum pitch during flare, a positive sign means nose up
- * Applied once FW_LND_TLALT is reached
+ * Applied once FW_LND_FLALT is reached
  *
  * @unit deg
  * @min 0
@@ -347,7 +366,7 @@ PARAM_DEFINE_FLOAT(FW_LND_FL_PMIN, 2.5f);
  * Flare, maximum pitch
  *
  * Maximum pitch during flare, a positive sign means nose up
- * Applied once FW_LND_TLALT is reached
+ * Applied once FW_LND_FLALT is reached
  *
  * @unit deg
  * @min 0
@@ -373,6 +392,22 @@ PARAM_DEFINE_FLOAT(FW_LND_FL_PMAX, 15.0f);
  * @group FW L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_LND_AIRSPD_SC, 1.3f);
+
+/**
+ * Throttle time constant factor for landing
+ *
+ * Set this parameter to <1.0 to make the TECS throttle loop react faster during
+ * landing than during normal flight (i.e. giving efficiency and low motor wear at
+ * high altitudes but control accuracy during landing). During landing, the TECS
+ * throttle time constant (FW_T_THRO_CONST) is multiplied by this value.
+ *
+ * @unit
+ * @min 0.2
+ * @max 1.0
+ * @increment 0.1
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
 
 
 

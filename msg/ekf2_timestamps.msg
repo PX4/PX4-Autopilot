@@ -19,7 +19,6 @@ int16 gps_timestamp_rel
 int16 optical_flow_timestamp_rel
 int16 vehicle_air_data_timestamp_rel
 int16 vehicle_magnetometer_timestamp_rel
-int16 vision_attitude_timestamp_rel
-int16 vision_position_timestamp_rel
+int16 visual_odometry_timestamp_rel
 
 # Note: this is a high-rate logged topic, so it needs to be as small as possible

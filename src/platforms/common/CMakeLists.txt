@@ -33,17 +33,23 @@
 
 set(SRCS)
 
-if (NOT "${OS}" MATCHES "qurt")
+if (NOT "${PX4_PLATFORM}" MATCHES "qurt" AND NOT "${PX4_BOARD}" MATCHES "io-v2")
 	list(APPEND SRCS
 		px4_log.c
 		)
 endif()
 
-px4_add_library(platforms__common
+add_library(px4_platform
 	module.cpp
 	px4_getopt.c
+	px4_cli.cpp
 	shutdown.cpp
 	${SRCS}
 	)
-	
+add_dependencies(px4_platform prebuild_targets)
+
+if (NOT "${PX4_PLATFORM}" MATCHES "qurt" AND NOT "${PX4_BOARD}" MATCHES "io-v2")
+	target_link_libraries(px4_platform PRIVATE modules__uORB) # px4_log awkward dependency with uORB, TODO: orb should part of the platform layer
+endif()
+
 add_subdirectory(work_queue)

@@ -121,8 +121,8 @@ test(bool external_bus)
 {
 	const char *path_accel = external_bus ? BMI160_DEVICE_PATH_ACCEL_EXT : BMI160_DEVICE_PATH_ACCEL;
 	const char *path_gyro  = external_bus ? BMI160_DEVICE_PATH_GYRO_EXT : BMI160_DEVICE_PATH_GYRO;
-	accel_report a_report;
-	gyro_report g_report;
+	sensor_accel_s a_report{};
+	sensor_gyro_s g_report{};
 	ssize_t sz;
 
 	/* get the driver */
@@ -137,11 +137,6 @@ test(bool external_bus)
 
 	if (fd_gyro < 0) {
 		err(1, "%s open failed", path_gyro);
-	}
-
-	/* reset to manual polling */
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0) {
-		err(1, "reset to manual polling");
 	}
 
 	/* do a simple demand read */

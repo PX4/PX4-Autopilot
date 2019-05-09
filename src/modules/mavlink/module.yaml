@@ -1,0 +1,79 @@
+__max_num_config_instances: &max_num_config_instances 3
+
+module_name: MAVLink
+serial_config:
+    - command: |
+        set MAV_ARGS "-b p:${BAUD_PARAM} -m p:MAV_${i}_MODE -r p:MAV_${i}_RATE"
+        if param compare MAV_${i}_FORWARD 1
+        then
+            set MAV_ARGS "${MAV_ARGS} -f"
+        fi
+        mavlink start -d ${SERIAL_DEV} ${MAV_ARGS} -x
+      port_config_param:
+        name: MAV_${i}_CONFIG
+        group: MAVLink
+        # MAVLink instances:
+        # 0: Telem1 Port (Telemetry Link)
+        # 1: Telem2 Port (Companion Link). Disabled by default to reduce RAM usage
+        # 2: Board-specific / no fixed function or port
+        default: [TEL1, "", ""]
+      num_instances: *max_num_config_instances
+
+parameters:
+    - group: MAVLink
+      definitions:
+        MAV_${i}_MODE:
+            description:
+                short: MAVLink Mode for instance ${i}
+                long: |
+                    The MAVLink Mode defines the set of streamed messages (for example the
+                    vehicle's attitude) and their sending rates.
+
+            type: enum
+            values:
+                0: Normal
+                1: Custom
+                2: Onboard
+                3: OSD
+                4: Magic
+                5: Config
+                #6: Iridium # as the user does not need to configure this, hide it from the UI
+                7: Minimal
+                8: External Vision
+            reboot_required: true
+            num_instances: *max_num_config_instances
+            default: [0, 2, 0]
+
+        MAV_${i}_RATE:
+            description:
+                short: Maximum MAVLink sending rate for instance ${i}
+                long: |
+                    Configure the maximum sending rate for the MAVLink streams in Bytes/sec.
+                    If the configured streams exceed the maximum rate, the sending rate of
+                    each stream is automatically decreased.
+
+                    If this is set to 0, a value of <baudrate>/20 is used, which corresponds to
+                    half of the theoretical maximum bandwidth.
+
+            type: int32
+            min: 0
+            unit: B/s
+            reboot_required: true
+            num_instances: *max_num_config_instances
+            default: [1200, 0, 0]
+
+        MAV_${i}_FORWARD:
+            description:
+                short: Enable MAVLink Message forwarding for instance ${i}
+                long: |
+                    If enabled, forward incoming MAVLink messages to other MAVLink ports if the
+                    message is either broadcast or the target is not the autopilot.
+
+                    This allows for example a GCS to talk to a camera that is connected to the
+                    autopilot via MAVLink (on a different link than the GCS).
+
+            type: boolean
+            reboot_required: true
+            num_instances: *max_num_config_instances
+            default: [true, false, false]
+

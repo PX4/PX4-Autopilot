@@ -234,11 +234,12 @@ enum {							/* DSM bind states */
 
 #define PX4IO_P_SETUP_MOTOR_SLEW_MAX		24 	/* max motor slew rate */
 
-#define PX4IO_P_SETUP_AIRMODE 			27 	/* air-mode */
-
 #define PX4IO_P_SETUP_THR_MDL_FAC 		25	/* factor for modelling static pwm output to thrust relationship */
 
 #define PX4IO_P_SETUP_THERMAL			26	/* thermal management */
+
+#define PX4IO_P_SETUP_AIRMODE 			27 	/* air-mode */
+
 #define PX4IO_THERMAL_IGNORE			UINT16_MAX
 #define PX4IO_THERMAL_OFF			0
 #define PX4IO_THERMAL_FULL			10000

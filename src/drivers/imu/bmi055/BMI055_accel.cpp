@@ -60,7 +60,6 @@ BMI055_accel::BMI055_accel(int bus, const char *path_accel, uint32_t device, enu
 	_accel_topic(nullptr),
 	_accel_orb_class_instance(-1),
 	_accel_class_instance(-1),
-	_accel_sample_rate(BMI055_ACCEL_DEFAULT_RATE),
 	_accel_filter_x(BMI055_ACCEL_DEFAULT_RATE, BMI055_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_y(BMI055_ACCEL_DEFAULT_RATE, BMI055_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
 	_accel_filter_z(BMI055_ACCEL_DEFAULT_RATE, BMI055_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
@@ -116,14 +115,16 @@ BMI055_accel::init()
 	}
 
 	/* allocate basic report buffers */
-	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
 
 	if (_accel_reports == nullptr) {
-		goto out;
+		return -ENOMEM;
 	}
 
-	if (reset() != OK) {
-		goto out;
+	ret = reset();
+
+	if (ret != OK) {
+		return ret;
 	}
 
 	/* Initialize offsets and scales */
@@ -136,10 +137,20 @@ BMI055_accel::init()
 
 	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 
+	param_t accel_cut_ph = param_find("IMU_ACCEL_CUTOFF");
+	float accel_cut = BMI055_ACCEL_DEFAULT_DRIVER_FILTER_FREQ;
+
+	if (accel_cut_ph != PARAM_INVALID && (param_get(accel_cut_ph, &accel_cut) == PX4_OK)) {
+
+		_accel_filter_x.set_cutoff_frequency(BMI055_ACCEL_DEFAULT_RATE, accel_cut);
+		_accel_filter_y.set_cutoff_frequency(BMI055_ACCEL_DEFAULT_RATE, accel_cut);
+		_accel_filter_z.set_cutoff_frequency(BMI055_ACCEL_DEFAULT_RATE, accel_cut);
+	}
+
 	measure();
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct accel_report arp;
+	sensor_accel_s arp;
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */
@@ -150,7 +161,6 @@ BMI055_accel::init()
 		warnx("ADVERT FAIL");
 	}
 
-out:
 	return ret;
 }
 
@@ -159,13 +169,12 @@ int BMI055_accel::reset()
 	write_reg(BMI055_ACC_SOFTRESET, BMI055_SOFT_RESET);//Soft-reset
 	up_udelay(5000);
 
-	write_checked_reg(BMI055_ACC_BW,    BMI055_ACCEL_BW_1000); //Write accel bandwidth
+	write_checked_reg(BMI055_ACC_BW,    BMI055_ACCEL_BW_500); //Write accel bandwidth (DLPF)
 	write_checked_reg(BMI055_ACC_RANGE,     BMI055_ACCEL_RANGE_2_G);//Write range
 	write_checked_reg(BMI055_ACC_INT_EN_1,      BMI055_ACC_DRDY_INT_EN); //Enable DRDY interrupt
 	write_checked_reg(BMI055_ACC_INT_MAP_1,     BMI055_ACC_DRDY_INT1); //Map DRDY interrupt on pin INT1
 
 	set_accel_range(BMI055_ACCEL_DEFAULT_RANGE_G);//set accel range
-	accel_set_sample_rate(BMI055_ACCEL_DEFAULT_RATE);//set accel ODR
 
 	//Enable Accelerometer in normal mode
 	write_reg(BMI055_ACC_PMU_LPW, BMI055_ACCEL_NORMAL);
@@ -211,58 +220,10 @@ BMI055_accel::probe()
 	return -EIO;
 }
 
-int
-BMI055_accel::accel_set_sample_rate(float frequency)
-{
-	uint8_t setbits = 0;
-	uint8_t clearbits = BMI055_ACCEL_BW_1000;
-
-	if (frequency < (3125 / 100)) {
-		setbits |= BMI055_ACCEL_BW_7_81;
-		_accel_sample_rate = 1563 / 100;
-
-	} else if (frequency < (625 / 10)) {
-		setbits |= BMI055_ACCEL_BW_15_63;
-		_accel_sample_rate = 625 / 10;
-
-	} else if (frequency < (125)) {
-		setbits |= BMI055_ACCEL_BW_31_25;
-		_accel_sample_rate = 625 / 10;
-
-	} else if (frequency < 250) {
-		setbits |= BMI055_ACCEL_BW_62_5;
-		_accel_sample_rate = 125;
-
-	} else if (frequency < 500) {
-		setbits |= BMI055_ACCEL_BW_125;
-		_accel_sample_rate = 250;
-
-	} else if (frequency < 1000) {
-		setbits |= BMI055_ACCEL_BW_250;
-		_accel_sample_rate = 500;
-
-	} else if (frequency < 2000) {
-		setbits |= BMI055_ACCEL_BW_500;
-		_accel_sample_rate = 1000;
-
-	} else if (frequency >= 2000) {
-		setbits |= BMI055_ACCEL_BW_1000;
-		_accel_sample_rate = 2000;
-
-	} else {
-		return -EINVAL;
-	}
-
-	/* Write accel ODR */
-	modify_reg(BMI055_ACC_BW, clearbits, setbits);
-
-	return OK;
-}
-
 ssize_t
 BMI055_accel::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(accel_report);
+	unsigned count = buflen / sizeof(sensor_accel_s);
 
 	/* buffer must be large enough */
 	if (count < 1) {
@@ -281,7 +242,7 @@ BMI055_accel::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* copy reports out of our buffer to the caller */
-	accel_report *arp = reinterpret_cast<accel_report *>(buffer);
+	sensor_accel_s *arp = reinterpret_cast<sensor_accel_s *>(buffer);
 	int transferred = 0;
 
 	while (count--) {
@@ -294,7 +255,7 @@ BMI055_accel::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* return the number of bytes transferred */
-	return (transferred * sizeof(accel_report));
+	return (transferred * sizeof(sensor_accel_s));
 }
 
 int
@@ -330,23 +291,11 @@ BMI055_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_call_interval = 0;
-				return OK;
-
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
-				return ioctl(filp, SENSORIOCSPOLLRATE, BMI055_ACCEL_MAX_RATE);
-
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				// Polling at the highest frequency. We may get duplicate values on the sensors
 				return ioctl(filp, SENSORIOCSPOLLRATE, BMI055_ACCEL_DEFAULT_RATE);
@@ -393,37 +342,6 @@ BMI055_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCGPOLLRATE:
-		if (_call_interval == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return 1000000 / _call_interval;
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_accel_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
-	case ACCELIOCGSAMPLERATE:
-		return _accel_sample_rate;
-
-	case ACCELIOCSSAMPLERATE:
-		return accel_set_sample_rate(arg);
-
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
 			struct accel_calibration_s *s = (struct accel_calibration_s *) arg;
@@ -437,17 +355,6 @@ BMI055_accel::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 		}
-
-	case ACCELIOCGSCALE:
-		/* copy scale out */
-		memcpy((struct accel_calibration_s *) arg, &_accel_scale, sizeof(_accel_scale));
-		return OK;
-
-	case ACCELIOCSRANGE:
-		return set_accel_range(arg);
-
-	case ACCELIOCGRANGE:
-		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
 
 	default:
 		/* give it to the superclass */
@@ -603,7 +510,7 @@ BMI055_accel::measure()
 {
 	perf_count(_measure_interval);
 
-	uint8_t index = 0, accel_data[7];
+	uint8_t index = 0, accel_data[8];
 	uint16_t lsb, msb, msblsb;
 	uint8_t status_x, status_y, status_z;
 
@@ -616,7 +523,7 @@ BMI055_accel::measure()
 		int16_t     accel_x;
 		int16_t     accel_y;
 		int16_t     accel_z;
-		int16_t     temp;
+		int8_t     temp;
 	} report;
 
 	/* start measuring */
@@ -653,6 +560,9 @@ BMI055_accel::measure()
 	msblsb = (msb << 8) | lsb;
 	report.accel_z = ((int16_t)msblsb >> 4); /* Data in Z axis */
 
+	// Byte
+	report.temp = accel_data[index];
+
 	// Checking the status of new data
 	if ((!status_x) || (!status_y) || (!status_z)) {
 		perf_end(_sample_perf);
@@ -663,9 +573,6 @@ BMI055_accel::measure()
 
 
 	_got_duplicate = false;
-
-	uint8_t temp = read_reg(BMI055_ACC_TEMP);
-	report.temp = temp;
 
 	if (report.accel_x == 0 &&
 	    report.accel_y == 0 &&
@@ -691,7 +598,7 @@ BMI055_accel::measure()
 	/*
 	 * Report buffers.
 	 */
-	accel_report arb;
+	sensor_accel_s arb;
 
 	arb.timestamp = hrt_absolute_time();
 
@@ -742,9 +649,13 @@ BMI055_accel::measure()
 
 	arb.scaling = _accel_range_scale;
 
-	_last_temperature = 23 + report.temp * 1.0f / 512.0f;
-
+	/*
+	 * Temperature is reported as Eight-bit 2’s complement sensor temperature value
+	 * with 0.5 °C/LSB sensitivity and an offset of 23.0 °C
+	 */
+	_last_temperature = (report.temp * 0.5f) + 23.0f;
 	arb.temperature = _last_temperature;
+
 	arb.device_id = _device_id.devid;
 
 	_accel_reports->force(&arb);

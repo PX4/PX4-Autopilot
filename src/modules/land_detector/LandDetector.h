@@ -138,6 +138,11 @@ protected:
 	virtual float _get_max_altitude() = 0;
 
 	/**
+	 *  @return true if vehicle could be in ground effect (close to ground)
+	 */
+	virtual bool _get_ground_effect_state() { return false; }
+
+	/**
 	 * Convenience function for polling uORB subscriptions.
 	 *
 	 * @return true if there was new data and it was successfully copied
@@ -150,15 +155,13 @@ protected:
 	orb_advert_t _landDetectedPub{nullptr};
 	vehicle_land_detected_s _landDetected{};
 
-	int _parameterSub{-1};
-	int _armingSub{-1};
-
 	LandDetectionState _state{LandDetectionState::LANDED};
 
 	systemlib::Hysteresis _freefall_hysteresis{false};
 	systemlib::Hysteresis _landed_hysteresis{true};
 	systemlib::Hysteresis _maybe_landed_hysteresis{true};
 	systemlib::Hysteresis _ground_contact_hysteresis{true};
+	systemlib::Hysteresis _ground_effect_hysteresis{false};
 
 	struct actuator_armed_s	_arming {};
 
@@ -181,6 +184,9 @@ private:
 	perf_counter_t	_cycle_perf;
 
 	bool _previous_arming_state{false}; ///< stores the previous _arming.armed state
+
+	int _parameterSub{ -1};
+	int _armingSub{ -1};
 };
 
 

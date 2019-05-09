@@ -35,6 +35,7 @@
 #include <cstring>
 #include <arpa/inet.h>
 #include <poll.h>
+#include <termios.h>
 
 class Transport_node
 {
@@ -99,6 +100,7 @@ protected:
 	ssize_t node_read(void *buffer, size_t len);
 	ssize_t node_write(void *buffer, size_t len);
 	bool fds_OK();
+	bool baudrate_to_speed(uint32_t bauds, speed_t *speed);
 
 	int uart_fd;
 	char uart_name[64] = {};

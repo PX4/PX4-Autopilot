@@ -37,13 +37,13 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
  * @author Sander Smeets <sander@droneslab.com>
+ * @author Nuno Marques <nuno.marques@dronesolutions.io>
  */
 
 #pragma once
 
 #include <dataman/dataman.h>
 #include <uORB/topics/mission.h>
-#include <uORB/topics/fw_pos_ctrl_status.h>
 
 class Geofence;
 class Navigator;
@@ -64,12 +64,12 @@ private:
 	bool checkDistancesBetweenWaypoints(const mission_s &mission, float max_distance);
 
 	/* Checks specific to fixedwing airframes */
-	bool checkFixedwing(const mission_s &mission, float home_alt, bool home_alt_valid, bool land_start_req);
-	bool checkFixedWingTakeoff(const mission_s &mission, float home_alt, bool home_alt_valid);
+	bool checkFixedwing(const mission_s &mission, float home_alt, bool land_start_req);
+	bool checkTakeoff(const mission_s &mission, float home_alt);
 	bool checkFixedWingLanding(const mission_s &mission, bool land_start_req);
 
 	/* Checks specific to rotarywing airframes */
-	bool checkRotarywing(const mission_s &mission, float home_alt, bool home_alt_valid);
+	bool checkRotarywing(const mission_s &mission, float home_alt);
 
 public:
 	MissionFeasibilityChecker(Navigator *navigator) : _navigator(navigator) {}
@@ -86,4 +86,3 @@ public:
 				  bool land_start_req);
 
 };
-

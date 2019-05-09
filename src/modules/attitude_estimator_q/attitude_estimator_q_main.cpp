@@ -39,7 +39,7 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <cfloat>
+#include <float.h>
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/ecl/geo_lookup/geo_mag_declination.h>
@@ -52,12 +52,12 @@
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
-#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
+#include <uORB/topics/vehicle_odometry.h>
 
 extern "C" __EXPORT int attitude_estimator_q_main(int argc, char *argv[]);
 
@@ -100,17 +100,18 @@ public:
 	void		task_main();
 
 private:
+	const float _eo_max_std_dev = 100.0f;		/**< Maximum permissible standard deviation for estimated orientation */
 	const float _dt_min = 0.00001f;
 	const float _dt_max = 0.02f;
 
-	bool		_task_should_exit = false;		/**< if true, task should exit */
-	int		_control_task = -1;			/**< task handle for task */
+	bool		_task_should_exit = false;	/**< if true, task should exit */
+	int		_control_task = -1;		/**< task handle for task */
 
 	int		_params_sub = -1;
 	int		_sensors_sub = -1;
 	int		_global_pos_sub = -1;
-	int		_vision_sub = -1;
-	int		_mocap_sub = -1;
+	int		_vision_odom_sub = -1;
+	int		_mocap_odom_sub = -1;
 	int		_magnetometer_sub = -1;
 
 	orb_advert_t	_att_pub = nullptr;
@@ -213,7 +214,7 @@ AttitudeEstimatorQ::~AttitudeEstimatorQ()
 
 		do {
 			/* wait 20ms */
-			usleep(20000);
+			px4_usleep(20000);
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
@@ -228,8 +229,6 @@ AttitudeEstimatorQ::~AttitudeEstimatorQ()
 
 int AttitudeEstimatorQ::start()
 {
-	ASSERT(_control_task == -1);
-
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("attitude_estimator_q",
 					   SCHED_DEFAULT,
@@ -262,8 +261,8 @@ void AttitudeEstimatorQ::task_main()
 #endif
 
 	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
-	_vision_sub = orb_subscribe(ORB_ID(vehicle_vision_attitude));
-	_mocap_sub = orb_subscribe(ORB_ID(att_pos_mocap));
+	_vision_odom_sub = orb_subscribe(ORB_ID(vehicle_visual_odometry));
+	_mocap_odom_sub = orb_subscribe(ORB_ID(vehicle_mocap_odometry));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_magnetometer_sub = orb_subscribe(ORB_ID(vehicle_magnetometer));
@@ -281,7 +280,7 @@ void AttitudeEstimatorQ::task_main()
 
 		if (ret < 0) {
 			// Poll error, sleep and try again
-			usleep(10000);
+			px4_usleep(10000);
 			PX4_WARN("POLL ERROR");
 			continue;
 
@@ -340,50 +339,67 @@ void AttitudeEstimatorQ::task_main()
 		}
 
 		// Update vision and motion capture heading
+		_ext_hdg_good = false;
 		bool vision_updated = false;
-		orb_check(_vision_sub, &vision_updated);
+		orb_check(_vision_odom_sub, &vision_updated);
 
 		if (vision_updated) {
-			vehicle_attitude_s vision;
+			vehicle_odometry_s vision;
 
-			if (orb_copy(ORB_ID(vehicle_vision_attitude), _vision_sub, &vision) == PX4_OK) {
-				Quatf q(vision.q);
+			if (orb_copy(ORB_ID(vehicle_visual_odometry), _vision_odom_sub, &vision) == PX4_OK) {
+				// validation check for vision attitude data
+				bool vision_att_valid = PX4_ISFINITE(vision.q[0])
+							&& (PX4_ISFINITE(vision.pose_covariance[vision.COVARIANCE_MATRIX_ROLL_VARIANCE]) ? sqrtf(fmaxf(
+									vision.pose_covariance[vision.COVARIANCE_MATRIX_ROLL_VARIANCE],
+									fmaxf(vision.pose_covariance[vision.COVARIANCE_MATRIX_PITCH_VARIANCE],
+											vision.pose_covariance[vision.COVARIANCE_MATRIX_YAW_VARIANCE]))) <= _eo_max_std_dev : true);
 
-				Dcmf Rvis = Quatf(vision.q);
-				Vector3f v(1.0f, 0.0f, 0.4f);
+				if (vision_att_valid) {
+					Dcmf Rvis = Quatf(vision.q);
+					Vector3f v(1.0f, 0.0f, 0.4f);
 
-				// Rvis is Rwr (robot respect to world) while v is respect to world.
-				// Hence Rvis must be transposed having (Rwr)' * Vw
-				// Rrw * Vw = vn. This way we have consistency
-				_vision_hdg = Rvis.transpose() * v;
+					// Rvis is Rwr (robot respect to world) while v is respect to world.
+					// Hence Rvis must be transposed having (Rwr)' * Vw
+					// Rrw * Vw = vn. This way we have consistency
+					_vision_hdg = Rvis.transpose() * v;
 
-				// vision external heading usage (ATT_EXT_HDG_M 1)
-				if (_ext_hdg_mode == 1) {
-					// Check for timeouts on data
-					_ext_hdg_good = vision.timestamp > 0 && (hrt_elapsed_time(&vision.timestamp) < 500000);
+					// vision external heading usage (ATT_EXT_HDG_M 1)
+					if (_ext_hdg_mode == 1) {
+						// Check for timeouts on data
+						_ext_hdg_good = vision.timestamp > 0 && (hrt_elapsed_time(&vision.timestamp) < 500000);
+					}
 				}
 			}
 		}
 
 		bool mocap_updated = false;
-		orb_check(_mocap_sub, &mocap_updated);
+		orb_check(_mocap_odom_sub, &mocap_updated);
 
 		if (mocap_updated) {
-			att_pos_mocap_s mocap;
+			vehicle_odometry_s mocap;
 
-			if (orb_copy(ORB_ID(att_pos_mocap), _mocap_sub, &mocap) == PX4_OK) {
-				Dcmf Rmoc = Quatf(mocap.q);
-				Vector3f v(1.0f, 0.0f, 0.4f);
+			if (orb_copy(ORB_ID(vehicle_mocap_odometry), _mocap_odom_sub, &mocap) == PX4_OK) {
+				// validation check for mocap attitude data
+				bool mocap_att_valid = PX4_ISFINITE(mocap.q[0])
+						       && (PX4_ISFINITE(mocap.pose_covariance[mocap.COVARIANCE_MATRIX_ROLL_VARIANCE]) ? sqrtf(fmaxf(
+								       mocap.pose_covariance[mocap.COVARIANCE_MATRIX_ROLL_VARIANCE],
+								       fmaxf(mocap.pose_covariance[mocap.COVARIANCE_MATRIX_PITCH_VARIANCE],
+										       mocap.pose_covariance[mocap.COVARIANCE_MATRIX_YAW_VARIANCE]))) <= _eo_max_std_dev : true);
 
-				// Rmoc is Rwr (robot respect to world) while v is respect to world.
-				// Hence Rmoc must be transposed having (Rwr)' * Vw
-				// Rrw * Vw = vn. This way we have consistency
-				_mocap_hdg = Rmoc.transpose() * v;
+				if (mocap_att_valid) {
+					Dcmf Rmoc = Quatf(mocap.q);
+					Vector3f v(1.0f, 0.0f, 0.4f);
 
-				// Motion Capture external heading usage (ATT_EXT_HDG_M 2)
-				if (_ext_hdg_mode == 2) {
-					// Check for timeouts on data
-					_ext_hdg_good = mocap.timestamp > 0 && (hrt_elapsed_time(&mocap.timestamp) < 500000);
+					// Rmoc is Rwr (robot respect to world) while v is respect to world.
+					// Hence Rmoc must be transposed having (Rwr)' * Vw
+					// Rrw * Vw = vn. This way we have consistency
+					_mocap_hdg = Rmoc.transpose() * v;
+
+					// Motion Capture external heading usage (ATT_EXT_HDG_M 2)
+					if (_ext_hdg_mode == 2) {
+						// Check for timeouts on data
+						_ext_hdg_good = mocap.timestamp > 0 && (hrt_elapsed_time(&mocap.timestamp) < 500000);
+					}
 				}
 			}
 		}
@@ -451,8 +467,8 @@ void AttitudeEstimatorQ::task_main()
 	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_sensors_sub);
 	orb_unsubscribe(_global_pos_sub);
-	orb_unsubscribe(_vision_sub);
-	orb_unsubscribe(_mocap_sub);
+	orb_unsubscribe(_vision_odom_sub);
+	orb_unsubscribe(_mocap_odom_sub);
 	orb_unsubscribe(_magnetometer_sub);
 }
 

@@ -53,13 +53,13 @@ CameraFeedback::CameraFeedback() :
 	_gpos_sub(-1),
 	_att_sub(-1),
 	_capture_pub(nullptr),
-	_camera_feedback_mode(CAMERA_FEEDBACK_MODE_NONE)
+	_camera_capture_feedback(false)
 {
 
 	// Parameters
-	_p_feedback = param_find("CAM_FBACK_MODE");
+	_p_camera_capture_feedback = param_find("CAM_CAP_FBACK");
 
-	param_get(_p_feedback, (int32_t *)&_camera_feedback_mode);
+	param_get(_p_camera_capture_feedback, (int32_t *)&_camera_capture_feedback);
 
 }
 
@@ -76,7 +76,7 @@ CameraFeedback::~CameraFeedback()
 
 		do {
 			/* wait 20ms */
-			usleep(20000);
+			px4_usleep(20000);
 
 			/* if we have given up, kill it */
 			if (++i > 50) {
@@ -122,15 +122,9 @@ CameraFeedback::stop()
 void
 CameraFeedback::task_main()
 {
-
-	// We only support trigger feedback for now
-	// This will later be extended to support hardware feedback from the camera.
-	if (_camera_feedback_mode != CAMERA_FEEDBACK_MODE_TRIGGER) {
-		return;
-	}
+	_trigger_sub = orb_subscribe(ORB_ID(camera_trigger));
 
 	// Polling sources
-	_trigger_sub = orb_subscribe(ORB_ID(camera_trigger));
 	struct camera_trigger_s trig = {};
 
 	px4_pollfd_struct_t fds[1] = {};
@@ -209,8 +203,14 @@ CameraFeedback::task_main()
 
 			capture.q[3] = att.q[3];
 
-			// Indicate that no capture feedback from camera is available
-			capture.result = -1;
+			// Indicate whether capture feedback from camera is available
+			// What is case 0 for capture.result?
+			if (!_camera_capture_feedback) {
+				capture.result = -1;
+
+			} else {
+				capture.result = 1;
+			}
 
 			int instance_id;
 
@@ -220,15 +220,19 @@ CameraFeedback::task_main()
 
 	}
 
-	PX4_INFO("Exiting.");
+	orb_unsubscribe(_trigger_sub);
+	orb_unsubscribe(_gpos_sub);
+	orb_unsubscribe(_att_sub);
+
 	_main_task = -1;
 
 }
 
-void
+int
 CameraFeedback::task_main_trampoline(int argc, char *argv[])
 {
 	camera_feedback::g_camera_feedback->task_main();
+	return 0;
 }
 
 static int usage()

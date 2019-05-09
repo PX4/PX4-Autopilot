@@ -41,6 +41,7 @@
 
 #include <systemlib/mavlink_log.h>
 
+#include <uORB/Subscription.hpp>
 #include <conversion/rotation.h>
 #include <ecl/geo/geo.h>
 
@@ -151,79 +152,68 @@ void VotedSensorsUpdate::parameters_update()
 	_temperature_compensation.parameters_update(_hil_enabled);
 
 	/* gyro */
-	for (int topic_instance = 0; topic_instance < GYRO_COUNT_MAX; ++topic_instance) {
+	for (int topic_instance = 0; topic_instance < _gyro.subscription_count; ++topic_instance) {
 
-		if (topic_instance < _gyro.subscription_count) {
-			// valid subscription, so get the driver id by getting the published sensor data
-			struct gyro_report report;
+		uORB::Subscription<sensor_gyro_s> report{ORB_ID(sensor_gyro), 0, (unsigned)topic_instance};
 
-			if (orb_copy(ORB_ID(sensor_gyro), _gyro.subscription[topic_instance], &report) == 0) {
-				int temp = _temperature_compensation.set_sensor_id_gyro(report.device_id, topic_instance);
+		int temp = _temperature_compensation.set_sensor_id_gyro(report.get().device_id, topic_instance);
 
-				if (temp < 0) {
-					PX4_ERR("%s temp compensation init: failed to find device ID %u for instance %i",
-						"gyro", report.device_id, topic_instance);
-					_corrections.gyro_mapping[topic_instance] = 0;
+		if (temp < 0) {
+			PX4_ERR("%s temp compensation init: failed to find device ID %u for instance %i", "gyro", report.get().device_id,
+				topic_instance);
 
-				} else {
-					_corrections.gyro_mapping[topic_instance] = temp;
+			_corrections.gyro_mapping[topic_instance] = 0;
 
-				}
-			}
+		} else {
+			_corrections.gyro_mapping[topic_instance] = temp;
+
 		}
 	}
 
 
 	/* accel */
-	for (int topic_instance = 0; topic_instance < ACCEL_COUNT_MAX; ++topic_instance) {
+	for (int topic_instance = 0; topic_instance < _accel.subscription_count; ++topic_instance) {
 
-		if (topic_instance < _accel.subscription_count) {
-			// valid subscription, so get the driver id by getting the published sensor data
-			struct accel_report report;
+		uORB::Subscription<sensor_accel_s> report{ORB_ID(sensor_accel), 0, (unsigned)topic_instance};
 
-			if (orb_copy(ORB_ID(sensor_accel), _accel.subscription[topic_instance], &report) == 0) {
-				int temp = _temperature_compensation.set_sensor_id_accel(report.device_id, topic_instance);
+		int temp = _temperature_compensation.set_sensor_id_accel(report.get().device_id, topic_instance);
 
-				if (temp < 0) {
-					PX4_ERR("%s temp compensation init: failed to find device ID %u for instance %i",
-						"accel", report.device_id, topic_instance);
-					_corrections.accel_mapping[topic_instance] = 0;
+		if (temp < 0) {
+			PX4_ERR("%s temp compensation init: failed to find device ID %u for instance %i", "accel", report.get().device_id,
+				topic_instance);
 
-				} else {
-					_corrections.accel_mapping[topic_instance] = temp;
+			_corrections.accel_mapping[topic_instance] = 0;
 
-				}
-			}
+		} else {
+			_corrections.accel_mapping[topic_instance] = temp;
+
 		}
 	}
 
+
 	/* baro */
-	for (int topic_instance = 0; topic_instance < BARO_COUNT_MAX; ++topic_instance) {
+	for (int topic_instance = 0; topic_instance < _baro.subscription_count; ++topic_instance) {
 
-		if (topic_instance < _baro.subscription_count) {
-			// valid subscription, so get the driver id by getting the published sensor data
-			struct baro_report report;
+		uORB::Subscription<sensor_baro_s> report{ORB_ID(sensor_baro), 0, (unsigned)topic_instance};
 
-			if (orb_copy(ORB_ID(sensor_baro), _baro.subscription[topic_instance], &report) == 0) {
-				int temp = _temperature_compensation.set_sensor_id_baro(report.device_id, topic_instance);
+		int temp = _temperature_compensation.set_sensor_id_baro(report.get().device_id, topic_instance);
 
-				if (temp < 0) {
-					PX4_ERR("%s temp compensation init: failed to find device ID %u for instance %i",
-						"baro", report.device_id, topic_instance);
-					_corrections.baro_mapping[topic_instance] = 0;
+		if (temp < 0) {
+			PX4_ERR("%s temp compensation init: failed to find device ID %u for instance %i", "baro", report.get().device_id,
+				topic_instance);
 
-				} else {
-					_corrections.baro_mapping[topic_instance] = temp;
+			_corrections.baro_mapping[topic_instance] = 0;
 
-				}
-			}
+		} else {
+			_corrections.baro_mapping[topic_instance] = temp;
+
 		}
 	}
 
 
 	/* set offset parameters to new values */
-	bool failed;
-	char str[30];
+	bool failed = false;
+	char str[30] {};
 	unsigned gyro_count = 0;
 	unsigned accel_count = 0;
 	unsigned gyro_cal_found_count = 0;
@@ -545,7 +535,7 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 		orb_check(_accel.subscription[uorb_index], &accel_updated);
 
 		if (accel_updated) {
-			struct accel_report accel_report;
+			sensor_accel_s accel_report;
 
 			int ret = orb_copy(ORB_ID(sensor_accel), _accel.subscription[uorb_index], &accel_report);
 
@@ -652,7 +642,7 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 		orb_check(_gyro.subscription[uorb_index], &gyro_updated);
 
 		if (gyro_updated) {
-			struct gyro_report gyro_report;
+			sensor_gyro_s gyro_report;
 
 			int ret = orb_copy(ORB_ID(sensor_gyro), _gyro.subscription[uorb_index], &gyro_report);
 
@@ -703,7 +693,7 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 					_last_sensor_data[uorb_index].timestamp = gyro_report.timestamp - 1000;
 				}
 
-				// approximate the  delta time using the difference in gyro data time stamps
+				// approximate the delta time using the difference in gyro data time stamps
 				_last_sensor_data[uorb_index].gyro_integral_dt =
 					(gyro_report.timestamp - _last_sensor_data[uorb_index].timestamp);
 			}
@@ -813,7 +803,7 @@ void VotedSensorsUpdate::baro_poll(vehicle_air_data_s &airdata)
 		orb_check(_baro.subscription[uorb_index], &baro_updated);
 
 		if (baro_updated) {
-			struct baro_report baro_report;
+			sensor_baro_s baro_report;
 
 			int ret = orb_copy(ORB_ID(sensor_baro), _baro.subscription[uorb_index], &baro_report);
 
@@ -1022,7 +1012,7 @@ void VotedSensorsUpdate::print_status()
 bool
 VotedSensorsUpdate::apply_gyro_calibration(DevHandle &h, const struct gyro_calibration_s *gcal, const int device_id)
 {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP) && !defined(__PX4_POSIX_BBBLUE)
+#if defined(__PX4_NUTTX)
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
 	return !h.ioctl(GYROIOCSSCALE, (long unsigned int)gcal);
@@ -1036,7 +1026,7 @@ VotedSensorsUpdate::apply_gyro_calibration(DevHandle &h, const struct gyro_calib
 bool
 VotedSensorsUpdate::apply_accel_calibration(DevHandle &h, const struct accel_calibration_s *acal, const int device_id)
 {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP) && !defined(__PX4_POSIX_BBBLUE)
+#if defined(__PX4_NUTTX)
 
 	/* On most systems, we can just use the IOCTL call to set the calibration params. */
 	return !h.ioctl(ACCELIOCSSCALE, (long unsigned int)acal);
@@ -1050,7 +1040,7 @@ VotedSensorsUpdate::apply_accel_calibration(DevHandle &h, const struct accel_cal
 bool
 VotedSensorsUpdate::apply_mag_calibration(DevHandle &h, const struct mag_calibration_s *mcal, const int device_id)
 {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX)
+#if defined(__PX4_NUTTX)
 
 	if (!h.isValid()) {
 		return false;

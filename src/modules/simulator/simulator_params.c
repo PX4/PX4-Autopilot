@@ -41,13 +41,6 @@
 #include <parameters/param.h>
 
 /**
- * Simulator UDP port
- *
- * @group SITL
- */
-PARAM_DEFINE_INT32(SITL_UDP_PRT, 14560);
-
-/**
  * Simulator Battery drain interval
  *
  * @min 1

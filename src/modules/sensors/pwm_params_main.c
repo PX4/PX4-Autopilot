@@ -102,6 +102,384 @@ PARAM_DEFINE_INT32(PWM_MAX, 2000);
 PARAM_DEFINE_INT32(PWM_DISARMED, 900);
 
 /******************************************************************************
+*                                 PWM_MAIN_MIN                                *
+******************************************************************************/
+/**
+ * Set the min PWM value for the main 1 output
+ *
+ * This is the minimum PWM pulse the autopilot is allowed to output.
+ * When set to -1 the value for PWM_MIN will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_MIN1, -1);
+
+/**
+ * Set the min PWM value for the main 2 output
+ *
+ * This is the minimum PWM pulse the autopilot is allowed to output.
+ * When set to -1 the value for PWM_MIN will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_MIN2, -1);
+
+/**
+ * Set the min PWM value for the main 3 output
+ *
+ * This is the minimum PWM pulse the autopilot is allowed to output.
+ * When set to -1 the value for PWM_MIN will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_MIN3, -1);
+
+/**
+ * Set the min PWM value for the main 4 output
+ *
+ * This is the minimum PWM pulse the autopilot is allowed to output.
+ * When set to -1 the value for PWM_MIN will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_MIN4, -1);
+
+/**
+ * Set the min PWM value for the main 5 output
+ *
+ * This is the minimum PWM pulse the autopilot is allowed to output.
+ * When set to -1 the value for PWM_MIN will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_MIN5, -1);
+
+/**
+ * Set the min PWM value for the main 6 output
+ *
+ * This is the minimum PWM pulse the autopilot is allowed to output.
+ * When set to -1 the value for PWM_MIN will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_MIN6, -1);
+
+/**
+ * Set the min PWM value for the main 7 output
+ *
+ * This is the minimum PWM pulse the autopilot is allowed to output.
+ * When set to -1 the value for PWM_MIN will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_MIN7, -1);
+
+/**
+ * Set the min PWM value for the main 8 output
+ *
+ * This is the minimum PWM pulse the autopilot is allowed to output.
+ * When set to -1 the value for PWM_MIN will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_MIN8, -1);
+
+/******************************************************************************
+*                                 PWM_MAIN_MAX                                *
+******************************************************************************/
+/**
+ * Set the max PWM value for the main 1 output
+ *
+ * This is the maximum PWM pulse the autopilot is allowed to output.
+ * When set to -1 the value for PWM_MAX will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_MAX1, -1);
+
+/**
+ * Set the max PWM value for the main 2 output
+ *
+ * This is the maximum PWM pulse the autopilot is allowed to output.
+ * When set to -1 the value for PWM_MAX will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_MAX2, -1);
+
+/**
+ * Set the max PWM value for the main 3 output
+ *
+ * This is the maximum PWM pulse the autopilot is allowed to output.
+ * When set to -1 the value for PWM_MAX will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_MAX3, -1);
+
+/**
+ * Set the max PWM value for the main 4 output
+ *
+ * This is the maximum PWM pulse the autopilot is allowed to output.
+ * When set to -1 the value for PWM_MAX will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_MAX4, -1);
+
+/**
+ * Set the max PWM value for the main 5 output
+ *
+ * This is the maximum PWM pulse the autopilot is allowed to output.
+ * When set to -1 the value for PWM_MAX will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_MAX5, -1);
+
+/**
+ * Set the max PWM value for the main 6 output
+ *
+ * This is the maximum PWM pulse the autopilot is allowed to output.
+ * When set to -1 the value for PWM_MAX will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_MAX6, -1);
+
+/**
+ * Set the max PWM value for the main 7 output
+ *
+ * This is the maximum PWM pulse the autopilot is allowed to output.
+ * When set to -1 the value for PWM_MAX will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_MAX7, -1);
+
+/**
+ * Set the max PWM value for the main 8 output
+ *
+ * This is the maximum PWM pulse the autopilot is allowed to output.
+ * When set to -1 the value for PWM_MAX will be used
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_MAX8, -1);
+
+/******************************************************************************
+*                                PWM_MAIN_FAIL                                *
+******************************************************************************/
+
+/**
+ * Set the failsafe PWM for the main 1 output
+ *
+ * This is the PWM pulse the autopilot is outputting if in failsafe mode.
+ * When set to -1 the value is set automatically depending if the actuator
+ * is a motor (900us) or a servo (1500us)
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_FAIL1, -1);
+
+/**
+ * Set the failsafe PWM for the main 2 output
+ *
+ * This is the PWM pulse the autopilot is outputting if in failsafe mode.
+ * When set to -1 the value is set automatically depending if the actuator
+ * is a motor (900us) or a servo (1500us)
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_FAIL2, -1);
+
+/**
+ * Set the failsafe PWM for the main 3 output
+ *
+ * This is the PWM pulse the autopilot is outputting if in failsafe mode.
+ * When set to -1 the value is set automatically depending if the actuator
+ * is a motor (900us) or a servo (1500us)
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_FAIL3, -1);
+
+/**
+ * Set the failsafe PWM for the main 4 output
+ *
+ * This is the PWM pulse the autopilot is outputting if in failsafe mode.
+ * When set to -1 the value is set automatically depending if the actuator
+ * is a motor (900us) or a servo (1500us)
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_FAIL4, -1);
+
+/**
+ * Set the failsafe PWM for the main 5 output
+ *
+ * This is the PWM pulse the autopilot is outputting if in failsafe mode.
+ * When set to -1 the value is set automatically depending if the actuator
+ * is a motor (900us) or a servo (1500us)
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_FAIL5, -1);
+
+/**
+ * Set the failsafe PWM for the main 6 output
+ *
+ * This is the PWM pulse the autopilot is outputting if in failsafe mode.
+ * When set to -1 the value is set automatically depending if the actuator
+ * is a motor (900us) or a servo (1500us)
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_FAIL6, -1);
+
+/**
+ * Set the failsafe PWM for the main 7 output
+ *
+ * This is the PWM pulse the autopilot is outputting if in failsafe mode.
+ * When set to -1 the value is set automatically depending if the actuator
+ * is a motor (900us) or a servo (1500us)
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_FAIL7, -1);
+
+/**
+ * Set the failsafe PWM for the main 8 output
+ *
+ * This is the PWM pulse the autopilot is outputting if in failsafe mode.
+ * When set to -1 the value is set automatically depending if the actuator
+ * is a motor (900us) or a servo (1500us)
+ *
+ * @reboot_required true
+ *
+ * @min -1
+ * @max 2200
+ * @unit us
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(PWM_MAIN_FAIL8, -1);
+
+/******************************************************************************
 *                                PWM_MAIN_DIS                                 *
 ******************************************************************************/
 

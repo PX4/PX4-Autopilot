@@ -37,6 +37,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_time.h>
 
 #include <sys/types.h>
 #include <stdlib.h>
@@ -127,7 +128,7 @@ PX4IO_Uploader::upload(const char *filenames[])
 			break;
 
 		} else {
-			usleep(10000);
+			px4_usleep(10000);
 		}
 	}
 

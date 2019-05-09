@@ -39,6 +39,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_time.h>
 
 #include <drivers/device/i2c.h>
 
@@ -72,7 +73,7 @@
 #include <uORB/uORB.h>
 
 #include <float.h>
-#include <getopt.h>
+#include <px4_getopt.h>
 #include <lib/conversion/rotation.h>
 
 #include "hmc5883.h"
@@ -591,7 +592,7 @@ HMC5883::read(struct file *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(HMC5883_CONVERSION_INTERVAL);
+		px4_usleep(HMC5883_CONVERSION_INTERVAL);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -616,21 +617,11 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -672,47 +663,11 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return 1000000 / TICK2USEC(_measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
 	case SENSORIOCRESET:
 		return reset();
 
-	case MAGIOCSSAMPLERATE:
-		/* same as pollrate because device is in single measurement mode*/
-		return ioctl(filp, SENSORIOCSPOLLRATE, arg);
-
-	case MAGIOCGSAMPLERATE:
-		/* same as pollrate because device is in single measurement mode*/
-		return 1000000 / TICK2USEC(_measure_ticks);
-
 	case MAGIOCSRANGE:
 		return set_range(arg);
-
-	case MAGIOCGRANGE:
-		return _range_ga;
 
 	case MAGIOCSSCALE:
 		/* set new scale factors */
@@ -1576,16 +1531,6 @@ test(enum HMC5883_BUS busid)
 
 	warnx("device active: %s", ret ? "external" : "onboard");
 
-	/* set the queue depth to 5 */
-	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
-		errx(1, "failed to set queue depth");
-	}
-
-	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
-	}
-
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {
 		struct pollfd fds;
@@ -1756,7 +1701,11 @@ usage()
 int
 hmc5883_main(int argc, char *argv[])
 {
+	int myoptind = 1;
 	int ch;
+	const char *myoptarg = nullptr;
+
+
 	enum HMC5883_BUS busid = HMC5883_BUS_ALL;
 	enum Rotation rotation = ROTATION_NONE;
 	bool calibrate = false;
@@ -1767,10 +1716,10 @@ hmc5883_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	while ((ch = getopt(argc, argv, "XISR:CT")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XISR:CT", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 #if (PX4_I2C_BUS_ONBOARD || PX4_SPIDEV_HMC)
 
@@ -1801,7 +1750,13 @@ hmc5883_main(int argc, char *argv[])
 		}
 	}
 
-	const char *verb = argv[optind];
+	if (myoptind >= argc) {
+		hmc5883::usage();
+		exit(0);
+	}
+
+	const char *verb = argv[myoptind];
+
 
 	/*
 	 * Start/load the driver.

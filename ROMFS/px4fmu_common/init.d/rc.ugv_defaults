@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # UGV default parameters.
 #
@@ -7,7 +7,7 @@
 
 set VEHICLE_TYPE ugv
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 #
 # Default parameters for UGVs.
@@ -16,7 +16,7 @@ then
 	param set MIS_TAKEOFF_ALT 0.01
 
 	param set NAV_DLL_ACT 0
-	param set NAV_ACC_RAD 2.0
+	param set NAV_ACC_RAD 2
 
 	# Temporary.
 	param set NAV_FW_ALT_RAD 1000
@@ -39,5 +39,5 @@ set PWM_RATE 50
 # This is the gimbal pass mixer.
 #
 set MIXER_AUX pass
-set PWM_AUX_RATE 50
 set PWM_AUX_OUT 1234
+set PWM_AUX_RATE 50

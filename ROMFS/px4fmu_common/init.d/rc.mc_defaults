@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # Multicopter default parameters.
 #
@@ -7,12 +7,12 @@
 
 set VEHICLE_TYPE mc
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
-	param set NAV_ACC_RAD 2.0
+	param set NAV_ACC_RAD 2
 
-	param set RTL_RETURN_ALT 30.0
-	param set RTL_DESCEND_ALT 10.0
+	param set RTL_RETURN_ALT 30
+	param set RTL_DESCEND_ALT 10
 	param set RTL_LAND_DELAY 0
 
 	param set PWM_MAX 1950
@@ -25,5 +25,5 @@ fi
 #
 set MIXER_AUX pass
 
-set PWM_AUX_RATE 50
 set PWM_AUX_OUT 1234
+set PWM_AUX_RATE 50

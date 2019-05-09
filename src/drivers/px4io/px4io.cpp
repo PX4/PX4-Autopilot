@@ -63,7 +63,6 @@
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_sbus.h>
-#include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 
@@ -111,7 +110,7 @@
  *
  * Encapsulates PX4FMU to PX4IO communications modeled as file operations.
  */
-class PX4IO : public device::CDev
+class PX4IO : public cdev::CDev
 {
 public:
 	/**
@@ -335,7 +334,7 @@ private:
 	 * @param input_rc	Input structure to populate.
 	 * @return		OK if data was returned.
 	 */
-	int			io_get_raw_rc_input(rc_input_values &input_rc);
+	int			io_get_raw_rc_input(input_rc_s &input_rc);
 
 	/**
 	 * Fetch and publish raw RC input data.
@@ -446,12 +445,13 @@ private:
 
 namespace
 {
-
 PX4IO	*g_dev = nullptr;
 }
 
+#define PX4IO_DEVICE_PATH	"/dev/px4io"
+
 PX4IO::PX4IO(device::Device *interface) :
-	CDev("px4io", PX4IO_DEVICE_PATH),
+	CDev(PX4IO_DEVICE_PATH),
 	_interface(interface),
 	_hardware(0),
 	_max_actuators(0),
@@ -513,7 +513,7 @@ PX4IO::~PX4IO()
 	/* spin waiting for the task to stop */
 	for (unsigned i = 0; (i < 10) && (_task != -1); i++) {
 		/* give it another 100ms */
-		usleep(100000);
+		px4_usleep(100000);
 	}
 
 	/* well, kill it anyway, though this will probably crash */
@@ -552,10 +552,10 @@ PX4IO::detect()
 
 		if (protocol != PX4IO_PROTOCOL_VERSION) {
 			if (protocol == _io_reg_get_error) {
-				DEVICE_LOG("IO not installed");
+				PX4_ERR("IO not installed");
 
 			} else {
-				DEVICE_LOG("IO version error");
+				PX4_ERR("IO version error");
 				mavlink_log_emergency(&_mavlink_log_pub, "IO VERSION MISMATCH, PLEASE UPGRADE SOFTWARE!");
 			}
 
@@ -563,7 +563,7 @@ PX4IO::detect()
 		}
 	}
 
-	DEVICE_LOG("IO found");
+	PX4_INFO("IO found");
 
 	return 0;
 }
@@ -606,7 +606,7 @@ PX4IO::init()
 	hrt_abstime start_try_time = hrt_absolute_time();
 
 	do {
-		usleep(2000);
+		px4_usleep(2000);
 		protocol = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
 	} while (protocol == _io_reg_get_error && (hrt_elapsed_time(&start_try_time) < 700U * 1000U));
 
@@ -633,7 +633,7 @@ PX4IO::init()
 	    (_max_transfer < 16) || (_max_transfer > 255)  ||
 	    (_max_rc_input < 1)  || (_max_rc_input > 255)) {
 
-		DEVICE_LOG("config read error");
+		PX4_ERR("config read error");
 		mavlink_log_emergency(&_mavlink_log_pub, "[IO] config read fail, abort.");
 
 		// ask IO to reboot into bootloader as the failure may
@@ -709,7 +709,7 @@ PX4IO::init()
 			}
 
 			/* wait 10 ms */
-			usleep(10000);
+			px4_usleep(10000);
 
 			/* abort after 5s */
 			if ((hrt_absolute_time() - try_start_time) / 1000 > 3000) {
@@ -757,7 +757,7 @@ PX4IO::init()
 			}
 
 			/* wait 50 ms */
-			usleep(50000);
+			px4_usleep(50000);
 
 			/* abort after 5s */
 			if ((hrt_absolute_time() - try_start_time) / 1000 > 2000) {
@@ -768,7 +768,7 @@ PX4IO::init()
 			/* re-send if necessary */
 			if (!safety.armed) {
 				orb_publish(ORB_ID(vehicle_command), pub, &vcmd);
-				DEVICE_LOG("re-sending arm cmd");
+				PX4_WARN("re-sending arm cmd");
 			}
 
 			/* keep waiting for state change for 2 s */
@@ -799,7 +799,7 @@ PX4IO::init()
 			ret = io_disable_rc_handling();
 
 			if (ret != OK) {
-				DEVICE_LOG("failed disabling RC handling");
+				PX4_ERR("failed disabling RC handling");
 				return ret;
 			}
 
@@ -846,7 +846,7 @@ PX4IO::init()
 				   nullptr);
 
 	if (_task < 0) {
-		DEVICE_DEBUG("task start failed: %d", errno);
+		PX4_ERR("task start failed: %d", errno);
 		return -errno;
 	}
 
@@ -1221,7 +1221,7 @@ PX4IO::task_main()
 	unlock();
 
 out:
-	DEVICE_DEBUG("exiting");
+	PX4_DEBUG("exiting");
 
 	/* clean up the alternate device node */
 	if (_primary_pwm_device) {
@@ -1586,7 +1586,7 @@ PX4IO::io_set_rc_config()
 		ret = io_reg_set(PX4IO_PAGE_RC_CONFIG, offset, regs, PX4IO_P_RC_CONFIG_STRIDE);
 
 		if (ret != OK) {
-			DEVICE_LOG("rc config upload failed");
+			PX4_ERR("rc config upload failed");
 			break;
 		}
 
@@ -1743,7 +1743,7 @@ PX4IO::io_get_status()
 }
 
 int
-PX4IO::io_get_raw_rc_input(rc_input_values &input_rc)
+PX4IO::io_get_raw_rc_input(input_rc_s &input_rc)
 {
 	uint32_t channel_count;
 	int	ret;
@@ -1850,7 +1850,7 @@ PX4IO::io_publish_raw_rc()
 {
 
 	/* fetch values from IO */
-	rc_input_values	rc_val;
+	input_rc_s	rc_val;
 
 	/* set the RC status flag ORDER MATTERS! */
 	rc_val.rc_lost = !(_status & PX4IO_P_STATUS_FLAGS_RC_OK);
@@ -1937,14 +1937,14 @@ PX4IO::io_reg_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned
 {
 	/* range check the transfer */
 	if (num_values > ((_max_transfer) / sizeof(*values))) {
-		DEVICE_DEBUG("io_reg_set: too many registers (%u, max %u)", num_values, _max_transfer / 2);
+		PX4_DEBUG("io_reg_set: too many registers (%u, max %u)", num_values, _max_transfer / 2);
 		return -EINVAL;
 	}
 
 	int ret =  _interface->write((page << 8) | offset, (void *)values, num_values);
 
 	if (ret != (int)num_values) {
-		DEVICE_DEBUG("io_reg_set(%hhu,%hhu,%u): error %d", page, offset, num_values, ret);
+		PX4_DEBUG("io_reg_set(%hhu,%hhu,%u): error %d", page, offset, num_values, ret);
 		return -1;
 	}
 
@@ -1962,14 +1962,14 @@ PX4IO::io_reg_get(uint8_t page, uint8_t offset, uint16_t *values, unsigned num_v
 {
 	/* range check the transfer */
 	if (num_values > ((_max_transfer) / sizeof(*values))) {
-		DEVICE_DEBUG("io_reg_get: too many registers (%u, max %u)", num_values, _max_transfer / 2);
+		PX4_DEBUG("io_reg_get: too many registers (%u, max %u)", num_values, _max_transfer / 2);
 		return -EINVAL;
 	}
 
 	int ret = _interface->read((page << 8) | offset, reinterpret_cast<void *>(values), num_values);
 
 	if (ret != (int)num_values) {
-		DEVICE_DEBUG("io_reg_get(%hhu,%hhu,%u): data error %d", page, offset, num_values, ret);
+		PX4_DEBUG("io_reg_get(%hhu,%hhu,%u): data error %d", page, offset, num_values, ret);
 		return -1;
 	}
 
@@ -2009,7 +2009,7 @@ PX4IO::io_reg_modify(uint8_t page, uint8_t offset, uint16_t clearbits, uint16_t 
 int
 PX4IO::print_debug()
 {
-#ifdef CONFIG_ARCH_BOARD_PX4FMU_V2
+#ifdef CONFIG_ARCH_BOARD_PX4_FMU_V2
 	int io_fd = -1;
 
 	if (io_fd <= 0) {
@@ -2022,7 +2022,7 @@ PX4IO::print_debug()
 		fds[0].fd = io_fd;
 		fds[0].events = POLLIN;
 
-		usleep(500);
+		px4_usleep(500);
 		int pret = ::poll(fds, sizeof(fds) / sizeof(fds[0]), 0);
 
 		if (pret > 0) {
@@ -2103,7 +2103,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 				ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, total_len / 2);
 
 				if (ret) {
-					usleep(333);
+					px4_usleep(333);
 
 				} else {
 					break;
@@ -2120,7 +2120,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 			}
 
 			if (ret) {
-				DEVICE_LOG("mixer send error %d", ret);
+				PX4_ERR("mixer send error %d", ret);
 				return ret;
 			}
 
@@ -2139,7 +2139,7 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 			ret = io_reg_set(PX4IO_PAGE_MIXERLOAD, 0, (uint16_t *)frame, (sizeof(px4io_mixdata) + 2) / 2);
 
 			if (ret) {
-				usleep(333);
+				px4_usleep(333);
 
 			} else {
 				break;
@@ -2665,12 +2665,12 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		    arg == DSMX_BIND_PULSES ||
 		    arg == DSMX8_BIND_PULSES) {
 			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down);
-			usleep(500000);
+			px4_usleep(500000);
 			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_out);
 			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
-			usleep(72000);
+			px4_usleep(72000);
 			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_send_pulses | (arg << 4));
-			usleep(50000);
+			px4_usleep(50000);
 			io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_reinit_uart);
 
 			ret = OK;
@@ -2746,17 +2746,8 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			break;
 		}
 
-	case GPIO_RESET: {
-			ret = -EINVAL;
-			break;
-		}
-
-	case GPIO_SET:
-		ret = -EINVAL;
-		break;
-
-	case GPIO_CLEAR:
-		ret = -EINVAL;
+	case PWM_SERVO_SET_MODE:
+		ret = (arg == PWM_SERVO_ENTER_TEST_MODE || PWM_SERVO_EXIT_TEST_MODE) ? 0 : -EINVAL;
 		break;
 
 	case MIXERIOCGETOUTPUTCOUNT:
@@ -2799,7 +2790,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			}
 
 			if (io_crc != arg) {
-				DEVICE_DEBUG("crc mismatch 0x%08x 0x%08lx", io_crc, arg);
+				PX4_DEBUG("crc mismatch 0x%08x 0x%08lx", io_crc, arg);
 				return -EINVAL;
 			}
 
@@ -2959,7 +2950,7 @@ start(int argc, char *argv[])
 
 	if (g_dev == nullptr) {
 		delete interface;
-		errx(1, "driver alloc failed");
+		errx(1, "driver allocation failed");
 	}
 
 	bool rc_handling_disabled = false;
@@ -2998,7 +2989,7 @@ detect(int argc, char *argv[])
 	(void)new PX4IO(interface);
 
 	if (g_dev == nullptr) {
-		errx(1, "driver alloc failed");
+		errx(1, "driver allocation failed");
 	}
 
 	int ret = g_dev->detect();
@@ -3028,7 +3019,7 @@ checkcrc(int argc, char *argv[])
 		(void)new PX4IO(interface);
 
 		if (g_dev == nullptr) {
-			errx(1, "driver alloc failed");
+			errx(1, "driver allocation failed");
 		}
 
 	} else {
@@ -3179,7 +3170,7 @@ test(void)
 		ret = write(fd, servos, sizeof(servos));
 
 		if (ret != (int)sizeof(servos)) {
-			err(1, "error writing PWM servo data, wrote %lu got %d", sizeof(servos), ret);
+			err(1, "error writing PWM servo data, wrote %zu got %d", sizeof(servos), ret);
 		}
 
 		if (direction > 0) {
@@ -3199,7 +3190,7 @@ test(void)
 			}
 		}
 
-		usleep(250);
+		px4_usleep(250);
 
 		/* readback servo values */
 		for (unsigned i = 0; i < servo_count; i++) {
@@ -3325,7 +3316,7 @@ lockdown(int argc, char *argv[])
 					}
 				}
 
-				usleep(10000);
+				px4_usleep(10000);
 			}
 
 			if (hrt_elapsed_time(&start) > timeout) {
@@ -3452,7 +3443,7 @@ px4io_main(int argc, char *argv[])
 
 			if (g_dev == nullptr) {
 				delete interface;
-				errx(1, "driver alloc failed");
+				errx(1, "driver allocation failed");
 			}
 		}
 

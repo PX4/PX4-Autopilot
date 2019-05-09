@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <drivers/device/CDev.hpp>
+#include <lib/cdev/CDev.hpp>
 #include <drivers/device/Device.hpp>
 #include <px4_config.h>
 #include <px4_workqueue.h>
@@ -44,6 +44,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/device/ringbuffer.h>
 #include <drivers/drv_device.h>
+#include <systemlib/err.h>
 
 #include <uORB/uORB.h>
 
@@ -83,7 +84,7 @@ extern device::Device *LPS22HB_SPI_interface(int bus);
 extern device::Device *LPS22HB_I2C_interface(int bus);
 typedef device::Device *(*LPS22HB_constructor)(int);
 
-class LPS22HB : public device::CDev
+class LPS22HB : public cdev::CDev
 {
 public:
 	LPS22HB(device::Device *interface, const char *path);
@@ -99,7 +100,7 @@ public:
 	void			print_info();
 
 protected:
-	Device			*_interface;
+	device::Device			*_interface;
 
 private:
 	work_s			_work{};
@@ -115,7 +116,7 @@ private:
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
 
-	baro_report	_last_report{};           /**< used for info() */
+	sensor_baro_s	_last_report{};           /**< used for info() */
 
 	/**
 	 * Initialise the automatic measurement state machine and start it.

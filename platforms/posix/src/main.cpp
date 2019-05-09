@@ -60,12 +60,13 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <stdlib.h>
+#include <string.h>
 
+#include <px4_time.h>
 #include <px4_log.h>
 #include <px4_getopt.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
-#include <px4_log.h>
 
 #include "apps.h"
 #include "px4_middleware.h"
@@ -75,6 +76,7 @@
 #include "px4_daemon/server.h"
 #include "px4_daemon/pxh.h"
 
+#define MODULE_NAME "px4"
 
 static const char *LOCK_FILE_PATH = "/tmp/px4_lock";
 
@@ -99,8 +101,7 @@ static void register_sig_handler();
 static void set_cpu_scaling();
 static int create_symlinks_if_needed(std::string &data_path);
 static int create_dirs();
-static int run_startup_bash_script(const std::string &commands_file, const std::string &absolute_binary_path,
-				   int instance);
+static int run_startup_script(const std::string &commands_file, const std::string &absolute_binary_path, int instance);
 static std::string get_absolute_binary_path(const std::string &argv0);
 static void wait_to_exit();
 static bool is_already_running(int instance);
@@ -123,7 +124,7 @@ int main(int argc, char **argv)
 	bool pxh_off = false;
 
 	/* Symlinks point to all commands that can be used as a client with a prefix. */
-	const char prefix[] = PX4_BASH_PREFIX;
+	const char prefix[] = PX4_SHELL_COMMAND_PREFIX;
 	int path_length = 0;
 
 	std::string absolute_binary_path; // full path to the px4 binary being executed
@@ -159,7 +160,13 @@ int main(int argc, char **argv)
 		PX4_DEBUG("instance: %i", instance);
 
 		if (!is_already_running(instance)) {
-			PX4_ERR("PX4 daemon not running yet");
+			if (errno) {
+				PX4_ERR("Failed to communicate with daemon: %s", strerror(errno));
+
+			} else {
+				PX4_ERR("PX4 daemon not running yet");
+			}
+
 			return -1;
 		}
 
@@ -167,8 +174,6 @@ int main(int argc, char **argv)
 		argv[0] += path_length + strlen(prefix);
 
 		px4_daemon::Client client(instance);
-		client.generate_uuid();
-		client.register_sig_handler();
 		return client.process_args(argc, (const char **)argv);
 
 	} else {
@@ -224,7 +229,7 @@ int main(int argc, char **argv)
 
 		if (is_already_running(instance)) {
 			// allow running multiple instances, but the server is only started for the first
-			PX4_INFO("PX4 daemon already running for instance %i", instance);
+			PX4_INFO("PX4 daemon already running for instance %i (%s)", instance, strerror(errno));
 			return -1;
 		}
 
@@ -269,7 +274,7 @@ int main(int argc, char **argv)
 		px4::init_once();
 		px4::init(argc, argv, "px4");
 
-		ret = run_startup_bash_script(commands_file, absolute_binary_path, instance);
+		ret = run_startup_script(commands_file, absolute_binary_path, instance);
 
 		// We now block here until we need to exit.
 		if (pxh_off) {
@@ -402,7 +407,14 @@ void register_sig_handler()
 	sig_segv.sa_handler = sig_segv_handler;
 	sig_segv.sa_flags = SA_RESTART | SA_SIGINFO;
 
+#ifdef __PX4_CYGWIN
+	// Do not catch SIGINT on Cygwin such that the process gets killed
+	// TODO: All threads should exit gracefully see https://github.com/PX4/Firmware/issues/11027
+	(void)sig_int; // this variable is unused
+#else
 	sigaction(SIGINT, &sig_int, nullptr);
+#endif
+
 	//sigaction(SIGTERM, &sig_int, nullptr);
 	sigaction(SIGFPE, &sig_fpe, nullptr);
 	sigaction(SIGPIPE, &sig_pipe, nullptr);
@@ -473,12 +485,12 @@ std::string get_absolute_binary_path(const std::string &argv0)
 	return pwd() + "/" + base;
 }
 
-int run_startup_bash_script(const std::string &commands_file, const std::string &absolute_binary_path,
-			    int instance)
+int run_startup_script(const std::string &commands_file, const std::string &absolute_binary_path,
+		       int instance)
 {
-	std::string bash_command("bash ");
+	std::string shell_command("/bin/sh ");
 
-	bash_command += commands_file + ' ' + std::to_string(instance);
+	shell_command += commands_file + ' ' + std::to_string(instance);
 
 	// Update the PATH variable to include the absolute_binary_path
 	// (required for the px4-alias.sh script and px4-* commands).
@@ -516,18 +528,18 @@ int run_startup_bash_script(const std::string &commands_file, const std::string 
 	}
 
 
-	PX4_INFO("Calling startup script: %s", bash_command.c_str());
+	PX4_INFO("Calling startup script: %s", shell_command.c_str());
 
 	int ret = 0;
 
-	if (!bash_command.empty()) {
-		ret = system(bash_command.c_str());
+	if (!shell_command.empty()) {
+		ret = system(shell_command.c_str());
 
 		if (ret == 0) {
 			PX4_INFO("Startup script returned successfully");
 
 		} else {
-			PX4_WARN("Startup script returned with return value: %d", ret);
+			PX4_ERR("Startup script returned with return value: %d", ret);
 		}
 
 	} else {
@@ -540,7 +552,7 @@ int run_startup_bash_script(const std::string &commands_file, const std::string 
 void wait_to_exit()
 {
 	while (!_exit_requested) {
-		usleep(100000);
+		px4_usleep(100000);
 	}
 }
 
@@ -550,7 +562,7 @@ void print_usage()
 	printf("\n");
 	printf("    px4 [-h|-d] [-s <startup_file>] [-t <test_data_directory>] [<rootfs_directory>] [-i <instance>]\n");
 	printf("\n");
-	printf("    -s <startup_file>  bash start script to be used as startup (default=etc/init.d/rcS)\n");
+	printf("    -s <startup_file>  shell script to be used as startup (default=etc/init.d/rcS)\n");
 	printf("    <rootfs_directory> directory where startup files and mixers are located,\n");
 	printf("                       (if not given, CWD is used)\n");
 	printf("    -i <instance>      px4 instance id to run multiple instances [0...N], default=0\n");
@@ -581,18 +593,15 @@ bool is_already_running(int instance)
 
 	if (fcntl(fd, F_SETLK, &fl) == -1) {
 		// We failed to create a file lock, must be already locked.
-
 		if (errno == EACCES || errno == EAGAIN) {
 			return true;
 		}
+
+		return false;
 	}
 
+	errno = 0;
 	return false;
-}
-
-bool px4_exit_requested(void)
-{
-	return _exit_requested;
 }
 
 bool file_exists(const std::string &name)

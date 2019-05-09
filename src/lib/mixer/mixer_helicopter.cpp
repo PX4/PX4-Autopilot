@@ -40,6 +40,8 @@
 #include "mixer.h"
 
 #include <mathlib/mathlib.h>
+#include <cstdio>
+#include <px4_defines.h>
 
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)

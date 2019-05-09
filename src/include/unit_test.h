@@ -45,6 +45,7 @@
 			test_class* test = new test_class();		\
 			bool success = test->run_tests();			\
 			test->print_results();						\
+			delete test;                                              \
 			return success ? 0 : -1;					\
 		}												\
 	}

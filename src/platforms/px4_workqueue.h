@@ -35,9 +35,7 @@
 
 #pragma once
 
-#if defined(__PX4_ROS)
-#error "Work queue not supported on ROS"
-#elif defined(__PX4_NUTTX)
+#if defined(__PX4_NUTTX)
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>

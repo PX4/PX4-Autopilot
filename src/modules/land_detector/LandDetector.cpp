@@ -40,7 +40,8 @@
 
 #include "LandDetector.h"
 
-#include <cfloat>
+#include <float.h>
+#include <math.h>
 
 #include <px4_config.h>
 #include <px4_defines.h>
@@ -60,6 +61,18 @@ LandDetector::LandDetector() :
 LandDetector::~LandDetector()
 {
 	perf_free(_cycle_perf);
+
+	if (_armingSub >= 0) {
+		orb_unsubscribe(_armingSub);
+	}
+
+	if (_parameterSub >= 0) {
+		orb_unsubscribe(_parameterSub);
+	}
+
+	if (_landDetectedPub) {
+		orb_unadvertise(_landDetectedPub);
+	}
 }
 
 int LandDetector::start()
@@ -80,7 +93,7 @@ void LandDetector::_cycle()
 {
 	perf_begin(_cycle_perf);
 
-	if (_object == nullptr) { // not initialized yet
+	if (_object.load() == nullptr) { // not initialized yet
 		// Advertise the first land detected uORB.
 		_landDetected.timestamp = hrt_absolute_time();
 		_landDetected.freefall = false;
@@ -93,11 +106,12 @@ void LandDetector::_cycle()
 
 		// Initialize uORB topics.
 		_armingSub = orb_subscribe(ORB_ID(actuator_armed));
+		_parameterSub = orb_subscribe(ORB_ID(parameter_update));
 		_initialize_topics();
 
 		_check_params(true);
 
-		_object = this;
+		_object.store(this);
 	}
 
 	_check_params(false);
@@ -111,6 +125,8 @@ void LandDetector::_cycle()
 	const bool ground_contactDetected = (_state == LandDetectionState::GROUND_CONTACT);
 	const float alt_max = _get_max_altitude() > 0.0f ? _get_max_altitude() : INFINITY;
 
+	const bool in_ground_effect = _ground_effect_hysteresis.get_state();
+
 	const hrt_abstime now = hrt_absolute_time();
 
 	// publish at 1 Hz, very first time, or when the result has changed
@@ -120,6 +136,7 @@ void LandDetector::_cycle()
 	    (_landDetected.freefall != freefallDetected) ||
 	    (_landDetected.maybe_landed != maybe_landedDetected) ||
 	    (_landDetected.ground_contact != ground_contactDetected) ||
+	    (_landDetected.in_ground_effect != in_ground_effect) ||
 	    (fabsf(_landDetected.alt_max - alt_max) > FLT_EPSILON)) {
 
 		if (!landDetected && _landDetected.landed) {
@@ -133,6 +150,7 @@ void LandDetector::_cycle()
 		_landDetected.maybe_landed = maybe_landedDetected;
 		_landDetected.ground_contact = ground_contactDetected;
 		_landDetected.alt_max = alt_max;
+		_landDetected.in_ground_effect = in_ground_effect;
 
 		int instance;
 		orb_publish_auto(ORB_ID(vehicle_land_detected), &_landDetectedPub, &_landDetected,
@@ -193,6 +211,7 @@ void LandDetector::_update_state()
 	_landed_hysteresis.set_state_and_update(_get_landed_state());
 	_maybe_landed_hysteresis.set_state_and_update(_get_maybe_landed_state());
 	_ground_contact_hysteresis.set_state_and_update(_get_ground_contact_state());
+	_ground_effect_hysteresis.set_state_and_update(_get_ground_effect_state());
 
 	if (_freefall_hysteresis.get_state()) {
 		_state = LandDetectionState::FREEFALL;

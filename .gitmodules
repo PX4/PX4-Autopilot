@@ -2,18 +2,18 @@
 	path = mavlink/include/mavlink/v2.0
 	url = https://github.com/mavlink/c_library_v2.git
 	branch = master
-[submodule "src/modules/uavcan/libuavcan"]
-	path = src/modules/uavcan/libuavcan
-	url = https://github.com/UAVCAN/libuavcan.git
-	branch = master
+[submodule "src/drivers/uavcan/libuavcan"]
+	path = src/drivers/uavcan/libuavcan
+	url = https://github.com/PX4/uavcan.git
+	branch = px4
 [submodule "msg/tools/genmsg"]
 	path = msg/tools/genmsg
-	url = https://github.com/ros/genmsg.git
-	branch = indigo-devel
+	url = https://github.com/PX4/genmsg.git
+	branch = px4
 [submodule "msg/tools/gencpp"]
 	path = msg/tools/gencpp
-	url = https://github.com/ros/gencpp.git
-	branch = indigo-devel
+	url = https://github.com/PX4/gencpp.git
+	branch = px4
 [submodule "Tools/jMAVSim"]
 	path = Tools/jMAVSim
 	url = https://github.com/PX4/jMAVSim.git
@@ -34,26 +34,26 @@
 	path = src/lib/ecl
 	url = https://github.com/PX4/ecl.git
 	branch = master
-[submodule "cmake/cmake_hexagon"]
-	path = cmake/cmake_hexagon
-	url = https://github.com/ATLFlight/cmake_hexagon.git
-	branch = master
+[submodule "boards/atlflight/cmake_hexagon"]
+	path = boards/atlflight/cmake_hexagon
+	url = https://github.com/PX4/cmake_hexagon.git
+	branch = px4
 [submodule "src/drivers/gps/devices"]
 	path = src/drivers/gps/devices
 	url = https://github.com/PX4/GpsDrivers.git
 	branch = master
 [submodule "src/modules/micrortps_bridge/micro-CDR"]
 	path = src/modules/micrortps_bridge/micro-CDR
-	url = https://github.com/eProsima/micro-CDR.git
-	branch = master
+	url = https://github.com/PX4/micro-CDR.git
+	branch = px4
 [submodule "platforms/nuttx/NuttX/nuttx"]
 	path = platforms/nuttx/NuttX/nuttx
-	url = https://github.com/PX4-NuttX/nuttx.git
-	branch = px4_firmware_nuttx-7.22+
+	url = https://github.com/PX4/NuttX.git
+	branch = px4_firmware_nuttx-7.28+
 [submodule "platforms/nuttx/NuttX/apps"]
 	path = platforms/nuttx/NuttX/apps
-	url = https://github.com/PX4-NuttX/apps.git
-	branch = px4_firmware_nuttx-7.22+
+	url = https://github.com/PX4/NuttX-apps.git
+	branch = px4_firmware_nuttx-7.28+
 [submodule "cmake/configs/uavcan_board_ident"]
 	path = cmake/configs/uavcan_board_ident
 	url = https://github.com/PX4/uavcan_board_ident.git

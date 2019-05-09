@@ -2,7 +2,7 @@
 
 [![Releases](https://img.shields.io/github/release/PX4/Firmware.svg)](https://github.com/PX4/Firmware/releases) [![DOI](https://zenodo.org/badge/22634/PX4/Firmware.svg)](https://zenodo.org/badge/latestdoi/22634/PX4/Firmware)
 
-[![Build Status](http://ci.px4.io:8080/buildStatus/icon?job=Firmware/master)](http://ci.px4.io:8080/blue/organizations/jenkins/Firmware/activity) [![Coverity Scan](https://scan.coverity.com/projects/3966/badge.svg?flat=1)](https://scan.coverity.com/projects/3966?tab=overview)
+[![Build Status](http://ci.px4.io:8080/buildStatus/icon?job=PX4/Firmware/master)](http://ci.px4.io:8080/blue/organizations/jenkins/PX4%2FFirmware/activity)
 
 [![Slack](https://px4-slack.herokuapp.com/badge.svg)](http://slack.px4.io)
 
@@ -19,7 +19,7 @@ This repository holds the [PX4](http://px4.io) flight control solution for drone
 
 ## PX4 Users
 
-The [PX4 User Guide](https://docs.px4.io/en/) explains how to assemble [supported vehicles](https://docs.px4.io/en/airframes/airframe_reference.html) and fly drones with PX4. 
+The [PX4 User Guide](https://docs.px4.io/en/) explains how to assemble [supported vehicles](https://docs.px4.io/en/airframes/airframe_reference.html) and fly drones with PX4.
 See the [forum and chat](https://docs.px4.io/en/#support) if you need help!
 
 
@@ -75,7 +75,7 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://dev.px4.io/en/contribut
     * [José Roberto de Souza](https://github.com/zehortigoza)
   * [Raspberry Pi / Navio](https://github.com/PX4/Firmware/labels/raspberry_pi) - [Beat Kueng](https://github.com/bkueng)
   * [Airmind MindPX / MindRacer](https://github.com/PX4/Firmware/labels/mindpx) - [Henry Zhang](https://github.com/iZhangHui)
-  * RTPS/ROS2 Interface - [Vicente Monge](https://github.com/vicenteeprosima)
+  * RTPS/ROS2 Interface - [Nuno Marques](https://github.com/TSC21)
 
 See also [About Us](http://px4.io/about-us/#development_team) (px4.io) and the [contributors list](https://github.com/PX4/Firmware/graphs/contributors) (Github).
 
@@ -94,8 +94,9 @@ This repository contains code supporting these boards:
   * FMUv4.x
     * [Pixracer](https://docs.px4.io/en/flight_controller/pixracer.html)
     * [Pixhawk 3 Pro](https://docs.px4.io/en/flight_controller/pixhawk3_pro.html)
-  * FMUv5.x (ARM Cortex M7, future Pixhawk)
-  * [Gumstix AeroCore](https://www.gumstix.com/aerocore-2/) (only v2)
+  * FMUv5.x (ARM Cortex M7)
+    * [Pixhawk 4](https://docs.px4.io/en/flight_controller/pixhawk4.html)
+    * [Pixhawk 4 mini](https://docs.px4.io/en/flight_controller/pixhawk4_mini.html)  
   * [Airmind MindPX V2.8](http://www.mindpx.net/assets/accessories/UserGuide_MindPX.pdf)
   * [Airmind MindRacer V1.2](http://mindpx.net/assets/accessories/mindracer_user_guide_v1.2.pdf)
   * [Bitcraze Crazyflie 2.0](https://docs.px4.io/en/flight_controller/crazyflie2.html)

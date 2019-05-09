@@ -60,12 +60,12 @@ typedef enum {
 
 enum class link_loss_actions_t {
 	DISABLED = 0,
-	AUTO_LOITER = 1,
-	AUTO_RTL = 2,
-	AUTO_LAND = 3,
-	AUTO_RECOVER = 4,
-	TERMINATE = 5,
-	LOCKDOWN = 6,
+	AUTO_LOITER = 1,	// Hold mode
+	AUTO_RTL = 2,		// Return mode
+	AUTO_LAND = 3,		// Land mode
+	AUTO_RECOVER = 4,	// Data Link Auto Recovery (CASA Outback Challenge rules)
+	TERMINATE = 5,		// Turn off all controllers and set PWM outputs to failsafe value
+	LOCKDOWN = 6,		// Kill the motors, same result as kill switch
 };
 
 typedef enum {
@@ -79,17 +79,14 @@ extern const char *const arming_state_names[];
 
 bool is_safe(const safety_s &safety, const actuator_armed_s &armed);
 
-transition_result_t arming_state_transition(vehicle_status_s *status, const battery_status_s &battery,
-		const safety_s &safety, const arming_state_t new_arming_state, actuator_armed_s *armed, const bool fRunPreArmChecks,
-		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s *status_flags,
-		const uint8_t arm_requirements, const hrt_abstime &time_since_boot);
+transition_result_t
+arming_state_transition(vehicle_status_s *status, const safety_s &safety, const arming_state_t new_arming_state,
+			actuator_armed_s *armed, const bool fRunPreArmChecks, orb_advert_t *mavlink_log_pub,
+			vehicle_status_flags_s *status_flags, const uint8_t arm_requirements, const hrt_abstime &time_since_boot);
 
 transition_result_t
 main_state_transition(const vehicle_status_s &status, const main_state_t new_main_state,
 		      const vehicle_status_flags_s &status_flags, commander_state_s *internal_state);
-
-transition_result_t hil_state_transition(hil_state_t new_state, orb_advert_t status_pub,
-		vehicle_status_s *current_status, orb_advert_t *mavlink_log_pub);
 
 void enable_failsafe(vehicle_status_s *status, bool old_failsafe, orb_advert_t *mavlink_log_pub, const char *reason);
 
@@ -106,8 +103,20 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 bool check_invalid_pos_nav_state(vehicle_status_s *status, bool old_failsafe, orb_advert_t *mavlink_log_pub,
 				 const vehicle_status_flags_s &status_flags, const bool use_rc, const bool using_global_pos);
 
-bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
-		  const battery_status_s &battery, const safety_s &safety, const uint8_t arm_requirements,
-		  const hrt_abstime &time_since_boot);
+bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags, const safety_s &safety,
+		  const uint8_t arm_requirements);
+
+
+// COM_LOW_BAT_ACT parameter values
+typedef enum LOW_BAT_ACTION {
+	WARNING = 0,		// Warning
+	RETURN = 1,			// Return mode
+	LAND = 2,			// Land mode
+	RETURN_OR_LAND = 3	// Return mode at critically low level, Land mode at current position if reaching dangerously low levels
+} low_battery_action_t;
+
+void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
+		      const vehicle_status_flags_s &status_flags, commander_state_s *internal_state, const uint8_t battery_warning,
+		      const low_battery_action_t low_bat_action);
 
 #endif /* STATE_MACHINE_HELPER_H_ */

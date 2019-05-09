@@ -314,21 +314,6 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 220.0f);
 PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 200.0f);
 
 /**
- * Max yaw rate in auto mode
- *
- * Limit for yaw rate, has effect for large rotations in autonomous mode,
- * to avoid large control output and mixer saturation.
- *
- * @unit deg/s
- * @min 0.0
- * @max 360.0
- * @decimal 1
- * @increment 5
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_YAWRAUTO_MAX, 45.0f);
-
-/**
  * Max acro roll rate
  * default: 2 turns per second
  *
@@ -562,17 +547,22 @@ PARAM_DEFINE_FLOAT(MC_TPA_RATE_D, 0.0f);
  * @increment 10
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_DTERM_CUTOFF, 30.f);
+PARAM_DEFINE_FLOAT(MC_DTERM_CUTOFF, 0.f);
 
 /**
  * Multicopter air-mode
  *
  * The air-mode enables the mixer to increase the total thrust of the multirotor
  * in order to keep attitude and rate control even at low and high throttle.
- * This function should be disabled during tuning as it will help the controller
- * to diverge if the closed-loop is unstable.
  *
- * @boolean
+ * This function should be disabled during tuning as it will help the controller
+ * to diverge if the closed-loop is unstable (i.e. the vehicle is not tuned yet).
+ *
+ * Enabling air-mode for yaw requires the use of an arming switch.
+ *
+ * @value 0 Disabled
+ * @value 1 Roll/Pitch
+ * @value 2 Roll/Pitch/Yaw
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_INT32(MC_AIRMODE, 0);

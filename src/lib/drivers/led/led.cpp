@@ -38,7 +38,7 @@
  */
 
 #include <px4_config.h>
-#include <drivers/device/device.h>
+#include <lib/cdev/CDev.hpp>
 #include <drivers/drv_board_led.h>
 #include <stdio.h>
 
@@ -56,17 +56,17 @@ extern void led_off(int led);
 extern void led_toggle(int led);
 __END_DECLS
 
-class LED : device::CDev
+class LED : cdev::CDev
 {
 public:
 	LED();
 	virtual ~LED() = default;
 
 	virtual int		init();
-	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual int		ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 };
 
-LED::LED() : CDev("led", LED0_DEVICE_PATH)
+LED::LED() : CDev(LED0_DEVICE_PATH)
 {
 	// force immediate init/device registration
 	init();
@@ -75,15 +75,17 @@ LED::LED() : CDev("led", LED0_DEVICE_PATH)
 int
 LED::init()
 {
-	DEVICE_DEBUG("LED::init");
+	PX4_DEBUG("LED::init");
+
 	CDev::init();
+
 	led_init();
 
 	return 0;
 }
 
 int
-LED::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+LED::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	int result = OK;
 

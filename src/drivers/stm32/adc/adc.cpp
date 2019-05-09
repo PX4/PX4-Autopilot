@@ -116,7 +116,7 @@
 #  endif
 #endif
 
-class ADC : public device::CDev
+class ADC : public cdev::CDev
 {
 public:
 	ADC(uint32_t channels);
@@ -165,7 +165,7 @@ private:
 };
 
 ADC::ADC(uint32_t channels) :
-	CDev("adc", ADC0_DEVICE_PATH),
+	CDev(ADC0_DEVICE_PATH),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_channel_count(0),
 	_samples(nullptr),
@@ -220,7 +220,7 @@ int board_adc_init()
 		/* do calibration if supported */
 #ifdef ADC_CR2_CAL
 		rCR2 |= ADC_CR2_CAL;
-		usleep(100);
+		px4_usleep(100);
 
 		if (rCR2 & ADC_CR2_CAL) {
 			return -1;
@@ -260,11 +260,11 @@ int board_adc_init()
 
 		/* power-cycle the ADC and turn it on */
 		rCR2 &= ~ADC_CR2_ADON;
-		usleep(10);
+		px4_usleep(10);
 		rCR2 |= ADC_CR2_ADON;
-		usleep(10);
+		px4_usleep(10);
 		rCR2 |= ADC_CR2_ADON;
-		usleep(10);
+		px4_usleep(10);
 
 		/* kick off a sample and wait for it to complete */
 		hrt_abstime now = hrt_absolute_time();
@@ -288,7 +288,7 @@ ADC::init()
 	int rv = board_adc_init();
 
 	if (rv < 0) {
-		DEVICE_LOG("sample timeout");
+		PX4_DEBUG("sample timeout");
 		return rv;
 	}
 
@@ -500,7 +500,7 @@ ADC::_sample(unsigned channel)
 	uint16_t result = board_adc_sample(channel);
 
 	if (result == 0xffff) {
-		DEVICE_LOG("sample timeout");
+		PX4_ERR("sample timeout");
 	}
 
 	perf_end(_sample_perf);
@@ -541,7 +541,7 @@ test(void)
 		}
 
 		printf("\n");
-		usleep(500000);
+		px4_usleep(500000);
 	}
 
 	exit(0);

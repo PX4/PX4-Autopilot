@@ -15,6 +15,7 @@
 @#  - md5sum (String) MD5Sum of the .msg specification
 @#  - search_path (dict) search paths for genmsg
 @#  - topics (List of String) multi-topic names
+@#  - ids (List) list of all RTPS msg ids
 @###############################################
 /****************************************************************************
  *

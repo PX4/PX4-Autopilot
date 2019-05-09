@@ -7,13 +7,15 @@
 @#
 @# Context:
 @#  - msgs (List) list of all msg files
+@#  - ids (List) list of all RTPS msg ids
 @###############################################
 @{
+import os
+
 import genmsg.msgs
 import gencpp
 from px_generate_uorb_topic_helper import * # this is in Tools/
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
-from uorb_rtps_message_ids import * # this is in Tools/
 
 topic_names = [single_spec.short_name for single_spec in spec]
 send_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
@@ -86,9 +88,9 @@ private:
 @[end for]@
 
     unsigned _next_sub_idx = 0;
-    char _sub_topics[@(len(recv_topics))] = {
+    unsigned char _sub_topics[@(len(recv_topics))] = {
 @[for topic in recv_topics]@
-        @(message_id(topic)), // @(topic)
+        @(rtps_message_id(ids, topic)), // @(topic)
 @[end for]@
     };
 @[end if]@

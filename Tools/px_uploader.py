@@ -205,7 +205,7 @@ class uploader(object):
         self.window_max = 256
         self.window_per = 2  # Sync,<result>
         self.ackWindowedMode = False  # Assume Non Widowed mode for all USB CDC
-        self.port = serial.Serial(portname, baudrate_bootloader, timeout=0.5, write_timeout=0.5)
+        self.port = serial.Serial(portname, baudrate_bootloader, timeout=0.5, write_timeout=0)
         self.otp = b''
         self.sn = b''
         self.baudrate_bootloader = baudrate_bootloader
@@ -247,14 +247,7 @@ class uploader(object):
 
     def __send(self, c):
         # print("send " + binascii.hexlify(c))
-        while True:
-            try:
-                self.port.write(c)
-                break
-            except serial.SerialTimeoutException as e:
-                print("Write timeout (%s), trying again" % e)
-                time.sleep(0.04)
-                continue
+        self.port.write(c)
 
     def __recv(self, count=1):
         c = self.port.read(count)
@@ -336,7 +329,12 @@ class uploader(object):
         self.port.flushInput()
         # Set a baudrate that can not work on a real serial port
         # in that it is 233% off.
-        self.port.baudrate = self.baudrate_bootloader * 2.33
+        try:
+            self.port.baudrate = self.baudrate_bootloader * 2.33
+        except NotImplementedError as e:
+            # This error can occur because pySerial on Windows does not support odd baudrates
+            print(str(e) + " -> could not check for FTDI device, assuming USB connection")
+            return
 
         self.__send(uploader.GET_SYNC +
                     uploader.EOC)
@@ -346,7 +344,7 @@ class uploader(object):
             # if it fails we are on a real Serial Port
             self.ackWindowedMode = True
 
-        self.port.baudrate =self.baudrate_bootloader
+        self.port.baudrate = self.baudrate_bootloader
 
     # send the GET_DEVICE command and wait for an info parameter
     def __getInfo(self, param):
@@ -398,7 +396,7 @@ class uploader(object):
 
     # send the CHIP_ERASE command and wait for the bootloader to become ready
     def __erase(self, label):
-        print("Windowed mode:%s" % self.ackWindowedMode)
+        print("Windowed mode: %s" % self.ackWindowedMode)
         print("\n", end='')
         self.__send(uploader.CHIP_ERASE +
                     uploader.EOC)
@@ -435,7 +433,7 @@ class uploader(object):
         self.__send(data)
         self.__send(uploader.EOC)
         if (not windowMode):
-            self.__getSync()
+            self.__getSync(False)
         else:
             # The following is done to have minimum delay on the transmission
             # of the ne fw. The per block cost of __getSync was about 16 mS per.
@@ -637,14 +635,14 @@ class uploader(object):
                                        % (self.fw_maxsize, fw.property('image_maxsize')))
         else:
             # If we're still on bootloader v4 on a Pixhawk, we don't know if we
-            # have the silicon errata and therefore need to flash px4fmu-v2
-            # with 1MB flash or if it supports px4fmu-v3 with 2MB flash.
+            # have the silicon errata and therefore need to flash px4_fmu-v2
+            # with 1MB flash or if it supports px4_fmu-v3 with 2MB flash.
             if fw.property('board_id') == 9 \
                     and fw.property('image_size') > 1032192 \
                     and not force:
                 raise RuntimeError("\nThe Board uses bootloader revision 4 and can therefore not determine\n"
-                                   "if flashing more than 1 MB (px4fmu-v3_default) is safe, chances are\n"
-                                   "high that it is not safe! If unsure, use px4fmu-v2_default.\n"
+                                   "if flashing more than 1 MB (px4_fmu-v3_default) is safe, chances are\n"
+                                   "high that it is not safe! If unsure, use px4_fmu-v2_default.\n"
                                    "\n"
                                    "If you know you that the board does not have the silicon errata, use\n"
                                    "this script with --force, or update the bootloader. If you are invoking\n"
@@ -727,6 +725,16 @@ def main():
         print("WARNING: You should uninstall ModemManager as it conflicts with any non-modem serial device (like Pixhawk)")
         print("==========================================================================================================")
 
+    # We need to check for pyserial because the import itself doesn't
+    # seem to fail, at least not on macOS.
+    try:
+        if serial.__version__ or serial.VERSION:
+            pass
+    except:
+        print("Error: pyserial not installed!")
+        print("    (Install using: sudo pip install pyserial)")
+        sys.exit(1)
+
     # Load the firmware file
     fw = firmware(args.firmware)
 
@@ -776,6 +784,7 @@ def main():
 
             baud_flightstack = [int(x) for x in args.baud_flightstack.split(',')]
 
+            successful = False
             for port in portlist:
 
                 # print("Trying %s" % port)
@@ -840,6 +849,9 @@ def main():
                     # ok, we have a bootloader, try flashing it
                     up.upload(fw, force=args.force, boot_delay=args.boot_delay)
 
+                    # if we made this far without raising exceptions, the upload was successful
+                    successful = True
+
                 except RuntimeError as ex:
                     # print the error
                     print("\nERROR: %s" % ex.args)
@@ -853,7 +865,10 @@ def main():
                     up.close()
 
                 # we could loop here if we wanted to wait for more boards...
-                sys.exit(0)
+                if successful:
+                    sys.exit(0)
+                else:
+                    sys.exit(1)
 
             # Delay retries to < 20 Hz to prevent spin-lock from hogging the CPU
             time.sleep(0.05)

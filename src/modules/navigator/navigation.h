@@ -126,15 +126,25 @@ enum NAV_FRAME {
 /**
  * Global position setpoint in WGS84 coordinates.
  *
- * This is the position the MAV is heading towards. If it of type loiter,
+ * This is the position the MAV is heading towards. If it is of type loiter,
  * the MAV is circling around it with the given loiter radius in meters.
  *
  * Corresponds to one of the DM_KEY_WAYPOINTS_OFFBOARD_* dataman items
  */
-#pragma pack(push, 1)
+
+// Mission Item structure
+//  We explicitly handle struct padding to ensure consistency between in memory and on disk formats across different platforms, toolchains, etc
+//  The use of #pragma pack is avoided to prevent the possibility of unaligned memory accesses.
+
+#if (__GNUC__ >= 5) || __clang__
+//  Disabled in GCC 4.X as the warning doesn't seem to "pop" correctly
+#pragma GCC diagnostic push
+#pragma GCC diagnostic error "-Wpadded"
+#endif // GCC >= 5 || Clang
+
 struct mission_item_s {
-	double lat;			/**< latitude in degrees				*/
-	double lon;			/**< longitude in degrees				*/
+	double lat;					/**< latitude in degrees				*/
+	double lon;					/**< longitude in degrees				*/
 	union {
 		struct {
 			union {
@@ -142,32 +152,39 @@ struct mission_item_s {
 				float pitch_min;		/**< minimal pitch angle for fixed wing takeoff waypoints */
 				float circle_radius;		/**< geofence circle radius in meters (only used for NAV_CMD_NAV_FENCE_CIRCLE*) */
 			};
-			float acceptance_radius;	/**< default radius in which the mission is accepted as reached in meters */
-			float loiter_radius;		/**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
-			float yaw;					/**< in radians NED -PI..+PI, NAN means don't change yaw		*/
+			float acceptance_radius;		/**< default radius in which the mission is accepted as reached in meters */
+			float loiter_radius;			/**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
+			float yaw;				/**< in radians NED -PI..+PI, NAN means don't change yaw		*/
 			float ___lat_float;			/**< padding */
 			float ___lon_float;			/**< padding */
 			float altitude;				/**< altitude in meters	(AMSL)			*/
 		};
 		float params[7];				/**< array to store mission command values for MAV_FRAME_MISSION ***/
 	};
-	uint16_t nav_cmd;					/**< navigation command					*/
-	int16_t do_jump_mission_index;		/**< index where the do jump will go to                 */
-	uint16_t do_jump_repeat_count;		/**< how many times do jump needs to be done            */
+
+	uint16_t nav_cmd;				/**< navigation command					*/
+
+	int16_t do_jump_mission_index;			/**< index where the do jump will go to                 */
+	uint16_t do_jump_repeat_count;			/**< how many times do jump needs to be done            */
+
 	union {
-		uint16_t do_jump_current_count;		/**< count how many times the jump has been done	*/
-		uint16_t vertex_count;			/**< Polygon vertex count (geofence)	*/
-		uint16_t land_precision;		/**< Defines if landing should be precise: 0 = normal landing, 1 = opportunistic precision landing, 2 = required precision landing (with search)	*/
+		uint16_t do_jump_current_count;			/**< count how many times the jump has been done	*/
+		uint16_t vertex_count;				/**< Polygon vertex count (geofence)	*/
+		uint16_t land_precision;			/**< Defines if landing should be precise: 0 = normal landing, 1 = opportunistic precision landing, 2 = required precision landing (with search)	*/
 	};
+
 	struct {
-		uint16_t frame : 4,					/**< mission frame */
-			 origin : 3,						/**< how the mission item was generated */
-			 loiter_exit_xtrack : 1,			/**< exit xtrack location: 0 for center of loiter wp, 1 for exit location */
-			 force_heading : 1,				/**< heading needs to be reached */
+		uint16_t frame : 4,				/**< mission frame */
+			 origin : 3,				/**< how the mission item was generated */
+			 loiter_exit_xtrack : 1,		/**< exit xtrack location: 0 for center of loiter wp, 1 for exit location */
+			 force_heading : 1,			/**< heading needs to be reached */
 			 altitude_is_relative : 1,		/**< true if altitude is relative from start point	*/
-			 autocontinue : 1,				/**< true if next waypoint should follow after this one */
-			 vtol_back_transition : 1;		/**< part of the vtol back transition sequence */
+			 autocontinue : 1,			/**< true if next waypoint should follow after this one */
+			 vtol_back_transition : 1,		/**< part of the vtol back transition sequence */
+			 _padding0 : 4;				/**< padding remaining unused bits  */
 	};
+
+	uint8_t _padding1[2];				/**< padding struct size to alignment boundary  */
 };
 
 /**
@@ -187,12 +204,16 @@ struct mission_fence_point_s {
 	double lat;
 	double lon;
 	float alt;
-	uint16_t nav_cmd;				/**< navigation command (one of MAV_CMD_NAV_FENCE_*) */
+
 	union {
 		uint16_t vertex_count;			/**< number of vertices in this polygon */
 		float circle_radius;			/**< geofence circle radius in meters (only used for NAV_CMD_NAV_FENCE_CIRCLE*) */
 	};
+
+	uint16_t nav_cmd;				/**< navigation command (one of MAV_CMD_NAV_FENCE_*) */
 	uint8_t frame;					/**< MAV_FRAME */
+
+	uint8_t _padding0[5];				/**< padding struct size to alignment boundary  */
 };
 
 /**
@@ -204,13 +225,16 @@ struct mission_save_point_s {
 	double lon;
 	float alt;
 	uint8_t frame;					/**< MAV_FRAME */
+
+	uint8_t _padding0[3];				/**< padding struct size to alignment boundary  */
 };
 
-#pragma pack(pop)
+#if (__GNUC__ >= 5) || __clang__
+#pragma GCC diagnostic pop
+#endif // GCC >= 5 || Clang
+
 #include <uORB/topics/mission.h>
 
 /**
  * @}
  */
-
-

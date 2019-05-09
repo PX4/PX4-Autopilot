@@ -38,6 +38,7 @@
  */
 
 /* XXX trim includes */
+#include <px4_time.h>
 #include <px4_config.h>
 
 #include <sys/types.h>
@@ -149,7 +150,7 @@ MS5611_SPI::init()
 	ret = SPI::init();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("SPI init failed");
+		PX4_DEBUG("SPI init failed");
 		goto out;
 	}
 
@@ -157,7 +158,7 @@ MS5611_SPI::init()
 	ret = _reset();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("reset failed");
+		PX4_DEBUG("reset failed");
 		goto out;
 	}
 
@@ -165,7 +166,7 @@ MS5611_SPI::init()
 	ret = _read_prom();
 
 	if (ret != OK) {
-		DEVICE_DEBUG("prom readout failed");
+		PX4_DEBUG("prom readout failed");
 		goto out;
 	}
 
@@ -248,7 +249,7 @@ MS5611_SPI::_read_prom()
 	 * Wait for PROM contents to be in the device (2.8 ms) in the case we are
 	 * called immediately after reset.
 	 */
-	usleep(3000);
+	px4_usleep(3000);
 
 	/* read and convert PROM words */
 	bool all_zero = true;
@@ -261,18 +262,18 @@ MS5611_SPI::_read_prom()
 			all_zero = false;
 		}
 
-		//DEVICE_DEBUG("prom[%u]=0x%x", (unsigned)i, (unsigned)_prom.c[i]);
+		//PX4_DEBUG("prom[%u]=0x%x", (unsigned)i, (unsigned)_prom.c[i]);
 	}
 
 	/* calculate CRC and return success/failure accordingly */
 	int ret = ms5611::crc4(&_prom.c[0]) ? OK : -EIO;
 
 	if (ret != OK) {
-		DEVICE_DEBUG("crc failed");
+		PX4_DEBUG("crc failed");
 	}
 
 	if (all_zero) {
-		DEVICE_DEBUG("prom all zero");
+		PX4_DEBUG("prom all zero");
 		ret = -EIO;
 	}
 

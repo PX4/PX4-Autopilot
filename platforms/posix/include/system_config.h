@@ -39,10 +39,9 @@
 
 #pragma once
 
-#define SIM_FORMATED_UUID "000000010000000200000003"
+#define PX4_CPU_UUID_BYTE_LENGTH 16
+#define PX4_CPU_UUID_WORD32_LENGTH 4
 
-#define PX4_CPU_UUID_BYTE_LENGTH 12
-#define PX4_CPU_UUID_WORD32_LENGTH 3
 #define PX4_CPU_MFGUID_BYTE_LENGTH              PX4_CPU_UUID_BYTE_LENGTH
 #define PX4_CPU_UUID_WORD32_UNIQUE_H            2 /* Most significant digits change the least */
 #define PX4_CPU_UUID_WORD32_UNIQUE_M            1 /* Middle significant digits */
@@ -52,9 +51,6 @@
 
 #define BOARD_OVERRIDE_CPU_VERSION (-1)
 #define board_mcu_version(rev, revstr, errata) BOARD_OVERRIDE_CPU_VERSION
-
-#define board_get_uuid32(id) do {for(int _idi=0; _idi < PX4_CPU_UUID_WORD32_LENGTH; _idi++) {id[_idi] = _idi;}} while(0)
-#define board_get_uuid32_formated(format_buffer, size, format, seperator) do { strcpy(format_buffer, SIM_FORMATED_UUID); } while(0)
 
 #define BOARD_HAS_NO_UUID
 

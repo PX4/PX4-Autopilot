@@ -49,7 +49,7 @@
 #include <cstdlib>
 #include <string.h>
 #include <stdio.h>
-#include <platforms/px4_getopt.h>
+#include <px4_getopt.h>
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 # error This requires CONFIG_SCHED_WORKQUEUE.
@@ -114,6 +114,7 @@ void start(enum LL40LS_BUS busid, uint8_t rotation)
 
 	if (instance) {
 		PX4_INFO("driver already started");
+		return;
 	}
 
 	if (busid == LL40LS_BUS_PWM) {
@@ -149,7 +150,6 @@ void start(enum LL40LS_BUS busid, uint8_t rotation)
 
 			PX4_ERR("failed to initialize LidarLiteI2C on busnum=%u", bus_options[i].busnum);
 			stop();
-			return;
 		}
 	}
 

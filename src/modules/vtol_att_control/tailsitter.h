@@ -46,30 +46,32 @@
 #include <perf/perf_counter.h>  /** is it necsacery? **/
 #include <parameters/param.h>
 #include <drivers/drv_hrt.h>
+#include <matrix/matrix/math.hpp>
 
 class Tailsitter : public VtolType
 {
 
 public:
 	Tailsitter(VtolAttitudeControl *_att_controller);
-	~Tailsitter() = default;
+	~Tailsitter() override = default;
 
-	virtual void update_vtol_state();
-	virtual void update_transition_state();
-	virtual void update_mc_state();
-	virtual void update_fw_state();
-	virtual void fill_actuator_outputs();
-	virtual void waiting_on_tecs();
+	void update_vtol_state() override;
+	void update_transition_state() override;
+	void update_fw_state() override;
+	void fill_actuator_outputs() override;
+	void waiting_on_tecs() override;
 
 private:
 
 	struct {
 		float front_trans_dur_p2;
-	} _params_tailsitter;
+		float fw_pitch_sp_offset;
+	} _params_tailsitter{};
 
 	struct {
 		param_t front_trans_dur_p2;
-	} _params_handles_tailsitter;
+		param_t fw_pitch_sp_offset;
+	} _params_handles_tailsitter{};
 
 	enum vtol_mode {
 		MC_MODE = 0,			/**< vtol is in multicopter mode */
@@ -83,14 +85,11 @@ private:
 		hrt_abstime transition_start;	/**< absoulte time at which front transition started */
 	} _vtol_schedule;
 
-	float _thrust_transition_start; // throttle value when we start the front transition
-	float _yaw_transition;	// yaw angle in which transition will take place
-	float _pitch_transition_start;  // pitch angle at the start of transition (tailsitter)
+	matrix::Quatf _q_trans_start;
+	matrix::Quatf _q_trans_sp;
+	matrix::Vector3f _trans_rot_axis;
 
-	/**
-	 * Update parameters.
-	 */
-	virtual void parameters_update();
+	void parameters_update() override;
 
 };
 #endif

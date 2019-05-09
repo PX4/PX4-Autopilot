@@ -38,13 +38,14 @@ set(msg_files
 	actuator_outputs.msg
 	adc_report.msg
 	airspeed.msg
-	att_pos_mocap.msg
 	battery_status.msg
 	camera_capture.msg
 	camera_trigger.msg
 	collision_report.msg
+	collision_constraints.msg
 	commander_state.msg
 	cpuload.msg
+	debug_array.msg
 	debug_key_value.msg
 	debug_value.msg
 	debug_vect.msg
@@ -52,12 +53,12 @@ set(msg_files
 	distance_sensor.msg
 	ekf2_innovations.msg
 	ekf2_timestamps.msg
+	ekf_gps_drift.msg
 	ekf_gps_position.msg
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
 	follow_target.msg
-	fw_pos_ctrl_status.msg
 	geofence_result.msg
 	gps_dump.msg
 	gps_inject_data.msg
@@ -65,6 +66,7 @@ set(msg_files
 	input_rc.msg
 	iridiumsbd_status.msg
 	irlock_report.msg
+	landing_gear.msg
 	landing_target_innovations.msg
 	landing_target_pose.msg
 	led_control.msg
@@ -78,14 +80,18 @@ set(msg_files
 	obstacle_distance.msg
 	offboard_control_mode.msg
 	optical_flow.msg
+	orbit_status.msg
 	parameter_update.msg
 	ping.msg
+	position_controller_landing_status.msg
+	position_controller_status.msg
 	position_setpoint.msg
 	position_setpoint_triplet.msg
 	power_button_state.msg
 	pwm_input.msg
 	qshell_req.msg
 	qshell_retval.msg
+	radio_status.msg
 	rate_ctrl_status.msg
 	rc_channels.msg
 	rc_parameter_map.msg
@@ -120,6 +126,7 @@ set(msg_files
 	vehicle_attitude_setpoint.msg
 	vehicle_command.msg
 	vehicle_command_ack.msg
+	vehicle_constraints.msg
 	vehicle_control_mode.msg
 	vehicle_global_position.msg
 	vehicle_gps_position.msg
@@ -127,6 +134,7 @@ set(msg_files
 	vehicle_local_position.msg
 	vehicle_local_position_setpoint.msg
 	vehicle_magnetometer.msg
+	vehicle_odometry.msg
 	vehicle_rates_setpoint.msg
 	vehicle_roi.msg
 	vehicle_status.msg
@@ -134,7 +142,6 @@ set(msg_files
 	vehicle_trajectory_waypoint.msg
 	vtol_vehicle_status.msg
 	wind_estimate.msg
-	vehicle_constraints.msg
 	)
 
 if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")

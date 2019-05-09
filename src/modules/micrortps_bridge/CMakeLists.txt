@@ -40,20 +40,27 @@ if(NOT FASTRTPSGEN)
 	message(FATAL_ERROR "Unable to find fastrtpsgen")
 endif()
 
-set(config_rtps_send_topics
-	sensor_combined
-	sensor_baro
-	sensor_selection
-	vehicle_gps_position
-	airspeed
-	vehicle_land_detected
-	vehicle_status
-   )
+if (EXISTS "${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_message_ids.yaml")
 
-set(config_rtps_receive_topics
-   sensor_baro
-   optical_flow
-   )
+  set(config_rtps_send_topics)
+	execute_process(
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_classifier.py -s
+		OUTPUT_VARIABLE config_rtps_send_topics
+	)
+
+	STRING(REGEX REPLACE ", " ";" config_rtps_send_topics "${config_rtps_send_topics}")
+	STRING(REGEX REPLACE "\n" "" config_rtps_send_topics "${config_rtps_send_topics}")
+
+	set(config_rtps_receive_topics)
+	execute_process(
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_classifier.py -r
+		OUTPUT_VARIABLE config_rtps_receive_topics
+	)
+
+	STRING(REGEX REPLACE ", " ";" config_rtps_receive_topics "${config_rtps_receive_topics}")
+	STRING(REGEX REPLACE "\n" "" config_rtps_receive_topics "${config_rtps_receive_topics}")
+
+endif()
 
 if (FASTRTPSGEN AND (config_rtps_send_topics OR config_rtps_receive_topics))
 	option(GENERATE_RTPS_BRIDGE "enable RTPS and microCDR" ON)
@@ -69,7 +76,7 @@ if (GENERATE_RTPS_BRIDGE)
 	###############################################################################
 	# micro-cdr serialization
 	###############################################################################
-	include(common/px4_git)
+	include(px4_git)
 	px4_add_git_submodule(TARGET git_micro_cdr PATH micro-CDR)
 	add_subdirectory(micro-CDR)
 
@@ -89,6 +96,7 @@ if (GENERATE_RTPS_BRIDGE)
 	endforeach()
 
 	# receive topic files
+	message(STATUS "RTPS receive: ${config_rtps_receive_topics}")
 	set(receive_topic_files)
 	foreach(topic ${config_rtps_receive_topics})
 		list(APPEND receive_topic_files ${PX4_SOURCE_DIR}/msg/${topic}.msg)
@@ -137,6 +145,7 @@ if (GENERATE_RTPS_BRIDGE)
 		git_micro_cdr
 		microcdr
 	)
+	add_dependencies(microcdr prebuild_targets)
 
 	# microCDR
 	target_include_directories(uorb_msgs_microcdr

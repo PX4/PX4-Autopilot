@@ -39,47 +39,66 @@ endif()
 
 # get full path for each module
 get_property(module_list GLOBAL PROPERTY PX4_MODULE_PATHS)
-if (DISABLE_PARAMS_MODULE_SCOPING)
+get_property(module_config_files GLOBAL PROPERTY PX4_MODULE_CONFIG_FILES)
+
+if(DISABLE_PARAMS_MODULE_SCOPING)
 	# search all directories with .c files (potentially containing parameters)
-	file(GLOB_RECURSE new_list
+	file(GLOB_RECURSE c_files
 		${PX4_SOURCE_DIR}/src/*.c
 		${external_module_paths}
 		)
-	foreach(file_path ${new_list})
+	foreach(file_path ${c_files})
 		get_filename_component(dir_path ${file_path} PATH)
 		list(APPEND module_list "${dir_path}")
 	endforeach()
-	list(REMOVE_DUPLICATES module_list)
-else()
-	foreach(module ${config_module_list})
-		# include all subdirectories as well
-		file(GLOB children RELATIVE ${PX4_SOURCE_DIR}/src/${module} ${PX4_SOURCE_DIR}/src/${module}/*)
-		foreach(child ${children})
-			if(IS_DIRECTORY ${PX4_SOURCE_DIR}/src/${module}/${child})
-				list(APPEND module_list ${PX4_SOURCE_DIR}/src/${module}/${child})
-			endif()
-		endforeach()
 
-		list(APPEND module_list ${PX4_SOURCE_DIR}/src/${module})
+	# search for all module configs as well
+	file(GLOB_RECURSE yaml_files
+		${PX4_SOURCE_DIR}/src/*.yaml
+		)
+	foreach(file_path ${yaml_files})
+		list(APPEND module_config_files "${file_path}")
 	endforeach()
 
+	list(REMOVE_DUPLICATES module_config_files)
+else()
 	list(APPEND module_list ${external_module_paths})
 endif()
 
 list(REMOVE_DUPLICATES module_list)
 
+set(generated_params_dir ${PX4_BINARY_DIR}/generated_params)
+set(generated_serial_params_file ${generated_params_dir}/serial_params.c)
+file(GLOB jinja_templates ${PX4_SOURCE_DIR}/Tools/serial/*.jinja)
+if (px4_constrained_flash_build)
+	set(added_arguments --constrained-flash)
+endif()
+add_custom_command(OUTPUT ${generated_serial_params_file}
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_params_dir}
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
+		--params-file ${generated_serial_params_file}
+		--serial-ports ${board_serial_ports} ${added_arguments}
+		--config-files ${module_config_files} #--verbose
+	DEPENDS
+		${module_config_files}
+		${jinja_templates}
+		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
+	COMMENT "Generating serial_params.c"
+)
+
 set(parameters_xml ${PX4_BINARY_DIR}/parameters.xml)
 file(GLOB_RECURSE param_src_files ${PX4_SOURCE_DIR}/src/*params.c)
 add_custom_command(OUTPUT ${parameters_xml}
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_process_params.py
-		--src-path ${module_list}
+		--src-path ${module_list} ${generated_params_dir}
 		--xml ${parameters_xml}
 		--inject-xml ${CMAKE_CURRENT_SOURCE_DIR}/parameters_injected.xml
 		--overrides ${PARAM_DEFAULT_OVERRIDES}
-		--board ${BOARD}
+		--board ${PX4_BOARD}
 		#--verbose
 	DEPENDS
 		${param_src_files}
+		${generated_serial_params_file}
 		parameters_injected.xml
 		px4params/srcparser.py
 		px4params/srcscanner.py
@@ -105,17 +124,18 @@ add_custom_command(OUTPUT px4_parameters.c px4_parameters.h px4_parameters_publi
 set(SRCS)
 if ("${CONFIG_SHMEM}" STREQUAL "1")
 	message(STATUS "parameters shared memory enabled")
-	list(APPEND SRCS param_shmem.c)
+	add_definitions(-DCONFIG_SHMEM=1)
+	list(APPEND SRCS parameters_shmem.cpp)
 else()
-	list(APPEND SRCS param.c)
+	list(APPEND SRCS parameters.cpp)
 endif()
 
-if(${OS} STREQUAL "nuttx")
+if(${PX4_PLATFORM} STREQUAL "nuttx")
 	add_subdirectory(flashparams)
 endif()
 
 # TODO: find a better way to do this
-if (NOT "${CONFIG}" MATCHES "px4io")
+if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 	add_library(parameters
 		${SRCS}
 		px4_parameters.c
@@ -129,12 +149,16 @@ if (NOT "${CONFIG}" MATCHES "px4io")
 
 	target_link_libraries(parameters PRIVATE perf tinybson)
 	target_compile_definitions(parameters PRIVATE -DMODULE_NAME="parameters")
-	target_compile_options(parameters PRIVATE -Wno-sign-compare) # TODO: fix this
+	target_compile_options(parameters
+		PRIVATE
+			-Wno-cast-align		# TODO: fix and enable
+			-Wno-sign-compare	# TODO: fix and enable
+	)
 else()
 	add_library(parameters ${PX4_SOURCE_DIR}/src/platforms/empty.c)
 endif()
 add_dependencies(parameters prebuild_targets)
 
-if(${OS} STREQUAL "nuttx")
-	target_link_libraries(parameters PRIVATE flashparams)
+if(${PX4_PLATFORM} STREQUAL "nuttx")
+	target_link_libraries(parameters PRIVATE flashparams tinybson)
 endif()

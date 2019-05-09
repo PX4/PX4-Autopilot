@@ -47,6 +47,7 @@
 #include <drivers/drv_mag.h>
 
 #include <lib/conversion/rotation.h>
+#include <systemlib/err.h>
 
 #include <perf/perf_counter.h>
 #include <px4_defines.h>
@@ -62,7 +63,7 @@
 /* Max measurement rate is 80Hz */
 #define LIS3MDL_CONVERSION_INTERVAL     (1000000 / 80)  /* 12,500 microseconds */
 
-#define NUM_BUS_OPTIONS                 (sizeof(bus_options)/sizeof(bus_options[0]))
+#define NUM_BUS_OPTIONS                 (sizeof(lis3mdl::bus_options)/sizeof(lis3mdl::bus_options[0]))
 
 #define ADDR_WHO_AM_I                   0x0f
 #define ID_WHO_AM_I                     0x3d

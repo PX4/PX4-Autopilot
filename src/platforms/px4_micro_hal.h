@@ -32,7 +32,7 @@
  ****************************************************************************/
 #pragma once
 /*
- * This file is a shim to bridge to nuttx_v3
+ * This file is a shim to bridge to the many SoC architecture supported by PX4
  */
 
 #ifdef __PX4_NUTTX
@@ -57,6 +57,7 @@ __BEGIN_DECLS
 
 #    if defined(CONFIG_ARCH_CHIP_STM32)
 #      include <stm32.h>
+#      define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32F4
 #      define PX4_FLASH_BASE  STM32_FLASH_BASE
 #      if defined(CONFIG_STM32_STM32F4XXX)
 #        include <stm32_bbsram.h>
@@ -67,6 +68,7 @@ __BEGIN_DECLS
 #    endif
 
 #    if defined(CONFIG_ARCH_CHIP_STM32F7)
+#      define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32F7
 #      include <chip.h>
 #      include <up_internal.h> //include up_systemreset() which is included on stm32.h
 #      include <stm32_bbsram.h>
@@ -140,18 +142,19 @@ __BEGIN_DECLS
 #    define px4_arch_unconfiggpio(pinset)           stm32_unconfiggpio(pinset)
 #    define px4_arch_gpioread(pinset)               stm32_gpioread(pinset)
 #    define px4_arch_gpiowrite(pinset, value)       stm32_gpiowrite(pinset, value)
-#    define px4_arch_gpiosetevent(pinset,r,f,e,fp)  stm32_gpiosetevent(pinset,r,f, e,fp)
+#    define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  stm32_gpiosetevent(pinset,r,f,e,fp,a)
 #endif // defined(CONFIG_ARCH_CHIP_STM32) || defined(CONFIG_ARCH_CHIP_STM32F7)
 
 #if defined(CONFIG_ARCH_CHIP_KINETIS)
+#    define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_KINETISK66
 
 #    // Fixme: using ??
-#    define PX4_BBSRAM_SIZE          2048
-#    define PX4_BBSRAM_GETDESC_IOCTL 0
-#    define PX4_NUMBER_I2C_BUSES     KINETIS_NI2C
+#    define PX4_BBSRAM_SIZE             2048
+#    define PX4_BBSRAM_GETDESC_IOCTL    0
+#    define PX4_NUMBER_I2C_BUSES        KINETIS_NI2C
 
-#    define GPIO_OUTPUT_SET          GPIO_OUTPUT_ONE
-#    define GPIO_OUTPUT_CLEAR        GPIO_OUTPUT_ZER0
+#    define GPIO_OUTPUT_SET             GPIO_OUTPUT_ONE
+#    define GPIO_OUTPUT_CLEAR           GPIO_OUTPUT_ZERO
 
 #    include <chip.h>
 #    include <kinetis_spi.h>
@@ -175,7 +178,7 @@ __BEGIN_DECLS
 /* The mfguid will be an array of bytes with
  * MSD @ index 0 - LSD @ index PX4_CPU_MFGUID_BYTE_LENGTH-1
  *
- * It wil be conferted to a string with the MSD on left and LSD on the right most position.
+ * It will be converted to a string with the MSD on left and LSD on the right most position.
  */
 #    define PX4_CPU_MFGUID_BYTE_LENGTH              PX4_CPU_UUID_BYTE_LENGTH
 
@@ -210,69 +213,13 @@ __BEGIN_DECLS
 #    define px4_arch_unconfiggpio(pinset)
 #    define px4_arch_gpioread(pinset)               kinetis_gpioread(pinset)
 #    define px4_arch_gpiowrite(pinset, value)       kinetis_gpiowrite(pinset, value)
-#    define px4_arch_gpiosetevent(pinset,r,f,e,fp)  kinetis_gpiosetevent(pinset,r,f, e,fp)
-#  endif
 
-#  if defined(CONFIG_ARCH_CHIP_SAMV7)
-#    include <sam_spi.h>
-#    include <sam_twihs.h>
+/* kinetis_gpiosetevent is not implemented and will need to be added */
 
-#    // Fixme: using ??
-#    define PX4_BBSRAM_SIZE          2048
-#    define PX4_BBSRAM_GETDESC_IOCTL 0
-#    define PX4_NUMBER_I2C_BUSES     SAMV7_NTWIHS
-
-//todo:define this for Atmel and add loader.
-/* Atmel defines the 128 bit UUID as
- *  init8_t[8] that can be read as bytes using Start Read Unique Identifier
- *
- *  PX4 uses the bytes in bigendian order MSB to LSB
- *   word  [0]    [1]    [2]   [3]
- *   bits 127:96  95-64  63-32, 31-00,
- */
-#    define PX4_CPU_UUID_BYTE_LENGTH                16
-#    define PX4_CPU_UUID_WORD32_LENGTH              (PX4_CPU_UUID_BYTE_LENGTH/sizeof(uint32_t))
-
-/* The mfguid will be an array of bytes with
- * MSD @ index 0 - LSD @ index PX4_CPU_MFGUID_BYTE_LENGTH-1
- *
- * It will be converted to a string with the MSD on left and LSD on the right most position.
- */
-#    define PX4_CPU_MFGUID_BYTE_LENGTH              PX4_CPU_UUID_BYTE_LENGTH
-
-/* define common formating across all commands */
-
-#    define PX4_CPU_UUID_WORD32_FORMAT              "%08x"
-#    define PX4_CPU_UUID_WORD32_SEPARATOR           ":"
-
-#    define PX4_CPU_UUID_WORD32_UNIQUE_H            3 /* Least significant digits change the most */
-#    define PX4_CPU_UUID_WORD32_UNIQUE_M            2 /* Middle High significant digits */
-#    define PX4_CPU_UUID_WORD32_UNIQUE_L            1 /* Middle Low significant digits */
-#    define PX4_CPU_UUID_WORD32_UNIQUE_N            0 /* Most significant digits change the least */
-
-/*                                                  Separator    nnn:nnn:nnnn     2 char per byte           term */
-#    define PX4_CPU_UUID_WORD32_FORMAT_SIZE         (PX4_CPU_UUID_WORD32_LENGTH-1+(2*PX4_CPU_UUID_BYTE_LENGTH)+1)
-#    define PX4_CPU_MFGUID_FORMAT_SIZE              ((2*PX4_CPU_MFGUID_BYTE_LENGTH)+1)
-
-#    define atmel_bbsram_savepanic(fileno, context, length) (0) // todo:Not implemented yet
-
-#    define px4_savepanic(fileno, context, length)   atmel_bbsram_savepanic(fileno, context, length)
-
-/* bus_num is zero based on same70 and must be translated from the legacy one based */
-
-#    define PX4_BUS_OFFSET       1                  /* Same70 buses are 0 based and adjustment is needed */
-#    define px4_spibus_initialize(bus_num_1based)   sam_spibus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
-
-#    define px4_i2cbus_initialize(bus_num_1based)   sam_i2cbus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
-#    define px4_i2cbus_uninitialize(pdev)           sam_i2cbus_uninitialize(pdev)
-
-#    define px4_arch_configgpio(pinset)             sam_configgpio(pinset)
-#    define px4_arch_unconfiggpio(pinset)           sam_unconfiggpio(pinset)
-#    define px4_arch_gpioread(pinset)               sam_gpioread(pinset)
-#    define px4_arch_gpiowrite(pinset, value)       sam_gpiowrite(pinset, value)
-#    define px4_arch_gpiosetevent(pinset,r,f,e,fp)  sam_gpiosetevent(pinset,r,f, e,fp)
+#    define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  kinetis_gpiosetevent(pinset,r,f,e,fp,a)
 #  endif
 
 #include <arch/board/board.h>
+
 __END_DECLS
 #endif

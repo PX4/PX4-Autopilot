@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <float.h>
 #include <unistd.h>
 #include <px4_getopt.h>
 #include <errno.h>
@@ -124,9 +125,9 @@ private:
 	float			_mag_range_scale;
 	unsigned		_mag_samplerate;
 
-	orb_advert_t		_accel_topic;
-	int			_accel_orb_class_instance;
-	int			_accel_class_instance;
+	orb_advert_t		_accel_topic{nullptr};
+	int			_accel_orb_class_instance{-1};
+	int			_accel_class_instance{-1};
 
 	unsigned		_accel_read;
 	unsigned		_mag_read;
@@ -223,9 +224,9 @@ protected:
 private:
 	ACCELSIM	*_parent;
 
-	orb_advert_t	_mag_topic;
-	int		_mag_orb_class_instance;
-	int		_mag_class_instance;
+	orb_advert_t	_mag_topic{nullptr};
+	int		_mag_orb_class_instance{-1};
+	int		_mag_class_instance{-1};
 
 	virtual void	_measure();
 
@@ -249,9 +250,6 @@ ACCELSIM::ACCELSIM(const char *path, enum Rotation rotation) :
 	_mag_range_ga(0.0f),
 	_mag_range_scale(0.0f),
 	_mag_samplerate(0),
-	_accel_topic(nullptr),
-	_accel_orb_class_instance(-1),
-	_accel_class_instance(-1),
 	_accel_read(0),
 	_mag_read(0),
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, "sim_accel_read")),
@@ -317,65 +315,38 @@ ACCELSIM::~ACCELSIM()
 int
 ACCELSIM::init()
 {
-	int ret = -1;
-
-	struct mag_report mrp = {};
-	struct accel_report arp = {};
-
 	/* do SIM init first */
-	if (VirtDevObj::init() != 0) {
+	int ret = VirtDevObj::init();
+
+	if (ret != PX4_OK) {
 		PX4_WARN("SIM init failed");
-		goto out;
+		return ret;
 	}
 
 	/* allocate basic report buffers */
-	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
 
 	if (_accel_reports == nullptr) {
-		goto out;
+		PX4_WARN("_accel_reports creation failed");
+		return -ENOMEM;
 	}
 
-	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
+	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_mag_s));
 
 	if (_mag_reports == nullptr) {
-		goto out;
+		PX4_WARN("_mag_reports creation failed");
+		return -ENOMEM;
 	}
 
 	/* do init for the mag device node */
 	ret = _mag->init();
 
-	if (ret != OK) {
+	if (ret != PX4_OK) {
 		PX4_WARN("MAG init failed");
-		goto out;
+		return ret;
 	}
 
-	/* fill report structures */
-	_measure();
-
-	/* advertise sensor topic, measure manually to initialize valid report */
-	_mag_reports->get(&mrp);
-
-	/* measurement will have generated a report, publish */
-	_mag->_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
-					       &_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
-
-	if (_mag->_mag_topic == nullptr) {
-		PX4_WARN("ADVERT ERR");
-	}
-
-	/* advertise sensor topic, measure manually to initialize valid report */
-	_accel_reports->get(&arp);
-
-	/* measurement will have generated a report, publish */
-	_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-					   &_accel_orb_class_instance, ORB_PRIO_DEFAULT);
-
-	if (_accel_topic == nullptr) {
-		PX4_WARN("ADVERT ERR");
-	}
-
-out:
-	return ret;
+	return PX4_OK;
 }
 
 int
@@ -409,8 +380,8 @@ ACCELSIM::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 ssize_t
 ACCELSIM::devRead(void *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct accel_report);
-	accel_report *arb = reinterpret_cast<accel_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_accel_s);
+	sensor_accel_s *arb = reinterpret_cast<sensor_accel_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -496,23 +467,11 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (ul_arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				m_sample_interval_usecs = 0;
-				return OK;
-
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
-				return devIOCTL(SENSORIOCSPOLLRATE, 1600);
-
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				return devIOCTL(SENSORIOCSPOLLRATE, ACCELSIM_ACCEL_DEFAULT_RATE);
 
@@ -543,36 +502,9 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCGPOLLRATE:
-		if (m_sample_interval_usecs == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return 1000000 / m_sample_interval_usecs;
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((ul_arg < 1) || (ul_arg > 100)) {
-				return -EINVAL;
-			}
-
-			if (!_accel_reports->resize(ul_arg)) {
-				return -ENOMEM;
-			}
-
-			return OK;
-		}
-
 	case SENSORIOCRESET:
 		// Nothing to do for simulator
 		return OK;
-
-	case ACCELIOCSSAMPLERATE:
-		// No need to set internal sampling rate for simulator
-		return OK;
-
-	case ACCELIOCGSAMPLERATE:
-		return _accel_samplerate;
 
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
@@ -587,19 +519,6 @@ ACCELSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 				return -EINVAL;
 			}
 		}
-
-	case ACCELIOCSRANGE:
-		/* arg needs to be in G */
-		return accel_set_range(ul_arg);
-
-	case ACCELIOCGRANGE:
-		/* convert to m/s^2 and return rounded in G */
-		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
-
-	case ACCELIOCGSCALE:
-		/* copy scale out */
-		memcpy((struct accel_calibration_s *) arg, &(_accel_scale), sizeof(_accel_scale));
-		return OK;
 
 	default:
 		/* give it to the superclass */
@@ -617,21 +536,11 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				_mag->stop();
-				_mag->m_sample_interval_usecs = 0;
-				return OK;
-
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				/* 100 Hz is max for mag */
 				return mag_ioctl(SENSORIOCSPOLLRATE, 100);
@@ -660,36 +569,9 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCGPOLLRATE:
-		if (_mag->m_sample_interval_usecs == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return 1000000 / _mag->m_sample_interval_usecs;
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			if (!_mag_reports->resize(arg)) {
-				return -ENOMEM;
-			}
-
-			return OK;
-		}
-
 	case SENSORIOCRESET:
 		// Nothing to do for simulator
 		return OK;
-
-	case MAGIOCSSAMPLERATE:
-		// No need to set internal sampling rate for simulator
-		return OK;
-
-	case MAGIOCGSAMPLERATE:
-		return _mag_samplerate;
 
 	case MAGIOCSSCALE:
 		/* copy scale in */
@@ -703,9 +585,6 @@ ACCELSIM::mag_ioctl(unsigned long cmd, unsigned long arg)
 
 	case MAGIOCSRANGE:
 		return mag_set_range(arg);
-
-	case MAGIOCGRANGE:
-		return _mag_range_ga;
 
 	case MAGIOCGEXTERNAL:
 		/* Even if this sensor is on the "external" SPI bus
@@ -806,7 +685,7 @@ ACCELSIM::_measure()
 	} raw_accel_report;
 #pragma pack(pop)
 
-	accel_report accel_report = {};
+	sensor_accel_s accel_report = {};
 
 	/* start the performance counter */
 	perf_begin(_accel_sample_perf);
@@ -834,8 +713,8 @@ ACCELSIM::_measure()
 	 *		  74 from all measurements centers them around zero.
 	 */
 
-
 	accel_report.timestamp = hrt_absolute_time();
+	accel_report.device_id = 1310728;
 
 	// use the temperature from the last mag reading
 	accel_report.temperature = _last_temperature;
@@ -846,27 +725,30 @@ ACCELSIM::_measure()
 	// whether it has had failures
 	accel_report.error_count = perf_event_count(_bad_registers) + perf_event_count(_bad_values);
 
-	accel_report.x_raw = (int16_t)(raw_accel_report.x / _accel_range_scale);
-	accel_report.y_raw = (int16_t)(raw_accel_report.y / _accel_range_scale);
-	accel_report.z_raw = (int16_t)(raw_accel_report.z / _accel_range_scale);
+	if (math::isZero(_accel_range_scale)) {
+		_accel_range_scale = FLT_EPSILON;
+	}
+
+	accel_report.x_raw = math::constrainFloatToInt16(raw_accel_report.x / _accel_range_scale);
+	accel_report.y_raw = math::constrainFloatToInt16(raw_accel_report.y / _accel_range_scale);
+	accel_report.z_raw = math::constrainFloatToInt16(raw_accel_report.z / _accel_range_scale);
 
 	accel_report.x = raw_accel_report.x;
 	accel_report.y = raw_accel_report.y;
 	accel_report.z = raw_accel_report.z;
 
+	//accel_report.integral_dt = 0;
+	//accel_report.x_integral = 0.0f;
+	//accel_report.y_integral = 0.0f;
+	//accel_report.z_integral = 0.0f;
+
+	accel_report.temperature = 25.0f;
+
 	accel_report.scaling = _accel_range_scale;
 
 	_accel_reports->force(&accel_report);
 
-	if (!(m_pub_blocked)) {
-		/* publish it */
-
-		// The first call to measure() is from init() and _accel_topic is not
-		// yet initialized
-		if (_accel_topic != nullptr) {
-			orb_publish(ORB_ID(sensor_accel), _accel_topic, &accel_report);
-		}
-	}
+	orb_publish_auto(ORB_ID(sensor_accel), &_accel_topic, &accel_report, &_accel_orb_class_instance, ORB_PRIO_DEFAULT);
 
 	_accel_read++;
 
@@ -888,8 +770,6 @@ ACCELSIM::mag_measure()
 		float		z;
 	} raw_mag_report;
 #pragma pack(pop)
-
-	mag_report mag_report = {};
 
 	/* start the performance counter */
 	perf_begin(_mag_sample_perf);
@@ -917,18 +797,22 @@ ACCELSIM::mag_measure()
 	 *		  74 from all measurements centers them around zero.
 	 */
 
-
+	mag_report mag_report = {};
 	mag_report.timestamp = hrt_absolute_time();
+	mag_report.device_id = 196616;
 	mag_report.is_external = false;
 
-	mag_report.x_raw = (int16_t)(raw_mag_report.x / _mag_range_scale);
-	mag_report.y_raw = (int16_t)(raw_mag_report.y / _mag_range_scale);
-	mag_report.z_raw = (int16_t)(raw_mag_report.z / _mag_range_scale);
+	if (math::isZero(_mag_range_scale)) {
+		_mag_range_scale = FLT_EPSILON;
+	}
 
-	float xraw_f = (int16_t)(raw_mag_report.x / _mag_range_scale);
-	float yraw_f = (int16_t)(raw_mag_report.y / _mag_range_scale);
-	float zraw_f = (int16_t)(raw_mag_report.z / _mag_range_scale);
+	float xraw_f = math::constrainFloatToInt16(raw_mag_report.x / _mag_range_scale);
+	float yraw_f = math::constrainFloatToInt16(raw_mag_report.y / _mag_range_scale);
+	float zraw_f = math::constrainFloatToInt16(raw_mag_report.z / _mag_range_scale);
 
+	mag_report.x_raw = xraw_f;
+	mag_report.y_raw = yraw_f;
+	mag_report.z_raw = zraw_f;
 
 	/* apply user specified rotation */
 	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
@@ -944,10 +828,7 @@ ACCELSIM::mag_measure()
 
 	_mag_reports->force(&mag_report);
 
-	if (!(m_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_mag), _mag->_mag_topic, &mag_report);
-	}
+	orb_publish_auto(ORB_ID(sensor_mag), &_mag->_mag_topic, &mag_report, &_mag->_mag_orb_class_instance, ORB_PRIO_LOW);
 
 	_mag_read++;
 

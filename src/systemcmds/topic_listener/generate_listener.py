@@ -123,7 +123,7 @@ for index, (m, t) in enumerate(zip(messages, topics)):
 		print("\tif (strncmp(topic_name,\"%s\", %d) == 0) {" % (t, len(t)))
 	else:
 		print("\t} else if (strcmp(topic_name,\"%s\") == 0) {" % (t))
-	print("\t\tlistener<%s_s>(ORB_ID(%s), num_msgs, topic_instance, topic_interval);" % (m, t))
+	print("\t\tlistener(listener_print_topic<%s_s>, ORB_ID(%s), num_msgs, topic_instance, topic_interval);" % (m, t))
 
 print("\t} else {")
 print("\t\t PX4_INFO_RAW(\" Topic did not match any known topics\\n\");")

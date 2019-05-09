@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include <cfloat>
+#include <float.h>
 
 #include <board_config.h>
 #include <drivers/drv_hrt.h>

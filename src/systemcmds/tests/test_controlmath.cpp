@@ -1,7 +1,47 @@
+/****************************************************************************
+ *
+ *  Copyright (C) 2018-2019 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file test_controlmath.cpp
+ * Tests for the controls calculations.
+ */
+
 #include <unit_test.h>
 #include <mc_pos_control/Utility/ControlMath.hpp>
 #include <mathlib/mathlib.h>
-#include <cfloat>
+#include <float.h>
+
+#define SIGMA_SINGLE_OP			0.000001f
 
 class ControlMathTest : public UnitTest
 {
@@ -32,20 +72,20 @@ bool ControlMathTest::testThrAttMapping()
 	matrix::Vector3f thr{0.0f, 0.0f, -1.0f};
 	float yaw = 0.0f;
 	vehicle_attitude_setpoint_s att = ControlMath::thrustToAttitude(thr, yaw);
-	ut_assert_true(att.roll_body < FLT_EPSILON);
-	ut_assert_true(att.pitch_body < FLT_EPSILON);
-	ut_assert_true(att.yaw_body < FLT_EPSILON);
-	ut_assert_true(att.thrust - 1.0f < FLT_EPSILON);
+	ut_assert_true(att.roll_body < SIGMA_SINGLE_OP);
+	ut_assert_true(att.pitch_body < SIGMA_SINGLE_OP);
+	ut_assert_true(att.yaw_body < SIGMA_SINGLE_OP);
+	ut_assert_true(-att.thrust_body[2] - 1.0f < SIGMA_SINGLE_OP);
 
 	/* expected: same as before but with 90 yaw
 	 * reason: only yaw changed
 	 */
 	yaw = M_PI_2_F;
 	att = ControlMath::thrustToAttitude(thr, yaw);
-	ut_assert_true(att.roll_body < FLT_EPSILON);
-	ut_assert_true(att.pitch_body < FLT_EPSILON);
-	ut_assert_true(att.yaw_body - M_PI_2_F < FLT_EPSILON);
-	ut_assert_true(att.thrust - 1.0f < FLT_EPSILON);
+	ut_assert_true(att.roll_body < SIGMA_SINGLE_OP);
+	ut_assert_true(att.pitch_body < SIGMA_SINGLE_OP);
+	ut_assert_true(att.yaw_body - M_PI_2_F < SIGMA_SINGLE_OP);
+	ut_assert_true(-att.thrust_body[2] - 1.0f < SIGMA_SINGLE_OP);
 
 	/* expected: same as before but roll 180
 	 * reason: thrust points straight down and order Euler
@@ -53,10 +93,10 @@ bool ControlMathTest::testThrAttMapping()
 	 */
 	thr = matrix::Vector3f(0.0f, 0.0f, 1.0f);
 	att = ControlMath::thrustToAttitude(thr, yaw);
-	ut_assert_true(fabsf(att.roll_body) - M_PI_F < FLT_EPSILON);
-	ut_assert_true(fabsf(att.pitch_body) < FLT_EPSILON);
-	ut_assert_true(att.yaw_body - M_PI_2_F < FLT_EPSILON);
-	ut_assert_true(att.thrust - 1.0f < FLT_EPSILON);
+	ut_assert_true(fabsf(att.roll_body) - M_PI_F < SIGMA_SINGLE_OP);
+	ut_assert_true(fabsf(att.pitch_body) < SIGMA_SINGLE_OP);
+	ut_assert_true(att.yaw_body - M_PI_2_F < SIGMA_SINGLE_OP);
+	ut_assert_true(-att.thrust_body[2] - 1.0f < SIGMA_SINGLE_OP);
 
 	/* TODO: find a good way to test it */
 
@@ -75,29 +115,29 @@ bool ControlMathTest::testPrioritizeVector()
 	// the static keywork is a workaround for an internal bug of GCC
 	// "internal compiler error: in trunc_int_for_mode, at explow.c:55"
 	matrix::Vector2f v_r = ControlMath::constrainXY(v0, v1, max);
-	ut_assert_true(fabsf(v_r(0)) - max < FLT_EPSILON && v_r(0) > 0.0f);
-	ut_assert_true(fabsf(v_r(1) - 0.0f) < FLT_EPSILON);
+	ut_assert_true(fabsf(v_r(0)) - max < SIGMA_SINGLE_OP && v_r(0) > 0.0f);
+	ut_assert_true(fabsf(v_r(1) - 0.0f) < SIGMA_SINGLE_OP);
 
 	// v1 exceeds max but v0 is zero
 	v0.zero();
 	v_r = ControlMath::constrainXY(v0, v1, max);
-	ut_assert_true(fabsf(v_r(1)) - max < FLT_EPSILON && v_r(1) < 0.0f);
-	ut_assert_true(fabsf(v_r(0) - 0.0f) < FLT_EPSILON);
+	ut_assert_true(fabsf(v_r(1)) - max < SIGMA_SINGLE_OP && v_r(1) < 0.0f);
+	ut_assert_true(fabsf(v_r(0) - 0.0f) < SIGMA_SINGLE_OP);
 
 	// v0 and v1 are below max
 	v0 = matrix::Vector2f(0.5f, 0.5f);
 	v1(0) = v0(1); v1(1) = -v0(0);
 	v_r = ControlMath::constrainXY(v0, v1, max);
 	float diff = matrix::Vector2f(v_r - (v0 + v1)).length();
-	ut_assert_true(diff < FLT_EPSILON);
+	ut_assert_true(diff < SIGMA_SINGLE_OP);
 
 	// v0 and v1 exceed max and are perpendicular
 	v0 = matrix::Vector2f(4.0f, 0.0f);
 	v1 = matrix::Vector2f(0.0f, -4.0f);
 	v_r = ControlMath::constrainXY(v0, v1, max);
-	ut_assert_true(v_r(0) - v0(0) < FLT_EPSILON && v_r(0) > 0.0f);
+	ut_assert_true(v_r(0) - v0(0) < SIGMA_SINGLE_OP && v_r(0) > 0.0f);
 	float remaining = sqrtf(max * max - (v0(0) * v0(0)));
-	ut_assert_true(fabsf(v_r(1)) - remaining  < FLT_EPSILON && v_r(1) < FLT_EPSILON);
+	ut_assert_true(fabsf(v_r(1)) - remaining  < SIGMA_SINGLE_OP && v_r(1) < SIGMA_SINGLE_OP);
 
 	//TODO: add more tests with vectors not perpendicular
 

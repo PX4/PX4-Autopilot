@@ -39,17 +39,16 @@
 
 #include "mavlink_high_latency2.h"
 
-#include <mathlib/mathlib.h>
-#include <matrix/math.hpp>
-#include <lib/ecl/geo/geo.h>
 #include <commander/px4_custom_mode.h>
-
+#include <lib/ecl/geo/geo.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/matrix/matrix/math.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/estimator_status.h>
-#include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/geofence_result.h>
+#include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -75,8 +74,8 @@ MavlinkStreamHighLatency2::MavlinkStreamHighLatency2(Mavlink *mavlink) : Mavlink
 	_battery_time(0),
 	_estimator_status_sub(_mavlink->add_orb_subscription(ORB_ID(estimator_status))),
 	_estimator_status_time(0),
-	_fw_pos_ctrl_status_sub(_mavlink->add_orb_subscription(ORB_ID(fw_pos_ctrl_status))),
-	_fw_pos_ctrl_status_time(0),
+	_pos_ctrl_status_sub(_mavlink->add_orb_subscription(ORB_ID(position_controller_status))),
+	_pos_ctrl_status_time(0),
 	_geofence_sub(_mavlink->add_orb_subscription(ORB_ID(geofence_result))),
 	_geofence_time(0),
 	_global_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position))),
@@ -139,9 +138,7 @@ bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 		updated |= write_wind_estimate(&msg);
 
 		if (updated) {
-			uint32_t timestamp;
-			convert_limit_safe(t / 1000, timestamp);
-			msg.timestamp = timestamp;
+			msg.timestamp = t / 1000;
 
 			msg.type = _mavlink->get_system_type();
 			msg.autopilot = MAV_AUTOPILOT_PX4;
@@ -283,13 +280,13 @@ bool MavlinkStreamHighLatency2::write_estimator_status(mavlink_high_latency2_t *
 
 bool MavlinkStreamHighLatency2::write_fw_ctrl_status(mavlink_high_latency2_t *msg)
 {
-	struct fw_pos_ctrl_status_s fw_pos_ctrl_status;
+	position_controller_status_s pos_ctrl_status = {};
 
-	const bool updated = _fw_pos_ctrl_status_sub->update(&_fw_pos_ctrl_status_time, &fw_pos_ctrl_status);
+	const bool updated = _pos_ctrl_status_sub->update(&_pos_ctrl_status_time, &pos_ctrl_status);
 
-	if (_fw_pos_ctrl_status_time > 0) {
+	if (_pos_ctrl_status_time > 0) {
 		uint16_t target_distance;
-		convert_limit_safe(fw_pos_ctrl_status.wp_dist * 0.1f, target_distance);
+		convert_limit_safe(pos_ctrl_status.wp_dist * 0.1f, target_distance);
 		msg->target_distance = target_distance;
 	}
 
@@ -318,13 +315,10 @@ bool MavlinkStreamHighLatency2::write_global_position(mavlink_high_latency2_t *m
 	const bool updated = _global_pos_sub->update(&_global_pos_time, &global_pos);
 
 	if (_global_pos_time > 0) {
-		int32_t latitude, longitude;
-		convert_limit_safe(global_pos.lat * 1e7, latitude);
-		convert_limit_safe(global_pos.lon * 1e7, longitude);
-		msg->latitude = latitude;
-		msg->longitude = longitude;
+		msg->latitude = global_pos.lat * 1e7;
+		msg->longitude = global_pos.lon * 1e7;
 
-		int16_t altitude;
+		int16_t altitude = 0;
 
 		if (global_pos.alt > 0) {
 			convert_limit_safe(global_pos.alt + 0.5f, altitude);

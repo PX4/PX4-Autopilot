@@ -41,6 +41,7 @@
 #include <px4_defines.h>
 #include <px4_getopt.h>
 #include <px4_workqueue.h>
+#include <containers/Array.hpp>
 
 #include <drivers/device/i2c.h>
 
@@ -55,7 +56,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <vector>
 
 #include <perf/perf_counter.h>
 
@@ -115,7 +115,7 @@ private:
 	uint8_t _rotation;
 	float				_min_distance;
 	float				_max_distance;
-	work_s				_work;
+	work_s				_work{};
 	ringbuffer::RingBuffer		*_reports;
 	bool				_sensor_ok;
 	int				_measure_ticks;
@@ -131,10 +131,7 @@ private:
 	uint8_t				_cycle_counter;	/* counter in cycle to change i2c adresses */
 	int					_cycling_rate;	/* */
 	uint8_t				_index_counter;	/* temporary sonar i2c address */
-	std::vector<uint8_t>	addr_ind; 	/* temp sonar i2c address vector */
-	std::vector<float>
-	_latest_sonar_measurements; /* vector to store latest sonar measurements in before writing to report */
-
+	px4::Array<uint8_t, RANGE_FINDER_MAX_SENSORS>	addr_ind; 	/* temp sonar i2c address vector */
 
 	/**
 	* Test whether the device supported by the driver is present at a
@@ -210,11 +207,6 @@ SRF02::SRF02(uint8_t rotation, int bus, int address) :
 	_index_counter(0) 	/* initialising temp sonar i2c address to zero */
 
 {
-	/* enable debug() calls */
-	_debug_enabled = false;
-
-	/* work_cancel in the dtor will explode if we don't do this... */
-	memset(&_work, 0, sizeof(_work));
 }
 
 SRF02::~SRF02()
@@ -265,24 +257,23 @@ SRF02::init()
 				 &_orb_class_instance, ORB_PRIO_LOW);
 
 	if (_distance_sensor_topic == nullptr) {
-		DEVICE_LOG("failed to create distance_sensor object. Did you start uOrb?");
+		PX4_ERR("failed to create distance_sensor object");
 	}
 
 	// XXX we should find out why we need to wait 200 ms here
-	usleep(200000);
+	px4_usleep(200000);
 
 	/* check for connected rangefinders on each i2c port:
 	   We start from i2c base address (0x70 = 112) and count downwards
 	   So second iteration it uses i2c address 111, third iteration 110 and so on*/
-	for (unsigned counter = 0; counter <= MB12XX_MAX_RANGEFINDERS; counter++) {
+	for (unsigned counter = 0; counter <= RANGE_FINDER_MAX_SENSORS; counter++) {
 		_index_counter = SRF02_BASEADDR - counter;	/* set temp sonar i2c address to base adress - counter */
 		set_device_address(_index_counter);			/* set I2c port to temp sonar i2c adress */
 		int ret2 = measure();
 
 		if (ret2 == 0) { /* sonar is present -> store address_index in array */
 			addr_ind.push_back(_index_counter);
-			DEVICE_DEBUG("sonar added");
-			_latest_sonar_measurements.push_back(200);
+			PX4_DEBUG("sonar added");
 		}
 	}
 
@@ -299,10 +290,10 @@ SRF02::init()
 
 	/* show the connected sonars in terminal */
 	for (unsigned i = 0; i < addr_ind.size(); i++) {
-		DEVICE_LOG("sonar %d with address %d added", (i + 1), addr_ind[i]);
+		PX4_DEBUG("sonar %d with address %d added", (i + 1), addr_ind[i]);
 	}
 
-	DEVICE_DEBUG("Number of sonars connected: %zu", addr_ind.size());
+	PX4_DEBUG("Number of sonars connected: %zu", addr_ind.size());
 
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
@@ -349,21 +340,11 @@ SRF02::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
 					bool want_start = (_measure_ticks == 0);
@@ -405,35 +386,6 @@ SRF02::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				}
 			}
 		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (1000 / _measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			ATOMIC_ENTER;
-
-			if (!_reports->resize(arg)) {
-				ATOMIC_LEAVE;
-				return -ENOMEM;
-			}
-
-			ATOMIC_LEAVE;
-
-			return OK;
-		}
-
-	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
 
 	default:
 		/* give it to the superclass */
@@ -484,7 +436,7 @@ SRF02::read(device::file_t *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(_cycling_rate * 2);
+		px4_usleep(_cycling_rate * 2);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -519,7 +471,7 @@ SRF02::measure()
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
-		DEVICE_DEBUG("i2c::transfer returned %d", ret);
+		PX4_DEBUG("i2c::transfer returned %d", ret);
 		return ret;
 	}
 
@@ -542,7 +494,7 @@ SRF02::collect()
 	ret = transfer(nullptr, 0, &val[0], 2);
 
 	if (ret < 0) {
-		DEVICE_DEBUG("error reading from sensor: %d", ret);
+		PX4_DEBUG("error reading from sensor: %d", ret);
 		perf_count(_comms_errors);
 		perf_end(_sample_perf);
 		return ret;
@@ -558,7 +510,7 @@ SRF02::collect()
 	report.current_distance = distance_m;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
-	report.covariance = 0.0f;
+	report.variance = 0.0f;
 	report.signal_quality = -1;
 	/* TODO: set proper ID */
 	report.id = 0;
@@ -616,7 +568,7 @@ SRF02::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			DEVICE_DEBUG("collection error");
+			PX4_DEBUG("collection error");
 			/* if error restart the measurement state machine */
 			start();
 			return;
@@ -655,7 +607,7 @@ SRF02::cycle()
 
 	/* Perform measurement */
 	if (OK != measure()) {
-		DEVICE_DEBUG("measure error sonar adress %d", _index_counter);
+		PX4_DEBUG("measure error sonar adress %d", _index_counter);
 	}
 
 	/* next phase is collection */

@@ -18,7 +18,7 @@
 #
 
 set -e
-root=$(dirname $0)/..
+root=$(dirname $0)
 
 function die()
 {
@@ -77,7 +77,7 @@ do
     shift
 done
 
-[[ -z "$elf" ]] && die "Please specify the ELF file location, e.g.: build/px4fmu-v4_default/src/firmware/nuttx/firmware_nuttx"
+[[ -z "$elf" ]] && die "Please specify the ELF file location, e.g.: build/px4_fmu-v4_default/px4_fmu-v4_default.elf"
 
 #
 # Temporary files
@@ -102,7 +102,8 @@ then
     do
         if [[ "$taskname" = "" ]]
         then
-            arm-none-eabi-gdb $elf --batch -ex "set print asm-demangle on" \
+            arm-none-eabi-gdb $elf --nx --quiet --batch \
+                                           -ex "set print asm-demangle on" \
                                            -ex "target extended /dev/ttyACM0" \
                                            -ex "monitor swdp_scan" \
                                            -ex "attach 1" \
@@ -111,11 +112,12 @@ then
                 | sed -n 's/\(#.*\)/\1/p' \
                 >> $stacksfile
         else
-            arm-none-eabi-gdb $elf --batch -ex "set print asm-demangle on" \
+            arm-none-eabi-gdb $elf --nx --quiet --batch \
+                                           -ex "set print asm-demangle on" \
                                            -ex "target extended /dev/ttyACM0" \
                                            -ex "monitor swdp_scan" \
                                            -ex "attach 1" \
-                                           -ex "source $root/platforms/nuttx/Debug/Nuttx.py" \
+                                           -ex "source $root/Nuttx.py" \
                                            -ex "show mybt $taskname" \
                 2> $gdberrfile \
                 | sed -n 's/0\.0:\(#.*\)/\1/p' \

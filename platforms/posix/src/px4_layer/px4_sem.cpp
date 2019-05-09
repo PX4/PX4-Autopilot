@@ -40,12 +40,13 @@
 #include <px4_defines.h>
 #include <px4_middleware.h>
 #include <px4_workqueue.h>
+#include <px4_time.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <pthread.h>
 #include <errno.h>
 
-#if defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
+#if (defined(__PX4_DARWIN) || defined(__PX4_CYGWIN) || defined(__PX4_POSIX)) && !defined(__PX4_QURT)
 
 #include <px4_posix.h>
 
@@ -54,8 +55,17 @@ int px4_sem_init(px4_sem_t *s, int pshared, unsigned value)
 	// We do not used the process shared arg
 	(void)pshared;
 	s->value = value;
-	pthread_cond_init(&(s->wait), NULL);
-	pthread_mutex_init(&(s->lock), NULL);
+	pthread_cond_init(&(s->wait), nullptr);
+	pthread_mutex_init(&(s->lock), nullptr);
+
+#if !defined(__PX4_DARWIN)
+	// We want to use CLOCK_MONOTONIC if possible but we can't on macOS
+	// because it's not available.
+	pthread_condattr_t attr;
+	pthread_condattr_init(&attr);
+	pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
+	pthread_cond_init(&(s->wait), &attr);
+#endif
 
 	return 0;
 }
@@ -124,26 +134,30 @@ int px4_sem_timedwait(px4_sem_t *s, const struct timespec *abstime)
 	errno = 0;
 
 	if (s->value < 0) {
-		ret = pthread_cond_timedwait(&(s->wait), &(s->lock), abstime);
+		ret = px4_pthread_cond_timedwait(&(s->wait), &(s->lock), abstime);
 
 	} else {
 		ret = 0;
 	}
 
-	int err = ret;
+	errno = ret;
 
-	if (err != 0 && err != ETIMEDOUT) {
-		setbuf(stdout, NULL);
-		setbuf(stderr, NULL);
+	if (ret != 0 && ret != ETIMEDOUT) {
+		setbuf(stdout, nullptr);
+		setbuf(stderr, nullptr);
 		const unsigned NAMELEN = 32;
 		char thread_name[NAMELEN] = {};
 		(void)pthread_getname_np(pthread_self(), thread_name, NAMELEN);
-		PX4_WARN("%s: px4_sem_timedwait failure: ret: %d, %s", thread_name, ret, strerror(err));
+		PX4_WARN("%s: px4_sem_timedwait failure: ret: %d", thread_name, ret);
 	}
 
 	int mret = pthread_mutex_unlock(&(s->lock));
 
-	return (err) ? err : mret;
+	if (ret || mret) {
+		return -1;
+	}
+
+	return 0;
 }
 
 int px4_sem_post(px4_sem_t *s)

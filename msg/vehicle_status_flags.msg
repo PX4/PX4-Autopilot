@@ -13,6 +13,7 @@ bool condition_local_position_valid		# set to true by the commander app if the q
 bool condition_local_velocity_valid		# set to true by the commander app if the quality of the local horizontal velocity data is good enough to use for navigation
 bool condition_local_altitude_valid
 bool condition_power_input_valid                # set if input power is valid
+bool condition_battery_healthy                # set if battery is available and not low
 
 bool circuit_breaker_engaged_power_check
 bool circuit_breaker_engaged_airspd_check
@@ -32,3 +33,6 @@ bool rc_input_blocked                                # set if RC input should be
 bool rc_calibration_valid                            # set if RC calibration is valid
 bool vtol_transition_failure                        # Set to true if vtol transition failed
 bool usb_connected                                # status of the USB power supply
+
+bool avoidance_system_required					  # Set to true if avoidance system is enabled via COM_OBS_AVOID parameter
+bool avoidance_system_valid                       # Status of the obstacle avoidance system

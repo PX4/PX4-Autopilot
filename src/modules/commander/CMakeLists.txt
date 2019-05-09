@@ -30,12 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+add_subdirectory(failure_detector)
+
 px4_add_module(
 	MODULE modules__commander
 	MAIN commander
 	STACK_MAIN 4096
 	STACK_MAX 2450
 	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		accelerometer_calibration.cpp
 		airspeed_calibration.cpp
@@ -55,6 +59,11 @@ px4_add_module(
 	DEPENDS
 		circuit_breaker
 		df_driver_framework
+		failure_detector
 		git_ecl
 		ecl_geo
 	)
+
+if(PX4_TESTING)
+	add_subdirectory(commander_tests)
+endif()

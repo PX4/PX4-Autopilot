@@ -42,12 +42,13 @@
 #pragma once
 
 #include "FlightTaskManualAltitudeSmooth.hpp"
+#include <uORB/uORB.h>
 
 class FlightTaskOrbit : public FlightTaskManualAltitudeSmooth
 {
 public:
 	FlightTaskOrbit();
-	virtual ~FlightTaskOrbit() = default;
+	virtual ~FlightTaskOrbit();
 
 	bool applyCommandParameters(const vehicle_command_s &command) override;
 	bool activate() override;
@@ -64,6 +65,11 @@ public:
 	bool checkAcceleration(float r, float v, float a);
 
 protected:
+	/**
+	 * Send out telemetry information for the log and MAVLink.
+	 * @return true on success, false on error
+	 */
+	bool sendTelemetry();
 
 	/**
 	 * Change the radius of the circle.
@@ -89,4 +95,6 @@ private:
 	const float _radius_max = 100.f;
 	const float _velocity_max = 10.f;
 	const float _acceleration_max = 2.f;
+
+	orb_advert_t _orbit_status_pub = nullptr;
 };

@@ -95,12 +95,12 @@ private:
 	int	_instance{-1};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::WEST_W_P_NOISE>) wind_p_noise,
-		(ParamFloat<px4::params::WEST_SC_P_NOISE>) tas_scale_p_noise,
-		(ParamFloat<px4::params::WEST_TAS_NOISE>) tas_noise,
-		(ParamFloat<px4::params::WEST_BETA_NOISE>) beta_noise,
-		(ParamInt<px4::params::WEST_TAS_GATE>) airspeed_gate,
-		(ParamInt<px4::params::WEST_BETA_GATE>) sideslip_gate
+		(ParamFloat<px4::params::WEST_W_P_NOISE>) _param_west_w_p_noise,
+		(ParamFloat<px4::params::WEST_SC_P_NOISE>) _param_west_sc_p_noise,
+		(ParamFloat<px4::params::WEST_TAS_NOISE>) _param_west_tas_noise,
+		(ParamFloat<px4::params::WEST_BETA_NOISE>) _param_west_beta_noise,
+		(ParamInt<px4::params::WEST_TAS_GATE>) _param_west_tas_gate,
+		(ParamInt<px4::params::WEST_BETA_GATE>) _param_west_beta_gate
 	)
 
 	static void	cycle_trampoline(void *arg);
@@ -173,7 +173,7 @@ WindEstimatorModule::cycle_trampoline(void *arg)
 			return;
 		}
 
-		_object = dev;
+		_object.store(dev);
 	}
 
 	if (dev) {
@@ -196,7 +196,6 @@ WindEstimatorModule::cycle()
 
 	bool lpos_valid = false;
 	bool att_valid = false;
-	bool airspeed_valid = false;
 
 	const hrt_abstime time_now_usec = hrt_absolute_time();
 
@@ -229,14 +228,12 @@ WindEstimatorModule::cycle()
 		airspeed_s airspeed = {};
 
 		if (orb_copy(ORB_ID(airspeed), _airspeed_sub, &airspeed) == PX4_OK) {
-			airspeed_valid = (time_now_usec - airspeed.timestamp < 1_s) && (airspeed.timestamp > 0);
-		}
+			if ((time_now_usec - airspeed.timestamp < 1_s) && (airspeed.timestamp > 0)) {
+				const Vector3f vel_var{Dcmf(q) *Vector3f{lpos.evh, lpos.evh, lpos.evv}};
 
-		if (airspeed_valid) {
-			Vector3f vel_var{Dcmf(q) *Vector3f{lpos.evh, lpos.evh, lpos.evv}};
-
-			// airspeed fusion
-			_wind_estimator.fuse_airspeed(time_now_usec, airspeed.indicated_airspeed_m_s, vI, Vector2f{vel_var(0), vel_var(1)});
+				// airspeed fusion
+				_wind_estimator.fuse_airspeed(time_now_usec, airspeed.true_airspeed_m_s, vI, Vector2f{vel_var(0), vel_var(1)});
+			}
 		}
 
 		// if we fused either airspeed or sideslip we publish a wind_estimate message
@@ -276,12 +273,12 @@ void WindEstimatorModule::update_params()
 	updateParams();
 
 	// update wind & airspeed scale estimator parameters
-	_wind_estimator.set_wind_p_noise(wind_p_noise.get());
-	_wind_estimator.set_tas_scale_p_noise(tas_scale_p_noise.get());
-	_wind_estimator.set_tas_noise(tas_noise.get());
-	_wind_estimator.set_beta_noise(beta_noise.get());
-	_wind_estimator.set_tas_gate(airspeed_gate.get());
-	_wind_estimator.set_beta_gate(sideslip_gate.get());
+	_wind_estimator.set_wind_p_noise(_param_west_w_p_noise.get());
+	_wind_estimator.set_tas_scale_p_noise(_param_west_sc_p_noise.get());
+	_wind_estimator.set_tas_noise(_param_west_tas_noise.get());
+	_wind_estimator.set_beta_noise(_param_west_beta_noise.get());
+	_wind_estimator.set_tas_gate(_param_west_tas_gate.get());
+	_wind_estimator.set_beta_gate(_param_west_beta_gate.get());
 }
 
 int WindEstimatorModule::custom_command(int argc, char *argv[])
@@ -327,13 +324,12 @@ int WindEstimatorModule::print_status()
 	perf_print_counter(_perf_interval);
 
 	if (_instance > -1) {
-		unsigned instance = _instance;
-		uORB::Subscription<wind_estimate_s> est{ORB_ID(wind_estimate), instance};
+		uORB::Subscription<wind_estimate_s> est{ORB_ID(wind_estimate), (unsigned)_instance};
 		est.update();
 
 		print_message(est.get());
 	} else {
-		PX4_INFO("never published");
+		PX4_INFO("Running, but never published");
 	}
 
 	return 0;
@@ -344,12 +340,5 @@ extern "C" __EXPORT int wind_estimator_main(int argc, char *argv[]);
 int
 wind_estimator_main(int argc, char *argv[])
 {
-	int32_t wind_estimator_enabled = 0;
-	param_get(param_find("WEST_EN"), &wind_estimator_enabled);
-
-	if (wind_estimator_enabled == 1) {
-		return WindEstimatorModule::main(argc, argv);
-	}
-
-	return PX4_OK;
+	return WindEstimatorModule::main(argc, argv);
 }

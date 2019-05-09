@@ -115,7 +115,7 @@ void
 px4_systemreset(bool to_bootloader)
 {
 	PX4_WARN("Called px4_system_reset");
-	exit(0);
+	system_exit(0);
 }
 
 px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, px4_main_t entry,
@@ -144,6 +144,11 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 
 	// not safe to pass stack data to the thread creation
 	pthdata_t *taskdata = (pthdata_t *)malloc(structsize + len);
+
+	if (taskdata == nullptr) {
+		return -ENOMEM;
+	}
+
 	memset(taskdata, 0, structsize + len);
 	unsigned long offset = ((unsigned long)taskdata) + structsize;
 

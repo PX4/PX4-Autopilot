@@ -44,6 +44,7 @@
 #include "FlightTask.hpp"
 #include "SubscriptionArray.hpp"
 #include "FlightTasks_generated.hpp"
+#include <lib/WeatherVane/WeatherVane.hpp>
 
 #include <new>
 
@@ -78,6 +79,12 @@ public:
 	const vehicle_constraints_s getConstraints();
 
 	/**
+	 * Get landing gear position.
+	 * @return landing gear
+	 */
+	const landing_gear_s getGear();
+
+	/**
 	 * Get task avoidance desired waypoints
 	 * @return auto triplets in the mc_pos_control
 	 */
@@ -87,7 +94,7 @@ public:
 	 * Get empty avoidance desired waypoints
 	 * @return empty triplets in the mc_pos_control
 	 */
-	const vehicle_trajectory_waypoint_s getEmptyAvoidanceWaypoint();
+	const vehicle_trajectory_waypoint_s &getEmptyAvoidanceWaypoint();
 
 	/**
 	 * Switch to the next task in the available list (for testing)
@@ -124,6 +131,18 @@ public:
 	 * Call this method to get the description of a task error.
 	 */
 	const char *errorToString(const int error);
+
+	/**
+	 * Sets an external yaw handler. The active flight task can use the yaw handler to implement a different yaw control strategy.
+	 */
+	void setYawHandler(WeatherVane *ext_yaw_handler) {_current_task.task->setYawHandler(ext_yaw_handler);}
+
+	/**
+	 *   This method will re-activate current task.
+	 */
+	void reActivate();
+
+	void updateVelocityControllerIO(const matrix::Vector3f &vel_sp, const matrix::Vector3f &thrust_sp) {_current_task.task->updateVelocityControllerIO(vel_sp, thrust_sp); }
 
 private:
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,10 +34,10 @@
 /**
  * @file test_sensors.c
  * Tests the onboard sensors.
- *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
+#include <px4_time.h>
 #include <px4_config.h>
 #include <px4_posix.h>
 
@@ -74,10 +74,10 @@ struct {
 	const char	*path;
 	int	(* test)(int argc, char *argv[], const char *path);
 } sensors[] = {
-	{"accel0",	ACCEL0_DEVICE_PATH,	accel},
-	{"accel1",	ACCEL1_DEVICE_PATH,	accel},
-	{"gyro0",	GYRO0_DEVICE_PATH,	gyro},
-	{"gyro1",	GYRO1_DEVICE_PATH,	gyro},
+	{"accel0",	"/dev/accel0",	accel},
+	{"accel1",	"/dev/accel1",	accel},
+	{"gyro0",	"/dev/gyro0",	gyro},
+	{"gyro1",	"/dev/gyro1",	gyro},
 	{"mag0",	MAG0_DEVICE_PATH,	mag},
 	{"baro0",	BARO0_DEVICE_PATH,	baro},
 	{NULL, NULL, NULL}
@@ -90,7 +90,7 @@ accel(int argc, char *argv[], const char *path)
 	fflush(stdout);
 
 	int		fd;
-	struct accel_report buf;
+	struct sensor_accel_s buf;
 	int		ret;
 
 	fd = px4_open(path, O_RDONLY);
@@ -101,7 +101,7 @@ accel(int argc, char *argv[], const char *path)
 	}
 
 	/* wait at least 100ms, sensor should have data after no more than 20ms */
-	usleep(100000);
+	px4_usleep(100000);
 
 	/* read data - expect samples */
 	ret = px4_read(fd, &buf, sizeof(buf));
@@ -140,7 +140,7 @@ gyro(int argc, char *argv[], const char *path)
 	fflush(stdout);
 
 	int		fd;
-	struct gyro_report buf;
+	struct sensor_gyro_s buf;
 	int		ret;
 
 	fd = px4_open(path, O_RDONLY);
@@ -151,7 +151,7 @@ gyro(int argc, char *argv[], const char *path)
 	}
 
 	/* wait at least 5 ms, sensor should have data after that */
-	usleep(5000);
+	px4_usleep(5000);
 
 	/* read data - expect samples */
 	ret = px4_read(fd, &buf, sizeof(buf));
@@ -196,7 +196,7 @@ mag(int argc, char *argv[], const char *path)
 	}
 
 	/* wait at least 5 ms, sensor should have data after that */
-	usleep(5000);
+	px4_usleep(5000);
 
 	/* read data - expect samples */
 	ret = px4_read(fd, &buf, sizeof(buf));
@@ -230,7 +230,7 @@ baro(int argc, char *argv[], const char *path)
 	fflush(stdout);
 
 	int		fd;
-	struct baro_report buf;
+	struct sensor_baro_s buf;
 	int		ret;
 
 	fd = px4_open(path, O_RDONLY);
@@ -241,7 +241,7 @@ baro(int argc, char *argv[], const char *path)
 	}
 
 	/* wait at least 5 ms, sensor should have data after that */
-	usleep(5000);
+	px4_usleep(5000);
 
 	/* read data - expect samples */
 	ret = px4_read(fd, &buf, sizeof(buf));

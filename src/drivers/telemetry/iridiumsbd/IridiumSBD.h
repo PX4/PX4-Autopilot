@@ -36,7 +36,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include <drivers/device/device.h>
+#include <lib/cdev/CDev.hpp>
 #include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
@@ -98,7 +98,7 @@ extern "C" __EXPORT int iridiumsbd_main(int argc, char *argv[]);
  * 	- Improve TX buffer handling:
  * 		- Do not reset the full TX buffer but delete the oldest HIGH_LATENCY2 message if one is in the buffer or delete the oldest message in general
  */
-class IridiumSBD : public device::CDev
+class IridiumSBD : public cdev::CDev
 {
 public:
 	/*

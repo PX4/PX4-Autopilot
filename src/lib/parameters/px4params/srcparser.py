@@ -186,7 +186,7 @@ class SourceParser(object):
     def __init__(self):
         self.param_groups = {}
 
-    def Parse(self, scope, contents):
+    def Parse(self, contents):
         """
         Incrementally parse program contents and append all found parameters
         to the list.
@@ -288,7 +288,6 @@ class SourceParser(object):
                     if defval != "" and self.re_is_a_number.match(defval):
                         defval = self.re_cut_type_specifier.sub('', defval)
                     param = Parameter(name, tp, defval)
-                    param.SetField("scope", scope)
                     param.SetField("short_desc", name)
                     # If comment was found before the parameter declaration,
                     # inject its data into the newly created parameter.

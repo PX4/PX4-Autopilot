@@ -85,28 +85,3 @@ PARAM_DEFINE_FLOAT(VT_TILT_FW, 1.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_TRANS_P2_DUR, 0.5f);
-
-/**
- * Differential thrust in forwards flight.
- *
- * Set to 1 to enable differential thrust in fixed-wing flight.
- *
- * @min 0
- * @max 1
- * @decimal 0
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_FW_DIFTHR_EN, 0);
-
-/**
- * Differential thrust scaling factor
- *
- * This factor specifies how the yaw input gets mapped to differential thrust in forwards flight.
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.1
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_SC, 0.1f);

@@ -44,14 +44,15 @@
 
 #include <drivers/drv_hrt.h>
 
-Integrator::Integrator(uint64_t auto_reset_interval, bool coning_compensation) :
-	_auto_reset_interval(auto_reset_interval),
+Integrator::Integrator(uint32_t auto_reset_interval, bool coning_compensation) :
 	_coning_comp_on(coning_compensation)
 {
+	set_autoreset_interval(auto_reset_interval);
 }
 
 bool
-Integrator::put(uint64_t timestamp, matrix::Vector3f &val, matrix::Vector3f &integral, uint32_t &integral_dt)
+Integrator::put(const uint64_t &timestamp, const matrix::Vector3f &val, matrix::Vector3f &integral,
+		uint32_t &integral_dt)
 {
 	if (_last_integration_time == 0) {
 		/* this is the first item in the integrator */
@@ -72,7 +73,7 @@ Integrator::put(uint64_t timestamp, matrix::Vector3f &val, matrix::Vector3f &int
 	}
 
 	// Use trapezoidal integration to calculate the delta integral
-	matrix::Vector3f delta_alpha = (val + _last_val) * dt * 0.5f;
+	const matrix::Vector3f delta_alpha = (val + _last_val) * dt * 0.5f;
 	_last_val = val;
 
 	// Calculate coning corrections if required
@@ -128,7 +129,7 @@ Integrator::put_with_interval(unsigned interval_us, matrix::Vector3f &val, matri
 	}
 
 	// Create the timestamp artifically.
-	uint64_t timestamp = _last_integration_time + interval_us;
+	const uint64_t timestamp = _last_integration_time + interval_us;
 
 	return put(timestamp, val, integral, integral_dt);
 }
@@ -149,12 +150,10 @@ matrix::Vector3f
 Integrator::get_and_filtered(bool reset, uint32_t &integral_dt, matrix::Vector3f &filtered_val)
 {
 	// Do the usual get with reset first but don't return yet.
-	matrix::Vector3f ret_integral = get(reset, integral_dt);
+	const matrix::Vector3f ret_integral = get(reset, integral_dt);
 
 	// Because we need both the integral and the integral_dt.
-	filtered_val(0) = ret_integral(0) * 1000000 / integral_dt;
-	filtered_val(1) = ret_integral(1) * 1000000 / integral_dt;
-	filtered_val(2) = ret_integral(2) * 1000000 / integral_dt;
+	filtered_val = ret_integral * 1000000 / integral_dt;
 
 	return ret_integral;
 }

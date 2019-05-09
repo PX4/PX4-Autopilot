@@ -190,7 +190,7 @@ void Module::run()
 		} else if (pret < 0) {
 			// this is undesirable but not much we can do
 			PX4_ERR("poll error %d, %d", pret, errno);
-			usleep(50000);
+			px4_usleep(50000);
 			continue;
 
 		} else if (fds[0].revents & POLLIN) {

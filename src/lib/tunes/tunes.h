@@ -41,12 +41,11 @@
 #include <uORB/topics/tune_control.h>
 #include "tune_definition.h"
 
-#define TUNE_MAX_UPDATE_INTERVAL_US 100000
-
-#define TUNE_DEFAULT_TEMPO 120
-#define TUNE_DEFAULT_OCTAVE 4
 #define TUNE_DEFAULT_NOTE_LENGTH 4
-#define TUNE_MAX_STRENGTH 100
+#define TUNE_DEFAULT_OCTAVE 4
+#define TUNE_DEFAULT_TEMPO 120
+
+#define TUNE_MAX_UPDATE_INTERVAL_US 100000
 
 
 /**
@@ -60,18 +59,16 @@ public:
 	enum class NoteMode {NORMAL, LEGATO, STACCATO};
 
 	/**
-	 * Constructor with the default parameter set to:
+	 * Constructor with the default parameters set to:
 	 * default_tempo: TUNE_DEFAULT_TEMPO
 	 * default_octave: TUNE_DEFAULT_OCTAVE
 	 * default_note_length: TUNE_DEFAULT_NOTE_LENGTH
 	 * default_mode: NORMAL
 	 */
-	Tunes();
-
-	/**
-	 * Constructor that can set the default parameters
-	 */
-	Tunes(unsigned default_tempo, unsigned default_octave, unsigned default_note_length, NoteMode default_mode);
+	Tunes(unsigned default_note_length = TUNE_DEFAULT_NOTE_LENGTH,
+	      NoteMode default_note_mode   = NoteMode::NORMAL,
+	      unsigned default_octave      = TUNE_DEFAULT_OCTAVE,
+	      unsigned default_tempo       = TUNE_DEFAULT_TEMPO);
 
 	~Tunes() = default;
 
@@ -92,7 +89,7 @@ public:
 	 *
 	 * @param  string    tune input string
 	 */
-	void set_string(const char *const string, uint8_t strength);
+	void set_string(const char *const string, uint8_t volume);
 
 	/**
 	 * Get next note in the current tune, which has been provided by either
@@ -102,53 +99,30 @@ public:
 	 * @param  silence   return silence duration (us)
 	 * @return           -1 for error, 0 for play one tone and 1 for continue a sequence
 	 */
-	int get_next_tune(unsigned &frequency, unsigned &duration, unsigned &silence);
+	int get_next_note(unsigned &frequency, unsigned &duration, unsigned &silence);
 
 	/**
 	 * Get next note in the current tune, which has been provided by either
 	 * set_control or play_string
 	 * @param  frequency return frequency value (Hz)
-	 * @param  duration  return duration of the tone (us)
+	 * @param  duration  return duration of the note (us)
 	 * @param  silence   return silence duration (us)
-	 * @param  strength  return the strength of the note (between 0-100)
+	 * @param  volume    return the volume level of the note (between 0-100)
 	 * @return           -1 for error, 0 for play one tone and 1 for continue a sequence
 	 */
-	int get_next_tune(unsigned &frequency, unsigned &duration, unsigned &silence,
-			  uint8_t &strength);
+	int get_next_note(unsigned &frequency, unsigned &duration,
+			  unsigned &silence, uint8_t &volume);
 
 	/**
 	 *  Get the number of default tunes. This is useful for when a tune is
 	 *  requested via its tune ID.
-	 *  @return		Number of default tunes accessible via tune ID
+	 *  @return             Number of default tunes accessible via tune ID
 	 */
 	unsigned int get_default_tunes_size() const {return _default_tunes_size;}
 
 	unsigned int get_maximum_update_interval() {return (unsigned int)TUNE_MAX_UPDATE_INTERVAL_US;}
 
 private:
-	static const char *const _default_tunes[];
-	static const uint8_t _note_tab[];
-	static const unsigned int _default_tunes_size;
-	bool _repeat = false;	     ///< if true, tune restarts at end
-	const char *_tune = nullptr; ///< current tune string
-	const char *_next = nullptr; ///< next note in the string
-	const char *_tune_start_ptr = nullptr; ///< pointer to repeat tune
-
-	unsigned _tempo;
-	unsigned _note_length;
-	NoteMode _note_mode;
-	unsigned _octave;
-
-	unsigned _default_tempo;
-	unsigned _default_note_length;
-	NoteMode _default_mode;
-	unsigned _default_octave;
-
-	unsigned _frequency;
-	unsigned _duration;
-	unsigned _silence;
-	uint8_t _strength;
-	bool _using_custom_msg = false;
 
 	/**
 	 * Convert note to frequency
@@ -208,4 +182,37 @@ private:
 	 */
 	void reset(bool repeat_flag);
 
+	int tune_end();
+
+	int tune_error();
+
+	static const char *const  _default_tunes[];
+	static const bool         _default_tunes_interruptable[];
+	static const unsigned int _default_tunes_size;
+	static const uint8_t      _note_tab[];
+
+	const char *_next_tune      = nullptr; ///< next note in the string
+	const char *_tune           = nullptr; ///< current tune string
+	const char *_tune_start_ptr = nullptr; ///< pointer to repeat tune
+
+	int _current_tune_id = static_cast<int>(TuneID::NONE);
+
+	bool _repeat = false; ///< if true, tune restarts at end
+
+	unsigned int _default_note_length = TUNE_DEFAULT_NOTE_LENGTH;
+	NoteMode     _default_note_mode   = NoteMode::NORMAL;
+	unsigned int _default_octave      = TUNE_DEFAULT_OCTAVE;
+	unsigned int _default_tempo       = TUNE_DEFAULT_TEMPO;
+
+	unsigned int _note_length         = TUNE_DEFAULT_NOTE_LENGTH;
+	NoteMode     _note_mode           = NoteMode::NORMAL;
+	unsigned int _octave              = TUNE_DEFAULT_OCTAVE;
+	unsigned int _tempo               = TUNE_DEFAULT_TEMPO;
+
+	unsigned int _duration  = 0;
+	unsigned int _frequency = 0;
+	unsigned int _silence   = 0;
+	uint8_t      _volume    = 0;
+
+	bool  _using_custom_msg = false;
 };

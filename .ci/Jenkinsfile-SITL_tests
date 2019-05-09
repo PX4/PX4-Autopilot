@@ -2,83 +2,93 @@
 
 pipeline {
   agent none
+
   stages {
 
     stage('Build') {
+      agent {
+        docker {
+          image 'px4io/px4-dev-ros-kinetic:2019-03-08'
+          args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+        }
+      }
       steps {
-        script {
-          stage('sitl package') {
-            node {
-              docker.image("px4io/px4-dev-ros:2018-07-19").inside('-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE') {
-                stage("sitl package") {
-                  try {
-                    checkout(scm)
-                    sh('export')
-                    sh('make distclean')
-                    sh "ccache -z"
-                    sh('make posix_sitl_default')
-                    sh "ccache -s"
-                    sh('make posix_sitl_default sitl_gazebo')
-                    sh "ccache -s"
-                    sh('make posix_sitl_default package')
-                    stash(name: "px4_sitl_package", includes: "build/posix_sitl_default/*.bz2")
-                  }
-                  catch (exc) {
-                    throw (exc)
-                  }
-                  finally {
-                    sh('make distclean')
-                  }
-                }
-              }
-            }
-          }
-        } // script
-      } // steps
-    } // Build
+        sh 'export'
+        sh 'make distclean'
+        sh 'ccache -z'
+        sh 'git fetch --tags'
+        sh 'make px4_sitl_default'
+        sh 'make px4_sitl_default sitl_gazebo'
+        sh 'make px4_sitl_default package'
+        sh 'ccache -s'
+        stash(name: "px4_sitl_package", includes: "build/px4_sitl_default/*.bz2")
+        archiveArtifacts(artifacts: "build/px4_sitl_default/*.bz2", fingerprint: true, onlyIfSuccessful: true)
+      }
+      post {
+        always {
+            sh 'make distclean'
+        }
+      }
+    } // stage Build
 
     stage('ROS Tests') {
       steps {
         script {
           def missions = [
             [
-              name: "VTOL standard",
+              name: "FW",
               test: "mavros_posix_test_mission.test",
-              mission: "vtol_new_1",
-              vehicle: "standard_vtol"
+              mission: "FW_mission_1",
+              vehicle: "plane"
             ],
+
             [
-              name: "VTOL tailsitter",
+              name: "MC_box",
               test: "mavros_posix_test_mission.test",
-              mission: "vtol_new_1",
-              vehicle: "tailsitter"
-            ],
-            [
-              name: "VTOL tiltrotor",
-              test: "mavros_posix_test_mission.test",
-              mission: "vtol_new_1",
-              vehicle: "tiltrotor"
-            ],
-            [
-              name: "MC box",
-              test: "mavros_posix_test_mission.test",
-              mission: "multirotor_box",
+              mission: "MC_mission_box",
               vehicle: "iris"
             ],
             [
-              name: "MC offboard att",
+              name: "MC_offboard_att",
               test: "mavros_posix_tests_offboard_attctl.test",
               mission: "",
               vehicle: "iris"
             ],
             [
-              name: "MC offboard pos",
+              name: "MC_offboard_pos",
               test: "mavros_posix_tests_offboard_posctl.test",
               mission: "",
               vehicle: "iris"
-            ]
+            ],
+
+            [
+              name: "VTOL_standard",
+              test: "mavros_posix_test_mission.test",
+              mission: "VTOL_mission_1",
+              vehicle: "standard_vtol"
+            ],
+            [
+              name: "VTOL_tailsitter",
+              test: "mavros_posix_test_mission.test",
+              mission: "VTOL_mission_1",
+              vehicle: "tailsitter"
+            ],
+            [
+              name: "VTOL_tiltrotor",
+              test: "mavros_posix_test_mission.test",
+              mission: "VTOL_mission_1",
+              vehicle: "tiltrotor"
+            ],
+            [
+              name: "MC_avoidance",
+              test: "mavros_posix_test_avoidance.test",
+              mission: "avoidance",
+              vehicle: "iris_obs_avoid",
+              run_script: "rostest_avoidance_run.sh"
+            ],
+
           ]
-        
+
           def test_nodes = [:]
           for (def i = 0; i < missions.size(); i++) {
             test_nodes.put(missions[i].name, createTestNode(missions[i]))
@@ -87,13 +97,15 @@ pipeline {
           parallel test_nodes
         } // script
       } // steps
-    } // ROS Tests
+    } // stage ROS Tests
 
   } //stages
+
   environment {
     CCACHE_DIR = '/tmp/ccache'
     CI = true
   }
+
   options {
     buildDiscarder(logRotator(numToKeepStr: '10', artifactDaysToKeepStr: '30'))
     timeout(time: 60, unit: 'MINUTES')
@@ -104,26 +116,45 @@ def createTestNode(Map test_def) {
   return {
     node {
       cleanWs()
-      docker.image("px4io/px4-dev-ros:2018-03-30").inside('-e HOME=${WORKSPACE}') {
+      docker.image("px4io/px4-dev-ros-kinetic:2019-03-08").inside('-e HOME=${WORKSPACE}') {
         stage(test_def.name) {
+          def run_script = test_def.get('run_script', 'rostest_px4_run.sh')
+          def test_ok = true
+          sh('export')
+
+          unstash('px4_sitl_package')
+          sh('tar -xjpvf build/px4_sitl_default/px4-px4_sitl_default*.bz2')
+
+          // run test
           try {
-            sh('export')            
-            unstash('px4_sitl_package')
-            sh('tar -xjpvf build/posix_sitl_default/px4-posix_sitl_default*.bz2')
-            sh('px4-posix_sitl_default*/px4/test/rostest_px4_run.sh ' + test_def.test + ' mission:=' + test_def.mission + ' vehicle:=' + test_def.vehicle)
-            sh('px4-posix_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
-            }
-          catch (exc) {
+            sh('px4-px4_sitl_default*/px4/test/' + run_script + ' ' + test_def.test + ' mission:=' + test_def.mission + ' vehicle:=' + test_def.vehicle)
+
+          } catch (exc) {
+            // save all test artifacts for debugging
             archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.ulg, .ros/**/rosunit-*.xml, .ros/**/rostest-*.log')
-            throw (exc)
+            test_ok = false
           }
-          finally {
-            sh('px4-posix_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
+
+          // log analysis
+          // process ekf log data
+          try {
+            sh('px4-px4_sitl_default*/px4/Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
+          } catch (exc) {
+            // save log analysis artifacts for debugging
             archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.pdf, .ros/**/*.csv')
+            // FIXME: don't let the script to fail the build
+            // test_ok = false
           }
-        }
-      }
-      cleanWs()
-    }
-  }
-}
+
+          // upload log to flight review (https://logs.px4.io/)
+          sh('px4-px4_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
+
+          if (!test_ok) {
+            error('ROS Test failed')
+          }
+        } // stage
+        cleanWs()
+      } // docker.image
+    } // node
+  } // return
+} // createTestNode

@@ -58,9 +58,6 @@ struct Params {
 	float fw_qc_max_roll;		// maximum roll angle FW mode (QuadChute)
 	float front_trans_time_openloop;
 	float front_trans_time_min;
-	bool wv_takeoff;
-	bool wv_loiter;
-	bool wv_land;
 	float front_trans_duration;
 	float back_trans_duration;
 	float transition_airspeed;
@@ -71,6 +68,9 @@ struct Params {
 	float front_trans_timeout;
 	float mpc_xy_cruise;
 	int32_t fw_motors_off;			/**< bitmask of all motors that should be off in fixed wing mode */
+	int32_t diff_thrust;
+	float diff_thrust_scale;
+	int32_t v19_vt_rolldir;
 };
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg
@@ -252,6 +252,7 @@ private:
 	/**
 	 * @brief      Stores the max pwm values given by the system.
 	 */
+	struct pwm_output_values _min_mc_pwm_values {};
 	struct pwm_output_values _max_mc_pwm_values {};
 	struct pwm_output_values _disarmed_pwm_values {};
 

@@ -34,6 +34,8 @@
 #include "send_event.h"
 #include "temperature_calibration/temperature_calibration.h"
 
+#include <math.h>
+
 #include <px4_getopt.h>
 #include <px4_log.h>
 #include <drivers/drv_hrt.h>
@@ -68,11 +70,11 @@ int SendEvent::task_spawn(int argc, char *argv[])
 
 SendEvent::SendEvent() : ModuleParams(nullptr)
 {
-	if (_param_status_display.get()) {
+	if (_param_ev_tsk_stat_dis.get()) {
 		_status_display = new status::StatusDisplay(_subscriber_handler);
 	}
 
-	if (_param_rc_loss.get()) {
+	if (_param_ev_tsk_rc_loss.get()) {
 		_rc_loss_alarm = new rc_loss::RC_Loss_Alarm(_subscriber_handler);
 	}
 }
@@ -94,10 +96,10 @@ int SendEvent::start()
 		return 0;
 	}
 
-	// subscribe to the topics
+	// Subscribe to the topics.
 	_subscriber_handler.subscribe();
 
-	// Kick off the cycling. We can call it directly because we're already in the work queue context
+	// Kick off the cycling. We can call it directly because we're already in the work queue context.
 	cycle();
 
 	return 0;
@@ -113,11 +115,10 @@ void SendEvent::initialize_trampoline(void *arg)
 	}
 
 	send_event->start();
-	_object = send_event;
+	_object.store(send_event);
 }
 
-void
-SendEvent::cycle_trampoline(void *arg)
+void SendEvent::cycle_trampoline(void *arg)
 {
 	SendEvent *obj = reinterpret_cast<SendEvent *>(arg);
 
@@ -236,13 +237,6 @@ The tasks can be started via CLI or uORB topics (vehicle_command from MAVLink, e
 	return 0;
 }
 
-
-int send_event_main(int argc, char *argv[])
-{
-	return SendEvent::main(argc, argv);
-}
-
-
 int SendEvent::custom_command(int argc, char *argv[])
 {
 	if (!strcmp(argv[0], "temperature_calibration")) {
@@ -299,6 +293,11 @@ int SendEvent::custom_command(int argc, char *argv[])
 	}
 
 	return 0;
+}
+
+int send_event_main(int argc, char *argv[])
+{
+	return SendEvent::main(argc, argv);
 }
 
 } /* namespace events */
