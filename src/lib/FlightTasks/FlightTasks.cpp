@@ -21,7 +21,7 @@ bool FlightTasks::update()
 
 	if (isAnyTaskActive()) {
 		_subscription_array.update();
-		return _current_task.task->updateInitialize() && _current_task.task->update();
+		return _current_task.task->updateInitialize() && _current_task.task->update() && _current_task.task->updateFinalize();
 	}
 
 	return false;
@@ -55,21 +55,6 @@ const landing_gear_s FlightTasks::getGear()
 	} else {
 		return FlightTask::empty_landing_gear_default_keep;
 	}
-}
-
-const vehicle_trajectory_waypoint_s FlightTasks::getAvoidanceWaypoint()
-{
-	if (isAnyTaskActive()) {
-		return _current_task.task->getAvoidanceWaypoint();
-
-	} else {
-		return FlightTask::empty_trajectory_waypoint;
-	}
-}
-
-const vehicle_trajectory_waypoint_s &FlightTasks::getEmptyAvoidanceWaypoint()
-{
-	return FlightTask::empty_trajectory_waypoint;
 }
 
 int FlightTasks::switchTask(FlightTaskIndex new_task_index)

@@ -130,6 +130,7 @@ private:
 	orb_advert_t		_offboard_mission_pub{nullptr};
 
 	static uint16_t		_geofence_update_counter;
+	static uint16_t		_safepoint_update_counter;
 	bool			_geofence_locked{false};		///< if true, we currently hold the dm_lock for the geofence (transaction in progress)
 
 	MavlinkRateLimiter	_slow_rate_limiter{100 * 1000};		///< Rate limit sending of the current WP sequence to 10 Hz

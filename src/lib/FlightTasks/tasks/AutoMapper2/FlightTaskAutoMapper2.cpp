@@ -91,6 +91,9 @@ bool FlightTaskAutoMapper2::update()
 		break;
 	}
 
+	_obstacle_avoidance.injectAvoidanceSetpoints(_position_setpoint, _velocity_setpoint, _yaw_setpoint,
+			_yawspeed_setpoint);
+
 	_generateSetpoints();
 
 	// during mission and reposition, raise the landing gears but only

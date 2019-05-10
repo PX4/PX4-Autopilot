@@ -56,21 +56,23 @@ PARAM_DEFINE_INT32(SYS_AUTOSTART, 0);
  * Platform-specific values are used if available.
  * RC* parameters are preserved.
  *
- * @min 0
- * @max 1
  * @value 0 Keep parameters
  * @value 1 Reset parameters
+ * @value 2 Reload airframe parameters
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_AUTOCONFIG, 0);
 
 /**
- * Enable HITL mode on next boot
+ * Enable HITL/SIH mode on next boot
  *
- * While enabled the system will boot in HITL mode and not enable all sensors and checks.
- * When disabled the same vehicle can be normally flown outdoors.
+ * While enabled the system will boot in Hardware-In-The-Loop (HITL)
+ * or Simulation-In-Hardware (SIH) mode and not enable all sensors and checks.
+ * When disabled the same vehicle can be flown normally.
  *
- * @boolean
+ * @value 0 HITL and SIH disabled
+ * @value 1 HITL enabled
+ * @value 2 SIH enabled
  * @reboot_required true
  *
  * @group System
@@ -98,8 +100,8 @@ PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
  *
  * Set the group of estimators used for multicopters and VTOLs
  *
- * @value 1 local_position_estimator, attitude_estimator_q
- * @value 2 ekf2
+ * @value 1 local_position_estimator, attitude_estimator_q (unsupported)
+ * @value 2 ekf2 (recommended)
  *
  * @min 1
  * @max 2
@@ -144,9 +146,10 @@ PARAM_DEFINE_INT32(SYS_COMPANION, 0);
 /**
  * Parameter version
  *
- * This monotonically increasing number encodes the parameter compatibility set.
- * whenever it increases parameters might not be backwards compatible and
- * ground control stations should suggest a fresh configuration.
+ * This is used internally only: an airframe configuration might set an expected
+ * parameter version value via PARAM_DEFAULTS_VER. This is checked on bootup
+ * against SYS_PARAM_VER, and if they do not match, parameters from the airframe
+ * configuration are reloaded.
  *
  * @min 0
  * @group System

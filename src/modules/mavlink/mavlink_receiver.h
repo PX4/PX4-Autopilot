@@ -119,9 +119,6 @@ public:
 private:
 
 	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result);
-	void handle_message(mavlink_message_t *msg);
-	void handle_message_command_long(mavlink_message_t *msg);
-	void handle_message_command_int(mavlink_message_t *msg);
 
 	/**
 	 * Common method to handle both mavlink command types. T is one of mavlink_command_int_t or mavlink_command_long_t.
@@ -130,11 +127,14 @@ private:
 	void handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
 					 const vehicle_command_s &vehicle_command);
 
+	void handle_message(mavlink_message_t *msg);
 	void handle_message_adsb_vehicle(mavlink_message_t *msg);
 	void handle_message_att_pos_mocap(mavlink_message_t *msg);
 	void handle_message_battery_status(mavlink_message_t *msg);
 	void handle_message_collision(mavlink_message_t *msg);
 	void handle_message_command_ack(mavlink_message_t *msg);
+	void handle_message_command_int(mavlink_message_t *msg);
+	void handle_message_command_long(mavlink_message_t *msg);
 	void handle_message_debug(mavlink_message_t *msg);
 	void handle_message_debug_float_array(mavlink_message_t *msg);
 	void handle_message_debug_vect(mavlink_message_t *msg);
@@ -199,11 +199,11 @@ private:
 
 	Mavlink	*_mavlink;
 
-	MavlinkMissionManager		_mission_manager;
-	MavlinkParametersManager	_parameters_manager;
 	MavlinkFTP			_mavlink_ftp;
 	MavlinkLogHandler		_mavlink_log_handler;
 	MavlinkTimesync			_mavlink_timesync;
+	MavlinkMissionManager		_mission_manager;
+	MavlinkParametersManager	_parameters_manager;
 
 	mavlink_status_t _status{}; ///< receiver status, used for mavlink_parse_char()
 

@@ -1058,7 +1058,9 @@ MPU9250::measure()
 	if (_mag->is_passthrough()) {
 #   endif
 
-		_mag->_measure(mpu_report.mag);
+		if (_register_wait == 0) {
+			_mag->_measure(mpu_report.mag);
+		}
 
 #   ifdef USE_I2C
 

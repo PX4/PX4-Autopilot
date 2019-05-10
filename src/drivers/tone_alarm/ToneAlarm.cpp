@@ -139,7 +139,10 @@ void ToneAlarm::orb_update()
 
 	if (updated) {
 		orb_copy(ORB_ID(tune_control), _tune_control_sub, &_tune);
-		_play_tone = _tunes.set_control(_tune) == 0;
+
+		if (_tune.timestamp > 0) {
+			_play_tone = _tunes.set_control(_tune) == 0;
+		}
 	}
 }
 

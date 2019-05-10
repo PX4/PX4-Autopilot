@@ -247,6 +247,7 @@ class Graph(object):
     ('mc_pos_control', r'mc_pos_control_main\.cpp$', r'\b_attitude_setpoint_id=([^,)]+)', r'^_attitude_setpoint_id$'),
 
     ('mc_att_control', r'mc_att_control_main\.cpp$', r'\b_actuators_id=([^,)]+)', r'^_actuators_id$'),
+    ('mc_att_control', r'mc_att_control_main\.cpp$', r'\_attitude_sp_id=([^,)]+)', r'^_attitude_sp_id$'),
 
     ('fw_att_control', r'FixedwingAttitudeControl\.cpp$', r'\b_actuators_id=([^,)]+)', r'^_actuators_id$'),
     ('fw_att_control', r'FixedwingAttitudeControl\.cpp$', r'\b_attitude_setpoint_id=([^,)]+)', r'^_attitude_setpoint_id$'),

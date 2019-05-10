@@ -32,7 +32,7 @@
 ############################################################################
 
 add_subdirectory(blinkm)
-add_subdirectory(oreoled
+add_subdirectory(oreoled)
 add_subdirectory(pca8574)
 add_subdirectory(rgbled)
 add_subdirectory(rgbled_ncp5623c)

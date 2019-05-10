@@ -94,3 +94,21 @@ add_library(mixer
 target_include_directories(mixer PRIVATE ${PX4_BINARY_DIR}/src/lib/mixer)
 
 add_dependencies(mixer mixer_gen mixer_gen_6dof prebuild_targets)
+
+
+if(BUILD_TESTING)
+
+	add_executable(test_mixer_multirotor
+		test_mixer_multirotor.cpp
+		mixer_multirotor.cpp
+		mixer.cpp
+	)
+	target_compile_definitions(test_mixer_multirotor PRIVATE MIXER_MULTIROTOR_USE_MOCK_GEOMETRY)
+	target_compile_options(test_mixer_multirotor PRIVATE -Wno-unused-result)
+
+	add_test(NAME mixer_multirotor
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/mixer_multirotor.py --test --mixer-multirotor-binary $<TARGET_FILE:test_mixer_multirotor>
+		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+	)
+
+endif()
