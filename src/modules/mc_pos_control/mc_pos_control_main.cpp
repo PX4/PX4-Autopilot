@@ -233,19 +233,13 @@ private:
 	void publish_trajectory_sp(const vehicle_local_position_setpoint_s &traj);
 
 	/**
-	 * Checks if smooth takeoff is initiated.
-	 * @param position_setpoint_z the position setpoint in the z-Direction
-	 * @param velocity setpoint_z the velocity setpoint in the z-Direction
+	 * Update smooth takeoff setpoint ramp to bring the vehicle off the ground without step.
+	 * @param z_sp position setpoint in the z-Direction
+	 * @param vz_sp velocity setpoint in the z-Direction
+	 * @param jz_sp jerk setpoint in the z-Direction
+	 * @param min_ground_clearance minimal distance to the ground in which e.g. optical flow works correctly
 	 */
-	void check_for_smooth_takeoff(const float &position_setpoint_z, const float &velocity_setpoint_z,
-				      const float &jerk_sp, const vehicle_constraints_s &constraints);
-
-	/**
-	 * Check if smooth takeoff has ended and updates accordingly.
-	 * @param position_setpoint_z the position setpoint in the z-Direction
-	 * @param velocity setpoint_z the velocity setpoint in the z-Direction
-	 */
-	void update_smooth_takeoff(const float &position_setpoint_z, const float &velocity_setpoint_z);
+	void update_smooth_takeoff(const float z_sp, const float vz_sp, const float jz_sp, const float min_ground_clearance);
 
 	/**
 	 * Adjust the setpoint during landing.
@@ -655,8 +649,7 @@ MulticopterPositionControl::run()
 
 			// do smooth takeoff after delay if there's a valid vertical velocity or position
 			if (_spoolup_time_hysteresis.get_state() && PX4_ISFINITE(_states.position(2)) && PX4_ISFINITE(_states.velocity(2))) {
-				check_for_smooth_takeoff(setpoint.z, setpoint.vz, setpoint.jerk_z, constraints);
-				update_smooth_takeoff(setpoint.z, setpoint.vz);
+				update_smooth_takeoff(setpoint.z, setpoint.vz, setpoint.jerk_z, constraints.min_distance_to_ground);
 			}
 
 			// disable horizontal / yaw control during smooth takeoff and limit maximum speed upwards
@@ -987,8 +980,7 @@ MulticopterPositionControl::start_flight_task()
 }
 
 void
-MulticopterPositionControl::check_for_smooth_takeoff(const float &z_sp, const float &vz_sp,
-		const float &jerk_sp, const vehicle_constraints_s &constraints)
+MulticopterPositionControl::update_smooth_takeoff(const float z_sp, const float vz_sp, const float jz_sp, const float min_ground_clearance)
 {
 	// Check for smooth takeoff
 	if (_vehicle_land_detected.landed && !_in_smooth_takeoff) {
@@ -996,12 +988,12 @@ MulticopterPositionControl::check_for_smooth_takeoff(const float &z_sp, const fl
 		// Adjust for different takeoff cases.
 		// The minimum takeoff altitude needs to be at least 20cm above minimum distance or, if valid, above minimum distance
 		// above ground.
-		float min_altitude = PX4_ISFINITE(constraints.min_distance_to_ground) ? (constraints.min_distance_to_ground + 0.05f) :
+		float min_altitude = PX4_ISFINITE(min_ground_clearance) ? (min_ground_clearance + 0.05f) :
 				     0.2f;
 
 		// takeoff was initiated through velocity setpoint
 		_smooth_velocity_takeoff = PX4_ISFINITE(vz_sp) && vz_sp < -0.1f;
-		bool jerk_triggered_takeoff = PX4_ISFINITE(jerk_sp) && jerk_sp < -FLT_EPSILON;
+		bool jerk_triggered_takeoff = PX4_ISFINITE(jz_sp) && jz_sp < -FLT_EPSILON;
 		_smooth_velocity_takeoff |= jerk_triggered_takeoff;
 
 		if ((PX4_ISFINITE(z_sp) && z_sp < _states.position(2) - min_altitude) ||  _smooth_velocity_takeoff) {
@@ -1013,11 +1005,7 @@ MulticopterPositionControl::check_for_smooth_takeoff(const float &z_sp, const fl
 
 		}
 	}
-}
 
-void
-MulticopterPositionControl::update_smooth_takeoff(const float &z_sp, const float &vz_sp)
-{
 	// If in smooth takeoff, adjust setpoints based on what is valid:
 	// 1. position setpoint is valid -> go with takeoffspeed to specific altitude
 	// 2. position setpoint not valid but velocity setpoint valid: ramp up velocity
