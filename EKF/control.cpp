@@ -124,7 +124,7 @@ void Ekf::controlFusionModes()
 	}
 
 	// check if we should fuse flow data for terrain estimation
-	if (!_flow_for_terrain_data_ready && _flow_data_ready) {
+	if (!_flow_for_terrain_data_ready && _flow_data_ready && _control_status.flags.in_air) {
 		// only fuse flow for terrain if range data hasn't been fused for 5 seconds
 		_flow_for_terrain_data_ready = (_time_last_imu - _time_last_hagl_fuse) > 5 * 1000 * 1000;
 		// only fuse flow for terrain if the main filter is not fusing flow and we are using gps

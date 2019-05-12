@@ -56,7 +56,8 @@ bool Ekf::initHagl()
 		// success
 		return true;
 	} else if (_flow_for_terrain_data_ready) {
-		_terrain_vpos = _state.pos(2);
+		// initialise terrain vertical position to origin as this is the best guess we have
+		_terrain_vpos = fmaxf(0.0f,  _state.pos(2));
 		_terrain_var = 100.0f;
 		return true;
 	} else if (!_control_status.flags.in_air) {
@@ -213,6 +214,9 @@ void Ekf::fuseFlowForTerrain()
 
 	// Calculate observation matrix for flow around the vehicle x axis
 	float Hx = vel_body(1) * t0 /(pred_hagl * pred_hagl);
+
+	// Constrain terrain variance to be non-negative
+	_terrain_var = fmaxf(_terrain_var, 0.0f);
 
 	// Cacluate innovation variance
 	_flow_innov_var[0] = Hx * Hx * _terrain_var + R_LOS;
