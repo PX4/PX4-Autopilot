@@ -345,10 +345,17 @@ void FlightTaskManualAltitude::_updateSetpoints()
 	_respectGroundSlowdown();
 }
 
+bool FlightTaskManualAltitude::_checkTakeoff()
+{
+	// stick is deflected above the middle 15% of the range
+	return _sticks(2) < -0.3f;
+}
+
 bool FlightTaskManualAltitude::update()
 {
 	_scaleSticks();
 	_updateSetpoints();
+	_constraints.want_takeoff = _checkTakeoff();
 
 	return true;
 }

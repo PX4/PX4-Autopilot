@@ -143,4 +143,5 @@ void FlightTask::_setDefaultConstraints()
 	_constraints.tilt = math::radians(_param_mpc_tiltmax_air.get());
 	_constraints.min_distance_to_ground = NAN;
 	_constraints.max_distance_to_ground = NAN;
+	_constraints.want_takeoff = false;
 }
