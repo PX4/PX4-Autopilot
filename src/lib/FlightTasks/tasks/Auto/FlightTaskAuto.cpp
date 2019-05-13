@@ -106,6 +106,7 @@ bool FlightTaskAuto::updateFinalize()
 	// If the FlightTask generates a yaw or a yawrate setpoint that exceeds this value
 	// it will see its setpoint constrained here
 	_limitYawRate();
+	_constraints.want_takeoff = _checkTakeoff();
 	return true;
 }
 
@@ -126,6 +127,17 @@ void FlightTaskAuto::_limitYawRate()
 	if (PX4_ISFINITE(_yawspeed_setpoint)) {
 		_yawspeed_setpoint = math::constrain(_yawspeed_setpoint, -yawrate_max, yawrate_max);
 	}
+}
+
+bool FlightTaskAuto::_checkTakeoff() {
+	// position setpoint above the minimum altitude
+	float min_altitude = 0.2f;
+	const float min_distance_to_ground = _sub_vehicle_local_position->get().hagl_min;
+	if (PX4_ISFINITE(min_distance_to_ground)) {
+		min_altitude = min_distance_to_ground + 0.05f;
+	}
+
+	return PX4_ISFINITE(_position_setpoint(2)) && _position_setpoint(2) < (_position(2) - min_altitude);
 }
 
 bool FlightTaskAuto::_evaluateTriplets()
