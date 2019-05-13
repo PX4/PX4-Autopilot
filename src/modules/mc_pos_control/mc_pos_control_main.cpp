@@ -232,12 +232,11 @@ private:
 
 	/**
 	 * Update smooth takeoff vertical velocity ramp to bring the vehicle off the ground without step
-	 * @param z_sp position setpoint in the z-Direction
 	 * @param vz_sp velocity setpoint in the z-Direction
-	 * @param jz_sp jerk setpoint in the z-Direction
-	 * @param min_ground_clearance minimal distance to the ground in which e.g. optical flow works correctly
+	 * @param z_sp position setpoint in the z-Direction
+	 * @param vz_constraint velocity to ramp to when there's only a position setpoint
 	 */
-	void update_takeoff_ramp(const float z_sp, const float vz_sp, const float jz_sp, const float min_distance_to_ground);
+	void update_takeoff_ramp(const bool want_takeoff, const float vz_sp, const float z_sp, const float vz_constraint);
 
 	/**
 	 * Adjust the setpoint during landing.
@@ -647,7 +646,7 @@ MulticopterPositionControl::run()
 
 			// do smooth takeoff after delay if there's a valid vertical velocity or position
 			if (_spoolup_time_hysteresis.get_state() && PX4_ISFINITE(_states.position(2)) && PX4_ISFINITE(_states.velocity(2))) {
-				update_takeoff_ramp(setpoint.z, setpoint.vz, setpoint.jerk_z, constraints.min_distance_to_ground);
+				update_takeoff_ramp(constraints.want_takeoff, setpoint.vz, setpoint.z, constraints.speed_up);
 			}
 
 			// disable horizontal / yaw control during smooth takeoff and limit maximum speed upwards
@@ -978,62 +977,40 @@ MulticopterPositionControl::start_flight_task()
 }
 
 void
-MulticopterPositionControl::update_takeoff_ramp(const float z_sp, const float vz_sp, const float jz_sp, const float min_distance_to_ground)
+MulticopterPositionControl::update_takeoff_ramp(const bool want_takeoff, const float vz_sp, const float z_sp, const float vz_constraint)
 {
 	const float takeoff_ramp_initialization = -0.7f;
 
 	// check if takeoff is triggered
-	if (_vehicle_land_detected.landed && !_in_takeoff_ramp) {
-		// vehicle is still landed and no takeoff was initiated yet, check if takeoff is triggered
-		// minimum takeoff altitude either 20cm or if valid above minimum altitude specified by flight task/estimator
-		float min_altitude = 0.2f;
-		if (PX4_ISFINITE(min_distance_to_ground)) {
-			min_altitude = min_distance_to_ground + 0.05f;
-		}
-
-		// upwards velocity setpoint larger than a minimal speed
-		const bool velocity_triggered_takeoff = PX4_ISFINITE(vz_sp) && vz_sp < -0.3f;
-		// upwards jerk setpoint
-		const bool jerk_triggered_takeoff = PX4_ISFINITE(jz_sp) && jz_sp < -FLT_EPSILON;
-		// position setpoint above the minimum altitude
-		_position_triggered_takeoff = PX4_ISFINITE(z_sp) && (z_sp < (_states.position(2) - min_altitude));
-
-		if (velocity_triggered_takeoff || jerk_triggered_takeoff || _position_triggered_takeoff) {
-			// takeoff was triggered, start velocity ramp
-			_takeoff_ramp_velocity = takeoff_ramp_initialization;
-			_in_takeoff_ramp = true;
-			_takeoff_reference_z = _states.position(2);
-		}
+	if (_vehicle_land_detected.landed && !_in_takeoff_ramp && want_takeoff) {
+		// takeoff was triggered, start velocity ramp
+		_takeoff_ramp_velocity = takeoff_ramp_initialization;
+		_in_takeoff_ramp = true;
+		_takeoff_reference_z = _states.position(2);
 	}
 
 	// if in smooth takeoff limit upwards velocity setpoint to a smooth ramp
 	if (_in_takeoff_ramp) {
 		float takeoff_desired_velocity = -vz_sp;
 
-		// if takeoff was triggered by a position setpoint, ramp to the takeoff speed parameter
-		if (_position_triggered_takeoff) {
-			takeoff_desired_velocity = _param_mpc_tko_speed.get();
+		// if there's only a position setpoint we go up with the configured takeoff speed
+		if (!PX4_ISFINITE(vz_sp) && PX4_ISFINITE(z_sp)) {
+			takeoff_desired_velocity = vz_constraint;
 		}
 
-		// ramp up vrtical velocity in TKO_RAMP_T seconds
+
 		if (_param_mpc_tko_ramp_t.get() > _dt) {
 			_takeoff_ramp_velocity += (takeoff_desired_velocity - takeoff_ramp_initialization) * _dt / _param_mpc_tko_ramp_t.get();
-
 		} else {
-			// no ramp, directly go to desired takeoff speed
+			// no ramp time, directly jump to desired velocity
 			_takeoff_ramp_velocity = takeoff_desired_velocity;
 		}
 
 		// make sure we cannot overshoot the desired setpoint with the ramp
 		_takeoff_ramp_velocity = math::min(_takeoff_ramp_velocity, takeoff_desired_velocity);
 
-		// smooth takeoff is achieved once desired altitude/velocity setpoint is reached
-		if (_position_triggered_takeoff) {
-			_in_takeoff_ramp = _states.position(2) - 0.2f > math::max(z_sp, _takeoff_reference_z - _param_mpc_land_alt2.get());
-
-		} else {
-			_in_takeoff_ramp = (_takeoff_ramp_velocity < -vz_sp);
-		}
+		// smooth takeoff is finished once desired velocity setpoint is reached
+		_in_takeoff_ramp = (_takeoff_ramp_velocity < takeoff_desired_velocity);
 	}
 }
 

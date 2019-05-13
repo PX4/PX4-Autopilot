@@ -198,7 +198,7 @@ protected:
 	/**
 	 * Set constraints to default values
 	 */
-	virtual void  _setDefaultConstraints();
+	virtual void _setDefaultConstraints();
 
 	/* Time abstraction */
 	static constexpr uint64_t _timeout = 500000; /**< maximal time in us before a loop or data times out */
