@@ -77,6 +77,11 @@ void CollisionPrevention::reset_constraints()
 
 	_move_constraints_x.zero();  //constraint in x-direction
 	_move_constraints_y.zero();  //constraint in y-direction
+
+	_velocity_constraints_x(0) = 1000000000;
+	_velocity_constraints_x(1) = 1000000000;
+	_velocity_constraints_y(0) = 1000000000;
+	_velocity_constraints_y(1) = 1000000000;
 }
 
 void CollisionPrevention::publish_constraints(const Vector2f &original_setpoint, const Vector2f &adapted_setpoint)
@@ -105,12 +110,12 @@ void CollisionPrevention::publish_constraints(const Vector2f &original_setpoint,
 	}
 }
 
-void CollisionPrevention::update_range_constraints()
+void CollisionPrevention::update_velocity_constraints(const hrt_abstime &dt, const matrix::Vector3f &curr_vel,
+		Vector2f &setpoint)
 {
 	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance->get();
 
 	if (hrt_elapsed_time(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US) {
-		float max_detection_distance = obstacle_distance.max_distance / 100.0f; //convert to meters
 
 		int distances_array_size = sizeof(obstacle_distance.distances) / sizeof(obstacle_distance.distances[0]);
 
@@ -121,19 +126,36 @@ void CollisionPrevention::update_range_constraints()
 				float distance = obstacle_distance.distances[i] / 100.0f; //convert to meters
 				float angle = math::radians((float)i * obstacle_distance.increment);
 
-				//calculate normalized velocity reductions
-				float vel_lim_x = (max_detection_distance - distance) / (max_detection_distance - _param_mpc_col_prev_d.get()) * cos(
-							  angle);
-				float vel_lim_y = (max_detection_distance - distance) / (max_detection_distance - _param_mpc_col_prev_d.get()) * sin(
-							  angle);
+				//current velocity component in bin direction
+				float vel_component = curr_vel(0) * cos(angle) + curr_vel(1) * sin(angle);
 
-				if (vel_lim_x > 0 && vel_lim_x > _move_constraints_x_normalized(1)) { _move_constraints_x_normalized(1) = vel_lim_x; }
+				if (vel_component > 0) {
+					float acceleration = 0.5f * vel_component * vel_component / (distance - _param_mpc_col_prev_d.get());
+					float vel_lim = vel_component - acceleration * 0.01f;
 
-				if (vel_lim_y > 0 && vel_lim_y > _move_constraints_y_normalized(1)) { _move_constraints_y_normalized(1) = vel_lim_y; }
+					if (distance < _param_mpc_col_prev_d.get()) {
+						vel_lim = 0.f;
+					}
 
-				if (vel_lim_x < 0 && -vel_lim_x > _move_constraints_x_normalized(0)) { _move_constraints_x_normalized(0) = -vel_lim_x; }
+					//limit setpoint
+					float sp_parallel = setpoint(0) * cos(angle) + setpoint(1) * sin(angle);
 
-				if (vel_lim_y < 0 && -vel_lim_y > _move_constraints_y_normalized(0)) { _move_constraints_y_normalized(0) = -vel_lim_y; }
+					if (sp_parallel > vel_lim) {
+						if (setpoint(0) > 0) {
+							setpoint(0) = math::constrain(setpoint(0) - (sp_parallel - vel_lim) * cos(angle), 0.f, setpoint(0));
+
+						} else {
+							setpoint(0) = math::constrain(setpoint(0) - (sp_parallel - vel_lim) * cos(angle), setpoint(0), 0.f);
+						}
+
+						if (setpoint(1) > 0) {
+							setpoint(1) = math::constrain(setpoint(1) - (sp_parallel - vel_lim) * sin(angle), 0.f, setpoint(1));
+
+						} else {
+							setpoint(1) = math::constrain(setpoint(1) - (sp_parallel - vel_lim) * sin(angle), setpoint(1), 0.f);
+						}
+					}
+				}
 			}
 		}
 
@@ -143,30 +165,18 @@ void CollisionPrevention::update_range_constraints()
 	}
 }
 
-void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const float max_speed)
+void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const float max_speed,
+		const matrix::Vector3f &curr_vel)
 {
 	reset_constraints();
 
+	//timestep
+	hrt_abstime dt = hrt_elapsed_time(&_calculation_time);
+	_calculation_time = hrt_absolute_time();
+
 	//calculate movement constraints based on range data
-	update_range_constraints();
-
-	//clamp constraints to be in [0,1]. Constraints > 1 occur if the vehicle is closer than _param_mpc_col_prev_d to the obstacle.
-	//they would lead to the vehicle being pushed back from the obstacle which we do not yet support
-	_move_constraints_x_normalized(0) = math::constrain(_move_constraints_x_normalized(0), 0.f, 1.f);
-	_move_constraints_x_normalized(1) = math::constrain(_move_constraints_x_normalized(1), 0.f, 1.f);
-	_move_constraints_y_normalized(0) = math::constrain(_move_constraints_y_normalized(0), 0.f, 1.f);
-	_move_constraints_y_normalized(1) = math::constrain(_move_constraints_y_normalized(1), 0.f, 1.f);
-
-	//apply the velocity reductions to form velocity limits
-	_move_constraints_x(0) = max_speed * (1.f - _move_constraints_x_normalized(0));
-	_move_constraints_x(1) = max_speed * (1.f - _move_constraints_x_normalized(1));
-	_move_constraints_y(0) = max_speed * (1.f - _move_constraints_y_normalized(0));
-	_move_constraints_y(1) = max_speed * (1.f - _move_constraints_y_normalized(1));
-
-	//constrain the velocity setpoint to respect the velocity limits
-	Vector2f new_setpoint;
-	new_setpoint(0) = math::constrain(original_setpoint(0), -_move_constraints_x(0), _move_constraints_x(1));
-	new_setpoint(1) = math::constrain(original_setpoint(1), -_move_constraints_y(0), _move_constraints_y(1));
+	Vector2f new_setpoint = original_setpoint;
+	update_velocity_constraints(dt, curr_vel, new_setpoint);
 
 	//warn user if collision prevention starts to interfere
 	bool currently_interfering = (new_setpoint(0) < original_setpoint(0) - 0.05f * max_speed

@@ -68,7 +68,7 @@ public:
 
 	bool is_active() { return _param_mpc_col_prev_d.get() > 0; }
 
-	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed);
+	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed, const matrix::Vector3f &curr_vel);
 
 private:
 
@@ -83,11 +83,14 @@ private:
 	static constexpr uint64_t MESSAGE_THROTTLE_US = 5000000;
 
 	hrt_abstime _last_message;
+	hrt_abstime _calculation_time;
 
 	matrix::Vector2f _move_constraints_x_normalized;
 	matrix::Vector2f _move_constraints_y_normalized;
 	matrix::Vector2f _move_constraints_x;
 	matrix::Vector2f _move_constraints_y;
+	matrix::Vector2f _velocity_constraints_x;
+	matrix::Vector2f _velocity_constraints_y;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_COL_PREV_D>) _param_mpc_col_prev_d /**< collision prevention keep minimum distance */
@@ -95,7 +98,7 @@ private:
 
 	void update();
 
-	void update_range_constraints();
+	void update_velocity_constraints(const hrt_abstime &dt, const matrix::Vector3f &curr_vel, matrix::Vector2f &setpoint);
 
 	void reset_constraints();
 

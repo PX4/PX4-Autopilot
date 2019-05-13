@@ -134,7 +134,7 @@ void FlightTaskManualPosition::_scaleSticks()
 
 	// collision prevention
 	if (_collision_prevention.is_active()) {
-		_collision_prevention.modifySetpoint(vel_sp_xy, _velocity_scale);
+		_collision_prevention.modifySetpoint(vel_sp_xy, _velocity_scale, _velocity);
 	}
 
 	_velocity_setpoint(0) = vel_sp_xy(0);
