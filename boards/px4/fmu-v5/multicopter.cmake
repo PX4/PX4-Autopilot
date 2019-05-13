@@ -47,6 +47,7 @@ px4_add_board(
 		stm32/tone_alarm
 		tap_esc
 		telemetry # all available telemetry drivers
+		tone_alarm
 		uavcan
 
 	MODULES

@@ -46,6 +46,7 @@ px4_add_board(
 		stm32/armv7-m_dcache
 		stm32/tone_alarm
 		telemetry # all available telemetry drivers
+		tone_alarm
 		uavcan
 
 	MODULES

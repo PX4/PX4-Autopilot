@@ -40,6 +40,7 @@ px4_add_board(
 		stm32/tone_alarm
 		#telemetry # all available telemetry drivers
 		telemetry/iridiumsbd
+		tone_alarm
 		#uavcan
 
 	MODULES
