@@ -86,6 +86,8 @@ bool FlightTaskAutoMapper::update()
 		_generateVelocitySetpoints();
 	}
 
+	_obstacle_avoidance.updateAvoidanceDesiredSetpoints(_position_setpoint, _velocity_setpoint);
+
 	_obstacle_avoidance.injectAvoidanceSetpoints(_position_setpoint, _velocity_setpoint, _yaw_setpoint,
 			_yawspeed_setpoint);
 
