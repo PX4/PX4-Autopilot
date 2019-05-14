@@ -37,6 +37,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-double-promotion
 		-Wno-cast-align # TODO: fix and enable
+		-Wno-address-of-packed-member # TODO: fix in c_library_v2
 	SRCS
 		gpssim.cpp
 	DEPENDS
