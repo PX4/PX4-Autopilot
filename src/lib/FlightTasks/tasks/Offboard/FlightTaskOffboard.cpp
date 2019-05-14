@@ -75,17 +75,16 @@ bool FlightTaskOffboard::activate()
 
 bool FlightTaskOffboard::update()
 {
+	// reset setpoint for every loop
+	_resetSetpoints();
+
 	if (!_sub_triplet_setpoint->get().current.valid) {
-		_resetSetpoints();
+		_setDefaultConstraints();
 		_position_setpoint = _position;
 		return false;
 	}
 
-	// reset setpoint for every loop
-	_resetSetpoints();
-
 	// Yaw / Yaw-speed
-
 	if (_sub_triplet_setpoint->get().current.yaw_valid) {
 		// yaw control required
 		_yaw_setpoint = _sub_triplet_setpoint->get().current.yaw;
@@ -169,7 +168,6 @@ bool FlightTaskOffboard::update()
 	// 2. position setpoint + velocity setpoint (velocity used as feedforward)
 	// 3. velocity setpoint
 	// 4. acceleration setpoint -> this will be mapped to normalized thrust setpoint because acceleration is not supported
-
 	const bool position_ctrl_xy = _sub_triplet_setpoint->get().current.position_valid
 				      && _sub_vehicle_local_position->get().xy_valid;
 	const bool position_ctrl_z = _sub_triplet_setpoint->get().current.alt_valid
@@ -225,7 +223,6 @@ bool FlightTaskOffboard::update()
 	}
 
 	// Z-direction
-
 	if (feedforward_ctrl_z) {
 		_position_setpoint(2) = _sub_triplet_setpoint->get().current.z;
 		_velocity_setpoint(2) = _sub_triplet_setpoint->get().current.vz;
@@ -239,12 +236,14 @@ bool FlightTaskOffboard::update()
 
 	// Acceleration
 	// Note: this is not supported yet and will be mapped to normalized thrust directly.
-
 	if (_sub_triplet_setpoint->get().current.acceleration_valid) {
 		_thrust_setpoint(0) = _sub_triplet_setpoint->get().current.a_x;
 		_thrust_setpoint(1) = _sub_triplet_setpoint->get().current.a_y;
 		_thrust_setpoint(2) = _sub_triplet_setpoint->get().current.a_z;
 	}
+
+	// use default conditions of upwards position or velocity to take off
+	_constraints.want_takeoff = _checkTakeoff();
 
 	return true;
 }
