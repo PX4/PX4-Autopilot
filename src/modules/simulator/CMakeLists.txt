@@ -61,6 +61,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-double-promotion
 		-Wno-cast-align
+		-Wno-address-of-packed-member # TODO: fix in c_library_v2
 	INCLUDES
 		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS
