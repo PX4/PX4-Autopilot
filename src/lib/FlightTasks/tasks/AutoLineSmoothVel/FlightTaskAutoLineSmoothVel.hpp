@@ -67,6 +67,9 @@ protected:
 
 	void _generateSetpoints() override; /**< Generate setpoints along line. */
 
+	/** determines when to trigger a takeoff (ignored in flight) */
+	bool _checkTakeoff() override { return _want_takeoff; };
+
 	inline float _constrainOneSide(float val, float constrain);
 	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
 	void _generateHeading();
@@ -75,7 +78,9 @@ protected:
 	void _prepareSetpoints(); /**< Generate velocity target points for the trajectory generator. */
 	void _generateTrajectory();
 	VelocitySmoothing _trajectory[3]; ///< Trajectories in x, y and z directions
-	float _yaw_sp_prev;
+
+	float _yaw_sp_prev{NAN};
+	bool _want_takeoff{false};
 
 	/* counters for estimator local position resets */
 	struct {
