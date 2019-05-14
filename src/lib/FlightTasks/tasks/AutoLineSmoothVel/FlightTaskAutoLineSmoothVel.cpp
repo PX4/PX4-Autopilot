@@ -201,9 +201,9 @@ void FlightTaskAutoLineSmoothVel::_updateTrajConstraints()
 	_trajectory[1].setMaxAccel(_param_mpc_acc_hor_max.get());
 	_trajectory[0].setMaxVel(_param_mpc_xy_vel_max.get());
 	_trajectory[1].setMaxVel(_param_mpc_xy_vel_max.get());
-	_trajectory[0].setMaxJerk(_param_mpc_jerk_min.get()); // TODO : Should be computed using heading
-	_trajectory[1].setMaxJerk(_param_mpc_jerk_min.get());
-	_trajectory[2].setMaxJerk(_param_mpc_jerk_min.get());
+	_trajectory[0].setMaxJerk(_param_mpc_jerk_auto.get()); // TODO : Should be computed using heading
+	_trajectory[1].setMaxJerk(_param_mpc_jerk_auto.get());
+	_trajectory[2].setMaxJerk(_param_mpc_jerk_auto.get());
 
 	if (_velocity_setpoint(2) < 0.f) { // up
 		_trajectory[2].setMaxAccel(_param_mpc_acc_up_max.get());
