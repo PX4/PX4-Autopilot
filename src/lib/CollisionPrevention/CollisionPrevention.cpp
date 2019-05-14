@@ -51,10 +51,6 @@ CollisionPrevention::CollisionPrevention(ModuleParams *parent) :
 CollisionPrevention::~CollisionPrevention()
 {
 	//unadvertise publishers
-	if (_constraints_pub != nullptr) {
-		orb_unadvertise(_constraints_pub);
-	}
-
 	if (_mavlink_log_pub != nullptr) {
 		orb_unadvertise(_mavlink_log_pub);
 	}
@@ -69,53 +65,20 @@ bool CollisionPrevention::initializeSubscriptions(SubscriptionArray &subscriptio
 	return true;
 }
 
-void CollisionPrevention::reset_constraints()
+bool CollisionPrevention::isZero(const Vector2f &vec, const float limit) const
 {
-
-	_move_constraints_x_normalized.zero();  //normalized constraint in x-direction
-	_move_constraints_y_normalized.zero();  //normalized constraint in y-direction
-
-	_move_constraints_x.zero();  //constraint in x-direction
-	_move_constraints_y.zero();  //constraint in y-direction
-
-	_velocity_constraints_x(0) = 1000000000;
-	_velocity_constraints_x(1) = 1000000000;
-	_velocity_constraints_y(0) = 1000000000;
-	_velocity_constraints_y(1) = 1000000000;
+	return (vec(0) < limit && vec(0) > -limit) && (vec(1) < limit && vec(1) > -limit);
 }
 
-void CollisionPrevention::publish_constraints(const Vector2f &original_setpoint, const Vector2f &adapted_setpoint)
-{
-
-	collision_constraints_s	constraints;	/**< collision constraints message */
-
-	//fill in values
-	constraints.timestamp = hrt_absolute_time();
-	constraints.constraints_normalized_x[0] = _move_constraints_x_normalized(0);
-	constraints.constraints_normalized_x[1] = _move_constraints_x_normalized(1);
-	constraints.constraints_normalized_y[0] = _move_constraints_y_normalized(0);
-	constraints.constraints_normalized_y[1] = _move_constraints_y_normalized(1);
-
-	constraints.original_setpoint[0] = original_setpoint(0);
-	constraints.original_setpoint[1] = original_setpoint(1);
-	constraints.adapted_setpoint[0] = adapted_setpoint(0);
-	constraints.adapted_setpoint[1] = adapted_setpoint(1);
-
-	// publish constraints
-	if (_constraints_pub != nullptr) {
-		orb_publish(ORB_ID(collision_constraints), _constraints_pub, &constraints);
-
-	} else {
-		_constraints_pub = orb_advertise(ORB_ID(collision_constraints), &constraints);
-	}
-}
-
-void CollisionPrevention::update_velocity_constraints(const hrt_abstime &dt, const matrix::Vector3f &curr_vel,
-		Vector2f &setpoint)
+void CollisionPrevention::update_velocity_constraints(const float max_acc, Vector2f &setpoint)
 {
 	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance->get();
+	Vector2f setpoint_sqrd = setpoint * setpoint.norm();
+	float slide_max_rad = 1.57f;
 
-	if (hrt_elapsed_time(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US) {
+	PX4_INFO_RAW("_______________________START with SP [%.3f, %.3f]\n", (double)setpoint(0), (double)setpoint(1));
+
+	if (hrt_elapsed_time(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US && !isZero(setpoint, 1e-3)) {
 
 		int distances_array_size = sizeof(obstacle_distance.distances) / sizeof(obstacle_distance.distances[0]);
 
@@ -126,38 +89,55 @@ void CollisionPrevention::update_velocity_constraints(const hrt_abstime &dt, con
 				float distance = obstacle_distance.distances[i] / 100.0f; //convert to meters
 				float angle = math::radians((float)i * obstacle_distance.increment);
 
-				//current velocity component in bin direction
-				float vel_component = curr_vel(0) * cos(angle) + curr_vel(1) * sin(angle);
+				//max velocity squared in bin direction
+				float vel_max_sqrd = max_acc * (distance - _param_mpc_col_prev_d.get());
 
-				if (vel_component > 0) {
-					float acceleration = 0.5f * vel_component * vel_component / (distance - _param_mpc_col_prev_d.get());
-					float vel_lim = vel_component - acceleration * 0.01f;
+				if (distance < _param_mpc_col_prev_d.get()) {
+					vel_max_sqrd = 0.f;
+				}
 
-					if (distance < _param_mpc_col_prev_d.get()) {
-						vel_lim = 0.f;
-					}
+				//limit setpoint
+				Vector2f bin_direction = {cos(angle), sin(angle)};
+				Vector2f orth_direction = {sin(angle), cos(angle)};
+				float sp_parallel = setpoint_sqrd.dot(bin_direction);
+				float sp_orth = setpoint_sqrd.dot(orth_direction);
 
-					//limit setpoint
-					float sp_parallel = setpoint(0) * cos(angle) + setpoint(1) * sin(angle);
+				if (sp_parallel > vel_max_sqrd) {
+					Vector2f setpoint_temp = setpoint_sqrd - (sp_parallel - vel_max_sqrd) * bin_direction;
 
-					if (sp_parallel > vel_lim) {
-						if (setpoint(0) > 0) {
-							setpoint(0) = math::constrain(setpoint(0) - (sp_parallel - vel_lim) * cos(angle), 0.f, setpoint(0));
+
+					//limit sliding angle
+					float angle_demanded_temp = acos(setpoint_temp.dot(setpoint) / (setpoint_temp.norm() * setpoint.norm()));
+
+					if (angle_demanded_temp > slide_max_rad) {
+						float angle_diff_bin = acos(sp_parallel / setpoint_sqrd.norm());
+						float orth_len = vel_max_sqrd * tan(angle_diff_bin + slide_max_rad);
+
+						if (sp_orth > 0) {
+							setpoint_temp = vel_max_sqrd * bin_direction + orth_len * orth_direction;
 
 						} else {
-							setpoint(0) = math::constrain(setpoint(0) - (sp_parallel - vel_lim) * cos(angle), setpoint(0), 0.f);
+							setpoint_temp = vel_max_sqrd * bin_direction - orth_len * orth_direction;
 						}
 
-						if (setpoint(1) > 0) {
-							setpoint(1) = math::constrain(setpoint(1) - (sp_parallel - vel_lim) * sin(angle), 0.f, setpoint(1));
-
-						} else {
-							setpoint(1) = math::constrain(setpoint(1) - (sp_parallel - vel_lim) * sin(angle), setpoint(1), 0.f);
-						}
+						PX4_INFO_RAW("sliding angle limited from %.3f to %.3f\n", (double)angle_demanded_temp, (double)slide_max_rad);
 					}
+
+					setpoint_sqrd = setpoint_temp;
+					PX4_INFO_RAW("vel_lim %.3f parallel component %.3f  SP sqrd [%.3f, %.3f]\n", (double)vel_max_sqrd, (double)sp_parallel,
+						     (double)setpoint_sqrd(0), (double)setpoint_sqrd(1));
 				}
 			}
 		}
+
+		if (!isZero(setpoint_sqrd, 1e-3)) {
+			setpoint = setpoint_sqrd.normalized() * std::sqrt(setpoint_sqrd.norm());
+
+		} else {
+			setpoint.zero();
+		}
+
+		PX4_INFO_RAW("Final SP [%.3f, %.3f] \n", (double)setpoint(0), (double)setpoint(1));
 
 	} else if (_last_message + MESSAGE_THROTTLE_US < hrt_absolute_time()) {
 		mavlink_log_critical(&_mavlink_log_pub, "No range data received");
@@ -166,17 +146,11 @@ void CollisionPrevention::update_velocity_constraints(const hrt_abstime &dt, con
 }
 
 void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const float max_speed,
-		const matrix::Vector3f &curr_vel)
+		const float max_acc)
 {
-	reset_constraints();
-
-	//timestep
-	hrt_abstime dt = hrt_elapsed_time(&_calculation_time);
-	_calculation_time = hrt_absolute_time();
-
 	//calculate movement constraints based on range data
 	Vector2f new_setpoint = original_setpoint;
-	update_velocity_constraints(dt, curr_vel, new_setpoint);
+	update_velocity_constraints(max_acc, new_setpoint);
 
 	//warn user if collision prevention starts to interfere
 	bool currently_interfering = (new_setpoint(0) < original_setpoint(0) - 0.05f * max_speed
@@ -189,7 +163,5 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 	}
 
 	_interfering = currently_interfering;
-
-	publish_constraints(original_setpoint, new_setpoint);
 	original_setpoint = new_setpoint;
 }
