@@ -129,17 +129,6 @@ void FlightTaskAuto::_limitYawRate()
 	}
 }
 
-bool FlightTaskAuto::_checkTakeoff() {
-	// position setpoint above the minimum altitude
-	float min_altitude = 0.2f;
-	const float min_distance_to_ground = _sub_vehicle_local_position->get().hagl_min;
-	if (PX4_ISFINITE(min_distance_to_ground)) {
-		min_altitude = min_distance_to_ground + 0.05f;
-	}
-
-	return PX4_ISFINITE(_position_setpoint(2)) && _position_setpoint(2) < (_position(2) - min_altitude);
-}
-
 bool FlightTaskAuto::_evaluateTriplets()
 {
 	// TODO: fix the issues mentioned below
