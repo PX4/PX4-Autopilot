@@ -68,7 +68,7 @@ public:
 
 	bool is_active() { return _param_mpc_col_prev_d.get() > 0; }
 
-	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed, const matrix::Vector3f &curr_vel);
+	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed, const float max_acc);
 
 private:
 
@@ -83,14 +83,6 @@ private:
 	static constexpr uint64_t MESSAGE_THROTTLE_US = 5000000;
 
 	hrt_abstime _last_message;
-	hrt_abstime _calculation_time;
-
-	matrix::Vector2f _move_constraints_x_normalized;
-	matrix::Vector2f _move_constraints_y_normalized;
-	matrix::Vector2f _move_constraints_x;
-	matrix::Vector2f _move_constraints_y;
-	matrix::Vector2f _velocity_constraints_x;
-	matrix::Vector2f _velocity_constraints_y;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_COL_PREV_D>) _param_mpc_col_prev_d /**< collision prevention keep minimum distance */
@@ -98,10 +90,8 @@ private:
 
 	void update();
 
-	void update_velocity_constraints(const hrt_abstime &dt, const matrix::Vector3f &curr_vel, matrix::Vector2f &setpoint);
+	bool isZero(const matrix::Vector2f &vec, const float limit) const;
 
-	void reset_constraints();
-
-	void publish_constraints(const matrix::Vector2f &original_setpoint, const matrix::Vector2f &adapted_setpoint);
+	void update_velocity_constraints(const float max_acc, matrix::Vector2f &setpoint);
 
 };
