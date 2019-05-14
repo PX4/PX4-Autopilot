@@ -194,7 +194,7 @@ CM8JL65::CM8JL65(const char *port, uint8_t rotation) :
 	_comms_errors(perf_alloc(PC_COUNT, "cm8jl65_com_err"))
 {
 	/* store port name */
-	strncpy(_port, port, sizeof(_port));
+	strncpy(_port, port, sizeof(_port) - 1);
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
 
