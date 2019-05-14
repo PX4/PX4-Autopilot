@@ -388,6 +388,7 @@ void Tailsitter::update_transition_state()
 {
 	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
 	float suck_wall_thr_cmd = 0.0f;
+
 #if 0
 	float delt_x;
 	float delt_y;
@@ -462,6 +463,7 @@ void Tailsitter::update_transition_state()
 		/* save the thrust value at the end of the transition */
 		_trans_end_thrust = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
 #endif
+
 		switch (_params->vt_sweep_or_suck_type){
 		case NO_SUCK:
 		case TOP_WALL:
@@ -482,9 +484,13 @@ void Tailsitter::update_transition_state()
 	    	break;
 		}
 
+		struct pm3901_with_tof_s pm3901_tof_data;
+		int    pm3901_and_tof_sub = orb_subscribe(ORB_ID(pm3901_with_tof));
+		orb_copy(ORB_ID(pm3901_with_tof), pm3901_and_tof_sub, &pm3901_tof_data);
+
 		if ((_vtol_vehicle_status->ticks_since_trans % 10) == 5) 
 		{
-			mavlink_log_critical(&mavlink_log_pub, "START SUCK:%.2f", (double)(suck_wall_thr_cmd));
+			mavlink_log_critical(&mavlink_log_pub, "height:%.2f", (double)(pm3901_tof_data.tof_height));
 		}
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_BACK) {

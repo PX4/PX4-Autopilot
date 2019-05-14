@@ -63,3 +63,6 @@ mc_pos_control start
 # Start Multicopter Land Detector.
 #
 land_detector start multicopter
+
+# start the customer uart read app
+rw_uart start

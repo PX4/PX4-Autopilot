@@ -78,6 +78,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/pm3901_with_tof.h>
 
 #include "tiltrotor.h"
 #include "tailsitter.h"
@@ -132,6 +133,7 @@ private:
 	int	_airspeed_sub{-1};			// airspeed subscription
 	int	_fw_virtual_att_sp_sub{-1};
 	int	_land_detected_sub{-1};
+	int _pm3901_and_tof_sub{-1};
 	int	_local_pos_sp_sub{-1};			// setpoint subscription
 	int	_local_pos_sub{-1};			// sensor subscription
 	int _sensor_acc_sub{-1};
@@ -176,6 +178,7 @@ private:
 	vehicle_local_position_setpoint_s	_local_pos_sp{};
 	vtol_vehicle_status_s 			_vtol_vehicle_status{};
 	sensor_accel_s                  _sensor_acc{};
+	pm3901_with_tof_s               _pm3901_tof_data{};
 
 	Params _params{};	// struct holding the parameters
 

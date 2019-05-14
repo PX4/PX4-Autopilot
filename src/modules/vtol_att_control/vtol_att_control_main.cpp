@@ -585,8 +585,9 @@ void VtolAttitudeControl::task_main()
 	_pos_sp_triplet_sub    = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_airspeed_sub          = orb_subscribe(ORB_ID(airspeed));
 	_vehicle_cmd_sub	   = orb_subscribe(ORB_ID(vehicle_command));
-	_tecs_status_sub = orb_subscribe(ORB_ID(tecs_status));
-	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
+	_tecs_status_sub       = orb_subscribe(ORB_ID(tecs_status));
+	_land_detected_sub     = orb_subscribe(ORB_ID(vehicle_land_detected));
+	_pm3901_and_tof_sub    = orb_subscribe(ORB_ID(pm3901_with_tof));
 
 	_actuator_inputs_mc    = orb_subscribe(ORB_ID(actuator_controls_virtual_mc));
 	_actuator_inputs_fw    = orb_subscribe(ORB_ID(actuator_controls_virtual_fw));
