@@ -78,10 +78,7 @@ def add_msg_field(field):
 
 
 def add_msg_fields():
-    # sort fields (using a stable sort) as in the declaration of the type
-    sorted_fields = sorted(spec.parsed_fields(),
-                           key=sizeof_field_type, reverse=True)
-    for field in sorted_fields:
+    for field in spec.parsed_fields():
         add_msg_field(field)
 
 
