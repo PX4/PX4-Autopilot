@@ -65,11 +65,6 @@ bool CollisionPrevention::initializeSubscriptions(SubscriptionArray &subscriptio
 	return true;
 }
 
-bool CollisionPrevention::isZero(const Vector2f &vec, const float limit) const
-{
-	return (vec(0) < limit && vec(0) > -limit) && (vec(1) < limit && vec(1) > -limit);
-}
-
 void CollisionPrevention::calculate_constrained_setpoint(const float max_acc, Vector2f &setpoint)
 {
 	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance->get();
@@ -81,11 +76,12 @@ void CollisionPrevention::calculate_constrained_setpoint(const float max_acc, Ve
 	//Limit the deviation of the adapted setpoint from the originally given joystick input (slightly less than 90 degrees)
 	float max_slide_angle_rad = 1.2f;
 
-	if (hrt_elapsed_time(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US && !isZero(setpoint, 1e-3)) {
+	if (hrt_elapsed_time(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US && setpoint.norm() > 0.001f) {
 
 		int distances_array_size = sizeof(obstacle_distance.distances) / sizeof(obstacle_distance.distances[0]);
 
 		for (int i = 0; i < distances_array_size; i++) {
+
 			//determine if distance bin is valid and contains a valid distance measurement
 			if (obstacle_distance.distances[i] < obstacle_distance.max_distance &&
 			    obstacle_distance.distances[i] > obstacle_distance.min_distance && i * obstacle_distance.increment < 360) {
@@ -93,11 +89,7 @@ void CollisionPrevention::calculate_constrained_setpoint(const float max_acc, Ve
 				float angle = math::radians((float)i * obstacle_distance.increment);
 
 				//max velocity squared in current bin direction
-				float vel_max_sqrd = max_acc * (distance - _param_mpc_col_prev_d.get());
-
-				if (distance < _param_mpc_col_prev_d.get()) {
-					vel_max_sqrd = 0.f;
-				}
+				float vel_max_sqrd = math::max(0.f, max_acc * (distance - _param_mpc_col_prev_d.get()));
 
 				//split current setpoint into parallel and orthogonal components with respect to the current bin direction
 				Vector2f bin_direction = {cos(angle), sin(angle)};
@@ -111,10 +103,11 @@ void CollisionPrevention::calculate_constrained_setpoint(const float max_acc, Ve
 
 					//limit sliding angle
 					float angle_diff_temp_orig = acos(setpoint_temp.dot(setpoint) / (setpoint_temp.norm() * setpoint.norm()));
+					float angle_diff_temp_bin = acos(setpoint_temp.dot(bin_direction) / (setpoint_temp.norm() * bin_direction.norm()));
 
-					if (angle_diff_temp_orig > max_slide_angle_rad) {
-						float angle_diff_bin = acos(sp_parallel / setpoint_sqrd.norm());
-						float orth_len = vel_max_sqrd * tan(angle_diff_bin + max_slide_angle_rad);
+					if (angle_diff_temp_orig > max_slide_angle_rad && setpoint_temp.norm() > 0.001f) {
+						float angle_temp_bin_cropped = angle_diff_temp_bin - (angle_diff_temp_orig - max_slide_angle_rad);
+						float orth_len = vel_max_sqrd * tan(angle_temp_bin_cropped);
 
 						if (sp_orth > 0) {
 							setpoint_temp = vel_max_sqrd * bin_direction + orth_len * orth_direction;
@@ -130,7 +123,7 @@ void CollisionPrevention::calculate_constrained_setpoint(const float max_acc, Ve
 		}
 
 		//take the squared root
-		if (!isZero(setpoint_sqrd, 1e-3)) {
+		if (setpoint_sqrd.norm() > 0.001f) {
 			setpoint = setpoint_sqrd.normalized() * std::sqrt(setpoint_sqrd.norm());
 
 		} else {

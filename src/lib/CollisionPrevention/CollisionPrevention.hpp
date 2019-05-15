@@ -74,7 +74,6 @@ private:
 
 	bool _interfering = false;		/**< states if the collision prevention interferes with the user input */
 
-	orb_advert_t _constraints_pub{nullptr};		/**< constraints publication */
 	orb_advert_t _mavlink_log_pub{nullptr};	 	/**< Mavlink log uORB handle */
 
 	uORB::Subscription<obstacle_distance_s> *_sub_obstacle_distance{nullptr}; /**< obstacle distances received form a range sensor */
@@ -89,8 +88,6 @@ private:
 	)
 
 	void update();
-
-	bool isZero(const matrix::Vector2f &vec, const float limit) const;
 
 	void calculate_constrained_setpoint(const float max_acc, matrix::Vector2f &setpoint);
 
