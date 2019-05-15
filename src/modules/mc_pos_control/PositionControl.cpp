@@ -45,7 +45,7 @@ using namespace matrix;
 
 PositionControl::PositionControl(ModuleParams *parent) :
 	ModuleParams(parent)
-{}
+{stima_hover = _param_mpc_thr_hover.get();}
 
 void PositionControl::updateState(const PositionControlStates &states)
 {
@@ -256,6 +256,24 @@ void PositionControl::_velocityController(const float &dt)
 	// 	 NE-direction is also limited by the maximum tilt.
 
 	const Vector3f vel_err = _vel_sp - _vel;
+	float z_err = 0.0;
+
+	z_err = _pos_sp(2)-_pos(2);
+	float k1 = 10;
+	printf("Zerr %.2f - vel_err %.3f \n",(double)z_err,(double)vel_err(2));
+
+	float p = vel_err(2) + k1 * z_err;
+	printf("p = %.2f",(double) p);
+
+	if (stima_hover > 1 || stima_hover < 0) {
+		
+	p = 0;
+	}
+
+	stima_hover += p * dt;
+
+	printf("Stima hover %.2f \n",(double) stima_hover);
+
 
 	// Consider thrust in D-direction.
 	float thrust_desired_D = _param_mpc_z_vel_p.get() * vel_err(2) +  _param_mpc_z_vel_d.get() * _vel_dot(2) + _thr_int(
