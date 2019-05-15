@@ -67,6 +67,7 @@
 #include <lib/WeatherVane/WeatherVane.hpp>
 #include "PositionControl.hpp"
 #include "Utility/ControlMath.hpp"
+#include "Takeoff.hpp"
 
 using namespace time_literals;
 
@@ -102,10 +103,7 @@ public:
 	int print_status() override;
 
 private:
-	// smooth takeoff vertical velocity ramp state
-	bool _in_takeoff_ramp = false; /**< true while takeoff ramp is applied */
-	float _takeoff_ramp_thrust = 0.f; /**< current value of the smooth takeoff ramp */
-	float _takeoff_reference_z = 0.f; /**< z-position when takeoff ramp was initiated */
+	Takeoff _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
 
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
 	orb_advert_t	_traj_sp_pub{nullptr};		/**< trajectory setpoints publication */
@@ -177,7 +175,6 @@ private:
 	/** During smooth-takeoff, below ALTITUDE_THRESHOLD the yaw-control is turned off ant tilt is limited */
 	static constexpr float ALTITUDE_THRESHOLD = 0.3f;
 
-	systemlib::Hysteresis _spoolup_time_hysteresis{false}; /**< becomes true MPC_SPOOLUP_TIME seconds after the vehicle was armed */
 	systemlib::Hysteresis _failsafe_land_hysteresis{false}; /**< becomes true if task did not update correctly for LOITER_TIME_BEFORE_DESCEND */
 
 	WeatherVane *_wv_controller{nullptr};
@@ -228,14 +225,6 @@ private:
 	 * This is only required for logging.
 	 */
 	void publish_trajectory_sp(const vehicle_local_position_setpoint_s &traj);
-
-	/**
-	 * Update smooth takeoff vertical velocity ramp to bring the vehicle off the ground without step
-	 * @param vz_sp velocity setpoint in the z-Direction
-	 * @param z_sp position setpoint in the z-Direction
-	 * @param vz_constraint velocity to ramp to when there's only a position setpoint
-	 */
-	void update_takeoff_ramp(const bool want_takeoff, const float thr_sp);
 
 	/**
 	 * Adjust the setpoint during landing.
@@ -367,7 +356,8 @@ MulticopterPositionControl::parameters_update(bool force)
 		_param_mpc_land_speed.set(math::min(_param_mpc_land_speed.get(), _param_mpc_z_vel_max_dn.get()));
 
 		// set trigger time for takeoff delay
-		_spoolup_time_hysteresis.set_hysteresis_time_from(false, (int)(_param_mpc_spoolup_time.get() * (float)1_s));
+		_takeoff.setSpoolupTime(_param_mpc_spoolup_time.get());
+		_takeoff.setTakeoffRampTime(_param_mpc_tko_ramp_t.get());
 
 		if (_wv_controller != nullptr) {
 			_wv_controller->update_parameters();
@@ -592,9 +582,9 @@ MulticopterPositionControl::run()
 		}
 
 		// takeoff delay for motors to reach idle speed
-		_spoolup_time_hysteresis.set_state_and_update(_control_mode.flag_armed);
+		_takeoff._spoolup_time_hysteresis.set_state_and_update(_control_mode.flag_armed);
 
-		if (_spoolup_time_hysteresis.get_state()) {
+		if (_takeoff._spoolup_time_hysteresis.get_state()) {
 			// when vehicle is ready switch to the required flighttask
 			start_flight_task();
 
@@ -681,39 +671,22 @@ MulticopterPositionControl::run()
 			local_pos_sp.vz = PX4_ISFINITE(_control.getVelSp()(2)) ? _control.getVelSp()(2) : setpoint.vz;
 			_control.getThrustSetpoint().copyTo(local_pos_sp.thrust);
 
-			// do smooth takeoff after delay if there's a valid vertical velocity or position
-			if (_spoolup_time_hysteresis.get_state()) {
-				update_takeoff_ramp(constraints.want_takeoff, local_pos_sp.thrust[2]);
-			}
+			// handle smooth takeoff
+			_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, constraints.want_takeoff, local_pos_sp.thrust[2], !_control_mode.flag_control_climb_rate_enabled);
+			local_pos_sp.thrust[2] = _takeoff.updateThrustRamp(local_pos_sp.thrust[2], _dt);
 
-			// disable horizontal / yaw control during smooth takeoff and limit maximum speed upwards
-			if (_in_takeoff_ramp) {
-				// altitude above reference takeoff
-				const float alt_above_tko = -(_states.position(2) - _takeoff_reference_z);
-
-				// disable yaw control when close to ground
-				if (alt_above_tko <= ALTITUDE_THRESHOLD) {
-
-					setpoint.yawspeed = NAN;
-
-					// if there is a valid yaw estimate, just set setpoint to yaw
-					if (PX4_ISFINITE(_states.yaw)) {
-						setpoint.yaw = _states.yaw;
-					}
-
-					// limit tilt during smooth takeoff when still close to ground
-					constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
-				}
-			}
-
-			if (_in_takeoff_ramp) {
-				local_pos_sp.thrust[2] = math::max(local_pos_sp.thrust[2], _takeoff_ramp_thrust);
-				//local_pos_sp.thrust[0] = local_pos_sp.thrust[1] = 0.f;
+			if (_takeoff.getTakeoffState() < TakeoffState::flight) {
+				// we set thrust to zero, this will help to decide if we are actually landed or not
+				setpoint.thrust[0] = setpoint.thrust[1] = 0.0f;
+				// set yaw-sp to current yaw to avoid any corrections
+				setpoint.yaw = _states.yaw;
+				setpoint.yawspeed = 0.f;
+				// prevent any integrator windup
 				_control.resetIntegralXY();
 				_control.resetIntegralZ();
 			}
 
-			if (_vehicle_land_detected.landed && !_in_takeoff_ramp && !PX4_ISFINITE(setpoint.thrust[2])) {
+			if (_takeoff.getTakeoffState() < TakeoffState::rampup && !PX4_ISFINITE(setpoint.thrust[2])) {
 				// Keep throttle low when landed and NOT in smooth takeoff
 				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
 				setpoint.yaw = _states.yaw;
@@ -733,7 +706,7 @@ MulticopterPositionControl::run()
 			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
 			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.
 			// Note: only adust thrust output if there was not thrust-setpoint demand in D-direction.
-			if (!_in_takeoff_ramp && !PX4_ISFINITE(setpoint.thrust[2])) {
+			if (_takeoff.getTakeoffState() > TakeoffState::rampup && !PX4_ISFINITE(setpoint.thrust[2])) {
 				limit_thrust_during_landing(local_pos_sp);
 			}
 
@@ -979,33 +952,6 @@ MulticopterPositionControl::start_flight_task()
 }
 
 void
-MulticopterPositionControl::update_takeoff_ramp(const bool want_takeoff, const float thr_sp)
-{
-	// check if takeoff is triggered
-	if (_vehicle_land_detected.landed && !_in_takeoff_ramp && want_takeoff) {
-		// takeoff was triggered, start velocity ramp
-		_takeoff_ramp_thrust = 0.0f;
-		_in_takeoff_ramp = true;
-		_takeoff_reference_z = _states.position(2);
-	}
-
-	// if in smooth takeoff limit upwards thrust setpoint to a smooth ramp
-	if (_in_takeoff_ramp) {
-		float takeoff_desired_thrust = thr_sp;
-
-		if (_param_mpc_tko_ramp_t.get() > _dt) {
-			_takeoff_ramp_thrust += takeoff_desired_thrust * _dt / _param_mpc_tko_ramp_t.get();
-		} else {
-			// no ramp time, directly jump to desired velocity
-			_takeoff_ramp_thrust = takeoff_desired_thrust;
-		}
-
-		// smooth takeoff is finished once desired thrust setpoint is reached
-		_in_takeoff_ramp = (_takeoff_ramp_thrust > takeoff_desired_thrust);
-	}
-}
-
-void
 MulticopterPositionControl::limit_thrust_during_landing(vehicle_local_position_setpoint_s &setpoint)
 {
 	if (_vehicle_land_detected.ground_contact
@@ -1014,6 +960,7 @@ MulticopterPositionControl::limit_thrust_during_landing(vehicle_local_position_s
 		setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
 		// set yaw-sp to current yaw to avoid any corrections
 		setpoint.yaw = _states.yaw;
+		setpoint.yawspeed = 0.f;
 		// prevent any integrator windup
 		_control.resetIntegralXY();
 		_control.resetIntegralZ();
