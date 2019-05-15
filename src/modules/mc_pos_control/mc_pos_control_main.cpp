@@ -106,7 +106,7 @@ private:
 	bool _in_takeoff_ramp = false; /**< true while takeoff ramp is applied */
 	bool _position_triggered_takeoff = false; /**< true if takeoff was triggered by a position setpoint */
 	float _takeoff_ramp_velocity = -1.f; /**< current value of the smooth takeoff ramp */
-	float _takeoff_reference_z; /**< z-position when takeoff ramp was initiated */
+	float _takeoff_reference_z = 0.f; /**< z-position when takeoff ramp was initiated */
 
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
 	orb_advert_t	_traj_sp_pub{nullptr};		/**< trajectory setpoints publication */
