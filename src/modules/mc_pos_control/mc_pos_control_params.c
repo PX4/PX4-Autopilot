@@ -444,7 +444,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 10.0f);
 /**
  * Acceleration for auto and for manual
  *
- * Note: In manual, this parameter is only used in MPC_POS_MODE 1 and 2
+ * Note: In manual, this parameter is only used in MPC_POS_MODE 1.
  *
  * @unit m/s/s
  * @min 2.0
@@ -459,7 +459,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR, 5.0f);
 /**
  * Slow horizontal manual deceleration for manual mode
  *
- * Note: This is only used when MPC_POS_MODE is set to 1 or 2.
+ * Note: This is only used when MPC_POS_MODE is set to 1.
  *
  * @unit m/s/s
  * @min 0.5
@@ -518,7 +518,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 10.0f);
  *
  * Setting this to the maximum value essentially disables the limit.
  *
- * Note: This is only used when MPC_POS_MODE is set to a smoothing mode.
+ * Note: This is only used when MPC_POS_MODE is set to a smoothing mode 1 or 3.
  *
  * @unit m/s/s/s
  * @min 0.5
@@ -541,7 +541,7 @@ PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 20.0f);
  *
  * Set this to zero to use a fixed maximum jerk limit (MPC_JERK_MAX).
  *
- * Note: This is only used when MPC_POS_MODE is set to 1 or 2.
+ * Note: This is only used when MPC_POS_MODE is set to 1.
  *
  * @unit m/s/s/s
  * @min 0
