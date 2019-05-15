@@ -261,6 +261,9 @@ public:
 	// use the latest IMU data at the current time horizon.
 	Quatf calculate_quaternion() const;
 
+	// set minimum continuous period without GPS fail required to mark a healthy GPS status
+	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
+
 private:
 
 	static constexpr uint8_t _k_num_states{24};		///< number of EKF states
@@ -408,6 +411,7 @@ private:
 	uint64_t _last_gps_fail_us{0};		///< last system time in usec that the GPS failed it's checks
 	uint64_t _last_gps_pass_us{0};		///< last system time in usec that the GPS passed it's checks
 	float _gps_error_norm{1.0f};		///< normalised gps error
+	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
 
 	// Variables used to publish the WGS-84 location of the EKF local NED origin
 	uint64_t _last_gps_origin_time_us{0};	///< time the origin was last set (uSec)
