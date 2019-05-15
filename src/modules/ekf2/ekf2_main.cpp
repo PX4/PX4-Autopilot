@@ -521,7 +521,9 @@ private:
 
 		// Test used to determine if the vehicle is static or moving
 		(ParamExtFloat<px4::params::EKF2_MOVE_TEST>)
-		_param_ekf2_move_test	///< scaling applied to IMU data thresholds used to determine if the vehicle is static or moving.
+		_param_ekf2_move_test,	///< scaling applied to IMU data thresholds used to determine if the vehicle is static or moving.
+
+		(ParamFloat<px4::params::EKF2_REQ_GPS_H>) _param_ekf2_req_gps_h	///< Required GPS health time
 
 	)
 
@@ -651,6 +653,8 @@ Ekf2::Ekf2():
 
 	// initialise parameter cache
 	updateParams();
+
+	_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
 }
 
 Ekf2::~Ekf2()

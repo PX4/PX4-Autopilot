@@ -116,6 +116,8 @@ then
 	param set EKF2_ANGERR_INIT 0.01
 	param set EKF2_HGT_MODE 0
 	param set EKF2_GBIAS_INIT 0.01
+	# Speedup SITL startup
+	param set EKF2_REQ_GPS_H 0.5
 
 	# LPE: GPS only mode
 	param set LPE_FUSION 145
