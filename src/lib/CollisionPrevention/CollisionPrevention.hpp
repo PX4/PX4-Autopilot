@@ -92,6 +92,6 @@ private:
 
 	bool isZero(const matrix::Vector2f &vec, const float limit) const;
 
-	void update_velocity_constraints(const float max_acc, matrix::Vector2f &setpoint);
+	void calculate_constrained_setpoint(const float max_acc, matrix::Vector2f &setpoint);
 
 };
