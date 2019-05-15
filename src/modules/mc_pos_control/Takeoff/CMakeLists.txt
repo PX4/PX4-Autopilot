@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,23 +31,12 @@
 #
 ############################################################################
 
-add_subdirectory(Takeoff)
+px4_add_library(Takeoff
+	Takeoff.cpp
+)
+target_include_directories(Takeoff
+	PUBLIC
+	${CMAKE_CURRENT_SOURCE_DIR}
+)
 
-px4_add_module(
-	MODULE modules__mc_pos_control
-	MAIN mc_pos_control
-	COMPILE_FLAGS
-	STACK_MAIN 1200
-	SRCS
-		mc_pos_control_main.cpp
-		PositionControl.cpp
-		Utility/ControlMath.cpp
-	DEPENDS
-		controllib
-		FlightTasks
-		git_ecl
-		ecl_geo
-		WeatherVane
-		CollisionPrevention
-		Takeoff
-	)
+px4_add_gtest(SRC TakeoffTest.cpp LINKLIBS Takeoff)
