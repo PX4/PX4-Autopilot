@@ -70,13 +70,16 @@ bool CollisionPrevention::isZero(const Vector2f &vec, const float limit) const
 	return (vec(0) < limit && vec(0) > -limit) && (vec(1) < limit && vec(1) > -limit);
 }
 
-void CollisionPrevention::update_velocity_constraints(const float max_acc, Vector2f &setpoint)
+void CollisionPrevention::calculate_constrained_setpoint(const float max_acc, Vector2f &setpoint)
 {
 	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance->get();
-	Vector2f setpoint_sqrd = setpoint * setpoint.norm();
-	float slide_max_rad = 1.57f;
 
-	PX4_INFO_RAW("_______________________START with SP [%.3f, %.3f]\n", (double)setpoint(0), (double)setpoint(1));
+	//The maximum velocity formula contains a square root, therefore the whole calculation is done with squared norms.
+	//that way the root does not have to be calculated for every range bin but once at the end.
+	Vector2f setpoint_sqrd = setpoint * setpoint.norm();
+
+	//Limit the deviation of the adapted setpoint from the originally given joystick input (slightly less than 90 degrees)
+	float max_slide_angle_rad = 1.2f;
 
 	if (hrt_elapsed_time(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US && !isZero(setpoint, 1e-3)) {
 
@@ -89,29 +92,29 @@ void CollisionPrevention::update_velocity_constraints(const float max_acc, Vecto
 				float distance = obstacle_distance.distances[i] / 100.0f; //convert to meters
 				float angle = math::radians((float)i * obstacle_distance.increment);
 
-				//max velocity squared in bin direction
+				//max velocity squared in current bin direction
 				float vel_max_sqrd = max_acc * (distance - _param_mpc_col_prev_d.get());
 
 				if (distance < _param_mpc_col_prev_d.get()) {
 					vel_max_sqrd = 0.f;
 				}
 
-				//limit setpoint
+				//split current setpoint into parallel and orthogonal components with respect to the current bin direction
 				Vector2f bin_direction = {cos(angle), sin(angle)};
-				Vector2f orth_direction = {sin(angle), cos(angle)};
+				Vector2f orth_direction = {-sin(angle), cos(angle)};
 				float sp_parallel = setpoint_sqrd.dot(bin_direction);
 				float sp_orth = setpoint_sqrd.dot(orth_direction);
 
+				//limit the setpoint to respect vel_max by subtracting from the parallel component
 				if (sp_parallel > vel_max_sqrd) {
 					Vector2f setpoint_temp = setpoint_sqrd - (sp_parallel - vel_max_sqrd) * bin_direction;
 
-
 					//limit sliding angle
-					float angle_demanded_temp = acos(setpoint_temp.dot(setpoint) / (setpoint_temp.norm() * setpoint.norm()));
+					float angle_diff_temp_orig = acos(setpoint_temp.dot(setpoint) / (setpoint_temp.norm() * setpoint.norm()));
 
-					if (angle_demanded_temp > slide_max_rad) {
+					if (angle_diff_temp_orig > max_slide_angle_rad) {
 						float angle_diff_bin = acos(sp_parallel / setpoint_sqrd.norm());
-						float orth_len = vel_max_sqrd * tan(angle_diff_bin + slide_max_rad);
+						float orth_len = vel_max_sqrd * tan(angle_diff_bin + max_slide_angle_rad);
 
 						if (sp_orth > 0) {
 							setpoint_temp = vel_max_sqrd * bin_direction + orth_len * orth_direction;
@@ -119,25 +122,20 @@ void CollisionPrevention::update_velocity_constraints(const float max_acc, Vecto
 						} else {
 							setpoint_temp = vel_max_sqrd * bin_direction - orth_len * orth_direction;
 						}
-
-						PX4_INFO_RAW("sliding angle limited from %.3f to %.3f\n", (double)angle_demanded_temp, (double)slide_max_rad);
 					}
 
 					setpoint_sqrd = setpoint_temp;
-					PX4_INFO_RAW("vel_lim %.3f parallel component %.3f  SP sqrd [%.3f, %.3f]\n", (double)vel_max_sqrd, (double)sp_parallel,
-						     (double)setpoint_sqrd(0), (double)setpoint_sqrd(1));
 				}
 			}
 		}
 
+		//take the squared root
 		if (!isZero(setpoint_sqrd, 1e-3)) {
 			setpoint = setpoint_sqrd.normalized() * std::sqrt(setpoint_sqrd.norm());
 
 		} else {
 			setpoint.zero();
 		}
-
-		PX4_INFO_RAW("Final SP [%.3f, %.3f] \n", (double)setpoint(0), (double)setpoint(1));
 
 	} else if (_last_message + MESSAGE_THROTTLE_US < hrt_absolute_time()) {
 		mavlink_log_critical(&_mavlink_log_pub, "No range data received");
@@ -150,7 +148,7 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 {
 	//calculate movement constraints based on range data
 	Vector2f new_setpoint = original_setpoint;
-	update_velocity_constraints(max_acc, new_setpoint);
+	calculate_constrained_setpoint(max_acc, new_setpoint);
 
 	//warn user if collision prevention starts to interfere
 	bool currently_interfering = (new_setpoint(0) < original_setpoint(0) - 0.05f * max_speed
