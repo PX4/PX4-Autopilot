@@ -675,21 +675,20 @@ MulticopterPositionControl::run()
 			_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, constraints.want_takeoff, local_pos_sp.thrust[2], !_control_mode.flag_control_climb_rate_enabled);
 			local_pos_sp.thrust[2] = _takeoff.updateThrustRamp(local_pos_sp.thrust[2], _dt);
 
-			if (_takeoff.getTakeoffState() < TakeoffState::flight) {
-				// we set thrust to zero, this will help to decide if we are actually landed or not
-				setpoint.thrust[0] = setpoint.thrust[1] = 0.0f;
+			if (_takeoff.getTakeoffState() < TakeoffState::flight && !PX4_ISFINITE(setpoint.thrust[2])) {
+				// we are not flying yet and need to avoid any corrections
+				// set the horizontal thrust to zero
+				local_pos_sp.thrust[0] = local_pos_sp.thrust[1] = 0.0f;
 				// set yaw-sp to current yaw to avoid any corrections
-				setpoint.yaw = _states.yaw;
-				setpoint.yawspeed = 0.f;
+				// TODO: we need a clean way to disable yaw control
+				local_pos_sp.yaw = _states.yaw;
+				local_pos_sp.yawspeed = 0.f;
 				// prevent any integrator windup
 				_control.resetIntegralXY();
 				_control.resetIntegralZ();
 			}
 
 			if (_takeoff.getTakeoffState() < TakeoffState::rampup && !PX4_ISFINITE(setpoint.thrust[2])) {
-				// Keep throttle low when landed and NOT in smooth takeoff
-				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
-				setpoint.yaw = _states.yaw;
 				// reactivate the task which will reset the setpoint to current state
 				_flight_tasks.reActivate();
 			}
