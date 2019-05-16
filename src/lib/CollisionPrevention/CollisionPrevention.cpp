@@ -77,60 +77,62 @@ void CollisionPrevention::calculate_constrained_setpoint(Vector2f &setpoint, con
 	//Limit the deviation of the adapted setpoint from the originally given joystick input (slightly less than 90 degrees)
 	float max_slide_angle_rad = 1.2f;
 
-	if (hrt_elapsed_time(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US && setpoint_length > 0.001f) {
+	if (hrt_elapsed_time(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US) {
+		if (setpoint_length > 0.001f) {
 
-		int distances_array_size = sizeof(obstacle_distance.distances) / sizeof(obstacle_distance.distances[0]);
+			int distances_array_size = sizeof(obstacle_distance.distances) / sizeof(obstacle_distance.distances[0]);
 
-		for (int i = 0; i < distances_array_size; i++) {
+			for (int i = 0; i < distances_array_size; i++) {
 
-			//determine if distance bin is valid and contains a valid distance measurement
-			if (obstacle_distance.distances[i] < obstacle_distance.max_distance &&
-			    obstacle_distance.distances[i] > obstacle_distance.min_distance && i * obstacle_distance.increment < 360) {
-				float distance = obstacle_distance.distances[i] / 100.0f; //convert to meters
-				float angle = math::radians((float)i * obstacle_distance.increment);
+				//determine if distance bin is valid and contains a valid distance measurement
+				if (obstacle_distance.distances[i] < obstacle_distance.max_distance &&
+				    obstacle_distance.distances[i] > obstacle_distance.min_distance && i * obstacle_distance.increment < 360) {
+					float distance = obstacle_distance.distances[i] / 100.0f; //convert to meters
+					float angle = math::radians((float)i * obstacle_distance.increment);
 
-				//max admissible velocity in current bin direction: v = sqrt(2 * a * d), where d is the distance to standstill
-				//a is the constant acceleration and v the current velocity. We use a = a_max/2 to stay well within the limits
-				float vel_max_sqrd = math::max(0.f, max_acc * (distance - _param_mpc_col_prev_d.get()));
+					//max admissible velocity in current bin direction: v = sqrt(2 * a * d), where d is the distance to standstill
+					//a is the constant acceleration and v the current velocity. We use a = a_max/2 to stay well within the limits
+					float vel_max_sqrd = math::max(0.f, max_acc * (distance - _param_mpc_col_prev_d.get()));
 
-				//split current setpoint into parallel and orthogonal components with respect to the current bin direction
-				Vector2f bin_direction = {cos(angle), sin(angle)};
-				Vector2f orth_direction = {-bin_direction(1), bin_direction(0)};
-				float sp_parallel = setpoint_sqrd.dot(bin_direction);
-				float sp_orth = setpoint_sqrd.dot(orth_direction);
+					//split current setpoint into parallel and orthogonal components with respect to the current bin direction
+					Vector2f bin_direction = {cos(angle), sin(angle)};
+					Vector2f orth_direction = {-bin_direction(1), bin_direction(0)};
+					float sp_parallel = setpoint_sqrd.dot(bin_direction);
+					float sp_orth = setpoint_sqrd.dot(orth_direction);
 
-				//limit the setpoint to respect vel_max by subtracting from the parallel component
-				if (sp_parallel > vel_max_sqrd) {
-					Vector2f setpoint_temp = setpoint_sqrd - (sp_parallel - vel_max_sqrd) * bin_direction;
-					float setpoint_temp_length = setpoint_temp.norm();
+					//limit the setpoint to respect vel_max by subtracting from the parallel component
+					if (sp_parallel > vel_max_sqrd) {
+						Vector2f setpoint_temp = setpoint_sqrd - (sp_parallel - vel_max_sqrd) * bin_direction;
+						float setpoint_temp_length = setpoint_temp.norm();
 
-					//limit sliding angle
-					float angle_diff_temp_orig = acos(setpoint_temp.dot(setpoint) / (setpoint_temp_length * setpoint_length));
-					float angle_diff_temp_bin = acos(setpoint_temp.dot(bin_direction) / setpoint_temp_length);
+						//limit sliding angle
+						float angle_diff_temp_orig = acos(setpoint_temp.dot(setpoint) / (setpoint_temp_length * setpoint_length));
+						float angle_diff_temp_bin = acos(setpoint_temp.dot(bin_direction) / setpoint_temp_length);
 
-					if (angle_diff_temp_orig > max_slide_angle_rad && setpoint_temp_length > 0.001f) {
-						float angle_temp_bin_cropped = angle_diff_temp_bin - (angle_diff_temp_orig - max_slide_angle_rad);
-						float orth_len = vel_max_sqrd * tan(angle_temp_bin_cropped);
+						if (angle_diff_temp_orig > max_slide_angle_rad && setpoint_temp_length > 0.001f) {
+							float angle_temp_bin_cropped = angle_diff_temp_bin - (angle_diff_temp_orig - max_slide_angle_rad);
+							float orth_len = vel_max_sqrd * tan(angle_temp_bin_cropped);
 
-						if (sp_orth > 0) {
-							setpoint_temp = vel_max_sqrd * bin_direction + orth_len * orth_direction;
+							if (sp_orth > 0) {
+								setpoint_temp = vel_max_sqrd * bin_direction + orth_len * orth_direction;
 
-						} else {
-							setpoint_temp = vel_max_sqrd * bin_direction - orth_len * orth_direction;
+							} else {
+								setpoint_temp = vel_max_sqrd * bin_direction - orth_len * orth_direction;
+							}
 						}
-					}
 
-					setpoint_sqrd = setpoint_temp;
+						setpoint_sqrd = setpoint_temp;
+					}
 				}
 			}
-		}
 
-		//take the squared root
-		if (setpoint_sqrd.norm() > 0.001f) {
-			setpoint = setpoint_sqrd / std::sqrt(setpoint_sqrd.norm());
+			//take the squared root
+			if (setpoint_sqrd.norm() > 0.001f) {
+				setpoint = setpoint_sqrd / std::sqrt(setpoint_sqrd.norm());
 
-		} else {
-			setpoint.zero();
+			} else {
+				setpoint.zero();
+			}
 		}
 
 	} else if (_last_message + MESSAGE_THROTTLE_US < hrt_absolute_time()) {
