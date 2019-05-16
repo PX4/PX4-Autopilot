@@ -616,6 +616,7 @@ MulticopterPositionControl::run()
 				// prevent any integrator windup
 				_control.resetIntegralXY();
 				_control.resetIntegralZ();
+				_control.setHoverEst();
 				// reactivate the task which will reset the setpoint to current state
 				_flight_tasks.reActivate();
 			}
@@ -661,7 +662,9 @@ MulticopterPositionControl::run()
 			local_pos_sp.vx = PX4_ISFINITE(_control.getVelSp()(0)) ? _control.getVelSp()(0) : setpoint.vx;
 			local_pos_sp.vy = PX4_ISFINITE(_control.getVelSp()(1)) ? _control.getVelSp()(1) : setpoint.vy;
 			local_pos_sp.vz = PX4_ISFINITE(_control.getVelSp()(2)) ? _control.getVelSp()(2) : setpoint.vz;
+			local_pos_sp.hover_estimation = _control.getHoverEst();
 			_control.getThrustSetpoint().copyTo(local_pos_sp.thrust);
+
 
 			// Publish local position setpoint
 			// This message will be used by other modules (such as Landdetector) to determine

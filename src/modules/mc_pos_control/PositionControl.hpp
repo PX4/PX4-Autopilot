@@ -149,6 +149,9 @@ public:
 	 */
 	const float &getYawspeedSetpoint() { return _yawspeed_sp; }
 
+	const float &getHoverEst() { return _hover_est; }
+	void  setHoverEst();
+
 	/**
 	 * 	Get the
 	 * 	@see _vel_sp
@@ -191,6 +194,7 @@ public:
 		return pos_sp;
 	}
 
+
 protected:
 
 	void updateParams() override;
@@ -222,7 +226,7 @@ private:
 	bool _skip_controller{false}; /**< skips position/velocity controller. true for stabilized mode */
 	bool _ctrl_pos[3] = {true, true, true}; /**< True if the control-loop for position was used */
 	bool _ctrl_vel[3] = {true, true, true}; /**< True if the control-loop for velocity was used */
-	float stima_hover = 0;
+	float _hover_est = 0;
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_THR_MAX>) _param_mpc_thr_max,
 		(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover,
@@ -242,6 +246,9 @@ private:
 		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p,
 		(ParamFloat<px4::params::MPC_XY_VEL_P>) _param_mpc_xy_vel_p,
 		(ParamFloat<px4::params::MPC_XY_VEL_I>) _param_mpc_xy_vel_i,
-		(ParamFloat<px4::params::MPC_XY_VEL_D>) _param_mpc_xy_vel_d
+		(ParamFloat<px4::params::MPC_XY_VEL_D>) _param_mpc_xy_vel_d,
+		(ParamFloat<px4::params::MPC_HOV_ADT_RATE>) _param_mpc_hov_adt_rate,
+		(ParamFloat<px4::params::MPC_HOV_EST_P>) _param_mpc_hov_est_p
+
 	)
 };

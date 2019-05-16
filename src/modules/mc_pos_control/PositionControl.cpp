@@ -45,7 +45,7 @@ using namespace matrix;
 
 PositionControl::PositionControl(ModuleParams *parent) :
 	ModuleParams(parent)
-{stima_hover = _param_mpc_thr_hover.get();}
+{_hover_est = _param_mpc_thr_hover.get();}
 
 void PositionControl::updateState(const PositionControlStates &states)
 {
@@ -258,26 +258,36 @@ void PositionControl::_velocityController(const float &dt)
 	const Vector3f vel_err = _vel_sp - _vel;
 	float z_err = 0.0;
 
-	z_err = _pos_sp(2)-_pos(2);
-	float k1 = 10;
-	printf("Zerr %.2f - vel_err %.3f \n",(double)z_err,(double)vel_err(2));
+	z_err = _pos_sp(2) - _pos(2);
+	float k1 = _param_mpc_hov_est_p.get();
+	float est_gain  = -_param_mpc_hov_adt_rate.get();
+	printf("Zerr %.5f - vel_err %.5f \n", (double)z_err, (double)vel_err(2));
 
 	float p = vel_err(2) + k1 * z_err;
-	printf("p = %.2f",(double) p);
+	printf("p = %.2f \n", (double) p);
 
-	if (stima_hover > 1 || stima_hover < 0) {
-		
-	p = 0;
+	if (_hover_est >= 1.0f && p <= 0) {
+		printf("Max hover \n");
+		p = 0;
 	}
 
-	stima_hover += p * dt;
+	if (_hover_est <= 0.0f && p >= 0) {
+		p = 0;
+		printf("Min hover \n");
+	}
 
-	printf("Stima hover %.2f \n",(double) stima_hover);
+
+	_hover_est += est_gain * p * dt;
+
+	printf("Stima hover %.2f \n", (double) _hover_est);
 
 
 	// Consider thrust in D-direction.
+	// float thrust_desired_D = _param_mpc_z_vel_p.get() * vel_err(2) +  _param_mpc_z_vel_d.get() * _vel_dot(2) + _thr_int(
+	//				 2) - _param_mpc_thr_hover.get();
+
 	float thrust_desired_D = _param_mpc_z_vel_p.get() * vel_err(2) +  _param_mpc_z_vel_d.get() * _vel_dot(2) + _thr_int(
-					 2) - _param_mpc_thr_hover.get();
+					 2) - _hover_est;
 
 	// The Thrust limits are negated and swapped due to NED-frame.
 	float uMax = -_param_mpc_thr_min.get();
@@ -372,4 +382,10 @@ void PositionControl::updateConstraints(const vehicle_constraints_s &constraints
 void PositionControl::updateParams()
 {
 	ModuleParams::updateParams();
+}
+
+
+void PositionControl::setHoverEst()
+{
+	_hover_est = _param_mpc_thr_hover.get();
 }

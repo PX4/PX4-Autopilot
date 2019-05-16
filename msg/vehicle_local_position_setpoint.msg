@@ -18,5 +18,6 @@ float32 jerk_x		# in meters/(sec*sec*sec)
 float32 jerk_y		# in meters/(sec*sec*sec)
 float32 jerk_z		# in meters/(sec*sec*sec)
 float32[3] thrust	# normalized thrust vector in NED
+float32 hover_estimation
 
 # TOPICS vehicle_local_position_setpoint trajectory_setpoint
