@@ -65,7 +65,7 @@ bool CollisionPrevention::initializeSubscriptions(SubscriptionArray &subscriptio
 	return true;
 }
 
-void CollisionPrevention::calculate_constrained_setpoint(Vector2f &setpoint, const float max_acc, const float curr_vel)
+void CollisionPrevention::calculateConstrainedSetpoint(Vector2f &setpoint, const float max_acc, const float curr_vel)
 {
 	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance->get();
 
@@ -148,7 +148,7 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 {
 	//calculate movement constraints based on range data
 	Vector2f new_setpoint = original_setpoint;
-	calculate_constrained_setpoint(new_setpoint, max_acc, curr_vel);
+	calculateConstrainedSetpoint(new_setpoint, max_acc, curr_vel);
 
 	//warn user if collision prevention starts to interfere
 	bool currently_interfering = (new_setpoint(0) < original_setpoint(0) - 0.05f * max_speed
