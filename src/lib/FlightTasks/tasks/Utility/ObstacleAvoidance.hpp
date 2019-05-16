@@ -82,7 +82,7 @@ public:
 	 * @param next_yawspeed, next yaw speed triplet
 	 */
 	void updateAvoidanceDesiredWaypoints(const matrix::Vector3f &curr_wp, const float curr_yaw, const float curr_yawspeed,
-					     const matrix::Vector3f &next_wp, const float next_yaw, const float next_yawspeed);
+					     const matrix::Vector3f &next_wp, const float next_yaw, const float next_yawspeed, const bool ext_yaw_active);
 	/**
 	 * Updates the desired setpoints to send to the obstacle avoidance system.
 	 * @param pos_sp, desired position setpoint computed by the active FlightTask
@@ -118,6 +118,8 @@ private:
 	matrix::Vector3f _curr_wp = {}; /**< current position triplet */
 	matrix::Vector3f _position = {}; /**< current vehicle position */
 	matrix::Vector3f _failsafe_position = {}; /**< vehicle position when entered in failsafe */
+
+	bool _ext_yaw_active = false; /**< true, if external yaw handling is active */
 
 	/**
 	 * Publishes vehicle trajectory waypoint desired.
