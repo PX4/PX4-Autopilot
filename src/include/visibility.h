@@ -101,6 +101,9 @@
 
 #else // defined(ENABLE_LOCKSTEP_SCHEDULER)
 
+#include <stdlib.h>
+#include <unistd.h>
+
 #define system_usleep usleep
 #define system_sleep sleep
 #define system_clock_gettime clock_gettime
