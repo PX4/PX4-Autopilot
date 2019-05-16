@@ -73,16 +73,16 @@ public:
 
 private:
 
-	bool _interfering = false;		/**< states if the collision prevention interferes with the user input */
+	bool _interfering{false};		/**< states if the collision prevention interferes with the user input */
 
 	orb_advert_t _mavlink_log_pub{nullptr};	 	/**< Mavlink log uORB handle */
 
 	uORB::Subscription<obstacle_distance_s> *_sub_obstacle_distance{nullptr}; /**< obstacle distances received form a range sensor */
 
-	static constexpr uint64_t RANGE_STREAM_TIMEOUT_US = 500000;
-	static constexpr uint64_t MESSAGE_THROTTLE_US = 5000000;
+	static constexpr uint64_t RANGE_STREAM_TIMEOUT_US{500000};
+	static constexpr uint64_t MESSAGE_THROTTLE_US{5000000};
 
-	hrt_abstime _last_message;
+	hrt_abstime _last_message{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_COL_PREV_D>) _param_mpc_col_prev_d, /**< collision prevention keep minimum distance */
@@ -91,6 +91,6 @@ private:
 
 	void update();
 
-	void calculate_constrained_setpoint(matrix::Vector2f &setpoint, const float max_acc, const float curr_vel);
+	void calculateConstrainedSetpoint(matrix::Vector2f &setpoint, const float max_acc, const float curr_vel);
 
 };
