@@ -40,9 +40,7 @@ private:
 			// thread_local object can still be in the linked list. In that case
 			// we need to wait until it's removed.
 			while (!removed) {
-#ifndef UNIT_TESTS // unit tests don't define system_usleep and execute faster w/o sleeping here
 				system_usleep(5000);
-#endif
 			}
 		}
 
