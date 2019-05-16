@@ -36,7 +36,6 @@ px4_add_romfs_files(
 	AAVVTWFF.main.mix
 	AERT.main.mix
 	AETRFG.main.mix
-	aion_r1.main.mix
 	bebop.main.mix
 	blade130.main.mix
 	caipi.main.mix
@@ -53,6 +52,7 @@ px4_add_romfs_files(
 	firefly6.main.mix
 	fw_generic_wing.main.mix
 	FX79.main.mix
+	generic_differential_rover.main.mix
 	hexa_cox.main.mix
 	hexa_+.main.mix
 	hexa_x.main.mix
