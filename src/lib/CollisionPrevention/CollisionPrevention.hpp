@@ -89,6 +89,6 @@ private:
 
 	void update();
 
-	void calculate_constrained_setpoint(const float max_acc, matrix::Vector2f &setpoint);
+	void calculate_constrained_setpoint(matrix::Vector2f &setpoint, const float max_acc);
 
 };

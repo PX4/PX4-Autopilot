@@ -65,18 +65,19 @@ bool CollisionPrevention::initializeSubscriptions(SubscriptionArray &subscriptio
 	return true;
 }
 
-void CollisionPrevention::calculate_constrained_setpoint(const float max_acc, Vector2f &setpoint)
+void CollisionPrevention::calculate_constrained_setpoint(Vector2f &setpoint, const float max_acc)
 {
 	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance->get();
 
 	//The maximum velocity formula contains a square root, therefore the whole calculation is done with squared norms.
 	//that way the root does not have to be calculated for every range bin but once at the end.
-	Vector2f setpoint_sqrd = setpoint * setpoint.norm();
+	float setpoint_length = setpoint.norm();
+	Vector2f setpoint_sqrd = setpoint * setpoint_length;
 
 	//Limit the deviation of the adapted setpoint from the originally given joystick input (slightly less than 90 degrees)
 	float max_slide_angle_rad = 1.2f;
 
-	if (hrt_elapsed_time(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US && setpoint.norm() > 0.001f) {
+	if (hrt_elapsed_time(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US && setpoint_length > 0.001f) {
 
 		int distances_array_size = sizeof(obstacle_distance.distances) / sizeof(obstacle_distance.distances[0]);
 
@@ -88,24 +89,26 @@ void CollisionPrevention::calculate_constrained_setpoint(const float max_acc, Ve
 				float distance = obstacle_distance.distances[i] / 100.0f; //convert to meters
 				float angle = math::radians((float)i * obstacle_distance.increment);
 
-				//max velocity squared in current bin direction
+				//max admissible velocity in current bin direction: v = sqrt(2 * a * d), where d is the distance to standstill
+				//a is the constant acceleration and v the current velocity. We use a = a_max/2 to stay well within the limits
 				float vel_max_sqrd = math::max(0.f, max_acc * (distance - _param_mpc_col_prev_d.get()));
 
 				//split current setpoint into parallel and orthogonal components with respect to the current bin direction
 				Vector2f bin_direction = {cos(angle), sin(angle)};
-				Vector2f orth_direction = {-sin(angle), cos(angle)};
+				Vector2f orth_direction = {-bin_direction(1), bin_direction(0)};
 				float sp_parallel = setpoint_sqrd.dot(bin_direction);
 				float sp_orth = setpoint_sqrd.dot(orth_direction);
 
 				//limit the setpoint to respect vel_max by subtracting from the parallel component
 				if (sp_parallel > vel_max_sqrd) {
 					Vector2f setpoint_temp = setpoint_sqrd - (sp_parallel - vel_max_sqrd) * bin_direction;
+					float setpoint_temp_length = setpoint_temp.norm();
 
 					//limit sliding angle
-					float angle_diff_temp_orig = acos(setpoint_temp.dot(setpoint) / (setpoint_temp.norm() * setpoint.norm()));
-					float angle_diff_temp_bin = acos(setpoint_temp.dot(bin_direction) / (setpoint_temp.norm() * bin_direction.norm()));
+					float angle_diff_temp_orig = acos(setpoint_temp.dot(setpoint) / (setpoint_temp_length * setpoint_length));
+					float angle_diff_temp_bin = acos(setpoint_temp.dot(bin_direction) / setpoint_temp_length);
 
-					if (angle_diff_temp_orig > max_slide_angle_rad && setpoint_temp.norm() > 0.001f) {
+					if (angle_diff_temp_orig > max_slide_angle_rad && setpoint_temp_length > 0.001f) {
 						float angle_temp_bin_cropped = angle_diff_temp_bin - (angle_diff_temp_orig - max_slide_angle_rad);
 						float orth_len = vel_max_sqrd * tan(angle_temp_bin_cropped);
 
@@ -124,7 +127,7 @@ void CollisionPrevention::calculate_constrained_setpoint(const float max_acc, Ve
 
 		//take the squared root
 		if (setpoint_sqrd.norm() > 0.001f) {
-			setpoint = setpoint_sqrd.normalized() * std::sqrt(setpoint_sqrd.norm());
+			setpoint = setpoint_sqrd / std::sqrt(setpoint_sqrd.norm());
 
 		} else {
 			setpoint.zero();
@@ -141,7 +144,7 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 {
 	//calculate movement constraints based on range data
 	Vector2f new_setpoint = original_setpoint;
-	calculate_constrained_setpoint(max_acc, new_setpoint);
+	calculate_constrained_setpoint(new_setpoint, max_acc);
 
 	//warn user if collision prevention starts to interfere
 	bool currently_interfering = (new_setpoint(0) < original_setpoint(0) - 0.05f * max_speed
