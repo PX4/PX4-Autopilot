@@ -65,7 +65,7 @@ bool CollisionPrevention::initializeSubscriptions(SubscriptionArray &subscriptio
 	return true;
 }
 
-void CollisionPrevention::calculate_constrained_setpoint(Vector2f &setpoint, const float max_acc)
+void CollisionPrevention::calculate_constrained_setpoint(Vector2f &setpoint, const float max_acc, const float curr_vel)
 {
 	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance->get();
 
@@ -91,8 +91,10 @@ void CollisionPrevention::calculate_constrained_setpoint(Vector2f &setpoint, con
 					float angle = math::radians((float)i * obstacle_distance.increment);
 
 					//max admissible velocity in current bin direction: v = sqrt(2 * a * d), where d is the distance to standstill
-					//a is the constant acceleration and v the current velocity. We use a = a_max/2 to stay well within the limits
-					float vel_max_sqrd = math::max(0.f, max_acc * (distance - _param_mpc_col_prev_d.get()));
+					//a is the constant acceleration and v the current velocity. We use a = a_max/2  and j = j_max/2 to stay well within the limits
+					float acceleration_distance = 2.f * curr_vel * max_acc / _param_mpc_jerk_max.get();
+					float distance_to_standstill = math::max(0.f, distance - _param_mpc_col_prev_d.get() - acceleration_distance);
+					float vel_max_sqrd = max_acc * distance_to_standstill;
 
 					//split current setpoint into parallel and orthogonal components with respect to the current bin direction
 					Vector2f bin_direction = {cos(angle), sin(angle)};
@@ -142,11 +144,11 @@ void CollisionPrevention::calculate_constrained_setpoint(Vector2f &setpoint, con
 }
 
 void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const float max_speed,
-		const float max_acc)
+		const float max_acc, const float curr_vel)
 {
 	//calculate movement constraints based on range data
 	Vector2f new_setpoint = original_setpoint;
-	calculate_constrained_setpoint(new_setpoint, max_acc);
+	calculate_constrained_setpoint(new_setpoint, max_acc, curr_vel);
 
 	//warn user if collision prevention starts to interfere
 	bool currently_interfering = (new_setpoint(0) < original_setpoint(0) - 0.05f * max_speed
