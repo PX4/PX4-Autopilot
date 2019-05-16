@@ -68,7 +68,8 @@ public:
 
 	bool is_active() { return _param_mpc_col_prev_d.get() > 0; }
 
-	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed, const float max_acc);
+	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed, const float max_acc,
+			    const float curr_vel);
 
 private:
 
@@ -84,11 +85,12 @@ private:
 	hrt_abstime _last_message;
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_COL_PREV_D>) _param_mpc_col_prev_d /**< collision prevention keep minimum distance */
+		(ParamFloat<px4::params::MPC_COL_PREV_D>) _param_mpc_col_prev_d, /**< collision prevention keep minimum distance */
+		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max /**< maximum jerk allowed in position controller*/
 	)
 
 	void update();
 
-	void calculate_constrained_setpoint(matrix::Vector2f &setpoint, const float max_acc);
+	void calculate_constrained_setpoint(matrix::Vector2f &setpoint, const float max_acc, const float curr_vel);
 
 };
