@@ -693,10 +693,10 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
  * A time constant of 0 disables the ramp
  *
  * @min 0
- * @max 1
+ * @max 5
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
+PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 3.0f);
 
 /**
  * Manual-Position control sub-mode
@@ -742,7 +742,7 @@ PARAM_DEFINE_INT32(MPC_AUTO_MODE, 1);
  * @unit s
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_SPOOLUP_TIME, 0.0f);
+PARAM_DEFINE_FLOAT(MPC_SPOOLUP_TIME, 1.0f);
 
 /**
  * Yaw mode.
