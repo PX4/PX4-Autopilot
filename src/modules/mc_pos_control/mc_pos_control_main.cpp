@@ -581,10 +581,11 @@ MulticopterPositionControl::run()
 			_wv_controller->update(matrix::Quatf(_att_sp.q_d), _states.yaw);
 		}
 
-		// takeoff delay for motors to reach idle speed
-		_takeoff._spoolup_time_hysteresis.set_state_and_update(_control_mode.flag_armed);
+		// an update is necessary here because otherwise the takeoff state doesn't get skiped with non-altitude-controlled modes
+		_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, false, -1.f, !_control_mode.flag_control_climb_rate_enabled);
 
-		if (_takeoff._spoolup_time_hysteresis.get_state()) {
+		// takeoff delay for motors to reach idle speed
+		if (_takeoff.getTakeoffState() >= TakeoffState::ready_for_takeoff) {
 			// when vehicle is ready switch to the required flighttask
 			start_flight_task();
 
