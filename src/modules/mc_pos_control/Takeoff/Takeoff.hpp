@@ -55,9 +55,13 @@ enum class TakeoffState {
 class Takeoff
 {
 public:
-
 	Takeoff() = default;
 	~Takeoff() = default;
+
+	// initialize parameters
+	void setTakeoffRampTime(const float seconds) { _takeoff_ramp_time = seconds; }
+	void setSpoolupTime(const float seconds) { _spoolup_time_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(seconds * (float)1_s)); }
+	void generateInitialValue(const float hover_thrust, const float velocity_p_gain);
 
 	/**
 	 * Update the state for the takeoff.
@@ -65,19 +69,17 @@ public:
 	 * @return true if setpoint has updated correctly
 	 */
 	void updateTakeoffState(const bool armed, const bool landed, const bool want_takeoff,
-				const float takeoff_desired_thrust, const bool skip_takeoff);
-	float updateThrustRamp(const float dt, const float takeoff_desired_thrust);
+				const float takeoff_desired_vz, const bool skip_takeoff);
+	float updateRamp(const float dt, const float takeoff_desired_vz);
 
-	void setTakeoffRampTime(const float seconds) { _takeoff_ramp_time = seconds; }
-	void setSpoolupTime(const float seconds) { _spoolup_time_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(seconds * (float)1_s)); }
 	TakeoffState getTakeoffState() { return _takeoff_state; }
-
-	// TODO: make this private as soon as tasks also run while disarmed and updateTakeoffState gets called all the time
-	systemlib::Hysteresis _spoolup_time_hysteresis{false}; /**< becomes true MPC_SPOOLUP_TIME seconds after the vehicle was armed */
 
 private:
 	TakeoffState _takeoff_state = TakeoffState::disarmed;
 
 	float _takeoff_ramp_time = 0.f;
-	float _takeoff_ramp_thrust = 0.f;
+	float _takeoff_ramp_vz_init = 0.f;
+	float _takeoff_ramp_vz = 0.f;
+
+	systemlib::Hysteresis _spoolup_time_hysteresis{false}; /**< becomes true MPC_SPOOLUP_TIME seconds after the vehicle was armed */
 };
