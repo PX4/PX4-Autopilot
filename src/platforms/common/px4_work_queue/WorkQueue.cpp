@@ -33,6 +33,7 @@
 
 #include "WorkQueue.hpp"
 #include "WorkItem.hpp"
+#include "WorkQueueManager.hpp"
 
 #include <string.h>
 
@@ -100,11 +101,47 @@ void WorkQueue::Run()
 
 		work_unlock();
 	}
+
+	PX4_INFO("%s: exiting", _config.name);
+}
+
+bool WorkQueue::Open()
+{
+	if (!should_exit()) {
+		work_lock();
+		_open_count++;
+		work_unlock();
+
+		return true;
+	}
+
+	return false;
+}
+
+void WorkQueue::Close()
+{
+	work_lock();
+
+	if (_open_count > 0) {
+		_open_count--;
+	}
+
+	if (_open_count == 0) {
+		// shutdown, no active WorkItems
+		PX4_INFO("%s: last active WorkItem closing, stopping thread", _config.name);
+		request_stop();
+
+		// Wake up the worker thread
+		px4_sem_post(&_process_lock);
+	}
+
+	work_unlock();
 }
 
 void WorkQueue::print_status()
 {
-	PX4_INFO("WorkQueue: %s running", get_name());
+	PX4_INFO("%s running, priority (relative to max): %d, stack: %d bytes, open: %d", get_name(),
+		 _config.relative_priority, _config.stacksize, _open_count);
 }
 
 } // namespace px4

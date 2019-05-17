@@ -53,5 +53,6 @@ px4_add_board(
 		reboot
 		top
 		ver
+		wq_manager
 
 	)

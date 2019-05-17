@@ -56,5 +56,6 @@ px4_add_board(
 		param
 		top
 		ver
+		wq_manager
 
 	)

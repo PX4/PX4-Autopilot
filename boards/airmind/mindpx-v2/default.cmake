@@ -100,6 +100,7 @@ px4_add_board(
 		tune_control
 		usb_connected
 		ver
+		wq_manager
 
 	EXAMPLES
 		bottle_drop # OBC challenge

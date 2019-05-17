@@ -49,19 +49,34 @@ WorkItem::WorkItem(const wq_config_t &config)
 	}
 }
 
-bool WorkItem::Init(const wq_config_t &config)
+WorkItem::~WorkItem()
 {
-	px4::WorkQueue *wq = WorkQueueFindOrCreate(config);
-
-	if (wq == nullptr) {
-		PX4_ERR("%s not available", config.name);
-
-	} else {
-		_wq = wq;
-		return true;
+	if (_wq) {
+		_wq->Close();
 	}
 
-	return false;
+	_wq = nullptr;
+}
+
+bool WorkItem::Init(const wq_config_t &config)
+{
+	if (_wq == nullptr) {
+		px4::WorkQueue *wq = WorkQueueFindOrCreate(config);
+
+		if (wq == nullptr) {
+			PX4_ERR("%s not available", config.name);
+
+		} else {
+			if (wq->Open()) {
+				_wq = wq;
+
+			} else {
+				PX4_ERR("unable to open WQ");
+			}
+		}
+	}
+
+	return (_wq != nullptr);
 }
 
 } // namespace px4

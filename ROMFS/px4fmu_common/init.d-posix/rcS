@@ -252,5 +252,6 @@ mavlink start -x -u $udp_offboard_port_local -r 4000000 -m onboard -o $udp_offbo
 # Run script to start logging
 sh etc/init.d/rc.logging
 
+wq_manager cleanup
 mavlink boot_complete
 replay trystart

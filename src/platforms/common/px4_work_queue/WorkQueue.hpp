@@ -65,9 +65,14 @@ public:
 
 	void Run();
 
-	void request_stop() { _should_exit.store(true); }
+	void request_stop() { _should_exit.store(true); px4_sem_post(&_process_lock); }
 
 	void print_status();
+
+	bool Open();
+	void Close();
+
+	uint8_t	open_count() const { return _open_count; }
 
 private:
 
@@ -89,6 +94,8 @@ private:
 
 	px4::atomic_bool	_should_exit{false};
 	const wq_config_t	&_config;
+
+	uint8_t			_open_count{0};
 
 };
 

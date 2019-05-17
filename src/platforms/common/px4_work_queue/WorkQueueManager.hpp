@@ -81,12 +81,30 @@ int WorkQueueManagerStart();
 int WorkQueueManagerStop();
 
 /**
+ * Stop the work queue manager task.
+ */
+int WorkQueueManagerStatus();
+
+/**
+ * Cleanup unused work queues.
+ */
+int WorkQueueManagerCleanup();
+
+/**
  * Create (or find) a work queue with a particular configuration.
  *
  * @param new_wq		The work queue configuration (see WorkQueueManager.hpp).
  * @return		A pointer to the WorkQueue, or nullptr on failure.
  */
 WorkQueue *WorkQueueFindOrCreate(const wq_config_t &new_wq);
+
+/**
+ * Shutdown a workqueue if it exists.
+ *
+ * @param wq		The work queue configuration (see WorkQueueManager.hpp).
+ * @return		True if the workqueue was found and stopped, otherwise false.
+ */
+bool WorkQueueShutdown(const wq_config_t &wq);
 
 /**
  * Map a PX4 driver device id to a work queue (by sensor bus).

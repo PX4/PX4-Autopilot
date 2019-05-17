@@ -545,6 +545,7 @@ unset USE_IO
 unset VEHICLE_TYPE
 
 #
-# Boot is complete, inform MAVLink app(s) that the system is now fully up and running.
+# Boot is complete, cleanup any unused workqueues and inform MAVLink app(s) that the system is now fully up and running.
 #
+wq_manager cleanup
 mavlink boot_complete

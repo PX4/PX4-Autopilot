@@ -116,6 +116,30 @@ WorkQueue *WorkQueueFindOrCreate(const wq_config_t &new_wq)
 	return wq;
 }
 
+bool WorkQueueShutdown(const wq_config_t &wq)
+{
+	if (_wq_manager_wqs_list == nullptr) {
+		PX4_ERR("not running");
+		return false;
+	}
+
+	// prevent new
+	auto lg = _wq_manager_wqs_list->getLockGuard();
+
+	// search list for existing work queue
+	WorkQueue *found_wq = FindWorkQueueByName(wq.name);
+
+	if (found_wq != nullptr) {
+		found_wq->request_stop();
+		return true;
+
+	} else {
+		PX4_ERR("%s not running", wq.name);
+	}
+
+	return false;
+}
+
 const wq_config_t &device_bus_to_wq(uint32_t device_id_int)
 {
 	union device::Device::DeviceId device_id;
@@ -179,6 +203,11 @@ static void WorkQueueManagerRun()
 	while (!_wq_manager_should_exit.load()) {
 		// create new work queues as needed
 		const wq_config_t *wq = _wq_manager_create_queue->pop();
+
+
+		// TODO: wakeup every few seconds to look for unused work queues
+		// wq_manager status
+		// wq_manager cleanup
 
 		if (wq != nullptr) {
 			// create new work queue
@@ -281,6 +310,36 @@ int WorkQueueManagerStop()
 		px4_usleep(1000);
 
 		delete _wq_manager_create_queue;
+	}
+
+	return PX4_OK;
+}
+
+int WorkQueueManagerStatus()
+{
+	if (_wq_manager_wqs_list != nullptr) {
+		auto lg = _wq_manager_wqs_list->getLockGuard();
+
+		for (WorkQueue *wq : *_wq_manager_wqs_list) {
+			wq->print_status();
+		}
+	}
+
+	return PX4_OK;
+}
+
+int WorkQueueManagerCleanup()
+{
+	if (_wq_manager_wqs_list != nullptr) {
+		auto lg = _wq_manager_wqs_list->getLockGuard();
+
+		for (WorkQueue *wq : *_wq_manager_wqs_list) {
+			if (wq->open_count() < 1) {
+				PX4_INFO("%s empty, stopping", wq->get_name());
+				wq->request_stop();
+			}
+
+		}
 	}
 
 	return PX4_OK;

@@ -31,40 +31,39 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include <px4_config.h>
+#include <px4_module.h>
 
+#include <px4_work_queue/WorkQueueManager.hpp>
 
-#include "WorkQueueManager.hpp"
-#include "WorkQueue.hpp"
+extern "C" {
+	__EXPORT int wq_manager_main(int argc, char *argv[]);
+}
 
-#include <containers/IntrusiveQueue.hpp>
-#include <px4_defines.h>
-#include <drivers/drv_hrt.h>
-
-namespace px4
+static void print_usage()
 {
+	PRINT_MODULE_DESCRIPTION("Workqueue manager command line helper");
 
-class WorkItem : public IntrusiveQueueNode<WorkItem *>
+	PRINT_MODULE_USAGE_NAME_SIMPLE("wq_manager", "command");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print status of all running workqueues");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("cleanup", "Stop all unused workqueues");
+}
+
+int wq_manager_main(int argc, char *argv[])
 {
-public:
+	if (argc > 1) {
+		if (strcmp(argv[1], "status") == 0) {
+			px4::WorkQueueManagerStatus();
+			return 0;
 
-	explicit WorkItem(const wq_config_t &config);
-	WorkItem() = delete;
+		} else if (strcmp(argv[1], "cleanup") == 0) {
+			px4::WorkQueueManagerCleanup();
+			return 0;
+		}
 
-	virtual ~WorkItem();
+		print_usage();
+		return -1;
+	}
 
-	inline void ScheduleNow() { if (_wq != nullptr) _wq->Add(this); }
-
-	virtual void Run() = 0;
-
-protected:
-
-	bool Init(const wq_config_t &config);
-
-private:
-
-	WorkQueue *_wq{nullptr};
-
-};
-
-} // namespace px4
+	return 0;
+}
