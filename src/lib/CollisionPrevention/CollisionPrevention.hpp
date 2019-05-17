@@ -69,7 +69,7 @@ public:
 	bool is_active() { return _param_mpc_col_prev_d.get() > 0; }
 
 	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed, const float max_acc,
-			    const float curr_vel);
+			    const matrix::Vector2f &curr_vel);
 
 private:
 
@@ -91,6 +91,6 @@ private:
 
 	void update();
 
-	void calculateConstrainedSetpoint(matrix::Vector2f &setpoint, const float max_acc, const float curr_vel);
+	void calculateConstrainedSetpoint(matrix::Vector2f &setpoint, const float max_acc, const matrix::Vector2f &curr_vel);
 
 };
