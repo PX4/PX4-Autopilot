@@ -65,6 +65,29 @@ bool CollisionPrevention::initializeSubscriptions(SubscriptionArray &subscriptio
 	return true;
 }
 
+void CollisionPrevention::publishConstrainedSetpoint(const Vector2f &original_setpoint,
+		const Vector2f &adapted_setpoint)
+{
+
+	collision_constraints_s	constraints;	/**< collision constraints message */
+
+	//fill in values
+	constraints.timestamp = hrt_absolute_time();
+
+	constraints.original_setpoint[0] = original_setpoint(0);
+	constraints.original_setpoint[1] = original_setpoint(1);
+	constraints.adapted_setpoint[0] = adapted_setpoint(0);
+	constraints.adapted_setpoint[1] = adapted_setpoint(1);
+
+	// publish constraints
+	if (_constraints_pub != nullptr) {
+		orb_publish(ORB_ID(collision_constraints), _constraints_pub, &constraints);
+
+	} else {
+		_constraints_pub = orb_advertise(ORB_ID(collision_constraints), &constraints);
+	}
+}
+
 void CollisionPrevention::calculateConstrainedSetpoint(Vector2f &setpoint, const float max_acc,
 		const Vector2f &curr_vel)
 {
@@ -165,5 +188,6 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 	}
 
 	_interfering = currently_interfering;
+	publishConstrainedSetpoint(original_setpoint, new_setpoint);
 	original_setpoint = new_setpoint;
 }
