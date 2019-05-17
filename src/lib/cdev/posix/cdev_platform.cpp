@@ -377,7 +377,7 @@ extern "C" {
 
 				// Calculate an absolute time in the future
 				const unsigned billion = (1000 * 1000 * 1000);
-				uint64_t nsecs = ts.tv_nsec + (timeout * 1000 * 1000);
+				uint64_t nsecs = ts.tv_nsec + ((uint64_t)timeout * 1000 * 1000);
 				ts.tv_sec += nsecs / billion;
 				nsecs -= (nsecs / billion) * billion;
 				ts.tv_nsec = nsecs;
