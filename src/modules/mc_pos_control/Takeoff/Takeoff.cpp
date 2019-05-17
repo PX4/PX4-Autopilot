@@ -36,10 +36,16 @@
  */
 
 #include "Takeoff.hpp"
-#include <float.h>
+#include <mathlib/mathlib.h>
+
+void Takeoff::generateInitialValue(const float hover_thrust, float velocity_p_gain)
+{
+	velocity_p_gain = math::max(velocity_p_gain, 0.01f);
+	_takeoff_ramp_vz_init = -hover_thrust / velocity_p_gain;
+}
 
 void Takeoff::updateTakeoffState(const bool armed, const bool landed, const bool want_takeoff,
-				 const float takeoff_desired_thrust, const bool skip_takeoff)
+				 const float takeoff_desired_vz, const bool skip_takeoff)
 {
 	_spoolup_time_hysteresis.set_state_and_update(armed);
 
@@ -63,14 +69,14 @@ void Takeoff::updateTakeoffState(const bool armed, const bool landed, const bool
 	case TakeoffState::ready_for_takeoff:
 		if (want_takeoff) {
 			_takeoff_state = TakeoffState::rampup;
-			_takeoff_ramp_thrust = 0.0f;
+			_takeoff_ramp_vz = _takeoff_ramp_vz_init;
 
 		} else {
 			break;
 		}
 
 	case TakeoffState::rampup:
-		if (_takeoff_ramp_thrust <= takeoff_desired_thrust) {
+		if (_takeoff_ramp_vz >= takeoff_desired_vz) {
 			_takeoff_state = TakeoffState::flight;
 
 		} else {
@@ -98,24 +104,24 @@ void Takeoff::updateTakeoffState(const bool armed, const bool landed, const bool
 	}
 }
 
-float Takeoff::updateThrustRamp(const float takeoff_desired_thrust, const float dt)
+float Takeoff::updateRamp(const float dt, const float takeoff_desired_vz)
 {
 	if (_takeoff_state < TakeoffState::rampup) {
-		return 0.f;
+		return _takeoff_ramp_vz_init;
 	}
 
 	if (_takeoff_state == TakeoffState::rampup) {
-		if (_takeoff_ramp_time > FLT_EPSILON) {
-			_takeoff_ramp_thrust += takeoff_desired_thrust * dt / _takeoff_ramp_time;
+		if (_takeoff_ramp_time > dt) {
+			_takeoff_ramp_vz += (takeoff_desired_vz - _takeoff_ramp_vz_init) * dt / _takeoff_ramp_time;
 
 		} else {
-			_takeoff_ramp_thrust = takeoff_desired_thrust;
+			_takeoff_ramp_vz = takeoff_desired_vz;
 		}
 
-		if (_takeoff_ramp_thrust > takeoff_desired_thrust) {
-			return _takeoff_ramp_thrust;
+		if (_takeoff_ramp_vz < takeoff_desired_vz) {
+			return _takeoff_ramp_vz;
 		}
 	}
 
-	return takeoff_desired_thrust;
+	return takeoff_desired_vz;
 }
