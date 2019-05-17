@@ -65,7 +65,8 @@ bool CollisionPrevention::initializeSubscriptions(SubscriptionArray &subscriptio
 	return true;
 }
 
-void CollisionPrevention::calculateConstrainedSetpoint(Vector2f &setpoint, const float max_acc, const float curr_vel)
+void CollisionPrevention::calculateConstrainedSetpoint(Vector2f &setpoint, const float max_acc,
+		const Vector2f &curr_vel)
 {
 	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance->get();
 
@@ -90,17 +91,20 @@ void CollisionPrevention::calculateConstrainedSetpoint(Vector2f &setpoint, const
 					float distance = obstacle_distance.distances[i] / 100.0f; //convert to meters
 					float angle = math::radians((float)i * obstacle_distance.increment);
 
-					//max admissible velocity in current bin direction: v = sqrt(2 * a * d), where d is the distance to standstill
-					//a is the constant acceleration and v the current velocity. We use a = a_max/2  and j = j_max/2 to stay well within the limits
-					float acceleration_distance = 2.f * curr_vel * max_acc / _param_mpc_jerk_max.get();
-					float distance_to_standstill = math::max(0.f, distance - _param_mpc_col_prev_d.get() - acceleration_distance);
-					float vel_max_sqrd = max_acc * distance_to_standstill;
-
 					//split current setpoint into parallel and orthogonal components with respect to the current bin direction
 					Vector2f bin_direction = {cos(angle), sin(angle)};
 					Vector2f orth_direction = {-bin_direction(1), bin_direction(0)};
 					float sp_parallel = setpoint_sqrd.dot(bin_direction);
 					float sp_orth = setpoint_sqrd.dot(orth_direction);
+					float curr_vel_parallel = math::max(0.f, curr_vel.dot(bin_direction));
+
+					//max admissible velocity in current bin direction: v = sqrt(2 * a * d), where d is the distance to standstill
+					//a is the constant acceleration and v the current velocity. We use a = a_max/2  and j = j_max/2 to stay well within the limits
+					float acceleration_distance = 2.f * curr_vel_parallel * max_acc / _param_mpc_jerk_max.get();
+					float distance_to_standstill = math::max(0.f, distance - _param_mpc_col_prev_d.get() - acceleration_distance);
+					float vel_max_sqrd = max_acc * distance_to_standstill;
+
+
 
 					//limit the setpoint to respect vel_max by subtracting from the parallel component
 					if (sp_parallel > vel_max_sqrd) {
@@ -144,7 +148,7 @@ void CollisionPrevention::calculateConstrainedSetpoint(Vector2f &setpoint, const
 }
 
 void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const float max_speed,
-		const float max_acc, const float curr_vel)
+		const float max_acc, const Vector2f &curr_vel)
 {
 	//calculate movement constraints based on range data
 	Vector2f new_setpoint = original_setpoint;
