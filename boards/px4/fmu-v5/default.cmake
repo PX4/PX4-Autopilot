@@ -44,6 +44,7 @@ px4_add_board(
 		mkblctrl
 		pca9685
 		pmw3901
+		power_monitor/ina226
 		#protocol_splitter
 		pwm_input
 		pwm_out_sim
