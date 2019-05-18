@@ -101,13 +101,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_att.q[0] = 1.0f;
 }
 
-MavlinkReceiver::~MavlinkReceiver()
-{
-	orb_unsubscribe(_control_mode_sub);
-	orb_unsubscribe(_actuator_armed_sub);
-	orb_unsubscribe(_vehicle_attitude_sub);
-}
-
 void
 MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result)
 {
@@ -350,10 +343,10 @@ MavlinkReceiver::send_flight_information()
 		flight_info.flight_uuid = (uint64_t)flight_uuid;
 	}
 
-	actuator_armed_s actuator_armed;
-	int ret = orb_copy(ORB_ID(actuator_armed), _actuator_armed_sub, &actuator_armed);
+	actuator_armed_s actuator_armed{};
+	bool ret = _actuator_armed_sub.copy(&actuator_armed);
 
-	if (ret == 0 && actuator_armed.timestamp != 0) {
+	if (ret && actuator_armed.timestamp != 0) {
 		flight_info.arming_time_utc = flight_info.takeoff_time_utc = actuator_armed.armed_time_ms;
 	}
 
@@ -853,12 +846,8 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		/* If we are in offboard control mode and offboard control loop through is enabled
 		 * also publish the setpoint topic which is read by the controller */
 		if (_mavlink->get_forward_externalsp()) {
-			bool updated;
-			orb_check(_control_mode_sub, &updated);
 
-			if (updated) {
-				orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
-			}
+			_control_mode_sub.update(&_control_mode);
 
 			if (_control_mode.flag_control_offboard_enabled) {
 				if (is_force_sp && offboard_control_mode.ignore_position &&
@@ -1019,14 +1008,8 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 			orb_publish(ORB_ID(offboard_control_mode), _offboard_control_mode_pub, &offboard_control_mode);
 		}
 
-
 		/* If we are in offboard control mode, publish the actuator controls */
-		bool updated;
-		orb_check(_control_mode_sub, &updated);
-
-		if (updated) {
-			orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
-		}
+		_control_mode_sub.update(&_control_mode);
 
 		if (_control_mode.flag_control_offboard_enabled) {
 
@@ -1184,9 +1167,6 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		odometry.pose_covariance[i] = odom.pose_covariance[i];
 	}
 
-	bool updated;
-	orb_check(_vehicle_attitude_sub, &updated);
-
 	if (odom.child_frame_id == MAV_FRAME_BODY_FRD) { /* WRT to estimated vehicle body-fixed frame */
 		/* get quaternion from the msg quaternion itself and build DCM matrix from it */
 		Rbl = matrix::Dcmf(matrix::Quatf(odometry.q)).I();
@@ -1207,8 +1187,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		}
 
 	} else if (odom.child_frame_id == MAV_FRAME_BODY_NED) { /* WRT to vehicle body-NED frame */
-		if (updated) {
-			orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_att);
+		if (_vehicle_attitude_sub.update(&_att)) {
 
 			/* get quaternion from vehicle_attitude quaternion and build DCM matrix from it */
 			Rbl = matrix::Dcmf(matrix::Quatf(_att.q)).I();
@@ -1233,8 +1212,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	} else if (odom.child_frame_id == MAV_FRAME_VISION_NED || /* WRT to vehicle local NED frame */
 		   odom.child_frame_id == MAV_FRAME_MOCAP_NED) {
 
-		if (updated) {
-			orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_att);
+		if (_vehicle_attitude_sub.update(&_att)) {
 
 			/* get quaternion from vehicle_attitude quaternion and build DCM matrix from it */
 			matrix::Dcmf Rlb = matrix::Quatf(_att.q);
@@ -1340,12 +1318,8 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		/* If we are in offboard control mode and offboard control loop through is enabled
 		 * also publish the setpoint topic which is read by the controller */
 		if (_mavlink->get_forward_externalsp()) {
-			bool updated;
-			orb_check(_control_mode_sub, &updated);
 
-			if (updated) {
-				orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
-			}
+			_control_mode_sub.update(&_control_mode);
 
 			if (_control_mode.flag_control_offboard_enabled) {
 
@@ -2704,12 +2678,6 @@ MavlinkReceiver::receive_thread(void *arg)
 	}
 
 	return nullptr;
-}
-
-void
-MavlinkReceiver::print_status()
-{
-
 }
 
 void *
