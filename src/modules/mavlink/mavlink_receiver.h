@@ -98,16 +98,7 @@ public:
 	 * Constructor
 	 */
 	MavlinkReceiver(Mavlink *parent);
-
-	/**
-	 * Destructor, also kills the mavlinks task.
-	 */
-	~MavlinkReceiver();
-
-	/**
-	 * Display the mavlink status.
-	 */
-	void print_status();
+	~MavlinkReceiver() = default;
 
 	/**
 	 * Start the receiver thread
@@ -257,9 +248,9 @@ private:
 
 	static constexpr int _gps_inject_data_queue_size{6};
 
-	int _actuator_armed_sub{orb_subscribe(ORB_ID(actuator_armed))};
-	int _control_mode_sub{orb_subscribe(ORB_ID(vehicle_control_mode))};
-	int _vehicle_attitude_sub{orb_subscribe(ORB_ID(vehicle_attitude))};
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
+	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 
 	int _orb_class_instance{-1};
 
