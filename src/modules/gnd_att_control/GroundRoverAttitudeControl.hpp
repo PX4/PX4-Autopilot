@@ -108,6 +108,8 @@ private:
 		float w_d;		/**< Derivative of the steering controller */
 		float w_imax;		/**< maximum integrator level of the steering controller */
 
+        float w_rmax;       /**< PID limiter for limiting steering rate */
+
 		float trim_yaw;
 		float man_yaw_scale; 			/**< scale factor applied to yaw actuator control in pure manual mode */
 
@@ -119,7 +121,9 @@ private:
 		param_t w_p;
 		param_t w_i;
 		param_t w_d;
-		param_t w_imax;
+        param_t w_imax;
+
+        param_t w_rmax;
 
 		param_t trim_yaw;
 		param_t man_yaw_scale;
