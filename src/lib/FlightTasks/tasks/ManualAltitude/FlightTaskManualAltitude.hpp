@@ -110,7 +110,7 @@ private:
 	 */
 	void _respectGroundSlowdown();
 
-	uORB::Subscription<home_position_s> *_sub_home_position{nullptr};
+	uORB::SubscriptionPollable<home_position_s> *_sub_home_position{nullptr};
 
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
 	float _max_speed_up = 10.0f;

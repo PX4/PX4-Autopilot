@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,55 +31,80 @@
  *
  ****************************************************************************/
 
-#include "SubscriptionArray.hpp"
+/**
+ * @file SubscriptionPollable.cpp
+ *
+ */
 
-#include <string.h>
+#include "SubscriptionPollable.hpp"
+#include <px4_defines.h>
 
-SubscriptionArray::~SubscriptionArray()
+namespace uORB
 {
-	cleanup();
-}
 
-void SubscriptionArray::cleanup()
+SubscriptionPollableBase::SubscriptionPollableBase(const struct orb_metadata *meta, unsigned interval,
+		unsigned instance) :
+	_meta(meta),
+	_instance(instance)
 {
-	for (int i = 0; i < _subscriptions_count; ++i) {
-		delete _subscriptions[i];
+	if (instance > 0) {
+		_handle = orb_subscribe_multi(_meta, instance);
+
+	} else {
+		_handle = orb_subscribe(_meta);
 	}
 
-	delete[] _subscriptions;
-	_subscriptions = nullptr;
-}
-
-bool SubscriptionArray::resizeSubscriptions()
-{
-	const int new_size = _subscriptions_size == 0 ? 4 : _subscriptions_size * 2;
-	uORB::SubscriptionPollableNode **new_array = new uORB::SubscriptionPollableNode*[new_size];
-
-	if (!new_array) {
-		return false;
+	if (_handle < 0) {
+		PX4_ERR("%s sub failed", _meta->o_name);
 	}
 
-	if (_subscriptions) {
-		memcpy(new_array, _subscriptions, sizeof(uORB::SubscriptionPollableNode *)*_subscriptions_count);
-		delete[] _subscriptions;
-	}
-
-	_subscriptions = new_array;
-	_subscriptions_size = new_size;
-
-	return true;
-}
-
-void SubscriptionArray::update()
-{
-	for (int i = 0; i < _subscriptions_count; ++i) {
-		_subscriptions[i]->update();
+	if (interval > 0) {
+		orb_set_interval(_handle, interval);
 	}
 }
 
-void SubscriptionArray::forcedUpdate()
+bool SubscriptionPollableBase::updated()
 {
-	for (int i = 0; i < _subscriptions_count; ++i) {
-		_subscriptions[i]->forcedUpdate();
+	bool isUpdated = false;
+
+	if (orb_check(_handle, &isUpdated) != PX4_OK) {
+		PX4_ERR("%s check failed", _meta->o_name);
+	}
+
+	return isUpdated;
+}
+
+bool SubscriptionPollableBase::update(void *data)
+{
+	bool orb_updated = false;
+
+	if (updated()) {
+		if (orb_copy(_meta, _handle, data) != PX4_OK) {
+			PX4_ERR("%s copy failed", _meta->o_name);
+
+		} else {
+			orb_updated = true;
+		}
+	}
+
+	return orb_updated;
+}
+
+SubscriptionPollableBase::~SubscriptionPollableBase()
+{
+	if (orb_unsubscribe(_handle) != PX4_OK) {
+		PX4_ERR("%s unsubscribe failed", _meta->o_name);
 	}
 }
+
+SubscriptionPollableNode::SubscriptionPollableNode(const struct orb_metadata *meta, unsigned interval,
+		unsigned instance,
+		List<SubscriptionPollableNode *> *list)
+	: SubscriptionPollableBase(meta, interval, instance)
+{
+	if (list != nullptr) {
+		list->add(this);
+	}
+}
+
+} // namespace uORB

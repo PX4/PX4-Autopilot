@@ -195,6 +195,42 @@ public:
 	int get_priority() const { return _priority; }
 	void set_priority(uint8_t priority) { _priority = priority; }
 
+	/**
+	 * Copies the timestamp of the last update atomically.
+	 *
+	 * @return uint64_t
+	 *   Returns the timestamp of the most recent data.
+	 */
+	hrt_abstime last_update();
+
+	/**
+	 * Copies data and the corresponding generation
+	 * from a node to the buffer provided.
+	 *
+	 * @param dst
+	 *   The buffer into which the data is copied.
+	 * @param generation
+	 *   The generation that was copied.
+	 * @return bool
+	 *   Returns true if the data was copied.
+	 */
+	bool copy(void *dst, unsigned &generation);
+
+	/**
+	 * Copies data and the corresponding generation
+	 * from a node to the buffer provided.
+	 *
+	 * @param dst
+	 *   The buffer into which the data is copied.
+	 *   If topic was not updated since last check it will return false but
+	 *   still copy the data.
+	 * @param generation
+	 *   The generation that was copied.
+	 * @return uint64_t
+	 *   Returns the timestamp of the copied data.
+	 */
+	uint64_t copy_and_get_timestamp(void *dst, unsigned &generation);
+
 protected:
 
 	pollevent_t poll_state(cdev::file_t *filp) override;
@@ -202,6 +238,19 @@ protected:
 	void poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events) override;
 
 private:
+
+	/**
+	 * Copies data and the corresponding generation
+	 * from a node to the buffer provided. Caller handles locking.
+	 *
+	 * @param dst
+	 *   The buffer into which the data is copied.
+	 * @param generation
+	 *   The generation that was copied.
+	 * @return bool
+	 *   Returns true if the data was copied.
+	 */
+	bool copy_locked(void *dst, unsigned &generation);
 
 	struct UpdateIntervalData {
 		uint64_t last_update{0}; /**< time at which the last update was provided, used when update_interval is nonzero */

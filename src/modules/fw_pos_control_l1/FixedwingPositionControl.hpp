@@ -99,7 +99,7 @@ using matrix::Vector2f;
 using matrix::Vector3f;
 using matrix::wrap_pi;
 
-using uORB::Subscription;
+using uORB::SubscriptionData;
 
 using namespace launchdetection;
 using namespace runwaytakeoff;
@@ -181,8 +181,8 @@ private:
 	vehicle_land_detected_s		_vehicle_land_detected {};	///< vehicle land detected */
 	vehicle_status_s		_vehicle_status {};		///< vehicle status */
 
-	Subscription<airspeed_s> _sub_airspeed;
-	Subscription<sensor_bias_s> _sub_sensors;
+	SubscriptionData<airspeed_s> _sub_airspeed;
+	SubscriptionData<sensor_bias_s> _sub_sensors;
 
 	perf_counter_t	_loop_perf;				///< loop performance counter */
 

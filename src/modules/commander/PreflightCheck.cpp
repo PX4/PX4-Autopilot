@@ -100,7 +100,7 @@ static bool check_calibration(const char *param_template, int32_t device_id)
 	return calibration_found;
 }
 
-static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, unsigned instance, bool optional,
+static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance, bool optional,
 			    int32_t &device_id, bool report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(sensor_mag), instance) == PX4_OK);
@@ -109,7 +109,7 @@ static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &sta
 
 	if (exists) {
 
-		uORB::Subscription<sensor_mag_s> magnetometer{ORB_ID(sensor_mag), 0, instance};
+		uORB::SubscriptionData<sensor_mag_s> magnetometer{ORB_ID(sensor_mag), instance};
 
 		mag_valid = (hrt_elapsed_time(&magnetometer.get().timestamp) < 1_s);
 
@@ -236,7 +236,7 @@ static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s 
 	return true;
 }
 
-static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, unsigned instance,
+static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance,
 			       bool optional, bool dynamic, int32_t &device_id, bool report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(sensor_accel), instance) == PX4_OK);
@@ -245,7 +245,7 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 
 	if (exists) {
 
-		uORB::Subscription<sensor_accel_s> accel{ORB_ID(sensor_accel), 0, instance};
+		uORB::SubscriptionData<sensor_accel_s> accel{ORB_ID(sensor_accel), instance};
 
 		accel_valid = (hrt_elapsed_time(&accel.get().timestamp) < 1_s);
 
@@ -300,7 +300,7 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	return success;
 }
 
-static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, unsigned instance, bool optional,
+static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance, bool optional,
 		      int32_t &device_id, bool report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(sensor_gyro), instance) == PX4_OK);
@@ -309,7 +309,7 @@ static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 
 	if (exists) {
 
-		uORB::Subscription<sensor_gyro_s> gyro{ORB_ID(sensor_gyro), 0, instance};
+		uORB::SubscriptionData<sensor_gyro_s> gyro{ORB_ID(sensor_gyro), instance};
 
 		gyro_valid = (hrt_elapsed_time(&gyro.get().timestamp) < 1_s);
 
@@ -345,14 +345,14 @@ static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 	return calibration_valid && gyro_valid;
 }
 
-static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, unsigned instance, bool optional,
+static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance, bool optional,
 		      int32_t &device_id, bool report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(sensor_baro), instance) == PX4_OK);
 	bool baro_valid = false;
 
 	if (exists) {
-		uORB::Subscription<sensor_baro_s> baro{ORB_ID(sensor_baro), 0, instance};
+		uORB::SubscriptionData<sensor_baro_s> baro{ORB_ID(sensor_baro), instance};
 
 		baro_valid = (hrt_elapsed_time(&baro.get().timestamp) < 1_s);
 

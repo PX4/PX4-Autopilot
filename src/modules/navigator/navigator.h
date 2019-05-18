@@ -341,7 +341,7 @@ private:
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
 
-	uORB::Subscription<position_controller_status_s>	_position_controller_status_sub{ORB_ID(position_controller_status)};
+	uORB::SubscriptionData<position_controller_status_s>	_position_controller_status_sub{ORB_ID(position_controller_status)};
 
 	uint8_t						_previous_nav_state{}; /**< nav_state of the previous iteration*/
 
