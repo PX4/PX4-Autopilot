@@ -62,8 +62,6 @@
 #include <uORB/topics/vehicle_local_position.h>
 
 using math::constrain;
-using uORB::Publication;
-using uORB::Subscription;
 
 using namespace time_literals;
 
@@ -233,14 +231,15 @@ private:
 	bool _print_avoidance_msg_once{false};
 
 	// Subscriptions
-	Subscription<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
-	Subscription<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
-	Subscription<mission_result_s>			_mission_result_sub{ORB_ID(mission_result)};
-	Subscription<sensor_bias_s>			_sensor_bias_sub{ORB_ID(sensor_bias)};
-	Subscription<vehicle_global_position_s>		_global_position_sub{ORB_ID(vehicle_global_position)};
-	Subscription<vehicle_local_position_s>		_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::SubscriptionData<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
+	uORB::SubscriptionData<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
+	uORB::SubscriptionData<mission_result_s>		_mission_result_sub{ORB_ID(mission_result)};
+	uORB::SubscriptionData<sensor_bias_s>			_sensor_bias_sub{ORB_ID(sensor_bias)};
+	uORB::SubscriptionData<vehicle_global_position_s>	_global_position_sub{ORB_ID(vehicle_global_position)};
+	uORB::SubscriptionData<vehicle_local_position_s>	_local_position_sub{ORB_ID(vehicle_local_position)};
 
-	Publication<home_position_s>			_home_pub{ORB_ID(home_position)};
+	// Publications
+	uORB::Publication<home_position_s>			_home_pub{ORB_ID(home_position)};
 
 	orb_advert_t					_status_pub{nullptr};
 };

@@ -98,7 +98,7 @@ protected:
 	matrix::Vector3f _next_wp{}; /**< The next waypoint after target (local frame). If no next setpoint is available, next is set to target. */
 	float _mc_cruise_speed{0.0f}; /**< Requested cruise speed. If not valid, default cruise speed is used. */
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
-	uORB::Subscription<home_position_s> *_sub_home_position{nullptr};
+	uORB::SubscriptionPollable<home_position_s> *_sub_home_position{nullptr};
 
 	State _current_state{State::none};
 	float _target_acceptance_radius = 0.0f; /**< Acceptances radius of the target */
@@ -121,8 +121,8 @@ protected:
 private:
 	matrix::Vector2f _lock_position_xy{NAN, NAN}; /**< if no valid triplet is received, lock positition to current position */
 	bool _yaw_lock = false; /**< if within acceptance radius, lock yaw to current yaw */
-	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
-	uORB::Subscription<vehicle_status_s> *_sub_vehicle_status{nullptr};
+	uORB::SubscriptionPollable<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
+	uORB::SubscriptionPollable<vehicle_status_s> *_sub_vehicle_status{nullptr};
 
 	matrix::Vector3f
 	_triplet_target; /**< current triplet from navigator which may differ from the intenal one (_target) depending on the vehicle state. */

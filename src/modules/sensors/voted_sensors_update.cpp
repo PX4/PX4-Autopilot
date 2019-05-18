@@ -152,9 +152,9 @@ void VotedSensorsUpdate::parameters_update()
 	_temperature_compensation.parameters_update(_hil_enabled);
 
 	/* gyro */
-	for (int topic_instance = 0; topic_instance < _gyro.subscription_count; ++topic_instance) {
+	for (uint8_t topic_instance = 0; topic_instance < _gyro.subscription_count; ++topic_instance) {
 
-		uORB::Subscription<sensor_gyro_s> report{ORB_ID(sensor_gyro), 0, (unsigned)topic_instance};
+		uORB::SubscriptionData<sensor_gyro_s> report{ORB_ID(sensor_gyro), topic_instance};
 
 		int temp = _temperature_compensation.set_sensor_id_gyro(report.get().device_id, topic_instance);
 
@@ -172,9 +172,9 @@ void VotedSensorsUpdate::parameters_update()
 
 
 	/* accel */
-	for (int topic_instance = 0; topic_instance < _accel.subscription_count; ++topic_instance) {
+	for (uint8_t topic_instance = 0; topic_instance < _accel.subscription_count; ++topic_instance) {
 
-		uORB::Subscription<sensor_accel_s> report{ORB_ID(sensor_accel), 0, (unsigned)topic_instance};
+		uORB::SubscriptionData<sensor_accel_s> report{ORB_ID(sensor_accel), topic_instance};
 
 		int temp = _temperature_compensation.set_sensor_id_accel(report.get().device_id, topic_instance);
 
@@ -192,9 +192,9 @@ void VotedSensorsUpdate::parameters_update()
 
 
 	/* baro */
-	for (int topic_instance = 0; topic_instance < _baro.subscription_count; ++topic_instance) {
+	for (uint8_t topic_instance = 0; topic_instance < _baro.subscription_count; ++topic_instance) {
 
-		uORB::Subscription<sensor_baro_s> report{ORB_ID(sensor_baro), 0, (unsigned)topic_instance};
+		uORB::SubscriptionData<sensor_baro_s> report{ORB_ID(sensor_baro), topic_instance};
 
 		int temp = _temperature_compensation.set_sensor_id_baro(report.get().device_id, topic_instance);
 

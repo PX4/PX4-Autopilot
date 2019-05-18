@@ -934,7 +934,7 @@ void Logger::run()
 	}
 
 	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	uORB::Subscription<parameter_update_s> parameter_update_sub(ORB_ID(parameter_update));
+	uORB::SubscriptionData<parameter_update_s> parameter_update_sub(ORB_ID(parameter_update));
 	int log_message_sub = orb_subscribe(ORB_ID(log_message));
 	orb_set_interval(log_message_sub, 20);
 

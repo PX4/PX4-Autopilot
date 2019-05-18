@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,67 +42,78 @@
 namespace uORB
 {
 
-SubscriptionBase::SubscriptionBase(const struct orb_metadata *meta, unsigned interval, unsigned instance) :
-	_meta(meta),
-	_instance(instance)
+bool Subscription::subscribe()
 {
-	if (instance > 0) {
-		_handle = orb_subscribe_multi(_meta, instance);
+	DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
+	_node = device_master->getDeviceNode(_meta, _instance);
 
-	} else {
-		_handle = orb_subscribe(_meta);
+	if (_node != nullptr) {
+		_node->add_internal_subscriber();
+
+		// If there were any previous publications, allow the subscriber to read them
+		const unsigned curr_gen = _node->published_message_count();
+		const unsigned q_size = _node->get_queue_size();
+
+		_last_generation = curr_gen - (q_size < curr_gen ? q_size : curr_gen);
+
+		return true;
 	}
 
-	if (_handle < 0) {
-		PX4_ERR("%s sub failed", _meta->o_name);
-	}
-
-	if (interval > 0) {
-		orb_set_interval(_handle, interval);
-	}
+	return false;
 }
 
-bool SubscriptionBase::updated()
+void Subscription::unsubscribe()
 {
-	bool isUpdated = false;
-
-	if (orb_check(_handle, &isUpdated) != PX4_OK) {
-		PX4_ERR("%s check failed", _meta->o_name);
+	if (_node != nullptr) {
+		_node->remove_internal_subscriber();
 	}
 
-	return isUpdated;
+	_last_generation = 0;
 }
 
-bool SubscriptionBase::update(void *data)
+bool Subscription::init()
 {
-	bool orb_updated = false;
+	if (_meta != nullptr) {
+		// this throttles the relatively expensive calls to getDeviceNode()
+		if ((_last_generation == 0) || (_last_generation < 1000) || (_last_generation % 100 == 0))  {
+			if (subscribe()) {
+				return true;
+			}
+		}
 
-	if (updated()) {
-		if (orb_copy(_meta, _handle, data) != PX4_OK) {
-			PX4_ERR("%s copy failed", _meta->o_name);
-
-		} else {
-			orb_updated = true;
+		if (_node == nullptr) {
+			// use generation to count attempts to subscribe
+			_last_generation++;
 		}
 	}
 
-	return orb_updated;
+	return false;
 }
 
-SubscriptionBase::~SubscriptionBase()
+bool Subscription::forceInit()
 {
-	if (orb_unsubscribe(_handle) != PX4_OK) {
-		PX4_ERR("%s unsubscribe failed", _meta->o_name);
+	if (_node == nullptr) {
+		// reset generation to force subscription attempt
+		_last_generation = 0;
+		return subscribe();
 	}
+
+	return false;
 }
 
-SubscriptionNode::SubscriptionNode(const struct orb_metadata *meta, unsigned interval, unsigned instance,
-				   List<SubscriptionNode *> *list)
-	: SubscriptionBase(meta, interval, instance)
+bool Subscription::update(uint64_t *time, void *dst)
 {
-	if (list != nullptr) {
-		list->add(this);
+	if ((time != nullptr) && (dst != nullptr) && published()) {
+		// always copy data to dst regardless of update
+		const uint64_t t = _node->copy_and_get_timestamp(dst, _last_generation);
+
+		if (*time == 0 || *time != t) {
+			*time = t;
+			return true;
+		}
 	}
+
+	return false;
 }
 
 } // namespace uORB
