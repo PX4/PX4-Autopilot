@@ -324,7 +324,7 @@ int WindEstimatorModule::print_status()
 	perf_print_counter(_perf_interval);
 
 	if (_instance > -1) {
-		uORB::Subscription<wind_estimate_s> est{ORB_ID(wind_estimate), (unsigned)_instance};
+		uORB::SubscriptionData<wind_estimate_s> est{ORB_ID(wind_estimate), (uint8_t)_instance};
 		est.update();
 
 		print_message(est.get());
