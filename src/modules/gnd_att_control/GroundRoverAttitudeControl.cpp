@@ -67,7 +67,7 @@ GroundRoverAttitudeControl::GroundRoverAttitudeControl() :
 	_parameter_handles.w_d = param_find("GND_WR_D");
 	_parameter_handles.w_imax = param_find("GND_WR_IMAX");
 
-    _parameter_handles.w_rmax = param_find("GND_W_RMAX");
+	_parameter_handles.w_rmax = param_find("GND_W_RMAX");
 
 	_parameter_handles.trim_yaw = param_find("TRIM_YAW");
 
@@ -116,7 +116,7 @@ GroundRoverAttitudeControl::parameters_update()
 	param_get(_parameter_handles.w_d, &(_parameters.w_d));
 	param_get(_parameter_handles.w_imax, &(_parameters.w_imax));
 
-    param_get(_parameter_handles.w_rmax, &(_parameters.w_rmax));
+	param_get(_parameter_handles.w_rmax, &(_parameters.w_rmax));
 
 	param_get(_parameter_handles.trim_yaw, &(_parameters.trim_yaw));
 	param_get(_parameter_handles.man_yaw_scale, &(_parameters.man_yaw_scale));
@@ -274,15 +274,16 @@ GroundRoverAttitudeControl::task_main()
 					/* Calculate the control output for the steering as yaw */
 					float yaw_u = pid_calculate(&_steering_ctrl, _att_sp.yaw_body, euler_angles.psi(), _att.yawspeed, deltaT);
 
-                    if(yaw_u > _parameters.w_rmax){     // Limit steering rate
-                        yaw_u = _parameters.w_rmax;
-                    }else if(yaw_u < 0 - _parameters.w_rmax){
-                        yaw_u = 0 - _parameters.w_rmax;
-                    }
+					if (yaw_u > _parameters.w_rmax) {   // Limit steering rate
+						yaw_u = _parameters.w_rmax;
 
-                    if((yaw_u < 0.001f) && (yaw_u > -0.001f)){     // Ignore tiny err
-                        yaw_u = 0.0;
-                    }
+					} else if (yaw_u < 0 - _parameters.w_rmax) {
+						yaw_u = 0 - _parameters.w_rmax;
+					}
+
+					if ((yaw_u < 0.001f) && (yaw_u > -0.001f)) {   // Ignore tiny err
+						yaw_u = 0.0;
+					}
 
 					float angle_diff = 0.0f;
 
