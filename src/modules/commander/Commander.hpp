@@ -41,7 +41,7 @@
 #include <lib/mathlib/mathlib.h>
 #include <px4_module.h>
 #include <px4_module_params.h>
-#include <systemlib/hysteresis/hysteresis.h>
+#include <lib/hysteresis/hysteresis.h>
 
 // publications
 #include <uORB/Publication.hpp>
