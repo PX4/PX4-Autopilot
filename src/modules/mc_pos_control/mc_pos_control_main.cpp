@@ -585,7 +585,7 @@ MulticopterPositionControl::run()
 		}
 
 		// an update is necessary here because otherwise the takeoff state doesn't get skiped with non-altitude-controlled modes
-		_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f, !_control_mode.flag_control_climb_rate_enabled);
+		_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f, !_control_mode.flag_control_climb_rate_enabled, time_stamp_current);
 
 		// takeoff delay for motors to reach idle speed
 		if (_takeoff.getTakeoffState() >= TakeoffState::ready_for_takeoff) {
@@ -613,7 +613,7 @@ MulticopterPositionControl::run()
 
 			} else {
 				setpoint = _flight_tasks.getPositionSetpoint();
-				_failsafe_land_hysteresis.set_state_and_update(false);
+				_failsafe_land_hysteresis.set_state_and_update(false, time_stamp_current);
 
 				// Check if position, velocity or thrust pairs are valid -> trigger failsaife if no pair is valid
 				if (!(PX4_ISFINITE(setpoint.x) && PX4_ISFINITE(setpoint.y)) &&
@@ -638,7 +638,7 @@ MulticopterPositionControl::run()
 			set_vehicle_states(setpoint.vz);
 
 			// handle smooth takeoff
-			_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, constraints.want_takeoff, constraints.speed_up, !_control_mode.flag_control_climb_rate_enabled);
+			_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, constraints.want_takeoff, constraints.speed_up, !_control_mode.flag_control_climb_rate_enabled, time_stamp_current);
 			constraints.speed_up = _takeoff.updateRamp(_dt, constraints.speed_up);
 
 			if (_takeoff.getTakeoffState() < TakeoffState::rampup && !PX4_ISFINITE(setpoint.thrust[2])) {
@@ -976,7 +976,7 @@ void
 MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint, const PositionControlStates &states,
 				     const bool force, const bool warn)
 {
-	_failsafe_land_hysteresis.set_state_and_update(true);
+	_failsafe_land_hysteresis.set_state_and_update(true, hrt_absolute_time());
 
 	if (!_failsafe_land_hysteresis.get_state() && !force) {
 		// just keep current setpoint and don't do anything.

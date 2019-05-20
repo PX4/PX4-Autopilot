@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,9 +61,9 @@ public:
 
 	void set_hysteresis_time_from(const bool from_state, const hrt_abstime new_hysteresis_time_us);
 
-	void set_state_and_update(const bool new_state);
+	void set_state_and_update(const bool new_state, const hrt_abstime &now_us);
 
-	void update();
+	void update(const hrt_abstime &now_us);
 
 private:
 
