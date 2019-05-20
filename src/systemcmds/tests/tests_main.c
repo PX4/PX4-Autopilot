@@ -128,8 +128,9 @@ const struct {
 	{"controllib",		controllib_test_main,	0},
 #ifndef __PX4_NUTTX
 	{"mavlink",		mavlink_tests_main,	0},
-#endif
+#else
 	{"sf0x",		sf0x_tests_main,	0},
+#endif
 	{"uorb",		uorb_tests_main,	0},
 
 	{NULL,			NULL, 		0}
