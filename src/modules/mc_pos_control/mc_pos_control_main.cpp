@@ -43,7 +43,7 @@
 #include <px4_module.h>
 #include <px4_posix.h>
 #include <drivers/drv_hrt.h>
-#include <systemlib/hysteresis/hysteresis.h>
+#include <lib/hysteresis/hysteresis.h>
 #include <commander/px4_custom_mode.h>
 
 #include <uORB/topics/home_position.h>

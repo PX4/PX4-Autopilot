@@ -44,7 +44,7 @@
 
 #include <px4_workqueue.h>
 #include <px4_module.h>
-#include <systemlib/hysteresis/hysteresis.h>
+#include <lib/hysteresis/hysteresis.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
 #include <uORB/uORB.h>
