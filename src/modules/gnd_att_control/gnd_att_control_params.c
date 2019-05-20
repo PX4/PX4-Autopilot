@@ -127,17 +127,19 @@ PARAM_DEFINE_FLOAT(GND_WR_IMAX, 0.0f);
 /**
  * Maximum wheel steering rate
  *
- * This limits the maximum wheel steering rate the controller will output (in degrees per
- * second). Setting a value of zero disables the limit.
+ * This limits the maximum wheel steering rate the controller will output. Setting a value of 1 disables the limit.
+ * This is designed for throttle-differential rovers to limit in situ steering rate. A value of 0.5 works.
+ * For normal rovers, a value of 1 will be fine.
+ * Warning: a value of zero will make steering not work.
  *
- * @unit deg/s
+ * @unit norm
  * @min 0.0
- * @max 90.0
+ * @max 1.0
  * @decimal 1
- * @increment 0.5
+ * @increment 0.05
  * @group GND Attitude Control
  */
-PARAM_DEFINE_FLOAT(GND_W_RMAX, 90.0f);
+PARAM_DEFINE_FLOAT(GND_W_RMAX, 1.0f);
 
 /**
  * Wheel steering rate feed forward
