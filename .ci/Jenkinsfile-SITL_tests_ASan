@@ -140,7 +140,7 @@ def createTestNode(Map test_def) {
           }
 
           // upload log to flight review (https://logs.px4.io/)
-          sh('px4-px4_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}: ${GIT_COMMIT:0:6}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
+          sh('px4-px4_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}: ${GIT_COMMIT}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
 
           if (!test_ok) {
             error('ROS Test failed')
