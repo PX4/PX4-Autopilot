@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <systemlib/hysteresis/hysteresis.h>
+#include <lib/hysteresis/hysteresis.h>
 #include <drivers/drv_hrt.h>
 
 using namespace time_literals;
@@ -76,7 +76,7 @@ public:
 	 * @return true if setpoint has updated correctly
 	 */
 	void updateTakeoffState(const bool armed, const bool landed, const bool want_takeoff,
-				const float takeoff_desired_vz, const bool skip_takeoff);
+				const float takeoff_desired_vz, const bool skip_takeoff, const hrt_abstime &now_us);
 
 	/**
 	 * Update and return the velocity constraint ramp value during takeoff.

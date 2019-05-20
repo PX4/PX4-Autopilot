@@ -1715,7 +1715,7 @@ Commander::run()
 					_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_land.get() * 1_s);
 				}
 
-				_auto_disarm_landed.set_state_and_update(land_detector.landed);
+				_auto_disarm_landed.set_state_and_update(land_detector.landed, hrt_absolute_time());
 
 				if (_auto_disarm_landed.get_state()) {
 					arm_disarm(false, &mavlink_log_pub, "Auto disarm on land");
@@ -1724,15 +1724,15 @@ Commander::run()
 
 
 			// Auto disarm after 5 seconds if kill switch is engaged
-			_auto_disarm_killed.set_state_and_update(armed.manual_lockdown);
+			_auto_disarm_killed.set_state_and_update(armed.manual_lockdown, hrt_absolute_time());
 
 			if (_auto_disarm_killed.get_state()) {
 				arm_disarm(false, &mavlink_log_pub, "Kill-switch still engaged, disarming");
 			}
 
 		} else {
-			_auto_disarm_landed.set_state_and_update(false);
-			_auto_disarm_killed.set_state_and_update(false);
+			_auto_disarm_landed.set_state_and_update(false, hrt_absolute_time());
+			_auto_disarm_killed.set_state_and_update(false, hrt_absolute_time());
 		}
 
 
