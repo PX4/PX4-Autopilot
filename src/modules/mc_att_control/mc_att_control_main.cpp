@@ -500,10 +500,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	q_sp.copyTo(attitude_setpoint.q_d);
 	attitude_setpoint.q_d_valid = true;
 
-	// hotfix: make sure to leave a zero thrust setpoint for position controller to take over after initialization in manual mode
-	// without this the actuator_controls thrust stays like it was set here when switching to a position controlled mode and the
-	// land detector will immediately detect takeoff when arming
-	attitude_setpoint.thrust_body[2] = _v_control_mode.flag_armed ? -throttle_curve(_manual_control_sp.z) : 0.0f;
+	attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_sp.z);
 	attitude_setpoint.timestamp = hrt_absolute_time();
 	if (_attitude_sp_id != nullptr) {
 		orb_publish_auto(_attitude_sp_id, &_vehicle_attitude_setpoint_pub, &attitude_setpoint, nullptr, ORB_PRIO_DEFAULT);
