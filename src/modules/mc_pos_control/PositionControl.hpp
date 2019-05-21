@@ -196,6 +196,9 @@ protected:
 	void updateParams() override;
 
 private:
+
+	static constexpr float CONSTANTS_ONE_G = 9.80665f; // m/s^2
+
 	/**
 	 * Maps setpoints to internal-setpoints.
 	 * @return true if mapping succeeded.

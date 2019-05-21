@@ -233,7 +233,7 @@ void PositionControl::_velocityController(const float &dt)
 {
 	// Generate desired thrust setpoint.
 	// PID
-	// u_des = P(vel_err) + D(vel_err_dot) + I(vel_integral)
+	// u_des = P(vel_err) + D(vel_err_dot) + I(vel_integral) + Feedforward
 	// Umin <= u_des <= Umax
 	//
 	// Anti-Windup:
@@ -255,11 +255,14 @@ void PositionControl::_velocityController(const float &dt)
 	// 	 consideration of the desired thrust in D-direction. In addition, the thrust in
 	// 	 NE-direction is also limited by the maximum tilt.
 
+	// Acceleration to thrust feedforward conversion
+	const Vector3f thr_ff = _acc_sp * _param_mpc_thr_hover.get() / CONSTANTS_ONE_G;
+
 	const Vector3f vel_err = _vel_sp - _vel;
 
 	// Consider thrust in D-direction.
-	float thrust_desired_D = _param_mpc_z_vel_p.get() * vel_err(2) +  _param_mpc_z_vel_d.get() * _vel_dot(2) + _thr_int(
-					 2) - _param_mpc_thr_hover.get();
+	float thrust_desired_D = _param_mpc_z_vel_p.get() * vel_err(2) +  _param_mpc_z_vel_d.get() * _vel_dot(2)
+				 + _thr_int(2) - _param_mpc_thr_hover.get() + thr_ff(2);
 
 	// The Thrust limits are negated and swapped due to NED-frame.
 	float uMax = -_param_mpc_thr_min.get();
@@ -292,8 +295,10 @@ void PositionControl::_velocityController(const float &dt)
 	} else {
 		// PID-velocity controller for NE-direction.
 		Vector2f thrust_desired_NE;
-		thrust_desired_NE(0) = _param_mpc_xy_vel_p.get() * vel_err(0) + _param_mpc_xy_vel_d.get() * _vel_dot(0) + _thr_int(0);
-		thrust_desired_NE(1) = _param_mpc_xy_vel_p.get() * vel_err(1) + _param_mpc_xy_vel_d.get() * _vel_dot(1) + _thr_int(1);
+		thrust_desired_NE(0) = _param_mpc_xy_vel_p.get() * vel_err(0) + _param_mpc_xy_vel_d.get() * _vel_dot(0)
+				       + _thr_int(0) + thr_ff(0);
+		thrust_desired_NE(1) = _param_mpc_xy_vel_p.get() * vel_err(1) + _param_mpc_xy_vel_d.get() * _vel_dot(1)
+				       + _thr_int(1) + thr_ff(1);
 
 		// Get maximum allowed thrust in NE based on tilt and excess thrust.
 		float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);
