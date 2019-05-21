@@ -516,7 +516,7 @@ bool Ekf::realignYawGPS()
 
 			// apply the change in attitude quaternion to our newest quaternion estimate
 			// which was already taken out from the output buffer
-			_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
+			_output_new.quat_nominal = _output_new.quat_nominal * _state_reset_status.quat_change;
 
 			// capture the reset event
 			_state_reset_status.quat_counter++;
@@ -756,7 +756,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update
 
 		// apply the change in attitude quaternion to our newest quaternion estimate
 		// which was already taken out from the output buffer
-		_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
+		_output_new.quat_nominal = _output_new.quat_nominal * _state_reset_status.quat_change;
 	}
 
 	// capture the reset event
