@@ -73,7 +73,8 @@ def add_msg_field(field):
         if field.is_array:
             print('    {0}__{1}_array_{2} {3}_;'.format(spec.short_name, str(get_idl_type_name(field.base_type)).replace(" ", "_"), str(field.array_len), field.name))
         else:
-            print('    {0} {1}_;'.format(str(get_idl_type_name(field.type)), field.name))
+            base_type = get_idl_type_name(field.base_type) + "_" if get_idl_type_name(field.base_type) in builtin_types else get_idl_type_name(field.base_type)
+            print('    {0} {1}_;'.format(base_type, field.name))
 
 
 def add_msg_fields():
@@ -86,7 +87,7 @@ def add_array_typedefs():
         if not field.is_header and field.is_array:
             base_type = get_idl_type_name(field.base_type) + "_" if get_idl_type_name(field.base_type) in builtin_types else get_idl_type_name(field.base_type)
             array_type = 'typedef {0} {1}__{2}_array_{3}[{4}];'.format(base_type, spec.short_name, get_idl_type_name(field.base_type).replace(" ", "_"), field.array_len, field.array_len)
-            if type not in array_types:
+            if array_type not in array_types:
                 array_types.add(array_type)
     for atype in array_types:
         print(atype)
@@ -110,10 +111,6 @@ def add_msg_constants():
 @[end for]
 @# Constants
 @add_msg_constants()
-@# Built-in types
-@[for type in builtin_types]
-typedef @(type + '_') @(type);
-@[end for]
 @# Array types
 @add_array_typedefs()
 struct @(spec.short_name)_
