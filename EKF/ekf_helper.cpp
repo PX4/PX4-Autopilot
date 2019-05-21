@@ -509,7 +509,7 @@ bool Ekf::realignYawGPS()
 			_state_reset_status.quat_change = quat_before_reset.inversed() * _state.quat_nominal;
 
 			// add the reset amount to the output observer buffered data
-			// Note q1 *= q2 is equivalent to q1 = q2 * q1
+			// Note q1 *= q2 is equivalent to q1 = q1 * q2
 			for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
 				_output_buffer[i].quat_nominal *= _state_reset_status.quat_change;
 			}
@@ -750,7 +750,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update
 	if (update_buffer) {
 		// add the reset amount to the output observer buffered data
 		for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
-			// Note q1 *= q2 is equivalent to q1 = q2 * q1
+			// Note q1 *= q2 is equivalent to q1 = q1 * q2
 			_output_buffer[i].quat_nominal *= _state_reset_status.quat_change;
 		}
 
