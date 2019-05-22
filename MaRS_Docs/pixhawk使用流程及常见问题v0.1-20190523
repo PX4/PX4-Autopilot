@@ -1,0 +1,15 @@
+
+Pixhawk使用流程简介：
+1. 烧写固件：make px4_fmu-v5_default upload 或者 QGC中firmware中advance setting —> customer firmware file
+2. 选择airframe：Gemini->VTOL_DUO_TAILSITTER, Hong Hu->VTOL_QUAD_TAILSITTER
+3. 刷写最新参数表（未来会放在Github上）：Parameters->Tools->Load from file
+4. sensor选项卡中对每个sensor进行校准（设置磁罗盘方向）
+5. RC校准
+6. 校准舵机（搜索pwm trim）
+7. 检查增稳逻辑
+
+常见问题：
+1. 数传连接不上：飞机断电，通过QGC中的Firmware选项卡给数传更新固件，注意一定要联网且确保QGC提示update completed。
+2. sensor选项卡提示缺少Airspeed/GPS: 在Parameters选项卡中搜索CBRK，通过设置CRBK_XXXX参数禁用对应模块
+3. 提示Primary compass: 校准磁力计
+
