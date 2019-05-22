@@ -834,9 +834,17 @@ MulticopterAttitudeControl::run()
 							!_v_control_mode.flag_control_position_enabled) {
 						generate_attitude_setpoint(attitude_dt, reset_yaw_sp);
 						attitude_setpoint_generated = true;
-					}
+					} 
 
 					control_attitude();
+					if (_v_control_mode.flag_control_yawrate_override_enabled)
+					{
+						/* Yaw rate override enabled, overwrite the yaw setpoint */
+						vehicle_rates_setpoint_poll();
+						const auto yawrate_reference = _v_rates_sp.yaw;	
+						_rates_sp(2) = yawrate_reference;
+					}
+
 					publish_rates_setpoint();
 				}
 

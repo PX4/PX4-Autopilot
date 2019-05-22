@@ -347,7 +347,7 @@ void FlightTaskManualAltitude::_updateSetpoints()
 
 bool FlightTaskManualAltitude::_checkTakeoff()
 {
-	// stick is deflected above the middle 15% of the range
+	// stick is deflected above 65% throttle (_sticks(2) is in the range [-1,1])
 	return _sticks(2) < -0.3f;
 }
 
