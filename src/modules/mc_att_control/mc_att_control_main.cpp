@@ -521,6 +521,12 @@ MulticopterAttitudeControl::control_attitude()
 {
 	vehicle_attitude_setpoint_poll();
 
+	// reinitialize the setpoint while not armed to make sure no value from the last flight is still kept
+	if (!_v_control_mode.flag_armed) {
+		Quatf().copyTo(_v_att_sp.q_d);
+		Vector3f().copyTo(_v_att_sp.thrust_body);
+	}
+
 	// physical thrust axis is the negative of body z axis
 	_thrust_sp = -_v_att_sp.thrust_body[2];
 
