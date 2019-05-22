@@ -167,7 +167,7 @@ void ObstacleAvoidance::updateAvoidanceDesiredSetpoints(const Vector3f &pos_sp, 
 }
 
 void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector3f &prev_wp,
-		float target_acceptance_radius, const Vector2f &closest_pt)
+		float target_acceptance_radius, const Vector2f &closest_pt, const int wp_type)
 {
 	_position = pos;
 	position_controller_status_s pos_control_status = {};
@@ -190,7 +190,8 @@ void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector
 
 	const float pos_to_target_z = fabsf(_curr_wp(2) - _position(2));
 
-	if (pos_to_target.length() < target_acceptance_radius && pos_to_target_z > NAV_MC_ALT_RAD.get()) {
+	if (pos_to_target.length() < target_acceptance_radius && pos_to_target_z > NAV_MC_ALT_RAD.get()
+	    && wp_type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 		// vehicle above or below the target waypoint
 		pos_control_status.altitude_acceptance = pos_to_target_z + 0.5f;
 	}
