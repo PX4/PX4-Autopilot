@@ -152,7 +152,7 @@ bool FlightTask::_checkTakeoff()
 	bool position_triggered_takeoff = false;
 
 	if (PX4_ISFINITE(_position_setpoint(2))) {
-		//minimal altitude either 20cm or what is necessary for correct estimation e.g. optical flow
+		// minimal altitude either 20cm or what is necessary for correct estimation e.g. optical flow
 		float min_altitude = 0.2f;
 		const float min_distance_to_ground = _sub_vehicle_local_position->get().hagl_min;
 

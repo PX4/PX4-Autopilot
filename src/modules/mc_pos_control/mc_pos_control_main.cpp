@@ -360,7 +360,7 @@ MulticopterPositionControl::parameters_update(bool force)
 		// set trigger time for takeoff delay
 		_takeoff.setSpoolupTime(_param_mpc_spoolup_time.get());
 		_takeoff.setTakeoffRampTime(_param_mpc_tko_ramp_t.get());
-		_takeoff.generateInitialValue(_param_mpc_thr_hover.get(), _param_mpc_z_vel_p.get());
+		_takeoff.generateInitialRampValue(_param_mpc_thr_hover.get(), _param_mpc_z_vel_p.get());
 
 		if (_wv_controller != nullptr) {
 			_wv_controller->update_parameters();

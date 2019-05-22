@@ -61,7 +61,14 @@ public:
 	// initialize parameters
 	void setTakeoffRampTime(const float seconds) { _takeoff_ramp_time = seconds; }
 	void setSpoolupTime(const float seconds) { _spoolup_time_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(seconds * (float)1_s)); }
-	void generateInitialValue(const float hover_thrust, const float velocity_p_gain);
+
+	/**
+	 * Calculate a vertical velocity to initialize the takeoff ramp
+	 * that when passed to the velocity controller results in a zero throttle setpoint.
+	 * @param hover_thrust normalized thrsut value with which the vehicle hovers
+	 * @param velocity_p_gain proportional gain of the velocity controller to calculate the thrust
+	 */
+	void generateInitialRampValue(const float hover_thrust, const float velocity_p_gain);
 
 	/**
 	 * Update the state for the takeoff.
@@ -70,6 +77,15 @@ public:
 	 */
 	void updateTakeoffState(const bool armed, const bool landed, const bool want_takeoff,
 				const float takeoff_desired_vz, const bool skip_takeoff);
+
+	/**
+	 * Update and return the velocity constraint ramp value during takeoff.
+	 * By ramping up _takeoff_ramp_vz during the takeoff and using it to constain the maximum climb rate a smooth takeoff behavior is achieved.
+	 * Returns zero on the ground and takeoff_desired_vz in flight.
+	 * @param dt time in seconds since the last call/loop iteration
+	 * @param takeoff_desired_vz end value for the velocity ramp
+	 * @return true if setpoint has updated correctly
+	 */
 	float updateRamp(const float dt, const float takeoff_desired_vz);
 
 	TakeoffState getTakeoffState() { return _takeoff_state; }
