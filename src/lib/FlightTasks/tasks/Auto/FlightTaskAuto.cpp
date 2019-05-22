@@ -280,7 +280,8 @@ bool FlightTaskAuto::_evaluateTriplets()
 				_sub_triplet_setpoint->get().next.yaw,
 				_sub_triplet_setpoint->get().next.yawspeed_valid ? _sub_triplet_setpoint->get().next.yawspeed : NAN,
 				_ext_yaw_handler != nullptr && _ext_yaw_handler->is_active());
-		_obstacle_avoidance.checkAvoidanceProgress(_position, _triplet_prev_wp, _target_acceptance_radius, _closest_pt);
+		_obstacle_avoidance.checkAvoidanceProgress(_position, _triplet_prev_wp, _target_acceptance_radius, _closest_pt,
+				_sub_triplet_setpoint->get().current.type);
 	}
 
 	return true;
