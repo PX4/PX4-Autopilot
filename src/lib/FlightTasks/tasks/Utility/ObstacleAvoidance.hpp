@@ -50,6 +50,8 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/position_setpoint.h>
+
 
 #include <matrix/matrix/math.hpp>
 
@@ -96,9 +98,10 @@ public:
 	 * @param prev_wp, previous position triplet
 	 * @param target_acceptance_radius, current position triplet xy acceptance radius
 	 * @param closest_pt, closest point to the vehicle on the line previous-current position triplet
+	 * @param
 	 */
 	void checkAvoidanceProgress(const matrix::Vector3f &pos, const matrix::Vector3f &prev_wp,
-				    float target_acceptance_radius, const matrix::Vector2f &closest_pt);
+				    float target_acceptance_radius, const matrix::Vector2f &closest_pt,  const int wp_type);
 
 private:
 
