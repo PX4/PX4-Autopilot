@@ -167,7 +167,7 @@ private:
 	bool _geofence_loiter_on{false};
 	bool _geofence_rtl_on{false};
 	bool _warning_action_on{false};
-	hrt_abstime _last_geofence_violation{0};
+	bool _geofence_violated_prev{false};
 
 	FailureDetector _failure_detector;
 	bool _failure_detector_termination_printed{false};
