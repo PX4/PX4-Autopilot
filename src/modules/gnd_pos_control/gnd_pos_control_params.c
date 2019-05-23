@@ -260,3 +260,28 @@ PARAM_DEFINE_FLOAT(GND_SPEED_TRIM, 3.0f);
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(GND_SPEED_MAX, 10.0f);
+
+/**
+ * Distance from front axle to rear axle
+ *
+ *
+ * @unit m
+ * @min 0.0
+ * @decimal 3
+ * @increment 0.01
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(GND_WHEEL_BASE, 2.0f);
+
+/**
+ * Maximum turn angle for Ackerman steering
+ *
+ *
+ * @unit rad
+ * @min 0.0
+ * @max 3.14159
+ * @decimal 3
+ * @increment 0.01
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(GND_MAX_ANG, 0.7854f);

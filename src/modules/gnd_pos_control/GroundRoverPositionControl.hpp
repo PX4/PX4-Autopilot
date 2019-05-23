@@ -151,6 +151,9 @@ private:
 		float throttle_cruise;
 		float throttle_slew_max;
 
+		float wheel_base;
+		float max_turn_angle;
+
 	} _parameters{};			/**< local copies of interesting parameters */
 
 	struct {
@@ -174,6 +177,8 @@ private:
 		param_t throttle_cruise;
 		param_t throttle_slew_max;
 
+		param_t wheel_base;
+		param_t max_turn_angle;
 	} _parameter_handles{};		/**< handles for interesting parameters */
 
 

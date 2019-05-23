@@ -311,6 +311,9 @@ GroundRoverAttitudeControl::task_main()
 
 						_actuators.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_status.scale;
 					}
+
+					_actuators.control[actuator_controls_s::INDEX_YAW] = _att_sp.yaw_body;
+					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _att_sp.thrust_body[0];
 				}
 
 			} else {

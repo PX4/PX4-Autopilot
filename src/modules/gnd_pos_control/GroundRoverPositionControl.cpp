@@ -87,6 +87,9 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	_parameter_handles.throttle_max = param_find("GND_THR_MAX");
 	_parameter_handles.throttle_cruise = param_find("GND_THR_CRUISE");
 
+	_parameter_handles.wheel_base = param_find("GND_WHEEL_BASE");
+	_parameter_handles.max_turn_angle = param_find("GND_MAX_ANG");
+
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -137,6 +140,9 @@ GroundRoverPositionControl::parameters_update()
 	param_get(_parameter_handles.throttle_min, &(_parameters.throttle_min));
 	param_get(_parameter_handles.throttle_max, &(_parameters.throttle_max));
 	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
+
+	param_get(_parameter_handles.wheel_base, &(_parameters.wheel_base));
+	param_get(_parameter_handles.max_turn_angle, &(_parameters.max_turn_angle));
 
 	_gnd_control.set_l1_damping(_parameters.l1_damping);
 	_gnd_control.set_l1_period(_parameters.l1_period);
@@ -273,6 +279,20 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 			_att_sp.yaw_body = _gnd_control.nav_bearing();
 			_att_sp.fw_control_yaw = true;
 			_att_sp.thrust_body[0] = mission_throttle;
+
+			_att_sp.thrust_body[0] = _parameters.throttle_cruise;
+			_att_sp.yaw_body = _parameters.gndspeed_trim;
+
+			float desired_r = ground_speed_2d.norm_squared() / math::abs_t(_gnd_control.nav_lateral_acceleration_demand());
+			desired_r = math::constrain(desired_r, 0.0000001f, 9999999999.0f);
+			float desired_theta = (3.14159f / 2.0f) - (float) std::atan2(desired_r, _parameters.wheel_base);
+			float control_effort = (desired_theta / _parameters.max_turn_angle) * math::sign(
+						       _gnd_control.nav_lateral_acceleration_demand());
+			control_effort = math::constrain(control_effort, -1.0f, 1.0f);
+			_att_sp.yaw_body = control_effort;
+
+			//PX4_INFO("Acc: %7.4f | R: %8.1f | Theta: %6.3f | Ctrl: %7.4f", (double) _gnd_control.nav_lateral_acceleration_demand(),
+			//	 (double) desired_r, (double) desired_theta, (double) control_effort);
 
 		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
