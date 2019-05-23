@@ -156,7 +156,6 @@ static uint8_t _last_sp_man_arm_switch = 0;
 static struct vtol_vehicle_status_s vtol_status = {};
 static struct cpuload_s cpuload = {};
 
-static bool warning_action_on = false;
 static bool last_overload = false;
 
 static struct vehicle_status_flags_s status_flags = {};
@@ -1736,7 +1735,7 @@ Commander::run()
 		}
 
 
-		if (!warning_action_on) {
+		if (!_warning_action_on) {
 			// store the last good main_state when not in an navigation
 			// hold state
 			main_state_before_rtl = internal_state.main_state;
@@ -1745,7 +1744,7 @@ Commander::run()
 			   && internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LOITER
 			   && internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
 			// reset flag again when we switched out of it
-			warning_action_on = false;
+			_warning_action_on = false;
 		}
 
 		orb_check(cpuload_sub, &updated);
@@ -1832,19 +1831,18 @@ Commander::run()
 		}
 
 		// Geofence actions
-		if (armed.armed && (geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE)) {
-
-			static bool geofence_loiter_on = false;
-			static bool geofence_rtl_on = false;
+		// Geofence failsafe is disabled when in a low battery handling action (critical or emergency)
+		if (armed.armed
+		    && (geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE)
+		    && (_battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL)) {
 
 			// check for geofence violation
 			if (geofence_result.geofence_violated) {
-				static hrt_abstime last_geofence_violation = 0;
 				const hrt_abstime geofence_violation_action_interval = 10_s;
 
-				if (hrt_elapsed_time(&last_geofence_violation) > geofence_violation_action_interval) {
+				if (hrt_elapsed_time(&_last_geofence_violation) > geofence_violation_action_interval) {
 
-					last_geofence_violation = hrt_absolute_time();
+					_last_geofence_violation = hrt_absolute_time();
 
 					switch (geofence_result.geofence_action) {
 					case (geofence_result_s::GF_ACTION_NONE) : {
@@ -1860,7 +1858,7 @@ Commander::run()
 					case (geofence_result_s::GF_ACTION_LOITER) : {
 							if (TRANSITION_CHANGED == main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags,
 									&internal_state)) {
-								geofence_loiter_on = true;
+								_geofence_loiter_on = true;
 							}
 
 							break;
@@ -1869,7 +1867,7 @@ Commander::run()
 					case (geofence_result_s::GF_ACTION_RTL) : {
 							if (TRANSITION_CHANGED == main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags,
 									&internal_state)) {
-								geofence_rtl_on = true;
+								_geofence_rtl_on = true;
 							}
 
 							break;
@@ -1887,23 +1885,30 @@ Commander::run()
 			}
 
 			// reset if no longer in LOITER or if manually switched to LOITER
-			geofence_loiter_on = geofence_loiter_on
-					     && (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER)
-					     && (sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_OFF
-						 || sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_NONE);
+			_geofence_loiter_on = _geofence_loiter_on
+					      && (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER)
+					      && (sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_OFF
+						  || sp_man.loiter_switch == manual_control_setpoint_s::SWITCH_POS_NONE);
 
 			// reset if no longer in RTL or if manually switched to RTL
-			geofence_rtl_on = geofence_rtl_on
-					  && (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL)
-					  && (sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_OFF
-					      || sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_NONE);
+			_geofence_rtl_on = _geofence_rtl_on
+					   && (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL)
+					   && (sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_OFF
+					       || sp_man.return_switch == manual_control_setpoint_s::SWITCH_POS_NONE);
 
-			warning_action_on = warning_action_on || (geofence_loiter_on || geofence_rtl_on);
+			_warning_action_on = _warning_action_on || (_geofence_loiter_on || _geofence_rtl_on);
+
+		} else {
+			// No geofence checks, reset flags
+			_geofence_loiter_on = false;
+			_geofence_rtl_on = false;
+			_warning_action_on = false;
+			_last_geofence_violation = 0;
 		}
 
 		// revert geofence failsafe transition if sticks are moved and we were previously in a manual mode
 		// but only if not in a low battery handling action
-		if (rc_override != 0 && (_battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL) && (warning_action_on &&
+		if (rc_override != 0 && (_battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL) && (_warning_action_on &&
 				(main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
 				 main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
 				 main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||
@@ -2719,7 +2724,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 		// if the system now later enters an autonomous state the pilot can move
 		// the sticks to break out of the autonomous state
 
-		if (!warning_action_on
+		if (!_warning_action_on
 		    && (internal_state.main_state == commander_state_s::MAIN_STATE_MANUAL ||
 			internal_state.main_state == commander_state_s::MAIN_STATE_ALTCTL ||
 			internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL ||
