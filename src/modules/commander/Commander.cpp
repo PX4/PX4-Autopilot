@@ -1516,7 +1516,9 @@ Commander::run()
 
 			if (old.ignore_thrust != offboard_control_mode.ignore_thrust ||
 			    old.ignore_attitude != offboard_control_mode.ignore_attitude ||
-			    old.ignore_bodyrate != offboard_control_mode.ignore_bodyrate ||
+			    old.ignore_bodyrate_x != offboard_control_mode.ignore_bodyrate_x ||
+			    old.ignore_bodyrate_y != offboard_control_mode.ignore_bodyrate_y ||
+			    old.ignore_bodyrate_z != offboard_control_mode.ignore_bodyrate_z ||
 			    old.ignore_position != offboard_control_mode.ignore_position ||
 			    old.ignore_velocity != offboard_control_mode.ignore_velocity ||
 			    old.ignore_acceleration_force != offboard_control_mode.ignore_acceleration_force ||
@@ -3323,24 +3325,25 @@ set_control_mode()
 		 * Inner loop flags (e.g. attitude) also depend on outer loop ignore flags (e.g. position)
 		 */
 		control_mode.flag_control_rates_enabled =
-				!offboard_control_mode.ignore_bodyrate_x ||
-				!offboard_control_mode.ignore_bodyrate_y ||
-				!offboard_control_mode.ignore_bodyrate_z ||
-				!offboard_control_mode.ignore_attitude ||
-				!offboard_control_mode.ignore_position ||
-				!offboard_control_mode.ignore_velocity ||
-				!offboard_control_mode.ignore_acceleration_force;
+			!offboard_control_mode.ignore_bodyrate_x ||
+			!offboard_control_mode.ignore_bodyrate_y ||
+			!offboard_control_mode.ignore_bodyrate_z ||
+			!offboard_control_mode.ignore_attitude ||
+			!offboard_control_mode.ignore_position ||
+			!offboard_control_mode.ignore_velocity ||
+			!offboard_control_mode.ignore_acceleration_force;
 
 		control_mode.flag_control_attitude_enabled = !offboard_control_mode.ignore_attitude ||
 				!offboard_control_mode.ignore_position ||
 				!offboard_control_mode.ignore_velocity ||
 				!offboard_control_mode.ignore_acceleration_force;
 
+		// TO-DO: Add support for other modes than yawrate control
 		control_mode.flag_control_yawrate_override_enabled =
-				offboard_control_mode.ignore_bodyrate_x &&
-				offboard_control_mode.ignore_bodyrate_y &&
-				!offboard_control_mode.ignore_bodyrate_z &&
-				!offboard_control_mode.ignore_attitude;
+			offboard_control_mode.ignore_bodyrate_x &&
+			offboard_control_mode.ignore_bodyrate_y &&
+			!offboard_control_mode.ignore_bodyrate_z &&
+			!offboard_control_mode.ignore_attitude;
 
 		control_mode.flag_control_rattitude_enabled = false;
 

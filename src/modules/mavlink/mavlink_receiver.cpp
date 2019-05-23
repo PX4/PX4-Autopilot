@@ -832,8 +832,6 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		bool is_force_sp = (bool)(set_position_target_local_ned.type_mask & (1 << 9));
 		/* yaw ignore flag mapps to ignore_attitude */
 		offboard_control_mode.ignore_attitude = (bool)(set_position_target_local_ned.type_mask & 0x400);
-		/* yawrate ignore flag mapps to ignore_bodyrate */
-		// offboard_control_mode.ignore_bodyrate = (bool)(set_position_target_local_ned.type_mask & 0x800);
 		offboard_control_mode.ignore_bodyrate_x = (bool)(set_position_target_local_ned.type_mask & 0x800);
 		offboard_control_mode.ignore_bodyrate_y = (bool)(set_position_target_local_ned.type_mask & 0x800);
 		offboard_control_mode.ignore_bodyrate_z = (bool)(set_position_target_local_ned.type_mask & 0x800);
@@ -1400,7 +1398,6 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 				}
 
 				/* Publish attitude rate setpoint if bodyrate and thrust ignore bits are not set */
-				///XXX add support for ignoring individual axes
 				if (!_offboard_control_mode.ignore_bodyrate_x ||
 				    !_offboard_control_mode.ignore_bodyrate_y ||
 				    !_offboard_control_mode.ignore_bodyrate_z) {

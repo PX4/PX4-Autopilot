@@ -4,7 +4,6 @@ uint64 timestamp		# time since system start (microseconds)
 
 bool ignore_thrust
 bool ignore_attitude
-bool ignore_bodyrate
 bool ignore_bodyrate_x
 bool ignore_bodyrate_y
 bool ignore_bodyrate_z
