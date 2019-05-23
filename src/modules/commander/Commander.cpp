@@ -1836,53 +1836,49 @@ Commander::run()
 		    && (geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE)
 		    && (_battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL)) {
 
-			// check for geofence violation
-			if (geofence_result.geofence_violated) {
-				const hrt_abstime geofence_violation_action_interval = 10_s;
+			// check for geofence violation transition
+			if (geofence_result.geofence_violated && !_geofence_violated_prev) {
 
-				if (hrt_elapsed_time(&_last_geofence_violation) > geofence_violation_action_interval) {
+				switch (geofence_result.geofence_action) {
+				case (geofence_result_s::GF_ACTION_NONE) : {
+						// do nothing
+						break;
+					}
 
-					_last_geofence_violation = hrt_absolute_time();
+				case (geofence_result_s::GF_ACTION_WARN) : {
+						// do nothing, mavlink critical messages are sent by navigator
+						break;
+					}
 
-					switch (geofence_result.geofence_action) {
-					case (geofence_result_s::GF_ACTION_NONE) : {
-							// do nothing
-							break;
+				case (geofence_result_s::GF_ACTION_LOITER) : {
+						if (TRANSITION_CHANGED == main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags,
+								&internal_state)) {
+							_geofence_loiter_on = true;
 						}
 
-					case (geofence_result_s::GF_ACTION_WARN) : {
-							// do nothing, mavlink critical messages are sent by navigator
-							break;
+						break;
+					}
+
+				case (geofence_result_s::GF_ACTION_RTL) : {
+						if (TRANSITION_CHANGED == main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags,
+								&internal_state)) {
+							_geofence_rtl_on = true;
 						}
 
-					case (geofence_result_s::GF_ACTION_LOITER) : {
-							if (TRANSITION_CHANGED == main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LOITER, status_flags,
-									&internal_state)) {
-								_geofence_loiter_on = true;
-							}
+						break;
+					}
 
-							break;
-						}
-
-					case (geofence_result_s::GF_ACTION_RTL) : {
-							if (TRANSITION_CHANGED == main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags,
-									&internal_state)) {
-								_geofence_rtl_on = true;
-							}
-
-							break;
-						}
-
-					case (geofence_result_s::GF_ACTION_TERMINATE) : {
-							warnx("Flight termination because of geofence");
-							mavlink_log_critical(&mavlink_log_pub, "Geofence violation! Flight terminated");
-							armed.force_failsafe = true;
-							status_changed = true;
-							break;
-						}
+				case (geofence_result_s::GF_ACTION_TERMINATE) : {
+						warnx("Flight termination because of geofence");
+						mavlink_log_critical(&mavlink_log_pub, "Geofence violation! Flight terminated");
+						armed.force_failsafe = true;
+						status_changed = true;
+						break;
 					}
 				}
 			}
+
+			_geofence_violated_prev = geofence_result.geofence_violated;
 
 			// reset if no longer in LOITER or if manually switched to LOITER
 			_geofence_loiter_on = _geofence_loiter_on
@@ -1903,7 +1899,7 @@ Commander::run()
 			_geofence_loiter_on = false;
 			_geofence_rtl_on = false;
 			_warning_action_on = false;
-			_last_geofence_violation = 0;
+			_geofence_violated_prev = false;
 		}
 
 		// revert geofence failsafe transition if sticks are moved and we were previously in a manual mode
