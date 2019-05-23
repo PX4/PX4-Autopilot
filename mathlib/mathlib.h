@@ -60,6 +60,7 @@ float max(float val1, float val2);
 float constrain(float val, float min, float max);
 float radians(float degrees);
 float degrees(float radians);
+int floorf(float input);
 
 }
 #else
