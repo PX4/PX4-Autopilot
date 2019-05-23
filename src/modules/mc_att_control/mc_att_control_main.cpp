@@ -834,7 +834,7 @@ MulticopterAttitudeControl::run()
 							!_v_control_mode.flag_control_position_enabled) {
 						generate_attitude_setpoint(attitude_dt, reset_yaw_sp);
 						attitude_setpoint_generated = true;
-					} 
+					}
 
 					control_attitude();
 					if (_v_control_mode.flag_control_yawrate_override_enabled)
